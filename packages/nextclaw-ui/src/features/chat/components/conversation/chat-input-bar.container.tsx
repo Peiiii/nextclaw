@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type ChangeEvent, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type RefObject } from 'react';
 import { ChatInputBar, type ChatInputBarHandle } from '@nextclaw/agent-chat-ui';
 import { DEFAULT_NCP_ATTACHMENT_MAX_BYTES, uploadFilesAsNcpDraftAttachments } from '@nextclaw/ncp-react';
 import { uploadNcpAssets } from '@/shared/lib/api';
@@ -234,6 +234,16 @@ export function ChatInputBarContainer() {
     ? t('chatStopPreparing')
     : snapshot.stopDisabledReason?.trim() || t('chatStopUnavailable');
   const { handleFilesAdd, handleFileInputChange } = useChatInputBarAttachments({ attachmentSupported, inputBarRef, presenter });
+  useEffect(() => {
+    const request = snapshot.composerFocusRequest;
+    if (!request) {
+      return;
+    }
+    if (request.placement === 'end') {
+      inputBarRef.current?.focusComposerAtEnd();
+    }
+    presenter.chatInputManager.consumeComposerFocusRequest(request.id);
+  }, [presenter.chatInputManager, snapshot.composerFocusRequest]);
   const toolbarSelects = buildToolbarSelects({
     allModelsLabel: labels.allModelsLabel,
     hasModelOptions,

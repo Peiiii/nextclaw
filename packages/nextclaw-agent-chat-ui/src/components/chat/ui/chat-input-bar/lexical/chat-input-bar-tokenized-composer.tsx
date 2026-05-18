@@ -18,8 +18,8 @@ import type {
   ChatInputBarActionsProps,
   ChatSkillPickerOption,
   ChatSlashItem,
-} from '../../../view-models/chat-ui.types';
-import { resolveChatComposerSlashTrigger } from '../chat-composer.utils';
+} from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
+import { resolveChatComposerSlashTrigger } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 import {
   getChatComposerNodesSignature,
   readChatComposerSnapshotFromEditorState,
@@ -40,6 +40,7 @@ export type ChatInputBarTokenizedComposerHandle = {
   insertFileToken: (tokenKey: string, label: string) => void;
   insertFileTokens: (tokens: Array<{ tokenKey: string; label: string }>) => void;
   focusComposer: () => void;
+  focusComposerAtEnd: () => void;
   syncSelectedSkills: (nextKeys: string[], options: ChatSkillPickerOption[]) => void;
 };
 
@@ -123,12 +124,26 @@ export const ChatInputBarTokenizedComposer = forwardRef<
       return;
     }
 
+    editor.getRootElement()?.focus({ preventScroll: true });
     const targetSelection = selectionRef.current;
-    editor.focus(() => {
-      if (targetSelection) {
-        syncLexicalSelectionFromChatComposerSelection(editor, targetSelection);
-      }
-    });
+    if (targetSelection) {
+      syncLexicalSelectionFromChatComposerSelection(editor, targetSelection);
+    }
+    editor.focus();
+  };
+
+  const focusComposerAtEnd = (): void => {
+    const editor = editorRef.current;
+    if (!editor) {
+      return;
+    }
+    const snapshot = readChatComposerSnapshotFromEditorState(editor.getEditorState());
+    const end = snapshot.nodes.reduce((cursor, node) => cursor + (node.type === 'text' ? node.text.length : 1), 0);
+    const targetSelection = { start: end, end };
+    selectionRef.current = targetSelection;
+    editor.getRootElement()?.focus({ preventScroll: true });
+    syncLexicalSelectionFromChatComposerSelection(editor, targetSelection);
+    editor.focus();
   };
 
   const readComposerSnapshot = (): { nodes: ChatComposerNode[]; selection: ChatComposerSelection | null } => ({
@@ -141,6 +156,7 @@ export const ChatInputBarTokenizedComposer = forwardRef<
     () =>
       createLexicalComposerHandle({
         focusComposer,
+        focusComposerAtEnd,
         onSlashItemSelect: props.onSlashItemSelect,
         optionsReader: readComposerSnapshot,
         publishSnapshot,

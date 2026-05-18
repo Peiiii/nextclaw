@@ -44,6 +44,7 @@ export type ChatInputSnapshot = {
   skillRecords: SessionSkillEntryView[];
   isSkillsLoading: boolean;
   selectedSkills: string[];
+  composerFocusRequest: { id: number; placement: 'end' } | null;
 };
 
 type ChatInputStore = {
@@ -75,7 +76,8 @@ const initialSnapshot: ChatInputSnapshot = {
   sessionTypeUnavailable: false,
   skillRecords: [],
   isSkillsLoading: false,
-  selectedSkills: []
+  selectedSkills: [],
+  composerFocusRequest: null
 };
 
 export const useChatInputStore = create<ChatInputStore>((set) => ({

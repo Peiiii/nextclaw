@@ -132,6 +132,24 @@ export class NcpChatInputManager {
     this.syncComposerSnapshot(createChatComposerNodesFromDraft(value));
   };
 
+  requestComposerFocusAtEnd = () => {
+    const currentRequest = useChatInputStore.getState().snapshot.composerFocusRequest;
+    useChatInputStore.getState().setSnapshot({
+      composerFocusRequest: {
+        id: (currentRequest?.id ?? 0) + 1,
+        placement: 'end',
+      },
+    });
+  };
+
+  consumeComposerFocusRequest = (requestId: number) => {
+    const currentRequest = useChatInputStore.getState().snapshot.composerFocusRequest;
+    if (currentRequest?.id !== requestId) {
+      return;
+    }
+    useChatInputStore.getState().setSnapshot({ composerFocusRequest: null });
+  };
+
   setComposerNodes = (next: SetStateAction<ChatComposerNode[]>) => {
     const prev = useChatInputStore.getState().snapshot.composerNodes;
     const value = this.resolveUpdateValue(prev, next);

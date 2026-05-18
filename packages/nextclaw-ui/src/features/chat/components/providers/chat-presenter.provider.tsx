@@ -10,6 +10,8 @@ import type { ChatThreadSnapshot } from '@/features/chat/stores/chat-thread.stor
 export type ChatInputManagerLike = {
   syncSnapshot: (patch: Record<string, unknown>) => void;
   setDraft: (next: SetStateAction<string>) => void;
+  requestComposerFocusAtEnd: () => void;
+  consumeComposerFocusRequest: (requestId: number) => void;
   setComposerNodes: (next: SetStateAction<ChatComposerNode[]>) => void;
   addAttachments?: (attachments: NcpDraftAttachment[]) => NcpDraftAttachment[];
   restoreComposerState?: (nodes: ChatComposerNode[], attachments: NcpDraftAttachment[]) => void;

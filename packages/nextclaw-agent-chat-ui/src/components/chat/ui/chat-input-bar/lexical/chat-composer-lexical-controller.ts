@@ -5,8 +5,8 @@ import type {
   ChatInputBarActionsProps,
   ChatSkillPickerOption,
   ChatSlashItem,
-} from '../../../view-models/chat-ui.types';
-import { resolveChatComposerSlashTrigger } from '../chat-composer.utils';
+} from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
+import { resolveChatComposerSlashTrigger } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 import {
   deleteChatComposerContent,
   insertFileTokenIntoChatComposer,
@@ -106,6 +106,7 @@ export function resolveLexicalComposerKeyboardAction(params: {
 
 type LexicalComposerHandleOwnerParams = {
   focusComposer: () => void;
+  focusComposerAtEnd: () => void;
   onSlashItemSelect?: (item: ChatSlashItem) => void;
   optionsReader: () => {
     nodes: ChatComposerNode[];
@@ -175,6 +176,10 @@ class LexicalComposerHandleOwner implements ChatInputBarTokenizedComposerHandle 
 
   focusComposer = (): void => {
     this.params.focusComposer();
+  };
+
+  focusComposerAtEnd = (): void => {
+    this.params.focusComposerAtEnd();
   };
 
   syncSelectedSkills = (nextKeys: string[], options: ChatSkillPickerOption[]): void => {

@@ -11,6 +11,21 @@ Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
   writable: true,
 });
 
+Object.defineProperty(Range.prototype, 'getBoundingClientRect', {
+  value: vi.fn(() => ({
+    bottom: 0,
+    height: 0,
+    left: 0,
+    right: 0,
+    top: 0,
+    width: 0,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  })),
+  writable: true,
+});
+
 async function insertText(textbox: HTMLElement, text: string) {
   await act(async () => {
     for (const character of text) {
@@ -98,6 +113,30 @@ function FileTokenInsertionHarness() {
         onClick={() => inputRef.current?.insertFileToken('sample-image', 'sample.png')}
       >
         Insert image
+      </button>
+      <ChatInputBar
+        ref={inputRef}
+        {...createInputBarProps({
+          composer: {
+            nodes,
+            placeholder: 'Type a message',
+            disabled: false,
+            onNodesChange: setNodes
+          }
+        })}
+      />
+    </>
+  );
+}
+
+function FocusAtEndHarness() {
+  const [nodes, setNodes] = useState<ChatComposerNode[]>([createChatComposerTextNode('Hello')]);
+  const inputRef = useRef<ChatInputBarHandle | null>(null);
+
+  return (
+    <>
+      <button type="button" onClick={() => inputRef.current?.focusComposerAtEnd()}>
+        Focus end
       </button>
       <ChatInputBar
         ref={inputRef}
@@ -381,6 +420,23 @@ it('renders a file token inside the composer after an imperative insert', async 
 
   await waitFor(() => expect(screen.getByText('sample.png')).toBeTruthy());
   expect(screen.getByRole('textbox').querySelector('[data-composer-token-key="sample-image"]')).toBeTruthy();
+});
+
+it('focuses the composer at the end through the imperative handle', async () => {
+  render(<FocusAtEndHarness />);
+
+  const textbox = screen.getByRole('textbox');
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Focus end' }));
+    await Promise.resolve();
+  });
+  await waitFor(() => expect(document.activeElement).toBe(textbox));
+
+  await waitFor(() => {
+    const selection = window.getSelection();
+    expect(selection?.anchorOffset).toBe(5);
+    expect(selection?.focusOffset).toBe(5);
+  });
 });
 
 it('does not commit intermediate IME composition text before composition ends', () => {

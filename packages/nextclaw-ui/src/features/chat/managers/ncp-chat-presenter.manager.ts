@@ -23,5 +23,6 @@ export class NcpChatPresenter {
     this.chatSessionListManager.createSession();
     this.chatSessionListManager.setSelectedAgentId('main');
     this.chatInputManager.setDraft(prompt);
+    this.chatInputManager.requestComposerFocusAtEnd();
   };
 }

@@ -15,6 +15,7 @@ describe('NcpChatInputManager', () => {
         composerNodes: [createChatComposerTextNode('hello from current thread')],
         attachments: [],
         selectedSkills: [],
+        composerFocusRequest: null,
         selectedSessionType: 'native',
         selectedModel: 'gpt-5',
         selectedThinkingLevel: null,
@@ -208,5 +209,24 @@ describe('NcpChatInputManager', () => {
 
     expect(streamActionsManager.sendMessage).toHaveBeenCalledTimes(1);
     expect(sessionListManager.materializeRootSessionRoute).not.toHaveBeenCalled();
+  });
+
+  it('creates and consumes one-shot composer focus requests', () => {
+    const manager = new NcpChatInputManager(
+      {} as ConstructorParameters<typeof NcpChatInputManager>[0],
+      {} as ConstructorParameters<typeof NcpChatInputManager>[1],
+      {} as ConstructorParameters<typeof NcpChatInputManager>[2],
+    );
+
+    manager.requestComposerFocusAtEnd();
+
+    const request = useChatInputStore.getState().snapshot.composerFocusRequest;
+    expect(request).toEqual({ id: 1, placement: 'end' });
+
+    manager.consumeComposerFocusRequest(999);
+    expect(useChatInputStore.getState().snapshot.composerFocusRequest).toEqual(request);
+
+    manager.consumeComposerFocusRequest(request!.id);
+    expect(useChatInputStore.getState().snapshot.composerFocusRequest).toBeNull();
   });
 });
