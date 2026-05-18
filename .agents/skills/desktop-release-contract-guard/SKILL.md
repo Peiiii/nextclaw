@@ -43,6 +43,7 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 1. Default verification command from repo root:
    - `PATH=/opt/homebrew/bin:$PATH pnpm desktop:package:verify`
    - This verifies the package contract and isolated GUI smoke. It is not enough for handing a clickable local macOS artifact to a maintainer.
+   - This command must work from a clean clone after `pnpm install --frozen-lockfile`; do not rely on pre-existing workspace `dist/` folders.
 2. Local handoff verification command before giving a clickable macOS artifact to a human:
    - `PATH=/opt/homebrew/bin:$PATH pnpm desktop:package:handoff:verify`
    - This must run the normal package contract plus real-profile GUI smoke against the maintainer machine's desktop data dir.

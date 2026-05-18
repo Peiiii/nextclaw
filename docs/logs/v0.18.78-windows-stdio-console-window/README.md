@@ -23,6 +23,8 @@
 
 发布身份必须同步变化：本次不能只发布新的 `desktop-beta` tag，还必须让桌面安装器版本和 runtime bundle 版本递增。否则 Windows 侧可能继续运行同名/同版本安装器或同一 `versions/<runtimeVersion>` 缓存目录中的旧包，用户无法可靠判断自己测到的是新二进制。
 
+同时，`desktop:package:verify` 必须能在 clean clone 中自给自足地构建 UI 的 NCP workspace 依赖。不能依赖本地已有 `dist/`，否则本地验证和 GitHub release runner 之间会再次出现“我这边过了、干净环境不过”的漂移。
+
 ## 用户/产品视角的验收步骤
 
 1. 在 Windows 安装新的 desktop beta。

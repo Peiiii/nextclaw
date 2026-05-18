@@ -84,6 +84,14 @@ function runCommonBuildSteps() {
   run(binName("pnpm"), ["-C", "packages/nextclaw-core", "build"]);
   run(binName("pnpm"), ["-C", "packages/nextclaw-runtime", "build"]);
   run(binName("pnpm"), ["-C", "packages/extensions/nextclaw-channel-runtime", "build"]);
+  for (const packageDir of [
+    "packages/ncp-packages/nextclaw-ncp",
+    "packages/ncp-packages/nextclaw-ncp-toolkit",
+    "packages/ncp-packages/nextclaw-ncp-http-agent-client",
+    "packages/ncp-packages/nextclaw-ncp-react"
+  ]) {
+    run(binName("pnpm"), ["-C", packageDir, "build"]);
+  }
   run(binName("pnpm"), ["-C", "packages/nextclaw-ui", "build"]);
   run(binName("pnpm"), ["-C", "packages/nextclaw-openclaw-compat", "build"]);
   run(binName("pnpm"), ["-C", "packages/nextclaw-server", "build"]);
