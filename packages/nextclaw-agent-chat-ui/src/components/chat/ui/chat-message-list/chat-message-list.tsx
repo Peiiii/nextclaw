@@ -1,5 +1,5 @@
-import type { ChatMessageListProps } from '../../view-models/chat-ui.types';
-import { cn } from '../../internal/cn';
+import type { ChatMessageListProps } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
+import { cn } from '@agent-chat-ui/components/chat/internal/cn';
 import { ChatMessageAvatar } from './chat-message-avatar';
 import { ChatMessage } from './chat-message';
 import { ChatMessageMeta } from './chat-message-meta';
@@ -10,9 +10,6 @@ const TYPING_TEXT_SHEEN_CSS = `
 @keyframes nextclaw-chat-typing-text-sheen {
   0% {
     background-position: 160% 0;
-  }
-  64% {
-    background-position: -60% 0;
   }
   100% {
     background-position: -60% 0;
@@ -36,7 +33,7 @@ const TYPING_TEXT_SHEEN_CSS = `
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  animation: nextclaw-chat-typing-text-sheen 4.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation: nextclaw-chat-typing-text-sheen 1.8s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -98,7 +98,7 @@ it("renders user, assistant, and tool content and supports code copy", async () 
   expect(container.querySelector("style")?.textContent).toContain(
     "nextclaw-chat-typing-text-sheen",
   );
-  expect(container.querySelector("style")?.textContent).toContain("4.2s");
+  expect(container.querySelector("style")?.textContent).toContain("1.8s");
   expect(container.querySelector("style")?.textContent).toContain("infinite");
 
   const codeCopyButton = container.querySelector(".chat-codeblock-copy");
