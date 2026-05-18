@@ -8,43 +8,34 @@ param(
 $ErrorActionPreference = "Stop"
 
 function Invoke-SilentUninstall {
-  param(
-    [string]$InstallDir,
-    [bool]$FailOnError = $true
-  )
+  param([string]$InstallDir)
 
   $uninstallerPath = Join-Path $InstallDir "Uninstall NextClaw Desktop.exe"
   if (Test-Path $uninstallerPath) {
-    try {
-      Write-Host "[desktop-installer-smoke] uninstalling existing install: $uninstallerPath"
-      $uninstallProc = Start-Process -FilePath $uninstallerPath -ArgumentList "/S" -PassThru -Wait
-      if ($uninstallProc.ExitCode -ne 0) {
-        throw "Uninstaller exited with code $($uninstallProc.ExitCode)"
-      }
-    } catch {
-      if ($FailOnError) {
-        throw
-      }
-      Write-Warning "[desktop-installer-smoke] cleanup uninstall failed: $($_.Exception.Message)"
+    Write-Host "[desktop-installer-smoke] uninstalling existing install: $uninstallerPath"
+    $uninstallProc = Start-Process -FilePath $uninstallerPath -ArgumentList "/S" -PassThru -Wait
+    if ($uninstallProc.ExitCode -ne 0) {
+      throw "Uninstaller exited with code $($uninstallProc.ExitCode)"
     }
   }
 
   if (Test-Path $InstallDir) {
-    try {
-      Remove-Item -Recurse -Force $InstallDir
-    } catch {
-      if ($FailOnError) {
-        throw
-      }
-      Write-Warning "[desktop-installer-smoke] cleanup remove failed: $($_.Exception.Message)"
-    }
+    Remove-Item -Recurse -Force $InstallDir
   }
 }
 
 function Stop-DesktopProcesses {
-  $taskkill = Join-Path $env:SystemRoot "System32\taskkill.exe"
-  if (Test-Path $taskkill) {
-    & $taskkill /IM "NextClaw Desktop.exe" /T /F 2>$null | Out-Null
+  try {
+    $taskkill = Join-Path $env:SystemRoot "System32\taskkill.exe"
+    if (-not (Test-Path $taskkill)) {
+      return
+    }
+    $killProc = Start-Process -FilePath $taskkill -ArgumentList "/IM", "NextClaw Desktop.exe", "/T", "/F" -PassThru -Wait -WindowStyle Hidden
+    if ($killProc.ExitCode -ne 0) {
+      Write-Warning "[desktop-installer-smoke] process cleanup exited with code $($killProc.ExitCode)"
+    }
+  } catch {
+    Write-Warning "[desktop-installer-smoke] process cleanup failed: $($_.Exception.Message)"
   }
 }
 

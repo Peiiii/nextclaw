@@ -359,6 +359,7 @@ jobs:
           if-no-files-found: warn
           path: |
             apps/desktop/release/windows-smoke-logs/**
+            ${{ runner.temp }}/nextclaw-desktop-smoke-logs/**
 
       - name: Upload Smoke Logs (Linux)
         if: matrix.platform == 'linux' && always()

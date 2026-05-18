@@ -313,6 +313,11 @@ jobs:
             Copy-Item -Recurse -Force $homeLogs (Join-Path $stagingRoot "home-logs")
           }
 
+          $smokeLogs = Join-Path $env:RUNNER_TEMP "nextclaw-desktop-smoke-logs"
+          if (Test-Path $smokeLogs) {
+            Copy-Item -Recurse -Force $smokeLogs (Join-Path $stagingRoot "smoke-logs")
+          }
+
           $appLogs = Join-Path $env:APPDATA "NextClaw Desktop/logs"
           if (Test-Path $appLogs) {
             Copy-Item -Recurse -Force $appLogs (Join-Path $stagingRoot "app-logs")
@@ -414,6 +419,7 @@ jobs:
           if-no-files-found: warn
           path: |
             apps/desktop/release/windows-installer-smoke-logs/**
+            ${{ runner.temp }}/nextclaw-desktop-smoke-logs/**
 
       - name: Upload Windows desktop installer artifact
         if: always()
