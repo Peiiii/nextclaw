@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlarmClock, FolderOpen, GitBranch, MoreHorizontal, Trash2 } from 'lucide-react';
+import { AlarmClock, FolderOpen, GitBranch, MoreVertical, Trash2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { useChatSessionProject } from '@/features/chat/hooks/use-chat-session-project';
@@ -94,7 +94,7 @@ export function ChatSessionHeaderActions({
             aria-label={t('chatSessionMoreActions')}
             disabled={isBusy}
           >
-            <MoreHorizontal className="h-4 w-4" />
+            <MoreVertical className="h-4 w-4" />
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-56 p-2">
