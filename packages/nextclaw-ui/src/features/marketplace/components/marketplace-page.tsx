@@ -504,14 +504,12 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
       )}
 
       <section className="flex min-h-0 flex-1 flex-col">
-        {!curatedSceneRoute.isSceneRoute &&
-          !curatedSceneRoute.showShelves &&
-          !showListSkeleton && (
+        {!curatedSceneRoute.isSceneRoute && !curatedSceneRoute.showShelves && (
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-[14px] font-semibold text-gray-900">
               {scope === "installed"
                 ? t(copyKeys.sectionInstalled)
-                : language.startsWith("zh") ? "全部技能" : "All Skills"}
+                : t(copyKeys.sectionCatalog)}
             </h3>
             <span className="text-[12px] text-gray-500">{listSummary}</span>
           </div>
@@ -551,8 +549,6 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
             <MarketplaceCuratedShelves
               entries={curatedSceneRoute.entries}
               scenes={curatedSceneRoute.scenes}
-              isScenesLoading={curatedSceneRoute.isScenesLoading}
-              isItemsLoading={showListSkeleton}
               language={language}
               installState={installState}
               onOpen={(entry) => void openItemDetail(entry.item, entry.record)}
@@ -569,7 +565,7 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
               title={
                 scope === "installed"
                   ? t(copyKeys.sectionInstalled)
-                  : language.startsWith("zh") ? "全部技能" : "All Skills"
+                  : t(copyKeys.sectionCatalog)
               }
               summary={listSummary}
               showTitle={curatedSceneRoute.showShelves}
@@ -607,7 +603,7 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
             )}
 
           {scope === "all" &&
-            !showListSkeleton &&
+            !skeletonState.showCatalog &&
             !itemsQuery.isError && (
               <MarketplaceInfiniteScrollStatus
                 hasMore={Boolean(itemsQuery.hasNextPage)}

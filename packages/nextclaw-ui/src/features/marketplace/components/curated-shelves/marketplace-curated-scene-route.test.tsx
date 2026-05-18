@@ -23,13 +23,6 @@ const mocks = vi.hoisted(() => ({
   docOpen: vi.fn(),
   routeParams: {} as { scene?: string },
   itemsQuery: null as unknown as ItemsQueryState,
-  scenesQuery: null as unknown as {
-    data?: { scenes: Array<{ scene: string; title: string; description?: string }> };
-    isLoading: boolean;
-    isFetching: boolean;
-    isError: boolean;
-    error: Error | null;
-  },
 }));
 
 vi.mock("react-router-dom", async () => {
@@ -62,7 +55,21 @@ vi.mock("@/shared/hooks/use-confirm-dialog", () => ({
 
 vi.mock("@/features/marketplace/hooks/use-marketplace", () => ({
   useMarketplaceItems: () => mocks.itemsQuery,
-  useMarketplaceSkillScenes: () => mocks.scenesQuery,
+  useMarketplaceSkillScenes: () => ({
+    data: {
+      scenes: [
+        {
+          scene: "development-debugging",
+          title: "Development",
+          description: "Review, debug, analyze, and verify delivery work.",
+        },
+      ],
+    },
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    error: null,
+  }),
   useMarketplaceSkillSceneCounts: () => new Map([["development-debugging", 2]]),
   useMarketplaceInstalled: () => ({
     data: {
@@ -158,41 +165,17 @@ function createItemsQuery(items: MarketplaceItemSummary[]) {
   };
 }
 
-function createScenesQuery(
-  overrides: Partial<typeof mocks.scenesQuery> = {},
-): typeof mocks.scenesQuery {
-  return {
-    data: {
-      scenes: [
-        {
-          scene: "development-debugging",
-          title: "Development",
-          description: "Review, debug, analyze, and verify delivery work.",
-        },
-      ],
-    },
-    isLoading: false,
-    isFetching: false,
-    isError: false,
-    error: null,
-    ...overrides,
-  };
-}
-
 describe("Marketplace curated scene routes", () => {
   beforeEach(() => {
     mocks.navigate.mockReset();
     mocks.docOpen.mockReset();
     mocks.routeParams = {};
     mocks.itemsQuery = createItemsQuery(createSceneItems());
-    mocks.scenesQuery = createScenesQuery();
   });
 
   it("opens curated goals through a scene route", async () => {
     const user = userEvent.setup();
     const { container } = render(<MarketplacePage forcedType="skills" />);
-
-    expect(screen.getByText("All Skills")).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: /Development/ }));
 
@@ -201,21 +184,6 @@ describe("Marketplace curated scene routes", () => {
       "/skills/scenes/development-debugging",
     );
     expect(container.querySelector("input")?.getAttribute("value") ?? "").toBe("");
-  });
-
-  it("keeps the shelf layout stable while scenes are still loading", () => {
-    mocks.scenesQuery = createScenesQuery({
-      data: undefined,
-      isLoading: true,
-      isFetching: true,
-    });
-
-    render(<MarketplacePage forcedType="skills" />);
-
-    expect(screen.getByTestId("marketplace-scenes-skeleton")).toBeTruthy();
-    expect(screen.getByText("Recently updated")).toBeTruthy();
-    expect(screen.getByText("All Skills")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /Development/ })).toBeNull();
   });
 
   it("renders scene routes as adaptive grids without the catalog shell", async () => {
@@ -228,7 +196,7 @@ describe("Marketplace curated scene routes", () => {
     expect(screen.getByRole("button", { name: "Back" })).toBeTruthy();
     expect(screen.getByText("Code Review")).toBeTruthy();
     expect(screen.queryByText("Calendar Sync")).toBeNull();
-    expect(screen.queryByText("All Skills")).toBeNull();
+    expect(screen.queryByText("Skill Catalog")).toBeNull();
     expect(screen.queryByPlaceholderText("Search skills...")).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Back" }));
