@@ -43,6 +43,7 @@ main_log_has() {
 desktop_startup_blocker() {
   current_main_log | grep -E -m 1 \
     "ENAMETOOLONG|ENOTEMPTY|ERR_FAILED|render-process-gone|Failed to bootstrap runtime|Library load denied|AppleSystemPolicy|AMFI|Another desktop instance is already running" || true
+  grep -E -m 1 "Extension nextclaw-channel-extension-(feishu|weixin) (failed|exited)" "${APP_MAIN_LOG%/launcher/main.log}/service.log" 2>/dev/null || true
 }
 
 desktop_window_ready() {

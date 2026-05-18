@@ -6,7 +6,7 @@ import type {
   IngressEnvelope,
 } from "@nextclaw/shared";
 import { randomUUID } from "node:crypto";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -143,6 +143,9 @@ function findExtensionManifestRoot(startPath: string): string | undefined {
 }
 
 function readBuiltinExtensionPackages(): string[] {
+  if (process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS === "1") {
+    return [];
+  }
   const packageJsonPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..", "package.json");
   try {
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as {
@@ -159,46 +162,6 @@ function readBuiltinExtensionPackages(): string[] {
   }
 }
 
-function readPackageName(packageJsonPath: string): string | undefined {
-  try {
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as { name?: unknown };
-    return typeof packageJson.name === "string" ? packageJson.name : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function readDirectoryNames(root: string): string[] {
-  try {
-    return readdirSync(root, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => String(entry.name));
-  } catch {
-    return [];
-  }
-}
-
-function findWorkspacePackageRoot(packageName: string): string | undefined {
-  const roots = [
-    resolve(process.cwd(), "packages", "extensions"),
-    resolve(process.cwd(), "packages"),
-    resolve(process.cwd(), "apps"),
-    resolve(process.cwd(), "workers"),
-  ];
-  for (const root of roots) {
-    for (const name of readDirectoryNames(root)) {
-      const candidateRoot = join(root, name);
-      if (
-        readPackageName(join(candidateRoot, "package.json")) === packageName &&
-        existsSync(join(candidateRoot, "nextclaw.extension.json"))
-      ) {
-        return candidateRoot;
-      }
-    }
-  }
-  return undefined;
-}
-
 export function resolveBuiltinExtensionManifestRoots(): string[] {
   const roots: string[] = [];
   for (const packageName of readBuiltinExtensionPackages()) {
@@ -210,10 +173,6 @@ export function resolveBuiltinExtensionManifestRoots(): string[] {
       }
     } catch {
       // Package-manager installs may omit optional built-ins in development workspaces.
-    }
-    const workspaceRoot = findWorkspacePackageRoot(packageName);
-    if (workspaceRoot) {
-      roots.push(workspaceRoot);
     }
   }
   return uniquePaths(roots);

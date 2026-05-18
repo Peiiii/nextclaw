@@ -98,6 +98,21 @@ describe("resolveExtensionManifestRoots", () => {
     expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-weixin"))).toBe(true);
   });
 
+  it("skips bundled extension packages when the host disables duplicate child processes", () => {
+    const original = process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS;
+    process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS = "1";
+
+    try {
+      expect(resolveBuiltinExtensionManifestRoots()).toEqual([]);
+    } finally {
+      if (original === undefined) {
+        delete process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS;
+      } else {
+        process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS = original;
+      }
+    }
+  });
+
   it("uses NextClaw extension directories and existing configured load paths", () => {
     const workspace = createTempDir();
     const roots = resolveExtensionManifestRoots({

@@ -77,7 +77,7 @@ function Get-DesktopStartupBlocker {
     }
   }
 
-  $servicePattern = "Extension nextclaw-channel-extension-(feishu|weixin) failed: spawn node ENOENT"
+  $servicePattern = "Extension nextclaw-channel-extension-(feishu|weixin) (failed|exited)"
   if (Test-Path $script:ServiceLog) {
     foreach ($line in @(Get-Content -Path $script:ServiceLog)) {
       if ($line -match $servicePattern) { return $line }

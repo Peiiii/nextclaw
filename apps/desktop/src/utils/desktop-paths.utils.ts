@@ -54,6 +54,7 @@ export function createDesktopRuntimeEnv(baseEnv: NodeJS.ProcessEnv = process.env
   delete runtimeEnv[LEGACY_RUNTIME_HOME_ENV];
   delete runtimeEnv[LEGACY_DESKTOP_DATA_ENV];
   runtimeEnv.ELECTRON_RUN_AS_NODE = "1";
+  runtimeEnv.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS = "1";
   runtimeEnv[LEGACY_RUNTIME_HOME_ENV] = resolveDesktopRuntimeHome();
   return runtimeEnv;
 }
