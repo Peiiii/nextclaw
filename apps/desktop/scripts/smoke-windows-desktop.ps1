@@ -76,6 +76,13 @@ function Get-DesktopStartupBlocker {
       return $line
     }
   }
+
+  $servicePattern = "Extension nextclaw-channel-extension-(feishu|weixin) failed: spawn node ENOENT"
+  if (Test-Path $script:ServiceLog) {
+    foreach ($line in @(Get-Content -Path $script:ServiceLog)) {
+      if ($line -match $servicePattern) { return $line }
+    }
+  }
   return ""
 }
 
@@ -152,6 +159,7 @@ $appStdoutLog = Join-Path $logRoot "app-stdout.log"
 $appStderrLog = Join-Path $logRoot "app-stderr.log"
 $apiProbeLog = Join-Path $logRoot "api-probes.json"
 $script:MainLog = Join-Path $smokeHome "launcher\\main.log"
+$script:ServiceLog = Join-Path $smokeHome "service.log"
 $script:MainLogStartLine = 1
 
 Write-Host "[desktop-smoke] desktop exe: $resolvedExe"

@@ -89,7 +89,7 @@ describe("ExtensionLifecycleService", () => {
       });
 
       expect(spawnProcess).toHaveBeenCalledWith(
-        "node",
+        process.execPath,
         ["dist/index.js"],
         expect.objectContaining({
           cwd: "/tmp/fake-extension",
@@ -101,6 +101,7 @@ describe("ExtensionLifecycleService", () => {
             NEXTCLAW_EXTENSION_TOKEN: "secret",
           }),
           stdio: ["ignore", "ignore", "inherit"],
+          windowsHide: true,
         }),
       );
     } finally {

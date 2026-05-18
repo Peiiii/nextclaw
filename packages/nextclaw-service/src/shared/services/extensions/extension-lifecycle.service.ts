@@ -187,7 +187,7 @@ export class ExtensionLifecycleService {
     if (existing) {
       return existing;
     }
-    const child = this.spawnProcess(manifest.server.command, manifest.server.args ?? [], {
+    const child = this.spawnProcess(manifest.server.command === "node" || manifest.server.command === "node.exe" ? process.execPath : manifest.server.command, manifest.server.args ?? [], {
       cwd: manifest.rootDir,
       env: {
         ...process.env,
@@ -197,7 +197,7 @@ export class ExtensionLifecycleService {
         NEXTCLAW_EXTENSION_ENDPOINT: this.options.endpoint,
         NEXTCLAW_EXTENSION_TOKEN: this.options.token,
       },
-      stdio: ["ignore", "ignore", "inherit"],
+      stdio: ["ignore", "ignore", "inherit"], windowsHide: true,
     });
     const running = { manifest, process: child };
     this.processes.set(manifest.id, running);
