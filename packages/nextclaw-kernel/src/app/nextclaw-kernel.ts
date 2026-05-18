@@ -14,6 +14,7 @@ import { NcpSessionApiService } from "@kernel/services/ncp-session-api.service.j
 import { NcpAgentSessionStoreAdapter } from "@kernel/services/ncp-agent-session-store-adapter.service.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import { createAgentRuntimeSessionRequestDispatcher } from "@kernel/features/session-request/index.js";
+import { SessionContextWindowContribution } from "@kernel/contributions/session-context-window/index.js";
 import { SessionActivityPreviewContribution } from "@kernel/contributions/session-activity-preview/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import {
@@ -202,6 +203,7 @@ export class NextclawKernel {
     });
     this.contributions = [
       new SessionActivityPreviewContribution(this),
+      new SessionContextWindowContribution(this),
     ];
   }
 
