@@ -126,7 +126,7 @@ function ChatSidebarSessionDisplayView({
   return (
     <div className="group/session relative">
       <button type="button" onClick={onSelect} className="w-full text-left">
-        <div className={cn('grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2', trailingControlsClassName)}>
+        <div className={cn('flex min-w-0 items-start', trailingControlsClassName)}>
           <span className="flex min-w-0 items-center gap-1.5">
             {agentId?.trim() && agentId.trim().toLowerCase() !== 'main' ? (
               <AgentAvatar
@@ -155,11 +155,6 @@ function ChatSidebarSessionDisplayView({
               </span>
             ) : null}
           </span>
-          {runStatus ? (
-            <span className="inline-flex shrink-0 items-center justify-end gap-1.5 pt-0.5">
-              <SessionRunBadge status={runStatus} />
-            </span>
-          ) : null}
         </div>
         <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400">
           <span className="min-w-0 truncate">
@@ -195,6 +190,11 @@ function ChatSidebarSessionDisplayView({
           <span>{childSessionCount}</span>
         </button>
       ) : null}
+      {runStatus ? (
+        <span className="absolute right-0 top-0 inline-flex h-5 w-5 items-center justify-center transition-opacity group-hover/session:opacity-0 group-focus-within/session:opacity-0">
+          <SessionRunBadge status={runStatus} />
+        </span>
+      ) : null}
       <button
         type="button"
         onClick={(event) => {
@@ -203,9 +203,7 @@ function ChatSidebarSessionDisplayView({
         }}
         className={cn(
           'absolute right-0 top-0 inline-flex h-5 w-5 items-center justify-center rounded-md text-gray-400 transition-all hover:bg-white hover:text-gray-900',
-          active
-            ? 'opacity-100'
-            : 'opacity-0 group-hover/session:opacity-100 group-focus-within/session:opacity-100'
+          'opacity-0 group-hover/session:opacity-100 group-focus-within/session:opacity-100'
         )}
         aria-label={t('edit')}
       >
