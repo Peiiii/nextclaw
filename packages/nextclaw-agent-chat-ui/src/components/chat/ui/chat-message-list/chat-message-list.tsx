@@ -33,7 +33,7 @@ const TYPING_TEXT_SHEEN_CSS = `
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  animation: nextclaw-chat-typing-text-sheen 1.8s linear infinite;
+  animation: nextclaw-chat-typing-text-sheen 2.5s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
