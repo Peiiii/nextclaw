@@ -4,7 +4,13 @@ import { createDeferredUiNcpAgent } from "../service-deferred-ncp-agent.service.
 
 function createAgentHandle(): AgentRuntimeHandle {
   const stop = vi.fn(async () => undefined);
-  const send = vi.fn(async () => undefined);
+  const send = vi.fn(async (envelope) => ({
+    sessionId: envelope.sessionId ?? envelope.message.sessionId,
+    userMessageId: envelope.message.id,
+    assistantMessageId: "assistant-1",
+    runId: "run-1",
+    ...(envelope.correlationId ? { correlationId: envelope.correlationId } : {}),
+  }));
   const stream = vi.fn(async () => undefined);
   const abort = vi.fn(async () => undefined);
   const subscribe = vi.fn(() => () => undefined);
@@ -110,7 +116,7 @@ describe("createDeferredUiNcpAgent", () => {
     expect(deferred.agent.listSessionTypes).toBe(handle.listSessionTypes);
     expect(deferred.agent.assetApi).toBe(handle.assetApi);
 
-    await deferred.agent.agentClientEndpoint.send({
+    const handleResult = await deferred.agent.agentClientEndpoint.send({
       sessionId: "s1",
       correlationId: "c1",
       message: {
@@ -124,6 +130,13 @@ describe("createDeferredUiNcpAgent", () => {
     });
 
     expect(handle.agentClientEndpoint.send).toHaveBeenCalledTimes(1);
+    expect(handleResult).toEqual({
+      sessionId: "s1",
+      userMessageId: "m1",
+      assistantMessageId: "assistant-1",
+      runId: "run-1",
+      correlationId: "c1",
+    });
 
     await deferred.close();
 

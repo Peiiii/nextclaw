@@ -53,6 +53,13 @@ User-visible or runnable behavior:
 - If the user reported a specific local command, URL, endpoint, port, or desktop/dev entrypoint, run that exact path after the fix whenever it is safe; package tests or route-level substitutes are not enough to claim the user-visible issue is fixed.
 - If local dev falls back to a different port because the user's reported port is occupied, do not treat the fallback port as proof for the reported issue. Verify the reported port directly, or restart the stale local dev process and re-run the same user-facing path on the original port.
 
+HTTP/API/transport contract changes:
+
+- isolated client/controller unit tests are not enough,
+- add an interface-level test at the assembled API boundary that exercises the real route/controller plus the wrapper or adapter layers used in the product path,
+- assert the exact response/event contract shape, not only status codes or that a method was called,
+- for command/handle APIs, include a negative guard against returning legacy acknowledgements such as `{ ok: true }` without the required `data` payload.
+
 Bugfix or abnormal behavior fix:
 
 - define the observable success condition before closing,

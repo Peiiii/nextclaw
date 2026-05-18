@@ -10,6 +10,15 @@ export type NcpRunContext = {
   abortDisabledReason?: string | null;
 };
 
+/** Command acknowledgement returned after a user message has been accepted. */
+export type NcpRunHandle = {
+  sessionId: string;
+  userMessageId: string;
+  assistantMessageId: string | null;
+  runId: string | null;
+  correlationId?: string;
+};
+
 /** Schema for run.metadata.metadata when kind is "ready" (run started, backend ready). */
 export type NcpRunReadyMetadata = {
   kind: "ready";

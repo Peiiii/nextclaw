@@ -592,9 +592,8 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
 
   private upsertMessage = (message: NcpMessage): void => {
     const normalizedMessage = normalizeConversationMessage(message);
-    const messageIndex = this.messages.findIndex(
-      (item) => item.id === normalizedMessage.id,
-    );
+    if (this.streamingMessage?.id === normalizedMessage.id) this.streamingMessage = null;
+    const messageIndex = this.messages.findIndex((item) => item.id === normalizedMessage.id);
     if (messageIndex < 0) {
       this.messages = [...this.messages, normalizedMessage];
       this.stateVersion += 1;

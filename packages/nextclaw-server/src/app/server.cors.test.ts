@@ -115,7 +115,12 @@ function createTestGateway(params: {
         stop: async () => {},
         emit: async () => {},
         subscribe: () => () => {},
-        send: async () => {},
+        send: async () => ({
+          sessionId: "session-1",
+          userMessageId: "user-1",
+          assistantMessageId: null,
+          runId: null,
+        }),
         stream: async () => {},
         abort: async () => {},
       },

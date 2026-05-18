@@ -53,11 +53,11 @@ export class AgentBackendSessionRealtime {
     if (options.dispatchToStateManager) {
       await session.stateManager.dispatch(event);
     }
-    this.params.publishEndpointEvent(event);
-    session.publisher.publish(event);
     if (options.persistSession !== false) {
       await this.params.persistSessionEvent(session, event);
     }
+    this.params.publishEndpointEvent(event);
+    session.publisher.publish(event);
   };
 
   streamSessionEvents = (

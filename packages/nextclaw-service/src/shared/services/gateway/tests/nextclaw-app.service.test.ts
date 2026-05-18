@@ -9,7 +9,12 @@ function createAgentHandle() {
     agentClientEndpoint: {
       start: async () => undefined,
       stop: async () => undefined,
-      send: async () => undefined,
+      send: async () => ({
+        sessionId: "session-1",
+        userMessageId: "user-1",
+        assistantMessageId: null,
+        runId: null,
+      }),
       stream: async () => undefined,
       abort: async () => undefined,
       emit: async () => undefined,

@@ -281,7 +281,10 @@ function useNcpChatStreamBindings(params: ReturnType<typeof useNcpChatPageState>
           return;
         }
         try {
-          await agent.send(envelope);
+          const handle = await agent.send(envelope);
+          if (!payload.sessionKey && handle?.sessionId) {
+            presenter.chatSessionListManager.materializeRootSessionRoute(handle.sessionId);
+          }
         } catch (error) {
           if (payload.restoreDraftOnError) {
             if (payload.composerNodes && payload.composerNodes.length > 0) {

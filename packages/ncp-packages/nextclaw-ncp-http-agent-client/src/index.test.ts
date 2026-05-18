@@ -70,7 +70,7 @@ describe("createNcpHttpAgentClient stream behavior", () => {
     }
   });
 
-  it("sends request to /send as a realtime stream", async () => {
+  it("sends request to /send as a command and returns a run handle", async () => {
     const calls: Array<{ input: URL | string | Request; init?: RequestInit }> =
       [];
     const fetchImpl = async (
@@ -78,12 +78,19 @@ describe("createNcpHttpAgentClient stream behavior", () => {
       init?: RequestInit,
     ): Promise<Response> => {
       calls.push({ input, init });
-      return createSseResponse([
-        sseFrame("ncp-event", {
-          type: NcpEventType.RunStarted,
-          payload: { sessionId: "session-1", runId: "run-1" },
-        }),
-      ]);
+      return new Response(JSON.stringify({
+        ok: true,
+        data: {
+          sessionId: "session-1",
+          userMessageId: "user-1",
+          assistantMessageId: "assistant-1",
+          runId: "run-1",
+          correlationId: "corr-1",
+        },
+      }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
     };
 
     const client = new NcpHttpAgentClientEndpoint({
@@ -109,7 +116,7 @@ describe("createNcpHttpAgentClient stream behavior", () => {
       },
     };
 
-    await client.send(envelope);
+    const handle = await client.send(envelope);
 
     expect(calls).toHaveLength(1);
     const requestUrl =
@@ -119,12 +126,19 @@ describe("createNcpHttpAgentClient stream behavior", () => {
     expect(requestUrl.pathname).toBe("/ncp/agent/send");
     expect(calls[0]?.init?.method).toBe("POST");
     expect(calls[0]?.init?.headers).toMatchObject({
-      accept: "text/event-stream",
+      accept: "application/json",
       "content-type": "application/json",
+    });
+    expect(handle).toEqual({
+      sessionId: "session-1",
+      userMessageId: "user-1",
+      assistantMessageId: "assistant-1",
+      runId: "run-1",
+      correlationId: "corr-1",
     });
 
     const eventTypes = received.map((event) => event.type);
-    expect(eventTypes).toEqual(["endpoint.ready", NcpEventType.RunStarted]);
+    expect(eventTypes).toEqual(["endpoint.ready"]);
   });
 
   it("sends a new-session request without session id", async () => {
@@ -135,12 +149,18 @@ describe("createNcpHttpAgentClient stream behavior", () => {
       init?: RequestInit,
     ): Promise<Response> => {
       calls.push({ input, init });
-      return createSseResponse([
-        sseFrame("ncp-event", {
-          type: NcpEventType.RunStarted,
-          payload: { sessionId: "session-created", runId: "run-1" },
-        }),
-      ]);
+      return new Response(JSON.stringify({
+        ok: true,
+        data: {
+          sessionId: "session-created",
+          userMessageId: "user-new-session",
+          assistantMessageId: null,
+          runId: null,
+        },
+      }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
     };
     const client = new NcpHttpAgentClientEndpoint({
       baseUrl: "https://api.example.com",

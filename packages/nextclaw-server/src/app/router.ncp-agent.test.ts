@@ -150,7 +150,12 @@ class StubNcpAgent implements NcpAgentClientEndpoint, NcpSessionApi {
     }
   };
 
-  send = async (): Promise<void> => {};
+  send = async () => ({
+    sessionId: "session-1",
+    userMessageId: "user-message-1",
+    assistantMessageId: "assistant-message-1",
+    runId: "run-1",
+  });
 
   stream = async (): Promise<void> => {};
 
@@ -550,7 +555,15 @@ it("proxies ncp send, patch, and abort flows", async () => {
   });
   expect(sendResponse.status).toBe(200);
   expect(sendResponse.headers.get("content-type")).toContain("application/json");
-  await expect(sendResponse.json()).resolves.toEqual({ ok: true });
+  await expect(sendResponse.json()).resolves.toEqual({
+    ok: true,
+    data: {
+      sessionId: "session-1",
+      userMessageId: "user-message-1",
+      assistantMessageId: "assistant-message-1",
+      runId: "run-1",
+    },
+  });
 
   const abortResponse = await app.request("http://localhost/api/ncp/agent/abort", {
     method: "POST",

@@ -41,12 +41,21 @@ describe("createNcpHttpAgentRouter", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("application/json");
-    await expect(response.json()).resolves.toEqual({ ok: true });
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      data: {
+        sessionId: "session-1",
+        userMessageId: "user-1",
+        assistantMessageId: null,
+        runId: null,
+        correlationId: "corr-1",
+      },
+    });
 
     expect(endpoint.emitted[0]?.type).toBe("message.request");
   });
 
-  it("accepts a new-session /send stream request without session id", async () => {
+  it("accepts a new-session /send command without session id", async () => {
     const endpoint = new FakeAgentEndpoint();
     const app = createNcpHttpAgentRouter({ agentClientEndpoint: endpoint });
     const requestBody: NcpAgentSendEnvelope = {
@@ -70,6 +79,16 @@ describe("createNcpHttpAgentRouter", () => {
     });
 
     expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      data: {
+        sessionId: "session-created",
+        userMessageId: "user-new-session",
+        assistantMessageId: null,
+        runId: null,
+      },
+    });
     expect(endpoint.emitted[0]).toEqual({
       type: NcpEventType.MessageRequest,
       payload: requestBody,
@@ -207,8 +226,16 @@ class FakeAgentEndpoint implements NcpAgentClientEndpoint {
     };
   }
 
-  async send(envelope: NcpRequestEnvelope): Promise<void> {
+  async send(envelope: NcpAgentSendEnvelope) {
     await this.emit({ type: NcpEventType.MessageRequest, payload: envelope });
+    const sessionId = envelope.sessionId ?? envelope.message.sessionId ?? "session-created";
+    return {
+      sessionId,
+      userMessageId: envelope.message.id,
+      assistantMessageId: null,
+      runId: null,
+      ...(envelope.correlationId ? { correlationId: envelope.correlationId } : {}),
+    };
   }
 
   async stream(payload: NcpStreamRequestPayload): Promise<void> {

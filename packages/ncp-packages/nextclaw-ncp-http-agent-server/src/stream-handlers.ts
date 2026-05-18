@@ -1,10 +1,8 @@
 import type {
   NcpAgentClientEndpoint,
-  NcpAgentSendEnvelope,
   NcpEndpointEvent,
   NcpStreamRequestPayload,
 } from "@nextclaw/ncp";
-import { NcpEventType } from "@nextclaw/ncp";
 import { matchesScope } from "./scope.js";
 import {
   buildSseResponse,
@@ -92,99 +90,6 @@ async function* createForwardSseEvents(
 
   void endpoint
     .emit(requestEvent)
-    .catch((error) => {
-      push(toErrorFrame("EMIT_FAILED", errorMessage(error)));
-      stop();
-    })
-    .finally(() => {
-      if (!requestSignal.aborted) {
-        queueMicrotask(stop);
-      }
-    });
-
-  try {
-    for await (const frame of queue.iterable) {
-      yield frame;
-    }
-  } finally {
-    stop();
-  }
-}
-
-export type SendStreamResponseOptions = {
-  endpoint: NcpAgentClientEndpoint;
-  envelope: NcpAgentSendEnvelope;
-  requestSignal: AbortSignal;
-  timeoutMs: number | null;
-};
-
-export function createSendStreamResponse(
-  options: SendStreamResponseOptions,
-): Response {
-  const { requestSignal } = options;
-  return buildSseResponse(
-    createSseEventStream(createSendStreamSseEvents(options), requestSignal),
-  );
-}
-
-async function* createSendStreamSseEvents(
-  options: SendStreamResponseOptions,
-): AsyncGenerator<SseEventFrame> {
-  const { endpoint, envelope, requestSignal, timeoutMs } = options;
-  const queue = createAsyncQueue<SseEventFrame>();
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  let unsubscribe: (() => void) | null = null;
-  let stopped = false;
-  let sessionId = envelope.sessionId?.trim() || null;
-
-  const push = (frame: SseEventFrame) => {
-    if (!stopped) {
-      queue.push(frame);
-    }
-  };
-
-  const stop = () => {
-    if (stopped) {
-      return;
-    }
-    stopped = true;
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      timeoutId = null;
-    }
-    if (unsubscribe) {
-      unsubscribe();
-      unsubscribe = null;
-    }
-    requestSignal.removeEventListener("abort", stop);
-    queue.close();
-  };
-
-  requestSignal.addEventListener("abort", stop, { once: true });
-  if (timeoutMs !== null) {
-    timeoutId = setTimeout(() => {
-      push(toErrorFrame("TIMEOUT", "NCP HTTP send stream timed out before terminal event."));
-      stop();
-    }, timeoutMs);
-  }
-
-  unsubscribe = endpoint.subscribe((event) => {
-    const payload = "payload" in event ? event.payload : null;
-    const eventSessionId =
-      payload && typeof payload === "object" && "sessionId" in payload && typeof payload.sessionId === "string"
-        ? payload.sessionId
-        : null;
-    if (sessionId && eventSessionId && eventSessionId !== sessionId) {
-      return;
-    }
-    if (!sessionId && eventSessionId) {
-      sessionId = eventSessionId;
-    }
-    push(toNcpEventFrame(event));
-  });
-
-  void endpoint
-    .emit({ type: NcpEventType.MessageRequest, payload: envelope })
     .catch((error) => {
       push(toErrorFrame("EMIT_FAILED", errorMessage(error)));
       stop();

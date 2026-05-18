@@ -5,6 +5,7 @@ import {
   type NcpEndpointManifest,
   type NcpEndpointSubscriber,
   type NcpMessageAbortPayload,
+  type NcpRunHandle,
   type NcpStreamRequestPayload,
   NcpEventType,
 } from "@nextclaw/ncp";
@@ -122,13 +123,44 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
     };
   }
 
-  async send(envelope: NcpAgentSendEnvelope): Promise<void> {
+  async send(envelope: NcpAgentSendEnvelope): Promise<NcpRunHandle> {
     await this.ensureStarted();
-    await this.streamRequest({
-      path: "/send",
-      method: "POST",
-      body: envelope,
-    });
+    const controller = new AbortController();
+    this.activeControllers.add(controller);
+    try {
+      const response = await this.fetchImpl(this.resolveUrl("/send"), {
+        method: "POST",
+        headers: {
+          ...this.defaultHeaders,
+          accept: "application/json",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(envelope),
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        throw new Error(
+          `NCP send command failed with HTTP ${response.status}: ${await safeReadText(response)}`,
+        );
+      }
+      const payload = await response.json() as { ok?: boolean; data?: NcpRunHandle; error?: { message?: string } };
+      if (!payload.ok || !payload.data) {
+        throw new Error(payload.error?.message ?? "NCP send command returned an invalid handle.");
+      }
+      return payload.data;
+    } catch (error) {
+      if (controller.signal.aborted) {
+        throw new Error("NCP send command was cancelled.");
+      }
+      if (isNcpHttpAgentClientError(error)) {
+        throw error;
+      }
+      const ncpError = toNcpError(error);
+      this.publish({ type: NcpEventType.EndpointError, payload: ncpError });
+      throw ncpErrorToError(ncpError);
+    } finally {
+      this.activeControllers.delete(controller);
+    }
   }
 
   async stream(payload: NcpStreamRequestPayload): Promise<void> {

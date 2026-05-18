@@ -4,6 +4,7 @@ import type {
   NcpStreamRequestPayload,
 } from "../types/events.js";
 import type { NcpEndpoint } from "../types/endpoint.js";
+import type { NcpRunHandle } from "../types/run.js";
 
 /**
  * Client-side endpoint for agent chat: initiates requests and can cancel in-flight runs.
@@ -12,8 +13,8 @@ import type { NcpEndpoint } from "../types/endpoint.js";
  * (e.g. frontend, CLI) that sends user messages and receives agent responses.
  */
 export interface NcpAgentClientEndpoint extends NcpEndpoint {
-  /** Sends a new message request to the agent. Emits `message.request`. */
-  send(envelope: NcpAgentSendEnvelope): Promise<void>;
+  /** Sends a command-only message request to the agent and returns the run handle. */
+  send(envelope: NcpAgentSendEnvelope): Promise<NcpRunHandle>;
 
   /** Attaches to the live event stream of a session. Emits `message.stream-request`. */
   stream(payload: NcpStreamRequestPayload): Promise<void>;

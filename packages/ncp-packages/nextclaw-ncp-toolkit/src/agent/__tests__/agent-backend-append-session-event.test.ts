@@ -56,6 +56,12 @@ describe("DefaultNcpAgentBackend append-only session persistence", () => {
         });
       },
     });
+    const observedPersistedEventTypes: string[][] = [];
+    backend.subscribe((event) => {
+      if (event.type !== NcpEventType.EndpointReady) {
+        observedPersistedEventTypes.push([...sessionStore.eventTypes]);
+      }
+    });
 
     await backend.emit({
       type: NcpEventType.MessageRequest,
@@ -65,6 +71,7 @@ describe("DefaultNcpAgentBackend append-only session persistence", () => {
     expect(sessionStore.saveCallCount).toBe(0);
     expect(sessionStore.appendEventCount).toBeGreaterThan(0);
     expect(sessionStore.eventTypes).toContain(NcpEventType.MessageTextDelta);
+    expect(observedPersistedEventTypes.at(-1)).toContain(NcpEventType.RunFinished);
     const messages = await backend.listSessionMessages("session-1");
     expect(messages.at(-1)).toMatchObject({
       role: "assistant",

@@ -25,16 +25,16 @@ function createRecord(messages: NcpMessage[]) {
   };
 }
 
+let tempDir: string | null = null;
+
+afterEach(async () => {
+  if (tempDir) {
+    await rm(tempDir, { recursive: true, force: true });
+    tempDir = null;
+  }
+});
+
 describe("NcpAgentSessionJournalStore", () => {
-  let tempDir: string | null = null;
-
-  afterEach(async () => {
-    if (tempDir) {
-      await rm(tempDir, { recursive: true, force: true });
-      tempDir = null;
-    }
-  });
-
   it("replays half-written streaming assistant messages from append-only events", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
     const store = new NcpAgentSessionJournalStore(tempDir);
@@ -121,6 +121,33 @@ describe("NcpAgentSessionJournalStore", () => {
       sessionId,
       messageCount: 1,
       metadata: { label: "Journal test" },
+    });
+  });
+});
+
+describe("NcpAgentSessionJournalStore metadata recovery", () => {
+  it("recovers assistant message.sent history that was written with a draft status", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+
+    await store.replaceSession(createRecord([
+      {
+        id: "assistant-1",
+        sessionId,
+        role: "assistant",
+        status: "pending",
+        parts: [{ type: "text", text: "already done" }],
+        timestamp: "2026-05-14T00:00:02.000Z",
+      },
+    ]));
+
+    const reloaded = new NcpAgentSessionJournalStore(tempDir);
+    const messages = await reloaded.listSessionMessages(sessionId);
+
+    expect(messages[0]).toMatchObject({
+      id: "assistant-1",
+      status: "final",
+      parts: [{ type: "text", text: "already done" }],
     });
   });
 

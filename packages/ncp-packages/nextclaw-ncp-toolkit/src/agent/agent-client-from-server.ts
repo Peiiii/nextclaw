@@ -6,7 +6,10 @@ import {
   type NcpEndpointSubscriber,
   type NcpMessageAbortPayload,
   type NcpRequestEnvelope,
+  type NcpRunHandle,
   type NcpStreamRequestPayload,
+  consumeNcpRunHandle,
+  createNcpRunHandle,
   NcpEventType,
 } from "@nextclaw/ncp";
 
@@ -39,7 +42,7 @@ export function createAgentClientFromServer(
       switch (event.type) {
         case NcpEventType.MessageRequest:
           assertMaterializedEnvelope(event.payload);
-          await consume(server.send(event.payload));
+          await consumeNcpRunHandle(server.send(event.payload), createNcpRunHandle(event.payload));
           return;
         case NcpEventType.MessageStreamRequest:
           await consume(server.stream(event.payload));
@@ -54,9 +57,9 @@ export function createAgentClientFromServer(
     subscribe(listener: NcpEndpointSubscriber) {
       return server.subscribe(listener);
     },
-    async send(envelope: NcpAgentSendEnvelope): Promise<void> {
+    async send(envelope: NcpAgentSendEnvelope): Promise<NcpRunHandle> {
       assertMaterializedEnvelope(envelope);
-      await consume(server.send(envelope));
+      return await consumeNcpRunHandle(server.send(envelope), createNcpRunHandle(envelope));
     },
     async stream(payload: NcpStreamRequestPayload): Promise<void> {
       await consume(server.stream(payload));

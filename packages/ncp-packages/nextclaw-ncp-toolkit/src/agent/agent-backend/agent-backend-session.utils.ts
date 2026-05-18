@@ -34,7 +34,7 @@ export function readMessages(
   },
 ): NcpMessage[] {
   const messages = snapshot.messages.map((message) => structuredClone(message));
-  if (snapshot.streamingMessage) {
+  if (snapshot.streamingMessage && !messages.some((message) => message.id === snapshot.streamingMessage?.id)) {
     messages.push(structuredClone(snapshot.streamingMessage));
   }
 

@@ -58,7 +58,7 @@ class DeferredUiNcpAgentControllerOwner implements DeferredUiNcpAgentController 
       if (!this.activeAgent) {
         throw createUnavailableError();
       }
-      await this.activeAgent.agentClientEndpoint.send(envelope);
+      return await this.activeAgent.agentClientEndpoint.send(envelope);
     },
     stream: async (payload) => {
       if (!this.activeAgent) {

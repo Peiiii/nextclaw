@@ -7,7 +7,6 @@ import {
 import {
   createForwardResponse,
   createLiveStreamResponse,
-  createSendStreamResponse,
 } from "./stream-handlers.js";
 import { jsonResponse } from "./utils.js";
 import type {
@@ -38,17 +37,8 @@ export class NcpHttpAgentController implements NcpHttpAgentHandler {
       );
     }
 
-    if (acceptsEventStream(request)) {
-      return createSendStreamResponse({
-        endpoint: agentClientEndpoint,
-        envelope,
-        requestSignal: request.signal,
-        timeoutMs: this.options.timeoutMs,
-      });
-    }
-
-    await agentClientEndpoint.send(envelope);
-    return jsonResponse({ ok: true });
+    const handle = await agentClientEndpoint.send(envelope);
+    return jsonResponse({ ok: true, data: handle });
   }
 
   async handleStream(request: Request): Promise<Response> {
@@ -101,8 +91,4 @@ export class NcpHttpAgentController implements NcpHttpAgentHandler {
     await agentClientEndpoint.abort(payload);
     return jsonResponse({ ok: true });
   }
-}
-
-function acceptsEventStream(request: Request): boolean {
-  return request.headers.get("accept")?.includes("text/event-stream") ?? false;
 }

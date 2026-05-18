@@ -7,6 +7,7 @@ import {
   type NcpEndpointEvent,
   type NcpMessage,
   type NcpOutboundMessageDraft,
+  type NcpRunHandle,
   NcpEventType,
 } from "@nextclaw/ncp";
 
@@ -18,7 +19,7 @@ export type UseNcpAgentResult = {
   activeRunId: string | null;
   isRunning: boolean;
   isSending: boolean;
-  send: (input: NcpAgentSendInput) => Promise<void>;
+  send: (input: NcpAgentSendInput) => Promise<NcpRunHandle | null>;
   abort: () => Promise<void>;
   streamRun: () => Promise<void>;
 };
@@ -253,11 +254,11 @@ export function useNcpAgentRuntime({
 
   const send = async (input: NcpAgentSendInput) => {
     if (isSending || isRunning) {
-      return;
+      return null;
     }
     const envelope = normalizeSendEnvelope(input, sessionId);
     if (!envelope) {
-      return;
+      return null;
     }
 
     setIsSending(true);
@@ -275,7 +276,7 @@ export function useNcpAgentRuntime({
       });
     }
     try {
-      await client.send(envelope);
+      return await client.send(envelope);
     } finally {
       setIsSending(false);
     }

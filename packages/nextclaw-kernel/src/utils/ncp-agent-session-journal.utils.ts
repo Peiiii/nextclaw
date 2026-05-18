@@ -138,17 +138,31 @@ export async function replayNcpAgentSessionEvents(
 ): Promise<NcpMessage[]> {
   const stateManager = new DefaultNcpAgentConversationStateManager();
   for (const event of events) {
-    await stateManager.dispatch(
-      event.type === NcpEventType.MessageCompleted
-        ? createCompletedMessageEvent(event)
-        : structuredClone(event),
-    );
+    await stateManager.dispatch(createReplayEvent(event));
   }
   const snapshot = stateManager.getSnapshot();
   return [
     ...snapshot.messages.map((message) => structuredClone(message)),
     ...(snapshot.streamingMessage ? [structuredClone(snapshot.streamingMessage)] : []),
   ];
+}
+
+function createReplayEvent(event: NcpEndpointEvent): NcpEndpointEvent {
+  const replayEvent = structuredClone(event);
+  if (replayEvent.type === NcpEventType.MessageCompleted) {
+    return {
+      type: NcpEventType.MessageSent,
+      payload: replayEvent.payload,
+    };
+  }
+  if (
+    replayEvent.type === NcpEventType.MessageSent &&
+    replayEvent.payload.message.role === "assistant" &&
+    (replayEvent.payload.message.status === "pending" || replayEvent.payload.message.status === "streaming")
+  ) {
+    replayEvent.payload.message.status = "final";
+  }
+  return replayEvent;
 }
 
 export function readNcpSessionSummaryActivityAt(summary: NcpSessionSummary): string {
@@ -210,18 +224,4 @@ function readSummaryLabelFromEvent(event: NcpEndpointEvent): string | null {
     return null;
   }
   return resolveAutoSessionLabel([message]);
-}
-
-function createCompletedMessageEvent(
-  event: Extract<NcpEndpointEvent, { type: NcpEventType.MessageCompleted }>,
-): NcpEndpointEvent {
-  return {
-    type: NcpEventType.MessageSent,
-    payload: {
-      sessionId: event.payload.sessionId,
-      message: structuredClone(event.payload.message),
-      ...(event.payload.correlationId ? { correlationId: event.payload.correlationId } : {}),
-      metadata: event.payload.metadata,
-    },
-  };
 }

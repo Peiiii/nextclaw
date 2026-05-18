@@ -23,6 +23,9 @@ import {
   type NcpMessage,
   type NcpOutboundMessageDraft,
   type NcpRequestEnvelope,
+  type NcpRunHandle,
+  consumeNcpRunHandle,
+  createNcpRunHandle,
   NcpEventType,
 } from "@nextclaw/ncp";
 import { DefaultNcpAgentBackend, type AgentSessionStore } from "@nextclaw/ncp-toolkit";
@@ -268,40 +271,40 @@ export class AgentRuntimeManager {
 
   private readonly createMaterializingAgentClientEndpoint = (
     backend: DefaultNcpAgentBackend,
-  ): NcpAgentClientEndpoint => ({
-    get manifest() {
-      return backend.manifest;
-    },
-    start: backend.start,
-    stop: backend.stop,
-    subscribe: backend.subscribe,
-    stream: async (payload) => {
-      await consumeAgentEvents(backend.stream(payload));
-    },
-    abort: backend.abort,
-    send: async (envelope) => {
-      await consumeAgentEvents(
-        backend.send(this.materializeAgentSendEnvelope(envelope)),
-      );
-    },
-    emit: async (event) => {
-      switch (event.type) {
-        case NcpEventType.MessageRequest:
-          await consumeAgentEvents(
-            backend.send(this.materializeAgentSendEnvelope(event.payload)),
-          );
-          return;
-        case NcpEventType.MessageStreamRequest:
-          await consumeAgentEvents(backend.stream(event.payload));
-          return;
-        case NcpEventType.MessageAbort:
-          await backend.abort(event.payload);
-          return;
-        default:
-          await backend.emit(event);
-      }
-    },
-  });
+  ): NcpAgentClientEndpoint => {
+    const send = async (envelope: NcpAgentSendEnvelope): Promise<NcpRunHandle> => {
+      const requestEnvelope = this.materializeAgentSendEnvelope(envelope);
+      return await consumeNcpRunHandle(backend.send(requestEnvelope), createNcpRunHandle(requestEnvelope));
+    };
+    return {
+      get manifest() {
+        return backend.manifest;
+      },
+      start: backend.start,
+      stop: backend.stop,
+      subscribe: backend.subscribe,
+      stream: async (payload) => {
+        await consumeAgentEvents(backend.stream(payload));
+      },
+      abort: backend.abort,
+      send,
+      emit: async (event) => {
+        switch (event.type) {
+          case NcpEventType.MessageRequest:
+            await send(event.payload);
+            return;
+          case NcpEventType.MessageStreamRequest:
+            await consumeAgentEvents(backend.stream(event.payload));
+            return;
+          case NcpEventType.MessageAbort:
+            await backend.abort(event.payload);
+            return;
+          default:
+            await backend.emit(event);
+        }
+      },
+    };
+  };
 
   warmDerivedCapabilities = async (): Promise<void> => {
     this.assertNotDisposed();

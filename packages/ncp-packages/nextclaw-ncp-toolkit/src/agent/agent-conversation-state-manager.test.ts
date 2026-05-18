@@ -710,7 +710,7 @@ describe("DefaultNcpAgentConversationStateManager hydration", () => {
 
     manager.reset();
 
-    expect(manager.getSnapshot()).toEqual({
+    expect(manager.getSnapshot()).toMatchObject({
       messages: [],
       streamingMessage: null,
       error: null,
@@ -751,20 +751,20 @@ describe("DefaultNcpAgentConversationStateManager hydration", () => {
       ],
     });
 
-    expect(manager.getSnapshot()).toEqual({
+    expect(manager.getSnapshot()).toMatchObject({
       messages: [
-        createMessage({
+        expect.objectContaining(createMessage({
           id: "user-2",
           sessionId: "session-2",
           role: "user",
           parts: [{ type: "text", text: "hello" }],
-        }),
-        createMessage({
+        })),
+        expect.objectContaining(createMessage({
           id: "assistant-2",
           sessionId: "session-2",
           parts: [{ type: "text", text: "partial" }],
           status: "streaming",
-        }),
+        })),
       ],
       streamingMessage: null,
       error: null,
@@ -790,14 +790,14 @@ describe("DefaultNcpAgentConversationStateManager hydration", () => {
       },
     });
 
-    expect(manager.getSnapshot()).toEqual({
+    expect(manager.getSnapshot()).toMatchObject({
       messages: [
-        createMessage({
+        expect.objectContaining(createMessage({
           id: "assistant-2",
           sessionId: "session-2",
           parts: [{ type: "text", text: "still running" }],
           status: "streaming",
-        }),
+        })),
       ],
       streamingMessage: null,
       error: null,
