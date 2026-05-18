@@ -9,10 +9,16 @@ import { DesktopLauncherStateStore } from "../launcher/stores/launcher-state.sto
 import { createBundleArchive, createLauncherState, withTempDir, writeBundleFixture } from "../launcher/__tests__/launcher-test.utils";
 import { DesktopBundleBootstrapService } from "./desktop-bundle-bootstrap.service";
 
-async function writeSeedArchive(rootDir: string, version: string, marker: string): Promise<{ archivePath: string; sha256: string }> {
+async function writeSeedArchive(
+  rootDir: string,
+  version: string,
+  marker: string,
+  arch = process.arch
+): Promise<{ archivePath: string; sha256: string }> {
   const archiveBytes = await createBundleArchive({
     rootDir: join(rootDir, `seed-${marker}`),
-    version
+    version,
+    arch
   });
   const archivePath = join(rootDir, `${version}-${marker}.zip`);
   await writeFile(archivePath, archiveBytes);
@@ -163,6 +169,33 @@ test("replaces an existing same-version bundle when retrying a quarantined packa
     assert.deepEqual(layout.readCurrentPointer(), { version: "0.17.10" });
     assert.equal(existsSync(join(layout.getVersionDir("0.17.10"), "runtime", "old-runtime-marker.txt")), false);
     assert.equal(stateStore.read().lastAttemptedPackagedSeedSha256, sha256);
+  }));
+
+test("replaces incompatible same-version active bundle before desktop boot", async () =>
+  await withTempDir("nextclaw-desktop-packaged-seed-replace-incompatible-active-", async (rootDir) => {
+    const layout = new DesktopBundleLayoutStore(rootDir);
+    await layout.ensureLauncherDirs();
+    const incompatibleArch = process.arch === "arm64" ? "x64" : "arm64";
+    writeBundleFixture({
+      rootDir: layout.getVersionsDir(),
+      version: "0.19.6",
+      arch: incompatibleArch
+    });
+    await layout.writeCurrentPointer({ version: "0.19.6" });
+    const { archivePath } = await writeSeedArchive(rootDir, "0.19.6", "compatible-active");
+    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+    await stateStore.write(
+      createLauncherState({
+        currentVersion: "0.19.6",
+        lastKnownGoodVersion: "0.19.6"
+      })
+    );
+
+    await createBootstrapService(layout, archivePath).ensureInitialBundleAvailability();
+
+    assert.deepEqual(layout.readCurrentPointer(), { version: "0.19.6" });
+    assert.equal(stateStore.read().currentVersion, "0.19.6");
+    assert.equal(stateStore.read().candidateVersion, "0.19.6");
   }));
 
 test("uses packaged seed metadata to skip older seed archives without opening the bundle", async () =>
