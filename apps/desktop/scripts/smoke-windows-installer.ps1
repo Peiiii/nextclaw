@@ -8,14 +8,21 @@ param(
 $ErrorActionPreference = "Stop"
 
 function Invoke-SilentUninstall {
-  param([string]$InstallDir)
+  param(
+    [string]$InstallDir,
+    [bool]$FailOnError = $true
+  )
 
   $uninstallerPath = Join-Path $InstallDir "Uninstall NextClaw Desktop.exe"
   if (Test-Path $uninstallerPath) {
     Write-Host "[desktop-installer-smoke] uninstalling existing install: $uninstallerPath"
     $uninstallProc = Start-Process -FilePath $uninstallerPath -ArgumentList "/S" -PassThru -Wait
     if ($uninstallProc.ExitCode -ne 0) {
-      throw "Uninstaller exited with code $($uninstallProc.ExitCode)"
+      $message = "Uninstaller exited with code $($uninstallProc.ExitCode)"
+      if ($FailOnError) {
+        throw $message
+      }
+      Write-Warning "[desktop-installer-smoke] $message"
     }
   }
 
@@ -81,5 +88,5 @@ try {
   & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $installedExePath -StartupTimeoutSec $StartupTimeoutSec -MaxReadySec $MaxReadySec
 } finally {
   Stop-DesktopProcesses
-  Invoke-SilentUninstall -InstallDir $installDir
+  Invoke-SilentUninstall -InstallDir $installDir -FailOnError $false
 }
