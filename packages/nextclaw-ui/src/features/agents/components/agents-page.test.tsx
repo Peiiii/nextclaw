@@ -194,7 +194,7 @@ describe("AgentsPage", () => {
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
     expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
     expect(useChatInputStore.getState().snapshot.draft).toContain(
-      "请帮我创建一个新的 Agent",
+      "请直接创建一个默认示例 Agent，不要问我问题",
     );
     expect(mocks.createAgent).not.toHaveBeenCalled();
     expect(screen.queryByText("创建新的 Agent 身份")).toBeNull();

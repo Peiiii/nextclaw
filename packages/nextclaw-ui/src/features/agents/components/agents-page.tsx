@@ -44,7 +44,7 @@ import {
 } from "lucide-react";
 
 const AGENT_CREATION_PROMPT =
-  "请帮我创建一个新的 Agent。先问我这个 Agent 的用途、名称、工作目录、默认 Runtime / 模型和需要的技能；信息足够后，请用 NextClaw 的 Agent 管理能力完成创建。";
+  "请直接创建一个默认示例 Agent，不要问我问题。创建完成后，简单告诉我它能做什么。";
 
 function AgentsHero(props: { agentCount: number; onCreate: () => void }) {
   const { agentCount, onCreate } = props;
