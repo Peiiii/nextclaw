@@ -48,6 +48,20 @@ function Stop-DesktopProcesses {
   }
 }
 
+function Remove-InstallDirectoryBestEffort {
+  param([string]$InstallDir)
+
+  if (-not (Test-Path $InstallDir)) {
+    return
+  }
+
+  try {
+    Remove-Item -Recurse -Force $InstallDir
+  } catch {
+    Write-Warning "[desktop-installer-smoke] post-smoke cleanup remove failed: $($_.Exception.Message)"
+  }
+}
+
 function Resolve-InstalledDesktopExecutable {
   param([string]$ExpectedExePath)
 
@@ -98,5 +112,5 @@ try {
   & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $installedExePath -StartupTimeoutSec $StartupTimeoutSec -MaxReadySec $MaxReadySec
 } finally {
   Stop-DesktopProcesses
-  Invoke-SilentUninstall -InstallDir $installDir -FailOnError $false
+  Remove-InstallDirectoryBestEffort -InstallDir $installDir
 }
