@@ -372,6 +372,31 @@ describe("ChatConversationPanel", () => {
     useChatThreadStore.setState({
       snapshot: {
         ...useChatThreadStore.getState().snapshot,
+        sessionKey: "session-1",
+        messages: [{
+          id: "user-1",
+          sessionId: "session-1",
+          role: "user",
+          status: "final",
+          parts: [{ type: "text", text: "hello" }],
+          timestamp: "2026-05-19T00:00:00.000Z",
+        } as never],
+        isSending: true,
+        isAwaitingAssistantOutput: true,
+      },
+    });
+
+    render(<ChatConversationPanel />);
+
+    expect(screen.getByTestId("chat-message-list").dataset).toMatchObject({ messageCount: "1", sending: "true" });
+    expect(screen.queryByText("No messages yet. Send one to start.")).toBeNull();
+  });
+
+  it("does not show assistant waiting copy before the first message is visible", () => {
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        sessionKey: "session-1",
         messages: [],
         isSending: true,
         isAwaitingAssistantOutput: true,
@@ -380,7 +405,7 @@ describe("ChatConversationPanel", () => {
 
     render(<ChatConversationPanel />);
 
-    expect(screen.getByTestId("chat-message-list").dataset).toMatchObject({ messageCount: "0", sending: "true" });
+    expect(screen.queryByTestId("chat-message-list")).toBeNull();
     expect(screen.queryByText("No messages yet. Send one to start.")).toBeNull();
   });
 

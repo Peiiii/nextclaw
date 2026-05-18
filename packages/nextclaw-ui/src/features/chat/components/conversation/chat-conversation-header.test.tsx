@@ -48,12 +48,13 @@ function renderHeader(
 }
 
 describe("ChatConversationHeader", () => {
-  it("does not reserve extra height for draft sessions", () => {
+  it("uses a stable desktop height before and after session materialization", () => {
     renderHeader({});
 
     const header = screen.getByText("New Task").closest(".border-b");
 
-    expect(header?.className).not.toContain("min-h-");
+    expect(header?.className).toContain("h-[52px]");
+    expect(header?.className).not.toContain("transition-all");
   });
 
   it("uses the standard session-header action button density after the session is materialized", () => {
@@ -64,7 +65,9 @@ describe("ChatConversationHeader", () => {
     });
 
     const moreActions = screen.getByRole("button", { name: "More actions" });
+    const header = screen.getByText("First message").closest(".border-b");
 
+    expect(header?.className).toContain("h-[52px]");
     expect(moreActions.className).toContain("h-7");
     expect(moreActions.className).toContain("w-7");
   });

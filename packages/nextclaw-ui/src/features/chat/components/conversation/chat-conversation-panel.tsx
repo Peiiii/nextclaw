@@ -175,10 +175,10 @@ function ChatConversationContent({
   onToolAction,
   onFileOpen,
 }: ChatConversationContentProps) {
+  const hasMessages = snapshot.messages.length > 0;
   const isAwaitingAssistantOutput =
-    snapshot.isSending && snapshot.isAwaitingAssistantOutput;
-  const shouldShowMessages =
-    snapshot.messages.length > 0 || isAwaitingAssistantOutput;
+    hasMessages && snapshot.isSending && snapshot.isAwaitingAssistantOutput;
+  const shouldShowMessages = hasMessages;
 
   return (
     <div

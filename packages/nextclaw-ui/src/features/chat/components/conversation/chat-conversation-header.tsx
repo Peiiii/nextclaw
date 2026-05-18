@@ -73,10 +73,10 @@ export function ChatConversationHeader({
   return (
     <div
       className={cn(
-        "border-b border-gray-200/60 bg-white/80 backdrop-blur-sm flex items-center justify-between shrink-0 overflow-hidden transition-all duration-200",
+        "border-b border-gray-200/60 bg-white/80 backdrop-blur-sm flex items-center justify-between shrink-0 overflow-hidden transition-colors duration-200",
         isMobileLayout ? "px-3 sm:px-3" : "px-4 sm:px-5",
         shouldShowSessionHeader ? "opacity-100" : "h-0 py-0 opacity-0 border-b-0",
-        shouldShowSessionHeader && (isMobileLayout ? "pb-2 pt-2" : "py-3"),
+        shouldShowSessionHeader && (isMobileLayout ? "min-h-12 pb-2 pt-2" : "h-[52px]"),
       )}
       style={
         isMobileLayout && shouldShowSessionHeader
