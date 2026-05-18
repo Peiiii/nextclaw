@@ -15,19 +15,29 @@ function Invoke-SilentUninstall {
 
   $uninstallerPath = Join-Path $InstallDir "Uninstall NextClaw Desktop.exe"
   if (Test-Path $uninstallerPath) {
-    Write-Host "[desktop-installer-smoke] uninstalling existing install: $uninstallerPath"
-    $uninstallProc = Start-Process -FilePath $uninstallerPath -ArgumentList "/S" -PassThru -Wait
-    if ($uninstallProc.ExitCode -ne 0) {
-      $message = "Uninstaller exited with code $($uninstallProc.ExitCode)"
-      if ($FailOnError) {
-        throw $message
+    try {
+      Write-Host "[desktop-installer-smoke] uninstalling existing install: $uninstallerPath"
+      $uninstallProc = Start-Process -FilePath $uninstallerPath -ArgumentList "/S" -PassThru -Wait
+      if ($uninstallProc.ExitCode -ne 0) {
+        throw "Uninstaller exited with code $($uninstallProc.ExitCode)"
       }
-      Write-Warning "[desktop-installer-smoke] $message"
+    } catch {
+      if ($FailOnError) {
+        throw
+      }
+      Write-Warning "[desktop-installer-smoke] cleanup uninstall failed: $($_.Exception.Message)"
     }
   }
 
   if (Test-Path $InstallDir) {
-    Remove-Item -Recurse -Force $InstallDir
+    try {
+      Remove-Item -Recurse -Force $InstallDir
+    } catch {
+      if ($FailOnError) {
+        throw
+      }
+      Write-Warning "[desktop-installer-smoke] cleanup remove failed: $($_.Exception.Message)"
+    }
   }
 }
 
