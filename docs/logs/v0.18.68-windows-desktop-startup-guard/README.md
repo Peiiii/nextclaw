@@ -48,8 +48,14 @@
   - 已通过：`pnpm -C packages/nextclaw-service exec vitest run src/shared/services/extensions/extension-lifecycle.service.test.ts`。
   - 已通过：`pnpm -C packages/nextclaw-core lint`、`pnpm -C packages/nextclaw-service lint`、`pnpm -C packages/nextclaw-openclaw-compat lint`，均为 0 errors；保留既有 warnings。
   - 已通过：`pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet`、`node scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`、`git diff --check`。
+- 2026-05-18 desktop preview beta.2 远端发布验证：
+  - 已通过：GitHub `desktop-release` workflow run `26037994292` 整体成功，包含 `desktop-win32-x64`、`desktop-darwin-arm64`、`desktop-darwin-x64`、`desktop-linux-x64`、`publish-release-assets`、`publish-desktop-update-channels`。
+  - 已通过：Windows runner 的 `Smoke Desktop (Windows)` 与 `Smoke Desktop Installer (Windows)` 均成功；这两个 smoke 使用真实 runtime URL 和 API readiness，而不是只接受 startup shell。
+  - 已通过：release `v0.19.9-desktop-beta.2` 已上传 `NextClaw.Desktop-Setup-0.0.165-x64.exe`、`NextClaw.Desktop-0.0.165-win32-x64-unpacked.zip`、各平台 manifest、各平台 product bundle 与 `update-bundle-public.pem`。
+  - 已通过：发布出的 `nextclaw-bundle-win32-x64-0.19.9.zip` 大小 `5,185,326` bytes，zip entry 数 `233`，`bundle/runtime/` 文件数 `139`，且不存在 `bundle/runtime/node_modules`。
+  - 已通过：GitHub Pages beta update channel 的 win32、darwin、linux manifest 均指向 `v0.19.9-desktop-beta.2`，`minimumLauncherVersion` 为 `0.0.143`，并包含 manifest signature。
 - 未在本机完成：Windows PowerShell 语法本地静态检查，因为本机没有 `pwsh`/`powershell`；真实 Windows GUI/API smoke 需要发布后由 GitHub Windows runner 执行。
-- 未在本机完成：真实 Windows 控制台闪窗视觉验证。本机是 macOS，最终仍需 GitHub Windows runner 和用户 Windows 真机验证控制台闪窗与首次启动耗时。
+- 未在本机完成：真实 Windows 控制台闪窗视觉验证。本机是 macOS；GitHub Windows runner 已覆盖启动 smoke 与 installer smoke，最终视觉确认仍建议在用户 Windows 真机上执行。
 
 ## 发布/部署方式
 
@@ -57,6 +63,7 @@
 - 由于修复包含 launcher 代码，下一次 Windows 可测包必须重新发布桌面安装器/launcher，不能只发布 runtime update bundle。
 - 下一步创建新的 desktop preview beta tag，让 `desktop-release` workflow 产出 Windows 安装器并执行新的 `MaxReadySec` GUI smoke。
 - 2026-05-18 root-fix 本轮只提交并 push 到 `master`，不涉及 NPM 发布；后续 desktop preview beta 应基于本提交重新触发，确保 Windows 安装器携带 slim seed bundle。
+- 2026-05-18 已发布 desktop preview beta：`v0.19.9-desktop-beta.2`，对应 tag commit `7716dcb574c005361a4555d615946b587a940dd2`，release 地址 `https://github.com/Peiiii/nextclaw/releases/tag/v0.19.9-desktop-beta.2`。该 release 已通过远端 Windows exe smoke、Windows installer smoke、release asset 检查、product bundle shape 检查与 beta update channel manifest 检查。
 
 ## 用户/产品视角的验收步骤
 
