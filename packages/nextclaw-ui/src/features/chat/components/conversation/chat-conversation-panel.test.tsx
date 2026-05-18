@@ -48,33 +48,40 @@ vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
   };
 });
 
-vi.mock("@/features/chat/components/conversation/chat-input-bar.container", () => ({
-  ChatInputBarContainer: () => <div data-testid="chat-input-bar" />,
-}));
+vi.mock(
+  "@/features/chat/components/conversation/chat-input-bar.container",
+  () => ({
+    ChatInputBarContainer: () => <div data-testid="chat-input-bar" />,
+  }),
+);
 
-vi.mock("@/features/chat/components/conversation/chat-message-list.container", () => ({
-  ChatMessageListContainer: ({
-    isSending,
-    messages,
-  }: {
-    isSending: boolean;
-    messages: readonly unknown[];
-  }) => (
-    <div
-      data-testid="chat-message-list"
-      data-message-count={String(messages.length)}
-      data-sending={String(isSending)}
-    />
-  ),
-}));
+vi.mock(
+  "@/features/chat/components/conversation/chat-message-list.container",
+  () => ({
+    ChatMessageListContainer: ({
+      isSending,
+      messages,
+    }: {
+      isSending: boolean;
+      messages: readonly unknown[];
+    }) => (
+      <div
+        data-testid="chat-message-list"
+        data-message-count={String(messages.length)}
+        data-sending={String(isSending)}
+      />
+    ),
+  }),
+);
 
-vi.mock("@/features/chat/components/chat-session-workspace-file-preview", () => ({
-  ChatSessionWorkspaceFilePreview: ({
-    file,
-  }: {
-    file: { path: string };
-  }) => <div data-testid="workspace-file-preview">{file.path}</div>,
-}));
+vi.mock(
+  "@/features/chat/components/chat-session-workspace-file-preview",
+  () => ({
+    ChatSessionWorkspaceFilePreview: ({ file }: { file: { path: string } }) => (
+      <div data-testid="workspace-file-preview">{file.path}</div>
+    ),
+  }),
+);
 
 vi.mock("@/features/chat/components/chat-welcome", () => ({
   ChatWelcome: ({
@@ -123,10 +130,9 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
         readAt: string | null | undefined,
       ) =>
         sessionKey
-          ? useChatSessionListStore.getState().markSessionRead(
-              sessionKey,
-              readAt,
-            )
+          ? useChatSessionListStore
+              .getState()
+              .markSessionRead(sessionKey, readAt)
           : undefined,
     },
     chatInputManager: {
@@ -136,41 +142,43 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
 }));
 
 vi.mock("@/shared/hooks/use-config", () => ({
-  useCronJobs: () => ({ data: { jobs: mocks.cronJobs, total: mocks.cronJobs.length } }),
+  useCronJobs: () => ({
+    data: { jobs: mocks.cronJobs, total: mocks.cronJobs.length },
+  }),
   useDeleteCronJob: () => ({
     mutate: mocks.deleteCronJob,
     isPending: false,
   }),
 }));
 
-vi.mock("@/features/chat/components/conversation/session-header/chat-session-header-actions", () => ({
-  ChatSessionHeaderActions: () => <button aria-label="More actions" />,
-}));
-
-vi.mock("@/features/chat/components/conversation/session-header/chat-session-project-badge", () => ({
-  ChatSessionProjectBadge: ({ projectName }: { projectName: string }) => (
-    <button>{projectName}</button>
-  ),
-}));
-
 vi.mock(
-  "@/features/chat/hooks/use-ncp-child-session-tabs-view",
+  "@/features/chat/components/conversation/session-header/chat-session-header-actions",
   () => ({
-    useNcpChildSessionTabsView: () => mocks.resolvedChildTabs,
+    ChatSessionHeaderActions: () => <button aria-label="More actions" />,
   }),
 );
 
 vi.mock(
-  "@/features/chat/hooks/use-ncp-session-conversation",
+  "@/features/chat/components/conversation/session-header/chat-session-project-badge",
   () => ({
-    useNcpSessionConversation: () => ({
-      visibleMessages: [],
-      isHydrating: false,
-      hydrateError: null,
-      isRunning: false,
-    }),
+    ChatSessionProjectBadge: ({ projectName }: { projectName: string }) => (
+      <button>{projectName}</button>
+    ),
   }),
 );
+
+vi.mock("@/features/chat/hooks/use-ncp-child-session-tabs-view", () => ({
+  useNcpChildSessionTabsView: () => mocks.resolvedChildTabs,
+}));
+
+vi.mock("@/features/chat/hooks/use-ncp-session-conversation", () => ({
+  useNcpSessionConversation: () => ({
+    visibleMessages: [],
+    isHydrating: false,
+    hydrateError: null,
+    isRunning: false,
+  }),
+}));
 
 vi.mock("@/shared/components/common/agent-avatar", () => ({
   AgentAvatar: ({ agentId }: { agentId: string }) => (
@@ -278,7 +286,9 @@ describe("ChatConversationPanel", () => {
 
     render(<ChatConversationPanel layoutMode="mobile" />);
 
-    await user.click(screen.getByRole("button", { name: "create draft session" }));
+    await user.click(
+      screen.getByRole("button", { name: "create draft session" }),
+    );
 
     expect(mocks.createSession).toHaveBeenCalledWith("native");
     expect(mocks.goToChatRoot).toHaveBeenCalledTimes(1);
@@ -365,7 +375,9 @@ describe("ChatConversationPanel", () => {
     expect(
       screen.queryByRole("status", { name: "Loading session history..." }),
     ).toBeNull();
-    expect(screen.queryByText("No messages yet. Send one to start.")).toBeNull();
+    expect(
+      screen.queryByText("No messages yet. Send one to start."),
+    ).toBeNull();
   });
 
   it("keeps the message list mounted while waiting for the first assistant token", () => {
@@ -373,14 +385,16 @@ describe("ChatConversationPanel", () => {
       snapshot: {
         ...useChatThreadStore.getState().snapshot,
         sessionKey: "session-1",
-        messages: [{
-          id: "user-1",
-          sessionId: "session-1",
-          role: "user",
-          status: "final",
-          parts: [{ type: "text", text: "hello" }],
-          timestamp: "2026-05-19T00:00:00.000Z",
-        } as never],
+        messages: [
+          {
+            id: "user-1",
+            sessionId: "session-1",
+            role: "user",
+            status: "final",
+            parts: [{ type: "text", text: "hello" }],
+            timestamp: "2026-05-19T00:00:00.000Z",
+          } as never,
+        ],
         isSending: true,
         isAwaitingAssistantOutput: true,
       },
@@ -388,8 +402,13 @@ describe("ChatConversationPanel", () => {
 
     render(<ChatConversationPanel />);
 
-    expect(screen.getByTestId("chat-message-list").dataset).toMatchObject({ messageCount: "1", sending: "true" });
-    expect(screen.queryByText("No messages yet. Send one to start.")).toBeNull();
+    expect(screen.getByTestId("chat-message-list").dataset).toMatchObject({
+      messageCount: "1",
+      sending: "true",
+    });
+    expect(
+      screen.queryByText("No messages yet. Send one to start."),
+    ).toBeNull();
   });
 
   it("does not show assistant waiting copy before the first message is visible", () => {
@@ -406,7 +425,9 @@ describe("ChatConversationPanel", () => {
     render(<ChatConversationPanel />);
 
     expect(screen.queryByTestId("chat-message-list")).toBeNull();
-    expect(screen.queryByText("No messages yet. Send one to start.")).toBeNull();
+    expect(
+      screen.queryByText("No messages yet. Send one to start."),
+    ).toBeNull();
   });
 
   it("does not reopen the welcome panel after a root draft send fails", () => {
@@ -424,7 +445,9 @@ describe("ChatConversationPanel", () => {
     render(<ChatConversationPanel />);
 
     expect(screen.queryByTestId("chat-welcome")).toBeNull();
-    expect(screen.queryByText("No messages yet. Send one to start.")).toBeNull();
+    expect(
+      screen.queryByText("No messages yet. Send one to start."),
+    ).toBeNull();
   });
 
   it("does not render runtime lifecycle copy in the conversation alert strip", () => {
@@ -516,6 +539,7 @@ describe("ChatSessionWorkspacePanel", () => {
 
     render(
       <ChatSessionWorkspacePanel
+        sessionKey="parent-session-1"
         childSessionTabs={[
           {
             sessionKey: "child-session-1",
@@ -528,12 +552,6 @@ describe("ChatSessionWorkspacePanel", () => {
         workspaceFileTabs={[]}
         activeWorkspaceFileKey={null}
         sessionProjectRoot="/Users/demo/project-alpha"
-        onSelectSession={vi.fn()}
-        onSelectFile={vi.fn()}
-        onCloseFile={vi.fn()}
-        onClose={vi.fn()}
-        onBackToParent={vi.fn()}
-        onFileOpen={vi.fn()}
       />,
     );
 
@@ -584,6 +602,7 @@ describe("ChatSessionWorkspacePanel", () => {
 
     render(
       <ChatSessionWorkspacePanel
+        sessionKey="parent-session-1"
         childSessionTabs={[
           {
             sessionKey: "child-session-1",
@@ -602,12 +621,6 @@ describe("ChatSessionWorkspacePanel", () => {
         workspaceFileTabs={[]}
         activeWorkspaceFileKey={null}
         sessionProjectRoot="/Users/demo/project-alpha"
-        onSelectSession={vi.fn()}
-        onSelectFile={vi.fn()}
-        onCloseFile={vi.fn()}
-        onClose={vi.fn()}
-        onBackToParent={vi.fn()}
-        onFileOpen={vi.fn()}
       />,
     );
 
@@ -617,6 +630,7 @@ describe("ChatSessionWorkspacePanel", () => {
   it("shows opened files as top tabs and renders the file preview pane", () => {
     render(
       <ChatSessionWorkspacePanel
+        sessionKey="parent-session-1"
         childSessionTabs={[]}
         activeChildSessionKey={null}
         workspaceFileTabs={[
@@ -630,12 +644,6 @@ describe("ChatSessionWorkspacePanel", () => {
         ]}
         activeWorkspaceFileKey="parent-session-1::preview::README.md"
         sessionProjectRoot="/Users/demo/project-alpha"
-        onSelectSession={vi.fn()}
-        onSelectFile={vi.fn()}
-        onCloseFile={vi.fn()}
-        onClose={vi.fn()}
-        onBackToParent={vi.fn()}
-        onFileOpen={vi.fn()}
       />,
     );
 
@@ -674,6 +682,7 @@ describe("ChatSessionWorkspacePanel", () => {
 
     render(
       <ChatSessionWorkspacePanel
+        sessionKey="parent-session-1"
         childSessionTabs={[]}
         activeChildSessionKey={null}
         workspaceFileTabs={[]}
@@ -681,12 +690,6 @@ describe("ChatSessionWorkspacePanel", () => {
         activePanelKind="cron"
         sessionCronJobs={[job]}
         sessionProjectRoot="/Users/demo/project-alpha"
-        onSelectSession={vi.fn()}
-        onSelectFile={vi.fn()}
-        onCloseFile={vi.fn()}
-        onClose={vi.fn()}
-        onBackToParent={vi.fn()}
-        onFileOpen={vi.fn()}
       />,
     );
 

@@ -1,6 +1,6 @@
 ---
 name: mvp-view-logic-decoupling
-description: Design or refactor frontend modules to a decoupled MVP architecture with Zustand stores, manager classes, and a global presenter. Use when requests mention MVP, presenter-manager-store, view-logic decoupling, reducing prop drilling, business orchestration layers, multi-component state/action coordination, complex React hook/component state machines, streaming/data-flow coordination, or RxJS evaluation.
+description: Design or refactor frontend modules to a decoupled MVP architecture with Zustand stores, manager classes, and a global presenter. Use when requests mention MVP, presenter-manager-store, view-logic decoupling, reducing prop drilling, business component cohesion, self-contained business containers, business orchestration layers, multi-component state/action coordination, complex React hook/component state machines, streaming/data-flow coordination, or RxJS evaluation.
 ---
 
 # MVP View-Logic Decoupling
@@ -41,6 +41,13 @@ Apply a strict Presenter-Manager-Store structure that keeps UI components free o
 - `Feature implementation modules`
   - Implement isolated business capabilities per feature.
 
+## Business Component Cohesion
+
+- 业务组件应在最贴近业务语义的位置自行订阅 store、读取 presenter、派生 view props，并只把收敛后的展示数据传给纯 UI 组件。
+- 页面级或布局级父组件只负责区域组合、挂载条件和布局模式，不应成为为所有子组件装配 snapshot 字段、计数、派生状态和 presenter action 的参数中转站。
+- 当同一组业务状态或动作需要跨两层以上传递时，优先新增或收敛到业务 container，让该 container 直接连接 presenter/store，而不是继续向下传参。
+- 不要为了“看起来可复用”把业务组件改成宽 props API；真正可复用的是纯 UI 组件，业务组件的可维护性来自明确 owner 和内聚的数据/动作访问。
+
 ## Effect Boundary
 
 - Use `useEffect` only for external-system synchronization:
@@ -58,8 +65,9 @@ Apply a strict Presenter-Manager-Store structure that keeps UI components free o
 3. Avoid `this`-binding ambiguity by using class fields with arrow methods.
 4. Prefer direct presenter/store access over deep business prop drilling.
 5. Remove duplicate data/action plumbing when presenter already provides the capability.
-6. Keep business-oriented `useEffect` logic out of business components; prefer manager/presenter action ownership.
-7. Keep complex state-flow and data-flow logic out of hooks/components; move it to manager/store/presenter before adding more React effects or local state.
+6. Keep layout components from assembling broad child prop bags; move business data/action selection into the nearest business container.
+7. Keep business-oriented `useEffect` logic out of business components; prefer manager/presenter action ownership.
+8. Keep complex state-flow and data-flow logic out of hooks/components; move it to manager/store/presenter before adding more React effects or local state.
 
 ## Implementation Workflow
 
@@ -70,9 +78,10 @@ Apply a strict Presenter-Manager-Store structure that keeps UI components free o
 5. Create global presenter class and instantiate managers as class fields.
 6. Add Context Provider + `usePresenter` hook.
 7. Refactor business components to use presenter/stores directly.
-8. Shrink remaining effects to external sync only.
-9. Move remaining pure display parts into UI components.
-10. Delete unnecessary business prop forwarding.
+8. Split broad page components into layout shells plus business containers when the parent is only forwarding snapshot fields or presenter actions.
+9. Shrink remaining effects to external sync only.
+10. Move remaining pure display parts into UI components.
+11. Delete unnecessary business prop forwarding.
 
 ## Minimal TypeScript Skeleton
 
@@ -165,13 +174,17 @@ Run this check before finishing:
 5. Verify manager/presenter classes do not declare constructors.
 6. Verify cross-domain communication goes through presenter-level APIs.
 7. Verify business components do not use `useEffect` to mirror query/store data or dispatch business actions.
-8. Verify complex async, streaming, or cross-event flows have an explicit owner, and evaluate RxJS only when it simplifies that owner instead of spreading logic.
+8. Verify layout/page components do not collect wide snapshot/action prop bags for child business components.
+9. Verify repeated props passed through two or more layers have been replaced by direct presenter/store access in the nearest business container.
+10. Verify complex async, streaming, or cross-event flows have an explicit owner, and evaluate RxJS only when it simplifies that owner instead of spreading logic.
 
 ## Anti-Patterns
 
 - Put business logic in UI components.
 - Duplicate one capability in multiple managers.
 - Pass action/state through several business layers when presenter direct access is possible.
+- Let a page/layout component become a manual prop assembler for child business components.
+- Create wide business component props APIs that mirror store snapshot fields or presenter methods.
 - Mix orchestration logic into low-level feature modules.
 - Use prototype methods (`foo() {}`) in manager/presenter classes.
 - Use `useEffect` as a business patch point for state repair, query-to-store mirroring, or post-render action dispatch.

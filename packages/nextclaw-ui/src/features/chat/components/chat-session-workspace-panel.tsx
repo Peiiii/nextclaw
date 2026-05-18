@@ -34,6 +34,7 @@ import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
 type ChatSessionWorkspacePanelProps = {
+  sessionKey: string | null;
   childSessionTabs: readonly ChatChildSessionTab[];
   activeChildSessionKey: string | null;
   workspaceFileTabs: readonly ChatWorkspaceFileTab[];
@@ -42,14 +43,6 @@ type ChatSessionWorkspacePanelProps = {
   sessionCronJobs?: readonly CronJobView[];
   sessionProjectRoot: string | null;
   displayMode?: "docked" | "overlay";
-  onSelectSession: (sessionKey: string) => void;
-  onSelectFile: (fileKey: string) => void;
-  onCloseFile: (fileKey: string) => void;
-  onSelectCronJobs?: () => void;
-  onClose: () => void;
-  onBackToParent: () => void;
-  onToolAction?: (action: ChatToolActionViewModel) => void;
-  onFileOpen: (action: ChatFileOpenActionViewModel) => void;
 };
 
 function ChildSessionContent({
@@ -146,11 +139,7 @@ function ChildSessionMetaStrip({ tab }: { tab: ResolvedChildSessionTab }) {
   );
 }
 
-function WorkspaceActiveChildHeader({
-  tab,
-}: {
-  tab: ResolvedChildSessionTab;
-}) {
+function WorkspaceActiveChildHeader({ tab }: { tab: ResolvedChildSessionTab }) {
   return (
     <div className="border-b border-gray-200/70 px-4 py-3">
       <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-gray-900">
@@ -199,7 +188,7 @@ function buildWorkspaceTabsViewModel(params: {
         ? optimisticReadAt.localeCompare(tab.readAt) > 0
           ? optimisticReadAt
           : tab.readAt
-        : optimisticReadAt ?? tab.readAt;
+        : (optimisticReadAt ?? tab.readAt);
     return {
       key: `child:${tab.sessionKey}`,
       kind: "child-session" as const,
@@ -228,28 +217,30 @@ function buildWorkspaceTabsViewModel(params: {
     tooltip: file.path,
     viewMode: file.viewMode,
     active:
-      activeSelection?.kind === "file" &&
-      activeSelection.file.key === file.key,
+      activeSelection?.kind === "file" && activeSelection.file.key === file.key,
     onSelect: () => onSelectFile(file.key),
     onClose: () => onCloseFile(file.key),
   }));
 
   const cronTab =
     sessionCronJobCount > 0
-      ? [{
-          key: "cron:session",
-          kind: "cron" as const,
-          title: t("chatWorkspaceSessionCronJobs"),
-          tooltip: t("chatWorkspaceSessionCronJobs"),
-          active: activeSelection?.kind === "cron",
-          onSelect: onSelectCronJobs,
-        }]
+      ? [
+          {
+            key: "cron:session",
+            kind: "cron" as const,
+            title: t("chatWorkspaceSessionCronJobs"),
+            tooltip: t("chatWorkspaceSessionCronJobs"),
+            active: activeSelection?.kind === "cron",
+            onSelect: onSelectCronJobs,
+          },
+        ]
       : [];
 
   return [...childTabs, ...fileTabs, ...cronTab];
 }
 
 export function ChatSessionWorkspacePanel({
+  sessionKey,
   childSessionTabs,
   activeChildSessionKey,
   workspaceFileTabs,
@@ -258,14 +249,6 @@ export function ChatSessionWorkspacePanel({
   sessionCronJobs = [],
   sessionProjectRoot,
   displayMode = "docked",
-  onSelectSession,
-  onSelectFile,
-  onCloseFile,
-  onSelectCronJobs = () => {},
-  onClose,
-  onBackToParent,
-  onToolAction,
-  onFileOpen,
 }: ChatSessionWorkspacePanelProps) {
   const presenter = usePresenter();
   const resolvedChildTabs = useNcpChildSessionTabsView(childSessionTabs);
@@ -307,19 +290,20 @@ export function ChatSessionWorkspacePanel({
         sessionCronJobCount: sessionCronJobs.length,
         activeSelection,
         optimisticReadAtBySessionKey,
-        onSelectSession,
-        onSelectFile,
-        onCloseFile,
-        onSelectCronJobs,
+        onSelectSession: presenter.chatThreadManager.selectChildSessionDetail,
+        onSelectFile: presenter.chatThreadManager.selectWorkspaceFile,
+        onCloseFile: presenter.chatThreadManager.closeWorkspaceFile,
+        onSelectCronJobs: () => {
+          if (sessionKey)
+            presenter.chatThreadManager.openSessionCronPanel(sessionKey);
+        },
       }),
     [
       activeSelection,
-      onCloseFile,
-      onSelectCronJobs,
-      onSelectFile,
-      onSelectSession,
       optimisticReadAtBySessionKey,
+      presenter.chatThreadManager,
       resolvedChildTabs,
+      sessionKey,
       workspaceFileTabs,
       sessionCronJobs.length,
     ],
@@ -341,7 +325,7 @@ export function ChatSessionWorkspacePanel({
         <div className="flex items-center justify-between gap-3 border-b border-gray-200/70 px-4 py-2.5">
           <button
             type="button"
-            onClick={onBackToParent}
+            onClick={presenter.chatThreadManager.goToParentSession}
             className={cn(
               "inline-flex items-center gap-1 text-xs font-medium text-gray-600 transition-colors hover:text-gray-900",
               !hasParentSession && "pointer-events-none opacity-0",
@@ -352,7 +336,7 @@ export function ChatSessionWorkspacePanel({
           </button>
           <button
             type="button"
-            onClick={onClose}
+            onClick={presenter.chatThreadManager.closeWorkspacePanel}
             className="rounded-full border border-gray-200/80 p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
             aria-label={t("chatWorkspaceClosePanel")}
           >
@@ -369,8 +353,10 @@ export function ChatSessionWorkspacePanel({
               <div className="flex-1 min-h-0">
                 <ChildSessionContent
                   sessionKey={activeSelection.tab.sessionKey}
-                  onToolAction={onToolAction}
-                  onFileOpen={onFileOpen}
+                  onToolAction={
+                    presenter.chatThreadManager.openSessionFromToolAction
+                  }
+                  onFileOpen={presenter.chatThreadManager.openFilePreview}
                 />
               </div>
             </>
@@ -378,7 +364,7 @@ export function ChatSessionWorkspacePanel({
             <ChatSessionWorkspaceFilePreview
               file={activeSelection.file}
               sessionProjectRoot={sessionProjectRoot}
-              onFileOpen={onFileOpen}
+              onFileOpen={presenter.chatThreadManager.openFilePreview}
             />
           ) : (
             <SessionCronJobContent jobs={sessionCronJobs} />

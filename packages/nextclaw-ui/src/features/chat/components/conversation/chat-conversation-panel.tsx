@@ -1,6 +1,5 @@
-import { type ComponentProps, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
-import type { ChatFileOpenActionViewModel } from "@nextclaw/agent-chat-ui";
 import { ChatInputBarContainer } from "@/features/chat/components/conversation/chat-input-bar.container";
 import { ChatMessageListContainer } from "@/features/chat/components/conversation/chat-message-list.container";
 import {
@@ -8,7 +7,7 @@ import {
   ChatParentSessionBanner,
 } from "@/features/chat/components/conversation/chat-conversation-header";
 import { ChatWelcome } from "@/features/chat/components/chat-welcome";
-import { ChatSessionWorkspacePanel } from "@/features/chat";
+import { ChatSessionWorkspacePanel } from "@/features/chat/components/chat-session-workspace-panel";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import { resolveAgentRuntimeSessionType } from "@/features/chat/hooks/use-chat-session-type-state";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
@@ -103,26 +102,17 @@ function ChatConversationSkeleton() {
   );
 }
 
-type ChatThreadSnapshot = ReturnType<typeof useChatThreadStore.getState>["snapshot"];
-type ChatToolActionHandler = ComponentProps<
-  typeof ChatMessageListContainer
->["onToolAction"];
-type ChatFileOpenHandler = ComponentProps<
-  typeof ChatMessageListContainer
->["onFileOpen"];
+type ChatThreadSnapshot = ReturnType<
+  typeof useChatThreadStore.getState
+>["snapshot"];
+type ChatConversationLayoutMode = "desktop" | "mobile";
 
-type ChatConversationAlertsProps = {
-  shouldShowProviderHint: boolean;
-  sessionTypeUnavailable: boolean;
-  sessionTypeUnavailableMessage: string | null;
-  onGoToProviders: () => void;
-};
-function ChatConversationAlerts({
-  shouldShowProviderHint,
-  sessionTypeUnavailable,
-  sessionTypeUnavailableMessage,
-  onGoToProviders,
-}: ChatConversationAlertsProps) {
+function ChatConversationAlerts() {
+  const presenter = usePresenter();
+  const snapshot = useChatThreadStore((state) => state.snapshot);
+  const shouldShowProviderHint =
+    snapshot.isProviderStateResolved && snapshot.modelOptions.length === 0;
+
   return (
     <>
       {shouldShowProviderHint ? (
@@ -132,17 +122,18 @@ function ChatConversationAlerts({
           </span>
           <button
             type="button"
-            onClick={onGoToProviders}
+            onClick={presenter.chatThreadManager.goToProviders}
             className="text-xs font-semibold text-amber-900 underline-offset-2 hover:underline"
           >
             {t("chatGoConfigureProvider")}
           </button>
         </div>
       ) : null}
-      {sessionTypeUnavailable && sessionTypeUnavailableMessage?.trim() ? (
+      {snapshot.sessionTypeUnavailable &&
+      snapshot.sessionTypeUnavailableMessage?.trim() ? (
         <div className="px-4 py-2.5 border-b border-amber-200/70 bg-amber-50/70 shrink-0 sm:px-5">
           <span className="text-xs text-amber-800">
-            {sessionTypeUnavailableMessage}
+            {snapshot.sessionTypeUnavailableMessage}
           </span>
         </div>
       ) : null}
@@ -150,31 +141,55 @@ function ChatConversationAlerts({
   );
 }
 
-type ChatConversationContentProps = {
-  snapshot: ChatThreadSnapshot;
-  availableAgents: NonNullable<ChatThreadSnapshot["availableAgents"]>;
-  hideEmptyHint: boolean;
-  showWelcome: boolean;
-  threadRef: ComponentProps<"div">["ref"];
-  onScroll: ComponentProps<"div">["onScroll"];
-  onCreateSession: () => void;
-  onSelectAgent: (agentId: string) => void;
-  onToolAction: ChatToolActionHandler;
-  onFileOpen: ChatFileOpenHandler;
-};
-
 function ChatConversationContent({
-  snapshot,
-  availableAgents,
-  hideEmptyHint,
-  showWelcome,
-  threadRef,
-  onScroll,
-  onCreateSession,
-  onSelectAgent,
-  onToolAction,
-  onFileOpen,
-}: ChatConversationContentProps) {
+  layoutMode,
+}: {
+  layoutMode: ChatConversationLayoutMode;
+}) {
+  const presenter = usePresenter();
+  const defaultSessionType = useChatInputStore(
+    (state) => state.snapshot.defaultSessionType,
+  );
+  const snapshot = useChatThreadStore((state) => state.snapshot);
+  const fallbackThreadRef = useRef<HTMLDivElement | null>(null);
+  const threadRef = snapshot.threadRef ?? fallbackThreadRef;
+  const availableAgents = snapshot.availableAgents ?? [];
+  const showWelcome =
+    !snapshot.canDeleteSession &&
+    !snapshot.hasSubmittedDraftMessage &&
+    snapshot.messages.length === 0 &&
+    !snapshot.isSending;
+  const hideEmptyHint =
+    snapshot.isHistoryLoading &&
+    snapshot.messages.length === 0 &&
+    !snapshot.isSending &&
+    !snapshot.isAwaitingAssistantOutput;
+  const resolveDraftAgent = (agentId: string) =>
+    availableAgents.find((agent) => agent.id === agentId) ?? null;
+  const createDraftSessionForAgent = () => {
+    const sessionType = resolveAgentRuntimeSessionType(
+      resolveDraftAgent(snapshot.agentId ?? "main"),
+      defaultSessionType,
+    );
+    presenter.chatSessionListManager.createSession(sessionType);
+    if (layoutMode === "mobile") presenter.chatUiManager.goToChatRoot();
+  };
+  const selectDraftAgent = (agentId: string) => {
+    presenter.chatSessionListManager.setSelectedAgentId(agentId);
+    presenter.chatInputManager.setPendingSessionType(
+      resolveAgentRuntimeSessionType(
+        resolveDraftAgent(agentId),
+        defaultSessionType,
+      ),
+    );
+  };
+  const { onScroll } = useStickyBottomScroll({
+    scrollRef: threadRef,
+    resetKey: snapshot.sessionKey,
+    isLoading: snapshot.isHistoryLoading,
+    hasContent: snapshot.messages.length > 0,
+    contentVersion: snapshot.messages[snapshot.messages.length - 1] ?? null,
+  });
   const hasMessages = snapshot.messages.length > 0;
   const isAwaitingAssistantOutput =
     hasMessages && snapshot.isSending && snapshot.isAwaitingAssistantOutput;
@@ -188,18 +203,18 @@ function ChatConversationContent({
     >
       {showWelcome ? (
         <ChatWelcome
-          onCreateSession={onCreateSession}
+          onCreateSession={createDraftSessionForAgent}
           agents={availableAgents}
           selectedAgentId={snapshot.agentId ?? "main"}
-          onSelectAgent={onSelectAgent}
+          onSelectAgent={selectDraftAgent}
         />
       ) : hideEmptyHint || !shouldShowMessages ? null : (
         <div className="mx-auto w-full max-w-[min(1120px,100%)] px-4 py-4 sm:px-6 sm:py-5">
           <ChatMessageListContainer
             messages={snapshot.messages}
             isSending={isAwaitingAssistantOutput}
-            onToolAction={onToolAction}
-            onFileOpen={onFileOpen}
+            onToolAction={presenter.chatThreadManager.openSessionFromToolAction}
+            onFileOpen={presenter.chatThreadManager.openFilePreview}
           />
         </div>
       )}
@@ -216,21 +231,34 @@ function shouldShowWorkspacePanel(
   if (snapshot.workspacePanelParentKey !== snapshot.sessionKey) {
     return false;
   }
-  return childSessionTabs.length > 0 || workspaceFileTabs.length > 0 || sessionCronJobCount > 0;
+  return (
+    childSessionTabs.length > 0 ||
+    workspaceFileTabs.length > 0 ||
+    sessionCronJobCount > 0
+  );
 }
 
 function useSessionWorkspaceState(snapshot: ChatThreadSnapshot) {
   const childSessionTabs = useMemo(
-    () => snapshot.childSessionTabs.filter((tab) => tab.parentSessionKey === snapshot.sessionKey),
+    () =>
+      snapshot.childSessionTabs.filter(
+        (tab) => tab.parentSessionKey === snapshot.sessionKey,
+      ),
     [snapshot.childSessionTabs, snapshot.sessionKey],
   );
   const workspaceFileTabs = useMemo(
-    () => snapshot.workspaceFileTabs.filter((tab) => tab.parentSessionKey === snapshot.sessionKey),
+    () =>
+      snapshot.workspaceFileTabs.filter(
+        (tab) => tab.parentSessionKey === snapshot.sessionKey,
+      ),
     [snapshot.sessionKey, snapshot.workspaceFileTabs],
   );
   const cronQuery = useCronJobs({ all: true });
   const sessionCronJobs = useMemo(
-    () => (cronQuery.data?.jobs ?? []).filter((job) => isCronJobForSession(job, snapshot.sessionKey)),
+    () =>
+      (cronQuery.data?.jobs ?? []).filter((job) =>
+        isCronJobForSession(job, snapshot.sessionKey),
+      ),
     [cronQuery.data?.jobs, snapshot.sessionKey],
   );
   return {
@@ -246,65 +274,42 @@ function useSessionWorkspaceState(snapshot: ChatThreadSnapshot) {
   };
 }
 
-export function ChatConversationPanel({
-  layoutMode = "desktop",
+function ChatParentSessionBannerContainer() {
+  const presenter = usePresenter();
+  const snapshot = useChatThreadStore((state) => state.snapshot);
+  return (
+    <ChatParentSessionBanner
+      parentSessionLabel={
+        snapshot.parentSessionKey ? (snapshot.parentSessionLabel ?? null) : null
+      }
+      onGoToParentSession={presenter.chatThreadManager.goToParentSession}
+    />
+  );
+}
+
+function ChatConversationHeaderContainer({
+  layoutMode,
   onBackToList,
 }: {
-  layoutMode?: "desktop" | "mobile";
+  layoutMode: ChatConversationLayoutMode;
   onBackToList?: () => void;
 }) {
   const presenter = usePresenter();
-  const defaultSessionType = useChatInputStore((state) => state.snapshot.defaultSessionType);
   const snapshot = useChatThreadStore((state) => state.snapshot);
-  const fallbackThreadRef = useRef<HTMLDivElement | null>(null);
-  const threadRef = snapshot.threadRef ?? fallbackThreadRef;
-  const { childSessionTabs, workspaceFileTabs, sessionCronJobs, showWorkspacePanel } =
+  const { childSessionTabs, sessionCronJobs } =
     useSessionWorkspaceState(snapshot);
   const shouldShowSessionHeader = Boolean(
     snapshot.sessionKey || snapshot.sessionTypeLabel,
   );
   const sessionHeaderTitle =
     snapshot.sessionDisplayName ||
-    (snapshot.canDeleteSession && snapshot.sessionKey ? snapshot.sessionKey : null) ||
+    (snapshot.canDeleteSession && snapshot.sessionKey
+      ? snapshot.sessionKey
+      : null) ||
     t("chatSidebarNewTask");
   const normalizedAgentId = snapshot.agentId?.trim() ?? "";
   const shouldShowHeaderAgentAvatar =
-    normalizedAgentId.length > 0 &&
-    normalizedAgentId.toLowerCase() !== "main";
-
-  const showWelcome =
-    !snapshot.canDeleteSession &&
-    !snapshot.hasSubmittedDraftMessage &&
-    snapshot.messages.length === 0 &&
-    !snapshot.isSending;
-  const hasConfiguredModel = snapshot.modelOptions.length > 0;
-  const shouldShowProviderHint =
-    snapshot.isProviderStateResolved && !hasConfiguredModel;
-  const hideEmptyHint =
-    snapshot.isHistoryLoading &&
-    snapshot.messages.length === 0 &&
-    !snapshot.isSending &&
-    !snapshot.isAwaitingAssistantOutput;
-  const availableAgents = snapshot.availableAgents ?? [];
-  const resolveDraftAgent = (agentId: string) =>
-    availableAgents.find((agent) => agent.id === agentId) ?? null;
-  const createDraftSessionForAgent = () => {
-    const sessionType = resolveAgentRuntimeSessionType(
-      resolveDraftAgent(snapshot.agentId ?? "main"),
-      defaultSessionType,
-    );
-    presenter.chatSessionListManager.createSession(sessionType);
-    if (layoutMode === "mobile") presenter.chatUiManager.goToChatRoot();
-  };
-  const selectDraftAgent = (agentId: string) => {
-    presenter.chatSessionListManager.setSelectedAgentId(agentId);
-    presenter.chatInputManager.setPendingSessionType(
-      resolveAgentRuntimeSessionType(resolveDraftAgent(agentId), defaultSessionType),
-    );
-  };
-  const openFilePreview = (action: ChatFileOpenActionViewModel) => {
-    presenter.chatThreadManager.openFilePreview(action);
-  };
+    normalizedAgentId.length > 0 && normalizedAgentId.toLowerCase() !== "main";
   const openChildSessions = () => {
     if (!snapshot.sessionKey) {
       return;
@@ -321,13 +326,64 @@ export function ChatConversationPanel({
     presenter.chatThreadManager.openSessionCronPanel(snapshot.sessionKey);
   };
 
-  const { onScroll: handleScroll } = useStickyBottomScroll({
-    scrollRef: threadRef,
-    resetKey: snapshot.sessionKey,
-    isLoading: snapshot.isHistoryLoading,
-    hasContent: snapshot.messages.length > 0,
-    contentVersion: snapshot.messages[snapshot.messages.length - 1] ?? null,
-  });
+  return (
+    <ChatConversationHeader
+      snapshot={snapshot}
+      childSessionCount={childSessionTabs.length}
+      sessionCronJobCount={sessionCronJobs.length}
+      layoutMode={layoutMode}
+      normalizedAgentId={normalizedAgentId}
+      sessionHeaderTitle={sessionHeaderTitle}
+      shouldShowHeaderAgentAvatar={shouldShowHeaderAgentAvatar}
+      shouldShowSessionHeader={shouldShowSessionHeader}
+      onBackToList={onBackToList}
+      onOpenChildSessions={openChildSessions}
+      onOpenSessionCronJobs={openSessionCronJobs}
+      onDeleteSession={presenter.chatThreadManager.deleteSession}
+    />
+  );
+}
+
+function ChatSessionWorkspacePanelContainer({
+  layoutMode,
+}: {
+  layoutMode: ChatConversationLayoutMode;
+}) {
+  const snapshot = useChatThreadStore((state) => state.snapshot);
+  const {
+    childSessionTabs,
+    workspaceFileTabs,
+    sessionCronJobs,
+    showWorkspacePanel,
+  } = useSessionWorkspaceState(snapshot);
+
+  if (!showWorkspacePanel) {
+    return null;
+  }
+
+  return (
+    <ChatSessionWorkspacePanel
+      sessionKey={snapshot.sessionKey}
+      childSessionTabs={childSessionTabs}
+      activeChildSessionKey={snapshot.activeChildSessionKey ?? null}
+      workspaceFileTabs={workspaceFileTabs}
+      activeWorkspaceFileKey={snapshot.activeWorkspaceFileKey ?? null}
+      activePanelKind={snapshot.activeWorkspacePanelKind ?? null}
+      sessionCronJobs={sessionCronJobs}
+      sessionProjectRoot={snapshot.sessionProjectRoot ?? null}
+      displayMode={layoutMode === "mobile" ? "overlay" : "docked"}
+    />
+  );
+}
+
+export function ChatConversationPanel({
+  layoutMode = "desktop",
+  onBackToList,
+}: {
+  layoutMode?: ChatConversationLayoutMode;
+  onBackToList?: () => void;
+}) {
+  const snapshot = useChatThreadStore((state) => state.snapshot);
 
   if (!snapshot.isProviderStateResolved) {
     return <ChatConversationSkeleton />;
@@ -336,68 +392,17 @@ export function ChatConversationPanel({
   return (
     <section className="flex-1 min-h-0 flex overflow-hidden bg-gradient-to-b from-gray-50/60 to-white">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <ChatParentSessionBanner
-          parentSessionLabel={
-            snapshot.parentSessionKey ? (snapshot.parentSessionLabel ?? null) : null
-          }
-          onGoToParentSession={presenter.chatThreadManager.goToParentSession}
-        />
-        <ChatConversationHeader
-          snapshot={snapshot}
-          childSessionCount={childSessionTabs.length}
-          sessionCronJobCount={sessionCronJobs.length}
+        <ChatParentSessionBannerContainer />
+        <ChatConversationHeaderContainer
           layoutMode={layoutMode}
-          normalizedAgentId={normalizedAgentId}
-          sessionHeaderTitle={sessionHeaderTitle}
-          shouldShowHeaderAgentAvatar={shouldShowHeaderAgentAvatar}
-          shouldShowSessionHeader={shouldShowSessionHeader}
           onBackToList={onBackToList}
-          onOpenChildSessions={openChildSessions}
-          onOpenSessionCronJobs={openSessionCronJobs}
-          onDeleteSession={presenter.chatThreadManager.deleteSession}
         />
-        <ChatConversationAlerts
-          shouldShowProviderHint={shouldShowProviderHint}
-          sessionTypeUnavailable={snapshot.sessionTypeUnavailable}
-          sessionTypeUnavailableMessage={snapshot.sessionTypeUnavailableMessage ?? null}
-          onGoToProviders={presenter.chatThreadManager.goToProviders}
-        />
-        <ChatConversationContent
-          snapshot={snapshot}
-          availableAgents={availableAgents}
-          hideEmptyHint={hideEmptyHint}
-          showWelcome={showWelcome}
-          threadRef={threadRef}
-          onScroll={handleScroll}
-          onCreateSession={createDraftSessionForAgent}
-          onSelectAgent={selectDraftAgent}
-          onToolAction={presenter.chatThreadManager.openSessionFromToolAction}
-          onFileOpen={openFilePreview}
-        />
-
+        <ChatConversationAlerts />
+        <ChatConversationContent layoutMode={layoutMode} />
         <ChatInputBarContainer />
       </div>
 
-      {showWorkspacePanel ? (
-        <ChatSessionWorkspacePanel
-          childSessionTabs={childSessionTabs}
-          activeChildSessionKey={snapshot.activeChildSessionKey ?? null}
-          workspaceFileTabs={workspaceFileTabs}
-          activeWorkspaceFileKey={snapshot.activeWorkspaceFileKey ?? null}
-          activePanelKind={snapshot.activeWorkspacePanelKind ?? null}
-          sessionCronJobs={sessionCronJobs}
-          sessionProjectRoot={snapshot.sessionProjectRoot ?? null}
-          displayMode={layoutMode === "mobile" ? "overlay" : "docked"}
-          onSelectSession={presenter.chatThreadManager.selectChildSessionDetail}
-          onSelectFile={presenter.chatThreadManager.selectWorkspaceFile}
-          onCloseFile={presenter.chatThreadManager.closeWorkspaceFile}
-          onSelectCronJobs={() => snapshot.sessionKey ? presenter.chatThreadManager.openSessionCronPanel(snapshot.sessionKey) : undefined}
-          onClose={presenter.chatThreadManager.closeWorkspacePanel}
-          onBackToParent={presenter.chatThreadManager.goToParentSession}
-          onToolAction={presenter.chatThreadManager.openSessionFromToolAction}
-          onFileOpen={openFilePreview}
-        />
-      ) : null}
+      <ChatSessionWorkspacePanelContainer layoutMode={layoutMode} />
     </section>
   );
 }
