@@ -50,9 +50,6 @@ export class NcpAgentSessionStoreAdapter implements AgentSessionStore {
   getSession = async (sessionId: string): Promise<AgentSessionRecord | null> =>
     await this.options.journalStore?.getSession(sessionId) ?? this.legacyStore.getSession(sessionId);
 
-  getSessionSummary = async (sessionId: string): Promise<NcpSessionSummary | null> =>
-    await this.options.journalStore?.getSessionSummary(sessionId) ?? this.legacyStore.getSessionSummary(sessionId);
-
   listSessionMessages = async (sessionId: string): Promise<NcpMessage[]> => {
     const journalStore = this.options.journalStore;
     return journalStore && await journalStore.hasSession(sessionId)

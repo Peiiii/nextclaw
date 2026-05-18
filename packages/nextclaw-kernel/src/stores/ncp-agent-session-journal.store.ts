@@ -34,6 +34,19 @@ type ParsedNcpAgentSessionJournal = {
   events: NcpEndpointEvent[];
 };
 
+type NcpAgentSessionJournalEntry = ReturnType<typeof createNcpAgentSessionJournalMetadataEntry> | NcpAgentSessionJournalEventEntry;
+function serializeJournalEntry(entry: NcpAgentSessionJournalEntry): string {
+  const serialized = JSON.stringify(entry);
+  if (!serialized) {
+    throw new Error("ncp agent session journal entry serialization produced empty output");
+  }
+  const parsed = JSON.parse(serialized) as unknown;
+  if (!isRecord(parsed)) {
+    throw new Error("ncp agent session journal entry serialization produced a non-object entry");
+  }
+  return serialized;
+}
+
 export class NcpAgentSessionJournalStore {
   private readonly sessions = new Map<string, LoadedNcpAgentJournalSession>();
   private readonly nextSeqBySession = new Map<string, number>();
@@ -80,20 +93,6 @@ export class NcpAgentSessionJournalStore {
     return structuredClone(loaded.record);
   };
 
-  getSessionSummary = async (sessionId: string): Promise<NcpSessionSummary | null> => {
-    const normalizedSessionId = normalizeNcpSessionId(sessionId);
-    if (!normalizedSessionId) {
-      return null;
-    }
-    const index = await this.loadSummaryIndex();
-    const indexed = index.get(normalizedSessionId);
-    if (indexed) {
-      return structuredClone(indexed);
-    }
-    const record = await this.getSession(normalizedSessionId);
-    return record ? createNcpAgentSessionSummary(record) : null;
-  };
-
   listSessionSummaries = async (): Promise<NcpSessionSummary[]> => {
     const index = await this.loadSummaryIndex();
     return [...index.values()]
@@ -131,7 +130,7 @@ export class NcpAgentSessionJournalStore {
     ];
     await writeFile(
       this.sessionPath(sessionId),
-      `${entries.map((entry) => JSON.stringify(entry)).join("\n")}\n`,
+      `${entries.map(serializeJournalEntry).join("\n")}\n`,
       "utf-8",
     );
     const nextSeq = nextRecord.messages.length + 1;
@@ -182,7 +181,7 @@ export class NcpAgentSessionJournalStore {
     const nextSeq = this.nextSeqBySession.get(sessionId) ?? existing?.nextSeq ?? 1;
     const path = this.sessionPath(sessionId);
     if (!hasJournal) {
-      await appendFile(path, `${JSON.stringify(createNcpAgentSessionJournalMetadataEntry(session))}\n`, "utf-8");
+      await this.appendJournalEntry(path, createNcpAgentSessionJournalMetadataEntry(session));
     }
     const entry: NcpAgentSessionJournalEventEntry = {
       _type: "event",
@@ -191,7 +190,7 @@ export class NcpAgentSessionJournalStore {
       timestamp: updatedAt,
       event: structuredClone(event),
     };
-    await appendFile(path, `${JSON.stringify(entry)}\n`, "utf-8");
+    await this.appendJournalEntry(path, entry);
     this.nextSeqBySession.set(sessionId, nextSeq + 1);
     this.sessions.delete(sessionId);
     await this.upsertSummaryIndexForEvent({
@@ -234,11 +233,19 @@ export class NcpAgentSessionJournalStore {
     let updatedAt = createdAt;
     let nextSeq = 1;
     const events: NcpEndpointEvent[] = [];
-    for (const line of raw.split("\n")) {
+    for (const [index, line] of raw.split("\n").entries()) {
       if (!line.trim()) {
         continue;
       }
-      const parsed = JSON.parse(line) as unknown;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(line) as unknown;
+      } catch (error) {
+        console.warn(
+          `[ncp-agent-session-journal] skipped corrupted journal line ${index + 1}: ${error instanceof Error ? error.message : String(error)}`
+        );
+        continue;
+      }
       if (!isRecord(parsed)) {
         continue;
       }
@@ -257,6 +264,13 @@ export class NcpAgentSessionJournalStore {
       }
     }
     return { metadata, ...(agentId ? { agentId } : {}), createdAt, updatedAt, nextSeq, events };
+  };
+
+  private appendJournalEntry = async (
+    path: string,
+    entry: NcpAgentSessionJournalEntry,
+  ): Promise<void> => {
+    await appendFile(path, `${serializeJournalEntry(entry)}\n`, "utf-8");
   };
 
   private loadSummaryIndex = async (): Promise<Map<string, NcpSessionSummary>> => {

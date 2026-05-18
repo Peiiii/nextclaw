@@ -31,24 +31,6 @@ export class NcpAgentLegacySessionStore {
     };
   };
 
-  getSessionSummary = (sessionId: string) => {
-    const session = this.getSession(sessionId);
-    if (!session) {
-      return null;
-    }
-    const lastMessageAt = session.messages.at(-1)?.timestamp;
-    return {
-      sessionId: session.sessionId,
-      ...(session.agentId ? { agentId: session.agentId } : {}),
-      messageCount: session.messages.length,
-      createdAt: session.createdAt,
-      updatedAt: session.updatedAt,
-      ...(lastMessageAt ? { lastMessageAt } : {}),
-      status: "idle" as const,
-      metadata: session.metadata,
-    };
-  };
-
   listSessionMessages = (sessionId: string) => this.getSession(sessionId)?.messages ?? [];
 
   listSessionSummaries = () => this.sessionManager.listSessions().map((record) => ({

@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
@@ -122,5 +122,117 @@ describe("NcpAgentSessionJournalStore", () => {
       messageCount: 1,
       metadata: { label: "Journal test" },
     });
+  });
+
+  it("skips corrupted journal lines without losing later valid events", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+
+    await store.appendSessionEvent({
+      session: createRecord([userMessage]),
+      event: {
+        type: NcpEventType.MessageSent,
+        payload: {
+          sessionId,
+          message: userMessage,
+        },
+      },
+      updatedAt: "2026-05-14T00:00:00.000Z",
+    });
+
+    const journalPath = join(tempDir, `${sessionId}.jsonl`);
+    const raw = await readFile(journalPath, "utf-8");
+    await writeFile(
+      journalPath,
+      [
+        raw.trimEnd(),
+        '\\n            <div class="bdsharebuttonbox">bad html</div>',
+        JSON.stringify({
+          _type: "event",
+          version: 1,
+          seq: 2,
+          timestamp: "2026-05-14T00:00:02.000Z",
+          event: {
+            type: NcpEventType.MessageTextStart,
+            payload: {
+              sessionId,
+              messageId: "assistant-1",
+            },
+          },
+        }),
+        JSON.stringify({
+          _type: "event",
+          version: 1,
+          seq: 3,
+          timestamp: "2026-05-14T00:00:03.000Z",
+          event: {
+            type: NcpEventType.MessageTextDelta,
+            payload: {
+              sessionId,
+              messageId: "assistant-1",
+              delta: "hi",
+            },
+          },
+        }),
+      ].join("\n") + "\n",
+      "utf-8",
+    );
+
+    const reloaded = new NcpAgentSessionJournalStore(tempDir);
+    const session = await reloaded.getSession(sessionId);
+    const messages = await reloaded.listSessionMessages(sessionId);
+
+    expect(session?.metadata).toMatchObject({
+      label: "Journal test",
+    });
+    expect(messages).toHaveLength(2);
+    expect(messages[0]).toMatchObject({ role: "user" });
+    expect(messages[1]).toMatchObject({
+      id: "assistant-1",
+      status: "streaming",
+      parts: [{ type: "text", text: "hi" }],
+    });
+  });
+
+  it("writes fetched html payloads as one valid JSONL line", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+    const html = "\n            \r\n            <div class=\"bdsharebuttonbox\">bad html</div>";
+
+    await store.appendSessionEvent({
+      session: createRecord([userMessage]),
+      event: {
+        type: NcpEventType.MessageCompleted,
+        payload: {
+          sessionId,
+          message: {
+            id: "assistant-1",
+            sessionId,
+            role: "assistant",
+            status: "final",
+            timestamp: "2026-05-14T00:00:02.000Z",
+            parts: [
+              {
+                type: "tool-invocation",
+                toolCallId: "tool-1",
+                toolName: "web_fetch",
+                state: "result",
+                args: { url: "https://example.com" },
+                result: html,
+              },
+            ],
+          },
+        },
+      },
+      updatedAt: "2026-05-14T00:00:02.000Z",
+    });
+
+    const raw = await readFile(join(tempDir, `${sessionId}.jsonl`), "utf-8");
+    const lines = raw.split("\n").filter((line) => line.trim());
+
+    expect(lines).toHaveLength(2);
+    for (const line of lines) {
+      expect(() => JSON.parse(line)).not.toThrow();
+    }
   });
 });
