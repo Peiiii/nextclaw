@@ -260,7 +260,7 @@ class StdioRuntimeSession {
     this.child = spawn(this.config.command, this.config.args, {
       cwd: this.config.cwd,
       env,
-      stdio: ["pipe", "pipe", "pipe"],
+      stdio: ["pipe", "pipe", "pipe"], windowsHide: true,
     });
     const spawnErrorPromise = new Promise<never>((_, reject) => {
       this.child?.once("error", (error) => {

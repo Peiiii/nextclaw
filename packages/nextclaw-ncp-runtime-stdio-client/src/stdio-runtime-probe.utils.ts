@@ -27,7 +27,7 @@ export async function probeStdioRuntime(config: StdioRuntimeResolvedConfig): Pro
     env: buildStdioRuntimeLaunchEnv({
       configEnv: config.env,
     }),
-    stdio: ["pipe", "pipe", "pipe"],
+    stdio: ["pipe", "pipe", "pipe"], windowsHide: true,
   });
   const spawnErrorPromise = new Promise<never>((_, reject) => {
     child.once("error", (error) => {
