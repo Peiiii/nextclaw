@@ -27,7 +27,7 @@
 
 Windows 安装器 smoke 也必须验证真实 NSIS 安装路径，而不是只验证 `win-unpacked`。若同一个 job 先跑 unpacked GUI smoke 再跑 installer smoke，安装器 smoke 必须先清理残留的 `NextClaw Desktop.exe` 进程，并显式传递 `/S /currentuser /D=<installDir>`；`/D=` 必须作为单条命令行字符串的最后一项传给 NSIS，避免 PowerShell 数组参数 quoting 改变带空格目录的解析。否则安装器失败会混入上一轮 portable smoke 的残留状态，无法准确判断是安装器坏、安装后启动坏，还是测试脚本污染。
 
-最新 CI 证据显示，安装器安装后的真实 app 已能在 Windows runner 上完成 GUI + API smoke，最快约 `4.6s`；失败曾发生在 smoke 后的 cleanup uninstaller 或目录删除返回非零。后续判定应区分“安装/启动失败”和“清理失败”：前者挡 release，后者在已通过真实安装启动 smoke 后只作为 cleanup warning 记录，不能伪装成包不可启动。预安装清理仍然必须硬失败，因为脏目标目录会污染安装结果。ephemeral CI runner 上的 post-smoke cleanup 不应再调用 NSIS uninstaller，只做进程停止和安装目录 best-effort 删除，避免 uninstaller 的非零退出码覆盖真实 smoke 结果。
+最新 CI 证据显示，安装器安装后的真实 app 已能在 Windows runner 上完成 GUI + API smoke，最快约 `4.6s`，后续一轮为 `10.5s`；失败曾发生在 smoke 后的 cleanup uninstaller、`taskkill` 或目录删除返回非零。后续判定应区分“安装/启动失败”和“清理失败”：前者挡 release，后者在已通过真实安装启动 smoke 后只作为 cleanup warning 记录，不能伪装成包不可启动。预安装清理仍然必须硬失败，因为脏目标目录会污染安装结果。ephemeral CI runner 上的 post-smoke cleanup 不应再调用 NSIS uninstaller；进程停止和安装目录删除都必须是 best-effort，避免清理阶段的非零退出码覆盖真实 smoke 结果。
 
 ## 用户/产品视角的验收步骤
 

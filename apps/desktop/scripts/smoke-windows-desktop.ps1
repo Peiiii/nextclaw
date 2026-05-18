@@ -9,12 +9,19 @@ $ErrorActionPreference = "Stop"
 function Stop-ProcessTree {
   param([int]$RootPid)
 
-  $taskkill = Join-Path $env:SystemRoot "System32\taskkill.exe"
-  if (Test-Path $taskkill) {
-    & $taskkill /PID $RootPid /T /F | Out-Null
-    return
+  try {
+    $taskkill = Join-Path $env:SystemRoot "System32\taskkill.exe"
+    if (Test-Path $taskkill) {
+      $killProc = Start-Process -FilePath $taskkill -ArgumentList "/PID", "$RootPid", "/T", "/F" -PassThru -Wait -WindowStyle Hidden
+      if ($killProc.ExitCode -ne 0) {
+        Write-Warning "[desktop-smoke] post-smoke process cleanup exited with code $($killProc.ExitCode)"
+      }
+      return
+    }
+    Stop-Process -Id $RootPid -Force -ErrorAction Stop
+  } catch {
+    Write-Warning "[desktop-smoke] post-smoke process cleanup failed: $($_.Exception.Message)"
   }
-  Stop-Process -Id $RootPid -Force -ErrorAction SilentlyContinue
 }
 
 function Get-SmokeTempRoot {
