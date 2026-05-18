@@ -115,11 +115,12 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - Package build scripts used by the desktop runtime must not depend on POSIX-only expansion such as `$(find ...)`, shell glob expansion, or Unix-only utilities unless the command explicitly runs inside a known compatible shell on every release runner.
 - Prefer tool-native globs, Node scripts, or existing workspace package commands over shell-expanded file lists.
 - Windows PowerShell release steps must fail on native command errors instead of silently continuing after a broken package build.
-- Product bundle creation must assert required runtime files before publishing, including:
-  - `runtime/dist/cli/app/index.js`
-  - `runtime/node_modules/@nextclaw/service/dist/index.js`
-  - `runtime/ui-dist/index.html`
-- If a runtime package is missing from the bundle, fix the package build/deploy contract first; do not debug it as an app startup problem until the packaged files are present.
+- Product bundle creation must assert the packaged runtime shape before publishing:
+  - require `runtime/dist/cli/app/index.js`, `runtime/dist/cli/app/index.mjs`, `runtime/dist/cli/app/features/session-search/worker/session-search-worker-host.utils.js`, and `runtime/ui-dist/index.html`;
+  - forbid `runtime/node_modules`;
+  - enforce a low runtime file-count budget so accidental raw dependency trees fail during build.
+- If a runtime asset is missing, fix the package build/bundle contract first; do not debug it as an app startup problem until the packaged files are present.
+- Slow first boot caused by thousands of update-bundle files must be solved at the bundle shape owner. Do not optimize extraction, staging trash, or cleanup around a raw `node_modules` tree when the correct fix is to stop producing that tree.
 
 ## Unsigned macOS Local Gate
 - Do not treat `codesign --verify --deep --strict` as proof that a local unsigned macOS app opens.

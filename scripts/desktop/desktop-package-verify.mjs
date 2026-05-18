@@ -10,6 +10,7 @@ const rootDir = resolveRepoPath(import.meta.url);
 const releaseDir = resolve(rootDir, "apps/desktop/release");
 const nextclawPackageJsonPath = resolve(rootDir, "packages/nextclaw/package.json");
 const isHandoffVerify = process.argv.includes("--handoff");
+const RUNTIME_BUNDLE_FILE_BUDGET = 400;
 
 function binName(name) {
   return process.platform === "win32" ? `${name}.cmd` : name;
@@ -155,17 +156,24 @@ function assertSeedBundleVersion(seedBundlePath) {
   console.log(`[desktop-verify] seed bundle version verified: ${actualVersion}`);
 }
 
-function assertSeedBundleExcludesElectron(seedBundlePath) {
+function assertSeedBundleRuntimeShape(seedBundlePath) {
   const script = [
     "const JSZip=require('jszip');",
     "const fs=require('fs');",
     "const zipPath=process.argv[1];",
+    `const runtimeFileBudget=${RUNTIME_BUNDLE_FILE_BUDGET};`,
     "JSZip.loadAsync(fs.readFileSync(zipPath))",
     "  .then((zip) => {",
-    "    const forbidden = Object.keys(zip.files).filter((name) => name.startsWith('bundle/runtime/node_modules/electron/'));",
+    "    const entries = Object.keys(zip.files);",
+    "    const forbidden = entries.filter((name) => name.startsWith('bundle/runtime/node_modules/'));",
     "    if (forbidden.length > 0) {",
-    "      throw new Error(`seed bundle contains electron runtime (${forbidden.length} entries): ${zipPath}`);",
+    "      throw new Error(`seed bundle contains runtime node_modules (${forbidden.length} entries): ${zipPath}`);",
     "    }",
+    "    const runtimeFiles = entries.filter((name) => name.startsWith('bundle/runtime/') && !zip.files[name].dir);",
+    "    if (runtimeFiles.length > runtimeFileBudget) {",
+    "      throw new Error(`seed bundle runtime file count ${runtimeFiles.length} exceeds budget ${runtimeFileBudget}: ${zipPath}`);",
+    "    }",
+    "    console.log(`runtimeFiles=${runtimeFiles.length}`);",
     "  })",
     "  .catch((error) => { console.error(error instanceof Error ? error.message : String(error)); process.exit(1); });"
   ].join(" ");
@@ -174,9 +182,9 @@ function assertSeedBundleExcludesElectron(seedBundlePath) {
     encoding: "utf8"
   });
   if (result.status !== 0) {
-    throw new Error(`Packaged seed bundle embeds Electron: ${result.stderr || result.stdout}`);
+    throw new Error(`Invalid packaged seed bundle runtime shape: ${result.stderr || result.stdout}`);
   }
-  console.log(`[desktop-verify] seed bundle excludes Electron runtime: ${seedBundlePath}`);
+  console.log(`[desktop-verify] seed bundle runtime shape verified (${result.stdout.trim()}): ${seedBundlePath}`);
 }
 
 function assertDesktopPackageExcludesNestedElectron(appRoot) {
@@ -278,7 +286,7 @@ function verifyMacDesktopPackage() {
   );
   assertDesktopPackageExcludesNestedElectron(mountedAppRoot);
   assertSeedBundleVersion(seedBundlePath);
-  assertSeedBundleExcludesElectron(seedBundlePath);
+  assertSeedBundleRuntimeShape(seedBundlePath);
   verifySeedBundleRuntimeInit(seedBundlePath);
   run("bash", ["apps/desktop/scripts/smoke-macos-dmg.sh", dmgPath, "120"]);
   if (isHandoffVerify) {

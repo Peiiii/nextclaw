@@ -171,7 +171,13 @@ export class ExtensionLifecycleService {
   readonly startAll = async (manifests: ExtensionManifest[]): Promise<RunningExtensionProcess[]> => {
     const started: RunningExtensionProcess[] = [];
     for (const manifest of manifests) {
-      started.push(this.start(manifest));
+      try {
+        started.push(this.start(manifest));
+      } catch (error) {
+        this.logger.warn(
+          `Extension ${manifest.id} failed to start: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     }
     return started;
   };

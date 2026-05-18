@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { BUNDLED_CHANNEL_PLUGIN_PACKAGES } from "../bundled-channel-plugin-packages.constants.js";
+import { loadInProcessBundledPluginModule } from "../bundled-channel-plugin-module.utils.js";
 import { resolveEnableState } from "../config-state.js";
 import { loadBundledPluginModule, resolveBundledPluginEntry } from "../bundled-plugin-loader.js";
 import { getPackageManifestExtensions, type PackageManifest } from "../manifest.js";
@@ -107,27 +108,38 @@ async function resolveBundledPluginRegistrationCandidate(params: {
       register: NonNullable<ReturnType<typeof resolvePluginModuleExport>["register"]>;
     }
 > {
+  const { context, packageName, packageStartedAt, require } = params;
   const resolvedEntry = resolveBundledPluginEntry(
-    params.require,
-    params.packageName,
-    params.context.registry.diagnostics,
+    require,
+    packageName,
+    [],
     resolvePackageRootFromEntry
   );
-  if (!resolvedEntry) {
+
+  const inProcessModule = resolvedEntry ? null : await loadInProcessBundledPluginModule(packageName);
+  if (!resolvedEntry && !inProcessModule) {
+    context.registry.diagnostics.push({
+      level: "error",
+      source: packageName,
+      message: "bundled plugin package not resolvable"
+    });
     return { done: true };
   }
 
-  const rootDir = resolvedEntry.rootDir;
-  const entryFile = resolveProgressiveBundledEntryFile(rootDir, resolvedEntry.entryFile);
+  const rootDir = resolvedEntry?.rootDir ?? inProcessModule?.rootDir ?? "";
+  const entryFile = resolvedEntry
+    ? resolveProgressiveBundledEntryFile(rootDir, resolvedEntry.entryFile)
+    : inProcessModule?.entryFile ?? "";
   try {
-    const resolved = resolvePluginModuleExport(
-      [".js", ".mjs", ".cjs"].includes(path.extname(entryFile).toLowerCase())
+    const moduleExport = inProcessModule
+      ? inProcessModule.module
+      : [".js", ".mjs", ".cjs"].includes(path.extname(entryFile).toLowerCase())
         ? await import(pathToFileURL(entryFile).href)
-        : loadBundledPluginModule(entryFile, rootDir)
-    );
+        : loadBundledPluginModule(entryFile, rootDir);
+    const resolved = resolvePluginModuleExport(moduleExport);
     const pluginId = typeof resolved.definition?.id === "string" ? resolved.definition.id.trim() : "";
     if (!pluginId) {
-      params.context.registry.diagnostics.push({
+      context.registry.diagnostics.push({
         level: "error",
         source: entryFile,
         message: "bundled plugin definition missing id"
@@ -135,38 +147,38 @@ async function resolveBundledPluginRegistrationCandidate(params: {
       return { done: true };
     }
 
-    const enableState = resolveEnableState(pluginId, params.context.normalizedConfig);
+    const enableState = resolveEnableState(pluginId, context.normalizedConfig);
     const record = buildBundledPluginRecord({
       pluginId,
       definition: resolved.definition,
       entryFile,
-      context: params.context
+      context
     });
 
     if (!enableState.enabled) {
       finalizeBundledPluginRecord({
-        packageName: params.packageName,
+        packageName,
         pluginId,
         record: Object.assign(record, { status: "disabled", error: enableState.reason ?? "disabled" }),
-        context: params.context,
-        packageStartedAt: params.packageStartedAt,
+        context,
+        packageStartedAt
       });
       return { done: true, pluginId };
     }
 
     if (typeof resolved.register !== "function") {
       finalizeBundledPluginRecord({
-        packageName: params.packageName,
+        packageName,
         pluginId,
         record: markBundledPluginError({
           record,
-          registry: params.context.registry,
+          registry: context.registry,
           pluginId,
           entryFile,
           message: "plugin export missing register/activate"
         }),
-        context: params.context,
-        packageStartedAt: params.packageStartedAt,
+        context,
+        packageStartedAt
       });
       return { done: true, pluginId };
     }
@@ -180,7 +192,7 @@ async function resolveBundledPluginRegistrationCandidate(params: {
       register: resolved.register
     };
   } catch (error) {
-    params.context.registry.diagnostics.push({
+    context.registry.diagnostics.push({
       level: "error",
       source: entryFile,
       message: `failed to load bundled plugin: ${String(error)}`
@@ -194,20 +206,21 @@ async function processBundledPluginPackage(
   require: NodeRequire,
   packageName: string
 ): Promise<void> {
+  const { registry, registerRuntime, tracker } = context;
   const packageStartedAt = Date.now();
   const candidate = await resolveBundledPluginRegistrationCandidate({
     context,
     require,
     packageName,
-    packageStartedAt,
+    packageStartedAt
   });
   if (candidate.done) {
-    await markPluginProcessed(context.tracker, candidate.pluginId);
+    await markPluginProcessed(tracker, candidate.pluginId);
     return;
   }
 
   const result = registerPluginWithApi({
-    runtime: context.registerRuntime,
+    runtime: registerRuntime,
     record: candidate.record,
     pluginId: candidate.pluginId,
     source: candidate.entryFile,
@@ -218,7 +231,7 @@ async function processBundledPluginPackage(
   if (!result.ok) {
     markBundledPluginError({
       record: candidate.record,
-      registry: context.registry,
+      registry,
       pluginId: candidate.pluginId,
       entryFile: candidate.entryFile,
       message: result.error
@@ -232,7 +245,7 @@ async function processBundledPluginPackage(
     context,
     packageStartedAt
   });
-  await markPluginProcessed(context.tracker, candidate.pluginId);
+  await markPluginProcessed(tracker, candidate.pluginId);
 }
 
 export async function appendBundledChannelPluginsProgressively(context: ProgressivePluginLoadContext): Promise<void> {

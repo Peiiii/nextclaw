@@ -104,6 +104,7 @@ export const PACKAGE_STRUCTURE_SKELETON_DIRECTORIES = new Set([
 export const FEATURE_LOCAL_DIRECTORY_NAMES = new Set([
   "features",
   "shared",
+  "worker",
   ...FIXED_ROLE_DIRECTORY_NAMES
 ]);
 

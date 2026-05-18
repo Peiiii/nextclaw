@@ -15,7 +15,13 @@ type PendingRequest = {
   reject: (error: Error) => void;
 };
 
-type WorkerLike = Pick<Worker, "on" | "postMessage" | "terminate">;
+type WorkerLike = {
+  on(eventName: "message", listener: (event: SessionSearchWorkerEvent) => void): unknown;
+  on(eventName: "error", listener: (error: unknown) => void): unknown;
+  on(eventName: "exit", listener: (code: number) => void): unknown;
+  postMessage(value: SessionSearchWorkerRequest): void;
+  terminate(): Promise<unknown>;
+};
 
 type SessionSearchWorkerControllerOptions = SessionSearchWorkerStartPayload & {
   createWorker?: () => WorkerLike;
@@ -88,9 +94,10 @@ export class SessionSearchWorkerController {
     }
     this.state = "starting";
     this.worker = (this.options.createWorker ?? defaultCreateWorker)();
-    this.worker.on("message", this.handleMessage);
-    this.worker.on("error", this.handleWorkerError);
-    this.worker.on("exit", this.handleWorkerExit);
+    const worker = this.worker;
+    worker.on("message", this.handleMessage);
+    worker.on("error", this.handleWorkerError);
+    worker.on("exit", this.handleWorkerExit);
     try {
       await this.sendRequest({
         id: createRequestId(),
@@ -101,8 +108,9 @@ export class SessionSearchWorkerController {
         },
       });
     } catch (error) {
-      const worker = this.worker;
-      this.worker = null;
+      if (this.worker === worker) {
+        this.worker = null;
+      }
       await worker.terminate().catch(() => undefined);
       this.state = "error";
       throw error;

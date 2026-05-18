@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync } from "node:fs";
-import { cp, lstat, mkdir, readdir, realpath, rm, stat, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -12,56 +12,12 @@ import {
 
 const desktopDir = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 const workspaceRoot = resolve(desktopDir, "..", "..");
+const nextclawCorePackageRoot = resolve(workspaceRoot, "packages", "nextclaw-core");
 const nextclawPackageRoot = resolve(workspaceRoot, "packages", "nextclaw");
 const nextclawPackageJsonPath = resolve(nextclawPackageRoot, "package.json");
-const RUNTIME_NODE_MODULES_PRUNE_SUFFIXES = [
-  ".d.ts",
-  ".d.mts",
-  ".d.cts",
-  ".map",
-  ".md",
-  ".markdown",
-  ".mdx",
-  ".mkd",
-  ".tsbuildinfo"
-];
-const RUNTIME_NODE_MODULES_PRUNE_BASENAMES = new Set([
-  ".editorconfig",
-  ".eslintignore",
-  ".eslintrc",
-  ".eslintrc.cjs",
-  ".eslintrc.js",
-  ".eslintrc.json",
-  ".gitattributes",
-  ".gitignore",
-  ".npmignore",
-  ".nycrc",
-  ".prettierignore",
-  ".prettierrc",
-  ".prettierrc.cjs",
-  ".prettierrc.js",
-  ".prettierrc.json",
-  "changes.md",
-  "changelog.md",
-  "contributing.md",
-  "history.md",
-  "readme.md"
-]);
-const RUNTIME_NODE_MODULES_PRUNE_DIR_NAMES = new Set([
-  "__tests__",
-  "__mocks__",
-  "benchmark",
-  "benchmarks",
-  "coverage",
-  "docs",
-  "doc",
-  "example",
-  "examples",
-  "test",
-  "tests",
-  "website"
-]);
-const RUNTIME_NODE_MODULES_PRUNE_PACKAGE_NAMES = new Set(["electron"]);
+const RUNTIME_BUNDLE_FILE_BUDGET = 400;
+const RUNTIME_ENTRYPOINT = "runtime/dist/cli/app/index.js";
+const SESSION_SEARCH_WORKER_RELATIVE_PATH = "features/session-search/worker/session-search-worker-host.utils.js";
 
 function parseArgs(argv) {
   const args = {};
@@ -123,81 +79,18 @@ async function addDirectoryToZip(zip, sourceDir, zipRoot) {
     entries.map(async (entry) => {
       const sourcePath = join(sourceDir, entry.name);
       const targetPath = join(zipRoot, entry.name).replaceAll("\\", "/");
-      let sourceStat;
       try {
-        sourceStat = entry.isSymbolicLink() ? await stat(sourcePath) : await lstat(sourcePath);
+        const sourceStat = await stat(sourcePath);
+        if (sourceStat.isDirectory()) {
+          await addDirectoryToZip(zip, sourcePath, targetPath);
+          return;
+        }
+        zip.file(targetPath, readFileSync(sourcePath));
       } catch {
         return;
       }
-      if (sourceStat.isDirectory()) {
-        const directoryPath = entry.isSymbolicLink() ? await realpath(sourcePath) : sourcePath;
-        await addDirectoryToZip(zip, directoryPath, targetPath);
-        return;
-      }
-      const filePath = entry.isSymbolicLink() ? await realpath(sourcePath) : sourcePath;
-      zip.file(targetPath, readFileSync(filePath));
     })
   );
-}
-
-function shouldPruneRuntimeNodeModulesEntry(relativePath, entry) {
-  const normalizedRelativePath = relativePath.replaceAll("\\", "/").toLowerCase();
-  const pathSegments = normalizedRelativePath.split("/").filter(Boolean);
-  const basename = entry.name.toLowerCase();
-  if (entry.isDirectory()) {
-    if (pathSegments.length === 1 && RUNTIME_NODE_MODULES_PRUNE_PACKAGE_NAMES.has(basename)) {
-      return true;
-    }
-    if (!RUNTIME_NODE_MODULES_PRUNE_DIR_NAMES.has(basename)) {
-      return false;
-    }
-    if (pathSegments[0]?.startsWith("@")) {
-      return pathSegments.length === 3;
-    }
-    return pathSegments.length === 2;
-  }
-  if (RUNTIME_NODE_MODULES_PRUNE_BASENAMES.has(basename)) {
-    return true;
-  }
-  if (pathSegments[0] === ".bin" && basename.startsWith("electron")) {
-    return true;
-  }
-  if (RUNTIME_NODE_MODULES_PRUNE_SUFFIXES.some((suffix) => basename.endsWith(suffix))) {
-    return true;
-  }
-  return false;
-}
-
-async function pruneRuntimeNodeModules(runtimeRoot) {
-  const nodeModulesRoot = join(runtimeRoot, "node_modules");
-  try {
-    const nodeModulesStat = await stat(nodeModulesRoot);
-    if (!nodeModulesStat.isDirectory()) {
-      return { removedEntries: 0 };
-    }
-  } catch {
-    return { removedEntries: 0 };
-  }
-
-  let removedEntries = 0;
-  async function walk(currentDir) {
-    const entries = await readdir(currentDir, { withFileTypes: true });
-    for (const entry of entries) {
-      const entryPath = join(currentDir, entry.name);
-      const relativePath = relative(nodeModulesRoot, entryPath);
-      if (shouldPruneRuntimeNodeModulesEntry(relativePath, entry)) {
-        await rm(entryPath, { recursive: true, force: true });
-        removedEntries += 1;
-        continue;
-      }
-      if (entry.isDirectory()) {
-        await walk(entryPath);
-      }
-    }
-  }
-
-  await walk(nodeModulesRoot);
-  return { removedEntries };
 }
 
 function resolveBundleBuildOptions(args) {
@@ -220,43 +113,122 @@ function resolveBundleBuildOptions(args) {
 function createBundleWorkspace(tempRoot) {
   const bundleRoot = join(tempRoot, "bundle");
   const runtimeRoot = join(bundleRoot, "runtime");
+  const runtimeEntrypointDir = join(runtimeRoot, "dist", "cli", "app");
   const uiRoot = join(bundleRoot, "ui");
   const pluginsRoot = join(bundleRoot, "plugins");
   return {
     bundleRoot,
     runtimeRoot,
+    runtimeEntrypointDir,
     uiRoot,
-    pluginsRoot,
-    runtimeDeployPath: relative(workspaceRoot, runtimeRoot)
+    pluginsRoot
   };
+}
+
+function bundleRuntimeEntrypoint(workspace) {
+  runCommand(
+    "pnpm",
+    [
+      "exec",
+      "tsdown",
+      "packages/nextclaw/src/cli/app/index.ts",
+      "--no-config",
+      "--format",
+      "esm",
+      "--platform",
+      "node",
+      "--target",
+      "es2022",
+      "--out-dir",
+      workspace.runtimeEntrypointDir,
+      "--shims",
+      "--logLevel",
+      "error"
+    ],
+    workspaceRoot
+  );
+}
+
+async function copyRuntimeAssets(workspace) {
+  await mkdir(workspace.runtimeRoot, { recursive: true });
+  await Promise.all([
+    cp(join(nextclawPackageRoot, "ui-dist"), join(workspace.runtimeRoot, "ui-dist"), { recursive: true }),
+    cp(join(nextclawPackageRoot, "ui-dist"), workspace.uiRoot, { recursive: true }),
+    cp(join(nextclawPackageRoot, "templates"), join(workspace.runtimeRoot, "templates"), { recursive: true }),
+    cp(join(nextclawPackageRoot, "resources"), join(workspace.runtimeRoot, "resources"), { recursive: true }),
+    cp(join(nextclawPackageRoot, "bridge"), join(workspace.runtimeRoot, "bridge"), { recursive: true }),
+    writeFile(join(workspace.runtimeRoot, "package.json"), readFileSync(nextclawPackageJsonPath, "utf8"), "utf8")
+  ]);
+}
+
+async function copySessionSearchWorkerAssets(workspace) {
+  const coreDistRoot = join(nextclawCorePackageRoot, "dist");
+  const workerSourcePath = join(coreDistRoot, SESSION_SEARCH_WORKER_RELATIVE_PATH);
+  const workerTargetPath = join(workspace.runtimeEntrypointDir, SESSION_SEARCH_WORKER_RELATIVE_PATH);
+  if (!existsSync(workerSourcePath)) {
+    throw new Error(`Session search worker asset is missing: ${relative(workspaceRoot, workerSourcePath)}`);
+  }
+  await mkdir(dirname(workerTargetPath), { recursive: true });
+  await cp(workerSourcePath, workerTargetPath);
+
+  const coreDistEntries = await readdir(coreDistRoot, { withFileTypes: true });
+  const workerChunks = coreDistEntries
+    .filter((entry) => entry.isFile() && /^session-search\.types-.+\.js$/.test(entry.name))
+    .map((entry) => entry.name);
+  if (workerChunks.length === 0) {
+    throw new Error("Session search worker shared chunk is missing.");
+  }
+  await Promise.all(
+    workerChunks.map((entryName) => cp(join(coreDistRoot, entryName), join(workspace.runtimeEntrypointDir, entryName)))
+  );
+}
+
+async function countFiles(targetDir) {
+  let fileCount = 0;
+  const entries = await readdir(targetDir, { withFileTypes: true });
+  for (const entry of entries) {
+    const entryPath = join(targetDir, entry.name);
+    if (entry.isDirectory()) {
+      fileCount += await countFiles(entryPath);
+      continue;
+    }
+    fileCount += 1;
+  }
+  return fileCount;
 }
 
 async function prepareBundleWorkspace(workspace) {
   ensureFreshRuntimeArtifacts();
   runCommand("node", [resolve(desktopDir, "scripts", "ensure-runtime.mjs")], workspaceRoot);
   await mkdir(workspace.bundleRoot, { recursive: true });
-  runCommand(
-    "pnpm",
-    ["--config.node-linker=hoisted", "--filter", "nextclaw", "--prod", "deploy", workspace.runtimeDeployPath],
-    workspaceRoot
-  );
+  bundleRuntimeEntrypoint(workspace);
+  await copyRuntimeAssets(workspace);
+  await copySessionSearchWorkerAssets(workspace);
+  await writeFile(join(workspace.runtimeEntrypointDir, "index.js"), 'import "./index.mjs";\n', "utf8");
   assertRuntimeBundleContract(workspace.runtimeRoot);
-  const pruneResult = await pruneRuntimeNodeModules(workspace.runtimeRoot);
-  await cp(join(workspace.runtimeRoot, "ui-dist"), workspace.uiRoot, { recursive: true });
   await mkdir(workspace.pluginsRoot, { recursive: true });
   await writeFile(join(workspace.pluginsRoot, ".keep"), "\n", "utf8");
-  return pruneResult;
+  const runtimeFileCount = await countFiles(workspace.runtimeRoot);
+  if (runtimeFileCount > RUNTIME_BUNDLE_FILE_BUDGET) {
+    throw new Error(`Runtime bundle file count ${runtimeFileCount} exceeds budget ${RUNTIME_BUNDLE_FILE_BUDGET}.`);
+  }
+  return { runtimeFileCount };
 }
 
 function assertRuntimeBundleContract(runtimeRoot) {
   const requiredFiles = [
     "dist/cli/app/index.js",
-    "node_modules/@nextclaw/service/dist/index.js",
+    "dist/cli/app/index.mjs",
+    `dist/cli/app/${SESSION_SEARCH_WORKER_RELATIVE_PATH}`,
+    "package.json",
     "ui-dist/index.html"
   ];
   const missingFiles = requiredFiles.filter((relativePath) => !existsSync(join(runtimeRoot, relativePath)));
   if (missingFiles.length > 0) {
-    throw new Error(`Runtime deploy is missing required packaged files: ${missingFiles.join(", ")}`);
+    throw new Error(`Runtime bundle is missing required packaged files: ${missingFiles.join(", ")}`);
+  }
+  if (existsSync(join(runtimeRoot, "node_modules"))) {
+    throw new Error("Runtime bundle must not include node_modules.");
   }
 }
 
@@ -273,7 +245,7 @@ async function writeBundleManifest(bundleRoot, options) {
       minVersion: minimumLauncherVersion
     },
     entrypoints: {
-      runtimeScript: "runtime/dist/cli/app/index.js"
+      runtimeScript: RUNTIME_ENTRYPOINT
     },
     migrationVersion: 1
   };
@@ -291,7 +263,7 @@ async function writeBundleArchive(bundleRoot, options) {
   return archivePath;
 }
 
-function reportBundleBuildResult(archivePath, options, workspace, pruneResult) {
+function reportBundleBuildResult(archivePath, options, workspace, buildResult) {
   process.stdout.write(
     `${JSON.stringify(
       {
@@ -299,7 +271,8 @@ function reportBundleBuildResult(archivePath, options, workspace, pruneResult) {
         bundleVersion: options.bundleVersion,
         platform: options.platform,
         arch: options.arch,
-        prunedNodeModulesEntries: pruneResult.removedEntries,
+        runtimeFileCount: buildResult.runtimeFileCount,
+        runtimeFileBudget: RUNTIME_BUNDLE_FILE_BUDGET,
         runtimeRoot: relative(workspaceRoot, workspace.runtimeRoot),
         uiRoot: relative(workspaceRoot, workspace.uiRoot)
       },
@@ -315,10 +288,10 @@ async function buildBundleArchive(args) {
   const workspace = createBundleWorkspace(tempRoot);
 
   try {
-    const pruneResult = await prepareBundleWorkspace(workspace);
+    const buildResult = await prepareBundleWorkspace(workspace);
     await writeBundleManifest(workspace.bundleRoot, options);
     const archivePath = await writeBundleArchive(workspace.bundleRoot, options);
-    reportBundleBuildResult(archivePath, options, workspace, pruneResult);
+    reportBundleBuildResult(archivePath, options, workspace, buildResult);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }

@@ -111,4 +111,54 @@ describe("ExtensionLifecycleService", () => {
       }
     }
   });
+
+  it("keeps starting later extension servers when one extension spawn throws synchronously", async () => {
+    const child = new EventEmitter() as EventEmitter & {
+      once: EventEmitter["once"];
+      kill: ReturnType<typeof vi.fn>;
+      exitCode: number | null;
+      signalCode: NodeJS.Signals | null;
+    };
+    child.kill = vi.fn();
+    child.exitCode = null;
+    child.signalCode = null;
+    const warn = vi.fn();
+    const spawnProcess = vi.fn((command: string) => {
+      if (command === "bad-command") {
+        throw new Error("spawn ENOTDIR");
+      }
+      return child;
+    });
+    const service = new ExtensionLifecycleService({
+      endpoint: "http://127.0.0.1:55667",
+      token: "secret",
+      logger: { warn },
+      spawnProcess: spawnProcess as never,
+    });
+
+    await expect(service.startAll([
+      {
+        id: "bad-extension",
+        rootDir: "/tmp/bad-extension",
+        server: {
+          type: "stdio",
+          command: "bad-command",
+        },
+      },
+      {
+        id: "good-extension",
+        rootDir: "/tmp/good-extension",
+        server: {
+          type: "stdio",
+          command: "node",
+          args: ["dist/index.js"],
+        },
+      },
+    ])).resolves.toEqual([
+      expect.objectContaining({
+        manifest: expect.objectContaining({ id: "good-extension" }),
+      }),
+    ]);
+    expect(warn).toHaveBeenCalledWith("Extension bad-extension failed to start: spawn ENOTDIR");
+  });
 });
