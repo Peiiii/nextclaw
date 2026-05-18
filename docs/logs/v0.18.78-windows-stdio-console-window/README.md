@@ -25,7 +25,7 @@
 
 同时，`desktop:package:verify` 必须能在 clean clone 中自给自足地构建 UI 的 NCP workspace 依赖。不能依赖本地已有 `dist/`，否则本地验证和 GitHub release runner 之间会再次出现“我这边过了、干净环境不过”的漂移。
 
-Windows 安装器 smoke 也必须验证真实 NSIS 安装路径，而不是只验证 `win-unpacked`。若同一个 job 先跑 unpacked GUI smoke 再跑 installer smoke，安装器 smoke 必须先清理残留的 `NextClaw Desktop.exe` 进程，并显式传递 `/S /currentuser /D=<installDir>`；否则安装器失败会混入上一轮 portable smoke 的残留状态，无法准确判断是安装器坏、安装后启动坏，还是测试脚本污染。
+Windows 安装器 smoke 也必须验证真实 NSIS 安装路径，而不是只验证 `win-unpacked`。若同一个 job 先跑 unpacked GUI smoke 再跑 installer smoke，安装器 smoke 必须先清理残留的 `NextClaw Desktop.exe` 进程，并显式传递 `/S /currentuser /D=<installDir>`；`/D=` 必须作为单条命令行字符串的最后一项传给 NSIS，避免 PowerShell 数组参数 quoting 改变带空格目录的解析。否则安装器失败会混入上一轮 portable smoke 的残留状态，无法准确判断是安装器坏、安装后启动坏，还是测试脚本污染。
 
 ## 用户/产品视角的验收步骤
 

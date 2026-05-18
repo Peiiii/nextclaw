@@ -73,16 +73,24 @@ export function useMarketplaceCuratedSceneRoute(
     };
   }, [scene, scenes]);
   const isSceneRoute = typeFilter === "skill" && Boolean(scene?.trim());
-  const showShelves =
+  const isShelfHome =
     typeFilter === "skill" &&
     scope === "all" &&
     !searchText.trim() &&
     !query &&
-    !showListSkeleton &&
-    !hasCatalogError &&
-    scenes.length > 0 &&
-    items.length >= 4 &&
     !isSceneRoute;
+  const hasShelfCatalog = showListSkeleton || items.length >= 4;
+  const isScenesLoading =
+    isShelfHome &&
+    !hasCatalogError &&
+    hasShelfCatalog &&
+    scenes.length === 0 &&
+    scenesQuery.isLoading;
+  const showShelves =
+    isShelfHome &&
+    !hasCatalogError &&
+    hasShelfCatalog &&
+    (showListSkeleton || scenes.length > 0 || isScenesLoading);
 
   return {
     entries,
@@ -90,6 +98,7 @@ export function useMarketplaceCuratedSceneRoute(
     selectedScene,
     sceneEntries: entries,
     isSceneRoute,
+    isScenesLoading,
     showShelves,
     backPath: forcedType ? "/skills" : "/marketplace/skills",
     pathPrefix: forcedType ? "/skills/scenes" : "/marketplace/skills/scenes",
