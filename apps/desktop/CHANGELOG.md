@@ -1,5 +1,13 @@
 # @nextclaw/desktop
 
+## 0.0.166
+
+### Patch Changes
+
+- Give the desktop preview installer a new shipped version for the Windows console-window verification build.
+- Updated dependencies
+  - nextclaw@0.19.10
+
 ## 0.0.165
 
 ### Patch Changes

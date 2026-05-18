@@ -81,6 +81,11 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 
 ## Release Completion Gate
 - Treat tag creation or `gh release create` success as the start signal, not the finish line.
+- For preview builds intended for human install/update testing, the shipped identities must change when the delivered bits change:
+  - bump `apps/desktop/package.json` when the human will install a new desktop app;
+  - bump `packages/nextclaw/package.json` when the update/runtime bundle contents change;
+  - verify the release asset names and the public update manifest reflect those bumped versions.
+- A new GitHub prerelease tag is not enough if the installer version, bundle version, or update manifest `latestVersion` still point at the previous shipped identity.
 - A desktop release is only complete when the release-triggered `desktop-release` workflow finishes with overall `success`.
 - Confirm the matrix jobs and the follow-on publish jobs all finished:
   - `publish-release-assets`

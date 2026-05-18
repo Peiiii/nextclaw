@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.19.10
+
+### Patch Changes
+
+- Hide Windows stdio runtime probes and sessions so desktop startup does not flash console windows.
+
 ## 0.19.9
 
 ### Patch Changes

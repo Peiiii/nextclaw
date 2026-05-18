@@ -21,6 +21,8 @@
 
 需要重新发布 Windows desktop preview beta，让用户在 Windows 真机上验证启动时不再出现短暂命令行窗口。发布前后必须继续按 desktop release contract 检查 workflow、Windows smoke 日志、release asset 和 beta update manifest。
 
+发布身份必须同步变化：本次不能只发布新的 `desktop-beta` tag，还必须让桌面安装器版本和 runtime bundle 版本递增。否则 Windows 侧可能继续运行同名/同版本安装器或同一 `versions/<runtimeVersion>` 缓存目录中的旧包，用户无法可靠判断自己测到的是新二进制。
+
 ## 用户/产品视角的验收步骤
 
 1. 在 Windows 安装新的 desktop beta。
