@@ -24,18 +24,27 @@ function Invoke-SilentUninstall {
   }
 }
 
+function Stop-DesktopProcesses {
+  $taskkill = Join-Path $env:SystemRoot "System32\taskkill.exe"
+  if (Test-Path $taskkill) {
+    & $taskkill /IM "NextClaw Desktop.exe" /T /F 2>$null | Out-Null
+  }
+}
+
 $resolvedInstaller = (Resolve-Path $InstallerPath).Path
-$installDir = Join-Path $env:LOCALAPPDATA "Programs\\NextClaw Desktop"
+$installDir = Join-Path $env:LOCALAPPDATA "Programs\NextClaw Desktop"
 $installedExePath = Join-Path $installDir "NextClaw Desktop.exe"
 
 Write-Host "[desktop-installer-smoke] installer: $resolvedInstaller"
 Write-Host "[desktop-installer-smoke] install dir: $installDir"
 
+Stop-DesktopProcesses
 Invoke-SilentUninstall -InstallDir $installDir
 
 try {
   Write-Host "[desktop-installer-smoke] running silent install"
-  $installProc = Start-Process -FilePath $resolvedInstaller -ArgumentList "/S" -PassThru -Wait
+  $installArgs = @("/S", "/currentuser", "/D=$installDir")
+  $installProc = Start-Process -FilePath $resolvedInstaller -ArgumentList $installArgs -PassThru -Wait
   if ($installProc.ExitCode -ne 0) {
     throw "Installer exited with code $($installProc.ExitCode)"
   }
@@ -46,5 +55,6 @@ try {
 
   & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $installedExePath -StartupTimeoutSec $StartupTimeoutSec -MaxReadySec $MaxReadySec
 } finally {
+  Stop-DesktopProcesses
   Invoke-SilentUninstall -InstallDir $installDir
 }
