@@ -22,11 +22,13 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 
 ## Primary Contracts
 - Prefer the repo release flow; do not publish from package folders with raw `npm publish`.
+- Before any publish attempt, verify npm auth with `npm whoami`; if it fails, stop before versioning or publishing and ask the user to restore npm login/token.
 - A published `nextclaw` package must include `resources/update-bundle-public.pem`.
 - The published package must include both launcher and app runtime entries:
   - `dist/cli/launcher/index.js`
   - `dist/cli/app/index.js`
 - If `nextclaw` imports newly added APIs from workspace packages, those packages must be versioned and published in the same beta batch before `nextclaw`.
+- For stable `nextclaw@latest`, do not treat `nextclaw` as a standalone CLI package by default. First compute the public workspace dependency closure; if affected runtime/UI/kernel/service packages have unpublished source fixes, publish the full affected public workspace batch with `nextclaw`.
 - NPM runtime update manifests must use `hostKind: "npm-runtime-bundle"`.
 - `minimumLauncherVersion` for NPM runtime bundles comes from `packages/nextclaw/npm-runtime-compatibility.json`.
 - Do not raise `minimumLauncherVersion` unless the launcher-side contract really broke.
@@ -66,6 +68,7 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 Before publishing `nextclaw@beta`, run a blocker scan and resolve everything found:
 
 - workspace dependency closure: compare `nextclaw` imports against changed workspace packages; any package providing a new runtime API must get its own beta version and dist-tag,
+- for stable `nextclaw@latest`, prove any narrower-than-batch release with a packed install dependency check; otherwise use the affected public workspace batch,
 - packed API check: install the exact packed or published dependency closure in a temp prefix and verify critical APIs exist, especially recently added methods,
 - real install smoke: from a temp prefix, install `nextclaw@beta` or the candidate tarball and run at least `nextclaw --version` plus one minimal command path touching the changed runtime area,
 - for stable `nextclaw@latest` publishes, the real install smoke must include `nextclaw update --check` from an isolated `NEXTCLAW_HOME` without `NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY` or `NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY_PATH`; this proves the packaged public key is discoverable by the published package,
