@@ -22,7 +22,7 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 
 ## Primary Contracts
 - Prefer the repo release flow; do not publish from package folders with raw `npm publish`.
-- Before any publish attempt, verify npm auth with `npm whoami`; if it fails, stop before versioning or publishing and ask the user to restore npm login/token.
+- Before any publish attempt, verify npm auth with the same npm config source that the publish command will use. If publishing from a temp worktree or copied checkout, first check whether the project root has a private `.npmrc`; when it does, run publish with `NPM_CONFIG_USERCONFIG=<project-root>/.npmrc` instead of assuming the user-level npm login is the source of truth.
 - A published `nextclaw` package must include `resources/update-bundle-public.pem`.
 - The published package must include both launcher and app runtime entries:
   - `dist/cli/launcher/index.js`
