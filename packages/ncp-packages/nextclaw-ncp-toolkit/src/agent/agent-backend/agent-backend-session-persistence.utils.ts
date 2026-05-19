@@ -1,4 +1,4 @@
-import type { NcpEndpointEvent, NcpSessionPatch } from "@nextclaw/ncp";
+import type { NcpEndpointEvent } from "@nextclaw/ncp";
 import type {
   AgentSessionEventRecord,
   AgentSessionRecord,
@@ -17,60 +17,6 @@ function readOptionalAgentId(value: unknown): string | undefined {
 
 function readAgentIdFromMetadata(metadata: Record<string, unknown> | null | undefined): string | undefined {
   return readOptionalAgentId(metadata?.agent_id) ?? readOptionalAgentId(metadata?.agentId);
-}
-
-function resolvePersistedAgentId(params: {
-  liveSession: LiveSessionState | null;
-  storedSession: AgentSessionRecord | null;
-}): string | undefined {
-  const { liveSession, storedSession } = params;
-  return (
-    readOptionalAgentId(liveSession?.agentId) ??
-    readOptionalAgentId(storedSession?.agentId) ??
-    readAgentIdFromMetadata(liveSession?.metadata) ??
-    readAgentIdFromMetadata(storedSession?.metadata)
-  );
-}
-
-export function buildUpdatedSessionRecord(params: {
-  sessionId: string;
-  patch: NcpSessionPatch;
-  liveSession: LiveSessionState | null;
-  storedSession: AgentSessionRecord | null;
-  updatedAt: string;
-}): AgentSessionRecord {
-  const {
-    liveSession,
-    patch,
-    sessionId,
-    storedSession,
-    updatedAt,
-  } = params;
-  const nextMetadata =
-    patch.metadata === null
-      ? {}
-      : patch.metadata
-        ? structuredClone(patch.metadata)
-        : structuredClone(liveSession?.metadata ?? storedSession?.metadata ?? {});
-
-  if (liveSession) {
-    liveSession.metadata = structuredClone(nextMetadata);
-  }
-  const agentId = resolvePersistedAgentId({
-    liveSession,
-    storedSession,
-  });
-
-  return {
-    sessionId,
-    ...(agentId ? { agentId } : {}),
-    messages: liveSession
-      ? readMessages(liveSession.stateManager.getSnapshot())
-      : storedSession?.messages.map((message) => structuredClone(message)) ?? [],
-    createdAt: storedSession?.createdAt ?? liveSession?.createdAt ?? updatedAt,
-    updatedAt,
-    metadata: nextMetadata,
-  };
 }
 
 export function buildPersistedLiveSessionRecord(params: {

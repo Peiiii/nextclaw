@@ -68,7 +68,11 @@ export interface AgentSessionStore {
     event: NcpEndpointEvent;
     updatedAt: string;
   }): Promise<void>;
+  updateSessionMetadata(params: {
+    sessionId: string;
+    metadata: Record<string, unknown>;
+    updatedAt: string;
+  }): Promise<boolean>;
   saveSession(session: AgentSessionRecord): Promise<void>;
-  replaceSession(session: AgentSessionRecord): Promise<void>;
   deleteSession(sessionId: string): Promise<AgentSessionRecord | null>;
 }

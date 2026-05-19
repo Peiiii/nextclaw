@@ -150,7 +150,7 @@ describe("DefaultNcpAgentBackend with in-memory session store", () => {
       preferred_model: "openai/gpt-5",
       preferred_thinking: "medium",
     });
-    expect(sessionStore.replaceCallCount).toBe(1);
+    expect(sessionStore.updateMetadataCallCount).toBe(1);
   });
 
   it("streams live session events for an active session", async () => {
@@ -826,7 +826,7 @@ class RecordingSessionStore implements AgentSessionStore {
   private readonly sessions = new Map<string, AgentSessionRecord>();
 
   saveCallCount = 0;
-  replaceCallCount = 0;
+  updateMetadataCallCount = 0;
 
   getSession = async (
     sessionId: string,
@@ -846,9 +846,23 @@ class RecordingSessionStore implements AgentSessionStore {
     this.sessions.set(session.sessionId, structuredClone(session));
   };
 
-  replaceSession = async (session: AgentSessionRecord): Promise<void> => {
-    this.replaceCallCount += 1;
-    this.sessions.set(session.sessionId, structuredClone(session));
+  updateSessionMetadata = async (params: {
+    sessionId: string;
+    metadata: Record<string, unknown>;
+    updatedAt: string;
+  }): Promise<boolean> => {
+    const { metadata, sessionId, updatedAt } = params;
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      return false;
+    }
+    this.updateMetadataCallCount += 1;
+    this.sessions.set(sessionId, {
+      ...session,
+      metadata: structuredClone(metadata),
+      updatedAt,
+    });
+    return true;
   };
 
   deleteSession = async (

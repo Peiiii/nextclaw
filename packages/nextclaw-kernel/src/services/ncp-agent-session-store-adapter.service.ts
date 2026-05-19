@@ -36,7 +36,7 @@ export class NcpAgentSessionStoreAdapter implements AgentSessionStore {
         if (!await journalStore.hasSession(session.sessionId)) {
           const legacySession = this.legacyStore.getSession(session.sessionId);
           if (legacySession) {
-            await journalStore.replaceSession(legacySession);
+            await journalStore.materializeSession(legacySession);
           }
         }
         await journalStore.appendSessionEvent(params);
@@ -88,21 +88,27 @@ export class NcpAgentSessionStoreAdapter implements AgentSessionStore {
   saveSession = async (sessionRecord: AgentSessionRecord): Promise<void> => {
     const journalStore = this.options.journalStore;
     if (journalStore && await journalStore.hasSession(sessionRecord.sessionId)) {
-      await journalStore.replaceSession(sessionRecord);
+      await journalStore.materializeSession(sessionRecord);
       this.options.onSessionUpdated?.(sessionRecord.sessionId);
       return;
     }
     await this.legacyStore.saveSession(sessionRecord);
   };
 
-  replaceSession = async (sessionRecord: AgentSessionRecord): Promise<void> => {
+  updateSessionMetadata = async (params: {
+    sessionId: string;
+    metadata: Record<string, unknown>;
+    updatedAt: string;
+  }): Promise<boolean> => {
     const journalStore = this.options.journalStore;
-    if (journalStore && await journalStore.hasSession(sessionRecord.sessionId)) {
-      await journalStore.replaceSession(sessionRecord);
-      this.options.onSessionUpdated?.(sessionRecord.sessionId);
-      return;
+    if (journalStore && await journalStore.hasSession(params.sessionId)) {
+      const updated = await journalStore.updateSessionMetadata(params);
+      if (updated) {
+        this.options.onSessionUpdated?.(params.sessionId);
+      }
+      return updated;
     }
-    await this.legacyStore.replaceSession(sessionRecord);
+    return this.legacyStore.updateSessionMetadata(params);
   };
 
   deleteSession = async (sessionId: string): Promise<AgentSessionRecord | null> => {

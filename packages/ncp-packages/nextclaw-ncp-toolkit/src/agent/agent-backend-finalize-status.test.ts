@@ -55,9 +55,22 @@ class RecordingSessionStore implements AgentSessionStore {
     this.publishedStatuses.push(await this.readPublishedStatus(session.sessionId));
   };
 
-  replaceSession = async (session: AgentSessionRecord): Promise<void> => {
-    this.persistedSessions.set(session.sessionId, structuredClone(session));
-    this.publishedStatuses.push(await this.readPublishedStatus(session.sessionId));
+  updateSessionMetadata = async (params: {
+    sessionId: string;
+    metadata: Record<string, unknown>;
+    updatedAt: string;
+  }): Promise<boolean> => {
+    const { metadata, sessionId, updatedAt } = params;
+    const session = this.persistedSessions.get(sessionId);
+    if (!session) {
+      return false;
+    }
+    this.persistedSessions.set(sessionId, {
+      ...session,
+      metadata: structuredClone(metadata),
+      updatedAt,
+    });
+    return true;
   };
 
   deleteSession = async (sessionId: string): Promise<AgentSessionRecord | null> => {

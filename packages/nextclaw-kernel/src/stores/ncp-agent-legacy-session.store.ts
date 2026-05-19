@@ -46,7 +46,22 @@ export class NcpAgentLegacySessionStore {
 
   saveSession = (sessionRecord: AgentSessionRecord): Promise<void> => this.persistSession(sessionRecord, true);
 
-  replaceSession = (sessionRecord: AgentSessionRecord): Promise<void> => this.persistSession(sessionRecord, false);
+  updateSessionMetadata = async (params: {
+    sessionId: string;
+    metadata: Record<string, unknown>;
+    updatedAt: string;
+  }): Promise<boolean> => {
+    const { metadata, sessionId, updatedAt } = params;
+    const session = this.sessionManager.getIfExists(sessionId);
+    if (!session) {
+      return false;
+    }
+    session.metadata = structuredClone(metadata);
+    session.updatedAt = new Date(ensureIsoTimestamp(updatedAt, session.updatedAt.toISOString()));
+    this.sessionManager.save(session);
+    this.options.onSessionUpdated?.(sessionId);
+    return true;
+  };
 
   deleteSession = (sessionId: string): AgentSessionRecord | null => {
     const existing = this.getSession(sessionId);

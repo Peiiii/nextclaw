@@ -24,12 +24,21 @@ export type NcpAgentSessionJournalMetadataEntry = {
   metadata: Record<string, unknown>;
 };
 
+export const NCP_AGENT_SESSION_SNAPSHOT_MESSAGE_EVENT_TYPE = "session.snapshot.message";
+
+type NcpAgentSessionSnapshotMessageEvent = {
+  type: typeof NCP_AGENT_SESSION_SNAPSHOT_MESSAGE_EVENT_TYPE;
+  payload: Extract<NcpEndpointEvent, { type: NcpEventType.MessageSent }>["payload"];
+};
+
+export type NcpAgentSessionJournalReplayEvent = NcpEndpointEvent | NcpAgentSessionSnapshotMessageEvent;
+
 export type NcpAgentSessionJournalEventEntry = {
   _type: "event";
   version: typeof NCP_AGENT_SESSION_JOURNAL_ENTRY_VERSION;
   seq: number;
   timestamp: string;
-  event: NcpEndpointEvent;
+  event: NcpAgentSessionJournalReplayEvent;
 };
 
 export type NcpAgentSessionJournalIndex = {
@@ -51,8 +60,7 @@ export function safeNcpSessionFilename(value: string): string {
 }
 
 export function normalizeNcpAgentId(agentId: string | undefined): string | undefined {
-  const normalized = agentId?.trim().toLowerCase();
-  return normalized ? normalized : undefined;
+  return agentId?.trim().toLowerCase() || undefined;
 }
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
@@ -60,10 +68,7 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function toIsoString(value: unknown, fallback: string): string {
-  if (typeof value !== "string") {
-    return fallback;
-  }
-  const parsed = Date.parse(value);
+  const parsed = typeof value === "string" ? Date.parse(value) : NaN;
   return Number.isFinite(parsed) ? new Date(parsed).toISOString() : fallback;
 }
 
@@ -102,7 +107,7 @@ export function createNcpAgentSessionJournalMetadataEntry(
 export function upsertNcpAgentSessionSummaryEvent(params: {
   current: NcpSessionSummary | undefined;
   session: AgentSessionEventRecord;
-  event: NcpEndpointEvent;
+  event: NcpAgentSessionJournalReplayEvent;
   updatedAt: string;
 }): NcpSessionSummary {
   const { current, event, session, updatedAt } = params;
@@ -110,11 +115,12 @@ export function upsertNcpAgentSessionSummaryEvent(params: {
     ...(current?.metadata ? structuredClone(current.metadata) : {}),
     ...(session.metadata ? structuredClone(session.metadata) : {}),
   };
-  const label = readOptionalText(metadata.label) ?? readSummaryLabelFromEvent(event);
+  const eventMessage = readMessageFromSummaryEvent(event);
+  const label = readOptionalText(metadata.label)
+    ?? (eventMessage?.role === "user" ? resolveAutoSessionLabel([eventMessage]) : null);
   if (label) {
     metadata.label = truncateLabel(label);
   }
-  const eventMessage = readMessageFromSummaryEvent(event);
   const messageCount = current
     ? current.messageCount + (eventMessage ? 1 : 0)
     : eventMessage
@@ -134,7 +140,7 @@ export function upsertNcpAgentSessionSummaryEvent(params: {
 }
 
 export async function replayNcpAgentSessionEvents(
-  events: readonly NcpEndpointEvent[],
+  events: readonly NcpAgentSessionJournalReplayEvent[],
 ): Promise<NcpMessage[]> {
   const stateManager = new DefaultNcpAgentConversationStateManager();
   for (const event of events) {
@@ -147,20 +153,20 @@ export async function replayNcpAgentSessionEvents(
   ];
 }
 
-function createReplayEvent(event: NcpEndpointEvent): NcpEndpointEvent {
+function createReplayEvent(event: NcpAgentSessionJournalReplayEvent): NcpEndpointEvent {
   const replayEvent = structuredClone(event);
-  if (replayEvent.type === NcpEventType.MessageCompleted) {
-    return {
-      type: NcpEventType.MessageSent,
-      payload: replayEvent.payload,
-    };
+  const replayMessage = readMessageFromSummaryEvent(replayEvent);
+  if (
+    replayMessage?.role === "assistant" &&
+    (replayMessage.status === "pending" || replayMessage.status === "streaming")
+  ) {
+    replayMessage.status = "final";
   }
   if (
-    replayEvent.type === NcpEventType.MessageSent &&
-    replayEvent.payload.message.role === "assistant" &&
-    (replayEvent.payload.message.status === "pending" || replayEvent.payload.message.status === "streaming")
+    replayEvent.type === NCP_AGENT_SESSION_SNAPSHOT_MESSAGE_EVENT_TYPE ||
+    replayEvent.type === NcpEventType.MessageCompleted
   ) {
-    replayEvent.payload.message.status = "final";
+    return { type: NcpEventType.MessageSent, payload: replayEvent.payload };
   }
   return replayEvent;
 }
@@ -170,9 +176,7 @@ export function readNcpSessionSummaryActivityAt(summary: NcpSessionSummary): str
 }
 
 function readMessageTimestamp(message: NcpMessage | undefined): string | undefined {
-  return typeof message?.timestamp === "string" && Number.isFinite(Date.parse(message.timestamp))
-    ? new Date(message.timestamp).toISOString()
-    : undefined;
+  return toIsoString(message?.timestamp, "") || undefined;
 }
 
 function truncateLabel(value: string): string {
@@ -183,11 +187,8 @@ function truncateLabel(value: string): string {
 }
 
 function readOptionalText(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
+  const trimmed = typeof value === "string" ? value.trim() : "";
+  return trimmed || null;
 }
 
 function resolveAutoSessionLabel(messages: readonly NcpMessage[]): string | null {
@@ -207,21 +208,15 @@ function resolveAutoSessionLabel(messages: readonly NcpMessage[]): string | null
   return null;
 }
 
-function readMessageFromSummaryEvent(event: NcpEndpointEvent): NcpMessage | undefined {
+function readMessageFromSummaryEvent(event: NcpAgentSessionJournalReplayEvent): NcpMessage | undefined {
   switch (event.type) {
     case NcpEventType.MessageSent:
       return event.payload.message;
     case NcpEventType.MessageCompleted:
       return event.payload.message;
+    case NCP_AGENT_SESSION_SNAPSHOT_MESSAGE_EVENT_TYPE:
+      return event.payload.message;
     default:
       return undefined;
   }
-}
-
-function readSummaryLabelFromEvent(event: NcpEndpointEvent): string | null {
-  const message = readMessageFromSummaryEvent(event);
-  if (message?.role !== "user") {
-    return null;
-  }
-  return resolveAutoSessionLabel([message]);
 }

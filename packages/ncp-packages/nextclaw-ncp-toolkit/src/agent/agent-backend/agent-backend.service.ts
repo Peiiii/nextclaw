@@ -37,7 +37,6 @@ import {
   type SessionContextWindowResolver,
 } from "./agent-backend-session.utils.js";
 import {
-  buildUpdatedSessionRecord,
   persistLiveSession,
   persistLiveSessionEvent,
   shouldPersistRunEndSnapshot,
@@ -51,6 +50,21 @@ type DisposableRuntime = { dispose?: () => Promise<void> | void };
 const disposeRuntime = async (runtime: LiveSessionState["runtime"]): Promise<void> => {
   await (runtime as DisposableRuntime).dispose?.();
 };
+
+function buildUpdatedMetadata(params: {
+  liveSession: LiveSessionState | null;
+  patch: NcpSessionPatch;
+  storedSession: Awaited<ReturnType<AgentSessionStore["getSession"]>>;
+}): Record<string, unknown> {
+  const { liveSession, patch, storedSession } = params;
+  if (patch.metadata === null) {
+    return {};
+  }
+  if (patch.metadata) {
+    return structuredClone(patch.metadata);
+  }
+  return structuredClone(liveSession?.metadata ?? storedSession?.metadata ?? {});
+}
 
 export type DefaultNcpAgentBackendConfig = {
   createRuntime: CreateRuntimeFn;
@@ -327,15 +341,16 @@ export class DefaultNcpAgentBackend
     const liveSession = this.sessionRegistry.getSession(sessionId);
     const storedSession = await this.sessionStore.getSession(sessionId);
     if (!liveSession && !storedSession) return null;
-    await this.sessionStore.replaceSession(
-      buildUpdatedSessionRecord({
-        sessionId,
-        patch,
-        liveSession,
-        storedSession,
-        updatedAt: now(),
-      }),
-    );
+    const metadata = buildUpdatedMetadata({ liveSession, patch, storedSession });
+    const updatedAt = now();
+    if (liveSession) {
+      liveSession.metadata = structuredClone(metadata);
+    }
+    await this.sessionStore.updateSessionMetadata({
+      sessionId,
+      metadata,
+      updatedAt,
+    });
     return this.getSession(sessionId);
   };
 

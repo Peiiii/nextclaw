@@ -216,8 +216,8 @@ export class NcpSessionApiService implements NcpSessionApi {
     if (normalizedSessionId && this.options.ncpAgentSessionStore) {
       const existing = await this.options.ncpAgentSessionStore.getSession(normalizedSessionId);
       if (existing) {
-        await this.options.ncpAgentSessionStore.replaceSession({
-          ...existing,
+        await this.options.ncpAgentSessionStore.updateSessionMetadata({
+          sessionId: normalizedSessionId,
           metadata: buildUpdatedMetadata({
             existingMetadata: existing.metadata,
             patch,

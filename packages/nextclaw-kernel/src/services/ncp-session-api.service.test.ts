@@ -133,6 +133,8 @@ class TestSessionManager {
 }
 
 class TestAgentSessionStore implements AgentSessionStore {
+  updateMetadataCallCount = 0;
+
   constructor(private record: AgentSessionRecord) {}
 
   getSession = async (sessionId: string): Promise<AgentSessionRecord | null> => {
@@ -151,8 +153,21 @@ class TestAgentSessionStore implements AgentSessionStore {
     this.record = structuredClone(record);
   };
 
-  replaceSession = async (record: AgentSessionRecord): Promise<void> => {
-    this.record = structuredClone(record);
+  updateSessionMetadata = async (params: {
+    sessionId: string;
+    metadata: Record<string, unknown>;
+    updatedAt: string;
+  }): Promise<boolean> => {
+    if (params.sessionId !== this.record.sessionId) {
+      return false;
+    }
+    this.updateMetadataCallCount += 1;
+    this.record = {
+      ...this.record,
+      metadata: structuredClone(params.metadata),
+      updatedAt: params.updatedAt,
+    };
+    return true;
   };
 
   deleteSession = async (sessionId: string): Promise<AgentSessionRecord | null> => {
@@ -268,6 +283,40 @@ describe("NcpSessionApiService", () => {
       messageCount: 1,
       metadata: { label: "Journal" },
     });
+    service.dispose();
+    fixture.ncpSessionApi.dispose();
+  });
+
+  it("updates NCP session metadata without replacing message history", async () => {
+    const fixture = createServiceFixture();
+    const ncpAgentSessionStore = new TestAgentSessionStore({
+      sessionId: "session-1",
+      messages: [{
+        id: "journal:user",
+        sessionId: "session-1",
+        role: "user",
+        status: "final",
+        parts: [{ type: "text", text: "journal" }],
+        timestamp: "2026-05-12T00:00:00.000Z",
+      }],
+      createdAt: "2026-05-12T00:00:00.000Z",
+      updatedAt: "2026-05-12T00:00:00.000Z",
+      metadata: { label: "Before" },
+    });
+    const service = new NcpSessionApiService({
+      eventBus: fixture.eventBus,
+      getConfig: createConfig,
+      ncpAgentSessionStore,
+      sessionManager: fixture.sessionManager as never,
+    });
+
+    const updated = await service.updateSession("session-1", {
+      metadata: { label: "After" },
+    });
+
+    expect(updated?.metadata).toEqual({ label: "After" });
+    expect(updated?.messageCount).toBe(1);
+    expect(ncpAgentSessionStore.updateMetadataCallCount).toBe(1);
     service.dispose();
     fixture.ncpSessionApi.dispose();
   });
