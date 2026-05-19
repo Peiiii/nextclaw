@@ -51,6 +51,7 @@ describe("DesktopAppShell", () => {
     const mainChrome = screen.getByTestId("desktop-window-chrome-main");
 
     expect(chrome).toBeTruthy();
+    expect(chrome.parentElement?.style.getPropertyValue("--desktop-titlebar-height")).toBe("40px");
     expect(sidebarChrome.className).toContain("w-[var(--desktop-sidebar-width)]");
     expect(sidebarChrome.className).not.toContain("border-b");
     expect(mainChrome.className).toContain("border-b");

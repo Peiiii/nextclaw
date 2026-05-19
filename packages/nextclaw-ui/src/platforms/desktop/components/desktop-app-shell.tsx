@@ -25,7 +25,7 @@ type DesktopShellStyle = CSSProperties & {
 
 function createWindowsDesktopShellStyle(isMainRoute: boolean): DesktopShellStyle {
   return {
-    "--desktop-titlebar-height": "34px",
+    "--desktop-titlebar-height": "40px",
     "--desktop-caption-safe-right": "140px",
     "--desktop-sidebar-width": isMainRoute ? "280px" : "240px",
   };

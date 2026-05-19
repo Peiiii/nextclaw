@@ -7,7 +7,7 @@ const desktopWindowHeight = 920;
 const desktopWindowMinWidth = 1080;
 const desktopWindowMinHeight = 720;
 const windowsTitleBarHeight = 40;
-const windowsShellBackgroundColor = "#F9F8F5";
+const windowsShellBackgroundColor = "#F2F1EE";
 const desktopTitleBarThemes: Record<DesktopShellTheme, Required<TitleBarOverlay>> = {
   warm: {
     color: windowsShellBackgroundColor,
@@ -15,7 +15,7 @@ const desktopTitleBarThemes: Record<DesktopShellTheme, Required<TitleBarOverlay>
     height: windowsTitleBarHeight
   },
   cool: {
-    color: "#F8FAFB",
+    color: "#F3F4F6",
     symbolColor: "#374151",
     height: windowsTitleBarHeight
   }
