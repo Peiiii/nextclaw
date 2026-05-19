@@ -8,13 +8,13 @@ import {
 } from "@nextclaw/openclaw-compat";
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import { RestartCoordinator } from "@nextclaw-service/shared/services/restart/restart-coordinator.service.js";
 import type { RestartStrategy } from "@nextclaw-service/shared/services/restart/restart-coordinator.service.js";
 import { initializeConfigIfMissing } from "@nextclaw-service/shared/services/runtime/runtime-config-init.service.js";
 import { writeRestartSentinel } from "@nextclaw-service/shared/services/restart/restart-sentinel.service.js";
 import { createTopLevelNextclawCommandEnv } from "@nextclaw-service/shared/utils/top-level-nextclaw-command-env.utils.js";
+import { resolveCliSubcommandLaunch } from "@nextclaw-service/shared/utils/marketplace/cli-subcommand-launch.utils.js";
 import { logStartupTrace, measureStartupSync } from "@nextclaw-service/shared/utils/startup-trace.js";
 import { isProcessRunning } from "@nextclaw-service/shared/utils/cli.utils.js";
 import { NpmRuntimeUpdateCommandService } from "@nextclaw-service/launcher/npm-runtime-update-command.service.js";
@@ -277,10 +277,12 @@ export class NextclawServiceRuntime {
       typeof requestedDelayMs === "number" && Number.isFinite(requestedDelayMs)
         ? Math.max(0, Math.floor(requestedDelayMs))
         : 100;
-    const cliPath =
-      process.env.NEXTCLAW_SELF_RELAUNCH_CLI?.trim() ||
-      fileURLToPath(new URL("./index.js", import.meta.url));
-    const startArgs = [cliPath, "start", "--ui-port", String(uiPort)];
+    const launch = resolveCliSubcommandLaunch({
+      argvEntry: process.argv[1],
+      importMetaUrl: import.meta.url,
+      cliArgs: ["start", "--ui-port", String(uiPort)],
+      nodePath: process.execPath
+    });
     const serviceStatePath = managedServiceStateStore.path;
     const helperScript = [
       'const { spawnSync } = require("node:child_process");',
@@ -289,9 +291,8 @@ export class NextclawServiceRuntime {
       `const delayMs = ${delayMs};`,
       "const maxWaitMs = 120000;",
       "const retryIntervalMs = 1000;",
-      "const startTimeoutMs = 60000;",
-      `const nodePath = ${JSON.stringify(process.execPath)};`,
-      `const startArgs = ${JSON.stringify(startArgs)};`,
+      `const command = ${JSON.stringify(launch.command)};`,
+      `const args = ${JSON.stringify(launch.args)};`,
       `const serviceStatePath = ${JSON.stringify(serviceStatePath)};`,
       "function isRunning(pid) {",
       "  try {",
@@ -312,21 +313,17 @@ export class NextclawServiceRuntime {
       "  }",
       "}",
       "function tryStart() {",
-      "  spawnSync(nodePath, startArgs, {",
+      "  spawnSync(command, args, {",
       '    stdio: "ignore",',
       "    env: process.env,",
-      "    timeout: startTimeoutMs,",
+      "    timeout: 60000,",
       "    windowsHide: true",
       "  });",
       "}",
       "setTimeout(() => {",
       "  const startedAt = Date.now();",
       "  const tick = () => {",
-      "    if (hasReplacementService()) {",
-      "      process.exit(0);",
-      "      return;",
-      "    }",
-      "    if (Date.now() - startedAt >= maxWaitMs) {",
+      "    if (hasReplacementService() || Date.now() - startedAt >= maxWaitMs) {",
       "      process.exit(0);",
       "      return;",
       "    }",
