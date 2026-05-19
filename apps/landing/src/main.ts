@@ -6,7 +6,7 @@ import {
   fetchLatestStableDesktopRelease,
   type DesktopReleaseInfo,
   type DownloadAssetKey
-} from './desktop-release.service';
+} from './desktop-release.utils';
 
 type Locale = 'en' | 'zh';
 type PageRoute = 'home' | 'download';

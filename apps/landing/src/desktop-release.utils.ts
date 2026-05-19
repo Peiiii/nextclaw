@@ -8,22 +8,22 @@ export type DesktopReleaseInfo = {
   windowsPortableZipUrl: string | null;
 };
 
+const STABLE_DESKTOP_RELEASE_TAG = 'v0.19.14-desktop.1';
+const STABLE_DESKTOP_VERSION = '0.0.170';
+const STABLE_DESKTOP_RELEASE_URL = `https://github.com/Peiiii/nextclaw/releases/tag/${STABLE_DESKTOP_RELEASE_TAG}`;
+const STABLE_DESKTOP_ASSET_BASE_URL = `https://github.com/Peiiii/nextclaw/releases/download/${STABLE_DESKTOP_RELEASE_TAG}`;
+
 export const DESKTOP_RELEASE_FALLBACK: DesktopReleaseInfo = {
-  tag: 'v0.18.5-desktop.1',
-  version: '0.0.148',
-  url: 'https://github.com/Peiiii/nextclaw/releases/tag/v0.18.5-desktop.1',
+  tag: STABLE_DESKTOP_RELEASE_TAG,
+  version: STABLE_DESKTOP_VERSION,
+  url: STABLE_DESKTOP_RELEASE_URL,
   assets: {
-    macArm64Dmg:
-      'https://github.com/Peiiii/nextclaw/releases/download/v0.18.5-desktop.1/NextClaw.Desktop-0.0.148-arm64.dmg',
-    macX64Dmg:
-      'https://github.com/Peiiii/nextclaw/releases/download/v0.18.5-desktop.1/NextClaw.Desktop-0.0.148-x64.dmg',
-    windowsX64Installer:
-      'https://github.com/Peiiii/nextclaw/releases/download/v0.18.5-desktop.1/NextClaw.Desktop-Setup-0.0.148-x64.exe',
-    linuxX64AppImage:
-      'https://github.com/Peiiii/nextclaw/releases/download/v0.18.5-desktop.1/NextClaw.Desktop-0.0.148-linux-x64.AppImage'
+    macArm64Dmg: `${STABLE_DESKTOP_ASSET_BASE_URL}/NextClaw.Desktop-${STABLE_DESKTOP_VERSION}-arm64.dmg`,
+    macX64Dmg: `${STABLE_DESKTOP_ASSET_BASE_URL}/NextClaw.Desktop-${STABLE_DESKTOP_VERSION}-x64.dmg`,
+    windowsX64Installer: `${STABLE_DESKTOP_ASSET_BASE_URL}/NextClaw.Desktop-Setup-${STABLE_DESKTOP_VERSION}-x64.exe`,
+    linuxX64AppImage: `${STABLE_DESKTOP_ASSET_BASE_URL}/NextClaw.Desktop-${STABLE_DESKTOP_VERSION}-linux-x64.AppImage`
   },
-  windowsPortableZipUrl:
-    'https://github.com/Peiiii/nextclaw/releases/download/v0.18.5-desktop.1/NextClaw.Desktop-0.0.148-win32-x64-unpacked.zip'
+  windowsPortableZipUrl: `${STABLE_DESKTOP_ASSET_BASE_URL}/NextClaw.Desktop-${STABLE_DESKTOP_VERSION}-win32-x64-unpacked.zip`
 };
 
 const GITHUB_RELEASES_API = 'https://api.github.com/repos/Peiiii/nextclaw/releases?per_page=20';
