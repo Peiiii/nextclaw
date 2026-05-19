@@ -101,16 +101,13 @@ try {
   $installDir = Split-Path -Parent $installedExePath
   Write-Host "[desktop-installer-smoke] installed exe: $installedExePath"
 
-  $desktopSmokeArgs = @(
-    "-DesktopExePath",
-    $installedExePath,
-    "-StartupTimeoutSec",
-    $StartupTimeoutSec,
-    "-MaxReadySec",
-    $MaxReadySec
-  )
+  $desktopSmokeArgs = @{
+    DesktopExePath = $installedExePath
+    StartupTimeoutSec = $StartupTimeoutSec
+    MaxReadySec = $MaxReadySec
+  }
   if ($SeedStaleSameVersionBundle.IsPresent) {
-    $desktopSmokeArgs += "-SeedStaleSameVersionBundle"
+    $desktopSmokeArgs.SeedStaleSameVersionBundle = $true
   }
   & "apps/desktop/scripts/smoke-windows-desktop.ps1" @desktopSmokeArgs
 } finally {
