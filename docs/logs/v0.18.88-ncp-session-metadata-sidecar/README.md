@@ -36,7 +36,15 @@
 
 ## 发布/部署方式
 
-本次未发布、未部署。需要用户重启当前本地 dev backend 后，`http://127.0.0.1:5174` 才会加载新的 kernel/toolkit 构建产物。
+已执行 stable NPM 全量 public workspace batch 发布。
+
+- release commit：`59d7b4e8 Release NPM packages`
+- `nextclaw@latest`：`0.19.17`
+- `@nextclaw/kernel@latest`：`0.1.8`
+- `@nextclaw/ncp-toolkit@latest`：`0.5.17`
+- `@nextclaw/service@latest`：`0.1.11`
+
+本次未发布 desktop installer；需要用户重启当前本地 dev backend 后，`http://127.0.0.1:5174` 才会加载本地源码运行链路的新构建产物。NPM 安装用户可直接安装 `nextclaw@latest`。
 
 ## 用户/产品视角的验收步骤
 
@@ -60,4 +68,11 @@
 
 ## NPM 包发布记录
 
-不涉及 NPM 包发布。
+已发布 NPM stable/latest。
+
+- 发布入口：`NPM_CONFIG_USERCONFIG=/Users/peiwang/Projects/nextbot/.npmrc pnpm release:publish`
+- 发布范围：全量 public workspace batch，共 50 个包。
+- registry 验证：`release:verify:published` 显示 `published 50/50 package versions`。
+- dist-tag 验证：`npm view nextclaw dist-tags --json` 显示 `latest: 0.19.17`。
+- 安装验证：临时全局 prefix 安装 `nextclaw@latest`，`nextclaw --version` 输出 `0.19.17`。
+- update key 验证：隔离 `NEXTCLAW_HOME` 执行 `nextclaw update --check`，输出 runtime 已是最新 `0.19.17`。
