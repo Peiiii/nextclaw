@@ -207,7 +207,11 @@ describe("MarketplacePage", () => {
 
     const { container } = render(<MarketplacePage forcedType="skills" />);
 
+    expect(screen.getByText("Recently updated")).toBeTruthy();
+    expect(screen.getByTestId("marketplace-recent-skeleton")).toBeTruthy();
+    expect(screen.getByText("All Skills")).toBeTruthy();
     expect(screen.getByTestId("marketplace-list-skeleton")).toBeTruthy();
+    expect(screen.queryByText("Skill Catalog")).toBeNull();
     expect(
       container.querySelectorAll(
         '[data-testid="marketplace-list-skeleton"] > article',

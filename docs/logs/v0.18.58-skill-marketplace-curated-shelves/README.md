@@ -35,6 +35,7 @@
 27. 修复 skill marketplace 首页接口冷启动和并发加载不稳定：普通 `items?page/pageSize` 不再完整拉取全量 catalog，而是只请求远端当前页；`scene` 过滤、`scenes` 列表、skill 详情和 recommendations 下沉到 marketplace API worker 的 D1 原生查询，NextClaw server 只透传远端契约，不再在 BFF 本地用 tag 规则全量过滤；远端 marketplace fetch 增加明确超时，避免上游网络卡住时前端无限 loading。
 28. 修复 skill 场景二级页无限滚动失效：场景页原本复用 infinite query，但底部加载 sentinel 被 `isSceneRoute` 条件挡掉，导致接近底部不会自动请求下一页；现在场景页也渲染同一个无限滚动状态，并补充回归测试。
 29. 将 skill/plugin marketplace 普通列表默认分页从 `12` 调整为 `20`，减少用户滚动到列表底部时的加载频率；MCP marketplace 保持独立分页策略不变。
+30. 恢复 Skill Marketplace 首页模块化加载态：初始加载时直接展示“场景 / 最近更新 / 全部技能”三块小骨架，不再先闪现单个“技能列表”大骨架；普通列表标题改为 `全部技能` / `All Skills`，避免把整个模块误命名为“技能列表”。
 
 ## 测试/验证/验收方式
 
@@ -206,6 +207,24 @@
     - `http://127.0.0.1:5174/skills` 桌面视口 `1366x900`：骨架 `36` 张，grid 高度约 `2076px`。截图路径：`/tmp/nextclaw-marketplace-skeleton-fill-desktop.png`。
     - `http://127.0.0.1:5174/skills` 移动视口 `390x844`：骨架 `36` 张，grid 高度约 `4164px`。截图路径：`/tmp/nextclaw-marketplace-skeleton-fill-mobile.png`。
     - `http://127.0.0.1:5174/skills/scenes/development-debugging` 桌面视口 `1366x900`：骨架 `24` 张，grid 高度约 `1412px`。截图路径：`/tmp/nextclaw-marketplace-scene-skeleton-fill-desktop.png`。
+- 本次模块化加载态恢复补充验证：
+  - `pnpm --dir packages/nextclaw-ui exec vitest run src/features/marketplace/components/marketplace-page.test.tsx src/features/marketplace/components/curated-shelves/marketplace-curated-scene-route.test.tsx`
+    - 结果：通过，`10` 个测试通过；覆盖首页初始加载期间仍显示“最近更新”“All Skills”和小骨架，以及 scenes 仍在 loading 时保持货架布局稳定。
+  - `pnpm -C packages/nextclaw-ui tsc --noEmit`
+    - 结果：通过。
+  - `pnpm --dir packages/nextclaw-ui exec eslint src/features/marketplace/components/marketplace-page.tsx src/features/marketplace/components/marketplace-page.test.tsx src/features/marketplace/components/curated-shelves/marketplace-curated-scene-route.test.tsx src/features/marketplace/components/curated-shelves/marketplace-curated-shelves.tsx src/features/marketplace/hooks/use-marketplace-curated-scene-route.ts`
+    - 结果：无错误；保留 `MarketplacePage` 既有 `max-statements` warning，数值仍为 `42`。
+  - Playwright 慢加载冒烟：
+    - 打开 `http://127.0.0.1:5174/skills`，同时延迟 `items` 与 `scenes` 接口。
+    - 结果：延迟期间第一屏已包含 `Scenes`、`Recently updated`、`All Skills`；`marketplace-scenes-skeleton`、`marketplace-recent-skeleton`、`marketplace-list-skeleton` 均存在各 `1` 个，不再先出现单块大骨架后抖动切换。
+  - Package 级 ESLint：`pnpm -C packages/nextclaw-ui lint`
+    - 结果：未通过；阻塞项为当前包内既有无关错误，例如 chat、system-status、doc-browser 等文件的 unused import、`consistent-type-imports` 与 React refs 规则问题。本次触达文件的定向 ESLint 已通过且只保留 `MarketplacePage` 既有复杂度 warning。
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths <本次模块化加载态恢复触达文件>`
+    - 结果：通过；保留 `marketplace-curated-shelves.tsx` 与 `MarketplacePage` 接近文件预算 warning，以及 `MarketplacePage` 既有 `max-statements=42` warning，指标未恶化。
+  - `pnpm lint:new-code:governance`
+    - 结果：通过。
+  - `pnpm check:governance-backlog-ratchet`
+    - 结果：通过。
 - 本次列表卡操作区补充验证：
   - `pnpm -C packages/nextclaw-ui tsc --noEmit`
     - 结果：通过。
@@ -273,6 +292,7 @@
 9. 点击普通技能卡片后，右侧详情应先显示整页骨架屏，不再出现零散 `Loading` 文案；加载完成后详情页应采用项目 warm 色系、细边框、纸面感风格，不再使用蓝色渐变卡片。
 10. 右侧详情 tab 激活态应使用 warm/amber 风格，而不是蓝色 tab；Skill 正文 Markdown 应语义化渲染，metadata 应优先解析为 key-value 信息块。
 11. Installed tab 应继续保持管理列表，不混入发现货架。
+12. 在慢网或冷启动时，Skill Marketplace 首页应直接呈现“场景 / 最近更新 / 全部技能”三块小骨架，不应先展示单个“技能列表”大骨架再切换。
 
 ## 可维护性总结汇总
 
