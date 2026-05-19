@@ -1,12 +1,7 @@
 import {
   type Config,
   type ContextWindowSnapshot,
-  type CronService,
-  type GatewayController,
-  type MessageBus,
   type SessionManager,
-  type SessionRequestManager,
-  type SessionSearchManager,
 } from "@nextclaw/core";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
 import { DefaultNcpAgentRuntime, type LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
@@ -17,7 +12,6 @@ import {
   type NcpEndpointEvent,
   NcpEventType,
   type NcpMessage,
-  type NcpTool,
   readAssistantReasoningNormalizationMode,
   readAssistantReasoningNormalizationModeFromMetadata,
   type NcpAssistantReasoningNormalizationMode,
@@ -25,37 +19,27 @@ import {
 } from "@nextclaw/ncp";
 import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 import { type LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
-import type { ExtensionManager } from "@kernel/managers/extension.manager.js";
-import { SessionSearchTool } from "@kernel/tools/session-search.tools.js";
+import type {
+  ToolManager,
+  UpdateToolCallResult,
+} from "@kernel/managers/tool.manager.js";
 import { createAssetTools } from "@kernel/features/native-runtime/tools/ncp-asset.tools.js";
 import { ContextCompactionPreflightService } from "./context-compaction-preflight.service.js";
 import { NextclawNcpContextBuilder } from "./nextclaw-ncp-context-builder.service.js";
-import { NextclawNcpToolRegistry } from "./nextclaw-ncp-tool-registry.service.js";
 import { ProviderManagerNcpLLMApi } from "./provider-manager-ncp-llm-api.service.js";
 
 export type NativeRuntimeFactory = (runtimeParams: RuntimeFactoryParams) => NcpAgentRuntime;
 
-export type UpdateToolCallResult = (params: {
-  sessionId: string;
-  toolCallId: string;
-  result: unknown;
-}) => Promise<void>;
-
 export type NativeAgentRuntimeFactoryOptions = {
-  bus: MessageBus;
   providerManager: LlmProviderRuntime;
   sessions: SessionManager;
-  sessionRequests: SessionRequestManager;
-  sessionSearch: SessionSearchManager;
-  cronService?: CronService | null;
   configManager: { loadConfig: () => Config };
-  extensions: ExtensionManager;
   llmUsage: LlmUsageManager;
   onSessionUpdated: (sessionKey: string) => void;
-  resolveGatewayController: () => GatewayController | undefined;
   mcpToolRegistryAdapter: McpNcpToolRegistryAdapter;
   assetStore: LocalAssetStore;
   updateToolCallResult: UpdateToolCallResult;
+  toolManager: ToolManager;
 };
 
 function createContextWindowUpdatedEvent(params: {
@@ -92,16 +76,6 @@ function resolveNativeReasoningNormalizationMode(params: {
     readAssistantReasoningNormalizationMode(runtimeMetadata.reasoning_normalization_mode) ??
     "think-tags"
   );
-}
-
-function createSessionSearchTools(params: {
-  currentSessionId: string;
-  sessionSearch: SessionSearchManager;
-}): NcpTool[] {
-  const { currentSessionId, sessionSearch } = params;
-  return sessionSearch.isReady()
-    ? [new SessionSearchTool({ search: sessionSearch.search }, { currentSessionId })]
-    : [];
 }
 
 async function* publishPreflightResult(params: {
@@ -172,7 +146,7 @@ export class NativeAgentRuntimeFactory {
       );
     }
 
-    const toolRegistry = this.createToolRegistry(this.observedProviderManager);
+    const toolRegistry = this.createToolRegistry();
     const runtime = new DefaultNcpAgentRuntime({
       contextBuilder: new NextclawNcpContextBuilder({
         sessionManager: this.options.sessions,
@@ -227,26 +201,15 @@ export class NativeAgentRuntimeFactory {
   resolveOpenAiToolsForRuntime = (input: NcpAgentRunInput) => {
     const contextBuilder = new NextclawNcpContextBuilder({
       sessionManager: this.options.sessions,
-      toolRegistry: this.createToolRegistry(this.options.providerManager),
+      toolRegistry: this.createToolRegistry(),
       getConfig: this.options.configManager.loadConfig,
       assetStore: this.options.assetStore,
     });
     return contextBuilder.prepare(input).tools;
   };
 
-  private createToolRegistry = (
-    providerManager: LlmProviderRuntime,
-  ): NextclawNcpToolRegistry => {
-    return new NextclawNcpToolRegistry({
-      bus: this.options.bus,
-      providerManager,
-      sessionManager: this.options.sessions,
-      cronService: this.options.cronService,
-      gatewayController: this.options.resolveGatewayController(),
-      getConfig: this.options.configManager.loadConfig,
-      getExtensionRegistry: this.options.extensions.getExtensionRegistry,
-      onSessionUpdated: this.options.onSessionUpdated,
-      sessionRequestManager: this.options.sessionRequests,
+  private createToolRegistry = () => {
+    return this.options.toolManager.createRuntimeRegistry({
       updateToolCallResult: this.options.updateToolCallResult,
       getAdditionalTools: (context) => [
         ...createAssetTools({
@@ -254,10 +217,6 @@ export class NativeAgentRuntimeFactory {
         }),
         ...this.options.mcpToolRegistryAdapter.listToolsForRun({
           agentId: context.agentId,
-        }),
-        ...createSessionSearchTools({
-          sessionSearch: this.options.sessionSearch,
-          currentSessionId: context.sessionId,
         }),
       ],
     });

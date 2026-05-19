@@ -5,6 +5,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@kernel": fileURLToPath(new URL("./src", import.meta.url)),
+      "@core": fileURLToPath(new URL("../nextclaw-core/src", import.meta.url)),
     },
   },
 });

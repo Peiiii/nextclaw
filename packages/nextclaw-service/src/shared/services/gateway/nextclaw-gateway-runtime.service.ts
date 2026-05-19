@@ -167,9 +167,9 @@ export class NextclawGatewayRuntime {
             applyRestartMode: resolveApplyRestartMode(this.uiConfig.port),
             requestRestart: this.deps.requestRestart,
             uiConfig: this.uiConfig,
-          });
+    });
     this.gatewayController = this.createGatewayController();
-    this.kernel.agentRuntimeManager.connectGatewayController(this.gatewayController);
+    this.kernel.provideGatewayController(this.gatewayController);
     this.deferredChannelStarter = this.startChannels;
     this.automation.onJob = createCronJobHandler({
       resolveNcpAgent: () => this.liveAgentRuntime,

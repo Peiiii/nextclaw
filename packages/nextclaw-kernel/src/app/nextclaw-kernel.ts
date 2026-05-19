@@ -16,11 +16,13 @@ import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-jo
 import { createAgentRuntimeSessionRequestDispatcher } from "@kernel/features/session-request/index.js";
 import { SessionContextWindowContribution } from "@kernel/contributions/session-context-window/index.js";
 import { SessionActivityPreviewContribution } from "@kernel/contributions/session-activity-preview/index.js";
+import { ToolContribution } from "@kernel/contributions/tool-contribution/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import {
   ChannelManager,
   ensureDir,
   expandHome,
+  type GatewayController,
   getDataDir,
   getSessionsPath,
   MessageBus,
@@ -109,7 +111,7 @@ export class NextclawKernel {
     unknown,
     unknown
   >;
-  readonly tools: ToolManager;
+  readonly toolManager: ToolManager;
   readonly skills: SkillManager;
   readonly automation: AutomationManager;
   readonly channels: ChannelManager;
@@ -123,6 +125,7 @@ export class NextclawKernel {
   private readonly ncpAgentSessionStore: NcpAgentSessionStoreAdapter;
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
   private readonly contributions: KernelContribution[];
+  private gatewayController: GatewayController | undefined;
 
   constructor(options: NextclawKernelOptions = {}) {
     const sessionsDir = resolveKernelSessionsDir(options);
@@ -159,7 +162,7 @@ export class NextclawKernel {
       unknown,
       unknown
     >();
-    this.tools = new ToolManager();
+    this.toolManager = new ToolManager();
     this.skills = new SkillManager();
     this.extensions = new ExtensionManager();
     this.channels = new ChannelManager({
@@ -172,20 +175,17 @@ export class NextclawKernel {
       providerManager: this.llmProviders,
     });
     this.agentRuntimeManager = new AgentRuntimeManager({
-      bus: this.messageBus,
       providerManager: this.llmProviders,
       sessions: this.sessions,
       ingress: this.ingress,
-      sessionRequests: this.sessionRequests,
-      sessionSearch: this.sessionSearch,
       ncpAgentSessionStore: this.ncpAgentSessionStore,
-      cronService: this.automation,
       configManager: this.configManager,
       extensions: this.extensions,
       eventBus: this.eventBus,
       handleNcpEvent: this.handleNcpEvent,
       llmUsage: this.llmUsage,
       onSessionUpdated: this.publishSessionUpdated,
+      toolManager: this.toolManager,
     });
     this.ncpSessionApi = new NcpSessionApiService({
       eventBus: this.eventBus,
@@ -202,10 +202,17 @@ export class NextclawKernel {
         readLearningLoopRuntimeConfig(this.configManager.loadConfig()),
     });
     this.contributions = [
+      new ToolContribution(this),
       new SessionActivityPreviewContribution(this),
       new SessionContextWindowContribution(this),
     ];
   }
+
+  provideGatewayController = (gatewayController: GatewayController): void => {
+    this.gatewayController = gatewayController;
+  };
+
+  getGatewayController = (): GatewayController | undefined => this.gatewayController;
 
   start = async (): Promise<void> => {
     this.ncpSessionApi.start();
@@ -227,7 +234,7 @@ export class NextclawKernel {
     await this.sessionSearch.dispose();
   };
 
-  private publishSessionUpdated = (sessionKey: string): void => {
+  publishSessionUpdated = (sessionKey: string): void => {
     this.sessionLifecycleEvents.publishSessionUpdated(sessionKey);
     this.eventBus.emit(eventKeys.sessionUpdated, { sessionKey }, {
       emittedAt: new Date().toISOString(),

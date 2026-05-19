@@ -39,12 +39,14 @@ import {
 } from "@kernel/features/native-runtime/utils/nextclaw-ncp-session-preferences.utils.js";
 import { buildCurrentTurnState } from "@kernel/features/native-runtime/utils/nextclaw-ncp-current-turn.utils.js";
 import { projectNcpMessagesWithContextCompaction } from "@kernel/features/native-runtime/utils/context-compaction-projection.utils.js";
-import { resolveAgentHandoffDepth } from "./nextclaw-ncp-tool-registry.service.js";
-import type { NextclawNcpToolRegistry } from "./nextclaw-ncp-tool-registry.service.js";
+import {
+  resolveAgentHandoffDepth,
+  type ToolRuntimeRegistry,
+} from "@kernel/managers/tool.manager.js";
 
 type NextclawNcpContextBuilderOptions = {
   sessionManager: SessionManager;
-  toolRegistry: NextclawNcpToolRegistry;
+  toolRegistry: ToolRuntimeRegistry;
   getConfig: () => Config;
   assetStore?: LocalAssetStore | null;
 };
@@ -298,11 +300,9 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
       chatId,
       agentId: profile.agentId,
       config,
-      contextTokens: profile.contextTokens,
       execTimeoutSeconds: profile.execTimeoutSeconds,
       handoffDepth: resolveAgentHandoffDepth(requestMetadata),
       metadata: requestMetadata,
-      model: effectiveModel,
       restrictToWorkspace: profile.restrictToWorkspace,
       searchConfig: profile.searchConfig,
       workspace: effectiveWorkspace,

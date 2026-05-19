@@ -1,12 +1,7 @@
 import {
   type Config,
-  type CronService,
-  type GatewayController,
   getDataDir,
-  type MessageBus,
   type SessionManager,
-  type SessionRequestManager,
-  type SessionSearchManager,
 } from "@nextclaw/core";
 import {
   eventKeys,
@@ -15,6 +10,10 @@ import {
   type IngressEnvelope,
 } from "@nextclaw/shared";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
+import type {
+  ToolManager,
+  UpdateToolCallResult,
+} from "@kernel/managers/tool.manager.js";
 import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
   type NcpAgentClientEndpoint,
@@ -45,7 +44,6 @@ import type { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
 import {
   ContextCompactionPreflightService,
   NativeAgentRuntimeFactory,
-  type UpdateToolCallResult,
 } from "@kernel/features/native-runtime/index.js";
 import { McpRuntimeSupportOwner, type McpRuntimeSupport } from "@kernel/features/mcp-runtime-support/index.js";
 import {
@@ -56,20 +54,17 @@ import {
 export type { AgentRuntimeHandle } from "@kernel/features/ncp-dispatch/index.js";
 
 export type AgentRuntimeManagerOptions = {
-  bus: MessageBus;
   providerManager: LlmProviderRuntime;
   sessions: SessionManager;
   ingress: Ingress;
-  sessionRequests: SessionRequestManager;
-  sessionSearch: SessionSearchManager;
   ncpAgentSessionStore: AgentSessionStore;
-  cronService?: CronService | null;
   configManager: { loadConfig: () => Config };
   extensions: ExtensionManager;
   eventBus: EventBus;
   handleNcpEvent: (event: NcpEndpointEvent) => void;
   llmUsage: LlmUsageManager;
   onSessionUpdated: (sessionKey: string) => void;
+  toolManager: ToolManager;
 };
 
 type NcpOutboundMessageInput = NcpMessage | NcpOutboundMessageDraft;
@@ -136,7 +131,6 @@ export class AgentRuntimeManager {
   private warmupPromise: Promise<void> | null = null;
   private unsubscribeNcpEvents: (() => void) | null = null;
   private unsubscribeAgentRuntimeRequestIngress: (() => void) | null = null;
-  private gatewayController: GatewayController | undefined;
   private disposed = false;
 
   constructor(private readonly params: AgentRuntimeManagerOptions) {
@@ -153,31 +147,21 @@ export class AgentRuntimeManager {
 
   isLiveSessionRunning = (sessionId: string): boolean => this.backend?.isLiveSessionRunning(sessionId) ?? false;
 
-  connectGatewayController = (gatewayController: GatewayController): void => {
-    this.assertNotDisposed();
-    this.gatewayController = gatewayController;
-  };
-
   bootstrap = async (): Promise<AgentRuntimeHandle> => {
     this.assertNotDisposed();
     if (this.handle) {
       return this.handle;
     }
     const nativeRuntimeFactory = new NativeAgentRuntimeFactory({
-      bus: this.params.bus,
       providerManager: this.params.providerManager,
       sessions: this.params.sessions,
-      sessionRequests: this.params.sessionRequests,
-      sessionSearch: this.params.sessionSearch,
-      cronService: this.params.cronService,
       configManager: this.params.configManager,
-      extensions: this.params.extensions,
       llmUsage: this.params.llmUsage,
       onSessionUpdated: this.params.onSessionUpdated,
-      resolveGatewayController: () => this.gatewayController,
       mcpToolRegistryAdapter: this.mcpRuntimeSupport.toolRegistryAdapter,
       assetStore: this.assetStore,
       updateToolCallResult: this.updateToolCallResult,
+      toolManager: this.params.toolManager,
     });
     this.registerCoreRuntimes(nativeRuntimeFactory);
     const contextWindowPreview = new ContextCompactionPreflightService({

@@ -218,6 +218,7 @@ src/
 - 该能力不属于主链路 owner，只是监听已有事实、投影派生状态、写回已有 owner 或补充内部体验。
 - kernel 只需要管理该能力的生命周期，不需要理解它的内部业务逻辑。
 - contribution 内部不应成为其他模块复用的公共实现来源；外部默认只依赖它的 contribution class。
+- kernel contribution 构造器默认直接接收 `NextclawKernel` 这类 kernel owner；不要从外部把 `toolManager`、`eventBus`、`sessionManager` 等依赖拆碎后传入 contribution。若 contribution 需要的能力还不是 kernel 上的稳定 owner，应先补齐 kernel owner / 访问点，而不是用 options bag 绕过边界。
 
 `contributions/<name>/` 是一个独立 contribution root。该 root 默认只暴露 `index.ts` 作为唯一入口，内部实现按角色进入 `utils/`、`types/`、`services/` 等子目录。不要把 contribution root 当成平铺文件夹，也不要把 contribution 的内部工具通过入口重新导出。
 
