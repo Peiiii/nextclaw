@@ -10,6 +10,7 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 - Keep desktop release work in `desktop-release-contract-guard`; do not add another release orchestration layer.
 - The goal is to prevent three mistakes:
   - treating an NPM package publish as complete before registry verification
+  - publishing top-level `nextclaw` while leaving runtime workspace dependencies stale
   - shipping `nextclaw` without the packaged runtime update public key
   - treating an env-only runtime update test as a real user beta validation
 
@@ -27,11 +28,26 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 - The published package must include both launcher and app runtime entries:
   - `dist/cli/launcher/index.js`
   - `dist/cli/app/index.js`
-- If `nextclaw` imports newly added APIs from workspace packages, those packages must be versioned and published in the same beta batch before `nextclaw`.
-- For stable `nextclaw@latest`, do not treat `nextclaw` as a standalone CLI package by default. First compute the public workspace dependency closure; if affected runtime/UI/kernel/service packages have unpublished source fixes, publish the full affected public workspace batch with `nextclaw`.
+- Do not treat `nextclaw` as a standalone CLI package. Its real installed behavior comes from the published dependency closure, especially runtime packages such as kernel, service, server, NCP packages, runtime adapters, and UI assets when applicable.
+- If `nextclaw` depends on a workspace package whose local source changed meaningfully, or whose local version has not been published, that package must be versioned and published in the same batch before `nextclaw`.
 - NPM runtime update manifests must use `hostKind: "npm-runtime-bundle"`.
 - `minimumLauncherVersion` for NPM runtime bundles comes from `packages/nextclaw/npm-runtime-compatibility.json`.
 - Do not raise `minimumLauncherVersion` unless the launcher-side contract really broke.
+
+## Release Range Decision
+Before deciding the package range, write down the release range and the reason. Do not infer it from the visible package name alone.
+
+1. Identify whether users install through `nextclaw`, a runtime update channel, or a lower-level `@nextclaw/*` package.
+2. If the release includes `nextclaw`, inspect `packages/nextclaw/package.json` runtime dependencies. Treat all `workspace:*` `@nextclaw/*` dependencies, plus any changed transitive runtime package they depend on, as the candidate release closure.
+3. Run `pnpm release:report:health` and compare the output with the closure. Any dependency with meaningful unpublished drift must either be included in the release batch or explicitly proven irrelevant to the installed user path.
+4. If the user says "全部发布", "直接发布", "完成全部", or reports a hard-to-debug installed-version mismatch, prefer the full public workspace batch through the repo release flow. Do not hand-pick only `nextclaw`.
+5. A narrower-than-closure release is allowed only when all of these are true:
+   - the user explicitly wants a narrow release,
+   - every excluded workspace dependency is already published at the exact version referenced by the candidate package,
+   - a packed or temporary install proves the installed dependency closure contains the required runtime APIs/assets,
+   - the final answer names the intentionally excluded packages and why they are safe to exclude.
+
+Never justify a single-package `nextclaw` release only because `packages/nextclaw` contains copied `ui-dist` or because `nextclaw --version` will show the new version. The UI version label, CLI version, and actual runtime behavior can diverge when kernel/service/NCP/UI dependency packages remain stale.
 
 ## Package Release Flow
 0. Prefer the reusable beta owner when the request is specifically "发布 beta / 统一 beta 发版":
@@ -41,14 +57,17 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 1. Sync and check package README content:
    - `pnpm release:sync-readmes`
    - `pnpm release:check-readmes`
-2. Prepare versions with the repo release flow:
+2. Decide and prepare the release range:
+   - for full public workspace release: `pnpm release:auto:changeset`
+   - for a narrow release: create or inspect the changeset and document why the excluded dependency closure is safe
+3. Prepare versions with the repo release flow:
    - `pnpm release:version`
-3. For a release batch that includes `nextclaw`, make sure the packaged update public key exists before publish:
+4. For a release batch that includes `nextclaw`, make sure the packaged update public key exists before publish:
    - `NEXTCLAW_UPDATE_BUNDLE_PRIVATE_KEY=... pnpm -C packages/nextclaw runtime-update:build -- --channel beta --skip-build --output-dir tmp/npm-runtime-update-key-check`
    - Use `--channel stable` for stable releases.
-4. Publish through the repo release flow:
+5. Publish through the repo release flow:
    - `pnpm release:publish`
-5. Verify the registry state:
+6. Verify the registry state:
    - `pnpm release:verify:published`
    - `npm view nextclaw dist-tags --json`
 
@@ -68,7 +87,7 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 Before publishing `nextclaw@beta`, run a blocker scan and resolve everything found:
 
 - workspace dependency closure: compare `nextclaw` imports against changed workspace packages; any package providing a new runtime API must get its own beta version and dist-tag,
-- for stable `nextclaw@latest`, prove any narrower-than-batch release with a packed install dependency check; otherwise use the affected public workspace batch,
+- for stable `nextclaw@latest`, prove any narrower-than-closure release with a packed install dependency check; otherwise use the affected public workspace batch,
 - packed API check: install the exact packed or published dependency closure in a temp prefix and verify critical APIs exist, especially recently added methods,
 - real install smoke: from a temp prefix, install `nextclaw@beta` or the candidate tarball and run at least `nextclaw --version` plus one minimal command path touching the changed runtime area,
 - for stable `nextclaw@latest` publishes, the real install smoke must include `nextclaw update --check` from an isolated `NEXTCLAW_HOME` without `NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY` or `NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY_PATH`; this proves the packaged public key is discoverable by the published package,
