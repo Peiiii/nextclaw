@@ -76,9 +76,14 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 6. Verify update-channel source of truth.
    - Check `gh-pages` branch contents first
    - Then check the public Pages URL
-7. Only announce "发布完成" after both are true:
+7. For stable releases, update and deploy official website/download links only after the release is complete.
+   - Do not push or deploy website stable-download links to a tag/release that is not yet fully published.
+   - If the website source is auto-deployed from `master`, commit the website link update after assets, manifests, update channels, and stable-only publish jobs are verified.
+   - If the website change is prepared earlier, keep it local/unpushed or behind a non-public preview until the stable release gate passes.
+8. Only announce "发布完成" after all are true:
    - workflow is fully green
    - public update-channel content reflects the new version
+   - official website/download links, when changed, are deployed and verified against the completed release
 
 ## Release Completion Gate
 - Treat tag creation or `gh release create` success as the start signal, not the finish line.
@@ -92,8 +97,21 @@ description: Use when building, verifying, or releasing NextClaw desktop install
   - `publish-release-assets`
   - `publish-desktop-update-channels`
   - `publish-linux-apt-repo` for stable releases
+- Stable website/download links are downstream publication surfaces, not release inputs. Do not update public stable download links before the release assets and public update manifests are verified; otherwise a transient failed or empty release can become the official user path.
 - Release assets may stay empty while the workflow is still running. Do not treat an empty `assets[]` list as proof of either success or final failure until the workflow attempt is finished.
 - If packaging, smoke, bundle, and manifest steps already passed and the only failure is `actions/upload-artifact@v4` reporting `Upload progress stalled.`, rerun failed jobs first before changing product code or packaging logic.
+
+## Release Notes Contract
+- Formal desktop release notes are part of the release contract, not post-release decoration.
+- Use `docs/logs/v0.16.18-unified-release-0-17-11/github-release-template.md` as the structure baseline unless a newer template exists.
+- A stable desktop release note must be bilingual:
+  - `English Version` first;
+  - `中文版` second;
+  - keep comparable information density in both languages.
+- Stable desktop highlights must compare against the previous official stable desktop release, not against the latest preview or beta tag.
+- Cover user-facing and functional changes, especially desktop startup, installer/update behavior, visible UI/chrome changes, channel/runtime behavior, and website/download alignment when applicable.
+- Call out desktop installer/update validation explicitly, including platform workflow coverage and the governed `minimumLauncherVersion` floor.
+- Keep the changelog link once per language block and point it at the previous official stable desktop tag.
 
 ## Public Update Channel Gate
 - `gh-pages` branch content is the publishing source of truth.
