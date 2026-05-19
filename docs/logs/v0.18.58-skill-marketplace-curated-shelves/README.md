@@ -277,7 +277,22 @@
 
 ## 发布/部署方式
 
-本次不涉及发布或部署。若继续推进到正式版本，按正常前端构建与桌面资源打包链路发布即可。
+已执行前端 NPM 发布闭环。
+
+- 发布入口：`NPM_CONFIG_USERCONFIG=/Users/peiwang/Projects/nextbot/.npmrc pnpm release:frontend`
+- 发布基线：以已发布的 `0a4910e8` 为临时 release worktree 基线，摘入本轮 `Restore skill marketplace loading shelves` 改动，避免从本地旧 package 版本发布造成 `nextclaw` 依赖闭包回退。
+- 发布版本：
+  - `@nextclaw/ui@0.12.27`
+  - `nextclaw@0.19.16`
+- 发布验证：
+  - `pnpm release:publish:frontend` 内部 `release:verify:published` 通过，确认 `2/2` 个 package version 已发布。
+  - `npm view @nextclaw/ui@0.12.27 version` 返回 `0.12.27`。
+  - `npm view nextclaw@0.19.16 version` 返回 `0.19.16`。
+  - `npm view nextclaw dist-tags --json` 显示 `latest: 0.19.16`。
+  - `npm view @nextclaw/ui dist-tags --json` 显示 `latest: 0.12.27`。
+  - `npm pack nextclaw@0.19.16 --dry-run --json` 确认包内包含 `resources/update-bundle-public.pem`、`dist/cli/launcher/index.js` 与 `dist/cli/app/index.js`。
+  - 临时目录安装 `nextclaw@0.19.16` 后运行 `nextclaw --version` 返回 `0.19.16`。
+  - 隔离 `NEXTCLAW_HOME` 运行 `nextclaw update --check` 返回当前 runtime 已是 `0.19.16`。
 
 ## 用户/产品视角的验收步骤
 
@@ -314,4 +329,9 @@
 
 ## NPM 包发布记录
 
-不涉及 NPM 包发布。
+已发布：
+
+- `@nextclaw/ui@0.12.27`，dist-tag：`latest`
+- `nextclaw@0.19.16`，dist-tag：`latest`
+
+未发布 runtime update channel；本次是前端 NPM 包发布，验证了已发布 `nextclaw@0.19.16` 的 packaged update public key 与 `update --check` 可用性。
