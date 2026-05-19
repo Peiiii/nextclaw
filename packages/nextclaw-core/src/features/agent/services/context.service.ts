@@ -93,12 +93,11 @@ export class ContextBuilder {
   buildSystemPrompt = (
     skillNames?: string[],
     sessionKey?: string,
-    messageToolHints?: string[],
     availableTools?: ToolCatalogEntry[],
     additionalSystemSections?: string[],
   ): string => {
     const parts: string[] = [];
-    parts.push(this.getIdentity(messageToolHints, availableTools));
+    parts.push(this.getIdentity(availableTools));
 
     if (skillNames && skillNames.length) {
       const requestedSection = buildRequestedSkillsSystemSection(this.skills, skillNames);
@@ -153,12 +152,11 @@ export class ContextBuilder {
     chatId?: string;
     sessionKey?: string;
     thinkingLevel?: ThinkingLevel | null;
-    messageToolHints?: string[];
     availableTools?: ToolCatalogEntry[];
     additionalSystemSections?: string[];
   }): Message[] => {
     const messages: Message[] = [];
-    let systemPrompt = this.buildSystemPrompt(params.skillNames, params.sessionKey, params.messageToolHints, params.availableTools, params.additionalSystemSections);
+    let systemPrompt = this.buildSystemPrompt(params.skillNames, params.sessionKey, params.availableTools, params.additionalSystemSections);
     if (params.channel && params.chatId) {
       systemPrompt += `\n\n## Current Session\nChannel: ${params.channel}\nChat ID: ${params.chatId}`;
     }
@@ -204,10 +202,7 @@ export class ContextBuilder {
     return messages;
   };
 
-  private getIdentity = (messageToolHints?: string[], availableTools?: ToolCatalogEntry[]): string => {
-    const sanitizedMessageToolHints = (messageToolHints ?? [])
-      .map((hint) => hint.trim())
-      .filter(Boolean);
+  private getIdentity = (availableTools?: ToolCatalogEntry[]): string => {
     const toolCatalog = availableTools ? normalizeToolCatalogEntries(availableTools) : [...DEFAULT_TOOL_CATALOG];
     const appLower = APP_NAME.toLowerCase();
     const selfManageGuide = resolveNextclawSelfManageGuidePaths();
@@ -285,7 +280,6 @@ export class ContextBuilder {
       "- Omitting `to/chatId` only replies to the current conversation; if you set `channel` to a different channel than the current session, `to/chatId` is required.",
       "- If multiple channels are configured, pass `channel`.",
       "- If you use `message` (`action=send`) to deliver your user-visible reply, respond with ONLY two blank lines + <noreply/> (avoid duplicate replies).",
-      ...sanitizedMessageToolHints.map((hint) => `- ${hint}`),
       "",
       "## Memory Recall",
       "Before answering anything about prior work, decisions, dates, people, preferences, or todos: run memory_search on MEMORY.md + memory/*.md; then use memory_get to pull only the needed lines. If low confidence after search, say you checked.",

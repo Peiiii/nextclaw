@@ -355,10 +355,3 @@ export function resolveAgentHandoffDepth(metadata: Record<string, unknown>): num
   }
   return Math.trunc(rawDepth);
 }
-
-export function readAccountIdForHints(
-  metadata: Record<string, unknown>,
-  sessionMetadata: Record<string, unknown>,
-): string | undefined {
-  return readMetadataAccountId(metadata, sessionMetadata);
-}

@@ -229,10 +229,6 @@ export type OpenClawChannelConfigAdapter = {
   defaultAccountId?: (cfg?: Record<string, unknown>) => string;
 };
 
-export type OpenClawChannelAgentPrompt = {
-  messageToolHints?: (params: { cfg: Config; accountId?: string | null }) => string[];
-};
-
 export type OpenClawChannelAuthLoginResult = {
   pluginConfig: Record<string, unknown>;
   accountId?: string | null;
@@ -305,7 +301,6 @@ export type OpenClawChannelPlugin = {
   setup?: OpenClawChannelSetup;
   gateway?: OpenClawChannelGateway;
   agentTools?: OpenClawPluginTool[] | (() => OpenClawPluginTool | OpenClawPluginTool[] | null | undefined);
-  agentPrompt?: OpenClawChannelAgentPrompt;
   auth?: OpenClawChannelAuth;
   outbound?: {
     sendText?: (ctx: {

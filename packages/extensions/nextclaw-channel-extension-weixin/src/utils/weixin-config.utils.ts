@@ -37,6 +37,7 @@ function normalizeAccountConfig(value: unknown): WeixinAccountConfig | undefined
   return {
     enabled: typeof record.enabled === "boolean" ? record.enabled : undefined,
     baseUrl: readString(record.baseUrl),
+    userId: readString(record.userId),
     allowFrom: readStringArray(record.allowFrom),
   };
 }
@@ -104,6 +105,7 @@ export function buildLoggedInWeixinChannelConfig(params: {
         ...currentAccount,
         enabled: true,
         baseUrl,
+        ...(allowUserId ? { userId: allowUserId } : {}),
         allowFrom: allowFrom.size > 0 ? [...allowFrom] : undefined,
       },
     },
@@ -130,6 +132,7 @@ export const WEIXIN_CHANNEL_CONFIG_SCHEMA = {
         properties: {
           enabled: { type: "boolean" },
           baseUrl: { type: "string" },
+          userId: { type: "string" },
           allowFrom: {
             type: "array",
             items: { type: "string" },

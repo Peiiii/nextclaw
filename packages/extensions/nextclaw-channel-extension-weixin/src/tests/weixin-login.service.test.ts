@@ -45,6 +45,7 @@ describe("WeixinLoginService", () => {
           "bot-1@im.bot": {
             enabled: true,
             baseUrl: "https://ilinkai.weixin.qq.com",
+            userId: "user-1@im.wechat",
             allowFrom: ["user-1@im.wechat"],
           },
         },

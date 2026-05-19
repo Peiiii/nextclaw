@@ -3,7 +3,6 @@ import { NextclawKernel } from "@nextclaw/kernel";
 import { RemoteRuntimeActions } from "@nextclaw/remote";
 import {
   getPluginChannelBindings,
-  resolvePluginChannelMessageToolHints,
   setPluginRuntimeBridge,
 } from "@nextclaw/openclaw-compat";
 import { existsSync, mkdirSync } from "node:fs";
@@ -497,15 +496,6 @@ export class NextclawServiceRuntime {
         kernel,
         providerManager,
         extensionRegistry,
-        loadResolvedConfig: () =>
-          resolveConfigSecrets(loadConfig(), { configPath }),
-        resolveMessageToolHints: ({ channel, accountId }) =>
-          resolvePluginChannelMessageToolHints({
-            registry: pluginRegistry,
-            channel,
-            cfg: resolveConfigSecrets(loadConfig(), { configPath }),
-            accountId,
-          }),
       });
     } finally {
       setPluginRuntimeBridge(null);

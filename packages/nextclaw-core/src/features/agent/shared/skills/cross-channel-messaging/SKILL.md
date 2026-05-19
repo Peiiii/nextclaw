@@ -81,7 +81,7 @@ Resolve the target in this order:
 3. Existing known session:
    Use `sessions_list` to recover the saved route if the intended target already exists as a routable session.
 4. Channel discovery command:
-   If the exact channel id or outbound capability is not already explicit, run `nextclaw channels list --json` and treat its `channels[].id` values as authoritative.
+   If the exact channel id, default account, or bound self user is not already explicit, run `nextclaw channels list --json` and treat its output as authoritative channel state.
 5. Authoritative context already exposed to the AI:
    existing session metadata, project docs, or a known local config file path/content.
 6. Ask a narrow follow-up question.
@@ -114,7 +114,7 @@ Treat config as route data, not as delivery proof.
 When this skill is active, prefer route sources in this order:
 
 1. A route the user explicitly typed.
-2. Channel ids and capabilities returned by `nextclaw channels list --json`.
+2. Channel ids and account facts returned by `nextclaw channels list --json`.
 3. A saved session route that the environment already surfaced.
 4. A local config file only when its path/content is already available in the current environment.
 
@@ -130,6 +130,21 @@ For channels that may have multiple logged-in accounts:
 
 Do not silently choose an arbitrary account.
 
+## Bound Self Route
+
+When the user asks to send to "me", "my Weixin", "my Telegram", or another self-owned channel destination, do not ask for a route id before checking channel discovery.
+
+Use this generic lookup:
+
+1. Run `nextclaw channels list --json`.
+2. Pick the exact channel from `channels[].id`.
+3. Read `defaultAccountId`.
+4. In `accounts`, find the account whose `id` equals `defaultAccountId`.
+5. If that account has `userId`, use it as `to` for `message`.
+6. If `defaultAccountId`, the matching account, or `userId` is missing, ask only for the smallest missing value or tell the user to log in/bind the channel first.
+
+The command output is state, not a sending recipe. The skill owns this workflow; `message` only receives the final `channel`, `accountId`, `to/chatId`, and content.
+
 ## Weixin As An Example
 
 Weixin is only one example of a channel handled through the same general rule set.
@@ -138,22 +153,25 @@ When the user asks for Weixin delivery:
 
 - prefer an existing Weixin session if one already exists,
 - otherwise use `message` with explicit route data,
-- run `nextclaw channels list --json` if `weixin` is not already known as an available channel id,
+- run `nextclaw channels list --json` if `weixin`, the default account, or the bound user route is not already known,
 - use `channel: "weixin"` as the concrete channel id when the command or existing context exposes it; do not write `channel: "wechat"` even when the user says WeChat/微信,
-- include `accountId` when multiple Weixin accounts may exist,
+- include `accountId` from `defaultAccountId` when the command exposes it,
+- for "send to my Weixin", use `accounts[].userId` from the default account as `to`,
 - do not claim that proactive delivery is guaranteed visible unless the environment already proves that.
 
 ### Weixin Route Lookup Checklist
 
-Before asking the user for a Weixin `user_id`, check whether the environment already exposes:
+Before asking the user for a Weixin `user_id`, check whether `nextclaw channels list --json` already exposes:
 
-- `nextclaw channels list --json` output with `id: "weixin"` and its `defaultAccountId`,
-- any current session or existing session metadata that already contains a Weixin route
+- `id: "weixin"`,
+- `defaultAccountId`,
+- `accounts[]` containing that account id,
+- and `accounts[].userId`.
 
 Rules:
 
-- If exactly one Weixin route is already exposed, do not ask again for `user_id`.
-- If only `accountId` is known but `to/user_id` is still unknown, ask only for the missing Weixin `user_id`.
+- If the default account exposes `userId`, do not ask again for `user_id`.
+- If only `accountId` is known but `to/user_id` is still unknown, ask only for the missing Weixin `user_id` or ask the user to log in/bind Weixin first.
 - If multiple Weixin routes are exposed, ask the user which one to use instead of guessing.
 - If you need to check whether a matching Weixin session already exists, prefer `sessions_list({ channel: "weixin", to, accountId })` over a broad unfiltered session listing.
 

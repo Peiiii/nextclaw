@@ -4,6 +4,7 @@ import type { ChannelSubmittedAttachment } from "@nextclaw/extension-sdk";
 export type WeixinAccountConfig = {
   enabled?: boolean;
   baseUrl?: string;
+  userId?: string;
   allowFrom?: string[];
 };
 

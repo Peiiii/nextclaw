@@ -44,9 +44,7 @@ function resolveChannelBindings(pluginRegistry: ReturnType<typeof loadPluginRegi
 }
 
 export class ChannelCommands {
-  private readonly channelListView = new ChannelListViewService({
-    channelLabels: CHANNEL_LABELS,
-  });
+  private readonly channelListView = new ChannelListViewService();
 
   constructor(
     private deps: {
@@ -98,11 +96,9 @@ export class ChannelCommands {
     for (const channel of output.channels) {
       const flags = [
         channel.enabled ? "enabled" : "disabled",
-        channel.outbound.text ? "outbound:text" : undefined,
-        channel.auth.login ? "login" : undefined,
         channel.defaultAccountId ? `defaultAccountId=${channel.defaultAccountId}` : undefined,
       ].filter(Boolean);
-      console.log(`- ${channel.id} (${channel.label}) [${flags.join(", ")}] plugin=${channel.pluginId}`);
+      console.log(`- ${channel.id} [${flags.join(", ")}]`);
     }
   };
 

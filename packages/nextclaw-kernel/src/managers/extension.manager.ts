@@ -3,7 +3,6 @@ import {
   getPluginChannelBindings,
   getPluginUiMetadataFromRegistry,
   mergePluginConfigView,
-  resolvePluginChannelMessageToolHints,
   toPluginConfigView,
   type PluginChannelBinding,
   type PluginRegistry,
@@ -102,20 +101,4 @@ export class ExtensionManager {
 
   mergeConfigView = (current: Config, nextConfigView: Record<string, unknown>): Config =>
     mergePluginConfigView(current, nextConfigView, this.channelBindings);
-
-  resolveMessageToolHints = (params: {
-    channel?: string | null;
-    config?: Config;
-    accountId?: string | null;
-  }): string[] => {
-    if (!this.pluginRegistry) {
-      return [];
-    }
-    return resolvePluginChannelMessageToolHints({
-      registry: this.pluginRegistry,
-      channel: params.channel,
-      cfg: params.config,
-      accountId: params.accountId,
-    });
-  };
 }

@@ -92,11 +92,6 @@ export async function runCliAgentCommand(params: {
   kernel: NextclawKernel;
   providerManager: LlmProviderRuntime;
   extensionRegistry: NextclawExtensionRegistry;
-  loadResolvedConfig: () => Config;
-  resolveMessageToolHints: (params: {
-    channel: string;
-    accountId?: string | null;
-  }) => string[];
 }): Promise<void> {
   const {
     config,

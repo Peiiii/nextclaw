@@ -710,7 +710,7 @@ All message channels use a common **allowFrom** rule:
 
 Configure channels in the UI at http://127.0.0.1:55667 or in `~/.nextclaw/config.json` under `channels`.
 
-Use `nextclaw channels list --json` when an automation or AI agent needs the exact runtime channel ids and outbound capabilities before calling messaging tools. Treat returned `channels[].id` values as authoritative; do not guess aliases such as `wechat` for the Weixin channel.
+Use `nextclaw channels list --json` when an automation or AI agent needs exact runtime channel ids, default accounts, and bound user ids before calling messaging tools. Treat returned `channels[].id` values as authoritative; do not guess aliases such as `wechat` for the Weixin channel.
 
 ### Discord
 

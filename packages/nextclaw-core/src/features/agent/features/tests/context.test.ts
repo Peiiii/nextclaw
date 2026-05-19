@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
-import { ContextBuilder } from "../../services/context.js";
+import { ContextBuilder } from "@core/features/agent/services/context.service.js";
 
 const tempWorkspaces: string[] = [];
 
@@ -27,7 +27,7 @@ describe("ContextBuilder tool catalog", () => {
     const workspace = createWorkspace();
     const builder = new ContextBuilder(workspace);
 
-    const prompt = builder.buildSystemPrompt(undefined, undefined, undefined, [
+    const prompt = builder.buildSystemPrompt(undefined, undefined, [
       { name: "read_file", description: "Read file contents" },
       { name: "feishu_doc", description: "Feishu document operations" },
       { name: "feishu_wiki", description: "Feishu knowledge base operations" },

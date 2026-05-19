@@ -178,12 +178,6 @@ export class NativeAgentRuntimeFactory {
         sessionManager: this.options.sessions,
         toolRegistry,
         getConfig: this.options.configManager.loadConfig,
-        resolveMessageToolHints: ({ channel, accountId }) =>
-          this.options.extensions.resolveMessageToolHints({
-            channel,
-            config: this.options.configManager.loadConfig(),
-            accountId,
-          }),
         assetStore: this.options.assetStore,
       }),
       llmApi: new ProviderManagerNcpLLMApi(this.observedProviderManager),
@@ -235,12 +229,6 @@ export class NativeAgentRuntimeFactory {
       sessionManager: this.options.sessions,
       toolRegistry: this.createToolRegistry(this.options.providerManager),
       getConfig: this.options.configManager.loadConfig,
-      resolveMessageToolHints: ({ channel, accountId }) =>
-        this.options.extensions.resolveMessageToolHints({
-          channel,
-          config: this.options.configManager.loadConfig(),
-          accountId,
-        }),
       assetStore: this.options.assetStore,
     });
     return contextBuilder.prepare(input).tools;

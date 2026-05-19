@@ -39,24 +39,13 @@ import {
 } from "@kernel/features/native-runtime/utils/nextclaw-ncp-session-preferences.utils.js";
 import { buildCurrentTurnState } from "@kernel/features/native-runtime/utils/nextclaw-ncp-current-turn.utils.js";
 import { projectNcpMessagesWithContextCompaction } from "@kernel/features/native-runtime/utils/context-compaction-projection.utils.js";
-import {
-  readAccountIdForHints,
-  resolveAgentHandoffDepth,
-} from "./nextclaw-ncp-tool-registry.service.js";
+import { resolveAgentHandoffDepth } from "./nextclaw-ncp-tool-registry.service.js";
 import type { NextclawNcpToolRegistry } from "./nextclaw-ncp-tool-registry.service.js";
-
-type MessageToolHintsResolver = (params: {
-  sessionKey: string;
-  channel: string;
-  chatId: string;
-  accountId?: string | null;
-}) => string[];
 
 type NextclawNcpContextBuilderOptions = {
   sessionManager: SessionManager;
   toolRegistry: NextclawNcpToolRegistry;
   getConfig: () => Config;
-  resolveMessageToolHints?: MessageToolHintsResolver;
   assetStore?: LocalAssetStore | null;
 };
 
@@ -72,7 +61,6 @@ type ResolvedAgentProfile = {
 };
 
 type PreparedRunContext = {
-  accountId?: string | null;
   channel: string;
   chatId: string;
   config: Config;
@@ -320,9 +308,7 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
       workspace: effectiveWorkspace,
     });
 
-    const accountId = readAccountIdForHints(requestMetadata, session.metadata);
     return {
-      accountId,
       channel,
       chatId,
       config,
@@ -345,7 +331,6 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
     runContext: PreparedRunContext,
   ): BuiltNcpModelMessages => {
     const {
-      accountId,
       channel,
       chatId,
       config,
@@ -357,12 +342,6 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
       runtimeThinking,
       session,
     } = runContext;
-    const messageToolHints = this.options.resolveMessageToolHints?.({
-      sessionKey: input.sessionId,
-      channel,
-      chatId,
-      accountId: accountId ?? null,
-    });
     const toolDefinitions = this.options.toolRegistry.getToolDefinitions();
     const additionalSystemSections = [
       buildSessionOrchestrationSection(),
@@ -392,7 +371,6 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
       sessionKey: input.sessionId,
       thinkingLevel: runtimeThinking,
       skillNames: requestedSkills.selectors,
-      messageToolHints,
       availableTools: buildToolCatalogEntries(toolDefinitions),
       additionalSystemSections,
     });

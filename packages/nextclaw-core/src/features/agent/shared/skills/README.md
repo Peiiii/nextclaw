@@ -24,5 +24,6 @@ The skill format and metadata structure follow OpenClaw's conventions to maintai
 | `skill-creator` | Create new skills |
 | `nextclaw-autostart` | Guide NextClaw host autostart setup, reboot recovery, and service registration diagnostics |
 | `nextclaw-skill-resource-hub` | Curate NextClaw, OpenClaw, and community skill resources |
+| `cross-channel-messaging` | Resolve channel/account/user routes before sending or relaying messages |
 | `qq-group-speaker-distinction` | Keep one QQ group session while preserving per-message speaker identity |
 | `qq-url-guard` | Avoid QQ outbound URL-like text blocks (e.g. xx.xx / USER.md / markdown links) |

@@ -130,7 +130,13 @@ describe("ChannelCommands.status", () => {
     ]);
     mocks.resolveChannelConfigViewMock.mockReturnValue({
       channels: {
-        weixin: { enabled: true, defaultAccountId: "bot-1@im.bot" },
+        weixin: {
+          enabled: true,
+          defaultAccountId: "bot-1@im.bot",
+          accounts: {
+            "bot-1@im.bot": { userId: "user-1@im.wechat" },
+          },
+        },
       },
     });
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
@@ -145,12 +151,9 @@ describe("ChannelCommands.status", () => {
     expect(JSON.parse(String(logSpy.mock.calls[0]?.[0]))).toEqual({
       channels: [{
         id: "weixin",
-        label: "Weixin",
-        pluginId: "nextclaw-channel-extension-weixin",
         enabled: true,
-        outbound: { text: true },
-        auth: { login: true },
         defaultAccountId: "bot-1@im.bot",
+        accounts: [{ id: "bot-1@im.bot", userId: "user-1@im.wechat" }],
       }],
     });
     logSpy.mockRestore();
@@ -180,7 +183,13 @@ describe("ChannelCommands.status", () => {
     ]);
     mocks.resolveChannelConfigViewMock.mockReturnValue({
       channels: {
-        weixin: { enabled: true, defaultAccountId: "bot-1@im.bot" },
+        weixin: {
+          enabled: true,
+          defaultAccountId: "bot-1@im.bot",
+          accounts: {
+            "bot-1@im.bot": { userId: "user-1@im.wechat" },
+          },
+        },
         feishu: { enabled: false },
       },
     });
@@ -197,20 +206,13 @@ describe("ChannelCommands.status", () => {
       channels: [
         {
           id: "feishu",
-          label: "Feishu",
-          pluginId: "nextclaw-channel-extension-feishu",
           enabled: false,
-          outbound: { text: true },
-          auth: { login: false },
         },
         {
           id: "weixin",
-          label: "Weixin",
-          pluginId: "nextclaw-channel-extension-weixin",
           enabled: true,
-          outbound: { text: true },
-          auth: { login: true },
           defaultAccountId: "bot-1@im.bot",
+          accounts: [{ id: "bot-1@im.bot", userId: "user-1@im.wechat" }],
         },
       ],
     });

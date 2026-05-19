@@ -11,16 +11,14 @@ import {
 
 export type ChannelListEntry = {
   id: string;
-  label: string;
-  pluginId: string;
   enabled: boolean;
-  outbound: {
-    text: boolean;
-  };
-  auth: {
-    login: boolean;
-  };
   defaultAccountId?: string;
+  accounts?: ChannelListAccount[];
+};
+
+export type ChannelListAccount = {
+  id: string;
+  userId?: string;
 };
 
 export type ChannelListOutput = {
@@ -29,10 +27,6 @@ export type ChannelListOutput = {
 
 type ChannelListSource = {
   id: string;
-  label: string;
-  pluginId: string;
-  outboundText: boolean;
-  login: boolean;
   resolveDefaultAccountId?: (channelConfig: Record<string, unknown> | undefined) => string | undefined;
 };
 
@@ -48,12 +42,6 @@ function readString(value: unknown): string | undefined {
 }
 
 export class ChannelListViewService {
-  constructor(
-    private readonly params: {
-      channelLabels: Record<string, string>;
-    },
-  ) {}
-
   build = (params: {
     config: Config;
     workspaceDir: string;
@@ -83,11 +71,7 @@ export class ChannelListViewService {
           continue;
         }
         sources.push({
-          pluginId: manifest.id,
           id: channelId,
-          label: readString(channel.name) ?? this.params.channelLabels[channelId] ?? channelId,
-          outboundText: channel.outbound?.text === true,
-          login: Boolean(channel.auth),
         });
       }
     }
@@ -96,29 +80,36 @@ export class ChannelListViewService {
 
   private toPluginChannelSource = (binding: PluginChannelBinding): ChannelListSource => ({
     id: binding.channelId,
-    label: readString(binding.channel.meta?.label) ?? this.params.channelLabels[binding.channelId] ?? binding.channelId,
-    pluginId: binding.pluginId,
-    outboundText: typeof binding.channel.outbound?.sendText === "function",
-    login: typeof binding.channel.auth?.login === "function",
     resolveDefaultAccountId: (channelConfig) => this.resolveDefaultAccountId(binding, channelConfig),
   });
 
   private toChannelListEntry = (source: ChannelListSource, rawChannelConfig: unknown): ChannelListEntry => {
     const channelConfig = readRecord(rawChannelConfig);
     const defaultAccountId = readString(channelConfig?.defaultAccountId) ?? source.resolveDefaultAccountId?.(channelConfig);
+    const accounts = this.resolveAccounts(channelConfig);
     return {
       id: source.id,
-      label: source.label,
-      pluginId: source.pluginId,
       enabled: channelConfig?.enabled === true,
-      outbound: {
-        text: source.outboundText,
-      },
-      auth: {
-        login: source.login,
-      },
-      ...(defaultAccountId ? { defaultAccountId } : {})
+      ...(defaultAccountId ? { defaultAccountId } : {}),
+      ...(accounts.length > 0 ? { accounts } : {})
     };
+  };
+
+  private resolveAccounts = (channelConfig: Record<string, unknown> | undefined): ChannelListAccount[] => {
+    const accounts = readRecord(channelConfig?.accounts);
+    if (!accounts) {
+      return [];
+    }
+    return Object.entries(accounts)
+      .map(([id, rawAccount]) => {
+        const accountConfig = readRecord(rawAccount);
+        const userId = readString(accountConfig?.userId);
+        return {
+          id,
+          ...(userId ? { userId } : {})
+        };
+      })
+      .sort((left, right) => left.id.localeCompare(right.id));
   };
 
   private mergeChannelSources = (
