@@ -27,7 +27,7 @@ export class ExtensionChannelAdapter extends BaseChannel<Record<string, unknown>
   send = async (msg: OutboundMessage): Promise<void> => {
     const outbound = this.registration.channel.outbound;
     if (!outbound) {
-      return;
+      throw new Error(`extension channel '${this.name}' outbound handler is not configured`);
     }
 
     const to = msg.chatId;

@@ -4,7 +4,8 @@ import { BUILTIN_CHANNEL_PLUGIN_IDS, builtinProviderIds } from "@nextclaw/runtim
 import { buildPluginStatusReport, enablePluginInConfig, getPluginChannelBindings } from "@nextclaw/openclaw-compat";
 import { loadPluginRegistry, mergePluginConfigView, toPluginConfigView } from "../plugin/index.js";
 import { resolveChannelConfigView } from "./channel-config-view.js";
-import type { ChannelsAddOptions, ChannelsLoginOptions, RequestRestartParams } from "../../shared/types/cli.types.js";
+import { ChannelListViewService } from "./channel-list-view.service.js";
+import type { ChannelsAddOptions, ChannelsListOptions, ChannelsLoginOptions, RequestRestartParams } from "../../shared/types/cli.types.js";
 
 export { resolveChannelConfigView } from "./channel-config-view.js";
 
@@ -43,6 +44,10 @@ function resolveChannelBindings(pluginRegistry: ReturnType<typeof loadPluginRegi
 }
 
 export class ChannelCommands {
+  private readonly channelListView = new ChannelListViewService({
+    channelLabels: CHANNEL_LABELS,
+  });
+
   constructor(
     private deps: {
       logo: string;
@@ -79,6 +84,25 @@ export class ChannelCommands {
         const channels = plugin.channelIds.join(", ");
         console.log(`- ${channels} (plugin: ${plugin.id})`);
       }
+    }
+  };
+
+  list = (opts: ChannelsListOptions = {}): void => {
+    const output = this.buildChannelListOutput();
+    if (opts.json) {
+      console.log(JSON.stringify(output, null, 2));
+      return;
+    }
+
+    console.log("Channels");
+    for (const channel of output.channels) {
+      const flags = [
+        channel.enabled ? "enabled" : "disabled",
+        channel.outbound.text ? "outbound:text" : undefined,
+        channel.auth.login ? "login" : undefined,
+        channel.defaultAccountId ? `defaultAccountId=${channel.defaultAccountId}` : undefined,
+      ].filter(Boolean);
+      console.log(`- ${channel.id} (${channel.label}) [${flags.join(", ")}] plugin=${channel.pluginId}`);
     }
   };
 
@@ -129,6 +153,17 @@ export class ChannelCommands {
       return null;
     }
     return { binding, bindings };
+  };
+
+  private buildChannelListOutput = () => {
+    const config = loadConfig();
+    const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
+    const pluginRegistry = loadPluginRegistry(config, workspaceDir);
+    return this.channelListView.build({
+      config,
+      workspaceDir,
+      pluginBindings: resolveChannelBindings(pluginRegistry),
+    });
   };
 
   private loginPluginChannel = async (

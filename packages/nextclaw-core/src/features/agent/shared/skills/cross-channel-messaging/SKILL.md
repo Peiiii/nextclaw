@@ -80,9 +80,11 @@ Resolve the target in this order:
    Only when the user clearly means "here", "this chat", or the current conversation.
 3. Existing known session:
    Use `sessions_list` to recover the saved route if the intended target already exists as a routable session.
-4. Authoritative context already exposed to the AI:
-   tool hints, existing session metadata, project docs, or a known local config file path/content.
-5. Ask a narrow follow-up question.
+4. Channel discovery command:
+   If the exact channel id or outbound capability is not already explicit, run `nextclaw channels list --json` and treat its `channels[].id` values as authoritative.
+5. Authoritative context already exposed to the AI:
+   existing session metadata, project docs, or a known local config file path/content.
+6. Ask a narrow follow-up question.
 
 Never guess `channel`, `chatId`, `sessionKey`, or `accountId`.
 
@@ -112,11 +114,11 @@ Treat config as route data, not as delivery proof.
 When this skill is active, prefer route sources in this order:
 
 1. A route the user explicitly typed.
-2. A route already exposed in system prompt/tool hints.
+2. Channel ids and capabilities returned by `nextclaw channels list --json`.
 3. A saved session route that the environment already surfaced.
 4. A local config file only when its path/content is already available in the current environment.
 
-Do not ignore tool hints and then ask the user again for the same route data.
+Do not translate natural language channel names into guessed ids. If the exact id is not already known, discover it with the command first.
 
 ## Multi-Account Channels
 
@@ -136,21 +138,20 @@ When the user asks for Weixin delivery:
 
 - prefer an existing Weixin session if one already exists,
 - otherwise use `message` with explicit route data,
+- run `nextclaw channels list --json` if `weixin` is not already known as an available channel id,
+- use `channel: "weixin"` as the concrete channel id when the command or existing context exposes it; do not write `channel: "wechat"` even when the user says WeChat/微信,
 - include `accountId` when multiple Weixin accounts may exist,
 - do not claim that proactive delivery is guaranteed visible unless the environment already proves that.
 
 ### Weixin Route Lookup Checklist
 
-Before asking the user for a Weixin `user_id`, check whether the environment already exposed any of these hints:
+Before asking the user for a Weixin `user_id`, check whether the environment already exposes:
 
-- `Known Weixin self-notify route: channel='weixin', accountId='...', to='...@im.wechat'`
-- `Known Weixin proactive routes: ...`
-- `Default Weixin accountId is '...'`
+- `nextclaw channels list --json` output with `id: "weixin"` and its `defaultAccountId`,
 - any current session or existing session metadata that already contains a Weixin route
 
 Rules:
 
-- If `Known Weixin self-notify route` is present and there is no conflicting target, use it directly.
 - If exactly one Weixin route is already exposed, do not ask again for `user_id`.
 - If only `accountId` is known but `to/user_id` is still unknown, ask only for the missing Weixin `user_id`.
 - If multiple Weixin routes are exposed, ask the user which one to use instead of guessing.
@@ -202,14 +203,16 @@ If delivery fails because route information is missing or ambiguous:
 - do not silently send back into the current session instead.
 
 If the user asks for "notify me when done" but no target route is actually known, ask where to send it.
+If `message` returns `unknown channel`, run `nextclaw channels list --json`, pick only an exact returned `id`, and retry only when the target route is otherwise unambiguous.
 
 ## Common Failure Patterns To Avoid
 
 - Seeing "Weixin" and then trying unrelated user lookup tools from another channel.
-- Ignoring a known self-notify route that was already injected into context.
+- Writing `channel: "wechat"` instead of discovering and using the exact runtime id.
+- Skipping `nextclaw channels list --json` when the exact channel id is unknown.
 - Asking for both `accountId` and `user_id` when only one of them is actually missing.
 - Falling back to a normal reply in the current chat when the user explicitly requested proactive delivery.
-- Claiming proactive send is impossible before checking tool hints, current session metadata, and known routes.
+- Claiming proactive send is impossible before checking channel discovery output, current session metadata, and known routes.
 
 ## Success Criteria
 

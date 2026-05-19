@@ -155,6 +155,10 @@ export type ChannelsAddOptions = {
   httpUrl?: string;
 };
 
+export type ChannelsListOptions = {
+  json?: boolean;
+};
+
 export type ChannelsLoginOptions = {
   channel?: string;
   account?: string;

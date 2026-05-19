@@ -53,4 +53,39 @@ describe("MessageTool", () => {
     expect(result).toBe("Error: missing required to or chatId when channel differs from current session (ui:web-ui)");
     expect(sendCallback).not.toHaveBeenCalled();
   });
+
+  it("rejects unknown explicit channels before publishing outbound", async () => {
+    const sendCallback = vi.fn().mockResolvedValue(undefined);
+    const tool = new MessageTool(sendCallback, {
+      resolveChannels: () => ["feishu", "weixin"],
+    });
+    tool.setContext("ui", "web-ui");
+
+    expect(tool.validateParams({
+      channel: "wechat",
+      to: "user-1@im.wechat",
+      message: "hello",
+    })).toEqual(["unknown channel \"wechat\"; available channels: feishu, weixin"]);
+
+    const result = await tool.execute({
+      channel: "wechat",
+      to: "user-1@im.wechat",
+      message: "hello",
+    });
+
+    expect(result).toBe("Error: unknown channel \"wechat\"; available channels: feishu, weixin");
+    expect(sendCallback).not.toHaveBeenCalled();
+  });
+
+  it("keeps channel schema as a plain exact-id parameter", () => {
+    const tool = new MessageTool(vi.fn().mockResolvedValue(undefined));
+
+    expect(tool.parameters).toMatchObject({
+      properties: {
+        channel: {
+          description: "Exact channel id",
+        },
+      },
+    });
+  });
 });

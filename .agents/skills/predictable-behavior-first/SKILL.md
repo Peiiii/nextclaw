@@ -24,6 +24,8 @@ Default stance:
 - Prefer explicit dev-only switches over automatic environment sniffing.
 - Prefer fixing release/build/deploy contracts at the source over teaching shipped runtime to recognize incident signatures.
 - Compatibility is not the default for internal refactors. If a new owner or primary path is chosen, migrate callers to it and delete the old path instead of keeping aliases, adapters, proxies, or `asXxx()` bridges for convenience.
+- Do not repair bad upstream intent, prompt, skill, schema, or protocol output by silently normalizing it downstream. Fix the contract that produced the bad value, and make invalid values fail visibly.
+- Do not couple operation workflows into low-level schemas. A schema or tool contract must not become a discovery guide, runtime catalog, or CLI instruction carrier; put discovery in an explicit command/owner and put AI procedure in the relevant skill.
 
 ## When To Use
 
@@ -49,11 +51,15 @@ Trigger this skill when work includes any of these patterns:
    A globally installed CLI must not silently depend on repo-local artifacts unless dev mode is explicit.
 3. Ask the masking question.
    Would this fallback make system behavior less predictable by hiding a packaging, config, release, or runtime bug that should fail loudly?
-4. If yes, remove the fallback or gate it behind an explicit dev-only switch.
+4. Ask the upstream-contract question.
+   Did this bad value come from a prompt/skill/schema/contract/validation gap? If yes, fix that source first and reject the bad value instead of accepting it through an alias or normalization layer.
+5. Ask the coupling question.
+   Am I putting discovery steps, dynamic runtime lists, command usage, or product workflow guidance into a lower-level schema/tool/API that should only express a contract? If yes, move that knowledge to the workflow owner and keep the lower layer strict.
+6. If yes, remove the fallback or gate it behind an explicit dev-only switch.
    If the failure is a protocol mismatch, fix the primary contract from the first request instead of probing one mode and switching after an error.
-5. If compatibility still seems necessary, apply the exception bar from [references/predictable-behavior-policy.md](references/predictable-behavior-policy.md).
-6. When keeping any compatibility path, record its trigger, scope, owner, and removal condition in the change summary.
-7. For internal owner migrations, prefer editing all known callers in the same change. If a temporary bridge is unavoidable, it must have a named deletion point and must not become a second public entry.
+6. If compatibility still seems necessary, apply the exception bar from [references/predictable-behavior-policy.md](references/predictable-behavior-policy.md).
+7. When keeping any compatibility path, record its trigger, scope, owner, and removal condition in the change summary.
+8. For internal owner migrations, prefer editing all known callers in the same change. If a temporary bridge is unavoidable, it must have a named deletion point and must not become a second public entry.
 
 ## Read vs Action Checklist
 
@@ -105,6 +111,8 @@ If the problem is a broken published package, broken installer, broken deploy, o
 - Do not let production/runtime correctness depend on `cwd`.
 - Do not let published artifacts borrow missing resources from source checkouts.
 - Do not add silent fallbacks that turn release defects into environment-specific behavior.
+- Do not add silent aliases or normalization that make an invalid internal contract look valid; update the producer contract, schema, skill, prompt, or validator instead.
+- Do not add dynamic enums, command hints, route catalogs, or workflow instructions to a low-level tool schema unless that schema owner is explicitly responsible for that discovery contract.
 - Do not encode one-off incident knowledge into runtime conditionals just because the current failure is easy to pattern-match.
 - Do not keep dual paths unless the old path has a real, current, externally constrained purpose.
 - Do not keep internal compatibility bridges merely to avoid updating callers.

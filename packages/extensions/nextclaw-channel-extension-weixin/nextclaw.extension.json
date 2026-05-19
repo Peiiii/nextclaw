@@ -13,6 +13,9 @@
         "id": "weixin",
         "name": "Weixin",
         "description": "Weixin QR login + getupdates long-poll channel",
+        "outbound": {
+          "text": true
+        },
         "auth": {
           "type": "request-response"
         },

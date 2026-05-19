@@ -101,6 +101,9 @@ description: Use when implementing or refactoring code in this repository, espec
 - 不用“原样转发整个接口 + 改一个方法”的方式解决局部问题
 - 不用 getter / alias / proxy 冒充删除重复入口。`get oldName() { return this.newName; }` 只有在明确保留兼容 contract 时才允许；重构收敛场景必须继续改调用方或改 contract，让公共入口真的只剩一个。
 - Owner 状态只能由 owner 自己改变。普通函数、helper、service、callback 不得出现 `params.owner.xxx = ...`、`runtime.xxx = ...`、`gateway.xxx = ...` 这类从外部改 owner 字段的写法；它们只能返回结果，或调用 owner 暴露的明确业务方法。若方法只是 setter 包装且没有业务语义，也应继续收回 owner 内部。
+- 生命周期 owner 里如果出现多个 `unsubscribeXxx` / `cleanupXxx` 字段，默认先收敛成 `cleanups` / `disposables` collection 或复用项目已有 disposable owner；`start/stop` 用显式生命周期状态判断，不依赖 cleanup collection 反推状态；`stop/dispose` 才统一 drain。不要用多个平行 nullable 字段表达同一类生命周期清理职责，也不要让 `start` 隐式执行 stop/cleanup 语义。
+- 不要用下游兜底掩盖上游合同失败。若坏输入、错参数、错协议名、错工具参数来自 prompt、skill、schema、contract 或校验缺失，先修上游合同和错误暴露；禁止直接在执行层新增 alias、normalize、fallback、compatibility path 把坏输入悄悄转成好输入，除非存在明确外部兼容合同、可观察提示和删除条件。
+- 不要把流程知识下沉到低层 schema / tool contract。工具 schema 只描述参数形状和最小语义约束；“如何发现参数值”“先运行哪个命令”“当前有哪些运行态资源”等操作流程应归 skill、命令文档、专门 discovery command 或上层 owner。禁止为了引导模型，把动态目录、运行态枚举、CLI 使用步骤或产品流程塞进低层工具 schema。
 - 清晰性本身是重要原则。不要为了机械消灭 `null` / `undefined`、减少一行判断或追求形式统一，把真实状态改成 no-op、假默认值、哨兵对象或更隐晦的间接表达；只有半初始化、职责逃逸或 contract 不确定时才应收敛掉可空状态。
 - 禁止用重命名替代结构修复；如果旧类型和新类型承载同一批字段或同一段装配职责，必须删除重复 contract，让字段回到真正 owner，而不是引入 `XxxHost`、`XxxRuntime`、`XxxGateway`、`XxxOptions`、`XxxProps` 这类换皮中间名
 - 新命名只有在引入了新的语义 owner、生命周期、权限边界、协议转换或持久化责任时才成立；否则默认是结构搬运，必须回退
@@ -198,6 +201,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 导出 `createXxx()` 但函数体只是 `return new Xxx(...)` 或 `=> new Xxx(...)`，没有缓存、依赖注入、环境选择、异步初始化、权限封装等真实语义
 - 新增 `XxxManager` / `XxxOwner`，但核心能力靠上层传 `createXxx` / `resolveXxx` / `getXxx` 完成，自己不持有领域闭环
 - 为了迁移省事长期保留 `asOldXxx()`、旧 manager、旧 registry、旧 getter、旧入口和新入口并存
+- 上游合同错了却在下游加 alias / normalize / fallback，让错误输入继续显示成功
 - 为了一个 UI 状态让 runtime、shell、server、router、controller 多层新增同名参数
 - 为了一个新领域词发明一个新目录或新角色
 - 用 `utils`、`helpers`、`common` 掩盖真实业务职责

@@ -1,12 +1,19 @@
 import type { OutboundMessage } from "@core/features/bus/index.js";
 import { Tool } from "./base.tools.js";
 
+type MessageToolOptions = {
+  resolveChannels?: () => readonly string[];
+};
+
 export class MessageTool extends Tool {
   private channel = "cli";
   private chatId = "direct";
   private accountId?: string;
 
-  constructor(private sendCallback: (msg: OutboundMessage) => Promise<void>) {
+  constructor(
+    private sendCallback: (msg: OutboundMessage) => Promise<void>,
+    private readonly options: MessageToolOptions = {},
+  ) {
     super();
   }
 
@@ -25,7 +32,10 @@ export class MessageTool extends Tool {
         action: { type: "string", enum: ["send"], description: "Action to perform" },
         content: { type: "string", description: "Message to send" },
         message: { type: "string", description: "Alias for content" },
-        channel: { type: "string", description: "Channel name" },
+        channel: {
+          type: "string",
+          description: "Exact channel id",
+        },
         chatId: { type: "string", description: "Chat ID" },
         to: { type: "string", description: "Alias for chatId" },
         accountId: { type: "string", description: "Account ID for multi-account channels" },
@@ -51,6 +61,10 @@ export class MessageTool extends Tool {
     const explicitChannel = this.readTrimmedString(params.channel);
     const explicitChatId = this.readTrimmedString(params.chatId);
     const explicitTo = this.readTrimmedString(params.to);
+    const channelIssue = this.validateExplicitChannel(explicitChannel);
+    if (channelIssue) {
+      issues.push(channelIssue);
+    }
     if (explicitChannel && explicitChannel.toLowerCase() !== this.channel.toLowerCase() && !explicitChatId && !explicitTo) {
       issues.push(`missing required to or chatId when channel differs from current session (${this.channel}:${this.chatId})`);
     }
@@ -100,6 +114,22 @@ export class MessageTool extends Tool {
   }
 
   private readTrimmedString = (value: unknown): string => typeof value === "string" ? value.trim() : "";
+
+  private resolveKnownChannels = (): string[] => {
+    const channels = this.options.resolveChannels?.() ?? [];
+    return [...new Set(channels.map((channel) => channel.trim()).filter(Boolean))].sort();
+  };
+
+  private validateExplicitChannel = (channel: string): string | null => {
+    if (!channel) {
+      return null;
+    }
+    const knownChannels = this.resolveKnownChannels();
+    if (knownChannels.length === 0 || knownChannels.includes(channel)) {
+      return null;
+    }
+    return `unknown channel "${channel}"; available channels: ${knownChannels.join(", ")}`;
+  };
 
   private resolveContent = (params: Record<string, unknown>): string | null => {
     if (typeof params.content === "string" && params.content.trim().length > 0) {

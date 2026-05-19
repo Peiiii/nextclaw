@@ -72,6 +72,9 @@ function writeExtensionManifest(root: string): string {
         name: "Fake Channel",
         description: "Fake channel",
         auth: true,
+        outbound: {
+          text: true,
+        },
         configSchema: { type: "object" },
         configUiHints: {
           enabled: { label: "Enabled" },
@@ -248,5 +251,44 @@ describe("ServiceExtensionRuntime", () => {
       channel: "fake-channel",
       sessionId: "session-1",
     }));
+
+    const sendPromise = binding?.channel.outbound?.sendText?.({
+      cfg: {} as never,
+      to: "conversation-1",
+      text: "hello",
+      accountId: "account-1",
+    });
+    const sendEvent = (gateway.appEventBus.emitEnvelope as ReturnType<typeof vi.fn>).mock.calls[1]?.[0];
+    const sendRequestId = sendEvent?.payload?.requestId;
+
+    expect(sendEvent).toEqual(expect.objectContaining({
+      type: "extension.request",
+      payload: expect.objectContaining({
+        extensionId: "fake-extension",
+        kind: "channel.outbound.sendText",
+        payload: {
+          channelId: "fake-channel",
+          to: "conversation-1",
+          text: "hello",
+          accountId: "account-1",
+        },
+      }),
+    }));
+
+    await ingress.handle({
+      type: "extension.response",
+      payload: {
+        requestId: sendRequestId,
+        ok: true,
+        data: {
+          accepted: true,
+        },
+      },
+    }, {
+      source: "test",
+      token: runtime.token,
+    });
+
+    await expect(sendPromise).resolves.toEqual({ accepted: true });
   });
 });

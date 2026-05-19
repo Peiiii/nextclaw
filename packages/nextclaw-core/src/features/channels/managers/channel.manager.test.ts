@@ -106,6 +106,67 @@ describe("ChannelManager", () => {
     expect(channel.isRunning).toBe(false);
   });
 
+  it("routes generic extension outbound text handlers", async () => {
+    const { manager } = createManager();
+    const sent: Array<{ cfg: Config; to: string; text: string; accountId?: string | null }> = [];
+    manager.load({
+      channelConfig: {} as Config,
+      extensionChannels: [{
+        extensionId: "extension-test",
+        source: "test",
+        channel: {
+          id: "test",
+          outbound: {
+            sendText: (message) => {
+              sent.push(message);
+            },
+          },
+        },
+      }],
+    });
+
+    await manager.start();
+    await manager.deliver({
+      channel: "test",
+      chatId: "chat-1",
+      content: "hello",
+      media: [],
+      metadata: { accountId: "account-1" },
+    });
+
+    expect(sent).toEqual([{
+      cfg: {},
+      to: "chat-1",
+      text: "hello",
+      accountId: "account-1",
+    }]);
+    await manager.stop();
+  });
+
+  it("fails explicitly when a generic extension channel has no outbound handler", async () => {
+    const { manager } = createManager();
+    manager.load({
+      channelConfig: {} as Config,
+      extensionChannels: [{
+        extensionId: "extension-test",
+        source: "test",
+        channel: {
+          id: "test",
+        },
+      }],
+    });
+
+    await manager.start();
+    await expect(manager.deliver({
+      channel: "test",
+      chatId: "chat-1",
+      content: "hello",
+      media: [],
+      metadata: {},
+    })).rejects.toThrow("extension channel 'test' outbound handler is not configured");
+    await manager.stop();
+  });
+
   it("reloads channel state in place and restarts only when requested", async () => {
     const { bus, manager } = createManager();
     const first = new TestChannel("first", bus);

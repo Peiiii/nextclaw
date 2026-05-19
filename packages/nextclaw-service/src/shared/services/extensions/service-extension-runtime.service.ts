@@ -46,10 +46,11 @@ type ChannelSubmittedMessagePayload = {
   metadata?: unknown;
 };
 
-type ExtensionChannelAuthKind =
+type ExtensionChannelRequestKind =
   | "channel.auth.login"
   | "channel.auth.start"
-  | "channel.auth.poll";
+  | "channel.auth.poll"
+  | "channel.outbound.sendText";
 
 type ExtensionRuntimeContributions = {
   channelBindings: PluginChannelBinding[];
@@ -63,14 +64,15 @@ type PendingExtensionRequest = {
 };
 
 type PluginChannelAuth = NonNullable<PluginChannelBinding["channel"]["auth"]>;
+type PluginChannelOutbound = NonNullable<PluginChannelBinding["channel"]["outbound"]>;
 
 type ExtensionRequestSender = <T>(params: {
   extensionId: string;
-  kind: ExtensionChannelAuthKind;
+  kind: ExtensionChannelRequestKind;
   payload: Record<string, unknown>;
 }) => Promise<T>;
 
-class ExtensionChannelAuthClient implements PluginChannelAuth {
+class ExtensionChannelClient implements PluginChannelAuth, PluginChannelOutbound {
   constructor(
     private readonly params: {
       extensionId: string;
@@ -110,6 +112,18 @@ class ExtensionChannelAuthClient implements PluginChannelAuth {
       payload: {
         channelId: this.params.channelId,
         sessionId,
+      },
+    });
+
+  readonly sendText: PluginChannelOutbound["sendText"] = async ({ to, text, accountId }) =>
+    await this.params.request({
+      extensionId: this.params.extensionId,
+      kind: "channel.outbound.sendText",
+      payload: {
+        channelId: this.params.channelId,
+        to,
+        text,
+        accountId,
       },
     });
 }
@@ -431,6 +445,7 @@ export class ServiceExtensionRuntime {
               },
             } : {}),
             ...(channel.auth ? { auth: this.createChannelAuth(manifest.id, channelId) } : {}),
+            ...(channel.outbound?.text ? { outbound: this.createChannelOutbound(manifest.id, channelId) } : {}),
           },
         });
         uiMetadata.push({
@@ -456,7 +471,17 @@ export class ServiceExtensionRuntime {
     extensionId: string,
     channelId: string,
   ): PluginChannelAuth =>
-    new ExtensionChannelAuthClient({
+    new ExtensionChannelClient({
+      extensionId,
+      channelId,
+      request: this.requestExtension,
+    });
+
+  private readonly createChannelOutbound = (
+    extensionId: string,
+    channelId: string,
+  ): PluginChannelOutbound =>
+    new ExtensionChannelClient({
       extensionId,
       channelId,
       request: this.requestExtension,
@@ -464,7 +489,7 @@ export class ServiceExtensionRuntime {
 
   private readonly requestExtension = async <T>(params: {
     extensionId: string;
-    kind: ExtensionChannelAuthKind;
+    kind: ExtensionChannelRequestKind;
     payload: Record<string, unknown>;
   }): Promise<T> => {
     const requestId = randomUUID();

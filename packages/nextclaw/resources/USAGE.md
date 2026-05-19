@@ -505,6 +505,7 @@ Skill loading contract:
 | `nextclaw plugins enable <id>` | Enable plugin in config |
 | `nextclaw plugins disable <id>` | Disable plugin in config |
 | `nextclaw plugins doctor` | Diagnose plugin loading issues |
+| `nextclaw channels list --json` | List plugin channels for automation and agent channel discovery |
 | `nextclaw channels status` | Show enabled channels and status |
 | `nextclaw doctor` | Run runtime diagnostics (`--json`, `--verbose`, `--fix`) |
 | `nextclaw channels login` | Open QR login for supported channels |
@@ -708,6 +709,8 @@ All message channels use a common **allowFrom** rule:
 - **Non-empty `allowFrom`**: only messages from the listed user IDs are accepted.
 
 Configure channels in the UI at http://127.0.0.1:55667 or in `~/.nextclaw/config.json` under `channels`.
+
+Use `nextclaw channels list --json` when an automation or AI agent needs the exact runtime channel ids and outbound capabilities before calling messaging tools. Treat returned `channels[].id` values as authoritative; do not guess aliases such as `wechat` for the Weixin channel.
 
 ### Discord
 

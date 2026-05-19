@@ -7,9 +7,8 @@ import type {
 } from "../types/weixin-extension.types.js";
 
 export class WeixinExtensionRuntime {
-  private unsubscribeConfig: (() => void) | null = null;
-  private unsubscribeMessages: (() => void) | null = null;
-  private unsubscribeNcpEvents: (() => void) | null = null;
+  private readonly cleanups: Array<() => void> = [];
+  private started = false;
 
   constructor(
     private readonly channel: ExtensionChannel,
@@ -17,22 +16,34 @@ export class WeixinExtensionRuntime {
   ) {}
 
   readonly start = async (): Promise<void> => {
-    this.unsubscribeMessages = this.adapter.onMessage(this.submitMessage);
-    this.unsubscribeNcpEvents = this.channel.onNcpEvent(this.sendNcpEvent);
-    this.unsubscribeConfig = this.channel.config.onChange(async () => {
+    if (this.started) {
+      return;
+    }
+    this.started = true;
+    this.cleanups.push(this.adapter.onMessage(this.submitMessage));
+    this.cleanups.push(this.channel.onNcpEvent(this.sendNcpEvent));
+    this.cleanups.push(this.channel.config.onChange(async () => {
       await this.applyConfig();
-    });
+    }));
     await this.applyConfig();
   };
 
   readonly stop = async (): Promise<void> => {
-    this.unsubscribeConfig?.();
-    this.unsubscribeMessages?.();
-    this.unsubscribeNcpEvents?.();
-    this.unsubscribeConfig = null;
-    this.unsubscribeMessages = null;
-    this.unsubscribeNcpEvents = null;
+    if (!this.started) {
+      return;
+    }
+    this.started = false;
+    this.drainCleanups();
     await this.adapter.stop();
+  };
+
+  readonly sendOutboundText = async (params: {
+    to: string;
+    text: string;
+    accountId?: string | null;
+  }): Promise<{ accepted: true }> => {
+    await this.adapter.sendOutboundText(params);
+    return { accepted: true };
   };
 
   private readonly applyConfig = async (): Promise<void> => {
@@ -68,6 +79,12 @@ export class WeixinExtensionRuntime {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.warn(`[weixin] failed to send NCP event: ${message}`);
+    }
+  };
+
+  private readonly drainCleanups = (): void => {
+    for (const cleanup of this.cleanups.splice(0).reverse()) {
+      cleanup();
     }
   };
 }

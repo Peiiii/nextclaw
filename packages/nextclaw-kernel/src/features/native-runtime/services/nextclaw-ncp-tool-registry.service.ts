@@ -278,7 +278,10 @@ export class NextclawNcpToolRegistry implements NcpToolRegistry {
   private registerMessagingTools = (context: Pick<PreparedRunContext, "channel" | "chatId" | "metadata">): void => {
     const { channel, chatId, metadata } = context;
     const accountId = readMetadataAccountId(metadata, {});
-    const messageTool = new MessageTool((message) => this.options.bus.publishOutbound(message));
+    const messageTool = new MessageTool(
+      (message) => this.options.bus.publishOutbound(message),
+      { resolveChannels: this.resolveMessageChannels },
+    );
     messageTool.setContext(channel, chatId, accountId ?? null);
     this.registerTool(messageTool);
     if (this.options.cronService) {
@@ -286,6 +289,12 @@ export class NextclawNcpToolRegistry implements NcpToolRegistry {
       cronTool.setContext(channel, chatId, accountId ?? null);
       this.registerTool(cronTool);
     }
+  };
+
+  private resolveMessageChannels = (): string[] => {
+    const extensionRegistry = this.options.getExtensionRegistry?.();
+    const channels = extensionRegistry?.channels ?? [];
+    return [...new Set(channels.map((registration) => registration.channel.id.trim()).filter(Boolean))].sort();
   };
 
   private registerExtensionTools = (context: PreparedRunContext): void => {

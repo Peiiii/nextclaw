@@ -41,4 +41,9 @@ export type WeixinChannelAdapter = {
   stop: () => Promise<void>;
   onMessage: (handler: (message: WeixinInboundMessage) => void | Promise<void>) => () => void;
   sendNcpEvent: (event: NcpEndpointEvent) => Promise<void>;
+  sendOutboundText: (params: {
+    to: string;
+    text: string;
+    accountId?: string | null;
+  }) => Promise<void>;
 };

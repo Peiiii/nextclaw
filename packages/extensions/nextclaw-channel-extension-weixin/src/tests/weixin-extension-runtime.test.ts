@@ -67,6 +67,7 @@ describe("WeixinExtensionRuntime", () => {
       stop: vi.fn(async () => undefined),
       onMessage: vi.fn(() => vi.fn()),
       sendNcpEvent: vi.fn(async () => undefined),
+      sendOutboundText: vi.fn(async () => undefined),
     };
     const runtime = new WeixinExtensionRuntime(channel, adapter);
 
@@ -90,6 +91,70 @@ describe("WeixinExtensionRuntime", () => {
     });
   });
 
+  it("forwards outbound text requests to the adapter", async () => {
+    const channel = createChannel({ enabled: true });
+    const adapter = {
+      configure: vi.fn(async () => undefined),
+      start: vi.fn(async () => undefined),
+      stop: vi.fn(async () => undefined),
+      onMessage: vi.fn(() => vi.fn()),
+      sendNcpEvent: vi.fn(async () => undefined),
+      sendOutboundText: vi.fn(async () => undefined),
+    };
+    const runtime = new WeixinExtensionRuntime(channel, adapter);
+
+    await runtime.start();
+    await expect(runtime.sendOutboundText({
+      to: "user-1@im.wechat",
+      text: "hello",
+      accountId: "bot-1@im.bot",
+    })).resolves.toEqual({ accepted: true });
+
+    expect(adapter.sendOutboundText).toHaveBeenCalledWith({
+      to: "user-1@im.wechat",
+      text: "hello",
+      accountId: "bot-1@im.bot",
+    });
+  });
+});
+
+describe("WeixinExtensionRuntime subscriptions", () => {
+  it("keeps start idempotent and drains subscription cleanups on stop", async () => {
+    const cleanups = [vi.fn(), vi.fn(), vi.fn()];
+    let cleanupIndex = 0;
+    const nextCleanup = () => cleanups[cleanupIndex++] ?? vi.fn();
+    const channel = {
+      ...createChannel({ enabled: true }),
+      onNcpEvent: vi.fn(nextCleanup),
+      config: {
+        get: vi.fn(async () => ({ enabled: true })),
+        onChange: vi.fn(nextCleanup),
+      },
+    } satisfies ExtensionChannel;
+    const adapter = {
+      configure: vi.fn(async () => undefined),
+      start: vi.fn(async () => undefined),
+      stop: vi.fn(async () => undefined),
+      onMessage: vi.fn(nextCleanup),
+      sendNcpEvent: vi.fn(async () => undefined),
+      sendOutboundText: vi.fn(async () => undefined),
+    };
+    const runtime = new WeixinExtensionRuntime(channel, adapter);
+
+    await runtime.start();
+    await runtime.start();
+    await runtime.stop();
+
+    for (const cleanup of cleanups) {
+      expect(cleanup).toHaveBeenCalledTimes(1);
+    }
+    expect(adapter.onMessage).toHaveBeenCalledTimes(1);
+    expect(channel.onNcpEvent).toHaveBeenCalledTimes(1);
+    expect(channel.config.onChange).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("WeixinExtensionRuntime error handling", () => {
   it("keeps the extension runtime alive when Weixin send fails", async () => {
     let ncpHandler: ((event: unknown) => void | Promise<void>) | null = null;
     const channel = {
@@ -108,6 +173,7 @@ describe("WeixinExtensionRuntime", () => {
       sendNcpEvent: vi.fn(async () => {
         throw new Error("weixin sendmessage failed: ret=-3");
       }),
+      sendOutboundText: vi.fn(async () => undefined),
     };
     const runtime = new WeixinExtensionRuntime(channel, adapter);
 
@@ -205,6 +271,34 @@ describe("WeixinExtensionRuntime Weixin adapter flow", () => {
     await runtime.stop();
   });
 
+  it("sends outbound message tool text through Weixin API", async () => {
+    const channel = createChannel({ enabled: true, defaultAccountId: "bot-1@im.bot" });
+    const api = createIdleApi();
+    const adapter = new WeixinChannelAdapter({
+      api,
+      store: createMemoryStore(),
+    });
+    const runtime = new WeixinExtensionRuntime(channel, adapter);
+
+    await runtime.start();
+    await runtime.sendOutboundText({
+      to: "user-1@im.wechat",
+      text: "hello from message tool",
+      accountId: "bot-1@im.bot",
+    });
+
+    expect(api.sendTextMessage).toHaveBeenCalledWith({
+      baseUrl: "https://ilinkai.weixin.qq.com",
+      token: "token-1",
+      toUserId: "user-1@im.wechat",
+      text: "hello from message tool",
+      contextToken: undefined,
+    });
+    await runtime.stop();
+  });
+});
+
+describe("WeixinExtensionRuntime Weixin route normalization", () => {
   it("preserves configured Weixin conversation id casing when session ids are normalized", async () => {
     const channel = createChannel({
       enabled: true,

@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { readdirSync, readFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
@@ -24,6 +25,9 @@ export type ExtensionManifest = {
       configSchema?: Record<string, unknown>;
       configUiHints?: Record<string, Record<string, unknown>>;
       auth?: boolean | Record<string, unknown>;
+      outbound?: {
+        text?: boolean;
+      };
     }>;
   };
 };
@@ -131,6 +135,14 @@ export class ExtensionManifestDiscoveryService {
     return manifests;
   };
 
+  readonly discoverSync = (roots: string[]): ExtensionManifest[] => {
+    const manifests: ExtensionManifest[] = [];
+    for (const root of roots) {
+      manifests.push(...this.discoverRootSync(root));
+    }
+    return manifests;
+  };
+
   private readonly discoverRoot = async (root: string): Promise<ExtensionManifest[]> => {
     const directManifest = await this.readManifestIfExists(join(root, EXTENSION_MANIFEST_FILE));
     if (directManifest) {
@@ -146,6 +158,18 @@ export class ExtensionManifestDiscoveryService {
     return manifests.filter((manifest): manifest is ExtensionManifest => Boolean(manifest));
   };
 
+  private readonly discoverRootSync = (root: string): ExtensionManifest[] => {
+    const directManifest = this.readManifestIfExistsSync(join(root, EXTENSION_MANIFEST_FILE));
+    if (directManifest) {
+      return [directManifest];
+    }
+
+    const entries = this.readDirectoriesSync(root);
+    return entries
+      .map((entry) => this.readManifestIfExistsSync(join(root, entry, EXTENSION_MANIFEST_FILE)))
+      .filter((manifest): manifest is ExtensionManifest => Boolean(manifest));
+  };
+
   private readonly readManifestIfExists = async (path: string): Promise<ExtensionManifest | null> => {
     try {
       return toManifest(JSON.parse(await readFile(path, "utf-8")), dirname(path));
@@ -154,6 +178,27 @@ export class ExtensionManifestDiscoveryService {
         return null;
       }
       throw error;
+    }
+  };
+
+  private readonly readManifestIfExistsSync = (path: string): ExtensionManifest | null => {
+    try {
+      return toManifest(JSON.parse(readFileSync(path, "utf-8")), dirname(path));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return null;
+      }
+      throw error;
+    }
+  };
+
+  private readonly readDirectoriesSync = (root: string): string[] => {
+    try {
+      return readdirSync(root, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name);
+    } catch {
+      return [];
     }
   };
 }

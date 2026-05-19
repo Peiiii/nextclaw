@@ -251,6 +251,25 @@ export class WeixinChannelAdapter {
     });
   };
 
+  readonly sendOutboundText = async (params: {
+    to: string;
+    text: string;
+    accountId?: string | null;
+  }): Promise<void> => {
+    const { accountId, text, to } = params;
+    const target: ChatTarget = {
+      conversationId: to,
+      ...(accountId ? { accountId } : {}),
+    };
+    const account = this.resolveSendAccount(target);
+    await this.sendText({
+      account,
+      conversationId: target.conversationId,
+      text,
+      contextToken: this.resolveContextToken(target, account.accountId),
+    });
+  };
+
   private readonly resolveReplySession = (
     sessionId: string,
     route: WeixinCanonicalRoute,

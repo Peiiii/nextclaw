@@ -316,6 +316,12 @@ channels
   .action((opts) => runtime.commands.channels.add(opts));
 
 channels
+  .command("list")
+  .description("List configured plugin channels")
+  .option("--json", "Output JSON", false)
+  .action((opts) => runtime.commands.channels.list(opts));
+
+channels
   .command("status")
   .description("Show channel status")
   .action(() => runtime.commands.channels.status());
