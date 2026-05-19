@@ -2,7 +2,8 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$InstallerPath,
   [int]$StartupTimeoutSec = 90,
-  [int]$MaxReadySec = 20
+  [int]$MaxReadySec = 20,
+  [switch]$SeedStaleSameVersionBundle
 )
 
 $ErrorActionPreference = "Stop"
@@ -100,7 +101,18 @@ try {
   $installDir = Split-Path -Parent $installedExePath
   Write-Host "[desktop-installer-smoke] installed exe: $installedExePath"
 
-  & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $installedExePath -StartupTimeoutSec $StartupTimeoutSec -MaxReadySec $MaxReadySec
+  $desktopSmokeArgs = @(
+    "-DesktopExePath",
+    $installedExePath,
+    "-StartupTimeoutSec",
+    $StartupTimeoutSec,
+    "-MaxReadySec",
+    $MaxReadySec
+  )
+  if ($SeedStaleSameVersionBundle.IsPresent) {
+    $desktopSmokeArgs += "-SeedStaleSameVersionBundle"
+  }
+  & "apps/desktop/scripts/smoke-windows-desktop.ps1" @desktopSmokeArgs
 } finally {
   Stop-DesktopProcesses
   Remove-InstallDirectoryBestEffort -InstallDir $installDir

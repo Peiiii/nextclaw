@@ -162,7 +162,7 @@ jobs:
             throw "Windows desktop executable not found in apps/desktop/release/win-unpacked"
           }
           $desktopExe = (Resolve-Path "apps/desktop/release/win-unpacked/NextClaw Desktop.exe").Path
-          & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $desktopExe -StartupTimeoutSec 180 -MaxReadySec 20
+          & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $desktopExe -StartupTimeoutSec 180 -MaxReadySec 20 -SeedStaleSameVersionBundle
 
       - name: Smoke Desktop (Linux AppImage)
         if: matrix.platform == 'linux'
@@ -317,7 +317,7 @@ jobs:
           if ($null -eq $installerPath) {
             throw "Windows desktop installer not found in apps/desktop/release"
           }
-          & "apps/desktop/scripts/smoke-windows-installer.ps1" -InstallerPath $installerPath.FullName -StartupTimeoutSec 180 -MaxReadySec 20
+          & "apps/desktop/scripts/smoke-windows-installer.ps1" -InstallerPath $installerPath.FullName -StartupTimeoutSec 180 -MaxReadySec 20 -SeedStaleSameVersionBundle
 
       - name: Stage Smoke Logs (Windows)
         if: matrix.platform == 'win32' && always()

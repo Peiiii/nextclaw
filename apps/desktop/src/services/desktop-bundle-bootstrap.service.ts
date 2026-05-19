@@ -31,12 +31,10 @@ type DesktopBundleBootstrapServiceOptions = {
 
 type PackagedSeedInstallPlan = {
   seedVersion: string;
-  seedMetadata: PackagedSeedBundleMetadata | null;
-  seedSha256: string | null;
+  seedSha256: string;
   launcherBuildFingerprint: string | null;
-  shouldRetryQuarantinedSeed: boolean;
+  shouldReplaceExistingVersion: boolean;
   shouldInstallSeed: boolean;
-  samePackagedSeedAttempt: boolean;
 };
 
 export class DesktopBundleBootstrapService {
@@ -142,15 +140,14 @@ export class DesktopBundleBootstrapService {
       if (!installPlan.shouldInstallSeed) {
         return false;
       }
-      if (installPlan.shouldRetryQuarantinedSeed) {
+      if (installPlan.shouldReplaceExistingVersion) {
         await this.createBundleService().removeVersion(installPlan.seedVersion);
       }
       const stagedSeedBundle = await updateService.stageLocalArchive(seedBundlePath);
-      const seedSha256 = await this.resolvePackagedSeedSha256(installPlan, seedBundlePath);
       await this.createLauncherStateStore().update((currentState) => ({
         ...currentState,
         lastAttemptedPackagedSeedVersion: installPlan.seedVersion,
-        lastAttemptedPackagedSeedSha256: seedSha256,
+        lastAttemptedPackagedSeedSha256: installPlan.seedSha256,
         lastAttemptedPackagedSeedLauncherFingerprint: installPlan.launcherBuildFingerprint
       }));
       this.options.logger.info(`Prepared packaged seed bundle ${stagedSeedBundle.activatedVersion} for desktop startup.`);
@@ -202,45 +199,36 @@ export class DesktopBundleBootstrapService {
     const seedMetadata = this.options.seedBundleMetadata ?? null;
     const launcherBuildFingerprint = this.options.launcherBuildFingerprint?.trim() || null;
     const seedVersion = seedMetadata?.version ?? (await updateService.readLocalArchiveBundleVersion(seedBundlePath));
+    const seedSha256 = seedMetadata?.sha256 ?? (await this.readBundleArchiveSha256(seedBundlePath));
     const currentVersion = state.currentVersion;
     const quarantined = state.badVersions.includes(seedVersion);
     const shouldUpgrade = !currentVersion || compareDesktopVersions(seedVersion, currentVersion) > 0;
-    const samePackagedSeedAttempt = await this.isSamePackagedSeedAttempt(state, seedVersion, seedMetadata, seedBundlePath);
-    const shouldRetryQuarantinedSeed = quarantined && !samePackagedSeedAttempt;
+    const samePackagedSeedInstall = this.isSamePackagedSeedInstall(state, seedVersion, seedSha256);
+    const shouldRetryQuarantinedSeed = quarantined && !samePackagedSeedInstall;
+    const shouldReplaceSameVersionSeed = currentVersion === seedVersion && !samePackagedSeedInstall;
     return {
       seedVersion,
-      seedMetadata,
-      seedSha256: samePackagedSeedAttempt ? seedMetadata?.sha256 ?? state.lastAttemptedPackagedSeedSha256 : seedMetadata?.sha256 ?? null,
+      seedSha256,
       launcherBuildFingerprint,
-      shouldRetryQuarantinedSeed,
-      shouldInstallSeed: (!quarantined && shouldUpgrade) || shouldRetryQuarantinedSeed,
-      samePackagedSeedAttempt
+      shouldReplaceExistingVersion: shouldRetryQuarantinedSeed || shouldReplaceSameVersionSeed,
+      shouldInstallSeed: (!quarantined && (shouldUpgrade || shouldReplaceSameVersionSeed)) || shouldRetryQuarantinedSeed
     };
   };
 
-  private isSamePackagedSeedAttempt = async (
+  private isSamePackagedSeedInstall = (
     state: DesktopLauncherState,
     seedVersion: string,
-    seedMetadata: PackagedSeedBundleMetadata | null,
-    seedBundlePath: string
-  ): Promise<boolean> => {
-    if (!state.badVersions.includes(seedVersion) || state.lastAttemptedPackagedSeedVersion !== seedVersion) {
-      return false;
-    }
-    const seedSha256 = seedMetadata?.sha256 ?? (await this.readBundleArchiveSha256(seedBundlePath));
+    seedSha256: string
+  ): boolean => {
+    if (state.lastAttemptedPackagedSeedVersion !== seedVersion) return false;
     if (state.lastAttemptedPackagedSeedSha256 !== seedSha256) {
       return false;
     }
     const launcherBuildFingerprint = this.options.launcherBuildFingerprint?.trim() || null;
-    return Boolean(launcherBuildFingerprint)
-      && state.lastAttemptedPackagedSeedLauncherFingerprint === launcherBuildFingerprint;
-  };
-
-  private resolvePackagedSeedSha256 = async (
-    installPlan: PackagedSeedInstallPlan,
-    seedBundlePath: string
-  ): Promise<string> => {
-    return installPlan.seedSha256 ?? installPlan.seedMetadata?.sha256 ?? (await this.readBundleArchiveSha256(seedBundlePath));
+    if (!launcherBuildFingerprint) {
+      return !state.lastAttemptedPackagedSeedLauncherFingerprint;
+    }
+    return state.lastAttemptedPackagedSeedLauncherFingerprint === launcherBuildFingerprint;
   };
 
   private readBundleArchiveSha256 = async (archivePath: string): Promise<string> => {

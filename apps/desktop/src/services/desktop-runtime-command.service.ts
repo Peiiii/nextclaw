@@ -9,10 +9,9 @@ export class DesktopRuntimeCommandService {
 
   resolve = async (bundleBootstrap: DesktopBundleBootstrapService): Promise<RuntimeCommand> => {
     const resolver = this.createResolver();
-    try {
+    const envScript = process.env.NEXTCLAW_DESKTOP_RUNTIME_SCRIPT?.trim();
+    if (envScript) {
       return resolver.resolveCommand();
-    } catch (error) {
-      this.logger.warn(`Runtime command not available before seed install: ${String(error)}`);
     }
 
     await bundleBootstrap.ensureInitialBundleAvailability();

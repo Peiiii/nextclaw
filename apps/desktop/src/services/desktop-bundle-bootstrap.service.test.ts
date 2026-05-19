@@ -171,6 +171,37 @@ test("replaces an existing same-version bundle when retrying a quarantined packa
     assert.equal(stateStore.read().lastAttemptedPackagedSeedSha256, sha256);
   }));
 
+test("replaces an existing same-version bundle when the packaged seed fingerprint changed", async () =>
+  await withTempDir("nextclaw-desktop-packaged-seed-replace-same-version-", async (rootDir) => {
+    const layout = new DesktopBundleLayoutStore(rootDir);
+    await layout.ensureLauncherDirs();
+    const existingBundleDir = writeBundleFixture({
+      rootDir: layout.getVersionsDir(),
+      version: "0.19.10"
+    });
+    await writeFile(join(existingBundleDir, "runtime", "old-runtime-marker.txt"), "old\n");
+    await layout.writeCurrentPointer({ version: "0.19.10" });
+    const { archivePath, sha256 } = await writeSeedArchive(rootDir, "0.19.10", "replacement");
+    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+    await stateStore.write(
+      createLauncherState({
+        currentVersion: "0.19.10",
+        lastKnownGoodVersion: "0.19.10",
+        lastAttemptedPackagedSeedVersion: "0.19.10",
+        lastAttemptedPackagedSeedSha256: "old-sha256",
+        lastAttemptedPackagedSeedLauncherFingerprint: "launcher-a"
+      })
+    );
+
+    await createBootstrapService(layout, archivePath).ensureInitialBundleAvailability();
+
+    assert.deepEqual(layout.readCurrentPointer(), { version: "0.19.10" });
+    assert.equal(existsSync(join(layout.getVersionDir("0.19.10"), "runtime", "old-runtime-marker.txt")), false);
+    assert.equal(stateStore.read().currentVersion, "0.19.10");
+    assert.equal(stateStore.read().candidateVersion, "0.19.10");
+    assert.equal(stateStore.read().lastAttemptedPackagedSeedSha256, sha256);
+  }));
+
 test("replaces incompatible same-version active bundle before desktop boot", async () =>
   await withTempDir("nextclaw-desktop-packaged-seed-replace-incompatible-active-", async (rootDir) => {
     const layout = new DesktopBundleLayoutStore(rootDir);

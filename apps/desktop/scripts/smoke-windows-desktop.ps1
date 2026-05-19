@@ -2,7 +2,8 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$DesktopExePath,
   [int]$StartupTimeoutSec = 90,
-  [int]$MaxReadySec = 20
+  [int]$MaxReadySec = 20,
+  [switch]$SeedStaleSameVersionBundle
 )
 
 $ErrorActionPreference = "Stop"
@@ -158,6 +159,101 @@ function Invoke-DesktopApiProbe {
   return $allPassed
 }
 
+function Resolve-PackagedUpdateResourcesDir {
+  param([string]$DesktopExePath)
+
+  $resourcesDir = Join-Path (Split-Path -Parent $DesktopExePath) "resources\update"
+  if (Test-Path $resourcesDir) {
+    return $resourcesDir
+  }
+  return ""
+}
+
+function Resolve-SmokeRuntimeArch {
+  if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") {
+    return "arm64"
+  }
+  return "x64"
+}
+
+function Seed-StaleSameVersionBundleState {
+  param(
+    [string]$DesktopExePath,
+    [string]$SmokeHome
+  )
+
+  $updateResourcesDir = Resolve-PackagedUpdateResourcesDir -DesktopExePath $DesktopExePath
+  if ([string]::IsNullOrWhiteSpace($updateResourcesDir)) {
+    throw "Packaged update resources not found next to desktop executable: $DesktopExePath"
+  }
+  $metadataPath = Join-Path $updateResourcesDir "update-release-metadata.json"
+  if (-not (Test-Path $metadataPath)) {
+    throw "Packaged update release metadata not found: $metadataPath"
+  }
+  $metadata = Get-Content -Raw -Path $metadataPath | ConvertFrom-Json
+  $seedVersion = [string]$metadata.seedBundle.version
+  if ([string]::IsNullOrWhiteSpace($seedVersion)) {
+    throw "Packaged seed bundle version missing in $metadataPath"
+  }
+
+  $launcherDir = Join-Path $SmokeHome "launcher"
+  $versionDir = Join-Path $SmokeHome "versions\$seedVersion"
+  $runtimeDir = Join-Path $versionDir "runtime\dist\cli\app"
+  $uiDir = Join-Path $versionDir "ui"
+  $pluginsDir = Join-Path $versionDir "plugins"
+  New-Item -ItemType Directory -Path $launcherDir, $runtimeDir, $uiDir, $pluginsDir -Force | Out-Null
+
+  @"
+console.error("stale smoke runtime should have been replaced before launch");
+setTimeout(() => {}, 600000);
+"@ | Set-Content -Path (Join-Path $runtimeDir "index.js") -Encoding utf8
+  "<html></html>" | Set-Content -Path (Join-Path $uiDir "index.html") -Encoding utf8
+  "" | Set-Content -Path (Join-Path $pluginsDir ".keep") -Encoding utf8
+
+  $manifest = [ordered]@{
+    bundleVersion = $seedVersion
+    platform = "win32"
+    arch = (Resolve-SmokeRuntimeArch)
+    uiVersion = $seedVersion
+    runtimeVersion = $seedVersion
+    builtInPluginSetVersion = $seedVersion
+    launcherCompatibility = [ordered]@{
+      minVersion = "0.0.0"
+    }
+    entrypoints = [ordered]@{
+      runtimeScript = "runtime/dist/cli/app/index.js"
+    }
+    migrationVersion = 1
+  }
+  $manifest | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $versionDir "manifest.json") -Encoding utf8
+  @{ version = $seedVersion } | ConvertTo-Json | Set-Content -Path (Join-Path $SmokeHome "current.json") -Encoding utf8
+  @{
+    channel = "stable"
+    currentVersion = $seedVersion
+    previousVersion = $null
+    candidateVersion = $null
+    candidateLaunchCount = 0
+    lastKnownGoodVersion = $seedVersion
+    badVersions = @()
+    lastAttemptedPackagedSeedVersion = $seedVersion
+    lastAttemptedPackagedSeedSha256 = "stale-smoke-sha256"
+    lastAttemptedPackagedSeedLauncherFingerprint = "stale-smoke-launcher"
+    lastUpdateCheckAt = $null
+    downloadedVersion = $null
+    downloadedReleaseNotesUrl = $null
+    updatePreferences = @{
+      automaticChecks = $true
+      autoDownload = $false
+    }
+    presencePreferences = @{
+      closeToBackground = $true
+      launchAtLogin = $false
+    }
+    languagePreference = $null
+  } | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $launcherDir "state.json") -Encoding utf8
+  Write-Host "[desktop-smoke] seeded stale same-version bundle: $seedVersion"
+}
+
 $resolvedExe = (Resolve-Path $DesktopExePath).Path
 $tempRoot = Get-SmokeTempRoot
 $smokeHome = Join-Path $tempRoot "nextclaw-desktop-smoke-home"
@@ -174,11 +270,15 @@ Write-Host "[desktop-smoke] temp root: $tempRoot"
 Write-Host "[desktop-smoke] smoke home: $smokeHome"
 Write-Host "[desktop-smoke] startup timeout: ${StartupTimeoutSec}s"
 Write-Host "[desktop-smoke] max GUI ready time: ${MaxReadySec}s"
+Write-Host "[desktop-smoke] seed stale same-version bundle: $($SeedStaleSameVersionBundle.IsPresent)"
 
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $smokeHome
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $logRoot
 New-Item -ItemType Directory -Path $smokeHome | Out-Null
 New-Item -ItemType Directory -Path $logRoot | Out-Null
+if ($SeedStaleSameVersionBundle.IsPresent) {
+  Seed-StaleSameVersionBundleState -DesktopExePath $resolvedExe -SmokeHome $smokeHome
+}
 $env:NEXTCLAW_HOME = $smokeHome
 $env:NEXTCLAW_DESKTOP_RUNTIME_HOME_OVERRIDE = $smokeHome
 $env:NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE = $smokeHome

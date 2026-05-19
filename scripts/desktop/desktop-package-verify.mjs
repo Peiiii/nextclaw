@@ -339,7 +339,8 @@ function verifyWindowsDesktopPackage() {
     "-StartupTimeoutSec",
     "120",
     "-MaxReadySec",
-    "20"
+    "20",
+    "-SeedStaleSameVersionBundle"
   ];
   if (commandExists("pwsh")) {
     run("pwsh", psArgs);
@@ -377,7 +378,8 @@ function verifyWindowsDesktopPackage() {
     "-StartupTimeoutSec",
     "120",
     "-MaxReadySec",
-    "20"
+    "20",
+    "-SeedStaleSameVersionBundle"
   ];
   if (commandExists("pwsh")) {
     run("pwsh", installerPsArgs);

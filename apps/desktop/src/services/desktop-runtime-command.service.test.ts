@@ -4,10 +4,17 @@ import type { RuntimeCommand } from "../runtime-config";
 import { DesktopRuntimeCommandService } from "./desktop-runtime-command.service";
 import type { DesktopBundleBootstrapService } from "./desktop-bundle-bootstrap.service";
 
-test("uses packaged runtime before installing the seed bundle", async () => {
+test("prepares packaged seed before resolving the runtime command", async () => {
+  const calls: string[] = [];
   const bundleBootstrap = {
     ensureInitialBundleAvailability: async () => {
-      throw new Error("seed install should be deferred");
+      calls.push("ensure");
+    },
+    recoverPendingBundleCandidate: async () => {
+      calls.push("recover");
+    },
+    pruneRetainedBundleArtifacts: async () => {
+      calls.push("prune");
     }
   } as unknown as DesktopBundleBootstrapService;
   const runtimeCommand: RuntimeCommand = {
@@ -20,40 +27,33 @@ test("uses packaged runtime before installing the seed bundle", async () => {
   );
 
   assert.equal(await service.resolve(bundleBootstrap), runtimeCommand);
+  assert.deepEqual(calls, ["ensure", "recover", "prune"]);
 });
 
-test("installs seed bundle only when no runtime command is immediately available", async () => {
-  const calls: string[] = [];
-  const bundleRuntime: RuntimeCommand = {
-    source: "bundle",
-    scriptPath: "/runtime/current/index.js",
-    bundleVersion: "0.19.9"
-  };
-  const bundleBootstrap = {
-    ensureInitialBundleAvailability: async () => {
-      calls.push("ensure");
-    },
-    recoverPendingBundleCandidate: async () => {
-      calls.push("recover");
-    },
-    pruneRetainedBundleArtifacts: async () => {
-      calls.push("prune");
-    }
-  } as unknown as DesktopBundleBootstrapService;
-  let attempt = 0;
-  const service = new DesktopRuntimeCommandService(
-    { warn: () => undefined },
-    () => ({
-      resolveCommand: () => {
-        attempt += 1;
-        if (attempt === 1) {
-          throw new Error("missing runtime");
-        }
-        return bundleRuntime;
+test("keeps environment runtime override immediate", async () => {
+  const previousOverride = process.env.NEXTCLAW_DESKTOP_RUNTIME_SCRIPT;
+  process.env.NEXTCLAW_DESKTOP_RUNTIME_SCRIPT = "/runtime/override/index.js";
+  try {
+    const bundleBootstrap = {
+      ensureInitialBundleAvailability: async () => {
+        throw new Error("seed install should not run for environment override");
       }
-    })
-  );
+    } as unknown as DesktopBundleBootstrapService;
+    const runtimeCommand: RuntimeCommand = {
+      source: "environment-override",
+      scriptPath: "/runtime/override/index.js"
+    };
+    const service = new DesktopRuntimeCommandService(
+      { warn: () => undefined },
+      () => ({ resolveCommand: () => runtimeCommand })
+    );
 
-  assert.equal(await service.resolve(bundleBootstrap), bundleRuntime);
-  assert.deepEqual(calls, ["ensure", "recover", "prune"]);
+    assert.equal(await service.resolve(bundleBootstrap), runtimeCommand);
+  } finally {
+    if (previousOverride === undefined) {
+      delete process.env.NEXTCLAW_DESKTOP_RUNTIME_SCRIPT;
+    } else {
+      process.env.NEXTCLAW_DESKTOP_RUNTIME_SCRIPT = previousOverride;
+    }
+  }
 });
