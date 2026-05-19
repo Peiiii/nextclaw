@@ -1,19 +1,13 @@
 import type { Config } from "@nextclaw/core";
 import { McpRegistryService, McpServerLifecycleManager, type McpServerWarmResult } from "@nextclaw/mcp";
 import { McpNcpToolRegistryAdapter } from "@nextclaw/ncp-mcp";
+import type { NcpTool } from "@nextclaw/ncp";
 
-export type McpRuntimeSupport = {
-  toolRegistryAdapter: McpNcpToolRegistryAdapter;
-  applyMcpConfig: (config: Config) => Promise<void>;
-  prewarmEnabledServers: () => Promise<McpServerWarmResult[]>;
-  dispose: () => Promise<void>;
-};
-
-export class McpRuntimeSupportOwner implements McpRuntimeSupport {
+export class McpManager {
   private currentMcpConfig: Config;
   private readonly mcpLifecycleManager: McpServerLifecycleManager;
   private readonly mcpRegistryService: McpRegistryService;
-  readonly toolRegistryAdapter: McpNcpToolRegistryAdapter;
+  private readonly toolRegistryAdapter: McpNcpToolRegistryAdapter;
 
   constructor(getConfig: () => Config) {
     this.currentMcpConfig = getConfig();
@@ -27,7 +21,10 @@ export class McpRuntimeSupportOwner implements McpRuntimeSupport {
     this.toolRegistryAdapter = new McpNcpToolRegistryAdapter(this.mcpRegistryService);
   }
 
-  applyMcpConfig = async (config: Config): Promise<void> => {
+  listToolsForRun = (params: { agentId: string }): ReadonlyArray<NcpTool> =>
+    this.toolRegistryAdapter.listToolsForRun(params);
+
+  applyConfig = async (config: Config): Promise<void> => {
     const previousConfig = this.currentMcpConfig;
     this.currentMcpConfig = config;
     const reconcileResult = await this.mcpRegistryService.reconcileConfig({

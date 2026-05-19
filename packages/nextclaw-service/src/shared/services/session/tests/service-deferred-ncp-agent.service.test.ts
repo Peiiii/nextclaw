@@ -79,7 +79,6 @@ function createAgentHandle(): AgentRuntimeHandle {
     },
     listSessionTypes,
     assetApi,
-    applyMcpConfig: vi.fn(async () => undefined),
   };
 }
 

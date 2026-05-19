@@ -6,6 +6,7 @@ import { ExtensionManager } from "@kernel/managers/extension.manager.js";
 import { LearningLoopManager } from "@kernel/managers/learning-loop.manager.js";
 import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
 import { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
+import { McpManager } from "@kernel/managers/mcp.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
 import { ToolManager } from "@kernel/managers/tool.manager.js";
 import { readLearningLoopRuntimeConfig } from "@kernel/configs/learning-loop.config.js";
@@ -18,6 +19,7 @@ import { SessionContextWindowContribution } from "@kernel/contributions/session-
 import { SessionActivityPreviewContribution } from "@kernel/contributions/session-activity-preview/index.js";
 import { ToolContribution } from "@kernel/contributions/tool-contribution/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
+import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
   ChannelManager,
   ensureDir,
@@ -117,6 +119,8 @@ export class NextclawKernel {
   readonly channels: ChannelManager;
   readonly sessionRequests: SessionRequestManager;
   readonly sessionSearch: SessionSearchManager;
+  readonly assetStore: LocalAssetStore;
+  readonly mcpManager: McpManager;
   readonly ncpSessionApi: NcpSessionApiService;
   readonly extensions: ExtensionManager;
   readonly agentRuntimeManager: AgentRuntimeManager;
@@ -156,6 +160,9 @@ export class NextclawKernel {
     this.automation = new AutomationManager({
       storePath: resolveKernelAutomationStorePath(options),
     });
+    this.assetStore = new LocalAssetStore({
+      rootDir: resolve(getDataDir(), "assets"),
+    });
     this.agents = new AgentManager();
     this.control = new NextclawKernelControlManager<
       unknown,
@@ -174,6 +181,7 @@ export class NextclawKernel {
       channels: this.channels,
       providerManager: this.llmProviders,
     });
+    this.mcpManager = new McpManager(this.configManager.loadConfig);
     this.agentRuntimeManager = new AgentRuntimeManager({
       providerManager: this.llmProviders,
       sessions: this.sessions,
@@ -185,6 +193,8 @@ export class NextclawKernel {
       handleNcpEvent: this.handleNcpEvent,
       llmUsage: this.llmUsage,
       onSessionUpdated: this.publishSessionUpdated,
+      assetStore: this.assetStore,
+      mcpManager: this.mcpManager,
       toolManager: this.toolManager,
     });
     this.ncpSessionApi = new NcpSessionApiService({
@@ -231,6 +241,7 @@ export class NextclawKernel {
     }
     this.ncpSessionApi.dispose();
     await this.agentRuntimeManager.dispose();
+    await this.mcpManager.dispose();
     await this.sessionSearch.dispose();
   };
 

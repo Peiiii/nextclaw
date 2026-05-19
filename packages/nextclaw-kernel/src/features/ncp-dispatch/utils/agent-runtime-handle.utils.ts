@@ -1,4 +1,3 @@
-import type { Config } from "@nextclaw/core";
 import { type DefaultNcpAgentBackend, createAgentClientFromServer } from "@nextclaw/ncp-toolkit";
 import type { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import type { NcpAgentClientEndpoint, NcpAgentRunApi, NcpSessionApi } from "@nextclaw/ncp";
@@ -32,7 +31,6 @@ export type AgentRuntimeEndpoint = {
 export type AgentRuntimeHandle = AgentRuntimeEndpoint & {
   runApi: NcpAgentRunApi;
   sessionApi: NcpSessionApi;
-  applyMcpConfig?: (config: Config) => Promise<void>;
   dispose?: () => Promise<void>;
 };
 
@@ -42,7 +40,6 @@ export function createAgentRuntimeHandle(params: {
   runtimeRegistry: AgentRuntimeRegistry;
   refreshPluginRuntimeRegistrations: () => void;
   refreshConfiguredRuntimeEntries: () => void;
-  applyMcpConfig: (config: Config) => Promise<void>;
   dispose: () => Promise<void>;
   assetStore: LocalAssetStore;
 }): AgentRuntimeHandle {
@@ -52,7 +49,6 @@ export function createAgentRuntimeHandle(params: {
     runtimeRegistry,
     refreshPluginRuntimeRegistrations,
     refreshConfiguredRuntimeEntries,
-    applyMcpConfig,
     dispose,
     assetStore,
   } = params;
@@ -78,7 +74,6 @@ export function createAgentRuntimeHandle(params: {
       stat: (uri) => assetStore.statRecord(uri),
       resolveContentPath: (uri) => assetStore.resolveContentPath(uri),
     },
-    applyMcpConfig,
     dispose,
   };
 }

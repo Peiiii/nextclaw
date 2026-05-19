@@ -21,6 +21,7 @@ import type {
   ToolRegistrationContext,
   ToolRunContext,
 } from "@kernel/managers/tool.manager.js";
+import { createAssetTools } from "@kernel/features/native-runtime/index.js";
 import { SessionRequestTool } from "@kernel/tools/session-request.tools.js";
 import { SessionSearchTool } from "@kernel/tools/session-search.tools.js";
 import { SessionSpawnTool } from "@kernel/tools/session-spawn.tools.js";
@@ -63,6 +64,12 @@ export class ToolContribution implements KernelContribution {
   ): void => {
     this.registerDefaultTools(context, registry);
     this.registerExtensionTools(context, registry);
+    for (const tool of createAssetTools({ assetStore: this.kernel.assetStore })) {
+      registry.registerNcpTool(tool);
+    }
+    for (const tool of this.kernel.mcpManager.listToolsForRun({ agentId: context.agentId })) {
+      registry.registerNcpTool(tool);
+    }
     this.registerSessionSearchTool(context, registry);
   };
 

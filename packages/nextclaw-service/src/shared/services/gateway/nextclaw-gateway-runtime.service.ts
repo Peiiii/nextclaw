@@ -420,7 +420,7 @@ export class NextclawGatewayRuntime {
         return { restartChannels: result.restartChannels };
       },
       reloadMcp: async ({ config: nextConfig }) => {
-        await this.liveAgentRuntime?.applyMcpConfig?.(nextConfig);
+        await this.kernel.mcpManager.applyConfig(nextConfig);
       },
       onRestartRequired: (paths) => {
         void this.deps.requestRestart({

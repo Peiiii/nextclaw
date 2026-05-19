@@ -2,7 +2,7 @@
 
 **目标：**把当前事实上的 `NextclawNcpToolRegistry` 收敛为 kernel 级 `ToolManager`，删除空壳 `ToolManager`，并用单个 kernel contribution 负责注册 agent 可用工具，从而先切掉 `AgentRuntimeManager` 对 gateway / tool 装配细节的耦合。
 
-**架构方向：**现有 `NextclawNcpToolRegistry` 已经是真正的工具 owner：它按运行上下文准备工具、提供 `NcpToolRegistry`、执行工具调用，并处理 extension / additional tools。改造时不新增平行 manager，而是把这套真实实现迁回 `packages/nextclaw-kernel/src/managers/tool.manager.ts`。具体默认工具注册逻辑先集中到一个 `ToolContribution`，该 contribution 直接依赖 `NextclawKernel`，由 kernel 管理生命周期；asset / MCP 这类仍绑定 native runtime 支撑对象的工具，先作为运行期 additional tools 接入同一条 `ToolManager` registry 路径，不提前硬塞进 kernel contribution。
+**架构方向：**现有 `NextclawNcpToolRegistry` 已经是真正的工具 owner：它按运行上下文准备工具、提供 `NcpToolRegistry`、执行工具调用，并处理 extension / additional tools。改造时不新增平行 manager，而是把这套真实实现迁回 `packages/nextclaw-kernel/src/managers/tool.manager.ts`。具体工具注册逻辑集中到一个 `ToolContribution`，该 contribution 直接依赖 `NextclawKernel`，由 kernel 管理生命周期；asset store / `McpManager` 作为 kernel 能力暴露给 contribution，避免 native runtime factory 继续承担工具注册职责。
 
 **成功标准：**
 - `NextclawKernel` 暴露 `readonly toolManager: ToolManager`，不再暴露空壳 `tools`。
@@ -62,7 +62,6 @@ ToolManager
 NativeAgentRuntimeFactory
   接收 toolManager
   向 toolManager 请求本次运行的工具 / registry
-  只追加 native runtime 私有的 asset / MCP tools
   不知道 GatewayController
 
 NextclawGatewayRuntime
@@ -176,7 +175,7 @@ NextclawGatewayRuntime
 
 1. 用 `toolManager` 替换 `NativeAgentRuntimeFactoryOptions.resolveGatewayController`。
 2. 用 tool manager 调用替换直接构造 `NextclawNcpToolRegistry`。
-3. `assetStore` / MCP runtime support 这类 native runtime 私有能力，先保留为 `createRuntimeRegistry()` 的 additional tools。
+3. asset / MCP tools 也由 `ToolContribution` 注册，native runtime factory 不再传 `getAdditionalTools`。
 4. 保持 `resolveOpenAiToolsForRuntime(input)` 行为不变，由同一条 tool manager 准备路径承接。
 5. 保持 `updateToolCallResult` 通过工具执行上下文回写的行为不变。
 

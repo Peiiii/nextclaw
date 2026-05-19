@@ -43,7 +43,6 @@ export type ToolProvider = {
 };
 
 export type ToolRuntimeRegistryOptions = {
-  getAdditionalTools?: (context: ToolRunContext) => ReadonlyArray<NcpTool>;
   updateToolCallResult: UpdateToolCallResult;
 };
 
@@ -121,7 +120,6 @@ class RuntimeToolRegistry implements ToolRuntimeRegistry {
     for (const provider of this.getProviders()) {
       provider.registerTools(context, registrationContext);
     }
-    this.registerAdditionalTools(context);
   };
 
   listTools = (): ReadonlyArray<NcpTool> => {
@@ -193,13 +191,6 @@ class RuntimeToolRegistry implements ToolRuntimeRegistry {
       return;
     }
     this.tools.set(tool.name, tool);
-  };
-
-  private registerAdditionalTools = (context: ToolRunContext): void => {
-    const tools = this.options.getAdditionalTools?.(context) ?? [];
-    for (const tool of tools) {
-      this.registerNcpTool(tool);
-    }
   };
 
   private isToolAvailable = (name: string): boolean => {

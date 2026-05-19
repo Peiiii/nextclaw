@@ -1,6 +1,5 @@
 import {
   type Config,
-  getDataDir,
   type SessionManager,
 } from "@nextclaw/core";
 import {
@@ -14,7 +13,7 @@ import type {
   ToolManager,
   UpdateToolCallResult,
 } from "@kernel/managers/tool.manager.js";
-import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
+import type { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
   type NcpAgentClientEndpoint,
   type NcpAgentSendEnvelope,
@@ -28,7 +27,6 @@ import {
   NcpEventType,
 } from "@nextclaw/ncp";
 import { DefaultNcpAgentBackend, type AgentSessionStore } from "@nextclaw/ncp-toolkit";
-import { join } from "node:path";
 import type { ExtensionManager } from "@kernel/managers/extension.manager.js";
 import {
   AgentRuntimeRegistry,
@@ -45,7 +43,7 @@ import {
   ContextCompactionPreflightService,
   NativeAgentRuntimeFactory,
 } from "@kernel/features/native-runtime/index.js";
-import { McpRuntimeSupportOwner, type McpRuntimeSupport } from "@kernel/features/mcp-runtime-support/index.js";
+import type { McpManager } from "@kernel/managers/mcp.manager.js";
 import {
   AGENT_RUNTIME_SESSION_MESSAGE_INGRESS_TYPE,
   type AgentRuntimeSessionMessageRequest,
@@ -64,6 +62,8 @@ export type AgentRuntimeManagerOptions = {
   handleNcpEvent: (event: NcpEndpointEvent) => void;
   llmUsage: LlmUsageManager;
   onSessionUpdated: (sessionKey: string) => void;
+  assetStore: LocalAssetStore;
+  mcpManager: McpManager;
   toolManager: ToolManager;
 };
 
@@ -110,10 +110,6 @@ async function consumeAgentEvents(events: AsyncIterable<unknown>): Promise<void>
 
 export class AgentRuntimeManager {
   private readonly runtimeRegistry = new AgentRuntimeRegistry();
-  private readonly mcpRuntimeSupport: McpRuntimeSupport;
-  private readonly assetStore = new LocalAssetStore({
-    rootDir: join(getDataDir(), "assets"),
-  });
   private readonly pluginRuntimeRegistrationController: PluginRuntimeRegistrationController;
   private readonly refreshConfiguredRuntimeEntries = () => {
     this.runtimeRegistry.applyEntries(
@@ -134,7 +130,6 @@ export class AgentRuntimeManager {
   private disposed = false;
 
   constructor(private readonly params: AgentRuntimeManagerOptions) {
-    this.mcpRuntimeSupport = new McpRuntimeSupportOwner(params.configManager.loadConfig);
     this.pluginRuntimeRegistrationController = new PluginRuntimeRegistrationController(
       this.runtimeRegistry,
       params.extensions,
@@ -158,8 +153,7 @@ export class AgentRuntimeManager {
       configManager: this.params.configManager,
       llmUsage: this.params.llmUsage,
       onSessionUpdated: this.params.onSessionUpdated,
-      mcpToolRegistryAdapter: this.mcpRuntimeSupport.toolRegistryAdapter,
-      assetStore: this.assetStore,
+      assetStore: this.params.assetStore,
       updateToolCallResult: this.updateToolCallResult,
       toolManager: this.params.toolManager,
     });
@@ -185,7 +179,7 @@ export class AgentRuntimeManager {
         this.refreshConfiguredRuntimeEntries();
         return this.runtimeRegistry.createRuntime({
           ...runtimeParams,
-          resolveAssetContentPath: (assetUri) => this.assetStore.resolveContentPath(assetUri),
+          resolveAssetContentPath: (assetUri) => this.params.assetStore.resolveContentPath(assetUri),
           resolveTools: nativeRuntimeFactory.resolveOpenAiToolsForRuntime,
         });
       },
@@ -204,9 +198,8 @@ export class AgentRuntimeManager {
       refreshPluginRuntimeRegistrations:
         this.pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations,
       refreshConfiguredRuntimeEntries: this.refreshConfiguredRuntimeEntries,
-      applyMcpConfig: this.mcpRuntimeSupport.applyMcpConfig,
       dispose: this.dispose,
-      assetStore: this.assetStore,
+      assetStore: this.params.assetStore,
     });
     return this.handle;
   };
@@ -311,7 +304,6 @@ export class AgentRuntimeManager {
     }
     this.pluginRuntimeRegistrationController.dispose();
     await this.backend?.stop();
-    await this.mcpRuntimeSupport.dispose();
   };
 
   private readonly registerCoreRuntimes = (
@@ -335,7 +327,7 @@ export class AgentRuntimeManager {
   };
 
   private runDerivedCapabilityWarmup = async (): Promise<void> => {
-    const mcpWarmResults = await this.mcpRuntimeSupport.prewarmEnabledServers();
+    const mcpWarmResults = await this.params.mcpManager.prewarmEnabledServers();
     for (const result of mcpWarmResults) {
       if (!result.ok) {
         console.warn(`[mcp] Failed to warm ${result.name}: ${result.error}`);

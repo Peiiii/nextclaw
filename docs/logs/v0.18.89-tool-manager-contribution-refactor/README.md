@@ -4,10 +4,10 @@
 
 - 将空壳 `ToolManager` 替换为真实工具 owner：负责 provider 注册、按运行上下文创建 `NcpToolRegistry`、执行 tool call、过滤不可用 core tool。
 - 删除旧 `NextclawNcpToolRegistry` 文件，不保留新旧双轨。
-- 新增单一 `ToolContribution`，直接依赖 `NextclawKernel`，注册默认 agent 可用工具，包括 file / exec / web / message / cron / session / memory / gateway / extension / session_search。
+- 新增单一 `ToolContribution`，直接依赖 `NextclawKernel`，注册 agent 可用工具，包括 file / exec / web / message / cron / session / memory / gateway / extension / asset / MCP / session_search。
 - `NextclawKernel` 暴露 `toolManager`，并提供 `provideGatewayController()` / `getGatewayController()`；service 创建 gateway controller 后直接 provide 给 kernel。
 - `AgentRuntimeManager` 删除 `gatewayController` 字段和 `connectGatewayController()`；`NativeAgentRuntimeFactory` 不再接触 gateway controller，只通过 `toolManager.createRuntimeRegistry()` 获取运行期 registry。
-- `asset` / MCP tools 保留为 native runtime 私有 additional tools，仍进入同一条 `ToolManager` registry 路径。
+- `assetStore` / `mcpManager` 由 kernel 持有，`ToolContribution` 统一注册 asset / MCP tools，native runtime factory 不再传 `getAdditionalTools`。
 
 ## 测试/验证/验收方式
 
@@ -28,14 +28,14 @@
 
 - 启动 gateway runtime 后，gateway controller 应由 service provide 到 kernel。
 - 发起 native agent run，默认工具列表应保持原行为，gateway tool 能读取当前 controller。
-- asset / MCP tools 应继续由 native runtime 运行期追加，`resolveOpenAiToolsForRuntime()` 的工具解析路径保持可用。
+- asset / MCP tools 应由 `ToolContribution` 注册，`resolveOpenAiToolsForRuntime()` 的工具解析路径保持可用。
 
 ## 可维护性总结汇总
 
 - 已使用 `post-edit-maintainability-guard` 与 `post-edit-maintainability-review` 标准完成复核。
 - 非功能改动的非测试代码净增为 `0` 行：新增 `ToolManager` / `ToolContribution` 由删除旧 `NextclawNcpToolRegistry` 与移除 `AgentRuntimeManager` gateway 搬运链路抵消。
 - 正向减债动作：职责收敛与删除。工具 owner 回到 kernel `ToolManager`，默认工具组装回到单一 contribution，`NativeAgentRuntimeFactory` 与 `AgentRuntimeManager` 不再承担 gateway/tool 具体装配职责。
-- 已知保留债务：`asset` / MCP tools 暂作为 native runtime 私有 additional tools 接入，后续若 asset store / MCP runtime support 成为 kernel 级能力，再评估迁入 contribution。
+- 已消除 `NativeAgentRuntimeFactory` 的 additional tools 注册残留；后续剩余优化点是继续压薄 `ToolProvider` / `ToolRegistrationContext` 这类机制名词。
 
 ## NPM 包发布记录
 

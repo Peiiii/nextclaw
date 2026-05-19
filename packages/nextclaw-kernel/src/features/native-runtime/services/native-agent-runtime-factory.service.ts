@@ -5,7 +5,6 @@ import {
 } from "@nextclaw/core";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
 import { DefaultNcpAgentRuntime, type LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
-import type { McpNcpToolRegistryAdapter } from "@nextclaw/ncp-mcp";
 import {
   type NcpAgentRunInput,
   type NcpAgentRuntime,
@@ -23,7 +22,6 @@ import type {
   ToolManager,
   UpdateToolCallResult,
 } from "@kernel/managers/tool.manager.js";
-import { createAssetTools } from "@kernel/features/native-runtime/tools/ncp-asset.tools.js";
 import { ContextCompactionPreflightService } from "./context-compaction-preflight.service.js";
 import { NextclawNcpContextBuilder } from "./nextclaw-ncp-context-builder.service.js";
 import { ProviderManagerNcpLLMApi } from "./provider-manager-ncp-llm-api.service.js";
@@ -36,7 +34,6 @@ export type NativeAgentRuntimeFactoryOptions = {
   configManager: { loadConfig: () => Config };
   llmUsage: LlmUsageManager;
   onSessionUpdated: (sessionKey: string) => void;
-  mcpToolRegistryAdapter: McpNcpToolRegistryAdapter;
   assetStore: LocalAssetStore;
   updateToolCallResult: UpdateToolCallResult;
   toolManager: ToolManager;
@@ -211,14 +208,6 @@ export class NativeAgentRuntimeFactory {
   private createToolRegistry = () => {
     return this.options.toolManager.createRuntimeRegistry({
       updateToolCallResult: this.options.updateToolCallResult,
-      getAdditionalTools: (context) => [
-        ...createAssetTools({
-          assetStore: this.options.assetStore,
-        }),
-        ...this.options.mcpToolRegistryAdapter.listToolsForRun({
-          agentId: context.agentId,
-        }),
-      ],
     });
   };
 }
