@@ -71,6 +71,17 @@ Never justify a single-package `nextclaw` release only because `packages/nextcla
    - `pnpm release:verify:published`
    - `npm view nextclaw dist-tags --json`
 
+## Branch And Source Closure
+- If publishing from a temporary worktree, release branch, detached HEAD, or any branch other than the user's current target branch, do not close after registry verification alone.
+- Before the final answer, explicitly compare the target branch with the release branch and classify the remaining delta:
+  - source code needed for the user-visible fix,
+  - version / changelog / generated package artifacts,
+  - historical release baseline commits,
+  - unrelated changes.
+- If user-facing source code is missing from the target branch, merge or cherry-pick it before saying the task is done, unless the user explicitly rejects that.
+- If only release metadata or generated artifacts remain outside the target branch, say that plainly and name the exact follow-up: merge the release branch, cherry-pick the release commit, or intentionally leave release history separate.
+- The final release notes must answer: "Is the target branch missing functional code?" and "Is the target branch missing published release records/artifacts?" Avoid wording that makes the user infer this from branch names or commit hashes.
+
 ## Beta Package Rule
 - Prefer the repo changeset/pre-release flow for beta releases.
 - Prefer `pnpm release:beta` for the full reusable closure when the batch may include `nextclaw`; by default this means one full public workspace beta batch, not a hand-picked subset.
