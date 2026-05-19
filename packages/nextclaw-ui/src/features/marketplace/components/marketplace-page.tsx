@@ -504,16 +504,18 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
       )}
 
       <section className="flex min-h-0 flex-1 flex-col">
-        {!curatedSceneRoute.isSceneRoute && !curatedSceneRoute.showShelves && (
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-[14px] font-semibold text-gray-900">
-              {scope === "installed"
-                ? t(copyKeys.sectionInstalled)
-                : t(copyKeys.sectionCatalog)}
-            </h3>
-            <span className="text-[12px] text-gray-500">{listSummary}</span>
-          </div>
-        )}
+        {!curatedSceneRoute.isSceneRoute &&
+          !curatedSceneRoute.showShelves &&
+          !showListSkeleton && (
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-[14px] font-semibold text-gray-900">
+                {scope === "installed"
+                  ? t(copyKeys.sectionInstalled)
+                  : language.startsWith("zh") ? "全部技能" : "All Skills"}
+              </h3>
+              <span className="text-[12px] text-gray-500">{listSummary}</span>
+            </div>
+          )}
 
         {scope === "all" && itemsQuery.isError && (
           <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
@@ -549,6 +551,8 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
             <MarketplaceCuratedShelves
               entries={curatedSceneRoute.entries}
               scenes={curatedSceneRoute.scenes}
+              isScenesLoading={curatedSceneRoute.isScenesLoading}
+              isItemsLoading={showListSkeleton}
               language={language}
               installState={installState}
               onOpen={(entry) => void openItemDetail(entry.item, entry.record)}
@@ -565,7 +569,7 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
               title={
                 scope === "installed"
                   ? t(copyKeys.sectionInstalled)
-                  : t(copyKeys.sectionCatalog)
+                  : language.startsWith("zh") ? "全部技能" : "All Skills"
               }
               summary={listSummary}
               showTitle={curatedSceneRoute.showShelves}
@@ -603,7 +607,7 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
             )}
 
           {scope === "all" &&
-            !skeletonState.showCatalog &&
+            !showListSkeleton &&
             !itemsQuery.isError && (
               <MarketplaceInfiniteScrollStatus
                 hasMore={Boolean(itemsQuery.hasNextPage)}
