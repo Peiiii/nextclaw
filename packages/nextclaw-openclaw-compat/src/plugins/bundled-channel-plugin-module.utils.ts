@@ -22,24 +22,27 @@ async function createInProcessBundledPluginModule(
   };
 }
 
-const bundledChannelPluginModuleLoaders = {
-  "@nextclaw/channel-plugin-telegram": () => import("@nextclaw/channel-plugin-telegram"),
-  "@nextclaw/channel-plugin-whatsapp": () => import("@nextclaw/channel-plugin-whatsapp"),
-  "@nextclaw/channel-plugin-discord": () => import("@nextclaw/channel-plugin-discord"),
-  "@nextclaw/channel-plugin-mochat": () => import("@nextclaw/channel-plugin-mochat"),
-  "@nextclaw/channel-plugin-dingtalk": () => import("@nextclaw/channel-plugin-dingtalk"),
-  "@nextclaw/channel-plugin-wecom": () => import("@nextclaw/channel-plugin-wecom"),
-  "@nextclaw/channel-plugin-email": () => import("@nextclaw/channel-plugin-email"),
-  "@nextclaw/channel-plugin-slack": () => import("@nextclaw/channel-plugin-slack"),
-  "@nextclaw/channel-plugin-qq": () => import("@nextclaw/channel-plugin-qq")
-} satisfies Record<string, () => Promise<unknown>>;
+const bundledChannelPluginModuleNames = new Set([
+  "@nextclaw/channel-plugin-telegram",
+  "@nextclaw/channel-plugin-whatsapp",
+  "@nextclaw/channel-plugin-discord",
+  "@nextclaw/channel-plugin-mochat",
+  "@nextclaw/channel-plugin-dingtalk",
+  "@nextclaw/channel-plugin-wecom",
+  "@nextclaw/channel-plugin-email",
+  "@nextclaw/channel-plugin-slack",
+  "@nextclaw/channel-plugin-qq"
+]);
+
+function importBundledChannelPluginModule(packageName: string): Promise<unknown> {
+  return import(packageName);
+}
 
 export async function loadInProcessBundledPluginModule(
   packageName: string
 ): Promise<InProcessBundledPluginModule | null> {
-  const loader = bundledChannelPluginModuleLoaders[packageName as keyof typeof bundledChannelPluginModuleLoaders];
-  if (!loader) {
+  if (!bundledChannelPluginModuleNames.has(packageName)) {
     return null;
   }
-  return createInProcessBundledPluginModule(packageName, loader);
+  return createInProcessBundledPluginModule(packageName, () => importBundledChannelPluginModule(packageName));
 }
