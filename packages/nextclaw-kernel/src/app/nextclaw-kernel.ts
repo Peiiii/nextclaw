@@ -28,6 +28,7 @@ import {
   type GatewayController,
   getDataDir,
   getSessionsPath,
+  getWorkspacePath,
   MessageBus,
   SessionManager,
   SessionRequestManager,
@@ -171,7 +172,6 @@ export class NextclawKernel {
       unknown
     >();
     this.toolManager = new ToolManager();
-    this.skills = new SkillManager();
     this.extensions = new ExtensionManager();
     this.channels = new ChannelManager({
       bus: this.messageBus,
@@ -181,6 +181,9 @@ export class NextclawKernel {
       configPath: options.configPath,
       channels: this.channels,
       providerManager: this.llmProviders,
+    });
+    this.skills = new SkillManager({
+      workspace: getWorkspacePath(this.configManager.config.agents.defaults.workspace),
     });
     this.mcpManager = new McpManager(this.configManager.loadConfig);
     this.agentRuntimeManager = new AgentRuntimeManager({

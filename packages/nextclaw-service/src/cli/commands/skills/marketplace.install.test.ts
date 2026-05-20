@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { installMarketplaceSkill } from "./marketplace.service.js";
+import { installMarketplaceSkill } from "./marketplace.utils.js";
 
 const cleanupDirs: string[] = [];
 

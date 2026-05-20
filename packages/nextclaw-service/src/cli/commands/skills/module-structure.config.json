@@ -14,7 +14,7 @@
     "marketplace.install.test.ts",
     "marketplace.metadata.ts",
     "marketplace.publish.test.ts",
-    "marketplace.service.ts",
+    "marketplace.utils.ts",
     "skills-query.service.test.ts",
     "skills-query.service.ts"
   ],

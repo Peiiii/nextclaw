@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
-import { SkillsLoader, type SkillInfo, type SkillScope } from "@nextclaw/core";
+import { SkillManager, type SkillInfo, type SkillScope } from "@nextclaw/kernel";
 import { parseSkillFrontmatter, type LocalizedTextMap } from "./marketplace.metadata.js";
 import { readMarketplaceEnvelope, resolveMarketplaceApiBase } from "./marketplace-client.js";
 import { runWithMarketplaceNetworkRetry } from "./marketplace-network-retry.js";
@@ -117,13 +117,13 @@ export class SkillsQueryService {
     scope?: string;
   }): InstalledSkillsListView => {
     const workspace = resolve(params.workdir);
-    const loader = new SkillsLoader(workspace);
     const scope = this.normalizeInstalledScope(params.scope);
     const normalizedQuery = this.normalizeOptionalString(params.query)?.toLowerCase() ?? null;
+    const skillManager = new SkillManager({ workspace });
 
-    const skills = loader
-      .listSkills(false)
-      .map((skill) => this.buildInstalledSkillSummary(skill, loader, workspace))
+    const skills = skillManager
+      .listSkills({ filterUnavailable: false })
+      .map((skill) => this.buildInstalledSkillSummary(skill, skillManager, workspace))
       .filter((skill) => scope === "all" || skill.scope === scope)
       .filter((skill) => this.matchesInstalledSkillQuery(skill, normalizedQuery));
 
@@ -139,12 +139,12 @@ export class SkillsQueryService {
     selector: string;
   }): InstalledSkillDetailView => {
     const workspace = resolve(params.workdir);
-    const loader = new SkillsLoader(workspace);
-    const skill = loader.getSkillInfo(params.selector);
+    const skillManager = new SkillManager({ workspace });
+    const skill = skillManager.getSkillInfo(params.selector);
     if (!skill) {
       throw new Error(`Installed skill not found: ${params.selector}`);
     }
-    return this.buildInstalledSkillDetail(skill, loader, workspace);
+    return this.buildInstalledSkillDetail(skill, skillManager, workspace);
   };
 
   searchMarketplaceSkills = async (params: {
@@ -155,16 +155,17 @@ export class SkillsQueryService {
     page?: string | number;
     pageSize?: string | number;
   }): Promise<MarketplaceSkillsSearchView> => {
-    const apiBaseUrl = resolveMarketplaceApiBase(params.apiBaseUrl);
+    const { apiBaseUrl: rawApiBaseUrl, page, pageSize, query, sort, tag } = params;
+    const apiBaseUrl = resolveMarketplaceApiBase(rawApiBaseUrl);
     const result = await this.fetchMarketplaceView<MarketplaceSkillListView>({
       apiBaseUrl,
       path: "/api/v1/skills/items",
       query: {
-        q: this.normalizeOptionalString(params.query) ?? undefined,
-        tag: this.normalizeOptionalString(params.tag) ?? undefined,
-        sort: this.normalizeMarketplaceSort(params.sort),
-        page: this.normalizePositiveInteger(params.page),
-        pageSize: this.normalizePositiveInteger(params.pageSize),
+        q: this.normalizeOptionalString(query) ?? undefined,
+        tag: this.normalizeOptionalString(tag) ?? undefined,
+        sort: this.normalizeMarketplaceSort(sort),
+        page: this.normalizePositiveInteger(page),
+        pageSize: this.normalizePositiveInteger(pageSize),
       },
     });
 
@@ -231,11 +232,11 @@ export class SkillsQueryService {
 
   private buildInstalledSkillSummary = (
     skill: SkillInfo,
-    loader: SkillsLoader,
+    skillManager: SkillManager,
     workspace: string,
   ): InstalledSkillSummaryView => {
     const raw = readFileSync(skill.path, "utf8");
-    const metadata = loader.getSkillMetadata(skill);
+    const metadata = skillManager.getSkillMetadata(skill);
     const frontmatter = parseSkillFrontmatter(raw);
 
     return {
@@ -257,14 +258,14 @@ export class SkillsQueryService {
 
   private buildInstalledSkillDetail = (
     skill: SkillInfo,
-    loader: SkillsLoader,
+    skillManager: SkillManager,
     workspace: string,
   ): InstalledSkillDetailView => {
-    const summary = this.buildInstalledSkillSummary(skill, loader, workspace);
+    const summary = this.buildInstalledSkillSummary(skill, skillManager, workspace);
     const raw = readFileSync(skill.path, "utf8");
     return {
       ...summary,
-      metadata: loader.getSkillMetadata(skill),
+      metadata: skillManager.getSkillMetadata(skill),
       raw,
       bodyRaw: this.stripFrontmatter(raw),
     };

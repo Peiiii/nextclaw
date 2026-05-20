@@ -111,6 +111,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 若确实需要 adapter，必须有真实语义转换；没有语义转换的 adapter / proxy 默认删除
 - 只负责 `subscribe(handler)` / `onXxx(handler)` / 调用转发、没有协议转换或生命周期决策的 bridge / listener wrapper 默认删除；订阅、退订和状态归属应回到真实 runtime / manager owner。
 - 不用空心依赖注入冒充职责收敛。除非依赖代表外部系统边界、测试替身、权限边界或用户可配置策略，否则 owner 的核心创建/路由/缓存/生命周期逻辑应回到 owner 内部。
+- 不用 fake owner / fake class 冒充治理通过。若新增 class 只是为了满足 `.service.ts`、role-boundary 或“业务逻辑进 class”的形式要求，且没有真实状态、生命周期、权限、流程编排或外部 IO 协调职责，必须改文件角色/命名或回到真实 owner，而不是硬包一层。
 
 ### 3. 这是不是在制造隐藏路径
 
@@ -200,6 +201,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 删除重复字段时只改成 getter alias，导致两个名字继续长期存在
 - 导出 `createXxx()` 但函数体只是 `return new Xxx(...)` 或 `=> new Xxx(...)`，没有缓存、依赖注入、环境选择、异步初始化、权限封装等真实语义
 - 新增 `XxxManager` / `XxxOwner`，但核心能力靠上层传 `createXxx` / `resolveXxx` / `getXxx` 完成，自己不持有领域闭环
+- 新增 `XxxService` / `XxxResolverService` 只为了让文件名或治理检查显得合规，内部只是 new 另一个 owner 或转调单个方法
 - 为了迁移省事长期保留 `asOldXxx()`、旧 manager、旧 registry、旧 getter、旧入口和新入口并存
 - 上游合同错了却在下游加 alias / normalize / fallback，让错误输入继续显示成功
 - 为了一个 UI 状态让 runtime、shell、server、router、controller 多层新增同名参数

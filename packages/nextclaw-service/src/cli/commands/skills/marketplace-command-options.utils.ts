@@ -1,5 +1,5 @@
 import { expandHome } from "@nextclaw/core";
-import type { MarketplaceSkillPublishOptions } from "./marketplace.service.js";
+import type { MarketplaceSkillPublishOptions } from "./marketplace.utils.js";
 
 export type MarketplacePublishCommandOptions = {
   dir: string;

@@ -1,3 +1,5 @@
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { runWithMarketplaceNetworkRetry } from "./marketplace-network-retry.js";
 
 const DEFAULT_MARKETPLACE_API_BASE = "https://marketplace-api.nextclaw.io";
@@ -133,6 +135,54 @@ export async function fetchMarketplaceSkillFileBlob(
   });
 }
 
+export function collectMarketplaceSkillFiles(rootDir: string): Array<{ path: string; contentBase64: string }> {
+  const output: Array<{ path: string; contentBase64: string }> = [];
+
+  const walk = (dir: string, prefix: string): void => {
+    const entries = readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const absolute = join(dir, entry.name);
+      const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        walk(absolute, relativePath);
+        continue;
+      }
+      if (!entry.isFile()) {
+        continue;
+      }
+      output.push({
+        path: relativePath,
+        contentBase64: readFileSync(absolute).toString("base64"),
+      });
+    }
+  };
+
+  walk(rootDir, "");
+  return output;
+}
+
+export async function writeMarketplaceSkillFiles(params: {
+  destinationDir: string;
+  files: MarketplaceSkillFileManifestEntry[];
+  apiBase: string;
+  slug: string;
+}): Promise<void> {
+  const { destinationDir, files, apiBase, slug } = params;
+  for (const file of files) {
+    const targetPath = resolve(destinationDir, ...file.path.split("/"));
+    const rel = relative(destinationDir, targetPath);
+    if (rel.startsWith("..") || isAbsolute(rel)) {
+      throw new Error(`Invalid marketplace file path: ${file.path}`);
+    }
+
+    mkdirSync(dirname(targetPath), { recursive: true });
+    const bytes = file.contentBase64
+      ? decodeMarketplaceFileContent(file.path, file.contentBase64)
+      : await fetchMarketplaceSkillFileBlob(apiBase, slug, file);
+    writeFileSync(targetPath, bytes);
+  }
+}
+
 export async function readMarketplaceEnvelope<T>(response: Response): Promise<MarketplaceEnvelope<T>> {
   const raw = await response.text();
   let payload: unknown;
@@ -172,6 +222,14 @@ function extractMarketplaceErrorMessage(raw: string, fallbackStatus: number): st
   } catch {
     return raw || `Request failed (${fallbackStatus})`;
   }
+}
+
+function decodeMarketplaceFileContent(path: string, contentBase64: string): Buffer {
+  const normalized = contentBase64.replace(/\s+/g, "");
+  if (!normalized || normalized.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(normalized)) {
+    throw new Error(`Invalid marketplace file contentBase64 for path: ${path}`);
+  }
+  return Buffer.from(normalized, "base64");
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

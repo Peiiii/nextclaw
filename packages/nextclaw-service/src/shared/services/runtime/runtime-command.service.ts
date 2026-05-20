@@ -1,5 +1,6 @@
 import * as NextclawCore from "@nextclaw/core";
 import { spawn } from "node:child_process";
+import { SkillManager } from "@nextclaw/kernel";
 import type { RequestRestartParams } from "@nextclaw-service/shared/types/cli.types.js";
 import { ManagedServiceCommandService, type StartServiceOptions } from "@nextclaw-service/shared/services/runtime/service-managed-startup.service.js";
 import { NextclawGatewayRuntime } from "@nextclaw-service/shared/services/gateway/nextclaw-gateway-runtime.service.js";
@@ -7,7 +8,6 @@ import { NextclawDistributionService } from "@nextclaw-service/shared/services/r
 import { describeUnmanagedHealthyTargetMessage, inspectUiTarget } from "@nextclaw-service/shared/utils/service-port-probe.utils.js";
 import { resolveCliSubcommandEntry } from "@nextclaw-service/shared/utils/marketplace/cli-subcommand-launch.utils.js";
 import { isLoopbackHost, resolvePublicIp, resolveUiStaticDir } from "@nextclaw-service/shared/utils/cli.utils.js";
-import { createSkillsLoader } from "@nextclaw-service/shared/services/runtime/utils/skills-loader.utils.js";
 export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "@nextclaw-service/shared/utils/marketplace/service-marketplace-helpers.utils.js";
 export { describeUnmanagedHealthyTargetMessage };
 const {
@@ -75,10 +75,7 @@ export class RuntimeCommandService {
 
   private installBuiltinMarketplaceSkill = (slug: string, _force: boolean | undefined): { message: string; output?: string } | null => {
     const workspace = getWorkspacePath(loadConfig().agents.defaults.workspace);
-    const loader = createSkillsLoader(workspace);
-    const builtin = (loader?.listSkills(false) ?? []).find((skill) => skill.name === slug && skill.source === "builtin");
-
-    if (!builtin) {
+    if (!new SkillManager({ workspace }).findBuiltinSkill(slug)) {
       return null;
     }
     return {

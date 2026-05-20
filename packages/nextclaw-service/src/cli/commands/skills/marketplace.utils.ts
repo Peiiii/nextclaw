@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { SkillsLoader } from "@nextclaw/core";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { basename, isAbsolute, join, relative, resolve } from "node:path";
+import { SkillManager } from "@nextclaw/kernel";
 import {
   buildLocalizedTextMap,
   parseSkillFrontmatter,
@@ -9,13 +9,14 @@ import {
 } from "./marketplace.metadata.js";
 import { PlatformAuthCommands } from "@nextclaw-service/commands/platform-auth/index.js";
 import {
-  fetchMarketplaceSkillFileBlob,
   fetchMarketplaceSkillFiles,
   fetchMarketplaceSkillItem,
+  collectMarketplaceSkillFiles,
   type MarketplaceSkillFileManifestEntry,
   readMarketplaceEnvelope,
   resolveMarketplaceAdminToken,
-  resolveMarketplaceApiBase
+  resolveMarketplaceApiBase,
+  writeMarketplaceSkillFiles
 } from "./marketplace-client.js";
 import {
   normalizeTags,
@@ -175,28 +176,6 @@ function prepareMarketplaceSkillDestinationDir(params: {
   return null;
 }
 
-async function writeMarketplaceSkillFiles(params: {
-  destinationDir: string;
-  files: MarketplaceSkillFileManifestEntry[];
-  apiBase: string;
-  slug: string;
-}): Promise<void> {
-  const { destinationDir, files, apiBase, slug } = params;
-  for (const file of files) {
-    const targetPath = resolve(destinationDir, ...file.path.split("/"));
-    const rel = relative(destinationDir, targetPath);
-    if (rel.startsWith("..") || isAbsolute(rel)) {
-      throw new Error(`Invalid marketplace file path: ${file.path}`);
-    }
-
-    mkdirSync(dirname(targetPath), { recursive: true });
-    const bytes = file.contentBase64
-      ? decodeMarketplaceFileContent(file.path, file.contentBase64)
-      : await fetchMarketplaceSkillFileBlob(apiBase, slug, file);
-    writeFileSync(targetPath, bytes);
-  }
-}
-
 function ensureInstalledMarketplaceSkill(destinationDir: string, slug: string): void {
   if (!existsSync(join(destinationDir, "SKILL.md"))) {
     throw new Error(`Marketplace skill ${slug} does not include SKILL.md`);
@@ -302,7 +281,7 @@ export async function publishMarketplaceSkill(options: MarketplaceSkillPublishOp
     throw new Error(`Skill directory not found: ${skillDir}`);
   }
 
-  const files = collectFiles(skillDir);
+  const files = collectMarketplaceSkillFiles(skillDir);
   if (!files.some((file) => file.path === "SKILL.md")) {
     throw new Error(`Skill directory must include SKILL.md: ${skillDir}`);
   }
@@ -391,46 +370,10 @@ export async function publishMarketplaceSkill(options: MarketplaceSkillPublishOp
   };
 }
 
-function collectFiles(rootDir: string): Array<{ path: string; contentBase64: string }> {
-  const output: Array<{ path: string; contentBase64: string }> = [];
-
-  const walk = (dir: string, prefix: string): void => {
-    const entries = readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      const absolute = join(dir, entry.name);
-      const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
-      if (entry.isDirectory()) {
-        walk(absolute, relativePath);
-        continue;
-      }
-      if (!entry.isFile()) {
-        continue;
-      }
-      const content = readFileSync(absolute);
-      output.push({
-        path: relativePath,
-        contentBase64: content.toString("base64")
-      });
-    }
-  };
-
-  walk(rootDir, "");
-  return output;
-}
-
 function resolveBuiltinSkillDir(workdir: string, skillName: string): string {
-  const loader = new SkillsLoader(workdir);
-  const builtinSkill = loader.listSkills(false).find((skill) => skill.name === skillName && skill.source === "builtin");
-  if (!builtinSkill) {
+  const skillDir = new SkillManager({ workspace: workdir }).resolveBuiltinSkillDir(skillName);
+  if (!skillDir) {
     throw new Error(`Built-in skill not found in local installation: ${skillName}`);
   }
-  return dirname(builtinSkill.path);
-}
-
-function decodeMarketplaceFileContent(path: string, contentBase64: string): Buffer {
-  const normalized = contentBase64.replace(/\s+/g, "");
-  if (!normalized || normalized.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(normalized)) {
-    throw new Error(`Invalid marketplace file contentBase64 for path: ${path}`);
-  }
-  return Buffer.from(normalized, "base64");
+  return skillDir;
 }

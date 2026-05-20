@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { publishMarketplaceSkill } from "./marketplace.service.js";
+import { publishMarketplaceSkill } from "./marketplace.utils.js";
 
 const cleanupDirs: string[] = [];
 
