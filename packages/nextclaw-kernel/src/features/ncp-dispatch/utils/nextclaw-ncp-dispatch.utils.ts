@@ -36,13 +36,13 @@ export type DirectPromptDispatchParams = {
 export type GatewayInboundLoopRuntime = {
   kernel: {
     channels: ChannelManager;
+    agentRunRequestManager: NcpRunnerAgent;
   };
   messageBus: MessageBus;
   sessionManager: SessionManager;
   configManager: {
     loadConfig: () => Config;
   };
-  liveAgentRuntime: NcpRunnerAgent | null;
   appEventBus?: EventBus;
 };
 
@@ -325,7 +325,7 @@ export async function runGatewayInboundLoop(
         sessionKeyOverride: explicitSessionKey,
       });
       const agent = requireNcpAgent(
-        () => runtime.liveAgentRuntime,
+        () => runtime.kernel.agentRunRequestManager,
         "gateway dispatch",
       );
       const runMetadata = buildRunMetadata({

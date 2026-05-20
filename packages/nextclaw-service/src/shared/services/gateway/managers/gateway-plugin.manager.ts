@@ -1,139 +1,54 @@
-import {
-  getWorkspacePath,
-  type Config,
-} from "@nextclaw/core";
+import type { Config } from "@nextclaw/core";
 import { eventKeys } from "@nextclaw/shared";
 import {
-  getPluginChannelBindings,
-  getPluginUiMetadataFromRegistry,
   toPluginConfigView,
   type PluginChannelBinding,
   type PluginChannelGatewayHandle,
   type PluginDiagnostic,
-  type PluginRegistry,
-  type PluginUiMetadata,
 } from "@nextclaw/openclaw-compat";
-import {
-  createEmptyPluginRegistry,
-  logPluginDiagnostics,
-  toExtensionRegistry,
-  type NextclawExtensionRegistry,
-} from "@nextclaw-service/commands/plugin/index.js";
-import { shouldRestartChannelsForPluginReload } from "@nextclaw-service/commands/plugin/plugin-reload.js";
-import {
-  discoverPluginRegistryStatus,
-  loadPluginRegistryProgressively,
-} from "@nextclaw-service/commands/plugin/plugin-registry-loader.utils.js";
+import { logPluginDiagnostics } from "@nextclaw-service/commands/plugin/index.js";
 import {
   logPluginGatewayDiagnostics,
   pluginGatewayLogger,
 } from "@nextclaw-service/shared/services/gateway/service-startup-support.service.js";
 import type { NextclawGatewayRuntime } from "@nextclaw-service/shared/services/gateway/nextclaw-gateway-runtime.service.js";
 
-type PluginSnapshot = {
-  registry: PluginRegistry;
-  extensionRegistry: NextclawExtensionRegistry;
-  channelBindings: PluginChannelBinding[];
-  uiMetadata: PluginUiMetadata[];
-};
-
-type ExtensionContributions = {
-  channelBindings: PluginChannelBinding[];
-  uiMetadata: PluginUiMetadata[];
-};
-
-function toManifestChannelRegistrations(
-  channelBindings: PluginChannelBinding[],
-): NextclawExtensionRegistry["channels"] {
-  return channelBindings.map((binding) => ({
-    extensionId: binding.pluginId,
-    channel: binding.channel,
-    source: "extension-manifest",
-  }));
-}
-
-function buildSnapshot(
-  registry: PluginRegistry,
-  extensionContributions: ExtensionContributions,
-): PluginSnapshot {
-  const extensionChannelIds = new Set(extensionContributions.channelBindings.map((binding) => binding.channelId));
-  const extensionPluginIds = new Set(extensionContributions.uiMetadata.map((metadata) => metadata.id));
-  const registryExtensionRegistry = toExtensionRegistry(registry);
-  return {
-    registry,
-    extensionRegistry: {
-      ...registryExtensionRegistry,
-      channels: [
-        ...registryExtensionRegistry.channels.filter((registration) => {
-          const channelId = registration.channel.id?.trim();
-          return !channelId || !extensionChannelIds.has(channelId);
-        }),
-        ...toManifestChannelRegistrations(extensionContributions.channelBindings),
-      ],
-    },
-    channelBindings: [
-      ...getPluginChannelBindings(registry).filter((binding) => !extensionChannelIds.has(binding.channelId)),
-      ...extensionContributions.channelBindings,
-    ],
-    uiMetadata: [
-      ...getPluginUiMetadataFromRegistry(registry).filter((metadata) => !extensionPluginIds.has(metadata.id)),
-      ...extensionContributions.uiMetadata,
-    ],
-  };
-}
-
-function countEnabledPlugins(config: Config, workspaceDir: string): number {
-  return discoverPluginRegistryStatus(config, workspaceDir).plugins.filter((plugin) => plugin.enabled).length;
-}
-
 export class GatewayPluginManager {
-  private extensionContributions: ExtensionContributions = {
-    channelBindings: [],
-    uiMetadata: [],
-  };
-  private snapshot: PluginSnapshot = buildSnapshot(createEmptyPluginRegistry(), this.extensionContributions);
   private gatewayHandles: PluginChannelGatewayHandle[] = [];
 
   constructor(private readonly gateway: NextclawGatewayRuntime) {}
 
-  getRegistry = (): PluginRegistry => this.snapshot.registry;
+  getChannelBindings = (): PluginChannelBinding[] => this.gateway.kernel.extensions.getChannelBindings();
 
-  getExtensionRegistry = (): NextclawExtensionRegistry => this.snapshot.extensionRegistry;
-
-  getChannelBindings = (): PluginChannelBinding[] => this.snapshot.channelBindings;
-
-  getUiMetadata = (): PluginUiMetadata[] => this.snapshot.uiMetadata;
+  getUiMetadata = () => this.gateway.kernel.extensions.getUiMetadata();
 
   load = async (): Promise<void> => {
     const config = this.gateway.configManager.loadConfig();
-    const workspace = getWorkspacePath(config.agents.defaults.workspace);
-    const totalPluginCount = countEnabledPlugins(config, workspace);
-    let loadedPluginCount = 0;
-
-    this.gateway.bootstrapStatus.markPluginHydrationRunning({ totalPluginCount });
+    let totalPluginCount = 0;
     this.gateway.bootstrapStatus.markChannelsPending();
 
     try {
-      const registry = await loadPluginRegistryProgressively(config, workspace, {
+      const result = await this.gateway.kernel.extensions.load({
+        config,
+        onLoadStart: ({ totalPluginCount: nextTotalPluginCount }) => {
+          totalPluginCount = nextTotalPluginCount;
+          this.gateway.bootstrapStatus.markPluginHydrationRunning({ totalPluginCount: nextTotalPluginCount });
+        },
         onPluginProcessed: ({ loadedPluginCount: nextCount }) => {
-          loadedPluginCount = nextCount;
           this.gateway.bootstrapStatus.markPluginHydrationProgress({
             loadedPluginCount: nextCount,
             totalPluginCount,
           });
-        },
+        }
       });
-      this.extensionContributions = await this.gateway.extensions.loadContributions();
-      const shouldRebuildChannels = this.replaceSnapshot(registry, []);
-      this.loadKernelExtensionContributions(registry);
-      logPluginDiagnostics(registry);
+      logPluginDiagnostics({ diagnostics: result.diagnostics });
 
-      if (shouldRebuildChannels) {
+      if (result.shouldRestartChannels) {
         await this.gateway.configManager.rebuildChannels(config, { start: false });
       }
       this.publishConfigChanges();
       this.gateway.bootstrapStatus.markPluginHydrationReady({
-        loadedPluginCount: loadedPluginCount || totalPluginCount,
+        loadedPluginCount: result.loadedPluginCount,
         totalPluginCount,
       });
     } catch (error) {
@@ -146,17 +61,16 @@ export class GatewayPluginManager {
     config: Config;
     changedPaths: string[];
   }): Promise<{ restartChannels: boolean }> => {
-    const workspace = getWorkspacePath(params.config.agents.defaults.workspace);
-    const registry = await loadPluginRegistryProgressively(params.config, workspace);
-    this.extensionContributions = await this.gateway.extensions.loadContributions();
-    const restartChannels = this.replaceSnapshot(registry, params.changedPaths);
-    this.loadKernelExtensionContributions(registry);
-    logPluginDiagnostics(registry);
-    if (restartChannels) {
+    const result = await this.gateway.kernel.extensions.reloadForConfigChange({
+      config: params.config,
+      changedPaths: params.changedPaths,
+    });
+    logPluginDiagnostics({ diagnostics: result.diagnostics });
+    if (result.shouldRestartChannels) {
       await this.restartGateways();
     }
     this.publishConfigChanges();
-    return { restartChannels };
+    return { restartChannels: result.shouldRestartChannels };
   };
 
   reloadForDevHotReload = async (changedPaths: string[]): Promise<void> => {
@@ -174,9 +88,10 @@ export class GatewayPluginManager {
     const config = this.gateway.configManager.loadConfig();
     const diagnostics: PluginDiagnostic[] = [];
     const handles: PluginChannelGatewayHandle[] = [];
-    const configView = toPluginConfigView(config, this.snapshot.channelBindings);
+    const channelBindings = this.gateway.kernel.extensions.getChannelBindings();
+    const configView = toPluginConfigView(config, channelBindings);
 
-    for (const binding of this.snapshot.channelBindings) {
+    for (const binding of channelBindings) {
       if (!this.isChannelEnabled(binding.channelId, configView)) {
         continue;
       }
@@ -339,28 +254,4 @@ export class GatewayPluginManager {
     return (channelConfig as { enabled?: unknown }).enabled === true;
   };
 
-  private replaceSnapshot = (
-    registry: PluginRegistry,
-    changedPaths: string[],
-  ): boolean => {
-    const nextSnapshot = buildSnapshot(registry, this.extensionContributions);
-    const shouldRestartChannels = shouldRestartChannelsForPluginReload({
-      changedPaths,
-      currentPluginChannelBindings: this.snapshot.channelBindings,
-      nextPluginChannelBindings: nextSnapshot.channelBindings,
-      currentExtensionChannels: this.snapshot.extensionRegistry.channels,
-      nextExtensionChannels: nextSnapshot.extensionRegistry.channels,
-    });
-    this.snapshot = nextSnapshot;
-    return shouldRestartChannels;
-  };
-
-  private loadKernelExtensionContributions = (registry: PluginRegistry): void => {
-    this.gateway.kernel.extensions.loadContributions({
-      registry,
-      extensionRegistry: this.snapshot.extensionRegistry,
-      channelBindings: this.snapshot.channelBindings,
-      uiMetadata: this.snapshot.uiMetadata,
-    });
-  };
 }

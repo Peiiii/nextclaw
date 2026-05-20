@@ -40,7 +40,7 @@ export class AppRoutesController {
       ok({
         status: "ok",
         services: {
-          ncpAgent: this.options.ncpAgent ? "ready" : "unavailable",
+          ncpAgent: this.options.kernel?.agentRunRequestManager || this.options.agentRunRequests ? "ready" : "unavailable",
           cronService: this.options.cron ? "ready" : "unavailable"
         }
       })

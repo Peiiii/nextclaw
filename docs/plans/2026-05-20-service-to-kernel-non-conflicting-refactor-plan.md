@@ -263,6 +263,35 @@ kernel 已有 `LlmUsageManager` 和 `LlmUsageStore`，但 service CLI 侧仍有 
 
 可整理，但不如 skill/usage/config 三项直接服务 kernel 边界。
 
+### 6. Plugin Extension Snapshot 归属收敛
+
+状态：已完成。`ExtensionManager` 已承接 plugin registry 到 extension registry、channel bindings、UI metadata snapshot 的构建与 extension manifest contribution 合并规则；service `GatewayPluginManager` 只保留加载时机、bootstrap 状态、gateway 启停、日志和热重载触发。
+
+候选文件：
+
+- `packages/nextclaw-service/src/shared/services/gateway/managers/gateway-plugin.manager.ts`
+- `packages/nextclaw-service/src/commands/plugin/plugin-extension-registry.utils.ts`
+- 关联 kernel：`packages/nextclaw-kernel/src/managers/extension.manager.ts`
+
+现状与问题：
+
+- `ExtensionManager` 已经是 extension registry / channel bindings / UI metadata 的事实 owner。
+- 但 service gateway 侧仍自行构造 `PluginSnapshot`，并把构造结果再写回 kernel。
+- service plugin command 侧曾经暴露 `toExtensionRegistry` 工具函数，导致 plugin registry -> extension registry 的领域转换不在 kernel owner 内。
+
+完成结果：
+
+- `toExtensionRegistry` 收为 kernel 内部 helper，不再从 service plugin index 重导出。
+- registry channel 与 extension manifest channel 的去重/覆盖规则进入 `ExtensionManager.load/reloadForConfigChange`。
+- service 侧删除 `plugin-extension-registry.utils.ts` 与旧 `plugin-reload` helper。
+- `GatewayPluginManager` 不再持有 snapshot，只通过 `kernel.extensions` 加载和读取当前 registry、extension registry、channel bindings 和 UI metadata。
+
+建议优先级：已完成。
+
+原因：
+
+插件链路并行改动窗口关闭后，这项是明确的 owner 收敛：删除 service 侧重复 snapshot owner，且不触碰 plugin install/mutation/runtime bridge。
+
 ## 不建议进入 Kernel 的服务职责
 
 以下职责应留在 service，或者未来单独拆成 host/runtime package，而不是进入 kernel：
@@ -351,11 +380,13 @@ kernel 已有 `LlmUsageManager` 和 `LlmUsageStore`，但 service CLI 侧仍有 
 
 ## 当前推荐
 
-下一步先做 Step 1：`skills-loader.utils.ts` 的 owner 收敛。
+当前第一阶段已完成：
 
-理由：
+- Step 1：Skill Loader 收敛。
+- Step 2：LLM Usage Query 收敛。
+- Step 3：Gateway Config Mutation 子域拆分。
+- Plugin Extension Snapshot 归属收敛。
 
-- 不碰并行 runtime/extension/plugin 改动。
-- 文件小，边界清楚。
-- 能快速建立本轮“一个个解决”的重构节奏。
-- 对 NextClaw 自感知能力有直接帮助：skill discovery 应由 kernel 提供稳定能力入口。
+暂不继续推进 CLI config/secrets mutation：前次设计验证显示收益不足，会让 CLI 命令对象图变重，且 path 语法、plugin channel 投影视图、restart 提示仍属于 service 边界。
+
+下一步建议等 agent runtime 并行线稳定后，再重新评估 `Cron Job 到 NCP 执行规则`。如果只在当前低冲突范围内继续推进，优先做已完成模块的测试补强和文档收口，而不是继续寻找“看起来应该进 kernel”的弱收益迁移。

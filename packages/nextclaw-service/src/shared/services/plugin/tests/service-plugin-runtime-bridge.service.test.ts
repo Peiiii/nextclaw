@@ -35,7 +35,6 @@ import { installPluginRuntimeBridge } from "../utils/plugin-runtime-bridge.utils
 
 function createGateway(): NextclawGatewayRuntime {
   return {
-    liveAgentRuntime: null,
     kernel: {
       extensions: {
         toConfigView: (config: unknown) => config,

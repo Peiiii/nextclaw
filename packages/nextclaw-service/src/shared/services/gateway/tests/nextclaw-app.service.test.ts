@@ -3,37 +3,6 @@ import { EventBus } from "@nextclaw/shared";
 import { NextclawApp } from "../nextclaw-app.service.js";
 import type { NextclawGatewayRuntime } from "../nextclaw-gateway-runtime.service.js";
 
-function createAgentHandle() {
-  return {
-    sessionApi: {},
-    agentClientEndpoint: {
-      start: async () => undefined,
-      stop: async () => undefined,
-      send: async () => ({
-        sessionId: "session-1",
-        userMessageId: "user-1",
-        assistantMessageId: null,
-        runId: null,
-      }),
-      stream: async () => undefined,
-      abort: async () => undefined,
-      emit: async () => undefined,
-      subscribe: () => () => undefined,
-      manifest: {
-        endpointKind: "agent",
-        endpointId: "test",
-        version: "0.0.0",
-        supportsStreaming: true,
-        supportsAbort: true,
-        supportsProactiveMessages: false,
-        supportsLiveSessionStream: true,
-        supportedPartTypes: ["text"],
-        expectedLatency: "seconds",
-      },
-    },
-  };
-}
-
 function createGateway(params: {
   order?: string[];
   uiEnabled?: boolean;
@@ -58,11 +27,7 @@ function createGateway(params: {
     uiConfig: {
       enabled: params.uiEnabled === true,
     },
-    uiStartup: {
-      deferredNcpAgent: {
-        activate: vi.fn(() => order.push("activate-ui-agent")),
-      },
-    },
+    uiStartup: {},
     sessions: {
       publishSessionChange: vi.fn(),
     },
@@ -84,19 +49,13 @@ function createGateway(params: {
     restartWake: {
       wakeFromRestartSentinel: params.wakeFromRestartSentinel ?? vi.fn(async () => undefined),
     },
-    liveAgentRuntime: null,
   } as unknown as NextclawGatewayRuntime;
-  gateway.activateAgentRuntime = vi.fn((agent) => {
-    gateway.uiStartup.deferredNcpAgent.activate(agent);
-    gateway.bootstrapStatus.markNcpAgentReady();
-  });
   return gateway;
 }
 
 describe("NextclawApp", () => {
   it("marks the NCP agent ready immediately after kernel bootstrap and before plugin loading", async () => {
     const order: string[] = [];
-    const ncpAgent = createAgentHandle();
     const gateway = createGateway({
       order,
       uiEnabled: true,
@@ -119,8 +78,10 @@ describe("NextclawApp", () => {
         start: vi.fn(async () => {
           order.push("bootstrap-kernel");
         }),
-        agentRuntimeManager: {
-          currentHandle: ncpAgent,
+        extensions: {
+          start: vi.fn(async () => {
+            order.push("start-extensions");
+          }),
         },
       } as never,
     );
@@ -128,7 +89,7 @@ describe("NextclawApp", () => {
     await app.start();
 
     expect(order).toContain("mark-ready");
-    expect(order.indexOf("mark-ready")).toBeGreaterThan(order.indexOf("activate-ui-agent"));
+    expect(order.indexOf("mark-ready")).toBeGreaterThan(order.indexOf("bootstrap-kernel"));
     expect(order.indexOf("mark-ready")).toBeLessThan(order.indexOf("load-plugins"));
     expect(order).toEqual(
       expect.arrayContaining([
@@ -159,8 +120,8 @@ describe("NextclawApp", () => {
         start: vi.fn(async () => {
           throw new Error("kernel failed");
         }),
-        agentRuntimeManager: {
-          currentHandle: null,
+        extensions: {
+          start: vi.fn(async () => undefined),
         },
       } as never,
     );

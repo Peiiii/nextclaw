@@ -1,6 +1,5 @@
 import {
   buildPluginStatusReport,
-  loadOpenClawPlugins,
   resolveUninstallDirectoryTargets,
   type PluginRegistry
 } from "@nextclaw/openclaw-compat";
@@ -8,10 +7,7 @@ import {
   appendPluginCapabilityLines,
   buildReservedPluginLoadOptions,
 } from "./plugin-command.utils.js";
-import {
-  resolveDevPluginLoadingContext,
-} from "./development-source/dev-plugin-overrides.utils.js";
-import { resolveDevFirstPartyPluginDir } from "./development-source/first-party-plugin-load-paths.utils.js";
+import { ExtensionPluginRegistryService } from "@nextclaw/kernel";
 import {
   loadConfig,
   type Config,
@@ -31,8 +27,6 @@ import {
   installPluginMutation,
   uninstallPluginMutation,
 } from "./plugin-mutation-actions.utils.js";
-export { type NextclawExtensionRegistry, toExtensionRegistry } from "./plugin-extension-registry.utils.js";
-export { createEmptyPluginRegistry } from "./plugin-registry-loader.utils.js";
 export { mergePluginConfigView, toPluginConfigView } from "@nextclaw/openclaw-compat";
 
 type PluginStatusReport = ReturnType<typeof buildPluginStatusReport>;
@@ -40,26 +34,13 @@ type PluginStatusEntry = PluginStatusReport["plugins"][number];
 type PluginInstallRecord = NonNullable<Config["plugins"]["installs"]>[string];
 
 export function loadPluginRegistry(config: Config, workspaceDir: string): PluginRegistry {
-  const workspaceExtensionsDir = resolveDevFirstPartyPluginDir(process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR);
-  const { configWithDevPluginOverrides, excludedRoots } = resolveDevPluginLoadingContext(
+  return new ExtensionPluginRegistryService().load({
     config,
-    workspaceExtensionsDir,
-  );
-  return loadOpenClawPlugins({
-    config: configWithDevPluginOverrides,
-    workspaceDir,
-    excludeRoots: excludedRoots,
-    ...buildReservedPluginLoadOptions(),
-    logger: {
-      info: (message) => console.log(message),
-      warn: (message) => console.warn(message),
-      error: (message) => console.error(message),
-      debug: (message) => console.debug(message)
-    }
+    workspace: workspaceDir,
   });
 }
 
-export function logPluginDiagnostics(registry: PluginRegistry): void {
+export function logPluginDiagnostics(registry: Pick<PluginRegistry, "diagnostics">): void {
   for (const diag of registry.diagnostics) {
     const prefix = diag.pluginId ? `${diag.pluginId}: ` : "";
     const text = `${prefix}${diag.message}`;

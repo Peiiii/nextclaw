@@ -1,17 +1,18 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as NextclawCoreModule from "@nextclaw/core";
 import type * as OpenclawCompatModule from "@nextclaw/openclaw-compat";
 
 const mocks = vi.hoisted(() => ({
-  discoverPluginRegistryStatusMock: vi.fn(),
+  discoverPluginStatusReportMock: vi.fn(),
   getPluginChannelBindingsMock: vi.fn(),
   getPluginUiMetadataFromRegistryMock: vi.fn(),
   getWorkspacePathMock: vi.fn(),
-  loadPluginRegistryProgressivelyMock: vi.fn(),
+  loadOpenClawPluginsProgressivelyMock: vi.fn(),
   logPluginDiagnosticsMock: vi.fn(),
   logPluginGatewayDiagnosticsMock: vi.fn(),
-  shouldRestartChannelsForPluginReloadMock: vi.fn(),
-  toExtensionRegistryMock: vi.fn(),
   toPluginConfigViewMock: vi.fn(),
 }));
 
@@ -27,25 +28,16 @@ vi.mock("@nextclaw/openclaw-compat", async (importOriginal) => {
   const actual = await importOriginal<typeof OpenclawCompatModule>();
   return {
     ...actual,
+    discoverPluginStatusReport: mocks.discoverPluginStatusReportMock,
     getPluginChannelBindings: mocks.getPluginChannelBindingsMock,
     getPluginUiMetadataFromRegistry: mocks.getPluginUiMetadataFromRegistryMock,
+    loadOpenClawPluginsProgressively: mocks.loadOpenClawPluginsProgressivelyMock,
     toPluginConfigView: mocks.toPluginConfigViewMock,
   };
 });
 
-vi.mock("@nextclaw-service/commands/plugin/plugin-registry-loader.utils.js", () => ({
-  discoverPluginRegistryStatus: mocks.discoverPluginRegistryStatusMock,
-  loadPluginRegistryProgressively: mocks.loadPluginRegistryProgressivelyMock,
-}));
-
-vi.mock("@nextclaw-service/commands/plugin/plugin-reload.js", () => ({
-  shouldRestartChannelsForPluginReload: mocks.shouldRestartChannelsForPluginReloadMock,
-}));
-
 vi.mock("@nextclaw-service/commands/plugin/index.js", () => ({
-  createEmptyPluginRegistry: () => ({ plugins: [] }),
   logPluginDiagnostics: mocks.logPluginDiagnosticsMock,
-  toExtensionRegistry: mocks.toExtensionRegistryMock,
 }));
 
 vi.mock("../service-startup-support.service.js", () => ({
@@ -59,59 +51,121 @@ vi.mock("../service-startup-support.service.js", () => ({
 }));
 
 import { GatewayPluginManager } from "../managers/gateway-plugin.manager.js";
+import { ExtensionManager } from "@nextclaw/kernel";
 import type { NextclawGatewayRuntime } from "../nextclaw-gateway-runtime.service.js";
+
+const tempDirs: string[] = [];
+const originalDisableBuiltinExtensions = process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS;
+const originalDevFirstPartyPluginDir = process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR;
+
+const createRegistry = (partial: Record<string, unknown> = {}) => ({
+  plugins: [],
+  tools: [],
+  channels: [],
+  providers: [],
+  diagnostics: [],
+  resolvedTools: [],
+  ...partial,
+});
+
+function createTempDir(): string {
+  const dir = mkdtempSync(join(tmpdir(), "nextclaw-gateway-plugin-test-"));
+  tempDirs.push(dir);
+  return dir;
+}
 
 const createGateway = (config: Record<string, unknown> = {
   agents: { defaults: { workspace: "~/.nextclaw/workspace" } },
-}): NextclawGatewayRuntime => ({
-  appEventBus: {
-    emit: vi.fn(),
-    emitEnvelope: vi.fn(),
-  },
-  bootstrapStatus: {
-    markChannelsPending: vi.fn(),
-    markPluginHydrationError: vi.fn(),
-    markPluginHydrationProgress: vi.fn(),
-    markPluginHydrationReady: vi.fn(),
-    markPluginHydrationRunning: vi.fn(),
-  },
-  liveAgentRuntime: null,
-  kernel: {
-    extensions: {
-      loadContributions: vi.fn(),
+  plugins: { load: { paths: [] } },
+}): NextclawGatewayRuntime => {
+  const extensions = new ExtensionManager({
+    configManager: {
+      loadConfig: () => config as never,
     },
-  },
-  configManager: {
-    loadConfig: () => config,
-    rebuildChannels: vi.fn(async () => undefined),
-  },
-  extensions: {
-    loadContributions: vi.fn(async () => ({
-      channelBindings: [],
-      uiMetadata: [],
-    })),
-  },
-} as never);
+    eventBus: {
+      emitEnvelope: vi.fn(),
+    },
+    ingress: {
+      addHandler: vi.fn(),
+    },
+    messageBus: {
+      publishInbound: vi.fn(),
+    },
+  });
+  return {
+    appEventBus: {
+      emit: vi.fn(),
+      emitEnvelope: vi.fn(),
+    },
+    bootstrapStatus: {
+      markChannelsPending: vi.fn(),
+      markPluginHydrationError: vi.fn(),
+      markPluginHydrationProgress: vi.fn(),
+      markPluginHydrationReady: vi.fn(),
+      markPluginHydrationRunning: vi.fn(),
+    },
+    kernel: {
+      extensions,
+    },
+    configManager: {
+      loadConfig: () => config,
+      rebuildChannels: vi.fn(async () => undefined),
+    },
+  } as never;
+};
 
 describe("GatewayPluginManager", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS = "1";
+    process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR = createTempDir();
     mocks.getWorkspacePathMock.mockReturnValue("/tmp/workspace");
-    mocks.discoverPluginRegistryStatusMock.mockReturnValue({
-      plugins: [{ enabled: true }],
-    });
+    mocks.discoverPluginStatusReportMock.mockReturnValue({ plugins: [{ enabled: true }] });
     mocks.getPluginChannelBindingsMock.mockReturnValue([]);
     mocks.getPluginUiMetadataFromRegistryMock.mockReturnValue([]);
-    mocks.shouldRestartChannelsForPluginReloadMock.mockReturnValue(true);
-    mocks.toExtensionRegistryMock.mockReturnValue({ channels: [] });
+    mocks.loadOpenClawPluginsProgressivelyMock.mockResolvedValue(createRegistry());
     mocks.toPluginConfigViewMock.mockImplementation((config) => config);
+  });
+
+  afterEach(() => {
+    if (originalDisableBuiltinExtensions === undefined) {
+      delete process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS;
+    } else {
+      process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS = originalDisableBuiltinExtensions;
+    }
+    if (originalDevFirstPartyPluginDir === undefined) {
+      delete process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR;
+    } else {
+      process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR = originalDevFirstPartyPluginDir;
+    }
+    while (tempDirs.length > 0) {
+      const dir = tempDirs.pop();
+      if (dir) {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    }
   });
 
   it("owns plugin registry derived state during load", async () => {
     const gateway = createGateway();
     const manager = new GatewayPluginManager(gateway);
-    const registry = { plugins: [{ id: "nextclaw-channel-test" }] };
-    const extensionRegistry = { channels: [{ channel: { id: "test" } }] };
+    const registry = createRegistry({
+      plugins: [{ id: "nextclaw-channel-test" }],
+      channels: [{
+        pluginId: "nextclaw-channel-test",
+        channel: { id: "test" },
+        source: "plugin",
+      }],
+    });
+    const extensionRegistry = {
+      tools: [],
+      channels: [{
+        extensionId: "nextclaw-channel-test",
+        channel: { id: "test" },
+        source: "plugin",
+      }],
+      diagnostics: [],
+    };
     const channelBindings = [
       {
         pluginId: "nextclaw-channel-test",
@@ -119,67 +173,77 @@ describe("GatewayPluginManager", () => {
         channel: { id: "test" },
       },
     ];
-    const uiMetadata = [{ id: "nextclaw-channel-test" }];
-    mocks.loadPluginRegistryProgressivelyMock.mockResolvedValue(registry);
-    mocks.toExtensionRegistryMock.mockReturnValue(extensionRegistry);
+    mocks.loadOpenClawPluginsProgressivelyMock.mockResolvedValue(registry);
     mocks.getPluginChannelBindingsMock.mockReturnValue(channelBindings);
-    mocks.getPluginUiMetadataFromRegistryMock.mockReturnValue(uiMetadata);
 
     await manager.load();
 
     expect(gateway.configManager.rebuildChannels).toHaveBeenCalledTimes(1);
-    expect(manager.getRegistry()).toBe(registry);
-    expect(manager.getExtensionRegistry()).toEqual(extensionRegistry);
-    expect(manager.getChannelBindings()).toEqual(expect.arrayContaining(channelBindings));
-    expect(manager.getUiMetadata()).toEqual(expect.arrayContaining(uiMetadata));
+    expect(mocks.logPluginDiagnosticsMock).toHaveBeenCalledWith({
+      diagnostics: registry.diagnostics,
+    });
+    expect(gateway.kernel.extensions.getExtensionRegistry()).toEqual(extensionRegistry);
+    expect(gateway.kernel.extensions.getChannelBindings()).toEqual(expect.arrayContaining(channelBindings));
   });
 
   it("merges extension manifest contributions without direct extension package imports", async () => {
-    const gateway = createGateway();
+    const extensionRoot = createTempDir();
+    const extensionDir = join(extensionRoot, "nextclaw-channel-extension-weixin");
+    mkdirSync(extensionDir);
+    writeFileSync(join(extensionDir, "nextclaw.extension.json"), JSON.stringify({
+      id: "nextclaw-channel-extension-weixin",
+      server: {
+        type: "stdio",
+        command: "node",
+      },
+      contributes: {
+        channels: [{
+          id: "weixin",
+          name: "Weixin",
+          configSchema: { type: "object" },
+        }],
+      },
+    }));
+    const gateway = createGateway({
+      agents: { defaults: { workspace: "~/.nextclaw/workspace" } },
+      plugins: { load: { paths: [extensionRoot] } },
+    });
     const manager = new GatewayPluginManager(gateway);
     const legacyWeixinBinding = {
       pluginId: "nextclaw-channel-plugin-weixin",
       channelId: "weixin",
       channel: { id: "weixin" },
     };
-    const extensionContributions = {
-      channelBindings: [{
-        pluginId: "nextclaw-channel-extension-weixin",
-        channelId: "weixin",
-        channel: { id: "weixin" },
-      }],
-      uiMetadata: [{
-        id: "nextclaw-channel-extension-weixin",
-        configSchema: { type: "object" },
-      }],
-    };
-    mocks.loadPluginRegistryProgressivelyMock.mockResolvedValue({ plugins: [] });
-    mocks.getPluginChannelBindingsMock.mockReturnValue([legacyWeixinBinding]);
-    mocks.toExtensionRegistryMock.mockReturnValue({
+    mocks.loadOpenClawPluginsProgressivelyMock.mockResolvedValue(createRegistry({
       channels: [{
-        extensionId: "nextclaw-channel-plugin-weixin",
+        pluginId: "nextclaw-channel-plugin-weixin",
         channel: { id: "weixin" },
         source: "plugin",
       }],
-      tools: [],
-      diagnostics: [],
-    });
-    (gateway.extensions.loadContributions as ReturnType<typeof vi.fn>).mockResolvedValue(extensionContributions);
+    }));
+    mocks.getPluginChannelBindingsMock.mockReturnValue([legacyWeixinBinding]);
 
     await manager.load();
 
-    expect(manager.getChannelBindings()).toEqual(extensionContributions.channelBindings);
-    expect(manager.getExtensionRegistry().channels).toEqual([{
-      extensionId: "nextclaw-channel-extension-weixin",
-      channel: { id: "weixin" },
-      source: "extension-manifest",
-    }]);
-    expect(manager.getUiMetadata()).toEqual(extensionContributions.uiMetadata);
+    expect(gateway.kernel.extensions.getChannelBindings()).toEqual([
+      expect.objectContaining({
+        pluginId: "nextclaw-channel-extension-weixin",
+        channelId: "weixin",
+      }),
+    ]);
+    expect(gateway.kernel.extensions.getExtensionRegistry().channels).toEqual([
+      expect.objectContaining({
+        extensionId: "nextclaw-channel-extension-weixin",
+        channel: expect.objectContaining({ id: "weixin" }),
+        source: "extension-manifest",
+      }),
+    ]);
   });
 
   it("owns plugin gateway handles", async () => {
     const gateway = createGateway({
       agents: { defaults: { workspace: "~/.nextclaw/workspace" } },
+      plugins: { load: { paths: [] } },
       channels: {
         test: { enabled: true },
       },
@@ -200,7 +264,9 @@ describe("GatewayPluginManager", () => {
         },
       },
     };
-    mocks.loadPluginRegistryProgressivelyMock.mockResolvedValue({ plugins: [{ id: "nextclaw-channel-test" }] });
+    mocks.loadOpenClawPluginsProgressivelyMock.mockResolvedValue(createRegistry({
+      plugins: [{ id: "nextclaw-channel-test" }],
+    }));
     mocks.getPluginChannelBindingsMock.mockReturnValue([binding]);
     mocks.toPluginConfigViewMock.mockReturnValue({
       channels: {

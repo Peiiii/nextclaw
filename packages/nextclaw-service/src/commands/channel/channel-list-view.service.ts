@@ -4,10 +4,8 @@ import { resolveChannelConfigView } from "./channel-config-view.js";
 import {
   ExtensionManifestDiscoveryService,
   type ExtensionManifest,
-} from "../../shared/services/extensions/extension-lifecycle.service.js";
-import {
   resolveExtensionManifestRoots,
-} from "../../shared/services/extensions/service-extension-runtime.service.js";
+} from "@nextclaw/kernel";
 
 export type ChannelListEntry = {
   id: string;

@@ -131,16 +131,12 @@ export class SessionContextWindowContribution implements KernelContribution {
     if (!isContextWindow(contextWindow) || this.stopped) {
       return;
     }
-    const endpoint = this.kernel.agentRuntimeManager.currentHandle?.agentClientEndpoint;
-    if (!endpoint) {
-      return;
-    }
     const signature = createSignature(contextWindow);
     if (this.lastPublishedSignatureBySession.get(sessionId) === signature) {
       return;
     }
     this.lastPublishedSignatureBySession.set(sessionId, signature);
-    await endpoint.emit({
+    await this.kernel.agentRunRequestManager.emit({
       type: NcpEventType.ContextWindowUpdated,
       payload: {
         sessionId,

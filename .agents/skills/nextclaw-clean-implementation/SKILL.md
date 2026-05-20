@@ -81,6 +81,8 @@ description: Use when implementing or refactoring code in this repository, espec
 - 字段和派生状态归属数据生成者或视图生成者，不能归属路过的装配层、bridge、router 或 callback
 - 领域 owner 要自己拥有创建、缓存、状态恢复、reload、dispose 等领域闭环；上层只传它无法自知的外部事实，例如配置快照、用户输入、路径、观测端口或明确策略
 - `responsibility-surface-minimization`：owner 自己能推导或决定的内部实现细节不外传；只有跨边界外部事实、明确策略、用户选择、测试替身或真实扩展点才进入参数表面
+- 子系统 manager / facade 必须暴露意图级能力，而不是内部中间态装载入口。外部业务流不应传入或感知 registry、snapshot、contributions、resolved view、derived bindings 这类 owner 内部实现细节；这些加载、发现、合并和生命周期闭环应由 facade 内部或它的私有协作者持有。
+- 不要把职责泄露从 public 方法挪到 constructor deps / options 里伪装成收敛。如果依赖项代表的是该 owner 本应内聚的领域动作，例如 `loadRegistry`、`loadContributions`、`installHost`、`resolveXxx`、`createXxx`，那仍然是空心 owner；构造参数只应承接 owner 无法自知的基础设施事实、外部端口、明确策略或测试替身。
 
 ### 2.1 这是语义建模还是结构搬运
 
@@ -101,8 +103,10 @@ description: Use when implementing or refactoring code in this repository, espec
 - 事件名如果声明承载某个既有协议事件，payload 必须保持该协议事件本体；路由、权限、展示上下文、派生 metadata 属于独立 owner 或独立事件，不能混进同名协议事件里
 - 不用“原样转发整个接口 + 改一个方法”的方式解决局部问题
 - 不用 getter / alias / proxy 冒充删除重复入口。`get oldName() { return this.newName; }` 只有在明确保留兼容 contract 时才允许；重构收敛场景必须继续改调用方或改 contract，让公共入口真的只剩一个。
+- 新增、移动或重命名 public owner API、export type、manager method 后，必须用搜索反查调用方；如果没有调用方，且它不是明确外部 contract、测试入口或即将由本次改动接入的主路径，必须直接删除，不能留下“可能以后用”的模糊入口。
 - 常量表、key catalog、协议 key、事件 key 这类共享契约，默认只保留“真正被使用的事实名称”。禁止额外包装通用构造函数、禁止导出只转指向 catalog 的别名常量、禁止添加没有调用方收益的分类层级；如果分类只让路径变长或让概念显得更正式，直接删除。
 - key catalog / 协议 key 的 payload 类型必须是真实协议类型，不能为了放进更上层 package、规避依赖方向或凑行数而裁剪字段、放宽必填项、退化成 `unknown` / `Record<string, unknown>` / `Partial<Record<...>>`。如果真实类型依赖不该被 shared 依赖的模块，要么把纯协议 contract 上移成共享事实源，要么让 key 留在真正 owner 模块；禁止用有损类型假装统一维护。
+- 生产代码里的公共类型和 options 类型必须使用明确命名的 contract；禁止用 `import("...")` type query、深层 `ReturnType<...>` / `Awaited<...>` 链式索引去偷取另一个 owner 的返回结构。需要复用时，应在真实 contract owner 处导出命名类型，或在当前边界定义语义清晰的本地类型。
 - 目标外变更必须默认拒绝。修改、删除或“顺手整理”任何与当前目标没有直接关系的公共契约、类型字段、导出、配置、格式、命名、行为分支或文件结构前，必须先证明它降低了真实维护成本、修复了明确问题，或是当前目标不可避免的一部分；否则保持原样。公共 contract 的字段即使当前调用方暂时没读，也不能因为“看起来没用”就删，除非废弃语义、调用方影响、删除点和验证路径都明确。
 - Owner 状态只能由 owner 自己改变。普通函数、helper、service、callback 不得出现 `params.owner.xxx = ...`、`runtime.xxx = ...`、`gateway.xxx = ...` 这类从外部改 owner 字段的写法；它们只能返回结果，或调用 owner 暴露的明确业务方法。若方法只是 setter 包装且没有业务语义，也应继续收回 owner 内部。
 - 生命周期 owner 里如果出现多个 `unsubscribeXxx` / `cleanupXxx` 字段，默认先收敛成 `cleanups` / `disposables` collection 或复用项目已有 disposable owner；`start/stop` 用显式生命周期状态判断，不依赖 cleanup collection 反推状态；`stop/dispose` 才统一 drain。不要用多个平行 nullable 字段表达同一类生命周期清理职责，也不要让 `start` 隐式执行 stop/cleanup 语义。

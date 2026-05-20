@@ -1,16 +1,14 @@
 import type { NextclawKernel } from "@nextclaw/kernel";
 import { logStartupTrace, measureStartupAsync } from "@nextclaw-service/shared/utils/startup-trace.js";
-import type { DeferredUiNcpAgentController } from "@nextclaw-service/shared/services/session/service-deferred-ncp-agent.service.js";
 import type { NextclawGatewayRuntime } from "@nextclaw-service/shared/services/gateway/nextclaw-gateway-runtime.service.js";
 
 export type UiStartupHandle = {
-  deferredNcpAgent: DeferredUiNcpAgentController;
   endpoint: string;
 };
 
 type NextclawAppKernel = Pick<
   NextclawKernel,
-  "agentRuntimeManager" | "start"
+  "extensions" | "start"
 >;
 
 export class NextclawApp {
@@ -42,11 +40,7 @@ export class NextclawApp {
       "service.deferred_startup.bootstrap_kernel",
       async () => await this.kernel.start(),
     );
-    const ncpAgent = this.kernel.agentRuntimeManager.currentHandle;
-    if (!ncpAgent) {
-      throw new Error("Kernel start completed without an agent runtime handle.");
-    }
-    this.gateway.activateAgentRuntime(ncpAgent);
+    this.gateway.bootstrapStatus.markNcpAgentReady();
     if (this.gateway.uiConfig.enabled) {
       console.log("✓ UI NCP agent: ready");
       return;
@@ -65,7 +59,7 @@ export class NextclawApp {
     );
     await measureStartupAsync(
       "service.deferred_startup.start_extensions",
-      this.gateway.extensions.start,
+      async () => await this.kernel.extensions.start({ endpoint: this.gateway.uiStartup.endpoint }),
     );
     await measureStartupAsync("service.deferred_startup.start_channels", this.gateway.startDeferredChannels);
     await measureStartupAsync(

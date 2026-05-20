@@ -232,11 +232,7 @@ export async function startUiServer(gateway: UiRouterOptions): Promise<UiServerH
       new Promise((resolve) => {
         unsubscribeEventBus();
         wss.close(() => {
-          server.close(() => {
-            Promise.resolve(gateway.ncpAgent?.agentClientEndpoint.stop())
-              .catch(() => undefined)
-              .finally(() => resolve());
-          });
+          server.close(() => resolve());
         });
       })
   };

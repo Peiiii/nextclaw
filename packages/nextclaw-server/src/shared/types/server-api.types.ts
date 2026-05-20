@@ -1,7 +1,6 @@
 import type { ThinkingLevel } from "@nextclaw/core";
 import type { AppEvent } from "@nextclaw/shared";
-import type { NcpAgentClientEndpoint, NcpMessage, NcpSessionApi, NcpSessionStatus, NcpSessionSummary } from "@nextclaw/ncp";
-import type { NcpHttpAgentStreamProvider } from "@nextclaw/ncp-http-agent-server";
+import type { NcpMessage, NcpSessionApi, NcpSessionStatus, NcpSessionSummary } from "@nextclaw/ncp";
 import type { UiNcpStoredAssetRecord } from "@nextclaw-server/features/attachments/index.js";
 export type * from "@nextclaw-server/features/marketplace/types/marketplace.types.js";
 export type * from "@nextclaw-server/features/attachments/index.js";
@@ -434,8 +433,6 @@ export type RuntimeEntryView = {
   config?: Record<string, unknown>;
 };
 
-import type { ChatSessionTypesView } from "@nextclaw-server/features/sessions/index.js";
-
 export type {
   ChatSessionTypeCtaView,
   ChatSessionTypeOptionView,
@@ -678,21 +675,15 @@ export type SessionTypeDescribeParams = {
 
 export type UiNcpSessionService = NcpSessionApi;
 
-export type UiNcpAgent = {
-  agentClientEndpoint: NcpAgentClientEndpoint;
-  streamProvider?: NcpHttpAgentStreamProvider;
-  listSessionTypes?: (params?: SessionTypeDescribeParams) => Promise<ChatSessionTypesView> | ChatSessionTypesView;
-  assetApi?: {
-    put: (input: {
-      fileName: string;
-      mimeType?: string | null;
-      bytes: Uint8Array;
-      createdAt?: Date;
-    }) => Promise<UiNcpStoredAssetRecord>;
-    stat: (uri: string) => Promise<UiNcpStoredAssetRecord | null> | UiNcpStoredAssetRecord | null;
-    resolveContentPath: (uri: string) => string | null;
-  };
-  basePath?: string;
+export type UiNcpAssetService = {
+  put: (input: {
+    fileName: string;
+    mimeType?: string | null;
+    bytes: Uint8Array;
+    createdAt?: Date;
+  }) => Promise<UiNcpStoredAssetRecord>;
+  stat: (uri: string) => Promise<UiNcpStoredAssetRecord | null> | UiNcpStoredAssetRecord | null;
+  resolveContentPath: (uri: string) => string | null;
 };
 
 export type ConfigView = {

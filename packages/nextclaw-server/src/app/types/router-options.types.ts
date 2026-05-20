@@ -1,5 +1,5 @@
 import type * as NextclawCore from "@nextclaw/core";
-import type { LlmProviderManager } from "@nextclaw/kernel";
+import type { LlmProviderManager, NextclawKernel } from "@nextclaw/kernel";
 import type {
   EventBus,
   Ingress,
@@ -10,6 +10,7 @@ import type { PluginChannelBinding, PluginUiMetadata } from "@nextclaw/openclaw-
 import type { UiAuthService } from "@nextclaw-server/features/auth/index.js";
 import type {
   BootstrapStatusView,
+  ChatSessionTypesView,
   MarketplaceApiConfig,
   RemoteBrowserAuthPollRequest,
   RemoteBrowserAuthPollResult,
@@ -22,10 +23,21 @@ import type {
   RemoteServiceAction,
   RemoteServiceActionResult,
   RemoteSettingsUpdateRequest,
-  UiNcpAgent,
+  SessionTypeDescribeParams,
+  UiNcpAssetService,
   UiNcpSessionService
 } from "@nextclaw-server/shared/types/server-api.types.js";
 import type { RuntimeControlActionResult, RuntimeControlView } from "@nextclaw-server/features/runtime-control/index.js";
+import type {
+  NcpAgentRunSendOptions,
+  NcpAgentRunStreamOptions,
+  NcpAgentSendEnvelope,
+  NcpEndpointEvent,
+  NcpMessageAbortPayload,
+  NcpRequestEnvelope,
+  NcpRunHandle,
+  NcpStreamRequestPayload,
+} from "@nextclaw/ncp";
 
 export type UiAppEventBus = Pick<EventBus, "emit" | "subscribeAll">;
 export type UiIngress = Pick<Ingress, "handle">;
@@ -40,6 +52,28 @@ export type UiPluginHost = {
 };
 
 export type UiNcpSessionHost = UiNcpSessionService;
+
+export type UiKernelHost = Pick<
+  NextclawKernel,
+  "agentRunRequestManager" | "agentRuntimeManager" | "assetStore" | "llmProviders" | "ncpSessionApi"
+>;
+
+export type UiAgentRunRequestHost = {
+  send: (envelope: NcpAgentSendEnvelope) => Promise<NcpRunHandle>;
+  run: (
+    envelope: NcpRequestEnvelope,
+    options?: NcpAgentRunSendOptions,
+  ) => AsyncIterable<NcpEndpointEvent>;
+  stream: (
+    payload: NcpStreamRequestPayload,
+    options?: NcpAgentRunStreamOptions,
+  ) => AsyncIterable<NcpEndpointEvent>;
+  abort: (payload: NcpMessageAbortPayload) => Promise<void>;
+};
+
+export type UiAgentRuntimeTypeHost = {
+  listSessionTypes: (params?: SessionTypeDescribeParams) => Promise<ChatSessionTypesView> | ChatSessionTypesView;
+};
 
 export type UiCronHost = {
   listJobs: (includeDisabled?: boolean) => CronJobEntry[];
@@ -61,6 +95,7 @@ export type UiCronHost = {
 };
 
 export type UiRouterOptions = {
+  kernel?: UiKernelHost;
   configPath: string;
   appEventBus: UiAppEventBus;
   ingress?: UiIngress;
@@ -72,7 +107,9 @@ export type UiRouterOptions = {
   initializeAgentHomeDirectory?: (homeDirectory: string) => void;
   marketplace?: MarketplaceApiConfig;
   cron?: UiCronHost;
-  ncpAgent?: UiNcpAgent;
+  agentRunRequests?: UiAgentRunRequestHost;
+  agentRuntimeTypes?: UiAgentRuntimeTypeHost;
+  ncpAssets?: UiNcpAssetService;
   sessions?: UiNcpSessionHost;
   authService?: UiAuthService;
   remoteAccess?: UiRemoteAccessHost;

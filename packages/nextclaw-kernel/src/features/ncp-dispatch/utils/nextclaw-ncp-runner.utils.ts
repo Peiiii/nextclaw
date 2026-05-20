@@ -1,10 +1,11 @@
 import type { InboundAttachment } from "@nextclaw/core";
 import {
   NcpEventType,
-  type NcpAgentRunApi,
+  type NcpAgentRunSendOptions,
   type NcpEndpointEvent,
   type NcpMessage,
   type NcpMessagePart,
+  type NcpRequestEnvelope,
 } from "@nextclaw/ncp";
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
@@ -21,7 +22,10 @@ type AssetApi = {
 };
 
 export type NcpRunnerAgent = {
-  runApi: NcpAgentRunApi;
+  run: (
+    envelope: NcpRequestEnvelope,
+    options?: NcpAgentRunSendOptions,
+  ) => AsyncIterable<NcpEndpointEvent>;
   assetApi?: AssetApi;
 };
 
@@ -228,7 +232,7 @@ export async function* streamPromptOverNcp(
     assetApi: agent.assetApi,
   });
 
-  for await (const event of agent.runApi.send(
+  for await (const event of agent.run(
     {
       sessionId,
       message,

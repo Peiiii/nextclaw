@@ -125,8 +125,12 @@ export class NcpSessionRoutesController {
     this.sessionSkillsViewBuilder = new SessionSkillsViewBuilder(options);
   }
 
+  private readonly getSessionApi = () => this.options.kernel?.ncpSessionApi ?? this.options.sessions;
+
   readonly getSessionTypes = async (c: Context) => {
-    const listSessionTypes = this.options.ncpAgent?.listSessionTypes;
+    const listSessionTypes =
+      this.options.kernel?.agentRuntimeManager.listSessionTypes ??
+      this.options.agentRuntimeTypes?.listSessionTypes;
     const payload: ChatSessionTypesView = listSessionTypes
       ? await listSessionTypes({ describeMode: "observation" })
       : {
@@ -137,7 +141,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly listSessions = async (c: Context) => {
-    const sessionApi = this.options.sessions;
+    const sessionApi = this.getSessionApi();
     if (!sessionApi) {
       return c.json(err("NOT_AVAILABLE", "ncp session api unavailable"), 503);
     }
@@ -153,7 +157,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly getSession = async (c: Context) => {
-    const sessionApi = this.options.sessions;
+    const sessionApi = this.getSessionApi();
     if (!sessionApi) {
       return c.json(err("NOT_AVAILABLE", "ncp session api unavailable"), 503);
     }
@@ -167,7 +171,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly listSessionMessages = async (c: Context) => {
-    const sessionApi = this.options.sessions;
+    const sessionApi = this.getSessionApi();
     if (!sessionApi) {
       return c.json(err("NOT_AVAILABLE", "ncp session api unavailable"), 503);
     }
@@ -192,7 +196,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly getSessionSkills = async (c: Context) => {
-    const sessionApi = this.options.sessions;
+    const sessionApi = this.getSessionApi();
     if (!sessionApi) {
       return c.json(err("NOT_AVAILABLE", "ncp session api unavailable"), 503);
     }
@@ -227,7 +231,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly patchSession = async (c: Context) => {
-    const sessionApi = this.options.sessions;
+    const sessionApi = this.getSessionApi();
     if (!sessionApi) {
       return c.json(err("NOT_AVAILABLE", "ncp session api unavailable"), 503);
     }
@@ -273,7 +277,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly deleteSession = async (c: Context) => {
-    const sessionApi = this.options.sessions;
+    const sessionApi = this.getSessionApi();
     if (!sessionApi) {
       return c.json(err("NOT_AVAILABLE", "ncp session api unavailable"), 503);
     }

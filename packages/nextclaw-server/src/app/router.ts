@@ -1,5 +1,10 @@
 import { Hono, type Handler } from "hono";
-import { mountNcpHttpAgentRoutes } from "@nextclaw/ncp-http-agent-server";
+import type {
+  NcpAgentSendEnvelope,
+  NcpEndpointEvent,
+  NcpMessageAbortPayload,
+  NcpStreamRequestPayload,
+} from "@nextclaw/ncp";
 import type { IngressEnvelope } from "@nextclaw/shared";
 import { AgentsRoutesController } from "@nextclaw-server/features/agents/index.js";
 import { AppRoutesController } from "@nextclaw-server/app/controllers/app.controller.js";
@@ -32,6 +37,8 @@ function isValidIngressEnvelope(value: IngressEnvelope): boolean {
   return typeof value.type === "string" && value.type.trim().length > 0;
 }
 
+const NCP_AGENT_BASE_PATH = "/api/ncp/agent";
+
 function createUiRouteControllers(
   options: UiRouterOptions,
   authService: UiAuthService,
@@ -60,6 +67,75 @@ type UiRouteControllers = ReturnType<typeof createUiRouteControllers>;
 type HttpMethod = "delete" | "get" | "post" | "put";
 type RouteDefinition = readonly [HttpMethod, string, Handler];
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isValidSendEnvelope(value: unknown): value is NcpAgentSendEnvelope {
+  return isRecord(value) &&
+    (!Object.prototype.hasOwnProperty.call(value, "sessionId") ||
+      (typeof value.sessionId === "string" && value.sessionId.trim().length > 0)) &&
+    isRecord(value.message);
+}
+
+function readStreamPayload(url: string): NcpStreamRequestPayload | null {
+  const sessionId = new URL(url).searchParams.get("sessionId")?.trim();
+  return sessionId ? { sessionId } : null;
+}
+
+function isAbortPayload(value: unknown): value is NcpMessageAbortPayload {
+  return isRecord(value) && typeof value.sessionId === "string" && value.sessionId.trim().length > 0;
+}
+
+function toSseFrame(eventName: string, data: unknown): string {
+  return `event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
+function createNcpEventStreamResponse(
+  events: AsyncIterable<NcpEndpointEvent>,
+  signal: AbortSignal,
+): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    start: async (controller) => {
+      let closed = false;
+      const close = () => {
+        if (!closed) {
+          closed = true;
+          controller.close();
+        }
+      };
+      signal.addEventListener("abort", close, { once: true });
+      try {
+        for await (const event of events) {
+          if (closed || signal.aborted) {
+            break;
+          }
+          controller.enqueue(encoder.encode(toSseFrame("ncp-event", event)));
+        }
+      } catch (error) {
+        if (!closed && !signal.aborted) {
+          controller.enqueue(encoder.encode(toSseFrame("error", {
+            code: "STREAM_SOURCE_FAILED",
+            message: error instanceof Error ? error.message : String(error),
+          })));
+        }
+      } finally {
+        signal.removeEventListener("abort", close);
+        close();
+      }
+    },
+  });
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
+}
+
 class UiRouteRegistry {
   constructor(
     private readonly app: Hono,
@@ -71,6 +147,42 @@ class UiRouteRegistry {
     for (const [method, path, handler] of routes) {
       this.app[method](path, handler);
     }
+  };
+
+  private readonly mountNcpAgentRoutes = (
+    agentRunRequests: NonNullable<UiRouterOptions["agentRunRequests"]>,
+    ncpAsset: UiRouteControllers["ncpAsset"],
+  ): void => {
+    this.app.post(`${NCP_AGENT_BASE_PATH}/send`, async (c) => {
+      const body = await readJson<NcpAgentSendEnvelope>(c.req.raw);
+      if (!body.ok || !isValidSendEnvelope(body.data)) {
+        return c.json(err("INVALID_BODY", "Invalid NCP request envelope."), 400);
+      }
+      const handle = await agentRunRequests.send(body.data);
+      return c.json(ok(handle));
+    });
+    this.app.get(`${NCP_AGENT_BASE_PATH}/stream`, (c) => {
+      const payload = readStreamPayload(c.req.raw.url);
+      if (!payload) {
+        return c.json(err("INVALID_QUERY", "sessionId is required."), 400);
+      }
+      return createNcpEventStreamResponse(
+        agentRunRequests.stream(payload, { signal: c.req.raw.signal }),
+        c.req.raw.signal,
+      );
+    });
+    this.app.post(`${NCP_AGENT_BASE_PATH}/abort`, async (c) => {
+      const body = await readJson<NcpMessageAbortPayload>(c.req.raw);
+      if (!body.ok || !isAbortPayload(body.data)) {
+        return c.json(err("INVALID_BODY", "sessionId is required."), 400);
+      }
+      await agentRunRequests.abort(body.data);
+      return c.json(ok({ accepted: true }));
+    });
+    this.mountRoutes([
+      ["post", "/api/ncp/assets", ncpAsset.putAssets],
+      ["get", "/api/ncp/assets/content", ncpAsset.getAssetContent],
+    ]);
   };
 
   readonly register = (): void => {
@@ -135,17 +247,10 @@ class UiRouteRegistry {
       ["get", "/api/server-paths/browse", serverPath.browse],
       ["get", "/api/server-paths/read", serverPath.read],
     ]);
-    const { ingress, ncpAgent } = this.options;
-    if (ncpAgent) {
-      mountNcpHttpAgentRoutes(this.app, {
-        basePath: ncpAgent.basePath ?? "/api/ncp/agent",
-        agentClientEndpoint: ncpAgent.agentClientEndpoint,
-        streamProvider: ncpAgent.streamProvider
-      });
-      this.mountRoutes([
-        ["post", "/api/ncp/assets", ncpAsset.putAssets],
-        ["get", "/api/ncp/assets/content", ncpAsset.getAssetContent],
-      ]);
+    const agentRunRequests = this.options.kernel?.agentRunRequestManager ?? this.options.agentRunRequests;
+    const { ingress } = this.options;
+    if (agentRunRequests) {
+      this.mountNcpAgentRoutes(agentRunRequests, ncpAsset);
     }
     this.mountRoutes([
       ["get", "/api/cron", cron.listJobs],

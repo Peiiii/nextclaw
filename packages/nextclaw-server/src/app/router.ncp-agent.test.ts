@@ -7,11 +7,11 @@ import { serve } from "@hono/node-server";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import {
   NcpEventType,
-  type NcpAgentClientEndpoint,
+  type NcpAgentRunSendOptions,
   type NcpEndpointEvent,
+  type NcpRequestEnvelope,
   type NcpSessionApi
 } from "@nextclaw/ncp";
-import type { NcpHttpAgentStreamProvider } from "@nextclaw/ncp-http-agent-server";
 import { createUiRouter } from "./router.js";
 import { EventBus } from "@nextclaw/shared";
 
@@ -47,19 +47,7 @@ afterEach(() => {
   }
 });
 
-class StubNcpAgent implements NcpAgentClientEndpoint, NcpSessionApi {
-  readonly manifest = {
-    endpointKind: "agent" as const,
-    endpointId: "stub-ncp-agent",
-    version: "0.1.0",
-    supportsStreaming: true,
-    supportsAbort: true,
-    supportsProactiveMessages: false,
-    supportsLiveSessionStream: true,
-    supportedPartTypes: ["text"] as const,
-    expectedLatency: "seconds" as const
-  };
-
+class StubNcpAgent implements NcpSessionApi {
   private readonly listeners = new Set<(event: NcpEndpointEvent) => void>();
   private readonly attachmentRootDir = createTempDir("nextclaw-ui-ncp-attachments-");
   private readonly assets = new Map<
@@ -116,40 +104,6 @@ class StubNcpAgent implements NcpAgentClientEndpoint, NcpSessionApi {
     resolveContentPath: (uri: string) => this.assets.get(uri)?.filePath ?? null,
   };
 
-  start = async (): Promise<void> => {};
-
-  stop = async (): Promise<void> => {};
-
-  subscribe = (listener: (event: NcpEndpointEvent) => void): () => void => {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  };
-
-  emit = async (event: NcpEndpointEvent): Promise<void> => {
-    if (event.type === NcpEventType.MessageRequest) {
-      this.publish({
-        type: NcpEventType.RunStarted,
-        payload: {
-          sessionId: event.payload.sessionId,
-          messageId: "assistant-message-1",
-          runId: "run-1"
-        }
-      });
-      this.publish({
-        type: NcpEventType.RunFinished,
-        payload: {
-          sessionId: event.payload.sessionId,
-          messageId: "assistant-message-1",
-          runId: "run-1"
-        }
-      });
-      return;
-    }
-    if (event.type === NcpEventType.MessageAbort) {
-      await this.abort(event.payload);
-    }
-  };
-
   send = async () => ({
     sessionId: "session-1",
     userMessageId: "user-message-1",
@@ -157,7 +111,39 @@ class StubNcpAgent implements NcpAgentClientEndpoint, NcpSessionApi {
     runId: "run-1",
   });
 
-  stream = async (): Promise<void> => {};
+  run = async function* (
+    this: StubNcpAgent,
+    envelope: NcpRequestEnvelope,
+    _options?: NcpAgentRunSendOptions,
+  ): AsyncGenerator<NcpEndpointEvent> {
+    yield {
+      type: NcpEventType.RunStarted,
+      payload: {
+        sessionId: envelope.sessionId,
+        messageId: "assistant-message-1",
+        runId: "run-1",
+      },
+    };
+    yield {
+      type: NcpEventType.RunFinished,
+      payload: {
+        sessionId: envelope.sessionId,
+        messageId: "assistant-message-1",
+        runId: "run-1",
+      },
+    };
+  };
+
+  stream = async function* (): AsyncGenerator<NcpEndpointEvent> {
+    yield {
+      type: NcpEventType.RunFinished,
+      payload: {
+        sessionId: "session-1",
+        messageId: "assistant-message-1",
+        runId: "run-1",
+      },
+    };
+  };
 
   abort = async (payload: { sessionId: string; messageId?: string }): Promise<void> => {
     this.abortCalls.push(payload);
@@ -239,11 +225,7 @@ class StubNcpAgent implements NcpAgentClientEndpoint, NcpSessionApi {
     };
   };
 
-  private publish = (event: NcpEndpointEvent): void => {
-    for (const listener of this.listeners) {
-      listener(event);
-    }
-  };
+  private publish = (_event: NcpEndpointEvent): void => {};
 }
 
 function createTestApp(): { app: ReturnType<typeof createUiRouter>; agent: StubNcpAgent } {
@@ -251,30 +233,15 @@ function createTestApp(): { app: ReturnType<typeof createUiRouter>; agent: StubN
   const configPath = createTempConfigPath();
   saveConfig(ConfigSchema.parse({}), configPath);
   const agent = new StubNcpAgent();
-  const streamProvider: NcpHttpAgentStreamProvider = {
-    stream: async function* () {
-      yield {
-        type: NcpEventType.RunFinished,
-        payload: {
-          sessionId: "session-1",
-          messageId: "assistant-message-1",
-          runId: "run-1"
-        }
-      };
-    }
-  };
   return {
     agent,
     app: createUiRouter({
       configPath,
       appEventBus: new EventBus(),
       sessions: agent,
-      ncpAgent: {
-        agentClientEndpoint: agent,
-        streamProvider,
-        listSessionTypes: (params) => agent.listSessionTypes(params),
-        assetApi: agent.assetApi,
-      }
+      agentRunRequests: agent,
+      agentRuntimeTypes: agent,
+      ncpAssets: agent.assetApi,
     }),
   };
 }
@@ -664,14 +631,9 @@ it("exposes session-scoped skills for persisted and draft sessions", async () =>
     configPath,
     appEventBus: new EventBus(),
     sessions: agent,
-    ncpAgent: {
-      agentClientEndpoint: agent,
-      streamProvider: {
-        stream: async function* () {},
-      },
-      listSessionTypes: (params) => agent.listSessionTypes(params),
-      assetApi: agent.assetApi,
-    }
+    agentRunRequests: agent,
+    agentRuntimeTypes: agent,
+    ncpAssets: agent.assetApi,
   });
 
   const response = await app.request("http://localhost/api/ncp/sessions/session-1/skills");
@@ -738,14 +700,9 @@ it("exposes draft session skills without requiring an empty projectRoot override
     configPath,
     appEventBus: new EventBus(),
     sessions: agent,
-    ncpAgent: {
-      agentClientEndpoint: agent,
-      streamProvider: {
-        stream: async function* () {},
-      },
-      listSessionTypes: (params) => agent.listSessionTypes(params),
-      assetApi: agent.assetApi,
-    }
+    agentRunRequests: agent,
+    agentRuntimeTypes: agent,
+    ncpAssets: agent.assetApi,
   });
 
   const response = await app.request("http://localhost/api/ncp/sessions/draft-session/skills");

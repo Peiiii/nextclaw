@@ -217,7 +217,7 @@ export class ConfigRoutesController {
       this.options.configPath,
       provider,
       body.data as ProviderConnectionTestRequest,
-      this.options.providers
+      this.options.kernel?.llmProviders ?? this.options.providers
     );
     if (!result) {
       return c.json(err("NOT_FOUND", `unknown provider: ${provider}`), 404);

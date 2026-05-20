@@ -12,7 +12,6 @@ pnpm -C packages/ncp-packages/nextclaw-ncp-toolkit build
 
 - Reference conversation-state manager implementations
 - Protocol-level helper logic that depends on `@nextclaw/ncp` contracts
-- Composable agent backend building block: `DefaultNcpAgentBackend`
 - Default in-memory adapter: `InMemoryAgentSessionStore`
 - In-process adapter helper: `createAgentClientFromServer`
 - Runtime throwable helper: `NcpErrorException`

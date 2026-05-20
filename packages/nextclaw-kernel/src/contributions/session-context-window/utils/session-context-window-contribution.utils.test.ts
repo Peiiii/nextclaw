@@ -29,12 +29,8 @@ function createKernelStub(contextWindow: Record<string, unknown>) {
       ncpSessionApi: {
         getSession,
       },
-      agentRuntimeManager: {
-        currentHandle: {
-          agentClientEndpoint: {
-            emit,
-          },
-        },
+      agentRunRequestManager: {
+        emit,
       },
     } as unknown as NextclawKernel,
   };

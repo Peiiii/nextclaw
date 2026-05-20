@@ -52,13 +52,10 @@ vi.mock("../channel/channel-config-view.js", () => ({
   resolveChannelConfigView: mocks.resolveChannelConfigViewMock,
 }));
 
-vi.mock("../../shared/services/extensions/extension-lifecycle.service.js", () => ({
+vi.mock("@nextclaw/kernel", () => ({
   ExtensionManifestDiscoveryService: class {
     discoverSync = mocks.discoverExtensionManifestsMock;
   },
-}));
-
-vi.mock("../../shared/services/extensions/service-extension-runtime.service.js", () => ({
   resolveExtensionManifestRoots: mocks.resolveExtensionManifestRootsMock,
 }));
 

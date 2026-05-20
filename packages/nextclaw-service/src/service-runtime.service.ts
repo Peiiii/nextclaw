@@ -1,8 +1,7 @@
-import { loadConfig, saveConfig, getConfigPath, getDataDir, getWorkspacePath, expandHome, resolveConfigSecrets, APP_NAME, DEFAULT_WORKSPACE_DIR, DEFAULT_WORKSPACE_PATH } from "@nextclaw/core";
+import { loadConfig, saveConfig, getConfigPath, getDataDir, expandHome, resolveConfigSecrets, APP_NAME, DEFAULT_WORKSPACE_DIR, DEFAULT_WORKSPACE_PATH } from "@nextclaw/core";
 import { NextclawKernel } from "@nextclaw/kernel";
 import { RemoteRuntimeActions } from "@nextclaw/remote";
 import {
-  getPluginChannelBindings,
   setPluginRuntimeBridge,
 } from "@nextclaw/openclaw-compat";
 import { existsSync, mkdirSync } from "node:fs";
@@ -19,7 +18,7 @@ import { isProcessRunning } from "@nextclaw-service/shared/utils/cli.utils.js";
 import { NpmRuntimeUpdateCommandService } from "@nextclaw-service/launcher/npm-runtime-update-command.service.js";
 import { NpmRuntimeLauncher } from "@nextclaw-service/launcher/npm-runtime-launcher.service.js";
 import { managedServiceStateStore } from "@nextclaw-service/shared/stores/managed-service-state.store.js";
-import { loadPluginRegistry, logPluginDiagnostics, mergePluginConfigView, toExtensionRegistry, toPluginConfigView, PluginCommands } from "@nextclaw-service/commands/plugin/index.js";
+import { mergePluginConfigView, toPluginConfigView, PluginCommands } from "@nextclaw-service/commands/plugin/index.js";
 import { ConfigCommands } from "@nextclaw-service/cli/commands/config/index.js";
 import { McpCommands } from "@nextclaw-service/cli/commands/mcp/index.js";
 import { SecretsCommands } from "@nextclaw-service/cli/commands/secrets/index.js";
@@ -451,17 +450,12 @@ export class NextclawServiceRuntime {
       configPath,
     });
     const config = kernel.configManager.config;
-    const workspace = getWorkspacePath(config.agents.defaults.workspace);
-    const pluginRegistry = loadPluginRegistry(config, workspace);
-    const extensionRegistry = toExtensionRegistry(pluginRegistry);
-    logPluginDiagnostics(pluginRegistry);
 
-    const pluginChannelBindings = getPluginChannelBindings(pluginRegistry);
     setPluginRuntimeBridge({
       loadConfig: () =>
         toPluginConfigView(
           resolveConfigSecrets(loadConfig(), { configPath }),
-          pluginChannelBindings,
+          kernel.extensions.getChannelBindings(),
         ),
       writeConfigFile: async (nextConfigView) => {
         if (
@@ -477,7 +471,7 @@ export class NextclawServiceRuntime {
         const next = mergePluginConfigView(
           current,
           nextConfigView,
-          pluginChannelBindings,
+          kernel.extensions.getChannelBindings(),
         );
         saveConfig(next);
       },
@@ -495,7 +489,6 @@ export class NextclawServiceRuntime {
         config,
         kernel,
         providerManager,
-        extensionRegistry,
       });
     } finally {
       setPluginRuntimeBridge(null);

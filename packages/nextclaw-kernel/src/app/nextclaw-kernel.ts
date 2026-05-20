@@ -1,4 +1,5 @@
 import { AgentManager } from "@kernel/managers/agent.manager.js";
+import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
 import { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
@@ -125,6 +126,7 @@ export class NextclawKernel {
   readonly mcpManager: McpManager;
   readonly ncpSessionApi: NcpSessionApiService;
   readonly extensions: ExtensionManager;
+  readonly agentRunRequestManager: AgentRunRequestManager;
   readonly agentRuntimeManager: AgentRuntimeManager;
   readonly learningLoop: LearningLoopManager;
   private readonly sessionLifecycleEvents: NcpLifecycleEventBridge;
@@ -172,7 +174,6 @@ export class NextclawKernel {
       unknown
     >();
     this.toolManager = new ToolManager();
-    this.extensions = new ExtensionManager();
     this.channels = new ChannelManager({
       bus: this.messageBus,
       sessionManager: this.sessions,
@@ -182,24 +183,34 @@ export class NextclawKernel {
       channels: this.channels,
       providerManager: this.llmProviders,
     });
+    this.extensions = new ExtensionManager({
+      configManager: this.configManager,
+      eventBus: this.eventBus,
+      ingress: this.ingress,
+      messageBus: this.messageBus,
+    });
     this.skills = new SkillManager({
       workspace: getWorkspacePath(this.configManager.config.agents.defaults.workspace),
     });
     this.mcpManager = new McpManager(this.configManager.loadConfig);
     this.agentRuntimeManager = new AgentRuntimeManager({
+      configManager: this.configManager,
+      assetStore: this.assetStore,
+    });
+    this.agentRunRequestManager = new AgentRunRequestManager({
       sessions: this.sessions,
       ingress: this.ingress,
+      agentRuntimeManager: this.agentRuntimeManager,
       ncpAgentSessionStore: this.ncpAgentSessionStore,
       configManager: this.configManager,
       eventBus: this.eventBus,
       handleNcpEvent: this.handleNcpEvent,
       onSessionUpdated: this.publishSessionUpdated,
-      assetStore: this.assetStore,
     });
     this.ncpSessionApi = new NcpSessionApiService({
       eventBus: this.eventBus,
       getConfig: this.configManager.loadConfig,
-      isLiveSessionRunning: this.agentRuntimeManager.isLiveSessionRunning,
+      isLiveSessionRunning: this.agentRunRequestManager.isLiveSessionRunning,
       ncpAgentSessionStore: this.ncpAgentSessionStore,
       sessionManager: this.sessions,
     });
@@ -231,12 +242,13 @@ export class NextclawKernel {
     for (const contribution of this.contributions) {
       contribution.start();
     }
-    void this.agentRuntimeManager.bootstrap();
+    await this.agentRunRequestManager.start();
     this.learningLoop.start();
   };
 
   dispose = async (): Promise<void> => {
     this.learningLoop.dispose();
+    await this.agentRunRequestManager.dispose();
     for (const contribution of this.contributions) {
       contribution.dispose();
     }

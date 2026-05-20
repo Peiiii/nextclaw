@@ -62,8 +62,28 @@ function toAssetView(record: {
 export class NcpAssetRoutesController {
   constructor(private readonly options: UiRouterOptions) {}
 
+  private readonly getAssetApi = () => {
+    if (this.options.ncpAssets) {
+      return this.options.ncpAssets;
+    }
+    const kernel = this.options.kernel;
+    if (!kernel) {
+      return undefined;
+    }
+    return {
+      put: (input: {
+        fileName: string;
+        mimeType?: string | null;
+        bytes: Uint8Array;
+        createdAt?: Date;
+      }) => kernel.assetStore.putBytes(input),
+      stat: kernel.assetStore.statRecord,
+      resolveContentPath: kernel.assetStore.resolveContentPath,
+    };
+  };
+
   readonly putAssets = async (c: Context) => {
-    const assetApi = this.options.ncpAgent?.assetApi;
+    const assetApi = this.getAssetApi();
     if (!assetApi) {
       return c.json(err("NOT_AVAILABLE", "ncp asset api unavailable"), 503);
     }
@@ -110,7 +130,7 @@ export class NcpAssetRoutesController {
   };
 
   readonly getAssetContent = async (c: Context): Promise<Response> => {
-    const assetApi = this.options.ncpAgent?.assetApi;
+    const assetApi = this.getAssetApi();
     if (!assetApi) {
       return c.json(err("NOT_AVAILABLE", "ncp asset api unavailable"), 503);
     }

@@ -5,7 +5,6 @@ import {
 } from "@nextclaw/core";
 import {
   dispatchPromptOverNcp,
-  type AgentRuntimeHandle,
   type LlmProviderRuntime,
   type NextclawKernel,
 } from "@nextclaw/kernel";
@@ -14,7 +13,6 @@ import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import type { AgentCommandOptions } from "@nextclaw-service/shared/types/cli.types.js";
 import { printAgentResponse, prompt } from "@nextclaw-service/shared/utils/cli.utils.js";
-import type { NextclawExtensionRegistry } from "@nextclaw-service/commands/plugin/index.js";
 
 const EXIT_COMMANDS = new Set(["exit", "quit", "/exit", "/quit", ":q"]);
 
@@ -53,11 +51,11 @@ async function runCliInteractiveLoop(params: {
   logo: string;
   config: Config;
   sessionManager: SessionManager;
-  ncpAgent: AgentRuntimeHandle;
+  agentRunRequests: NextclawKernel["agentRunRequestManager"];
   sessionKey: string;
   metadata: Record<string, unknown>;
 }): Promise<void> {
-  const { config, logo, metadata, ncpAgent, sessionKey, sessionManager } = params;
+  const { agentRunRequests, config, logo, metadata, sessionKey, sessionManager } = params;
   console.log(`${logo} Interactive mode (type exit or Ctrl+C to quit)\n`);
   const rl = createCliHistoryInterface();
 
@@ -76,7 +74,7 @@ async function runCliInteractiveLoop(params: {
     const response = await dispatchPromptOverNcp({
       config,
       sessionManager,
-      resolveNcpAgent: () => ncpAgent,
+      resolveNcpAgent: () => agentRunRequests,
       sessionKey,
       content: trimmed,
       metadata,
@@ -91,22 +89,16 @@ export async function runCliAgentCommand(params: {
   config: Config;
   kernel: NextclawKernel;
   providerManager: LlmProviderRuntime;
-  extensionRegistry: NextclawExtensionRegistry;
 }): Promise<void> {
   const {
     config,
-    extensionRegistry,
     kernel,
     logo,
     opts,
   } = params;
   const sessionManager = kernel.sessions;
-  kernel.extensions.loadExtensionRegistry(extensionRegistry);
+  await kernel.extensions.load({ config });
   await kernel.start();
-  const ncpAgent = kernel.agentRuntimeManager.currentHandle;
-  if (!ncpAgent) {
-    throw new Error("Kernel start completed without an agent runtime handle.");
-  }
 
   try {
     const sessionKey = opts.session ?? "cli:default";
@@ -116,7 +108,7 @@ export async function runCliAgentCommand(params: {
       const response = await dispatchPromptOverNcp({
         config,
         sessionManager,
-        resolveNcpAgent: () => ncpAgent,
+        resolveNcpAgent: () => kernel.agentRunRequestManager,
         sessionKey,
         content: opts.message,
         metadata: sharedMetadata,
@@ -129,11 +121,11 @@ export async function runCliAgentCommand(params: {
       logo,
       config,
       sessionManager,
-      ncpAgent,
+      agentRunRequests: kernel.agentRunRequestManager,
       sessionKey,
       metadata: sharedMetadata,
     });
   } finally {
-    await ncpAgent.dispose?.();
+    await kernel.dispose();
   }
 }

@@ -133,32 +133,16 @@ function createTestGateway(params: {
     initializeAgentHomeDirectory: () => {},
     marketplace: {},
     cron: new AutomationManager({ storePath: `${configPath}.cron.json` }),
-    ncpAgent: {
-      agentClientEndpoint: {
-        manifest: {
-          endpointKind: "agent",
-          endpointId: "test-agent",
-          version: "0.0.0",
-          supportsStreaming: false,
-          supportsAbort: false,
-          supportsProactiveMessages: false,
-          supportsLiveSessionStream: false,
-          supportedPartTypes: ["text"],
-          expectedLatency: "seconds",
-        },
-        start: async () => {},
-        stop: async () => {},
-        emit: async () => {},
-        subscribe: () => () => {},
-        send: async () => ({
-          sessionId: "session-1",
-          userMessageId: "user-1",
-          assistantMessageId: null,
-          runId: null,
-        }),
-        stream: async () => {},
-        abort: async () => {},
-      },
+    agentRunRequests: {
+      send: async () => ({
+        sessionId: "session-1",
+        userMessageId: "user-1",
+        assistantMessageId: null,
+        runId: null,
+      }),
+      run: async function* () {},
+      stream: async function* () {},
+      abort: async () => {},
     },
     sessions: {
         listSessions: async () => [],
