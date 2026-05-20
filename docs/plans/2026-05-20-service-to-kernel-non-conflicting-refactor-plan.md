@@ -72,6 +72,8 @@
 
 ### 2. LLM Usage 查询能力归属收敛
 
+状态：已完成。`LlmUsageManager` 已承接 snapshot/history/stats 查询能力，service CLI usage 命令只保留模式分派、JSON/text 输出和退出码处理；service 侧 `llm-usage-query.service.ts` 已删除。
+
 候选文件：
 
 - `packages/nextclaw-service/src/cli/commands/usage/services/llm-usage-query.service.ts`

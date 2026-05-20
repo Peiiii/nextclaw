@@ -3,8 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { mkdtempSync } from "node:fs";
 import { LlmUsageCommandService } from "./llm-usage-command.service.js";
-import { LlmUsageQueryService } from "./llm-usage-query.service.js";
-import { LlmUsageStore } from "@nextclaw/kernel";
+import { LlmUsageManager, LlmUsageStore } from "@nextclaw/kernel";
 
 describe("LlmUsageCommandService", () => {
   afterEach(() => {
@@ -14,13 +13,13 @@ describe("LlmUsageCommandService", () => {
 
   it("prints helpful guidance when no snapshot exists", async () => {
     const tempDir = mkdtempSync(join(tmpdir(), "nextclaw-usage-command-"));
-    const queryService = new LlmUsageQueryService({
+    const usageManager = new LlmUsageManager({
       store: new LlmUsageStore({
         snapshotPath: join(tempDir, "llm-usage.json"),
         historyPath: join(tempDir, "llm-usage.jsonl"),
       })
     });
-    const commands = new LlmUsageCommandService({ queryService });
+    const commands = new LlmUsageCommandService({ usageManager });
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     await commands.show();
@@ -56,7 +55,7 @@ describe("LlmUsageCommandService", () => {
       }
     });
     const commands = new LlmUsageCommandService({
-      queryService: new LlmUsageQueryService({
+      usageManager: new LlmUsageManager({
         store: usageStore
       })
     });
@@ -106,7 +105,7 @@ describe("LlmUsageCommandService", () => {
       }
     });
     const commands = new LlmUsageCommandService({
-      queryService: new LlmUsageQueryService({
+      usageManager: new LlmUsageManager({
         store: usageStore
       })
     });
@@ -157,7 +156,7 @@ describe("LlmUsageCommandService", () => {
       }
     });
     const commands = new LlmUsageCommandService({
-      queryService: new LlmUsageQueryService({
+      usageManager: new LlmUsageManager({
         store: usageStore
       })
     });
@@ -211,7 +210,7 @@ describe("LlmUsageCommandService", () => {
       }
     });
     const commands = new LlmUsageCommandService({
-      queryService: new LlmUsageQueryService({
+      usageManager: new LlmUsageManager({
         store: usageStore
       })
     });

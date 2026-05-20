@@ -1,16 +1,17 @@
 import type { UsageCommandOptions } from "@nextclaw-service/shared/types/cli.types.js";
 import {
-  llmUsageQueryService,
-  type LlmUsageQueryService,
+  LlmUsageManager,
   type LlmUsageStats,
-} from "./llm-usage-query.service.js";
+} from "@nextclaw/kernel";
 
 export class LlmUsageCommandService {
-  constructor(
-    private readonly deps: {
-      queryService?: LlmUsageQueryService;
-    } = {}
-  ) {}
+  private readonly usageManager: LlmUsageManager;
+
+  constructor(deps: {
+    usageManager?: LlmUsageManager;
+  } = {}) {
+    this.usageManager = deps.usageManager ?? new LlmUsageManager();
+  }
 
   readonly show = async (opts: UsageCommandOptions = {}): Promise<void> => {
     if (opts.history && opts.stats) {
@@ -29,21 +30,17 @@ export class LlmUsageCommandService {
     this.showSnapshot(opts);
   };
 
-  private get queryService(): LlmUsageQueryService {
-    return this.deps.queryService ?? llmUsageQueryService;
-  }
-
   private readonly showSnapshot = (opts: UsageCommandOptions): void => {
-    const snapshot = this.queryService.getSnapshot();
+    const snapshot = this.usageManager.getSnapshot();
     if (opts.json) {
-      console.log(JSON.stringify({ ok: Boolean(snapshot), mode: "snapshot", path: this.queryService.snapshotPath, snapshot }, null, 2));
+      console.log(JSON.stringify({ ok: Boolean(snapshot), mode: "snapshot", path: this.usageManager.snapshotPath, snapshot }, null, 2));
       process.exitCode = 0;
       return;
     }
     if (!snapshot) {
       console.log([
         "No LLM usage snapshot recorded yet.",
-        `Snapshot path: ${this.queryService.snapshotPath}`,
+        `Snapshot path: ${this.usageManager.snapshotPath}`,
         "Run `nextclaw agent -m \"ping\"` or use the local UI once, then retry `nextclaw usage`.",
       ].join("\n"));
       process.exitCode = 0;
@@ -54,13 +51,13 @@ export class LlmUsageCommandService {
   };
 
   private readonly showHistory = (opts: UsageCommandOptions): void => {
-    const records = this.queryService.getHistory(opts.limit);
+    const records = this.usageManager.getHistory(opts.limit);
     if (opts.json) {
       console.log(JSON.stringify({
         ok: records.length > 0,
         mode: "history",
-        path: this.queryService.historyPath,
-        limit: this.resolveLimit(opts.limit),
+        path: this.usageManager.historyPath,
+        limit: this.usageManager.resolveHistoryLimit(opts.limit),
         records,
       }, null, 2));
       process.exitCode = 0;
@@ -69,7 +66,7 @@ export class LlmUsageCommandService {
     if (records.length === 0) {
       console.log([
         "No LLM usage history recorded yet.",
-        `History path: ${this.queryService.historyPath}`,
+        `History path: ${this.usageManager.historyPath}`,
         "Run `nextclaw agent -m \"ping\"` or use the local UI once, then retry `nextclaw usage --history`.",
       ].join("\n"));
       process.exitCode = 0;
@@ -80,16 +77,16 @@ export class LlmUsageCommandService {
   };
 
   private readonly showStats = (opts: UsageCommandOptions): void => {
-    const stats = this.queryService.getStats();
+    const stats = this.usageManager.getStats();
     if (opts.json) {
-      console.log(JSON.stringify({ ok: stats.totalRecords > 0, mode: "stats", path: this.queryService.historyPath, stats }, null, 2));
+      console.log(JSON.stringify({ ok: stats.totalRecords > 0, mode: "stats", path: this.usageManager.historyPath, stats }, null, 2));
       process.exitCode = 0;
       return;
     }
     if (stats.totalRecords === 0) {
       console.log([
         "No LLM usage history recorded yet.",
-        `History path: ${this.queryService.historyPath}`,
+        `History path: ${this.usageManager.historyPath}`,
         "Run `nextclaw agent -m \"ping\"` or use the local UI once, then retry `nextclaw usage --stats`.",
       ].join("\n"));
       process.exitCode = 0;
@@ -99,7 +96,7 @@ export class LlmUsageCommandService {
     process.exitCode = 0;
   };
 
-  private readonly renderSnapshot = (snapshot: NonNullable<ReturnType<LlmUsageQueryService["getSnapshot"]>>): string => {
+  private readonly renderSnapshot = (snapshot: NonNullable<ReturnType<LlmUsageManager["getSnapshot"]>>): string => {
     const lines = [
       "Latest LLM usage snapshot",
       `Observed at: ${snapshot.observedAt}`,
@@ -110,7 +107,7 @@ export class LlmUsageCommandService {
       `Total tokens: ${snapshot.summary.totalTokens}`,
       `Cached tokens: ${snapshot.summary.cachedTokens}`,
       `Cache hit: ${snapshot.summary.cacheHit ? "yes" : "no"}`,
-      `Snapshot path: ${this.queryService.snapshotPath}`,
+      `Snapshot path: ${this.usageManager.snapshotPath}`,
     ];
     if (snapshot.summary.cacheMetricKeys.length > 0) {
       lines.push(`Cache metric keys: ${snapshot.summary.cacheMetricKeys.join(", ")}`);
@@ -121,10 +118,10 @@ export class LlmUsageCommandService {
     return lines.join("\n");
   };
 
-  private readonly renderHistory = (records: ReturnType<LlmUsageQueryService["getHistory"]>): string => {
+  private readonly renderHistory = (records: ReturnType<LlmUsageManager["getHistory"]>): string => {
     const lines = [
       "Recent LLM usage history",
-      `History path: ${this.queryService.historyPath}`,
+      `History path: ${this.usageManager.historyPath}`,
       `Showing: ${records.length} record(s)`,
       "",
     ];
@@ -139,7 +136,7 @@ export class LlmUsageCommandService {
   private readonly renderStats = (stats: LlmUsageStats): string => {
     const lines = [
       "LLM usage history stats",
-      `History path: ${this.queryService.historyPath}`,
+      `History path: ${this.usageManager.historyPath}`,
       `Records: ${stats.totalRecords}`,
       `Usage records: ${stats.usageRecordCount}`,
       `Empty usage records: ${stats.emptyUsageRecordCount}`,
@@ -160,19 +157,6 @@ export class LlmUsageCommandService {
       lines.push(`Models: ${stats.models.map((item) => `${item.value}=${item.count}`).join(", ")}`);
     }
     return lines.join("\n");
-  };
-
-  private readonly resolveLimit = (value?: string | number): number => {
-    if (typeof value === "number" && Number.isFinite(value) && value > 0) {
-      return Math.floor(value);
-    }
-    if (typeof value === "string" && value.trim().length > 0) {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed) && parsed > 0) {
-        return Math.floor(parsed);
-      }
-    }
-    return 10;
   };
 
   private readonly toPercent = (value: number): string => {
