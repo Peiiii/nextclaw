@@ -65,7 +65,7 @@ Always describe the system in this order:
    - `command: "hermes"`
    - `args: ["acp"]`
 4. NextClaw owns `model / apiBase / apiKey / headers`.
-5. Hermes ACP consumes that route through the dedicated Hermes ACP bridge bundled with NextClaw.
+5. Hermes ACP consumes that route through the dedicated Hermes ACP bridge prepared by the Hermes setup/launcher path, not through kernel-side Hermes detection.
 
 Do not teach users that the main setup path is:
 
@@ -147,7 +147,7 @@ The important part is not hidden implementation details. The important part is:
 - the runtime entry should carry the bundled app resource URI `app://runtime-icons/hermes-agent.png`
 - NextClaw stays the owner of route selection
 - Hermes ACP does not require a second provider setup path for this integration
-- the bridge is triggered automatically by the bundled Hermes ACP bridge package; the skill should not ask the user to install a separate bridge manually
+- the bridge is provided by the bundled Hermes ACP bridge setup/launcher path; kernel and generic `narp-stdio` code must not hard-code Hermes detection
 
 ## Setup Contract
 

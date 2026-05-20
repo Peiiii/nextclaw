@@ -1331,9 +1331,6 @@ importers:
       '@nextclaw/ncp-toolkit':
         specifier: workspace:*
         version: link:../ncp-packages/nextclaw-ncp-toolkit
-      '@nextclaw/nextclaw-hermes-acp-bridge':
-        specifier: workspace:*
-        version: link:../nextclaw-hermes-acp-bridge
       '@nextclaw/nextclaw-ncp-runtime-http-client':
         specifier: workspace:*
         version: link:../nextclaw-ncp-runtime-http-client
