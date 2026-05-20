@@ -1,4 +1,5 @@
 import {
+  type Disposable,
   type Config,
   type SessionManager,
 } from "@nextclaw/core";
@@ -8,11 +9,7 @@ import {
   type Ingress,
   type IngressEnvelope,
 } from "@nextclaw/shared";
-import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
-import type {
-  ToolManager,
-  UpdateToolCallResult,
-} from "@kernel/managers/tool.manager.js";
+import type { UpdateToolCallResult } from "@kernel/managers/tool.manager.js";
 import type { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
   type NcpAgentClientEndpoint,
@@ -27,23 +24,16 @@ import {
   NcpEventType,
 } from "@nextclaw/ncp";
 import { DefaultNcpAgentBackend, type AgentSessionStore } from "@nextclaw/ncp-toolkit";
-import type { ExtensionManager } from "@kernel/managers/extension.manager.js";
 import {
   AgentRuntimeRegistry,
-  PluginRuntimeRegistrationController,
+  type AgentRuntimeProviderRegistration,
   resolveAgentRuntimeEntries,
 } from "@kernel/features/runtime-registry/index.js";
 import {
   createAgentRuntimeHandle,
   type AgentRuntimeHandle,
 } from "@kernel/features/ncp-dispatch/index.js";
-import { BuiltinNarpRuntimeRegistrationService } from "@kernel/features/narp-runtime/index.js";
-import type { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
-import {
-  ContextCompactionPreflightService,
-  NativeAgentRuntimeFactory,
-} from "@kernel/features/native-runtime/index.js";
-import type { McpManager } from "@kernel/managers/mcp.manager.js";
+import { ContextCompactionPreflightService } from "@kernel/features/context-compaction/index.js";
 import {
   AGENT_RUNTIME_SESSION_MESSAGE_INGRESS_TYPE,
   type AgentRuntimeSessionMessageRequest,
@@ -52,19 +42,14 @@ import {
 export type { AgentRuntimeHandle } from "@kernel/features/ncp-dispatch/index.js";
 
 export type AgentRuntimeManagerOptions = {
-  providerManager: LlmProviderRuntime;
   sessions: SessionManager;
   ingress: Ingress;
   ncpAgentSessionStore: AgentSessionStore;
   configManager: { loadConfig: () => Config };
-  extensions: ExtensionManager;
   eventBus: EventBus;
   handleNcpEvent: (event: NcpEndpointEvent) => void;
-  llmUsage: LlmUsageManager;
   onSessionUpdated: (sessionKey: string) => void;
   assetStore: LocalAssetStore;
-  mcpManager: McpManager;
-  toolManager: ToolManager;
 };
 
 type NcpOutboundMessageInput = NcpMessage | NcpOutboundMessageDraft;
@@ -110,7 +95,6 @@ async function consumeAgentEvents(events: AsyncIterable<unknown>): Promise<void>
 
 export class AgentRuntimeManager {
   private readonly runtimeRegistry = new AgentRuntimeRegistry();
-  private readonly pluginRuntimeRegistrationController: PluginRuntimeRegistrationController;
   private readonly refreshConfiguredRuntimeEntries = () => {
     this.runtimeRegistry.applyEntries(
       resolveAgentRuntimeEntries({
@@ -122,19 +106,11 @@ export class AgentRuntimeManager {
 
   private backend: DefaultNcpAgentBackend | null = null;
   private handle: AgentRuntimeHandle | null = null;
-  private builtinNarpRegistrations: Array<{ dispose: () => void }> = [];
-  private kernelBootstrapped = false;
-  private warmupPromise: Promise<void> | null = null;
   private unsubscribeNcpEvents: (() => void) | null = null;
   private unsubscribeAgentRuntimeRequestIngress: (() => void) | null = null;
   private disposed = false;
 
-  constructor(private readonly params: AgentRuntimeManagerOptions) {
-    this.pluginRuntimeRegistrationController = new PluginRuntimeRegistrationController(
-      this.runtimeRegistry,
-      params.extensions,
-    );
-  }
+  constructor(private readonly params: AgentRuntimeManagerOptions) {}
 
   get currentHandle(): AgentRuntimeHandle | null {
     return this.handle;
@@ -142,22 +118,18 @@ export class AgentRuntimeManager {
 
   isLiveSessionRunning = (sessionId: string): boolean => this.backend?.isLiveSessionRunning(sessionId) ?? false;
 
+  registerRuntimeProvider = (registration: AgentRuntimeProviderRegistration): Disposable => {
+    this.assertNotDisposed();
+    const disposable = this.runtimeRegistry.register(registration);
+    this.refreshConfiguredRuntimeEntries();
+    return disposable;
+  };
+
   bootstrap = async (): Promise<AgentRuntimeHandle> => {
     this.assertNotDisposed();
     if (this.handle) {
       return this.handle;
     }
-    const nativeRuntimeFactory = new NativeAgentRuntimeFactory({
-      providerManager: this.params.providerManager,
-      sessions: this.params.sessions,
-      configManager: this.params.configManager,
-      llmUsage: this.params.llmUsage,
-      onSessionUpdated: this.params.onSessionUpdated,
-      assetStore: this.params.assetStore,
-      updateToolCallResult: this.updateToolCallResult,
-      toolManager: this.params.toolManager,
-    });
-    this.registerCoreRuntimes(nativeRuntimeFactory);
     const contextWindowPreview = new ContextCompactionPreflightService({
       getConfig: this.params.configManager.loadConfig,
       sessionManager: this.params.sessions,
@@ -175,12 +147,10 @@ export class AgentRuntimeManager {
           sessionMessages: messages,
         }),
       createRuntime: (runtimeParams) => {
-        this.pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations();
         this.refreshConfiguredRuntimeEntries();
         return this.runtimeRegistry.createRuntime({
           ...runtimeParams,
           resolveAssetContentPath: (assetUri) => this.params.assetStore.resolveContentPath(assetUri),
-          resolveTools: nativeRuntimeFactory.resolveOpenAiToolsForRuntime,
         });
       },
     });
@@ -195,8 +165,6 @@ export class AgentRuntimeManager {
       backend: this.backend,
       agentClientEndpoint: this.createMaterializingAgentClientEndpoint(this.backend),
       runtimeRegistry: this.runtimeRegistry,
-      refreshPluginRuntimeRegistrations:
-        this.pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations,
       refreshConfiguredRuntimeEntries: this.refreshConfiguredRuntimeEntries,
       dispose: this.dispose,
       assetStore: this.params.assetStore,
@@ -283,56 +251,16 @@ export class AgentRuntimeManager {
     };
   };
 
-  warmDerivedCapabilities = async (): Promise<void> => {
-    this.assertNotDisposed();
-    this.warmupPromise ??= this.runDerivedCapabilityWarmup();
-    await this.warmupPromise;
-  };
-
   dispose = async (): Promise<void> => {
     if (this.disposed) {
       return;
     }
     this.disposed = true;
-    await this.warmupPromise?.catch(() => undefined);
     this.unsubscribeAgentRuntimeRequestIngress?.();
     this.unsubscribeAgentRuntimeRequestIngress = null;
     this.unsubscribeNcpEvents?.();
     this.unsubscribeNcpEvents = null;
-    for (const registration of this.builtinNarpRegistrations) {
-      registration.dispose();
-    }
-    this.pluginRuntimeRegistrationController.dispose();
     await this.backend?.stop();
-  };
-
-  private readonly registerCoreRuntimes = (
-    nativeRuntimeFactory: NativeAgentRuntimeFactory,
-  ): void => {
-    if (this.kernelBootstrapped) {
-      return;
-    }
-    this.kernelBootstrapped = true;
-    this.runtimeRegistry.register({
-      kind: "native",
-      label: "Native",
-      createRuntime: nativeRuntimeFactory.create,
-    });
-    const builtinNarpRegistrationService = new BuiltinNarpRuntimeRegistrationService(
-      this.params.configManager.loadConfig,
-    );
-    this.builtinNarpRegistrations = builtinNarpRegistrationService.registerInto(this.runtimeRegistry);
-    this.pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations();
-    this.refreshConfiguredRuntimeEntries();
-  };
-
-  private runDerivedCapabilityWarmup = async (): Promise<void> => {
-    const mcpWarmResults = await this.params.mcpManager.prewarmEnabledServers();
-    for (const result of mcpWarmResults) {
-      if (!result.ok) {
-        console.warn(`[mcp] Failed to warm ${result.name}: ${result.error}`);
-      }
-    }
   };
 
   private publishSessionRunStatus = (payload: {
@@ -375,7 +303,7 @@ export class AgentRuntimeManager {
     if (!terminalEventSeen) throw new Error("Session request completed without a final reply.");
   };
 
-  private updateToolCallResult: UpdateToolCallResult = async ({
+  updateToolCallResult: UpdateToolCallResult = async ({
     sessionId,
     toolCallId,
     result,

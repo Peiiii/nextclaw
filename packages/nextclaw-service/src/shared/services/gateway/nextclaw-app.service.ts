@@ -15,7 +15,6 @@ type NextclawAppKernel = Pick<
 
 export class NextclawApp {
   private readonly kernel: NextclawAppKernel;
-  private kernelReady = false;
 
   constructor(
     private readonly gateway: NextclawGatewayRuntime,
@@ -32,7 +31,7 @@ export class NextclawApp {
       this.handleKernelStartupError(error);
     }
 
-    await this.warmDerivedCapabilities();
+    await this.startDeferredRuntimeServices();
     console.log("✓ Deferred startup: plugin gateways and channels settled");
     logStartupTrace("service.deferred_startup.end");
   };
@@ -48,7 +47,6 @@ export class NextclawApp {
       throw new Error("Kernel start completed without an agent runtime handle.");
     }
     this.gateway.activateAgentRuntime(ncpAgent);
-    this.kernelReady = true;
     if (this.gateway.uiConfig.enabled) {
       console.log("✓ UI NCP agent: ready");
       return;
@@ -56,7 +54,7 @@ export class NextclawApp {
     console.log("✓ Service NCP agent: ready");
   };
 
-  warmDerivedCapabilities = async (): Promise<void> => {
+  startDeferredRuntimeServices = async (): Promise<void> => {
     await measureStartupAsync(
       "service.deferred_startup.load_plugins",
       this.gateway.plugins.load,
@@ -74,20 +72,6 @@ export class NextclawApp {
       "service.deferred_startup.wake_restart_sentinel",
       this.gateway.restartWake.wakeFromRestartSentinel,
     );
-    if (!this.kernelReady) {
-      return;
-    }
-    const timer = setTimeout(() => {
-      void measureStartupAsync(
-        "service.deferred_startup.warm_ncp_capabilities",
-        async () => await this.kernel.agentRuntimeManager.warmDerivedCapabilities(),
-      ).catch((error) => {
-        console.warn(
-          `UI NCP derived capability warmup failed: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      });
-    }, 0);
-    timer.unref?.();
   };
 
   private readonly handleKernelStartupError = (error: unknown): void => {

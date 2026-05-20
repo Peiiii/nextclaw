@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { EventBus, eventKeys } from "@nextclaw/shared";
 import type { AgentSessionRecord, AgentSessionStore } from "@nextclaw/ncp-toolkit";
 
-vi.mock("@kernel/features/native-runtime/index.js", () => ({
+vi.mock("@kernel/features/context-compaction/index.js", () => ({
   ContextCompactionPreflightService: class {
     preview = () => null;
   },

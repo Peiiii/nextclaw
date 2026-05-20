@@ -22,7 +22,7 @@ import type {
   ToolManager,
   UpdateToolCallResult,
 } from "@kernel/managers/tool.manager.js";
-import { ContextCompactionPreflightService } from "./context-compaction-preflight.service.js";
+import { ContextCompactionPreflightService } from "@kernel/features/context-compaction/index.js";
 import { NextclawNcpContextBuilder } from "./nextclaw-ncp-context-builder.service.js";
 import { ProviderManagerNcpLLMApi } from "./provider-manager-ncp-llm-api.service.js";
 

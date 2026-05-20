@@ -34,24 +34,6 @@ function createAgentHandle() {
   };
 }
 
-function createDeferred(): {
-  promise: Promise<void>;
-  resolve: () => void;
-} {
-  let resolvePromise!: () => void;
-  const promise = new Promise<void>((resolve) => {
-    resolvePromise = resolve;
-  });
-  return {
-    promise,
-    resolve: resolvePromise,
-  };
-}
-
-async function waitForScheduledWarmup(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 0));
-}
-
 function createGateway(params: {
   order?: string[];
   uiEnabled?: boolean;
@@ -139,9 +121,6 @@ describe("NextclawApp", () => {
         }),
         agentRuntimeManager: {
           currentHandle: ncpAgent,
-          warmDerivedCapabilities: vi.fn(async () => {
-            order.push("warm-derived-capabilities");
-          }),
         },
       } as never,
     );
@@ -159,43 +138,6 @@ describe("NextclawApp", () => {
         "wake-restart-sentinel",
       ]),
     );
-  });
-
-  it("does not wait for derived NCP capability warmup before finishing deferred startup", async () => {
-    const ncpAgent = createAgentHandle();
-    const warmup = createDeferred();
-    const startPluginGateways = vi.fn(async () => undefined);
-    const startChannels = vi.fn(async () => undefined);
-    const wakeFromRestartSentinel = vi.fn(async () => undefined);
-    const warmDerivedCapabilities = vi.fn(() => warmup.promise);
-    const gateway = createGateway({
-      loadPlugins: vi.fn(async () => undefined),
-      startPluginGateways,
-      startChannels,
-      wakeFromRestartSentinel,
-    });
-    const app = new NextclawApp(
-      gateway,
-      {
-        start: vi.fn(async () => undefined),
-        agentRuntimeManager: {
-          currentHandle: ncpAgent,
-          warmDerivedCapabilities,
-        },
-      } as never,
-    );
-
-    await expect(app.start()).resolves.toBeUndefined();
-
-    expect(warmDerivedCapabilities).not.toHaveBeenCalled();
-    expect(startPluginGateways).toHaveBeenCalledTimes(1);
-    expect(startChannels).toHaveBeenCalledTimes(1);
-    expect(wakeFromRestartSentinel).toHaveBeenCalledTimes(1);
-
-    await waitForScheduledWarmup();
-    expect(warmDerivedCapabilities).toHaveBeenCalledTimes(1);
-
-    warmup.resolve();
   });
 
   it("records kernel startup errors but still continues deferred plugin work", async () => {
@@ -219,7 +161,6 @@ describe("NextclawApp", () => {
         }),
         agentRuntimeManager: {
           currentHandle: null,
-          warmDerivedCapabilities: vi.fn(async () => undefined),
         },
       } as never,
     );

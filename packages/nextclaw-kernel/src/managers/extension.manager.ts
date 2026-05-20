@@ -76,6 +76,7 @@ export class ExtensionManager {
   private extensionRegistry: NextclawExtensionRegistry = createEmptyExtensionRegistry();
   private channelBindings: PluginChannelBinding[] = [];
   private uiMetadata: PluginUiMetadata[] = [];
+  private readonly changeHandlers = new Set<() => void>();
 
   loadContributions = (contributions: ExtensionContributions): void => {
     this.pluginRegistry = contributions.registry;
@@ -84,10 +85,21 @@ export class ExtensionManager {
       contributions.channelBindings ?? getPluginChannelBindings(contributions.registry);
     this.uiMetadata =
       contributions.uiMetadata ?? getPluginUiMetadataFromRegistry(contributions.registry);
+    this.notifyChanged();
   };
 
   loadExtensionRegistry = (extensionRegistry: NextclawExtensionRegistry): void => {
     this.extensionRegistry = extensionRegistry;
+    this.notifyChanged();
+  };
+
+  onDidChange = (handler: () => void): { dispose: () => void } => {
+    this.changeHandlers.add(handler);
+    return {
+      dispose: () => {
+        this.changeHandlers.delete(handler);
+      },
+    };
   };
 
   getExtensionRegistry = (): NextclawExtensionRegistry => this.extensionRegistry;
@@ -101,4 +113,10 @@ export class ExtensionManager {
 
   mergeConfigView = (current: Config, nextConfigView: Record<string, unknown>): Config =>
     mergePluginConfigView(current, nextConfigView, this.channelBindings);
+
+  private notifyChanged = (): void => {
+    for (const handler of this.changeHandlers) {
+      handler();
+    }
+  };
 }

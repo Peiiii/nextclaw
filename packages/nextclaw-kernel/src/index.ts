@@ -16,6 +16,7 @@ export * from "@kernel/utils/learning-loop-prompt.utils.js";
 export * from "@kernel/features/runtime-registry/index.js";
 export * from "@kernel/features/narp-runtime/index.js";
 export * from "@kernel/features/ncp-dispatch/index.js";
+export * from "@kernel/features/context-compaction/index.js";
 export * from "@kernel/features/native-runtime/index.js";
 export * from "@kernel/features/session-request/index.js";
 export * from "@kernel/services/ncp-session-api.service.js";

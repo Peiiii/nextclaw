@@ -15,6 +15,7 @@ import { NcpSessionApiService } from "@kernel/services/ncp-session-api.service.j
 import { NcpAgentSessionStoreAdapter } from "@kernel/services/ncp-agent-session-store-adapter.service.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import { createAgentRuntimeSessionRequestDispatcher } from "@kernel/features/session-request/index.js";
+import { AgentRuntimeContribution } from "@kernel/contributions/agent-runtime/index.js";
 import { SessionContextWindowContribution } from "@kernel/contributions/session-context-window/index.js";
 import { SessionActivityPreviewContribution } from "@kernel/contributions/session-activity-preview/index.js";
 import { ToolContribution } from "@kernel/contributions/tool-contribution/index.js";
@@ -183,19 +184,14 @@ export class NextclawKernel {
     });
     this.mcpManager = new McpManager(this.configManager.loadConfig);
     this.agentRuntimeManager = new AgentRuntimeManager({
-      providerManager: this.llmProviders,
       sessions: this.sessions,
       ingress: this.ingress,
       ncpAgentSessionStore: this.ncpAgentSessionStore,
       configManager: this.configManager,
-      extensions: this.extensions,
       eventBus: this.eventBus,
       handleNcpEvent: this.handleNcpEvent,
-      llmUsage: this.llmUsage,
       onSessionUpdated: this.publishSessionUpdated,
       assetStore: this.assetStore,
-      mcpManager: this.mcpManager,
-      toolManager: this.toolManager,
     });
     this.ncpSessionApi = new NcpSessionApiService({
       eventBus: this.eventBus,
@@ -212,6 +208,7 @@ export class NextclawKernel {
         readLearningLoopRuntimeConfig(this.configManager.loadConfig()),
     });
     this.contributions = [
+      new AgentRuntimeContribution(this),
       new ToolContribution(this),
       new SessionActivityPreviewContribution(this),
       new SessionContextWindowContribution(this),
@@ -227,6 +224,7 @@ export class NextclawKernel {
   start = async (): Promise<void> => {
     this.ncpSessionApi.start();
     void this.sessionSearch.start();
+    this.mcpManager.start();
     for (const contribution of this.contributions) {
       contribution.start();
     }

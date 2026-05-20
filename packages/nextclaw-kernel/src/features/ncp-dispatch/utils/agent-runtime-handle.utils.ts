@@ -38,7 +38,6 @@ export function createAgentRuntimeHandle(params: {
   backend: DefaultNcpAgentBackend;
   agentClientEndpoint?: NcpAgentClientEndpoint;
   runtimeRegistry: AgentRuntimeRegistry;
-  refreshPluginRuntimeRegistrations: () => void;
   refreshConfiguredRuntimeEntries: () => void;
   dispose: () => Promise<void>;
   assetStore: LocalAssetStore;
@@ -47,7 +46,6 @@ export function createAgentRuntimeHandle(params: {
     agentClientEndpoint,
     backend,
     runtimeRegistry,
-    refreshPluginRuntimeRegistrations,
     refreshConfiguredRuntimeEntries,
     dispose,
     assetStore,
@@ -59,7 +57,6 @@ export function createAgentRuntimeHandle(params: {
     runApi: backend,
     sessionApi: backend,
     listSessionTypes: (describeParams?: AgentRuntimeSessionTypeDescribeParams) => {
-      refreshPluginRuntimeRegistrations();
       refreshConfiguredRuntimeEntries();
       return runtimeRegistry.listSessionTypes(describeParams);
     },

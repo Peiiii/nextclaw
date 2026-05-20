@@ -38,7 +38,7 @@ import {
   syncSessionThinkingPreference,
 } from "@kernel/features/native-runtime/utils/nextclaw-ncp-session-preferences.utils.js";
 import { buildCurrentTurnState } from "@kernel/features/native-runtime/utils/nextclaw-ncp-current-turn.utils.js";
-import { projectNcpMessagesWithContextCompaction } from "@kernel/features/native-runtime/utils/context-compaction-projection.utils.js";
+import { projectNcpMessagesWithContextCompaction } from "@kernel/features/context-compaction/index.js";
 import {
   resolveAgentHandoffDepth,
   type ToolRuntimeRegistry,

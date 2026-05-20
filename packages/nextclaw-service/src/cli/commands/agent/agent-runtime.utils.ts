@@ -81,7 +81,9 @@ export async function listAvailableAgentRuntimes(
   runtimeSourceByKind.set(DEFAULT_AGENT_RUNTIME_ENTRY_ID, {
     source: "builtin",
   });
-  new BuiltinNarpRuntimeRegistrationService(() => config).registerInto(runtimeRegistry);
+  new BuiltinNarpRuntimeRegistrationService(() => config).registerInto({
+    registerRuntimeProvider: runtimeRegistry.register,
+  });
   runtimeSourceByKind.set("narp-http", {
     source: "builtin",
   });
