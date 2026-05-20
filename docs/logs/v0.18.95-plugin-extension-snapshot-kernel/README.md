@@ -13,6 +13,8 @@
 - 删除 service `ServiceExtensionRuntime` 与 `ExtensionLifecycleService`，将 extension manifest discovery、stdio lifecycle、ingress request/response bridge 收回 kernel `ExtensionRuntimeService`。
 - 新增 kernel `ExtensionPluginRegistryService`，承接 plugin registry progressive load、dev first-party plugin loading context、explicit dev override、excludeRoots 与 reserved provider/tool 规则，避免把 registry loader 作为 `extensionManagerDeps` 从 service 传入。
 - 将 extension manifest discovery、stdio lifecycle 与 dev development-source helpers 拆入 kernel feature root，避免 `ExtensionRuntimeService` 继续膨胀成大文件。
+- 追加收敛 channel list：service `ChannelListViewService` 不再直接访问 `ExtensionManifestDiscoveryService` / `resolveExtensionManifestRoots`，改为调用 kernel `ExtensionChannelCatalogService`。
+- `ExtensionRuntimeService` 不再通过 kernel 根入口导出，`loadContributions` 改为内部语义更窄的 `loadChannelContributions`。
 - service 启动链路只调用 `kernel.extensions.registerIngressHandlers/start/stop/load/reloadForConfigChange`，不再组装 extension host、plugin registry 或 manifest contributions。
 
 根因：kernel `ExtensionManager` 已经是 extension registry、channel bindings、UI metadata 的事实 owner，但 service gateway 侧仍自行派生并维护同一份 snapshot，再写回 kernel，形成 owner 错位。

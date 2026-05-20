@@ -219,7 +219,7 @@ export class ExtensionManager {
         onPluginProcessed?.(progress);
       },
     });
-    const contributions = await this.runtime.loadContributions({
+    const contributions = await this.runtime.loadChannelContributions({
       config,
       workspace,
     });

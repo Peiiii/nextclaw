@@ -83,6 +83,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - `responsibility-surface-minimization`：owner 自己能推导或决定的内部实现细节不外传；只有跨边界外部事实、明确策略、用户选择、测试替身或真实扩展点才进入参数表面
 - 子系统 manager / facade 必须暴露意图级能力，而不是内部中间态装载入口。外部业务流不应传入或感知 registry、snapshot、contributions、resolved view、derived bindings 这类 owner 内部实现细节；这些加载、发现、合并和生命周期闭环应由 facade 内部或它的私有协作者持有。
 - 不要把职责泄露从 public 方法挪到 constructor deps / options 里伪装成收敛。如果依赖项代表的是该 owner 本应内聚的领域动作，例如 `loadRegistry`、`loadContributions`、`installHost`、`resolveXxx`、`createXxx`，那仍然是空心 owner；构造参数只应承接 owner 无法自知的基础设施事实、外部端口、明确策略或测试替身。
+- 不要为了遮挡一个泄露点新增单方法空壳 class。若 class 没有状态、生命周期、缓存、权限边界、策略选择、协议转换或多个协作方法，且只是把一个函数命名成 `XxxService` / `XxxManager`，默认是过度抽象；应优先把能力收回已有 owner，或用 feature 内的命名函数表达一个窄意图。
 
 ### 2.1 这是语义建模还是结构搬运
 
@@ -210,6 +211,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 导出 `createXxx()` 但函数体只是 `return new Xxx(...)` 或 `=> new Xxx(...)`，没有缓存、依赖注入、环境选择、异步初始化、权限封装等真实语义
 - 新增 `XxxManager` / `XxxOwner`，但核心能力靠上层传 `createXxx` / `resolveXxx` / `getXxx` 完成，自己不持有领域闭环
 - 新增 `XxxService` / `XxxResolverService` 只为了让文件名或治理检查显得合规，内部只是 new 另一个 owner 或转调单个方法
+- 新增单方法 `XxxService` / `XxxCatalogService`，没有状态、生命周期、缓存、策略或协议转换，只是为了避免调用方直接 import 某个内部 helper
 - 为了迁移省事长期保留 `asOldXxx()`、旧 manager、旧 registry、旧 getter、旧入口和新入口并存
 - 上游合同错了却在下游加 alias / normalize / fallback，让错误输入继续显示成功
 - 为了一个 UI 状态让 runtime、shell、server、router、controller 多层新增同名参数

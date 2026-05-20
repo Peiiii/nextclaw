@@ -8,8 +8,7 @@ const mocks = vi.hoisted(() => ({
   getPluginChannelBindingsMock: vi.fn(),
   buildPluginStatusReportMock: vi.fn(),
   loadPluginRegistryMock: vi.fn(),
-  discoverExtensionManifestsMock: vi.fn(),
-  resolveExtensionManifestRootsMock: vi.fn(),
+  listExtensionChannelIdsMock: vi.fn(),
   resolveChannelConfigViewMock: vi.fn(),
 }));
 
@@ -53,10 +52,7 @@ vi.mock("../channel/channel-config-view.js", () => ({
 }));
 
 vi.mock("@nextclaw/kernel", () => ({
-  ExtensionManifestDiscoveryService: class {
-    discoverSync = mocks.discoverExtensionManifestsMock;
-  },
-  resolveExtensionManifestRoots: mocks.resolveExtensionManifestRootsMock,
+  listExtensionChannelIds: mocks.listExtensionChannelIdsMock,
 }));
 
 import { ChannelCommands } from "./index.js";
@@ -73,8 +69,7 @@ describe("ChannelCommands.status", () => {
     } as Config);
     mocks.getWorkspacePathMock.mockReturnValue("/tmp/workspace");
     mocks.loadPluginRegistryMock.mockReturnValue({ channels: [] });
-    mocks.discoverExtensionManifestsMock.mockReturnValue([]);
-    mocks.resolveExtensionManifestRootsMock.mockReturnValue([]);
+    mocks.listExtensionChannelIdsMock.mockReturnValue([]);
     mocks.getPluginChannelBindingsMock.mockReturnValue([]);
     mocks.buildPluginStatusReportMock.mockReturnValue({ plugins: [] });
     mocks.resolveChannelConfigViewMock.mockReturnValue({
@@ -110,21 +105,7 @@ describe("ChannelCommands.status", () => {
 
   it("lists NextClaw extension manifest channels without starting extension processes", () => {
     mocks.getPluginChannelBindingsMock.mockReturnValue([]);
-    mocks.discoverExtensionManifestsMock.mockReturnValue([
-      {
-        id: "nextclaw-channel-extension-weixin",
-        rootDir: "/tmp/weixin",
-        server: { type: "stdio", command: "node" },
-        contributes: {
-          channels: [{
-            id: "weixin",
-            name: "Weixin",
-            auth: { type: "request-response" },
-            outbound: { text: true },
-          }],
-        },
-      },
-    ]);
+    mocks.listExtensionChannelIdsMock.mockReturnValue(["weixin"]);
     mocks.resolveChannelConfigViewMock.mockReturnValue({
       channels: {
         weixin: {

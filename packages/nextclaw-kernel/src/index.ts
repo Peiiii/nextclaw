@@ -21,7 +21,7 @@ export * from "@kernel/features/context-compaction/index.js";
 export * from "@kernel/features/native-runtime/index.js";
 export * from "@kernel/features/session-request/index.js";
 export * from "@kernel/services/extension-plugin-registry.service.js";
-export * from "@kernel/services/extension-runtime.service.js";
+export { listExtensionChannelIds } from "@kernel/features/extension-runtime/index.js";
 export * from "@kernel/services/ncp-session-api.service.js";
 export * from "@kernel/utils/ncp-session-summary.utils.js";
 export * from "@kernel/utils/ncp-session-message-adapter.utils.js";

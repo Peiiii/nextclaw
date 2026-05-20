@@ -1,11 +1,7 @@
 import type { Config } from "@nextclaw/core";
 import type { PluginChannelBinding } from "@nextclaw/openclaw-compat";
 import { resolveChannelConfigView } from "./channel-config-view.js";
-import {
-  ExtensionManifestDiscoveryService,
-  type ExtensionManifest,
-  resolveExtensionManifestRoots,
-} from "@nextclaw/kernel";
+import { listExtensionChannelIds } from "@nextclaw/kernel";
 
 export type ChannelListEntry = {
   id: string;
@@ -48,7 +44,10 @@ export class ChannelListViewService {
     const { config, pluginBindings, workspaceDir } = params;
     const sources = this.mergeChannelSources(
       pluginBindings.map(this.toPluginChannelSource),
-      this.toManifestChannelSources(this.discoverExtensionManifests(config, workspaceDir)),
+      this.toManifestChannelSources(listExtensionChannelIds({
+        config,
+        workspace: workspaceDir,
+      })),
     );
     const channelConfig = resolveChannelConfigView(config, pluginBindings);
     const channelConfigs = readRecord(channelConfig.channels) ?? {};
@@ -59,22 +58,8 @@ export class ChannelListViewService {
     };
   };
 
-  private toManifestChannelSources = (manifests: ExtensionManifest[]): ChannelListSource[] => {
-    const sources: ChannelListSource[] = [];
-    for (const manifest of manifests) {
-      const channels = manifest.contributes?.channels ?? [];
-      for (const channel of channels) {
-        const channelId = readString(channel.id);
-        if (!channelId) {
-          continue;
-        }
-        sources.push({
-          id: channelId,
-        });
-      }
-    }
-    return sources;
-  };
+  private toManifestChannelSources = (channelIds: string[]): ChannelListSource[] =>
+    channelIds.map((id) => ({ id }));
 
   private toPluginChannelSource = (binding: PluginChannelBinding): ChannelListSource => ({
     id: binding.channelId,
@@ -119,18 +104,6 @@ export class ChannelListViewService {
       sourcesByChannelId.set(source.id, source);
     }
     return [...sourcesByChannelId.values()];
-  };
-
-  private discoverExtensionManifests = (
-    config: Config,
-    workspaceDir: string,
-  ): ExtensionManifest[] => {
-    const discovery = new ExtensionManifestDiscoveryService();
-    const roots = resolveExtensionManifestRoots({
-      config,
-      workspace: workspaceDir,
-    });
-    return discovery.discoverSync(roots);
   };
 
   private resolveDefaultAccountId = (

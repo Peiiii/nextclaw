@@ -4,9 +4,11 @@ import { join } from "node:path";
 import { Ingress } from "@nextclaw/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  ExtensionRuntimeService,
   resolveBuiltinExtensionManifestRoots,
   resolveExtensionManifestRoots,
+} from "@kernel/features/extension-runtime/index.js";
+import {
+  ExtensionRuntimeService,
 } from "./extension-runtime.service.js";
 
 const tempDirs: string[] = [];
@@ -111,7 +113,7 @@ describe("ExtensionRuntimeService", () => {
     });
     runtime.registerIngressHandlers();
 
-    const contributions = await runtime.loadContributions({
+    const contributions = await runtime.loadChannelContributions({
       config: {
         plugins: {
           load: {

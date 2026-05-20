@@ -29,16 +29,6 @@ import {
   type PendingExtensionRequest,
 } from "@kernel/features/extension-runtime/index.js";
 
-export {
-  ExtensionManifestDiscoveryService,
-  resolveBuiltinExtensionManifestRoots,
-  resolveExtensionManifestRoots,
-} from "@kernel/features/extension-runtime/index.js";
-export type {
-  ExtensionManifest,
-  ExtensionRuntimeContributions,
-} from "@kernel/features/extension-runtime/index.js";
-
 const EXTENSION_REQUEST_EVENT_TYPE = "extension.request";
 const EXTENSION_REQUEST_TIMEOUT_MS = 60_000;
 
@@ -189,7 +179,7 @@ export class ExtensionRuntimeService {
     );
   };
 
-  readonly loadContributions = async (params: {
+  readonly loadChannelContributions = async (params: {
     config: Config;
     workspace: string;
   }): Promise<ExtensionRuntimeContributions> => {
