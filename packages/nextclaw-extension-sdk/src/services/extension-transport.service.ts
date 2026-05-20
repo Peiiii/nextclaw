@@ -4,6 +4,7 @@ import type {
   NextClawExtensionOptions,
   NextClawExtensionWebSocketLike,
 } from "../types/extension-sdk.types.js";
+import { getKeyId, ingressKeys } from "@nextclaw/shared";
 import { normalizeEndpoint, resolveWebSocketUrl } from "../utils/extension-url.utils.js";
 
 type RealtimeHandler = (event: ExtensionTransportEnvelope) => void;
@@ -77,7 +78,7 @@ export class ExtensionTransportService {
   };
 
   readonly respondToRequest = async (response: ExtensionRequestResponse): Promise<void> => {
-    await this.postIngress("extension.response", response);
+    await this.postIngress(getKeyId(ingressKeys.extension.response), response);
   };
 
   readonly subscribe = (handler: RealtimeHandler): { close: () => void } => {

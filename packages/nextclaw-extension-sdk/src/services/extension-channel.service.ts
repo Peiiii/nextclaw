@@ -1,4 +1,10 @@
-import { eventKeys, getKeyId, type EventBus, type Unsubscribe } from "@nextclaw/shared";
+import {
+  eventKeys,
+  getKeyId,
+  ingressKeys,
+  type EventBus,
+  type Unsubscribe,
+} from "@nextclaw/shared";
 import type {
   ChannelConfigGetResponse,
   ChannelSubmittedMessage,
@@ -6,9 +12,6 @@ import type {
   ExtensionChannelConfig,
 } from "../types/extension-sdk.types.js";
 import type { ExtensionTransportService } from "./extension-transport.service.js";
-
-const CONFIG_GET_EVENT_TYPE = "extension.channel.config.get";
-const MESSAGE_SUBMIT_EVENT_TYPE = "extension.channel.message.submit";
 
 class ChannelConfig implements ExtensionChannelConfig {
   constructor(
@@ -21,7 +24,7 @@ class ChannelConfig implements ExtensionChannelConfig {
 
   readonly get = async <TConfig = unknown>(): Promise<TConfig> => {
     const response = await this.params.transport.postIngress<ChannelConfigGetResponse<TConfig>>(
-      CONFIG_GET_EVENT_TYPE,
+      getKeyId(ingressKeys.extension.channelConfigGet),
       { channelId: this.params.channelId },
     );
     return response.config;
@@ -60,7 +63,7 @@ export class ExtensionChannelService implements ExtensionChannel {
   readonly submitMessage = async (
     input: Omit<ChannelSubmittedMessage, "channelId">,
   ): Promise<void> => {
-    await this.params.transport.postIngress(MESSAGE_SUBMIT_EVENT_TYPE, {
+    await this.params.transport.postIngress(getKeyId(ingressKeys.extension.channelMessageSubmit), {
       ...input,
       channelId: this.id,
     });

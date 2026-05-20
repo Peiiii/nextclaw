@@ -5,7 +5,8 @@
     "lib": ["ES2022"],
     "baseUrl": ".",
     "paths": {
-      "@kernel/*": ["./src/*"]
+      "@kernel/*": ["./src/*"],
+      "@nextclaw/shared": ["../nextclaw-shared/src/index.ts"]
     }
   },
   "include": ["src"],

@@ -1,9 +1,13 @@
 import type * as NextclawCore from "@nextclaw/core";
 import { getDataPath } from "@nextclaw/core";
-import type {
-  Ingress,
-  IngressContext,
-  IngressEnvelope,
+import {
+  ingressKeys,
+  type ExtensionChannelConfigGetIngressPayload,
+  type ExtensionChannelMessageSubmitIngressPayload,
+  type ExtensionResponseIngressPayload,
+  type Ingress,
+  type IngressContext,
+  type IngressEnvelope,
 } from "@nextclaw/shared";
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
@@ -22,7 +26,6 @@ import {
   ExtensionLifecycleService,
   ExtensionManifestDiscoveryService,
   type ExtensionManifest,
-  type RunningExtensionProcess,
 } from "./extension-lifecycle.service.js";
 import type { NextclawGatewayRuntime } from "@nextclaw-service/shared/services/gateway/nextclaw-gateway-runtime.service.js";
 
@@ -30,21 +33,9 @@ type Config = NextclawCore.Config;
 type InboundAttachment = NextclawCore.InboundAttachment;
 type InboundMessage = NextclawCore.InboundMessage;
 
-const EXTENSION_CONFIG_GET_INGRESS_TYPE = "extension.channel.config.get";
-const EXTENSION_MESSAGE_SUBMIT_INGRESS_TYPE = "extension.channel.message.submit";
 const EXTENSION_REQUEST_EVENT_TYPE = "extension.request";
-const EXTENSION_RESPONSE_INGRESS_TYPE = "extension.response";
 const serviceRequire = createRequire(import.meta.url);
 const EXTENSION_REQUEST_TIMEOUT_MS = 60_000;
-
-type ChannelSubmittedMessagePayload = {
-  channelId?: unknown;
-  conversationId?: unknown;
-  senderId?: unknown;
-  content?: unknown;
-  attachments?: unknown;
-  metadata?: unknown;
-};
 
 type ExtensionChannelRequestKind =
   | "channel.auth.login"
@@ -247,8 +238,8 @@ function readInboundAttachments(value: unknown): InboundAttachment[] {
     }));
 }
 
-function toInboundMessage(payload: ChannelSubmittedMessagePayload): InboundMessage {
-  const metadata = readRecord(payload.metadata);
+function toInboundMessage(value: unknown): InboundMessage {
+  const payload = readRecord(value);
   return {
     channel: readRequiredString(payload.channelId, "channelId"),
     chatId: readRequiredString(payload.conversationId, "conversationId"),
@@ -256,7 +247,7 @@ function toInboundMessage(payload: ChannelSubmittedMessagePayload): InboundMessa
     content: readTextContent(payload.content),
     timestamp: new Date(),
     attachments: readInboundAttachments(payload.attachments),
-    metadata,
+    metadata: readRecord(payload.metadata),
   };
 }
 
@@ -274,37 +265,6 @@ export function resolveExtensionManifestRoots(params: {
   ]);
 }
 
-export async function startDiscoveredExtensions(params: {
-  config: Config;
-  workspace: string;
-  endpoint: string;
-  token: string;
-  discovery?: ExtensionManifestDiscoveryService;
-  lifecycle?: ExtensionLifecycleService;
-}): Promise<{
-  lifecycle: ExtensionLifecycleService;
-  running: RunningExtensionProcess[];
-}> {
-  const { config, discovery: providedDiscovery, endpoint, lifecycle: providedLifecycle, token, workspace } = params;
-  const discovery = providedDiscovery ?? new ExtensionManifestDiscoveryService();
-  const lifecycle =
-    providedLifecycle ??
-    new ExtensionLifecycleService({
-      endpoint,
-      token,
-    });
-  const manifests = await discovery.discover(
-    resolveExtensionManifestRoots({
-      config,
-      workspace,
-    }),
-  );
-  return {
-    lifecycle,
-    running: await lifecycle.startAll(manifests),
-  };
-}
-
 export class ServiceExtensionRuntime {
   readonly token = randomUUID();
   private lifecycle: ExtensionLifecycleService | null = null;
@@ -315,15 +275,15 @@ export class ServiceExtensionRuntime {
 
   readonly registerIngressHandlers = (ingress: Ingress): void => {
     ingress.addHandler(
-      EXTENSION_CONFIG_GET_INGRESS_TYPE,
+      ingressKeys.extension.channelConfigGet,
       this.handleChannelConfigGet,
     );
     ingress.addHandler(
-      EXTENSION_MESSAGE_SUBMIT_INGRESS_TYPE,
+      ingressKeys.extension.channelMessageSubmit,
       this.handleChannelMessageSubmit,
     );
     ingress.addHandler(
-      EXTENSION_RESPONSE_INGRESS_TYPE,
+      ingressKeys.extension.response,
       this.handleExtensionResponse,
     );
   };
@@ -363,7 +323,7 @@ export class ServiceExtensionRuntime {
   };
 
   private readonly handleChannelConfigGet = (
-    envelope: IngressEnvelope,
+    envelope: IngressEnvelope<ExtensionChannelConfigGetIngressPayload>,
     context: IngressContext,
   ) => {
     this.assertAuthorized(context);
@@ -375,16 +335,16 @@ export class ServiceExtensionRuntime {
   };
 
   private readonly handleChannelMessageSubmit = async (
-    envelope: IngressEnvelope,
+    envelope: IngressEnvelope<ExtensionChannelMessageSubmitIngressPayload>,
     context: IngressContext,
   ) => {
     this.assertAuthorized(context);
-    await this.gateway.messageBus.publishInbound(toInboundMessage(readRecord(envelope.payload)));
+    await this.gateway.messageBus.publishInbound(toInboundMessage(envelope.payload));
     return { accepted: true };
   };
 
   private readonly handleExtensionResponse = (
-    envelope: IngressEnvelope,
+    envelope: IngressEnvelope<ExtensionResponseIngressPayload>,
     context: IngressContext,
   ) => {
     this.assertAuthorized(context);

@@ -28,23 +28,25 @@ Do not use for pure docs, wording tweaks, or trivial metadata edits.
 
 ## Positive Resolution Requirement
 
-For non-feature changes, the goal is not to make the line-count number smaller. The goal is to make production code cheaper to understand, change, and verify.
+For non-feature changes, the goal is not to make the line-count number smaller. The goal is to make production code cheaper to understand, change, and verify. Debt reduction should prioritize sources of complexity, cognitive load, and unnecessary chains, not arbitrary places where lines can be removed.
 
-The completion standard is improved code quality and maintainability. A non-feature change only passes when the diff makes the production code better in an observable way: clearer ownership, simpler behavior, fewer branches or states, better reuse, lower coupling, easier verification, or less code to maintain. Line count and positive maintenance actions are evidence for that outcome; they are not the outcome by themselves.
+The completion standard is improved code quality and maintainability. A non-feature change only passes when the diff makes the production code better in an observable way: clearer ownership, simpler behavior, fewer branches or states, better reuse, lower coupling, easier verification, lower cognitive load, or less code to maintain. Line count and positive maintenance actions are evidence for that outcome; they are not the outcome by themselves.
 
 Before accepting a non-feature change, identify which positive maintenance action produced the reduction or offset, in this order of preference:
 
-The reduction does not need to happen only in the exact edited lines or file. It can come from related code in the same responsibility chain or problem area, as long as the batch leaves the system genuinely simpler.
+The reduction does not need to happen only in the exact edited lines or file. Search for it from near to far: current function/type, current file, current owner/class/service, same responsibility chain, same problem area, then related modules in the delivery batch. Only expand outward when the closer scope has no positive reduction opportunity, and the batch must still leave the system genuinely simpler.
 
-1. Delete obsolete, unreachable, duplicated, or no-longer-needed production code.
-2. Simplify branches, state sources, parameters, lifecycle paths, or data flow so there is less behavior to reason about.
+1. Delete obsolete, unreachable, duplicated, no-longer-needed, or cognitive-load-heavy production code.
+2. Simplify branches, state sources, parameters, lifecycle paths, data flow, or unnecessary chains so there is less behavior to reason about.
 3. Reuse an existing stable component, manager, service, utility, type, or configuration path instead of adding a parallel implementation.
 4. Converge scattered responsibility into the correct class / manager / presenter / service owner.
 5. Add or adjust a decoupling abstraction only when it removes real duplication, lowers coupling, clarifies ownership, or makes call sites simpler.
 
 Deletion and simplification are preferred over new abstractions. A new abstraction only counts as maintainability improvement when it reduces real complexity instead of adding another layer to inspect.
 
-If the diff reaches non-test net lines `<= 0` mainly by making code denser, harder to read, less typed, less observable, less explicit, or by moving complexity outside the counted production surface, the review must still conclude `需继续修改`.
+If the diff reaches non-test net lines `<= 0` mainly by making code denser, harder to read, less typed, less observable, less explicit, weaker in protocol/type safety, or by moving complexity outside the counted production surface, the review must still conclude `需继续修改`.
+
+If the touched module has no positive deletion or simplification opportunity, do not degrade that module to satisfy the line gate. Expand the search scope by relationship distance, look for real debt in the same responsibility chain, problem domain, or delivery batch, and use that reduction only when it genuinely lowers maintenance cost.
 
 ## Review Questions
 

@@ -52,7 +52,7 @@ description: Use when implementing or refactoring code in this repository, espec
 
 - 这次是在新增用户能力，还是只是在修结构/修 bug/修链路
 - 如果不是新增能力，什么旧代码可以直接删
-- 如果当前改动点删不动，能不能在同一责任链、同一问题域或本批次相关路径里删旧实现、收敛分支或回收中间层
+- 如果当前改动点删不动，按关系由近及远寻找真实减债点：当前函数/类型 -> 当前文件 -> 当前 owner/class/service -> 同一责任链 -> 同一问题域 -> 本批次相关模块；优先删除或简化复杂度源、心智负担源、非必要链路、旧实现、重复路径和重复 contract，不能跳到无关模块凑行数
 - 能不能通过删路径、删分支、删中间层解决，而不是继续加逻辑
 - 如果这不是新增能力，最终能不能做到“排除测试后的非测试代码净增 <= 0”
 
@@ -90,6 +90,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 中间层是否拥有决策、生命周期、权限、协议转换或持久化责任
 - 是否正在手写接口 proxy、wrapper、adapter，只为了改其中一个方法
 - 是否只是把一个问题类型、参数对象、contract 或 wrapper 换了一个新名字，却没有删除重复字段清单、重复 owner 或重复装配链路
+- 是否只是为了“看起来更通用”新增一层命名、分组、factory 或常量 alias；若调用通用原语已足够表达语义，必须直接使用通用原语
 - 是否只是把核心职责外包给上层传入的 `createXxx` / `resolveXxx` / `getXxx`，导致新类只有名字像 owner、能力却不内聚
 - 是否把不同层级的信息混进同一个 options，比如让下级 owner 同时感知 `homeDir/workspace/configPath/sessionsDir/factory`，导致职责边界失真
 - 是否有一个现成的数据生成者 / summary builder / view service 可以自然加上这个字段
@@ -100,6 +101,9 @@ description: Use when implementing or refactoring code in this repository, espec
 - 事件名如果声明承载某个既有协议事件，payload 必须保持该协议事件本体；路由、权限、展示上下文、派生 metadata 属于独立 owner 或独立事件，不能混进同名协议事件里
 - 不用“原样转发整个接口 + 改一个方法”的方式解决局部问题
 - 不用 getter / alias / proxy 冒充删除重复入口。`get oldName() { return this.newName; }` 只有在明确保留兼容 contract 时才允许；重构收敛场景必须继续改调用方或改 contract，让公共入口真的只剩一个。
+- 常量表、key catalog、协议 key、事件 key 这类共享契约，默认只保留“真正被使用的事实名称”。禁止额外包装通用构造函数、禁止导出只转指向 catalog 的别名常量、禁止添加没有调用方收益的分类层级；如果分类只让路径变长或让概念显得更正式，直接删除。
+- key catalog / 协议 key 的 payload 类型必须是真实协议类型，不能为了放进更上层 package、规避依赖方向或凑行数而裁剪字段、放宽必填项、退化成 `unknown` / `Record<string, unknown>` / `Partial<Record<...>>`。如果真实类型依赖不该被 shared 依赖的模块，要么把纯协议 contract 上移成共享事实源，要么让 key 留在真正 owner 模块；禁止用有损类型假装统一维护。
+- 目标外变更必须默认拒绝。修改、删除或“顺手整理”任何与当前目标没有直接关系的公共契约、类型字段、导出、配置、格式、命名、行为分支或文件结构前，必须先证明它降低了真实维护成本、修复了明确问题，或是当前目标不可避免的一部分；否则保持原样。公共 contract 的字段即使当前调用方暂时没读，也不能因为“看起来没用”就删，除非废弃语义、调用方影响、删除点和验证路径都明确。
 - Owner 状态只能由 owner 自己改变。普通函数、helper、service、callback 不得出现 `params.owner.xxx = ...`、`runtime.xxx = ...`、`gateway.xxx = ...` 这类从外部改 owner 字段的写法；它们只能返回结果，或调用 owner 暴露的明确业务方法。若方法只是 setter 包装且没有业务语义，也应继续收回 owner 内部。
 - 生命周期 owner 里如果出现多个 `unsubscribeXxx` / `cleanupXxx` 字段，默认先收敛成 `cleanups` / `disposables` collection 或复用项目已有 disposable owner；`start/stop` 用显式生命周期状态判断，不依赖 cleanup collection 反推状态；`stop/dispose` 才统一 drain。不要用多个平行 nullable 字段表达同一类生命周期清理职责，也不要让 `start` 隐式执行 stop/cleanup 语义。
 - 不要用下游兜底掩盖上游合同失败。若坏输入、错参数、错协议名、错工具参数来自 prompt、skill、schema、contract 或校验缺失，先修上游合同和错误暴露；禁止直接在执行层新增 alias、normalize、fallback、compatibility path 把坏输入悄悄转成好输入，除非存在明确外部兼容合同、可观察提示和删除条件。
@@ -241,14 +245,15 @@ description: Use when implementing or refactoring code in this repository, espec
 2. 这段逻辑的 owner 是谁
 3. 这次是在语义 owner 上建模，还是在做结构搬运；若不是结构搬运，证据是什么
 4. 是否引入或改名了类型 / 参数对象 / wrapper；如果是，它删除了哪个重复 contract 或新增了什么真实语义 owner，证据是什么
-5. 新 owner 是否完整内聚；如果依赖上层传入 factory/deps，为什么这是必要外部边界而不是空心注入
-6. 新 owner 的职责边界、感知范围、最小依赖和可配置/自定义表面分别是什么
-7. 主路径是什么，为什么不是双路径；如果保留兼容路径，删除点是什么
-8. 为什么这不是隐藏 fallback 或补丁式修复
-9. 文件为什么放在这里
-10. 最小可信验证是什么
-11. 如果这不是新增能力，为什么最终能保证 `非测试代码净增 <= 0`
-   同时说明准备在哪个相关责任链、旧实现或冗余路径上完成这次减债；若答案只是“我会把代码写得更紧一点”，说明方案仍不合格。
+5. 是否新增 key/helper/factory/分类层级/alias 常量；如果是，为什么不能直接用已有通用原语或 catalog 原路径
+6. 新 owner 是否完整内聚；如果依赖上层传入 factory/deps，为什么这是必要外部边界而不是空心注入
+7. 新 owner 的职责边界、感知范围、最小依赖和可配置/自定义表面分别是什么
+8. 主路径是什么，为什么不是双路径；如果保留兼容路径，删除点是什么
+9. 为什么这不是隐藏 fallback 或补丁式修复
+10. 文件为什么放在这里
+11. 最小可信验证是什么
+12. 如果这不是新增能力，为什么最终能保证 `非测试代码净增 <= 0`
+   同时说明按“当前函数/类型 -> 当前文件 -> 当前 owner/class/service -> 同一责任链 -> 同一问题域 -> 本批次相关模块”的顺序，准备在哪个最近的真实冗余点完成减债；若答案只是“我会把代码写得更紧一点”，说明方案仍不合格。
 
 如果这些问题里有 2 个以上答不清，先不要写代码。
 

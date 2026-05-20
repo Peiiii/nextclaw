@@ -42,6 +42,18 @@ export {
   createEventKey,
   eventKeys,
 } from "./configs/event-keys.config.js";
+export { ingressKeys } from "./configs/ingress-keys.config.js";
+export type {
+  AgentRuntimeSessionMessageIngressPayload,
+  ExtensionChannelConfigGetIngressPayload,
+  ExtensionChannelFileContent,
+  ExtensionChannelImageContent,
+  ExtensionChannelMessageContent,
+  ExtensionChannelMessageSubmitIngressPayload,
+  ExtensionChannelSubmittedAttachment,
+  ExtensionChannelTextContent,
+  ExtensionResponseIngressPayload,
+} from "./configs/ingress-keys.config.js";
 export type {
   InstallationKind,
   UpdateBlockReason,

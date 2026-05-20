@@ -1,7 +1,7 @@
 import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
 import {
-  createTypedKey,
   eventKeys,
+  ingressKeys,
   type EventBus,
   type Ingress,
   type Unsubscribe,
@@ -10,15 +10,6 @@ import type {
   SessionRequestDispatcher,
   SessionRequestRecord,
 } from "@nextclaw/core";
-
-export const AGENT_RUNTIME_SESSION_MESSAGE_INGRESS_TYPE =
-  createTypedKey<AgentRuntimeSessionMessageRequest>("agent-runtime.session-message.request");
-
-export type AgentRuntimeSessionMessageRequest = {
-  message: NcpMessage;
-  requestId: string;
-  sessionId: string;
-};
 
 export type AgentRuntimeSessionRequestDispatcherOptions = {
   eventBus: EventBus;
@@ -88,7 +79,7 @@ export async function dispatchAgentRuntimeSessionRequest(input: {
   task: string;
 }): Promise<void> {
   await input.ingress.handle({
-    type: AGENT_RUNTIME_SESSION_MESSAGE_INGRESS_TYPE,
+    type: ingressKeys.agentRuntime.sessionMessageRequest,
     payload: {
       message: {
         id: `${input.request.targetSessionId}:user:session-request:${input.request.requestId}`,

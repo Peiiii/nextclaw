@@ -1,5 +1,18 @@
 import type { NcpEndpointEvent } from "@nextclaw/ncp";
-import type { Unsubscribe } from "@nextclaw/shared";
+import type {
+  ExtensionChannelMessageSubmitIngressPayload,
+  Unsubscribe,
+} from "@nextclaw/shared";
+export type {
+  ExtensionChannelConfigGetIngressPayload as ChannelConfigGetRequest,
+  ExtensionChannelFileContent as ChannelFileContent,
+  ExtensionChannelImageContent as ChannelImageContent,
+  ExtensionChannelMessageContent as ChannelMessageContent,
+  ExtensionChannelMessageSubmitIngressPayload as ChannelSubmittedMessage,
+  ExtensionChannelSubmittedAttachment as ChannelSubmittedAttachment,
+  ExtensionChannelTextContent as ChannelTextContent,
+  ExtensionResponseIngressPayload as ExtensionRequestResponse,
+} from "@nextclaw/shared";
 
 export type NextClawExtensionOptions = {
   endpoint?: string;
@@ -32,72 +45,6 @@ export type ExtensionRequest = {
   payload?: Record<string, unknown>;
 };
 
-export type ExtensionRequestResponse =
-  | {
-      requestId: string;
-      ok: true;
-      data?: unknown;
-    }
-  | {
-      requestId: string;
-      ok: false;
-      error: {
-        message: string;
-      };
-    };
-
-export type ChannelTextContent = {
-  type: "text";
-  text: string;
-};
-
-export type ChannelImageContent = {
-  type: "image";
-  url?: string;
-  assetUri?: string;
-  mimeType?: string;
-  name?: string;
-};
-
-export type ChannelFileContent = {
-  type: "file";
-  url?: string;
-  assetUri?: string;
-  mimeType?: string;
-  name?: string;
-};
-
-export type ChannelMessageContent =
-  | ChannelTextContent
-  | ChannelImageContent
-  | ChannelFileContent;
-
-export type ChannelSubmittedAttachment = {
-  id?: string;
-  name?: string;
-  path?: string;
-  url?: string;
-  assetUri?: string;
-  mimeType?: string;
-  size?: number;
-  source?: string;
-  status?: "ready" | "remote-only";
-  errorCode?: "too_large" | "download_failed" | "http_error" | "invalid_payload";
-};
-
-export type ChannelSubmittedMessage = {
-  channelId: string;
-  conversationId: string;
-  senderId: string;
-  content: ChannelMessageContent;
-  attachments?: ChannelSubmittedAttachment[];
-  metadata?: Record<string, unknown>;
-};
-
-export type ChannelConfigGetRequest = {
-  channelId: string;
-};
-
 export type ChannelConfigGetResponse<TConfig = unknown> = {
   config: TConfig;
 };
@@ -111,7 +58,7 @@ export type ExtensionChannelConfig = {
 
 export type ExtensionChannel = {
   id: string;
-  submitMessage: (input: Omit<ChannelSubmittedMessage, "channelId">) => Promise<void>;
+  submitMessage: (input: Omit<ExtensionChannelMessageSubmitIngressPayload, "channelId">) => Promise<void>;
   onNcpEvent: (handler: (event: NcpEndpointEvent) => void | Promise<void>) => Unsubscribe;
   config: ExtensionChannelConfig;
 };

@@ -5,6 +5,8 @@ import {
 } from "@nextclaw/core";
 import {
   eventKeys,
+  ingressKeys,
+  type AgentRuntimeSessionMessageIngressPayload,
   type EventBus,
   type Ingress,
   type IngressEnvelope,
@@ -34,10 +36,6 @@ import {
   type AgentRuntimeHandle,
 } from "@kernel/features/ncp-dispatch/index.js";
 import { ContextCompactionPreflightService } from "@kernel/features/context-compaction/index.js";
-import {
-  AGENT_RUNTIME_SESSION_MESSAGE_INGRESS_TYPE,
-  type AgentRuntimeSessionMessageRequest,
-} from "@kernel/features/session-request/index.js";
 
 export type { AgentRuntimeHandle } from "@kernel/features/ncp-dispatch/index.js";
 
@@ -154,7 +152,7 @@ export class AgentRuntimeManager {
       },
     });
     this.unsubscribeAgentRuntimeRequestIngress = this.params.ingress.addHandler(
-      AGENT_RUNTIME_SESSION_MESSAGE_INGRESS_TYPE,
+      ingressKeys.agentRuntime.sessionMessageRequest,
       this.handleSessionMessageRequest,
     );
     this.unsubscribeNcpEvents = this.backend.subscribe(this.publishNcpEvent);
@@ -281,7 +279,7 @@ export class AgentRuntimeManager {
   };
 
   private handleSessionMessageRequest = async (
-    envelope: IngressEnvelope<AgentRuntimeSessionMessageRequest>,
+    envelope: IngressEnvelope<AgentRuntimeSessionMessageIngressPayload>,
   ): Promise<void> => {
     const backend = this.backend;
     if (!backend) {
