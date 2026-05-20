@@ -14,26 +14,32 @@ export function resolveExternalModelProvider(params: {
   explicitModelProvider?: unknown;
   providerName?: string | null;
   providerDisplayName?: string | null;
-  pluginId: string;
+  runtimeEntryId: string;
 }): string {
-  const explicitModelProvider = readOptionalString(params.explicitModelProvider);
+  const {
+    explicitModelProvider: rawExplicitModelProvider,
+    providerName: rawProviderName,
+    providerDisplayName: rawProviderDisplayName,
+    runtimeEntryId,
+  } = params;
+  const explicitModelProvider = readOptionalString(rawExplicitModelProvider);
   if (explicitModelProvider) {
     return explicitModelProvider;
   }
 
-  const providerName = readOptionalString(params.providerName);
+  const providerName = readOptionalString(rawProviderName);
   if (providerName) {
     return providerName;
   }
 
-  const providerDisplayName = readOptionalString(params.providerDisplayName);
+  const providerDisplayName = readOptionalString(rawProviderDisplayName);
   if (providerDisplayName && isValidExternalModelProvider(providerDisplayName)) {
     return providerDisplayName;
   }
 
   throw new Error(
     `[codex] custom provider "${providerName ?? "unknown"}" requires an external model provider id. ` +
-      `Set plugins.entries.${params.pluginId}.config.modelProvider or use a provider display name with only letters, numbers, ".", "_" or "-".`,
+      `Set agents.runtimes.entries.${runtimeEntryId}.config.modelProvider or use a provider display name with only letters, numbers, ".", "_" or "-".`,
   );
 }
 

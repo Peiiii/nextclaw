@@ -99,7 +99,6 @@ export class AgentRuntimeManager {
     this.runtimeRegistry.applyEntries(
       resolveAgentRuntimeEntries({
         config: this.params.configManager.loadConfig(),
-        providerKinds: this.runtimeRegistry.listProviderKinds(),
       }),
     );
   };

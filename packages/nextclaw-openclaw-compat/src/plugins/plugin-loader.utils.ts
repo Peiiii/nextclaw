@@ -29,7 +29,6 @@ export function createPluginRecord(params: {
     toolNames: [],
     channelIds: [],
     providerIds: [],
-    ncpAgentRuntimeKinds: [],
     configSchema: params.configSchema,
     configUiHints: params.configUiHints,
     configJsonSchema: params.configJsonSchema,

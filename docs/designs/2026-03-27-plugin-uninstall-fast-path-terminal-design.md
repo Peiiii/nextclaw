@@ -173,8 +173,7 @@
       "capabilities": {
         "channels": [],
         "providers": [],
-        "engines": [],
-        "ncpAgentRuntimes": ["codex"]
+        "engines": []
       }
     }
   }
@@ -410,4 +409,3 @@ VSCode 快，不是因为它“删文件特别快”。
 4. 把 canonical install root 收敛成 generation store
 
 这不是锦上添花，而是唯一能稳定达到目标体验的结构。
-

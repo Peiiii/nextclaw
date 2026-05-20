@@ -1,9 +1,6 @@
 import path from "node:path";
 import { expandHome, type Config } from "@nextclaw/core";
-import {
-  ensureUniqueNames,
-  registerPluginNcpAgentRuntime,
-} from "./plugin-capability-registration.js";
+import { ensureUniqueNames } from "./plugin-capability-registration.utils.js";
 import { createPluginRuntime } from "./runtime.js";
 import type {
   OpenClawPluginApi,
@@ -54,12 +51,10 @@ export type PluginRegisterRuntime = {
   toolNameOwners: Map<string, string>;
   channelIdOwners: Map<string, string>;
   providerIdOwners: Map<string, string>;
-  ncpAgentRuntimeKindOwners: Map<string, string>;
   resolvedToolNames: Set<string>;
   reservedToolNames: Set<string>;
   reservedChannelIds: Set<string>;
   reservedProviderIds: Set<string>;
-  reservedNcpAgentRuntimeKinds: Set<string>;
 };
 
 export function createPluginRegisterRuntime(params: {
@@ -70,7 +65,6 @@ export function createPluginRegisterRuntime(params: {
   reservedToolNames: Set<string>;
   reservedChannelIds: Set<string>;
   reservedProviderIds: Set<string>;
-  reservedNcpAgentRuntimeKinds: Set<string>;
 }): PluginRegisterRuntime {
   return {
     config: params.config,
@@ -80,12 +74,10 @@ export function createPluginRegisterRuntime(params: {
     toolNameOwners: new Map<string, string>(),
     channelIdOwners: new Map<string, string>(),
     providerIdOwners: new Map<string, string>(),
-    ncpAgentRuntimeKindOwners: new Map<string, string>(),
     resolvedToolNames: new Set<string>(),
     reservedToolNames: params.reservedToolNames,
     reservedChannelIds: params.reservedChannelIds,
-    reservedProviderIds: params.reservedProviderIds,
-    reservedNcpAgentRuntimeKinds: params.reservedNcpAgentRuntimeKinds
+    reservedProviderIds: params.reservedProviderIds
   };
 }
 
@@ -381,15 +373,6 @@ export function registerPluginWithApi(params: {
         pluginId: params.pluginId,
         source: params.source,
         provider
-      });
-    },
-    registerNcpAgentRuntime: (registration) => {
-      registerPluginNcpAgentRuntime({
-        runtime: params.runtime,
-        record: params.record,
-        pluginId: params.pluginId,
-        source: params.source,
-        registration
       });
     },
     registerHook: () => pushUnsupported("registerHook"),

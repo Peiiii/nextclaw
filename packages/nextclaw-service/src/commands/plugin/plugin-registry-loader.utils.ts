@@ -7,7 +7,7 @@ import {
   resolveDevPluginLoadingContext,
 } from "./development-source/dev-plugin-overrides.utils.js";
 import { resolveDevFirstPartyPluginDir } from "./development-source/first-party-plugin-load-paths.utils.js";
-import { buildReservedPluginLoadOptions } from "./plugin-command-utils.js";
+import { buildReservedPluginLoadOptions } from "./plugin-command.utils.js";
 import { getAppLogger, type Config } from "@nextclaw/core";
 
 function createPluginLogger() {
@@ -51,7 +51,6 @@ export function createEmptyPluginRegistry(): PluginRegistry {
     tools: [],
     channels: [],
     providers: [],
-    ncpAgentRuntimes: [],
     diagnostics: [],
     resolvedTools: []
   };

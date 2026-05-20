@@ -38,7 +38,6 @@ Options:
   --ui-port <port>         Local backend/UI port. Defaults to the first free port starting from ${DEFAULT_UI_PORT}.
   --frontend               Also start packages/nextclaw-ui dev server and proxy it to the local backend.
   --frontend-port <port>   Frontend dev server port. Defaults to the first free port starting from ${DEFAULT_FRONTEND_PORT}.
-  --session-type <type>    Optional readiness gate for agent-runtime plugins such as codex or claude.
   --timeout-ms <ms>        Startup timeout in milliseconds (default: ${DEFAULT_TIMEOUT_MS})
   --no-keep-running        Stop the started processes after readiness is confirmed.
   --json                   Print a machine-readable summary.
@@ -54,7 +53,6 @@ function parseArgs(argv) {
     uiPort: "",
     frontend: false,
     frontendPort: "",
-    sessionType: "",
     timeoutMs: DEFAULT_TIMEOUT_MS,
     keepRunning: true,
     json: false,
@@ -88,10 +86,6 @@ function parseArgs(argv) {
         break;
       case "--frontend-port":
         options.frontendPort = next ?? "";
-        index += 1;
-        break;
-      case "--session-type":
-        options.sessionType = next ?? "";
         index += 1;
         break;
       case "--timeout-ms":
@@ -223,20 +217,7 @@ function findAvailablePort(startPort, defaultPort) {
   return listenOnce(defaultPort).catch(() => findAvailablePort(defaultPort + 1, defaultPort));
 }
 
-function readSessionTypeOptions(payload) {
-  if (Array.isArray(payload)) {
-    return payload;
-  }
-  if (Array.isArray(payload?.data)) {
-    return payload.data;
-  }
-  if (Array.isArray(payload?.data?.options)) {
-    return payload.data.options;
-  }
-  return [];
-}
-
-async function waitForUrl(url, timeoutMs, sessionType = "") {
+async function waitForUrl(url, timeoutMs) {
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
     try {
@@ -244,34 +225,13 @@ async function waitForUrl(url, timeoutMs, sessionType = "") {
       if (!healthResponse.ok) {
         throw new Error(`health status ${healthResponse.status}`);
       }
-      if (!sessionType.trim()) {
-        return;
-      }
-
-      const sessionTypesResponse = await fetch(`${url}/api/ncp/session-types`);
-      if (!sessionTypesResponse.ok) {
-        throw new Error(`session-types status ${sessionTypesResponse.status}`);
-      }
-      const items = readSessionTypeOptions(await sessionTypesResponse.json());
-      const ready = items.some((entry) => {
-        if (!entry || typeof entry !== "object") {
-          return false;
-        }
-        return entry.id === sessionType || entry.sessionType === sessionType || entry.value === sessionType;
-      });
-      if (ready) {
-        return;
-      }
+      return;
     } catch {
       // retry
     }
     await sleep(1000);
   }
-  throw new Error(
-    sessionType.trim()
-      ? `Timed out waiting for session type "${sessionType}" on ${url}.`
-      : `Timed out waiting for healthy service at ${url}.`,
-  );
+  throw new Error(`Timed out waiting for healthy service at ${url}.`);
 }
 
 function startDetachedProcess({ command, args, env, logPath }) {
@@ -367,7 +327,6 @@ async function startReadyProcess({
   readyLogText,
   healthUrl,
   httpUrl,
-  sessionType,
 }) {
   const processHandle = startDetachedProcess({ command, args, env, logPath });
   await waitForProcessLogReady({
@@ -378,7 +337,7 @@ async function startReadyProcess({
     readyLogText,
   });
   if (healthUrl) {
-    await waitForUrl(healthUrl, timeoutMs, sessionType ?? "");
+    await waitForUrl(healthUrl, timeoutMs);
   }
   if (httpUrl) {
     await waitForHttpOk(httpUrl, timeoutMs, label);
@@ -455,7 +414,6 @@ async function main() {
     timeoutMs: options.timeoutMs,
     readyLogText: [READY_SERVICE_LOG],
     healthUrl: baseUrl,
-    sessionType: options.sessionType.trim(),
   });
 
   const { frontendPid, frontendPort, frontendUrl, frontendLogPath } = await startFrontendDevServer({
@@ -468,7 +426,7 @@ async function main() {
   });
   maybeStopProcesses(options.keepRunning, servicePid, frontendPid);
 
-  const summary = { ok: true, pluginId: metadata.pluginId, packageName: metadata.packageName, pluginPath, sourceMode: metadata.sourceMode, sessionType: options.sessionType.trim() || null, homeDir, baseUrl, uiPort, frontendUrl, frontendPort, servicePid, frontendPid, sourceConfigPath, serviceLogPath, frontendLogPath, keepRunning: options.keepRunning };
+  const summary = { ok: true, pluginId: metadata.pluginId, packageName: metadata.packageName, pluginPath, sourceMode: metadata.sourceMode, homeDir, baseUrl, uiPort, frontendUrl, frontendPort, servicePid, frontendPid, sourceConfigPath, serviceLogPath, frontendLogPath, keepRunning: options.keepRunning };
 
   if (options.json) {
     console.log(JSON.stringify(summary, null, 2));

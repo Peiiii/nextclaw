@@ -3,8 +3,6 @@ import type {
   ExtensionChannel,
   ProviderRuntimeResolution,
 } from "@nextclaw/core";
-import type { NcpAgentRuntime } from "@nextclaw/ncp";
-import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 
 export type PluginConfigUiHint = {
   label?: string;
@@ -60,109 +58,6 @@ export type OpenClawPluginToolOptions = {
   name?: string;
   names?: string[];
   optional?: boolean;
-};
-
-export type OpenClawPluginNcpAgentRuntimeRegistration = {
-  kind: string;
-  label?: string;
-  createRuntime: (params: RuntimeFactoryParams) => NcpAgentRuntime;
-  createRuntimeForEntry?: (params: {
-    entry: {
-      id: string;
-      label: string;
-      type: string;
-      enabled?: boolean;
-      config?: Record<string, unknown>;
-    };
-    runtimeParams: RuntimeFactoryParams;
-  }) => NcpAgentRuntime;
-  describeSessionType?: (params?: {
-    describeMode?: "observation" | "probe";
-  }) =>
-    | Promise<{
-        icon?: {
-          kind: "image";
-          src: string;
-          alt?: string | null;
-        } | null;
-        ready?: boolean;
-        reason?: string | null;
-        reasonMessage?: string | null;
-        supportedModels?: string[];
-        recommendedModel?: string | null;
-        cta?: {
-          kind: string;
-          label?: string;
-          href?: string;
-        } | null;
-      } | null | undefined>
-    | {
-        icon?: {
-          kind: "image";
-          src: string;
-          alt?: string | null;
-        } | null;
-        ready?: boolean;
-        reason?: string | null;
-        reasonMessage?: string | null;
-        supportedModels?: string[];
-        recommendedModel?: string | null;
-        cta?: {
-          kind: string;
-          label?: string;
-          href?: string;
-        } | null;
-      }
-    | null
-    | undefined;
-  describeSessionTypeForEntry?: (params: {
-    entry: {
-      id: string;
-      label: string;
-      type: string;
-      enabled?: boolean;
-      config?: Record<string, unknown>;
-    };
-    describeParams?: {
-      describeMode?: "observation" | "probe";
-    };
-  }) =>
-    | Promise<{
-        icon?: {
-          kind: "image";
-          src: string;
-          alt?: string | null;
-        } | null;
-        ready?: boolean;
-        reason?: string | null;
-        reasonMessage?: string | null;
-        supportedModels?: string[];
-        recommendedModel?: string | null;
-        cta?: {
-          kind: string;
-          label?: string;
-          href?: string;
-        } | null;
-      } | null | undefined>
-    | {
-        icon?: {
-          kind: "image";
-          src: string;
-          alt?: string | null;
-        } | null;
-        ready?: boolean;
-        reason?: string | null;
-        reasonMessage?: string | null;
-        supportedModels?: string[];
-        recommendedModel?: string | null;
-        cta?: {
-          kind: string;
-          label?: string;
-          href?: string;
-        } | null;
-      }
-    | null
-    | undefined;
 };
 
 export type OpenClawProviderPlugin = {
@@ -371,7 +266,6 @@ export type PluginRecord = {
   toolNames: string[];
   channelIds: string[];
   providerIds: string[];
-  ncpAgentRuntimeKinds: string[];
   configSchema: boolean;
   configUiHints?: Record<string, PluginConfigUiHint>;
   configJsonSchema?: Record<string, unknown>;
@@ -394,17 +288,6 @@ export type PluginChannelRegistration = {
 export type PluginProviderRegistration = {
   pluginId: string;
   provider: OpenClawProviderPlugin;
-  source: string;
-};
-
-export type PluginNcpAgentRuntimeRegistration = {
-  pluginId: string;
-  kind: string;
-  label: string;
-  createRuntime: (params: RuntimeFactoryParams) => NcpAgentRuntime;
-  createRuntimeForEntry?: OpenClawPluginNcpAgentRuntimeRegistration["createRuntimeForEntry"];
-  describeSessionType?: OpenClawPluginNcpAgentRuntimeRegistration["describeSessionType"];
-  describeSessionTypeForEntry?: OpenClawPluginNcpAgentRuntimeRegistration["describeSessionTypeForEntry"];
   source: string;
 };
 
@@ -567,7 +450,6 @@ export type OpenClawPluginApi = {
   ) => void;
   registerChannel: (registration: OpenClawPluginChannelRegistration) => void;
   registerProvider: (provider: OpenClawProviderPlugin) => void;
-  registerNcpAgentRuntime: (registration: OpenClawPluginNcpAgentRuntimeRegistration) => void;
   registerHook: (_events: string | string[], _handler: unknown, _opts?: unknown) => void;
   registerGatewayMethod: (_method: string, _handler: unknown) => void;
   registerCli: (_registrar: unknown, _opts?: unknown) => void;
@@ -583,7 +465,6 @@ export type PluginRegistry = {
   tools: PluginToolRegistration[];
   channels: PluginChannelRegistration[];
   providers: PluginProviderRegistration[];
-  ncpAgentRuntimes: PluginNcpAgentRuntimeRegistration[];
   diagnostics: PluginDiagnostic[];
   resolvedTools: OpenClawPluginTool[];
 };

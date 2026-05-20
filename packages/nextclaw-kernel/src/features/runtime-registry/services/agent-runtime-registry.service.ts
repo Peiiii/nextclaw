@@ -184,7 +184,6 @@ function buildNativeRuntimeEntry(config: AgentRuntimeResolverConfig): AgentRunti
 
 export function resolveAgentRuntimeEntries(params: {
   config: AgentRuntimeResolverConfig;
-  providerKinds: string[];
 }): {
   defaultEntryId: string;
   entries: AgentRuntimeEntry[];
@@ -285,10 +284,6 @@ export class AgentRuntimeRegistry {
       (nextEntries.has(DEFAULT_AGENT_RUNTIME_ENTRY_ID)
         ? DEFAULT_AGENT_RUNTIME_ENTRY_ID
         : [...nextEntries.keys()][0] ?? DEFAULT_AGENT_RUNTIME_ENTRY_ID);
-  };
-
-  listProviderKinds = (): string[] => {
-    return [...this.providers.keys()];
   };
 
   createRuntime = (params: RuntimeFactoryParams): NcpAgentRuntime => {

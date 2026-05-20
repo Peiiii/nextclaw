@@ -26,6 +26,10 @@ import {
 } from "./codex-input.utils.js";
 export { buildCodexInputBuilder } from "./codex-input.utils.js";
 export type { CodexAssetContentPathResolver } from "./codex-input.utils.js";
+export { buildCodexBridgeModelProviderId } from "./codex-model-provider.js";
+export { ensureCodexOpenAiResponsesBridge } from "./utils/codex-openai-responses-bridge.utils.js";
+export type { CodexOpenAiResponsesBridgeRuntimeConfig } from "./utils/codex-openai-responses-bridge.utils.js";
+export type { CodexOpenAiResponsesBridgeResult } from "./codex-openai-responses-bridge-shared.utils.js";
 export { CodexLiveOutputStream } from "./services/codex-live-output-stream.service.js";
 export type {
   CodexLiveOutputChannel,

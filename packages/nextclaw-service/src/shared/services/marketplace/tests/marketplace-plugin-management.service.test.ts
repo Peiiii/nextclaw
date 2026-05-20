@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import * as pluginMutations from "@nextclaw-service/commands/plugin/plugin-mutation-actions.js";
+import * as pluginMutations from "@nextclaw-service/commands/plugin/plugin-mutation-actions.utils.js";
 import { ServiceMarketplaceInstaller } from "../service-marketplace-installer.service.js";
 
 describe("ServiceCommands marketplace plugin management", () => {
@@ -19,10 +19,10 @@ describe("ServiceCommands marketplace plugin management", () => {
     const marketplace = installer.createInstaller();
 
     expect(marketplace.installPlugin).toBeTypeOf("function");
-    await expect(marketplace.installPlugin!("@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk")).resolves.toEqual({
+    await expect(marketplace.installPlugin!("@nextclaw/channel-plugin-slack")).resolves.toEqual({
       message: "Installed plugin: codex",
     });
-    expect(installSpy).toHaveBeenCalledWith("@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk");
+    expect(installSpy).toHaveBeenCalledWith("@nextclaw/channel-plugin-slack");
     expect(runCliSubcommand).not.toHaveBeenCalled();
   });
 

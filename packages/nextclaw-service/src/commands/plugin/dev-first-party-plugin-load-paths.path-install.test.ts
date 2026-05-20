@@ -75,12 +75,12 @@ describe("path-installed first-party plugin load paths", () => {
     const workspaceExtensionsDir = createTempDir();
     const pluginDir = path.join(
       workspaceExtensionsDir,
-      "nextclaw-ncp-runtime-plugin-codex-sdk",
+      "nextclaw-channel-plugin-slack",
     );
     writeWorkspacePluginPackage(
       workspaceExtensionsDir,
-      "nextclaw-ncp-runtime-plugin-codex-sdk",
-      "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk",
+      "nextclaw-channel-plugin-slack",
+      "@nextclaw/channel-plugin-slack",
       { withDevelopmentSource: true },
     );
     const config = ConfigSchema.parse({
@@ -92,7 +92,7 @@ describe("path-installed first-party plugin load paths", () => {
       },
       plugins: {
         installs: {
-          "nextclaw-ncp-runtime-plugin-codex-sdk": {
+          "nextclaw-channel-plugin-slack": {
             source: "path",
             sourcePath: pluginDir,
             installPath: pluginDir,
@@ -110,12 +110,12 @@ describe("path-installed first-party plugin load paths", () => {
     const workspaceExtensionsDir = createTempDir();
     const pluginDir = path.join(
       workspaceExtensionsDir,
-      "nextclaw-ncp-runtime-plugin-codex-sdk",
+      "nextclaw-channel-plugin-slack",
     );
     writeWorkspacePluginPackage(
       workspaceExtensionsDir,
-      "nextclaw-ncp-runtime-plugin-codex-sdk",
-      "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk",
+      "nextclaw-channel-plugin-slack",
+      "@nextclaw/channel-plugin-slack",
     );
     const config = ConfigSchema.parse({
       agents: {
@@ -126,7 +126,7 @@ describe("path-installed first-party plugin load paths", () => {
       },
       plugins: {
         installs: {
-          "nextclaw-ncp-runtime-plugin-codex-sdk": {
+          "nextclaw-channel-plugin-slack": {
             source: "path",
             sourcePath: pluginDir,
             installPath: pluginDir,

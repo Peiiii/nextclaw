@@ -495,8 +495,8 @@ describe("marketplace content routes", () => {
     expect(payload.data.items[0]?.summaryI18n.en).toBe("English summary");
   });
 
-  it("exposes non-channel npm plugins in marketplace plugin list", async () => {
-    const workspaceDir = createTempDir("nextclaw-ui-plugin-list-runtime-plugin-");
+  it("exposes npm plugins in marketplace plugin list", async () => {
+    const workspaceDir = createTempDir("nextclaw-ui-plugin-list-channel-plugin-");
     const configPath = join(workspaceDir, "config.json");
 
     saveConfig(
@@ -522,22 +522,22 @@ describe("marketplace content routes", () => {
             sort: "relevance",
             items: [
               {
-                id: "plugin-ncp-runtime-codex-sdk",
-                slug: "ncp-runtime-plugin-codex-sdk",
+                id: "plugin-channel-slack",
+                slug: "channel-plugin-slack",
                 type: "plugin",
-                name: "Codex SDK NCP Runtime Plugin",
-                summary: "Optional NextClaw plugin that adds a Codex-powered NCP session type.",
+                name: "Slack Channel Plugin",
+                summary: "Optional NextClaw plugin that adds Slack channel integration.",
                 summaryI18n: {
-                  en: "Optional NextClaw plugin that adds a Codex-powered NCP session type.",
-                  zh: "为 NextClaw 提供 Codex 驱动 NCP 会话类型的可选插件。"
+                  en: "Optional NextClaw plugin that adds Slack channel integration.",
+                  zh: "为 NextClaw 提供 Slack 渠道集成的可选插件。"
                 },
-                description: "Registers a pluggable Codex SDK runtime for NCP.",
-                tags: ["plugin", "agent-runtime", "ncp", "codex"],
+                description: "Registers a pluggable Slack channel.",
+                tags: ["plugin", "channel", "slack"],
                 author: "NextClaw",
                 install: {
                   kind: "npm",
-                  spec: "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk",
-                  command: "nextclaw plugins install @nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk"
+                  spec: "@nextclaw/channel-plugin-slack",
+                  command: "nextclaw plugins install @nextclaw/channel-plugin-slack"
                 },
                 updatedAt: "2026-03-19T00:00:00.000Z",
                 publishedAt: "2026-03-19T00:00:00.000Z"
@@ -581,12 +581,12 @@ describe("marketplace content routes", () => {
 
     expect(payload.ok).toBe(true);
     expect(payload.data.total).toBe(1);
-    expect(payload.data.items[0]?.slug).toBe("ncp-runtime-plugin-codex-sdk");
-    expect(payload.data.items[0]?.install.spec).toBe("@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk");
+    expect(payload.data.items[0]?.slug).toBe("channel-plugin-slack");
+    expect(payload.data.items[0]?.install.spec).toBe("@nextclaw/channel-plugin-slack");
   });
 
-  it("exposes claude runtime plugins in marketplace plugin list", async () => {
-    const workspaceDir = createTempDir("nextclaw-ui-plugin-list-claude-runtime-");
+  it("exposes another channel plugin in marketplace plugin list", async () => {
+    const workspaceDir = createTempDir("nextclaw-ui-plugin-list-channel-discord-");
     const configPath = join(workspaceDir, "config.json");
 
     saveConfig(
@@ -612,22 +612,22 @@ describe("marketplace content routes", () => {
             sort: "relevance",
             items: [
               {
-                id: "plugin-ncp-runtime-claude-code-sdk",
-                slug: "ncp-runtime-plugin-claude-code-sdk",
+                id: "plugin-channel-discord",
+                slug: "channel-plugin-discord",
                 type: "plugin",
-                name: "Claude NCP Runtime Plugin",
-                summary: "Optional NextClaw plugin that adds a Claude-powered NCP session type.",
+                name: "Discord Channel Plugin",
+                summary: "Optional NextClaw plugin that adds Discord channel integration.",
                 summaryI18n: {
-                  en: "Optional NextClaw plugin that adds a Claude-powered NCP session type.",
-                  zh: "为 NextClaw 提供 Claude 驱动 NCP 会话类型的可选插件。"
+                  en: "Optional NextClaw plugin that adds Discord channel integration.",
+                  zh: "为 NextClaw 提供 Discord 渠道集成的可选插件。"
                 },
-                description: "Registers a pluggable Claude runtime for NCP.",
-                tags: ["plugin", "agent-runtime", "ncp", "claude", "anthropic"],
+                description: "Registers a pluggable Discord channel.",
+                tags: ["plugin", "channel", "discord", "chat"],
                 author: "NextClaw",
                 install: {
                   kind: "npm",
-                  spec: "@nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk",
-                  command: "nextclaw plugins install @nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk"
+                  spec: "@nextclaw/channel-plugin-discord",
+                  command: "nextclaw plugins install @nextclaw/channel-plugin-discord"
                 },
                 updatedAt: "2026-03-19T00:00:00.000Z",
                 publishedAt: "2026-03-19T00:00:00.000Z"
@@ -671,8 +671,8 @@ describe("marketplace content routes", () => {
 
     expect(payload.ok).toBe(true);
     expect(payload.data.total).toBe(1);
-    expect(payload.data.items[0]?.slug).toBe("ncp-runtime-plugin-claude-code-sdk");
-    expect(payload.data.items[0]?.install.spec).toBe("@nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk");
+    expect(payload.data.items[0]?.slug).toBe("channel-plugin-discord");
+    expect(payload.data.items[0]?.install.spec).toBe("@nextclaw/channel-plugin-discord");
   });
 
   it("forwards plugin catalog pagination without fetching the entire remote catalog", async () => {

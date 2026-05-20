@@ -5,7 +5,7 @@ import { getWorkspacePathFromConfig, type Config } from "@nextclaw/core";
 import { normalizePluginsConfig, type NormalizedPluginsConfig } from "../config-state.js";
 import { buildPluginLoaderAliases } from "../plugin-loader-aliases.js";
 import { createPluginJiti } from "../plugin-loader-jiti.js";
-import { createPluginRegisterRuntime, type PluginRegisterRuntime } from "../registry.js";
+import { createPluginRegisterRuntime, type PluginRegisterRuntime } from "../openclaw-plugin-registry.utils.js";
 import type {
   OpenClawPluginDefinition,
   OpenClawPluginModule,
@@ -22,7 +22,6 @@ export type ProgressivePluginLoadOptions = {
   reservedToolNames?: string[];
   reservedChannelIds?: string[];
   reservedProviderIds?: string[];
-  reservedNcpAgentRuntimeKinds?: string[];
   onPluginProcessed?: (params: { loadedPluginCount: number; pluginId?: string }) => void;
   yieldToEventLoop?: () => Promise<void>;
 };
@@ -116,25 +115,28 @@ function createEmptyPluginRegistry(): PluginRegistry {
     tools: [],
     channels: [],
     providers: [],
-    ncpAgentRuntimes: [],
     diagnostics: [],
     resolvedTools: []
   };
 }
 
 function createRegisterRuntimeFromOptions(options: ProgressivePluginLoadOptions, registry: PluginRegistry, workspaceDir: string) {
-  const logger = options.logger ?? defaultLogger;
+  const {
+    config,
+    logger: configuredLogger,
+    reservedChannelIds,
+    reservedProviderIds,
+    reservedToolNames,
+  } = options;
+  const logger = configuredLogger ?? defaultLogger;
   return createPluginRegisterRuntime({
-    config: options.config,
+    config,
     workspaceDir,
     logger,
     registry,
-    reservedToolNames: new Set(options.reservedToolNames ?? []),
-    reservedChannelIds: new Set(options.reservedChannelIds ?? []),
-    reservedProviderIds: new Set(options.reservedProviderIds ?? []),
-    reservedNcpAgentRuntimeKinds: new Set(
-      (options.reservedNcpAgentRuntimeKinds ?? ["native"]).map((entry) => entry.toLowerCase())
-    )
+    reservedToolNames: new Set(reservedToolNames ?? []),
+    reservedChannelIds: new Set(reservedChannelIds ?? []),
+    reservedProviderIds: new Set(reservedProviderIds ?? [])
   });
 }
 

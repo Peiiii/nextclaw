@@ -33,7 +33,7 @@ describe("installPluginFromNpmSpec", () => {
 
     const { installPluginFromNpmSpec } = await import("./install.js");
     const result = await installPluginFromNpmSpec({
-      spec: "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk"
+      spec: "@nextclaw/channel-plugin-slack"
     });
 
     expect(result.ok).toBe(false);
@@ -48,7 +48,7 @@ describe("installPluginFromNpmSpec", () => {
       [
         expect.stringContaining("npm-cli.js"),
         "pack",
-        "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk",
+        "@nextclaw/channel-plugin-slack",
         "--ignore-scripts"
       ],
       expect.objectContaining({

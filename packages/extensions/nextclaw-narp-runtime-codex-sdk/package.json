@@ -29,8 +29,7 @@
   "dependencies": {
     "@nextclaw/ncp": "workspace:*",
     "@nextclaw/nextclaw-narp-stdio-runtime-wrapper": "workspace:*",
-    "@nextclaw/nextclaw-ncp-runtime-codex-sdk": "workspace:*",
-    "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk": "workspace:*"
+    "@nextclaw/nextclaw-ncp-runtime-codex-sdk": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",

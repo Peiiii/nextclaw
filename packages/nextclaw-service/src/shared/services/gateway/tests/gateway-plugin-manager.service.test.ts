@@ -163,7 +163,6 @@ describe("GatewayPluginManager", () => {
       }],
       tools: [],
       diagnostics: [],
-      ncpAgentRuntimes: [],
     });
     (gateway.extensions.loadContributions as ReturnType<typeof vi.fn>).mockResolvedValue(extensionContributions);
 

@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { shouldRestartChannelsForPluginReload } from "./plugin-reload.js";
 
 describe("shouldRestartChannelsForPluginReload", () => {
-  it("skips channel restart for runtime-only plugin changes", () => {
+  it("skips channel restart for non-channel plugin changes", () => {
     expect(
       shouldRestartChannelsForPluginReload({
-        changedPaths: ["plugins.entries.nextclaw-ncp-runtime-plugin-codex-sdk.enabled"],
+        changedPaths: ["plugins.entries.provider-only-plugin.enabled"],
         currentPluginChannelBindings: [],
         nextPluginChannelBindings: [],
         currentExtensionChannels: [],

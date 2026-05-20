@@ -7,8 +7,8 @@ import { loadInProcessBundledPluginModule } from "../bundled-channel-plugin-modu
 import { resolveEnableState } from "../config-state.js";
 import { loadBundledPluginModule, resolveBundledPluginEntry } from "../bundled-plugin-loader.js";
 import { getPackageManifestExtensions, type PackageManifest } from "../manifest.js";
-import { createPluginRecord } from "../plugin-loader-utils.js";
-import { registerPluginWithApi } from "../registry.js";
+import { createPluginRecord } from "../plugin-loader.utils.js";
+import { registerPluginWithApi } from "../openclaw-plugin-registry.utils.js";
 import type { PluginRegistry, PluginRecord } from "../types.js";
 import {
   logPluginStartupTrace,

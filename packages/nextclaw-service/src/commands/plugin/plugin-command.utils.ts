@@ -27,7 +27,6 @@ export function buildReservedPluginLoadOptions() {
     reservedToolNames: [...RESERVED_TOOL_NAMES],
     reservedChannelIds: [] as string[],
     reservedProviderIds: RESERVED_PROVIDER_IDS,
-    reservedNcpAgentRuntimeKinds: ["native"],
   };
 }
 
@@ -40,8 +39,5 @@ export function appendPluginCapabilityLines(lines: string[], plugin: PluginRegis
   }
   if (plugin.providerIds.length > 0) {
     lines.push(`Providers: ${plugin.providerIds.join(", ")}`);
-  }
-  if (plugin.ncpAgentRuntimeKinds.length > 0) {
-    lines.push(`NCP runtimes: ${plugin.ncpAgentRuntimeKinds.join(", ")}`);
   }
 }

@@ -14,22 +14,22 @@ describe('marketplace-installed-cache', () => {
   it('adds a plugin record immediately after install success', () => {
     const request: MarketplaceInstallRequest = {
       type: 'plugin',
-      spec: '@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk',
+      spec: '@nextclaw/channel-plugin-slack',
       kind: 'npm'
     };
     const result: MarketplaceInstallResult = {
       type: 'plugin',
-      spec: '@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk',
+      spec: '@nextclaw/channel-plugin-slack',
       message: 'installed'
     };
 
     const next = applyInstallResultToInstalledView({ request, result });
 
     expect(next.total).toBe(1);
-    expect(next.specs).toEqual(['@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk']);
+    expect(next.specs).toEqual(['@nextclaw/channel-plugin-slack']);
     expect(next.records[0]).toMatchObject({
       type: 'plugin',
-      spec: '@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk',
+      spec: '@nextclaw/channel-plugin-slack',
       enabled: true,
       origin: 'marketplace',
       runtimeStatus: 'ready'
@@ -40,13 +40,13 @@ describe('marketplace-installed-cache', () => {
     const view: MarketplaceInstalledView = {
       type: 'plugin',
       total: 1,
-      specs: ['@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk'],
+      specs: ['@nextclaw/channel-plugin-slack'],
       records: [
         {
           type: 'plugin',
-          id: '@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk',
-          spec: '@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk',
-          label: 'Codex Runtime',
+          id: '@nextclaw/channel-plugin-slack',
+          spec: '@nextclaw/channel-plugin-slack',
+          label: 'Slack Channel',
           enabled: true,
           origin: 'marketplace'
         }
@@ -55,13 +55,13 @@ describe('marketplace-installed-cache', () => {
     const request: MarketplaceManageRequest = {
       type: 'plugin',
       action: 'disable',
-      id: '@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk',
-      spec: '@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk'
+      id: '@nextclaw/channel-plugin-slack',
+      spec: '@nextclaw/channel-plugin-slack'
     };
     const result: MarketplaceManageResult = {
       type: 'plugin',
       action: 'disable',
-      id: '@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk',
+      id: '@nextclaw/channel-plugin-slack',
       message: 'disabled'
     };
 

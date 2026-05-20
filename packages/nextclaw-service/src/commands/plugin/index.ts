@@ -7,7 +7,7 @@ import {
 import {
   appendPluginCapabilityLines,
   buildReservedPluginLoadOptions,
-} from "./plugin-command-utils.js";
+} from "./plugin-command.utils.js";
 import {
   resolveDevPluginLoadingContext,
 } from "./development-source/dev-plugin-overrides.utils.js";
@@ -30,8 +30,8 @@ import {
   enablePluginMutation,
   installPluginMutation,
   uninstallPluginMutation,
-} from "./plugin-mutation-actions.js";
-export { type NextclawExtensionRegistry, toExtensionRegistry } from "./plugin-extension-registry.js";
+} from "./plugin-mutation-actions.utils.js";
+export { type NextclawExtensionRegistry, toExtensionRegistry } from "./plugin-extension-registry.utils.js";
 export { createEmptyPluginRegistry } from "./plugin-registry-loader.utils.js";
 export { mergePluginConfigView, toPluginConfigView } from "@nextclaw/openclaw-compat";
 

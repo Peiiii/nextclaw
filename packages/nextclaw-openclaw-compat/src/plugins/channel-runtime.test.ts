@@ -31,7 +31,6 @@ function createRegistry(
       },
     ],
     providers: [],
-    ncpAgentRuntimes: [],
     diagnostics: [],
     resolvedTools: [],
   };

@@ -122,16 +122,16 @@ function createPluginMarketplaceItem(
   overrides: Partial<MarketplaceItemSummary> = {},
 ): MarketplaceItemSummary {
   return createMarketplaceItem({
-    id: "plugin-codex-runtime",
-    slug: "codex-runtime",
+    id: "plugin-channel-slack",
+    slug: "channel-slack",
     type: "plugin",
-    name: "Codex SDK NCP Runtime",
-    summary: "Optional Codex runtime for NextClaw",
-    summaryI18n: { en: "Optional Codex runtime for NextClaw" },
+    name: "Slack Channel",
+    summary: "Optional Slack channel for NextClaw",
+    summaryI18n: { en: "Optional Slack channel for NextClaw" },
     install: {
       kind: "npm",
-      spec: "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk",
-      command: "npm install @nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk",
+      spec: "@nextclaw/channel-plugin-slack",
+      command: "npm install @nextclaw/channel-plugin-slack",
     },
     ...overrides,
   });
@@ -142,9 +142,9 @@ function createInstalledRecord(
 ): MarketplaceInstalledRecord {
   return {
     type: "plugin",
-    id: "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk",
-    spec: "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk",
-    label: "Codex SDK NCP Runtime",
+    id: "@nextclaw/channel-plugin-slack",
+    spec: "@nextclaw/channel-plugin-slack",
+    label: "Slack Channel",
     enabled: true,
     origin: "marketplace",
     source: "marketplace",
@@ -248,17 +248,17 @@ describe("MarketplacePage", () => {
         sort: "relevance",
         items: [
           createMarketplaceItem({
-            id: "plugin-codex-runtime",
-            slug: "codex-runtime",
+            id: "plugin-channel-slack",
+            slug: "channel-slack",
             type: "plugin",
-            name: "Codex SDK NCP Runtime",
-            summary: "Optional Codex runtime for NextClaw",
-            summaryI18n: { en: "Optional Codex runtime for NextClaw" },
+            name: "Slack Channel",
+            summary: "Optional Slack channel for NextClaw",
+            summaryI18n: { en: "Optional Slack channel for NextClaw" },
             install: {
               kind: "npm",
-              spec: "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk",
+              spec: "@nextclaw/channel-plugin-slack",
               command:
-                "npm install @nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk",
+                "npm install @nextclaw/channel-plugin-slack",
             },
           }),
         ],
@@ -269,7 +269,7 @@ describe("MarketplacePage", () => {
     const card = container.querySelector("article");
 
     expect(card?.textContent).toContain(
-      "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk",
+      "@nextclaw/channel-plugin-slack",
     );
     expect(card?.textContent).not.toContain("Plugin");
   });
@@ -289,7 +289,7 @@ describe("MarketplacePage", () => {
 
     const { container } = render(<MarketplacePage forcedType="plugins" />);
 
-    expect(screen.getByText("Codex SDK NCP Runtime")).toBeTruthy();
+    expect(screen.getByText("Slack Channel")).toBeTruthy();
     expect(container.querySelector(".opacity-70")).toBeNull();
   });
 
@@ -306,14 +306,14 @@ describe("MarketplacePage", () => {
         items: [
           createPluginMarketplaceItem(),
           createPluginMarketplaceItem({
-            id: "plugin-claude-runtime",
-            slug: "claude-runtime",
-            name: "Claude Agent Runtime",
+            id: "plugin-channel-discord",
+            slug: "channel-discord",
+            name: "Discord Channel",
             install: {
               kind: "npm",
-              spec: "@nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk",
+              spec: "@nextclaw/channel-plugin-discord",
               command:
-                "npm install @nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk",
+                "npm install @nextclaw/channel-plugin-discord",
             },
           }),
         ],
@@ -324,15 +324,15 @@ describe("MarketplacePage", () => {
         type: "plugin",
         total: 2,
         specs: [
-          "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk",
-          "@nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk",
+          "@nextclaw/channel-plugin-slack",
+          "@nextclaw/channel-plugin-discord",
         ],
         records: [
           createInstalledRecord(),
           createInstalledRecord({
-            id: "@nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk",
-            spec: "@nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk",
-            label: "Claude Agent Runtime",
+            id: "@nextclaw/channel-plugin-discord",
+            spec: "@nextclaw/channel-plugin-discord",
+            label: "Discord Channel",
           }),
         ],
       } satisfies MarketplaceInstalledView,

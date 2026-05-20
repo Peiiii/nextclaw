@@ -7,8 +7,8 @@ import { BUNDLED_CHANNEL_PLUGIN_PACKAGES } from "./bundled-channel-plugin-packag
 import { normalizePluginsConfig, resolveEnableState } from "./config-state.js";
 import { discoverOpenClawPlugins, type PluginCandidate } from "./discovery.js";
 import type { PluginLogger, PluginRegistry } from "./types.js";
-import { loadOpenClawPlugins } from "./loader.js";
-import { createPluginRecord, validatePluginConfig } from "./plugin-loader-utils.js";
+import { loadOpenClawPlugins } from "./openclaw-plugin-loader.utils.js";
+import { createPluginRecord, validatePluginConfig } from "./plugin-loader.utils.js";
 import { loadPluginManifestRegistry, type PluginManifestRecord } from "./manifest-registry.js";
 import type { PluginDiagnostic, PluginRecord } from "./types.js";
 
@@ -22,7 +22,6 @@ function createEmptyPluginRegistry(): PluginRegistry {
     tools: [],
     channels: [],
     providers: [],
-    ncpAgentRuntimes: [],
     diagnostics: [],
     resolvedTools: []
   };
@@ -210,7 +209,6 @@ export function buildPluginStatusReport(params: {
   reservedToolNames?: string[];
   reservedChannelIds?: string[];
   reservedProviderIds?: string[];
-  reservedNcpAgentRuntimeKinds?: string[];
 }): PluginStatusReport {
   const workspaceDir = params.workspaceDir?.trim() || getWorkspacePathFromConfig(params.config);
   const registry = loadOpenClawPlugins({
@@ -219,8 +217,7 @@ export function buildPluginStatusReport(params: {
     logger: params.logger,
     reservedToolNames: params.reservedToolNames,
     reservedChannelIds: params.reservedChannelIds,
-    reservedProviderIds: params.reservedProviderIds,
-    reservedNcpAgentRuntimeKinds: params.reservedNcpAgentRuntimeKinds
+    reservedProviderIds: params.reservedProviderIds
   });
 
   return {

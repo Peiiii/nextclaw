@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema } from "@nextclaw/core";
-import { buildPluginStatusReport, discoverPluginStatusReport } from "./status.js";
+import { buildPluginStatusReport, discoverPluginStatusReport } from "./plugin-status.utils.js";
 
 const tempDirs: string[] = [];
 const PLUGIN_LOAD_TIMEOUT_MS = 60_000;
@@ -40,7 +40,7 @@ function createProbePluginDir(): { rootDir: string; pluginDir: string; markerPat
     JSON.stringify(
       {
         id: "status-pure-read-plugin",
-        kind: "agent-runtime",
+        kind: "channel",
         name: "Status Pure Read Plugin",
         version: "0.0.1",
         configSchema: {
@@ -63,12 +63,8 @@ function createProbePluginDir(): { rootDir: string; pluginDir: string; markerPat
       "  name: 'Status Pure Read Plugin',",
       "  configSchema: { type: 'object', additionalProperties: true, properties: {} },",
       "  register(api) {",
-      "    api.registerNcpAgentRuntime({",
-      "      kind: 'status-pure-read-runtime',",
-      "      label: 'Status Pure Read Runtime',",
-      "      createRuntime() {",
-      "        return { async *run() {} };",
-      "      }",
+      "    api.registerChannel({",
+      "      id: 'status-pure-read-channel'",
       "    });",
       "  }",
       "};"

@@ -33,14 +33,12 @@ pnpm dev:plugin:local -- --plugin-path ./packages/extensions/<plugin-dir> --fron
 ## Quick Reference
 
 ```bash
-pnpm dev:plugin:local -- --plugin-path ./packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk --session-type codex --frontend
 pnpm dev:plugin:local -- --plugin-path ./packages/extensions/nextclaw-channel-plugin-discord --frontend
-pnpm dev:plugin:local -- --plugin-path ./packages/extensions/nextclaw-ncp-runtime-plugin-claude-code-sdk --session-type claude
+pnpm dev:plugin:local -- --plugin-path ./packages/extensions/nextclaw-channel-plugin-slack
 ```
 
 ## Notes
 
 - If the plugin declares `openclaw.development.extensions`, the command switches it to `source=development`.
 - If it does not, the command still links the local plugin path, but keeps `source=production`.
-- For agent-runtime plugins, add `--session-type <type>` so readiness waits for that runtime to appear.
-- Use the dedicated wrapper `pnpm smoke:codex-plugin:local` when a real Codex chat reply smoke is needed immediately.
+- This skill is only for OpenClaw plugins. Agent runtime entries are configured through `agents.runtimes.entries`, not plugin development source.

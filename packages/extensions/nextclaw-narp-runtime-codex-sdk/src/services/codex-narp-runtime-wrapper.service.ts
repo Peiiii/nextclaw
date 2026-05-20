@@ -11,14 +11,12 @@ import {
 import {
   CodexLiveOutputStream,
   CodexSdkNcpAgentRuntime,
-  type CodexSdkNcpAgentRuntimeConfig,
-} from "@nextclaw/nextclaw-ncp-runtime-codex-sdk";
-import {
   buildCodexBridgeModelProviderId,
   ensureCodexOpenAiResponsesBridge,
+  type CodexSdkNcpAgentRuntimeConfig,
   type CodexOpenAiResponsesBridgeResult,
   type CodexOpenAiResponsesBridgeRuntimeConfig,
-} from "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk";
+} from "@nextclaw/nextclaw-ncp-runtime-codex-sdk";
 
 const NARP_API_MODE_HEADER = "x-nextclaw-narp-api-mode";
 

@@ -2,8 +2,8 @@ import { filterPluginCandidatesByExcludedRoots } from "../candidate-filter.js";
 import { resolveEnableState } from "../config-state.js";
 import { discoverOpenClawPlugins, type PluginCandidate } from "../discovery.js";
 import { loadPluginManifestRegistry, type PluginManifestRecord } from "../manifest-registry.js";
-import { createPluginRecord, validatePluginConfig } from "../plugin-loader-utils.js";
-import { registerPluginWithApi } from "../registry.js";
+import { createPluginRecord, validatePluginConfig } from "../plugin-loader.utils.js";
+import { registerPluginWithApi } from "../openclaw-plugin-registry.utils.js";
 import type { PluginRecord } from "../types.js";
 import {
   loadExternalPluginModule,

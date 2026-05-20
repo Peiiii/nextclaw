@@ -10,8 +10,8 @@ import { loadPluginManifestRegistry } from "./manifest-registry.js";
 import { loadBundledPluginModule, resolveBundledPluginEntry } from "./bundled-plugin-loader.js";
 import { buildPluginLoaderAliases } from "./plugin-loader-aliases.js";
 import { createPluginJiti } from "./plugin-loader-jiti.js";
-import { createPluginRecord, validatePluginConfig } from "./plugin-loader-utils.js";
-import { createPluginRegisterRuntime, registerPluginWithApi, type PluginRegisterRuntime } from "./registry.js";
+import { createPluginRecord, validatePluginConfig } from "./plugin-loader.utils.js";
+import { createPluginRegisterRuntime, registerPluginWithApi, type PluginRegisterRuntime } from "./openclaw-plugin-registry.utils.js";
 import type { OpenClawPluginDefinition, OpenClawPluginModule, PluginKind, PluginLogger, PluginRecord, PluginRegistry } from "./types.js";
 
 export type PluginLoadOptions = {
@@ -25,7 +25,6 @@ export type PluginLoadOptions = {
   reservedToolNames?: string[];
   reservedChannelIds?: string[];
   reservedProviderIds?: string[];
-  reservedNcpAgentRuntimeKinds?: string[];
 };
 
 const defaultLogger: PluginLogger = {
@@ -222,7 +221,6 @@ export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry 
     tools: [],
     channels: [],
     providers: [],
-    ncpAgentRuntimes: [],
     diagnostics: [],
     resolvedTools: []
   };
@@ -230,9 +228,6 @@ export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry 
   const reservedToolNames = new Set(options.reservedToolNames ?? []);
   const reservedChannelIds = new Set(options.reservedChannelIds ?? []);
   const reservedProviderIds = new Set(options.reservedProviderIds ?? []);
-  const reservedNcpAgentRuntimeKinds = new Set(
-    (options.reservedNcpAgentRuntimeKinds ?? ["native"]).map((entry) => entry.toLowerCase())
-  );
 
   const registerRuntime = createPluginRegisterRuntime({
     config: options.config,
@@ -241,8 +236,7 @@ export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry 
     registry,
     reservedToolNames,
     reservedChannelIds,
-    reservedProviderIds,
-    reservedNcpAgentRuntimeKinds
+    reservedProviderIds
   });
 
   if (options.includeBundled !== false) appendBundledChannelPlugins({ registry, runtime: registerRuntime, normalizedConfig: normalized });

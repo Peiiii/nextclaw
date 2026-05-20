@@ -12,7 +12,7 @@ import {
   writeSseEvent,
   type OpenResponsesOutputItem,
   type StreamSequenceState,
-} from "@codex-plugin-sdk/codex-openai-responses-bridge-shared.utils.js";
+} from "../codex-openai-responses-bridge-shared.utils.js";
 import {
   extractContentText,
   extractReasoningText,

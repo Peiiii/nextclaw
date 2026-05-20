@@ -12,7 +12,7 @@ import {
   enablePluginMutation,
   installPluginMutation,
   uninstallPluginMutation
-} from "@nextclaw-service/commands/plugin/plugin-mutation-actions.js";
+} from "@nextclaw-service/commands/plugin/plugin-mutation-actions.utils.js";
 import { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "@nextclaw-service/shared/utils/marketplace/service-marketplace-helpers.utils.js";
 import { ServiceMcpMarketplaceOps } from "@nextclaw-service/shared/services/marketplace/service-mcp-marketplace-ops.js";
 

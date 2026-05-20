@@ -11,7 +11,7 @@ import {
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { expandHome, getWorkspacePath, loadConfig, saveConfig } from "@nextclaw/core";
-import { buildReservedPluginLoadOptions } from "./plugin-command-utils.js";
+import { buildReservedPluginLoadOptions } from "./plugin-command.utils.js";
 import type { PluginsInstallOptions, PluginsUninstallOptions } from "../../shared/types/cli.types.js";
 
 export type PluginMutationResult = {

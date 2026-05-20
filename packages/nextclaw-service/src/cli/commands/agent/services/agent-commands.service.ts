@@ -50,9 +50,6 @@ export class AgentCommands {
       console.log(head);
       console.log(`  label: ${runtime.label}`);
       console.log(`  source: ${runtime.source}`);
-      if (runtime.pluginId) {
-        console.log(`  pluginId: ${runtime.pluginId}`);
-      }
       console.log(`  ready: ${runtime.ready === false ? "no" : "yes"}`);
       console.log(`  reason: ${runtime.reason ?? "-"}`);
       console.log(`  reasonMessage: ${runtime.reasonMessage ?? "-"}`);

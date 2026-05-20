@@ -23,10 +23,9 @@ function createConfig(entries: Record<string, {
 }
 
 describe("resolveAgentRuntimeEntries", () => {
-  it("does not synthesize provider-specific runtime entries from plugin provider kinds", () => {
+  it("does not synthesize runtime entries without explicit config", () => {
     const resolved = resolveAgentRuntimeEntries({
       config: createConfig(),
-      providerKinds: ["external-provider"],
     });
 
     expect(resolved.entries.map((entry) => entry.id)).toEqual(["native"]);
@@ -45,7 +44,6 @@ describe("resolveAgentRuntimeEntries", () => {
           },
         },
       }),
-      providerKinds: [],
     });
 
     expect(resolved.entries.find((entry) => entry.id === "external")).toEqual(

@@ -43,6 +43,7 @@ describe("CodexLiveOutputStream", () => {
     const streamed = {
       events: (async function* () {
         await sleep(5);
+        yield* [];
       })(),
     };
 
@@ -71,6 +72,7 @@ describe("CodexLiveOutputStream", () => {
         yield { type: "run.completed", payload: {} } as never;
       },
       handleThreadEvent: async function* () {
+        yield* [];
         return false;
       },
     })) {

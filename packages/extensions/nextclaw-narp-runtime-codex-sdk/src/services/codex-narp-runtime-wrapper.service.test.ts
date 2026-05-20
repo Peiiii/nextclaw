@@ -65,7 +65,7 @@ describe("CodexNarpRuntimeWrapper", () => {
     const wrapper = new CodexNarpRuntimeWrapper(
       () => new FakeRuntime(),
       async (bridgeConfig) => {
-        expect(bridgeConfig).toEqual({
+        expect(bridgeConfig).toMatchObject({
           upstreamApiBase: "https://api.minimaxi.com/v1",
           upstreamApiKey: "minimax-key",
           upstreamExtraHeaders: { "x-route": "1" },
@@ -115,7 +115,7 @@ describe("CodexNarpRuntimeWrapper", () => {
     const wrapper = new CodexNarpRuntimeWrapper(
       () => new FakeRuntime(),
       async (bridgeConfig) => {
-        expect(bridgeConfig).toEqual({
+        expect(bridgeConfig).toMatchObject({
           upstreamApiBase: "https://api.deepseek.com",
           upstreamApiKey: "deepseek-key",
           upstreamExtraHeaders: { "x-route": "1" },

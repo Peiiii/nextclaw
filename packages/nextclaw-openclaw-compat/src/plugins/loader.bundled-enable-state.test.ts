@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ConfigSchema } from "@nextclaw/core";
-import { loadOpenClawPlugins } from "./loader.js";
+import { loadOpenClawPlugins } from "./openclaw-plugin-loader.utils.js";
 
 type PluginRegistry = ReturnType<typeof loadOpenClawPlugins>;
 const PLUGIN_LOAD_TIMEOUT_MS = 60_000;

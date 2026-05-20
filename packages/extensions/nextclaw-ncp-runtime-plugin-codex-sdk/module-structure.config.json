@@ -1,7 +1,0 @@
-{
-  "contractKind": "protocol",
-  "protocol": "app-l1",
-  "rootPolicy": "contract-only",
-  "enforcement": "error",
-  "importAliasPrefixes": ["@codex-plugin-sdk/"]
-}
