@@ -50,7 +50,6 @@ const {
   getConfigPath,
   getDataDir,
   getWorkspacePath,
-  saveConfig,
 } = NextclawCore;
 
 const DEV_PLUGIN_HOT_RELOAD_STARTUP_SETTLE_MS = 5_000;
@@ -365,8 +364,6 @@ export class NextclawGatewayRuntime {
         channels: this.kernel.channels,
         cron: this.automation,
         sessionManager: this.sessionManager,
-        getConfigPath,
-        saveConfig,
         requestRestart: async (options) => {
           await this.deps.requestRestart({
             reason: options?.reason ?? "gateway tool restart",

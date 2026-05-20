@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, type Config } from "@nextclaw/core";
+import { ConfigManager, LlmProviderManager } from "@nextclaw/kernel";
 import { GatewayControllerImpl } from "./gateway.controller.js";
 
 const mocks = vi.hoisted(() => ({
@@ -21,27 +22,21 @@ vi.mock("@nextclaw-service/launcher/npm-runtime-update-command.service.js", () =
 describe("GatewayControllerImpl", () => {
   let configDir = "";
   let configPath = "";
-  let savedConfigs: Config[] = [];
-  let applyReloadPlan: ReturnType<typeof vi.fn<(config: Config) => Promise<void>>>;
+  let configManager: ConfigManager;
+  let applyReloadPlan: ReturnType<typeof vi.fn>;
   let requestRestart: ReturnType<typeof vi.fn<() => Promise<void>>>;
 
   const createBaseConfig = (): Config => ConfigSchema.parse({});
 
   const writeConfig = (config: Config): void => {
-    savedConfigs.push(config);
     writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf-8");
   };
 
   const createController = (): GatewayControllerImpl => {
     return new GatewayControllerImpl({
-      configManager: {
-        applyReloadPlan,
-        reloadConfig: vi.fn(async () => "Config reload triggered")
-      },
+      configManager,
       channels: { enabledChannels: [] } as never,
       cron: { status: () => ({ jobs: [] }) } as never,
-      getConfigPath: () => configPath,
-      saveConfig: writeConfig,
       requestRestart
     });
   };
@@ -50,10 +45,18 @@ describe("GatewayControllerImpl", () => {
     vi.clearAllMocks();
     configDir = mkdtempSync(join(tmpdir(), "nextclaw-gateway-controller-test-"));
     configPath = join(configDir, "config.json");
-    savedConfigs = [];
-    applyReloadPlan = vi.fn(async () => undefined);
     requestRestart = vi.fn(async () => undefined);
     writeConfig(createBaseConfig());
+    configManager = new ConfigManager({
+      configPath,
+      channels: {
+        enabledChannels: [],
+        load: () => undefined,
+        reload: async () => undefined,
+      } as never,
+      providerManager: new LlmProviderManager(),
+    });
+    applyReloadPlan = vi.spyOn(configManager, "applyReloadPlan");
   });
 
   afterEach(() => {
@@ -86,7 +89,7 @@ describe("GatewayControllerImpl", () => {
     expect(applyReloadPlan).toHaveBeenCalledTimes(1);
     expect(requestRestart).not.toHaveBeenCalled();
     expect(mocks.writeRestartSentinel).not.toHaveBeenCalled();
-    expect(savedConfigs.at(-1)?.agents.context.bootstrap.perFileChars).toBe(4500);
+    expect(configManager.config.agents.context.bootstrap.perFileChars).toBe(4500);
   });
 
   it("returns a pending-restart contract for config paths outside the hot-reload plan", async () => {

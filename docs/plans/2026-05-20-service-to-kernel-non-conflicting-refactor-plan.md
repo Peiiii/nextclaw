@@ -117,6 +117,8 @@ kernel 已有 `LlmUsageManager` 和 `LlmUsageStore`，但 service CLI 侧仍有 
 
 ### 3. Gateway Config Mutation 子域拆分
 
+状态：已完成。`ConfigManager` 已承接 gateway config snapshot/schema/apply/patch 的 hash 校验、JSON 解析、schema 校验、deep merge、reload plan 和 redacted mutation result；service `GatewayControllerImpl` 只保留 status/reload/restart/update/sentinel 等宿主行为。
+
 候选文件：
 
 - `packages/nextclaw-service/src/shared/controllers/gateway.controller.ts`

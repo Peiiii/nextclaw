@@ -56,8 +56,6 @@ describe("gateway manual restart contract", () => {
       configManager,
       channels,
       cron: { status: () => ({ jobs: [] }) } as never,
-      getConfigPath: () => configPath,
-      saveConfig: writeConfig,
       requestRestart: async (options) => {
         await restartRequestService.run({
           reason: options?.reason ?? "gateway tool restart",
