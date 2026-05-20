@@ -5,7 +5,6 @@ import {
   ProviderRegistry,
   resolveProviderRuntime,
   type Config,
-  type Disposable,
 } from "@nextclaw/core";
 import { BUILTIN_PROVIDER_PLUGINS } from "@nextclaw/runtime";
 import type { NcpAgentRunInput, NcpProviderRuntimeRoute } from "@nextclaw/ncp";
@@ -32,10 +31,6 @@ export const NARP_STDIO_RUNTIME_KIND = "narp-stdio";
 const BUILTIN_PROVIDER_REGISTRY = new ProviderRegistry(BUILTIN_PROVIDER_PLUGINS);
 
 type SessionTypeDescriptor = Omit<AgentRuntimeSessionTypeOption, "value" | "label">;
-type AgentRuntimeProviderRegistrar = {
-  registerRuntimeProvider: (registration: AgentRuntimeProviderRegistration) => Disposable;
-};
-type RuntimeToolResolver = NonNullable<RuntimeFactoryParams["resolveTools"]>;
 
 function readRecord(value: unknown): Record<string, unknown> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -350,15 +345,14 @@ async function isExecutable(filePath: string): Promise<boolean> {
   }
 }
 
-export class BuiltinNarpRuntimeRegistrationService {
+export class BuiltinNarpRuntimeProviderService {
   constructor(
     private readonly getConfig: () => Config,
-    private readonly options: { resolveTools?: RuntimeToolResolver } = {},
   ) {}
 
-  registerInto = (registrar: AgentRuntimeProviderRegistrar): Disposable[] => {
+  createProviders = (): AgentRuntimeProviderRegistration[] => {
     return [
-      registrar.registerRuntimeProvider({
+      {
         kind: NARP_HTTP_RUNTIME_KIND,
         label: "NARP HTTP",
         createRuntime: this.createUnavailableRuntime,
@@ -369,8 +363,8 @@ export class BuiltinNarpRuntimeRegistrationService {
             entry,
             this.getConfig().agents.defaults.model,
           ).describe(describeParams),
-      }),
-      registrar.registerRuntimeProvider({
+      },
+      {
         kind: NARP_STDIO_RUNTIME_KIND,
         label: "NARP Stdio",
         createRuntime: this.createUnavailableRuntime,
@@ -378,7 +372,7 @@ export class BuiltinNarpRuntimeRegistrationService {
           this.createStdioRuntime(entry, runtimeParams),
         describeSessionTypeForEntry: ({ entry, describeParams }) =>
           new BuiltinStdioRuntimeSessionTypeService(entry).describe(describeParams),
-      }),
+      },
     ];
   };
 
@@ -401,7 +395,6 @@ export class BuiltinNarpRuntimeRegistrationService {
       ...(resolvedConfig.endpointId ? { endpointId: resolvedConfig.endpointId } : {}),
       ...(resolvedConfig.headers ? { headers: resolvedConfig.headers } : {}),
       stateManager: runtimeParams.stateManager,
-      resolveTools: this.options.resolveTools,
       resolveProviderRoute: (input) =>
         buildProviderRoute({
           config: this.getConfig(),
@@ -424,7 +417,6 @@ export class BuiltinNarpRuntimeRegistrationService {
       ...resolvedConfig,
       sessionId: runtimeParams.sessionId,
       stateManager: runtimeParams.stateManager,
-      resolveTools: this.options.resolveTools,
       resolveProviderRoute: (input: NcpAgentRunInput) =>
         buildProviderRoute({
           config: this.getConfig(),

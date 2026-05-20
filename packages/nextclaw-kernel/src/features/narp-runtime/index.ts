@@ -1,1 +1,1 @@
-export * from "@kernel/features/narp-runtime/services/builtin-narp-runtime-registration.service.js";
+export * from "@kernel/features/narp-runtime/services/builtin-narp-runtime-provider.service.js";

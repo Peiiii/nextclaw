@@ -3,7 +3,7 @@ import type { NcpAgentRuntime } from "@nextclaw/ncp";
 import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 import {
   AgentRuntimeRegistry,
-  BuiltinNarpRuntimeRegistrationService,
+  BuiltinNarpRuntimeProviderService,
   DEFAULT_AGENT_RUNTIME_ENTRY_ID,
   resolveAgentRuntimeEntries,
   type AgentRuntimeSessionTypeDescribeParams,
@@ -44,9 +44,9 @@ export async function listAvailableAgentRuntimes(
   runtimeSourceByKind.set(DEFAULT_AGENT_RUNTIME_ENTRY_ID, {
     source: "builtin",
   });
-  new BuiltinNarpRuntimeRegistrationService(() => config).registerInto({
-    registerRuntimeProvider: runtimeRegistry.register,
-  });
+  for (const provider of new BuiltinNarpRuntimeProviderService(() => config).createProviders()) {
+    runtimeRegistry.register(provider);
+  }
   runtimeSourceByKind.set("narp-http", {
     source: "builtin",
   });

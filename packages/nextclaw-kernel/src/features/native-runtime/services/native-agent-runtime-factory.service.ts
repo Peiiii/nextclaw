@@ -195,16 +195,6 @@ export class NativeAgentRuntimeFactory {
     };
   };
 
-  resolveOpenAiToolsForRuntime = (input: NcpAgentRunInput) => {
-    const contextBuilder = new NextclawNcpContextBuilder({
-      sessionManager: this.options.sessions,
-      toolRegistry: this.createToolRegistry(),
-      getConfig: this.options.configManager.loadConfig,
-      assetStore: this.options.assetStore,
-    });
-    return contextBuilder.prepare(input).tools;
-  };
-
   private createToolRegistry = () => {
     return this.options.toolManager.createRuntimeRegistry({
       updateToolCallResult: this.options.updateToolCallResult,

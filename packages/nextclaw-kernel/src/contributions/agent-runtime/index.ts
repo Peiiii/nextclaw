@@ -1,19 +1,15 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
-import { BuiltinNarpRuntimeRegistrationService } from "@kernel/features/narp-runtime/index.js";
+import { BuiltinNarpRuntimeProviderService } from "@kernel/features/narp-runtime/index.js";
 import { NativeAgentRuntimeFactory } from "@kernel/features/native-runtime/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
-import type { Disposable } from "@nextclaw/core";
-import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
-
-type RuntimeToolResolver = NonNullable<RuntimeFactoryParams["resolveTools"]>;
 
 export class AgentRuntimeContribution implements KernelContribution {
-  private registrations: Disposable[] = [];
+  private cleanups: Array<() => void> = [];
 
   constructor(private readonly kernel: NextclawKernel) {}
 
   start = (): void => {
-    if (this.registrations.length > 0) {
+    if (this.cleanups.length > 0) {
       return;
     }
     const nativeRuntimeFactory = new NativeAgentRuntimeFactory({
@@ -26,25 +22,27 @@ export class AgentRuntimeContribution implements KernelContribution {
       updateToolCallResult: this.kernel.agentRuntimeManager.updateToolCallResult,
       toolManager: this.kernel.toolManager,
     });
-    const resolveTools: RuntimeToolResolver = nativeRuntimeFactory.resolveOpenAiToolsForRuntime;
-    const builtinNarpRegistrationService = new BuiltinNarpRuntimeRegistrationService(
+    const builtinNarpRuntimeProviders = new BuiltinNarpRuntimeProviderService(
       this.kernel.configManager.loadConfig,
-      { resolveTools },
-    );
-    this.registrations = [
-      this.kernel.agentRuntimeManager.registerRuntimeProvider({
-        kind: "native",
-        label: "Native",
-        createRuntime: nativeRuntimeFactory.create,
+    ).createProviders();
+    const nativeRegistration = this.kernel.agentRuntimeManager.registerRuntimeProvider({
+      kind: "native",
+      label: "Native",
+      createRuntime: nativeRuntimeFactory.create,
+    });
+    this.cleanups = [
+      () => nativeRegistration.dispose(),
+      ...builtinNarpRuntimeProviders.map((provider) => {
+        const registration = this.kernel.agentRuntimeManager.registerRuntimeProvider(provider);
+        return () => registration.dispose();
       }),
-      ...builtinNarpRegistrationService.registerInto(this.kernel.agentRuntimeManager),
     ];
   };
 
   dispose = (): void => {
-    for (const registration of this.registrations) {
-      registration.dispose();
+    for (const cleanup of this.cleanups) {
+      cleanup();
     }
-    this.registrations = [];
+    this.cleanups = [];
   };
 }
