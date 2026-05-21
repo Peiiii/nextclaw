@@ -4,20 +4,18 @@ import { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
 import { ExtensionManager } from "@kernel/managers/extension.manager.js";
-import { LearningLoopManager } from "@kernel/managers/learning-loop.manager.js";
 import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
 import { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
 import { McpManager } from "@kernel/managers/mcp.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
 import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import { ToolManager } from "@kernel/managers/tool.manager.js";
-import { readLearningLoopRuntimeConfig } from "@kernel/configs/learning-loop.config.js";
-import { NcpLifecycleEventBridge } from "@kernel/services/ncp-lifecycle-event-bridge.service.js";
 import { NcpSessionApiService } from "@kernel/services/ncp-session-api.service.js";
 import { NcpAgentSessionStoreAdapter } from "@kernel/services/ncp-agent-session-store-adapter.service.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import { createAgentRuntimeSessionRequestDispatcher } from "@kernel/features/session-request/index.js";
 import { AgentRuntimeContribution } from "@kernel/contributions/agent-runtime/index.js";
+import { LearningLoopContribution } from "@kernel/contributions/learning-loop/index.js";
 import { SessionContextWindowContribution } from "@kernel/contributions/session-context-window/index.js";
 import { SessionActivityPreviewContribution } from "@kernel/contributions/session-activity-preview/index.js";
 import { ToolContribution } from "@kernel/contributions/tool-contribution/index.js";
@@ -36,7 +34,6 @@ import {
   SessionRequestManager,
   SessionSearchManager,
 } from "@nextclaw/core";
-import type { NcpEndpointEvent } from "@nextclaw/ncp";
 import { eventKeys, EventBus, Ingress } from "@nextclaw/shared";
 import { resolve } from "node:path";
 
@@ -130,8 +127,6 @@ export class NextclawKernel {
   readonly agentRunRequestManager: AgentRunRequestManager;
   readonly sessionRunManager: SessionRunManager;
   readonly agentRuntimeManager: AgentRuntimeManager;
-  readonly learningLoop: LearningLoopManager;
-  private readonly sessionLifecycleEvents: NcpLifecycleEventBridge;
   private readonly ncpAgentSessionStore: NcpAgentSessionStoreAdapter;
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
   private readonly contributions: KernelContribution[];
@@ -142,7 +137,6 @@ export class NextclawKernel {
     this.sessions = new SessionManager({
       sessionsDir,
     });
-    this.sessionLifecycleEvents = new NcpLifecycleEventBridge(this.sessions, this.eventBus);
     this.sessionSearch = new SessionSearchManager({
       databasePath: resolve(getDataDir(), "session-search.db"),
       sessionsDir,
@@ -208,7 +202,6 @@ export class NextclawKernel {
       agentRuntimeManager: this.agentRuntimeManager,
       ncpAgentSessionStore: this.ncpAgentSessionStore,
       eventBus: this.eventBus,
-      handleNcpEvent: this.handleNcpEvent,
       onSessionUpdated: this.publishSessionUpdated,
     });
     this.agentRunRequestManager = new AgentRunRequestManager({
@@ -224,18 +217,12 @@ export class NextclawKernel {
       ncpAgentSessionStore: this.ncpAgentSessionStore,
       sessionManager: this.sessions,
     });
-    this.learningLoop = new LearningLoopManager({
-      eventBus: this.eventBus,
-      sessionManager: this.sessions,
-      sessionRequester: this.sessionRequests,
-      resolveLearningLoopConfig: () =>
-        readLearningLoopRuntimeConfig(this.configManager.loadConfig()),
-    });
     this.contributions = [
       new AgentRuntimeContribution(this),
       new ToolContribution(this),
       new SessionActivityPreviewContribution(this),
       new SessionContextWindowContribution(this),
+      new LearningLoopContribution(this),
     ];
   }
 
@@ -253,11 +240,9 @@ export class NextclawKernel {
       contribution.start();
     }
     this.agentRunRequestManager.start();
-    this.learningLoop.start();
   };
 
   dispose = async (): Promise<void> => {
-    this.learningLoop.dispose();
     await this.agentRunRequestManager.dispose();
     await this.sessionRunManager.dispose();
     for (const contribution of this.contributions) {
@@ -270,14 +255,9 @@ export class NextclawKernel {
   };
 
   publishSessionUpdated = (sessionKey: string): void => {
-    this.sessionLifecycleEvents.publishSessionUpdated(sessionKey);
     this.eventBus.emit(eventKeys.sessionUpdated, { sessionKey }, {
       emittedAt: new Date().toISOString(),
       source: "backend",
     });
-  };
-
-  private handleNcpEvent = (event: NcpEndpointEvent): void => {
-    this.sessionLifecycleEvents.handleEndpointEvent(event);
   };
 }

@@ -125,7 +125,6 @@ describe("AgentRunRequestManager", () => {
       agentRuntimeManager: runtimeManager,
       ncpAgentSessionStore: new InMemoryAgentSessionStore(),
       eventBus: new EventBus(),
-      handleNcpEvent: vi.fn(),
       onSessionUpdated,
     });
     const manager = new AgentRunRequestManager({
@@ -190,7 +189,6 @@ describe("AgentRunRequestManager", () => {
       agentRuntimeManager: runtimeManager,
       ncpAgentSessionStore: new InMemoryAgentSessionStore(),
       eventBus: new EventBus(),
-      handleNcpEvent: vi.fn(),
       onSessionUpdated,
     });
     const manager = new AgentRunRequestManager({
@@ -238,7 +236,6 @@ describe("AgentRunRequestManager", () => {
       agentRuntimeManager: createDispatchingRuntimeManagerStub(),
       ncpAgentSessionStore: sessionStore,
       eventBus: new EventBus(),
-      handleNcpEvent: vi.fn(),
       onSessionUpdated: vi.fn(),
     });
     const manager = new AgentRunRequestManager({
@@ -302,7 +299,6 @@ describe("AgentRunRequestManager", () => {
       agentRuntimeManager: runtimeManager as AgentRuntimeManager,
       ncpAgentSessionStore: sessionStore,
       eventBus: new EventBus(),
-      handleNcpEvent: vi.fn(),
       onSessionUpdated: vi.fn(),
     });
     const manager = new AgentRunRequestManager({

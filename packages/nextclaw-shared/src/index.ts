@@ -44,6 +44,7 @@ export {
 } from "./configs/event-keys.config.js";
 export { ingressKeys } from "./configs/ingress-keys.config.js";
 export type {
+  AgentRunSendIngressPayload,
   AgentRunSessionMessageRequestPayload,
   ExtensionChannelConfigGetIngressPayload,
   ExtensionChannelFileContent,

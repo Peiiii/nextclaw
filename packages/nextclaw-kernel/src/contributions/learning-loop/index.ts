@@ -1,24 +1,26 @@
 import {
+  readParentSessionId,
   type Session,
   type SessionManager,
   type SessionMessage,
   type SessionRequestToolResult,
   type SpawnSessionAndRequestParams,
 } from "@nextclaw/core";
-import type { EventBus } from "@nextclaw/shared";
-import { agentRunFinishedLifecycleEventKey } from "@kernel/configs/ncp-lifecycle-event.config.js";
-import type { AgentRunFinishedLifecycleEvent } from "@kernel/types/ncp-lifecycle-event.types.js";
+import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
+import { eventKeys, type Unsubscribe } from "@nextclaw/shared";
+import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
+import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import {
-  DEFAULT_LEARNING_LOOP_TOOL_CALL_THRESHOLD,
   LEARNING_LOOP_DISABLED_METADATA_KEY,
   LEARNING_LOOP_LAST_REQUESTED_AT_METADATA_KEY,
   LEARNING_LOOP_LAST_REVIEW_SESSION_ID_METADATA_KEY,
   LEARNING_LOOP_LAST_TOOL_CALL_COUNT_METADATA_KEY,
   LEARNING_LOOP_REQUESTED_SKILLS,
   LEARNING_LOOP_SOURCE_SESSION_ID_METADATA_KEY,
+  readLearningLoopRuntimeConfig,
   type LearningLoopRuntimeConfig,
-} from "@kernel/configs/learning-loop.config.js";
-import { buildLearningLoopTask } from "@kernel/utils/learning-loop-prompt.utils.js";
+} from "./config.js";
+import { buildLearningLoopTask } from "./utils/learning-loop-prompt.utils.js";
 
 export type LearningLoopSessionRequester = {
   spawnSessionAndRequest: (
@@ -30,13 +32,6 @@ type LearningLoopSessionStore = Pick<
   SessionManager,
   "getIfExists" | "save"
 >;
-
-export type LearningLoopManagerOptions = {
-  eventBus: EventBus;
-  sessionManager: SessionManager;
-  sessionRequester: LearningLoopSessionRequester;
-  resolveLearningLoopConfig?: () => LearningLoopRuntimeConfig;
-};
 
 function countToolCallsFromMessage(message: SessionMessage): number {
   if (Array.isArray(message.tool_calls)) {
@@ -92,34 +87,45 @@ function readLearningLoopLastToolCallCount(
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
-export class LearningLoopManager {
-  private readonly sessionStore: LearningLoopSessionStore;
-  private readonly inFlightSessionIds = new Set<string>();
-  private unsubscribe: (() => void) | null = null;
+function readRunFinishedSessionId(event: NcpEndpointEvent): string | null {
+  if (event.type !== NcpEventType.RunFinished) {
+    return null;
+  }
+  return event.payload.sessionId?.trim() || null;
+}
 
-  constructor(private readonly options: LearningLoopManagerOptions) {
-    this.sessionStore = options.sessionManager;
+export class LearningLoopContribution implements KernelContribution {
+  private readonly sessionStore: LearningLoopSessionStore;
+  private readonly sessionRequester: LearningLoopSessionRequester;
+  private readonly inFlightSessionIds = new Set<string>();
+  private unsubscribe: Unsubscribe | null = null;
+
+  constructor(private readonly kernel: NextclawKernel) {
+    this.sessionStore = kernel.sessions;
+    this.sessionRequester = kernel.sessionRequests;
   }
 
   start = (): void => {
     if (this.unsubscribe) {
       return;
     }
-    this.unsubscribe = this.options.eventBus.on(
-      agentRunFinishedLifecycleEventKey,
-      this.handleRunFinished,
-    );
+    this.unsubscribe = this.kernel.eventBus.on(eventKeys.ncpEvent, this.handleNcpEvent);
   };
 
   dispose = (): void => {
     this.unsubscribe?.();
     this.unsubscribe = null;
+    this.inFlightSessionIds.clear();
   };
 
-  private handleRunFinished = (event: AgentRunFinishedLifecycleEvent): void => {
-    void this.handleRunFinishedInBackground(event).catch((error) => {
+  private handleNcpEvent = (event: NcpEndpointEvent): void => {
+    const sessionId = readRunFinishedSessionId(event);
+    if (!sessionId) {
+      return;
+    }
+    void this.handleRunFinishedInBackground(sessionId).catch((error) => {
       console.warn(
-        `[learning-loop] Failed for ${event.sessionId}: ${
+        `[learning-loop] Failed for ${sessionId}: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
@@ -127,13 +133,13 @@ export class LearningLoopManager {
   };
 
   private handleRunFinishedInBackground = async (
-    event: AgentRunFinishedLifecycleEvent,
+    sessionId: string,
   ): Promise<void> => {
-    if (event.isChildSession || this.inFlightSessionIds.has(event.sessionId)) {
+    if (this.inFlightSessionIds.has(sessionId)) {
       return;
     }
-    const session = this.sessionStore.getIfExists(event.sessionId);
-    if (!session) {
+    const session = this.sessionStore.getIfExists(sessionId);
+    if (!session || readParentSessionId(session.metadata)) {
       return;
     }
     const runtimeConfig = this.readRuntimeConfig();
@@ -149,22 +155,22 @@ export class LearningLoopManager {
       return;
     }
 
-    this.inFlightSessionIds.add(event.sessionId);
+    this.inFlightSessionIds.add(sessionId);
     try {
-      const reviewSession = await this.options.sessionRequester.spawnSessionAndRequest({
-        sourceSessionId: event.sessionId,
+      const reviewSession = await this.sessionRequester.spawnSessionAndRequest({
+        sourceSessionId: sessionId,
         updateToolCallResult: async () => undefined,
         sourceSessionMetadata: session.metadata,
         metadataOverrides: {
           requested_skills: LEARNING_LOOP_REQUESTED_SKILLS,
           [LEARNING_LOOP_DISABLED_METADATA_KEY]: true,
-          [LEARNING_LOOP_SOURCE_SESSION_ID_METADATA_KEY]: event.sessionId,
+          [LEARNING_LOOP_SOURCE_SESSION_ID_METADATA_KEY]: sessionId,
         },
-        parentSessionId: event.sessionId,
+        parentSessionId: sessionId,
         notify: "none",
         title: this.buildReviewTitle(session.metadata),
         task: buildLearningLoopTask({
-          sessionId: event.sessionId,
+          sessionId,
           toolCallsSinceReview,
           currentToolCallCount: totalToolCalls,
         }),
@@ -179,15 +185,12 @@ export class LearningLoopManager {
       session.metadata = nextMetadata;
       this.sessionStore.save(session);
     } finally {
-      this.inFlightSessionIds.delete(event.sessionId);
+      this.inFlightSessionIds.delete(sessionId);
     }
   };
 
   private readRuntimeConfig = (): LearningLoopRuntimeConfig => {
-    return this.options.resolveLearningLoopConfig?.() ?? {
-      enabled: true,
-      toolCallThreshold: DEFAULT_LEARNING_LOOP_TOOL_CALL_THRESHOLD,
-    };
+    return readLearningLoopRuntimeConfig(this.kernel.configManager.loadConfig());
   };
 
   private buildReviewTitle = (metadata: Record<string, unknown>): string => {

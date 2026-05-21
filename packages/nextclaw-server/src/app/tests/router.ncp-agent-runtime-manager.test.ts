@@ -98,6 +98,12 @@ function createReplyingRuntimeManager(): AgentRuntimeManager {
   return {
     createRuntime: (params: { stateManager: NcpAgentConversationStateManager }): NcpAgentRuntime => ({
       run: async function* (input) {
+        for (const message of input.messages) {
+          await params.stateManager.dispatch({
+            type: NcpEventType.MessageSent,
+            payload: { sessionId: input.sessionId, message },
+          });
+        }
         const messageId = "assistant-message-1";
         const runId = (input as typeof input & { runId?: string }).runId ?? "run-1";
         const events: NcpEndpointEvent[] = [
@@ -147,7 +153,6 @@ it("routes ncp send through AgentRunRequestManager and stores the assistant repl
     agentRuntimeManager: runtimeManager,
     ncpAgentSessionStore: sessionStore,
     eventBus,
-    handleNcpEvent: () => undefined,
     onSessionUpdated: () => undefined,
   });
   const ncpSessionApi = new NcpSessionApiService({

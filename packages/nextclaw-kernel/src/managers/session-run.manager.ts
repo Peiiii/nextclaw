@@ -31,7 +31,6 @@ export class SessionRunManager {
   private readonly agentRuntimeManager: AgentRuntimeManager;
   private readonly ncpAgentSessionStore: AgentSessionStore;
   private readonly eventBus: EventBus;
-  private readonly handleNcpEvent: (event: NcpEndpointEvent) => void;
   private readonly onSessionUpdated: (sessionKey: string) => void;
   private readonly liveSessions = new Map<string, LiveSession>();
   private readonly publisher = new EventPublisher();
@@ -41,20 +40,17 @@ export class SessionRunManager {
     agentRuntimeManager: AgentRuntimeManager;
     ncpAgentSessionStore: AgentSessionStore;
     eventBus: EventBus;
-    handleNcpEvent: (event: NcpEndpointEvent) => void;
     onSessionUpdated: (sessionKey: string) => void;
   }) {
     const {
       agentRuntimeManager,
       eventBus,
-      handleNcpEvent,
       ncpAgentSessionStore,
       onSessionUpdated,
     } = options;
     this.agentRuntimeManager = agentRuntimeManager;
     this.ncpAgentSessionStore = ncpAgentSessionStore;
     this.eventBus = eventBus;
-    this.handleNcpEvent = handleNcpEvent;
     this.onSessionUpdated = onSessionUpdated;
   }
 
@@ -251,7 +247,6 @@ export class SessionRunManager {
       emittedAt: new Date().toISOString(),
       source: "session-run",
     });
-    this.handleNcpEvent(event);
     this.publisher.publish(event);
     session.publisher.publish(event);
   };
