@@ -5,11 +5,15 @@ import { afterEach, expect, it } from "vitest";
 import { ConfigSchema, saveConfig, SessionManager } from "@nextclaw/core";
 import {
   AgentRunRequestManager,
+  NcpSessionApiService,
+  SessionRunManager,
   type AgentRuntimeManager,
 } from "@nextclaw/kernel";
 import {
   NcpEventType,
+  type NcpAgentConversationStateManager,
   type NcpAgentRuntime,
+  type NcpEndpointEvent,
   type NcpMessage,
 } from "@nextclaw/ncp";
 import { EventBus, Ingress } from "@nextclaw/shared";
@@ -92,48 +96,36 @@ function createAgentSessionStore() {
 
 function createReplyingRuntimeManager(): AgentRuntimeManager {
   return {
-    createRuntime: (): NcpAgentRuntime => ({
+    createRuntime: (params: { stateManager: NcpAgentConversationStateManager }): NcpAgentRuntime => ({
       run: async function* (input) {
         const messageId = "assistant-message-1";
-        const runId = "run-1";
-        yield {
-          type: NcpEventType.RunStarted,
-          payload: {
-            sessionId: input.sessionId,
-            messageId,
-            runId,
+        const runId = (input as typeof input & { runId?: string }).runId ?? "run-1";
+        const events: NcpEndpointEvent[] = [
+          {
+            type: NcpEventType.RunStarted,
+            payload: { sessionId: input.sessionId, messageId, runId },
           },
-        };
-        yield {
-          type: NcpEventType.MessageTextStart,
-          payload: {
-            sessionId: input.sessionId,
-            messageId,
+          {
+            type: NcpEventType.MessageTextStart,
+            payload: { sessionId: input.sessionId, messageId },
           },
-        };
-        yield {
-          type: NcpEventType.MessageTextDelta,
-          payload: {
-            sessionId: input.sessionId,
-            messageId,
-            delta: "pong from runtime",
+          {
+            type: NcpEventType.MessageTextDelta,
+            payload: { sessionId: input.sessionId, messageId, delta: "pong from runtime" },
           },
-        };
-        yield {
-          type: NcpEventType.MessageTextEnd,
-          payload: {
-            sessionId: input.sessionId,
-            messageId,
+          {
+            type: NcpEventType.MessageTextEnd,
+            payload: { sessionId: input.sessionId, messageId },
           },
-        };
-        yield {
-          type: NcpEventType.RunFinished,
-          payload: {
-            sessionId: input.sessionId,
-            messageId,
-            runId,
+          {
+            type: NcpEventType.RunFinished,
+            payload: { sessionId: input.sessionId, messageId, runId },
           },
-        };
+        ];
+        for (const event of events) {
+          await params.stateManager.dispatch(event);
+          yield event;
+        }
       },
     }),
     listSessionTypes: () => ({ defaultType: "native", options: [] }),
@@ -146,31 +138,42 @@ it("routes ncp send through AgentRunRequestManager and stores the assistant repl
   saveConfig(ConfigSchema.parse({}), configPath);
   const ingress = new Ingress();
   const runtimeManager = createReplyingRuntimeManager();
-  const manager = new AgentRunRequestManager({
-    sessions: new SessionManager({
-      sessionsDir: createTempDir("nextclaw-ui-ncp-runtime-sessions-"),
-    }),
-    ingress,
+  const eventBus = new EventBus();
+  const sessions = new SessionManager({
+    sessionsDir: createTempDir("nextclaw-ui-ncp-runtime-sessions-"),
+  });
+  const sessionStore = createAgentSessionStore();
+  const sessionRunManager = new SessionRunManager({
     agentRuntimeManager: runtimeManager,
-    ncpAgentSessionStore: createAgentSessionStore(),
-    configManager: {
-      loadConfig: () => ConfigSchema.parse({}),
-    },
-    eventBus: new EventBus(),
+    ncpAgentSessionStore: sessionStore,
+    eventBus,
     handleNcpEvent: () => undefined,
     onSessionUpdated: () => undefined,
   });
-  await manager.start();
+  const ncpSessionApi = new NcpSessionApiService({
+    eventBus,
+    getConfig: () => ConfigSchema.parse({}),
+    isLiveSessionRunning: sessionRunManager.isRunning,
+    ncpAgentSessionStore: sessionStore,
+    sessionManager: sessions,
+  });
+  const requestManager = new AgentRunRequestManager({
+    sessions,
+    ingress,
+    sessionRunManager,
+    onSessionUpdated: () => undefined,
+  });
+  requestManager.start();
   const app = createUiRouter({
     configPath,
     appEventBus: new EventBus(),
     kernel: ({
-      agentRunRequestManager: manager,
       agentRuntimeManager: runtimeManager,
       assetStore: {} as never,
       ingress,
       llmProviders: {} as never,
-      ncpSessionApi: manager.sessionApi,
+      ncpSessionApi,
+      sessionRunManager,
     } as unknown as UiKernelHost),
   });
 
@@ -205,7 +208,7 @@ it("routes ncp send through AgentRunRequestManager and stores the assistant repl
     expect(sendPayload.ok).toBe(true);
     expect(sendPayload.data.sessionId).toMatch(/^ncp-/);
     expect(sendPayload.data.assistantMessageId).toBe("assistant-message-1");
-    expect(sendPayload.data.runId).toBe("run-1");
+    expect(sendPayload.data.runId).toMatch(/^ncp-run-/);
 
     const messagesResponse = await app.request(
       `http://localhost/api/ncp/sessions/${sendPayload.data.sessionId}/messages`,
@@ -230,6 +233,7 @@ it("routes ncp send through AgentRunRequestManager and stores the assistant repl
       ]),
     );
   } finally {
-    await manager.dispose();
+    await requestManager.dispose();
+    await sessionRunManager.dispose();
   }
 });

@@ -164,7 +164,7 @@ class UiRouteRegistry {
         return c.json(err("INVALID_QUERY", "sessionId is required."), 400);
       }
       return createNcpEventStreamResponse(
-        kernel.agentRunRequestManager.stream(payload, { signal: c.req.raw.signal }),
+        kernel.sessionRunManager.streamSessionEvents(payload, { signal: c.req.raw.signal }),
         c.req.raw.signal,
       );
     });

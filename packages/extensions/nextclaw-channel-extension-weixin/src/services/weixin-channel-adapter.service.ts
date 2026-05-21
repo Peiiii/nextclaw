@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { appendFileSync } from "node:fs";
 import type { NcpEndpointEvent } from "@nextclaw/ncp";
 import { NcpReplyConsumer, type ChatTarget } from "@nextclaw/ncp-toolkit";
 import { FileWeixinAccountStore, type WeixinAccountStore } from "../stores/weixin-account.store.js";
@@ -35,6 +37,23 @@ const WEIXIN_MESSAGE_ITEM_TYPE_IMAGE = 2;
 const WEIXIN_MESSAGE_ITEM_TYPE_VOICE = 3;
 const WEIXIN_MESSAGE_ITEM_TYPE_FILE = 4;
 const WEIXIN_MESSAGE_ITEM_TYPE_VIDEO = 5;
+
+function textHash(text: string): string {
+  return createHash("sha256").update(text).digest("hex").slice(0, 12);
+}
+
+function writeWeixinDebugProbe(event: string, payload: Record<string, unknown>): void {
+  const file = process.env.NEXTCLAW_WEIXIN_DEBUG_LOG?.trim();
+  if (!file) {
+    return;
+  }
+  appendFileSync(file, `${JSON.stringify({
+    at: new Date().toISOString(),
+    event,
+    pid: process.pid,
+    ...payload,
+  })}\n`);
+}
 
 async function defaultSleep(ms: number, signal?: AbortSignal): Promise<void> {
   await new Promise<void>((resolve) => {
@@ -222,6 +241,17 @@ export class WeixinChannelAdapter {
     if (!sessionId) {
       return;
     }
+    writeWeixinDebugProbe("ncp-event", {
+      sessionId,
+      type: event.type,
+      replySessionOpen: this.replySessions.has(sessionId),
+      routeConversationId: route.conversationId,
+      routeAccountId: route.accountId,
+      messageId: "payload" in event && event.payload && typeof event.payload === "object" &&
+        "messageId" in event.payload ? event.payload.messageId : undefined,
+      runId: "payload" in event && event.payload && typeof event.payload === "object" &&
+        "runId" in event.payload ? event.payload.runId : undefined,
+    });
     const session = this.resolveReplySession(sessionId, this.resolveCanonicalRoute(route));
     session.queue.push(event);
     if (TERMINAL_NCP_EVENT_TYPES.has(event.type)) {
@@ -242,6 +272,14 @@ export class WeixinChannelAdapter {
     contextToken?: string;
   }): Promise<void> => {
     const { account, contextToken, conversationId, text } = params;
+    writeWeixinDebugProbe("send-text", {
+      accountId: account.accountId,
+      conversationId,
+      textHash: textHash(text),
+      textLength: text.length,
+      textPreview: text.slice(0, 80),
+      hasContextToken: Boolean(contextToken),
+    });
     await this.api.sendTextMessage({
       baseUrl: account.baseUrl,
       token: account.token,
@@ -292,10 +330,17 @@ export class WeixinChannelAdapter {
   };
 
   private readonly listAvailableAccountIds = (): string[] => {
+    const configuredAccountIds = this.listConfiguredAccountIds();
+    if (configuredAccountIds.length > 0) {
+      return configuredAccountIds;
+    }
+    return this.store.listAccountIds();
+  };
+
+  private readonly listConfiguredAccountIds = (): string[] => {
     return Array.from(new Set([
       ...(this.config.defaultAccountId ? [this.config.defaultAccountId] : []),
       ...Object.keys(this.config.accounts ?? {}),
-      ...this.store.listAccountIds(),
     ]));
   };
 
@@ -332,6 +377,10 @@ export class WeixinChannelAdapter {
   };
 
   private readonly resolveRuntimeAccount = (accountId: string): WeixinRuntimeAccount | null => {
+    const configuredAccountIds = this.listConfiguredAccountIds();
+    if (configuredAccountIds.length > 0 && !configuredAccountIds.includes(accountId)) {
+      return null;
+    }
     const stored = this.store.loadAccount(accountId);
     if (!stored?.token) {
       return null;
@@ -436,6 +485,15 @@ export class WeixinChannelAdapter {
     if (!text && attachments.length === 0) {
       return;
     }
+    writeWeixinDebugProbe("inbound-message", {
+      accountId: account.accountId,
+      senderId,
+      messageId: message.message_id,
+      textHash: text ? textHash(text) : undefined,
+      textLength: text.length,
+      textPreview: text.slice(0, 80),
+      attachmentCount: attachments.length,
+    });
     const contextToken = message.context_token?.trim();
     if (contextToken) {
       this.contextTokens.set(`${account.accountId}:${senderId}`, contextToken);

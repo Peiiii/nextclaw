@@ -260,6 +260,40 @@ describe("Weixin extension channel adapter flow", () => {
     await controller.stop();
   });
 
+  it("does not poll stored accounts that are not configured", async () => {
+    const channel = createChannel({ enabled: true, defaultAccountId: "bot-1@im.bot" });
+    const api = createIdleApi();
+    api.fetchUpdates = vi.fn(async ({ signal }) => await waitUntilAbort(signal));
+    const adapter = new WeixinChannelAdapter({
+      api,
+      store: createMemoryStore([
+        {
+          accountId: "bot-1@im.bot",
+          token: "token-1",
+          baseUrl: "https://ilinkai.weixin.qq.com",
+        },
+        {
+          accountId: "stale-bot@im.bot",
+          token: "stale-token",
+          baseUrl: "https://ilinkai.weixin.qq.com",
+        },
+      ]),
+    });
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter,
+      mapInbound: toWeixinSubmittedMessage,
+    });
+
+    await controller.start();
+
+    expect(api.fetchUpdates).toHaveBeenCalledTimes(1);
+    expect(api.fetchUpdates).toHaveBeenCalledWith(expect.objectContaining({
+      token: "token-1",
+    }));
+    await controller.stop();
+  });
+
   it("sends completed NCP replies back to Weixin conversation routes", async () => {
     const channel = createChannel({ enabled: true, defaultAccountId: "bot-1@im.bot" });
     let ncpHandler: ((event: Parameters<ExtensionChannel["onNcpEvent"]>[0] extends (event: infer T) => unknown ? T : never) => void | Promise<void>) | null = null;
@@ -558,21 +592,29 @@ describe("Weixin extension channel feature parity", () => {
 
 class TestWeixinAccountStore implements WeixinAccountStore {
   private cursor: string | undefined;
-  private account: StoredWeixinAccount = {
+  private accounts = new Map<string, StoredWeixinAccount>();
+
+  constructor(accounts: StoredWeixinAccount[] = [{
     accountId: "bot-1@im.bot",
     token: "token-1",
     baseUrl: "https://ilinkai.weixin.qq.com",
-  };
+  }]) {
+    for (const account of accounts) {
+      this.accounts.set(account.accountId, account);
+    }
+  }
 
-  listAccountIds = (): string[] => ["bot-1@im.bot"];
+  listAccountIds = (): string[] => [...this.accounts.keys()];
 
-  loadAccount = () => this.account;
+  loadAccount = (accountId: string): StoredWeixinAccount | null => this.accounts.get(accountId) ?? null;
 
   saveAccount = (account: StoredWeixinAccount): void => {
-    this.account = account;
+    this.accounts.set(account.accountId, account);
   };
 
-  deleteAccount = (): void => undefined;
+  deleteAccount = (accountId: string): void => {
+    this.accounts.delete(accountId);
+  };
 
   loadCursor = (): string | undefined => this.cursor;
 
@@ -585,8 +627,8 @@ class TestWeixinAccountStore implements WeixinAccountStore {
   };
 }
 
-function createMemoryStore(): WeixinAccountStore {
-  return new TestWeixinAccountStore();
+function createMemoryStore(accounts?: StoredWeixinAccount[]): WeixinAccountStore {
+  return new TestWeixinAccountStore(accounts);
 }
 
 function createIdleApi(): WeixinApiClient {

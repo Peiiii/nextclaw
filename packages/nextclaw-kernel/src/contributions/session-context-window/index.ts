@@ -136,7 +136,7 @@ export class SessionContextWindowContribution implements KernelContribution {
       return;
     }
     this.lastPublishedSignatureBySession.set(sessionId, signature);
-    await this.kernel.agentRunRequestManager.emit({
+    await this.kernel.sessionRunManager.appendSessionEvent(sessionId, {
       type: NcpEventType.ContextWindowUpdated,
       payload: {
         sessionId,

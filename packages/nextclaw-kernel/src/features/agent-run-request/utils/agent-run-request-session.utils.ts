@@ -16,10 +16,15 @@ import type {
 } from "@nextclaw/ncp-toolkit";
 
 export type LiveSessionExecution = {
+  runId: string;
   controller: AbortController;
-  requestEnvelope: NcpRequestEnvelope;
+  requestEnvelope: MaterializedAgentRunRequest;
   abortHandled: boolean;
   closed: boolean;
+};
+
+export type MaterializedAgentRunRequest = NcpRequestEnvelope & {
+  runId: string;
 };
 
 export type LiveSession = {
@@ -216,11 +221,16 @@ export function toSessionSummary(params: {
 
 export function normalizeRunEvent(
   event: NcpEndpointEvent,
-  envelope: NcpRequestEnvelope,
+  envelope: NcpRequestEnvelope & { runId?: string },
 ): NcpEndpointEvent {
   if (!("payload" in event) || !event.payload || typeof event.payload !== "object") {
     return structuredClone(event);
   }
+  const shouldAddRunId = Boolean(envelope.runId) &&
+    (event.type === NcpEventType.RunStarted ||
+      event.type === NcpEventType.RunFinished ||
+      event.type === NcpEventType.RunError ||
+      event.type === NcpEventType.RunMetadata);
   return structuredClone({
     ...event,
     payload: {
@@ -233,6 +243,7 @@ export function normalizeRunEvent(
       (!("correlationId" in event.payload) || typeof event.payload.correlationId !== "string")
         ? { correlationId: envelope.correlationId }
         : {}),
+      ...(shouldAddRunId ? { runId: envelope.runId } : {}),
     },
   } as NcpEndpointEvent);
 }

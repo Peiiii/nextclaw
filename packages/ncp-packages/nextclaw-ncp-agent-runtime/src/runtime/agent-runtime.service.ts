@@ -75,7 +75,7 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
   ): AsyncGenerator<NcpEndpointEvent> {
     const ctx: NcpEncodeContext = {
       messageId: genId(),
-      runId: genId(),
+      runId: (input as NcpAgentRunInput & { runId?: string }).runId ?? genId(),
       sessionId: input.sessionId,
       correlationId: input.correlationId,
     };

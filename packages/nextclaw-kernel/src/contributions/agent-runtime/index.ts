@@ -19,7 +19,7 @@ export class AgentRuntimeContribution implements KernelContribution {
       llmUsage: this.kernel.llmUsage,
       onSessionUpdated: this.kernel.publishSessionUpdated,
       assetStore: this.kernel.assetStore,
-      updateToolCallResult: this.kernel.agentRunRequestManager.updateToolCallResult,
+      updateToolCallResult: this.kernel.sessionRunManager.updateToolCallResult,
       toolManager: this.kernel.toolManager,
     });
     const builtinNarpRuntimeProviders = new BuiltinNarpRuntimeProviderService(

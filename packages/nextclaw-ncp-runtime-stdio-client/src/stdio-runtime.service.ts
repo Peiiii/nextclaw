@@ -427,6 +427,7 @@ class StdioRuntimeRunController {
   private reasoningStarted = false;
   private readonly resolvedTools: ReadonlyArray<OpenAITool>;
   private readonly resolvedProviderRoute: NcpProviderRuntimeRoute | undefined;
+  private readonly runId: string;
 
   constructor(
     private readonly session: StdioRuntimeSession,
@@ -437,6 +438,7 @@ class StdioRuntimeRunController {
   ) {
     this.resolvedTools = resolveTools?.(input) ?? [];
     this.resolvedProviderRoute = resolveProviderRoute?.(input);
+    this.runId = (input as NcpAgentRunInput & { runId?: string }).runId ?? `narp-stdio:${input.sessionId}:${randomUUID()}`;
   }
   execute = async function* (
     this: StdioRuntimeRunController,
@@ -517,7 +519,7 @@ class StdioRuntimeRunController {
       payload: {
         sessionId: this.input.sessionId,
         messageId: assistantMessageId,
-        runId: `narp-stdio:${this.input.sessionId}:${Date.now()}`,
+        runId: this.runId,
       },
     });
   };
@@ -575,7 +577,7 @@ class StdioRuntimeRunController {
       payload: {
         sessionId: this.input.sessionId,
         messageId: assistantMessageId,
-        runId: `narp-stdio:${this.input.sessionId}`,
+        runId: this.runId,
       },
     });
   };
@@ -599,7 +601,7 @@ class StdioRuntimeRunController {
       payload: {
         sessionId: this.input.sessionId,
         messageId: assistantMessageId,
-        runId: `narp-stdio:${this.input.sessionId}`,
+        runId: this.runId,
         error: ncpError.message,
       },
     });
@@ -612,7 +614,6 @@ class StdioRuntimeRunController {
     await this.stateManager?.dispatch(event);
     yield event;
   };
-
   private translateUpdate = (
     update: AcpClientUpdate,
     messageId: string,
@@ -867,7 +868,6 @@ function resolveModelId(params: {
     readString(metadata?.model)
   );
 }
-
 function resolveToolName(
   update: Extract<AcpClientUpdate, { sessionUpdate: "tool_call" }>,
 ): string {

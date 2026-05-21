@@ -12,7 +12,7 @@ async function flushPromises(): Promise<void> {
 
 function createKernelStub(contextWindow: Record<string, unknown>) {
   const eventBus = new EventBus();
-  const emit = vi.fn().mockResolvedValue(undefined);
+  const appendSessionEvent = vi.fn().mockResolvedValue(undefined);
   const getSession = vi.fn().mockResolvedValue({
     sessionId: "session-1",
     messageCount: 1,
@@ -22,15 +22,15 @@ function createKernelStub(contextWindow: Record<string, unknown>) {
   });
   return {
     eventBus,
-    emit,
+    appendSessionEvent,
     getSession,
     kernel: {
       eventBus,
       ncpSessionApi: {
         getSession,
       },
-      agentRunRequestManager: {
-        emit,
+      sessionRunManager: {
+        appendSessionEvent,
       },
     } as unknown as NextclawKernel,
   };
@@ -46,7 +46,7 @@ describe("SessionContextWindowContribution", () => {
   });
 
   it("publishes a throttled context-window update while the assistant streams", async () => {
-    const { emit, eventBus, getSession, kernel } = createKernelStub({
+    const { appendSessionEvent, eventBus, getSession, kernel } = createKernelStub({
       usedContextTokens: 64,
       totalContextTokens: 100,
     });
@@ -68,7 +68,7 @@ describe("SessionContextWindowContribution", () => {
     await vi.advanceTimersByTimeAsync(1);
 
     expect(getSession).toHaveBeenCalledWith("session-1");
-    expect(emit).toHaveBeenCalledWith({
+    expect(appendSessionEvent).toHaveBeenCalledWith("session-1", {
       type: NcpEventType.ContextWindowUpdated,
       payload: {
         sessionId: "session-1",
@@ -82,7 +82,7 @@ describe("SessionContextWindowContribution", () => {
   });
 
   it("flushes immediately when the run finishes", async () => {
-    const { emit, eventBus, kernel } = createKernelStub({
+    const { appendSessionEvent, eventBus, kernel } = createKernelStub({
       usedContextTokens: 88,
       totalContextTokens: 100,
     });
@@ -98,7 +98,7 @@ describe("SessionContextWindowContribution", () => {
     });
     await flushPromises();
 
-    expect(emit).toHaveBeenCalledWith({
+    expect(appendSessionEvent).toHaveBeenCalledWith("session-1", {
       type: NcpEventType.ContextWindowUpdated,
       payload: {
         sessionId: "session-1",
@@ -116,7 +116,7 @@ describe("SessionContextWindowContribution", () => {
       usedContextTokens: 42,
       totalContextTokens: 100,
     };
-    const { emit, eventBus, getSession, kernel } = createKernelStub(contextWindow);
+    const { appendSessionEvent, eventBus, getSession, kernel } = createKernelStub(contextWindow);
     const contribution = new SessionContextWindowContribution(kernel);
     contribution.start();
 
@@ -144,7 +144,7 @@ describe("SessionContextWindowContribution", () => {
     await flushPromises();
 
     expect(getSession).toHaveBeenCalledWith("session-1");
-    expect(emit).not.toHaveBeenCalled();
+    expect(appendSessionEvent).not.toHaveBeenCalled();
     contribution.dispose();
   });
 });

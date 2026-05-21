@@ -37,11 +37,11 @@ describe("provider connection probe route", () => {
       configPath,
       appEventBus: new EventBus(),
       kernel: {
-        agentRunRequestManager: {} as never,
         agentRuntimeManager: {} as never,
         assetStore: {} as never,
         ingress: {} as never,
         ncpSessionApi: {} as never,
+        sessionRunManager: {} as never,
         llmProviders: {
           testConnection: testConnectionMock,
         } as unknown as LlmProviderManager,

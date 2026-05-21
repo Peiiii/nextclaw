@@ -135,7 +135,7 @@ class StubNcpAgent implements NcpSessionApi {
     };
   };
 
-  stream = async function* (): AsyncGenerator<NcpEndpointEvent> {
+  streamSessionEvents = async function* (): AsyncGenerator<NcpEndpointEvent> {
     yield {
       type: NcpEventType.RunFinished,
       payload: {
@@ -231,7 +231,6 @@ class StubNcpAgent implements NcpSessionApi {
 
 function createTestKernel(agent: StubNcpAgent): UiKernelHost {
   return {
-    agentRunRequestManager: agent,
     agentRuntimeManager: {
       listSessionTypes: agent.listSessionTypes,
     },
@@ -254,6 +253,7 @@ function createTestKernel(agent: StubNcpAgent): UiKernelHost {
       },
     },
     ncpSessionApi: agent,
+    sessionRunManager: agent,
     llmProviders: {},
   } as unknown as UiKernelHost;
 }

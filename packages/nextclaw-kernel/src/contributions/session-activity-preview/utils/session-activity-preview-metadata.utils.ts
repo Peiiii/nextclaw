@@ -56,7 +56,7 @@ function mergeSessionActivityPreview(
   incoming: SessionActivityPreviewMetadata,
 ): SessionActivityPreviewMetadata {
   if (current && compareIsoTimestamp(incoming.timestamp, current.timestamp) < 0) {
-    return current;
+    return incoming.replyText && !current.replyText ? { ...current, replyText: incoming.replyText } : current;
   }
   return {
     state: incoming.state,

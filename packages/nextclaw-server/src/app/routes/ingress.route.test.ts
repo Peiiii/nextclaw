@@ -12,12 +12,12 @@ describe("ingress route", () => {
       configPath: join(tmpdir(), "nextclaw-router-ingress-test.json"),
       appEventBus: {} as EventBus,
       kernel: {
-        agentRunRequestManager: {} as never,
         agentRuntimeManager: {} as never,
         assetStore: {} as never,
         ingress: { handle } as unknown as Ingress,
         llmProviders: {} as never,
         ncpSessionApi: {} as never,
+        sessionRunManager: {} as never,
       } as unknown as UiKernelHost,
     });
 
