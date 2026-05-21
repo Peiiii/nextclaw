@@ -2,32 +2,47 @@ import { describe, expect, it, vi } from "vitest";
 import { EventBus } from "@nextclaw/shared";
 import { NextclawApp } from "../nextclaw-app.service.js";
 import type { NextclawGatewayRuntime } from "../nextclaw-gateway-runtime.service.js";
+import type { NextclawKernel } from "@nextclaw/kernel";
+
+type TestGatewayKernel = Pick<NextclawKernel, "extensions" | "start">;
 
 function createGateway(params: {
   order?: string[];
   uiEnabled?: boolean;
+  kernel: TestGatewayKernel;
   loadPlugins?: () => Promise<void>;
   startPluginGateways?: () => Promise<void>;
   startExtensions?: () => Promise<void>;
   startChannels?: () => Promise<void>;
   wakeFromRestartSentinel?: () => Promise<void>;
   markNcpAgentError?: (message: string) => void;
-} = {}): NextclawGatewayRuntime {
-  const order = params.order ?? [];
+}): NextclawGatewayRuntime {
+  const {
+    kernel,
+    loadPlugins,
+    markNcpAgentError,
+    order: inputOrder,
+    startChannels,
+    startPluginGateways,
+    uiEnabled,
+    wakeFromRestartSentinel,
+  } = params;
+  const order = inputOrder ?? [];
   const gateway = {
     appEventBus: new EventBus(),
     bootstrapStatus: {
       markNcpAgentRunning: vi.fn(() => order.push("mark-running")),
       markNcpAgentReady: vi.fn(() => order.push("mark-ready")),
-      markNcpAgentError: params.markNcpAgentError ?? vi.fn(),
+      markNcpAgentError: markNcpAgentError ?? vi.fn(),
     },
     configManager: {
       loadConfig: () => ({}),
     },
     uiConfig: {
-      enabled: params.uiEnabled === true,
+      enabled: uiEnabled === true,
     },
     uiStartup: {},
+    kernel,
     sessions: {
       publishSessionChange: vi.fn(),
     },
@@ -39,15 +54,12 @@ function createGateway(params: {
     plugins: {
       getExtensionRegistry: () => undefined,
       getRegistry: () => ({ plugins: [] }),
-      load: params.loadPlugins ?? vi.fn(async () => undefined),
-      startGateways: params.startPluginGateways ?? vi.fn(async () => undefined),
+      load: loadPlugins ?? vi.fn(async () => undefined),
+      startGateways: startPluginGateways ?? vi.fn(async () => undefined),
     },
-    extensions: {
-      start: params.startExtensions ?? vi.fn(async () => undefined),
-    },
-    startDeferredChannels: params.startChannels ?? vi.fn(async () => undefined),
+    startDeferredChannels: startChannels ?? vi.fn(async () => undefined),
     restartWake: {
-      wakeFromRestartSentinel: params.wakeFromRestartSentinel ?? vi.fn(async () => undefined),
+      wakeFromRestartSentinel: wakeFromRestartSentinel ?? vi.fn(async () => undefined),
     },
   } as unknown as NextclawGatewayRuntime;
   return gateway;
@@ -59,6 +71,16 @@ describe("NextclawApp", () => {
     const gateway = createGateway({
       order,
       uiEnabled: true,
+      kernel: {
+        start: vi.fn(async () => {
+          order.push("bootstrap-kernel");
+        }),
+        extensions: {
+          start: vi.fn(async () => {
+            order.push("start-extensions");
+          }),
+        },
+      } as never,
       loadPlugins: vi.fn(async () => {
         order.push("load-plugins");
       }),
@@ -72,19 +94,7 @@ describe("NextclawApp", () => {
         order.push("wake-restart-sentinel");
       }),
     });
-    const app = new NextclawApp(
-      gateway,
-      {
-        start: vi.fn(async () => {
-          order.push("bootstrap-kernel");
-        }),
-        extensions: {
-          start: vi.fn(async () => {
-            order.push("start-extensions");
-          }),
-        },
-      } as never,
-    );
+    const app = new NextclawApp(gateway);
 
     await app.start();
 
@@ -108,15 +118,7 @@ describe("NextclawApp", () => {
     const wakeFromRestartSentinel = vi.fn(async () => undefined);
     const markNcpAgentError = vi.fn();
     const gateway = createGateway({
-      loadPlugins,
-      startPluginGateways,
-      startChannels,
-      wakeFromRestartSentinel,
-      markNcpAgentError,
-    });
-    const app = new NextclawApp(
-      gateway,
-      {
+      kernel: {
         start: vi.fn(async () => {
           throw new Error("kernel failed");
         }),
@@ -124,7 +126,13 @@ describe("NextclawApp", () => {
           start: vi.fn(async () => undefined),
         },
       } as never,
-    );
+      loadPlugins,
+      startPluginGateways,
+      startChannels,
+      wakeFromRestartSentinel,
+      markNcpAgentError,
+    });
+    const app = new NextclawApp(gateway);
 
     await app.start();
 

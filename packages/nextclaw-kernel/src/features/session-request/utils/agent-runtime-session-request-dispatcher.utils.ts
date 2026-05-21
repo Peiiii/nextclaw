@@ -79,7 +79,7 @@ export async function dispatchAgentRuntimeSessionRequest(input: {
   task: string;
 }): Promise<void> {
   await input.ingress.handle({
-    type: ingressKeys.agentRuntime.sessionMessageRequest,
+    type: ingressKeys.agentRun.sessionMessageRequest,
     payload: {
       message: {
         id: `${input.request.targetSessionId}:user:session-request:${input.request.requestId}`,

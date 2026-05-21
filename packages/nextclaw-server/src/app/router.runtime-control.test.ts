@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import type { UiRuntimeControlHost } from "@nextclaw-server/app/types/router-options.types.js";
 import { createUiRouter } from "./router.js";
+import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
 import { EventBus } from "@nextclaw/shared";
 
 const tempDirs: string[] = [];
@@ -83,6 +84,7 @@ describe("runtime control routes", () => {
     saveConfig(ConfigSchema.parse({}), configPath);
     const runtimeControl = createRuntimeControlHost();
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus: new EventBus(),
       runtimeControl
@@ -112,6 +114,7 @@ describe("runtime control routes", () => {
     saveConfig(ConfigSchema.parse({}), configPath);
     const runtimeControl = createRuntimeControlHost();
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus: new EventBus(),
       runtimeControl
@@ -137,6 +140,7 @@ describe("runtime control routes", () => {
     saveConfig(ConfigSchema.parse({}), configPath);
     const runtimeControl = createRuntimeControlHost();
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus: new EventBus(),
       runtimeControl
@@ -164,6 +168,7 @@ describe("runtime control routes", () => {
     saveConfig(ConfigSchema.parse({}), configPath);
     const runtimeControl = createRuntimeControlHost();
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus: new EventBus(),
       runtimeControl

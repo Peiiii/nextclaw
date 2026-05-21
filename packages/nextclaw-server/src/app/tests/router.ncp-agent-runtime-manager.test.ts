@@ -12,7 +12,7 @@ import {
   type NcpAgentRuntime,
   type NcpMessage,
 } from "@nextclaw/ncp";
-import { EventBus } from "@nextclaw/shared";
+import { EventBus, Ingress } from "@nextclaw/shared";
 import { createUiRouter } from "@nextclaw-server/app/router.js";
 import type { UiKernelHost } from "@nextclaw-server/app/types/router-options.types.js";
 
@@ -144,14 +144,14 @@ it("routes ncp send through AgentRunRequestManager and stores the assistant repl
   useIsolatedHome();
   const configPath = createTempConfigPath();
   saveConfig(ConfigSchema.parse({}), configPath);
+  const ingress = new Ingress();
+  const runtimeManager = createReplyingRuntimeManager();
   const manager = new AgentRunRequestManager({
     sessions: new SessionManager({
       sessionsDir: createTempDir("nextclaw-ui-ncp-runtime-sessions-"),
     }),
-    ingress: {
-      addHandler: () => () => undefined,
-    } as never,
-    agentRuntimeManager: createReplyingRuntimeManager(),
+    ingress,
+    agentRuntimeManager: runtimeManager,
     ncpAgentSessionStore: createAgentSessionStore(),
     configManager: {
       loadConfig: () => ConfigSchema.parse({}),
@@ -166,8 +166,9 @@ it("routes ncp send through AgentRunRequestManager and stores the assistant repl
     appEventBus: new EventBus(),
     kernel: ({
       agentRunRequestManager: manager,
-      agentRuntimeManager: createReplyingRuntimeManager(),
+      agentRuntimeManager: runtimeManager,
       assetStore: {} as never,
+      ingress,
       llmProviders: {} as never,
       ncpSessionApi: manager.sessionApi,
     } as unknown as UiKernelHost),

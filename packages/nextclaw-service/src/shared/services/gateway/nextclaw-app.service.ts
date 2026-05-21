@@ -14,11 +14,8 @@ type NextclawAppKernel = Pick<
 export class NextclawApp {
   private readonly kernel: NextclawAppKernel;
 
-  constructor(
-    private readonly gateway: NextclawGatewayRuntime,
-    kernel?: NextclawAppKernel,
-  ) {
-    this.kernel = kernel ?? gateway.kernel;
+  constructor(private readonly gateway: NextclawGatewayRuntime) {
+    this.kernel = gateway.kernel;
   }
 
   start = async (): Promise<void> => {

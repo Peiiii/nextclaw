@@ -6,6 +6,7 @@ import { ConfigSchema, loadConfig, saveConfig } from "@nextclaw/core";
 import { EventBus } from "@nextclaw/shared";
 import type { PluginChannelBinding } from "@nextclaw/openclaw-compat";
 import { createUiRouter } from "./router.js";
+import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
 
 const tempDirs: string[] = [];
 
@@ -80,6 +81,7 @@ describe("weixin plugin channel auth route", () => {
     const { binding, start, poll } = createWeixinPluginBinding();
 
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus,
       applyLiveConfigReload,

@@ -125,16 +125,12 @@ export class NcpSessionRoutesController {
     this.sessionSkillsViewBuilder = new SessionSkillsViewBuilder(options);
   }
 
-  private readonly getSessionApi = () => this.options.kernel?.ncpSessionApi;
+  private readonly getSessionApi = () => this.options.kernel.ncpSessionApi;
 
   readonly getSessionTypes = async (c: Context) => {
-    const listSessionTypes = this.options.kernel?.agentRuntimeManager.listSessionTypes;
-    const payload: ChatSessionTypesView = listSessionTypes
-      ? await listSessionTypes({ describeMode: "observation" })
-      : {
-          defaultType: "native",
-          options: [{ value: "native", label: "Native" }],
-        };
+    const payload: ChatSessionTypesView = await this.options.kernel.agentRuntimeManager.listSessionTypes({
+      describeMode: "observation",
+    });
     return c.json(ok(payload));
   };
 

@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { AutomationManager } from "@nextclaw/kernel";
 import { EventBus } from "@nextclaw/shared";
 import { startUiServer } from "./server.js";
+import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
 
 async function reservePort(): Promise<number> {
   return await new Promise((resolve, reject) => {
@@ -93,6 +94,7 @@ function createTestGateway(params: {
     ...(corsOrigins ? { corsOrigins } : {}),
     configPath,
     appEventBus: new EventBus(),
+    kernel: createRouterTestKernel(),
     productVersion: "test",
     applyLiveConfigReload: async () => {},
     initializeAgentHomeDirectory: () => {},

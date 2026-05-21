@@ -40,6 +40,7 @@ describe("provider connection probe route", () => {
         agentRunRequestManager: {} as never,
         agentRuntimeManager: {} as never,
         assetStore: {} as never,
+        ingress: {} as never,
         ncpSessionApi: {} as never,
         llmProviders: {
           testConnection: testConnectionMock,

@@ -2,7 +2,7 @@ import { type Config, type SessionManager } from "@nextclaw/core";
 import {
   eventKeys,
   ingressKeys,
-  type AgentRuntimeSessionMessageIngressPayload,
+  type AgentRunSessionMessageRequestPayload,
   type EventBus,
   type Ingress,
   type IngressEnvelope,
@@ -61,40 +61,64 @@ export type AgentRunRequestManagerOptions = {
 
 export class AgentRunRequestManager {
   private readonly cleanups: Array<() => Promise<void> | void> = [];
+  private readonly sessions: SessionManager;
+  private readonly ingress: Ingress;
+  private readonly agentRuntimeManager: AgentRuntimeManager;
+  private readonly ncpAgentSessionStore: AgentSessionStore;
+  private readonly eventBus: EventBus;
+  private readonly handleNcpEvent: (event: NcpEndpointEvent) => void;
+  private readonly onSessionUpdated: (sessionKey: string) => void;
   private readonly liveSessions = new Map<string, LiveSession>();
   private readonly publisher = new EventPublisher();
   private readonly contextWindowPreview: ContextCompactionPreflightService;
   readonly sessionApi: AgentRunSessionApiService;
-  private startPromise: Promise<void> | null = null;
   private disposed = false;
   private started = false;
 
-  constructor(private readonly options: AgentRunRequestManagerOptions) {
+  constructor(options: AgentRunRequestManagerOptions) {
+    const {
+      agentRuntimeManager,
+      configManager,
+      eventBus,
+      handleNcpEvent,
+      ingress,
+      ncpAgentSessionStore,
+      onSessionUpdated,
+      sessions,
+    } = options;
+    this.sessions = sessions;
+    this.ingress = ingress;
+    this.agentRuntimeManager = agentRuntimeManager;
+    this.ncpAgentSessionStore = ncpAgentSessionStore;
+    this.eventBus = eventBus;
+    this.handleNcpEvent = handleNcpEvent;
+    this.onSessionUpdated = onSessionUpdated;
     this.contextWindowPreview = new ContextCompactionPreflightService({
-      getConfig: options.configManager.loadConfig,
-      sessionManager: options.sessions,
+      getConfig: configManager.loadConfig,
+      sessionManager: sessions,
     });
     this.sessionApi = new AgentRunSessionApiService({
       liveSessions: this.liveSessions,
-      sessionStore: options.ncpAgentSessionStore,
+      sessionStore: ncpAgentSessionStore,
       contextWindowPreview: this.contextWindowPreview,
-      onSessionUpdated: options.onSessionUpdated,
+      onSessionUpdated,
     });
   }
 
   isLiveSessionRunning = (sessionId: string): boolean =>
     this.sessionApi.isLiveSessionRunning(sessionId);
 
-  start = async (): Promise<void> => {
+  start = (): void => {
     this.assertNotDisposed();
     if (this.started) {
       return;
     }
-    this.startPromise ??= this.startSubscriptions().catch((error: unknown) => {
-      this.startPromise = null;
-      throw error;
-    });
-    await this.startPromise;
+    this.started = true;
+    this.cleanups.push(
+      this.ingress.addHandler(ingressKeys.agentRun.send, this.handleSendRequest),
+      this.ingress.addHandler(ingressKeys.agentRun.abort, this.handleAbortRequest),
+      this.ingress.addHandler(ingressKeys.agentRun.sessionMessageRequest, this.handleSessionMessageRequest),
+    );
   };
 
   dispose = async (): Promise<void> => {
@@ -112,22 +136,7 @@ export class AgentRunRequestManager {
     }
     this.liveSessions.clear();
     this.publisher.close();
-    this.startPromise = null;
     this.started = false;
-  };
-
-  send = async (envelope: NcpAgentSendEnvelope): Promise<NcpRunHandle> => {
-    const requestEnvelope = this.materializeSendEnvelope(envelope);
-    return await consumeRunHandle(
-      this.runMaterializedRequest(requestEnvelope),
-      {
-        sessionId: requestEnvelope.sessionId,
-        userMessageId: requestEnvelope.message.id,
-        assistantMessageId: null,
-        runId: null,
-        ...(requestEnvelope.correlationId ? { correlationId: requestEnvelope.correlationId } : {}),
-      },
-    );
   };
 
   updateToolCallResult: UpdateToolCallResult = async ({
@@ -149,7 +158,7 @@ export class AgentRunRequestManager {
         content: result,
       },
     });
-    await this.options.onSessionUpdated(normalizedSessionId);
+    await this.onSessionUpdated(normalizedSessionId);
   };
 
   run = (
@@ -162,7 +171,35 @@ export class AgentRunRequestManager {
     options?: NcpAgentRunStreamOptions,
   ): AsyncIterable<NcpEndpointEvent> => this.streamSessionEvents(payload, options);
 
-  abort = async (payload: NcpMessageAbortPayload): Promise<void> => {
+  subscribe = (listener: NcpEndpointSubscriber): (() => void) =>
+    this.publisher.subscribe(listener);
+
+  private readonly handleSendRequest = async (
+    envelope: IngressEnvelope<NcpAgentSendEnvelope>,
+  ): Promise<NcpRunHandle> => {
+    if (!envelope.payload) {
+      throw new Error("Invalid agent run send request.");
+    }
+    const requestEnvelope = this.materializeSendEnvelope(envelope.payload);
+    return await consumeRunHandle(
+      this.runMaterializedRequest(requestEnvelope),
+      {
+        sessionId: requestEnvelope.sessionId,
+        userMessageId: requestEnvelope.message.id,
+        assistantMessageId: null,
+        runId: null,
+        ...(requestEnvelope.correlationId ? { correlationId: requestEnvelope.correlationId } : {}),
+      },
+    );
+  };
+
+  private readonly handleAbortRequest = async (
+    envelope: IngressEnvelope<NcpMessageAbortPayload>,
+  ): Promise<void> => {
+    const payload = envelope.payload;
+    if (!payload?.sessionId) {
+      throw new Error("Invalid agent run abort request.");
+    }
     const session = this.liveSessions.get(payload.sessionId);
     const execution = session?.activeExecution;
     if (!session || !execution || execution.closed) {
@@ -178,38 +215,6 @@ export class AgentRunRequestManager {
       },
     });
     this.finishExecution(session, execution);
-  };
-
-  emit = async (event: NcpEndpointEvent): Promise<void> => {
-    await this.ensureStarted();
-    switch (event.type) {
-      case NcpEventType.MessageRequest:
-        if (!event.payload.sessionId) {
-          throw new Error("MessageRequest requires a sessionId before dispatch.");
-        }
-        for await (const emittedEvent of this.runMaterializedRequest(withSession(event.payload, event.payload.sessionId))) {
-          void emittedEvent;
-        }
-        return;
-      case NcpEventType.MessageAbort:
-        await this.abort(event.payload);
-        return;
-      default:
-        this.publishNcpEvent(event);
-    }
-  };
-
-  subscribe = (listener: NcpEndpointSubscriber): (() => void) =>
-    this.publisher.subscribe(listener);
-
-  private readonly startSubscriptions = async (): Promise<void> => {
-    this.started = true;
-    this.cleanups.push(
-      this.options.ingress.addHandler(
-        ingressKeys.agentRuntime.sessionMessageRequest,
-        this.handleSessionMessageRequest,
-      ),
-    );
   };
 
   private readonly runMaterializedRequest = (
@@ -332,7 +337,7 @@ export class AgentRunRequestManager {
     }
 
     const metadata = envelope.metadata ?? {};
-    const createdSession = this.options.sessions.createSession({
+    const createdSession = this.sessions.createSession({
       task: readMessageTask(envelope.message),
       title: readMetadataString(metadata, "label", "title"),
       sourceSessionMetadata: {},
@@ -344,12 +349,12 @@ export class AgentRunRequestManager {
       thinkingLevel: readMetadataString(metadata, "preferred_thinking", "thinking"),
       projectRoot: readMetadataString(metadata, "project_root"),
     });
-    this.options.onSessionUpdated(createdSession.sessionId);
+    this.onSessionUpdated(createdSession.sessionId);
     return withSession(envelope, createdSession.sessionId);
   };
 
   private readonly handleSessionMessageRequest = async (
-    envelope: IngressEnvelope<AgentRuntimeSessionMessageIngressPayload>,
+    envelope: IngressEnvelope<AgentRunSessionMessageRequestPayload>,
   ): Promise<void> => {
     const request = envelope.payload;
     if (!request?.requestId || !request.sessionId || !request.message) {
@@ -383,7 +388,7 @@ export class AgentRunRequestManager {
       return existing;
     }
 
-    const storedSession = await this.options.ncpAgentSessionStore.getSession(sessionId);
+    const storedSession = await this.ncpAgentSessionStore.getSession(sessionId);
     const stateManager = new DefaultNcpAgentConversationStateManager();
     stateManager.hydrate({
       sessionId,
@@ -405,7 +410,7 @@ export class AgentRunRequestManager {
       publisher: new EventPublisher(),
       activeExecution: null,
     };
-    session.runtime = this.options.agentRuntimeManager.createRuntime({
+    session.runtime = this.agentRuntimeManager.createRuntime({
       sessionId,
       ...(session.agentId ? { agentId: session.agentId } : {}),
       stateManager,
@@ -461,12 +466,12 @@ export class AgentRunRequestManager {
     if (options.persistSession !== false) {
       await this.persistLiveSessionEvent(session, event);
     }
-    this.publishNcpEvent(event);
+    this.emit(event);
     session.publisher.publish(event);
   };
 
   private readonly persistLiveSession = async (session: LiveSession): Promise<void> => {
-    await this.options.ncpAgentSessionStore.saveSession(
+    await this.ncpAgentSessionStore.saveSession(
       buildSessionRecord(session, new Date().toISOString()),
     );
   };
@@ -476,8 +481,8 @@ export class AgentRunRequestManager {
     event: NcpEndpointEvent,
   ): Promise<void> => {
     const updatedAt = new Date().toISOString();
-    if (this.options.ncpAgentSessionStore.appendSessionEvent) {
-      await this.options.ncpAgentSessionStore.appendSessionEvent({
+    if (this.ncpAgentSessionStore.appendSessionEvent) {
+      await this.ncpAgentSessionStore.appendSessionEvent({
         session: {
           sessionId: session.sessionId,
           ...(session.agentId ? { agentId: session.agentId } : {}),
@@ -490,12 +495,12 @@ export class AgentRunRequestManager {
       });
       return;
     }
-    await this.options.ncpAgentSessionStore.saveSession(buildSessionRecord(session, updatedAt));
+    await this.ncpAgentSessionStore.saveSession(buildSessionRecord(session, updatedAt));
   };
 
-  private readonly ensureStarted = async (): Promise<void> => {
+  private readonly ensureStarted = (): void => {
     if (!this.started) {
-      await this.start();
+      this.start();
     }
   };
 
@@ -509,18 +514,19 @@ export class AgentRunRequestManager {
     sessionKey: string;
     status: "running" | "idle";
   }): void => {
-    this.options.eventBus.emit(eventKeys.sessionRunStatus, payload, {
+    this.eventBus.emit(eventKeys.sessionRunStatus, payload, {
       emittedAt: new Date().toISOString(),
       source: "agent-run-request",
     });
   };
 
-  private publishNcpEvent = (event: NcpEndpointEvent): void => {
-    this.options.eventBus.emit(eventKeys.ncpEvent, event, {
+  emit = (event: NcpEndpointEvent): void => {
+    this.ensureStarted();
+    this.eventBus.emit(eventKeys.ncpEvent, event, {
       emittedAt: new Date().toISOString(),
       source: "agent-run-request",
     });
-    this.options.handleNcpEvent(event);
+    this.handleNcpEvent(event);
     this.publisher.publish(event);
   };
 }

@@ -237,7 +237,6 @@ export class NextclawGatewayRuntime {
     kernel: this.kernel,
     configPath: this.configManager.configPath,
     appEventBus: this.appEventBus,
-    ingress: this.ingress,
     uiConfig: this.uiConfig,
     uiStaticDir: this.uiStaticDir,
     productVersion: this.productVersion,

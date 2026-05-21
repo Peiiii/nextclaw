@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { createUiRouter } from "./router.js";
+import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
 import { EventBus } from "@nextclaw/shared";
 
 const tempDirs: string[] = [];
@@ -45,6 +46,7 @@ describe("marketplace manage plugin id resolution", () => {
     }));
 
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus: new EventBus(),
       marketplace: {
@@ -93,6 +95,7 @@ describe("marketplace manage plugin id resolution", () => {
     );
 
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus: new EventBus(),
       marketplace: {
@@ -136,6 +139,7 @@ describe("marketplace manage plugin id resolution", () => {
     );
 
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus: new EventBus(),
     });
@@ -178,6 +182,7 @@ describe("marketplace manage plugin id resolution", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus: new EventBus(),
       marketplace: {
@@ -223,6 +228,7 @@ describe("skill marketplace scenes", () => {
     );
 
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus: new EventBus()
     });
@@ -315,6 +321,7 @@ describe("skill marketplace scenes", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus: new EventBus(),
       marketplace: {
@@ -384,6 +391,7 @@ describe("skill marketplace scenes", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus: new EventBus(),
       marketplace: {

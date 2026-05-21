@@ -2,7 +2,6 @@ import type * as NextclawCore from "@nextclaw/core";
 import type { NextclawKernel } from "@nextclaw/kernel";
 import type {
   EventBus,
-  Ingress,
   UpdatePreferences,
   UpdateSnapshot,
 } from "@nextclaw/shared";
@@ -26,7 +25,6 @@ import type {
 import type { RuntimeControlActionResult, RuntimeControlView } from "@nextclaw-server/features/runtime-control/index.js";
 
 export type UiAppEventBus = Pick<EventBus, "emit" | "subscribeAll">;
-export type UiIngress = Pick<Ingress, "handle">;
 
 export type UiBootstrapStatusHost = {
   getStatus: () => BootstrapStatusView;
@@ -39,7 +37,7 @@ export type UiPluginHost = {
 
 export type UiKernelHost = Pick<
   NextclawKernel,
-  "agentRunRequestManager" | "agentRuntimeManager" | "assetStore" | "llmProviders" | "ncpSessionApi"
+  "agentRunRequestManager" | "agentRuntimeManager" | "assetStore" | "ingress" | "llmProviders" | "ncpSessionApi"
 >;
 
 export type UiCronHost = {
@@ -62,10 +60,9 @@ export type UiCronHost = {
 };
 
 export type UiRouterOptions = {
-  kernel?: UiKernelHost;
+  kernel: UiKernelHost;
   configPath: string;
   appEventBus: UiAppEventBus;
-  ingress?: UiIngress;
   uiConfig?: Pick<NextclawCore.Config["ui"], "enabled" | "host" | "open" | "port">;
   uiStaticDir?: string | null;
   corsOrigins?: string[] | "*";

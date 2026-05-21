@@ -3,15 +3,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type Config, SessionManager } from "@nextclaw/core";
-import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
   NcpEventType,
+  type NcpAgentSendEnvelope,
   type NcpAgentRunInput,
   type NcpAgentRuntime,
   type NcpEndpointEvent,
+  type NcpRunHandle,
 } from "@nextclaw/ncp";
 import { InMemoryAgentSessionStore, type RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
-import { EventBus, Ingress } from "@nextclaw/shared";
+import { EventBus, Ingress, ingressKeys } from "@nextclaw/shared";
 import { AgentRunRequestManager } from "./agent-run-request.manager.js";
 import type { AgentRuntimeManager } from "./agent-runtime.manager.js";
 
@@ -63,8 +64,8 @@ afterEach(() => {
 
 describe("AgentRunRequestManager", () => {
   it("materializes raw send envelopes before runtime execution", async () => {
+    const ingress = new Ingress();
     const sessions = new SessionManager({ sessionsDir: createTempDir() });
-    const assetStore = new LocalAssetStore({ rootDir: createTempDir() });
     const {
       runtimeFactoryParams,
       runtimeInputs,
@@ -73,30 +74,33 @@ describe("AgentRunRequestManager", () => {
     const onSessionUpdated = vi.fn();
     const manager = new AgentRunRequestManager({
       sessions,
-      ingress: new Ingress(),
+      ingress,
       agentRuntimeManager: runtimeManager,
       ncpAgentSessionStore: new InMemoryAgentSessionStore(),
       configManager: { loadConfig: () => ({}) as Config },
       eventBus: new EventBus(),
       handleNcpEvent: vi.fn(),
       onSessionUpdated,
-      assetStore,
     });
+    manager.start();
 
-    const handle = await manager.send({
-      metadata: {
-        label: "Draft run",
-        preferred_model: "openai/gpt-5",
-        session_type: "native",
+    const handle = await ingress.handle<NcpAgentSendEnvelope, NcpRunHandle>({
+      type: ingressKeys.agentRun.send,
+      payload: {
+        metadata: {
+          label: "Draft run",
+          preferred_model: "openai/gpt-5",
+          session_type: "native",
+        },
+        message: {
+          id: "user-message-1",
+          role: "user",
+          status: "final",
+          timestamp: "2026-05-20T00:00:00.000Z",
+          parts: [{ type: "text", text: "hello" }],
+        },
       },
-      message: {
-        id: "user-message-1",
-        role: "user",
-        status: "final",
-        timestamp: "2026-05-20T00:00:00.000Z",
-        parts: [{ type: "text", text: "hello" }],
-      },
-    });
+    }, { source: "test" });
 
     expect(runtimeFactoryParams).toHaveLength(1);
     expect(runtimeInputs).toHaveLength(1);

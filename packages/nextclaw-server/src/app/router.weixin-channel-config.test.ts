@@ -6,6 +6,7 @@ import { ConfigSchema, loadConfig, saveConfig } from "@nextclaw/core";
 import { EventBus } from "@nextclaw/shared";
 import type { PluginChannelBinding, PluginUiMetadata } from "@nextclaw/openclaw-compat";
 import { createUiRouter } from "./router.js";
+import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
 
 const tempDirs: string[] = [];
 
@@ -67,6 +68,7 @@ describe("weixin plugin channel config route", () => {
     const applyLiveConfigReload = vi.fn(async () => undefined);
 
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus,
       applyLiveConfigReload,
@@ -206,6 +208,7 @@ describe("weixin plugin channel config route", () => {
     const applyLiveConfigReload = vi.fn(async () => undefined);
 
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus,
       applyLiveConfigReload,
@@ -275,6 +278,7 @@ describe("weixin plugin channel config route background apply", () => {
     );
 
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus,
       applyLiveConfigReload,

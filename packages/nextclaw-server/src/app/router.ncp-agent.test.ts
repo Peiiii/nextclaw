@@ -13,7 +13,7 @@ import {
   type NcpSessionApi
 } from "@nextclaw/ncp";
 import { createUiRouter } from "./router.js";
-import { EventBus } from "@nextclaw/shared";
+import { EventBus, getKeyId, ingressKeys, type IngressEnvelope } from "@nextclaw/shared";
 import type { UiKernelHost } from "./types/router-options.types.js";
 
 const tempDirs: string[] = [];
@@ -239,6 +239,19 @@ function createTestKernel(agent: StubNcpAgent): UiKernelHost {
       putBytes: agent.assetApi.put,
       statRecord: agent.assetApi.stat,
       resolveContentPath: agent.assetApi.resolveContentPath,
+    },
+    ingress: {
+      handle: async (envelope: IngressEnvelope) => {
+        switch (getKeyId(envelope.type)) {
+          case getKeyId(ingressKeys.agentRun.send):
+            return await agent.send();
+          case getKeyId(ingressKeys.agentRun.abort):
+            await agent.abort(envelope.payload as { sessionId: string; messageId?: string });
+            return undefined;
+          default:
+            throw new Error(`Unsupported test ingress type: ${getKeyId(envelope.type)}`);
+        }
+      },
     },
     ncpSessionApi: agent,
     llmProviders: {},

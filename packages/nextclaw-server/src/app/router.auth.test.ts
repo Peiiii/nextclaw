@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema, loadConfig, saveConfig } from "@nextclaw/core";
 import { UiAuthService } from "@nextclaw-server/features/auth/index.js";
 import { createUiRouter } from "./router.js";
+import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
 import { EventBus } from "@nextclaw/shared";
 
 const tempDirs: string[] = [];
@@ -30,6 +31,7 @@ function useIsolatedHome(): string {
 
 function createApp(configPath: string) {
   return createUiRouter({
+    kernel: createRouterTestKernel(),
     configPath,
     appEventBus: new EventBus(),
   });

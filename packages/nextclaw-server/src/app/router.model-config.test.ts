@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, DEFAULT_WORKSPACE_PATH, loadConfig, saveConfig } from "@nextclaw/core";
 import { EventBus } from "@nextclaw/shared";
 import { createUiRouter } from "./router.js";
+import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
 
 const tempDirs: string[] = [];
 
@@ -32,6 +33,7 @@ describe("model config route", () => {
     const emitAppEvent = vi.spyOn(appEventBus, "emit");
 
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus
     });

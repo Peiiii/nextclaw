@@ -3,9 +3,10 @@ import type {
   NcpAgentSendEnvelope,
   NcpEndpointEvent,
   NcpMessageAbortPayload,
+  NcpRunHandle,
   NcpStreamRequestPayload,
 } from "@nextclaw/ncp";
-import type { IngressEnvelope } from "@nextclaw/shared";
+import { ingressKeys, type IngressEnvelope } from "@nextclaw/shared";
 import { AgentsRoutesController } from "@nextclaw-server/features/agents/index.js";
 import { AppRoutesController } from "@nextclaw-server/app/controllers/app.controller.js";
 import { AuthRoutesController, UiAuthService } from "@nextclaw-server/features/auth/index.js";
@@ -26,16 +27,6 @@ import { RuntimeUpdateRoutesController } from "@nextclaw-server/features/runtime
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import { ServerPathRoutesController } from "@nextclaw-server/features/server-path/index.js";
 import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
-
-function readBearerToken(request: Request): string | null {
-  const authorization = request.headers.get("authorization")?.trim() ?? "";
-  const match = /^Bearer\s+(.+)$/i.exec(authorization);
-  return match?.[1]?.trim() || null;
-}
-
-function isValidIngressEnvelope(value: IngressEnvelope): boolean {
-  return typeof value.type === "string" && value.type.trim().length > 0;
-}
 
 const NCP_AGENT_BASE_PATH = "/api/ncp/agent";
 
@@ -150,7 +141,7 @@ class UiRouteRegistry {
   };
 
   private readonly mountNcpAgentRoutes = (
-    agentRunRequestManager: NonNullable<UiRouterOptions["kernel"]>["agentRunRequestManager"],
+    kernel: UiRouterOptions["kernel"],
     ncpAsset: UiRouteControllers["ncpAsset"],
   ): void => {
     this.app.post(`${NCP_AGENT_BASE_PATH}/send`, async (c) => {
@@ -158,7 +149,13 @@ class UiRouteRegistry {
       if (!body.ok || !isValidSendEnvelope(body.data)) {
         return c.json(err("INVALID_BODY", "Invalid NCP request envelope."), 400);
       }
-      const handle = await agentRunRequestManager.send(body.data);
+      const handle = await kernel.ingress.handle<NcpAgentSendEnvelope, NcpRunHandle>(
+        {
+          type: ingressKeys.agentRun.send,
+          payload: body.data,
+        },
+        { source: "ui-http" },
+      );
       return c.json(ok(handle));
     });
     this.app.get(`${NCP_AGENT_BASE_PATH}/stream`, (c) => {
@@ -167,7 +164,7 @@ class UiRouteRegistry {
         return c.json(err("INVALID_QUERY", "sessionId is required."), 400);
       }
       return createNcpEventStreamResponse(
-        agentRunRequestManager.stream(payload, { signal: c.req.raw.signal }),
+        kernel.agentRunRequestManager.stream(payload, { signal: c.req.raw.signal }),
         c.req.raw.signal,
       );
     });
@@ -176,7 +173,13 @@ class UiRouteRegistry {
       if (!body.ok || !isAbortPayload(body.data)) {
         return c.json(err("INVALID_BODY", "sessionId is required."), 400);
       }
-      await agentRunRequestManager.abort(body.data);
+      await kernel.ingress.handle<NcpMessageAbortPayload, void>(
+        {
+          type: ingressKeys.agentRun.abort,
+          payload: body.data,
+        },
+        { source: "ui-http" },
+      );
       return c.json(ok({ accepted: true }));
     });
     this.mountRoutes([
@@ -247,11 +250,7 @@ class UiRouteRegistry {
       ["get", "/api/server-paths/browse", serverPath.browse],
       ["get", "/api/server-paths/read", serverPath.read],
     ]);
-    const agentRunRequestManager = this.options.kernel?.agentRunRequestManager;
-    const { ingress } = this.options;
-    if (agentRunRequestManager) {
-      this.mountNcpAgentRoutes(agentRunRequestManager, ncpAsset);
-    }
+    this.mountNcpAgentRoutes(this.options.kernel, ncpAsset);
     this.mountRoutes([
       ["get", "/api/cron", cron.listJobs],
       ["post", "/api/cron", cron.createJob],
@@ -291,17 +290,15 @@ class UiRouteRegistry {
       ]);
     }
     this.app.post("/webhook", async (c) => {
-      if (!ingress) {
-        return c.json(err("INGRESS_UNAVAILABLE", "ingress is not configured"), 503);
-      }
+      const ingress = this.options.kernel.ingress;
       const body = await readJson<IngressEnvelope>(c.req.raw);
-      if (!body.ok || !isValidIngressEnvelope(body.data)) {
+      if (!body.ok) {
         return c.json(err("INVALID_BODY", "invalid ingress body"), 400);
       }
       try {
         const result = await ingress.handle(body.data, {
           source: "webhook",
-          token: readBearerToken(c.req.raw),
+          token: /^Bearer\s+(.+)$/i.exec(c.req.raw.headers.get("authorization")?.trim() ?? "")?.[1]?.trim() || null,
         });
         return c.json(ok(result ?? { accepted: true }));
       } catch (error) {

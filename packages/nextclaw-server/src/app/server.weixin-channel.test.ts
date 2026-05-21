@@ -8,6 +8,7 @@ import { AutomationManager } from "@nextclaw/kernel";
 import { EventBus } from "@nextclaw/shared";
 import type { PluginChannelBinding, PluginUiMetadata } from "@nextclaw/openclaw-compat";
 import { startUiServer } from "./server.js";
+import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
 
 const tempDirs: string[] = [];
 
@@ -128,6 +129,7 @@ function createTestGateway(params: {
     uiStaticDir: null,
     configPath,
     appEventBus: new EventBus(),
+    kernel: createRouterTestKernel(),
     productVersion: "test",
     applyLiveConfigReload: async () => {},
     initializeAgentHomeDirectory: () => {},

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, loadConfig, saveConfig } from "@nextclaw/core";
 import { createUiRouter } from "./router.js";
+import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
 import { EventBus } from "@nextclaw/shared";
 
 const tempDirs: string[] = [];
@@ -42,6 +43,7 @@ describe("agents routes", () => {
     const emitAppEvent = vi.spyOn(appEventBus, "emit");
 
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus
     });
@@ -91,6 +93,7 @@ describe("agents routes", () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus: new EventBus(),
     });
@@ -126,6 +129,7 @@ describe("agents routes", () => {
     const appEventBus = new EventBus();
     const emitAppEvent = vi.spyOn(appEventBus, "emit");
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus
     });
@@ -177,6 +181,7 @@ describe("agents routes", () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus: new EventBus(),
     });
@@ -225,6 +230,7 @@ describe("agents routes", () => {
       configPath
     );
     const app = createUiRouter({
+      kernel: createRouterTestKernel(),
       configPath,
       appEventBus: new EventBus(),
     });

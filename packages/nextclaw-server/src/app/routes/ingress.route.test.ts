@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { describe, expect, it, vi } from "vitest";
 import type { EventBus, Ingress } from "@nextclaw/shared";
 import { createUiRouter } from "@nextclaw-server/app/router.js";
+import type { UiKernelHost } from "@nextclaw-server/app/types/router-options.types.js";
 
 describe("ingress route", () => {
   it("passes webhook envelopes to the shared ingress", async () => {
@@ -10,7 +11,14 @@ describe("ingress route", () => {
     const app = createUiRouter({
       configPath: join(tmpdir(), "nextclaw-router-ingress-test.json"),
       appEventBus: {} as EventBus,
-      ingress: { handle } as unknown as Ingress,
+      kernel: {
+        agentRunRequestManager: {} as never,
+        agentRuntimeManager: {} as never,
+        assetStore: {} as never,
+        ingress: { handle } as unknown as Ingress,
+        llmProviders: {} as never,
+        ncpSessionApi: {} as never,
+      } as unknown as UiKernelHost,
     });
 
     const response = await app.request("http://localhost/webhook", {

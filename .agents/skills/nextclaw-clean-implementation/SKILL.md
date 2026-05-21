@@ -121,6 +121,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 只负责 `subscribe(handler)` / `onXxx(handler)` / 调用转发、没有协议转换或生命周期决策的 bridge / listener wrapper 默认删除；订阅、退订和状态归属应回到真实 runtime / manager owner。
 - 不用空心依赖注入冒充职责收敛。除非依赖代表外部系统边界、测试替身、权限边界或用户可配置策略，否则 owner 的核心创建/路由/缓存/生命周期逻辑应回到 owner 内部。
 - 不用 fake owner / fake class 冒充治理通过。若新增 class 只是为了满足 `.service.ts`、role-boundary 或“业务逻辑进 class”的形式要求，且没有真实状态、生命周期、权限、流程编排或外部 IO 协调职责，必须改文件角色/命名或回到真实 owner，而不是硬包一层。
+- 不要保留非必要的不确定性。若主路径 contract 在当前运行模型里必然存在，就用必填字段、确定返回值和直接访问表达；禁止为了测试省事、历史残留或“看起来更稳”把核心依赖写成 optional / nullable / fallback。只有真实运行态可能缺失、外部协议允许缺省，或有明确生命周期未就绪状态时，才保留可选，并且必须有显式状态或错误语义。
 
 ### 3. 这是不是在制造隐藏路径
 
