@@ -55,15 +55,31 @@
 
 职责：
 
-- 把 CLI / gateway / plugin 输入转换为 NCP prompt 执行请求。
+- 把 CLI / plugin 等直接输入转换为 NCP prompt 执行请求。
 - 处理 direct slash command。
-- 处理 gateway inbound message 的 route 和 channel outbound 分流。
 
 它不负责：
 
 - 持有 runtime。
 - 通过 resolver/fallback 判断 NCP agent 是否 ready。
 - 重复实现 NCP event stream 消费。
+- 消费 gateway inbound 队列、判断 channel reply 或发送 outbound。
+
+### GatewayInboundProcessor
+
+职责：
+
+- 消费后的单条 gateway inbound message 处理。
+- 根据 config 解析 agent route。
+- 决定走 channel reply 直发路径还是 legacy outbound 路径。
+- 向 message bus 发布流式 control delta、空回复 stop 和错误回复。
+
+它不负责：
+
+- 管理 Agent run 生命周期。
+- 写入 session event。
+- 保存 channel adapter 状态。
+- 消费 CLI / plugin / cron 的直接执行请求。
 
 ### cron job handler
 
@@ -127,7 +143,9 @@ const response = await runPromptOverNcp({
 
 ### 3. gateway inbound loop 保留，但收窄
 
-gateway inbound loop 仍负责 `MessageBus.consumeInbound()`、route 和 channel outbound。它内部直接使用 `runtime.kernel.agentRunRequestManager`，不再通过 resolver 取 runner。
+gateway inbound loop 只负责 `MessageBus.consumeInbound()` 和把消息交给 `GatewayInboundProcessor`。
+
+`GatewayInboundProcessor` 内部直接使用 `runtime.kernel.agentRunRequestManager`，不再通过 resolver 取 runner；channel reply、legacy outbound、错误回复都收敛到这个 owner，避免 `ncp-dispatch.utils.ts` 同时承载 direct prompt 和 gateway inbound 两类职责。
 
 ## 验收标准
 

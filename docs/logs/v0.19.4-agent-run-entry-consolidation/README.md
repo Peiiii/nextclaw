@@ -12,6 +12,8 @@
 - `cron-job-handler` 删除自有 NCP event stream 消费逻辑，复用 `runPromptOverNcp`。
 - 清理 `ncp-dispatch` / `ncp-runner` 中遗留的临时 channel debug 日志代码。
 - 补齐 bootstrap status 路由测试里已经必填的 `kernel` test stub。
+- 新增 `GatewayInboundProcessor`，让 gateway inbound loop 只负责消费队列，单条消息的 route、channel reply、legacy outbound 和错误回复统一归到明确 owner。
+- 抽出 `ncp-run-metadata.utils.ts`，让 direct prompt 和 gateway inbound 共用同一套 run metadata 生成逻辑。
 
 ## 测试/验证/验收方式
 
@@ -21,9 +23,14 @@
 - `pnpm -C packages/nextclaw-service tsc`
 - `pnpm -C packages/nextclaw-kernel lint`
 - `pnpm -C packages/nextclaw-service lint`
+- `pnpm -C packages/nextclaw-kernel test`
 - `pnpm -C packages/nextclaw-service exec vitest run src/shared/services/gateway/utils/cron-job-handler.utils.test.ts`
 - `pnpm -C packages/nextclaw-service exec vitest run src/shared/services/plugin/tests/service-plugin-runtime-bridge.service.test.ts`
 - `pnpm -C packages/nextclaw-service exec vitest run src/cli/commands/agent/agent-commands.test.ts src/shared/services/gateway/tests/service-bootstrap-status.service.test.ts`
+- `pnpm -C packages/nextclaw-kernel exec eslint src/features/ncp-dispatch`
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-kernel/src/features/ncp-dispatch/services/gateway-inbound-processor.service.ts packages/nextclaw-kernel/src/features/ncp-dispatch/utils/ncp-run-metadata.utils.ts packages/nextclaw-kernel/src/features/ncp-dispatch/utils/nextclaw-ncp-dispatch.utils.ts packages/nextclaw-kernel/src/features/ncp-dispatch/index.ts`
+- `pnpm lint:new-code:governance --paths packages/nextclaw-kernel/src/features/ncp-dispatch/services/gateway-inbound-processor.service.ts packages/nextclaw-kernel/src/features/ncp-dispatch/utils/ncp-run-metadata.utils.ts packages/nextclaw-kernel/src/features/ncp-dispatch/utils/nextclaw-ncp-dispatch.utils.ts packages/nextclaw-kernel/src/features/ncp-dispatch/index.ts`
+- `pnpm check:governance-backlog-ratchet`
 
 结果：
 
@@ -54,6 +61,7 @@
 - 删除 `resolveNcpAgent` / `requireNcpAgent` 空心 ready fallback。
 - 删除临时 channel debug 日志代码，减少运行链路噪音。
 - Agent run 执行 owner 更清晰：调用方直接依赖 `AgentRunRequestManager` 这个 owner，而不是传 resolver。
+- `ncp-dispatch.utils.ts` 不再混入 gateway inbound loop 和 outbound delivery；gateway 入口处理收敛到 `GatewayInboundProcessor`。
 
 本次是非功能改动，生产代码为净减少，符合非测试生产代码净增 `<= 0` 的要求。
 
