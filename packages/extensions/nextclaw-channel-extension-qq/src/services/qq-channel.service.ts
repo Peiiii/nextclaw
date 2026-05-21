@@ -1,7 +1,4 @@
-import { BaseChannel } from "./base.js";
-import type { MessageBus } from "../bus/queue.js";
-import type { OutboundMessage } from "../bus/events.js";
-import type { Config } from "../config/schema.js";
+import type { BusChannelInboundMessage, BusChannelRuntime } from "@nextclaw/extension-sdk";
 import {
   Bot,
   ReceiverMode,
@@ -10,30 +7,23 @@ import {
   type PrivateMessageEvent
 } from "qq-official-bot";
 
+export type QQChannelConfig = { appId?: string; secret?: string; allowFrom?: string[] };
+
+export type QQChannelBus = { publishInbound: (message: BusChannelInboundMessage) => Promise<void> };
+
 type QQMessageEvent = PrivateMessageEvent | GroupMessageEvent;
 type QQMessageType = "private" | "group";
-type QQRawEvent = {
-  author?: {
-    id?: string;
-    user_openid?: string;
-    member_openid?: string;
-    username?: string;
-  };
-  sender?: {
-    user_openid?: string;
-    member_openid?: string;
-    user_id?: string;
-    nickname?: string;
-    nick?: string;
-    card?: string;
-    username?: string;
-    user_name?: string;
-  };
-  group_openid?: string;
-};
+type QQRawUser = Partial<Record<
+  "id" | "user_id" | "user_openid" | "member_openid" | "username" | "user_name" | "nickname" | "nick" | "card",
+  string
+>>;
+type QQRawEvent = { author?: QQRawUser; sender?: QQRawUser; group_openid?: string };
+type QQIncomingIdentity = { messageId: string; rawEvent: QQRawEvent; senderId: string };
+type QQIncomingRoute = { chatId: string; messageType: QQMessageType; metadata: Record<string, unknown> };
 
-export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
+export class QQChannel {
   name = "qq";
+  protected running = false;
   private bot: Bot | null = null;
   private processedIds: string[] = [];
   private processedSet: Set<string> = new Set();
@@ -45,9 +35,7 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
   private readonly reconnectMaxMs = 60000;
   protected readonly connectTimeoutMs: number = 90000;
 
-  constructor(config: Config["channels"]["qq"], bus: MessageBus) {
-    super(config, bus);
-  }
+  constructor(private readonly config: QQChannelConfig, private readonly bus: QQChannelBus) {}
 
   start = async (): Promise<void> => {
     if (!this.config.appId || !this.config.secret) {
@@ -72,7 +60,7 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
     }
   };
 
-  send = async (msg: OutboundMessage): Promise<void> => {
+  send: BusChannelRuntime["send"] = async (msg) => {
     if (!this.bot) {
       return;
     }
@@ -99,7 +87,7 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
   private sendByMessageType = async (params: {
     messageType: QQMessageType;
     qqMeta: Record<string, unknown>;
-    msg: OutboundMessage;
+    msg: Parameters<BusChannelRuntime["send"]>[0];
     payload: unknown;
     source: { id: string } | undefined;
   }): Promise<void> => {
@@ -115,32 +103,64 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
   };
 
   private handleIncoming = async (event: QQMessageEvent): Promise<void> => {
+    const identity = this.resolveIncomingIdentity(event);
+    if (!identity) {
+      return;
+    }
+    const content = event.raw_message?.trim() || "[empty message]";
+    const senderName = this.resolveIncomingSenderName(identity.senderId, identity.rawEvent, content);
+    const route = this.resolveIncomingRoute(event, identity.rawEvent, identity.senderId, senderName);
+    if (!route.chatId || !this.isAllowed(identity.senderId)) {
+      return;
+    }
+    await this.bus.publishInbound({
+      channel: this.name,
+      senderId: identity.senderId,
+      chatId: route.chatId,
+      content: this.decorateSpeakerPrefix({
+        content,
+        messageType: route.messageType,
+        senderId: identity.senderId,
+        senderName
+      }),
+      metadata: {
+        message_id: identity.messageId,
+        qq: route.metadata
+      }
+    });
+  };
+
+  private resolveIncomingIdentity = (event: QQMessageEvent): QQIncomingIdentity | null => {
     const messageId = event.message_id || event.id || "";
     if (messageId && this.isDuplicate(messageId)) {
-      return;
+      return null;
     }
-
     const rawEvent = event as unknown as QQRawEvent;
     if (this.isSelfEvent(event)) {
-      return;
+      return null;
     }
     const senderId = this.resolveSenderId(event, rawEvent);
-    if (!senderId) {
-      return;
-    }
+    return senderId ? { messageId, rawEvent, senderId } : null;
+  };
 
-    const content = event.raw_message?.trim() ?? "";
-    const normalizedContent = content || "[empty message]";
+  private resolveIncomingSenderName = (senderId: string, rawEvent: QQRawEvent, content: string): string | null => {
     const eventSenderName = this.resolveSenderName(rawEvent);
     if (eventSenderName) {
       this.senderNameCache.set(senderId, eventSenderName);
     }
-    const declaredName = this.extractDeclaredName(normalizedContent);
+    const declaredName = this.extractDeclaredName(content);
     if (declaredName) {
       this.senderNameCache.set(senderId, declaredName);
     }
-    const senderName = declaredName ?? eventSenderName ?? this.senderNameCache.get(senderId) ?? null;
+    return declaredName ?? eventSenderName ?? this.senderNameCache.get(senderId) ?? null;
+  };
 
+  private resolveIncomingRoute = (
+    event: QQMessageEvent,
+    rawEvent: QQRawEvent,
+    senderId: string,
+    senderName: string | null,
+  ): QQIncomingRoute => {
     let chatId = senderId;
     let messageType: QQMessageType = "private";
     const qqMeta: Record<string, unknown> = {};
@@ -162,32 +182,15 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
     }
 
     qqMeta.messageType = messageType;
+    return { chatId, messageType, metadata: qqMeta };
+  };
 
-    const safeContent = this.decorateSpeakerPrefix({
-      content: normalizedContent,
-      messageType,
-      senderId,
-      senderName
-    });
-
-    if (!chatId) {
-      return;
+  isAllowed = (senderId: string): boolean => {
+    const allowList = this.config.allowFrom ?? [];
+    if (!allowList.length || allowList.includes(senderId)) {
+      return true;
     }
-
-    if (!this.isAllowed(senderId)) {
-      return;
-    }
-
-    await this.handleMessage({
-      senderId,
-      chatId,
-      content: safeContent,
-      attachments: [],
-      metadata: {
-        message_id: messageId,
-        qq: qqMeta
-      }
-    });
+    return senderId.includes("|") && senderId.split("|").some((part) => allowList.includes(part));
   };
 
   private isSelfEvent = (event: QQMessageEvent): boolean => {
@@ -378,8 +381,8 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
 
   protected createBot = (): Bot => {
     const bot = new Bot({
-      appid: this.config.appId,
-      secret: this.config.secret,
+      appid: this.config.appId!,
+      secret: this.config.secret!,
       mode: ReceiverMode.WEBSOCKET,
       intents: ["C2C_MESSAGE_CREATE", "GROUP_AT_MESSAGE_CREATE"],
       removeAt: true,
@@ -469,7 +472,7 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
     }
   };
 
-  override get isRunning(): boolean {
+  get isRunning(): boolean {
     return this.bot !== null;
   }
 

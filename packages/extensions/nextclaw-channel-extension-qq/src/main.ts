@@ -1,8 +1,5 @@
-import { QQChannel } from "@nextclaw/channel-runtime";
 import { startBusChannelExtension, warnNcpEventError } from "@nextclaw/extension-sdk";
-
-type QQChannelConfig = ConstructorParameters<typeof QQChannel>[0];
-type QQChannelBus = ConstructorParameters<typeof QQChannel>[1];
+import { QQChannel, type QQChannelBus, type QQChannelConfig } from "./services/qq-channel.service.js";
 
 await startBusChannelExtension<QQChannelConfig, QQChannelBus>({
   channelId: "qq",

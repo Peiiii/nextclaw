@@ -20,15 +20,17 @@
     "build": "tsdown src/index.ts src/main.ts --dts --clean --target es2022 --no-fixedExtension --unbundle",
     "prepack": "pnpm run build",
     "lint": "eslint src --max-warnings=0",
+    "test": "node --import tsx --test src/tests/*.test.ts",
     "tsc": "tsc -p tsconfig.json",
     "prepublishOnly": "node ../../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
-    "@nextclaw/channel-runtime": "workspace:*",
-    "@nextclaw/extension-sdk": "workspace:*"
+    "@nextclaw/extension-sdk": "workspace:*",
+    "qq-official-bot": "1.0.12"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",
+    "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   }
 }

@@ -1,9 +1,8 @@
 import { afterEach, describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
 import type { Bot } from "qq-official-bot";
-import type { MessageBus } from "@nextclaw/core";
 import type { PrivateMessageEvent } from "qq-official-bot";
-import { QQChannel } from "./qq.service.js";
+import { QQChannel, type QQChannelBus } from "../services/qq-channel.service.js";
 
 type FakeBot = {
   start: ReturnType<typeof mock.fn>;
@@ -20,13 +19,11 @@ class TestQQChannel extends QQChannel {
   constructor(private readonly fakeBot: FakeBot) {
     super(
       {
-        enabled: true,
         appId: "test-app",
         secret: "test-secret",
-        allowFrom: [],
-        markdownSupport: false
+        allowFrom: []
       },
-      { publishInbound: mock.fn(async () => {}) } as unknown as MessageBus
+      { publishInbound: mock.fn(async () => {}) } as QQChannelBus
     );
   }
 
@@ -36,16 +33,14 @@ class TestQQChannel extends QQChannel {
 }
 
 class InboundTestQQChannel extends QQChannel {
-  constructor(private readonly publishInbound: MessageBus["publishInbound"]) {
+  constructor(private readonly publishInbound: QQChannelBus["publishInbound"]) {
     super(
       {
-        enabled: true,
         appId: "test-app",
         secret: "test-secret",
-        allowFrom: [],
-        markdownSupport: false
+        allowFrom: []
       },
-      { publishInbound } as unknown as MessageBus
+      { publishInbound }
     );
   }
 
@@ -122,13 +117,11 @@ describe("QQChannel startup lifecycle", () => {
       constructor(private readonly slowFakeBot: FakeBot) {
         super(
           {
-            enabled: true,
             appId: "test-app",
             secret: "test-secret",
-            allowFrom: [],
-            markdownSupport: false
+            allowFrom: []
           },
-          { publishInbound: mock.fn(async () => {}) } as unknown as MessageBus
+          { publishInbound: mock.fn(async () => {}) } as QQChannelBus
         );
       }
 
@@ -146,7 +139,7 @@ describe("QQChannel startup lifecycle", () => {
 
   it("accepts official bot private events that only expose sender openid", async () => {
     const publishInbound = mock.fn(async () => {});
-    const channel = new InboundTestQQChannel(publishInbound as unknown as MessageBus["publishInbound"]);
+    const channel = new InboundTestQQChannel(publishInbound as QQChannelBus["publishInbound"]);
 
     await channel.handleTestIncoming({
       id: "message-1",
@@ -171,8 +164,6 @@ describe("QQChannel startup lifecycle", () => {
       senderId: "user-openid-1",
       chatId: "user-openid-1",
       content: "[speaker:user_id=user-openid-1;name=Pei] 你好啊",
-      timestamp: inbound?.timestamp,
-      attachments: [],
       metadata: {
         message_id: "message-1",
         qq: {
@@ -186,7 +177,7 @@ describe("QQChannel startup lifecycle", () => {
 
   it("drops messages from the bot itself only when both ids are present and equal", async () => {
     const publishInbound = mock.fn(async () => {});
-    const channel = new InboundTestQQChannel(publishInbound as unknown as MessageBus["publishInbound"]);
+    const channel = new InboundTestQQChannel(publishInbound as QQChannelBus["publishInbound"]);
 
     await channel.handleTestIncoming({
       id: "message-1",

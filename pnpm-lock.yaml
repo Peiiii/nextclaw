@@ -491,16 +491,19 @@ importers:
 
   packages/extensions/nextclaw-channel-extension-qq:
     dependencies:
-      '@nextclaw/channel-runtime':
-        specifier: workspace:*
-        version: link:../nextclaw-channel-runtime
       '@nextclaw/extension-sdk':
         specifier: workspace:*
         version: link:../../nextclaw-extension-sdk
+      qq-official-bot:
+        specifier: 1.0.12
+        version: 1.0.12
     devDependencies:
       '@types/node':
         specifier: ^20.17.6
         version: 20.19.33
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
