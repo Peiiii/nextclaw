@@ -1,12 +1,19 @@
 import { app } from "electron";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
+import {
+  PACKAGED_DESKTOP_DATA_OVERRIDE_ENV,
+  PACKAGED_RUNTIME_HOME_OVERRIDE_ENV
+} from "./desktop-path-env.utils";
+
+export {
+  PACKAGED_DESKTOP_DATA_OVERRIDE_ENV,
+  PACKAGED_RUNTIME_HOME_OVERRIDE_ENV
+} from "./desktop-path-env.utils";
 
 const DEFAULT_NEXTCLAW_HOME_DIR = ".nextclaw";
 const LEGACY_RUNTIME_HOME_ENV = "NEXTCLAW_HOME";
 const LEGACY_DESKTOP_DATA_ENV = "NEXTCLAW_DESKTOP_DATA_DIR";
-const PACKAGED_RUNTIME_HOME_OVERRIDE_ENV = "NEXTCLAW_DESKTOP_RUNTIME_HOME_OVERRIDE";
-const PACKAGED_DESKTOP_DATA_OVERRIDE_ENV = "NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE";
 
 function readOptionalEnv(name: string): string | null {
   const value = process.env[name]?.trim();

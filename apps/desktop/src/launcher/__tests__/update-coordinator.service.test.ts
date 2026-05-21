@@ -119,6 +119,42 @@ test("download service reports streamed bundle progress", async () =>
     assert.equal(progressEvents.at(-1)?.percent, 100);
   }));
 
+test("coordinator blocks updates for unsupported installation kinds", async () =>
+  await withTempDir("nextclaw-update-coordinator-unsupported-", async (rootDir) => {
+    const layout = new DesktopBundleLayoutStore(rootDir);
+    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+    await stateStore.write(createLauncherState({ currentVersion: "0.18.0" }));
+    let checkInvocations = 0;
+    const coordinator = new DesktopUpdateCoordinatorService({
+      initialChannel: "stable",
+      launcherVersion: "0.1.0",
+      updateCapability: {
+        supported: false,
+        blockReason: "unsupported-installation",
+        message: "Portable Edition updates are manual."
+      },
+      resolveManifestUrl: async () => "https://example.com/manifest.json",
+      stateStore,
+      updateService: {
+        checkForUpdate: async () => {
+          checkInvocations += 1;
+          return null;
+        }
+      } as unknown as DesktopUpdateService,
+      bundleLifecycle: {} as DesktopBundleLifecycleService,
+      bundleService: {} as DesktopBundleService
+    });
+
+    assert.equal(coordinator.getSnapshot().status, "blocked");
+    assert.equal(coordinator.getSnapshot().blockReason, "unsupported-installation");
+    assert.equal(coordinator.getSnapshot().errorMessage, "Portable Edition updates are manual.");
+    assert.equal((await coordinator.runStartupCheck()).status, "blocked");
+    assert.equal((await coordinator.checkForUpdates({ manual: true })).status, "blocked");
+    assert.equal((await coordinator.downloadUpdate()).status, "blocked");
+    assert.equal((await coordinator.applyDownloadedUpdate()).status, "blocked");
+    assert.equal(checkInvocations, 0);
+  }));
+
 test("coordinator reports an available update without downloading by default", async () =>
   await withTempDir("nextclaw-update-coordinator-check-", async (rootDir) => {
     const layout = new DesktopBundleLayoutStore(rootDir);

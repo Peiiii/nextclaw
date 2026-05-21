@@ -13,7 +13,9 @@
 - macOS（Apple Silicon）：`NextClaw Desktop-<version>-arm64.dmg`
 - macOS（Intel）：`NextClaw Desktop-<version>-x64.dmg`
 - Windows 安装器：`NextClaw.Desktop-Setup-<version>-x64.exe`
-- Windows 备用便携包：`NextClaw.Desktop-<version>-win32-x64-unpacked.zip`
+- Windows Portable Edition：`NextClaw-Portable-<version>-win-x64.zip`
+- Windows Portable Edition（ARM64）：`NextClaw-Portable-<version>-win-arm64.zip`
+- Windows 备用 unpacked 包：`NextClaw.Desktop-<version>-win32-x64-unpacked.zip`
 
 ## macOS 验证步骤
 
@@ -38,17 +40,19 @@ open -a "NextClaw Desktop"
 4. 安装完成后从安装器完成页、开始菜单或桌面快捷方式启动应用。
 5. 验证主界面可正常进入并可交互。
 
-### 路径 B：便携压缩包（备用）
+### 路径 B：Portable Edition（U 盘/免安装）
 
-1. 解压 `NextClaw.Desktop-<version>-win32-x64-unpacked.zip`。
-2. 打开解压目录，双击 `NextClaw Desktop.exe`。
+1. 解压 `NextClaw-Portable-<version>-win-x64.zip` 到 U 盘或任意本地目录。
+2. 打开 `NextClaw-Portable` 目录，双击 `NextClaw Desktop.exe`。
 3. 若出现 SmartScreen，点击 `More info -> Run anyway`。
 4. 启动后验证主界面可正常进入并可交互。
+5. 验证同目录下自动创建 `data/desktop`、`data/runtime-home`、`data/logs`。
+6. Portable Edition 暂不走应用内更新；需要升级时下载新版 portable zip，并保留或迁移旧目录里的 `data/`。
 
 ## 验收口径（内部）
 
 - 安装器成功：用户无需命令行即可完成安装向导，并获得 `NextClaw Desktop` 的桌面或开始菜单入口。
-- 便携包成功：用户无需命令行即可完成解压并看到 `NextClaw Desktop.exe`。
+- Portable Edition 成功：用户无需命令行即可完成解压并看到 `NextClaw Desktop.exe`，首次启动数据落在 portable 目录的 `data/` 下。
 - 首次启动成功：无论通过安装器还是便携包启动，主界面都可打开且可交互。
 - 二次启动成功：关闭后再次双击仍可正常使用。
-- 升级成功：再次运行新的 `Setup.exe` 或替换新的便携目录后，仍可正常启动并保留核心配置。
+- 升级成功：再次运行新的 `Setup.exe`，或解压新版 portable 并保留/迁移 `data/` 后，仍可正常启动并保留核心配置。

@@ -349,6 +349,8 @@ function verifyWindowsDesktopPackage() {
   }
   console.log(`[desktop-verify] Windows desktop executable verified: ${desktopExePath}`);
 
+  run(binName("pnpm"), ["desktop:portable:verify"]);
+
   run(binName("pnpm"), [
     "-C",
     "apps/desktop",

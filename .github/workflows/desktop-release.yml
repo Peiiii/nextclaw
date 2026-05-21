@@ -38,6 +38,9 @@ jobs:
           - os: windows-latest
             platform: win32
             arch: x64
+          - os: windows-latest
+            platform: win32
+            arch: arm64
 
     steps:
       - name: Checkout
@@ -133,7 +136,7 @@ jobs:
           pnpm -r --filter @nextclaw/desktop... build
           pnpm -C apps/desktop bundle:seed -- --channel $env:DESKTOP_UPDATE_CHANNEL --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
           pnpm -C apps/desktop build:main
-          pnpm -C apps/desktop exec electron-builder --win dir --x64 --publish never
+          pnpm -C apps/desktop exec electron-builder --win dir --${{ matrix.arch }} --publish never
 
       - name: Build Desktop (Linux)
         if: matrix.platform == 'linux'
@@ -154,7 +157,7 @@ jobs:
           bash apps/desktop/scripts/normalize-linux-release-artifacts.sh apps/desktop/release
 
       - name: Smoke Desktop (Windows)
-        if: matrix.platform == 'win32'
+        if: matrix.platform == 'win32' && matrix.arch == 'x64'
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -163,6 +166,47 @@ jobs:
           }
           $desktopExe = (Resolve-Path "apps/desktop/release/win-unpacked/NextClaw Desktop.exe").Path
           & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $desktopExe -StartupTimeoutSec 180 -MaxReadySec 20 -SeedStaleSameVersionBundle
+
+      - name: Build Windows Portable archive
+        if: matrix.platform == 'win32'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
+          pnpm -C apps/desktop package:windows-portable -- --arch ${{ matrix.arch }}
+
+      - name: Smoke Windows Portable archive
+        if: matrix.platform == 'win32' && matrix.arch == 'x64'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
+          pnpm desktop:portable:verify
+
+      - name: Inspect Windows Portable archive
+        if: matrix.platform == 'win32'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $desktopVersion = (Get-Content "apps/desktop/package.json" | ConvertFrom-Json).version
+          $zipPath = "apps/desktop/release/NextClaw-Portable-$desktopVersion-win-${{ matrix.arch }}.zip"
+          if (-not (Test-Path $zipPath)) {
+            throw "Windows Portable archive not found: $zipPath"
+          }
+          $inspectRoot = Join-Path $env:RUNNER_TEMP "nextclaw-portable-${{ matrix.arch }}-inspect"
+          if (Test-Path $inspectRoot) {
+            Remove-Item -Recurse -Force $inspectRoot
+          }
+          New-Item -ItemType Directory -Path $inspectRoot | Out-Null
+          Expand-Archive -Path $zipPath -DestinationPath $inspectRoot -Force
+          $portableRoot = Join-Path $inspectRoot "NextClaw-Portable"
+          if (-not (Test-Path (Join-Path $portableRoot "NextClaw Desktop.exe"))) {
+            throw "Portable executable missing from $zipPath"
+          }
+          $marker = Get-Content (Join-Path $portableRoot "nextclaw-portable.json") | ConvertFrom-Json
+          if ($marker.kind -ne "nextclaw-portable" -or $marker.version -ne 1) {
+            throw "Invalid portable marker in $zipPath"
+          }
 
       - name: Smoke Desktop (Linux AppImage)
         if: matrix.platform == 'linux'
@@ -269,10 +313,12 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          if (-not (Test-Path "apps/desktop/release/win-unpacked")) {
-            throw "Windows desktop unpacked directory not found."
+          $unpackedDirName = if ("${{ matrix.arch }}" -eq "arm64") { "win-arm64-unpacked" } else { "win-unpacked" }
+          $unpackedDir = Join-Path "apps/desktop/release" $unpackedDirName
+          if (-not (Test-Path $unpackedDir)) {
+            throw "Windows desktop unpacked directory not found: $unpackedDir"
           }
-          $sourceDir = (Resolve-Path "apps/desktop/release/win-unpacked").Path
+          $sourceDir = (Resolve-Path $unpackedDir).Path
           $stagingDir = Join-Path "apps/desktop/release" "win-unpacked-staging"
           if (Test-Path $stagingDir) {
             Remove-Item -Recurse -Force $stagingDir
@@ -287,7 +333,7 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($desktopVersion)) {
             throw "Desktop package version is missing in apps/desktop/package.json"
           }
-          $zipFileName = "NextClaw.Desktop-$desktopVersion-win32-x64-unpacked.zip"
+          $zipFileName = "NextClaw.Desktop-$desktopVersion-win32-${{ matrix.arch }}-unpacked.zip"
           $zipPath = Join-Path "apps/desktop/release" $zipFileName
           if (Test-Path $zipPath) {
             Remove-Item -Force $zipPath
@@ -300,7 +346,7 @@ jobs:
           Remove-Item -Recurse -Force $stagingDir
 
       - name: Build Desktop Installer (Windows)
-        if: matrix.platform == 'win32'
+        if: matrix.platform == 'win32' && matrix.arch == 'x64'
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -309,7 +355,7 @@ jobs:
           pnpm -C apps/desktop exec electron-builder --win nsis --x64 --publish never
 
       - name: Smoke Desktop Installer (Windows)
-        if: matrix.platform == 'win32'
+        if: matrix.platform == 'win32' && matrix.arch == 'x64'
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -355,7 +401,7 @@ jobs:
         if: matrix.platform == 'win32' && always()
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-smoke-logs-win32-x64
+          name: desktop-smoke-logs-win32-${{ matrix.arch }}
           if-no-files-found: warn
           path: |
             apps/desktop/release/windows-smoke-logs/**
@@ -392,7 +438,8 @@ jobs:
           if-no-files-found: warn
           name: desktop-release-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
-            apps/desktop/release/NextClaw.Desktop-*-win32-x64-unpacked.zip
+            apps/desktop/release/NextClaw.Desktop-*-win32-${{ matrix.arch }}-unpacked.zip
+            apps/desktop/release/NextClaw-Portable-*-win-${{ matrix.arch }}.zip
             apps/desktop/release/*Setup*.exe
             apps/desktop/release/latest.yml
             apps/desktop/release/*.exe.blockmap
@@ -443,6 +490,7 @@ jobs:
             dist/desktop-release/**/*.dmg
             dist/desktop-release/**/*-mac.zip
             dist/desktop-release/**/*-win32-*-unpacked.zip
+            dist/desktop-release/**/NextClaw-Portable-*-win-*.zip
             dist/desktop-release/**/*Setup*.exe
             dist/desktop-release/**/*.AppImage
             dist/desktop-release/**/*.deb

@@ -21,6 +21,7 @@
     "desktop:package": "node scripts/desktop/desktop-package-build.mjs",
     "desktop:package:verify": "node scripts/desktop/desktop-package-verify.mjs",
     "desktop:package:handoff:verify": "node scripts/desktop/desktop-package-verify.mjs --handoff",
+    "desktop:portable:verify": "node scripts/desktop/desktop-portable-verify.mjs",
     "desktop:apt:build": "node scripts/desktop/build-linux-apt-repo.mjs --input-dir apps/desktop/release --output-dir dist/linux-apt-repo --signing-mode test",
     "desktop:apt:verify": "bash apps/desktop/scripts/smoke-linux-apt-repo.sh dist/linux-apt-repo/apt",
     "fnos:package:nextclaw": "node scripts/fnos/build-nextclaw-package.mjs",

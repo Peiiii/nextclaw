@@ -271,6 +271,13 @@ jobs:
           $desktopExe = (Resolve-Path "apps/desktop/release/win-unpacked/NextClaw Desktop.exe").Path
           & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $desktopExe -StartupTimeoutSec 120 -MaxReadySec 20 -SeedStaleSameVersionBundle
 
+      - name: Smoke test Windows Portable archive
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
+          pnpm desktop:portable:verify
+
       - name: Stage Windows smoke logs
         if: always()
         shell: pwsh
@@ -314,6 +321,7 @@ jobs:
           if-no-files-found: warn
           path: |
             apps/desktop/release/win-unpacked/**
+            apps/desktop/release/NextClaw-Portable-*-win-x64.zip
 
   desktop-windows-installer-smoke:
     name: desktop-windows-installer-smoke

@@ -10,6 +10,7 @@ import { DesktopBundleLayoutStore } from "./launcher/stores/bundle-layout.store"
 import { DesktopLauncherStateStore } from "./launcher/stores/launcher-state.store";
 import type { RuntimeCommand } from "./runtime-config";
 import { DesktopPresenceService } from "./services/desktop-presence.service";
+import { setupDesktopInstallationProfile } from "./utils/desktop-installation-profile-electron.utils";
 import { DesktopRuntimeControlService } from "./services/desktop-runtime-control.service";
 import { DesktopUpdateSourceService } from "./services/desktop-update-source.service";
 import { RuntimeServiceProcess } from "./runtime-service";
@@ -27,10 +28,11 @@ import { resolveDesktopGitHubPublishTarget } from "./utils/desktop-publish-targe
 import { createStartupLoadingUrl } from "./utils/desktop-startup-loading.utils";
 import { createDesktopWindowOptions } from "./utils/desktop-window-options.utils";
 import { attachWindowDiagnostics } from "./utils/window-diagnostics.utils";
+const installationProfile = setupDesktopInstallationProfile(app);
 const logger = createDesktopLogger();
 
 installDesktopProcessErrorLogging(logger);
-logDesktopMainEntryLoaded(logger);
+logDesktopMainEntryLoaded(logger, installationProfile);
 class DesktopApplication {
   private runtime: RuntimeServiceProcess | null = null;
   private window: BrowserWindow | null = null;
@@ -256,6 +258,7 @@ class DesktopApplication {
     this.desktopUpdateShell = new DesktopUpdateShellService({
       logger,
       launcherVersion: app.getVersion(),
+      updateCapability: installationProfile.updateCapability,
       resolveChannel: () => this.ensureUpdateSourceService().resolveChannel(),
       resolveManifestUrl: async () => await this.ensureUpdateSourceService().resolveManifestUrl(),
       getWindow: () => this.window,

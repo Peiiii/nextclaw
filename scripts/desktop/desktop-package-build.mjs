@@ -78,6 +78,7 @@ function buildWindowsArtifacts(arch, env) {
     ],
     { env }
   );
+  run(binName("pnpm"), ["-C", "apps/desktop", "package:windows-portable", "--", "--arch", arch], { env });
 }
 
 function packageForCurrentPlatform() {
@@ -124,14 +125,16 @@ function packageForCurrentPlatform() {
 
   if (process.platform === "win32") {
     buildWindowsArtifacts(arch, env);
-    const unpackedExe = resolve(releaseDir, "win-unpacked", "NextClaw Desktop.exe");
+    const unpackedDirName = arch === "arm64" ? "win-arm64-unpacked" : "win-unpacked";
+    const unpackedExe = resolve(releaseDir, unpackedDirName, "NextClaw Desktop.exe");
     printArtifacts(
       [
         unpackedExe,
         ...readArtifacts().filter((path) => {
           const name = basename(path);
           return (
-            path.endsWith("win-unpacked") ||
+            path.endsWith(unpackedDirName) ||
+            name.startsWith("NextClaw-Portable-") ||
             (name.endsWith(".exe") && name.includes("Setup")) ||
             name === "latest.yml" ||
             name.endsWith(".exe.blockmap")

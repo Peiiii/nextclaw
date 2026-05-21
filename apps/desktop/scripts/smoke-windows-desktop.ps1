@@ -1,6 +1,7 @@
 param(
   [Parameter(Mandatory = $true)]
   [string]$DesktopExePath,
+  [string]$PortableRoot = "",
   [int]$StartupTimeoutSec = 90,
   [int]$MaxReadySec = 20,
   [switch]$SeedStaleSameVersionBundle
@@ -255,33 +256,62 @@ setTimeout(() => {}, 600000);
 }
 
 $resolvedExe = (Resolve-Path $DesktopExePath).Path
+$isPortableSmoke = -not [string]::IsNullOrWhiteSpace($PortableRoot)
+$resolvedPortableRoot = ""
+if ($isPortableSmoke) {
+  $resolvedPortableRoot = (Resolve-Path $PortableRoot).Path
+}
 $tempRoot = Get-SmokeTempRoot
-$smokeHome = Join-Path $tempRoot "nextclaw-desktop-smoke-home"
+$smokeHome = if ($isPortableSmoke) {
+  Join-Path $resolvedPortableRoot "data\desktop"
+} else {
+  Join-Path $tempRoot "nextclaw-desktop-smoke-home"
+}
+$portableRuntimeHome = if ($isPortableSmoke) {
+  Join-Path $resolvedPortableRoot "data\runtime-home"
+} else {
+  $smokeHome
+}
 $logRoot = Join-Path $tempRoot "nextclaw-desktop-smoke-logs"
 $appStdoutLog = Join-Path $logRoot "app-stdout.log"
 $appStderrLog = Join-Path $logRoot "app-stderr.log"
 $apiProbeLog = Join-Path $logRoot "api-probes.json"
 $script:MainLog = Join-Path $smokeHome "launcher\\main.log"
-$script:ServiceLog = Join-Path $smokeHome "service.log"
+$script:ServiceLog = Join-Path $portableRuntimeHome "service.log"
 $script:MainLogStartLine = 1
 
 Write-Host "[desktop-smoke] desktop exe: $resolvedExe"
 Write-Host "[desktop-smoke] temp root: $tempRoot"
 Write-Host "[desktop-smoke] smoke home: $smokeHome"
+Write-Host "[desktop-smoke] portable smoke: $isPortableSmoke"
+if ($isPortableSmoke) {
+  Write-Host "[desktop-smoke] portable root: $resolvedPortableRoot"
+}
 Write-Host "[desktop-smoke] startup timeout: ${StartupTimeoutSec}s"
 Write-Host "[desktop-smoke] max GUI ready time: ${MaxReadySec}s"
 Write-Host "[desktop-smoke] seed stale same-version bundle: $($SeedStaleSameVersionBundle.IsPresent)"
 
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $smokeHome
+if ($isPortableSmoke) {
+  Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $resolvedPortableRoot "data")
+}
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $logRoot
-New-Item -ItemType Directory -Path $smokeHome | Out-Null
+if (-not $isPortableSmoke) {
+  New-Item -ItemType Directory -Path $smokeHome -Force | Out-Null
+}
 New-Item -ItemType Directory -Path $logRoot | Out-Null
 if ($SeedStaleSameVersionBundle.IsPresent) {
   Seed-StaleSameVersionBundleState -DesktopExePath $resolvedExe -SmokeHome $smokeHome
 }
-$env:NEXTCLAW_HOME = $smokeHome
-$env:NEXTCLAW_DESKTOP_RUNTIME_HOME_OVERRIDE = $smokeHome
-$env:NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE = $smokeHome
+if ($isPortableSmoke) {
+  Remove-Item Env:\NEXTCLAW_HOME -ErrorAction SilentlyContinue
+  Remove-Item Env:\NEXTCLAW_DESKTOP_RUNTIME_HOME_OVERRIDE -ErrorAction SilentlyContinue
+  Remove-Item Env:\NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE -ErrorAction SilentlyContinue
+} else {
+  $env:NEXTCLAW_HOME = $smokeHome
+  $env:NEXTCLAW_DESKTOP_RUNTIME_HOME_OVERRIDE = $smokeHome
+  $env:NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE = $smokeHome
+}
 
 $appProc = $null
 try {
@@ -335,6 +365,29 @@ try {
 
   if (-not $runtimeBaseUrl -or -not $apiReady) {
     throw "Desktop runtime API did not become ready within ${StartupTimeoutSec}s. runtimeBaseUrl=$runtimeBaseUrl apiReady=$apiReady"
+  }
+  if ($isPortableSmoke) {
+    $expectedDesktopData = Join-Path $resolvedPortableRoot "data\desktop"
+    $expectedRuntimeHome = Join-Path $resolvedPortableRoot "data\runtime-home"
+    $expectedLogsDir = Join-Path $resolvedPortableRoot "data\logs"
+    foreach ($expectedPath in @($expectedDesktopData, $expectedRuntimeHome, $expectedLogsDir)) {
+      if (-not (Test-Path $expectedPath)) {
+        throw "Portable smoke expected path missing: $expectedPath"
+      }
+    }
+    $logText = ""
+    if (Test-Path $script:MainLog) {
+      $logText = Get-Content -Raw -Path $script:MainLog
+    }
+    if ($logText -notmatch "installationKind=portable") {
+      throw "Portable smoke did not observe installationKind=portable in $script:MainLog"
+    }
+    if ($logText -notmatch [regex]::Escape("desktopDataDir=$expectedDesktopData")) {
+      throw "Portable smoke did not observe expected desktop data dir in $script:MainLog"
+    }
+    if ($logText -notmatch [regex]::Escape("runtimeHome=$expectedRuntimeHome")) {
+      throw "Portable smoke did not observe expected runtime home in $script:MainLog"
+    }
   }
 } catch {
   Write-SmokeDiagnostics

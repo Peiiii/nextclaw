@@ -12,6 +12,7 @@ Electron desktop shell for NextClaw.
 - `pnpm -C apps/desktop bundle:public-key:ensure`: guarantee `build/update-bundle-public.pem` exists before packaging. If no private key is present locally, it writes the currently published public key instead of leaving the packaged app without a verifier.
 - `pnpm -C apps/desktop bundle:build -- ...`: build a launcher-compatible zipped product bundle.
 - `pnpm -C apps/desktop bundle:manifest -- ...`: generate a signed desktop update manifest for a product bundle archive.
+- `pnpm -C apps/desktop package:windows-portable -- --arch x64`: package a Windows Portable Edition zip from `release/win-unpacked`.
 
 ## Notes
 
@@ -142,6 +143,14 @@ Windows (`Setup.exe` installer + unpacked EXE directory, no publish):
 - `PATH=/opt/homebrew/bin:$PATH CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop exec electron-builder --win dir --x64 --publish never`
 - `PATH=/opt/homebrew/bin:$PATH CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop exec electron-builder --win nsis --x64 --publish never`
 
+Windows Portable Edition on Windows:
+
+- `CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop exec electron-builder --win dir --x64 --publish never`
+- `pnpm -C apps/desktop package:windows-portable -- --arch x64`
+- `pnpm desktop:portable:verify`
+
+The portable zip is rooted at `NextClaw-Portable/`. It detects portable mode through `nextclaw-portable.json`, creates `data/` on first launch, stores desktop state under `data/desktop`, runtime state under `data/runtime-home`, and logs under `data/logs`. Portable builds intentionally block in-app updates; users upgrade by downloading a newer portable zip and keeping or moving the `data/` directory.
+
 Linux (`AppImage` + `.deb`, no publish):
 
 - `PATH=/opt/homebrew/bin:$PATH CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop exec electron-builder --linux AppImage deb --x64 --publish never`
@@ -155,6 +164,8 @@ All artifacts are under `apps/desktop/release`:
 - `NextClaw Desktop-<version>-x64.dmg`
 - `NextClaw Desktop-<version>-x64-mac.zip`
 - `NextClaw.Desktop-Setup-<version>-x64.exe`
+- `NextClaw-Portable-<version>-win-x64.zip`
+- `NextClaw-Portable-<version>-win-arm64.zip`
 - `latest.yml`
 - `*.exe.blockmap`
 - `win-unpacked/NextClaw Desktop.exe`
@@ -164,7 +175,7 @@ All artifacts are under `apps/desktop/release`:
 - `../release-manifests/manifest-stable-<platform>-<arch>.json`
 - `../build/update-bundle-public.pem`
 
-Windows 推荐把 `Setup.exe` 作为普通用户下载入口，`win-unpacked` / `zip` 保留给兼容、便携和排障场景。
+Windows 推荐把 `Setup.exe` 作为普通安装入口，把 `NextClaw-Portable-<version>-win-<arch>.zip` 作为 U 盘/免安装入口；两者必须使用独立数据目录并可同时运行。
 
 ### 4) Linux package lifecycle
 

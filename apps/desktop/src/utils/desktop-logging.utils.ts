@@ -2,6 +2,7 @@ import { app } from "electron";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import type { DesktopInstallationProfile } from "./desktop-installation-profile.utils";
 import { resolveDesktopDataDir, resolveDesktopRuntimeHome } from "./desktop-paths.utils";
 
 export type DesktopLogger = {
@@ -75,7 +76,7 @@ export function installDesktopProcessErrorLogging(logger: DesktopLogger): void {
   });
 }
 
-export function logDesktopMainEntryLoaded(logger: DesktopLogger): void {
+export function logDesktopMainEntryLoaded(logger: DesktopLogger, profile?: DesktopInstallationProfile): void {
   logger.info(
     [
       "Desktop main entry loaded.",
@@ -83,6 +84,9 @@ export function logDesktopMainEntryLoaded(logger: DesktopLogger): void {
       `packaged=${String(app.isPackaged)}`,
       `platform=${process.platform}`,
       `arch=${process.arch}`,
+      `installationKind=${profile?.installationKind ?? "unknown"}`,
+      `profileId=${profile?.profileId ?? ""}`,
+      `portableRoot=${profile?.portableRoot ?? ""}`,
       `runtimeHome=${resolveDesktopRuntimeHome()}`,
       `desktopDataDir=${resolveDesktopDataDir()}`,
       `ambientNextclawHome=${process.env.NEXTCLAW_HOME?.trim() || ""}`,

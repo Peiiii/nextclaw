@@ -1,5 +1,11 @@
 # @nextclaw/desktop
 
+## 0.0.174
+
+### Patch Changes
+
+- Add Windows Portable Edition packaging, data-root isolation, update blocking, and release validation.
+
 ## 0.0.173
 
 ### Patch Changes

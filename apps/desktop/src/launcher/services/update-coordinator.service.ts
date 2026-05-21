@@ -5,6 +5,7 @@ import type { DesktopAvailableUpdate, DesktopUpdateService } from "./update.serv
 import type { DesktopBundleLifecycleService } from "./bundle-lifecycle.service";
 import type { DesktopBundleService } from "./bundle.service";
 import type {
+  UpdateBlockReason,
   UpdatePreferences,
   UpdateProgress,
   UpdateSnapshot,
@@ -28,6 +29,7 @@ export type DesktopUpdateSnapshot = UpdateSnapshot & {
 type DesktopUpdateCoordinatorServiceOptions = {
   initialChannel: DesktopReleaseChannel;
   launcherVersion: string;
+  updateCapability?: DesktopUpdateCapability;
   resolveManifestUrl: () => Promise<string | null>;
   stateStore: DesktopLauncherStateStore;
   updateService: DesktopUpdateService;
@@ -46,6 +48,12 @@ type DesktopDownloadUpdateOptions = {
   autoTriggered?: boolean;
 };
 
+export type DesktopUpdateCapability = {
+  supported: boolean;
+  blockReason: UpdateBlockReason | null;
+  message: string | null;
+};
+
 type PersistedDesktopLauncherState = ReturnType<DesktopLauncherStateStore["read"]>;
 type DesktopUpdateSnapshotPatch = Partial<DesktopUpdateSnapshot> & Pick<DesktopUpdateSnapshot, "status">;
 
@@ -59,8 +67,9 @@ export class DesktopUpdateCoordinatorService {
 
   constructor(private readonly options: DesktopUpdateCoordinatorServiceOptions) {
     const persistedState = options.stateStore.read();
+    const updateCapability = this.resolveUpdateCapability();
     this.snapshot = {
-      status: persistedState.downloadedVersion ? "downloaded" : DEFAULT_STATUS,
+      status: updateCapability.supported ? (persistedState.downloadedVersion ? "downloaded" : DEFAULT_STATUS) : "blocked",
       installationKind: "desktop-bundle",
       channel: options.initialChannel,
       hostVersion: options.launcherVersion,
@@ -72,15 +81,17 @@ export class DesktopUpdateCoordinatorService {
       releaseNotesUrl: persistedState.downloadedReleaseNotesUrl,
       lastCheckedAt: persistedState.lastUpdateCheckAt,
       progress: null,
-      canAutoDownload: persistedState.updatePreferences.autoDownload,
-      canApplyInApp: Boolean(persistedState.downloadedVersion),
-      requiresRestart: Boolean(persistedState.downloadedVersion),
-      blockReason: null,
+      canAutoDownload: updateCapability.supported && persistedState.updatePreferences.autoDownload,
+      canApplyInApp: updateCapability.supported && Boolean(persistedState.downloadedVersion),
+      requiresRestart: updateCapability.supported && Boolean(persistedState.downloadedVersion),
+      blockReason: updateCapability.supported ? null : updateCapability.blockReason,
       recoveryCommand: null,
-      errorMessage: null,
+      errorMessage: updateCapability.supported ? null : updateCapability.message,
       preferences: { ...persistedState.updatePreferences }
     };
-    this.reconcilePersistedDownloadedState();
+    if (updateCapability.supported) {
+      this.reconcilePersistedDownloadedState();
+    }
     this.publishSnapshot();
   }
 
@@ -92,6 +103,9 @@ export class DesktopUpdateCoordinatorService {
   };
 
   runStartupCheck = async (): Promise<DesktopUpdateSnapshot> => {
+    if (this.isUpdateUnsupported()) {
+      return this.getSnapshot();
+    }
     if (!this.snapshot.preferences.automaticChecks) {
       return this.getSnapshot();
     }
@@ -99,6 +113,9 @@ export class DesktopUpdateCoordinatorService {
   };
 
   checkForUpdates = async (options: DesktopCheckUpdateOptions = {}): Promise<DesktopUpdateSnapshot> => {
+    if (this.isUpdateUnsupported()) {
+      return this.getSnapshot();
+    }
     if (this.activeCheckPromise) {
       return await this.activeCheckPromise;
     }
@@ -112,6 +129,9 @@ export class DesktopUpdateCoordinatorService {
   };
 
   downloadUpdate = async (options: DesktopDownloadUpdateOptions = {}): Promise<DesktopUpdateSnapshot> => {
+    if (this.isUpdateUnsupported()) {
+      return this.getSnapshot();
+    }
     if (this.activeDownloadPromise) {
       return await this.activeDownloadPromise;
     }
@@ -125,6 +145,9 @@ export class DesktopUpdateCoordinatorService {
   };
 
   applyDownloadedUpdate = async (): Promise<DesktopUpdateSnapshot> => {
+    if (this.isUpdateUnsupported()) {
+      return this.getSnapshot();
+    }
     const downloadedVersion = this.snapshot.downloadedVersion?.trim();
     if (!downloadedVersion) {
       throw new Error("No downloaded desktop update is ready to apply.");
@@ -147,6 +170,9 @@ export class DesktopUpdateCoordinatorService {
   };
 
   updatePreferences = async (preferences: Partial<DesktopUpdatePreferences>): Promise<DesktopUpdateSnapshot> => {
+    if (this.isUpdateUnsupported()) {
+      return this.getSnapshot();
+    }
     const nextState = await this.options.stateStore.update((state) => ({
       ...state,
       updatePreferences: {
@@ -169,6 +195,9 @@ export class DesktopUpdateCoordinatorService {
   };
 
   updateChannel = async (channel: DesktopReleaseChannel): Promise<DesktopUpdateSnapshot> => {
+    if (this.isUpdateUnsupported()) {
+      return this.getSnapshot();
+    }
     if (this.snapshot.channel === channel) {
       return this.getSnapshot();
     }
@@ -465,4 +494,14 @@ export class DesktopUpdateCoordinatorService {
   private publishSnapshot = (): void => {
     this.options.publishSnapshot?.(this.getSnapshot());
   };
+
+  private resolveUpdateCapability = (): DesktopUpdateCapability => {
+    return this.options.updateCapability ?? {
+      supported: true,
+      blockReason: null,
+      message: null
+    };
+  };
+
+  private isUpdateUnsupported = (): boolean => !this.resolveUpdateCapability().supported;
 }

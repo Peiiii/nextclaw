@@ -3,6 +3,7 @@ import type { DesktopBundleLifecycleService } from "../launcher/services/bundle-
 import type { DesktopBundleService } from "../launcher/services/bundle.service";
 import {
   DesktopUpdateCoordinatorService,
+  type DesktopUpdateCapability,
   type DesktopUpdatePreferences,
   type DesktopUpdateSnapshot
 } from "../launcher/services/update-coordinator.service";
@@ -28,6 +29,7 @@ type DesktopUpdateShellLogger = {
 type DesktopUpdateShellServiceOptions = {
   logger: DesktopUpdateShellLogger;
   launcherVersion: string;
+  updateCapability?: DesktopUpdateCapability;
   resolveChannel: () => DesktopReleaseChannel;
   resolveManifestUrl: () => Promise<string | null>;
   getWindow: () => BrowserWindow | null;
@@ -99,6 +101,7 @@ export class DesktopUpdateShellService {
     this.coordinator = new DesktopUpdateCoordinatorService({
       initialChannel: this.options.resolveChannel(),
       launcherVersion: this.options.launcherVersion,
+      updateCapability: this.options.updateCapability,
       resolveManifestUrl: this.options.resolveManifestUrl,
       stateStore: this.options.createLauncherStateStore(),
       updateService: this.options.createUpdateService(),
