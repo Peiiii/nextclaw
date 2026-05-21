@@ -36,6 +36,7 @@ import { installPluginRuntimeBridge } from "../utils/plugin-runtime-bridge.utils
 function createGateway(): NextclawGatewayRuntime {
   return {
     kernel: {
+      agentRunRequestManager: {},
       extensions: {
         toConfigView: (config: unknown) => config,
         mergeConfigView: (_config: unknown, nextConfigView: unknown) => nextConfigView,
@@ -87,6 +88,7 @@ describe("installPluginRuntimeBridge media attachment forwarding", () => {
 
     expect(dispatchPromptOverNcpMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        agentRunRequests: expect.any(Object),
         attachments: [
           expect.objectContaining({
             path: "/tmp/first.png",
@@ -127,6 +129,7 @@ describe("installPluginRuntimeBridge media attachment forwarding", () => {
 
     expect(dispatchPromptOverNcpMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        agentRunRequests: expect.any(Object),
         attachments: [
           expect.objectContaining({
             url: "https://example.com/a.png",
@@ -162,6 +165,7 @@ describe("installPluginRuntimeBridge media attachment forwarding", () => {
 
     expect(dispatchPromptOverNcpMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        agentRunRequests: expect.any(Object),
         content: "",
         attachments: [
           expect.objectContaining({

@@ -1,11 +1,5 @@
 import type { MessageBus } from "@nextclaw/core";
-import {
-  NcpEventType,
-  type NcpAgentRunSendOptions,
-  type NcpEndpointEvent,
-  type NcpMessage,
-  type NcpRequestEnvelope,
-} from "@nextclaw/ncp";
+import { runPromptOverNcp, type NcpRunnerAgent } from "@nextclaw/kernel";
 
 type CronJobLike = {
   id: string;
@@ -19,13 +13,6 @@ type CronJobLike = {
     to?: string | null;
     accountId?: string | null;
   };
-};
-
-type BackgroundNcpAgent = {
-  run: (
-    envelope: NcpRequestEnvelope,
-    options?: NcpAgentRunSendOptions,
-  ) => AsyncIterable<NcpEndpointEvent>;
 };
 
 function normalizeOptionalString(value: unknown): string | undefined {
@@ -62,86 +49,11 @@ function buildCronSessionMetadata(params: {
   return metadata;
 }
 
-function buildCronUserMessage(params: {
-  sessionId: string;
-  content: string;
-  metadata: Record<string, unknown>;
-}): NcpMessage {
-  const { sessionId, content, metadata } = params;
-  const timestamp = new Date().toISOString();
-  return {
-    id: `${sessionId}:user:cron:${timestamp}`,
-    sessionId,
-    role: "user",
-    status: "final",
-    timestamp,
-    parts: [{ type: "text", text: content }],
-    metadata: structuredClone(metadata),
-  };
-}
-
-function extractMessageText(message: NcpMessage): string {
-  const parts = message.parts
-    .flatMap((part) => {
-      if (part.type === "text" || part.type === "rich-text") {
-        return [part.text];
-      }
-      return [];
-    })
-    .map((text) => text.trim())
-    .filter((text) => text.length > 0);
-  return parts.join("\n\n");
-}
-
-async function runJobOverNcp(params: {
-  agent: BackgroundNcpAgent;
-  sessionId: string;
-  message: NcpMessage;
-  metadata: Record<string, unknown>;
-  missingCompletedMessageError: string;
-  runErrorMessage: string;
-}): Promise<string> {
-  const {
-    agent,
-    sessionId,
-    message,
-    metadata,
-    missingCompletedMessageError,
-    runErrorMessage,
-  } = params;
-  let completedMessage: NcpMessage | undefined;
-
-  for await (const event of agent.run({
-    sessionId,
-    message,
-    metadata,
-  })) {
-    if (event.type === NcpEventType.MessageFailed) {
-      throw new Error(event.payload.error.message);
-    }
-    if (event.type === NcpEventType.RunError) {
-      throw new Error(event.payload.error ?? runErrorMessage);
-    }
-    if (event.type === NcpEventType.MessageCompleted) {
-      completedMessage = event.payload.message;
-    }
-  }
-
-  if (!completedMessage) {
-    throw new Error(missingCompletedMessageError);
-  }
-  return extractMessageText(completedMessage);
-}
-
 export function createCronJobHandler(params: {
-  resolveNcpAgent: () => BackgroundNcpAgent | null;
+  agentRunRequests: NcpRunnerAgent;
   bus: MessageBus;
 }): (job: CronJobLike) => Promise<string> {
   return async (job: CronJobLike): Promise<string> => {
-    const ncpAgent = params.resolveNcpAgent();
-    if (!ncpAgent) {
-      throw new Error("NCP agent is not ready for cron execution.");
-    }
     const accountId = normalizeOptionalString(job.payload.accountId);
     const agentId = normalizeOptionalString(job.payload.agentId) ?? "main";
     const sessionId = normalizeOptionalString(job.payload.sessionId) ?? `cron:${job.id}`;
@@ -150,18 +62,15 @@ export function createCronJobHandler(params: {
       agentId,
       accountId,
     });
-    const response = await runJobOverNcp({
-      agent: ncpAgent,
+    const result = await runPromptOverNcp({
+      agent: params.agentRunRequests,
       sessionId,
-      message: buildCronUserMessage({
-        sessionId,
-        content: job.payload.message,
-        metadata,
-      }),
+      content: job.payload.message,
       metadata,
       missingCompletedMessageError: "cron job completed without a final assistant message",
       runErrorMessage: "cron job failed",
     });
+    const response = result.text;
 
     if (job.payload.deliver && job.payload.to) {
       await params.bus.publishOutbound({

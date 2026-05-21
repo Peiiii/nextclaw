@@ -96,6 +96,14 @@ describe("ServiceBootstrapStatusStore", () => {
     });
 
     const app = createUiRouter({
+      kernel: {
+        agentRuntimeManager: {},
+        assetStore: {},
+        ingress: {},
+        llmProviders: {},
+        ncpSessionApi: {},
+        sessionRunManager: {},
+      } as never,
       configPath: "/tmp/nextclaw-bootstrap-status-route-test.json",
       appEventBus: new EventBus(),
       bootstrapStatus: store

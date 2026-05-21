@@ -163,7 +163,7 @@ export class NextclawGatewayRuntime {
     this.kernel.provideGatewayController(this.gatewayController);
     this.deferredChannelStarter = this.startChannels;
     this.automation.onJob = createCronJobHandler({
-      resolveNcpAgent: () => this.kernel.agentRunRequestManager,
+      agentRunRequests: this.kernel.agentRunRequestManager,
       bus: this.messageBus,
     });
   }

@@ -74,7 +74,7 @@ async function runCliInteractiveLoop(params: {
     const response = await dispatchPromptOverNcp({
       config,
       sessionManager,
-      resolveNcpAgent: () => agentRunRequests,
+      agentRunRequests,
       sessionKey,
       content: trimmed,
       metadata,
@@ -108,7 +108,7 @@ export async function runCliAgentCommand(params: {
       const response = await dispatchPromptOverNcp({
         config,
         sessionManager,
-        resolveNcpAgent: () => kernel.agentRunRequestManager,
+        agentRunRequests: kernel.agentRunRequestManager,
         sessionKey,
         content: opts.message,
         metadata: sharedMetadata,

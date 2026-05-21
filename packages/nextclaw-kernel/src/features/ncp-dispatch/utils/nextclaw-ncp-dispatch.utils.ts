@@ -21,7 +21,7 @@ import {
 export type DirectPromptDispatchParams = {
   config: Config;
   sessionManager: SessionManager;
-  resolveNcpAgent?: () => NcpRunnerAgent | null;
+  agentRunRequests: NcpRunnerAgent;
   content: string;
   sessionKey?: string;
   channel?: string;
@@ -52,17 +52,6 @@ function normalizeOptionalString(value: unknown): string | undefined {
   }
   const trimmed = value.trim();
   return trimmed || undefined;
-}
-
-function requireNcpAgent(
-  resolveNcpAgent: (() => NcpRunnerAgent | null) | undefined,
-  purpose: string,
-): NcpRunnerAgent {
-  const agent = resolveNcpAgent?.() ?? null;
-  if (!agent) {
-    throw new Error(`NCP agent is not ready for ${purpose}.`);
-  }
-  return agent;
 }
 
 function createDirectInboundMessage(params: {
@@ -262,7 +251,7 @@ export async function dispatchPromptOverNcp(
     content,
     metadata,
     onAssistantDelta,
-    resolveNcpAgent,
+    agentRunRequests,
     sessionKey,
     sessionManager,
   } = params;
@@ -288,9 +277,8 @@ export async function dispatchPromptOverNcp(
     return commandResult;
   }
 
-  const agent = requireNcpAgent(resolveNcpAgent, "direct dispatch");
   const result = await runPromptOverNcp({
-    agent,
+    agent: agentRunRequests,
     sessionId: route.sessionKey,
     content,
     attachments,
@@ -324,10 +312,7 @@ export async function runGatewayInboundLoop(
         forcedAgentId,
         sessionKeyOverride: explicitSessionKey,
       });
-      const agent = requireNcpAgent(
-        () => runtime.kernel.agentRunRequestManager,
-        "gateway dispatch",
-      );
+      const agent = runtime.kernel.agentRunRequestManager;
       const runMetadata = buildRunMetadata({
         message,
         route,

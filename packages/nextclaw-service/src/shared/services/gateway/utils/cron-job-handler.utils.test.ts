@@ -28,10 +28,9 @@ describe("createCronJobHandler", () => {
       })());
     const publishOutbound = vi.fn(async () => undefined);
     const handler = createCronJobHandler({
-      resolveNcpAgent: () =>
-        ({
-          run: send,
-        }) as never,
+      agentRunRequests: {
+        run: send,
+      } as never,
       bus: {
         publishOutbound,
       } as never,
@@ -84,28 +83,6 @@ describe("createCronJobHandler", () => {
     });
   });
 
-  it("fails fast when the NCP agent is not ready instead of falling back to legacy execution", async () => {
-    const publishOutbound = vi.fn(async () => undefined);
-    const handler = createCronJobHandler({
-      resolveNcpAgent: () => null,
-      bus: {
-        publishOutbound,
-      } as never,
-    });
-
-    await expect(
-      handler({
-        id: "job-2",
-        name: "no-fallback",
-        payload: {
-          message: "ping",
-        },
-      }),
-    ).rejects.toThrow("NCP agent is not ready for cron execution.");
-
-    expect(publishOutbound).not.toHaveBeenCalled();
-  });
-
   it("uses a configured target session id instead of the job-owned cron session", async () => {
     const send = vi.fn((_envelope: unknown) =>
       (async function* () {
@@ -117,10 +94,9 @@ describe("createCronJobHandler", () => {
         } as never;
       })());
     const handler = createCronJobHandler({
-      resolveNcpAgent: () =>
-        ({
-          run: send,
-        }) as never,
+      agentRunRequests: {
+        run: send,
+      } as never,
       bus: {
         publishOutbound: vi.fn(async () => undefined),
       } as never,
@@ -142,6 +118,7 @@ describe("createCronJobHandler", () => {
           sessionId: "session-existing",
         }),
       }),
+      expect.any(Object),
     );
   });
 
@@ -154,10 +131,9 @@ describe("createCronJobHandler", () => {
         } as never;
       })());
     const handler = createCronJobHandler({
-      resolveNcpAgent: () =>
-        ({
-          run: send,
-        }) as never,
+      agentRunRequests: {
+        run: send,
+      } as never,
       bus: {
         publishOutbound: vi.fn(async () => undefined),
       } as never,

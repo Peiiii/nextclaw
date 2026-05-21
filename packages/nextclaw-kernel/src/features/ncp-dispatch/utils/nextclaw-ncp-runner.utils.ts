@@ -231,7 +231,6 @@ export async function* streamPromptOverNcp(
     metadata,
     assetApi: agent.assetApi,
   });
-
   for await (const event of agent.run(
     {
       sessionId,
