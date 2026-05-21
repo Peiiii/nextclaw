@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { Ingress } from "@nextclaw/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  ExtensionManifestDiscoveryService,
   resolveBuiltinExtensionManifestRoots,
   resolveExtensionManifestRoots,
 } from "@kernel/features/extension-runtime/index.js";
@@ -36,9 +37,6 @@ function writeExtensionManifest(root: string): void {
         name: "Fake Channel",
         description: "Fake channel",
         auth: true,
-        outbound: {
-          text: true,
-        },
         configSchema: { type: "object" },
         configUiHints: {
           enabled: { label: "Enabled" },
@@ -83,6 +81,17 @@ describe("resolveExtensionManifestRoots", () => {
 });
 
 describe("ExtensionRuntimeService", () => {
+  it("deduplicates extension manifests by id across discovery roots", async () => {
+    const rootA = createTempDir();
+    const rootB = createTempDir();
+    writeExtensionManifest(rootA);
+    writeExtensionManifest(rootB);
+
+    const manifests = await new ExtensionManifestDiscoveryService().discover([rootA, rootB]);
+
+    expect(manifests.map((manifest) => manifest.id)).toEqual(["fake-extension"]);
+  });
+
   it("builds channel bindings from manifests and resolves auth through extension request responses", async () => {
     const root = createTempDir();
     const workspace = createTempDir();
@@ -138,6 +147,11 @@ describe("ExtensionRuntimeService", () => {
     expect(binding).toEqual(expect.objectContaining({
       pluginId: "fake-extension",
       channelId: "fake-channel",
+      channel: expect.objectContaining({
+        outbound: expect.objectContaining({
+          sendText: expect.any(Function),
+        }),
+      }),
     }));
     expect(event).toEqual(expect.objectContaining({
       type: "extension.request",

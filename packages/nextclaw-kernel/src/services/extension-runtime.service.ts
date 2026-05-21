@@ -252,7 +252,7 @@ export class ExtensionRuntimeService {
               },
             } : {}),
             ...(channel.auth ? { auth: this.createChannelAuth(manifest.id, channelId) } : {}),
-            ...(channel.outbound?.text ? { outbound: this.createChannelOutbound(manifest.id, channelId) } : {}),
+            outbound: this.createChannelOutbound(manifest.id, channelId),
           },
         });
         uiMetadata.push({

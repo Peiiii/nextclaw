@@ -154,7 +154,7 @@ export class ExtensionManifestDiscoveryService {
     for (const root of roots) {
       manifests.push(...(await this.discoverRoot(root)));
     }
-    return manifests;
+    return this.uniqueById(manifests);
   };
 
   discoverSync = (roots: string[]): ExtensionManifest[] => {
@@ -162,7 +162,20 @@ export class ExtensionManifestDiscoveryService {
     for (const root of roots) {
       manifests.push(...this.discoverRootSync(root));
     }
-    return manifests;
+    return this.uniqueById(manifests);
+  };
+
+  private uniqueById = (manifests: ExtensionManifest[]): ExtensionManifest[] => {
+    const seen = new Set<string>();
+    const unique: ExtensionManifest[] = [];
+    for (const manifest of manifests) {
+      if (seen.has(manifest.id)) {
+        continue;
+      }
+      seen.add(manifest.id);
+      unique.push(manifest);
+    }
+    return unique;
   };
 
   private discoverRoot = async (root: string): Promise<ExtensionManifest[]> => {

@@ -8,6 +8,8 @@
 
 同批次后续打磨中，SDK 继续新增 `startChannelExtension` 标准接入入口，并把微信/飞书 `main.ts` 收敛成只声明 `channelId`、adapter、inbound mapper、auth capability 和 NCP event error reporter。最终没有采用 class 继承、自动扫描、二阶 registration DSL 或 outbound text 开关，而是保留一个显式函数入口；出站文本被收敛为 channel extension 默认协议能力，减少新渠道接入时的固定装配代码。
 
+运行验收补丁中，修复了本地 extension 进程加载 dist 时 `@nextclaw/shared` dist 落后于源码导致 `ingressKeys` 缺失的问题：本地已重建 `@nextclaw/shared` dist，并补强 extension runtime 侧的长期合同，按 extension manifest id 去重，避免 dev first-party path 与 builtin package path 同时发现微信/飞书；同时 extension channel 默认提供 outbound text，不再依赖 manifest 里的 `outbound.text` 开关。
+
 ## 测试/验证/验收方式
 
 - `pnpm --filter @nextclaw/extension-sdk tsc`：通过。
@@ -20,11 +22,18 @@
 - `pnpm --filter @nextclaw/channel-extension-feishu test -- --run`：通过，4 个测试文件、10 个测试。
 - `pnpm --filter @nextclaw/channel-extension-feishu lint`：通过。
 - `pnpm --filter @nextclaw/extension-sdk build`、`pnpm --filter @nextclaw/channel-extension-weixin build`、`pnpm --filter @nextclaw/channel-extension-feishu build`：通过；tsdown 提示当前 Node.js `v22.16.0` 将在后续版本弃用，需要未来升级到 `22.18.0+`。
+- `pnpm -C packages/nextclaw-shared build`：通过，刷新本地 ignored dist，解除 extension 子进程运行时 `@nextclaw/shared` 缺少 `ingressKeys` 的 ESM 导出错误。
+- `pnpm --filter @nextclaw/kernel tsc`：通过。
+- `pnpm --filter @nextclaw/kernel lint`：通过。
+- `pnpm --filter @nextclaw/kernel test -- src/services/extension-runtime.service.test.ts --run`：通过，1 个测试文件、4 个测试。
 - `pnpm lint:new-code:governance`：通过。
 - `pnpm check:governance-backlog-ratchet`：通过。
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths <本次 bootstrap 触达文件>`：通过，0 error，0 warning；总代码 `+208 / -74 / net +134`，非测试代码 `+102 / -56 / net +46`。
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths <本次运行验收补丁触达文件>`：通过，0 error，0 warning；总代码 `+33 / -6 / net +27`，非测试代码 `+16 / -3 / net +13`。
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths <本次源码/配置触达文件>`：通过，0 error，1 warning；warning 为 `packages/nextclaw-extension-sdk/src/extension-sdk.test.ts` 本次测试增长明显但仍低于预算。
 - `git diff --check`：通过。
+
+补充：后续运行验收补丁后再次执行 `pnpm lint:new-code:governance` 时，被并存工作区改动 `packages/ncp-packages/nextclaw-ncp/src/agent-runtime/runtime.ts` 的文件角色命名规则阻塞；该文件属于未提交的 NCP runtime 改动，不属于本次 extension channel 链路触达范围。
 
 ## 发布/部署方式
 
@@ -43,6 +52,8 @@
 本次是非功能性架构收敛，已按 `deletion-first` 和 `protected-variations` 执行：删除两套重复 extension runtime，把共性生命周期归入 SDK controller，把渠道差异保留在 adapter/mapper/auth owner 中。按本次源码/配置触达文件口径，maintainability guard 显示总代码 `+529 / -246 / net +283`，非测试代码 `+191 / -194 / net -3`，满足非功能改动非测试代码净增 `<= 0`。
 
 同批次后续打磨属于面向 extension 生态的 SDK 接入能力新增，而不是继续纯删减：新增 `startChannelExtension` 后，微信入口从 `41` 行降到 `12` 行，飞书入口从 `19` 行降到 `12` 行；两个渠道接入文件合计净删 `36` 行。SDK 侧为公共 bootstrap API 增加必要类型、标准 auth/outbound 注册和 payload 校验，飞书 adapter 补齐标准 `sendOutboundText` 能力，因此本次后续 bootstrap 子 diff 非测试代码净增为正。增长被限制在 SDK owner 和飞书真实发送 owner 内，没有新增渠道特例，也没有引入平行 runtime。
+
+运行验收补丁的正向动作是职责收敛与删除差异点：extension manifest discovery 用 manifest id 去重，防止同一扩展被 dev/builtin 两条路径重复启动；extension runtime 默认创建 outbound text client，微信 manifest 删除不再需要的 outbound 声明。保留债务是本地 dev 运行仍依赖 dist 构建合同，当前通过重建 `@nextclaw/shared` dist 解除；后续如果要彻底减少这类摩擦，应把 extension 子进程启动前的依赖构建检查纳入 dev 启动流程。
 
 正向减债动作为删除与职责收敛：删除旧微信/飞书 runtime，减少后续新增渠道时需要复制的生命周期代码；controller 的公开表面也在治理反馈后收窄，没有保留额外 `Runtime` 命名、可选 enabled hook 或独立 outbound adapter public type。`post-edit-maintainability-review` 已用于收尾判断；保留债务是 SDK 测试文件本次增长明显，后续若继续扩展 controller 行为，应把测试 fixture/builder 拆出以降低单文件增长压力。
 
