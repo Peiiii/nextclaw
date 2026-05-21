@@ -1,13 +1,13 @@
 export default {
-  "generatedAt": "2026-05-21T12:12:09.972Z",
+  "generatedAt": "2026-05-21T16:43:08.070Z",
   "hero": {
     "currentLoc": 174325,
     "testLoc": 45439,
     "trackedFiles": 1745,
-    "recentCommitCount": 384,
+    "recentCommitCount": 394,
     "activeDays30": 22,
-    "recentReleaseCount": 63,
-    "latestReleaseDate": "2026-05-19",
+    "recentReleaseCount": 64,
+    "latestReleaseDate": "2026-05-22",
     "latestNoteDate": "2026-05-06",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 1403912,
@@ -683,7 +683,7 @@ export default {
       {
         "key": "2026-05-21",
         "label": "05-21",
-        "value": 7
+        "value": 17
       }
     ],
     "commitWeekly": [
@@ -745,7 +745,7 @@ export default {
       {
         "key": "2026-05-18",
         "label": "05-18",
-        "value": 71
+        "value": 86
       }
     ],
     "releaseMonthly": [
@@ -807,7 +807,7 @@ export default {
       {
         "key": "2026-05",
         "label": "05/26",
-        "value": 10
+        "value": 12
       }
     ]
   },
@@ -878,6 +878,22 @@ export default {
     },
     "recentReleaseBatches": [
       {
+        "date": "2026-05-22",
+        "tagCount": 1,
+        "sampleTags": [
+          "v0.19.18-desktop-beta.1"
+        ]
+      },
+      {
+        "date": "2026-05-21",
+        "tagCount": 4,
+        "sampleTags": [
+          "v0.19.17-desktop-beta.1",
+          "v0.19.17-desktop-beta.2",
+          "v0.19.17-desktop-beta.3"
+        ]
+      },
+      {
         "date": "2026-05-19",
         "tagCount": 110,
         "sampleTags": [
@@ -911,22 +927,6 @@ export default {
           "v0.19.6-desktop-beta.2",
           "v0.19.6-desktop-beta.3",
           "v0.19.6-desktop-beta.4"
-        ]
-      },
-      {
-        "date": "2026-05-15",
-        "tagCount": 1,
-        "sampleTags": [
-          "v0.19.6-desktop-beta.1"
-        ]
-      },
-      {
-        "date": "2026-05-14",
-        "tagCount": 68,
-        "sampleTags": [
-          "@nextclaw/nextclaw-narp-runtime-claude-code-sdk@0.1.4",
-          "@nextclaw/nextclaw-narp-runtime-codex-sdk@0.1.3",
-          "@nextclaw/nextclaw-ncp-runtime-claude-code-sdk@0.1.29"
         ]
       }
     ]
