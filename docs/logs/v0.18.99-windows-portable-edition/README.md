@@ -6,7 +6,7 @@
 
 根因/背景：原有 Windows release 只有 installer 和 unpacked 备用包，unpacked 不是严格 portable 合同，运行数据仍可能走安装版默认路径。现在通过 `DesktopInstallationProfile` 把安装形态、路径、更新能力收敛为单一事实源。
 
-发布验证修正：首次 beta preview 触发后，Windows x64 portable smoke 在根级验证脚本导入 `jszip` 时失败。根因是 `desktop:portable:verify` 从 workspace 根执行，但 `jszip` 属于 `apps/desktop` 的打包 owner 依赖。修正后根级验证脚本只负责编排 Windows 验收，解压使用系统 `Expand-Archive`，避免跨 owner 读取 `apps/desktop` 内部依赖。后续 beta preview 又暴露出脚本调用 `pnpm exec` 时缺少 `--` 分隔脚本参数的问题；验证脚本已改为优先验已有 portable zip，缺失时才通过带 `--` 的命令触发打包。
+发布验证修正：首次 beta preview 触发后，Windows x64 portable smoke 在根级验证脚本导入 `jszip` 时失败。根因是 `desktop:portable:verify` 从 workspace 根执行，但 `jszip` 属于 `apps/desktop` 的打包 owner 依赖。修正后根级验证脚本只负责编排 Windows 验收，解压使用系统 `Expand-Archive`，避免跨 owner 读取 `apps/desktop` 内部依赖。后续 beta preview 又暴露出脚本调用 `pnpm exec` 时缺少 `--` 分隔脚本参数的问题；验证脚本已改为优先验已有 portable zip，缺失时才通过带 `--` 的命令触发打包。Windows CI 还暴露出 `powershell -Command` 的 `$args` 传参不可靠，解压命令已改为直接传入转义后的 literal path。
 
 ## 测试/验证/验收方式
 

@@ -26,15 +26,17 @@ function run(command, args, options = {}) {
   }
 }
 
+function quotePowerShellString(value) {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
 function extractZip(zipPath, outputDir) {
   run("powershell", [
     "-NoProfile",
     "-ExecutionPolicy",
     "Bypass",
     "-Command",
-    "Expand-Archive -LiteralPath $args[0] -DestinationPath $args[1] -Force",
-    zipPath,
-    outputDir
+    `Expand-Archive -LiteralPath ${quotePowerShellString(zipPath)} -DestinationPath ${quotePowerShellString(outputDir)} -Force`
   ]);
 }
 
