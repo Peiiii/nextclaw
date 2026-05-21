@@ -117,7 +117,7 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
   ): AsyncGenerator<NcpEndpointEvent> {
     const signal = options?.signal;
     const messageId = createId("codex-message");
-    const runId = createId("codex-run");
+    const runId = (input as NcpAgentRunInput & { runId?: string }).runId ?? createId("codex-run");
     const itemTextById = new Map<string, ItemTextSnapshot>();
     const toolStateById = new Map<string, ToolSnapshot>();
 

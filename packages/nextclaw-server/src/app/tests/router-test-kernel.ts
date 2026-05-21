@@ -7,9 +7,9 @@ function unavailable(name: string): never {
 
 export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): UiKernelHost {
   return {
-    agentRunRequestManager: {
-      stream: async function* () {
-        yield unavailable("agentRunRequestManager.stream");
+    sessionRunManager: {
+      streamSessionEvents: async function* () {
+        yield unavailable("sessionRunManager.streamSessionEvents");
       },
     } as never,
     agentRuntimeManager: {

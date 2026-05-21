@@ -5,23 +5,9 @@ import type { SessionActivityPreviewProjection } from "./types/session-activity-
 import { createSessionActivityPreviewFromNcpEvent } from "./utils/session-activity-preview-ncp-event.utils.js";
 import { writeSessionActivityPreviewMetadata } from "./utils/session-activity-preview-metadata.utils.js";
 
-function formatBackgroundError(error: unknown): string {
-  if (error instanceof Error) {
-    return error.stack ?? error.message;
-  }
-  return String(error);
-}
-
-function readMetadata(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
-  }
-  return value as Record<string, unknown>;
-}
-
 export class SessionActivityPreviewContribution implements KernelContribution {
   private unsubscribeNcpEvent: Unsubscribe | null = null;
-  private stopped = true;
+  private readonly previewWriteChains = new Map<string, Promise<void>>();
 
   constructor(private readonly kernel: NextclawKernel) {}
 
@@ -29,7 +15,6 @@ export class SessionActivityPreviewContribution implements KernelContribution {
     if (this.unsubscribeNcpEvent) {
       return;
     }
-    this.stopped = false;
     this.unsubscribeNcpEvent = this.kernel.eventBus.on(eventKeys.ncpEvent, (event) => {
       const projection = createSessionActivityPreviewFromNcpEvent(event, new Date().toISOString());
       if (!projection) {
@@ -42,27 +27,39 @@ export class SessionActivityPreviewContribution implements KernelContribution {
   dispose = (): void => {
     this.unsubscribeNcpEvent?.();
     this.unsubscribeNcpEvent = null;
-    this.stopped = true;
+    this.previewWriteChains.clear();
   };
 
   private updatePreview = (projection: SessionActivityPreviewProjection): void => {
-    void this.persistPreview(projection)
+    const next = (this.previewWriteChains.get(projection.sessionId) ?? Promise.resolve())
+      .catch(() => undefined)
+      .then(() => this.persistPreview(projection));
+    this.previewWriteChains.set(projection.sessionId, next);
+    void next
       .catch((error: unknown) => {
+        const message = error instanceof Error ? error.stack ?? error.message : String(error);
         console.error(
-          `[session-activity-preview] failed to update ${projection.sessionId}: ${formatBackgroundError(error)}`,
+          `[session-activity-preview] failed to update ${projection.sessionId}: ${message}`,
         );
+      })
+      .finally(() => {
+        if (this.previewWriteChains.get(projection.sessionId) === next) {
+          this.previewWriteChains.delete(projection.sessionId);
+        }
       });
   };
 
   private persistPreview = async (projection: SessionActivityPreviewProjection): Promise<void> => {
-    if (this.stopped) {
+    if (!this.unsubscribeNcpEvent) {
       return;
     }
     const summary = await this.kernel.ncpSessionApi.getSession(projection.sessionId);
-    if (!summary || this.stopped) {
+    if (!summary || !this.unsubscribeNcpEvent) {
       return;
     }
-    const metadata = readMetadata(summary.metadata);
+    const metadata = summary.metadata && typeof summary.metadata === "object" && !Array.isArray(summary.metadata)
+      ? summary.metadata as Record<string, unknown>
+      : undefined;
     const nextMetadata = writeSessionActivityPreviewMetadata(metadata, projection);
     if (!nextMetadata) {
       return;

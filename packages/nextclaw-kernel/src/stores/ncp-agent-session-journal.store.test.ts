@@ -132,7 +132,7 @@ describe("NcpAgentSessionJournalStore", () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
     const store = new NcpAgentSessionJournalStore(tempDir);
 
-    await store.materializeSession(createRecord([userMessage, assistantMessage]));
+    await store.importSessionSnapshot(createRecord([userMessage, assistantMessage]));
 
     const eventTypes = await readJournalEventTypes(tempDir);
 
@@ -167,7 +167,7 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
     const store = new NcpAgentSessionJournalStore(tempDir);
 
-    await store.materializeSession(createRecord([
+    await store.importSessionSnapshot(createRecord([
       {
         id: "assistant-1",
         sessionId,
@@ -195,7 +195,7 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
     const store = new NcpAgentSessionJournalStore(tempDir);
 
-    await store.materializeSession(createRecord([]));
+    await store.importSessionSnapshot(createRecord([]));
 
     const journalPath = join(tempDir, `${sessionId}.jsonl`);
     const raw = await readFile(journalPath, "utf-8");

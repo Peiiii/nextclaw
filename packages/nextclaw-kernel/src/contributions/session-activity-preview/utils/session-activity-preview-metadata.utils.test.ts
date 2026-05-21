@@ -31,6 +31,30 @@ describe("writeSessionActivityPreviewMetadata", () => {
     });
   });
 
+  it("fills final reply text after a newer run.finished state-only update", () => {
+    expect(
+      writeSessionActivityPreviewMetadata({
+        [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: {
+          state: "completed",
+          timestamp: "2026-05-16T01:01:00.000Z",
+        },
+      }, {
+        sessionId: "session-1",
+        preview: {
+          state: "completed",
+          replyText: "最终回复",
+          timestamp: "2026-05-16T01:00:00.000Z",
+        },
+      }),
+    ).toEqual({
+      [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: {
+        state: "completed",
+        replyText: "最终回复",
+        timestamp: "2026-05-16T01:01:00.000Z",
+      },
+    });
+  });
+
   it("ignores older activity previews", () => {
     expect(
       writeSessionActivityPreviewMetadata({

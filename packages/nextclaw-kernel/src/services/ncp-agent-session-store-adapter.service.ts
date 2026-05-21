@@ -36,7 +36,7 @@ export class NcpAgentSessionStoreAdapter implements AgentSessionStore {
         if (!await journalStore.hasSession(session.sessionId)) {
           const legacySession = this.legacyStore.getSession(session.sessionId);
           if (legacySession) {
-            await journalStore.materializeSession(legacySession);
+            await journalStore.importSessionSnapshot(legacySession);
           }
         }
         await journalStore.appendSessionEvent(params);
@@ -87,9 +87,19 @@ export class NcpAgentSessionStoreAdapter implements AgentSessionStore {
 
   saveSession = async (sessionRecord: AgentSessionRecord): Promise<void> => {
     const journalStore = this.options.journalStore;
-    if (journalStore && await journalStore.hasSession(sessionRecord.sessionId)) {
-      await journalStore.materializeSession(sessionRecord);
-      this.options.onSessionUpdated?.(sessionRecord.sessionId);
+    const journalSession = await journalStore?.getSession(sessionRecord.sessionId);
+    if (journalStore && journalSession) {
+      const updated = await journalStore.updateSessionMetadata({
+        sessionId: sessionRecord.sessionId,
+        metadata: {
+          ...(journalSession.metadata ? structuredClone(journalSession.metadata) : {}),
+          ...(sessionRecord.metadata ? structuredClone(sessionRecord.metadata) : {}),
+        },
+        updatedAt: sessionRecord.updatedAt,
+      });
+      if (updated) {
+        this.options.onSessionUpdated?.(sessionRecord.sessionId);
+      }
       return;
     }
     await this.legacyStore.saveSession(sessionRecord);

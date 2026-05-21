@@ -143,6 +143,40 @@ describe("ChannelManager", () => {
     await manager.stop();
   });
 
+  it("drains generic extension NCP reply streams without legacy outbound delivery", async () => {
+    const { manager } = createManager();
+    const sent: string[] = [];
+    let drained = 0;
+    manager.load({
+      channelConfig: {} as Config,
+      extensionChannels: [{
+        extensionId: "extension-test",
+        source: "test",
+        channel: {
+          id: "test",
+          outbound: {
+            sendText: ({ text }) => {
+              sent.push(text);
+            },
+          },
+        },
+      }],
+    });
+
+    const channel = manager.getChannel("test") as {
+      consumeNcpReply?: (input: { eventStream: AsyncIterable<unknown> }) => Promise<void>;
+    } | null;
+    await channel?.consumeNcpReply?.({
+      eventStream: (async function* () {
+        yield { type: "message.completed" };
+        drained += 1;
+      })(),
+    });
+
+    expect(drained).toBe(1);
+    expect(sent).toEqual([]);
+  });
+
   it("fails explicitly when a generic extension channel has no outbound handler", async () => {
     const { manager } = createManager();
     manager.load({

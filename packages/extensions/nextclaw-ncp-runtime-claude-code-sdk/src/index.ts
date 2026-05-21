@@ -69,7 +69,7 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
     options?: NcpAgentRunOptions,
   ): AsyncGenerator<NcpEndpointEvent> {
     const messageId = createId("claude-message");
-    const runId = createId("claude-run");
+    const runId = (input as NcpAgentRunInput & { runId?: string }).runId ?? createId("claude-run");
     const eventState = createClaudeSdkEventMapperState();
     let finished = false;
 

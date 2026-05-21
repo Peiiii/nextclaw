@@ -24,6 +24,12 @@ export class ExtensionChannelAdapter extends BaseChannel<Record<string, unknown>
     this.running = false;
   };
 
+  consumeNcpReply = async (input: { eventStream: AsyncIterable<unknown> }): Promise<void> => {
+    for await (const _event of input.eventStream) {
+      // Extension processes receive the same NCP events through the extension event bus.
+    }
+  };
+
   send = async (msg: OutboundMessage): Promise<void> => {
     const outbound = this.registration.channel.outbound;
     if (!outbound) {

@@ -92,4 +92,67 @@ describe("NcpAgentSessionStoreAdapter", () => {
       parts: [{ type: "text", text: "new" }],
     });
   });
+
+  it("does not rematerialize existing journal sessions when snapshot save is called", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-journal-save-"));
+    const journalStore = new NcpAgentSessionJournalStore(tempDir);
+    const adapter = new NcpAgentSessionStoreAdapter(
+      new TestSessionManager() as never,
+      { journalStore },
+    );
+
+    await journalStore.appendSessionEvent({
+      session: {
+        sessionId,
+        agentId: "main",
+        createdAt: timestamp,
+        updatedAt: "2026-05-14T00:00:01.000Z",
+        metadata: {
+          label: "Journal",
+          last_activity_preview: {
+            state: "completed",
+            timestamp: "2026-05-14T00:00:01.000Z",
+            replyText: "final reply",
+          },
+        },
+      },
+      event: {
+        type: NcpEventType.MessageSent,
+        payload: {
+          sessionId,
+          message: {
+            id: "user-1",
+            sessionId,
+            role: "user",
+            status: "final",
+            timestamp,
+            parts: [{ type: "text", text: "hello" }],
+          },
+        },
+      },
+      updatedAt: "2026-05-14T00:00:01.000Z",
+    });
+
+    await adapter.saveSession({
+      sessionId,
+      agentId: "main",
+      createdAt: timestamp,
+      updatedAt: "2026-05-14T00:00:02.000Z",
+      metadata: { label: "Updated" },
+      messages: [],
+    });
+
+    const reloaded = new NcpAgentSessionJournalStore(tempDir);
+    const session = await reloaded.getSession(sessionId);
+
+    expect(session?.messages).toHaveLength(1);
+    expect(session?.metadata).toMatchObject({
+      label: "Updated",
+      last_activity_preview: {
+        state: "completed",
+        timestamp: "2026-05-14T00:00:01.000Z",
+        replyText: "final reply",
+      },
+    });
+  });
 });

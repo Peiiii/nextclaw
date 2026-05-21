@@ -7,6 +7,7 @@ export * from "@kernel/managers/automation.manager.js";
 export * from "@kernel/managers/config.manager.js";
 export * from "@kernel/managers/extension.manager.js";
 export * from "@kernel/managers/agent-run-request.manager.js";
+export * from "@kernel/managers/session-run.manager.js";
 export * from "@kernel/managers/agent-runtime.manager.js";
 export * from "@kernel/managers/learning-loop.manager.js";
 export * from "@kernel/managers/llm-usage.manager.js";

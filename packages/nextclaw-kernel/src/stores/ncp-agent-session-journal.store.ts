@@ -149,7 +149,7 @@ export class NcpAgentSessionJournalStore {
     return true;
   };
 
-  materializeSession = async (record: AgentSessionRecord): Promise<void> => {
+  importSessionSnapshot = async (record: AgentSessionRecord): Promise<void> => {
     const sessionId = normalizeNcpSessionId(record.sessionId);
     if (!sessionId) {
       return;
