@@ -193,6 +193,11 @@ export class NextclawKernel {
       workspace: getWorkspacePath(this.configManager.config.agents.defaults.workspace),
     });
     this.mcpManager = new McpManager(this.configManager.loadConfig);
+    this.configManager.installRuntimeHooks({
+      resolveChannelConfig: this.extensions.toConfigView,
+      getExtensionChannels: () => this.extensions.getExtensionRegistry().channels,
+      reloadMcp: async ({ config }) => await this.mcpManager.applyConfig(config),
+    });
     this.agentRuntimeManager = new AgentRuntimeManager({
       configManager: this.configManager,
       assetStore: this.assetStore,

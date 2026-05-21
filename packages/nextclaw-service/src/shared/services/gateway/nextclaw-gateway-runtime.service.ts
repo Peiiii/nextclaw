@@ -19,7 +19,6 @@ import {
 } from "@nextclaw/server";
 import { resolve } from "node:path";
 import { setImmediate as waitForNextTick } from "node:timers/promises";
-import { resolveChannelConfigView } from "@nextclaw-service/commands/channel/channel-config-view.js";
 import { GatewayControllerImpl } from "@nextclaw-service/shared/controllers/gateway.controller.js";
 import { GatewayPluginManager } from "@nextclaw-service/shared/services/gateway/managers/gateway-plugin.manager.js";
 import { GatewayRemoteManager } from "@nextclaw-service/shared/services/gateway/managers/gateway-remote.manager.js";
@@ -135,7 +134,7 @@ export class NextclawGatewayRuntime {
     this.productVersion = this.distribution.version;
     this.plugins = new GatewayPluginManager(this);
     this.providerManager = this.kernel.llmProviders;
-    this.installConfigRuntimeHooks();
+    this.installConfigHostHooks();
     this.restartWake = new GatewayRestartWakeService(this);
     this.bootstrapStatus = this.createBootstrapStatus();
     this.uiStartup = this.createDisabledUiStartup();
@@ -371,11 +370,8 @@ export class NextclawGatewayRuntime {
     installPluginRuntimeBridge(this);
   };
 
-  private installConfigRuntimeHooks = (): void => {
+  private installConfigHostHooks = (): void => {
     this.configManager.installRuntimeHooks({
-      resolveChannelConfig: (nextConfig) =>
-        resolveChannelConfigView(nextConfig, this.kernel.extensions.getChannelBindings()),
-      getExtensionChannels: () => this.kernel.extensions.getExtensionRegistry().channels,
       reloadCompanion: async ({ config: nextConfig }) => {
         await companionRuntimeService.applyConfig(nextConfig);
       },
@@ -388,9 +384,6 @@ export class NextclawGatewayRuntime {
           console.log("Config reload: plugin channel gateways restarted.");
         }
         return { restartChannels: result.restartChannels };
-      },
-      reloadMcp: async ({ config: nextConfig }) => {
-        await this.kernel.mcpManager.applyConfig(nextConfig);
       },
       onRestartRequired: (paths) => {
         void this.deps.requestRestart({

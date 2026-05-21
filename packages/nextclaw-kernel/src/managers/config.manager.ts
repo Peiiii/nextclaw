@@ -85,7 +85,7 @@ export class ConfigManager {
     resolveConfigSecrets(loadConfig(this.configPath), { configPath: this.configPath });
 
   installRuntimeHooks = (hooks: ConfigManagerRuntimeHooks): void => {
-    this.hooks = hooks;
+    this.hooks = { ...this.hooks, ...hooks };
   };
 
   applyLiveConfigReload = async (): Promise<void> => {
