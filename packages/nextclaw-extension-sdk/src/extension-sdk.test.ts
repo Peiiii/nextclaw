@@ -4,6 +4,8 @@ import {
   type ExtensionChannel,
   type ExtensionChannelAdapter,
   NextClawExtension,
+  startChannelExtension,
+  warnNcpEventError,
 } from "./index.js";
 
 type TestSocket = {
@@ -316,6 +318,87 @@ describe("@nextclaw/extension-sdk", () => {
       },
     }));
   });
+
+});
+
+describe("channel extension bootstrap", () => {
+  it("starts channel extension definitions with standard capability helpers", async () => {
+    const sockets: TestSocket[] = [];
+    const fetchImpl = createFetchImpl({ config: { enabled: true } });
+    const adapter = {
+      configure: vi.fn(async () => undefined),
+      start: vi.fn(async () => undefined),
+      stop: vi.fn(async () => undefined),
+      onMessage: vi.fn(() => vi.fn()),
+      sendNcpEvent: vi.fn(async () => undefined),
+      sendOutboundText: vi.fn(async () => undefined),
+    };
+    const authStart = vi.fn(async () => ({ sessionId: "session-1" }));
+
+    await startChannelExtension(
+      {
+        channelId: "fake",
+        createAdapter: () => adapter,
+        mapInbound: (message: FakeInbound) => ({
+          conversationId: message.conversationId,
+          senderId: message.senderId,
+          content: { type: "text", text: message.text },
+        }),
+        createAuthCapability: () => ({ start: authStart }),
+        onNcpEventError: warnNcpEventError("fake"),
+      },
+      {
+        endpoint: "http://127.0.0.1:55667",
+        extensionId: "fake-extension",
+        token: "secret",
+        fetch: fetchImpl,
+        webSocketFactory: (url) => {
+          const socket = {
+            url,
+            onopen: null,
+            onmessage: null,
+            onerror: null,
+            onclose: null,
+            close: vi.fn(),
+          };
+          sockets.push(socket);
+          return socket;
+        },
+      },
+    );
+    fetchImpl.mockClear();
+
+    emitSocketEvent(sockets[0], "extension.request", {
+      requestId: "request-outbound",
+      extensionId: "fake-extension",
+      kind: "channel.outbound.sendText",
+      payload: {
+        to: "user-1",
+        text: "hello",
+      },
+    });
+    emitSocketEvent(sockets[0], "extension.request", {
+      requestId: "request-auth",
+      extensionId: "fake-extension",
+      kind: "channel.auth.start",
+      payload: {
+        channelId: "fake",
+      },
+    });
+    await vi.waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(2));
+
+    expect(adapter.configure).toHaveBeenCalledWith({ enabled: true });
+    expect(adapter.start).toHaveBeenCalledTimes(1);
+    expect(adapter.sendOutboundText).toHaveBeenCalledWith({
+      to: "user-1",
+      text: "hello",
+      accountId: undefined,
+    });
+    expect(authStart).toHaveBeenCalledWith(
+      { channelId: "fake" },
+      expect.objectContaining({ kind: "channel.auth.start" }),
+    );
+  });
 });
 
 describe("ExtensionChannelController", () => {
@@ -453,22 +536,4 @@ describe("ExtensionChannelController", () => {
     });
   });
 
-  it("fails outbound text clearly when the adapter does not support it", async () => {
-    const { adapter, channel } = createControllerHarness([{ enabled: true }]);
-    const { sendOutboundText: _sendOutboundText, ...inboundOnlyAdapter } = adapter;
-    const controller = new ExtensionChannelController({
-      channel,
-      adapter: inboundOnlyAdapter,
-      mapInbound: (message: FakeInbound) => ({
-        conversationId: message.conversationId,
-        senderId: message.senderId,
-        content: { type: "text", text: message.text },
-      }),
-    });
-
-    await expect(controller.sendOutboundText({
-      to: "user-1",
-      text: "hello",
-    })).rejects.toThrow('channel "fake" does not support outbound text');
-  });
 });

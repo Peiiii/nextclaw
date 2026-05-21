@@ -172,4 +172,27 @@ describe("FeishuChannelAdapter", () => {
       text: "hello",
     }));
   });
+
+  it("sends outbound text through the selected account", async () => {
+    const { sdk } = createSdk();
+    const adapter = new FeishuChannelAdapter({
+      logger: { log: vi.fn(), warn: vi.fn() },
+      sdk,
+      store: createStore(),
+    });
+
+    await adapter.configure({ enabled: true, defaultAccountId: "account-1" });
+    await adapter.sendOutboundText({
+      to: "oc-chat",
+      text: "hello",
+    });
+
+    expect(sdk.sendText).toHaveBeenCalledWith({
+      account: expect.objectContaining({
+        accountId: "account-1",
+      }),
+      chatId: "oc-chat",
+      text: "hello",
+    });
+  });
 });

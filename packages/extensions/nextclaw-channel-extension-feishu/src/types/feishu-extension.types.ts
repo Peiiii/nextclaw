@@ -50,4 +50,9 @@ export type FeishuChannelAdapterContract = {
   stop: () => Promise<void>;
   onMessage: (handler: (message: FeishuInboundMessage) => void | Promise<void>) => () => void;
   sendNcpEvent: (event: NcpEndpointEvent) => Promise<void>;
+  sendOutboundText: (params: {
+    to: string;
+    text: string;
+    accountId?: string | null;
+  }) => Promise<void>;
 };

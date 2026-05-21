@@ -1,6 +1,12 @@
 export { NextClawExtension } from "./services/extension-client.service.js";
-export { ExtensionChannelController } from "./services/extension-channel-controller.service.js";
+export {
+  ExtensionChannelController,
+  startChannelExtension,
+  warnNcpEventError,
+} from "./services/extension-channel-controller.service.js";
 export type {
+  ChannelExtensionContext,
+  ChannelExtensionDefinition,
   ChannelSubmittedMessageInput,
   ExtensionChannelAdapter,
 } from "./services/extension-channel-controller.service.js";

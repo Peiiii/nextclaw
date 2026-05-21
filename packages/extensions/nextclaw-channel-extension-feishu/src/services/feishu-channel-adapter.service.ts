@@ -410,4 +410,21 @@ export class FeishuChannelAdapter implements FeishuChannelAdapterContract {
       text: params.text,
     });
   };
+
+  readonly sendOutboundText = async (params: {
+    to: string;
+    text: string;
+    accountId?: string | null;
+  }): Promise<void> => {
+    const { accountId, text, to } = params;
+    const account = this.resolveSendAccount({
+      conversationId: to,
+      ...(accountId ? { accountId } : {}),
+    });
+    await this.sendText({
+      account,
+      conversationId: to,
+      text,
+    });
+  };
 }
