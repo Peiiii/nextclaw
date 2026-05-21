@@ -71,12 +71,6 @@ const BUILTIN_CHANNEL_RUNTIMES = {
     createChannel: (context: BuiltinChannelCreateContext) =>
       new SlackChannel(context.config.channels.slack, context.bus),
   },
-  qq: {
-    id: "qq",
-    isEnabled: (config: Config) => config.channels.qq.enabled,
-    createChannel: (context: BuiltinChannelCreateContext) =>
-      new QQChannel(context.config.channels.qq, context.bus),
-  },
 } as const;
 
 export type BuiltinChannelId = keyof typeof BUILTIN_CHANNEL_RUNTIMES;

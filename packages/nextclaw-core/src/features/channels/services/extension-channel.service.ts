@@ -49,7 +49,10 @@ export class ExtensionChannelAdapter extends BaseChannel<Record<string, unknown>
         to,
         text,
         payload: msg.metadata.payload,
-        accountId
+        accountId,
+        ...(msg.replyTo !== undefined ? { replyTo: msg.replyTo } : {}),
+        media: msg.media,
+        metadata: msg.metadata
       });
       return;
     }
@@ -59,7 +62,10 @@ export class ExtensionChannelAdapter extends BaseChannel<Record<string, unknown>
         cfg: this.runtimeConfig,
         to,
         text,
-        accountId
+        accountId,
+        ...(msg.replyTo !== undefined ? { replyTo: msg.replyTo } : {}),
+        media: msg.media,
+        metadata: msg.metadata
       });
       return;
     }

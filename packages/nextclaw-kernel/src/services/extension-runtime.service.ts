@@ -143,7 +143,7 @@ class ExtensionChannelClient implements PluginChannelAuth, PluginChannelOutbound
       },
     });
 
-  readonly sendText: PluginChannelOutbound["sendText"] = async ({ to, text, accountId }) =>
+  readonly sendText: PluginChannelOutbound["sendText"] = async ({ to, text, accountId, replyTo, media, metadata }) =>
     await this.params.request({
       extensionId: this.params.extensionId,
       kind: "channel.outbound.sendText",
@@ -152,6 +152,9 @@ class ExtensionChannelClient implements PluginChannelAuth, PluginChannelOutbound
         to,
         text,
         accountId,
+        replyTo,
+        media,
+        metadata,
       },
     });
 }

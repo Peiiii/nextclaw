@@ -27,6 +27,7 @@
   "nextclaw": {
     "builtinExtensions": [
       "@nextclaw/channel-extension-feishu",
+      "@nextclaw/channel-extension-qq",
       "@nextclaw/channel-extension-weixin"
     ]
   },
@@ -40,6 +41,7 @@
   },
   "dependencies": {
     "@nextclaw/channel-extension-feishu": "workspace:*",
+    "@nextclaw/channel-extension-qq": "workspace:*",
     "@nextclaw/channel-extension-weixin": "workspace:*",
     "@nextclaw/core": "workspace:*",
     "@nextclaw/kernel": "workspace:*",

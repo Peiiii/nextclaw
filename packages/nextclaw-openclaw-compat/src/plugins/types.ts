@@ -203,6 +203,9 @@ export type OpenClawChannelPlugin = {
       to: string;
       text: string;
       accountId?: string | null;
+      replyTo?: string | null;
+      media?: string[];
+      metadata?: Record<string, unknown>;
     }) => Promise<unknown> | unknown;
     sendPayload?: (ctx: {
       cfg: Config;
@@ -210,6 +213,9 @@ export type OpenClawChannelPlugin = {
       text: string;
       payload: unknown;
       accountId?: string | null;
+      replyTo?: string | null;
+      media?: string[];
+      metadata?: Record<string, unknown>;
     }) => Promise<unknown> | unknown;
   };
 };

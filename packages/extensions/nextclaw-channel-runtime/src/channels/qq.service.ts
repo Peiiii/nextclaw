@@ -12,6 +12,25 @@ import {
 
 type QQMessageEvent = PrivateMessageEvent | GroupMessageEvent;
 type QQMessageType = "private" | "group";
+type QQRawEvent = {
+  author?: {
+    id?: string;
+    user_openid?: string;
+    member_openid?: string;
+    username?: string;
+  };
+  sender?: {
+    user_openid?: string;
+    member_openid?: string;
+    user_id?: string;
+    nickname?: string;
+    nick?: string;
+    card?: string;
+    username?: string;
+    user_name?: string;
+  };
+  group_openid?: string;
+};
 
 export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
   name = "qq";
@@ -101,29 +120,11 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
       return;
     }
 
-    if (event.user_id === event.self_id) {
+    const rawEvent = event as unknown as QQRawEvent;
+    if (this.isSelfEvent(event)) {
       return;
     }
-
-    const rawEvent = event as unknown as {
-      sender?: {
-        user_openid?: string;
-        member_openid?: string;
-        user_id?: string;
-        nickname?: string;
-        nick?: string;
-        card?: string;
-        username?: string;
-        user_name?: string;
-      };
-      group_openid?: string;
-    };
-    const senderId =
-      event.user_id ||
-      rawEvent.sender?.member_openid ||
-      rawEvent.sender?.user_openid ||
-      rawEvent.sender?.user_id ||
-      "";
+    const senderId = this.resolveSenderId(event, rawEvent);
     if (!senderId) {
       return;
     }
@@ -189,23 +190,37 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
     });
   };
 
-  private resolveSenderName = (rawEvent: {
-    sender?: {
-      nickname?: string;
-      nick?: string;
-      card?: string;
-      username?: string;
-      user_name?: string;
-    };
-  }): string | null => {
-    const candidates = [
+  private isSelfEvent = (event: QQMessageEvent): boolean => {
+    const userId = typeof event.user_id === "string" ? event.user_id : "";
+    const selfId = typeof event.self_id === "string" ? event.self_id : "";
+    return Boolean(userId && selfId && userId === selfId);
+  };
+
+  private resolveSenderId = (event: QQMessageEvent, rawEvent: QQRawEvent): string => {
+    return this.readFirstString([
+      event.user_id,
+      rawEvent.sender?.member_openid,
+      rawEvent.sender?.user_openid,
+      rawEvent.sender?.user_id,
+      rawEvent.author?.member_openid,
+      rawEvent.author?.user_openid,
+      rawEvent.author?.id
+    ]) ?? "";
+  };
+
+  private resolveSenderName = (rawEvent: QQRawEvent): string | null => {
+    return this.readFirstString([
       rawEvent.sender?.card,
       rawEvent.sender?.nickname,
       rawEvent.sender?.nick,
       rawEvent.sender?.username,
-      rawEvent.sender?.user_name
-    ];
-    for (const value of candidates) {
+      rawEvent.sender?.user_name,
+      rawEvent.author?.username
+    ]);
+  };
+
+  private readFirstString = (values: unknown[]): string | null => {
+    for (const value of values) {
       if (typeof value !== "string") {
         continue;
       }

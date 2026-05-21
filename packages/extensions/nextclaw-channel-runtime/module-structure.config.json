@@ -2,5 +2,7 @@
   "contractKind": "protocol",
   "protocol": "app-l1",
   "rootPolicy": "contract-only",
+  "allowedRootDirectories": ["bus", "channels", "config"],
+  "importAliasPrefixes": [],
   "enforcement": "error"
 }

@@ -34,7 +34,7 @@
     "@nextclaw/channel-plugin-dingtalk": "workspace:*",
     "@nextclaw/channel-plugin-discord": "workspace:*",
     "@nextclaw/channel-plugin-email": "workspace:*",
-    "@nextclaw/channel-plugin-qq": "workspace:*",
+    "@nextclaw/channel-extension-qq": "workspace:*",
     "@nextclaw/channel-plugin-slack": "workspace:*",
     "@nextclaw/channel-plugin-telegram": "workspace:*",
     "@nextclaw/channel-plugin-wecom": "workspace:*",

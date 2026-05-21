@@ -13,7 +13,12 @@ import {
   type NcpSessionApi
 } from "@nextclaw/ncp";
 import { createUiRouter } from "./router.js";
-import { EventBus, getKeyId, ingressKeys, type IngressEnvelope } from "@nextclaw/shared";
+import {
+  EventBus,
+  getKeyId,
+  ingressKeys,
+  type IngressEnvelope,
+} from "@nextclaw/shared";
 import type { UiKernelHost } from "./types/router-options.types.js";
 
 const tempDirs: string[] = [];
@@ -106,10 +111,10 @@ class StubNcpAgent implements NcpSessionApi {
   };
 
   send = async () => ({
-    sessionId: "session-1",
-    userMessageId: "user-message-1",
-    assistantMessageId: "assistant-message-1",
-    runId: "run-1",
+      sessionId: "session-1",
+      userMessageId: "user-message-1",
+      assistantMessageId: "assistant-message-1",
+      runId: "run-1",
   });
 
   run = async function* (

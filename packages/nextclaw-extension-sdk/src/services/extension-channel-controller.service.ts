@@ -1,10 +1,50 @@
-import type { NcpEndpointEvent } from "@nextclaw/ncp";
+import { NcpEventType, type NcpEndpointEvent, type NcpMessagePart } from "@nextclaw/ncp";
 import type {
   ChannelSubmittedMessage,
+  ChannelSubmittedAttachment,
   ExtensionChannel,
   NextClawExtensionOptions,
 } from "../types/extension-sdk.types.js";
 import { NextClawExtension } from "./extension-client.service.js";
+
+function readRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+const AGENT_ROUTE_KINDS = new Set(["direct", "group", "channel", "thread"]);
+
+function parseSessionDeliveryRoute(sessionId: string): {
+  channel?: string;
+  chatId?: string;
+  accountId?: string;
+} {
+  const parts = sessionId.trim().split(":");
+  if (parts[0] !== "agent" || parts.length < 5) {
+    return {};
+  }
+  const hasAccount = !AGENT_ROUTE_KINDS.has(parts[3]);
+  const kind = parts[hasAccount ? 4 : 3];
+  if (!AGENT_ROUTE_KINDS.has(kind ?? "")) {
+    return {};
+  }
+  return {
+    channel: parts[2],
+    ...(hasAccount ? { accountId: parts[3] } : {}),
+    chatId: parts.slice(hasAccount ? 5 : 4).join(":"),
+  };
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function renderMessageText(parts: readonly NcpMessagePart[]): string {
+  return (parts as Array<{ type: string; text?: string }>).map((part) =>
+    (part.type === "text" || part.type === "rich-text") && part.text ? part.text : "",
+  ).filter(Boolean).join("\n\n");
+}
 
 export type ExtensionChannelAdapter<TConfig, TInbound> = {
   configure: (config: TConfig) => Promise<void>;
@@ -16,10 +56,51 @@ export type ExtensionChannelAdapter<TConfig, TInbound> = {
     to: string;
     text: string;
     accountId?: string | null;
+    replyTo?: string | null;
+    media?: string[];
+    metadata?: Record<string, unknown>;
   }) => Promise<void>;
 };
 
 export type ChannelSubmittedMessageInput = Omit<ChannelSubmittedMessage, "channelId">;
+
+export type BusChannelInboundMessage = {
+  channel: string;
+  senderId: string;
+  chatId: string;
+  content: string;
+  attachments?: ChannelSubmittedAttachment[];
+  metadata?: Record<string, unknown>;
+};
+
+export type BusChannelMessageBus = {
+  publishInbound: (message: BusChannelInboundMessage) => Promise<void>;
+};
+
+export type BusChannelRuntime = {
+  start: () => Promise<void>;
+  stop: () => Promise<void>;
+  send: (message: {
+    channel: string;
+    chatId: string;
+    content: string;
+    replyTo?: string | null;
+    media: string[];
+    metadata: Record<string, unknown>;
+  }) => Promise<void>;
+};
+
+export type BusChannelCreateContext<TConfig, TBus = BusChannelMessageBus> = {
+  config: TConfig;
+  bus: TBus;
+};
+
+export type BusChannelExtensionDefinition<TConfig, TBus = BusChannelMessageBus> = {
+  channelId: string;
+  createChannel: (context: BusChannelCreateContext<TConfig, TBus>) => BusChannelRuntime;
+  mapInbound?: ExtensionChannelInboundMapper<BusChannelInboundMessage>;
+  onChannelStartError?: (error: unknown) => void | Promise<void>;
+};
 
 export type ExtensionChannelInboundMapper<TInbound> =
   (message: TInbound) => ChannelSubmittedMessageInput | Promise<ChannelSubmittedMessageInput>;
@@ -86,6 +167,9 @@ export class ExtensionChannelController<TConfig, TInbound> {
     to: string;
     text: string;
     accountId?: string | null;
+    replyTo?: string | null;
+    media?: string[];
+    metadata?: Record<string, unknown>;
   }): Promise<{ accepted: true }> => {
     await this.options.adapter.sendOutboundText(params);
     return { accepted: true };
@@ -120,6 +204,105 @@ export class ExtensionChannelController<TConfig, TInbound> {
   };
 }
 
+class BusChannelAdapter<TConfig, TBus> implements ExtensionChannelAdapter<TConfig, BusChannelInboundMessage> {
+  private channel: BusChannelRuntime | null = null;
+  private messageHandler: ((message: BusChannelInboundMessage) => void | Promise<void>) | null = null;
+
+  constructor(
+    private readonly definition: BusChannelExtensionDefinition<TConfig, TBus>,
+  ) {}
+
+  configure = async (config: TConfig): Promise<void> => {
+    await this.stop();
+    this.channel = this.definition.createChannel({
+      config,
+      bus: {
+        publishInbound: async (message: BusChannelInboundMessage) => {
+          await this.messageHandler?.(message);
+        },
+      } as TBus,
+    });
+  };
+
+  start = async (): Promise<void> => {
+    const channel = this.channel;
+    if (!channel) {
+      return;
+    }
+    void channel.start().catch(async (error: unknown) => {
+      await this.definition.onChannelStartError?.(error);
+    });
+  };
+
+  stop = async (): Promise<void> => {
+    const channel = this.channel;
+    this.channel = null;
+    await channel?.stop();
+  };
+
+  onMessage = (
+    handler: (message: BusChannelInboundMessage) => void | Promise<void>,
+  ): (() => void) => {
+    this.messageHandler = handler;
+    return () => {
+      if (this.messageHandler === handler) {
+        this.messageHandler = null;
+      }
+    };
+  };
+
+  sendNcpEvent = async (event: NcpEndpointEvent): Promise<void> => {
+    if (event.type !== NcpEventType.MessageCompleted) {
+      return;
+    }
+    const metadata = readRecord(event.payload.message.metadata);
+    const sessionRoute = parseSessionDeliveryRoute(event.payload.message.sessionId);
+    const eventChannel = readString(metadata.channel) ?? readString(metadata.channelId) ?? sessionRoute.channel;
+    if (eventChannel !== this.definition.channelId) {
+      return;
+    }
+    const chatId = readString(metadata.chatId) ?? readString(metadata.chat_id) ?? sessionRoute.chatId;
+    const content = renderMessageText(event.payload.message.parts).trim();
+    if (!chatId || !content) {
+      return;
+    }
+    const replyTo = readString(metadata.message_id);
+    await this.channel?.send({
+      channel: this.definition.channelId,
+      chatId,
+      content,
+      ...(replyTo ? { replyTo } : {}),
+      media: [],
+      metadata: {
+        ...metadata,
+        ...(sessionRoute.accountId && !metadata.accountId ? { accountId: sessionRoute.accountId } : {}),
+      },
+    });
+  };
+
+  sendOutboundText = async (params: {
+    to: string;
+    text: string;
+    accountId?: string | null;
+    replyTo?: string | null;
+    media?: string[];
+    metadata?: Record<string, unknown>;
+  }): Promise<void> => {
+    const { accountId, media, metadata, replyTo, text, to } = params;
+    await this.channel?.send({
+      channel: this.definition.channelId,
+      chatId: to,
+      content: text,
+      ...(replyTo !== undefined ? { replyTo } : {}),
+      media: media ?? [],
+      metadata: {
+        ...(metadata ?? {}),
+        ...(accountId ? { accountId } : {}),
+      },
+    });
+  };
+}
+
 export async function startChannelExtension<TConfig, TInbound>(
   definition: ChannelExtensionDefinition<TConfig, TInbound>,
   options: NextClawExtensionOptions = {},
@@ -141,9 +324,26 @@ export async function startChannelExtension<TConfig, TInbound>(
       to: readRequiredPayloadString(payload.to, "to"),
       text: readRequiredPayloadString(payload.text, "text"),
       accountId: readOptionalPayloadString(payload.accountId),
+      replyTo: readOptionalPayloadString(payload.replyTo),
+      media: readStringArray(payload.media),
+      metadata: readOptionalRecord(payload.metadata),
     }),
   );
   await controller.start();
+}
+
+export async function startBusChannelExtension<TConfig, TBus = BusChannelMessageBus>(
+  definition: BusChannelExtensionDefinition<TConfig, TBus>,
+  options: NextClawExtensionOptions = {},
+): Promise<void> {
+  await startChannelExtension(
+    {
+      channelId: definition.channelId,
+      createAdapter: () => new BusChannelAdapter(definition),
+      mapInbound: definition.mapInbound ?? toSubmittedTextMessage,
+    },
+    options,
+  );
 }
 
 export function warnNcpEventError(channelId: string): (error: unknown) => void {
@@ -162,4 +362,30 @@ function readRequiredPayloadString(value: unknown, name: string): string {
 
 function readOptionalPayloadString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function readStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function readOptionalRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function toSubmittedTextMessage(message: BusChannelInboundMessage): ChannelSubmittedMessageInput {
+  return {
+    conversationId: message.chatId,
+    senderId: message.senderId,
+    content: {
+      type: "text",
+      text: message.content,
+    },
+    ...(message.attachments ? { attachments: message.attachments } : {}),
+    ...(message.metadata ? { metadata: message.metadata } : {}),
+  };
 }

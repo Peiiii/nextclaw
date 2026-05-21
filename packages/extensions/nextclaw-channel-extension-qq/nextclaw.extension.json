@@ -1,0 +1,32 @@
+{
+  "id": "nextclaw-channel-extension-qq",
+  "name": "NextClaw QQ Channel Extension",
+  "version": "0.1.0",
+  "server": {
+    "type": "stdio",
+    "command": "node",
+    "args": ["dist/main.js"]
+  },
+  "contributes": {
+    "channels": [
+      {
+        "id": "qq",
+        "name": "QQ",
+        "description": "QQ official bot channel",
+        "configSchema": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "appId": { "type": "string" },
+            "secret": { "type": "string" },
+            "allowFrom": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

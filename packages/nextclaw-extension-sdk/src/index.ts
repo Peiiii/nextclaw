@@ -1,10 +1,16 @@
 export { NextClawExtension } from "./services/extension-client.service.js";
 export {
   ExtensionChannelController,
+  startBusChannelExtension,
   startChannelExtension,
   warnNcpEventError,
 } from "./services/extension-channel-controller.service.js";
 export type {
+  BusChannelCreateContext,
+  BusChannelExtensionDefinition,
+  BusChannelInboundMessage,
+  BusChannelMessageBus,
+  BusChannelRuntime,
   ChannelExtensionContext,
   ChannelExtensionDefinition,
   ChannelSubmittedMessageInput,

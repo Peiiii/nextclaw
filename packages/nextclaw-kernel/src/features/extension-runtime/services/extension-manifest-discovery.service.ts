@@ -9,6 +9,7 @@ import type { Config, ExtensionManifest } from "@kernel/features/extension-runti
 const EXTENSION_MANIFEST_FILE = "nextclaw.extension.json";
 const BUILTIN_EXTENSION_PACKAGES = [
   "@nextclaw/channel-extension-feishu",
+  "@nextclaw/channel-extension-qq",
   "@nextclaw/channel-extension-weixin",
 ] as const;
 const runtimeRequire = createRequire(import.meta.url);

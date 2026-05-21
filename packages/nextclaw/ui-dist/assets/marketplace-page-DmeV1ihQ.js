@@ -1,0 +1,1 @@
+import{t as e}from"./marketplace-page-BO74RmDP.js";export{e as MarketplacePage};

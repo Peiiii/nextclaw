@@ -29,8 +29,7 @@ const bundledChannelPluginModuleNames = new Set([
   "@nextclaw/channel-plugin-dingtalk",
   "@nextclaw/channel-plugin-wecom",
   "@nextclaw/channel-plugin-email",
-  "@nextclaw/channel-plugin-slack",
-  "@nextclaw/channel-plugin-qq"
+  "@nextclaw/channel-plugin-slack"
 ]);
 
 function importBundledChannelPluginModule(packageName: string): Promise<unknown> {

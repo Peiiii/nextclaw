@@ -2,6 +2,7 @@ import { afterEach, describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
 import type { Bot } from "qq-official-bot";
 import type { MessageBus } from "@nextclaw/core";
+import type { PrivateMessageEvent } from "qq-official-bot";
 import { QQChannel } from "./qq.service.js";
 
 type FakeBot = {
@@ -31,6 +32,27 @@ class TestQQChannel extends QQChannel {
 
   protected override createBot = (): Bot => {
     return this.fakeBot as unknown as Bot;
+  };
+}
+
+class InboundTestQQChannel extends QQChannel {
+  constructor(private readonly publishInbound: MessageBus["publishInbound"]) {
+    super(
+      {
+        enabled: true,
+        appId: "test-app",
+        secret: "test-secret",
+        allowFrom: [],
+        markdownSupport: false
+      },
+      { publishInbound } as unknown as MessageBus
+    );
+  }
+
+  handleTestIncoming = async (event: Partial<PrivateMessageEvent>): Promise<void> => {
+    await (this as unknown as {
+      handleIncoming: (event: PrivateMessageEvent) => Promise<void>;
+    }).handleIncoming(event as PrivateMessageEvent);
   };
 }
 
@@ -120,5 +142,60 @@ describe("QQChannel startup lifecycle", () => {
 
     assert.equal(channel.isRunning, true);
     await channel.stop();
+  });
+
+  it("accepts official bot private events that only expose sender openid", async () => {
+    const publishInbound = mock.fn(async () => {});
+    const channel = new InboundTestQQChannel(publishInbound as unknown as MessageBus["publishInbound"]);
+
+    await channel.handleTestIncoming({
+      id: "message-1",
+      message_id: "message-1",
+      raw_message: "你好啊",
+      sender: {
+        user_openid: "user-openid-1",
+        user_name: "Pei"
+      },
+      author: {
+        user_openid: "user-openid-1",
+        username: "Pei"
+      }
+    } as unknown as Partial<PrivateMessageEvent>);
+
+    assert.equal(publishInbound.mock.callCount(), 1);
+    const inbound = (publishInbound.mock.calls as unknown as Array<{
+      arguments: [Record<string, unknown>];
+    }>)[0]?.arguments[0];
+    assert.deepEqual(inbound, {
+      channel: "qq",
+      senderId: "user-openid-1",
+      chatId: "user-openid-1",
+      content: "[speaker:user_id=user-openid-1;name=Pei] 你好啊",
+      timestamp: inbound?.timestamp,
+      attachments: [],
+      metadata: {
+        message_id: "message-1",
+        qq: {
+          userId: "user-openid-1",
+          userName: "Pei",
+          messageType: "private"
+        }
+      }
+    });
+  });
+
+  it("drops messages from the bot itself only when both ids are present and equal", async () => {
+    const publishInbound = mock.fn(async () => {});
+    const channel = new InboundTestQQChannel(publishInbound as unknown as MessageBus["publishInbound"]);
+
+    await channel.handleTestIncoming({
+      id: "message-1",
+      message_id: "message-1",
+      raw_message: "self",
+      user_id: "bot-id",
+      self_id: "bot-id"
+    } as unknown as Partial<PrivateMessageEvent>);
+
+    assert.equal(publishInbound.mock.callCount(), 0);
   });
 });

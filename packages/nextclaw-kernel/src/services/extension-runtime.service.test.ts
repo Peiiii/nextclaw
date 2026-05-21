@@ -60,6 +60,7 @@ describe("resolveExtensionManifestRoots", () => {
     const roots = resolveBuiltinExtensionManifestRoots();
 
     expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-weixin"))).toBe(true);
+    expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-qq"))).toBe(true);
   });
 
   it("uses NextClaw extension directories and existing configured load paths", () => {
@@ -182,5 +183,101 @@ describe("ExtensionRuntimeService", () => {
       channel: "fake-channel",
       sessionId: "session-1",
     }));
+  });
+
+  it("forwards outbound channel reply context to extension requests", async () => {
+    const root = createTempDir();
+    const workspace = createTempDir();
+    writeExtensionManifest(root);
+    const eventBus = {
+      emitEnvelope: vi.fn(),
+    };
+    const ingress = new Ingress();
+    const runtime = new ExtensionRuntimeService({
+      eventBus,
+      getConfig: () => ({
+        channels: {
+          fake: {
+            enabled: true,
+          },
+        },
+        plugins: {
+          load: {
+            paths: [root],
+          },
+        },
+      }) as never,
+      getWorkspace: () => workspace,
+      ingress,
+      messageBus: {
+        publishInbound: vi.fn(async () => undefined),
+      },
+    });
+    runtime.registerIngressHandlers();
+
+    const contributions = await runtime.loadChannelContributions({
+      config: {
+        plugins: {
+          load: {
+            paths: [root],
+          },
+        },
+      } as never,
+      workspace,
+    });
+    const binding = contributions.channelBindings.find((entry) => entry.pluginId === "fake-extension");
+    const sendPromise = binding?.channel.outbound?.sendText?.({
+      cfg: {} as never,
+      to: "chat-1",
+      text: "hello",
+      accountId: "account-1",
+      replyTo: "message-1",
+      media: ["asset-1"],
+      metadata: {
+        qq: {
+          messageType: "group",
+          groupId: "group-1",
+          userId: "user-1",
+        },
+      },
+    });
+    const event = eventBus.emitEnvelope.mock.calls[0]?.[0];
+
+    expect(event).toEqual(expect.objectContaining({
+      type: "extension.request",
+      payload: expect.objectContaining({
+        extensionId: "fake-extension",
+        kind: "channel.outbound.sendText",
+        payload: expect.objectContaining({
+          channelId: "fake-channel",
+          to: "chat-1",
+          text: "hello",
+          accountId: "account-1",
+          replyTo: "message-1",
+          media: ["asset-1"],
+          metadata: {
+            qq: {
+              messageType: "group",
+              groupId: "group-1",
+              userId: "user-1",
+            },
+          },
+        }),
+      }),
+    }));
+
+    await ingress.handle({
+      type: "extension.response",
+      payload: {
+        requestId: event?.payload?.requestId,
+        ok: true,
+        data: { accepted: true },
+      },
+    }, {
+      source: "test",
+      token: runtime.token,
+    });
+
+    await expect(sendPromise).resolves.toEqual({ accepted: true });
   });
 });

@@ -108,7 +108,15 @@ describe("ChannelManager", () => {
 
   it("routes generic extension outbound text handlers", async () => {
     const { manager } = createManager();
-    const sent: Array<{ cfg: Config; to: string; text: string; accountId?: string | null }> = [];
+    const sent: Array<{
+      cfg: Config;
+      to: string;
+      text: string;
+      accountId?: string | null;
+      replyTo?: string | null;
+      media?: string[];
+      metadata?: Record<string, unknown>;
+    }> = [];
     manager.load({
       channelConfig: {} as Config,
       extensionChannels: [{
@@ -130,8 +138,16 @@ describe("ChannelManager", () => {
       channel: "test",
       chatId: "chat-1",
       content: "hello",
-      media: [],
-      metadata: { accountId: "account-1" },
+      replyTo: "message-1",
+      media: ["asset-1"],
+      metadata: {
+        accountId: "account-1",
+        qq: {
+          messageType: "group",
+          groupId: "group-1",
+          userId: "user-1",
+        },
+      },
     });
 
     expect(sent).toEqual([{
@@ -139,6 +155,16 @@ describe("ChannelManager", () => {
       to: "chat-1",
       text: "hello",
       accountId: "account-1",
+      replyTo: "message-1",
+      media: ["asset-1"],
+      metadata: {
+        accountId: "account-1",
+        qq: {
+          messageType: "group",
+          groupId: "group-1",
+          userId: "user-1",
+        },
+      },
     }]);
     await manager.stop();
   });

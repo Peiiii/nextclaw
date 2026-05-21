@@ -1,7 +1,7 @@
-import type { Config } from "../../config/configs/schema.js";
-import type { MessageBus } from "../../bus/services/queue.js";
-import type { SessionManager } from "../../session/managers/session.manager.js";
-import type { BaseChannel } from "../../channels/services/base.js";
+import type { MessageBus } from "@core/features/bus/index.js";
+import type { BaseChannel } from "@core/features/channels/index.js";
+import type { Config } from "@core/features/config/index.js";
+import type { SessionManager } from "@core/features/session/index.js";
 
 export type ExtensionDiagnostic = {
   level: "warn" | "error";
@@ -59,6 +59,9 @@ export type ExtensionChannel = {
       to: string;
       text: string;
       accountId?: string | null;
+      replyTo?: string | null;
+      media?: string[];
+      metadata?: Record<string, unknown>;
     }) => Promise<unknown> | unknown;
     sendPayload?: (ctx: {
       cfg: Config;
@@ -66,6 +69,9 @@ export type ExtensionChannel = {
       text: string;
       payload: unknown;
       accountId?: string | null;
+      replyTo?: string | null;
+      media?: string[];
+      metadata?: Record<string, unknown>;
     }) => Promise<unknown> | unknown;
   };
 };

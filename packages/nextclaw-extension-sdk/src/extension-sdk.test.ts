@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   ExtensionChannelController,
+  startBusChannelExtension,
   type ExtensionChannel,
   type ExtensionChannelAdapter,
   NextClawExtension,
@@ -71,6 +72,15 @@ type FakeInbound = {
   conversationId: string;
   senderId: string;
   text: string;
+};
+
+type FakeBusInbound = {
+  channel: string;
+  senderId: string;
+  chatId: string;
+  content: string;
+  attachments?: Array<{ id: string; name: string }>;
+  metadata?: Record<string, unknown>;
 };
 
 type FakeControllerHarness = {
@@ -398,6 +408,313 @@ describe("channel extension bootstrap", () => {
       { channelId: "fake" },
       expect.objectContaining({ kind: "channel.auth.start" }),
     );
+  });
+});
+
+describe("bus channel extension bootstrap", () => {
+  it("starts bus channel extensions without waiting for long-running channel start", async () => {
+    const fetchImpl = createFetchImpl({ config: { enabled: true, token: "secret" } });
+    let resolveStarted: (() => void) | null = null;
+    const startPromise = new Promise<void>((resolve) => {
+      resolveStarted = resolve;
+    });
+    const channel = {
+      start: vi.fn(() => startPromise),
+      stop: vi.fn(async () => undefined),
+      send: vi.fn(async () => undefined),
+    };
+    const createChannel = vi.fn(() => channel);
+
+    await expect(startBusChannelExtension(
+      {
+        channelId: "fake",
+        createChannel,
+      },
+      {
+        endpoint: "http://127.0.0.1:55667",
+        extensionId: "fake-extension",
+        token: "secret",
+        fetch: fetchImpl,
+      },
+    )).resolves.toBeUndefined();
+
+    expect(createChannel).toHaveBeenCalledWith(expect.objectContaining({
+      config: { enabled: true, token: "secret" },
+      bus: expect.objectContaining({ publishInbound: expect.any(Function) }),
+    }));
+    expect(channel.start).toHaveBeenCalledTimes(1);
+    resolveStarted?.();
+  });
+
+  it("maps bus inbound messages to submitted extension text messages", async () => {
+    const fetchImpl = createFetchImpl({ config: { enabled: true } });
+    let bus: { publishInbound: (message: FakeBusInbound) => Promise<void> } | null = null;
+    const channel = {
+      start: vi.fn(async () => {
+        await bus?.publishInbound({
+          channel: "fake",
+          chatId: "chat-1",
+          senderId: "sender-1",
+          content: "hello",
+          attachments: [{ id: "file-1", name: "a.txt" }],
+          metadata: { message_id: "message-1" },
+        });
+      }),
+      stop: vi.fn(async () => undefined),
+      send: vi.fn(async () => undefined),
+    };
+
+    await startBusChannelExtension(
+      {
+        channelId: "fake",
+        createChannel: (context) => {
+          bus = context.bus;
+          return channel;
+        },
+      },
+      {
+        endpoint: "http://127.0.0.1:55667",
+        extensionId: "fake-extension",
+        token: "secret",
+        fetch: fetchImpl,
+      },
+    );
+    await vi.waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(2));
+
+    const [, init] = fetchImpl.mock.calls[1] ?? [];
+    expect(JSON.parse(String(init?.body))).toEqual(expect.objectContaining({
+      type: "extension.channel.message.submit",
+      payload: {
+        channelId: "fake",
+        conversationId: "chat-1",
+        senderId: "sender-1",
+        content: { type: "text", text: "hello" },
+        attachments: [{ id: "file-1", name: "a.txt" }],
+        metadata: { message_id: "message-1" },
+      },
+    }));
+  });
+
+  it("maps outbound text requests to bus channel send calls", async () => {
+    const { fetchImpl, sockets } = createExtensionHarness({ config: { enabled: true } });
+    const channel = {
+      start: vi.fn(async () => undefined),
+      stop: vi.fn(async () => undefined),
+      send: vi.fn(async () => undefined),
+    };
+
+    await startBusChannelExtension(
+      {
+        channelId: "fake",
+        createChannel: () => channel,
+      },
+      {
+        endpoint: "http://127.0.0.1:55667",
+        extensionId: "fake-extension",
+        token: "secret",
+        fetch: fetchImpl,
+        webSocketFactory: (url) => {
+          const socket = {
+            url,
+            onopen: null,
+            onmessage: null,
+            onerror: null,
+            onclose: null,
+            close: vi.fn(),
+          };
+          sockets.push(socket);
+          return socket;
+        },
+      },
+    );
+    emitSocketEvent(sockets[0], "extension.request", {
+      requestId: "request-outbound",
+      extensionId: "fake-extension",
+      kind: "channel.outbound.sendText",
+      payload: {
+        to: "chat-1",
+        text: "hello",
+        accountId: "account-1",
+        replyTo: "message-1",
+        media: ["asset-1"],
+        metadata: {
+          qq: {
+            messageType: "group",
+            groupId: "group-1",
+            userId: "user-1",
+          },
+        },
+      },
+    });
+    await vi.waitFor(() => expect(channel.send).toHaveBeenCalled());
+
+    expect(channel.send).toHaveBeenCalledWith({
+      channel: "fake",
+      chatId: "chat-1",
+      content: "hello",
+      replyTo: "message-1",
+      media: ["asset-1"],
+      metadata: {
+        accountId: "account-1",
+        qq: {
+          messageType: "group",
+          groupId: "group-1",
+          userId: "user-1",
+        },
+      },
+    });
+  });
+});
+
+describe("bus channel extension replies", () => {
+  it("maps completed NCP events to bus channel replies", async () => {
+    const { fetchImpl, sockets } = createExtensionHarness({ config: { enabled: true } });
+    const channel = {
+      start: vi.fn(async () => undefined),
+      stop: vi.fn(async () => undefined),
+      send: vi.fn(async () => undefined),
+    };
+
+    await startBusChannelExtension(
+      {
+        channelId: "fake",
+        createChannel: () => channel,
+      },
+      {
+        endpoint: "http://127.0.0.1:55667",
+        extensionId: "fake-extension",
+        token: "secret",
+        fetch: fetchImpl,
+        webSocketFactory: (url) => {
+          const socket = {
+            url,
+            onopen: null,
+            onmessage: null,
+            onerror: null,
+            onclose: null,
+            close: vi.fn(),
+          };
+          sockets.push(socket);
+          return socket;
+        },
+      },
+    );
+    emitSocketEvent(sockets[0], "ncp.event", {
+      type: "message.completed",
+      payload: {
+        message: {
+          id: "assistant-1",
+          role: "assistant",
+          status: "final",
+          sessionId: "session-1",
+          timestamp: "2026-05-22T00:00:00.000Z",
+          parts: [{ type: "text", text: "reply" }],
+          metadata: {
+            channel: "fake",
+            chatId: "chat-1",
+            message_id: "message-1",
+            nextclaw_channel_trace_id: "trace-1",
+          },
+        },
+      },
+    });
+    await vi.waitFor(() => expect(channel.send).toHaveBeenCalled());
+
+    expect(channel.send).toHaveBeenCalledWith({
+      channel: "fake",
+      chatId: "chat-1",
+      content: "reply",
+      replyTo: "message-1",
+      media: [],
+      metadata: {
+        channel: "fake",
+        chatId: "chat-1",
+        message_id: "message-1",
+        nextclaw_channel_trace_id: "trace-1",
+      },
+    });
+  });
+
+  it("falls back to the agent session id when completed messages omit route metadata", async () => {
+    const { fetchImpl, sockets } = createExtensionHarness({ config: { enabled: true } });
+    const channel = {
+      start: vi.fn(async () => undefined),
+      stop: vi.fn(async () => undefined),
+      send: vi.fn(async () => undefined),
+    };
+
+    await startBusChannelExtension(
+      {
+        channelId: "qq",
+        createChannel: () => channel,
+      },
+      {
+        endpoint: "http://127.0.0.1:55667",
+        extensionId: "fake-extension",
+        token: "secret",
+        fetch: fetchImpl,
+        webSocketFactory: (url) => {
+          const socket = {
+            url,
+            onopen: null,
+            onmessage: null,
+            onerror: null,
+            onclose: null,
+            close: vi.fn(),
+          };
+          sockets.push(socket);
+          return socket;
+        },
+      },
+    );
+    emitSocketEvent(sockets[0], "ncp.event", {
+      type: "message.completed",
+      payload: {
+        message: {
+          id: "assistant-1",
+          role: "assistant",
+          status: "final",
+          sessionId: "agent:joker:qq:direct:chat-1",
+          timestamp: "2026-05-22T00:00:00.000Z",
+          parts: [{ type: "text", text: "reply" }],
+          metadata: {},
+        },
+      },
+    });
+    await vi.waitFor(() => expect(channel.send).toHaveBeenCalled());
+
+    expect(channel.send).toHaveBeenCalledWith({
+      channel: "qq",
+      chatId: "chat-1",
+      content: "reply",
+      media: [],
+      metadata: {},
+    });
+  });
+
+  it("stops bus channels when config disables them", async () => {
+    const fetchImpl = createFetchImpl({ config: { enabled: false } });
+    const channel = {
+      start: vi.fn(async () => undefined),
+      stop: vi.fn(async () => undefined),
+      send: vi.fn(async () => undefined),
+    };
+
+    await startBusChannelExtension(
+      {
+        channelId: "fake",
+        createChannel: () => channel,
+      },
+      {
+        endpoint: "http://127.0.0.1:55667",
+        extensionId: "fake-extension",
+        token: "secret",
+        fetch: fetchImpl,
+      },
+    );
+
+    expect(channel.start).not.toHaveBeenCalled();
+    expect(channel.stop).toHaveBeenCalledTimes(1);
   });
 });
 

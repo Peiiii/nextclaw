@@ -103,9 +103,12 @@ describe("ChannelCommands.status", () => {
 
   it("lists NextClaw extension manifest channels without starting extension processes", () => {
     mocks.getPluginChannelBindingsMock.mockReturnValue([]);
-    mocks.listExtensionChannelIdsMock.mockReturnValue(["weixin"]);
+    mocks.listExtensionChannelIdsMock.mockReturnValue(["qq", "weixin"]);
     mocks.resolveChannelConfigViewMock.mockReturnValue({
       channels: {
+        qq: {
+          enabled: false,
+        },
         weixin: {
           enabled: true,
           defaultAccountId: "bot-1@im.bot",
@@ -125,12 +128,18 @@ describe("ChannelCommands.status", () => {
     commands.list({ json: true });
 
     expect(JSON.parse(String(logSpy.mock.calls[0]?.[0]))).toEqual({
-      channels: [{
-        id: "weixin",
-        enabled: true,
-        defaultAccountId: "bot-1@im.bot",
-        accounts: [{ id: "bot-1@im.bot", userId: "user-1@im.wechat" }],
-      }],
+      channels: [
+        {
+          id: "qq",
+          enabled: false,
+        },
+        {
+          id: "weixin",
+          enabled: true,
+          defaultAccountId: "bot-1@im.bot",
+          accounts: [{ id: "bot-1@im.bot", userId: "user-1@im.wechat" }],
+        },
+      ],
     });
     logSpy.mockRestore();
   });
