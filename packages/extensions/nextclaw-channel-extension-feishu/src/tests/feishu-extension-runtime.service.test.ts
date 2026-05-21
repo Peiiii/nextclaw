@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ExtensionChannel } from "@nextclaw/extension-sdk";
-import { FeishuExtensionRuntime } from "../services/feishu-extension-runtime.service.js";
+import { ExtensionChannelController, type ExtensionChannel } from "@nextclaw/extension-sdk";
 import type { FeishuChannelAdapterContract } from "../types/feishu-extension.types.js";
+import { toFeishuSubmittedMessage } from "../utils/feishu-submitted-message.utils.js";
 
 function createChannel(config: Record<string, unknown>): ExtensionChannel {
   return {
@@ -32,7 +32,7 @@ function createAdapter(): FeishuChannelAdapterContract & {
   };
 }
 
-describe("FeishuExtensionRuntime", () => {
+describe("Feishu extension channel controller", () => {
   it("keeps start idempotent and drains subscription cleanups on stop", async () => {
     const cleanups = [vi.fn(), vi.fn(), vi.fn()];
     let cleanupIndex = 0;
@@ -52,11 +52,15 @@ describe("FeishuExtensionRuntime", () => {
       onMessage: vi.fn(() => nextCleanup()),
       sendNcpEvent: vi.fn(async () => undefined),
     };
-    const runtime = new FeishuExtensionRuntime(channel, adapter);
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter,
+      mapInbound: toFeishuSubmittedMessage,
+    });
 
-    await runtime.start();
-    await runtime.start();
-    await runtime.stop();
+    await controller.start();
+    await controller.start();
+    await controller.stop();
 
     for (const cleanup of cleanups) {
       expect(cleanup).toHaveBeenCalledTimes(1);
@@ -69,9 +73,13 @@ describe("FeishuExtensionRuntime", () => {
   it("submits Feishu chat id as the NCP peer route while keeping sender open id", async () => {
     const channel = createChannel({ enabled: true });
     const adapter = createAdapter();
-    const runtime = new FeishuExtensionRuntime(channel, adapter);
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter,
+      mapInbound: toFeishuSubmittedMessage,
+    });
 
-    await runtime.start();
+    await controller.start();
     await adapter.emit({
       conversationId: "oc-chat-1",
       senderId: "ou-user-1",

@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { NcpEventType } from "@nextclaw/ncp";
-import type { ExtensionChannel } from "@nextclaw/extension-sdk";
-import { WeixinExtensionRuntime } from "../services/weixin-extension-runtime.service.js";
+import { ExtensionChannelController, type ExtensionChannel } from "@nextclaw/extension-sdk";
 import { WeixinChannelAdapter } from "../services/weixin-channel-adapter.service.js";
 import type { WeixinApiClient } from "../services/weixin-api.service.js";
 import type { StoredWeixinAccount, WeixinAccountStore } from "../stores/weixin-account.store.js";
+import { toWeixinSubmittedMessage } from "../utils/weixin-submitted-message.utils.js";
 
 function createChannel(config: Record<string, unknown>): ExtensionChannel {
   return {
@@ -18,16 +18,20 @@ function createChannel(config: Record<string, unknown>): ExtensionChannel {
   };
 }
 
-describe("WeixinExtensionRuntime", () => {
+describe("Weixin extension channel controller", () => {
   it("submits adapter messages through the extension channel", async () => {
     const channel = createChannel({ enabled: true });
     const adapter = new WeixinChannelAdapter({
       api: createIdleApi(),
       store: createMemoryStore(),
     });
-    const runtime = new WeixinExtensionRuntime(channel, adapter);
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter,
+      mapInbound: toWeixinSubmittedMessage,
+    });
 
-    await runtime.start();
+    await controller.start();
     await adapter.emitMessageForTest({
       conversationId: "chat-1",
       senderId: "user-1",
@@ -49,7 +53,7 @@ describe("WeixinExtensionRuntime", () => {
         context_token: "ctx-1",
       },
     });
-    await runtime.stop();
+    await controller.stop();
   });
 
   it("forwards NCP events to the adapter", async () => {
@@ -69,9 +73,13 @@ describe("WeixinExtensionRuntime", () => {
       sendNcpEvent: vi.fn(async () => undefined),
       sendOutboundText: vi.fn(async () => undefined),
     };
-    const runtime = new WeixinExtensionRuntime(channel, adapter);
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter,
+      mapInbound: toWeixinSubmittedMessage,
+    });
 
-    await runtime.start();
+    await controller.start();
     await ncpHandler?.({
       type: "message.text-delta",
       payload: {
@@ -101,10 +109,14 @@ describe("WeixinExtensionRuntime", () => {
       sendNcpEvent: vi.fn(async () => undefined),
       sendOutboundText: vi.fn(async () => undefined),
     };
-    const runtime = new WeixinExtensionRuntime(channel, adapter);
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter,
+      mapInbound: toWeixinSubmittedMessage,
+    });
 
-    await runtime.start();
-    await expect(runtime.sendOutboundText({
+    await controller.start();
+    await expect(controller.sendOutboundText({
       to: "user-1@im.wechat",
       text: "hello",
       accountId: "bot-1@im.bot",
@@ -118,7 +130,7 @@ describe("WeixinExtensionRuntime", () => {
   });
 });
 
-describe("WeixinExtensionRuntime subscriptions", () => {
+describe("Weixin extension channel controller subscriptions", () => {
   it("keeps start idempotent and drains subscription cleanups on stop", async () => {
     const cleanups = [vi.fn(), vi.fn(), vi.fn()];
     let cleanupIndex = 0;
@@ -139,11 +151,15 @@ describe("WeixinExtensionRuntime subscriptions", () => {
       sendNcpEvent: vi.fn(async () => undefined),
       sendOutboundText: vi.fn(async () => undefined),
     };
-    const runtime = new WeixinExtensionRuntime(channel, adapter);
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter,
+      mapInbound: toWeixinSubmittedMessage,
+    });
 
-    await runtime.start();
-    await runtime.start();
-    await runtime.stop();
+    await controller.start();
+    await controller.start();
+    await controller.stop();
 
     for (const cleanup of cleanups) {
       expect(cleanup).toHaveBeenCalledTimes(1);
@@ -154,8 +170,8 @@ describe("WeixinExtensionRuntime subscriptions", () => {
   });
 });
 
-describe("WeixinExtensionRuntime error handling", () => {
-  it("keeps the extension runtime alive when Weixin send fails", async () => {
+describe("Weixin extension channel controller error handling", () => {
+  it("keeps the extension channel controller alive when Weixin send fails", async () => {
     let ncpHandler: ((event: unknown) => void | Promise<void>) | null = null;
     const channel = {
       ...createChannel({ enabled: true }),
@@ -175,9 +191,17 @@ describe("WeixinExtensionRuntime error handling", () => {
       }),
       sendOutboundText: vi.fn(async () => undefined),
     };
-    const runtime = new WeixinExtensionRuntime(channel, adapter);
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter,
+      mapInbound: toWeixinSubmittedMessage,
+      onNcpEventError: (error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(`[weixin] failed to send NCP event: ${message}`);
+      },
+    });
 
-    await runtime.start();
+    await controller.start();
     await expect(ncpHandler?.({
       type: "message.text-delta",
       payload: {
@@ -192,7 +216,7 @@ describe("WeixinExtensionRuntime error handling", () => {
   });
 });
 
-describe("WeixinExtensionRuntime Weixin adapter flow", () => {
+describe("Weixin extension channel adapter flow", () => {
   it("polls Weixin messages and submits allowed inbound text", async () => {
     const channel = createChannel({ enabled: true, defaultAccountId: "bot-1@im.bot" });
     const api = createIdleApi();
@@ -211,9 +235,13 @@ describe("WeixinExtensionRuntime Weixin adapter flow", () => {
       store: createMemoryStore(),
       sleep: async () => undefined,
     });
-    const runtime = new WeixinExtensionRuntime(channel, adapter);
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter,
+      mapInbound: toWeixinSubmittedMessage,
+    });
 
-    await runtime.start();
+    await controller.start();
     await waitFor(() => {
       expect(channel.submitMessage).toHaveBeenCalledWith(expect.objectContaining({
         conversationId: "user-1@im.wechat",
@@ -229,7 +257,7 @@ describe("WeixinExtensionRuntime Weixin adapter flow", () => {
         }),
       }));
     });
-    await runtime.stop();
+    await controller.stop();
   });
 
   it("sends completed NCP replies back to Weixin conversation routes", async () => {
@@ -244,9 +272,13 @@ describe("WeixinExtensionRuntime Weixin adapter flow", () => {
       api,
       store: createMemoryStore(),
     });
-    const runtime = new WeixinExtensionRuntime(channel, adapter);
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter,
+      mapInbound: toWeixinSubmittedMessage,
+    });
 
-    await runtime.start();
+    await controller.start();
     await ncpHandler?.({
       type: NcpEventType.MessageCompleted,
       payload: {
@@ -268,7 +300,7 @@ describe("WeixinExtensionRuntime Weixin adapter flow", () => {
       text: "reply from ai",
       contextToken: undefined,
     });
-    await runtime.stop();
+    await controller.stop();
   });
 
   it("sends outbound message tool text through Weixin API", async () => {
@@ -278,10 +310,14 @@ describe("WeixinExtensionRuntime Weixin adapter flow", () => {
       api,
       store: createMemoryStore(),
     });
-    const runtime = new WeixinExtensionRuntime(channel, adapter);
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter,
+      mapInbound: toWeixinSubmittedMessage,
+    });
 
-    await runtime.start();
-    await runtime.sendOutboundText({
+    await controller.start();
+    await controller.sendOutboundText({
       to: "user-1@im.wechat",
       text: "hello from message tool",
       accountId: "bot-1@im.bot",
@@ -294,11 +330,11 @@ describe("WeixinExtensionRuntime Weixin adapter flow", () => {
       text: "hello from message tool",
       contextToken: undefined,
     });
-    await runtime.stop();
+    await controller.stop();
   });
 });
 
-describe("WeixinExtensionRuntime Weixin route normalization", () => {
+describe("Weixin extension channel route normalization", () => {
   it("preserves configured Weixin conversation id casing when session ids are normalized", async () => {
     const channel = createChannel({
       enabled: true,
@@ -319,9 +355,13 @@ describe("WeixinExtensionRuntime Weixin route normalization", () => {
       api,
       store: createMemoryStore(),
     });
-    const runtime = new WeixinExtensionRuntime(channel, adapter);
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter,
+      mapInbound: toWeixinSubmittedMessage,
+    });
 
-    await runtime.start();
+    await controller.start();
     await ncpHandler?.({
       type: NcpEventType.MessageCompleted,
       payload: {
@@ -339,7 +379,7 @@ describe("WeixinExtensionRuntime Weixin route normalization", () => {
     expect(api.sendTextMessage).toHaveBeenCalledWith(expect.objectContaining({
       toUserId: "User-Case@im.wechat",
     }));
-    await runtime.stop();
+    await controller.stop();
   });
 
   it("clears saved cursor when getupdates reports session timeout and resumes quietly", async () => {
@@ -375,7 +415,7 @@ describe("WeixinExtensionRuntime Weixin route normalization", () => {
   });
 });
 
-describe("WeixinExtensionRuntime Weixin feature parity", () => {
+describe("Weixin extension channel feature parity", () => {
   it("submits inbound file attachments and starts typing after user messages", async () => {
     const channel = createChannel({ enabled: true, defaultAccountId: "bot-1@im.bot" });
     const api = createIdleApi();
@@ -394,9 +434,13 @@ describe("WeixinExtensionRuntime Weixin feature parity", () => {
       store: createMemoryStore(),
       sleep: async () => undefined,
     });
-    const runtime = new WeixinExtensionRuntime(channel, adapter);
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter,
+      mapInbound: toWeixinSubmittedMessage,
+    });
 
-    await runtime.start();
+    await controller.start();
     await waitFor(() => {
       expect(channel.submitMessage).toHaveBeenCalledWith(expect.objectContaining({
         content: {
@@ -415,7 +459,7 @@ describe("WeixinExtensionRuntime Weixin feature parity", () => {
         typingTicket: "typing-ticket-1",
       }));
     });
-    await runtime.stop();
+    await controller.stop();
   });
 
   it("streams text deltas back to Weixin before the completed event", async () => {
@@ -441,9 +485,13 @@ describe("WeixinExtensionRuntime Weixin feature parity", () => {
       store: createMemoryStore(),
       sleep: async () => undefined,
     });
-    const runtime = new WeixinExtensionRuntime(channel, adapter);
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter,
+      mapInbound: toWeixinSubmittedMessage,
+    });
 
-    await runtime.start();
+    await controller.start();
     await waitFor(() => {
       expect(channel.submitMessage).toHaveBeenCalledWith(expect.objectContaining({
         conversationId: "user-1@im.wechat",
@@ -504,7 +552,7 @@ describe("WeixinExtensionRuntime Weixin feature parity", () => {
         typingTicket: "typing-ticket-1",
       }));
     });
-    await runtime.stop();
+    await controller.stop();
   });
 });
 

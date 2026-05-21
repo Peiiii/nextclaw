@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { NextClawExtension } from "./index.js";
+import {
+  ExtensionChannelController,
+  type ExtensionChannel,
+  type ExtensionChannelAdapter,
+  NextClawExtension,
+} from "./index.js";
 
 type TestSocket = {
   url: string;
@@ -54,6 +59,76 @@ function emitSocketEvent(socket: TestSocket | undefined, type: string, payload: 
       payload,
     }),
   });
+}
+
+type FakeConfig = {
+  enabled?: boolean;
+};
+
+type FakeInbound = {
+  conversationId: string;
+  senderId: string;
+  text: string;
+};
+
+type FakeControllerHarness = {
+  adapter: ExtensionChannelAdapter<FakeConfig, FakeInbound> & {
+    emit: (message: FakeInbound) => Promise<void>;
+    sendOutboundText: ReturnType<typeof vi.fn>;
+  };
+  channel: ExtensionChannel;
+  cleanups: Array<ReturnType<typeof vi.fn>>;
+  ncpHandler: Parameters<ExtensionChannel["onNcpEvent"]>[0] | null;
+  configChangeHandler: ((config: FakeConfig) => void | Promise<void>) | null;
+};
+
+function createControllerHarness(configs: FakeConfig[]): FakeControllerHarness {
+  const cleanups = [vi.fn(), vi.fn(), vi.fn()];
+  let cleanupIndex = 0;
+  let messageHandler: ((message: FakeInbound) => void | Promise<void>) | null = null;
+  let ncpHandler: Parameters<ExtensionChannel["onNcpEvent"]>[0] | null = null;
+  let configChangeHandler: ((config: FakeConfig) => void | Promise<void>) | null = null;
+  const nextCleanup = () => cleanups[cleanupIndex++] ?? vi.fn();
+  const channel: ExtensionChannel = {
+    id: "fake",
+    config: {
+      get: vi.fn(async () => configs.shift() ?? {}),
+      onChange: vi.fn((handler) => {
+        configChangeHandler = handler as (config: FakeConfig) => void | Promise<void>;
+        return nextCleanup();
+      }),
+    },
+    submitMessage: vi.fn(async () => undefined),
+    onNcpEvent: vi.fn((handler) => {
+      ncpHandler = handler;
+      return nextCleanup();
+    }),
+  };
+  const adapter = {
+    configure: vi.fn(async () => undefined),
+    start: vi.fn(async () => undefined),
+    stop: vi.fn(async () => undefined),
+    onMessage: vi.fn((handler) => {
+      messageHandler = handler;
+      return nextCleanup();
+    }),
+    sendNcpEvent: vi.fn(async () => undefined),
+    sendOutboundText: vi.fn(async () => undefined),
+    emit: async (message: FakeInbound) => {
+      await messageHandler?.(message);
+    },
+  };
+  return {
+    adapter,
+    channel,
+    cleanups,
+    get ncpHandler() {
+      return ncpHandler;
+    },
+    get configChangeHandler() {
+      return configChangeHandler;
+    },
+  };
 }
 
 describe("@nextclaw/extension-sdk", () => {
@@ -240,5 +315,160 @@ describe("@nextclaw/extension-sdk", () => {
         },
       },
     }));
+  });
+});
+
+describe("ExtensionChannelController", () => {
+  it("submits adapter messages through the extension channel", async () => {
+    const { adapter, channel } = createControllerHarness([{ enabled: true }]);
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter,
+      mapInbound: (message: FakeInbound) => ({
+        conversationId: message.conversationId,
+        senderId: message.senderId,
+        content: {
+          type: "text",
+          text: message.text,
+        },
+      }),
+    });
+
+    await controller.start();
+    await adapter.emit({
+      conversationId: "conversation-1",
+      senderId: "user-1",
+      text: "hello",
+    });
+
+    expect(channel.submitMessage).toHaveBeenCalledWith({
+      conversationId: "conversation-1",
+      senderId: "user-1",
+      content: {
+        type: "text",
+        text: "hello",
+      },
+    });
+  });
+
+  it("keeps subscriptions idempotent and drains cleanups on stop", async () => {
+    const { adapter, channel, cleanups } = createControllerHarness([{ enabled: true }]);
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter,
+      mapInbound: (message: FakeInbound) => ({
+        conversationId: message.conversationId,
+        senderId: message.senderId,
+        content: { type: "text", text: message.text },
+      }),
+    });
+
+    await controller.start();
+    await controller.start();
+    await controller.stop();
+    await controller.stop();
+
+    for (const cleanup of cleanups) {
+      expect(cleanup).toHaveBeenCalledTimes(1);
+    }
+    expect(adapter.onMessage).toHaveBeenCalledTimes(1);
+    expect(channel.onNcpEvent).toHaveBeenCalledTimes(1);
+    expect(channel.config.onChange).toHaveBeenCalledTimes(1);
+    expect(adapter.stop).toHaveBeenCalledTimes(1);
+  });
+
+  it("applies config changes and stops disabled channels", async () => {
+    const harness = createControllerHarness([{ enabled: true }, { enabled: false }]);
+    const controller = new ExtensionChannelController({
+      channel: harness.channel,
+      adapter: harness.adapter,
+      mapInbound: (message: FakeInbound) => ({
+        conversationId: message.conversationId,
+        senderId: message.senderId,
+        content: { type: "text", text: message.text },
+      }),
+    });
+
+    await controller.start();
+    await harness.configChangeHandler?.({ enabled: false });
+
+    expect(harness.adapter.configure).toHaveBeenNthCalledWith(1, { enabled: true });
+    expect(harness.adapter.configure).toHaveBeenNthCalledWith(2, { enabled: false });
+    expect(harness.adapter.start).toHaveBeenCalledTimes(1);
+    expect(harness.adapter.stop).toHaveBeenCalledTimes(1);
+  });
+
+  it("forwards NCP events and delegates errors to the configured handler", async () => {
+    const harness = createControllerHarness([{ enabled: true }]);
+    const onNcpEventError = vi.fn();
+    harness.adapter.sendNcpEvent.mockRejectedValueOnce(new Error("send failed"));
+    const controller = new ExtensionChannelController({
+      channel: harness.channel,
+      adapter: harness.adapter,
+      mapInbound: (message: FakeInbound) => ({
+        conversationId: message.conversationId,
+        senderId: message.senderId,
+        content: { type: "text", text: message.text },
+      }),
+      onNcpEventError,
+    });
+    const event = {
+      type: "message.text-delta",
+      payload: {
+        sessionId: "session-1",
+        messageId: "message-1",
+        delta: "hi",
+      },
+    };
+
+    await controller.start();
+    await harness.ncpHandler?.(event);
+
+    expect(harness.adapter.sendNcpEvent).toHaveBeenCalledWith(event);
+    expect(onNcpEventError).toHaveBeenCalledWith(expect.any(Error), event);
+  });
+
+  it("forwards outbound text when the adapter supports it", async () => {
+    const { adapter, channel } = createControllerHarness([{ enabled: true }]);
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter,
+      mapInbound: (message: FakeInbound) => ({
+        conversationId: message.conversationId,
+        senderId: message.senderId,
+        content: { type: "text", text: message.text },
+      }),
+    });
+
+    await expect(controller.sendOutboundText({
+      to: "user-1",
+      text: "hello",
+      accountId: "account-1",
+    })).resolves.toEqual({ accepted: true });
+
+    expect(adapter.sendOutboundText).toHaveBeenCalledWith({
+      to: "user-1",
+      text: "hello",
+      accountId: "account-1",
+    });
+  });
+
+  it("fails outbound text clearly when the adapter does not support it", async () => {
+    const { adapter, channel } = createControllerHarness([{ enabled: true }]);
+    const { sendOutboundText: _sendOutboundText, ...inboundOnlyAdapter } = adapter;
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter: inboundOnlyAdapter,
+      mapInbound: (message: FakeInbound) => ({
+        conversationId: message.conversationId,
+        senderId: message.senderId,
+        content: { type: "text", text: message.text },
+      }),
+    });
+
+    await expect(controller.sendOutboundText({
+      to: "user-1",
+      text: "hello",
+    })).rejects.toThrow('channel "fake" does not support outbound text');
   });
 });

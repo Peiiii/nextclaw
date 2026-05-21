@@ -5,9 +5,6 @@ export {
   WeixinChannelAdapter,
 } from "./services/weixin-channel-adapter.service.js";
 export {
-  WeixinExtensionRuntime,
-} from "./services/weixin-extension-runtime.service.js";
-export {
   DEFAULT_WEIXIN_BASE_URL,
   WEIXIN_CHANNEL_CONFIG_SCHEMA,
   WEIXIN_CHANNEL_CONFIG_UI_HINTS,

@@ -1,7 +1,10 @@
-import { NextClawExtension } from "@nextclaw/extension-sdk";
+import {
+  ExtensionChannelController,
+  NextClawExtension,
+} from "@nextclaw/extension-sdk";
 import { WeixinAuthCapability } from "./services/weixin-auth-capability.service.js";
 import { WeixinChannelAdapter } from "./services/weixin-channel-adapter.service.js";
-import { WeixinExtensionRuntime } from "./services/weixin-extension-runtime.service.js";
+import { toWeixinSubmittedMessage } from "./utils/weixin-submitted-message.utils.js";
 
 function readRequiredString(value: unknown, name: string): string {
   if (typeof value !== "string" || !value.trim()) {
@@ -16,17 +19,23 @@ function readOptionalString(value: unknown): string | undefined {
 
 const extension = new NextClawExtension();
 const weixin = extension.channels.use("weixin");
-const runtime = new WeixinExtensionRuntime(
-  weixin,
-  new WeixinChannelAdapter(),
-);
+const adapter = new WeixinChannelAdapter();
+const controller = new ExtensionChannelController({
+  channel: weixin,
+  adapter,
+  mapInbound: toWeixinSubmittedMessage,
+  onNcpEventError: (error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[weixin] failed to send NCP event: ${message}`);
+  },
+});
 
 extension.capabilities.provide("channel.auth", new WeixinAuthCapability({ channel: weixin }));
 extension.capabilities.provideHandler("channel.outbound.sendText", async (payload) =>
-  await runtime.sendOutboundText({
+  await controller.sendOutboundText({
     to: readRequiredString(payload.to, "to"),
     text: readRequiredString(payload.text, "text"),
     accountId: readOptionalString(payload.accountId),
   }),
 );
-await runtime.start();
+await controller.start();

@@ -1,6 +1,5 @@
 export { FeishuAuthCapability } from "./services/feishu-auth-capability.service.js";
 export { FeishuChannelAdapter } from "./services/feishu-channel-adapter.service.js";
-export { FeishuExtensionRuntime } from "./services/feishu-extension-runtime.service.js";
 export { FeishuRegistrationService } from "./services/feishu-registration.service.js";
 export type {
   FeishuAccountConfig,

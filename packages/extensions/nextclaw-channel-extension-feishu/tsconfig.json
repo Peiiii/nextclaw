@@ -6,6 +6,7 @@
     "baseUrl": ".",
     "paths": {
       "@nextclaw/extension-sdk": ["../../nextclaw-extension-sdk/src/index.ts"],
+      "@nextclaw/shared": ["../../nextclaw-shared/src/index.ts"],
       "@nextclaw/ncp": ["../../ncp-packages/nextclaw-ncp/src/index.ts"],
       "@nextclaw/ncp-toolkit": ["../../ncp-packages/nextclaw-ncp-toolkit/src/index.ts"]
     }
