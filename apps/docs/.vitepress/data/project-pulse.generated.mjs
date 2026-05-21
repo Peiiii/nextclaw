@@ -1,18 +1,18 @@
 export default {
-  "generatedAt": "2026-05-21T01:24:58.499Z",
+  "generatedAt": "2026-05-21T12:09:45.085Z",
   "hero": {
     "currentLoc": 174325,
     "testLoc": 45439,
     "trackedFiles": 1745,
-    "recentCommitCount": 380,
+    "recentCommitCount": 382,
     "activeDays30": 22,
     "recentReleaseCount": 63,
     "latestReleaseDate": "2026-05-19",
     "latestNoteDate": "2026-05-06",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 770544,
-    "basePercentOfBenchmark": 22.62,
-    "lighterByPercent": 77.38
+    "benchmarkCodeLines": 1403912,
+    "basePercentOfBenchmark": 12.42,
+    "lighterByPercent": 87.58
   },
   "trends": {
     "locDaily": [
@@ -469,7 +469,7 @@ export default {
       {
         "key": "2026-05-20",
         "label": "05-20",
-        "value": 174325
+        "value": 178414
       },
       {
         "key": "2026-05-21",
@@ -526,6 +526,11 @@ export default {
       {
         "key": "2026-05-20",
         "label": "05-20",
+        "value": 47673
+      },
+      {
+        "key": "2026-05-21",
+        "label": "05-21",
         "value": 45439
       }
     ],
@@ -678,7 +683,7 @@ export default {
       {
         "key": "2026-05-21",
         "label": "05-21",
-        "value": 3
+        "value": 5
       }
     ],
     "commitWeekly": [
@@ -740,7 +745,7 @@ export default {
       {
         "key": "2026-05-18",
         "label": "05-18",
-        "value": 67
+        "value": 69
       }
     ],
     "releaseMonthly": [
@@ -867,9 +872,9 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 770544,
-      "basePercentOfBenchmark": 22.62,
-      "lighterByPercent": 77.38
+      "benchmarkCodeLines": 1403912,
+      "basePercentOfBenchmark": 12.42,
+      "lighterByPercent": 87.58
     },
     "recentReleaseBatches": [
       {
@@ -1106,7 +1111,7 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-05-20T18:03:24.699Z",
+    "locGeneratedAt": "2026-05-21T03:23:33.841Z",
     "sourceCount": {
       "notes": 5,
       "scopes": 8

@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-05-20T18:03:24.699Z",
-  "projectRoot": "/Users/peiwang/Projects/nextbot",
+  "generatedAt": "2026-05-21T03:23:33.841Z",
+  "projectRoot": "/home/runner/work/nextclaw/nextclaw",
   "git": {
-    "sha": "",
-    "ref": ""
+    "sha": "c1e37db1d7f51ef14f7a81aee8f431dd5a13ba0e",
+    "ref": "master"
   },
   "scope": {
     "profile": "source",
