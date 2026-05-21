@@ -38,15 +38,32 @@ function extractZip(zipPath, outputDir) {
   ]);
 }
 
+function ensurePortableZip(arch) {
+  const zipPath = resolve(releaseDir, `NextClaw-Portable-${version}-win-${arch}.zip`);
+  if (existsSync(zipPath)) {
+    return zipPath;
+  }
+  run(binName("pnpm"), [
+    "-C",
+    "apps/desktop",
+    "exec",
+    "node",
+    "scripts/package-windows-portable.mjs",
+    "--",
+    "--arch",
+    arch
+  ]);
+  if (!existsSync(zipPath)) {
+    throw new Error(`Portable zip was not created: ${zipPath}`);
+  }
+  return zipPath;
+}
+
 async function verifyPortableZip(arch) {
   if (!version) {
     throw new Error("Desktop package version is missing.");
   }
-  run(binName("pnpm"), ["-C", "apps/desktop", "exec", "node", "scripts/package-windows-portable.mjs", "--arch", arch]);
-  const zipPath = resolve(releaseDir, `NextClaw-Portable-${version}-win-${arch}.zip`);
-  if (!existsSync(zipPath)) {
-    throw new Error(`Portable zip was not created: ${zipPath}`);
-  }
+  const zipPath = ensurePortableZip(arch);
   const tempRoot = mkdtempSync(join(tmpdir(), `nextclaw-portable-${arch}-`));
   try {
     extractZip(zipPath, tempRoot);
