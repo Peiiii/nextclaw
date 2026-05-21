@@ -63,9 +63,6 @@ export class NcpAssetRoutesController {
   constructor(private readonly options: UiRouterOptions) {}
 
   private readonly getAssetApi = () => {
-    if (this.options.ncpAssets) {
-      return this.options.ncpAssets;
-    }
     const kernel = this.options.kernel;
     if (!kernel) {
       return undefined;

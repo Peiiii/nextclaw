@@ -292,83 +292,6 @@ importers:
         specifier: ^4.45.0
         version: 4.67.0(@cloudflare/workers-types@4.20260228.0)
 
-  apps/ncp-demo:
-    devDependencies:
-      eslint:
-        specifier: ^9.39.3
-        version: 9.39.3(jiti@2.6.1)
-
-  apps/ncp-demo/backend:
-    dependencies:
-      '@hono/node-server':
-        specifier: ^1.13.3
-        version: 1.19.9(hono@4.11.9)
-      '@nextclaw/ncp':
-        specifier: workspace:*
-        version: link:../../../packages/ncp-packages/nextclaw-ncp
-      '@nextclaw/ncp-agent-runtime':
-        specifier: workspace:*
-        version: link:../../../packages/ncp-packages/nextclaw-ncp-agent-runtime
-      '@nextclaw/ncp-http-agent-server':
-        specifier: workspace:*
-        version: link:../../../packages/ncp-packages/nextclaw-ncp-http-agent-server
-      '@nextclaw/ncp-toolkit':
-        specifier: workspace:*
-        version: link:../../../packages/ncp-packages/nextclaw-ncp-toolkit
-      hono:
-        specifier: ^4.9.8
-        version: 4.11.9
-    devDependencies:
-      '@types/node':
-        specifier: ^20.17.6
-        version: 20.19.33
-      tsx:
-        specifier: ^4.19.2
-        version: 4.21.0
-      typescript:
-        specifier: ^5.6.3
-        version: 5.9.3
-
-  apps/ncp-demo/frontend:
-    dependencies:
-      '@nextclaw/ncp':
-        specifier: workspace:*
-        version: link:../../../packages/ncp-packages/nextclaw-ncp
-      '@nextclaw/ncp-http-agent-client':
-        specifier: workspace:*
-        version: link:../../../packages/ncp-packages/nextclaw-ncp-http-agent-client
-      '@nextclaw/ncp-react':
-        specifier: workspace:*
-        version: link:../../../packages/ncp-packages/nextclaw-ncp-react
-      '@nextclaw/ncp-react-ui':
-        specifier: workspace:*
-        version: link:../../../packages/ncp-packages/nextclaw-ncp-react-ui
-      react:
-        specifier: ^18.3.1
-        version: 18.3.1
-      react-dom:
-        specifier: ^18.3.1
-        version: 18.3.1(react@18.3.1)
-    devDependencies:
-      '@types/react':
-        specifier: ^18.3.12
-        version: 18.3.28
-      '@types/react-dom':
-        specifier: ^18.3.1
-        version: 18.3.7(@types/react@18.3.28)
-      '@vitejs/plugin-react':
-        specifier: ^6.0.1
-        version: 6.0.1(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@25.5.0)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
-      eslint-plugin-unicorn:
-        specifier: ^63.0.0
-        version: 63.0.0(eslint@9.39.3(jiti@2.6.1))
-      typescript:
-        specifier: ^5.6.3
-        version: 5.9.3
-      vite:
-        specifier: ^8.0.3
-        version: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@25.5.0)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
-
   apps/nextclaw-apps-web:
     dependencies:
       react:
@@ -1310,6 +1233,12 @@ importers:
 
   packages/nextclaw-kernel:
     dependencies:
+      '@nextclaw/channel-extension-feishu':
+        specifier: workspace:*
+        version: link:../extensions/nextclaw-channel-extension-feishu
+      '@nextclaw/channel-extension-weixin':
+        specifier: workspace:*
+        version: link:../extensions/nextclaw-channel-extension-weixin
       '@nextclaw/core':
         specifier: workspace:*
         version: link:../nextclaw-core
@@ -1322,9 +1251,6 @@ importers:
       '@nextclaw/ncp-agent-runtime':
         specifier: workspace:*
         version: link:../ncp-packages/nextclaw-ncp-agent-runtime
-      '@nextclaw/ncp-http-agent-server':
-        specifier: workspace:*
-        version: link:../ncp-packages/nextclaw-ncp-http-agent-server
       '@nextclaw/ncp-mcp':
         specifier: workspace:*
         version: link:../ncp-packages/nextclaw-ncp-mcp
@@ -1601,9 +1527,6 @@ importers:
       '@nextclaw/ncp':
         specifier: workspace:*
         version: link:../ncp-packages/nextclaw-ncp
-      '@nextclaw/ncp-http-agent-server':
-        specifier: workspace:*
-        version: link:../ncp-packages/nextclaw-ncp-http-agent-server
       '@nextclaw/openclaw-compat':
         specifier: workspace:*
         version: link:../nextclaw-openclaw-compat
@@ -1659,9 +1582,6 @@ importers:
       '@nextclaw/ncp-agent-runtime':
         specifier: workspace:*
         version: link:../ncp-packages/nextclaw-ncp-agent-runtime
-      '@nextclaw/ncp-http-agent-server':
-        specifier: workspace:*
-        version: link:../ncp-packages/nextclaw-ncp-http-agent-server
       '@nextclaw/ncp-mcp':
         specifier: workspace:*
         version: link:../ncp-packages/nextclaw-ncp-mcp

@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-20T03:23:20.505Z",
+  "generatedAt": "2026-05-20T18:03:24.699Z",
   "base": {
     "name": "nextclaw",
-    "projectRoot": "/home/runner/work/nextclaw/nextclaw",
+    "projectRoot": "/Users/peiwang/Projects/nextbot",
     "scope": {
       "profile": "source",
       "title": "Source LOC",
@@ -12,8 +12,6 @@
         "apps/desktop/src",
         "apps/landing/src",
         "apps/maintainability-console/src",
-        "apps/ncp-demo/backend/src",
-        "apps/ncp-demo/frontend/src",
         "apps/nextclaw-apps-web/src",
         "apps/platform-admin/src",
         "apps/platform-console/src",
@@ -36,8 +34,6 @@
         "packages/extensions/nextclaw-narp-runtime-codex-sdk/src",
         "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk/src",
         "packages/extensions/nextclaw-ncp-runtime-codex-sdk/src",
-        "packages/extensions/nextclaw-ncp-runtime-plugin-claude-code-sdk/src",
-        "packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src",
         "packages/ncp-packages/nextclaw-ncp-agent-runtime/src",
         "packages/ncp-packages/nextclaw-ncp-http-agent-client/src",
         "packages/ncp-packages/nextclaw-ncp-http-agent-server/src",
@@ -97,17 +93,17 @@
       ]
     },
     "totals": {
-      "files": 1779,
-      "totalLines": 250210,
-      "blankLines": 23474,
+      "files": 1745,
+      "totalLines": 243274,
+      "blankLines": 22861,
       "commentLines": 649,
-      "codeLines": 178414,
-      "testCodeLines": 47673
+      "codeLines": 174325,
+      "testCodeLines": 45439
     }
   },
   "benchmark": {
     "name": "openclaw",
-    "projectRoot": "/home/runner/work/nextclaw/nextclaw/external/openclaw",
+    "projectRoot": "/Users/peiwang/Projects/openclaw",
     "scope": {
       "profile": "source",
       "includePaths": [
@@ -139,18 +135,18 @@
       ]
     },
     "totals": {
-      "files": 13623,
-      "totalLines": 3225375,
-      "blankLines": 271816,
-      "commentLines": 45864,
-      "codeLines": 1400421,
-      "testCodeLines": 1507274
+      "files": 8201,
+      "totalLines": 1588045,
+      "blankLines": 141416,
+      "commentLines": 28428,
+      "codeLines": 770544,
+      "testCodeLines": 647657
     }
   },
   "comparison": {
-    "baseMinusBenchmarkLines": -1222007,
-    "basePercentOfBenchmark": 12.74,
-    "benchmarkMultipleOfBase": 7.85,
-    "baseIsLighterByPercent": 87.26
+    "baseMinusBenchmarkLines": -596219,
+    "basePercentOfBenchmark": 22.62,
+    "benchmarkMultipleOfBase": 4.42,
+    "baseIsLighterByPercent": 77.38
   }
 }

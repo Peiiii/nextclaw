@@ -14,6 +14,7 @@ import {
 } from "@nextclaw/ncp";
 import { EventBus } from "@nextclaw/shared";
 import { createUiRouter } from "@nextclaw-server/app/router.js";
+import type { UiKernelHost } from "@nextclaw-server/app/types/router-options.types.js";
 
 const tempDirs: string[] = [];
 const originalHome = process.env.NEXTCLAW_HOME;
@@ -163,8 +164,13 @@ it("routes ncp send through AgentRunRequestManager and stores the assistant repl
   const app = createUiRouter({
     configPath,
     appEventBus: new EventBus(),
-    sessions: manager.sessionApi,
-    agentRunRequests: manager,
+    kernel: ({
+      agentRunRequestManager: manager,
+      agentRuntimeManager: createReplyingRuntimeManager(),
+      assetStore: {} as never,
+      llmProviders: {} as never,
+      ncpSessionApi: manager.sessionApi,
+    } as unknown as UiKernelHost),
   });
 
   try {

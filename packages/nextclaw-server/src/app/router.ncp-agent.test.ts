@@ -14,6 +14,7 @@ import {
 } from "@nextclaw/ncp";
 import { createUiRouter } from "./router.js";
 import { EventBus } from "@nextclaw/shared";
+import type { UiKernelHost } from "./types/router-options.types.js";
 
 const tempDirs: string[] = [];
 const originalHome = process.env.NEXTCLAW_HOME;
@@ -228,6 +229,22 @@ class StubNcpAgent implements NcpSessionApi {
   private publish = (_event: NcpEndpointEvent): void => {};
 }
 
+function createTestKernel(agent: StubNcpAgent): UiKernelHost {
+  return {
+    agentRunRequestManager: agent,
+    agentRuntimeManager: {
+      listSessionTypes: agent.listSessionTypes,
+    },
+    assetStore: {
+      putBytes: agent.assetApi.put,
+      statRecord: agent.assetApi.stat,
+      resolveContentPath: agent.assetApi.resolveContentPath,
+    },
+    ncpSessionApi: agent,
+    llmProviders: {},
+  } as unknown as UiKernelHost;
+}
+
 function createTestApp(): { app: ReturnType<typeof createUiRouter>; agent: StubNcpAgent } {
   useIsolatedHome();
   const configPath = createTempConfigPath();
@@ -238,10 +255,7 @@ function createTestApp(): { app: ReturnType<typeof createUiRouter>; agent: StubN
     app: createUiRouter({
       configPath,
       appEventBus: new EventBus(),
-      sessions: agent,
-      agentRunRequests: agent,
-      agentRuntimeTypes: agent,
-      ncpAssets: agent.assetApi,
+      kernel: createTestKernel(agent),
     }),
   };
 }
@@ -372,7 +386,7 @@ it("includes a derived context window snapshot in the session messages seed", as
   });
 });
 
-it("keeps session routes readable before the runtime agent is mounted", async () => {
+it("keeps session routes readable through the kernel session api", async () => {
   useIsolatedHome();
   const configPath = createTempConfigPath();
   saveConfig(ConfigSchema.parse({}), configPath);
@@ -380,7 +394,7 @@ it("keeps session routes readable before the runtime agent is mounted", async ()
   const app = createUiRouter({
     configPath,
     appEventBus: new EventBus(),
-    sessions: sessionService
+    kernel: createTestKernel(sessionService),
   });
 
   const sessionsResponse = await app.request("http://localhost/api/ncp/sessions");
@@ -407,9 +421,12 @@ it("keeps session routes readable before the runtime agent is mounted", async ()
   expect(sessionTypesPayload.ok).toBe(true);
   expect(sessionTypesPayload.data).toEqual({
     defaultType: "native",
-    options: [{ value: "native", label: "Native" }],
+    options: [
+      { value: "native", label: "Native" },
+      { value: "codex", label: "Codex" },
+    ],
   });
-  expect(sessionService.sessionTypeListCalls).toEqual([]);
+  expect(sessionService.sessionTypeListCalls).toEqual([{ describeMode: "observation" }]);
 });
 
 it("stores uploaded ncp assets and serves their content back", async () => {
@@ -630,10 +647,7 @@ it("exposes session-scoped skills for persisted and draft sessions", async () =>
   const app = createUiRouter({
     configPath,
     appEventBus: new EventBus(),
-    sessions: agent,
-    agentRunRequests: agent,
-    agentRuntimeTypes: agent,
-    ncpAssets: agent.assetApi,
+    kernel: createTestKernel(agent),
   });
 
   const response = await app.request("http://localhost/api/ncp/sessions/session-1/skills");
@@ -699,10 +713,7 @@ it("exposes draft session skills without requiring an empty projectRoot override
   const app = createUiRouter({
     configPath,
     appEventBus: new EventBus(),
-    sessions: agent,
-    agentRunRequests: agent,
-    agentRuntimeTypes: agent,
-    ncpAssets: agent.assetApi,
+    kernel: createTestKernel(agent),
   });
 
   const response = await app.request("http://localhost/api/ncp/sessions/draft-session/skills");

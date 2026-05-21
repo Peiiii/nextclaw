@@ -37,12 +37,6 @@
       "@nextclaw/ncp": [
         "../ncp-packages/nextclaw-ncp/src/index.ts"
       ],
-      "@nextclaw/ncp-toolkit": [
-        "../ncp-packages/nextclaw-ncp-toolkit/src/index.ts"
-      ],
-      "@nextclaw/ncp-http-agent-server": [
-        "../ncp-packages/nextclaw-ncp-http-agent-server/src/index.ts"
-      ],
       "@nextclaw/channel-runtime": [
         "../extensions/nextclaw-channel-runtime/src/index.ts"
       ]

@@ -150,7 +150,7 @@ class UiRouteRegistry {
   };
 
   private readonly mountNcpAgentRoutes = (
-    agentRunRequests: NonNullable<UiRouterOptions["agentRunRequests"]>,
+    agentRunRequestManager: NonNullable<UiRouterOptions["kernel"]>["agentRunRequestManager"],
     ncpAsset: UiRouteControllers["ncpAsset"],
   ): void => {
     this.app.post(`${NCP_AGENT_BASE_PATH}/send`, async (c) => {
@@ -158,7 +158,7 @@ class UiRouteRegistry {
       if (!body.ok || !isValidSendEnvelope(body.data)) {
         return c.json(err("INVALID_BODY", "Invalid NCP request envelope."), 400);
       }
-      const handle = await agentRunRequests.send(body.data);
+      const handle = await agentRunRequestManager.send(body.data);
       return c.json(ok(handle));
     });
     this.app.get(`${NCP_AGENT_BASE_PATH}/stream`, (c) => {
@@ -167,7 +167,7 @@ class UiRouteRegistry {
         return c.json(err("INVALID_QUERY", "sessionId is required."), 400);
       }
       return createNcpEventStreamResponse(
-        agentRunRequests.stream(payload, { signal: c.req.raw.signal }),
+        agentRunRequestManager.stream(payload, { signal: c.req.raw.signal }),
         c.req.raw.signal,
       );
     });
@@ -176,7 +176,7 @@ class UiRouteRegistry {
       if (!body.ok || !isAbortPayload(body.data)) {
         return c.json(err("INVALID_BODY", "sessionId is required."), 400);
       }
-      await agentRunRequests.abort(body.data);
+      await agentRunRequestManager.abort(body.data);
       return c.json(ok({ accepted: true }));
     });
     this.mountRoutes([
@@ -247,10 +247,10 @@ class UiRouteRegistry {
       ["get", "/api/server-paths/browse", serverPath.browse],
       ["get", "/api/server-paths/read", serverPath.read],
     ]);
-    const agentRunRequests = this.options.kernel?.agentRunRequestManager ?? this.options.agentRunRequests;
+    const agentRunRequestManager = this.options.kernel?.agentRunRequestManager;
     const { ingress } = this.options;
-    if (agentRunRequests) {
-      this.mountNcpAgentRoutes(agentRunRequests, ncpAsset);
+    if (agentRunRequestManager) {
+      this.mountNcpAgentRoutes(agentRunRequestManager, ncpAsset);
     }
     this.mountRoutes([
       ["get", "/api/cron", cron.listJobs],

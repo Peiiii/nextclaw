@@ -98,24 +98,6 @@ function createTestGateway(params: {
     initializeAgentHomeDirectory: () => {},
     marketplace: {},
     cron: new AutomationManager({ storePath: `${configPath}.cron.json` }),
-    agentRunRequests: {
-      send: async () => ({
-        sessionId: "session-1",
-        userMessageId: "user-1",
-        assistantMessageId: null,
-        runId: null,
-      }),
-      run: async function* () {},
-      stream: async function* () {},
-      abort: async () => {},
-    },
-    sessions: {
-        listSessions: async () => [],
-        listSessionMessages: async () => [],
-        getSession: async () => null,
-        updateSession: async () => null,
-        deleteSession: async () => {},
-    },
     remoteAccess: {
       getStatus: unavailable,
       login: unavailable,

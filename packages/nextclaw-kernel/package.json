@@ -33,7 +33,6 @@
     "@nextclaw/core": "workspace:*",
     "@nextclaw/mcp": "workspace:*",
     "@nextclaw/ncp-agent-runtime": "workspace:*",
-    "@nextclaw/ncp-http-agent-server": "workspace:*",
     "@nextclaw/ncp-mcp": "workspace:*",
     "@nextclaw/ncp-toolkit": "workspace:*",
     "@nextclaw/nextclaw-ncp-runtime-http-client": "workspace:*",

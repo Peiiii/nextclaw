@@ -10,6 +10,7 @@ const testConnectionMock = vi.fn(async (_params: { maxTokens?: number }) => {});
 
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { createUiRouter } from "./router.js";
+import type { UiKernelHost } from "./types/router-options.types.js";
 
 function createTempConfigPath(): string {
   const dir = mkdtempSync(join(tmpdir(), "nextclaw-ui-provider-probe-"));
@@ -35,9 +36,15 @@ describe("provider connection probe route", () => {
     const app = createUiRouter({
       configPath,
       appEventBus: new EventBus(),
-      providers: {
-        testConnection: testConnectionMock,
-      } as unknown as LlmProviderManager,
+      kernel: {
+        agentRunRequestManager: {} as never,
+        agentRuntimeManager: {} as never,
+        assetStore: {} as never,
+        ncpSessionApi: {} as never,
+        llmProviders: {
+          testConnection: testConnectionMock,
+        } as unknown as LlmProviderManager,
+      } satisfies UiKernelHost,
     });
 
     const response = await app.request("http://localhost/api/config/providers/openai/test", {

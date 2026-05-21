@@ -125,12 +125,10 @@ export class NcpSessionRoutesController {
     this.sessionSkillsViewBuilder = new SessionSkillsViewBuilder(options);
   }
 
-  private readonly getSessionApi = () => this.options.kernel?.ncpSessionApi ?? this.options.sessions;
+  private readonly getSessionApi = () => this.options.kernel?.ncpSessionApi;
 
   readonly getSessionTypes = async (c: Context) => {
-    const listSessionTypes =
-      this.options.kernel?.agentRuntimeManager.listSessionTypes ??
-      this.options.agentRuntimeTypes?.listSessionTypes;
+    const listSessionTypes = this.options.kernel?.agentRuntimeManager.listSessionTypes;
     const payload: ChatSessionTypesView = listSessionTypes
       ? await listSessionTypes({ describeMode: "observation" })
       : {
