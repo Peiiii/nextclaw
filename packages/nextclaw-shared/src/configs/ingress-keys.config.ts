@@ -1,4 +1,9 @@
-import type { NcpAgentSendEnvelope, NcpMessage, NcpMessageAbortPayload } from "@nextclaw/ncp";
+import type {
+  NcpAgentSendEnvelope,
+  NcpMessage,
+  NcpMessageAbortPayload,
+  NcpMessagePart,
+} from "@nextclaw/ncp";
 import { createTypedKey } from "../types/typed-key.types.js";
 
 export type ExtensionChannelTextContent = {
@@ -64,6 +69,13 @@ export type AgentRunSessionMessageRequestPayload = {
   sessionId: string;
 };
 
+export type AgentRunSendIngressPayload =
+  | (NcpAgentSendEnvelope & { content?: never })
+  | (Omit<NcpAgentSendEnvelope, "message"> & {
+      content: NcpMessagePart[];
+      message?: never;
+    });
+
 export const ingressKeys = {
   extension: {
     channelConfigGet: createTypedKey<ExtensionChannelConfigGetIngressPayload>(
@@ -76,7 +88,7 @@ export const ingressKeys = {
     response: createTypedKey<ExtensionResponseIngressPayload>("extension.response"),
   },
   agentRun: {
-    send: createTypedKey<NcpAgentSendEnvelope>("agent-run.send"),
+    send: createTypedKey<AgentRunSendIngressPayload>("agent-run.send"),
     abort: createTypedKey<NcpMessageAbortPayload>("agent-run.abort"),
     sessionMessageRequest:
       createTypedKey<AgentRunSessionMessageRequestPayload>(

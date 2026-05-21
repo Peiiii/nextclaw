@@ -1,12 +1,15 @@
 import { Hono, type Handler } from "hono";
 import type {
-  NcpAgentSendEnvelope,
   NcpEndpointEvent,
   NcpMessageAbortPayload,
   NcpRunHandle,
   NcpStreamRequestPayload,
 } from "@nextclaw/ncp";
-import { ingressKeys, type IngressEnvelope } from "@nextclaw/shared";
+import {
+  ingressKeys,
+  type AgentRunSendIngressPayload,
+  type IngressEnvelope,
+} from "@nextclaw/shared";
 import { AgentsRoutesController } from "@nextclaw-server/features/agents/index.js";
 import { AppRoutesController } from "@nextclaw-server/app/controllers/app.controller.js";
 import { AuthRoutesController, UiAuthService } from "@nextclaw-server/features/auth/index.js";
@@ -62,11 +65,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function isValidSendEnvelope(value: unknown): value is NcpAgentSendEnvelope {
-  return isRecord(value) &&
-    (!Object.prototype.hasOwnProperty.call(value, "sessionId") ||
-      (typeof value.sessionId === "string" && value.sessionId.trim().length > 0)) &&
-    isRecord(value.message);
+function hasOwn(value: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function isValidSendEnvelope(value: unknown): value is AgentRunSendIngressPayload {
+  if (!isRecord(value)) {
+    return false;
+  }
+  if (
+    hasOwn(value, "sessionId") &&
+    (typeof value.sessionId !== "string" || value.sessionId.trim().length === 0)
+  ) {
+    return false;
+  }
+  const hasMessage = hasOwn(value, "message");
+  const hasContent = hasOwn(value, "content");
+  if (hasMessage === hasContent) {
+    return false;
+  }
+  return hasMessage ? isRecord(value.message) : Array.isArray(value.content);
 }
 
 function readStreamPayload(url: string): NcpStreamRequestPayload | null {
@@ -145,11 +163,11 @@ class UiRouteRegistry {
     ncpAsset: UiRouteControllers["ncpAsset"],
   ): void => {
     this.app.post(`${NCP_AGENT_BASE_PATH}/send`, async (c) => {
-      const body = await readJson<NcpAgentSendEnvelope>(c.req.raw);
+      const body = await readJson<AgentRunSendIngressPayload>(c.req.raw);
       if (!body.ok || !isValidSendEnvelope(body.data)) {
         return c.json(err("INVALID_BODY", "Invalid NCP request envelope."), 400);
       }
-      const handle = await kernel.ingress.handle<NcpAgentSendEnvelope, NcpRunHandle>(
+      const handle = await kernel.ingress.handle<AgentRunSendIngressPayload, NcpRunHandle>(
         {
           type: ingressKeys.agentRun.send,
           payload: body.data,

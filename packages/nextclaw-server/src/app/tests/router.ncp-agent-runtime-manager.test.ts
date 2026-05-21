@@ -178,6 +178,24 @@ it("routes ncp send through AgentRunRequestManager and stores the assistant repl
   });
 
   try {
+    const invalidSendResponse = await app.request("http://localhost/api/ncp/agent/send", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: [{ type: "text", text: "ambiguous" }],
+        message: {
+          id: "user-message-ambiguous",
+          role: "user",
+          status: "final",
+          timestamp: "2026-03-17T00:00:00.000Z",
+          parts: [{ type: "text", text: "ambiguous" }]
+        },
+      })
+    });
+    expect(invalidSendResponse.status).toBe(400);
+
     const sendResponse = await app.request("http://localhost/api/ncp/agent/send", {
       method: "POST",
       headers: {
@@ -187,13 +205,10 @@ it("routes ncp send through AgentRunRequestManager and stores the assistant repl
         metadata: {
           session_type: "native",
         },
-        message: {
-          id: "user-message-1",
-          role: "user",
-          status: "final",
-          timestamp: "2026-03-17T00:00:00.000Z",
-          parts: [{ type: "text", text: "ping" }]
-        }
+        content: [
+          { type: "text", text: "ping" },
+          { type: "file", url: "https://example.com/a.pdf", name: "a.pdf" },
+        ],
       })
     });
     expect(sendResponse.status).toBe(200);

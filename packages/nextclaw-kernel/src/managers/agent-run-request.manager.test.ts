@@ -12,7 +12,12 @@ import {
   type NcpRunHandle,
 } from "@nextclaw/ncp";
 import { InMemoryAgentSessionStore, type RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
-import { EventBus, Ingress, ingressKeys } from "@nextclaw/shared";
+import {
+  EventBus,
+  Ingress,
+  ingressKeys,
+  type AgentRunSendIngressPayload,
+} from "@nextclaw/shared";
 import { AgentRunRequestManager } from "./agent-run-request.manager.js";
 import type { AgentRuntimeManager } from "./agent-runtime.manager.js";
 import { SessionRunManager } from "./session-run.manager.js";
@@ -168,6 +173,59 @@ describe("AgentRunRequestManager", () => {
       assistantMessageId: "assistant-message-1",
       runId: runtimeRunId,
     });
+    await manager.dispose();
+    await sessionRunManager.dispose();
+  });
+
+  it("materializes content ingress payloads into user messages", async () => {
+    const ingress = new Ingress();
+    const sessions = new SessionManager({ sessionsDir: createTempDir() });
+    const {
+      runtimeFactoryParams,
+      runtimeInputs,
+      runtimeManager,
+    } = createRuntimeManagerStub();
+    const onSessionUpdated = vi.fn();
+    const sessionRunManager = new SessionRunManager({
+      agentRuntimeManager: runtimeManager,
+      ncpAgentSessionStore: new InMemoryAgentSessionStore(),
+      eventBus: new EventBus(),
+      handleNcpEvent: vi.fn(),
+      onSessionUpdated,
+    });
+    const manager = new AgentRunRequestManager({
+      sessions,
+      ingress,
+      sessionRunManager,
+      onSessionUpdated,
+    });
+    manager.start();
+
+    const handle = await ingress.handle<AgentRunSendIngressPayload, NcpRunHandle>({
+      type: ingressKeys.agentRun.send,
+      payload: {
+        metadata: { session_type: "native" },
+        content: [
+          { type: "text", text: "analyze this" },
+          { type: "file", url: "https://example.com/a.pdf", name: "a.pdf" },
+        ],
+      },
+    }, { source: "test" });
+
+    const userMessage = runtimeInputs[0]?.messages[0];
+    expect(userMessage).toMatchObject({
+      role: "user",
+      status: "final",
+      parts: [
+        { type: "text", text: "analyze this" },
+        { type: "file", url: "https://example.com/a.pdf", name: "a.pdf" },
+      ],
+    });
+    expect(userMessage?.id).toMatch(/^user-message-/);
+    expect(userMessage?.timestamp).toEqual(expect.any(String));
+    expect(userMessage?.sessionId).toBe(runtimeInputs[0]?.sessionId);
+    expect(runtimeFactoryParams[0]?.sessionId).toBe(runtimeInputs[0]?.sessionId);
+    expect(handle.userMessageId).toBe(userMessage?.id);
     await manager.dispose();
     await sessionRunManager.dispose();
   });

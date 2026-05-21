@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { type SessionManager } from "@nextclaw/core";
 import {
   ingressKeys,
+  type AgentRunSendIngressPayload,
   type AgentRunSessionMessageRequestPayload,
   type Ingress,
   type IngressEnvelope,
@@ -87,7 +88,7 @@ export class AgentRunRequestManager {
   ): AsyncIterable<NcpEndpointEvent> => this.iterateRun(this.materializeRunEnvelope(envelope), options);
 
   private readonly handleSendRequest = async (
-    envelope: IngressEnvelope<NcpAgentSendEnvelope>,
+    envelope: IngressEnvelope<AgentRunSendIngressPayload>,
   ): Promise<NcpRunHandle> => {
     if (!envelope.payload) {
       throw new Error("Invalid agent run send request.");
@@ -214,16 +215,17 @@ export class AgentRunRequestManager {
   };
 
   private readonly materializeSendEnvelope = (
-    envelope: NcpAgentSendEnvelope,
+    envelope: AgentRunSendIngressPayload,
   ): MaterializedAgentRunRequest => {
-    const existingSessionId = readString(envelope.sessionId) ?? readString(envelope.message.sessionId);
+    const sendEnvelope = this.toNcpSendEnvelope(envelope);
+    const existingSessionId = readString(sendEnvelope.sessionId) ?? readString(sendEnvelope.message.sessionId);
     if (existingSessionId) {
-      return this.materializeRunEnvelope(withSession(envelope, existingSessionId));
+      return this.materializeRunEnvelope(withSession(sendEnvelope, existingSessionId));
     }
 
-    const metadata = envelope.metadata ?? {};
+    const metadata = sendEnvelope.metadata ?? {};
     const createdSession = this.sessions.createSession({
-      task: readMessageTask(envelope.message),
+      task: readMessageTask(sendEnvelope.message),
       title: readMetadataString(metadata, "label", "title"),
       sourceSessionMetadata: {},
       metadataOverrides: metadata,
@@ -235,7 +237,29 @@ export class AgentRunRequestManager {
       projectRoot: readMetadataString(metadata, "project_root"),
     });
     this.onSessionUpdated(createdSession.sessionId);
-    return this.materializeRunEnvelope(withSession(envelope, createdSession.sessionId));
+    return this.materializeRunEnvelope(withSession(sendEnvelope, createdSession.sessionId));
+  };
+
+  private readonly toNcpSendEnvelope = (
+    envelope: AgentRunSendIngressPayload,
+  ): NcpAgentSendEnvelope => {
+    if (Array.isArray(envelope.content)) {
+      const { content, ...request } = envelope;
+      return {
+        ...request,
+        message: {
+          id: `user-message-${randomUUID()}`,
+          role: "user",
+          status: "final",
+          timestamp: new Date().toISOString(),
+          parts: structuredClone(content),
+        },
+      };
+    }
+    if ("message" in envelope && envelope.message) {
+      return envelope;
+    }
+    throw new Error("Invalid agent run send request.");
   };
 
   private readonly materializeRunEnvelope = (envelope: NcpRequestEnvelope): MaterializedAgentRunRequest => ({
