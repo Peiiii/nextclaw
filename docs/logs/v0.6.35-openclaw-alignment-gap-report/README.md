@@ -3,7 +3,7 @@
 ## 迭代完成说明（改了什么）
 
 - 新增 OpenClaw 对齐差距报告：
-  - `docs/designs/openclaw-alignment-gap-report.md`
+  - `docs/designs/2026-02-21-openclaw-alignment-gap-report.md`
 - 报告基于代码级对照（`nextbot` vs `/Users/peiwang/Projects/openclaw`），逐项评估你提出的多 Agent 目标能力：
   - 已对齐 / 部分对齐 / 未对齐
   - 关键证据（文件+行号）
@@ -14,7 +14,7 @@
 ### 文档完整性验证
 
 ```bash
-ls -la docs/designs/openclaw-alignment-gap-report.md
+ls -la docs/designs/2026-02-21-openclaw-alignment-gap-report.md
 ls -la docs/logs/v0.6.35-openclaw-alignment-gap-report/README.md
 ```
 

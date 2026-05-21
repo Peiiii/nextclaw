@@ -177,31 +177,6 @@ export type EmailConfig = {
   allowFrom: string[];
 };
 
-export type MochatConfig = {
-  enabled: boolean;
-  baseUrl: string;
-  socketUrl: string;
-  socketPath: string;
-  socketDisableMsgpack: boolean;
-  socketReconnectDelayMs: number;
-  socketMaxReconnectDelayMs: number;
-  socketConnectTimeoutMs: number;
-  refreshIntervalMs: number;
-  watchTimeoutMs: number;
-  watchLimit: number;
-  retryDelayMs: number;
-  maxRetryAttempts: number;
-  clawToken: string;
-  agentUserId: string;
-  sessions: string[];
-  panels: string[];
-  allowFrom: string[];
-  mention: { requireInGroups: boolean };
-  groups: Record<string, { requireMention: boolean }>;
-  replyDelayMode: string;
-  replyDelayMs: number;
-};
-
 export type QQConfig = {
   enabled: boolean;
   appId: string;

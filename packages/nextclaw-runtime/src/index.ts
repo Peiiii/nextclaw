@@ -4,7 +4,7 @@ export {
   BUILTIN_CHANNEL_PLUGIN_IDS,
   type BuiltinChannelPluginId,
   isBuiltinChannelPluginId
-} from "./channels/builtin.js";
+} from "./channels/builtin-channel.config.js";
 
 export {
   builtinProviderIds,

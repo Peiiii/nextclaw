@@ -32,7 +32,7 @@
 - Modify: `packages/nextclaw-core/src/agent/skills/cross-channel-messaging/SKILL.md`
 - Modify: `docs/prd/current-feature-list.md`
 - Modify: `docs/feature-universe.md`
-- Modify: `docs/designs/openclaw-alignment-gap-report.md`
+- Modify: `docs/designs/2026-02-21-openclaw-alignment-gap-report.md`
 
 **Steps:**
 1. Delete `sessions_send` from the exposed tool catalog.

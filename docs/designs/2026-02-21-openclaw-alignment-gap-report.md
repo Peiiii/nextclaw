@@ -28,7 +28,7 @@
   - Workspace 规则文件注入机制（`AGENTS.md`/`SOUL.md` 等）有基础。
 - **部分对齐（3项）**：
   - 多账号能力（NextClaw 仅在插件网关启动层支持 accountId，未进入路由中枢）。
-  - 群聊策略（NextClaw 只在 Slack/Mochat 具备，Discord/Telegram 不完整）。
+  - 群聊策略（NextClaw 只在 Slack 具备一部分，Discord/Telegram 不完整）。
   - 记忆能力（NextClaw 仅轻量注入；OpenClaw 有 memory backend + per-agent memorySearch）。
 - **未对齐（3项，核心缺口）**：
   - `bindings: channel + accountId (+peer) -> agentId` 的平台级路由分诊。
@@ -43,7 +43,7 @@
 | 多 Agent 固定角色并行 | `agents.list[]` + `AgentEntrySchema`（含 `id/workspace/model/groupChat`） | 只有 `agents.defaults`，无 `agents.list` | **未对齐** |
 | `channel+accountId->agentId` 路由 | 顶层 `bindings` + `resolveAgentRoute()` 多层匹配 | 无顶层 `bindings`；通道入站直接进单总线 | **未对齐** |
 | 私聊隔离 `dmScope` | `session.dmScope` 支持 `per-account-channel-peer` 等 | 默认 `sessionKey = channel:chatId`，无 `dmScope` 配置 | **未对齐** |
-| Discord/Telegram 群聊 mention gate | Discord/Telegram 均有 `requireMention/groupPolicy` 与 mention regex 流程 | Slack/Mochat 有，Discord/Telegram 基本无 | **部分对齐** |
+| Discord/Telegram 群聊 mention gate | Discord/Telegram 均有 `requireMention/groupPolicy` 与 mention regex 流程 | Slack 有一部分，Discord/Telegram 基本无 | **部分对齐** |
 | 规则+提示词双轨治理 | 平台策略（路由/会话/群聊）+ agent 规则文件 | 有规则文件注入，但平台策略层不完整 | **部分对齐** |
 | 分层记忆与检索 | memory backend(`builtin/qmd`) + per-agent `memorySearch` | `agents.context.memory` 仅字符注入 | **部分对齐** |
 | Discord/Telegram 双栈+账户级路由 | 路由计算中显式传 `accountId` + `peer/parentPeer` | 插件层能起 account，但无 agent 路由绑定 | **部分对齐** |
@@ -102,10 +102,9 @@
 - Discord 入站未做 mention gate；仅收消息后入总线：
   - `packages/extensions/nextclaw-channel-runtime/src/channels/discord.ts:133`
   - `packages/extensions/nextclaw-channel-runtime/src/channels/discord.ts:184`
-- 当前“部分能力”只在 Slack/Mochat 具备：
+- 当前“部分能力”只在 Slack 具备：
   - `packages/nextclaw-core/src/config/schema.ts:122`
   - `packages/extensions/nextclaw-channel-runtime/src/channels/slack.ts:167`
-  - `packages/extensions/nextclaw-channel-runtime/src/channels/mochat.ts:637`
 - accountId 在插件网关层可启动，但未形成路由中枢：
   - `packages/nextclaw-openclaw-compat/src/plugins/types.ts:87`
   - `packages/nextclaw-openclaw-compat/src/plugins/channel-runtime.ts:115`

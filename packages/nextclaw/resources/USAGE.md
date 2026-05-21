@@ -961,27 +961,6 @@ Use the QQ open platform app credentials.
 }
 ```
 
-### Mochat
-
-Mochat uses a claw token and optional socket URL. Configure base URL, socket, and (optionally) sessions/panels and group rules.
-
-```json
-{
-  "channels": {
-    "mochat": {
-      "enabled": true,
-      "baseUrl": "https://mochat.io",
-      "socketUrl": "",
-      "clawToken": "YOUR_CLAW_TOKEN",
-      "agentUserId": "",
-      "sessions": [],
-      "panels": [],
-      "allowFrom": []
-    }
-  }
-}
-```
-
 After changing channel config, NextClaw hot-reloads channel runtime automatically when the gateway is running.
 
 ---

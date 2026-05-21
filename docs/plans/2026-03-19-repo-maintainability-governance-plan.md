@@ -232,7 +232,6 @@
 - `packages/nextclaw-ui/src/components/config/ProviderForm.tsx`
 - `packages/extensions/nextclaw-channel-runtime/src/channels/discord.ts`
 - `packages/extensions/nextclaw-channel-runtime/src/channels/telegram.ts`
-- `packages/extensions/nextclaw-channel-runtime/src/channels/mochat.ts`
 
 ### 5.3 红区操作规则
 
@@ -325,7 +324,7 @@
 
 ### 6.5 Channel Runtime
 
-适用：Discord / Telegram / Mochat / QQ 等
+适用：Discord / Telegram / QQ 等
 
 推荐分层：
 

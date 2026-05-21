@@ -37,7 +37,7 @@
 当前能力也补充一下：
 
 1. 接多家模型服务：OpenRouter、OpenAI、Anthropic、Gemini、DeepSeek、Groq、MiniMax、Moonshot、DashScope、Zhipu、AiHubMix、vLLM。
-2. 接多种消息渠道：Discord、Telegram、Slack、WhatsApp、飞书、钉钉、企业微信、QQ、Email、Mochat。
+2. 接多种消息渠道：Discord、Telegram、Slack、WhatsApp、飞书、钉钉、企业微信、QQ、Email。
 3. 做自动化：内置 Cron + Heartbeat，可以跑定时任务和后台任务。
 4. 本地运行：配置、会话、密钥默认留在本机。
 5. 用同一个 UI 管理聊天、Provider、渠道和技能配置。

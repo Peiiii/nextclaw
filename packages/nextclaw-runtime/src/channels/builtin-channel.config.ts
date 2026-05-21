@@ -3,7 +3,6 @@ export const BUILTIN_CHANNEL_PLUGIN_IDS = [
   "whatsapp",
   "discord",
   "feishu",
-  "mochat",
   "dingtalk",
   "wecom",
   "email",

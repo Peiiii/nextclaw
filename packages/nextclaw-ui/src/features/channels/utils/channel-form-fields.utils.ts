@@ -189,15 +189,6 @@ export function buildChannelFormDefinitions(): Record<string, ChannelFormDefinit
       { name: 'fromAddress', type: 'email', label: t('fromAddress') }
       ]
     },
-    mochat: {
-      fields: [
-      { name: 'enabled', type: 'boolean', label: t('enabled') },
-      { name: 'baseUrl', type: 'text', label: t('baseUrl') },
-      { name: 'clawToken', type: 'password', label: t('clawToken') },
-      { name: 'agentUserId', type: 'text', label: t('agentUserId') },
-      { name: 'allowFrom', type: 'tags', label: t('allowFrom') }
-      ]
-    },
     qq: {
       fields: [
       { name: 'enabled', type: 'boolean', label: t('enabled') },

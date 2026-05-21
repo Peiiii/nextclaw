@@ -14,7 +14,6 @@ const CHANNEL_LABELS: Record<string, string> = {
   whatsapp: "WhatsApp",
   discord: "Discord",
   feishu: "Feishu",
-  mochat: "Mochat",
   dingtalk: "DingTalk",
   wecom: "WeCom",
   email: "Email",

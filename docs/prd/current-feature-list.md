@@ -72,7 +72,6 @@
 - Email
 - QQ
 - Weixin
-- Mochat
 
 ## 7. 渠道运维命令
 

@@ -188,7 +188,7 @@
 
 ### 高置信事实型优势
 
-- NextClaw 官方能力清单覆盖 `Telegram / Discord / WhatsApp / Feishu / DingTalk / Slack / Email / QQ / Weixin / Mochat` 等多个渠道。
+- NextClaw 官方能力清单覆盖 `Telegram / Discord / WhatsApp / Feishu / DingTalk / Slack / Email / QQ / Weixin` 等多个渠道。
 - NextClaw 在国内渠道上很强，尤其是 `微信 / 飞书 / QQ / 钉钉` 这组能力，对中文市场宣传价值很高。
 - NextClaw 把渠道配置集中放在统一控制面里，减少多入口接入成本。
 - NextClaw 有 `channels status`、`channels login` 这类渠道运维命令，说明不是停留在“能接上”，而是在走可运维路线。

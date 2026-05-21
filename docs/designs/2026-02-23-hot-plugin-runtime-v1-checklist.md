@@ -41,4 +41,4 @@
 
 - [USAGE](../USAGE.md)
 - [Multi-Agent Architecture](https://docs.nextclaw.io/en/guide/multi-agent)
-- [OpenClaw Alignment Gap Report](./openclaw-alignment-gap-report.md)
+- [OpenClaw Alignment Gap Report](./2026-02-21-openclaw-alignment-gap-report.md)

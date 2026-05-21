@@ -10,7 +10,6 @@ const CHANNEL_LOGOS: LogoMap = {
   dingtalk: "dingtalk.svg",
   wecom: "wecom.svg",
   weixin: "weixin.svg",
-  mochat: "mochat.svg",
   email: "email.svg"
 };
 

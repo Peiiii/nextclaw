@@ -31,7 +31,7 @@
     - `docs/prd/current-feature-list.md`
     - `docs/prd/nextclaw-ui-prd.md`
     - `docs/nextclaw-ui-design-brief.md`
-    - `docs/designs/ui-gateway-api.md`
+    - `docs/designs/2026-02-12-ui-gateway-api.md`
 
 ## 测试 / 验证 / 验收方式
 

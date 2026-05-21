@@ -4,8 +4,8 @@
 
 - 清理 `docs/guides/**` 目录，避免与 `apps/docs/guide/**` 语义冲突。
 - 将原 `docs/guides/**` 内容迁移到内部目录 `docs/designs/**`：
-  - `hot-plugin-runtime-v1-checklist.md`
-  - `openclaw-alignment-gap-report.md`
+  - `2026-02-23-hot-plugin-runtime-v1-checklist.md`
+  - `2026-02-21-openclaw-alignment-gap-report.md`
   - `multi-agent-architecture-reference.md`
 - 用户向文档链接统一改为 docs 站点：
   - `docs/USAGE.md` 中多 Agent 文档链接改为 `https://docs.nextclaw.io/guide/multi-agent`

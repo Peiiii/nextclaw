@@ -22,7 +22,7 @@
 | `nextclaw-ui` | 配置 Web UI（模型 / Provider / 渠道 / 路由与运行时） |
 | `nextclaw-openclaw-compat` | OpenClaw 插件 SDK 与兼容层 |
 | `nextclaw-channel-runtime` | 渠道运行时（加载、注册、消息入站/出站） |
-| `nextclaw-channel-plugin-*` | 各渠道插件：telegram, discord, slack, feishu, dingtalk, wecom, whatsapp, email, qq, weixin, mochat |
+| `nextclaw-channel-plugin-*` | 各渠道插件：telegram, discord, slack, feishu, dingtalk, wecom, whatsapp, email, qq, weixin |
 
 ---
 
@@ -157,7 +157,6 @@
 | whatsapp | 通过 bridge（如 ws），可选 `channels login` |
 | email | IMAP + SMTP，轮询回复 |
 | qq | QQ 开放平台 appId/secret |
-| mochat | claw token，可选 socketUrl/sessions/panels |
 
 通用：`allowFrom` 白名单、`accountId`、各渠道策略（dmPolicy、groupPolicy、requireMention 等）。
 

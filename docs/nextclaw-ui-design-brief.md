@@ -131,15 +131,15 @@ Page title “Model Configuration” and short description; then a form with:
 
 **UI elements:**
 
-- **Tabs (in-page):**  
-  - “Enabled” — count = number of channels with `config.channels[c.name].enabled === true`.  
-  - “All Channels” — count = total channels.  
-- **Cards:** One card per channel (filtered by tab).  
-  - Logo/icon (frontend can map `name` to logo; e.g. telegram, discord, feishu, qq, slack, email, dingtalk, mochat, whatsapp).  
-  - Name: `displayName || name`.  
-  - Short description (e.g. telegram: “Connect with Telegram bots…”; discord: “Connect Discord bots…”; feishu: “Enterprise messaging…”; fallback: “Configure this communication channel”).  
-  - Status badge: “Active” (green) if enabled, “Inactive” if not.  
-  - Optional: link to `tutorialUrl` (e.g. icon “View Guide” opening in new tab).  
+- **Tabs (in-page):**
+  - “Enabled” — count = number of channels with `config.channels[c.name].enabled === true`.
+  - “All Channels” — count = total channels.
+- **Cards:** One card per channel (filtered by tab).
+  - Logo/icon (frontend can map `name` to logo; e.g. telegram, discord, feishu, qq, slack, email, dingtalk, whatsapp).
+  - Name: `displayName || name`.
+  - Short description (e.g. telegram: “Connect with Telegram bots…”; discord: “Connect Discord bots…”; feishu: “Enterprise messaging…”; fallback: “Configure this communication channel”).
+  - Status badge: “Active” (green) if enabled, “Inactive” if not.
+  - Optional: link to `tutorialUrl` (e.g. icon “View Guide” opening in new tab).
   - Primary action: “Configure” or “Enable” → opens **Channel edit modal** for that `channel.name`.
 
 **Empty state:** If no channels in list, show message like “No channels enabled” and “Enable a messaging channel…”.
@@ -163,7 +163,6 @@ Page title “Model Configuration” and short description; then a form with:
 - **dingtalk:** enabled (boolean), clientId (text), clientSecret (password), allowFrom (tags).  
 - **slack:** enabled (boolean), mode (text), webhookPath (text), botToken (password), appToken (password).  
 - **email:** enabled (boolean), consentGranted (boolean), imapHost (text), imapPort (number), imapUsername (text), imapPassword (password), fromAddress (email).  
-- **mochat:** enabled (boolean), baseUrl (text), clawToken (password), agentUserId (text), allowFrom (tags).  
 - **qq:** enabled (boolean), appId (text), secret (password), markdownSupport (boolean), allowFrom (tags).
 
 **Field types:**  
@@ -214,8 +213,8 @@ boolean → toggle/switch; password → masked input (optional “show”); text
 
 ## 12. Optional: asset and copy reference
 
-- **Provider logos (optional):** openrouter, aihubmix, anthropic, openai, gemini, deepseek, zhipu, dashscope, moonshot, minimax, vllm, groq (current map: name → filename like openai.svg, minimax.svg).  
-- **Channel logos (optional):** telegram, slack, discord, whatsapp, qq, feishu, dingtalk, mochat, email.  
+- **Provider logos (optional):** openrouter, aihubmix, anthropic, openai, gemini, deepseek, zhipu, dashscope, moonshot, minimax, vllm, groq (current map: name → filename like openai.svg, minimax.svg).
+- **Channel logos (optional):** telegram, slack, discord, whatsapp, qq, feishu, dingtalk, email.
 - **Labels:** The app uses short labels for form fields (e.g. “API Key”, “Bot Token”, “Allow From”, “Enabled”). These can stay as-is in the redesign; see `lib/i18n` in codebase for full list if needed during implementation.
 
 ---

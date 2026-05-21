@@ -25,7 +25,7 @@
 - 统一提示：如果 gateway 正在运行，插件变更会自动热应用。
 
 5. 文档更新
-- 新增清单文档：[Hot Plugin Runtime v1 清单](../../designs/hot-plugin-runtime-v1-checklist.md)
+- 新增清单文档：[Hot Plugin Runtime v1 清单](../../designs/2026-02-23-hot-plugin-runtime-v1-checklist.md)
 - 更新使用文档：[USAGE](../../USAGE.md)
 
 ## 测试 / 验证 / 验收方式

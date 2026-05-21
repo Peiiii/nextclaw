@@ -2,7 +2,6 @@ import type { Config, MessageBus, SessionManager } from "@nextclaw/core";
 import { DingTalkChannel } from "./channels/dingtalk.js";
 import { DiscordChannel } from "./channels/discord.js";
 import { EmailChannel } from "./channels/email.js";
-import { MochatChannel } from "./channels/mochat.js";
 import { QQChannel } from "./channels/qq.service.js";
 import { SlackChannel } from "./channels/slack.js";
 import { TelegramChannel } from "./channels/telegram.js";
@@ -47,12 +46,6 @@ const BUILTIN_CHANNEL_RUNTIMES = {
     isEnabled: (config: Config) => config.channels.discord.enabled,
     createChannel: (context: BuiltinChannelCreateContext) =>
       new DiscordChannel(context.config.channels.discord, context.bus, context.sessionManager, context.config),
-  },
-  mochat: {
-    id: "mochat",
-    isEnabled: (config: Config) => config.channels.mochat.enabled,
-    createChannel: (context: BuiltinChannelCreateContext) =>
-      new MochatChannel(context.config.channels.mochat, context.bus),
   },
   dingtalk: {
     id: "dingtalk",
@@ -113,7 +106,6 @@ export {
   DingTalkChannel,
   DiscordChannel,
   EmailChannel,
-  MochatChannel,
   QQChannel,
   SlackChannel,
   TelegramChannel,

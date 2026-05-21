@@ -103,4 +103,4 @@ SMOKE_OK {
   - `@nextclaw/server@0.4.8`
   - `@nextclaw/ui@0.3.12`
 - 部署方式：升级到上述版本后重启 Gateway/UI 进程即可生效。
-- 发布后文档影响检查：已更新 `docs/designs/openclaw-alignment-gap-report.md`，补充前端对齐进展。
+- 发布后文档影响检查：已更新 `docs/designs/2026-02-21-openclaw-alignment-gap-report.md`，补充前端对齐进展。

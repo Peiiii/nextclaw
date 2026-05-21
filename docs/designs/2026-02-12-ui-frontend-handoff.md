@@ -20,7 +20,7 @@
 
 ## 3. 后端 API 对接
 
-详见：`docs/designs/ui-gateway-api.md`
+详见：`docs/designs/2026-02-12-ui-gateway-api.md`
 
 重点接口：
 
@@ -79,7 +79,6 @@
 - DingTalk: `enabled`, `clientId`, `clientSecret`, `allowFrom`
 - Slack: `enabled`, `mode`, `webhookPath`, `botToken`, `appToken`, `groupPolicy`, `groupAllowFrom`, `dm.enabled`, `dm.policy`, `dm.allowFrom`
 - Email: `enabled`, `consentGranted`, `imapHost`, `imapPort`, `imapUsername`, `imapPassword`, `imapMailbox`, `imapUseSsl`, `smtpHost`, `smtpPort`, `smtpUsername`, `smtpPassword`, `smtpUseTls`, `smtpUseSsl`, `fromAddress`, `autoReplyEnabled`, `pollIntervalSeconds`, `markSeen`, `maxBodyChars`, `subjectPrefix`, `allowFrom`
-- Mochat: `enabled`, `baseUrl`, `socketUrl`, `socketPath`, `socketDisableMsgpack`, `socketReconnectDelayMs`, `socketMaxReconnectDelayMs`, `socketConnectTimeoutMs`, `refreshIntervalMs`, `watchTimeoutMs`, `watchLimit`, `retryDelayMs`, `maxRetryAttempts`, `clawToken`, `agentUserId`, `sessions`, `panels`, `allowFrom`, `mention.requireInGroups`, `groups`, `replyDelayMode`, `replyDelayMs`
 - QQ: `enabled`, `appId`, `secret`, `allowFrom`
 
 ### 4.6 表单校验与提交规则

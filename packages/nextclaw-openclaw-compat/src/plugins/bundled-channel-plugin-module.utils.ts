@@ -26,7 +26,6 @@ const bundledChannelPluginModuleNames = new Set([
   "@nextclaw/channel-plugin-telegram",
   "@nextclaw/channel-plugin-whatsapp",
   "@nextclaw/channel-plugin-discord",
-  "@nextclaw/channel-plugin-mochat",
   "@nextclaw/channel-plugin-dingtalk",
   "@nextclaw/channel-plugin-wecom",
   "@nextclaw/channel-plugin-email",

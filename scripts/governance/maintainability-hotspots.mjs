@@ -52,14 +52,6 @@ export const MAINTAINABILITY_HOTSPOTS = [
     nextSplitSeam: "先拆 flush coordinator、incoming normalizer、platform send/edit abstraction。"
   },
   {
-    chain: "channel-runtime",
-    path: "packages/extensions/nextclaw-channel-runtime/src/channels/mochat.ts",
-    rationale: "Mochat 渠道持续堆积 inbound event 处理、附件解析与发送策略。",
-    allowedAdditions: ["平台协议修复", "向共享 inbound/attachment 模块迁移时的接线"],
-    prohibitedAdditions: ["新增事件编排阶段", "新增独立发送策略", "继续复制渠道通用逻辑"],
-    nextSplitSeam: "先拆 inbound event normalization、attachment resolve、delivery adapter。"
-  },
-  {
     chain: "ui-config-forms",
     path: "packages/nextclaw-ui/src/components/config/ProviderForm.tsx",
     rationale: "单个表单容器长期持有 state、auth flow、normalization 与 mutation orchestration。",

@@ -49,7 +49,7 @@
     - `apps/docs/zh/guide/configuration.md`
     - `docs/prd/current-feature-list.md`
     - `docs/prd/nextclaw-ui-prd.md`
-    - `docs/designs/ui-gateway-api.md`
+    - `docs/designs/2026-02-12-ui-gateway-api.md`
     - `docs/nextclaw-ui-design-brief.md`
 - 规则变更：
   - `AGENTS.md` 的 `Project Rulebook` 新增 `prefer-local-openclaw-sibling-source`。

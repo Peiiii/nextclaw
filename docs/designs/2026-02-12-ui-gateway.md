@@ -8,7 +8,7 @@
 - 第一阶段仅实现“系统配置”能力（模型与渠道配置）。
 - 本地开发模式不需要额外授权。
 - 端口可配置，并提供默认端口。
-- 详细 API 规范见 `docs/designs/ui-gateway-api.md`。
+- 详细 API 规范见 `docs/designs/2026-02-12-ui-gateway-api.md`。
 
 ## 非目标（第一阶段）
 

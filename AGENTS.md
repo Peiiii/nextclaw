@@ -34,6 +34,7 @@
 - `AGENTS.md` 是常驻内核：只放每轮都必须知道的高优先级约束。
 - 场景相关、流程较长、例子很多、只在特定任务需要的规则，必须做成 `.agents/skills/<skill>/SKILL.md`。
 - 项目内新增或重写 skill 默认使用中文；只有在明确面向外部英文受众、外部协议字段要求英文，或用户明确要求时，才使用英文。
+- 项目内方案、计划、设计、PRD、复盘等文档默认使用中文；只有面向外部英文受众、协议字段要求英文，或用户明确要求时，才使用英文。
 - 普通文档只用于人类说明、长期沉淀或被 skill 明确引用；不要把强制流程只拆到普通文档里，因为 AI 不一定会主动读取。
 - 修改 `AGENTS.md`、命令机制、Rulebook 或 skill 分层时，必须使用 `nextclaw-agent-instructions-governance` skill。
 - 触达 `docs/logs` 迭代记录、NPM 发布记录、工作笔记、目标锚点时，必须使用 `nextclaw-iteration-log-governance` skill。

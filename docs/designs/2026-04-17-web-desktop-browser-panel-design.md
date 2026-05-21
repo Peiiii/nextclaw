@@ -6,7 +6,7 @@
 
 - [NextClaw 产品愿景](../VISION.md)
 - [Electron Desktop Packaging and Semi-Auto Update Plan](./electron-desktop-semi-auto-update-plan.md)
-- [NextClaw UI API 设计（Phase 1）](./ui-gateway-api.md)
+- [NextClaw UI API 设计（Phase 1）](./2026-02-12-ui-gateway-api.md)
 
 ## 1. 背景
 

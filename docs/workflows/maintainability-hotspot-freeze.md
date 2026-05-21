@@ -30,7 +30,6 @@
 - `packages/nextclaw-server/src/ui/config.ts`
 - `packages/extensions/nextclaw-channel-runtime/src/channels/discord.ts`
 - `packages/extensions/nextclaw-channel-runtime/src/channels/telegram.ts`
-- `packages/extensions/nextclaw-channel-runtime/src/channels/mochat.ts`
 - `packages/nextclaw-ui/src/components/config/ProviderForm.tsx`
 
 以上文件的链路归属、允许新增职责、禁止新增职责、下一步拆分缝，以数据源文件中的定义为准。

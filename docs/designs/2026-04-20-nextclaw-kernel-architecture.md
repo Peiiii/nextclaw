@@ -726,7 +726,7 @@ restart / recovery 是典型的 kernel 职责，不能长期依附在 shell 包�
 
 - [`src/providers/index.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw-runtime/src/providers/index.ts)
 - [`src/providers/plugins/*`](/Users/peiwang/Projects/nextbot/packages/nextclaw-runtime/src/providers/plugins/index.ts)
-- [`src/channels/builtin.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw-runtime/src/channels/builtin.ts)
+- [`src/channels/builtin-channel.config.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw-runtime/src/channels/builtin-channel.config.ts)
 
 理由：
 

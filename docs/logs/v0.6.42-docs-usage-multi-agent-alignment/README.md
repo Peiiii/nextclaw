@@ -19,7 +19,7 @@
 - 修复 README 中该文档链接“有链接无文件”的问题（通过新增文件落地）。
 
 4. 标注历史报告上下文
-- 在 `docs/designs/openclaw-alignment-gap-report.md` 增加说明：旧矩阵为历史基线，最新以 USAGE/架构指南为准。
+- 在 `docs/designs/2026-02-21-openclaw-alignment-gap-report.md` 增加说明：旧矩阵为历史基线，最新以 USAGE/架构指南为准。
 
 ## 测试 / 验证 / 验收方式
 

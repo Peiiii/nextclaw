@@ -144,13 +144,6 @@
 - imapPassword (password)
 - fromAddress (email)
 
-### mochat
-- enabled (boolean)
-- baseUrl (text)
-- clawToken (password)
-- agentUserId (text)
-- allowFrom (tags)
-
 ### qq
 - enabled (boolean)
 - appId (text)

@@ -328,7 +328,6 @@ const COPY: Record<Locale, LandingCopy> = {
       { name: 'Slack', logo: '/logos/slack.svg' },
       { name: 'DingTalk', logo: '/logos/dingtalk.svg' },
       { name: 'WeCom', logo: '/logos/wecom.svg' },
-      { name: 'Mochat', logo: '/logos/mochat.svg' },
       { name: 'Email', logo: '/logos/email.svg' }
     ],
     deployTitle: 'Deploy Anywhere',
@@ -541,7 +540,6 @@ const COPY: Record<Locale, LandingCopy> = {
       { name: 'Slack', logo: '/logos/slack.svg' },
       { name: '钉钉', logo: '/logos/dingtalk.svg' },
       { name: '企业微信', logo: '/logos/wecom.svg' },
-      { name: 'Mochat', logo: '/logos/mochat.svg' },
       { name: 'Email', logo: '/logos/email.svg' }
     ],
     deployTitle: '随处部署',
