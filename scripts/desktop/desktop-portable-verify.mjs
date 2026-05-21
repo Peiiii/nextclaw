@@ -1,10 +1,8 @@
 #!/usr/bin/env node
-import JSZip from "jszip";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { basename, join, relative, resolve, sep } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
 const rootDir = resolveRepoPath(import.meta.url);
@@ -28,22 +26,16 @@ function run(command, args, options = {}) {
   }
 }
 
-async function extractZip(zipPath, outputDir) {
-  const resolvedOutputDir = resolve(outputDir);
-  const zip = await JSZip.loadAsync(readFileSync(zipPath));
-  for (const [name, entry] of Object.entries(zip.files)) {
-    const target = resolve(resolvedOutputDir, name);
-    const targetRelativePath = relative(resolvedOutputDir, target);
-    if (targetRelativePath === ".." || targetRelativePath.startsWith(`..${sep}`) || targetRelativePath === "") {
-      throw new Error(`Refusing to extract zip entry outside output dir: ${name}`);
-    }
-    if (entry.dir) {
-      await mkdir(target, { recursive: true });
-      continue;
-    }
-    await mkdir(resolve(target, ".."), { recursive: true });
-    await writeFile(target, await entry.async("nodebuffer"));
-  }
+function extractZip(zipPath, outputDir) {
+  run("powershell", [
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-Command",
+    "Expand-Archive -LiteralPath $args[0] -DestinationPath $args[1] -Force",
+    zipPath,
+    outputDir
+  ]);
 }
 
 async function verifyPortableZip(arch) {
@@ -57,7 +49,7 @@ async function verifyPortableZip(arch) {
   }
   const tempRoot = mkdtempSync(join(tmpdir(), `nextclaw-portable-${arch}-`));
   try {
-    await extractZip(zipPath, tempRoot);
+    extractZip(zipPath, tempRoot);
     const portableRoot = resolve(tempRoot, "NextClaw-Portable");
     const markerPath = resolve(portableRoot, "nextclaw-portable.json");
     const exePath = resolve(portableRoot, "NextClaw Desktop.exe");

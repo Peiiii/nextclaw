@@ -6,6 +6,8 @@
 
 根因/背景：原有 Windows release 只有 installer 和 unpacked 备用包，unpacked 不是严格 portable 合同，运行数据仍可能走安装版默认路径。现在通过 `DesktopInstallationProfile` 把安装形态、路径、更新能力收敛为单一事实源。
 
+发布验证修正：首次 beta preview 触发后，Windows x64 portable smoke 在根级验证脚本导入 `jszip` 时失败。根因是 `desktop:portable:verify` 从 workspace 根执行，但 `jszip` 属于 `apps/desktop` 的打包 owner 依赖。修正后根级验证脚本只负责编排 Windows 验收，解压使用系统 `Expand-Archive`，避免跨 owner 读取 `apps/desktop` 内部依赖。
+
 ## 测试/验证/验收方式
 
 - `pnpm -C apps/desktop tsc`
@@ -14,6 +16,7 @@
 - `node --test apps/desktop/dist/src/utils/desktop-installation-profile.utils.test.js apps/desktop/dist/src/launcher/__tests__/update-coordinator.service.test.js`
 - `pnpm -r --filter @nextclaw/desktop... build`
 - `pnpm -C apps/desktop smoke`
+- `node --check scripts/desktop/desktop-portable-verify.mjs`
 - `pnpm lint:maintainability:guard`
 - `ruby -e "require 'yaml'; ..."` 校验 desktop workflow YAML 可解析
 
