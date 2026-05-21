@@ -1,5 +1,5 @@
 export default {
-  "generatedAt": "2026-05-21T16:43:08.070Z",
+  "generatedAt": "2026-05-21T18:09:17.074Z",
   "hero": {
     "currentLoc": 174325,
     "testLoc": 45439,
@@ -745,7 +745,7 @@ export default {
       {
         "key": "2026-05-18",
         "label": "05-18",
-        "value": 86
+        "value": 97
       }
     ],
     "releaseMonthly": [
@@ -879,9 +879,11 @@ export default {
     "recentReleaseBatches": [
       {
         "date": "2026-05-22",
-        "tagCount": 1,
+        "tagCount": 3,
         "sampleTags": [
-          "v0.19.18-desktop-beta.1"
+          "v0.19.18-desktop-beta.1",
+          "v0.19.19-desktop-beta.1",
+          "v0.19.20-desktop-beta.1"
         ]
       },
       {
