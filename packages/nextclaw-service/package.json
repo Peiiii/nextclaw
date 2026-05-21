@@ -58,8 +58,7 @@
     "@nextclaw/server": "workspace:*",
     "chokidar": "^3.6.0",
     "commander": "^12.1.0",
-    "jszip": "^3.10.1",
-    "yaml": "^2.8.1"
+    "jszip": "^3.10.1"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",

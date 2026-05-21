@@ -40,7 +40,8 @@
     "@nextclaw/openclaw-compat": "workspace:*",
     "@nextclaw/runtime": "workspace:*",
     "@nextclaw/shared": "workspace:*",
-    "@nextclaw/ncp": "workspace:*"
+    "@nextclaw/ncp": "workspace:*",
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",

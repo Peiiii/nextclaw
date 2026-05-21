@@ -14,6 +14,7 @@ export * from "@kernel/managers/mcp.manager.js";
 export * from "@kernel/stores/llm-usage.store.js";
 export * from "@kernel/configs/learning-loop.config.js";
 export * from "@kernel/utils/learning-loop-prompt.utils.js";
+export * from "@kernel/utils/skill-frontmatter.utils.js";
 export * from "@kernel/features/runtime-registry/index.js";
 export * from "@kernel/features/narp-runtime/index.js";
 export * from "@kernel/features/ncp-dispatch/index.js";

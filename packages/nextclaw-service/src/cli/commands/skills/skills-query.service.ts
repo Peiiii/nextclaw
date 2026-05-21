@@ -1,11 +1,11 @@
-import { readFileSync } from "node:fs";
-import { relative, resolve } from "node:path";
-import { SkillManager, type SkillInfo, type SkillScope } from "@nextclaw/kernel";
-import { parseSkillFrontmatter, type LocalizedTextMap } from "./marketplace.metadata.js";
+import { resolve } from "node:path";
+import {
+  SkillManager,
+  type LocalizedTextMap,
+} from "@nextclaw/kernel";
 import { readMarketplaceEnvelope, resolveMarketplaceApiBase } from "./marketplace-client.js";
 import { runWithMarketplaceNetworkRetry } from "./marketplace-network-retry.js";
 
-type InstalledSkillScopeFilter = SkillScope | "all";
 type MarketplaceSkillSort = "relevance" | "updated";
 type MarketplaceSkillInstallKind = "builtin" | "marketplace";
 
@@ -67,34 +67,6 @@ type MarketplaceSkillRecommendationView = {
   items: MarketplaceSkillItemSummary[];
 };
 
-export type InstalledSkillSummaryView = {
-  ref: string;
-  name: string;
-  path: string;
-  relativePath: string | null;
-  scope: SkillScope;
-  source: SkillScope;
-  summary: string | null;
-  summaryI18n: LocalizedTextMap | null;
-  description: string | null;
-  descriptionI18n: LocalizedTextMap | null;
-  author: string | null;
-  tags: string[];
-  always: boolean;
-};
-
-export type InstalledSkillDetailView = InstalledSkillSummaryView & {
-  metadata: Record<string, string> | null;
-  raw: string;
-  bodyRaw: string;
-};
-
-export type InstalledSkillsListView = {
-  workspace: string;
-  total: number;
-  skills: InstalledSkillSummaryView[];
-};
-
 export type MarketplaceSkillsSearchView = MarketplaceSkillListView & {
   apiBaseUrl: string;
 };
@@ -115,36 +87,23 @@ export class SkillsQueryService {
     workdir: string;
     query?: string;
     scope?: string;
-  }): InstalledSkillsListView => {
-    const workspace = resolve(params.workdir);
-    const scope = this.normalizeInstalledScope(params.scope);
-    const normalizedQuery = this.normalizeOptionalString(params.query)?.toLowerCase() ?? null;
-    const skillManager = new SkillManager({ workspace });
-
-    const skills = skillManager
-      .listSkills({ filterUnavailable: false })
-      .map((skill) => this.buildInstalledSkillSummary(skill, skillManager, workspace))
-      .filter((skill) => scope === "all" || skill.scope === scope)
-      .filter((skill) => this.matchesInstalledSkillQuery(skill, normalizedQuery));
-
-    return {
-      workspace,
-      total: skills.length,
-      skills,
-    };
+  }) => {
+    return new SkillManager({ workspace: resolve(params.workdir) }).listInstalledSkills({
+      scope: params.scope,
+      query: params.query,
+    });
   };
 
   getInstalledInfo = (params: {
     workdir: string;
     selector: string;
-  }): InstalledSkillDetailView => {
-    const workspace = resolve(params.workdir);
-    const skillManager = new SkillManager({ workspace });
-    const skill = skillManager.getSkillInfo(params.selector);
-    if (!skill) {
+  }) => {
+    const skillManager = new SkillManager({ workspace: resolve(params.workdir) });
+    const detail = skillManager.getInstalledSkillDetail(params.selector);
+    if (!detail) {
       throw new Error(`Installed skill not found: ${params.selector}`);
     }
-    return this.buildInstalledSkillDetail(skill, skillManager, workspace);
+    return detail;
   };
 
   searchMarketplaceSkills = async (params: {
@@ -230,109 +189,6 @@ export class SkillsQueryService {
     };
   };
 
-  private buildInstalledSkillSummary = (
-    skill: SkillInfo,
-    skillManager: SkillManager,
-    workspace: string,
-  ): InstalledSkillSummaryView => {
-    const raw = readFileSync(skill.path, "utf8");
-    const metadata = skillManager.getSkillMetadata(skill);
-    const frontmatter = parseSkillFrontmatter(raw);
-
-    return {
-      ref: skill.ref,
-      name: skill.name,
-      path: skill.path,
-      relativePath: this.buildRelativePath(workspace, skill.path),
-      scope: skill.scope,
-      source: skill.source,
-      summary: frontmatter.summary ?? null,
-      summaryI18n: frontmatter.summaryI18n ?? null,
-      description: frontmatter.description ?? metadata?.description ?? null,
-      descriptionI18n: frontmatter.descriptionI18n ?? null,
-      author: frontmatter.author ?? null,
-      tags: frontmatter.tags ?? [],
-      always: this.readAlwaysFlag(metadata),
-    };
-  };
-
-  private buildInstalledSkillDetail = (
-    skill: SkillInfo,
-    skillManager: SkillManager,
-    workspace: string,
-  ): InstalledSkillDetailView => {
-    const summary = this.buildInstalledSkillSummary(skill, skillManager, workspace);
-    const raw = readFileSync(skill.path, "utf8");
-    return {
-      ...summary,
-      metadata: skillManager.getSkillMetadata(skill),
-      raw,
-      bodyRaw: this.stripFrontmatter(raw),
-    };
-  };
-
-  private matchesInstalledSkillQuery = (
-    skill: InstalledSkillSummaryView,
-    query: string | null,
-  ): boolean => {
-    if (!query) {
-      return true;
-    }
-
-    const haystacks = [
-      skill.ref,
-      skill.name,
-      skill.path,
-      skill.relativePath ?? "",
-      skill.scope,
-      skill.source,
-      skill.summary ?? "",
-      skill.description ?? "",
-      skill.author ?? "",
-      ...skill.tags,
-      ...Object.values(skill.summaryI18n ?? {}),
-      ...Object.values(skill.descriptionI18n ?? {}),
-    ];
-
-    return haystacks.some((value) => value.toLowerCase().includes(query));
-  };
-
-  private stripFrontmatter = (raw: string): string => {
-    const normalized = raw.replace(/\r\n/g, "\n");
-    const match = normalized.match(/^---\n[\s\S]*?\n---\n?/);
-    if (!match) {
-      return normalized.trim();
-    }
-    return normalized.slice(match[0].length).trim();
-  };
-
-  private readAlwaysFlag = (metadata: Record<string, string> | null): boolean => {
-    if (metadata?.always === "true") {
-      return true;
-    }
-
-    const raw = metadata?.metadata;
-    if (!raw) {
-      return false;
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as {
-        nextclaw?: {
-          always?: unknown;
-        };
-      };
-      return parsed.nextclaw?.always === true;
-    } catch {
-      return false;
-    }
-  };
-
-  private buildRelativePath = (workspace: string, absolutePath: string): string | null => {
-    const relativePath = relative(workspace, absolutePath).replace(/\\/g, "/");
-    return relativePath.startsWith("..") ? null : relativePath;
-  };
-
   private normalizeMarketplaceSummary = (
     item: MarketplaceSkillItemSummary,
   ): MarketplaceSkillItemSummary => ({
@@ -361,17 +217,6 @@ export class SkillsQueryService {
     ...install,
     command: `nextclaw marketplace skills install ${slug}`,
   });
-
-  private normalizeInstalledScope = (value: string | undefined): InstalledSkillScopeFilter => {
-    const normalized = this.normalizeOptionalString(value);
-    if (!normalized || normalized === "all") {
-      return "all";
-    }
-    if (normalized === "builtin" || normalized === "project" || normalized === "workspace") {
-      return normalized;
-    }
-    throw new Error(`Invalid skill scope: ${value}. Expected all, builtin, project, or workspace.`);
-  };
 
   private normalizeMarketplaceSort = (value: string | undefined): MarketplaceSkillSort | undefined => {
     const normalized = this.normalizeOptionalString(value);

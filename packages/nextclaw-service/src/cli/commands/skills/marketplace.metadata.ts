@@ -1,10 +1,18 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { parse as parseYaml } from "yaml";
+import {
+  buildLocalizedTextMap,
+  parseSkillFrontmatter,
+  type LocalizedTextMap,
+} from "@nextclaw/kernel";
 
 const DEFAULT_MARKETPLACE_META_FILENAME = "marketplace.json";
 
-export type LocalizedTextMap = Record<string, string>;
+export {
+  buildLocalizedTextMap,
+  parseSkillFrontmatter,
+  type LocalizedTextMap,
+};
 
 export type MarketplaceSkillPublishMetadata = {
   slug?: string;
@@ -20,60 +28,6 @@ export type MarketplaceSkillPublishMetadata = {
   publishedAt?: string;
   updatedAt?: string;
 };
-
-export function parseSkillFrontmatter(raw: string): {
-  name?: string;
-  summary?: string;
-  summaryI18n?: LocalizedTextMap;
-  description?: string;
-  descriptionI18n?: LocalizedTextMap;
-  author?: string;
-  tags?: string[];
-} {
-  const normalized = raw.replace(/\r\n/g, "\n");
-  const match = normalized.match(/^---\n([\s\S]*?)\n---/);
-  if (!match || !match[1]) {
-    return {};
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = parseYaml(match[1]);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Invalid SKILL.md frontmatter: ${message}`);
-  }
-
-  if (!isRecord(parsed)) {
-    return {};
-  }
-
-  const summaryI18n = readLocalizedTextMapField(parsed, [["summaryi18n"], ["summary_i18n"]]);
-  const descriptionI18n = readLocalizedTextMapField(parsed, [["descriptioni18n"], ["description_i18n"]]);
-  const summaryZh = readFrontmatterStringField(parsed, [["summaryzh"], ["summary_zh"]]);
-  const descriptionZh = readFrontmatterStringField(parsed, [["descriptionzh"], ["description_zh"]]);
-
-  return {
-    name: readFrontmatterStringField(parsed, [["name"]]),
-    summary: readFrontmatterStringField(parsed, [["summary"]]),
-    summaryI18n: mergeLocalizedTextMap(summaryI18n, { zh: summaryZh }),
-    description: readFrontmatterStringField(parsed, [["description"]]),
-    descriptionI18n: mergeLocalizedTextMap(descriptionI18n, { zh: descriptionZh }),
-    author: readFrontmatterStringField(parsed, [["author"]]),
-    tags: readFrontmatterTags(parsed)
-  };
-}
-
-export function buildLocalizedTextMap(
-  englishText: string,
-  ...maps: Array<LocalizedTextMap | Partial<LocalizedTextMap> | undefined>
-): LocalizedTextMap {
-  const normalized = mergeLocalizedTextMap(...maps);
-  return {
-    ...(normalized ?? {}),
-    en: englishText
-  };
-}
 
 export function readMarketplaceMetadataFile(
   skillDir: string,
@@ -117,24 +71,6 @@ function resolveMarketplaceMetadataPath(skillDir: string, explicitMetaFile?: str
     ? resolve(explicitMetaFile)
     : resolve(skillDir, DEFAULT_MARKETPLACE_META_FILENAME);
   return existsSync(resolved) ? resolved : undefined;
-}
-
-function mergeLocalizedTextMap(
-  ...maps: Array<LocalizedTextMap | Partial<LocalizedTextMap> | undefined>
-): LocalizedTextMap | undefined {
-  const localized: LocalizedTextMap = {};
-
-  for (const map of maps) {
-    for (const [locale, text] of Object.entries(map ?? {})) {
-      const normalizedText = typeof text === "string" ? text.trim() : "";
-      if (!normalizedText) {
-        continue;
-      }
-      localized[normalizeLocaleTag(locale)] = normalizedText;
-    }
-  }
-
-  return Object.keys(localized).length > 0 ? localized : undefined;
 }
 
 function readMetadataString(record: Record<string, unknown>, fieldName: string): string | undefined {
@@ -186,85 +122,6 @@ function readMetadataLocalizedTextMap(record: Record<string, unknown>, fieldName
     localized[normalizeLocaleTag(locale)] = normalized;
   }
   return Object.keys(localized).length > 0 ? localized : undefined;
-}
-
-function readFrontmatterStringField(record: Record<string, unknown>, keyPaths: string[][]): string | undefined {
-  for (const keyPath of keyPaths) {
-    const value = readNestedFrontmatterValue(record, keyPath);
-    if (typeof value !== "string") {
-      continue;
-    }
-    const normalized = value.trim();
-    if (normalized) {
-      return normalized;
-    }
-  }
-  return undefined;
-}
-
-function readLocalizedTextMapField(record: Record<string, unknown>, keyPaths: string[][]): LocalizedTextMap | undefined {
-  for (const keyPath of keyPaths) {
-    const value = readNestedFrontmatterValue(record, keyPath);
-    if (!isRecord(value)) {
-      continue;
-    }
-    const normalized: LocalizedTextMap = {};
-    for (const [locale, text] of Object.entries(value)) {
-      if (typeof text !== "string") {
-        continue;
-      }
-      const trimmed = text.trim();
-      if (!trimmed) {
-        continue;
-      }
-      normalized[normalizeLocaleTag(locale)] = trimmed;
-    }
-    if (Object.keys(normalized).length > 0) {
-      return normalized;
-    }
-  }
-  return undefined;
-}
-
-function readFrontmatterTags(record: Record<string, unknown>): string[] | undefined {
-  const rawTags = readNestedFrontmatterValue(record, ["tags"]);
-  if (Array.isArray(rawTags)) {
-    const tags = rawTags
-      .filter((entry): entry is string => typeof entry === "string")
-      .map((entry) => entry.trim())
-      .filter(Boolean);
-    return tags.length > 0 ? tags : undefined;
-  }
-
-  if (typeof rawTags !== "string") {
-    return undefined;
-  }
-
-  const tags = rawTags
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-  return tags.length > 0 ? tags : undefined;
-}
-
-function readNestedFrontmatterValue(record: Record<string, unknown>, keyPath: string[]): unknown {
-  let current: unknown = record;
-  for (const rawKey of keyPath) {
-    if (!isRecord(current)) {
-      return undefined;
-    }
-    const normalizedKey = normalizeFrontmatterKey(rawKey);
-    const matchingKey = Object.keys(current).find((candidate) => normalizeFrontmatterKey(candidate) === normalizedKey);
-    if (!matchingKey) {
-      return undefined;
-    }
-    current = current[matchingKey];
-  }
-  return current;
-}
-
-function normalizeFrontmatterKey(raw: string): string {
-  return raw.replace(/[-_]/g, "").toLowerCase();
 }
 
 function normalizeLocaleTag(raw: string): string {

@@ -1272,6 +1272,9 @@ importers:
       '@nextclaw/shared':
         specifier: workspace:*
         version: link:../nextclaw-shared
+      yaml:
+        specifier: ^2.8.1
+        version: 2.8.2
     devDependencies:
       '@types/node':
         specifier: ^20.17.6
@@ -1621,9 +1624,6 @@ importers:
       jszip:
         specifier: ^3.10.1
         version: 3.10.1
-      yaml:
-        specifier: ^2.8.1
-        version: 2.8.2
     devDependencies:
       '@types/node':
         specifier: ^20.17.6
