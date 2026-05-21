@@ -71,6 +71,7 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 4. Watch the `desktop-release` workflow to completion.
    - Require overall `success`
    - Require the matrix jobs plus publish jobs
+   - Prefer the compact closure script below over repeatedly streaming `gh run watch` output into the model context.
 5. Verify GitHub release assets are actually present.
    - Expect platform installers, bundles, manifests, mac metadata, and `update-bundle-public.pem`
 6. Verify update-channel source of truth.
@@ -84,6 +85,32 @@ description: Use when building, verifying, or releasing NextClaw desktop install
    - workflow is fully green
    - public update-channel content reflects the new version
    - official website/download links, when changed, are deployed and verified against the completed release
+
+## Beta Preview Automation
+- For desktop beta previews, use the closure script to reduce manual polling and token-heavy workflow dumps:
+  - `node scripts/release/desktop-beta-preview-closure.mjs --tag <tag> --desktop-version <desktopVersion> --runtime-version <runtimeVersion> --minimum-launcher-version <floor>`
+- The script is the preferred post-release gate because it:
+  - locates or reuses the release-triggered `desktop-release` run;
+  - polls workflow state with compact summaries instead of printing every step every time;
+  - verifies Windows portable assets, installer assets, update bundle assets, and manifest assets on the release;
+  - verifies `gh-pages` beta manifest as the source of truth;
+  - polls the public GitHub Pages manifest and fails if propagation does not complete within the configured budget.
+- If the public Pages URL still shows the previous version but `origin/gh-pages` has the new manifest, report it as propagation delay and keep the script/poll running instead of creating another release.
+- Use `--run-id <id>` when a workflow run is already known; this avoids searching and keeps logs smaller.
+- Use `--skip-public-pages` only when explicitly handing off a release whose public update channel propagation will be checked by a separate automation; do not use it to claim update-channel completion.
+
+## Cost-Control Release Discipline
+- Before creating a new desktop beta tag, fetch and compare current `HEAD`, `origin/master`, and the intended tag target.
+- If `master` advances while a previous beta run is still in flight, do not immediately create another beta. First classify the new commits:
+  - release-critical changes that must be in the human-downloadable build: cancel or supersede with one clearly named newer beta;
+  - unrelated docs/metrics/pulse updates: let the current release finish and do not restart only for those commits;
+  - unknown ownership or staged local work: stop and inspect before tagging.
+- A beta preview should be superseded only once the reason is explicit. Do not repeatedly bump versions just because remote history changed during the release.
+- Keep version bump commits narrow:
+  - only stage the desktop/runtime version lines needed for the release identity;
+  - leave unrelated staged or working-tree changes untouched;
+  - after commit, verify `git diff --cached` is empty unless the user intentionally has other staged work.
+- Prefer JSON summary commands and the closure script over full workflow step dumps in chat. Full job logs should be opened only for failed jobs or ambiguous states.
 
 ## Release Completion Gate
 - Treat tag creation or `gh release create` success as the start signal, not the finish line.
