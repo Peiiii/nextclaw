@@ -27,7 +27,7 @@ import {
   readMetadataString,
   readString,
   withSession,
-} from "@kernel/features/agent-run-request/index.js";
+} from "@kernel/utils/session-run.utils.js";
 import type { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 
 export class AgentRunRequestManager {

@@ -7,8 +7,6 @@ import {
   type NcpMessage,
   type NcpRequestEnvelope,
   type NcpRunHandle,
-  type NcpSessionPatch,
-  type NcpSessionSummary,
 } from "@nextclaw/ncp";
 import type {
   AgentSessionRecord,
@@ -125,7 +123,7 @@ export function isTerminalRunEvent(event: NcpEndpointEvent): boolean {
   return event.type === NcpEventType.MessageCompleted || event.type === NcpEventType.MessageFailed || event.type === NcpEventType.RunError;
 }
 
-export function readMessages(session: LiveSession): NcpMessage[] {
+function readMessages(session: LiveSession): NcpMessage[] {
   const snapshot = session.stateManager.getSnapshot();
   const messages = snapshot.messages.map((message) => structuredClone(message));
   if (snapshot.streamingMessage && !messages.some((message) => message.id === snapshot.streamingMessage?.id)) {
@@ -181,41 +179,6 @@ export function buildSessionRecord(session: LiveSession, updatedAt: string): Age
     createdAt: session.createdAt,
     updatedAt,
     metadata,
-  };
-}
-
-export function toSessionSummary(params: {
-  sessionId: string;
-  messages: readonly NcpMessage[];
-  createdAt?: string;
-  updatedAt: string;
-  agentId?: string;
-  metadata?: Record<string, unknown>;
-  running: boolean;
-  contextWindow?: Record<string, unknown> | null;
-}): NcpSessionSummary {
-  const {
-    agentId,
-    contextWindow,
-    createdAt,
-    messages,
-    metadata,
-    running,
-    sessionId,
-    updatedAt,
-  } = params;
-  return {
-    sessionId,
-    ...(agentId ? { agentId } : {}),
-    messageCount: messages.length,
-    ...(createdAt ? { createdAt } : {}),
-    updatedAt,
-    ...(messages.length > 0 ? { lastMessageAt: messages[messages.length - 1]?.timestamp ?? updatedAt } : {}),
-    status: running ? "running" : "idle",
-    ...(metadata && Object.keys(metadata).length > 0
-      ? { metadata: withAutoSessionLabel({ metadata: structuredClone(metadata), messages }) }
-      : {}),
-    ...(contextWindow ? { contextWindow } : {}),
   };
 }
 
@@ -305,25 +268,6 @@ export function normalizeSendRunEvent(params: {
     eventsToPublish: [event],
     completedMessageSeen: params.completedMessageSeen,
   };
-}
-
-export function applyLimit<T>(items: T[], limit?: number): T[] {
-  return typeof limit === "number" && Number.isFinite(limit) && limit > 0
-    ? items.slice(0, Math.trunc(limit))
-    : items;
-}
-
-export function buildUpdatedMetadata(params: {
-  existingMetadata?: Record<string, unknown>;
-  patch: NcpSessionPatch;
-}): Record<string, unknown> {
-  const { existingMetadata, patch } = params;
-  if (patch.metadata === null) {
-    return {};
-  }
-  return patch.metadata
-    ? structuredClone(patch.metadata)
-    : structuredClone(existingMetadata ?? {});
 }
 
 export function disposeRuntime(runtime: NcpAgentRuntime): Promise<void> | void {

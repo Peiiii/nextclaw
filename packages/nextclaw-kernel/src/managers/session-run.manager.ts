@@ -24,7 +24,7 @@ import {
   type PublishSessionEventOptions,
   readAgentId,
   readString,
-} from "@kernel/features/agent-run-request/index.js";
+} from "@kernel/utils/session-run.utils.js";
 import type { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
 
 export class SessionRunManager {

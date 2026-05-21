@@ -1,65 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { EventBus, eventKeys } from "@nextclaw/shared";
+import type { NcpMessage } from "@nextclaw/ncp";
 import type { AgentSessionRecord, AgentSessionStore } from "@nextclaw/ncp-toolkit";
+import { NcpSessionApiService } from "./ncp-session-api.service.js";
 
 vi.mock("@kernel/features/context-compaction/index.js", () => ({
   ContextCompactionPreflightService: class {
     preview = () => null;
   },
 }));
-
-vi.mock("@kernel/utils/ncp-session-message-adapter.utils.js", () => ({
-  toNcpMessages: (sessionId: string, messages: Array<{ content: unknown; role: string; timestamp: string }>) =>
-    messages.map((message, index) => ({
-      id: `${sessionId}:${index}`,
-      parts: typeof message.content === "string"
-        ? [{ type: "text", text: message.content }]
-        : [],
-      role: message.role,
-      sessionId,
-      status: "final",
-      timestamp: message.timestamp,
-    })),
-}));
-
-vi.mock("@kernel/utils/ncp-session-summary.utils.js", () => ({
-  createNcpSessionSummary: (params: {
-    agentId?: string;
-    messages: unknown[];
-    metadata?: Record<string, unknown>;
-    sessionId: string;
-    status: string;
-    createdAt: string;
-    updatedAt: string;
-  }) => {
-    const { agentId, messages, metadata, sessionId, status, createdAt, updatedAt } = params;
-    return {
-      ...(agentId ? { agentId } : {}),
-      messageCount: messages.length,
-      createdAt,
-      metadata,
-      sessionId,
-      status,
-      updatedAt,
-    };
-  },
-}));
-
-import { NcpSessionApiService } from "./ncp-session-api.service.js";
-
-type TestSession = {
-  agentId?: string;
-  events: unknown[];
-  key: string;
-  messages: Array<{
-    content: unknown;
-    role: string;
-    timestamp: string;
-  }>;
-  metadata: Record<string, unknown>;
-  createdAt: Date;
-  updatedAt: Date;
-};
 
 function createConfig() {
   return {
@@ -79,78 +28,81 @@ function createConfig() {
   } as never;
 }
 
-class TestSessionManager {
-  private readonly sessions = new Map<string, TestSession>();
-  readonly loadedSessionKeys: string[] = [];
-
-  getOrCreate = (key: string): TestSession => {
-    const existing = this.sessions.get(key);
-    if (existing) {
-      return existing;
-    }
-    const session: TestSession = {
-      events: [],
-      key,
-      messages: [],
-      metadata: {},
-      createdAt: new Date("2026-05-12T00:00:00.000Z"),
-      updatedAt: new Date("2026-05-12T00:00:00.000Z"),
-    };
-    this.sessions.set(key, session);
-    return session;
+function createMessage(params: {
+  id: string;
+  sessionId: string;
+  text: string;
+  timestamp?: string;
+  role?: NcpMessage["role"];
+}): NcpMessage {
+  const {
+    id,
+    role = "user",
+    sessionId,
+    text,
+    timestamp = "2026-05-12T00:00:00.000Z",
+  } = params;
+  return {
+    id,
+    sessionId,
+    role,
+    status: "final",
+    parts: [{ type: "text", text }],
+    timestamp,
   };
+}
 
-  getIfExists = (key: string): TestSession | null => {
-    this.loadedSessionKeys.push(key);
-    return this.sessions.get(key) ?? null;
+function createRecord(params: {
+  sessionId: string;
+  agentId?: string;
+  metadata?: Record<string, unknown>;
+  messages?: NcpMessage[];
+  createdAt?: string;
+  updatedAt?: string;
+}): AgentSessionRecord {
+  const {
+    agentId,
+    createdAt = "2026-05-12T00:00:00.000Z",
+    messages = [],
+    metadata = {},
+    sessionId,
+    updatedAt = createdAt,
+  } = params;
+  return {
+    sessionId,
+    ...(agentId ? { agentId } : {}),
+    messages: messages.map((message) => structuredClone(message)),
+    createdAt,
+    updatedAt,
+    metadata: structuredClone(metadata),
   };
-
-  addMessage = (session: TestSession, role: string, content: unknown): void => {
-    session.messages.push({
-      content,
-      role,
-      timestamp: "2026-05-12T00:00:00.000Z",
-    });
-  };
-
-  save = (session: TestSession): void => {
-    this.sessions.set(session.key, session);
-  };
-
-  delete = (key: string): boolean => this.sessions.delete(key);
-
-  listSessions = () =>
-    [...this.sessions.values()].map((session) => ({
-      key: session.key,
-      created_at: session.createdAt.toISOString(),
-      updated_at: session.updatedAt.toISOString(),
-      path: session.key,
-      ...(session.agentId ? { agentId: session.agentId } : {}),
-      messageCount: session.messages.length,
-      ...(session.messages.at(-1)?.timestamp ? { lastMessageAt: session.messages.at(-1)?.timestamp } : {}),
-      metadata: session.metadata,
-    }));
 }
 
 class TestAgentSessionStore implements AgentSessionStore {
   updateMetadataCallCount = 0;
+  readonly loadedSessionIds: string[] = [];
+  private readonly records = new Map<string, AgentSessionRecord>();
 
-  constructor(private record: AgentSessionRecord) {}
+  constructor(records: AgentSessionRecord[]) {
+    for (const record of records) {
+      this.records.set(record.sessionId, structuredClone(record));
+    }
+  }
 
   getSession = async (sessionId: string): Promise<AgentSessionRecord | null> => {
-    return sessionId === this.record.sessionId ? structuredClone(this.record) : null;
+    this.loadedSessionIds.push(sessionId);
+    const record = this.records.get(sessionId);
+    return record ? structuredClone(record) : null;
   };
 
-  listSessions = async (): Promise<AgentSessionRecord[]> => [structuredClone(this.record)];
+  listSessions = async (): Promise<AgentSessionRecord[]> =>
+    [...this.records.values()].map((record) => structuredClone(record));
 
-  listSessionMessages = async (sessionId: string) => {
-    return sessionId === this.record.sessionId
-      ? this.record.messages.map((message) => structuredClone(message))
-      : [];
-  };
+  listSessionMessages = async (sessionId: string): Promise<NcpMessage[]> =>
+    this.records.get(sessionId)?.messages.map((message) => structuredClone(message)) ?? [];
 
   saveSession = async (record: AgentSessionRecord): Promise<void> => {
-    this.record = structuredClone(record);
+    this.records.set(record.sessionId, structuredClone(record));
   };
 
   updateSessionMetadata = async (params: {
@@ -158,50 +110,60 @@ class TestAgentSessionStore implements AgentSessionStore {
     metadata: Record<string, unknown>;
     updatedAt: string;
   }): Promise<boolean> => {
-    if (params.sessionId !== this.record.sessionId) {
+    const { metadata, sessionId, updatedAt } = params;
+    const record = this.records.get(sessionId);
+    if (!record) {
       return false;
     }
     this.updateMetadataCallCount += 1;
-    this.record = {
-      ...this.record,
-      metadata: structuredClone(params.metadata),
-      updatedAt: params.updatedAt,
-    };
+    this.records.set(sessionId, {
+      ...record,
+      metadata: structuredClone(metadata),
+      updatedAt,
+    });
     return true;
   };
 
   deleteSession = async (sessionId: string): Promise<AgentSessionRecord | null> => {
-    return await this.getSession(sessionId);
+    const record = this.records.get(sessionId);
+    if (!record) {
+      return null;
+    }
+    this.records.delete(sessionId);
+    return structuredClone(record);
   };
 }
 
-function createServiceFixture(): {
+function createServiceFixture(records: AgentSessionRecord[] = []): {
   eventBus: EventBus;
+  ncpAgentSessionStore: TestAgentSessionStore;
   ncpSessionApi: NcpSessionApiService;
-  sessionManager: TestSessionManager;
 } {
-  const sessionManager = new TestSessionManager();
   const eventBus = new EventBus();
+  const ncpAgentSessionStore = new TestAgentSessionStore(records);
   const ncpSessionApi = new NcpSessionApiService({
     eventBus,
     getConfig: createConfig,
-    sessionManager: sessionManager as never,
+    ncpAgentSessionStore,
+    sessionManager: {} as never,
   });
   return {
     eventBus,
+    ncpAgentSessionStore,
     ncpSessionApi,
-    sessionManager,
   };
 }
 
 describe("NcpSessionApiService", () => {
-  it("serves UI session API directly from the kernel session manager", async () => {
-    const fixture = createServiceFixture();
-    const session = fixture.sessionManager.getOrCreate("session-1");
-    session.agentId = "main";
-    session.metadata = { label: "Before" };
-    fixture.sessionManager.addMessage(session, "user", "hello");
-    fixture.sessionManager.save(session);
+  it("serves UI session API from the agent session store owner", async () => {
+    const fixture = createServiceFixture([
+      createRecord({
+        sessionId: "session-1",
+        agentId: "main",
+        metadata: { label: "Before" },
+        messages: [createMessage({ id: "user-1", sessionId: "session-1", text: "hello" })],
+      }),
+    ]);
 
     const summaries = await fixture.ncpSessionApi.listSessions();
     const messages = await fixture.ncpSessionApi.listSessionMessages("session-1");
@@ -222,16 +184,18 @@ describe("NcpSessionApiService", () => {
     fixture.ncpSessionApi.dispose();
   });
 
-  it("overlays live runtime status without loading full session lists", async () => {
-    const fixture = createServiceFixture();
-    const session = fixture.sessionManager.getOrCreate("session-1");
-    fixture.sessionManager.addMessage(session, "user", "hello");
-    fixture.sessionManager.save(session);
+  it("overlays live runtime status on store-backed summaries", async () => {
+    const record = createRecord({
+      sessionId: "session-1",
+      messages: [createMessage({ id: "user-1", sessionId: "session-1", text: "hello" })],
+    });
+    const fixture = createServiceFixture([record]);
     const service = new NcpSessionApiService({
       eventBus: fixture.eventBus,
       getConfig: createConfig,
       isLiveSessionRunning: (sessionId) => sessionId === "session-1",
-      sessionManager: fixture.sessionManager as never,
+      ncpAgentSessionStore: fixture.ncpAgentSessionStore,
+      sessionManager: {} as never,
     });
 
     const summaries = await service.listSessions();
@@ -245,117 +209,77 @@ describe("NcpSessionApiService", () => {
       sessionId: "session-1",
       status: "running",
     });
-    expect(fixture.sessionManager.loadedSessionKeys).toEqual(["session-1"]);
-    service.dispose();
-    fixture.ncpSessionApi.dispose();
-  });
-
-  it("prefers the NCP journal store when a legacy shell session also exists", async () => {
-    const fixture = createServiceFixture();
-    const legacySession = fixture.sessionManager.getOrCreate("session-1");
-    fixture.sessionManager.addMessage(legacySession, "user", "legacy");
-    fixture.sessionManager.save(legacySession);
-    const service = new NcpSessionApiService({
-      eventBus: fixture.eventBus,
-      getConfig: createConfig,
-      ncpAgentSessionStore: new TestAgentSessionStore({
-        sessionId: "session-1",
-        messages: [{
-          id: "journal:user",
-          sessionId: "session-1",
-          role: "user",
-          status: "final",
-          parts: [{ type: "text", text: "journal" }],
-          timestamp: "2026-05-12T00:00:00.000Z",
-        }],
-        createdAt: "2026-05-12T00:00:00.000Z",
-        updatedAt: "2026-05-12T00:00:00.000Z",
-        metadata: { label: "Journal" },
-      }),
-      sessionManager: fixture.sessionManager as never,
-    });
-
-    const messages = await service.listSessionMessages("session-1");
-    const summary = await service.getSession("session-1");
-
-    expect(messages[0]?.parts).toEqual([{ type: "text", text: "journal" }]);
-    expect(summary).toMatchObject({
-      messageCount: 1,
-      metadata: { label: "Journal" },
-    });
+    expect(fixture.ncpAgentSessionStore.loadedSessionIds).toEqual(["session-1"]);
     service.dispose();
     fixture.ncpSessionApi.dispose();
   });
 
   it("updates NCP session metadata without replacing message history", async () => {
-    const fixture = createServiceFixture();
-    const ncpAgentSessionStore = new TestAgentSessionStore({
-      sessionId: "session-1",
-      messages: [{
-        id: "journal:user",
+    const fixture = createServiceFixture([
+      createRecord({
         sessionId: "session-1",
-        role: "user",
-        status: "final",
-        parts: [{ type: "text", text: "journal" }],
-        timestamp: "2026-05-12T00:00:00.000Z",
-      }],
-      createdAt: "2026-05-12T00:00:00.000Z",
-      updatedAt: "2026-05-12T00:00:00.000Z",
-      metadata: { label: "Before" },
-    });
-    const service = new NcpSessionApiService({
-      eventBus: fixture.eventBus,
-      getConfig: createConfig,
-      ncpAgentSessionStore,
-      sessionManager: fixture.sessionManager as never,
-    });
+        metadata: { label: "Before" },
+        messages: [createMessage({ id: "journal:user", sessionId: "session-1", text: "journal" })],
+      }),
+    ]);
 
-    const updated = await service.updateSession("session-1", {
+    const updated = await fixture.ncpSessionApi.updateSession("session-1", {
       metadata: { label: "After" },
     });
 
     expect(updated?.metadata).toEqual({ label: "After" });
     expect(updated?.messageCount).toBe(1);
-    expect(ncpAgentSessionStore.updateMetadataCallCount).toBe(1);
-    service.dispose();
+    expect(fixture.ncpAgentSessionStore.updateMetadataCallCount).toBe(1);
     fixture.ncpSessionApi.dispose();
   });
 
-  it("builds the limited session list from metadata without loading full records", async () => {
-    const fixture = createServiceFixture();
-    const oldSession = fixture.sessionManager.getOrCreate("old-session");
-    oldSession.createdAt = new Date("2026-05-10T00:00:00.000Z");
-    oldSession.updatedAt = new Date("2026-05-10T00:00:00.000Z");
-    fixture.sessionManager.save(oldSession);
-    const newestSession = fixture.sessionManager.getOrCreate("newest-session");
-    newestSession.createdAt = new Date("2026-05-09T00:00:00.000Z");
-    newestSession.updatedAt = new Date("2026-05-12T00:00:00.000Z");
-    fixture.sessionManager.addMessage(newestSession, "user", "hello");
-    fixture.sessionManager.save(newestSession);
-    const middleSession = fixture.sessionManager.getOrCreate("middle-session");
-    middleSession.createdAt = new Date("2026-05-11T00:00:00.000Z");
-    middleSession.updatedAt = new Date("2026-05-11T00:00:00.000Z");
-    fixture.sessionManager.save(middleSession);
+  it("builds the limited session list from store records ordered by activity", async () => {
+    const fixture = createServiceFixture([
+      createRecord({
+        sessionId: "old-session",
+        createdAt: "2026-05-10T00:00:00.000Z",
+        updatedAt: "2026-05-10T00:00:00.000Z",
+      }),
+      createRecord({
+        sessionId: "newest-session",
+        createdAt: "2026-05-09T00:00:00.000Z",
+        updatedAt: "2026-05-12T00:00:00.000Z",
+        messages: [createMessage({
+          id: "newest:user",
+          sessionId: "newest-session",
+          text: "hello",
+          timestamp: "2026-05-12T00:00:00.000Z",
+        })],
+      }),
+      createRecord({
+        sessionId: "middle-session",
+        createdAt: "2026-05-11T00:00:00.000Z",
+        updatedAt: "2026-05-11T00:00:00.000Z",
+      }),
+    ]);
 
     const summaries = await fixture.ncpSessionApi.listSessions({ limit: 1 });
 
     expect(summaries).toHaveLength(1);
     expect(summaries[0]?.sessionId).toBe("newest-session");
     expect(summaries[0]?.messageCount).toBe(1);
-    expect(fixture.sessionManager.loadedSessionKeys).toEqual([]);
+    expect(fixture.ncpAgentSessionStore.loadedSessionIds).toEqual([]);
     fixture.ncpSessionApi.dispose();
   });
 
   it("keeps metadata-only session updates out of the list ordering clock", async () => {
-    const fixture = createServiceFixture();
-    const firstSession = fixture.sessionManager.getOrCreate("first-session");
-    firstSession.createdAt = new Date("2026-05-12T10:00:00.000Z");
-    firstSession.updatedAt = new Date("2026-05-12T10:00:00.000Z");
-    fixture.sessionManager.save(firstSession);
-    const secondSession = fixture.sessionManager.getOrCreate("second-session");
-    secondSession.createdAt = new Date("2026-05-12T09:00:00.000Z");
-    secondSession.updatedAt = new Date("2026-05-12T09:00:00.000Z");
-    fixture.sessionManager.save(secondSession);
+    const fixture = createServiceFixture([
+      createRecord({
+        sessionId: "first-session",
+        createdAt: "2026-05-12T10:00:00.000Z",
+        updatedAt: "2026-05-12T10:00:00.000Z",
+      }),
+      createRecord({
+        sessionId: "second-session",
+        createdAt: "2026-05-12T09:00:00.000Z",
+        updatedAt: "2026-05-12T09:00:00.000Z",
+      }),
+    ]);
 
     await fixture.ncpSessionApi.updateSession("second-session", {
       metadata: { ui_last_read_at: "2026-05-12T09:00:00.000Z" },
@@ -370,14 +294,16 @@ describe("NcpSessionApiService", () => {
   });
 
   it("updates session metadata and publishes realtime summary events from one owner", async () => {
-    const fixture = createServiceFixture();
+    const fixture = createServiceFixture([
+      createRecord({
+        sessionId: "session-1",
+        metadata: { label: "Before" },
+      }),
+    ]);
     const events: string[] = [];
     fixture.eventBus.subscribeAll((event) => {
       events.push(event.type);
     });
-    const session = fixture.sessionManager.getOrCreate("session-1");
-    session.metadata = { label: "Before" };
-    fixture.sessionManager.save(session);
 
     const updated = await fixture.ncpSessionApi.updateSession("session-1", {
       metadata: { label: "After" },
@@ -390,12 +316,13 @@ describe("NcpSessionApiService", () => {
   });
 
   it("publishes summaries from kernel session update events during its lifecycle", async () => {
-    const fixture = createServiceFixture();
+    const fixture = createServiceFixture([
+      createRecord({ sessionId: "session-1" }),
+    ]);
     const events: string[] = [];
     fixture.eventBus.subscribeAll((event) => {
       events.push(event.type);
     });
-    fixture.sessionManager.save(fixture.sessionManager.getOrCreate("session-1"));
 
     fixture.ncpSessionApi.start();
     fixture.eventBus.emit(eventKeys.sessionUpdated, { sessionKey: "session-1" });
