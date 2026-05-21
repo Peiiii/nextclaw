@@ -168,6 +168,7 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - Windows PowerShell release steps must fail on native command errors instead of silently continuing after a broken package build.
 - Product bundle creation must assert the packaged runtime shape before publishing:
   - require `runtime/dist/cli/app/index.js`, `runtime/dist/cli/app/index.mjs`, `runtime/dist/cli/app/features/session-search/worker/session-search-worker-host.utils.js`, and `runtime/ui-dist/index.html`;
+  - require a built-in skill smoke file such as `runtime/dist/cli/app/skills/nextclaw-self-manage/SKILL.md` so packaged installs can see both built-in runtime skills and user-installed workspace skills;
   - forbid `runtime/node_modules`;
   - enforce a low runtime file-count budget so accidental raw dependency trees fail during build.
 - If a runtime asset is missing, fix the package build/bundle contract first; do not debug it as an app startup problem until the packaged files are present.

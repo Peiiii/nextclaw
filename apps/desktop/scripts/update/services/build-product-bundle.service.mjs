@@ -181,6 +181,7 @@ async function copySessionSearchWorkerAssets(workspace) {
   await Promise.all(
     workerChunks.map((entryName) => cp(join(coreDistRoot, entryName), join(workspace.runtimeEntrypointDir, entryName)))
   );
+  await cp(join(coreDistRoot, "skills"), join(workspace.runtimeEntrypointDir, "skills"), { recursive: true });
 }
 
 async function countFiles(targetDir) {
@@ -220,6 +221,7 @@ function assertRuntimeBundleContract(runtimeRoot) {
     "dist/cli/app/index.js",
     "dist/cli/app/index.mjs",
     `dist/cli/app/${SESSION_SEARCH_WORKER_RELATIVE_PATH}`,
+    "dist/cli/app/skills/nextclaw-self-manage/SKILL.md",
     "package.json",
     "ui-dist/index.html"
   ];
