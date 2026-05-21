@@ -3,7 +3,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import { FeishuConfigSchema as NextClawFeishuConfigSchema } from "@nextclaw/feishu-core";
 import { findProviderByName, listProviderSpecs } from "../../llm-providers/providers/registry.js";
 import { DEFAULT_WORKSPACE_PATH } from "./brand.js";
-import { expandHome, getPackageVersion } from "../../../shared/lib/core-utils/utils/helpers.js";
+import { getPackageVersion, getWorkspacePath } from "../../../shared/lib/core-utils/utils/helpers.js";
 import { applySensitiveHints, buildBaseHints, mapSensitivePaths, type ConfigUiHints } from "./schema.hints.js";
 import { buildConfigActions, type ConfigActionManifest } from "./actions.js";
 
@@ -122,39 +122,6 @@ export const EmailConfigSchema = z.object({
   allowFrom: allowFrom
 });
 
-export const MochatMentionSchema = z.object({
-  requireInGroups: z.boolean().default(false)
-});
-
-export const MochatGroupRuleSchema = z.object({
-  requireMention: z.boolean().default(false)
-});
-
-export const MochatConfigSchema = z.object({
-  enabled: z.boolean().default(false),
-  baseUrl: z.string().default("https://mochat.io"),
-  socketUrl: z.string().default(""),
-  socketPath: z.string().default("/socket.io"),
-  socketDisableMsgpack: z.boolean().default(false),
-  socketReconnectDelayMs: z.number().int().default(1000),
-  socketMaxReconnectDelayMs: z.number().int().default(10000),
-  socketConnectTimeoutMs: z.number().int().default(10000),
-  refreshIntervalMs: z.number().int().default(30000),
-  watchTimeoutMs: z.number().int().default(25000),
-  watchLimit: z.number().int().default(100),
-  retryDelayMs: z.number().int().default(500),
-  maxRetryAttempts: z.number().int().default(0),
-  clawToken: z.string().default(""),
-  agentUserId: z.string().default(""),
-  sessions: z.array(z.string()).default([]),
-  panels: z.array(z.string()).default([]),
-  allowFrom: allowFrom,
-  mention: MochatMentionSchema.default({}),
-  groups: z.record(MochatGroupRuleSchema).default({}),
-  replyDelayMode: z.string().default("non-mention"),
-  replyDelayMs: z.number().int().default(120000)
-});
-
 export const SlackDMSchema = z.object({
   enabled: z.boolean().default(true),
   policy: z.string().default("open"),
@@ -189,7 +156,6 @@ export const ChannelsConfigSchema = z.object({
   telegram: TelegramConfigSchema.default({}),
   discord: DiscordConfigSchema.default({}),
   feishu: FeishuConfigSchema.default({}),
-  mochat: MochatConfigSchema.default({}),
   dingtalk: DingTalkConfigSchema.default({}),
   wecom: WeComConfigSchema.default({}),
   email: EmailConfigSchema.default({}),
@@ -626,7 +592,7 @@ export type McpTransportHttp = z.infer<typeof McpTransportHttpSchema>;
 export type McpTransportSse = z.infer<typeof McpTransportSseSchema>;
 
 export function getWorkspacePathFromConfig(config: Config): string {
-  return expandHome(config.agents.defaults.workspace);
+  return getWorkspacePath(config.agents.defaults.workspace);
 }
 
 function buildProviderAliasList(name: string, modelPrefix?: string | null): string[] {

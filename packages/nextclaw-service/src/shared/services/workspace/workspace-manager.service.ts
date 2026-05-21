@@ -1,7 +1,7 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { APP_NAME, getDataDir } from "@nextclaw/core";
+import { APP_NAME, DEFAULT_SKILLS_DIR, getDataDir } from "@nextclaw/core";
 import { findExecutableOnPath } from "@nextclaw-service/shared/utils/cli.utils.js";
 import { spawnSync } from "node:child_process";
 
@@ -23,7 +23,6 @@ export class WorkspaceManager {
     const templateDir = this.resolveTemplateDir();
     if (!templateDir) {
       console.warn("Warning: Template directory not found. Skipping workspace templates.");
-      return { created };
     }
     const templateFiles = [
       { source: "AGENTS.md", target: "AGENTS.md" },
@@ -37,21 +36,23 @@ export class WorkspaceManager {
       { source: "memory/MEMORY.md", target: "memory/MEMORY.md" }
     ];
 
-    for (const entry of templateFiles) {
-      const filePath = join(workspace, entry.target);
-      if (!force && existsSync(filePath)) {
-        continue;
+    if (templateDir) {
+      for (const entry of templateFiles) {
+        const filePath = join(workspace, entry.target);
+        if (!force && existsSync(filePath)) {
+          continue;
+        }
+        const templatePath = join(templateDir, entry.source);
+        if (!existsSync(templatePath)) {
+          console.warn(`Warning: Template file missing: ${templatePath}`);
+          continue;
+        }
+        const raw = readFileSync(templatePath, "utf-8");
+        const content = raw.replace(/\$\{APP_NAME\}/g, APP_NAME);
+        mkdirSync(dirname(filePath), { recursive: true });
+        writeFileSync(filePath, content);
+        created.push(entry.target);
       }
-      const templatePath = join(templateDir, entry.source);
-      if (!existsSync(templatePath)) {
-        console.warn(`Warning: Template file missing: ${templatePath}`);
-        continue;
-      }
-      const raw = readFileSync(templatePath, "utf-8");
-      const content = raw.replace(/\$\{APP_NAME\}/g, APP_NAME);
-      mkdirSync(dirname(filePath), { recursive: true });
-      writeFileSync(filePath, content);
-      created.push(entry.target);
     }
 
     const memoryDir = join(workspace, "memory");
@@ -60,10 +61,10 @@ export class WorkspaceManager {
       created.push(join("memory", ""));
     }
 
-    const skillsDir = join(workspace, "skills");
+    const skillsDir = join(workspace, DEFAULT_SKILLS_DIR);
     if (!existsSync(skillsDir)) {
       mkdirSync(skillsDir, { recursive: true });
-      created.push(join("skills", ""));
+      created.push(join(DEFAULT_SKILLS_DIR, ""));
     }
     return { created };
   };

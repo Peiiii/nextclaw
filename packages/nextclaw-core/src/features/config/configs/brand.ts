@@ -8,6 +8,7 @@ export const ENV_HOME_KEY = "NEXTCLAW_HOME";
 export const DEFAULT_HOME_DIR = ".nextclaw";
 export const DEFAULT_CONFIG_FILE = "config.json";
 export const DEFAULT_WORKSPACE_DIR = "workspace";
+export const DEFAULT_SKILLS_DIR = "skills";
 export const DEFAULT_CONFIG_PATH = `~/${DEFAULT_HOME_DIR}/${DEFAULT_CONFIG_FILE}`;
 export const DEFAULT_WORKSPACE_PATH = `~/${DEFAULT_HOME_DIR}/${DEFAULT_WORKSPACE_DIR}`;
 

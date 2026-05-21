@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { basename, isAbsolute, join, relative, resolve } from "node:path";
+import { DEFAULT_SKILLS_DIR } from "@nextclaw/core";
 import { SkillManager } from "@nextclaw/kernel";
 import {
   buildLocalizedTextMap,
@@ -117,7 +118,7 @@ function resolveMarketplaceSkillDestinationDir(params: {
   dir?: string;
 }): string {
   const { workdir, slug, dir } = params;
-  const dirName = dir?.trim() || "skills";
+  const dirName = dir?.trim() || DEFAULT_SKILLS_DIR;
   return isAbsolute(dirName)
     ? resolve(dirName, slug)
     : resolve(workdir, dirName, slug);

@@ -15,7 +15,7 @@ import {
 } from "./agent-profile-runtime-fields.js";
 import { loadConfig, saveConfig } from "./loader.js";
 import type { Config } from "./schema.js";
-import { expandHome } from "../../../shared/lib/core-utils/utils/helpers.js";
+import { expandHome, getWorkspacePath } from "../../../shared/lib/core-utils/utils/helpers.js";
 
 export const BUILTIN_MAIN_AGENT_ID = "main";
 const AGENT_HOME_DIRECTORY_SEGMENT = "agents";
@@ -145,7 +145,7 @@ export function resolveAgentHomeDirectory(config: Config, agentId: string): stri
   if (!profile) {
     throw new Error(`unknown agent: ${agentId}`);
   }
-  return resolve(expandHome(profile.workspace));
+  return getWorkspacePath(profile.workspace);
 }
 
 export function resolveAgentAvatarAssetPath(config: Config, agentId: string): string | null {
@@ -154,7 +154,7 @@ export function resolveAgentAvatarAssetPath(config: Config, agentId: string): st
     return null;
   }
   return resolveAgentAvatarHomePath({
-    homeDirectory: resolve(expandHome(profile.workspace)),
+    homeDirectory: getWorkspacePath(profile.workspace),
     avatarRef: profile.avatar
   });
 }
@@ -240,8 +240,7 @@ export function removeAgentProfile(agentId: string, options: { configPath?: stri
 }
 
 export function buildDefaultAgentHomePath(config: Config, agentId: string): string {
-  const base = normalizeOptionalString(config.agents.defaults.workspace) ?? "~/.nextclaw/workspace";
-  return join(base, AGENT_HOME_DIRECTORY_SEGMENT, agentId);
+  return join(getWorkspacePath(config.agents.defaults.workspace), AGENT_HOME_DIRECTORY_SEGMENT, agentId);
 }
 
 export function resolveImplicitAgentHomePath(config: Config, agentId: string): string {
@@ -279,7 +278,7 @@ function toEffectiveAgentProfile(entry: AgentProfile, config: Config): Effective
 }
 
 function buildLegacyAgentHomePath(config: Config, agentId: string): string {
-  const base = normalizeOptionalString(config.agents.defaults.workspace) ?? "~/.nextclaw/workspace";
+  const base = getWorkspacePath(config.agents.defaults.workspace);
   return join(dirname(base), `${basename(base)}-${agentId}`);
 }
 
@@ -377,7 +376,7 @@ function applyAgentProfileAvatarUpdate(
   }
   profile.avatar = materializeAgentAvatar({
     avatar: normalized,
-    homeDirectory: resolve(expandHome(existingEffective.workspace)),
+    homeDirectory: getWorkspacePath(existingEffective.workspace),
     agentId,
     displayName: profile.displayName ?? existingEffective.displayName ?? formatAgentDisplayName(agentId)
   });

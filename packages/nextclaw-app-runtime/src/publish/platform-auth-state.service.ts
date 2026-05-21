@@ -14,6 +14,9 @@ export type PlatformPublishAuthState = {
   apiBaseUrl?: string;
 };
 
+const NEXTCLAW_HOME_ENV_KEY = "NEXTCLAW_HOME";
+const NEXTCLAW_DEFAULT_HOME_DIR = ".nextclaw";
+
 export class PlatformAuthStateService {
   readCurrentAuthState = (): PlatformPublishAuthState => {
     const configPath = this.resolveConfigPath();
@@ -44,10 +47,10 @@ export class PlatformAuthStateService {
   };
 
   private resolveConfigPath = (): string => {
-    const nextclawHome = process.env.NEXTCLAW_HOME?.trim();
+    const nextclawHome = process.env[NEXTCLAW_HOME_ENV_KEY]?.trim();
     const dataHome = nextclawHome && nextclawHome.length > 0
       ? resolve(nextclawHome)
-      : resolve(homedir(), ".nextclaw");
+      : resolve(homedir(), NEXTCLAW_DEFAULT_HOME_DIR);
     return resolve(dataHome, "config.json");
   };
 }

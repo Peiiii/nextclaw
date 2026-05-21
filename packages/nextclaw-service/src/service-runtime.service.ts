@@ -1,11 +1,10 @@
-import { loadConfig, saveConfig, getConfigPath, getDataDir, expandHome, resolveConfigSecrets, APP_NAME, DEFAULT_WORKSPACE_DIR, DEFAULT_WORKSPACE_PATH } from "@nextclaw/core";
+import { loadConfig, saveConfig, getConfigPath, getDataDir, resolveWorkspacePath, resolveConfigSecrets, APP_NAME } from "@nextclaw/core";
 import { NextclawKernel } from "@nextclaw/kernel";
 import { RemoteRuntimeActions } from "@nextclaw/remote";
 import {
   setPluginRuntimeBridge,
 } from "@nextclaw/openclaw-compat";
 import { existsSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { RestartCoordinator } from "@nextclaw-service/shared/services/restart/restart-coordinator.service.js";
 import type { RestartStrategy } from "@nextclaw-service/shared/services/restart/restart-coordinator.service.js";
@@ -397,11 +396,7 @@ export class NextclawServiceRuntime {
     const createdConfig = initializeConfigIfMissing(configPath);
 
     const config = loadConfig();
-    const workspaceSetting = config.agents.defaults.workspace;
-    const workspacePath =
-      !workspaceSetting || workspaceSetting === DEFAULT_WORKSPACE_PATH
-        ? join(getDataDir(), DEFAULT_WORKSPACE_DIR)
-        : expandHome(workspaceSetting);
+    const workspacePath = resolveWorkspacePath(config.agents.defaults.workspace);
     const workspaceExisted = existsSync(workspacePath);
     mkdirSync(workspacePath, { recursive: true });
     const templateResult = this.workspaceManager.createWorkspaceTemplates(

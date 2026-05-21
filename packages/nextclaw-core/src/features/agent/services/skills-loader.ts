@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { SKILL_METADATA_KEY } from "../../config/configs/brand.js";
+import { DEFAULT_SKILLS_DIR, SKILL_METADATA_KEY } from "../../config/configs/brand.js";
 import { DEFAULT_PROJECT_SKILLS_DIR_NAME } from "../../session/services/session-project-context.js";
 
 export type SkillScope = "builtin" | "project" | "workspace";
@@ -234,7 +234,7 @@ export class SkillsLoader {
       ...this.supportingWorkspaces,
     ]).map((workspace) => ({
       scope: "workspace",
-      skillsRoot: join(workspace, "skills"),
+      skillsRoot: join(workspace, DEFAULT_SKILLS_DIR),
     }));
 
     return descriptors.flatMap((descriptor) => this.collectDirectorySkills(descriptor));
@@ -272,7 +272,7 @@ export class SkillsLoader {
     const currentDir = dirname(fileURLToPath(import.meta.url));
     const candidates = [
       resolve(currentDir, "..", "shared", "skills"),
-      join(currentDir, "skills"),
+      join(currentDir, DEFAULT_SKILLS_DIR),
       resolve(currentDir, "..", "skills"),
     ];
 

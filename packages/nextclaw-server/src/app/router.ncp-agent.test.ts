@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, expect, it } from "vitest";
 import { serve } from "@hono/node-server";
-import { ConfigSchema, saveConfig } from "@nextclaw/core";
+import { ConfigSchema, getSkillsPath, getWorkspacePath, saveConfig } from "@nextclaw/core";
 import {
   NcpEventType,
   type NcpAgentRunSendOptions,
@@ -747,6 +747,46 @@ it("exposes draft session skills without requiring an empty projectRoot override
     expect.objectContaining({
       name: "workspace-only-skill",
       scope: "workspace",
+    }),
+  ]));
+});
+
+it("exposes skills installed in the NEXTCLAW_HOME default workspace", async () => {
+  useIsolatedHome();
+  const configPath = createTempConfigPath();
+  const skillsRoot = getSkillsPath(getWorkspacePath());
+  mkdirSync(join(skillsRoot, "portable-skill"), { recursive: true });
+  writeFileSync(
+    join(skillsRoot, "portable-skill", "SKILL.md"),
+    ["---", "name: portable-skill", "description: Portable workspace", "---"].join("\n"),
+  );
+  saveConfig(ConfigSchema.parse({}), configPath);
+
+  const agent = new StubNcpAgent();
+  const app = createUiRouter({
+    configPath,
+    appEventBus: new EventBus(),
+    kernel: createTestKernel(agent),
+  });
+
+  const response = await app.request("http://localhost/api/ncp/sessions/draft-session/skills");
+  expect(response.status).toBe(200);
+  const payload = await response.json() as {
+    ok: boolean;
+    data: {
+      records: Array<{
+        name: string;
+        ref: string;
+        scope: string;
+      }>;
+    };
+  };
+  expect(payload.ok).toBe(true);
+  expect(payload.data.records).toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      name: "portable-skill",
+      scope: "workspace",
+      ref: `workspace:${join(skillsRoot, "portable-skill")}`,
     }),
   ]));
 });

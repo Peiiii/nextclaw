@@ -1,4 +1,4 @@
-import { getWorkspacePath, loadConfig } from "@nextclaw/core";
+import { getSkillsPath, getWorkspacePath, loadConfig } from "@nextclaw/core";
 import type {
   MarketplaceInstallSkillParams,
   MarketplaceInstaller,
@@ -113,7 +113,7 @@ export class ServiceMarketplaceInstaller {
 
   private async uninstallSkill(slug: string): Promise<UserFacingResult> {
     const workspace = getWorkspacePath(loadConfig().agents.defaults.workspace);
-    const targetDir = join(workspace, "skills", slug);
+    const targetDir = join(getSkillsPath(workspace), slug);
 
     if (!existsSync(targetDir)) {
       throw new Error(`Skill not installed in workspace: ${slug}`);

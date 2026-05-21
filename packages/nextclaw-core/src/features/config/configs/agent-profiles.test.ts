@@ -4,14 +4,17 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { loadConfig, saveConfig } from "./loader.js";
 import { ConfigSchema } from "./schema.js";
+import { DEFAULT_WORKSPACE_DIR } from "./brand.js";
 import {
   createAgentProfile,
+  resolveAgentHomeDirectory,
   resolveAgentAvatarHomePath,
   resolveEffectiveAgentProfiles,
   updateAgentProfile
 } from "./agent-profiles.js";
 
 const tempDirs: string[] = [];
+const originalHome = process.env.NEXTCLAW_HOME;
 
 function createTempConfigPath(): string {
   const dir = mkdtempSync(join(tmpdir(), "nextclaw-agent-profiles-test-"));
@@ -25,6 +28,11 @@ afterEach(() => {
     if (dir) {
       rmSync(dir, { recursive: true, force: true });
     }
+  }
+  if (typeof originalHome === "string") {
+    process.env.NEXTCLAW_HOME = originalHome;
+  } else {
+    delete process.env.NEXTCLAW_HOME;
   }
 });
 
@@ -188,6 +196,27 @@ describe("createAgentProfile", () => {
     const researcher = resolveEffectiveAgentProfiles(saved).find((agent) => agent.id === "researcher");
 
     expect(researcher?.workspace).toBe(join(workspace, "agents", "researcher"));
+  });
+
+  it("creates default agent homes under NEXTCLAW_HOME when the workspace setting is default", () => {
+    const configPath = createTempConfigPath();
+    const home = mkdtempSync(join(tmpdir(), "nextclaw-agent-profiles-home-"));
+    tempDirs.push(home);
+    process.env.NEXTCLAW_HOME = home;
+    saveConfig(ConfigSchema.parse({}), configPath);
+
+    const created = createAgentProfile(
+      {
+        id: "engineer"
+      },
+      {
+        configPath
+      }
+    );
+    const saved = loadConfig(configPath);
+
+    expect(resolveAgentHomeDirectory(saved, "main")).toBe(join(home, DEFAULT_WORKSPACE_DIR));
+    expect(created.workspace).toBe(join(home, DEFAULT_WORKSPACE_DIR, "agents", "engineer"));
   });
 
   it("keeps the legacy implicit agent home when only the old directory exists", () => {

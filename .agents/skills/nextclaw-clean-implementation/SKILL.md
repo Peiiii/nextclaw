@@ -101,6 +101,7 @@ description: Use when implementing or refactoring code in this repository, espec
 默认原则：
 
 - 在语义 owner 上加字段或行为，而不是在路由、启动参数、bridge、controller 里穿针引线
+- 路径、默认目录、安装形态、home / workspace / skills / plugins / logs / cache 语义必须通过拥有该语义的 config / path owner 或公开常量解析；禁止在生产业务层手写 `~/.nextclaw`、`workspace`、`skills` 等目录假设。发现 portable / packaged / dev 差异时，先统一 owner，再改调用点。
 - 事件名如果声明承载某个既有协议事件，payload 必须保持该协议事件本体；路由、权限、展示上下文、派生 metadata 属于独立 owner 或独立事件，不能混进同名协议事件里
 - 不用“原样转发整个接口 + 改一个方法”的方式解决局部问题
 - 不用 getter / alias / proxy 冒充删除重复入口。`get oldName() { return this.newName; }` 只有在明确保留兼容 contract 时才允许；重构收敛场景必须继续改调用方或改 contract，让公共入口真的只剩一个。

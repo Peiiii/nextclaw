@@ -21,9 +21,12 @@ export type FeishuAccountStore = {
   deleteAccount: (accountId: string) => void;
 };
 
+const NEXTCLAW_HOME_ENV_KEY = "NEXTCLAW_HOME";
+const NEXTCLAW_DEFAULT_HOME_DIR = ".nextclaw";
+
 function resolveNextclawHome(): string {
-  const override = process.env.NEXTCLAW_HOME?.trim();
-  return resolve(override || join(homedir(), ".nextclaw"));
+  const override = process.env[NEXTCLAW_HOME_ENV_KEY]?.trim();
+  return resolve(override || join(homedir(), NEXTCLAW_DEFAULT_HOME_DIR));
 }
 
 function resolveAccountsDir(): string {

@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DEFAULT_HOME_DIR, ENV_HOME_KEY } from "../../../../features/config/configs/brand.js";
+import { DEFAULT_HOME_DIR, DEFAULT_SKILLS_DIR, DEFAULT_WORKSPACE_DIR, DEFAULT_WORKSPACE_PATH, ENV_HOME_KEY } from "../../../../features/config/configs/brand.js";
 
 export function ensureDir(path: string): string {
   if (!existsSync(path)) {
@@ -20,10 +20,15 @@ export function getDataPath(): string {
 }
 
 export function getWorkspacePath(workspace?: string): string {
-  if (workspace) {
-    return ensureDir(resolve(expandHome(workspace)));
+  return ensureDir(resolveWorkspacePath(workspace));
+}
+
+export function resolveWorkspacePath(workspace?: string): string {
+  const configured = normalizeOptionalPathSetting(workspace);
+  if (configured && configured !== DEFAULT_WORKSPACE_PATH) {
+    return resolve(expandHome(configured));
   }
-  return ensureDir(resolve(getDataPath(), "workspace"));
+  return resolve(getDataPath(), DEFAULT_WORKSPACE_DIR);
 }
 
 export function getLogsPath(): string {
@@ -43,7 +48,7 @@ export function getMemoryPath(workspace?: string): string {
 }
 
 export function getSkillsPath(workspace?: string): string {
-  return ensureDir(resolve(workspace ? expandHome(workspace) : getWorkspacePath(), "skills"));
+  return ensureDir(resolve(workspace ? expandHome(workspace) : getWorkspacePath(), DEFAULT_SKILLS_DIR));
 }
 
 export function todayDate(): string {
@@ -81,6 +86,11 @@ export function expandHome(value: string): string {
     return resolve(homedir(), value.slice(2));
   }
   return value;
+}
+
+function normalizeOptionalPathSetting(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
 }
 
 function normalizeUiHostForLocalClient(host: string): string {
