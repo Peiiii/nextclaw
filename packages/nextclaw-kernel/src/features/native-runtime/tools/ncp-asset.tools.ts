@@ -43,25 +43,25 @@ function toAssetPayload(record: StoredAssetRecord, contentBasePath: string) {
 class AssetPutTool implements NcpTool {
   readonly name = "asset_put";
   readonly description =
-    "Put a normal file path or base64 bytes into the managed asset store.";
+    "Publish a file to the user as a chat/channel attachment with preview and download support.";
   readonly parameters = {
     type: "object",
     properties: {
       path: {
         type: "string",
-        description: "Existing local file path to put into the asset store.",
+        description: "Existing local file path to publish to the user as an attachment.",
       },
       bytesBase64: {
         type: "string",
-        description: "Base64 file bytes. Use together with fileName when no source path exists.",
+        description: "Base64 file bytes to publish when no source path exists. Use with fileName.",
       },
       fileName: {
         type: "string",
-        description: "Optional asset file name override. Required when using bytesBase64.",
+        description: "Optional display/download file name. Required when using bytesBase64.",
       },
       mimeType: {
         type: "string",
-        description: "Optional mime type override.",
+        description: "Optional MIME type override for preview and download rendering.",
       },
     },
     additionalProperties: false,
