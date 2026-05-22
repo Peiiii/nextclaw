@@ -39,8 +39,16 @@
 
 ## 发布/部署方式
 
-- 未发布、未部署。
-- 后续发布桌面 beta / stable 时，需要让 `packages/nextclaw-ui` 构建产物进入 `nextclaw` runtime bundle，并走桌面发布验证链路。
+- 已发布 desktop preview beta：[`v0.19.24-desktop-beta.1`](https://github.com/Peiiii/nextclaw/releases/tag/v0.19.24-desktop-beta.1)。
+- 本次 release 名称：`NextClaw Desktop 0.0.181 Preview Beta 1`。
+- 本次 release 对应源码提交：`588185ba20578e36d2646eaf7d2100c5869b59da`。
+- 本次 Windows 主要验收资产：
+  - `NextClaw.Desktop-Setup-0.0.181-x64.exe`
+  - `NextClaw-Portable-0.0.181-win-x64.zip`
+  - `nextclaw-bundle-win32-x64-0.19.24.zip`
+  - `manifest-beta-win32-x64.json`
+- 远端发布闭环已通过：`desktop-release` workflow `26302767030` 成功；Windows x64 / arm64 build 与 smoke 成功；release assets 检查成功；`gh-pages` 与公网 beta manifest 均指向 `0.19.24`。
+- 不涉及 NPM 包发布。
 
 ## 用户/产品视角的验收步骤
 
