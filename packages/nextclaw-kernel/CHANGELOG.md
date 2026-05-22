@@ -1,5 +1,13 @@
 # @nextclaw/kernel
 
+## 0.1.10
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/ncp-agent-runtime@0.3.24
+  - @nextclaw/ncp-toolkit@0.5.18
+
 ## 0.1.9
 
 ### Patch Changes

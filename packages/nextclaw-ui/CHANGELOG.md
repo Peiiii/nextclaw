@@ -1,5 +1,13 @@
 # @nextclaw/ui
 
+## 0.12.30
+
+### Patch Changes
+
+- Publish the Weixin asset store method binding fix and current packaged UI/runtime entry updates.
+  - @nextclaw/server@0.12.21
+  - @nextclaw/client-sdk@0.1.9
+
 ## 0.12.29
 
 ### Patch Changes

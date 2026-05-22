@@ -1,5 +1,18 @@
 # nextclaw
 
+## 0.19.23
+
+### Patch Changes
+
+- Publish the Weixin asset store method binding fix and current packaged UI/runtime entry updates.
+- Updated dependencies
+  - @nextclaw/ncp-agent-runtime@0.3.24
+  - @nextclaw/ncp-toolkit@0.5.18
+  - @nextclaw/kernel@0.1.10
+  - @nextclaw/service@0.1.13
+  - @nextclaw/remote@0.1.98
+  - @nextclaw/server@0.12.21
+
 ## 0.19.21
 
 ### Patch Changes
