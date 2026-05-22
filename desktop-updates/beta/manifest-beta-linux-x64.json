@@ -2,11 +2,11 @@
   "channel": "beta",
   "platform": "linux",
   "arch": "x64",
-  "latestVersion": "0.19.22",
+  "latestVersion": "0.19.23",
   "minimumLauncherVersion": "0.0.143",
-  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/v0.19.22-desktop-beta.1/nextclaw-bundle-linux-x64-0.19.22.zip",
-  "bundleSha256": "35e11f54433e7d60efb3e9ff6e3e7d79c64b83dc4b2b582a7c33123eb8c8cec7",
-  "bundleSignature": "x/ELmmS8Bhk5P8++ZY0HT8vsvRm4+woexxTbD88Kwm6qJp6mjacwlsfXhh3Ycex0YSEXo/5fGD5aQ5oliTixCA==",
-  "releaseNotesUrl": "https://github.com/Peiiii/nextclaw/releases/tag/v0.19.22-desktop-beta.1",
-  "manifestSignature": "JTQIf250ezUGqEZ6o5nv6OT9yHHblj6CJYCj7J3SeXWOg2Glzpy1n66OC4LoDrD3GCTRX7zrVdP/vVYSCgfeCA=="
+  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/v0.19.23-desktop-beta.1/nextclaw-bundle-linux-x64-0.19.23.zip",
+  "bundleSha256": "0420d6820eddf5c2ae41fafe2552438b0dfd40973cf886c01018ad206e52cdba",
+  "bundleSignature": "fiHTvLEwfFtWYVflJ3LJDun3GrQQXL3IsgteSm0cokV7o7Ee72Gaqpmc2/RhnHxKkkU3IfZJN9GJKghadFM1Bw==",
+  "releaseNotesUrl": "https://github.com/Peiiii/nextclaw/releases/tag/v0.19.23-desktop-beta.1",
+  "manifestSignature": "R4l4XYLVwKQZDTwyjRRlQxevnV3WUQUBJPhHg8CsxyeVpB6xjyOdqFkBcW4rcKJIpBSMcO/1qVvJWXVrVFjRCw=="
 }
