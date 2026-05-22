@@ -52,10 +52,13 @@ describe("DesktopAppShell", () => {
 
     expect(chrome).toBeTruthy();
     expect(chrome.parentElement?.style.getPropertyValue("--desktop-titlebar-height")).toBe("40px");
+    expect(chrome.className).toContain("bg-secondary");
     expect(sidebarChrome.className).toContain("w-[var(--desktop-sidebar-width)]");
     expect(sidebarChrome.className).not.toContain("border-b");
     expect(mainChrome.className).toContain("border-b");
-    expect(mainChrome.className).toContain("pr-[var(--desktop-caption-safe-right)]");
+    expect(mainChrome.className).toContain("desktop-window-drag");
+    expect(mainChrome.className).toContain("mr-[var(--desktop-caption-safe-right)]");
+    expect(mainChrome.className).not.toContain("pr-[var(--desktop-caption-safe-right)]");
     expect(screen.getByTestId("app-content")).toBeTruthy();
   });
 

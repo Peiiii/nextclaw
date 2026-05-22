@@ -4,8 +4,8 @@ export type DesktopShellTheme = "warm" | "cool";
 
 const desktopWindowWidth = 1360;
 const desktopWindowHeight = 920;
-const desktopWindowMinWidth = 1080;
-const desktopWindowMinHeight = 720;
+const desktopWindowMinWidth = 420;
+const desktopWindowMinHeight = 320;
 const windowsTitleBarHeight = 40;
 const windowsShellBackgroundColor = "#F2F1EE";
 const desktopTitleBarThemes: Record<DesktopShellTheme, Required<TitleBarOverlay>> = {
@@ -43,10 +43,10 @@ function createPlatformWindowChromeOptions(): BrowserWindowConstructorOptions {
     return {
       autoHideMenuBar: true,
       backgroundColor: windowsShellBackgroundColor,
+      frame: false,
+      thickFrame: true,
       titleBarStyle: "hidden",
-      titleBarOverlay: {
-        ...createDesktopTitleBarOverlay("warm")
-      }
+      titleBarOverlay: createDesktopTitleBarOverlay("warm")
     };
   }
   if (process.platform === "darwin") {
