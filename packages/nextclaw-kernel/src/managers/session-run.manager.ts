@@ -166,6 +166,22 @@ export class SessionRunManager {
     await this.onSessionUpdated(normalizedSessionId);
   };
 
+  patchSessionMetadata = async (
+    sessionId: string,
+    patcher: (metadata: Record<string, unknown>) => Record<string, unknown> | null,
+  ): Promise<boolean> => {
+    this.assertNotDisposed();
+    const normalizedSessionId = sessionId.trim();
+    if (!normalizedSessionId) return false;
+    const liveSession = this.liveSessions.get(normalizedSessionId) ?? null;
+    const storedSession = liveSession ? null : await this.ncpAgentSessionStore.getSession(normalizedSessionId);
+    if (!liveSession && !storedSession) return false;
+    const nextMetadata = patcher(structuredClone(liveSession?.metadata ?? storedSession?.metadata ?? {}));
+    if (!nextMetadata) return false;
+    if (liveSession) liveSession.metadata = structuredClone(nextMetadata);
+    return await this.persistSessionMetadata(normalizedSessionId, nextMetadata);
+  };
+
   appendSessionEvent = async (
     sessionId: string,
     event: NcpEndpointEvent,
@@ -217,7 +233,11 @@ export class SessionRunManager {
       stateManager,
       sessionMetadata: metadata,
       setSessionMetadata: (nextMetadata) => {
-        session.metadata = structuredClone(nextMetadata);
+        session.metadata = { ...session.metadata, ...structuredClone(nextMetadata) };
+        void this.persistSessionMetadata(session.sessionId, session.metadata).catch((error: unknown) => {
+          const message = error instanceof Error ? error.stack ?? error.message : String(error);
+          console.error(`[session-run] failed to persist runtime metadata for ${session.sessionId}: ${message}`);
+        });
       },
     });
     this.liveSessions.set(sessionId, session);
@@ -251,19 +271,17 @@ export class SessionRunManager {
     session.publisher.publish(event);
   };
 
-  private readonly persistLiveSessionEvent = async (
-    session: LiveSession,
-    event: NcpEndpointEvent,
-  ): Promise<void> => {
+  private readonly persistLiveSessionEvent = async (session: LiveSession, event: NcpEndpointEvent): Promise<void> => {
     const updatedAt = new Date().toISOString();
     if (this.ncpAgentSessionStore.appendSessionEvent) {
+      const storedSession = await this.ncpAgentSessionStore.getSession(session.sessionId);
       await this.ncpAgentSessionStore.appendSessionEvent({
         session: {
           sessionId: session.sessionId,
           ...(session.agentId ? { agentId: session.agentId } : {}),
           createdAt: session.createdAt,
           updatedAt,
-          metadata: structuredClone(session.metadata),
+          metadata: storedSession ? {} : structuredClone(session.metadata),
         },
         event,
         updatedAt,
@@ -271,6 +289,15 @@ export class SessionRunManager {
       return;
     }
     await this.ncpAgentSessionStore.saveSession(buildSessionRecord(session, updatedAt));
+  };
+
+  private readonly persistSessionMetadata = async (
+    sessionId: string,
+    metadata: Record<string, unknown>,
+  ): Promise<boolean> => {
+    return await this.ncpAgentSessionStore.updateSessionMetadata({
+      sessionId, metadata: structuredClone(metadata), updatedAt: new Date().toISOString(),
+    });
   };
 
   private readonly assertNotDisposed = (): void => {

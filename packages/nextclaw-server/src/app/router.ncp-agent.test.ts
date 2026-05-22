@@ -74,6 +74,7 @@ class StubNcpAgent implements NcpSessionApi {
   readonly abortCalls: Array<{ sessionId: string; messageId?: string }> = [];
   readonly sessionTypeListCalls: Array<{ describeMode?: "observation" | "probe" } | undefined> = [];
   readonly sessionMetadata = new Map<string, Record<string, unknown>>();
+  readonly updateSessionCalls: Array<{ sessionId: string; metadata?: Record<string, unknown> | null }> = [];
   readonly contextWindowBySession = new Map<string, Record<string, unknown>>();
   readonly assetApi = {
     put: async (input: { fileName: string; mimeType?: string | null; bytes: Uint8Array }) => {
@@ -183,12 +184,12 @@ class StubNcpAgent implements NcpSessionApi {
   };
 
   getSession = async (sessionId: string) => {
-    if (sessionId !== "session-1") {
+    if (sessionId !== "session-1" && !this.sessionMetadata.has(sessionId)) {
       return null;
     }
     return {
       sessionId,
-      messageCount: 2,
+      messageCount: sessionId === "session-1" ? 2 : 0,
       updatedAt: "2026-03-17T00:00:00.000Z",
       status: "idle" as const,
       ...(this.sessionMetadata.has(sessionId)
@@ -204,6 +205,7 @@ class StubNcpAgent implements NcpSessionApi {
     sessionId: string,
     patch: { metadata?: Record<string, unknown> | null },
   ) => {
+    this.updateSessionCalls.push({ sessionId, metadata: patch.metadata });
     if (patch.metadata) {
       this.sessionMetadata.set(sessionId, patch.metadata);
     } else {
@@ -216,6 +218,19 @@ class StubNcpAgent implements NcpSessionApi {
       status: "idle" as const,
       ...(patch.metadata ? { metadata: patch.metadata } : {})
     };
+  };
+
+  patchSessionMetadata = async (
+    sessionId: string,
+    patcher: (metadata: Record<string, unknown>) => Record<string, unknown> | null,
+  ): Promise<boolean> => {
+    const current = this.sessionMetadata.get(sessionId) ?? {};
+    const next = patcher(structuredClone(current));
+    if (!next) {
+      return true;
+    }
+    this.sessionMetadata.set(sessionId, next);
+    return true;
   };
 
   deleteSession = async (): Promise<void> => {};
@@ -537,7 +552,7 @@ it("proxies ncp send, patch, and abort flows", async () => {
     project_root: validProjectRoot,
     ui_last_read_at: "2026-03-17T00:00:00.000Z",
   });
-
+  expect(agent.updateSessionCalls).toEqual([]);
   const sendResponse = await app.request("http://localhost/api/ncp/agent/send", {
     method: "POST",
     headers: {

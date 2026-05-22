@@ -81,14 +81,13 @@ function applyUiReadAtPatch(
   return nextMetadata;
 }
 
-async function applyProjectRootPatch(
+function applyProjectRootPatch(
   metadata: Record<string, unknown>,
-  patch: SessionPatchUpdate,
-): Promise<Record<string, unknown>> {
-  if (!Object.prototype.hasOwnProperty.call(patch, "projectRoot")) {
+  projectRoot: string | null | undefined,
+): Record<string, unknown> {
+  if (projectRoot === undefined) {
     return metadata;
   }
-  const projectRoot = await normalizeSessionProjectRoot(patch.projectRoot);
   if (projectRoot) {
     const { projectRoot: _removed, ...nextMetadata } = metadata;
     void _removed;
@@ -103,11 +102,11 @@ async function applyProjectRootPatch(
   return nextMetadata;
 }
 
-async function buildPatchedSessionMetadata(params: {
-  metadata: Record<string, unknown>;
-  patch: SessionPatchUpdate;
-}): Promise<Record<string, unknown>> {
-  const { metadata, patch } = params;
+function buildPatchedSessionMetadata(
+  metadata: Record<string, unknown>,
+  patch: SessionPatchUpdate,
+  projectRootPatch: string | null | undefined,
+): Record<string, unknown> {
   const nextMetadata = applySessionPreferencePatch({
     metadata: structuredClone(metadata),
     patch,
@@ -115,7 +114,7 @@ async function buildPatchedSessionMetadata(params: {
   });
   const nextMetadataWithSessionType = applySessionTypePatch(nextMetadata, patch);
   const nextMetadataWithReadAt = applyUiReadAtPatch(nextMetadataWithSessionType, patch);
-  return applyProjectRootPatch(nextMetadataWithReadAt, patch);
+  return applyProjectRootPatch(nextMetadataWithReadAt, projectRootPatch);
 }
 
 export class NcpSessionRoutesController {
@@ -241,18 +240,15 @@ export class NcpSessionRoutesController {
       return c.json(err("UNSUPPORTED_PATCH", "clearHistory is not supported for ncp sessions"), 400);
     }
 
-    const existing = await sessionApi.getSession(sessionId);
-    const metadata = readSessionMetadata(existing?.metadata);
-
-    let updated;
+    let patched;
     try {
-      const nextMetadata = await buildPatchedSessionMetadata({
-        metadata,
-        patch
-      });
-      updated = await sessionApi.updateSession(sessionId, {
-        metadata: nextMetadata
-      });
+      const projectRootPatch = Object.prototype.hasOwnProperty.call(patch, "projectRoot")
+        ? await normalizeSessionProjectRoot(patch.projectRoot)
+        : undefined;
+      patched = await this.options.kernel.sessionRunManager.patchSessionMetadata(
+        sessionId,
+        (metadata) => buildPatchedSessionMetadata(metadata, patch, projectRootPatch),
+      );
     } catch (error) {
       if (error instanceof Error && error.message === "PREFERRED_THINKING_INVALID") {
         return c.json(err("PREFERRED_THINKING_INVALID", "preferredThinking must be a supported thinking level"), 400);
@@ -263,6 +259,9 @@ export class NcpSessionRoutesController {
       throw error;
     }
 
+    if (!patched) return c.json(err("NOT_FOUND", `ncp session not found: ${sessionId}`), 404);
+
+    const updated = await sessionApi.getSession(sessionId);
     if (!updated) {
       return c.json(err("NOT_FOUND", `ncp session not found: ${sessionId}`), 404);
     }

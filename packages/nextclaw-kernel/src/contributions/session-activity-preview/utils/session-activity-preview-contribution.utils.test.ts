@@ -14,32 +14,30 @@ async function flushPromises(): Promise<void> {
 function createKernelStub(initialMetadata: Record<string, unknown>) {
   const eventBus = new EventBus();
   let metadata = structuredClone(initialMetadata);
-  const getSession = vi.fn(async () => ({
-    sessionId: "session-1",
-    messageCount: 2,
-    updatedAt: "2026-05-21T00:00:00.000Z",
-    status: "idle",
-    metadata: structuredClone(metadata),
-  }));
-  const updateSession = vi.fn(async (_sessionId: string, patch: { metadata?: Record<string, unknown> | null }) => {
-    metadata = structuredClone(patch.metadata ?? {});
-    return {
-      sessionId: "session-1",
-      messageCount: 2,
-      updatedAt: "2026-05-21T00:00:01.000Z",
-      status: "idle",
-      metadata: structuredClone(metadata),
-    };
+  const updateSession = vi.fn();
+  const patchSessionMetadata = vi.fn(async (
+    _sessionId: string,
+    patcher: (current: Record<string, unknown>) => Record<string, unknown> | null,
+  ) => {
+    const nextMetadata = patcher(structuredClone(metadata));
+    if (!nextMetadata) {
+      return false;
+    }
+    metadata = structuredClone(nextMetadata);
+    return true;
   });
 
   return {
     eventBus,
     getMetadata: () => metadata,
+    patchSessionMetadata,
     updateSession,
     kernel: {
       eventBus,
+      sessionRunManager: {
+        patchSessionMetadata,
+      },
       ncpSessionApi: {
-        getSession,
         updateSession,
       },
     } as unknown as NextclawKernel,
@@ -47,8 +45,8 @@ function createKernelStub(initialMetadata: Record<string, unknown>) {
 }
 
 describe("SessionActivityPreviewContribution", () => {
-  it("serializes session preview writes so run.finished cannot overwrite completed reply text", async () => {
-    const { eventBus, getMetadata, kernel, updateSession } = createKernelStub({
+  it("routes preview writes through the session run manager instead of updating the store directly", async () => {
+    const { eventBus, getMetadata, kernel, patchSessionMetadata, updateSession } = createKernelStub({
       [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: {
         state: "running",
         statusText: "正在处理...",
@@ -81,7 +79,8 @@ describe("SessionActivityPreviewContribution", () => {
 
     await flushPromises();
 
-    expect(updateSession).toHaveBeenCalledTimes(2);
+    expect(patchSessionMetadata).toHaveBeenCalledTimes(2);
+    expect(updateSession).not.toHaveBeenCalled();
     expect(getMetadata()[SESSION_ACTIVITY_PREVIEW_METADATA_KEY]).toMatchObject({
       state: "completed",
       replyText: "final preview text",
