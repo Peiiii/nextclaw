@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
-import { LocalAssetStore } from "../assets/asset-store.js";
+import { LocalAssetStore } from "../assets/stores/local-asset.store.js";
 
 const tempDirs: string[] = [];
 
@@ -43,5 +43,23 @@ describe("LocalAssetStore", () => {
     });
 
     expect(record.mimeType).toBe("audio/mpeg");
+  });
+
+  it("keeps asset api methods bound when passed across package boundaries", async () => {
+    const store = createStore();
+    const putBytes = store.putBytes;
+    const statRecord = store.statRecord;
+    const resolveContentPath = store.resolveContentPath;
+    const record = await putBytes({
+      fileName: "screen.png",
+      mimeType: "image/png",
+      bytes: Buffer.from("fake-png", "utf8"),
+    });
+
+    await expect(statRecord(record.uri)).resolves.toMatchObject({
+      uri: record.uri,
+      fileName: "screen.png",
+    });
+    expect(resolveContentPath(record.uri)).toContain("screen.png");
   });
 });

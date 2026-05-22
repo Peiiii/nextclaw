@@ -1,10 +1,10 @@
-export { DefaultNcpContextBuilder } from "./runtime/context-builder.js";
+export { DefaultNcpContextBuilder } from "./runtime/context-builder.service.js";
 export {
   buildAssetContentPath,
   isTextLikeAsset,
   LocalAssetStore,
-} from "./assets/asset-store.js";
-export { buildNcpUserContent } from "./runtime/user-content.js";
+} from "./assets/stores/local-asset.store.js";
+export { buildNcpUserContent } from "./runtime/user-content.utils.js";
 export { DefaultNcpRoundBuffer } from "./runtime/round-buffer.js";
 export { DefaultNcpStreamEncoder } from "./runtime/stream-encoder.js";
 export { DefaultNcpToolRegistry } from "./runtime/tool-registry.js";
@@ -21,7 +21,7 @@ export type {
   AssetPutInput,
   AssetRef,
   StoredAssetRecord,
-} from "./assets/asset-store.js";
+} from "./assets/stores/local-asset.store.js";
 export {
   assertOpenAiFunctionParametersSchema,
   appendToolRoundToInput,

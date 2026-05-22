@@ -1,6 +1,8 @@
 {
   "contractKind": "protocol",
   "protocol": "app-l1",
+  "allowedRootDirectories": ["__tests__", "assets", "runtime", "tool-result"],
+  "importAliasPrefixes": [],
   "rootPolicy": "contract-only",
   "enforcement": "error"
 }

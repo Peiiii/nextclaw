@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import type { NcpMessagePart, OpenAIContentPart } from "@nextclaw/ncp";
-import type { LocalAssetStore } from "../assets/asset-store.js";
+import type { LocalAssetStore } from "../assets/stores/local-asset.store.js";
 
 function readOptionalString(value: unknown): string | null {
   if (typeof value !== "string") {

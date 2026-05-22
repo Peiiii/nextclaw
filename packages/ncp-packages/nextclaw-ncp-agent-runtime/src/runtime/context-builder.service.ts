@@ -10,8 +10,8 @@ import type {
 } from "@nextclaw/ncp";
 import type { NcpAgentRunInput } from "@nextclaw/ncp";
 import type { NcpToolRegistry } from "@nextclaw/ncp";
-import type { LocalAssetStore } from "../assets/asset-store.js";
-import { buildNcpUserContent } from "./user-content.js";
+import type { LocalAssetStore } from "../assets/stores/local-asset.store.js";
+import { buildNcpUserContent } from "./user-content.utils.js";
 import { defaultToolResultContentManager } from "../tool-result/tool-result-content.manager.js";
 import { buildOpenAiFunctionTool } from "./utils.js";
 

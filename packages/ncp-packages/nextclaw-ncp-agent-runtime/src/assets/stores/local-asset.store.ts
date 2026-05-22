@@ -211,7 +211,7 @@ export class LocalAssetStore {
     this.rootDir = ensureAssetRoot(options.rootDir);
   }
 
-  async put(input: AssetPutInput): Promise<AssetRef> {
+  put = async (input: AssetPutInput): Promise<AssetRef> => {
     const record =
       input.kind === "path"
         ? await this.putFromPath(input)
@@ -222,30 +222,27 @@ export class LocalAssetStore {
             createdAt: input.createdAt,
           });
     return { uri: record.uri };
-  }
+  };
 
-  async putBytes(params: {
+  putBytes = async (params: {
     fileName: string;
     mimeType?: string | null;
     bytes: Uint8Array;
     createdAt?: Date;
-  }): Promise<StoredAssetRecord> {
+  }): Promise<StoredAssetRecord> => {
     return this.putFromBytes(params);
-  }
+  };
 
-  async putPath(params: {
+  putPath = async (params: {
     path: string;
     fileName?: string;
     mimeType?: string | null;
     createdAt?: Date;
-  }): Promise<StoredAssetRecord> {
-    return this.putFromPath({
-      kind: "path",
-      ...params,
-    });
-  }
+  }): Promise<StoredAssetRecord> => {
+    return this.putFromPath({ kind: "path", ...params });
+  };
 
-  async export(ref: AssetRef, targetPath: string): Promise<string> {
+  export = async (ref: AssetRef, targetPath: string): Promise<string> => {
     const record = await this.statRecord(ref.uri);
     if (!record) {
       throw new Error(`Asset not found: ${ref.uri}`);
@@ -254,14 +251,14 @@ export class LocalAssetStore {
     await ensureParentDirectory(outputPath);
     await copyFile(this.resolveContentPathOrThrow(record), outputPath);
     return outputPath;
-  }
+  };
 
-  async stat(ref: AssetRef): Promise<AssetMeta | null> {
+  stat = async (ref: AssetRef): Promise<AssetMeta | null> => {
     const record = await this.statRecord(ref.uri);
     return record ? toAssetMeta(record) : null;
-  }
+  };
 
-  getByUri(uri: string): StoredAssetRecord | null {
+  getByUri = (uri: string): StoredAssetRecord | null => {
     const storageKey = parseAssetUri(uri);
     if (!storageKey) {
       return null;
@@ -272,9 +269,9 @@ export class LocalAssetStore {
     }
     const text = readFileSync(metaPath, "utf8");
     return hydrateStoredAssetRecord(JSON.parse(text) as StoredAssetRecord);
-  }
+  };
 
-  async statRecord(uri: string): Promise<StoredAssetRecord | null> {
+  statRecord = async (uri: string): Promise<StoredAssetRecord | null> => {
     const record = this.getByUri(uri);
     if (!record) {
       return null;
@@ -285,9 +282,9 @@ export class LocalAssetStore {
     } catch {
       return null;
     }
-  }
+  };
 
-  async readAssetBytes(uri: string): Promise<Buffer | null> {
+  readAssetBytes = async (uri: string): Promise<Buffer | null> => {
     const record = await this.statRecord(uri);
     if (!record) {
       return null;
@@ -297,12 +294,12 @@ export class LocalAssetStore {
     } catch {
       return null;
     }
-  }
+  };
 
-  resolveContentPath(uri: string): string | null {
+  resolveContentPath = (uri: string): string | null => {
     const record = this.getByUri(uri);
     return record ? this.resolveContentPathOrThrow(record) : null;
-  }
+  };
 
   private async putFromPath(input: Extract<AssetPutInput, { kind: "path" }>): Promise<StoredAssetRecord> {
     const sourcePath = resolve(input.path);

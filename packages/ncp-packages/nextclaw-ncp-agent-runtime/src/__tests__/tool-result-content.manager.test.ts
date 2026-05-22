@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DefaultNcpContextBuilder } from "../runtime/context-builder.js";
+import { DefaultNcpContextBuilder } from "../runtime/context-builder.service.js";
 
 describe("tool result content context integration", () => {
   it("restores historical tool image content as a visual observation", () => {
