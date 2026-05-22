@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-21T03:23:33.841Z",
+  "generatedAt": "2026-05-22T03:23:44.675Z",
   "projectRoot": "/home/runner/work/nextclaw/nextclaw",
   "git": {
-    "sha": "c1e37db1d7f51ef14f7a81aee8f431dd5a13ba0e",
+    "sha": "61f23e7e50294bba627fab97c5c2e5327bc4548e",
     "ref": "master"
   },
   "scope": {
@@ -19,12 +19,11 @@
       "apps/public-roadmap-feedback-portal/src",
       "bridge/src",
       "packages/extensions/nextclaw-channel-extension-feishu/src",
+      "packages/extensions/nextclaw-channel-extension-qq/src",
       "packages/extensions/nextclaw-channel-extension-weixin/src",
       "packages/extensions/nextclaw-channel-plugin-dingtalk/index.js",
       "packages/extensions/nextclaw-channel-plugin-discord/index.js",
       "packages/extensions/nextclaw-channel-plugin-email/index.js",
-      "packages/extensions/nextclaw-channel-plugin-mochat/index.js",
-      "packages/extensions/nextclaw-channel-plugin-qq/index.js",
       "packages/extensions/nextclaw-channel-plugin-slack/index.js",
       "packages/extensions/nextclaw-channel-plugin-telegram/index.js",
       "packages/extensions/nextclaw-channel-plugin-wecom/index.js",
@@ -95,22 +94,22 @@
     "codeLineSemantics": "production-code-with-tests-separated"
   },
   "totals": {
-    "files": 1745,
-    "totalLines": 243274,
-    "blankLines": 22861,
-    "commentLines": 649,
-    "codeLines": 174325,
-    "testCodeLines": 45439
+    "files": 1752,
+    "totalLines": 243952,
+    "blankLines": 22870,
+    "commentLines": 650,
+    "codeLines": 173317,
+    "testCodeLines": 47115
   },
   "byLanguage": [
     {
       "name": "TypeScript",
-      "files": 1404,
-      "totalLines": 198457,
-      "blankLines": 19192,
-      "commentLines": 585,
-      "codeLines": 143418,
-      "testCodeLines": 35262
+      "files": 1413,
+      "totalLines": 199191,
+      "blankLines": 19209,
+      "commentLines": 586,
+      "codeLines": 142458,
+      "testCodeLines": 36938
     },
     {
       "name": "TSX",
@@ -132,11 +131,11 @@
     },
     {
       "name": "JavaScript",
-      "files": 9,
-      "totalLines": 252,
-      "blankLines": 36,
+      "files": 7,
+      "totalLines": 196,
+      "blankLines": 28,
       "commentLines": 0,
-      "codeLines": 216,
+      "codeLines": 168,
       "testCodeLines": 0
     }
   ],
@@ -144,29 +143,29 @@
     {
       "name": "packages/nextclaw-ui",
       "files": 416,
-      "totalLines": 53580,
+      "totalLines": 53570,
       "blankLines": 4750,
       "commentLines": 92,
-      "codeLines": 36040,
+      "codeLines": 36030,
       "testCodeLines": 12698
     },
     {
       "name": "packages/nextclaw-core",
-      "files": 160,
-      "totalLines": 22524,
-      "blankLines": 2370,
-      "commentLines": 10,
-      "codeLines": 16056,
-      "testCodeLines": 4088
+      "files": 161,
+      "totalLines": 22646,
+      "blankLines": 2384,
+      "commentLines": 11,
+      "codeLines": 16032,
+      "testCodeLines": 4219
     },
     {
       "name": "packages/nextclaw-service",
       "files": 161,
-      "totalLines": 23726,
-      "blankLines": 2326,
+      "totalLines": 23328,
+      "blankLines": 2285,
       "commentLines": 2,
-      "codeLines": 15649,
-      "testCodeLines": 5749
+      "codeLines": 15284,
+      "testCodeLines": 5757
     },
     {
       "name": "workers/nextclaw-provider-gateway-api",
@@ -179,21 +178,21 @@
     },
     {
       "name": "packages/nextclaw-kernel",
-      "files": 99,
-      "totalLines": 14582,
-      "blankLines": 1330,
+      "files": 100,
+      "totalLines": 14967,
+      "blankLines": 1364,
       "commentLines": 4,
-      "codeLines": 10900,
-      "testCodeLines": 2348
+      "codeLines": 10780,
+      "testCodeLines": 2819
     },
     {
       "name": "packages/nextclaw-server",
-      "files": 81,
-      "totalLines": 15803,
-      "blankLines": 1506,
+      "files": 82,
+      "totalLines": 16018,
+      "blankLines": 1512,
       "commentLines": 4,
-      "codeLines": 8624,
-      "testCodeLines": 5669
+      "codeLines": 8633,
+      "testCodeLines": 5869
     },
     {
       "name": "packages/nextclaw-agent-chat-ui",
@@ -207,10 +206,10 @@
     {
       "name": "packages/nextclaw-app-runtime",
       "files": 66,
-      "totalLines": 7652,
-      "blankLines": 660,
+      "totalLines": 7655,
+      "blankLines": 661,
       "commentLines": 0,
-      "codeLines": 5843,
+      "codeLines": 5845,
       "testCodeLines": 1149
     },
     {
@@ -225,29 +224,20 @@
     {
       "name": "packages/nextclaw-openclaw-compat",
       "files": 45,
-      "totalLines": 7383,
+      "totalLines": 7385,
       "blankLines": 708,
       "commentLines": 9,
-      "codeLines": 5761,
+      "codeLines": 5763,
       "testCodeLines": 905
     },
     {
-      "name": "packages/extensions/nextclaw-channel-runtime",
-      "files": 21,
-      "totalLines": 5154,
-      "blankLines": 542,
-      "commentLines": 14,
-      "codeLines": 4494,
-      "testCodeLines": 104
-    },
-    {
       "name": "apps/desktop",
-      "files": 35,
-      "totalLines": 6387,
-      "blankLines": 570,
+      "files": 39,
+      "totalLines": 6767,
+      "blankLines": 606,
       "commentLines": 3,
-      "codeLines": 3945,
-      "testCodeLines": 1869
+      "codeLines": 4165,
+      "testCodeLines": 1993
     },
     {
       "name": "apps/platform-console",
@@ -265,6 +255,15 @@
       "blankLines": 345,
       "commentLines": 0,
       "codeLines": 3450,
+      "testCodeLines": 0
+    },
+    {
+      "name": "packages/extensions/nextclaw-channel-runtime",
+      "files": 18,
+      "totalLines": 3408,
+      "blankLines": 346,
+      "commentLines": 9,
+      "codeLines": 3053,
       "testCodeLines": 0
     },
     {
@@ -288,11 +287,11 @@
     {
       "name": "packages/extensions/nextclaw-channel-extension-weixin",
       "files": 24,
-      "totalLines": 4337,
-      "blankLines": 388,
+      "totalLines": 4396,
+      "blankLines": 385,
       "commentLines": 1,
-      "codeLines": 2804,
-      "testCodeLines": 1144
+      "codeLines": 2780,
+      "testCodeLines": 1230
     },
     {
       "name": "packages/ncp-packages/nextclaw-ncp-agent-runtime",
@@ -315,10 +314,10 @@
     {
       "name": "apps/landing",
       "files": 3,
-      "totalLines": 1742,
+      "totalLines": 1740,
       "blankLines": 126,
       "commentLines": 2,
-      "codeLines": 1614,
+      "codeLines": 1612,
       "testCodeLines": 0
     },
     {
@@ -334,19 +333,10 @@
       "name": "packages/nextclaw-ncp-runtime-stdio-client",
       "files": 13,
       "totalLines": 2227,
-      "blankLines": 202,
+      "blankLines": 200,
       "commentLines": 4,
-      "codeLines": 1539,
+      "codeLines": 1541,
       "testCodeLines": 482
-    },
-    {
-      "name": "packages/extensions/nextclaw-channel-extension-feishu",
-      "files": 17,
-      "totalLines": 2011,
-      "blankLines": 197,
-      "commentLines": 0,
-      "codeLines": 1405,
-      "testCodeLines": 409
     },
     {
       "name": "packages/ncp-packages/nextclaw-ncp-toolkit",
@@ -365,6 +355,15 @@
       "commentLines": 0,
       "codeLines": 1379,
       "testCodeLines": 0
+    },
+    {
+      "name": "packages/extensions/nextclaw-channel-extension-feishu",
+      "files": 17,
+      "totalLines": 2004,
+      "blankLines": 194,
+      "commentLines": 0,
+      "codeLines": 1373,
+      "testCodeLines": 437
     },
     {
       "name": "packages/nextclaw-client-sdk",
@@ -421,6 +420,15 @@
       "testCodeLines": 26
     },
     {
+      "name": "packages/nextclaw-extension-sdk",
+      "files": 8,
+      "totalLines": 1802,
+      "blankLines": 163,
+      "commentLines": 0,
+      "codeLines": 846,
+      "testCodeLines": 793
+    },
+    {
       "name": "apps/maintainability-console",
       "files": 15,
       "totalLines": 883,
@@ -448,6 +456,15 @@
       "testCodeLines": 0
     },
     {
+      "name": "packages/nextclaw-shared",
+      "files": 13,
+      "totalLines": 839,
+      "blankLines": 119,
+      "commentLines": 0,
+      "codeLines": 563,
+      "testCodeLines": 157
+    },
+    {
       "name": "packages/ncp-packages/nextclaw-ncp-http-agent-server",
       "files": 12,
       "totalLines": 910,
@@ -457,21 +474,12 @@
       "testCodeLines": 217
     },
     {
-      "name": "packages/nextclaw-shared",
-      "files": 13,
-      "totalLines": 824,
-      "blankLines": 118,
-      "commentLines": 0,
-      "codeLines": 549,
-      "testCodeLines": 157
-    },
-    {
       "name": "packages/nextclaw-runtime",
       "files": 8,
-      "totalLines": 550,
+      "totalLines": 549,
       "blankLines": 24,
       "commentLines": 0,
-      "codeLines": 515,
+      "codeLines": 514,
       "testCodeLines": 11
     },
     {
@@ -502,13 +510,13 @@
       "testCodeLines": 0
     },
     {
-      "name": "packages/nextclaw-extension-sdk",
-      "files": 7,
-      "totalLines": 781,
-      "blankLines": 76,
-      "commentLines": 0,
-      "codeLines": 480,
-      "testCodeLines": 225
+      "name": "packages/extensions/nextclaw-channel-extension-qq",
+      "files": 4,
+      "totalLines": 696,
+      "blankLines": 83,
+      "commentLines": 5,
+      "codeLines": 444,
+      "testCodeLines": 164
     },
     {
       "name": "packages/ncp-packages/nextclaw-ncp-react-ui",
@@ -619,24 +627,6 @@
       "testCodeLines": 0
     },
     {
-      "name": "packages/extensions/nextclaw-channel-plugin-mochat",
-      "files": 1,
-      "totalLines": 28,
-      "blankLines": 4,
-      "commentLines": 0,
-      "codeLines": 24,
-      "testCodeLines": 0
-    },
-    {
-      "name": "packages/extensions/nextclaw-channel-plugin-qq",
-      "files": 1,
-      "totalLines": 28,
-      "blankLines": 4,
-      "commentLines": 0,
-      "codeLines": 24,
-      "testCodeLines": 0
-    },
-    {
       "name": "packages/extensions/nextclaw-channel-plugin-slack",
       "files": 1,
       "totalLines": 28,
@@ -679,10 +669,10 @@
       "scope": "apps/landing",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 1465,
+      "totalLines": 1463,
       "blankLines": 89,
       "commentLines": 2,
-      "codeLines": 1374
+      "codeLines": 1372
     },
     {
       "path": "packages/nextclaw-server/src/features/config/stores/server-config.store.ts",
@@ -693,16 +683,6 @@
       "blankLines": 94,
       "commentLines": 0,
       "codeLines": 1100
-    },
-    {
-      "path": "packages/extensions/nextclaw-channel-runtime/src/channels/mochat.ts",
-      "scope": "packages/extensions/nextclaw-channel-runtime",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 1131,
-      "blankLines": 125,
-      "commentLines": 0,
-      "codeLines": 1006
     },
     {
       "path": "packages/extensions/nextclaw-channel-runtime/src/channels/discord.ts",
@@ -720,9 +700,9 @@
       "language": "TypeScript",
       "files": 1,
       "totalLines": 913,
-      "blankLines": 72,
+      "blankLines": 70,
       "commentLines": 3,
-      "codeLines": 838
+      "codeLines": 840
     },
     {
       "path": "packages/extensions/nextclaw-channel-runtime/src/channels/telegram.ts",
@@ -759,10 +739,10 @@
       "scope": "packages/nextclaw-core",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 814,
-      "blankLines": 94,
+      "totalLines": 780,
+      "blankLines": 91,
       "commentLines": 0,
-      "codeLines": 720
+      "codeLines": 689
     },
     {
       "path": "packages/nextclaw-ncp-runtime-adapter-hermes-http/src/hermes-http-adapter-message.utils.ts",
@@ -895,24 +875,24 @@
       "codeLines": 493
     },
     {
-      "path": "packages/nextclaw-kernel/src/managers/agent-run-request.manager.ts",
-      "scope": "packages/nextclaw-kernel",
+      "path": "packages/extensions/nextclaw-channel-extension-weixin/src/services/weixin-channel-adapter.service.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-weixin",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 527,
-      "blankLines": 34,
+      "totalLines": 525,
+      "blankLines": 33,
       "commentLines": 0,
-      "codeLines": 493
+      "codeLines": 492
     },
     {
       "path": "packages/nextclaw-service/src/service-runtime.service.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 525,
+      "totalLines": 520,
       "blankLines": 35,
       "commentLines": 0,
-      "codeLines": 490
+      "codeLines": 485
     },
     {
       "path": "apps/platform-console/src/pages/LoginPage.tsx",
@@ -983,6 +963,16 @@
       "blankLines": 43,
       "commentLines": 0,
       "codeLines": 463
+    },
+    {
+      "path": "apps/desktop/src/launcher/services/update-coordinator.service.ts",
+      "scope": "apps/desktop",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 508,
+      "blankLines": 46,
+      "commentLines": 0,
+      "codeLines": 462
     },
     {
       "path": "workers/nextclaw-provider-gateway-api/src/utils/platform.utils.ts",
@@ -1075,6 +1065,16 @@
       "codeLines": 448
     },
     {
+      "path": "packages/nextclaw-openclaw-compat/src/plugins/types.ts",
+      "scope": "packages/nextclaw-openclaw-compat",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 483,
+      "blankLines": 35,
+      "commentLines": 0,
+      "codeLines": 448
+    },
+    {
       "path": "packages/nextclaw-service/src/commands/service/services/autostart/linux-systemd-autostart.service.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
@@ -1105,24 +1105,14 @@
       "codeLines": 444
     },
     {
-      "path": "packages/nextclaw-openclaw-compat/src/plugins/types.ts",
-      "scope": "packages/nextclaw-openclaw-compat",
+      "path": "packages/extensions/nextclaw-channel-extension-qq/src/services/qq-channel.service.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-qq",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 477,
-      "blankLines": 35,
-      "commentLines": 0,
-      "codeLines": 442
-    },
-    {
-      "path": "packages/extensions/nextclaw-channel-extension-weixin/src/services/weixin-channel-adapter.service.ts",
-      "scope": "packages/extensions/nextclaw-channel-extension-weixin",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 467,
-      "blankLines": 30,
-      "commentLines": 0,
-      "codeLines": 437
+      "totalLines": 492,
+      "blankLines": 51,
+      "commentLines": 5,
+      "codeLines": 436
     },
     {
       "path": "packages/nextclaw-app-runtime/src/install/app-installation.service.ts",
@@ -1153,16 +1143,6 @@
       "blankLines": 39,
       "commentLines": 0,
       "codeLines": 427
-    },
-    {
-      "path": "apps/desktop/src/launcher/services/update-coordinator.service.ts",
-      "scope": "apps/desktop",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 469,
-      "blankLines": 43,
-      "commentLines": 0,
-      "codeLines": 426
     },
     {
       "path": "packages/nextclaw-agent-chat/src/services/agent-chat-controller.ts",
@@ -1213,16 +1193,6 @@
       "blankLines": 68,
       "commentLines": 3,
       "codeLines": 421
-    },
-    {
-      "path": "packages/extensions/nextclaw-channel-runtime/src/channels/qq.service.ts",
-      "scope": "packages/extensions/nextclaw-channel-runtime",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 474,
-      "blankLines": 50,
-      "commentLines": 5,
-      "codeLines": 419
     },
     {
       "path": "packages/nextclaw-ui/src/features/marketplace/components/mcp/mcp-marketplace-page.tsx",
@@ -1325,6 +1295,16 @@
       "codeLines": 400
     },
     {
+      "path": "packages/extensions/nextclaw-channel-extension-feishu/src/services/feishu-channel-adapter.service.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-feishu",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 431,
+      "blankLines": 31,
+      "commentLines": 0,
+      "codeLines": 400
+    },
+    {
       "path": "packages/nextclaw-kernel/src/features/context-compaction/services/context-compaction-preflight.service.ts",
       "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
@@ -1355,16 +1335,6 @@
       "codeLines": 396
     },
     {
-      "path": "packages/nextclaw-service/src/cli/commands/skills/skills-query.service.ts",
-      "scope": "packages/nextclaw-service",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 443,
-      "blankLines": 50,
-      "commentLines": 0,
-      "codeLines": 393
-    },
-    {
       "path": "packages/ncp-packages/nextclaw-ncp-agent-runtime/src/tool-result/tool-result-content.manager.ts",
       "scope": "packages/ncp-packages/nextclaw-ncp-agent-runtime",
       "language": "TypeScript",
@@ -1385,6 +1355,16 @@
       "codeLines": 389
     },
     {
+      "path": "apps/desktop/src/main.ts",
+      "scope": "apps/desktop",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 400,
+      "blankLines": 13,
+      "commentLines": 0,
+      "codeLines": 387
+    },
+    {
       "path": "packages/nextclaw-server/src/features/config/controllers/config.controller.ts",
       "scope": "packages/nextclaw-server",
       "language": "TypeScript",
@@ -1395,16 +1375,6 @@
       "codeLines": 386
     },
     {
-      "path": "packages/extensions/nextclaw-channel-extension-feishu/src/services/feishu-channel-adapter.service.ts",
-      "scope": "packages/extensions/nextclaw-channel-extension-feishu",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 414,
-      "blankLines": 30,
-      "commentLines": 0,
-      "codeLines": 384
-    },
-    {
       "path": "packages/nextclaw-ui/src/shared/components/config/secrets-config-form.tsx",
       "scope": "packages/nextclaw-ui",
       "language": "TSX",
@@ -1413,26 +1383,6 @@
       "blankLines": 24,
       "commentLines": 0,
       "codeLines": 384
-    },
-    {
-      "path": "apps/desktop/src/main.ts",
-      "scope": "apps/desktop",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 397,
-      "blankLines": 13,
-      "commentLines": 0,
-      "codeLines": 384
-    },
-    {
-      "path": "packages/nextclaw-service/src/shared/services/gateway/nextclaw-gateway-runtime.service.ts",
-      "scope": "packages/nextclaw-service",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 412,
-      "blankLines": 30,
-      "commentLines": 0,
-      "codeLines": 382
     },
     {
       "path": "packages/nextclaw-openclaw-compat/src/plugins/openclaw-plugin-registry.utils.ts",
@@ -1453,6 +1403,16 @@
       "blankLines": 19,
       "commentLines": 1,
       "codeLines": 380
+    },
+    {
+      "path": "packages/nextclaw-service/src/shared/services/gateway/nextclaw-gateway-runtime.service.ts",
+      "scope": "packages/nextclaw-service",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 404,
+      "blankLines": 30,
+      "commentLines": 0,
+      "codeLines": 374
     },
     {
       "path": "packages/extensions/nextclaw-ncp-runtime-codex-sdk/src/utils/codex-openai-responses-stream-writer.utils.ts",
@@ -1545,16 +1505,6 @@
       "codeLines": 366
     },
     {
-      "path": "packages/nextclaw-kernel/src/features/ncp-dispatch/utils/nextclaw-ncp-dispatch.utils.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 387,
-      "blankLines": 21,
-      "commentLines": 0,
-      "codeLines": 366
-    },
-    {
       "path": "workers/nextclaw-provider-gateway-api/src/configs/auth-browser-page-styles.config.ts",
       "scope": "workers/nextclaw-provider-gateway-api",
       "language": "TypeScript",
@@ -1625,16 +1575,6 @@
       "codeLines": 360
     },
     {
-      "path": "packages/nextclaw-core/src/features/config/configs/agent-profiles.ts",
-      "scope": "packages/nextclaw-core",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 394,
-      "blankLines": 36,
-      "commentLines": 0,
-      "codeLines": 358
-    },
-    {
       "path": "packages/ncp-packages/nextclaw-ncp-toolkit/src/chat/ncp-reply-consumer.ts",
       "scope": "packages/ncp-packages/nextclaw-ncp-toolkit",
       "language": "TypeScript",
@@ -1653,6 +1593,16 @@
       "blankLines": 25,
       "commentLines": 0,
       "codeLines": 358
+    },
+    {
+      "path": "packages/nextclaw-core/src/features/config/configs/agent-profiles.ts",
+      "scope": "packages/nextclaw-core",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 393,
+      "blankLines": 36,
+      "commentLines": 0,
+      "codeLines": 357
     },
     {
       "path": "packages/ncp-packages/nextclaw-ncp-agent-runtime/src/assets/asset-store.ts",
@@ -1735,6 +1685,16 @@
       "codeLines": 350
     },
     {
+      "path": "packages/nextclaw-extension-sdk/src/services/extension-channel-controller.service.ts",
+      "scope": "packages/nextclaw-extension-sdk",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 392,
+      "blankLines": 43,
+      "commentLines": 0,
+      "codeLines": 349
+    },
+    {
       "path": "packages/nextclaw-ui/src/shared/lib/transport/remote-transport.service.ts",
       "scope": "packages/nextclaw-ui",
       "language": "TypeScript",
@@ -1751,6 +1711,26 @@
       "files": 1,
       "totalLines": 383,
       "blankLines": 34,
+      "commentLines": 0,
+      "codeLines": 349
+    },
+    {
+      "path": "packages/nextclaw-service/src/cli/commands/skills/marketplace.utils.ts",
+      "scope": "packages/nextclaw-service",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 381,
+      "blankLines": 32,
+      "commentLines": 0,
+      "codeLines": 349
+    },
+    {
+      "path": "packages/nextclaw-kernel/src/services/extension-runtime.service.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 380,
+      "blankLines": 31,
       "commentLines": 0,
       "codeLines": 349
     },
@@ -1775,16 +1755,6 @@
       "codeLines": 348
     },
     {
-      "path": "packages/nextclaw-service/src/cli/commands/skills/marketplace.utils.ts",
-      "scope": "packages/nextclaw-service",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 380,
-      "blankLines": 32,
-      "commentLines": 0,
-      "codeLines": 348
-    },
-    {
       "path": "packages/nextclaw-core/src/features/cron/services/cron.service.ts",
       "scope": "packages/nextclaw-core",
       "language": "TypeScript",
@@ -1805,22 +1775,22 @@
       "codeLines": 348
     },
     {
-      "path": "packages/nextclaw-kernel/src/services/extension-runtime.service.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 377,
-      "blankLines": 31,
-      "commentLines": 0,
-      "codeLines": 346
-    },
-    {
       "path": "packages/nextclaw-server/src/features/auth/services/ui-auth.service.ts",
       "scope": "packages/nextclaw-server",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 392,
       "blankLines": 50,
+      "commentLines": 0,
+      "codeLines": 342
+    },
+    {
+      "path": "packages/nextclaw-server/src/app/router.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 362,
+      "blankLines": 20,
       "commentLines": 0,
       "codeLines": 342
     },
@@ -1915,16 +1885,6 @@
       "codeLines": 332
     },
     {
-      "path": "packages/nextclaw-kernel/src/features/agent-run-request/utils/agent-run-request-session.utils.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 357,
-      "blankLines": 27,
-      "commentLines": 0,
-      "codeLines": 330
-    },
-    {
       "path": "apps/platform-admin/src/api/client.ts",
       "scope": "apps/platform-admin",
       "language": "TypeScript",
@@ -1971,16 +1931,6 @@
       "files": 1,
       "totalLines": 351,
       "blankLines": 25,
-      "commentLines": 0,
-      "codeLines": 326
-    },
-    {
-      "path": "packages/nextclaw-server/src/app/router.ts",
-      "scope": "packages/nextclaw-server",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 347,
-      "blankLines": 21,
       "commentLines": 0,
       "codeLines": 326
     },
@@ -2365,6 +2315,16 @@
       "codeLines": 291
     },
     {
+      "path": "apps/desktop/src/services/desktop-update-shell.service.ts",
+      "scope": "apps/desktop",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 316,
+      "blankLines": 25,
+      "commentLines": 0,
+      "codeLines": 291
+    },
+    {
       "path": "packages/nextclaw-client-sdk/src/services/request.service.ts",
       "scope": "packages/nextclaw-client-sdk",
       "language": "TypeScript",
@@ -2405,32 +2365,22 @@
       "codeLines": 289
     },
     {
-      "path": "apps/desktop/src/services/desktop-update-shell.service.ts",
-      "scope": "apps/desktop",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 313,
-      "blankLines": 25,
-      "commentLines": 0,
-      "codeLines": 288
-    },
-    {
-      "path": "packages/nextclaw-service/src/commands/channel/index.ts",
-      "scope": "packages/nextclaw-service",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 325,
-      "blankLines": 38,
-      "commentLines": 0,
-      "codeLines": 287
-    },
-    {
       "path": "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk/src/utils/anthropic-openai-bridge-stream.utils.ts",
       "scope": "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 313,
       "blankLines": 26,
+      "commentLines": 0,
+      "codeLines": 287
+    },
+    {
+      "path": "packages/nextclaw-kernel/src/utils/session-run.utils.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 312,
+      "blankLines": 25,
       "commentLines": 0,
       "codeLines": 287
     },
@@ -2443,6 +2393,16 @@
       "blankLines": 19,
       "commentLines": 0,
       "codeLines": 287
+    },
+    {
+      "path": "packages/nextclaw-service/src/commands/channel/index.ts",
+      "scope": "packages/nextclaw-service",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 324,
+      "blankLines": 38,
+      "commentLines": 0,
+      "codeLines": 286
     },
     {
       "path": "workers/nextclaw-provider-gateway-api/src/controllers/remote-quota-durable-object.controller.ts",
@@ -2555,6 +2515,16 @@
       "codeLines": 278
     },
     {
+      "path": "packages/nextclaw-kernel/src/managers/agent-run-request.manager.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 296,
+      "blankLines": 18,
+      "commentLines": 0,
+      "codeLines": 278
+    },
+    {
       "path": "apps/desktop/src/services/desktop-bundle-bootstrap.service.ts",
       "scope": "apps/desktop",
       "language": "TypeScript",
@@ -2613,6 +2583,16 @@
       "blankLines": 4,
       "commentLines": 0,
       "codeLines": 272
+    },
+    {
+      "path": "packages/nextclaw-kernel/src/managers/session-run.manager.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 289,
+      "blankLines": 19,
+      "commentLines": 0,
+      "codeLines": 270
     },
     {
       "path": "packages/nextclaw-ui/src/features/chat/utils/chat-session-preference-governance.utils.ts",
@@ -2685,16 +2665,6 @@
       "codeLines": 263
     },
     {
-      "path": "packages/nextclaw-server/src/features/sessions/controllers/sessions.controller.ts",
-      "scope": "packages/nextclaw-server",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 293,
-      "blankLines": 32,
-      "commentLines": 0,
-      "codeLines": 261
-    },
-    {
       "path": "packages/nextclaw-openclaw-compat/src/plugins/runtime.ts",
       "scope": "packages/nextclaw-openclaw-compat",
       "language": "TypeScript",
@@ -2719,8 +2689,8 @@
       "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 288,
-      "blankLines": 29,
+      "totalLines": 287,
+      "blankLines": 28,
       "commentLines": 0,
       "codeLines": 259
     },
@@ -2755,6 +2725,16 @@
       "codeLines": 258
     },
     {
+      "path": "packages/nextclaw-server/src/features/sessions/controllers/sessions.controller.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 289,
+      "blankLines": 32,
+      "commentLines": 0,
+      "codeLines": 257
+    },
+    {
       "path": "packages/nextclaw-openclaw-compat/src/plugins/discovery.ts",
       "scope": "packages/nextclaw-openclaw-compat",
       "language": "TypeScript",
@@ -2765,14 +2745,14 @@
       "codeLines": 257
     },
     {
-      "path": "packages/nextclaw-kernel/src/app/nextclaw-kernel.ts",
-      "scope": "packages/nextclaw-kernel",
+      "path": "packages/nextclaw-service/src/cli/commands/skills/skills-query.service.ts",
+      "scope": "packages/nextclaw-service",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 273,
-      "blankLines": 16,
+      "totalLines": 288,
+      "blankLines": 33,
       "commentLines": 0,
-      "codeLines": 257
+      "codeLines": 255
     },
     {
       "path": "packages/nextclaw-ui/src/features/chat/utils/chat-input-bar.utils.ts",
@@ -2805,16 +2785,6 @@
       "codeLines": 251
     },
     {
-      "path": "packages/nextclaw-core/src/features/config/configs/schema.labels.ts",
-      "scope": "packages/nextclaw-core",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 252,
-      "blankLines": 1,
-      "commentLines": 0,
-      "codeLines": 251
-    },
-    {
       "path": "workers/nextclaw-provider-gateway-api/src/services/remote-quota-guard.service.ts",
       "scope": "workers/nextclaw-provider-gateway-api",
       "language": "TypeScript",
@@ -2823,6 +2793,16 @@
       "blankLines": 22,
       "commentLines": 0,
       "codeLines": 250
+    },
+    {
+      "path": "packages/nextclaw-kernel/src/app/nextclaw-kernel.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 264,
+      "blankLines": 15,
+      "commentLines": 0,
+      "codeLines": 249
     },
     {
       "path": "packages/nextclaw-ui/src/features/system-status/components/desktop-update-config.tsx",
@@ -2862,16 +2842,6 @@
       "totalLines": 350,
       "blankLines": 49,
       "commentLines": 54,
-      "codeLines": 247
-    },
-    {
-      "path": "packages/nextclaw-service/src/cli/commands/skills/marketplace.metadata.ts",
-      "scope": "packages/nextclaw-service",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 277,
-      "blankLines": 30,
-      "commentLines": 0,
       "codeLines": 247
     },
     {
@@ -2995,22 +2965,22 @@
       "codeLines": 241
     },
     {
-      "path": "packages/nextclaw-kernel/src/services/ncp-session-api.service.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 261,
-      "blankLines": 20,
-      "commentLines": 0,
-      "codeLines": 241
-    },
-    {
       "path": "packages/nextclaw-openclaw-compat/src/plugins/progressive-plugin-loader/progressive-bundled-plugin-loader.ts",
       "scope": "packages/nextclaw-openclaw-compat",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 257,
       "blankLines": 16,
+      "commentLines": 0,
+      "codeLines": 241
+    },
+    {
+      "path": "packages/nextclaw-core/src/features/config/configs/schema.labels.ts",
+      "scope": "packages/nextclaw-core",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 242,
+      "blankLines": 1,
       "commentLines": 0,
       "codeLines": 241
     },
@@ -3375,6 +3345,16 @@
       "codeLines": 217
     },
     {
+      "path": "packages/nextclaw-kernel/src/features/extension-runtime/services/extension-manifest-discovery.service.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 238,
+      "blankLines": 20,
+      "commentLines": 1,
+      "codeLines": 217
+    },
+    {
       "path": "packages/nextclaw-ui/src/features/chat/utils/file-operation/record-readers.utils.ts",
       "scope": "packages/nextclaw-ui",
       "language": "TypeScript",
@@ -3471,26 +3451,6 @@
       "files": 1,
       "totalLines": 238,
       "blankLines": 28,
-      "commentLines": 0,
-      "codeLines": 210
-    },
-    {
-      "path": "packages/nextclaw-ui/src/features/channels/utils/channel-form-fields.utils.ts",
-      "scope": "packages/nextclaw-ui",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 219,
-      "blankLines": 9,
-      "commentLines": 0,
-      "codeLines": 210
-    },
-    {
-      "path": "packages/nextclaw-core/src/features/config/configs/schema.help.ts",
-      "scope": "packages/nextclaw-core",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 211,
-      "blankLines": 1,
       "commentLines": 0,
       "codeLines": 210
     },
@@ -3605,14 +3565,14 @@
       "codeLines": 204
     },
     {
-      "path": "packages/nextclaw-kernel/src/features/extension-runtime/services/extension-manifest-discovery.service.ts",
-      "scope": "packages/nextclaw-kernel",
+      "path": "packages/nextclaw-core/src/features/config/configs/schema.help.ts",
+      "scope": "packages/nextclaw-core",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 224,
-      "blankLines": 19,
-      "commentLines": 1,
-      "codeLines": 204
+      "totalLines": 204,
+      "blankLines": 1,
+      "commentLines": 0,
+      "codeLines": 203
     },
     {
       "path": "packages/extensions/nextclaw-ncp-runtime-codex-sdk/src/utils/codex-sdk-ncp-event-mapper.utils.ts",
@@ -3631,6 +3591,16 @@
       "files": 1,
       "totalLines": 221,
       "blankLines": 20,
+      "commentLines": 0,
+      "codeLines": 201
+    },
+    {
+      "path": "packages/nextclaw-ui/src/features/channels/utils/channel-form-fields.utils.ts",
+      "scope": "packages/nextclaw-ui",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 210,
+      "blankLines": 9,
       "commentLines": 0,
       "codeLines": 201
     },
@@ -4025,6 +3995,16 @@
       "codeLines": 184
     },
     {
+      "path": "packages/nextclaw-kernel/src/services/ncp-session-api.service.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 203,
+      "blankLines": 20,
+      "commentLines": 0,
+      "codeLines": 183
+    },
+    {
       "path": "packages/nextclaw-ui/src/features/account/managers/account.manager.ts",
       "scope": "packages/nextclaw-ui",
       "language": "TypeScript",
@@ -4033,6 +4013,26 @@
       "blankLines": 20,
       "commentLines": 0,
       "codeLines": 183
+    },
+    {
+      "path": "packages/nextclaw-kernel/src/contributions/learning-loop/index.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 201,
+      "blankLines": 18,
+      "commentLines": 0,
+      "codeLines": 183
+    },
+    {
+      "path": "packages/nextclaw-kernel/src/managers/skill.manager.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 212,
+      "blankLines": 30,
+      "commentLines": 0,
+      "codeLines": 182
     },
     {
       "path": "packages/nextclaw-ui/src/platforms/desktop/managers/desktop-update.manager.ts",
@@ -4131,16 +4131,6 @@
       "files": 1,
       "totalLines": 202,
       "blankLines": 22,
-      "commentLines": 0,
-      "codeLines": 180
-    },
-    {
-      "path": "packages/nextclaw-kernel/src/managers/learning-loop.manager.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 198,
-      "blankLines": 18,
       "commentLines": 0,
       "codeLines": 180
     },
@@ -4265,16 +4255,6 @@
       "codeLines": 173
     },
     {
-      "path": "packages/nextclaw-kernel/src/features/agent-run-request/services/agent-run-session-api.service.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 183,
-      "blankLines": 11,
-      "commentLines": 0,
-      "codeLines": 172
-    },
-    {
       "path": "workers/nextclaw-provider-gateway-api/src/routes/app.route.ts",
       "scope": "workers/nextclaw-provider-gateway-api",
       "language": "TypeScript",
@@ -4345,16 +4325,6 @@
       "codeLines": 167
     },
     {
-      "path": "packages/nextclaw-service/src/shared/services/gateway/utils/cron-job-handler.utils.ts",
-      "scope": "packages/nextclaw-service",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 179,
-      "blankLines": 13,
-      "commentLines": 0,
-      "codeLines": 166
-    },
-    {
       "path": "packages/nextclaw-ui/src/features/chat/components/layout/chat-sidebar-utility-menu.tsx",
       "scope": "packages/nextclaw-ui",
       "language": "TSX",
@@ -4371,6 +4341,16 @@
       "files": 1,
       "totalLines": 187,
       "blankLines": 22,
+      "commentLines": 0,
+      "codeLines": 165
+    },
+    {
+      "path": "packages/nextclaw-kernel/src/features/ncp-dispatch/services/gateway-inbound-processor.service.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 179,
+      "blankLines": 14,
       "commentLines": 0,
       "codeLines": 165
     },
@@ -4575,6 +4555,16 @@
       "codeLines": 156
     },
     {
+      "path": "packages/nextclaw-kernel/src/features/ncp-dispatch/utils/nextclaw-ncp-dispatch.utils.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 163,
+      "blankLines": 7,
+      "commentLines": 0,
+      "codeLines": 156
+    },
+    {
       "path": "workers/marketplace-api/src/domain/model.ts",
       "scope": "workers/marketplace-api",
       "language": "TypeScript",
@@ -4641,16 +4631,6 @@
       "files": 1,
       "totalLines": 171,
       "blankLines": 18,
-      "commentLines": 0,
-      "codeLines": 153
-    },
-    {
-      "path": "packages/nextclaw-server/src/app/types/router-options.types.ts",
-      "scope": "packages/nextclaw-server",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 167,
-      "blankLines": 14,
       "commentLines": 0,
       "codeLines": 153
     },
@@ -4743,6 +4723,16 @@
       "blankLines": 9,
       "commentLines": 0,
       "codeLines": 151
+    },
+    {
+      "path": "packages/nextclaw-server/src/app/types/router-options.types.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 164,
+      "blankLines": 14,
+      "commentLines": 0,
+      "codeLines": 150
     },
     {
       "path": "packages/nextclaw-ncp-runtime-adapter-hermes-http/src/hermes-http-adapter-session-store.service.ts",
@@ -4861,6 +4851,16 @@
       "files": 1,
       "totalLines": 167,
       "blankLines": 22,
+      "commentLines": 0,
+      "codeLines": 145
+    },
+    {
+      "path": "apps/desktop/src/utils/desktop-installation-profile.utils.ts",
+      "scope": "apps/desktop",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 162,
+      "blankLines": 17,
       "commentLines": 0,
       "codeLines": 145
     },
@@ -5375,8 +5375,28 @@
       "codeLines": 130
     },
     {
+      "path": "packages/nextclaw-service/src/shared/services/workspace/workspace-manager.service.ts",
+      "scope": "packages/nextclaw-service",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 145,
+      "blankLines": 16,
+      "commentLines": 0,
+      "codeLines": 129
+    },
+    {
       "path": "packages/extensions/nextclaw-narp-runtime-claude-code-sdk/src/services/claude-code-narp-runtime-wrapper.service.ts",
       "scope": "packages/extensions/nextclaw-narp-runtime-claude-code-sdk",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 144,
+      "blankLines": 15,
+      "commentLines": 0,
+      "codeLines": 129
+    },
+    {
+      "path": "packages/nextclaw-kernel/src/services/ncp-agent-session-store-adapter.service.ts",
+      "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 144,
@@ -5425,16 +5445,6 @@
       "codeLines": 128
     },
     {
-      "path": "packages/nextclaw-service/src/shared/services/workspace/workspace-manager.service.ts",
-      "scope": "packages/nextclaw-service",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 144,
-      "blankLines": 16,
-      "commentLines": 0,
-      "codeLines": 128
-    },
-    {
       "path": "packages/ncp-packages/nextclaw-ncp-http-agent-server/src/stream-handlers.ts",
       "scope": "packages/ncp-packages/nextclaw-ncp-http-agent-server",
       "language": "TypeScript",
@@ -5453,6 +5463,16 @@
       "blankLines": 7,
       "commentLines": 0,
       "codeLines": 128
+    },
+    {
+      "path": "packages/nextclaw-core/src/shared/lib/core-utils/utils/helpers.ts",
+      "scope": "packages/nextclaw-core",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 150,
+      "blankLines": 22,
+      "commentLines": 1,
+      "codeLines": 127
     },
     {
       "path": "packages/extensions/nextclaw-feishu-core/src/content-converter.ts",
@@ -5532,16 +5552,6 @@
       "totalLines": 143,
       "blankLines": 17,
       "commentLines": 2,
-      "codeLines": 124
-    },
-    {
-      "path": "packages/nextclaw-kernel/src/services/ncp-agent-session-store-adapter.service.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 140,
-      "blankLines": 16,
-      "commentLines": 0,
       "codeLines": 124
     },
     {
@@ -5675,6 +5685,16 @@
       "codeLines": 120
     },
     {
+      "path": "packages/nextclaw-service/src/cli/commands/skills/marketplace.metadata.ts",
+      "scope": "packages/nextclaw-service",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 134,
+      "blankLines": 14,
+      "commentLines": 0,
+      "codeLines": 120
+    },
+    {
       "path": "packages/nextclaw-service/src/cli/commands/agent/cli-agent-runner.utils.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
@@ -5705,16 +5725,6 @@
       "codeLines": 119
     },
     {
-      "path": "packages/nextclaw-core/src/shared/lib/core-utils/utils/helpers.ts",
-      "scope": "packages/nextclaw-core",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 140,
-      "blankLines": 20,
-      "commentLines": 1,
-      "codeLines": 119
-    },
-    {
       "path": "packages/nextclaw-core/src/features/session-search/worker/session-search-worker-host.utils.ts",
       "scope": "packages/nextclaw-core",
       "language": "TypeScript",
@@ -5741,16 +5751,6 @@
       "files": 1,
       "totalLines": 131,
       "blankLines": 12,
-      "commentLines": 0,
-      "codeLines": 119
-    },
-    {
-      "path": "packages/nextclaw-kernel/src/services/ncp-lifecycle-event-bridge.service.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 128,
-      "blankLines": 9,
       "commentLines": 0,
       "codeLines": 119
     },
@@ -5885,16 +5885,6 @@
       "codeLines": 114
     },
     {
-      "path": "packages/extensions/nextclaw-channel-runtime/src/index.ts",
-      "scope": "packages/extensions/nextclaw-channel-runtime",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 123,
-      "blankLines": 9,
-      "commentLines": 0,
-      "codeLines": 114
-    },
-    {
       "path": "packages/nextclaw-ui/src/features/chat/utils/ncp-session-context-metadata.utils.ts",
       "scope": "packages/nextclaw-ui",
       "language": "TypeScript",
@@ -6023,6 +6013,16 @@
       "blankLines": 7,
       "commentLines": 0,
       "codeLines": 112
+    },
+    {
+      "path": "packages/nextclaw-kernel/src/utils/skill-frontmatter.utils.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 130,
+      "blankLines": 19,
+      "commentLines": 0,
+      "codeLines": 111
     },
     {
       "path": "packages/nextclaw-app-runtime/src/host/app-instance.service.ts",
@@ -6511,6 +6511,16 @@
       "files": 1,
       "totalLines": 109,
       "blankLines": 11,
+      "commentLines": 0,
+      "codeLines": 98
+    },
+    {
+      "path": "packages/extensions/nextclaw-channel-runtime/src/index.ts",
+      "scope": "packages/extensions/nextclaw-channel-runtime",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 107,
+      "blankLines": 9,
       "commentLines": 0,
       "codeLines": 98
     },
@@ -7065,6 +7075,16 @@
       "codeLines": 86
     },
     {
+      "path": "packages/nextclaw-shared/src/configs/ingress-keys.config.ts",
+      "scope": "packages/nextclaw-shared",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 99,
+      "blankLines": 13,
+      "commentLines": 0,
+      "codeLines": 86
+    },
+    {
       "path": "packages/nextclaw-kernel/src/contributions/session-activity-preview/utils/session-activity-preview-metadata.utils.ts",
       "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
@@ -7103,6 +7123,26 @@
       "blankLines": 5,
       "commentLines": 0,
       "codeLines": 86
+    },
+    {
+      "path": "packages/extensions/nextclaw-channel-extension-weixin/src/stores/weixin-account.store.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-weixin",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 102,
+      "blankLines": 17,
+      "commentLines": 0,
+      "codeLines": 85
+    },
+    {
+      "path": "apps/desktop/src/utils/desktop-logging.utils.ts",
+      "scope": "apps/desktop",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 97,
+      "blankLines": 10,
+      "commentLines": 2,
+      "codeLines": 85
     },
     {
       "path": "packages/nextclaw-ui/src/features/chat/utils/chat-message-partial-json.utils.ts",
@@ -7163,16 +7203,6 @@
       "blankLines": 9,
       "commentLines": 1,
       "codeLines": 84
-    },
-    {
-      "path": "packages/extensions/nextclaw-channel-extension-weixin/src/stores/weixin-account.store.ts",
-      "scope": "packages/extensions/nextclaw-channel-extension-weixin",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 99,
-      "blankLines": 16,
-      "commentLines": 0,
-      "codeLines": 83
     },
     {
       "path": "packages/ncp-packages/nextclaw-ncp-http-agent-server/src/controller.ts",
@@ -7265,16 +7295,6 @@
       "codeLines": 81
     },
     {
-      "path": "apps/desktop/src/utils/desktop-logging.utils.ts",
-      "scope": "apps/desktop",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 93,
-      "blankLines": 10,
-      "commentLines": 2,
-      "codeLines": 81
-    },
-    {
       "path": "packages/nextclaw-ui/src/platforms/desktop/managers/desktop-presence.manager.ts",
       "scope": "packages/nextclaw-ui",
       "language": "TypeScript",
@@ -7285,12 +7305,12 @@
       "codeLines": 81
     },
     {
-      "path": "packages/extensions/nextclaw-channel-extension-weixin/src/services/weixin-extension-runtime.service.ts",
-      "scope": "packages/extensions/nextclaw-channel-extension-weixin",
+      "path": "packages/nextclaw-core/src/features/extensions/types/extension.types.ts",
+      "scope": "packages/nextclaw-core",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 91,
-      "blankLines": 10,
+      "totalLines": 90,
+      "blankLines": 9,
       "commentLines": 0,
       "codeLines": 81
     },
@@ -7301,6 +7321,16 @@
       "files": 1,
       "totalLines": 90,
       "blankLines": 9,
+      "commentLines": 0,
+      "codeLines": 81
+    },
+    {
+      "path": "packages/nextclaw-service/src/shared/services/gateway/utils/cron-job-handler.utils.ts",
+      "scope": "packages/nextclaw-service",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 88,
+      "blankLines": 7,
       "commentLines": 0,
       "codeLines": 81
     },
@@ -7475,16 +7505,6 @@
       "codeLines": 77
     },
     {
-      "path": "packages/extensions/nextclaw-channel-extension-feishu/src/services/feishu-extension-runtime.service.ts",
-      "scope": "packages/extensions/nextclaw-channel-extension-feishu",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 86,
-      "blankLines": 9,
-      "commentLines": 0,
-      "codeLines": 77
-    },
-    {
       "path": "workers/marketplace-api/src/presentation/http/user-app-routes.controller.ts",
       "scope": "workers/marketplace-api",
       "language": "TypeScript",
@@ -7521,16 +7541,6 @@
       "files": 1,
       "totalLines": 85,
       "blankLines": 10,
-      "commentLines": 0,
-      "codeLines": 75
-    },
-    {
-      "path": "packages/nextclaw-core/src/features/extensions/types/extension.types.ts",
-      "scope": "packages/nextclaw-core",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 84,
-      "blankLines": 9,
       "commentLines": 0,
       "codeLines": 75
     },
@@ -7617,16 +7627,6 @@
     {
       "path": "packages/nextclaw-service/src/shared/services/restart/restart-coordinator.service.ts",
       "scope": "packages/nextclaw-service",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 85,
-      "blankLines": 12,
-      "commentLines": 0,
-      "codeLines": 73
-    },
-    {
-      "path": "packages/nextclaw-shared/src/configs/ingress-keys.config.ts",
-      "scope": "packages/nextclaw-shared",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 85,
@@ -7871,16 +7871,6 @@
       "files": 1,
       "totalLines": 82,
       "blankLines": 12,
-      "commentLines": 0,
-      "codeLines": 70
-    },
-    {
-      "path": "packages/nextclaw-service/src/shared/services/gateway/nextclaw-app.service.ts",
-      "scope": "packages/nextclaw-service",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 80,
-      "blankLines": 10,
       "commentLines": 0,
       "codeLines": 70
     },
@@ -8135,6 +8125,16 @@
       "codeLines": 67
     },
     {
+      "path": "packages/nextclaw-service/src/shared/services/gateway/nextclaw-app.service.ts",
+      "scope": "packages/nextclaw-service",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 77,
+      "blankLines": 10,
+      "commentLines": 0,
+      "codeLines": 67
+    },
+    {
       "path": "packages/nextclaw-app-runtime/src/runtime/app-build.service.ts",
       "scope": "packages/nextclaw-app-runtime",
       "language": "TypeScript",
@@ -8175,12 +8175,12 @@
       "codeLines": 67
     },
     {
-      "path": "packages/nextclaw-kernel/src/contributions/session-activity-preview/index.ts",
-      "scope": "packages/nextclaw-kernel",
+      "path": "packages/extensions/nextclaw-channel-extension-feishu/src/stores/feishu-account.store.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-feishu",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 75,
-      "blankLines": 9,
+      "totalLines": 78,
+      "blankLines": 12,
       "commentLines": 0,
       "codeLines": 66
     },
@@ -8211,6 +8211,16 @@
       "files": 1,
       "totalLines": 79,
       "blankLines": 14,
+      "commentLines": 0,
+      "codeLines": 65
+    },
+    {
+      "path": "packages/nextclaw-kernel/src/contributions/session-activity-preview/index.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 72,
+      "blankLines": 7,
       "commentLines": 0,
       "codeLines": 65
     },
@@ -8265,6 +8275,16 @@
       "codeLines": 65
     },
     {
+      "path": "packages/nextclaw-shared/src/index.ts",
+      "scope": "packages/nextclaw-shared",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 66,
+      "blankLines": 1,
+      "commentLines": 0,
+      "codeLines": 65
+    },
+    {
       "path": "packages/nextclaw-ui/src/features/marketplace/components/marketplace-localization.ts",
       "scope": "packages/nextclaw-ui",
       "language": "TypeScript",
@@ -8285,13 +8305,13 @@
       "codeLines": 64
     },
     {
-      "path": "packages/extensions/nextclaw-channel-extension-feishu/src/stores/feishu-account.store.ts",
-      "scope": "packages/extensions/nextclaw-channel-extension-feishu",
+      "path": "packages/nextclaw-core/src/features/channels/services/extension-channel.service.ts",
+      "scope": "packages/nextclaw-core",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 75,
+      "totalLines": 76,
       "blankLines": 11,
-      "commentLines": 0,
+      "commentLines": 1,
       "codeLines": 64
     },
     {
@@ -8361,16 +8381,6 @@
       "files": 1,
       "totalLines": 70,
       "blankLines": 6,
-      "commentLines": 0,
-      "codeLines": 64
-    },
-    {
-      "path": "packages/nextclaw-shared/src/index.ts",
-      "scope": "packages/nextclaw-shared",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 65,
-      "blankLines": 1,
       "commentLines": 0,
       "codeLines": 64
     },
@@ -8935,6 +8945,16 @@
       "codeLines": 57
     },
     {
+      "path": "apps/desktop/src/utils/desktop-paths.utils.ts",
+      "scope": "apps/desktop",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 68,
+      "blankLines": 12,
+      "commentLines": 0,
+      "codeLines": 56
+    },
+    {
       "path": "packages/nextclaw-ui/src/features/system-status/components/config/runtime-entry-list-card.tsx",
       "scope": "packages/nextclaw-ui",
       "language": "TSX",
@@ -9022,16 +9042,6 @@
       "totalLines": 65,
       "blankLines": 10,
       "commentLines": 1,
-      "codeLines": 54
-    },
-    {
-      "path": "packages/nextclaw-core/src/features/channels/services/extension-channel.service.ts",
-      "scope": "packages/nextclaw-core",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 64,
-      "blankLines": 10,
-      "commentLines": 0,
       "codeLines": 54
     },
     {
@@ -9185,6 +9195,16 @@
       "codeLines": 52
     },
     {
+      "path": "packages/extensions/nextclaw-channel-extension-feishu/src/types/feishu-extension.types.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-feishu",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 59,
+      "blankLines": 7,
+      "commentLines": 0,
+      "codeLines": 52
+    },
+    {
       "path": "packages/ncp-packages/nextclaw-ncp-react-ui/src/chat/message-part.tsx",
       "scope": "packages/ncp-packages/nextclaw-ncp-react-ui",
       "language": "TSX",
@@ -9235,6 +9255,16 @@
       "codeLines": 51
     },
     {
+      "path": "packages/nextclaw-app-runtime/src/publish/platform-auth-state.service.ts",
+      "scope": "packages/nextclaw-app-runtime",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 57,
+      "blankLines": 6,
+      "commentLines": 0,
+      "codeLines": 51
+    },
+    {
       "path": "apps/desktop/src/utils/desktop-startup-loading.utils.ts",
       "scope": "apps/desktop",
       "language": "TypeScript",
@@ -9253,16 +9283,6 @@
       "blankLines": 5,
       "commentLines": 0,
       "codeLines": 51
-    },
-    {
-      "path": "apps/desktop/src/utils/desktop-paths.utils.ts",
-      "scope": "apps/desktop",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 61,
-      "blankLines": 11,
-      "commentLines": 0,
-      "codeLines": 50
     },
     {
       "path": "packages/nextclaw-client-sdk/src/services/remote.service.ts",
@@ -9371,16 +9391,6 @@
       "files": 1,
       "totalLines": 55,
       "blankLines": 6,
-      "commentLines": 0,
-      "codeLines": 49
-    },
-    {
-      "path": "packages/nextclaw-app-runtime/src/publish/platform-auth-state.service.ts",
-      "scope": "packages/nextclaw-app-runtime",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 54,
-      "blankLines": 5,
       "commentLines": 0,
       "codeLines": 49
     },
@@ -9533,16 +9543,6 @@
       "blankLines": 3,
       "commentLines": 0,
       "codeLines": 48
-    },
-    {
-      "path": "packages/extensions/nextclaw-channel-extension-feishu/src/types/feishu-extension.types.ts",
-      "scope": "packages/extensions/nextclaw-channel-extension-feishu",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 54,
-      "blankLines": 7,
-      "commentLines": 0,
-      "codeLines": 47
     },
     {
       "path": "packages/nextclaw-agent-chat-ui/src/components/chat/ui/chat-message-list/chat-tool-card.tsx",
@@ -9875,16 +9875,6 @@
       "codeLines": 42
     },
     {
-      "path": "packages/nextclaw-openclaw-compat/src/plugins/bundled-channel-plugin-module.utils.ts",
-      "scope": "packages/nextclaw-openclaw-compat",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 49,
-      "blankLines": 7,
-      "commentLines": 0,
-      "codeLines": 42
-    },
-    {
       "path": "apps/public-roadmap-feedback-portal/src/shared/portal-format.utils.ts",
       "scope": "apps/public-roadmap-feedback-portal",
       "language": "TypeScript",
@@ -10045,6 +10035,16 @@
       "codeLines": 40
     },
     {
+      "path": "packages/nextclaw-openclaw-compat/src/plugins/bundled-channel-plugin-module.utils.ts",
+      "scope": "packages/nextclaw-openclaw-compat",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 47,
+      "blankLines": 7,
+      "commentLines": 0,
+      "codeLines": 40
+    },
+    {
       "path": "apps/competitive-leaderboard/src/lib/leaderboard-format.utils.ts",
       "scope": "apps/competitive-leaderboard",
       "language": "TypeScript",
@@ -10071,6 +10071,16 @@
       "files": 1,
       "totalLines": 43,
       "blankLines": 3,
+      "commentLines": 0,
+      "codeLines": 40
+    },
+    {
+      "path": "packages/nextclaw-extension-sdk/src/index.ts",
+      "scope": "packages/nextclaw-extension-sdk",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 41,
+      "blankLines": 1,
       "commentLines": 0,
       "codeLines": 40
     },
@@ -10455,6 +10465,16 @@
       "codeLines": 36
     },
     {
+      "path": "packages/nextclaw-kernel/src/index.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 37,
+      "blankLines": 1,
+      "commentLines": 0,
+      "codeLines": 36
+    },
+    {
       "path": "packages/nextclaw-service/src/launcher/npm-runtime-bundle-layout.store.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
@@ -10543,26 +10563,6 @@
       "blankLines": 1,
       "commentLines": 0,
       "codeLines": 35
-    },
-    {
-      "path": "packages/nextclaw-kernel/src/index.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 36,
-      "blankLines": 1,
-      "commentLines": 0,
-      "codeLines": 35
-    },
-    {
-      "path": "packages/nextclaw-kernel/src/managers/skill.manager.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 45,
-      "blankLines": 11,
-      "commentLines": 0,
-      "codeLines": 34
     },
     {
       "path": "packages/ncp-packages/nextclaw-ncp-agent-runtime/src/runtime/round-buffer.ts",
@@ -11055,7 +11055,7 @@
       "codeLines": 29
     },
     {
-      "path": "packages/nextclaw-kernel/src/utils/learning-loop-prompt.utils.ts",
+      "path": "packages/nextclaw-kernel/src/contributions/learning-loop/utils/learning-loop-prompt.utils.ts",
       "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
       "files": 1,
@@ -11111,16 +11111,6 @@
       "files": 1,
       "totalLines": 36,
       "blankLines": 8,
-      "commentLines": 0,
-      "codeLines": 28
-    },
-    {
-      "path": "packages/extensions/nextclaw-channel-extension-weixin/src/main.ts",
-      "scope": "packages/extensions/nextclaw-channel-extension-weixin",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 33,
-      "blankLines": 5,
       "commentLines": 0,
       "codeLines": 28
     },
@@ -11245,16 +11235,6 @@
       "codeLines": 27
     },
     {
-      "path": "packages/extensions/nextclaw-channel-extension-weixin/src/index.ts",
-      "scope": "packages/extensions/nextclaw-channel-extension-weixin",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 28,
-      "blankLines": 1,
-      "commentLines": 0,
-      "codeLines": 27
-    },
-    {
       "path": "packages/nextclaw-remote/src/remote-connector-websocket-error.utils.ts",
       "scope": "packages/nextclaw-remote",
       "language": "TypeScript",
@@ -11315,7 +11295,7 @@
       "codeLines": 26
     },
     {
-      "path": "packages/nextclaw-kernel/src/configs/learning-loop.config.ts",
+      "path": "packages/nextclaw-kernel/src/contributions/learning-loop/config.ts",
       "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
       "files": 1,
@@ -11595,26 +11575,6 @@
       "codeLines": 24
     },
     {
-      "path": "packages/extensions/nextclaw-channel-plugin-mochat/index.js",
-      "scope": "packages/extensions/nextclaw-channel-plugin-mochat",
-      "language": "JavaScript",
-      "files": 1,
-      "totalLines": 28,
-      "blankLines": 4,
-      "commentLines": 0,
-      "codeLines": 24
-    },
-    {
-      "path": "packages/extensions/nextclaw-channel-plugin-qq/index.js",
-      "scope": "packages/extensions/nextclaw-channel-plugin-qq",
-      "language": "JavaScript",
-      "files": 1,
-      "totalLines": 28,
-      "blankLines": 4,
-      "commentLines": 0,
-      "codeLines": 24
-    },
-    {
       "path": "packages/extensions/nextclaw-channel-plugin-slack/index.js",
       "scope": "packages/extensions/nextclaw-channel-plugin-slack",
       "language": "JavaScript",
@@ -11731,6 +11691,26 @@
       "files": 1,
       "totalLines": 26,
       "blankLines": 2,
+      "commentLines": 0,
+      "codeLines": 24
+    },
+    {
+      "path": "packages/extensions/nextclaw-channel-extension-feishu/src/utils/feishu-submitted-message.utils.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-feishu",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 26,
+      "blankLines": 2,
+      "commentLines": 0,
+      "codeLines": 24
+    },
+    {
+      "path": "packages/extensions/nextclaw-channel-extension-weixin/src/index.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-weixin",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 25,
+      "blankLines": 1,
       "commentLines": 0,
       "codeLines": 24
     },
@@ -11865,12 +11845,12 @@
       "codeLines": 23
     },
     {
-      "path": "packages/nextclaw-extension-sdk/src/index.ts",
-      "scope": "packages/nextclaw-extension-sdk",
+      "path": "packages/nextclaw-kernel/src/features/ncp-dispatch/utils/ncp-run-metadata.utils.ts",
+      "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 24,
-      "blankLines": 1,
+      "totalLines": 25,
+      "blankLines": 2,
       "commentLines": 0,
       "codeLines": 23
     },
@@ -11908,16 +11888,6 @@
       "path": "packages/nextclaw-ui/src/shared/components/config/secrets-config.tsx",
       "scope": "packages/nextclaw-ui",
       "language": "TSX",
-      "files": 1,
-      "totalLines": 26,
-      "blankLines": 4,
-      "commentLines": 0,
-      "codeLines": 22
-    },
-    {
-      "path": "packages/nextclaw-ui/src/shared/lib/logos/index.ts",
-      "scope": "packages/nextclaw-ui",
-      "language": "TypeScript",
       "files": 1,
       "totalLines": 26,
       "blankLines": 4,
@@ -12095,6 +12065,16 @@
       "codeLines": 21
     },
     {
+      "path": "packages/nextclaw-ui/src/shared/lib/logos/index.ts",
+      "scope": "packages/nextclaw-ui",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 25,
+      "blankLines": 4,
+      "commentLines": 0,
+      "codeLines": 21
+    },
+    {
       "path": "packages/nextclaw-mcp/src/config/mcp-config-normalizer.ts",
       "scope": "packages/nextclaw-mcp",
       "language": "TypeScript",
@@ -12131,6 +12111,16 @@
       "files": 1,
       "totalLines": 24,
       "blankLines": 3,
+      "commentLines": 0,
+      "codeLines": 21
+    },
+    {
+      "path": "apps/desktop/src/utils/desktop-installation-profile-electron.utils.ts",
+      "scope": "apps/desktop",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 23,
+      "blankLines": 2,
       "commentLines": 0,
       "codeLines": 21
     },
@@ -12195,16 +12185,6 @@
       "codeLines": 20
     },
     {
-      "path": "packages/nextclaw-kernel/src/types/ncp-lifecycle-event.types.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 25,
-      "blankLines": 5,
-      "commentLines": 0,
-      "codeLines": 20
-    },
-    {
       "path": "packages/nextclaw-ui/src/shared/lib/api/auth.types.ts",
       "scope": "packages/nextclaw-ui",
       "language": "TypeScript",
@@ -12251,6 +12231,16 @@
       "files": 1,
       "totalLines": 23,
       "blankLines": 3,
+      "commentLines": 0,
+      "codeLines": 20
+    },
+    {
+      "path": "packages/extensions/nextclaw-channel-extension-weixin/src/utils/weixin-submitted-message.utils.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-weixin",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 22,
+      "blankLines": 2,
       "commentLines": 0,
       "codeLines": 20
     },
@@ -12515,16 +12505,6 @@
       "codeLines": 17
     },
     {
-      "path": "packages/nextclaw-runtime/src/channels/builtin.ts",
-      "scope": "packages/nextclaw-runtime",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 20,
-      "blankLines": 3,
-      "commentLines": 0,
-      "codeLines": 17
-    },
-    {
       "path": "packages/ncp-packages/nextclaw-ncp-react-ui/src/chat/message-bubble.tsx",
       "scope": "packages/ncp-packages/nextclaw-ncp-react-ui",
       "language": "TSX",
@@ -12645,6 +12625,16 @@
       "codeLines": 16
     },
     {
+      "path": "packages/nextclaw-runtime/src/channels/builtin-channel.config.ts",
+      "scope": "packages/nextclaw-runtime",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 19,
+      "blankLines": 3,
+      "commentLines": 0,
+      "codeLines": 16
+    },
+    {
       "path": "packages/nextclaw-ui/src/features/chat/hooks/use-chat-session-label.ts",
       "scope": "packages/nextclaw-ui",
       "language": "TypeScript",
@@ -12715,16 +12705,6 @@
       "codeLines": 15
     },
     {
-      "path": "packages/nextclaw-kernel/src/configs/ncp-lifecycle-event.config.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 20,
-      "blankLines": 5,
-      "commentLines": 0,
-      "codeLines": 15
-    },
-    {
       "path": "apps/platform-console/src/lib/utils.ts",
       "scope": "apps/platform-console",
       "language": "TypeScript",
@@ -12751,6 +12731,16 @@
       "files": 1,
       "totalLines": 19,
       "blankLines": 4,
+      "commentLines": 0,
+      "codeLines": 15
+    },
+    {
+      "path": "packages/nextclaw-core/src/features/config/configs/brand.ts",
+      "scope": "packages/nextclaw-core",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 18,
+      "blankLines": 3,
       "commentLines": 0,
       "codeLines": 15
     },
@@ -12897,16 +12887,6 @@
     {
       "path": "packages/ncp-packages/nextclaw-ncp/src/agent-runtime/stream-encoder.ts",
       "scope": "packages/ncp-packages/nextclaw-ncp",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 17,
-      "blankLines": 3,
-      "commentLines": 0,
-      "codeLines": 14
-    },
-    {
-      "path": "packages/nextclaw-core/src/features/config/configs/brand.ts",
-      "scope": "packages/nextclaw-core",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 17,
@@ -13195,16 +13175,6 @@
       "codeLines": 12
     },
     {
-      "path": "packages/extensions/nextclaw-channel-extension-feishu/src/main.ts",
-      "scope": "packages/extensions/nextclaw-channel-extension-feishu",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 15,
-      "blankLines": 3,
-      "commentLines": 0,
-      "codeLines": 12
-    },
-    {
       "path": "workers/marketplace-api/src/presentation/http/marketplace-assertions.ts",
       "scope": "workers/marketplace-api",
       "language": "TypeScript",
@@ -13365,16 +13335,6 @@
       "codeLines": 11
     },
     {
-      "path": "packages/nextclaw-openclaw-compat/src/plugins/bundled-channel-plugin-packages.constants.ts",
-      "scope": "packages/nextclaw-openclaw-compat",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 14,
-      "blankLines": 1,
-      "commentLines": 2,
-      "codeLines": 11
-    },
-    {
       "path": "packages/nextclaw-service/src/cli/commands/stop/index.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
@@ -13388,6 +13348,26 @@
       "path": "apps/public-roadmap-feedback-portal/src/shared/components/tag-chip.tsx",
       "scope": "apps/public-roadmap-feedback-portal",
       "language": "TSX",
+      "files": 1,
+      "totalLines": 13,
+      "blankLines": 2,
+      "commentLines": 0,
+      "codeLines": 11
+    },
+    {
+      "path": "packages/extensions/nextclaw-channel-extension-feishu/src/main.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-feishu",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 13,
+      "blankLines": 2,
+      "commentLines": 0,
+      "codeLines": 11
+    },
+    {
+      "path": "packages/extensions/nextclaw-channel-extension-weixin/src/main.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-weixin",
+      "language": "TypeScript",
       "files": 1,
       "totalLines": 13,
       "blankLines": 2,
@@ -13411,16 +13391,6 @@
       "files": 1,
       "totalLines": 13,
       "blankLines": 2,
-      "commentLines": 0,
-      "codeLines": 11
-    },
-    {
-      "path": "packages/extensions/nextclaw-channel-extension-feishu/src/index.ts",
-      "scope": "packages/extensions/nextclaw-channel-extension-feishu",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 12,
-      "blankLines": 1,
       "commentLines": 0,
       "codeLines": 11
     },
@@ -13481,6 +13451,16 @@
       "files": 1,
       "totalLines": 12,
       "blankLines": 2,
+      "commentLines": 0,
+      "codeLines": 10
+    },
+    {
+      "path": "packages/extensions/nextclaw-channel-extension-feishu/src/index.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-feishu",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 11,
+      "blankLines": 1,
       "commentLines": 0,
       "codeLines": 10
     },
@@ -13592,6 +13572,16 @@
       "totalLines": 12,
       "blankLines": 3,
       "commentLines": 0,
+      "codeLines": 9
+    },
+    {
+      "path": "packages/nextclaw-openclaw-compat/src/plugins/bundled-channel-plugin-packages.constants.ts",
+      "scope": "packages/nextclaw-openclaw-compat",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 12,
+      "blankLines": 1,
+      "commentLines": 2,
       "codeLines": 9
     },
     {
@@ -13771,6 +13761,16 @@
       "files": 1,
       "totalLines": 10,
       "blankLines": 3,
+      "commentLines": 0,
+      "codeLines": 7
+    },
+    {
+      "path": "packages/extensions/nextclaw-channel-extension-qq/src/main.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-qq",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 9,
+      "blankLines": 2,
       "commentLines": 0,
       "codeLines": 7
     },
@@ -14285,6 +14285,16 @@
       "codeLines": 4
     },
     {
+      "path": "packages/nextclaw-kernel/src/features/ncp-dispatch/index.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 5,
+      "blankLines": 1,
+      "commentLines": 0,
+      "codeLines": 4
+    },
+    {
       "path": "packages/nextclaw-kernel/src/types/kernel-contribution.types.ts",
       "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
@@ -14395,16 +14405,6 @@
       "codeLines": 3
     },
     {
-      "path": "packages/nextclaw-kernel/src/features/ncp-dispatch/index.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 4,
-      "blankLines": 1,
-      "commentLines": 0,
-      "codeLines": 3
-    },
-    {
       "path": "packages/nextclaw-server/src/features/auth/index.ts",
       "scope": "packages/nextclaw-server",
       "language": "TypeScript",
@@ -14453,6 +14453,16 @@
       "blankLines": 1,
       "commentLines": 0,
       "codeLines": 3
+    },
+    {
+      "path": "apps/desktop/src/utils/desktop-path-env.utils.ts",
+      "scope": "apps/desktop",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 3,
+      "blankLines": 1,
+      "commentLines": 0,
+      "codeLines": 2
     },
     {
       "path": "packages/ncp-packages/nextclaw-ncp-http-agent-client/src/index.ts",
@@ -14517,16 +14527,6 @@
     {
       "path": "packages/nextclaw-core/src/features/extensions/index.ts",
       "scope": "packages/nextclaw-core",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 3,
-      "blankLines": 1,
-      "commentLines": 0,
-      "codeLines": 2
-    },
-    {
-      "path": "packages/nextclaw-kernel/src/features/agent-run-request/index.ts",
-      "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 3,
@@ -14613,6 +14613,16 @@
       "blankLines": 1,
       "commentLines": 0,
       "codeLines": 2
+    },
+    {
+      "path": "packages/extensions/nextclaw-channel-extension-qq/src/index.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-qq",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 2,
+      "blankLines": 1,
+      "commentLines": 0,
+      "codeLines": 1
     },
     {
       "path": "packages/extensions/nextclaw-channel-runtime/src/bus/queue.ts",
@@ -14975,6 +14985,26 @@
       "codeLines": 0
     },
     {
+      "path": "packages/nextclaw-extension-sdk/src/extension-sdk.test.ts",
+      "scope": "packages/nextclaw-extension-sdk",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 857,
+      "blankLines": 64,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-server/src/app/router.ncp-agent.test.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 850,
+      "blankLines": 67,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-agent-chat-ui/src/components/chat/ui/chat-message-list/chat-message-list.test.tsx",
       "scope": "packages/nextclaw-agent-chat-ui",
       "language": "TSX",
@@ -14995,16 +15025,6 @@
       "codeLines": 0
     },
     {
-      "path": "packages/nextclaw-server/src/app/router.ncp-agent.test.ts",
-      "scope": "packages/nextclaw-server",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 792,
-      "blankLines": 64,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
       "path": "packages/nextclaw-agent-chat-ui/src/components/chat/ui/chat-input-bar/chat-input-bar.test.tsx",
       "scope": "packages/nextclaw-agent-chat-ui",
       "language": "TSX",
@@ -15019,7 +15039,7 @@
       "scope": "packages/nextclaw-server",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 773,
+      "totalLines": 782,
       "blankLines": 65,
       "commentLines": 1,
       "codeLines": 0
@@ -15029,7 +15049,7 @@
       "scope": "packages/nextclaw-server",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 754,
+      "totalLines": 770,
       "blankLines": 69,
       "commentLines": 0,
       "codeLines": 0
@@ -15055,6 +15075,16 @@
       "codeLines": 0
     },
     {
+      "path": "packages/extensions/nextclaw-channel-extension-weixin/src/tests/weixin-extension-runtime.test.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-weixin",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 678,
+      "blankLines": 52,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-agent-chat-ui/src/components/chat/ui/chat-message-list/__tests__/chat-message-list.file-operation.test.tsx",
       "scope": "packages/nextclaw-agent-chat-ui",
       "language": "TSX",
@@ -15075,16 +15105,6 @@
       "codeLines": 0
     },
     {
-      "path": "packages/extensions/nextclaw-channel-extension-weixin/src/tests/weixin-extension-runtime.test.ts",
-      "scope": "packages/extensions/nextclaw-channel-extension-weixin",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 588,
-      "blankLines": 48,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
       "path": "packages/nextclaw-core/src/features/llm-providers/providers/openai_provider.test.ts",
       "scope": "packages/nextclaw-core",
       "language": "TypeScript",
@@ -15095,22 +15115,22 @@
       "codeLines": 0
     },
     {
+      "path": "apps/desktop/src/launcher/__tests__/update-coordinator.service.test.ts",
+      "scope": "apps/desktop",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 508,
+      "blankLines": 25,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/ncp-packages/nextclaw-ncp-toolkit/src/chat/ncp-reply-consumer.test.ts",
       "scope": "packages/ncp-packages/nextclaw-ncp-toolkit",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 480,
       "blankLines": 29,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "apps/desktop/src/launcher/__tests__/update-coordinator.service.test.ts",
-      "scope": "apps/desktop",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 472,
-      "blankLines": 23,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -15129,8 +15149,18 @@
       "scope": "packages/nextclaw-server",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 430,
+      "totalLines": 438,
       "blankLines": 41,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-core/src/features/config/configs/agent-profiles.test.ts",
+      "scope": "packages/nextclaw-core",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 421,
+      "blankLines": 46,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -15141,16 +15171,6 @@
       "files": 1,
       "totalLines": 415,
       "blankLines": 45,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "packages/nextclaw-kernel/src/services/ncp-session-api.service.test.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 409,
-      "blankLines": 47,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -15171,16 +15191,6 @@
       "files": 1,
       "totalLines": 393,
       "blankLines": 39,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "packages/nextclaw-core/src/features/config/configs/agent-profiles.test.ts",
-      "scope": "packages/nextclaw-core",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 392,
-      "blankLines": 43,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -15235,6 +15245,26 @@
       "codeLines": 0
     },
     {
+      "path": "packages/nextclaw-kernel/src/services/ncp-session-api.service.test.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 336,
+      "blankLines": 35,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-kernel/src/managers/agent-run-request.manager.test.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 332,
+      "blankLines": 18,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-ncp-runtime-http-client/src/http-runtime.test.ts",
       "scope": "packages/nextclaw-ncp-runtime-http-client",
       "language": "TypeScript",
@@ -15249,8 +15279,18 @@
       "scope": "packages/nextclaw-server",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 324,
+      "totalLines": 328,
       "blankLines": 27,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-server/src/app/router.remote.test.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 302,
+      "blankLines": 15,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -15275,16 +15315,6 @@
       "codeLines": 0
     },
     {
-      "path": "packages/nextclaw-server/src/app/router.remote.test.ts",
-      "scope": "packages/nextclaw-server",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 299,
-      "blankLines": 15,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
       "path": "packages/nextclaw-kernel/src/features/extension-development-source/utils/first-party-plugin-load-paths.utils.test.ts",
       "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
@@ -15299,7 +15329,7 @@
       "scope": "packages/nextclaw-server",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 294,
+      "totalLines": 296,
       "blankLines": 39,
       "commentLines": 0,
       "codeLines": 0
@@ -15340,6 +15370,16 @@
       "language": "TypeScript",
       "files": 1,
       "totalLines": 287,
+      "blankLines": 22,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-kernel/src/services/extension-runtime.service.test.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 284,
       "blankLines": 22,
       "commentLines": 0,
       "codeLines": 0
@@ -15419,9 +15459,39 @@
       "scope": "packages/nextclaw-server",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 262,
+      "totalLines": 264,
       "blankLines": 20,
       "commentLines": 1,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-server/src/app/tests/router.ncp-agent-runtime-manager.test.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 260,
+      "blankLines": 12,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-server/src/app/router.agents.test.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 255,
+      "blankLines": 23,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-core/src/features/channels/managers/channel.manager.test.ts",
+      "scope": "packages/nextclaw-core",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 254,
+      "blankLines": 28,
+      "commentLines": 0,
       "codeLines": 0
     },
     {
@@ -15465,16 +15535,6 @@
       "codeLines": 0
     },
     {
-      "path": "packages/nextclaw-server/src/app/router.agents.test.ts",
-      "scope": "packages/nextclaw-server",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 249,
-      "blankLines": 23,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
       "path": "packages/nextclaw-service/src/cli/commands/skills/skills-query.service.test.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
@@ -15491,16 +15551,6 @@
       "files": 1,
       "totalLines": 246,
       "blankLines": 25,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "packages/nextclaw-extension-sdk/src/extension-sdk.test.ts",
-      "scope": "packages/nextclaw-extension-sdk",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 245,
-      "blankLines": 20,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -15529,19 +15579,9 @@
       "scope": "packages/nextclaw-server",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 237,
+      "totalLines": 239,
       "blankLines": 14,
       "commentLines": 1,
-      "codeLines": 0
-    },
-    {
-      "path": "packages/nextclaw-server/src/app/tests/router.ncp-agent-runtime-manager.test.ts",
-      "scope": "packages/nextclaw-server",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 235,
-      "blankLines": 11,
-      "commentLines": 0,
       "codeLines": 0
     },
     {
@@ -15615,22 +15655,22 @@
       "codeLines": 0
     },
     {
+      "path": "packages/nextclaw-server/src/features/runtime-update/controllers/runtime-update.controller.test.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 227,
+      "blankLines": 10,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-core/src/features/cron/services/cron.service.test.ts",
       "scope": "packages/nextclaw-core",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 225,
       "blankLines": 32,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "packages/nextclaw-server/src/features/runtime-update/controllers/runtime-update.controller.test.ts",
-      "scope": "packages/nextclaw-server",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 224,
-      "blankLines": 10,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -15649,7 +15689,7 @@
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 216,
+      "totalLines": 220,
       "blankLines": 25,
       "commentLines": 0,
       "codeLines": 0
@@ -15665,6 +15705,16 @@
       "codeLines": 0
     },
     {
+      "path": "packages/nextclaw-server/src/app/router.marketplace-installed.test.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 211,
+      "blankLines": 20,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-core/src/features/config/configs/schema.provider-routing.test.ts",
       "scope": "packages/nextclaw-core",
       "language": "TypeScript",
@@ -15675,22 +15725,22 @@
       "codeLines": 0
     },
     {
-      "path": "packages/nextclaw-server/src/app/router.marketplace-installed.test.ts",
-      "scope": "packages/nextclaw-server",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 208,
-      "blankLines": 20,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
       "path": "packages/nextclaw-kernel/src/managers/extension.manager.test.ts",
       "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 207,
       "blankLines": 18,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-service/src/commands/channel/channels.test.ts",
+      "scope": "packages/nextclaw-service",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 207,
+      "blankLines": 19,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -15725,12 +15775,12 @@
       "codeLines": 0
     },
     {
-      "path": "packages/nextclaw-service/src/commands/channel/channels.test.ts",
-      "scope": "packages/nextclaw-service",
+      "path": "packages/extensions/nextclaw-channel-extension-feishu/src/tests/feishu-channel-adapter.service.test.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-feishu",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 200,
-      "blankLines": 19,
+      "totalLines": 199,
+      "blankLines": 23,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -15755,12 +15805,22 @@
       "codeLines": 0
     },
     {
-      "path": "packages/nextclaw-core/src/features/channels/managers/channel.manager.test.ts",
-      "scope": "packages/nextclaw-core",
+      "path": "packages/extensions/nextclaw-channel-extension-qq/src/tests/qq-channel.service.test.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-qq",
       "language": "TypeScript",
       "files": 1,
-      "totalLines": 194,
-      "blankLines": 25,
+      "totalLines": 193,
+      "blankLines": 29,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-server/src/app/router.runtime-control.test.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 192,
+      "blankLines": 13,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -15777,16 +15837,6 @@
     {
       "path": "packages/nextclaw-core/src/features/config/configs/provider-runtime-resolution.test.ts",
       "scope": "packages/nextclaw-core",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 187,
-      "blankLines": 13,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "packages/nextclaw-server/src/app/router.runtime-control.test.ts",
-      "scope": "packages/nextclaw-server",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 187,
@@ -15845,42 +15895,32 @@
       "codeLines": 0
     },
     {
-      "path": "packages/nextclaw-service/src/shared/services/gateway/utils/cron-job-handler.utils.test.ts",
-      "scope": "packages/nextclaw-service",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 177,
-      "blankLines": 13,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "packages/extensions/nextclaw-channel-extension-feishu/src/tests/feishu-channel-adapter.service.test.ts",
-      "scope": "packages/extensions/nextclaw-channel-extension-feishu",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 176,
-      "blankLines": 20,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "packages/nextclaw-kernel/src/services/extension-runtime.service.test.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 173,
-      "blankLines": 14,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
       "path": "packages/nextclaw-service/src/cli/commands/skills/marketplace.install.test.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 170,
       "blankLines": 17,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-server/src/features/server-path/controllers/server-path.controller.test.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 169,
+      "blankLines": 21,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-server/src/app/router.cron.test.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 168,
+      "blankLines": 12,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -15905,22 +15945,22 @@
       "codeLines": 0
     },
     {
-      "path": "packages/nextclaw-server/src/features/server-path/controllers/server-path.controller.test.ts",
-      "scope": "packages/nextclaw-server",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 167,
-      "blankLines": 21,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
       "path": "apps/desktop/src/launcher/__tests__/launcher-test.utils.ts",
       "scope": "apps/desktop",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 166,
       "blankLines": 17,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-server/src/app/router.weixin-channel-auth.test.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 166,
+      "blankLines": 14,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -15935,32 +15975,12 @@
       "codeLines": 0
     },
     {
-      "path": "packages/nextclaw-server/src/app/router.cron.test.ts",
-      "scope": "packages/nextclaw-server",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 165,
-      "blankLines": 12,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
       "path": "packages/nextclaw-core/src/features/llm-providers/providers/chat-completions-normalizer.test.ts",
       "scope": "packages/nextclaw-core",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 164,
       "blankLines": 12,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "packages/nextclaw-server/src/app/router.weixin-channel-auth.test.ts",
-      "scope": "packages/nextclaw-server",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 164,
-      "blankLines": 14,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -16005,6 +16025,16 @@
       "codeLines": 0
     },
     {
+      "path": "packages/nextclaw-kernel/src/services/ncp-agent-session-store-adapter.service.test.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 159,
+      "blankLines": 18,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-ui/src/features/channels/components/config/weixin-channel-auth-section.test.tsx",
       "scope": "packages/nextclaw-ui",
       "language": "TSX",
@@ -16021,6 +16051,16 @@
       "files": 1,
       "totalLines": 155,
       "blankLines": 14,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-service/src/shared/services/gateway/utils/cron-job-handler.utils.test.ts",
+      "scope": "packages/nextclaw-service",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 153,
+      "blankLines": 10,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -16115,6 +16155,16 @@
       "codeLines": 0
     },
     {
+      "path": "packages/nextclaw-service/src/shared/services/gateway/tests/nextclaw-app.service.test.ts",
+      "scope": "packages/nextclaw-service",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 146,
+      "blankLines": 9,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-ui/src/app/components/layout/sidebar.layout.test.tsx",
       "scope": "packages/nextclaw-ui",
       "language": "TSX",
@@ -16171,16 +16221,6 @@
       "files": 1,
       "totalLines": 140,
       "blankLines": 14,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "packages/nextclaw-service/src/shared/services/gateway/tests/nextclaw-app.service.test.ts",
-      "scope": "packages/nextclaw-service",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 138,
-      "blankLines": 8,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -16275,16 +16315,6 @@
       "codeLines": 0
     },
     {
-      "path": "packages/extensions/nextclaw-channel-runtime/src/channels/qq.service.test.ts",
-      "scope": "packages/extensions/nextclaw-channel-runtime",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 125,
-      "blankLines": 21,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
       "path": "packages/nextclaw-service/src/shared/controllers/gateway.controller.test.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
@@ -16315,16 +16345,6 @@
       "codeLines": 0
     },
     {
-      "path": "packages/nextclaw-kernel/src/managers/agent-run-request.manager.test.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 120,
-      "blankLines": 8,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
       "path": "packages/nextclaw-service/src/commands/remote/utils/remote-runtime-support.utils.test.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
@@ -16340,6 +16360,16 @@
       "language": "TypeScript",
       "files": 1,
       "totalLines": 119,
+      "blankLines": 13,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-service/src/shared/services/gateway/tests/service-bootstrap-status.service.test.ts",
+      "scope": "packages/nextclaw-service",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 118,
       "blankLines": 13,
       "commentLines": 0,
       "codeLines": 0
@@ -16455,16 +16485,6 @@
       "codeLines": 0
     },
     {
-      "path": "packages/nextclaw-service/src/shared/services/gateway/tests/service-bootstrap-status.service.test.ts",
-      "scope": "packages/nextclaw-service",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 110,
-      "blankLines": 13,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
       "path": "packages/nextclaw-ui/src/app/components/layout/app-layout.test.tsx",
       "scope": "packages/nextclaw-ui",
       "language": "TSX",
@@ -16475,22 +16495,32 @@
       "codeLines": 0
     },
     {
+      "path": "packages/nextclaw-server/src/app/router.search-config.test.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 109,
+      "blankLines": 9,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/extensions/nextclaw-channel-extension-feishu/src/tests/feishu-extension-runtime.service.test.ts",
+      "scope": "packages/extensions/nextclaw-channel-extension-feishu",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 108,
+      "blankLines": 9,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-core/src/features/llm-providers/providers/litellm.provider.test.ts",
       "scope": "packages/nextclaw-core",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 107,
       "blankLines": 12,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "packages/nextclaw-server/src/app/router.search-config.test.ts",
-      "scope": "packages/nextclaw-server",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 107,
-      "blankLines": 9,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -16575,12 +16605,12 @@
       "codeLines": 0
     },
     {
-      "path": "packages/extensions/nextclaw-channel-extension-feishu/src/tests/feishu-extension-runtime.service.test.ts",
-      "scope": "packages/extensions/nextclaw-channel-extension-feishu",
+      "path": "apps/desktop/src/utils/desktop-installation-profile.utils.test.ts",
+      "scope": "apps/desktop",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 100,
-      "blankLines": 9,
+      "blankLines": 10,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -16605,12 +16635,12 @@
       "codeLines": 0
     },
     {
-      "path": "packages/nextclaw-kernel/src/services/ncp-agent-session-store-adapter.service.test.ts",
-      "scope": "packages/nextclaw-kernel",
+      "path": "packages/nextclaw-server/src/app/router.provider-enabled.test.ts",
+      "scope": "packages/nextclaw-server",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 96,
-      "blankLines": 13,
+      "blankLines": 14,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -16695,16 +16725,6 @@
       "codeLines": 0
     },
     {
-      "path": "packages/nextclaw-server/src/app/router.provider-enabled.test.ts",
-      "scope": "packages/nextclaw-server",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 93,
-      "blankLines": 14,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
       "path": "packages/nextclaw-ui/src/shared/components/path-picker/server-path-picker-dialog.test.tsx",
       "scope": "packages/nextclaw-ui",
       "language": "TSX",
@@ -16735,6 +16755,16 @@
       "codeLines": 0
     },
     {
+      "path": "packages/nextclaw-kernel/src/contributions/session-activity-preview/utils/session-activity-preview-contribution.utils.test.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 92,
+      "blankLines": 8,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-service/src/commands/service/services/autostart/tests/windows-task-autostart.service.test.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
@@ -16761,6 +16791,16 @@
       "files": 1,
       "totalLines": 91,
       "blankLines": 9,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-server/src/app/router.model-config.test.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 90,
+      "blankLines": 10,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -16811,16 +16851,6 @@
       "files": 1,
       "totalLines": 88,
       "blankLines": 13,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "packages/nextclaw-server/src/app/router.model-config.test.ts",
-      "scope": "packages/nextclaw-server",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 88,
-      "blankLines": 10,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -16975,6 +17005,16 @@
       "codeLines": 0
     },
     {
+      "path": "packages/nextclaw-kernel/src/contributions/session-activity-preview/utils/session-activity-preview-metadata.utils.test.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 77,
+      "blankLines": 4,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-ui/src/features/chat/managers/chat-session-preference-sync.manager.test.ts",
       "scope": "packages/nextclaw-ui",
       "language": "TypeScript",
@@ -17105,6 +17145,16 @@
       "codeLines": 0
     },
     {
+      "path": "packages/nextclaw-kernel/src/managers/config.manager.test.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 70,
+      "blankLines": 8,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-service/src/shared/utils/cli.utils.which.test.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
@@ -17155,6 +17205,16 @@
       "codeLines": 0
     },
     {
+      "path": "packages/nextclaw-server/src/app/router-provider-probe.test.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 67,
+      "blankLines": 9,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-service/src/cli/commands/diagnostics/services/diagnostics-commands.service.test.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
@@ -17191,16 +17251,6 @@
       "files": 1,
       "totalLines": 66,
       "blankLines": 7,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "packages/nextclaw-server/src/app/router-provider-probe.test.ts",
-      "scope": "packages/nextclaw-server",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 66,
-      "blankLines": 9,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -17415,6 +17465,16 @@
       "codeLines": 0
     },
     {
+      "path": "packages/nextclaw-core/src/features/config/configs/schema.workspace-path.test.ts",
+      "scope": "packages/nextclaw-core",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 56,
+      "blankLines": 8,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-service/src/cli/commands/logs/logs.test.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
@@ -17475,16 +17535,6 @@
       "codeLines": 0
     },
     {
-      "path": "packages/nextclaw-kernel/src/contributions/session-activity-preview/utils/session-activity-preview-metadata.utils.test.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 53,
-      "blankLines": 3,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
       "path": "packages/nextclaw-core/src/features/agent/features/tests/filesystem.tool.test.ts",
       "scope": "packages/nextclaw-core",
       "language": "TypeScript",
@@ -17510,6 +17560,16 @@
       "language": "TypeScript",
       "files": 1,
       "totalLines": 51,
+      "blankLines": 6,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-service/src/commands/channel/builtin-channels.test.ts",
+      "scope": "packages/nextclaw-service",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 50,
       "blankLines": 6,
       "commentLines": 0,
       "codeLines": 0
@@ -17585,22 +17645,22 @@
       "codeLines": 0
     },
     {
+      "path": "packages/nextclaw-server/src/app/routes/ingress.route.test.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 47,
+      "blankLines": 4,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-service/src/cli/commands/skills/marketplace-identity.test.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 47,
       "blankLines": 3,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "packages/nextclaw-service/src/commands/channel/builtin-channels.test.ts",
-      "scope": "packages/nextclaw-service",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 47,
-      "blankLines": 6,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -17685,16 +17745,6 @@
       "codeLines": 0
     },
     {
-      "path": "packages/nextclaw-server/src/app/routes/ingress.route.test.ts",
-      "scope": "packages/nextclaw-server",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 39,
-      "blankLines": 4,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
       "path": "packages/nextclaw-ui/src/features/chat/components/conversation/chat-attachment-upload-limit.test.ts",
       "scope": "packages/nextclaw-ui",
       "language": "TypeScript",
@@ -17721,6 +17771,16 @@
       "files": 1,
       "totalLines": 38,
       "blankLines": 7,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-server/src/app/tests/router-test-kernel.ts",
+      "scope": "packages/nextclaw-server",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 38,
+      "blankLines": 3,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -18126,8 +18186,8 @@
     }
   ],
   "delta": {
-    "previousCodeLines": 174325,
-    "codeLines": 0,
-    "percent": 0
+    "previousCodeLines": null,
+    "codeLines": null,
+    "percent": null
   }
 }

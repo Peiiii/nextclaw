@@ -1,18 +1,18 @@
 export default {
-  "generatedAt": "2026-05-21T18:09:17.074Z",
+  "generatedAt": "2026-05-22T03:23:45.834Z",
   "hero": {
-    "currentLoc": 174325,
-    "testLoc": 45439,
-    "trackedFiles": 1745,
-    "recentCommitCount": 394,
+    "currentLoc": 173317,
+    "testLoc": 47115,
+    "trackedFiles": 1752,
+    "recentCommitCount": 409,
     "activeDays30": 22,
     "recentReleaseCount": 64,
     "latestReleaseDate": "2026-05-22",
     "latestNoteDate": "2026-05-06",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 1403912,
-    "basePercentOfBenchmark": 12.42,
-    "lighterByPercent": 87.58
+    "benchmarkCodeLines": 1414273,
+    "basePercentOfBenchmark": 12.25,
+    "lighterByPercent": 87.75
   },
   "trends": {
     "locDaily": [
@@ -475,6 +475,11 @@ export default {
         "key": "2026-05-21",
         "label": "05-21",
         "value": 174325
+      },
+      {
+        "key": "2026-05-22",
+        "label": "05-22",
+        "value": 173317
       }
     ],
     "testLocDaily": [
@@ -532,14 +537,14 @@ export default {
         "key": "2026-05-21",
         "label": "05-21",
         "value": 45439
+      },
+      {
+        "key": "2026-05-22",
+        "label": "05-22",
+        "value": 47115
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-04-22",
-        "label": "04-22",
-        "value": 4
-      },
       {
         "key": "2026-04-23",
         "label": "04-23",
@@ -684,6 +689,11 @@ export default {
         "key": "2026-05-21",
         "label": "05-21",
         "value": 17
+      },
+      {
+        "key": "2026-05-22",
+        "label": "05-22",
+        "value": 19
       }
     ],
     "commitWeekly": [
@@ -745,7 +755,7 @@ export default {
       {
         "key": "2026-05-18",
         "label": "05-18",
-        "value": 97
+        "value": 100
       }
     ],
     "releaseMonthly": [
@@ -815,24 +825,24 @@ export default {
     "topScopes": [
       {
         "name": "packages/nextclaw-ui",
-        "codeLines": 36040,
+        "codeLines": 36030,
         "testCodeLines": 12698,
         "files": 416,
-        "sharePercent": 20.7
+        "sharePercent": 20.8
       },
       {
         "name": "packages/nextclaw-core",
-        "codeLines": 16056,
-        "testCodeLines": 4088,
-        "files": 160,
-        "sharePercent": 9.2
+        "codeLines": 16032,
+        "testCodeLines": 4219,
+        "files": 161,
+        "sharePercent": 9.3
       },
       {
         "name": "packages/nextclaw-service",
-        "codeLines": 15649,
-        "testCodeLines": 5749,
+        "codeLines": 15284,
+        "testCodeLines": 5757,
         "files": 161,
-        "sharePercent": 9
+        "sharePercent": 8.8
       },
       {
         "name": "workers/nextclaw-provider-gateway-api",
@@ -843,17 +853,17 @@ export default {
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 10900,
-        "testCodeLines": 2348,
-        "files": 99,
-        "sharePercent": 6.3
+        "codeLines": 10780,
+        "testCodeLines": 2819,
+        "files": 100,
+        "sharePercent": 6.2
       },
       {
         "name": "packages/nextclaw-server",
-        "codeLines": 8624,
-        "testCodeLines": 5669,
-        "files": 81,
-        "sharePercent": 4.9
+        "codeLines": 8633,
+        "testCodeLines": 5869,
+        "files": 82,
+        "sharePercent": 5
       },
       {
         "name": "packages/nextclaw-agent-chat-ui",
@@ -864,7 +874,7 @@ export default {
       },
       {
         "name": "packages/nextclaw-app-runtime",
-        "codeLines": 5843,
+        "codeLines": 5845,
         "testCodeLines": 1149,
         "files": 66,
         "sharePercent": 3.4
@@ -872,14 +882,14 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 1403912,
-      "basePercentOfBenchmark": 12.42,
-      "lighterByPercent": 87.58
+      "benchmarkCodeLines": 1414273,
+      "basePercentOfBenchmark": 12.25,
+      "lighterByPercent": 87.75
     },
     "recentReleaseBatches": [
       {
         "date": "2026-05-22",
-        "tagCount": 3,
+        "tagCount": 50,
         "sampleTags": [
           "v0.19.18-desktop-beta.1",
           "v0.19.19-desktop-beta.1",
@@ -1113,7 +1123,7 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-05-21T03:23:33.841Z",
+    "locGeneratedAt": "2026-05-22T03:23:44.675Z",
     "sourceCount": {
       "notes": 5,
       "scopes": 8
