@@ -59,6 +59,8 @@ describe("DesktopAppShell", () => {
     expect(mainChrome.className).toContain("desktop-window-drag");
     expect(mainChrome.className).toContain("mr-[var(--desktop-caption-safe-right)]");
     expect(mainChrome.className).not.toContain("pr-[var(--desktop-caption-safe-right)]");
+    expect(mainChrome.childElementCount).toBe(0);
+    expect(sidebarChrome.lastElementChild?.className).toContain("desktop-window-no-drag");
     expect(screen.getByTestId("app-content")).toBeTruthy();
   });
 

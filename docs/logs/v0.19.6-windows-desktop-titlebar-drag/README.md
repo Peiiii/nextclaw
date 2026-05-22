@@ -4,14 +4,17 @@
 
 - 修复 Windows 桌面端移除原生标题栏后窗口拖拽失效的问题。
 - 二次修正：用户在 Windows 真机验证后确认仍无法拖拽，并发现窗口最小尺寸过大。
+- 三次修正：用户验证 `0.0.180 / 0.19.23` 后确认 resize 已修复，但标题栏仍然完全无法拖拽。
 - 根因：
   - 窗口最小尺寸由 [desktop-window-options.utils.ts](../../../apps/desktop/src/utils/desktop-window-options.utils.ts) 写死为 `1080x720`，导致只能缩小一点点。
   - 首轮只补齐 CSS 拖拽声明，但 Windows title bar overlay 的右上角 native controls 区域仍被同一个 draggable DOM 矩形覆盖。Electron 的 Window Controls Overlay 合同要求 overlay 下方 DOM 不可用，因此拖拽命中区不能伸到 caption buttons 下方。
   - Windows 窗口参数只设置 `titleBarStyle: "hidden"` 与 `titleBarOverlay`，没有显式进入 `frame: false` + `thickFrame: true` 的 frameless resize/move 合同，排查时容易误以为 renderer CSS 是唯一 owner。
+  - 三次修正的第一错误 hop：标题栏空白区域里存在用于撑开布局的空 `div`。`elementFromPoint` 证明用户实际点击到的是这个空 filler 元素，而不是带 `desktop-window-drag` 的父容器；该 filler 的 computed `-webkit-app-region` / `app-region` 均为 `none`，因此 Windows/Electron 没有拿到可拖拽命中面。
 - 修复方式：
   - Windows `BrowserWindow` 最小尺寸降到 `420x320`，允许真实小窗使用。
   - Windows 窗口参数显式设置 `frame: false`、`thickFrame: true`，使用 frameless 窗口并保留 Windows 标准 resize frame。
   - renderer titlebar 将 draggable main chrome 从 padding 避让改为 `margin-right` 避让，确保 draggable 矩形不再覆盖右上角原生窗口控制区。
+  - 三次修正删除 titlebar 内部空 filler DOM，让空白区域的实际 topmost hit element 直接就是 `desktop-window-drag` 元素。
   - 保留 `.desktop-window-drag` / `.desktop-window-no-drag` 的 `app-region` 与 `-webkit-app-region` 双声明，不新增 JS 手写拖拽兜底。
 
 ## 测试/验证/验收方式
@@ -26,6 +29,7 @@
 - 已通过：`PATH=/opt/homebrew/bin:$PATH pnpm desktop:package:verify`
 - 已通过：`pnpm -C packages/nextclaw-ui exec eslint src/platforms/desktop/components/desktop-window-chrome.tsx src/platforms/desktop/components/desktop-app-shell.test.tsx`
 - 已通过：构建产物 grep，确认 CSS 中包含 `-webkit-app-region:drag`、`app-region:drag`、`-webkit-app-region:no-drag`、`app-region:no-drag`。
+- 三次修正新增验证：通过 Playwright 对 dev renderer 执行 `document.elementFromPoint`，确认标题栏空白点 `(260,20)`、`(320,20)`、`(700,20)` 的 topmost element 已直接命中 computed `app-region: drag` 的 `desktop-window-drag` 元素；右侧 caption safe area `(1180,20)`、`(1230,20)` 保持非 drag。
 - 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
 - 已通过：`pnpm lint:new-code:governance -- apps/desktop/src/utils/desktop-window-options.utils.ts apps/desktop/src/utils/desktop-window-options.utils.test.ts packages/nextclaw-ui/src/platforms/desktop/components/desktop-window-chrome.tsx packages/nextclaw-ui/src/platforms/desktop/components/desktop-app-shell.test.tsx docs/logs/v0.19.6-windows-desktop-titlebar-drag/README.md`
 - 已通过：`pnpm check:governance-backlog-ratchet`
@@ -51,6 +55,7 @@
 - 本次遵守单一路径：继续使用 Electron 标准 app-region 合同，没有增加 JS 拖拽兜底或平台特判。
 - 二次修正确认 owner 分层：窗口尺寸和 frameless/resizable 合同属于 Electron 主进程窗口 options；titlebar 命中矩形属于 UI desktop chrome。
 - 正向减债动作：删除了“padding 视觉避让但矩形仍覆盖 caption controls”的隐性错误模型，改为不新增 DOM 的 margin safe area。
+- 三次修正继续减债：删除 2 个空 filler DOM，避免用无语义子节点覆盖拖拽命中面；同时把该验证缺口沉淀到 `desktop-release-contract-guard` 的 Windows custom titlebar drag gate。
 - `post-edit-maintainability-guard` 二次修正结果：total `+65/-8/net +57`，non-test `+7/-7/net +0`，无可维护性发现。
 
 ## NPM 包发布记录

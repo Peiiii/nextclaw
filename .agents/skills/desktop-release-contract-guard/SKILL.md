@@ -154,6 +154,12 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - Confirm installed-app runtime commands still work when executed through the packaged app binary with `ELECTRON_RUN_AS_NODE=1`.
 - Confirm update check does not only "switch channel", but can actually complete the signature-verification path.
 
+## Windows Custom Titlebar Drag Gate
+- For Windows custom titlebar fixes, do not stop at grepping CSS or JSX class names. Verify the hit-test surface that a user can actually click.
+- Use a browser/renderer probe such as `document.elementFromPoint(x, y)` at representative blank titlebar points and inspect the computed `-webkit-app-region` / `app-region` on the hit element or the nearest accepted drag owner.
+- If an empty filler child, transparent overlay, portal, toast layer, or any other topmost DOM node covers the intended titlebar area with `app-region: none`, treat the drag fix as unproven even if an ancestor has `desktop-window-drag`.
+- Prefer making the actual hit element the draggable rectangle, or remove unnecessary filler DOM so the drag owner is the hit element. Mark only real controls and interactive islands as `no-drag`.
+
 ## Runtime Compatibility Gate
 - Treat Electron's bundled Node version as the shipped runtime truth.
 - Do not accept a desktop candidate if a CLI/runtime path only works under the developer's local `node` but fails under the packaged app binary.

@@ -16,15 +16,12 @@ export function DesktopWindowChrome() {
             density="chrome"
           />
         </div>
-        <div className="min-w-0 flex-1 self-stretch" aria-hidden="true" />
       </div>
       <div
         className="desktop-window-drag mr-[var(--desktop-caption-safe-right)] flex min-w-0 flex-1 items-center border-b border-[#ebe7dc]/80 bg-secondary"
         aria-hidden="true"
         data-testid="desktop-window-chrome-main"
-      >
-        <div className="min-w-0 flex-1 self-stretch" />
-      </div>
+      />
     </header>
   );
 }
