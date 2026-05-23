@@ -111,7 +111,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 生产代码里的公共类型和 options 类型必须使用明确命名的 contract；禁止用 `import("...")` type query、深层 `ReturnType<...>` / `Awaited<...>` 链式索引去偷取另一个 owner 的返回结构。需要复用时，应在真实 contract owner 处导出命名类型，或在当前边界定义语义清晰的本地类型。
 - 目标外变更必须默认拒绝。修改、删除或“顺手整理”任何与当前目标没有直接关系的公共契约、类型字段、导出、配置、格式、命名、行为分支或文件结构前，必须先证明它降低了真实维护成本、修复了明确问题，或是当前目标不可避免的一部分；否则保持原样。公共 contract 的字段即使当前调用方暂时没读，也不能因为“看起来没用”就删，除非废弃语义、调用方影响、删除点和验证路径都明确。
 - Owner 状态只能由 owner 自己改变。普通函数、helper、service、callback 不得出现 `params.owner.xxx = ...`、`runtime.xxx = ...`、`gateway.xxx = ...` 这类从外部改 owner 字段的写法；它们只能返回结果，或调用 owner 暴露的明确业务方法。若方法只是 setter 包装且没有业务语义，也应继续收回 owner 内部。
-- 生命周期 owner 里如果出现多个 `unsubscribeXxx` / `cleanupXxx` 字段，默认先收敛成 `cleanups` / `disposables` collection 或复用项目已有 disposable owner；`start/stop` 用显式生命周期状态判断，不依赖 cleanup collection 反推状态；`stop/dispose` 才统一 drain。不要用多个平行 nullable 字段表达同一类生命周期清理职责，也不要让 `start` 隐式执行 stop/cleanup 语义。
+- 生命周期 owner 里如果出现多个 `unsubscribeXxx` / `cleanupXxx` / `xxxStops` 字段，默认先收敛成 `cleanups` / `disposables` collection 或复用项目已有 disposable owner；订阅、临时 stream、watcher、runtime dispose 等清理都注册进同一 collection，`start/stop` 用显式生命周期状态判断，不依赖 cleanup collection 反推状态；`stop/dispose` 才统一 drain。不要用多个平行 nullable 字段或按资源类型拆开的 cleanup set 表达同一类生命周期清理职责，也不要让 `start` 隐式执行 stop/cleanup 语义。
 - 不要用下游兜底掩盖上游合同失败。若坏输入、错参数、错协议名、错工具参数来自 prompt、skill、schema、contract 或校验缺失，先修上游合同和错误暴露；禁止直接在执行层新增 alias、normalize、fallback、compatibility path 把坏输入悄悄转成好输入，除非存在明确外部兼容合同、可观察提示和删除条件。
 - 不要把流程知识下沉到低层 schema / tool contract。工具 schema 只描述参数形状和最小语义约束；“如何发现参数值”“先运行哪个命令”“当前有哪些运行态资源”等操作流程应归 skill、命令文档、专门 discovery command 或上层 owner。禁止为了引导模型，把动态目录、运行态枚举、CLI 使用步骤或产品流程塞进低层工具 schema。
 - 清晰性本身是重要原则。不要为了机械消灭 `null` / `undefined`、减少一行判断或追求形式统一，把真实状态改成 no-op、假默认值、哨兵对象或更隐晦的间接表达；只有半初始化、职责逃逸或 contract 不确定时才应收敛掉可空状态。
@@ -139,11 +139,14 @@ description: Use when implementing or refactoring code in this repository, espec
 先回答：
 
 - 当前实现能否收敛成一条显式主路径
+- 这个事实、事件、状态变更或传输语义是否已经有唯一标准链路；如果已经有通用总线、唯一 owner 或唯一 mutation API，禁止再保留专用 publisher、专用 side channel、重复 facade 或绕行入口
+- 如果某个消费者只需要一部分事件，是否可以在唯一链路上过滤，而不是为了它新建第二条事件/状态通道
 - 是不是只因为“稳妥”就在保留旧实现
 - 新旧两条路是否真的都还有长期价值
 - 如果新 owner 已经确定，旧 owner、旧入口、兼容 adapter、alias、`asXxx()` 的删除点是什么
 
 不要把“暂时先留着”当默认答案。
+单一链路优先于局部便利；只有明确外部协议、隔离边界或生命周期差异无法由过滤/投影表达时，才允许保留第二条通道，并且必须写清删除点。
 
 ### 5. 这段代码真的该放在这里吗
 

@@ -16,6 +16,7 @@
 - 与用户交流必须使用中文。
 - 用户提出需求或评价时，要主动推理深层意图，给出明确判断、推荐方案、取舍理由和最小可执行下一步。
 - 用户纠偏、补充上下文或修正判断时，默认视为继续当前任务的新约束，不得当作暂停或收尾信号；除非用户明确要求停下、只回复或等待，否则必须吸收纠偏后继续推进原任务。
+- 对架构、链路、事件流、状态归属或根因作确定性表述前，必须先验证端到端证据；只查到局部代码时只能标注为假设或阶段性判断，不得外推成系统结论。
 - 用户常用语音输入，可能出现转写误差；遇到“绘画”等疑似错词，若上下文在讨论 chat/session/session materialization/消息发送，应优先按“会话”理解，必要时先澄清再展开方案。
 - 用户说“记住”“以后都要”“这是规范/原则”时，禁止只口头确认；必须判断并持久化到 `AGENTS.md`、对应 skill、命令或治理脚本等可自动触发的位置，若不落盘必须说明理由。
 - 若用户明确启动“深思模式”，或对复杂架构/实现方案/规则机制/高风险取舍进行讨论，或用户连续纠偏表明需要重新深挖意图时，必须自动进入深思模式；深思模式回复前缀为 `[我严格遵守规则][深思模式]`，直到该复杂议题结束或用户明确关闭。
@@ -44,6 +45,7 @@
 - 写或改源码、脚本、测试、运行链路配置前，默认使用 `nextclaw-clean-implementation` skill；涉及 fallback / compatibility / rescue path 时，同时使用 `predictable-behavior-first`。
 - 改完源码、脚本、测试或运行链路配置后，默认使用 `post-edit-maintainability-guard`，再使用 `post-edit-maintainability-review`。
 - 涉及命名、目录、文件组织时，按场景使用 `file-naming-convention`、`role-first-file-organization`、`collapsible-feature-root-architecture`、`file-organization-governance`。
+- 用户要求主动干活/继续推进/不要停，或指出任务未完成却停止时，必须使用 `proactive-work-continuation`，吸收最新约束后继续推进到真实完成、真实阻塞或用户明确暂停。
 - 用户指出同类错误反复发生、要求反思/总结教训/避免再次发生时，必须使用 `learning-from-failures`，把教训落到可自动触发的规则、skill、命令、治理脚本或验证流程。
 - 复杂 debug 用 `long-chain-debugging`；复杂跨轮任务、上下文压缩或交接风险用 `iteration-work-notes`，必要时用 `goal-progress-anchor`。
 
@@ -72,6 +74,7 @@
 ## 实现常驻原则
 
 - 代码目标默认不是“最小 diff”，而是在满足目标前提下让系统更少、更简单、更清晰、更可预测。
+- 单一链路优先是核心编码理念：同一事实、事件、状态变更或传输语义默认只能有一条标准主链路；发现平行通道、双写路径、重复 publisher、重复 facade 或多套入口时，优先删除并收敛到唯一 owner / 唯一总线 / 唯一 mutation API。
 - 新增之前先判断能否删除、合并、复用、收敛职责；非新增用户能力的改动默认应避免生产代码净增长，优先通过删除旧实现、重构收敛职责或在同责任链/同问题域偿还债务达成；不要求删减只发生在当前改动点，但禁止通过 hack、把复杂度外移、缩短命名/折叠语句等强行压缩来伪造净减。
 - 业务逻辑默认必须有清晰 owner，通常落到 class / manager / service / controller / presenter；普通函数只用于纯常量、纯类型、极小纯计算、纯数据映射、纯业务无关工具。
 - 业务层之间默认传递并依赖 owner 对象，而不是拆成一堆小参数；只有纯工具、纯计算或跨业务解耦边界才传最小小参数。
@@ -79,6 +82,7 @@
 - 普通函数、顶层 helper、对象字面量函数默认不得原地修改入参；优先返回新值或 patch。若需要状态和生命周期，收敛到 owner class。
 - 前端复杂业务逻辑、状态流或数据流默认收敛到 manager / store / presenter，优先由 manager 承载；组件和 hook 主要做连接、订阅、调用与轻量本地状态，合适时评估 RxJS 等显式数据流工具。
 - React `useEffect` / `useLayoutEffect` 默认只同步外部系统；业务编排、状态迁移、query/store 镜像应回到 query/view hook、store、manager 或 presenter。
+- 生命周期 owner 的订阅、临时 stream、watcher、runtime dispose 等清理职责默认收敛到 `cleanups` / `disposables` collection，`dispose/stop` 统一 drain；避免多个平行 nullable cleanup 字段或按资源类型散落清理逻辑。
 - 不允许同一功能、职责链路、数据变换、组件表面或交互结构出现平行重复实现；新增前先查找可复用实现。
 - 跨 workspace package 依赖默认只能导入对方 package 根公共入口；禁止从另一个 workspace 直接 deep import `shared/`、`commands/`、`src/` 等内部子路径。
 - 禁止为修复跨包编译或导入问题，在消费者包 `tsconfig` 中新增指向另一个包内部目录的子路径 alias；应收敛到根级 workspace paths owner、被依赖包公共入口或 package 自身 `exports`。

@@ -126,7 +126,7 @@ class DesktopApplication {
       await bundleBootstrap.pruneRetainedBundleArtifacts();
       logger.info(`Desktop bundle bootstrap finished in ${Date.now() - bundleBootstrapStartedAt}ms.`);
       runtimeCommand = await this.ensureRuntimeCommandService().resolve(bundleBootstrap);
-      logger.info(`Runtime source: ${runtimeCommand.source}`);
+      logger.info(`Runtime source: ${runtimeCommand.source}${runtimeCommand.bundleVersion ? ` bundleVersion=${runtimeCommand.bundleVersion}` : ""}${runtimeCommand.bundleDirectory ? ` bundleDirectory=${runtimeCommand.bundleDirectory}` : ""}`);
       await this.startRuntimeAndLoadWindow(runtimeCommand.scriptPath);
       if (runtimeCommand.source === "bundle" && runtimeCommand.bundleVersion) {
         await bundleBootstrap.markBundleHealthy(runtimeCommand.bundleVersion);

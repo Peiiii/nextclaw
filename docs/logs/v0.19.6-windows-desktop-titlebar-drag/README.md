@@ -2,9 +2,10 @@
 
 ## 迭代完成说明
 
-- 修复 Windows 桌面端移除原生标题栏后窗口拖拽失效的问题。
+- 排查 Windows 桌面端移除原生标题栏后窗口拖拽失效的问题；resize 已修复，拖拽仍未关闭。
 - 二次修正：用户在 Windows 真机验证后确认仍无法拖拽，并发现窗口最小尺寸过大。
 - 三次修正：用户验证 `0.0.180 / 0.19.23` 后确认 resize 已修复，但标题栏仍然完全无法拖拽。
+- 七次排查：用户验证 `0.0.181 / 0.19.24` 后确认 resize 已修复，但 Windows 标题栏仍完全无法拖拽；当前拖拽问题未关闭，暂停手写 IPC 拖拽方案，回到 Electron 官方 `app-region` 合同继续缩圈。
 - 根因：
   - 窗口最小尺寸由 [desktop-window-options.utils.ts](../../../apps/desktop/src/utils/desktop-window-options.utils.ts) 写死为 `1080x720`，导致只能缩小一点点。
   - 首轮只补齐 CSS 拖拽声明，但 Windows title bar overlay 的右上角 native controls 区域仍被同一个 draggable DOM 矩形覆盖。Electron 的 Window Controls Overlay 合同要求 overlay 下方 DOM 不可用，因此拖拽命中区不能伸到 caption buttons 下方。
@@ -31,9 +32,11 @@
 - 已通过：`pnpm -C packages/nextclaw-ui exec eslint src/platforms/desktop/components/desktop-window-chrome.tsx src/platforms/desktop/components/desktop-app-shell.test.tsx`
 - 已通过：构建产物 grep，确认 CSS 中包含 `-webkit-app-region:drag`、`app-region:drag`、`-webkit-app-region:no-drag`、`app-region:no-drag`。
 - 三次修正新增验证：通过 Playwright 对 dev renderer 执行 `document.elementFromPoint`，确认标题栏空白点 `(260,20)`、`(320,20)`、`(700,20)` 的 topmost element 已直接命中 computed `app-region: drag` 的 `desktop-window-drag` 元素；右侧 caption safe area `(1180,20)`、`(1230,20)` 保持非 drag。
-- 四次修正新增验证门禁：Windows desktop smoke 增加原生拖拽探针，启动打包后的 exe 后用 Win32 API 在标题栏空白坐标执行鼠标按下、移动、松开，并断言窗口矩形坐标发生变化。该验证用于区分 renderer `app-region` 正确但 Windows 原生层没有产生窗口移动的情况。
-- 五次修正收紧验证前置条件：拖拽探针先用 Win32 `MoveWindow` 将 runner 上可能铺满屏幕的窗口恢复到 `760x520` 小窗，再执行拖拽，避免把 CI 虚拟屏幕尺寸约束误判为 titlebar 拖拽失败。
+- 四次修正新增验证门禁：Windows desktop smoke 增加原生标题栏命中探针，启动打包后的 exe 后先把窗口恢复到 `760x520` 小窗，再检查标题栏空白客户区点是否被 Windows 判定为 `HTCAPTION`。
+- 五次修正删除旧的 CI 鼠标拖动模拟断言，避免把 runner 交互限制误判为 Electron titlebar 合同失败。
 - 六次修正新增 packaged renderer 观察点：Windows smoke 临时打开 `NEXTCLAW_DESKTOP_SMOKE_TITLEBAR_HIT_TEST`，主进程日志确认 `/chat` 页面标题栏空白坐标命中 `desktop-window-drag`，computed `app-region` / `-webkit-app-region` 均为 `drag`。
+- 七次排查新增 Windows 原生命中观察点：Windows smoke 在模拟拖拽前发送 `WM_NCHITTEST`，要求标题栏空白客户区点返回 `HTCAPTION(2)`；若返回 `HTCLIENT(1)`，说明 renderer CSS 命中没有进入 Win32 native hit-test。
+- 七次排查新增用户侧低成本观察点：桌面主进程启动日志输出 `Runtime source`、`bundleVersion` 与 `bundleDirectory`，用于确认 Windows 真机实际加载的是哪个 runtime/UI bundle，无需打开 DevTools。
 - 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
 - 已通过：`pnpm lint:new-code:governance -- apps/desktop/src/utils/desktop-window-options.utils.ts apps/desktop/src/utils/desktop-window-options.utils.test.ts packages/nextclaw-ui/src/platforms/desktop/components/desktop-window-chrome.tsx packages/nextclaw-ui/src/platforms/desktop/components/desktop-app-shell.test.tsx docs/logs/v0.19.6-windows-desktop-titlebar-drag/README.md`
 - 已通过：`pnpm check:governance-backlog-ratchet`
@@ -44,6 +47,8 @@
 ## 发布/部署方式
 
 - 已发布 desktop preview beta：[`v0.19.24-desktop-beta.1`](https://github.com/Peiiii/nextclaw/releases/tag/v0.19.24-desktop-beta.1)。
+- 用户真机验收结论：该 beta 的 resize 行为已符合预期，但 Windows 标题栏拖拽仍失败，因此该 beta 不能作为拖拽问题完成版本。
+- 后续发布计划：`v0.19.24-desktop-beta.2` 必须包含 `f4429a31` 之后的官方 overlay chrome 合同，即 Windows 不再混用 `frame: false` / `thickFrame: true`。
 - 本次 release 名称：`NextClaw Desktop 0.0.181 Preview Beta 1`。
 - 本次 release 对应源码提交：`588185ba20578e36d2646eaf7d2100c5869b59da`。
 - 本次 Windows 主要验收资产：
