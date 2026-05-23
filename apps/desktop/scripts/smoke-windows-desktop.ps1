@@ -178,8 +178,17 @@ public static class NextClawDesktopSmokeNative {
     public int Bottom;
   }
 
+  [StructLayout(LayoutKind.Sequential)]
+  public struct POINT {
+    public int X;
+    public int Y;
+  }
+
   [DllImport("user32.dll")]
   public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+  [DllImport("user32.dll", SetLastError = true)]
+  public static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
 
   [DllImport("user32.dll")]
   public static extern bool SetCursorPos(int X, int Y);
@@ -239,6 +248,26 @@ function Get-DesktopMainWindowHandle {
   return [IntPtr]::Zero
 }
 
+function Convert-ClientPointToScreen {
+  param(
+    [IntPtr]$WindowHandle,
+    [int]$X,
+    [int]$Y
+  )
+
+  Initialize-WindowsTitlebarProbe
+  $point = New-Object NextClawDesktopSmokeNative+POINT
+  $point.X = $X
+  $point.Y = $Y
+  if (-not [NextClawDesktopSmokeNative]::ClientToScreen($WindowHandle, [ref]$point)) {
+    throw "ClientToScreen failed for window handle $WindowHandle"
+  }
+  return [pscustomobject]@{
+    X = $point.X
+    Y = $point.Y
+  }
+}
+
 function Read-WindowRect {
   param([IntPtr]$WindowHandle)
 
@@ -286,12 +315,15 @@ function Invoke-DesktopTitlebarDragProbe {
   Start-Sleep -Milliseconds 500
 
   $before = Read-WindowRect -WindowHandle $windowHandle
-  $startX = $before.Left + [Math]::Min(320, [Math]::Max(80, [int]($before.Width / 2)))
-  $startY = $before.Top + 24
+  $clientStartX = 400
+  $clientStartY = 24
+  $startPoint = Convert-ClientPointToScreen -WindowHandle $windowHandle -X $clientStartX -Y $clientStartY
+  $startX = $startPoint.X
+  $startY = $startPoint.Y
   $endX = $startX + 140
   $endY = $startY + 80
 
-  Write-Host "[desktop-smoke] titlebar drag probe before: left=$($before.Left) top=$($before.Top) width=$($before.Width) height=$($before.Height) start=($startX,$startY) end=($endX,$endY)"
+  Write-Host "[desktop-smoke] titlebar drag probe before: left=$($before.Left) top=$($before.Top) width=$($before.Width) height=$($before.Height) clientStart=($clientStartX,$clientStartY) screenStart=($startX,$startY) end=($endX,$endY)"
 
   $mouseLeftDown = 0x0002
   $mouseLeftUp = 0x0004
