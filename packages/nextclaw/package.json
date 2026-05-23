@@ -37,8 +37,8 @@
     "resources"
   ],
   "scripts": {
-    "dev": "tsx watch --tsconfig tsconfig.json src/cli/app/index.ts",
-    "dev:build": "tsx src/cli/app/index.ts",
+    "dev": "tsx watch --tsconfig ../../scripts/dev/dev-runtime.tsconfig.json src/cli/app/index.ts",
+    "dev:build": "tsx --tsconfig ../../scripts/dev/dev-runtime.tsconfig.json src/cli/app/index.ts",
     "build": "node scripts/sync-usage-resource.mjs && tsdown src/index.ts src/cli/app/index.ts src/cli/launcher/index.ts --dts --clean --target es2022 --no-fixedExtension && node scripts/copy-ui-dist.mjs",
     "runtime-update:build": "node scripts/build-npm-runtime-update-channel.mjs",
     "smoke:npm-runtime-update": "node scripts/smoke-npm-runtime-update.mjs",

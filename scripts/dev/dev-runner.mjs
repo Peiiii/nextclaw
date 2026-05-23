@@ -127,7 +127,7 @@ function parsePluginOverrideArg(rawValue) {
 function parseDevStartOptions(argv) {
   const pluginOverrides = [];
   const seenPluginIds = new Set();
-  let backendWatchEnabled = process.env.NEXTCLAW_DEV_BACKEND_WATCH === "1";
+  let backendWatchEnabled = process.env.NEXTCLAW_DEV_BACKEND_WATCH !== "0";
   let companionEnabled = process.env.NEXTCLAW_DEV_ENABLE_COMPANION === "1";
   let pluginWatchEnabled = process.env.NEXTCLAW_DEV_PLUGIN_WATCH === "1";
 
@@ -135,6 +135,10 @@ function parseDevStartOptions(argv) {
     const arg = argv[index];
     if (arg === "--backend-watch") {
       backendWatchEnabled = true;
+      continue;
+    }
+    if (arg === "--no-backend-watch") {
+      backendWatchEnabled = false;
       continue;
     }
     if (arg === "--companion") {
@@ -223,7 +227,7 @@ console.log(
   `[dev] Companion: ${devStartOptions.companionEnabled ? "enabled" : "disabled (pass --companion or set NEXTCLAW_DEV_ENABLE_COMPANION=1 to enable)"}`
 );
 console.log(
-  `[dev] Backend watch: ${devStartOptions.backendWatchEnabled ? "enabled" : "disabled (pass --backend-watch or set NEXTCLAW_DEV_BACKEND_WATCH=1 to enable)"}`
+  `[dev] Backend watch: ${devStartOptions.backendWatchEnabled ? "enabled" : "disabled (pass --backend-watch or unset NEXTCLAW_DEV_BACKEND_WATCH=0 to enable)"}`
 );
 console.log(
   `[dev] Plugin watch: ${devStartOptions.pluginWatchEnabled ? "enabled" : "disabled (pass --plugin-watch or set NEXTCLAW_DEV_PLUGIN_WATCH=1 to enable)"}`
