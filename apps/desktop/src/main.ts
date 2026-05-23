@@ -25,7 +25,6 @@ import {
 } from "./utils/desktop-logging.utils";
 import { createDesktopRuntimeEnv, resolveDesktopDataDir, resolveDesktopRuntimeHome } from "./utils/desktop-paths.utils";
 import { resolveDesktopGitHubPublishTarget } from "./utils/desktop-publish-target.utils";
-import { createStartupLoadingUrl } from "./utils/desktop-startup-loading.utils";
 import { createDesktopWindowOptions } from "./utils/desktop-window-options.utils";
 import { attachWindowDiagnostics } from "./utils/window-diagnostics.utils";
 const installationProfile = setupDesktopInstallationProfile(app);
@@ -108,7 +107,6 @@ class DesktopApplication {
         `resolvedRuntimeHome=${resolveDesktopRuntimeHome()}`
       ].join(" ")
     );
-    await this.showStartupWindow();
     const loaded = await this.bootstrapRuntimeAndWindow();
     if (!loaded) {
       logger.warn("Desktop bootstrap returned false. Quitting launcher.");
@@ -161,17 +159,6 @@ class DesktopApplication {
     this.window ??= this.createWindow();
     logger.info(`Loading desktop window URL: ${baseUrl}`);
     await this.window.loadURL(baseUrl);
-  };
-
-  private showStartupWindow = async (): Promise<void> => {
-    if (this.window) {
-      return;
-    }
-    const startedAt = Date.now();
-    this.window = this.createWindow();
-    logger.info(`Desktop startup shell window created in ${Date.now() - startedAt}ms.`);
-    await this.window.loadURL(createStartupLoadingUrl());
-    logger.info(`Desktop startup shell window loaded in ${Date.now() - startedAt}ms.`);
   };
   private handleBootstrapFailure = async (error: unknown): Promise<boolean> => {
     logger.error(`Failed to bootstrap runtime: ${String(error)}`);

@@ -343,6 +343,29 @@ contextBridge.exposeInMainWorld("nextclawMinimalPreload", {
     server.close();
   });
 "@
+  } elseif ($LoadMode -eq "data-then-new-window-http") {
+    $startupBodyStyle = "margin:0;display:grid;place-items:center;width:100%;height:100%;font-family:system-ui,sans-serif;-webkit-app-region:drag;app-region:drag;user-select:none"
+@"
+  const fs = require("node:fs");
+  const http = require("node:http");
+  const startupHtml = "<!doctype html><html><body style=\"$startupBodyStyle\">Starting NextClaw...</body></html>";
+  await win.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(startupHtml));
+  win.destroy();
+  const runtimeWin = createMinimalWindow();
+  const indexPath = path.join(__dirname, "index.html");
+  const server = http.createServer((_request, response) => {
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    response.end(fs.readFileSync(indexPath));
+  });
+  server.listen(0, "127.0.0.1", async () => {
+    const { port } = server.address();
+    await runtimeWin.loadURL("http://127.0.0.1:" + port + "/chat");
+    runtimeWin.show();
+  });
+  app.once("before-quit", () => {
+    server.close();
+  });
+"@
   } else {
 @'
   await win.loadFile(path.join(__dirname, "index.html"));
@@ -357,7 +380,7 @@ const path = require("node:path");
 app.commandLine.appendSwitch("disable-gpu");
 
 app.whenReady().then(async () => {
-  const win = new BrowserWindow({
+  const createMinimalWindow = () => new BrowserWindow({
     width: 760,
     height: 520,
     x: 80,
@@ -372,6 +395,7 @@ $WindowOptionLines
 $WebPreferenceLines
     }
   });
+  const win = createMinimalWindow();
 
 $loadScript
 });
@@ -600,21 +624,34 @@ $variants = @(
 '@
     Preload = $true
     StartupDrag = $true
+    ExpectCaption = $false
   },
   [pscustomobject]@{
-    Name = "nextclaw-layout-data-http-preload-sandbox-false-startup-drag"
+    Name = "frame-false-hidden-data-new-window-http-preload-sandbox-false"
     WindowOptionLines = @'
     frame: false,
     titleBarStyle: "hidden",
 '@
-    LoadMode = "data-then-http"
+    LoadMode = "data-then-new-window-http"
+    WebPreferenceLines = @'
+      sandbox: false,
+      preload: path.join(__dirname, "preload.js")
+'@
+    Preload = $true
+  },
+  [pscustomobject]@{
+    Name = "nextclaw-layout-data-new-window-http-preload-sandbox-false"
+    WindowOptionLines = @'
+    frame: false,
+    titleBarStyle: "hidden",
+'@
+    LoadMode = "data-then-new-window-http"
     WebPreferenceLines = @'
       sandbox: false,
       preload: path.join(__dirname, "preload.js")
 '@
     Layout = "nextclaw"
     Preload = $true
-    StartupDrag = $true
   }
 )
 
