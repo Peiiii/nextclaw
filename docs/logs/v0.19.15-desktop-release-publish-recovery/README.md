@@ -30,6 +30,7 @@
 - 已确认 `origin/gh-pages` 与公开 Pages 的 stable manifests 均指向 bundle `0.19.26`，`minimumLauncherVersion=0.0.141`。
 - 已确认 `origin/gh-pages` 与公开 Pages 的 APT Packages 均包含 `nextclaw-desktop 0.0.189`。
 - 已更新官网 landing fallback 到 `v0.19.26-desktop.1 / 0.0.189`，并把 release utils 从 `src` 根目录迁移到 `src/shared`，满足 module-structure 规则。
+- 已更新 landing 静态 HTML 结构化数据中的 `downloadUrl`，避免部署后页面源码仍指向旧稳定版。
 - 已通过 landing 验证：`pnpm -C apps/landing tsc`、`pnpm -C apps/landing lint`、`pnpm -C apps/landing build`。lint 仅保留 `apps/landing/src/main.ts` 既有超长文件/方法 warning。
 - 已执行 workflow 配置 diff 检查：`git diff --check -- .github/workflows/desktop-release.yml`。
 - 已执行治理检查：`pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet`。
