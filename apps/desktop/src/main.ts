@@ -42,7 +42,7 @@ class DesktopApplication {
   private bundleBootstrap: DesktopBundleBootstrapService | null = null;
   private runtimeCommandService: DesktopRuntimeCommandService | null = null;
   private updateSourceService: DesktopUpdateSourceService | null = null;
-  private runtimeBaseUrl: string | null = null;
+  private runtimeWindowUrl: string | null = null;
 
   start = async (): Promise<void> => {
     logger.info("Desktop start requested.");
@@ -88,7 +88,7 @@ class DesktopApplication {
     this.ensureDesktopUpdateShell().installApplicationMenu();
     this.ensureDesktopPresenceService().installTray();
     app.on("activate", () => {
-      if (!this.window && this.runtimeBaseUrl) {
+      if (!this.window && this.runtimeWindowUrl) {
         void this.restoreWindow();
         return;
       }
@@ -154,11 +154,11 @@ class DesktopApplication {
     const { baseUrl } = await runtime.start();
     logger.info(`Desktop runtime startup finished in ${Date.now() - runtimeStartStartedAt}ms.`);
     this.runtime = runtime;
-    this.runtimeBaseUrl = baseUrl;
+    this.runtimeWindowUrl = new URL("/chat", `${baseUrl.replace(/\/+$/, "")}/`).toString();
     this.ensureDesktopUpdateShell();
     this.window ??= this.createWindow();
-    logger.info(`Loading desktop window URL: ${baseUrl}`);
-    await this.window.loadURL(baseUrl);
+    logger.info(`Loading desktop window URL: ${this.runtimeWindowUrl}`);
+    await this.window.loadURL(this.runtimeWindowUrl);
   };
   private handleBootstrapFailure = async (error: unknown): Promise<boolean> => {
     logger.error(`Failed to bootstrap runtime: ${String(error)}`);
@@ -351,7 +351,7 @@ class DesktopApplication {
   private stopRuntime = async (): Promise<void> => {
     const runtime = this.runtime;
     this.runtime = null;
-    this.runtimeBaseUrl = null;
+    this.runtimeWindowUrl = null;
     if (!runtime) {
       return;
     }
@@ -363,11 +363,11 @@ class DesktopApplication {
   };
 
   private restoreWindow = async (): Promise<void> => {
-    if (this.window || !this.runtimeBaseUrl) {
+    if (this.window || !this.runtimeWindowUrl) {
       return;
     }
     this.window = this.createWindow();
-    await this.window.loadURL(this.runtimeBaseUrl);
+    await this.window.loadURL(this.runtimeWindowUrl);
   };
 
   private createWindow = (): BrowserWindow => {

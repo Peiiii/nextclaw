@@ -78,6 +78,8 @@
 - 十八次修正尝试：`data:` 启动页的 `body` 从第一帧开始声明 `app-region: drag` / `-webkit-app-region: drag` / `user-select: none`；该尝试随后被十九次排查证明不足以恢复同一 BrowserWindow 在 `data:` -> HTTP 导航后的 native registry。
 - 十九次排查收敛根因：`desktop-validate` run `26324618950` 证明“启动页本身也声明 drag”仍不足以恢复同一 BrowserWindow 在 `data:` -> HTTP 导航后的 native registry，`frame-false-hidden-data-http-preload-sandbox-false-startup-drag` 仍返回 `HTCLIENT(1)`。因此根因是 Windows/Electron 对同一窗口经历 `data:` 导航后的 draggable region registry 不刷新，而不是启动页缺少 drag。
 - 十九次修正：删除桌面主窗口启动阶段的 `data:` loading 页，让 Windows BrowserWindow 从创建后直接加载 runtime HTTP 页面；最小 smoke 保留 `data:` 启动页后新建窗口再加载 HTTP 的对照，证明问题属于同一窗口的 `data:` -> HTTP 导航链，而不是 HTTP 页面本身。
+- 二十次排查：`desktop-validate` run `26324859439` 证明“删除 data: 启动页”仍不足以让 packaged NextClaw 返回 `HTCAPTION(2)`；日志显示窗口先 `loadURL` 到 runtime 根路径 `/`，随后 React Router 在同一页面内执行 `did-navigate-in-page` 到 `/chat`，此时 DOM 命中仍是 `desktop-window-chrome` 且 computed `app-region=drag`，但 main / point HWND 继续返回 `HTCLIENT(1)`。当前根因继续收窄为 Windows/Electron 对同一窗口经历前端 in-page navigation 后没有恢复 draggable region native registry。
+- 二十次修正：桌面主进程第一帧直接加载 `${baseUrl}/chat`，避免先进入 `/` 再由 renderer 重定向到 `/chat`，让 Windows app-region 注册路径保持在最接近 Electron 官方 HTTP 直载对照的形态。
 - 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
 - 已通过：`pnpm lint:new-code:governance -- apps/desktop/src/utils/desktop-window-options.utils.ts apps/desktop/src/utils/desktop-window-options.utils.test.ts packages/nextclaw-ui/src/platforms/desktop/components/desktop-window-chrome.tsx packages/nextclaw-ui/src/platforms/desktop/components/desktop-app-shell.test.tsx docs/logs/v0.19.6-windows-desktop-titlebar-drag/README.md`
 - 已通过：`pnpm check:governance-backlog-ratchet`
