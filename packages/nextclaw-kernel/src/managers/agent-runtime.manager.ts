@@ -47,6 +47,12 @@ export class AgentRuntimeManager {
     });
   };
 
+  resolveSessionMetadata = (sessionMetadata: Record<string, unknown>): Record<string, unknown> => {
+    this.assertNotDisposed();
+    this.refreshConfiguredRuntimeEntries();
+    return this.runtimeRegistry.resolveSessionMetadata(sessionMetadata);
+  };
+
   listSessionTypes = (describeParams?: AgentRuntimeSessionTypeDescribeParams) => {
     this.refreshConfiguredRuntimeEntries();
     return this.runtimeRegistry.listSessionTypes(describeParams);

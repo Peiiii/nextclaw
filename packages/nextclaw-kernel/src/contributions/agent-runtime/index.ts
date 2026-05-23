@@ -16,13 +16,12 @@ export class AgentRuntimeContribution implements KernelContribution {
       providerManager: this.kernel.llmProviders,
       configManager: this.kernel.configManager,
       llmUsage: this.kernel.llmUsage,
-      onSessionUpdated: this.kernel.publishSessionUpdated,
       assetStore: this.kernel.assetStore,
       updateToolCallResult: this.kernel.sessionRunManager.updateToolCallResult,
       toolManager: this.kernel.toolManager,
     });
     const builtinNarpRuntimeProviders = new BuiltinNarpRuntimeProviderService(
-      this.kernel.configManager.loadConfig,
+      this.kernel.configManager,
     ).createProviders();
     const nativeRegistration = this.kernel.agentRuntimeManager.registerRuntimeProvider({
       kind: "native",

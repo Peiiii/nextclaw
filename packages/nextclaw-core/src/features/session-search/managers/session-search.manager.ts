@@ -1,8 +1,8 @@
-import { SessionSearchWorkerController } from "../worker/session-search-worker.controller.js";
+import { SessionSearchWorkerController } from "@core/features/session-search/worker/session-search-worker.controller.js";
 import type {
   SessionSearchRequest,
   SessionSearchResult,
-} from "../types/session-search.types.js";
+} from "@core/features/session-search/types/session-search.types.js";
 
 function formatErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -15,7 +15,6 @@ type SessionSearchWorkerControllerLike = Pick<
 
 export type SessionSearchManagerOptions = {
   databasePath: string;
-  onSessionUpdated?: (sessionKey: string) => void;
   sessionsDir: string;
   workerController?: SessionSearchWorkerControllerLike;
 };
@@ -48,7 +47,6 @@ export class SessionSearchManager {
     this.workerController.query(request);
 
   handleSessionUpdated = (sessionKey: string): void => {
-    this.options.onSessionUpdated?.(sessionKey);
     if (!this.enabled || !this.ready) {
       return;
     }

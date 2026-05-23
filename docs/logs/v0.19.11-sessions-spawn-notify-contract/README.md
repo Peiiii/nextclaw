@@ -8,6 +8,9 @@
 - 修复方式：将 `sessions_spawn` 对模型公开和执行层接受的启动参数统一收敛为顶层 `notify`；未知字段通过通用 `Tool` schema 严格校验拒绝，避免在业务工具里为 `request.notify` 写特判。
 - 同步修复 `final_reply` 等待链路：补齐合成 `message.completed` 的 `correlationId`，并支持先收到 `message.completed`、后收到带关联信息的 `run.finished`。
 - 同步改善异常展示：`invalid_tool_arguments` 在聊天卡片里按失败态展示，并保留原始参数与解析错误。
+- 后续 owner 收敛：删除 `NcpSessionManager` 构造参数中的 `getConfig`、`isLiveSessionRunning`、`onSessionUpdated` 回调片段，改为直接依赖 `ConfigManager`、`SessionSearchManager`、`EventBus` 等 owner。
+- 后续 metadata 链路收敛：删除 runtime factory params 里的 `setSessionMetadata` / `updateSessionMetadata` 回调，runtime metadata 解析前移到 `AgentRuntimeManager` / `SessionRunManager`，context compaction preflight 改由 `ContextCompactionManager` 直接调用 `SessionRunManager.updateSessionMetadata()`。
+- 后续 live metadata 同步：删除 `installLiveMetadataWriter` 反向注入，`NcpSessionManager` 在 metadata set/update 成功后发布标准 `session.metadata.changed` 事件，`SessionRunManager` 订阅该事实同步 live cache，避免回调切片和持久层/live 层双写口子继续扩散。
 
 ## 测试/验证/验收方式
 
@@ -21,6 +24,23 @@
 - `pnpm check:governance-backlog-ratchet`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
 - `pnpm --filter @nextclaw/kernel build`
+- 后续 owner 收敛补充验证：
+  - `pnpm --filter @nextclaw/shared tsc`
+  - `pnpm --filter @nextclaw/core tsc`
+  - `pnpm --filter @nextclaw/kernel tsc`
+  - `pnpm --filter @nextclaw/server tsc`
+  - `pnpm --filter @nextclaw/ncp-toolkit tsc`
+  - `pnpm --filter @nextclaw/ncp-toolkit build`
+  - `pnpm --filter @nextclaw/kernel test -- src/managers/__tests__/ncp-session.manager.test.ts src/managers/__tests__/session-run.manager.test.ts src/managers/__tests__/agent-run-request.manager.test.ts src/features/session-request/managers/session-request.manager.test.ts`
+  - `pnpm --filter @nextclaw/server test -- src/app/tests/router.ncp-agent-runtime-manager.test.ts`
+  - `pnpm --filter @nextclaw/shared lint`
+  - `pnpm --filter @nextclaw/core lint`
+  - `pnpm --filter @nextclaw/kernel lint`
+  - `pnpm --filter @nextclaw/server lint`
+  - `pnpm --filter @nextclaw/ncp-toolkit lint`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature`
+  - `pnpm lint:new-code:governance`
+  - `pnpm check:governance-backlog-ratchet`
 
 ## 发布/部署方式
 
@@ -42,6 +62,9 @@
 - 用户复核后进一步删除旧 `request.notify` 兼容读取，并把未知字段拒绝上移到通用 schema 校验层，确保工具协议只有一条规范链路。
 - 用户继续指出学习机制本身缺少闭环后，补充 `learning-from-failures` 与 `nextclaw-delivery-workflow`：机制改进必须检查常驻层、触发层、执行层和验证层，避免只把教训写进文件却无法在下次自动生效。
 - 已使用 maintainability guard；未新增目录结构漂移。
+- 后续 owner 收敛的维护性复核：总代码新增 `472` 行、删除 `317` 行、净增 `155` 行；非测试代码新增 `274` 行、删除 `277` 行、净增 `-3` 行。
+- 正向减债动作：职责收敛 + 删除 + 简化。删除 runtime metadata 写回调、live metadata writer 反向注入、SessionSearch 的 `onSessionUpdated` 回调和 context compaction 的旧调用返回链路；metadata 写入只保留 `setSessionMetadata` / `updateSessionMetadata` 两个语义入口，update 保持 merge 语义。
+- 剩余观察点：`agent-run-request.manager.test.ts` 本次为覆盖 owner 链路增长较多，后续再次触达时应优先拆出 fixture/builder，避免测试文件继续膨胀。
 
 ## NPM 包发布记录
 

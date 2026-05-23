@@ -6,6 +6,7 @@ import {
   resolveProviderRuntime,
   type Config,
 } from "@nextclaw/core";
+import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import { BUILTIN_PROVIDER_PLUGINS } from "@nextclaw/runtime";
 import type { NcpAgentRunInput, NcpProviderRuntimeRoute } from "@nextclaw/ncp";
 import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
@@ -347,7 +348,7 @@ async function isExecutable(filePath: string): Promise<boolean> {
 
 export class BuiltinNarpRuntimeProviderService {
   constructor(
-    private readonly getConfig: () => Config,
+    private readonly configManager: ConfigManager,
   ) {}
 
   createProviders = (): AgentRuntimeProviderRegistration[] => {
@@ -361,7 +362,7 @@ export class BuiltinNarpRuntimeProviderService {
         describeSessionTypeForEntry: ({ entry, describeParams }) =>
           new BuiltinHttpRuntimeSessionTypeService(
             entry,
-            this.getConfig().agents.defaults.model,
+            this.configManager.loadConfig().agents.defaults.model,
           ).describe(describeParams),
       },
       {
@@ -387,7 +388,7 @@ export class BuiltinNarpRuntimeProviderService {
     const config = readRecord(entry.config) ?? {};
     const resolver = new HttpRuntimeConfigResolver(config);
     const resolvedConfig = resolver.resolve({
-      defaultModel: this.getConfig().agents.defaults.model,
+      defaultModel: this.configManager.loadConfig().agents.defaults.model,
     });
     return new HttpRuntimeNcpAgentRuntime({
       baseUrl: resolver.requireBaseUrl(),
@@ -397,10 +398,10 @@ export class BuiltinNarpRuntimeProviderService {
       stateManager: runtimeParams.stateManager,
       resolveProviderRoute: (input) =>
         buildProviderRoute({
-          config: this.getConfig(),
+          config: this.configManager.loadConfig(),
           input,
           sessionMetadata: runtimeParams.sessionMetadata,
-          defaultModel: this.getConfig().agents.defaults.model,
+          defaultModel: this.configManager.loadConfig().agents.defaults.model,
           configuredModel: readString(config.model),
         }),
     });
@@ -419,10 +420,10 @@ export class BuiltinNarpRuntimeProviderService {
       stateManager: runtimeParams.stateManager,
       resolveProviderRoute: (input: NcpAgentRunInput) =>
         buildProviderRoute({
-          config: this.getConfig(),
+          config: this.configManager.loadConfig(),
           input,
           sessionMetadata: runtimeParams.sessionMetadata,
-          defaultModel: this.getConfig().agents.defaults.model,
+          defaultModel: this.configManager.loadConfig().agents.defaults.model,
           configuredModel: readString(config.model),
         }),
     });

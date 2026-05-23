@@ -1,4 +1,5 @@
 import type { Config } from "@nextclaw/core";
+import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
 import { DefaultNcpAgentRuntime, type LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
@@ -6,7 +7,6 @@ import {
   readAssistantReasoningNormalizationMode,
   readAssistantReasoningNormalizationModeFromMetadata,
   type NcpAssistantReasoningNormalizationMode,
-  writeAssistantReasoningNormalizationModeToMetadata,
 } from "@nextclaw/ncp";
 import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 import { type LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
@@ -14,7 +14,6 @@ import type {
   ToolManager,
   UpdateToolCallResult,
 } from "@kernel/managers/tool.manager.js";
-import { ContextCompactionManager } from "@kernel/features/context-compaction/index.js";
 import { NextclawNcpContextBuilder } from "./nextclaw-ncp-context-builder.service.js";
 import { ProviderManagerNcpLLMApi } from "./provider-manager-ncp-llm-api.service.js";
 
@@ -22,9 +21,8 @@ export type NativeRuntimeFactory = (runtimeParams: RuntimeFactoryParams) => NcpA
 
 export type NativeAgentRuntimeFactoryOptions = {
   providerManager: LlmProviderRuntime;
-  configManager: { loadConfig: () => Config };
+  configManager: ConfigManager;
   llmUsage: LlmUsageManager;
-  onSessionUpdated: (sessionKey: string) => void;
   assetStore: LocalAssetStore;
   updateToolCallResult: UpdateToolCallResult;
   toolManager: ToolManager;
@@ -67,36 +65,18 @@ export class NativeAgentRuntimeFactory {
     agentId,
     stateManager,
     sessionMetadata,
-    setSessionMetadata,
   }: RuntimeFactoryParams): NcpAgentRuntime => {
-    let runtimeSessionMetadata = structuredClone(sessionMetadata);
-    const updateSessionMetadata = (nextMetadata: Record<string, unknown>): void => {
-      runtimeSessionMetadata = { ...runtimeSessionMetadata, ...structuredClone(nextMetadata) };
-      setSessionMetadata(runtimeSessionMetadata);
-    };
     const reasoningNormalizationMode = resolveNativeReasoningNormalizationMode({
       config: this.options.configManager.loadConfig(),
-      sessionMetadata: runtimeSessionMetadata,
+      sessionMetadata,
     });
-    if (
-      reasoningNormalizationMode !== "off" &&
-      readAssistantReasoningNormalizationModeFromMetadata(sessionMetadata) !== reasoningNormalizationMode
-    ) {
-      updateSessionMetadata(
-        writeAssistantReasoningNormalizationModeToMetadata(
-          runtimeSessionMetadata,
-          reasoningNormalizationMode,
-        ),
-      );
-    }
 
     const toolRegistry = this.createToolRegistry();
     const runtime = new DefaultNcpAgentRuntime({
       contextBuilder: new NextclawNcpContextBuilder({
         agentId,
-        getSessionMetadata: () => runtimeSessionMetadata,
         toolRegistry,
-        getConfig: this.options.configManager.loadConfig,
+        configManager: this.options.configManager,
         assetStore: this.options.assetStore,
       }),
       llmApi: new ProviderManagerNcpLLMApi(this.observedProviderManager),
@@ -104,21 +84,8 @@ export class NativeAgentRuntimeFactory {
       stateManager,
       reasoningNormalizationMode,
     });
-    const contextCompactionManager = new ContextCompactionManager({
-      getConfig: this.options.configManager.loadConfig,
-      providerManager: this.observedProviderManager,
-    });
-    const { onSessionUpdated } = this.options;
     return {
       run: async function* (input, options) {
-        yield* contextCompactionManager.runLivePreflight({
-          input,
-          onSessionUpdated,
-          updateSessionMetadata,
-          stateManager,
-          ...(agentId ? { storedAgentId: agentId } : {}),
-          storedMetadata: runtimeSessionMetadata,
-        });
         yield* runtime.run(input, options);
       },
     };

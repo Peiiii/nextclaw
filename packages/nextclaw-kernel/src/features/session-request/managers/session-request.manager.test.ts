@@ -14,9 +14,8 @@ function createFixture() {
   const dir = mkdtempSync(join(tmpdir(), "nextclaw-session-request-manager-"));
   tempDirs.push(dir);
   const sessionManager = new SessionManager({ sessionsDir: join(dir, "legacy") });
-  const ncpSessionManager = new NcpSessionManager({
-    eventBus: new EventBus(),
-    getConfig: () => ({
+  const configManager = {
+    loadConfig: () => ({
       agents: {
         defaults: {
           workspace: "",
@@ -31,7 +30,12 @@ function createFixture() {
         list: [],
       },
     }) as never,
+  };
+  const ncpSessionManager = new NcpSessionManager({
+    configManager: configManager as never,
+    eventBus: new EventBus(),
     journalStore: new NcpAgentSessionJournalStore(join(dir, "journal")),
+    sessionSearch: { handleSessionUpdated: async () => undefined } as never,
   });
   const manager = new SessionRequestManager({
     ncpSessionManager,

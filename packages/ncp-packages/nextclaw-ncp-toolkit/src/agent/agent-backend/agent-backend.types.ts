@@ -15,8 +15,6 @@ export type RuntimeFactoryParams = {
   agentId?: string;
   stateManager: NcpAgentConversationStateManager;
   sessionMetadata: Record<string, unknown>;
-  setSessionMetadata: (nextMetadata: Record<string, unknown>) => void;
-  updateSessionMetadata: (metadata: Record<string, unknown>) => void;
   resolveAssetContentPath?: (assetUri: string) => string | null;
   resolveTools?: (input: NcpAgentRunInput) => ReadonlyArray<OpenAITool> | undefined;
 };

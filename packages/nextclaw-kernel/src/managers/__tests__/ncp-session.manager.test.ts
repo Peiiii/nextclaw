@@ -9,7 +9,7 @@ import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-jo
 import { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
 
 vi.mock("@kernel/features/context-compaction/index.js", () => ({
-  ContextCompactionManager: class {
+  ContextWindowPreviewManager: class {
     preview = () => null;
   },
 }));
@@ -94,21 +94,24 @@ async function createFixture(records: AgentSessionRecord[] = []) {
   const eventBus = new EventBus();
   const sessionsDir = createTempDir();
   const journalStore = new NcpAgentSessionJournalStore(join(sessionsDir, ".ncp-agent-journal"));
-  const onSessionUpdated = vi.fn();
+  const handleSessionUpdated = vi.fn();
+  const sessionSearch = {
+    handleSessionUpdated,
+  };
   for (const record of records) {
     await journalStore.importSessionSnapshot(record);
   }
   const manager = new NcpSessionManager({
+    configManager: { loadConfig: createConfig } as never,
     eventBus,
-    getConfig: createConfig,
     journalStore,
-    onSessionUpdated,
+    sessionSearch: sessionSearch as never,
   });
   return {
     eventBus,
     journalStore,
     manager,
-    onSessionUpdated,
+    handleSessionUpdated,
   };
 }
 
@@ -167,8 +170,14 @@ describe("NcpSessionManager", () => {
     await fixture.manager.deleteSession("session-1");
 
     expect(updated?.metadata).toEqual({ label: "After" });
-    expect(fixture.onSessionUpdated).toHaveBeenCalledWith("session-1");
-    expect(events).toEqual(["session.summary.upsert", "session.summary.delete"]);
+    expect(fixture.handleSessionUpdated).toHaveBeenCalledWith("session-1");
+    expect(events).toEqual([
+      "session.metadata.changed",
+      "session.updated",
+      "session.summary.upsert",
+      "session.updated",
+      "session.summary.delete",
+    ]);
   });
 
   it("merges session metadata updates without dropping child-session identity", async () => {

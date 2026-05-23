@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { CONTEXT_COMPACTION_METADATA_KEY } from "@nextclaw/core";
 import {
   NcpEventType,
   type NcpAgentSendEnvelope,
@@ -23,6 +24,32 @@ import {
 import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
 import type { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
 import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
+import { ContextCompactionManager } from "@kernel/features/context-compaction/index.js";
+
+function createConfig() {
+  return {
+    agents: {
+      defaults: {
+        workspace: "",
+        model: "",
+        engine: "native",
+        engineConfig: {},
+        thinkingDefault: "off",
+        models: {},
+        contextTokens: 200000,
+        maxToolIterations: 1000,
+      },
+      list: [],
+    },
+  } as never;
+}
+
+function createContextCompactionManager(sessionRunManager: SessionRunManager): ContextCompactionManager {
+  return new ContextCompactionManager({
+    configManager: { loadConfig: createConfig } as never,
+    sessionRunManager,
+  });
+}
 
 function createRuntimeManagerStub() {
   const runtimeInputs: NcpAgentRunInput[] = [];
@@ -46,7 +73,13 @@ function createRuntimeManagerStub() {
       };
     }),
     listSessionTypes: vi.fn(() => ({ defaultType: "native", options: [] })),
-  } as Pick<AgentRuntimeManager, "createRuntime" | "listSessionTypes">;
+    resolveSessionMetadata: vi.fn((metadata: Record<string, unknown>) => ({
+      ...metadata,
+      runtime: "native",
+      session_type: "native",
+      runtime_type: "native",
+    })),
+  } as Pick<AgentRuntimeManager, "createRuntime" | "listSessionTypes" | "resolveSessionMetadata">;
   return {
     runtimeFactoryParams,
     runtimeInputs,
@@ -92,22 +125,18 @@ function createDispatchingRuntimeManagerStub() {
       },
     })),
     listSessionTypes: vi.fn(() => ({ defaultType: "native", options: [] })),
-  } as Pick<AgentRuntimeManager, "createRuntime" | "listSessionTypes">;
+    resolveSessionMetadata: vi.fn((metadata: Record<string, unknown>) => ({
+      ...metadata,
+      runtime: "native",
+      session_type: "native",
+      runtime_type: "native",
+    })),
+  } as Pick<AgentRuntimeManager, "createRuntime" | "listSessionTypes" | "resolveSessionMetadata">;
   return runtimeManager as AgentRuntimeManager;
 }
 
 class TestNcpSessionManager {
-  private liveMetadataWriter:
-    | ((sessionId: string, metadata: Record<string, unknown>, mode: "set" | "update") => void)
-    | null = null;
-
   constructor(private readonly sessionStore: InMemoryAgentSessionStore) {}
-
-  installLiveMetadataWriter = (
-    writer: (sessionId: string, metadata: Record<string, unknown>, mode: "set" | "update") => void,
-  ) => {
-    this.liveMetadataWriter = writer;
-  };
 
   createSession = async (params: {
     task: string;
@@ -163,7 +192,6 @@ class TestNcpSessionManager {
       metadata,
       updatedAt: new Date().toISOString(),
     });
-    this.liveMetadataWriter?.(sessionId, metadata, "set");
     return true;
   };
 
@@ -180,7 +208,6 @@ class TestNcpSessionManager {
       metadata,
       updatedAt: new Date().toISOString(),
     });
-    this.liveMetadataWriter?.(sessionId, metadata, "update");
     return true;
   };
 
@@ -236,6 +263,7 @@ describe("AgentRunRequestManager", () => {
       ncpSessionManager: ncpSessionManager as never,
     });
     const manager = new AgentRunRequestManager({
+      contextCompactionManager: createContextCompactionManager(sessionRunManager),
       ingress,
       ncpSessionManager: ncpSessionManager as never,
       sessionRunManager,
@@ -300,6 +328,7 @@ describe("AgentRunRequestManager", () => {
       ncpSessionManager: ncpSessionManager as never,
     });
     const manager = new AgentRunRequestManager({
+      contextCompactionManager: createContextCompactionManager(sessionRunManager),
       ingress,
       ncpSessionManager: ncpSessionManager as never,
       sessionRunManager,
@@ -334,7 +363,9 @@ describe("AgentRunRequestManager", () => {
     await manager.dispose();
     await sessionRunManager.dispose();
   });
+});
 
+describe("AgentRunRequestManager runtime orchestration", () => {
   it("does not apply runtime text deltas twice to the persisted assistant preview source", async () => {
     const ingress = new Ingress();
     const sessionStore = new InMemoryAgentSessionStore();
@@ -345,6 +376,7 @@ describe("AgentRunRequestManager", () => {
       ncpSessionManager: ncpSessionManager as never,
     });
     const manager = new AgentRunRequestManager({
+      contextCompactionManager: createContextCompactionManager(sessionRunManager),
       ingress,
       ncpSessionManager: ncpSessionManager as never,
       sessionRunManager,
@@ -398,7 +430,13 @@ describe("AgentRunRequestManager", () => {
         },
       })),
       listSessionTypes: vi.fn(() => ({ defaultType: "native", options: [] })),
-    } as Pick<AgentRuntimeManager, "createRuntime" | "listSessionTypes">;
+      resolveSessionMetadata: vi.fn((metadata: Record<string, unknown>) => ({
+        ...metadata,
+        runtime: "native",
+        session_type: "native",
+        runtime_type: "native",
+      })),
+    } as Pick<AgentRuntimeManager, "createRuntime" | "listSessionTypes" | "resolveSessionMetadata">;
     const ncpSessionManager = new TestNcpSessionManager(sessionStore);
     const sessionRunManager = new SessionRunManager({
       agentRuntimeManager: runtimeManager as AgentRuntimeManager,
@@ -406,6 +444,7 @@ describe("AgentRunRequestManager", () => {
       ncpSessionManager: ncpSessionManager as never,
     });
     const manager = new AgentRunRequestManager({
+      contextCompactionManager: createContextCompactionManager(sessionRunManager),
       ingress,
       ncpSessionManager: ncpSessionManager as never,
       sessionRunManager,
@@ -428,6 +467,91 @@ describe("AgentRunRequestManager", () => {
     expect(preRunMessageCounts).toEqual([0]);
     const session = await sessionStore.getSession(handle.sessionId);
     expect(session?.messages.filter((message) => message.id === "user-message-1")).toHaveLength(1);
+    await manager.dispose();
+    await sessionRunManager.dispose();
+  });
+
+  it("applies context compaction metadata patches without replacing session metadata", async () => {
+    const ingress = new Ingress();
+    const {
+      runtimeManager,
+    } = createRuntimeManagerStub();
+    const sessionStore = new InMemoryAgentSessionStore();
+    await sessionStore.saveSession({
+      sessionId: "session-1",
+      messages: [],
+      createdAt: "2026-05-22T00:00:00.000Z",
+      updatedAt: "2026-05-22T00:00:00.000Z",
+      metadata: {
+        last_activity_preview: {
+          state: "running",
+          timestamp: "2026-05-22T00:00:01.000Z",
+        },
+      },
+    });
+    const ncpSessionManager = new TestNcpSessionManager(sessionStore);
+    const sessionRunManager = new SessionRunManager({
+      agentRuntimeManager: runtimeManager,
+      eventBus: new EventBus(),
+      ncpSessionManager: ncpSessionManager as never,
+    });
+    let storedMetadata: Record<string, unknown> | null = null;
+    const runLivePreflight = vi.fn(async function* (params: {
+      input: NcpAgentRunInput;
+      session: Awaited<ReturnType<SessionRunManager["getOrCreateLiveSession"]>>;
+    }): AsyncIterable<NcpEndpointEvent> {
+      const { input, session } = params;
+      storedMetadata = structuredClone(session.metadata);
+      await sessionRunManager.updateSessionMetadata(session.sessionId, {
+        [CONTEXT_COMPACTION_METADATA_KEY]: { id: "checkpoint-1", status: "compressing" },
+      });
+      const contextWindowEvent = {
+        type: NcpEventType.ContextWindowUpdated,
+        payload: {
+          sessionId: input.sessionId,
+          contextWindow: { usedContextTokens: 1, totalContextTokens: 10 },
+        },
+      } as const;
+      await sessionRunManager.appendSessionEvent(session.sessionId, contextWindowEvent);
+      yield contextWindowEvent;
+    });
+    const manager = new AgentRunRequestManager({
+      contextCompactionManager: {
+        runLivePreflight,
+      } as unknown as ContextCompactionManager,
+      ingress,
+      ncpSessionManager: ncpSessionManager as never,
+      sessionRunManager,
+    });
+
+    const events = [];
+    for await (const event of manager.run({
+      sessionId: "session-1",
+      message: {
+        id: "user-message-1",
+        role: "user",
+        status: "final",
+        timestamp: "2026-05-22T00:00:00.000Z",
+        parts: [{ type: "text", text: "ping" }],
+      },
+      metadata: {},
+    })) {
+      events.push(event);
+    }
+
+    const stored = await sessionStore.getSession("session-1");
+    expect(events).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: NcpEventType.ContextWindowUpdated }),
+    ]));
+    expect(runLivePreflight).toHaveBeenCalledTimes(1);
+    expect(storedMetadata).toMatchObject({
+      last_activity_preview: expect.objectContaining({ state: "running" }),
+    });
+    expect(stored?.metadata).toMatchObject({
+      [CONTEXT_COMPACTION_METADATA_KEY]: { status: "compressing" },
+      last_activity_preview: { state: "running" },
+      runtime: "native",
+    });
     await manager.dispose();
     await sessionRunManager.dispose();
   });

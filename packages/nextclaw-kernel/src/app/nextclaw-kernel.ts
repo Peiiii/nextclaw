@@ -21,6 +21,7 @@ import { LearningLoopContribution } from "@kernel/contributions/learning-loop/in
 import { SessionContextWindowContribution } from "@kernel/contributions/session-context-window/index.js";
 import { SessionActivityPreviewContribution } from "@kernel/contributions/session-activity-preview/index.js";
 import { ToolContribution } from "@kernel/contributions/tool-contribution/index.js";
+import { ContextCompactionManager } from "@kernel/features/context-compaction/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
@@ -35,7 +36,7 @@ import {
   SessionManager,
   SessionSearchManager,
 } from "@nextclaw/core";
-import { eventKeys, EventBus, Ingress } from "@nextclaw/shared";
+import { EventBus, Ingress } from "@nextclaw/shared";
 import { resolve } from "node:path";
 
 export type NextclawKernelOptions = {
@@ -140,7 +141,6 @@ export class NextclawKernel {
     this.sessionSearch = new SessionSearchManager({
       databasePath: resolve(getDataDir(), "session-search.db"),
       sessionsDir,
-      onSessionUpdated: this.publishSessionUpdated,
     });
     this.ncpAgentSessionJournalStore = new NcpAgentSessionJournalStore(
       resolve(sessionsDir, ".ncp-agent-journal"),
@@ -187,11 +187,10 @@ export class NextclawKernel {
       assetStore: this.assetStore,
     });
     this.ncpSessionManager = new NcpSessionManager({
+      configManager: this.configManager,
       eventBus: this.eventBus,
-      getConfig: this.configManager.loadConfig,
-      isLiveSessionRunning: (sessionId) => this.sessionRunManager?.isRunning(sessionId) ?? false,
       journalStore: this.ncpAgentSessionJournalStore,
-      onSessionUpdated: this.sessionSearch.handleSessionUpdated,
+      sessionSearch: this.sessionSearch,
     });
     this.sessionRequests = new SessionRequestManager({
       ncpSessionManager: this.ncpSessionManager,
@@ -206,6 +205,11 @@ export class NextclawKernel {
       ncpSessionManager: this.ncpSessionManager,
     });
     this.agentRunRequestManager = new AgentRunRequestManager({
+      contextCompactionManager: new ContextCompactionManager({
+        configManager: this.configManager,
+        providerManager: this.llmProviders,
+        sessionRunManager: this.sessionRunManager,
+      }),
       ingress: this.ingress,
       ncpSessionManager: this.ncpSessionManager,
       sessionRunManager: this.sessionRunManager,
@@ -237,6 +241,7 @@ export class NextclawKernel {
   dispose = async (): Promise<void> => {
     await this.agentRunRequestManager.dispose();
     await this.sessionRunManager.dispose();
+    this.ncpSessionManager.dispose();
     for (const contribution of this.contributions) {
       contribution.dispose();
     }
@@ -245,10 +250,4 @@ export class NextclawKernel {
     await this.sessionSearch.dispose();
   };
 
-  publishSessionUpdated = (sessionKey: string): void => {
-    this.eventBus.emit(eventKeys.sessionUpdated, { sessionKey }, {
-      emittedAt: new Date().toISOString(),
-      source: "backend",
-    });
-  };
 }

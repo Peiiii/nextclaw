@@ -286,26 +286,19 @@ export class AgentRuntimeRegistry {
         : [...nextEntries.keys()][0] ?? DEFAULT_AGENT_RUNTIME_ENTRY_ID);
   };
 
-  createRuntime = (params: RuntimeFactoryParams): NcpAgentRuntime => {
-    const requestedEntryId =
-      readRequestedRuntimeEntryId(params.sessionMetadata) ?? this.defaultEntryId;
-    const entry = this.entries.get(requestedEntryId);
-    if (!entry || entry.enabled === false) {
-      throw new Error(`ncp runtime unavailable: ${requestedEntryId}`);
-    }
-
-    const provider = this.providers.get(entry.type);
-    if (!provider) {
-      throw new Error(`ncp runtime provider unavailable: ${entry.type}`);
-    }
-
-    const nextSessionMetadata = {
-      ...params.sessionMetadata,
+  resolveSessionMetadata = (sessionMetadata: Record<string, unknown>): Record<string, unknown> => {
+    const { entry } = this.resolveRuntimeEntry(sessionMetadata);
+    return {
+      ...sessionMetadata,
       runtime: entry.id,
       session_type: entry.id,
       runtime_type: entry.type,
     };
-    params.setSessionMetadata(nextSessionMetadata);
+  };
+
+  createRuntime = (params: RuntimeFactoryParams): NcpAgentRuntime => {
+    const nextSessionMetadata = this.resolveSessionMetadata(params.sessionMetadata);
+    const { entry, provider } = this.resolveRuntimeEntry(nextSessionMetadata);
     if (provider.createRuntimeForEntry) {
       return provider.createRuntimeForEntry({
         entry: cloneRuntimeEntry(entry),
@@ -319,6 +312,21 @@ export class AgentRuntimeRegistry {
       ...params,
       sessionMetadata: nextSessionMetadata,
     });
+  };
+
+  private resolveRuntimeEntry = (sessionMetadata: Record<string, unknown>) => {
+    const requestedEntryId =
+      readRequestedRuntimeEntryId(sessionMetadata) ?? this.defaultEntryId;
+    const entry = this.entries.get(requestedEntryId);
+    if (!entry || entry.enabled === false) {
+      throw new Error(`ncp runtime unavailable: ${requestedEntryId}`);
+    }
+
+    const provider = this.providers.get(entry.type);
+    if (!provider) {
+      throw new Error(`ncp runtime provider unavailable: ${entry.type}`);
+    }
+    return { entry, provider };
   };
 
   listSessionTypes = async (params?: AgentRuntimeSessionTypeDescribeParams): Promise<{

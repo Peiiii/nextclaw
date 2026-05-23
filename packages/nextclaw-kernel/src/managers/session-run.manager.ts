@@ -27,6 +27,7 @@ import type { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager
 import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
 
 type Cleanup = () => Promise<void> | void;
+const RUNTIME_METADATA_KEYS = ["runtime", "session_type", "runtime_type"] as const;
 
 function isDurableSessionEvent(event: NcpEndpointEvent): boolean {
   return event.type !== NcpEventType.ContextWindowUpdated;
@@ -40,6 +41,20 @@ function readEventSessionId(event: NcpEndpointEvent): string | null {
   return "sessionId" in payload && typeof payload.sessionId === "string"
     ? payload.sessionId
     : null;
+}
+
+function pickRuntimeMetadataPatch(
+  current: Record<string, unknown>,
+  next: Record<string, unknown>,
+): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  for (const key of RUNTIME_METADATA_KEYS) {
+    const value = next[key];
+    if (!Object.is(current[key], value)) {
+      patch[key] = structuredClone(value);
+    }
+  }
+  return patch;
 }
 
 export class SessionRunManager {
@@ -63,7 +78,10 @@ export class SessionRunManager {
     this.agentRuntimeManager = agentRuntimeManager;
     this.ncpSessionManager = ncpSessionManager;
     this.eventBus = eventBus;
-    this.ncpSessionManager.installLiveMetadataWriter(this.writeLiveSessionMetadata);
+    this.cleanups.push(this.eventBus.on(
+      eventKeys.sessionMetadataChanged,
+      this.handleSessionMetadataChanged,
+    ));
   }
 
   dispose = async (): Promise<void> => {
@@ -228,6 +246,11 @@ export class SessionRunManager {
       ...(storedSession?.metadata ? structuredClone(storedSession.metadata) : {}),
       ...structuredClone(initialMetadata),
     };
+    const runtimeMetadata = this.agentRuntimeManager.resolveSessionMetadata(metadata);
+    const runtimeMetadataPatch = pickRuntimeMetadataPatch(metadata, runtimeMetadata);
+    if (Object.keys(runtimeMetadataPatch).length > 0) {
+      await this.ncpSessionManager.updateSessionMetadata(sessionId, runtimeMetadataPatch);
+    }
     const session: LiveSession = {
       sessionId,
       ...(readString(storedSession?.agentId) ?? readAgentId(metadata)
@@ -235,7 +258,7 @@ export class SessionRunManager {
         : {}),
       createdAt: storedSession?.createdAt ?? new Date().toISOString(),
       stateManager,
-      metadata,
+      metadata: runtimeMetadata,
       runtime: null as unknown as NcpAgentRuntime,
       activeExecution: null,
     };
@@ -243,24 +266,7 @@ export class SessionRunManager {
       sessionId,
       ...(session.agentId ? { agentId: session.agentId } : {}),
       stateManager,
-      sessionMetadata: metadata,
-      setSessionMetadata: (nextMetadata) => {
-        session.metadata = structuredClone(nextMetadata);
-        void this.ncpSessionManager.setSessionMetadata(session.sessionId, session.metadata).catch((error: unknown) => {
-          const message = error instanceof Error ? error.stack ?? error.message : String(error);
-          console.error(`[session-run] failed to persist runtime metadata for ${session.sessionId}: ${message}`);
-        });
-      },
-      updateSessionMetadata: (nextMetadata) => {
-        session.metadata = {
-          ...session.metadata,
-          ...structuredClone(nextMetadata),
-        };
-        void this.ncpSessionManager.updateSessionMetadata(session.sessionId, nextMetadata).catch((error: unknown) => {
-          const message = error instanceof Error ? error.stack ?? error.message : String(error);
-          console.error(`[session-run] failed to persist runtime metadata for ${session.sessionId}: ${message}`);
-        });
-      },
+      sessionMetadata: runtimeMetadata,
     });
     this.liveSessions.set(sessionId, session);
     this.cleanups.push(async () => {
@@ -314,17 +320,19 @@ export class SessionRunManager {
     });
   };
 
-  private readonly writeLiveSessionMetadata = (
-    sessionId: string,
-    metadata: Record<string, unknown>,
-    mode: "set" | "update",
-  ): void => {
-    const session = this.liveSessions.get(sessionId);
-    if (session) {
-      session.metadata = mode === "set"
-        ? structuredClone(metadata)
-        : { ...session.metadata, ...structuredClone(metadata) };
+  private readonly handleSessionMetadataChanged = (payload: {
+    metadata: Record<string, unknown>;
+    mode: "set" | "update";
+    sessionKey: string;
+  }): void => {
+    const sessionId = payload.sessionKey.trim();
+    const session = sessionId ? this.liveSessions.get(sessionId) : null;
+    if (!session) {
+      return;
     }
+    session.metadata = payload.mode === "set"
+      ? structuredClone(payload.metadata)
+      : { ...session.metadata, ...structuredClone(payload.metadata) };
   };
 
   private readonly assertNotDisposed = (): void => {

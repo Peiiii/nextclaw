@@ -23,6 +23,11 @@ export const eventKeys = {
     sessionKey: string;
     status: "running" | "idle";
   }>("session.run-status"),
+  sessionMetadataChanged: createAppEventKey<{
+    metadata: Record<string, unknown>;
+    mode: "set" | "update";
+    sessionKey: string;
+  }>("session.metadata.changed"),
   ncpEvent: createAppEventKey<NcpEndpointEvent>("ncp.event"),
   sessionSummaryUpsert: createAppEventKey<{ summary: NcpSessionSummary }>(
     "session.summary.upsert",

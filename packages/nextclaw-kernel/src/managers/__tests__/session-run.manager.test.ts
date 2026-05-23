@@ -16,6 +16,12 @@ function createRuntimeManagerStub(): AgentRuntimeManager {
       run: async function* (): AsyncGenerator<never> {},
     })),
     listSessionTypes: vi.fn(() => ({ defaultType: "native", options: [] })),
+    resolveSessionMetadata: vi.fn((metadata: Record<string, unknown>) => ({
+      ...metadata,
+      runtime: "native",
+      session_type: "native",
+      runtime_type: "native",
+    })),
   } as unknown as AgentRuntimeManager;
 }
 
@@ -28,6 +34,12 @@ function createRuntimeManagerCapture(
       return { run: async function* (): AsyncGenerator<never> {} };
     }),
     listSessionTypes: vi.fn(() => ({ defaultType: "native", options: [] })),
+    resolveSessionMetadata: vi.fn((metadata: Record<string, unknown>) => ({
+      ...metadata,
+      runtime: "native",
+      session_type: "native",
+      runtime_type: "native",
+    })),
   } as unknown as AgentRuntimeManager;
 }
 
@@ -57,17 +69,7 @@ class AppendRecordingSessionStore extends InMemoryAgentSessionStore {
 }
 
 class TestNcpSessionManager {
-  private liveMetadataWriter:
-    | ((sessionId: string, metadata: Record<string, unknown>, mode: "set" | "update") => void)
-    | null = null;
-
   constructor(private readonly sessionStore: InMemoryAgentSessionStore) {}
-
-  installLiveMetadataWriter = (
-    writer: (sessionId: string, metadata: Record<string, unknown>, mode: "set" | "update") => void,
-  ) => {
-    this.liveMetadataWriter = writer;
-  };
 
   getSessionRecord = async (sessionId: string): Promise<AgentSessionRecord | null> =>
     await this.sessionStore.getSession(sessionId);
@@ -85,7 +87,6 @@ class TestNcpSessionManager {
       metadata,
       updatedAt: new Date().toISOString(),
     });
-    this.liveMetadataWriter?.(sessionId, metadata, "set");
     return true;
   };
 
@@ -102,7 +103,6 @@ class TestNcpSessionManager {
       metadata,
       updatedAt: new Date().toISOString(),
     });
-    this.liveMetadataWriter?.(sessionId, metadata, "update");
     return true;
   };
 
@@ -219,7 +219,7 @@ describe("SessionRunManager", () => {
     await manager.dispose();
   });
 
-  it("merges runtime metadata updates without dropping activity preview metadata", async () => {
+  it("resolves runtime metadata without dropping activity preview metadata", async () => {
     const sessionStore = new InMemoryAgentSessionStore();
     await sessionStore.saveSession({
       sessionId: "session-1",
@@ -242,7 +242,6 @@ describe("SessionRunManager", () => {
       ncpSessionManager: new TestNcpSessionManager(sessionStore) as never,
     });
     await manager.getOrCreateLiveSession("session-1");
-    runtimeParams?.updateSessionMetadata({ runtime: "native" });
     await manager.appendSessionEvent("session-1", {
       type: NcpEventType.RunFinished,
       payload: { sessionId: "session-1", runId: "run-1" },
@@ -252,12 +251,21 @@ describe("SessionRunManager", () => {
       const stored = await sessionStore.getSession("session-1");
       expect(stored?.metadata).toMatchObject({
         runtime: "native",
+        runtime_type: "native",
         last_activity_preview: { state: "running" },
       });
+    });
+    expect(runtimeParams?.sessionMetadata).toMatchObject({
+      runtime: "native",
+      runtime_type: "native",
+      last_activity_preview: { state: "running" },
     });
     await manager.dispose();
   });
 
+});
+
+describe("SessionRunManager stored metadata and event streams", () => {
   it("updates stored metadata through the same owner API when the session is not live", async () => {
     const sessionStore = new InMemoryAgentSessionStore();
     await sessionStore.saveSession({

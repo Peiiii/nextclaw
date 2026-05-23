@@ -35,8 +35,10 @@ import {
   resolveSessionChannelContext,
   syncSessionThinkingPreference,
 } from "@kernel/features/native-runtime/index.js";
+import type { ContextCompactionManager } from "@kernel/features/context-compaction/index.js";
 
 export class AgentRunRequestManager {
+  private readonly contextCompactionManager: ContextCompactionManager;
   private readonly cleanups: Array<() => Promise<void> | void> = [];
   private readonly ingress: Ingress;
   private readonly ncpSessionManager: NcpSessionManager;
@@ -45,15 +47,18 @@ export class AgentRunRequestManager {
   private started = false;
 
   constructor(options: {
+    contextCompactionManager: ContextCompactionManager;
     ingress: Ingress;
     ncpSessionManager: NcpSessionManager;
     sessionRunManager: SessionRunManager;
   }) {
     const {
+      contextCompactionManager,
       ingress,
       ncpSessionManager,
       sessionRunManager,
     } = options;
+    this.contextCompactionManager = contextCompactionManager;
     this.ingress = ingress;
     this.ncpSessionManager = ncpSessionManager;
     this.sessionRunManager = sessionRunManager;
@@ -174,7 +179,13 @@ export class AgentRunRequestManager {
         correlationId: envelope.correlationId,
         metadata,
       };
-      for await (const event of session.runtime.run(runtimeInput, { signal: activeRun.controller.signal })) {
+      yield* this.contextCompactionManager.runLivePreflight({
+        input: runtimeInput,
+        session,
+      });
+      for await (const event of session.runtime.run(runtimeInput, {
+        signal: activeRun.controller.signal,
+      })) {
         const normalizedEvent = normalizeSendRunEvent({
           session,
           event: normalizeRunEvent(event, envelope),

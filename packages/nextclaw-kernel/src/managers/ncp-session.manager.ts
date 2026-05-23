@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type {
-  Config,
   CreatedSession,
   CreateSessionInput,
+  SessionSearchManager,
 } from "@nextclaw/core";
 import { BUILTIN_MAIN_AGENT_ID } from "@nextclaw/core";
 import type {
@@ -15,13 +15,14 @@ import type {
 } from "@nextclaw/ncp";
 import { NcpEventType } from "@nextclaw/ncp";
 import type { AgentSessionEventRecord, AgentSessionRecord } from "@nextclaw/ncp-toolkit";
-import { ContextCompactionManager } from "@kernel/features/context-compaction/index.js";
+import { ContextWindowPreviewManager } from "@kernel/features/context-compaction/index.js";
 import type { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import {
   createNcpAgentSessionSummary,
   type NcpAgentSessionJournalReplayEvent,
 } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import { eventKeys, type EventBus } from "@nextclaw/shared";
+import type { ConfigManager } from "@kernel/managers/config.manager.js";
 
 const DEFAULT_SESSION_TYPE = "native";
 const DEFAULT_LIFECYCLE = "persistent";
@@ -31,19 +32,11 @@ const CHILD_SESSION_REQUEST_METADATA_KEY = "spawned_by_request_id";
 const CHILD_SESSION_LIFECYCLE_METADATA_KEY = "session_lifecycle";
 
 export type NcpSessionManagerOptions = {
+  configManager: ConfigManager;
   eventBus: EventBus;
-  getConfig: () => Config;
-  isLiveSessionRunning?: (sessionId: string) => boolean;
   journalStore: NcpAgentSessionJournalStore;
-  onSessionUpdated?: (sessionKey: string) => void | Promise<void>;
+  sessionSearch: SessionSearchManager;
 };
-
-type LiveMetadataWriteMode = "set" | "update";
-type LiveMetadataWriter = (
-  sessionId: string,
-  metadata: Record<string, unknown>,
-  mode: LiveMetadataWriteMode,
-) => void;
 
 function normalizeSessionId(sessionId: string): string {
   return sessionId.trim();
@@ -180,17 +173,23 @@ function isSessionSummaryRefreshEvent(event: NcpAgentSessionJournalReplayEvent):
 }
 
 export class NcpSessionManager implements NcpSessionApi {
-  private readonly contextWindowPreview: ContextCompactionManager;
-  private liveMetadataWriter: LiveMetadataWriter | null = null;
+  private readonly contextWindowPreview: ContextWindowPreviewManager;
+  private readonly runningSessionIds = new Set<string>();
+  private readonly unsubscribeSessionRunStatus: () => void;
 
   constructor(private readonly options: NcpSessionManagerOptions) {
-    this.contextWindowPreview = new ContextCompactionManager({
-      getConfig: options.getConfig,
+    this.contextWindowPreview = new ContextWindowPreviewManager({
+      configManager: options.configManager,
     });
+    this.unsubscribeSessionRunStatus = options.eventBus.on(
+      eventKeys.sessionRunStatus,
+      this.handleSessionRunStatus,
+    );
   }
 
-  installLiveMetadataWriter = (writer: LiveMetadataWriter): void => {
-    this.liveMetadataWriter = writer;
+  dispose = (): void => {
+    this.unsubscribeSessionRunStatus();
+    this.runningSessionIds.clear();
   };
 
   createSession = async (params: CreateSessionInput): Promise<CreatedSession> => {
@@ -305,7 +304,7 @@ export class NcpSessionManager implements NcpSessionApi {
     if (!updated) {
       return false;
     }
-    this.liveMetadataWriter?.(normalizedSessionId, metadata, "set");
+    this.publishSessionMetadataChanged(normalizedSessionId, metadata, "set");
     await this.publishSessionChange(normalizedSessionId);
     return true;
   };
@@ -327,7 +326,7 @@ export class NcpSessionManager implements NcpSessionApi {
     if (!updated) {
       return false;
     }
-    this.liveMetadataWriter?.(normalizedSessionId, metadata, "update");
+    this.publishSessionMetadataChanged(normalizedSessionId, metadata, "update");
     await this.publishSessionChange(normalizedSessionId);
     return true;
   };
@@ -399,7 +398,11 @@ export class NcpSessionManager implements NcpSessionApi {
     if (!normalizedSessionKey) {
       return;
     }
-    await this.options.onSessionUpdated?.(normalizedSessionKey);
+    this.options.eventBus.emit(eventKeys.sessionUpdated, { sessionKey: normalizedSessionKey }, {
+      emittedAt: new Date().toISOString(),
+      source: "ncp-session",
+    });
+    await this.options.sessionSearch.handleSessionUpdated(normalizedSessionKey);
     const summary = await this.getSession(normalizedSessionKey);
     if (summary) {
       this.options.eventBus.emit(eventKeys.sessionSummaryUpsert, { summary });
@@ -417,7 +420,6 @@ export class NcpSessionManager implements NcpSessionApi {
     const summary = createNcpAgentSessionSummary(record);
     const contextWindow = includeContextWindow
       ? this.contextWindowPreview.preview({
-        contextWindowOwner: "nextclaw",
         requestMetadata: record.metadata ?? {},
         sessionId: record.sessionId,
         sessionMessages: record.messages,
@@ -429,7 +431,31 @@ export class NcpSessionManager implements NcpSessionApi {
   };
 
   private withLiveSessionStatus = (summary: NcpSessionSummary): NcpSessionSummary =>
-    this.options.isLiveSessionRunning?.(summary.sessionId)
+    this.runningSessionIds.has(summary.sessionId)
       ? { ...summary, status: "running" }
       : summary;
+
+  private handleSessionRunStatus = (payload: {
+    sessionKey: string;
+    status: "running" | "idle";
+  }): void => {
+    const sessionId = normalizeSessionId(payload.sessionKey);
+    if (!sessionId) {
+      return;
+    }
+    if (payload.status === "running") this.runningSessionIds.add(sessionId);
+    else this.runningSessionIds.delete(sessionId);
+  };
+
+  private publishSessionMetadataChanged = (
+    sessionKey: string,
+    metadata: Record<string, unknown>,
+    mode: "set" | "update",
+  ): void => {
+    this.options.eventBus.emit(
+      eventKeys.sessionMetadataChanged,
+      { sessionKey, mode, metadata: structuredClone(metadata) },
+      { emittedAt: new Date().toISOString(), source: "ncp-session" },
+    );
+  };
 }

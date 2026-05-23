@@ -14,6 +14,7 @@ import {
   resolveThinkingLevel,
   type Config,
 } from "@nextclaw/core";
+import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import {
   buildOpenAiFunctionTool,
   type LocalAssetStore,
@@ -44,9 +45,8 @@ import {
 
 type NextclawNcpContextBuilderOptions = {
   agentId?: string;
-  getSessionMetadata: () => Record<string, unknown>;
   toolRegistry: ToolRuntimeRegistry;
-  getConfig: () => Config;
+  configManager: ConfigManager;
   assetStore?: LocalAssetStore | null;
 };
 
@@ -252,9 +252,9 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
   };
 
   private prepareRunContext = (input: NcpAgentRunInput): PreparedRunContext => {
-    const config = this.options.getConfig();
+    const config = this.options.configManager.loadConfig();
     const requestMetadata = mergeInputMetadata(input);
-    const sessionMetadata = this.options.getSessionMetadata();
+    const sessionMetadata = structuredClone(requestMetadata);
     const profile = resolveAgentProfile({
       config,
       storedAgentId: this.options.agentId,

@@ -5,6 +5,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import {
   AgentRunRequestManager,
+  ContextCompactionManager,
   NcpAgentSessionJournalStore,
   NcpSessionManager,
   SessionRunManager,
@@ -107,6 +108,12 @@ function createReplyingRuntimeManager(): AgentRuntimeManager {
       },
     }),
     listSessionTypes: () => ({ defaultType: "native", options: [] }),
+    resolveSessionMetadata: (metadata: Record<string, unknown>) => ({
+      ...metadata,
+      runtime: "native",
+      session_type: "native",
+      runtime_type: "native",
+    }),
   } as unknown as AgentRuntimeManager;
 }
 
@@ -118,10 +125,12 @@ it("routes ncp send through AgentRunRequestManager and stores the assistant repl
   const runtimeManager = createReplyingRuntimeManager();
   const eventBus = new EventBus();
   const sessionsDir = createTempDir("nextclaw-ui-ncp-runtime-sessions-");
+  const configManager = { loadConfig: () => ConfigSchema.parse({}) };
   const ncpSessionManager = new NcpSessionManager({
+    configManager: configManager as never,
     eventBus,
-    getConfig: () => ConfigSchema.parse({}),
     journalStore: new NcpAgentSessionJournalStore(join(sessionsDir, ".ncp-agent-journal")),
+    sessionSearch: { handleSessionUpdated: async () => undefined } as never,
   });
   const sessionRunManager = new SessionRunManager({
     agentRuntimeManager: runtimeManager,
@@ -129,6 +138,10 @@ it("routes ncp send through AgentRunRequestManager and stores the assistant repl
     ncpSessionManager,
   });
   const requestManager = new AgentRunRequestManager({
+    contextCompactionManager: new ContextCompactionManager({
+      configManager: configManager as never,
+      sessionRunManager,
+    }),
     ingress,
     ncpSessionManager,
     sessionRunManager,
