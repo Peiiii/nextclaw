@@ -1,14 +1,14 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { compareDesktopVersions } from "../launcher/utils/version.utils";
-import { DesktopBundleLifecycleService } from "../launcher/services/bundle-lifecycle.service";
-import { DesktopBundleService } from "../launcher/services/bundle.service";
-import { DesktopUpdateService } from "../launcher/services/update.service";
-import { DesktopBundleLayoutStore } from "../launcher/stores/bundle-layout.store";
-import {
+import type { DesktopBundleLifecycleService } from "../launcher/services/bundle-lifecycle.service";
+import type { DesktopBundleService } from "../launcher/services/bundle.service";
+import type { DesktopUpdateService } from "../launcher/services/update.service";
+import type { DesktopBundleLayoutStore } from "../launcher/stores/bundle-layout.store";
+import type {
   DesktopLauncherStateStore,
-  type DesktopLauncherState,
-  type DesktopReleaseChannel
+  DesktopLauncherState,
+  DesktopReleaseChannel
 } from "../launcher/stores/launcher-state.store";
 import type { PackagedSeedBundleMetadata } from "./desktop-update-source.service";
 
@@ -26,7 +26,11 @@ type DesktopBundleBootstrapServiceOptions = {
   seedBundlePath: string | null;
   seedBundleMetadata?: PackagedSeedBundleMetadata | null;
   launcherBuildFingerprint?: string | null;
-  layout?: DesktopBundleLayoutStore;
+  layout: DesktopBundleLayoutStore;
+  launcherStateStore: DesktopLauncherStateStore;
+  bundleService: DesktopBundleService;
+  bundleLifecycle: DesktopBundleLifecycleService;
+  updateService: DesktopUpdateService;
 };
 
 type PackagedSeedInstallPlan = {
@@ -41,7 +45,7 @@ export class DesktopBundleBootstrapService {
   constructor(private readonly options: DesktopBundleBootstrapServiceOptions) {}
 
   ensureInitialBundleAvailability = async (): Promise<void> => {
-    const stateStore = this.createLauncherStateStore();
+    const stateStore = this.options.launcherStateStore;
     const state = await this.reconcileCurrentBundleCompatibility(stateStore.read());
     if (await this.installPackagedSeedBundleIfNeeded(state)) {
       return;
@@ -61,7 +65,7 @@ export class DesktopBundleBootstrapService {
   };
 
   recoverPendingBundleCandidate = async (): Promise<void> => {
-    const rollbackResult = await this.createBundleLifecycle().recoverPendingCandidate();
+    const rollbackResult = await this.options.bundleLifecycle.recoverPendingCandidate();
     if (!rollbackResult) {
       return;
     }
@@ -83,12 +87,12 @@ export class DesktopBundleBootstrapService {
   };
 
   markBundleHealthy = async (version: string): Promise<void> => {
-    await this.createBundleLifecycle().markVersionHealthy(version);
+    await this.options.bundleLifecycle.markVersionHealthy(version);
     this.options.logger.info(`Bundle version marked healthy: ${version}`);
   };
 
   pruneRetainedBundleArtifacts = async (): Promise<void> => {
-    const pruneResult = await this.createBundleService().pruneRetainedArtifacts();
+    const pruneResult = await this.options.bundleService.pruneRetainedArtifacts();
     if (pruneResult.removedVersions.length === 0 && pruneResult.removedStagingEntries.length === 0) {
       return;
     }
@@ -109,7 +113,7 @@ export class DesktopBundleBootstrapService {
     }
 
     try {
-      const updateService = this.createUpdateService();
+      const updateService = this.options.updateService;
       const seedVersion =
         this.options.seedBundleMetadata?.version ?? (await updateService.readLocalArchiveBundleVersion(seedBundlePath));
       if (seedVersion !== failedBundleVersion) {
@@ -118,7 +122,7 @@ export class DesktopBundleBootstrapService {
       this.options.logger.warn(
         `Desktop bootstrap failed while running bundle ${failedBundleVersion}. Reinstalling packaged seed bundle ${seedVersion}.`
       );
-      await this.createBundleService().removeVersion(seedVersion);
+      await this.options.bundleService.removeVersion(seedVersion);
       const repairedBundle = await updateService.stageLocalArchive(seedBundlePath);
       this.options.logger.info(`Reinstalled packaged seed bundle ${repairedBundle.activatedVersion} after bootstrap failure.`);
       return true;
@@ -135,16 +139,16 @@ export class DesktopBundleBootstrapService {
     }
 
     try {
-      const updateService = this.createUpdateService();
+      const updateService = this.options.updateService;
       const installPlan = await this.createPackagedSeedInstallPlan(state, seedBundlePath, updateService);
       if (!installPlan.shouldInstallSeed) {
         return false;
       }
       if (installPlan.shouldReplaceExistingVersion) {
-        await this.createBundleService().removeVersion(installPlan.seedVersion);
+        await this.options.bundleService.removeVersion(installPlan.seedVersion);
       }
       const stagedSeedBundle = await updateService.stageLocalArchive(seedBundlePath);
-      await this.createLauncherStateStore().update((currentState) => ({
+      await this.options.launcherStateStore.update((currentState) => ({
         ...currentState,
         lastAttemptedPackagedSeedVersion: installPlan.seedVersion,
         lastAttemptedPackagedSeedSha256: installPlan.seedSha256,
@@ -166,7 +170,7 @@ export class DesktopBundleBootstrapService {
     }
 
     try {
-      this.createBundleService().resolveVersion(state.currentVersion);
+      this.options.bundleService.resolveVersion(state.currentVersion);
       return state;
     } catch (error) {
       this.options.logger.warn(
@@ -178,9 +182,9 @@ export class DesktopBundleBootstrapService {
       );
     }
 
-    await this.getLayout().clearCurrentPointer();
-    await this.getLayout().clearPreviousPointer();
-    return await this.createLauncherStateStore().update((currentState) => ({
+    await this.options.layout.clearCurrentPointer();
+    await this.options.layout.clearPreviousPointer();
+    return await this.options.launcherStateStore.update((currentState) => ({
       ...currentState,
       currentVersion: null,
       previousVersion: null,
@@ -237,7 +241,7 @@ export class DesktopBundleBootstrapService {
 
   private fetchInitialRemoteBundle = async (manifestUrl: string): Promise<void> => {
     try {
-      const result = await this.createUpdateService().stageUpdate(manifestUrl, null);
+      const result = await this.options.updateService.stageUpdate(manifestUrl, null);
       if (!result) {
         this.options.logger.warn("Update manifest returned no bundle for initial desktop bootstrap.");
         return;
@@ -260,45 +264,4 @@ export class DesktopBundleBootstrapService {
     }
   };
 
-  private createBundleLifecycle = (): DesktopBundleLifecycleService => {
-    const layout = this.getLayout();
-    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
-    return new DesktopBundleLifecycleService({
-      layout,
-      stateStore,
-      bundleService: new DesktopBundleService({
-        layout,
-        stateStore,
-        launcherVersion: this.options.launcherVersion
-      })
-    });
-  };
-
-  private createUpdateService = (): DesktopUpdateService => {
-    return new DesktopUpdateService({
-      layout: this.getLayout(),
-      channel: this.options.channel,
-      launcherVersion: this.options.launcherVersion,
-      bundlePublicKey: this.options.bundlePublicKey ?? undefined
-    });
-  };
-
-  private createLauncherStateStore = (): DesktopLauncherStateStore => {
-    const layout = this.getLayout();
-    return new DesktopLauncherStateStore(layout.getLauncherStatePath());
-  };
-
-  private createBundleService = (): DesktopBundleService => {
-    const layout = this.getLayout();
-    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
-    return new DesktopBundleService({
-      layout,
-      stateStore,
-      launcherVersion: this.options.launcherVersion
-    });
-  };
-
-  private getLayout = (): DesktopBundleLayoutStore => {
-    return this.options.layout ?? new DesktopBundleLayoutStore();
-  };
 }

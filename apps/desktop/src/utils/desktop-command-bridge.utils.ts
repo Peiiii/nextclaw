@@ -1,8 +1,8 @@
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import type { DesktopCommandSurfaceManifest } from "../services/desktop-command-surface.service";
-import { NEXTCLAW_COMMAND_SURFACE_BIN_ENV } from "../services/desktop-command-surface.service";
+import type { DesktopCommandSurfaceManifest } from "../managers/desktop-command-surface.manager";
+import { NEXTCLAW_COMMAND_SURFACE_BIN_ENV } from "../managers/desktop-command-surface.manager";
 
 type DesktopCommandBridgeArgs = {
   manifestPath: string;

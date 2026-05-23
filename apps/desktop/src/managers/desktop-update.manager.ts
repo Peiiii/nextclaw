@@ -1,15 +1,14 @@
-import { Menu, app, dialog, ipcMain, type BrowserWindow, type MessageBoxOptions, type MenuItemConstructorOptions } from "electron";
-import type { DesktopBundleLifecycleService } from "../launcher/services/bundle-lifecycle.service";
-import type { DesktopBundleService } from "../launcher/services/bundle.service";
+import { Menu, app, dialog, ipcMain, type MessageBoxOptions, type MenuItemConstructorOptions } from "electron";
+import type { DesktopBundleManager } from "./desktop-bundle.manager";
+import type { DesktopWindowManager } from "./desktop-window.manager";
 import {
   DesktopUpdateCoordinatorService,
   type DesktopUpdateCapability,
   type DesktopUpdatePreferences,
   type DesktopUpdateSnapshot
 } from "../launcher/services/update-coordinator.service";
-import type { DesktopUpdateService } from "../launcher/services/update.service";
-import type { DesktopLauncherStateStore } from "../launcher/stores/launcher-state.store";
 import type { DesktopReleaseChannel } from "../launcher/stores/launcher-state.store";
+import type { DesktopPresenceService } from "../services/desktop-presence.service";
 import {
   DESKTOP_UPDATES_APPLY_CHANNEL,
   DESKTOP_UPDATES_CHECK_CHANNEL,
@@ -19,34 +18,47 @@ import {
   DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL,
   DESKTOP_UPDATES_UPDATE_PREFERENCES_CHANNEL
 } from "../utils/desktop-ipc.utils";
+import {
+  drainDesktopCleanups,
+  removeDesktopIpcHandlers,
+  type DesktopCleanup
+} from "../utils/desktop-lifecycle.utils";
 
-type DesktopUpdateShellLogger = {
+type DesktopUpdateManagerLogger = {
   info: (message: string) => void;
   warn: (message: string) => void;
   error: (message: string) => void;
 };
 
-type DesktopUpdateShellServiceOptions = {
-  logger: DesktopUpdateShellLogger;
+type DesktopUpdateManagerOptions = {
+  logger: DesktopUpdateManagerLogger;
   launcherVersion: string;
   updateCapability?: DesktopUpdateCapability;
-  resolveChannel: () => DesktopReleaseChannel;
-  resolveManifestUrl: () => Promise<string | null>;
-  getWindow: () => BrowserWindow | null;
-  createLauncherStateStore: () => DesktopLauncherStateStore;
-  createUpdateService: () => DesktopUpdateService;
-  createBundleLifecycle: () => DesktopBundleLifecycleService;
-  createBundleService: () => DesktopBundleService;
-  requestApplicationQuit: () => void;
-  restartApplication: () => void;
+  bundleManager: DesktopBundleManager;
+  presenceService: DesktopPresenceService;
+  windowManager: DesktopWindowManager;
 };
 
-export class DesktopUpdateShellService {
+export class DesktopUpdateManager {
+  private readonly cleanups: DesktopCleanup[] = [];
   private coordinator: DesktopUpdateCoordinatorService | null = null;
 
-  constructor(private readonly options: DesktopUpdateShellServiceOptions) {}
+  constructor(private readonly options: DesktopUpdateManagerOptions) {}
 
-  registerIpcHandlers = (): void => {
+  start = (): void => {
+    this.dispose();
+    this.registerIpcHandlers();
+    this.installApplicationMenu();
+    this.cleanups.push(() => {
+      Menu.setApplicationMenu(null);
+    });
+  };
+
+  dispose = (): void => {
+    drainDesktopCleanups(this.cleanups);
+  };
+
+  private registerIpcHandlers = (): void => {
     ipcMain.removeHandler(DESKTOP_UPDATES_GET_STATE_CHANNEL);
     ipcMain.removeHandler(DESKTOP_UPDATES_CHECK_CHANNEL);
     ipcMain.removeHandler(DESKTOP_UPDATES_DOWNLOAD_CHANNEL);
@@ -59,7 +71,7 @@ export class DesktopUpdateShellService {
     ipcMain.handle(DESKTOP_UPDATES_DOWNLOAD_CHANNEL, async () => await this.ensureCoordinator().downloadUpdate());
     ipcMain.handle(DESKTOP_UPDATES_APPLY_CHANNEL, async () => {
       const snapshot = await this.ensureCoordinator().applyDownloadedUpdate();
-      this.options.restartApplication();
+      this.restartApplication();
       return snapshot;
     });
     ipcMain.handle(
@@ -70,9 +82,17 @@ export class DesktopUpdateShellService {
     ipcMain.handle(DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL, async (_event, channel: DesktopReleaseChannel | undefined) => {
       return await this.ensureCoordinator().updateChannel(channel === "beta" ? "beta" : "stable");
     });
+    this.cleanups.push(removeDesktopIpcHandlers(
+      DESKTOP_UPDATES_GET_STATE_CHANNEL,
+      DESKTOP_UPDATES_CHECK_CHANNEL,
+      DESKTOP_UPDATES_DOWNLOAD_CHANNEL,
+      DESKTOP_UPDATES_APPLY_CHANNEL,
+      DESKTOP_UPDATES_UPDATE_PREFERENCES_CHANNEL,
+      DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL
+    ));
   };
 
-  installApplicationMenu = (): void => {
+  private installApplicationMenu = (): void => {
     if (process.platform !== "darwin") {
       Menu.setApplicationMenu(null);
       return;
@@ -99,21 +119,15 @@ export class DesktopUpdateShellService {
     }
 
     this.coordinator = new DesktopUpdateCoordinatorService({
-      initialChannel: this.options.resolveChannel(),
       launcherVersion: this.options.launcherVersion,
       updateCapability: this.options.updateCapability,
-      resolveManifestUrl: this.options.resolveManifestUrl,
-      stateStore: this.options.createLauncherStateStore(),
-      updateService: this.options.createUpdateService(),
-      bundleLifecycle: this.options.createBundleLifecycle(),
-      bundleService: this.options.createBundleService(),
+      bundleManager: this.options.bundleManager,
+      updateSourceService: this.options.bundleManager.updateSourceService,
       publishSnapshot: (snapshot) => {
         this.publishSnapshot(snapshot);
         this.installApplicationMenu();
       },
-      onAutoDownloadedUpdateReady: async (snapshot) => {
-        await this.showDownloadedUpdateDialog(snapshot);
-      }
+      onAutoDownloadedUpdateReady: this.showDownloadedUpdateDialog
     });
 
     return this.coordinator;
@@ -139,7 +153,7 @@ export class DesktopUpdateShellService {
           label: "Quit NextClaw",
           accelerator: "CommandOrControl+Q",
           click: () => {
-            this.options.requestApplicationQuit();
+            this.options.presenceService.requestExplicitQuit();
           }
         }
       ]
@@ -257,7 +271,7 @@ export class DesktopUpdateShellService {
   private handleApplyDownloadedUpdate = async (): Promise<void> => {
     try {
       await this.ensureCoordinator().applyDownloadedUpdate();
-      this.options.restartApplication();
+      this.restartApplication();
     } catch (error) {
       await dialog.showMessageBox({
         type: "error",
@@ -282,7 +296,7 @@ export class DesktopUpdateShellService {
       defaultId: 0,
       cancelId: 1
     };
-    const window = this.options.getWindow();
+    const window = this.options.windowManager.getWindow();
     const response =
       window && !window.isDestroyed()
         ? await dialog.showMessageBox(window, dialogOptions)
@@ -306,10 +320,16 @@ export class DesktopUpdateShellService {
       ].join(" ")
     );
 
-    const window = this.options.getWindow();
+    const window = this.options.windowManager.getWindow();
     if (!window || window.isDestroyed()) {
       return;
     }
     window.webContents.send(DESKTOP_UPDATES_STATE_CHANGED_CHANNEL, snapshot);
+  };
+
+  private restartApplication = (): void => {
+    this.options.presenceService.markQuitting();
+    app.relaunch();
+    app.quit();
   };
 }

@@ -4,6 +4,7 @@ import type { DesktopReleaseChannel } from "../stores/launcher-state.store";
 import type { DesktopAvailableUpdate, DesktopUpdateService } from "./update.service";
 import type { DesktopBundleLifecycleService } from "./bundle-lifecycle.service";
 import type { DesktopBundleService } from "./bundle.service";
+import type { DesktopUpdateSourceService } from "../../services/desktop-update-source.service";
 import type {
   UpdateBlockReason,
   UpdatePreferences,
@@ -27,16 +28,19 @@ export type DesktopUpdateSnapshot = UpdateSnapshot & {
 };
 
 type DesktopUpdateCoordinatorServiceOptions = {
-  initialChannel: DesktopReleaseChannel;
   launcherVersion: string;
   updateCapability?: DesktopUpdateCapability;
-  resolveManifestUrl: () => Promise<string | null>;
-  stateStore: DesktopLauncherStateStore;
+  bundleManager: DesktopUpdateBundleOwner;
+  updateSourceService: DesktopUpdateSourceService;
+  publishSnapshot?: (snapshot: DesktopUpdateSnapshot) => void;
+  onAutoDownloadedUpdateReady?: (snapshot: DesktopUpdateSnapshot) => void;
+};
+
+type DesktopUpdateBundleOwner = {
+  launcherStateStore: DesktopLauncherStateStore;
   updateService: DesktopUpdateService;
   bundleLifecycle: DesktopBundleLifecycleService;
   bundleService: DesktopBundleService;
-  publishSnapshot?: (snapshot: DesktopUpdateSnapshot) => void;
-  onAutoDownloadedUpdateReady?: (snapshot: DesktopUpdateSnapshot) => void;
 };
 
 type DesktopCheckUpdateOptions = {
@@ -66,12 +70,12 @@ export class DesktopUpdateCoordinatorService {
   private activeDownloadPromise: Promise<DesktopUpdateSnapshot> | null = null;
 
   constructor(private readonly options: DesktopUpdateCoordinatorServiceOptions) {
-    const persistedState = options.stateStore.read();
+    const persistedState = this.stateStore.read();
     const updateCapability = this.resolveUpdateCapability();
     this.snapshot = {
       status: updateCapability.supported ? (persistedState.downloadedVersion ? "downloaded" : DEFAULT_STATUS) : "blocked",
       installationKind: "desktop-bundle",
-      channel: options.initialChannel,
+      channel: this.options.updateSourceService.resolveChannel(),
       hostVersion: options.launcherVersion,
       launcherVersion: options.launcherVersion,
       currentVersion: persistedState.currentVersion,
@@ -153,9 +157,9 @@ export class DesktopUpdateCoordinatorService {
       throw new Error("No downloaded desktop update is ready to apply.");
     }
 
-    this.options.bundleService.resolveVersion(downloadedVersion);
-    await this.options.bundleLifecycle.activateVersion(downloadedVersion);
-    const nextState = this.options.stateStore.read();
+    this.bundleManager.bundleService.resolveVersion(downloadedVersion);
+    await this.bundleManager.bundleLifecycle.activateVersion(downloadedVersion);
+    const nextState = this.stateStore.read();
     this.availableManifest = null;
     this.snapshot = this.toSnapshotFromState(nextState, {
       status: "idle",
@@ -173,7 +177,7 @@ export class DesktopUpdateCoordinatorService {
     if (this.isUpdateUnsupported()) {
       return this.getSnapshot();
     }
-    const nextState = await this.options.stateStore.update((state) => ({
+    const nextState = await this.stateStore.update((state) => ({
       ...state,
       updatePreferences: {
         automaticChecks:
@@ -202,7 +206,7 @@ export class DesktopUpdateCoordinatorService {
       return this.getSnapshot();
     }
 
-    const nextState = await this.options.stateStore.update((state) => ({
+    const nextState = await this.stateStore.update((state) => ({
       ...state,
       channel,
       downloadedVersion: null,
@@ -238,11 +242,11 @@ export class DesktopUpdateCoordinatorService {
     this.publishSnapshot();
 
     try {
-      const manifestUrl = (await this.options.resolveManifestUrl())?.trim();
+      const manifestUrl = (await this.options.updateSourceService.resolveManifestUrl())?.trim();
       if (!manifestUrl) {
         throw new Error("Desktop update manifest URL is not configured.");
       }
-      const availableUpdate = await this.options.updateService.checkForUpdate(manifestUrl, this.snapshot.currentVersion);
+      const availableUpdate = await this.bundleManager.updateService.checkForUpdate(manifestUrl, this.snapshot.currentVersion);
       const persistedState = await this.recordLastCheckedAt(checkedAt);
       this.snapshot = this.toSnapshotAfterCheck(availableUpdate, persistedState);
       this.publishSnapshot();
@@ -289,15 +293,15 @@ export class DesktopUpdateCoordinatorService {
     this.publishSnapshot();
 
     try {
-      const downloadedUpdate = await this.options.updateService.downloadAndInstallUpdate(manifest, (progress) => {
+      const downloadedUpdate = await this.bundleManager.updateService.downloadAndInstallUpdate(manifest, (progress) => {
         this.publishDownloadProgress(progress);
       });
-      const nextState = await this.options.stateStore.update((state) => ({
+      const nextState = await this.stateStore.update((state) => ({
         ...state,
         downloadedVersion: downloadedUpdate.downloadedVersion,
         downloadedReleaseNotesUrl: downloadedUpdate.manifest.releaseNotesUrl
       }));
-      await this.options.bundleService.pruneRetainedArtifacts();
+      await this.bundleManager.bundleService.pruneRetainedArtifacts();
       this.snapshot = this.toSnapshotFromState(nextState, {
         status: "downloaded",
         availableVersion: downloadedUpdate.downloadedVersion,
@@ -313,7 +317,7 @@ export class DesktopUpdateCoordinatorService {
       }
       return this.getSnapshot();
     } catch (error) {
-      const persistedState = this.options.stateStore.read();
+      const persistedState = this.stateStore.read();
       this.snapshot = this.toSnapshotFromState(persistedState, {
         status: persistedState.downloadedVersion ? "downloaded" : "failed",
         minimumHostVersion: manifest.minimumLauncherVersion,
@@ -413,7 +417,7 @@ export class DesktopUpdateCoordinatorService {
   private recordLastCheckedAt = async (
     checkedAt: string
   ): Promise<PersistedDesktopLauncherState> => {
-    return await this.options.stateStore.update((state) => ({
+    return await this.stateStore.update((state) => ({
       ...state,
       lastUpdateCheckAt: checkedAt
     }));
@@ -446,16 +450,16 @@ export class DesktopUpdateCoordinatorService {
   };
 
   private reconcilePersistedDownloadedState = (): void => {
-    const persistedState = this.options.stateStore.read();
+    const persistedState = this.stateStore.read();
     const downloadedVersion = persistedState.downloadedVersion?.trim();
     if (!downloadedVersion) {
       return;
     }
 
     try {
-      this.options.bundleService.resolveVersion(downloadedVersion);
+      this.bundleManager.bundleService.resolveVersion(downloadedVersion);
     } catch {
-      void this.options.stateStore.update((state) => ({
+      void this.stateStore.update((state) => ({
         ...state,
         downloadedVersion: null,
         downloadedReleaseNotesUrl: null
@@ -494,6 +498,14 @@ export class DesktopUpdateCoordinatorService {
   private publishSnapshot = (): void => {
     this.options.publishSnapshot?.(this.getSnapshot());
   };
+
+  private get bundleManager(): DesktopUpdateBundleOwner {
+    return this.options.bundleManager;
+  }
+
+  private get stateStore(): DesktopLauncherStateStore {
+    return this.options.bundleManager.launcherStateStore;
+  }
 
   private resolveUpdateCapability = (): DesktopUpdateCapability => {
     return this.options.updateCapability ?? {

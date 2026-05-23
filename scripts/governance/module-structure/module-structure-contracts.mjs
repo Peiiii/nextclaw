@@ -168,7 +168,7 @@ const ELECTRON_SHELL_L1_PROTOCOL = {
   protocolName: "electron-shell-l1",
   organizationModel: "protocol-electron-shell-l1",
   governedRoot: "src",
-  allowedRootDirectories: ["launcher", "configs", "services", "types", "utils"],
+  allowedRootDirectories: ["launcher", "configs", "managers", "services", "types", "utils"],
   allowedRootFiles: ["index.ts", "main.ts", "preload.ts", "launcher.ts"],
   sharedDirectories: [],
   importAliasPrefixes: []

@@ -107,6 +107,7 @@ test("finds the protocol declaration for desktop electron shell config", () => {
   assert.equal(contract?.modulePath, "apps/desktop/src");
   assert.equal(contract?.protocol, "electron-shell-l1");
   assert.equal(isProtocolContract(contract), true);
+  assert.equal(contract?.allowedRootDirectories.has("managers"), true);
   assert.equal(contract?.allowedRootFiles.has("runtime-config.ts"), true);
   assert.equal(contract?.allowedRootFiles.has("runtime-service.ts"), true);
 });

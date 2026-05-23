@@ -3,6 +3,11 @@ import {
   DESKTOP_RUNTIME_RESTART_APP_CHANNEL,
   DESKTOP_RUNTIME_RESTART_SERVICE_CHANNEL
 } from "../utils/desktop-ipc.utils";
+import {
+  drainDesktopCleanups,
+  removeDesktopIpcHandlers,
+  type DesktopCleanup
+} from "../utils/desktop-lifecycle.utils";
 
 type DesktopRuntimeControlLogger = {
   info: (message: string) => void;
@@ -16,9 +21,12 @@ type DesktopRuntimeControlServiceOptions = {
 };
 
 export class DesktopRuntimeControlService {
+  private readonly cleanups: DesktopCleanup[] = [];
+
   constructor(private readonly options: DesktopRuntimeControlServiceOptions) {}
 
-  registerIpcHandlers = (): void => {
+  start = (): void => {
+    this.dispose();
     ipcMain.removeHandler(DESKTOP_RUNTIME_RESTART_SERVICE_CHANNEL);
     ipcMain.removeHandler(DESKTOP_RUNTIME_RESTART_APP_CHANNEL);
 
@@ -45,5 +53,10 @@ export class DesktopRuntimeControlService {
         message: "NextClaw app restart scheduled."
       };
     });
+    this.cleanups.push(removeDesktopIpcHandlers(DESKTOP_RUNTIME_RESTART_SERVICE_CHANNEL, DESKTOP_RUNTIME_RESTART_APP_CHANNEL));
+  };
+
+  dispose = (): void => {
+    drainDesktopCleanups(this.cleanups);
   };
 }

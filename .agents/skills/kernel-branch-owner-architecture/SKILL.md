@@ -1,6 +1,6 @@
 ---
 name: kernel-branch-owner-architecture
-description: 当设计或重构主干/分支架构、kernel、desktop main、runtime host、presenter-manager-store、manager/store/presenter、生命周期装配、多 service 初始化、owner 依赖关系、贡献点 contribution 或用户指出 factory/create 函数/registry/装配层过度抽象时使用。适用于判断主干该直接持有什么、分支之间是否能直接依赖、什么时候需要 contribution/registry，什么时候应该删除 createXxx/factory wrapper。
+description: 当设计或重构主干/分支架构、kernel、desktop main、runtime host、presenter-manager-store、manager/store/presenter、生命周期装配、多 service 初始化、owner 依赖关系、贡献点 contribution，或用户指出 factory/create 函数/registry/装配层过度抽象、owner 被方法参数临时传递、manager/service/store 懒创建导致生命周期不确定时使用。适用于判断主干该直接持有什么、分支之间是否能直接依赖、什么时候需要 contribution/registry，什么时候应该删除 createXxx/factory wrapper，什么时候应该把稳定 owner 依赖放回 constructor，以及长期 owner 是否应确定性创建。
 ---
 
 # Kernel Branch Owner Architecture
@@ -12,8 +12,10 @@ NextClaw 的 kernel 思想不是“多包一层 factory”，而是：
 - 主干负责初始化、持有和启动各个长期分支。
 - 分支是有真实业务闭环的 owner，例如 manager / service / presenter / store owner。
 - 分支之间如果存在稳定语义依赖，可以直接依赖对方，不必绕 create 函数、factory、registry 或 callback。
+- 稳定 owner 依赖应该进入 constructor，由对象长期持有；不要在每次方法调用时临时传入 manager / store / presenter，也不要把 owner 包成函数参数传递。
+- 上级 owner 创建时，应尽量确定性创建自己的长期 manager / service / store 分支；避免 `ensureXxx()` 让稳定分支处于“可能存在也可能不存在”的不确定生命周期。
 - 只有动态生态、外部扩展、插件贡献、跨边界注册才需要 contribution / registry。
-- 有生命周期的分支必须显式暴露 `start` 和 `dispose`，内部订阅、watcher、临时 stream、runtime dispose 等统一注册到 `cleanups` 数组。
+- 有生命周期的分支必须显式暴露无参数 `start()` 和 `dispose()`，内部订阅、watcher、临时 stream、runtime dispose、IPC 注册、菜单/tray 注册等统一注册到 `cleanups` 数组。
 - 分支命名优先使用 `manager`；更细分的外部连接/协议协作可按需使用 `service`，数据存储、缓存、持久化 owner 使用 `store`。
 - `service` 和 `store` 通常由对应 `manager` 持有、创建和管理；不要把细分协作者平铺成主干一级分支。前端组件订阅 store 是视图连接例外，不代表 store 生命周期 owner 转移给组件。
 
@@ -54,20 +56,45 @@ class AppPresenter {
 }
 ```
 
+避免这种形状：
+
+```ts
+class RuntimeCommandService {
+  resolve = async (bundleManager: BundleManager) => {
+    await bundleManager.ensureReady();
+  };
+}
+```
+
+如果 `RuntimeCommandService` 的业务语义稳定依赖 `BundleManager`，应该改成：
+
+```ts
+class RuntimeCommandManager {
+  constructor(private readonly bundleManager: BundleManager) {}
+
+  resolve = async () => {
+    await this.bundleManager.ensureReady();
+  };
+}
+```
+
 ## 主干职责
 
 主干可以直接做：
 
 - 持有长期单例分支。
 - 决定分支创建顺序。
+- 在自身初始化阶段确定性创建长期分支，让对象图稳定可读。
 - 传递外部事实，例如路径、配置入口、事件总线、环境能力、宿主 API。
-- 调用 `start` / `dispose` / `register` 等生命周期入口。
+- 调用 `start()` / `dispose()` 等标准生命周期入口。
 - 暴露稳定分支给上层 controller / UI / contribution。
 
 主干不应该做：
 
 - 替分支执行业务规则。
 - 把分支核心能力拆成一堆 `createXxx` / `resolveXxx` / `getXxx` 函数再传回分支。
+- 在业务方法调用时反复把同一个稳定 owner 当参数传入，导致依赖关系藏在调用点而不是对象结构里。
+- 为稳定分支写一堆 `ensureXxx()` 懒创建入口，导致调用顺序隐含创建顺序、生命周期不透明。
 - 为了让 main 文件短而新增无语义的 factory / registry / service wrapper。
 - 把纯装配 helper 冒充成架构 owner。
 
@@ -140,6 +167,8 @@ class RuntimeManager {
 规则：
 
 - 有生命周期就带 `start` 和 `dispose`，不要用隐式构造启动长期资源。
+- `start` 和 `dispose` 必须无参数；依赖通过 constructor 持有，运行期输入通过业务方法传入。
+- 主干只调用每个 owner 的 `start()` / `dispose()`；不要在主干里逐个调用 `registerIpcHandlers()`、`installTray()`、`installApplicationMenu()` 这类 owner 内部启动步骤。
 - 所有清理函数统一进入 `cleanups` 数组，`dispose` 同步 drain。
 - `start` 负责启动和注册清理，`dispose` 负责停止和释放；不要让主干逐个知道分支内部资源。
 - 不要为同一类生命周期资源新增多个平行字段，例如 `unsubscribeXxx`、`stopYyy`、`disposeZzz`。
@@ -158,6 +187,14 @@ class RuntimeManager {
 - `CommandManager` 依赖 `SessionManager`。
 - 前端 `CommandManager` 可以依赖 `SessionManager` 或 store owner。
 
+稳定 owner 依赖默认放在 constructor：
+
+- 如果 A 的多个业务方法都需要 B，A 应该在 constructor 里依赖 B。
+- 如果 A 的核心业务语义离不开 B，即使只有一个方法使用，也优先在 constructor 里依赖 B。
+- 方法参数用于每次调用真正变化的业务输入，例如 command、payload、snapshot、request、options。
+- 不要把 manager / store / presenter 作为普通业务方法参数传来传去；这会让依赖拓扑从对象图退化成调用栈偶然性。
+- 不要把 owner 包成 `() => owner`、`getOwner()`、`resolveOwner()` 传入，除非确实存在懒加载、循环依赖解除、跨边界能力查询或测试替身需求。
+
 不要为了“解耦”把清晰依赖改成：
 
 - `createSessionManager()`
@@ -167,6 +204,49 @@ class RuntimeManager {
 - `factory.create(...)`
 
 这些只有在承接外部策略、动态插件、环境差异或测试替身时才合理。
+
+这条规则只约束业务代码组织。若模块定位是可复用的业务无关 library，函数参数式依赖可以是合理 API 设计；判断依据是它是否拥有产品业务 owner 语义，而不是文件名或 class 名。
+
+## 确定性生命周期
+
+长期 owner 默认应该在上级 owner 创建时一起创建：
+
+```ts
+class DesktopApplication {
+  private readonly bundleManager = new DesktopBundleManager(...);
+  private readonly presenceManager = new DesktopPresenceManager(...);
+  private readonly updateManager = new DesktopUpdateManager({
+    bundleManager: this.bundleManager,
+    presenceManager: this.presenceManager,
+  });
+}
+```
+
+避免这种形状：
+
+```ts
+private updateManager: DesktopUpdateManager | null = null;
+
+private ensureUpdateManager = () => {
+  this.updateManager ??= new DesktopUpdateManager(...);
+  return this.updateManager;
+};
+```
+
+原因：
+
+- 对象图应该能从 constructor / field 初始化直接读出来。
+- 稳定分支是否存在不应取决于哪个业务方法先被调用。
+- 生命周期 owner 的启动、注册、清理顺序应该显式，而不是藏在 `ensureXxx()` 的调用顺序里。
+
+允许 lazy 的情况：
+
+- 资源确实昂贵，且常见路径不会使用。
+- 能力是可选插件、动态贡献或环境能力，启动时无法静态决定。
+- 创建必须等待异步结果或用户授权。
+- 为打破真实循环依赖而采用延迟绑定，但应优先重新审视 owner 边界；保留时要让 lazy 表面尽量小。
+- 缓存一次性计算结果或外部资源结果，例如 `commandSurface` 的 ensure 结果；这不是长期 owner 本身。
+- 测试替身、业务无关 library、纯函数 API 的参数化构造。
 
 ## Contribution / Registry 适用条件
 
@@ -207,11 +287,13 @@ class RuntimeManager {
 4. 校准持有关系：主干持有 manager，manager 持有自己需要的 service/store。
 5. 删除空壳：优先删除无语义 factory、create wrapper、proxy、registry。
 6. 直连稳定依赖：让分支通过构造参数依赖真实 owner。
-7. 收回闭环：把状态、缓存、订阅、dispose 留在分支 owner 内。
-8. 统一生命周期：有长期资源的分支补齐 `start` / `dispose`，并把清理职责收敛到同步 `cleanups` 数组；只有必要等待的资源才使用 async cleanup。
-9. 保留 contribution：只给动态扩展点、插件和多方注册保留注册机制。
-10. 验证主干可读性：主干应像系统目录，能看出有哪些分支和生命周期顺序。
-11. 验证分支内聚性：每个分支应能说明自己负责的业务闭环。
+7. 消除方法参数式 owner：把稳定 manager/store/presenter 依赖从业务方法参数移到 constructor；方法只接收本次调用变化的数据。
+8. 确定性创建长期分支：把稳定 manager/service/store 从 `ensureXxx()` 懒创建移到上级 owner 初始化阶段；只对真正可选、昂贵、异步、动态或结果缓存保留 lazy。
+9. 收回闭环：把状态、缓存、订阅、dispose 留在分支 owner 内。
+10. 统一生命周期：有长期资源的分支补齐 `start` / `dispose`，并把清理职责收敛到同步 `cleanups` 数组；只有必要等待的资源才使用 async cleanup。
+11. 保留 contribution：只给动态扩展点、插件和多方注册保留注册机制。
+12. 验证主干可读性：主干应像系统目录，能看出有哪些分支和生命周期顺序。
+13. 验证分支内聚性：每个分支应能说明自己负责的业务闭环。
 
 ## Review 检查
 
@@ -226,7 +308,13 @@ class RuntimeManager {
 - 前端组件直接订阅 store 时，是否只是视图连接，而没有接管 store 创建、销毁或业务生命周期。
 - 主干是否仍能一眼看出系统有哪些长期分支。
 - 分支之间的稳定语义依赖是否被不必要地 callback 化。
-- 有生命周期的分支是否暴露 `start` / `dispose`，并用同步 `cleanups` 数组统一清理。
+- 稳定 owner 依赖是否被放在 constructor，而不是作为每次方法调用参数传入。
+- 方法参数是否只代表本次调用变化的业务数据，而不是隐藏对象拓扑的 manager/store/presenter。
+- 如果存在 `() => owner`、`getOwner()`、`resolveOwner()`，是否确实有懒加载、循环依赖解除、跨边界查询或测试替身需求。
+- 长期 manager/service/store 是否在上级 owner 初始化阶段确定性创建，而不是靠 `ensureXxx()` 随调用顺序创建。
+- 保留的 lazy 是否属于可选/昂贵/异步/动态能力或结果缓存，而不是稳定业务分支。
+- 有生命周期的分支是否暴露无参数 `start()` / `dispose()`，并用同步 `cleanups` 数组统一清理。
+- 主干是否只调用标准生命周期，而没有直接操作 `register*` / `install*` / `attach*` 等分支内部步骤。
 - cleanup 是否避免了非必要 async / await；若存在 await，是否有明确等待语义。
 - 是否存在多个平行 cleanup 字段，导致主干或调用方需要理解分支内部资源。
 - 前端组件是否把 presenter/manager/store 的能力层层透传，而不是连接最近业务 owner。

@@ -9,6 +9,7 @@ import { DesktopUpdateCoordinatorService } from "../services/update-coordinator.
 import { DesktopUpdateService } from "../services/update.service";
 import { DesktopBundleLayoutStore } from "../stores/bundle-layout.store";
 import { DesktopLauncherStateStore } from "../stores/launcher-state.store";
+import type { DesktopUpdateSourceService } from "../../services/desktop-update-source.service";
 import {
   bundlePublicKey,
   createBundleArchive,
@@ -18,6 +19,49 @@ import {
   withTempDir,
   writeBundleFixture
 } from "./launcher-test.utils";
+
+type TestCoordinatorOptions = {
+  stateStore: DesktopLauncherStateStore;
+  updateService: DesktopUpdateService;
+  bundleService?: DesktopBundleService;
+  bundleLifecycle?: DesktopBundleLifecycleService;
+  updateCapability?: ConstructorParameters<typeof DesktopUpdateCoordinatorService>[0]["updateCapability"];
+  resolveManifestUrl?: () => Promise<string | null>;
+  publishSnapshot?: ConstructorParameters<typeof DesktopUpdateCoordinatorService>[0]["publishSnapshot"];
+  onAutoDownloadedUpdateReady?: ConstructorParameters<typeof DesktopUpdateCoordinatorService>[0]["onAutoDownloadedUpdateReady"];
+};
+
+function createTestUpdateCoordinator(options: TestCoordinatorOptions): DesktopUpdateCoordinatorService {
+  const {
+    stateStore,
+    updateService,
+    bundleLifecycle,
+    bundleService,
+    updateCapability,
+    resolveManifestUrl,
+    publishSnapshot,
+    onAutoDownloadedUpdateReady
+  } = options;
+  const bundleManager = {
+    launcherStateStore: stateStore,
+    updateService,
+    bundleLifecycle: bundleLifecycle ?? ({} as DesktopBundleLifecycleService),
+    bundleService: bundleService ?? ({} as DesktopBundleService)
+  };
+  const updateSourceService = {
+    resolveChannel: () => stateStore.read().channel,
+    resolveManifestUrl: resolveManifestUrl ?? (async () => "https://example.com/manifest.json")
+  } as unknown as DesktopUpdateSourceService;
+
+  return new DesktopUpdateCoordinatorService({
+    launcherVersion: "0.1.0",
+    updateCapability,
+    bundleManager,
+    updateSourceService,
+    publishSnapshot,
+    onAutoDownloadedUpdateReady
+  });
+}
 
 test("downloads and installs an update without changing the active version", async () =>
   await withTempDir("nextclaw-update-download-only-", async (rootDir) => {
@@ -125,24 +169,19 @@ test("coordinator blocks updates for unsupported installation kinds", async () =
     const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
     await stateStore.write(createLauncherState({ currentVersion: "0.18.0" }));
     let checkInvocations = 0;
-    const coordinator = new DesktopUpdateCoordinatorService({
-      initialChannel: "stable",
-      launcherVersion: "0.1.0",
+    const coordinator = createTestUpdateCoordinator({
       updateCapability: {
         supported: false,
         blockReason: "unsupported-installation",
         message: "Portable Edition updates are manual."
       },
-      resolveManifestUrl: async () => "https://example.com/manifest.json",
       stateStore,
       updateService: {
         checkForUpdate: async () => {
           checkInvocations += 1;
           return null;
         }
-      } as unknown as DesktopUpdateService,
-      bundleLifecycle: {} as DesktopBundleLifecycleService,
-      bundleService: {} as DesktopBundleService
+      } as unknown as DesktopUpdateService
     });
 
     assert.equal(coordinator.getSnapshot().status, "blocked");
@@ -170,10 +209,7 @@ test("coordinator reports an available update without downloading by default", a
       releaseNotesUrl: "https://example.com/release-notes"
     });
     let downloadInvocations = 0;
-    const coordinator = new DesktopUpdateCoordinatorService({
-      initialChannel: "stable",
-      launcherVersion: "0.1.0",
-      resolveManifestUrl: async () => "https://example.com/manifest.json",
+    const coordinator = createTestUpdateCoordinator({
       stateStore,
       updateService: {
         checkForUpdate: async () => ({
@@ -243,10 +279,7 @@ test("coordinator downloads an update and waits for user-triggered apply", async
       stateStore,
       launcherVersion: "0.1.0"
     });
-    const coordinator = new DesktopUpdateCoordinatorService({
-      initialChannel: "stable",
-      launcherVersion: "0.1.0",
-      resolveManifestUrl: async () => "https://example.com/manifest.json",
+    const coordinator = createTestUpdateCoordinator({
       stateStore,
       updateService: {
         checkForUpdate: async () => ({
@@ -325,10 +358,7 @@ test("coordinator auto-downloads only when the preference is enabled", async () 
     });
     let autoReadyNotifications = 0;
     let downloadInvocations = 0;
-    const coordinator = new DesktopUpdateCoordinatorService({
-      initialChannel: "stable",
-      launcherVersion: "0.1.0",
-      resolveManifestUrl: async () => "https://example.com/manifest.json",
+    const coordinator = createTestUpdateCoordinator({
       stateStore,
       updateService: {
         checkForUpdate: async () => ({
@@ -376,10 +406,7 @@ test("background update check failures do not replace the primary status with fa
       })
     );
 
-    const coordinator = new DesktopUpdateCoordinatorService({
-      initialChannel: "stable",
-      launcherVersion: "0.1.0",
-      resolveManifestUrl: async () => "https://example.com/manifest.json",
+    const coordinator = createTestUpdateCoordinator({
       stateStore,
       updateService: {
         checkForUpdate: async () => {
@@ -413,10 +440,7 @@ test("manual update checks throw without replacing the primary status", async ()
       })
     );
 
-    const coordinator = new DesktopUpdateCoordinatorService({
-      initialChannel: "stable",
-      launcherVersion: "0.1.0",
-      resolveManifestUrl: async () => "https://example.com/manifest.json",
+    const coordinator = createTestUpdateCoordinator({
       stateStore,
       updateService: {
         checkForUpdate: async () => {
@@ -466,9 +490,7 @@ test("channel switching clears stale downloads and refreshes availability withou
       releaseNotesUrl: "https://example.com/beta-notes"
     });
     let downloadInvocations = 0;
-    const coordinator = new DesktopUpdateCoordinatorService({
-      initialChannel: "stable",
-      launcherVersion: "0.1.0",
+    const coordinator = createTestUpdateCoordinator({
       resolveManifestUrl: async () => "https://example.com/beta-manifest.json",
       stateStore,
       updateService: {

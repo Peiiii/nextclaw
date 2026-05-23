@@ -202,13 +202,13 @@ nextclaw status --json
 
 它不直接写 shim。否则 profile 会从“事实建模”膨胀成“文件副作用 owner”。
 
-### 9.2 DesktopCommandSurfaceService
+### 9.2 DesktopCommandSurfaceManager
 
 新增桌面命令面 owner，建议文件：
 
 ```text
-apps/desktop/src/services/desktop-command-surface.service.ts
-apps/desktop/src/services/desktop-command-surface.service.test.ts
+apps/desktop/src/managers/desktop-command-surface.manager.ts
+apps/desktop/src/managers/desktop-command-surface.manager.test.ts
 ```
 
 它负责：
@@ -357,7 +357,7 @@ desktop.commandSurface.ready binDir=... manifest=... installationKind=...
 
 ### 14.1 单元测试
 
-- `DesktopCommandSurfaceService`：
+- `DesktopCommandSurfaceManager`：
   - 为 installed profile 生成 manifest 和 shim。
   - 为 portable profile 生成 portable 数据目录下的 manifest 和 shim。
   - POSIX shim 包含 `ELECTRON_RUN_AS_NODE=1`、app executable、bridge、manifest。
@@ -414,7 +414,7 @@ nextclaw doctor --json
 
 ### 阶段一：命令面 owner
 
-1. 新增 `DesktopCommandSurfaceService` 及单测。
+1. 新增 `DesktopCommandSurfaceManager` 及单测。
 2. 新增 command surface manifest 类型。
 3. 在桌面 main 启动链路中，在 runtime 启动前 ensure command surface。
 4. 将 `NEXTCLAW_COMMAND_SURFACE_BIN` 注入 desktop runtime env。

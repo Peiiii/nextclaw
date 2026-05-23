@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
-import { DesktopCommandSurfaceService, type DesktopCommandSurfaceManifest } from "./desktop-command-surface.service";
+import { DesktopCommandSurfaceManager, type DesktopCommandSurfaceManifest } from "./desktop-command-surface.manager";
 import type { DesktopInstallationProfile } from "../utils/desktop-installation-profile.utils";
 
 function createProfile(root: string, installationKind: DesktopInstallationProfile["installationKind"]): DesktopInstallationProfile {
@@ -28,11 +28,16 @@ function createProfile(root: string, installationKind: DesktopInstallationProfil
 test("desktop command surface writes manifest and shims for installed profile", async () => {
   const root = mkdtempSync(join(tmpdir(), "nextclaw-command-surface-"));
   try {
-    const result = await new DesktopCommandSurfaceService({
+    const runtimeScriptPath = join(root, "node_modules", "nextclaw", "dist", "cli", "app", "index.js");
+    mkdirSync(dirname(runtimeScriptPath), { recursive: true });
+    writeFileSync(runtimeScriptPath, "");
+    const result = await new DesktopCommandSurfaceManager({
       profile: createProfile(root, "installed"),
       appExecutablePath: "/Applications/NextClaw Desktop.app/Contents/MacOS/NextClaw Desktop",
-      commandBridgeScriptPath: "/Applications/NextClaw Desktop.app/Contents/Resources/app.asar/dist/src/utils/desktop-command-bridge.utils.js",
-      packagedRuntimeScriptPath: "/Applications/NextClaw Desktop.app/Contents/Resources/app.asar/node_modules/nextclaw/dist/cli/app/index.js",
+      appIsPackaged: false,
+      appPath: root,
+      resourcesPath: join(root, "resources"),
+      compiledMainDir: "/Applications/NextClaw Desktop.app/Contents/Resources/app.asar/dist/src",
       launcherVersion: "0.0.189"
     }).ensure();
 
@@ -58,11 +63,13 @@ test("desktop command surface writes manifest and shims for installed profile", 
 test("desktop command surface is idempotent for portable profile", async () => {
   const root = mkdtempSync(join(tmpdir(), "nextclaw-command-surface-portable-"));
   try {
-    const service = new DesktopCommandSurfaceService({
+    const service = new DesktopCommandSurfaceManager({
       profile: createProfile(root, "portable"),
       appExecutablePath: join(root, "NextClaw Desktop.exe"),
-      commandBridgeScriptPath: join(root, "resources", "desktop-command-bridge.js"),
-      packagedRuntimeScriptPath: null,
+      appIsPackaged: true,
+      appPath: root,
+      resourcesPath: join(root, "resources"),
+      compiledMainDir: join(root, "dist", "src"),
       launcherVersion: "0.0.189"
     });
 

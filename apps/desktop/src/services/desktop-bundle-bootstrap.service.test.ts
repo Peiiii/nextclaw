@@ -4,6 +4,9 @@ import { existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
+import { DesktopBundleLifecycleService } from "../launcher/services/bundle-lifecycle.service";
+import { DesktopBundleService } from "../launcher/services/bundle.service";
+import { DesktopUpdateService } from "../launcher/services/update.service";
 import { DesktopBundleLayoutStore } from "../launcher/stores/bundle-layout.store";
 import { DesktopLauncherStateStore } from "../launcher/stores/launcher-state.store";
 import { createBundleArchive, createLauncherState, withTempDir, writeBundleFixture } from "../launcher/__tests__/launcher-test.utils";
@@ -33,6 +36,12 @@ function createBootstrapService(
   seedBundlePath: string,
   launcherBuildFingerprint = "launcher-a"
 ): DesktopBundleBootstrapService {
+  const launcherStateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+  const bundleService = new DesktopBundleService({
+    layout,
+    stateStore: launcherStateStore,
+    launcherVersion: "0.1.0"
+  });
   return new DesktopBundleBootstrapService({
     logger: {
       info: () => {},
@@ -44,7 +53,19 @@ function createBootstrapService(
     resolveManifestUrl: async () => null,
     bundlePublicKey: null,
     seedBundlePath,
-    launcherBuildFingerprint
+    launcherBuildFingerprint,
+    launcherStateStore,
+    bundleService,
+    bundleLifecycle: new DesktopBundleLifecycleService({
+      layout,
+      stateStore: launcherStateStore,
+      bundleService
+    }),
+    updateService: new DesktopUpdateService({
+      layout,
+      channel: "stable",
+      launcherVersion: "0.1.0"
+    })
   });
 }
 
@@ -246,6 +267,11 @@ test("uses packaged seed metadata to skip older seed archives without opening th
       })
     );
 
+    const bundleService = new DesktopBundleService({
+      layout,
+      stateStore,
+      launcherVersion: "0.1.0"
+    });
     const service = new DesktopBundleBootstrapService({
       logger: {
         info: () => {},
@@ -264,7 +290,19 @@ test("uses packaged seed metadata to skip older seed archives without opening th
         fileCount: 1,
         directoryCount: 1,
         uncompressedBytes: 10
-      }
+      },
+      launcherStateStore: stateStore,
+      bundleService,
+      bundleLifecycle: new DesktopBundleLifecycleService({
+        layout,
+        stateStore,
+        bundleService
+      }),
+      updateService: new DesktopUpdateService({
+        layout,
+        channel: "stable",
+        launcherVersion: "0.1.0"
+      })
     });
 
     await service.ensureInitialBundleAvailability();

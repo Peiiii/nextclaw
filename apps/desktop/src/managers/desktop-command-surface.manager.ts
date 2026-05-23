@@ -24,20 +24,7 @@ export type DesktopCommandSurfaceResult = {
   runtimeEnvPatch: Record<string, string>;
 };
 
-type DesktopCommandSurfaceServiceOptions = {
-  profile: DesktopInstallationProfile;
-  appExecutablePath: string;
-  commandBridgeScriptPath: string;
-  packagedRuntimeScriptPath: string | null;
-  launcherVersion: string;
-  writeTextFile?: (path: string, content: string) => Promise<void>;
-  renameFile?: (source: string, target: string) => Promise<void>;
-  chmodFile?: (path: string, mode: number) => Promise<void>;
-  makeDirectory?: (path: string) => Promise<void>;
-  statPath?: (path: string) => Promise<Pick<Stats, "isDirectory">>;
-};
-
-type ElectronCommandSurfaceContext = {
+type DesktopCommandSurfaceManagerOptions = {
   profile: DesktopInstallationProfile;
   appExecutablePath: string;
   appIsPackaged: boolean;
@@ -45,6 +32,12 @@ type ElectronCommandSurfaceContext = {
   resourcesPath: string;
   compiledMainDir: string;
   launcherVersion: string;
+  fileExists?: (path: string) => boolean;
+  writeTextFile?: (path: string, content: string) => Promise<void>;
+  renameFile?: (source: string, target: string) => Promise<void>;
+  chmodFile?: (path: string, mode: number) => Promise<void>;
+  makeDirectory?: (path: string) => Promise<void>;
+  statPath?: (path: string) => Promise<Pick<Stats, "isDirectory">>;
 };
 
 function shellQuote(value: string): string {
@@ -53,13 +46,6 @@ function shellQuote(value: string): string {
 
 function resolveCommandBridgeScriptPath(compiledMainDir: string): string {
   return join(compiledMainDir, "utils", "desktop-command-bridge.utils.js");
-}
-
-function resolvePackagedRuntimeScriptPath(context: ElectronCommandSurfaceContext): string | null {
-  const packagedRuntimeScriptPath = context.appIsPackaged
-    ? join(context.resourcesPath, "app.asar", "node_modules", "nextclaw", "dist", "cli", "app", "index.js")
-    : resolve(context.appPath, "node_modules", "nextclaw", "dist", "cli", "app", "index.js");
-  return existsSync(packagedRuntimeScriptPath) ? packagedRuntimeScriptPath : null;
 }
 
 function createPosixShim(manifest: DesktopCommandSurfaceManifest, manifestPath: string): string {
@@ -85,14 +71,16 @@ function createWindowsShim(manifest: DesktopCommandSurfaceManifest, manifestPath
   ].join("\r\n");
 }
 
-export class DesktopCommandSurfaceService {
+export class DesktopCommandSurfaceManager {
+  private readonly fileExists: (path: string) => boolean;
   private readonly writeTextFile: (path: string, content: string) => Promise<void>;
   private readonly renameFile: (source: string, target: string) => Promise<void>;
   private readonly chmodFile: (path: string, mode: number) => Promise<void>;
   private readonly makeDirectory: (path: string) => Promise<void>;
   private readonly statPath: (path: string) => Promise<Pick<Stats, "isDirectory">>;
 
-  constructor(private readonly options: DesktopCommandSurfaceServiceOptions) {
+  constructor(private readonly options: DesktopCommandSurfaceManagerOptions) {
+    this.fileExists = options.fileExists ?? existsSync;
     this.writeTextFile = options.writeTextFile ?? ((path, content) => writeFile(path, content, "utf8"));
     this.renameFile = options.renameFile ?? rename;
     this.chmodFile = options.chmodFile ?? chmod;
@@ -130,9 +118,9 @@ export class DesktopCommandSurfaceService {
     desktopDataDir: this.options.profile.desktopDataDir,
     runtimeHome: this.options.profile.runtimeHome,
     appExecutablePath: this.options.appExecutablePath,
-    commandBridgeScriptPath: this.options.commandBridgeScriptPath,
+    commandBridgeScriptPath: resolveCommandBridgeScriptPath(this.options.compiledMainDir),
     commandSurfaceBinDir: binDir,
-    packagedRuntimeScriptPath: this.options.packagedRuntimeScriptPath,
+    packagedRuntimeScriptPath: this.resolvePackagedRuntimeScriptPath(),
     launcherVersion: this.options.launcherVersion
   });
 
@@ -149,15 +137,11 @@ export class DesktopCommandSurfaceService {
       throw new Error(`Desktop command surface bin path is not a directory: ${path}`);
     }
   };
-}
 
-export function createDesktopCommandSurfaceService(context: ElectronCommandSurfaceContext): DesktopCommandSurfaceService {
-  const { profile, appExecutablePath, launcherVersion } = context;
-  return new DesktopCommandSurfaceService({
-    profile,
-    appExecutablePath,
-    commandBridgeScriptPath: resolveCommandBridgeScriptPath(context.compiledMainDir),
-    packagedRuntimeScriptPath: resolvePackagedRuntimeScriptPath(context),
-    launcherVersion
-  });
+  private resolvePackagedRuntimeScriptPath = (): string | null => {
+    const packagedRuntimeScriptPath = this.options.appIsPackaged
+      ? join(this.options.resourcesPath, "app.asar", "node_modules", "nextclaw", "dist", "cli", "app", "index.js")
+      : resolve(this.options.appPath, "node_modules", "nextclaw", "dist", "cli", "app", "index.js");
+    return this.fileExists(packagedRuntimeScriptPath) ? packagedRuntimeScriptPath : null;
+  };
 }

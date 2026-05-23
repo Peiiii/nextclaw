@@ -4,7 +4,6 @@ import {
   app,
   ipcMain,
   nativeImage,
-  type BrowserWindow,
   type Event as ElectronEvent,
   type MenuItem,
   type MenuItemConstructorOptions,
@@ -20,6 +19,12 @@ import {
   DESKTOP_PRESENCE_GET_STATE_CHANNEL,
   DESKTOP_PRESENCE_UPDATE_PREFERENCES_CHANNEL
 } from "../utils/desktop-ipc.utils";
+import type { DesktopWindowManager } from "../managers/desktop-window.manager";
+import {
+  drainDesktopCleanups,
+  removeDesktopIpcHandlers,
+  type DesktopCleanup
+} from "../utils/desktop-lifecycle.utils";
 
 type DesktopPresenceLogger = {
   info: (message: string) => void;
@@ -39,9 +44,8 @@ export type DesktopPresenceSnapshot = DesktopPresencePreferences & {
 
 type DesktopPresenceServiceOptions = {
   logger: DesktopPresenceLogger;
-  getWindow: () => BrowserWindow | null;
-  createLauncherStateStore: () => DesktopLauncherStateStore;
-  requestApplicationQuit: () => void;
+  windowManager: DesktopWindowManager;
+  launcherStateStore: DesktopLauncherStateStore;
 };
 
 const DEFAULT_PRESENCE_PREFERENCES: DesktopPresencePreferences = {
@@ -50,12 +54,23 @@ const DEFAULT_PRESENCE_PREFERENCES: DesktopPresencePreferences = {
 };
 
 export class DesktopPresenceService {
+  private readonly cleanups: DesktopCleanup[] = [];
   private tray: Tray | null = null;
   private quitting = false;
 
   constructor(private readonly options: DesktopPresenceServiceOptions) {}
 
-  registerIpcHandlers = (): void => {
+  start = (): void => {
+    this.dispose();
+    this.registerIpcHandlers();
+    this.installTray();
+  };
+
+  dispose = (): void => {
+    drainDesktopCleanups(this.cleanups);
+  };
+
+  private registerIpcHandlers = (): void => {
     ipcMain.removeAllListeners(DESKTOP_LOCALE_GET_CHANNEL);
     ipcMain.removeHandler(DESKTOP_LOCALE_SET_CHANNEL);
     ipcMain.removeHandler(DESKTOP_PRESENCE_GET_STATE_CHANNEL);
@@ -74,9 +89,17 @@ export class DesktopPresenceService {
       async (_event, preferences: Partial<DesktopPresencePreferences> | undefined) =>
         await this.updatePreferences(preferences ?? {})
     );
+    this.cleanups.push(() => {
+      ipcMain.removeAllListeners(DESKTOP_LOCALE_GET_CHANNEL);
+      removeDesktopIpcHandlers(
+        DESKTOP_LOCALE_SET_CHANNEL,
+        DESKTOP_PRESENCE_GET_STATE_CHANNEL,
+        DESKTOP_PRESENCE_UPDATE_PREFERENCES_CHANNEL
+      )();
+    });
   };
 
-  installTray = (): void => {
+  private installTray = (): void => {
     if (this.tray) {
       this.refreshTrayMenu();
       return;
@@ -87,6 +110,11 @@ export class DesktopPresenceService {
     this.tray.setToolTip("NextClaw");
     this.tray.on("click", this.showMainWindow);
     this.refreshTrayMenu();
+    this.cleanups.push(() => {
+      this.tray?.removeListener("click", this.showMainWindow);
+      this.tray?.destroy();
+      this.tray = null;
+    });
   };
 
   handleWindowClose = (event: ElectronEvent): void => {
@@ -114,7 +142,7 @@ export class DesktopPresenceService {
   handleAllWindowsClosed = (): void => {
     if (this.quitting || !this.getSnapshot().closeToBackground) {
       this.options.logger.info("All desktop windows closed. Quitting launcher.");
-      this.options.requestApplicationQuit();
+      app.quit();
       return;
     }
     this.options.logger.info("All desktop windows closed. Keeping launcher alive in background.");
@@ -126,25 +154,15 @@ export class DesktopPresenceService {
 
   requestExplicitQuit = (): void => {
     this.markQuitting();
-    this.options.requestApplicationQuit();
+    app.quit();
   };
 
   showMainWindow = (): void => {
-    const window = this.options.getWindow();
-    if (!window) {
-      return;
-    }
-    if (window.isMinimized()) {
-      window.restore();
-    }
-    if (!window.isVisible()) {
-      window.show();
-    }
-    window.focus();
+    this.options.windowManager.showMainWindow();
   };
 
   hideMainWindow = (): void => {
-    this.options.getWindow()?.hide();
+    this.options.windowManager.hideMainWindow();
   };
 
   getSnapshot = (): DesktopPresenceSnapshot => {
@@ -170,7 +188,7 @@ export class DesktopPresenceService {
       this.applyLaunchAtLogin(preferencesPatch.launchAtLogin);
     }
 
-    await this.options.createLauncherStateStore().update((state) => ({
+    await this.options.launcherStateStore.update((state) => ({
       ...state,
       presencePreferences: nextPreferences
     }));
@@ -233,17 +251,17 @@ export class DesktopPresenceService {
   };
 
   private readPreferences = (): DesktopPresencePreferences => {
-    const state = this.options.createLauncherStateStore().read();
+    const state = this.options.launcherStateStore.read();
     return state.presencePreferences ?? { ...DEFAULT_PRESENCE_PREFERENCES };
   };
 
   private readLocalePreference = (): DesktopUiLanguagePreference | null => {
-    return this.options.createLauncherStateStore().read().languagePreference ?? null;
+    return this.options.launcherStateStore.read().languagePreference ?? null;
   };
 
   private updateLocalePreference = async (language: unknown): Promise<DesktopUiLanguagePreference | null> => {
     const normalizedLanguage = normalizeDesktopUiLanguagePreference(language);
-    const nextState = await this.options.createLauncherStateStore().update((state) => ({
+    const nextState = await this.options.launcherStateStore.update((state) => ({
       ...state,
       languagePreference: normalizedLanguage
     }));
