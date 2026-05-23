@@ -20,9 +20,9 @@ import {
   ingressKeys,
   type AgentRunSendIngressPayload,
 } from "@nextclaw/shared";
-import { AgentRunRequestManager } from "./agent-run-request.manager.js";
-import type { AgentRuntimeManager } from "./agent-runtime.manager.js";
-import { SessionRunManager } from "./session-run.manager.js";
+import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
+import type { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
+import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 
 function createRuntimeManagerStub() {
   const runtimeInputs: NcpAgentRunInput[] = [];

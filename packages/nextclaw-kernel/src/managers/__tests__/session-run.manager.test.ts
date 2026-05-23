@@ -7,8 +7,8 @@ import {
   type AgentSessionRecord,
   type RuntimeFactoryParams,
 } from "@nextclaw/ncp-toolkit";
-import { SessionRunManager } from "./session-run.manager.js";
-import type { AgentRuntimeManager } from "./agent-runtime.manager.js";
+import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
+import type { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
 
 function createRuntimeManagerStub(): AgentRuntimeManager {
   return {

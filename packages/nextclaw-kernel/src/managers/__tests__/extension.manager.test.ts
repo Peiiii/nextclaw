@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PluginChannelBinding, PluginRegistry } from "@nextclaw/openclaw-compat";
 import type * as OpenClawCompatModule from "@nextclaw/openclaw-compat";
-import { ExtensionManager } from "./extension.manager.js";
+import { ExtensionManager } from "@kernel/managers/extension.manager.js";
 
 const mocks = vi.hoisted(() => ({
   discoverPluginStatusReportMock: vi.fn(),

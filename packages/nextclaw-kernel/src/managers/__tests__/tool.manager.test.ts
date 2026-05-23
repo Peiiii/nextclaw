@@ -6,7 +6,7 @@ import {
 } from "@nextclaw/core";
 import type { NcpTool } from "@nextclaw/ncp";
 import { describe, expect, it, vi } from "vitest";
-import { ToolManager, type ToolRunContext } from "./tool.manager.js";
+import { ToolManager, type ToolRunContext } from "@kernel/managers/tool.manager.js";
 
 class EchoTool extends Tool {
   readonly name = "echo";

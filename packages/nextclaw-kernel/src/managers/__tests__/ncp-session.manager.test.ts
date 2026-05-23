@@ -2,12 +2,11 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { SessionManager } from "@nextclaw/core";
-import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
+import type { NcpMessage } from "@nextclaw/ncp";
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import { EventBus } from "@nextclaw/shared";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
-import { NcpSessionManager } from "./ncp-session.manager.js";
+import { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
 
 vi.mock("@kernel/features/context-compaction/index.js", () => ({
   ContextCompactionManager: class {
@@ -94,7 +93,6 @@ function createRecord(params: {
 async function createFixture(records: AgentSessionRecord[] = []) {
   const eventBus = new EventBus();
   const sessionsDir = createTempDir();
-  const sessionManager = new SessionManager({ sessionsDir });
   const journalStore = new NcpAgentSessionJournalStore(join(sessionsDir, ".ncp-agent-journal"));
   const onSessionUpdated = vi.fn();
   for (const record of records) {
@@ -105,14 +103,12 @@ async function createFixture(records: AgentSessionRecord[] = []) {
     getConfig: createConfig,
     journalStore,
     onSessionUpdated,
-    sessionManager,
   });
   return {
     eventBus,
     journalStore,
     manager,
     onSessionUpdated,
-    sessionManager,
   };
 }
 
@@ -194,46 +190,5 @@ describe("NcpSessionManager", () => {
         preferred_model: "openai/gpt-5",
       },
     });
-    expect(fixture.sessionManager.getIfExists(created.sessionId)).toBeNull();
-  });
-
-  it("imports a legacy session only when appending a new event", async () => {
-    const fixture = await createFixture();
-    const legacy = fixture.sessionManager.createSession({
-      task: "legacy",
-      title: "Legacy",
-      sourceSessionMetadata: {},
-      metadataOverrides: { label: "Legacy" },
-    });
-
-    expect(await fixture.journalStore.hasSession(legacy.sessionId)).toBe(false);
-    expect(await fixture.manager.getSession(legacy.sessionId)).toMatchObject({
-      sessionId: legacy.sessionId,
-      metadata: { label: "Legacy" },
-    });
-    expect(await fixture.journalStore.hasSession(legacy.sessionId)).toBe(false);
-
-    await fixture.manager.appendSessionEvent({
-      session: {
-        sessionId: legacy.sessionId,
-        createdAt: legacy.createdAt,
-        updatedAt: "2026-05-12T00:00:00.000Z",
-        metadata: {},
-      },
-      event: {
-        type: NcpEventType.MessageSent,
-        payload: {
-          sessionId: legacy.sessionId,
-          message: createMessage({
-            id: "user-1",
-            sessionId: legacy.sessionId,
-            text: "hello",
-          }),
-        },
-      },
-      updatedAt: "2026-05-12T00:00:00.000Z",
-    });
-
-    expect(await fixture.journalStore.hasSession(legacy.sessionId)).toBe(true);
   });
 });

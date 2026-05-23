@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Config, ExtensionRegistry } from "@nextclaw/core";
-import { ConfigManager } from "./config.manager.js";
+import { ConfigManager } from "@kernel/managers/config.manager.js";
 
 const tempDirs: string[] = [];
 

@@ -2,8 +2,6 @@ import path from "node:path";
 
 import { FLAT_ROLE_DIRECTORY_NAMES } from "./module-structure-contracts.mjs";
 
-const looksLikeFileSegment = (segment) => Boolean(path.posix.extname(segment));
-
 export const evaluateFlatRoleDirectoryFindings = ({
   filePath,
   segments,
@@ -18,7 +16,9 @@ export const evaluateFlatRoleDirectoryFindings = ({
     !roleDirectoryName ||
     !nestedDirectoryName ||
     !FLAT_ROLE_DIRECTORY_NAMES.has(roleDirectoryName) ||
-    looksLikeFileSegment(nestedDirectoryName)
+    nestedDirectoryName === "__tests__" ||
+    nestedDirectoryName === "tests" ||
+    Boolean(path.posix.extname(nestedDirectoryName))
   ) {
     return [];
   }

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
@@ -38,6 +38,9 @@ const listWorkspaceRoots = () => {
   const repoRoot = process.cwd();
   const collectImmediateWorkspaceRoots = (relativeDirectory) => {
     const absoluteDirectory = path.join(repoRoot, relativeDirectory);
+    if (!existsSync(absoluteDirectory)) {
+      return [];
+    }
     return readdirSync(absoluteDirectory, { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
       .map((entry) => path.posix.join(relativeDirectory, entry.name))
@@ -352,6 +355,18 @@ test("blocks nested directories under flat role dirs at package root", () => {
   assert.equal(findings.length, 1);
   assert.equal(findings[0].level, "error");
   assert.match(findings[0].message, /may only contain direct files/);
+});
+
+test("allows test containers under flat role dirs at package root", () => {
+  const contract = findModuleStructureContract("packages/nextclaw-kernel/src/managers/__tests__/config.manager.test.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "packages/nextclaw-kernel/src/managers/__tests__/config.manager.test.ts",
+    contract,
+    existedInComparisonRef: false,
+    rootEntryExistedInComparisonRef: true
+  });
+
+  assert.equal(findings.length, 0);
 });
 
 test("blocks nested directories under hooks at package root", () => {
