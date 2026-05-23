@@ -74,6 +74,8 @@
 - 十六次排查修正：最小 Electron app-region smoke 改为直接启动 `node_modules/electron/dist/electron.exe`，避免 `electron.cmd` wrapper 进程清理不完整影响后续 Windows build step。
 - 十七次排查失败证据：`desktop-validate` run `26324272658` 中，最小 Electron app-region 的 `frame:false`、`frame:false + titleBarStyle:"hidden"`、HTTP 加载三种官方对照均返回 `HTCAPTION(2)`；但 NextClaw `/chat` 页面的 `(320,24)`、`(400,24)`、`(700,24)` 已命中 `desktop-window-chrome` 且 computed `app-region=drag` 时，main / point HWND 仍返回 `HTCLIENT(1)`。因此“空 overlay DOM”“local HTTP 直载”“基础 hidden frameless 配置”均不是根因。
 - 十七次排查新增对照实验：最小 Electron app-region smoke 继续补充 `sandbox:false + preload`、先加载 `data:` 启动页再跳 HTTP、以及接近 NextClaw 的 rounded/flex/overflow titlebar 布局；下一轮 Windows CI 先用这些对照定位差异层，再决定是否进入产品代码修复。
+- 十八次排查收敛根因：`desktop-validate` run `26324463530` 中，`sandbox:false + preload + HTTP 直载` 仍返回 `HTCAPTION(2)`，但 `sandbox:false + preload + 先加载无 app-region 的 data: 启动页再跳 HTTP` 首次返回 `HTCLIENT(1)`。这与 NextClaw 当前启动路径一致，因此根因收敛为 Windows/Electron 在启动页到运行时页面导航后没有恢复 draggable region native registry。
+- 十八次修正：`data:` 启动页的 `body` 从第一帧开始声明 `app-region: drag` / `-webkit-app-region: drag` / `user-select: none`；最小 smoke 新增 “无启动页 drag 预期失败” 与 “有启动页 drag 必须通过” 两个对照，确保修复点仍走 Electron 官方 draggable region 合同。
 - 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
 - 已通过：`pnpm lint:new-code:governance -- apps/desktop/src/utils/desktop-window-options.utils.ts apps/desktop/src/utils/desktop-window-options.utils.test.ts packages/nextclaw-ui/src/platforms/desktop/components/desktop-window-chrome.tsx packages/nextclaw-ui/src/platforms/desktop/components/desktop-app-shell.test.tsx docs/logs/v0.19.6-windows-desktop-titlebar-drag/README.md`
 - 已通过：`pnpm check:governance-backlog-ratchet`

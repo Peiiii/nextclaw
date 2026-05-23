@@ -276,7 +276,8 @@ function New-MinimalAppRegionApp {
     [string]$LoadMode,
     [string]$WebPreferenceLines = "      sandbox: true",
     [string]$Layout = "simple",
-    [switch]$Preload
+    [switch]$Preload,
+    [switch]$StartupDrag
   )
 
   $appRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("nextclaw-minimal-app-region-$Variant-" + [System.Guid]::NewGuid().ToString("N"))
@@ -319,11 +320,15 @@ contextBridge.exposeInMainWorld("nextclawMinimalPreload", {
   });
 '@
   } elseif ($LoadMode -eq "data-then-http") {
-@'
+    $startupBodyStyle = "margin:0;display:grid;place-items:center;width:100%;height:100%;font-family:system-ui,sans-serif"
+    if ($StartupDrag) {
+      $startupBodyStyle = "$startupBodyStyle;-webkit-app-region:drag;app-region:drag;user-select:none"
+    }
+@"
   const fs = require("node:fs");
   const http = require("node:http");
-  const startupHtml = "<!doctype html><html><body style=\"margin:0;display:grid;place-items:center;width:100%;height:100%;font-family:system-ui,sans-serif\">Starting NextClaw...</body></html>";
-  await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(startupHtml)}`);
+  const startupHtml = "<!doctype html><html><body style=\"$startupBodyStyle\">Starting NextClaw...</body></html>";
+  await win.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(startupHtml));
   const indexPath = path.join(__dirname, "index.html");
   const server = http.createServer((_request, response) => {
     response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
@@ -331,13 +336,13 @@ contextBridge.exposeInMainWorld("nextclawMinimalPreload", {
   });
   server.listen(0, "127.0.0.1", async () => {
     const { port } = server.address();
-    await win.loadURL(`http://127.0.0.1:${port}/chat`);
+    await win.loadURL("http://127.0.0.1:" + port + "/chat");
     win.show();
   });
   app.once("before-quit", () => {
     server.close();
   });
-'@
+"@
   } else {
 @'
   await win.loadFile(path.join(__dirname, "index.html"));
@@ -569,7 +574,7 @@ $variants = @(
     Preload = $true
   },
   [pscustomobject]@{
-    Name = "frame-false-hidden-data-http-preload-sandbox-false"
+    Name = "frame-false-hidden-data-http-preload-sandbox-false-no-startup-drag"
     WindowOptionLines = @'
     frame: false,
     titleBarStyle: "hidden",
@@ -580,9 +585,24 @@ $variants = @(
       preload: path.join(__dirname, "preload.js")
 '@
     Preload = $true
+    ExpectCaption = $false
   },
   [pscustomobject]@{
-    Name = "nextclaw-layout-data-http-preload-sandbox-false"
+    Name = "frame-false-hidden-data-http-preload-sandbox-false-startup-drag"
+    WindowOptionLines = @'
+    frame: false,
+    titleBarStyle: "hidden",
+'@
+    LoadMode = "data-then-http"
+    WebPreferenceLines = @'
+      sandbox: false,
+      preload: path.join(__dirname, "preload.js")
+'@
+    Preload = $true
+    StartupDrag = $true
+  },
+  [pscustomobject]@{
+    Name = "nextclaw-layout-data-http-preload-sandbox-false-startup-drag"
     WindowOptionLines = @'
     frame: false,
     titleBarStyle: "hidden",
@@ -594,6 +614,7 @@ $variants = @(
 '@
     Layout = "nextclaw"
     Preload = $true
+    StartupDrag = $true
   }
 )
 
@@ -604,13 +625,26 @@ foreach ($variant in $variants) {
   $variantWebPreferenceLines = if ($variant.PSObject.Properties.Name -contains "WebPreferenceLines") { $variant.WebPreferenceLines } else { "      sandbox: true" }
   $variantLayout = if ($variant.PSObject.Properties.Name -contains "Layout") { $variant.Layout } else { "simple" }
   $variantPreload = $variant.PSObject.Properties.Name -contains "Preload" -and $variant.Preload
-  $appRoot = New-MinimalAppRegionApp -Variant $variant.Name -WindowOptionLines $variant.WindowOptionLines -LoadMode $variantLoadMode -WebPreferenceLines $variantWebPreferenceLines -Layout $variantLayout -Preload:$variantPreload
+  $variantStartupDrag = $variant.PSObject.Properties.Name -contains "StartupDrag" -and $variant.StartupDrag
+  $variantExpectCaption = -not ($variant.PSObject.Properties.Name -contains "ExpectCaption") -or $variant.ExpectCaption
+  $appRoot = New-MinimalAppRegionApp -Variant $variant.Name -WindowOptionLines $variant.WindowOptionLines -LoadMode $variantLoadMode -WebPreferenceLines $variantWebPreferenceLines -Layout $variantLayout -Preload:$variantPreload -StartupDrag:$variantStartupDrag
   Write-Host "[minimal-app-region] $($variant.Name) app: $appRoot"
   $electronProcess = Start-Process -FilePath $electronCmd -ArgumentList @($appRoot) -WorkingDirectory $repoRoot -PassThru
 
   try {
-    Invoke-MinimalAppRegionDragProbe -RootPid $electronProcess.Id -Variant $variant.Name
-    Write-Host "[minimal-app-region] $($variant.Name) drag smoke passed"
+    try {
+      Invoke-MinimalAppRegionDragProbe -RootPid $electronProcess.Id -Variant $variant.Name
+      if ($variantExpectCaption) {
+        Write-Host "[minimal-app-region] $($variant.Name) drag smoke passed"
+      } else {
+        Write-Warning "[minimal-app-region] $($variant.Name) unexpectedly produced HTCAPTION(2); keep investigating whether Electron changed startup navigation behavior."
+      }
+    } catch {
+      if ($variantExpectCaption) {
+        throw
+      }
+      Write-Warning "[minimal-app-region] $($variant.Name) failed as expected: $($_.Exception.Message)"
+    }
   } finally {
     Stop-ProcessTree -RootPid $electronProcess.Id
     Remove-Item -Recurse -Force -Path $appRoot -ErrorAction SilentlyContinue

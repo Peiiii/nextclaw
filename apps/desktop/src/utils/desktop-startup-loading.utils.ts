@@ -19,32 +19,21 @@ const startupLoadingHtml = String.raw`<!doctype html>
         display: flex;
         align-items: center;
         justify-content: center;
+        user-select: none;
+        -webkit-app-region: drag;
+        app-region: drag;
       }
 
       main {
         display: flex;
         align-items: center;
-        gap: 14px;
         font-size: 15px;
         font-weight: 600;
-      }
-
-      .mark {
-        width: 42px;
-        height: 42px;
-        border-radius: 10px;
-        display: grid;
-        place-items: center;
-        background: #1f1d1a;
-        color: #f8c646;
-        font-size: 24px;
-        font-weight: 800;
       }
     </style>
   </head>
   <body>
     <main>
-      <div class="mark">Y</div>
       <span>Starting NextClaw...</span>
     </main>
   </body>
