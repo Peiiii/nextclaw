@@ -1,5 +1,13 @@
 # @nextclaw/desktop
 
+## 0.0.188
+
+### Patch Changes
+
+- Keep desktop chrome active on Windows desktop hosts at compact window sizes.
+- Updated dependencies
+  - nextclaw@0.19.25
+
 ## 0.0.187
 
 ### Patch Changes

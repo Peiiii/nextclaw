@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.19.25
+
+### Patch Changes
+
+- Keep Windows desktop titlebar drag available after resizing into compact viewports.
+
 ## 0.19.24
 
 ### Patch Changes
