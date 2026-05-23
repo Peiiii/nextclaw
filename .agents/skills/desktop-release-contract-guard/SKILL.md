@@ -87,6 +87,13 @@ description: Use when building, verifying, or releasing NextClaw desktop install
    - official website/download links, when changed, are deployed and verified against the completed release
 
 ## Beta Preview Automation
+- Preferred one-command entry:
+  - `pnpm release:desktop:beta`
+- Use this command instead of manually chaining local verify, GitHub release creation, workflow polling, release asset checks, and beta manifest verification.
+- Pass-through examples:
+  - `pnpm release:desktop:beta -- --dry-run`
+  - `pnpm release:desktop:beta -- --tag v0.19.27-desktop-beta.1`
+  - `pnpm release:desktop:beta -- --skip-local-verify` only after the exact equivalent local gate has already passed in the current release context.
 - For desktop beta previews, use the closure script to reduce manual polling and token-heavy workflow dumps:
   - `node scripts/release/desktop-beta-preview-closure.mjs --tag <tag> --desktop-version <desktopVersion> --runtime-version <runtimeVersion> --minimum-launcher-version <floor>`
 - The script is the preferred post-release gate because it:
@@ -98,6 +105,18 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - If the public Pages URL still shows the previous version but `origin/gh-pages` has the new manifest, report it as propagation delay and keep the script/poll running instead of creating another release.
 - Use `--run-id <id>` when a workflow run is already known; this avoids searching and keeps logs smaller.
 - Use `--skip-public-pages` only when explicitly handing off a release whose public update channel propagation will be checked by a separate automation; do not use it to claim update-channel completion.
+
+## Stable Desktop Release Automation
+- Preferred one-command entry:
+  - `pnpm release:desktop:stable`
+- The command must close the formal release contract:
+  - clean worktree and non-behind branch check;
+  - local `pnpm desktop:package:verify` unless explicitly skipped for a documented equivalent gate;
+  - GitHub release/tag creation unless `--reuse-existing-release` is supplied for recovery;
+  - `desktop-release` workflow success;
+  - release assets, `gh-pages` stable manifest, public stable manifest, and stable APT repo verification.
+- For stable releases, use `--notes-file <path>` when curated bilingual release notes already exist. The generated fallback notes are acceptable for mechanical dry-runs and low-context recovery, but a user-facing formal release should still prefer reviewed notes.
+- Website / landing stable fallback updates are downstream publication surfaces. They are not part of `pnpm release:desktop:stable` because they must happen only after the GitHub release assets and public stable update channel are already verified.
 
 ## Cost-Control Release Discipline
 - Before creating a new desktop beta tag, fetch and compare current `HEAD`, `origin/master`, and the intended tag target.

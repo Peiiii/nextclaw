@@ -86,6 +86,12 @@
 
 - 用途：发布桌面端 beta preview，包括 installer / portable / update bundle / update manifest 的完整闭环。
 - 输入格式：`/release-desktop-beta`，可附目标版本、tag 或 dry-run 说明。
-- 输出/期望行为：使用 `desktop-release-contract-guard`；先确认发布身份和桌面验证门禁，再创建 GitHub prerelease/tag 并等待 `desktop-release` workflow、release assets、`gh-pages` manifest 与公网 manifest 全部闭合。不能把 `gh release create`、空 assets 页面或只完成部分平台 workflow 当成发布完成。
+- 输出/期望行为：使用 `desktop-release-contract-guard`；默认执行 `pnpm release:desktop:beta`，先确认发布身份和桌面验证门禁，再创建 GitHub prerelease/tag 并等待 `desktop-release` workflow、release assets、`gh-pages` beta manifest 与公网 beta manifest 全部闭合。不能把 `gh release create`、空 assets 页面或只完成部分平台 workflow 当成发布完成。
+
+## `/release-desktop-stable`
+
+- 用途：发布桌面端正式版，包括 installer / portable / update bundle / update manifest / stable APT repo 的完整闭环。
+- 输入格式：`/release-desktop-stable`，可附目标版本、tag、release notes 文件或 dry-run 说明。
+- 输出/期望行为：使用 `desktop-release-contract-guard`；默认执行 `pnpm release:desktop:stable`，先确认发布身份、正式发布说明和桌面验证门禁，再创建 GitHub release/tag 并等待 `desktop-release` workflow、release assets、`gh-pages` stable manifest、公网 stable manifest 与 stable APT repo 全部闭合。官网 landing 更新属于正式 release 完成后的下游发布面，必须在 release 闭合后单独评估和验证。
 
 后续指令在此追加，保持“用途 / 输入格式 / 输出期望”结构，并同步 `AGENTS.md` 索引。
