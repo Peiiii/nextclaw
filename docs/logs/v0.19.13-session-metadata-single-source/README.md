@@ -8,6 +8,8 @@
 - journal store 内部生成 append timestamp，并只在新增事件时推进 session `updatedAt`；metadata set/update 不推进会话 activity time。
 - summary index 不再存 metadata，列表读取时从 metadata sidecar 合成 metadata，避免 summary projection 和 metadata sidecar 双持有。
 - 补充回归覆盖：后续 `run.finished` 等事件追加不得覆盖 `message.completed` 已写入的 `last_activity_preview.replyText`。
+- 追加修复：metadata sidecar 写入改为临时文件 + rename 的原子替换；sidecar 存在但 JSON/结构损坏时改为失败关闭，不再静默降级成空 metadata，避免后续 agent run 把缺失 `project_root` 的 metadata 写回成新事实。
+- 根因确认：`NcpAgentSessionMetadataStore.read()` 原先 catch 所有读取/解析错误并返回 fallback snapshot；在重启、缓存未命中或 sidecar 半写损坏后，run 开始时的 metadata 偏好同步可能把空 metadata 重新落盘，从而导致会话 project 信息丢失。
 
 ## 测试/验证/验收方式
 
@@ -19,6 +21,13 @@
 - `pnpm lint:new-code:governance`
 - `pnpm check:governance-backlog-ratchet`
 - 真实接口冒烟：用 `NEXTCLAW_HOME=/tmp/nextclaw-metadata-smoke-src-*` 和 `tsx --tsconfig scripts/dev/dev-runtime.tsconfig.json` 启动源码服务到 `127.0.0.1:18795`，发送“查看一下系统信息”，确认最终 session summary 保留 `last_activity_preview.replyText`，且 metadata 写入没有推进 `updatedAt`。
+- 追加验证：
+  - `pnpm -C packages/nextclaw-kernel exec vitest run src/stores/ncp-agent-session-journal.store.test.ts`
+  - `pnpm -C packages/nextclaw-kernel tsc`
+  - `pnpm -C packages/nextclaw-kernel lint`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-kernel/src/stores/ncp-agent-session-metadata.store.ts packages/nextclaw-kernel/src/utils/ncp-agent-session-journal.utils.ts packages/nextclaw-kernel/src/stores/ncp-agent-session-journal.store.test.ts`
+  - `pnpm lint:new-code:governance`
+  - `pnpm check:governance-backlog-ratchet`
 
 ## 发布/部署方式
 
@@ -38,6 +47,8 @@
 - 正向减债动作：删除 live metadata 副本、删除 append event 的 session record 快照通道、删除 summary index metadata 副本，统一到 metadata store + append-only journal 两个职责清晰的 owner。
 - `appendSessionEvent` 合同变小，调用方无法再传旧 metadata、旧 `createdAt` 或旧 `updatedAt` 覆盖持久事实。
 - maintainability guard：检查 13 个文件，Errors 0，Warnings 1；生产代码新增 60 行、删除 132 行、净减 72 行。
+- 追加 maintainability guard：检查 3 个文件，Errors 0，Warnings 0；总计新增 46 行、删除 26 行、净增 20 行；非测试代码新增 21 行、删除 26 行、净减 5 行。
+- 追加正向减债动作：删除 metadata sidecar 中不再承担语义的 `updated_at` 字段，移除多余 serialization 包装，并用 `rm(..., { force: true })` 收敛手写删除分支。
 - 当前剩余观察点：`ncp-agent-session-journal.store.ts` 仍接近 400 行预算，后续再次触达时应优先拆分 journal replay、metadata sidecar 与 summary projection。
 
 ## NPM 包发布记录

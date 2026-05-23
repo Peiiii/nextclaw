@@ -1,4 +1,5 @@
-import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentSessionEventRecord } from "@nextclaw/ncp-toolkit";
 import {
@@ -21,11 +22,15 @@ export class NcpAgentSessionMetadataStore {
 
   write = async (record: AgentSessionEventRecord): Promise<void> => {
     await mkdir(this.journalDir, { recursive: true });
-    await writeFile(
-      this.metadataPath(record.sessionId),
-      `${this.serializeMetadata(record)}\n`,
-      "utf-8",
-    );
+    const targetPath = this.metadataPath(record.sessionId);
+    const tempPath = `${targetPath}.${process.pid}.${randomUUID()}.tmp`;
+    try {
+      await writeFile(tempPath, `${JSON.stringify(createNcpAgentSessionJournalMetadataEntry(record))}\n`, "utf-8");
+      await rename(tempPath, targetPath);
+    } catch (error) {
+      await rm(tempPath, { force: true });
+      throw error;
+    }
   };
 
   read = async (
@@ -34,36 +39,28 @@ export class NcpAgentSessionMetadataStore {
   ): Promise<NcpAgentSessionActivitySnapshot> => {
     try {
       const parsed = JSON.parse(await readFile(this.metadataPath(sessionId), "utf-8")) as unknown;
-      if (!isRecord(parsed) || parsed._type !== "metadata") {
-        return activitySnapshot;
+      if (!isRecord(parsed) || parsed._type !== "metadata" || !isRecord(parsed.metadata)) {
+        throw new Error(`invalid ncp agent session metadata sidecar: ${sessionId}`);
       }
       const createdAt = toIsoString(parsed.created_at, activitySnapshot.createdAt);
       const agentId = normalizeNcpAgentId(typeof parsed.agent_id === "string" ? parsed.agent_id : undefined);
       return {
-        metadata: isRecord(parsed.metadata) ? structuredClone(parsed.metadata) : {},
+        metadata: structuredClone(parsed.metadata),
         ...(agentId ? { agentId } : {}),
         createdAt,
         updatedAt: activitySnapshot.updatedAt,
       };
-    } catch {
-      return activitySnapshot;
+    } catch (error) {
+      const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
+      if (code === "ENOENT") {
+        return activitySnapshot;
+      }
+      throw error;
     }
   };
 
   delete = async (sessionId: string): Promise<void> => {
-    try {
-      await unlink(this.metadataPath(sessionId));
-    } catch {
-      // Historical journals may not have a metadata sidecar.
-    }
-  };
-
-  private serializeMetadata = (record: AgentSessionEventRecord): string => {
-    const serialized = JSON.stringify(createNcpAgentSessionJournalMetadataEntry(record));
-    if (!serialized) {
-      throw new Error("ncp agent session metadata serialization produced empty output");
-    }
-    return serialized;
+    await rm(this.metadataPath(sessionId), { force: true });
   };
 
   private metadataPath = (sessionId: string): string => {

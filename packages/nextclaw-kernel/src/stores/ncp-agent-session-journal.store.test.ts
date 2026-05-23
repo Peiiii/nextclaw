@@ -441,4 +441,29 @@ describe("NcpAgentSessionJournalStore metadata writes", () => {
     });
   });
 
+  it("fails closed when the metadata sidecar is corrupted instead of overwriting it", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+    await store.importSessionSnapshot({
+      ...createRecord([]),
+      metadata: {
+        label: "Project session",
+        project_root: "/tmp/project-alpha",
+      },
+    });
+    const metadataPath = join(tempDir, `${sessionId}.metadata.json`);
+    await writeFile(metadataPath, "{", "utf-8");
+    const reloaded = new NcpAgentSessionJournalStore(tempDir);
+
+    await expect(reloaded.updateSessionMetadata({
+      sessionId,
+      metadata: {
+        runtime: "native",
+        last_channel: "ui",
+      },
+    })).rejects.toThrow();
+
+    await expect(readFile(metadataPath, "utf-8")).resolves.toBe("{");
+  });
+
 });
