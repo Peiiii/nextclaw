@@ -34,18 +34,15 @@ function createKernelStub(initialMetadata: Record<string, unknown>) {
     updateSession,
     kernel: {
       eventBus,
-      sessionRunManager: {
+      ncpSessionManager: {
         patchSessionMetadata,
-      },
-      ncpSessionApi: {
-        updateSession,
       },
     } as unknown as NextclawKernel,
   };
 }
 
 describe("SessionActivityPreviewContribution", () => {
-  it("routes preview writes through the session run manager instead of updating the store directly", async () => {
+  it("routes preview writes through the ncp session manager instead of updating the store directly", async () => {
     const { eventBus, getMetadata, kernel, patchSessionMetadata, updateSession } = createKernelStub({
       [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: {
         state: "running",

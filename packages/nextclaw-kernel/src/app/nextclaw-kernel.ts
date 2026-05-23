@@ -7,11 +7,10 @@ import { ExtensionManager } from "@kernel/managers/extension.manager.js";
 import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
 import { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
 import { McpManager } from "@kernel/managers/mcp.manager.js";
+import { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
 import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import { ToolManager } from "@kernel/managers/tool.manager.js";
-import { NcpSessionApiService } from "@kernel/services/ncp-session-api.service.js";
-import { NcpAgentSessionStoreAdapter } from "@kernel/services/ncp-agent-session-store-adapter.service.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import { createAgentRuntimeSessionRequestDispatcher } from "@kernel/features/session-request/index.js";
 import { AgentRuntimeContribution } from "@kernel/contributions/agent-runtime/index.js";
@@ -122,12 +121,11 @@ export class NextclawKernel {
   readonly sessionSearch: SessionSearchManager;
   readonly assetStore: LocalAssetStore;
   readonly mcpManager: McpManager;
-  readonly ncpSessionApi: NcpSessionApiService;
+  readonly ncpSessionManager: NcpSessionManager;
   readonly extensions: ExtensionManager;
   readonly agentRunRequestManager: AgentRunRequestManager;
   readonly sessionRunManager: SessionRunManager;
   readonly agentRuntimeManager: AgentRuntimeManager;
-  private readonly ncpAgentSessionStore: NcpAgentSessionStoreAdapter;
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
   private readonly contributions: KernelContribution[];
   private gatewayController: GatewayController | undefined;
@@ -145,10 +143,6 @@ export class NextclawKernel {
     this.ncpAgentSessionJournalStore = new NcpAgentSessionJournalStore(
       resolve(sessionsDir, ".ncp-agent-journal"),
     );
-    this.ncpAgentSessionStore = new NcpAgentSessionStoreAdapter(this.sessions, {
-      journalStore: this.ncpAgentSessionJournalStore,
-      onSessionUpdated: this.sessionSearch.handleSessionUpdated,
-    });
     this.sessionRequests = new SessionRequestManager({
       sessions: this.sessions,
       dispatcher: createAgentRuntimeSessionRequestDispatcher({
@@ -198,24 +192,23 @@ export class NextclawKernel {
       configManager: this.configManager,
       assetStore: this.assetStore,
     });
-    this.sessionRunManager = new SessionRunManager({
-      agentRuntimeManager: this.agentRuntimeManager,
-      ncpAgentSessionStore: this.ncpAgentSessionStore,
-      eventBus: this.eventBus,
-      onSessionUpdated: this.publishSessionUpdated,
-    });
-    this.agentRunRequestManager = new AgentRunRequestManager({
-      sessions: this.sessions,
-      ingress: this.ingress,
-      sessionRunManager: this.sessionRunManager,
-      onSessionUpdated: this.publishSessionUpdated,
-    });
-    this.ncpSessionApi = new NcpSessionApiService({
+    this.ncpSessionManager = new NcpSessionManager({
       eventBus: this.eventBus,
       getConfig: this.configManager.loadConfig,
-      isLiveSessionRunning: this.sessionRunManager.isRunning,
-      ncpAgentSessionStore: this.ncpAgentSessionStore,
+      isLiveSessionRunning: (sessionId) => this.sessionRunManager?.isRunning(sessionId) ?? false,
+      journalStore: this.ncpAgentSessionJournalStore,
+      onSessionUpdated: this.sessionSearch.handleSessionUpdated,
       sessionManager: this.sessions,
+    });
+    this.sessionRunManager = new SessionRunManager({
+      agentRuntimeManager: this.agentRuntimeManager,
+      eventBus: this.eventBus,
+      ncpSessionManager: this.ncpSessionManager,
+    });
+    this.agentRunRequestManager = new AgentRunRequestManager({
+      ingress: this.ingress,
+      ncpSessionManager: this.ncpSessionManager,
+      sessionRunManager: this.sessionRunManager,
     });
     this.contributions = [
       new AgentRuntimeContribution(this),
@@ -233,7 +226,6 @@ export class NextclawKernel {
   getGatewayController = (): GatewayController | undefined => this.gatewayController;
 
   start = async (): Promise<void> => {
-    this.ncpSessionApi.start();
     void this.sessionSearch.start();
     this.mcpManager.start();
     for (const contribution of this.contributions) {
@@ -248,7 +240,6 @@ export class NextclawKernel {
     for (const contribution of this.contributions) {
       contribution.dispose();
     }
-    this.ncpSessionApi.dispose();
     await this.agentRuntimeManager.dispose();
     await this.mcpManager.dispose();
     await this.sessionSearch.dispose();

@@ -666,6 +666,7 @@ export type UiNcpSessionMessagesView = {
   sessionId: string;
   status: NcpSessionStatus;
   messages: NcpMessage[];
+  contextWindow?: NcpSessionSummary["contextWindow"];
   total: number;
 };
 

@@ -12,8 +12,6 @@ import {
 } from "@nextclaw/ncp";
 import {
   DefaultNcpAgentConversationStateManager,
-  EventPublisher,
-  type AgentSessionStore,
 } from "@nextclaw/ncp-toolkit";
 import {
   AsyncEventQueue,
@@ -26,32 +24,46 @@ import {
   readString,
 } from "@kernel/utils/session-run.utils.js";
 import type { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
+import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
+
+type Cleanup = () => Promise<void> | void;
+
+function isDurableSessionEvent(event: NcpEndpointEvent): boolean {
+  return event.type !== NcpEventType.ContextWindowUpdated;
+}
+
+function readEventSessionId(event: NcpEndpointEvent): string | null {
+  const payload = "payload" in event ? event.payload : null;
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+  return "sessionId" in payload && typeof payload.sessionId === "string"
+    ? payload.sessionId
+    : null;
+}
 
 export class SessionRunManager {
   private readonly agentRuntimeManager: AgentRuntimeManager;
-  private readonly ncpAgentSessionStore: AgentSessionStore;
+  private readonly ncpSessionManager: NcpSessionManager;
   private readonly eventBus: EventBus;
-  private readonly onSessionUpdated: (sessionKey: string) => void;
   private readonly liveSessions = new Map<string, LiveSession>();
-  private readonly publisher = new EventPublisher();
+  private readonly cleanups: Cleanup[] = [];
   private disposed = false;
 
   constructor(options: {
     agentRuntimeManager: AgentRuntimeManager;
-    ncpAgentSessionStore: AgentSessionStore;
     eventBus: EventBus;
-    onSessionUpdated: (sessionKey: string) => void;
+    ncpSessionManager: NcpSessionManager;
   }) {
     const {
       agentRuntimeManager,
       eventBus,
-      ncpAgentSessionStore,
-      onSessionUpdated,
+      ncpSessionManager,
     } = options;
     this.agentRuntimeManager = agentRuntimeManager;
-    this.ncpAgentSessionStore = ncpAgentSessionStore;
+    this.ncpSessionManager = ncpSessionManager;
     this.eventBus = eventBus;
-    this.onSessionUpdated = onSessionUpdated;
+    this.ncpSessionManager.installLiveMetadataPatcher(this.patchLiveSessionMetadata);
   }
 
   dispose = async (): Promise<void> => {
@@ -59,13 +71,9 @@ export class SessionRunManager {
       return;
     }
     this.disposed = true;
-    for (const session of this.liveSessions.values()) {
-      session.activeExecution?.controller.abort();
-      session.publisher.close();
-      await disposeRuntime(session.runtime);
+    while (this.cleanups.length > 0) {
+      await this.cleanups.pop()?.();
     }
-    this.liveSessions.clear();
-    this.publisher.close();
   };
 
   isRunning = (sessionId: string): boolean => Boolean(this.liveSessions.get(sessionId)?.activeExecution);
@@ -77,6 +85,11 @@ export class SessionRunManager {
 
   getActiveSessionRun = (sessionId: string): LiveSessionExecution | null =>
     this.liveSessions.get(sessionId)?.activeExecution ?? null;
+
+  getLiveSessionRecord = (sessionId: string) => {
+    const session = this.liveSessions.get(sessionId.trim());
+    return session ? buildSessionRecord(session, new Date().toISOString()) : null;
+  };
 
   setActiveSessionRun = (
     sessionId: string,
@@ -110,38 +123,36 @@ export class SessionRunManager {
   streamSessionEvents = (
     payload: NcpStreamRequestPayload,
     options?: NcpAgentRunStreamOptions,
-  ): AsyncIterable<NcpEndpointEvent> => (async function* (
-    self: SessionRunManager,
-  ): AsyncIterable<NcpEndpointEvent> {
-    self.assertNotDisposed();
+  ): AsyncIterable<NcpEndpointEvent> => {
+    this.assertNotDisposed();
     const signal = options?.signal ?? new AbortController().signal;
     const queue = new AsyncEventQueue<NcpEndpointEvent>();
     const stop = () => queue.close();
-    const unsubscribe = self.publisher.subscribe((event) => {
-      const eventSessionId = "payload" in event && event.payload && typeof event.payload === "object" &&
-        "sessionId" in event.payload && typeof event.payload.sessionId === "string"
-        ? event.payload.sessionId
-        : null;
+    const unsubscribe = this.eventBus.on(eventKeys.ncpEvent, (event) => {
+      const eventSessionId = readEventSessionId(event);
       if (eventSessionId === payload.sessionId) {
         queue.push(event);
       }
     });
-    const unsubscribeClose = self.liveSessions.get(payload.sessionId)?.publisher.onClose(stop) ?? (() => undefined);
     signal.addEventListener("abort", stop, { once: true });
-    try {
-      for await (const event of queue.iterate()) {
-        if (signal.aborted) {
-          break;
-        }
-        yield event;
-      }
-    } finally {
-      unsubscribe();
-      unsubscribeClose();
-      signal.removeEventListener("abort", stop);
-      queue.close();
+    if (signal.aborted) {
+      stop();
     }
-  })(this);
+    return (async function* (): AsyncIterable<NcpEndpointEvent> {
+      try {
+        for await (const event of queue.iterate()) {
+          if (signal.aborted) {
+            break;
+          }
+          yield event;
+        }
+      } finally {
+        unsubscribe();
+        signal.removeEventListener("abort", stop);
+        queue.close();
+      }
+    })();
+  };
 
   updateToolCallResult: UpdateToolCallResult = async ({
     result,
@@ -163,7 +174,6 @@ export class SessionRunManager {
         content: result,
       },
     });
-    await this.onSessionUpdated(normalizedSessionId);
   };
 
   patchSessionMetadata = async (
@@ -174,12 +184,12 @@ export class SessionRunManager {
     const normalizedSessionId = sessionId.trim();
     if (!normalizedSessionId) return false;
     const liveSession = this.liveSessions.get(normalizedSessionId) ?? null;
-    const storedSession = liveSession ? null : await this.ncpAgentSessionStore.getSession(normalizedSessionId);
+    const storedSession = liveSession ? null : await this.ncpSessionManager.getSessionRecord(normalizedSessionId);
     if (!liveSession && !storedSession) return false;
     const nextMetadata = patcher(structuredClone(liveSession?.metadata ?? storedSession?.metadata ?? {}));
     if (!nextMetadata) return false;
     if (liveSession) liveSession.metadata = structuredClone(nextMetadata);
-    return await this.persistSessionMetadata(normalizedSessionId, nextMetadata);
+    return await this.ncpSessionManager.patchSessionMetadata(normalizedSessionId, () => nextMetadata);
   };
 
   appendSessionEvent = async (
@@ -205,7 +215,7 @@ export class SessionRunManager {
       return existing;
     }
 
-    const storedSession = await this.ncpAgentSessionStore.getSession(sessionId);
+    const storedSession = await this.ncpSessionManager.getSessionRecord(sessionId);
     const stateManager = new DefaultNcpAgentConversationStateManager();
     stateManager.hydrate({
       sessionId,
@@ -224,7 +234,6 @@ export class SessionRunManager {
       stateManager,
       metadata,
       runtime: null as unknown as NcpAgentRuntime,
-      publisher: new EventPublisher(),
       activeExecution: null,
     };
     session.runtime = this.agentRuntimeManager.createRuntime({
@@ -234,13 +243,18 @@ export class SessionRunManager {
       sessionMetadata: metadata,
       setSessionMetadata: (nextMetadata) => {
         session.metadata = { ...session.metadata, ...structuredClone(nextMetadata) };
-        void this.persistSessionMetadata(session.sessionId, session.metadata).catch((error: unknown) => {
+        void this.ncpSessionManager.patchSessionMetadata(session.sessionId, () => session.metadata).catch((error: unknown) => {
           const message = error instanceof Error ? error.stack ?? error.message : String(error);
           console.error(`[session-run] failed to persist runtime metadata for ${session.sessionId}: ${message}`);
         });
       },
     });
     this.liveSessions.set(sessionId, session);
+    this.cleanups.push(async () => {
+      session.activeExecution?.controller.abort();
+      await disposeRuntime(session.runtime);
+      this.liveSessions.delete(sessionId);
+    });
     return session;
   };
 
@@ -267,37 +281,34 @@ export class SessionRunManager {
       emittedAt: new Date().toISOString(),
       source: "session-run",
     });
-    this.publisher.publish(event);
-    session.publisher.publish(event);
   };
 
   private readonly persistLiveSessionEvent = async (session: LiveSession, event: NcpEndpointEvent): Promise<void> => {
-    const updatedAt = new Date().toISOString();
-    if (this.ncpAgentSessionStore.appendSessionEvent) {
-      const storedSession = await this.ncpAgentSessionStore.getSession(session.sessionId);
-      await this.ncpAgentSessionStore.appendSessionEvent({
-        session: {
-          sessionId: session.sessionId,
-          ...(session.agentId ? { agentId: session.agentId } : {}),
-          createdAt: session.createdAt,
-          updatedAt,
-          metadata: storedSession ? {} : structuredClone(session.metadata),
-        },
-        event,
-        updatedAt,
-      });
+    if (!isDurableSessionEvent(event)) {
       return;
     }
-    await this.ncpAgentSessionStore.saveSession(buildSessionRecord(session, updatedAt));
+    const updatedAt = new Date().toISOString();
+    await this.ncpSessionManager.appendSessionEvent({
+      session: {
+        sessionId: session.sessionId,
+        ...(session.agentId ? { agentId: session.agentId } : {}),
+        createdAt: session.createdAt,
+        updatedAt,
+        metadata: structuredClone(session.metadata),
+      },
+      event,
+      updatedAt,
+    });
   };
 
-  private readonly persistSessionMetadata = async (
+  private readonly patchLiveSessionMetadata = (
     sessionId: string,
     metadata: Record<string, unknown>,
-  ): Promise<boolean> => {
-    return await this.ncpAgentSessionStore.updateSessionMetadata({
-      sessionId, metadata: structuredClone(metadata), updatedAt: new Date().toISOString(),
-    });
+  ): void => {
+    const session = this.liveSessions.get(sessionId);
+    if (session) {
+      session.metadata = structuredClone(metadata);
+    }
   };
 
   private readonly assertNotDisposed = (): void => {

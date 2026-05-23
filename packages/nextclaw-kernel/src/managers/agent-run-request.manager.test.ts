@@ -1,8 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { SessionManager } from "@nextclaw/core";
+import { describe, expect, it, vi } from "vitest";
 import {
   NcpEventType,
   type NcpAgentSendEnvelope,
@@ -11,7 +7,13 @@ import {
   type NcpEndpointEvent,
   type NcpRunHandle,
 } from "@nextclaw/ncp";
-import { InMemoryAgentSessionStore, type RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
+import {
+  DefaultNcpAgentConversationStateManager,
+  InMemoryAgentSessionStore,
+  type AgentSessionEventRecord,
+  type AgentSessionRecord,
+  type RuntimeFactoryParams,
+} from "@nextclaw/ncp-toolkit";
 import {
   EventBus,
   Ingress,
@@ -21,14 +23,6 @@ import {
 import { AgentRunRequestManager } from "./agent-run-request.manager.js";
 import type { AgentRuntimeManager } from "./agent-runtime.manager.js";
 import { SessionRunManager } from "./session-run.manager.js";
-
-const tempDirs: string[] = [];
-
-function createTempDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "nextclaw-agent-run-request-manager-"));
-  tempDirs.push(dir);
-  return dir;
-}
 
 function createRuntimeManagerStub() {
   const runtimeInputs: NcpAgentRunInput[] = [];
@@ -102,36 +96,132 @@ function createDispatchingRuntimeManagerStub() {
   return runtimeManager as AgentRuntimeManager;
 }
 
-afterEach(() => {
-  while (tempDirs.length > 0) {
-    const dir = tempDirs.pop();
-    if (dir) {
-      rmSync(dir, { recursive: true, force: true });
+class TestNcpSessionManager {
+  private liveMetadataPatcher: ((sessionId: string, metadata: Record<string, unknown>) => void) | null = null;
+
+  constructor(private readonly sessionStore: InMemoryAgentSessionStore) {}
+
+  installLiveMetadataPatcher = (patcher: (sessionId: string, metadata: Record<string, unknown>) => void) => {
+    this.liveMetadataPatcher = patcher;
+  };
+
+  createSession = async (params: {
+    task: string;
+    title?: string;
+    sourceSessionMetadata: Record<string, unknown>;
+    metadataOverrides?: Record<string, unknown>;
+    agentId?: string;
+    sessionType?: string;
+  }) => {
+    const { agentId, metadataOverrides, sessionType, task, title } = params;
+    const sessionId = `ncp-${Math.random().toString(16).slice(2)}`;
+    const now = new Date().toISOString();
+    const metadata = {
+      session_type: sessionType ?? "native",
+      runtime: sessionType ?? "native",
+      label: title ?? task,
+      ...(metadataOverrides ? structuredClone(metadataOverrides) : {}),
+    };
+    await this.sessionStore.saveSession({
+      sessionId,
+      ...(agentId ? { agentId } : {}),
+      messages: [],
+      createdAt: now,
+      updatedAt: now,
+      metadata,
+    });
+    return {
+      sessionId,
+      ...(agentId ? { agentId } : {}),
+      sessionType: sessionType ?? "native",
+      runtimeFamily: "native" as const,
+      lifecycle: "persistent" as const,
+      title: title ?? task,
+      metadata,
+      createdAt: now,
+      updatedAt: now,
+    };
+  };
+
+  getSessionRecord = async (sessionId: string): Promise<AgentSessionRecord | null> =>
+    await this.sessionStore.getSession(sessionId);
+
+  patchSessionMetadata = async (
+    sessionId: string,
+    patcher: (metadata: Record<string, unknown>) => Record<string, unknown> | null,
+  ): Promise<boolean> => {
+    const session = await this.sessionStore.getSession(sessionId);
+    if (!session) {
+      return false;
     }
-  }
-});
+    const nextMetadata = patcher(structuredClone(session.metadata ?? {}));
+    if (!nextMetadata) {
+      return false;
+    }
+    await this.sessionStore.updateSessionMetadata({
+      sessionId,
+      metadata: nextMetadata,
+      updatedAt: new Date().toISOString(),
+    });
+    this.liveMetadataPatcher?.(sessionId, nextMetadata);
+    return true;
+  };
+
+  appendSessionEvent = async (params: {
+    session: AgentSessionEventRecord;
+    event: NcpEndpointEvent;
+    updatedAt: string;
+  }): Promise<void> => {
+    const { event, session, updatedAt } = params;
+    const existing = await this.sessionStore.getSession(session.sessionId);
+    const stateManager = new DefaultNcpAgentConversationStateManager();
+    stateManager.hydrate({
+      sessionId: session.sessionId,
+      messages: existing?.messages ?? [],
+    });
+    await stateManager.dispatch(event);
+    const snapshot = stateManager.getSnapshot();
+    const latest = await this.sessionStore.getSession(session.sessionId);
+    await this.sessionStore.saveSession({
+      sessionId: session.sessionId,
+      ...(session.agentId ? { agentId: session.agentId } : {}),
+      messages: [
+        ...snapshot.messages.map((message) => structuredClone(message)),
+        ...(snapshot.streamingMessage ? [structuredClone(snapshot.streamingMessage)] : []),
+      ],
+      createdAt: latest?.createdAt ?? existing?.createdAt ?? session.createdAt ?? updatedAt,
+      updatedAt,
+      metadata: {
+        ...(latest?.metadata
+          ? structuredClone(latest.metadata)
+          : existing?.metadata
+            ? structuredClone(existing.metadata)
+            : {}),
+        ...(existing ? {} : structuredClone(session.metadata ?? {})),
+      },
+    });
+  };
+}
 
 describe("AgentRunRequestManager", () => {
   it("materializes raw send envelopes before runtime execution", async () => {
     const ingress = new Ingress();
-    const sessions = new SessionManager({ sessionsDir: createTempDir() });
     const {
       runtimeFactoryParams,
       runtimeInputs,
       runtimeManager,
     } = createRuntimeManagerStub();
-    const onSessionUpdated = vi.fn();
+    const sessionStore = new InMemoryAgentSessionStore();
+    const ncpSessionManager = new TestNcpSessionManager(sessionStore);
     const sessionRunManager = new SessionRunManager({
       agentRuntimeManager: runtimeManager,
-      ncpAgentSessionStore: new InMemoryAgentSessionStore(),
       eventBus: new EventBus(),
-      onSessionUpdated,
+      ncpSessionManager: ncpSessionManager as never,
     });
     const manager = new AgentRunRequestManager({
-      sessions,
       ingress,
+      ncpSessionManager: ncpSessionManager as never,
       sessionRunManager,
-      onSessionUpdated,
     });
     manager.start();
 
@@ -165,7 +255,9 @@ describe("AgentRunRequestManager", () => {
       session_type: "native",
     });
     expect(runtimeFactoryParams[0]?.sessionId).toBe(runtimeInputs[0]?.sessionId);
-    expect(onSessionUpdated).toHaveBeenCalledWith(runtimeInputs[0]?.sessionId);
+    await expect(sessionStore.getSession(runtimeInputs[0]?.sessionId ?? "")).resolves.toMatchObject({
+      sessionId: runtimeInputs[0]?.sessionId,
+    });
     expect(handle).toEqual({
       sessionId: runtimeInputs[0]?.sessionId,
       userMessageId: "user-message-1",
@@ -178,24 +270,22 @@ describe("AgentRunRequestManager", () => {
 
   it("materializes content ingress payloads into user messages", async () => {
     const ingress = new Ingress();
-    const sessions = new SessionManager({ sessionsDir: createTempDir() });
     const {
       runtimeFactoryParams,
       runtimeInputs,
       runtimeManager,
     } = createRuntimeManagerStub();
-    const onSessionUpdated = vi.fn();
+    const sessionStore = new InMemoryAgentSessionStore();
+    const ncpSessionManager = new TestNcpSessionManager(sessionStore);
     const sessionRunManager = new SessionRunManager({
       agentRuntimeManager: runtimeManager,
-      ncpAgentSessionStore: new InMemoryAgentSessionStore(),
       eventBus: new EventBus(),
-      onSessionUpdated,
+      ncpSessionManager: ncpSessionManager as never,
     });
     const manager = new AgentRunRequestManager({
-      sessions,
       ingress,
+      ncpSessionManager: ncpSessionManager as never,
       sessionRunManager,
-      onSessionUpdated,
     });
     manager.start();
 
@@ -230,19 +320,17 @@ describe("AgentRunRequestManager", () => {
 
   it("does not apply runtime text deltas twice to the persisted assistant preview source", async () => {
     const ingress = new Ingress();
-    const sessions = new SessionManager({ sessionsDir: createTempDir() });
     const sessionStore = new InMemoryAgentSessionStore();
+    const ncpSessionManager = new TestNcpSessionManager(sessionStore);
     const sessionRunManager = new SessionRunManager({
       agentRuntimeManager: createDispatchingRuntimeManagerStub(),
-      ncpAgentSessionStore: sessionStore,
       eventBus: new EventBus(),
-      onSessionUpdated: vi.fn(),
+      ncpSessionManager: ncpSessionManager as never,
     });
     const manager = new AgentRunRequestManager({
-      sessions,
       ingress,
+      ncpSessionManager: ncpSessionManager as never,
       sessionRunManager,
-      onSessionUpdated: vi.fn(),
     });
     manager.start();
 
@@ -270,7 +358,6 @@ describe("AgentRunRequestManager", () => {
 
   it("does not put the current user message into runtime state before runtime builds context", async () => {
     const ingress = new Ingress();
-    const sessions = new SessionManager({ sessionsDir: createTempDir() });
     const preRunMessageCounts: number[] = [];
     const sessionStore = new InMemoryAgentSessionStore();
     const runtimeManager = {
@@ -295,17 +382,16 @@ describe("AgentRunRequestManager", () => {
       })),
       listSessionTypes: vi.fn(() => ({ defaultType: "native", options: [] })),
     } as Pick<AgentRuntimeManager, "createRuntime" | "listSessionTypes">;
+    const ncpSessionManager = new TestNcpSessionManager(sessionStore);
     const sessionRunManager = new SessionRunManager({
       agentRuntimeManager: runtimeManager as AgentRuntimeManager,
-      ncpAgentSessionStore: sessionStore,
       eventBus: new EventBus(),
-      onSessionUpdated: vi.fn(),
+      ncpSessionManager: ncpSessionManager as never,
     });
     const manager = new AgentRunRequestManager({
-      sessions,
       ingress,
+      ncpSessionManager: ncpSessionManager as never,
       sessionRunManager,
-      onSessionUpdated: vi.fn(),
     });
     manager.start();
 

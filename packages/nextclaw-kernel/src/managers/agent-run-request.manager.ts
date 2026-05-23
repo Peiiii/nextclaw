@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { type SessionManager } from "@nextclaw/core";
 import {
   ingressKeys,
   type AgentRunSendIngressPayload,
@@ -30,32 +29,29 @@ import {
   withSession,
 } from "@kernel/utils/session-run.utils.js";
 import type { SessionRunManager } from "@kernel/managers/session-run.manager.js";
+import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
 
 export class AgentRunRequestManager {
   private readonly cleanups: Array<() => Promise<void> | void> = [];
-  private readonly sessions: SessionManager;
   private readonly ingress: Ingress;
+  private readonly ncpSessionManager: NcpSessionManager;
   private readonly sessionRunManager: SessionRunManager;
-  private readonly onSessionUpdated: (sessionKey: string) => void;
   private disposed = false;
   private started = false;
 
   constructor(options: {
-    sessions: SessionManager;
     ingress: Ingress;
+    ncpSessionManager: NcpSessionManager;
     sessionRunManager: SessionRunManager;
-    onSessionUpdated: (sessionKey: string) => void;
   }) {
     const {
       ingress,
-      onSessionUpdated,
+      ncpSessionManager,
       sessionRunManager,
-      sessions,
     } = options;
-    this.sessions = sessions;
     this.ingress = ingress;
+    this.ncpSessionManager = ncpSessionManager;
     this.sessionRunManager = sessionRunManager;
-    this.onSessionUpdated = onSessionUpdated;
   }
 
   start = (): void => {
@@ -93,7 +89,7 @@ export class AgentRunRequestManager {
     if (!envelope.payload) {
       throw new Error("Invalid agent run send request.");
     }
-    const requestEnvelope = this.materializeSendEnvelope(envelope.payload);
+    const requestEnvelope = await this.materializeSendEnvelope(envelope.payload);
     return await consumeRunHandle(
       this.iterateRun(requestEnvelope),
       {
@@ -214,9 +210,9 @@ export class AgentRunRequestManager {
     }
   };
 
-  private readonly materializeSendEnvelope = (
+  private readonly materializeSendEnvelope = async (
     envelope: AgentRunSendIngressPayload,
-  ): MaterializedAgentRunRequest => {
+  ): Promise<MaterializedAgentRunRequest> => {
     const sendEnvelope = this.toNcpSendEnvelope(envelope);
     const existingSessionId = readString(sendEnvelope.sessionId) ?? readString(sendEnvelope.message.sessionId);
     if (existingSessionId) {
@@ -224,7 +220,7 @@ export class AgentRunRequestManager {
     }
 
     const metadata = sendEnvelope.metadata ?? {};
-    const createdSession = this.sessions.createSession({
+    const createdSession = await this.ncpSessionManager.createSession({
       task: readMessageTask(sendEnvelope.message),
       title: readMetadataString(metadata, "label", "title"),
       sourceSessionMetadata: {},
@@ -236,7 +232,6 @@ export class AgentRunRequestManager {
       thinkingLevel: readMetadataString(metadata, "preferred_thinking", "thinking"),
       projectRoot: readMetadataString(metadata, "project_root"),
     });
-    this.onSessionUpdated(createdSession.sessionId);
     return this.materializeRunEnvelope(withSession(sendEnvelope, createdSession.sessionId));
   };
 

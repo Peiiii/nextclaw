@@ -25,12 +25,14 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
     } as never,
     ingress: new Ingress(),
     llmProviders: {} as never,
-    ncpSessionApi: {
+    ncpSessionManager: {
       listSessions: async () => [],
       listSessionMessages: async () => [],
       getSession: async () => null,
       updateSession: async () => null,
       deleteSession: async () => undefined,
+      patchSessionMetadata: async () => false,
+      getContextWindow: async () => null,
     } as never,
     ...overrides,
   };

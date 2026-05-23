@@ -10,7 +10,6 @@ import {
 } from "@nextclaw/ncp";
 import type {
   AgentSessionRecord,
-  EventPublisher,
 } from "@nextclaw/ncp-toolkit";
 
 export type LiveSessionExecution = {
@@ -32,7 +31,6 @@ export type LiveSession = {
   stateManager: NcpAgentConversationStateManager;
   metadata: Record<string, unknown>;
   runtime: NcpAgentRuntime;
-  publisher: EventPublisher;
   activeExecution: LiveSessionExecution | null;
 };
 

@@ -165,22 +165,26 @@ export class ContextCompactionPreflightService {
     requestMetadata: Record<string, unknown>;
     sessionId: string;
     sessionMessages: readonly NcpMessage[];
+    storedAgentId?: string;
+    storedMetadata?: Record<string, unknown>;
   }): ContextWindowSnapshot | null => {
     const {
       contextWindowOwner,
       requestMetadata,
       sessionId,
       sessionMessages,
+      storedAgentId,
+      storedMetadata,
     } = params;
     if (contextWindowOwner === "runtime") {
       return null;
     }
-    const session = this.options.sessionManager.getIfExists(sessionId);
-    const metadata = session?.metadata ?? requestMetadata;
+    const session = storedMetadata ? null : this.options.sessionManager.getIfExists(sessionId);
+    const metadata = storedMetadata ?? session?.metadata ?? requestMetadata;
     const profile = resolveCompactionProfile({
       config: this.options.getConfig(),
       requestMetadata,
-      storedAgentId: session?.agentId,
+      storedAgentId: storedAgentId ?? session?.agentId,
     });
     const existingCheckpoint = readCompressedContextCompactionCheckpoint(
       metadata[CONTEXT_COMPACTION_METADATA_KEY],

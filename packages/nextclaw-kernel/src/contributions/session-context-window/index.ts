@@ -32,9 +32,16 @@ function createSignature(value: Record<string, unknown>): string {
 
 function shouldRefreshDuringStream(event: NcpEndpointEvent): boolean {
   switch (event.type) {
+    case NcpEventType.MessageTextStart:
     case NcpEventType.MessageTextDelta:
+    case NcpEventType.MessageTextEnd:
+    case NcpEventType.MessageReasoningStart:
     case NcpEventType.MessageReasoningDelta:
+    case NcpEventType.MessageReasoningEnd:
+    case NcpEventType.MessageToolCallStart:
+    case NcpEventType.MessageToolCallArgs:
     case NcpEventType.MessageToolCallArgsDelta:
+    case NcpEventType.MessageToolCallEnd:
     case NcpEventType.MessageToolCallResult:
       return true;
     default:
@@ -44,6 +51,7 @@ function shouldRefreshDuringStream(event: NcpEndpointEvent): boolean {
 
 function shouldRefreshImmediately(event: NcpEndpointEvent): boolean {
   switch (event.type) {
+    case NcpEventType.MessageSent:
     case NcpEventType.MessageCompleted:
     case NcpEventType.MessageFailed:
     case NcpEventType.MessageAbort:
@@ -126,8 +134,10 @@ export class SessionContextWindowContribution implements KernelContribution {
     if (this.stopped) {
       return;
     }
-    const summary = await this.kernel.ncpSessionApi.getSession(sessionId);
-    const contextWindow = summary?.contextWindow;
+    const contextWindow = await this.kernel.ncpSessionManager.getContextWindow(
+      sessionId,
+      this.kernel.sessionRunManager.getLiveSessionRecord(sessionId),
+    );
     if (!isContextWindow(contextWindow) || this.stopped) {
       return;
     }
@@ -136,12 +146,15 @@ export class SessionContextWindowContribution implements KernelContribution {
       return;
     }
     this.lastPublishedSignatureBySession.set(sessionId, signature);
-    await this.kernel.sessionRunManager.appendSessionEvent(sessionId, {
+    this.kernel.eventBus.emit(eventKeys.ncpEvent, {
       type: NcpEventType.ContextWindowUpdated,
       payload: {
         sessionId,
         contextWindow,
       },
+    }, {
+      emittedAt: new Date().toISOString(),
+      source: "session-context-window",
     });
   };
 

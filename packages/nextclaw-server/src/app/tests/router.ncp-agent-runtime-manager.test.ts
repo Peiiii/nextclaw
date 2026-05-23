@@ -1,11 +1,12 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig, SessionManager } from "@nextclaw/core";
 import {
   AgentRunRequestManager,
-  NcpSessionApiService,
+  NcpAgentSessionJournalStore,
+  NcpSessionManager,
   SessionRunManager,
   type AgentRuntimeManager,
 } from "@nextclaw/kernel";
@@ -14,7 +15,6 @@ import {
   type NcpAgentConversationStateManager,
   type NcpAgentRuntime,
   type NcpEndpointEvent,
-  type NcpMessage,
 } from "@nextclaw/ncp";
 import { EventBus, Ingress } from "@nextclaw/shared";
 import { createUiRouter } from "@nextclaw-server/app/router.js";
@@ -52,48 +52,6 @@ afterEach(() => {
   }
 });
 
-function createAgentSessionStore() {
-  const sessions = new Map<string, {
-    sessionId: string;
-    agentId?: string;
-    messages: NcpMessage[];
-    createdAt?: string;
-    updatedAt: string;
-    metadata?: Record<string, unknown>;
-  }>();
-  return {
-    getSession: async (sessionId: string) => sessions.get(sessionId) ?? null,
-    listSessions: async () => [...sessions.values()],
-    listSessionMessages: async (sessionId: string) =>
-      sessions.get(sessionId)?.messages ?? [],
-    updateSessionMetadata: async (params: {
-      sessionId: string;
-      metadata: Record<string, unknown>;
-      updatedAt: string;
-    }) => {
-      const { metadata, sessionId, updatedAt } = params;
-      const session = sessions.get(sessionId);
-      if (!session) {
-        return false;
-      }
-      sessions.set(sessionId, {
-        ...session,
-        metadata,
-        updatedAt,
-      });
-      return true;
-    },
-    saveSession: async (session: { sessionId: string; messages: NcpMessage[]; updatedAt: string }) => {
-      sessions.set(session.sessionId, session as never);
-    },
-    deleteSession: async (sessionId: string) => {
-      const session = sessions.get(sessionId) ?? null;
-      sessions.delete(sessionId);
-      return session;
-    },
-  } as never;
-}
-
 function createReplyingRuntimeManager(): AgentRuntimeManager {
   return {
     createRuntime: (params: { stateManager: NcpAgentConversationStateManager }): NcpAgentRuntime => ({
@@ -124,6 +82,20 @@ function createReplyingRuntimeManager(): AgentRuntimeManager {
             payload: { sessionId: input.sessionId, messageId },
           },
           {
+            type: NcpEventType.MessageCompleted,
+            payload: {
+              sessionId: input.sessionId,
+              message: {
+                id: messageId,
+                sessionId: input.sessionId,
+                role: "assistant",
+                status: "final",
+                timestamp: "2026-05-23T00:00:00.000Z",
+                parts: [{ type: "text", text: "pong from runtime" }],
+              },
+            },
+          },
+          {
             type: NcpEventType.RunFinished,
             payload: { sessionId: input.sessionId, messageId, runId },
           },
@@ -145,28 +117,23 @@ it("routes ncp send through AgentRunRequestManager and stores the assistant repl
   const ingress = new Ingress();
   const runtimeManager = createReplyingRuntimeManager();
   const eventBus = new EventBus();
-  const sessions = new SessionManager({
-    sessionsDir: createTempDir("nextclaw-ui-ncp-runtime-sessions-"),
-  });
-  const sessionStore = createAgentSessionStore();
-  const sessionRunManager = new SessionRunManager({
-    agentRuntimeManager: runtimeManager,
-    ncpAgentSessionStore: sessionStore,
-    eventBus,
-    onSessionUpdated: () => undefined,
-  });
-  const ncpSessionApi = new NcpSessionApiService({
+  const sessionsDir = createTempDir("nextclaw-ui-ncp-runtime-sessions-");
+  const sessions = new SessionManager({ sessionsDir });
+  const ncpSessionManager = new NcpSessionManager({
     eventBus,
     getConfig: () => ConfigSchema.parse({}),
-    isLiveSessionRunning: sessionRunManager.isRunning,
-    ncpAgentSessionStore: sessionStore,
+    journalStore: new NcpAgentSessionJournalStore(join(sessionsDir, ".ncp-agent-journal")),
     sessionManager: sessions,
   });
+  const sessionRunManager = new SessionRunManager({
+    agentRuntimeManager: runtimeManager,
+    eventBus,
+    ncpSessionManager,
+  });
   const requestManager = new AgentRunRequestManager({
-    sessions,
     ingress,
+    ncpSessionManager,
     sessionRunManager,
-    onSessionUpdated: () => undefined,
   });
   requestManager.start();
   const app = createUiRouter({
@@ -177,7 +144,7 @@ it("routes ncp send through AgentRunRequestManager and stores the assistant repl
       assetStore: {} as never,
       ingress,
       llmProviders: {} as never,
-      ncpSessionApi,
+      ncpSessionManager,
       sessionRunManager,
     } as unknown as UiKernelHost),
   });
@@ -230,28 +197,30 @@ it("routes ncp send through AgentRunRequestManager and stores the assistant repl
     expect(sendPayload.data.assistantMessageId).toBe("assistant-message-1");
     expect(sendPayload.data.runId).toMatch(/^ncp-run-/);
 
-    const messagesResponse = await app.request(
-      `http://localhost/api/ncp/sessions/${sendPayload.data.sessionId}/messages`,
-    );
-    expect(messagesResponse.status).toBe(200);
-    const messagesPayload = await messagesResponse.json() as {
-      ok: boolean;
-      data: {
-        messages: Array<{
-          role: string;
-          parts: Array<{ type: string; text?: string }>;
-        }>;
+    await vi.waitFor(async () => {
+      const messagesResponse = await app.request(
+        `http://localhost/api/ncp/sessions/${sendPayload.data.sessionId}/messages`,
+      );
+      expect(messagesResponse.status).toBe(200);
+      const messagesPayload = await messagesResponse.json() as {
+        ok: boolean;
+        data: {
+          messages: Array<{
+            role: string;
+            parts: Array<{ type: string; text?: string }>;
+          }>;
+        };
       };
-    };
-    expect(messagesPayload.ok).toBe(true);
-    expect(messagesPayload.data.messages).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          role: "assistant",
-          parts: [{ type: "text", text: "pong from runtime" }],
-        }),
-      ]),
-    );
+      expect(messagesPayload.ok).toBe(true);
+      expect(messagesPayload.data.messages).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            role: "assistant",
+            parts: [{ type: "text", text: "pong from runtime" }],
+          }),
+        ]),
+      );
+    });
   } finally {
     await requestManager.dispose();
     await sessionRunManager.dispose();

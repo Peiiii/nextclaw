@@ -16,7 +16,7 @@ describe("ingress route", () => {
         assetStore: {} as never,
         ingress: { handle } as unknown as Ingress,
         llmProviders: {} as never,
-        ncpSessionApi: {} as never,
+        ncpSessionManager: {} as never,
         sessionRunManager: {} as never,
       } as unknown as UiKernelHost,
     });

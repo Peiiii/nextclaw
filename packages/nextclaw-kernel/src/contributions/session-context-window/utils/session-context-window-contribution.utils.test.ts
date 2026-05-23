@@ -10,29 +10,33 @@ async function flushPromises(): Promise<void> {
   await Promise.resolve();
 }
 
-function createKernelStub(contextWindow: Record<string, unknown>) {
+function createKernelStub(
+  contextWindow: Record<string, unknown>,
+  liveSessionRecord: Record<string, unknown> | null = null,
+) {
   const eventBus = new EventBus();
-  const appendSessionEvent = vi.fn().mockResolvedValue(undefined);
-  const getSession = vi.fn().mockResolvedValue({
-    sessionId: "session-1",
-    messageCount: 1,
-    updatedAt: "2026-05-19T00:00:00.000Z",
-    status: "running",
-    contextWindow,
+  const getContextWindow = vi.fn().mockResolvedValue(contextWindow);
+  const getLiveSessionRecord = vi.fn(() => liveSessionRecord);
+  const publishedContextWindows: Record<string, unknown>[] = [];
+  eventBus.on(eventKeys.ncpEvent, (event) => {
+    if (event.type === NcpEventType.ContextWindowUpdated) {
+      publishedContextWindows.push(event.payload.contextWindow);
+    }
   });
   return {
     eventBus,
-    appendSessionEvent,
-    getSession,
+    getContextWindow,
+    publishedContextWindows,
     kernel: {
       eventBus,
-      ncpSessionApi: {
-        getSession,
+      ncpSessionManager: {
+        getContextWindow,
       },
       sessionRunManager: {
-        appendSessionEvent,
+        getLiveSessionRecord,
       },
     } as unknown as NextclawKernel,
+    getLiveSessionRecord,
   };
 }
 
@@ -46,7 +50,7 @@ describe("SessionContextWindowContribution", () => {
   });
 
   it("publishes a throttled context-window update while the assistant streams", async () => {
-    const { appendSessionEvent, eventBus, getSession, kernel } = createKernelStub({
+    const { eventBus, getContextWindow, kernel, publishedContextWindows } = createKernelStub({
       usedContextTokens: 64,
       totalContextTokens: 100,
     });
@@ -63,26 +67,48 @@ describe("SessionContextWindowContribution", () => {
     });
 
     await vi.advanceTimersByTimeAsync(1499);
-    expect(getSession).not.toHaveBeenCalled();
+    expect(getContextWindow).not.toHaveBeenCalled();
 
     await vi.advanceTimersByTimeAsync(1);
 
-    expect(getSession).toHaveBeenCalledWith("session-1");
-    expect(appendSessionEvent).toHaveBeenCalledWith("session-1", {
-      type: NcpEventType.ContextWindowUpdated,
-      payload: {
-        sessionId: "session-1",
-        contextWindow: {
-          usedContextTokens: 64,
-          totalContextTokens: 100,
-        },
-      },
+    expect(getContextWindow).toHaveBeenCalledWith("session-1", null);
+    expect(publishedContextWindows).toContainEqual({
+      usedContextTokens: 64,
+      totalContextTokens: 100,
     });
     contribution.dispose();
   });
 
+  it("uses the live session snapshot when publishing context-window updates", async () => {
+    const liveSessionRecord = {
+      sessionId: "session-1",
+      messages: [],
+      metadata: { runtime: "native" },
+    };
+    const { eventBus, getContextWindow, getLiveSessionRecord, kernel } = createKernelStub({
+      usedContextTokens: 32,
+      totalContextTokens: 100,
+    }, liveSessionRecord);
+    const contribution = new SessionContextWindowContribution(kernel);
+    contribution.start();
+
+    eventBus.emit(eventKeys.ncpEvent, {
+      type: NcpEventType.MessageToolCallResult,
+      payload: {
+        sessionId: "session-1",
+        toolCallId: "tool-1",
+        content: "tool output",
+      },
+    });
+    await vi.advanceTimersByTimeAsync(1500);
+
+    expect(getLiveSessionRecord).toHaveBeenCalledWith("session-1");
+    expect(getContextWindow).toHaveBeenCalledWith("session-1", liveSessionRecord);
+    contribution.dispose();
+  });
+
   it("flushes immediately when the run finishes", async () => {
-    const { appendSessionEvent, eventBus, kernel } = createKernelStub({
+    const { eventBus, kernel, publishedContextWindows } = createKernelStub({
       usedContextTokens: 88,
       totalContextTokens: 100,
     });
@@ -98,15 +124,68 @@ describe("SessionContextWindowContribution", () => {
     });
     await flushPromises();
 
-    expect(appendSessionEvent).toHaveBeenCalledWith("session-1", {
-      type: NcpEventType.ContextWindowUpdated,
+    expect(publishedContextWindows).toContainEqual({
+      usedContextTokens: 88,
+      totalContextTokens: 100,
+    });
+    contribution.dispose();
+  });
+
+  it("publishes immediately after a user message is persisted", async () => {
+    const { eventBus, kernel, publishedContextWindows } = createKernelStub({
+      usedContextTokens: 24,
+      totalContextTokens: 100,
+    });
+    const contribution = new SessionContextWindowContribution(kernel);
+    contribution.start();
+
+    eventBus.emit(eventKeys.ncpEvent, {
+      type: NcpEventType.MessageSent,
       payload: {
         sessionId: "session-1",
-        contextWindow: {
-          usedContextTokens: 88,
-          totalContextTokens: 100,
+        message: {
+          id: "user-1",
+          sessionId: "session-1",
+          role: "user",
+          status: "final",
+          parts: [{ type: "text", text: "hello" }],
+          timestamp: "2026-05-19T00:00:00.000Z",
         },
       },
+    });
+    await flushPromises();
+
+    expect(publishedContextWindows).toContainEqual({
+      usedContextTokens: 24,
+      totalContextTokens: 100,
+    });
+    contribution.dispose();
+  });
+
+  it("refreshes after non-delta tool stream events", async () => {
+    const { eventBus, getContextWindow, kernel, publishedContextWindows } = createKernelStub({
+      usedContextTokens: 72,
+      totalContextTokens: 100,
+    });
+    const contribution = new SessionContextWindowContribution(kernel);
+    contribution.start();
+
+    eventBus.emit(eventKeys.ncpEvent, {
+      type: NcpEventType.MessageToolCallStart,
+      payload: {
+        sessionId: "session-1",
+        messageId: "assistant-1",
+        toolCallId: "tool-1",
+        toolName: "exec",
+      },
+    });
+
+    await vi.advanceTimersByTimeAsync(1500);
+
+    expect(getContextWindow).toHaveBeenCalledWith("session-1", null);
+    expect(publishedContextWindows).toContainEqual({
+      usedContextTokens: 72,
+      totalContextTokens: 100,
     });
     contribution.dispose();
   });
@@ -116,7 +195,7 @@ describe("SessionContextWindowContribution", () => {
       usedContextTokens: 42,
       totalContextTokens: 100,
     };
-    const { appendSessionEvent, eventBus, getSession, kernel } = createKernelStub(contextWindow);
+    const { eventBus, getContextWindow, kernel, publishedContextWindows } = createKernelStub(contextWindow);
     const contribution = new SessionContextWindowContribution(kernel);
     contribution.start();
 
@@ -143,8 +222,8 @@ describe("SessionContextWindowContribution", () => {
     });
     await flushPromises();
 
-    expect(getSession).toHaveBeenCalledWith("session-1");
-    expect(appendSessionEvent).not.toHaveBeenCalled();
+    expect(getContextWindow).toHaveBeenCalledWith("session-1", null);
+    expect(publishedContextWindows).toHaveLength(1);
     contribution.dispose();
   });
 });

@@ -29,7 +29,7 @@ export class SessionActivityPreviewContribution implements KernelContribution {
   };
 
   private updatePreview = (projection: SessionActivityPreviewProjection): void => {
-    void this.kernel.sessionRunManager
+    void this.kernel.ncpSessionManager
       .patchSessionMetadata(
         projection.sessionId,
         (metadata) => writeSessionActivityPreviewMetadata(metadata, projection),
