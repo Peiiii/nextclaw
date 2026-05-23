@@ -23,7 +23,7 @@ test("creates a compact, draggable Windows chrome contract", () => {
 
     assert.equal(options.minWidth, 420);
     assert.equal(options.minHeight, 320);
-    assert.equal(options.frame, undefined);
+    assert.equal(options.frame, false);
     assert.equal(options.thickFrame, undefined);
     assert.equal(options.titleBarStyle, "hidden");
     assert.deepEqual(options.titleBarOverlay, {

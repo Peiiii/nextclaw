@@ -1,5 +1,11 @@
 # @nextclaw/desktop
 
+## 0.0.183
+
+### Patch Changes
+
+- Use the VS Code-style Windows hidden-titlebar chrome contract for custom titlebar dragging.
+
 ## 0.0.182
 
 ### Patch Changes
