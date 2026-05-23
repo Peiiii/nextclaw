@@ -54,6 +54,59 @@ function Remove-InstallDirectoryBestEffort {
   }
 }
 
+function Format-InstallerExitCode {
+  param([int]$ExitCode)
+
+  $unsigned = [BitConverter]::ToUInt32([BitConverter]::GetBytes($ExitCode), 0)
+  return "$ExitCode (0x$($unsigned.ToString("X8")))"
+}
+
+function Write-InstallerCrashDiagnostics {
+  param(
+    [string]$InstallerPath,
+    [string]$InstallDir,
+    [datetime]$StartedAt
+  )
+
+  $installerName = Split-Path -Leaf $InstallerPath
+  $expectedExePath = Join-Path $InstallDir "NextClaw Desktop.exe"
+  Write-Host "[desktop-installer-smoke] install dir exists after failure: $(Test-Path $InstallDir)"
+  Write-Host "[desktop-installer-smoke] installed exe exists after failure: $(Test-Path $expectedExePath)"
+
+  try {
+    $events = Get-WinEvent -FilterHashtable @{
+      LogName = "Application"
+      StartTime = $StartedAt.AddSeconds(-5)
+    } -MaxEvents 20 -ErrorAction Stop | Where-Object {
+      $_.Message -like "*$installerName*" -or $_.Message -like "*0xc0000005*"
+    }
+    foreach ($event in $events) {
+      $message = ($event.Message -replace "\s+", " ").Trim()
+      Write-Host "[desktop-installer-smoke] event-log id=$($event.Id) provider=$($event.ProviderName) message=$message"
+    }
+  } catch {
+    Write-Warning "[desktop-installer-smoke] event-log diagnostics failed: $($_.Exception.Message)"
+  }
+}
+
+function Invoke-InstallerProcess {
+  param(
+    [string]$InstallerPath,
+    [string]$Arguments
+  )
+
+  $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+  $startInfo.FileName = $InstallerPath
+  $startInfo.Arguments = $Arguments
+  $startInfo.UseShellExecute = $false
+  $startInfo.CreateNoWindow = $true
+  $startInfo.Environment["__COMPAT_LAYER"] = "RunAsInvoker"
+
+  $process = [System.Diagnostics.Process]::Start($startInfo)
+  $process.WaitForExit()
+  return $process.ExitCode
+}
+
 function Resolve-InstalledDesktopExecutable {
   param([string]$ExpectedExePath)
 
@@ -89,9 +142,12 @@ Invoke-SilentUninstall -InstallDir $installDir
 try {
   Write-Host "[desktop-installer-smoke] running silent install"
   $installArgs = "/S /currentuser /D=$installDir"
-  $installProc = Start-Process -FilePath $resolvedInstaller -ArgumentList $installArgs -PassThru -Wait
-  if ($installProc.ExitCode -ne 0) {
-    throw "Installer exited with code $($installProc.ExitCode)"
+  Write-Host "[desktop-installer-smoke] install args: $installArgs"
+  $installStartedAt = Get-Date
+  $installExitCode = Invoke-InstallerProcess -InstallerPath $resolvedInstaller -Arguments $installArgs
+  if ($installExitCode -ne 0) {
+    Write-InstallerCrashDiagnostics -InstallerPath $resolvedInstaller -InstallDir $installDir -StartedAt $installStartedAt
+    throw "Installer exited with code $(Format-InstallerExitCode -ExitCode $installExitCode)"
   }
 
   $installedExePath = Resolve-InstalledDesktopExecutable -ExpectedExePath $installedExePath

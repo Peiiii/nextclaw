@@ -98,6 +98,8 @@
 - 二十七次修正已通过：`pnpm -C packages/nextclaw-ui exec eslint src/app/components/layout/app-layout.tsx src/app/components/layout/app-layout.test.tsx src/platforms/desktop/components/desktop-window-chrome.tsx src/platforms/desktop/components/desktop-app-shell.test.tsx`
 - 二十七次修正已通过：`pnpm -C packages/nextclaw-ui tsc`
 - 二十七次修正已通过：本地 Vite + Playwright 验证 `http://127.0.0.1:5184/chat?nextclawDesktopPlatform=win32` 在 `760x520` 与 `1024x720` 下都保留 `desktop-window-chrome`，且 `(320,24)` / `(400,24)` 命中 `desktop-window-chrome-main-drag-region`、computed `app-region=drag`。
+- 二十八次排查：`desktop-validate` run `26326690918` 证明 Windows packaged exe 已通过 titlebar 原生命中门禁，`760x520` 下 `WM_NCHITTEST` 返回 `HTCAPTION(2)`；当前阻塞从 titlebar 修复转移到 release 外围，分别是 portable verify 调用打包脚本失败、NSIS installer 静默安装返回 `0xC0000005`。
+- 二十八次修正：portable verify 改为直接用当前 Node 执行 `apps/desktop/scripts/package-windows-portable.mjs --arch x64`，避免 Windows 上 `pnpm exec node ... -- --arch` 包装层影响参数；installer smoke 保留 NSIS 官方 `/S /currentuser /D=<installDir>` 单行参数合同，但改用 `ProcessStartInfo` + `RunAsInvoker` 启动，并在失败时打印安装目录与 Windows Application event log 证据。
 - 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
 - 已通过：`pnpm lint:new-code:governance -- apps/desktop/src/utils/desktop-window-options.utils.ts apps/desktop/src/utils/desktop-window-options.utils.test.ts packages/nextclaw-ui/src/platforms/desktop/components/desktop-window-chrome.tsx packages/nextclaw-ui/src/platforms/desktop/components/desktop-app-shell.test.tsx docs/logs/v0.19.6-windows-desktop-titlebar-drag/README.md`
 - 已通过：`pnpm check:governance-backlog-ratchet`
