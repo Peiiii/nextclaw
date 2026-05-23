@@ -520,9 +520,12 @@ jobs:
 
       - name: Prepare gh-pages worktree
         shell: bash
+        env:
+          GH_PAGES_PUSH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           rm -rf .tmp/gh-pages
+          git remote set-url origin "https://x-access-token:${GH_PAGES_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
           if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
             git fetch origin gh-pages
@@ -602,10 +605,13 @@ jobs:
 
       - name: Prepare gh-pages worktree
         shell: bash
+        env:
+          GH_PAGES_PUSH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           rm -rf .tmp/gh-pages .tmp/current-pages-apt dist/linux-apt-input
           mkdir -p dist/linux-apt-input
+          git remote set-url origin "https://x-access-token:${GH_PAGES_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
           if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
             git fetch origin gh-pages
