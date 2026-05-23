@@ -250,6 +250,12 @@ jobs:
           $ErrorActionPreference = "Stop"
           pnpm -r --filter @nextclaw/desktop... build
 
+      - name: Minimal Electron app-region smoke
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          & "apps/desktop/scripts/smoke-windows-electron-app-region-minimal.ps1"
+
       - name: Build Windows desktop executable
         shell: pwsh
         run: |

@@ -11,6 +11,7 @@
 - 十次排查：`v0.19.24-desktop-beta.4` 证明专用 absolute drag region 在真实 `/chat` 页面命中正确，`(320,24)`、`(400,24)`、`(700,24)` 均命中 `desktop-window-chrome-drag-region` 且 computed `app-region: drag`，但 Windows x64 smoke 仍失败；下一步把 Win32 smoke 从单一 main HWND 扩展为检查鼠标点下方 HWND、root HWND 与 parent 链，确认是 Electron 未返回 `HTCAPTION` 还是 smoke 之前测错 HWND。
 - 十一次排查：`v0.19.24-desktop-beta.5` 证明 main HWND `Chrome_WidgetWin_1` 与鼠标点下方 HWND `Chrome_RenderWidgetHostHWND` 都返回 `HTCLIENT(1)`，没有任何相关 HWND 返回 `HTCAPTION(2)`；因此问题不是测错窗口，而是 Windows `titleBarOverlay` 合同下 Electron 没有把 renderer drag region 转成 native caption。下一步移除 `titleBarOverlay`，改为纯 `frame:false` frameless + renderer 自绘窗口按钮。
 - 十二次排查：`v0.19.24-desktop-beta.6` 移除 `titleBarOverlay` 后，Windows x64 CI 的 `WM_NCHITTEST` 仍然返回 `HTCLIENT(1)`；因此不能再把 `HTCAPTION` 当作唯一验收真理，下一轮 smoke 保留 HWND 诊断，但最终用真实鼠标拖动后的窗口几何变化判断是否可拖拽。
+- 十三次排查：`v0.19.24-desktop-beta.7` 使用真实鼠标拖动窗口标题栏空白点后，窗口几何位置仍为 `delta=(0,0)`；因此当前 Electron 官方 `app-region` 链路在本应用的 Windows packaged 环境中确实未生效，不能继续把问题归因到 renderer DOM/CSS 命中面。根因未完全定位，下一步必须做同 Electron 版本的最小复现，对比是 Electron/CI/版本层问题，还是本应用窗口生命周期或 runtime 加载路径阻断了 draggable region 注册。
 - 根因：
   - 窗口最小尺寸由 [desktop-window-options.utils.ts](../../../apps/desktop/src/utils/desktop-window-options.utils.ts) 写死为 `1080x720`，导致只能缩小一点点。
   - 首轮只补齐 CSS 拖拽声明，但 Windows title bar overlay 的右上角 native controls 区域仍被同一个 draggable DOM 矩形覆盖。Electron 的 Window Controls Overlay 合同要求 overlay 下方 DOM 不可用，因此拖拽命中区不能伸到 caption buttons 下方。
@@ -22,6 +23,7 @@
   - 十次排查证明 renderer drag region 形状也不是唯一原因：专用 absolute drag layer 在真实 `/chat` 页面已被 `elementFromPoint` 和 computed style 共同确认，但原生命中测试仍未通过；剩余问题必须进入 HWND 层诊断。
   - 十一次排查证明 HWND 层也没有 `HTCAPTION`：`titleBarOverlay` 是当前最可疑的合同分叉。为了回到 Electron 最基础的 frameless draggable contract，本轮删除 Windows overlay 原生按钮，改由 renderer 通过 IPC 调用 minimize / maximize / close。
   - 十二次排查证明纯 frameless 后 `WM_NCHITTEST` 仍然不能代表 Electron draggable region 的全部行为；release gate 改为真实鼠标输入造成窗口移动，`WM_NCHITTEST` 降级为诊断日志。
+  - 十三次排查证明真实鼠标拖动也不会移动窗口；当前已确认 renderer 侧官方 `app-region` 条件成立，但 native 窗口没有执行拖拽。根因未完全定位，剩余不确定因素在 Electron/Chromium draggable region 注册、Windows packaged runtime 窗口生命周期、或当前 Electron 版本/CI 交互环境之间。
 - 修复方式：
   - Windows `BrowserWindow` 最小尺寸降到 `420x320`，允许真实小窗使用。
   - Windows 窗口参数调整为 VS Code 风格的 custom titlebar 合同：`frame: false`、`titleBarStyle: "hidden"` 与 `titleBarOverlay`；不再混用 `thickFrame: true`。
@@ -56,9 +58,14 @@
 - 十一次排查新增验证门禁：Windows titlebar smoke 同时记录 main window HWND、`WindowFromPoint` 命中的 HWND、root HWND、parent 链、class name 和各自 `WM_NCHITTEST` 返回值；只有这些真实相关 HWND 至少一个返回 `HTCAPTION(2)`，才允许进入后续 release closure。
 - 十一次排查失败证据：`v0.19.24-desktop-beta.5` 中 main HWND `Chrome_WidgetWin_1` 返回 `HTCLIENT(1)`，point HWND `Chrome_RenderWidgetHostHWND` 也返回 `HTCLIENT(1)`，无相关 HWND 返回 `HTCAPTION(2)`，因此 `beta.5` 未完成 release closure，不能交付用户测试。
 - 十二次排查失败证据：`v0.19.24-desktop-beta.6` 移除 `titleBarOverlay` 并启用 renderer 自绘窗口控制按钮后，Windows x64 CI 仍显示 main HWND 与 point HWND 都返回 `HTCLIENT(1)`；这说明 `WM_NCHITTEST` 不是足够可靠的最终验收方式。
+- 十三次排查失败证据：`v0.19.24-desktop-beta.7` 的 Windows x64 CI 同时记录 `mainHitTest=1`、`pointHitTest=1`，并执行真实鼠标拖动几何验收；窗口拖动前为 `(80,80)`，拖动后仍为 `(80,80)`，`delta=(0,0)`，因此 `beta.7` 未完成 release closure，不能交付用户测试。
+- 十四次排查新增验证门禁：`desktop-validate` 的 Windows exe smoke 前新增最小 Electron app-region smoke，分别测试纯 `frame:false` 和 `frame:false + titleBarStyle:"hidden"` 两个最小窗口；用于判断官方 draggable region 在同 Electron 版本和同 Windows runner 上是否能独立工作。
 - 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
 - 已通过：`pnpm lint:new-code:governance -- apps/desktop/src/utils/desktop-window-options.utils.ts apps/desktop/src/utils/desktop-window-options.utils.test.ts packages/nextclaw-ui/src/platforms/desktop/components/desktop-window-chrome.tsx packages/nextclaw-ui/src/platforms/desktop/components/desktop-app-shell.test.tsx docs/logs/v0.19.6-windows-desktop-titlebar-drag/README.md`
 - 已通过：`pnpm check:governance-backlog-ratchet`
+- 已通过：`git diff --check`
+- 已通过：`pnpm lint:new-code:governance -- .github/workflows/desktop-validate.yml apps/desktop/scripts/smoke-windows-electron-app-region-minimal.ps1 docs/logs/v0.19.6-windows-desktop-titlebar-drag/README.md`
+- 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths .github/workflows/desktop-validate.yml apps/desktop/scripts/smoke-windows-electron-app-region-minimal.ps1 docs/logs/v0.19.6-windows-desktop-titlebar-drag/README.md`，结果为本次诊断脚本/工作流/记录改动不适用 code-like maintainability 检查。
 - 七次排查本机完整包验证阻塞：`PATH=/opt/homebrew/bin:$PATH pnpm desktop:package:verify` 已完成通用 build、seed bundle 与 macOS DMG 打包前置校验，但在本机 GUI smoke 打开 unsigned macOS DMG 时被 AMFI / AppleSystemPolicy 拦截；该阻塞属于本机未签名 macOS 信任策略，不是 Windows titlebar 合同的判定结果。
 - 已知阻塞：`pnpm -C packages/nextclaw-ui lint` 被既有 UI lint 债务阻塞，错误集中在未触达的 chat/marketplace/system-status/doc-browser 等文件；本次触达 UI 文件的 targeted ESLint 已通过。
 - 二次修正已触达 TypeScript 源码，因此桌面包与 UI 包 `tsc` 均已执行。
@@ -73,7 +80,8 @@
 - 发布失败记录：[`v0.19.24-desktop-beta.4`](https://github.com/Peiiii/nextclaw/releases/tag/v0.19.24-desktop-beta.4) 目标提交 `8c4065969693b328b459d8fda484f44930899035`，Windows x64 smoke 仍未完成 titlebar 原生命中验收，未完成 release closure，不能交付用户测试。
 - 发布失败记录：[`v0.19.24-desktop-beta.5`](https://github.com/Peiiii/nextclaw/releases/tag/v0.19.24-desktop-beta.5) 目标提交 `7f00c43e0178a9e8dd5c185927703cfd89026f11`，Windows x64 smoke 证明 main / point HWND 都返回 `HTCLIENT(1)`，未完成 release closure，不能交付用户测试。
 - 发布失败记录：[`v0.19.24-desktop-beta.6`](https://github.com/Peiiii/nextclaw/releases/tag/v0.19.24-desktop-beta.6) 目标提交 `519dce01991af60d6dfd6a6748ed74cfb5238539`，Windows x64 smoke 仍因 `WM_NCHITTEST` 未返回 `HTCAPTION(2)` 阻断，未完成 release closure，不能交付用户测试。
-- 后续发布计划：`v0.19.24-desktop-beta.7` 使用真实鼠标拖动后窗口几何变化作为 Windows drag release gate；如果仍不移动，再给出“当前 Electron app-region 链路确实未生效”的结论。
+- 发布失败记录：[`v0.19.24-desktop-beta.7`](https://github.com/Peiiii/nextclaw/releases/tag/v0.19.24-desktop-beta.7) 目标提交 `cb63092e735361212b84cf2d467649fa2230a0f9`，Windows x64 smoke 通过真实鼠标拖动验证窗口位置没有变化，未完成 release closure，不能交付用户测试。
+- 后续发布计划：暂停继续发布给用户试错；先做同 Electron 版本的最小 Windows app-region 复现，并把结果作为下一轮代码方向的入口。
 - 本次 release 名称：`NextClaw Desktop 0.0.181 Preview Beta 1`。
 - 本次 release 对应源码提交：`588185ba20578e36d2646eaf7d2100c5869b59da`。
 - 本次 Windows 主要验收资产：
@@ -106,6 +114,8 @@
 - 十一次排查把“验证是否测错窗口”自动化：Windows smoke 不再只看 process main window handle，而是记录鼠标点下方 HWND 与父级链路，避免错误结论继续消耗人工测试。
 - 十二次修正删除不稳定合同：不再依赖 Windows `titleBarOverlay` 同时提供原生按钮和 app-region 映射，改为一个更单纯的 frameless window owner；窗口按钮交互集中到 `DesktopWindowControlService`。
 - 十三次修正降低错误验证风险：不再把 `WM_NCHITTEST` 与真实用户拖拽等同，避免一个可能不适用的 Win32 观测点反复阻断 release。
+- 十三次排查后的维护结论：继续调 renderer CSS 或 titlebar DOM 已经不是高性价比方向；后续必须先建立最小 Electron 复现或明确改用可验证的 JS/native 手动拖拽 fallback，避免把复杂度继续堆在 UI 表层。
+- 十四次排查把最小复现前移到 CI：用独立 PowerShell smoke 直接启动最小 Electron app，避免继续把 NextClaw 应用复杂度和 Electron 官方能力混在一起判断。
 - `post-edit-maintainability-guard` 二次修正结果：total `+65/-8/net +57`，non-test `+7/-7/net +0`，无可维护性发现。
 
 ## NPM 包发布记录
