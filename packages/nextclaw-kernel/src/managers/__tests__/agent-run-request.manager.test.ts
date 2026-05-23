@@ -11,7 +11,6 @@ import {
 import {
   DefaultNcpAgentConversationStateManager,
   InMemoryAgentSessionStore,
-  type AgentSessionEventRecord,
   type AgentSessionRecord,
   type RuntimeFactoryParams,
 } from "@nextclaw/ncp-toolkit";
@@ -187,10 +186,9 @@ class TestNcpSessionManager {
     if (!session) {
       return false;
     }
-    await this.sessionStore.setSessionMetadata({
-      sessionId,
-      metadata,
-      updatedAt: new Date().toISOString(),
+    await this.sessionStore.saveSession({
+      ...session,
+      metadata: structuredClone(metadata),
     });
     return true;
   };
@@ -203,37 +201,39 @@ class TestNcpSessionManager {
     if (!session) {
       return false;
     }
-    await this.sessionStore.updateSessionMetadata({
-      sessionId,
-      metadata,
-      updatedAt: new Date().toISOString(),
+    await this.sessionStore.saveSession({
+      ...session,
+      metadata: {
+        ...(session.metadata ? structuredClone(session.metadata) : {}),
+        ...structuredClone(metadata),
+      },
     });
     return true;
   };
 
   appendSessionEvent = async (params: {
-    session: AgentSessionEventRecord;
     event: NcpEndpointEvent;
-    updatedAt: string;
+    sessionId: string;
   }): Promise<void> => {
-    const { event, session, updatedAt } = params;
-    const existing = await this.sessionStore.getSession(session.sessionId);
+    const { event, sessionId } = params;
+    const updatedAt = new Date().toISOString();
+    const existing = await this.sessionStore.getSession(sessionId);
     const stateManager = new DefaultNcpAgentConversationStateManager();
     stateManager.hydrate({
-      sessionId: session.sessionId,
+      sessionId,
       messages: existing?.messages ?? [],
     });
     await stateManager.dispatch(event);
     const snapshot = stateManager.getSnapshot();
-    const latest = await this.sessionStore.getSession(session.sessionId);
+    const latest = await this.sessionStore.getSession(sessionId);
     await this.sessionStore.saveSession({
-      sessionId: session.sessionId,
-      ...(session.agentId ? { agentId: session.agentId } : {}),
+      sessionId,
+      ...(latest?.agentId ?? existing?.agentId ? { agentId: latest?.agentId ?? existing?.agentId } : {}),
       messages: [
         ...snapshot.messages.map((message) => structuredClone(message)),
         ...(snapshot.streamingMessage ? [structuredClone(snapshot.streamingMessage)] : []),
       ],
-      createdAt: latest?.createdAt ?? existing?.createdAt ?? session.createdAt ?? updatedAt,
+      createdAt: latest?.createdAt ?? existing?.createdAt ?? updatedAt,
       updatedAt,
       metadata: {
         ...(latest?.metadata
@@ -241,7 +241,6 @@ class TestNcpSessionManager {
           : existing?.metadata
             ? structuredClone(existing.metadata)
             : {}),
-        ...(existing ? {} : structuredClone(session.metadata ?? {})),
       },
     });
   };
@@ -501,7 +500,7 @@ describe("AgentRunRequestManager runtime orchestration", () => {
       session: Awaited<ReturnType<SessionRunManager["getOrCreateLiveSession"]>>;
     }): AsyncIterable<NcpEndpointEvent> {
       const { input, session } = params;
-      storedMetadata = structuredClone(session.metadata);
+      storedMetadata = structuredClone(input.metadata ?? {});
       await sessionRunManager.updateSessionMetadata(session.sessionId, {
         [CONTEXT_COMPACTION_METADATA_KEY]: { id: "checkpoint-1", status: "compressing" },
       });

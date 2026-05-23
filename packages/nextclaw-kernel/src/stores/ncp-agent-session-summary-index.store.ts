@@ -1,6 +1,5 @@
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { AgentSessionEventRecord } from "@nextclaw/ncp-toolkit";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
 import {
   createNcpAgentSessionSummary,
@@ -12,6 +11,12 @@ import {
   readNcpSessionSummaryActivityAt,
   upsertNcpAgentSessionSummaryEvent,
 } from "@kernel/utils/ncp-agent-session-journal.utils.js";
+
+function stripSummaryMetadata(summary: NcpSessionSummary): NcpSessionSummary {
+  const { metadata: _metadata, ...nextSummary } = summary;
+  void _metadata;
+  return nextSummary;
+}
 
 export class NcpAgentSessionSummaryIndexStore {
   private summaryIndex: Map<string, NcpSessionSummary> | null = null;
@@ -32,24 +37,24 @@ export class NcpAgentSessionSummaryIndexStore {
 
   upsert = async (summary: NcpSessionSummary): Promise<void> => {
     const index = await this.load();
-    index.set(summary.sessionId, structuredClone(summary));
+    index.set(summary.sessionId, stripSummaryMetadata(structuredClone(summary)));
     await this.persist();
   };
 
   upsertForEvent = async (params: {
-    session: AgentSessionEventRecord;
+    sessionId: string;
     event: NcpAgentSessionJournalReplayEvent;
     updatedAt: string;
   }): Promise<void> => {
-    const { event, session, updatedAt } = params;
+    const { event, sessionId, updatedAt } = params;
     const index = await this.load();
     const summary = upsertNcpAgentSessionSummaryEvent({
-      current: index.get(session.sessionId),
-      session,
+      current: index.get(sessionId),
+      sessionId,
       event,
       updatedAt,
     });
-    index.set(summary.sessionId, summary);
+    index.set(summary.sessionId, stripSummaryMetadata(summary));
     await this.persist();
   };
 
@@ -66,7 +71,10 @@ export class NcpAgentSessionSummaryIndexStore {
     try {
       const parsed = JSON.parse(await readFile(this.indexPath(), "utf-8")) as NcpAgentSessionJournalIndex;
       if (parsed.version === NCP_AGENT_SESSION_JOURNAL_ENTRY_VERSION && Array.isArray(parsed.records)) {
-        this.summaryIndex = new Map(parsed.records.map((record) => [record.sessionId, structuredClone(record)]));
+        this.summaryIndex = new Map(parsed.records.map((record) => [
+          record.sessionId,
+          stripSummaryMetadata(structuredClone(record)),
+        ]));
         return this.summaryIndex;
       }
     } catch {
@@ -92,7 +100,7 @@ export class NcpAgentSessionSummaryIndexStore {
       const sessionId = entry.replace(/\.jsonl$/, "").replace(/_/g, ":");
       const loaded = await this.loadSession(sessionId);
       if (loaded) {
-        records.set(sessionId, createNcpAgentSessionSummary(loaded.record));
+        records.set(sessionId, stripSummaryMetadata(createNcpAgentSessionSummary(loaded.record)));
       }
     }
     return records;
@@ -100,7 +108,7 @@ export class NcpAgentSessionSummaryIndexStore {
 
   private persist = async (): Promise<void> => {
     const records = [...(this.summaryIndex?.values() ?? [])]
-      .map((summary) => structuredClone(summary))
+      .map((summary) => stripSummaryMetadata(structuredClone(summary)))
       .sort((left, right) => readNcpSessionSummaryActivityAt(right).localeCompare(readNcpSessionSummaryActivityAt(left)));
     await mkdir(this.journalDir, { recursive: true });
     await writeFile(

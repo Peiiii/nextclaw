@@ -3,7 +3,6 @@ import { NcpEventType, type NcpAgentRuntime, type NcpEndpointEvent } from "@next
 import { EventBus, eventKeys } from "@nextclaw/shared";
 import {
   InMemoryAgentSessionStore,
-  type AgentSessionEventRecord,
   type AgentSessionRecord,
   type RuntimeFactoryParams,
 } from "@nextclaw/ncp-toolkit";
@@ -44,31 +43,32 @@ function createRuntimeManagerCapture(
 }
 
 class AppendRecordingSessionStore extends InMemoryAgentSessionStore {
-  readonly appendSessionMetadata: Record<string, unknown>[] = [];
+  readonly appendSessionMetadata: Array<Record<string, unknown> | undefined> = [];
 
-  override appendSessionEvent = async (params: {
-    session: AgentSessionEventRecord;
+  appendSessionEvent = async (params: {
     event: NcpEndpointEvent;
-    updatedAt: string;
+    sessionId: string;
   }): Promise<void> => {
-    const { session, updatedAt } = params;
-    this.appendSessionMetadata.push(structuredClone(session.metadata ?? {}));
-    const existing = await this.getSession(session.sessionId);
+    const { sessionId } = params;
+    const updatedAt = new Date().toISOString();
+    this.appendSessionMetadata.push(undefined);
+    const existing = await this.getSession(sessionId);
     await this.saveSession({
-      sessionId: session.sessionId,
-      ...(session.agentId ? { agentId: session.agentId } : {}),
+      sessionId,
+      ...(existing?.agentId ? { agentId: existing.agentId } : {}),
       messages: existing?.messages ?? [],
-      createdAt: existing?.createdAt ?? session.createdAt ?? updatedAt,
+      createdAt: existing?.createdAt ?? updatedAt,
       updatedAt,
       metadata: {
         ...(existing?.metadata ? structuredClone(existing.metadata) : {}),
-        ...(session.metadata ? structuredClone(session.metadata) : {}),
       },
     });
   };
 }
 
 class TestNcpSessionManager {
+  private writeChain = Promise.resolve();
+
   constructor(private readonly sessionStore: InMemoryAgentSessionStore) {}
 
   getSessionRecord = async (sessionId: string): Promise<AgentSessionRecord | null> =>
@@ -82,10 +82,9 @@ class TestNcpSessionManager {
     if (!session) {
       return false;
     }
-    await this.sessionStore.setSessionMetadata({
-      sessionId,
-      metadata,
-      updatedAt: new Date().toISOString(),
+    await this.sessionStore.saveSession({
+      ...session,
+      metadata: structuredClone(metadata),
     });
     return true;
   };
@@ -94,45 +93,49 @@ class TestNcpSessionManager {
     sessionId: string,
     metadata: Record<string, unknown>,
   ): Promise<boolean> => {
+    const next = this.writeChain.then(async () => this.updateSessionMetadataNow(sessionId, metadata));
+    this.writeChain = next.then(() => undefined, () => undefined);
+    return await next;
+  };
+
+  private updateSessionMetadataNow = async (
+    sessionId: string,
+    metadata: Record<string, unknown>,
+  ): Promise<boolean> => {
     const session = await this.sessionStore.getSession(sessionId);
     if (!session) {
       return false;
     }
-    await this.sessionStore.updateSessionMetadata({
-      sessionId,
-      metadata,
-      updatedAt: new Date().toISOString(),
+    await this.sessionStore.saveSession({
+      ...session,
+      metadata: {
+        ...(session.metadata ? structuredClone(session.metadata) : {}),
+        ...structuredClone(metadata),
+      },
     });
     return true;
   };
 
   appendSessionEvent = async (params: {
-    session: AgentSessionEventRecord;
     event: NcpEndpointEvent;
-    updatedAt: string;
+    sessionId: string;
   }): Promise<void> => {
-    const { event, session, updatedAt } = params;
-    const existing = await this.sessionStore.getSession(session.sessionId);
+    const { sessionId } = params;
+    const updatedAt = new Date().toISOString();
+    const existing = await this.sessionStore.getSession(sessionId);
     const appendable = this.sessionStore as InMemoryAgentSessionStore & {
       appendSessionEvent?: (input: typeof params) => Promise<void>;
     };
     if (appendable.appendSessionEvent) {
-      await appendable.appendSessionEvent({
-        event,
-        updatedAt,
-        session: {
-          ...session,
-          metadata: existing ? {} : structuredClone(session.metadata ?? {}),
-        },
-      });
+      await appendable.appendSessionEvent(params);
       return;
     }
-    const latest = await this.sessionStore.getSession(session.sessionId);
+    const latest = await this.sessionStore.getSession(sessionId);
     await this.sessionStore.saveSession({
-      sessionId: session.sessionId,
-      ...(session.agentId ? { agentId: session.agentId } : {}),
+      sessionId,
+      ...(latest?.agentId ?? existing?.agentId ? { agentId: latest?.agentId ?? existing?.agentId } : {}),
       messages: latest?.messages ?? existing?.messages ?? [],
-      createdAt: latest?.createdAt ?? existing?.createdAt ?? session.createdAt ?? updatedAt,
+      createdAt: latest?.createdAt ?? existing?.createdAt ?? updatedAt,
       updatedAt,
       metadata: {
         ...(latest?.metadata
@@ -140,14 +143,13 @@ class TestNcpSessionManager {
           : existing?.metadata
             ? structuredClone(existing.metadata)
             : {}),
-        ...(existing ? {} : structuredClone(session.metadata ?? {})),
       },
     });
   };
 }
 
 describe("SessionRunManager", () => {
-  it("updates live metadata from the in-memory session truth", async () => {
+  it("updates stored metadata through the session metadata owner", async () => {
     const sessionStore = new InMemoryAgentSessionStore();
     await sessionStore.saveSession({
       sessionId: "session-1",
@@ -186,7 +188,7 @@ describe("SessionRunManager", () => {
     await manager.dispose();
   });
 
-  it("does not send stale live metadata snapshots through event appends for existing sessions", async () => {
+  it("does not send metadata snapshots through event appends for existing sessions", async () => {
     const sessionStore = new AppendRecordingSessionStore();
     await sessionStore.saveSession({
       sessionId: "session-1",
@@ -211,7 +213,7 @@ describe("SessionRunManager", () => {
     }, { dispatchToStateManager: false });
 
     const stored = await sessionStore.getSession("session-1");
-    expect(sessionStore.appendSessionMetadata).toEqual([{}]);
+    expect(sessionStore.appendSessionMetadata).toEqual([undefined]);
     expect(stored?.metadata).toMatchObject({
       label: "Live session",
       last_activity_preview: { state: "completed" },

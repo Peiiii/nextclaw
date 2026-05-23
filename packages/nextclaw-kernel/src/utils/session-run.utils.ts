@@ -27,9 +27,7 @@ export type MaterializedAgentRunRequest = NcpRequestEnvelope & {
 export type LiveSession = {
   sessionId: string;
   agentId?: string;
-  createdAt: string;
   stateManager: NcpAgentConversationStateManager;
-  metadata: Record<string, unknown>;
   runtime: NcpAgentRuntime;
   activeExecution: LiveSessionExecution | null;
 };
@@ -164,7 +162,6 @@ export function buildSessionRecord(session: LiveSession, updatedAt: string): Age
   const requestMetadata = session.activeExecution?.requestEnvelope.metadata;
   const metadata = withAutoSessionLabel({
     metadata: {
-      ...structuredClone(session.metadata),
       ...(requestMetadata ? structuredClone(requestMetadata) : {}),
     },
     messages,
@@ -174,7 +171,7 @@ export function buildSessionRecord(session: LiveSession, updatedAt: string): Age
     sessionId: session.sessionId,
     ...(agentId ? { agentId } : {}),
     messages,
-    createdAt: session.createdAt,
+    createdAt: updatedAt,
     updatedAt,
     metadata,
   };

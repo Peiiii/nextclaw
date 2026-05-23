@@ -14,8 +14,6 @@ const finalMessage: NcpMessage = {
 function createLiveSession(): LiveSession {
   return {
     sessionId: "session-1",
-    createdAt: "2026-05-23T00:00:00.000Z",
-    metadata: {},
     stateManager: {
       getSnapshot: () => ({
         messages: [finalMessage],

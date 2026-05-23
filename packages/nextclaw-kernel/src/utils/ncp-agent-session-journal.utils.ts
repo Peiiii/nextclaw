@@ -127,21 +127,12 @@ export function createNcpAgentSessionJournalMetadataEntry(
 
 export function upsertNcpAgentSessionSummaryEvent(params: {
   current: NcpSessionSummary | undefined;
-  session: AgentSessionEventRecord;
+  sessionId: string;
   event: NcpAgentSessionJournalReplayEvent;
   updatedAt: string;
 }): NcpSessionSummary {
-  const { current, event, session, updatedAt } = params;
-  const metadata = {
-    ...(current?.metadata ? structuredClone(current.metadata) : {}),
-    ...(session.metadata ? structuredClone(session.metadata) : {}),
-  };
+  const { current, event, sessionId, updatedAt } = params;
   const eventMessage = readMessageFromSummaryEvent(event);
-  const label = readOptionalText(metadata.label)
-    ?? (eventMessage?.role === "user" ? resolveAutoSessionLabel([eventMessage]) : null);
-  if (label) {
-    metadata.label = truncateLabel(label);
-  }
   const messageCount = current
     ? current.messageCount + (eventMessage ? 1 : 0)
     : eventMessage
@@ -149,14 +140,13 @@ export function upsertNcpAgentSessionSummaryEvent(params: {
       : 0;
   const lastMessageAt = readMessageTimestamp(eventMessage) ?? current?.lastMessageAt;
   return {
-    sessionId: session.sessionId,
-    ...(normalizeNcpAgentId(session.agentId ?? current?.agentId) ? { agentId: normalizeNcpAgentId(session.agentId ?? current?.agentId) } : {}),
+    sessionId,
+    ...(normalizeNcpAgentId(current?.agentId) ? { agentId: normalizeNcpAgentId(current?.agentId) } : {}),
     messageCount,
-    createdAt: current?.createdAt ?? session.createdAt ?? updatedAt,
+    createdAt: current?.createdAt ?? updatedAt,
     updatedAt,
     ...(lastMessageAt ? { lastMessageAt } : {}),
     status: "idle",
-    ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
   };
 }
 

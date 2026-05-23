@@ -66,7 +66,7 @@ describe("NcpAgentSessionJournalStore", () => {
     const store = new NcpAgentSessionJournalStore(tempDir);
 
     await store.appendSessionEvent({
-      session: createRecord([userMessage]),
+      sessionId,
       event: {
         type: NcpEventType.MessageSent,
         payload: {
@@ -74,10 +74,9 @@ describe("NcpAgentSessionJournalStore", () => {
           message: userMessage,
         },
       },
-      updatedAt: "2026-05-14T00:00:00.000Z",
     });
     await store.appendSessionEvent({
-      session: createRecord([userMessage]),
+      sessionId,
       event: {
         type: NcpEventType.MessageTextStart,
         payload: {
@@ -85,20 +84,9 @@ describe("NcpAgentSessionJournalStore", () => {
           messageId: "assistant-1",
         },
       },
-      updatedAt: "2026-05-14T00:00:01.000Z",
     });
     await store.appendSessionEvent({
-      session: createRecord([
-        userMessage,
-        {
-          id: "assistant-1",
-          sessionId,
-          role: "assistant",
-          status: "streaming",
-          parts: [{ type: "text", text: "hel" }],
-          timestamp: "2026-05-14T00:00:01.000Z",
-        },
-      ]),
+      sessionId,
       event: {
         type: NcpEventType.MessageTextDelta,
         payload: {
@@ -107,7 +95,6 @@ describe("NcpAgentSessionJournalStore", () => {
           delta: "hel",
         },
       },
-      updatedAt: "2026-05-14T00:00:02.000Z",
     });
 
     const reloaded = new NcpAgentSessionJournalStore(tempDir);
@@ -124,8 +111,8 @@ describe("NcpAgentSessionJournalStore", () => {
     expect(summaries[0]).toMatchObject({
       sessionId,
       messageCount: 2,
-      metadata: { label: "Journal test" },
     });
+    expect(summaries[0]?.metadata).toBeUndefined();
   });
 
   it("materializes legacy records so historical history survives reload", async () => {
@@ -239,7 +226,7 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
     const store = new NcpAgentSessionJournalStore(tempDir);
 
     await store.appendSessionEvent({
-      session: createRecord([userMessage]),
+      sessionId,
       event: {
         type: NcpEventType.MessageSent,
         payload: {
@@ -247,7 +234,6 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
           message: userMessage,
         },
       },
-      updatedAt: "2026-05-14T00:00:00.000Z",
     });
 
     const journalPath = join(tempDir, `${sessionId}.jsonl`);
@@ -292,9 +278,7 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
     const session = await reloaded.getSession(sessionId);
     const messages = await reloaded.listSessionMessages(sessionId);
 
-    expect(session?.metadata).toMatchObject({
-      label: "Journal test",
-    });
+    expect(session?.metadata).toEqual({});
     expect(messages).toHaveLength(2);
     expect(messages[0]).toMatchObject({ role: "user" });
     expect(messages[1]).toMatchObject({
@@ -310,7 +294,7 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
     const html = "\n            \r\n            <div class=\"bdsharebuttonbox\">bad html</div>";
 
     await store.appendSessionEvent({
-      session: createRecord([userMessage]),
+      sessionId,
       event: {
         type: NcpEventType.MessageCompleted,
         payload: {
@@ -334,7 +318,6 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
           },
         },
       },
-      updatedAt: "2026-05-14T00:00:02.000Z",
     });
 
     const raw = await readFile(join(tempDir, `${sessionId}.jsonl`), "utf-8");
@@ -345,13 +328,15 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
       expect(() => JSON.parse(line)).not.toThrow();
     }
   });
+});
 
+describe("NcpAgentSessionJournalStore metadata writes", () => {
   it("updates metadata without rewriting the message journal", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
     const store = new NcpAgentSessionJournalStore(tempDir);
 
     await store.appendSessionEvent({
-      session: createRecord([userMessage]),
+      sessionId,
       event: {
         type: NcpEventType.MessageSent,
         payload: {
@@ -359,15 +344,14 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
           message: userMessage,
         },
       },
-      updatedAt: "2026-05-14T00:00:00.000Z",
     });
     const journalPath = join(tempDir, `${sessionId}.jsonl`);
     const before = await readFile(journalPath, "utf-8");
+    const beforeSession = await store.getSession(sessionId);
 
     await store.updateSessionMetadata({
       sessionId,
       metadata: { label: "Updated", last_activity_preview: { text: "hello" } },
-      updatedAt: "2026-05-14T00:00:03.000Z",
     });
 
     const after = await readFile(journalPath, "utf-8");
@@ -387,7 +371,48 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
       label: "Updated",
       last_activity_preview: { text: "hello" },
     });
+    expect(session?.updatedAt).toBe(beforeSession?.updatedAt);
     expect(session?.messages).toHaveLength(1);
+  });
+
+  it("does not let later event appends overwrite stored metadata", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+
+    await store.importSessionSnapshot(createRecord([userMessage]));
+    const beforeMetadataUpdate = await store.getSession(sessionId);
+    await store.updateSessionMetadata({
+      sessionId,
+      metadata: {
+        last_activity_preview: {
+          state: "completed",
+          timestamp: "2026-05-14T00:00:03.000Z",
+          replyText: "final assistant reply",
+        },
+      },
+    });
+    const afterMetadataUpdate = await store.getSession(sessionId);
+    await store.appendSessionEvent({
+      sessionId,
+      event: {
+        type: NcpEventType.RunFinished,
+        payload: { sessionId, runId: "run-1" },
+      },
+    });
+
+    const reloaded = new NcpAgentSessionJournalStore(tempDir);
+    const session = await reloaded.getSession(sessionId);
+    const [summary] = await reloaded.listSessionSummaries();
+    expect(session?.metadata?.last_activity_preview).toMatchObject({
+      state: "completed",
+      replyText: "final assistant reply",
+    });
+    expect(summary?.metadata?.last_activity_preview).toMatchObject({
+      state: "completed",
+      replyText: "final assistant reply",
+    });
+    expect(afterMetadataUpdate?.updatedAt).toBe(beforeMetadataUpdate?.updatedAt);
+    expect(session?.updatedAt).not.toBe(afterMetadataUpdate?.updatedAt);
   });
 
   it("preserves child-session relation metadata when updating runtime metadata", async () => {
@@ -405,7 +430,6 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
     await store.updateSessionMetadata({
       sessionId,
       metadata: { last_activity_preview: { state: "completed" } },
-      updatedAt: "2026-05-14T00:00:03.000Z",
     });
 
     const reloaded = new NcpAgentSessionJournalStore(tempDir);

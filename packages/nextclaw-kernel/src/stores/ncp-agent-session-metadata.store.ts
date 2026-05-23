@@ -9,7 +9,7 @@ import {
   toIsoString,
 } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 
-export type NcpAgentSessionMetadataSnapshot = {
+export type NcpAgentSessionActivitySnapshot = {
   metadata: Record<string, unknown>;
   agentId?: string;
   createdAt: string;
@@ -30,23 +30,23 @@ export class NcpAgentSessionMetadataStore {
 
   read = async (
     sessionId: string,
-    fallback: NcpAgentSessionMetadataSnapshot,
-  ): Promise<NcpAgentSessionMetadataSnapshot> => {
+    activitySnapshot: NcpAgentSessionActivitySnapshot,
+  ): Promise<NcpAgentSessionActivitySnapshot> => {
     try {
       const parsed = JSON.parse(await readFile(this.metadataPath(sessionId), "utf-8")) as unknown;
       if (!isRecord(parsed) || parsed._type !== "metadata") {
-        return fallback;
+        return activitySnapshot;
       }
-      const createdAt = toIsoString(parsed.created_at, fallback.createdAt);
+      const createdAt = toIsoString(parsed.created_at, activitySnapshot.createdAt);
       const agentId = normalizeNcpAgentId(typeof parsed.agent_id === "string" ? parsed.agent_id : undefined);
       return {
         metadata: isRecord(parsed.metadata) ? structuredClone(parsed.metadata) : {},
         ...(agentId ? { agentId } : {}),
         createdAt,
-        updatedAt: toIsoString(parsed.updated_at, createdAt),
+        updatedAt: activitySnapshot.updatedAt,
       };
     } catch {
-      return fallback;
+      return activitySnapshot;
     }
   };
 

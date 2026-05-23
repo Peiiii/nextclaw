@@ -14,7 +14,7 @@ import type {
   NcpSessionSummary,
 } from "@nextclaw/ncp";
 import { NcpEventType } from "@nextclaw/ncp";
-import type { AgentSessionEventRecord, AgentSessionRecord } from "@nextclaw/ncp-toolkit";
+import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import { ContextWindowPreviewManager } from "@kernel/features/context-compaction/index.js";
 import type { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import {
@@ -264,23 +264,17 @@ export class NcpSessionManager implements NcpSessionApi {
   };
 
   appendSessionEvent = async (params: {
-    session: AgentSessionEventRecord;
+    sessionId: string;
     event: NcpAgentSessionJournalReplayEvent;
-    updatedAt: string;
   }): Promise<void> => {
-    const { event, session, updatedAt } = params;
-    const sessionId = normalizeSessionId(session.sessionId);
+    const { event } = params;
+    const sessionId = normalizeSessionId(params.sessionId);
     if (!sessionId) {
       return;
     }
     await this.options.journalStore.appendSessionEvent({
       event,
-      updatedAt,
-      session: {
-        ...session,
-        sessionId,
-        metadata: structuredClone(session.metadata ?? {}),
-      },
+      sessionId,
     });
     if (isSessionSummaryRefreshEvent(event)) {
       await this.publishSessionChange(sessionId);
@@ -295,11 +289,9 @@ export class NcpSessionManager implements NcpSessionApi {
     if (!normalizedSessionId) {
       return false;
     }
-    const updatedAt = new Date().toISOString();
     const updated = await this.options.journalStore.setSessionMetadata({
       sessionId: normalizedSessionId,
       metadata: structuredClone(metadata),
-      updatedAt,
     });
     if (!updated) {
       return false;
@@ -317,11 +309,9 @@ export class NcpSessionManager implements NcpSessionApi {
     if (!normalizedSessionId) {
       return false;
     }
-    const updatedAt = new Date().toISOString();
     const updated = await this.options.journalStore.updateSessionMetadata({
       sessionId: normalizedSessionId,
       metadata: structuredClone(metadata),
-      updatedAt,
     });
     if (!updated) {
       return false;

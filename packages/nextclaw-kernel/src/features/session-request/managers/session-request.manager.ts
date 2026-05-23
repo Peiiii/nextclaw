@@ -293,8 +293,6 @@ export class SessionRequestManager {
     type: NcpSessionRequestJournalEventType,
     request: SessionRequestRecord,
   ): Promise<void> => {
-    const record = await this.options.ncpSessionManager.getSessionRecord(sessionId);
-    const now = new Date().toISOString();
     const event: NcpSessionRequestJournalEvent = {
       type,
       payload: {
@@ -303,15 +301,8 @@ export class SessionRequestManager {
       },
     };
     await this.options.ncpSessionManager.appendSessionEvent({
-      session: {
-        sessionId,
-        ...(record?.agentId ? { agentId: record.agentId } : {}),
-        createdAt: record?.createdAt ?? now,
-        updatedAt: now,
-        metadata: structuredClone(record?.metadata ?? {}),
-      },
+      sessionId,
       event,
-      updatedAt: now,
     });
   };
 }

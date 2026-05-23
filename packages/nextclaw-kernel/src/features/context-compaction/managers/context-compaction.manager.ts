@@ -237,7 +237,7 @@ export class ContextCompactionManager {
       sessionId: input.sessionId,
       sessionMessages: session.stateManager.getSnapshot().messages,
       ...(session.agentId ? { storedAgentId: session.agentId } : {}),
-      storedMetadata: session.metadata,
+      storedMetadata: input.metadata ?? {},
     });
     yield* this.applyLivePreflightResult({ input, result: beginResult, session, sessionRunManager });
     if (!beginResult.pendingCompaction) {
