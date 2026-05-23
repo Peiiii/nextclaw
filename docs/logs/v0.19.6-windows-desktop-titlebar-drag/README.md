@@ -12,6 +12,7 @@
 - 十一次排查：`v0.19.24-desktop-beta.5` 证明 main HWND `Chrome_WidgetWin_1` 与鼠标点下方 HWND `Chrome_RenderWidgetHostHWND` 都返回 `HTCLIENT(1)`，没有任何相关 HWND 返回 `HTCAPTION(2)`；因此问题不是测错窗口，而是 Windows `titleBarOverlay` 合同下 Electron 没有把 renderer drag region 转成 native caption。下一步移除 `titleBarOverlay`，改为纯 `frame:false` frameless + renderer 自绘窗口按钮。
 - 十二次排查：`v0.19.24-desktop-beta.6` 移除 `titleBarOverlay` 后，Windows x64 CI 的 `WM_NCHITTEST` 仍然返回 `HTCLIENT(1)`；因此不能再把 `HTCAPTION` 当作唯一验收真理，下一轮 smoke 保留 HWND 诊断，但最终用真实鼠标拖动后的窗口几何变化判断是否可拖拽。
 - 十三次排查：`v0.19.24-desktop-beta.7` 使用真实鼠标拖动窗口标题栏空白点后，窗口几何位置仍为 `delta=(0,0)`；因此当前 Electron 官方 `app-region` 链路在本应用的 Windows packaged 环境中确实未生效，不能继续把问题归因到 renderer DOM/CSS 命中面。根因未完全定位，下一步必须做同 Electron 版本的最小复现，对比是 Electron/CI/版本层问题，还是本应用窗口生命周期或 runtime 加载路径阻断了 draggable region 注册。
+- 十四次排查修正十三次结论：同 Electron 版本的最小 `frame:false` 应用在 Windows CI 中返回 `HTCAPTION(2)`，证明官方 `app-region` 能注册到 native hit-test；但同一个最小应用的 synthetic mouse drag 仍为 `delta=(0,0)`，证明 CI 鼠标几何拖动不能作为最终验收。当前更准确的结论是：NextClaw 应用链路没有让标题栏点返回 `HTCAPTION(2)`，而不是 Electron 官方方案整体不可用。
 - 根因：
   - 窗口最小尺寸由 [desktop-window-options.utils.ts](../../../apps/desktop/src/utils/desktop-window-options.utils.ts) 写死为 `1080x720`，导致只能缩小一点点。
   - 首轮只补齐 CSS 拖拽声明，但 Windows title bar overlay 的右上角 native controls 区域仍被同一个 draggable DOM 矩形覆盖。Electron 的 Window Controls Overlay 合同要求 overlay 下方 DOM 不可用，因此拖拽命中区不能伸到 caption buttons 下方。
@@ -24,6 +25,7 @@
   - 十一次排查证明 HWND 层也没有 `HTCAPTION`：`titleBarOverlay` 是当前最可疑的合同分叉。为了回到 Electron 最基础的 frameless draggable contract，本轮删除 Windows overlay 原生按钮，改由 renderer 通过 IPC 调用 minimize / maximize / close。
   - 十二次排查证明纯 frameless 后 `WM_NCHITTEST` 仍然不能代表 Electron draggable region 的全部行为；release gate 改为真实鼠标输入造成窗口移动，`WM_NCHITTEST` 降级为诊断日志。
   - 十三次排查证明真实鼠标拖动也不会移动窗口；当前已确认 renderer 侧官方 `app-region` 条件成立，但 native 窗口没有执行拖拽。根因未完全定位，剩余不确定因素在 Electron/Chromium draggable region 注册、Windows packaged runtime 窗口生命周期、或当前 Electron 版本/CI 交互环境之间。
+  - 十四次最小复现修正根因边界：最小 Electron `frame:false` 应用的同一客户区点返回 `HTCAPTION(2)`，但 synthetic mouse drag 仍不会移动窗口；因此 CI synthetic mouse 不能证明真实拖拽，`HTCAPTION(2)` 才是当前可自动化的 native registration gate。NextClaw 的差异仍是返回 `HTCLIENT(1)`。
 - 修复方式：
   - Windows `BrowserWindow` 最小尺寸降到 `420x320`，允许真实小窗使用。
   - Windows 窗口参数调整为 VS Code 风格的 custom titlebar 合同：`frame: false`、`titleBarStyle: "hidden"` 与 `titleBarOverlay`；不再混用 `thickFrame: true`。
@@ -60,6 +62,7 @@
 - 十二次排查失败证据：`v0.19.24-desktop-beta.6` 移除 `titleBarOverlay` 并启用 renderer 自绘窗口控制按钮后，Windows x64 CI 仍显示 main HWND 与 point HWND 都返回 `HTCLIENT(1)`；这说明 `WM_NCHITTEST` 不是足够可靠的最终验收方式。
 - 十三次排查失败证据：`v0.19.24-desktop-beta.7` 的 Windows x64 CI 同时记录 `mainHitTest=1`、`pointHitTest=1`，并执行真实鼠标拖动几何验收；窗口拖动前为 `(80,80)`，拖动后仍为 `(80,80)`，`delta=(0,0)`，因此 `beta.7` 未完成 release closure，不能交付用户测试。
 - 十四次排查新增验证门禁：`desktop-validate` 的 Windows exe smoke 前新增最小 Electron app-region smoke，分别测试纯 `frame:false` 和 `frame:false + titleBarStyle:"hidden"` 两个最小窗口；用于判断官方 draggable region 在同 Electron 版本和同 Windows runner 上是否能独立工作。
+- 十四次排查失败后修正：首轮最小复现脚本证明 `frame:false` minimal app 的 main / point / root HWND 都返回 `HTCAPTION(2)`，但 synthetic mouse drag 仍 `delta=(0,0)`；因此桌面 smoke 重新以 `HTCAPTION(2)` 作为自动化 gate，只有没有 `HTCAPTION` 时才把几何拖动作为辅助 fallback。
 - 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
 - 已通过：`pnpm lint:new-code:governance -- apps/desktop/src/utils/desktop-window-options.utils.ts apps/desktop/src/utils/desktop-window-options.utils.test.ts packages/nextclaw-ui/src/platforms/desktop/components/desktop-window-chrome.tsx packages/nextclaw-ui/src/platforms/desktop/components/desktop-app-shell.test.tsx docs/logs/v0.19.6-windows-desktop-titlebar-drag/README.md`
 - 已通过：`pnpm check:governance-backlog-ratchet`
@@ -116,6 +119,7 @@
 - 十三次修正降低错误验证风险：不再把 `WM_NCHITTEST` 与真实用户拖拽等同，避免一个可能不适用的 Win32 观测点反复阻断 release。
 - 十三次排查后的维护结论：继续调 renderer CSS 或 titlebar DOM 已经不是高性价比方向；后续必须先建立最小 Electron 复现或明确改用可验证的 JS/native 手动拖拽 fallback，避免把复杂度继续堆在 UI 表层。
 - 十四次排查把最小复现前移到 CI：用独立 PowerShell smoke 直接启动最小 Electron app，避免继续把 NextClaw 应用复杂度和 Electron 官方能力混在一起判断。
+- 十四次排查后的验证减债：删除“CI synthetic mouse drag 等价于用户真实拖拽”的错误假设；保留 HWND/native hit-test 作为可自动化信号，减少后续 release 被 CI 输入限制误导。
 - `post-edit-maintainability-guard` 二次修正结果：total `+65/-8/net +57`，non-test `+7/-7/net +0`，无可维护性发现。
 
 ## NPM 包发布记录

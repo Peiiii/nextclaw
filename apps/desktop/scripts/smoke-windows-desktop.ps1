@@ -412,6 +412,9 @@ function Invoke-DesktopTitlebarDragProbe {
 
   if ($captionHitHandle -eq [IntPtr]::Zero) {
     Write-Warning "[desktop-smoke] no probed HWND returned HTCAPTION(2); falling back to real mouse drag geometry probe."
+  } else {
+    Write-Host "[desktop-smoke] titlebar drag native hit-test passed with HTCAPTION(2) on handle $captionHitHandle; skipping synthetic mouse geometry probe because CI mouse_event does not reliably move Electron windows."
+    return
   }
 
   $mouseLeftDown = 0x0002
