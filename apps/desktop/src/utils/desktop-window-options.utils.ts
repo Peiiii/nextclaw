@@ -43,8 +43,6 @@ function createPlatformWindowChromeOptions(): BrowserWindowConstructorOptions {
     return {
       autoHideMenuBar: true,
       backgroundColor: windowsShellBackgroundColor,
-      frame: false,
-      thickFrame: true,
       titleBarStyle: "hidden",
       titleBarOverlay: createDesktopTitleBarOverlay("warm")
     };
