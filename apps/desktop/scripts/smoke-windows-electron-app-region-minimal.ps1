@@ -350,8 +350,8 @@ contextBridge.exposeInMainWorld("nextclawMinimalPreload", {
   const http = require("node:http");
   const startupHtml = "<!doctype html><html><body style=\"$startupBodyStyle\">Starting NextClaw...</body></html>";
   await win.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(startupHtml));
-  win.destroy();
   const runtimeWin = createMinimalWindow();
+  win.destroy();
   const indexPath = path.join(__dirname, "index.html");
   const server = http.createServer((_request, response) => {
     response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
