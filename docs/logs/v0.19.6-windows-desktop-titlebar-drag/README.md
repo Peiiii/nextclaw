@@ -89,6 +89,7 @@
 - 二十四次排查：`desktop-validate` run `26325644666` 证明最小 NextClaw-like 布局在 GPU enabled 时仍返回 `HTCAPTION(2)`，排除 `disable-gpu` 与真实 GPU 状态差异作为根因。
 - 二十五次排查：`desktop-validate` run `26325898320` 首次证明“最小 Electron 壳 + 真实 NextClaw UI dist”会返回 `HTCLIENT(1)`，而同一壳的手写 NextClaw-like 布局返回 `HTCAPTION(2)`；根因边界由 packaged 主进程/窗口 options 进一步缩小到真实 UI bundle 的 CSS/JS/runtime 行为。
 - 二十五次实验改造：最小 Windows app-region smoke 改为一次 CI 覆盖多个互斥假设：真实 UI CSS 静态页、完整 UI dist、完整 UI dist + inline 强制 titlebar drag、完整 UI dist + fixed titlebar drag layer、完整 UI dist + body drag，并把 renderer DOM hit-test 结果写入文件后由 PowerShell 打印，避免继续一轮只验证一个猜测。
+- 二十六次探针修正：`desktop-validate` run `26326229815` 发现 `760px` 宽的 UI-dist 最小对照会进入 mobile layout，命中移动端 `H1` 而非 desktop chrome；该结果不能代表真实 packaged 桌面链路。最小对照窗口改为 `1024x720`，与真实 smoke 中 renderer `innerWidth=1024` 对齐，并允许 UI-dist 探针失败后继续收集后续 rescue 变体结果。
 - 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
 - 已通过：`pnpm lint:new-code:governance -- apps/desktop/src/utils/desktop-window-options.utils.ts apps/desktop/src/utils/desktop-window-options.utils.test.ts packages/nextclaw-ui/src/platforms/desktop/components/desktop-window-chrome.tsx packages/nextclaw-ui/src/platforms/desktop/components/desktop-app-shell.test.tsx docs/logs/v0.19.6-windows-desktop-titlebar-drag/README.md`
 - 已通过：`pnpm check:governance-backlog-ratchet`

@@ -221,7 +221,7 @@ function Invoke-MinimalAppRegionDragProbe {
   [NextClawMinimalAppRegionNative]::SetForegroundWindow($windowHandle) | Out-Null
   Start-Sleep -Milliseconds 500
 
-  if (-not [NextClawMinimalAppRegionNative]::MoveWindow($windowHandle, 80, 80, 760, 520, $true)) {
+  if (-not [NextClawMinimalAppRegionNative]::MoveWindow($windowHandle, 80, 80, 1024, 720, $true)) {
     throw "MoveWindow failed while preparing minimal app-region probe for window handle $windowHandle"
   }
   Start-Sleep -Milliseconds 800
@@ -511,8 +511,8 @@ $gpuSwitchScript
 
 app.whenReady().then(async () => {
   const createMinimalWindow = () => new BrowserWindow({
-    width: 760,
-    height: 520,
+    width: 1024,
+    height: 720,
     x: 80,
     y: 80,
 $WindowOptionLines
@@ -893,6 +893,7 @@ $variants = @(
     Preload = $true
     DesktopBridge = $true
     DisableGpu = $false
+    ExpectCaption = $false
   },
   [pscustomobject]@{
     Name = "nextclaw-ui-dist-inline-titlebar-drag-http-preload-sandbox-false-gpu-enabled"
@@ -906,6 +907,7 @@ $variants = @(
     DesktopBridge = $true
     DisableGpu = $false
     PostLoadScript = $forceInlineTitlebarDragScript
+    ExpectCaption = $false
   },
   [pscustomobject]@{
     Name = "nextclaw-ui-dist-fixed-titlebar-drag-http-preload-sandbox-false-gpu-enabled"
@@ -919,6 +921,7 @@ $variants = @(
     DesktopBridge = $true
     DisableGpu = $false
     PostLoadScript = $fixedTitlebarDragLayerScript
+    ExpectCaption = $false
   },
   [pscustomobject]@{
     Name = "nextclaw-ui-dist-body-drag-http-preload-sandbox-false-gpu-enabled"
@@ -932,6 +935,7 @@ $variants = @(
     DesktopBridge = $true
     DisableGpu = $false
     PostLoadScript = $bodyTitlebarDragScript
+    ExpectCaption = $false
   },
   [pscustomobject]@{
     Name = "frame-false-hidden-data-http-preload-sandbox-false-no-startup-drag"
