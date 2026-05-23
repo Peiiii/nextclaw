@@ -1,5 +1,11 @@
 # @nextclaw/desktop
 
+## 0.0.182
+
+### Patch Changes
+
+- Ship the Windows custom titlebar with the official Electron overlay chrome contract.
+
 ## 0.0.181
 
 ### Patch Changes

@@ -191,12 +191,6 @@ public static class NextClawDesktopSmokeNative {
   public static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
 
   [DllImport("user32.dll")]
-  public static extern bool SetCursorPos(int X, int Y);
-
-  [DllImport("user32.dll")]
-  public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
-
-  [DllImport("user32.dll")]
   public static extern bool SetForegroundWindow(IntPtr hWnd);
 
   [DllImport("user32.dll")]
@@ -204,6 +198,19 @@ public static class NextClawDesktopSmokeNative {
 
   [DllImport("user32.dll", SetLastError = true)]
   public static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
+
+  [DllImport("user32.dll", SetLastError = true)]
+  public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam, uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
+
+  public static int HitTest(IntPtr hWnd, int x, int y) {
+    IntPtr result;
+    int lParam = (y << 16) | (x & 0xFFFF);
+    IntPtr sendResult = SendMessageTimeout(hWnd, 0x0084, IntPtr.Zero, new IntPtr(lParam), 0x0002, 1000, out result);
+    if (sendResult == IntPtr.Zero) {
+      return int.MinValue;
+    }
+    return result.ToInt32();
+  }
 }
 "@
 }
@@ -320,29 +327,12 @@ function Invoke-DesktopTitlebarDragProbe {
   $startPoint = Convert-ClientPointToScreen -WindowHandle $windowHandle -X $clientStartX -Y $clientStartY
   $startX = $startPoint.X
   $startY = $startPoint.Y
-  $endX = $startX + 140
-  $endY = $startY + 80
+  $nativeHitTest = [NextClawDesktopSmokeNative]::HitTest($windowHandle, $startX, $startY)
 
-  Write-Host "[desktop-smoke] titlebar drag probe before: left=$($before.Left) top=$($before.Top) width=$($before.Width) height=$($before.Height) clientStart=($clientStartX,$clientStartY) screenStart=($startX,$startY) end=($endX,$endY)"
+  Write-Host "[desktop-smoke] titlebar drag probe: left=$($before.Left) top=$($before.Top) width=$($before.Width) height=$($before.Height) clientStart=($clientStartX,$clientStartY) screenStart=($startX,$startY) nativeHitTest=$nativeHitTest"
 
-  $mouseLeftDown = 0x0002
-  $mouseLeftUp = 0x0004
-  [NextClawDesktopSmokeNative]::SetCursorPos($startX, $startY) | Out-Null
-  Start-Sleep -Milliseconds 200
-  [NextClawDesktopSmokeNative]::mouse_event($mouseLeftDown, 0, 0, 0, [UIntPtr]::Zero)
-  Start-Sleep -Milliseconds 200
-  [NextClawDesktopSmokeNative]::SetCursorPos($endX, $endY) | Out-Null
-  Start-Sleep -Milliseconds 600
-  [NextClawDesktopSmokeNative]::mouse_event($mouseLeftUp, 0, 0, 0, [UIntPtr]::Zero)
-  Start-Sleep -Milliseconds 800
-
-  $after = Read-WindowRect -WindowHandle $windowHandle
-  $deltaX = $after.Left - $before.Left
-  $deltaY = $after.Top - $before.Top
-  Write-Host "[desktop-smoke] titlebar drag probe after: left=$($after.Left) top=$($after.Top) delta=($deltaX,$deltaY)"
-
-  if ([Math]::Abs($deltaX) -lt 40 -and [Math]::Abs($deltaY) -lt 40) {
-    throw "Windows titlebar drag probe failed: window did not move after simulated drag. before=($($before.Left),$($before.Top)) after=($($after.Left),$($after.Top))"
+  if ($nativeHitTest -ne 2) {
+    throw "Windows titlebar drag probe failed: native hit-test at client point ($clientStartX,$clientStartY) returned $nativeHitTest, expected HTCAPTION(2)."
   }
 }
 
