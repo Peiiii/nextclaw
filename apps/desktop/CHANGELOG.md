@@ -1,5 +1,11 @@
 # @nextclaw/desktop
 
+## 0.0.184
+
+### Patch Changes
+
+- Render the Windows custom titlebar drag surface as a dedicated absolute region.
+
 ## 0.0.183
 
 ### Patch Changes

@@ -48,19 +48,18 @@ describe("DesktopAppShell", () => {
 
     const chrome = screen.getByTestId("desktop-window-chrome");
     const sidebarChrome = screen.getByTestId("desktop-window-chrome-sidebar");
-    const mainChrome = screen.getByTestId("desktop-window-chrome-main");
+    const dragRegion = screen.getByTestId("desktop-window-chrome-drag-region");
 
     expect(chrome).toBeTruthy();
     expect(chrome.parentElement?.style.getPropertyValue("--desktop-titlebar-height")).toBe("40px");
     expect(chrome.className).toContain("bg-secondary");
+    expect(chrome.className).toContain("border-b");
     expect(sidebarChrome.className).toContain("w-[var(--desktop-sidebar-width)]");
-    expect(sidebarChrome.className).not.toContain("border-b");
-    expect(mainChrome.className).toContain("border-b");
-    expect(mainChrome.className).toContain("desktop-window-drag");
-    expect(mainChrome.className).toContain("mr-[var(--desktop-caption-safe-right)]");
-    expect(mainChrome.className).not.toContain("pr-[var(--desktop-caption-safe-right)]");
-    expect(mainChrome.childElementCount).toBe(0);
-    expect(sidebarChrome.lastElementChild?.className).toContain("desktop-window-no-drag");
+    expect(sidebarChrome.className).toContain("desktop-window-no-drag");
+    expect(dragRegion.className).toContain("desktop-window-drag");
+    expect(dragRegion.className).toContain("right-[var(--desktop-caption-safe-right)]");
+    expect(dragRegion.className).toContain("top-1");
+    expect(dragRegion.childElementCount).toBe(0);
     expect(screen.getByTestId("app-content")).toBeTruthy();
   });
 
