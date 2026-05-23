@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import * as utils from "../../../shared/utils/cli.utils.js";
+import { spawn } from "node:child_process";
 import { managedServiceStateStore } from "../../../shared/stores/managed-service-state.store.js";
 import { RemoteAccessHost } from "./remote-access-host.service.js";
 
@@ -143,7 +143,6 @@ describe("RemoteAccessHost service control", () => {
       uiPort: 19199,
       logPath: "/tmp/service.log"
     });
-    vi.spyOn(utils, "isProcessRunning").mockReturnValue(true);
     const { host, serviceCommands } = createHost();
 
     const result = await host.controlService("restart");
@@ -161,6 +160,9 @@ describe("RemoteAccessHost service control", () => {
   });
 
   it("restarts an external managed service by stopping then starting it", async () => {
+    const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000);"], {
+      stdio: "ignore"
+    });
     saveConfig(ConfigSchema.parse({
       ui: {
         enabled: true,
@@ -170,7 +172,7 @@ describe("RemoteAccessHost service control", () => {
       }
     }));
     vi.spyOn(managedServiceStateStore, "read").mockReturnValue({
-      pid: process.pid + 1,
+      pid: child.pid ?? -1,
       startedAt: "2026-03-20T00:00:00.000Z",
       uiUrl: "http://127.0.0.1:19199",
       apiUrl: "http://127.0.0.1:19199/api",
@@ -178,7 +180,56 @@ describe("RemoteAccessHost service control", () => {
       uiPort: 19199,
       logPath: "/tmp/service.log"
     });
-    vi.spyOn(utils, "isProcessRunning").mockReturnValue(true);
+    const { host, serviceCommands } = createHost();
+
+    try {
+      const result = await host.controlService("restart");
+
+      expect(serviceCommands.stopService).toHaveBeenCalledOnce();
+      expect(serviceCommands.startService).toHaveBeenCalledWith({
+        uiOverrides: {
+          enabled: true,
+          host: "0.0.0.0",
+          open: false,
+          port: 19199
+        },
+        open: false
+      });
+      expect(serviceCommands.requestManagedServiceRestart).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        accepted: true,
+        action: "restart",
+        message: "Managed service restarted."
+      });
+    } finally {
+      child.kill("SIGKILL");
+    }
+  });
+
+  it("replaces a stale leased managed service process instead of treating it as healthy", async () => {
+    saveConfig(ConfigSchema.parse({
+      ui: {
+        enabled: true,
+        host: "0.0.0.0",
+        port: 19199,
+        open: false
+      }
+    }));
+    vi.spyOn(managedServiceStateStore, "read").mockReturnValue({
+      pid: process.pid,
+      startedAt: "2026-03-20T00:00:00.000Z",
+      uiUrl: "http://127.0.0.1:19199",
+      apiUrl: "http://127.0.0.1:19199/api",
+      uiHost: "0.0.0.0",
+      uiPort: 19199,
+      logPath: "/tmp/service.log",
+      lease: {
+        ownerPid: process.pid,
+        heartbeatAt: "2000-01-01T00:00:00.000Z",
+        heartbeatIntervalMs: 1000,
+        ttlMs: 2000
+      }
+    });
     const { host, serviceCommands } = createHost();
 
     const result = await host.controlService("restart");
@@ -193,11 +244,10 @@ describe("RemoteAccessHost service control", () => {
       },
       open: false
     });
-    expect(serviceCommands.requestManagedServiceRestart).not.toHaveBeenCalled();
     expect(result).toEqual({
       accepted: true,
       action: "restart",
-      message: "Managed service restarted."
+      message: "Stale managed service process replaced."
     });
   });
 });

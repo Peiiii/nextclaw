@@ -33,8 +33,11 @@ describe("DiagnosticsCommands status", () => {
         pid: null,
         running: false,
         staleState: false,
+        staleReason: null,
         orphanSuspected: false,
-        startedAt: null
+        startedAt: null,
+        lease: null,
+        lastExit: null
       },
       endpoints: {
         uiUrl: null,

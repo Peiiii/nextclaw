@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { SkillManager } from "@nextclaw/kernel";
 import type { RequestRestartParams } from "@nextclaw-service/shared/types/cli.types.js";
 import { ManagedServiceCommandService, type StartServiceOptions } from "@nextclaw-service/shared/services/runtime/service-managed-startup.service.js";
+import { ManagedServiceSupervisor } from "@nextclaw-service/shared/services/runtime/managed-service-supervisor.service.js";
 import { NextclawGatewayRuntime } from "@nextclaw-service/shared/services/gateway/nextclaw-gateway-runtime.service.js";
 import { NextclawDistributionService } from "@nextclaw-service/shared/services/runtime/nextclaw-distribution.service.js";
 import { describeUnmanagedHealthyTargetMessage, inspectUiTarget } from "@nextclaw-service/shared/utils/service-port-probe.utils.js";
@@ -20,6 +21,7 @@ export class RuntimeCommandService {
   private loggingInstalled = false;
   private processExitLoggingInstalled = false;
   private readonly runtimeLogger = NextclawCore.getAppLogger("service.runtime");
+  private readonly managedServiceSupervisor = new ManagedServiceSupervisor();
   private readonly managedServiceCommandService = new ManagedServiceCommandService({
     startGateway: async (options) => await this.startGateway(options),
     printPublicUiUrls: async (host, port) => await this.printPublicUiUrls(host, port),
@@ -36,6 +38,7 @@ export class RuntimeCommandService {
   startGateway = async (options: { uiOverrides?: Partial<Config["ui"]>; uiStaticDir?: string | null } = {}): Promise<void> => {
     this.ensureRuntimeLoggingInstalled();
     this.installProcessExitLogging();
+    this.managedServiceSupervisor.installCurrentProcessLifecycleTracking();
     this.runtimeLogger.info("runtime.process.started", {
       runtimeKind: "serve-process",
       pid: process.pid,

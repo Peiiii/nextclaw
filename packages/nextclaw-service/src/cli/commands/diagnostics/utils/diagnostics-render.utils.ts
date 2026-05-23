@@ -44,6 +44,16 @@ function printProcessSection(report: RuntimeStatusReport): void {
   if (report.process.startedAt) {
     console.log(`Started: ${report.process.startedAt}`);
   }
+  if (report.process.lease?.heartbeatAt) {
+    console.log(`Last heartbeat: ${report.process.lease.heartbeatAt}${report.process.lease.expired ? " (expired)" : ""}`);
+  }
+  if (report.process.staleReason) {
+    console.log(`Stale reason: ${report.process.staleReason}`);
+  }
+  if (report.process.lastExit) {
+    const exit = report.process.lastExit;
+    console.log(`Last exit: ${exit.reason}${exit.signal ? ` ${exit.signal}` : ""}${typeof exit.code === "number" ? ` code=${exit.code}` : ""} at ${exit.exitedAt}`);
+  }
   console.log(`Managed health: ${report.health.managed.state} (${report.health.managed.detail})`);
   if (!report.process.running) {
     console.log(`Configured health: ${report.health.configured.state} (${report.health.configured.detail})`);

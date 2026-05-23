@@ -3,6 +3,27 @@ import { resolve } from "node:path";
 import { getDataDir } from "@nextclaw/core";
 import type { RemoteRuntimeState } from "@nextclaw/remote";
 
+export type ManagedServiceLease = {
+  ownerPid: number;
+  heartbeatAt: string;
+  heartbeatIntervalMs: number;
+  ttlMs: number;
+};
+
+type ManagedServiceExitReason =
+  | "exit"
+  | "signal"
+  | "uncaughtException";
+
+export type ManagedServiceLastExit = {
+  pid: number;
+  reason: ManagedServiceExitReason;
+  exitedAt: string;
+  code?: number | null;
+  signal?: string | null;
+  message?: string | null;
+};
+
 export type ManagedServiceState = {
   pid: number;
   startedAt: string;
@@ -15,6 +36,8 @@ export type ManagedServiceState = {
   startupLastProbeError?: string | null;
   startupTimeoutMs?: number;
   startupCheckedAt?: string;
+  lease?: ManagedServiceLease;
+  lastExit?: ManagedServiceLastExit;
   remote?: RemoteRuntimeState;
 };
 

@@ -12,11 +12,14 @@ import { listBuiltinProviders } from "@nextclaw/runtime";
 import { isProcessRunning, resolveUiApiBase, resolveUiConfig } from "@nextclaw-service/shared/utils/cli.utils.js";
 import { managedServiceStateStore } from "@nextclaw-service/shared/stores/managed-service-state.store.js";
 import type { ManagedServiceState } from "@nextclaw-service/shared/stores/managed-service-state.store.js";
+import { ManagedServiceSupervisor } from "@nextclaw-service/shared/services/runtime/managed-service-supervisor.service.js";
 import { printDoctorReport, printStatusReport, type DoctorCheck } from "../utils/diagnostics-render.utils.js";
 import { resolveNextclawRemoteStatusSnapshot } from "@nextclaw-service/commands/remote/index.js";
 import type { DoctorCommandOptions, HealthProbe, RuntimeStatusReport, StatusCommandOptions } from "@nextclaw-service/shared/types/cli.types.js";
 
 export class DiagnosticsCommands {
+  private readonly managedServiceSupervisor = new ManagedServiceSupervisor();
+
   constructor(private deps: { logo: string }) {}
 
   readonly status = async (opts: StatusCommandOptions = {}): Promise<void> => {
@@ -110,11 +113,17 @@ export class DiagnosticsCommands {
       },
       {
         name: "service-state",
-        status: report.process.staleState ? "fail" : report.process.running ? "pass" : "warn",
+        status: report.process.staleState
+          ? "fail"
+          : report.process.running
+            ? report.process.lease?.missing
+              ? "warn"
+              : "pass"
+            : "warn",
         detail: report.process.running
-          ? `PID ${report.process.pid}`
+          ? `PID ${report.process.pid}${report.process.lease?.missing ? " (missing lease heartbeat)" : ""}`
           : report.process.staleState
-            ? "state exists but process is not running"
+            ? `state is stale (${report.process.staleReason ?? "unknown"})`
             : "service not running"
       },
       {
@@ -157,18 +166,12 @@ export class DiagnosticsCommands {
     const workspacePath = getWorkspacePath(config.agents.defaults.workspace);
     const serviceStatePath = managedServiceStateStore.path;
 
-    const fixActions: string[] = [];
-
-    let serviceState = managedServiceStateStore.read();
-    if (params.fix && serviceState && !isProcessRunning(serviceState.pid)) {
-      managedServiceStateStore.clear();
-      fixActions.push("Cleared stale service state file.");
-      serviceState = managedServiceStateStore.read();
-    }
+    const serviceStatus = this.resolveManagedServiceStatus({ fix: params.fix });
+    const { fixActions, liveness, serviceState } = serviceStatus;
 
     const managedByState = Boolean(serviceState);
-    const running = Boolean(serviceState && isProcessRunning(serviceState.pid));
-    const staleState = Boolean(serviceState && !running);
+    const running = Boolean(serviceState && liveness.running);
+    const staleState = Boolean(serviceState && liveness.staleState);
 
     const configuredUi = resolveUiConfig(config, { enabled: true, host: config.ui.host, port: config.ui.port });
     const configuredUiUrl = resolveUiApiBase(configuredUi.host, configuredUi.port);
@@ -232,8 +235,17 @@ export class DiagnosticsCommands {
         pid: serviceState?.pid ?? null,
         running,
         staleState,
+        staleReason: liveness.staleReason,
         orphanSuspected,
-        startedAt: serviceState?.startedAt ?? null
+        startedAt: serviceState?.startedAt ?? null,
+        lease: serviceState
+          ? {
+              heartbeatAt: liveness.lastHeartbeatAt,
+              expired: liveness.leaseExpired,
+              missing: liveness.leaseMissing
+            }
+          : null,
+        lastExit: serviceState?.lastExit ?? null
       },
       endpoints: {
         uiUrl: managedUiUrl,
@@ -251,6 +263,29 @@ export class DiagnosticsCommands {
       remote,
       level,
       exitCode
+    };
+  };
+
+  private readonly resolveManagedServiceStatus = (params: { fix: boolean }): {
+    fixActions: string[];
+    liveness: ReturnType<ManagedServiceSupervisor["resolveStateLiveness"]>;
+    serviceState: ManagedServiceState | null;
+  } => {
+    const fixActions: string[] = [];
+    let serviceState = managedServiceStateStore.read();
+    let liveness = this.managedServiceSupervisor.resolveStateLiveness(serviceState);
+    if (params.fix && serviceState && liveness.staleState && !liveness.processExists) {
+      managedServiceStateStore.clear();
+      fixActions.push("Cleared stale service state file.");
+      serviceState = managedServiceStateStore.read();
+      liveness = this.managedServiceSupervisor.resolveStateLiveness(serviceState);
+    } else if (params.fix && serviceState && liveness.staleState && liveness.processExists) {
+      fixActions.push("Skipped clearing stale service state because the recorded PID still exists.");
+    }
+    return {
+      fixActions,
+      liveness,
+      serviceState
     };
   };
 
@@ -335,12 +370,23 @@ export class DiagnosticsCommands {
       recommendations.push(`Run ${APP_NAME} init to create workspace templates.`);
     }
     if (staleState) {
-      issues.push("Service state is stale (state exists but process is not running).");
-      recommendations.push(`Run ${APP_NAME} status --fix to clean stale state.`);
+      const staleDetail = serviceState?.lastExit
+        ? ` Last exit: ${serviceState.lastExit.reason}${serviceState.lastExit.signal ? ` (${serviceState.lastExit.signal})` : ""} at ${serviceState.lastExit.exitedAt}.`
+        : "";
+      issues.push(`Service state is stale (${params.serviceState ? "state no longer represents a live lease" : "state missing"}).${staleDetail}`);
+      recommendations.push(
+        params.serviceState && isProcessRunning(params.serviceState.pid)
+          ? `Run ${APP_NAME} restart to replace the stale leased process.`
+          : `Run ${APP_NAME} status --fix to clean stale state.`
+      );
     }
     if (running && managedHealth.state !== "ok") {
       issues.push(`Managed service health check failed: ${managedHealth.detail}`);
       recommendations.push(`Check logs at ${serviceState?.logPath ?? resolveAppLogPath("service")}.`);
+    }
+    if (running && serviceState && !serviceState.lease) {
+      issues.push("Managed service state is missing a lease heartbeat.");
+      recommendations.push(`Run ${APP_NAME} restart to refresh the managed service state contract.`);
     }
     if (running && serviceState?.startupState === "degraded" && managedHealth.state !== "ok") {
       const startupHint = serviceState.startupLastProbeError ? ` (${serviceState.startupLastProbeError})` : "";

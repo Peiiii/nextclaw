@@ -1,8 +1,9 @@
 import { getConfigPath, loadConfig } from "@nextclaw/core";
 import type { RemoteServiceAction, RemoteServiceActionResult, RemoteServiceView } from "@nextclaw/server";
 import { spawn } from "node:child_process";
-import { isProcessRunning, resolveUiApiBase, resolveUiConfig } from "../../../shared/utils/cli.utils.js";
+import { resolveUiApiBase, resolveUiConfig } from "../../../shared/utils/cli.utils.js";
 import { managedServiceStateStore } from "../../../shared/stores/managed-service-state.store.js";
+import { ManagedServiceSupervisor } from "../../../shared/services/runtime/managed-service-supervisor.service.js";
 
 export type RemoteAccessHostServiceCommands = {
   startService: (options: { uiOverrides: Partial<ReturnType<typeof resolveUiConfig>>; open: boolean }) => Promise<void>;
@@ -28,78 +29,124 @@ type RemoteServiceControlDeps = {
 };
 
 const FORCED_PUBLIC_UI_HOST = "0.0.0.0";
+type ManagedServiceControlState = {
+  currentProcess: boolean;
+  recordedProcessExists: boolean;
+  running: boolean;
+};
 
-export function resolveRemoteServiceView(currentUi?: CurrentUi): RemoteServiceView {
-  if (currentUi) {
+class RemoteServiceControlService {
+  private readonly managedServiceSupervisor = new ManagedServiceSupervisor();
+
+  readonly resolveView = (currentUi?: CurrentUi): RemoteServiceView => {
+    if (currentUi) {
+      return {
+        running: true,
+        currentProcess: true,
+        pid: process.pid,
+        uiUrl: resolveUiApiBase(currentUi.host, currentUi.port),
+        uiPort: currentUi.port
+      };
+    }
+
+    const serviceState = managedServiceStateStore.read();
+    const liveness = this.managedServiceSupervisor.resolveStateLiveness(serviceState);
+    const serviceRunning = Boolean(serviceState && liveness.running);
     return {
-      running: true,
-      currentProcess: true,
-      pid: process.pid,
-      uiUrl: resolveUiApiBase(currentUi.host, currentUi.port),
-      uiPort: currentUi.port
+      running: serviceRunning,
+      currentProcess: Boolean(serviceRunning && serviceState?.pid === process.pid),
+      ...(serviceState?.pid ? { pid: serviceState.pid } : {}),
+      ...(serviceState?.uiUrl ? { uiUrl: serviceState.uiUrl } : {}),
+      ...(typeof serviceState?.uiPort === "number" ? { uiPort: serviceState.uiPort } : {})
     };
-  }
-
-  const serviceState = managedServiceStateStore.read();
-  const serviceRunning = Boolean(serviceState && isProcessRunning(serviceState.pid));
-  return {
-    running: serviceRunning,
-    currentProcess: Boolean(serviceRunning && serviceState?.pid === process.pid),
-    ...(serviceState?.pid ? { pid: serviceState.pid } : {}),
-    ...(serviceState?.uiUrl ? { uiUrl: serviceState.uiUrl } : {}),
-    ...(typeof serviceState?.uiPort === "number" ? { uiPort: serviceState.uiPort } : {})
   };
-}
 
-export async function controlRemoteService(
-  action: RemoteServiceAction,
-  deps: RemoteServiceControlDeps
-): Promise<RemoteServiceActionResult> {
-  if (deps.remoteRuntimeController) {
-    return controlCurrentProcessRuntime(action, deps.remoteRuntimeController);
-  }
+  readonly control = async (
+    action: RemoteServiceAction,
+    deps: RemoteServiceControlDeps
+  ): Promise<RemoteServiceActionResult> => {
+    if (deps.remoteRuntimeController) {
+      return this.controlCurrentProcessRuntime(action, deps.remoteRuntimeController);
+    }
 
-  return controlManagedService(action, deps);
-}
+    return this.controlManagedService(action, deps);
+  };
 
-async function controlCurrentProcessRuntime(
-  action: RemoteServiceAction,
-  controller: RemoteRuntimeController
-): Promise<RemoteServiceActionResult> {
-  if (action === "start") {
-    await controller.start();
-    return { accepted: true, action, message: "Remote runtime started." };
-  }
-  if (action === "stop") {
-    await controller.stop();
-    return { accepted: true, action, message: "Remote runtime stopped." };
-  }
-  await controller.restart();
-  return { accepted: true, action, message: "Remote runtime restarted." };
-}
+  private readonly controlCurrentProcessRuntime = async (
+    action: RemoteServiceAction,
+    controller: RemoteRuntimeController
+  ): Promise<RemoteServiceActionResult> => {
+    if (action === "start") {
+      await controller.start();
+      return { accepted: true, action, message: "Remote runtime started." };
+    }
+    if (action === "stop") {
+      await controller.stop();
+      return { accepted: true, action, message: "Remote runtime stopped." };
+    }
+    await controller.restart();
+    return { accepted: true, action, message: "Remote runtime restarted." };
+  };
 
-async function controlManagedService(
-  action: RemoteServiceAction,
-  deps: RemoteServiceControlDeps
-): Promise<RemoteServiceActionResult> {
-  const state = managedServiceStateStore.read();
-  const running = Boolean(state && isProcessRunning(state.pid));
-  const currentProcess = Boolean(running && state?.pid === process.pid);
-  const uiOverrides = resolveManagedUiOverrides();
+  private readonly controlManagedService = async (
+    action: RemoteServiceAction,
+    deps: RemoteServiceControlDeps
+  ): Promise<RemoteServiceActionResult> => {
+    const serviceState = this.resolveManagedServiceControlState();
+    const uiOverrides = this.resolveManagedUiOverrides();
 
-  if (action === "start") {
-    if (running) {
+    if (action === "start") {
+      return this.startManagedService(action, deps, serviceState, uiOverrides);
+    }
+    if (!serviceState.running) {
+      return this.controlStoppedManagedService(action, deps, serviceState, uiOverrides);
+    }
+    if (serviceState.currentProcess) {
+      return this.controlCurrentManagedProcess(action, deps, uiOverrides);
+    }
+    return this.controlExternalManagedProcess(action, deps, uiOverrides);
+  };
+
+  private readonly resolveManagedServiceControlState = (): ManagedServiceControlState => {
+    const state = managedServiceStateStore.read();
+    const liveness = this.managedServiceSupervisor.resolveStateLiveness(state);
+    const running = Boolean(state && liveness.running);
+    return {
+      currentProcess: Boolean(running && state?.pid === process.pid),
+      recordedProcessExists: Boolean(state && liveness.processExists),
+      running
+    };
+  };
+
+  private readonly startManagedService = async (
+    action: RemoteServiceAction,
+    deps: RemoteServiceControlDeps,
+    serviceState: ManagedServiceControlState,
+    uiOverrides: Partial<ReturnType<typeof resolveUiConfig>>
+  ): Promise<RemoteServiceActionResult> => {
+    if (serviceState.running) {
       return {
         accepted: true,
         action,
-        message: currentProcess ? "Managed service is already running for this UI." : "Managed service is already running."
+        message: serviceState.currentProcess ? "Managed service is already running for this UI." : "Managed service is already running."
       };
+    }
+    if (serviceState.recordedProcessExists) {
+      return this.controlStaleManagedServiceProcess(action, deps, uiOverrides);
     }
     await deps.serviceCommands.startService({ uiOverrides, open: false });
     return { accepted: true, action, message: "Managed service started." };
-  }
+  };
 
-  if (!running) {
+  private readonly controlStoppedManagedService = async (
+    action: RemoteServiceAction,
+    deps: RemoteServiceControlDeps,
+    serviceState: ManagedServiceControlState,
+    uiOverrides: Partial<ReturnType<typeof resolveUiConfig>>
+  ): Promise<RemoteServiceActionResult> => {
+    if (serviceState.recordedProcessExists) {
+      return this.controlStaleManagedServiceProcess(action, deps, uiOverrides);
+    }
     if (action === "restart") {
       await deps.serviceCommands.startService({ uiOverrides, open: false });
       return {
@@ -109,13 +156,36 @@ async function controlManagedService(
       };
     }
     return { accepted: true, action, message: "No managed service is currently running." };
-  }
+  };
 
-  if (currentProcess) {
+  private readonly controlStaleManagedServiceProcess = async (
+    action: RemoteServiceAction,
+    deps: RemoteServiceControlDeps,
+    uiOverrides: Partial<ReturnType<typeof resolveUiConfig>>
+  ): Promise<RemoteServiceActionResult> => {
+    if (action === "stop") {
+      await deps.serviceCommands.stopService();
+      return { accepted: true, action, message: "Stale managed service process stopped." };
+    }
+    if (action === "restart") {
+      await deps.serviceCommands.stopService();
+      await deps.serviceCommands.startService({ uiOverrides, open: false });
+      return { accepted: true, action, message: "Stale managed service process replaced." };
+    }
+    await deps.serviceCommands.stopService();
+    await deps.serviceCommands.startService({ uiOverrides, open: false });
+    return { accepted: true, action, message: "Stale managed service process replaced." };
+  };
+
+  private readonly controlCurrentManagedProcess = async (
+    action: RemoteServiceAction,
+    deps: RemoteServiceControlDeps,
+    uiOverrides: Partial<ReturnType<typeof resolveUiConfig>>
+  ): Promise<RemoteServiceActionResult> => {
     if (action === "restart") {
       await deps.requestManagedServiceRestart({ uiPort: uiOverrides.port ?? 55667 });
     } else {
-      scheduleManagedSelfStop();
+      launchManagedSelfControl();
     }
     return {
       accepted: true,
@@ -125,35 +195,50 @@ async function controlManagedService(
           ? "Restart scheduled. This page may disconnect for a few seconds."
           : "Stop scheduled. This page will disconnect shortly."
     };
-  }
+  };
 
-  if (action === "stop") {
+  private readonly controlExternalManagedProcess = async (
+    action: RemoteServiceAction,
+    deps: RemoteServiceControlDeps,
+    uiOverrides: Partial<ReturnType<typeof resolveUiConfig>>
+  ): Promise<RemoteServiceActionResult> => {
+    if (action === "stop") {
+      await deps.serviceCommands.stopService();
+      return { accepted: true, action, message: "Managed service stopped." };
+    }
+
     await deps.serviceCommands.stopService();
-    return { accepted: true, action, message: "Managed service stopped." };
-  }
+    await deps.serviceCommands.startService({ uiOverrides, open: false });
+    return { accepted: true, action, message: "Managed service restarted." };
+  };
 
-  await deps.serviceCommands.stopService();
-  await deps.serviceCommands.startService({ uiOverrides, open: false });
-  return { accepted: true, action, message: "Managed service restarted." };
-}
-
-function resolveManagedUiOverrides(): Partial<ReturnType<typeof resolveUiConfig>> {
-  const config = loadConfig(getConfigPath());
-  const resolved = resolveUiConfig(config, {
-    enabled: true,
-    host: FORCED_PUBLIC_UI_HOST,
-    open: false
-  });
-  return {
-    enabled: true,
-    host: FORCED_PUBLIC_UI_HOST,
-    open: false,
-    port: resolved.port
+  private readonly resolveManagedUiOverrides = (): Partial<ReturnType<typeof resolveUiConfig>> => {
+    const config = loadConfig(getConfigPath());
+    const resolved = resolveUiConfig(config, {
+      enabled: true,
+      host: FORCED_PUBLIC_UI_HOST,
+      open: false
+    });
+    return {
+      enabled: true,
+      host: FORCED_PUBLIC_UI_HOST,
+      open: false,
+      port: resolved.port
+    };
   };
 }
 
-function scheduleManagedSelfStop(): void {
-  launchManagedSelfControl();
+const remoteServiceControlService = new RemoteServiceControlService();
+
+export function resolveRemoteServiceView(currentUi?: CurrentUi): RemoteServiceView {
+  return remoteServiceControlService.resolveView(currentUi);
+}
+
+export async function controlRemoteService(
+  action: RemoteServiceAction,
+  deps: RemoteServiceControlDeps
+): Promise<RemoteServiceActionResult> {
+  return remoteServiceControlService.control(action, deps);
 }
 
 function launchManagedSelfControl(params: {

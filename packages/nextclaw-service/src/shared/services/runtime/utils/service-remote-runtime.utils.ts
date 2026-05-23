@@ -15,6 +15,7 @@ import { getDataDir } from "@nextclaw/core";
 import { resolveUiApiBase, isProcessRunning } from "@nextclaw-service/shared/utils/cli.utils.js";
 import {
   managedServiceStateStore,
+  type ManagedServiceLease,
   type ManagedServiceState
 } from "@nextclaw-service/shared/stores/managed-service-state.store.js";
 import {
@@ -258,41 +259,47 @@ export function createManagedRemoteModuleForUi(params: {
 
 export function writeInitialManagedServiceState(params: {
   config: Config;
+  lease?: ManagedServiceLease;
   readinessTimeoutMs: number;
   snapshot: ManagedServiceSnapshot;
 }): void {
+  const { config, lease, readinessTimeoutMs, snapshot } = params;
   managedServiceStateStore.write({
-    pid: params.snapshot.pid,
+    pid: snapshot.pid,
     startedAt: new Date().toISOString(),
-    uiUrl: params.snapshot.uiUrl,
-    apiUrl: params.snapshot.apiUrl,
-    uiHost: params.snapshot.uiHost,
-    uiPort: params.snapshot.uiPort,
-    logPath: params.snapshot.logPath,
+    uiUrl: snapshot.uiUrl,
+    apiUrl: snapshot.apiUrl,
+    uiHost: snapshot.uiHost,
+    uiPort: snapshot.uiPort,
+    logPath: snapshot.logPath,
+    ...(lease ? { lease } : {}),
     startupLastProbeError: null,
-    startupTimeoutMs: params.readinessTimeoutMs,
+    startupTimeoutMs: readinessTimeoutMs,
     startupCheckedAt: new Date().toISOString(),
-    ...(params.config.remote.enabled ? { remote: buildNextclawConfiguredRemoteState(params.config) } : {})
+    ...(config.remote.enabled ? { remote: buildNextclawConfiguredRemoteState(config) } : {})
   });
 }
 
 export function writeReadyManagedServiceState(params: {
+  lease?: ManagedServiceLease;
   readinessTimeoutMs: number;
   readiness: { ready: boolean; lastProbeError: string | null };
   snapshot: ManagedServiceSnapshot;
 }): ManagedServiceState {
+  const { lease, readiness, readinessTimeoutMs, snapshot } = params;
   const currentState = managedServiceStateStore.read();
   const state: ManagedServiceState = {
-    pid: params.snapshot.pid,
+    pid: snapshot.pid,
     startedAt: currentState?.startedAt ?? new Date().toISOString(),
-    uiUrl: params.snapshot.uiUrl,
-    apiUrl: params.snapshot.apiUrl,
-    uiHost: params.snapshot.uiHost,
-    uiPort: params.snapshot.uiPort,
-    logPath: params.snapshot.logPath,
-    startupState: params.readiness.ready ? "ready" : "degraded",
-    startupLastProbeError: params.readiness.lastProbeError,
-    startupTimeoutMs: params.readinessTimeoutMs,
+    uiUrl: snapshot.uiUrl,
+    apiUrl: snapshot.apiUrl,
+    uiHost: snapshot.uiHost,
+    uiPort: snapshot.uiPort,
+    logPath: snapshot.logPath,
+    ...(lease ? { lease } : currentState?.lease ? { lease: currentState.lease } : {}),
+    startupState: readiness.ready ? "ready" : "degraded",
+    startupLastProbeError: readiness.lastProbeError,
+    startupTimeoutMs: readinessTimeoutMs,
     startupCheckedAt: new Date().toISOString(),
     ...(currentState?.remote ? { remote: currentState.remote } : {})
   };

@@ -292,8 +292,22 @@ export type RuntimeStatusReport = {
     pid: number | null;
     running: boolean;
     staleState: boolean;
+    staleReason: "process-not-running" | "lease-expired" | null;
     orphanSuspected: boolean;
     startedAt: string | null;
+    lease: {
+      heartbeatAt: string | null;
+      expired: boolean;
+      missing: boolean;
+    } | null;
+    lastExit: {
+      pid: number;
+      reason: string;
+      exitedAt: string;
+      code?: number | null;
+      signal?: string | null;
+      message?: string | null;
+    } | null;
   };
   endpoints: {
     uiUrl: string | null;

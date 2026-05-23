@@ -1,19 +1,11 @@
 import * as NextclawCore from "@nextclaw/core";
-import { FileLogSink } from "@nextclaw/core";
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
-import { spawn } from "node:child_process";
 import { localUiRuntimeStore } from "@nextclaw-service/shared/stores/local-ui-runtime.store.js";
 import { managedServiceStateStore, type ManagedServiceState } from "@nextclaw-service/shared/stores/managed-service-state.store.js";
-import { resolveCliSubcommandLaunch } from "@nextclaw-service/shared/utils/marketplace/cli-subcommand-launch.utils.js";
-import { writeInitialManagedServiceState, writeReadyManagedServiceState } from "@nextclaw-service/shared/services/runtime/utils/service-remote-runtime.utils.js";
 import {
   resolveManagedServiceReadySnapshot,
   resolveManagedServiceUiBinding,
   resolveSessionRouteCandidate,
-  type ManagedServiceSnapshot
 } from "@nextclaw-service/shared/services/runtime/utils/managed-service-routing.utils.js";
-import { createTopLevelNextclawCommandEnv } from "@nextclaw-service/shared/utils/top-level-nextclaw-command-env.utils.js";
 import {
   isProcessRunning,
   openBrowser,
@@ -23,9 +15,9 @@ import {
   waitForExit
 } from "@nextclaw-service/shared/utils/cli.utils.js";
 import { probeHealthEndpoint } from "@nextclaw-service/shared/utils/service-port-probe.utils.js";
+import { ManagedServiceSupervisor } from "@nextclaw-service/shared/services/runtime/managed-service-supervisor.service.js";
 
 const { APP_NAME, loadConfig } = NextclawCore;
-const serviceStartupLogger = NextclawCore.getAppLogger("service.startup");
 
 type Config = NextclawCore.Config;
 
@@ -36,125 +28,6 @@ export type StartServiceOptions = {
 };
 
 export { resolveManagedServiceReadySnapshot, resolveManagedServiceUiBinding, resolveSessionRouteCandidate };
-
-export function spawnManagedService(params: {
-  appName: string;
-  config: NextclawCore.Config;
-  uiConfig: { host: string; port: number };
-  uiUrl: string;
-  apiUrl: string;
-  healthUrl: string;
-  startupTimeoutMs?: number;
-  resolveStartupTimeoutMs: (overrideTimeoutMs: number | undefined) => number;
-  appendStartupStage: (logPath: string, message: string) => void;
-  printStartupFailureDiagnostics: (params: {
-    uiUrl: string;
-    apiUrl: string;
-    healthUrl: string;
-    logPath: string;
-    lastProbeError: string | null;
-  }) => void;
-  resolveServiceLogPath: () => string;
-}): {
-  child: ReturnType<typeof spawn>;
-  logPath: string;
-  readinessTimeoutMs: number;
-  quickPhaseTimeoutMs: number;
-  extendedPhaseTimeoutMs: number;
-  snapshot: ManagedServiceSnapshot;
-} | null {
-  const {
-    appName,
-    config,
-    uiConfig,
-    uiUrl,
-    apiUrl,
-    healthUrl,
-    startupTimeoutMs,
-    resolveStartupTimeoutMs,
-    appendStartupStage,
-    printStartupFailureDiagnostics,
-    resolveServiceLogPath
-  } = params;
-  const logPath = resolveServiceLogPath();
-  new FileLogSink({ serviceLogPath: logPath }).ensureReady();
-  const logDir = dirname(logPath);
-  mkdirSync(logDir, { recursive: true });
-  const readinessTimeoutMs = resolveStartupTimeoutMs(startupTimeoutMs);
-  const quickPhaseTimeoutMs = Math.min(8000, readinessTimeoutMs);
-  const extendedPhaseTimeoutMs = Math.max(0, readinessTimeoutMs - quickPhaseTimeoutMs);
-  appendStartupStage(
-    logPath,
-    `start requested: ui=${uiConfig.host}:${uiConfig.port}, readinessTimeoutMs=${readinessTimeoutMs}`
-  );
-  console.log(`Starting ${appName} background service (readiness timeout ${Math.ceil(readinessTimeoutMs / 1000)}s)...`);
-
-  const cliLaunch = resolveCliSubcommandLaunch({
-    argvEntry: process.argv[1],
-    importMetaUrl: import.meta.url,
-    cliArgs: ["serve", "--ui-port", String(uiConfig.port)],
-    nodePath: process.execPath
-  });
-  const childArgs = [...process.execArgv, ...cliLaunch.args];
-  appendStartupStage(logPath, `spawning background process: ${cliLaunch.command} ${childArgs.join(" ")}`);
-  const child = spawn(cliLaunch.command, childArgs, {
-    env: createTopLevelNextclawCommandEnv(process.env),
-    stdio: "ignore",
-    detached: true,
-    windowsHide: true
-  });
-  appendStartupStage(logPath, `spawned background process pid=${child.pid ?? "unknown"}`);
-  if (!child.pid) {
-    appendStartupStage(logPath, "spawn failed: child pid missing");
-    console.error("Error: Failed to start background service.");
-    printStartupFailureDiagnostics({
-      uiUrl,
-      apiUrl,
-      healthUrl,
-      logPath,
-      lastProbeError: null
-    });
-    return null;
-  }
-
-  const snapshot: ManagedServiceSnapshot = {
-    pid: child.pid,
-    uiUrl,
-    apiUrl,
-    uiHost: uiConfig.host,
-    uiPort: uiConfig.port,
-    logPath
-  };
-  writeInitialManagedServiceState({
-    config,
-    readinessTimeoutMs,
-    snapshot
-  });
-  serviceStartupLogger.info("runtime.process.started", {
-    runtimeKind: "managed-service",
-    childPid: child.pid,
-    uiUrl,
-    apiUrl,
-    uiHost: uiConfig.host,
-    uiPort: uiConfig.port,
-    entrypoint: `${cliLaunch.command} ${childArgs.join(" ")}`
-  });
-  serviceStartupLogger.info("service_state.written", {
-    runtimeKind: "managed-service",
-    childPid: child.pid,
-    statePath: managedServiceStateStore.path,
-    uiUrl,
-    apiUrl
-  });
-  return {
-    child,
-    logPath,
-    readinessTimeoutMs,
-    quickPhaseTimeoutMs,
-    extendedPhaseTimeoutMs,
-    snapshot
-  };
-}
 
 export async function waitForManagedServiceReadiness(params: {
   appName: string;
@@ -232,6 +105,7 @@ export class ManagedServiceCommandService {
   private readonly loggingRuntime = NextclawCore.getLoggingRuntime();
   private readonly serviceLogger = this.loggingRuntime.getLogger("service");
   private readonly startupLogger = this.serviceLogger.child("startup");
+  private readonly supervisor = new ManagedServiceSupervisor();
 
   constructor(private readonly deps: {
     startGateway: (options: { uiOverrides: Partial<Config["ui"]>; uiStaticDir?: string | null }) => Promise<void>;
@@ -269,11 +143,12 @@ export class ManagedServiceCommandService {
     const staticDir = this.deps.resolveUiStaticDir();
 
     const existing = managedServiceStateStore.read();
-    if (existing && isProcessRunning(existing.pid)) {
+    const existingLiveness = this.supervisor.resolveStateLiveness(existing);
+    if (existing && existingLiveness.running) {
       await this.handleExistingManagedService({ existing, uiConfig, options });
       return;
     }
-    if (existing) {
+    if (existing && !existingLiveness.processExists) {
       managedServiceStateStore.clear();
     }
 
@@ -434,7 +309,7 @@ export class ManagedServiceCommandService {
     startupTimeoutMs?: number;
   }): Promise<void> => {
     const { apiUrl, config, healthUrl, startupTimeoutMs, uiConfig, uiUrl } = params;
-    const startup = spawnManagedService({
+    const startup = this.supervisor.spawnManagedService({
       appName: APP_NAME,
       config,
       uiConfig,
@@ -494,7 +369,7 @@ export class ManagedServiceCommandService {
     const readySnapshot = resolveManagedServiceReadySnapshot({
       snapshot: startup.snapshot
     });
-    const state = writeReadyManagedServiceState({
+    const state = this.supervisor.writeReadyState({
       readinessTimeoutMs: startup.readinessTimeoutMs,
       readiness,
       snapshot: readySnapshot
