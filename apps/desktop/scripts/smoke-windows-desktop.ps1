@@ -192,6 +192,9 @@ public static class NextClawDesktopSmokeNative {
 
   [DllImport("user32.dll")]
   public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+  [DllImport("user32.dll", SetLastError = true)]
+  public static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
 }
 "@
 }
@@ -275,6 +278,11 @@ function Invoke-DesktopTitlebarDragProbe {
 
   [NextClawDesktopSmokeNative]::ShowWindow($windowHandle, 9) | Out-Null
   [NextClawDesktopSmokeNative]::SetForegroundWindow($windowHandle) | Out-Null
+  Start-Sleep -Milliseconds 500
+
+  if (-not [NextClawDesktopSmokeNative]::MoveWindow($windowHandle, 80, 80, 760, 520, $true)) {
+    throw "MoveWindow failed while preparing titlebar drag probe for window handle $windowHandle"
+  }
   Start-Sleep -Milliseconds 500
 
   $before = Read-WindowRect -WindowHandle $windowHandle

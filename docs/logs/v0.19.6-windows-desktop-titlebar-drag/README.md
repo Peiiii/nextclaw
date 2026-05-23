@@ -31,6 +31,7 @@
 - 已通过：构建产物 grep，确认 CSS 中包含 `-webkit-app-region:drag`、`app-region:drag`、`-webkit-app-region:no-drag`、`app-region:no-drag`。
 - 三次修正新增验证：通过 Playwright 对 dev renderer 执行 `document.elementFromPoint`，确认标题栏空白点 `(260,20)`、`(320,20)`、`(700,20)` 的 topmost element 已直接命中 computed `app-region: drag` 的 `desktop-window-drag` 元素；右侧 caption safe area `(1180,20)`、`(1230,20)` 保持非 drag。
 - 四次修正新增验证门禁：Windows desktop smoke 增加原生拖拽探针，启动打包后的 exe 后用 Win32 API 在标题栏空白坐标执行鼠标按下、移动、松开，并断言窗口矩形坐标发生变化。该验证用于区分 renderer `app-region` 正确但 Windows 原生层没有产生窗口移动的情况。
+- 五次修正收紧验证前置条件：拖拽探针先用 Win32 `MoveWindow` 将 runner 上可能铺满屏幕的窗口恢复到 `760x520` 小窗，再执行拖拽，避免把 CI 虚拟屏幕尺寸约束误判为 titlebar 拖拽失败。
 - 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
 - 已通过：`pnpm lint:new-code:governance -- apps/desktop/src/utils/desktop-window-options.utils.ts apps/desktop/src/utils/desktop-window-options.utils.test.ts packages/nextclaw-ui/src/platforms/desktop/components/desktop-window-chrome.tsx packages/nextclaw-ui/src/platforms/desktop/components/desktop-app-shell.test.tsx docs/logs/v0.19.6-windows-desktop-titlebar-drag/README.md`
 - 已通过：`pnpm check:governance-backlog-ratchet`
@@ -66,6 +67,7 @@
 - 正向减债动作：删除了“padding 视觉避让但矩形仍覆盖 caption controls”的隐性错误模型，改为不新增 DOM 的 margin safe area。
 - 三次修正继续减债：删除 2 个空 filler DOM，避免用无语义子节点覆盖拖拽命中面；同时把该验证缺口沉淀到 `desktop-release-contract-guard` 的 Windows custom titlebar drag gate。
 - 四次修正继续把人工验证前移到 CI：用 Windows native drag smoke 替代让用户反复下载试错；如果后续 release 仍不能拖拽，CI 会先给出窗口是否真的移动的硬证据。
+- 五次修正减少验证噪声：原生拖拽 smoke 不再依赖 Electron 初始窗口尺寸是否适配 CI runner 分辨率，而是主动规整窗口几何后再观察移动。
 - `post-edit-maintainability-guard` 二次修正结果：total `+65/-8/net +57`，non-test `+7/-7/net +0`，无可维护性发现。
 
 ## NPM 包发布记录
