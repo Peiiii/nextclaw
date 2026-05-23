@@ -13,10 +13,10 @@ import { DesktopPresenceService } from "./services/desktop-presence.service";
 import { setupDesktopInstallationProfile } from "./utils/desktop-installation-profile-electron.utils";
 import { DesktopRuntimeControlService } from "./services/desktop-runtime-control.service";
 import { DesktopUpdateSourceService } from "./services/desktop-update-source.service";
+import { DesktopWindowControlService } from "./services/desktop-window-control.service";
 import { RuntimeServiceProcess } from "./runtime-service";
 import { DesktopBundleBootstrapService } from "./services/desktop-bundle-bootstrap.service";
 import { DesktopRuntimeCommandService } from "./services/desktop-runtime-command.service";
-import { DesktopShellThemeService } from "./services/desktop-shell-theme.service";
 import { DesktopUpdateShellService } from "./services/desktop-update-shell.service";
 import {
   createDesktopLogger,
@@ -83,7 +83,7 @@ class DesktopApplication {
     await app.whenReady();
     await this.ensureUpdateSourceService().ensureStateChannelInitialized();
     this.ensureDesktopRuntimeControlService().registerIpcHandlers();
-    new DesktopShellThemeService({ getWindow: () => this.window }).registerIpcHandlers();
+    new DesktopWindowControlService().registerIpcHandlers();
     this.ensureDesktopPresenceService().registerIpcHandlers();
     this.ensureDesktopUpdateShell().registerIpcHandlers();
     this.ensureDesktopUpdateShell().installApplicationMenu();

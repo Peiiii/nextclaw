@@ -28,7 +28,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     pwaShellThemeManager.syncTheme(theme);
-    void window.nextclawDesktop?.setShellTheme?.(theme);
   }, [theme]);
 
   useEffect(() => {

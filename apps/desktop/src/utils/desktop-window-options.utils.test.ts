@@ -26,11 +26,7 @@ test("creates a compact, draggable Windows chrome contract", () => {
     assert.equal(options.frame, false);
     assert.equal(options.thickFrame, undefined);
     assert.equal(options.titleBarStyle, "hidden");
-    assert.deepEqual(options.titleBarOverlay, {
-      color: "#F2F1EE",
-      symbolColor: "#33332F",
-      height: 40
-    });
+    assert.equal(options.titleBarOverlay, undefined);
   } finally {
     setProcessPlatform(originalPlatform);
   }

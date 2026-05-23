@@ -1,5 +1,11 @@
 # @nextclaw/desktop
 
+## 0.0.186
+
+### Patch Changes
+
+- Replace the Windows titlebar overlay with renderer-owned window controls.
+
 ## 0.0.185
 
 ### Patch Changes

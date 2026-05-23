@@ -49,6 +49,7 @@ describe("DesktopAppShell", () => {
     const chrome = screen.getByTestId("desktop-window-chrome");
     const sidebarChrome = screen.getByTestId("desktop-window-chrome-sidebar");
     const dragRegion = screen.getByTestId("desktop-window-chrome-drag-region");
+    const controls = screen.getByTestId("desktop-window-controls");
 
     expect(chrome).toBeTruthy();
     expect(chrome.parentElement?.style.getPropertyValue("--desktop-titlebar-height")).toBe("40px");
@@ -60,6 +61,10 @@ describe("DesktopAppShell", () => {
     expect(dragRegion.className).toContain("right-[var(--desktop-caption-safe-right)]");
     expect(dragRegion.className).toContain("top-1");
     expect(dragRegion.childElementCount).toBe(0);
+    expect(controls.className).toContain("desktop-window-no-drag");
+    expect(screen.getByLabelText("Minimize").className).toContain("desktop-window-no-drag");
+    expect(screen.getByLabelText("Maximize").className).toContain("desktop-window-no-drag");
+    expect(screen.getByLabelText("Close").className).toContain("desktop-window-no-drag");
     expect(screen.getByTestId("app-content")).toBeTruthy();
   });
 
