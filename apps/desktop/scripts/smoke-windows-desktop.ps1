@@ -192,6 +192,12 @@ public static class NextClawDesktopSmokeNative {
   public static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
 
   [DllImport("user32.dll")]
+  public static extern bool SetCursorPos(int X, int Y);
+
+  [DllImport("user32.dll")]
+  public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
+
+  [DllImport("user32.dll")]
   public static extern bool SetForegroundWindow(IntPtr hWnd);
 
   [DllImport("user32.dll")]
@@ -378,6 +384,8 @@ function Invoke-DesktopTitlebarDragProbe {
   $startX = $startPoint.X
   $startY = $startPoint.Y
   $nativeHitTest = [NextClawDesktopSmokeNative]::HitTest($windowHandle, $startX, $startY)
+  $endX = $startX + 140
+  $endY = $startY + 80
   $pointWindowHandle = [NextClawDesktopSmokeNative]::WindowFromScreenPoint($startX, $startY)
   $rootFromPointHandle = [NextClawDesktopSmokeNative]::RootWindow($pointWindowHandle)
   $probeHandles = [System.Collections.Generic.List[System.IntPtr]]::new()
@@ -403,7 +411,27 @@ function Invoke-DesktopTitlebarDragProbe {
   }
 
   if ($captionHitHandle -eq [IntPtr]::Zero) {
-    throw "Windows titlebar drag probe failed: no probed HWND returned HTCAPTION(2) at client point ($clientStartX,$clientStartY); main hit-test returned $nativeHitTest."
+    Write-Warning "[desktop-smoke] no probed HWND returned HTCAPTION(2); falling back to real mouse drag geometry probe."
+  }
+
+  $mouseLeftDown = 0x0002
+  $mouseLeftUp = 0x0004
+  [NextClawDesktopSmokeNative]::SetCursorPos($startX, $startY) | Out-Null
+  Start-Sleep -Milliseconds 200
+  [NextClawDesktopSmokeNative]::mouse_event($mouseLeftDown, 0, 0, 0, [UIntPtr]::Zero)
+  Start-Sleep -Milliseconds 200
+  [NextClawDesktopSmokeNative]::SetCursorPos($endX, $endY) | Out-Null
+  Start-Sleep -Milliseconds 600
+  [NextClawDesktopSmokeNative]::mouse_event($mouseLeftUp, 0, 0, 0, [UIntPtr]::Zero)
+  Start-Sleep -Milliseconds 800
+
+  $after = Read-WindowRect -WindowHandle $windowHandle
+  $deltaX = $after.Left - $before.Left
+  $deltaY = $after.Top - $before.Top
+  Write-Host "[desktop-smoke] titlebar drag geometry probe: end=($endX,$endY) afterLeft=$($after.Left) afterTop=$($after.Top) delta=($deltaX,$deltaY)"
+
+  if ([Math]::Abs($deltaX) -lt 40 -and [Math]::Abs($deltaY) -lt 40) {
+    throw "Windows titlebar drag probe failed: window did not move after real mouse drag. before=($($before.Left),$($before.Top)) after=($($after.Left),$($after.Top)) mainHitTest=$nativeHitTest"
   }
 }
 

@@ -1,5 +1,11 @@
 # @nextclaw/desktop
 
+## 0.0.187
+
+### Patch Changes
+
+- Validate Windows titlebar dragging with a real mouse geometry probe.
+
 ## 0.0.186
 
 ### Patch Changes
