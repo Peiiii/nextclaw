@@ -30,6 +30,7 @@
   - 十四次最小复现修正根因边界：最小 Electron `frame:false` 应用的同一客户区点返回 `HTCAPTION(2)`，但 synthetic mouse drag 仍不会移动窗口；因此 CI synthetic mouse 不能证明真实拖拽，`HTCAPTION(2)` 才是当前可自动化的 native registration gate。NextClaw 的差异仍是返回 `HTCLIENT(1)`。
   - 十五次修正的当前假设：Electron/Chromium 对空透明 absolute app-region overlay 的 native draggable region 聚合与普通 DOM hit-test 不等价；即使 `elementFromPoint` 与 computed style 都显示 `drag`，也可能不进入 Win32 `HTCAPTION`。因此将 drag contract 放到真实承载背景和尺寸的 header 上。
   - 十六次排查排除本地 HTTP 加载来源：最小 Electron 通过 `http://127.0.0.1` 加载同一 titlebar 时仍返回 `HTCAPTION(2)`。
+  - 二十三至二十五次排查继续排除标题栏 DOM 形状、GPU、packaged 主进程窗口参数：真实 UI dist 在最小 Electron 壳中同样返回 `HTCLIENT(1)`，而同一壳加载手写 NextClaw-like 布局返回 `HTCAPTION(2)`。当前根因边界已收敛到真实 UI bundle 的 CSS/JS/runtime 行为，尚需继续区分 CSS 本身、React 挂载后 DOM 更新、还是可通过独立 fixed drag layer 修复。
 - 修复方式：
   - Windows `BrowserWindow` 最小尺寸降到 `420x320`，允许真实小窗使用。
   - Windows 窗口参数调整为 VS Code 风格的 custom titlebar 合同：`frame: false`、`titleBarStyle: "hidden"` 与 `titleBarOverlay`；不再混用 `thickFrame: true`。
@@ -84,6 +85,10 @@
 - 二十一次修正：真实 Windows Electron 环境改用 `MemoryRouter`，避免桌面端初始化路由时调用浏览器 History API；普通 Web 与 dev 浏览器模拟继续使用 `BrowserRouter`。同时 Windows 窗口合同进一步收敛为纯 `frame:false`，删除不再必要的 `titleBarStyle:"hidden"`。
 - 二十二次排查：`desktop-validate` run `26325257296` 证明 `MemoryRouter` 已消除 `did-navigate-in-page`，加载链路只剩 `about:blank -> /chat`，但真实 NextClaw 窗口在 `(400,24)` 仍返回 `HTCLIENT(1)`；因此根因不再是前端 History API 导航，而是真实标题栏矩形和最小可通过页面之间的 DOM/paint 差异。
 - 二十二次修正：把 Windows 自定义标题栏中间空白区改成显式 `desktop-window-drag flex-1` 子元素，不再只依赖父 `header` 的空白背景参与 Electron native draggable region 聚合；同时删除品牌区多余 wrapper，保持非测试生产代码净减少。最小 Electron smoke 新增 `nextclaw-layout-empty-http-preload-sandbox-false` 与 `nextclaw-layout-http-preload-sandbox-false` 对照，用 Windows CI 验证“空白父背景”与“显式中间 drag 子区域”的差异。
+- 二十三次排查：`desktop-validate` run `26325496003` 证明显式 `desktop-window-chrome-main-drag-region` 在真实 packaged `/chat` 中已被 `elementFromPoint` 命中，computed `app-region=drag`，但 native hit-test 仍为 `HTCLIENT(1)`；同轮最小 `nextclaw-layout-empty-http-preload-sandbox-false` 与显式布局对照均返回 `HTCAPTION(2)`，排除“空白父背景”和“显式 flex 子区域”作为根因。
+- 二十四次排查：`desktop-validate` run `26325644666` 证明最小 NextClaw-like 布局在 GPU enabled 时仍返回 `HTCAPTION(2)`，排除 `disable-gpu` 与真实 GPU 状态差异作为根因。
+- 二十五次排查：`desktop-validate` run `26325898320` 首次证明“最小 Electron 壳 + 真实 NextClaw UI dist”会返回 `HTCLIENT(1)`，而同一壳的手写 NextClaw-like 布局返回 `HTCAPTION(2)`；根因边界由 packaged 主进程/窗口 options 进一步缩小到真实 UI bundle 的 CSS/JS/runtime 行为。
+- 二十五次实验改造：最小 Windows app-region smoke 改为一次 CI 覆盖多个互斥假设：真实 UI CSS 静态页、完整 UI dist、完整 UI dist + inline 强制 titlebar drag、完整 UI dist + fixed titlebar drag layer、完整 UI dist + body drag，并把 renderer DOM hit-test 结果写入文件后由 PowerShell 打印，避免继续一轮只验证一个猜测。
 - 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
 - 已通过：`pnpm lint:new-code:governance -- apps/desktop/src/utils/desktop-window-options.utils.ts apps/desktop/src/utils/desktop-window-options.utils.test.ts packages/nextclaw-ui/src/platforms/desktop/components/desktop-window-chrome.tsx packages/nextclaw-ui/src/platforms/desktop/components/desktop-app-shell.test.tsx docs/logs/v0.19.6-windows-desktop-titlebar-drag/README.md`
 - 已通过：`pnpm check:governance-backlog-ratchet`

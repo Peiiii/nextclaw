@@ -197,7 +197,8 @@ function Convert-ClientPointToScreen {
 function Invoke-MinimalAppRegionDragProbe {
   param(
     [int]$RootPid,
-    [string]$Variant
+    [string]$Variant,
+    [string]$AppRoot
   )
 
   Initialize-MinimalAppRegionProbe
@@ -224,6 +225,14 @@ function Invoke-MinimalAppRegionDragProbe {
     throw "MoveWindow failed while preparing minimal app-region probe for window handle $windowHandle"
   }
   Start-Sleep -Milliseconds 800
+
+  $titlebarProbePath = Join-Path $AppRoot "titlebar-hit-test.json"
+  if (Test-Path $titlebarProbePath) {
+    $titlebarProbe = Get-Content -Raw -Path $titlebarProbePath
+    Write-Host "[minimal-app-region] $Variant titlebar-hit-test $titlebarProbe"
+  } else {
+    Write-Warning "[minimal-app-region] $Variant titlebar-hit-test file was not written before native probe."
+  }
 
   $before = Read-WindowRect -WindowHandle $windowHandle
   $clientStartX = 400
@@ -269,6 +278,20 @@ function Invoke-MinimalAppRegionDragProbe {
   }
 }
 
+function Resolve-NextClawUiDistPath {
+  $candidates = @(
+    (Join-Path $repoRoot "packages\nextclaw-ui\dist"),
+    (Join-Path $repoRoot "packages\nextclaw\ui-dist")
+  )
+  foreach ($candidate in $candidates) {
+    if (Test-Path $candidate) {
+      return (Resolve-Path $candidate).Path
+    }
+  }
+
+  throw "NextClaw UI dist not found. Checked: $($candidates -join ', ')"
+}
+
 function New-MinimalAppRegionApp {
   param(
     [string]$Variant,
@@ -276,6 +299,7 @@ function New-MinimalAppRegionApp {
     [string]$LoadMode,
     [string]$WebPreferenceLines = "      sandbox: true",
     [string]$Layout = "simple",
+    [string]$PostLoadScript = "",
     [switch]$Preload,
     [switch]$StartupDrag,
     [switch]$DisableGpu,
@@ -334,13 +358,23 @@ contextBridge.exposeInMainWorld("nextclawMinimalPreload", {
   const fs = require("node:fs");
   const http = require("node:http");
   const indexPath = path.join(__dirname, "index.html");
-  const server = http.createServer((_request, response) => {
-    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    response.end(fs.readFileSync(indexPath));
+  const contentTypes = new Map([
+    [".html", "text/html; charset=utf-8"],
+    [".css", "text/css; charset=utf-8"]
+  ]);
+  const server = http.createServer((request, response) => {
+    const requestUrl = new URL(request.url || "/", "http://127.0.0.1");
+    const relativePath = requestUrl.pathname === "/" ? "index.html" : decodeURIComponent(requestUrl.pathname).replace(/^\/+/, "");
+    const filePath = path.resolve(__dirname, relativePath);
+    const candidatePath = filePath.startsWith(__dirname) && fs.existsSync(filePath) && fs.statSync(filePath).isFile() ? filePath : indexPath;
+    response.writeHead(200, { "content-type": contentTypes.get(path.extname(candidatePath)) || "application/octet-stream" });
+    response.end(fs.readFileSync(candidatePath));
   });
   server.listen(0, "127.0.0.1", async () => {
     const { port } = server.address();
     await win.loadURL(`http://127.0.0.1:${port}/`);
+    await applyPostLoadProbeChanges(win);
+    await logTitlebarHitTest(win);
     win.show();
   });
   app.once("before-quit", () => {
@@ -365,6 +399,7 @@ contextBridge.exposeInMainWorld("nextclawMinimalPreload", {
   server.listen(0, "127.0.0.1", async () => {
     const { port } = server.address();
     await win.loadURL("http://127.0.0.1:" + port + "/chat");
+    await applyPostLoadProbeChanges(win);
     await logTitlebarHitTest(win);
     win.show();
   });
@@ -389,6 +424,8 @@ contextBridge.exposeInMainWorld("nextclawMinimalPreload", {
   server.listen(0, "127.0.0.1", async () => {
     const { port } = server.address();
     await runtimeWin.loadURL("http://127.0.0.1:" + port + "/chat");
+    await applyPostLoadProbeChanges(runtimeWin);
+    await logTitlebarHitTest(runtimeWin);
     runtimeWin.show();
   });
   app.once("before-quit", () => {
@@ -396,8 +433,7 @@ contextBridge.exposeInMainWorld("nextclawMinimalPreload", {
   });
 "@
   } elseif ($LoadMode -eq "ui-dist-http") {
-    $uiDistPath = Resolve-Path (Join-Path $repoRoot "packages\nextclaw-ui\dist")
-    $uiDistPathLiteral = ConvertTo-Json $uiDistPath.Path
+    $uiDistPathLiteral = ConvertTo-Json (Resolve-NextClawUiDistPath)
 @"
   const fs = require("node:fs");
   const http = require("node:http");
@@ -429,6 +465,7 @@ contextBridge.exposeInMainWorld("nextclawMinimalPreload", {
   server.listen(0, "127.0.0.1", async () => {
     const { port } = server.address();
     await win.loadURL("http://127.0.0.1:" + port + "/chat");
+    await applyPostLoadProbeChanges(win);
     await logTitlebarHitTest(win);
     win.show();
   });
@@ -439,11 +476,14 @@ contextBridge.exposeInMainWorld("nextclawMinimalPreload", {
   } else {
 @'
   await win.loadFile(path.join(__dirname, "index.html"));
+  await applyPostLoadProbeChanges(win);
+  await logTitlebarHitTest(win);
   win.show();
 '@
   }
 
   $gpuSwitchScript = if ($DisableGpu) { 'app.commandLine.appendSwitch("disable-gpu");' } else { "" }
+  $postLoadScriptLiteral = ConvertTo-Json $PostLoadScript
   $titlebarHitTestScript = @'
 (() => {
   const describeElement = (element) => {
@@ -454,6 +494,8 @@ contextBridge.exposeInMainWorld("nextclawMinimalPreload", {
   return {
     href: window.location.href,
     readyState: document.readyState,
+    body: describeElement(document.body),
+    root: describeElement(document.getElementById("root")),
     chrome: document.querySelector("[data-testid='desktop-window-chrome']")?.getBoundingClientRect().toJSON() || null,
     points: [320, 400, 700].map((x) => ({ x, y: 24, element: describeElement(document.elementFromPoint(x, 24)) }))
   };
@@ -484,13 +526,21 @@ $WebPreferenceLines
     }
   });
   const win = createMinimalWindow();
+  const postLoadScript = $postLoadScriptLiteral;
   const titlebarHitTestScript = $titlebarHitTestScriptLiteral;
+  const applyPostLoadProbeChanges = async (targetWindow) => {
+    if (!postLoadScript || !postLoadScript.trim()) return;
+    await targetWindow.webContents.executeJavaScript(postLoadScript);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  };
   const logTitlebarHitTest = async (targetWindow) => {
     await new Promise((resolve) => setTimeout(resolve, 1200));
     try {
       const result = await targetWindow.webContents.executeJavaScript(titlebarHitTestScript);
+      require("node:fs").writeFileSync(path.join(__dirname, "titlebar-hit-test.json"), JSON.stringify(result));
       console.log("[minimal-app-region] $Variant titlebar-hit-test " + JSON.stringify(result));
     } catch (error) {
+      require("node:fs").writeFileSync(path.join(__dirname, "titlebar-hit-test.json"), JSON.stringify({ error: String(error) }));
       console.warn("[minimal-app-region] $Variant titlebar-hit-test failed: " + String(error));
     }
   };
@@ -503,12 +553,13 @@ app.on("window-all-closed", () => {
 });
 "@
 
-  $indexHtml = if ($Layout -eq "nextclaw" -or $Layout -eq "nextclaw-empty") {
+  $indexHtml = if ($Layout -eq "nextclaw" -or $Layout -eq "nextclaw-empty" -or $Layout -eq "nextclaw-css") {
 @'
 <!doctype html>
 <html>
   <head>
     <meta charset="utf-8">
+    __NEXTCLAW_UI_CSS_LINK__
     <style>
       :root {
         --desktop-titlebar-height: 40px;
@@ -652,13 +703,28 @@ app.on("window-all-closed", () => {
 '@
   }
 
-  if ($Layout -eq "nextclaw" -or $Layout -eq "nextclaw-empty") {
+  if ($Layout -eq "nextclaw" -or $Layout -eq "nextclaw-empty" -or $Layout -eq "nextclaw-css") {
     $mainDragMarkup = if ($Layout -eq "nextclaw") {
       '<div class="desktop-window-drag main-drag" data-testid="desktop-window-chrome-main"></div>'
+    } elseif ($Layout -eq "nextclaw-css") {
+      '<div class="desktop-window-drag h-full min-w-0 flex-1" data-testid="desktop-window-chrome-main-drag-region"></div>'
     } else {
       ''
     }
+    $uiCssLink = ""
+    if ($Layout -eq "nextclaw-css") {
+      $assetsPath = Join-Path $appRoot "assets"
+      New-Item -ItemType Directory -Force -Path $assetsPath | Out-Null
+      $uiDistPath = Resolve-NextClawUiDistPath
+      $uiCssPath = Get-ChildItem -Path (Join-Path $uiDistPath "assets") -Filter "*.css" | Select-Object -First 1
+      if (-not $uiCssPath) {
+        throw "NextClaw UI dist CSS asset not found under $uiDistPath"
+      }
+      Copy-Item -Path $uiCssPath.FullName -Destination (Join-Path $assetsPath "nextclaw-ui.css") -Force
+      $uiCssLink = '<link rel="stylesheet" href="/assets/nextclaw-ui.css">'
+    }
     $indexHtml = $indexHtml.Replace("__NEXTCLAW_MAIN_DRAG__", $mainDragMarkup)
+    $indexHtml = $indexHtml.Replace("__NEXTCLAW_UI_CSS_LINK__", $uiCssLink)
   }
 
   Set-Content -Path (Join-Path $appRoot "index.html") -Encoding UTF8 -Value $indexHtml
@@ -670,6 +736,71 @@ $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $desktopRoot = Resolve-Path (Join-Path $scriptRoot "..")
 $repoRoot = Resolve-Path (Join-Path $desktopRoot "..\..")
 $electronCmd = Resolve-Path (Join-Path $desktopRoot "node_modules\electron\dist\electron.exe")
+$forceInlineTitlebarDragScript = @'
+(() => {
+  const dragSelectors = [
+    "[data-testid='desktop-window-chrome']",
+    "[data-testid='desktop-window-chrome-main-drag-region']"
+  ];
+  for (const selector of dragSelectors) {
+    const element = document.querySelector(selector);
+    if (!element) continue;
+    element.style.setProperty("-webkit-app-region", "drag");
+    element.style.setProperty("app-region", "drag");
+    element.style.userSelect = "none";
+  }
+  const noDragSelectors = [
+    "[data-testid='desktop-window-chrome-resize-strip']",
+    "[data-testid='desktop-window-chrome-sidebar']",
+    "[data-testid='desktop-window-controls']",
+    "[data-testid='desktop-window-controls'] *",
+    "button",
+    "a",
+    "input",
+    "textarea",
+    "select",
+    "[role='button']"
+  ];
+  for (const selector of noDragSelectors) {
+    for (const element of document.querySelectorAll(selector)) {
+      element.style.setProperty("-webkit-app-region", "no-drag");
+      element.style.setProperty("app-region", "no-drag");
+    }
+  }
+})();
+'@
+$fixedTitlebarDragLayerScript = @'
+(() => {
+  const existing = document.getElementById("nextclaw-fixed-titlebar-drag-probe");
+  if (existing) existing.remove();
+  const layer = document.createElement("div");
+  layer.id = "nextclaw-fixed-titlebar-drag-probe";
+  layer.dataset.testid = "desktop-window-fixed-titlebar-drag-probe";
+  Object.assign(layer.style, {
+    position: "fixed",
+    left: "280px",
+    right: "140px",
+    top: "0px",
+    height: "40px",
+    zIndex: "15",
+    userSelect: "none"
+  });
+  layer.style.setProperty("-webkit-app-region", "drag");
+  layer.style.setProperty("app-region", "drag");
+  document.body.appendChild(layer);
+})();
+'@
+$bodyTitlebarDragScript = @'
+(() => {
+  document.body.style.setProperty("-webkit-app-region", "drag");
+  document.body.style.setProperty("app-region", "drag");
+  document.body.style.userSelect = "none";
+  for (const element of document.querySelectorAll("button,a,input,textarea,select,[role='button'],main,aside,[data-testid='desktop-window-chrome-sidebar'],[data-testid='desktop-window-controls'],[data-testid='desktop-window-controls'] *")) {
+    element.style.setProperty("-webkit-app-region", "no-drag");
+    element.style.setProperty("app-region", "no-drag");
+  }
+})();
+'@
 $variants = @(
   [pscustomobject]@{
     Name = "frame-false"
@@ -740,6 +871,18 @@ $variants = @(
     DisableGpu = $false
   },
   [pscustomobject]@{
+    Name = "nextclaw-layout-ui-css-http-preload-sandbox-false-gpu-enabled"
+    WindowOptionLines = "    frame: false,"
+    LoadMode = "http"
+    WebPreferenceLines = @'
+      sandbox: false,
+      preload: path.join(__dirname, "preload.js")
+'@
+    Layout = "nextclaw-css"
+    Preload = $true
+    DisableGpu = $false
+  },
+  [pscustomobject]@{
     Name = "nextclaw-ui-dist-http-preload-sandbox-false-gpu-enabled"
     WindowOptionLines = "    frame: false,"
     LoadMode = "ui-dist-http"
@@ -750,6 +893,45 @@ $variants = @(
     Preload = $true
     DesktopBridge = $true
     DisableGpu = $false
+  },
+  [pscustomobject]@{
+    Name = "nextclaw-ui-dist-inline-titlebar-drag-http-preload-sandbox-false-gpu-enabled"
+    WindowOptionLines = "    frame: false,"
+    LoadMode = "ui-dist-http"
+    WebPreferenceLines = @'
+      sandbox: false,
+      preload: path.join(__dirname, "preload.js")
+'@
+    Preload = $true
+    DesktopBridge = $true
+    DisableGpu = $false
+    PostLoadScript = $forceInlineTitlebarDragScript
+  },
+  [pscustomobject]@{
+    Name = "nextclaw-ui-dist-fixed-titlebar-drag-http-preload-sandbox-false-gpu-enabled"
+    WindowOptionLines = "    frame: false,"
+    LoadMode = "ui-dist-http"
+    WebPreferenceLines = @'
+      sandbox: false,
+      preload: path.join(__dirname, "preload.js")
+'@
+    Preload = $true
+    DesktopBridge = $true
+    DisableGpu = $false
+    PostLoadScript = $fixedTitlebarDragLayerScript
+  },
+  [pscustomobject]@{
+    Name = "nextclaw-ui-dist-body-drag-http-preload-sandbox-false-gpu-enabled"
+    WindowOptionLines = "    frame: false,"
+    LoadMode = "ui-dist-http"
+    WebPreferenceLines = @'
+      sandbox: false,
+      preload: path.join(__dirname, "preload.js")
+'@
+    Preload = $true
+    DesktopBridge = $true
+    DisableGpu = $false
+    PostLoadScript = $bodyTitlebarDragScript
   },
   [pscustomobject]@{
     Name = "frame-false-hidden-data-http-preload-sandbox-false-no-startup-drag"
@@ -820,13 +1002,14 @@ foreach ($variant in $variants) {
   $variantDisableGpu = -not ($variant.PSObject.Properties.Name -contains "DisableGpu") -or $variant.DisableGpu
   $variantDesktopBridge = $variant.PSObject.Properties.Name -contains "DesktopBridge" -and $variant.DesktopBridge
   $variantExpectCaption = -not ($variant.PSObject.Properties.Name -contains "ExpectCaption") -or $variant.ExpectCaption
-  $appRoot = New-MinimalAppRegionApp -Variant $variant.Name -WindowOptionLines $variant.WindowOptionLines -LoadMode $variantLoadMode -WebPreferenceLines $variantWebPreferenceLines -Layout $variantLayout -Preload:$variantPreload -StartupDrag:$variantStartupDrag -DisableGpu:$variantDisableGpu -DesktopBridge:$variantDesktopBridge
+  $variantPostLoadScript = if ($variant.PSObject.Properties.Name -contains "PostLoadScript") { $variant.PostLoadScript } else { "" }
+  $appRoot = New-MinimalAppRegionApp -Variant $variant.Name -WindowOptionLines $variant.WindowOptionLines -LoadMode $variantLoadMode -WebPreferenceLines $variantWebPreferenceLines -Layout $variantLayout -PostLoadScript $variantPostLoadScript -Preload:$variantPreload -StartupDrag:$variantStartupDrag -DisableGpu:$variantDisableGpu -DesktopBridge:$variantDesktopBridge
   Write-Host "[minimal-app-region] $($variant.Name) app: $appRoot"
   $electronProcess = Start-Process -FilePath $electronCmd -ArgumentList @($appRoot) -WorkingDirectory $repoRoot -PassThru
 
   try {
     try {
-      Invoke-MinimalAppRegionDragProbe -RootPid $electronProcess.Id -Variant $variant.Name
+      Invoke-MinimalAppRegionDragProbe -RootPid $electronProcess.Id -Variant $variant.Name -AppRoot $appRoot
       if ($variantExpectCaption) {
         Write-Host "[minimal-app-region] $($variant.Name) drag smoke passed"
       } else {
