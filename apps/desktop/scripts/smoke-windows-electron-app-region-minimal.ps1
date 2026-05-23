@@ -273,7 +273,10 @@ function New-MinimalAppRegionApp {
   param(
     [string]$Variant,
     [string]$WindowOptionLines,
-    [string]$LoadMode
+    [string]$LoadMode,
+    [string]$WebPreferenceLines = "      sandbox: true",
+    [string]$Layout = "simple",
+    [switch]$Preload
   )
 
   $appRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("nextclaw-minimal-app-region-$Variant-" + [System.Guid]::NewGuid().ToString("N"))
@@ -287,6 +290,16 @@ function New-MinimalAppRegionApp {
 }
 '@
 
+  if ($Preload) {
+    Set-Content -Path (Join-Path $appRoot "preload.js") -Encoding UTF8 -Value @'
+const { contextBridge } = require("electron");
+
+contextBridge.exposeInMainWorld("nextclawMinimalPreload", {
+  platform: process.platform
+});
+'@
+  }
+
   $loadScript = if ($LoadMode -eq "http") {
 @'
   const fs = require("node:fs");
@@ -299,6 +312,26 @@ function New-MinimalAppRegionApp {
   server.listen(0, "127.0.0.1", async () => {
     const { port } = server.address();
     await win.loadURL(`http://127.0.0.1:${port}/`);
+    win.show();
+  });
+  app.once("before-quit", () => {
+    server.close();
+  });
+'@
+  } elseif ($LoadMode -eq "data-then-http") {
+@'
+  const fs = require("node:fs");
+  const http = require("node:http");
+  const startupHtml = "<!doctype html><html><body style=\"margin:0;display:grid;place-items:center;width:100%;height:100%;font-family:system-ui,sans-serif\">Starting NextClaw...</body></html>";
+  await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(startupHtml)}`);
+  const indexPath = path.join(__dirname, "index.html");
+  const server = http.createServer((_request, response) => {
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    response.end(fs.readFileSync(indexPath));
+  });
+  server.listen(0, "127.0.0.1", async () => {
+    const { port } = server.address();
+    await win.loadURL(`http://127.0.0.1:${port}/chat`);
     win.show();
   });
   app.once("before-quit", () => {
@@ -331,7 +364,7 @@ $WindowOptionLines
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+$WebPreferenceLines
     }
   });
 
@@ -343,7 +376,115 @@ app.on("window-all-closed", () => {
 });
 "@
 
-  Set-Content -Path (Join-Path $appRoot "index.html") -Encoding UTF8 -Value @'
+  $indexHtml = if ($Layout -eq "nextclaw") {
+@'
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+      :root {
+        --desktop-titlebar-height: 40px;
+        --desktop-caption-safe-right: 140px;
+        --desktop-sidebar-width: 240px;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        font-family: system-ui, sans-serif;
+      }
+
+      .desktop-window-drag {
+        -webkit-app-region: drag;
+        app-region: drag;
+        user-select: none;
+      }
+
+      .desktop-window-no-drag {
+        -webkit-app-region: no-drag;
+        app-region: no-drag;
+      }
+
+      .shell {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border-radius: 10px;
+        background: #f9f8f5;
+      }
+
+      .chrome {
+        position: relative;
+        display: flex;
+        height: var(--desktop-titlebar-height);
+        flex-shrink: 0;
+        border-bottom: 1px solid #ebe7dc;
+        background: #f2f1ee;
+      }
+
+      .resize-strip {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 4px;
+      }
+
+      .sidebar {
+        position: relative;
+        z-index: 10;
+        display: flex;
+        height: 100%;
+        width: var(--desktop-sidebar-width);
+        flex-shrink: 0;
+        align-items: center;
+        background: #f2f1ee;
+        padding-left: 16px;
+        padding-right: 12px;
+      }
+
+      .brand {
+        display: flex;
+        min-width: 0;
+        flex-shrink: 0;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .main-drag {
+        min-width: 0;
+        flex: 1;
+        margin-right: var(--desktop-caption-safe-right);
+      }
+
+      .content {
+        min-height: 0;
+        flex: 1;
+        background: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="desktop-window-drag chrome" data-testid="desktop-window-chrome">
+        <div class="desktop-window-no-drag resize-strip" data-testid="desktop-window-chrome-resize-strip"></div>
+        <div class="desktop-window-no-drag sidebar" data-testid="desktop-window-chrome-sidebar">
+          <div class="desktop-window-no-drag brand">NextClaw</div>
+        </div>
+        <div class="desktop-window-drag main-drag" data-testid="desktop-window-chrome-main"></div>
+      </header>
+      <main class="desktop-window-no-drag content">nextclaw-like app-region smoke</main>
+    </div>
+  </body>
+</html>
+'@
+  } else {
+@'
 <!doctype html>
 <html>
   <head>
@@ -382,6 +523,9 @@ app.on("window-all-closed", () => {
   </body>
 </html>
 '@
+  }
+
+  Set-Content -Path (Join-Path $appRoot "index.html") -Encoding UTF8 -Value $indexHtml
 
   return $appRoot
 }
@@ -410,13 +554,57 @@ $variants = @(
     titleBarStyle: "hidden",
 '@
     LoadMode = "http"
+  },
+  [pscustomobject]@{
+    Name = "frame-false-hidden-http-preload-sandbox-false"
+    WindowOptionLines = @'
+    frame: false,
+    titleBarStyle: "hidden",
+'@
+    LoadMode = "http"
+    WebPreferenceLines = @'
+      sandbox: false,
+      preload: path.join(__dirname, "preload.js")
+'@
+    Preload = $true
+  },
+  [pscustomobject]@{
+    Name = "frame-false-hidden-data-http-preload-sandbox-false"
+    WindowOptionLines = @'
+    frame: false,
+    titleBarStyle: "hidden",
+'@
+    LoadMode = "data-then-http"
+    WebPreferenceLines = @'
+      sandbox: false,
+      preload: path.join(__dirname, "preload.js")
+'@
+    Preload = $true
+  },
+  [pscustomobject]@{
+    Name = "nextclaw-layout-data-http-preload-sandbox-false"
+    WindowOptionLines = @'
+    frame: false,
+    titleBarStyle: "hidden",
+'@
+    LoadMode = "data-then-http"
+    WebPreferenceLines = @'
+      sandbox: false,
+      preload: path.join(__dirname, "preload.js")
+'@
+    Layout = "nextclaw"
+    Preload = $true
   }
 )
 
 Write-Host "[minimal-app-region] electron: $electronCmd"
 
 foreach ($variant in $variants) {
-  $appRoot = New-MinimalAppRegionApp -Variant $variant.Name -WindowOptionLines $variant.WindowOptionLines -LoadMode $variant.LoadMode
+  $variantLoadMode = if ($variant.PSObject.Properties.Name -contains "LoadMode") { $variant.LoadMode } else { "file" }
+  $variantWebPreferenceLines = if ($variant.PSObject.Properties.Name -contains "WebPreferenceLines") { $variant.WebPreferenceLines } else { "      sandbox: true" }
+  $variantLayout = if ($variant.PSObject.Properties.Name -contains "Layout") { $variant.Layout } else { "simple" }
+  $variantPreload = $variant.PSObject.Properties.Name -contains "Preload" -and $variant.Preload
+  $appRoot = New-MinimalAppRegionApp -Variant $variant.Name -WindowOptionLines $variant.WindowOptionLines -LoadMode $variantLoadMode -WebPreferenceLines $variantWebPreferenceLines -Layout $variantLayout -Preload:$variantPreload
   Write-Host "[minimal-app-region] $($variant.Name) app: $appRoot"
   $electronProcess = Start-Process -FilePath $electronCmd -ArgumentList @($appRoot) -WorkingDirectory $repoRoot -PassThru
 
