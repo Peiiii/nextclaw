@@ -260,7 +260,7 @@ function Invoke-MinimalAppRegionDragProbe {
   Write-Host "[minimal-app-region] $Variant geometry: end=($endX,$endY) after=($($after.Left),$($after.Top)) delta=($deltaX,$deltaY)"
 
   if ([Math]::Abs($deltaX) -lt 40 -and [Math]::Abs($deltaY) -lt 40) {
-    throw "Minimal Electron app-region probe failed for $Variant: window did not move after real mouse drag. before=($($before.Left),$($before.Top)) after=($($after.Left),$($after.Top)) mainHitTest=$mainHitTest pointHitTest=$pointHitTest rootHitTest=$rootHitTest"
+    throw "Minimal Electron app-region probe failed for ${Variant}: window did not move after real mouse drag. before=($($before.Left),$($before.Top)) after=($($after.Left),$($after.Top)) mainHitTest=$mainHitTest pointHitTest=$pointHitTest rootHitTest=$rootHitTest"
   }
 }
 
