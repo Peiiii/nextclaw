@@ -493,7 +493,8 @@ export class NextclawServiceRuntime {
   update = async (opts: UpdateCommandOptions): Promise<void> => {
     const versionBefore = this.version;
     if (!opts.json) {
-      console.log(`Current npm launcher version: ${versionBefore}`);
+      const installationLabel = process.env.NEXTCLAW_DESKTOP_COMMAND_SURFACE === "1" ? "desktop runtime" : "npm launcher";
+      console.log(`Current ${installationLabel} version: ${versionBefore}`);
     }
     const snapshot = await new NpmRuntimeUpdateCommandService().run(opts);
     if (snapshot.status === "blocked" || snapshot.status === "failed") {

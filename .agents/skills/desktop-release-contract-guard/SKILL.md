@@ -170,6 +170,7 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - Confirm it verifies the target manifest signature.
 - Confirm release-manifest `minimumLauncherVersion` matches the channel floor from `apps/desktop/desktop-launcher-compatibility.json`.
 - Confirm installed-app runtime commands still work when executed through the packaged app binary with `ELECTRON_RUN_AS_NODE=1`.
+- Confirm the installed desktop app exposes the AI self-management command surface: after GUI startup, the current-launch `desktop.commandSurface.ready` bin must run `nextclaw --version`, `nextclaw status --json`, and `nextclaw doctor --json` without requiring system Node/NPM or a global NPM `nextclaw`.
 - Confirm update check does not only "switch channel", but can actually complete the signature-verification path.
 
 ## Windows Custom Titlebar Drag Gate

@@ -223,6 +223,24 @@ pick_runtime_port() {
   return 1
 }
 
+run_command_surface_smoke() {
+  local command_surface_bin=""
+
+  command_surface_bin="$(
+    tail -n +"${MAIN_LOG_START_LINE}" "${APP_MAIN_LOG}" 2>/dev/null \
+      | sed -n 's/.*desktop\.commandSurface\.ready binDir=\(.*\) manifest=.*/\1/p' \
+      | tail -n 1
+  )"
+
+  if [[ -z "${command_surface_bin}" ]]; then
+    echo "[desktop-smoke] command surface bin was not reported in current launcher log." >&2
+    return 1
+  fi
+
+  echo "[desktop-smoke] command surface smoke: ${command_surface_bin}"
+  node "$(dirname "$0")/smoke/command-surface-smoke.mjs" --bin-dir "${command_surface_bin}"
+}
+
 cleanup() {
   local status=$?
 
@@ -361,6 +379,7 @@ while true; do
         HEALTH_URL="http://127.0.0.1:${port}/api/health"
         if desktop_window_ready; then
           READY_MS="$(($(now_ms) - START_MS))"
+          run_command_surface_smoke
           echo "[desktop-smoke] GUI smoke passed in ${READY_MS}ms"
           echo "[desktop-smoke] health check passed: ${HEALTH_URL}"
           echo "[desktop-smoke] main log: ${APP_MAIN_LOG}"

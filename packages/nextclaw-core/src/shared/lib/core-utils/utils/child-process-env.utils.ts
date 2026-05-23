@@ -1,5 +1,7 @@
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { delimiter, dirname, join, resolve } from "node:path";
+
+export const NEXTCLAW_COMMAND_SURFACE_BIN_ENV = "NEXTCLAW_COMMAND_SURFACE_BIN";
 
 const DEVELOPMENT_CONDITION_PATTERN = /(^|\s)--conditions(?:=|\s+)development(?=\s|$)/g;
 const COMMON_POSIX_BIN_DIRS = [
@@ -39,12 +41,27 @@ function collectNodeModulesBinDirs(cwd: string): string[] {
   return entries;
 }
 
-function collectExternalCommandPathAdditions(cwd: string): string[] {
-  const additions = [dirname(process.execPath), process.argv[1] ? dirname(process.argv[1]) : "", ...collectNodeModulesBinDirs(cwd)];
+function collectExternalCommandPathAdditions(cwd: string, env: NodeJS.ProcessEnv): string[] {
+  const commandSurfaceBin = env[NEXTCLAW_COMMAND_SURFACE_BIN_ENV]?.trim() ?? "";
+  const additions = [
+    commandSurfaceBin,
+    dirname(process.execPath),
+    process.argv[1] ? dirname(process.argv[1]) : "",
+    ...collectNodeModulesBinDirs(cwd)
+  ];
   if (process.platform !== "win32") {
     additions.push(...COMMON_POSIX_BIN_DIRS);
   }
-  return additions.filter((entry) => entry.trim().length > 0 && existsSync(entry));
+  return additions.filter((entry) => {
+    if (!entry.trim() || !existsSync(entry)) {
+      return false;
+    }
+    try {
+      return statSync(entry).isDirectory();
+    } catch {
+      return false;
+    }
+  });
 }
 
 function resolvePathKey(env: NodeJS.ProcessEnv): "PATH" | "Path" | "path" {
@@ -63,7 +80,7 @@ function resolvePathKey(env: NodeJS.ProcessEnv): "PATH" | "Path" | "path" {
 function buildExternalCommandPathValue(env: NodeJS.ProcessEnv, cwd: string): string | undefined {
   const pathKey = resolvePathKey(env);
   const existingEntries = splitPathEntries(env[pathKey] ?? "");
-  const additions = collectExternalCommandPathAdditions(cwd);
+  const additions = collectExternalCommandPathAdditions(cwd, env);
   const mergedEntries = Array.from(new Set([...additions, ...existingEntries]));
   return mergedEntries.length > 0 ? mergedEntries.join(delimiter) : undefined;
 }

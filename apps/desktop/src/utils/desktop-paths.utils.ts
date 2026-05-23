@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { app } from "electron";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
@@ -21,19 +23,28 @@ function readOptionalEnv(name: string): string | null {
 }
 
 export function resolveDesktopRuntimeHome(): string {
-  const packagedOverride = readOptionalEnv(PACKAGED_RUNTIME_HOME_OVERRIDE_ENV);
+  return resolveDesktopRuntimeHomeFromEnv(process.env);
+}
+
+function resolveDesktopRuntimeHomeFromEnv(env: NodeJS.ProcessEnv): string {
+  const packagedOverride = normalizeOptionalPath(env[PACKAGED_RUNTIME_HOME_OVERRIDE_ENV]);
   if (packagedOverride) {
     return packagedOverride;
   }
 
-  if (!app.isPackaged) {
-    const legacyRuntimeHome = readOptionalEnv(LEGACY_RUNTIME_HOME_ENV);
+  if (!app?.isPackaged) {
+    const legacyRuntimeHome = normalizeOptionalPath(env[LEGACY_RUNTIME_HOME_ENV]);
     if (legacyRuntimeHome) {
       return legacyRuntimeHome;
     }
   }
 
   return resolve(homedir(), DEFAULT_NEXTCLAW_HOME_DIR);
+}
+
+function normalizeOptionalPath(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? resolve(trimmed) : null;
 }
 
 export function resolveDesktopDataDir(explicitBaseDir?: string): string {
@@ -62,6 +73,13 @@ export function createDesktopRuntimeEnv(baseEnv: NodeJS.ProcessEnv = process.env
   delete runtimeEnv[LEGACY_DESKTOP_DATA_ENV];
   runtimeEnv.ELECTRON_RUN_AS_NODE = "1";
   runtimeEnv.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS = "1";
-  runtimeEnv[LEGACY_RUNTIME_HOME_ENV] = resolveDesktopRuntimeHome();
+  runtimeEnv[LEGACY_RUNTIME_HOME_ENV] = resolveDesktopRuntimeHomeFromEnv(baseEnv);
   return runtimeEnv;
+}
+
+export function resolveDesktopLauncherBuildFingerprint(appPath: string, launcherVersion: string): string {
+  if (existsSync(appPath) && statSync(appPath).isFile()) {
+    return createHash("sha256").update(readFileSync(appPath)).digest("hex");
+  }
+  return `${launcherVersion}:${appPath}`;
 }

@@ -31,6 +31,7 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 - Before calling local HTTP APIs or `/webhook`, run `nextclaw status --json` and read `endpoints.uiUrl` / `endpoints.apiUrl`; do not guess the service port.
 - For webhook payload details, read the focused guide linked from the self-management guide only when you need to implement or debug a webhook caller.
 - Execute only commands documented in the self-management guide or CLI help; do not invent commands or config paths.
+- In desktop-installed runtimes, still use the same `nextclaw ...` commands. The desktop launcher provides a managed command surface to AI command tools; do not ask the user to install the NPM CLI just to run self-management commands.
 - Keep installed skills and marketplace catalog as two different domains:
   - local installed: `nextclaw skills installed|info`
   - marketplace catalog: `nextclaw marketplace skills search|info|recommend|install`

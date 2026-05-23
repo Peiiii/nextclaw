@@ -15,6 +15,7 @@ When NextClaw AI needs to operate the product itself (version/status/doctor/serv
 5. **Close the loop after changes** with `nextclaw status --json` (and `nextclaw doctor --json` when needed).
 6. **Be explicit about restart semantics** (hot-apply, auto-restart, or manual restart required).
 7. **Never invent commands**; use documented commands or `nextclaw --help` / `nextclaw <subcommand> --help`.
+8. **Desktop-installed AI uses the same command names**. When NextClaw Desktop launches the runtime, it exposes a managed `nextclaw` command surface to AI command tools, so self-management commands keep using `nextclaw ...` without requiring a global NPM install.
 
 ---
 

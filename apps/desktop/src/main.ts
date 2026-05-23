@@ -1,14 +1,9 @@
 import { app, BrowserWindow, dialog } from "electron";
-import { createHash } from "node:crypto";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import desktopPackageJson from "../package.json";
-import { DesktopBundleLifecycleService } from "./launcher/services/bundle-lifecycle.service";
-import { DesktopBundleService } from "./launcher/services/bundle.service";
-import { DesktopUpdateService } from "./launcher/services/update.service";
-import { DesktopBundleLayoutStore } from "./launcher/stores/bundle-layout.store";
-import { DesktopLauncherStateStore } from "./launcher/stores/launcher-state.store";
 import type { RuntimeCommand } from "./runtime-config";
+import { DesktopBundleServicesFactory } from "./services/desktop-bundle-services.service";
 import { DesktopPresenceService } from "./services/desktop-presence.service";
 import { setupDesktopInstallationProfile } from "./utils/desktop-installation-profile-electron.utils";
 import { DesktopRuntimeControlService } from "./services/desktop-runtime-control.service";
@@ -16,6 +11,10 @@ import { DesktopUpdateSourceService } from "./services/desktop-update-source.ser
 import { DesktopWindowControlService } from "./services/desktop-window-control.service";
 import { RuntimeServiceProcess } from "./runtime-service";
 import { DesktopBundleBootstrapService } from "./services/desktop-bundle-bootstrap.service";
+import {
+  createDesktopCommandSurfaceService,
+  type DesktopCommandSurfaceResult
+} from "./services/desktop-command-surface.service";
 import { DesktopRuntimeCommandService } from "./services/desktop-runtime-command.service";
 import { DesktopUpdateShellService } from "./services/desktop-update-shell.service";
 import {
@@ -23,7 +22,12 @@ import {
   installDesktopProcessErrorLogging,
   logDesktopMainEntryLoaded
 } from "./utils/desktop-logging.utils";
-import { createDesktopRuntimeEnv, resolveDesktopDataDir, resolveDesktopRuntimeHome } from "./utils/desktop-paths.utils";
+import {
+  createDesktopRuntimeEnv,
+  resolveDesktopDataDir,
+  resolveDesktopLauncherBuildFingerprint,
+  resolveDesktopRuntimeHome
+} from "./utils/desktop-paths.utils";
 import { resolveDesktopGitHubPublishTarget } from "./utils/desktop-publish-target.utils";
 import { createDesktopWindowOptions } from "./utils/desktop-window-options.utils";
 import { attachWindowDiagnostics } from "./utils/window-diagnostics.utils";
@@ -43,7 +47,13 @@ class DesktopApplication {
   private bundleBootstrap: DesktopBundleBootstrapService | null = null;
   private runtimeCommandService: DesktopRuntimeCommandService | null = null;
   private updateSourceService: DesktopUpdateSourceService | null = null;
+  private commandSurface: DesktopCommandSurfaceResult | null = null;
   private runtimeWindowUrl: string | null = null;
+  private readonly bundleServices = new DesktopBundleServicesFactory({
+    launcherVersion: app.getVersion(),
+    resolveChannel: () => this.ensureUpdateSourceService().resolveChannel(),
+    resolveBundlePublicKey: () => this.getBundlePublicKey()
+  });
 
   start = async (): Promise<void> => {
     logger.info("Desktop start requested.");
@@ -146,10 +156,14 @@ class DesktopApplication {
     }
   };
   private startRuntimeAndLoadWindow = async (scriptPath: string): Promise<void> => {
+    const commandSurface = await this.ensureDesktopCommandSurface();
     const runtime = new RuntimeServiceProcess({
       logger,
       scriptPath,
-      runtimeEnv: createDesktopRuntimeEnv()
+      runtimeEnv: createDesktopRuntimeEnv({
+        ...process.env,
+        ...commandSurface.runtimeEnvPatch
+      })
     });
     const runtimeStartStartedAt = Date.now();
     const { baseUrl } = await runtime.start();
@@ -185,40 +199,6 @@ class DesktopApplication {
     this.window ??= this.createWindow();
     await this.window.loadURL(`data:text/plain,${encodeURIComponent(`Check logs at: ${logPath}`)}`);
   };
-  private createUpdateService = (): DesktopUpdateService => {
-    return new DesktopUpdateService({
-      layout: new DesktopBundleLayoutStore(),
-      resolveChannel: () => this.ensureUpdateSourceService().resolveChannel(),
-      launcherVersion: app.getVersion(),
-      bundlePublicKey: this.getBundlePublicKey()
-    });
-  };
-  private createLauncherStateStore = (): DesktopLauncherStateStore => {
-    const layout = new DesktopBundleLayoutStore();
-    return new DesktopLauncherStateStore(layout.getLauncherStatePath());
-  };
-  private createBundleService = (): DesktopBundleService => {
-    const layout = new DesktopBundleLayoutStore();
-    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
-    return new DesktopBundleService({
-      layout,
-      stateStore,
-      launcherVersion: app.getVersion()
-    });
-  };
-  private createBundleLifecycle = (): DesktopBundleLifecycleService => {
-    const layout = new DesktopBundleLayoutStore();
-    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
-    return new DesktopBundleLifecycleService({
-      layout,
-      stateStore,
-      bundleService: new DesktopBundleService({
-        layout,
-        stateStore,
-        launcherVersion: app.getVersion()
-      })
-    });
-  };
   private ensureBundleBootstrap = (): DesktopBundleBootstrapService => {
     if (this.bundleBootstrap) {
       return this.bundleBootstrap;
@@ -250,10 +230,10 @@ class DesktopApplication {
       resolveChannel: () => this.ensureUpdateSourceService().resolveChannel(),
       resolveManifestUrl: async () => await this.ensureUpdateSourceService().resolveManifestUrl(),
       getWindow: () => this.window,
-      createLauncherStateStore: this.createLauncherStateStore,
-      createUpdateService: this.createUpdateService,
-      createBundleLifecycle: this.createBundleLifecycle,
-      createBundleService: this.createBundleService,
+      createLauncherStateStore: this.bundleServices.createLauncherStateStore,
+      createUpdateService: this.bundleServices.createUpdateService,
+      createBundleLifecycle: this.bundleServices.createBundleLifecycle,
+      createBundleService: this.bundleServices.createBundleService,
       requestApplicationQuit: () => {
         this.ensureDesktopPresenceService().requestExplicitQuit();
       },
@@ -293,7 +273,7 @@ class DesktopApplication {
     this.desktopPresenceService = new DesktopPresenceService({
       logger,
       getWindow: () => this.window,
-      createLauncherStateStore: this.createLauncherStateStore,
+      createLauncherStateStore: this.bundleServices.createLauncherStateStore,
       requestApplicationQuit: () => {
         app.quit();
       }
@@ -313,9 +293,33 @@ class DesktopApplication {
       appPath: app.getAppPath(),
       resourcesPath: process.resourcesPath,
       publishTarget: resolveDesktopGitHubPublishTarget(desktopPackageJson),
-      stateStore: this.createLauncherStateStore()
+      stateStore: this.bundleServices.createLauncherStateStore()
     });
     return this.updateSourceService;
+  };
+
+  private ensureDesktopCommandSurface = async (): Promise<DesktopCommandSurfaceResult> => {
+    if (this.commandSurface) {
+      return this.commandSurface;
+    }
+    this.commandSurface = await createDesktopCommandSurfaceService({
+      profile: installationProfile,
+      appExecutablePath: process.execPath,
+      appIsPackaged: app.isPackaged,
+      appPath: app.getAppPath(),
+      resourcesPath: process.resourcesPath,
+      compiledMainDir: __dirname,
+      launcherVersion: app.getVersion()
+    }).ensure();
+    logger.info(
+      [
+        "desktop.commandSurface.ready",
+        `binDir=${this.commandSurface.binDir}`,
+        `manifest=${this.commandSurface.manifestPath}`,
+        `installationKind=${installationProfile.installationKind}`
+      ].join(" ")
+    );
+    return this.commandSurface;
   };
 
   private getBundlePublicKey = (): string | undefined => {
@@ -345,13 +349,8 @@ class DesktopApplication {
     return seedBundlePath;
   };
 
-  private resolveLauncherBuildFingerprint = (): string => {
-    const appPath = app.getAppPath();
-    if (existsSync(appPath) && statSync(appPath).isFile()) {
-      return createHash("sha256").update(readFileSync(appPath)).digest("hex");
-    }
-    return `${app.getVersion()}:${appPath}`;
-  };
+  private resolveLauncherBuildFingerprint = (): string =>
+    resolveDesktopLauncherBuildFingerprint(app.getAppPath(), app.getVersion());
 
   private stopRuntime = async (): Promise<void> => {
     const runtime = this.runtime;

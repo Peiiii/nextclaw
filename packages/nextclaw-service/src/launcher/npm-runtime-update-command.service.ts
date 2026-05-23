@@ -9,6 +9,8 @@ import type { UpdateCommandOptions } from "@nextclaw-service/shared/types/cli.ty
 import type { UpdateProgress, UpdateSnapshot } from "@nextclaw/kernel";
 
 export class NpmRuntimeUpdateCommandService {
+  constructor(private readonly env: NodeJS.ProcessEnv = process.env) {}
+
   run = async (opts: UpdateCommandOptions): Promise<UpdateSnapshot> => {
     const snapshot = await this.runManaged(opts);
     if (opts.json) {
@@ -20,6 +22,10 @@ export class NpmRuntimeUpdateCommandService {
   };
 
   runManaged = async (opts: UpdateCommandOptions): Promise<UpdateSnapshot> => {
+    if (this.env.NEXTCLAW_DESKTOP_COMMAND_SURFACE === "1") {
+      return this.createDesktopCommandSurfaceBlockedSnapshot(opts);
+    }
+
     const downloadOnly = Boolean(opts.downloadOnly || opts.download);
     const distribution = NextclawDistributionService.get();
     const source = new NpmRuntimeUpdateSourceService({
@@ -101,5 +107,32 @@ export class NpmRuntimeUpdateCommandService {
       return;
     }
     console.log(`Update status: ${snapshot.status}`);
+  };
+
+  private createDesktopCommandSurfaceBlockedSnapshot = (opts: UpdateCommandOptions): UpdateSnapshot => {
+    const distribution = NextclawDistributionService.get();
+    return {
+      status: "blocked",
+      installationKind: "desktop-bundle",
+      channel: opts.channel === "beta" ? "beta" : "stable",
+      hostVersion: distribution.version,
+      currentVersion: distribution.version,
+      availableVersion: null,
+      downloadedVersion: null,
+      minimumHostVersion: null,
+      releaseNotesUrl: null,
+      lastCheckedAt: new Date().toISOString(),
+      progress: null,
+      canAutoDownload: false,
+      canApplyInApp: false,
+      requiresRestart: false,
+      blockReason: "unsupported-installation",
+      recoveryCommand: "Use the desktop update settings or restart NextClaw Desktop to check for desktop updates.",
+      errorMessage: "The desktop-installed nextclaw command uses the desktop update channel instead of the npm runtime updater.",
+      preferences: {
+        automaticChecks: false,
+        autoDownload: false
+      }
+    };
   };
 }

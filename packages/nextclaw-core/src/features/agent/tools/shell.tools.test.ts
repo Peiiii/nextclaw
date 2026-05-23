@@ -3,7 +3,11 @@ import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it, vi } from "vitest";
 import { ExecTool } from "./shell.tools.js";
-import { createExternalCommandEnv, sanitizeNodeOptionsForExternalCommand } from "@core/shared/lib/core-utils/index.js";
+import {
+  createExternalCommandEnv,
+  NEXTCLAW_COMMAND_SURFACE_BIN_ENV,
+  sanitizeNodeOptionsForExternalCommand
+} from "@core/shared/lib/core-utils/index.js";
 
 describe("ExecTool", () => {
   it("returns structured success output with stdout and stderr preserved", async () => {
@@ -195,5 +199,32 @@ describe("createExternalCommandEnv", () => {
     } finally {
       rmSync(workspace, { recursive: true, force: true });
     }
+  });
+
+  it("prepends the managed NextClaw command surface bin when present", () => {
+    const workspace = mkdtempSync(join(tmpdir(), "nextclaw-command-surface-env-"));
+    const commandSurfaceBin = join(workspace, "command-surface", "bin");
+    mkdirSync(commandSurfaceBin, { recursive: true });
+
+    try {
+      const env = createExternalCommandEnv({
+        PATH: "/usr/bin:/bin",
+        [NEXTCLAW_COMMAND_SURFACE_BIN_ENV]: commandSurfaceBin
+      });
+      const pathEntries = String(env.PATH ?? "").split(":");
+
+      expect(pathEntries[0]).toBe(commandSurfaceBin);
+    } finally {
+      rmSync(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it("ignores missing managed command surface bin directories", () => {
+    const env = createExternalCommandEnv({
+      PATH: "/usr/bin:/bin",
+      [NEXTCLAW_COMMAND_SURFACE_BIN_ENV]: "/tmp/nextclaw-missing-command-surface-bin"
+    });
+
+    expect(String(env.PATH ?? "").split(":")).not.toContain("/tmp/nextclaw-missing-command-surface-bin");
   });
 });

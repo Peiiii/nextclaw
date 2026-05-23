@@ -14,8 +14,12 @@ test("hides runtime child process console windows on Windows", () => {
 });
 
 test("desktop runtime disables duplicate built-in extension child processes", () => {
-  const runtimeEnv = createDesktopRuntimeEnv({ NEXTCLAW_HOME: "/tmp/ambient" });
+  const runtimeEnv = createDesktopRuntimeEnv({
+    NEXTCLAW_HOME: "/tmp/ambient",
+    NEXTCLAW_COMMAND_SURFACE_BIN: "/tmp/nextclaw-command-surface/bin"
+  });
 
   assert.equal(runtimeEnv.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS, "1");
   assert.equal(runtimeEnv.ELECTRON_RUN_AS_NODE, "1");
+  assert.equal(runtimeEnv.NEXTCLAW_COMMAND_SURFACE_BIN, "/tmp/nextclaw-command-surface/bin");
 });
