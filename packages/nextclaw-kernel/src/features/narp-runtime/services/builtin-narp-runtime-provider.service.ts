@@ -348,7 +348,7 @@ async function isExecutable(filePath: string): Promise<boolean> {
 
 export class BuiltinNarpRuntimeProviderService {
   constructor(
-    private readonly configManager: ConfigManager,
+    private readonly configManager: Pick<ConfigManager, "loadConfig">,
   ) {}
 
   createProviders = (): AgentRuntimeProviderRegistration[] => {
