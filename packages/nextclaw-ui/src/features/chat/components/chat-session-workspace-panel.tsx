@@ -30,6 +30,7 @@ import { usePresenter } from "@/features/chat/components/providers/chat-presente
 import { ChatSessionWorkspaceFilePreview } from "./chat-session-workspace-file-preview";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
 import { SessionCronJobContent } from "@/features/chat/components/workspace/session-cron-job-content";
+import { ResizableRightPanel } from "@/shared/components/resizable-right-panel/resizable-right-panel";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
@@ -314,63 +315,65 @@ export function ChatSessionWorkspacePanel({
   }
 
   return (
-    <aside
+    <ResizableRightPanel
       className={cn(
         displayMode === "overlay"
-          ? "fixed inset-0 z-40 flex bg-white"
-          : "hidden shrink-0 border-l border-gray-200/70 bg-white/95 backdrop-blur-sm md:flex md:w-[26rem] lg:w-[30rem] xl:w-[34rem]",
+          ? "bg-white"
+          : "hidden border-gray-200/70 bg-white/95 backdrop-blur-sm md:flex",
       )}
+      defaultWidth={480}
+      minWidth={360}
+      maxWidth={860}
+      overlay={displayMode === "overlay"}
     >
-      <div className="flex h-full min-h-0 w-full flex-col">
-        <div className="flex items-center justify-between gap-3 border-b border-gray-200/70 px-4 py-2.5">
-          <button
-            type="button"
-            onClick={presenter.chatThreadManager.goToParentSession}
-            className={cn(
-              "inline-flex items-center gap-1 text-xs font-medium text-gray-600 transition-colors hover:text-gray-900",
-              !hasParentSession && "pointer-events-none opacity-0",
-            )}
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>{t("chatBackToParent")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={presenter.chatThreadManager.closeWorkspacePanel}
-            className="rounded-full border border-gray-200/80 p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
-            aria-label={t("chatWorkspaceClosePanel")}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <WorkspaceTabsBar tabs={workspaceTabs} />
-
-        <div className="flex min-h-0 flex-1 flex-col bg-white">
-          {activeSelection.kind === "child-session" ? (
-            <>
-              <WorkspaceActiveChildHeader tab={activeSelection.tab} />
-              <div className="flex-1 min-h-0">
-                <ChildSessionContent
-                  sessionKey={activeSelection.tab.sessionKey}
-                  onToolAction={
-                    presenter.chatThreadManager.openSessionFromToolAction
-                  }
-                  onFileOpen={presenter.chatThreadManager.openFilePreview}
-                />
-              </div>
-            </>
-          ) : activeSelection.kind === "file" ? (
-            <ChatSessionWorkspaceFilePreview
-              file={activeSelection.file}
-              sessionProjectRoot={sessionProjectRoot}
-              onFileOpen={presenter.chatThreadManager.openFilePreview}
-            />
-          ) : (
-            <SessionCronJobContent jobs={sessionCronJobs} />
+      <div className="flex items-center justify-between gap-3 border-b border-gray-200/70 px-4 py-2.5">
+        <button
+          type="button"
+          onClick={presenter.chatThreadManager.goToParentSession}
+          className={cn(
+            "inline-flex items-center gap-1 text-xs font-medium text-gray-600 transition-colors hover:text-gray-900",
+            !hasParentSession && "pointer-events-none opacity-0",
           )}
-        </div>
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>{t("chatBackToParent")}</span>
+        </button>
+        <button
+          type="button"
+          onClick={presenter.chatThreadManager.closeWorkspacePanel}
+          className="rounded-full border border-gray-200/80 p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+          aria-label={t("chatWorkspaceClosePanel")}
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
-    </aside>
+
+      <WorkspaceTabsBar tabs={workspaceTabs} />
+
+      <div className="flex min-h-0 flex-1 flex-col bg-white">
+        {activeSelection.kind === "child-session" ? (
+          <>
+            <WorkspaceActiveChildHeader tab={activeSelection.tab} />
+            <div className="flex-1 min-h-0">
+              <ChildSessionContent
+                sessionKey={activeSelection.tab.sessionKey}
+                onToolAction={
+                  presenter.chatThreadManager.openSessionFromToolAction
+                }
+                onFileOpen={presenter.chatThreadManager.openFilePreview}
+              />
+            </div>
+          </>
+        ) : activeSelection.kind === "file" ? (
+          <ChatSessionWorkspaceFilePreview
+            file={activeSelection.file}
+            sessionProjectRoot={sessionProjectRoot}
+            onFileOpen={presenter.chatThreadManager.openFilePreview}
+          />
+        ) : (
+          <SessionCronJobContent jobs={sessionCronJobs} />
+        )}
+      </div>
+    </ResizableRightPanel>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect, type CSSProperties } from 'react';
 import { DOCS_DEFAULT_BASE_URL, isDocsUrl, useDocBrowser } from './doc-browser-context';
+import { ResizableRightPanel } from '@/shared/components/resizable-right-panel/resizable-right-panel';
 import { cn } from '@/shared/lib/utils';
 import { t } from '@/shared/lib/i18n';
 import {
@@ -15,40 +16,26 @@ import {
   Plus,
 } from 'lucide-react';
 
-/**
- * DocBrowser — An in-app micro-browser for documentation.
- *
- * Supports:
- * - multi-tab browsing
- * - `docked`: right sidebar panel (horizontally resizable)
- * - `floating`: draggable, resizable overlay
- * - `fullscreen`: full viewport overlay for narrow mobile shells
- */
 type DocBrowserProps = {
   displayMode?: 'desktop' | 'fullscreen';
 };
 
-function getPanelClassName(isFullscreen: boolean, isDocked: boolean): string {
+function getPanelClassName(isFullscreen: boolean): string {
   return cn(
     'flex flex-col bg-white overflow-hidden relative',
     isFullscreen
       ? 'fixed inset-0 z-[9999] h-[100dvh] w-screen rounded-none border-0 shadow-2xl'
-      : isDocked
-        ? 'h-full border-l border-gray-200 shrink-0'
-        : 'rounded-2xl shadow-2xl border border-gray-200',
+      : 'rounded-2xl shadow-2xl border border-gray-200',
   );
 }
 
 function getPanelStyle(params: {
   isFullscreen: boolean;
-  isDocked: boolean;
-  dockedWidth: number;
   floatPos: { x: number; y: number };
   floatSize: { w: number; h: number };
 }): CSSProperties | undefined {
-  const { isFullscreen, isDocked, dockedWidth, floatPos, floatSize } = params;
+  const { isFullscreen, floatPos, floatSize } = params;
   if (isFullscreen) return undefined;
-  if (isDocked) return { width: dockedWidth };
   return {
     position: 'fixed',
     left: floatPos.x,
@@ -66,19 +53,15 @@ export function DocBrowser({ displayMode = 'desktop' }: DocBrowserProps) {
     tabs,
     activeTabId,
     currentTab,
-    currentUrl,
-    navVersion,
+    open,
     close,
     toggleMode,
     goBack,
     goForward,
-    canGoBack,
-    canGoForward,
     navigate,
     syncUrl,
     setActiveTab,
     closeTab,
-    openNewTab,
   } = useDocBrowser();
 
   const [urlInput, setUrlInput] = useState('');
@@ -89,11 +72,11 @@ export function DocBrowser({ displayMode = 'desktop' }: DocBrowserProps) {
     y: 80,
   }));
   const [floatSize, setFloatSize] = useState({ w: 480, h: 600 });
-  const [dockedWidth, setDockedWidth] = useState(420);
   const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number } | null>(null);
   const resizeRef = useRef<{ startX: number; startY: number; startW: number; startH: number } | null>(null);
-  const dockResizeRef = useRef<{ startX: number; startW: number } | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const currentUrl = currentTab?.currentUrl ?? DOCS_DEFAULT_BASE_URL;
+  const navVersion = currentTab?.navVersion ?? 0;
   const prevNavVersionRef = useRef(navVersion);
   const isDocsTab = currentTab?.kind === 'docs';
 
@@ -227,26 +210,6 @@ export function DocBrowser({ displayMode = 'desktop' }: DocBrowserProps) {
     window.addEventListener('mouseup', onUp);
   }, [floatSize]);
 
-  const onDockResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsResizing(true);
-    dockResizeRef.current = { startX: e.clientX, startW: dockedWidth };
-    const onMove = (ev: MouseEvent) => {
-      if (!dockResizeRef.current) return;
-      const delta = dockResizeRef.current.startX - ev.clientX;
-      setDockedWidth(Math.max(320, Math.min(860, dockResizeRef.current.startW + delta)));
-    };
-    const onUp = () => {
-      setIsResizing(false);
-      dockResizeRef.current = null;
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  }, [dockedWidth]);
-
   const onLeftResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -273,28 +236,16 @@ export function DocBrowser({ displayMode = 'desktop' }: DocBrowserProps) {
 
   const isDocked = mode === 'docked';
   const isFullscreen = displayMode === 'fullscreen';
-  const canDragPanel = !isDocked && !isFullscreen;
 
-  const panel = (
-    <div
-      data-testid="doc-browser-panel"
-      className={getPanelClassName(isFullscreen, isDocked)}
-      style={getPanelStyle({ isFullscreen, isDocked, dockedWidth, floatPos, floatSize })}
-    >
-      {isDocked && !isFullscreen && (
-        <div
-          className="absolute top-0 left-0 w-1.5 h-full cursor-ew-resize z-20 hover:bg-primary/10 transition-colors"
-          onMouseDown={onDockResizeStart}
-        />
-      )}
-
+  const panelContent = (
+    <>
       <div
         className={cn(
           'flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200 shrink-0 select-none',
-          canDragPanel && 'cursor-grab active:cursor-grabbing',
+          !isDocked && !isFullscreen && 'cursor-grab active:cursor-grabbing',
           isFullscreen && 'pt-[calc(env(safe-area-inset-top,0px)+0.625rem)]',
         )}
-        onMouseDown={canDragPanel ? onDragStart : undefined}
+        onMouseDown={!isDocked && !isFullscreen ? onDragStart : undefined}
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <BookOpen className="w-4 h-4 text-primary shrink-0" />
@@ -356,7 +307,7 @@ export function DocBrowser({ displayMode = 'desktop' }: DocBrowserProps) {
           );
         })}
         <button
-          onClick={() => openNewTab(undefined, { kind: 'docs', title: 'Docs' })}
+          onClick={() => open(undefined, { kind: 'docs', newTab: true, title: 'Docs' })}
           className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-[#eee3d1] bg-white text-[#78644d] hover:bg-[#fff7ea] hover:text-[#2f2212] shrink-0"
           title={t('docBrowserNewTab')}
         >
@@ -368,14 +319,14 @@ export function DocBrowser({ displayMode = 'desktop' }: DocBrowserProps) {
         <div className="flex items-center gap-2 px-3.5 py-2 bg-white border-b border-gray-100 shrink-0">
           <button
             onClick={goBack}
-            disabled={!canGoBack}
+            disabled={!isDocsTab || (currentTab?.historyIndex ?? 0) <= 0}
             className="p-1.5 rounded-md hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <button
             onClick={goForward}
-            disabled={!canGoForward}
+            disabled={!isDocsTab || (currentTab?.historyIndex ?? 0) >= (currentTab?.history.length ?? 0) - 1}
             className="p-1.5 rounded-md hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600 transition-colors"
           >
             <ArrowRight className="w-4 h-4" />
@@ -423,6 +374,29 @@ export function DocBrowser({ displayMode = 'desktop' }: DocBrowserProps) {
           </a>
         </div>
       )}
+    </>
+  );
+
+  if (isDocked && !isFullscreen) {
+    return (
+      <ResizableRightPanel
+        data-testid="doc-browser-panel"
+        defaultWidth={420}
+        minWidth={320}
+        maxWidth={860}
+      >
+        {panelContent}
+      </ResizableRightPanel>
+    );
+  }
+
+  const panel = (
+    <div
+      data-testid="doc-browser-panel"
+      className={getPanelClassName(isFullscreen)}
+      style={getPanelStyle({ isFullscreen, floatPos, floatSize })}
+    >
+      {panelContent}
 
       {!isDocked && !isFullscreen && (
         <>

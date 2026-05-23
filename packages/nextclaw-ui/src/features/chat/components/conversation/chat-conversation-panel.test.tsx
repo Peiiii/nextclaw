@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatConversationPanel } from "@/features/chat/components/conversation/chat-conversation-panel";
-import { ChatSessionWorkspacePanel } from "@/features/chat";
+import { ChatSessionWorkspacePanel } from "@/features/chat/components/chat-session-workspace-panel";
 import type { ResolvedChildSessionTab } from "@/features/chat/hooks/use-ncp-child-session-tabs-view";
 import type { CronJobView } from "@/shared/lib/api";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
@@ -556,6 +556,7 @@ describe("ChatSessionWorkspacePanel", () => {
     );
 
     expect(screen.queryByText("Child sessions")).toBeNull();
+    expect(screen.getByTestId("resizable-right-panel-handle")).toBeTruthy();
     expect(screen.getAllByText("北京天气")).toHaveLength(2);
     expect(screen.getByText("Codex")).toBeTruthy();
     expect(screen.getByText("openai/gpt-5.3-codex")).toBeTruthy();

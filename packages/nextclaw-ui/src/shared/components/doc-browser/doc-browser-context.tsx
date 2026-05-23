@@ -47,22 +47,16 @@ interface DocBrowserActions {
   open: (url?: string, options?: DocBrowserOpenOptions) => void;
   close: () => void;
   toggleMode: () => void;
-  setMode: (mode: DocBrowserMode) => void;
   navigate: (url: string) => void;
   syncUrl: (url: string) => void;
   goBack: () => void;
   goForward: () => void;
-  openNewTab: (url?: string, options?: Omit<DocBrowserOpenOptions, 'newTab'>) => void;
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
-  canGoBack: boolean;
-  canGoForward: boolean;
 }
 
 type DocBrowserContextValue = DocBrowserState & DocBrowserActions & {
-  currentUrl: string;
   currentTab?: DocBrowserTab;
-  navVersion: number;
 };
 
 const DocBrowserContext = createContext<DocBrowserContextValue | null>(null);
@@ -318,10 +312,6 @@ export function DocBrowserProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, mode: prev.mode === 'floating' ? 'docked' : 'floating' }));
   }, []);
 
-  const setMode = useCallback((mode: DocBrowserMode) => {
-    setState((prev) => ({ ...prev, mode }));
-  }, []);
-
   const navigate = useCallback((url: string) => {
     setState((prev) => {
       if (!prev.tabs.length) {
@@ -401,10 +391,6 @@ export function DocBrowserProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const openNewTab = useCallback((url?: string, options?: Omit<DocBrowserOpenOptions, 'newTab'>) => {
-    open(url, { ...(options ?? {}), newTab: true });
-  }, [open]);
-
   const closeTab = useCallback((tabId: string) => {
     setState((prev) => {
       if (prev.tabs.length <= 1) {
@@ -444,43 +430,30 @@ export function DocBrowserProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const canGoBack = Boolean(currentTab && currentTab.kind === 'docs' && currentTab.historyIndex > 0);
-  const canGoForward = Boolean(currentTab && currentTab.kind === 'docs' && currentTab.historyIndex < currentTab.history.length - 1);
-
   const value = useMemo<DocBrowserContextValue>(() => ({
     ...state,
     currentTab,
-    currentUrl: currentTab?.currentUrl ?? getDefaultDocsUrl(),
-    navVersion: currentTab?.navVersion ?? 0,
     open,
     close,
     toggleMode,
-    setMode,
     navigate,
     syncUrl,
     goBack,
     goForward,
-    openNewTab,
     closeTab,
     setActiveTab,
-    canGoBack,
-    canGoForward,
   }), [
     state,
     currentTab,
     open,
     close,
     toggleMode,
-    setMode,
     navigate,
     syncUrl,
     goBack,
     goForward,
-    openNewTab,
     closeTab,
     setActiveTab,
-    canGoBack,
-    canGoForward,
   ]);
 
   return (

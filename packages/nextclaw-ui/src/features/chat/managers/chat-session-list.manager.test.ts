@@ -42,8 +42,9 @@ describe('ChatSessionListManager', () => {
       snapshot: {
         ...useChatThreadStore.getState().snapshot,
         workspacePanelParentKey: 'session-1',
+        activeWorkspacePanelKind: 'child-session',
         activeChildSessionKey: 'child-session-1',
-        activeWorkspaceFileKey: 'session-1::/tmp/demo.md',
+        activeWorkspaceFileKey: null,
       },
     });
   });
@@ -155,7 +156,7 @@ describe('ChatSessionListManager', () => {
     expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBeNull();
   });
 
-  it('delegates existing-session selection to routing without eagerly mutating the selected session state', () => {
+  it('delegates existing-session selection to routing while preserving workspace panel state', () => {
     const uiManager = {
       goToChatRoot: vi.fn(),
       goToSession: vi.fn(),
@@ -170,8 +171,9 @@ describe('ChatSessionListManager', () => {
 
     expect(uiManager.goToSession).toHaveBeenCalledWith('session-2');
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBe('session-1');
-    expect(useChatThreadStore.getState().snapshot.workspacePanelParentKey).toBeNull();
-    expect(useChatThreadStore.getState().snapshot.activeChildSessionKey).toBeNull();
+    expect(useChatThreadStore.getState().snapshot.workspacePanelParentKey).toBe('session-1');
+    expect(useChatThreadStore.getState().snapshot.activeWorkspacePanelKind).toBe('child-session');
+    expect(useChatThreadStore.getState().snapshot.activeChildSessionKey).toBe('child-session-1');
     expect(useChatThreadStore.getState().snapshot.activeWorkspaceFileKey).toBeNull();
   });
 

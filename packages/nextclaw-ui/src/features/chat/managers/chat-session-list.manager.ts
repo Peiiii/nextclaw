@@ -154,12 +154,6 @@ export class ChatSessionListManager {
   };
 
   selectSession = (sessionKey: string) => {
-    useChatThreadStore.getState().setSnapshot({
-      workspacePanelParentKey: null,
-      activeWorkspacePanelKind: null,
-      activeChildSessionKey: null,
-      activeWorkspaceFileKey: null,
-    });
     this.uiManager.goToSession(sessionKey);
   };
 
