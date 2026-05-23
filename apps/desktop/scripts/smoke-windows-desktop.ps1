@@ -160,6 +160,152 @@ function Invoke-DesktopApiProbe {
   return $allPassed
 }
 
+function Initialize-WindowsTitlebarProbe {
+  if ("NextClawDesktopSmokeNative" -as [type]) {
+    return
+  }
+
+  Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+
+public static class NextClawDesktopSmokeNative {
+  [StructLayout(LayoutKind.Sequential)]
+  public struct RECT {
+    public int Left;
+    public int Top;
+    public int Right;
+    public int Bottom;
+  }
+
+  [DllImport("user32.dll")]
+  public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+  [DllImport("user32.dll")]
+  public static extern bool SetCursorPos(int X, int Y);
+
+  [DllImport("user32.dll")]
+  public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
+
+  [DllImport("user32.dll")]
+  public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+  [DllImport("user32.dll")]
+  public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+}
+"@
+}
+
+function Get-DescendantProcessIds {
+  param([int]$RootPid)
+
+  $result = New-Object System.Collections.Generic.List[int]
+  $queue = New-Object System.Collections.Generic.Queue[int]
+  $queue.Enqueue($RootPid)
+
+  while ($queue.Count -gt 0) {
+    $parentPid = $queue.Dequeue()
+    $children = @(Get-CimInstance Win32_Process -Filter "ParentProcessId=$parentPid" -ErrorAction SilentlyContinue)
+    foreach ($child in $children) {
+      $childPid = [int]$child.ProcessId
+      if (-not $result.Contains($childPid)) {
+        $result.Add($childPid)
+        $queue.Enqueue($childPid)
+      }
+    }
+  }
+
+  return @($result)
+}
+
+function Get-DesktopMainWindowHandle {
+  param([int]$RootPid)
+
+  $candidatePids = @($RootPid) + @(Get-DescendantProcessIds -RootPid $RootPid)
+  foreach ($candidatePid in $candidatePids | Select-Object -Unique) {
+    try {
+      $process = Get-Process -Id $candidatePid -ErrorAction Stop
+      if ($process.MainWindowHandle -ne [IntPtr]::Zero) {
+        return $process.MainWindowHandle
+      }
+    } catch {
+      continue
+    }
+  }
+
+  return [IntPtr]::Zero
+}
+
+function Read-WindowRect {
+  param([IntPtr]$WindowHandle)
+
+  Initialize-WindowsTitlebarProbe
+  $rect = New-Object NextClawDesktopSmokeNative+RECT
+  if (-not [NextClawDesktopSmokeNative]::GetWindowRect($WindowHandle, [ref]$rect)) {
+    throw "GetWindowRect failed for window handle $WindowHandle"
+  }
+
+  return [pscustomobject]@{
+    Left = $rect.Left
+    Top = $rect.Top
+    Right = $rect.Right
+    Bottom = $rect.Bottom
+    Width = $rect.Right - $rect.Left
+    Height = $rect.Bottom - $rect.Top
+  }
+}
+
+function Invoke-DesktopTitlebarDragProbe {
+  param([int]$RootPid)
+
+  Initialize-WindowsTitlebarProbe
+  $windowHandle = [IntPtr]::Zero
+  $handleDeadline = (Get-Date).AddSeconds(15)
+  while ((Get-Date) -lt $handleDeadline) {
+    $windowHandle = Get-DesktopMainWindowHandle -RootPid $RootPid
+    if ($windowHandle -ne [IntPtr]::Zero) {
+      break
+    }
+    Start-Sleep -Milliseconds 500
+  }
+
+  if ($windowHandle -eq [IntPtr]::Zero) {
+    throw "Could not find a desktop window handle for process tree rooted at $RootPid"
+  }
+
+  [NextClawDesktopSmokeNative]::ShowWindow($windowHandle, 9) | Out-Null
+  [NextClawDesktopSmokeNative]::SetForegroundWindow($windowHandle) | Out-Null
+  Start-Sleep -Milliseconds 500
+
+  $before = Read-WindowRect -WindowHandle $windowHandle
+  $startX = $before.Left + [Math]::Min(320, [Math]::Max(80, [int]($before.Width / 2)))
+  $startY = $before.Top + 24
+  $endX = $startX + 140
+  $endY = $startY + 80
+
+  Write-Host "[desktop-smoke] titlebar drag probe before: left=$($before.Left) top=$($before.Top) width=$($before.Width) height=$($before.Height) start=($startX,$startY) end=($endX,$endY)"
+
+  $mouseLeftDown = 0x0002
+  $mouseLeftUp = 0x0004
+  [NextClawDesktopSmokeNative]::SetCursorPos($startX, $startY) | Out-Null
+  Start-Sleep -Milliseconds 200
+  [NextClawDesktopSmokeNative]::mouse_event($mouseLeftDown, 0, 0, 0, [UIntPtr]::Zero)
+  Start-Sleep -Milliseconds 200
+  [NextClawDesktopSmokeNative]::SetCursorPos($endX, $endY) | Out-Null
+  Start-Sleep -Milliseconds 600
+  [NextClawDesktopSmokeNative]::mouse_event($mouseLeftUp, 0, 0, 0, [UIntPtr]::Zero)
+  Start-Sleep -Milliseconds 800
+
+  $after = Read-WindowRect -WindowHandle $windowHandle
+  $deltaX = $after.Left - $before.Left
+  $deltaY = $after.Top - $before.Top
+  Write-Host "[desktop-smoke] titlebar drag probe after: left=$($after.Left) top=$($after.Top) delta=($deltaX,$deltaY)"
+
+  if ([Math]::Abs($deltaX) -lt 40 -and [Math]::Abs($deltaY) -lt 40) {
+    throw "Windows titlebar drag probe failed: window did not move after simulated drag. before=($($before.Left),$($before.Top)) after=($($after.Left),$($after.Top))"
+  }
+}
+
 function Resolve-PackagedUpdateResourcesDir {
   param([string]$DesktopExePath)
 
@@ -353,6 +499,7 @@ try {
       $elapsedMs = [int]((Get-Date) - $startedAt).TotalMilliseconds
       Write-Host "[desktop-smoke] GUI smoke passed in ${elapsedMs}ms"
       Write-Host "[desktop-smoke] API probes passed: $runtimeBaseUrl"
+      Invoke-DesktopTitlebarDragProbe -RootPid $appProc.Id
       Write-Host "[desktop-smoke] main log: $script:MainLog"
       if (Test-Path $script:MainLog) {
         Get-Content -Path $script:MainLog -Tail 80

@@ -159,6 +159,7 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - Use a browser/renderer probe such as `document.elementFromPoint(x, y)` at representative blank titlebar points and inspect the computed `-webkit-app-region` / `app-region` on the hit element or the nearest accepted drag owner.
 - If an empty filler child, transparent overlay, portal, toast layer, or any other topmost DOM node covers the intended titlebar area with `app-region: none`, treat the drag fix as unproven even if an ancestor has `desktop-window-drag`.
 - Prefer making the actual hit element the draggable rectangle, or remove unnecessary filler DOM so the drag owner is the hit element. Mark only real controls and interactive islands as `no-drag`.
+- For release closure, a renderer hit-test is necessary but not sufficient. Run a Windows native drag smoke that starts the packaged app, simulates a mouse drag from a blank titlebar coordinate, and asserts the native window rectangle moved.
 
 ## Runtime Compatibility Gate
 - Treat Electron's bundled Node version as the shipped runtime truth.
