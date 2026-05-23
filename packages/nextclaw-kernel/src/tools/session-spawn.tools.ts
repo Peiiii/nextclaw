@@ -1,10 +1,10 @@
 import {
   Tool,
-  type SessionManager,
-  type SessionRequestManager,
   type SessionRequestNotifyMode,
   type ToolExecutionContext,
 } from "@nextclaw/core";
+import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
+import type { SessionRequestManager } from "@kernel/features/session-request/index.js";
 
 function readRequiredString(value: unknown, key: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -63,9 +63,8 @@ export class SessionSpawnTool extends Tool {
   private handoffDepth = 0;
 
   constructor(
-    private readonly sessionManager: SessionManager,
+    private readonly ncpSessionManager: NcpSessionManager,
     private readonly sessionRequestManager: SessionRequestManager,
-    private readonly onSessionUpdated?: (sessionKey: string) => void,
   ) {
     super();
   }
@@ -167,7 +166,7 @@ export class SessionSpawnTool extends Tool {
       });
     }
 
-    const session = this.sessionManager.createSession({
+    const session = await this.ncpSessionManager.createSession({
       sourceSessionId: this.sourceSessionId,
       task,
       title: readOptionalString(rawTitle),
@@ -177,7 +176,6 @@ export class SessionSpawnTool extends Tool {
       runtime: readOptionalString(rawRuntime),
       ...(parentSessionId ? { parentSessionId } : {}),
     });
-    this.onSessionUpdated?.(session.sessionId);
 
     return {
       kind: "nextclaw.session",

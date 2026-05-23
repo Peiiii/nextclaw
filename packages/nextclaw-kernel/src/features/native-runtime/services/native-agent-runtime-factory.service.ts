@@ -1,7 +1,6 @@
 import {
   type Config,
   type ContextWindowSnapshot,
-  type SessionManager,
 } from "@nextclaw/core";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
 import { DefaultNcpAgentRuntime, type LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
@@ -22,7 +21,7 @@ import type {
   ToolManager,
   UpdateToolCallResult,
 } from "@kernel/managers/tool.manager.js";
-import { ContextCompactionPreflightService } from "@kernel/features/context-compaction/index.js";
+import { ContextCompactionManager } from "@kernel/features/context-compaction/index.js";
 import { NextclawNcpContextBuilder } from "./nextclaw-ncp-context-builder.service.js";
 import { ProviderManagerNcpLLMApi } from "./provider-manager-ncp-llm-api.service.js";
 
@@ -30,7 +29,6 @@ export type NativeRuntimeFactory = (runtimeParams: RuntimeFactoryParams) => NcpA
 
 export type NativeAgentRuntimeFactoryOptions = {
   providerManager: LlmProviderRuntime;
-  sessions: SessionManager;
   configManager: { loadConfig: () => Config };
   llmUsage: LlmUsageManager;
   onSessionUpdated: (sessionKey: string) => void;
@@ -123,21 +121,27 @@ export class NativeAgentRuntimeFactory {
   }
 
   create: NativeRuntimeFactory = ({
+    agentId,
     stateManager,
     sessionMetadata,
     setSessionMetadata,
   }: RuntimeFactoryParams): NcpAgentRuntime => {
+    let runtimeSessionMetadata = structuredClone(sessionMetadata);
+    const patchSessionMetadata = (nextMetadata: Record<string, unknown>): void => {
+      runtimeSessionMetadata = { ...runtimeSessionMetadata, ...structuredClone(nextMetadata) };
+      setSessionMetadata(runtimeSessionMetadata);
+    };
     const reasoningNormalizationMode = resolveNativeReasoningNormalizationMode({
       config: this.options.configManager.loadConfig(),
-      sessionMetadata,
+      sessionMetadata: runtimeSessionMetadata,
     });
     if (
       reasoningNormalizationMode !== "off" &&
       readAssistantReasoningNormalizationModeFromMetadata(sessionMetadata) !== reasoningNormalizationMode
     ) {
-      setSessionMetadata(
+      patchSessionMetadata(
         writeAssistantReasoningNormalizationModeToMetadata(
-          sessionMetadata,
+          runtimeSessionMetadata,
           reasoningNormalizationMode,
         ),
       );
@@ -146,7 +150,8 @@ export class NativeAgentRuntimeFactory {
     const toolRegistry = this.createToolRegistry();
     const runtime = new DefaultNcpAgentRuntime({
       contextBuilder: new NextclawNcpContextBuilder({
-        sessionManager: this.options.sessions,
+        agentId,
+        getSessionMetadata: () => runtimeSessionMetadata,
         toolRegistry,
         getConfig: this.options.configManager.loadConfig,
         assetStore: this.options.assetStore,
@@ -156,23 +161,24 @@ export class NativeAgentRuntimeFactory {
       stateManager,
       reasoningNormalizationMode,
     });
-    const contextCompactionPreflight = new ContextCompactionPreflightService({
+    const contextCompactionManager = new ContextCompactionManager({
       getConfig: this.options.configManager.loadConfig,
       providerManager: this.observedProviderManager,
-      sessionManager: this.options.sessions,
     });
     const { onSessionUpdated } = this.options;
     return {
       run: async function* (input, options) {
-        const beginResult = contextCompactionPreflight.begin({
+        const beginResult = contextCompactionManager.begin({
           contextWindowOwner: "nextclaw",
           inputMessages: input.messages,
           requestMetadata: input.metadata ?? {},
           sessionId: input.sessionId,
           sessionMessages: stateManager.getSnapshot().messages,
+          storedAgentId: agentId,
+          storedMetadata: runtimeSessionMetadata,
         });
         if (beginResult) {
-          setSessionMetadata(beginResult.metadata);
+          patchSessionMetadata(beginResult.metadata);
           onSessionUpdated(input.sessionId);
           yield* publishPreflightResult({
             input,
@@ -180,8 +186,8 @@ export class NativeAgentRuntimeFactory {
             stateManager,
           });
           if (beginResult.pendingCompaction) {
-            const finishResult = await contextCompactionPreflight.finish(beginResult.pendingCompaction);
-            setSessionMetadata(finishResult.metadata);
+            const finishResult = await contextCompactionManager.finish(beginResult.pendingCompaction);
+            patchSessionMetadata(finishResult.metadata);
             onSessionUpdated(input.sessionId);
             yield* publishPreflightResult({
               input,

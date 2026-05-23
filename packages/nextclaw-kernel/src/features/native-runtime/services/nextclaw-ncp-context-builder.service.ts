@@ -13,7 +13,6 @@ import {
   resolveSessionWorkspacePath,
   resolveThinkingLevel,
   type Config,
-  type SessionManager,
 } from "@nextclaw/core";
 import {
   buildOpenAiFunctionTool,
@@ -35,7 +34,6 @@ import {
 import {
   resolveEffectiveModel,
   resolveSessionChannelContext,
-  syncSessionThinkingPreference,
 } from "@kernel/features/native-runtime/utils/nextclaw-ncp-session-preferences.utils.js";
 import { buildCurrentTurnState } from "@kernel/features/native-runtime/utils/nextclaw-ncp-current-turn.utils.js";
 import { projectNcpMessagesWithContextCompaction } from "@kernel/features/context-compaction/index.js";
@@ -45,7 +43,8 @@ import {
 } from "@kernel/managers/tool.manager.js";
 
 type NextclawNcpContextBuilderOptions = {
-  sessionManager: SessionManager;
+  agentId?: string;
+  getSessionMetadata: () => Record<string, unknown>;
   toolRegistry: ToolRuntimeRegistry;
   getConfig: () => Config;
   assetStore?: LocalAssetStore | null;
@@ -74,7 +73,7 @@ type PreparedRunContext = {
   requestedSkills: ReturnType<RequestedSkillsMetadataReader["readSelection"]>;
   requestedToolNames: string[];
   runtimeThinking: ReturnType<typeof resolveThinkingLevel>;
-  session: ReturnType<SessionManager["getOrCreate"]>;
+  sessionMetadata: Record<string, unknown>;
   sessionKey: string;
 };
 
@@ -255,24 +254,23 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
   private prepareRunContext = (input: NcpAgentRunInput): PreparedRunContext => {
     const config = this.options.getConfig();
     const requestMetadata = mergeInputMetadata(input);
-    const session = this.options.sessionManager.getOrCreate(input.sessionId);
+    const sessionMetadata = this.options.getSessionMetadata();
     const profile = resolveAgentProfile({
       config,
-      storedAgentId: session.agentId,
+      storedAgentId: this.options.agentId,
       requestMetadata,
     });
-    let effectiveModel = resolveEffectiveModel({
-      session,
+    let { model: effectiveModel } = resolveEffectiveModel({
+      sessionMetadata,
       requestMetadata,
       fallbackModel: profile.model,
     });
     const effectiveWorkspace = resolveSessionWorkspacePath({
-      sessionMetadata: session.metadata,
+      sessionMetadata,
       workspace: profile.workspace,
     });
-    syncSessionThinkingPreference({ session, requestMetadata });
     const { channel, chatId } = resolveSessionChannelContext({
-      session,
+      sessionMetadata,
       requestMetadata,
     });
     const requestedSkills = REQUESTED_SKILLS_METADATA_READER.readSelection(requestMetadata);
@@ -291,7 +289,7 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
       config,
       agentId: profile.agentId,
       model: effectiveModel,
-      sessionThinkingLevel: parseThinkingLevel(session.metadata.preferred_thinking) ?? null,
+      sessionThinkingLevel: parseThinkingLevel(sessionMetadata.preferred_thinking) ?? null,
     });
 
     this.options.toolRegistry.prepareForRun({
@@ -320,7 +318,7 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
       requestedSkills,
       requestedToolNames: resolveRequestedToolNames(requestMetadata),
       runtimeThinking,
-      session,
+      sessionMetadata,
       sessionKey: input.sessionId,
     };
   };
@@ -340,7 +338,7 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
       profile,
       requestedSkills,
       runtimeThinking,
-      session,
+      sessionMetadata,
     } = runContext;
     const toolDefinitions = this.options.toolRegistry.getToolDefinitions();
     const additionalSystemSections = [
@@ -353,7 +351,7 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
       config.agents.context,
       {
         hostWorkspace: profile.workspace,
-        sessionProjectRoot: readSessionProjectRoot(session.metadata),
+        sessionProjectRoot: readSessionProjectRoot(sessionMetadata),
       },
     );
     const sessionMessages = projectNcpMessagesWithContextCompaction({

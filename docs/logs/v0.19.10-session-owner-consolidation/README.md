@@ -8,15 +8,26 @@
 
 `ContextWindowUpdated` 改为 event bus projection，不再通过 `appendSessionEvent()` 写入 journal；context compaction checkpoint metadata 仍按 metadata 事实持久化。`SessionRunManager` 不再维护私有 session event publisher，`/api/ncp/agent/stream` 直接订阅 `eventBus` 并按 `sessionId` 投影；context window projection 覆盖 `MessageSent`、文本/推理/tool call 流事件和 terminal event，并在运行中优先使用 live session record 计算，避免 tool run 期间只读持久化 journal 导致圆环不及时更新。
 
+阶段 2 继续收敛剩余 NCP 主链路依赖：`SessionRequestManager` 运行时实现从 core 迁到 kernel，core 只保留 request 的纯类型和纯工具函数；`sessions_spawn`、`sessions_request`、`sessions_list`、`sessions_history` 和 learning-loop 不再直接读写 legacy `SessionManager`。request accepted/completed/failed 状态改为 NCP session event，写入 journal，不再写 legacy event store。
+
+runtime context 侧也完成职责收敛：`NextclawNcpContextBuilder` 不再拿 `SessionManager.getOrCreate()`，只消费 runtime 提供的 session metadata snapshot；model/thinking/channel 等 metadata 前置到 `AgentRunRequestManager` / `SessionRunManager` mutation 链路。context compaction 收敛为 `ContextCompactionManager` 语义 owner，内部负责预算、checkpoint、summary、timeline 和 context window projection，但不再持有 legacy `SessionManager` 或直接 `save()` 旧 session。
+
+direct prompt 侧移除 NCP dispatch 对完整 legacy `SessionManager` 的强依赖，CLI/plugin runtime dispatch 不再传 `kernel.sessions`。仍保留的 `SessionManager` 使用集中在 legacy reader、channel/extension compat、gateway restart route fallback 等非 NCP 主链路兼容面。
+
 ## 测试/验证/验收方式
 
-- `pnpm --filter @nextclaw/kernel exec tsc --noEmit`
-- `pnpm --filter @nextclaw/server exec tsc --noEmit`
-- `pnpm --filter @nextclaw/kernel build && pnpm --filter @nextclaw/service exec tsc --noEmit`
-- `pnpm exec eslint <touched files>`
-- `pnpm --filter @nextclaw/kernel exec vitest run src/managers/ncp-session.manager.test.ts src/managers/session-run.manager.test.ts src/managers/agent-run-request.manager.test.ts src/contributions/session-context-window/utils/session-context-window-contribution.utils.test.ts src/contributions/session-activity-preview/utils/session-activity-preview-contribution.utils.test.ts`
-- `pnpm --filter @nextclaw/server exec vitest run src/app/tests/router.ncp-agent-runtime-manager.test.ts`
-- `pnpm --filter @nextclaw/server exec vitest run src/app/router.ncp-agent.test.ts src/app/tests/router.ncp-agent-runtime-manager.test.ts`
+- `pnpm --filter @nextclaw/kernel tsc`
+- `pnpm --filter @nextclaw/core tsc`
+- `pnpm --filter @nextclaw/service tsc`
+- `pnpm --filter @nextclaw/ncp tsc`
+- `pnpm --filter @nextclaw/kernel test`
+- `pnpm --filter @nextclaw/core test -- --run`
+- `pnpm --filter @nextclaw/kernel build`
+- `pnpm --filter @nextclaw/core build`
+- `pnpm --filter @nextclaw/kernel lint`
+- `pnpm --filter @nextclaw/core lint`
+- `pnpm --filter @nextclaw/service lint`
+- `pnpm --filter @nextclaw/ncp lint`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths <touched files>`
 - `pnpm lint:new-code:governance`
 - `pnpm check:governance-backlog-ratchet`
@@ -35,11 +46,13 @@
 
 ## 可维护性总结汇总
 
-本次使用 `post-edit-maintainability-review` 思路复核：变更属于非新增用户能力，目标是删双写路径和旧兼容桥。最终 scoped maintainability guard 结果为总代码 `+1392 / -1271 / net +121`，非测试代码 `+598 / -599 / net -1`。
+本次使用 `post-edit-maintainability-review` 思路复核：变更属于非新增用户能力，目标是删双写路径和旧兼容桥。阶段 1 scoped maintainability guard 结果为总代码 `+1392 / -1271 / net +121`，非测试代码 `+598 / -599 / net -1`。
 
 正向减债动作：删除 + 职责收敛。删除了 `NcpSessionApiService`、`NcpAgentSessionStoreAdapter`、旧 API service 测试、adapter 测试和 `ncp-session-summary` 重复 summary helper；legacy store 删除写入能力，仅保留旧数据读取/删除。owner 边界更清晰：`NcpSessionManager` 是持久化 session facts 门面，`SessionRunManager` 是运行时状态门面。
 
-保留债务：`SessionManager` 仍被部分旧 channel、command、session request 链路使用，属于阶段 2 清理范围。
+阶段 2 完成后，`SessionManager` 仍被部分旧 channel、extension compat、gateway restart fallback 等非 NCP 主链路兼容面使用；AI session tools、request、runtime context builder、context compaction 和 direct prompt NCP 主链路不再把 legacy `SessionManager` 当作事实 owner。
+
+阶段 2 源码 diff 继续保持净删方向：删除 legacy core `SessionRequestManager`、legacy core `sessions_list/history` 工具及其测试；新增 kernel 侧 NCP session request manager 和 NCP session history/list 工具。最终 scoped maintainability guard 结果为总代码 `+693 / -903 / net -210`，非测试代码 `+599 / -819 / net -220`，符合非功能改动“优先减少代码”的约束。
 
 ## 红区触达与减债记录
 

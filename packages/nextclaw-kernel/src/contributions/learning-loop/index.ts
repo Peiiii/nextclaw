@@ -1,14 +1,12 @@
 import {
   readParentSessionId,
-  type Session,
-  type SessionManager,
-  type SessionMessage,
   type SessionRequestToolResult,
   type SpawnSessionAndRequestParams,
 } from "@nextclaw/core";
-import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
+import { NcpEventType, type NcpEndpointEvent, type NcpMessage } from "@nextclaw/ncp";
 import { eventKeys, type Unsubscribe } from "@nextclaw/shared";
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
+import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import {
   LEARNING_LOOP_DISABLED_METADATA_KEY,
@@ -29,25 +27,17 @@ export type LearningLoopSessionRequester = {
 };
 
 type LearningLoopSessionStore = Pick<
-  SessionManager,
-  "getIfExists" | "save"
+  NcpSessionManager,
+  "getSessionRecord" | "patchSessionMetadata"
 >;
 
-function countToolCallsFromMessage(message: SessionMessage): number {
-  if (Array.isArray(message.tool_calls)) {
-    return message.tool_calls.filter(
-      (toolCall) =>
-        Boolean(toolCall) &&
-        typeof toolCall === "object" &&
-        !Array.isArray(toolCall),
-    ).length;
-  }
-  if (!Array.isArray(message.ncp_parts)) {
+function countToolCallsFromMessage(message: NcpMessage): number {
+  if (!Array.isArray(message.parts)) {
     return 0;
   }
   const seenIds = new Set<string>();
   let anonymousCount = 0;
-  for (const part of message.ncp_parts) {
+  for (const part of message.parts) {
     if (!part || typeof part !== "object" || Array.isArray(part)) {
       continue;
     }
@@ -67,8 +57,8 @@ function countToolCallsFromMessage(message: SessionMessage): number {
   return seenIds.size + anonymousCount;
 }
 
-function countSessionToolCalls(session: Session): number {
-  return session.messages.reduce((count, message) => count + countToolCallsFromMessage(message), 0);
+function countSessionToolCalls(messages: readonly NcpMessage[]): number {
+  return messages.reduce((count, message) => count + countToolCallsFromMessage(message), 0);
 }
 
 function readSessionLabel(metadata: Record<string, unknown>): string | undefined {
@@ -101,7 +91,7 @@ export class LearningLoopContribution implements KernelContribution {
   private unsubscribe: Unsubscribe | null = null;
 
   constructor(private readonly kernel: NextclawKernel) {
-    this.sessionStore = kernel.sessions;
+    this.sessionStore = kernel.ncpSessionManager;
     this.sessionRequester = kernel.sessionRequests;
   }
 
@@ -138,17 +128,18 @@ export class LearningLoopContribution implements KernelContribution {
     if (this.inFlightSessionIds.has(sessionId)) {
       return;
     }
-    const session = this.sessionStore.getIfExists(sessionId);
-    if (!session || readParentSessionId(session.metadata)) {
+    const session = await this.sessionStore.getSessionRecord(sessionId);
+    const metadata = session?.metadata ?? {};
+    if (!session || readParentSessionId(metadata)) {
       return;
     }
     const runtimeConfig = this.readRuntimeConfig();
-    if (!runtimeConfig.enabled || isLearningLoopDisabled(session.metadata)) {
+    if (!runtimeConfig.enabled || isLearningLoopDisabled(metadata)) {
       return;
     }
-    const totalToolCalls = countSessionToolCalls(session);
+    const totalToolCalls = countSessionToolCalls(session.messages);
     const lastReviewedToolCallCount = readLearningLoopLastToolCallCount(
-      session.metadata,
+      metadata,
     );
     const toolCallsSinceReview = totalToolCalls - lastReviewedToolCallCount;
     if (toolCallsSinceReview < runtimeConfig.toolCallThreshold) {
@@ -160,7 +151,7 @@ export class LearningLoopContribution implements KernelContribution {
       const reviewSession = await this.sessionRequester.spawnSessionAndRequest({
         sourceSessionId: sessionId,
         updateToolCallResult: async () => undefined,
-        sourceSessionMetadata: session.metadata,
+        sourceSessionMetadata: metadata,
         metadataOverrides: {
           requested_skills: LEARNING_LOOP_REQUESTED_SKILLS,
           [LEARNING_LOOP_DISABLED_METADATA_KEY]: true,
@@ -168,7 +159,7 @@ export class LearningLoopContribution implements KernelContribution {
         },
         parentSessionId: sessionId,
         notify: "none",
-        title: this.buildReviewTitle(session.metadata),
+        title: this.buildReviewTitle(metadata),
         task: buildLearningLoopTask({
           sessionId,
           toolCallsSinceReview,
@@ -176,14 +167,13 @@ export class LearningLoopContribution implements KernelContribution {
         }),
       });
       const nextMetadata: Record<string, unknown> = {
-        ...session.metadata,
+        ...metadata,
         [LEARNING_LOOP_LAST_TOOL_CALL_COUNT_METADATA_KEY]: totalToolCalls,
         [LEARNING_LOOP_LAST_REQUESTED_AT_METADATA_KEY]: new Date().toISOString(),
         [LEARNING_LOOP_LAST_REVIEW_SESSION_ID_METADATA_KEY]:
           reviewSession.sessionId,
       };
-      session.metadata = nextMetadata;
-      this.sessionStore.save(session);
+      await this.sessionStore.patchSessionMetadata(sessionId, () => nextMetadata);
     } finally {
       this.inFlightSessionIds.delete(sessionId);
     }

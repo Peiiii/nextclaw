@@ -1,4 +1,5 @@
-import { Tool, type SessionRequestManager, type ToolExecutionContext } from "@nextclaw/core";
+import { Tool, type ToolExecutionContext } from "@nextclaw/core";
+import type { SessionRequestManager } from "@kernel/features/session-request/index.js";
 
 function readRequiredString(params: Record<string, unknown>, key: string): string {
   const value = params[key];

@@ -10,7 +10,7 @@ import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-jo
 import { NcpSessionManager } from "./ncp-session.manager.js";
 
 vi.mock("@kernel/features/context-compaction/index.js", () => ({
-  ContextCompactionPreflightService: class {
+  ContextCompactionManager: class {
     preview = () => null;
   },
 }));

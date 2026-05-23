@@ -5,13 +5,11 @@ import {
   type Config,
   type InboundAttachment,
   type InboundMessage,
-  type SessionManager,
 } from "@nextclaw/core";
 import { buildRunMetadata } from "./ncp-run-metadata.utils.js";
 import { runPromptOverNcp, type NcpRunnerAgent } from "./nextclaw-ncp-runner.utils.js";
 export type DirectPromptDispatchParams = {
   config: Config;
-  sessionManager: SessionManager;
   agentRunRequests: NcpRunnerAgent;
   content: string;
   sessionKey?: string;
@@ -53,18 +51,17 @@ function createDirectInboundMessage(params: {
 
 async function executeSlashCommandMaybe(params: {
   config: Config;
-  sessionManager: SessionManager;
   rawContent: string;
   channel: string;
   chatId: string;
   sessionKey: string;
 }): Promise<string | null> {
-  const { channel, chatId, config, rawContent, sessionKey, sessionManager } = params;
+  const { channel, chatId, config, rawContent, sessionKey } = params;
   const trimmed = rawContent.trim();
   if (!trimmed.startsWith("/")) {
     return null;
   }
-  const registry = new CommandRegistry(config, sessionManager);
+  const registry = new CommandRegistry(config);
   const result = await registry.executeText(rawContent, {
     channel,
     chatId,
@@ -120,7 +117,6 @@ export async function dispatchPromptOverNcp(
     onAssistantDelta,
     agentRunRequests,
     sessionKey,
-    sessionManager,
   } = params;
   const { message, route } = resolveDirectRoute({
     config,
@@ -134,7 +130,6 @@ export async function dispatchPromptOverNcp(
   });
   const commandResult = await executeSlashCommandMaybe({
     config,
-    sessionManager,
     rawContent: content,
     channel: message.channel,
     chatId: message.chatId,

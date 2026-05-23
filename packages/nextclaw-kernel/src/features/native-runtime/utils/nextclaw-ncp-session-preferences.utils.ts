@@ -1,6 +1,4 @@
-import { parseThinkingLevel, type SessionManager, type ThinkingLevel } from "@nextclaw/core";
-
-type SessionRecord = ReturnType<SessionManager["getOrCreate"]>;
+import { parseThinkingLevel, type ThinkingLevel } from "@nextclaw/core";
 
 export function normalizeOptionalString(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -49,12 +47,12 @@ export function readMetadataThinking(metadata: Record<string, unknown>): Thinkin
 }
 
 export function resolveEffectiveModel(params: {
-  session: SessionRecord;
+  sessionMetadata: Record<string, unknown>;
   requestMetadata: Record<string, unknown>;
   fallbackModel: string;
-}): string {
-  const { fallbackModel, requestMetadata, session } = params;
-  const metadata = session.metadata;
+}): { metadata: Record<string, unknown>; model: string } {
+  const { fallbackModel, requestMetadata } = params;
+  const metadata = structuredClone(params.sessionMetadata);
   const clearModel =
     requestMetadata.clear_model === true ||
     requestMetadata.reset_model === true;
@@ -67,15 +65,18 @@ export function resolveEffectiveModel(params: {
     metadata.preferred_model = inboundModel;
   }
 
-  return normalizeOptionalString(metadata.preferred_model) ?? fallbackModel;
+  return {
+    metadata,
+    model: normalizeOptionalString(metadata.preferred_model) ?? fallbackModel,
+  };
 }
 
 export function syncSessionThinkingPreference(params: {
-  session: SessionRecord;
+  sessionMetadata: Record<string, unknown>;
   requestMetadata: Record<string, unknown>;
-}): void {
-  const { requestMetadata, session } = params;
-  const metadata = session.metadata;
+}): Record<string, unknown> {
+  const { requestMetadata } = params;
+  const metadata = structuredClone(params.sessionMetadata);
   const clearThinking =
     requestMetadata.clear_thinking === true ||
     requestMetadata.reset_thinking === true;
@@ -86,19 +87,20 @@ export function syncSessionThinkingPreference(params: {
   const inboundThinking = readMetadataThinking(requestMetadata);
   if (inboundThinking === "__clear__") {
     delete metadata.preferred_thinking;
-    return;
+    return metadata;
   }
   if (inboundThinking) {
     metadata.preferred_thinking = inboundThinking;
   }
+  return metadata;
 }
 
 export function resolveSessionChannelContext(params: {
-  session: SessionRecord;
+  sessionMetadata: Record<string, unknown>;
   requestMetadata: Record<string, unknown>;
-}): { channel: string; chatId: string } {
-  const { requestMetadata, session } = params;
-  const metadata = session.metadata;
+}): { channel: string; chatId: string; metadata: Record<string, unknown> } {
+  const { requestMetadata } = params;
+  const metadata = structuredClone(params.sessionMetadata);
   const channel =
     normalizeOptionalString(requestMetadata.channel) ??
     normalizeOptionalString(metadata.last_channel) ??
@@ -111,5 +113,5 @@ export function resolveSessionChannelContext(params: {
 
   metadata.last_channel = channel;
   metadata.last_to = chatId;
-  return { channel, chatId };
+  return { channel, chatId, metadata };
 }

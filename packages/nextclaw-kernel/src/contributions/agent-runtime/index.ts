@@ -14,7 +14,6 @@ export class AgentRuntimeContribution implements KernelContribution {
     }
     const nativeRuntimeFactory = new NativeAgentRuntimeFactory({
       providerManager: this.kernel.llmProviders,
-      sessions: this.kernel.sessions,
       configManager: this.kernel.configManager,
       llmUsage: this.kernel.llmUsage,
       onSessionUpdated: this.kernel.publishSessionUpdated,

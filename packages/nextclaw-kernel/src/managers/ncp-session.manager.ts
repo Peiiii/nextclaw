@@ -17,7 +17,7 @@ import type {
 } from "@nextclaw/ncp";
 import { NcpEventType } from "@nextclaw/ncp";
 import type { AgentSessionEventRecord, AgentSessionRecord } from "@nextclaw/ncp-toolkit";
-import { ContextCompactionPreflightService } from "@kernel/features/context-compaction/index.js";
+import { ContextCompactionManager } from "@kernel/features/context-compaction/index.js";
 import { NcpAgentLegacySessionStore } from "@kernel/stores/ncp-agent-legacy-session.store.js";
 import type { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import {
@@ -196,15 +196,14 @@ function isSessionSummaryRefreshEvent(event: NcpEndpointEvent): boolean {
 }
 
 export class NcpSessionManager implements NcpSessionApi {
-  private readonly contextWindowPreview: ContextCompactionPreflightService;
+  private readonly contextWindowPreview: ContextCompactionManager;
   private readonly legacyStore: NcpAgentLegacySessionStore;
   private liveMetadataPatcher: LiveMetadataPatcher | null = null;
 
   constructor(private readonly options: NcpSessionManagerOptions) {
     this.legacyStore = new NcpAgentLegacySessionStore(options.sessionManager);
-    this.contextWindowPreview = new ContextCompactionPreflightService({
+    this.contextWindowPreview = new ContextCompactionManager({
       getConfig: options.getConfig,
-      sessionManager: options.sessionManager,
     });
   }
 

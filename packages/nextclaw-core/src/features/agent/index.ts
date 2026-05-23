@@ -14,7 +14,6 @@ export * from "./tools/cron.tools.js";
 export * from "./tools/filesystem.tools.js";
 export * from "./tools/message.tools.js";
 export * from "./tools/registry.tools.js";
-export * from "./tools/sessions.tools.js";
 export * from "./tools/shell.tools.js";
 export * from "./tools/spawn.tools.js";
 export * from "./tools/subagents.tools.js";

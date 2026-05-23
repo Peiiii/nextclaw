@@ -1,34 +1,46 @@
 import { randomUUID } from "node:crypto";
-import type { SessionManager } from "@core/features/session/index.js";
 import {
   buildSessionRequestToolResult,
   readOptionalString,
   readParentSessionId,
   summarizeSessionRequestTask,
-} from "@core/features/session-request/utils/session-request-result.utils.js";
-import {
   createCompletedSessionRequest,
   createFailedSessionRequest,
   createRunningSessionRequest,
-} from "@core/features/session-request/utils/session-request-record.utils.js";
-import type {
-  DispatchRequestParams,
-  RequestSessionParams,
-  SessionRequestDispatcher,
-  SessionRequestPayload,
-  SessionRequestResultContext,
-  SpawnSessionAndRequestParams,
-} from "@core/features/session-request/types/session-request-manager.types.js";
-import type {
-  SessionRequestRecord,
-  SessionRequestToolResult,
-} from "@core/features/session-request/types/session-request.types.js";
+  type DispatchRequestParams,
+  type RequestSessionParams,
+  type SessionRequestDispatcher,
+  type SessionRequestPayload,
+  type SessionRequestRecord,
+  type SessionRequestResultContext,
+  type SessionRequestToolResult,
+  type SpawnSessionAndRequestParams,
+} from "@nextclaw/core";
+import type { NcpEndpointEvent } from "@nextclaw/ncp";
+import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
+import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
 
 export type SessionRequestManagerOptions = {
   dispatcher: SessionRequestDispatcher;
-  onSessionUpdated?: (sessionKey: string) => void;
-  sessions: SessionManager;
+  ncpSessionManager: NcpSessionManager;
 };
+
+function toRequestEventType(type: string): string {
+  switch (type) {
+    case "session.request.accepted":
+      return "session.request.accepted";
+    case "session.request.completed":
+      return "session.request.completed";
+    case "session.request.failed":
+      return "session.request.failed";
+    default:
+      throw new Error(`Unsupported session request event type: ${type}`);
+  }
+}
+
+function readRecordLabel(record: AgentSessionRecord): string | undefined {
+  return readOptionalString(record.metadata?.label) ?? undefined;
+}
 
 export class SessionRequestManager {
   constructor(private readonly options: SessionRequestManagerOptions) {}
@@ -55,7 +67,7 @@ export class SessionRequestManager {
       notify,
     } = params;
     const requestId = randomUUID();
-    const createdSession = this.options.sessions.createSession({
+    const createdSession = await this.options.ncpSessionManager.createSession({
       sourceSessionId,
       ...(parentSessionId ? { parentSessionId } : {}),
       task,
@@ -70,7 +82,6 @@ export class SessionRequestManager {
       projectRoot,
       requestId,
     });
-    this.options.onSessionUpdated?.(createdSession.sessionId);
 
     return this.dispatchRequest({
       requestId,
@@ -107,7 +118,7 @@ export class SessionRequestManager {
     if (normalizedTargetSessionId === sourceSessionId.trim()) {
       throw new Error("sessions_request cannot target the current session.");
     }
-    const targetSession = this.options.sessions.getIfExists(normalizedTargetSessionId);
+    const targetSession = await this.options.ncpSessionManager.getSessionRecord(normalizedTargetSessionId);
     if (!targetSession) {
       throw new Error(`Target session not found: ${targetSessionId}`);
     }
@@ -122,7 +133,7 @@ export class SessionRequestManager {
       task,
       title:
         readOptionalString(title) ??
-        readOptionalString(targetSession.metadata.label) ??
+        readRecordLabel(targetSession) ??
         summarizeSessionRequestTask(task),
       handoffDepth: handoffDepth ?? 0,
       notify,
@@ -217,42 +228,43 @@ export class SessionRequestManager {
     });
   };
 
-  private appendRequestEvents = (
+  private appendRequestEvents = async (
     request: SessionRequestRecord,
     type: string,
-  ): void => {
-    this.appendRequestEvent(request.sourceSessionId, type, request);
-    this.appendRequestEvent(request.targetSessionId, type, request);
+  ): Promise<void> => {
+    await this.appendRequestEvent(request.sourceSessionId, type, request);
+    await this.appendRequestEvent(request.targetSessionId, type, request);
   };
 
   private runRequest = async (
     payload: SessionRequestPayload,
   ): Promise<SessionRequestToolResult> => {
     const { request, resultContext } = payload;
+    const acceptedWrites: Promise<void>[] = [];
     try {
       const dispatchResult = await this.options.dispatcher.dispatch({
         request,
         task: resultContext.task,
         onAccepted: (messageId) => {
-          this.appendAcceptedRequestEvent(request, messageId);
+          acceptedWrites.push(this.appendAcceptedRequestEvent(request, messageId));
         },
       });
+      await Promise.all(acceptedWrites);
       const completedRequest = createCompletedSessionRequest({
         request,
         finalResponseMessageId: dispatchResult.finalResponseMessageId,
         finalResponseText: dispatchResult.finalResponseText,
       });
-      this.appendRequestEvents(completedRequest, "session.request.completed");
-      const completedPayload = this.toSessionRequestPayload(completedRequest, resultContext);
-      return this.buildToolResult(completedPayload);
+      await this.appendRequestEvents(completedRequest, "session.request.completed");
+      return this.buildToolResult(this.toSessionRequestPayload(completedRequest, resultContext));
     } catch (error) {
+      await Promise.all(acceptedWrites);
       const failedRequest = createFailedSessionRequest({
         request,
         error,
       });
-      this.appendRequestEvents(failedRequest, "session.request.failed");
-      const failedPayload = this.toSessionRequestPayload(failedRequest, resultContext);
-      return this.buildToolResult(failedPayload);
+      await this.appendRequestEvents(failedRequest, "session.request.failed");
+      return this.buildToolResult(this.toSessionRequestPayload(failedRequest, resultContext));
     }
   };
 
@@ -271,31 +283,42 @@ export class SessionRequestManager {
     }
   };
 
-  private appendAcceptedRequestEvent = (
+  private appendAcceptedRequestEvent = async (
     request: SessionRequestRecord,
     messageId: string,
-  ): void => {
+  ): Promise<void> => {
     const acceptedRequest: SessionRequestRecord = {
       ...request,
       targetMessageId: messageId,
     };
-    this.appendRequestEvent(request.sourceSessionId, "session.request.accepted", acceptedRequest);
-    this.appendRequestEvent(request.targetSessionId, "session.request.accepted", acceptedRequest);
+    await this.appendRequestEvent(request.sourceSessionId, "session.request.accepted", acceptedRequest);
+    await this.appendRequestEvent(request.targetSessionId, "session.request.accepted", acceptedRequest);
   };
 
-  private appendRequestEvent = (
+  private appendRequestEvent = async (
     sessionId: string,
     type: string,
     request: SessionRequestRecord,
-  ): void => {
-    const session = this.options.sessions.getOrCreate(sessionId);
-    this.options.sessions.appendEvent(session, {
-      type,
-      data: {
-        request: structuredClone(request),
+  ): Promise<void> => {
+    const record = await this.options.ncpSessionManager.getSessionRecord(sessionId);
+    const now = new Date().toISOString();
+    const event = {
+      type: toRequestEventType(type),
+      payload: {
+        sessionId,
+        request: structuredClone(request) as unknown as Record<string, unknown>,
       },
+    } as NcpEndpointEvent;
+    await this.options.ncpSessionManager.appendSessionEvent({
+      session: {
+        sessionId,
+        ...(record?.agentId ? { agentId: record.agentId } : {}),
+        createdAt: record?.createdAt ?? now,
+        updatedAt: now,
+        metadata: structuredClone(record?.metadata ?? {}),
+      },
+      event,
+      updatedAt: now,
     });
-    this.options.sessions.save(session);
-    this.options.onSessionUpdated?.(sessionId);
   };
 }

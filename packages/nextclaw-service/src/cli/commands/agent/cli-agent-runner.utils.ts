@@ -1,7 +1,6 @@
 import {
   getDataDir,
   type Config,
-  type SessionManager,
 } from "@nextclaw/core";
 import {
   dispatchPromptOverNcp,
@@ -50,12 +49,11 @@ function createCliHistoryInterface() {
 async function runCliInteractiveLoop(params: {
   logo: string;
   config: Config;
-  sessionManager: SessionManager;
   agentRunRequests: NextclawKernel["agentRunRequestManager"];
   sessionKey: string;
   metadata: Record<string, unknown>;
 }): Promise<void> {
-  const { agentRunRequests, config, logo, metadata, sessionKey, sessionManager } = params;
+  const { agentRunRequests, config, logo, metadata, sessionKey } = params;
   console.log(`${logo} Interactive mode (type exit or Ctrl+C to quit)\n`);
   const rl = createCliHistoryInterface();
 
@@ -73,7 +71,6 @@ async function runCliInteractiveLoop(params: {
     }
     const response = await dispatchPromptOverNcp({
       config,
-      sessionManager,
       agentRunRequests,
       sessionKey,
       content: trimmed,
@@ -96,7 +93,6 @@ export async function runCliAgentCommand(params: {
     logo,
     opts,
   } = params;
-  const sessionManager = kernel.sessions;
   await kernel.extensions.load({ config });
   await kernel.start();
 
@@ -107,7 +103,6 @@ export async function runCliAgentCommand(params: {
     if (opts.message) {
       const response = await dispatchPromptOverNcp({
         config,
-        sessionManager,
         agentRunRequests: kernel.agentRunRequestManager,
         sessionKey,
         content: opts.message,
@@ -120,7 +115,6 @@ export async function runCliAgentCommand(params: {
     await runCliInteractiveLoop({
       logo,
       config,
-      sessionManager,
       agentRunRequests: kernel.agentRunRequestManager,
       sessionKey,
       metadata: sharedMetadata,

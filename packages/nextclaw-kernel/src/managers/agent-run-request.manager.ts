@@ -30,6 +30,11 @@ import {
 } from "@kernel/utils/session-run.utils.js";
 import type { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
+import {
+  resolveEffectiveModel,
+  resolveSessionChannelContext,
+  syncSessionThinkingPreference,
+} from "@kernel/features/native-runtime/index.js";
 
 export class AgentRunRequestManager {
   private readonly cleanups: Array<() => Promise<void> | void> = [];
@@ -131,7 +136,8 @@ export class AgentRunRequestManager {
     envelope: MaterializedAgentRunRequest,
     options?: NcpAgentRunSendOptions,
   ): AsyncIterable<NcpEndpointEvent> {
-    const session = await this.sessionRunManager.getOrCreateLiveSession(envelope.sessionId, envelope.metadata);
+    const metadata = await this.prepareRunSessionMetadata(envelope.sessionId, envelope.metadata);
+    const session = await this.sessionRunManager.getOrCreateLiveSession(envelope.sessionId, metadata);
     const controller = new AbortController();
     options?.signal?.addEventListener("abort", () => controller.abort(), { once: true });
     const activeRun: LiveSessionExecution = {
@@ -152,7 +158,7 @@ export class AgentRunRequestManager {
             sessionId: envelope.sessionId,
             message: structuredClone(envelope.message),
             ...(envelope.correlationId ? { correlationId: envelope.correlationId } : {}),
-            metadata: envelope.metadata,
+            metadata,
           },
         };
         await this.sessionRunManager.appendSessionEvent(session.sessionId, messageSentEvent, {
@@ -166,7 +172,7 @@ export class AgentRunRequestManager {
         runId: envelope.runId,
         messages: [envelope.message],
         correlationId: envelope.correlationId,
-        metadata: envelope.metadata,
+        metadata,
       };
       for await (const event of session.runtime.run(runtimeInput, { signal: activeRun.controller.signal })) {
         const normalizedEvent = normalizeSendRunEvent({
@@ -261,6 +267,32 @@ export class AgentRunRequestManager {
     ...envelope,
     runId: `ncp-run-${randomUUID()}`,
   });
+
+  private readonly prepareRunSessionMetadata = async (
+    sessionId: string,
+    requestMetadata: Record<string, unknown> = {},
+  ): Promise<Record<string, unknown>> => {
+    const storedSession = await this.ncpSessionManager.getSessionRecord(sessionId);
+    const currentMetadata = {
+      ...(storedSession?.metadata ?? {}),
+      ...structuredClone(requestMetadata),
+    };
+    let nextMetadata = resolveEffectiveModel({
+      sessionMetadata: currentMetadata,
+      requestMetadata,
+      fallbackModel: "",
+    }).metadata;
+    nextMetadata = syncSessionThinkingPreference({
+      sessionMetadata: nextMetadata,
+      requestMetadata,
+    });
+    nextMetadata = resolveSessionChannelContext({
+      sessionMetadata: nextMetadata,
+      requestMetadata,
+    }).metadata;
+    await this.sessionRunManager.patchSessionMetadata(sessionId, () => nextMetadata);
+    return nextMetadata;
+  };
 
   private readonly handleSessionMessageRequest = async (
     envelope: IngressEnvelope<AgentRunSessionMessageRequestPayload>,

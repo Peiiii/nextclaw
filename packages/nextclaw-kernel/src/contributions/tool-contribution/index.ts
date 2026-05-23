@@ -11,8 +11,6 @@ import {
   MemorySearchTool,
   MessageTool,
   ReadFileTool,
-  SessionsHistoryTool,
-  SessionsListTool,
   WebFetchTool,
   WebSearchTool,
   WriteFileTool,
@@ -23,6 +21,7 @@ import type {
 } from "@kernel/managers/tool.manager.js";
 import { createAssetTools } from "@kernel/features/native-runtime/index.js";
 import { SessionRequestTool } from "@kernel/tools/session-request.tools.js";
+import { SessionsHistoryTool, SessionsListTool } from "@kernel/tools/session-history.tools.js";
 import { SessionSearchTool } from "@kernel/tools/session-search.tools.js";
 import { SessionSpawnTool } from "@kernel/tools/session-spawn.tools.js";
 import { normalizeString } from "@kernel/utils/ncp-message-bridge.utils.js";
@@ -111,9 +110,8 @@ export class ToolContribution implements KernelContribution {
     this.registerMessagingTools({ channel, chatId, metadata }, registry);
 
     const sessionsSpawnTool = new SessionSpawnTool(
-      this.kernel.sessions,
+      this.kernel.ncpSessionManager,
       this.kernel.sessionRequests,
-      this.kernel.publishSessionUpdated,
     );
     sessionsSpawnTool.setContext({
       sourceSessionId: sessionId,
@@ -129,8 +127,8 @@ export class ToolContribution implements KernelContribution {
     });
     registry.registerTool(sessionsRequestTool);
 
-    registry.registerTool(new SessionsListTool(this.kernel.sessions));
-    registry.registerTool(new SessionsHistoryTool(this.kernel.sessions));
+    registry.registerTool(new SessionsListTool(this.kernel.ncpSessionManager));
+    registry.registerTool(new SessionsHistoryTool(this.kernel.ncpSessionManager));
 
     registry.registerTool(new MemorySearchTool(workspace));
     registry.registerTool(new MemoryGetTool(workspace));

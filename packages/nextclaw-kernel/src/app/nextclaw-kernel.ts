@@ -12,7 +12,10 @@ import { SkillManager } from "@kernel/managers/skill.manager.js";
 import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import { ToolManager } from "@kernel/managers/tool.manager.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
-import { createAgentRuntimeSessionRequestDispatcher } from "@kernel/features/session-request/index.js";
+import {
+  createAgentRuntimeSessionRequestDispatcher,
+  SessionRequestManager,
+} from "@kernel/features/session-request/index.js";
 import { AgentRuntimeContribution } from "@kernel/contributions/agent-runtime/index.js";
 import { LearningLoopContribution } from "@kernel/contributions/learning-loop/index.js";
 import { SessionContextWindowContribution } from "@kernel/contributions/session-context-window/index.js";
@@ -30,7 +33,6 @@ import {
   getWorkspacePath,
   MessageBus,
   SessionManager,
-  SessionRequestManager,
   SessionSearchManager,
 } from "@nextclaw/core";
 import { eventKeys, EventBus, Ingress } from "@nextclaw/shared";
@@ -143,14 +145,6 @@ export class NextclawKernel {
     this.ncpAgentSessionJournalStore = new NcpAgentSessionJournalStore(
       resolve(sessionsDir, ".ncp-agent-journal"),
     );
-    this.sessionRequests = new SessionRequestManager({
-      sessions: this.sessions,
-      dispatcher: createAgentRuntimeSessionRequestDispatcher({
-        eventBus: this.eventBus,
-        ingress: this.ingress,
-      }),
-      onSessionUpdated: this.sessionSearch.handleSessionUpdated,
-    });
     this.automation = new AutomationManager({
       storePath: resolveKernelAutomationStorePath(options),
     });
@@ -199,6 +193,13 @@ export class NextclawKernel {
       journalStore: this.ncpAgentSessionJournalStore,
       onSessionUpdated: this.sessionSearch.handleSessionUpdated,
       sessionManager: this.sessions,
+    });
+    this.sessionRequests = new SessionRequestManager({
+      ncpSessionManager: this.ncpSessionManager,
+      dispatcher: createAgentRuntimeSessionRequestDispatcher({
+        eventBus: this.eventBus,
+        ingress: this.ingress,
+      }),
     });
     this.sessionRunManager = new SessionRunManager({
       agentRuntimeManager: this.agentRuntimeManager,

@@ -44,7 +44,6 @@ export function installPluginRuntimeBridge(gateway: NextclawGatewayRuntime): voi
         await dispatcherOptions.onReplyStart?.();
         const response = await dispatchPromptOverNcp({
           config: gateway.configManager.loadConfig(),
-          sessionManager: gateway.sessionManager,
           agentRunRequests: gateway.kernel.agentRunRequestManager,
           ...request,
         });
