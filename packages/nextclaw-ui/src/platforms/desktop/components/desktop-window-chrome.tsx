@@ -17,12 +17,12 @@ const windowControls: Array<{
 export function DesktopWindowChrome() {
   return (
     <header
-      className="relative flex h-[var(--desktop-titlebar-height)] shrink-0 border-b border-[#ebe7dc]/80 bg-secondary"
+      className="desktop-window-drag relative flex h-[var(--desktop-titlebar-height)] shrink-0 border-b border-[#ebe7dc]/80 bg-secondary"
       data-testid="desktop-window-chrome"
     >
       <div
-        className="desktop-window-drag absolute bottom-0 left-0 right-[var(--desktop-caption-safe-right)] top-1"
-        data-testid="desktop-window-chrome-drag-region"
+        className="desktop-window-no-drag absolute left-0 right-0 top-0 h-1"
+        data-testid="desktop-window-chrome-resize-strip"
       />
       <div
         className="desktop-window-no-drag relative z-10 flex h-full w-[var(--desktop-sidebar-width)] shrink-0 items-center bg-secondary pl-4 pr-3 text-secondary-foreground"
