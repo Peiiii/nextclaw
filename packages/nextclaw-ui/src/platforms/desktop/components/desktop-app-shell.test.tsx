@@ -48,6 +48,7 @@ describe("DesktopAppShell", () => {
 
     const chrome = screen.getByTestId("desktop-window-chrome");
     const sidebarChrome = screen.getByTestId("desktop-window-chrome-sidebar");
+    const mainDragRegion = screen.getByTestId("desktop-window-chrome-main-drag-region");
     const resizeStrip = screen.getByTestId("desktop-window-chrome-resize-strip");
     const controls = screen.getByTestId("desktop-window-controls");
 
@@ -58,6 +59,8 @@ describe("DesktopAppShell", () => {
     expect(chrome.className).toContain("desktop-window-drag");
     expect(sidebarChrome.className).toContain("w-[var(--desktop-sidebar-width)]");
     expect(sidebarChrome.className).toContain("desktop-window-no-drag");
+    expect(mainDragRegion.className).toContain("flex-1");
+    expect(mainDragRegion.className).toContain("desktop-window-drag");
     expect(resizeStrip.className).toContain("desktop-window-no-drag");
     expect(resizeStrip.className).toContain("top-0");
     expect(resizeStrip.className).toContain("h-1");

@@ -405,7 +405,7 @@ app.on("window-all-closed", () => {
 });
 "@
 
-  $indexHtml = if ($Layout -eq "nextclaw") {
+  $indexHtml = if ($Layout -eq "nextclaw" -or $Layout -eq "nextclaw-empty") {
 @'
 <!doctype html>
 <html>
@@ -505,7 +505,7 @@ app.on("window-all-closed", () => {
         <div class="desktop-window-no-drag sidebar" data-testid="desktop-window-chrome-sidebar">
           <div class="desktop-window-no-drag brand">NextClaw</div>
         </div>
-        <div class="desktop-window-drag main-drag" data-testid="desktop-window-chrome-main"></div>
+        __NEXTCLAW_MAIN_DRAG__
       </header>
       <main class="desktop-window-no-drag content">nextclaw-like app-region smoke</main>
     </div>
@@ -554,6 +554,15 @@ app.on("window-all-closed", () => {
 '@
   }
 
+  if ($Layout -eq "nextclaw" -or $Layout -eq "nextclaw-empty") {
+    $mainDragMarkup = if ($Layout -eq "nextclaw") {
+      '<div class="desktop-window-drag main-drag" data-testid="desktop-window-chrome-main"></div>'
+    } else {
+      ''
+    }
+    $indexHtml = $indexHtml.Replace("__NEXTCLAW_MAIN_DRAG__", $mainDragMarkup)
+  }
+
   Set-Content -Path (Join-Path $appRoot "index.html") -Encoding UTF8 -Value $indexHtml
 
   return $appRoot
@@ -595,6 +604,29 @@ $variants = @(
       sandbox: false,
       preload: path.join(__dirname, "preload.js")
 '@
+    Preload = $true
+  },
+  [pscustomobject]@{
+    Name = "nextclaw-layout-empty-http-preload-sandbox-false"
+    WindowOptionLines = "    frame: false,"
+    LoadMode = "http"
+    WebPreferenceLines = @'
+      sandbox: false,
+      preload: path.join(__dirname, "preload.js")
+'@
+    Layout = "nextclaw-empty"
+    Preload = $true
+    ExpectCaption = $false
+  },
+  [pscustomobject]@{
+    Name = "nextclaw-layout-http-preload-sandbox-false"
+    WindowOptionLines = "    frame: false,"
+    LoadMode = "http"
+    WebPreferenceLines = @'
+      sandbox: false,
+      preload: path.join(__dirname, "preload.js")
+'@
+    Layout = "nextclaw"
     Preload = $true
   },
   [pscustomobject]@{

@@ -82,6 +82,8 @@
 - 二十次修正：桌面主进程第一帧直接加载 `${baseUrl}/chat`，避免先进入 `/` 再由 renderer 重定向到 `/chat`，让 Windows app-region 注册路径保持在最接近 Electron 官方 HTTP 直载对照的形态。
 - 二十一次排查：`desktop-validate` run `26325023080` 证明直接加载 `/chat` 后仍会出现同 URL 的 `did-navigate-in-page`，来源是前端 BrowserRouter 初始化期间的 History API state 写入；此时 DOM 命中继续正确但 native hit-test 仍为 `HTCLIENT(1)`。
 - 二十一次修正：真实 Windows Electron 环境改用 `MemoryRouter`，避免桌面端初始化路由时调用浏览器 History API；普通 Web 与 dev 浏览器模拟继续使用 `BrowserRouter`。同时 Windows 窗口合同进一步收敛为纯 `frame:false`，删除不再必要的 `titleBarStyle:"hidden"`。
+- 二十二次排查：`desktop-validate` run `26325257296` 证明 `MemoryRouter` 已消除 `did-navigate-in-page`，加载链路只剩 `about:blank -> /chat`，但真实 NextClaw 窗口在 `(400,24)` 仍返回 `HTCLIENT(1)`；因此根因不再是前端 History API 导航，而是真实标题栏矩形和最小可通过页面之间的 DOM/paint 差异。
+- 二十二次修正：把 Windows 自定义标题栏中间空白区改成显式 `desktop-window-drag flex-1` 子元素，不再只依赖父 `header` 的空白背景参与 Electron native draggable region 聚合；同时删除品牌区多余 wrapper，保持非测试生产代码净减少。最小 Electron smoke 新增 `nextclaw-layout-empty-http-preload-sandbox-false` 与 `nextclaw-layout-http-preload-sandbox-false` 对照，用 Windows CI 验证“空白父背景”与“显式中间 drag 子区域”的差异。
 - 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
 - 已通过：`pnpm lint:new-code:governance -- apps/desktop/src/utils/desktop-window-options.utils.ts apps/desktop/src/utils/desktop-window-options.utils.test.ts packages/nextclaw-ui/src/platforms/desktop/components/desktop-window-chrome.tsx packages/nextclaw-ui/src/platforms/desktop/components/desktop-app-shell.test.tsx docs/logs/v0.19.6-windows-desktop-titlebar-drag/README.md`
 - 已通过：`pnpm check:governance-backlog-ratchet`
