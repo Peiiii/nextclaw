@@ -1,13 +1,13 @@
 ---
 name: nextclaw-self-manage
-description: Self-manage NextClaw runtime via CLI guide. For install/start/status/doctor/service/plugins/channels/config/agents/cron/remote/update operations.
-description_zh: 通过 NextClaw CLI 管理 NextClaw 自身，覆盖安装、启动、状态、诊断、服务、插件、渠道、配置、Agent、定时任务、远程访问和更新。
+description: Self-manage NextClaw runtime via CLI guide. For install/start/status/doctor/service/plugins/channels/config/agents/cron/remote/update operations, and for discovering local HTTP/API/webhook addresses.
+description_zh: 通过 NextClaw CLI 管理 NextClaw 自身，覆盖安装、启动、状态、诊断、服务、插件、渠道、配置、Agent、定时任务、远程访问、更新，以及本地 HTTP/API/webhook 地址发现。
 metadata: {"nextclaw":{"always":true,"emoji":"🛠️"}}
 ---
 
 # NextClaw Self-Management
 
-Use this skill whenever the user asks to manage NextClaw itself (version, service status, diagnostics, plugins, channels, config, agents, cron, remote, update, installed skills, marketplace skills).
+Use this skill whenever the user asks to manage NextClaw itself (version, service status, diagnostics, plugins, channels, config, agents, cron, remote, update, installed skills, marketplace skills, local HTTP/API/webhook addresses).
 
 ## Source of Truth
 
@@ -28,6 +28,8 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 
 - Map version lookup directly to `nextclaw --version`; do not substitute `status` for version queries.
 - Prefer machine-readable output: use `--json` when available.
+- Before calling local HTTP APIs or `/webhook`, run `nextclaw status --json` and read `endpoints.uiUrl` / `endpoints.apiUrl`; do not guess the service port.
+- For webhook payload details, read the focused guide linked from the self-management guide only when you need to implement or debug a webhook caller.
 - Execute only commands documented in the self-management guide or CLI help; do not invent commands or config paths.
 - Keep installed skills and marketplace catalog as two different domains:
   - local installed: `nextclaw skills installed|info`
@@ -60,6 +62,7 @@ When user asks "what changed in version X", follow:
 
 - Version lookup: `nextclaw --version`
 - Service health: `nextclaw status --json` / `nextclaw doctor --json`
+- Local HTTP/API/webhook addresses: `nextclaw status --json` and read `endpoints.uiUrl` / `endpoints.apiUrl`
 - Lifecycle: `nextclaw start|restart|stop`
 - Channels: `nextclaw channels list --json|status|login`
 - Config: `nextclaw config get|set|unset`

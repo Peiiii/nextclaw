@@ -49,6 +49,15 @@ Use this decision order:
 
 Do not move hard rules into ordinary docs unless a skill explicitly requires reading that doc at the right moment.
 
+## AI-Readable Guide Structure
+
+When updating AI-readable guides such as `USAGE.md`, avoid turning the top-level guide into a full reference dump.
+
+- Keep the top-level guide as an index plus high-frequency rules the AI must see early.
+- Move rarely needed payload contracts, long examples, parameter matrices, troubleshooting maps, and protocol details into focused linked files.
+- Ensure packaged runtime resources include the linked detail files; do not link from a packaged guide to repo-only docs unless the package sync path copies them too.
+- A detail page is appropriate when the AI only needs it after a specific intent is known, such as implementing a webhook caller or debugging one endpoint.
+
 ## Remember Requests
 
 当用户说“记住”“以后都要”“这是规范/原则”时，不能只在回复里说已经记住。必须把它当成规则持久化请求处理：

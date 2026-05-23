@@ -13,9 +13,10 @@ When NextClaw AI needs to operate the product itself (version/status/doctor/serv
 1. **Read the built-in self-management guide first**. The packaged runtime copy lives at `packages/nextclaw/resources/USAGE.md`, and this repo page is kept aligned with it.
 2. **Use the exact command for the intent**: use `nextclaw --version` for version lookup; do not infer version from `status`.
 3. **Prefer machine-readable output** (`--json`) whenever available.
-4. **Close the loop after changes** with `nextclaw status --json` (and `nextclaw doctor --json` when needed).
-5. **Be explicit about restart semantics** (hot-apply, auto-restart, or manual restart required).
-6. **Never invent commands**; use documented commands or `nextclaw --help` / `nextclaw <subcommand> --help`.
+4. **Discover runtime HTTP addresses from `nextclaw status --json`** before calling local APIs or `/webhook`; use `endpoints.uiUrl` and `endpoints.apiUrl` instead of guessing ports.
+5. **Close the loop after changes** with `nextclaw status --json` (and `nextclaw doctor --json` when needed).
+6. **Be explicit about restart semantics** (hot-apply, auto-restart, or manual restart required).
+7. **Never invent commands**; use documented commands or `nextclaw --help` / `nextclaw <subcommand> --help`.
 
 ---
 
@@ -24,6 +25,7 @@ When NextClaw AI needs to operate the product itself (version/status/doctor/serv
 - [AI Self-Management Contract](#ai-self-management-contract)
 - [Quick Start](#quick-start)
 - [Public Server Deployment](#public-server-deployment)
+- [HTTP Webhook Ingress](#http-webhook-ingress)
 - [Configuration](#configuration)
 - [Input context budget](#input-context-budget)
 - [Multi-agent routing & session isolation](#multi-agent-routing--session-isolation-openclaw-aligned)
@@ -118,6 +120,53 @@ curl -I http://<server-ip>/
 ```
 
 If `127.0.0.1:55667` is healthy but the public entry returns `502`, the problem is in your reverse proxy, firewall, or upstream target, not in the NextClaw HTTP server.
+
+---
+
+## HTTP Webhook Ingress
+
+NextClaw exposes a generic webhook ingress for external systems and small local tools that need to trigger NextClaw work:
+
+```text
+POST /webhook
+```
+
+This section is intentionally only an index. Read the focused guide only when you need to implement or debug a webhook caller:
+
+- [HTTP webhook ingress guide](usage/http-webhook-ingress.md)
+
+For AI or scripts, do not guess the port. Discover the running service first:
+
+```bash
+nextclaw status --json
+```
+
+Read these fields:
+
+- `endpoints.uiUrl`: base URL for UI and `/webhook`, for example `http://127.0.0.1:55667`.
+- `endpoints.apiUrl`: base URL for API routes, for example `http://127.0.0.1:55667/api`.
+- `remote.runtime.localOrigin`: local origin used by the service-managed remote connector when remote access is enabled.
+
+Then call:
+
+```text
+<endpoints.uiUrl>/webhook
+```
+
+Current third-party trigger entry:
+
+```json
+{
+  "type": "agent-run.send",
+  "payload": {
+    "content": [
+      { "type": "text", "text": "Reply exactly: Webhook smoke received" }
+    ]
+  }
+}
+```
+
+Unknown ingress types are rejected instead of being turned into chat messages. Use the focused guide for full payload fields, existing-session calls, verification, and error semantics.
 
 ---
 
@@ -653,6 +702,7 @@ Status/diagnostics tips:
 - `nextclaw --version` is the only supported way to query the installed CLI version.
 - `nextclaw status` shows runtime truth (process + health + config summary).
 - `nextclaw status --json` outputs machine-readable status and exits `0` when the command itself succeeds; use the JSON `level` field (`healthy` / `degraded` / `stopped`) to interpret runtime state.
+- Use `nextclaw status --json` as the source of truth for local HTTP addresses. `endpoints.uiUrl` is the base for `/webhook`; `endpoints.apiUrl` is the base for `/api/*` calls.
 - `nextclaw status --fix` safely clears stale service state if PID is dead.
 - `nextclaw doctor` runs additional checks (state coherence, health, port availability, provider readiness).
 - `nextclaw usage` shows the latest observed LLM usage snapshot from recent CLI agent runs or the local UI/NCP runtime.
