@@ -123,15 +123,15 @@
 - 发布失败记录：[`v0.19.24-desktop-beta.5`](https://github.com/Peiiii/nextclaw/releases/tag/v0.19.24-desktop-beta.5) 目标提交 `7f00c43e0178a9e8dd5c185927703cfd89026f11`，Windows x64 smoke 证明 main / point HWND 都返回 `HTCLIENT(1)`，未完成 release closure，不能交付用户测试。
 - 发布失败记录：[`v0.19.24-desktop-beta.6`](https://github.com/Peiiii/nextclaw/releases/tag/v0.19.24-desktop-beta.6) 目标提交 `519dce01991af60d6dfd6a6748ed74cfb5238539`，Windows x64 smoke 仍因 `WM_NCHITTEST` 未返回 `HTCAPTION(2)` 阻断，未完成 release closure，不能交付用户测试。
 - 发布失败记录：[`v0.19.24-desktop-beta.7`](https://github.com/Peiiii/nextclaw/releases/tag/v0.19.24-desktop-beta.7) 目标提交 `cb63092e735361212b84cf2d467649fa2230a0f9`，Windows x64 smoke 通过真实鼠标拖动验证窗口位置没有变化，未完成 release closure，不能交付用户测试。
-- 后续发布计划：暂停继续发布给用户试错；先做同 Electron 版本的最小 Windows app-region 复现，并把结果作为下一轮代码方向的入口。
-- 本次 release 名称：`NextClaw Desktop 0.0.181 Preview Beta 1`。
-- 本次 release 对应源码提交：`588185ba20578e36d2646eaf7d2100c5869b59da`。
+- 已发布并完成闭环：[`v0.19.25-desktop-beta.1`](https://github.com/Peiiii/nextclaw/releases/tag/v0.19.25-desktop-beta.1)，对应源码提交 `4ae41418a57dbb7b4e1de43134aaa031562c618f`。
+- 本次 release 名称：`NextClaw Desktop 0.0.188 Preview Beta 1`。
 - 本次 Windows 主要验收资产：
-  - `NextClaw.Desktop-Setup-0.0.181-x64.exe`
-  - `NextClaw-Portable-0.0.181-win-x64.zip`
-  - `nextclaw-bundle-win32-x64-0.19.24.zip`
+  - `NextClaw.Desktop-Setup-0.0.188-x64.exe`
+  - `NextClaw-Portable-0.0.188-win-x64.zip`
+  - `nextclaw-bundle-win32-x64-0.19.25.zip`
   - `manifest-beta-win32-x64.json`
-- 远端发布闭环已通过：`desktop-release` workflow `26302767030` 成功；Windows x64 / arm64 build 与 smoke 成功；release assets 检查成功；`gh-pages` 与公网 beta manifest 均指向 `0.19.24`。
+- 远端发布闭环已通过：`desktop-release` workflow `26327123568` 成功；Windows x64 / arm64 build 与 smoke 成功；release assets 检查成功；`gh-pages` 与公网 beta manifest 均指向 `0.19.25`，minimum launcher version 为 `0.0.143`。
+- 历史完成版本：`v0.19.24-desktop-beta.1` 只证明 resize 方向有效，但 Windows titlebar drag 未修复；`v0.19.25-desktop-beta.1` 是本轮拖拽修复的第一版可交付预览。
 - 不涉及 NPM 包发布。
 
 ## 用户/产品视角的验收步骤
