@@ -465,6 +465,7 @@ if ($isPortableSmoke) {
   $env:NEXTCLAW_HOME = $smokeHome
   $env:NEXTCLAW_DESKTOP_RUNTIME_HOME_OVERRIDE = $smokeHome
   $env:NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE = $smokeHome
+  $env:NEXTCLAW_DESKTOP_SMOKE_TITLEBAR_HIT_TEST = "1"
 }
 
 $appProc = $null

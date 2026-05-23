@@ -5,16 +5,9 @@ const DESKTOP_RENDERER_DEBUG_SCRIPT = String.raw`
 (() => {
   const debugKey = "__nextclawDesktopDebugInstalled__";
   const targetPaths = ["/api/auth/status", "/api/config", "/api/ncp/sessions"];
-  const shouldTrace = (input) => targetPaths.some((path) => typeof input === "string" && input.includes(path));
-  const normalizeUrl = (input) => {
-    if (typeof input === "string") {
-      return input;
-    }
-    if (input && typeof input === "object" && "url" in input && typeof input.url === "string") {
-      return input.url;
-    }
-    return "";
-  };
+  const normalizeUrl = (input) =>
+    typeof input === "string" ? input : input?.url && typeof input.url === "string" ? input.url : "";
+  const shouldTrace = (input) => targetPaths.some((path) => normalizeUrl(input).includes(path));
 
   if (!window[debugKey]) {
     window[debugKey] = true;
@@ -23,34 +16,19 @@ const DESKTOP_RENDERER_DEBUG_SCRIPT = String.raw`
     window.fetch = async (...args) => {
       const url = normalizeUrl(args[0]);
       const trace = shouldTrace(url);
-      if (trace) {
-        console.info("[desktop-debug] fetch:start " + url);
-      }
+      if (trace) console.info("[desktop-debug] fetch:start " + url);
       try {
         const response = await originalFetch(...args);
-        if (trace) {
-          console.info("[desktop-debug] fetch:done " + response.status + " " + url);
-        }
+        if (trace) console.info("[desktop-debug] fetch:done " + response.status + " " + url);
         return response;
       } catch (error) {
-        if (trace) {
-          console.error("[desktop-debug] fetch:fail " + url + " " + String(error));
-        }
+        if (trace) console.error("[desktop-debug] fetch:fail " + url + " " + String(error));
         throw error;
       }
     };
 
     window.addEventListener("error", (event) => {
-      console.error(
-        "[desktop-debug] window:error " +
-          String(event.message || "") +
-          " at " +
-          String(event.filename || "") +
-          ":" +
-          String(event.lineno || 0) +
-          ":" +
-          String(event.colno || 0)
-      );
+      console.error("[desktop-debug] window:error " + String(event.message || "") + " at " + String(event.filename || "") + ":" + String(event.lineno || 0) + ":" + String(event.colno || 0));
     });
 
     window.addEventListener("unhandledrejection", (event) => {
@@ -65,6 +43,20 @@ const DESKTOP_RENDERER_DEBUG_SCRIPT = String.raw`
     readyState: document.readyState
   };
 })();
+`;
+
+const DESKTOP_TITLEBAR_HIT_TEST_SCRIPT = String.raw`
+new Promise((resolve) => {
+  window.setTimeout(() => {
+    const describeElement = (element) => {
+      if (!element) return null;
+      const style = window.getComputedStyle(element);
+      return { tag: element.tagName, id: element.id || "", className: String(element.className || ""), testId: element.getAttribute("data-testid") || "", appRegion: style.getPropertyValue("app-region") || "", webkitAppRegion: style.getPropertyValue("-webkit-app-region") || "", pointerEvents: style.pointerEvents || "" };
+    };
+    const chrome = document.querySelector("[data-testid='desktop-window-chrome']");
+    resolve({ href: window.location.href, innerWidth: window.innerWidth, innerHeight: window.innerHeight, devicePixelRatio: window.devicePixelRatio, chrome: chrome ? chrome.getBoundingClientRect().toJSON() : null, points: [260, 320, 400, 700].map((x) => ({ x, y: 24, element: describeElement(document.elementFromPoint(x, 24)) })) });
+  }, 800);
+});
 `;
 
 export function attachWindowDiagnostics(window: BrowserWindow, logger: DesktopLogger): void {
@@ -128,5 +120,12 @@ export function attachWindowDiagnostics(window: BrowserWindow, logger: DesktopLo
       .catch((error) => {
         logWarn(`renderer-debug-install-failed ${String(error)}`);
       });
+
+    if (process.platform === "win32" && process.env.NEXTCLAW_DESKTOP_SMOKE_TITLEBAR_HIT_TEST === "1") {
+      void webContents
+        .executeJavaScript(DESKTOP_TITLEBAR_HIT_TEST_SCRIPT, true)
+        .then((result) => logInfo(`titlebar-hit-test ${JSON.stringify(result)}`))
+        .catch((error) => logWarn(`titlebar-hit-test-failed ${String(error)}`));
+    }
   });
 }
