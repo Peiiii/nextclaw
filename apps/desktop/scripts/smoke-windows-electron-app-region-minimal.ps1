@@ -278,7 +278,8 @@ function New-MinimalAppRegionApp {
     [string]$Layout = "simple",
     [switch]$Preload,
     [switch]$StartupDrag,
-    [switch]$DisableGpu
+    [switch]$DisableGpu,
+    [switch]$DesktopBridge
   )
 
   $appRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("nextclaw-minimal-app-region-$Variant-" + [System.Guid]::NewGuid().ToString("N"))
@@ -293,13 +294,39 @@ function New-MinimalAppRegionApp {
 '@
 
   if ($Preload) {
-    Set-Content -Path (Join-Path $appRoot "preload.js") -Encoding UTF8 -Value @'
+    $preloadScript = if ($DesktopBridge) {
+@'
+const { contextBridge } = require("electron");
+
+contextBridge.exposeInMainWorld("nextclawDesktop", {
+  platform: "win32",
+  version: process.versions.electron,
+  localePreference: null,
+  getUpdateState: async () => ({ status: "idle" }),
+  checkForUpdates: async () => ({ status: "idle" }),
+  downloadUpdate: async () => ({ status: "idle" }),
+  applyDownloadedUpdate: async () => ({ status: "idle" }),
+  updatePreferences: async () => ({ status: "idle" }),
+  updateChannel: async () => ({ status: "idle" }),
+  restartService: async () => ({ accepted: true }),
+  restartApp: async () => ({ accepted: true }),
+  getPresenceState: async () => ({ closeToBackground: true, launchAtLogin: false, supportsLaunchAtLogin: false, launchAtLoginReason: null }),
+  updatePresencePreferences: async () => ({ closeToBackground: true, launchAtLogin: false, supportsLaunchAtLogin: false, launchAtLoginReason: null }),
+  setLocalePreference: async () => null,
+  controlWindow: async () => undefined,
+  onUpdateStateChanged: () => () => undefined
+});
+'@
+    } else {
+@'
 const { contextBridge } = require("electron");
 
 contextBridge.exposeInMainWorld("nextclawMinimalPreload", {
   platform: process.platform
 });
 '@
+    }
+    Set-Content -Path (Join-Path $appRoot "preload.js") -Encoding UTF8 -Value $preloadScript
   }
 
   $loadScript = if ($LoadMode -eq "http") {
@@ -338,6 +365,7 @@ contextBridge.exposeInMainWorld("nextclawMinimalPreload", {
   server.listen(0, "127.0.0.1", async () => {
     const { port } = server.address();
     await win.loadURL("http://127.0.0.1:" + port + "/chat");
+    await logTitlebarHitTest(win);
     win.show();
   });
   app.once("before-quit", () => {
@@ -362,6 +390,47 @@ contextBridge.exposeInMainWorld("nextclawMinimalPreload", {
     const { port } = server.address();
     await runtimeWin.loadURL("http://127.0.0.1:" + port + "/chat");
     runtimeWin.show();
+  });
+  app.once("before-quit", () => {
+    server.close();
+  });
+"@
+  } elseif ($LoadMode -eq "ui-dist-http") {
+    $uiDistPath = Resolve-Path (Join-Path $repoRoot "packages\nextclaw-ui\dist")
+    $uiDistPathLiteral = ConvertTo-Json $uiDistPath.Path
+@"
+  const fs = require("node:fs");
+  const http = require("node:http");
+  const staticRoot = $uiDistPathLiteral;
+  const contentTypes = new Map([
+    [".html", "text/html; charset=utf-8"],
+    [".js", "text/javascript; charset=utf-8"],
+    [".css", "text/css; charset=utf-8"],
+    [".json", "application/json; charset=utf-8"],
+    [".svg", "image/svg+xml"],
+    [".png", "image/png"],
+    [".ico", "image/x-icon"]
+  ]);
+  const server = http.createServer((request, response) => {
+    const requestUrl = new URL(request.url || "/", "http://127.0.0.1");
+    const pathname = decodeURIComponent(requestUrl.pathname);
+    const relativePath = pathname === "/" || pathname === "/chat" ? "index.html" : pathname.replace(/^\/+/, "");
+    const filePath = path.resolve(staticRoot, relativePath);
+    if (!filePath.startsWith(staticRoot)) {
+      response.writeHead(403);
+      response.end("forbidden");
+      return;
+    }
+    const fallbackPath = path.join(staticRoot, "index.html");
+    const candidatePath = fs.existsSync(filePath) && fs.statSync(filePath).isFile() ? filePath : fallbackPath;
+    response.writeHead(200, { "content-type": contentTypes.get(path.extname(candidatePath)) || "application/octet-stream" });
+    response.end(fs.readFileSync(candidatePath));
+  });
+  server.listen(0, "127.0.0.1", async () => {
+    const { port } = server.address();
+    await win.loadURL("http://127.0.0.1:" + port + "/chat");
+    await logTitlebarHitTest(win);
+    win.show();
   });
   app.once("before-quit", () => {
     server.close();
@@ -399,6 +468,29 @@ $WebPreferenceLines
     }
   });
   const win = createMinimalWindow();
+  const logTitlebarHitTest = async (targetWindow) => {
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    try {
+      const result = await targetWindow.webContents.executeJavaScript(`
+        (() => {
+          const describeElement = (element) => {
+            if (!element) return null;
+            const style = window.getComputedStyle(element);
+            return { tag: element.tagName, id: element.id || "", className: String(element.className || ""), testId: element.getAttribute("data-testid") || "", appRegion: style.getPropertyValue("app-region") || "", webkitAppRegion: style.getPropertyValue("-webkit-app-region") || "", pointerEvents: style.pointerEvents || "" };
+          };
+          return {
+            href: window.location.href,
+            readyState: document.readyState,
+            chrome: document.querySelector("[data-testid='desktop-window-chrome']")?.getBoundingClientRect().toJSON() || null,
+            points: [320, 400, 700].map((x) => ({ x, y: 24, element: describeElement(document.elementFromPoint(x, 24)) }))
+          };
+        })();
+      `);
+      console.log("[minimal-app-region] $Variant titlebar-hit-test " + JSON.stringify(result));
+    } catch (error) {
+      console.warn("[minimal-app-region] $Variant titlebar-hit-test failed: " + String(error));
+    }
+  };
 
 $loadScript
 });
@@ -645,6 +737,18 @@ $variants = @(
     DisableGpu = $false
   },
   [pscustomobject]@{
+    Name = "nextclaw-ui-dist-http-preload-sandbox-false-gpu-enabled"
+    WindowOptionLines = "    frame: false,"
+    LoadMode = "ui-dist-http"
+    WebPreferenceLines = @'
+      sandbox: false,
+      preload: path.join(__dirname, "preload.js")
+'@
+    Preload = $true
+    DesktopBridge = $true
+    DisableGpu = $false
+  },
+  [pscustomobject]@{
     Name = "frame-false-hidden-data-http-preload-sandbox-false-no-startup-drag"
     WindowOptionLines = @'
     frame: false,
@@ -711,8 +815,9 @@ foreach ($variant in $variants) {
   $variantPreload = $variant.PSObject.Properties.Name -contains "Preload" -and $variant.Preload
   $variantStartupDrag = $variant.PSObject.Properties.Name -contains "StartupDrag" -and $variant.StartupDrag
   $variantDisableGpu = -not ($variant.PSObject.Properties.Name -contains "DisableGpu") -or $variant.DisableGpu
+  $variantDesktopBridge = $variant.PSObject.Properties.Name -contains "DesktopBridge" -and $variant.DesktopBridge
   $variantExpectCaption = -not ($variant.PSObject.Properties.Name -contains "ExpectCaption") -or $variant.ExpectCaption
-  $appRoot = New-MinimalAppRegionApp -Variant $variant.Name -WindowOptionLines $variant.WindowOptionLines -LoadMode $variantLoadMode -WebPreferenceLines $variantWebPreferenceLines -Layout $variantLayout -Preload:$variantPreload -StartupDrag:$variantStartupDrag -DisableGpu:$variantDisableGpu
+  $appRoot = New-MinimalAppRegionApp -Variant $variant.Name -WindowOptionLines $variant.WindowOptionLines -LoadMode $variantLoadMode -WebPreferenceLines $variantWebPreferenceLines -Layout $variantLayout -Preload:$variantPreload -StartupDrag:$variantStartupDrag -DisableGpu:$variantDisableGpu -DesktopBridge:$variantDesktopBridge
   Write-Host "[minimal-app-region] $($variant.Name) app: $appRoot"
   $electronProcess = Start-Process -FilePath $electronCmd -ArgumentList @($appRoot) -WorkingDirectory $repoRoot -PassThru
 
