@@ -232,6 +232,192 @@ Telegram 和 Discord 有额外的 typing、streaming preview、slash command、r
 
 预期：SDK 中不出现 Telegram/Discord 特定逻辑。
 
+## 全量迁移后的非插件侧清理计划
+
+本节记录一个容易在后续遗忘的目标：**所有一方渠道都迁移到 extension channel 后，宿主侧应该继续删除旧 channel plugin 兼容链路，而不是只停在“旧渠道都能跑在 extension 里”。**
+
+### 清理前置条件
+
+只有同时满足下面条件，才能进入本节清理：
+
+- `telegram`、`whatsapp`、`discord`、`dingtalk`、`wecom`、`email`、`slack` 全部拥有 `nextclaw-channel-extension-<id>` 包和 `nextclaw.extension.json`。
+- 旧 `channel-plugin-*` 包不再是任何一方渠道的唯一贡献路径。
+- `ChannelManager` 启动渠道时，所有一方渠道都能通过 manifest channel contribution 进入。
+- `channels list`、配置 UI、auth/login、outbound reply 和真实或替代 smoke 都已经覆盖新 extension 路径。
+- 没有仍依赖旧 `channel.nextclaw.createChannel` 的一方渠道。
+
+### 必须保留的产品概念
+
+不要因为删除旧 plugin/runtime 链路而删除这些上层概念：
+
+- `channels.<id>`：仍然是用户理解和管理渠道配置的统一入口。
+- extension manifest 的 `configSchema` / `configUiHints`：作为渠道配置 UI 和校验的事实来源。
+- extension channel 的 inbound/outbound/auth 通用协议：这是新主链路。
+- marketplace / plugin 管理能力：它们仍然服务 extension 生态，只是不应再为一方渠道保留旧 OpenClaw channel plugin 适配。
+
+### 第一批：删除旧渠道运行时包和旧渠道插件包
+
+**可删除：**
+
+- `packages/extensions/nextclaw-channel-runtime`
+- `packages/extensions/nextclaw-channel-plugin-dingtalk`
+- `packages/extensions/nextclaw-channel-plugin-discord`
+- `packages/extensions/nextclaw-channel-plugin-email`
+- `packages/extensions/nextclaw-channel-plugin-slack`
+- `packages/extensions/nextclaw-channel-plugin-telegram`
+- `packages/extensions/nextclaw-channel-plugin-wecom`
+- `packages/extensions/nextclaw-channel-plugin-whatsapp`
+- 已删除或未恢复的 `nextclaw-channel-plugin-mochat`、`nextclaw-channel-plugin-qq` 不应重新引入。
+
+**同步修改：**
+
+- 根 `package.json` 的 `build`、`lint`、`tsc` 脚本移除这些包。
+- `apps/desktop/package.json` 移除旧 channel plugin 包和 `@nextclaw/channel-runtime`。
+- `packages/nextclaw-openclaw-compat/package.json` 移除旧 channel plugin 包和 `@nextclaw/channel-runtime`。
+- `pnpm-lock.yaml` 删除对应 importer 和依赖边。
+
+**验收：**
+
+```bash
+rg "@nextclaw/channel-runtime|nextclaw-channel-plugin-|@nextclaw/channel-plugin-" package.json packages apps pnpm-lock.yaml
+```
+
+预期：除历史 changelog、旧迭代记录、marketplace 历史测试样例或明确迁移文档外，active code/package 里不再出现旧一方 channel plugin/runtime 依赖。
+
+### 第二批：删除旧 bundled channel plugin 装配层
+
+旧 bundled channel plugin 装配层的职责是把一方 `channel-plugin-*` 作为内置 OpenClaw plugin 加载。所有渠道迁移后，这条链路应删除。
+
+**重点文件：**
+
+- `packages/nextclaw-openclaw-compat/src/plugins/bundled-channel-plugin-packages.constants.ts`
+- `packages/nextclaw-openclaw-compat/src/plugins/bundled-channel-plugin-module.utils.ts`
+- `packages/nextclaw-openclaw-compat/src/plugins/openclaw-plugin-loader.utils.ts`
+- `packages/nextclaw-openclaw-compat/src/plugins/progressive-plugin-loader/progressive-bundled-plugin-loader.ts`
+- `packages/nextclaw-openclaw-compat/src/plugins/plugin-status.utils.ts`
+- `packages/nextclaw-openclaw-compat/src/plugin-sdk/index.ts`
+
+**要删除的语义：**
+
+- `BUNDLED_CHANNEL_PLUGIN_PACKAGES`
+- `loadInProcessBundledPluginModule`
+- bundled channel plugin append/load 分支
+- `createNextclawBuiltinChannelPlugin`
+- 只为旧一方渠道服务的 bundled enable/status 测试
+
+**注意：**
+
+不要删除 OpenClaw compat 的外部插件加载能力本身。这里删的是“一方渠道旧内置 plugin 包装层”，不是整个第三方插件兼容层。
+
+### 第三批：收敛 ChannelManager 的双路径
+
+当前 `ChannelManager` 同时支持：
+
+- 旧路径：`registration.channel.nextclaw.createChannel(...)`
+- 新路径：`new ExtensionChannelAdapter(...)`
+
+所有渠道迁移完成后，旧路径应删除。
+
+**修改目标：**
+
+- `packages/nextclaw-core/src/features/channels/managers/channel.manager.ts`
+- `packages/nextclaw-core/src/features/channels/services/extension-channel.service.ts`
+- `packages/nextclaw-core/src/features/channels/services/base.ts`
+
+**预期形态：**
+
+- `ChannelManager` 只接收 extension channel registration。
+- outbound 投递只走 extension channel outbound client。
+- 不再需要从宿主进程 new 渠道 SDK runtime。
+- `BaseChannel` 若只剩 extension adapter 使用，应继续评估是否删除或改成更薄的 outbound delivery owner。
+
+**验收：**
+
+```bash
+rg "channel\\.nextclaw|createChannel\\(|resolveBuiltinChannelRuntime|BaseChannel" packages/nextclaw-core packages/nextclaw-openclaw-compat
+```
+
+预期：不再存在一方渠道 in-process runtime 创建路径；若 `BaseChannel` 仍存在，必须有清楚的新职责说明。
+
+### 第四批：删除旧 plugin channel config projection
+
+当前 `toPluginConfigView` / `mergePluginConfigView` 是为了把旧插件配置投影成 `channels.<id>` 视图。迁移完成后，所有一方渠道配置应直接存放在 `channels.<id>`，manifest 只提供 schema/hints，不需要旧投影桥。
+
+**重点文件：**
+
+- `packages/nextclaw-openclaw-compat/src/plugins/channel-runtime.utils.ts`
+- `packages/nextclaw-kernel/src/managers/extension.manager.ts`
+- `packages/nextclaw-server/src/features/config/utils/plugin-channel-config-projection.utils.ts`
+- `packages/nextclaw-service/src/commands/channel/channel-config-view.ts`
+- `packages/nextclaw-service/src/cli/commands/config/services/config-commands.service.ts`
+- `packages/nextclaw-service/src/shared/services/gateway/managers/gateway-plugin.manager.ts`
+
+**目标：**
+
+- 删除或改名 `PluginChannelBinding`，不要让新 extension channel 继续背旧 OpenClaw plugin channel 名字。
+- 删除 `toPluginConfigView` / `mergePluginConfigView` 对一方渠道的依赖。
+- 配置 UI、CLI config set/get、channel login 都直接面向 `channels.<id>`。
+- extension manifest channel catalog 成为 UI metadata、channel list、auth/outbound 能力的唯一来源。
+
+**验收：**
+
+```bash
+rg "toPluginConfigView|mergePluginConfigView|PluginChannelBinding|getPluginChannelBindings" packages/nextclaw-kernel packages/nextclaw-service packages/nextclaw-server packages/nextclaw-core
+```
+
+预期：一方渠道路径不再依赖这些旧投影函数。若第三方 OpenClaw plugin 兼容仍需要它们，应隔离到 compat 内部，不让 NextClaw 主链路继续感知。
+
+### 第五批：收敛配置 schema、labels、help 的渠道硬编码
+
+所有渠道迁到 extension manifest 后，core config 不应继续内置每个渠道的详细字段。
+
+**保留：**
+
+- `channels` 作为配置根对象。
+- 通用 `enabled` / account / auth 状态约定。
+- 必要的历史配置迁移逻辑。
+
+**清理：**
+
+- `packages/nextclaw-core/src/features/config/configs/schema.ts` 中旧渠道专属 typed schema。
+- `packages/nextclaw-core/src/features/config/configs/schema.labels.ts` 中旧渠道字段硬编码。
+- `packages/nextclaw-core/src/features/config/configs/schema.help.ts` 中旧渠道字段硬编码。
+- 与旧 typed builtin channel schema 强绑定的测试。
+
+**替代来源：**
+
+- extension manifest `contributes.channels[].configSchema`
+- extension manifest `contributes.channels[].configUiHints`
+- kernel/server 聚合后的 extension channel catalog
+
+### 第六批：清理 marketplace 和开发源里的旧命名
+
+迁移完成后，marketplace 和 dev-source 里仍可能残留 `channel-plugin-*` 作为一方渠道默认包名。
+
+**重点文件：**
+
+- `packages/nextclaw-server/src/features/marketplace/configs/marketplace.constants.config.ts`
+- `packages/nextclaw-kernel/src/features/extension-development-source/utils/*`
+- `packages/nextclaw-service/src/shared/services/marketplace/tests/*`
+- marketplace content/router 测试里引用的 `@nextclaw/channel-plugin-*` 示例。
+
+**目标：**
+
+- 一方渠道统一展示为 `@nextclaw/channel-extension-<id>`。
+- 旧 `channel-plugin-*` 只允许出现在历史文档、迁移说明或第三方兼容测试里。
+
+### 推荐执行顺序
+
+1. 迁完剩余 extension channel。
+2. 删除旧 channel plugin 包和 `@nextclaw/channel-runtime`。
+3. 删除 openclaw-compat 的 bundled channel plugin 装配层。
+4. 收敛 `ChannelManager`，只保留 extension outbound delivery。
+5. 删除 plugin channel config projection 对一方渠道的主链路影响。
+6. 收敛 core config schema/labels/help 的渠道硬编码。
+7. 清理 marketplace/dev-source 的旧 `channel-plugin-*` 命名。
+
+每一步都必须先跑引用搜索，再删代码。不要靠“理论上应该没用了”直接删除。
+
 ## 验证门槛
 
 实施完成前必须通过：
