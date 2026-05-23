@@ -272,7 +272,8 @@ function Invoke-MinimalAppRegionDragProbe {
 function New-MinimalAppRegionApp {
   param(
     [string]$Variant,
-    [string]$WindowOptionLines
+    [string]$WindowOptionLines,
+    [string]$LoadMode
   )
 
   $appRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("nextclaw-minimal-app-region-$Variant-" + [System.Guid]::NewGuid().ToString("N"))
@@ -285,6 +286,31 @@ function New-MinimalAppRegionApp {
   "main": "main.js"
 }
 '@
+
+  $loadScript = if ($LoadMode -eq "http") {
+@'
+  const fs = require("node:fs");
+  const http = require("node:http");
+  const indexPath = path.join(__dirname, "index.html");
+  const server = http.createServer((_request, response) => {
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    response.end(fs.readFileSync(indexPath));
+  });
+  server.listen(0, "127.0.0.1", async () => {
+    const { port } = server.address();
+    await win.loadURL(`http://127.0.0.1:${port}/`);
+    win.show();
+  });
+  app.once("before-quit", () => {
+    server.close();
+  });
+'@
+  } else {
+@'
+  await win.loadFile(path.join(__dirname, "index.html"));
+  win.show();
+'@
+  }
 
   Set-Content -Path (Join-Path $appRoot "main.js") -Encoding UTF8 -Value @"
 const { app, BrowserWindow } = require("electron");
@@ -309,8 +335,7 @@ $WindowOptionLines
     }
   });
 
-  await win.loadFile(path.join(__dirname, "index.html"));
-  win.show();
+$loadScript
 });
 
 app.on("window-all-closed", () => {
@@ -376,13 +401,22 @@ $variants = @(
     frame: false,
     titleBarStyle: "hidden",
 '@
+    LoadMode = "file"
+  },
+  [pscustomobject]@{
+    Name = "frame-false-hidden-http"
+    WindowOptionLines = @'
+    frame: false,
+    titleBarStyle: "hidden",
+'@
+    LoadMode = "http"
   }
 )
 
 Write-Host "[minimal-app-region] electron: $electronCmd"
 
 foreach ($variant in $variants) {
-  $appRoot = New-MinimalAppRegionApp -Variant $variant.Name -WindowOptionLines $variant.WindowOptionLines
+  $appRoot = New-MinimalAppRegionApp -Variant $variant.Name -WindowOptionLines $variant.WindowOptionLines -LoadMode $variant.LoadMode
   Write-Host "[minimal-app-region] $($variant.Name) app: $appRoot"
   $electronProcess = Start-Process -FilePath $electronCmd -ArgumentList @($appRoot) -WorkingDirectory $repoRoot -PassThru
 
