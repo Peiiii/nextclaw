@@ -45,6 +45,7 @@
 - 写或改源码、脚本、测试、运行链路配置前，默认使用 `nextclaw-clean-implementation` skill；涉及 fallback / compatibility / rescue path 时，同时使用 `predictable-behavior-first`。
 - 改完源码、脚本、测试或运行链路配置后，默认使用 `post-edit-maintainability-guard`，再使用 `post-edit-maintainability-review`。
 - 涉及命名、目录、文件组织时，按场景使用 `file-naming-convention`、`role-first-file-organization`、`collapsible-feature-root-architecture`、`file-organization-governance`。
+- 涉及桌面端 installer、DMG、desktop beta preview、`desktop-release` workflow、update manifest 或检查更新发布时，必须使用 `desktop-release-contract-guard`。
 - 用户要求主动干活/继续推进/不要停，或指出任务未完成却停止时，必须使用 `proactive-work-continuation`，吸收最新约束后继续推进到真实完成、真实阻塞或用户明确暂停。
 - 用户指出同类错误反复发生、要求反思/总结教训/避免再次发生时，必须使用 `learning-from-failures`，把教训落到可自动触发的规则、skill、命令、治理脚本或验证流程。
 - 复杂 debug 用 `long-chain-debugging`；复杂跨轮任务、上下文压缩或交接风险用 `iteration-work-notes`，必要时用 `goal-progress-anchor`。
@@ -124,6 +125,7 @@
 - `/release-beta`：执行 NextClaw NPM beta 一键发布闭环，使用 `npm-beta-release`。
 - `/release-beta-npm`：只发布 NPM beta 包，不触发 runtime update channel。
 - `/release-beta-runtime`：只发布 beta runtime update channel，不重复发 NPM 包。
+- `/release-desktop-beta`：发布桌面端 beta preview，使用 `desktop-release-contract-guard` 闭合 installer、portable、update bundle、manifest 与 `desktop-release` workflow。
 - `/release-frontend`：前端一键发布，仅 UI 变更场景。
 
 ## 发布常驻原则

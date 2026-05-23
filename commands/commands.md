@@ -82,4 +82,10 @@
 - 输入格式：`/release-beta-runtime`，可附 `--version <nextclaw-version>`、`--release-tag <tag>`、`--minimum-launcher-version-override <version>` 或 dry-run 说明。
 - 输出/期望行为：使用 `npm-beta-release` 与 `npm-release-contract-guard`；执行 `pnpm release:beta:runtime`。默认读取已发布的 `nextclaw@beta` 版本并闭合 runtime workflow / release assets / gh-pages manifest / 公网 manifest。
 
+## `/release-desktop-beta`
+
+- 用途：发布桌面端 beta preview，包括 installer / portable / update bundle / update manifest 的完整闭环。
+- 输入格式：`/release-desktop-beta`，可附目标版本、tag 或 dry-run 说明。
+- 输出/期望行为：使用 `desktop-release-contract-guard`；先确认发布身份和桌面验证门禁，再创建 GitHub prerelease/tag 并等待 `desktop-release` workflow、release assets、`gh-pages` manifest 与公网 manifest 全部闭合。不能把 `gh release create`、空 assets 页面或只完成部分平台 workflow 当成发布完成。
+
 后续指令在此追加，保持“用途 / 输入格式 / 输出期望”结构，并同步 `AGENTS.md` 索引。
