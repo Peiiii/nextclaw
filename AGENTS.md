@@ -44,6 +44,7 @@
 - 运行 `/validate`、代码改动收尾验证、bugfix 定向验收、冒烟测试或发布闭环判断时，必须使用 `nextclaw-validation-workflow` skill。
 - 写或改源码、脚本、测试、运行链路配置前，默认使用 `nextclaw-clean-implementation` skill；涉及 fallback / compatibility / rescue path 时，同时使用 `predictable-behavior-first`。
 - 改完源码、脚本、测试或运行链路配置后，默认使用 `post-edit-maintainability-guard`，再使用 `post-edit-maintainability-review`。
+- 创建、拆分、移动文件/模块/目录前，必须先判断并读取命名、角色、目录组织相关 skill，再按其规则实现。
 - 涉及命名、目录、文件组织时，按场景使用 `file-naming-convention`、`role-first-file-organization`、`collapsible-feature-root-architecture`、`file-organization-governance`。
 - 涉及桌面端 installer、DMG、desktop beta preview、`desktop-release` workflow、update manifest 或检查更新发布时，必须使用 `desktop-release-contract-guard`。
 - 用户要求主动干活/继续推进/不要停，或指出任务未完成却停止时，必须使用 `proactive-work-continuation`，吸收最新约束后继续推进到真实完成、真实阻塞或用户明确暂停。
