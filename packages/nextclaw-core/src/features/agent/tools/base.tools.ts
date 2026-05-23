@@ -3,6 +3,7 @@ export type ToolSchema = {
   description?: string;
   properties?: Record<string, ToolSchema>;
   required?: string[];
+  additionalProperties?: boolean;
   enum?: unknown[];
   minimum?: number;
   maximum?: number;
@@ -121,6 +122,8 @@ export abstract class Tool {
       const propSchema = properties[key] as ToolSchema | undefined;
       if (propSchema) {
         errors.push(...this.validateValue(val, propSchema, path ? `${path}.${key}` : key));
+      } else if (schema.additionalProperties === false) {
+        errors.push(`${path ? `${path}.` : ""}${key} is not supported`);
       }
     }
     return errors;

@@ -32,7 +32,6 @@ function createFixture() {
       },
     }) as never,
     journalStore: new NcpAgentSessionJournalStore(join(dir, "journal")),
-    sessionManager,
   });
   const manager = new SessionRequestManager({
     ncpSessionManager,

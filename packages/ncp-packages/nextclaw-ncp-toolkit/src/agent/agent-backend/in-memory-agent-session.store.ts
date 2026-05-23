@@ -16,7 +16,7 @@ export class InMemoryAgentSessionStore implements AgentSessionStore {
     this.sessions.set(session.sessionId, structuredClone(session));
   };
 
-  updateSessionMetadata = async (params: {
+  setSessionMetadata = async (params: {
     sessionId: string;
     metadata: Record<string, unknown>;
     updatedAt: string;
@@ -32,6 +32,24 @@ export class InMemoryAgentSessionStore implements AgentSessionStore {
       updatedAt,
     });
     return true;
+  };
+
+  updateSessionMetadata = async (params: {
+    sessionId: string;
+    metadata: Record<string, unknown>;
+    updatedAt: string;
+  }): Promise<boolean> => {
+    const session = this.sessions.get(params.sessionId);
+    if (!session) {
+      return false;
+    }
+    return await this.setSessionMetadata({
+      ...params,
+      metadata: {
+        ...(session.metadata ? structuredClone(session.metadata) : {}),
+        ...structuredClone(params.metadata),
+      },
+    });
   };
 
   deleteSession = async (sessionId: string): Promise<AgentSessionRecord | null> => {

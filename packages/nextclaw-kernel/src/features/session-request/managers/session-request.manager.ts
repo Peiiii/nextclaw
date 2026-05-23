@@ -16,27 +16,20 @@ import {
   type SessionRequestToolResult,
   type SpawnSessionAndRequestParams,
 } from "@nextclaw/core";
-import type { NcpEndpointEvent } from "@nextclaw/ncp";
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
+import {
+  NCP_SESSION_REQUEST_ACCEPTED_EVENT_TYPE,
+  NCP_SESSION_REQUEST_COMPLETED_EVENT_TYPE,
+  NCP_SESSION_REQUEST_FAILED_EVENT_TYPE,
+  type NcpSessionRequestJournalEvent,
+  type NcpSessionRequestJournalEventType,
+} from "@kernel/utils/ncp-agent-session-journal.utils.js";
 
 export type SessionRequestManagerOptions = {
   dispatcher: SessionRequestDispatcher;
   ncpSessionManager: NcpSessionManager;
 };
-
-function toRequestEventType(type: string): string {
-  switch (type) {
-    case "session.request.accepted":
-      return "session.request.accepted";
-    case "session.request.completed":
-      return "session.request.completed";
-    case "session.request.failed":
-      return "session.request.failed";
-    default:
-      throw new Error(`Unsupported session request event type: ${type}`);
-  }
-}
 
 function readRecordLabel(record: AgentSessionRecord): string | undefined {
   return readOptionalString(record.metadata?.label) ?? undefined;
@@ -230,7 +223,7 @@ export class SessionRequestManager {
 
   private appendRequestEvents = async (
     request: SessionRequestRecord,
-    type: string,
+    type: NcpSessionRequestJournalEventType,
   ): Promise<void> => {
     await this.appendRequestEvent(request.sourceSessionId, type, request);
     await this.appendRequestEvent(request.targetSessionId, type, request);
@@ -255,7 +248,7 @@ export class SessionRequestManager {
         finalResponseMessageId: dispatchResult.finalResponseMessageId,
         finalResponseText: dispatchResult.finalResponseText,
       });
-      await this.appendRequestEvents(completedRequest, "session.request.completed");
+      await this.appendRequestEvents(completedRequest, NCP_SESSION_REQUEST_COMPLETED_EVENT_TYPE);
       return this.buildToolResult(this.toSessionRequestPayload(completedRequest, resultContext));
     } catch (error) {
       await Promise.all(acceptedWrites);
@@ -263,7 +256,7 @@ export class SessionRequestManager {
         request,
         error,
       });
-      await this.appendRequestEvents(failedRequest, "session.request.failed");
+      await this.appendRequestEvents(failedRequest, NCP_SESSION_REQUEST_FAILED_EVENT_TYPE);
       return this.buildToolResult(this.toSessionRequestPayload(failedRequest, resultContext));
     }
   };
@@ -291,24 +284,24 @@ export class SessionRequestManager {
       ...request,
       targetMessageId: messageId,
     };
-    await this.appendRequestEvent(request.sourceSessionId, "session.request.accepted", acceptedRequest);
-    await this.appendRequestEvent(request.targetSessionId, "session.request.accepted", acceptedRequest);
+    await this.appendRequestEvent(request.sourceSessionId, NCP_SESSION_REQUEST_ACCEPTED_EVENT_TYPE, acceptedRequest);
+    await this.appendRequestEvent(request.targetSessionId, NCP_SESSION_REQUEST_ACCEPTED_EVENT_TYPE, acceptedRequest);
   };
 
   private appendRequestEvent = async (
     sessionId: string,
-    type: string,
+    type: NcpSessionRequestJournalEventType,
     request: SessionRequestRecord,
   ): Promise<void> => {
     const record = await this.options.ncpSessionManager.getSessionRecord(sessionId);
     const now = new Date().toISOString();
-    const event = {
-      type: toRequestEventType(type),
+    const event: NcpSessionRequestJournalEvent = {
+      type,
       payload: {
         sessionId,
-        request: structuredClone(request) as unknown as Record<string, unknown>,
+        request: structuredClone(request),
       },
-    } as NcpEndpointEvent;
+    };
     await this.options.ncpSessionManager.appendSessionEvent({
       session: {
         sessionId,

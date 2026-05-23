@@ -290,7 +290,7 @@ export class AgentRunRequestManager {
       sessionMetadata: nextMetadata,
       requestMetadata,
     }).metadata;
-    await this.sessionRunManager.patchSessionMetadata(sessionId, () => nextMetadata);
+    await this.sessionRunManager.updateSessionMetadata(sessionId, nextMetadata);
     return nextMetadata;
   };
 

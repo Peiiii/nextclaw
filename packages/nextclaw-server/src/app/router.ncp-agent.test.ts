@@ -201,6 +201,20 @@ class StubNcpAgent implements NcpSessionApi {
     };
   };
 
+  getSessionRecord = async (sessionId: string) => {
+    if (sessionId !== "session-1" && !this.sessionMetadata.has(sessionId)) {
+      return null;
+    }
+    return {
+      sessionId,
+      messages: await this.listSessionMessages(),
+      updatedAt: "2026-03-17T00:00:00.000Z",
+      ...(this.sessionMetadata.has(sessionId)
+        ? { metadata: this.sessionMetadata.get(sessionId) }
+        : {}),
+    };
+  };
+
   updateSession = async (
     sessionId: string,
     patch: { metadata?: Record<string, unknown> | null },
@@ -220,16 +234,22 @@ class StubNcpAgent implements NcpSessionApi {
     };
   };
 
-  patchSessionMetadata = async (
+  setSessionMetadata = async (
     sessionId: string,
-    patcher: (metadata: Record<string, unknown>) => Record<string, unknown> | null,
+    metadata: Record<string, unknown>,
   ): Promise<boolean> => {
-    const current = this.sessionMetadata.get(sessionId) ?? {};
-    const next = patcher(structuredClone(current));
-    if (!next) {
-      return true;
-    }
-    this.sessionMetadata.set(sessionId, next);
+    this.sessionMetadata.set(sessionId, structuredClone(metadata));
+    return true;
+  };
+
+  updateSessionMetadata = async (
+    sessionId: string,
+    metadata: Record<string, unknown>,
+  ): Promise<boolean> => {
+    this.sessionMetadata.set(sessionId, {
+      ...(this.sessionMetadata.get(sessionId) ?? {}),
+      ...structuredClone(metadata),
+    });
     return true;
   };
 

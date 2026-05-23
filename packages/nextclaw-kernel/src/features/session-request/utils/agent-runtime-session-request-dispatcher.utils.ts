@@ -30,6 +30,7 @@ export function waitForAgentRuntimeSessionReply(input: {
   requestId: string;
 }): { dispose: Unsubscribe; promise: Promise<NcpMessage> } {
   let acceptedMessageId: string | null = null;
+  const completedMessagesById = new Map<string, NcpMessage>();
   let unsubscribe: Unsubscribe = () => undefined;
   const promise = new Promise<NcpMessage>((resolve, reject) => {
     unsubscribe = input.eventBus.on(eventKeys.ncpEvent, (event) => {
@@ -41,25 +42,39 @@ export function waitForAgentRuntimeSessionReply(input: {
           }
           return;
         case NcpEventType.MessageCompleted:
-          if (
-            event.payload.correlationId === input.requestId ||
-            event.payload.message.id === acceptedMessageId
-          ) {
+          if (event.payload.correlationId === input.requestId || event.payload.message.id === acceptedMessageId) {
             unsubscribe();
             resolve(event.payload.message);
+            return;
+          }
+          completedMessagesById.set(event.payload.message.id, event.payload.message);
+          return;
+        case NcpEventType.RunFinished:
+          if (
+            ((event.payload as typeof event.payload & { correlationId?: string }).correlationId === input.requestId ||
+              event.payload.messageId === acceptedMessageId) &&
+            event.payload.messageId
+          ) {
+            acceptedMessageId = event.payload.messageId;
+            input.onAccepted(event.payload.messageId);
+            const completedMessage = completedMessagesById.get(event.payload.messageId);
+            if (completedMessage) {
+              unsubscribe();
+              resolve(completedMessage);
+            }
           }
           return;
         case NcpEventType.MessageFailed:
-          if (
-            event.payload.correlationId === input.requestId ||
-            event.payload.messageId === acceptedMessageId
-          ) {
+          if (event.payload.correlationId === input.requestId || event.payload.messageId === acceptedMessageId) {
             unsubscribe();
             reject(new Error(event.payload.error.message));
           }
           return;
         case NcpEventType.RunError:
-          if (event.payload.messageId === acceptedMessageId) {
+          if (
+            (event.payload as typeof event.payload & { correlationId?: string }).correlationId === input.requestId ||
+            event.payload.messageId === acceptedMessageId
+          ) {
             unsubscribe();
             reject(new Error(event.payload.error ?? "Session request failed."));
           }

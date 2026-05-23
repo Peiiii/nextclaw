@@ -1,15 +1,8 @@
-import {
-  type Config,
-  type ContextWindowSnapshot,
-} from "@nextclaw/core";
+import type { Config } from "@nextclaw/core";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
 import { DefaultNcpAgentRuntime, type LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
-  type NcpAgentRunInput,
   type NcpAgentRuntime,
-  type NcpEndpointEvent,
-  NcpEventType,
-  type NcpMessage,
   readAssistantReasoningNormalizationMode,
   readAssistantReasoningNormalizationModeFromMetadata,
   type NcpAssistantReasoningNormalizationMode,
@@ -37,19 +30,6 @@ export type NativeAgentRuntimeFactoryOptions = {
   toolManager: ToolManager;
 };
 
-function createContextWindowUpdatedEvent(params: {
-  contextWindow: ContextWindowSnapshot;
-  sessionId: string;
-}): NcpEndpointEvent {
-  return {
-    type: NcpEventType.ContextWindowUpdated,
-    payload: {
-      sessionId: params.sessionId,
-      contextWindow: params.contextWindow,
-    },
-  };
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -73,43 +53,6 @@ function resolveNativeReasoningNormalizationMode(params: {
   );
 }
 
-async function* publishPreflightResult(params: {
-  input: NcpAgentRunInput;
-  result: {
-    contextWindow: ContextWindowSnapshot;
-    sessionMessages: readonly NcpMessage[];
-    timelineMessage: NcpMessage | null;
-  };
-  stateManager: RuntimeFactoryParams["stateManager"];
-}): AsyncGenerator<NcpEndpointEvent> {
-  const { input, result, stateManager } = params;
-  const contextWindowEvent = createContextWindowUpdatedEvent({
-    contextWindow: result.contextWindow,
-    sessionId: input.sessionId,
-  });
-  await stateManager.dispatch(contextWindowEvent);
-  yield contextWindowEvent;
-  if (!result.timelineMessage) {
-    return;
-  }
-  const activeRun = stateManager.getSnapshot().activeRun;
-  stateManager.hydrate({
-    sessionId: input.sessionId,
-    messages: result.sessionMessages,
-    activeRun,
-    contextWindow: result.contextWindow,
-  });
-  const timelineEvent = {
-    type: NcpEventType.MessageSent,
-    payload: {
-      sessionId: input.sessionId,
-      message: result.timelineMessage,
-    },
-  } as const;
-  await stateManager.dispatch(timelineEvent);
-  yield timelineEvent;
-}
-
 export class NativeAgentRuntimeFactory {
   private readonly observedProviderManager: LlmProviderRuntime;
 
@@ -127,7 +70,7 @@ export class NativeAgentRuntimeFactory {
     setSessionMetadata,
   }: RuntimeFactoryParams): NcpAgentRuntime => {
     let runtimeSessionMetadata = structuredClone(sessionMetadata);
-    const patchSessionMetadata = (nextMetadata: Record<string, unknown>): void => {
+    const updateSessionMetadata = (nextMetadata: Record<string, unknown>): void => {
       runtimeSessionMetadata = { ...runtimeSessionMetadata, ...structuredClone(nextMetadata) };
       setSessionMetadata(runtimeSessionMetadata);
     };
@@ -139,7 +82,7 @@ export class NativeAgentRuntimeFactory {
       reasoningNormalizationMode !== "off" &&
       readAssistantReasoningNormalizationModeFromMetadata(sessionMetadata) !== reasoningNormalizationMode
     ) {
-      patchSessionMetadata(
+      updateSessionMetadata(
         writeAssistantReasoningNormalizationModeToMetadata(
           runtimeSessionMetadata,
           reasoningNormalizationMode,
@@ -168,34 +111,14 @@ export class NativeAgentRuntimeFactory {
     const { onSessionUpdated } = this.options;
     return {
       run: async function* (input, options) {
-        const beginResult = contextCompactionManager.begin({
-          contextWindowOwner: "nextclaw",
-          inputMessages: input.messages,
-          requestMetadata: input.metadata ?? {},
-          sessionId: input.sessionId,
-          sessionMessages: stateManager.getSnapshot().messages,
-          storedAgentId: agentId,
+        yield* contextCompactionManager.runLivePreflight({
+          input,
+          onSessionUpdated,
+          updateSessionMetadata,
+          stateManager,
+          ...(agentId ? { storedAgentId: agentId } : {}),
           storedMetadata: runtimeSessionMetadata,
         });
-        if (beginResult) {
-          patchSessionMetadata(beginResult.metadata);
-          onSessionUpdated(input.sessionId);
-          yield* publishPreflightResult({
-            input,
-            result: beginResult,
-            stateManager,
-          });
-          if (beginResult.pendingCompaction) {
-            const finishResult = await contextCompactionManager.finish(beginResult.pendingCompaction);
-            patchSessionMetadata(finishResult.metadata);
-            onSessionUpdated(input.sessionId);
-            yield* publishPreflightResult({
-              input,
-              result: finishResult,
-              stateManager,
-            });
-          }
-        }
         yield* runtime.run(input, options);
       },
     };

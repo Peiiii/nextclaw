@@ -25,13 +25,34 @@ export type NcpAgentSessionJournalMetadataEntry = {
 };
 
 export const NCP_AGENT_SESSION_SNAPSHOT_MESSAGE_EVENT_TYPE = "session.snapshot.message";
+export const NCP_SESSION_REQUEST_ACCEPTED_EVENT_TYPE = "session.request.accepted";
+export const NCP_SESSION_REQUEST_COMPLETED_EVENT_TYPE = "session.request.completed";
+export const NCP_SESSION_REQUEST_FAILED_EVENT_TYPE = "session.request.failed";
 
 type NcpAgentSessionSnapshotMessageEvent = {
   type: typeof NCP_AGENT_SESSION_SNAPSHOT_MESSAGE_EVENT_TYPE;
   payload: Extract<NcpEndpointEvent, { type: NcpEventType.MessageSent }>["payload"];
 };
 
-export type NcpAgentSessionJournalReplayEvent = NcpEndpointEvent | NcpAgentSessionSnapshotMessageEvent;
+export type NcpSessionRequestJournalEventType =
+  | typeof NCP_SESSION_REQUEST_ACCEPTED_EVENT_TYPE
+  | typeof NCP_SESSION_REQUEST_COMPLETED_EVENT_TYPE
+  | typeof NCP_SESSION_REQUEST_FAILED_EVENT_TYPE;
+
+export type NcpSessionRequestJournalEvent = {
+  type: NcpSessionRequestJournalEventType;
+  payload: {
+    sessionId: string;
+    request: unknown;
+  };
+};
+
+export type NcpAgentSessionJournalReplayEvent =
+  | NcpEndpointEvent
+  | NcpAgentSessionSnapshotMessageEvent
+  | NcpSessionRequestJournalEvent;
+
+type NcpAgentSessionReplayableEvent = NcpEndpointEvent | NcpAgentSessionSnapshotMessageEvent;
 
 export type NcpAgentSessionJournalEventEntry = {
   _type: "event";
@@ -144,6 +165,9 @@ export async function replayNcpAgentSessionEvents(
 ): Promise<NcpMessage[]> {
   const stateManager = new DefaultNcpAgentConversationStateManager();
   for (const event of events) {
+    if (isJournalOnlyEvent(event)) {
+      continue;
+    }
     await stateManager.dispatch(createReplayEvent(event));
   }
   const snapshot = stateManager.getSnapshot();
@@ -153,7 +177,7 @@ export async function replayNcpAgentSessionEvents(
   ];
 }
 
-function createReplayEvent(event: NcpAgentSessionJournalReplayEvent): NcpEndpointEvent {
+function createReplayEvent(event: NcpAgentSessionReplayableEvent): NcpEndpointEvent {
   const replayEvent = structuredClone(event);
   const replayMessage = readMessageFromSummaryEvent(replayEvent);
   if (
@@ -169,6 +193,14 @@ function createReplayEvent(event: NcpAgentSessionJournalReplayEvent): NcpEndpoin
     return { type: NcpEventType.MessageSent, payload: replayEvent.payload };
   }
   return replayEvent;
+}
+
+function isJournalOnlyEvent(event: NcpAgentSessionJournalReplayEvent): event is NcpSessionRequestJournalEvent {
+  return (
+    event.type === NCP_SESSION_REQUEST_ACCEPTED_EVENT_TYPE ||
+    event.type === NCP_SESSION_REQUEST_COMPLETED_EVENT_TYPE ||
+    event.type === NCP_SESSION_REQUEST_FAILED_EVENT_TYPE
+  );
 }
 
 export function readNcpSessionSummaryActivityAt(summary: NcpSessionSummary): string {

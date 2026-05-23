@@ -28,7 +28,7 @@ export type LearningLoopSessionRequester = {
 
 type LearningLoopSessionStore = Pick<
   NcpSessionManager,
-  "getSessionRecord" | "patchSessionMetadata"
+  "getSessionRecord" | "updateSessionMetadata"
 >;
 
 function countToolCallsFromMessage(message: NcpMessage): number {
@@ -166,14 +166,12 @@ export class LearningLoopContribution implements KernelContribution {
           currentToolCallCount: totalToolCalls,
         }),
       });
-      const nextMetadata: Record<string, unknown> = {
-        ...metadata,
+      await this.sessionStore.updateSessionMetadata(sessionId, {
         [LEARNING_LOOP_LAST_TOOL_CALL_COUNT_METADATA_KEY]: totalToolCalls,
         [LEARNING_LOOP_LAST_REQUESTED_AT_METADATA_KEY]: new Date().toISOString(),
         [LEARNING_LOOP_LAST_REVIEW_SESSION_ID_METADATA_KEY]:
           reviewSession.sessionId,
-      };
-      await this.sessionStore.patchSessionMetadata(sessionId, () => nextMetadata);
+      });
     } finally {
       this.inFlightSessionIds.delete(sessionId);
     }

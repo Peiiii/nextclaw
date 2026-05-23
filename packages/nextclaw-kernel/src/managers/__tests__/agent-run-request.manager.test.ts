@@ -97,12 +97,16 @@ function createDispatchingRuntimeManagerStub() {
 }
 
 class TestNcpSessionManager {
-  private liveMetadataPatcher: ((sessionId: string, metadata: Record<string, unknown>) => void) | null = null;
+  private liveMetadataWriter:
+    | ((sessionId: string, metadata: Record<string, unknown>, mode: "set" | "update") => void)
+    | null = null;
 
   constructor(private readonly sessionStore: InMemoryAgentSessionStore) {}
 
-  installLiveMetadataPatcher = (patcher: (sessionId: string, metadata: Record<string, unknown>) => void) => {
-    this.liveMetadataPatcher = patcher;
+  installLiveMetadataWriter = (
+    writer: (sessionId: string, metadata: Record<string, unknown>, mode: "set" | "update") => void,
+  ) => {
+    this.liveMetadataWriter = writer;
   };
 
   createSession = async (params: {
@@ -146,24 +150,37 @@ class TestNcpSessionManager {
   getSessionRecord = async (sessionId: string): Promise<AgentSessionRecord | null> =>
     await this.sessionStore.getSession(sessionId);
 
-  patchSessionMetadata = async (
+  setSessionMetadata = async (
     sessionId: string,
-    patcher: (metadata: Record<string, unknown>) => Record<string, unknown> | null,
+    metadata: Record<string, unknown>,
   ): Promise<boolean> => {
     const session = await this.sessionStore.getSession(sessionId);
     if (!session) {
       return false;
     }
-    const nextMetadata = patcher(structuredClone(session.metadata ?? {}));
-    if (!nextMetadata) {
+    await this.sessionStore.setSessionMetadata({
+      sessionId,
+      metadata,
+      updatedAt: new Date().toISOString(),
+    });
+    this.liveMetadataWriter?.(sessionId, metadata, "set");
+    return true;
+  };
+
+  updateSessionMetadata = async (
+    sessionId: string,
+    metadata: Record<string, unknown>,
+  ): Promise<boolean> => {
+    const session = await this.sessionStore.getSession(sessionId);
+    if (!session) {
       return false;
     }
     await this.sessionStore.updateSessionMetadata({
       sessionId,
-      metadata: nextMetadata,
+      metadata,
       updatedAt: new Date().toISOString(),
     });
-    this.liveMetadataPatcher?.(sessionId, nextMetadata);
+    this.liveMetadataWriter?.(sessionId, metadata, "update");
     return true;
   };
 

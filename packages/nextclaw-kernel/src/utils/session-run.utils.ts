@@ -248,6 +248,7 @@ export function normalizeSendRunEvent(params: {
     if (!message) {
       throw new Error(`Run finished without a final assistant message for session "${session.sessionId}".`);
     }
+    const correlationId = (event.payload as typeof event.payload & { correlationId?: string }).correlationId;
     return {
       eventsToPublish: [
         {
@@ -255,6 +256,7 @@ export function normalizeSendRunEvent(params: {
           payload: {
             sessionId: session.sessionId,
             message,
+            ...(correlationId ? { correlationId } : {}),
           },
         },
         event,

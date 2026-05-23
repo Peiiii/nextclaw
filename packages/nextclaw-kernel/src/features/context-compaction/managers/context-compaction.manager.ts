@@ -13,7 +13,13 @@ import {
   type Config,
   type ContextWindowSnapshot,
 } from "@nextclaw/core";
-import type { NcpMessage } from "@nextclaw/ncp";
+import {
+  type NcpAgentRunInput,
+  type NcpEndpointEvent,
+  NcpEventType,
+  type NcpMessage,
+} from "@nextclaw/ncp";
+import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
 import {
   normalizeString,
@@ -27,14 +33,14 @@ import { projectNcpMessagesWithContextCompaction } from "@kernel/features/contex
 
 export type ContextWindowOwner = "nextclaw" | "runtime";
 
-export type ContextCompactionPreflightResult = {
+export type ContextCompactionResult = {
   contextWindow: ContextWindowSnapshot;
   metadata: Record<string, unknown>;
   sessionMessages: NcpMessage[];
   timelineMessage: NcpMessage | null;
 };
 
-export type ContextCompactionPreflightBeginResult = ContextCompactionPreflightResult & {
+export type ContextCompactionBeginResult = ContextCompactionResult & {
   pendingCompaction: ContextCompactionPendingWork | null;
 };
 
@@ -129,6 +135,19 @@ function buildContextWindowSnapshotFromBudget(params: {
   });
 }
 
+function createContextWindowUpdatedEvent(params: {
+  contextWindow: ContextWindowSnapshot;
+  sessionId: string;
+}): NcpEndpointEvent {
+  return {
+    type: NcpEventType.ContextWindowUpdated,
+    payload: {
+      sessionId: params.sessionId,
+      contextWindow: params.contextWindow,
+    },
+  };
+}
+
 export class ContextCompactionManager {
   private readonly compactionService = new ContextCompactionService();
   private readonly contextWindowBudgetService = new ContextWindowBudgetService();
@@ -140,23 +159,48 @@ export class ContextCompactionManager {
     },
   ) {}
 
-  run = async (params: {
-    contextWindowOwner: ContextWindowOwner;
-    inputMessages: readonly NcpMessage[];
-    requestMetadata: Record<string, unknown>;
-    sessionId: string;
-    sessionMessages: readonly NcpMessage[];
-    storedAgentId?: string;
-    storedMetadata: Record<string, unknown>;
-  }): Promise<ContextCompactionPreflightResult | null> => {
-    const beginResult = this.begin(params);
+  runLivePreflight = async function* (
+    this: ContextCompactionManager,
+    params: {
+      input: NcpAgentRunInput;
+      onSessionUpdated: (sessionId: string) => void;
+      stateManager: RuntimeFactoryParams["stateManager"];
+      storedAgentId?: string;
+      storedMetadata: Record<string, unknown>;
+      updateSessionMetadata: (metadata: Record<string, unknown>) => void;
+    },
+  ): AsyncGenerator<NcpEndpointEvent> {
+    const { input, onSessionUpdated, stateManager, storedAgentId, storedMetadata, updateSessionMetadata } = params;
+    const beginResult = this.begin({
+      contextWindowOwner: "nextclaw",
+      inputMessages: input.messages,
+      requestMetadata: input.metadata ?? {},
+      sessionId: input.sessionId,
+      sessionMessages: stateManager.getSnapshot().messages,
+      storedAgentId,
+      storedMetadata,
+    });
     if (!beginResult) {
-      return null;
+      return;
     }
+    updateSessionMetadata(beginResult.metadata);
+    onSessionUpdated(input.sessionId);
+    yield* this.publishLivePreflightResult({
+      input,
+      result: beginResult,
+      stateManager,
+    });
     if (!beginResult.pendingCompaction) {
-      return beginResult;
+      return;
     }
-    return await this.finish(beginResult.pendingCompaction);
+    const finishResult = await this.finish(beginResult.pendingCompaction);
+    updateSessionMetadata(finishResult.metadata);
+    onSessionUpdated(input.sessionId);
+    yield* this.publishLivePreflightResult({
+      input,
+      result: finishResult,
+      stateManager,
+    });
   };
 
   preview = (params: {
@@ -204,7 +248,7 @@ export class ContextCompactionManager {
     sessionMessages: readonly NcpMessage[];
     storedAgentId?: string;
     storedMetadata: Record<string, unknown>;
-  }): ContextCompactionPreflightBeginResult | null => {
+  }): ContextCompactionBeginResult | null => {
     const {
       contextWindowOwner,
       inputMessages,
@@ -332,7 +376,7 @@ export class ContextCompactionManager {
 
   finish = async (
     pending: ContextCompactionPendingWork,
-  ): Promise<ContextCompactionPreflightResult> => {
+  ): Promise<ContextCompactionResult> => {
     const compacted = await this.compactionService.compactPreparedForModelInput({
       contextTokens: pending.contextTokens,
       plan: pending.plan,
@@ -413,5 +457,45 @@ export class ContextCompactionManager {
       throw new Error("context compaction summary is empty");
     }
     return summary;
+  };
+
+  private publishLivePreflightResult = async function* (
+    this: ContextCompactionManager,
+    params: {
+      input: NcpAgentRunInput;
+      result: {
+        contextWindow: ContextWindowSnapshot;
+        sessionMessages: readonly NcpMessage[];
+        timelineMessage: NcpMessage | null;
+      };
+      stateManager: RuntimeFactoryParams["stateManager"];
+    },
+  ): AsyncGenerator<NcpEndpointEvent> {
+    const { input, result, stateManager } = params;
+    const contextWindowEvent = createContextWindowUpdatedEvent({
+      contextWindow: result.contextWindow,
+      sessionId: input.sessionId,
+    });
+    await stateManager.dispatch(contextWindowEvent);
+    yield contextWindowEvent;
+    if (!result.timelineMessage) {
+      return;
+    }
+    const activeRun = stateManager.getSnapshot().activeRun;
+    stateManager.hydrate({
+      sessionId: input.sessionId,
+      messages: result.sessionMessages,
+      activeRun,
+      contextWindow: result.contextWindow,
+    });
+    const timelineEvent = {
+      type: NcpEventType.MessageSent,
+      payload: {
+        sessionId: input.sessionId,
+        message: result.timelineMessage,
+      },
+    } as const;
+    await stateManager.dispatch(timelineEvent);
+    yield timelineEvent;
   };
 }

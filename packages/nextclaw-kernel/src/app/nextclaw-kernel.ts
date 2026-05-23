@@ -192,7 +192,6 @@ export class NextclawKernel {
       isLiveSessionRunning: (sessionId) => this.sessionRunManager?.isRunning(sessionId) ?? false,
       journalStore: this.ncpAgentSessionJournalStore,
       onSessionUpdated: this.sessionSearch.handleSessionUpdated,
-      sessionManager: this.sessions,
     });
     this.sessionRequests = new SessionRequestManager({
       ncpSessionManager: this.ncpSessionManager,

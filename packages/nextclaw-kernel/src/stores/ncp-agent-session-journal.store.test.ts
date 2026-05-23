@@ -389,4 +389,32 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
     });
     expect(session?.messages).toHaveLength(1);
   });
+
+  it("preserves child-session relation metadata when updating runtime metadata", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+    await store.importSessionSnapshot({
+      ...createRecord([]),
+      metadata: {
+        label: "Child",
+        parent_session_id: "parent-session-1",
+        spawned_by_request_id: "request-1",
+      },
+    });
+
+    await store.updateSessionMetadata({
+      sessionId,
+      metadata: { last_activity_preview: { state: "completed" } },
+      updatedAt: "2026-05-14T00:00:03.000Z",
+    });
+
+    const reloaded = new NcpAgentSessionJournalStore(tempDir);
+    const session = await reloaded.getSession(sessionId);
+    expect(session?.metadata).toMatchObject({
+      parent_session_id: "parent-session-1",
+      spawned_by_request_id: "request-1",
+      last_activity_preview: { state: "completed" },
+    });
+  });
+
 });

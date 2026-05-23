@@ -57,35 +57,52 @@ class AppendRecordingSessionStore extends InMemoryAgentSessionStore {
 }
 
 class TestNcpSessionManager {
-  private liveMetadataPatcher: ((sessionId: string, metadata: Record<string, unknown>) => void) | null = null;
+  private liveMetadataWriter:
+    | ((sessionId: string, metadata: Record<string, unknown>, mode: "set" | "update") => void)
+    | null = null;
 
   constructor(private readonly sessionStore: InMemoryAgentSessionStore) {}
 
-  installLiveMetadataPatcher = (patcher: (sessionId: string, metadata: Record<string, unknown>) => void) => {
-    this.liveMetadataPatcher = patcher;
+  installLiveMetadataWriter = (
+    writer: (sessionId: string, metadata: Record<string, unknown>, mode: "set" | "update") => void,
+  ) => {
+    this.liveMetadataWriter = writer;
   };
 
   getSessionRecord = async (sessionId: string): Promise<AgentSessionRecord | null> =>
     await this.sessionStore.getSession(sessionId);
 
-  patchSessionMetadata = async (
+  setSessionMetadata = async (
     sessionId: string,
-    patcher: (metadata: Record<string, unknown>) => Record<string, unknown> | null,
+    metadata: Record<string, unknown>,
   ): Promise<boolean> => {
     const session = await this.sessionStore.getSession(sessionId);
     if (!session) {
       return false;
     }
-    const nextMetadata = patcher(structuredClone(session.metadata ?? {}));
-    if (!nextMetadata) {
+    await this.sessionStore.setSessionMetadata({
+      sessionId,
+      metadata,
+      updatedAt: new Date().toISOString(),
+    });
+    this.liveMetadataWriter?.(sessionId, metadata, "set");
+    return true;
+  };
+
+  updateSessionMetadata = async (
+    sessionId: string,
+    metadata: Record<string, unknown>,
+  ): Promise<boolean> => {
+    const session = await this.sessionStore.getSession(sessionId);
+    if (!session) {
       return false;
     }
     await this.sessionStore.updateSessionMetadata({
       sessionId,
-      metadata: nextMetadata,
+      metadata,
       updatedAt: new Date().toISOString(),
     });
-    this.liveMetadataPatcher?.(sessionId, nextMetadata);
+    this.liveMetadataWriter?.(sessionId, metadata, "update");
     return true;
   };
 
@@ -130,7 +147,7 @@ class TestNcpSessionManager {
 }
 
 describe("SessionRunManager", () => {
-  it("patches live metadata from the in-memory session truth", async () => {
+  it("updates live metadata from the in-memory session truth", async () => {
     const sessionStore = new InMemoryAgentSessionStore();
     await sessionStore.saveSession({
       sessionId: "session-1",
@@ -146,18 +163,16 @@ describe("SessionRunManager", () => {
     });
     await manager.getOrCreateLiveSession("session-1");
 
-    const readAtPatch = manager.patchSessionMetadata("session-1", (metadata) => ({
-      ...metadata,
+    const readAtPatch = manager.updateSessionMetadata("session-1", {
       ui_last_read_at: "2026-05-22T00:00:01.000Z",
-    }));
-    const previewPatch = manager.patchSessionMetadata("session-1", (metadata) => ({
-      ...metadata,
+    });
+    const previewPatch = manager.updateSessionMetadata("session-1", {
       last_activity_preview: {
         state: "running",
         timestamp: "2026-05-22T00:00:02.000Z",
         statusText: "正在调用工具：exec",
       },
-    }));
+    });
     await Promise.all([readAtPatch, previewPatch]);
 
     const stored = await sessionStore.getSession("session-1");
@@ -186,10 +201,9 @@ describe("SessionRunManager", () => {
       ncpSessionManager: new TestNcpSessionManager(sessionStore) as never,
     });
     await manager.getOrCreateLiveSession("session-1");
-    await manager.patchSessionMetadata("session-1", (metadata) => ({
-      ...metadata,
+    await manager.updateSessionMetadata("session-1", {
       last_activity_preview: { state: "completed", timestamp: "2026-05-22T00:00:01.000Z" },
-    }));
+    });
 
     await manager.appendSessionEvent("session-1", {
       type: NcpEventType.RunFinished,
@@ -228,7 +242,7 @@ describe("SessionRunManager", () => {
       ncpSessionManager: new TestNcpSessionManager(sessionStore) as never,
     });
     await manager.getOrCreateLiveSession("session-1");
-    runtimeParams?.setSessionMetadata({ runtime: "native" });
+    runtimeParams?.updateSessionMetadata({ runtime: "native" });
     await manager.appendSessionEvent("session-1", {
       type: NcpEventType.RunFinished,
       payload: { sessionId: "session-1", runId: "run-1" },
@@ -244,7 +258,7 @@ describe("SessionRunManager", () => {
     await manager.dispose();
   });
 
-  it("patches stored metadata through the same owner API when the session is not live", async () => {
+  it("updates stored metadata through the same owner API when the session is not live", async () => {
     const sessionStore = new InMemoryAgentSessionStore();
     await sessionStore.saveSession({
       sessionId: "session-1",
@@ -259,17 +273,16 @@ describe("SessionRunManager", () => {
       ncpSessionManager: new TestNcpSessionManager(sessionStore) as never,
     });
 
-    const patched = await manager.patchSessionMetadata("session-1", (metadata) => ({
-      ...metadata,
+    const updated = await manager.updateSessionMetadata("session-1", {
       last_activity_preview: {
         state: "completed",
         timestamp: "2026-05-22T00:00:01.000Z",
         replyText: "final preview",
       },
-    }));
+    });
 
     const stored = await sessionStore.getSession("session-1");
-    expect(patched).toBe(true);
+    expect(updated).toBe(true);
     expect(stored?.metadata).toMatchObject({
       label: "Stored session",
       last_activity_preview: {

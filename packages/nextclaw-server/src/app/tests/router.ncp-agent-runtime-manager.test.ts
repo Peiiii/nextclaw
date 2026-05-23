@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, expect, it, vi } from "vitest";
-import { ConfigSchema, saveConfig, SessionManager } from "@nextclaw/core";
+import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import {
   AgentRunRequestManager,
   NcpAgentSessionJournalStore,
@@ -118,12 +118,10 @@ it("routes ncp send through AgentRunRequestManager and stores the assistant repl
   const runtimeManager = createReplyingRuntimeManager();
   const eventBus = new EventBus();
   const sessionsDir = createTempDir("nextclaw-ui-ncp-runtime-sessions-");
-  const sessions = new SessionManager({ sessionsDir });
   const ncpSessionManager = new NcpSessionManager({
     eventBus,
     getConfig: () => ConfigSchema.parse({}),
     journalStore: new NcpAgentSessionJournalStore(join(sessionsDir, ".ncp-agent-journal")),
-    sessionManager: sessions,
   });
   const sessionRunManager = new SessionRunManager({
     agentRuntimeManager: runtimeManager,

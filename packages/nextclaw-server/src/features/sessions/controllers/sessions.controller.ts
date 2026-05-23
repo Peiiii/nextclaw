@@ -223,10 +223,15 @@ export class NcpSessionRoutesController {
       const projectRootPatch = Object.prototype.hasOwnProperty.call(patch, "projectRoot")
         ? await normalizeSessionProjectRoot(patch.projectRoot)
         : undefined;
-      patched = await sessionManager.patchSessionMetadata(
-        sessionId,
-        (metadata) => buildPatchedSessionMetadata(metadata, patch, projectRootPatch),
+      const existing = await sessionManager.getSessionRecord(sessionId);
+      const metadata = buildPatchedSessionMetadata(
+        readSessionMetadata(existing?.metadata),
+        patch,
+        projectRootPatch,
       );
+      patched = existing
+        ? await sessionManager.setSessionMetadata(sessionId, metadata)
+        : Boolean(await sessionManager.updateSession(sessionId, { metadata }));
     } catch (error) {
       if (error instanceof Error && error.message === "PREFERRED_THINKING_INVALID") {
         return c.json(err("PREFERRED_THINKING_INVALID", "preferredThinking must be a supported thinking level"), 400);

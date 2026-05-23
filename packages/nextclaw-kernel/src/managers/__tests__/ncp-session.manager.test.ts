@@ -149,7 +149,7 @@ describe("NcpSessionManager", () => {
     });
   });
 
-  it("patches metadata and publishes realtime summary events from one owner", async () => {
+  it("updates metadata and publishes realtime summary events from one owner", async () => {
     const fixture = await createFixture([
       createRecord({
         sessionId: "session-1",
@@ -169,6 +169,37 @@ describe("NcpSessionManager", () => {
     expect(updated?.metadata).toEqual({ label: "After" });
     expect(fixture.onSessionUpdated).toHaveBeenCalledWith("session-1");
     expect(events).toEqual(["session.summary.upsert", "session.summary.delete"]);
+  });
+
+  it("merges session metadata updates without dropping child-session identity", async () => {
+    const fixture = await createFixture([
+      createRecord({
+        sessionId: "child-session-1",
+        metadata: {
+          label: "Child",
+          parent_session_id: "parent-session-1",
+          spawned_by_request_id: "request-1",
+        },
+      }),
+    ]);
+
+    const updated = await fixture.manager.updateSession("child-session-1", {
+      metadata: {
+        last_activity_preview: {
+          state: "completed",
+          timestamp: "2026-05-23T00:00:00.000Z",
+        },
+      },
+    });
+
+    expect(updated?.metadata).toMatchObject({
+      label: "Child",
+      parent_session_id: "parent-session-1",
+      spawned_by_request_id: "request-1",
+      last_activity_preview: {
+        state: "completed",
+      },
+    });
   });
 
   it("creates new sessions in the journal instead of legacy SessionManager", async () => {

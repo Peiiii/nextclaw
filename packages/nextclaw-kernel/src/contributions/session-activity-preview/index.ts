@@ -7,6 +7,7 @@ import { writeSessionActivityPreviewMetadata } from "./utils/session-activity-pr
 
 export class SessionActivityPreviewContribution implements KernelContribution {
   private unsubscribeNcpEvent: Unsubscribe | null = null;
+  private readonly metadataWriteChains = new Map<string, Promise<void>>();
 
   constructor(private readonly kernel: NextclawKernel) {}
 
@@ -26,19 +27,28 @@ export class SessionActivityPreviewContribution implements KernelContribution {
   dispose = (): void => {
     this.unsubscribeNcpEvent?.();
     this.unsubscribeNcpEvent = null;
+    this.metadataWriteChains.clear();
   };
 
   private updatePreview = (projection: SessionActivityPreviewProjection): void => {
-    void this.kernel.ncpSessionManager
-      .patchSessionMetadata(
-        projection.sessionId,
-        (metadata) => writeSessionActivityPreviewMetadata(metadata, projection),
-      )
+    const previous = this.metadataWriteChains.get(projection.sessionId) ?? Promise.resolve();
+    const next = previous.then(() => this.updatePreviewMetadata(projection));
+    this.metadataWriteChains.set(projection.sessionId, next.catch(() => undefined));
+    void next
       .catch((error: unknown) => {
         const message = error instanceof Error ? error.stack ?? error.message : String(error);
         console.error(
           `[session-activity-preview] failed to update ${projection.sessionId}: ${message}`,
         );
       });
+  };
+
+  private updatePreviewMetadata = async (projection: SessionActivityPreviewProjection): Promise<void> => {
+    const session = await this.kernel.ncpSessionManager.getSessionRecord(projection.sessionId);
+    const nextMetadata = writeSessionActivityPreviewMetadata(session?.metadata, projection);
+    if (!nextMetadata) {
+      return;
+    }
+    await this.kernel.ncpSessionManager.updateSessionMetadata(projection.sessionId, nextMetadata);
   };
 }

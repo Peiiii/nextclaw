@@ -15,27 +15,30 @@ function createKernelStub(initialMetadata: Record<string, unknown>) {
   const eventBus = new EventBus();
   let metadata = structuredClone(initialMetadata);
   const updateSession = vi.fn();
-  const patchSessionMetadata = vi.fn(async (
+  const getSessionRecord = vi.fn(async () => ({
+    sessionId: "session-1",
+    messages: [],
+    updatedAt: "2026-05-21T00:00:00.000Z",
+    metadata: structuredClone(metadata),
+  }));
+  const updateSessionMetadata = vi.fn(async (
     _sessionId: string,
-    patcher: (current: Record<string, unknown>) => Record<string, unknown> | null,
+    nextMetadata: Record<string, unknown>,
   ) => {
-    const nextMetadata = patcher(structuredClone(metadata));
-    if (!nextMetadata) {
-      return false;
-    }
-    metadata = structuredClone(nextMetadata);
+    metadata = { ...metadata, ...structuredClone(nextMetadata) };
     return true;
   });
 
   return {
     eventBus,
     getMetadata: () => metadata,
-    patchSessionMetadata,
+    updateSessionMetadata,
     updateSession,
     kernel: {
       eventBus,
       ncpSessionManager: {
-        patchSessionMetadata,
+        getSessionRecord,
+        updateSessionMetadata,
       },
     } as unknown as NextclawKernel,
   };
@@ -43,7 +46,7 @@ function createKernelStub(initialMetadata: Record<string, unknown>) {
 
 describe("SessionActivityPreviewContribution", () => {
   it("routes preview writes through the ncp session manager instead of updating the store directly", async () => {
-    const { eventBus, getMetadata, kernel, patchSessionMetadata, updateSession } = createKernelStub({
+    const { eventBus, getMetadata, kernel, updateSessionMetadata, updateSession } = createKernelStub({
       [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: {
         state: "running",
         statusText: "正在处理...",
@@ -76,7 +79,7 @@ describe("SessionActivityPreviewContribution", () => {
 
     await flushPromises();
 
-    expect(patchSessionMetadata).toHaveBeenCalledTimes(2);
+    expect(updateSessionMetadata).toHaveBeenCalledTimes(2);
     expect(updateSession).not.toHaveBeenCalled();
     expect(getMetadata()[SESSION_ACTIVITY_PREVIEW_METADATA_KEY]).toMatchObject({
       state: "completed",

@@ -23,10 +23,6 @@ function readOptionalString(value: unknown): string | undefined {
 
 type SessionSpawnScope = "standalone" | "child";
 
-type SessionSpawnRequestOptions = {
-  notify: SessionRequestNotifyMode;
-};
-
 function readSpawnScope(value: unknown): SessionSpawnScope {
   const normalized = readOptionalString(value)?.toLowerCase();
   if (!normalized || normalized === "standalone") {
@@ -38,23 +34,15 @@ function readSpawnScope(value: unknown): SessionSpawnScope {
   throw new Error('scope must be "standalone" or "child".');
 }
 
-function readSpawnRequestOptions(
-  value: unknown,
-): SessionSpawnRequestOptions | undefined {
-  if (typeof value === "undefined") {
+function readSpawnNotify(value: unknown): SessionRequestNotifyMode | undefined {
+  const notifyMode = readOptionalString(value)?.toLowerCase();
+  if (!notifyMode && typeof value === "undefined") {
     return undefined;
   }
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("request must be an object.");
-  }
-  const record = value as Record<string, unknown>;
-  const notifyMode = readOptionalString(record.notify)?.toLowerCase();
   if (notifyMode === "none" || notifyMode === "final_reply") {
-    return {
-      notify: notifyMode,
-    };
+    return notifyMode;
   }
-  throw new Error('request.notify must be "none" or "final_reply".');
+  throw new Error('notify must be "none" or "final_reply".');
 }
 
 export class SessionSpawnTool extends Tool {
@@ -74,7 +62,7 @@ export class SessionSpawnTool extends Tool {
   }
 
   get description(): string {
-    return "Create a new session. Use scope=\"child\" to create a child session of the current flow, and add request.notify to control whether this session should continue after the new session finishes.";
+    return "Create a new session. Use scope=\"child\" to create a child session of the current flow, and add notify when the new session should start immediately.";
   }
 
   get parameters(): Record<string, unknown> {
@@ -83,7 +71,7 @@ export class SessionSpawnTool extends Tool {
       properties: {
         task: {
           type: "string",
-          description: "Seed text used to title the new session. If request is provided, this same task is also sent as the first request to that new session.",
+          description: "Seed text used to title the new session. If notify is provided, this same task is also sent as the first request to that new session.",
         },
         scope: {
           type: "string",
@@ -106,20 +94,14 @@ export class SessionSpawnTool extends Tool {
           type: "string",
           description: "Optional target agent id for the new session. Omit to use the default agent.",
         },
-        request: {
-          type: "object",
-          description: "Optional initial request to run immediately inside the new session.",
-          properties: {
-            notify: {
-              type: "string",
-              enum: ["none", "final_reply"],
-              description: "Whether the current session should continue after the new session finishes. Use \"final_reply\" to continue after the new session reaches its final reply.",
-            },
-          },
-          required: ["notify"],
+        notify: {
+          type: "string",
+          enum: ["none", "final_reply"],
+          description: "Optional. Starts the new session immediately. Use \"final_reply\" to continue this session after the new session reaches its final reply, or \"none\" to let it run independently.",
         },
       },
       required: ["task"],
+      additionalProperties: false,
     };
   }
 
@@ -137,7 +119,7 @@ export class SessionSpawnTool extends Tool {
     const {
       agentId: rawAgentId,
       model: rawModel,
-      request: rawRequest,
+      notify: rawNotify,
       runtime: rawRuntime,
       scope: rawScope,
       task: rawTask,
@@ -145,11 +127,11 @@ export class SessionSpawnTool extends Tool {
     } = params;
     const task = readRequiredString(rawTask, "task");
     const scope = readSpawnScope(rawScope);
-    const request = readSpawnRequestOptions(rawRequest);
+    const notify = readSpawnNotify(rawNotify);
     const parentSessionId = scope === "child" ? this.readParentSessionIdOrThrow() : undefined;
     const { toolCallId, updateToolCallResult } = context;
 
-    if (request) {
+    if (notify) {
       return this.sessionRequestManager.spawnSessionAndRequest({
         sourceSessionId: this.sourceSessionId,
         ...(toolCallId ? { sourceToolCallId: toolCallId } : {}),
@@ -162,7 +144,7 @@ export class SessionSpawnTool extends Tool {
         runtime: readOptionalString(rawRuntime),
         handoffDepth: this.handoffDepth,
         ...(parentSessionId ? { parentSessionId } : {}),
-        notify: request.notify,
+        notify,
       });
     }
 

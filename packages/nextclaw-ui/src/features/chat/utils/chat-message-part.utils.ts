@@ -21,7 +21,6 @@ import { buildFileOperationCardData } from "./file-operation/card.utils";
 import { buildSessionRequestToolCard } from "./chat-message-session-request-tool-card.utils";
 import type {
   ChatMessagePartViewModel,
-  ChatToolPartViewModel,
 } from "@nextclaw/agent-chat-ui";
 import type {
   ChatMessageAdapterTexts,
@@ -39,6 +38,17 @@ type ChatMessagePartAdapterParams = {
   texts: ChatMessageAdapterTexts;
 };
 
+function readInvalidToolArgumentsError(value: unknown): Record<string, unknown> | null {
+  const error = typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as { error?: unknown }).error
+    : null;
+  return typeof error === "object" &&
+    error !== null &&
+    !Array.isArray(error) &&
+    (error as { code?: unknown }).code === "invalid_tool_arguments"
+    ? error as Record<string, unknown>
+    : null;
+}
 
 function buildReasoningPart(
   part: Extract<ChatMessagePartSource, { type: "reasoning" }>,
@@ -113,6 +123,10 @@ function buildToolInvocationPart(
     result: invocation.result,
     texts,
   });
+  const invalidArgsError = readInvalidToolArgumentsError(invocation.result);
+  const invalidArgsIssue = Array.isArray(invalidArgsError?.issues)
+    ? invalidArgsError.issues.find((issue): issue is string => typeof issue === "string" && issue.trim().length > 0)
+    : undefined;
   const fileOperationCardData = buildFileOperationCardData({
     toolName: invocation.toolName,
     status: invocation.status,
@@ -121,14 +135,14 @@ function buildToolInvocationPart(
     parsedArgs: invocation.parsedArgs,
     result: invocation.result,
   });
-  const detail =
-    fileOperationCardData?.summary ??
-    summarizeToolArgs(invocation.parsedArgs ?? invocation.args);
-  const input = fileOperationCardData
-    ? undefined
-    : buildToolInvocationInput(invocation.args, invocation.parsedArgs);
+  const detail = invalidArgsIssue
+    ? `Invalid arguments: ${invalidArgsIssue}`
+    : fileOperationCardData?.summary ?? summarizeToolArgs(invocation.parsedArgs ?? invocation.args);
+  const input = fileOperationCardData ? undefined : buildToolInvocationInput(invocation.args, invocation.parsedArgs);
   const rawResult =
-    typeof invocation.error === "string" && invocation.error.trim()
+    invalidArgsIssue
+      ? invalidArgsIssue
+      : typeof invocation.error === "string" && invocation.error.trim()
       ? invocation.error.trim()
       : invocation.result != null
         ? stringifyUnknown(invocation.result).trim()
@@ -149,8 +163,8 @@ function buildToolInvocationPart(
     outputData: invocation.result,
     callId: invocation.toolCallId || undefined,
     hasResult: statusView.hasResult,
-    statusTone: statusView.statusTone,
-    statusLabel: statusView.statusLabel,
+    statusTone: invalidArgsError ? "error" : statusView.statusTone,
+    statusLabel: invalidArgsError ? texts.toolStatusFailedLabel : statusView.statusLabel,
     ...(fileOperationCardData?.fileOperation
       ? { fileOperation: fileOperationCardData.fileOperation }
       : {}),
@@ -217,17 +231,18 @@ function isToolInvocationPart(
 export function adaptChatMessagePart(
   params: ChatMessagePartAdapterParams,
 ): ChatMessagePartViewModel | null {
-  if (isTextPart(params.part)) {
-    return buildTextPart(params.part, params.inlineTokens);
+  const { inlineTokens, part, texts } = params;
+  if (isTextPart(part)) {
+    return buildTextPart(part, inlineTokens);
   }
-  if (isReasoningPart(params.part)) {
-    return buildReasoningPart(params.part, params.texts);
+  if (isReasoningPart(part)) {
+    return buildReasoningPart(part, texts);
   }
-  if (isFilePart(params.part)) {
-    return buildFilePart(params.part, params.texts);
+  if (isFilePart(part)) {
+    return buildFilePart(part, texts);
   }
-  if (isToolInvocationPart(params.part)) {
-    return buildToolInvocationPart(params.part, params.texts);
+  if (isToolInvocationPart(part)) {
+    return buildToolInvocationPart(part, texts);
   }
-  return buildUnknownPart(params.part, params.texts);
+  return buildUnknownPart(part, texts);
 }

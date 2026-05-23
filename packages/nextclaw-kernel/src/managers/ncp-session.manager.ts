@@ -3,13 +3,11 @@ import type {
   Config,
   CreatedSession,
   CreateSessionInput,
-  SessionManager,
 } from "@nextclaw/core";
 import { BUILTIN_MAIN_AGENT_ID } from "@nextclaw/core";
 import type {
   ListMessagesOptions,
   ListSessionsOptions,
-  NcpEndpointEvent,
   NcpMessage,
   NcpSessionApi,
   NcpSessionPatch,
@@ -18,11 +16,10 @@ import type {
 import { NcpEventType } from "@nextclaw/ncp";
 import type { AgentSessionEventRecord, AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import { ContextCompactionManager } from "@kernel/features/context-compaction/index.js";
-import { NcpAgentLegacySessionStore } from "@kernel/stores/ncp-agent-legacy-session.store.js";
 import type { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import {
   createNcpAgentSessionSummary,
-  readNcpSessionSummaryActivityAt,
+  type NcpAgentSessionJournalReplayEvent,
 } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import { eventKeys, type EventBus } from "@nextclaw/shared";
 
@@ -39,12 +36,13 @@ export type NcpSessionManagerOptions = {
   isLiveSessionRunning?: (sessionId: string) => boolean;
   journalStore: NcpAgentSessionJournalStore;
   onSessionUpdated?: (sessionKey: string) => void | Promise<void>;
-  sessionManager: SessionManager;
 };
 
-type LiveMetadataPatcher = (
+type LiveMetadataWriteMode = "set" | "update";
+type LiveMetadataWriter = (
   sessionId: string,
   metadata: Record<string, unknown>,
+  mode: LiveMetadataWriteMode,
 ) => void;
 
 function normalizeSessionId(sessionId: string): string {
@@ -168,21 +166,7 @@ function applySessionOverrides(params: {
   }
 }
 
-function buildUpdatedMetadata(params: {
-  existingMetadata?: Record<string, unknown>;
-  patch: NcpSessionPatch;
-}): Record<string, unknown> {
-  const { existingMetadata, patch } = params;
-  if (patch.metadata === null) {
-    return {};
-  }
-  if (patch.metadata) {
-    return structuredClone(patch.metadata);
-  }
-  return structuredClone(existingMetadata ?? {});
-}
-
-function isSessionSummaryRefreshEvent(event: NcpEndpointEvent): boolean {
+function isSessionSummaryRefreshEvent(event: NcpAgentSessionJournalReplayEvent): boolean {
   switch (event.type) {
     case NcpEventType.MessageSent:
     case NcpEventType.MessageCompleted:
@@ -197,18 +181,16 @@ function isSessionSummaryRefreshEvent(event: NcpEndpointEvent): boolean {
 
 export class NcpSessionManager implements NcpSessionApi {
   private readonly contextWindowPreview: ContextCompactionManager;
-  private readonly legacyStore: NcpAgentLegacySessionStore;
-  private liveMetadataPatcher: LiveMetadataPatcher | null = null;
+  private liveMetadataWriter: LiveMetadataWriter | null = null;
 
   constructor(private readonly options: NcpSessionManagerOptions) {
-    this.legacyStore = new NcpAgentLegacySessionStore(options.sessionManager);
     this.contextWindowPreview = new ContextCompactionManager({
       getConfig: options.getConfig,
     });
   }
 
-  installLiveMetadataPatcher = (patcher: LiveMetadataPatcher): void => {
-    this.liveMetadataPatcher = patcher;
+  installLiveMetadataWriter = (writer: LiveMetadataWriter): void => {
+    this.liveMetadataWriter = writer;
   };
 
   createSession = async (params: CreateSessionInput): Promise<CreatedSession> => {
@@ -284,7 +266,7 @@ export class NcpSessionManager implements NcpSessionApi {
 
   appendSessionEvent = async (params: {
     session: AgentSessionEventRecord;
-    event: NcpEndpointEvent;
+    event: NcpAgentSessionJournalReplayEvent;
     updatedAt: string;
   }): Promise<void> => {
     const { event, session, updatedAt } = params;
@@ -292,20 +274,13 @@ export class NcpSessionManager implements NcpSessionApi {
     if (!sessionId) {
       return;
     }
-    const journalHasSession = await this.options.journalStore.hasSession(sessionId);
-    if (!journalHasSession) {
-      const legacyRecord = this.legacyStore.getSession(sessionId);
-      if (legacyRecord) {
-        await this.options.journalStore.importSessionSnapshot(legacyRecord);
-      }
-    }
     await this.options.journalStore.appendSessionEvent({
       event,
       updatedAt,
       session: {
         ...session,
         sessionId,
-        metadata: journalHasSession ? {} : structuredClone(session.metadata ?? {}),
+        metadata: structuredClone(session.metadata ?? {}),
       },
     });
     if (isSessionSummaryRefreshEvent(event)) {
@@ -313,32 +288,46 @@ export class NcpSessionManager implements NcpSessionApi {
     }
   };
 
-  patchSessionMetadata = async (
+  setSessionMetadata = async (
     sessionId: string,
-    patcher: (metadata: Record<string, unknown>) => Record<string, unknown> | null,
+    metadata: Record<string, unknown>,
   ): Promise<boolean> => {
     const normalizedSessionId = normalizeSessionId(sessionId);
     if (!normalizedSessionId) {
       return false;
     }
-    const existing = await this.getSessionRecord(normalizedSessionId);
-    if (!existing) {
-      return false;
-    }
-    const nextMetadata = patcher(structuredClone(existing.metadata ?? {}));
-    if (!nextMetadata) {
-      return false;
-    }
     const updatedAt = new Date().toISOString();
-    const updated = await this.options.journalStore.updateSessionMetadata({
+    const updated = await this.options.journalStore.setSessionMetadata({
       sessionId: normalizedSessionId,
-      metadata: structuredClone(nextMetadata),
+      metadata: structuredClone(metadata),
       updatedAt,
     });
     if (!updated) {
       return false;
     }
-    this.liveMetadataPatcher?.(normalizedSessionId, nextMetadata);
+    this.liveMetadataWriter?.(normalizedSessionId, metadata, "set");
+    await this.publishSessionChange(normalizedSessionId);
+    return true;
+  };
+
+  updateSessionMetadata = async (
+    sessionId: string,
+    metadata: Record<string, unknown>,
+  ): Promise<boolean> => {
+    const normalizedSessionId = normalizeSessionId(sessionId);
+    if (!normalizedSessionId) {
+      return false;
+    }
+    const updatedAt = new Date().toISOString();
+    const updated = await this.options.journalStore.updateSessionMetadata({
+      sessionId: normalizedSessionId,
+      metadata: structuredClone(metadata),
+      updatedAt,
+    });
+    if (!updated) {
+      return false;
+    }
+    this.liveMetadataWriter?.(normalizedSessionId, metadata, "update");
     await this.publishSessionChange(normalizedSessionId);
     return true;
   };
@@ -347,10 +336,12 @@ export class NcpSessionManager implements NcpSessionApi {
     sessionId: string,
     patch: NcpSessionPatch,
   ): Promise<NcpSessionSummary | null> => {
-    const updated = await this.patchSessionMetadata(
-      sessionId,
-      (metadata) => buildUpdatedMetadata({ existingMetadata: metadata, patch }),
-    );
+    if (!Object.prototype.hasOwnProperty.call(patch, "metadata")) {
+      return await this.getSession(sessionId);
+    }
+    const updated = patch.metadata === null
+      ? await this.setSessionMetadata(sessionId, {})
+      : await this.updateSessionMetadata(sessionId, patch.metadata ?? {});
     return updated ? await this.getSession(sessionId) : null;
   };
 
@@ -360,7 +351,6 @@ export class NcpSessionManager implements NcpSessionApi {
       return;
     }
     await this.options.journalStore.deleteSession(normalizedSessionId);
-    this.legacyStore.deleteSession(normalizedSessionId);
     await this.publishSessionChange(normalizedSessionId);
   };
 
@@ -369,17 +359,11 @@ export class NcpSessionManager implements NcpSessionApi {
     if (!normalizedSessionId) {
       return null;
     }
-    return await this.options.journalStore.getSession(normalizedSessionId)
-      ?? this.legacyStore.getSession(normalizedSessionId);
+    return await this.options.journalStore.getSession(normalizedSessionId);
   };
 
   listSessions = async (options?: ListSessionsOptions): Promise<NcpSessionSummary[]> => {
-    const journalSummaries = await this.options.journalStore.listSessionSummaries();
-    const journalIds = new Set(journalSummaries.map((summary) => summary.sessionId));
-    const legacySummaries = this.legacyStore.listSessionSummaries()
-      .filter((summary) => !journalIds.has(summary.sessionId));
-    const summaries = [...journalSummaries, ...legacySummaries]
-      .sort((left, right) => readNcpSessionSummaryActivityAt(right).localeCompare(readNcpSessionSummaryActivityAt(left)));
+    const summaries = await this.options.journalStore.listSessionSummaries();
     return applyLimit(summaries, options?.limit).map(this.withLiveSessionStatus);
   };
 
@@ -391,9 +375,7 @@ export class NcpSessionManager implements NcpSessionApi {
     if (!normalizedSessionId) {
       return [];
     }
-    const messages = await this.options.journalStore.hasSession(normalizedSessionId)
-      ? await this.options.journalStore.listSessionMessages(normalizedSessionId)
-      : this.legacyStore.listSessionMessages(normalizedSessionId);
+    const messages = await this.options.journalStore.listSessionMessages(normalizedSessionId);
     return applyLimit(messages, options?.limit);
   };
 
