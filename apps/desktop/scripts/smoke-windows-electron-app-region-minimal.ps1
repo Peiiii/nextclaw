@@ -277,7 +277,8 @@ function New-MinimalAppRegionApp {
     [string]$WebPreferenceLines = "      sandbox: true",
     [string]$Layout = "simple",
     [switch]$Preload,
-    [switch]$StartupDrag
+    [switch]$StartupDrag,
+    [switch]$DisableGpu
   )
 
   $appRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("nextclaw-minimal-app-region-$Variant-" + [System.Guid]::NewGuid().ToString("N"))
@@ -373,11 +374,13 @@ contextBridge.exposeInMainWorld("nextclawMinimalPreload", {
 '@
   }
 
+  $gpuSwitchScript = if ($DisableGpu) { 'app.commandLine.appendSwitch("disable-gpu");' } else { "" }
+
   Set-Content -Path (Join-Path $appRoot "main.js") -Encoding UTF8 -Value @"
 const { app, BrowserWindow } = require("electron");
 const path = require("node:path");
 
-app.commandLine.appendSwitch("disable-gpu");
+$gpuSwitchScript
 
 app.whenReady().then(async () => {
   const createMinimalWindow = () => new BrowserWindow({
@@ -630,6 +633,18 @@ $variants = @(
     Preload = $true
   },
   [pscustomobject]@{
+    Name = "nextclaw-layout-http-preload-sandbox-false-gpu-enabled"
+    WindowOptionLines = "    frame: false,"
+    LoadMode = "http"
+    WebPreferenceLines = @'
+      sandbox: false,
+      preload: path.join(__dirname, "preload.js")
+'@
+    Layout = "nextclaw"
+    Preload = $true
+    DisableGpu = $false
+  },
+  [pscustomobject]@{
     Name = "frame-false-hidden-data-http-preload-sandbox-false-no-startup-drag"
     WindowOptionLines = @'
     frame: false,
@@ -695,8 +710,9 @@ foreach ($variant in $variants) {
   $variantLayout = if ($variant.PSObject.Properties.Name -contains "Layout") { $variant.Layout } else { "simple" }
   $variantPreload = $variant.PSObject.Properties.Name -contains "Preload" -and $variant.Preload
   $variantStartupDrag = $variant.PSObject.Properties.Name -contains "StartupDrag" -and $variant.StartupDrag
+  $variantDisableGpu = -not ($variant.PSObject.Properties.Name -contains "DisableGpu") -or $variant.DisableGpu
   $variantExpectCaption = -not ($variant.PSObject.Properties.Name -contains "ExpectCaption") -or $variant.ExpectCaption
-  $appRoot = New-MinimalAppRegionApp -Variant $variant.Name -WindowOptionLines $variant.WindowOptionLines -LoadMode $variantLoadMode -WebPreferenceLines $variantWebPreferenceLines -Layout $variantLayout -Preload:$variantPreload -StartupDrag:$variantStartupDrag
+  $appRoot = New-MinimalAppRegionApp -Variant $variant.Name -WindowOptionLines $variant.WindowOptionLines -LoadMode $variantLoadMode -WebPreferenceLines $variantWebPreferenceLines -Layout $variantLayout -Preload:$variantPreload -StartupDrag:$variantStartupDrag -DisableGpu:$variantDisableGpu
   Write-Host "[minimal-app-region] $($variant.Name) app: $appRoot"
   $electronProcess = Start-Process -FilePath $electronCmd -ArgumentList @($appRoot) -WorkingDirectory $repoRoot -PassThru
 
