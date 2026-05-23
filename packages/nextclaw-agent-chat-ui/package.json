@@ -29,7 +29,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown src/index.ts --dts --clean --target es2022 --no-fixedExtension",
+    "build": "tsdown src/index.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension",
     "prepack": "pnpm run build",
     "lint": "cd ../.. && eslint \"packages/nextclaw-agent-chat-ui/src/**/*.{ts,tsx}\" packages/nextclaw-agent-chat-ui/vite.config.ts",
     "test": "vitest run",

@@ -32,7 +32,7 @@
     ]
   },
   "scripts": {
-    "build": "tsdown \"src/**/*.ts\" \"!src/**/*.test.ts\" \"!src/**/tests/**\" --dts --clean --target es2022 --no-fixedExtension --unbundle",
+    "build": "tsdown \"src/**/*.ts\" \"!src/**/*.test.ts\" \"!src/**/tests/**\" --dts.sourcemap --clean --target es2022 --no-fixedExtension --unbundle",
     "prepack": "pnpm run build",
     "lint": "eslint .",
     "tsc": "tsc -p tsconfig.json",

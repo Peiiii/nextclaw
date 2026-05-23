@@ -19,7 +19,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown src/index.ts --dts --clean --target es2022 --no-fixedExtension && node scripts/copy-css.mjs",
+    "build": "tsdown src/index.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension && node scripts/copy-css.mjs",
     "prepack": "pnpm run build",
     "lint": "cd ../../.. && pnpm exec eslint packages/ncp-packages/nextclaw-ncp-react-ui --config packages/ncp-packages/nextclaw-ncp-react-ui/eslint.config.mjs",
     "tsc": "tsc -p tsconfig.json",

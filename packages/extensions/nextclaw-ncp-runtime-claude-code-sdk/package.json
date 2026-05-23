@@ -11,7 +11,7 @@
     }
   },
   "scripts": {
-    "build": "tsdown src/index.ts --dts --clean --target es2022 --no-fixedExtension --unbundle",
+    "build": "tsdown src/index.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension --unbundle",
     "prepack": "pnpm run build",
     "lint": "eslint .",
     "test": "vitest run src/utils/anthropic-openai-bridge-stream.utils.test.ts",

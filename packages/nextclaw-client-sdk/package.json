@@ -35,7 +35,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsdown src/index.ts --dts --clean --target es2022 --no-fixedExtension --unbundle",
+    "build": "tsdown src/index.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension --unbundle",
     "prepack": "pnpm run build",
     "lint": "eslint src --max-warnings=0",
     "tsc": "tsc -p tsconfig.json",

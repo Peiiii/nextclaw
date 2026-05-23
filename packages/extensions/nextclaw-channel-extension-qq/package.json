@@ -17,7 +17,7 @@
     "nextclaw.extension.json"
   ],
   "scripts": {
-    "build": "tsdown src/index.ts src/main.ts --dts --clean --target es2022 --no-fixedExtension --unbundle",
+    "build": "tsdown src/index.ts src/main.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension --unbundle",
     "prepack": "pnpm run build",
     "lint": "eslint src --max-warnings=0",
     "test": "node --import tsx --test src/tests/*.test.ts",

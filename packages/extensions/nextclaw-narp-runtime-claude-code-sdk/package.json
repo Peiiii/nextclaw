@@ -15,7 +15,7 @@
     }
   },
   "scripts": {
-    "build": "tsdown src/index.ts src/controllers/claude-code-narp.controller.ts --dts --clean --target es2022 --no-fixedExtension --unbundle",
+    "build": "tsdown src/index.ts src/controllers/claude-code-narp.controller.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension --unbundle",
     "prepack": "pnpm run build",
     "lint": "eslint .",
     "tsc": "tsc -p tsconfig.json",
