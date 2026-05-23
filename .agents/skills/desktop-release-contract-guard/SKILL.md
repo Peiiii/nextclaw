@@ -112,6 +112,14 @@ description: Use when building, verifying, or releasing NextClaw desktop install
   - after commit, verify `git diff --cached` is empty unless the user intentionally has other staged work.
 - Prefer JSON summary commands and the closure script over full workflow step dumps in chat. Full job logs should be opened only for failed jobs or ambiguous states.
 
+## Existing Release Recovery
+- If a desktop release workflow has already created the release/tag and uploaded valid assets, do not create a new desktop tag only to recover a failed downstream publish step.
+- First classify the failed job:
+  - product build, smoke, bundle, manifest, or asset upload failed: fix the product or packaging owner, then create a new release identity if delivered bits changed;
+  - `publish-desktop-update-channels` or `publish-linux-apt-repo` failed after assets were uploaded: fix the publishing workflow and rerun `desktop-release` with `workflow_dispatch release_tag=<existing-tag>`.
+- When rerunning an existing formal release tag, trigger the workflow from the branch containing the workflow fix, but keep `release_tag` pointing at the existing tag. The build jobs must still checkout the release tag, so the shipped desktop bits remain the original release identity.
+- A rerun is not complete until the rerun itself is green and the existing release assets, `gh-pages` update manifests, public Pages manifests, and stable-only APT repo all align with the same tag/version.
+
 ## Release Completion Gate
 - Treat tag creation or `gh release create` success as the start signal, not the finish line.
 - For preview builds intended for human install/update testing, the shipped identities must change when the delivered bits change:
@@ -124,9 +132,19 @@ description: Use when building, verifying, or releasing NextClaw desktop install
   - `publish-release-assets`
   - `publish-desktop-update-channels`
   - `publish-linux-apt-repo` for stable releases
+- If a stable release reaches `publish-release-assets=success` but `publish-desktop-update-channels` or `publish-linux-apt-repo` fails, report it as a partial release, not completion.
 - Stable website/download links are downstream publication surfaces, not release inputs. Do not update public stable download links before the release assets and public update manifests are verified; otherwise a transient failed or empty release can become the official user path.
 - Release assets may stay empty while the workflow is still running. Do not treat an empty `assets[]` list as proof of either success or final failure until the workflow attempt is finished.
 - If packaging, smoke, bundle, and manifest steps already passed and the only failure is `actions/upload-artifact@v4` reporting `Upload progress stalled.`, rerun failed jobs first before changing product code or packaging logic.
+
+## GitHub Pages Publishing Pitfalls
+- `gh-pages` is a publishing surface with its own auth and large-push failure modes; do not assume a successful checkout or release asset upload proves `gh-pages` can be fetched and pushed.
+- In GitHub Actions jobs that fetch or push `gh-pages`, explicitly configure the remote/auth before `git ls-remote`, `git fetch`, `git worktree add`, or `git push`:
+  - use the workflow `github.token` as an HTTP extraheader for both the checkout repo and the `.tmp/gh-pages` worktree;
+  - keep the remote URL in normal `https://github.com/<owner>/<repo>.git` form rather than embedding the token in the URL;
+  - for stable Linux APT publishing, configure the worktree for large HTTP pushes, for example `http.postBuffer` and `http.version HTTP/1.1`.
+- The failure `fatal: could not read Username for 'https://github.com': No such device or address` means the `gh-pages` fetch/push path lacks usable credentials even if earlier public `ls-remote` checks looked fine.
+- The failure `unable to rewind rpc post data` with `HTTP 401` during APT push usually means the large push/auth transport path is unstable; fix the auth/header and large-push git config before rerunning, rather than changing package artifacts or creating another tag.
 
 ## Release Notes Contract
 - Formal desktop release notes are part of the release contract, not post-release decoration.

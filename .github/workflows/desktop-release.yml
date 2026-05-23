@@ -525,7 +525,9 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf .tmp/gh-pages
-          git remote set-url origin "https://x-access-token:${GH_PAGES_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          GH_PAGES_AUTH_HEADER="$(printf 'x-access-token:%s' "${GH_PAGES_PUSH_TOKEN}" | base64 -w0)"
+          git remote set-url origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ${GH_PAGES_AUTH_HEADER}"
 
           if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
             git fetch origin gh-pages
@@ -536,6 +538,7 @@ jobs:
             git -C .tmp/gh-pages rm -rf . >/dev/null 2>&1 || true
             find .tmp/gh-pages -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           fi
+          git -C .tmp/gh-pages config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ${GH_PAGES_AUTH_HEADER}"
 
       - name: Stage desktop update channel files
         shell: bash
@@ -611,7 +614,9 @@ jobs:
           set -euo pipefail
           rm -rf .tmp/gh-pages .tmp/current-pages-apt dist/linux-apt-input
           mkdir -p dist/linux-apt-input
-          git remote set-url origin "https://x-access-token:${GH_PAGES_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          GH_PAGES_AUTH_HEADER="$(printf 'x-access-token:%s' "${GH_PAGES_PUSH_TOKEN}" | base64 -w0)"
+          git remote set-url origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ${GH_PAGES_AUTH_HEADER}"
 
           if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
             git fetch origin gh-pages
@@ -628,6 +633,9 @@ jobs:
             git -C .tmp/gh-pages rm -rf . >/dev/null 2>&1 || true
             find .tmp/gh-pages -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           fi
+          git -C .tmp/gh-pages config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ${GH_PAGES_AUTH_HEADER}"
+          git -C .tmp/gh-pages config --local http.postBuffer 157286400
+          git -C .tmp/gh-pages config --local http.version HTTP/1.1
 
       - name: Stage Linux desktop packages for APT
         shell: bash
