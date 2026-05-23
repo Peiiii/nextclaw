@@ -389,7 +389,7 @@ app.on("window-all-closed", () => {
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $desktopRoot = Resolve-Path (Join-Path $scriptRoot "..")
 $repoRoot = Resolve-Path (Join-Path $desktopRoot "..\..")
-$electronCmd = Resolve-Path (Join-Path $desktopRoot "node_modules\.bin\electron.cmd")
+$electronCmd = Resolve-Path (Join-Path $desktopRoot "node_modules\electron\dist\electron.exe")
 $variants = @(
   [pscustomobject]@{
     Name = "frame-false"

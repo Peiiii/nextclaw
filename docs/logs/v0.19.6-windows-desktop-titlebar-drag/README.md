@@ -14,6 +14,7 @@
 - 十三次排查：`v0.19.24-desktop-beta.7` 使用真实鼠标拖动窗口标题栏空白点后，窗口几何位置仍为 `delta=(0,0)`；因此当前 Electron 官方 `app-region` 链路在本应用的 Windows packaged 环境中确实未生效，不能继续把问题归因到 renderer DOM/CSS 命中面。根因未完全定位，下一步必须做同 Electron 版本的最小复现，对比是 Electron/CI/版本层问题，还是本应用窗口生命周期或 runtime 加载路径阻断了 draggable region 注册。
 - 十四次排查修正十三次结论：同 Electron 版本的最小 `frame:false` 应用在 Windows CI 中返回 `HTCAPTION(2)`，证明官方 `app-region` 能注册到 native hit-test；但同一个最小应用的 synthetic mouse drag 仍为 `delta=(0,0)`，证明 CI 鼠标几何拖动不能作为最终验收。当前更准确的结论是：NextClaw 应用链路没有让标题栏点返回 `HTCAPTION(2)`，而不是 Electron 官方方案整体不可用。
 - 十五次修正：把 Windows titlebar 的 drag owner 从空的透明 absolute overlay 改为真实可见的 header 背景元素，保留侧栏、窗口按钮和顶部 resize strip 为 `no-drag`；这针对的是“DOM 命中空 overlay 正确，但 Electron native draggable region 未聚合”的差异。
+- 十六次排查：新增最小 HTTP variant 后，`http://127.0.0.1` 页面同样返回 `HTCAPTION(2)`，因此 NextClaw 的问题也不是因为 renderer 通过本地 HTTP 加载；当前剩余差异继续指向应用结构、窗口生命周期或更细的 webPreferences / preload 组合。
 - 根因：
   - 窗口最小尺寸由 [desktop-window-options.utils.ts](../../../apps/desktop/src/utils/desktop-window-options.utils.ts) 写死为 `1080x720`，导致只能缩小一点点。
   - 首轮只补齐 CSS 拖拽声明，但 Windows title bar overlay 的右上角 native controls 区域仍被同一个 draggable DOM 矩形覆盖。Electron 的 Window Controls Overlay 合同要求 overlay 下方 DOM 不可用，因此拖拽命中区不能伸到 caption buttons 下方。
@@ -28,6 +29,7 @@
   - 十三次排查证明真实鼠标拖动也不会移动窗口；当前已确认 renderer 侧官方 `app-region` 条件成立，但 native 窗口没有执行拖拽。根因未完全定位，剩余不确定因素在 Electron/Chromium draggable region 注册、Windows packaged runtime 窗口生命周期、或当前 Electron 版本/CI 交互环境之间。
   - 十四次最小复现修正根因边界：最小 Electron `frame:false` 应用的同一客户区点返回 `HTCAPTION(2)`，但 synthetic mouse drag 仍不会移动窗口；因此 CI synthetic mouse 不能证明真实拖拽，`HTCAPTION(2)` 才是当前可自动化的 native registration gate。NextClaw 的差异仍是返回 `HTCLIENT(1)`。
   - 十五次修正的当前假设：Electron/Chromium 对空透明 absolute app-region overlay 的 native draggable region 聚合与普通 DOM hit-test 不等价；即使 `elementFromPoint` 与 computed style 都显示 `drag`，也可能不进入 Win32 `HTCAPTION`。因此将 drag contract 放到真实承载背景和尺寸的 header 上。
+  - 十六次排查排除本地 HTTP 加载来源：最小 Electron 通过 `http://127.0.0.1` 加载同一 titlebar 时仍返回 `HTCAPTION(2)`。
 - 修复方式：
   - Windows `BrowserWindow` 最小尺寸降到 `420x320`，允许真实小窗使用。
   - Windows 窗口参数调整为 VS Code 风格的 custom titlebar 合同：`frame: false`、`titleBarStyle: "hidden"` 与 `titleBarOverlay`；不再混用 `thickFrame: true`。
@@ -69,6 +71,7 @@
 - 十五次修正已通过：`pnpm -C packages/nextclaw-ui test -- src/platforms/desktop/components/desktop-app-shell.test.tsx`
 - 十五次修正已通过：`pnpm -C packages/nextclaw-ui exec eslint src/platforms/desktop/components/desktop-window-chrome.tsx src/platforms/desktop/components/desktop-app-shell.test.tsx`
 - 十五次修正已通过：`pnpm -C packages/nextclaw-ui build`，仍有既有 Vite chunk size warning。
+- 十六次排查修正：最小 Electron app-region smoke 改为直接启动 `node_modules/electron/dist/electron.exe`，避免 `electron.cmd` wrapper 进程清理不完整影响后续 Windows build step。
 - 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
 - 已通过：`pnpm lint:new-code:governance -- apps/desktop/src/utils/desktop-window-options.utils.ts apps/desktop/src/utils/desktop-window-options.utils.test.ts packages/nextclaw-ui/src/platforms/desktop/components/desktop-window-chrome.tsx packages/nextclaw-ui/src/platforms/desktop/components/desktop-app-shell.test.tsx docs/logs/v0.19.6-windows-desktop-titlebar-drag/README.md`
 - 已通过：`pnpm check:governance-backlog-ratchet`
