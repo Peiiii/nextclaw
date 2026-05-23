@@ -8,6 +8,7 @@
 - 从 `@nextclaw/channel-runtime` 的旧 builtin runtime factory、公共导出和源码目录彻底移除 QQ 实现；`QQChannel` 由 `@nextclaw/channel-extension-qq` 自己拥有。
 - 将 QQ extension 加入 kernel 内置 extension manifest discovery 和 service builtin extension package 列表。
 - 后续收尾补丁将 QQ extension 对 `@nextclaw/channel-runtime` 的依赖拆除，QQ 包内保留自己的 `services/qq-channel.service.ts` 和定向测试，旧 runtime 只继续承载尚未迁移的旧渠道。
+- 继续删除 QQ 迁移后的旧 runtime 依赖残留：`@nextclaw/channel-runtime` 不再声明 `qq-official-bot`，QQ SDK 只由 `@nextclaw/channel-extension-qq` 持有；同时清理 QQ service 内部无效参数、临时变量、重复 metadata 分支、非必要公开方法表面和 QQ 自定义 bus 镜像类型。
 
 ## 测试/验证/验收方式
 
@@ -18,6 +19,9 @@
 - `pnpm -C packages/extensions/nextclaw-channel-extension-qq tsc`、`lint`、`build`：通过。
 - `pnpm -C packages/extensions/nextclaw-channel-extension-qq test`：通过，5 个用例。
 - `pnpm -C packages/extensions/nextclaw-channel-runtime tsc`、`lint`、`build`：通过；lint 仍有既有 warning。
+- QQ 迁移残留清理补丁验证：`pnpm install --lockfile-only --ignore-scripts`、`pnpm -C packages/extensions/nextclaw-channel-extension-qq tsc`、`lint`、`test`、`build`、`pnpm -C packages/extensions/nextclaw-channel-runtime tsc`、`lint`、`build`、`pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet`、`git diff --check` 均通过。
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature`：通过，非测试代码 `+15 / -27 / net -12`，仅提示 QQ service 接近文件预算。
+- `rg "params\\.[a-zA-Z0-9_]*(runtime|Runtime|gateway|Gateway|owner|Owner)\\.[a-zA-Z0-9_]+\\s*=" packages/extensions/nextclaw-channel-extension-qq/src/services/qq-channel.service.ts`：无结果。
 - `pnpm -C packages/nextclaw-kernel test -- src/services/extension-runtime.service.test.ts --run`：通过，4 个用例。
 - `pnpm -C packages/nextclaw-kernel tsc`、`lint`：通过。
 - `pnpm -C packages/nextclaw-service test -- src/commands/channel/channels.test.ts src/commands/channel/builtin-channels.test.ts --run`：通过，5 个用例。
@@ -47,6 +51,7 @@
 - maintainability guard 结果：总计 `+553 / -317 / net +236`，非测试代码 `+267 / -293 / net -26`，满足非功能改动净减要求。
 - 正向减债：删除旧 QQ plugin 包、旧 bundled plugin 注册路径和旧 runtime factory；QQ 接入代码收敛到最小 extension 模板。
 - 后续收尾补丁正向减债：删除 QQ 对旧 `@nextclaw/channel-runtime` owner 的依赖，迁移后 diff 总计 `+81 / -92 / net -11`，非测试代码 `+71 / -73 / net -2`，严格非功能口径通过；遗留 warning 仅为 QQ service 接近文件预算。
+- 本轮 QQ 清理补丁继续正向减债：删除旧 runtime 的 `qq-official-bot` 依赖声明和 lockfile importer，清理 QQ service 的无效 `messageType` 参数、无消费返回字段、`payload` 临时变量、重复 `userId/userName` 分支，并将 `isAllowed` 收为私有方法；QQ extension 入口直接使用 SDK 标准 `BusChannelMessageBus`，不再维护 QQ 私有 bus 镜像类型。
 - 已使用 post-edit maintainability guard；遗留 warning 为既有文件增长/目录预算风险，本轮没有加重红区复杂度。
 
 ## NPM 包发布记录

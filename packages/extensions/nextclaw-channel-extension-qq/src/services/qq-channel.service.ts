@@ -1,4 +1,4 @@
-import type { BusChannelInboundMessage, BusChannelRuntime } from "@nextclaw/extension-sdk";
+import type { BusChannelMessageBus, BusChannelRuntime } from "@nextclaw/extension-sdk";
 import {
   Bot,
   ReceiverMode,
@@ -9,8 +9,6 @@ import {
 
 export type QQChannelConfig = { appId?: string; secret?: string; allowFrom?: string[] };
 
-export type QQChannelBus = { publishInbound: (message: BusChannelInboundMessage) => Promise<void> };
-
 type QQMessageEvent = PrivateMessageEvent | GroupMessageEvent;
 type QQMessageType = "private" | "group";
 type QQRawUser = Partial<Record<
@@ -19,7 +17,7 @@ type QQRawUser = Partial<Record<
 >>;
 type QQRawEvent = { author?: QQRawUser; sender?: QQRawUser; group_openid?: string };
 type QQIncomingIdentity = { messageId: string; rawEvent: QQRawEvent; senderId: string };
-type QQIncomingRoute = { chatId: string; messageType: QQMessageType; metadata: Record<string, unknown> };
+type QQIncomingRoute = { chatId: string; metadata: Record<string, unknown> };
 
 export class QQChannel {
   name = "qq";
@@ -35,7 +33,7 @@ export class QQChannel {
   private readonly reconnectMaxMs = 60000;
   protected readonly connectTimeoutMs: number = 90000;
 
-  constructor(private readonly config: QQChannelConfig, private readonly bus: QQChannelBus) {}
+  constructor(private readonly config: QQChannelConfig, private readonly bus: BusChannelMessageBus) {}
 
   start = async (): Promise<void> => {
     if (!this.config.appId || !this.config.secret) {
@@ -67,14 +65,12 @@ export class QQChannel {
 
     const qqMeta = (msg.metadata?.qq as Record<string, unknown> | undefined) ?? {};
     const messageType = (qqMeta.messageType as QQMessageType | undefined) ?? "private";
-    const metadataMessageId = (msg.metadata?.message_id as string | undefined) ?? null;
-    const sourceId = msg.replyTo ?? metadataMessageId ?? undefined;
-    const source = sourceId ? { id: sourceId } : undefined;
-    const rawContent = msg.content ?? "";
-    const payload = rawContent;
+    const replyTo = msg.replyTo ?? (msg.metadata?.message_id as string | undefined);
+    const source = replyTo ? { id: replyTo } : undefined;
+    const rawContent = msg.content;
 
     try {
-      await this.sendByMessageType({ messageType, qqMeta, msg, payload, source });
+      await this.sendByMessageType({ messageType, qqMeta, msg, payload: rawContent, source });
     } catch (error) {
       if (!this.isDisallowedUrlParamError(error)) {
         throw error;
@@ -119,7 +115,6 @@ export class QQChannel {
       chatId: route.chatId,
       content: this.decorateSpeakerPrefix({
         content,
-        messageType: route.messageType,
         senderId: identity.senderId,
         senderName
       }),
@@ -163,29 +158,23 @@ export class QQChannel {
   ): QQIncomingRoute => {
     let chatId = senderId;
     let messageType: QQMessageType = "private";
-    const qqMeta: Record<string, unknown> = {};
+    const qqMeta: Record<string, unknown> = { userId: senderId };
+    if (senderName) {
+      qqMeta.userName = senderName;
+    }
 
     if (event.message_type === "group") {
       messageType = "group";
       const groupId = event.group_id || rawEvent.group_openid || "";
       chatId = groupId;
       qqMeta.groupId = groupId;
-      qqMeta.userId = senderId;
-      if (senderName) {
-        qqMeta.userName = senderName;
-      }
-    } else {
-      qqMeta.userId = senderId;
-      if (senderName) {
-        qqMeta.userName = senderName;
-      }
     }
 
     qqMeta.messageType = messageType;
-    return { chatId, messageType, metadata: qqMeta };
+    return { chatId, metadata: qqMeta };
   };
 
-  isAllowed = (senderId: string): boolean => {
+  private isAllowed = (senderId: string): boolean => {
     const allowList = this.config.allowFrom ?? [];
     if (!allowList.length || allowList.includes(senderId)) {
       return true;
@@ -237,7 +226,6 @@ export class QQChannel {
 
   private decorateSpeakerPrefix = (params: {
     content: string;
-    messageType: QQMessageType;
     senderId: string;
     senderName: string | null;
   }): string => {

@@ -1,8 +1,8 @@
 import { afterEach, describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
-import type { Bot } from "qq-official-bot";
-import type { PrivateMessageEvent } from "qq-official-bot";
-import { QQChannel, type QQChannelBus } from "../services/qq-channel.service.js";
+import type { BusChannelMessageBus } from "@nextclaw/extension-sdk";
+import type { Bot, PrivateMessageEvent } from "qq-official-bot";
+import { QQChannel } from "../services/qq-channel.service.js";
 
 type FakeBot = {
   start: ReturnType<typeof mock.fn>;
@@ -23,7 +23,7 @@ class TestQQChannel extends QQChannel {
         secret: "test-secret",
         allowFrom: []
       },
-      { publishInbound: mock.fn(async () => {}) } as QQChannelBus
+      { publishInbound: mock.fn(async () => {}) } as BusChannelMessageBus
     );
   }
 
@@ -33,7 +33,7 @@ class TestQQChannel extends QQChannel {
 }
 
 class InboundTestQQChannel extends QQChannel {
-  constructor(private readonly publishInbound: QQChannelBus["publishInbound"]) {
+  constructor(private readonly publishInbound: BusChannelMessageBus["publishInbound"]) {
     super(
       {
         appId: "test-app",
@@ -121,7 +121,7 @@ describe("QQChannel startup lifecycle", () => {
             secret: "test-secret",
             allowFrom: []
           },
-          { publishInbound: mock.fn(async () => {}) } as QQChannelBus
+          { publishInbound: mock.fn(async () => {}) } as BusChannelMessageBus
         );
       }
 
@@ -139,7 +139,7 @@ describe("QQChannel startup lifecycle", () => {
 
   it("accepts official bot private events that only expose sender openid", async () => {
     const publishInbound = mock.fn(async () => {});
-    const channel = new InboundTestQQChannel(publishInbound as QQChannelBus["publishInbound"]);
+    const channel = new InboundTestQQChannel(publishInbound as BusChannelMessageBus["publishInbound"]);
 
     await channel.handleTestIncoming({
       id: "message-1",
@@ -177,7 +177,7 @@ describe("QQChannel startup lifecycle", () => {
 
   it("drops messages from the bot itself only when both ids are present and equal", async () => {
     const publishInbound = mock.fn(async () => {});
-    const channel = new InboundTestQQChannel(publishInbound as QQChannelBus["publishInbound"]);
+    const channel = new InboundTestQQChannel(publishInbound as BusChannelMessageBus["publishInbound"]);
 
     await channel.handleTestIncoming({
       id: "message-1",
