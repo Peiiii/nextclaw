@@ -15,6 +15,7 @@
 - 十四次排查修正十三次结论：同 Electron 版本的最小 `frame:false` 应用在 Windows CI 中返回 `HTCAPTION(2)`，证明官方 `app-region` 能注册到 native hit-test；但同一个最小应用的 synthetic mouse drag 仍为 `delta=(0,0)`，证明 CI 鼠标几何拖动不能作为最终验收。当前更准确的结论是：NextClaw 应用链路没有让标题栏点返回 `HTCAPTION(2)`，而不是 Electron 官方方案整体不可用。
 - 十五次修正：把 Windows titlebar 的 drag owner 从空的透明 absolute overlay 改为真实可见的 header 背景元素，保留侧栏、窗口按钮和顶部 resize strip 为 `no-drag`；这针对的是“DOM 命中空 overlay 正确，但 Electron native draggable region 未聚合”的差异。
 - 十六次排查：新增最小 HTTP variant 后，`http://127.0.0.1` 页面同样返回 `HTCAPTION(2)`，因此 NextClaw 的问题也不是因为 renderer 通过本地 HTTP 加载；当前剩余差异继续指向应用结构、窗口生命周期或更细的 webPreferences / preload 组合。
+- 二十七次修正：`desktop-validate` run `26326370430` 证明真实 NextClaw `ui-dist` 在最小 Electron 壳、`1024x720` 桌面视口下返回 `HTCAPTION(2)`；同轮真实 packaged smoke 仍在缩到 `760x520` 后失败。根因收敛到 `AppLayout` 在桌面宿主窄宽度时错误切换到没有 Windows titlebar 的 `MobileAppShell`，导致 frameless 窗口没有任何 `app-region: drag`。
 - 根因：
   - 窗口最小尺寸由 [desktop-window-options.utils.ts](../../../apps/desktop/src/utils/desktop-window-options.utils.ts) 写死为 `1080x720`，导致只能缩小一点点。
   - 首轮只补齐 CSS 拖拽声明，但 Windows title bar overlay 的右上角 native controls 区域仍被同一个 draggable DOM 矩形覆盖。Electron 的 Window Controls Overlay 合同要求 overlay 下方 DOM 不可用，因此拖拽命中区不能伸到 caption buttons 下方。
@@ -30,7 +31,8 @@
   - 十四次最小复现修正根因边界：最小 Electron `frame:false` 应用的同一客户区点返回 `HTCAPTION(2)`，但 synthetic mouse drag 仍不会移动窗口；因此 CI synthetic mouse 不能证明真实拖拽，`HTCAPTION(2)` 才是当前可自动化的 native registration gate。NextClaw 的差异仍是返回 `HTCLIENT(1)`。
   - 十五次修正的当前假设：Electron/Chromium 对空透明 absolute app-region overlay 的 native draggable region 聚合与普通 DOM hit-test 不等价；即使 `elementFromPoint` 与 computed style 都显示 `drag`，也可能不进入 Win32 `HTCAPTION`。因此将 drag contract 放到真实承载背景和尺寸的 header 上。
   - 十六次排查排除本地 HTTP 加载来源：最小 Electron 通过 `http://127.0.0.1` 加载同一 titlebar 时仍返回 `HTCAPTION(2)`。
-  - 二十三至二十五次排查继续排除标题栏 DOM 形状、GPU、packaged 主进程窗口参数：真实 UI dist 在最小 Electron 壳中同样返回 `HTCLIENT(1)`，而同一壳加载手写 NextClaw-like 布局返回 `HTCAPTION(2)`。当前根因边界已收敛到真实 UI bundle 的 CSS/JS/runtime 行为，尚需继续区分 CSS 本身、React 挂载后 DOM 更新、还是可通过独立 fixed drag layer 修复。
+  - 二十三至二十六次排查排除标题栏 DOM 形状、GPU、packaged 主进程窗口参数和真实 UI bundle 本身：真实 UI dist 在最小 Electron 壳、桌面视口下返回 `HTCAPTION(2)`。
+  - 二十七次根因：桌面宿主的窗口 chrome 不应该受 mobile viewport shell 切换影响。之前 `AppLayout` 只要 `window.innerWidth <= 767` 就渲染 `MobileAppShell`，但 Windows frameless 桌面窗口依赖 `DesktopAppShell` 提供 titlebar drag region；窗口缩小后切到移动壳等价于删除标题栏和拖拽区。
 - 修复方式：
   - Windows `BrowserWindow` 最小尺寸降到 `420x320`，允许真实小窗使用。
   - Windows 窗口参数调整为 VS Code 风格的 custom titlebar 合同：`frame: false`、`titleBarStyle: "hidden"` 与 `titleBarOverlay`；不再混用 `thickFrame: true`。
@@ -39,6 +41,7 @@
   - renderer titlebar 将 draggable main chrome 从 padding 避让改为 `margin-right` 避让，确保 draggable 矩形不再覆盖右上角原生窗口控制区。
   - 三次修正删除 titlebar 内部空 filler DOM，让空白区域的实际 topmost hit element 直接就是 `desktop-window-drag` 元素。
   - 保留 `.desktop-window-drag` / `.desktop-window-no-drag` 的 `app-region` 与 `-webkit-app-region` 双声明，不新增 JS 手写拖拽兜底。
+  - 二十七次修正让桌面宿主始终渲染 `DesktopAppShell`；窄宽度只允许影响壳内部内容布局，不能把整个 Electron 桌面壳替换成移动壳。
 
 ## 测试/验证/验收方式
 
@@ -90,6 +93,11 @@
 - 二十五次排查：`desktop-validate` run `26325898320` 首次证明“最小 Electron 壳 + 真实 NextClaw UI dist”会返回 `HTCLIENT(1)`，而同一壳的手写 NextClaw-like 布局返回 `HTCAPTION(2)`；根因边界由 packaged 主进程/窗口 options 进一步缩小到真实 UI bundle 的 CSS/JS/runtime 行为。
 - 二十五次实验改造：最小 Windows app-region smoke 改为一次 CI 覆盖多个互斥假设：真实 UI CSS 静态页、完整 UI dist、完整 UI dist + inline 强制 titlebar drag、完整 UI dist + fixed titlebar drag layer、完整 UI dist + body drag，并把 renderer DOM hit-test 结果写入文件后由 PowerShell 打印，避免继续一轮只验证一个猜测。
 - 二十六次探针修正：`desktop-validate` run `26326229815` 发现 `760px` 宽的 UI-dist 最小对照会进入 mobile layout，命中移动端 `H1` 而非 desktop chrome；该结果不能代表真实 packaged 桌面链路。最小对照窗口改为 `1024x720`，与真实 smoke 中 renderer `innerWidth=1024` 对齐，并允许 UI-dist 探针失败后继续收集后续 rescue 变体结果。
+- 二十七次排查：`desktop-validate` run `26326370430` 中，真实 UI dist 在最小 Electron 壳、`1024x720` 桌面视口返回 `HTCAPTION(2)`；真实 packaged smoke 失败点发生在强制缩到 `760x520` 后，对应 `AppLayout` 的 mobile shell 切换边界。
+- 二十七次修正已通过：`pnpm -C packages/nextclaw-ui exec vitest run src/app/components/layout/app-layout.test.tsx src/platforms/desktop/components/desktop-app-shell.test.tsx`
+- 二十七次修正已通过：`pnpm -C packages/nextclaw-ui exec eslint src/app/components/layout/app-layout.tsx src/app/components/layout/app-layout.test.tsx src/platforms/desktop/components/desktop-window-chrome.tsx src/platforms/desktop/components/desktop-app-shell.test.tsx`
+- 二十七次修正已通过：`pnpm -C packages/nextclaw-ui tsc`
+- 二十七次修正已通过：本地 Vite + Playwright 验证 `http://127.0.0.1:5184/chat?nextclawDesktopPlatform=win32` 在 `760x520` 与 `1024x720` 下都保留 `desktop-window-chrome`，且 `(320,24)` / `(400,24)` 命中 `desktop-window-chrome-main-drag-region`、computed `app-region=drag`。
 - 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
 - 已通过：`pnpm lint:new-code:governance -- apps/desktop/src/utils/desktop-window-options.utils.ts apps/desktop/src/utils/desktop-window-options.utils.test.ts packages/nextclaw-ui/src/platforms/desktop/components/desktop-window-chrome.tsx packages/nextclaw-ui/src/platforms/desktop/components/desktop-app-shell.test.tsx docs/logs/v0.19.6-windows-desktop-titlebar-drag/README.md`
 - 已通过：`pnpm check:governance-backlog-ratchet`

@@ -10,6 +10,5 @@ export function useViewportLayout() {
   return {
     mode,
     isMobile: mode === "mobile",
-    isDesktop: mode === "desktop",
   };
 }
