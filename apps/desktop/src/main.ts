@@ -39,6 +39,7 @@ class DesktopApplication {
   private desktopRuntimeControlService: DesktopRuntimeControlService | null = null;
   private desktopPresenceService: DesktopPresenceService | null = null;
   private desktopUpdateShell: DesktopUpdateShellService | null = null;
+  private desktopWindowControlService: DesktopWindowControlService | null = null;
   private bundleBootstrap: DesktopBundleBootstrapService | null = null;
   private runtimeCommandService: DesktopRuntimeCommandService | null = null;
   private updateSourceService: DesktopUpdateSourceService | null = null;
@@ -82,7 +83,7 @@ class DesktopApplication {
     await app.whenReady();
     await this.ensureUpdateSourceService().ensureStateChannelInitialized();
     this.ensureDesktopRuntimeControlService().registerIpcHandlers();
-    new DesktopWindowControlService().registerIpcHandlers();
+    this.ensureDesktopWindowControlService().registerIpcHandlers();
     this.ensureDesktopPresenceService().registerIpcHandlers();
     this.ensureDesktopUpdateShell().registerIpcHandlers();
     this.ensureDesktopUpdateShell().installApplicationMenu();
@@ -299,6 +300,10 @@ class DesktopApplication {
     });
     return this.desktopPresenceService;
   };
+  private ensureDesktopWindowControlService = (): DesktopWindowControlService => {
+    this.desktopWindowControlService ??= new DesktopWindowControlService();
+    return this.desktopWindowControlService;
+  };
   private ensureUpdateSourceService = (): DesktopUpdateSourceService => {
     if (this.updateSourceService) {
       return this.updateSourceService;
@@ -372,6 +377,7 @@ class DesktopApplication {
 
   private createWindow = (): BrowserWindow => {
     const window = new BrowserWindow(createDesktopWindowOptions(join(__dirname, "preload.js")));
+    this.ensureDesktopWindowControlService().attachWindow(window);
     attachWindowDiagnostics(window, logger);
     window.on("close", (event) => {
       this.ensureDesktopPresenceService().handleWindowClose(event);

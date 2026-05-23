@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DesktopAppShell } from "@/platforms/desktop/components/desktop-app-shell";
@@ -7,10 +7,22 @@ vi.mock("@/app/components/layout/sidebar", () => ({
   Sidebar: () => <aside data-testid="settings-sidebar">Settings Sidebar</aside>,
 }));
 
-function setDesktopPlatform(platform: string | null): void {
+type WindowStateListener = (snapshot: { isMaximized: boolean }) => void;
+
+let windowStateListener: WindowStateListener | null = null;
+
+function setDesktopPlatform(platform: string | null, isMaximized = false): void {
+  windowStateListener = null;
   window.nextclawDesktop = platform
     ? ({
         platform,
+        getWindowState: async () => ({ isMaximized }),
+        onWindowStateChanged: (listener: WindowStateListener) => {
+          windowStateListener = listener;
+          return () => {
+            windowStateListener = null;
+          };
+        },
       } as typeof window.nextclawDesktop)
     : undefined;
 }
@@ -69,6 +81,19 @@ describe("DesktopAppShell", () => {
     expect(screen.getByLabelText("Maximize").className).toContain("desktop-window-no-drag");
     expect(screen.getByLabelText("Close").className).toContain("desktop-window-no-drag");
     expect(screen.getByTestId("app-content")).toBeTruthy();
+  });
+
+  it("switches the Windows maximize button to restore while maximized", async () => {
+    renderDesktopShell("win32");
+
+    expect(await screen.findByLabelText("Maximize")).toBeTruthy();
+
+    act(() => {
+      windowStateListener?.({ isMaximized: true });
+    });
+
+    expect(screen.getByLabelText("Restore").className).toContain("desktop-window-no-drag");
+    expect(screen.queryByLabelText("Maximize")).toBeNull();
   });
 
   it("keeps non-Windows desktop hosts on the existing shell shape", () => {

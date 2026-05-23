@@ -1,20 +1,28 @@
-import { Maximize2, Minus, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Copy, Minus, Square, X } from "lucide-react";
 import { BrandHeader } from "@/shared/components/common/brand-header";
+import type { DesktopWindowStateSnapshot } from "@/platforms/desktop/types/desktop-update.types";
 
 type DesktopWindowControlAction = "minimize" | "toggle-maximize" | "close";
 
-const windowControls: Array<{
+type WindowControlDefinition = {
   action: DesktopWindowControlAction;
   label: string;
   icon: typeof Minus;
   variant?: "danger";
-}> = [
+};
+
+const windowControls: WindowControlDefinition[] = [
   { action: "minimize", label: "Minimize", icon: Minus },
-  { action: "toggle-maximize", label: "Maximize", icon: Maximize2 },
   { action: "close", label: "Close", icon: X, variant: "danger" },
 ];
 
 export function DesktopWindowChrome() {
+  const isMaximized = useDesktopWindowMaximizedState();
+  const maximizeControl: WindowControlDefinition = isMaximized
+    ? { action: "toggle-maximize", label: "Restore", icon: Copy }
+    : { action: "toggle-maximize", label: "Maximize", icon: Square };
+
   return (
     <header
       className="desktop-window-drag relative flex h-[var(--desktop-titlebar-height)] shrink-0 border-b border-[#ebe7dc]/80 bg-secondary"
@@ -38,7 +46,7 @@ export function DesktopWindowChrome() {
         className="desktop-window-no-drag absolute right-0 top-0 z-20 flex h-full w-[var(--desktop-caption-safe-right)] items-start justify-end"
         data-testid="desktop-window-controls"
       >
-        {windowControls.map((control) => (
+        {[windowControls[0], maximizeControl, windowControls[1]].map((control) => (
           <DesktopWindowControlButton key={control.action} control={control} />
         ))}
       </div>
@@ -49,7 +57,7 @@ export function DesktopWindowChrome() {
 function DesktopWindowControlButton({
   control,
 }: {
-  control: (typeof windowControls)[number];
+  control: WindowControlDefinition;
 }) {
   const Icon = control.icon;
 
@@ -70,4 +78,29 @@ function DesktopWindowControlButton({
       <Icon className="h-3.5 w-3.5" />
     </button>
   );
+}
+
+function useDesktopWindowMaximizedState(): boolean {
+  const [isMaximized, setIsMaximized] = useState(false);
+
+  useEffect(() => {
+    let isSubscribed = true;
+    const desktopApi = window.nextclawDesktop;
+
+    void desktopApi?.getWindowState?.().then((snapshot: DesktopWindowStateSnapshot) => {
+      if (isSubscribed) {
+        setIsMaximized(snapshot.isMaximized);
+      }
+    });
+    const unsubscribe = desktopApi?.onWindowStateChanged?.((snapshot: DesktopWindowStateSnapshot) => {
+      setIsMaximized(snapshot.isMaximized);
+    });
+
+    return () => {
+      isSubscribed = false;
+      unsubscribe?.();
+    };
+  }, []);
+
+  return isMaximized;
 }

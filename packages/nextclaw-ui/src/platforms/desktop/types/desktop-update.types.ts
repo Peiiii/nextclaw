@@ -50,6 +50,8 @@ export type DesktopUiLanguagePreference = 'en' | 'zh';
 
 export type DesktopWindowControlAction = 'minimize' | 'toggle-maximize' | 'close';
 
+export type DesktopWindowStateSnapshot = { isMaximized: boolean };
+
 export type NextClawDesktopBridge = {
   platform: string;
   version: string;
@@ -66,5 +68,7 @@ export type NextClawDesktopBridge = {
   updatePresencePreferences: (preferences: Partial<DesktopPresencePreferences>) => Promise<DesktopPresenceSnapshot>;
   setLocalePreference?: (language: DesktopUiLanguagePreference | null) => Promise<DesktopUiLanguagePreference | null>;
   controlWindow?: (action: DesktopWindowControlAction) => Promise<void>;
+  getWindowState?: () => Promise<DesktopWindowStateSnapshot>;
+  onWindowStateChanged?: (listener: (snapshot: DesktopWindowStateSnapshot) => void) => () => void;
   onUpdateStateChanged: (listener: (snapshot: DesktopUpdateSnapshot) => void) => () => void;
 };
