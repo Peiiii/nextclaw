@@ -10,10 +10,6 @@ const releaseDir = resolve(rootDir, "apps/desktop/release");
 const desktopPackageJson = JSON.parse(readFileSync(resolve(rootDir, "apps/desktop/package.json"), "utf8"));
 const version = String(desktopPackageJson.version ?? "").trim();
 
-function binName(name) {
-  return process.platform === "win32" ? `${name}.cmd` : name;
-}
-
 function run(command, args, options = {}) {
   console.log(`[desktop-portable-verify] run: ${command} ${args.join(" ")}`);
   const result = spawnSync(command, args, {
@@ -22,7 +18,12 @@ function run(command, args, options = {}) {
     env: { ...process.env, ...(options.env ?? {}) }
   });
   if (result.status !== 0) {
-    throw new Error(`Command failed: ${command} ${args.join(" ")}`);
+    const details = [
+      `status=${String(result.status)}`,
+      `signal=${String(result.signal)}`,
+      result.error ? `error=${result.error.message}` : ""
+    ].filter(Boolean);
+    throw new Error(`Command failed (${details.join(", ")}): ${command} ${args.join(" ")}`);
   }
 }
 
@@ -45,16 +46,7 @@ function ensurePortableZip(arch) {
   if (existsSync(zipPath)) {
     return zipPath;
   }
-  run(binName("pnpm"), [
-    "-C",
-    "apps/desktop",
-    "exec",
-    "node",
-    "scripts/package-windows-portable.mjs",
-    "--",
-    "--arch",
-    arch
-  ]);
+  run(process.execPath, [resolve(rootDir, "apps/desktop/scripts/package-windows-portable.mjs"), "--arch", arch]);
   if (!existsSync(zipPath)) {
     throw new Error(`Portable zip was not created: ${zipPath}`);
   }

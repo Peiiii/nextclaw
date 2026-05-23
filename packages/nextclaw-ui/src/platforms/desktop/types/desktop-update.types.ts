@@ -48,7 +48,7 @@ export type DesktopPresenceSnapshot = DesktopPresencePreferences & {
 
 export type DesktopUiLanguagePreference = 'en' | 'zh';
 
-export type DesktopShellTheme = 'warm' | 'cool';
+export type DesktopWindowControlAction = 'minimize' | 'toggle-maximize' | 'close';
 
 export type NextClawDesktopBridge = {
   platform: string;
@@ -65,6 +65,6 @@ export type NextClawDesktopBridge = {
   getPresenceState: () => Promise<DesktopPresenceSnapshot>;
   updatePresencePreferences: (preferences: Partial<DesktopPresencePreferences>) => Promise<DesktopPresenceSnapshot>;
   setLocalePreference?: (language: DesktopUiLanguagePreference | null) => Promise<DesktopUiLanguagePreference | null>;
-  setShellTheme?: (theme: DesktopShellTheme) => Promise<void>;
+  controlWindow?: (action: DesktopWindowControlAction) => Promise<void>;
   onUpdateStateChanged: (listener: (snapshot: DesktopUpdateSnapshot) => void) => () => void;
 };

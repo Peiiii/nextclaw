@@ -1,5 +1,43 @@
 # @nextclaw/desktop
 
+## 0.0.188
+
+### Patch Changes
+
+- Keep desktop chrome active on Windows desktop hosts at compact window sizes.
+- Updated dependencies
+  - nextclaw@0.19.25
+
+## 0.0.187
+
+### Patch Changes
+
+- Validate Windows titlebar dragging with a real mouse geometry probe.
+
+## 0.0.186
+
+### Patch Changes
+
+- Replace the Windows titlebar overlay with renderer-owned window controls.
+
+## 0.0.185
+
+### Patch Changes
+
+- Expand the Windows titlebar smoke test to inspect the HWND under the drag point.
+
+## 0.0.184
+
+### Patch Changes
+
+- Render the Windows custom titlebar drag surface as a dedicated absolute region.
+
+## 0.0.183
+
+### Patch Changes
+
+- Use the VS Code-style Windows hidden-titlebar chrome contract for custom titlebar dragging.
+
 ## 0.0.182
 
 ### Patch Changes

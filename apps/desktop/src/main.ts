@@ -13,10 +13,10 @@ import { DesktopPresenceService } from "./services/desktop-presence.service";
 import { setupDesktopInstallationProfile } from "./utils/desktop-installation-profile-electron.utils";
 import { DesktopRuntimeControlService } from "./services/desktop-runtime-control.service";
 import { DesktopUpdateSourceService } from "./services/desktop-update-source.service";
+import { DesktopWindowControlService } from "./services/desktop-window-control.service";
 import { RuntimeServiceProcess } from "./runtime-service";
 import { DesktopBundleBootstrapService } from "./services/desktop-bundle-bootstrap.service";
 import { DesktopRuntimeCommandService } from "./services/desktop-runtime-command.service";
-import { DesktopShellThemeService } from "./services/desktop-shell-theme.service";
 import { DesktopUpdateShellService } from "./services/desktop-update-shell.service";
 import {
   createDesktopLogger,
@@ -25,7 +25,6 @@ import {
 } from "./utils/desktop-logging.utils";
 import { createDesktopRuntimeEnv, resolveDesktopDataDir, resolveDesktopRuntimeHome } from "./utils/desktop-paths.utils";
 import { resolveDesktopGitHubPublishTarget } from "./utils/desktop-publish-target.utils";
-import { createStartupLoadingUrl } from "./utils/desktop-startup-loading.utils";
 import { createDesktopWindowOptions } from "./utils/desktop-window-options.utils";
 import { attachWindowDiagnostics } from "./utils/window-diagnostics.utils";
 const installationProfile = setupDesktopInstallationProfile(app);
@@ -43,7 +42,7 @@ class DesktopApplication {
   private bundleBootstrap: DesktopBundleBootstrapService | null = null;
   private runtimeCommandService: DesktopRuntimeCommandService | null = null;
   private updateSourceService: DesktopUpdateSourceService | null = null;
-  private runtimeBaseUrl: string | null = null;
+  private runtimeWindowUrl: string | null = null;
 
   start = async (): Promise<void> => {
     logger.info("Desktop start requested.");
@@ -83,13 +82,13 @@ class DesktopApplication {
     await app.whenReady();
     await this.ensureUpdateSourceService().ensureStateChannelInitialized();
     this.ensureDesktopRuntimeControlService().registerIpcHandlers();
-    new DesktopShellThemeService({ getWindow: () => this.window }).registerIpcHandlers();
+    new DesktopWindowControlService().registerIpcHandlers();
     this.ensureDesktopPresenceService().registerIpcHandlers();
     this.ensureDesktopUpdateShell().registerIpcHandlers();
     this.ensureDesktopUpdateShell().installApplicationMenu();
     this.ensureDesktopPresenceService().installTray();
     app.on("activate", () => {
-      if (!this.window && this.runtimeBaseUrl) {
+      if (!this.window && this.runtimeWindowUrl) {
         void this.restoreWindow();
         return;
       }
@@ -108,7 +107,6 @@ class DesktopApplication {
         `resolvedRuntimeHome=${resolveDesktopRuntimeHome()}`
       ].join(" ")
     );
-    await this.showStartupWindow();
     const loaded = await this.bootstrapRuntimeAndWindow();
     if (!loaded) {
       logger.warn("Desktop bootstrap returned false. Quitting launcher.");
@@ -156,22 +154,11 @@ class DesktopApplication {
     const { baseUrl } = await runtime.start();
     logger.info(`Desktop runtime startup finished in ${Date.now() - runtimeStartStartedAt}ms.`);
     this.runtime = runtime;
-    this.runtimeBaseUrl = baseUrl;
+    this.runtimeWindowUrl = new URL("/chat", `${baseUrl.replace(/\/+$/, "")}/`).toString();
     this.ensureDesktopUpdateShell();
     this.window ??= this.createWindow();
-    logger.info(`Loading desktop window URL: ${baseUrl}`);
-    await this.window.loadURL(baseUrl);
-  };
-
-  private showStartupWindow = async (): Promise<void> => {
-    if (this.window) {
-      return;
-    }
-    const startedAt = Date.now();
-    this.window = this.createWindow();
-    logger.info(`Desktop startup shell window created in ${Date.now() - startedAt}ms.`);
-    await this.window.loadURL(createStartupLoadingUrl());
-    logger.info(`Desktop startup shell window loaded in ${Date.now() - startedAt}ms.`);
+    logger.info(`Loading desktop window URL: ${this.runtimeWindowUrl}`);
+    await this.window.loadURL(this.runtimeWindowUrl);
   };
   private handleBootstrapFailure = async (error: unknown): Promise<boolean> => {
     logger.error(`Failed to bootstrap runtime: ${String(error)}`);
@@ -364,7 +351,7 @@ class DesktopApplication {
   private stopRuntime = async (): Promise<void> => {
     const runtime = this.runtime;
     this.runtime = null;
-    this.runtimeBaseUrl = null;
+    this.runtimeWindowUrl = null;
     if (!runtime) {
       return;
     }
@@ -376,11 +363,11 @@ class DesktopApplication {
   };
 
   private restoreWindow = async (): Promise<void> => {
-    if (this.window || !this.runtimeBaseUrl) {
+    if (this.window || !this.runtimeWindowUrl) {
       return;
     }
     this.window = this.createWindow();
-    await this.window.loadURL(this.runtimeBaseUrl);
+    await this.window.loadURL(this.runtimeWindowUrl);
   };
 
   private createWindow = (): BrowserWindow => {

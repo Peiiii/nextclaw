@@ -7,7 +7,7 @@ import {
 import { useDocLinkInterceptor } from "@/shared/components/doc-browser/use-doc-link-interceptor";
 import { useI18n } from "@/app/components/i18n-provider";
 import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
-import { DesktopAppShell } from "@/platforms/desktop";
+import { DesktopAppShell, getDesktopHostPlatform } from "@/platforms/desktop";
 import { MobileAppShell } from "@/platforms/mobile";
 import { resolveUiDocumentTitle } from "@/shared/lib/ui-document-title";
 
@@ -26,7 +26,7 @@ function AppLayoutInner({ children }: AppLayoutProps) {
     document.title = resolveUiDocumentTitle(pathname);
   }, [pathname, language]);
 
-  if (isMobile) {
+  if (isMobile && getDesktopHostPlatform() === null) {
     return (
       <MobileAppShell pathname={pathname} isDocBrowserOpen={isOpen}>
         {children}

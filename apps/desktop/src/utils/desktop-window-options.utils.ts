@@ -1,25 +1,10 @@
-import type { BrowserWindowConstructorOptions, TitleBarOverlay } from "electron";
-
-export type DesktopShellTheme = "warm" | "cool";
+import type { BrowserWindowConstructorOptions } from "electron";
 
 const desktopWindowWidth = 1360;
 const desktopWindowHeight = 920;
 const desktopWindowMinWidth = 420;
 const desktopWindowMinHeight = 320;
-const windowsTitleBarHeight = 40;
 const windowsShellBackgroundColor = "#F2F1EE";
-const desktopTitleBarThemes: Record<DesktopShellTheme, Required<TitleBarOverlay>> = {
-  warm: {
-    color: windowsShellBackgroundColor,
-    symbolColor: "#33332F",
-    height: windowsTitleBarHeight
-  },
-  cool: {
-    color: "#F3F4F6",
-    symbolColor: "#374151",
-    height: windowsTitleBarHeight
-  }
-};
 
 export function createDesktopWindowOptions(preloadPath: string): BrowserWindowConstructorOptions {
   return {
@@ -43,8 +28,7 @@ function createPlatformWindowChromeOptions(): BrowserWindowConstructorOptions {
     return {
       autoHideMenuBar: true,
       backgroundColor: windowsShellBackgroundColor,
-      titleBarStyle: "hidden",
-      titleBarOverlay: createDesktopTitleBarOverlay("warm")
+      frame: false
     };
   }
   if (process.platform === "darwin") {
@@ -55,12 +39,4 @@ function createPlatformWindowChromeOptions(): BrowserWindowConstructorOptions {
   return {
     autoHideMenuBar: true
   };
-}
-
-export function isDesktopShellTheme(value: unknown): value is DesktopShellTheme {
-  return value === "warm" || value === "cool";
-}
-
-export function createDesktopTitleBarOverlay(theme: DesktopShellTheme): TitleBarOverlay {
-  return desktopTitleBarThemes[theme];
 }
