@@ -8,6 +8,7 @@
 - 七次排查：用户验证 `0.0.181 / 0.19.24` 后确认 resize 已修复，但 Windows 标题栏仍完全无法拖拽；当前拖拽问题未关闭，暂停手写 IPC 拖拽方案，回到 Electron 官方 `app-region` 合同继续缩圈。
 - 八次排查：`v0.19.24-desktop-beta.2` 发布前被 Windows x64 CI 拦截，renderer 空白标题栏点命中 `app-region: drag`，但 Win32 `WM_NCHITTEST` 返回 `HTCLIENT(1)`；继续参考 VS Code 的生产实践，将 Windows hidden titlebar 合同调整为 `frame: false` + `titleBarStyle: hidden` + `titleBarOverlay`，仍禁止恢复 `thickFrame`。
 - 九次排查：`v0.19.24-desktop-beta.3` 继续在 Windows x64 CI 返回 `nativeHitTest=1`，说明主进程 `frame:false` 不是最后一跳；renderer titlebar 改为 VS Code 式专用 absolute drag region，避免复杂 flex item 作为 drag surface。
+- 十次排查：`v0.19.24-desktop-beta.4` 证明专用 absolute drag region 在真实 `/chat` 页面命中正确，`(320,24)`、`(400,24)`、`(700,24)` 均命中 `desktop-window-chrome-drag-region` 且 computed `app-region: drag`，但 Windows x64 smoke 仍失败；下一步把 Win32 smoke 从单一 main HWND 扩展为检查鼠标点下方 HWND、root HWND 与 parent 链，确认是 Electron 未返回 `HTCAPTION` 还是 smoke 之前测错 HWND。
 - 根因：
   - 窗口最小尺寸由 [desktop-window-options.utils.ts](../../../apps/desktop/src/utils/desktop-window-options.utils.ts) 写死为 `1080x720`，导致只能缩小一点点。
   - 首轮只补齐 CSS 拖拽声明，但 Windows title bar overlay 的右上角 native controls 区域仍被同一个 draggable DOM 矩形覆盖。Electron 的 Window Controls Overlay 合同要求 overlay 下方 DOM 不可用，因此拖拽命中区不能伸到 caption buttons 下方。
@@ -16,6 +17,7 @@
   - 六次修正通过 Windows CI 证明 packaged `/chat` 页面标题栏空白点已命中 `app-region: drag`，但窗口仍不移动；根因收敛到主进程窗口 chrome 合同，`frame: false` / `thickFrame: true` 与 `titleBarOverlay` 组合偏离 Electron 官方 Window Controls Overlay 推荐形态。
   - 七次排查证明只使用 Electron 官方文档示例里的 `titleBarStyle: hidden` + `titleBarOverlay` 仍没有让 Windows 原生命中层返回 caption；VS Code 在 Windows/Linux custom titlebar 场景使用 `frame: false`，因此本轮收敛为“保留 frameless，但删除 `thickFrame` 双合同”。
   - 八次排查证明 `frame:false` 后 native hit-test 仍为 `HTCLIENT(1)`；剩余可疑点转向 renderer drag region 形状，当前 flex item 上的 `app-region` 虽能被 `getComputedStyle` 看到，但可能没有形成 Electron 期望的专用 draggable rect。
+  - 十次排查证明 renderer drag region 形状也不是唯一原因：专用 absolute drag layer 在真实 `/chat` 页面已被 `elementFromPoint` 和 computed style 共同确认，但原生命中测试仍未通过；剩余问题必须进入 HWND 层诊断。
 - 修复方式：
   - Windows `BrowserWindow` 最小尺寸降到 `420x320`，允许真实小窗使用。
   - Windows 窗口参数调整为 VS Code 风格的 custom titlebar 合同：`frame: false`、`titleBarStyle: "hidden"` 与 `titleBarOverlay`；不再混用 `thickFrame: true`。
@@ -45,6 +47,8 @@
 - 七次排查新增用户侧低成本观察点：桌面主进程启动日志输出 `Runtime source`、`bundleVersion` 与 `bundleDirectory`，用于确认 Windows 真机实际加载的是哪个 runtime/UI bundle，无需打开 DevTools。
 - 八次排查失败证据：`v0.19.24-desktop-beta.2` 的 Windows x64 CI 中，`titlebar-hit-test` 确认 `(400,24)` 命中 `desktop-window-chrome-main` 且 computed `app-region` / `-webkit-app-region` 均为 `drag`；随后 Win32 `nativeHitTest=1`，即 `HTCLIENT`，workflow 因未达到 `HTCAPTION(2)` 失败。
 - 九次排查失败证据：`v0.19.24-desktop-beta.3` 使用 `frame:false` 后，Windows x64 CI 仍然在 `(400,24)` 返回 `nativeHitTest=1`。
+- 十次排查失败证据：`v0.19.24-desktop-beta.4` 中 `titlebar-hit-test` 确认真实 `/chat` 页面的 `(320,24)`、`(400,24)`、`(700,24)` 均命中 `desktop-window-chrome-drag-region`，computed `app-region` / `-webkit-app-region` 均为 `drag`；但 Windows x64 smoke 未通过，因此 `beta.4` 未完成 release closure，不能交付用户测试。
+- 十一次排查新增验证门禁：Windows titlebar smoke 同时记录 main window HWND、`WindowFromPoint` 命中的 HWND、root HWND、parent 链、class name 和各自 `WM_NCHITTEST` 返回值；只有这些真实相关 HWND 至少一个返回 `HTCAPTION(2)`，才允许进入后续 release closure。
 - 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
 - 已通过：`pnpm lint:new-code:governance -- apps/desktop/src/utils/desktop-window-options.utils.ts apps/desktop/src/utils/desktop-window-options.utils.test.ts packages/nextclaw-ui/src/platforms/desktop/components/desktop-window-chrome.tsx packages/nextclaw-ui/src/platforms/desktop/components/desktop-app-shell.test.tsx docs/logs/v0.19.6-windows-desktop-titlebar-drag/README.md`
 - 已通过：`pnpm check:governance-backlog-ratchet`
@@ -59,7 +63,8 @@
 - 用户真机验收结论：该 beta 的 resize 行为已符合预期，但 Windows 标题栏拖拽仍失败，因此该 beta 不能作为拖拽问题完成版本。
 - 发布失败记录：[`v0.19.24-desktop-beta.2`](https://github.com/Peiiii/nextclaw/releases/tag/v0.19.24-desktop-beta.2) 目标提交 `c63222eb9f777845180de17fa09b0034e09b9843`，Windows x64 smoke 因 `nativeHitTest=1` 失败，未完成 release closure，不能交付用户测试。
 - 发布失败记录：[`v0.19.24-desktop-beta.3`](https://github.com/Peiiii/nextclaw/releases/tag/v0.19.24-desktop-beta.3) 目标提交 `6df03b87b1fcdaccc3f231b70a52385cd6e6816a`，Windows x64 smoke 仍因 `nativeHitTest=1` 失败，未完成 release closure，不能交付用户测试。
-- 后续发布计划：`v0.19.24-desktop-beta.4` 必须包含专用 absolute drag region，并继续要求 Windows x64 smoke 原生命中返回 `HTCAPTION(2)`。
+- 发布失败记录：[`v0.19.24-desktop-beta.4`](https://github.com/Peiiii/nextclaw/releases/tag/v0.19.24-desktop-beta.4) 目标提交 `8c4065969693b328b459d8fda484f44930899035`，Windows x64 smoke 仍未完成 titlebar 原生命中验收，未完成 release closure，不能交付用户测试。
+- 后续发布计划：`v0.19.24-desktop-beta.5` 必须用 HWND 链路诊断确认真实窗口命中层是否返回 `HTCAPTION(2)`；若不返回，继续阻断，不再让用户做人工试错。
 - 本次 release 名称：`NextClaw Desktop 0.0.181 Preview Beta 1`。
 - 本次 release 对应源码提交：`588185ba20578e36d2646eaf7d2100c5869b59da`。
 - 本次 Windows 主要验收资产：
@@ -89,6 +94,7 @@
 - 六次修正删除错误方向的窗口参数叠加：不再把 Window Controls Overlay 与 frameless/thick frame 混成双合同。
 - 八次修正收敛到更具体的主进程合同：frameless 本身不是问题，`thickFrame` 与 overlay 的双合同才是需要删除的异常项；后续 smoke 必须继续以 Win32 原生命中返回值拦截。
 - 九次修正继续向 VS Code 的 renderer 结构靠拢：把 drag surface 从承担布局的 flex item 拆成单一绝对定位命中层，减少 DOM 结构对 Electron draggable region 聚合的干扰。
+- 十一次排查把“验证是否测错窗口”自动化：Windows smoke 不再只看 process main window handle，而是记录鼠标点下方 HWND 与父级链路，避免错误结论继续消耗人工测试。
 - `post-edit-maintainability-guard` 二次修正结果：total `+65/-8/net +57`，non-test `+7/-7/net +0`，无可维护性发现。
 
 ## NPM 包发布记录

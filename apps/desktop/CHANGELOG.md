@@ -1,5 +1,11 @@
 # @nextclaw/desktop
 
+## 0.0.185
+
+### Patch Changes
+
+- Expand the Windows titlebar smoke test to inspect the HWND under the drag point.
+
 ## 0.0.184
 
 ### Patch Changes
