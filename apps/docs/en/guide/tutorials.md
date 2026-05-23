@@ -35,6 +35,7 @@ Tutorials help you run NextClaw in concrete scenarios. They are different from g
 
 - [MCP Marketplace](/en/guide/tutorials/mcp-marketplace)
 - [Skills](/en/guide/tutorials/skills)
+- [TweetClaw OpenClaw Plugin](/en/guide/tutorials/tweetclaw-openclaw-plugin)
 - [Claude, Codex, and Hermes](/en/guide/tutorials/claude-codex-hermes)
 
 ## Tutorials, guides, and manuals
