@@ -5,8 +5,8 @@
   "latestVersion": "0.19.26",
   "minimumLauncherVersion": "0.0.141",
   "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/v0.19.26-desktop.1/nextclaw-bundle-darwin-x64-0.19.26.zip",
-  "bundleSha256": "267de02344885f43641e9898bc8c80a58a37a42d7ddf5c79d8ec5773fb955d5b",
-  "bundleSignature": "ePz9+yX6g446+PBnalcbqpehtbZpci6XA8wX3XpPsrtuF8iLgO3v49tVIxpG8qGeHgQVVAvEKdjse9kLLKb0Bw==",
+  "bundleSha256": "e97152bca23a26c2d183d7d6c46270b94bb86697aad8ff8e23b0f650cfc8dacc",
+  "bundleSignature": "uBkfrTVmT2441F6GiDTtkOj40odCPQOL87Ww7Z3nauzfeCAvtCyZrUXpZP4Lu01N+AArNmK4My4s2kJh67egAw==",
   "releaseNotesUrl": "https://github.com/Peiiii/nextclaw/releases/tag/v0.19.26-desktop.1",
-  "manifestSignature": "dr0VjemY1OUNVnPSx6QV+8tnONQDa2bszsAONi/Mh3P4QGbYdrOD7sRFujx2NdtOHor0KoneluonISE0985FBw=="
+  "manifestSignature": "A2JAkySlMQnBBPLUevqiM3o1I+sQgQQXlCApc/cCPAL1gJ5tKj7SfvoG8a0iPPK6V/g9trAfTq1qZJsqgkg5Dg=="
 }
