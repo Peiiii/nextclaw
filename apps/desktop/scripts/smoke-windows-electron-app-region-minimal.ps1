@@ -444,6 +444,22 @@ contextBridge.exposeInMainWorld("nextclawMinimalPreload", {
   }
 
   $gpuSwitchScript = if ($DisableGpu) { 'app.commandLine.appendSwitch("disable-gpu");' } else { "" }
+  $titlebarHitTestScript = @'
+(() => {
+  const describeElement = (element) => {
+    if (!element) return null;
+    const style = window.getComputedStyle(element);
+    return { tag: element.tagName, id: element.id || "", className: String(element.className || ""), testId: element.getAttribute("data-testid") || "", appRegion: style.getPropertyValue("app-region") || "", webkitAppRegion: style.getPropertyValue("-webkit-app-region") || "", pointerEvents: style.pointerEvents || "" };
+  };
+  return {
+    href: window.location.href,
+    readyState: document.readyState,
+    chrome: document.querySelector("[data-testid='desktop-window-chrome']")?.getBoundingClientRect().toJSON() || null,
+    points: [320, 400, 700].map((x) => ({ x, y: 24, element: describeElement(document.elementFromPoint(x, 24)) }))
+  };
+})();
+'@
+  $titlebarHitTestScriptLiteral = ConvertTo-Json $titlebarHitTestScript
 
   Set-Content -Path (Join-Path $appRoot "main.js") -Encoding UTF8 -Value @"
 const { app, BrowserWindow } = require("electron");
@@ -468,24 +484,11 @@ $WebPreferenceLines
     }
   });
   const win = createMinimalWindow();
+  const titlebarHitTestScript = $titlebarHitTestScriptLiteral;
   const logTitlebarHitTest = async (targetWindow) => {
     await new Promise((resolve) => setTimeout(resolve, 1200));
     try {
-      const result = await targetWindow.webContents.executeJavaScript(`
-        (() => {
-          const describeElement = (element) => {
-            if (!element) return null;
-            const style = window.getComputedStyle(element);
-            return { tag: element.tagName, id: element.id || "", className: String(element.className || ""), testId: element.getAttribute("data-testid") || "", appRegion: style.getPropertyValue("app-region") || "", webkitAppRegion: style.getPropertyValue("-webkit-app-region") || "", pointerEvents: style.pointerEvents || "" };
-          };
-          return {
-            href: window.location.href,
-            readyState: document.readyState,
-            chrome: document.querySelector("[data-testid='desktop-window-chrome']")?.getBoundingClientRect().toJSON() || null,
-            points: [320, 400, 700].map((x) => ({ x, y: 24, element: describeElement(document.elementFromPoint(x, 24)) }))
-          };
-        })();
-      `);
+      const result = await targetWindow.webContents.executeJavaScript(titlebarHitTestScript);
       console.log("[minimal-app-region] $Variant titlebar-hit-test " + JSON.stringify(result));
     } catch (error) {
       console.warn("[minimal-app-region] $Variant titlebar-hit-test failed: " + String(error));
