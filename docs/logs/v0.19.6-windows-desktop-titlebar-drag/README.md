@@ -80,6 +80,8 @@
 - 十九次修正：删除桌面主窗口启动阶段的 `data:` loading 页，让 Windows BrowserWindow 从创建后直接加载 runtime HTTP 页面；最小 smoke 保留 `data:` 启动页后新建窗口再加载 HTTP 的对照，证明问题属于同一窗口的 `data:` -> HTTP 导航链，而不是 HTTP 页面本身。
 - 二十次排查：`desktop-validate` run `26324859439` 证明“删除 data: 启动页”仍不足以让 packaged NextClaw 返回 `HTCAPTION(2)`；日志显示窗口先 `loadURL` 到 runtime 根路径 `/`，随后 React Router 在同一页面内执行 `did-navigate-in-page` 到 `/chat`，此时 DOM 命中仍是 `desktop-window-chrome` 且 computed `app-region=drag`，但 main / point HWND 继续返回 `HTCLIENT(1)`。当前根因继续收窄为 Windows/Electron 对同一窗口经历前端 in-page navigation 后没有恢复 draggable region native registry。
 - 二十次修正：桌面主进程第一帧直接加载 `${baseUrl}/chat`，避免先进入 `/` 再由 renderer 重定向到 `/chat`，让 Windows app-region 注册路径保持在最接近 Electron 官方 HTTP 直载对照的形态。
+- 二十一次排查：`desktop-validate` run `26325023080` 证明直接加载 `/chat` 后仍会出现同 URL 的 `did-navigate-in-page`，来源是前端 BrowserRouter 初始化期间的 History API state 写入；此时 DOM 命中继续正确但 native hit-test 仍为 `HTCLIENT(1)`。
+- 二十一次修正：真实 Windows Electron 环境改用 `MemoryRouter`，避免桌面端初始化路由时调用浏览器 History API；普通 Web 与 dev 浏览器模拟继续使用 `BrowserRouter`。同时 Windows 窗口合同进一步收敛为纯 `frame:false`，删除不再必要的 `titleBarStyle:"hidden"`。
 - 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
 - 已通过：`pnpm lint:new-code:governance -- apps/desktop/src/utils/desktop-window-options.utils.ts apps/desktop/src/utils/desktop-window-options.utils.test.ts packages/nextclaw-ui/src/platforms/desktop/components/desktop-window-chrome.tsx packages/nextclaw-ui/src/platforms/desktop/components/desktop-app-shell.test.tsx docs/logs/v0.19.6-windows-desktop-titlebar-drag/README.md`
 - 已通过：`pnpm check:governance-backlog-ratchet`

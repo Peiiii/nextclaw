@@ -1,7 +1,5 @@
 import type { BrowserWindowConstructorOptions } from "electron";
 
-export type DesktopShellTheme = "warm" | "cool";
-
 const desktopWindowWidth = 1360;
 const desktopWindowHeight = 920;
 const desktopWindowMinWidth = 420;
@@ -30,8 +28,7 @@ function createPlatformWindowChromeOptions(): BrowserWindowConstructorOptions {
     return {
       autoHideMenuBar: true,
       backgroundColor: windowsShellBackgroundColor,
-      frame: false,
-      titleBarStyle: "hidden"
+      frame: false
     };
   }
   if (process.platform === "darwin") {
@@ -42,8 +39,4 @@ function createPlatformWindowChromeOptions(): BrowserWindowConstructorOptions {
   return {
     autoHideMenuBar: true
   };
-}
-
-export function isDesktopShellTheme(value: unknown): value is DesktopShellTheme {
-  return value === "warm" || value === "cool";
 }

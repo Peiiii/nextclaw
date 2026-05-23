@@ -25,7 +25,7 @@ test("creates a compact, draggable Windows chrome contract", () => {
     assert.equal(options.minHeight, 320);
     assert.equal(options.frame, false);
     assert.equal(options.thickFrame, undefined);
-    assert.equal(options.titleBarStyle, "hidden");
+    assert.equal(options.titleBarStyle, undefined);
     assert.equal(options.titleBarOverlay, undefined);
   } finally {
     setProcessPlatform(originalPlatform);

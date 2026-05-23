@@ -131,6 +131,7 @@ const APP_L3_PROTOCOL = {
   organizationModel: "protocol-app-l3",
   governedRoot: "src",
   allowedRootDirectories: ["app", "features", "shared", "platforms"],
+  allowedRootFiles: ["main.tsx"],
   sharedDirectories: ["shared"],
   importAliasPrefixes: ["@/"]
 };
