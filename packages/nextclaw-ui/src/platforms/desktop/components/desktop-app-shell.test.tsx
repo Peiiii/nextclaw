@@ -1,10 +1,15 @@
 import { act, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DesktopAppShell } from "@/platforms/desktop/components/desktop-app-shell";
 
 vi.mock("@/app/components/layout/sidebar", () => ({
   Sidebar: () => <aside data-testid="settings-sidebar">Settings Sidebar</aside>,
+}));
+
+vi.mock("@/platforms/mobile", () => ({
+  MobileBottomNav: () => <nav data-testid="mobile-bottom-nav" />,
 }));
 
 type WindowStateListener = (snapshot: { isMaximized: boolean }) => void;
@@ -27,7 +32,7 @@ function setDesktopPlatform(platform: string | null, isMaximized = false): void 
     : undefined;
 }
 
-function renderDesktopShell(platform: string | null) {
+function renderDesktopShell(platform: string | null, isMobileLayout = false) {
   setDesktopPlatform(platform);
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -39,13 +44,16 @@ function renderDesktopShell(platform: string | null) {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <DesktopAppShell
-        pathname="/chat"
-        isDocBrowserOpen={false}
-        docBrowserMode="floating"
-      >
-        <div data-testid="app-content">App Content</div>
-      </DesktopAppShell>
+      <MemoryRouter initialEntries={["/chat"]}>
+        <DesktopAppShell
+          pathname="/chat"
+          isMobileLayout={isMobileLayout}
+          isDocBrowserOpen={false}
+          docBrowserMode="floating"
+        >
+          <div data-testid="app-content">App Content</div>
+        </DesktopAppShell>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -97,6 +105,14 @@ describe("DesktopAppShell", () => {
     renderDesktopShell("darwin");
 
     expect(screen.queryByTestId("desktop-window-chrome")).toBeNull();
+    expect(screen.getByTestId("app-content")).toBeTruthy();
+  });
+
+  it("keeps mobile bottom navigation visible inside Windows desktop hosts at narrow widths", () => {
+    renderDesktopShell("win32", true);
+
+    expect(screen.getByTestId("desktop-window-chrome")).toBeTruthy();
+    expect(screen.getByTestId("mobile-bottom-nav")).toBeTruthy();
     expect(screen.getByTestId("app-content")).toBeTruthy();
   });
 });

@@ -25,8 +25,20 @@ vi.mock("@/app/components/layout/sidebar", () => ({
 }));
 
 vi.mock("@/platforms/mobile", () => ({
-  MobileAppShell: ({ children }: { children: ReactNode }) => (
-    <div data-testid="mobile-app-shell">{children}</div>
+  MobileBottomNav: () => <nav data-testid="mobile-bottom-nav" />,
+  MobileAppShell: ({
+    children,
+    topbarLeadingInset,
+  }: {
+    children: ReactNode;
+    topbarLeadingInset?: string;
+  }) => (
+    <div
+      data-testid="mobile-app-shell"
+      data-topbar-leading-inset={topbarLeadingInset ?? ""}
+    >
+      {children}
+    </div>
   ),
 }));
 
@@ -119,7 +131,7 @@ describe("AppLayout", () => {
     expect(container.querySelector("aside")).toBeNull();
   });
 
-  it("keeps the desktop shell on desktop hosts even when the viewport is narrow", () => {
+  it("keeps the desktop shell and mobile navigation on desktop hosts at narrow widths", () => {
     window.nextclawDesktop = {
       platform: "win32",
     } as typeof window.nextclawDesktop;
@@ -159,5 +171,38 @@ describe("AppLayout", () => {
     expect(screen.getByTestId("chat-content")).toBeTruthy();
     expect(screen.getByTestId("desktop-window-chrome")).toBeTruthy();
     expect(screen.getByTestId("desktop-window-chrome-sidebar").className).toContain("desktop-window-drag");
+    expect(screen.getByTestId("mobile-bottom-nav")).toBeTruthy();
+  });
+
+  it("uses the mobile shell with a macOS traffic-light inset on narrow macOS desktop hosts", () => {
+    window.nextclawDesktop = {
+      platform: "darwin",
+    } as typeof window.nextclawDesktop;
+    useViewportLayoutMock.mockReturnValue({
+      mode: "mobile",
+      isMobile: true,
+      isDesktop: false,
+    });
+
+    render(
+      <I18nProvider>
+        <MemoryRouter initialEntries={["/chat"]}>
+          <Routes>
+            <Route
+              path="*"
+              element={
+                <AppLayout>
+                  <div data-testid="chat-content">Chat Content</div>
+                </AppLayout>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    expect(screen.getByTestId("chat-content")).toBeTruthy();
+    expect(screen.getByTestId("mobile-app-shell").getAttribute("data-topbar-leading-inset")).toBe("4.75rem");
+    expect(screen.queryByTestId("desktop-window-chrome")).toBeNull();
   });
 });

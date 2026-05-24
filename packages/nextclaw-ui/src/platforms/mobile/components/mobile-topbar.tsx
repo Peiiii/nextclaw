@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { resolveMobileRouteMeta } from "@/app/configs/app-navigation.config";
 import { t } from "@/shared/lib/i18n";
 
-export function MobileTopbar() {
+export function MobileTopbar({ leadingInset }: { leadingInset?: string }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const routeMeta = resolveMobileRouteMeta(pathname, t);
@@ -16,7 +16,10 @@ export function MobileTopbar() {
         paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.25rem)",
       }}
     >
-      <div className="flex min-h-[2.75rem] items-center gap-2 px-3 py-1.5">
+      <div
+        className="flex min-h-[2.75rem] items-center gap-2 py-1.5 pl-3 pr-3"
+        style={{ paddingLeft: leadingInset ? `calc(${leadingInset} + 0.75rem)` : undefined }}
+      >
         {routeMeta.backTarget ? (
           <button
             type="button"
@@ -26,9 +29,7 @@ export function MobileTopbar() {
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
-        ) : (
-          null
-        )}
+        ) : null}
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-center text-[15px] font-semibold text-gray-900">
             {routeMeta.title}

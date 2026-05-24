@@ -21,25 +21,22 @@ function AppLayoutInner({ children }: AppLayoutProps) {
   const { pathname } = useLocation();
   const { language } = useI18n();
   const { isMobile } = useViewportLayout();
+  const desktopHostPlatform = getDesktopHostPlatform();
 
   useEffect(() => {
     document.title = resolveUiDocumentTitle(pathname);
   }, [pathname, language]);
 
-  if (isMobile && getDesktopHostPlatform() === null) {
+  if (isMobile && desktopHostPlatform !== "win32") {
     return (
-      <MobileAppShell pathname={pathname} isDocBrowserOpen={isOpen}>
+      <MobileAppShell pathname={pathname} isDocBrowserOpen={isOpen} topbarLeadingInset={desktopHostPlatform === "darwin" ? "4.75rem" : undefined}>
         {children}
       </MobileAppShell>
     );
   }
 
   return (
-    <DesktopAppShell
-      pathname={pathname}
-      isDocBrowserOpen={isOpen}
-      docBrowserMode={mode}
-    >
+    <DesktopAppShell pathname={pathname} isMobileLayout={isMobile} isDocBrowserOpen={isOpen} docBrowserMode={mode}>
       {children}
     </DesktopAppShell>
   );

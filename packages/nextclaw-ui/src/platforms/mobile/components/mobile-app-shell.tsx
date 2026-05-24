@@ -13,12 +13,14 @@ const DocBrowser = lazy(async () => ({
 type MobileAppShellProps = {
   pathname: string;
   isDocBrowserOpen: boolean;
+  topbarLeadingInset?: string;
   children: React.ReactNode;
 };
 
 export function MobileAppShell({
   pathname,
   isDocBrowserOpen,
+  topbarLeadingInset,
   children,
 }: MobileAppShellProps) {
   const isMainRoute = isMainWorkspaceRoute(pathname);
@@ -27,7 +29,7 @@ export function MobileAppShell({
 
   return (
     <div className="flex h-[100svh] flex-col bg-background font-sans text-foreground supports-[height:100dvh]:h-[100dvh]">
-      {showTopbar ? <MobileTopbar /> : null}
+      {showTopbar ? <MobileTopbar leadingInset={topbarLeadingInset} /> : null}
       <div className="relative flex-1 min-h-0 overflow-hidden">
         {isMainRoute ? (
           <div className="h-full min-h-0 overflow-hidden">{children}</div>

@@ -1,9 +1,13 @@
 import { lazy, Suspense } from "react";
 import type { CSSProperties } from "react";
-import { isMainWorkspaceRoute } from "@/app/configs/app-navigation.config";
+import {
+  isChatSessionDetailRoute,
+  isMainWorkspaceRoute,
+} from "@/app/configs/app-navigation.config";
 import { Sidebar } from "@/app/components/layout/sidebar";
 import { DesktopWindowChrome } from "@/platforms/desktop/components/desktop-window-chrome";
 import { isWindowsDesktopHost } from "@/platforms/desktop/utils/desktop-host.utils";
+import { MobileBottomNav } from "@/platforms/mobile";
 import { cn } from "@/shared/lib/utils";
 
 const DocBrowser = lazy(async () => ({
@@ -12,32 +16,21 @@ const DocBrowser = lazy(async () => ({
 
 type DesktopAppShellProps = {
   pathname: string;
+  isMobileLayout?: boolean;
   isDocBrowserOpen: boolean;
   docBrowserMode: "floating" | "docked";
   children: React.ReactNode;
 };
 
-type DesktopShellStyle = CSSProperties & {
-  "--desktop-titlebar-height"?: string;
-  "--desktop-caption-safe-right"?: string;
-  "--desktop-sidebar-width"?: string;
-};
-
-function createWindowsDesktopShellStyle(isMainRoute: boolean): DesktopShellStyle {
-  return {
-    "--desktop-titlebar-height": "40px",
-    "--desktop-caption-safe-right": "140px",
-    "--desktop-sidebar-width": isMainRoute ? "280px" : "240px",
-  };
-}
-
 export function DesktopAppShell({
   pathname,
+  isMobileLayout = false,
   isDocBrowserOpen,
   docBrowserMode,
   children,
 }: DesktopAppShellProps) {
   const isMainRoute = isMainWorkspaceRoute(pathname);
+  const showMobileBottomNav = isMobileLayout && !isChatSessionDetailRoute(pathname);
   const shouldUseWindowsChrome = isWindowsDesktopHost();
 
   return (
@@ -46,7 +39,11 @@ export function DesktopAppShell({
         "h-screen flex flex-col overflow-hidden bg-background font-sans text-foreground",
         shouldUseWindowsChrome ? "rounded-[10px]" : null,
       )}
-      style={shouldUseWindowsChrome ? createWindowsDesktopShellStyle(isMainRoute) : undefined}
+      style={shouldUseWindowsChrome ? ({
+        "--desktop-titlebar-height": "40px",
+        "--desktop-caption-safe-right": "140px",
+        "--desktop-sidebar-width": isMainRoute ? "280px" : "240px",
+      } as CSSProperties) : undefined}
     >
       {shouldUseWindowsChrome ? <DesktopWindowChrome /> : null}
       <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -70,6 +67,7 @@ export function DesktopAppShell({
           ) : null}
         </div>
       </div>
+      {showMobileBottomNav ? <MobileBottomNav /> : null}
       {isDocBrowserOpen && docBrowserMode === "floating" ? (
         <Suspense fallback={null}>
           <DocBrowser />

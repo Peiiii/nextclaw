@@ -8,7 +8,6 @@ export function useViewportLayout() {
   const mode = useViewportLayoutStore((state) => state.mode);
 
   return {
-    mode,
     isMobile: mode === "mobile",
   };
 }
