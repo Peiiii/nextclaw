@@ -20,6 +20,12 @@ export function attachWindowDiagnostics(window: BrowserWindow, logger: DesktopLo
   const logInfo = (message: string) => logger.info(`${prefix} ${message}`);
   const logWarn = (message: string) => logger.warn(`${prefix} ${message}`);
 
+  window.on("ready-to-show", () => {
+    logInfo("ready-to-show");
+  });
+  webContents.on("did-finish-load", () => {
+    logInfo("did-finish-load");
+  });
   webContents.on("dom-ready", () => {
     if (process.platform === "win32" && process.env.NEXTCLAW_DESKTOP_SMOKE_TITLEBAR_HIT_TEST === "1") {
       void webContents
