@@ -105,12 +105,14 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - If the public Pages URL still shows the previous version but `origin/gh-pages` has the new manifest, report it as propagation delay and keep the script/poll running instead of creating another release.
 - Use `--run-id <id>` when a workflow run is already known; this avoids searching and keeps logs smaller.
 - Use `--skip-public-pages` only when explicitly handing off a release whose public update channel propagation will be checked by a separate automation; do not use it to claim update-channel completion.
+- Use `--skip-remote-preflight` only for recovery after the exact `desktop-release-preflight` signing-secret gate already passed for the same target SHA. Do not skip it during normal beta or stable publishing.
 
 ## Stable Desktop Release Automation
 - Preferred one-command entry:
   - `pnpm release:desktop:stable`
 - The command must close the formal release contract:
   - clean worktree and non-behind branch check;
+  - remote signing-secret preflight before creating the GitHub release;
   - local `pnpm desktop:package:verify` unless explicitly skipped for a documented equivalent gate;
   - GitHub release/tag creation unless `--reuse-existing-release` is supplied for recovery;
   - `desktop-release` workflow success;

@@ -1,0 +1,120 @@
+name: desktop-release-preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "Desktop update channel"
+        required: true
+        type: choice
+        options:
+          - beta
+          - stable
+      desktop_version:
+        description: "Expected apps/desktop package version"
+        required: true
+        type: string
+      runtime_version:
+        description: "Expected nextclaw runtime bundle version"
+        required: true
+        type: string
+      minimum_launcher_version:
+        description: "Expected governed launcher compatibility floor"
+        required: true
+        type: string
+      target_sha:
+        description: "Commit SHA the release tag will target"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  release-preflight:
+    name: release-preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout target
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate release identity
+        shell: bash
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          DESKTOP_VERSION: ${{ inputs.desktop_version }}
+          RUNTIME_VERSION: ${{ inputs.runtime_version }}
+          MINIMUM_LAUNCHER_VERSION: ${{ inputs.minimum_launcher_version }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const { readFileSync } = require('node:fs');
+          const desktopVersion = JSON.parse(readFileSync('apps/desktop/package.json', 'utf8')).version;
+          const runtimeVersion = JSON.parse(readFileSync('packages/nextclaw/package.json', 'utf8')).version;
+          const compatibility = JSON.parse(readFileSync('apps/desktop/desktop-launcher-compatibility.json', 'utf8'));
+          const channel = process.env.CHANNEL;
+          const expected = {
+            desktopVersion: process.env.DESKTOP_VERSION,
+            runtimeVersion: process.env.RUNTIME_VERSION,
+            minimumLauncherVersion: process.env.MINIMUM_LAUNCHER_VERSION
+          };
+          const actual = {
+            desktopVersion,
+            runtimeVersion,
+            minimumLauncherVersion: compatibility[channel]?.minimumLauncherVersion
+          };
+          for (const [key, expectedValue] of Object.entries(expected)) {
+            if (actual[key] !== expectedValue) {
+              throw new Error(`${key} mismatch: expected ${expectedValue}, got ${actual[key]}`);
+            }
+          }
+          NODE
+
+      - name: Validate desktop bundle signing secret
+        shell: bash
+        env:
+          NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY: ${{ secrets.NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const { createPrivateKey, createPublicKey, sign, verify } = require('node:crypto');
+          const { writeFileSync } = require('node:fs');
+          const privateKeyPem = process.env.NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY?.trim();
+          if (!privateKeyPem) {
+            throw new Error('NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY is missing.');
+          }
+          const privateKey = createPrivateKey(privateKeyPem.replaceAll('\\n', '\n'));
+          const publicKeyPem = createPublicKey(privateKey).export({ type: 'spki', format: 'pem' }).toString();
+          const payload = Buffer.from(`nextclaw-desktop-release-preflight:${Date.now()}`);
+          const signature = sign(null, payload, privateKey);
+          if (!verify(null, payload, createPublicKey(publicKeyPem), signature)) {
+            throw new Error('Signing secret could not round-trip sign and verify a payload.');
+          }
+          writeFileSync('/tmp/derived-update-bundle-public.pem', publicKeyPem);
+          NODE
+
+      - name: Compare published update public key
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://peiiii.github.io/nextclaw/desktop-updates/update-bundle-public.pem?preflight=${GITHUB_RUN_ID}" \
+            -o /tmp/published-update-bundle-public.pem
+          node <<'NODE'
+          const { createPublicKey } = require('node:crypto');
+          const { readFileSync } = require('node:fs');
+          const canonical = (path) =>
+            createPublicKey(readFileSync(path, 'utf8')).export({ type: 'spki', format: 'pem' }).toString();
+          const derived = canonical('/tmp/derived-update-bundle-public.pem');
+          const published = canonical('/tmp/published-update-bundle-public.pem');
+          if (derived !== published) {
+            throw new Error('GitHub signing secret does not match the currently published desktop update public key.');
+          }
+          NODE

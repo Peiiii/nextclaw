@@ -4,9 +4,11 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { waitForDesktopReleaseClosure } from "./desktop-release-closure.mjs";
+import { runRemotePreflight } from "./desktop-release-preflight.mjs";
 
 const ROOT_DIR = process.cwd();
 const DEFAULT_REPO = "Peiiii/nextclaw";
+const DEFAULT_PREFLIGHT_WORKFLOW = "desktop-release-preflight.yml";
 const DEFAULT_WORKFLOW = "desktop-release.yml";
 const DEFAULT_PUBLIC_ATTEMPTS = 24;
 const DEFAULT_PUBLIC_DELAY_MS = 10000;
@@ -29,12 +31,14 @@ Options:
   --minimum-launcher-version <v>  Override governed channel floor assertion
   --branch <branch>               Branch to push/dispatch from. Defaults to the current branch
   --repo <owner/repo>             GitHub repository. Defaults to ${DEFAULT_REPO}
+  --preflight-workflow <file>     Desktop release preflight workflow. Defaults to ${DEFAULT_PREFLIGHT_WORKFLOW}
   --workflow <file>               Desktop release workflow. Defaults to ${DEFAULT_WORKFLOW}
-  --target <git-ref>              Release target. Defaults to HEAD
+  --target <git-ref>              Release target. Defaults to the current HEAD SHA
   --notes-file <path>             Release notes body file
   --run-id <id>                   Reuse a known desktop-release run
   --reuse-existing-release        Do not create the GitHub release; verify/close an existing tag
   --skip-local-verify             Skip pnpm desktop:package:verify
+  --skip-remote-preflight         Skip GitHub signing-secret preflight
   --skip-public-pages             Verify gh-pages only; skip public Pages propagation polling
   --dry-run                       Print planned actions without mutating remote state
   --help                          Show this help
@@ -50,6 +54,7 @@ function parseArgs(argv) {
     dryRun: false,
     minimumLauncherVersion: null,
     notesFile: null,
+    preflightWorkflow: DEFAULT_PREFLIGHT_WORKFLOW,
     publicAttempts: DEFAULT_PUBLIC_ATTEMPTS,
     publicDelayMs: DEFAULT_PUBLIC_DELAY_MS,
     repo: DEFAULT_REPO,
@@ -60,8 +65,9 @@ function parseArgs(argv) {
     runtimeVersion: null,
     skipLocalVerify: false,
     skipPublicPages: false,
+    skipRemotePreflight: false,
     tag: null,
-    target: "HEAD",
+    target: null,
     workflow: DEFAULT_WORKFLOW
   };
 
@@ -73,6 +79,7 @@ function parseArgs(argv) {
       case "--desktop-version":
       case "--minimum-launcher-version":
       case "--notes-file":
+      case "--preflight-workflow":
       case "--repo":
       case "--run-id":
       case "--runtime-version":
@@ -90,6 +97,9 @@ function parseArgs(argv) {
         break;
       case "--skip-local-verify":
         options.skipLocalVerify = true;
+        break;
+      case "--skip-remote-preflight":
+        options.skipRemotePreflight = true;
         break;
       case "--skip-public-pages":
         options.skipPublicPages = true;
@@ -150,18 +160,31 @@ function readCurrentBranch() {
   return run("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
 }
 
+function readHeadSha() {
+  return run("git", ["rev-parse", "HEAD"]);
+}
+
 function readWorktreeStatus() {
   return run("git", ["status", "--short"]);
 }
 
 function assertCleanWorktree(options) {
-  const status = readWorktreeStatus();
-  if (status) {
+  const statusLines = readWorktreeStatus().split("\n").filter(Boolean);
+  const trackedChanges = statusLines.filter((line) => !line.startsWith("?? "));
+  const untrackedChanges = statusLines.filter((line) => line.startsWith("?? "));
+  if (trackedChanges.length > 0) {
     if (options.dryRun) {
-      console.warn("[desktop:release] dry-run continuing with a dirty worktree.");
+      console.warn("[desktop:release] dry-run continuing with tracked worktree changes.");
       return;
     }
-    throw new Error("Desktop release requires a clean worktree. Commit or stash local changes first.");
+    throw new Error(
+      `Desktop release requires no tracked worktree changes. Commit or stash these first:\n${trackedChanges.join("\n")}`
+    );
+  }
+  if (untrackedChanges.length > 0) {
+    console.warn(
+      `[desktop:release] ignoring untracked files; they will not be included in the release:\n${untrackedChanges.join("\n")}`
+    );
   }
 }
 
@@ -341,6 +364,7 @@ async function main() {
   assertCleanWorktree(options);
 
   options.branch ??= readCurrentBranch();
+  options.target ??= readHeadSha();
   options.desktopVersion ??= readPackageVersion("apps/desktop/package.json");
   options.runtimeVersion ??= readPackageVersion("packages/nextclaw/package.json");
   options.minimumLauncherVersion ??= readMinimumLauncherVersion(options.channel);
@@ -357,6 +381,7 @@ async function main() {
 
   runLocalVerify(options);
   pushBranchIfNeeded(options.branch, aheadCount, options);
+  await runRemotePreflight(options);
   if (!options.reuseExistingRelease) {
     createRelease(options);
   }
