@@ -19,7 +19,7 @@
 - 对架构、链路、事件流、状态归属或根因作确定性表述前，必须先验证端到端证据；只查到局部代码时只能标注为假设或阶段性判断，不得外推成系统结论。
 - 用户常用语音输入，可能出现转写误差；遇到“绘画”等疑似错词，若上下文在讨论 chat/session/session materialization/消息发送，应优先按“会话”理解，必要时先澄清再展开方案。
 - 用户说“记住”“以后都要”“这是规范/原则”时，禁止只口头确认；必须判断并持久化到 `AGENTS.md`、对应 skill、命令或治理脚本等可自动触发的位置，若不落盘必须说明理由。
-- 若用户明确启动“深思模式”，或对复杂架构/实现方案/规则机制/高风险取舍进行讨论，或用户连续纠偏表明需要重新深挖意图时，必须自动进入深思模式；深思模式回复前缀为 `[我严格遵守规则][深思模式]`，直到该复杂议题结束或用户明确关闭。
+- 若用户明确启动“深思模式”，或对复杂架构/实现方案/规则机制/高风险取舍进行讨论，或用户连续纠偏表明需要重新深挖意图时，必须自动进入深思模式；深思模式下每次收到用户新消息，必须先判断其深层意图、纠偏对象和对当前任务的推进含义，再决定回复或行动；深思模式回复前缀为 `[我严格遵守规则][深思模式]`，直到该复杂议题结束或用户明确关闭。
 - 若用户明确启动“目标模式”，后续回复前缀追加 `[目标模式]` 与 `[锚点 n/20]`，并使用 `goal-mode` skill 持续推进直到目标完成、真实阻塞或用户明确退出。
 - 思考产品和实现方案时，同时站在 CEO + CTO（架构师）+ 产品经理视角：产品价值、技术结构、交付路径都要考虑。
 
@@ -35,6 +35,7 @@
 
 - `AGENTS.md` 是常驻内核：只放每轮都必须知道的高优先级约束。
 - 场景相关、流程较长、例子很多、只在特定任务需要的规则，必须做成 `.agents/skills/<skill>/SKILL.md`。
+- 新增或重写 skill 时，必须同步维护能让 AI 自动触发读取它的索引：至少更新 skill `description`，必要时更新 `AGENTS.md` 的 skill 路由或相关命令/治理说明。
 - 项目内新增或重写 skill 默认使用中文；只有在明确面向外部英文受众、外部协议字段要求英文，或用户明确要求时，才使用英文。
 - 项目内方案、计划、设计、PRD、复盘等文档默认使用中文；只有面向外部英文受众、协议字段要求英文，或用户明确要求时，才使用英文。
 - 普通文档只用于人类说明、长期沉淀或被 skill 明确引用；不要把强制流程只拆到普通文档里，因为 AI 不一定会主动读取。
@@ -43,6 +44,8 @@
 - 执行源码、脚本、测试或运行链路配置相关任务时，默认使用 `nextclaw-delivery-workflow` 作为总流程 owner，统一约束实现前删减判断、验证、可维护性披露、复盘与最终汇报；细节再分别联动对应专项 skill。
 - 运行 `/validate`、代码改动收尾验证、bugfix 定向验收、冒烟测试或发布闭环判断时，必须使用 `nextclaw-validation-workflow` skill。
 - 写或改源码、脚本、测试、运行链路配置前，默认使用 `nextclaw-clean-implementation` skill；涉及 fallback / compatibility / rescue path 时，同时使用 `predictable-behavior-first`。
+- 讨论、审查或重构代码审美、代码是否干净/优雅/美丽、是否过度防卫或过度抽象时，使用 `writing-beautiful-code`；项目专属规则仍归对应项目 skill。
+- 涉及 kernel 主干/分支、manager/service/store/presenter owner 依赖、稳定业务 owner 是否直连、factory/create/registry 是否过度抽象、prop 透传或链路过长时，必须使用 `kernel-branch-owner-architecture`。
 - 改完源码、脚本、测试或运行链路配置后，默认使用 `post-edit-maintainability-guard`，再使用 `post-edit-maintainability-review`。
 - 创建、拆分、移动文件/模块/目录前，必须先判断并读取命名、角色、目录组织相关 skill，再按其规则实现。
 - 涉及命名、目录、文件组织时，按场景使用 `file-naming-convention`、`role-first-file-organization`、`collapsible-feature-root-architecture`、`file-organization-governance`。
@@ -80,8 +83,9 @@
 - 新增之前先判断能否删除、合并、复用、收敛职责；非新增用户能力的改动默认应避免生产代码净增长，优先通过删除旧实现、重构收敛职责或在同责任链/同问题域偿还债务达成；不要求删减只发生在当前改动点，但禁止通过 hack、把复杂度外移、缩短命名/折叠语句等强行压缩来伪造净减。
 - 业务逻辑默认必须有清晰 owner，通常落到 class / manager / service / controller / presenter；普通函数只用于纯常量、纯类型、极小纯计算、纯数据映射、纯业务无关工具。
 - 业务层之间默认传递并依赖 owner 对象，而不是拆成一堆小参数；只有纯工具、纯计算或跨业务解耦边界才传最小小参数。
-- 使用 class 承载业务逻辑时，新增或触达的实例方法默认写成箭头函数 class field；`constructor`、`get/set`、`static`、`abstract`、`override`、decorator 方法按语义例外处理。
+- 使用 class 承载业务逻辑时，新增或触达的实例方法默认写成箭头函数 class field；`constructor`、`get/set`、`static`、`abstract`、`override`、decorator、async generator 方法按语义例外处理。
 - 普通函数、顶层 helper、对象字面量函数默认不得原地修改入参；优先返回新值或 patch。若需要状态和生命周期，收敛到 owner class。
+- 对象构造默认保持稳定、直接的合同形状；禁止用条件 spread 拼可选字段来隐藏对象形态变化。字段值本身可以用清晰的三元表达式表达 `undefined` / `null`。
 - 前端复杂业务逻辑、状态流或数据流默认收敛到 manager / store / presenter，优先由 manager 承载；组件和 hook 主要做连接、订阅、调用与轻量本地状态，合适时评估 RxJS 等显式数据流工具。
 - React `useEffect` / `useLayoutEffect` 默认只同步外部系统；业务编排、状态迁移、query/store 镜像应回到 query/view hook、store、manager 或 presenter。
 - 生命周期 owner 的订阅、临时 stream、watcher、runtime dispose 等清理职责默认收敛到 `cleanups` / `disposables` collection，`dispose/stop` 统一 drain；避免多个平行 nullable cleanup 字段或按资源类型散落清理逻辑。

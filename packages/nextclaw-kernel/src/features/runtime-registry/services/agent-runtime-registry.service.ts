@@ -1,8 +1,7 @@
 import { toDisposable, type Disposable } from "@nextclaw/core";
 import type { NcpAgentRuntime } from "@nextclaw/ncp";
 import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
-
-export const DEFAULT_AGENT_RUNTIME_ENTRY_ID = "native";
+import { DEFAULT_AGENT_RUNTIME_ENTRY_ID } from "@kernel/configs/agent-runtime.config.js";
 
 export type AgentRuntimeSessionTypeIcon = {
   kind: "image";

@@ -4,6 +4,7 @@ import parser from "@typescript-eslint/parser";
 import { hasAddedLineInRange, rootDir } from "../lint-new-code-governance-support.mjs";
 import {
   COMMAND_LOCAL_DIRECTORY_NAMES,
+  CONTRIBUTION_LOCAL_DIRECTORY_NAMES,
   FEATURE_LOCAL_DIRECTORY_NAMES,
   FIXED_ROLE_DIRECTORY_NAMES,
   isProtocolContract,
@@ -37,7 +38,7 @@ const getProtocolViolationLevel = (contract, existedInComparisonRef) => (
     : existedInComparisonRef ? "warn" : "error"
 );
 const getBusinessRootConfig = (contract, rootDirectoryName) => rootDirectoryName === "contributions"
-  ? { rootDirectoryName, label: "contribution", localDirectoryNames: FEATURE_LOCAL_DIRECTORY_NAMES }
+  ? { rootDirectoryName, label: "contribution", localDirectoryNames: CONTRIBUTION_LOCAL_DIRECTORY_NAMES }
   : contract.protocol === "cli-command-first"
     ? { rootDirectoryName: "commands", label: "command", localDirectoryNames: COMMAND_LOCAL_DIRECTORY_NAMES }
     : { rootDirectoryName: "features", label: "feature", localDirectoryNames: FEATURE_LOCAL_DIRECTORY_NAMES };

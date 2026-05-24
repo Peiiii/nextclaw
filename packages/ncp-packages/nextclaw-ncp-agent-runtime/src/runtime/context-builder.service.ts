@@ -1,19 +1,15 @@
-import type { NcpMessage } from "@nextclaw/ncp";
 import type {
   NcpContextBuilder,
   NcpContextPrepareOptions,
   NcpLLMApiInput,
-  NcpMessagePart,
-  NcpToolOutputContentItem,
   OpenAIChatMessage,
   OpenAITool,
 } from "@nextclaw/ncp";
 import type { NcpAgentRunInput } from "@nextclaw/ncp";
 import type { NcpToolRegistry } from "@nextclaw/ncp";
 import type { LocalAssetStore } from "../assets/stores/local-asset.store.js";
-import { buildNcpUserContent } from "./user-content.utils.js";
-import { defaultToolResultContentManager } from "../tool-result/tool-result-content.manager.js";
-import { buildOpenAiFunctionTool } from "./utils.js";
+import { ncpMessageToOpenAiMessages } from "./utils/message-converter.utils.js";
+import { buildOpenAiFunctionTool } from "./runtime.utils.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -25,10 +21,6 @@ function readOptionalString(value: unknown): string | null {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
-}
-
-function isTextLikePart(part: NcpMessagePart): part is Extract<NcpMessagePart, { type: "text" | "rich-text" }> {
-  return part.type === "text" || part.type === "rich-text";
 }
 
 function mergeMessageAndRequestMetadata(input: NcpAgentRunInput): Record<string, unknown> {
@@ -72,115 +64,6 @@ function isDefaultNcpContextBuilderOptions(
   return Boolean(value) && typeof value === "object" && !("getToolDefinitions" in value);
 }
 
-function messageToOpenAI(
-  msg: NcpMessage,
-  options: {
-    assetStore?: LocalAssetStore | null;
-  },
-): OpenAIChatMessage[] {
-  const role = msg.role as "user" | "assistant" | "system" | "tool";
-  const parts = msg.parts ?? [];
-
-  if (role === "user" || role === "system") {
-    if (role === "user") {
-      return [
-        {
-          role,
-          content: buildNcpUserContent(parts, {
-            assetStore: options.assetStore,
-          }),
-        },
-      ];
-    }
-    const text = parts.filter(isTextLikePart).map((part) => part.text).join("");
-    return [{ role, content: text }];
-  }
-
-  if (role === "assistant") {
-    const texts: string[] = [];
-    const reasonings: string[] = [];
-    const toolInvocations: Array<{
-      toolCallId: string;
-      toolName: string;
-      args: unknown;
-      result: unknown;
-      resultContentItems?: NcpToolOutputContentItem[];
-    }> = [];
-
-    for (const p of parts) {
-      if (p.type === "reasoning") {
-        reasonings.push(p.text);
-      }
-      if (p.type === "text") {
-        texts.push(p.text);
-      }
-      if (p.type === "tool-invocation" && p.state === "result" && p.result !== undefined) {
-        toolInvocations.push({
-          toolCallId: p.toolCallId ?? "",
-          toolName: p.toolName,
-          args: p.args ?? {},
-          result: p.result,
-          resultContentItems: p.resultContentItems,
-        });
-      }
-    }
-
-    const text = texts.join("");
-    const reasoning = reasonings.join("");
-    const out: OpenAIChatMessage[] = [];
-
-    if (toolInvocations.length > 0) {
-      out.push({
-        role: "assistant",
-        content: text || null,
-        ...(reasoning ? { reasoning_content: reasoning } : {}),
-        tool_calls: toolInvocations.map((t) => ({
-          id: t.toolCallId,
-          type: "function" as const,
-          function: {
-            name: t.toolName,
-            arguments:
-              typeof t.args === "string" ? t.args : JSON.stringify(t.args ?? {}),
-          },
-        })),
-      });
-      for (const t of toolInvocations) {
-        out.push({
-          role: "tool",
-          content: typeof t.result === "string" ? t.result : JSON.stringify(t.result),
-          tool_call_id: t.toolCallId,
-        });
-      }
-      out.push(
-        ...defaultToolResultContentManager.toVisualObservationMessages(
-          toolInvocations.map((toolInvocation) => ({
-            toolCallId: toolInvocation.toolCallId,
-            toolName: toolInvocation.toolName,
-            args: isRecord(toolInvocation.args)
-              ? (toolInvocation.args as Record<string, unknown>)
-              : null,
-            rawArgsText:
-              typeof toolInvocation.args === "string"
-                ? toolInvocation.args
-                : JSON.stringify(toolInvocation.args ?? {}),
-            result: toolInvocation.result,
-            contentItems: toolInvocation.resultContentItems,
-          })),
-        ),
-      );
-    } else {
-      out.push({
-        role: "assistant",
-        content: text,
-        ...(reasoning ? { reasoning_content: reasoning } : {}),
-      });
-    }
-    return out;
-  }
-
-  return [];
-}
-
 export class DefaultNcpContextBuilder implements NcpContextBuilder {
   private readonly toolRegistry?: NcpToolRegistry;
   private readonly assetStore?: LocalAssetStore | null;
@@ -214,7 +97,7 @@ export class DefaultNcpContextBuilder implements NcpContextBuilder {
 
     for (const msg of sessionMessages.slice(-maxMessages)) {
       messages.push(
-        ...messageToOpenAI(msg, {
+        ...ncpMessageToOpenAiMessages(msg, {
           assetStore: this.assetStore,
         }),
       );
@@ -222,7 +105,7 @@ export class DefaultNcpContextBuilder implements NcpContextBuilder {
 
     for (const msg of input.messages) {
       messages.push(
-        ...messageToOpenAI(msg, {
+        ...ncpMessageToOpenAiMessages(msg, {
           assetStore: this.assetStore,
         }),
       );

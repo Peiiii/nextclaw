@@ -70,6 +70,7 @@ description: Use when implementing, refactoring, or designing source-level contr
 - 主流程现在是在一个清晰 owner 里，还是散落在函数 / hook / effect / action 中
 - 这个 owner 是否完整覆盖领域闭环，还是核心能力仍由上层通过 factory/deps 临时塞进来
 - 这个 owner 的职责边界、感知范围、最小依赖和合理自定义表面分别是什么
+- 这个 owner 的文件角色是什么；如果新增的是 `Provider` / `Manager` / `Service` / `Repository` / `Store` / `Tool` 等角色 class，是否已经放进对应 `providers/` / `managers/` / `services/` / `repositories/` / `stores/` / `tools/` 目录，而不是直接塞进 contribution root 或 feature root 的 `index.ts`
 
 如果答案说不清，先收敛 owner，再写增量逻辑。
 
@@ -80,6 +81,7 @@ description: Use when implementing, refactoring, or designing source-level contr
 - 普通函数只保留给纯工具、纯计算、纯无状态辅助
 - 字段和派生状态归属数据生成者或视图生成者，不能归属路过的装配层、bridge、router 或 callback
 - 领域 owner 要自己拥有创建、缓存、状态恢复、reload、dispose 等领域闭环；上层只传它无法自知的外部事实，例如配置快照、用户输入、路径、观测端口或明确策略
+- contribution root 的 `index.ts` 只做生命周期装配和唯一公开入口；其中需要的 provider / service / manager 等角色 class 必须进入对应角色目录。只有 contribution class 本身可以直接留在 contribution root 的 `index.ts`
 - `responsibility-surface-minimization`：owner 自己能推导或决定的内部实现细节不外传；只有跨边界外部事实、明确策略、用户选择、测试替身或真实扩展点才进入参数表面
 - 子系统 manager / facade 必须暴露意图级能力，而不是内部中间态装载入口。外部业务流不应传入或感知 registry、snapshot、contributions、resolved view、derived bindings 这类 owner 内部实现细节；这些加载、发现、合并和生命周期闭环应由 facade 内部或它的私有协作者持有。
 - 不要把职责泄露从 public 方法挪到 constructor deps / options 里伪装成收敛。如果依赖项代表的是该 owner 本应内聚的领域动作，例如 `loadRegistry`、`loadContributions`、`installHost`、`resolveXxx`、`createXxx`，那仍然是空心 owner；构造参数只应承接 owner 无法自知的基础设施事实、外部端口、明确策略或测试替身。
@@ -111,11 +113,12 @@ description: Use when implementing, refactoring, or designing source-level contr
 - 生产代码里的公共类型和 options 类型必须使用明确命名的 contract；禁止用 `import("...")` type query、深层 `ReturnType<...>` / `Awaited<...>` 链式索引去偷取另一个 owner 的返回结构。需要复用时，应在真实 contract owner 处导出命名类型，或在当前边界定义语义清晰的本地类型。
 - 目标外变更必须默认拒绝。修改、删除或“顺手整理”任何与当前目标没有直接关系的公共契约、类型字段、导出、配置、格式、命名、行为分支或文件结构前，必须先证明它降低了真实维护成本、修复了明确问题，或是当前目标不可避免的一部分；否则保持原样。公共 contract 的字段即使当前调用方暂时没读，也不能因为“看起来没用”就删，除非废弃语义、调用方影响、删除点和验证路径都明确。
 - Owner 状态只能由 owner 自己改变。普通函数、helper、service、callback 不得出现 `params.owner.xxx = ...`、`runtime.xxx = ...`、`gateway.xxx = ...` 这类从外部改 owner 字段的写法；它们只能返回结果，或调用 owner 暴露的明确业务方法。若方法只是 setter 包装且没有业务语义，也应继续收回 owner 内部。
-- 生命周期 owner 里如果出现多个 `unsubscribeXxx` / `cleanupXxx` / `xxxStops` 字段，默认先收敛成 `cleanups` / `disposables` collection 或复用项目已有 disposable owner；订阅、临时 stream、watcher、runtime dispose 等清理都注册进同一 collection，`start/stop` 用显式生命周期状态判断，不依赖 cleanup collection 反推状态；`stop/dispose` 才统一 drain。不要用多个平行 nullable 字段或按资源类型拆开的 cleanup set 表达同一类生命周期清理职责，也不要让 `start` 隐式执行 stop/cleanup 语义。
+- 生命周期 owner 里如果出现多个 `unsubscribeXxx` / `cleanupXxx` / `xxxStops` 字段，默认先收敛成 `cleanups` / `disposables` collection 或复用项目已有 disposable owner；不要仅为约束这件事新增公共 lifecycle interface；订阅、临时 stream、watcher、runtime dispose 等清理都注册进同一 collection，`start/stop` 用显式生命周期状态判断，不依赖 cleanup collection 反推状态；`stop/dispose` 才统一 drain。不要用多个平行 nullable 字段或按资源类型拆开的 cleanup set 表达同一类生命周期清理职责，也不要让 `start` 隐式执行 stop/cleanup 语义。
 - 不要用下游兜底掩盖上游合同失败。若坏输入、错参数、错协议名、错工具参数来自 prompt、skill、schema、contract 或校验缺失，先修上游合同和错误暴露；禁止直接在执行层新增 alias、normalize、fallback、compatibility path 把坏输入悄悄转成好输入，除非存在明确外部兼容合同、可观察提示和删除条件。
 - 触达工具 schema、API、协议参数或共享 contract 时，公开 schema、上下文提示、测试样例和执行读取必须指向同一个规范形态；禁止在执行层保留未公开旧字段、alias、兼容读取或第二入口来“顺手兼容”。只有用户明确批准迁移窗口、外部兼容合同和删除条件时，才允许临时双路径。
 - 不要把流程知识下沉到低层 schema / tool contract。工具 schema 只描述参数形状和最小语义约束；“如何发现参数值”“先运行哪个命令”“当前有哪些运行态资源”等操作流程应归 skill、命令文档、专门 discovery command 或上层 owner。禁止为了引导模型，把动态目录、运行态枚举、CLI 使用步骤或产品流程塞进低层工具 schema。
 - 清晰性本身是重要原则。不要为了机械消灭 `null` / `undefined`、减少一行判断或追求形式统一，把真实状态改成 no-op、假默认值、哨兵对象或更隐晦的间接表达；只有半初始化、职责逃逸或 contract 不确定时才应收敛掉可空状态。
+- 对象构造应直接呈现稳定合同形状。不要用条件 spread 拼可选字段来隐藏对象形态变化；常规业务对象优先显式赋值为 `undefined` / `null` 或先建清晰局部值。字段值本身可以用清晰的三元表达式表达 `undefined` / `null`；问题是条件 spread 让对象形态变化藏进展开语法里。
 - 禁止用重命名替代结构修复；如果旧类型和新类型承载同一批字段或同一段装配职责，必须删除重复 contract，让字段回到真正 owner，而不是引入 `XxxHost`、`XxxRuntime`、`XxxGateway`、`XxxOptions`、`XxxProps` 这类换皮中间名
 - 新命名只有在引入了新的语义 owner、生命周期、权限边界、协议转换或持久化责任时才成立；否则默认是结构搬运，必须回退
 - 若一个字段需要经过 `3` 层以上且多数层只是透传，必须先停下重新找 owner

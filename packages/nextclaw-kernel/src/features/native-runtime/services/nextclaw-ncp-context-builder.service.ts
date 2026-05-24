@@ -2,17 +2,8 @@ import {
   buildToolCatalogEntries,
   buildMinimalSystemExecutionPrompt,
   ContextBuilder,
-  ContextWindowBudgetService,
-  findEffectiveAgentProfile,
   InputBudgetPruner,
-  RequestedSkillsMetadataReader,
-  getWorkspacePath,
-  parseThinkingLevel,
   readSessionProjectRoot,
-  resolveDefaultAgentProfileId,
-  resolveSessionWorkspacePath,
-  resolveThinkingLevel,
-  type Config,
 } from "@nextclaw/core";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import {
@@ -29,19 +20,18 @@ import type {
   OpenAITool,
 } from "@nextclaw/ncp";
 import {
-  normalizeString,
   toLegacyMessages,
 } from "@kernel/utils/ncp-message-bridge.utils.js";
-import {
-  resolveEffectiveModel,
-  resolveSessionChannelContext,
-} from "@kernel/features/native-runtime/utils/nextclaw-ncp-session-preferences.utils.js";
 import { buildCurrentTurnState } from "@kernel/features/native-runtime/utils/nextclaw-ncp-current-turn.utils.js";
 import { projectNcpMessagesWithContextCompaction } from "@kernel/features/context-compaction/index.js";
 import {
-  resolveAgentHandoffDepth,
   type ToolRuntimeRegistry,
 } from "@kernel/managers/tool.manager.js";
+import {
+  buildSessionOrchestrationSection,
+  resolveNextclawNcpRunContext,
+  type NextclawNcpResolvedRunContext,
+} from "@kernel/features/native-runtime/utils/nextclaw-ncp-run-context.utils.js";
 
 type NextclawNcpContextBuilderOptions = {
   agentId?: string;
@@ -50,31 +40,8 @@ type NextclawNcpContextBuilderOptions = {
   assetStore?: LocalAssetStore | null;
 };
 
-type ResolvedAgentProfile = {
-  agentId: string;
-  contextTokens: number;
-  execTimeoutSeconds: number;
-  model: string;
-  reservedContextTokens: number;
-  restrictToWorkspace: boolean;
-  searchConfig: Config["search"];
-  workspace: string;
-};
-
-type PreparedRunContext = {
-  channel: string;
-  chatId: string;
-  config: Config;
+type PreparedRunContext = NextclawNcpResolvedRunContext & {
   currentTurn: ReturnType<typeof buildCurrentTurnState>;
-  effectiveModel: string;
-  effectiveWorkspace: string;
-  profile: ResolvedAgentProfile;
-  requestMetadata: Record<string, unknown>;
-  requestedSkills: ReturnType<RequestedSkillsMetadataReader["readSelection"]>;
-  requestedToolNames: string[];
-  runtimeThinking: ReturnType<typeof resolveThinkingLevel>;
-  sessionMetadata: Record<string, unknown>;
-  sessionKey: string;
 };
 
 type BuiltNcpModelMessages = {
@@ -99,67 +66,6 @@ function mergeInputMetadata(input: NcpAgentRunInput): Record<string, unknown> {
   return {
     ...(isRecord(messageMetadata) ? structuredClone(messageMetadata) : {}),
     ...(isRecord(input.metadata) ? structuredClone(input.metadata) : {}),
-  };
-}
-
-const REQUESTED_SKILLS_METADATA_READER = new RequestedSkillsMetadataReader();
-
-function resolveRequestedToolNames(metadata: Record<string, unknown>): string[] {
-  const rawValue = metadata.requested_tools ?? metadata.requestedTools;
-  if (!Array.isArray(rawValue)) {
-    return [];
-  }
-  return Array.from(
-    new Set(
-      rawValue
-        .map((item) => normalizeString(item))
-        .filter((item): item is string => Boolean(item)),
-    ),
-  );
-}
-
-function readRequestedAgentId(metadata: Record<string, unknown>): string | null {
-  return normalizeString(metadata.agent_id)?.toLowerCase() ?? normalizeString(metadata.agentId)?.toLowerCase() ?? null;
-}
-
-function resolveAgentProfile(params: {
-  config: Config;
-  storedAgentId?: string;
-  requestMetadata: Record<string, unknown>;
-}): ResolvedAgentProfile {
-  const { config, requestMetadata, storedAgentId } = params;
-  const {
-    agents: { defaults },
-    search: searchConfig,
-    tools: {
-      restrictToWorkspace,
-      exec: { timeout: execTimeoutSeconds },
-    },
-  } = config;
-  const defaultAgentId = resolveDefaultAgentProfileId(config);
-  const candidateAgentId =
-    normalizeString(storedAgentId)?.toLowerCase() ??
-    readRequestedAgentId(requestMetadata) ??
-    defaultAgentId;
-  const profile =
-    findEffectiveAgentProfile(config, candidateAgentId) ??
-    findEffectiveAgentProfile(config, defaultAgentId);
-  if (!profile) {
-    throw new Error(`default agent profile not found: ${defaultAgentId}`);
-  }
-  const contextTokens = profile.contextTokens ?? defaults.contextTokens;
-  return {
-    agentId: profile.id,
-    workspace: getWorkspacePath(profile.workspace ?? defaults.workspace),
-    model: profile.model ?? defaults.model,
-    contextTokens,
-    reservedContextTokens: ContextWindowBudgetService.resolveReservedContextTokens({
-      contextTokens,
-      configuredReservedContextTokens: profile.reservedContextTokens ?? defaults.reservedContextTokens,
-    }),
-    restrictToWorkspace,
-    searchConfig,
-    execTimeoutSeconds,
   };
 }
 
@@ -201,20 +107,6 @@ function prependRequestedSkills(content: string, requestedSkillSelectors: string
   return `[Requested skills for this turn: ${requestedSkillSelectors.join(", ")}]\n\n${content}`;
 }
 
-function buildSessionOrchestrationSection(): string {
-  return [
-    "## Session Orchestration",
-    "- Before passing a non-default `runtime` to `sessions_spawn` or agent creation/update flows, inspect the installed runtime kinds with `nextclaw agents runtimes --json`.",
-    "- `sessions_spawn` is the unified session-creation tool. Omit `scope` or use `scope=\"standalone\"` for a regular session, and use `scope=\"child\"` when the new session should be a child session of the current flow.",
-    "- `sessions_spawn` only creates the session by default. Add top-level `notify: \"none\" | \"final_reply\"` when the new session should start working immediately.",
-    "- When `sessions_spawn.scope=\"child\"` and `sessions_spawn.notify=\"final_reply\"`, the new child session starts right away and this session automatically continues after that child reaches its final reply.",
-    "- Use `sessions_spawn` without `notify` when the user wants a separate thread created now but does not need it to start working yet.",
-    "- Use `sessions_request` to send one task to an existing session, including a session that was just created by `sessions_spawn` or a previously created child session.",
-    "- `sessions_request.target` must be an object shaped like `{ \"session_id\": \"<target-session-id>\" }`. Do not pass a bare string.",
-    "- Prefer `notify=\"final_reply\"` when the current session should continue after the target session produces its final reply. Use `notify=\"none\"` when you only want the target session to run independently.",
-  ].join("\n");
-}
-
 function buildRequestedOpenAiTools(
   toolDefinitions: ReadonlyArray<NcpToolDefinition>,
   requestedToolNames: string[],
@@ -252,74 +144,31 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
   };
 
   private prepareRunContext = (input: NcpAgentRunInput): PreparedRunContext => {
-    const config = this.options.configManager.loadConfig();
     const requestMetadata = mergeInputMetadata(input);
-    const sessionMetadata = structuredClone(requestMetadata);
-    const profile = resolveAgentProfile({
-      config,
+    const resolved = resolveNextclawNcpRunContext({
+      configManager: this.options.configManager,
+      sessionId: input.sessionId,
+      requestMetadata,
+      sessionMetadata: requestMetadata,
       storedAgentId: this.options.agentId,
-      requestMetadata,
     });
-    let { model: effectiveModel } = resolveEffectiveModel({
-      sessionMetadata,
-      requestMetadata,
-      fallbackModel: profile.model,
-    });
-    const effectiveWorkspace = resolveSessionWorkspacePath({
-      sessionMetadata,
-      workspace: profile.workspace,
-    });
-    const { channel, chatId } = resolveSessionChannelContext({
-      sessionMetadata,
-      requestMetadata,
-    });
-    const requestedSkills = REQUESTED_SKILLS_METADATA_READER.readSelection(requestMetadata);
     const currentTurn = buildCurrentTurnState({
       input,
-      currentModel: effectiveModel,
+      currentModel: resolved.effectiveModel,
       formatPrompt: ({ text, timestamp }) =>
         appendTimeHintForPrompt(
-          prependRequestedSkills(text, requestedSkills.selectors),
+          prependRequestedSkills(text, resolved.requestedSkills.selectors),
           timestamp,
         ),
       assetStore: this.options.assetStore,
     });
-    effectiveModel = currentTurn.effectiveModel;
-    const runtimeThinking = resolveThinkingLevel({
-      config,
-      agentId: profile.agentId,
-      model: effectiveModel,
-      sessionThinkingLevel: parseThinkingLevel(sessionMetadata.preferred_thinking) ?? null,
-    });
 
-    this.options.toolRegistry.prepareForRun({
-      sessionId: input.sessionId,
-      channel,
-      chatId,
-      agentId: profile.agentId,
-      config,
-      execTimeoutSeconds: profile.execTimeoutSeconds,
-      handoffDepth: resolveAgentHandoffDepth(requestMetadata),
-      metadata: requestMetadata,
-      restrictToWorkspace: profile.restrictToWorkspace,
-      searchConfig: profile.searchConfig,
-      workspace: effectiveWorkspace,
-    });
+    this.options.toolRegistry.prepareForRun(resolved.toolRunContext);
 
     return {
-      channel,
-      chatId,
-      config,
+      ...resolved,
       currentTurn,
-      effectiveModel,
-      effectiveWorkspace,
-      profile,
-      requestMetadata,
-      requestedSkills,
-      requestedToolNames: resolveRequestedToolNames(requestMetadata),
-      runtimeThinking,
-      sessionMetadata,
-      sessionKey: input.sessionId,
+      effectiveModel: currentTurn.effectiveModel,
     };
   };
 

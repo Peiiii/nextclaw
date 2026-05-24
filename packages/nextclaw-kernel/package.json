@@ -33,6 +33,7 @@
     "@nextclaw/core": "workspace:*",
     "@nextclaw/mcp": "workspace:*",
     "@nextclaw/ncp-agent-runtime": "workspace:*",
+    "@nextclaw/ncp-agent-runtime-next": "workspace:*",
     "@nextclaw/ncp-mcp": "workspace:*",
     "@nextclaw/ncp-toolkit": "workspace:*",
     "@nextclaw/nextclaw-ncp-runtime-http-client": "workspace:*",
@@ -41,6 +42,7 @@
     "@nextclaw/runtime": "workspace:*",
     "@nextclaw/shared": "workspace:*",
     "@nextclaw/ncp": "workspace:*",
+    "rxjs": "^7.8.2",
     "yaml": "^2.8.1"
   },
   "devDependencies": {

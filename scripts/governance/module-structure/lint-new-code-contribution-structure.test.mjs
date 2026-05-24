@@ -64,6 +64,19 @@ test("blocks nested directories under flat role dirs inside contributions", () =
   assert.match(findings[0].message, /may only contain direct files/);
 });
 
+test("allows nested contributions under contribution roots", () => {
+  const contract = findModuleStructureContract("packages/nextclaw-kernel/src/contributions/kernel-branch/contributions/agent-run-runtime/index.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "packages/nextclaw-kernel/src/contributions/kernel-branch/contributions/agent-run-runtime/index.ts",
+    contract,
+    existedInComparisonRef: false,
+    rootEntryExistedInComparisonRef: false,
+    repoPathExists: (repoPath) => repoPath.endsWith("/kernel-branch/index.ts")
+  });
+
+  assert.equal(findings.length, 0);
+});
+
 test("blocks new deep imports into contribution internals", () => {
   const contract = findModuleStructureContract("packages/nextclaw-kernel/src/app/nextclaw-kernel.ts");
   const findings = evaluateProtocolImportBoundaryFindings({

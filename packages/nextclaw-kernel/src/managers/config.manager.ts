@@ -84,6 +84,17 @@ export class ConfigManager {
   loadConfig = (): Config =>
     resolveConfigSecrets(loadConfig(this.configPath), { configPath: this.configPath });
 
+  getDefaultModel = (): string =>
+    this.loadConfig().agents.defaults.model;
+
+  getModelMaxTokens = (model: string): number => {
+    const value = this.loadConfig().agents.defaults.models[model]?.params?.max_tokens;
+    if (typeof value !== "number") {
+      throw new Error(`Max tokens are not configured for model: ${model}`);
+    }
+    return Math.trunc(value);
+  };
+
   installRuntimeHooks = (hooks: ConfigManagerRuntimeHooks): void => {
     this.hooks = { ...this.hooks, ...hooks };
   };

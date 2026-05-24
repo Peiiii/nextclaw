@@ -19,16 +19,13 @@ import {
 import { DefaultNcpStreamEncoder } from "./stream-encoder.js";
 import {
   appendToolRoundToInput,
-  createInvalidToolArgumentsResult,
-  createToolExecutionFailedResult,
   genId,
-  parseToolArgs,
-  validateToolArgs,
-} from "./utils.js";
+} from "./runtime.utils.js";
 import {
   DefaultNcpRoundCollector,
   type CollectedToolCall,
 } from "./round-collector.js";
+import { executeCollectedToolCall } from "./utils/tool-call-execution.utils.js";
 import {
   defaultToolResultContentManager,
   type ToolResultContentManager,
@@ -174,78 +171,12 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
     this: DefaultNcpAgentRuntime,
     toolCall: CollectedToolCall,
   ): Promise<NcpToolCallResult> {
-    const tool = this.toolRegistry.getTool(toolCall.toolName);
-    const parsedArgs = parseToolArgs(toolCall.args);
-    if (!parsedArgs.ok) {
-      return {
-        toolCallId: toolCall.toolCallId,
-        toolName: toolCall.toolName,
-        args: null,
-        rawArgsText: parsedArgs.rawText,
-        result: createInvalidToolArgumentsResult({
-          toolCallId: toolCall.toolCallId,
-          toolName: toolCall.toolName,
-          rawArgumentsText: parsedArgs.rawText,
-          issues: parsedArgs.issues,
-        }),
-      };
-    }
-
-    const validationIssues = this.resolveValidationIssues(parsedArgs.value, tool);
-    if (validationIssues.length > 0) {
-      return {
-        toolCallId: toolCall.toolCallId,
-        toolName: toolCall.toolName,
-        args: null,
-        rawArgsText: parsedArgs.rawText,
-        result: createInvalidToolArgumentsResult({
-          toolCallId: toolCall.toolCallId,
-          toolName: toolCall.toolName,
-          rawArgumentsText: parsedArgs.rawText,
-          issues: validationIssues,
-        }),
-      };
-    }
-
-    return {
-      toolCallId: toolCall.toolCallId,
-      toolName: toolCall.toolName,
-      args: parsedArgs.value,
-      rawArgsText: parsedArgs.rawText,
-      result: await this.executeValidatedToolCall(toolCall, parsedArgs.value),
-    };
-  };
-
-  private resolveValidationIssues = function (
-    this: DefaultNcpAgentRuntime,
-    args: Record<string, unknown>,
-    tool: ReturnType<NcpToolRegistry["getTool"]>,
-  ): string[] {
-    const schemaIssues = validateToolArgs(args, tool?.parameters);
-    if (schemaIssues.length > 0) {
-      return schemaIssues;
-    }
-    return typeof tool?.validateArgs === "function" ? tool.validateArgs(args) : [];
-  };
-
-  private executeValidatedToolCall = async function (
-    this: DefaultNcpAgentRuntime,
-    toolCall: CollectedToolCall,
-    args: Record<string, unknown>,
-  ): Promise<unknown> {
-    try {
-      return await this.toolRegistry.execute(
-        toolCall.toolCallId,
-        toolCall.toolName,
-        args,
-      );
-    } catch (error) {
-      return createToolExecutionFailedResult({
-        toolCallId: toolCall.toolCallId,
-        toolName: toolCall.toolName,
-        error,
-      });
-    }
+    return executeCollectedToolCall({
+      toolCall,
+      tool: this.toolRegistry.getTool(toolCall.toolName),
+      execute: (_tool, args) =>
+        this.toolRegistry.execute(toolCall.toolCallId, toolCall.toolName, args),
+    });
   };
 
   private tapStream = async function* (

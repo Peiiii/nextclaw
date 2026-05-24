@@ -152,7 +152,7 @@ node scripts/metrics/code-volume-metrics.mjs --scope-profile repo-volume --no-wr
 - 以当前触达的 class 为边界，统一检查该 class 内所有可治理的实例方法
 - 优先一次性把同类普通实例方法一起改成 `methodName = () => {}`
 - 不要只修当前报错的那一个方法，避免同一个 class 在后续改动里重复触发同类治理噪音
-- `constructor`、`get/set`、`static`、`abstract`、`override`、带 decorator 的方法仍按既有豁免处理
+- `constructor`、`get/set`、`static`、`abstract`、`override`、带 decorator 的方法、async generator 方法仍按既有豁免处理
 
 若命中“普通函数修改入参”这条治理，默认修复策略应是：
 

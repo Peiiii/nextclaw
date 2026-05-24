@@ -17,6 +17,7 @@ import {
   SessionRequestManager,
 } from "@kernel/features/session-request/index.js";
 import { AgentRuntimeContribution } from "@kernel/contributions/agent-runtime/index.js";
+import { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
 import { LearningLoopContribution } from "@kernel/contributions/learning-loop/index.js";
 import { SessionContextWindowContribution } from "@kernel/contributions/session-context-window/index.js";
 import { SessionActivityPreviewContribution } from "@kernel/contributions/session-activity-preview/index.js";
@@ -220,6 +221,7 @@ export class NextclawKernel {
       new SessionActivityPreviewContribution(this),
       new SessionContextWindowContribution(this),
       new LearningLoopContribution(this),
+      new KernelBranch(this),
     ];
   }
 
@@ -242,8 +244,8 @@ export class NextclawKernel {
     await this.agentRunRequestManager.dispose();
     await this.sessionRunManager.dispose();
     this.ncpSessionManager.dispose();
-    for (const contribution of this.contributions) {
-      contribution.dispose();
+    for (const contribution of [...this.contributions].reverse()) {
+      await contribution.dispose();
     }
     await this.agentRuntimeManager.dispose();
     await this.mcpManager.dispose();

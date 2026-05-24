@@ -1,0 +1,8 @@
+{
+  "contractKind": "protocol",
+  "protocol": "app-l1",
+  "allowedRootDirectories": ["runtime"],
+  "importAliasPrefixes": [],
+  "rootPolicy": "contract-only",
+  "enforcement": "error"
+}

@@ -21,7 +21,7 @@ const usage = `Usage:
 
 Checks every touched class in changed TypeScript workspace files.
 Once a class is touched by the diff, all eligible instance methods in that class must use foo = () => {}.
-Ignored by design: constructor/get/set/static/abstract/override/decorated methods.`;
+Ignored by design: constructor/get/set/static/abstract/override/decorated/async generator methods.`;
 
 const CLASS_METHOD_CHECK_EXTENSIONS = new Set([
   ".ts",
@@ -72,6 +72,9 @@ const isEligibleInstanceMethod = (node) => {
     return false;
   }
   if (node.static) {
+    return false;
+  }
+  if (node.value?.async === true && node.value?.generator === true) {
     return false;
   }
   if (node.override === true || node.value?.override === true) {
@@ -170,7 +173,7 @@ export const printViolations = ({ changedFiles, violations }) => {
   console.error("Class arrow-method diff check failed.");
   console.error("Use class fields for touched-class instance methods: methodName = () => {}");
   console.error("Once a class is touched, every eligible instance method in that class must use an arrow-function class field.");
-  console.error("Ignored by design: constructor/get/set/static/abstract/override/decorated methods.");
+  console.error("Ignored by design: constructor/get/set/static/abstract/override/decorated/async generator methods.");
   for (const violation of violations) {
     console.error(
       `- ${violation.filePath}:${violation.line}:${violation.column} ${violation.className}.${violation.methodName} should be an arrow-function class field`

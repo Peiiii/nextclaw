@@ -5,7 +5,19 @@ export {
   LocalAssetStore,
 } from "./assets/stores/local-asset.store.js";
 export { buildNcpUserContent } from "./runtime/user-content.utils.js";
+export {
+  ncpMessageToOpenAiMessages,
+  type NcpMessageToOpenAiMessagesOptions,
+} from "./runtime/utils/message-converter.utils.js";
 export { DefaultNcpRoundBuffer } from "./runtime/round-buffer.js";
+export {
+  DefaultNcpRoundCollector,
+  type CollectedToolCall,
+} from "./runtime/round-collector.js";
+export {
+  executeCollectedToolCall,
+  type ExecuteCollectedToolCallOptions,
+} from "./runtime/utils/tool-call-execution.utils.js";
 export { DefaultNcpStreamEncoder } from "./runtime/stream-encoder.js";
 export { DefaultNcpToolRegistry } from "./runtime/tool-registry.js";
 export { EchoNcpLLMApi } from "./runtime/llm-api-echo.js";
@@ -32,4 +44,4 @@ export {
   getOpenAiFunctionParametersSchemaIssues,
   parseToolArgs,
   validateToolArgs,
-} from "./runtime/utils.js";
+} from "./runtime/runtime.utils.js";

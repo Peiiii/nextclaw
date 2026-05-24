@@ -1,4 +1,4 @@
 export type KernelContribution = {
   start: () => void;
-  dispose: () => void;
+  dispose: () => Promise<void> | void;
 };

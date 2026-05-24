@@ -220,7 +220,7 @@ src/
 - contribution 内部不应成为其他模块复用的公共实现来源；外部默认只依赖它的 contribution class。
 - kernel contribution 构造器默认直接接收 `NextclawKernel` 这类 kernel owner；不要从外部把 `toolManager`、`eventBus`、`sessionManager` 等依赖拆碎后传入 contribution。若 contribution 需要的能力还不是 kernel 上的稳定 owner，应先补齐 kernel owner / 访问点，而不是用 options bag 绕过边界。
 
-`contributions/<name>/` 是一个独立 contribution root。该 root 默认只暴露 `index.ts` 作为唯一入口，内部实现按角色进入 `utils/`、`types/`、`services/` 等子目录。不要把 contribution root 当成平铺文件夹，也不要把 contribution 的内部工具通过入口重新导出。
+`contributions/<name>/` 是一个独立 contribution root。该 root 默认只暴露 `index.ts` 作为唯一入口，内部实现按角色进入 `utils/`、`types/`、`services/` 等子目录。若某个 contribution 需要隔离自己的局部分支能力，可以在内部继续使用 `contributions/<child>/index.ts` 嵌套 contribution root；嵌套 root 仍遵循唯一入口和内部角色目录规则。不要把 contribution root 当成平铺文件夹，也不要把 contribution 的内部工具通过入口重新导出。
 
 ### 什么时候允许 `shared/`
 

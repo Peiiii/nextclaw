@@ -6,6 +6,8 @@
     "baseUrl": ".",
     "paths": {
       "@kernel/*": ["./src/*"],
+      "@nextclaw/ncp-agent-runtime": ["../ncp-packages/nextclaw-ncp-agent-runtime/src/index.ts"],
+      "@nextclaw/ncp-agent-runtime-next": ["../ncp-packages/nextclaw-ncp-agent-runtime-next/src/index.ts"],
       "@nextclaw/shared": ["../nextclaw-shared/src/index.ts"]
     }
   },
