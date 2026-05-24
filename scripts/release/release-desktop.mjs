@@ -20,6 +20,16 @@ const DEFAULT_PUBLIC_DELAY_MS = 10000;
 const DEFAULT_RUN_ATTEMPTS = 150;
 const DEFAULT_RUN_DELAY_MS = 10000;
 const CHANNELS = new Set(["beta", "stable"]);
+const RELEASE_SENSITIVE_PATHS = [
+  ".github/workflows/desktop-release",
+  ".github/workflows/desktop-release-preflight",
+  "apps/desktop/",
+  "package.json",
+  "packages/nextclaw/",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "scripts/release/"
+];
 
 function printHelp() {
   console.log(`
@@ -45,7 +55,8 @@ Options:
   --skip-local-verify             Skip pnpm desktop:package:verify
   --skip-remote-preflight         Skip GitHub signing-secret preflight
   --skip-public-pages             Verify gh-pages only; skip public Pages propagation polling
-  --no-release-worktree           Run local verification in the current checkout instead of a temporary worktree
+  --no-release-worktree           Run local verification in the current checkout instead of a temporary worktree.
+                                  This also requires a fully clean tracked worktree.
   --dry-run                       Print planned actions without mutating remote state
   --help                          Show this help
 `.trim());
@@ -178,12 +189,43 @@ function readWorktreeStatus() {
   return run("git", ["status", "--short"]);
 }
 
+function extractStatusPaths(line) {
+  const value = line.slice(3);
+  return value.includes(" -> ") ? value.split(" -> ") : [value];
+}
+
+function isReleaseSensitivePath(path) {
+  return RELEASE_SENSITIVE_PATHS.some((prefix) => path === prefix || path.startsWith(prefix));
+}
+
 function assertCleanWorktree(options) {
+  const { dryRun, releaseWorktree, target } = options;
   const statusLines = readWorktreeStatus().split("\n").filter(Boolean);
   const trackedChanges = statusLines.filter((line) => !line.startsWith("?? "));
   const untrackedChanges = statusLines.filter((line) => line.startsWith("?? "));
   if (trackedChanges.length > 0) {
-    if (options.dryRun) {
+    if (releaseWorktree) {
+      const sensitiveChanges = trackedChanges.filter((line) => extractStatusPaths(line).some(isReleaseSensitivePath));
+      if (sensitiveChanges.length === 0) {
+        console.warn(
+          `[desktop:release] ignoring unrelated tracked worktree changes; release uses committed target ${target ?? "HEAD"}:\n${trackedChanges.join("\n")}`
+        );
+      } else if (dryRun) {
+        console.warn(
+          `[desktop:release] dry-run continuing with release-sensitive tracked worktree changes:\n${sensitiveChanges.join("\n")}`
+        );
+      } else {
+        throw new Error(
+          [
+            "Desktop release target is isolated, but release-sensitive files have uncommitted tracked changes.",
+            "Commit or stash these first so release metadata and automation are not ambiguous:",
+            sensitiveChanges.join("\n")
+          ].join("\n")
+        );
+      }
+      return;
+    }
+    if (dryRun) {
       console.warn("[desktop:release] dry-run continuing with tracked worktree changes.");
       return;
     }
