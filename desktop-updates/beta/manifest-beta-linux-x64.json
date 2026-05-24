@@ -4,9 +4,9 @@
   "arch": "x64",
   "latestVersion": "0.19.28",
   "minimumLauncherVersion": "0.0.143",
-  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/v0.19.28-desktop-beta.5/nextclaw-bundle-linux-x64-0.19.28.zip",
-  "bundleSha256": "b50a84b258b062daac4011f1b8aa22b0b009ad764183f4762e1ce544cec6236e",
-  "bundleSignature": "dNs4ZGbkjS5UuREkqE38OJTw7bYDlyZ8YuXcPRQGyA3Ql4cLC7+z/9O6VPTIytiFZjNWX/hBp3JVb5s8DcBjAA==",
-  "releaseNotesUrl": "https://github.com/Peiiii/nextclaw/releases/tag/v0.19.28-desktop-beta.5",
-  "manifestSignature": "fombBCplKRApQpzLGG58PV9JOfAy6g5dwTk1h8on1mm6SUu1zy+spxiwMjMS1h6FGJUa5mR7gqy3QCa43+jtBg=="
+  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/v0.19.28-desktop-beta.7/nextclaw-bundle-linux-x64-0.19.28.zip",
+  "bundleSha256": "2daf09ecb07a9d70e93ec99ce8b731ef0e3f12b1940ca88b212ec30d91717e38",
+  "bundleSignature": "gs+BHfTV6DtKYWby34liokNqLvqBmfwjHCPUzrfyiqlltK27uHy/KNtOQGMU44mqKgFp54WaMyq8qblhoitzBA==",
+  "releaseNotesUrl": "https://github.com/Peiiii/nextclaw/releases/tag/v0.19.28-desktop-beta.7",
+  "manifestSignature": "T9bWJs7k1+1BU+FqW+ohTbuB3lLLB0x8Hnkym5EtEtBBQdq61fETcZMQVao0krl9OJaZ7Y/C9cQtfKKeQjaDAA=="
 }
