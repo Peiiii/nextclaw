@@ -378,7 +378,7 @@ function Invoke-DesktopTitlebarDragProbe {
   Start-Sleep -Milliseconds 500
 
   $before = Read-WindowRect -WindowHandle $windowHandle
-  $clientStartX = 400
+  $clientStartX = 560
   $clientStartY = 24
   $startPoint = Convert-ClientPointToScreen -WindowHandle $windowHandle -X $clientStartX -Y $clientStartY
   $startX = $startPoint.X
