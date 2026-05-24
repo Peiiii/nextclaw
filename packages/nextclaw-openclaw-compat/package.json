@@ -23,13 +23,8 @@
     "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
-    "@nextclaw/channel-plugin-dingtalk": "workspace:*",
     "@nextclaw/channel-plugin-discord": "workspace:*",
-    "@nextclaw/channel-plugin-email": "workspace:*",
-    "@nextclaw/channel-plugin-slack": "workspace:*",
     "@nextclaw/channel-plugin-telegram": "workspace:*",
-    "@nextclaw/channel-plugin-wecom": "workspace:*",
-    "@nextclaw/channel-plugin-whatsapp": "workspace:*",
     "@nextclaw/channel-runtime": "workspace:*",
     "@nextclaw/ncp": "workspace:*",
     "@nextclaw/ncp-toolkit": "workspace:*",

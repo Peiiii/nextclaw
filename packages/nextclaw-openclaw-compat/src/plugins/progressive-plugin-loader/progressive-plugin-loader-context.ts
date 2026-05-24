@@ -3,7 +3,7 @@ import path from "node:path";
 import { setImmediate as waitForNextTick } from "node:timers/promises";
 import { getWorkspacePathFromConfig, type Config } from "@nextclaw/core";
 import { normalizePluginsConfig, type NormalizedPluginsConfig } from "../config-state.js";
-import { buildPluginLoaderAliases } from "../plugin-loader-aliases.js";
+import { buildPluginLoaderAliases } from "../plugin-loader-aliases.utils.js";
 import { createPluginJiti } from "../plugin-loader-jiti.js";
 import { createPluginRegisterRuntime, type PluginRegisterRuntime } from "../openclaw-plugin-registry.utils.js";
 import type {

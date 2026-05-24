@@ -1,0 +1,36 @@
+{
+  "id": "nextclaw-channel-extension-wecom",
+  "name": "NextClaw WeCom Channel Extension",
+  "version": "0.1.0",
+  "server": {
+    "type": "stdio",
+    "command": "node",
+    "args": ["dist/main.js"]
+  },
+  "contributes": {
+    "channels": [
+      {
+        "id": "wecom",
+        "name": "WeCom",
+        "description": "WeCom enterprise messaging channel",
+        "configSchema": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "corpId": { "type": "string" },
+            "agentId": { "type": "string" },
+            "secret": { "type": "string" },
+            "token": { "type": "string" },
+            "callbackPort": { "type": "number" },
+            "callbackPath": { "type": "string" },
+            "allowFrom": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

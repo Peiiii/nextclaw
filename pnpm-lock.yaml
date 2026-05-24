@@ -142,30 +142,30 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@nextclaw/channel-extension-dingtalk':
+        specifier: workspace:*
+        version: link:../../packages/extensions/nextclaw-channel-extension-dingtalk
+      '@nextclaw/channel-extension-email':
+        specifier: workspace:*
+        version: link:../../packages/extensions/nextclaw-channel-extension-email
       '@nextclaw/channel-extension-qq':
         specifier: workspace:*
         version: link:../../packages/extensions/nextclaw-channel-extension-qq
-      '@nextclaw/channel-plugin-dingtalk':
+      '@nextclaw/channel-extension-slack':
         specifier: workspace:*
-        version: link:../../packages/extensions/nextclaw-channel-plugin-dingtalk
+        version: link:../../packages/extensions/nextclaw-channel-extension-slack
+      '@nextclaw/channel-extension-wecom':
+        specifier: workspace:*
+        version: link:../../packages/extensions/nextclaw-channel-extension-wecom
+      '@nextclaw/channel-extension-whatsapp':
+        specifier: workspace:*
+        version: link:../../packages/extensions/nextclaw-channel-extension-whatsapp
       '@nextclaw/channel-plugin-discord':
         specifier: workspace:*
         version: link:../../packages/extensions/nextclaw-channel-plugin-discord
-      '@nextclaw/channel-plugin-email':
-        specifier: workspace:*
-        version: link:../../packages/extensions/nextclaw-channel-plugin-email
-      '@nextclaw/channel-plugin-slack':
-        specifier: workspace:*
-        version: link:../../packages/extensions/nextclaw-channel-plugin-slack
       '@nextclaw/channel-plugin-telegram':
         specifier: workspace:*
         version: link:../../packages/extensions/nextclaw-channel-plugin-telegram
-      '@nextclaw/channel-plugin-wecom':
-        specifier: workspace:*
-        version: link:../../packages/extensions/nextclaw-channel-plugin-wecom
-      '@nextclaw/channel-plugin-whatsapp':
-        specifier: workspace:*
-        version: link:../../packages/extensions/nextclaw-channel-plugin-whatsapp
       '@nextclaw/channel-runtime':
         specifier: workspace:*
         version: link:../../packages/extensions/nextclaw-channel-runtime
@@ -464,6 +464,50 @@ importers:
         specifier: ^4.45.0
         version: 4.67.0(@cloudflare/workers-types@4.20260228.0)
 
+  packages/extensions/nextclaw-channel-extension-dingtalk:
+    dependencies:
+      '@nextclaw/channel-runtime':
+        specifier: workspace:*
+        version: link:../nextclaw-channel-runtime
+      '@nextclaw/core':
+        specifier: workspace:*
+        version: link:../../nextclaw-core
+      '@nextclaw/extension-sdk':
+        specifier: workspace:*
+        version: link:../../nextclaw-extension-sdk
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
+  packages/extensions/nextclaw-channel-extension-email:
+    dependencies:
+      '@nextclaw/channel-runtime':
+        specifier: workspace:*
+        version: link:../nextclaw-channel-runtime
+      '@nextclaw/core':
+        specifier: workspace:*
+        version: link:../../nextclaw-core
+      '@nextclaw/extension-sdk':
+        specifier: workspace:*
+        version: link:../../nextclaw-extension-sdk
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
   packages/extensions/nextclaw-channel-extension-feishu:
     dependencies:
       '@larksuiteoapi/node-sdk':
@@ -508,6 +552,50 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
 
+  packages/extensions/nextclaw-channel-extension-slack:
+    dependencies:
+      '@nextclaw/channel-runtime':
+        specifier: workspace:*
+        version: link:../nextclaw-channel-runtime
+      '@nextclaw/core':
+        specifier: workspace:*
+        version: link:../../nextclaw-core
+      '@nextclaw/extension-sdk':
+        specifier: workspace:*
+        version: link:../../nextclaw-extension-sdk
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
+  packages/extensions/nextclaw-channel-extension-wecom:
+    dependencies:
+      '@nextclaw/channel-runtime':
+        specifier: workspace:*
+        version: link:../nextclaw-channel-runtime
+      '@nextclaw/core':
+        specifier: workspace:*
+        version: link:../../nextclaw-core
+      '@nextclaw/extension-sdk':
+        specifier: workspace:*
+        version: link:../../nextclaw-extension-sdk
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
   packages/extensions/nextclaw-channel-extension-weixin:
     dependencies:
       '@nextclaw/extension-sdk':
@@ -530,11 +618,27 @@ importers:
         specifier: ^4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
-  packages/extensions/nextclaw-channel-plugin-dingtalk:
+  packages/extensions/nextclaw-channel-extension-whatsapp:
     dependencies:
       '@nextclaw/channel-runtime':
         specifier: workspace:*
         version: link:../nextclaw-channel-runtime
+      '@nextclaw/core':
+        specifier: workspace:*
+        version: link:../../nextclaw-core
+      '@nextclaw/extension-sdk':
+        specifier: workspace:*
+        version: link:../../nextclaw-extension-sdk
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
 
   packages/extensions/nextclaw-channel-plugin-discord:
     dependencies:
@@ -542,31 +646,7 @@ importers:
         specifier: workspace:*
         version: link:../nextclaw-channel-runtime
 
-  packages/extensions/nextclaw-channel-plugin-email:
-    dependencies:
-      '@nextclaw/channel-runtime':
-        specifier: workspace:*
-        version: link:../nextclaw-channel-runtime
-
-  packages/extensions/nextclaw-channel-plugin-slack:
-    dependencies:
-      '@nextclaw/channel-runtime':
-        specifier: workspace:*
-        version: link:../nextclaw-channel-runtime
-
   packages/extensions/nextclaw-channel-plugin-telegram:
-    dependencies:
-      '@nextclaw/channel-runtime':
-        specifier: workspace:*
-        version: link:../nextclaw-channel-runtime
-
-  packages/extensions/nextclaw-channel-plugin-wecom:
-    dependencies:
-      '@nextclaw/channel-runtime':
-        specifier: workspace:*
-        version: link:../nextclaw-channel-runtime
-
-  packages/extensions/nextclaw-channel-plugin-whatsapp:
     dependencies:
       '@nextclaw/channel-runtime':
         specifier: workspace:*
@@ -1421,27 +1501,12 @@ importers:
 
   packages/nextclaw-openclaw-compat:
     dependencies:
-      '@nextclaw/channel-plugin-dingtalk':
-        specifier: workspace:*
-        version: link:../extensions/nextclaw-channel-plugin-dingtalk
       '@nextclaw/channel-plugin-discord':
         specifier: workspace:*
         version: link:../extensions/nextclaw-channel-plugin-discord
-      '@nextclaw/channel-plugin-email':
-        specifier: workspace:*
-        version: link:../extensions/nextclaw-channel-plugin-email
-      '@nextclaw/channel-plugin-slack':
-        specifier: workspace:*
-        version: link:../extensions/nextclaw-channel-plugin-slack
       '@nextclaw/channel-plugin-telegram':
         specifier: workspace:*
         version: link:../extensions/nextclaw-channel-plugin-telegram
-      '@nextclaw/channel-plugin-wecom':
-        specifier: workspace:*
-        version: link:../extensions/nextclaw-channel-plugin-wecom
-      '@nextclaw/channel-plugin-whatsapp':
-        specifier: workspace:*
-        version: link:../extensions/nextclaw-channel-plugin-whatsapp
       '@nextclaw/channel-runtime':
         specifier: workspace:*
         version: link:../extensions/nextclaw-channel-runtime
@@ -1581,15 +1646,30 @@ importers:
 
   packages/nextclaw-service:
     dependencies:
+      '@nextclaw/channel-extension-dingtalk':
+        specifier: workspace:*
+        version: link:../extensions/nextclaw-channel-extension-dingtalk
+      '@nextclaw/channel-extension-email':
+        specifier: workspace:*
+        version: link:../extensions/nextclaw-channel-extension-email
       '@nextclaw/channel-extension-feishu':
         specifier: workspace:*
         version: link:../extensions/nextclaw-channel-extension-feishu
       '@nextclaw/channel-extension-qq':
         specifier: workspace:*
         version: link:../extensions/nextclaw-channel-extension-qq
+      '@nextclaw/channel-extension-slack':
+        specifier: workspace:*
+        version: link:../extensions/nextclaw-channel-extension-slack
+      '@nextclaw/channel-extension-wecom':
+        specifier: workspace:*
+        version: link:../extensions/nextclaw-channel-extension-wecom
       '@nextclaw/channel-extension-weixin':
         specifier: workspace:*
         version: link:../extensions/nextclaw-channel-extension-weixin
+      '@nextclaw/channel-extension-whatsapp':
+        specifier: workspace:*
+        version: link:../extensions/nextclaw-channel-extension-whatsapp
       '@nextclaw/core':
         specifier: workspace:*
         version: link:../nextclaw-core

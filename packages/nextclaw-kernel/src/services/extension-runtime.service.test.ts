@@ -59,6 +59,11 @@ describe("resolveExtensionManifestRoots", () => {
   it("includes bundled extension packages so production service installs can discover them", () => {
     const roots = resolveBuiltinExtensionManifestRoots();
 
+    expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-dingtalk"))).toBe(true);
+    expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-email"))).toBe(true);
+    expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-slack"))).toBe(true);
+    expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-wecom"))).toBe(true);
+    expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-whatsapp"))).toBe(true);
     expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-weixin"))).toBe(true);
     expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-qq"))).toBe(true);
   });

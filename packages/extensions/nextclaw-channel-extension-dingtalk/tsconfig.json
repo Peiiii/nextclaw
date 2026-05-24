@@ -1,0 +1,14 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2022", "DOM"],
+    "baseUrl": ".",
+    "paths": {
+      "@nextclaw/extension-sdk": ["../../nextclaw-extension-sdk/src/index.ts"],
+      "@nextclaw/shared": ["../../nextclaw-shared/src/index.ts"],
+      "@nextclaw/ncp": ["../../ncp-packages/nextclaw-ncp/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}

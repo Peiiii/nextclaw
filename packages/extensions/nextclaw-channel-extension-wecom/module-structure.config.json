@@ -1,0 +1,16 @@
+{
+  "contractKind": "legacy",
+  "organizationModel": "legacy-packages-extensions-nextclaw-channel-extension-wecom-workspace-root",
+  "rootPolicy": "allowlisted",
+  "allowedRootDirectories": [
+    "src",
+    "dist"
+  ],
+  "allowedRootFiles": [
+    "module-structure.config.json",
+    "nextclaw.extension.json",
+    "package.json",
+    "tsconfig.json"
+  ],
+  "sharedDirectories": []
+}

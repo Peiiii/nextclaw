@@ -13,15 +13,17 @@
 ## 当前状态
 
 - 新的 extension channel 机制已经用于 `feishu` 和 `weixin`。
-- 旧的一方 channel plugin 仍然存在：`telegram`、`whatsapp`、`discord`、`mochat`、`dingtalk`、`wecom`、`email`、`slack`、`qq`。
+- 新的 extension channel 机制已经迁移 `qq`、`dingtalk`、`wecom`、`slack`、`email`、`whatsapp`。
+- 旧的一方 channel plugin 仍然存在：`telegram`、`discord`。
 - 旧 plugin 包入口文件很薄，但仍然通过旧的进程内 plugin API 注册渠道。
-- 旧渠道的真实行为主要在 `packages/extensions/nextclaw-channel-runtime/src/channels`。
+- 尚未完全拆出的旧渠道真实行为主要在 `packages/extensions/nextclaw-channel-runtime/src/channels`。
 - Kernel 已经支持 extension manifest channel 覆盖同 id 的旧 plugin channel，因此具备安全迁移路径。
 
 ## 设计原则
 
 - `deletion-first`：`mochat` 产品价值和 owner 不清楚，不迁移，直接删除。
 - `single-domain-owner`：一个渠道迁移后，只保留一个有效贡献路径，不能同时存在 `channel-plugin-*` 和 `channel-extension-*`。
+- `no-legacy-runtime-dependency-final-state`：迁移完成态下，一方 channel extension 不应依赖 `openclaw-compat`、旧 `channel-plugin-*` 或 `@nextclaw/channel-runtime`；`@nextclaw/channel-runtime` 只允许作为迁移期复用旧实现的临时脚手架。
 - `responsibility-surface-minimization`：SDK 抽象只承载通用 channel extension 协议行为。
 - `protected-variations`：渠道特定协议行为留在渠道实现里。
 - `no-compatibility-by-default`：除非 review 时确认有真实外部兼容要求，否则不保留旧 alias 或重复 plugin 包。
@@ -196,6 +198,8 @@ pnpm -C packages/extensions/nextclaw-channel-extension-qq build
 
 ## 任务 5：迁移简单旧渠道
 
+状态：已完成第一批迁移。
+
 **渠道：**
 
 - `dingtalk`
@@ -212,9 +216,16 @@ pnpm -C packages/extensions/nextclaw-channel-extension-qq build
 4. 从根脚本中移除旧 `nextclaw-channel-plugin-<id>` 包。
 5. 更新 builtin channel 测试。
 6. 运行该包 `tsc`、该包 `lint` 和 kernel extension discovery 测试。
-7. Review 后每个渠道单独提交。
+7. Review 后提交。
 
 预期：每个渠道只有一个有效贡献路径。
+
+完成记录：
+
+- 已新增 `nextclaw-channel-extension-dingtalk`、`nextclaw-channel-extension-wecom`、`nextclaw-channel-extension-slack`、`nextclaw-channel-extension-email`、`nextclaw-channel-extension-whatsapp`。
+- 已删除对应旧 `nextclaw-channel-plugin-*` wrapper 包。
+- 已把 service builtin extension、desktop 依赖、root build/lint/tsc 脚本、kernel discovery 测试切到新 extension 包。
+- 已从 OpenClaw compat bundled channel plugin 列表中移除这 5 个旧包；`telegram` 和 `discord` 仍留在旧路径等待任务 6。
 
 ## 任务 6：最后迁移 Telegram 和 Discord
 
@@ -254,6 +265,16 @@ Telegram 和 Discord 有额外的 typing、streaming preview、slash command、r
 - extension manifest 的 `configSchema` / `configUiHints`：作为渠道配置 UI 和校验的事实来源。
 - extension channel 的 inbound/outbound/auth 通用协议：这是新主链路。
 - marketplace / plugin 管理能力：它们仍然服务 extension 生态，只是不应再为一方渠道保留旧 OpenClaw channel plugin 适配。
+
+### 最终依赖边界
+
+所有一方渠道迁移完成后的目标依赖边界：
+
+- 一方 `nextclaw-channel-extension-*` 包不依赖 `@nextclaw/openclaw-compat`。
+- 一方 `nextclaw-channel-extension-*` 包不依赖旧 `@nextclaw/channel-plugin-*`。
+- 一方 `nextclaw-channel-extension-*` 包不再依赖 `@nextclaw/channel-runtime`；渠道特定实现应落在各自 extension 包内，或落在明确不是旧 runtime 兼容层的新共享包内。
+- `@nextclaw/channel-runtime` 和旧一方 `channel-plugin-*` 包应删除。
+- `openclaw-compat` 可以继续服务第三方 OpenClaw 兼容插件生态，但不能再承载一方内置渠道的启动路径。
 
 ### 第一批：删除旧渠道运行时包和旧渠道插件包
 

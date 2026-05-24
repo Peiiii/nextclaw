@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { BUNDLED_CHANNEL_PLUGIN_PACKAGES } from "../bundled-channel-plugin-packages.constants.js";
 import { loadInProcessBundledPluginModule } from "../bundled-channel-plugin-module.utils.js";
 import { resolveEnableState } from "../config-state.js";
-import { loadBundledPluginModule, resolveBundledPluginEntry } from "../bundled-plugin-loader.js";
+import { loadBundledPluginModule, resolveBundledPluginEntry } from "../bundled-plugin-loader.utils.js";
 import { getPackageManifestExtensions, type PackageManifest } from "../manifest.js";
 import { createPluginRecord } from "../plugin-loader.utils.js";
 import { registerPluginWithApi } from "../openclaw-plugin-registry.utils.js";
@@ -112,17 +112,12 @@ async function resolveBundledPluginRegistrationCandidate(params: {
   const resolvedEntry = resolveBundledPluginEntry(
     require,
     packageName,
-    [],
+    (diagnostic) => context.registry.diagnostics.push(diagnostic),
     resolvePackageRootFromEntry
   );
 
   const inProcessModule = resolvedEntry ? null : await loadInProcessBundledPluginModule(packageName);
   if (!resolvedEntry && !inProcessModule) {
-    context.registry.diagnostics.push({
-      level: "error",
-      source: packageName,
-      message: "bundled plugin package not resolvable"
-    });
     return { done: true };
   }
 

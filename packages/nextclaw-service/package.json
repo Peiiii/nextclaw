@@ -26,8 +26,13 @@
   ],
   "nextclaw": {
     "builtinExtensions": [
+      "@nextclaw/channel-extension-dingtalk",
+      "@nextclaw/channel-extension-email",
       "@nextclaw/channel-extension-feishu",
       "@nextclaw/channel-extension-qq",
+      "@nextclaw/channel-extension-slack",
+      "@nextclaw/channel-extension-wecom",
+      "@nextclaw/channel-extension-whatsapp",
       "@nextclaw/channel-extension-weixin"
     ]
   },
@@ -40,8 +45,13 @@
     "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
+    "@nextclaw/channel-extension-dingtalk": "workspace:*",
+    "@nextclaw/channel-extension-email": "workspace:*",
     "@nextclaw/channel-extension-feishu": "workspace:*",
     "@nextclaw/channel-extension-qq": "workspace:*",
+    "@nextclaw/channel-extension-slack": "workspace:*",
+    "@nextclaw/channel-extension-wecom": "workspace:*",
+    "@nextclaw/channel-extension-whatsapp": "workspace:*",
     "@nextclaw/channel-extension-weixin": "workspace:*",
     "@nextclaw/core": "workspace:*",
     "@nextclaw/kernel": "workspace:*",

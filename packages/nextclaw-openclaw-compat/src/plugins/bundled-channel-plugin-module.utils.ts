@@ -24,12 +24,7 @@ async function createInProcessBundledPluginModule(
 
 const bundledChannelPluginModuleNames = new Set([
   "@nextclaw/channel-plugin-telegram",
-  "@nextclaw/channel-plugin-whatsapp",
-  "@nextclaw/channel-plugin-discord",
-  "@nextclaw/channel-plugin-dingtalk",
-  "@nextclaw/channel-plugin-wecom",
-  "@nextclaw/channel-plugin-email",
-  "@nextclaw/channel-plugin-slack"
+  "@nextclaw/channel-plugin-discord"
 ]);
 
 function importBundledChannelPluginModule(packageName: string): Promise<unknown> {

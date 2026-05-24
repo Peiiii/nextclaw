@@ -7,8 +7,8 @@ import { filterPluginCandidatesByExcludedRoots } from "./candidate-filter.js";
 import { normalizePluginsConfig, resolveEnableState } from "./config-state.js";
 import { discoverOpenClawPlugins } from "./discovery.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
-import { loadBundledPluginModule, resolveBundledPluginEntry } from "./bundled-plugin-loader.js";
-import { buildPluginLoaderAliases } from "./plugin-loader-aliases.js";
+import { loadBundledPluginModule, resolveBundledPluginEntry } from "./bundled-plugin-loader.utils.js";
+import { buildPluginLoaderAliases } from "./plugin-loader-aliases.utils.js";
 import { createPluginJiti } from "./plugin-loader-jiti.js";
 import { createPluginRecord, validatePluginConfig } from "./plugin-loader.utils.js";
 import { createPluginRegisterRuntime, registerPluginWithApi, type PluginRegisterRuntime } from "./openclaw-plugin-registry.utils.js";
@@ -62,7 +62,7 @@ function resolvePackageRootFromEntry(entryFile: string): string {
   }
   return path.dirname(entryFile);
 }
-export { buildPluginLoaderAliases } from "./plugin-loader-aliases.js";
+export { buildPluginLoaderAliases } from "./plugin-loader-aliases.utils.js";
 export { loadOpenClawPluginsProgressively } from "./progressive-plugin-loader/progressive-plugin-loader.js";
 export type { ProgressivePluginLoadOptions } from "./progressive-plugin-loader/progressive-plugin-loader.js";
 function resolvePluginModuleExport(moduleExport: unknown): {
@@ -96,14 +96,14 @@ function appendBundledChannelPlugins(params: {
   registry: PluginRegistry;
   normalizedConfig: ReturnType<typeof normalizePluginsConfig>;
 }): void {
-  const require = createRequire(import.meta.url);
+  const require = createRequire(import.meta.url), { normalizedConfig, registry, runtime } = params;
 
   for (const packageName of BUNDLED_CHANNEL_PLUGIN_PACKAGES) {
     const packageStartedAt = Date.now();
     const resolvedEntry = resolveBundledPluginEntry(
       require,
       packageName,
-      params.registry.diagnostics,
+      (diagnostic) => registry.diagnostics.push(diagnostic),
       resolvePackageRootFromEntry
     );
     if (!resolvedEntry) {
@@ -115,7 +115,7 @@ function appendBundledChannelPlugins(params: {
     try {
       moduleExport = loadBundledPluginModule(entryFile, rootDir);
     } catch (err) {
-      params.registry.diagnostics.push({
+      registry.diagnostics.push({
         level: "error",
         source: entryFile,
         message: `failed to load bundled plugin: ${String(err)}`
@@ -130,7 +130,7 @@ function appendBundledChannelPlugins(params: {
     const pluginId = typeof definition?.id === "string" ? definition.id.trim() : "";
     const source = entryFile;
     if (!pluginId) {
-      params.registry.diagnostics.push({
+      registry.diagnostics.push({
         level: "error",
         source,
         message: "bundled plugin definition missing id"
@@ -138,7 +138,7 @@ function appendBundledChannelPlugins(params: {
       continue;
     }
 
-    const enableState = resolveEnableState(pluginId, params.normalizedConfig);
+    const enableState = resolveEnableState(pluginId, normalizedConfig);
 
     const record = createPluginRecord({
       id: pluginId,
@@ -148,7 +148,7 @@ function appendBundledChannelPlugins(params: {
       kind: definition?.kind,
       source,
       origin: "bundled",
-      workspaceDir: params.runtime.workspaceDir,
+      workspaceDir: runtime.workspaceDir,
       enabled: enableState.enabled,
       configSchema: Boolean(definition?.configSchema),
       configJsonSchema: definition?.configSchema
@@ -157,15 +157,15 @@ function appendBundledChannelPlugins(params: {
     if (!enableState.enabled) {
       record.status = "disabled";
       record.error = enableState.reason;
-      params.registry.plugins.push(record);
+      registry.plugins.push(record);
       continue;
     }
 
     if (typeof register !== "function") {
       record.status = "error";
       record.error = "plugin export missing register/activate";
-      params.registry.plugins.push(record);
-      params.registry.diagnostics.push({
+      registry.plugins.push(record);
+      registry.diagnostics.push({
         level: "error",
         pluginId,
         source,
@@ -175,7 +175,7 @@ function appendBundledChannelPlugins(params: {
     }
 
     const result = registerPluginWithApi({
-      runtime: params.runtime,
+      runtime,
       record,
       pluginId,
       source,
@@ -187,7 +187,7 @@ function appendBundledChannelPlugins(params: {
     if (!result.ok) {
       record.status = "error";
       record.error = result.error;
-      params.registry.diagnostics.push({
+      registry.diagnostics.push({
         level: "error",
         pluginId,
         source,
@@ -195,7 +195,7 @@ function appendBundledChannelPlugins(params: {
       });
     }
 
-    params.registry.plugins.push(record);
+    registry.plugins.push(record);
     logPluginStartupTrace("plugin.loader.bundled_plugin", {
       package: packageName,
       plugin_id: pluginId,

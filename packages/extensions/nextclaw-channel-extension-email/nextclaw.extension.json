@@ -1,0 +1,49 @@
+{
+  "id": "nextclaw-channel-extension-email",
+  "name": "NextClaw Email Channel Extension",
+  "version": "0.1.0",
+  "server": {
+    "type": "stdio",
+    "command": "node",
+    "args": ["dist/main.js"]
+  },
+  "contributes": {
+    "channels": [
+      {
+        "id": "email",
+        "name": "Email",
+        "description": "Email IMAP/SMTP channel",
+        "configSchema": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "consentGranted": { "type": "boolean" },
+            "imapHost": { "type": "string" },
+            "imapPort": { "type": "number" },
+            "imapUsername": { "type": "string" },
+            "imapPassword": { "type": "string" },
+            "imapMailbox": { "type": "string" },
+            "imapUseSsl": { "type": "boolean" },
+            "smtpHost": { "type": "string" },
+            "smtpPort": { "type": "number" },
+            "smtpUsername": { "type": "string" },
+            "smtpPassword": { "type": "string" },
+            "smtpUseTls": { "type": "boolean" },
+            "smtpUseSsl": { "type": "boolean" },
+            "fromAddress": { "type": "string" },
+            "autoReplyEnabled": { "type": "boolean" },
+            "pollIntervalSeconds": { "type": "number" },
+            "markSeen": { "type": "boolean" },
+            "maxBodyChars": { "type": "number" },
+            "subjectPrefix": { "type": "string" },
+            "allowFrom": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    ]
+  }
+}
