@@ -18,6 +18,7 @@ export { readLearningLoopRuntimeConfig } from "@kernel/contributions/learning-lo
 export type { LearningLoopRuntimeConfig } from "@kernel/contributions/learning-loop/config.js";
 export * from "@kernel/utils/skill-frontmatter.utils.js";
 export * from "@kernel/features/runtime-registry/index.js";
+export * from "@kernel/configs/agent-runtime.config.js";
 export * from "@kernel/features/narp-runtime/index.js";
 export * from "@kernel/features/ncp-dispatch/index.js";
 export * from "@kernel/features/context-compaction/index.js";
