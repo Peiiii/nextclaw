@@ -148,7 +148,7 @@ export class SessionRun {
   };
 
   private toSnapshot = (snapshot: NcpAgentConversationSnapshot): SessionRunSnapshot => ({
-    messages: snapshot.messages,
+    messages: snapshot.streamingMessage ? [...snapshot.messages, snapshot.streamingMessage] : snapshot.messages,
     activeRunId: this.activeRunId,
   });
 
