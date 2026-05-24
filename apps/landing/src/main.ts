@@ -170,7 +170,7 @@ const COPY: Record<Locale, LandingCopy> = {
     heroTitleLine1: 'NextClaw',
     heroTitleLine2: '',
     heroDescription:
-      'Your omnipotent personal assistant, residing above the digital realm. NextClaw orchestrates the entire internet and raw compute, bending every bit and byte to manifest your intent into reality. Runs entirely on your machine.',
+      'Turn your computer into a powerful AI assistant that coordinates agents, skills, CLI tools, automations, and messaging apps.',
     heroDownloadButton: 'Download Desktop',
     downloadTitle: 'Download NextClaw Desktop',
     downloadSubtitle: 'Official installer assets from the latest stable desktop release (macOS + Windows + Linux).',
@@ -353,7 +353,7 @@ const COPY: Record<Locale, LandingCopy> = {
     comparison: [
       {
         dimension: 'Positioning',
-        values: ['OpenClaw-compatible + UI-first', 'Full-stack AI platform', 'Lightweight Python agent', 'Minimal + container isolation', 'Rust security-first', 'Go lightweight']
+        values: ['Computer-powered AI assistant', 'Full-stack AI platform', 'Lightweight Python agent', 'Minimal + container isolation', 'Rust security-first', 'Go lightweight']
       },
       {
         dimension: 'Stack',
@@ -384,7 +384,7 @@ const COPY: Record<Locale, LandingCopy> = {
     navCommunity: '社群',
     heroTitleLine1: 'NextClaw',
     heroTitleLine2: '',
-    heroDescription: '你的数字世界全能管家。NextClaw 替你俯瞰并调度整个互联网与海量算力，让每一寸比特与字节都听从你的意图运转。权柄归你，完全本地运行。',
+    heroDescription: '把你的电脑变成一个强大的 AI 助手，协调 Agent、技能、CLI 工具、自动化和消息应用。',
     heroDownloadButton: '下载桌面版',
     downloadTitle: '下载 NextClaw Desktop',
     downloadSubtitle: '官网直连最新稳定版 Desktop 产物（macOS + Windows + Linux）。',
@@ -482,8 +482,8 @@ const COPY: Record<Locale, LandingCopy> = {
       },
       {
         icon: 'blocks',
-        title: '兼容 OpenClaw',
-        description: '兼容 OpenClaw 插件生态与渠道插件约定，迁移成本低。'
+        title: '连接多类能力',
+        description: '统一协调 Agent、技能、CLI 工具、自动化和消息应用集成。'
       },
       {
         icon: 'clock',
@@ -556,7 +556,7 @@ const COPY: Record<Locale, LandingCopy> = {
     faq: [
       {
         question: 'NextClaw 和 OpenClaw 有什么区别？',
-        answer: 'NextClaw 受 OpenClaw 启发，并保持与其插件生态兼容。主要区别：(1) 一条命令启动，内置 UI 配置界面；(2) 代码量约为 OpenClaw 的 1/20，更易维护；(3) 更好地支持国内渠道如 QQ、飞书、钉钉等。'
+        answer: 'NextClaw 受 OpenClaw 启发，但当前定位不是 OpenClaw 兼容层。它更关注把 Agent、技能、CLI 工具、自动化和消息应用集成到一个可控制的本机 AI 助手工作台。'
       }
     ],
     comparisonTitle: '生态对比',

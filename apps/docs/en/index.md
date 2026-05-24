@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: NextClaw
-  text: Personal AI Operating Layer Docs
-  tagline: Start with one useful reply, then connect models, channels, automations, and your own machine into a personal work entry point.
+  text: Powerful AI Assistant for Your Computer
+  tagline: Turn your computer into a powerful AI assistant that coordinates agents, skills, CLI tools, automations, and messaging apps.
   actions:
     - theme: brand
       text: Quickstart

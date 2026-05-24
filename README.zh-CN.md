@@ -4,13 +4,13 @@
 
 <div align="center">
 
-<img src="images/marketing/nextclaw-omni-assistant-cn.jpg" alt="NextClaw — 极致简洁的个人全能 AI 助手" width="720" />
+<img src="images/marketing/nextclaw-omni-assistant-cn.jpg" alt="NextClaw — 让你的电脑成为强大的 AI 助手" width="720" />
 
 <br /><br />
 
 # NextClaw
 
-**你的数字世界全能管家。一条命令，完全本地运行。**
+**把你的电脑变成一个强大的 AI 助手，协调 Agent、技能、CLI 工具、自动化和消息应用。**
 
 [![npm](https://img.shields.io/npm/v/nextclaw)](https://www.npmjs.com/package/nextclaw)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -31,7 +31,7 @@
 
 ---
 
-NextClaw 替你俯瞰并调度整个互联网与海量算力，让每一寸比特与字节都听从你的意图运转。受 [OpenClaw](https://github.com/openclaw/openclaw) 启发，完全兼容其插件生态。
+NextClaw 在你的机器上运行，把 Agent、技能、CLI 工具、定时自动化与消息应用集成收敛到一个可控制的 AI 助手工作台。
 
 - **一条命令启动** — `nextclaw start`，浏览器内配置一切
 - **12+ AI 提供商** — OpenRouter、OpenAI、Anthropic、Gemini、DeepSeek、Groq、MiniMax 等
@@ -138,7 +138,7 @@ pnpm screenshots:refresh
 
 NextClaw 的诞生离不开以下优秀项目的启发：
 
-- [OpenClaw](https://github.com/openclaw/openclaw) — 全栈 AI 助手平台，NextClaw 的架构与插件生态深受其影响。
+- [OpenClaw](https://github.com/openclaw/openclaw) — 全栈 AI 助手平台，启发了 NextClaw 的早期探索。
 - [NanoBot](https://github.com/nicepkg/gpt-runner) — 轻量 Python Agent 框架，展示了简洁与强大可以兼得。
 
 ## 许可证

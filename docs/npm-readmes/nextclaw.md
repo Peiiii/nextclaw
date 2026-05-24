@@ -1,6 +1,6 @@
 # nextclaw
 
-Your omnipotent personal assistant, OpenClaw-compatible and local-first, with CLI + built-in Web UI.
+Turn your computer into a powerful AI assistant that coordinates agents, skills, CLI tools, automations, and messaging apps.
 
 ## Install
 

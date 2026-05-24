@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: NextClaw
-  text: 个人 AI 操作层文档
-  tagline: 从一次可用回复开始，把模型、渠道、自动化和本机能力逐步接成你的个人工作入口。
+  text: 让你的电脑成为强大的 AI 助手
+  tagline: 把你的电脑变成一个强大的 AI 助手，协调 Agent、技能、CLI 工具、自动化和消息应用。
   actions:
     - theme: brand
       text: 快速开始

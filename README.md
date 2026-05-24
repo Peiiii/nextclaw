@@ -4,13 +4,13 @@
 
 <div align="center">
 
-<img src="images/marketing/nextclaw-omni-assistant-en.jpg" alt="NextClaw — The Self-Aware Infrastructure for the AI Agent Era" width="720" />
+<img src="images/marketing/nextclaw-omni-assistant-en.jpg" alt="NextClaw — Powerful AI Assistant for Your Computer" width="720" />
 
 <br /><br />
 
 # NextClaw
 
-**Your omnipotent personal AI assistant. One command. Runs locally.**
+**Turn your computer into a powerful AI assistant that coordinates agents, skills, CLI tools, automations, and messaging apps.**
 
 [![npm](https://img.shields.io/npm/v/nextclaw)](https://www.npmjs.com/package/nextclaw)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -31,7 +31,7 @@
 
 ---
 
-NextClaw orchestrates the entire internet and raw compute from your machine — bending every bit and byte to manifest your intent into reality. Inspired by [OpenClaw](https://github.com/openclaw/openclaw) and fully compatible with its plugin ecosystem.
+NextClaw runs on your machine and brings agents, skills, CLI tools, scheduled automations, and messaging app integrations into one controllable assistant workspace.
 
 - **One-command startup** — `nextclaw start`, then configure everything in the browser UI
 - **12+ AI providers** — OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, Groq, MiniMax, and more
@@ -144,7 +144,7 @@ Contributions are welcome! Please open an issue or submit a pull request.
 
 NextClaw is inspired by and built upon the shoulders of these great projects:
 
-- [OpenClaw](https://github.com/openclaw/openclaw) — The full-stack AI assistant platform that inspired NextClaw's architecture and plugin ecosystem.
+- [OpenClaw](https://github.com/openclaw/openclaw) — The full-stack AI assistant platform that inspired NextClaw's early exploration.
 - [NanoBot](https://github.com/nicepkg/gpt-runner) — A lightweight Python agent framework that demonstrated how simplicity and power can coexist.
 
 ## License
