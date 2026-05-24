@@ -5,6 +5,11 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { waitForDesktopReleaseClosure } from "./desktop-release-closure.mjs";
 import { runRemotePreflight } from "./desktop-release-preflight.mjs";
+import {
+  createReleaseWorktree,
+  installReleaseWorktreeDependencies,
+  runReleaseWorktreePackageVerify
+} from "./desktop-release-worktree.mjs";
 
 const ROOT_DIR = process.cwd();
 const DEFAULT_REPO = "Peiiii/nextclaw";
@@ -40,6 +45,7 @@ Options:
   --skip-local-verify             Skip pnpm desktop:package:verify
   --skip-remote-preflight         Skip GitHub signing-secret preflight
   --skip-public-pages             Verify gh-pages only; skip public Pages propagation polling
+  --no-release-worktree           Run local verification in the current checkout instead of a temporary worktree
   --dry-run                       Print planned actions without mutating remote state
   --help                          Show this help
 `.trim());
@@ -58,6 +64,7 @@ function parseArgs(argv) {
     publicAttempts: DEFAULT_PUBLIC_ATTEMPTS,
     publicDelayMs: DEFAULT_PUBLIC_DELAY_MS,
     repo: DEFAULT_REPO,
+    releaseWorktree: true,
     reuseExistingRelease: false,
     runAttempts: DEFAULT_RUN_ATTEMPTS,
     runDelayMs: DEFAULT_RUN_DELAY_MS,
@@ -103,6 +110,9 @@ function parseArgs(argv) {
         break;
       case "--skip-public-pages":
         options.skipPublicPages = true;
+        break;
+      case "--no-release-worktree":
+        options.releaseWorktree = false;
         break;
       case "--help":
       case "-h":
@@ -288,14 +298,27 @@ function buildReleaseNotes(options) {
 }
 
 function runLocalVerify(options) {
-  if (options.skipLocalVerify) {
+  const { releaseWorktree, skipLocalVerify, target } = options;
+  if (skipLocalVerify) {
     console.log("[desktop:release] local package verification skipped by flag.");
     return;
   }
-  run("pnpm", ["desktop:package:verify"], {
-    capture: false,
-    env: { ...process.env, PATH: `/opt/homebrew/bin:${process.env.PATH ?? ""}` }
-  });
+  if (!releaseWorktree) {
+    run("pnpm", ["desktop:package:verify"], {
+      capture: false,
+      env: { ...process.env, PATH: `/opt/homebrew/bin:${process.env.PATH ?? ""}` }
+    });
+    return;
+  }
+
+  const worktree = createReleaseWorktree(ROOT_DIR, target);
+  console.log(`[desktop:release] local verification worktree: ${worktree.path}`);
+  try {
+    installReleaseWorktreeDependencies(worktree.path);
+    runReleaseWorktreePackageVerify(worktree.path);
+  } finally {
+    worktree.dispose();
+  }
 }
 
 function pushBranchIfNeeded(branch, aheadCount, options) {
@@ -338,7 +361,7 @@ function createRelease(options) {
 }
 
 function printPlan(options, aheadCount) {
-  const { branch, channel, desktopVersion, minimumLauncherVersion, runtimeVersion, tag, target } = options;
+  const { branch, channel, desktopVersion, minimumLauncherVersion, releaseWorktree, runtimeVersion, tag, target } = options;
   console.log(
     [
       `[desktop:release] channel=${channel}`,
@@ -348,7 +371,8 @@ function printPlan(options, aheadCount) {
       `minimumLauncherVersion=${minimumLauncherVersion}`,
       `branch=${branch}`,
       `target=${target}`,
-      `ahead=${aheadCount}`
+      `ahead=${aheadCount}`,
+      `releaseWorktree=${releaseWorktree}`
     ].join(" ")
   );
 }

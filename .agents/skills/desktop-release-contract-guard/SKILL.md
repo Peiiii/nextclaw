@@ -94,6 +94,7 @@ description: Use when building, verifying, or releasing NextClaw desktop install
   - `pnpm release:desktop:beta -- --dry-run`
   - `pnpm release:desktop:beta -- --tag v0.19.27-desktop-beta.1`
   - `pnpm release:desktop:beta -- --skip-local-verify` only after the exact equivalent local gate has already passed in the current release context.
+- Local package verification runs in a temporary detached git worktree by default, so active untracked or in-progress files in the main checkout are not packaged or overwritten. Use `--no-release-worktree` only for deliberate local debugging when the current checkout can be dirtied by build outputs.
 - For desktop beta previews, use the closure script to reduce manual polling and token-heavy workflow dumps:
   - `node scripts/release/desktop-beta-preview-closure.mjs --tag <tag> --desktop-version <desktopVersion> --runtime-version <runtimeVersion> --minimum-launcher-version <floor>`
 - The script is the preferred post-release gate because it:
@@ -112,6 +113,7 @@ description: Use when building, verifying, or releasing NextClaw desktop install
   - `pnpm release:desktop:stable`
 - The command must close the formal release contract:
   - clean worktree and non-behind branch check;
+  - isolated temporary worktree local verification by default;
   - remote signing-secret preflight before creating the GitHub release;
   - local `pnpm desktop:package:verify` unless explicitly skipped for a documented equivalent gate;
   - GitHub release/tag creation unless `--reuse-existing-release` is supplied for recovery;
