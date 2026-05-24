@@ -158,6 +158,6 @@ describe("AppLayout", () => {
 
     expect(screen.getByTestId("chat-content")).toBeTruthy();
     expect(screen.getByTestId("desktop-window-chrome")).toBeTruthy();
-    expect(screen.getByTestId("desktop-window-chrome-main-drag-region")).toBeTruthy();
+    expect(screen.getByTestId("desktop-window-chrome-sidebar").className).toContain("desktop-window-drag");
   });
 });

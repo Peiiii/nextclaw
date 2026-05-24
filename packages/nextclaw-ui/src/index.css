@@ -44,7 +44,7 @@
     user-select: none;
   }
 
-  .desktop-window-no-drag {
+  .desktop-window-no-drag, .desktop-window-drag :is(button, a, input, select, textarea, [role='button'], [tabindex]) {
     -webkit-app-region: no-drag;
     app-region: no-drag;
   }

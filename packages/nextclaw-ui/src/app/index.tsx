@@ -258,7 +258,7 @@ export default function AppContent() {
       <AuthGate />
       <PwaInstallBanner />
       <PwaUpdateBanner />
-      <Toaster position="top-right" richColors />
+      <Toaster position="top-right" richColors offset={window.nextclawDesktop?.platform === "win32" ? 56 : undefined} mobileOffset={window.nextclawDesktop?.platform === "win32" ? 56 : undefined} />
     </QueryClientProvider>
   );
 }

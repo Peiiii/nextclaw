@@ -33,7 +33,7 @@ export function DesktopWindowChrome() {
         data-testid="desktop-window-chrome-resize-strip"
       />
       <div
-        className="desktop-window-no-drag relative z-10 flex h-full w-[var(--desktop-sidebar-width)] shrink-0 items-center bg-secondary pl-4 pr-3 text-secondary-foreground"
+        className="desktop-window-drag relative z-10 flex h-full w-[var(--desktop-sidebar-width)] shrink-0 items-center bg-secondary pl-4 pr-3 text-secondary-foreground"
         data-testid="desktop-window-chrome-sidebar"
       >
         <BrandHeader
@@ -41,7 +41,6 @@ export function DesktopWindowChrome() {
           density="chrome"
         />
       </div>
-      <div aria-hidden="true" className="desktop-window-drag h-full min-w-0 flex-1" data-testid="desktop-window-chrome-main-drag-region" />
       <div
         className="desktop-window-no-drag absolute right-0 top-0 z-20 flex h-full w-[var(--desktop-caption-safe-right)] items-start justify-end"
         data-testid="desktop-window-controls"
