@@ -55,6 +55,7 @@ Options:
   --skip-local-verify             Skip pnpm desktop:package:verify
   --skip-remote-preflight         Skip GitHub signing-secret preflight
   --skip-public-pages             Verify gh-pages only; skip public Pages propagation polling
+  --release-worktree              Run local verification in a temporary detached worktree. This is the default.
   --no-release-worktree           Run local verification in the current checkout instead of a temporary worktree.
                                   This also requires a fully clean tracked worktree.
   --dry-run                       Print planned actions without mutating remote state
@@ -121,6 +122,9 @@ function parseArgs(argv) {
         break;
       case "--skip-public-pages":
         options.skipPublicPages = true;
+        break;
+      case "--release-worktree":
+        options.releaseWorktree = true;
         break;
       case "--no-release-worktree":
         options.releaseWorktree = false;

@@ -41,6 +41,19 @@ function Get-CurrentMainLogLines {
   return @(Get-Content -Path $script:MainLog | Select-Object -Skip ($script:MainLogStartLine - 1))
 }
 
+function Get-RendererTitlebarHitTestLines {
+  $lines = New-Object System.Collections.Generic.List[string]
+  foreach ($line in @(Get-CurrentMainLogLines)) {
+    $lines.Add($line)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($appStdoutLog) -and (Test-Path $appStdoutLog)) {
+    foreach ($line in @(Get-Content -Path $appStdoutLog)) {
+      $lines.Add($line)
+    }
+  }
+  return @($lines)
+}
+
 function Get-DesktopRuntimeBaseUrlFromLog {
   $lines = @(Get-CurrentMainLogLines)
   $runtimeBaseUrl = $null
@@ -69,6 +82,9 @@ function Test-DesktopRuntimeWindowLoaded {
       continue
     }
     if ($line -match "did-finish-load url=$escapedBaseUrl(/|\s|$)") {
+      $sawRuntimeLoad = $true
+    }
+    if ($line -match "\[window:\d+\] did-finish-load(\s|$)") {
       $sawRuntimeLoad = $true
     }
     if ($line -match "renderer-debug-installed.*$escapedBaseUrl/") {
@@ -161,7 +177,7 @@ function Invoke-DesktopApiProbe {
 }
 
 function Test-RendererTitlebarDragRegionConfirmed {
-  foreach ($line in @(Get-CurrentMainLogLines)) {
+  foreach ($line in @(Get-RendererTitlebarHitTestLines)) {
     if ($line -notmatch "titlebar-hit-test (\{.*\})") {
       continue
     }
