@@ -241,7 +241,7 @@ describe('ChatSidebar create and list basics', () => {
 
     expect(mocks.setQuery).toHaveBeenCalledWith('release notes');
     expect(mocks.createSession).toHaveBeenCalledWith('codex', undefined);
-    expect(mocks.goToChatRoot).toHaveBeenCalledWith();
+    expect(mocks.goToChatRoot).not.toHaveBeenCalled();
   });
 
   it('keeps low-frequency utility choices behind nested selectors', () => {
@@ -292,7 +292,7 @@ describe('ChatSidebar create and list basics', () => {
     fireEvent.click(screen.getByRole('button', { name: 'New Task' }));
 
     expect(mocks.createSession).toHaveBeenCalledWith('native', undefined);
-    expect(mocks.goToChatRoot).toHaveBeenCalledWith();
+    expect(mocks.goToChatRoot).not.toHaveBeenCalled();
   });
 
   it('shows a session type badge for non-native sessions in the list', () => {
@@ -601,7 +601,7 @@ describe('ChatSidebar project-first mode', () => {
     fireEvent.click(screen.getByText('Codex'));
 
     expect(mocks.createSession).toHaveBeenCalledWith('codex', '/tmp/project-mobile');
-    expect(mocks.goToChatRoot).toHaveBeenCalledWith();
+    expect(mocks.goToChatRoot).not.toHaveBeenCalled();
   });
 });
 

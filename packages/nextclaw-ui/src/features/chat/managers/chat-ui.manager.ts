@@ -1,5 +1,5 @@
 import type { NavigateFunction, NavigateOptions } from 'react-router-dom';
-import { buildSessionPath } from '@/features/chat/utils/chat-session-route.utils';
+import { CHAT_DRAFT_SESSION_PATH, buildSessionPath } from '@/features/chat/utils/chat-session-route.utils';
 
 type ChatUiState = {
   pathname: string;
@@ -67,7 +67,7 @@ export class ChatUiManager {
     this.navigateTo('/chat', options);
   };
 
-  isAtChatRoot = () => this.state.pathname === '/chat';
+  isAtChatRoot = () => this.state.pathname === '/chat' || this.state.pathname === CHAT_DRAFT_SESSION_PATH;
 
   goToSession = (sessionKey: string, options?: NavigateOptions) => {
     this.navigateTo(buildSessionPath(sessionKey), options);

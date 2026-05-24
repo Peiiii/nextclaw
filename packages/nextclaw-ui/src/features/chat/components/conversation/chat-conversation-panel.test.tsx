@@ -281,7 +281,7 @@ describe("ChatConversationPanel", () => {
     expect(onBackToList).toHaveBeenCalledTimes(1);
   });
 
-  it("opens the new draft session immediately when mobile welcome creates a session", async () => {
+  it("lets the session list owner route new mobile welcome drafts", async () => {
     const user = userEvent.setup();
 
     render(<ChatConversationPanel layoutMode="mobile" />);
@@ -291,7 +291,7 @@ describe("ChatConversationPanel", () => {
     );
 
     expect(mocks.createSession).toHaveBeenCalledWith("native");
-    expect(mocks.goToChatRoot).toHaveBeenCalledTimes(1);
+    expect(mocks.goToChatRoot).not.toHaveBeenCalled();
   });
 
   it("shows the selected session project badge and more actions trigger", () => {

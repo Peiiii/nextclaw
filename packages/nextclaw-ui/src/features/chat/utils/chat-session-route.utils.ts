@@ -1,4 +1,6 @@
 const SESSION_ROUTE_PREFIX = 'sid_';
+export const CHAT_DRAFT_SESSION_PATH = '/chat/draft';
+const DRAFT_SESSION_ROUTE_ID = CHAT_DRAFT_SESSION_PATH.slice('/chat/'.length);
 
 export function encodeSessionRouteId(sessionKey: string): string {
   const bytes = new TextEncoder().encode(sessionKey);
@@ -26,7 +28,7 @@ export function decodeSessionRouteId(routeValue: string): string | null {
 }
 
 export function parseSessionKeyFromRoute(routeValue?: string): string | null {
-  if (!routeValue) {
+  if (!routeValue || routeValue === DRAFT_SESSION_ROUTE_ID) {
     return null;
   }
   const decodedToken = decodeSessionRouteId(routeValue);

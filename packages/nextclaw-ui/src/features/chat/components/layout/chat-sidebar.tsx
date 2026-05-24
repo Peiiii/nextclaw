@@ -256,7 +256,6 @@ export function ChatSidebar({
   );
   const createSessionAndOpenIfNeeded = (sessionType: string, projectRoot?: string | null) => {
     presenter.chatSessionListManager.createSession(sessionType, typeof projectRoot === "string" ? projectRoot : undefined);
-    if (isMobileVariant) presenter.chatUiManager.goToChatRoot();
   };
 
   return (

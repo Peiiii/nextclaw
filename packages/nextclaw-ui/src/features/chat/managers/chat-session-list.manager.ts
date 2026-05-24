@@ -6,6 +6,7 @@ import type { SetStateAction } from 'react';
 import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
 import { normalizeSessionProjectRootValue } from '@/shared/lib/session-project';
 import { updateNcpSession } from '@/shared/lib/api';
+import { CHAT_DRAFT_SESSION_PATH } from '@/features/chat/utils/chat-session-route.utils';
 export class ChatSessionListManager {
   constructor(
     private uiManager: ChatUiManager,
@@ -117,7 +118,7 @@ export class ChatSessionListManager {
       pendingProjectRoot: normalizedProjectRoot,
       pendingProjectRootSessionKey: null
     });
-    this.uiManager.goToChatRoot();
+    this.uiManager.navigateTo(CHAT_DRAFT_SESSION_PATH);
   };
 
   startAgentDraftChat = (agentId: string, sessionType: string): void => {

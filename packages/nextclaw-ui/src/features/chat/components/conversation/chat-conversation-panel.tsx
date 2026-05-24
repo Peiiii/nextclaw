@@ -141,11 +141,7 @@ function ChatConversationAlerts() {
   );
 }
 
-function ChatConversationContent({
-  layoutMode,
-}: {
-  layoutMode: ChatConversationLayoutMode;
-}) {
+function ChatConversationContent() {
   const presenter = usePresenter();
   const defaultSessionType = useChatInputStore(
     (state) => state.snapshot.defaultSessionType,
@@ -172,7 +168,6 @@ function ChatConversationContent({
       defaultSessionType,
     );
     presenter.chatSessionListManager.createSession(sessionType);
-    if (layoutMode === "mobile") presenter.chatUiManager.goToChatRoot();
   };
   const selectDraftAgent = (agentId: string) => {
     presenter.chatSessionListManager.setSelectedAgentId(agentId);
@@ -398,7 +393,7 @@ export function ChatConversationPanel({
           onBackToList={onBackToList}
         />
         <ChatConversationAlerts />
-        <ChatConversationContent layoutMode={layoutMode} />
+        <ChatConversationContent />
         <ChatInputBarContainer />
       </div>
 
