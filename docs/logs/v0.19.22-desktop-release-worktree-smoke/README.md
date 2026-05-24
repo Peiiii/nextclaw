@@ -8,6 +8,7 @@
 - 如何确认：查看 `v0.19.28-desktop-beta.4` 的 Windows x64 workflow step log，确认 API ready 为 true、窗口日志和 `titlebar-hit-test` 均已出现，但 smoke 抛出 `Desktop real app not ready within 20s ... windowReady=False`。
 - 修复方式：Windows smoke 现在兼容无 URL 的窗口加载日志，并在拖拽兜底判断中同时读取 `main.log` 与 `app-stdout.log` 的 renderer hit-test 证据。
 - 发布隔离：`pnpm release:desktop:beta` / `pnpm release:desktop:stable` 默认在临时 detached git worktree 里执行本地包验证，并新增显式 `--release-worktree` 选项；`--no-release-worktree` 保留为调试模式且要求 tracked worktree 干净。
+- 复跑暴露的新缺口：`v0.19.28-desktop-beta.6` 在 Windows x64 installer smoke 的 NSIS 静默安装阶段出现 `0xC0000005`，事件日志指向 NSIS 临时 `System.dll`。同一 target 的上一轮 beta 已通过，判断为 runner/installer 瞬时崩溃；已将此类 retryable installer crash 收敛到 smoke 脚本内自动清理重试一次，而不是要求人工 rerun workflow。
 
 ## 测试/验证/验收方式
 
@@ -19,12 +20,14 @@
 - `pnpm check:governance-backlog-ratchet`
 - `node scripts/release/release-desktop.mjs --channel beta --release-worktree --dry-run`
 - `pnpm release:desktop:beta -- --release-worktree`
+- `v0.19.28-desktop-beta.6` 复跑暴露 Windows x64 installer smoke `0xC0000005` 瞬时崩溃，作为修复输入。
 
 本机没有 `pwsh`，PowerShell 语法解析未在本地执行；Windows smoke 已通过 GitHub Actions 的真实 Windows x64 / arm64 job 验证。
 
 ## 发布/部署方式
 
 - GitHub release: `v0.19.28-desktop-beta.5`
+- Follow-up release attempt: `v0.19.28-desktop-beta.6` 未完成闭环，失败点为 Windows x64 installer smoke 的 retryable NSIS crash。
 - Release workflow: `desktop-release` run `26351512326`
 - 结果：workflow 全绿，release assets 验证通过，`gh-pages` beta manifest 验证到 `0.19.28`，public GitHub Pages beta manifest 最终传播到 `0.19.28`。
 - Linux APT：beta preview 不发布 stable APT repo，本次 workflow 中 `publish-linux-apt-repo` 为 skipped，符合预期。

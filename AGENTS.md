@@ -35,6 +35,7 @@
 
 - `AGENTS.md` 是常驻内核：只放每轮都必须知道的高优先级约束。
 - 场景相关、流程较长、例子很多、只在特定任务需要的规则，必须做成 `.agents/skills/<skill>/SKILL.md`。
+- 新增或重写 skill 时，必须同步维护能让 AI 自动触发读取它的索引：至少更新 skill `description`，必要时更新 `AGENTS.md` 的 skill 路由或相关命令/治理说明。
 - 项目内新增或重写 skill 默认使用中文；只有在明确面向外部英文受众、外部协议字段要求英文，或用户明确要求时，才使用英文。
 - 项目内方案、计划、设计、PRD、复盘等文档默认使用中文；只有面向外部英文受众、协议字段要求英文，或用户明确要求时，才使用英文。
 - 普通文档只用于人类说明、长期沉淀或被 skill 明确引用；不要把强制流程只拆到普通文档里，因为 AI 不一定会主动读取。
@@ -43,6 +44,7 @@
 - 执行源码、脚本、测试或运行链路配置相关任务时，默认使用 `nextclaw-delivery-workflow` 作为总流程 owner，统一约束实现前删减判断、验证、可维护性披露、复盘与最终汇报；细节再分别联动对应专项 skill。
 - 运行 `/validate`、代码改动收尾验证、bugfix 定向验收、冒烟测试或发布闭环判断时，必须使用 `nextclaw-validation-workflow` skill。
 - 写或改源码、脚本、测试、运行链路配置前，默认使用 `nextclaw-clean-implementation` skill；涉及 fallback / compatibility / rescue path 时，同时使用 `predictable-behavior-first`。
+- 涉及 kernel 主干/分支、manager/service/store/presenter owner 依赖、稳定业务 owner 是否直连、factory/create/registry 是否过度抽象、prop 透传或链路过长时，必须使用 `kernel-branch-owner-architecture`。
 - 改完源码、脚本、测试或运行链路配置后，默认使用 `post-edit-maintainability-guard`，再使用 `post-edit-maintainability-review`。
 - 创建、拆分、移动文件/模块/目录前，必须先判断并读取命名、角色、目录组织相关 skill，再按其规则实现。
 - 涉及命名、目录、文件组织时，按场景使用 `file-naming-convention`、`role-first-file-organization`、`collapsible-feature-root-architecture`、`file-organization-governance`。

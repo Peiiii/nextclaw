@@ -103,6 +103,7 @@ When creating or updating a skill:
 
 - 项目内 skill 默认使用中文；只有在 skill 明确面向外部英文受众、外部协议/字段强制要求英文，或用户明确要求英文时，才使用英文。
 - Make the YAML `description` explicit enough to trigger on real user requests.
+- 新增或重写 skill 不只创建文件，还必须同步维护触发索引：至少让 `description` 覆盖真实用户说法、任务类型和触达代码面；如果该 skill 是某类任务的入口规则，还要在 `AGENTS.md` 的 skill 路由、相关命令或治理说明中增加索引。
 - Keep `SKILL.md` procedural and concise.
 - Do not create extra README/changelog files inside a skill.
 - Prefer direct checklists and commands over long philosophy.

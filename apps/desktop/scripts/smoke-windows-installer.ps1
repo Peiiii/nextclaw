@@ -61,6 +61,12 @@ function Format-InstallerExitCode {
   return "$ExitCode (0x$($unsigned.ToString("X8")))"
 }
 
+function Test-RetryableInstallerExitCode {
+  param([int]$ExitCode)
+
+  return $ExitCode -eq -1073741819
+}
+
 function Write-InstallerCrashDiagnostics {
   param(
     [string]$InstallerPath,
@@ -140,13 +146,26 @@ Stop-DesktopProcesses
 Invoke-SilentUninstall -InstallDir $installDir
 
 try {
-  Write-Host "[desktop-installer-smoke] running silent install"
   $installArgs = "/S /currentuser /D=$installDir"
-  Write-Host "[desktop-installer-smoke] install args: $installArgs"
-  $installStartedAt = Get-Date
-  $installExitCode = Invoke-InstallerProcess -InstallerPath $resolvedInstaller -Arguments $installArgs
-  if ($installExitCode -ne 0) {
+  $maxInstallAttempts = 2
+  for ($attempt = 1; $attempt -le $maxInstallAttempts; $attempt += 1) {
+    Write-Host "[desktop-installer-smoke] running silent install attempt $attempt/$maxInstallAttempts"
+    Write-Host "[desktop-installer-smoke] install args: $installArgs"
+    $installStartedAt = Get-Date
+    $installExitCode = Invoke-InstallerProcess -InstallerPath $resolvedInstaller -Arguments $installArgs
+    if ($installExitCode -eq 0) {
+      break
+    }
+
     Write-InstallerCrashDiagnostics -InstallerPath $resolvedInstaller -InstallDir $installDir -StartedAt $installStartedAt
+    if ($attempt -lt $maxInstallAttempts -and (Test-RetryableInstallerExitCode -ExitCode $installExitCode)) {
+      Write-Warning "[desktop-installer-smoke] retrying silent install after retryable installer exit code $(Format-InstallerExitCode -ExitCode $installExitCode)"
+      Stop-DesktopProcesses
+      Remove-InstallDirectoryBestEffort -InstallDir $installDir
+      Start-Sleep -Seconds 3
+      continue
+    }
+
     throw "Installer exited with code $(Format-InstallerExitCode -ExitCode $installExitCode)"
   }
 

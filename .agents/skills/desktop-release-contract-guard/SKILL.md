@@ -109,6 +109,7 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - Use `--run-id <id>` when a workflow run is already known; this avoids searching and keeps logs smaller.
 - Use `--skip-public-pages` only when explicitly handing off a release whose public update channel propagation will be checked by a separate automation; do not use it to claim update-channel completion.
 - Use `--skip-remote-preflight` only for recovery after the exact `desktop-release-preflight` signing-secret gate already passed for the same target SHA. Do not skip it during normal beta or stable publishing.
+- Windows installer smoke must absorb known retryable NSIS runner crashes inside the smoke script. In particular, a silent installer exit code `0xC0000005` should be retried after cleanup before the release is failed; do not rely on manual workflow reruns for this class of infrastructure/installer transient.
 
 ## Stable Desktop Release Automation
 - Preferred one-command entry:

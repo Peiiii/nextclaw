@@ -1,6 +1,6 @@
 ---
 name: kernel-branch-owner-architecture
-description: 当设计或重构主干/分支架构、kernel、desktop main、runtime host、presenter-manager-store、manager/store/presenter、生命周期装配、多 service 初始化、owner 依赖关系、贡献点 contribution，或用户指出 factory/create 函数/registry/装配层过度抽象、owner 被方法参数临时传递、manager/service/store 懒创建导致生命周期不确定时使用。适用于判断主干该直接持有什么、分支之间是否能直接依赖、什么时候需要 contribution/registry，什么时候应该删除 createXxx/factory wrapper，什么时候应该把稳定 owner 依赖放回 constructor，以及长期 owner 是否应确定性创建。
+description: 当设计或重构主干/分支架构、kernel、desktop main、runtime host、presenter-manager-store、manager/store/presenter、生命周期装配、多 service 初始化、owner 依赖关系、贡献点 contribution，或用户指出 factory/create 函数/registry/装配层过度抽象、owner 被方法参数临时传递、manager/service/store 懒创建导致生命周期不确定、稳定业务依赖被过度解耦、链路/prop 透传过长时使用。适用于判断主干该直接持有什么、分支之间是否能直接依赖、什么时候需要 contribution/registry，什么时候应该删除 createXxx/factory wrapper，什么时候应该把稳定 owner 依赖放回 constructor，以及长期 owner 是否应确定性创建。
 ---
 
 # Kernel Branch Owner Architecture
@@ -12,7 +12,12 @@ NextClaw 的 kernel 思想不是“多包一层 factory”，而是：
 - 主干负责初始化、持有和启动各个长期分支。
 - 分支是有真实业务闭环的 owner，例如 manager / service / presenter / store owner。
 - 分支之间如果存在稳定语义依赖，可以直接依赖对方，不必绕 create 函数、factory、registry 或 callback。
+- 业务内稳定 owner 直连不是坏耦合；它的目标是最小化沟通成本、缩短调用链路、减少 prop 透传和中间 callback，让对象图直接表达真实业务拓扑。
+- 只有可复用、业务无关、跨边界或动态扩展的能力，才优先用抽象接口、registry、provider 或函数式依赖隔离；产品业务链路内的稳定分支默认直接依赖真实 manager / store / presenter。
 - 稳定 owner 依赖应该进入 constructor，由对象长期持有；不要在每次方法调用时临时传入 manager / store / presenter，也不要把 owner 包成函数参数传递。
+- 业务 manager 的稳定依赖不应再套一层 `options` / `params` / `deps` 容器；constructor 直接声明并持有对应 manager / store / service 字段，让类内部用 `this.sessionRunManager` 这类真实依赖名，而不是反复 `this.options.sessionRunManager`。
+- 业务 manager 的主流程要保持可直读，不要为了“看起来整齐”拆成一串只用一次、没有稳定语义边界的私有小函数；短链路也包括代码阅读链路短。私有方法应保留给有复用价值、稳定子职责、后台支路、生命周期支路或纯解析/归一化逻辑。
+- 防御、兼容和输入归一化只应出现在真正的外部边界；业务 owner 之间应信任明确 contract，不要在每个内部协作点重复做 alias fallback、payload 补丁、深拷贝兜底或“万一对方错了”的保护层。内部 contract 缺字段时优先修 contract owner，而不是在调用方层层自保。
 - 上级 owner 创建时，应尽量确定性创建自己的长期 manager / service / store 分支；避免 `ensureXxx()` 让稳定分支处于“可能存在也可能不存在”的不确定生命周期。
 - 只有动态生态、外部扩展、插件贡献、跨边界注册才需要 contribution / registry。
 - 有生命周期的分支必须显式暴露无参数 `start()` 和 `dispose()`，内部订阅、watcher、临时 stream、runtime dispose、IPC 注册、菜单/tray 注册等统一注册到 `cleanups` 数组。
@@ -180,10 +185,34 @@ class RuntimeManager {
 
 ## 依赖规则
 
+先区分依赖性质：
+
+- 如果依赖对象是同一业务链路里的稳定 owner，优先直连真实 owner。
+- 如果依赖对象是业务无关 library、跨包公共能力、插件扩展点、外部系统边界、可替换策略或测试替身，才考虑接口、registry、provider、factory 或函数参数式依赖。
+
+判断标准不是“依赖多就要解耦”，而是“这个变化点是否真的独立变化、是否跨边界、是否需要动态替换”。稳定业务 owner 被绕成 callback / factory / seed loader，通常只是把清晰对象图拆散，增加通信成本。
+
+同时要区分两套范式：
+
+- 业务层 / 业务编排 owner：优先直接依赖稳定 manager / store / service，不把依赖整体包进 `options` / `params` / `deps`，也不通过中间 callback 拆碎流程。它追求短链路、真实 owner 直连、对象图可读和最小沟通成本。
+- 解耦的业务无关可复用层 / 跨边界组件：可以使用 options object、interface、factory、provider、dependency injection 等解耦形态，因为它追求复用、可替换、隔离变化点或承接外部策略。
+
+不要把可复用组件的解耦范式机械套到业务 manager 上。业务 manager 的首要目标是链路短、对象图清晰、沟通成本低，而不是形式上“少知道一个具体类”。
+
+两套范式的目标函数不同：
+
+- 业务层要解决的是沟通成本、通信成本、属性透传、不确定生命周期、冗余链路和组织形态漂移。它应该尽量短链路、少中转、少参数搬运、少临时装配，并尽可能模板化和标准化：同类 manager 用同样的 constructor 直连依赖、同样的 `start/dispose` 生命周期、同样的 owner 持有关系。
+- 业务无关可复用层要解决的是通用性、准确性、灵活性、可替换性和边界隔离。它应该避免绑定某个业务 owner，优先表达稳定抽象、参数合同、可组合能力和外部策略注入，方便被不同业务上下文复用。
+
+判断一个模块适用哪套范式时，先问：它是在编排产品业务链路，还是在提供可被多个业务上下文复用的业务无关能力？前者优先标准化和直连，后者优先通用和解耦。
+
+业务层可以理解成系统内部总线：稳定 owner 之间应该像长期连通的循环链路一样，能用最短路径访问需要协作的对象。这里的核心不是隔离到彼此看不见，而是让信息传递链路尽可能短、传递代价尽可能低、跨分支协作尽可能直接。只要依赖关系属于同一业务拓扑并且语义稳定，直接依赖真实 owner 通常比新增中间协议、参数透传或 callback 更符合业务层目标。
+
 稳定业务依赖可以直连：
 
 - `SessionRunManager` 依赖 `NcpSessionManager`。
 - `AgentRunRequestManager` 依赖 `SessionRunManager`。
+- `AgentRunRequestManager` 可以直接依赖 session 持久化 owner 来 resolve/create session 和读取 messages；不要把 `loadSessionRunSeed` 这类流程碎片作为 options callback 注入。
 - `CommandManager` 依赖 `SessionManager`。
 - 前端 `CommandManager` 可以依赖 `SessionManager` 或 store owner。
 
@@ -191,12 +220,17 @@ class RuntimeManager {
 
 - 如果 A 的多个业务方法都需要 B，A 应该在 constructor 里依赖 B。
 - 如果 A 的核心业务语义离不开 B，即使只有一个方法使用，也优先在 constructor 里依赖 B。
+- 如果 A 是业务 manager，constructor 参数优先直接列出稳定依赖字段；只有参数过多且它们属于同一稳定外部配置事实时，才考虑 options object。
 - 方法参数用于每次调用真正变化的业务输入，例如 command、payload、snapshot、request、options。
 - 不要把 manager / store / presenter 作为普通业务方法参数传来传去；这会让依赖拓扑从对象图退化成调用栈偶然性。
 - 不要把 owner 包成 `() => owner`、`getOwner()`、`resolveOwner()` 传入，除非确实存在懒加载、循环依赖解除、跨边界能力查询或测试替身需求。
 
 不要为了“解耦”把清晰依赖改成：
 
+- `constructor(private readonly options: XxxManagerOptions)`
+- `this.options.sessionManager`
+- `this.params.runtimeManager`
+- `this.deps.toolProviderManager`
 - `createSessionManager()`
 - `createBundleService()`
 - `resolveRuntimeScript()`
@@ -287,13 +321,15 @@ private ensureUpdateManager = () => {
 4. 校准持有关系：主干持有 manager，manager 持有自己需要的 service/store。
 5. 删除空壳：优先删除无语义 factory、create wrapper、proxy、registry。
 6. 直连稳定依赖：让分支通过构造参数依赖真实 owner。
-7. 消除方法参数式 owner：把稳定 manager/store/presenter 依赖从业务方法参数移到 constructor；方法只接收本次调用变化的数据。
-8. 确定性创建长期分支：把稳定 manager/service/store 从 `ensureXxx()` 懒创建移到上级 owner 初始化阶段；只对真正可选、昂贵、异步、动态或结果缓存保留 lazy。
-9. 收回闭环：把状态、缓存、订阅、dispose 留在分支 owner 内。
-10. 统一生命周期：有长期资源的分支补齐 `start` / `dispose`，并把清理职责收敛到同步 `cleanups` 数组；只有必要等待的资源才使用 async cleanup。
-11. 保留 contribution：只给动态扩展点、插件和多方注册保留注册机制。
-12. 验证主干可读性：主干应像系统目录，能看出有哪些分支和生命周期顺序。
-13. 验证分支内聚性：每个分支应能说明自己负责的业务闭环。
+7. 消除 options 容器式 owner：如果业务 manager 的 constructor 只是接收 `options/params/deps` 并保存成 `this.options`，优先拆成直接 constructor 参数和私有字段。
+8. 消除方法参数式 owner：把稳定 manager/store/presenter 依赖从业务方法参数移到 constructor；方法只接收本次调用变化的数据。
+9. 消除流程碎片注入：如果 options 里出现 `loadXxx` / `createXxx` / `resolveXxx`，先判断它是不是该 manager 自己编排的业务步骤；若是，改为依赖真实 owner 并在私有方法里完成。
+10. 确定性创建长期分支：把稳定 manager/service/store 从 `ensureXxx()` 懒创建移到上级 owner 初始化阶段；只对真正可选、昂贵、异步、动态或结果缓存保留 lazy。
+11. 收回闭环：把状态、缓存、订阅、dispose 留在分支 owner 内。
+12. 统一生命周期：有长期资源的分支补齐 `start` / `dispose`，并把清理职责收敛到同步 `cleanups` 数组；只有必要等待的资源才使用 async cleanup。
+13. 保留 contribution：只给动态扩展点、插件和多方注册保留注册机制。
+14. 验证主干可读性：主干应像系统目录，能看出有哪些分支和生命周期顺序。
+15. 验证分支内聚性：每个分支应能说明自己负责的业务闭环。
 
 ## Review 检查
 
@@ -308,8 +344,11 @@ private ensureUpdateManager = () => {
 - 前端组件直接订阅 store 时，是否只是视图连接，而没有接管 store 创建、销毁或业务生命周期。
 - 主干是否仍能一眼看出系统有哪些长期分支。
 - 分支之间的稳定语义依赖是否被不必要地 callback 化。
+- 是否把同一业务链路中的稳定 owner 依赖误当成坏耦合，导致调用链路变长、沟通成本变高或 prop 透传增加。
 - 稳定 owner 依赖是否被放在 constructor，而不是作为每次方法调用参数传入。
+- 业务 manager 是否把稳定依赖整体包进 `options` / `params` / `deps` 并保存成 `this.options`，导致真实依赖名被隐藏。
 - 方法参数是否只代表本次调用变化的业务数据，而不是隐藏对象拓扑的 manager/store/presenter。
+- options 里是否出现 `loadXxx` / `createXxx` / `resolveXxx` 这类流程碎片；如果它们只是 manager 自己应编排的业务步骤，应改成 manager 直连真实 owner。
 - 如果存在 `() => owner`、`getOwner()`、`resolveOwner()`，是否确实有懒加载、循环依赖解除、跨边界查询或测试替身需求。
 - 长期 manager/service/store 是否在上级 owner 初始化阶段确定性创建，而不是靠 `ensureXxx()` 随调用顺序创建。
 - 保留的 lazy 是否属于可选/昂贵/异步/动态能力或结果缓存，而不是稳定业务分支。
