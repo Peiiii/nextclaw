@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
-import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
-import { EventBus } from "@nextclaw/shared";
+import { NcpEventType } from "@nextclaw/ncp";
+import { EventBus, eventKeys } from "@nextclaw/shared";
 import { createUiRouter } from "./router.js";
 import type { UiKernelHost } from "./types/router-options.types.js";
 
@@ -25,33 +25,25 @@ function useIsolatedHome(): void {
   process.env.NEXTCLAW_HOME = createTempDir("nextclaw-ui-ncp-stream-home-");
 }
 
-function createKernel(streamEvents: NcpEndpointEvent[]): UiKernelHost {
+function createKernel(eventBus: EventBus): UiKernelHost {
   return {
-    agentRuntimeManager: {
-      listSessionTypes: () => ({ defaultType: "native", options: [] }),
-    },
+    listSessionTypes: async () => ({ defaultType: "native", options: [] }),
     assetStore: {},
+    eventBus,
     ingress: {},
     llmProviders: {},
     ncpSessionManager: {},
-    sessionRunManager: {
-      streamSessionEvents: async function* (): AsyncGenerator<NcpEndpointEvent> {
-        for (const event of streamEvents) {
-          yield event;
-        }
-      },
-    },
   } as unknown as UiKernelHost;
 }
 
-function createTestApp(streamEvents: NcpEndpointEvent[]): ReturnType<typeof createUiRouter> {
+function createTestApp(eventBus: EventBus): ReturnType<typeof createUiRouter> {
   useIsolatedHome();
   const configPath = createTempConfigPath();
   saveConfig(ConfigSchema.parse({}), configPath);
   return createUiRouter({
     configPath,
     appEventBus: new EventBus(),
-    kernel: createKernel(streamEvents),
+    kernel: createKernel(eventBus),
   });
 }
 
@@ -70,21 +62,29 @@ afterEach(() => {
 });
 
 it("streams context-window updates through the ncp agent SSE route", async () => {
-  const app = createTestApp([
-    {
-      type: NcpEventType.ContextWindowUpdated,
-      payload: {
-        sessionId: "session-1",
-        contextWindow: {
-          usedContextTokens: 12,
-          totalContextTokens: 100,
-        },
+  const eventBus = new EventBus();
+  const app = createTestApp(eventBus);
+  const controller = new AbortController();
+  const response = await app.request(
+    new Request("http://localhost/api/ncp/agent/stream?sessionId=session-1", {
+      signal: controller.signal,
+    }),
+  );
+  const reader = response.body?.getReader();
+  eventBus.emit(eventKeys.ncpEvent, {
+    type: NcpEventType.ContextWindowUpdated,
+    payload: {
+      sessionId: "session-1",
+      contextWindow: {
+        usedContextTokens: 12,
+        totalContextTokens: 100,
       },
     },
-  ]);
-
-  const response = await app.request("http://localhost/api/ncp/agent/stream?sessionId=session-1");
-  const body = await response.text();
+  });
+  const chunk = await reader?.read();
+  controller.abort();
+  reader?.releaseLock();
+  const body = new TextDecoder().decode(chunk?.value);
 
   expect(response.status).toBe(200);
   expect(response.headers.get("content-type")).toContain("text/event-stream");

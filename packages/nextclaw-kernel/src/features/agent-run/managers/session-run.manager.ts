@@ -38,6 +38,10 @@ export class MessageInbox<T> {
   isEmpty = (): boolean => this.messages.length === 0;
 }
 
+function isConversationStateEvent(event: NcpEndpointEvent): boolean {
+  return event.type !== NcpEventType.ContextWindowUpdated;
+}
+
 export class SessionRun {
   readonly inbox = new MessageInbox<NcpMessage>();
   readonly sessionId: string;
@@ -62,7 +66,10 @@ export class SessionRun {
 
   applyEvents = async (events: readonly NcpEndpointEvent[]): Promise<void> => {
     this.applyRunEvents(events);
-    await this.stateManager.dispatchBatch(events);
+    const conversationEvents = events.filter(isConversationStateEvent);
+    if (conversationEvents.length > 0) {
+      await this.stateManager.dispatchBatch(conversationEvents);
+    }
   };
 
   beginRun = (): SessionRunActiveRun => {

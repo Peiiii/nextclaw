@@ -37,7 +37,7 @@ export type UiPluginHost = {
 
 export type UiKernelHost = Pick<
   NextclawKernel,
-  "agentRuntimeManager" | "assetStore" | "ingress" | "llmProviders" | "ncpSessionManager" | "sessionRunManager"
+  "assetStore" | "eventBus" | "ingress" | "listSessionTypes" | "llmProviders" | "ncpSessionManager"
 >;
 
 export type UiCronHost = {

@@ -125,7 +125,7 @@ export class NcpSessionRoutesController {
   }
 
   readonly getSessionTypes = async (c: Context) => {
-    const payload: ChatSessionTypesView = await this.options.kernel.agentRuntimeManager.listSessionTypes({
+    const payload: ChatSessionTypesView = await this.options.kernel.listSessionTypes({
       describeMode: "observation",
     });
     return c.json(ok(payload));

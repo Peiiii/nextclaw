@@ -1,3 +1,4 @@
+export * from "./managers/agent-run-context-compaction.manager.js";
 export * from "./managers/agent-run-request.manager.js";
 export * from "./managers/agent-runtime.manager.js";
 export * from "./managers/context-provider.manager.js";

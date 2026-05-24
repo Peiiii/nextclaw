@@ -8,8 +8,9 @@ export type DefaultNcpAgentRunSpec = {
   runId: string;
   agentId: string;
   model: string;
-  maxTokens: number;
+  maxTokens?: number;
   thinkingEffort?: string | null;
+  correlationId?: string;
 };
 
 export type AgentModelInputBuildRequest = {

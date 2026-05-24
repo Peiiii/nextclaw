@@ -1,9 +1,12 @@
 import {
   NcpAssistantTextStreamNormalizer,
   type NcpAssistantReasoningNormalizationMode,
+  type NcpEncodeContext,
   type NcpEndpointEvent,
 } from "@nextclaw/ncp";
 import { NcpEventType } from "@nextclaw/ncp";
+
+type StreamEventContext = Pick<NcpEncodeContext, "sessionId" | "messageId" | "correlationId">;
 
 export type ToolCallBuffer = {
   id?: string;
@@ -56,7 +59,7 @@ export function applyToolDelta(current: ToolCallBuffer, toolDelta: ToolCallDelta
 
 export function* emitTextDeltas(
   delta: DeltaLike,
-  ctx: { sessionId: string; messageId: string },
+  ctx: StreamEventContext,
   state: StreamContentState,
 ): Generator<NcpEndpointEvent, StreamContentState> {
   const content = delta.content;
@@ -102,7 +105,7 @@ export function* emitTextDeltas(
 }
 
 export function* flushTextDeltas(
-  ctx: { sessionId: string; messageId: string },
+  ctx: StreamEventContext,
   state: StreamContentState,
 ): Generator<NcpEndpointEvent, StreamContentState> {
   if (!state.normalizer) {
@@ -137,7 +140,7 @@ export function* flushTextDeltas(
 
 export function* closeTextPartBeforeToolCalls(
   delta: DeltaLike,
-  ctx: { sessionId: string; messageId: string },
+  ctx: StreamEventContext,
   state: StreamContentState,
 ): Generator<NcpEndpointEvent, StreamContentState> {
   if (!Array.isArray(delta.tool_calls) || delta.tool_calls.length === 0) {
@@ -165,7 +168,7 @@ export function* closeTextPartBeforeToolCalls(
 
 export function* emitReasoningDelta(
   delta: DeltaLike,
-  ctx: { sessionId: string; messageId: string },
+  ctx: StreamEventContext,
 ): Generator<NcpEndpointEvent> {
   const reasoning = delta.reasoning_content ?? delta.reasoning;
   if (typeof reasoning !== "string" || !reasoning) return;
@@ -176,7 +179,7 @@ export function* emitReasoningDelta(
 export function* emitToolCallDeltas(
   delta: DeltaLike,
   buffers: Map<number, ToolCallBuffer>,
-  ctx: { sessionId: string; messageId: string },
+  ctx: StreamEventContext,
 ): Generator<NcpEndpointEvent> {
   const toolDeltas = delta.tool_calls;
   if (!Array.isArray(toolDeltas)) return;
@@ -243,7 +246,7 @@ export function* emitToolCallDeltas(
 
 export function* flushToolCalls(
   buffers: Map<number, ToolCallBuffer>,
-  ctx: { sessionId: string; messageId: string },
+  ctx: StreamEventContext,
 ): Generator<NcpEndpointEvent> {
   const ordered = Array.from(buffers.entries()).sort(([a], [b]) => a - b);
   for (const [, buf] of ordered) {

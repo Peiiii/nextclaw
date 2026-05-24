@@ -151,12 +151,12 @@ it("routes ncp send through AgentRunRequestManager and stores the assistant repl
     configPath,
     appEventBus: new EventBus(),
     kernel: ({
-      agentRuntimeManager: runtimeManager,
       assetStore: {} as never,
+      eventBus,
       ingress,
+      listSessionTypes: runtimeManager.listSessionTypes,
       llmProviders: {} as never,
       ncpSessionManager,
-      sessionRunManager,
     } as unknown as UiKernelHost),
   });
 

@@ -3,15 +3,12 @@ import type { UpdateToolCallResult } from "@kernel/managers/tool.manager.js";
 import {
   NcpEventType,
   type NcpAgentRuntime,
-  type NcpAgentRunStreamOptions,
   type NcpEndpointEvent,
-  type NcpStreamRequestPayload,
 } from "@nextclaw/ncp";
 import {
   DefaultNcpAgentConversationStateManager,
 } from "@nextclaw/ncp-toolkit";
 import {
-  AsyncEventQueue,
   buildSessionRecord,
   disposeRuntime,
   type LiveSession,
@@ -28,16 +25,6 @@ const RUNTIME_METADATA_KEYS = ["runtime", "session_type", "runtime_type"] as con
 
 function isDurableSessionEvent(event: NcpEndpointEvent): boolean {
   return event.type !== NcpEventType.ContextWindowUpdated;
-}
-
-function readEventSessionId(event: NcpEndpointEvent): string | null {
-  const payload = "payload" in event ? event.payload : null;
-  if (!payload || typeof payload !== "object") {
-    return null;
-  }
-  return "sessionId" in payload && typeof payload.sessionId === "string"
-    ? payload.sessionId
-    : null;
 }
 
 function pickRuntimeMetadataPatch(
@@ -129,40 +116,6 @@ export class SessionRunManager {
     current.closed = true;
     session.activeExecution = null;
     this.publishSessionRunStatus({ sessionKey: session.sessionId, status: "idle" });
-  };
-
-  streamSessionEvents = (
-    payload: NcpStreamRequestPayload,
-    options?: NcpAgentRunStreamOptions,
-  ): AsyncIterable<NcpEndpointEvent> => {
-    this.assertNotDisposed();
-    const signal = options?.signal ?? new AbortController().signal;
-    const queue = new AsyncEventQueue<NcpEndpointEvent>();
-    const stop = () => queue.close();
-    const unsubscribe = this.eventBus.on(eventKeys.ncpEvent, (event) => {
-      const eventSessionId = readEventSessionId(event);
-      if (eventSessionId === payload.sessionId) {
-        queue.push(event);
-      }
-    });
-    signal.addEventListener("abort", stop, { once: true });
-    if (signal.aborted) {
-      stop();
-    }
-    return (async function* (): AsyncIterable<NcpEndpointEvent> {
-      try {
-        for await (const event of queue.iterate()) {
-          if (signal.aborted) {
-            break;
-          }
-          yield event;
-        }
-      } finally {
-        unsubscribe();
-        signal.removeEventListener("abort", stop);
-        queue.close();
-      }
-    })();
   };
 
   updateToolCallResult: UpdateToolCallResult = async ({

@@ -1,6 +1,5 @@
 import { Hono, type Handler } from "hono";
 import type {
-  NcpEndpointEvent,
   NcpMessageAbortPayload,
   NcpRunHandle,
   NcpStreamRequestPayload,
@@ -28,6 +27,7 @@ import { RemoteRoutesController } from "@nextclaw-server/features/remote-access/
 import { RuntimeControlRoutesController } from "@nextclaw-server/features/runtime-control/index.js";
 import { RuntimeUpdateRoutesController } from "@nextclaw-server/features/runtime-update/index.js";
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
+import { createNcpSessionEventStreamResponse } from "@nextclaw-server/app/utils/ncp-session-event-stream.utils.js";
 import { ServerPathRoutesController } from "@nextclaw-server/features/server-path/index.js";
 import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 
@@ -96,55 +96,6 @@ function isAbortPayload(value: unknown): value is NcpMessageAbortPayload {
   return isRecord(value) && typeof value.sessionId === "string" && value.sessionId.trim().length > 0;
 }
 
-function toSseFrame(eventName: string, data: unknown): string {
-  return `event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`;
-}
-
-function createNcpEventStreamResponse(
-  events: AsyncIterable<NcpEndpointEvent>,
-  signal: AbortSignal,
-): Response {
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream<Uint8Array>({
-    start: async (controller) => {
-      let closed = false;
-      const close = () => {
-        if (!closed) {
-          closed = true;
-          controller.close();
-        }
-      };
-      signal.addEventListener("abort", close, { once: true });
-      try {
-        for await (const event of events) {
-          if (closed || signal.aborted) {
-            break;
-          }
-          controller.enqueue(encoder.encode(toSseFrame("ncp-event", event)));
-        }
-      } catch (error) {
-        if (!closed && !signal.aborted) {
-          controller.enqueue(encoder.encode(toSseFrame("error", {
-            code: "STREAM_SOURCE_FAILED",
-            message: error instanceof Error ? error.message : String(error),
-          })));
-        }
-      } finally {
-        signal.removeEventListener("abort", close);
-        close();
-      }
-    },
-  });
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream; charset=utf-8",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no",
-    },
-  });
-}
-
 class UiRouteRegistry {
   constructor(
     private readonly app: Hono,
@@ -181,10 +132,7 @@ class UiRouteRegistry {
       if (!payload) {
         return c.json(err("INVALID_QUERY", "sessionId is required."), 400);
       }
-      return createNcpEventStreamResponse(
-        kernel.sessionRunManager.streamSessionEvents(payload, { signal: c.req.raw.signal }),
-        c.req.raw.signal,
-      );
+      return createNcpSessionEventStreamResponse(kernel.eventBus, payload, c.req.raw.signal);
     });
     this.app.post(`${NCP_AGENT_BASE_PATH}/abort`, async (c) => {
       const body = await readJson<NcpMessageAbortPayload>(c.req.raw);

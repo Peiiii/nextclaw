@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { NcpEventType, type NcpAgentRuntime, type NcpEndpointEvent } from "@nextclaw/ncp";
-import { EventBus, eventKeys } from "@nextclaw/shared";
+import { EventBus } from "@nextclaw/shared";
 import {
   InMemoryAgentSessionStore,
   type AgentSessionRecord,
@@ -336,47 +336,4 @@ describe("SessionRunManager stored metadata and event streams", () => {
     await manager.dispose();
   });
 
-  it("streams ncp events from the shared event bus by session id", async () => {
-    const sessionStore = new InMemoryAgentSessionStore();
-    const eventBus = new EventBus();
-    const manager = new SessionRunManager({
-      agentRuntimeManager: createRuntimeManagerStub(),
-      eventBus,
-      ncpSessionManager: new TestNcpSessionManager(sessionStore) as never,
-    });
-    const controller = new AbortController();
-    const iterator = manager
-      .streamSessionEvents({ sessionId: "session-1" }, { signal: controller.signal })
-      [Symbol.asyncIterator]();
-    const nextEvent = iterator.next();
-
-    eventBus.emit(eventKeys.ncpEvent, {
-      type: NcpEventType.ContextWindowUpdated,
-      payload: {
-        sessionId: "other-session",
-        contextWindow: { usedContextTokens: 1, totalContextTokens: 10 },
-      },
-    });
-    eventBus.emit(eventKeys.ncpEvent, {
-      type: NcpEventType.ContextWindowUpdated,
-      payload: {
-        sessionId: "session-1",
-        contextWindow: { usedContextTokens: 2, totalContextTokens: 10 },
-      },
-    });
-
-    await expect(nextEvent).resolves.toMatchObject({
-      done: false,
-      value: {
-        type: NcpEventType.ContextWindowUpdated,
-        payload: {
-          sessionId: "session-1",
-          contextWindow: { usedContextTokens: 2, totalContextTokens: 10 },
-        },
-      },
-    });
-    controller.abort();
-    await iterator.return?.();
-    await manager.dispose();
-  });
 });

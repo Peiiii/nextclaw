@@ -14,6 +14,10 @@ import type { NcpMessage, NcpToolOutputContentItem } from "./message.js";
 // Message envelopes (used by request/incoming/completed/failed)
 // ---------------------------------------------------------------------------
 
+export type NcpCorrelationPayload = {
+  correlationId?: string;
+};
+
 export type NcpRequestEnvelope = {
   sessionId: string;
   message: NcpMessage;
@@ -44,34 +48,31 @@ export type NcpResponseEnvelope = {
   sessionId: string;
   message: NcpMessage;
   metadata?: Record<string, unknown>;
-};
+} & NcpCorrelationPayload;
 
 export type NcpCompletedEnvelope = {
   sessionId: string;
   message: NcpMessage;
-  correlationId?: string;
   metadata?: Record<string, unknown>;
-};
+} & NcpCorrelationPayload;
 
 export type NcpFailedEnvelope = {
   sessionId: string;
   messageId?: string;
   error: NcpError;
-  correlationId?: string;
   metadata?: Record<string, unknown>;
-};
+} & NcpCorrelationPayload;
 
 export type NcpMessageAcceptedPayload = {
   messageId: string;
-  correlationId?: string;
   transportId?: string;
-};
+} & NcpCorrelationPayload;
 
 /** Payload for message.abort: identifies which session's active execution to cancel. */
 export type NcpMessageAbortPayload = {
   sessionId: string;
   messageId?: string;
-};
+} & NcpCorrelationPayload;
 
 /**
  * Payload for message.stream-request: attach to the live event stream of a session.
@@ -89,9 +90,8 @@ export type NcpStreamRequestPayload = {
 export type NcpMessageSentPayload = {
   sessionId: string;
   message: NcpMessage;
-  correlationId?: string;
   metadata?: Record<string, unknown>;
-};
+} & NcpCorrelationPayload;
 
 // ---------------------------------------------------------------------------
 // IM: typing indicator (user or bot)
@@ -159,14 +159,14 @@ export type NcpRunStartedPayload = {
   messageId?: string;
   threadId?: string;
   runId?: string;
-};
+} & NcpCorrelationPayload;
 
 export type NcpRunFinishedPayload = {
   sessionId?: string;
   messageId?: string;
   threadId?: string;
   runId?: string;
-};
+} & NcpCorrelationPayload;
 
 export type NcpRunErrorPayload = {
   sessionId?: string;
@@ -174,14 +174,14 @@ export type NcpRunErrorPayload = {
   error?: string;
   threadId?: string;
   runId?: string;
-};
+} & NcpCorrelationPayload;
 
 export type NcpRunMetadataPayload = {
   sessionId?: string;
   messageId?: string;
   runId?: string;
   metadata: Record<string, unknown>;
-};
+} & NcpCorrelationPayload;
 
 export type NcpContextWindowUpdatedPayload = {
   sessionId: string;
@@ -196,18 +196,18 @@ export type NcpContextWindowUpdatedPayload = {
 export type NcpTextStartPayload = {
   sessionId: string;
   messageId: string;
-};
+} & NcpCorrelationPayload;
 
 export type NcpTextDeltaPayload = {
   sessionId: string;
   messageId: string;
   delta: string;
-};
+} & NcpCorrelationPayload;
 
 export type NcpTextEndPayload = {
   sessionId: string;
   messageId: string;
-};
+} & NcpCorrelationPayload;
 
 // ---------------------------------------------------------------------------
 // Reasoning stream (aligned with agent-chat REASONING_*)
@@ -217,18 +217,18 @@ export type NcpTextEndPayload = {
 export type NcpReasoningStartPayload = {
   sessionId: string;
   messageId: string;
-};
+} & NcpCorrelationPayload;
 
 export type NcpReasoningDeltaPayload = {
   sessionId: string;
   messageId: string;
   delta: string;
-};
+} & NcpCorrelationPayload;
 
 export type NcpReasoningEndPayload = {
   sessionId: string;
   messageId: string;
-};
+} & NcpCorrelationPayload;
 
 // ---------------------------------------------------------------------------
 // Tool call stream (aligned with agent-chat TOOL_CALL_*)
@@ -240,32 +240,32 @@ export type NcpToolCallStartPayload = {
   messageId?: string;
   toolCallId: string;
   toolName: string;
-};
+} & NcpCorrelationPayload;
 
 export type NcpToolCallArgsPayload = {
   sessionId: string;
   toolCallId: string;
   args: string;
-};
+} & NcpCorrelationPayload;
 
 export type NcpToolCallArgsDeltaPayload = {
   sessionId: string;
   messageId?: string;
   toolCallId: string;
   delta: string;
-};
+} & NcpCorrelationPayload;
 
 export type NcpToolCallEndPayload = {
   sessionId: string;
   toolCallId: string;
-};
+} & NcpCorrelationPayload;
 
 export type NcpToolCallResultPayload = {
   sessionId: string;
   toolCallId: string;
   content: unknown;
   contentItems?: NcpToolOutputContentItem[];
-};
+} & NcpCorrelationPayload;
 
 // ---------------------------------------------------------------------------
 // Event type enum

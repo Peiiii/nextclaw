@@ -1,8 +1,10 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import { AgentRunRuntimeContribution } from "@kernel/contributions/kernel-branch/contributions/agent-run-runtime/index.js";
+import { ContextWindowContribution } from "@kernel/contributions/kernel-branch/contributions/context-window/index.js";
 import { ContextProviderContribution } from "@kernel/contributions/kernel-branch/contributions/context-provider/index.js";
 import { ToolProviderContribution } from "@kernel/contributions/kernel-branch/contributions/tool-provider/index.js";
 import {
+  AgentRunContextCompactionManager,
   AgentRunRequestManager,
   AgentRuntimeManager,
   ContextProviderManager,
@@ -11,9 +13,11 @@ import {
   ToolProviderManager,
 } from "@kernel/features/agent-run/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
+import type { AgentRuntimeSessionTypeDescribeParams } from "@kernel/features/runtime-registry/index.js";
 
 export class KernelBranch implements KernelContribution {
   readonly agentRuntimeManager = new AgentRuntimeManager();
+  readonly contextCompactionManager: AgentRunContextCompactionManager;
   readonly contextProviderManager = new ContextProviderManager();
   readonly sessionRepository: SessionRepository;
   readonly sessionRunManager: SessionRunManager;
@@ -26,6 +30,11 @@ export class KernelBranch implements KernelContribution {
     this.sessionRepository = new SessionRepository(
       kernel.eventBus,
       kernel.ncpSessionManager,
+    );
+    this.contextCompactionManager = new AgentRunContextCompactionManager(
+      kernel.configManager,
+      kernel.llmProviders,
+      this.sessionRepository,
     );
     this.sessionRunManager = new SessionRunManager(this.sessionRepository);
     this.agentRunRequestManager = new AgentRunRequestManager(
@@ -41,6 +50,7 @@ export class KernelBranch implements KernelContribution {
     this.contributions = [
       new ToolProviderContribution(kernel, this),
       new ContextProviderContribution(kernel, this),
+      new ContextWindowContribution(kernel, this),
       new AgentRunRuntimeContribution(kernel, this),
     ];
   }
@@ -56,6 +66,9 @@ export class KernelBranch implements KernelContribution {
     }
     this.agentRunRequestManager.start();
   };
+
+  listSessionTypes = (params?: AgentRuntimeSessionTypeDescribeParams) =>
+    this.agentRuntimeManager.listSessionTypes(params);
 
   dispose = async (): Promise<void> => {
     if (!this.started) {

@@ -54,7 +54,6 @@ afterEach(() => {
 });
 
 class StubNcpAgent implements NcpSessionApi {
-  private readonly listeners = new Set<(event: NcpEndpointEvent) => void>();
   private readonly attachmentRootDir = createTempDir("nextclaw-ui-ncp-attachments-");
   private readonly assets = new Map<
     string,
@@ -135,17 +134,6 @@ class StubNcpAgent implements NcpSessionApi {
       type: NcpEventType.RunFinished,
       payload: {
         sessionId: envelope.sessionId,
-        messageId: "assistant-message-1",
-        runId: "run-1",
-      },
-    };
-  };
-
-  streamSessionEvents = async function* (): AsyncGenerator<NcpEndpointEvent> {
-    yield {
-      type: NcpEventType.RunFinished,
-      payload: {
-        sessionId: "session-1",
         messageId: "assistant-message-1",
         runId: "run-1",
       },
@@ -265,15 +253,11 @@ class StubNcpAgent implements NcpSessionApi {
       ],
     };
   };
-
-  private publish = (_event: NcpEndpointEvent): void => {};
 }
 
 function createTestKernel(agent: StubNcpAgent): UiKernelHost {
   return {
-    agentRuntimeManager: {
-      listSessionTypes: agent.listSessionTypes,
-    },
+    listSessionTypes: agent.listSessionTypes,
     assetStore: {
       putBytes: agent.assetApi.put,
       statRecord: agent.assetApi.stat,
@@ -292,8 +276,8 @@ function createTestKernel(agent: StubNcpAgent): UiKernelHost {
         }
       },
     },
+    eventBus: new EventBus(),
     ncpSessionManager: agent,
-    sessionRunManager: agent,
     llmProviders: {},
   } as unknown as UiKernelHost;
 }

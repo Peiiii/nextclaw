@@ -43,9 +43,15 @@ export type DefaultNcpAgentRuntimeRunOptions = {
   signal?: AbortSignal;
 };
 
+export type AgentRunPreflight = (input: {
+  spec: DefaultNcpAgentRunSpec;
+  sessionRun: AgentRuntimeSessionState;
+}) => Promise<readonly NcpEndpointEvent[]>;
+
 export type DefaultNcpAgentRuntimeConfig = {
   llmApi: NcpLLMApi;
   modelInputBuilder: AgentModelInputBuilder;
+  runPreflight?: AgentRunPreflight;
   reasoningNormalizationMode?: NcpAssistantReasoningNormalizationMode;
   streamEncoder?: NcpStreamEncoder;
   toolResultContentManager?: ToolResultContentManager;
@@ -59,6 +65,7 @@ type InboxDrainResult = {
 export class DefaultNcpAgentRuntime {
   private readonly llmApi: NcpLLMApi;
   private readonly modelInputBuilder: AgentModelInputBuilder;
+  private readonly runPreflight?: AgentRunPreflight;
   private readonly reasoningNormalizationMode: NcpAssistantReasoningNormalizationMode;
   private readonly streamEncoder: NcpStreamEncoder;
   private readonly toolResultContentManager: ToolResultContentManager;
@@ -67,12 +74,14 @@ export class DefaultNcpAgentRuntime {
     const {
       llmApi,
       modelInputBuilder,
+      runPreflight,
       reasoningNormalizationMode,
       streamEncoder,
       toolResultContentManager,
     } = config;
     this.llmApi = llmApi;
     this.modelInputBuilder = modelInputBuilder;
+    this.runPreflight = runPreflight;
     this.reasoningNormalizationMode = reasoningNormalizationMode ?? "off";
     this.streamEncoder =
       streamEncoder ??
@@ -98,7 +107,16 @@ export class DefaultNcpAgentRuntime {
     const messageId = `assistant-message-${randomUUID()}`;
 
     try {
-      for (const event of this.drainInbox(sessionRun).events) {
+      for (const event of this.drainInbox(sessionRun, spec).events) {
+        if (this.isAbortRequested(signal)) {
+          break;
+        }
+        yield await this.applyEvent(sessionRun, event);
+      }
+      const preflightEvents = this.runPreflight
+        ? await this.runPreflight({ spec, sessionRun })
+        : [];
+      for (const event of preflightEvents) {
         if (this.isAbortRequested(signal)) {
           break;
         }
@@ -110,10 +128,11 @@ export class DefaultNcpAgentRuntime {
           messageId,
           runId: spec.runId,
           sessionId,
+          correlationId: spec.correlationId,
         },
       });
       if (this.isAbortRequested(signal)) {
-        yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId));
+        yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId, spec));
         return;
       }
 
@@ -140,6 +159,7 @@ export class DefaultNcpAgentRuntime {
             sessionId,
             messageId,
             runId: spec.runId,
+            correlationId: spec.correlationId,
           },
         );
         for await (const event of encoded) {
@@ -157,7 +177,7 @@ export class DefaultNcpAgentRuntime {
           if (this.isAbortRequested(signal)) {
             break;
           }
-          const toolResultEvent = await this.executeToolCall(tools, sessionId, toolCall);
+          const toolResultEvent = await this.executeToolCall(tools, sessionId, spec, toolCall);
           if (this.isAbortRequested(signal)) {
             break;
           }
@@ -167,7 +187,7 @@ export class DefaultNcpAgentRuntime {
           break;
         }
 
-        const drainedInbox = this.drainInbox(sessionRun);
+        const drainedInbox = this.drainInbox(sessionRun, spec);
         for (const event of drainedInbox.events) {
           if (this.isAbortRequested(signal)) {
             break;
@@ -187,15 +207,16 @@ export class DefaultNcpAgentRuntime {
             messageId,
             runId: spec.runId,
             sessionId,
+            correlationId: spec.correlationId,
           },
         });
         return;
       }
 
-      yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId));
+      yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId, spec));
     } catch (error) {
       if (this.isAbortRequested(signal)) {
-        yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId));
+        yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId, spec));
         return;
       }
       yield await this.applyEvent(sessionRun, {
@@ -203,6 +224,7 @@ export class DefaultNcpAgentRuntime {
         payload: {
           sessionId,
           runId: spec.runId,
+          correlationId: spec.correlationId,
           error: error instanceof Error ? error.message : String(error),
         },
       });
@@ -226,7 +248,10 @@ export class DefaultNcpAgentRuntime {
     }
   }
 
-  private drainInbox = (sessionRun: AgentRuntimeSessionState): InboxDrainResult => {
+  private drainInbox = (
+    sessionRun: AgentRuntimeSessionState,
+    spec: DefaultNcpAgentRunSpec,
+  ): InboxDrainResult => {
     const messages = sessionRun.inbox.drain();
     return {
       drained: messages.length > 0,
@@ -235,6 +260,7 @@ export class DefaultNcpAgentRuntime {
         payload: {
           sessionId: sessionRun.sessionId,
           message,
+          correlationId: spec.correlationId,
         },
       })),
     };
@@ -245,11 +271,13 @@ export class DefaultNcpAgentRuntime {
   private toAbortEvent = (
     sessionId: string,
     messageId: string,
+    spec: DefaultNcpAgentRunSpec,
   ): NcpEndpointEvent => ({
     type: NcpEventType.MessageAbort,
     payload: {
       messageId,
       sessionId,
+      correlationId: spec.correlationId,
     },
   });
 
@@ -264,6 +292,7 @@ export class DefaultNcpAgentRuntime {
   private executeToolCall = async (
     tools: readonly NcpTool[],
     sessionId: string,
+    spec: DefaultNcpAgentRunSpec,
     toolCall: CollectedToolCall,
   ): Promise<NcpEndpointEvent> => {
     const tool = tools.find((candidate) => candidate.name === toolCall.toolName);
@@ -284,6 +313,7 @@ export class DefaultNcpAgentRuntime {
       payload: {
         sessionId,
         toolCallId: toolCall.toolCallId,
+        correlationId: spec.correlationId,
         content: result.result,
         contentItems: result.contentItems,
       },

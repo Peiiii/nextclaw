@@ -1,4 +1,4 @@
-import { Ingress } from "@nextclaw/shared";
+import { EventBus, Ingress } from "@nextclaw/shared";
 import type { UiKernelHost } from "@nextclaw-server/app/types/router-options.types.js";
 
 function unavailable(name: string): never {
@@ -7,22 +7,16 @@ function unavailable(name: string): never {
 
 export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): UiKernelHost {
   return {
-    sessionRunManager: {
-      streamSessionEvents: async function* () {
-        yield unavailable("sessionRunManager.streamSessionEvents");
-      },
-    } as never,
-    agentRuntimeManager: {
-      listSessionTypes: async () => ({
-        defaultType: "native",
-        options: [{ value: "native", label: "Native" }],
-      }),
-    } as never,
+    listSessionTypes: async () => ({
+      defaultType: "native",
+      options: [{ value: "native", label: "Native" }],
+    }),
     assetStore: {
       putBytes: async () => unavailable("assetStore.putBytes"),
       statRecord: async () => null,
       resolveContentPath: () => null,
     } as never,
+    eventBus: new EventBus(),
     ingress: new Ingress(),
     llmProviders: {} as never,
     ncpSessionManager: {

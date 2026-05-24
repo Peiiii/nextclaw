@@ -16,13 +16,13 @@ import {
   createAgentRuntimeSessionRequestDispatcher,
   SessionRequestManager,
 } from "@kernel/features/session-request/index.js";
-import { AgentRuntimeContribution } from "@kernel/contributions/agent-runtime/index.js";
 import { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
+import { LegacyAgentRunContribution } from "@kernel/contributions/legacy-agent-run/index.js";
 import { LearningLoopContribution } from "@kernel/contributions/learning-loop/index.js";
-import { SessionContextWindowContribution } from "@kernel/contributions/session-context-window/index.js";
 import { SessionActivityPreviewContribution } from "@kernel/contributions/session-activity-preview/index.js";
 import { ToolContribution } from "@kernel/contributions/tool-contribution/index.js";
 import { ContextCompactionManager } from "@kernel/features/context-compaction/index.js";
+import type { AgentRuntimeSessionTypeDescribeParams } from "@kernel/features/runtime-registry/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
@@ -44,6 +44,13 @@ export type NextclawKernelOptions = {
   homeDir?: string;
   configPath?: string;
 };
+
+type AgentRunChain = "branch" | "legacy";
+type AgentRunContribution = KernelContribution & {
+  listSessionTypes: (params?: AgentRuntimeSessionTypeDescribeParams) => ReturnType<AgentRuntimeManager["listSessionTypes"]>;
+};
+
+const AGENT_RUN_CHAIN: AgentRunChain = "branch";
 
 function resolveKernelSessionsDir(options: NextclawKernelOptions): string {
   const homeDir = options.homeDir?.trim();
@@ -131,6 +138,7 @@ export class NextclawKernel {
   readonly sessionRunManager: SessionRunManager;
   readonly agentRuntimeManager: AgentRuntimeManager;
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
+  private readonly agentRunContribution: AgentRunContribution;
   private readonly contributions: KernelContribution[];
   private gatewayController: GatewayController | undefined;
 
@@ -215,15 +223,20 @@ export class NextclawKernel {
       ncpSessionManager: this.ncpSessionManager,
       sessionRunManager: this.sessionRunManager,
     });
+    this.agentRunContribution =
+      AGENT_RUN_CHAIN === "branch"
+        ? new KernelBranch(this)
+        : new LegacyAgentRunContribution(this);
     this.contributions = [
-      new AgentRuntimeContribution(this),
       new ToolContribution(this),
       new SessionActivityPreviewContribution(this),
-      new SessionContextWindowContribution(this),
       new LearningLoopContribution(this),
-      new KernelBranch(this),
+      this.agentRunContribution,
     ];
   }
+
+  listSessionTypes = (params?: AgentRuntimeSessionTypeDescribeParams) =>
+    this.agentRunContribution.listSessionTypes(params);
 
   provideGatewayController = (gatewayController: GatewayController): void => {
     this.gatewayController = gatewayController;
@@ -237,16 +250,13 @@ export class NextclawKernel {
     for (const contribution of this.contributions) {
       contribution.start();
     }
-    this.agentRunRequestManager.start();
   };
 
   dispose = async (): Promise<void> => {
-    await this.agentRunRequestManager.dispose();
-    await this.sessionRunManager.dispose();
-    this.ncpSessionManager.dispose();
     for (const contribution of [...this.contributions].reverse()) {
       await contribution.dispose();
     }
+    this.ncpSessionManager.dispose();
     await this.agentRuntimeManager.dispose();
     await this.mcpManager.dispose();
     await this.sessionSearch.dispose();

@@ -149,6 +149,16 @@ export class SessionRepository {
     return await this.ncpSessionManager.listSessionMessages(sessionId);
   };
 
+  patchSessionMetadata = async (
+    sessionId: string,
+    patch: Record<string, unknown>,
+  ): Promise<void> => {
+    const updated = await this.ncpSessionManager.updateSessionMetadata(sessionId, patch);
+    if (!updated) {
+      throw new Error(`Session metadata was not updated: ${sessionId}`);
+    }
+  };
+
   private appendSessionEvent = async (
     sessionId: string,
     event: NcpEndpointEvent,

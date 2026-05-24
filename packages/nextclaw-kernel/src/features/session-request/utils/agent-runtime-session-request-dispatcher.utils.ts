@@ -2,6 +2,7 @@ import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
 import {
   eventKeys,
   ingressKeys,
+  type AgentRunSessionMessageRequestPayload,
   type EventBus,
   type Ingress,
   type Unsubscribe,
@@ -28,17 +29,23 @@ export function waitForAgentRuntimeSessionReply(input: {
   eventBus: EventBus;
   onAccepted: (messageId: string) => void;
   requestId: string;
-}): { dispose: Unsubscribe; promise: Promise<NcpMessage> } {
+}): {
+  dispose: Unsubscribe;
+  promise: Promise<NcpMessage>;
+} {
   let acceptedMessageId: string | null = null;
   const completedMessagesById = new Map<string, NcpMessage>();
   let unsubscribe: Unsubscribe = () => undefined;
+  const acceptMessageId = (messageId: string): void => {
+    acceptedMessageId = messageId;
+    input.onAccepted(messageId);
+  };
   const promise = new Promise<NcpMessage>((resolve, reject) => {
     unsubscribe = input.eventBus.on(eventKeys.ncpEvent, (event) => {
       switch (event.type) {
         case NcpEventType.MessageAccepted:
           if (event.payload.correlationId === input.requestId) {
-            acceptedMessageId = event.payload.messageId;
-            input.onAccepted(event.payload.messageId);
+            acceptMessageId(event.payload.messageId);
           }
           return;
         case NcpEventType.MessageCompleted:
@@ -51,12 +58,11 @@ export function waitForAgentRuntimeSessionReply(input: {
           return;
         case NcpEventType.RunFinished:
           if (
-            ((event.payload as typeof event.payload & { correlationId?: string }).correlationId === input.requestId ||
+            (event.payload.correlationId === input.requestId ||
               event.payload.messageId === acceptedMessageId) &&
             event.payload.messageId
           ) {
-            acceptedMessageId = event.payload.messageId;
-            input.onAccepted(event.payload.messageId);
+            acceptMessageId(event.payload.messageId);
             const completedMessage = completedMessagesById.get(event.payload.messageId);
             if (completedMessage) {
               unsubscribe();
@@ -72,7 +78,7 @@ export function waitForAgentRuntimeSessionReply(input: {
           return;
         case NcpEventType.RunError:
           if (
-            (event.payload as typeof event.payload & { correlationId?: string }).correlationId === input.requestId ||
+            event.payload.correlationId === input.requestId ||
             event.payload.messageId === acceptedMessageId
           ) {
             unsubscribe();
@@ -93,7 +99,7 @@ export async function dispatchAgentRuntimeSessionRequest(input: {
   request: SessionRequestRecord;
   task: string;
 }): Promise<void> {
-  await input.ingress.handle({
+  await input.ingress.handle<AgentRunSessionMessageRequestPayload, unknown>({
     type: ingressKeys.agentRun.sessionMessageRequest,
     payload: {
       message: {

@@ -36,12 +36,12 @@ describe("provider connection probe route", () => {
     const app = createUiRouter({
       configPath,
       appEventBus: new EventBus(),
-      kernel: {
-        agentRuntimeManager: {} as never,
+    kernel: {
         assetStore: {} as never,
+        eventBus: new EventBus(),
         ingress: {} as never,
+        listSessionTypes: async () => ({ defaultType: "native", options: [] }),
         ncpSessionManager: {} as never,
-        sessionRunManager: {} as never,
         llmProviders: {
           testConnection: testConnectionMock,
         } as unknown as LlmProviderManager,

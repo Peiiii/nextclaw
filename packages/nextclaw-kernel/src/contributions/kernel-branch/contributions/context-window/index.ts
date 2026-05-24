@@ -1,5 +1,7 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
+import type { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
 import {
+  ContextCompactionPreflightService,
   createContextWindowSignature,
   isContextWindowSnapshot,
   readContextWindowEventSessionId,
@@ -7,8 +9,14 @@ import {
   shouldRefreshContextWindowImmediately,
 } from "@kernel/features/context-compaction/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
-import { type NcpEndpointEvent, NcpEventType } from "@nextclaw/ncp";
-import { eventKeys, type Unsubscribe } from "@nextclaw/shared";
+import {
+  type NcpEndpointEvent,
+  NcpEventType,
+} from "@nextclaw/ncp";
+import {
+  eventKeys,
+  type Unsubscribe,
+} from "@nextclaw/shared";
 
 const STREAM_REFRESH_DELAY_MS = 1500;
 
@@ -19,13 +27,21 @@ function formatBackgroundError(error: unknown): string {
   return String(error);
 }
 
-export class SessionContextWindowContribution implements KernelContribution {
-  private unsubscribeNcpEvent: Unsubscribe | null = null;
-  private stopped = true;
-  private readonly pendingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+export class ContextWindowContribution implements KernelContribution {
+  private readonly contextWindowPreview: ContextCompactionPreflightService;
   private readonly lastPublishedSignatureBySession = new Map<string, string>();
+  private readonly pendingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private stopped = true;
+  private unsubscribeNcpEvent: Unsubscribe | null = null;
 
-  constructor(private readonly kernel: NextclawKernel) {}
+  constructor(
+    private readonly kernel: NextclawKernel,
+    private readonly branch: KernelBranch,
+  ) {
+    this.contextWindowPreview = new ContextCompactionPreflightService({
+      configManager: kernel.configManager,
+    });
+  }
 
   start = (): void => {
     if (this.unsubscribeNcpEvent) {
@@ -48,7 +64,7 @@ export class SessionContextWindowContribution implements KernelContribution {
 
   private handleNcpEvent = (event: NcpEndpointEvent): void => {
     const sessionId = readContextWindowEventSessionId(event);
-    if (!sessionId) {
+    if (!sessionId || !this.branch.sessionRunManager.getSessionRun(sessionId)) {
       return;
     }
     if (event.type === NcpEventType.ContextWindowUpdated) {
@@ -82,7 +98,7 @@ export class SessionContextWindowContribution implements KernelContribution {
       this.pendingTimers.delete(sessionId);
     }
     void this.publishContextWindow(sessionId).catch((error: unknown) => {
-      console.error(`[session-context-window] failed to refresh ${sessionId}: ${formatBackgroundError(error)}`);
+      console.error(`[kernel-branch-context-window] failed to refresh ${sessionId}: ${formatBackgroundError(error)}`);
     });
   };
 
@@ -90,10 +106,18 @@ export class SessionContextWindowContribution implements KernelContribution {
     if (this.stopped) {
       return;
     }
-    const contextWindow = await this.kernel.ncpSessionManager.getContextWindow(
+    const sessionRun = this.branch.sessionRunManager.getSessionRun(sessionId);
+    if (!sessionRun) {
+      return;
+    }
+    const session = await this.branch.sessionRepository.getSession(sessionId);
+    const contextWindow = this.contextWindowPreview.preview({
+      requestMetadata: session.metadata,
       sessionId,
-      this.kernel.sessionRunManager.getLiveSessionRecord(sessionId),
-    );
+      sessionMessages: sessionRun.getSnapshot().messages,
+      storedAgentId: session.agentId,
+      storedMetadata: session.metadata,
+    });
     if (!isContextWindowSnapshot(contextWindow) || this.stopped) {
       return;
     }
@@ -105,12 +129,12 @@ export class SessionContextWindowContribution implements KernelContribution {
     this.kernel.eventBus.emit(eventKeys.ncpEvent, {
       type: NcpEventType.ContextWindowUpdated,
       payload: {
-        sessionId,
         contextWindow,
+        sessionId,
       },
     }, {
       emittedAt: new Date().toISOString(),
-      source: "session-context-window",
+      source: "kernel-branch-context-window",
     });
   };
 

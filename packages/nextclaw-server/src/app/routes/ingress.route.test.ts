@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it, vi } from "vitest";
-import type { EventBus, Ingress } from "@nextclaw/shared";
+import { EventBus, type Ingress } from "@nextclaw/shared";
 import { createUiRouter } from "@nextclaw-server/app/router.js";
 import type { UiKernelHost } from "@nextclaw-server/app/types/router-options.types.js";
 
@@ -12,12 +12,12 @@ describe("ingress route", () => {
       configPath: join(tmpdir(), "nextclaw-router-ingress-test.json"),
       appEventBus: {} as EventBus,
       kernel: {
-        agentRuntimeManager: {} as never,
         assetStore: {} as never,
+        eventBus: new EventBus(),
         ingress: { handle } as unknown as Ingress,
+        listSessionTypes: async () => ({ defaultType: "native", options: [] }),
         llmProviders: {} as never,
         ncpSessionManager: {} as never,
-        sessionRunManager: {} as never,
       } as unknown as UiKernelHost,
     });
 

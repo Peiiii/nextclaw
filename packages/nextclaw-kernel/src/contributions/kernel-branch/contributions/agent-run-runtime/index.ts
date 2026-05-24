@@ -50,10 +50,20 @@ export class AgentRunRuntimeContribution implements KernelContribution {
   private registerNativeRuntime = (runtimeId: string): (() => Promise<void>) =>
     this.branch.agentRuntimeManager.register({
       id: runtimeId,
+      label: "Native",
       createRuntime: () =>
         new DefaultNcpAgentRuntime({
           llmApi: new ProviderManagerNcpLLMApi(this.kernel.llmProviders),
           modelInputBuilder: this.modelInputBuilder,
+          runPreflight: async ({ spec, sessionRun }) => {
+            const session = await this.branch.sessionRepository.getSession(sessionRun.sessionId);
+            return await this.branch.contextCompactionManager.runPreflight({
+              agentId: spec.agentId,
+              messages: sessionRun.getSnapshot().messages,
+              metadata: session.metadata,
+              sessionId: sessionRun.sessionId,
+            });
+          },
         }),
     });
 }

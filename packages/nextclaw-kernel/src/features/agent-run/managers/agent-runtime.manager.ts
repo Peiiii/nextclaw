@@ -7,6 +7,12 @@ import type {
   AgentRunSpec,
   ContextBlock,
 } from "@kernel/features/agent-run/types/agent-run.types.js";
+import { DEFAULT_AGENT_RUNTIME_ENTRY_ID } from "@kernel/configs/agent-runtime.config.js";
+import type {
+  AgentRuntimeSessionTypeDescribeParams,
+  AgentRuntimeSessionTypeIcon,
+  AgentRuntimeSessionTypeOption,
+} from "@kernel/features/runtime-registry/index.js";
 
 export type AgentRuntimeRunOptions = {
   sessionRun: SessionRun;
@@ -25,6 +31,8 @@ export type AgentRuntime = {
 
 export type AgentRuntimeRegistration = {
   id: string;
+  label?: string;
+  icon?: AgentRuntimeSessionTypeIcon | null;
   createRuntime: () => AgentRuntime;
 };
 
@@ -64,6 +72,30 @@ export class AgentRuntimeManager {
     const agentRuntime = registration.createRuntime();
     this.runtimes.set(normalizedId, agentRuntime);
     return agentRuntime;
+  };
+
+  listSessionTypes = async (
+    _params?: AgentRuntimeSessionTypeDescribeParams,
+  ): Promise<{
+    defaultType: string;
+    options: AgentRuntimeSessionTypeOption[];
+  }> => {
+    const registrations = [...this.registrations.values()];
+    return {
+      defaultType: this.registrations.has(DEFAULT_AGENT_RUNTIME_ENTRY_ID)
+        ? DEFAULT_AGENT_RUNTIME_ENTRY_ID
+        : registrations[0]?.id ?? DEFAULT_AGENT_RUNTIME_ENTRY_ID,
+      options: registrations.map((registration) => ({
+        value: registration.id,
+        label: registration.label ?? registration.id,
+        icon: registration.icon ?? null,
+        ready: true,
+        reason: null,
+        reasonMessage: null,
+        recommendedModel: null,
+        cta: null,
+      })),
+    };
   };
 
   dispose = async (): Promise<void> => {

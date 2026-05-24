@@ -38,6 +38,11 @@ export class DefaultNcpStreamEncoder implements NcpStreamEncoder {
     context: NcpEncodeContext,
   ): AsyncGenerator<NcpEndpointEvent> {
     const { sessionId, messageId } = context;
+    const streamContext = {
+      sessionId,
+      messageId,
+      correlationId: context.correlationId,
+    };
     let state = createStreamContentState(this.reasoningNormalizationMode);
     const toolCallBuffers = new Map<number, ToolCallBuffer>();
 
@@ -47,23 +52,23 @@ export class DefaultNcpStreamEncoder implements NcpStreamEncoder {
 
       const delta = choice.delta as DeltaLike | undefined;
       if (delta) {
-        yield* emitReasoningDelta(delta, { sessionId, messageId });
-        const nextState = yield* emitTextDeltas(delta, { sessionId, messageId }, state);
+        yield* emitReasoningDelta(delta, streamContext);
+        const nextState = yield* emitTextDeltas(delta, streamContext, state);
         state = nextState;
         state = yield* closeTextPartBeforeToolCalls(
           delta,
-          { sessionId, messageId },
+          streamContext,
           state,
         );
-        yield* emitToolCallDeltas(delta, toolCallBuffers, { sessionId, messageId });
+        yield* emitToolCallDeltas(delta, toolCallBuffers, streamContext);
       }
 
       const finishReason = choice.finish_reason;
       if (typeof finishReason === "string" && finishReason.trim().length > 0) {
-        state = yield* flushTextDeltas({ sessionId, messageId }, state);
-        yield* flushToolCalls(toolCallBuffers, { sessionId, messageId });
+        state = yield* flushTextDeltas(streamContext, state);
+        yield* flushToolCalls(toolCallBuffers, streamContext);
         if (state.textStarted) {
-          yield { type: NcpEventType.MessageTextEnd, payload: { sessionId, messageId } };
+          yield { type: NcpEventType.MessageTextEnd, payload: streamContext };
         }
       }
     }

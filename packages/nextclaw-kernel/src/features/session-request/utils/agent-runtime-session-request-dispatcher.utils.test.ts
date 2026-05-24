@@ -41,4 +41,5 @@ describe("waitForAgentRuntimeSessionReply", () => {
     await expect(reply.promise).resolves.toMatchObject({ id: "assistant-1" });
     expect(onAccepted).toHaveBeenCalledWith("assistant-1");
   });
+
 });

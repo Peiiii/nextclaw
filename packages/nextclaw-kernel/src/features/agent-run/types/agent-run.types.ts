@@ -30,14 +30,16 @@ export type AgentRunAccepted = {
   sessionId: string;
   userMessageId: string;
   runId: string;
+  correlationId?: string;
 };
 
 export type AgentRunSpec = {
   runId: string;
   agentId: string;
   model: string;
-  maxTokens: number;
+  maxTokens?: number;
   thinkingEffort?: ThinkingEffort | null;
+  correlationId?: string;
 };
 
 export type ContextProvider = {

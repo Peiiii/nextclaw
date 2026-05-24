@@ -261,7 +261,7 @@ class SessionRun {
 - `beginRun()` 是创建 runId 和 abort controller 的唯一入口；`AgentRunRequestManager` 不维护 `activeRuns` map，也不自己 new `AbortController`。
 - `abortRun(...)` 是触发当前 run abort 的唯一入口；abort handler 先拿到 `SessionRun`，再调用 `sessionRun.abortRun(request.runId)`。
 - `applyEvents` 是唯一事件应用入口，必须保持事件顺序；单事件场景也使用 `applyEvents([event])`。
-- `applyEvents` 负责先按事件类型更新 `activeRunId` 并清理已结束 run 的 abort controller，再把会影响 messages 的事件交给 state manager；对于连续的 conversation events 可以调用 state manager 的 `dispatchBatch`，但不能把 run lifecycle、context-window 等非 conversation 状态塞进 state manager。
+- `applyEvents` 负责先按事件类型更新 `activeRunId` 并清理已结束 run 的 abort controller，再把 state manager 可消费的 runtime events 交给 state manager；对于连续事件可以调用 state manager 的 `dispatchBatch`。context-window 这类展示观察状态不进入 state manager。
 - `getSnapshot()` 只返回 agent runtime 需要的 messages，以及 `SessionRun` 自己维护的 `activeRunId`。
 - `activeRunId` 由 `run.started` / `run.finished` / `run.error` / `message.abort` 等事件更新；它不携带 `abortDisabledReason`。
 - context-window 事件不改变 `SessionRun` snapshot。
@@ -461,12 +461,13 @@ type AgentRunSpec = {
   model: string;
   maxTokens: number;
   thinkingEffort?: ThinkingEffort | null;
+  correlationId?: string;
 };
 ```
 
 `AgentRunRequestManager` 负责在启动 run 前确定 `agentId`：优先使用 request 中明确指定的 agent，其次使用 session 创建时的 default agent，最后使用系统默认 agent profile。后续预算裁剪、agent profile context 和其它 run-level 策略都应基于 `AgentRunSpec.agentId`，不能从 `sessionId` 反推本轮 agent。
 
-`correlationId` 不属于 `AgentRunSpec`。它用于请求追踪、eventBus 关联或 API 响应匹配，由 `AgentRunRequestManager` 在发布 runtime events 时附加，不参与 agent loop 决策，也不需要包装成新的 `resolvedRequest`。
+`correlationId` 属于 `AgentRunSpec`。它不是模型推理参数，也不参与 agent loop 决策；它是本次 run 的事件标记，用于请求追踪、eventBus 关联、session request 等待和未来其它事件关联场景。runtime / runtime adapter 产出的本次 run 相关事件应携带该标记，避免在 dispatcher 侧用 run handle、message id 或其它旁路机制补偿关联。
 
 `maxTokens` 属于 `AgentRunSpec`。它是本次模型输出预算，直接影响 agent loop 的模型调用。具体值可以由 `AgentRunRequestManager` 从请求、agent profile 或默认配置解析，但进入 `AgentRuntime` 时必须已经确定。
 
@@ -486,7 +487,7 @@ AgentRunRequest
       -> AgentRuntimeManager.getOrCreate(agentRuntimeId)
       -> ContextProviderManager.buildContext(request)
       -> ToolProviderManager.buildTools(request)
-      -> AgentRunSpec { runId: activeRun.runId, agentId, model, maxTokens, thinkingEffort }
+      -> AgentRunSpec { runId: activeRun.runId, agentId, model, maxTokens, thinkingEffort, correlationId }
       -> agentRuntime.run(agentRunSpec, { sessionRun, contextBlocks, tools, signal: activeRun.signal })
 ```
 
@@ -533,6 +534,25 @@ class AgentRuntime {
 
 这些原料分别属于 `AgentRunRequestManager`、`ContextProviderManager`、`ToolProviderManager` 或具体 provider。builder 只消费已经准备好的事实。
 裁剪预算属于 `AgentRunModelInputBudgeter`，不属于 `AgentRuntime` API，也不属于 `AgentRunRequestManager` 的主流程透传参数。
+
+### AgentRun Context Compaction
+
+新链路需要保留旧 native 链路的 context compaction 行为，但不能把旧 `ContextCompactionManager` 整体接回 agent run 主流程。旧 manager 绑定了旧 `LiveSession`、旧 `SessionRunManager`、旧 state manager hydrate 和直接 append session event 的写法；这些是旧电路结构，不是需要复用的稳定算法。
+
+新链路的职责拆分如下：
+
+- `ContextCompactionPreflightService` 放在 `features/context-compaction/services/`，沉淀可复用算法：profile budget 解析、context-window 估算、是否触发压缩、checkpoint 构造、summary 生成、timeline message 构造。旧 `ContextCompactionManager` 和新链路都复用它，避免两份压缩判断漂移。
+- `AgentRunContextCompactionManager` 放在 `features/agent-run/managers/`，是新链路运行前压缩 owner。它消费 `sessionId`、`agentId`、`messages` 和 session metadata，必要时 patch compaction metadata，并返回 compaction timeline `message.sent` 事件。
+- `DefaultNcpAgentRuntime` 只暴露通用 `runPreflight` hook。hook 运行在 initial `inbox.drain()` 之后、`run.started` 之前，每个 run 只执行一次；runtime 不知道 NextClaw compaction，只负责 apply/yield hook 返回的 events。
+- `AgentRunRuntimeContribution` 负责把 branch 的 `AgentRunContextCompactionManager` 接入 runtime hook。这里是装配点，不是算法 owner。
+- `ContextWindowContribution` 是 branch-local contribution，监听新链路 `eventBus ncp.event`，读取 branch `SessionRun` live snapshot 并用同一个 `ContextCompactionPreflightService.preview(...)` 计算展示用 context-window，再发布 `context-window.updated`。
+
+关键约束：
+
+- 不新增只有“安装”职责的 compaction contribution；`KernelBranch` 直接持有 `AgentRunContextCompactionManager`。
+- compaction manager 不直接 emit eventBus，也不 append session event；它只 patch 自己生成的 metadata checkpoint，并返回事实事件。事件仍然经 `runtime -> AgentRunRequestManager -> eventBus -> SessionRepository` 的单一路径持久化。
+- context compaction 不负责发布 `context-window.updated`；上下文压缩事实由 metadata checkpoint 和 timeline message 表达，上下文窗口占用更新由 context-window owner 表达。
+- context-window 仍不进入 `SessionRun` / conversation state manager。当前 `context-window.updated` 仍暂时沿用 NCP event contract，后续再按独立 app event 迁移。
 
 推荐 contract：
 
@@ -910,7 +930,7 @@ export function decodeSessionEvent(line: string): SessionEvent;
 
 ### AgentRunRequestManager 触发运行
 
-`AgentRunRequestManager` 是运行流程的上层编排者。它在 `start()` 时订阅 ingress 上的 agent run request 和 abort request，并在 `dispose()` 时释放订阅。`SessionRunManager.createSessionRun(sessionId)` 自己通过 `SessionRepository` 读取初始化 messages；`AgentRunRequestManager` 不先读 messages 再传入。
+`AgentRunRequestManager` 是运行流程的上层编排者。它在 `start()` 时订阅 ingress 上的 agent run send、abort 和 session-message request，并在 `dispose()` 时释放订阅。`SessionRunManager.createSessionRun(sessionId)` 自己通过 `SessionRepository` 读取初始化 messages；`AgentRunRequestManager` 不先读 messages 再传入。
 
 调用 agent runtime 之前，`AgentRunRequestManager` 必须先拿到对应的 `SessionRun`，必要时显式创建它，并把 `request.message` 放入 `sessionRun.inbox`。这样 agent loop 启动时能从同一个运行态 owner 读取历史 messages 和新到达的用户输入。
 
@@ -952,6 +972,21 @@ Ingress
   -> sessionRun.abortRun(request.runId)
 ```
 
+session-message request 也复用同一条 send 编排链路：
+
+```text
+Ingress
+  -> agent.run.session-message.request
+  -> AgentRunRequestManager private handleSessionMessageRequest(envelope)
+  -> 转成 AgentRunRequest(sessionId, message, correlationId = requestId)
+  -> private send(request)
+  -> AgentRunSpec.correlationId = requestId
+  -> runtime events carry correlationId
+  -> session request dispatcher 按 correlationId 等待最终回复
+```
+
+`correlationId` 从请求层进入 `AgentRunSpec` 后成为本次 run 的事件标记。session request dispatcher 不再需要额外的 `acceptRunHandle(...)` / `trackRunHandle(...)` 旁路；它只按 request id 对应的 `correlationId` 识别最终回复。
+
 这里的关键约束：
 
 - agent run 的外部入口是 ingress request，不是直接调用 `AgentRunRequestManager.send(...)`。
@@ -984,7 +1019,7 @@ AgentRuntime round
 
 ### AgentRuntime 应用事件
 
-runtime 产生的 NCP event 先进入 `SessionRun`。`SessionRun` 按事件职责分流：conversation events 进入内部 state manager，run lifecycle events 只更新 `activeRunId`，context-window events 不进入 `SessionRun`。随后 runtime 将事件 yield 给 `AgentRunRequestManager`。
+runtime 产生的 NCP event 先进入 `SessionRun`。`SessionRun` 按事件职责分流：state manager 可消费的 runtime events 进入内部 state manager；`SessionRun` 同时用 run lifecycle events 维护自己的 `activeRunId` 和 abort controller；context-window events 不进入 state manager。随后 runtime 将事件 yield 给 `AgentRunRequestManager`。
 
 ```text
 AgentRuntime event
@@ -1010,7 +1045,7 @@ sessionRun.applyEvents(events)
 
 这保证 conversation messages 的更新规则集中在现成 `NcpAgentConversationStateManager`，而它仍然被 `SessionRun` 封装。
 
-`run.started`、`run.finished`、`run.error` 和 `message.abort` 这类事件可以更新 `SessionRun.activeRunId`，但不进入 conversation state manager 的 hydrate input，也不把 `abortDisabledReason` 这类 UI/控制语义塞进 conversation state。
+`run.started`、`run.finished`、`run.error` 和 `message.abort` 这类事件可以更新 `SessionRun.activeRunId`，也可以交给 conversation state manager 消费；但它们不进入 state manager 的 hydrate input，也不把 `abortDisabledReason` 这类 UI/控制语义塞进 conversation state。
 
 ### EventBus 支路
 
@@ -1237,12 +1272,25 @@ projection 文件会引入同步关系。只要它开始像事实源，就会产
 
 - `KernelBranch` 本身实现 `KernelContribution`，通过 kernel 既有 contribution 生命周期挂到主干。
 - `NextclawKernel` 不暴露 `kernelBranch` 顶层字段，只把 `new KernelBranch(...)` 放进 `contributions` 生命周期数组；新链路的每个 manager 都留在分支内部。
-- `KernelBranch` 内部持有新链路 owner：`SessionRepository`、`SessionRunManager`、`AgentRuntimeManager`、`ContextProviderManager`、`ToolProviderManager`、`AgentRunRequestManager`。
+- `KernelBranch` 内部持有新链路 owner：`SessionRepository`、`SessionRunManager`、`AgentRuntimeManager`、`ContextProviderManager`、`ToolProviderManager`、`AgentRunContextCompactionManager`、`AgentRunRequestManager`。
 - `KernelBranch` 可以有自己的 branch-local contributions，用来注册 agent runtime entries、context provider、tool provider 和后续其它 provider。
-- branch-local contribution 自己创建并持有只服务自身注册职责的细分对象。例如 `contributions/kernel-branch/contributions/agent-run-runtime/index.ts` 自己创建 `AgentRunModelInputBuilder` 及其 message projector / budgeter，`contributions/kernel-branch/contributions/context-provider/index.ts` 注册 `providers/kernel-context.provider.ts`，`contributions/kernel-branch/contributions/tool-provider/index.ts` 注册 `providers/kernel-tool.provider.ts`；`KernelBranch` 不替它持有这些内部装配细节。
+- branch-local contribution 自己创建并持有只服务自身注册职责的细分对象。例如 `contributions/kernel-branch/contributions/agent-run-runtime/index.ts` 自己创建 `AgentRunModelInputBuilder` 及其 message projector / budgeter，`contributions/kernel-branch/contributions/context-provider/index.ts` 注册 `providers/kernel-context.provider.ts`，`contributions/kernel-branch/contributions/tool-provider/index.ts` 注册 `providers/kernel-tool.provider.ts`，`contributions/kernel-branch/contributions/context-window/index.ts` 监听 branch live session 并发布展示用 context-window；`KernelBranch` 不替它持有这些内部装配细节。
 - branch-local contribution 构造时直接接收 `kernel` 和 `branch` 两个 owner。旧主干依赖从 `kernel` 读取，新分支依赖从 `branch` 读取；不要通过 `branch.kernel` 绕回主干，也不要让 `kernel` 暴露 branch 字段。这样后续合回主干或拆除旧链路时，依赖来源更容易迁移。
-- 第一阶段 `KernelBranch.start()` 只启动 repository lifecycle 和 branch-local contributions，不启动新的 `AgentRunRequestManager.start()`，避免新 ingress handler 抢旧主链路。
-- 当新链路准备好接管请求时，再由明确配置或迁移切换点启动 `AgentRunRequestManager`。旧链路删除后，`KernelBranch` 的内容可以合回 `NextclawKernel` 或重命名为正式 owner。
+- `KernelBranch.start()` 启动 repository lifecycle、branch-local contributions 和新的 `AgentRunRequestManager.start()`，让新分支生命周期自身闭合。
+- 当前 `Ingress` 同一个 key 只有一个 handler。新旧链路并存阶段，`KernelBranch.start()` 会先安装新 `AgentRunRequestManager` handler，随后 `LegacyAgentRunContribution.start()` 安装旧 handler 并覆盖新 handler，因此默认仍走旧链路。试切新链路的轻量替换点，是从 kernel contribution 列表中移除或关闭 `LegacyAgentRunContribution`；此时 branch handler 自然成为 ingress handler，不需要到处注释多个 start 调用。
+
+### LegacyAgentRunContribution：旧链路生命周期收束
+
+旧 agent run 链路在删除前也必须收束成一个清晰的 lifecycle contribution，而不是散落在 `NextclawKernel.start()` / `dispose()` 和多个顶层 contribution 中。
+
+`LegacyAgentRunContribution` 负责旧链路专属生命周期：
+
+- 启动旧 `AgentRuntimeContribution`，注册旧 `kernel.agentRuntimeManager` 的 runtime provider。
+- 启动旧 `SessionContextWindowContribution`，继续服务旧 live session 链路的 context-window 展示更新。
+- 启动旧 `kernel.agentRunRequestManager.start()`，接管当前 ingress handler。
+- dispose 时关闭旧 request manager、旧 session run manager，以及它自己启动的旧链路 contribution。
+
+不放进 legacy 的对象要有明确理由。例如 `ToolContribution` 当前仍是共享注册层，新分支的 tool provider 也通过 `kernel.toolManager` 复用这些工具注册，所以它继续作为普通 kernel contribution 存在；`SessionActivityPreviewContribution` 只消费通用 `eventBus.ncpEvent` 更新会话活动预览，不绑定旧 live session，因此也不归 legacy 管。
 
 这条设计的目的，是让新电路作为一个完整可插拔分支先接入 kernel 生命周期，而不是把新旧链路混在同一个主干对象里做补丁式替换。
 

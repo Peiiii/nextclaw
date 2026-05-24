@@ -7,6 +7,7 @@ export {
   DefaultNcpAgentRuntime,
 } from "./runtime/agent-runtime.service.js";
 export type {
+  AgentRunPreflight,
   AgentRuntimeSessionState,
   AgentRuntimeSessionStateSnapshot,
   DefaultNcpAgentRuntimeConfig,
