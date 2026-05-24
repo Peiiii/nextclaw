@@ -10,6 +10,8 @@
 
 本次新增 `@nextclaw/ncp-agent-runtime-next` 临时隔离包，用终态命名实现新的 `DefaultNcpAgentRuntime` 运行循环。该包暂不接入 kernel，不导入 `SessionRun` 具体 class，只通过结构 contract 消费 session state；它临时依赖旧 `@nextclaw/ncp-agent-runtime` 复用 stream encoder、NCP message -> OpenAI message 转换、round collector、tool-call execution、tool result normalization 等稳定 primitives。模型输入组装通过外部 `AgentModelInputBuilder` contract 注入，runtime 包不依赖 `@nextclaw/core`。确认新实现后，再将该包内容合并回旧包并删除旧 runtime 实现与临时包。
 
+追加修复：branch 链路接管后，新会话标题回退成固定 `Session`，没有继续沿用旧链路“首条用户消息作为会话名”的行为。确认根因是 branch `SessionRepository.createSession(...)` 固定传入 `task: "Session"`；修复后 `AgentRunRequestManager` 复用旧链路 `readMessageTask(...)` 从本次用户消息生成 task，再交给 `NcpSessionManager.createSession(...)` 写入 summary metadata，避免在前端或 summary 读取层做兜底补丁。
+
 关联大方案：[会话运行态与持久化架构设计草案](../../designs/2026-05-23-session-runtime-architecture-design.md)。
 
 临时小方案：
@@ -32,11 +34,14 @@
 - `pnpm -C packages/ncp-packages/nextclaw-ncp-agent-runtime-next tsc`
 - `pnpm -C packages/ncp-packages/nextclaw-ncp-agent-runtime-next lint`
 - `pnpm -C packages/ncp-packages/nextclaw-ncp-agent-runtime-next build`
+- `pnpm -C packages/nextclaw-kernel test -- src/features/agent-run/managers/agent-run-request.manager.test.ts src/managers/__tests__/agent-run-request.manager.test.ts`
+- `pnpm -C packages/nextclaw-kernel lint`
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-kernel/src/features/agent-run/managers/agent-run-request.manager.ts packages/nextclaw-kernel/src/features/agent-run/repositories/session.repository.ts packages/nextclaw-kernel/src/features/agent-run/managers/agent-run-request.manager.test.ts`
 - `pnpm lint:new-code:governance`
 - `pnpm check:governance-backlog-ratchet`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs`
 
-说明：agent-run 核心骨架仍在设计讨论期，本批次不保留细粒度行为测试，避免过早固化未稳定 API。
+说明：agent-run 核心骨架初始批次不保留细粒度行为测试，避免过早固化未稳定 API；branch 链路接管后的用户可见回归必须补定向行为测试。
 
 ## 发布/部署方式
 
@@ -44,7 +49,7 @@
 
 ## 用户/产品视角的验收步骤
 
-用户可 review 两个临时方案。当前已优先推进 agent run 核心骨架：新增代码不替换旧运行链路，验收重点是新骨架的职责边界是否符合目标终态。
+用户可 review 两个临时方案。当前已优先推进 agent run 核心骨架；branch 链路接管后，新会话首发消息应继续把会话名显示为用户第一句话，而不是固定显示 `Session`。
 
 ## 可维护性总结汇总
 
@@ -55,6 +60,8 @@
 本次正向减债动作是职责收敛和复用收敛：运行取消控制收回 `SessionRun`，session 初始化 messages 读取收回 `SessionRunManager -> SessionRepository`，request manager 删除 `activeRuns`、`resolvedRequest`、runtime 消费 helper 和事件发布 helper 等中间状态/中间函数；native runtime next 不再复制消息转换、tool-call 收集和 tool-call 执行规则，而是复用旧 runtime 包拆出的公共 primitive。
 
 维护性风险：当前阶段仍是新骨架接入前的正向代码增长。默认 maintainability guard 通过，但严格 `--non-feature` 行数门槛未通过；下一步必须通过接入新链路并删除旧 `liveSession / activeExecution` 混合职责来偿还这部分增长，不能让新旧路径长期并行。
+
+追加修复的正向减债动作是复用和简化：branch request manager 复用旧链路已有 `readMessageTask(...)`，避免复制标题推导规则；同时删除 `SessionRepository` 中两个只调用一次的薄 wrapper。追加修复 strict non-feature touched-scope 结果为非测试代码净增 `-4` 行，并补了 branch 专属行为测试。
 
 ## NPM 包发布记录
 

@@ -27,6 +27,7 @@ export type CreateAgentRunSessionParams = {
   channel?: string;
   model?: string;
   projectRoot?: string;
+  task?: string;
   thinkingEffort?: ThinkingEffort | null;
 };
 
@@ -43,14 +44,6 @@ function readEventSessionId(event: NcpEndpointEvent): string | undefined {
 
 function isDurableSessionEvent(event: NcpEndpointEvent): boolean {
   return event.type !== NcpEventType.ContextWindowUpdated;
-}
-
-function readStoredAgentRuntimeId(metadata: Record<string, unknown> | undefined): string | undefined {
-  return readString(metadata?.agentRuntimeId);
-}
-
-function readModel(metadata: Record<string, unknown> | undefined): string | undefined {
-  return readString(metadata?.model);
 }
 
 function readThinkingEffort(metadata: Record<string, unknown> | undefined): ThinkingEffort | null {
@@ -96,9 +89,9 @@ export class SessionRepository {
     if (!record) {
       throw new Error(`Session not found: ${sessionId}`);
     }
-    const agentRuntimeId = readStoredAgentRuntimeId(record.metadata) ??
+    const agentRuntimeId = readString(record.metadata?.agentRuntimeId) ??
       DEFAULT_AGENT_RUNTIME_ENTRY_ID;
-    const model = readModel(record.metadata);
+    const model = readString(record.metadata?.model);
     return {
       sessionId: record.sessionId,
       agentId: record.agentId,
@@ -117,12 +110,13 @@ export class SessionRepository {
       channel,
       model,
       projectRoot,
+      task,
       thinkingEffort,
     } = params;
     const agentRuntimeId = requestedAgentRuntimeId ?? DEFAULT_AGENT_RUNTIME_ENTRY_ID;
     const created = await this.ncpSessionManager.createSession({
       sourceSessionMetadata: {},
-      task: "Session",
+      task: task ?? "Session",
       agentId,
       metadataOverrides: {
         agentRuntimeId,

@@ -22,6 +22,7 @@ import {
   tap,
 } from "rxjs";
 import { resolveDefaultAgentProfileId } from "@nextclaw/core";
+import { readMessageTask } from "@kernel/utils/session-run.utils.js";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import type {
   AgentRuntimeManager,
@@ -192,6 +193,7 @@ export class AgentRunRequestManager {
         channel: request.channel,
         model: request.model,
         projectRoot: request.projectRoot,
+        task: readMessageTask(request.message),
         thinkingEffort: request.thinkingEffort,
       });
     const sessionRun =
