@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
@@ -220,6 +220,36 @@ test("replaces an existing same-version bundle when the packaged seed fingerprin
     assert.equal(existsSync(join(layout.getVersionDir("0.19.10"), "runtime", "old-runtime-marker.txt")), false);
     assert.equal(stateStore.read().currentVersion, "0.19.10");
     assert.equal(stateStore.read().candidateVersion, "0.19.10");
+    assert.equal(stateStore.read().lastAttemptedPackagedSeedSha256, sha256);
+  }));
+
+test("replaces an existing same-version bundle when staging storage is missing", async () =>
+  await withTempDir("nextclaw-desktop-packaged-seed-replace-missing-staging-", async (rootDir) => {
+    const layout = new DesktopBundleLayoutStore(rootDir);
+    await layout.ensureLauncherDirs();
+    const existingBundleDir = writeBundleFixture({
+      rootDir: layout.getVersionsDir(),
+      version: "0.19.10"
+    });
+    await writeFile(join(existingBundleDir, "runtime", "old-runtime-marker.txt"), "old\n");
+    rmSync(layout.getStagingDir(), { recursive: true, force: true });
+    await layout.writeCurrentPointer({ version: "0.19.10" });
+    const { archivePath, sha256 } = await writeSeedArchive(rootDir, "0.19.10", "replacement");
+    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+    await stateStore.write(
+      createLauncherState({
+        currentVersion: "0.19.10",
+        lastKnownGoodVersion: "0.19.10",
+        lastAttemptedPackagedSeedVersion: "0.19.10",
+        lastAttemptedPackagedSeedSha256: "old-sha256",
+        lastAttemptedPackagedSeedLauncherFingerprint: "launcher-a"
+      })
+    );
+
+    await createBootstrapService(layout, archivePath).ensureInitialBundleAvailability();
+
+    assert.deepEqual(layout.readCurrentPointer(), { version: "0.19.10" });
+    assert.equal(existsSync(join(layout.getVersionDir("0.19.10"), "runtime", "old-runtime-marker.txt")), false);
     assert.equal(stateStore.read().lastAttemptedPackagedSeedSha256, sha256);
   }));
 

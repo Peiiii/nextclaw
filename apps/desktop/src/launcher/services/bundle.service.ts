@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "node:fs";
-import { cp, readdir, rename, rm } from "node:fs/promises";
+import { cp, mkdir, readdir, rename, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { DesktopBundleManifestReader, type DesktopBundleManifest } from "../utils/bundle-manifest.utils";
 import { compareDesktopVersions } from "../utils/version.utils";
@@ -36,10 +36,6 @@ async function removeBundleDirectory(targetDirectory: string): Promise<void> {
     maxRetries: 5,
     retryDelay: 100
   });
-}
-
-function scheduleBundleDirectoryRemoval(targetDirectory: string): void {
-  void removeBundleDirectory(targetDirectory).catch(() => undefined);
 }
 
 type DesktopBundleServiceOptions = {
@@ -269,11 +265,12 @@ export class DesktopBundleService {
 
     const safeLabel = label.replace(/[^a-zA-Z0-9._-]/g, "-");
     const trashDirectory = join(this.options.layout.getStagingDir(), `.trash-${safeLabel}-${this.now()}`);
+    await mkdir(this.options.layout.getStagingDir(), { recursive: true });
     await removeBundleDirectory(trashDirectory);
 
     try {
       await rename(targetDirectory, trashDirectory);
-      scheduleBundleDirectoryRemoval(trashDirectory);
+      void removeBundleDirectory(trashDirectory).catch(() => undefined);
     } catch (error) {
       if (!existsSync(targetDirectory)) {
         return;
