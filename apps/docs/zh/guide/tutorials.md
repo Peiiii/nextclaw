@@ -35,7 +35,7 @@
 
 - [MCP Marketplace](/zh/guide/tutorials/mcp-marketplace)
 - [Skills](/zh/guide/tutorials/skills)
-- [TweetClaw OpenClaw 插件](/zh/guide/tutorials/tweetclaw-openclaw-plugin)
+- [X/Twitter CLI Bridge](/zh/guide/tutorials/x-twitter-cli-bridge)
 - [Claude、Codex 与 Hermes](/zh/guide/tutorials/claude-codex-hermes)
 
 ## 教程、指南和手册的区别
