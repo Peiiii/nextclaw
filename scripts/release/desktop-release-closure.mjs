@@ -16,6 +16,27 @@ function readJsonCommand(command, args) {
   return JSON.parse(run(command, args));
 }
 
+function isRetryableGitFetchError(error) {
+  const stderr = String(error?.stderr ?? "");
+  const message = String(error?.message ?? "");
+  return /cannot lock ref|is at .* but expected/.test(`${stderr}\n${message}`);
+}
+
+async function fetchGhPagesWithRetry() {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      run("git", ["-c", "gc.auto=0", "fetch", "origin", "gh-pages", "--quiet"]);
+      return;
+    } catch (error) {
+      if (attempt >= 3 || !isRetryableGitFetchError(error)) {
+        throw error;
+      }
+      console.warn(`[desktop:release] gh-pages fetch ref lock; retrying ${attempt}/3`);
+      await sleep(1000 * attempt);
+    }
+  }
+}
+
 function readTagSha(tag) {
   const output = run("git", ["ls-remote", "origin", `refs/tags/${tag}`]);
   const [sha] = output.split(/\s+/);
@@ -135,6 +156,7 @@ function verifyReleaseAssets(options) {
 
   const expectedAssets = [
     `NextClaw-Portable-${desktopVersion}-win-x64.zip`,
+    `NextClaw-Portable-${desktopVersion}-win-arm64.zip`,
     `NextClaw.Desktop-Setup-${desktopVersion}-x64.exe`,
     `nextclaw-bundle-win32-x64-${runtimeVersion}.zip`,
     `manifest-${channel}-win32-x64.json`,
@@ -152,9 +174,9 @@ function verifyReleaseAssets(options) {
   console.log(`[desktop:release] release assets OK: ${expectedAssets.join(", ")}`);
 }
 
-function readGhPagesManifest(options) {
+async function readGhPagesManifest(options) {
   const { channel } = options;
-  run("git", ["-c", "gc.auto=0", "fetch", "origin", "gh-pages", "--quiet"]);
+  await fetchGhPagesWithRetry();
   return JSON.parse(
     run("git", [
       "show",
@@ -239,7 +261,7 @@ export async function waitForDesktopReleaseClosure(options) {
   await waitForWorkflowSuccess(options, runEntry);
   verifyReleaseAssets(options);
 
-  const ghPagesManifest = readGhPagesManifest(options);
+  const ghPagesManifest = await readGhPagesManifest(options);
   assertManifest(ghPagesManifest, options, "gh-pages manifest");
   console.log(`[desktop:release] gh-pages manifest OK: ${ghPagesManifest.latestVersion}`);
   await waitForPublicManifest(options);
