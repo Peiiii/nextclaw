@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
   NcpEventType,
-  type NcpAgentConversationSnapshot,
   type NcpAgentConversationStateManager,
   type NcpEndpointEvent,
   type NcpMessage,
@@ -11,7 +10,6 @@ import type { SessionRepository } from "@kernel/features/agent-run/repositories/
 
 export type SessionRunSnapshot = {
   messages: readonly NcpMessage[];
-  activeRunId: string | null;
 };
 
 export type SessionRunSeed = {
@@ -47,8 +45,6 @@ export class SessionRun {
   readonly sessionId: string;
   private activeRunId: string | null = null;
   private activeRunController: AbortController | null = null;
-  private readonly listeners = new Set<(snapshot: SessionRunSnapshot) => void>();
-  private readonly unsubscribeStateManager: () => void;
 
   constructor(
     seed: SessionRunSeed,
@@ -59,10 +55,14 @@ export class SessionRun {
       sessionId: seed.sessionId,
       messages: seed.messages,
     });
-    this.unsubscribeStateManager = this.stateManager.subscribe(this.notify);
   }
 
-  getSnapshot = (): SessionRunSnapshot => this.toSnapshot(this.stateManager.getSnapshot());
+  getSnapshot = (): SessionRunSnapshot => {
+    const snapshot = this.stateManager.getSnapshot();
+    return {
+      messages: snapshot.streamingMessage ? [...snapshot.messages, snapshot.streamingMessage] : snapshot.messages,
+    };
+  };
 
   applyEvents = async (events: readonly NcpEndpointEvent[]): Promise<void> => {
     this.applyRunEvents(events);
@@ -80,7 +80,6 @@ export class SessionRun {
     const controller = new AbortController();
     this.activeRunId = runId;
     this.activeRunController = controller;
-    this.notify();
     return {
       runId,
       signal: controller.signal,
@@ -98,64 +97,25 @@ export class SessionRun {
     return true;
   };
 
-  drainInboxAsMessageSentEvents = (): NcpEndpointEvent[] =>
-    this.inbox.drain().map((message) => ({
-      type: NcpEventType.MessageSent,
-      payload: {
-        sessionId: this.sessionId,
-        message,
-      },
-    }));
-
-  subscribe = (listener: (snapshot: SessionRunSnapshot) => void): (() => void) => {
-    this.listeners.add(listener);
-    return () => {
-      this.listeners.delete(listener);
-    };
-  };
-
   dispose = (): void => {
     this.activeRunController?.abort();
     this.activeRunController = null;
     this.activeRunId = null;
-    this.listeners.clear();
-    this.unsubscribeStateManager();
   };
 
   private applyRunEvents = (events: readonly NcpEndpointEvent[]): void => {
-    let changed = false;
     for (const event of events) {
       if (event.type === NcpEventType.RunStarted && event.payload.runId) {
         this.activeRunId = event.payload.runId;
-        changed = true;
       }
-      if (event.type === NcpEventType.RunFinished || event.type === NcpEventType.RunError) {
-        if (!event.payload.runId || event.payload.runId === this.activeRunId) {
-          this.activeRunId = null;
-          this.activeRunController = null;
-          changed = true;
-        }
-      }
-      if (event.type === NcpEventType.MessageAbort) {
+      if (
+        event.type === NcpEventType.MessageAbort ||
+        ((event.type === NcpEventType.RunFinished || event.type === NcpEventType.RunError) &&
+          (!event.payload.runId || event.payload.runId === this.activeRunId))
+      ) {
         this.activeRunId = null;
         this.activeRunController = null;
-        changed = true;
       }
-    }
-    if (changed) {
-      this.notify();
-    }
-  };
-
-  private toSnapshot = (snapshot: NcpAgentConversationSnapshot): SessionRunSnapshot => ({
-    messages: snapshot.streamingMessage ? [...snapshot.messages, snapshot.streamingMessage] : snapshot.messages,
-    activeRunId: this.activeRunId,
-  });
-
-  private notify = (): void => {
-    const snapshot = this.getSnapshot();
-    for (const listener of this.listeners) {
-      listener(snapshot);
     }
   };
 }

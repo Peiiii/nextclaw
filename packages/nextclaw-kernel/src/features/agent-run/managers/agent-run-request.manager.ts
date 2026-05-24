@@ -123,6 +123,15 @@ function toRunHandle(accepted: AgentRunAccepted): NcpRunHandle {
   };
 }
 
+function findCompletedAssistantMessage(messages: readonly NcpMessage[], messageId?: string): NcpMessage | null {
+  return [...messages]
+    .reverse()
+    .find((message) =>
+      message.role === "assistant" &&
+      message.status === "final" &&
+      (!messageId || message.id === messageId)) ?? null;
+}
+
 export class AgentRunRequestManager {
   readonly cleanups: Array<() => void> = [];
   private started = false;
@@ -226,6 +235,7 @@ export class AgentRunRequestManager {
     const runtime = this.agentRuntimeManager.getOrCreate(session.agentRuntimeId);
     const contextBlocks = await this.contextProviderManager.buildContext(providerRequest);
     const tools = await this.toolProviderManager.buildTools(providerRequest);
+    let messageCompletedSeen = false;
     lastValueFrom(
       from(runtime.run(spec, {
         contextBlocks,
@@ -234,10 +244,35 @@ export class AgentRunRequestManager {
         tools,
       })).pipe(
         tap((event) => {
-          this.eventBus.emit(eventKeys.ncpEvent, event, {
-            emittedAt: new Date().toISOString(),
-            source: "agent-run-request",
-          });
+          const eventsToPublish: NcpEndpointEvent[] = [];
+          if (event.type === NcpEventType.MessageCompleted) {
+            messageCompletedSeen = true;
+          }
+          if (event.type === NcpEventType.RunFinished && !messageCompletedSeen) {
+            const message = findCompletedAssistantMessage(
+              sessionRun.getSnapshot().messages,
+              event.payload.messageId,
+            );
+            if (!message) {
+              throw new Error(`Run finished without a final assistant message for session "${session.sessionId}".`);
+            }
+            eventsToPublish.push({
+              type: NcpEventType.MessageCompleted,
+              payload: {
+                sessionId: event.payload.sessionId ?? session.sessionId,
+                message,
+                correlationId: event.payload.correlationId,
+              },
+            });
+            messageCompletedSeen = true;
+          }
+          eventsToPublish.push(event);
+          for (const eventToPublish of eventsToPublish) {
+            this.eventBus.emit(eventKeys.ncpEvent, eventToPublish, {
+              emittedAt: new Date().toISOString(),
+              source: "agent-run-request",
+            });
+          }
         }),
         catchError(async (error) => {
           const event: NcpEndpointEvent = {

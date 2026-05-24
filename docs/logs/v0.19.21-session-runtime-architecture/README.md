@@ -12,6 +12,8 @@
 
 追加修复：branch 链路接管后，新会话标题回退成固定 `Session`，没有继续沿用旧链路“首条用户消息作为会话名”的行为。确认根因是 branch `SessionRepository.createSession(...)` 固定传入 `task: "Session"`；修复后 `AgentRunRequestManager` 复用旧链路 `readMessageTask(...)` 从本次用户消息生成 task，再交给 `NcpSessionManager.createSession(...)` 写入 summary metadata，避免在前端或 summary 读取层做兜底补丁。
 
+追加修复：branch 链路接管后，agent run 结束时侧边栏会话列表没有展示最终 assistant 回复预览，但工具完成状态能展示。确认根因是新 branch runtime event pipeline 只发布 `run.finished`，缺少旧链路在 `run.finished` 前合成发布的 `message.completed` 事件；而侧边栏 `last_activity_preview` 的最终回复正文来自 `message.completed.payload.message`，工具完成预览则直接来自 tool result/end 事件。修复后 `AgentRunRequestManager` 在发布 `run.finished` 前，如果本轮还没看到 `message.completed`，会从已结算的 `SessionRun` 快照中读取最终 assistant message 并补发 `message.completed`，恢复旧链路事件合同；同时删除 `SessionRun` 未被使用的订阅/notify 表面，避免 branch 运行态 owner 继续膨胀。
+
 关联大方案：[会话运行态与持久化架构设计草案](../../designs/2026-05-23-session-runtime-architecture-design.md)。
 
 临时小方案：
@@ -35,6 +37,8 @@
 - `pnpm -C packages/ncp-packages/nextclaw-ncp-agent-runtime-next lint`
 - `pnpm -C packages/ncp-packages/nextclaw-ncp-agent-runtime-next build`
 - `pnpm -C packages/nextclaw-kernel test -- src/features/agent-run/managers/agent-run-request.manager.test.ts src/managers/__tests__/agent-run-request.manager.test.ts`
+- `pnpm -C packages/nextclaw-kernel test -- src/features/agent-run/managers/agent-run-request.manager.test.ts`
+- `pnpm -C packages/nextclaw-kernel test -- src/features/agent-run/managers/agent-run-request.manager.test.ts src/contributions/session-activity-preview/utils/session-activity-preview-contribution.utils.test.ts`
 - `pnpm -C packages/nextclaw-kernel lint`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-kernel/src/features/agent-run/managers/agent-run-request.manager.ts packages/nextclaw-kernel/src/features/agent-run/repositories/session.repository.ts packages/nextclaw-kernel/src/features/agent-run/managers/agent-run-request.manager.test.ts`
 - `pnpm lint:new-code:governance`
@@ -51,6 +55,8 @@
 
 用户可 review 两个临时方案。当前已优先推进 agent run 核心骨架；branch 链路接管后，新会话首发消息应继续把会话名显示为用户第一句话，而不是固定显示 `Session`。
 
+branch 链路接管后，agent run 完成时侧边栏会话列表预览应展示最终 assistant 回复；如果本轮发生工具调用，工具完成中的运行态预览仍可在最终回复完成前展示，但 run 完成后的 completed 预览应优先显示最终回复正文。
+
 ## 可维护性总结汇总
 
 本批次新增的是隔离骨架，暂不从 kernel 根入口导出，避免和旧 manager 公共入口冲突。后续迁移必须以删除旧 `liveSession / activeExecution` 混合职责为闭环目标，避免新旧路径长期并行。
@@ -62,6 +68,8 @@
 维护性风险：当前阶段仍是新骨架接入前的正向代码增长。默认 maintainability guard 通过，但严格 `--non-feature` 行数门槛未通过；下一步必须通过接入新链路并删除旧 `liveSession / activeExecution` 混合职责来偿还这部分增长，不能让新旧路径长期并行。
 
 追加修复的正向减债动作是复用和简化：branch request manager 复用旧链路已有 `readMessageTask(...)`，避免复制标题推导规则；同时删除 `SessionRepository` 中两个只调用一次的薄 wrapper。追加修复 strict non-feature touched-scope 结果为非测试代码净增 `-4` 行，并补了 branch 专属行为测试。
+
+本次预览修复的正向减债动作是职责收敛和删除：最终回复预览合同恢复到 agent-run event publisher 边界，而不是前端预览层或 metadata 层兜底读取消息；同时删除 `SessionRun` 未使用的订阅、notify、snapshot `activeRunId` 表面和未调用的 inbox 转事件方法。当前 touched-scope 非测试代码净增为负数，并新增 branch 专属测试覆盖 `message.completed` 必须先于 `run.finished` 发布。
 
 ## NPM 包发布记录
 
