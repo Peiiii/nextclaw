@@ -1,7 +1,7 @@
 {
   "name": "@nextclaw/ncp-agent-runtime-next",
   "version": "0.0.1-beta.0",
-  "private": true,
+  "private": false,
   "description": "Next-generation NCP agent runtime implementation for review before replacing @nextclaw/ncp-agent-runtime.",
   "type": "module",
   "exports": {
@@ -17,6 +17,7 @@
   "scripts": {
     "build": "tsdown src/index.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension",
     "lint": "eslint .",
+    "prepublishOnly": "node ../../../scripts/release/ensure-pnpm-publish.mjs",
     "tsc": "tsc -p tsconfig.json"
   },
   "dependencies": {
