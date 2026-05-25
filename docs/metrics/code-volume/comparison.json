@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T03:23:05.302Z",
+  "generatedAt": "2026-05-25T03:25:46.503Z",
   "base": {
     "name": "nextclaw",
     "projectRoot": "/home/runner/work/nextclaw/nextclaw",
@@ -17,22 +17,22 @@
         "apps/platform-console/src",
         "apps/public-roadmap-feedback-portal/src",
         "bridge/src",
+        "packages/extensions/nextclaw-channel-extension-dingtalk/src",
+        "packages/extensions/nextclaw-channel-extension-discord/src",
+        "packages/extensions/nextclaw-channel-extension-email/src",
         "packages/extensions/nextclaw-channel-extension-feishu/src",
         "packages/extensions/nextclaw-channel-extension-qq/src",
+        "packages/extensions/nextclaw-channel-extension-slack/src",
+        "packages/extensions/nextclaw-channel-extension-telegram/src",
+        "packages/extensions/nextclaw-channel-extension-wecom/src",
         "packages/extensions/nextclaw-channel-extension-weixin/src",
-        "packages/extensions/nextclaw-channel-plugin-dingtalk/index.js",
-        "packages/extensions/nextclaw-channel-plugin-discord/index.js",
-        "packages/extensions/nextclaw-channel-plugin-email/index.js",
-        "packages/extensions/nextclaw-channel-plugin-slack/index.js",
-        "packages/extensions/nextclaw-channel-plugin-telegram/index.js",
-        "packages/extensions/nextclaw-channel-plugin-wecom/index.js",
-        "packages/extensions/nextclaw-channel-plugin-whatsapp/index.js",
-        "packages/extensions/nextclaw-channel-runtime/src",
+        "packages/extensions/nextclaw-channel-extension-whatsapp/src",
         "packages/extensions/nextclaw-feishu-core/src",
         "packages/extensions/nextclaw-narp-runtime-claude-code-sdk/src",
         "packages/extensions/nextclaw-narp-runtime-codex-sdk/src",
         "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk/src",
         "packages/extensions/nextclaw-ncp-runtime-codex-sdk/src",
+        "packages/ncp-packages/nextclaw-ncp-agent-runtime-next/src",
         "packages/ncp-packages/nextclaw-ncp-agent-runtime/src",
         "packages/ncp-packages/nextclaw-ncp-http-agent-client/src",
         "packages/ncp-packages/nextclaw-ncp-http-agent-server/src",
@@ -92,12 +92,12 @@
       ]
     },
     "totals": {
-      "files": 1766,
-      "totalLines": 246452,
-      "blankLines": 23113,
-      "commentLines": 640,
-      "codeLines": 173986,
-      "testCodeLines": 48713
+      "files": 1795,
+      "totalLines": 247557,
+      "blankLines": 23009,
+      "commentLines": 639,
+      "codeLines": 175485,
+      "testCodeLines": 48424
     }
   },
   "benchmark": {
@@ -134,18 +134,18 @@
       ]
     },
     "totals": {
-      "files": 13798,
-      "totalLines": 3346377,
-      "blankLines": 280607,
-      "commentLines": 46513,
-      "codeLines": 1444843,
-      "testCodeLines": 1574414
+      "files": 13820,
+      "totalLines": 3361127,
+      "blankLines": 281725,
+      "commentLines": 46827,
+      "codeLines": 1449909,
+      "testCodeLines": 1582666
     }
   },
   "comparison": {
-    "baseMinusBenchmarkLines": -1270857,
-    "basePercentOfBenchmark": 12.04,
-    "benchmarkMultipleOfBase": 8.3,
-    "baseIsLighterByPercent": 87.96
+    "baseMinusBenchmarkLines": -1274424,
+    "basePercentOfBenchmark": 12.1,
+    "benchmarkMultipleOfBase": 8.26,
+    "baseIsLighterByPercent": 87.9
   }
 }
