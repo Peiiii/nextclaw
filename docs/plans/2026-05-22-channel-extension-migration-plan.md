@@ -4,20 +4,20 @@
 
 **目标：** 把剩余一方渠道从旧的 OpenClaw 兼容 channel plugin 路径迁移到 NextClaw extension channel controller 路径，同时直接删除不再需要的 `mochat` 渠道。
 
-**架构：** Extension SDK 负责通用的渠道生命周期、配置读取、入站消息提交、NCP 事件转发和 outbound text 请求处理。每个渠道包只负责自己的账号、平台传输、消息解析和发送行为。迁移期可以复用现有 `@nextclaw/channel-runtime` 实现，通过通用 bus-channel adapter 接入新 extension 机制；等所有渠道迁移稳定后，再决定保留、改名或拆分该实现包。
+**架构：** Extension SDK 负责通用的渠道生命周期、配置读取、入站消息提交、NCP 事件转发、outbound text 请求处理、控制消息转发和命令调用协议。每个渠道包只负责自己的账号、平台传输、消息解析和发送行为。最终态不再保留 `@nextclaw/channel-runtime` 作为一方渠道共享运行时；渠道特定实现已经落回各自 extension 包。
 
-**技术栈：** TypeScript、`@nextclaw/extension-sdk`、`@nextclaw/channel-runtime`、NextClaw extension manifest、Vitest、`tsc`、eslint。
+**技术栈：** TypeScript、`@nextclaw/extension-sdk`、NextClaw extension manifest、Vitest、`tsc`、eslint。
 
 ---
 
 ## 当前状态
 
-- 新的 extension channel 机制已经用于 `feishu` 和 `weixin`。
-- 新的 extension channel 机制已经迁移 `qq`、`dingtalk`、`wecom`、`slack`、`email`、`whatsapp`。
-- 旧的一方 channel plugin 仍然存在：`telegram`、`discord`。
-- 旧 plugin 包入口文件很薄，但仍然通过旧的进程内 plugin API 注册渠道。
-- 尚未完全拆出的旧渠道真实行为主要在 `packages/extensions/nextclaw-channel-runtime/src/channels`。
-- Kernel 已经支持 extension manifest channel 覆盖同 id 的旧 plugin channel，因此具备安全迁移路径。
+- 新的 extension channel 机制已经用于全部一方渠道：`feishu`、`weixin`、`qq`、`dingtalk`、`wecom`、`slack`、`email`、`whatsapp`、`telegram`、`discord`。
+- `mochat` 已删除，不再作为内置渠道保留。
+- 旧的一方 `channel-plugin-*` 包和 `@nextclaw/channel-runtime` 已删除。
+- OpenClaw compat 仍保留第三方插件兼容能力，但不再内置加载一方 channel plugin。
+- `ChannelManager` 已删除 `registration.channel.nextclaw.createChannel(...)` in-process 渠道创建路径。
+- Kernel/service/desktop/root scripts 已切到 extension package 和 manifest discovery。
 
 ## 设计原则
 
@@ -32,7 +32,7 @@
 
 1. 用 `qq` 作为第一个迁移试点。
 2. 在大批量迁移前先删除 `mochat`。
-3. 迁移期暂时保留 `@nextclaw/channel-runtime` 作为旧渠道实现库。
+3. 迁移期暂时保留 `@nextclaw/channel-runtime` 作为旧渠道实现库；最终清理阶段已删除。
 4. 在 SDK 里新增一个通用 helper，暂定名 `startBusChannelExtension`。
 5. QQ 试点证明 helper 足够后，再迁移简单渠道。
 6. `telegram` 和 `discord` 最后迁移，因为它们有更多 control message、streaming、typing 和 session 行为。
@@ -243,6 +243,30 @@ Telegram 和 Discord 有额外的 typing、streaming preview、slash command、r
 
 预期：SDK 中不出现 Telegram/Discord 特定逻辑。
 
+完成记录：
+
+- 已新增 `nextclaw-channel-extension-telegram` 和 `nextclaw-channel-extension-discord`。
+- Telegram/Discord 的平台实现已从旧 `@nextclaw/channel-runtime` 搬入各自 extension 包。
+- 通用 extension 协议新增 command list / command execute ingress，用于 Telegram 文本命令和 Discord slash command，不再让渠道包直接依赖 `SessionManager` / `CommandRegistry`。
+- SDK 新增通用 `ChannelTypingController`，替代旧 runtime typing controller。
+- Extension channel outbound 控制消息统一通过 extension outbound bridge 转发，避免 Telegram/Discord 在宿主内进程分支处理。
+- SDK 中没有加入 Telegram/Discord 特定逻辑。
+
+### 任务 6 内部拆分记录
+
+任务 6 完成后继续补了一轮 extension 内部可维护性拆分：
+
+- Telegram：拆出 `telegram-stream-preview.controller.ts` 和 `telegram-message.utils.ts`，主 service 不再承载流式预览 flush 细节、markdown 转 HTML、媒体类型解析和 ack reaction 判定。
+- Discord：拆出 `discord-command.utils.ts`、`discord-text.utils.ts`、`discord-draft-streaming.service.ts`，主 service 不再承载 slash command option 映射、文本分块和 draft streaming 细节。
+- Email：拆分 IMAP 单封邮件处理和 processed uid 维护。
+- Slack：拆分 event context 解析、派发判定和 ack reaction。
+- Desktop package build：拆出共享 build steps，避免平台打包入口继续膨胀。
+
+当前目标不是把所有渠道内部做到最终优雅，而是确保最终迁移不会引入新的超长主 service 和超长函数债务。
+- Email：`fetchNewMessages` 语句数偏高。
+
+这些问题不阻塞旧 runtime 删除和 extension 主链路切换，但下一阶段应把平台适配拆成 sender / inbound normalizer / stream chunker / attachment adapter 等更小 owner，而不是继续在单文件里堆积。
+
 ## 全量迁移后的非插件侧清理计划
 
 本节记录一个容易在后续遗忘的目标：**所有一方渠道都迁移到 extension channel 后，宿主侧应该继续删除旧 channel plugin 兼容链路，而不是只停在“旧渠道都能跑在 extension 里”。**
@@ -300,10 +324,17 @@ Telegram 和 Discord 有额外的 typing、streaming preview、slash command、r
 **验收：**
 
 ```bash
-rg "@nextclaw/channel-runtime|nextclaw-channel-plugin-|@nextclaw/channel-plugin-" package.json packages apps pnpm-lock.yaml
+rg "@nextclaw/channel-runtime|nextclaw-channel-plugin-|@nextclaw/channel-plugin-" package.json packages apps scripts pnpm-lock.yaml
 ```
 
-预期：除历史 changelog、旧迭代记录、marketplace 历史测试样例或明确迁移文档外，active code/package 里不再出现旧一方 channel plugin/runtime 依赖。
+预期：除历史 changelog、旧迭代记录或本迁移说明外，active code/package/script 里不再出现旧一方 channel plugin/runtime 依赖。
+
+完成记录：
+
+- 已删除 `packages/extensions/nextclaw-channel-runtime`。
+- 已删除旧 Telegram/Discord channel plugin 包，并清理其它已迁移渠道的旧 plugin 残留目录。
+- 已移除 service/desktop/root/package lock 对旧包的依赖。
+- 已更新 desktop package build/verify 脚本，构建一方 channel extension 包，不再构建旧 runtime。
 
 ### 第二批：删除旧 bundled channel plugin 装配层
 
@@ -330,6 +361,13 @@ rg "@nextclaw/channel-runtime|nextclaw-channel-plugin-|@nextclaw/channel-plugin-
 
 不要删除 OpenClaw compat 的外部插件加载能力本身。这里删的是“一方渠道旧内置 plugin 包装层”，不是整个第三方插件兼容层。
 
+完成记录：
+
+- 已删除 bundled channel plugin 包列表、in-process bundled module loader、progressive bundled loader 和对应 bundled enable/status 测试。
+- 已从 OpenClaw plugin loader/status 路径移除一方 bundled channel append/load 分支。
+- 已删除 `createNextclawBuiltinChannelPlugin`。
+- `openclaw-compat` 继续保留外部插件 install/load/status/uninstall 能力。
+
 ### 第三批：收敛 ChannelManager 的双路径
 
 当前 `ChannelManager` 同时支持：
@@ -351,6 +389,12 @@ rg "@nextclaw/channel-runtime|nextclaw-channel-plugin-|@nextclaw/channel-plugin-
 - outbound 投递只走 extension channel outbound client。
 - 不再需要从宿主进程 new 渠道 SDK runtime。
 - `BaseChannel` 若只剩 extension adapter 使用，应继续评估是否删除或改成更薄的 outbound delivery owner。
+
+完成记录：
+
+- `ChannelManager` 已删除 `registration.channel.nextclaw.createChannel(...)` 分支。
+- Core `ExtensionChannel` 类型已删除 `nextclaw` 字段。
+- `ExtensionChannelAdapter` 负责把 outbound/control message 转发给 extension outbound handler。
 
 **验收：**
 
@@ -448,7 +492,6 @@ pnpm -C packages/nextclaw-extension-sdk test
 pnpm -C packages/nextclaw-extension-sdk tsc
 pnpm -C packages/nextclaw-kernel tsc
 pnpm -C packages/nextclaw-core tsc
-pnpm -C packages/extensions/nextclaw-channel-runtime tsc
 pnpm check:governance-backlog-ratchet
 git diff --check
 ```
@@ -461,6 +504,20 @@ pnpm -C packages/extensions/nextclaw-channel-extension-<id> lint
 ```
 
 最后运行 `pnpm lint:new-code:governance`，若被无关既有问题阻塞，需要单独记录。
+
+最终清理阶段实际增加的必要验证还包括：
+
+```bash
+pnpm -C packages/extensions/nextclaw-channel-extension-telegram tsc
+pnpm -C packages/extensions/nextclaw-channel-extension-discord tsc
+pnpm -C packages/nextclaw-core test -- src/features/channels/managers/channel.manager.test.ts --run
+pnpm -C packages/nextclaw-kernel test -- src/services/extension-runtime.service.test.ts src/managers/__tests__/extension.manager.test.ts src/features/extension-development-source/utils/dev-plugin-overrides.utils.test.ts --run
+pnpm -C packages/nextclaw-openclaw-compat test -- src/plugins/plugin-channel-bindings.test.ts src/plugins/install.test.ts src/plugins/uninstall.test.ts src/plugins/status.pure-read.test.ts --run
+pnpm -C packages/nextclaw-service test -- src/commands/channel/builtin-channels.test.ts src/commands/channel/channels.test.ts src/commands/channel/channel-config-view.test.ts src/shared/services/marketplace/tests/marketplace-plugin-management.service.test.ts src/shared/services/marketplace/tests/marketplace-summary.service.test.ts src/shared/services/gateway/tests/gateway-plugin-manager.service.test.ts --run
+pnpm -C packages/nextclaw-server test -- src/app/router.marketplace-content.test.ts src/app/router.marketplace-manage.test.ts --run
+pnpm -C packages/nextclaw-ui test -- src/features/marketplace/components/marketplace-page.test.tsx src/features/marketplace/utils/marketplace-installed-cache.utils.test.ts --run
+node --test scripts/dev/dev-plugin-overrides-support.test.mjs
+```
 
 ## Review 检查清单
 

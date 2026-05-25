@@ -1,16 +1,12 @@
-import fs from "node:fs";
-import { createRequire } from "node:module";
-import path from "node:path";
 import type { Config } from "@nextclaw/core";
 import { getWorkspacePathFromConfig } from "@nextclaw/core";
-import { BUNDLED_CHANNEL_PLUGIN_PACKAGES } from "./bundled-channel-plugin-packages.constants.js";
 import { normalizePluginsConfig, resolveEnableState } from "./config-state.js";
-import { discoverOpenClawPlugins, type PluginCandidate } from "./discovery.js";
-import type { PluginLogger, PluginRegistry } from "./types.js";
+import { discoverOpenClawPlugins } from "./discovery.js";
+import type { PluginDiagnostic, PluginLogger, PluginRegistry } from "./types.js";
 import { loadOpenClawPlugins } from "./openclaw-plugin-loader.utils.js";
 import { createPluginRecord, validatePluginConfig } from "./plugin-loader.utils.js";
 import { loadPluginManifestRegistry, type PluginManifestRecord } from "./manifest-registry.js";
-import type { PluginDiagnostic, PluginRecord } from "./types.js";
+import type { PluginRecord } from "./types.js";
 
 export type PluginStatusReport = PluginRegistry & {
   workspaceDir: string;
@@ -25,49 +21,6 @@ function createEmptyPluginRegistry(): PluginRegistry {
     diagnostics: [],
     resolvedTools: []
   };
-}
-
-function resolvePackageRootFromEntry(entryFile: string): string {
-  let cursor = path.dirname(entryFile);
-  for (let index = 0; index < 8; index += 1) {
-    const candidate = path.join(cursor, "package.json");
-    if (fs.existsSync(candidate)) {
-      return cursor;
-    }
-    const parent = path.dirname(cursor);
-    if (parent === cursor) {
-      break;
-    }
-    cursor = parent;
-  }
-  return path.dirname(entryFile);
-}
-
-function discoverBundledPluginCandidates(workspaceDir: string, diagnostics: PluginDiagnostic[]): PluginCandidate[] {
-  const require = createRequire(import.meta.url);
-  const candidates: PluginCandidate[] = [];
-
-  for (const packageName of BUNDLED_CHANNEL_PLUGIN_PACKAGES) {
-    try {
-      const entryFile = require.resolve(packageName);
-      candidates.push({
-        idHint: packageName.split("/").pop() ?? packageName,
-        source: entryFile,
-        rootDir: resolvePackageRootFromEntry(entryFile),
-        origin: "bundled",
-        workspaceDir,
-        packageName
-      });
-    } catch (error) {
-      diagnostics.push({
-        level: "error",
-        source: packageName,
-        message: `bundled plugin package not resolvable: ${String(error)}`
-      });
-    }
-  }
-
-  return candidates;
 }
 
 function createRecordFromManifest(
@@ -157,20 +110,19 @@ export function discoverPluginStatusReport(params: {
   config: Config;
   workspaceDir?: string;
 }): PluginStatusReport {
-  const workspaceDir = params.workspaceDir?.trim() || getWorkspacePathFromConfig(params.config);
-  const normalized = normalizePluginsConfig(params.config.plugins);
+  const { config } = params;
+  const workspaceDir = params.workspaceDir?.trim() || getWorkspacePathFromConfig(config);
+  const normalized = normalizePluginsConfig(config.plugins);
   const discovery = discoverOpenClawPlugins({
-    config: params.config,
+    config,
     workspaceDir,
     extraPaths: normalized.loadPaths
   });
-  const bundledDiagnostics: PluginDiagnostic[] = [];
-  const bundledCandidates = discoverBundledPluginCandidates(workspaceDir, bundledDiagnostics);
   const manifestRegistry = loadPluginManifestRegistry({
-    config: params.config,
+    config,
     workspaceDir,
-    candidates: [...bundledCandidates, ...discovery.candidates],
-    diagnostics: [...bundledDiagnostics, ...discovery.diagnostics]
+    candidates: discovery.candidates,
+    diagnostics: discovery.diagnostics
   });
   const registry = createEmptyPluginRegistry();
   const seenIds = new Map<string, PluginRecord["origin"]>();

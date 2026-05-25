@@ -1,7 +1,7 @@
 {
   "contractKind": "protocol",
   "protocol": "app-l1",
-  "allowedRootDirectories": ["plugins"],
+  "allowedRootDirectories": ["plugins", "plugin-sdk"],
   "rootPolicy": "contract-only",
   "enforcement": "error"
 }

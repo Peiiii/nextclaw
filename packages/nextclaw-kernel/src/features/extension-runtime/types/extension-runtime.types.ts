@@ -10,6 +10,7 @@ export type Config = NextclawCore.Config;
 export type InboundAttachment = NextclawCore.InboundAttachment;
 export type InboundMessage = NextclawCore.InboundMessage;
 export type MessageBus = NextclawCore.MessageBus;
+export type SessionManager = NextclawCore.SessionManager;
 
 export type ExtensionServerConfig = {
   type: "stdio";
@@ -74,4 +75,5 @@ export type ExtensionRuntimeServiceOptions = {
   getWorkspace: () => string;
   ingress: Pick<Ingress, "addHandler">;
   messageBus: Pick<MessageBus, "publishInbound">;
+  sessionManager: SessionManager;
 };

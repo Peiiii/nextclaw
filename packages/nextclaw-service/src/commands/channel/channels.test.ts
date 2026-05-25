@@ -19,7 +19,7 @@ vi.mock("@nextclaw/core", () => ({
 }));
 
 vi.mock("@nextclaw/runtime", () => ({
-  BUILTIN_CHANNEL_PLUGIN_IDS: [
+  BUILTIN_CHANNEL_IDS: [
     "telegram",
     "whatsapp",
     "discord",

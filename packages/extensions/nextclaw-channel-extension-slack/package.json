@@ -24,9 +24,10 @@
     "prepublishOnly": "node ../../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
-    "@nextclaw/channel-runtime": "workspace:*",
     "@nextclaw/core": "workspace:*",
-    "@nextclaw/extension-sdk": "workspace:*"
+    "@nextclaw/extension-sdk": "workspace:*",
+    "@slack/socket-mode": "^1.3.3",
+    "@slack/web-api": "^7.6.0"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",

@@ -30,6 +30,11 @@ export class ExtensionChannelAdapter extends BaseChannel<Record<string, unknown>
     }
   };
 
+  override handleControlMessage = async (msg: OutboundMessage): Promise<boolean> => {
+    await this.send(msg);
+    return true;
+  };
+
   send = async (msg: OutboundMessage): Promise<void> => {
     const outbound = this.registration.channel.outbound;
     if (!outbound) {

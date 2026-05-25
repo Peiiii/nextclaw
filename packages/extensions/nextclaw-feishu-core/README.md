@@ -11,5 +11,5 @@ inside the message channel runtime:
 - bot probe
 - inbound content conversion
 
-It is intended to be reused by `@nextclaw/core`, `@nextclaw/channel-runtime`,
+It is intended to be reused by `@nextclaw/core`, Feishu channel extensions,
 and future Feishu work-surface capabilities.

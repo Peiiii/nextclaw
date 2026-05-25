@@ -1,7 +1,4 @@
-import type { MessageBus } from "@core/features/bus/index.js";
-import type { BaseChannel } from "@core/features/channels/index.js";
 import type { Config } from "@core/features/config/index.js";
-import type { SessionManager } from "@core/features/session/index.js";
 
 export type ExtensionDiagnostic = {
   level: "warn" | "error";
@@ -45,14 +42,6 @@ export type ExtensionChannel = {
   id: string;
   meta?: Record<string, unknown>;
   capabilities?: Record<string, unknown>;
-  nextclaw?: {
-    isEnabled?: (cfg: Config) => boolean;
-    createChannel?: (ctx: {
-      config: Config;
-      bus: MessageBus;
-      sessionManager?: SessionManager;
-    }) => BaseChannel<Record<string, unknown>>;
-  };
   outbound?: {
     sendText?: (ctx: {
       cfg: Config;

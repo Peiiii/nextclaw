@@ -23,9 +23,6 @@
     "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
-    "@nextclaw/channel-plugin-discord": "workspace:*",
-    "@nextclaw/channel-plugin-telegram": "workspace:*",
-    "@nextclaw/channel-runtime": "workspace:*",
     "@nextclaw/ncp": "workspace:*",
     "@nextclaw/ncp-toolkit": "workspace:*",
     "ajv": "^8.17.1",

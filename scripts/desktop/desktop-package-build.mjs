@@ -6,6 +6,18 @@ import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
 const rootDir = resolveRepoPath(import.meta.url);
 const releaseDir = resolve(rootDir, "apps/desktop/release");
+const channelExtensionPackages = [
+  "nextclaw-channel-extension-feishu",
+  "nextclaw-channel-extension-weixin",
+  "nextclaw-channel-extension-qq",
+  "nextclaw-channel-extension-dingtalk",
+  "nextclaw-channel-extension-telegram",
+  "nextclaw-channel-extension-discord",
+  "nextclaw-channel-extension-email",
+  "nextclaw-channel-extension-slack",
+  "nextclaw-channel-extension-wecom",
+  "nextclaw-channel-extension-whatsapp"
+];
 
 function binName(name) {
   return process.platform === "win32" ? `${name}.cmd` : name;
@@ -81,15 +93,12 @@ function buildWindowsArtifacts(arch, env) {
   run(binName("pnpm"), ["-C", "apps/desktop", "package:windows-portable", "--", "--arch", arch], { env });
 }
 
-function packageForCurrentPlatform() {
-  const arch = process.arch === "x64" ? "x64" : "arm64";
-  const env = { CSC_IDENTITY_AUTO_DISCOVERY: "false" };
-
-  rmSync(releaseDir, { recursive: true, force: true });
-
+function runSharedBuildSteps(env) {
   run(binName("pnpm"), ["-C", "packages/nextclaw-core", "build"]);
   run(binName("pnpm"), ["-C", "packages/nextclaw-runtime", "build"]);
-  run(binName("pnpm"), ["-C", "packages/extensions/nextclaw-channel-runtime", "build"]);
+  for (const packageName of channelExtensionPackages) {
+    run(binName("pnpm"), ["-C", `packages/extensions/${packageName}`, "build"]);
+  }
   run(binName("pnpm"), ["-C", "packages/nextclaw-ui", "build"]);
   run(binName("pnpm"), ["-C", "packages/nextclaw-openclaw-compat", "build"]);
   run(binName("pnpm"), ["-C", "packages/nextclaw-server", "build"]);
@@ -97,6 +106,14 @@ function packageForCurrentPlatform() {
   run(binName("pnpm"), ["-C", "apps/desktop", "bundle:public-key:ensure"]);
   run(binName("pnpm"), ["-C", "apps/desktop", "bundle:seed", "--", "--channel", "stable"]);
   run(binName("pnpm"), ["-C", "apps/desktop", "build:main"], { env });
+}
+
+function packageForCurrentPlatform() {
+  const arch = process.arch === "x64" ? "x64" : "arm64";
+  const env = { CSC_IDENTITY_AUTO_DISCOVERY: "false" };
+
+  rmSync(releaseDir, { recursive: true, force: true });
+  runSharedBuildSteps(env);
 
   if (process.platform === "darwin") {
     run(

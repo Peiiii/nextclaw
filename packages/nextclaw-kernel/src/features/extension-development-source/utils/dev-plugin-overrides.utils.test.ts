@@ -213,10 +213,7 @@ describe("resolveDevPluginLoadingContext", () => {
       },
     ]);
 
-    const { configWithDevPluginOverrides, excludedRoots } = resolveDevPluginLoadingContext(
-      config,
-      undefined,
-    );
+    const { configWithDevPluginOverrides, excludedRoots } = resolveDevPluginLoadingContext(config);
 
     expect(configWithDevPluginOverrides.plugins.load?.paths?.[0]).toBe(pluginDir);
     expect(configWithDevPluginOverrides.plugins.entries?.["test-plugin"]).toEqual({

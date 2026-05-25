@@ -1,5 +1,6 @@
 import {
   AgentRouteResolver,
+  CommandRegistry,
   createAssistantStreamDeltaControlMessage,
   createAssistantStreamResetControlMessage,
   createTypingStopControlMessage,
@@ -7,6 +8,7 @@ import {
   type Config,
   type InboundMessage,
   type MessageBus,
+  type SessionManager,
 } from "@nextclaw/core";
 import { eventKeys, type EventBus } from "@nextclaw/shared";
 import {
@@ -25,6 +27,7 @@ export type GatewayInboundLoopRuntime = {
     agentRunRequestManager: NcpRunnerAgent;
   };
   messageBus: MessageBus;
+  sessionManager: SessionManager;
   configManager: {
     loadConfig: () => Config;
   };
@@ -54,6 +57,9 @@ export class GatewayInboundProcessor {
         message,
         route,
       });
+      if (await this.dispatchSlashCommandMaybe(message, route, runMetadata)) {
+        return;
+      }
       if (await this.dispatchChannelReplyRouteMaybe(message, route, runMetadata)) {
         return;
       }
@@ -102,6 +108,41 @@ export class GatewayInboundProcessor {
       forcedAgentId: normalize(message.metadata.target_agent_id),
       sessionKeyOverride: normalize(message.metadata.session_key_override),
     });
+  };
+
+  private dispatchSlashCommandMaybe = async (
+    message: InboundMessage,
+    route: GatewayRoute,
+    runMetadata: Record<string, unknown>,
+  ): Promise<boolean> => {
+    if (message.channel === "system") {
+      return false;
+    }
+    const trimmed = message.content.trim();
+    if (!trimmed.startsWith("/")) {
+      return false;
+    }
+    const registry = new CommandRegistry(
+      this.runtime.configManager.loadConfig(),
+      this.runtime.sessionManager,
+    );
+    const result = await registry.executeText(trimmed, {
+      channel: message.channel,
+      chatId: message.chatId,
+      senderId: message.senderId,
+      sessionKey: route.sessionKey,
+    });
+    if (!result) {
+      return false;
+    }
+    await this.runtime.messageBus.publishOutbound({
+      channel: message.channel,
+      chatId: message.chatId,
+      content: result.content,
+      media: [],
+      metadata: runMetadata,
+    });
+    return true;
   };
 
   private dispatchChannelReplyRouteMaybe = async (

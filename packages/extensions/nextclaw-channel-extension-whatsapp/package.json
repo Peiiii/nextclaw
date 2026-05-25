@@ -24,12 +24,13 @@
     "prepublishOnly": "node ../../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
-    "@nextclaw/channel-runtime": "workspace:*",
     "@nextclaw/core": "workspace:*",
-    "@nextclaw/extension-sdk": "workspace:*"
+    "@nextclaw/extension-sdk": "workspace:*",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",
+    "@types/ws": "^8.5.14",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   }

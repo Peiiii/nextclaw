@@ -1,6 +1,6 @@
 import type { Config, MessageBus } from "@nextclaw/core";
-import { SlackChannel } from "@nextclaw/channel-runtime";
 import { startBusChannelExtension, warnNcpEventError } from "@nextclaw/extension-sdk";
+import { SlackChannel } from "./services/slack-channel.service.js";
 
 await startBusChannelExtension<Config["channels"]["slack"], MessageBus>({
   channelId: "slack",

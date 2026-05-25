@@ -9,10 +9,12 @@ import type { Config, ExtensionManifest } from "@kernel/features/extension-runti
 const EXTENSION_MANIFEST_FILE = "nextclaw.extension.json";
 const BUILTIN_EXTENSION_PACKAGES = [
   "@nextclaw/channel-extension-dingtalk",
+  "@nextclaw/channel-extension-discord",
   "@nextclaw/channel-extension-email",
   "@nextclaw/channel-extension-feishu",
   "@nextclaw/channel-extension-qq",
   "@nextclaw/channel-extension-slack",
+  "@nextclaw/channel-extension-telegram",
   "@nextclaw/channel-extension-wecom",
   "@nextclaw/channel-extension-whatsapp",
   "@nextclaw/channel-extension-weixin",
@@ -71,7 +73,7 @@ function findExtensionManifestRoot(startPath: string): string | undefined {
 }
 
 function resolveDevFirstPartyExtensionDir(
-  explicitDir = process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR,
+  explicitDir = process.env.NEXTCLAW_DEV_FIRST_PARTY_EXTENSION_DIR,
   moduleDir = dirname(fileURLToPath(import.meta.url)),
 ): string | undefined {
   const configured = explicitDir?.trim();

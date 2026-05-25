@@ -1,4 +1,3 @@
-import { appendBundledChannelPluginsProgressively } from "./progressive-bundled-plugin-loader.js";
 import type { PluginRegistry } from "../types.js";
 import {
   createProgressivePluginLoadContext,
@@ -12,7 +11,6 @@ export type { ProgressivePluginLoadOptions } from "./progressive-plugin-loader-c
 export async function loadOpenClawPluginsProgressively(options: ProgressivePluginLoadOptions): Promise<PluginRegistry> {
   const startedAt = Date.now();
   const context = createProgressivePluginLoadContext(options);
-  await appendBundledChannelPluginsProgressively(context);
   if (process.env.NEXTCLAW_ENABLE_OPENCLAW_PLUGINS !== "0") {
     await appendExternalPluginsProgressively(context);
   }

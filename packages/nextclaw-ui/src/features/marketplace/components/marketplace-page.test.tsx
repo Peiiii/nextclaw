@@ -130,8 +130,8 @@ function createPluginMarketplaceItem(
     summaryI18n: { en: "Optional Slack channel for NextClaw" },
     install: {
       kind: "npm",
-      spec: "@nextclaw/channel-plugin-slack",
-      command: "npm install @nextclaw/channel-plugin-slack",
+      spec: "@nextclaw/community-plugin-slack",
+      command: "npm install @nextclaw/community-plugin-slack",
     },
     ...overrides,
   });
@@ -142,8 +142,8 @@ function createInstalledRecord(
 ): MarketplaceInstalledRecord {
   return {
     type: "plugin",
-    id: "@nextclaw/channel-plugin-slack",
-    spec: "@nextclaw/channel-plugin-slack",
+    id: "@nextclaw/community-plugin-slack",
+    spec: "@nextclaw/community-plugin-slack",
     label: "Slack Channel",
     enabled: true,
     origin: "marketplace",
@@ -256,9 +256,9 @@ describe("MarketplacePage", () => {
             summaryI18n: { en: "Optional Slack channel for NextClaw" },
             install: {
               kind: "npm",
-              spec: "@nextclaw/channel-plugin-slack",
+              spec: "@nextclaw/community-plugin-slack",
               command:
-                "npm install @nextclaw/channel-plugin-slack",
+                "npm install @nextclaw/community-plugin-slack",
             },
           }),
         ],
@@ -269,7 +269,7 @@ describe("MarketplacePage", () => {
     const card = container.querySelector("article");
 
     expect(card?.textContent).toContain(
-      "@nextclaw/channel-plugin-slack",
+      "@nextclaw/community-plugin-slack",
     );
     expect(card?.textContent).not.toContain("Plugin");
   });
@@ -311,9 +311,9 @@ describe("MarketplacePage", () => {
             name: "Discord Channel",
             install: {
               kind: "npm",
-              spec: "@nextclaw/channel-plugin-discord",
+              spec: "@nextclaw/community-plugin-discord",
               command:
-                "npm install @nextclaw/channel-plugin-discord",
+                "npm install @nextclaw/community-plugin-discord",
             },
           }),
         ],
@@ -324,14 +324,14 @@ describe("MarketplacePage", () => {
         type: "plugin",
         total: 2,
         specs: [
-          "@nextclaw/channel-plugin-slack",
-          "@nextclaw/channel-plugin-discord",
+          "@nextclaw/community-plugin-slack",
+          "@nextclaw/community-plugin-discord",
         ],
         records: [
           createInstalledRecord(),
           createInstalledRecord({
-            id: "@nextclaw/channel-plugin-discord",
-            spec: "@nextclaw/channel-plugin-discord",
+            id: "@nextclaw/community-plugin-discord",
+            spec: "@nextclaw/community-plugin-discord",
             label: "Discord Channel",
           }),
         ],

@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { getWorkspacePath, loadConfig, saveConfig } from "@nextclaw/core";
-import { BUILTIN_CHANNEL_PLUGIN_IDS, builtinProviderIds } from "@nextclaw/runtime";
+import { BUILTIN_CHANNEL_IDS, builtinProviderIds } from "@nextclaw/runtime";
 import { buildPluginStatusReport, enablePluginInConfig, getPluginChannelBindings } from "@nextclaw/openclaw-compat";
 import { loadPluginRegistry, mergePluginConfigView, toPluginConfigView } from "../plugin/index.js";
 import { resolveChannelConfigView } from "./channel-config-view.js";
@@ -61,7 +61,7 @@ export class ChannelCommands {
 
     console.log("Channel Status");
     const channels = channelConfig.channels as Record<string, { enabled?: boolean }>;
-    for (const channelId of BUILTIN_CHANNEL_PLUGIN_IDS) {
+    for (const channelId of BUILTIN_CHANNEL_IDS) {
       const label = CHANNEL_LABELS[channelId] ?? channelId;
       const enabled = channels[channelId]?.enabled === true;
       console.log(`${label}: ${enabled ? "✓" : "✗"}`);

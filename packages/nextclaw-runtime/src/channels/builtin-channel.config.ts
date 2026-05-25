@@ -1,4 +1,4 @@
-export const BUILTIN_CHANNEL_PLUGIN_IDS = [
+export const BUILTIN_CHANNEL_IDS = [
   "telegram",
   "whatsapp",
   "discord",
@@ -11,8 +11,8 @@ export const BUILTIN_CHANNEL_PLUGIN_IDS = [
   "weixin"
 ] as const;
 
-export type BuiltinChannelPluginId = (typeof BUILTIN_CHANNEL_PLUGIN_IDS)[number];
+export type BuiltinChannelId = (typeof BUILTIN_CHANNEL_IDS)[number];
 
-export function isBuiltinChannelPluginId(value: string): value is BuiltinChannelPluginId {
-  return BUILTIN_CHANNEL_PLUGIN_IDS.includes(value as BuiltinChannelPluginId);
+export function isBuiltinChannelId(value: string): value is BuiltinChannelId {
+  return BUILTIN_CHANNEL_IDS.includes(value as BuiltinChannelId);
 }

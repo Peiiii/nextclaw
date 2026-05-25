@@ -80,6 +80,14 @@ export type BusChannelMessageBus = {
 export type BusChannelRuntime = {
   start: () => Promise<void>;
   stop: () => Promise<void>;
+  handleControlMessage?: (message: {
+    channel: string;
+    chatId: string;
+    content: string;
+    replyTo?: string | null;
+    media: string[];
+    metadata: Record<string, unknown>;
+  }) => Promise<boolean>;
   send: (message: {
     channel: string;
     chatId: string;
@@ -93,6 +101,7 @@ export type BusChannelRuntime = {
 export type BusChannelCreateContext<TConfig, TBus = BusChannelMessageBus> = {
   config: TConfig;
   bus: TBus;
+  channel: ExtensionChannel;
 };
 
 export type BusChannelExtensionDefinition<TConfig, TBus = BusChannelMessageBus> = {
@@ -118,7 +127,7 @@ export type ChannelExtensionContext = {
 
 export type ChannelExtensionDefinition<TConfig, TInbound> = {
   channelId: string;
-  createAdapter: () => ExtensionChannelAdapter<TConfig, TInbound>;
+  createAdapter: (context: ChannelExtensionContext) => ExtensionChannelAdapter<TConfig, TInbound>;
   mapInbound: ExtensionChannelInboundMapper<TInbound>;
   createAuthCapability?: (context: ChannelExtensionContext) => object;
   onNcpEventError?: (error: unknown, event: NcpEndpointEvent) => void | Promise<void>;
@@ -210,6 +219,7 @@ class BusChannelAdapter<TConfig, TBus> implements ExtensionChannelAdapter<TConfi
 
   constructor(
     private readonly definition: BusChannelExtensionDefinition<TConfig, TBus>,
+    private readonly extensionChannel: ExtensionChannel,
   ) {}
 
   configure = async (config: TConfig): Promise<void> => {
@@ -221,6 +231,7 @@ class BusChannelAdapter<TConfig, TBus> implements ExtensionChannelAdapter<TConfi
           await this.messageHandler?.(message);
         },
       } as TBus,
+      channel: this.extensionChannel,
     });
   };
 
@@ -289,7 +300,7 @@ class BusChannelAdapter<TConfig, TBus> implements ExtensionChannelAdapter<TConfi
     metadata?: Record<string, unknown>;
   }): Promise<void> => {
     const { accountId, media, metadata, replyTo, text, to } = params;
-    await this.channel?.send({
+    const outbound = {
       channel: this.definition.channelId,
       chatId: to,
       content: text,
@@ -299,7 +310,11 @@ class BusChannelAdapter<TConfig, TBus> implements ExtensionChannelAdapter<TConfi
         ...(metadata ?? {}),
         ...(accountId ? { accountId } : {}),
       },
-    });
+    };
+    if (await this.channel?.handleControlMessage?.(outbound)) {
+      return;
+    }
+    await this.channel?.send(outbound);
   };
 }
 
@@ -309,7 +324,7 @@ export async function startChannelExtension<TConfig, TInbound>(
 ): Promise<void> {
   const extension = new NextClawExtension(options);
   const channel = extension.channels.use(definition.channelId);
-  const adapter = definition.createAdapter();
+  const adapter = definition.createAdapter({ channel });
   const controller = new ExtensionChannelController({
     channel,
     adapter,
@@ -339,7 +354,7 @@ export async function startBusChannelExtension<TConfig, TBus = BusChannelMessage
   await startChannelExtension(
     {
       channelId: definition.channelId,
-      createAdapter: () => new BusChannelAdapter(definition),
+      createAdapter: ({ channel }) => new BusChannelAdapter(definition, channel),
       mapInbound: definition.mapInbound ?? toSubmittedTextMessage,
     },
     options,

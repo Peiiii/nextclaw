@@ -27,13 +27,15 @@
   "nextclaw": {
     "builtinExtensions": [
       "@nextclaw/channel-extension-dingtalk",
+      "@nextclaw/channel-extension-discord",
       "@nextclaw/channel-extension-email",
       "@nextclaw/channel-extension-feishu",
       "@nextclaw/channel-extension-qq",
       "@nextclaw/channel-extension-slack",
+      "@nextclaw/channel-extension-telegram",
       "@nextclaw/channel-extension-wecom",
-      "@nextclaw/channel-extension-whatsapp",
-      "@nextclaw/channel-extension-weixin"
+      "@nextclaw/channel-extension-weixin",
+      "@nextclaw/channel-extension-whatsapp"
     ]
   },
   "scripts": {
@@ -46,13 +48,15 @@
   },
   "dependencies": {
     "@nextclaw/channel-extension-dingtalk": "workspace:*",
+    "@nextclaw/channel-extension-discord": "workspace:*",
     "@nextclaw/channel-extension-email": "workspace:*",
     "@nextclaw/channel-extension-feishu": "workspace:*",
     "@nextclaw/channel-extension-qq": "workspace:*",
     "@nextclaw/channel-extension-slack": "workspace:*",
+    "@nextclaw/channel-extension-telegram": "workspace:*",
     "@nextclaw/channel-extension-wecom": "workspace:*",
-    "@nextclaw/channel-extension-whatsapp": "workspace:*",
     "@nextclaw/channel-extension-weixin": "workspace:*",
+    "@nextclaw/channel-extension-whatsapp": "workspace:*",
     "@nextclaw/core": "workspace:*",
     "@nextclaw/kernel": "workspace:*",
     "@nextclaw/mcp": "workspace:*",
@@ -66,8 +70,8 @@
     "@nextclaw/openclaw-compat": "workspace:*",
     "@nextclaw/remote": "workspace:*",
     "@nextclaw/runtime": "workspace:*",
-    "@nextclaw/shared": "workspace:*",
     "@nextclaw/server": "workspace:*",
+    "@nextclaw/shared": "workspace:*",
     "chokidar": "^3.6.0",
     "commander": "^12.1.0",
     "jszip": "^3.10.1"

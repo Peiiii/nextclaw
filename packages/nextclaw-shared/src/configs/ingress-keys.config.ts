@@ -49,6 +49,44 @@ export type ExtensionChannelMessageSubmitIngressPayload = {
   metadata?: Record<string, unknown>;
 };
 
+export type ExtensionChannelCommandOptionType = "string" | "boolean" | "number";
+
+export type ExtensionChannelCommandOption = {
+  name: string;
+  description: string;
+  type: ExtensionChannelCommandOptionType;
+  required?: boolean;
+};
+
+export type ExtensionChannelCommandSpec = {
+  name: string;
+  description: string;
+  options?: ExtensionChannelCommandOption[];
+};
+
+export type ExtensionChannelCommandListIngressPayload = {
+  channelId: string;
+};
+
+export type ExtensionChannelCommandListResponse = {
+  commands: ExtensionChannelCommandSpec[];
+};
+
+export type ExtensionChannelCommandExecuteIngressPayload = {
+  channelId: string;
+  conversationId: string;
+  senderId: string;
+  commandName?: string;
+  rawText?: string;
+  args?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+};
+
+export type ExtensionChannelCommandExecuteResponse = {
+  content: string;
+  ephemeral?: boolean;
+};
+
 export type ExtensionResponseIngressPayload =
   | {
       requestId: string;
@@ -84,6 +122,13 @@ export const ingressKeys = {
     channelMessageSubmit:
       createTypedKey<ExtensionChannelMessageSubmitIngressPayload>(
         "extension.channel.message.submit",
+      ),
+    channelCommandList: createTypedKey<ExtensionChannelCommandListIngressPayload>(
+      "extension.channel.command.list",
+    ),
+    channelCommandExecute:
+      createTypedKey<ExtensionChannelCommandExecuteIngressPayload>(
+        "extension.channel.command.execute",
       ),
     response: createTypedKey<ExtensionResponseIngressPayload>("extension.response"),
   },

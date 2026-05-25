@@ -36,16 +36,16 @@ export const MAINTAINABILITY_HOTSPOTS = [
     nextSplitSeam: "先按 chat/session/provider 三个域拆分配置构建与默认值归一化。"
   },
   {
-    chain: "channel-runtime",
-    path: "packages/extensions/nextclaw-channel-runtime/src/channels/discord.ts",
+    chain: "channel-extension-discord",
+    path: "packages/extensions/nextclaw-channel-extension-discord/src/services/discord-channel.service.ts",
     rationale: "渠道文件同时处理 inbound normalize、policy gating、stream flush 与平台发送细节。",
     allowedAdditions: ["平台 API 兼容修复", "向共享 sender/normalizer 下沉逻辑时的最小接线"],
     prohibitedAdditions: ["新增独立 streaming 策略", "新增消息归一化分支", "复制其它渠道已有 flush/send 逻辑"],
     nextSplitSeam: "先拆 incoming normalization、draft chunking、platform send/edit adapter。"
   },
   {
-    chain: "channel-runtime",
-    path: "packages/extensions/nextclaw-channel-runtime/src/channels/telegram.ts",
+    chain: "channel-extension-telegram",
+    path: "packages/extensions/nextclaw-channel-extension-telegram/src/services/telegram-channel.service.ts",
     rationale: "Telegram 渠道已同时承载 flush orchestration、incoming handling 与平台适配。",
     allowedAdditions: ["平台兼容修复", "向共享 stream flush / attachment adapter 下沉时的最小桥接"],
     prohibitedAdditions: ["新增长流程 branching", "新增 incoming policy 编排", "新增重复的 platform send/edit 逻辑"],

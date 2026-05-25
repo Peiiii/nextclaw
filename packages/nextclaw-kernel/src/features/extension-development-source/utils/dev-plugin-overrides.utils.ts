@@ -6,10 +6,6 @@ import {
   loadPluginManifest,
   type PackageManifest,
 } from "@nextclaw/openclaw-compat";
-import {
-  applyDevFirstPartyPluginLoadPaths,
-  resolveDevFirstPartyPluginInstallRoots,
-} from "./first-party-plugin-load-paths.utils.js";
 
 export const DEV_PLUGIN_OVERRIDES_ENV = "NEXTCLAW_DEV_PLUGIN_OVERRIDES";
 type PluginEntrySource = "production" | "development";
@@ -213,25 +209,19 @@ function resolveDevPluginOverrideInstallRoots(
 
 export function resolveDevPluginLoadingContext(
   config: Config,
-  workspaceExtensionsDir: string | undefined,
   rawOverridesEnv = process.env[DEV_PLUGIN_OVERRIDES_ENV],
 ): {
   configWithDevPluginOverrides: Config;
   excludedRoots: string[];
   overrides: DevPluginOverride[];
 } {
-  const configWithFirstPartyOverrides = applyDevFirstPartyPluginLoadPaths(
-    config,
-    workspaceExtensionsDir,
-  );
   const overrides = resolveDevPluginOverrides(rawOverridesEnv);
   const configWithDevPluginOverrides = applyExplicitDevPluginOverrides(
-    configWithFirstPartyOverrides,
+    config,
     overrides,
   );
 
   const excludedRoots = [
-    ...resolveDevFirstPartyPluginInstallRoots(config, workspaceExtensionsDir),
     ...resolveDevPluginOverrideInstallRoots(config, overrides),
   ].filter((entry, index, list) => list.indexOf(entry) === index);
 

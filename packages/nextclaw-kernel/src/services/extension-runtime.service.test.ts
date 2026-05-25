@@ -14,6 +14,8 @@ import {
 
 const tempDirs: string[] = [];
 
+const sessionManager = {} as never;
+
 function createTempDir(): string {
   const dir = mkdtempSync(join(tmpdir(), "nextclaw-kernel-extension-runtime-test-"));
   tempDirs.push(dir);
@@ -60,8 +62,10 @@ describe("resolveExtensionManifestRoots", () => {
     const roots = resolveBuiltinExtensionManifestRoots();
 
     expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-dingtalk"))).toBe(true);
+    expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-discord"))).toBe(true);
     expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-email"))).toBe(true);
     expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-slack"))).toBe(true);
+    expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-telegram"))).toBe(true);
     expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-wecom"))).toBe(true);
     expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-whatsapp"))).toBe(true);
     expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-weixin"))).toBe(true);
@@ -125,6 +129,7 @@ describe("ExtensionRuntimeService", () => {
       messageBus: {
         publishInbound: vi.fn(async () => undefined),
       },
+      sessionManager,
     });
     runtime.registerIngressHandlers();
 
@@ -217,6 +222,7 @@ describe("ExtensionRuntimeService", () => {
       messageBus: {
         publishInbound: vi.fn(async () => undefined),
       },
+      sessionManager,
     });
     runtime.registerIngressHandlers();
 

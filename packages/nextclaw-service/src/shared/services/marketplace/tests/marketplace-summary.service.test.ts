@@ -23,11 +23,11 @@ describe("pickUserFacingCommandSummary", () => {
   it("keeps non-technical action summary", () => {
     const output = [
       "Downloading package...",
-      "Enabled plugin: builtin-channel-discord"
+      "Enabled plugin: external-discord-channel"
     ].join("\n");
 
-    expect(pickUserFacingCommandSummary(output, "Enabled plugin: builtin-channel-discord")).toBe(
-      "Enabled plugin: builtin-channel-discord"
+    expect(pickUserFacingCommandSummary(output, "Enabled plugin: external-discord-channel")).toBe(
+      "Enabled plugin: external-discord-channel"
     );
   });
 });

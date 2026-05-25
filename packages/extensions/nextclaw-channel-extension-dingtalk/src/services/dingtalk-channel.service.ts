@@ -1,0 +1,126 @@
+import { APP_TITLE, BaseChannel, type Config, type MessageBus, type OutboundMessage } from "@nextclaw/core";
+import { DWClient, EventAck, TOPIC_ROBOT, type DWClientDownStream } from "dingtalk-stream";
+import { fetch } from "undici";
+export class DingTalkChannel extends BaseChannel<Config["channels"]["dingtalk"]> {
+    name = "dingtalk";
+    private client: DWClient | null = null;
+    private accessToken: string | null = null;
+    private tokenExpiry = 0;
+    constructor(config: Config["channels"]["dingtalk"], bus: MessageBus) {
+        super(config, bus);
+    }
+    start = async (): Promise<void> => {
+        this.running = true;
+        if (!this.config.clientId || !this.config.clientSecret) {
+            throw new Error("DingTalk clientId/clientSecret not configured");
+        }
+        this.client = new DWClient({
+            clientId: this.config.clientId,
+            clientSecret: this.config.clientSecret,
+            debug: false
+        });
+        this.client.registerCallbackListener(TOPIC_ROBOT, async (res: DWClientDownStream) => {
+            await this.handleRobotMessage(res);
+        });
+        this.client.registerAllEventListener(() => ({ status: EventAck.SUCCESS }));
+        await this.client.connect();
+    };
+    stop = async (): Promise<void> => {
+        this.running = false;
+        if (this.client) {
+            this.client.disconnect();
+            this.client = null;
+        }
+    };
+    send = async (msg: OutboundMessage): Promise<void> => {
+        const token = await this.getAccessToken();
+        if (!token) {
+            return;
+        }
+        const url = "https://api.dingtalk.com/v1.0/robot/oToMessages/batchSend";
+        const payload = {
+            robotCode: this.config.clientId,
+            userIds: [msg.chatId],
+            msgKey: "sampleMarkdown",
+            msgParam: JSON.stringify({
+                text: msg.content,
+                title: `${APP_TITLE} Reply`
+            })
+        };
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "content-type": "application/json",
+                "x-acs-dingtalk-access-token": token
+            },
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+            throw new Error(`DingTalk send failed: ${response.status}`);
+        }
+    };
+    private handleRobotMessage = async (res: DWClientDownStream): Promise<void> => {
+        if (!res?.data) {
+            return;
+        }
+        let parsed: Record<string, unknown>;
+        try {
+            parsed = JSON.parse(res.data) as Record<string, unknown>;
+        }
+        catch {
+            return;
+        }
+        const text = (parsed.text as {
+            content?: string;
+        } | undefined)?.content?.trim() ?? "";
+        if (!text) {
+            this.client?.socketCallBackResponse(res.headers.messageId, { ok: true });
+            return;
+        }
+        const senderId = (parsed.senderStaffId as string | undefined) || (parsed.senderId as string | undefined) || "";
+        const senderName = (parsed.senderNick as string | undefined) || "";
+        if (!senderId) {
+            this.client?.socketCallBackResponse(res.headers.messageId, { ok: true });
+            return;
+        }
+        await this.handleMessage({
+            senderId,
+            chatId: senderId,
+            content: text,
+            attachments: [],
+            metadata: {
+                sender_name: senderName,
+                platform: "dingtalk"
+            }
+        });
+        this.client?.socketCallBackResponse(res.headers.messageId, { ok: true });
+    };
+    private getAccessToken = async (): Promise<string | null> => {
+        if (this.accessToken && Date.now() < this.tokenExpiry) {
+            return this.accessToken;
+        }
+        const url = "https://api.dingtalk.com/v1.0/oauth2/accessToken";
+        const payload = {
+            appKey: this.config.clientId,
+            appSecret: this.config.clientSecret
+        };
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+            return null;
+        }
+        const data = (await response.json()) as Record<string, unknown>;
+        const token = data.accessToken as string | undefined;
+        const expiresIn = Number(data.expireIn ?? 7200);
+        if (!token) {
+            return null;
+        }
+        this.accessToken = token;
+        this.tokenExpiry = Date.now() + (expiresIn - 60) * 1000;
+        return token;
+    };
+}
+

@@ -181,6 +181,7 @@ export class NextclawKernel {
       eventBus: this.eventBus,
       ingress: this.ingress,
       messageBus: this.messageBus,
+      sessionManager: this.sessions,
     });
     this.skills = new SkillManager({
       workspace: getWorkspacePath(this.configManager.config.agents.defaults.workspace),

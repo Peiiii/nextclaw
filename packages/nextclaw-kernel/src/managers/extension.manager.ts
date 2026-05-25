@@ -1,4 +1,4 @@
-import { getWorkspacePath, type Config, type ExtensionChannelRegistration, type ExtensionRegistry, type MessageBus } from "@nextclaw/core";
+import { getWorkspacePath, type Config, type ExtensionChannelRegistration, type ExtensionRegistry, type MessageBus, type SessionManager } from "@nextclaw/core";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import type { EventBus, Ingress } from "@nextclaw/shared";
 import {
@@ -38,6 +38,7 @@ type ExtensionManagerOptions = {
   eventBus: Pick<EventBus, "emitEnvelope">;
   ingress: Pick<Ingress, "addHandler">;
   messageBus: Pick<MessageBus, "publishInbound">;
+  sessionManager: SessionManager;
 };
 
 type ExtensionLoadParams = {
@@ -198,6 +199,7 @@ export class ExtensionManager {
       getWorkspace: this.getWorkspace,
       ingress: options.ingress,
       messageBus: options.messageBus,
+      sessionManager: options.sessionManager,
     });
   }
 

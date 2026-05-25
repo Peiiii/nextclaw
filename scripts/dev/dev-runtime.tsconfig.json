@@ -11,7 +11,6 @@
       "@kernel/*": ["packages/nextclaw-kernel/src/*"],
       "@narp-stdio-wrapper/*": ["packages/nextclaw-narp-stdio-runtime-wrapper/src/*"],
       "@nextclaw/channel-extension-weixin": ["packages/extensions/nextclaw-channel-extension-weixin/src/index.ts"],
-      "@nextclaw/channel-runtime": ["packages/extensions/nextclaw-channel-runtime/src/index.ts"],
       "@nextclaw/core": ["packages/nextclaw-core/src/index.ts"],
       "@nextclaw-cli/*": ["packages/nextclaw/src/*"],
       "@nextclaw/kernel": ["packages/nextclaw-kernel/src/index.ts"],

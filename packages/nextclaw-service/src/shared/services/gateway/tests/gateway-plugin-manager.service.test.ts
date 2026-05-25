@@ -56,7 +56,8 @@ import type { NextclawGatewayRuntime } from "../nextclaw-gateway-runtime.service
 
 const tempDirs: string[] = [];
 const originalDisableBuiltinExtensions = process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS;
-const originalDevFirstPartyPluginDir = process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR;
+const originalDevFirstPartyExtensionDir = process.env.NEXTCLAW_DEV_FIRST_PARTY_EXTENSION_DIR;
+const sessionManager = {} as never;
 
 const createRegistry = (partial: Record<string, unknown> = {}) => ({
   plugins: [],
@@ -91,6 +92,7 @@ const createGateway = (config: Record<string, unknown> = {
     messageBus: {
       publishInbound: vi.fn(),
     },
+    sessionManager,
   });
   return {
     appEventBus: {
@@ -118,7 +120,7 @@ describe("GatewayPluginManager", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS = "1";
-    process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR = createTempDir();
+    process.env.NEXTCLAW_DEV_FIRST_PARTY_EXTENSION_DIR = createTempDir();
     mocks.getWorkspacePathMock.mockReturnValue("/tmp/workspace");
     mocks.discoverPluginStatusReportMock.mockReturnValue({ plugins: [{ enabled: true }] });
     mocks.getPluginChannelBindingsMock.mockReturnValue([]);
@@ -133,10 +135,10 @@ describe("GatewayPluginManager", () => {
     } else {
       process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS = originalDisableBuiltinExtensions;
     }
-    if (originalDevFirstPartyPluginDir === undefined) {
-      delete process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR;
+    if (originalDevFirstPartyExtensionDir === undefined) {
+      delete process.env.NEXTCLAW_DEV_FIRST_PARTY_EXTENSION_DIR;
     } else {
-      process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR = originalDevFirstPartyPluginDir;
+      process.env.NEXTCLAW_DEV_FIRST_PARTY_EXTENSION_DIR = originalDevFirstPartyExtensionDir;
     }
     while (tempDirs.length > 0) {
       const dir = tempDirs.pop();
@@ -210,13 +212,13 @@ describe("GatewayPluginManager", () => {
     });
     const manager = new GatewayPluginManager(gateway);
     const legacyWeixinBinding = {
-      pluginId: "nextclaw-channel-plugin-weixin",
+      pluginId: "community-channel-plugin-weixin",
       channelId: "weixin",
       channel: { id: "weixin" },
     };
     mocks.loadOpenClawPluginsProgressivelyMock.mockResolvedValue(createRegistry({
       channels: [{
-        pluginId: "nextclaw-channel-plugin-weixin",
+        pluginId: "community-channel-plugin-weixin",
         channel: { id: "weixin" },
         source: "plugin",
       }],

@@ -1,6 +1,6 @@
 import type { Config, MessageBus } from "@nextclaw/core";
-import { WhatsAppChannel } from "@nextclaw/channel-runtime";
 import { startBusChannelExtension, warnNcpEventError } from "@nextclaw/extension-sdk";
+import { WhatsAppChannel } from "./services/whatsapp-channel.service.js";
 
 await startBusChannelExtension<Config["channels"]["whatsapp"], MessageBus>({
   channelId: "whatsapp",

@@ -123,19 +123,6 @@ export class ChannelManager {
         console.warn(`Extension channel ignored because id already exists: ${id}`);
         continue;
       }
-      const nextclawRuntime = registration.channel.nextclaw;
-      if (nextclawRuntime?.createChannel) {
-        const enabled = nextclawRuntime.isEnabled ? nextclawRuntime.isEnabled(this.channelConfig) : true;
-        if (!enabled) {
-          continue;
-        }
-        this.channels[id] = nextclawRuntime.createChannel({
-          config: this.channelConfig,
-          bus: this.deps.bus,
-          sessionManager: this.deps.sessionManager,
-        });
-        continue;
-      }
       this.channels[id] = new ExtensionChannelAdapter(this.channelConfig, this.deps.bus, registration);
     }
   };

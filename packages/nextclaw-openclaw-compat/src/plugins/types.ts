@@ -1,6 +1,5 @@
 import type {
   Config,
-  ExtensionChannel,
   ProviderRuntimeResolution,
 } from "@nextclaw/core";
 
@@ -190,7 +189,6 @@ export type OpenClawChannelPlugin = {
   id: string;
   meta?: Record<string, unknown>;
   capabilities?: Record<string, unknown>;
-  nextclaw?: ExtensionChannel["nextclaw"];
   configSchema?: OpenClawChannelConfigSchema;
   config?: OpenClawChannelConfigAdapter;
   setup?: OpenClawChannelSetup;

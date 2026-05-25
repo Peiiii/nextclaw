@@ -6,9 +6,12 @@ import {
   type Unsubscribe,
 } from "@nextclaw/shared";
 import type {
+  ChannelCommandExecuteResponse,
+  ChannelCommandListResponse,
   ChannelConfigGetResponse,
   ChannelSubmittedMessage,
   ExtensionChannel,
+  ExtensionChannelCommands,
   ExtensionChannelConfig,
 } from "../types/extension-sdk.types.js";
 import type { ExtensionTransportService } from "./extension-transport.service.js";
@@ -45,9 +48,68 @@ class ChannelConfig implements ExtensionChannelConfig {
     });
 }
 
+class ChannelCommands implements ExtensionChannelCommands {
+  constructor(
+    private readonly params: {
+      channelId: string;
+      transport: ExtensionTransportService;
+    },
+  ) {}
+
+  readonly list = async () => {
+    const response = await this.params.transport.postIngress<ChannelCommandListResponse>(
+      getKeyId(ingressKeys.extension.channelCommandList),
+      { channelId: this.params.channelId },
+    );
+    return response.commands;
+  };
+
+  readonly execute = async (input: {
+    commandName: string;
+    args?: Record<string, unknown>;
+    conversationId: string;
+    senderId: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<ChannelCommandExecuteResponse> =>
+    await this.params.transport.postIngress<ChannelCommandExecuteResponse>(
+      getKeyId(ingressKeys.extension.channelCommandExecute),
+      {
+        channelId: this.params.channelId,
+        commandName: input.commandName,
+        args: input.args ?? {},
+        conversationId: input.conversationId,
+        senderId: input.senderId,
+        metadata: input.metadata ?? {},
+      },
+    );
+
+  readonly executeText = async (input: {
+    rawText: string;
+    conversationId: string;
+    senderId: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<ChannelCommandExecuteResponse | null> => {
+    const rawText = input.rawText.trim();
+    if (!rawText.startsWith("/")) {
+      return null;
+    }
+    return await this.params.transport.postIngress<ChannelCommandExecuteResponse>(
+      getKeyId(ingressKeys.extension.channelCommandExecute),
+      {
+        channelId: this.params.channelId,
+        rawText,
+        conversationId: input.conversationId,
+        senderId: input.senderId,
+        metadata: input.metadata ?? {},
+      },
+    );
+  };
+}
+
 export class ExtensionChannelService implements ExtensionChannel {
   readonly id: string;
   readonly config: ExtensionChannelConfig;
+  readonly commands: ExtensionChannelCommands;
 
   constructor(
     private readonly params: {
@@ -58,6 +120,7 @@ export class ExtensionChannelService implements ExtensionChannel {
   ) {
     this.id = params.channelId;
     this.config = new ChannelConfig(params);
+    this.commands = new ChannelCommands(params);
   }
 
   readonly submitMessage = async (

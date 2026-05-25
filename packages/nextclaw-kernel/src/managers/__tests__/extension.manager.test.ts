@@ -30,7 +30,8 @@ vi.mock("@nextclaw/openclaw-compat", async (importOriginal) => {
 
 const tempDirs: string[] = [];
 const originalDisableBuiltinExtensions = process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS;
-const originalDevFirstPartyPluginDir = process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR;
+const originalDevFirstPartyExtensionDir = process.env.NEXTCLAW_DEV_FIRST_PARTY_EXTENSION_DIR;
+const sessionManager = {} as never;
 
 const createRegistry = (partial: Partial<PluginRegistry> = {}): PluginRegistry => ({
   plugins: [],
@@ -73,6 +74,7 @@ function createManager(config: Record<string, unknown>) {
     messageBus: {
       publishInbound: vi.fn(),
     },
+    sessionManager,
   });
 }
 
@@ -92,7 +94,7 @@ describe("ExtensionManager", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS = "1";
-    process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR = createTempDir();
+    process.env.NEXTCLAW_DEV_FIRST_PARTY_EXTENSION_DIR = createTempDir();
     mocks.discoverPluginStatusReportMock.mockReturnValue({ plugins: [] });
     mocks.getPluginChannelBindingsMock.mockReturnValue([]);
     mocks.getPluginUiMetadataFromRegistryMock.mockReturnValue([]);
@@ -105,10 +107,10 @@ describe("ExtensionManager", () => {
     } else {
       process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS = originalDisableBuiltinExtensions;
     }
-    if (originalDevFirstPartyPluginDir === undefined) {
-      delete process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR;
+    if (originalDevFirstPartyExtensionDir === undefined) {
+      delete process.env.NEXTCLAW_DEV_FIRST_PARTY_EXTENSION_DIR;
     } else {
-      process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR = originalDevFirstPartyPluginDir;
+      process.env.NEXTCLAW_DEV_FIRST_PARTY_EXTENSION_DIR = originalDevFirstPartyExtensionDir;
     }
     while (tempDirs.length > 0) {
       const dir = tempDirs.pop();

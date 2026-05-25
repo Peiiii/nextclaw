@@ -1,0 +1,42 @@
+{
+  "id": "nextclaw-channel-extension-telegram",
+  "name": "NextClaw Telegram Channel Extension",
+  "version": "0.1.0",
+  "server": {
+    "type": "stdio",
+    "command": "node",
+    "args": ["dist/main.js"]
+  },
+  "contributes": {
+    "channels": [
+      {
+        "id": "telegram",
+        "name": "Telegram",
+        "description": "Telegram bot channel",
+        "configSchema": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "token": { "type": "string" },
+            "proxy": { "type": ["string", "null"] },
+            "ackReaction": { "type": "string" },
+            "accountId": { "type": "string" },
+            "dmPolicy": { "type": "string" },
+            "groupPolicy": { "type": "string" },
+            "streaming": {},
+            "requireMention": { "type": "boolean" },
+            "allowFrom": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "groupAllowFrom": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

@@ -6,10 +6,7 @@ import {
   type PluginRegistry,
 } from "@nextclaw/openclaw-compat";
 import { builtinProviderIds } from "@nextclaw/runtime";
-import {
-  resolveDevPluginLoadingContext,
-  resolveDevFirstPartyPluginDir,
-} from "@kernel/features/extension-development-source/index.js";
+import { resolveDevPluginLoadingContext } from "@kernel/features/extension-development-source/index.js";
 
 export type ExtensionPluginLoadProgress = { loadedPluginCount: number; pluginId?: string };
 
@@ -87,9 +84,6 @@ export class ExtensionPluginRegistryService {
   };
 
   private resolveLoadingContext = (config: Config) => {
-    const workspaceExtensionsDir = resolveDevFirstPartyPluginDir(
-      process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR,
-    );
-    return resolveDevPluginLoadingContext(config, workspaceExtensionsDir);
+    return resolveDevPluginLoadingContext(config);
   };
 }

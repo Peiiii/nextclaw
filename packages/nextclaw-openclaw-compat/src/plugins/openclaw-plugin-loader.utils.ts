@@ -1,13 +1,8 @@
-import fs from "node:fs";
-import path from "node:path";
-import { createRequire } from "node:module";
 import { getWorkspacePathFromConfig, type Config } from "@nextclaw/core";
-import { BUNDLED_CHANNEL_PLUGIN_PACKAGES } from "./bundled-channel-plugin-packages.constants.js";
 import { filterPluginCandidatesByExcludedRoots } from "./candidate-filter.js";
 import { normalizePluginsConfig, resolveEnableState } from "./config-state.js";
 import { discoverOpenClawPlugins } from "./discovery.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
-import { loadBundledPluginModule, resolveBundledPluginEntry } from "./bundled-plugin-loader.utils.js";
 import { buildPluginLoaderAliases } from "./plugin-loader-aliases.utils.js";
 import { createPluginJiti } from "./plugin-loader-jiti.js";
 import { createPluginRecord, validatePluginConfig } from "./plugin-loader.utils.js";
@@ -19,7 +14,6 @@ export type PluginLoadOptions = {
   workspaceDir?: string;
   logger?: PluginLogger;
   mode?: "full" | "validate";
-  includeBundled?: boolean;
   kinds?: PluginKind[];
   excludeRoots?: string[];
   reservedToolNames?: string[];
@@ -47,21 +41,6 @@ function logPluginStartupTrace(step: string, fields?: Record<string, string | nu
   console.log(`[startup-trace] ${step}${suffix ? ` ${suffix}` : ""}`);
 }
 
-function resolvePackageRootFromEntry(entryFile: string): string {
-  let cursor = path.dirname(entryFile);
-  for (let i = 0; i < 8; i += 1) {
-    const candidate = path.join(cursor, "package.json");
-    if (fs.existsSync(candidate)) {
-      return cursor;
-    }
-    const parent = path.dirname(cursor);
-    if (parent === cursor) {
-      break;
-    }
-    cursor = parent;
-  }
-  return path.dirname(entryFile);
-}
 export { buildPluginLoaderAliases } from "./plugin-loader-aliases.utils.js";
 export { loadOpenClawPluginsProgressively } from "./progressive-plugin-loader/progressive-plugin-loader.js";
 export type { ProgressivePluginLoadOptions } from "./progressive-plugin-loader/progressive-plugin-loader.js";
@@ -89,119 +68,6 @@ function resolvePluginModuleExport(moduleExport: unknown): {
   }
 
   return {};
-}
-
-function appendBundledChannelPlugins(params: {
-  runtime: PluginRegisterRuntime;
-  registry: PluginRegistry;
-  normalizedConfig: ReturnType<typeof normalizePluginsConfig>;
-}): void {
-  const require = createRequire(import.meta.url), { normalizedConfig, registry, runtime } = params;
-
-  for (const packageName of BUNDLED_CHANNEL_PLUGIN_PACKAGES) {
-    const packageStartedAt = Date.now();
-    const resolvedEntry = resolveBundledPluginEntry(
-      require,
-      packageName,
-      (diagnostic) => registry.diagnostics.push(diagnostic),
-      resolvePackageRootFromEntry
-    );
-    if (!resolvedEntry) {
-      continue;
-    }
-    const { entryFile, rootDir } = resolvedEntry;
-
-    let moduleExport: OpenClawPluginModule | null = null;
-    try {
-      moduleExport = loadBundledPluginModule(entryFile, rootDir);
-    } catch (err) {
-      registry.diagnostics.push({
-        level: "error",
-        source: entryFile,
-        message: `failed to load bundled plugin: ${String(err)}`
-      });
-      continue;
-    }
-
-    const resolved = resolvePluginModuleExport(moduleExport);
-    const definition = resolved.definition;
-    const register = resolved.register;
-
-    const pluginId = typeof definition?.id === "string" ? definition.id.trim() : "";
-    const source = entryFile;
-    if (!pluginId) {
-      registry.diagnostics.push({
-        level: "error",
-        source,
-        message: "bundled plugin definition missing id"
-      });
-      continue;
-    }
-
-    const enableState = resolveEnableState(pluginId, normalizedConfig);
-
-    const record = createPluginRecord({
-      id: pluginId,
-      name: definition?.name ?? pluginId,
-      description: definition?.description,
-      version: definition?.version,
-      kind: definition?.kind,
-      source,
-      origin: "bundled",
-      workspaceDir: runtime.workspaceDir,
-      enabled: enableState.enabled,
-      configSchema: Boolean(definition?.configSchema),
-      configJsonSchema: definition?.configSchema
-    });
-
-    if (!enableState.enabled) {
-      record.status = "disabled";
-      record.error = enableState.reason;
-      registry.plugins.push(record);
-      continue;
-    }
-
-    if (typeof register !== "function") {
-      record.status = "error";
-      record.error = "plugin export missing register/activate";
-      registry.plugins.push(record);
-      registry.diagnostics.push({
-        level: "error",
-        pluginId,
-        source,
-        message: record.error
-      });
-      continue;
-    }
-
-    const result = registerPluginWithApi({
-      runtime,
-      record,
-      pluginId,
-      source,
-      rootDir,
-      register,
-      pluginConfig: undefined
-    });
-
-    if (!result.ok) {
-      record.status = "error";
-      record.error = result.error;
-      registry.diagnostics.push({
-        level: "error",
-        pluginId,
-        source,
-        message: result.error
-      });
-    }
-
-    registry.plugins.push(record);
-    logPluginStartupTrace("plugin.loader.bundled_plugin", {
-      package: packageName,
-      plugin_id: pluginId,
-      duration_ms: Date.now() - packageStartedAt
-    });
-  }
 }
 
 function loadExternalPluginModule(candidateSource: string, pluginRoot: string): OpenClawPluginModule {
@@ -239,7 +105,6 @@ export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry 
     reservedProviderIds
   });
 
-  if (options.includeBundled !== false) appendBundledChannelPlugins({ registry, runtime: registerRuntime, normalizedConfig: normalized });
   if (!loadExternalPlugins) {
     return registry;
   }

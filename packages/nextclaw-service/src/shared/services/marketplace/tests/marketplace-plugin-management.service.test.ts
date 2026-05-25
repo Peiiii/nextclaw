@@ -19,10 +19,10 @@ describe("ServiceCommands marketplace plugin management", () => {
     const marketplace = installer.createInstaller();
 
     expect(marketplace.installPlugin).toBeTypeOf("function");
-    await expect(marketplace.installPlugin!("@nextclaw/channel-plugin-slack")).resolves.toEqual({
+    await expect(marketplace.installPlugin!("@community/slack-channel")).resolves.toEqual({
       message: "Installed plugin: codex",
     });
-    expect(installSpy).toHaveBeenCalledWith("@nextclaw/channel-plugin-slack");
+    expect(installSpy).toHaveBeenCalledWith("@community/slack-channel");
     expect(runCliSubcommand).not.toHaveBeenCalled();
   });
 

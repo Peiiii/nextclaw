@@ -3,7 +3,6 @@
   "organizationModel": "legacy-progressive-plugin-loader",
   "rootPolicy": "contract-only",
   "allowedRootFiles": [
-    "progressive-bundled-plugin-loader.ts",
     "progressive-external-plugin-loader.ts",
     "progressive-plugin-loader-context.ts",
     "progressive-plugin-loader.ts"

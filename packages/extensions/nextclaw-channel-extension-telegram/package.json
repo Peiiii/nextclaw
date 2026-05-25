@@ -1,0 +1,38 @@
+{
+  "name": "@nextclaw/channel-extension-telegram",
+  "version": "0.1.0",
+  "private": false,
+  "description": "NextClaw Telegram channel extension process.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "nextclaw.extension.json"
+  ],
+  "scripts": {
+    "build": "tsdown src/index.ts src/main.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension --unbundle",
+    "prepack": "pnpm run build",
+    "lint": "eslint src --max-warnings=0",
+    "tsc": "tsc -p tsconfig.json",
+    "prepublishOnly": "node ../../../scripts/release/ensure-pnpm-publish.mjs"
+  },
+  "dependencies": {
+    "@nextclaw/core": "workspace:*",
+    "@nextclaw/extension-sdk": "workspace:*",
+    "node-telegram-bot-api": "^0.66.0",
+    "undici": "^6.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "@types/node-telegram-bot-api": "^0.64.8",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

@@ -75,14 +75,14 @@ test("resolveFirstPartyPluginRef matches exact plugin id inside packages/extensi
   mkdirSync(extensionsDir, { recursive: true });
   const pluginPath = createPluginDir({
     extensionsDir,
-    dirName: "nextclaw-channel-plugin-slack",
-    pluginId: "nextclaw-channel-plugin-slack",
-    packageName: "@nextclaw/channel-plugin-slack",
+    dirName: "community-slack-connector",
+    pluginId: "community-slack-connector",
+    packageName: "@community/slack-channel",
   });
 
-  const resolved = resolveFirstPartyPluginRef(rootDir, "nextclaw-channel-plugin-slack");
+  const resolved = resolveFirstPartyPluginRef(rootDir, "community-slack-connector");
 
-  assert.equal(resolved.pluginId, "nextclaw-channel-plugin-slack");
+  assert.equal(resolved.pluginId, "community-slack-connector");
   assert.equal(resolved.pluginPath, pluginPath);
 });
 
@@ -92,19 +92,19 @@ test("resolveFirstPartyPluginRef rejects ambiguous suffix matches", () => {
   mkdirSync(extensionsDir, { recursive: true });
   createPluginDir({
     extensionsDir,
-    dirName: "nextclaw-channel-plugin-slack",
-    pluginId: "nextclaw-channel-plugin-slack",
-    packageName: "@nextclaw/channel-plugin-slack",
+    dirName: "community-slack-connector",
+    pluginId: "community-slack-connector",
+    packageName: "@community/slack-channel",
   });
   createPluginDir({
     extensionsDir,
-    dirName: "nextclaw-channel-plugin-image-slack",
-    pluginId: "nextclaw-channel-plugin-image-slack",
-    packageName: "@nextclaw/channel-plugin-image-slack",
+    dirName: "community-image-slack-connector",
+    pluginId: "community-image-slack-connector",
+    packageName: "@community/image-slack-channel",
   });
 
   assert.throws(
-    () => resolveFirstPartyPluginRef(rootDir, "slack"),
+    () => resolveFirstPartyPluginRef(rootDir, "connector"),
     /ambiguous/,
   );
 });
@@ -115,9 +115,9 @@ test("inspectProductionBuildStatus reports stale when source is newer than dist"
   mkdirSync(extensionsDir, { recursive: true });
   const pluginPath = createPluginDir({
     extensionsDir,
-    dirName: "nextclaw-channel-plugin-slack",
-    pluginId: "nextclaw-channel-plugin-slack",
-    packageName: "@nextclaw/channel-plugin-slack",
+    dirName: "community-slack-connector",
+    pluginId: "community-slack-connector",
+    packageName: "@community/slack-channel",
   });
 
   utimesSync(join(pluginPath, "dist/index.js"), new Date(1_000), new Date(1_000));
@@ -135,9 +135,9 @@ test("inspectProductionBuildStatus accepts fresh production dist", () => {
   mkdirSync(extensionsDir, { recursive: true });
   const pluginPath = createPluginDir({
     extensionsDir,
-    dirName: "nextclaw-channel-plugin-slack",
-    pluginId: "nextclaw-channel-plugin-slack",
-    packageName: "@nextclaw/channel-plugin-slack",
+    dirName: "community-slack-connector",
+    pluginId: "community-slack-connector",
+    packageName: "@community/slack-channel",
   });
 
   utimesSync(join(pluginPath, "src/index.ts"), new Date(1_000), new Date(1_000));

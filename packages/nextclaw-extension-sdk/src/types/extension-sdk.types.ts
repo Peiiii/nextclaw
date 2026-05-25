@@ -1,10 +1,19 @@
 import type { NcpEndpointEvent } from "@nextclaw/ncp";
 import type {
+  ExtensionChannelCommandExecuteResponse,
+  ExtensionChannelCommandSpec,
   ExtensionChannelMessageSubmitIngressPayload,
   Unsubscribe,
 } from "@nextclaw/shared";
 export type {
   ExtensionChannelConfigGetIngressPayload as ChannelConfigGetRequest,
+  ExtensionChannelCommandExecuteIngressPayload as ChannelCommandExecuteRequest,
+  ExtensionChannelCommandExecuteResponse as ChannelCommandExecuteResponse,
+  ExtensionChannelCommandListIngressPayload as ChannelCommandListRequest,
+  ExtensionChannelCommandListResponse as ChannelCommandListResponse,
+  ExtensionChannelCommandOption as ChannelCommandOption,
+  ExtensionChannelCommandOptionType as ChannelCommandOptionType,
+  ExtensionChannelCommandSpec as ChannelCommandSpec,
   ExtensionChannelFileContent as ChannelFileContent,
   ExtensionChannelImageContent as ChannelImageContent,
   ExtensionChannelMessageContent as ChannelMessageContent,
@@ -56,11 +65,29 @@ export type ExtensionChannelConfig = {
   ) => Unsubscribe;
 };
 
+export type ExtensionChannelCommands = {
+  list: () => Promise<ExtensionChannelCommandSpec[]>;
+  execute: (input: {
+    commandName: string;
+    args?: Record<string, unknown>;
+    conversationId: string;
+    senderId: string;
+    metadata?: Record<string, unknown>;
+  }) => Promise<ExtensionChannelCommandExecuteResponse>;
+  executeText: (input: {
+    rawText: string;
+    conversationId: string;
+    senderId: string;
+    metadata?: Record<string, unknown>;
+  }) => Promise<ExtensionChannelCommandExecuteResponse | null>;
+};
+
 export type ExtensionChannel = {
   id: string;
   submitMessage: (input: Omit<ExtensionChannelMessageSubmitIngressPayload, "channelId">) => Promise<void>;
   onNcpEvent: (handler: (event: NcpEndpointEvent) => void | Promise<void>) => Unsubscribe;
   config: ExtensionChannelConfig;
+  commands: ExtensionChannelCommands;
 };
 
 export type ExtensionChannels = {

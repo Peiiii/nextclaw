@@ -1,6 +1,6 @@
 import type { Config, MessageBus } from "@nextclaw/core";
-import { DingTalkChannel } from "@nextclaw/channel-runtime";
 import { startBusChannelExtension, warnNcpEventError } from "@nextclaw/extension-sdk";
+import { DingTalkChannel } from "./services/dingtalk-channel.service.js";
 
 await startBusChannelExtension<Config["channels"]["dingtalk"], MessageBus>({
   channelId: "dingtalk",

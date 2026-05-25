@@ -1,10 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { MarketplaceInstalledRecord } from "@nextclaw-server/shared/types/server-api.types.js";
-import {
-  BUILTIN_CHANNEL_PLUGIN_ID_PREFIX,
-  NEXTCLAW_PLUGIN_NPM_PREFIX
-} from "@nextclaw-server/features/marketplace/index.js";
 
 function readPluginPackageNameFromSource(source: string | undefined): string | undefined {
   const trimmed = source?.trim();
@@ -66,13 +62,6 @@ export function resolvePluginCanonicalSpec(params: {
   const rawInstallSpec = typeof installSpec === "string" ? installSpec.trim() : "";
   if (rawInstallSpec.length > 0) {
     return normalizePluginNpmSpec(rawInstallSpec);
-  }
-
-  if (pluginId.startsWith(BUILTIN_CHANNEL_PLUGIN_ID_PREFIX)) {
-    const channelSlug = pluginId.slice(BUILTIN_CHANNEL_PLUGIN_ID_PREFIX.length).trim();
-    if (channelSlug.length > 0) {
-      return `${NEXTCLAW_PLUGIN_NPM_PREFIX}${channelSlug}`;
-    }
   }
 
   return pluginId;

@@ -64,7 +64,7 @@ const buildTsxWatchExcludeGlobs = (baseDir, targetPaths) => {
   }
   return [...allPatterns];
 };
-const firstPartyPluginDir = resolve(rootDir, "packages/extensions");
+const firstPartyExtensionDir = resolve(rootDir, "packages/extensions");
 const workspaceWatchablePluginTargets = resolveWatchableFirstPartyPluginTargets(rootDir);
 const workspaceWatchablePluginPaths = workspaceWatchablePluginTargets.map((entry) => entry.pluginPath);
 const tsxWatchExcludeGlobs = buildTsxWatchExcludeGlobs(backendDir, [
@@ -395,7 +395,7 @@ const backendProcess = spawnProcess(
   backendDir,
   {
     NODE_OPTIONS: developmentNodeOptions,
-    NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR: firstPartyPluginDir,
+    NEXTCLAW_DEV_FIRST_PARTY_EXTENSION_DIR: firstPartyExtensionDir,
     [DEV_PLUGIN_HOT_RELOAD_TARGETS_ENV]: JSON.stringify(workspaceWatchablePluginTargets),
     ...(devStartOptions.pluginOverrides.length > 0
       ? {

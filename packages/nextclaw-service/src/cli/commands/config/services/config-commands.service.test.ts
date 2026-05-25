@@ -28,7 +28,7 @@ vi.mock("@nextclaw/openclaw-compat", () => ({
 }));
 
 vi.mock("@nextclaw/runtime", () => ({
-  BUILTIN_CHANNEL_PLUGIN_IDS: [],
+  BUILTIN_CHANNEL_IDS: [],
   builtinProviderIds: () => []
 }));
 

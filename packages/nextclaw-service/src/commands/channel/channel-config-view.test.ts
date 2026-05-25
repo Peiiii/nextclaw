@@ -5,7 +5,7 @@ import { resolveChannelConfigView } from "./channel-config-view.js";
 
 function createDiscordBinding(): PluginChannelBinding {
   return {
-    pluginId: "builtin-channel-discord",
+    pluginId: "external-discord-channel",
     channelId: "discord",
     channel: { id: "discord" }
   };
@@ -16,7 +16,7 @@ describe("resolveChannelConfigView", () => {
     const config = ConfigSchema.parse({
       plugins: {
         entries: {
-          "builtin-channel-discord": {
+          "external-discord-channel": {
             enabled: true,
             config: {
               enabled: true,
@@ -44,7 +44,7 @@ describe("resolveChannelConfigView", () => {
       },
       plugins: {
         entries: {
-          "builtin-channel-discord": {
+          "external-discord-channel": {
             enabled: true,
             config: {
               enabled: true,
@@ -65,7 +65,7 @@ describe("resolveChannelConfigView", () => {
     const config = ConfigSchema.parse({
       plugins: {
         entries: {
-          "builtin-channel-discord": {
+          "external-discord-channel": {
             enabled: false,
             config: {
               enabled: true,

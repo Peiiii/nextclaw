@@ -1,9 +1,9 @@
 export type { ProviderCatalogPlugin, ProviderSpec } from "@nextclaw/core";
 
 export {
-  BUILTIN_CHANNEL_PLUGIN_IDS,
-  type BuiltinChannelPluginId,
-  isBuiltinChannelPluginId
+  BUILTIN_CHANNEL_IDS,
+  type BuiltinChannelId,
+  isBuiltinChannelId
 } from "./channels/builtin-channel.config.js";
 
 export {

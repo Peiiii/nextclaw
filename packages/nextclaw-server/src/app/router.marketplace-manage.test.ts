@@ -26,14 +26,20 @@ afterEach(() => {
 });
 
 describe("marketplace manage plugin id resolution", () => {
-  it("maps canonical plugin spec to builtin plugin id when disabling", async () => {
+  it("maps canonical plugin spec to installed plugin id when disabling", async () => {
     const configPath = createTempConfigPath();
     saveConfig(
       ConfigSchema.parse({
         plugins: {
           entries: {
-            "builtin-channel-discord": {
+            "plugin-discord": {
               enabled: true
+            }
+          },
+          installs: {
+            "plugin-discord": {
+              source: "npm",
+              spec: "@community/discord-channel"
             }
           }
         }
@@ -42,7 +48,7 @@ describe("marketplace manage plugin id resolution", () => {
     );
 
     const disablePlugin = vi.fn(async () => ({
-      message: "Disabled plugin \"builtin-channel-discord\"."
+      message: "Disabled plugin \"plugin-discord\"."
     }));
 
     const app = createUiRouter({
@@ -64,8 +70,8 @@ describe("marketplace manage plugin id resolution", () => {
       body: JSON.stringify({
         type: "plugin",
         action: "disable",
-        id: "@nextclaw/channel-plugin-discord",
-        spec: "@nextclaw/channel-plugin-discord"
+        id: "@community/discord-channel",
+        spec: "@community/discord-channel"
       })
     });
 
@@ -78,9 +84,9 @@ describe("marketplace manage plugin id resolution", () => {
     };
 
     expect(payload.ok).toBe(true);
-    expect(payload.data.id).toBe("builtin-channel-discord");
+    expect(payload.data.id).toBe("plugin-discord");
     expect(disablePlugin).toHaveBeenCalledTimes(1);
-    expect(disablePlugin).toHaveBeenCalledWith("builtin-channel-discord");
+    expect(disablePlugin).toHaveBeenCalledWith("plugin-discord");
   });
 
   it("rejects body type mismatch for typed marketplace route", async () => {
@@ -111,7 +117,7 @@ describe("marketplace manage plugin id resolution", () => {
       body: JSON.stringify({
         type: "plugin",
         action: "disable",
-        id: "@nextclaw/channel-plugin-discord"
+        id: "@community/discord-channel"
       })
     });
 

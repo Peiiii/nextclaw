@@ -1,5 +1,11 @@
 export { NextClawExtension } from "./services/extension-client.service.js";
 export {
+  ChannelTypingController,
+} from "./services/channel-typing-controller.service.js";
+export type {
+  ChannelTypingControllerOptions,
+} from "./services/channel-typing-controller.service.js";
+export {
   ExtensionChannelController,
   startBusChannelExtension,
   startChannelExtension,
@@ -19,6 +25,13 @@ export type {
 export type {
   ChannelConfigGetRequest,
   ChannelConfigGetResponse,
+  ChannelCommandExecuteRequest,
+  ChannelCommandExecuteResponse,
+  ChannelCommandListRequest,
+  ChannelCommandListResponse,
+  ChannelCommandOption,
+  ChannelCommandOptionType,
+  ChannelCommandSpec,
   ChannelFileContent,
   ChannelImageContent,
   ChannelMessageContent,
@@ -29,6 +42,7 @@ export type {
   ExtensionCapabilityHandler,
   ExtensionCapabilityPayload,
   ExtensionChannel,
+  ExtensionChannelCommands,
   ExtensionChannelConfig,
   ExtensionChannels,
   ExtensionRequest,

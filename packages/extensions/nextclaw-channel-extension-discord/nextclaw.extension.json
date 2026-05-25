@@ -1,0 +1,46 @@
+{
+  "id": "nextclaw-channel-extension-discord",
+  "name": "NextClaw Discord Channel Extension",
+  "version": "0.1.0",
+  "server": {
+    "type": "stdio",
+    "command": "node",
+    "args": ["dist/main.js"]
+  },
+  "contributes": {
+    "channels": [
+      {
+        "id": "discord",
+        "name": "Discord",
+        "description": "Discord bot channel",
+        "configSchema": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "token": { "type": "string" },
+            "allowBots": { "type": "boolean" },
+            "gatewayUrl": { "type": "string" },
+            "intents": { "type": "number" },
+            "proxy": { "type": ["string", "null"] },
+            "mediaMaxMb": { "type": "number" },
+            "streaming": {},
+            "textChunkLimit": { "type": "number" },
+            "accountId": { "type": "string" },
+            "dmPolicy": { "type": "string" },
+            "groupPolicy": { "type": "string" },
+            "requireMention": { "type": "boolean" },
+            "allowFrom": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "groupAllowFrom": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

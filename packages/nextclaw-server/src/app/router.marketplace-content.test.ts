@@ -160,7 +160,7 @@ describe("marketplace content routes", () => {
             ok: true,
             data: {
               id: "plugin-channel-discord",
-              slug: "channel-plugin-discord",
+              slug: "community-plugin-discord",
               type: "plugin",
               name: "Discord Channel Plugin",
               summary: "Discord summary",
@@ -173,8 +173,8 @@ describe("marketplace content routes", () => {
               author: "NextClaw",
               install: {
                 kind: "npm",
-                spec: "@nextclaw/channel-plugin-discord",
-                command: "nextclaw plugins install @nextclaw/channel-plugin-discord"
+                spec: "@nextclaw/community-plugin-discord",
+                command: "nextclaw plugins install @nextclaw/community-plugin-discord"
               },
               updatedAt: "2026-02-22T09:40:00.000Z",
               publishedAt: "2025-12-10T10:00:00.000Z"
@@ -191,7 +191,7 @@ describe("marketplace content routes", () => {
 
       return new Response(
         JSON.stringify({
-          name: "@nextclaw/channel-plugin-discord",
+          name: "@nextclaw/community-plugin-discord",
           description: "Discord plugin",
           readme: "# Discord Plugin\n\nREADME content"
         }),
@@ -215,7 +215,7 @@ describe("marketplace content routes", () => {
       }
     });
 
-    const response = await app.request("http://localhost/api/marketplace/plugins/items/channel-plugin-discord/content");
+    const response = await app.request("http://localhost/api/marketplace/plugins/items/community-plugin-discord/content");
     expect(response.status).toBe(200);
 
     const payload = await response.json() as {
@@ -443,7 +443,7 @@ describe("marketplace content routes", () => {
             items: [
               {
                 id: "plugin-channel-discord",
-                slug: "channel-plugin-discord",
+                slug: "community-plugin-discord",
                 type: "plugin",
                 name: "Discord Channel Plugin",
                 summary: "English summary",
@@ -456,8 +456,8 @@ describe("marketplace content routes", () => {
                 author: "NextClaw",
                 install: {
                   kind: "npm",
-                  spec: "@nextclaw/channel-plugin-discord",
-                  command: "nextclaw plugins install @nextclaw/channel-plugin-discord"
+                  spec: "@nextclaw/community-plugin-discord",
+                  command: "nextclaw plugins install @nextclaw/community-plugin-discord"
                 },
                 updatedAt: "2026-02-22T09:40:00.000Z",
                 publishedAt: "2025-12-10T10:00:00.000Z"
@@ -529,7 +529,7 @@ describe("marketplace content routes", () => {
             items: [
               {
                 id: "plugin-channel-slack",
-                slug: "channel-plugin-slack",
+                slug: "community-plugin-slack",
                 type: "plugin",
                 name: "Slack Channel Plugin",
                 summary: "Optional NextClaw plugin that adds Slack channel integration.",
@@ -542,8 +542,8 @@ describe("marketplace content routes", () => {
                 author: "NextClaw",
                 install: {
                   kind: "npm",
-                  spec: "@nextclaw/channel-plugin-slack",
-                  command: "nextclaw plugins install @nextclaw/channel-plugin-slack"
+                  spec: "@nextclaw/community-plugin-slack",
+                  command: "nextclaw plugins install @nextclaw/community-plugin-slack"
                 },
                 updatedAt: "2026-03-19T00:00:00.000Z",
                 publishedAt: "2026-03-19T00:00:00.000Z"
@@ -588,8 +588,8 @@ describe("marketplace content routes", () => {
 
     expect(payload.ok).toBe(true);
     expect(payload.data.total).toBe(1);
-    expect(payload.data.items[0]?.slug).toBe("channel-plugin-slack");
-    expect(payload.data.items[0]?.install.spec).toBe("@nextclaw/channel-plugin-slack");
+    expect(payload.data.items[0]?.slug).toBe("community-plugin-slack");
+    expect(payload.data.items[0]?.install.spec).toBe("@nextclaw/community-plugin-slack");
   });
 
   it("exposes another channel plugin in marketplace plugin list", async () => {
@@ -620,7 +620,7 @@ describe("marketplace content routes", () => {
             items: [
               {
                 id: "plugin-channel-discord",
-                slug: "channel-plugin-discord",
+                slug: "community-plugin-discord",
                 type: "plugin",
                 name: "Discord Channel Plugin",
                 summary: "Optional NextClaw plugin that adds Discord channel integration.",
@@ -633,8 +633,8 @@ describe("marketplace content routes", () => {
                 author: "NextClaw",
                 install: {
                   kind: "npm",
-                  spec: "@nextclaw/channel-plugin-discord",
-                  command: "nextclaw plugins install @nextclaw/channel-plugin-discord"
+                  spec: "@nextclaw/community-plugin-discord",
+                  command: "nextclaw plugins install @nextclaw/community-plugin-discord"
                 },
                 updatedAt: "2026-03-19T00:00:00.000Z",
                 publishedAt: "2026-03-19T00:00:00.000Z"
@@ -679,8 +679,8 @@ describe("marketplace content routes", () => {
 
     expect(payload.ok).toBe(true);
     expect(payload.data.total).toBe(1);
-    expect(payload.data.items[0]?.slug).toBe("channel-plugin-discord");
-    expect(payload.data.items[0]?.install.spec).toBe("@nextclaw/channel-plugin-discord");
+    expect(payload.data.items[0]?.slug).toBe("community-plugin-discord");
+    expect(payload.data.items[0]?.install.spec).toBe("@nextclaw/community-plugin-discord");
   });
 
   it("forwards plugin catalog pagination without fetching the entire remote catalog", async () => {
@@ -711,7 +711,7 @@ describe("marketplace content routes", () => {
             items: [
               {
                 id: "plugin-channel-discord",
-                slug: "channel-plugin-discord",
+                slug: "community-plugin-discord",
                 type: "plugin",
                 name: "Discord Channel Plugin",
                 summary: "English summary",
@@ -719,8 +719,8 @@ describe("marketplace content routes", () => {
                 author: "NextClaw",
                 install: {
                   kind: "npm",
-                  spec: "@nextclaw/channel-plugin-discord",
-                  command: "nextclaw plugins install @nextclaw/channel-plugin-discord"
+                  spec: "@nextclaw/community-plugin-discord",
+                  command: "nextclaw plugins install @nextclaw/community-plugin-discord"
                 },
                 updatedAt: "2026-02-22T09:40:00.000Z",
                 publishedAt: "2025-12-10T10:00:00.000Z"

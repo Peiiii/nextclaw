@@ -1,6 +1,3 @@
-import { resolveBuiltinChannelRuntime } from "@nextclaw/channel-runtime";
-import type { OpenClawPluginApi } from "../plugins/types.js";
-
 export type { OpenClawPluginApi } from "../plugins/types.js";
 
 export type OpenClawPluginConfigSchema = {
@@ -76,30 +73,8 @@ export function normalizeAccountId(accountId?: string | null): string {
 
 
 
-export function createNextclawBuiltinChannelPlugin(channelId: string): {
-  id: string;
-  nextclaw: {
-    isEnabled: (cfg: import("@nextclaw/core").Config) => boolean;
-    createChannel: (ctx: {
-      config: import("@nextclaw/core").Config;
-      bus: import("@nextclaw/core").MessageBus;
-      sessionManager?: import("@nextclaw/core").SessionManager;
-    }) => unknown;
-  };
-} {
-  const runtime = resolveBuiltinChannelRuntime(channelId);
-  return {
-    id: channelId,
-    nextclaw: {
-      isEnabled: runtime.isEnabled,
-      createChannel: runtime.createChannel
-    }
-  };
-}
-
 // Re-exporting this marker keeps plugins that only import types from failing at runtime.
 export const __nextclawPluginSdkCompat = true;
 
 // The shim intentionally keeps runtime helpers minimal in this phase.
 // Plugins requiring advanced SDK helpers will fail at registration and surface diagnostics.
-export type _CompatOnly = OpenClawPluginApi;

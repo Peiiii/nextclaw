@@ -35,21 +35,21 @@ afterEach(() => {
 
 describe("removePluginFromConfig", () => {
   it("removes matching plugin load paths even without a path install record", () => {
-    const pluginDir = createTempPluginDir("nextclaw-channel-plugin-slack");
+    const pluginDir = createTempPluginDir("community-slack-connector");
     const config = ConfigSchema.parse({
       plugins: {
         load: {
           paths: [pluginDir],
         },
         entries: {
-          "nextclaw-channel-plugin-slack": {
+          "community-slack-connector": {
             enabled: true,
           },
         },
       },
     });
 
-    const result = removePluginFromConfig(config, "nextclaw-channel-plugin-slack");
+    const result = removePluginFromConfig(config, "community-slack-connector");
 
     expect(result.actions.entry).toBe(true);
     expect(result.actions.loadPath).toBe(true);
@@ -63,7 +63,7 @@ describe("uninstallPlugin", () => {
     const workspaceDir = mkdtempSync(join(tmpdir(), "nextclaw-plugin-workspace-"));
     tempDirs.push(homeDir, workspaceDir);
 
-    const pluginId = "nextclaw-channel-plugin-slack";
+    const pluginId = "community-slack-connector";
     const globalExtensionsDir = join(homeDir, "extensions");
     const workspaceExtensionsDir = join(workspaceDir, ".nextclaw", "extensions");
     const globalPluginDir = join(globalExtensionsDir, pluginId);
@@ -86,7 +86,7 @@ describe("uninstallPlugin", () => {
         installs: {
           [pluginId]: {
             source: "npm",
-            spec: "@nextclaw/channel-plugin-slack",
+            spec: "@community/slack-channel",
             installPath: globalPluginDir,
           },
         },

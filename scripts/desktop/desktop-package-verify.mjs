@@ -8,6 +8,18 @@ import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
 const rootDir = resolveRepoPath(import.meta.url);
 const releaseDir = resolve(rootDir, "apps/desktop/release");
+const channelExtensionPackages = [
+  "nextclaw-channel-extension-feishu",
+  "nextclaw-channel-extension-weixin",
+  "nextclaw-channel-extension-qq",
+  "nextclaw-channel-extension-dingtalk",
+  "nextclaw-channel-extension-telegram",
+  "nextclaw-channel-extension-discord",
+  "nextclaw-channel-extension-email",
+  "nextclaw-channel-extension-slack",
+  "nextclaw-channel-extension-wecom",
+  "nextclaw-channel-extension-whatsapp"
+];
 const nextclawPackageJsonPath = resolve(rootDir, "packages/nextclaw/package.json");
 const isHandoffVerify = process.argv.includes("--handoff");
 const RUNTIME_BUNDLE_FILE_BUDGET = 400;
@@ -83,7 +95,9 @@ function cleanReleaseDir() {
 function runCommonBuildSteps() {
   run(binName("pnpm"), ["-C", "packages/nextclaw-core", "build"]);
   run(binName("pnpm"), ["-C", "packages/nextclaw-runtime", "build"]);
-  run(binName("pnpm"), ["-C", "packages/extensions/nextclaw-channel-runtime", "build"]);
+  for (const packageName of channelExtensionPackages) {
+    run(binName("pnpm"), ["-C", `packages/extensions/${packageName}`, "build"]);
+  }
   for (const packageDir of [
     "packages/ncp-packages/nextclaw-ncp",
     "packages/ncp-packages/nextclaw-ncp-toolkit",

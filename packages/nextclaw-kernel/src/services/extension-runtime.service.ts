@@ -1,12 +1,15 @@
 import { randomUUID } from "node:crypto";
 import {
   ingressKeys,
+  type ExtensionChannelCommandExecuteIngressPayload,
+  type ExtensionChannelCommandListIngressPayload,
   type ExtensionChannelConfigGetIngressPayload,
   type ExtensionChannelMessageSubmitIngressPayload,
   type ExtensionResponseIngressPayload,
   type IngressContext,
   type IngressEnvelope,
 } from "@nextclaw/shared";
+import { AgentRouteResolver, CommandRegistry } from "@nextclaw/core";
 import type {
   OpenClawChannelAuthLoginResult,
   OpenClawChannelAuthPollResult,
@@ -177,6 +180,14 @@ export class ExtensionRuntimeService {
       this.handleChannelMessageSubmit,
     );
     this.options.ingress.addHandler(
+      ingressKeys.extension.channelCommandList,
+      this.handleChannelCommandList,
+    );
+    this.options.ingress.addHandler(
+      ingressKeys.extension.channelCommandExecute,
+      this.handleChannelCommandExecute,
+    );
+    this.options.ingress.addHandler(
       ingressKeys.extension.response,
       this.handleExtensionResponse,
     );
@@ -287,6 +298,67 @@ export class ExtensionRuntimeService {
     this.assertAuthorized(context);
     await this.options.messageBus.publishInbound(toInboundMessage(envelope.payload));
     return { accepted: true };
+  };
+
+  private readonly handleChannelCommandList = (
+    _envelope: IngressEnvelope<ExtensionChannelCommandListIngressPayload>,
+    context: IngressContext,
+  ) => {
+    this.assertAuthorized(context);
+    const registry = new CommandRegistry(this.options.getConfig(), this.options.sessionManager);
+    return {
+      commands: registry.listSlashCommands(),
+    };
+  };
+
+  private readonly handleChannelCommandExecute = async (
+    envelope: IngressEnvelope<ExtensionChannelCommandExecuteIngressPayload>,
+    context: IngressContext,
+  ) => {
+    this.assertAuthorized(context);
+    const payload = readRecord(envelope.payload);
+    const channel = readRequiredString(payload.channelId, "channelId");
+    const chatId = readRequiredString(payload.conversationId, "conversationId");
+    const senderId = readRequiredString(payload.senderId, "senderId");
+    const metadata = readRecord(payload.metadata);
+    const config = this.options.getConfig();
+    const registry = new CommandRegistry(config, this.options.sessionManager);
+    const route = new AgentRouteResolver(config).resolveInbound({
+      message: {
+        channel,
+        chatId,
+        senderId,
+        content: readString(payload.rawText) ?? readString(payload.commandName) ?? "",
+        timestamp: new Date(),
+        attachments: [],
+        metadata,
+      },
+      forcedAgentId: readString(metadata.target_agent_id),
+      sessionKeyOverride: readString(metadata.session_key_override),
+    });
+    const rawText = readString(payload.rawText);
+    if (rawText) {
+      const result = await registry.executeText(rawText, {
+        channel,
+        chatId,
+        senderId,
+        sessionKey: route.sessionKey,
+      });
+      return result ?? {
+        content: "",
+        ephemeral: true,
+      };
+    }
+    return await registry.execute(
+      readRequiredString(payload.commandName, "commandName"),
+      readRecord(payload.args),
+      {
+        channel,
+        chatId,
+        senderId,
+        sessionKey: route.sessionKey,
+      },
+    );
   };
 
   private readonly handleExtensionResponse = (

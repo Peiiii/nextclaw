@@ -1,8 +1,6 @@
 export const DEFAULT_MARKETPLACE_API_BASE = "https://marketplace-api.nextclaw.io";
 
-export const NEXTCLAW_PLUGIN_NPM_PREFIX = "@nextclaw/channel-plugin-";
 export const CLAWBAY_CHANNEL_PLUGIN_NPM_SPEC = "@clawbay/clawbay-channel";
-export const BUILTIN_CHANNEL_PLUGIN_ID_PREFIX = "builtin-channel-";
 export const MARKETPLACE_REMOTE_PAGE_SIZE = 100;
 export const MARKETPLACE_REMOTE_MAX_PAGES = 20;
 
@@ -50,30 +48,6 @@ export const MARKETPLACE_ZH_COPY_BY_SLUG: Record<string, { summary: string; desc
   "cloudflare-deploy": {
     summary: "OpenAI 精选技能，用于在 Cloudflare 上部署应用与基础设施。",
     description: "使用该技能可选择 Cloudflare 产品并部署 Workers、Pages 及相关服务。"
-  },
-  "channel-plugin-discord": {
-    summary: "NextClaw 官方插件，用于 Discord 渠道集成。",
-    description: "通过 NextClaw 插件运行时提供 Discord 渠道的入站/出站支持。"
-  },
-  "channel-plugin-telegram": {
-    summary: "NextClaw 官方插件，用于 Telegram 渠道集成。",
-    description: "通过 NextClaw 插件运行时提供 Telegram 渠道的入站/出站支持。"
-  },
-  "channel-plugin-slack": {
-    summary: "NextClaw 官方插件，用于 Slack 渠道集成。",
-    description: "通过 NextClaw 插件运行时提供 Slack 渠道的入站/出站支持。"
-  },
-  "channel-plugin-wecom": {
-    summary: "NextClaw 官方插件，用于企业微信渠道集成。",
-    description: "通过 NextClaw 插件运行时提供企业微信渠道的入站/出站支持。"
-  },
-  "channel-plugin-email": {
-    summary: "NextClaw 官方插件，用于 Email 渠道集成。",
-    description: "通过 NextClaw 插件运行时提供 Email 渠道的入站/出站支持。"
-  },
-  "channel-plugin-whatsapp": {
-    summary: "NextClaw 官方插件，用于 WhatsApp 渠道集成。",
-    description: "通过 NextClaw 插件运行时提供 WhatsApp 渠道的入站/出站支持。"
   },
   "channel-plugin-clawbay": {
     summary: "Clawbay 官方渠道插件，用于 NextClaw 集成。",
