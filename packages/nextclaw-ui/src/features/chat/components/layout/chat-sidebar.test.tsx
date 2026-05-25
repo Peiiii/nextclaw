@@ -179,6 +179,20 @@ describe('ChatSidebar create and list basics', () => {
     });
   });
 
+  it('does not animate the desktop create task button width during runtime option hydration', () => {
+    render(
+      <MemoryRouter>
+        <ChatSidebar />
+      </MemoryRouter>
+    );
+
+    const createButton = screen.getByRole('button', { name: 'New Task' });
+    const sessionTypeButton = screen.getByLabelText('Session Type');
+
+    expect(createButton.className).not.toContain('transition-all');
+    expect(sessionTypeButton.className).not.toContain('transition-all');
+  });
+
   it('shows setup required status for runtime session types that are not ready yet', () => {
     useChatInputStore.setState({
       snapshot: {
