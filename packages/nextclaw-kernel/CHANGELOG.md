@@ -1,5 +1,73 @@
 # @nextclaw/kernel
 
+## 0.1.15-beta.0
+
+### Patch Changes
+
+- Auto-generated full public beta release batch.
+
+  Packages:
+  - @nextclaw/agent-chat
+  - @nextclaw/agent-chat-ui
+  - @nextclaw/app-runtime
+  - @nextclaw/app-sdk
+  - @nextclaw/channel-extension-dingtalk
+  - @nextclaw/channel-extension-discord
+  - @nextclaw/channel-extension-email
+  - @nextclaw/channel-extension-feishu
+  - @nextclaw/channel-extension-qq
+  - @nextclaw/channel-extension-slack
+  - @nextclaw/channel-extension-telegram
+  - @nextclaw/channel-extension-wecom
+  - @nextclaw/channel-extension-weixin
+  - @nextclaw/channel-extension-whatsapp
+  - @nextclaw/client-sdk
+  - @nextclaw/companion
+  - @nextclaw/core
+  - @nextclaw/extension-sdk
+  - @nextclaw/feishu-core
+  - @nextclaw/kernel
+  - @nextclaw/mcp
+  - @nextclaw/ncp
+  - @nextclaw/ncp-agent-runtime
+  - @nextclaw/ncp-http-agent-client
+  - @nextclaw/ncp-http-agent-server
+  - @nextclaw/ncp-mcp
+  - @nextclaw/ncp-react
+  - @nextclaw/ncp-react-ui
+  - @nextclaw/ncp-toolkit
+  - @nextclaw/nextclaw-hermes-acp-bridge
+  - @nextclaw/nextclaw-narp-runtime-claude-code-sdk
+  - @nextclaw/nextclaw-narp-runtime-codex-sdk
+  - @nextclaw/nextclaw-narp-stdio-runtime-wrapper
+  - @nextclaw/nextclaw-ncp-runtime-adapter-hermes-http
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk
+  - @nextclaw/nextclaw-ncp-runtime-codex-sdk
+  - @nextclaw/nextclaw-ncp-runtime-http-client
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client
+  - @nextclaw/remote
+  - @nextclaw/runtime
+  - @nextclaw/server
+  - @nextclaw/service
+  - @nextclaw/shared
+  - @nextclaw/ui
+  - nextclaw
+
+- Updated dependencies
+  - @nextclaw/channel-extension-feishu@0.1.9-beta.0
+  - @nextclaw/channel-extension-weixin@0.1.12-beta.0
+  - @nextclaw/core@0.12.25-beta.0
+  - @nextclaw/mcp@0.1.90-beta.0
+  - @nextclaw/ncp@0.5.18-beta.0
+  - @nextclaw/ncp-agent-runtime@0.3.29-beta.0
+  - @nextclaw/ncp-mcp@0.1.92-beta.0
+  - @nextclaw/ncp-toolkit@0.5.23-beta.0
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.1.17-beta.0
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.1.18-beta.0
+  - @nextclaw/runtime@0.2.57-beta.0
+  - @nextclaw/shared@0.1.12-beta.0
+  - @nextclaw/ncp-agent-runtime-next@0.0.1-beta.0
+
 ## 0.1.14
 
 ### Patch Changes
