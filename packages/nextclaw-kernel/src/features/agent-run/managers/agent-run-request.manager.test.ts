@@ -25,7 +25,7 @@ async function waitForEvent(
 describe("AgentRunRequestManager branch session creation", () => {
   it("uses the first user message as the new session task", async () => {
     const ingress = new Ingress();
-    const createSessionCalls: Array<{ task?: string }> = [];
+    const createSessionCalls: Array<{ agentRuntimeId?: string; task?: string }> = [];
     const manager = new AgentRunRequestManager(
       {
         getOrCreate: () => ({
@@ -41,7 +41,7 @@ describe("AgentRunRequestManager branch session creation", () => {
       new EventBus(),
       ingress,
       {
-        createSession: async (params: { task?: string }) => {
+        createSession: async (params: { agentRuntimeId?: string; task?: string }) => {
           createSessionCalls.push(params);
           return {
             sessionId: "session-1",
@@ -68,9 +68,13 @@ describe("AgentRunRequestManager branch session creation", () => {
       type: ingressKeys.agentRun.send,
       payload: {
         content: [{ type: "text", text: "用户的第一句话" }],
+        metadata: {
+          session_type: "codex",
+        },
       },
     }, { source: "test" });
 
+    expect(createSessionCalls[0]?.agentRuntimeId).toBe("codex");
     expect(createSessionCalls[0]?.task).toBe("用户的第一句话");
     expect(handle.sessionId).toBe("session-1");
     manager.dispose();

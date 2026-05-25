@@ -76,8 +76,11 @@ describe('buildNcpSendMetadata', () => {
         projectRoot: ' /tmp/project-alpha ',
       }),
     ).toMatchObject({
+      agentId: 'engineer',
       agent_id: 'engineer',
+      agentRuntimeId: 'codex',
       session_type: 'codex',
+      projectRoot: '/tmp/project-alpha',
       project_root: '/tmp/project-alpha',
     });
   });

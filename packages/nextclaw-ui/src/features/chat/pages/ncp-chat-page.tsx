@@ -39,6 +39,10 @@ import {
   normalizeSessionProjectRootValue,
 } from "@/shared/lib/session-project";
 
+function createMetadataFields(value: string | undefined, fields: readonly string[]): Record<string, string> {
+  return value ? Object.fromEntries(fields.map((field) => [field, value])) : {};
+}
+
 export function buildNcpSendMetadata(payload: {
   agentId?: string;
   model?: string;
@@ -48,26 +52,22 @@ export function buildNcpSendMetadata(payload: {
   requestedSkills?: string[];
   composerNodes?: Parameters<typeof buildInlineSkillTokensFromComposer>[0];
 }): Record<string, unknown> {
-  const metadata: Record<string, unknown> = {};
-  if (payload.model?.trim()) {
-    metadata.model = payload.model.trim();
-    metadata.preferred_model = payload.model.trim();
-  }
-  if (payload.thinkingLevel?.trim()) {
-    metadata.thinking = payload.thinkingLevel.trim();
-    metadata.preferred_thinking = payload.thinkingLevel.trim();
-  }
-  if (payload.sessionType?.trim()) {
-    metadata.session_type = payload.sessionType.trim();
-    metadata.runtime = payload.sessionType.trim();
-  }
-  if (payload.agentId?.trim()) {
-    metadata.agent_id = payload.agentId.trim();
-  }
   const projectRoot = normalizeSessionProjectRootValue(payload.projectRoot);
-  if (projectRoot) {
-    metadata.project_root = projectRoot;
-  }
+  const metadata: Record<string, unknown> = {
+    ...createMetadataFields(payload.model?.trim(), ["model", "preferred_model"]),
+    ...createMetadataFields(payload.thinkingLevel?.trim(), [
+      "thinkingEffort",
+      "thinking",
+      "preferred_thinking",
+    ]),
+    ...createMetadataFields(payload.sessionType?.trim(), [
+      "agentRuntimeId",
+      "session_type",
+      "runtime",
+    ]),
+    ...createMetadataFields(payload.agentId?.trim(), ["agentId", "agent_id"]),
+    ...createMetadataFields(projectRoot ?? undefined, ["projectRoot", "project_root"]),
+  };
   const requestedSkills = normalizeRequestedSkills(payload.requestedSkills);
   if (requestedSkills.length > 0) {
     metadata.requested_skill_refs = requestedSkills;

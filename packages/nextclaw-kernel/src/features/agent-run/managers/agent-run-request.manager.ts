@@ -58,7 +58,7 @@ function readNullableString(value: unknown): string | null | undefined {
 function toAgentRunRequest(envelope: AgentRunSendIngressPayload): AgentRunRequest {
   const metadata = envelope.metadata ?? {};
   const requestMetadata = {
-    agentRuntimeId: readString(metadata.agentRuntimeId),
+    agentRuntimeId: readString(metadata.agentRuntimeId) ?? readString(metadata.session_type),
     agentId: readString(metadata.agentId),
     projectRoot: readString(metadata.projectRoot),
     channel: readString(metadata.channel),
