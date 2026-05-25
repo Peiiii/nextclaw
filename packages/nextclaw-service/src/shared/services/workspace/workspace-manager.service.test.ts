@@ -25,7 +25,7 @@ afterEach(() => {
 describe("WorkspaceManager", () => {
   it("creates the skills directory without seeding builtin skills into the workspace", () => {
     const workspace = createTempDir();
-    const manager = new WorkspaceManager("logo");
+    const manager = new WorkspaceManager();
 
     manager.createWorkspaceTemplates(workspace);
 

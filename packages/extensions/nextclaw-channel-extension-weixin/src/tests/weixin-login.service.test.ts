@@ -15,7 +15,7 @@ describe("WeixinLoginService", () => {
     const service = new WeixinLoginService({ api, store });
 
     const startResult = await service.start({
-      pluginConfig: {
+      channelConfig: {
         enabled: true,
         defaultAccountId: "old-bot@im.bot",
         accounts: {
@@ -38,7 +38,7 @@ describe("WeixinLoginService", () => {
       channel: "weixin",
       status: "authorized",
       accountId: "bot-1@im.bot",
-      pluginConfig: {
+      channelConfig: {
         enabled: true,
         defaultAccountId: "bot-1@im.bot",
         accounts: {

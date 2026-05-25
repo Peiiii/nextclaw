@@ -24,7 +24,6 @@ export class ChannelCommands {
 
   constructor(
     private deps: {
-      logo: string;
       requestRestart: (params: RequestRestartParams) => Promise<void>;
     }
   ) {}

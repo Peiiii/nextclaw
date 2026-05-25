@@ -88,7 +88,7 @@ export class NextclawServiceRuntime {
   constructor(options: NextclawServiceRuntimeOptions) {
     logStartupTrace("cli.runtime.constructor.begin");
     this.logo = options.logo ?? "🤖";
-    this.workspaceManager = measureStartupSync("cli.runtime.workspace_manager", () => new WorkspaceManager(this.logo));
+    this.workspaceManager = measureStartupSync("cli.runtime.workspace_manager", () => new WorkspaceManager());
     this.runtimeCommandService = measureStartupSync("cli.runtime.runtime_command_service", () => new RuntimeCommandService({
       requestRestart: (params) => this.requestRestart(params),
       initializeAgentHomeDirectory: (homeDirectory) => this.workspaceManager.createWorkspaceTemplates(homeDirectory)
@@ -155,7 +155,6 @@ export class NextclawServiceRuntime {
         initializeAgentHomeDirectory: (homeDirectory) => this.workspaceManager.createWorkspaceTemplates(homeDirectory)
       })),
       channels: measureStartupSync("cli.runtime.channel_commands", () => new ChannelCommands({
-        logo: this.logo,
         requestRestart: (params) => this.requestRestart(params),
       })),
       cron: measureStartupSync("cli.runtime.cron_commands", () => new CronCommands()),

@@ -19,6 +19,9 @@
 - 删除 `config.plugins.*` 配置合同与 reload 语义；extension discovery 不再读取 `plugins.load.paths`，配置热重载计划不再存在 `reloadPlugins`。
 - Bootstrap 状态命名从旧 `pluginHydration` 收敛为 `extensionLoading`，计数字段同步改为 extension 语义。
 - 清理 active 文档、截图脚本、governance 脚本与本地开发 skill 中旧 plugin / OpenClaw 链路残留。
+- 继续追补旧语义残留：Feishu/Weixin auth 返回与入参统一为 `channelConfig`，kernel 不再兼容读取 `pluginConfig`；server config controller 投影 options 改为 extension 命名。
+- 删除 `channels login` 无参数旧 bridge fallback，渠道登录统一指向运行中的 UI extension auth flow；WorkspaceManager 同步删除 bridge 准备逻辑。
+- 更新 self-management prompt、内置 skill、active 架构文档与目录治理 skill，避免继续把已删除 plugin/channel-runtime/openclaw-compat 链路描述成当前能力。
 
 ## 测试/验证/验收方式
 
@@ -59,18 +62,35 @@
 - `pnpm -C packages/nextclaw-ui tsc`
 - `pnpm -C packages/nextclaw-server build`
 - `pnpm -C packages/nextclaw-core build`
-- 此前阶段 `pnpm lint:new-code:governance`
+- `pnpm -C packages/extensions/nextclaw-channel-extension-feishu test -- src/tests/feishu-auth-capability.service.test.ts src/tests/feishu-registration.service.test.ts --run`
+- `pnpm -C packages/extensions/nextclaw-channel-extension-weixin test -- src/tests/weixin-auth-capability.service.test.ts src/tests/weixin-login.service.test.ts --run`
+- `pnpm -C packages/nextclaw-core test -- src/features/agent/features/tests/context.test.ts --run`
+- `pnpm -C packages/nextclaw-kernel test -- src/services/extension-runtime.service.test.ts --run`
+- `pnpm -C packages/nextclaw-service test -- src/shared/services/workspace/workspace-manager.service.test.ts --run`
+- `pnpm -C packages/extensions/nextclaw-channel-extension-feishu tsc`
+- `pnpm -C packages/extensions/nextclaw-channel-extension-weixin tsc`
+- `pnpm -C packages/nextclaw-kernel tsc`
+- `pnpm -C packages/nextclaw-service tsc`
+- `pnpm -C packages/nextclaw-core tsc`
+- `pnpm -C packages/nextclaw-server tsc`
+- `pnpm -C packages/nextclaw-ui tsc`
+- `pnpm -C packages/extensions/nextclaw-channel-extension-feishu lint`
+- `pnpm -C packages/extensions/nextclaw-channel-extension-weixin lint`
+- `pnpm -C packages/nextclaw-core exec eslint src/features/agent/services/context.service.ts src/features/agent/features/tests/context.test.ts --max-warnings=0`
+- `pnpm -C packages/nextclaw-service exec eslint src/commands/channel/index.ts src/service-runtime.service.ts src/shared/services/workspace/workspace-manager.service.ts src/shared/services/workspace/workspace-manager.service.test.ts --max-warnings=0`
+- `pnpm -C packages/nextclaw-server exec eslint src/features/config/controllers/config.controller.ts --max-warnings=0`
+- `pnpm -C packages/nextclaw-ui exec eslint src/shared/lib/i18n/chat-labels.utils.ts --max-warnings=0`
+- `pnpm lint:new-code:governance`
 - `pnpm check:governance-backlog-ratchet`
-- 此前阶段 `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature`
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
 - 旧路径扫描：确认生产源码、脚本、lockfile 中不再引用 `@nextclaw/channel-runtime`、`nextclaw-channel-plugin-*`、`builtin-channel-*` bundled plugin 路径、`channel.nextclaw`、`@nextclaw/openclaw-compat` 或 `packages/nextclaw-openclaw-compat`。
 - 旧 plugin surface 扫描：确认 active 源码、脚本、active 文档与 skill 中不再引用 `config.plugins`、`plugins.load`、`plugins.entries`、`reloadPlugins`、`pluginHydration`、`marketplace/plugins`、`PluginMarketplace`、`MarketplacePlugin`、`installPlugin`、`enablePlugin`、`disablePlugin`、`uninstallPlugin`、`openclaw.plugin.json`、`packageJson.openclaw` 或 `nextclaw plugins`。
 - `git diff --check`
 
 暂未完全通过：
 
-- `pnpm -C packages/nextclaw-service tsc`：旧 plugin/bootstrap 相关错误已清掉；当前剩余失败来自并行会话已修改的 `src/shared/services/gateway/utils/cron-job-handler.utils.test.ts`，主要是 tuple `[]` 与 possibly undefined 类型错误，不属于本轮旧 plugin surface 删除链路。
-- `pnpm lint:new-code:governance`：当前完整 dirty tree 被 diff-only 角色命名规则拦截，命中项包含并行会话触达的 provider/model-config 文件，以及历史 `configs/`、`providers/`、`i18n/` 目录下的既有命名债；本轮未继续扩大到批量重命名。
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature`：当前完整 dirty tree 被并行会话的 `nextclaw-ncp-runner.utils.ts` 与 provider `builtin.ts` 文件预算拦截；旧 plugin surface 删除本身仍是净删除方向。
+- 本轮定向 maintainability guard 通过，完整工作区 guard 仍可能被并行会话 touched files 拦截，因此以本轮 paths 结果作为本次清理的闭环证据。
 
 ## 发布/部署方式
 
@@ -95,6 +115,9 @@
 - Telegram/Discord 没有停留在“整文件搬家”状态：已继续拆出流式预览、文本分块、draft streaming、命令映射和消息工具，避免新增 extension 包立刻形成超长主 service。
 - OpenClaw compat 不再留在主仓库；通用 channel binding/auth/config projection 合同已迁回 extension 主链路。
 - 旧 plugin marketplace 与 `config.plugins.*` 作为平行旧入口被删除，extension 成为唯一扩展发现与渠道贡献主路径。
+- Feishu/Weixin auth 合同删除 `pluginConfig` 兼容字段，旧字段不再被 kernel fallback 吞掉，减少隐性双路径。
+- `channels login` 删除旧 bridge 准备路径，WorkspaceManager 不再承担已废弃 bridge 复制/构建职责。
+- `context.service.ts` 同步修正为 `@core/*` 公共入口导入，并通过 diff-only module structure governance。
 - 本轮追补清理以删除旧入口为主；当前完整工作区混有并行会话改动，精确增减口径应在提交拆分时按本轮文件单独统计。
 - 已运行 `post-edit-maintainability-guard` 和 `post-edit-maintainability-review` 相关收尾检查；当前完整门禁被并行/历史触达文件拦截，本 README 同时记录红区触达和拦截原因。
 

@@ -1,6 +1,6 @@
-import { MemoryStore } from "../features/memory/memory-store.js";
-import { resolveNextclawSelfManageGuidePaths } from "../features/self-manage/guide-path.js";
-import { buildWorkspaceProjectContextSection, DEFAULT_BOOTSTRAP_CONTEXT_CONFIG } from "../../runtime-context/services/bootstrap-context.service.js";
+import { MemoryStore } from "@core/features/agent/features/memory/memory-store.js";
+import { resolveNextclawSelfManageGuidePaths } from "@core/features/agent/features/self-manage/guide-path.js";
+import { buildWorkspaceProjectContextSection, DEFAULT_BOOTSTRAP_CONTEXT_CONFIG } from "@core/features/runtime-context/index.js";
 import {
   buildActiveSkillsSystemSection,
   buildAvailableSkillsSystemSection,
@@ -8,21 +8,20 @@ import {
   buildRequestedSkillsSystemSection
 } from "./skill-context.js";
 import { SkillsLoader } from "./skills-loader.js";
-import { DEFAULT_TOOL_CATALOG, normalizeToolCatalogEntries, type ToolCatalogEntry } from "../utils/tool-catalog.utils.js";
-import { APP_NAME } from "../../config/configs/brand.js";
-import type { Config } from "../../config/configs/schema.js";
-import type { InboundAttachment } from "../../bus/services/events.js";
-import { SILENT_REPLY_TOKEN } from "../types/tokens.js";
-import type { ThinkingLevel } from "../../../shared/lib/core-utils/utils/thinking.js";
+import { DEFAULT_TOOL_CATALOG, normalizeToolCatalogEntries, type ToolCatalogEntry } from "@core/features/agent/utils/tool-catalog.utils.js";
+import { APP_NAME, type Config } from "@core/features/config/index.js";
+import type { InboundAttachment } from "@core/features/bus/index.js";
+import { SILENT_REPLY_TOKEN } from "@core/features/agent/types/tokens.js";
+import type { ThinkingLevel } from "@core/shared/lib/core-utils/index.js";
 import {
   SessionProjectContextResolver,
   type SessionProjectContext,
-} from "../../session/services/session-project-context.js";
+} from "@core/features/session/index.js";
 import {
   DefaultUserContentBuilder,
   type ContextUserContent,
   type ContextUserContentBuilder,
-} from "../features/content/user-content.js";
+} from "@core/features/agent/features/content/user-content.js";
 
 export type Message = Record<string, unknown>;
 type ContextConfig = Config["agents"]["context"];
@@ -155,21 +154,33 @@ export class ContextBuilder {
     availableTools?: ToolCatalogEntry[];
     additionalSystemSections?: string[];
   }): Message[] => {
+    const {
+      history,
+      currentMessage,
+      skillNames,
+      attachments,
+      channel,
+      chatId,
+      sessionKey,
+      thinkingLevel,
+      availableTools,
+      additionalSystemSections,
+    } = params;
     const messages: Message[] = [];
-    let systemPrompt = this.buildSystemPrompt(params.skillNames, params.sessionKey, params.availableTools, params.additionalSystemSections);
-    if (params.channel && params.chatId) {
-      systemPrompt += `\n\n## Current Session\nChannel: ${params.channel}\nChat ID: ${params.chatId}`;
+    let systemPrompt = this.buildSystemPrompt(skillNames, sessionKey, availableTools, additionalSystemSections);
+    if (channel && chatId) {
+      systemPrompt += `\n\n## Current Session\nChannel: ${channel}\nChat ID: ${chatId}`;
     }
-    if (params.sessionKey) {
-      systemPrompt += `\nSession: ${params.sessionKey}`;
+    if (sessionKey) {
+      systemPrompt += `\nSession: ${sessionKey}`;
     }
-    if (params.thinkingLevel) {
-      systemPrompt += `\nThinking policy: ${params.thinkingLevel}`;
+    if (thinkingLevel) {
+      systemPrompt += `\nThinking policy: ${thinkingLevel}`;
     }
     messages.push({ role: "system", content: systemPrompt });
-    messages.push(...params.history);
+    messages.push(...history);
 
-    const userContent = this.resolveUserContent(params.currentMessage, params.attachments ?? []);
+    const userContent = this.resolveUserContent(currentMessage, attachments ?? []);
     messages.push({ role: "user", content: userContent });
 
     return messages;
@@ -303,7 +314,7 @@ export class ContextBuilder {
       "When a turn includes a time hint, treat it as context for relative-time interpretation in that turn.",
       "",
       `## ${APP_NAME} Self-Management Guide`,
-      `- For ${APP_NAME} self-management operations (version/status/doctor/service/plugins/channels/config/agents/cron/remote/update), read \`${selfManageGuide.primaryPath ?? "the built-in NextClaw self-management guide"}\` first.`,
+      `- For ${APP_NAME} self-management operations (version/status/doctor/service/channels/config/agents/cron/remote/update), read \`${selfManageGuide.primaryPath ?? "the built-in NextClaw self-management guide"}\` first.`,
       "- Treat these product-management intents as higher priority than generic skills with overlapping words such as create/install/publish.",
       "- Do not load unrelated generic skills before reading the built-in self-management guide for a self-management intent.",
       "- Workspace `USAGE.md` snapshots and copied built-in skills are deprecated artifacts; the built-in package guide is the source of truth.",

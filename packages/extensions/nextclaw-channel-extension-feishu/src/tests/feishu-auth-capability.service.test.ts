@@ -34,7 +34,7 @@ describe("FeishuAuthCapability", () => {
     await capability.poll({ sessionId: "session-1" });
 
     expect(registrationService.start).toHaveBeenCalledWith({
-      pluginConfig: { enabled: true, domain: "feishu" },
+      channelConfig: { enabled: true, domain: "feishu" },
       requestedAccountId: "account-1",
       domain: "lark",
       verbose: true,

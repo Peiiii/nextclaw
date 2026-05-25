@@ -26,8 +26,8 @@ export const CHAT_LABELS: Record<string, { zh: string; en: string }> = {
   chatSessionTypeFeishu: { zh: '飞书', en: 'Feishu' },
   chatSessionTypeCron: { zh: '定时任务', en: 'Cron' },
   chatSessionTypeUnavailableSuffix: {
-    zh: '当前不可用，请启用对应插件或新建 Native 会话。',
-    en: 'is unavailable now. Re-enable the plugin or create a native session.'
+    zh: '当前不可用，请启用对应运行时或新建 Native 会话。',
+    en: 'is unavailable now. Re-enable the runtime or create a native session.'
   },
   chatModelNoOptions: { zh: '暂无可用模型，请先配置提供商。', en: 'No available models. Configure a provider first.' },
   chatGoConfigureProvider: { zh: '去配置提供商', en: 'Go to Providers' },

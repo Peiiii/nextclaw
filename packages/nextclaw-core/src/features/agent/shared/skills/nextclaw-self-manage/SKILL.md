@@ -1,13 +1,13 @@
 ---
 name: nextclaw-self-manage
-description: Self-manage NextClaw runtime via CLI guide. For install/start/status/doctor/service/plugins/channels/config/agents/cron/remote/update operations, and for discovering local HTTP/API/webhook addresses.
-description_zh: 通过 NextClaw CLI 管理 NextClaw 自身，覆盖安装、启动、状态、诊断、服务、插件、渠道、配置、Agent、定时任务、远程访问、更新，以及本地 HTTP/API/webhook 地址发现。
+description: Self-manage NextClaw runtime via CLI guide. For install/start/status/doctor/service/channels/config/agents/cron/remote/update operations, and for discovering local HTTP/API/webhook addresses.
+description_zh: 通过 NextClaw CLI 管理 NextClaw 自身，覆盖安装、启动、状态、诊断、服务、渠道、配置、Agent、定时任务、远程访问、更新，以及本地 HTTP/API/webhook 地址发现。
 metadata: {"nextclaw":{"always":true,"emoji":"🛠️"}}
 ---
 
 # NextClaw Self-Management
 
-Use this skill whenever the user asks to manage NextClaw itself (version, service status, diagnostics, plugins, channels, config, agents, cron, remote, update, installed skills, marketplace skills, local HTTP/API/webhook addresses).
+Use this skill whenever the user asks to manage NextClaw itself (version, service status, diagnostics, channels, config, agents, cron, remote, update, installed skills, marketplace skills, local HTTP/API/webhook addresses).
 
 ## Source of Truth
 

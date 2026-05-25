@@ -16,13 +16,12 @@
 
 | 包 | 职责 |
 |----|------|
-| `nextclaw` | CLI 入口、start/stop/serve/gateway、agent/config/channels/cron/plugins/skills 等命令 |
+| `nextclaw` | CLI 入口、start/stop/serve/gateway、agent/config/channels/cron/skills 等命令 |
 | `nextclaw-core` | Agent 循环、Provider 管理、内置工具、Cron、Session、Memory、配置 schema |
 | `nextclaw-server` | HTTP API、WebSocket、与 UI 和 Channel 的对接 |
 | `nextclaw-ui` | 配置 Web UI（模型 / Provider / 渠道 / 路由与运行时） |
-| `nextclaw-openclaw-compat` | OpenClaw 插件 SDK 与兼容层 |
-| `nextclaw-channel-runtime` | 渠道运行时（加载、注册、消息入站/出站） |
-| `nextclaw-channel-plugin-*` | 各渠道插件：telegram, discord, slack, feishu, dingtalk, wecom, whatsapp, email, qq, weixin |
+| `nextclaw-extension-sdk` | Extension 接入 SDK |
+| `nextclaw-channel-extension-*` | 各渠道 extension：telegram, discord, slack, feishu, dingtalk, wecom, whatsapp, email, qq, weixin |
 
 ---
 
@@ -173,7 +172,7 @@ Agent 主循环中注册的默认工具（`nextclaw-core` `agent/loop.ts` + `age
 | gateway | 配置与运维：config.get / config.schema / config.apply / config.patch / restart / update.run |
 | cron | 定时任务列表/添加/删除/启用/禁用/立即执行（依赖 cronService） |
 
-扩展插件通过 `extensionRegistry.tools` 注册，经 `ExtensionToolAdapter` 暴露为额外工具名。
+Extension 通过 `extensionRegistry.tools` 注册，经 `ExtensionToolAdapter` 暴露为额外工具名。
 
 ---
 

@@ -6,7 +6,7 @@ This guide covers installation, configuration, channels, tools, automation, and 
 
 ## AI Self-Management Contract
 
-When NextClaw AI needs to operate the product itself (version/status/doctor/service/plugins/channels/config/agents/cron/remote/update), follow these rules:
+When NextClaw AI needs to operate the product itself (version/status/doctor/service/channels/config/agents/cron/remote/update), follow these rules:
 
 1. **Read the built-in self-management guide first**. The packaged runtime copy lives at `packages/nextclaw/resources/USAGE.md`, and this repo page is kept aligned with it.
 2. **Use the exact command for the intent**: use `nextclaw --version` for version lookup; do not infer version from `status`.
@@ -548,7 +548,7 @@ Skill loading contract:
 | `nextclaw channels list --json` | List extension channels for automation and agent channel discovery |
 | `nextclaw channels status` | Show enabled channels and status |
 | `nextclaw doctor` | Run runtime diagnostics (`--json`, `--verbose`, `--fix`) |
-| `nextclaw channels login` | Open QR login for supported channels |
+| `nextclaw channels login` | Channel login is handled by the running UI extension auth flow |
 | `nextclaw channels add --channel <id> ...` | Configure an extension channel |
 | `nextclaw cron list` | List all scheduled jobs, including disabled ones |
 | `nextclaw cron add ...` | Add a cron job (see [Cron](#cron)) |
@@ -942,7 +942,7 @@ WhatsApp typically requires a bridge (e.g. a companion service). Configure the b
 }
 ```
 
-Use `nextclaw channels login` when the bridge supports QR-based linking.
+Use the running UI extension auth flow for channel login. `nextclaw channels login` now reports that login has moved to the UI flow.
 
 ### Email
 

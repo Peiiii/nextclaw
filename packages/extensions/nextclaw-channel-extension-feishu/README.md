@@ -11,7 +11,7 @@ scan-to-create onboarding inspired by Hermes Agent:
 4. Credentials are stored under `NEXTCLAW_HOME/channels/feishu`.
 5. The extension connects through the Lark WebSocket client.
 
-This extension replaces the removed legacy Feishu channel plugin. It contributes
+This extension replaces the removed legacy Feishu channel package. It contributes
 the built-in `feishu` channel id through the extension mechanism, so QR
 onboarding, WebSocket inbound messages, NCP replies, and Feishu processing
 reactions now live in one lightweight channel owner.

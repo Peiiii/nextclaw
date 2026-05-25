@@ -39,13 +39,13 @@ describe("WeixinAuthCapability", () => {
     });
 
     expect(loginService.start).toHaveBeenCalledWith({
-      pluginConfig: { enabled: true, baseUrl: "https://configured.example" },
+      channelConfig: { enabled: true, baseUrl: "https://configured.example" },
       requestedAccountId: "account-1",
       baseUrl: "https://override.example",
     });
     expect(loginService.poll).toHaveBeenCalledWith({ sessionId: "session-1" });
     expect(loginService.login).toHaveBeenCalledWith({
-      pluginConfig: { enabled: true, baseUrl: "https://configured.example" },
+      channelConfig: { enabled: true, baseUrl: "https://configured.example" },
       requestedAccountId: null,
       baseUrl: null,
       verbose: true,

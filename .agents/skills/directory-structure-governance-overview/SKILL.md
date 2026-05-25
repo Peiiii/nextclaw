@@ -198,10 +198,10 @@ NODE
 - `P1`：产品关键路径或生态基础能力，例如 app runtime、server、mcp、remote、marketplace worker。
 - `P2`：数量大但影响面较局部的插件、demo、独立 app。
 
-当用户要求“先忽略插件”时：
+当用户要求“先忽略扩展”时：
 
-- 将 `packages/extensions/nextclaw-channel-plugin-*` 单独列到插件组。
-- Top 10 主榜默认不让插件占据第一优先级。
+- 将 `packages/extensions/nextclaw-channel-extension-*` 单独列到扩展组。
+- Top 10 主榜默认不让扩展包占据第一优先级。
 
 ## 结束判断
 

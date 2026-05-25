@@ -69,7 +69,7 @@ describe("FeishuRegistrationService", () => {
     const service = new FeishuRegistrationService({ store, fetchImpl });
 
     const started = await service.start({
-      pluginConfig: { enabled: false, allowFrom: ["ou_existing"] },
+      channelConfig: { enabled: false, allowFrom: ["ou_existing"] },
       requestedAccountId: "primary",
       domain: "feishu",
     });
@@ -78,7 +78,7 @@ describe("FeishuRegistrationService", () => {
     expect(started.qrCodeUrl).toContain("from=nextclaw");
     expect(authorized?.status).toBe("authorized");
     expect(authorized?.accountId).toBe("primary");
-    expect(authorized?.pluginConfig).toMatchObject({
+    expect(authorized?.channelConfig).toMatchObject({
       enabled: true,
       defaultAccountId: "primary",
       accounts: {
