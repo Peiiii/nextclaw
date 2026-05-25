@@ -72,21 +72,14 @@ describe("resolveExtensionManifestRoots", () => {
     expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-qq"))).toBe(true);
   });
 
-  it("uses NextClaw extension directories and existing configured load paths", () => {
+  it("uses NextClaw extension directories", () => {
     const workspace = createTempDir();
     const roots = resolveExtensionManifestRoots({
       workspace,
-      config: {
-        plugins: {
-          load: {
-            paths: [workspace],
-          },
-        },
-      } as never,
+      config: {} as never,
     });
 
     expect(roots).toContain(join(workspace, ".nextclaw", "extensions"));
-    expect(roots.filter((root) => root === workspace)).toHaveLength(1);
   });
 });
 
@@ -103,8 +96,9 @@ describe("ExtensionRuntimeService", () => {
   });
 
   it("builds channel bindings from manifests and resolves auth through extension request responses", async () => {
-    const root = createTempDir();
     const workspace = createTempDir();
+    const root = join(workspace, ".nextclaw", "extensions");
+    mkdirSync(root, { recursive: true });
     writeExtensionManifest(root);
     const eventBus = {
       emitEnvelope: vi.fn(),
@@ -116,11 +110,6 @@ describe("ExtensionRuntimeService", () => {
         channels: {
           fake: {
             enabled: true,
-          },
-        },
-        plugins: {
-          load: {
-            paths: [root],
           },
         },
       }) as never,
@@ -135,11 +124,6 @@ describe("ExtensionRuntimeService", () => {
 
     const contributions = await runtime.loadChannelContributions({
       config: {
-        plugins: {
-          load: {
-            paths: [root],
-          },
-        },
       } as never,
       workspace,
     });
@@ -196,8 +180,9 @@ describe("ExtensionRuntimeService", () => {
   });
 
   it("forwards outbound channel reply context to extension requests", async () => {
-    const root = createTempDir();
     const workspace = createTempDir();
+    const root = join(workspace, ".nextclaw", "extensions");
+    mkdirSync(root, { recursive: true });
     writeExtensionManifest(root);
     const eventBus = {
       emitEnvelope: vi.fn(),
@@ -209,11 +194,6 @@ describe("ExtensionRuntimeService", () => {
         channels: {
           fake: {
             enabled: true,
-          },
-        },
-        plugins: {
-          load: {
-            paths: [root],
           },
         },
       }) as never,
@@ -228,11 +208,6 @@ describe("ExtensionRuntimeService", () => {
 
     const contributions = await runtime.loadChannelContributions({
       config: {
-        plugins: {
-          load: {
-            paths: [root],
-          },
-        },
       } as never,
       workspace,
     });

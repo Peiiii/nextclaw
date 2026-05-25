@@ -84,19 +84,7 @@
 | `nextclaw cron enable <jobId>` | 启用（`--disable` 禁用） |
 | `nextclaw cron run <jobId>` | 立即执行一次（可选 `--force`） |
 
-### 3.7 插件（OpenClaw 兼容）
-
-| 命令 | 说明 |
-|------|------|
-| `nextclaw plugins list` | 已发现插件列表 |
-| `nextclaw plugins info <id>` | 插件详情 |
-| `nextclaw plugins install <path-or-spec>` | 从路径或 npm 安装 |
-| `nextclaw plugins uninstall <id>` | 卸载（可选 `--dry-run`） |
-| `nextclaw plugins enable <id>` | 在配置中启用 |
-| `nextclaw plugins disable <id>` | 在配置中禁用 |
-| `nextclaw plugins doctor` | 插件加载诊断 |
-
-### 3.8 Skills / Marketplace
+### 3.7 Skills / Marketplace
 
 | 命令 | 说明 |
 |------|------|
@@ -117,7 +105,7 @@
 - **配置路径**：`~/.nextclaw/config.json`（可通过 `NEXTCLAW_HOME` 覆盖目录）。
 - **工作区默认路径**：`~/.nextclaw/workspace`（可在 `agents.defaults.workspace` 覆盖）。
 - **热应用（无需重启）**：`providers.*`、`channels.*`、`agents.defaults.*`、`agents.context.*`、`tools.*`。
-- **需重启**：UI 端口（`--port`/`--ui-port`）、`plugins.*`。
+- **需重启**：UI 端口（`--port`/`--ui-port`）。
 
 ---
 
@@ -207,11 +195,11 @@ Agent 主循环中注册的默认工具（`nextclaw-core` `agent/loop.ts` + `age
 
 ---
 
-## 10. 插件与扩展
+## 10. 扩展
 
-- **OpenClaw 兼容**：插件 SDK 与渠道插件格式与 OpenClaw 一致，可从本地或 npm 安装。
-- **发现路径**：`$NEXTCLAW_HOME/extensions`、`<workspace>/.nextclaw/extensions`、`plugins.load.paths`。
-- **渠道插件包**：`nextclaw-channel-plugin-telegram` 等，由 channel-runtime 加载并注册。
+- **扩展 SDK**：渠道扩展通过统一 extension SDK 接入，注册自身 manifest 与通用 channel controller。
+- **发现路径**：`$NEXTCLAW_HOME/extensions`、`<workspace>/.nextclaw/extensions`、内置渠道扩展包。
+- **渠道扩展包**：`nextclaw-channel-extension-telegram` 等，由 extension runtime 加载并注册。
 
 ---
 

@@ -14,7 +14,7 @@ type MarketplaceCuratedSceneRouteParams = {
   items: MarketplaceItemSummary[];
   installedRecordLookup: Map<string, MarketplaceInstalledRecord>;
   scene?: string;
-  forcedType?: "plugins" | "skills";
+  forcedType?: "skills";
   typeFilter: MarketplaceItemType;
   scope: "all" | "installed";
   searchText: string;

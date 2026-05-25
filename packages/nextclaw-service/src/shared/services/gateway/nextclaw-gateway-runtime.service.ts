@@ -345,16 +345,6 @@ export class NextclawGatewayRuntime {
       reloadCompanion: async ({ config: nextConfig }) => {
         await companionRuntimeService.applyConfig(nextConfig);
       },
-      reloadPlugins: async ({ config: nextConfig, changedPaths }) => {
-        const result = await this.extensions.reloadForConfigChange({
-          config: nextConfig,
-          changedPaths,
-        });
-        if (result.restartChannels) {
-          console.log("Config reload: plugin channel gateways restarted.");
-        }
-        return { restartChannels: result.restartChannels };
-      },
       onRestartRequired: (paths) => {
         void this.deps.requestRestart({
           changedPaths: paths,

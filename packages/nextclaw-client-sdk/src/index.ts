@@ -64,7 +64,6 @@ export type {
   MarketplaceMcpInstallResult,
   MarketplaceMcpManageRequest,
   MarketplaceMcpManageResult,
-  MarketplacePluginContentView,
   MarketplaceRecommendationView,
   MarketplaceSceneView,
   MarketplaceScenesView,

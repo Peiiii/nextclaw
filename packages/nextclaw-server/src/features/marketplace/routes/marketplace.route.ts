@@ -1,24 +1,14 @@
 import type { Hono } from "hono";
 import type { McpMarketplaceController } from "@nextclaw-server/features/marketplace/controllers/mcp-marketplace.controller.js";
-import type { PluginMarketplaceController } from "@nextclaw-server/features/marketplace/controllers/plugin-marketplace.controller.js";
 import type { SkillMarketplaceController } from "@nextclaw-server/features/marketplace/controllers/skill-marketplace.controller.js";
 
 export function mountMarketplaceRoutes(
   app: Hono,
   controllers: {
-    plugin: PluginMarketplaceController;
     skill: SkillMarketplaceController;
     mcp: McpMarketplaceController;
   }
 ): void {
-  app.get("/api/marketplace/plugins/installed", controllers.plugin.getInstalled);
-  app.get("/api/marketplace/plugins/items", controllers.plugin.listItems);
-  app.get("/api/marketplace/plugins/items/:slug", controllers.plugin.getItem);
-  app.get("/api/marketplace/plugins/items/:slug/content", controllers.plugin.getItemContent);
-  app.post("/api/marketplace/plugins/install", controllers.plugin.install);
-  app.post("/api/marketplace/plugins/manage", controllers.plugin.manage);
-  app.get("/api/marketplace/plugins/recommendations", controllers.plugin.getRecommendations);
-
   app.get("/api/marketplace/skills/installed", controllers.skill.getInstalled);
   app.get("/api/marketplace/skills/scenes", controllers.skill.listScenes);
   app.get("/api/marketplace/skills/items", controllers.skill.listItems);

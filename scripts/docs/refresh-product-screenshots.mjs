@@ -48,7 +48,6 @@ const uiText = {
   en: {
     providers: 'AI Providers',
     channels: 'Message Channels',
-    pluginMarketplace: 'Plugin Marketplace',
     skillMarketplace: 'Skill Marketplace',
     cron: 'Cron Jobs',
     chatWelcome: 'Hello, how can I help you?'
@@ -56,7 +55,6 @@ const uiText = {
   zh: {
     providers: 'AI 提供商',
     channels: '消息渠道',
-    pluginMarketplace: '插件市场',
     skillMarketplace: '技能市场',
     cron: '定时任务',
     chatWelcome: '你好，有什么可以帮你的吗？'
@@ -105,13 +103,6 @@ const scenes = [
       'images/screenshots/nextclaw-channels-page-cn.png',
       'apps/landing/public/nextclaw-channels-page-cn.png'
     ]
-  },
-  {
-    id: 'marketplace-plugins',
-    route: '/marketplace/plugins',
-    language: 'en',
-    waitText: uiText.en.pluginMarketplace,
-    outputs: ['images/screenshots/nextclaw-plugins-page.png']
   },
   {
     id: 'marketplace-skills',
@@ -381,49 +372,6 @@ const schemaPayload = {
   generatedAt: new Date().toISOString()
 };
 
-const marketplacePlugins = [
-  {
-    id: 'plugin-nextclaw-web-search',
-    slug: 'web-search',
-    type: 'plugin',
-    name: 'Web Search',
-    summary: 'Search the web directly from your agent workflow.',
-    summaryI18n: {
-      en: 'Search the web directly from your agent workflow.',
-      zh: '在 Agent 工作流中直接进行网页搜索。'
-    },
-    tags: ['search', 'tooling'],
-    author: 'NextClaw',
-    install: {
-      kind: 'npm',
-      spec: '@nextclaw/plugin-web-search',
-      command: 'npm i @nextclaw/plugin-web-search'
-    },
-    updatedAt: '2026-03-05T00:00:00.000Z',
-    publishedAt: '2026-03-01T00:00:00.000Z'
-  },
-  {
-    id: 'plugin-nextclaw-github',
-    slug: 'github',
-    type: 'plugin',
-    name: 'GitHub Toolkit',
-    summary: 'Read issues, PRs, and repository metadata.',
-    summaryI18n: {
-      en: 'Read issues, PRs, and repository metadata.',
-      zh: '读取 Issue、PR 与仓库元数据。'
-    },
-    tags: ['github', 'dev'],
-    author: 'NextClaw',
-    install: {
-      kind: 'npm',
-      spec: '@nextclaw/plugin-github',
-      command: 'npm i @nextclaw/plugin-github'
-    },
-    updatedAt: '2026-03-04T00:00:00.000Z',
-    publishedAt: '2026-03-02T00:00:00.000Z'
-  }
-];
-
 const marketplaceSkills = [
   {
     id: 'skill-nextclaw-content-ops',
@@ -464,19 +412,6 @@ const marketplaceSkills = [
     },
     updatedAt: '2026-03-01T00:00:00.000Z',
     publishedAt: '2026-02-25T00:00:00.000Z'
-  }
-];
-
-const installedPluginRecords = [
-  {
-    type: 'plugin',
-    id: 'plugin-nextclaw-web-search',
-    spec: '@nextclaw/plugin-web-search',
-    label: 'Web Search',
-    installedAt: '2026-03-05T01:00:00.000Z',
-    enabled: true,
-    runtimeStatus: 'running',
-    origin: 'workspace'
   }
 ];
 
@@ -583,12 +518,6 @@ const staticGetMocks = new Map([
   ['/api/chat/capabilities', { stopSupported: true }],
   ['/api/chat/runs', { runs: [], total: 0 }],
   ['/api/cron', { jobs: cronJobs, total: cronJobs.length }],
-  ['/api/marketplace/plugins/installed', {
-    type: 'plugin',
-    total: installedPluginRecords.length,
-    specs: installedPluginRecords.map((record) => record.spec),
-    records: installedPluginRecords
-  }],
   ['/api/marketplace/skills/installed', {
     type: 'skill',
     total: installedSkillRecords.length,
@@ -631,23 +560,8 @@ function resolveMock(pathname, searchParams, method) {
     });
   }
 
-  if (method === 'GET' && pathname === '/api/marketplace/plugins/items') {
-    return ok(listPayload(marketplacePlugins, searchParams));
-  }
-
   if (method === 'GET' && pathname === '/api/marketplace/skills/items') {
     return ok(listPayload(marketplaceSkills, searchParams));
-  }
-
-  if (method === 'GET' && pathname === '/api/marketplace/plugins/recommendations') {
-    return ok({
-      type: 'plugin',
-      sceneId: searchParams.get('scene') || 'default',
-      title: 'Recommended Plugins',
-      description: 'Curated plugin list',
-      total: marketplacePlugins.length,
-      items: marketplacePlugins
-    });
   }
 
   if (method === 'GET' && pathname === '/api/marketplace/skills/recommendations') {
@@ -658,21 +572,6 @@ function resolveMock(pathname, searchParams, method) {
       description: 'Curated skill list',
       total: marketplaceSkills.length,
       items: marketplaceSkills
-    });
-  }
-
-  const pluginItemMatch = pathname.match(/^\/api\/marketplace\/plugins\/items\/([^/]+)$/);
-  if (method === 'GET' && pluginItemMatch) {
-    const slug = decodeURIComponent(pluginItemMatch[1]);
-    const item = matchItemBySlug(marketplacePlugins, slug);
-    if (!item) {
-      return fail(404, `Plugin not found: ${slug}`);
-    }
-    return ok({
-      ...item,
-      description: item.summary,
-      descriptionI18n: item.summaryI18n,
-      sourceRepo: 'https://github.com/nextclaw/plugins'
     });
   }
 
@@ -688,25 +587,6 @@ function resolveMock(pathname, searchParams, method) {
       description: item.summary,
       descriptionI18n: item.summaryI18n,
       sourceRepo: 'https://github.com/nextclaw/skills'
-    });
-  }
-
-  const pluginContentMatch = pathname.match(/^\/api\/marketplace\/plugins\/items\/([^/]+)\/content$/);
-  if (method === 'GET' && pluginContentMatch) {
-    const slug = decodeURIComponent(pluginContentMatch[1]);
-    const item = matchItemBySlug(marketplacePlugins, slug);
-    if (!item) {
-      return fail(404, `Plugin not found: ${slug}`);
-    }
-    return ok({
-      type: 'plugin',
-      slug,
-      name: item.name,
-      install: item.install,
-      source: 'repo',
-      bodyRaw: item.summary,
-      metadataRaw: JSON.stringify(item, null, 2),
-      sourceUrl: 'https://github.com/nextclaw/plugins'
     });
   }
 
@@ -784,7 +664,7 @@ function buildMarketplaceContentFromItem(type, slug, item) {
   }
 
   return {
-    type: 'plugin',
+    type: 'mcp',
     slug,
     name,
     install,

@@ -35,10 +35,10 @@ export type BootstrapStatusView = {
     completedAt?: string;
     error?: string;
   };
-  pluginHydration: {
+  extensionLoading: {
     state: BootstrapStageState;
-    loadedPluginCount: number;
-    totalPluginCount: number;
+    loadedExtensionCount: number;
+    totalExtensionCount: number;
     startedAt?: string;
     completedAt?: string;
     error?: string;
@@ -666,14 +666,13 @@ export type WsEvent =
   | { type: 'connection.close'; payload?: Record<string, unknown> }
   | { type: 'connection.error'; payload?: { message?: string } };
 
-export type MarketplaceItemType = 'plugin' | 'skill' | 'mcp';
+export type MarketplaceItemType = 'skill' | 'mcp';
 
 export type MarketplaceSort = 'relevance' | 'updated';
 
-export type MarketplacePluginInstallKind = 'npm';
 export type MarketplaceSkillInstallKind = 'builtin' | 'marketplace';
 export type MarketplaceMcpInstallKind = 'template';
-export type MarketplaceInstallKind = MarketplacePluginInstallKind | MarketplaceSkillInstallKind | MarketplaceMcpInstallKind;
+export type MarketplaceInstallKind = MarketplaceSkillInstallKind | MarketplaceMcpInstallKind;
 
 export type MarketplaceInstallSpec = {
   kind: MarketplaceInstallKind;
@@ -730,18 +729,6 @@ export type MarketplaceSkillContentView = {
   raw: string;
   metadataRaw?: string;
   bodyRaw: string;
-  sourceUrl?: string;
-};
-
-export type MarketplacePluginContentView = {
-  type: 'plugin';
-  slug: string;
-  name: string;
-  install: MarketplaceInstallSpec;
-  source: 'npm' | 'repo' | 'remote';
-  raw?: string;
-  bodyRaw?: string;
-  metadataRaw?: string;
   sourceUrl?: string;
 };
 

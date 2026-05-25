@@ -1,8 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { MarketplacePage } from "@/features/marketplace";
 import type {
-  MarketplaceInstalledRecord,
   MarketplaceInstalledView,
   MarketplaceItemSummary,
   MarketplaceListView,
@@ -28,7 +26,7 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   docOpen: vi.fn(),
   confirm: vi.fn(),
-  routeParams: {} as { type?: string; scene?: string },
+  routeParams: {} as { scene?: string },
   itemsQuery: null as unknown as ItemsQueryState,
   installedQuery: null as unknown as InstalledQueryState,
   installMutation: {
@@ -118,41 +116,6 @@ function createMarketplaceItem(
   };
 }
 
-function createPluginMarketplaceItem(
-  overrides: Partial<MarketplaceItemSummary> = {},
-): MarketplaceItemSummary {
-  return createMarketplaceItem({
-    id: "extension-channel-slack",
-    slug: "channel-slack",
-    type: "plugin",
-    name: "Slack Channel",
-    summary: "Optional Slack channel for NextClaw",
-    summaryI18n: { en: "Optional Slack channel for NextClaw" },
-    install: {
-      kind: "npm",
-      spec: "@nextclaw/channel-extension-slack",
-      command: "Install from NextClaw Marketplace",
-    },
-    ...overrides,
-  });
-}
-
-function createInstalledRecord(
-  overrides: Partial<MarketplaceInstalledRecord> = {},
-): MarketplaceInstalledRecord {
-  return {
-    type: "plugin",
-    id: "@nextclaw/channel-extension-slack",
-    spec: "@nextclaw/channel-extension-slack",
-    label: "Slack Channel",
-    enabled: true,
-    origin: "marketplace",
-    source: "marketplace",
-    installedAt: "2026-03-19T00:00:00.000Z",
-    ...overrides,
-  };
-}
-
 function createItemsQuery(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     data: undefined as MarketplaceListView | undefined,
@@ -238,7 +201,7 @@ describe("MarketplacePage", () => {
     expect(screen.getByText("Web Search")).toBeTruthy();
   });
 
-  it("does not render the redundant plugin type label in plugin cards", () => {
+  it("does not render a redundant type label in skill cards", () => {
     mocks.itemsQuery = createItemsQuery({
       data: {
         total: 1,
@@ -247,31 +210,16 @@ describe("MarketplacePage", () => {
         totalPages: 1,
         sort: "relevance",
         items: [
-          createMarketplaceItem({
-            id: "extension-channel-slack",
-            slug: "channel-slack",
-            type: "plugin",
-            name: "Slack Channel",
-            summary: "Optional Slack channel for NextClaw",
-            summaryI18n: { en: "Optional Slack channel for NextClaw" },
-            install: {
-              kind: "npm",
-              spec: "@nextclaw/channel-extension-slack",
-              command:
-                "Install from NextClaw Marketplace",
-            },
-          }),
+          createMarketplaceItem(),
         ],
       } satisfies MarketplaceListView,
     });
 
-    const { container } = render(<MarketplacePage forcedType="plugins" />);
+    const { container } = render(<MarketplacePage forcedType="skills" />);
     const card = container.querySelector("article");
 
-    expect(card?.textContent).toContain(
-      "@nextclaw/channel-extension-slack",
-    );
-    expect(card?.textContent).not.toContain("Plugin");
+    expect(card?.textContent).toContain("@nextclaw/web-search");
+    expect(card?.textContent).not.toContain("Skill");
   });
 
   it("does not dim the loaded list during background refresh", () => {
@@ -282,81 +230,14 @@ describe("MarketplacePage", () => {
         pageSize: 20,
         totalPages: 1,
         sort: "relevance",
-        items: [createPluginMarketplaceItem()],
+        items: [createMarketplaceItem()],
       } satisfies MarketplaceListView,
       isFetching: true,
     });
 
-    const { container } = render(<MarketplacePage forcedType="plugins" />);
+    const { container } = render(<MarketplacePage forcedType="skills" />);
 
-    expect(screen.getByText("Slack Channel")).toBeTruthy();
+    expect(screen.getByText("Web Search")).toBeTruthy();
     expect(container.querySelector(".opacity-70")).toBeNull();
-  });
-
-  it("only disables the targeted plugin action while a manage request is pending", async () => {
-    const user = userEvent.setup();
-    let resolveMutation: (() => void) | undefined;
-    mocks.itemsQuery = createItemsQuery({
-      data: {
-        total: 2,
-        page: 1,
-        pageSize: 20,
-        totalPages: 1,
-        sort: "relevance",
-        items: [
-          createPluginMarketplaceItem(),
-          createPluginMarketplaceItem({
-            id: "extension-channel-discord",
-            slug: "channel-discord",
-            name: "Discord Channel",
-            install: {
-              kind: "npm",
-              spec: "@nextclaw/channel-extension-discord",
-              command:
-                "Install from NextClaw Marketplace",
-            },
-          }),
-        ],
-      } satisfies MarketplaceListView,
-    });
-    mocks.installedQuery = createInstalledQuery({
-      data: {
-        type: "plugin",
-        total: 2,
-        specs: [
-          "@nextclaw/channel-extension-slack",
-          "@nextclaw/channel-extension-discord",
-        ],
-        records: [
-          createInstalledRecord(),
-          createInstalledRecord({
-            id: "@nextclaw/channel-extension-discord",
-            spec: "@nextclaw/channel-extension-discord",
-            label: "Discord Channel",
-          }),
-        ],
-      } satisfies MarketplaceInstalledView,
-    });
-    mocks.manageMutation.mutateAsync.mockImplementation(
-      () =>
-        new Promise<void>((resolve) => {
-          resolveMutation = resolve;
-        }),
-    );
-
-    render(<MarketplacePage forcedType="plugins" />);
-
-    const disableButtons = screen.getAllByRole("button", { name: "Disable" });
-    const firstDisableButton = disableButtons[0];
-    const secondDisableButton = disableButtons[1];
-
-    await user.click(firstDisableButton);
-
-    expect(mocks.manageMutation.mutateAsync).toHaveBeenCalledTimes(1);
-    expect(firstDisableButton.hasAttribute("disabled")).toBe(true);
-    expect(firstDisableButton.textContent).toContain("Disabling");
-    expect(secondDisableButton.hasAttribute("disabled")).toBe(false);
-
-    resolveMutation?.();
   });
 });

@@ -11,10 +11,10 @@ export class ServiceBootstrapStatusStore {
     ncpAgent: {
       state: "pending",
     },
-    pluginHydration: {
+    extensionLoading: {
       state: "pending",
-      loadedPluginCount: 0,
-      totalPluginCount: 0
+      loadedExtensionCount: 0,
+      totalExtensionCount: 0
     },
     channels: {
       state: "pending",
@@ -29,7 +29,7 @@ export class ServiceBootstrapStatusStore {
     return {
       ...this.state,
       ncpAgent: { ...this.state.ncpAgent },
-      pluginHydration: { ...this.state.pluginHydration },
+      extensionLoading: { ...this.state.extensionLoading },
       channels: {
         ...this.state.channels,
         enabled: [...this.state.channels.enabled]
@@ -70,52 +70,52 @@ export class ServiceBootstrapStatusStore {
     };
   }
 
-  markPluginHydrationRunning(params: {
-    totalPluginCount: number;
+  markExtensionLoadingRunning(params: {
+    totalExtensionCount: number;
   }): void {
     this.state.phase = "hydrating-capabilities";
-    this.state.pluginHydration = {
-      ...this.state.pluginHydration,
+    this.state.extensionLoading = {
+      ...this.state.extensionLoading,
       state: "running",
-      loadedPluginCount: 0,
-      totalPluginCount: params.totalPluginCount,
-      startedAt: this.state.pluginHydration.startedAt ?? now(),
+      loadedExtensionCount: 0,
+      totalExtensionCount: params.totalExtensionCount,
+      startedAt: this.state.extensionLoading.startedAt ?? now(),
       completedAt: undefined,
       error: undefined
     };
   }
 
-  markPluginHydrationProgress(params: {
-    loadedPluginCount: number;
-    totalPluginCount?: number;
+  markExtensionLoadingProgress(params: {
+    loadedExtensionCount: number;
+    totalExtensionCount?: number;
   }): void {
-    this.state.pluginHydration = {
-      ...this.state.pluginHydration,
+    this.state.extensionLoading = {
+      ...this.state.extensionLoading,
       state: "running",
-      loadedPluginCount: params.loadedPluginCount,
-      totalPluginCount: params.totalPluginCount ?? this.state.pluginHydration.totalPluginCount
+      loadedExtensionCount: params.loadedExtensionCount,
+      totalExtensionCount: params.totalExtensionCount ?? this.state.extensionLoading.totalExtensionCount
     };
   }
 
-  markPluginHydrationReady(params: {
-    loadedPluginCount: number;
-    totalPluginCount: number;
+  markExtensionLoadingReady(params: {
+    loadedExtensionCount: number;
+    totalExtensionCount: number;
   }): void {
-    this.state.pluginHydration = {
-      ...this.state.pluginHydration,
+    this.state.extensionLoading = {
+      ...this.state.extensionLoading,
       state: "ready",
-      loadedPluginCount: params.loadedPluginCount,
-      totalPluginCount: params.totalPluginCount,
+      loadedExtensionCount: params.loadedExtensionCount,
+      totalExtensionCount: params.totalExtensionCount,
       completedAt: now(),
       error: undefined
     };
   }
 
-  markPluginHydrationError(error: string): void {
+  markExtensionLoadingError(error: string): void {
     this.state.phase = "error";
     this.state.lastError = error;
-    this.state.pluginHydration = {
-      ...this.state.pluginHydration,
+    this.state.extensionLoading = {
+      ...this.state.extensionLoading,
       state: "error",
       completedAt: now(),
       error
@@ -134,7 +134,7 @@ export class ServiceBootstrapStatusStore {
       state: "ready",
       enabled: [...enabled]
     };
-    if (this.state.pluginHydration.state === "ready") {
+    if (this.state.extensionLoading.state === "ready") {
       this.state.phase = "ready";
       this.state.lastError = undefined;
     }

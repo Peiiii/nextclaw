@@ -9,18 +9,13 @@ function shouldInvalidateConfigQuery(configPath: string) {
   if (!normalized) {
     return true;
   }
-  if (normalized.startsWith('plugins') || normalized.startsWith('skills')) {
+  if (normalized.startsWith('skills')) {
     return false;
   }
   return true;
 }
 
 function invalidateMarketplaceQueries(queryClient: QueryClient | undefined, configPath: string): void {
-  if (configPath.startsWith('plugins')) {
-    queryClient?.invalidateQueries({ queryKey: ['ncp-session-types'] });
-    queryClient?.invalidateQueries({ queryKey: ['marketplace-installed', 'plugin'] });
-    queryClient?.invalidateQueries({ queryKey: ['marketplace-items'] });
-  }
   if (configPath.startsWith('mcp')) {
     queryClient?.invalidateQueries({ queryKey: ['marketplace-mcp-installed'] });
     queryClient?.invalidateQueries({ queryKey: ['marketplace-mcp-items'] });

@@ -152,7 +152,6 @@ export function resolveExtensionManifestRoots(params: {
     join(params.workspace, ".nextclaw", "extensions"),
     ...(devExtensionsDir ? [devExtensionsDir] : []),
     ...resolveBuiltinExtensionManifestRoots(),
-    ...(params.config.plugins.load?.paths ?? []),
   ]);
 }
 

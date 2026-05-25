@@ -240,13 +240,12 @@ When the gateway is already running, config changes from the UI or `nextclaw con
 - `agents.context.*`
 - `tools.*`
 - `companion.enabled`
-- `plugins.*` (v1 hot plugin runtime: plugin registry/channel gateways/channels are hot-reloaded)
 
 Restart is still required for:
 
 - UI bind port (`--port` / `--ui-port`)
 
-To confirm hot reload succeeded, check gateway console logs or `${NEXTCLAW_HOME:-~/.nextclaw}/logs/service.log` for messages like `Config reload: plugins reloaded.` / `Config reload: plugin channel gateways restarted.` / `Config reload: channels restarted.`
+To confirm hot reload succeeded, check gateway console logs or `${NEXTCLAW_HOME:-~/.nextclaw}/logs/service.log` for messages like `Config reload: channels restarted.`
 
 Runtime logs live under `${NEXTCLAW_HOME:-~/.nextclaw}/logs/`:
 

@@ -10,10 +10,10 @@ const readyBootstrapStatus: BootstrapStatusView = {
   ncpAgent: {
     state: 'ready',
   },
-  pluginHydration: {
+  extensionLoading: {
     state: 'ready',
-    loadedPluginCount: 1,
-    totalPluginCount: 1,
+    loadedExtensionCount: 1,
+    totalExtensionCount: 1,
   },
   channels: {
     state: 'ready',
@@ -53,10 +53,10 @@ describe('systemStatusManager', () => {
         state: 'error',
         error: 'startup failed',
       },
-      pluginHydration: {
+      extensionLoading: {
         state: 'pending',
-        loadedPluginCount: 0,
-        totalPluginCount: 0,
+        loadedExtensionCount: 0,
+        totalExtensionCount: 0,
       },
       channels: {
         state: 'pending',

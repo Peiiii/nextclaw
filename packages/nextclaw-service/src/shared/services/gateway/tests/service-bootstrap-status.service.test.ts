@@ -10,9 +10,9 @@ describe("ServiceBootstrapStatusStore", () => {
     store.markShellReady();
     store.markNcpAgentRunning();
     store.markNcpAgentReady();
-    store.markPluginHydrationRunning({ totalPluginCount: 3 });
-    store.markPluginHydrationProgress({ loadedPluginCount: 2, totalPluginCount: 3 });
-    store.markPluginHydrationReady({ loadedPluginCount: 3, totalPluginCount: 3 });
+    store.markExtensionLoadingRunning({ totalExtensionCount: 3 });
+    store.markExtensionLoadingProgress({ loadedExtensionCount: 2, totalExtensionCount: 3 });
+    store.markExtensionLoadingReady({ loadedExtensionCount: 3, totalExtensionCount: 3 });
     store.markChannelsReady(["feishu"]);
 
     expect(store.getStatus()).toMatchObject({
@@ -20,10 +20,10 @@ describe("ServiceBootstrapStatusStore", () => {
       ncpAgent: {
         state: "ready",
       },
-      pluginHydration: {
+      extensionLoading: {
         state: "ready",
-        loadedPluginCount: 3,
-        totalPluginCount: 3
+        loadedExtensionCount: 3,
+        totalExtensionCount: 3
       },
       channels: {
         state: "ready",
@@ -39,8 +39,8 @@ describe("ServiceBootstrapStatusStore", () => {
 
     store.markNcpAgentRunning();
     store.markNcpAgentError("failed");
-    store.markPluginHydrationRunning({ totalPluginCount: 1 });
-    store.markPluginHydrationError("failed");
+    store.markExtensionLoadingRunning({ totalExtensionCount: 1 });
+    store.markExtensionLoadingError("failed");
 
     expect(store.getStatus()).toMatchObject({
       phase: "error",
@@ -48,7 +48,7 @@ describe("ServiceBootstrapStatusStore", () => {
         state: "error",
         error: "failed"
       },
-      pluginHydration: {
+      extensionLoading: {
         state: "error",
         error: "failed"
       },
@@ -86,7 +86,7 @@ describe("ServiceBootstrapStatusStore", () => {
     const store = new ServiceBootstrapStatusStore();
     store.markShellReady();
     store.markNcpAgentReady();
-    store.markPluginHydrationReady({ loadedPluginCount: 1, totalPluginCount: 1 });
+    store.markExtensionLoadingReady({ loadedExtensionCount: 1, totalExtensionCount: 1 });
     store.markChannelsReady([]);
     store.syncRemoteRuntimeState({
       enabled: true,

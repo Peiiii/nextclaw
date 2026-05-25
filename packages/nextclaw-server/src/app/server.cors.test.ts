@@ -129,7 +129,7 @@ function createTestGateway(params: {
       getStatus: () => ({
         phase: "ready",
         ncpAgent: { state: "ready" },
-        pluginHydration: { state: "ready", loadedPluginCount: 0, totalPluginCount: 0 },
+        extensionLoading: { state: "ready", loadedExtensionCount: 0, totalExtensionCount: 0 },
         channels: { state: "ready", enabled: [] },
         remote: { state: "disabled" },
       }),

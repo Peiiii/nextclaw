@@ -3,15 +3,11 @@ import type {
   MarketplaceInstalledRecord,
   MarketplaceItemSummary,
   MarketplaceManageAction,
-  MarketplacePluginContentView,
   MarketplaceSkillContentView,
   MarketplaceSort,
   MarketplaceItemType,
 } from "@/shared/lib/api";
-import {
-  fetchMarketplacePluginContent,
-  fetchMarketplaceSkillContent,
-} from "@/shared/lib/api";
+import { fetchMarketplaceSkillContent } from "@/shared/lib/api";
 import { useDocBrowser } from "@/shared/components/doc-browser";
 import { useI18n } from "@/app/components/i18n-provider";
 import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
@@ -59,28 +55,11 @@ const SKELETON_CARD_COUNT = 36;
 
 type ScopeType = "all" | "installed";
 
-type MarketplaceRouteType = "plugins" | "skills";
 type MarketplacePageProps = {
-  forcedType?: MarketplaceRouteType;
+  forcedType?: "skills";
 };
 
-function getMarketplaceCopyKeys(typeFilter: MarketplaceItemType) {
-  if (typeFilter === "plugin") {
-    return {
-      pageTitle: "marketplacePluginsPageTitle",
-      pageDescription: "marketplacePluginsPageDescription",
-      tabMarketplace: "marketplaceTabMarketplacePlugins",
-      tabInstalled: "marketplaceTabInstalledPlugins",
-      searchPlaceholder: "marketplaceSearchPlaceholderPlugins",
-      sectionCatalog: "marketplaceSectionPlugins",
-      sectionInstalled: "marketplaceSectionInstalledPlugins",
-      errorLoadData: "marketplaceErrorLoadingPluginsData",
-      errorLoadInstalled: "marketplaceErrorLoadingInstalledPlugins",
-      emptyData: "marketplaceNoPlugins",
-      emptyInstalled: "marketplaceNoInstalledPlugins",
-      installedCountSuffix: "marketplaceInstalledPluginsCountSuffix",
-    };
-  }
+function getMarketplaceCopyKeys() {
   return {
     pageTitle: "marketplaceSkillsPageTitle",
     pageDescription: "marketplaceSkillsPageDescription",
@@ -100,37 +79,17 @@ function getMarketplaceCopyKeys(typeFilter: MarketplaceItemType) {
 export function MarketplacePage(props: MarketplacePageProps = {}) {
   const { forcedType } = props;
   const navigate = useNavigate();
-  const params = useParams<{ type?: string; scene?: string }>();
+  const params = useParams<{ scene?: string }>();
   const { language } = useI18n();
   const docBrowser = useDocBrowser();
 
-  const routeType: MarketplaceRouteType | null = useMemo(() => {
-    if (forcedType === "plugins" || forcedType === "skills") {
-      return forcedType;
-    }
-    if (params.type === "plugins" || params.type === "skills") {
-      return params.type;
-    }
-    return null;
-  }, [forcedType, params.type]);
-
-  useEffect(() => {
-    if (forcedType) {
-      return;
-    }
-    if (!routeType) {
-      navigate("/marketplace/plugins", { replace: true });
-    }
-  }, [forcedType, routeType, navigate]);
-
-  const typeFilter: MarketplaceItemType =
-    routeType === "skills" ? "skill" : "plugin";
+  const typeFilter: MarketplaceItemType = "skill";
   const localeFallbacks = useMemo(
     () => buildLocaleFallbacks(language),
     [language],
   );
 
-  const copyKeys = getMarketplaceCopyKeys(typeFilter);
+  const copyKeys = getMarketplaceCopyKeys();
 
   const [searchText, setSearchText] = useState("");
   const [query, setQuery] = useState("");
@@ -302,12 +261,8 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
         type: item.type,
         spec: installSpec,
         kind: item.install.kind,
-        ...(item.type === "skill"
-          ? {
-              skill: item.slug,
-              installPath: `skills/${item.slug}`,
-            }
-          : {}),
+        skill: item.slug,
+        installPath: `skills/${item.slug}`,
       });
     } catch {
       // handled in mutation onError
@@ -391,10 +346,7 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
     if (!item) {
       const url = buildGenericDetailDataUrl({
         title,
-        typeLabel:
-          record?.type === "plugin"
-            ? t("marketplaceTypePlugin")
-            : t("marketplaceTypeSkill"),
+        typeLabel: t("marketplaceTypeSkill"),
         spec: record?.spec ?? "-",
         summary: t("marketplaceInstalledLocalSummary"),
         metadataRaw: JSON.stringify(record ?? {}, null, 2),
@@ -413,19 +365,12 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
       localeFallbacks,
     );
     const detailConfig =
-      item.type === "skill"
-        ? {
-            typeLabel: t("marketplaceTypeSkill"),
-            loadContent: () => fetchMarketplaceSkillContent(item.slug),
-            fallbackContent: t("marketplaceOperationFailed"),
-            defaultContent: undefined,
-          }
-        : {
-            typeLabel: t("marketplaceTypePlugin"),
-            loadContent: () => fetchMarketplacePluginContent(item.slug),
-            fallbackContent: "-",
-            defaultContent: item.summary,
-          };
+      {
+        typeLabel: t("marketplaceTypeSkill"),
+        loadContent: () => fetchMarketplaceSkillContent(item.slug),
+        fallbackContent: t("marketplaceOperationFailed"),
+        defaultContent: undefined,
+      };
     docBrowser.open(
       buildGenericDetailDataUrl({
         title,
@@ -436,8 +381,7 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
       openOptions,
     );
     try {
-      const content: MarketplaceSkillContentView | MarketplacePluginContentView =
-        await detailConfig.loadContent();
+      const content: MarketplaceSkillContentView = await detailConfig.loadContent();
       if (detailRequestRef.current.byKey.get(dedupeKey) !== requestId) {
         return;
       }

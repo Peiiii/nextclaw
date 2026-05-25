@@ -23,9 +23,6 @@ export type ConfigManagerRuntimeHooks = {
   applyAgentRuntimeConfig?: (config: Config) => void;
   reloadCompanion?: (params: { config: Config; changedPaths: string[] }) => Promise<void> | void;
   reloadMcp?: (params: { config: Config; changedPaths: string[] }) => Promise<void> | void;
-  reloadPlugins?: (
-    params: { config: Config; changedPaths: string[] },
-  ) => Promise<{ restartChannels?: boolean } | void> | { restartChannels?: boolean } | void;
   onRestartRequired?: (paths: string[]) => void;
 };
 
@@ -108,14 +105,6 @@ export class ConfigManager {
     this.currentConfig = nextConfig;
     const plan = buildReloadPlan(changedPaths);
 
-    let reloadPluginsResult: { restartChannels?: boolean } | void = undefined;
-    if (plan.reloadPlugins) {
-      reloadPluginsResult = await this.reloadPlugins({
-        config: nextConfig,
-        changedPaths,
-      });
-      console.log("Config reload: plugins reloaded.");
-    }
     if (plan.reloadMcp) {
       await this.reloadMcp({
         config: nextConfig,
@@ -130,7 +119,7 @@ export class ConfigManager {
       });
       console.log("Config reload: companion setting applied.");
     }
-    if (plan.restartChannels || reloadPluginsResult?.restartChannels) {
+    if (plan.restartChannels) {
       await this.rebuildChannels(nextConfig, { start: true });
       console.log("Config reload: channels restarted.");
     }
@@ -243,13 +232,6 @@ export class ConfigManager {
     } finally {
       this.providerReloadTask = null;
     }
-  };
-
-  private reloadPlugins = async (params: {
-    config: Config;
-    changedPaths: string[];
-  }): Promise<{ restartChannels?: boolean } | void> => {
-    return await this.hooks.reloadPlugins?.(params);
   };
 
   private reloadMcp = async (params: {

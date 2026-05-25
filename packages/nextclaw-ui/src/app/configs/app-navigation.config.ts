@@ -9,7 +9,6 @@ import {
   Languages,
   MessageCircle,
   MessageSquare,
-  Plug,
   Search,
   Settings,
   Shield,
@@ -134,11 +133,6 @@ export function getSettingsNavItems(
       target: "/cron",
       label: translate("cron"),
       icon: AlarmClock,
-    },
-    {
-      target: "/marketplace/plugins",
-      label: translate("marketplaceFilterPlugins"),
-      icon: Plug,
     },
     {
       target: "/marketplace/mcp",

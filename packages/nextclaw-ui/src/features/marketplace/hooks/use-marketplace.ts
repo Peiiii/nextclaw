@@ -148,13 +148,7 @@ export function useInstallMarketplaceItem() {
         queryKey: ['marketplace-installed', result.type],
         refetchType: 'inactive'
       });
-      if (result.type === 'plugin') {
-        queryClient.invalidateQueries({ queryKey: ['ncp-session-types'] });
-      }
-      const fallback = result.type === 'plugin'
-        ? t('marketplaceInstallSuccessPlugin')
-        : t('marketplaceInstallSuccessSkill');
-      toast.success(result.message || fallback);
+      toast.success(result.message || t('marketplaceInstallSuccessSkill'));
     },
     onError: (error: Error) => {
       toast.error(error.message || t('marketplaceInstallFailed'));
@@ -180,9 +174,6 @@ export function useManageMarketplaceItem() {
         queryKey: ['marketplace-installed', result.type],
         refetchType: 'inactive'
       });
-      if (result.type === 'plugin') {
-        queryClient.invalidateQueries({ queryKey: ['ncp-session-types'] });
-      }
       const fallback = result.action === 'enable'
         ? t('marketplaceEnableSuccess')
         : result.action === 'disable'

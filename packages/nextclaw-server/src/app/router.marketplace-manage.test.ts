@@ -25,80 +25,10 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("marketplace manage plugin id resolution", () => {
-  it("maps canonical plugin spec to installed plugin id when disabling", async () => {
-    const configPath = createTempConfigPath();
-    saveConfig(
-      ConfigSchema.parse({
-        plugins: {
-          entries: {
-            "plugin-discord": {
-              enabled: true
-            }
-          },
-          installs: {
-            "plugin-discord": {
-              source: "npm",
-              spec: "@community/discord-channel"
-            }
-          }
-        }
-      }),
-      configPath
-    );
-
-    const disablePlugin = vi.fn(async () => ({
-      message: "Disabled plugin \"plugin-discord\"."
-    }));
-
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
-      marketplace: {
-        installer: {
-          disablePlugin
-        }
-      }
-    });
-
-    const response = await app.request("http://localhost/api/marketplace/plugins/manage", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        type: "plugin",
-        action: "disable",
-        id: "@community/discord-channel",
-        spec: "@community/discord-channel"
-      })
-    });
-
-    expect(response.status).toBe(200);
-    const payload = await response.json() as {
-      ok: boolean;
-      data: {
-        id: string;
-      };
-    };
-
-    expect(payload.ok).toBe(true);
-    expect(payload.data.id).toBe("plugin-discord");
-    expect(disablePlugin).toHaveBeenCalledTimes(1);
-    expect(disablePlugin).toHaveBeenCalledWith("plugin-discord");
-  });
-
+describe("marketplace manage typed routes", () => {
   it("rejects body type mismatch for typed marketplace route", async () => {
     const configPath = createTempConfigPath();
-    saveConfig(
-      ConfigSchema.parse({
-        plugins: {
-          entries: {}
-        }
-      }),
-      configPath
-    );
+    saveConfig(ConfigSchema.parse({}), configPath);
 
     const app = createUiRouter({
       kernel: createRouterTestKernel(),
@@ -115,9 +45,9 @@ describe("marketplace manage plugin id resolution", () => {
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        type: "plugin",
+        type: "mcp",
         action: "disable",
-        id: "@community/discord-channel"
+        id: "filesystem"
       })
     });
 
@@ -135,14 +65,7 @@ describe("marketplace manage plugin id resolution", () => {
 
   it("does not expose shared recommendations route", async () => {
     const configPath = createTempConfigPath();
-    saveConfig(
-      ConfigSchema.parse({
-        plugins: {
-          entries: {}
-        }
-      }),
-      configPath
-    );
+    saveConfig(ConfigSchema.parse({}), configPath);
 
     const app = createUiRouter({
       kernel: createRouterTestKernel(),
@@ -154,84 +77,12 @@ describe("marketplace manage plugin id resolution", () => {
     expect(response.status).toBe(404);
   });
 
-  it("proxies typed recommendations route to typed worker endpoint", async () => {
-    const configPath = createTempConfigPath();
-    saveConfig(
-      ConfigSchema.parse({
-        plugins: {
-          entries: {}
-        }
-      }),
-      configPath
-    );
-
-    const fetchMock = vi.fn(async () => {
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          data: {
-            type: "plugin",
-            sceneId: "default",
-            title: "Default Picks",
-            total: 0,
-            items: []
-          }
-        }),
-        {
-          status: 200,
-          headers: {
-            "content-type": "application/json"
-          }
-        }
-      );
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
-      marketplace: {
-        apiBaseUrl: "http://marketplace.example"
-      }
-    });
-
-    const response = await app.request("http://localhost/api/marketplace/plugins/recommendations?scene=default&limit=3");
-    expect(response.status).toBe(200);
-
-    const payload = await response.json() as {
-      ok: boolean;
-      data: {
-        type: string;
-      };
-    };
-    expect(payload.ok).toBe(true);
-    expect(payload.data.type).toBe("plugin");
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const firstCall = fetchMock.mock.calls.at(0);
-    if (!firstCall) {
-      throw new Error("fetch was not called");
-    }
-    const [target] = firstCall as unknown as [Request | string];
-    const url = typeof target === "string" ? target : target.url;
-    expect(url).toContain("/api/v1/plugins/recommendations");
-    expect(url).not.toContain("/api/v1/recommendations?");
-  });
-
 });
 
 describe("skill marketplace scenes", () => {
   it("exposes skill marketplace scenes without item type coupling", async () => {
     const configPath = createTempConfigPath();
-    saveConfig(
-      ConfigSchema.parse({
-        plugins: {
-          entries: {}
-        }
-      }),
-      configPath
-    );
+    saveConfig(ConfigSchema.parse({}), configPath);
 
     const app = createUiRouter({
       kernel: createRouterTestKernel(),
@@ -287,14 +138,7 @@ describe("skill marketplace scenes", () => {
 
   it("filters skill marketplace items by scene", async () => {
     const configPath = createTempConfigPath();
-    saveConfig(
-      ConfigSchema.parse({
-        plugins: {
-          entries: {}
-        }
-      }),
-      configPath
-    );
+    saveConfig(ConfigSchema.parse({}), configPath);
 
     const fetchMock = vi.fn(async () => {
       return new Response(
@@ -357,14 +201,7 @@ describe("skill marketplace scenes", () => {
 
   it("uses requested marketplace page for plain skill item lists", async () => {
     const configPath = createTempConfigPath();
-    saveConfig(
-      ConfigSchema.parse({
-        plugins: {
-          entries: {}
-        }
-      }),
-      configPath
-    );
+    saveConfig(ConfigSchema.parse({}), configPath);
 
     const fetchMock = vi.fn(async () => {
       return new Response(

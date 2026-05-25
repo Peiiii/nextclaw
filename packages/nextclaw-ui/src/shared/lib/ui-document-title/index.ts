@@ -4,7 +4,6 @@ const PRODUCT = 'NextClaw';
 
 const ROUTE_TITLE_KEYS: Array<{ prefix: string; key: string }> = [
   { prefix: '/marketplace/mcp', key: 'marketplaceMcpPageTitle' },
-  { prefix: '/marketplace/plugins', key: 'marketplacePluginsPageTitle' },
   { prefix: '/marketplace/skills', key: 'marketplaceSkillsPageTitle' },
   { prefix: '/marketplace', key: 'marketplace' },
   { prefix: '/skills', key: 'marketplaceSkillsPageTitle' },

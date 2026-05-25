@@ -2,16 +2,9 @@ import { describe, expect, it } from "vitest";
 import { buildReloadPlan } from "./reload.js";
 
 describe("buildReloadPlan", () => {
-  it("does not force channel restart for non-channel plugin changes", () => {
-    const plan = buildReloadPlan(["plugins.entries.provider-only-plugin.enabled"]);
-    expect(plan.reloadPlugins).toBe(true);
-    expect(plan.restartChannels).toBe(false);
-  });
-
-  it("restarts channel runtime without reloading plugins for channel config changes", () => {
+  it("restarts channel runtime and refreshes agent behavior for channel config changes", () => {
     const plan = buildReloadPlan(["channels.feishu.enabled"]);
     expect(plan.restartChannels).toBe(true);
-    expect(plan.reloadPlugins).toBe(false);
     expect(plan.reloadAgent).toBe(true);
     expect(plan.restartRequired).toEqual([]);
   });

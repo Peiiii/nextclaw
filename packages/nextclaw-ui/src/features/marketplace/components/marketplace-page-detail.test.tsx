@@ -44,7 +44,6 @@ vi.mock("@/shared/components/doc-browser", () => ({
 
 vi.mock("@/shared/lib/api", () => ({
   fetchMarketplaceSkillContent: mocks.fetchMarketplaceSkillContent,
-  fetchMarketplacePluginContent: vi.fn(),
 }));
 
 vi.mock("@/app/components/i18n-provider", () => ({

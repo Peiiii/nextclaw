@@ -39,10 +39,10 @@ describe('NcpChatInputManager', () => {
           ncpAgent: {
             state: 'ready',
           },
-          pluginHydration: {
+          extensionLoading: {
             state: 'ready',
-            loadedPluginCount: 1,
-            totalPluginCount: 1,
+            loadedExtensionCount: 1,
+            totalExtensionCount: 1,
           },
           channels: {
             state: 'ready',

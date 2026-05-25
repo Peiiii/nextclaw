@@ -10,8 +10,7 @@ function createGateway(params: {
   order?: string[];
   uiEnabled?: boolean;
   kernel: TestGatewayKernel;
-  loadPlugins?: () => Promise<void>;
-  startPluginGateways?: () => Promise<void>;
+  loadExtensions?: () => Promise<void>;
   startExtensions?: () => Promise<void>;
   startChannels?: () => Promise<void>;
   wakeFromRestartSentinel?: () => Promise<void>;
@@ -19,11 +18,10 @@ function createGateway(params: {
 }): NextclawGatewayRuntime {
   const {
     kernel,
-    loadPlugins,
+    loadExtensions,
     markNcpAgentError,
     order: inputOrder,
     startChannels,
-    startPluginGateways,
     uiEnabled,
     wakeFromRestartSentinel,
   } = params;
@@ -51,11 +49,9 @@ function createGateway(params: {
     providerManager: {},
     cron: {},
     gatewayController: {},
-    plugins: {
+    extensions: {
       getExtensionRegistry: () => undefined,
-      getRegistry: () => ({ plugins: [] }),
-      load: loadPlugins ?? vi.fn(async () => undefined),
-      startGateways: startPluginGateways ?? vi.fn(async () => undefined),
+      load: loadExtensions ?? vi.fn(async () => undefined),
     },
     startDeferredChannels: startChannels ?? vi.fn(async () => undefined),
     restartWake: {
@@ -66,7 +62,7 @@ function createGateway(params: {
 }
 
 describe("NextclawApp", () => {
-  it("marks the NCP agent ready immediately after kernel bootstrap and before plugin loading", async () => {
+  it("marks the NCP agent ready immediately after kernel bootstrap and before extension loading", async () => {
     const order: string[] = [];
     const gateway = createGateway({
       order,
@@ -81,11 +77,8 @@ describe("NextclawApp", () => {
           }),
         },
       } as never,
-      loadPlugins: vi.fn(async () => {
-        order.push("load-plugins");
-      }),
-      startPluginGateways: vi.fn(async () => {
-        order.push("start-plugin-gateways");
+      loadExtensions: vi.fn(async () => {
+        order.push("load-extensions");
       }),
       startChannels: vi.fn(async () => {
         order.push("start-channels");
@@ -100,20 +93,19 @@ describe("NextclawApp", () => {
 
     expect(order).toContain("mark-ready");
     expect(order.indexOf("mark-ready")).toBeGreaterThan(order.indexOf("bootstrap-kernel"));
-    expect(order.indexOf("mark-ready")).toBeLessThan(order.indexOf("load-plugins"));
+    expect(order.indexOf("mark-ready")).toBeLessThan(order.indexOf("load-extensions"));
     expect(order).toEqual(
       expect.arrayContaining([
         "bootstrap-kernel",
-        "start-plugin-gateways",
+        "start-extensions",
         "start-channels",
         "wake-restart-sentinel",
       ]),
     );
   });
 
-  it("records kernel startup errors but still continues deferred plugin work", async () => {
-    const loadPlugins = vi.fn(async () => undefined);
-    const startPluginGateways = vi.fn(async () => undefined);
+  it("records kernel startup errors but still continues deferred extension work", async () => {
+    const loadExtensions = vi.fn(async () => undefined);
     const startChannels = vi.fn(async () => undefined);
     const wakeFromRestartSentinel = vi.fn(async () => undefined);
     const markNcpAgentError = vi.fn();
@@ -126,8 +118,7 @@ describe("NextclawApp", () => {
           start: vi.fn(async () => undefined),
         },
       } as never,
-      loadPlugins,
-      startPluginGateways,
+      loadExtensions,
       startChannels,
       wakeFromRestartSentinel,
       markNcpAgentError,
@@ -137,8 +128,7 @@ describe("NextclawApp", () => {
     await app.start();
 
     expect(markNcpAgentError).toHaveBeenCalledWith("kernel failed");
-    expect(loadPlugins).toHaveBeenCalledTimes(1);
-    expect(startPluginGateways).toHaveBeenCalledTimes(1);
+    expect(loadExtensions).toHaveBeenCalledTimes(1);
     expect(startChannels).toHaveBeenCalledTimes(1);
     expect(wakeFromRestartSentinel).toHaveBeenCalledTimes(1);
   });

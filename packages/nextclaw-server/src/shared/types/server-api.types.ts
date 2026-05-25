@@ -39,10 +39,10 @@ export type BootstrapStatusView = {
     completedAt?: string;
     error?: string;
   };
-  pluginHydration: {
+  extensionLoading: {
     state: BootstrapStageState;
-    loadedPluginCount: number;
-    totalPluginCount: number;
+    loadedExtensionCount: number;
+    totalExtensionCount: number;
     startedAt?: string;
     completedAt?: string;
     error?: string;

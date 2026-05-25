@@ -17,12 +17,12 @@ export class GatewayExtensionManager {
       const result = await this.gateway.kernel.extensions.load({
         config,
         onLoadStart: ({ totalExtensionCount }) => {
-          this.gateway.bootstrapStatus.markPluginHydrationRunning({ totalPluginCount: totalExtensionCount });
+          this.gateway.bootstrapStatus.markExtensionLoadingRunning({ totalExtensionCount });
         },
         onExtensionProcessed: ({ loadedExtensionCount, totalExtensionCount }) => {
-          this.gateway.bootstrapStatus.markPluginHydrationProgress({
-            loadedPluginCount: loadedExtensionCount,
-            totalPluginCount: totalExtensionCount,
+          this.gateway.bootstrapStatus.markExtensionLoadingProgress({
+            loadedExtensionCount,
+            totalExtensionCount,
           });
         },
       });
@@ -32,12 +32,12 @@ export class GatewayExtensionManager {
         await this.gateway.configManager.rebuildChannels(config, { start: false });
       }
       this.publishConfigChanges();
-      this.gateway.bootstrapStatus.markPluginHydrationReady({
-        loadedPluginCount: result.loadedExtensionCount,
-        totalPluginCount: result.totalExtensionCount,
+      this.gateway.bootstrapStatus.markExtensionLoadingReady({
+        loadedExtensionCount: result.loadedExtensionCount,
+        totalExtensionCount: result.totalExtensionCount,
       });
     } catch (error) {
-      this.gateway.bootstrapStatus.markPluginHydrationError(error instanceof Error ? error.message : String(error));
+      this.gateway.bootstrapStatus.markExtensionLoadingError(error instanceof Error ? error.message : String(error));
       throw error;
     }
   };

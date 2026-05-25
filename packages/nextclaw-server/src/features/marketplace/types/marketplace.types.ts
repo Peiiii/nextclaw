@@ -1,14 +1,10 @@
-export type MarketplaceItemType = "plugin" | "skill" | "mcp";
+export type MarketplaceItemType = "skill" | "mcp";
 
 export type MarketplaceSort = "relevance" | "updated";
 
-export type MarketplacePluginInstallKind = "npm";
 export type MarketplaceSkillInstallKind = "builtin" | "marketplace";
 export type MarketplaceMcpInstallKind = "template";
-export type MarketplaceInstallKind =
-  | MarketplacePluginInstallKind
-  | MarketplaceSkillInstallKind
-  | MarketplaceMcpInstallKind;
+export type MarketplaceInstallKind = MarketplaceSkillInstallKind | MarketplaceMcpInstallKind;
 
 export type MarketplaceInstallSpec = {
   kind: MarketplaceInstallKind;
@@ -65,18 +61,6 @@ export type MarketplaceSkillContentView = {
   raw: string;
   metadataRaw?: string;
   bodyRaw: string;
-  sourceUrl?: string;
-};
-
-export type MarketplacePluginContentView = {
-  type: "plugin";
-  slug: string;
-  name: string;
-  install: MarketplaceInstallSpec;
-  source: "npm" | "repo" | "remote";
-  raw?: string;
-  bodyRaw?: string;
-  metadataRaw?: string;
   sourceUrl?: string;
 };
 
@@ -167,11 +151,6 @@ export type MarketplaceInstallSkillParams = {
   force?: boolean;
 };
 
-export type MarketplacePluginInstallRequest = {
-  type?: "plugin";
-  spec: string;
-};
-
 export type MarketplaceSkillInstallRequest = {
   type?: "skill";
   spec: string;
@@ -193,16 +172,8 @@ export type MarketplaceMcpInstallRequest = {
 };
 
 export type MarketplaceInstallRequest =
-  | MarketplacePluginInstallRequest
   | MarketplaceSkillInstallRequest
   | MarketplaceMcpInstallRequest;
-
-export type MarketplacePluginInstallResult = {
-  type: "plugin";
-  spec: string;
-  message: string;
-  output?: string;
-};
 
 export type MarketplaceSkillInstallResult = {
   type: "skill";
@@ -220,25 +191,15 @@ export type MarketplaceMcpInstallResult = {
 };
 
 export type MarketplaceInstallResult =
-  | MarketplacePluginInstallResult
   | MarketplaceSkillInstallResult
   | MarketplaceMcpInstallResult;
 
-export type MarketplacePluginManageAction = "enable" | "disable" | "uninstall";
 export type MarketplaceSkillManageAction = "uninstall";
 export type MarketplaceMcpManageAction = "enable" | "disable" | "remove";
 
 export type MarketplaceManageAction =
-  | MarketplacePluginManageAction
   | MarketplaceSkillManageAction
   | MarketplaceMcpManageAction;
-
-export type MarketplacePluginManageRequest = {
-  type?: "plugin";
-  action: MarketplacePluginManageAction;
-  id?: string;
-  spec?: string;
-};
 
 export type MarketplaceSkillManageRequest = {
   type?: "skill";
@@ -255,17 +216,8 @@ export type MarketplaceMcpManageRequest = {
 };
 
 export type MarketplaceManageRequest =
-  | MarketplacePluginManageRequest
   | MarketplaceSkillManageRequest
   | MarketplaceMcpManageRequest;
-
-export type MarketplacePluginManageResult = {
-  type: "plugin";
-  action: MarketplacePluginManageAction;
-  id: string;
-  message: string;
-  output?: string;
-};
 
 export type MarketplaceSkillManageResult = {
   type: "skill";
@@ -284,7 +236,6 @@ export type MarketplaceMcpManageResult = {
 };
 
 export type MarketplaceManageResult =
-  | MarketplacePluginManageResult
   | MarketplaceSkillManageResult
   | MarketplaceMcpManageResult;
 
@@ -298,11 +249,7 @@ export type MarketplaceMcpDoctorResult = {
 };
 
 export type MarketplaceInstaller = {
-  installPlugin?: (spec: string) => Promise<{ message: string; output?: string }>;
   installSkill?: (params: MarketplaceInstallSkillParams) => Promise<{ message: string; output?: string }>;
-  enablePlugin?: (id: string) => Promise<{ message: string; output?: string }>;
-  disablePlugin?: (id: string) => Promise<{ message: string; output?: string }>;
-  uninstallPlugin?: (id: string) => Promise<{ message: string; output?: string }>;
   uninstallSkill?: (slug: string) => Promise<{ message: string; output?: string }>;
   installMcp?: (params: MarketplaceMcpInstallRequest) => Promise<{ name: string; message: string; output?: string }>;
   enableMcp?: (name: string) => Promise<{ message: string; output?: string }>;

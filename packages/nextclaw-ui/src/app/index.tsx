@@ -53,10 +53,6 @@ const SecretsConfigPage = lazy(async () => ({
 const RemoteAccessPage = lazy(async () => ({
   default: (await import("@/features/remote")).RemoteAccessPage,
 }));
-const MarketplacePage = lazy(async () => ({
-  default: (await import("@/components/marketplace/marketplace-page"))
-    .MarketplacePage,
-}));
 const McpMarketplacePage = lazy(async () => ({
   default: (await import("@/components/marketplace/mcp/mcp-marketplace-page"))
     .McpMarketplacePage,
@@ -164,15 +160,11 @@ const protectedRouteDefinitions: ProtectedRouteDefinition[] = [
   },
   {
     path: "/marketplace",
-    redirectTo: "/marketplace/plugins",
+    redirectTo: "/skills",
   },
   {
     path: "/marketplace/mcp",
     element: createLazyElement(<McpMarketplacePage />),
-  },
-  {
-    path: "/marketplace/:type",
-    element: createLazyElement(<MarketplacePage />),
   },
   {
     path: "/",

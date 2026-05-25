@@ -7,8 +7,8 @@ export function handleGatewayDeferredStartupError(params: {
   const { bootstrapStatus, error } = params;
   const message = error instanceof Error ? error.message : String(error);
   bootstrapStatus.markError(message);
-  if (bootstrapStatus.getStatus().pluginHydration.state === "running") {
-    bootstrapStatus.markPluginHydrationError(message);
+  if (bootstrapStatus.getStatus().extensionLoading.state === "running") {
+    bootstrapStatus.markExtensionLoadingError(message);
   }
   console.error(
     `Deferred startup failed: ${message}`,

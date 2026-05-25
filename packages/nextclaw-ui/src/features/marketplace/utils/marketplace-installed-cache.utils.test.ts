@@ -11,57 +11,59 @@ import {
 } from './marketplace-installed-cache.utils';
 
 describe('marketplace-installed-cache', () => {
-  it('adds a plugin record immediately after install success', () => {
+  it('adds an MCP record immediately after install success', () => {
     const request: MarketplaceInstallRequest = {
-      type: 'plugin',
-      spec: '@nextclaw/channel-extension-slack',
-      kind: 'npm'
+      type: 'mcp',
+      spec: 'filesystem',
+      kind: 'template',
+      name: 'filesystem'
     };
     const result: MarketplaceInstallResult = {
-      type: 'plugin',
-      spec: '@nextclaw/channel-extension-slack',
+      type: 'mcp',
+      spec: 'filesystem',
+      name: 'filesystem',
       message: 'installed'
     };
 
     const next = applyInstallResultToInstalledView({ request, result });
 
     expect(next.total).toBe(1);
-    expect(next.specs).toEqual(['@nextclaw/channel-extension-slack']);
+    expect(next.specs).toEqual(['filesystem']);
     expect(next.records[0]).toMatchObject({
-      type: 'plugin',
-      spec: '@nextclaw/channel-extension-slack',
+      type: 'mcp',
+      spec: 'filesystem',
       enabled: true,
       origin: 'marketplace',
       runtimeStatus: 'ready'
     });
   });
 
-  it('marks a plugin record as disabled immediately after disable success', () => {
+  it('marks an MCP record as disabled immediately after disable success', () => {
     const view: MarketplaceInstalledView = {
-      type: 'plugin',
+      type: 'mcp',
       total: 1,
-      specs: ['@nextclaw/channel-extension-slack'],
+      specs: ['filesystem'],
       records: [
         {
-          type: 'plugin',
-          id: '@nextclaw/channel-extension-slack',
-          spec: '@nextclaw/channel-extension-slack',
-          label: 'Slack Channel',
+          type: 'mcp',
+          id: 'filesystem',
+          spec: 'filesystem',
+          label: 'Filesystem',
           enabled: true,
           origin: 'marketplace'
         }
       ]
     };
     const request: MarketplaceManageRequest = {
-      type: 'plugin',
+      type: 'mcp',
       action: 'disable',
-      id: '@nextclaw/channel-extension-slack',
-      spec: '@nextclaw/channel-extension-slack'
+      id: 'filesystem',
+      spec: 'filesystem'
     };
     const result: MarketplaceManageResult = {
-      type: 'plugin',
+      type: 'mcp',
       action: 'disable',
-      id: '@nextclaw/channel-extension-slack',
+      id: 'filesystem',
       message: 'disabled'
     };
 

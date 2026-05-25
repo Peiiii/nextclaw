@@ -19,8 +19,6 @@ import { cn } from "@/shared/lib/utils";
 import {
   CheckCircle2,
   Download,
-  Power,
-  PowerOff,
   Trash2,
 } from "lucide-react";
 
@@ -35,7 +33,6 @@ export type ManageState = {
 type MarketplaceListCardActionProps = {
   item?: MarketplaceItemSummary;
   record?: MarketplaceInstalledRecord;
-  pluginRecord?: MarketplaceInstalledRecord;
   isInstalling: boolean;
   isDisabled: boolean;
   canUninstall: boolean;
@@ -97,7 +94,6 @@ function MarketplaceListCardActions(props: MarketplaceListCardActionProps) {
   const {
     item,
     record,
-    pluginRecord,
     isInstalling,
     isDisabled,
     canUninstall,
@@ -107,7 +103,7 @@ function MarketplaceListCardActions(props: MarketplaceListCardActionProps) {
     onInstall,
     onManage,
   } = props;
-  const hasActions = Boolean((item && !record) || pluginRecord || (record && canUninstall));
+  const hasActions = Boolean((item && !record) || (record && canUninstall));
 
   return (
     <div
@@ -152,30 +148,6 @@ function MarketplaceListCardActions(props: MarketplaceListCardActionProps) {
           </button>
         )}
 
-        {pluginRecord && (
-          <button
-            disabled={busyForRecord}
-            onClick={(event) => {
-              event.stopPropagation();
-              onManage(isDisabled ? "enable" : "disable", pluginRecord);
-            }}
-            className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-xl border border-gray-200/80 bg-white px-3 text-xs font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 disabled:opacity-50"
-          >
-            {isDisabled ? (
-              <Power className="h-3.5 w-3.5" />
-            ) : (
-              <PowerOff className="h-3.5 w-3.5" />
-            )}
-            {busyAction && busyAction !== "uninstall"
-              ? busyAction === "enable"
-                ? t("marketplaceEnabling")
-                : t("marketplaceDisabling")
-              : isDisabled
-                ? t("marketplaceEnable")
-                : t("marketplaceDisable")}
-          </button>
-        )}
-
         {record && canUninstall && (
           <button
             disabled={busyForRecord}
@@ -217,7 +189,7 @@ function MarketplaceInstalledStatusIcon(props: {
             )}
           >
             {disabled ? (
-              <PowerOff className="h-4 w-4" />
+              <CheckCircle2 className="h-4 w-4 opacity-40" />
             ) : (
               <CheckCircle2 className="h-4 w-4" />
             )}
@@ -253,7 +225,6 @@ export function MarketplaceListCard(props: {
     onManage,
   } = props;
   const localeFallbacks = buildLocaleFallbacks(language);
-  const pluginRecord = record?.type === "plugin" ? record : undefined;
   const title =
     item?.name ??
     record?.label ??
@@ -269,9 +240,7 @@ export function MarketplaceListCard(props: {
     ? manageState.actionsByTarget.get(targetId)
     : undefined;
   const busyForRecord = Boolean(busyAction);
-  const canUninstall =
-    (record?.type === "plugin" && record.origin !== "bundled") ||
-    (record?.type === "skill" && record.source === "workspace");
+  const canUninstall = record?.type === "skill" && record.source === "workspace";
   const isDisabled = record
     ? record.enabled === false || record.runtimeStatus === "disabled"
     : false;
@@ -288,7 +257,7 @@ export function MarketplaceListCard(props: {
       <div className="flex min-w-0 flex-1 gap-3">
         <MarketplaceItemIcon
           name={title}
-          fallback={spec || t("marketplaceTypeExtension")}
+          fallback={spec || t("marketplaceTypeSkill")}
         />
         <div className="flex min-w-0 flex-1 flex-col justify-center">
           <MarketplaceListCardMeta title={title} spec={spec} summary={summary} />
@@ -298,7 +267,6 @@ export function MarketplaceListCard(props: {
       <MarketplaceListCardActions
         item={item}
         record={record}
-        pluginRecord={pluginRecord}
         isInstalling={isInstalling}
         isDisabled={isDisabled}
         canUninstall={canUninstall}

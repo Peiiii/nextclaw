@@ -257,20 +257,6 @@ export async function fetchAllMarketplaceItems(params: {
   };
 }
 
-export async function fetchAllPluginMarketplaceItems(params: {
-  baseUrl: string;
-  query?: Record<string, string | undefined>;
-}): Promise<
-  | { ok: true; data: { sort: MarketplaceListView["sort"]; query?: string; items: MarketplaceListView["items"] } }
-  | { ok: false; status: number; message: string }
-> {
-  return fetchAllMarketplaceItems({
-    baseUrl: params.baseUrl,
-    path: "/api/v1/plugins/items",
-    query: params.query
-  });
-}
-
 export async function fetchAllSkillMarketplaceItems(params: {
   baseUrl: string;
   query?: Record<string, string | undefined>;

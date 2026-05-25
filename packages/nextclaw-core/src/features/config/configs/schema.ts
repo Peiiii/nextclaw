@@ -296,36 +296,6 @@ export const ProviderConfigSchema = z.object({
 
 export const ProvidersConfigSchema = z.record(ProviderConfigSchema).default({});
 
-export const PluginEntrySourceSchema = z.enum(["production", "development"]);
-
-export const PluginEntrySchema = z.object({
-  enabled: z.boolean().optional(),
-  source: PluginEntrySourceSchema.optional(),
-  config: z.record(z.unknown()).optional()
-});
-
-export const PluginsLoadSchema = z.object({
-  paths: z.array(z.string()).optional()
-});
-
-export const PluginInstallRecordSchema = z.object({
-  source: z.enum(["npm", "archive", "path"]),
-  spec: z.string().optional(),
-  sourcePath: z.string().optional(),
-  installPath: z.string().optional(),
-  version: z.string().optional(),
-  installedAt: z.string().optional()
-});
-
-export const PluginsConfigSchema = z.object({
-  enabled: z.boolean().optional(),
-  allow: z.array(z.string()).optional(),
-  deny: z.array(z.string()).optional(),
-  load: PluginsLoadSchema.optional(),
-  entries: z.record(PluginEntrySchema).optional(),
-  installs: z.record(PluginInstallRecordSchema).optional()
-});
-
 export const GatewayConfigSchema = z.object({
   host: z.string().default("0.0.0.0"),
   port: z.number().int().default(18790)
@@ -552,7 +522,6 @@ export const ConfigSchema = z.object({
   providers: ProvidersConfigSchema.default({}),
   search: SearchConfigSchema.default({}),
   mcp: McpConfigSchema.default({}),
-  plugins: PluginsConfigSchema.default({}),
   bindings: z.array(AgentBindingSchema).default([]),
   session: SessionConfigSchema.default({}),
   gateway: GatewayConfigSchema.default({}),

@@ -20,7 +20,6 @@ import {
   McpMarketplaceController,
   mountMarketplaceRoutes,
   normalizeMarketplaceBaseUrl,
-  PluginMarketplaceController,
   SkillMarketplaceController
 } from "@nextclaw-server/features/marketplace/index.js";
 import { RemoteRoutesController } from "@nextclaw-server/features/remote-access/index.js";
@@ -51,7 +50,6 @@ function createUiRouteControllers(
     remote: remoteAccess ? new RemoteRoutesController(remoteAccess) : null,
     runtimeControl: runtimeControl ? new RuntimeControlRoutesController(runtimeControl) : null,
     runtimeUpdate: runtimeUpdate ? new RuntimeUpdateRoutesController(runtimeUpdate) : null,
-    pluginMarketplace: new PluginMarketplaceController(options, marketplaceBaseUrl),
     skillMarketplace: new SkillMarketplaceController(options, marketplaceBaseUrl),
     mcpMarketplace: new McpMarketplaceController(options, marketplaceBaseUrl)
   };
@@ -274,7 +272,6 @@ class UiRouteRegistry {
       }
     });
     mountMarketplaceRoutes(this.app, {
-      plugin: this.controllers.pluginMarketplace,
       skill: this.controllers.skillMarketplace,
       mcp: this.controllers.mcpMarketplace
     });

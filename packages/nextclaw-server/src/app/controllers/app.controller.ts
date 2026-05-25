@@ -17,10 +17,10 @@ function buildFallbackBootstrapStatus(): BootstrapStatusView {
     ncpAgent: {
       state: "pending",
     },
-    pluginHydration: {
+    extensionLoading: {
       state: "pending",
-      loadedPluginCount: 0,
-      totalPluginCount: 0
+      loadedExtensionCount: 0,
+      totalExtensionCount: 0
     },
     channels: {
       state: "pending",

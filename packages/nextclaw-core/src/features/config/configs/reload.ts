@@ -14,7 +14,6 @@ export type ReloadPlan = {
   restartChannels: boolean;
   reloadProviders: boolean;
   reloadAgent: boolean;
-  reloadPlugins: boolean;
   reloadMcp: boolean;
   reloadCompanion: boolean;
   restartRequired: string[];
@@ -23,7 +22,7 @@ export type ReloadPlan = {
 
 type ReloadRule = {
   prefix: string;
-  kind: "restart-channels" | "reload-providers" | "reload-agent" | "reload-plugins" | "reload-mcp" | "reload-companion" | "restart-required" | "none";
+  kind: "restart-channels" | "reload-providers" | "reload-agent" | "reload-mcp" | "reload-companion" | "restart-required" | "none";
 };
 
 const RELOAD_RULES: ReloadRule[] = [
@@ -48,7 +47,6 @@ const RELOAD_RULES: ReloadRule[] = [
   { prefix: "tools", kind: "reload-agent" },
   { prefix: "companion", kind: "reload-companion" },
   { prefix: "secrets", kind: "none" },
-  { prefix: "plugins", kind: "reload-plugins" },
   { prefix: "gateway", kind: "none" },
   { prefix: "ui", kind: "none" }
 ];
@@ -67,28 +65,37 @@ export function diffConfigPaths(prev: unknown, next: unknown, prefix = ""): stri
     return [];
   }
   if (isPlainObject(prev) && isPlainObject(next)) {
-    const keys = new Set([...Object.keys(prev), ...Object.keys(next)]);
-    const paths: string[] = [];
-    for (const key of keys) {
-      const prevValue = prev[key];
-      const nextValue = next[key];
-      if (prevValue === undefined && nextValue === undefined) {
-        continue;
-      }
-      const childPrefix = prefix ? `${prefix}.${key}` : key;
-      const childPaths = diffConfigPaths(prevValue, nextValue, childPrefix);
-      if (childPaths.length > 0) {
-        paths.push(...childPaths);
-      }
-    }
-    return paths;
+    return diffPlainObjectConfigPaths(prev, next, prefix);
   }
   if (Array.isArray(prev) && Array.isArray(next)) {
-    if (prev.length === next.length && prev.every((val, idx) => val === next[idx])) {
+    if (isSameArrayByReference(prev, next)) {
       return [];
     }
   }
   return [prefix || "<root>"];
+}
+
+function diffPlainObjectConfigPaths(
+  prev: Record<string, unknown>,
+  next: Record<string, unknown>,
+  prefix: string
+): string[] {
+  const keys = new Set([...Object.keys(prev), ...Object.keys(next)]);
+  const paths: string[] = [];
+  for (const key of keys) {
+    const prevValue = prev[key];
+    const nextValue = next[key];
+    if (prevValue === undefined && nextValue === undefined) {
+      continue;
+    }
+    const childPrefix = prefix ? `${prefix}.${key}` : key;
+    paths.push(...diffConfigPaths(prevValue, nextValue, childPrefix));
+  }
+  return paths;
+}
+
+function isSameArrayByReference(prev: unknown[], next: unknown[]): boolean {
+  return prev.length === next.length && prev.every((val, idx) => val === next[idx]);
 }
 
 export function buildReloadPlan(changedPaths: string[]): ReloadPlan {
@@ -97,7 +104,6 @@ export function buildReloadPlan(changedPaths: string[]): ReloadPlan {
     restartChannels: false,
     reloadProviders: false,
     reloadAgent: false,
-    reloadPlugins: false,
     reloadMcp: false,
     reloadCompanion: false,
     restartRequired: [],
@@ -110,40 +116,35 @@ export function buildReloadPlan(changedPaths: string[]): ReloadPlan {
       plan.restartRequired.push(path);
       continue;
     }
-    if (rule.kind === "restart-channels") {
-      plan.restartChannels = true;
-      // Channel config is a channel runtime concern. It should restart channel
-      // lifecycles and refresh agent-visible behavior, but it should not rebuild
-      // the plugin registry.
-      plan.reloadAgent = true;
-      continue;
-    }
-    if (rule.kind === "reload-providers") {
-      plan.reloadProviders = true;
-      continue;
-    }
-    if (rule.kind === "reload-agent") {
-      plan.reloadAgent = true;
-      continue;
-    }
-    if (rule.kind === "reload-plugins") {
-      plan.reloadPlugins = true;
-      continue;
-    }
-    if (rule.kind === "reload-mcp") {
-      plan.reloadMcp = true;
-      continue;
-    }
-    if (rule.kind === "reload-companion") {
-      plan.reloadCompanion = true;
-      continue;
-    }
-    if (rule.kind === "restart-required") {
-      plan.restartRequired.push(path);
-      continue;
-    }
-    plan.noopPaths.push(path);
+    applyReloadRule(plan, rule.kind, path);
   }
 
   return plan;
+}
+
+function applyReloadRule(plan: ReloadPlan, kind: ReloadRule["kind"], path: string): void {
+  switch (kind) {
+    case "restart-channels":
+      plan.restartChannels = true;
+      plan.reloadAgent = true;
+      return;
+    case "reload-providers":
+      plan.reloadProviders = true;
+      return;
+    case "reload-agent":
+      plan.reloadAgent = true;
+      return;
+    case "reload-mcp":
+      plan.reloadMcp = true;
+      return;
+    case "reload-companion":
+      plan.reloadCompanion = true;
+      return;
+    case "restart-required":
+      plan.restartRequired.push(path);
+      return;
+    case "none":
+      plan.noopPaths.push(path);
+      return;
+  }
 }

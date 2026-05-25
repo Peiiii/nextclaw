@@ -15,6 +15,10 @@
 - 清理 marketplace、dev runner、desktop package build/verify、tsconfig alias、lockfile 与测试中旧 channel plugin / runtime / OpenClaw compat 引用。
 - 补齐 extension command ingress，用于 Telegram 文本命令与 Discord slash command；渠道包只通过通用 extension channel API 调命令，不直接依赖 kernel session/command owner。
 - 将 Telegram/Discord 内部大文件继续拆分：Telegram 拆出 streaming preview controller 与 message utils；Discord 拆出 command utils、text utils、draft streaming service。
+- 追补彻底删除旧 plugin marketplace surface：服务端 `/api/marketplace/plugins/*`、前端 `/marketplace/plugins`、client SDK plugin content API 与 plugin install/manage 入口全部移除；当前 marketplace 只保留 skill 与 MCP。
+- 删除 `config.plugins.*` 配置合同与 reload 语义；extension discovery 不再读取 `plugins.load.paths`，配置热重载计划不再存在 `reloadPlugins`。
+- Bootstrap 状态命名从旧 `pluginHydration` 收敛为 `extensionLoading`，计数字段同步改为 extension 语义。
+- 清理 active 文档、截图脚本、governance 脚本与本地开发 skill 中旧 plugin / OpenClaw 链路残留。
 
 ## 测试/验证/验收方式
 
@@ -27,7 +31,7 @@
 - `pnpm -C packages/nextclaw-core tsc`
 - `pnpm -C packages/nextclaw-runtime tsc`
 - `pnpm -C packages/nextclaw-kernel tsc`
-- `pnpm -C packages/nextclaw-service tsc`
+- 此前阶段 `pnpm -C packages/nextclaw-service tsc`
 - `pnpm -C packages/nextclaw-server tsc`
 - `pnpm -C apps/desktop tsc`
 - 所有一方 channel extension 包 `tsc`
@@ -43,11 +47,30 @@
 - `pnpm -C packages/nextclaw-service tsc`
 - `pnpm -C packages/nextclaw-server test -- src/app/router.marketplace-content.test.ts src/app/router.marketplace-manage.test.ts --run`
 - `pnpm -C packages/nextclaw-ui test -- src/features/marketplace/components/marketplace-page.test.tsx src/features/marketplace/utils/marketplace-installed-cache.utils.test.ts --run`
-- `pnpm lint:new-code:governance`
+- `pnpm -C packages/nextclaw-core test -- src/features/config/configs/reload.config.test.ts src/features/config/configs/schema.extension-channels.test.ts --run`
+- `pnpm -C packages/nextclaw-kernel test -- src/services/extension-runtime.service.test.ts --run`
+- `pnpm -C packages/nextclaw-service test -- src/shared/services/gateway/tests/nextclaw-app.service.test.ts src/shared/services/gateway/tests/service-bootstrap-status.service.test.ts --run`
+- `pnpm -C packages/nextclaw-server test -- src/app/router.marketplace-content.test.ts src/app/router.marketplace-manage.test.ts src/app/server.cors.test.ts --run`
+- `pnpm -C packages/nextclaw-ui test -- src/features/marketplace/components/marketplace-page.test.tsx src/features/marketplace/components/marketplace-page-detail.test.tsx src/features/marketplace/utils/marketplace-installed-cache.utils.test.ts src/features/system-status/managers/system-status.manager.test.ts src/features/system-status/managers/system-status.manager.bootstrap-polling.test.ts src/features/chat/managers/ncp-chat-input.manager.test.ts src/features/chat/utils/ncp-chat-runtime-availability.utils.test.ts --run`
+- `pnpm -C packages/nextclaw-core tsc`
+- `pnpm -C packages/nextclaw-kernel tsc`
+- `pnpm -C packages/nextclaw-server tsc`
+- `pnpm -C packages/nextclaw-client-sdk tsc`
+- `pnpm -C packages/nextclaw-ui tsc`
+- `pnpm -C packages/nextclaw-server build`
+- `pnpm -C packages/nextclaw-core build`
+- 此前阶段 `pnpm lint:new-code:governance`
 - `pnpm check:governance-backlog-ratchet`
-- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature`
+- 此前阶段 `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature`
 - 旧路径扫描：确认生产源码、脚本、lockfile 中不再引用 `@nextclaw/channel-runtime`、`nextclaw-channel-plugin-*`、`builtin-channel-*` bundled plugin 路径、`channel.nextclaw`、`@nextclaw/openclaw-compat` 或 `packages/nextclaw-openclaw-compat`。
+- 旧 plugin surface 扫描：确认 active 源码、脚本、active 文档与 skill 中不再引用 `config.plugins`、`plugins.load`、`plugins.entries`、`reloadPlugins`、`pluginHydration`、`marketplace/plugins`、`PluginMarketplace`、`MarketplacePlugin`、`installPlugin`、`enablePlugin`、`disablePlugin`、`uninstallPlugin`、`openclaw.plugin.json`、`packageJson.openclaw` 或 `nextclaw plugins`。
 - `git diff --check`
+
+暂未完全通过：
+
+- `pnpm -C packages/nextclaw-service tsc`：旧 plugin/bootstrap 相关错误已清掉；当前剩余失败来自并行会话已修改的 `src/shared/services/gateway/utils/cron-job-handler.utils.test.ts`，主要是 tuple `[]` 与 possibly undefined 类型错误，不属于本轮旧 plugin surface 删除链路。
+- `pnpm lint:new-code:governance`：当前完整 dirty tree 被 diff-only 角色命名规则拦截，命中项包含并行会话触达的 provider/model-config 文件，以及历史 `configs/`、`providers/`、`i18n/` 目录下的既有命名债；本轮未继续扩大到批量重命名。
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature`：当前完整 dirty tree 被并行会话的 `nextclaw-ncp-runner.utils.ts` 与 provider `builtin.ts` 文件预算拦截；旧 plugin surface 删除本身仍是净删除方向。
 
 ## 发布/部署方式
 
@@ -71,7 +94,9 @@
 - 新增代码集中在新的 extension 包和通用 extension command ingress，旧的一方渠道双路径被收敛为唯一 extension manifest 路径。
 - Telegram/Discord 没有停留在“整文件搬家”状态：已继续拆出流式预览、文本分块、draft streaming、命令映射和消息工具，避免新增 extension 包立刻形成超长主 service。
 - OpenClaw compat 不再留在主仓库；通用 channel binding/auth/config projection 合同已迁回 extension 主链路。
-- 已使用 `post-edit-maintainability-guard` 和 `post-edit-maintainability-review` 规则进行收尾检查；本 README 同时记录红区触达。
+- 旧 plugin marketplace 与 `config.plugins.*` 作为平行旧入口被删除，extension 成为唯一扩展发现与渠道贡献主路径。
+- 本轮追补清理以删除旧入口为主；当前完整工作区混有并行会话改动，精确增减口径应在提交拆分时按本轮文件单独统计。
+- 已运行 `post-edit-maintainability-guard` 和 `post-edit-maintainability-review` 相关收尾检查；当前完整门禁被并行/历史触达文件拦截，本 README 同时记录红区触达和拦截原因。
 
 ## NPM 包发布记录
 
@@ -84,6 +109,13 @@
 - `@nextclaw/channel-extension-slack`
 - `@nextclaw/channel-extension-wecom`
 - `@nextclaw/channel-extension-whatsapp`
+- `@nextclaw/core`
+- `@nextclaw/kernel`
+- `@nextclaw/server`
+- `@nextclaw/client-sdk`
+- `@nextclaw/ui`
+- `@nextclaw/service`
+- `@nextclaw/nextclaw` CLI/resource package
 
 本轮删除或停止携带的旧包：
 

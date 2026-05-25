@@ -136,106 +136,6 @@ describe("marketplace content routes", () => {
     expect(payload.data.bodyRaw).toContain("# Weather Skill");
   });
 
-  it("returns plugin readme-style content", async () => {
-    const workspaceDir = createTempDir("nextclaw-ui-plugin-content-");
-    const configPath = join(workspaceDir, "config.json");
-
-    saveConfig(
-      ConfigSchema.parse({
-        agents: {
-          defaults: {
-            workspace: workspaceDir
-          }
-        }
-      }),
-      configPath
-    );
-
-    const fetchMock = vi.fn(async (target: Request | string) => {
-      const url = typeof target === "string" ? target : target.url;
-
-      if (url.includes("/api/v1/plugins/items/")) {
-        return new Response(
-          JSON.stringify({
-            ok: true,
-            data: {
-              id: "extension-channel-discord",
-              slug: "channel-extension-discord",
-              type: "plugin",
-              name: "Discord Channel Plugin",
-              summary: "Discord summary",
-              summaryI18n: {
-                en: "Discord summary",
-                zh: "Discord 摘要"
-              },
-              description: "Plugin description",
-              tags: ["plugin", "discord"],
-              author: "NextClaw",
-              install: {
-                kind: "npm",
-                spec: "@nextclaw/channel-extension-discord",
-                command: "Install from NextClaw Marketplace"
-              },
-              updatedAt: "2026-02-22T09:40:00.000Z",
-              publishedAt: "2025-12-10T10:00:00.000Z"
-            }
-          }),
-          {
-            status: 200,
-            headers: {
-              "content-type": "application/json"
-            }
-          }
-        );
-      }
-
-      return new Response(
-        JSON.stringify({
-          name: "@nextclaw/channel-extension-discord",
-          description: "Discord plugin",
-          readme: "# Discord Plugin\n\nREADME content"
-        }),
-        {
-          status: 200,
-          headers: {
-            "content-type": "application/json"
-          }
-        }
-      );
-    });
-
-    vi.stubGlobal("fetch", fetchMock);
-
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
-      marketplace: {
-        apiBaseUrl: "http://marketplace.example"
-      }
-    });
-
-    const response = await app.request("http://localhost/api/marketplace/plugins/items/channel-extension-discord/content");
-    expect(response.status).toBe(200);
-
-    const payload = await response.json() as {
-      ok: boolean;
-      data: {
-        bodyRaw?: string;
-      };
-    };
-
-    expect(payload.ok).toBe(true);
-    expect(payload.data.bodyRaw).toContain("# Discord Plugin");
-
-    expect(fetchMock).toHaveBeenCalled();
-    const urls = fetchMock.mock.calls.map((call) => {
-      const [target] = call as unknown as [Request | string];
-      return typeof target === "string" ? target : target.url;
-    });
-    expect(urls.some((url) => url.includes("registry.npmjs.org"))).toBe(true);
-  });
-
   it("returns contract mismatch when marketplace skill install kind is unsupported", async () => {
     const workspaceDir = createTempDir("nextclaw-ui-skill-list-contract-");
     const configPath = join(workspaceDir, "config.json");
@@ -416,7 +316,7 @@ describe("marketplace content routes", () => {
   });
 
   it("normalizes locale-family summary fields for marketplace list responses", async () => {
-    const workspaceDir = createTempDir("nextclaw-ui-plugin-list-i18n-");
+    const workspaceDir = createTempDir("nextclaw-ui-skill-list-i18n-");
     const configPath = join(workspaceDir, "config.json");
 
     saveConfig(
@@ -442,22 +342,22 @@ describe("marketplace content routes", () => {
             sort: "relevance",
             items: [
               {
-                id: "extension-channel-discord",
-                slug: "channel-extension-discord",
-                type: "plugin",
-                name: "Discord Channel Plugin",
+                id: "skill-code-review",
+                slug: "code-review",
+                type: "skill",
+                name: "Code Review",
                 summary: "English summary",
                 summaryI18n: {
                   "en-US": "English summary",
                   "zh-CN": "中文摘要"
                 },
                 description: "Description",
-                tags: ["plugin", "discord"],
+                tags: ["skill", "review"],
                 author: "NextClaw",
                 install: {
-                  kind: "npm",
-                  spec: "@nextclaw/channel-extension-discord",
-                  command: "Install from NextClaw Marketplace"
+                  kind: "marketplace",
+                  spec: "code-review",
+                  command: "nextclaw skills install code-review"
                 },
                 updatedAt: "2026-02-22T09:40:00.000Z",
                 publishedAt: "2025-12-10T10:00:00.000Z"
@@ -484,7 +384,7 @@ describe("marketplace content routes", () => {
       }
     });
 
-    const response = await app.request("http://localhost/api/marketplace/plugins/items?page=1&pageSize=10");
+    const response = await app.request("http://localhost/api/marketplace/skills/items?page=1&pageSize=10");
     expect(response.status).toBe(200);
 
     const payload = await response.json() as {
@@ -501,281 +401,4 @@ describe("marketplace content routes", () => {
     expect(payload.data.items[0]?.summaryI18n.en).toBe("English summary");
   });
 
-  it("exposes npm plugins in marketplace plugin list", async () => {
-    const workspaceDir = createTempDir("nextclaw-ui-plugin-list-channel-extension-");
-    const configPath = join(workspaceDir, "config.json");
-
-    saveConfig(
-      ConfigSchema.parse({
-        agents: {
-          defaults: {
-            workspace: workspaceDir
-          }
-        }
-      }),
-      configPath
-    );
-
-    const fetchMock = vi.fn(async () => {
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          data: {
-            total: 1,
-            page: 1,
-            pageSize: 50,
-            totalPages: 1,
-            sort: "relevance",
-            items: [
-              {
-                id: "extension-channel-slack",
-                slug: "channel-extension-slack",
-                type: "plugin",
-                name: "Slack Channel Plugin",
-                summary: "Optional NextClaw plugin that adds Slack channel integration.",
-                summaryI18n: {
-                  en: "Optional NextClaw plugin that adds Slack channel integration.",
-                  zh: "为 NextClaw 提供 Slack 渠道集成的可选插件。"
-                },
-                description: "Registers a pluggable Slack channel.",
-                tags: ["plugin", "channel", "slack"],
-                author: "NextClaw",
-                install: {
-                  kind: "npm",
-                  spec: "@nextclaw/channel-extension-slack",
-                  command: "Install from NextClaw Marketplace"
-                },
-                updatedAt: "2026-03-19T00:00:00.000Z",
-                publishedAt: "2026-03-19T00:00:00.000Z"
-              }
-            ]
-          }
-        }),
-        {
-          status: 200,
-          headers: {
-            "content-type": "application/json"
-          }
-        }
-      );
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
-      marketplace: {
-        apiBaseUrl: "http://marketplace.example"
-      }
-    });
-
-    const response = await app.request("http://localhost/api/marketplace/plugins/items?page=1&pageSize=10");
-    expect(response.status).toBe(200);
-
-    const payload = await response.json() as {
-      ok: boolean;
-      data: {
-        total: number;
-        items: Array<{
-          slug: string;
-          install: {
-            spec: string;
-          };
-        }>;
-      };
-    };
-
-    expect(payload.ok).toBe(true);
-    expect(payload.data.total).toBe(1);
-    expect(payload.data.items[0]?.slug).toBe("channel-extension-slack");
-    expect(payload.data.items[0]?.install.spec).toBe("@nextclaw/channel-extension-slack");
-  });
-
-  it("exposes another channel plugin in marketplace plugin list", async () => {
-    const workspaceDir = createTempDir("nextclaw-ui-plugin-list-channel-discord-");
-    const configPath = join(workspaceDir, "config.json");
-
-    saveConfig(
-      ConfigSchema.parse({
-        agents: {
-          defaults: {
-            workspace: workspaceDir
-          }
-        }
-      }),
-      configPath
-    );
-
-    const fetchMock = vi.fn(async () => {
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          data: {
-            total: 1,
-            page: 1,
-            pageSize: 50,
-            totalPages: 1,
-            sort: "relevance",
-            items: [
-              {
-                id: "extension-channel-discord",
-                slug: "channel-extension-discord",
-                type: "plugin",
-                name: "Discord Channel Plugin",
-                summary: "Optional NextClaw plugin that adds Discord channel integration.",
-                summaryI18n: {
-                  en: "Optional NextClaw plugin that adds Discord channel integration.",
-                  zh: "为 NextClaw 提供 Discord 渠道集成的可选插件。"
-                },
-                description: "Registers a pluggable Discord channel.",
-                tags: ["plugin", "channel", "discord", "chat"],
-                author: "NextClaw",
-                install: {
-                  kind: "npm",
-                  spec: "@nextclaw/channel-extension-discord",
-                  command: "Install from NextClaw Marketplace"
-                },
-                updatedAt: "2026-03-19T00:00:00.000Z",
-                publishedAt: "2026-03-19T00:00:00.000Z"
-              }
-            ]
-          }
-        }),
-        {
-          status: 200,
-          headers: {
-            "content-type": "application/json"
-          }
-        }
-      );
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
-      marketplace: {
-        apiBaseUrl: "http://marketplace.example"
-      }
-    });
-
-    const response = await app.request("http://localhost/api/marketplace/plugins/items?page=1&pageSize=10");
-    expect(response.status).toBe(200);
-
-    const payload = await response.json() as {
-      ok: boolean;
-      data: {
-        total: number;
-        items: Array<{
-          slug: string;
-          install: {
-            spec: string;
-          };
-        }>;
-      };
-    };
-
-    expect(payload.ok).toBe(true);
-    expect(payload.data.total).toBe(1);
-    expect(payload.data.items[0]?.slug).toBe("channel-extension-discord");
-    expect(payload.data.items[0]?.install.spec).toBe("@nextclaw/channel-extension-discord");
-  });
-
-  it("forwards plugin catalog pagination without fetching the entire remote catalog", async () => {
-    const workspaceDir = createTempDir("nextclaw-ui-plugin-list-paging-");
-    const configPath = join(workspaceDir, "config.json");
-
-    saveConfig(
-      ConfigSchema.parse({
-        agents: {
-          defaults: {
-            workspace: workspaceDir
-          }
-        }
-      }),
-      configPath
-    );
-
-    const fetchMock = vi.fn(async () => {
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          data: {
-            total: 24,
-            page: 2,
-            pageSize: 12,
-            totalPages: 2,
-            sort: "relevance",
-            items: [
-              {
-                id: "extension-channel-discord",
-                slug: "channel-extension-discord",
-                type: "plugin",
-                name: "Discord Channel Plugin",
-                summary: "English summary",
-                tags: ["plugin", "discord"],
-                author: "NextClaw",
-                install: {
-                  kind: "npm",
-                  spec: "@nextclaw/channel-extension-discord",
-                  command: "Install from NextClaw Marketplace"
-                },
-                updatedAt: "2026-02-22T09:40:00.000Z",
-                publishedAt: "2025-12-10T10:00:00.000Z"
-              }
-            ]
-          }
-        }),
-        {
-          status: 200,
-          headers: {
-            "content-type": "application/json"
-          }
-        }
-      );
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
-      marketplace: {
-        apiBaseUrl: "http://marketplace.example"
-      }
-    });
-
-    const response = await app.request("http://localhost/api/marketplace/plugins/items?page=2&pageSize=12");
-    expect(response.status).toBe(200);
-
-    const payload = await response.json() as {
-      ok: boolean;
-      data: {
-        total: number;
-        page: number;
-        pageSize: number;
-        totalPages: number;
-      };
-    };
-
-    expect(payload.ok).toBe(true);
-    expect(payload.data.total).toBe(24);
-    expect(payload.data.page).toBe(2);
-    expect(payload.data.pageSize).toBe(12);
-    expect(payload.data.totalPages).toBe(2);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-
-    const firstCall = fetchMock.mock.calls.at(0);
-    if (!firstCall) {
-      throw new Error("fetch was not called");
-    }
-    const [target] = firstCall as unknown as [Request | string];
-    const url = typeof target === "string" ? target : target.url;
-    expect(url).toContain("/api/v1/plugins/items");
-    expect(url).toContain("page=2");
-    expect(url).toContain("pageSize=12");
-    expect(url).not.toContain("pageSize=100");
-  });
 });

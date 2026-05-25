@@ -5,7 +5,6 @@ import type {
   MarketplaceManageRequest,
   MarketplaceManageResult,
   MarketplaceInstalledView,
-  MarketplacePluginContentView,
   MarketplaceItemType,
   MarketplaceSkillContentView,
   MarketplaceItemView,
@@ -35,10 +34,6 @@ export async function fetchMarketplaceItem(slug: string, type: MarketplaceItemTy
 
 export async function fetchMarketplaceSkillContent(slug: string): Promise<MarketplaceSkillContentView> {
   return await nextclawClient.marketplace.fetchSkillContent(slug);
-}
-
-export async function fetchMarketplacePluginContent(slug: string): Promise<MarketplacePluginContentView> {
-  return await nextclawClient.marketplace.fetchPluginContent(slug);
 }
 
 export async function fetchMarketplaceRecommendations(

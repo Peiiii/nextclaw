@@ -69,7 +69,6 @@ Always describe the system in this order:
 
 Do not teach users that the main setup path is:
 
-- editing `plugins.entries.*.config`
 - installing a first-party Hermes connector package
 - starting a Hermes API server first
 

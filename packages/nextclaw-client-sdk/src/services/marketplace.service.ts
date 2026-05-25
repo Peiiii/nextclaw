@@ -7,7 +7,6 @@ import type {
   MarketplaceListView,
   MarketplaceManageRequest,
   MarketplaceManageResult,
-  MarketplacePluginContentView,
   MarketplaceRecommendationView,
   MarketplaceScenesView,
   MarketplaceSkillContentView,
@@ -43,12 +42,6 @@ export class MarketplaceService {
   readonly fetchSkillContent = async (slug: string): Promise<MarketplaceSkillContentView> => {
     return await this.requestService.get<MarketplaceSkillContentView>(
       `/api/marketplace/skills/items/${encodeURIComponent(slug)}/content`
-    );
-  };
-
-  readonly fetchPluginContent = async (slug: string): Promise<MarketplacePluginContentView> => {
-    return await this.requestService.get<MarketplacePluginContentView>(
-      `/api/marketplace/plugins/items/${encodeURIComponent(slug)}/content`
     );
   };
 
@@ -93,9 +86,6 @@ export class MarketplaceService {
 }
 
 function toMarketplaceBasePath(type: MarketplaceItemType): string {
-  if (type === "plugin") {
-    return "/api/marketplace/plugins";
-  }
   if (type === "skill") {
     return "/api/marketplace/skills";
   }

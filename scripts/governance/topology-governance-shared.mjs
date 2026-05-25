@@ -277,7 +277,6 @@ export function collectPackageEntrypoints(workspace, moduleMap) {
   pushValue(workspace.packageJson.module);
   pushValue(workspace.packageJson.bin);
   pushValue(workspace.packageJson.exports);
-  pushValue(workspace.packageJson.openclaw?.extensions);
 
   const resolved = new Set();
   for (const rawPath of rawPaths) {

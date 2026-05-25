@@ -1,4 +1,4 @@
-import { loadConfig, saveConfig, getConfigPath, getDataDir, resolveWorkspacePath, resolveConfigSecrets, APP_NAME } from "@nextclaw/core";
+import { loadConfig, getConfigPath, getDataDir, resolveWorkspacePath, APP_NAME } from "@nextclaw/core";
 import { NextclawKernel } from "@nextclaw/kernel";
 import { RemoteRuntimeActions } from "@nextclaw/remote";
 import { existsSync, mkdirSync } from "node:fs";

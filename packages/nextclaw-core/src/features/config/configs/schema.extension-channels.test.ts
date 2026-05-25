@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ConfigSchema } from "./schema.js";
 
-describe("ConfigSchema plugin channel compatibility", () => {
+describe("ConfigSchema extension channel config", () => {
   it("keeps the default agent model empty until the user sets one", () => {
     const parsed = ConfigSchema.parse({});
 
@@ -17,7 +17,7 @@ describe("ConfigSchema plugin channel compatibility", () => {
     });
   });
 
-  it("preserves plugin-backed channel config under channels.*", () => {
+  it("preserves extension channel config under channels.*", () => {
     const parsed = ConfigSchema.parse({
       channels: {
         weixin: {
