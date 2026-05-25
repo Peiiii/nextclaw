@@ -71,9 +71,9 @@ export function Sidebar({ mode }: SidebarProps) {
   const sidebarDensity = isSettingsMode ? 'compact' : 'default';
 
   return (
-    <aside className="w-[240px] shrink-0 flex h-full min-h-0 flex-col overflow-hidden bg-secondary px-4 py-6">
+    <aside className="w-[240px] shrink-0 flex h-full min-h-0 flex-col overflow-hidden bg-secondary px-4 pb-6">
       {isSettingsMode ? (
-        <div className="shrink-0 px-2 pb-3">
+        <div className="shrink-0 px-2 py-2.5">
           <div
             className="flex items-center gap-2 px-1 py-1"
             data-testid="settings-sidebar-header"
@@ -90,7 +90,7 @@ export function Sidebar({ mode }: SidebarProps) {
           </div>
         </div>
       ) : (
-        <div className="shrink-0 px-2 pb-8">
+        <div className="shrink-0 px-2 py-2.5">
           <BrandHeader className="flex items-center gap-2.5 cursor-pointer" />
         </div>
       )}

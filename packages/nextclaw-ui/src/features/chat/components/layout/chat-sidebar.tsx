@@ -30,7 +30,7 @@ import {
   ChatSidebarMobileToolbar,
 } from '@/features/chat/components/layout/chat-sidebar-toolbar';
 import { ChatSidebarUtilityMenu } from '@/features/chat/components/layout/chat-sidebar-utility-menu';
-import { isMacDesktopHost, isWindowsDesktopHost } from '@/platforms/desktop';
+import { isWindowsDesktopHost } from '@/platforms/desktop';
 
 type DateGroup = {
   label: string;
@@ -268,7 +268,7 @@ export function ChatSidebar({
       )}
     >
       {!isMobileVariant && !isWindowsDesktopHost() ? (
-        <div className={cn('px-5 pb-3', isMacDesktopHost() ? 'pt-1.5' : 'pt-5')}>
+        <div className="px-5 py-2.5">
           <BrandHeader
             className="flex min-w-0 items-center gap-2"
             suffix={<StatusBadge status={systemStatus.connectionStatus} />}

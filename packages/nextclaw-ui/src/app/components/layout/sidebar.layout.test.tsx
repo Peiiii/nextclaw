@@ -66,6 +66,8 @@ describe('Sidebar', () => {
 
     expect(aside?.className).toContain('min-h-0');
     expect(aside?.className).toContain('overflow-hidden');
+    expect(screen.getByTestId('settings-sidebar-header').parentElement?.className).toContain('py-2.5');
+    expect(aside?.className).not.toContain('py-6');
     expect(nav?.className).toContain('flex-1');
     expect(nav?.className).toContain('min-h-0');
     expect(nav?.className).toContain('overflow-y-auto');

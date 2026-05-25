@@ -193,6 +193,16 @@ describe('ChatSidebar create and list basics', () => {
     expect(sessionTypeButton.className).not.toContain('transition-all');
   });
 
+  it('keeps the desktop brand row compact with symmetric vertical padding', () => {
+    render(
+      <MemoryRouter>
+        <ChatSidebar />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('brand-header').parentElement?.className).toContain('py-2.5');
+  });
+
   it('shows setup required status for runtime session types that are not ready yet', () => {
     useChatInputStore.setState({
       snapshot: {
