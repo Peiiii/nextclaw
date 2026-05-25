@@ -455,7 +455,7 @@ const clearHoveredPoint = () => {
 
 .trend-chart__frame {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 22px;
   border: 1px solid rgba(16, 34, 52, 0.08);
   background:

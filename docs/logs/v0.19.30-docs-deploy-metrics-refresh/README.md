@@ -8,6 +8,8 @@
 
 修复：将根 `deploy:docs` 调整为先运行 `pnpm metrics:loc`，再构建并部署文档站；同时更新 `docs/workflows/code-volume-monitoring.md`，明确部署文档站会先刷新 LOC 快照。
 
+后续补充：修复 Project Pulse 趋势图 tooltip 被图表 frame 裁剪的问题。根因是 tooltip 绝对定位在 `.trend-chart__frame` 内，而 frame 使用了 `overflow: hidden`；将 frame 改为允许溢出后，悬浮层可以完整显示。
+
 ## 测试/验证/验收方式
 
 - `node -e '...'` 校验 `package.json` 可解析，且 `deploy:docs` 以 `pnpm metrics:loc && pnpm --filter @nextclaw/docs build &&` 开头：通过。
@@ -17,6 +19,7 @@
 - `pnpm check:governance-backlog-ratchet`：通过。
 - `pnpm deploy:docs`：通过，验证部署链路会先刷新 LOC、再生成 Project Pulse 并部署文档站。
 - `pnpm --filter @nextclaw/docs build && pnpm dlx wrangler pages deploy apps/docs/.vitepress/dist --project-name nextclaw-docs --branch master`：通过。由于当前工作区存在并行源码改动，本次先用干净 worktree 重新生成指标，再重新部署一次，确保线上内容与本次提交的指标一致。
+- `pnpm -C apps/docs exec vitepress build`：通过，用于验证趋势图 tooltip 样式修复后的文档站构建，且不重写 Project Pulse 生成数据。
 
 ## 发布/部署方式
 
