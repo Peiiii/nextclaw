@@ -6,8 +6,8 @@
   "latestVersion": "0.19.31-beta.0",
   "minimumLauncherVersion": "0.18.11",
   "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/nextclaw@0.19.31-beta.0/nextclaw-runtime-darwin-x64-0.19.31-beta.0.zip",
-  "bundleSha256": "bb43c0ee46f9667f7742e208ec5edca6cd95f12d5f424eb1eaae4ee91677b07e",
-  "bundleSignature": "VSGpyMHO4kV/6Pkxw80B7HTi5JKOtRgz4M5rrlttOAtjijANp14KiFs0l5U/XSKESlIeoMWjVoPwJX9P/988CA==",
+  "bundleSha256": "05a9f7a91386c6d31dfd8130b85f253fdc4a66c19b5aabf103e8cc864ceec0c2",
+  "bundleSignature": "EX+FltLqpQFmsIvA0hyYKprvOBzvAgu4eFdclL2wb9sv9KE+7nX08F9eUZnomnLQG2AgU0QLWEBAnBdDkXwKAw==",
   "releaseNotesUrl": "https://github.com/Peiiii/nextclaw/releases/tag/nextclaw@0.19.31-beta.0",
-  "manifestSignature": "s6yxALBhuP+6U2iGvUDa8zEtJ3ZX8IxeyxxshhBwX407WavwUVs9bA1qH+G+0KSOtekP1hSQjxDutCe2st8XAg=="
+  "manifestSignature": "c87IqOWIOptizg7fp7VZ7h4siXPiRZrJ750LNFe4SUU3NYxtzH71SKY7qTiEvdBJ8dsVy61X44y+Yroy+tSGAQ=="
 }
