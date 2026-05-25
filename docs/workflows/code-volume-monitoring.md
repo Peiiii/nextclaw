@@ -88,6 +88,8 @@ pnpm metrics:repo:local
 pnpm project:pulse
 ```
 
+发布文档站时，根命令 `pnpm deploy:docs` 会先运行 `pnpm metrics:loc` 刷新 LOC 快照，再构建 Project Pulse，避免重新部署旧指标。
+
 该脚本会聚合：
 
 - LOC 历史与 top scopes
