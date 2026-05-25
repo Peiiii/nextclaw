@@ -15,7 +15,7 @@
 - 新的 extension channel 机制已经用于全部一方渠道：`feishu`、`weixin`、`qq`、`dingtalk`、`wecom`、`slack`、`email`、`whatsapp`、`telegram`、`discord`。
 - `mochat` 已删除，不再作为内置渠道保留。
 - 旧的一方 `channel-plugin-*` 包和 `@nextclaw/channel-runtime` 已删除。
-- OpenClaw compat 仍保留第三方插件兼容能力，但不再内置加载一方 channel plugin。
+- OpenClaw compat 已从主仓库删除；第三方旧插件兼容不再作为当前主链路目标，后续生态扩展应走 NextClaw extension SDK。
 - `ChannelManager` 已删除 `registration.channel.nextclaw.createChannel(...)` in-process 渠道创建路径。
 - Kernel/service/desktop/root scripts 已切到 extension package 和 manifest discovery。
 
@@ -23,7 +23,7 @@
 
 - `deletion-first`：`mochat` 产品价值和 owner 不清楚，不迁移，直接删除。
 - `single-domain-owner`：一个渠道迁移后，只保留一个有效贡献路径，不能同时存在 `channel-plugin-*` 和 `channel-extension-*`。
-- `no-legacy-runtime-dependency-final-state`：迁移完成态下，一方 channel extension 不应依赖 `openclaw-compat`、旧 `channel-plugin-*` 或 `@nextclaw/channel-runtime`；`@nextclaw/channel-runtime` 只允许作为迁移期复用旧实现的临时脚手架。
+- `no-legacy-runtime-dependency-final-state`：迁移完成态下，一方 channel extension 和宿主主链路不应依赖 `openclaw-compat`、旧 `channel-plugin-*` 或 `@nextclaw/channel-runtime`；`@nextclaw/channel-runtime` 只允许作为迁移期复用旧实现的临时脚手架。
 - `responsibility-surface-minimization`：SDK 抽象只承载通用 channel extension 协议行为。
 - `protected-variations`：渠道特定协议行为留在渠道实现里。
 - `no-compatibility-by-default`：除非 review 时确认有真实外部兼容要求，否则不保留旧 alias 或重复 plugin 包。
@@ -288,7 +288,7 @@ Telegram 和 Discord 有额外的 typing、streaming preview、slash command、r
 - `channels.<id>`：仍然是用户理解和管理渠道配置的统一入口。
 - extension manifest 的 `configSchema` / `configUiHints`：作为渠道配置 UI 和校验的事实来源。
 - extension channel 的 inbound/outbound/auth 通用协议：这是新主链路。
-- marketplace / plugin 管理能力：它们仍然服务 extension 生态，只是不应再为一方渠道保留旧 OpenClaw channel plugin 适配。
+- marketplace / 扩展管理能力：它们仍然服务 extension 生态，但不再承载 OpenClaw channel plugin 适配。
 
 ### 最终依赖边界
 
@@ -298,7 +298,7 @@ Telegram 和 Discord 有额外的 typing、streaming preview、slash command、r
 - 一方 `nextclaw-channel-extension-*` 包不依赖旧 `@nextclaw/channel-plugin-*`。
 - 一方 `nextclaw-channel-extension-*` 包不再依赖 `@nextclaw/channel-runtime`；渠道特定实现应落在各自 extension 包内，或落在明确不是旧 runtime 兼容层的新共享包内。
 - `@nextclaw/channel-runtime` 和旧一方 `channel-plugin-*` 包应删除。
-- `openclaw-compat` 可以继续服务第三方 OpenClaw 兼容插件生态，但不能再承载一方内置渠道的启动路径。
+- `openclaw-compat` 应整体删除；如果未来要支持第三方迁移，应通过新的 extension 迁移工具或独立适配层重新设计，不能留在主运行链路里。
 
 ### 第一批：删除旧渠道运行时包和旧渠道插件包
 
@@ -336,37 +336,34 @@ rg "@nextclaw/channel-runtime|nextclaw-channel-plugin-|@nextclaw/channel-plugin-
 - 已移除 service/desktop/root/package lock 对旧包的依赖。
 - 已更新 desktop package build/verify 脚本，构建一方 channel extension 包，不再构建旧 runtime。
 
-### 第二批：删除旧 bundled channel plugin 装配层
+### 第二批：删除旧 OpenClaw compat 装配层
 
-旧 bundled channel plugin 装配层的职责是把一方 `channel-plugin-*` 作为内置 OpenClaw plugin 加载。所有渠道迁移后，这条链路应删除。
+旧 OpenClaw compat 装配层的职责是加载、安装、投影旧 OpenClaw plugin。所有渠道迁移后，这条链路不再是当前产品主目标，应整体删除。
 
 **重点文件：**
 
-- `packages/nextclaw-openclaw-compat/src/plugins/bundled-channel-plugin-packages.constants.ts`
-- `packages/nextclaw-openclaw-compat/src/plugins/bundled-channel-plugin-module.utils.ts`
-- `packages/nextclaw-openclaw-compat/src/plugins/openclaw-plugin-loader.utils.ts`
-- `packages/nextclaw-openclaw-compat/src/plugins/progressive-plugin-loader/progressive-bundled-plugin-loader.ts`
-- `packages/nextclaw-openclaw-compat/src/plugins/plugin-status.utils.ts`
-- `packages/nextclaw-openclaw-compat/src/plugin-sdk/index.ts`
+- `packages/nextclaw-openclaw-compat`
+- `nextclaw plugins *` CLI 命令
+- service/kernel/server 对 `@nextclaw/openclaw-compat` 的依赖
+- 旧 plugin runtime bridge、gateway plugin manager、dev plugin override/hot reload 脚本
 
 **要删除的语义：**
 
-- `BUNDLED_CHANNEL_PLUGIN_PACKAGES`
-- `loadInProcessBundledPluginModule`
-- bundled channel plugin append/load 分支
-- `createNextclawBuiltinChannelPlugin`
-- 只为旧一方渠道服务的 bundled enable/status 测试
+- OpenClaw plugin install/load/status/uninstall 主仓库能力
+- plugin channel config projection 主链路
+- 旧 plugin gateway 启动链路
+- 旧 plugin runtime bridge
+- 旧 dev plugin override / hot reload 入口
 
 **注意：**
 
-不要删除 OpenClaw compat 的外部插件加载能力本身。这里删的是“一方渠道旧内置 plugin 包装层”，不是整个第三方插件兼容层。
+不要保留“也许以后有用”的第三方兼容入口。若未来需要第三方迁移，应作为新的、明确 owner 的 extension 迁移项目重建，而不是继续让主链路背旧 OpenClaw 合同。
 
 完成记录：
 
-- 已删除 bundled channel plugin 包列表、in-process bundled module loader、progressive bundled loader 和对应 bundled enable/status 测试。
-- 已从 OpenClaw plugin loader/status 路径移除一方 bundled channel append/load 分支。
-- 已删除 `createNextclawBuiltinChannelPlugin`。
-- `openclaw-compat` 继续保留外部插件 install/load/status/uninstall 能力。
+- 已删除整个 `packages/nextclaw-openclaw-compat` 包、旧 plugin CLI、旧 runtime bridge、旧 gateway plugin manager、旧 dev plugin override/hot reload 脚本。
+- Extension channel binding/auth/config projection 的通用合同迁回 `@nextclaw/core` / extension 主链路。
+- 当前主仓库不再提供 OpenClaw plugin install/load/status/uninstall 能力。
 
 ### 第三批：收敛 ChannelManager 的双路径
 
@@ -511,12 +508,10 @@ pnpm -C packages/extensions/nextclaw-channel-extension-<id> lint
 pnpm -C packages/extensions/nextclaw-channel-extension-telegram tsc
 pnpm -C packages/extensions/nextclaw-channel-extension-discord tsc
 pnpm -C packages/nextclaw-core test -- src/features/channels/managers/channel.manager.test.ts --run
-pnpm -C packages/nextclaw-kernel test -- src/services/extension-runtime.service.test.ts src/managers/__tests__/extension.manager.test.ts src/features/extension-development-source/utils/dev-plugin-overrides.utils.test.ts --run
-pnpm -C packages/nextclaw-openclaw-compat test -- src/plugins/plugin-channel-bindings.test.ts src/plugins/install.test.ts src/plugins/uninstall.test.ts src/plugins/status.pure-read.test.ts --run
-pnpm -C packages/nextclaw-service test -- src/commands/channel/builtin-channels.test.ts src/commands/channel/channels.test.ts src/commands/channel/channel-config-view.test.ts src/shared/services/marketplace/tests/marketplace-plugin-management.service.test.ts src/shared/services/marketplace/tests/marketplace-summary.service.test.ts src/shared/services/gateway/tests/gateway-plugin-manager.service.test.ts --run
+pnpm -C packages/nextclaw-kernel test -- src/services/extension-runtime.service.test.ts --run
+pnpm -C packages/nextclaw-service tsc
 pnpm -C packages/nextclaw-server test -- src/app/router.marketplace-content.test.ts src/app/router.marketplace-manage.test.ts --run
 pnpm -C packages/nextclaw-ui test -- src/features/marketplace/components/marketplace-page.test.tsx src/features/marketplace/utils/marketplace-installed-cache.utils.test.ts --run
-node --test scripts/dev/dev-plugin-overrides-support.test.mjs
 ```
 
 ## Review 检查清单

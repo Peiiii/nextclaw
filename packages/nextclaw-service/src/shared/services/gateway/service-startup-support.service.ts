@@ -1,31 +1,9 @@
 import type { Config } from "@nextclaw/core";
 import type { AutomationManager } from "@nextclaw/kernel";
-import type { PluginDiagnostic } from "@nextclaw/openclaw-compat";
 import type { RemoteServiceModule } from "@nextclaw/remote";
 import chokidar, { type FSWatcher } from "chokidar";
 import { resolve } from "node:path";
 import { localUiRuntimeStore } from "../../../shared/stores/local-ui-runtime.store.js";
-
-export const pluginGatewayLogger = {
-  info: (message: string) => console.log(`[plugins] ${message}`),
-  warn: (message: string) => console.warn(`[plugins] ${message}`),
-  error: (message: string) => console.error(`[plugins] ${message}`),
-  debug: (message: string) => console.debug(`[plugins] ${message}`)
-};
-
-export function logPluginGatewayDiagnostics(
-  diagnostics: PluginDiagnostic[],
-): void {
-  for (const diag of diagnostics) {
-    const prefix = diag.pluginId ? `${diag.pluginId}: ` : "";
-    const text = `${prefix}${diag.message}`;
-    if (diag.level === "error") {
-      console.error(`[plugins] ${text}`);
-    } else {
-      console.warn(`[plugins] ${text}`);
-    }
-  }
-}
 
 export async function startGatewaySupportServices(params: {
   automation: AutomationManager;

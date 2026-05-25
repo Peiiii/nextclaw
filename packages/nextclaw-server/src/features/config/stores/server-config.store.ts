@@ -24,14 +24,14 @@ import {
 import type { LlmProviderManager } from "@nextclaw/kernel";
 import { createDefaultProviderConfigFromSpec } from "@nextclaw-server/features/config/utils/default-provider-config.utils.js";
 import {
-  buildPluginChannelUiHints,
+  buildExtensionChannelUiHints,
   buildProjectedChannelMeta,
   getProjectedChannelConfig,
   getProjectedChannelMap,
-  mergeProjectedPluginChannelConfig,
-  normalizePluginProjectionOptions,
-  type PluginConfigProjectionOptions
-} from "@nextclaw-server/features/config/utils/plugin-channel-config-projection.utils.js";
+  mergeProjectedExtensionChannelConfig,
+  normalizeExtensionProjectionOptions,
+  type ExtensionConfigProjectionOptions
+} from "@nextclaw-server/features/config/utils/extension-channel-config-projection.utils.js";
 import { findServerBuiltinProviderByName, listServerBuiltinProviders } from "@nextclaw-server/features/config/providers/server-builtin-provider.provider.js";
 import { buildSearchView, SEARCH_PROVIDER_META } from "@nextclaw-server/features/config/utils/search-config.utils.js";
 import type {
@@ -359,7 +359,7 @@ const ACTION_HANDLERS: Record<string, ActionHandler> = {
   "channels.feishu.verifyConnection": runFeishuVerifyAction
 };
 
-function buildUiHints(config: Config, options?: PluginConfigProjectionOptions): ConfigUiHints {
+function buildUiHints(config: Config, options?: ExtensionConfigProjectionOptions): ConfigUiHints {
   return buildConfigSchemaView(config, options).uiHints;
 }
 
@@ -455,7 +455,7 @@ function toProviderView(
   return view;
 }
 
-export function buildConfigView(config: Config, options?: PluginConfigProjectionOptions): ConfigView {
+export function buildConfigView(config: Config, options?: ExtensionConfigProjectionOptions): ConfigView {
   const uiHints = buildUiHints(config, options);
   const projectedChannels = getProjectedChannelMap(config, options);
   const providers: Record<string, ProviderConfigView> = {};
@@ -572,7 +572,7 @@ function clearSecretRef(refs: Config["secrets"]["refs"], path: string): Config["
   return nextRefs;
 }
 
-export function buildConfigMeta(config: Config, options?: PluginConfigProjectionOptions): ConfigMetaView {
+export function buildConfigMeta(config: Config, options?: ExtensionConfigProjectionOptions): ConfigMetaView {
   const configProviders = config.providers as Record<string, ProviderConfig>;
   const builtinProviders = BUILTIN_PROVIDERS.map((spec) => {
     const providerConfig = configProviders[spec.name];
@@ -651,13 +651,13 @@ export function buildConfigMeta(config: Config, options?: PluginConfigProjection
   return { providers, search: SEARCH_PROVIDER_META, channels };
 }
 
-export function buildConfigSchemaView(_config: Config, options?: PluginConfigProjectionOptions): ConfigSchemaResponse {
+export function buildConfigSchemaView(_config: Config, options?: ExtensionConfigProjectionOptions): ConfigSchemaResponse {
   const base = buildConfigSchema({ version: getPackageVersion() });
-  const pluginUiHints = buildPluginChannelUiHints(options);
-  if (Object.keys(pluginUiHints).length === 0) {
+  const extensionUiHints = buildExtensionChannelUiHints(options);
+  if (Object.keys(extensionUiHints).length === 0) {
     return base;
   }
-  return { ...base, uiHints: { ...base.uiHints, ...pluginUiHints } };
+  return { ...base, uiHints: { ...base.uiHints, ...extensionUiHints } };
 }
 
 export async function executeConfigAction(
@@ -1047,10 +1047,10 @@ export function updateChannel(
   configPath: string,
   channelName: string,
   patch: Record<string, unknown>,
-  options?: PluginConfigProjectionOptions
+  options?: ExtensionConfigProjectionOptions
 ): Record<string, unknown> | null {
   const config = loadConfigOrDefault(configPath);
-  const normalizedOptions = normalizePluginProjectionOptions(options);
+  const normalizedOptions = normalizeExtensionProjectionOptions(options);
   const channel = getProjectedChannelConfig(config, channelName, normalizedOptions);
   if (!channel) {
     return null;
@@ -1062,9 +1062,9 @@ export function updateChannel(
     }
   }
   const mergedChannel = { ...channel, ...patch };
-  const mergedPluginConfig = mergeProjectedPluginChannelConfig(config, channelName, mergedChannel, normalizedOptions);
-  if (mergedPluginConfig) {
-    const next = ConfigSchema.parse(mergedPluginConfig);
+  const mergedExtensionConfig = mergeProjectedExtensionChannelConfig(config, channelName, mergedChannel, normalizedOptions);
+  if (mergedExtensionConfig) {
+    const next = ConfigSchema.parse(mergedExtensionConfig);
     saveConfig(next, configPath);
     return sanitizePublicConfigValue(
       getProjectedChannelConfig(next, channelName, normalizedOptions) ?? {},

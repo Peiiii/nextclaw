@@ -29,7 +29,6 @@
       ],
       "@nextclaw/nextclaw-ncp-runtime-http-client": ["packages/nextclaw-ncp-runtime-http-client/src/index.ts"],
       "@nextclaw/nextclaw-ncp-runtime-stdio-client": ["packages/nextclaw-ncp-runtime-stdio-client/src/index.ts"],
-      "@nextclaw/openclaw-compat": ["packages/nextclaw-openclaw-compat/src/index.ts"],
       "@nextclaw/remote": ["packages/nextclaw-remote/src/index.ts"],
       "@nextclaw/runtime": ["packages/nextclaw-runtime/src/index.ts"],
       "@nextclaw/server": ["packages/nextclaw-server/src/index.ts"],

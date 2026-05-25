@@ -75,9 +75,6 @@ If you are installing and starting NextClaw for the first time, use [Quickstart]
 
 | Command | Purpose |
 |---------|---------|
-| `nextclaw plugins list` | List plugins |
-| `nextclaw plugins install <spec>` | Install a plugin |
-| `nextclaw plugins enable <id>` | Enable a plugin |
 | `nextclaw skills installed` | List installed skills |
 | `nextclaw marketplace skills search` | Search marketplace skills |
 | `nextclaw marketplace skills install <slug>` | Install a marketplace skill |

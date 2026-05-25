@@ -5,7 +5,7 @@ import type {
   UpdatePreferences,
   UpdateSnapshot,
 } from "@nextclaw/shared";
-import type { PluginChannelBinding, PluginUiMetadata } from "@nextclaw/openclaw-compat";
+import type { ExtensionChannelBinding, ExtensionUiMetadata } from "@nextclaw/core";
 import type { UiAuthService } from "@nextclaw-server/features/auth/index.js";
 import type {
   BootstrapStatusView,
@@ -30,9 +30,9 @@ export type UiBootstrapStatusHost = {
   getStatus: () => BootstrapStatusView;
 };
 
-export type UiPluginHost = {
-  getChannelBindings: () => PluginChannelBinding[];
-  getUiMetadata: () => PluginUiMetadata[];
+export type UiExtensionHost = {
+  getChannelBindings: () => ExtensionChannelBinding[];
+  getUiMetadata: () => ExtensionUiMetadata[];
 };
 
 export type UiKernelHost = Pick<
@@ -76,7 +76,7 @@ export type UiRouterOptions = {
   runtimeControl?: UiRuntimeControlHost;
   runtimeUpdate?: UiRuntimeUpdateHost;
   bootstrapStatus?: UiBootstrapStatusHost;
-  plugins?: UiPluginHost;
+  extensions?: UiExtensionHost;
 };
 
 export type UiRemoteAccessHost = {

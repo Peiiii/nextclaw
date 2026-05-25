@@ -7,12 +7,6 @@ import type {
 } from "@nextclaw/server";
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import {
-  disablePluginMutation,
-  enablePluginMutation,
-  installPluginMutation,
-  uninstallPluginMutation
-} from "@nextclaw-service/commands/plugin/plugin-mutation-actions.utils.js";
 import { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "@nextclaw-service/shared/utils/marketplace/service-marketplace-helpers.utils.js";
 import { ServiceMcpMarketplaceOps } from "@nextclaw-service/shared/services/marketplace/service-mcp-marketplace-ops.js";
 
@@ -34,24 +28,14 @@ export class ServiceMarketplaceInstaller {
 
   createInstaller(): MarketplaceInstaller {
     return {
-      installPlugin: (spec) => this.installPlugin(spec),
       installSkill: (params) => this.installSkill(params),
       installMcp: (params) => this.installMcp(params),
-      enablePlugin: (id) => this.enablePlugin(id),
-      disablePlugin: (id) => this.disablePlugin(id),
-      uninstallPlugin: (id) => this.uninstallPlugin(id),
       uninstallSkill: (slug) => this.uninstallSkill(slug),
       enableMcp: (name) => this.enableMcp(name),
       disableMcp: (name) => this.disableMcp(name),
       removeMcp: (name) => this.removeMcp(name),
       doctorMcp: (name) => this.doctorMcp(name)
     };
-  }
-
-  private async installPlugin(spec: string): Promise<UserFacingResult> {
-    const result = await installPluginMutation(spec);
-    await this.deps.applyLiveConfigReload?.();
-    return { message: result.message };
   }
 
   private async installSkill(params: MarketplaceInstallSkillParams): Promise<UserFacingResult> {
@@ -89,26 +73,6 @@ export class ServiceMarketplaceInstaller {
 
   private async installMcp(params: MarketplaceMcpInstallRequest): Promise<{ name: string; message: string; output?: string }> {
     return await this.createMcpMarketplaceOps().install(params);
-  }
-
-  private async enablePlugin(id: string): Promise<UserFacingResult> {
-    const result = await enablePluginMutation(id);
-    await this.deps.applyLiveConfigReload?.();
-    return { message: result.message };
-  }
-
-  private async disablePlugin(id: string): Promise<UserFacingResult> {
-    const result = await disablePluginMutation(id);
-    await this.deps.applyLiveConfigReload?.();
-    return { message: result.message };
-  }
-
-  private async uninstallPlugin(id: string): Promise<UserFacingResult> {
-    await disablePluginMutation(id);
-    await this.deps.applyLiveConfigReload?.();
-    const result = await uninstallPluginMutation(id, { force: true });
-    await this.deps.applyLiveConfigReload?.();
-    return { message: result.message };
   }
 
   private async uninstallSkill(slug: string): Promise<UserFacingResult> {

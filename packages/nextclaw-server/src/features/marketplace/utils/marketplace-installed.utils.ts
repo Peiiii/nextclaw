@@ -1,5 +1,4 @@
 import * as NextclawCore from "@nextclaw/core";
-import { discoverPluginStatusReport } from "@nextclaw/openclaw-compat";
 import { loadConfigOrDefault } from "@nextclaw-server/features/config/index.js";
 import type {
   MarketplaceInstalledRecord,
@@ -20,7 +19,14 @@ import {
 
 const getWorkspacePathFromConfig = NextclawCore.getWorkspacePathFromConfig;
 
-type PluginStatusReportPlugin = ReturnType<typeof discoverPluginStatusReport>["plugins"][number];
+type PluginStatusReportPlugin = {
+  id: string;
+  name?: string;
+  source?: string;
+  enabled: boolean;
+  status: "loaded" | "disabled" | "error" | "unresolved";
+  origin?: "workspace" | "global" | "config" | "bundled";
+};
 type PluginInstallRecord = {
   spec?: string;
   source?: string;
@@ -214,18 +220,7 @@ export function collectInstalledPluginRecords(options: UiRouterOptions): {
   const pluginEntries: Record<string, PluginConfigEntry> = config.plugins.entries ?? {};
   const installedPluginIds = new Set(Object.keys(pluginRecordsMap));
 
-  let discoveredPlugins: PluginStatusReportPlugin[] = [];
-  try {
-    const pluginReport = discoverPluginStatusReport({
-      config,
-      workspaceDir: getWorkspacePathFromConfig(config)
-    });
-    discoveredPlugins = pluginReport.plugins;
-  } catch {
-    discoveredPlugins = [];
-  }
-
-  const discoveredById = buildDiscoveredPluginMap({ discoveredPlugins, installedPluginIds });
+  const discoveredById = buildDiscoveredPluginMap({ discoveredPlugins: [], installedPluginIds });
   const discoveredRecords = collectDiscoveredPluginRecords({
     discoveredById,
     pluginRecordsMap,

@@ -61,9 +61,7 @@ const orchestratorComplexityFiles = [
   "packages/nextclaw/**/*.{ts,mts,cts}",
   "packages/nextclaw-core/**/*.{ts,mts,cts}",
   "packages/nextclaw-server/**/*.{ts,mts,cts}",
-  "packages/nextclaw-openclaw-compat/**/*.{ts,mts,cts}",
-  "workers/**/*.{ts,mts,cts}",
-  "packages/extensions/nextclaw-channel-runtime/**/*.{ts,mts,cts}"
+  "workers/**/*.{ts,mts,cts}"
 ];
 
 const tsEslintRecommendedOverrideRules = tsEslintPlugin.configs["eslint-recommended"].overrides?.[0]?.rules ?? {};
@@ -257,7 +255,6 @@ export default [
   },
   {
     files: [
-      "packages/nextclaw-openclaw-compat/**/*.{ts,tsx,mts,cts}",
       "packages/extensions/nextclaw-engine-plugin-codex-sdk/**/*.{ts,tsx,mts,cts}",
       "packages/extensions/nextclaw-engine-plugin-claude-agent-sdk/**/*.{ts,tsx,mts,cts}"
     ],

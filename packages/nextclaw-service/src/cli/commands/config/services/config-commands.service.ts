@@ -1,8 +1,6 @@
-import { buildReloadPlan, diffConfigPaths, getWorkspacePath, loadConfig, saveConfig, type Config } from "@nextclaw/core";
-import { getPluginChannelBindings } from "@nextclaw/openclaw-compat";
+import { buildReloadPlan, diffConfigPaths, loadConfig, saveConfig, type Config } from "@nextclaw/core";
 import { getAtConfigPath, parseConfigSetValue, parseRequiredConfigPath, setAtConfigPath, unsetAtConfigPath } from "@nextclaw-service/shared/utils/config-path.js";
 import { resolveChannelConfigView } from "@nextclaw-service/commands/channel/index.js";
-import { loadPluginRegistry, mergePluginConfigView } from "@nextclaw-service/commands/plugin/index.js";
 import type { ConfigGetOptions, ConfigSetOptions, RequestRestartParams } from "@nextclaw-service/shared/types/cli.types.js";
 
 export class ConfigCommands {
@@ -68,10 +66,7 @@ export class ConfigCommands {
     }
 
     const prevConfig = loadConfig();
-    const projectedContext = this.resolveProjectedChannelContext(prevConfig, parsedPath);
-    const nextConfigTarget = projectedContext
-      ? structuredClone(projectedContext.view) as unknown as Record<string, unknown>
-      : structuredClone(prevConfig) as unknown as Record<string, unknown>;
+    const nextConfigTarget = structuredClone(prevConfig) as unknown as Record<string, unknown>;
     try {
       setAtConfigPath(nextConfigTarget, parsedPath, parsedValue);
     } catch (error) {
@@ -80,9 +75,7 @@ export class ConfigCommands {
       return;
     }
 
-    const nextConfig = projectedContext
-      ? mergePluginConfigView(prevConfig, nextConfigTarget, projectedContext.bindings)
-      : nextConfigTarget as Config;
+    const nextConfig = nextConfigTarget as Config;
     saveConfig(nextConfig as Config);
     await this.requestRestartForConfigDiff({
       prevConfig,
@@ -103,10 +96,7 @@ export class ConfigCommands {
     }
 
     const prevConfig = loadConfig();
-    const projectedContext = this.resolveProjectedChannelContext(prevConfig, parsedPath);
-    const nextConfigTarget = projectedContext
-      ? structuredClone(projectedContext.view) as unknown as Record<string, unknown>
-      : structuredClone(prevConfig) as unknown as Record<string, unknown>;
+    const nextConfigTarget = structuredClone(prevConfig) as unknown as Record<string, unknown>;
     const removed = unsetAtConfigPath(nextConfigTarget, parsedPath);
     if (!removed) {
       console.error(`Config path not found: ${pathExpr}`);
@@ -114,9 +104,7 @@ export class ConfigCommands {
       return;
     }
 
-    const nextConfig = projectedContext
-      ? mergePluginConfigView(prevConfig, nextConfigTarget, projectedContext.bindings)
-      : nextConfigTarget as Config;
+    const nextConfig = nextConfigTarget as Config;
     saveConfig(nextConfig as Config);
     await this.requestRestartForConfigDiff({
       prevConfig,
@@ -130,38 +118,7 @@ export class ConfigCommands {
     if (parsedPath[0] !== "channels") {
       return config;
     }
-    const { bindings } = this.loadPluginChannelBindings(config);
-    return resolveChannelConfigView(config, bindings);
-  };
-
-  private resolveProjectedChannelContext = (config: Config, parsedPath: string[]): {
-    bindings: ReturnType<typeof getPluginChannelBindings>;
-    view: Config;
-  } | null => {
-    if (parsedPath[0] !== "channels" || parsedPath.length < 2) {
-      return null;
-    }
-
-    const channelId = parsedPath[1];
-    const { bindings } = this.loadPluginChannelBindings(config);
-    if (!bindings.some((binding) => binding.channelId === channelId)) {
-      return null;
-    }
-
-    return {
-      bindings,
-      view: resolveChannelConfigView(config, bindings)
-    };
-  };
-
-  private loadPluginChannelBindings = (config: Config): {
-    bindings: ReturnType<typeof getPluginChannelBindings>;
-  } => {
-    const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
-    const pluginRegistry = loadPluginRegistry(config, workspaceDir);
-    return {
-      bindings: getPluginChannelBindings(pluginRegistry)
-    };
+    return resolveChannelConfigView(config);
   };
 
   private requestRestartForConfigDiff = async (params: {

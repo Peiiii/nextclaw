@@ -1,9 +1,6 @@
 import { loadConfig, saveConfig, getConfigPath, getDataDir, resolveWorkspacePath, resolveConfigSecrets, APP_NAME } from "@nextclaw/core";
 import { NextclawKernel } from "@nextclaw/kernel";
 import { RemoteRuntimeActions } from "@nextclaw/remote";
-import {
-  setPluginRuntimeBridge,
-} from "@nextclaw/openclaw-compat";
 import { existsSync, mkdirSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { RestartCoordinator } from "@nextclaw-service/shared/services/restart/restart-coordinator.service.js";
@@ -17,7 +14,6 @@ import { isProcessRunning } from "@nextclaw-service/shared/utils/cli.utils.js";
 import { NpmRuntimeUpdateCommandService } from "@nextclaw-service/launcher/npm-runtime-update-command.service.js";
 import { NpmRuntimeLauncher } from "@nextclaw-service/launcher/npm-runtime-launcher.service.js";
 import { managedServiceStateStore } from "@nextclaw-service/shared/stores/managed-service-state.store.js";
-import { mergePluginConfigView, toPluginConfigView, PluginCommands } from "@nextclaw-service/commands/plugin/index.js";
 import { ConfigCommands } from "@nextclaw-service/cli/commands/config/index.js";
 import { McpCommands } from "@nextclaw-service/cli/commands/mcp/index.js";
 import { SecretsCommands } from "@nextclaw-service/cli/commands/secrets/index.js";
@@ -63,7 +59,6 @@ export type NextclawServiceCommands = {
   config: ConfigCommands;
   mcp: McpCommands;
   secrets: SecretsCommands;
-  plugins: PluginCommands;
   agents: AgentCommands;
   channels: ChannelCommands;
   cron: CronCommands;
@@ -156,7 +151,6 @@ export class NextclawServiceRuntime {
       secrets: measureStartupSync("cli.runtime.secrets_commands", () => new SecretsCommands({
         requestRestart: (params) => this.requestRestart(params),
       })),
-      plugins: measureStartupSync("cli.runtime.plugin_commands", () => new PluginCommands()),
       agents: measureStartupSync("cli.runtime.agent_commands", () => new AgentCommands({
         initializeAgentHomeDirectory: (homeDirectory) => this.workspaceManager.createWorkspaceTemplates(homeDirectory)
       })),
@@ -446,48 +440,18 @@ export class NextclawServiceRuntime {
     });
     const config = kernel.configManager.config;
 
-    setPluginRuntimeBridge({
-      loadConfig: () =>
-        toPluginConfigView(
-          resolveConfigSecrets(loadConfig(), { configPath }),
-          kernel.extensions.getChannelBindings(),
-        ),
-      writeConfigFile: async (nextConfigView) => {
-        if (
-          !nextConfigView ||
-          typeof nextConfigView !== "object" ||
-          Array.isArray(nextConfigView)
-        ) {
-          throw new Error(
-            "plugin runtime writeConfigFile expects an object config",
-          );
-        }
-        const current = loadConfig();
-        const next = mergePluginConfigView(
-          current,
-          nextConfigView,
-          kernel.extensions.getChannelBindings(),
-        );
-        saveConfig(next);
-      },
+    const providerManager = kernel.llmUsage.observeProviderManager(
+      kernel.llmProviders,
+      "cli-agent",
+    );
+
+    await runCliAgentCommand({
+      logo: this.logo,
+      opts,
+      config,
+      kernel,
+      providerManager,
     });
-
-    try {
-      const providerManager = kernel.llmUsage.observeProviderManager(
-        kernel.llmProviders,
-        "cli-agent",
-      );
-
-      await runCliAgentCommand({
-        logo: this.logo,
-        opts,
-        config,
-        kernel,
-        providerManager,
-      });
-    } finally {
-      setPluginRuntimeBridge(null);
-    }
   };
 
   update = async (opts: UpdateCommandOptions): Promise<void> => {

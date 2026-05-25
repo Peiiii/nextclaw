@@ -75,9 +75,6 @@
 
 | 命令 | 用途 |
 |------|------|
-| `nextclaw plugins list` | 列出插件 |
-| `nextclaw plugins install <spec>` | 安装插件 |
-| `nextclaw plugins enable <id>` | 启用插件 |
 | `nextclaw skills installed` | 列出已安装 skill |
 | `nextclaw marketplace skills search` | 搜索 marketplace skill |
 | `nextclaw marketplace skills install <slug>` | 安装 marketplace skill |

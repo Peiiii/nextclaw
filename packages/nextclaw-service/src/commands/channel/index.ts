@@ -1,13 +1,12 @@
 import { spawnSync } from "node:child_process";
 import { getWorkspacePath, loadConfig, saveConfig } from "@nextclaw/core";
-import { BUILTIN_CHANNEL_IDS, builtinProviderIds } from "@nextclaw/runtime";
-import { buildPluginStatusReport, enablePluginInConfig, getPluginChannelBindings } from "@nextclaw/openclaw-compat";
-import { loadPluginRegistry, mergePluginConfigView, toPluginConfigView } from "../plugin/index.js";
-import { resolveChannelConfigView } from "./channel-config-view.js";
+import { BUILTIN_CHANNEL_IDS } from "@nextclaw/runtime";
+import { listExtensionChannelIds } from "@nextclaw/kernel";
+import { resolveChannelConfigView } from "./channel-config-view.utils.js";
 import { ChannelListViewService } from "./channel-list-view.service.js";
 import type { ChannelsAddOptions, ChannelsListOptions, ChannelsLoginOptions, RequestRestartParams } from "../../shared/types/cli.types.js";
 
-export { resolveChannelConfigView } from "./channel-config-view.js";
+export { resolveChannelConfigView } from "./channel-config-view.utils.js";
 
 const CHANNEL_LABELS: Record<string, string> = {
   telegram: "Telegram",
@@ -21,27 +20,6 @@ const CHANNEL_LABELS: Record<string, string> = {
   qq: "QQ",
   weixin: "Weixin"
 };
-const RESERVED_PROVIDER_IDS = builtinProviderIds();
-
-type PluginChannelBinding = ReturnType<typeof getPluginChannelBindings>[number];
-type PluginLoginResult = {
-  pluginConfig: Record<string, unknown>;
-  accountId?: string | null;
-  notes?: string[];
-};
-type RequiredChannelSetup = NonNullable<PluginChannelBinding["channel"]["setup"]> & {
-  applyAccountConfig: NonNullable<NonNullable<PluginChannelBinding["channel"]["setup"]>["applyAccountConfig"]>;
-};
-
-type PluginChannelContext = {
-  binding: PluginChannelBinding;
-  bindings: PluginChannelBinding[];
-};
-
-function resolveChannelBindings(pluginRegistry: ReturnType<typeof loadPluginRegistry>): PluginChannelBinding[] {
-  return getPluginChannelBindings(pluginRegistry);
-}
-
 export class ChannelCommands {
   private readonly channelListView = new ChannelListViewService();
 
@@ -56,8 +34,7 @@ export class ChannelCommands {
   status = (): void => {
     const config = loadConfig();
     const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
-    const pluginRegistry = loadPluginRegistry(config, workspaceDir);
-    const channelConfig = resolveChannelConfigView(config, resolveChannelBindings(pluginRegistry));
+    const channelConfig = resolveChannelConfigView(config);
 
     console.log("Channel Status");
     const channels = channelConfig.channels as Record<string, { enabled?: boolean }>;
@@ -67,19 +44,11 @@ export class ChannelCommands {
       console.log(`${label}: ${enabled ? "✓" : "✗"}`);
     }
 
-    const report = buildPluginStatusReport({
-      config,
-      workspaceDir,
-      reservedChannelIds: [],
-      reservedProviderIds: RESERVED_PROVIDER_IDS
-    });
-
-    const pluginChannels = report.plugins.filter((plugin) => plugin.status === "loaded" && plugin.channelIds.length > 0);
-    if (pluginChannels.length > 0) {
-      console.log("Plugin Channels:");
-      for (const plugin of pluginChannels) {
-        const channels = plugin.channelIds.join(", ");
-        console.log(`- ${channels} (plugin: ${plugin.id})`);
+    const extensionChannels = listExtensionChannelIds({ config, workspace: workspaceDir });
+    if (extensionChannels.length > 0) {
+      console.log("Extension Channels:");
+      for (const channelId of extensionChannels) {
+        console.log(`- ${channelId}`);
       }
     }
   };
@@ -108,25 +77,8 @@ export class ChannelCommands {
       return;
     }
 
-    const config = loadConfig();
-    const channelContext = this.resolvePluginChannelContext(config, channelId);
-    if (!channelContext) {
-      console.error(`No plugin channel found for: ${channelId}`);
-      process.exit(1);
-    }
-
-    const result = await this.loginPluginChannel(config, channelContext, opts);
-    if (!result) {
-      return;
-    }
-
-    saveConfig(this.buildNextConfigAfterChannelLogin(config, channelContext.binding, result));
-    this.printPluginChannelLoginResult(channelContext.binding, result);
-    await this.deps.requestRestart({
-      mode: "notify",
-      reason: `channel login via plugin: ${channelContext.binding.pluginId}`,
-      manualMessage: "渠道配置已保存，等待你手动重启后生效。"
-    });
+    console.error(`Channel "${channelId}" login is handled by the running UI extension auth flow.`);
+    process.exit(1);
   };
 
   private runLegacyBridgeLogin = (): void => {
@@ -139,143 +91,35 @@ export class ChannelCommands {
     }
   };
 
-  private resolvePluginChannelContext = (config: ReturnType<typeof loadConfig>, channelId: string): PluginChannelContext | null => {
-    const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
-    const pluginRegistry = loadPluginRegistry(config, workspaceDir);
-    const bindings = resolveChannelBindings(pluginRegistry);
-    const binding = bindings.find((entry) => entry.channelId === channelId || entry.pluginId === channelId);
-    if (!binding) {
-      return null;
-    }
-    return { binding, bindings };
-  };
-
   private buildChannelListOutput = () => {
     const config = loadConfig();
     const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
-    const pluginRegistry = loadPluginRegistry(config, workspaceDir);
     return this.channelListView.build({
       config,
       workspaceDir,
-      pluginBindings: resolveChannelBindings(pluginRegistry),
     });
-  };
-
-  private loginPluginChannel = async (
-    config: ReturnType<typeof loadConfig>,
-    channelContext: PluginChannelContext,
-    opts: ChannelsLoginOptions,
-  ): Promise<PluginLoginResult | null> => {
-    const { binding, bindings } = channelContext;
-    const login = binding.channel.auth?.login;
-    if (!login) {
-      if (binding.channelId === "whatsapp") {
-        this.runLegacyBridgeLogin();
-        return null;
-      }
-      console.error(`Channel "${binding.channelId}" does not support login.`);
-      process.exit(1);
-    }
-
-    const configView = resolveChannelConfigView(config, bindings);
-    const result = await login({
-      cfg: configView,
-      pluginId: binding.pluginId,
-      channelId: binding.channelId,
-      pluginConfig: this.clonePluginConfig(configView.channels?.[binding.channelId]),
-      accountId: opts.account?.trim() || null,
-      baseUrl: opts.url?.trim() || opts.httpUrl?.trim() || null,
-      verbose: Boolean(opts.verbose)
-    });
-    this.assertValidPluginLoginResult(result);
-    return result;
-  };
-
-  private clonePluginConfig = (value: unknown): Record<string, unknown> | undefined => {
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      return undefined;
-    }
-    return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
-  };
-
-  private assertValidPluginLoginResult: (result: unknown) => asserts result is PluginLoginResult = (result) => {
-    if (!result || typeof result !== "object" || Array.isArray(result)) {
-      console.error("Channel login returned an invalid result.");
-      process.exit(1);
-    }
-    const record = result as Record<string, unknown>;
-    if (!record.pluginConfig || typeof record.pluginConfig !== "object" || Array.isArray(record.pluginConfig)) {
-      console.error("Channel login returned an invalid plugin config.");
-      process.exit(1);
-    }
-  };
-
-  private buildNextConfigAfterChannelLogin = (
-    config: ReturnType<typeof loadConfig>,
-    binding: PluginChannelBinding,
-    result: PluginLoginResult,
-  ): ReturnType<typeof loadConfig> => {
-    const nextConfig = {
-      ...config,
-      channels: {
-        ...config.channels,
-        [binding.channelId]: result.pluginConfig as ReturnType<typeof loadConfig>["channels"][keyof ReturnType<typeof loadConfig>["channels"]]
-      }
-    };
-    return enablePluginInConfig(nextConfig, binding.pluginId);
-  };
-
-  private printPluginChannelLoginResult = (binding: PluginChannelBinding, result: PluginLoginResult): void => {
-    console.log(`Logged into channel "${binding.channelId}" via plugin "${binding.pluginId}".`);
-    if (result.accountId) {
-      console.log(`Active account: ${result.accountId}`);
-    }
-    for (const note of result.notes ?? []) {
-      console.log(note);
-    }
   };
 
   add = async (opts: ChannelsAddOptions): Promise<void> => {
     const channelId = this.requireChannelId(opts);
     const config = loadConfig();
-    const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
-    const pluginRegistry = loadPluginRegistry(config, workspaceDir);
-    const { binding, bindings } = this.resolveRequiredChannelBinding(pluginRegistry, channelId);
-    const setup = this.resolveRequiredChannelSetup(binding);
-    const input = this.buildChannelSetupInput(opts);
-
-    const currentView = toPluginConfigView(config, bindings);
-    const accountId = binding.channel.config?.defaultAccountId?.(currentView) ?? "default";
-
-    const validateError = setup.validateInput?.({
-      cfg: currentView,
-      input,
-      accountId
-    });
-    if (validateError) {
-      console.error(`Channel setup validation failed: ${validateError}`);
-      process.exit(1);
-    }
-
-    const nextView = setup.applyAccountConfig({
-      cfg: currentView,
-      input,
-      accountId
-    });
-
-    if (!nextView || typeof nextView !== "object" || Array.isArray(nextView)) {
-      console.error("Channel setup returned invalid config payload.");
-      process.exit(1);
-    }
-
-    let next = mergePluginConfigView(config, nextView as Record<string, unknown>, bindings);
-    next = enablePluginInConfig(next, binding.pluginId);
+    const next = {
+      ...config,
+      channels: {
+        ...config.channels,
+        [channelId]: {
+          ...((config.channels as Record<string, Record<string, unknown>>)[channelId] ?? {}),
+          ...this.buildChannelSetupInput(opts),
+          enabled: true,
+        },
+      },
+    };
     saveConfig(next);
 
-    console.log(`Configured channel "${binding.channelId}" via plugin "${binding.pluginId}".`);
+    console.log(`Configured channel "${channelId}".`);
     await this.deps.requestRestart({
       mode: "notify",
-      reason: `channel configured via plugin: ${binding.pluginId}`,
+      reason: `channel configured: ${channelId}`,
       manualMessage: "渠道配置已保存，等待你手动重启后生效。"
     });
   };
@@ -287,28 +131,6 @@ export class ChannelCommands {
       process.exit(1);
     }
     return channelId;
-  };
-
-  private resolveRequiredChannelBinding = (
-    pluginRegistry: ReturnType<typeof loadPluginRegistry>,
-    channelId: string,
-  ): PluginChannelContext => {
-    const bindings = resolveChannelBindings(pluginRegistry);
-    const binding = bindings.find((entry) => entry.channelId === channelId || entry.pluginId === channelId);
-    if (!binding) {
-      console.error(`No plugin channel found for: ${channelId}`);
-      process.exit(1);
-    }
-    return { binding, bindings };
-  };
-
-  private resolveRequiredChannelSetup = (binding: PluginChannelBinding): RequiredChannelSetup => {
-    const setup = binding.channel.setup;
-    if (!setup?.applyAccountConfig) {
-      console.error(`Channel "${binding.channelId}" does not support setup.`);
-      process.exit(1);
-    }
-    return setup as RequiredChannelSetup;
   };
 
   private buildChannelSetupInput = (opts: ChannelsAddOptions): Record<string, string | undefined> => {

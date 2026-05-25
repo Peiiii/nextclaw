@@ -1,31 +1,30 @@
 import { saveConfig } from "@nextclaw/core";
 import {
-  enablePluginInConfig,
-  type OpenClawChannelAuthPollResult,
-  type OpenClawChannelAuthStartResult,
-  type PluginChannelBinding
-} from "@nextclaw/openclaw-compat";
+  type ExtensionChannelAuthPollResult,
+  type ExtensionChannelAuthStartResult,
+  type ExtensionChannelBinding
+} from "@nextclaw/core";
 import { loadConfigOrDefault } from "@nextclaw-server/features/config/index.js";
-import { getProjectedConfigView } from "./plugin-channel-config-projection.utils.js";
+import { getProjectedConfigView } from "./extension-channel-config-projection.utils.js";
 import type {
   ChannelAuthPollResult,
   ChannelAuthStartRequest,
   ChannelAuthStartResult
 } from "@nextclaw-server/shared/types/server-api.types.js";
 
-function clonePluginConfig(value: unknown): Record<string, unknown> | undefined {
+function cloneChannelConfig(value: unknown): Record<string, unknown> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return undefined;
   }
   return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
 }
 
-function findPluginChannelBinding(bindings: PluginChannelBinding[], channelId: string): PluginChannelBinding | null {
+function findExtensionChannelBinding(bindings: ExtensionChannelBinding[], channelId: string): ExtensionChannelBinding | null {
   const normalizedChannelId = channelId.trim().toLowerCase();
   return bindings.find((binding) => binding.channelId.trim().toLowerCase() === normalizedChannelId) ?? null;
 }
 
-function toPublicChannelAuthPollResult(result: OpenClawChannelAuthPollResult): ChannelAuthPollResult {
+function toPublicChannelAuthPollResult(result: ExtensionChannelAuthPollResult): ChannelAuthPollResult {
   return {
     channel: result.channel,
     status: result.status,
@@ -38,25 +37,22 @@ function toPublicChannelAuthPollResult(result: OpenClawChannelAuthPollResult): C
 
 function applyAuthorizedChannelAuthResult(params: {
   configPath: string;
-  binding: PluginChannelBinding;
-  result: OpenClawChannelAuthPollResult;
+  binding: ExtensionChannelBinding;
+  result: ExtensionChannelAuthPollResult;
 }): void {
   const { configPath, binding, result } = params;
-  if (result.status !== "authorized" || !result.pluginConfig) {
+  if (result.status !== "authorized" || !result.channelConfig) {
     return;
   }
 
   const currentConfig = loadConfigOrDefault(configPath);
-  const nextConfig = enablePluginInConfig(
-    {
-      ...currentConfig,
-      channels: {
-        ...currentConfig.channels,
-        [binding.channelId]: result.pluginConfig as typeof currentConfig.channels[keyof typeof currentConfig.channels]
-      }
-    },
-    binding.pluginId
-  );
+  const nextConfig = {
+    ...currentConfig,
+    channels: {
+      ...currentConfig.channels,
+      [binding.channelId]: result.channelConfig as typeof currentConfig.channels[keyof typeof currentConfig.channels]
+    }
+  };
   saveConfig(nextConfig, configPath);
 }
 
@@ -64,10 +60,10 @@ export async function startChannelAuth(params: {
   configPath: string;
   channelId: string;
   request: ChannelAuthStartRequest;
-  bindings: PluginChannelBinding[];
+  bindings: ExtensionChannelBinding[];
 }): Promise<ChannelAuthStartResult | null> {
   const { configPath, channelId, request, bindings } = params;
-  const binding = findPluginChannelBinding(bindings, channelId);
+  const binding = findExtensionChannelBinding(bindings, channelId);
   const start = binding?.channel.auth?.start;
   if (!binding || !start) {
     return null;
@@ -75,29 +71,29 @@ export async function startChannelAuth(params: {
 
   const config = loadConfigOrDefault(configPath);
   const configView = getProjectedConfigView(config, {
-    pluginChannelBindings: bindings
+    extensionChannelBindings: bindings
   }) as typeof config;
   const result = await start({
     cfg: configView,
-    pluginId: binding.pluginId,
+    extensionId: binding.extensionId,
     channelId: binding.channelId,
-    pluginConfig: clonePluginConfig(configView.channels?.[binding.channelId]),
+    channelConfig: cloneChannelConfig(configView.channels?.[binding.channelId]),
     accountId: request.accountId?.trim() || null,
     baseUrl: request.baseUrl?.trim() || null,
     domain: request.domain?.trim() || null
   });
 
-  return result satisfies OpenClawChannelAuthStartResult;
+  return result satisfies ExtensionChannelAuthStartResult;
 }
 
 export async function pollChannelAuth(params: {
   configPath: string;
   channelId: string;
   sessionId: string;
-  bindings: PluginChannelBinding[];
+  bindings: ExtensionChannelBinding[];
 }): Promise<ChannelAuthPollResult | null> {
   const { configPath, channelId, sessionId, bindings } = params;
-  const binding = findPluginChannelBinding(bindings, channelId);
+  const binding = findExtensionChannelBinding(bindings, channelId);
   const poll = binding?.channel.auth?.poll;
   if (!binding || !poll) {
     return null;
@@ -105,13 +101,13 @@ export async function pollChannelAuth(params: {
 
   const config = loadConfigOrDefault(configPath);
   const configView = getProjectedConfigView(config, {
-    pluginChannelBindings: bindings
+    extensionChannelBindings: bindings
   }) as typeof config;
   const result = await poll({
     cfg: configView,
-    pluginId: binding.pluginId,
+    extensionId: binding.extensionId,
     channelId: binding.channelId,
-    pluginConfig: clonePluginConfig(configView.channels?.[binding.channelId]),
+    channelConfig: cloneChannelConfig(configView.channels?.[binding.channelId]),
     sessionId
   });
   if (!result) {

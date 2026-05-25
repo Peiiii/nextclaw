@@ -42,6 +42,8 @@ export type ExtensionChannel = {
   id: string;
   meta?: Record<string, unknown>;
   capabilities?: Record<string, unknown>;
+  configSchema?: ExtensionChannelConfigSchema;
+  auth?: ExtensionChannelAuth;
   outbound?: {
     sendText?: (ctx: {
       cfg: Config;
@@ -63,6 +65,89 @@ export type ExtensionChannel = {
       metadata?: Record<string, unknown>;
     }) => Promise<unknown> | unknown;
   };
+};
+
+export type ExtensionChannelConfigUiHint = {
+  label?: string;
+  help?: string;
+  advanced?: boolean;
+  sensitive?: boolean;
+  placeholder?: string;
+};
+
+export type ExtensionChannelConfigSchema = {
+  schema: Record<string, unknown>;
+  uiHints?: Record<string, ExtensionChannelConfigUiHint>;
+};
+
+export type ExtensionChannelAuthLoginResult = {
+  channelConfig: Record<string, unknown>;
+  accountId?: string | null;
+  notes?: string[];
+};
+
+export type ExtensionChannelAuthStartResult = {
+  channel: string;
+  kind: "qr_code";
+  sessionId: string;
+  qrCode: string;
+  qrCodeUrl: string;
+  expiresAt: string;
+  intervalMs: number;
+  note?: string;
+};
+
+export type ExtensionChannelAuthPollResult = {
+  channel: string;
+  status: "pending" | "scanned" | "authorized" | "expired" | "error";
+  message?: string;
+  nextPollMs?: number;
+  accountId?: string | null;
+  notes?: string[];
+  channelConfig?: Record<string, unknown>;
+};
+
+export type ExtensionChannelAuth = {
+  login?: (params: {
+    cfg: Config;
+    extensionId: string;
+    channelId: string;
+    channelConfig?: Record<string, unknown>;
+    accountId?: string | null;
+    baseUrl?: string | null;
+    verbose?: boolean;
+  }) => Promise<ExtensionChannelAuthLoginResult> | ExtensionChannelAuthLoginResult;
+  start?: (params: {
+    cfg: Config;
+    extensionId: string;
+    channelId: string;
+    channelConfig?: Record<string, unknown>;
+    accountId?: string | null;
+    baseUrl?: string | null;
+    domain?: string | null;
+  }) => Promise<ExtensionChannelAuthStartResult> | ExtensionChannelAuthStartResult;
+  poll?: (params: {
+    cfg: Config;
+    extensionId: string;
+    channelId: string;
+    channelConfig?: Record<string, unknown>;
+    sessionId: string;
+  }) =>
+    | Promise<ExtensionChannelAuthPollResult | null>
+    | ExtensionChannelAuthPollResult
+    | null;
+};
+
+export type ExtensionChannelBinding = {
+  extensionId: string;
+  channelId: string;
+  channel: ExtensionChannel;
+};
+
+export type ExtensionUiMetadata = {
+  id: string;
+  configSchema?: Record<string, unknown>;
+  configUiHints?: Record<string, ExtensionChannelConfigUiHint>;
 };
 
 export type ExtensionChannelRegistration = {

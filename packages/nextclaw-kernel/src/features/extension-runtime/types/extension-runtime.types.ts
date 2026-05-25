@@ -2,9 +2,9 @@ import type * as NextclawCore from "@nextclaw/core";
 import type { EventBus, Ingress } from "@nextclaw/shared";
 import type { ChildProcess } from "node:child_process";
 import type {
-  PluginChannelBinding,
-  PluginUiMetadata,
-} from "@nextclaw/openclaw-compat";
+  ExtensionChannelBinding,
+  ExtensionUiMetadata,
+} from "@nextclaw/core";
 
 export type Config = NextclawCore.Config;
 export type InboundAttachment = NextclawCore.InboundAttachment;
@@ -42,8 +42,8 @@ export type ExtensionManifest = {
 };
 
 export type ExtensionRuntimeContributions = {
-  channelBindings: PluginChannelBinding[];
-  uiMetadata: PluginUiMetadata[];
+  channelBindings: ExtensionChannelBinding[];
+  uiMetadata: ExtensionUiMetadata[];
 };
 
 export type RunningExtensionProcess = {

@@ -15,10 +15,8 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm -C packages/nextclaw-core build \
   && pnpm -C packages/ncp-packages/nextclaw-ncp build \
   && pnpm -C packages/nextclaw-runtime build \
-  && pnpm -C packages/extensions/nextclaw-channel-runtime build \
   && pnpm -C packages/extensions/nextclaw-engine-plugin-codex-sdk build \
   && pnpm -C packages/extensions/nextclaw-engine-plugin-claude-agent-sdk build \
-  && pnpm -C packages/nextclaw-openclaw-compat build \
   && pnpm -C packages/nextclaw-server build \
   && pnpm -C packages/nextclaw-agent-chat build \
   && pnpm -C packages/nextclaw-ui build \

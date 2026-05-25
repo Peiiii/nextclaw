@@ -100,7 +100,6 @@ function runSharedBuildSteps(env) {
     run(binName("pnpm"), ["-C", `packages/extensions/${packageName}`, "build"]);
   }
   run(binName("pnpm"), ["-C", "packages/nextclaw-ui", "build"]);
-  run(binName("pnpm"), ["-C", "packages/nextclaw-openclaw-compat", "build"]);
   run(binName("pnpm"), ["-C", "packages/nextclaw-server", "build"]);
   run(binName("pnpm"), ["-C", "packages/nextclaw", "build"]);
   run(binName("pnpm"), ["-C", "apps/desktop", "bundle:public-key:ensure"]);

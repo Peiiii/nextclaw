@@ -134,7 +134,7 @@ function createTestGateway(params: {
         remote: { state: "disabled" },
       }),
     },
-    plugins: {
+    extensions: {
       getChannelBindings: () => [],
       getUiMetadata: () => [],
     },

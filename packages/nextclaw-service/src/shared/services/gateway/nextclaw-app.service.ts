@@ -27,7 +27,7 @@ export class NextclawApp {
     }
 
     await this.startDeferredRuntimeServices();
-    console.log("✓ Deferred startup: plugin gateways and channels settled");
+    console.log("✓ Deferred startup: extensions and channels settled");
     logStartupTrace("service.deferred_startup.end");
   };
 
@@ -47,12 +47,8 @@ export class NextclawApp {
 
   startDeferredRuntimeServices = async (): Promise<void> => {
     await measureStartupAsync(
-      "service.deferred_startup.load_plugins",
-      this.gateway.plugins.load,
-    );
-    await measureStartupAsync(
-      "service.deferred_startup.start_plugin_gateways",
-      this.gateway.plugins.startGateways,
+      "service.deferred_startup.load_extensions",
+      this.gateway.extensions.load,
     );
     await measureStartupAsync(
       "service.deferred_startup.start_extensions",

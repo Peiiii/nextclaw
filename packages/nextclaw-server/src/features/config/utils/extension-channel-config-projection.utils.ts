@@ -1,10 +1,16 @@
-import type { Config, ConfigUiHints } from "@nextclaw/core";
-import { mergePluginConfigView, toPluginConfigView, type PluginChannelBinding, type PluginUiMetadata } from "@nextclaw/openclaw-compat";
+import {
+  mergeExtensionConfigView,
+  toExtensionConfigView,
+  type Config,
+  type ConfigUiHints,
+  type ExtensionChannelBinding,
+  type ExtensionUiMetadata,
+} from "@nextclaw/core";
 import type { ConfigMetaView } from "@nextclaw-server/shared/types/server-api.types.js";
 
-export type PluginConfigProjectionOptions = {
-  pluginChannelBindings?: PluginChannelBinding[];
-  pluginUiMetadata?: PluginUiMetadata[];
+export type ExtensionConfigProjectionOptions = {
+  extensionChannelBindings?: ExtensionChannelBinding[];
+  extensionUiMetadata?: ExtensionUiMetadata[];
 };
 
 type ChannelTutorialUrls = NonNullable<ConfigMetaView["channels"][number]["tutorialUrls"]>;
@@ -20,21 +26,21 @@ const CHANNEL_TUTORIAL_URLS: Record<string, ChannelTutorialUrls> = {
   }
 };
 
-export function normalizePluginProjectionOptions(options?: PluginConfigProjectionOptions): Required<PluginConfigProjectionOptions> {
+export function normalizeExtensionProjectionOptions(options?: ExtensionConfigProjectionOptions): Required<ExtensionConfigProjectionOptions> {
   return {
-    pluginChannelBindings: options?.pluginChannelBindings ?? [],
-    pluginUiMetadata: options?.pluginUiMetadata ?? []
+    extensionChannelBindings: options?.extensionChannelBindings ?? [],
+    extensionUiMetadata: options?.extensionUiMetadata ?? []
   };
 }
 
-export function getProjectedConfigView(config: Config, options?: PluginConfigProjectionOptions): Record<string, unknown> {
-  const normalized = normalizePluginProjectionOptions(options);
-  return toPluginConfigView(config, normalized.pluginChannelBindings);
+export function getProjectedConfigView(config: Config, options?: ExtensionConfigProjectionOptions): Record<string, unknown> {
+  normalizeExtensionProjectionOptions(options);
+  return toExtensionConfigView(config);
 }
 
 export function getProjectedChannelMap(
   config: Config,
-  options?: PluginConfigProjectionOptions
+  options?: ExtensionConfigProjectionOptions
 ): Record<string, Record<string, unknown>> {
   const view = getProjectedConfigView(config, options);
   const channels = view.channels;
@@ -47,7 +53,7 @@ export function getProjectedChannelMap(
 export function getProjectedChannelConfig(
   config: Config,
   channelName: string,
-  options?: PluginConfigProjectionOptions
+  options?: ExtensionConfigProjectionOptions
 ): Record<string, unknown> | null {
   const channel = getProjectedChannelMap(config, options)[channelName];
   if (!channel || typeof channel !== "object" || Array.isArray(channel)) {
@@ -56,16 +62,16 @@ export function getProjectedChannelConfig(
   return channel;
 }
 
-export function buildPluginChannelUiHints(options?: PluginConfigProjectionOptions): ConfigUiHints {
-  const normalized = normalizePluginProjectionOptions(options);
-  if (normalized.pluginChannelBindings.length === 0) {
+export function buildExtensionChannelUiHints(options?: ExtensionConfigProjectionOptions): ConfigUiHints {
+  const normalized = normalizeExtensionProjectionOptions(options);
+  if (normalized.extensionChannelBindings.length === 0) {
     return {};
   }
 
   const hints: ConfigUiHints = {};
-  const metadataById = new Map(normalized.pluginUiMetadata.map((item) => [item.id, item]));
+  const metadataById = new Map(normalized.extensionUiMetadata.map((item) => [item.id, item]));
 
-  for (const binding of normalized.pluginChannelBindings) {
+  for (const binding of normalized.extensionChannelBindings) {
     const channelScope = `channels.${binding.channelId}`;
     const channelMeta = binding.channel.meta as Record<string, unknown> | undefined;
     const channelLabel = typeof channelMeta?.selectionLabel === "string"
@@ -80,8 +86,8 @@ export function buildPluginChannelUiHints(options?: PluginConfigProjectionOption
       ...(channelHelp ? { help: channelHelp } : {})
     };
 
-    const pluginHints = metadataById.get(binding.pluginId)?.configUiHints ?? {};
-    for (const [key, hint] of Object.entries(pluginHints)) {
+    const extensionHints = metadataById.get(binding.extensionId)?.configUiHints ?? {};
+    for (const [key, hint] of Object.entries(extensionHints)) {
       hints[`${channelScope}.${key}`] = {
         label: hint.label,
         help: hint.help,
@@ -97,11 +103,11 @@ export function buildPluginChannelUiHints(options?: PluginConfigProjectionOption
 
 export function buildProjectedChannelMeta(
   config: Config,
-  options?: PluginConfigProjectionOptions
+  options?: ExtensionConfigProjectionOptions
 ): ConfigMetaView["channels"] {
-  const normalized = normalizePluginProjectionOptions(options);
+  const normalized = normalizeExtensionProjectionOptions(options);
   const projectedChannelMap = getProjectedChannelMap(config, normalized);
-  const bindingByChannelId = new Map(normalized.pluginChannelBindings.map((binding) => [binding.channelId, binding]));
+  const bindingByChannelId = new Map(normalized.extensionChannelBindings.map((binding) => [binding.channelId, binding]));
   const channelNames = new Set<string>([
     ...Object.keys(config.channels),
     ...Object.keys(projectedChannelMap),
@@ -129,14 +135,14 @@ export function buildProjectedChannelMeta(
   });
 }
 
-export function mergeProjectedPluginChannelConfig(
+export function mergeProjectedExtensionChannelConfig(
   config: Config,
   channelName: string,
   mergedChannel: Record<string, unknown>,
-  options?: PluginConfigProjectionOptions
+  options?: ExtensionConfigProjectionOptions
 ): Config | null {
-  const normalized = normalizePluginProjectionOptions(options);
-  if (!normalized.pluginChannelBindings.some((binding) => binding.channelId === channelName)) {
+  const normalized = normalizeExtensionProjectionOptions(options);
+  if (!normalized.extensionChannelBindings.some((binding) => binding.channelId === channelName)) {
     return null;
   }
 
@@ -148,5 +154,5 @@ export function mergeProjectedPluginChannelConfig(
       [channelName]: mergedChannel
     }
   };
-  return mergePluginConfigView(config, nextView, normalized.pluginChannelBindings);
+  return mergeExtensionConfigView(config, nextView);
 }

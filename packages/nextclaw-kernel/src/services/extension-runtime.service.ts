@@ -11,12 +11,12 @@ import {
 } from "@nextclaw/shared";
 import { AgentRouteResolver, CommandRegistry } from "@nextclaw/core";
 import type {
-  OpenClawChannelAuthLoginResult,
-  OpenClawChannelAuthPollResult,
-  OpenClawChannelAuthStartResult,
-  PluginChannelBinding,
-  PluginUiMetadata,
-} from "@nextclaw/openclaw-compat";
+  ExtensionChannelAuthLoginResult,
+  ExtensionChannelAuthPollResult,
+  ExtensionChannelAuthStartResult,
+  ExtensionChannelBinding,
+  ExtensionUiMetadata,
+} from "@nextclaw/core";
 import {
   ExtensionLifecycleService,
   ExtensionManifestDiscoveryService,
@@ -35,8 +35,8 @@ import {
 const EXTENSION_REQUEST_EVENT_TYPE = "extension.request";
 const EXTENSION_REQUEST_TIMEOUT_MS = 60_000;
 
-type PluginChannelAuth = NonNullable<PluginChannelBinding["channel"]["auth"]>;
-type PluginChannelOutbound = NonNullable<PluginChannelBinding["channel"]["outbound"]>;
+type ExtensionChannelAuthClient = NonNullable<ExtensionChannelBinding["channel"]["auth"]>;
+type ExtensionChannelOutbound = NonNullable<ExtensionChannelBinding["channel"]["outbound"]>;
 
 function readString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
@@ -103,7 +103,38 @@ function toInboundMessage(value: unknown): InboundMessage {
   };
 }
 
-class ExtensionChannelClient implements PluginChannelAuth, PluginChannelOutbound {
+function normalizeChannelConfigResult(value: unknown): Record<string, unknown> {
+  const record = readRecord(value);
+  const channelConfig = readRecord(record.channelConfig);
+  return Object.keys(channelConfig).length > 0 ? channelConfig : readRecord(record.pluginConfig);
+}
+
+function normalizeAuthLoginResult(value: unknown): ExtensionChannelAuthLoginResult {
+  const record = readRecord(value);
+  return {
+    channelConfig: normalizeChannelConfigResult(record),
+    accountId: typeof record.accountId === "string" ? record.accountId : null,
+    notes: Array.isArray(record.notes) ? record.notes.filter((note): note is string => typeof note === "string") : [],
+  };
+}
+
+function normalizeAuthPollResult(value: unknown): ExtensionChannelAuthPollResult | null {
+  if (!value) {
+    return null;
+  }
+  const record = readRecord(value);
+  return {
+    channel: readRequiredString(record.channel, "channel"),
+    status: record.status as ExtensionChannelAuthPollResult["status"],
+    message: readString(record.message),
+    nextPollMs: readOptionalNumber(record.nextPollMs),
+    accountId: typeof record.accountId === "string" ? record.accountId : null,
+    notes: Array.isArray(record.notes) ? record.notes.filter((note): note is string => typeof note === "string") : [],
+    channelConfig: normalizeChannelConfigResult(record),
+  };
+}
+
+class ExtensionChannelClient implements ExtensionChannelAuthClient, ExtensionChannelOutbound {
   constructor(
     private readonly params: {
       extensionId: string;
@@ -112,8 +143,8 @@ class ExtensionChannelClient implements PluginChannelAuth, PluginChannelOutbound
     },
   ) {}
 
-  readonly login: PluginChannelAuth["login"] = async ({ accountId, baseUrl, verbose }) =>
-    await this.params.request<OpenClawChannelAuthLoginResult>({
+  readonly login: ExtensionChannelAuthClient["login"] = async ({ accountId, baseUrl, verbose }) =>
+    normalizeAuthLoginResult(await this.params.request({
       extensionId: this.params.extensionId,
       kind: "channel.auth.login",
       payload: {
@@ -122,10 +153,10 @@ class ExtensionChannelClient implements PluginChannelAuth, PluginChannelOutbound
         baseUrl,
         verbose,
       },
-    });
+    }));
 
-  readonly start: PluginChannelAuth["start"] = async (params) =>
-    await this.params.request<OpenClawChannelAuthStartResult>({
+  readonly start: ExtensionChannelAuthClient["start"] = async (params) =>
+    await this.params.request<ExtensionChannelAuthStartResult>({
       extensionId: this.params.extensionId,
       kind: "channel.auth.start",
       payload: {
@@ -136,17 +167,17 @@ class ExtensionChannelClient implements PluginChannelAuth, PluginChannelOutbound
       },
     });
 
-  readonly poll: PluginChannelAuth["poll"] = async ({ sessionId }) =>
-    await this.params.request<OpenClawChannelAuthPollResult | null>({
+  readonly poll: ExtensionChannelAuthClient["poll"] = async ({ sessionId }) =>
+    normalizeAuthPollResult(await this.params.request({
       extensionId: this.params.extensionId,
       kind: "channel.auth.poll",
       payload: {
         channelId: this.params.channelId,
         sessionId,
       },
-    });
+    }));
 
-  readonly sendText: PluginChannelOutbound["sendText"] = async ({ to, text, accountId, replyTo, media, metadata }) =>
+  readonly sendText: ExtensionChannelOutbound["sendText"] = async ({ to, text, accountId, replyTo, media, metadata }) =>
     await this.params.request({
       extensionId: this.params.extensionId,
       kind: "channel.outbound.sendText",
@@ -239,8 +270,8 @@ export class ExtensionRuntimeService {
   };
 
   private readonly toContributions = (manifests: ExtensionManifest[]): ExtensionRuntimeContributions => {
-    const channelBindings: PluginChannelBinding[] = [];
-    const uiMetadata: PluginUiMetadata[] = [];
+    const channelBindings: ExtensionChannelBinding[] = [];
+    const uiMetadata: ExtensionUiMetadata[] = [];
     for (const manifest of manifests) {
       for (const channel of manifest.contributes?.channels ?? []) {
         const channelId = readString(channel.id);
@@ -249,7 +280,7 @@ export class ExtensionRuntimeService {
         }
         const configUiHints = this.readConfigUiHints(channel.configUiHints);
         channelBindings.push({
-          pluginId: manifest.id,
+          extensionId: manifest.id,
           channelId,
           channel: {
             id: channelId,
@@ -386,16 +417,16 @@ export class ExtensionRuntimeService {
 
   private readonly readConfigUiHints = (
     value: unknown,
-  ): PluginUiMetadata["configUiHints"] | undefined => {
+  ): ExtensionUiMetadata["configUiHints"] | undefined => {
     return value && typeof value === "object" && !Array.isArray(value)
-      ? value as PluginUiMetadata["configUiHints"]
+      ? value as ExtensionUiMetadata["configUiHints"]
       : undefined;
   };
 
   private readonly createChannelAuth = (
     extensionId: string,
     channelId: string,
-  ): PluginChannelAuth =>
+  ): ExtensionChannelAuthClient =>
     new ExtensionChannelClient({
       extensionId,
       channelId,
@@ -405,7 +436,7 @@ export class ExtensionRuntimeService {
   private readonly createChannelOutbound = (
     extensionId: string,
     channelId: string,
-  ): PluginChannelOutbound =>
+  ): ExtensionChannelOutbound =>
     new ExtensionChannelClient({
       extensionId,
       channelId,

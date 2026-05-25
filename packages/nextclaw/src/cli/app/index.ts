@@ -139,52 +139,6 @@ registerSkillsCommands(program, runtime);
 
 registerAgentsCommands(program, runtime);
 
-const plugins = program.command("plugins").description("Manage OpenClaw-compatible plugins");
-
-plugins
-  .command("list")
-  .description("List discovered plugins")
-  .option("--json", "Print JSON")
-  .option("--enabled", "Only show enabled plugins", false)
-  .option("--verbose", "Show detailed entries", false)
-  .action((opts) => runtime.commands.plugins.list(opts));
-
-plugins
-  .command("info <id>")
-  .description("Show plugin details")
-  .option("--json", "Print JSON")
-  .action((id, opts) => runtime.commands.plugins.info(id, opts));
-
-plugins
-  .command("enable <id>")
-  .description("Enable a plugin in config")
-  .action((id) => runtime.commands.plugins.enable(id));
-
-plugins
-  .command("disable <id>")
-  .description("Disable a plugin in config")
-  .action((id) => runtime.commands.plugins.disable(id));
-
-plugins
-  .command("uninstall <id>")
-  .description("Uninstall a plugin")
-  .option("--keep-files", "Keep installed files on disk", false)
-  .option("--keep-config", "Deprecated alias for --keep-files", false)
-  .option("--force", "Skip confirmation prompt", false)
-  .option("--dry-run", "Show what would be removed without making changes", false)
-  .action(async (id, opts) => runtime.commands.plugins.uninstall(id, opts));
-
-plugins
-  .command("install <path-or-spec>")
-  .description("Install a plugin (path, archive, or npm spec)")
-  .option("-l, --link", "Link a local path instead of copying", false)
-  .action(async (pathOrSpec, opts) => runtime.commands.plugins.install(pathOrSpec, opts));
-
-plugins
-  .command("doctor")
-  .description("Report plugin load issues")
-  .action(() => runtime.commands.plugins.doctor());
-
 const config = program.command("config").description("Manage config values");
 
 config
@@ -306,8 +260,8 @@ const channels = program.command("channels").description("Manage channels");
 
 channels
   .command("add")
-  .description("Configure a plugin channel (OpenClaw-compatible setup)")
-  .requiredOption("--channel <id>", "Plugin channel id")
+  .description("Configure a channel")
+  .requiredOption("--channel <id>", "Channel id")
   .option("--code <code>", "Pairing code")
   .option("--token <token>", "Connector token")
   .option("--name <name>", "Display name")
@@ -317,7 +271,7 @@ channels
 
 channels
   .command("list")
-  .description("List configured plugin channels")
+  .description("List configured channels")
   .option("--json", "Output JSON", false)
   .action((opts) => runtime.commands.channels.list(opts));
 

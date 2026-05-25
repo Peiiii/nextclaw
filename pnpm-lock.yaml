@@ -172,9 +172,6 @@ importers:
       '@nextclaw/kernel':
         specifier: workspace:*
         version: link:../../packages/nextclaw-kernel
-      '@nextclaw/openclaw-compat':
-        specifier: workspace:*
-        version: link:../../packages/nextclaw-openclaw-compat
       '@nextclaw/server':
         specifier: workspace:*
         version: link:../../packages/nextclaw-server
@@ -1035,9 +1032,6 @@ importers:
       '@nextclaw/nextclaw-ncp-runtime-stdio-client':
         specifier: workspace:*
         version: link:../nextclaw-ncp-runtime-stdio-client
-      '@nextclaw/openclaw-compat':
-        specifier: workspace:*
-        version: link:../nextclaw-openclaw-compat
       '@nextclaw/remote':
         specifier: workspace:*
         version: link:../nextclaw-remote
@@ -1355,9 +1349,6 @@ importers:
       '@nextclaw/nextclaw-ncp-runtime-stdio-client':
         specifier: workspace:*
         version: link:../nextclaw-ncp-runtime-stdio-client
-      '@nextclaw/openclaw-compat':
-        specifier: workspace:*
-        version: link:../nextclaw-openclaw-compat
       '@nextclaw/runtime':
         specifier: workspace:*
         version: link:../nextclaw-runtime
@@ -1491,46 +1482,6 @@ importers:
         specifier: ^4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
-  packages/nextclaw-openclaw-compat:
-    dependencies:
-      '@nextclaw/ncp':
-        specifier: workspace:*
-        version: link:../ncp-packages/nextclaw-ncp
-      '@nextclaw/ncp-toolkit':
-        specifier: workspace:*
-        version: link:../ncp-packages/nextclaw-ncp-toolkit
-      ajv:
-        specifier: ^8.17.1
-        version: 8.18.0
-      jiti:
-        specifier: ^1.21.7
-        version: 1.21.7
-      jszip:
-        specifier: ^3.10.1
-        version: 3.10.1
-      tar:
-        specifier: ^7.4.3
-        version: 7.5.9
-    devDependencies:
-      '@nextclaw/core':
-        specifier: workspace:*
-        version: link:../nextclaw-core
-      '@types/node':
-        specifier: ^20.17.6
-        version: 20.19.33
-      prettier:
-        specifier: ^3.3.3
-        version: 3.8.1
-      tsx:
-        specifier: ^4.19.2
-        version: 4.21.0
-      typescript:
-        specifier: ^5.6.3
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.2
-        version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2))
-
   packages/nextclaw-remote:
     dependencies:
       '@nextclaw/core':
@@ -1595,9 +1546,6 @@ importers:
       '@nextclaw/ncp':
         specifier: workspace:*
         version: link:../ncp-packages/nextclaw-ncp
-      '@nextclaw/openclaw-compat':
-        specifier: workspace:*
-        version: link:../nextclaw-openclaw-compat
       '@nextclaw/runtime':
         specifier: workspace:*
         version: link:../nextclaw-runtime
@@ -1689,9 +1637,6 @@ importers:
       '@nextclaw/nextclaw-ncp-runtime-stdio-client':
         specifier: workspace:*
         version: link:../nextclaw-ncp-runtime-stdio-client
-      '@nextclaw/openclaw-compat':
-        specifier: workspace:*
-        version: link:../nextclaw-openclaw-compat
       '@nextclaw/remote':
         specifier: workspace:*
         version: link:../nextclaw-remote
@@ -2905,10 +2850,6 @@ packages:
   '@isaacs/cliui@8.0.2':
     resolution: {integrity: sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA==}
     engines: {node: '>=12'}
-
-  '@isaacs/fs-minipass@4.0.1':
-    resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
-    engines: {node: '>=18.0.0'}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -4637,10 +4578,6 @@ packages:
   chownr@2.0.0:
     resolution: {integrity: sha512-bIomtDF5KGpdogkLd9VspvFzk9KfpyyGlS8YFVZl7TGPBHL5snIOnxeshwVgPteQ9b4Eydl+pVbIyE1DcvCWgQ==}
     engines: {node: '>=10'}
-
-  chownr@3.0.0:
-    resolution: {integrity: sha512-+IxzY9BZOQd/XuYPRmrvEVjF/nqj5kgT4kEq7VofrDoM1MxoRjEWkrCC3EtLi59TVawxTAn+orJwFQcrqEN1+g==}
-    engines: {node: '>=18'}
 
   chromium-pickle-js@0.2.0:
     resolution: {integrity: sha512-1R5Fho+jBq0DDydt+/vHWj5KJNJCKdARKOCwZUen84I5BreWoLqRLANH1U87eJy1tiASPtMnGqJJq0ZsLoRPOw==}
@@ -6577,10 +6514,6 @@ packages:
     resolution: {integrity: sha512-bAxsR8BVfj60DWXHE3u30oHzfl4G7khkSuPW+qvpd7jFRHm7dLxOjUk1EHACJ/hxLY8phGJ0YhYHZo7jil7Qdg==}
     engines: {node: '>= 8'}
 
-  minizlib@3.1.0:
-    resolution: {integrity: sha512-KZxYo1BUkWD2TVFLr0MQoM8vUUigWD3LlD83a/75BqC+4qE0Hb1Vo5v1FgcfaNXvfXzr+5EhQ6ing/CaBijTlw==}
-    engines: {node: '>= 18'}
-
   mitt@3.0.1:
     resolution: {integrity: sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw==}
 
@@ -7753,10 +7686,6 @@ packages:
     engines: {node: '>=10'}
     deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
-  tar@7.5.9:
-    resolution: {integrity: sha512-BTLcK0xsDh2+PUe9F6c2TlRp4zOOBMTkoQHQIWSIzI0R7KG46uEwq4OPk2W7bZcprBMsuaeFsqwYr7pjh6CuHg==}
-    engines: {node: '>=18'}
-
   temp-file@3.4.0:
     resolution: {integrity: sha512-C5tjlC/HCtVUOi3KWVokd4vHVViOmGjtLwIh4MuzPo/nMYTV/p1urt3RnMz2IWXDdKEGJH3k5+KPxtqRsUYGtg==}
 
@@ -8378,10 +8307,6 @@ packages:
 
   yallist@4.0.0:
     resolution: {integrity: sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==}
-
-  yallist@5.0.0:
-    resolution: {integrity: sha512-YgvUTfwqyc7UXVMrB+SImsVYSmTS8X/tSrtdNZMImM+n7+QTriRXyXim0mBrTXNeqzVF0KWGgHPeiyViFFrNDw==}
-    engines: {node: '>=18'}
 
   yaml@2.8.2:
     resolution: {integrity: sha512-mplynKqc1C2hTVYxd0PU2xQAc22TI1vShAYGksCCfxbn/dFwnHTNi1bvYsBTkhdUNtGIf5xNOg938rrSSYvS9A==}
@@ -9500,10 +9425,6 @@ snapshots:
       strip-ansi-cjs: strip-ansi@6.0.1
       wrap-ansi: 8.1.0
       wrap-ansi-cjs: wrap-ansi@7.0.0
-
-  '@isaacs/fs-minipass@4.0.1':
-    dependencies:
-      minipass: 7.1.3
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -11490,8 +11411,6 @@ snapshots:
       fsevents: 2.3.3
 
   chownr@2.0.0: {}
-
-  chownr@3.0.0: {}
 
   chromium-pickle-js@0.2.0: {}
 
@@ -13846,10 +13765,6 @@ snapshots:
       minipass: 3.3.6
       yallist: 4.0.0
 
-  minizlib@3.1.0:
-    dependencies:
-      minipass: 7.1.3
-
   mitt@3.0.1: {}
 
   mkdirp@1.0.4: {}
@@ -15226,14 +15141,6 @@ snapshots:
       mkdirp: 1.0.4
       yallist: 4.0.0
 
-  tar@7.5.9:
-    dependencies:
-      '@isaacs/fs-minipass': 4.0.1
-      chownr: 3.0.0
-      minipass: 7.1.3
-      minizlib: 3.1.0
-      yallist: 5.0.0
-
   temp-file@3.4.0:
     dependencies:
       async-exit-hook: 2.0.1
@@ -15923,8 +15830,6 @@ snapshots:
   yallist@3.1.1: {}
 
   yallist@4.0.0: {}
-
-  yallist@5.0.0: {}
 
   yaml@2.8.2: {}
 

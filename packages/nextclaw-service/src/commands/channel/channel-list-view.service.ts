@@ -1,6 +1,5 @@
 import type { Config } from "@nextclaw/core";
-import type { PluginChannelBinding } from "@nextclaw/openclaw-compat";
-import { resolveChannelConfigView } from "./channel-config-view.js";
+import { resolveChannelConfigView } from "./channel-config-view.utils.js";
 import { listExtensionChannelIds } from "@nextclaw/kernel";
 
 export type ChannelListEntry = {
@@ -39,17 +38,15 @@ export class ChannelListViewService {
   build = (params: {
     config: Config;
     workspaceDir: string;
-    pluginBindings: PluginChannelBinding[];
   }): ChannelListOutput => {
-    const { config, pluginBindings, workspaceDir } = params;
+    const { config, workspaceDir } = params;
     const sources = this.mergeChannelSources(
-      pluginBindings.map(this.toPluginChannelSource),
       this.toManifestChannelSources(listExtensionChannelIds({
         config,
         workspace: workspaceDir,
       })),
     );
-    const channelConfig = resolveChannelConfigView(config, pluginBindings);
+    const channelConfig = resolveChannelConfigView(config);
     const channelConfigs = readRecord(channelConfig.channels) ?? {};
     return {
       channels: sources
@@ -60,11 +57,6 @@ export class ChannelListViewService {
 
   private toManifestChannelSources = (channelIds: string[]): ChannelListSource[] =>
     channelIds.map((id) => ({ id }));
-
-  private toPluginChannelSource = (binding: PluginChannelBinding): ChannelListSource => ({
-    id: binding.channelId,
-    resolveDefaultAccountId: (channelConfig) => this.resolveDefaultAccountId(binding, channelConfig),
-  });
 
   private toChannelListEntry = (source: ChannelListSource, rawChannelConfig: unknown): ChannelListEntry => {
     const channelConfig = readRecord(rawChannelConfig);
@@ -95,29 +87,11 @@ export class ChannelListViewService {
       .sort((left, right) => left.id.localeCompare(right.id));
   };
 
-  private mergeChannelSources = (
-    pluginSources: ChannelListSource[],
-    extensionSources: ChannelListSource[],
-  ): ChannelListSource[] => {
+  private mergeChannelSources = (extensionSources: ChannelListSource[]): ChannelListSource[] => {
     const sourcesByChannelId = new Map<string, ChannelListSource>();
-    for (const source of [...pluginSources, ...extensionSources]) {
+    for (const source of extensionSources) {
       sourcesByChannelId.set(source.id, source);
     }
     return [...sourcesByChannelId.values()];
-  };
-
-  private resolveDefaultAccountId = (
-    binding: PluginChannelBinding,
-    channelConfig: Record<string, unknown> | undefined,
-  ): string | undefined => {
-    const configAdapter = binding.channel.config?.defaultAccountId;
-    if (!configAdapter) {
-      return undefined;
-    }
-    try {
-      return readString(configAdapter({ channels: { [binding.channelId]: channelConfig ?? {} } }));
-    } catch {
-      return undefined;
-    }
   };
 }

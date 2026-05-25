@@ -41,7 +41,6 @@
     "@nextclaw/channel-extension-whatsapp": "workspace:*",
     "@nextclaw/core": "workspace:*",
     "@nextclaw/kernel": "workspace:*",
-    "@nextclaw/openclaw-compat": "workspace:*",
     "@nextclaw/server": "workspace:*",
     "jszip": "^3.10.1",
     "nextclaw": "workspace:*"

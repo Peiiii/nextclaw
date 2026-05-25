@@ -38,7 +38,6 @@
     "@nextclaw/ncp-toolkit": "workspace:*",
     "@nextclaw/nextclaw-ncp-runtime-http-client": "workspace:*",
     "@nextclaw/nextclaw-ncp-runtime-stdio-client": "workspace:*",
-    "@nextclaw/openclaw-compat": "workspace:*",
     "@nextclaw/runtime": "workspace:*",
     "@nextclaw/shared": "workspace:*",
     "@nextclaw/ncp": "workspace:*",

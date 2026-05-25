@@ -546,18 +546,11 @@ Skill loading contract:
 | `nextclaw remote doctor` | Diagnose remote readiness |
 | `nextclaw remote connect` | Foreground debug mode: register this machine and keep the connector online |
 | `nextclaw update` | Self-update the CLI |
-| `nextclaw plugins list` | List discovered OpenClaw-compatible plugins |
-| `nextclaw plugins info <id>` | Show plugin details |
-| `nextclaw plugins install <path-or-spec>` | Install plugin from local path/archive or npm spec |
-| `nextclaw plugins uninstall <id>` | Uninstall plugin (with optional `--dry-run`) |
-| `nextclaw plugins enable <id>` | Enable plugin in config |
-| `nextclaw plugins disable <id>` | Disable plugin in config |
-| `nextclaw plugins doctor` | Diagnose plugin loading issues |
-| `nextclaw channels list --json` | List plugin channels for automation and agent channel discovery |
+| `nextclaw channels list --json` | List extension channels for automation and agent channel discovery |
 | `nextclaw channels status` | Show enabled channels and status |
 | `nextclaw doctor` | Run runtime diagnostics (`--json`, `--verbose`, `--fix`) |
 | `nextclaw channels login` | Open QR login for supported channels |
-| `nextclaw channels add --channel <id> ...` | Configure plugin channel via setup adapter |
+| `nextclaw channels add --channel <id> ...` | Configure an extension channel |
 | `nextclaw cron list` | List all scheduled jobs, including disabled ones |
 | `nextclaw cron add ...` | Add a cron job (see [Cron](#cron)) |
 | `nextclaw cron remove <jobId>` | Remove a job |
@@ -711,14 +704,6 @@ Status/diagnostics tips:
 - The latest snapshot is stored at `${NEXTCLAW_HOME:-~/.nextclaw}/run/llm-usage.json`.
 - The local usage history is stored at `${NEXTCLAW_HOME:-~/.nextclaw}/logs/llm-usage.jsonl`.
 - Current scope is intentionally lightweight: this local history file is not a full project-wide logging module yet.
-
-OpenClaw-compatible plugin discovery paths:
-
-- `${NEXTCLAW_HOME:-~/.nextclaw}/extensions`
-- `<workspace>/.nextclaw/extensions`
-- `plugins.load.paths` entries in config
-
-Legacy OpenClaw directories are not scanned by default (`~/.openclaw/extensions`, `<workspace>/.openclaw/extensions`).
 
 Silent reply behavior:
 

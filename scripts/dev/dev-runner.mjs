@@ -1,21 +1,13 @@
 #!/usr/bin/env node
 import { existsSync, realpathSync } from "node:fs";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { join, relative, resolve } from "node:path";
 import { createServer as createNetServer } from "node:net";
 import { homedir } from "node:os";
-import {
-  createPluginOverrideValue,
-  inspectProductionBuildStatus,
-  resolveWatchableFirstPartyPluginTargets,
-  validatePluginOverride,
-} from "./dev-plugin-overrides-support.mjs";
 import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
 const command = process.argv[2] ?? "start";
 const commandArgs = process.argv.slice(3);
-const DEV_PLUGIN_OVERRIDES_ENV = "NEXTCLAW_DEV_PLUGIN_OVERRIDES";
-const DEV_PLUGIN_HOT_RELOAD_TARGETS_ENV = "NEXTCLAW_DEV_PLUGIN_HOT_RELOAD_TARGETS";
 
 if (command !== "start") {
   console.error("Unsupported dev command. Use: pnpm dev start");
@@ -65,11 +57,8 @@ const buildTsxWatchExcludeGlobs = (baseDir, targetPaths) => {
   return [...allPatterns];
 };
 const firstPartyExtensionDir = resolve(rootDir, "packages/extensions");
-const workspaceWatchablePluginTargets = resolveWatchableFirstPartyPluginTargets(rootDir);
-const workspaceWatchablePluginPaths = workspaceWatchablePluginTargets.map((entry) => entry.pluginPath);
 const tsxWatchExcludeGlobs = buildTsxWatchExcludeGlobs(backendDir, [
   nextclawHome,
-  ...workspaceWatchablePluginTargets.flatMap((entry) => entry.watchPaths),
 ]);
 
 const DEFAULT_BACKEND_PORT = 18792;
@@ -91,45 +80,9 @@ if (!existsSync(backendBin) || !existsSync(frontendBin) || !pnpmCliPath) {
   process.exit(1);
 }
 
-function parsePluginOverrideArg(rawValue) {
-  const value = typeof rawValue === "string" ? rawValue.trim() : "";
-  const separatorIndex = value.indexOf("=");
-  if (separatorIndex <= 0 || separatorIndex === value.length - 1) {
-    throw new Error(
-      `Invalid --plugin-override value "${rawValue}". Expected <pluginId>=<path>[#production|#development].`
-    );
-  }
-
-  const pluginId = value.slice(0, separatorIndex).trim();
-  let pluginPath = value.slice(separatorIndex + 1).trim();
-  let source = "production";
-  if (pluginPath.endsWith("#development")) {
-    pluginPath = pluginPath.slice(0, -"#development".length);
-    source = "development";
-  } else if (pluginPath.endsWith("#production")) {
-    pluginPath = pluginPath.slice(0, -"#production".length);
-  }
-
-  const normalizedPath = resolve(rootDir, pluginPath.trim());
-  if (!pluginId || !pluginPath.trim()) {
-    throw new Error(
-      `Invalid --plugin-override value "${rawValue}". Expected <pluginId>=<path>[#production|#development].`
-    );
-  }
-
-  return {
-    pluginId,
-    pluginPath: normalizedPath,
-    source,
-  };
-}
-
 function parseDevStartOptions(argv) {
-  const pluginOverrides = [];
-  const seenPluginIds = new Set();
   let backendWatchEnabled = process.env.NEXTCLAW_DEV_BACKEND_WATCH !== "0";
   let companionEnabled = process.env.NEXTCLAW_DEV_ENABLE_COMPANION === "1";
-  let pluginWatchEnabled = process.env.NEXTCLAW_DEV_PLUGIN_WATCH === "1";
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -145,29 +98,10 @@ function parseDevStartOptions(argv) {
       companionEnabled = true;
       continue;
     }
-    if (arg === "--plugin-watch") {
-      pluginWatchEnabled = true;
-      continue;
-    }
-    if (arg === "--plugin-override") {
-      const next = argv[index + 1];
-      if (!next) {
-        throw new Error("--plugin-override requires a value.");
-      }
-      const override = parsePluginOverrideArg(next);
-      if (seenPluginIds.has(override.pluginId)) {
-        throw new Error(`Duplicate --plugin-override for "${override.pluginId}".`);
-      }
-      validatePluginOverride(override);
-      seenPluginIds.add(override.pluginId);
-      pluginOverrides.push(override);
-      index += 1;
-      continue;
-    }
     throw new Error(`Unsupported dev option: ${arg}`);
   }
 
-  return { backendWatchEnabled, companionEnabled, pluginOverrides, pluginWatchEnabled };
+  return { backendWatchEnabled, companionEnabled };
 }
 
 let devStartOptions;
@@ -229,17 +163,7 @@ console.log(
 console.log(
   `[dev] Backend watch: ${devStartOptions.backendWatchEnabled ? "enabled" : "disabled (pass --backend-watch or unset NEXTCLAW_DEV_BACKEND_WATCH=0 to enable)"}`
 );
-console.log(
-  `[dev] Plugin watch: ${devStartOptions.pluginWatchEnabled ? "enabled" : "disabled (pass --plugin-watch or set NEXTCLAW_DEV_PLUGIN_WATCH=1 to enable)"}`
-);
 console.log(`[dev] NEXTCLAW_HOME: ${nextclawHome}`);
-if (devStartOptions.pluginOverrides.length > 0) {
-  console.log(
-    `[dev] Plugin overrides: ${devStartOptions.pluginOverrides
-      .map((entry) => createPluginOverrideValue(entry))
-      .join(", ")}`
-  );
-}
 
 const children = [];
 let shuttingDown = false;
@@ -251,24 +175,6 @@ const developmentNodeOptions = [process.env.NODE_OPTIONS, "--conditions=developm
 
 function shouldUseShell(command) {
   return process.platform === "win32" && command.toLowerCase().endsWith(".cmd");
-}
-
-function ensureWatchablePluginBuilds(pluginPaths) {
-  for (const pluginPath of pluginPaths) {
-    const buildStatus = inspectProductionBuildStatus(pluginPath);
-    if (!buildStatus.stale) {
-      continue;
-    }
-    console.log(`[dev] Rebuilding stale plugin dist: ${pluginPath}`);
-    const result = spawnSync(process.execPath, [pnpmCliPath, "-C", pluginPath, "build"], {
-      cwd: rootDir,
-      stdio: "inherit",
-      env: process.env,
-    });
-    if (result.status !== 0) {
-      process.exit(result.status ?? 1);
-    }
-  }
 }
 
 const spawnProcess = (label, cmd, args, cwd, extraEnv = {}, options = {}) => {
@@ -349,19 +255,6 @@ const failStartup = (error) => {
   terminateChildren(null, "SIGTERM");
 };
 
-function startPluginBuildWatchers(pluginPaths) {
-  for (const pluginPath of pluginPaths) {
-    spawnProcess(
-      `plugin:${relative(rootDir, pluginPath) || pluginPath}`,
-      process.execPath,
-      [pnpmCliPath, "-C", pluginPath, "run", "dev:build"],
-      rootDir,
-      {},
-      { critical: false },
-    );
-  }
-}
-
 async function waitForBackendReady(child, port, timeoutMs) {
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
@@ -375,8 +268,6 @@ async function waitForBackendReady(child, port, timeoutMs) {
   }
   throw new Error(`[dev:backend] timed out waiting for port ${port} to accept connections after ${timeoutMs}ms.`);
 }
-
-ensureWatchablePluginBuilds(workspaceWatchablePluginPaths);
 
 const backendProcess = spawnProcess(
   "backend",
@@ -396,12 +287,6 @@ const backendProcess = spawnProcess(
   {
     NODE_OPTIONS: developmentNodeOptions,
     NEXTCLAW_DEV_FIRST_PARTY_EXTENSION_DIR: firstPartyExtensionDir,
-    [DEV_PLUGIN_HOT_RELOAD_TARGETS_ENV]: JSON.stringify(workspaceWatchablePluginTargets),
-    ...(devStartOptions.pluginOverrides.length > 0
-      ? {
-          [DEV_PLUGIN_OVERRIDES_ENV]: JSON.stringify(devStartOptions.pluginOverrides),
-        }
-      : {}),
     NEXTCLAW_DISABLE_STATIC_UI: "1",
     NEXTCLAW_DISABLE_RUNTIME_UPDATE_HOST: "1",
     NEXTCLAW_REMOTE_LOCAL_ORIGIN: `http://127.0.0.1:${frontendPort}`,
@@ -418,10 +303,6 @@ try {
 if (shuttingDown) {
   process.exit(exitCode);
 }
-if (devStartOptions.pluginWatchEnabled) {
-  startPluginBuildWatchers(workspaceWatchablePluginPaths);
-}
-
 console.log(`[dev] Backend ready; starting frontend: http://127.0.0.1:${frontendPort}`);
 spawnProcess(
   "frontend",

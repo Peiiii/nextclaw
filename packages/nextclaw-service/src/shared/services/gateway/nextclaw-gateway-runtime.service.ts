@@ -8,9 +8,6 @@ import {
 } from "@nextclaw/kernel";
 import type { EventBus, Ingress } from "@nextclaw/shared";
 import {
-  setPluginRuntimeBridge,
-} from "@nextclaw/openclaw-compat";
-import {
   startUiServer,
   type MarketplaceApiConfig,
   type UiRouterOptions,
@@ -20,7 +17,7 @@ import {
 import { resolve } from "node:path";
 import { setImmediate as waitForNextTick } from "node:timers/promises";
 import { GatewayControllerImpl } from "@nextclaw-service/shared/controllers/gateway.controller.js";
-import { GatewayPluginManager } from "@nextclaw-service/shared/services/gateway/managers/gateway-plugin.manager.js";
+import { GatewayExtensionManager } from "@nextclaw-service/shared/services/gateway/managers/gateway-extension.manager.js";
 import { GatewayRemoteManager } from "@nextclaw-service/shared/services/gateway/managers/gateway-remote.manager.js";
 import { GatewayRestartWakeService } from "@nextclaw-service/shared/services/gateway/gateway-restart-wake.service.js";
 import { createCronJobHandler } from "@nextclaw-service/shared/services/gateway/utils/cron-job-handler.utils.js";
@@ -30,8 +27,6 @@ import { NextclawApp, type UiStartupHandle } from "@nextclaw-service/shared/serv
 import { NextclawDistributionService } from "@nextclaw-service/shared/services/runtime/nextclaw-distribution.service.js";
 import { ServiceBootstrapStatusStore } from "@nextclaw-service/shared/services/gateway/service-bootstrap-status.service.js";
 import { ServiceFileWatcherRegistry, markLocalUiRuntimeIfStarted, startGatewayRuntimeSupport, watchServiceConfigFile } from "@nextclaw-service/shared/services/gateway/service-startup-support.service.js";
-import { installPluginRuntimeBridge } from "@nextclaw-service/shared/services/plugin/utils/plugin-runtime-bridge.utils.js";
-import { wrapStartChannelsWithDevPluginHotReload } from "@nextclaw-service/shared/services/plugin/utils/plugin-dev-hot-reload.utils.js";
 import { ServiceMarketplaceInstaller } from "@nextclaw-service/shared/services/marketplace/service-marketplace-installer.service.js";
 import { NpmRuntimeUpdateHost } from "@nextclaw-service/shared/services/ui/npm-runtime-update-host.service.js";
 import { createRuntimeControlHost } from "@nextclaw-service/shared/services/ui/runtime-control-host.service.js";
@@ -46,8 +41,6 @@ const {
   getDataDir,
   getWorkspacePath,
 } = NextclawCore;
-
-const DEV_PLUGIN_HOT_RELOAD_STARTUP_SETTLE_MS = 5_000;
 
 function resolveApplyRestartMode(uiPort: number): "managed-service-restart" | "manual-process-restart" {
   const serviceState = managedServiceStateStore.read();
@@ -102,7 +95,7 @@ export class NextclawGatewayRuntime {
   readonly workspace: string;
   readonly remoteManager: GatewayRemoteManager;
   readonly marketplace: MarketplaceApiConfig;
-  readonly plugins: GatewayPluginManager;
+  readonly extensions: GatewayExtensionManager;
   readonly restartWake: GatewayRestartWakeService;
   bootstrapStatus: ServiceBootstrapStatusStore;
   uiStartup: UiStartupHandle;
@@ -132,7 +125,7 @@ export class NextclawGatewayRuntime {
     this.sessionManager = this.kernel.sessions;
     this.automation = this.kernel.automation;
     this.productVersion = this.distribution.version;
-    this.plugins = new GatewayPluginManager(this);
+    this.extensions = new GatewayExtensionManager(this);
     this.providerManager = this.kernel.llmProviders;
     this.installConfigHostHooks();
     this.restartWake = new GatewayRestartWakeService(this);
@@ -176,7 +169,6 @@ export class NextclawGatewayRuntime {
     await companionRuntimeService.applyConfig(this.configManager.config);
     await this.markUiRuntimeReady();
     await this.startSupportServices();
-    this.installChannelDevHotReload();
     await this.runRuntimeLoop();
     await companionRuntimeService.ensureStopped();
     logStartupTrace("service.start_gateway.end");
@@ -248,7 +240,7 @@ export class NextclawGatewayRuntime {
     runtimeControl: this.runtimeControl,
     ...(this.runtimeUpdate ? { runtimeUpdate: this.runtimeUpdate } : {}),
     bootstrapStatus: this.bootstrapStatus,
-    plugins: this.plugins,
+    extensions: this.extensions,
   });
 
   private runRuntimeLoop = async (): Promise<void> => {
@@ -279,20 +271,6 @@ export class NextclawGatewayRuntime {
     await this.deferredChannelStarter();
   };
 
-  private installChannelDevHotReload = (): void => {
-    this.deferredChannelStarter = wrapStartChannelsWithDevPluginHotReload({
-      startChannels: this.startChannels,
-      watcherRegistry: this.fileWatchers,
-      isRuntimeActive: () => true,
-      reloadPlugins: async (pluginIds: string[]) => {
-        await this.plugins.reloadForDevHotReload(
-          pluginIds.map((pluginId) => `plugins.entries.${pluginId}.source`),
-        );
-      },
-      startupSettleMs: DEV_PLUGIN_HOT_RELOAD_STARTUP_SETTLE_MS,
-    });
-  };
-
   private readonly startChannels = async (): Promise<void> => {
     await this.kernel.channels.start();
     const enabledChannels = this.kernel.channels.enabledChannels;
@@ -318,8 +296,6 @@ export class NextclawGatewayRuntime {
     await this.fileWatchers.clear();
     await this.kernel.extensions.stop();
     await this.remoteManager.stop();
-    await this.plugins.stopGateways();
-    setPluginRuntimeBridge(null);
   };
 
   private markUiRuntimeReady = async (): Promise<void> => {
@@ -349,8 +325,7 @@ export class NextclawGatewayRuntime {
   };
 
   private startSupportServices = async (): Promise<void> => {
-    this.plugins.publishConfigChanges();
-    this.configurePluginRuntime();
+    this.extensions.publishConfigChanges();
     await measureStartupAsync("service.start_gateway_support_services", async () =>
       await startGatewayRuntimeSupport({
         automation: this.automation,
@@ -365,17 +340,13 @@ export class NextclawGatewayRuntime {
     );
   };
 
-  private configurePluginRuntime = (): void => {
-    installPluginRuntimeBridge(this);
-  };
-
   private installConfigHostHooks = (): void => {
     this.configManager.installRuntimeHooks({
       reloadCompanion: async ({ config: nextConfig }) => {
         await companionRuntimeService.applyConfig(nextConfig);
       },
       reloadPlugins: async ({ config: nextConfig, changedPaths }) => {
-        const result = await this.plugins.reloadForConfigChange({
+        const result = await this.extensions.reloadForConfigChange({
           config: nextConfig,
           changedPaths,
         });

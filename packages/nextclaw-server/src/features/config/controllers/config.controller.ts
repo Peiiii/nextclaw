@@ -46,8 +46,8 @@ export class ConfigRoutesController {
 
   private readonly getPluginConfigOptions = () => {
     return {
-      pluginChannelBindings: this.options.plugins?.getChannelBindings() ?? [],
-      pluginUiMetadata: this.options.plugins?.getUiMetadata() ?? []
+      extensionChannelBindings: this.options.extensions?.getChannelBindings() ?? [],
+      extensionUiMetadata: this.options.extensions?.getUiMetadata() ?? []
     };
   };
 
@@ -329,7 +329,7 @@ export class ConfigRoutesController {
           baseUrl: typeof payload.baseUrl === "string" ? payload.baseUrl : undefined,
           domain: typeof payload.domain === "string" ? payload.domain : undefined
         } satisfies ChannelAuthStartRequest,
-        bindings: this.options.plugins?.getChannelBindings() ?? []
+        bindings: this.options.extensions?.getChannelBindings() ?? []
       });
       if (!result) {
         return c.json(err("NOT_SUPPORTED", `channel auth is not supported: ${channel}`), 404);
@@ -356,7 +356,7 @@ export class ConfigRoutesController {
       configPath: this.options.configPath,
       channelId: channel,
       sessionId,
-      bindings: this.options.plugins?.getChannelBindings() ?? []
+      bindings: this.options.extensions?.getChannelBindings() ?? []
     });
     if (!result) {
       return c.json(err("NOT_FOUND", "channel auth session not found"), 404);

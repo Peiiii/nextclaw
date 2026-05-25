@@ -14,22 +14,22 @@ describe('marketplace-installed-cache', () => {
   it('adds a plugin record immediately after install success', () => {
     const request: MarketplaceInstallRequest = {
       type: 'plugin',
-      spec: '@nextclaw/community-plugin-slack',
+      spec: '@nextclaw/channel-extension-slack',
       kind: 'npm'
     };
     const result: MarketplaceInstallResult = {
       type: 'plugin',
-      spec: '@nextclaw/community-plugin-slack',
+      spec: '@nextclaw/channel-extension-slack',
       message: 'installed'
     };
 
     const next = applyInstallResultToInstalledView({ request, result });
 
     expect(next.total).toBe(1);
-    expect(next.specs).toEqual(['@nextclaw/community-plugin-slack']);
+    expect(next.specs).toEqual(['@nextclaw/channel-extension-slack']);
     expect(next.records[0]).toMatchObject({
       type: 'plugin',
-      spec: '@nextclaw/community-plugin-slack',
+      spec: '@nextclaw/channel-extension-slack',
       enabled: true,
       origin: 'marketplace',
       runtimeStatus: 'ready'
@@ -40,12 +40,12 @@ describe('marketplace-installed-cache', () => {
     const view: MarketplaceInstalledView = {
       type: 'plugin',
       total: 1,
-      specs: ['@nextclaw/community-plugin-slack'],
+      specs: ['@nextclaw/channel-extension-slack'],
       records: [
         {
           type: 'plugin',
-          id: '@nextclaw/community-plugin-slack',
-          spec: '@nextclaw/community-plugin-slack',
+          id: '@nextclaw/channel-extension-slack',
+          spec: '@nextclaw/channel-extension-slack',
           label: 'Slack Channel',
           enabled: true,
           origin: 'marketplace'
@@ -55,13 +55,13 @@ describe('marketplace-installed-cache', () => {
     const request: MarketplaceManageRequest = {
       type: 'plugin',
       action: 'disable',
-      id: '@nextclaw/community-plugin-slack',
-      spec: '@nextclaw/community-plugin-slack'
+      id: '@nextclaw/channel-extension-slack',
+      spec: '@nextclaw/channel-extension-slack'
     };
     const result: MarketplaceManageResult = {
       type: 'plugin',
       action: 'disable',
-      id: '@nextclaw/community-plugin-slack',
+      id: '@nextclaw/channel-extension-slack',
       message: 'disabled'
     };
 

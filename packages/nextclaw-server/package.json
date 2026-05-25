@@ -28,7 +28,6 @@
     "@nextclaw/kernel": "workspace:*",
     "@nextclaw/mcp": "workspace:*",
     "@nextclaw/ncp": "workspace:*",
-    "@nextclaw/openclaw-compat": "workspace:*",
     "@nextclaw/runtime": "workspace:*",
     "hono": "^4.6.2",
     "ws": "^8.18.0"

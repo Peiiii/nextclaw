@@ -42,15 +42,15 @@ export const MARKETPLACE_ZH_COPY_BY_SLUG: Record<string, { summary: string; desc
     description: "使用该技能可打开、编辑、清洗并转换 .xlsx 与 .csv 等表格文件。"
   },
   bird: {
-    summary: "OpenClaw 社区技能，用于 X/Twitter 读取/搜索/发布工作流。",
+    summary: "社区技能，用于 X/Twitter 读取/搜索/发布工作流。",
     description: "使用 bird CLI 在代理工作流中读取线程、搜索帖子并起草推文/回复。"
   },
   "cloudflare-deploy": {
     summary: "OpenAI 精选技能，用于在 Cloudflare 上部署应用与基础设施。",
     description: "使用该技能可选择 Cloudflare 产品并部署 Workers、Pages 及相关服务。"
   },
-  "channel-plugin-clawbay": {
-    summary: "Clawbay 官方渠道插件，用于 NextClaw 集成。",
-    description: "通过插件运行时为 NextClaw 提供 Clawbay 渠道能力。"
+  "channel-extension-clawbay": {
+    summary: "Clawbay 官方渠道扩展，用于 NextClaw 集成。",
+    description: "通过 extension channel 机制为 NextClaw 提供 Clawbay 渠道能力。"
   }
 };

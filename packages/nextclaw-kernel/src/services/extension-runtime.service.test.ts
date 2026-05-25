@@ -143,12 +143,12 @@ describe("ExtensionRuntimeService", () => {
       } as never,
       workspace,
     });
-    const binding = contributions.channelBindings.find((entry) => entry.pluginId === "fake-extension");
+    const binding = contributions.channelBindings.find((entry) => entry.extensionId === "fake-extension");
     const startPromise = binding?.channel.auth?.start?.({
       cfg: {} as never,
-      pluginId: binding.pluginId,
+      extensionId: binding.extensionId,
       channelId: binding.channelId,
-      pluginConfig: { enabled: true },
+      channelConfig: { enabled: true },
       accountId: null,
       baseUrl: null,
     });
@@ -156,7 +156,7 @@ describe("ExtensionRuntimeService", () => {
     const requestId = event?.payload?.requestId;
 
     expect(binding).toEqual(expect.objectContaining({
-      pluginId: "fake-extension",
+      extensionId: "fake-extension",
       channelId: "fake-channel",
       channel: expect.objectContaining({
         outbound: expect.objectContaining({
@@ -236,7 +236,7 @@ describe("ExtensionRuntimeService", () => {
       } as never,
       workspace,
     });
-    const binding = contributions.channelBindings.find((entry) => entry.pluginId === "fake-extension");
+    const binding = contributions.channelBindings.find((entry) => entry.extensionId === "fake-extension");
     const sendPromise = binding?.channel.outbound?.sendText?.({
       cfg: {} as never,
       to: "chat-1",
