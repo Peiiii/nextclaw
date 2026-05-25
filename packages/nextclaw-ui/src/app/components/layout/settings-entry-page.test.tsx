@@ -16,6 +16,12 @@ vi.mock("@/app/hooks/use-viewport-layout", () => ({
   useViewportLayout: useViewportLayoutMock,
 }));
 
+vi.mock("@/platforms/mobile", async () => ({
+  MobileSettingsShell: (
+    await import("@/platforms/mobile/components/mobile-settings-shell")
+  ).MobileSettingsShell,
+}));
+
 describe("SettingsEntryPage", () => {
   it("redirects desktop users to the model settings page", () => {
     render(
@@ -55,6 +61,9 @@ describe("SettingsEntryPage", () => {
     expect(screen.getByTestId("mobile-settings-shell")).toBeTruthy();
     const links = screen.getAllByRole("link");
     expect(links[0]?.textContent?.trim()).toBe("Language");
+    expect(links.some((link) => link.getAttribute("href") === "/cron")).toBe(
+      false,
+    );
 
     useViewportLayoutMock.mockReturnValue({
       mode: "desktop",

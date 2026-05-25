@@ -1,6 +1,5 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  AlarmClock,
   Bot,
   BrainCircuit,
   Cpu,
@@ -128,11 +127,6 @@ export function getSettingsNavItems(
       target: "/secrets",
       label: translate("secrets"),
       icon: KeyRound,
-    },
-    {
-      target: "/cron",
-      label: translate("cron"),
-      icon: AlarmClock,
     },
     {
       target: "/marketplace/mcp",

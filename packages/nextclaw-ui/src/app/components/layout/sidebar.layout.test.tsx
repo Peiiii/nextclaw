@@ -116,8 +116,6 @@ describe('Sidebar', () => {
       'Remote Access',
       'Security',
       'Secrets',
-      'Cron Jobs',
-      'Plugins',
       'MCP'
     ]);
   });
