@@ -61,6 +61,7 @@
     "@nextclaw/provider-gateway-api-worker": "0.0.1"
   },
   "changesets": [
-    "auto-release-batch-20260525173508602"
+    "auto-release-batch-20260525173508602",
+    "auto-release-batch-20260525175422226"
   ]
 }
