@@ -24,6 +24,13 @@
 - 不保留 root-level 兼容 shim；根 `package.json`、技能、工作流与文档应直接引用真实子路径。
 - 仓库级脚本禁止继续按目录层级硬编码猜测 repo root；统一通过 `scripts/shared/repo-paths.mjs` 解析工作区根，避免目录重组后批量失效。
 
+## Extension 开发命令
+
+- `pnpm dev` 不自动构建 `packages/extensions/*`，避免普通开发启动变慢。
+- 修改本仓库 channel extension 源码后，先运行 `pnpm dev:extensions:build`。
+- 只构建某个 extension 时，使用 pnpm workspace filter，例如 `pnpm -r --filter @nextclaw/channel-extension-weixin build`。
+- 连续开发 channel extension 时，单独开一个终端运行 `pnpm dev:extensions:watch`。该命令只负责重建 `dist`，已经启动的 extension 进程仍需按实际链路重启。
+
 ## 本轮治理结果
 
 - 根 `scripts/` 的直接文件数已从 `92` 降到 `1`。
