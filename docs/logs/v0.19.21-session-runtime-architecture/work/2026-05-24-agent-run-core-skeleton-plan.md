@@ -174,6 +174,123 @@ DefaultNcpAgentRuntime.run(spec, options)
   - provider class 放在 contribution 内部的 `providers/*.provider.ts`；contribution root `index.ts` 只保生命周期装配入口。
   - 旧 `buildCurrentTurnState(...)` 的 time hint 和 requested skills 前缀不迁入新链路；附件/asset parts 转换继续由 `AgentRunModelInputBuilder -> ncpMessageToOpenAiMessages(...)` 负责。
 
+## Runtime Entries 与旧 Runtime Contract 接入方案
+
+当前新分支只注册了 `native` entry。旧主链路已经具备 `native`、`narp-http`、`narp-stdio` 三类 runtime provider，并且通过 `agents.runtimes.entries` 决定具体 session type。新分支要替换旧链路，不能长期只识别 `native`，也不能把 Codex、Claude、Hermes 等具体 runtime 身份硬编码进 kernel branch。
+
+下一步目标是把新分支的 runtime owner 从 `id -> runtime factory` 提升为 `entry + provider kind -> AgentRuntime`：
+
+```ts
+type AgentRuntimeReuseScope = "global" | "session";
+
+type AgentRuntimeProviderRegistration = {
+  kind: string;
+  label: string;
+  defaultReuseScope?: AgentRuntimeReuseScope;
+  createRuntime(params: AgentRuntimeCreateParams): AgentRuntime;
+};
+
+type AgentRuntimeCreateParams = {
+  entry: AgentRuntimeEntry;
+  session: SessionDetail;
+  sessionRun: SessionRun;
+};
+```
+
+`AgentRuntimeReuseScope` 表达 runtime 实例复用粒度：
+
+- `global`：同一个 runtime entry 复用同一个 runtime 实例。适合当前 native runtime 这类没有 session 子进程、没有 session-local protocol connection、内部状态可跨 session 安全复用的实现。
+- `session`：同一个 session 复用同一个 runtime 实例。适合 `narp-stdio` 这类内部持有 child process / ACP session / cancel state 的实现，也适合 `narp-http` 这类远端 session 可能和 NextClaw session 绑定的实现。
+
+复用粒度应允许 provider 给出默认值，也允许 entry config 覆盖：
+
+```json
+{
+  "agents": {
+    "runtimes": {
+      "entries": {
+        "native": { "type": "native", "config": { "reuseScope": "global" } },
+        "codex": { "type": "narp-stdio", "config": { "reuseScope": "session" } }
+      }
+    }
+  }
+}
+```
+
+第一版默认策略：
+
+- `native` 默认 `global`。
+- `narp-stdio` 默认 `session`。
+- `narp-http` 默认先按 `session` 处理，避免远端 runtime 把不同 NextClaw session 混到同一个 remote session 中；如果后续证明某个 HTTP runtime 是无状态 request/response 型，再允许 entry 显式配置为 `global` 或其它更细粒度策略。
+
+### 旧 NCP Runtime Contract Wrapper
+
+旧 runtime client（例如 `HttpRuntimeNcpAgentRuntime` / `StdioRuntimeNcpAgentRuntime`）实现的是旧 `NcpAgentRuntime.run(input, options)` contract。新分支的 runtime contract 是：
+
+```ts
+run(spec: AgentRunSpec, options: AgentRuntimeRunOptions): AsyncIterable<NcpEndpointEvent>;
+```
+
+为了不破坏旧链路，也避免复制 NARP client 逻辑，第一版新增一个可组合的 wrapper，用来把旧 `NcpAgentRuntime` 适配成新 `AgentRuntime`。这个 wrapper 不属于旧主链路，不改旧 `AgentRuntimeContribution`，只由新 branch 的 runtime provider 在需要时组合使用。
+
+推荐落点：
+
+```text
+packages/nextclaw-kernel/src/features/agent-run/
+  services/
+    ncp-agent-runtime-wrapper.service.ts
+```
+
+命名倾向用 `NcpAgentRuntimeWrapper`，不要叫 legacy bridge。它表达的是“把 NCP runtime contract 包装成新 AgentRuntime contract”的可组合能力；旧链路删掉后，如果 NARP client 仍然保留旧 contract，这个 wrapper 仍然有合理存在空间。
+
+wrapper 职责：
+
+- 从 `SessionRun.inbox` drain 本次用户消息，并先 apply/yield `message.sent`。
+- 构造旧 `NcpAgentRunInput`：
+  - `sessionId` 来自 `sessionRun.sessionId`。
+  - `runId` 来自 `AgentRunSpec.runId`。
+  - `messages` 使用本次 drain 出来的用户消息。
+  - `correlationId` 来自 `AgentRunSpec.correlationId`。
+  - `metadata` 只放旧 runtime client 真实需要的 session/runtime/provider 信息，例如 model、thinking effort、agentId、session metadata。
+- 调用旧 `ncpRuntime.run(input, { signal })`。
+- 对旧 runtime yield 的事件逐个 `sessionRun.applyEvents([event])` 后再 yield 给新 `AgentRunRequestManager` 的 event bus pipeline。
+- dispose 时转调旧 runtime 的 dispose。
+
+wrapper 不负责：
+
+- 不解析 runtime entry config。
+- 不创建 `HttpRuntimeNcpAgentRuntime` / `StdioRuntimeNcpAgentRuntime`。
+- 不决定 provider route。
+- 不处理 contextBlocks / tools 的 prompt 注入；NARP client 需要 tools 时，应通过旧 client 既有 `resolveTools` 或 prompt metadata 机制获得。
+- 不在 abort request 时写日志；abort 仍然只通过 signal 传递，aborted 事实由 runtime 事件产生。
+
+第一版需要明确的限制：
+
+- wrapper 只支持“一次 run 消费一次 inbox drain”。如果 run 过程中又有新用户消息进入 inbox，native runtime 可以在下一轮 drain；NARP wrapper 第一版不承诺同一个 remote prompt 内追加消息。后续如要支持，需要 NARP 协议侧明确追加 prompt / interrupt / follow-up 的语义，而不是在 wrapper 里偷偷循环。
+- 如果 inbox drain 后没有消息，wrapper 不应伪造空 prompt。这个场景应回到 `AgentRunRequestManager` 的 send/start 语义讨论。
+
+### Runtime Contribution 形状
+
+`AgentRunRuntimeContribution` 应从 native-only 改成 branch-local runtime entries contribution：
+
+- 读取 `resolveAgentRuntimeEntries(config)`。
+- 对每个 enabled entry，根据 `entry.type` 找 provider registration。
+- 注册 native provider。
+- 注册 narp-http provider。
+- 注册 narp-stdio provider。
+- `listSessionTypes` 继续由 branch `AgentRuntimeManager` 从 entries 和 provider descriptor 生成。
+
+NARP provider 可以复用旧 `BuiltinNarpRuntimeProviderService` 中已经稳定的配置解析、probe、provider route 解析逻辑，但不应直接复用旧 kernel `AgentRuntimeManager`，也不应让新 branch 通过旧 manager 间接创建 runtime。旧 manager 属于旧链路生命周期，当前只是被 disable，不应成为新链路的隐藏依赖。
+
+### 接入顺序
+
+1. 先调整新 `AgentRuntimeManager`：支持 runtime entries、provider kind 和 reuse scope。
+2. 再调整 `AgentRunRuntimeContribution`：注册 native / narp-http / narp-stdio provider。
+3. 新增 `NcpAgentRuntimeWrapper`，让 NARP provider 能组合旧 NCP runtime client。
+4. 跑 `listSessionTypes` 验证：配置中的 `narp-stdio` entry 不再显示 provider unavailable。
+5. 再做 NARP 的真实 run smoke：先验证文本，再验证工具和 abort。
+6. 最后单独讨论 active run 期间 inbox 追加消息的语义，不和 NARP 接入混在同一批。
+
 ## 待办
 
 - `context-window.updated` 不应长期属于 NCP endpoint event。它是 NextClaw 的 context-window projection / 观察状态，不是 agent runtime 的 NCP 事实。后续单独开迁移切块：新增独立 app event contract，迁移 `SessionContextWindowContribution` 发布路径，迁移前端 live context-window 消费路径，再从 `NcpEventType` / `NcpEndpointEvent` 和 `ncp-event` SSE 里删除旧入口。

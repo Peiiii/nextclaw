@@ -5,9 +5,17 @@ import {
   AgentRunMessageProjector,
   AgentRunModelInputBudgeter,
   AgentRunModelInputBuilder,
+  NcpAgentRuntimeWrapper,
 } from "@kernel/features/agent-run/index.js";
+import {
+  BuiltinNarpRuntimeProviderService,
+  NARP_STDIO_RUNTIME_KIND,
+} from "@kernel/features/narp-runtime/index.js";
 import { ProviderManagerNcpLLMApi } from "@kernel/features/native-runtime/index.js";
-import { resolveAgentRuntimeEntries } from "@kernel/features/runtime-registry/index.js";
+import {
+  resolveAgentRuntimeEntries,
+  type AgentRuntimeProviderRegistration,
+} from "@kernel/features/runtime-registry/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import { DefaultNcpAgentRuntime } from "@nextclaw/ncp-agent-runtime-next";
 
@@ -33,11 +41,12 @@ export class AgentRunRuntimeContribution implements KernelContribution {
     const { entries } = resolveAgentRuntimeEntries({
       config: this.kernel.configManager.loadConfig(),
     });
-    for (const entry of entries) {
-      if (entry.enabled === false || entry.type !== DEFAULT_AGENT_RUNTIME_ENTRY_ID) {
-        continue;
-      }
-      this.cleanups.push(this.registerNativeRuntime(entry.id));
+    this.branch.agentRuntimeManager.applyEntries(entries);
+    this.cleanups.push(this.registerNativeRuntime());
+    for (const provider of new BuiltinNarpRuntimeProviderService(
+      this.kernel.configManager,
+    ).createProviders()) {
+      this.cleanups.push(this.registerNarpRuntime(provider));
     }
   };
 
@@ -47,10 +56,11 @@ export class AgentRunRuntimeContribution implements KernelContribution {
     }
   };
 
-  private registerNativeRuntime = (runtimeId: string): (() => Promise<void>) =>
+  private registerNativeRuntime = (): (() => Promise<void>) =>
     this.branch.agentRuntimeManager.register({
-      id: runtimeId,
+      kind: DEFAULT_AGENT_RUNTIME_ENTRY_ID,
       label: "Native",
+      defaultReuseScope: "global",
       createRuntime: () =>
         new DefaultNcpAgentRuntime({
           llmApi: new ProviderManagerNcpLLMApi(this.kernel.llmProviders),
@@ -65,5 +75,36 @@ export class AgentRunRuntimeContribution implements KernelContribution {
             });
           },
         }),
+    });
+
+  private registerNarpRuntime = (
+    provider: AgentRuntimeProviderRegistration,
+  ): (() => Promise<void>) =>
+    this.branch.agentRuntimeManager.register({
+      kind: provider.kind,
+      label: provider.label,
+      defaultReuseScope: provider.kind === NARP_STDIO_RUNTIME_KIND ? "session" : "session",
+      describeSessionTypeForEntry: provider.describeSessionTypeForEntry,
+      createRuntime: ({ entry, session }) => {
+        if (!provider.createRuntimeForEntry) {
+          throw new Error(`Agent runtime provider does not support entries: ${provider.kind}`);
+        }
+        return new NcpAgentRuntimeWrapper({
+          session,
+          createRuntime: ({ resolveTools, stateManager }) =>
+            provider.createRuntimeForEntry!({
+              entry,
+              runtimeParams: {
+                sessionId: session.sessionId,
+                ...(session.agentId ? { agentId: session.agentId } : {}),
+                resolveAssetContentPath: (assetUri) =>
+                  this.kernel.assetStore.resolveContentPath(assetUri),
+                resolveTools,
+                sessionMetadata: session.metadata,
+                stateManager,
+              },
+            }),
+        });
+      },
     });
 }

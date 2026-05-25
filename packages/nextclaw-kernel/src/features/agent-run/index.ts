@@ -8,5 +8,6 @@ export * from "./repositories/session.repository.js";
 export * from "./services/agent-run-message-projector.service.js";
 export * from "./services/agent-run-model-input-budgeter.service.js";
 export * from "./services/agent-run-model-input-builder.service.js";
+export * from "./services/ncp-agent-runtime-wrapper.service.js";
 export * from "./types/agent-run.types.js";
 export * from "./utils/agent-run-request-metadata.utils.js";

@@ -232,7 +232,11 @@ export class AgentRunRequestManager {
       correlationId: request.correlationId,
     };
 
-    const runtime = this.agentRuntimeManager.getOrCreate(session.agentRuntimeId);
+    const runtime = this.agentRuntimeManager.getOrCreate({
+      agentRuntimeId: session.agentRuntimeId,
+      session,
+      sessionRun,
+    });
     const contextBlocks = await this.contextProviderManager.buildContext(providerRequest);
     const tools = await this.toolProviderManager.buildTools(providerRequest);
     let messageCompletedSeen = false;

@@ -395,6 +395,7 @@ export class BuiltinNarpRuntimeProviderService {
       ...(resolvedConfig.basePath ? { basePath: resolvedConfig.basePath } : {}),
       ...(resolvedConfig.endpointId ? { endpointId: resolvedConfig.endpointId } : {}),
       ...(resolvedConfig.headers ? { headers: resolvedConfig.headers } : {}),
+      resolveTools: runtimeParams.resolveTools,
       stateManager: runtimeParams.stateManager,
       resolveProviderRoute: (input) =>
         buildProviderRoute({
@@ -417,6 +418,7 @@ export class BuiltinNarpRuntimeProviderService {
     return new StdioRuntimeNcpAgentRuntime({
       ...resolvedConfig,
       sessionId: runtimeParams.sessionId,
+      resolveTools: runtimeParams.resolveTools,
       stateManager: runtimeParams.stateManager,
       resolveProviderRoute: (input: NcpAgentRunInput) =>
         buildProviderRoute({
