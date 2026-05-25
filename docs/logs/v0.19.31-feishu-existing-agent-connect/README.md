@@ -8,7 +8,7 @@
 
 确认方式：使用测试 App ID 和 Secret 直接调用飞书 `tenant_access_token/internal` 与 `bot/v3/info` 成功，返回智能体名称 `Pei的智能助手`；再通过 `FeishuAccountConnectionService.connect()` 成功写入临时 NEXTCLAW_HOME；最后在本地 NextClaw API `POST /api/config/channels/feishu/auth/connect` 成功返回 `authorized`。
 
-修复方式：新增 core extension auth `connect` 合同，贯通 kernel extension runtime、server config API、client SDK、UI hook 与 Feishu extension owner service；Feishu QR 注册成功后的账号持久化也复用新的 `FeishuAccountConnectionService`，避免 QR 创建和已有连接两套写入逻辑分叉。
+修复方式：新增 core extension auth `connect` 合同，贯通 kernel extension runtime、server config API、client SDK、UI hook 与 Feishu extension owner service；Feishu QR 注册成功后的账号持久化也复用新的 `FeishuAccountConnectionService`，避免 QR 创建和已有连接两套写入逻辑分叉。连接已有飞书智能体的当前产品语义明确为“替换当前默认智能体”：新连接成功后写入新的 `defaultAccountId`，删除被替换的旧默认账号本地凭据，并让 Feishu adapter 在存在显式配置账号时只启动配置账号，避免历史 store 账号继续隐式运行。
 
 ## 测试/验证/验收方式
 
@@ -22,7 +22,7 @@
 - `pnpm -C packages/nextclaw-server build`
 - `pnpm -C packages/extensions/nextclaw-channel-extension-feishu build`
 - `pnpm -C packages/nextclaw-client-sdk build`
-- `pnpm -C packages/extensions/nextclaw-channel-extension-feishu exec vitest run src/tests/feishu-account-connection.service.test.ts src/tests/feishu-registration.service.test.ts src/tests/feishu-auth-capability.service.test.ts`
+- `pnpm -C packages/extensions/nextclaw-channel-extension-feishu exec vitest run src/tests/feishu-account-connection.service.test.ts src/tests/feishu-channel-adapter.service.test.ts src/tests/feishu-registration.service.test.ts src/tests/feishu-auth-capability.service.test.ts`
 - `pnpm -C packages/nextclaw-ui exec vitest run src/features/channels/components/config/weixin-channel-auth-section.test.tsx src/features/channels/components/config/channel-form.test.tsx src/features/channels/utils/channel-form-fields.utils.test.ts`
 - `pnpm -C packages/nextclaw-kernel exec vitest run src/services/extension-runtime.service.test.ts`
 - `pnpm -C packages/nextclaw-extension-sdk exec vitest run src/extension-sdk.test.ts`
@@ -47,15 +47,18 @@
 4. 点击“打开飞书开发者后台”或 “Open Lark developer console”，进入智能体/应用列表获取 App ID 与 App Secret。
 5. 填入 App ID 与 App Secret，点击“验证并连接”。
 6. 成功后渠道状态变为已授权，并能看到已连接智能体名称。
-7. 回到“创建新智能体”仍可使用原扫码创建流程。
+7. 如果此前已经有默认飞书智能体，旧默认智能体不再作为运行账号启动。
+8. 回到“创建新智能体”仍可使用原扫码创建流程。
 
 ## 可维护性总结汇总
 
-本次是新增用户可见能力，非测试代码净增为正，属于必要增长。实现前删除了 Feishu QR 注册链路里原本直接持久化账号和探测 bot 的重复逻辑，把 QR 创建成功和已有智能体连接统一收敛到 `FeishuAccountConnectionService`；extension runtime 只新增一个 `connect` 合同入口，server/client/UI 均沿用既有 channel auth 分层。
+本次是新增用户可见能力，非测试代码净增为正，属于必要增长。实现前删除了 Feishu QR 注册链路里原本直接持久化账号和探测 bot 的重复逻辑，把 QR 创建成功和已有智能体连接统一收敛到 `FeishuAccountConnectionService`；后续又把旧默认账号替换、配置账号过滤与 adapter 启动范围收敛到同一条主链路，避免旧账号通过本地 store 隐式复活。extension runtime 只新增一个 `connect` 合同入口，server/client/UI 均沿用既有 channel auth 分层。
 
 `post-edit-maintainability-guard` 已运行，通过但有 7 个历史/趋势 warning：client SDK services、server app、UI shared api 等目录或文件接近预算或已有目录预算压力。本次没有新增这些目录的直接文件，新增 Feishu 连接 owner 落在 extension service 边界；后续若继续扩展飞书渠道，优先拆分 `weixin-channel-auth-section.tsx` 的混合职责，并治理 `shared/lib/api/utils` 的 flat mixed directory。
 
-代码增减报告：总计新增 767 行，删除 126 行，净增 641 行。非测试代码新增 554 行，删除 125 行，净增 429 行。
+已在 `docs/TODO.md` 记录后续跨渠道多账号管理方向：微信、飞书等渠道未来统一支持显式列出、切换、禁用、删除账号/智能体。
+
+代码增减报告：总计新增 895 行，删除 128 行，净增 767 行。非测试代码新增 612 行，删除 127 行，净增 485 行。
 
 ## NPM 包发布记录
 
