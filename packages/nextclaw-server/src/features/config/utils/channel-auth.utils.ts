@@ -8,6 +8,8 @@ import { loadConfigOrDefault } from "@nextclaw-server/features/config/index.js";
 import { getProjectedConfigView } from "./extension-channel-config-projection.utils.js";
 import type {
   ChannelAuthPollResult,
+  ChannelAuthConnectRequest,
+  ChannelAuthConnectResult,
   ChannelAuthStartRequest,
   ChannelAuthStartResult
 } from "@nextclaw-server/shared/types/server-api.types.js";
@@ -113,6 +115,41 @@ export async function pollChannelAuth(params: {
   if (!result) {
     return null;
   }
+
+  applyAuthorizedChannelAuthResult({
+    configPath,
+    binding,
+    result
+  });
+  return toPublicChannelAuthPollResult(result);
+}
+
+export async function connectChannelAuth(params: {
+  configPath: string;
+  channelId: string;
+  request: ChannelAuthConnectRequest;
+  bindings: ExtensionChannelBinding[];
+}): Promise<ChannelAuthConnectResult | null> {
+  const { configPath, channelId, request, bindings } = params;
+  const binding = findExtensionChannelBinding(bindings, channelId);
+  const connect = binding?.channel.auth?.connect;
+  if (!binding || !connect) {
+    return null;
+  }
+
+  const config = loadConfigOrDefault(configPath);
+  const configView = getProjectedConfigView(config, {
+    extensionChannelBindings: bindings
+  }) as typeof config;
+  const result = await connect({
+    cfg: configView,
+    extensionId: binding.extensionId,
+    channelId: binding.channelId,
+    channelConfig: cloneChannelConfig(configView.channels?.[binding.channelId]),
+    accountId: request.accountId?.trim() || null,
+    domain: request.domain?.trim() || null,
+    fields: request.fields
+  });
 
   applyAuthorizedChannelAuthResult({
     configPath,

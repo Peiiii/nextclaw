@@ -198,6 +198,7 @@ class UiRouteRegistry {
       ["post", "/api/config/providers/:provider/auth/import-cli", config.importProviderAuthFromCli],
       ["put", "/api/config/channels/:channel", config.updateChannel],
       ["post", "/api/config/channels/:channel/auth/start", config.startChannelAuth],
+      ["post", "/api/config/channels/:channel/auth/connect", config.connectChannelAuth],
       ["post", "/api/config/channels/:channel/auth/poll", config.pollChannelAuth],
       ["put", "/api/config/secrets", config.updateSecrets],
       ["put", "/api/config/runtime", config.updateRuntime],

@@ -13,6 +13,10 @@ class MemoryFeishuAccountStore implements FeishuAccountStore {
   readonly saveAccount = (account: StoredFeishuAccount): void => {
     this.accounts.set(account.accountId, account);
   };
+
+  readonly deleteAccount = (accountId: string): void => {
+    this.accounts.delete(accountId);
+  };
 }
 
 function jsonResponse(data: unknown, init?: ResponseInit): Response {

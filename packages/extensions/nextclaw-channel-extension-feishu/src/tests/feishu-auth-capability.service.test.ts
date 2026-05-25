@@ -21,9 +21,20 @@ describe("FeishuAuthCapability", () => {
       start: vi.fn(async () => ({ sessionId: "session-1" })),
       poll: vi.fn(async () => ({ status: "authorized" })),
     };
+    const accountConnection = {
+      connect: vi.fn(async () => ({
+        channel: "feishu",
+        status: "authorized",
+        message: "connected",
+        accountId: "account-1",
+        notes: [],
+        channelConfig: {},
+      })),
+    };
     const capability = new FeishuAuthCapability({
       channel,
       registrationService,
+      accountConnection,
     });
 
     await capability.start({
@@ -32,6 +43,14 @@ describe("FeishuAuthCapability", () => {
       verbose: true,
     });
     await capability.poll({ sessionId: "session-1" });
+    await capability.connect({
+      accountId: "account-1",
+      domain: "lark",
+      fields: {
+        appId: "cli_existing",
+        appSecret: "secret-existing",
+      },
+    });
 
     expect(registrationService.start).toHaveBeenCalledWith({
       channelConfig: { enabled: true, domain: "feishu" },
@@ -40,5 +59,12 @@ describe("FeishuAuthCapability", () => {
       verbose: true,
     });
     expect(registrationService.poll).toHaveBeenCalledWith({ sessionId: "session-1" });
+    expect(accountConnection.connect).toHaveBeenCalledWith({
+      channelConfig: { enabled: true, domain: "feishu" },
+      requestedAccountId: "account-1",
+      domain: "lark",
+      appId: "cli_existing",
+      appSecret: "secret-existing",
+    });
   });
 });

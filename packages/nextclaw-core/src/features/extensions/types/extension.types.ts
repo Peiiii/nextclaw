@@ -107,6 +107,8 @@ export type ExtensionChannelAuthPollResult = {
   channelConfig?: Record<string, unknown>;
 };
 
+export type ExtensionChannelAuthConnectResult = ExtensionChannelAuthPollResult;
+
 export type ExtensionChannelAuth = {
   login?: (params: {
     cfg: Config;
@@ -126,6 +128,15 @@ export type ExtensionChannelAuth = {
     baseUrl?: string | null;
     domain?: string | null;
   }) => Promise<ExtensionChannelAuthStartResult> | ExtensionChannelAuthStartResult;
+  connect?: (params: {
+    cfg: Config;
+    extensionId: string;
+    channelId: string;
+    channelConfig?: Record<string, unknown>;
+    accountId?: string | null;
+    domain?: string | null;
+    fields?: Record<string, unknown>;
+  }) => Promise<ExtensionChannelAuthConnectResult> | ExtensionChannelAuthConnectResult;
   poll?: (params: {
     cfg: Config;
     extensionId: string;

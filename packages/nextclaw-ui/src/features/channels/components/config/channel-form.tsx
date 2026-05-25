@@ -10,7 +10,7 @@ import { nextclawClient } from '@/shared/lib/api';
 import { useConfig, useConfigMeta, useConfigSchema, useExecuteConfigAction, useUpdateChannel } from '@/shared/hooks/use-config';
 import type { ConfigActionManifest, ConfigUiHints } from '@/shared/lib/api';
 import { ChannelFormFieldsSection } from '@/features/channels/components/channel-form-fields-section';
-import { QrChannelAuthSection } from '@/features/channels/components/config/weixin-channel-auth-section';
+import { FeishuChannelAuthSection, QrChannelAuthSection } from '@/features/channels/components/config/weixin-channel-auth-section';
 import { buildChannelFormDefinitions, type ChannelField, type ChannelFormBlock, type ChannelFormFieldSection } from '@/features/channels/utils/channel-form-fields.utils';
 import { ConfigSplitDetailPane, ConfigSplitEmptyPane, ConfigSplitPaneBody, ConfigSplitPaneFooter, ConfigSplitPaneHeader } from '@/shared/components/config-split-page';
 import { hintForPath } from '@/shared/lib/config-hints';
@@ -121,7 +121,13 @@ function buildChannelApplyStatusView(channelApplyState: ChannelApplyState) {
   return { className: 'text-red-600', label: `${t('channelConfigApplyFailed')}${channelApplyState.message ? `: ${channelApplyState.message}` : ''}` };
 }
 
-function ChannelFormHeader(props: {
+function ChannelFormHeader({
+  channelApplyStatus,
+  channelLabel,
+  channelName,
+  enabled,
+  tutorialUrl
+}: {
   channelApplyStatus: ReturnType<typeof buildChannelApplyStatusView>;
   channelLabel?: string;
   channelName: string;
@@ -134,30 +140,42 @@ function ChannelFormHeader(props: {
         <div className="min-w-0">
           <div className="flex items-center gap-3">
             <LogoBadge
-              name={props.channelName}
-              src={getChannelLogo(props.channelName)}
-              className={cn('h-9 w-9 rounded-lg border', props.enabled ? 'border-primary/30 bg-white' : 'border-gray-200/70 bg-white')}
+              name={channelName}
+              src={getChannelLogo(channelName)}
+              className={cn('h-9 w-9 rounded-lg border', enabled ? 'border-primary/30 bg-white' : 'border-gray-200/70 bg-white')}
               imgClassName="h-5 w-5 object-contain"
-              fallback={<span className="text-sm font-semibold uppercase text-gray-500">{props.channelName[0]}</span>}
+              fallback={<span className="text-sm font-semibold uppercase text-gray-500">{channelName[0]}</span>}
             />
-            <h3 className="truncate text-lg font-semibold text-gray-900 capitalize">{props.channelLabel}</h3>
+            <h3 className="truncate text-lg font-semibold text-gray-900 capitalize">{channelLabel}</h3>
           </div>
           <p className="mt-2 text-sm text-gray-500">{t('channelsFormDescription')}</p>
-          {props.channelApplyStatus ? <p className={cn('mt-2 text-xs font-medium', props.channelApplyStatus.className)}>{props.channelApplyStatus.label}</p> : null}
-          {props.tutorialUrl ? (
-            <a href={props.tutorialUrl} className="mt-2 inline-flex items-center gap-1.5 text-xs text-primary transition-colors hover:text-primary-hover">
+          {channelApplyStatus ? <p className={cn('mt-2 text-xs font-medium', channelApplyStatus.className)}>{channelApplyStatus.label}</p> : null}
+          {tutorialUrl ? (
+            <a href={tutorialUrl} className="mt-2 inline-flex items-center gap-1.5 text-xs text-primary transition-colors hover:text-primary-hover">
               <BookOpen className="h-3.5 w-3.5" />
               {t('channelsGuideTitle')}
             </a>
           ) : null}
         </div>
-        <StatusDot status={props.enabled ? 'active' : 'inactive'} label={props.enabled ? t('statusActive') : t('statusInactive')} />
+        <StatusDot status={enabled ? 'active' : 'inactive'} label={enabled ? t('statusActive') : t('statusInactive')} />
       </div>
     </ConfigSplitPaneHeader>
   );
 }
 
-function ChannelFormBlocks(props: {
+function ChannelFormBlocks({
+  channelConfig,
+  channelName,
+  disabled,
+  enabled,
+  fields,
+  formData,
+  jsonDrafts,
+  layoutBlocks,
+  setJsonDrafts,
+  uiHints,
+  updateField
+}: {
   channelConfig: Record<string, unknown>;
   channelName: string;
   enabled: boolean;
@@ -172,21 +190,21 @@ function ChannelFormBlocks(props: {
 }) {
   return (
     <>
-      {props.layoutBlocks.map((block, index) => {
+      {layoutBlocks.map((block, index) => {
         if (block.type === 'fields') {
-          const blockFields = resolveFieldsForSection(props.fields, block.section);
+          const blockFields = resolveFieldsForSection(fields, block.section);
           if (blockFields.length === 0) {
             return null;
           }
           const content = (
             <ChannelFormFieldsSection
-              channelName={props.channelName}
+              channelName={channelName}
               fields={blockFields}
-              formData={props.formData}
-              jsonDrafts={props.jsonDrafts}
-              setJsonDrafts={props.setJsonDrafts}
-              updateField={props.updateField}
-              uiHints={props.uiHints}
+              formData={formData}
+              jsonDrafts={jsonDrafts}
+              setJsonDrafts={setJsonDrafts}
+              updateField={updateField}
+              uiHints={uiHints}
             />
           );
           if (!block.collapsible) {
@@ -205,14 +223,25 @@ function ChannelFormBlocks(props: {
             </details>
           );
         }
-        return block.sectionId === 'weixin-auth' || block.sectionId === 'feishu-auth' ? (
+        if (block.sectionId === 'feishu-auth') {
+          return (
+            <FeishuChannelAuthSection
+              key={`${block.type}-${block.sectionId}-${index}`}
+              channelConfig={channelConfig}
+              formData={formData}
+              channelEnabled={enabled}
+              disabled={disabled}
+            />
+          );
+        }
+        return block.sectionId === 'weixin-auth' ? (
           <QrChannelAuthSection
             key={`${block.type}-${block.sectionId}-${index}`}
-            channelConfig={props.channelConfig}
-            formData={props.formData}
-            channelName={props.channelName === 'feishu' ? 'feishu' : 'weixin'}
-            channelEnabled={props.enabled}
-            disabled={props.disabled}
+            channelConfig={channelConfig}
+            formData={formData}
+            channelName="weixin"
+            channelEnabled={enabled}
+            disabled={disabled}
           />
         ) : null;
       })}
@@ -220,14 +249,23 @@ function ChannelFormBlocks(props: {
   );
 }
 
-function ChannelFormEditor(props: ChannelFormEditorProps) {
+function ChannelFormEditor({
+  actions,
+  channelConfig,
+  channelLabel,
+  channelName,
+  fields,
+  layoutBlocks,
+  tutorialUrl,
+  uiHints
+}: ChannelFormEditorProps) {
   const updateChannel = useUpdateChannel();
   const executeAction = useExecuteConfigAction();
-  const [formData, setFormData] = useState<Record<string, unknown>>(() => ({ ...props.channelConfig }));
-  const [jsonDrafts, setJsonDrafts] = useState<Record<string, string>>(() => buildJsonDrafts(props.channelConfig, props.fields));
+  const [formData, setFormData] = useState<Record<string, unknown>>(() => ({ ...channelConfig }));
+  const [jsonDrafts, setJsonDrafts] = useState<Record<string, string>>(() => buildJsonDrafts(channelConfig, fields));
   const [runningActionId, setRunningActionId] = useState<string | null>(null);
-  const channelApplyStatus = buildChannelApplyStatusView(useChannelApplyState(props.channelName));
-  const enabled = typeof formData.enabled === 'boolean' ? formData.enabled : Boolean(props.channelConfig.enabled);
+  const channelApplyStatus = buildChannelApplyStatusView(useChannelApplyState(channelName));
+  const enabled = typeof formData.enabled === 'boolean' ? formData.enabled : Boolean(channelConfig.enabled);
   const disabled = updateChannel.isPending || Boolean(runningActionId);
 
   const updateField = (name: string, value: unknown) => setFormData((prev) => ({ ...prev, [name]: value }));
@@ -235,7 +273,7 @@ function ChannelFormEditor(props: ChannelFormEditorProps) {
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     const payload: Record<string, unknown> = { ...formData };
-    for (const field of props.fields) {
+    for (const field of fields) {
       if (field.type === 'password') {
         const value = payload[field.name];
         if (typeof value !== 'string' || value.length === 0) {
@@ -251,19 +289,19 @@ function ChannelFormEditor(props: ChannelFormEditorProps) {
         }
       }
     }
-    updateChannel.mutate({ channel: props.channelName, data: payload });
+    updateChannel.mutate({ channel: channelName, data: payload });
   };
 
   const applyActionPatchToForm = (patch?: Record<string, unknown>) => {
-    if (!isRecord(patch?.channels) || !isRecord(patch.channels[props.channelName])) {
+    if (!isRecord(patch?.channels) || !isRecord(patch.channels[channelName])) {
       return;
     }
-    const channelPatch = patch.channels[props.channelName] as Record<string, unknown>;
+    const channelPatch = patch.channels[channelName] as Record<string, unknown>;
     setFormData((prev) => deepMergeRecords(prev, channelPatch));
     setJsonDrafts((prev) => {
       const nextDrafts = { ...prev };
       let changed = false;
-      for (const field of props.fields) {
+      for (const field of fields) {
         if (field.type !== 'json' || !Object.prototype.hasOwnProperty.call(channelPatch, field.name)) {
           continue;
         }
@@ -277,12 +315,12 @@ function ChannelFormEditor(props: ChannelFormEditorProps) {
   const handleManualAction = async (action: ConfigActionManifest) => {
     setRunningActionId(action.id);
     try {
-      const scope = `channels.${props.channelName}`;
+      const scope = `channels.${channelName}`;
       let nextData = { ...formData };
       if (action.saveBeforeRun) {
         nextData = { ...nextData, ...(action.savePatch ?? {}) };
         setFormData(nextData);
-        await updateChannel.mutateAsync({ channel: props.channelName, data: nextData });
+        await updateChannel.mutateAsync({ channel: channelName, data: nextData });
       }
       const result = await executeAction.mutateAsync({ actionId: action.id, data: { scope, draftConfig: buildScopeDraft(scope, nextData) } });
       applyActionPatchToForm(result.patch);
@@ -301,25 +339,25 @@ function ChannelFormEditor(props: ChannelFormEditorProps) {
   return (
     <ConfigSplitDetailPane>
       <ChannelFormHeader
-        channelName={props.channelName}
-        channelLabel={props.channelLabel}
+        channelName={channelName}
+        channelLabel={channelLabel}
         enabled={enabled}
-        tutorialUrl={props.tutorialUrl}
+        tutorialUrl={tutorialUrl}
         channelApplyStatus={channelApplyStatus}
       />
 
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <ConfigSplitPaneBody className="space-y-6 px-6 py-5">
           <ChannelFormBlocks
-            channelConfig={props.channelConfig}
-            channelName={props.channelName}
+            channelConfig={channelConfig}
+            channelName={channelName}
             enabled={enabled}
-            fields={props.fields}
+            fields={fields}
             formData={formData}
             jsonDrafts={jsonDrafts}
-            layoutBlocks={props.layoutBlocks}
+            layoutBlocks={layoutBlocks}
             setJsonDrafts={setJsonDrafts}
-            uiHints={props.uiHints}
+            uiHints={uiHints}
             updateField={updateField}
             disabled={disabled}
           />
@@ -327,7 +365,7 @@ function ChannelFormEditor(props: ChannelFormEditorProps) {
 
         <ConfigSplitPaneFooter className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
           <div className="flex flex-wrap items-center gap-2">
-            {props.actions.filter((action) => action.trigger === 'manual').map((action) => (
+            {actions.filter((action) => action.trigger === 'manual').map((action) => (
               <Button key={action.id} type="button" onClick={() => void handleManualAction(action)} disabled={disabled} variant="secondary">
                 {runningActionId === action.id ? t('connecting') : action.title}
               </Button>

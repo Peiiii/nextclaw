@@ -20,6 +20,7 @@
 
 | Date | Idea | Source | Owner | Issue | Next Action |
 | --- | --- | --- | --- | --- | --- |
+| 2026-05-26 | 设计渠道多账号管理：微信、飞书等渠道统一支持显式列出、切换、禁用、删除账号/智能体，避免历史账号隐式参与运行 | user-feedback | @owner | `TBD` | create issue: define cross-channel multi-account UX, runtime selection semantics, and migration from single-default replacement |
 | 2026-05-14 | 为 toolkit / library 类 package 设计 `lib` 类型 module-structure protocol，并将 `@nextclaw/ncp-toolkit` 从本次授权豁免迁回正式目录治理 | user-feedback | @owner | `TBD` | create issue: define lib protocol, migration plan, and remove authorized waiver |
 | 2026-03-30 | 排查发布链是否存在过度依赖与过宽联动发布，重点审视 `@nextclaw/channel-plugin-weixin`、Codex SDK 等是否应继续直接跟随 `@nextclaw/core` / release batch | user-feedback | @owner | `TBD` | create issue: map release dependency graph and propose narrower publish groups |
 | 2026-03-11 | Brave Search API 获取需绑卡，评估 Firecrawl / Tavily 作为默认或可选替代 | user-feedback | @owner | `TBD` | create issue: compare providers and decide default strategy |

@@ -1,11 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type * as ReactQueryModule from '@tanstack/react-query';
-import { QrChannelAuthSection, WeixinChannelAuthSection } from '@/features/channels/components/config/weixin-channel-auth-section';
+import { FeishuChannelAuthSection, QrChannelAuthSection, WeixinChannelAuthSection } from '@/features/channels/components/config/weixin-channel-auth-section';
 
 const mocks = vi.hoisted(() => ({
   startChannelAuthMutateAsync: vi.fn(),
   pollChannelAuthMutateAsync: vi.fn(),
+  connectChannelAuthMutateAsync: vi.fn(),
   invalidateQueries: vi.fn().mockResolvedValue(undefined)
 }));
 
@@ -34,6 +35,10 @@ vi.mock('@/features/channels/hooks/use-channel-auth', () => ({
   usePollChannelAuth: () => ({
     mutateAsync: mocks.pollChannelAuthMutateAsync,
     isPending: false
+  }),
+  useConnectChannelAuth: () => ({
+    mutateAsync: mocks.connectChannelAuthMutateAsync,
+    isPending: false
   })
 }));
 
@@ -41,6 +46,7 @@ describe('WeixinChannelAuthSection', () => {
   beforeEach(() => {
     mocks.startChannelAuthMutateAsync.mockReset();
     mocks.pollChannelAuthMutateAsync.mockReset();
+    mocks.connectChannelAuthMutateAsync.mockReset();
     mocks.invalidateQueries.mockClear();
   });
 
@@ -153,5 +159,43 @@ describe('WeixinChannelAuthSection', () => {
         }
       });
     });
+  });
+
+  it('connects an existing feishu agent with app credentials', async () => {
+    const user = userEvent.setup();
+    mocks.connectChannelAuthMutateAsync.mockResolvedValue({
+      channel: 'feishu',
+      status: 'authorized',
+      message: 'connected',
+      accountId: 'cli_existing',
+      notes: []
+    });
+
+    render(
+      <FeishuChannelAuthSection
+        channelConfig={{ enabled: false, domain: 'feishu' }}
+        formData={{ domain: 'feishu' }}
+        channelEnabled={false}
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Connect existing agent' }));
+    await user.type(screen.getByLabelText('App ID'), 'cli_existing');
+    await user.type(screen.getByLabelText('App Secret'), 'secret-existing');
+    await user.click(screen.getByRole('button', { name: 'Verify and connect' }));
+
+    await waitFor(() => {
+      expect(mocks.connectChannelAuthMutateAsync).toHaveBeenCalledWith({
+        channel: 'feishu',
+        data: {
+          domain: 'feishu',
+          fields: {
+            appId: 'cli_existing',
+            appSecret: 'secret-existing'
+          }
+        }
+      });
+    });
+    expect(screen.getByRole('link', { name: 'Open Feishu agent list' }).getAttribute('href')).toBe('https://open.feishu.cn/app');
   });
 });

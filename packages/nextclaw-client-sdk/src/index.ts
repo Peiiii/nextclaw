@@ -36,6 +36,8 @@ export type {
   AuthSetupRequest,
   AuthStatusView,
   BootstrapStatusView,
+  ChannelAuthConnectRequest,
+  ChannelAuthConnectResult,
   ChannelAuthPollRequest,
   ChannelAuthPollResult,
   ChannelAuthStartRequest,

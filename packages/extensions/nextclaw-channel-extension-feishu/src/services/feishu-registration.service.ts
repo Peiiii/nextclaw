@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import {
-  buildRegisteredFeishuChannelConfig,
   DEFAULT_FEISHU_DOMAIN,
   FEISHU_CHANNEL_ID,
   normalizeFeishuChannelConfig,
@@ -9,6 +8,7 @@ import {
   FileFeishuAccountStore,
   type FeishuAccountStore,
 } from "../stores/feishu-account.store.js";
+import { FeishuAccountConnectionService } from "./feishu-account-connection.service.js";
 import type { FeishuChannelConfig, FeishuDomain } from "../types/feishu-extension.types.js";
 
 export type FeishuRegistrationStartParams = {
@@ -53,16 +53,13 @@ type FeishuRegistrationResponse = Record<string, unknown>;
 type FeishuRegistrationServiceDeps = {
   store?: FeishuAccountStore;
   fetchImpl?: typeof fetch;
+  accountConnection?: Pick<FeishuAccountConnectionService, "connect">;
 };
 
 const REGISTRATION_PATH = "/oauth/v1/app/registration";
 const FEISHU_ACCOUNTS_BASE_URLS: Record<FeishuDomain, string> = {
   feishu: "https://accounts.feishu.cn",
   lark: "https://accounts.larksuite.com",
-};
-const FEISHU_OPEN_BASE_URLS: Record<FeishuDomain, string> = {
-  feishu: "https://open.feishu.cn",
-  lark: "https://open.larksuite.com",
 };
 const FEISHU_AUTH_POLL_INTERVAL_MS = 5_000;
 const FEISHU_REGISTRATION_TIMEOUT_MS = 10 * 60_000;
@@ -84,12 +81,17 @@ function appendHermesQrHints(url: string): string {
 
 export class FeishuRegistrationService {
   private readonly store: FeishuAccountStore;
+  private readonly accountConnection: Pick<FeishuAccountConnectionService, "connect">;
   private readonly fetchImpl: typeof fetch;
   private readonly sessions = new Map<string, FeishuRegistrationSession>();
 
   constructor(deps: FeishuRegistrationServiceDeps = {}) {
     this.store = deps.store ?? new FileFeishuAccountStore();
     this.fetchImpl = deps.fetchImpl ?? fetch;
+    this.accountConnection = deps.accountConnection ?? new FeishuAccountConnectionService({
+      store: this.store,
+      fetchImpl: this.fetchImpl,
+    });
   }
 
   readonly start = async (
@@ -257,70 +259,18 @@ export class FeishuRegistrationService {
     appSecret: string;
     ownerOpenId?: string;
   }): Promise<{ channelConfig: Record<string, unknown>; accountId: string; notes: string[] }> => {
-    const botInfo = await this.probeBot({
+    const result = await this.accountConnection.connect({
+      channelConfig: session.currentConfig,
+      requestedAccountId: session.requestedAccountId,
       appId,
       appSecret,
       domain: session.domain,
-    });
-    const accountId = session.requestedAccountId?.trim() || appId;
-    this.store.saveAccount({
-      accountId,
-      appId,
-      appSecret,
-      domain: session.domain,
-      botName: botInfo.botName,
-      botOpenId: botInfo.botOpenId,
       ownerOpenId,
-      savedAt: new Date().toISOString(),
     });
-
-    const notes = [
-      ...(botInfo.botName ? [`Connected bot: ${botInfo.botName}`] : []),
-      ...(ownerOpenId ? [`Authorized initial user: ${ownerOpenId}`] : []),
-    ];
     return {
-      accountId,
-      notes,
-      channelConfig: buildRegisteredFeishuChannelConfig({
-        config: session.currentConfig,
-        accountId,
-        domain: session.domain,
-        botName: botInfo.botName,
-        allowOpenId: ownerOpenId,
-      }) as Record<string, unknown>,
-    };
-  };
-
-  private readonly probeBot = async ({
-    appId,
-    appSecret,
-    domain,
-  }: {
-    appId: string;
-    appSecret: string;
-    domain: FeishuDomain;
-  }): Promise<{ botName?: string; botOpenId?: string }> => {
-    const tokenResponse = await this.fetchImpl(`${FEISHU_OPEN_BASE_URLS[domain]}/open-apis/auth/v3/tenant_access_token/internal`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ app_id: appId, app_secret: appSecret }),
-    });
-    const tokenData = await tokenResponse.json() as Record<string, unknown>;
-    const accessToken = readString(tokenData.tenant_access_token);
-    if (!accessToken) {
-      return {};
-    }
-    const botResponse = await this.fetchImpl(`${FEISHU_OPEN_BASE_URLS[domain]}/open-apis/bot/v3/info`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-    });
-    const botData = await botResponse.json() as Record<string, unknown>;
-    const bot = this.readRecord(botData.bot) ?? this.readRecord(this.readRecord(botData.data)?.bot);
-    return {
-      botName: readString(bot?.app_name) ?? readString(bot?.bot_name),
-      botOpenId: readString(bot?.open_id),
+      accountId: result.accountId,
+      notes: result.notes,
+      channelConfig: result.channelConfig,
     };
   };
 

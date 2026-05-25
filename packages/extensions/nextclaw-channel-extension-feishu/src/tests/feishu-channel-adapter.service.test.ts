@@ -195,4 +195,23 @@ describe("FeishuChannelAdapter", () => {
       text: "hello",
     });
   });
+
+  it("starts only configured accounts when historical store accounts also exist", async () => {
+    const { sdk } = createSdk();
+    const store = createStore();
+    vi.mocked(store.listAccountIds).mockReturnValue(["old-agent", "new-agent"]);
+    const adapter = new FeishuChannelAdapter({
+      logger: { log: vi.fn(), warn: vi.fn() },
+      sdk,
+      store,
+    });
+
+    await adapter.configure({ enabled: true, defaultAccountId: "new-agent" });
+    await adapter.start();
+
+    expect(sdk.createWsClient).toHaveBeenCalledTimes(1);
+    expect(sdk.createWsClient).toHaveBeenCalledWith(expect.objectContaining({
+      accountId: "new-agent",
+    }));
+  });
 });

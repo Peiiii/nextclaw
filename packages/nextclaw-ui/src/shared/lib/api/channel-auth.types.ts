@@ -4,6 +4,12 @@ export type ChannelAuthStartRequest = {
   domain?: string;
 };
 
+export type ChannelAuthConnectRequest = {
+  accountId?: string;
+  domain?: string;
+  fields?: Record<string, unknown>;
+};
+
 export type ChannelAuthStartResult = {
   channel: string;
   kind: "qr_code";
@@ -27,3 +33,5 @@ export type ChannelAuthPollResult = {
   accountId?: string | null;
   notes?: string[];
 };
+
+export type ChannelAuthConnectResult = ChannelAuthPollResult;

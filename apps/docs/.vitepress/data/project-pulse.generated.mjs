@@ -1,5 +1,5 @@
 export default {
-  "generatedAt": "2026-05-25T16:47:01.573Z",
+  "generatedAt": "2026-05-25T17:00:28.267Z",
   "hero": {
     "currentLoc": 168059,
     "testLoc": 44892,
@@ -785,7 +785,7 @@ export default {
       {
         "key": "2026-05-25",
         "label": "05-25",
-        "value": 18
+        "value": 21
       }
     ],
     "releaseMonthly": [

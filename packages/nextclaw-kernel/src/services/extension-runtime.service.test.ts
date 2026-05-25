@@ -177,6 +177,52 @@ describe("ExtensionRuntimeService", () => {
       channel: "fake-channel",
       sessionId: "session-1",
     }));
+
+    eventBus.emitEnvelope.mockClear();
+    const connectPromise = binding?.channel.auth?.connect?.({
+      cfg: {} as never,
+      extensionId: binding.extensionId,
+      channelId: binding.channelId,
+      channelConfig: { enabled: true },
+      accountId: null,
+      domain: "feishu",
+      fields: { appId: "app-id", appSecret: "secret" },
+    });
+    const connectEvent = eventBus.emitEnvelope.mock.calls[0]?.[0];
+    const connectRequestId = connectEvent?.payload?.requestId;
+    expect(connectEvent).toEqual(expect.objectContaining({
+      type: "extension.request",
+      payload: expect.objectContaining({
+        extensionId: "fake-extension",
+        kind: "channel.auth.connect",
+        payload: expect.objectContaining({
+          domain: "feishu",
+          fields: { appId: "app-id", appSecret: "secret" },
+        }),
+      }),
+    }));
+
+    await ingress.handle({
+      type: "extension.response",
+      payload: {
+        requestId: connectRequestId,
+        ok: true,
+        data: {
+          channel: "fake-channel",
+          status: "authorized",
+          accountId: "app-id",
+        },
+      },
+    }, {
+      source: "test",
+      token: runtime.token,
+    });
+
+    await expect(connectPromise).resolves.toEqual(expect.objectContaining({
+      channel: "fake-channel",
+      status: "authorized",
+      accountId: "app-id",
+    }));
   });
 
   it("forwards outbound channel reply context to extension requests", async () => {

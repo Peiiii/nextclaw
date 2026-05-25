@@ -88,14 +88,26 @@ export function buildRegisteredFeishuChannelConfig({
   botName,
   config,
   domain,
+  replaceAccountIds,
 }: {
   config: FeishuChannelConfig;
   accountId: string;
   domain: FeishuDomain;
   botName?: string;
   allowOpenId?: string;
+  replaceAccountIds?: string[];
 }): FeishuChannelConfig {
   const current = normalizeFeishuChannelConfig(config);
+  const replacementIds = new Set(
+    (replaceAccountIds ?? [])
+      .map((accountId) => readString(accountId))
+      .filter((replacementAccountId): replacementAccountId is string =>
+        Boolean(replacementAccountId) && replacementAccountId !== accountId
+      ),
+  );
+  const accounts = Object.fromEntries(
+    Object.entries(current.accounts ?? {}).filter(([accountId]) => !replacementIds.has(accountId)),
+  );
   const currentAccount = current.accounts?.[accountId] ?? {};
   const allowFrom = new Set([
     ...(current.allowFrom ?? []),
@@ -109,7 +121,7 @@ export function buildRegisteredFeishuChannelConfig({
     defaultAccountId: accountId,
     domain: current.domain ?? domain,
     accounts: {
-      ...(current.accounts ?? {}),
+      ...accounts,
       [accountId]: {
         ...currentAccount,
         enabled: true,

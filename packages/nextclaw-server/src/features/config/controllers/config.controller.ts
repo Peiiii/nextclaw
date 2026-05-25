@@ -15,10 +15,12 @@ import {
   updateSecrets,
   updateRuntime
 } from "@nextclaw-server/features/config/index.js";
-import { pollChannelAuth, startChannelAuth } from "@nextclaw-server/features/config/utils/channel-auth.utils.js";
+import { connectChannelAuth, pollChannelAuth, startChannelAuth } from "@nextclaw-server/features/config/utils/channel-auth.utils.js";
 import { importProviderAuthFromCli, pollProviderAuth, startProviderAuth } from "@nextclaw-server/features/config/utils/provider-auth.utils.js";
 import type {
   ChannelAuthPollResult,
+  ChannelAuthConnectRequest,
+  ChannelAuthConnectResult,
   ChannelAuthStartRequest,
   ChannelAuthStartResult,
   ConfigActionExecuteRequest,
@@ -365,6 +367,40 @@ export class ConfigRoutesController {
       await this.publishConfigUpdates([`channels.${channel}`]);
     }
     return c.json(ok(result satisfies ChannelAuthPollResult));
+  };
+
+  readonly connectChannelAuth = async (c: Context) => {
+    const channel = c.req.param("channel");
+    const body = await readJson<Record<string, unknown>>(c.req.raw);
+    if (!body.ok) {
+      return c.json(err("INVALID_BODY", "invalid json body"), 400);
+    }
+    const fields = body.data.fields && typeof body.data.fields === "object" && !Array.isArray(body.data.fields)
+      ? body.data.fields as Record<string, unknown>
+      : {};
+
+    try {
+      const result = await connectChannelAuth({
+        configPath: this.options.configPath,
+        channelId: channel,
+        request: {
+          accountId: typeof body.data.accountId === "string" ? body.data.accountId : undefined,
+          domain: typeof body.data.domain === "string" ? body.data.domain : undefined,
+          fields
+        } satisfies ChannelAuthConnectRequest,
+        bindings: this.options.extensions?.getChannelBindings() ?? []
+      });
+      if (!result) {
+        return c.json(err("NOT_SUPPORTED", `channel auth connect is not supported: ${channel}`), 404);
+      }
+      if (result.status === "authorized") {
+        await this.publishConfigUpdates([`channels.${channel}`]);
+      }
+      return c.json(ok(result satisfies ChannelAuthConnectResult));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return c.json(err("AUTH_CONNECT_FAILED", message), 400);
+    }
   };
 
   readonly updateSecrets = async (c: Context) => {

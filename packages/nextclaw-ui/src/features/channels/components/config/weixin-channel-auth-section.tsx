@@ -4,7 +4,11 @@ import { toDataURL } from 'qrcode';
 import { ExternalLink, Loader2, MessageCircleMore, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/button';
-import { usePollChannelAuth, useStartChannelAuth } from '@/features/channels/hooks/use-channel-auth';
+import { Input } from '@/shared/components/ui/input';
+import { Label } from '@/shared/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
+import { useConnectChannelAuth, usePollChannelAuth, useStartChannelAuth } from '@/features/channels/hooks/use-channel-auth';
 import { formatDateTime, t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
 import type { ChannelAuthPollResult, ChannelAuthStartResult } from '@/shared/lib/api';
@@ -18,6 +22,8 @@ type QrChannelAuthSectionProps = {
 };
 
 type WeixinChannelAuthSectionProps = Omit<QrChannelAuthSectionProps, 'channelName'>;
+type FeishuChannelAuthSectionProps = WeixinChannelAuthSectionProps;
+type FeishuPlatform = 'feishu' | 'lark';
 
 type QrChannelAuthCopy = {
   title: string;
@@ -101,6 +107,15 @@ function resolveDomain(formData: Record<string, unknown>, channelConfig: Record<
   }
   const configDomain = typeof channelConfig.domain === 'string' ? channelConfig.domain.trim() : '';
   return configDomain || undefined;
+}
+
+function resolveFeishuPlatform(formData: Record<string, unknown>, channelConfig: Record<string, unknown>): FeishuPlatform {
+  const domain = resolveDomain(formData, channelConfig);
+  return domain === 'lark' ? 'lark' : 'feishu';
+}
+
+function resolveFeishuDeveloperConsoleUrl(platform: FeishuPlatform): string {
+  return platform === 'lark' ? 'https://open.larksuite.com/app' : 'https://open.feishu.cn/app';
 }
 
 function useQrDataUrl(channelName: string, qrCodeUrl: string | undefined) {
@@ -334,6 +349,109 @@ export function QrChannelAuthSection({
         <QrAuthPanel activeSession={effectiveActiveSession} authMessage={authMessage} copy={copy} qrDataUrl={qrDataUrl} />
       </div>
     </section>
+  );
+}
+
+function ExistingFeishuAgentConnectPanel({
+  channelConfig,
+  disabled,
+  formData
+}: {
+  channelConfig: Record<string, unknown>;
+  disabled?: boolean;
+  formData: Record<string, unknown>;
+}) {
+  const queryClient = useQueryClient();
+  const connectChannelAuth = useConnectChannelAuth();
+  const [platform, setPlatform] = useState<FeishuPlatform>(() => resolveFeishuPlatform(formData, channelConfig));
+  const [appId, setAppId] = useState('');
+  const [appSecret, setAppSecret] = useState('');
+  const developerConsoleUrl = resolveFeishuDeveloperConsoleUrl(platform);
+  const canSubmit = Boolean(appId.trim() && appSecret.trim()) && !disabled && !connectChannelAuth.isPending;
+
+  const handleConnect = async () => {
+    try {
+      const result = await connectChannelAuth.mutateAsync({
+        channel: 'feishu',
+        data: {
+          domain: platform,
+          fields: {
+            appId: appId.trim(),
+            appSecret: appSecret.trim()
+          }
+        }
+      });
+      await queryClient.invalidateQueries({ queryKey: ['config'] });
+      await queryClient.invalidateQueries({ queryKey: ['config-meta'] });
+      toast.success(result.message || t('feishuExistingAgentConnectSuccess'));
+      setAppSecret('');
+    } catch (error) {
+      toast.error(`${t('error')}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
+  return (
+    <section className="rounded-2xl border border-primary/20 bg-white p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-xl space-y-3">
+          <div className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+            <MessageCircleMore className="h-3.5 w-3.5" />
+            {t('feishuExistingAgentTitle')}
+          </div>
+          <div>
+            <h4 className="text-base font-semibold text-gray-900">{t('feishuExistingAgentDescription')}</h4>
+            <p className="mt-1 text-sm text-gray-600">{t('feishuExistingAgentHint')}</p>
+          </div>
+          <a href={developerConsoleUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary transition-colors hover:text-primary-hover">
+            <ExternalLink className="h-4 w-4" />
+            {platform === 'lark' ? t('feishuExistingAgentOpenLarkList') : t('feishuExistingAgentOpenFeishuList')}
+          </a>
+        </div>
+        <div className="w-full max-w-sm space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="feishu-existing-platform">{t('feishuPlatform')}</Label>
+            <Select value={platform} onValueChange={(value) => setPlatform(value === 'lark' ? 'lark' : 'feishu')}>
+              <SelectTrigger id="feishu-existing-platform" className="rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="feishu">Feishu</SelectItem>
+                <SelectItem value="lark">Lark</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="feishu-existing-app-id">App ID</Label>
+            <Input id="feishu-existing-app-id" value={appId} onChange={(event) => setAppId(event.target.value)} className="rounded-xl" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="feishu-existing-app-secret">App Secret</Label>
+            <Input id="feishu-existing-app-secret" type="password" value={appSecret} onChange={(event) => setAppSecret(event.target.value)} className="rounded-xl" />
+          </div>
+          <Button type="button" onClick={() => void handleConnect()} disabled={!canSubmit} className="w-full rounded-xl">
+            {connectChannelAuth.isPending ? t('feishuExistingAgentConnecting') : t('feishuExistingAgentConnect')}
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function FeishuChannelAuthSection(props: FeishuChannelAuthSectionProps) {
+  const [mode, setMode] = useState<'create' | 'existing'>('create');
+  return (
+    <Tabs value={mode} onValueChange={(value) => setMode(value === 'existing' ? 'existing' : 'create')}>
+      <TabsList>
+        <TabsTrigger value="create">{t('feishuAuthCreateNew')}</TabsTrigger>
+        <TabsTrigger value="existing">{t('feishuAuthConnectExisting')}</TabsTrigger>
+      </TabsList>
+      <TabsContent value="create" className="mt-4">
+        <QrChannelAuthSection {...props} channelName="feishu" />
+      </TabsContent>
+      <TabsContent value="existing" className="mt-4">
+        <ExistingFeishuAgentConnectPanel {...props} />
+      </TabsContent>
+    </Tabs>
   );
 }
 

@@ -191,10 +191,17 @@ export class FeishuChannelAdapter implements FeishuChannelAdapterContract {
   };
 
   private readonly listAvailableAccountIds = (): string[] => {
+    const configuredAccountIds = this.listConfiguredAccountIds();
+    if (configuredAccountIds.length > 0) {
+      return configuredAccountIds;
+    }
+    return this.store.listAccountIds();
+  };
+
+  private readonly listConfiguredAccountIds = (): string[] => {
     return Array.from(new Set([
       ...(this.config.defaultAccountId ? [this.config.defaultAccountId] : []),
       ...Object.keys(this.config.accounts ?? {}),
-      ...this.store.listAccountIds(),
     ]));
   };
 

@@ -40,10 +40,12 @@ export const CHANNEL_AUTH_LABELS: Record<string, { zh: string; en: string }> = {
     en: 'Expand these fields only when you need to customize the API base URL, account mapping, or allowlist.'
   },
   feishuAuthTitle: { zh: '扫码连接飞书', en: 'Connect Feishu by QR' },
-  feishuAuthDescription: { zh: '飞书渠道使用扫码创建自建应用，不再要求手动复制应用凭证。', en: 'Feishu uses QR-based app registration, so you no longer need to copy app credentials manually.' },
+  feishuAuthCreateNew: { zh: '创建新智能体', en: 'Create new agent' },
+  feishuAuthConnectExisting: { zh: '连接已有智能体', en: 'Connect existing agent' },
+  feishuAuthDescription: { zh: '飞书渠道使用扫码创建新的智能体，不再要求手动复制应用凭证。', en: 'Feishu can create a new agent by QR, so you no longer need to copy app credentials manually.' },
   feishuAuthHint: {
-    zh: '点击按钮后用飞书扫码确认，连接成功后会自动保存应用凭证并启用 WebSocket 收发。',
-    en: 'Start the flow, scan with Feishu, and the app credentials will be saved automatically for WebSocket messaging.'
+    zh: '点击按钮后用飞书扫码确认，连接成功后会自动保存新智能体凭证并启用 WebSocket 收发。',
+    en: 'Start the flow, scan with Feishu, and the new agent credentials will be saved automatically for WebSocket messaging.'
   },
   feishuAuthCapabilityHint: {
     zh: '连接成功后，Agent 可以通过飞书自建应用收发私聊和群聊消息。',
@@ -54,12 +56,12 @@ export const CHANNEL_AUTH_LABELS: Record<string, { zh: string; en: string }> = {
     en: 'This Feishu app is connected, but the channel is inactive. Turn on Enabled before it can send or receive messages.'
   },
   feishuAuthConnect: { zh: '扫码连接飞书', en: 'Scan QR to connect Feishu' },
-  feishuAuthQrAlt: { zh: '飞书应用注册二维码', en: 'Feishu app registration QR code' },
-  feishuAuthScanPrompt: { zh: '请用飞书扫码，并按页面提示完成应用创建授权。', en: 'Scan with Feishu and follow the prompts to finish app registration.' },
+  feishuAuthQrAlt: { zh: '飞书智能体创建二维码', en: 'Feishu agent creation QR code' },
+  feishuAuthScanPrompt: { zh: '请用飞书扫码，并按页面提示完成智能体创建授权。', en: 'Scan with Feishu and follow the prompts to finish agent creation.' },
   feishuAuthReadyTitle: { zh: '准备连接飞书', en: 'Ready to connect Feishu' },
   feishuAuthReadyDescription: {
-    zh: '点击左侧按钮后，这里会显示应用注册二维码。首配流程默认不需要进入开放平台手动建应用。',
-    en: 'After you start the flow, the app registration QR code will appear here. First-time setup does not require manually creating an app in the developer console.'
+    zh: '点击左侧按钮后，这里会显示智能体创建二维码。已有智能体请切换到连接入口。',
+    en: 'After you start the flow, the agent creation QR code will appear here. Use the existing-agent tab when you already have one.'
   },
   feishuAuthAdvancedTitle: { zh: '高级设置', en: 'Advanced settings' },
   feishuAuthAdvancedDescription: {
@@ -67,7 +69,19 @@ export const CHANNEL_AUTH_LABELS: Record<string, { zh: string; en: string }> = {
     en: 'Expand these fields only when you need to switch Feishu/Lark domains, choose a default account, or adjust allowlist and group policies.'
   },
   feishuAuthDomain: {
-    zh: '飞书域名',
-    en: 'Feishu domain'
-  }
+    zh: '飞书平台',
+    en: 'Feishu platform'
+  },
+  feishuPlatform: { zh: '平台', en: 'Platform' },
+  feishuExistingAgentTitle: { zh: '连接已有飞书智能体', en: 'Connect an existing Feishu agent' },
+  feishuExistingAgentDescription: { zh: '填入已有智能体的 App ID 和 App Secret。', en: 'Enter the App ID and App Secret for an existing agent.' },
+  feishuExistingAgentHint: {
+    zh: '在飞书开放平台选择已有智能体，进入基础信息里的凭证与基础信息，然后复制凭证回来验证。',
+    en: 'Open the developer console, choose an existing agent, then copy the credentials from its basic information page.'
+  },
+  feishuExistingAgentOpenFeishuList: { zh: '打开飞书智能体列表', en: 'Open Feishu agent list' },
+  feishuExistingAgentOpenLarkList: { zh: '打开 Lark 智能体列表', en: 'Open Lark agent list' },
+  feishuExistingAgentConnect: { zh: '验证并连接', en: 'Verify and connect' },
+  feishuExistingAgentConnecting: { zh: '正在验证', en: 'Verifying' },
+  feishuExistingAgentConnectSuccess: { zh: '飞书智能体已连接', en: 'Feishu agent connected' }
 };

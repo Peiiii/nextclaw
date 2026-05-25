@@ -60,6 +60,7 @@ export type PendingExtensionRequest = {
 export type ExtensionChannelRequestKind =
   | "channel.auth.login"
   | "channel.auth.start"
+  | "channel.auth.connect"
   | "channel.auth.poll"
   | "channel.outbound.sendText";
 

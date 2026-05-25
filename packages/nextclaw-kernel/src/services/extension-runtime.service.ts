@@ -11,6 +11,7 @@ import {
 } from "@nextclaw/shared";
 import { AgentRouteResolver, CommandRegistry } from "@nextclaw/core";
 import type {
+  ExtensionChannelAuthConnectResult,
   ExtensionChannelAuthLoginResult,
   ExtensionChannelAuthPollResult,
   ExtensionChannelAuthStartResult,
@@ -165,6 +166,18 @@ class ExtensionChannelClient implements ExtensionChannelAuthClient, ExtensionCha
         domain: (params as { domain?: string | null }).domain,
       },
     });
+
+  readonly connect: ExtensionChannelAuthClient["connect"] = async (params) =>
+    normalizeAuthPollResult(await this.params.request<ExtensionChannelAuthConnectResult>({
+      extensionId: this.params.extensionId,
+      kind: "channel.auth.connect",
+      payload: {
+        channelId: this.params.channelId,
+        accountId: params.accountId,
+        domain: params.domain,
+        fields: params.fields,
+      },
+    })) as ExtensionChannelAuthConnectResult;
 
   readonly poll: ExtensionChannelAuthClient["poll"] = async ({ sessionId }) =>
     normalizeAuthPollResult(await this.params.request({
