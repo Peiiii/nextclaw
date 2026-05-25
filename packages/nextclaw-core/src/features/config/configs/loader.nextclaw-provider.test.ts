@@ -73,6 +73,37 @@ describe("loadConfig nextclaw built-in provider bootstrap", () => {
     expect(config.search.providers.tavily.includeAnswer).toBe(true);
   });
 
+  it("migrates provider modelThinking into modelConfig", () => {
+    const dir = mkdtempSync(join(tmpdir(), "nextclaw-config-model-config-"));
+    const configPath = join(dir, "config.json");
+
+    writeFileSync(configPath, JSON.stringify({
+      providers: {
+        openai: {
+          apiKey: "sk-test",
+          models: ["openai/gpt-5.3-codex"],
+          modelThinking: {
+            "gpt-5.3-codex": {
+              supported: ["minimal", "low"],
+              default: "low"
+            }
+          }
+        }
+      }
+    }, null, 2));
+
+    const config = loadConfig(configPath);
+    const rawAfterLoad = JSON.parse(readFileSync(configPath, "utf-8")) as Record<string, unknown>;
+
+    expect(config.providers.openai.modelConfig["gpt-5.3-codex"]).toEqual({
+      thinking: {
+        supported: ["minimal", "low"],
+        default: "low"
+      }
+    });
+    expect(rawAfterLoad).not.toHaveProperty("providers.openai.modelThinking");
+  });
+
   it("does not overwrite an existing invalid config file with defaults", () => {
     const dir = mkdtempSync(join(tmpdir(), "nextclaw-config-invalid-"));
     const configPath = join(dir, "config.json");

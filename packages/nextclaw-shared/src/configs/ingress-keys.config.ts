@@ -107,10 +107,29 @@ export type AgentRunSessionMessageRequestPayload = {
   sessionId: string;
 };
 
+export type AgentRunSendIngressMetadata = Record<string, unknown> & {
+  agentRuntimeId?: string;
+  agentId?: string;
+  projectRoot?: string;
+  channel?: string;
+  model?: string;
+  maxTokens?: number;
+  thinkingEffort?: string | null;
+  chatId?: string;
+  accountId?: string;
+  senderId?: string;
+  sessionKey?: string;
+  label?: string;
+};
+
 export type AgentRunSendIngressPayload =
-  | (NcpAgentSendEnvelope & { content?: never })
-  | (Omit<NcpAgentSendEnvelope, "message"> & {
+  | (Omit<NcpAgentSendEnvelope, "metadata"> & {
+      content?: never;
+      metadata?: AgentRunSendIngressMetadata;
+    })
+  | (Omit<NcpAgentSendEnvelope, "message" | "metadata"> & {
       content: NcpMessagePart[];
+      metadata?: AgentRunSendIngressMetadata;
       message?: never;
     });
 

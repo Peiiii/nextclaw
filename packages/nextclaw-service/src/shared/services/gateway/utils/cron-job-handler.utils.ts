@@ -1,5 +1,8 @@
 import type { MessageBus } from "@nextclaw/core";
-import { runPromptOverNcp, type NcpRunnerAgent } from "@nextclaw/kernel";
+import {
+  buildAgentRunSendPayload,
+  type AgentRunClient,
+} from "@nextclaw/kernel";
 
 type CronJobLike = {
   id: string;
@@ -33,10 +36,8 @@ function buildCronSessionMetadata(params: {
   const chatId = normalizeOptionalString(job.payload.to) ?? "direct";
   const metadata: Record<string, unknown> = {
     agentId,
-    agent_id: agentId,
     channel,
     chatId,
-    chat_id: chatId,
     label: job.name,
     cron_job_id: job.id,
     cron_job_name: job.name,
@@ -44,13 +45,12 @@ function buildCronSessionMetadata(params: {
   };
   if (accountId) {
     metadata.accountId = accountId;
-    metadata.account_id = accountId;
   }
   return metadata;
 }
 
 export function createCronJobHandler(params: {
-  agentRunRequests: NcpRunnerAgent;
+  agentRunClient: AgentRunClient;
   bus: MessageBus;
 }): (job: CronJobLike) => Promise<string> {
   return async (job: CronJobLike): Promise<string> => {
@@ -62,11 +62,11 @@ export function createCronJobHandler(params: {
       agentId,
       accountId,
     });
-    const result = await runPromptOverNcp({
-      agent: params.agentRunRequests,
+    const result = await params.agentRunClient.sendAndWaitForReply(await buildAgentRunSendPayload({
       sessionId,
       content: job.payload.message,
       metadata,
+    }), {
       missingCompletedMessageError: "cron job completed without a final assistant message",
       runErrorMessage: "cron job failed",
     });

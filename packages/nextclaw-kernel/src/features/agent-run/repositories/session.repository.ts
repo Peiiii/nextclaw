@@ -22,9 +22,11 @@ export type AgentRunSession = {
 };
 
 export type CreateAgentRunSessionParams = {
+  sessionId?: string;
   agentId?: string;
   agentRuntimeId?: string;
   channel?: string;
+  metadata?: Record<string, unknown>;
   model?: string;
   projectRoot?: string;
   task?: string;
@@ -108,17 +110,21 @@ export class SessionRepository {
       agentId,
       agentRuntimeId: requestedAgentRuntimeId,
       channel,
+      metadata,
       model,
       projectRoot,
+      sessionId,
       task,
       thinkingEffort,
     } = params;
     const agentRuntimeId = requestedAgentRuntimeId ?? DEFAULT_AGENT_RUNTIME_ENTRY_ID;
     const created = await this.ncpSessionManager.createSession({
       sourceSessionMetadata: {},
+      sessionId,
       task: task ?? "Session",
       agentId,
       metadataOverrides: {
+        ...structuredClone(metadata ?? {}),
         agentRuntimeId,
         channel,
       },
@@ -137,6 +143,19 @@ export class SessionRepository {
       projectRoot,
       thinkingEffort: thinkingEffort ?? null,
     };
+  };
+
+  getOrCreateSession = async (
+    params: CreateAgentRunSessionParams,
+  ): Promise<AgentRunSession> => {
+    if (!params.sessionId) {
+      return await this.createSession(params);
+    }
+    const existing = await this.ncpSessionManager.getSessionRecord(params.sessionId);
+    if (existing) {
+      return await this.getSession(params.sessionId);
+    }
+    return await this.createSession(params);
   };
 
   listSessionMessages = async (sessionId: string): Promise<readonly NcpMessage[]> => {

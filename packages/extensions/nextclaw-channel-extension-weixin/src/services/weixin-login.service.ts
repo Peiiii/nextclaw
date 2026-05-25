@@ -10,7 +10,7 @@ import {
 import type { WeixinChannelConfig } from "../types/weixin-extension.types.js";
 
 export type WeixinLoginParams = {
-  pluginConfig?: Record<string, unknown>;
+  channelConfig?: Record<string, unknown>;
   requestedAccountId?: string | null;
   baseUrl?: string | null;
   verbose?: boolean;
@@ -34,7 +34,7 @@ export type WeixinAuthPollResult = {
   nextPollMs?: number;
   accountId?: string | null;
   notes?: string[];
-  pluginConfig?: Record<string, unknown>;
+  channelConfig?: Record<string, unknown>;
 };
 
 type WeixinLoginSession = {
@@ -92,7 +92,7 @@ export class WeixinLoginService {
 
   readonly start = async (params: WeixinLoginParams): Promise<WeixinAuthStartResult> => {
     this.cleanupExpiredSessions();
-    const currentConfig = normalizeWeixinChannelConfig(params.pluginConfig);
+    const currentConfig = normalizeWeixinChannelConfig(params.channelConfig);
     const baseUrl = resolveLoginBaseUrl(params, currentConfig);
     const qrCode = await this.api.fetchQrCode({ baseUrl });
     const qrCodeUrl = qrCode.qrcode_img_content?.trim();
@@ -168,7 +168,7 @@ export class WeixinLoginService {
           nextPollMs: 0,
           accountId: result.accountId,
           notes: result.notes,
-          pluginConfig: result.pluginConfig,
+          channelConfig: result.channelConfig,
         };
       }
 
@@ -197,7 +197,7 @@ export class WeixinLoginService {
 
   readonly login = async (
     params: WeixinLoginParams,
-  ): Promise<{ pluginConfig: Record<string, unknown>; accountId?: string | null; notes?: string[] }> => {
+  ): Promise<{ channelConfig: Record<string, unknown>; accountId?: string | null; notes?: string[] }> => {
     const started = await this.start(params);
     console.log("使用微信扫描以下二维码链接完成连接：");
     console.log(started.qrCodeUrl);
@@ -216,7 +216,7 @@ export class WeixinLoginService {
       }
       if (status.status === "authorized") {
         return {
-          pluginConfig: status.pluginConfig ?? {},
+          channelConfig: status.channelConfig ?? {},
           accountId: status.accountId,
           notes: status.notes,
         };
@@ -239,7 +239,7 @@ export class WeixinLoginService {
   private readonly confirmLogin = (
     session: WeixinLoginSession,
     status: WeixinQrStatusResponse,
-  ): { pluginConfig: Record<string, unknown>; accountId: string; notes: string[] } => {
+  ): { channelConfig: Record<string, unknown>; accountId: string; notes: string[] } => {
     const token = status.bot_token?.trim();
     const accountId = status.ilink_bot_id?.trim() || session.requestedAccountId?.trim();
     const baseUrl = status.baseurl?.trim() || session.baseUrl;
@@ -279,7 +279,7 @@ export class WeixinLoginService {
     return {
       accountId,
       notes,
-      pluginConfig: buildLoggedInWeixinChannelConfig({
+      channelConfig: buildLoggedInWeixinChannelConfig({
         config: session.currentConfig,
         accountId,
         baseUrl,

@@ -2,9 +2,9 @@ import { getProviderName, type Config } from "../../../config/configs/schema.js"
 import {
   parseThinkingLevel,
   resolveEffectiveThinkingLevel,
-  resolveModelThinkingCapability,
   type ThinkingLevel
 } from "../../../../shared/lib/core-utils/utils/thinking.js";
+import { resolveModelThinkingFromModelConfig } from "../../../../shared/lib/core-utils/utils/model-config.utils.js";
 
 type ModelStrategyMap = Record<string, { params: Record<string, unknown> }>;
 
@@ -125,10 +125,10 @@ function applyModelCapabilityPolicy(params: {
     return params.requestedLevel;
   }
   const provider = params.config.providers[providerName];
-  const capability = resolveModelThinkingCapability({
+  const capability = resolveModelThinkingFromModelConfig({
     model,
     providerName,
-    capabilities: provider?.modelThinking
+    modelConfig: provider?.modelConfig
   });
   return resolveEffectiveThinkingLevel(params.requestedLevel, capability);
 }

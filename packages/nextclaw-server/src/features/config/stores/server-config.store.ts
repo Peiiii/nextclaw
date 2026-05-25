@@ -17,9 +17,7 @@ import {
   hasSecretRef,
   isSensitiveConfigPath,
   type ProviderSpec,
-  normalizeThinkingLevels,
-  parseThinkingLevel,
-  type ThinkingLevel
+  normalizeProviderModelConfig
 } from "@nextclaw/core";
 import type { LlmProviderManager } from "@nextclaw/kernel";
 import { createDefaultProviderConfigFromSpec } from "@nextclaw-server/features/config/utils/default-provider-config.utils.js";
@@ -394,32 +392,6 @@ function normalizeModelList(input: string[] | null | undefined): string[] {
   return [...deduped];
 }
 
-function normalizeModelThinkingConfig(
-  input: Record<string, { supported?: unknown; default?: unknown }> | null | undefined
-): Record<string, { supported: ThinkingLevel[]; default?: ThinkingLevel | null }> {
-  if (!input || typeof input !== "object") {
-    return {};
-  }
-  const normalized: Record<string, { supported: ThinkingLevel[]; default?: ThinkingLevel | null }> = {};
-  for (const [rawModel, rawValue] of Object.entries(input)) {
-    const model = rawModel.trim();
-    if (!model || !rawValue || typeof rawValue !== "object") {
-      continue;
-    }
-    const supported = normalizeThinkingLevels(rawValue.supported);
-    if (supported.length === 0) {
-      continue;
-    }
-    const defaultLevel = parseThinkingLevel(rawValue.default);
-    if (defaultLevel && supported.includes(defaultLevel)) {
-      normalized[model] = { supported, default: defaultLevel };
-    } else {
-      normalized[model] = { supported };
-    }
-  }
-  return normalized;
-}
-
 function toProviderView(
   config: Config,
   provider: ProviderConfig,
@@ -446,7 +418,7 @@ function toProviderView(
     apiBase: provider.apiBase ?? null,
     extraHeaders: extraHeaders && Object.keys(extraHeaders).length > 0 ? extraHeaders : null,
     models: normalizeModelList(provider.models ?? []),
-    modelThinking: normalizeModelThinkingConfig(provider.modelThinking ?? {})
+    modelConfig: normalizeProviderModelConfig(provider.modelConfig ?? {})
   };
   const supportsWireApi = Boolean(spec?.supportsWireApi) || isCustomProviderName(providerName);
   if (supportsWireApi) {
@@ -603,6 +575,7 @@ export function buildConfigMeta(config: Config, options?: ExtensionConfigProject
           }
         : undefined,
       defaultModels: normalizeModelList(spec.defaultModels ?? []),
+      modelConfig: normalizeProviderModelConfig(spec.modelConfig ?? {}),
       supportsWireApi: spec.supportsWireApi,
       wireApiOptions: spec.wireApiOptions,
       defaultWireApi: spec.defaultWireApi
@@ -641,6 +614,7 @@ export function buildConfigMeta(config: Config, options?: ExtensionConfigProject
         apiBaseHelp: undefined,
         auth: undefined,
         defaultModels: [],
+        modelConfig: {},
         supportsWireApi: true,
         wireApiOptions: CUSTOM_PROVIDER_WIRE_API_OPTIONS,
         defaultWireApi: "auto" as const
@@ -774,8 +748,8 @@ export function updateProvider(
   if (Object.prototype.hasOwnProperty.call(patch, "models")) {
     provider.models = normalizeModelList(patch.models ?? []);
   }
-  if (Object.prototype.hasOwnProperty.call(patch, "modelThinking")) {
-    provider.modelThinking = normalizeModelThinkingConfig(patch.modelThinking ?? {});
+  if (Object.prototype.hasOwnProperty.call(patch, "modelConfig")) {
+    provider.modelConfig = normalizeProviderModelConfig(patch.modelConfig ?? {});
   }
   const next = ConfigSchema.parse(config);
   saveConfig(next, configPath);
@@ -800,7 +774,7 @@ export function createCustomProvider(
     extraHeaders: normalizeHeaders(patch.extraHeaders ?? null),
     wireApi: patch.wireApi ?? "auto",
     models: normalizeModelList(patch.models ?? []),
-    modelThinking: normalizeModelThinkingConfig(patch.modelThinking ?? {})
+    modelConfig: normalizeProviderModelConfig(patch.modelConfig ?? {})
   };
   const next = ConfigSchema.parse(config);
   saveConfig(next, configPath);

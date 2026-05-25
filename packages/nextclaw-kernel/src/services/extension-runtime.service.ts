@@ -105,8 +105,7 @@ function toInboundMessage(value: unknown): InboundMessage {
 
 function normalizeChannelConfigResult(value: unknown): Record<string, unknown> {
   const record = readRecord(value);
-  const channelConfig = readRecord(record.channelConfig);
-  return Object.keys(channelConfig).length > 0 ? channelConfig : readRecord(record.pluginConfig);
+  return readRecord(record.channelConfig);
 }
 
 function normalizeAuthLoginResult(value: unknown): ExtensionChannelAuthLoginResult {

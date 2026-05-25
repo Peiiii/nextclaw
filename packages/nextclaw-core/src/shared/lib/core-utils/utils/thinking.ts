@@ -3,7 +3,7 @@ export const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "adap
 export type ThinkingLevel = (typeof THINKING_LEVELS)[number];
 export type ModelThinkingCapability = {
   supported: ThinkingLevel[];
-  default: ThinkingLevel | null;
+  default?: ThinkingLevel | null;
 };
 
 const THINKING_LEVEL_SET = new Set<string>(THINKING_LEVELS);

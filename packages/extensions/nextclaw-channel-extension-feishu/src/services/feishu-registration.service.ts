@@ -12,7 +12,7 @@ import {
 import type { FeishuChannelConfig, FeishuDomain } from "../types/feishu-extension.types.js";
 
 export type FeishuRegistrationStartParams = {
-  pluginConfig?: Record<string, unknown>;
+  channelConfig?: Record<string, unknown>;
   requestedAccountId?: string | null;
   domain?: FeishuDomain | null;
   verbose?: boolean;
@@ -36,7 +36,7 @@ export type FeishuAuthPollResult = {
   nextPollMs?: number;
   accountId?: string | null;
   notes?: string[];
-  pluginConfig?: Record<string, unknown>;
+  channelConfig?: Record<string, unknown>;
 };
 
 type FeishuRegistrationSession = {
@@ -96,7 +96,7 @@ export class FeishuRegistrationService {
     params: FeishuRegistrationStartParams,
   ): Promise<FeishuAuthStartResult> => {
     this.cleanupExpiredSessions();
-    const currentConfig = normalizeFeishuChannelConfig(params.pluginConfig);
+    const currentConfig = normalizeFeishuChannelConfig(params.channelConfig);
     const domain = params.domain ?? currentConfig.domain ?? DEFAULT_FEISHU_DOMAIN;
     await this.assertRegistrationSupported(domain);
     const begin = await this.beginRegistration(domain);
@@ -166,7 +166,7 @@ export class FeishuRegistrationService {
           nextPollMs: 0,
           accountId: result.accountId,
           notes: result.notes,
-          pluginConfig: result.pluginConfig,
+          channelConfig: result.channelConfig,
         };
       }
 
@@ -256,7 +256,7 @@ export class FeishuRegistrationService {
     appId: string;
     appSecret: string;
     ownerOpenId?: string;
-  }): Promise<{ pluginConfig: Record<string, unknown>; accountId: string; notes: string[] }> => {
+  }): Promise<{ channelConfig: Record<string, unknown>; accountId: string; notes: string[] }> => {
     const botInfo = await this.probeBot({
       appId,
       appSecret,
@@ -281,7 +281,7 @@ export class FeishuRegistrationService {
     return {
       accountId,
       notes,
-      pluginConfig: buildRegisteredFeishuChannelConfig({
+      channelConfig: buildRegisteredFeishuChannelConfig({
         config: session.currentConfig,
         accountId,
         domain: session.domain,

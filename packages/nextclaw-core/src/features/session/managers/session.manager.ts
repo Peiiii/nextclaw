@@ -24,6 +24,7 @@ export type CreatedSession = {
 };
 
 export type CreateSessionInput = {
+  sessionId?: string;
   sourceSessionId?: string;
   sourceSessionMetadata: Record<string, unknown>;
   metadataOverrides?: Record<string, unknown>;
@@ -183,6 +184,7 @@ export class SessionManager {
       projectRoot,
       requestId: rawRequestId,
       runtime,
+      sessionId: requestedSessionId,
       sessionType: requestedSessionType,
       sourceSessionId,
       sourceSessionMetadata,
@@ -190,7 +192,7 @@ export class SessionManager {
       thinkingLevel,
       title: requestedTitle,
     } = params;
-    const sessionId = buildSessionId();
+    const sessionId = readOptionalString(requestedSessionId) ?? buildSessionId();
     const session = this.getOrCreate(sessionId);
     const title = resolveSessionTitle({ title: requestedTitle, task });
     const metadata = cloneInheritedMetadata(sourceSessionMetadata);

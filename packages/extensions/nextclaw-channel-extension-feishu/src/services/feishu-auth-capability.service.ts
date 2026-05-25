@@ -23,7 +23,7 @@ export class FeishuAuthCapability {
     request: ExtensionCapabilityPayload,
   ): Promise<unknown> =>
     await this.registrationService.start({
-      pluginConfig: await this.readCurrentConfig(),
+      channelConfig: await this.readCurrentConfig(),
       requestedAccountId: this.readString(request.accountId),
       domain: this.readDomain(request.domain),
       verbose: request.verbose === true,

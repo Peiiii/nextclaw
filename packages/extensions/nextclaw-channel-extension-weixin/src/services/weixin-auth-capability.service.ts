@@ -22,7 +22,7 @@ export class WeixinAuthCapability {
     request: ExtensionCapabilityPayload,
   ): Promise<unknown> =>
     await this.loginService.start({
-      pluginConfig: await this.readCurrentConfig(),
+      channelConfig: await this.readCurrentConfig(),
       requestedAccountId: this.readString(request.accountId),
       baseUrl: this.readString(request.baseUrl),
     });
@@ -41,7 +41,7 @@ export class WeixinAuthCapability {
     request: ExtensionCapabilityPayload,
   ): Promise<unknown> =>
     await this.loginService.login({
-      pluginConfig: await this.readCurrentConfig(),
+      channelConfig: await this.readCurrentConfig(),
       requestedAccountId: this.readString(request.accountId),
       baseUrl: this.readString(request.baseUrl),
       verbose: request.verbose === true,

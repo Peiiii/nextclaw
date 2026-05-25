@@ -61,6 +61,39 @@ function collectStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
 }
 
+function migrateProviderModelConfig(provider: Record<string, unknown>): boolean {
+  let changed = false;
+  const modelConfig =
+    provider.modelConfig && typeof provider.modelConfig === "object" && !Array.isArray(provider.modelConfig)
+      ? { ...(provider.modelConfig as Record<string, unknown>) }
+      : {};
+  const modelThinking =
+    provider.modelThinking && typeof provider.modelThinking === "object" && !Array.isArray(provider.modelThinking)
+      ? (provider.modelThinking as Record<string, unknown>)
+      : null;
+
+  if (modelThinking) {
+    for (const [model, thinking] of Object.entries(modelThinking)) {
+      const existing =
+        modelConfig[model] && typeof modelConfig[model] === "object" && !Array.isArray(modelConfig[model])
+          ? { ...(modelConfig[model] as Record<string, unknown>) }
+          : {};
+      if (existing.thinking === undefined) {
+        existing.thinking = thinking;
+        modelConfig[model] = existing;
+        changed = true;
+      }
+    }
+    delete provider.modelThinking;
+    changed = true;
+  }
+
+  if (changed) {
+    provider.modelConfig = modelConfig;
+  }
+  return changed;
+}
+
 function migrateSearchConfig(params: {
   legacyWebSearchConfig: Record<string, unknown>;
   rawSearch: Record<string, unknown>;
@@ -134,6 +167,11 @@ function migrateConfig(data: Record<string, unknown>): { config: Record<string, 
   }
   const providers = (data.providers ?? {}) as Record<string, unknown>;
   const nextclawProvider = (providers.nextclaw ?? {}) as Record<string, unknown>;
+  for (const provider of Object.values(providers)) {
+    if (provider && typeof provider === "object" && !Array.isArray(provider)) {
+      changed = migrateProviderModelConfig(provider as Record<string, unknown>) || changed;
+    }
+  }
   const nextclawApiBase = typeof nextclawProvider.apiBase === "string" ? nextclawProvider.apiBase.trim() : "";
   if (nextclawApiBase === "https://api.nextclaw.io/v1") {
     nextclawProvider.apiBase = "https://ai-gateway-api.nextclaw.io/v1";
@@ -179,7 +217,7 @@ function ensureBuiltinNextclawKey(config: Config): boolean {
       extraHeaders: null,
       wireApi: "auto",
       models: [],
-      modelThinking: {}
+      modelConfig: {}
     };
     providers.nextclaw = provider;
     changed = true;

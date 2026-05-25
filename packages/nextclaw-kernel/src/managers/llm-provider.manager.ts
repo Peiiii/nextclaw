@@ -2,6 +2,7 @@ import {
   LLMProvider,
   LiteLLMProvider,
   ProviderRegistry,
+  modelSupportsVision,
   type Config,
   type LLMResponse,
   type LLMStreamEvent,
@@ -9,6 +10,7 @@ import {
   type ThinkingLevel,
 } from "@nextclaw/core";
 import { BUILTIN_PROVIDER_PLUGINS } from "@nextclaw/runtime";
+import { normalizeModelMessagesForVisionSupport } from "@kernel/utils/model-message-vision.utils.js";
 
 type ProviderChatParams = {
   messages: Array<Record<string, unknown>>;
@@ -103,14 +105,24 @@ export class LlmProviderManager {
   };
 
   readonly chat = async (params: ProviderChatParams): Promise<LLMResponse> => {
-    return this.get(params.model ?? null).chat(params);
+    const route = this.resolveRoute(params.model ?? null);
+    const provider = route ? this.getOrCreateProvider(route) : this.missingProvider;
+    return provider.chat({
+      ...params,
+      messages: this.prepareMessagesForProvider(route, params.messages),
+    });
   };
 
   readonly chatStream = async function* (
     this: LlmProviderManager,
     params: ProviderChatParams
   ): AsyncGenerator<LLMStreamEvent> {
-    for await (const event of this.get(params.model ?? null).chatStream(params)) {
+    const route = this.resolveRoute(params.model ?? null);
+    const provider = route ? this.getOrCreateProvider(route) : this.missingProvider;
+    for await (const event of provider.chatStream({
+      ...params,
+      messages: this.prepareMessagesForProvider(route, params.messages),
+    })) {
       yield event;
     }
   };
@@ -126,7 +138,7 @@ export class LlmProviderManager {
         extraHeaders: input.extraHeaders ?? null,
         wireApi: input.wireApi ?? "auto",
         models: [],
-        modelThinking: {},
+        modelConfig: {},
       },
       apiBase: input.apiBase ?? null,
       model: input.defaultModel,
@@ -254,6 +266,20 @@ export class LlmProviderManager {
       providerName: route.providerName,
       providerRegistry: this.providerRegistry,
       wireApi: route.provider?.wireApi ?? null,
+    });
+  };
+
+  private prepareMessagesForProvider = (
+    route: ProviderRoute | null,
+    messages: Array<Record<string, unknown>>,
+  ): Array<Record<string, unknown>> => {
+    return normalizeModelMessagesForVisionSupport({
+      messages,
+      supportsVision: modelSupportsVision({
+        model: route?.model,
+        providerName: route?.providerName,
+        modelConfig: route?.provider?.modelConfig,
+      }),
     });
   };
 

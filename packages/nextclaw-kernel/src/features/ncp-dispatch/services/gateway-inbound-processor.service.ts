@@ -17,15 +17,18 @@ import {
 } from "@kernel/features/ncp-dispatch/utils/channel-reply.utils.js";
 import { buildRunMetadata } from "@kernel/features/ncp-dispatch/utils/ncp-run-metadata.utils.js";
 import {
-  runPromptOverNcp,
-  type NcpRunnerAgent,
+  buildAgentRunSendPayload,
+  type AgentRunClient,
+  type AgentRunReply,
+  type AssetApi,
 } from "@kernel/features/ncp-dispatch/utils/nextclaw-ncp-runner.utils.js";
 
 export type GatewayInboundLoopRuntime = {
   kernel: {
     channels: ChannelManager;
-    agentRunRequestManager: NcpRunnerAgent;
+    assetStore: AssetApi;
   };
+  agentRunClient: AgentRunClient;
   messageBus: MessageBus;
   sessionManager: SessionManager;
   configManager: {
@@ -68,12 +71,13 @@ export class GatewayInboundProcessor {
           createAssistantStreamResetControlMessage(message),
         );
       }
-      const result = await runPromptOverNcp({
-        agent: this.runtime.kernel.agentRunRequestManager,
+      const result = await this.runtime.agentRunClient.sendAndWaitForReply(await buildAgentRunSendPayload({
         sessionId: route.sessionKey,
         content: message.content,
         attachments: message.attachments,
         metadata: runMetadata,
+        assetApi: this.runtime.kernel.assetStore,
+      }), {
         onAssistantDelta:
           message.channel !== "system"
             ? (delta) => {
@@ -164,7 +168,8 @@ export class GatewayInboundProcessor {
     }
 
     await dispatchChannelReplyRoute({
-      agent: this.runtime.kernel.agentRunRequestManager,
+      agentRunClient: this.runtime.agentRunClient,
+      assetApi: this.runtime.kernel.assetStore,
       route: replyRoute,
       sessionId: route.sessionKey,
       content: message.content,
@@ -177,7 +182,7 @@ export class GatewayInboundProcessor {
   private publishLegacyReply = async (
     message: InboundMessage,
     route: GatewayRoute,
-    result: Awaited<ReturnType<typeof runPromptOverNcp>>,
+    result: AgentRunReply,
   ): Promise<void> => {
     if (message.channel === "system") {
       this.runtime.appEventBus?.emit(eventKeys.sessionUpdated, { sessionKey: route.sessionKey }, {

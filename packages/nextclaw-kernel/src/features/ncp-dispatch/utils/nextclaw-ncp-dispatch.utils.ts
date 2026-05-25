@@ -7,10 +7,13 @@ import {
   type InboundMessage,
 } from "@nextclaw/core";
 import { buildRunMetadata } from "./ncp-run-metadata.utils.js";
-import { runPromptOverNcp, type NcpRunnerAgent } from "./nextclaw-ncp-runner.utils.js";
+import {
+  buildAgentRunSendPayload,
+  type AgentRunClient,
+} from "./nextclaw-ncp-runner.utils.js";
 export type DirectPromptDispatchParams = {
   config: Config;
-  agentRunRequests: NcpRunnerAgent;
+  agentRunClient: AgentRunClient;
   content: string;
   sessionKey?: string;
   channel?: string;
@@ -115,7 +118,7 @@ export async function dispatchPromptOverNcp(
     content,
     metadata,
     onAssistantDelta,
-    agentRunRequests,
+    agentRunClient,
     sessionKey,
   } = params;
   const { message, route } = resolveDirectRoute({
@@ -139,8 +142,7 @@ export async function dispatchPromptOverNcp(
     return commandResult;
   }
 
-  const result = await runPromptOverNcp({
-    agent: agentRunRequests,
+  const result = await agentRunClient.sendAndWaitForReply(await buildAgentRunSendPayload({
     sessionId: route.sessionKey,
     content,
     attachments,
@@ -148,6 +150,7 @@ export async function dispatchPromptOverNcp(
       message,
       route,
     }),
+  }), {
     abortSignal,
     onAssistantDelta,
     missingCompletedMessageError: `session "${route.sessionKey}" completed without a final assistant message`,

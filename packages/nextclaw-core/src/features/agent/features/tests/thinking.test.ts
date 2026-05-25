@@ -99,13 +99,17 @@ describe("resolveThinkingLevel", () => {
       providers: {
         openai: {
           apiKey: "sk-test",
-          modelThinking: {
+          modelConfig: {
             "gpt-5.3-codex": {
-              supported: ["minimal", "low"],
-              default: "low"
+              thinking: {
+                supported: ["minimal", "low"],
+                default: "low"
+              }
             },
             "gpt-4.1": {
-              supported: ["minimal", "low"]
+              thinking: {
+                supported: ["minimal", "low"]
+              }
             }
           }
         }

@@ -24,7 +24,10 @@ export const dashscopeCodingPlanProviderSpec: ProviderSpec = {
     "dashscope-coding-plan/glm-4.7",
     "dashscope-coding-plan/kimi-k2.5"
   ],
-  visionModels: ["dashscope-coding-plan/qwen3.5-plus", "dashscope-coding-plan/kimi-k2.5"],
+  modelConfig: {
+    "dashscope-coding-plan/qwen3.5-plus": { vision: true },
+    "dashscope-coding-plan/kimi-k2.5": { vision: true }
+  },
   stripModelPrefix: false,
   modelOverrides: [],
   supportsResponsesApi: false,

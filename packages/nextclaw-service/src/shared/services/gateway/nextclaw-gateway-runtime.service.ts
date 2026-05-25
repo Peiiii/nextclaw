@@ -1,5 +1,6 @@
 import * as NextclawCore from "@nextclaw/core";
 import {
+  AgentRunClient,
   NextclawKernel,
   runGatewayInboundLoop,
   type AutomationManager,
@@ -81,6 +82,7 @@ export class NextclawGatewayRuntime {
   readonly messageBus: MessageBus;
   readonly sessionManager: SessionManager;
   readonly automation: AutomationManager;
+  readonly agentRunClient: AgentRunClient;
   readonly runtimeControl: UiRuntimeControlHost;
   readonly runtimeUpdate: UiRuntimeUpdateHost | null;
   readonly ingress: Ingress;
@@ -121,6 +123,10 @@ export class NextclawGatewayRuntime {
     this.workspace = getWorkspacePath(config.agents.defaults.workspace);
     this.appEventBus = this.kernel.eventBus;
     this.ingress = this.kernel.ingress;
+    this.agentRunClient = new AgentRunClient({
+      eventBus: this.kernel.eventBus,
+      ingress: this.kernel.ingress,
+    });
     this.messageBus = this.kernel.messageBus;
     this.sessionManager = this.kernel.sessions;
     this.automation = this.kernel.automation;
@@ -156,7 +162,7 @@ export class NextclawGatewayRuntime {
     this.kernel.provideGatewayController(this.gatewayController);
     this.deferredChannelStarter = this.startChannels;
     this.automation.onJob = createCronJobHandler({
-      agentRunRequests: this.kernel.agentRunRequestManager,
+      agentRunClient: this.agentRunClient,
       bus: this.messageBus,
     });
   }

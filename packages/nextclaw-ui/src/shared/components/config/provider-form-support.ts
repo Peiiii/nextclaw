@@ -3,7 +3,10 @@ import type { getLanguage } from '@/shared/lib/i18n';
 import type { ProviderConfigUpdate, ProviderConfigView, ThinkingLevel } from '@/shared/lib/api';
 
 type WireApiType = 'auto' | 'chat' | 'responses';
-type ModelThinkingConfig = Record<string, { supported: ThinkingLevel[]; default?: ThinkingLevel | null }>;
+type ModelConfig = Record<string, {
+  thinking?: { supported: ThinkingLevel[]; default?: ThinkingLevel | null };
+  vision?: boolean;
+}>;
 type ProviderAuthMethodOption = {
   id: string;
 };
@@ -17,7 +20,7 @@ const EMPTY_PROVIDER_CONFIG: ProviderConfigView = {
   extraHeaders: null,
   wireApi: null,
   models: [],
-  modelThinking: {}
+  modelConfig: {}
 };
 
 const THINKING_LEVELS: ThinkingLevel[] = ['off', 'minimal', 'low', 'medium', 'high', 'adaptive', 'xhigh'];
@@ -144,53 +147,65 @@ function normalizeThinkingLevels(values: unknown): ThinkingLevel[] {
   return deduped;
 }
 
-function normalizeModelThinkingConfig(
-  input: ProviderConfigView['modelThinking'],
+function normalizeModelConfig(
+  input: ProviderConfigView['modelConfig'],
   aliases: string[]
-): ModelThinkingConfig {
+): ModelConfig {
   if (!input) {
     return {};
   }
-  const normalized: ModelThinkingConfig = {};
+  const normalized: ModelConfig = {};
   for (const [rawModel, rawValue] of Object.entries(input)) {
     const model = toProviderLocalModelId(rawModel, aliases);
     if (!model) {
       continue;
     }
-    const supported = normalizeThinkingLevels(rawValue?.supported);
-    if (supported.length === 0) {
-      continue;
+    const entry: NonNullable<ModelConfig[string]> = {};
+    const supported = normalizeThinkingLevels(rawValue?.thinking?.supported);
+    if (supported.length > 0) {
+      const defaultLevel = parseThinkingLevel(rawValue?.thinking?.default);
+      entry.thinking =
+        defaultLevel && supported.includes(defaultLevel)
+          ? { supported, default: defaultLevel }
+          : { supported };
     }
-    const defaultLevel = parseThinkingLevel(rawValue?.default);
-    normalized[model] =
-      defaultLevel && supported.includes(defaultLevel)
-        ? { supported, default: defaultLevel }
-        : { supported };
+    if (rawValue?.vision === true) {
+      entry.vision = true;
+    }
+    if (entry.thinking || entry.vision === true) {
+      normalized[model] = entry;
+    }
   }
   return normalized;
 }
 
-function normalizeModelThinkingForModels(modelThinking: ModelThinkingConfig, models: string[]): ModelThinkingConfig {
+function normalizeModelConfigForModels(modelConfig: ModelConfig, models: string[]): ModelConfig {
   const modelSet = new Set(models.map((item) => item.trim()).filter(Boolean));
-  const normalized: ModelThinkingConfig = {};
-  for (const [model, entry] of Object.entries(modelThinking)) {
+  const normalized: ModelConfig = {};
+  for (const [model, entry] of Object.entries(modelConfig)) {
     if (!modelSet.has(model)) {
       continue;
     }
-    const supported = normalizeThinkingLevels(entry.supported);
-    if (supported.length === 0) {
-      continue;
+    const nextEntry: NonNullable<ModelConfig[string]> = {};
+    const supported = normalizeThinkingLevels(entry.thinking?.supported);
+    if (supported.length > 0) {
+      const defaultLevel = parseThinkingLevel(entry.thinking?.default);
+      nextEntry.thinking =
+        defaultLevel && supported.includes(defaultLevel)
+          ? { supported, default: defaultLevel }
+          : { supported };
     }
-    const defaultLevel = parseThinkingLevel(entry.default);
-    normalized[model] =
-      defaultLevel && supported.includes(defaultLevel)
-        ? { supported, default: defaultLevel }
-        : { supported };
+    if (entry.vision === true) {
+      nextEntry.vision = true;
+    }
+    if (nextEntry.thinking || nextEntry.vision === true) {
+      normalized[model] = nextEntry;
+    }
   }
   return normalized;
 }
 
-function modelThinkingEqual(left: ModelThinkingConfig, right: ModelThinkingConfig): boolean {
+function modelConfigEqual(left: ModelConfig, right: ModelConfig): boolean {
   const leftKeys = Object.keys(left).sort();
   const rightKeys = Object.keys(right).sort();
   if (leftKeys.length !== rightKeys.length) {
@@ -206,12 +221,15 @@ function modelThinkingEqual(left: ModelThinkingConfig, right: ModelThinkingConfi
     if (!leftEntry || !rightEntry) {
       return false;
     }
-    const leftSupported = [...leftEntry.supported].sort();
-    const rightSupported = [...rightEntry.supported].sort();
+    const leftSupported = [...(leftEntry.thinking?.supported ?? [])].sort();
+    const rightSupported = [...(rightEntry.thinking?.supported ?? [])].sort();
     if (!modelListsEqual(leftSupported, rightSupported)) {
       return false;
     }
-    if ((leftEntry.default ?? null) !== (rightEntry.default ?? null)) {
+    if ((leftEntry.thinking?.default ?? null) !== (rightEntry.thinking?.default ?? null)) {
+      return false;
+    }
+    if ((leftEntry.vision ?? false) !== (rightEntry.vision ?? false)) {
       return false;
     }
   }
@@ -304,18 +322,18 @@ function shouldUsePillSelector(params: {
   return params.required && params.hasDefault && params.optionCount > 1 && params.optionCount <= 3;
 }
 
-export type { ModelThinkingConfig, ProviderAuthMethodOption, WireApiType };
+export type { ModelConfig, ProviderAuthMethodOption, WireApiType };
 export {
   applyEnabledPatch,
   EMPTY_PROVIDER_CONFIG,
   formatThinkingLevelLabel,
   headersEqual,
   modelListsEqual,
-  modelThinkingEqual,
+  modelConfigEqual,
   normalizeHeaders,
   normalizeModelList,
-  normalizeModelThinkingConfig,
-  normalizeModelThinkingForModels,
+  normalizeModelConfig,
+  normalizeModelConfigForModels,
   resolveEditableModels,
   resolvePreferredAuthMethodId,
   serializeModelsForSave,

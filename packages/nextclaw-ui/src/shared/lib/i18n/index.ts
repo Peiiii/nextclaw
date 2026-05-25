@@ -187,6 +187,8 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   },
   providerModelsEmptyShort: { zh: '暂无可用模型', en: 'No models available' },
   providerAddFirstModel: { zh: '添加第一个模型', en: 'Add first model' },
+  providerModelVisionTitle: { zh: 'Vision', en: 'Vision' },
+  providerModelVisionHint: { zh: '允许向该模型发送图片输入。', en: 'Allow image input for this model.' },
   providerModelThinkingTitle: { zh: '思考档位能力', en: 'Thinking Capability' },
   providerModelThinkingHint: {
     zh: '为该模型声明可切换的思考档位，聊天会话将按这里的能力展示下拉。',

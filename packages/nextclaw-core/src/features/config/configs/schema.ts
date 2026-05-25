@@ -21,6 +21,10 @@ const providerModelThinkingSchema = z.object({
   supported: z.array(ThinkingLevelSchema).default([]),
   default: ThinkingLevelSchema.nullable().optional()
 });
+const providerModelConfigSchema = z.object({
+  thinking: providerModelThinkingSchema.optional(),
+  vision: z.boolean().optional()
+});
 const discordDraftChunkSchema = z
   .object({
     minChars: z.number().int().default(200),
@@ -291,7 +295,7 @@ export const ProviderConfigSchema = z.object({
   extraHeaders: z.record(z.string()).nullable().default(null),
   wireApi: z.enum(["auto", "chat", "responses"]).default("auto"),
   models: z.array(z.string().trim().min(1)).default([]),
-  modelThinking: z.record(providerModelThinkingSchema).default({})
+  modelConfig: z.record(providerModelConfigSchema).default({})
 });
 
 export const ProvidersConfigSchema = z.record(ProviderConfigSchema).default({});

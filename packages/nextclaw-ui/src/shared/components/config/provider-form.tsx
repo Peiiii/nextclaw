@@ -36,18 +36,18 @@ import {
   formatThinkingLevelLabel,
   headersEqual,
   modelListsEqual,
-  modelThinkingEqual,
+  modelConfigEqual,
   normalizeHeaders,
   normalizeModelList,
-  normalizeModelThinkingConfig,
-  normalizeModelThinkingForModels,
+  normalizeModelConfig,
+  normalizeModelConfigForModels,
   resolveEditableModels,
   resolvePreferredAuthMethodId,
   serializeModelsForSave,
   shouldUsePillSelector,
   THINKING_LEVELS,
   toProviderLocalModelId,
-  type ModelThinkingConfig,
+  type ModelConfig,
   type WireApiType
 } from './provider-form-support';
 import { ProviderModelsSection } from './provider-models-section';
@@ -77,7 +77,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   const [extraHeaders, setExtraHeaders] = useState<Record<string, string> | null>(null);
   const [wireApi, setWireApi] = useState<WireApiType>('auto');
   const [models, setModels] = useState<string[]>([]);
-  const [modelThinking, setModelThinking] = useState<ModelThinkingConfig>({});
+  const [modelConfig, setModelConfig] = useState<ModelConfig>({});
   const [modelDraft, setModelDraft] = useState('');
   const [providerDisplayName, setProviderDisplayName] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -124,13 +124,13 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     [resolvedProviderConfig.models, providerModelAliases]
   );
   const currentEditableModels = useMemo(() => resolveEditableModels(defaultModels, currentModels), [defaultModels, currentModels]);
-  const currentModelThinking = useMemo(
+  const currentModelConfig = useMemo(
     () =>
-      normalizeModelThinkingForModels(
-        normalizeModelThinkingConfig(resolvedProviderConfig.modelThinking, providerModelAliases),
+      normalizeModelConfigForModels(
+        normalizeModelConfig(resolvedProviderConfig.modelConfig ?? providerSpec?.modelConfig, providerModelAliases),
         currentEditableModels
       ),
-    [currentEditableModels, providerModelAliases, resolvedProviderConfig.modelThinking]
+    [currentEditableModels, providerModelAliases, providerSpec?.modelConfig, resolvedProviderConfig.modelConfig]
   );
   const language = getLanguage();
   const apiBaseHelpText =
@@ -235,7 +235,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
       setExtraHeaders(null);
       setWireApi('auto');
       setModels([]);
-      setModelThinking({});
+      setModelConfig({});
       setModelDraft('');
       setProviderDisplayName('');
       setAuthSessionId(null);
@@ -251,7 +251,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     setExtraHeaders(resolvedProviderConfig.extraHeaders || null);
     setWireApi(currentWireApi);
     setModels(currentEditableModels);
-    setModelThinking(currentModelThinking);
+    setModelConfig(currentModelConfig);
     setModelDraft('');
     setProviderDisplayName(effectiveDisplayName);
     setAuthSessionId(null);
@@ -265,14 +265,14 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     resolvedProviderConfig.extraHeaders,
     currentWireApi,
     currentEditableModels,
-    currentModelThinking,
+    currentModelConfig,
     effectiveDisplayName,
     preferredAuthMethodId,
     clearAuthPollTimer
   ]);
 
   useEffect(() => () => clearAuthPollTimer(), [clearAuthPollTimer]);
-  useEffect(() => setModelThinking((prev) => normalizeModelThinkingForModels(prev, models)), [models]);
+  useEffect(() => setModelConfig((prev) => normalizeModelConfigForModels(prev, models)), [models]);
 
   const hasChanges = useMemo(() => {
     if (!providerName) {
@@ -285,7 +285,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
       !headersEqual(extraHeaders, currentHeaders) ||
       (supportsWireApi && wireApi !== currentWireApi) ||
       !modelListsEqual(models, currentEditableModels) ||
-      !modelThinkingEqual(modelThinking, currentModelThinking) ||
+      !modelConfigEqual(modelConfig, currentModelConfig) ||
       (isCustomProvider && providerDisplayName.trim() !== effectiveDisplayName)
     );
   }, [
@@ -302,8 +302,8 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     currentWireApi,
     models,
     currentEditableModels,
-    modelThinking,
-    currentModelThinking,
+    modelConfig,
+    currentModelConfig,
     isCustomProvider,
     providerDisplayName,
     effectiveDisplayName
@@ -323,39 +323,71 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   };
 
   const toggleModelThinkingLevel = (modelName: string, level: ThinkingLevel) => {
-    setModelThinking((prev) => {
+    setModelConfig((prev) => {
       const currentEntry = prev[modelName];
-      const currentLevels = currentEntry?.supported ?? [];
+      const currentLevels = currentEntry?.thinking?.supported ?? [];
       const nextLevels = currentLevels.includes(level)
         ? currentLevels.filter((item) => item !== level)
         : THINKING_LEVELS.filter((item) => item === level || currentLevels.includes(item));
-      if (nextLevels.length === 0) {
-        const next = { ...prev };
-        delete next[modelName];
-        return next;
-      }
       const nextDefault =
-        currentEntry?.default && nextLevels.includes(currentEntry.default) ? currentEntry.default : undefined;
-      return {
-        ...prev,
-        [modelName]: nextDefault ? { supported: nextLevels, default: nextDefault } : { supported: nextLevels }
+        currentEntry?.thinking?.default && nextLevels.includes(currentEntry.thinking.default)
+          ? currentEntry.thinking.default
+          : undefined;
+      const nextEntry = {
+        ...currentEntry,
+        thinking:
+          nextLevels.length > 0
+            ? nextDefault
+              ? { supported: nextLevels, default: nextDefault }
+              : { supported: nextLevels }
+            : undefined
       };
+      const next = { ...prev };
+      if (nextEntry.thinking || nextEntry.vision === true) {
+        next[modelName] = nextEntry;
+      } else {
+        delete next[modelName];
+      }
+      return next;
     });
   };
 
   const setModelThinkingDefault = (modelName: string, level: ThinkingLevel | null) => {
-    setModelThinking((prev) => {
+    setModelConfig((prev) => {
       const currentEntry = prev[modelName];
-      if (!currentEntry || currentEntry.supported.length === 0) {
+      const currentThinking = currentEntry?.thinking;
+      if (!currentThinking || currentThinking.supported.length === 0) {
         return prev;
       }
-      if (level && !currentEntry.supported.includes(level)) {
+      if (level && !currentThinking.supported.includes(level)) {
         return prev;
       }
       return {
         ...prev,
-        [modelName]: level ? { supported: currentEntry.supported, default: level } : { supported: currentEntry.supported }
+        [modelName]: {
+          ...currentEntry,
+          thinking: level
+            ? { supported: currentThinking.supported, default: level }
+            : { supported: currentThinking.supported }
+        }
       };
+    });
+  };
+
+  const setModelVision = (modelName: string, vision: boolean) => {
+    setModelConfig((prev) => {
+      const currentEntry = prev[modelName];
+      const nextEntry = {
+        ...currentEntry,
+        vision: vision ? true : undefined
+      };
+      const next = { ...prev };
+      if (nextEntry.thinking || nextEntry.vision === true) {
+        next[modelName] = nextEntry;
+      } else {
+        delete next[modelName];
+      }
+      return next;
     });
   };
 
@@ -390,8 +422,8 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     if (!modelListsEqual(models, currentEditableModels)) {
       payload.models = serializeModelsForSave(models, defaultModels);
     }
-    if (!modelThinkingEqual(modelThinking, currentModelThinking)) {
-      payload.modelThinking = normalizeModelThinkingForModels(modelThinking, models);
+    if (!modelConfigEqual(modelConfig, currentModelConfig)) {
+      payload.modelConfig = normalizeModelConfigForModels(modelConfig, models);
     }
 
     updateProvider.mutate({ provider: providerName, data: payload });
@@ -596,7 +628,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
 
           <ProviderModelsSection
             models={models}
-            modelThinking={modelThinking}
+            modelConfig={modelConfig}
             modelDraft={modelDraft}
             showModelInput={showModelInput}
             onModelDraftChange={setModelDraft}
@@ -604,7 +636,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
             onAddModel={handleAddModel}
             onRemoveModel={(modelName) => {
               setModels((prev) => prev.filter((name) => name !== modelName));
-              setModelThinking((prev) => {
+              setModelConfig((prev) => {
                 const next = { ...prev };
                 delete next[modelName];
                 return next;
@@ -612,6 +644,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
             }}
             onToggleModelThinkingLevel={toggleModelThinkingLevel}
             onSetModelThinkingDefault={setModelThinkingDefault}
+            onSetModelVision={setModelVision}
             thinkingLevels={THINKING_LEVELS}
             formatThinkingLevelLabel={formatThinkingLevelLabel}
           />

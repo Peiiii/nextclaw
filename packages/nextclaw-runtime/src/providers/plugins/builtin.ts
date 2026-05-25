@@ -67,7 +67,7 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       detectByBaseKeyword: "aihubmix",
       defaultApiBase: "https://aihubmix.com/v1",
       defaultModels: ["aihubmix/gpt-5.3-codex", "aihubmix/claude-opus-4.6", "aihubmix/gemini-3.1-pro-preview"],
-      visionModels: ["aihubmix/gemini-3.1-pro-preview", "aihubmix/gpt-5.4"],
+      modelConfig: { "aihubmix/gemini-3.1-pro-preview": { vision: true }, "aihubmix/gpt-5.4": { vision: true } },
       stripModelPrefix: true,
       modelOverrides: [],
       logo: "aihubmix.png"
@@ -106,7 +106,7 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       detectByBaseKeyword: "",
       defaultApiBase: "https://api.openai.com/v1",
       defaultModels: ["openai/gpt-5.3-codex", "openai/gpt-5-mini", "openai/gpt-5-nano"],
-      visionModels: ["openai/gpt-5.4"],
+      modelConfig: { "openai/gpt-5.4": { vision: true } },
       stripModelPrefix: false,
       modelOverrides: [],
       supportsWireApi: true,
@@ -148,7 +148,7 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       detectByBaseKeyword: "",
       defaultApiBase: "https://generativelanguage.googleapis.com/v1beta/openai",
       defaultModels: ["gemini/gemini-3.1-pro-preview", "gemini/gemini-3-flash-preview"],
-      visionModels: ["gemini/gemini-3.1-pro-preview", "gemini/gemini-3-flash-preview"],
+      modelConfig: { "gemini/gemini-3.1-pro-preview": { vision: true }, "gemini/gemini-3-flash-preview": { vision: true } },
       stripModelPrefix: false,
       modelOverrides: [],
       logo: "gemini.svg"
@@ -215,7 +215,7 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       detectByBaseKeyword: "portal.qwen.ai",
       defaultApiBase: "https://portal.qwen.ai/v1",
       defaultModels: ["qwen-portal/coder-model", "qwen-portal/vision-model"],
-      visionModels: ["qwen-portal/vision-model"],
+      modelConfig: { "qwen-portal/vision-model": { vision: true } },
       stripModelPrefix: false,
       modelOverrides: [],
       auth: {

@@ -15,6 +15,7 @@ export type AgentRunRequest = {
   projectRoot?: string;
   channel?: string;
   correlationId?: string;
+  metadata?: Record<string, unknown>;
   model?: string;
   maxTokens?: number;
   thinkingEffort?: ThinkingEffort | null;

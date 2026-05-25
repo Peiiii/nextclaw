@@ -24,6 +24,10 @@ import {
 import { eventKeys, type EventBus } from "@nextclaw/shared";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 
+type CreateNcpSessionInput = CreateSessionInput & {
+  sessionId?: string;
+};
+
 const DEFAULT_SESSION_TYPE = "native";
 const DEFAULT_LIFECYCLE = "persistent";
 const SESSION_METADATA_LABEL_KEY = "label";
@@ -192,7 +196,7 @@ export class NcpSessionManager implements NcpSessionApi {
     this.runningSessionIds.clear();
   };
 
-  createSession = async (params: CreateSessionInput): Promise<CreatedSession> => {
+  createSession = async (params: CreateNcpSessionInput): Promise<CreatedSession> => {
     const {
       agentId: requestedAgentId,
       metadataOverrides,
@@ -201,6 +205,7 @@ export class NcpSessionManager implements NcpSessionApi {
       projectRoot,
       requestId: rawRequestId,
       runtime,
+      sessionId: requestedSessionId,
       sessionType: requestedSessionType,
       sourceSessionId,
       sourceSessionMetadata,
@@ -237,7 +242,7 @@ export class NcpSessionManager implements NcpSessionApi {
       readOptionalString(requestedAgentId) ??
       readOptionalString(sourceRecord?.agentId) ??
       BUILTIN_MAIN_AGENT_ID;
-    const sessionId = buildSessionId();
+    const sessionId = readOptionalString(requestedSessionId) ?? buildSessionId();
     const record: AgentSessionRecord = {
       sessionId,
       ...(agentId ? { agentId } : {}),

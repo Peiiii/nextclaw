@@ -46,6 +46,14 @@ export type ProviderDeviceCodeAuthSpec = {
 
 export type ProviderAuthSpec = ProviderDeviceCodeAuthSpec;
 
+export type ProviderModelSpec = {
+  thinking?: {
+    supported?: string[];
+    default?: string | null;
+  };
+  vision?: boolean;
+};
+
 export type ProviderSpec = {
   name: string;
   keywords: string[];
@@ -54,7 +62,7 @@ export type ProviderSpec = {
   apiProtocol?: ProviderApiProtocol;
   modelPrefix?: string;
   defaultModels?: string[];
-  visionModels?: string[];
+  modelConfig?: Record<string, ProviderModelSpec>;
   defaultHeaders?: Record<string, string>;
   litellmPrefix?: string;
   skipPrefixes?: string[];

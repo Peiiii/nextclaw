@@ -50,8 +50,8 @@ export const FIELD_HELP: Record<string, string> = {
   "providers.*.extraHeaders": "Extra headers to send to the provider.",
   "providers.*.wireApi": "Select API mode (auto/chat/responses) for providers that support it.",
   "providers.*.models": "Custom model ids for this provider. These are merged with built-in defaults in the UI selector.",
-  "providers.*.modelThinking":
-    "Optional per-model thinking capability map. Keyed by provider-local model id. Example: { \"gpt-5.3-codex\": { supported: [\"minimal\",\"low\",\"medium\",\"high\"], default: \"low\" } }",
+  "providers.*.modelConfig":
+    "Optional per-model capability config. Keyed by provider-local model id. Example: { \"gpt-5.3-codex\": { thinking: { supported: [\"minimal\",\"low\",\"medium\",\"high\"], default: \"low\" }, vision: true } }",
   "search.provider": "Choose which web search provider the web_search tool will use.",
   "search.enabledProviders": "Providers that are enabled and available for use in the search settings UI.",
   "search.defaults.maxResults": "Default number of web search results returned by the agent.",

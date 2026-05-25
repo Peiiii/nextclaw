@@ -4,6 +4,7 @@ export type {
   LocalizedText,
   ProviderCatalogPlugin,
   ProviderSpec,
+  ProviderModelSpec,
   ProviderDeviceCodeAuthMethodSpec,
   ProviderDeviceCodeAuthProtocol,
   ProviderDeviceCodeAuthSpec,

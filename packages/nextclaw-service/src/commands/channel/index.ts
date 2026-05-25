@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process";
 import { getWorkspacePath, loadConfig, saveConfig } from "@nextclaw/core";
 import { BUILTIN_CHANNEL_IDS } from "@nextclaw/runtime";
 import { listExtensionChannelIds } from "@nextclaw/kernel";
@@ -26,7 +25,6 @@ export class ChannelCommands {
   constructor(
     private deps: {
       logo: string;
-      getBridgeDir: () => string;
       requestRestart: (params: RequestRestartParams) => Promise<void>;
     }
   ) {}
@@ -73,22 +71,12 @@ export class ChannelCommands {
   login = async (opts: ChannelsLoginOptions = {}): Promise<void> => {
     const channelId = opts.channel?.trim();
     if (!channelId) {
-      this.runLegacyBridgeLogin();
-      return;
+      console.error("Channel login is handled by the running UI extension auth flow. Pass --channel <id> and use the UI login flow.");
+      process.exit(1);
     }
 
     console.error(`Channel "${channelId}" login is handled by the running UI extension auth flow.`);
     process.exit(1);
-  };
-
-  private runLegacyBridgeLogin = (): void => {
-    const bridgeDir = this.deps.getBridgeDir();
-    console.log(`${this.deps.logo} Starting bridge...`);
-    console.log("Scan the QR code to connect.\n");
-    const result = spawnSync("npm", ["start"], { cwd: bridgeDir, stdio: "inherit" });
-    if (result.status !== 0) {
-      console.error(`Bridge failed: ${result.status ?? 1}`);
-    }
   };
 
   private buildChannelListOutput = () => {

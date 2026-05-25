@@ -156,7 +156,6 @@ export class NextclawServiceRuntime {
       })),
       channels: measureStartupSync("cli.runtime.channel_commands", () => new ChannelCommands({
         logo: this.logo,
-        getBridgeDir: () => this.workspaceManager.getBridgeDir(),
         requestRestart: (params) => this.requestRestart(params),
       })),
       cron: measureStartupSync("cli.runtime.cron_commands", () => new CronCommands()),

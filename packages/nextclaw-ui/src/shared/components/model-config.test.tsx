@@ -213,6 +213,7 @@ describe('ModelConfig', () => {
               prefix: 'openai',
               aliases: ['openai'],
               models: ['gpt-5.2'],
+              modelConfig: {},
               modelThinking: {},
               configured: true
             },
@@ -222,6 +223,7 @@ describe('ModelConfig', () => {
               prefix: 'customhub',
               aliases: ['customhub'],
               models: [],
+              modelConfig: {},
               modelThinking: {},
               configured: true
             }

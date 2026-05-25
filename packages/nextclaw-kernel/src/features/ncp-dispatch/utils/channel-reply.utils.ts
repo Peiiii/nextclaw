@@ -8,7 +8,11 @@ import type {
   NcpReplyInput,
 } from "@nextclaw/ncp-toolkit";
 import type { NcpEndpointEvent } from "@nextclaw/ncp";
-import { streamPromptOverNcp, type NcpRunnerAgent } from "./nextclaw-ncp-runner.utils.js";
+import {
+  buildAgentRunSendPayload,
+  type AgentRunClient,
+  type AssetApi,
+} from "./nextclaw-ncp-runner.utils.js";
 
 type ReplyCapableChannel = BaseChannel<Record<string, unknown>> & {
   consumeNcpReply(input: NcpReplyInput): Promise<void>;
@@ -24,7 +28,8 @@ type ResolvedInboundRoute = {
 };
 
 export type ChannelReplyRouterDispatchParams = {
-  agent: NcpRunnerAgent;
+  agentRunClient: AgentRunClient;
+  assetApi?: AssetApi;
   route: ChannelReplyRoute;
   sessionId: string;
   content: string;
@@ -82,7 +87,8 @@ export async function dispatchChannelReplyRoute(
 ): Promise<void> {
   const {
     abortSignal,
-    agent,
+    agentRunClient,
+    assetApi,
     attachments,
     content,
     metadata,
@@ -93,19 +99,20 @@ export async function dispatchChannelReplyRoute(
   const input: NcpReplyInput = {
     target: {
       ...route.target,
-      ...(agent.assetApi?.resolveContentPath
+      ...(assetApi?.resolveContentPath
         ? {
             resolveAssetContentPath:
-              agent.assetApi.resolveContentPath,
+              assetApi.resolveContentPath,
           }
         : {}),
     },
-    eventStream: streamPromptOverNcp({
-      agent,
+    eventStream: agentRunClient.sendAndStreamEvents(await buildAgentRunSendPayload({
       sessionId,
       content,
       attachments,
       metadata,
+      assetApi,
+    }), {
       abortSignal,
       onEvent,
     }),

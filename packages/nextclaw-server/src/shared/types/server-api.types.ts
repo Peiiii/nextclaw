@@ -68,7 +68,10 @@ export type ProviderConfigView = {
   extraHeaders?: Record<string, string> | null;
   wireApi?: "auto" | "chat" | "responses" | null;
   models?: string[];
-  modelThinking?: Record<string, { supported: ThinkingLevel[]; default?: ThinkingLevel | null }>;
+  modelConfig?: Record<string, {
+    thinking?: { supported: ThinkingLevel[]; default?: ThinkingLevel | null };
+    vision?: boolean;
+  }>;
 };
 
 export type ProviderConfigUpdate = {
@@ -79,7 +82,10 @@ export type ProviderConfigUpdate = {
   extraHeaders?: Record<string, string> | null;
   wireApi?: "auto" | "chat" | "responses" | null;
   models?: string[] | null;
-  modelThinking?: Record<string, { supported?: ThinkingLevel[]; default?: ThinkingLevel | null }> | null;
+  modelConfig?: Record<string, {
+    thinking?: { supported?: ThinkingLevel[]; default?: ThinkingLevel | null };
+    vision?: boolean;
+  }> | null;
 };
 
 export type ProviderConnectionTestRequest = ProviderConfigUpdate & {
@@ -763,6 +769,10 @@ export type ProviderSpecView = {
     supportsCliImport?: boolean;
   };
   defaultModels?: string[];
+  modelConfig?: Record<string, {
+    thinking?: { supported: ThinkingLevel[]; default?: ThinkingLevel | null };
+    vision?: boolean;
+  }>;
   supportsWireApi?: boolean;
   wireApiOptions?: Array<"auto" | "chat" | "responses">;
   defaultWireApi?: "auto" | "chat" | "responses";

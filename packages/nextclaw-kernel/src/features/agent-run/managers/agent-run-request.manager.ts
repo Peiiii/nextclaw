@@ -40,32 +40,18 @@ import type {
   AgentRunSpec,
 } from "@kernel/features/agent-run/types/agent-run.types.js";
 
-function readString(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
-}
-
-function readNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
-
-function readNullableString(value: unknown): string | null | undefined {
-  if (value === null) {
-    return null;
-  }
-  return readString(value);
-}
-
 function toAgentRunRequest(envelope: AgentRunSendIngressPayload): AgentRunRequest {
   const metadata = envelope.metadata ?? {};
   const requestMetadata = {
-    agentRuntimeId: readString(metadata.agentRuntimeId) ?? readString(metadata.session_type),
-    agentId: readString(metadata.agentId),
-    projectRoot: readString(metadata.projectRoot),
-    channel: readString(metadata.channel),
+    agentRuntimeId: metadata.agentRuntimeId,
+    agentId: metadata.agentId,
+    projectRoot: metadata.projectRoot,
+    channel: metadata.channel,
     correlationId: envelope.correlationId,
-    model: readString(metadata.model),
-    maxTokens: readNumber(metadata.maxTokens),
-    thinkingEffort: readNullableString(metadata.thinkingEffort),
+    metadata: structuredClone(metadata),
+    model: metadata.model,
+    maxTokens: metadata.maxTokens,
+    thinkingEffort: metadata.thinkingEffort,
   };
   if (Array.isArray(envelope.content)) {
     return {
@@ -194,17 +180,17 @@ export class AgentRunRequestManager {
   };
 
   private send = async (request: AgentRunRequest): Promise<AgentRunAccepted> => {
-    const session = request.sessionId
-      ? await this.sessionRepository.getSession(request.sessionId)
-      : await this.sessionRepository.createSession({
-        agentId: request.agentId,
-        agentRuntimeId: request.agentRuntimeId,
-        channel: request.channel,
-        model: request.model,
-        projectRoot: request.projectRoot,
-        task: readMessageTask(request.message),
-        thinkingEffort: request.thinkingEffort,
-      });
+    const session = await this.sessionRepository.getOrCreateSession({
+      sessionId: request.sessionId,
+      agentId: request.agentId,
+      agentRuntimeId: request.agentRuntimeId,
+      channel: request.channel,
+      metadata: request.metadata,
+      model: request.model,
+      projectRoot: request.projectRoot,
+      task: readMessageTask(request.message),
+      thinkingEffort: request.thinkingEffort,
+    });
     const sessionRun =
       this.sessionRunManager.getSessionRun(session.sessionId) ??
       await this.sessionRunManager.createSessionRun(session.sessionId);

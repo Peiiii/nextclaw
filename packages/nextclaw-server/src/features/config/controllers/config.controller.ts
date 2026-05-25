@@ -44,7 +44,7 @@ export class ConfigRoutesController {
 
   constructor(private readonly options: UiRouterOptions) {}
 
-  private readonly getPluginConfigOptions = () => {
+  private readonly getExtensionConfigProjectionOptions = () => {
     return {
       extensionChannelBindings: this.options.extensions?.getChannelBindings() ?? [],
       extensionUiMetadata: this.options.extensions?.getUiMetadata() ?? []
@@ -110,17 +110,17 @@ export class ConfigRoutesController {
 
   readonly getConfig = (c: Context) => {
     const config = loadConfigOrDefault(this.options.configPath);
-    return c.json(ok(buildConfigView(config, this.getPluginConfigOptions())));
+    return c.json(ok(buildConfigView(config, this.getExtensionConfigProjectionOptions())));
   };
 
   readonly getConfigMeta = (c: Context) => {
     const config = loadConfigOrDefault(this.options.configPath);
-    return c.json(ok(buildConfigMeta(config, this.getPluginConfigOptions())));
+    return c.json(ok(buildConfigMeta(config, this.getExtensionConfigProjectionOptions())));
   };
 
   readonly getConfigSchema = (c: Context) => {
     const config = loadConfigOrDefault(this.options.configPath);
-    return c.json(ok(buildConfigSchemaView(config, this.getPluginConfigOptions())));
+    return c.json(ok(buildConfigSchemaView(config, this.getExtensionConfigProjectionOptions())));
   };
 
   readonly updateConfigModel = async (c: Context) => {
@@ -299,7 +299,7 @@ export class ConfigRoutesController {
     if (!body.ok) {
       return c.json(err("INVALID_BODY", "invalid json body"), 400);
     }
-    const result = updateChannel(this.options.configPath, channel, body.data, this.getPluginConfigOptions());
+    const result = updateChannel(this.options.configPath, channel, body.data, this.getExtensionConfigProjectionOptions());
     if (!result) {
       return c.json(err("NOT_FOUND", `unknown channel: ${channel}`), 404);
     }

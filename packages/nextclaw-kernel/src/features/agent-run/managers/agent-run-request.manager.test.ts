@@ -25,7 +25,12 @@ async function waitForEvent(
 describe("AgentRunRequestManager branch session creation", () => {
   it("uses the first user message as the new session task", async () => {
     const ingress = new Ingress();
-    const createSessionCalls: Array<{ agentRuntimeId?: string; task?: string }> = [];
+    const getOrCreateSessionCalls: Array<{
+      agentRuntimeId?: string;
+      metadata?: Record<string, unknown>;
+      sessionId?: string;
+      task?: string;
+    }> = [];
     const manager = new AgentRunRequestManager(
       {
         getOrCreate: () => ({
@@ -41,8 +46,13 @@ describe("AgentRunRequestManager branch session creation", () => {
       new EventBus(),
       ingress,
       {
-        createSession: async (params: { agentRuntimeId?: string; task?: string }) => {
-          createSessionCalls.push(params);
+        getOrCreateSession: async (params: {
+          agentRuntimeId?: string;
+          metadata?: Record<string, unknown>;
+          sessionId?: string;
+          task?: string;
+        }) => {
+          getOrCreateSessionCalls.push(params);
           return {
             sessionId: "session-1",
             agentId: "main",
@@ -69,13 +79,16 @@ describe("AgentRunRequestManager branch session creation", () => {
       payload: {
         content: [{ type: "text", text: "用户的第一句话" }],
         metadata: {
-          session_type: "codex",
+          agentRuntimeId: "codex",
         },
       },
     }, { source: "test" });
 
-    expect(createSessionCalls[0]?.agentRuntimeId).toBe("codex");
-    expect(createSessionCalls[0]?.task).toBe("用户的第一句话");
+    expect(getOrCreateSessionCalls[0]?.agentRuntimeId).toBe("codex");
+    expect(getOrCreateSessionCalls[0]?.metadata).toMatchObject({
+      agentRuntimeId: "codex",
+    });
+    expect(getOrCreateSessionCalls[0]?.task).toBe("用户的第一句话");
     expect(handle.sessionId).toBe("session-1");
     manager.dispose();
   });
@@ -131,7 +144,7 @@ describe("AgentRunRequestManager branch session creation", () => {
       eventBus,
       ingress,
       {
-        createSession: async () => ({
+        getOrCreateSession: async () => ({
           sessionId: "session-1",
           agentId: "main",
           agentRuntimeId: "native",
