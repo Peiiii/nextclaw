@@ -1,6 +1,4 @@
 import { AgentManager } from "@kernel/managers/agent.manager.js";
-import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
-import { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
 import { ExtensionManager } from "@kernel/managers/extension.manager.js";
@@ -9,7 +7,6 @@ import { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
 import { McpManager } from "@kernel/managers/mcp.manager.js";
 import { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
-import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import { ToolManager } from "@kernel/managers/tool.manager.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import {
@@ -17,11 +14,9 @@ import {
   SessionRequestManager,
 } from "@kernel/features/session-request/index.js";
 import { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
-import { LegacyAgentRunContribution } from "@kernel/contributions/legacy-agent-run/index.js";
 import { LearningLoopContribution } from "@kernel/contributions/learning-loop/index.js";
 import { SessionActivityPreviewContribution } from "@kernel/contributions/session-activity-preview/index.js";
 import { ToolContribution } from "@kernel/contributions/tool-contribution/index.js";
-import { ContextCompactionManager } from "@kernel/features/context-compaction/index.js";
 import type { AgentRuntimeSessionTypeDescribeParams } from "@kernel/features/runtime-registry/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
@@ -45,13 +40,8 @@ export type NextclawKernelOptions = {
   configPath?: string;
 };
 
-type AgentRunChain = "branch" | "legacy";
-type AgentRunContribution = KernelContribution & {
-  listSessionTypes: (params?: AgentRuntimeSessionTypeDescribeParams) => ReturnType<AgentRuntimeManager["listSessionTypes"]>;
-  isSessionRunning: (sessionId: string) => boolean;
-};
-
-const AGENT_RUN_CHAIN: AgentRunChain = "branch";
+type AgentRunContribution = KernelContribution &
+  Pick<KernelBranch, "listSessionTypes" | "isSessionRunning">;
 
 function resolveKernelSessionsDir(options: NextclawKernelOptions): string {
   const homeDir = options.homeDir?.trim();
@@ -61,7 +51,9 @@ function resolveKernelSessionsDir(options: NextclawKernelOptions): string {
   return getSessionsPath();
 }
 
-function resolveKernelAutomationStorePath(options: NextclawKernelOptions): string {
+function resolveKernelAutomationStorePath(
+  options: NextclawKernelOptions,
+): string {
   const homeDir = options.homeDir?.trim();
   if (homeDir) {
     return resolve(expandHome(homeDir), "cron", "jobs.json");
@@ -69,11 +61,7 @@ function resolveKernelAutomationStorePath(options: NextclawKernelOptions): strin
   return resolve(getDataDir(), "cron", "jobs.json");
 }
 
-type NextclawKernelRuntimeControl<
-  TGatewayInput,
-  TUiInput,
-  TStartInput,
-> = {
+type NextclawKernelRuntimeControl<TGatewayInput, TUiInput, TStartInput> = {
   gateway: (input: TGatewayInput) => Promise<void>;
   ui: (input: TUiInput) => Promise<void>;
   start: (input: TStartInput) => Promise<void>;
@@ -82,11 +70,7 @@ type NextclawKernelRuntimeControl<
   stop: () => Promise<void>;
 };
 
-class NextclawKernelControlManager<
-  TGatewayInput,
-  TUiInput,
-  TStartInput,
-> {
+class NextclawKernelControlManager<TGatewayInput, TUiInput, TStartInput> {
   private runtimeControl: NextclawKernelRuntimeControl<
     TGatewayInput,
     TUiInput,
@@ -120,11 +104,7 @@ export class NextclawKernel {
   readonly configManager: ConfigManager;
   readonly agents: AgentManager;
   readonly sessions: SessionManager;
-  readonly control: NextclawKernelControlManager<
-    unknown,
-    unknown,
-    unknown
-  >;
+  readonly control: NextclawKernelControlManager<unknown, unknown, unknown>;
   readonly toolManager: ToolManager;
   readonly skills: SkillManager;
   readonly automation: AutomationManager;
@@ -135,9 +115,6 @@ export class NextclawKernel {
   readonly mcpManager: McpManager;
   readonly ncpSessionManager: NcpSessionManager;
   readonly extensions: ExtensionManager;
-  readonly agentRunRequestManager: AgentRunRequestManager;
-  readonly sessionRunManager: SessionRunManager;
-  readonly agentRuntimeManager: AgentRuntimeManager;
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
   private readonly agentRunContribution: AgentRunContribution;
   private readonly contributions: KernelContribution[];
@@ -185,17 +162,17 @@ export class NextclawKernel {
       sessionManager: this.sessions,
     });
     this.skills = new SkillManager({
-      workspace: getWorkspacePath(this.configManager.config.agents.defaults.workspace),
+      workspace: getWorkspacePath(
+        this.configManager.config.agents.defaults.workspace,
+      ),
     });
     this.mcpManager = new McpManager(this.configManager.loadConfig);
     this.configManager.installRuntimeHooks({
       resolveChannelConfig: this.extensions.toConfigView,
-      getExtensionChannels: () => this.extensions.getExtensionRegistry().channels,
-      reloadMcp: async ({ config }) => await this.mcpManager.applyConfig(config),
-    });
-    this.agentRuntimeManager = new AgentRuntimeManager({
-      configManager: this.configManager,
-      assetStore: this.assetStore,
+      getExtensionChannels: () =>
+        this.extensions.getExtensionRegistry().channels,
+      reloadMcp: async ({ config }) =>
+        await this.mcpManager.applyConfig(config),
     });
     this.ncpSessionManager = new NcpSessionManager({
       configManager: this.configManager,
@@ -210,25 +187,7 @@ export class NextclawKernel {
         ingress: this.ingress,
       }),
     });
-    this.sessionRunManager = new SessionRunManager({
-      agentRuntimeManager: this.agentRuntimeManager,
-      eventBus: this.eventBus,
-      ncpSessionManager: this.ncpSessionManager,
-    });
-    this.agentRunRequestManager = new AgentRunRequestManager({
-      contextCompactionManager: new ContextCompactionManager({
-        configManager: this.configManager,
-        providerManager: this.llmProviders,
-        sessionRunManager: this.sessionRunManager,
-      }),
-      ingress: this.ingress,
-      ncpSessionManager: this.ncpSessionManager,
-      sessionRunManager: this.sessionRunManager,
-    });
-    this.agentRunContribution =
-      AGENT_RUN_CHAIN === "branch"
-        ? new KernelBranch(this)
-        : new LegacyAgentRunContribution(this);
+    this.agentRunContribution = new KernelBranch(this);
     this.contributions = [
       new ToolContribution(this),
       new SessionActivityPreviewContribution(this),
@@ -240,13 +199,15 @@ export class NextclawKernel {
   listSessionTypes = (params?: AgentRuntimeSessionTypeDescribeParams) =>
     this.agentRunContribution.listSessionTypes(params);
 
-  isSessionRunning = (sessionId: string): boolean => this.agentRunContribution.isSessionRunning(sessionId);
+  isSessionRunning = (sessionId: string): boolean =>
+    this.agentRunContribution.isSessionRunning(sessionId);
 
   provideGatewayController = (gatewayController: GatewayController): void => {
     this.gatewayController = gatewayController;
   };
 
-  getGatewayController = (): GatewayController | undefined => this.gatewayController;
+  getGatewayController = (): GatewayController | undefined =>
+    this.gatewayController;
 
   start = async (): Promise<void> => {
     void this.sessionSearch.start();
@@ -261,9 +222,7 @@ export class NextclawKernel {
       await contribution.dispose();
     }
     this.ncpSessionManager.dispose();
-    await this.agentRuntimeManager.dispose();
     await this.mcpManager.dispose();
     await this.sessionSearch.dispose();
   };
-
 }
