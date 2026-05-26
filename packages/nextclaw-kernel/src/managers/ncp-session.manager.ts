@@ -178,23 +178,14 @@ function isSessionSummaryRefreshEvent(event: NcpAgentSessionJournalReplayEvent):
 
 export class NcpSessionManager implements NcpSessionApi {
   private readonly contextWindowPreview: ContextWindowPreviewManager;
-  private readonly runningSessionIds = new Set<string>();
-  private readonly unsubscribeSessionRunStatus: () => void;
 
   constructor(private readonly options: NcpSessionManagerOptions) {
     this.contextWindowPreview = new ContextWindowPreviewManager({
       configManager: options.configManager,
     });
-    this.unsubscribeSessionRunStatus = options.eventBus.on(
-      eventKeys.sessionRunStatus,
-      this.handleSessionRunStatus,
-    );
   }
 
-  dispose = (): void => {
-    this.unsubscribeSessionRunStatus();
-    this.runningSessionIds.clear();
-  };
+  dispose = (): void => {};
 
   createSession = async (params: CreateNcpSessionInput): Promise<CreatedSession> => {
     const {
@@ -358,7 +349,7 @@ export class NcpSessionManager implements NcpSessionApi {
 
   listSessions = async (options?: ListSessionsOptions): Promise<NcpSessionSummary[]> => {
     const summaries = await this.options.journalStore.listSessionSummaries();
-    return applyLimit(summaries, options?.limit).map(this.withLiveSessionStatus);
+    return applyLimit(summaries, options?.limit);
   };
 
   listSessionMessages = async (
@@ -375,7 +366,7 @@ export class NcpSessionManager implements NcpSessionApi {
 
   getSession = async (sessionId: string): Promise<NcpSessionSummary | null> => {
     const record = await this.getSessionRecord(sessionId);
-    return record ? this.withLiveSessionStatus(this.createSummaryFromRecord(record, true)) : null;
+    return record ? this.createSummaryFromRecord(record, true) : null;
   };
 
   getContextWindow = async (
@@ -383,7 +374,7 @@ export class NcpSessionManager implements NcpSessionApi {
     liveRecord?: AgentSessionRecord | null,
   ): Promise<Record<string, unknown> | null> => {
     const summary = liveRecord
-      ? this.withLiveSessionStatus(this.createSummaryFromRecord(liveRecord, true))
+      ? this.createSummaryFromRecord(liveRecord, true)
       : await this.getSession(sessionId);
     return summary?.contextWindow ?? null;
   };
@@ -423,23 +414,6 @@ export class NcpSessionManager implements NcpSessionApi {
       })
       : undefined;
     return contextWindow ? { ...summary, contextWindow } : summary;
-  };
-
-  private withLiveSessionStatus = (summary: NcpSessionSummary): NcpSessionSummary =>
-    this.runningSessionIds.has(summary.sessionId)
-      ? { ...summary, status: "running" }
-      : summary;
-
-  private handleSessionRunStatus = (payload: {
-    sessionKey: string;
-    status: "running" | "idle";
-  }): void => {
-    const sessionId = normalizeSessionId(payload.sessionKey);
-    if (!sessionId) {
-      return;
-    }
-    if (payload.status === "running") this.runningSessionIds.add(sessionId);
-    else this.runningSessionIds.delete(sessionId);
   };
 
   private publishSessionMetadataChanged = (

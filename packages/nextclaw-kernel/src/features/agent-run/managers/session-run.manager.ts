@@ -97,6 +97,8 @@ export class SessionRun {
     return true;
   };
 
+  isRunning = (): boolean => this.activeRunId !== null;
+
   dispose = (): void => {
     this.activeRunController?.abort();
     this.activeRunController = null;
@@ -127,6 +129,8 @@ export class SessionRunManager {
 
   getSessionRun = (sessionId: string): SessionRun | null =>
     this.runs.get(sessionId) ?? null;
+
+  isSessionRunning = (sessionId: string): boolean => this.runs.get(sessionId.trim())?.isRunning() ?? false;
 
   createSessionRun = async (sessionId: string): Promise<SessionRun> => {
     if (this.runs.has(sessionId)) {

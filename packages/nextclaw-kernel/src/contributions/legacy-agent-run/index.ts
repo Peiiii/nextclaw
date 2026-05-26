@@ -29,6 +29,8 @@ export class LegacyAgentRunContribution implements KernelContribution {
   listSessionTypes = (params?: AgentRuntimeSessionTypeDescribeParams) =>
     this.kernel.agentRuntimeManager.listSessionTypes(params);
 
+  isSessionRunning = (sessionId: string): boolean => this.kernel.sessionRunManager.isRunning(sessionId);
+
   dispose = async (): Promise<void> => {
     if (!this.started) {
       return;

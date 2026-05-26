@@ -40,6 +40,7 @@ describe("provider connection probe route", () => {
         assetStore: {} as never,
         eventBus: new EventBus(),
         ingress: {} as never,
+        isSessionRunning: () => false,
         listSessionTypes: async () => ({ defaultType: "native", options: [] }),
         ncpSessionManager: {} as never,
         llmProviders: {

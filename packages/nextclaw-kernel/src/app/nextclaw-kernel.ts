@@ -48,6 +48,7 @@ export type NextclawKernelOptions = {
 type AgentRunChain = "branch" | "legacy";
 type AgentRunContribution = KernelContribution & {
   listSessionTypes: (params?: AgentRuntimeSessionTypeDescribeParams) => ReturnType<AgentRuntimeManager["listSessionTypes"]>;
+  isSessionRunning: (sessionId: string) => boolean;
 };
 
 const AGENT_RUN_CHAIN: AgentRunChain = "branch";
@@ -238,6 +239,8 @@ export class NextclawKernel {
 
   listSessionTypes = (params?: AgentRuntimeSessionTypeDescribeParams) =>
     this.agentRunContribution.listSessionTypes(params);
+
+  isSessionRunning = (sessionId: string): boolean => this.agentRunContribution.isSessionRunning(sessionId);
 
   provideGatewayController = (gatewayController: GatewayController): void => {
     this.gatewayController = gatewayController;

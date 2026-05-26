@@ -71,6 +71,7 @@ class StubNcpAgent implements NcpSessionApi {
     }
   >();
   readonly abortCalls: Array<{ sessionId: string; messageId?: string }> = [];
+  readonly runningSessionIds = new Set<string>();
   readonly sessionTypeListCalls: Array<{ describeMode?: "observation" | "probe" } | undefined> = [];
   readonly sessionMetadata = new Map<string, Record<string, unknown>>();
   readonly updateSessionCalls: Array<{ sessionId: string; metadata?: Record<string, unknown> | null }> = [];
@@ -143,6 +144,9 @@ class StubNcpAgent implements NcpSessionApi {
   abort = async (payload: { sessionId: string; messageId?: string }): Promise<void> => {
     this.abortCalls.push(payload);
   };
+
+  isSessionRunning = (sessionId: string): boolean =>
+    this.runningSessionIds.has(sessionId);
 
   listSessions = async () => {
     return [
@@ -258,6 +262,7 @@ class StubNcpAgent implements NcpSessionApi {
 function createTestKernel(agent: StubNcpAgent): UiKernelHost {
   return {
     listSessionTypes: agent.listSessionTypes,
+    isSessionRunning: agent.isSessionRunning,
     assetStore: {
       putBytes: agent.assetApi.put,
       statRecord: agent.assetApi.stat,
@@ -421,6 +426,25 @@ it("includes a derived context window snapshot in the session messages seed", as
     totalContextTokens: 1000,
     updatedAt: "session-1:now",
   });
+});
+
+it("hydrates ncp session reads with kernel runtime status", async () => {
+  const { app, agent } = createTestApp();
+  agent.runningSessionIds.add("session-1");
+
+  const sessionsPayload = await (await app.request("http://localhost/api/ncp/sessions")).json() as {
+    data: { sessions: Array<{ sessionId: string; status: string }> };
+  };
+  const sessionPayload = await (await app.request("http://localhost/api/ncp/sessions/session-1")).json() as {
+    data: { sessionId: string; status: string };
+  };
+  const messagesPayload = await (await app.request("http://localhost/api/ncp/sessions/session-1/messages")).json() as {
+    data: { status: string };
+  };
+
+  expect(sessionsPayload.data.sessions[0]).toMatchObject({ sessionId: "session-1", status: "running" });
+  expect(sessionPayload.data).toMatchObject({ sessionId: "session-1", status: "running" });
+  expect(messagesPayload.data.status).toBe("running");
 });
 
 it("keeps session routes readable through the kernel session api", async () => {

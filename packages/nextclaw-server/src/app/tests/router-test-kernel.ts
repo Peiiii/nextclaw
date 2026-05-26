@@ -11,6 +11,7 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       defaultType: "native",
       options: [{ value: "native", label: "Native" }],
     }),
+    isSessionRunning: () => false,
     assetStore: {
       putBytes: async () => unavailable("assetStore.putBytes"),
       statRecord: async () => null,

@@ -4,6 +4,7 @@ import type {
   SessionPatchUpdate,
   UiNcpSessionListView
 } from "@nextclaw-server/shared/types/server-api.types.js";
+import type { NcpSessionSummary } from "@nextclaw/ncp";
 import { applySessionPreferencePatch } from "@nextclaw-server/features/sessions/utils/session-preference-patch.utils.js";
 import {
   isSessionProjectRootValidationError,
@@ -124,6 +125,11 @@ export class NcpSessionRoutesController {
     this.sessionSkillsViewBuilder = new SessionSkillsViewBuilder(options);
   }
 
+  private readonly withRuntimeStatus = (session: NcpSessionSummary): NcpSessionSummary =>
+    this.options.kernel.isSessionRunning(session.sessionId)
+      ? { ...session, status: "running" }
+      : session;
+
   readonly getSessionTypes = async (c: Context) => {
     const payload: ChatSessionTypesView = await this.options.kernel.listSessionTypes({
       describeMode: "observation",
@@ -137,7 +143,7 @@ export class NcpSessionRoutesController {
       limit: readPositiveInt(c.req.query("limit")),
     });
     const payload: UiNcpSessionListView = {
-      sessions,
+      sessions: sessions.map(this.withRuntimeStatus),
       total: sessions.length,
     };
     return c.json(ok(payload));
@@ -150,7 +156,7 @@ export class NcpSessionRoutesController {
     if (!session) {
       return c.json(err("NOT_FOUND", `ncp session not found: ${sessionId}`), 404);
     }
-    return c.json(ok(session));
+    return c.json(ok(this.withRuntimeStatus(session)));
   };
 
   readonly listSessionMessages = async (c: Context) => {
@@ -164,11 +170,12 @@ export class NcpSessionRoutesController {
     const messages = await sessionManager.listSessionMessages(sessionId, {
       limit: readPositiveInt(c.req.query("limit")),
     });
+    const sessionWithRuntimeStatus = this.withRuntimeStatus(session);
     const payload = {
       sessionId,
-      status: session.status ?? "idle",
+      status: sessionWithRuntimeStatus.status ?? "idle",
       messages,
-      ...(session.contextWindow ? { contextWindow: session.contextWindow } : {}),
+      ...(sessionWithRuntimeStatus.contextWindow ? { contextWindow: sessionWithRuntimeStatus.contextWindow } : {}),
       total: messages.length,
     };
     return c.json(ok(payload));
@@ -249,7 +256,7 @@ export class NcpSessionRoutesController {
       return c.json(err("NOT_FOUND", `ncp session not found: ${sessionId}`), 404);
     }
 
-    return c.json(ok(updated));
+    return c.json(ok(this.withRuntimeStatus(updated)));
   };
 
   readonly deleteSession = async (c: Context) => {
