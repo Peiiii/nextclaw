@@ -62,6 +62,7 @@
   },
   "changesets": [
     "auto-release-batch-20260525173508602",
-    "auto-release-batch-20260525175422226"
+    "auto-release-batch-20260525175422226",
+    "auto-release-batch-20260526173320449"
   ]
 }
