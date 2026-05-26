@@ -40,7 +40,10 @@ export type GatewayInboundLoopRuntime = {
 type GatewayRoute = ReturnType<AgentRouteResolver["resolveInbound"]>;
 
 function formatUserFacingError(error: unknown, maxChars = 320): string {
-  const raw = error instanceof Error ? error.message || error.name : String(error ?? "Unknown error");
+  const raw =
+    error instanceof Error
+      ? error.message || error.name
+      : String(error ?? "Unknown error");
   const normalized = raw.replace(/\s+/g, " ").trim();
   if (!normalized) {
     return "Unknown error";
@@ -63,7 +66,9 @@ export class GatewayInboundProcessor {
       if (await this.dispatchSlashCommandMaybe(message, route, runMetadata)) {
         return;
       }
-      if (await this.dispatchChannelReplyRouteMaybe(message, route, runMetadata)) {
+      if (
+        await this.dispatchChannelReplyRouteMaybe(message, route, runMetadata)
+      ) {
         return;
       }
       if (message.channel !== "system") {
@@ -71,28 +76,31 @@ export class GatewayInboundProcessor {
           createAssistantStreamResetControlMessage(message),
         );
       }
-      const result = await this.runtime.agentRunClient.sendAndWaitForReply(await buildAgentRunSendPayload({
-        sessionId: route.sessionKey,
-        content: message.content,
-        attachments: message.attachments,
-        metadata: runMetadata,
-        assetApi: this.runtime.kernel.assetStore,
-      }), {
-        onAssistantDelta:
-          message.channel !== "system"
-            ? (delta) => {
-                if (!delta) {
-                  return;
+      const result = await this.runtime.agentRunClient.sendAndWaitForReply(
+        await buildAgentRunSendPayload({
+          sessionId: route.sessionKey,
+          content: message.content,
+          attachments: message.attachments,
+          metadata: runMetadata,
+          assetApi: this.runtime.kernel.assetStore,
+        }),
+        {
+          onAssistantDelta:
+            message.channel !== "system"
+              ? (delta) => {
+                  if (!delta) {
+                    return;
+                  }
+                  void this.runtime.messageBus.publishOutbound(
+                    createAssistantStreamDeltaControlMessage(message, delta),
+                  );
                 }
-                void this.runtime.messageBus.publishOutbound(
-                  createAssistantStreamDeltaControlMessage(message, delta),
-                );
-              }
-            : undefined,
-        missingCompletedMessageError: `session "${route.sessionKey}" completed without a final assistant message`,
-        runErrorMessage: `session "${route.sessionKey}" failed`,
-      });
-      await this.publishLegacyReply(message, route, result);
+              : undefined,
+          missingCompletedMessageError: `session "${route.sessionKey}" completed without a final assistant message`,
+          runErrorMessage: `session "${route.sessionKey}" failed`,
+        },
+      );
+      await this.publishChannelReply(message, route, result);
     } catch (error) {
       await this.runtime.messageBus.publishOutbound({
         channel: message.channel,
@@ -107,7 +115,9 @@ export class GatewayInboundProcessor {
   private resolveRoute = (message: InboundMessage): GatewayRoute => {
     const normalize = (value: unknown) =>
       typeof value === "string" ? value.trim() || undefined : undefined;
-    return new AgentRouteResolver(this.runtime.configManager.loadConfig()).resolveInbound({
+    return new AgentRouteResolver(
+      this.runtime.configManager.loadConfig(),
+    ).resolveInbound({
       message,
       forcedAgentId: normalize(message.metadata.target_agent_id),
       sessionKeyOverride: normalize(message.metadata.session_key_override),
@@ -179,16 +189,20 @@ export class GatewayInboundProcessor {
     return true;
   };
 
-  private publishLegacyReply = async (
+  private publishChannelReply = async (
     message: InboundMessage,
     route: GatewayRoute,
     result: AgentRunReply,
   ): Promise<void> => {
     if (message.channel === "system") {
-      this.runtime.appEventBus?.emit(eventKeys.sessionUpdated, { sessionKey: route.sessionKey }, {
-        emittedAt: new Date().toISOString(),
-        source: "backend",
-      });
+      this.runtime.appEventBus?.emit(
+        eventKeys.sessionUpdated,
+        { sessionKey: route.sessionKey },
+        {
+          emittedAt: new Date().toISOString(),
+          source: "backend",
+        },
+      );
       return;
     }
 

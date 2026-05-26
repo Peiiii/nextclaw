@@ -37,9 +37,8 @@ function readEventCorrelationId(event: NcpEndpointEvent): string | undefined {
   if (!("payload" in event)) {
     return undefined;
   }
-  const correlationId = "correlationId" in event.payload
-    ? event.payload.correlationId
-    : undefined;
+  const correlationId =
+    "correlationId" in event.payload ? event.payload.correlationId : undefined;
   return typeof correlationId === "string" && correlationId.length > 0
     ? correlationId
     : undefined;
@@ -49,9 +48,8 @@ function readEventSessionId(event: NcpEndpointEvent): string | undefined {
   if (!("payload" in event)) {
     return undefined;
   }
-  const sessionId = "sessionId" in event.payload
-    ? event.payload.sessionId
-    : undefined;
+  const sessionId =
+    "sessionId" in event.payload ? event.payload.sessionId : undefined;
   return typeof sessionId === "string" && sessionId.length > 0
     ? sessionId
     : undefined;
@@ -66,9 +64,11 @@ function readEventRunId(event: NcpEndpointEvent): string | undefined {
 }
 
 function isTerminalEvent(event: NcpEndpointEvent): boolean {
-  return event.type === NcpEventType.MessageFailed ||
+  return (
+    event.type === NcpEventType.MessageFailed ||
     event.type === NcpEventType.RunError ||
-    event.type === NcpEventType.RunFinished;
+    event.type === NcpEventType.RunFinished
+  );
 }
 
 function isRunEventMatch(params: {
@@ -77,12 +77,7 @@ function isRunEventMatch(params: {
   runId?: string;
   sessionId?: string;
 }): boolean {
-  const {
-    correlationId,
-    event,
-    runId,
-    sessionId,
-  } = params;
+  const { correlationId, event, runId, sessionId } = params;
   const eventCorrelationId = readEventCorrelationId(event);
   if (eventCorrelationId) {
     return eventCorrelationId === correlationId;
@@ -90,11 +85,12 @@ function isRunEventMatch(params: {
   if (!sessionId || !runId) {
     return false;
   }
-  return readEventSessionId(event) === sessionId &&
-    readEventRunId(event) === runId;
+  return (
+    readEventSessionId(event) === sessionId && readEventRunId(event) === runId
+  );
 }
 
-class AsyncEventQueue<T> implements AsyncIterable<T> {
+class AgentRunEventQueue<T> implements AsyncIterable<T> {
   private readonly values: T[] = [];
   private readonly waiters: Array<(result: IteratorResult<T>) => void> = [];
   private closed = false;
@@ -145,7 +141,7 @@ class AsyncEventQueue<T> implements AsyncIterable<T> {
 }
 
 class AgentRunObserver {
-  private readonly queue = new AsyncEventQueue<NcpEndpointEvent>();
+  private readonly queue = new AgentRunEventQueue<NcpEndpointEvent>();
   private readonly unsubscribe: () => void;
   private abortCleanup?: () => void;
   private completedMessage?: NcpMessage;
@@ -162,7 +158,10 @@ class AgentRunObserver {
       onEvent?: (event: NcpEndpointEvent) => void;
     },
   ) {
-    this.unsubscribe = options.eventBus.on(eventKeys.ncpEvent, this.handleEvent);
+    this.unsubscribe = options.eventBus.on(
+      eventKeys.ncpEvent,
+      this.handleEvent,
+    );
   }
 
   attachHandle = (handle: NcpRunHandle): void => {
@@ -192,13 +191,17 @@ class AgentRunObserver {
     this.abortCleanup = () => abortSignal.removeEventListener("abort", abort);
   };
 
-  stream = async function* (this: AgentRunObserver): AsyncGenerator<NcpEndpointEvent> {
+  stream = async function* (
+    this: AgentRunObserver,
+  ): AsyncGenerator<NcpEndpointEvent> {
     for await (const event of this.queue) {
       yield event;
     }
   };
 
-  waitForReply = async (options: AgentRunReplyOptions = {}): Promise<NcpMessage> => {
+  waitForReply = async (
+    options: AgentRunReplyOptions = {},
+  ): Promise<NcpMessage> => {
     for await (const event of this.queue) {
       if (event.type === NcpEventType.MessageTextDelta) {
         options.onAssistantDelta?.(event.payload.delta);
@@ -212,7 +215,9 @@ class AgentRunObserver {
         throw new Error(event.payload.error.message);
       }
       if (event.type === NcpEventType.RunError) {
-        throw new Error(event.payload.error ?? options.runErrorMessage ?? "NCP run failed.");
+        throw new Error(
+          event.payload.error ?? options.runErrorMessage ?? "NCP run failed.",
+        );
       }
       if (event.type === NcpEventType.RunFinished) {
         if (!this.completedMessage) {
@@ -241,12 +246,15 @@ class AgentRunObserver {
   };
 
   private handleEvent = (event: NcpEndpointEvent): void => {
-    if (this.disposed || !isRunEventMatch({
-      correlationId: this.options.correlationId,
-      event,
-      runId: this.runId,
-      sessionId: this.sessionId,
-    })) {
+    if (
+      this.disposed ||
+      !isRunEventMatch({
+        correlationId: this.options.correlationId,
+        event,
+        runId: this.runId,
+        sessionId: this.sessionId,
+      })
+    ) {
       return;
     }
     this.options.onEvent?.(event);
@@ -324,7 +332,10 @@ export class AgentRunClient {
     input: AgentRunSendIngressPayload,
     correlationId: string,
   ): Promise<NcpRunHandle> => {
-    return await this.options.ingress.handle<AgentRunSendIngressPayload, NcpRunHandle>(
+    return await this.options.ingress.handle<
+      AgentRunSendIngressPayload,
+      NcpRunHandle
+    >(
       {
         type: ingressKeys.agentRun.send,
         payload: {

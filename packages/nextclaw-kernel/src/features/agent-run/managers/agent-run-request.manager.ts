@@ -15,22 +15,12 @@ import {
   type NcpMessageAbortPayload,
   type NcpRunHandle,
 } from "@nextclaw/ncp";
-import {
-  catchError,
-  from,
-  lastValueFrom,
-  tap,
-} from "rxjs";
+import { catchError, from, lastValueFrom, tap } from "rxjs";
 import { resolveDefaultAgentProfileId } from "@nextclaw/core";
-import { readMessageTask } from "@kernel/utils/session-run.utils.js";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
-import type {
-  AgentRuntimeManager,
-} from "./agent-runtime.manager.js";
+import type { AgentRuntimeManager } from "./agent-runtime.manager.js";
 import type { ContextProviderManager } from "./context-provider.manager.js";
-import type {
-  SessionRunManager,
-} from "./session-run.manager.js";
+import type { SessionRunManager } from "./session-run.manager.js";
 import type { ToolProviderManager } from "./tool-provider.manager.js";
 import type { SessionRepository } from "@kernel/features/agent-run/repositories/session.repository.js";
 import type {
@@ -40,7 +30,9 @@ import type {
   AgentRunSpec,
 } from "@kernel/features/agent-run/types/agent-run.types.js";
 
-function toAgentRunRequest(envelope: AgentRunSendIngressPayload): AgentRunRequest {
+function toAgentRunRequest(
+  envelope: AgentRunSendIngressPayload,
+): AgentRunRequest {
   const metadata = envelope.metadata ?? {};
   const requestMetadata = {
     agentRuntimeId: metadata.agentRuntimeId,
@@ -88,7 +80,9 @@ function toAgentRunRequest(envelope: AgentRunSendIngressPayload): AgentRunReques
   };
 }
 
-function toSessionMessageRequest(payload: AgentRunSessionMessageRequestPayload): AgentRunRequest {
+function toSessionMessageRequest(
+  payload: AgentRunSessionMessageRequestPayload,
+): AgentRunRequest {
   return {
     sessionId: payload.sessionId,
     message: {
@@ -109,13 +103,33 @@ function toRunHandle(accepted: AgentRunAccepted): NcpRunHandle {
   };
 }
 
-function findCompletedAssistantMessage(messages: readonly NcpMessage[], messageId?: string): NcpMessage | null {
-  return [...messages]
-    .reverse()
-    .find((message) =>
-      message.role === "assistant" &&
-      message.status === "final" &&
-      (!messageId || message.id === messageId)) ?? null;
+function findCompletedAssistantMessage(
+  messages: readonly NcpMessage[],
+  messageId?: string,
+): NcpMessage | null {
+  return (
+    [...messages]
+      .reverse()
+      .find(
+        (message) =>
+          message.role === "assistant" &&
+          message.status === "final" &&
+          (!messageId || message.id === messageId),
+      ) ?? null
+  );
+}
+
+function readMessageTask(message: NcpMessage): string {
+  return (
+    message.parts.flatMap((part) =>
+      (part.type === "text" ||
+        part.type === "rich-text" ||
+        part.type === "reasoning") &&
+      part.text.trim()
+        ? [part.text.trim()]
+        : [],
+    )[0] ?? "Session"
+  );
 }
 
 export class AgentRunRequestManager {
@@ -139,9 +153,18 @@ export class AgentRunRequestManager {
     }
     this.started = true;
     this.cleanups.push(
-      this.ingress.addHandler(ingressKeys.agentRun.send, this.handleSendRequest),
-      this.ingress.addHandler(ingressKeys.agentRun.abort, this.handleAbortRequest),
-      this.ingress.addHandler(ingressKeys.agentRun.sessionMessageRequest, this.handleSessionMessageRequest),
+      this.ingress.addHandler(
+        ingressKeys.agentRun.send,
+        this.handleSendRequest,
+      ),
+      this.ingress.addHandler(
+        ingressKeys.agentRun.abort,
+        this.handleAbortRequest,
+      ),
+      this.ingress.addHandler(
+        ingressKeys.agentRun.sessionMessageRequest,
+        this.handleSessionMessageRequest,
+      ),
     );
   };
 
@@ -176,10 +199,14 @@ export class AgentRunRequestManager {
     if (!envelope.payload) {
       throw new Error("Invalid agent run session message request.");
     }
-    return toRunHandle(await this.send(toSessionMessageRequest(envelope.payload)));
+    return toRunHandle(
+      await this.send(toSessionMessageRequest(envelope.payload)),
+    );
   };
 
-  private send = async (request: AgentRunRequest): Promise<AgentRunAccepted> => {
+  private send = async (
+    request: AgentRunRequest,
+  ): Promise<AgentRunAccepted> => {
     const session = await this.sessionRepository.getOrCreateSession({
       sessionId: request.sessionId,
       agentId: request.agentId,
@@ -193,7 +220,7 @@ export class AgentRunRequestManager {
     });
     const sessionRun =
       this.sessionRunManager.getSessionRun(session.sessionId) ??
-      await this.sessionRunManager.createSessionRun(session.sessionId);
+      (await this.sessionRunManager.createSessionRun(session.sessionId));
     const message: NcpMessage = {
       ...request.message,
       sessionId: session.sessionId,
@@ -206,14 +233,18 @@ export class AgentRunRequestManager {
     sessionRun.inbox.enqueue(message);
     const activeRun = sessionRun.beginRun();
 
-    const model = request.model ?? session.model ?? this.configManager.getDefaultModel();
-    const agentId = request.agentId ?? session.agentId ??
+    const model =
+      request.model ?? session.model ?? this.configManager.getDefaultModel();
+    const agentId =
+      request.agentId ??
+      session.agentId ??
       resolveDefaultAgentProfileId(this.configManager.loadConfig());
     const spec: AgentRunSpec = {
       runId: activeRun.runId,
       agentId,
       model,
-      maxTokens: request.maxTokens ?? this.configManager.getModelMaxTokens(model),
+      maxTokens:
+        request.maxTokens ?? this.configManager.getModelMaxTokens(model),
       thinkingEffort: request.thinkingEffort ?? session.thinkingEffort ?? null,
       correlationId: request.correlationId,
     };
@@ -223,28 +254,36 @@ export class AgentRunRequestManager {
       session,
       sessionRun,
     });
-    const contextBlocks = await this.contextProviderManager.buildContext(providerRequest);
+    const contextBlocks =
+      await this.contextProviderManager.buildContext(providerRequest);
     const tools = await this.toolProviderManager.buildTools(providerRequest);
     let messageCompletedSeen = false;
     lastValueFrom(
-      from(runtime.run(spec, {
-        contextBlocks,
-        sessionRun,
-        signal: activeRun.signal,
-        tools,
-      })).pipe(
+      from(
+        runtime.run(spec, {
+          contextBlocks,
+          sessionRun,
+          signal: activeRun.signal,
+          tools,
+        }),
+      ).pipe(
         tap((event) => {
           const eventsToPublish: NcpEndpointEvent[] = [];
           if (event.type === NcpEventType.MessageCompleted) {
             messageCompletedSeen = true;
           }
-          if (event.type === NcpEventType.RunFinished && !messageCompletedSeen) {
+          if (
+            event.type === NcpEventType.RunFinished &&
+            !messageCompletedSeen
+          ) {
             const message = findCompletedAssistantMessage(
               sessionRun.getSnapshot().messages,
               event.payload.messageId,
             );
             if (!message) {
-              throw new Error(`Run finished without a final assistant message for session "${session.sessionId}".`);
+              throw new Error(
+                `Run finished without a final assistant message for session "${session.sessionId}".`,
+              );
             }
             eventsToPublish.push({
               type: NcpEventType.MessageCompleted,
