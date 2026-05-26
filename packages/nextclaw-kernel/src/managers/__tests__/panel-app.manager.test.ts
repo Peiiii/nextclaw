@@ -118,6 +118,29 @@ describe("PanelAppManager", () => {
     }));
   });
 
+  it("uses standard favicon links when no panel icon shortcut is declared", async () => {
+    const workspacePath = createTempDir();
+    const panelsPath = join(workspacePath, "panels");
+    mkdirSync(panelsPath, { recursive: true });
+    writeFileSync(
+      join(panelsPath, "iconic.panel.html"),
+      [
+        "<!doctype html>",
+        "<html><head>",
+        "<title>Iconic</title>",
+        "<link rel=\"icon\" href=\"data:image/svg+xml,%3Csvg%3E%3C/svg%3E\">",
+        "</head><body></body></html>",
+      ].join(""),
+    );
+
+    const [entry] = (await createPanelAppManager(workspacePath).listPanelApps()).entries;
+
+    expect(entry).toEqual(expect.objectContaining({
+      title: "Iconic",
+      icon: "data:image/svg+xml,%3Csvg%3E%3C/svg%3E",
+    }));
+  });
+
   it("persists favorite and open state for launcher sorting", async () => {
     const workspacePath = createTempDir();
     const panelsPath = join(workspacePath, "panels");

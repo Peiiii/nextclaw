@@ -10,6 +10,7 @@
 - client SDK 与 UI 补齐偏好更新、打开记录、模块切换与收藏交互。
 - UI 从原生下拉改为胶囊式模块 tabs：智能排序、收藏、最近打开、最近更新、名称。
 - Panel App iframe sandbox 收敛为应用级 capability profile，补齐 `allow-same-origin`、`allow-modals`、`allow-popups-to-escape-sandbox`、`allow-downloads`、`allow-pointer-lock` 等能力，避免本地小应用因缺少 iframe capability 而无法正常交互。
+- Panel App 图标读取收敛为“emoji shortcut + Web 标准 favicon”：优先 `nextclaw-panel-icon`，其次 `<link rel="icon">` / `<link rel="apple-touch-icon">`，最后默认图标。
 
 这是新增用户能力，不适用“非功能改动生产代码净增 <= 0”的硬门槛；本轮新增代码主要来自新状态 owner、manifest 解析、API 合同、UI 交互和定向测试。
 
@@ -42,6 +43,7 @@
 4. 点击应用后应打开对应 HTML，同时刷新最近打开时间与打开次数。
 5. 切换胶囊 tabs：智能排序、收藏、最近打开、最近更新、名称，列表展示应符合对应模块语义。
 6. 带脚本的本地 Panel App 应能响应点击、弹出 `alert/confirm/prompt`、读写浏览器本地状态，并在需要时调用同源 API。
+7. 配置 `nextclaw-panel-icon` 的应用应显示 emoji / 短字符图标；配置标准 favicon 的应用应显示图片图标；都未配置时显示默认图标。
 
 ## 可维护性总结汇总
 

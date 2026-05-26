@@ -31,7 +31,7 @@ export function PanelAppListItem({
         className="flex min-w-0 flex-1 items-start gap-3 text-left"
       >
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-50 text-base text-amber-700">
-          {entry.icon ? entry.icon : <AppWindow className="h-4 w-4" />}
+          <PanelAppIcon icon={entry.icon} title={entry.title} />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium text-gray-900">{entry.title}</span>
@@ -52,5 +52,32 @@ export function PanelAppListItem({
         <Star className={entry.favorite ? 'h-4 w-4 fill-amber-400 text-amber-500' : 'h-4 w-4'} />
       </button>
     </div>
+  );
+}
+
+function PanelAppIcon({ icon, title }: { icon?: string; title: string }) {
+  if (!icon) {
+    return <AppWindow className="h-4 w-4" />;
+  }
+  if (isImageIcon(icon)) {
+    return (
+      <img
+        src={icon}
+        alt=""
+        aria-hidden="true"
+        className="h-5 w-5 rounded-sm object-contain"
+        title={title}
+      />
+    );
+  }
+  return <span className="max-w-6 truncate text-center leading-none">{icon}</span>;
+}
+
+function isImageIcon(icon: string): boolean {
+  return (
+    icon.startsWith('data:image/') ||
+    icon.startsWith('http://') ||
+    icon.startsWith('https://') ||
+    icon.startsWith('/')
   );
 }

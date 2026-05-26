@@ -20,11 +20,31 @@ description_zh: 创建或修改 NextClaw 右侧面板里的单文件 HTML Panel 
 - CSS 和 JavaScript 默认内联在同一个 HTML 文件里。
 - 不创建 manifest、不创建多文件资源目录、不要求服务器部署。
 - 不假设存在未声明的 bridge、SDK 或宿主注入对象；需要 AI 动作时，可以先做按钮和占位交互，再说明后续需要接入正式 API。
+- `<head>` 里必须提供用于 Panel Apps 启动器展示的标题、描述和图标。
+
+## 启动器元信息
+
+每个 Panel App 默认都要写清启动器元信息，让用户在 Panel Apps 列表中能快速识别它：
+
+```html
+<title>番茄便签</title>
+<meta name="nextclaw-panel-title" content="番茄便签">
+<meta name="nextclaw-panel-description" content="番茄钟、任务清单和专注记录">
+<meta name="nextclaw-panel-icon" content="🍅">
+```
+
+图标规则：
+
+- 最简单优先使用 `nextclaw-panel-icon` 放一个语义明确的 emoji 或 1-2 个短字符。
+- 如果用户要求正式图片图标，再使用 Web 标准 favicon，例如 `<link rel="icon" href="data:image/svg+xml,...">`。
+- 不要省略图标；没有用户指定时，按应用主题选择一个克制、可识别的 emoji。
+- 不要使用相对图片路径如 `./icon.png`，因为第一版 Panel App 是单 HTML 文件，没有资源目录。
 
 ## 实现建议
 
 1. 明确用户要解决的实际工作流，不把临时工具做成复杂产品。
 2. 生成完整可打开的 HTML：`<!doctype html>`、`<meta charset="utf-8">`、响应式布局、可访问的按钮和输入。
-3. 本地状态优先用 `localStorage`；需要导入导出时，用文本框、复制、下载 JSON 等浏览器原生能力。
-4. 视觉保持克制、清晰、信息密度适中，避免营销页式 hero 和装饰性堆叠。
-5. 完成后告诉用户在 NextClaw 左下角设置菜单打开“面板应用”，再选择对应应用。
+3. 每次新建或重写 Panel App 时，都要先补齐 `<title>`、`nextclaw-panel-title`、`nextclaw-panel-description` 和 `nextclaw-panel-icon`。
+4. 本地状态优先用 `localStorage`；需要导入导出时，用文本框、复制、下载 JSON 等浏览器原生能力。
+5. 视觉保持克制、清晰、信息密度适中，避免营销页式 hero 和装饰性堆叠。
+6. 完成后告诉用户在 NextClaw 左下角设置菜单打开“面板应用”，再选择对应应用。
