@@ -149,16 +149,18 @@ nextclaw --version
 ```bash
 export NEXTCLAW_HOME="$(mktemp -d)"
 nextclaw update --channel beta --check
-nextclaw update --channel beta
+nextclaw update --channel beta --download-only
 nextclaw update --apply
 nextclaw --version
 ```
 
 - Expected behavior:
   - `--check` detects the beta update without downloading.
-  - `update --channel beta` downloads and verifies the runtime bundle.
+  - `update --channel beta --download-only` downloads and verifies the runtime bundle without switching the active runtime.
   - `update --apply` switches the active runtime pointer.
   - the next `nextclaw` process runs the downloaded runtime version.
+
+For split download/apply smoke tests, do not run plain `nextclaw update --channel beta` before `--apply`: plain update may download and apply in one step, leaving no pending downloaded version for the later `--apply` command.
 
 ## Completion Gate
 - The NPM registry shows the intended package version and dist-tag.

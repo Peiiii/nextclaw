@@ -46,7 +46,7 @@ pnpm release:beta
 
 本次主要是发布闭环，不新增业务源码能力。发布前按合同检查了 full public batch 范围，避免只发布 `nextclaw` 而遗漏运行时依赖闭包。发布过程中生成的版本、changelog、UI dist 和 tag 均由标准 release 脚本维护；未引入新的手工发布路径。
 
-发现一个验证口径差异：`nextclaw update --channel beta` 默认会直接下载并应用；若随后再执行 `update --apply`，会因没有待应用版本而失败。最终按真实 CLI 合同改用 `--download-only` 后再 `--apply` 完成验收。
+发现一个验证口径差异：`nextclaw update --channel beta` 默认会直接下载并应用；若随后再执行 `update --apply`，会因没有待应用版本而失败。最终按真实 CLI 合同改用 `--download-only` 后再 `--apply` 完成验收，并同步修正 `npm-release-contract-guard` 的分步 smoke 文案。
 
 ## NPM 包发布记录
 
