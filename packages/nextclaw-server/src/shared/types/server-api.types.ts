@@ -1,5 +1,5 @@
 import type { ThinkingLevel } from "@nextclaw/core";
-import type { PanelAppEntry, PanelAppList } from "@nextclaw/kernel";
+import type { PanelAppEntry, PanelAppList, PanelAppPreferencesUpdate } from "@nextclaw/kernel";
 import type { AppEvent } from "@nextclaw/shared";
 import type { NcpMessage, NcpSessionApi, NcpSessionStatus, NcpSessionSummary } from "@nextclaw/ncp";
 import type { UiNcpStoredAssetRecord } from "@nextclaw-server/features/attachments/index.js";
@@ -546,6 +546,8 @@ export type ServerPathReadView = { requestedPath: string; resolvedPath: string; 
 export type PanelAppEntryView = PanelAppEntry;
 
 export type PanelAppListView = PanelAppList;
+
+export type PanelAppPreferencesUpdateView = PanelAppPreferencesUpdate;
 
 export type CronScheduleView =
   | { kind: "at"; atMs?: number | null }

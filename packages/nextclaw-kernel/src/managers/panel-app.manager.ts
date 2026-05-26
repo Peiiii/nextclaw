@@ -5,6 +5,11 @@ import {
   getWorkspacePathFromConfig,
 } from "@nextclaw/core";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
+import { PanelAppStateStore } from "@kernel/stores/panel-app-state.store.js";
+import type { PanelAppPreferencesUpdate, PanelAppStateEntry } from "@kernel/stores/panel-app-state.store.js";
+import { parsePanelAppManifest } from "@kernel/utils/panel-app-manifest.utils.js";
+
+export type { PanelAppPreferencesUpdate } from "@kernel/stores/panel-app-state.store.js";
 
 const PANEL_APP_FILE_SUFFIX = ".panel.html";
 const PANEL_APP_CONTENT_BASE_PATH = "/api/panel-apps";
@@ -14,9 +19,14 @@ export type PanelAppEntry = {
   id: string;
   fileName: string;
   title: string;
+  description?: string;
+  icon?: string;
   contentPath: string;
   updatedAt: string;
   sizeBytes: number;
+  favorite: boolean;
+  lastOpenedAt?: string;
+  openCount: number;
 };
 
 export type PanelAppList = {
@@ -58,16 +68,21 @@ export class PanelAppManager {
     const workspacePath = this.getWorkspacePath();
     const panelsPath = this.getPanelsPath(workspacePath);
     const fileNames = await this.listPanelAppFileNames(panelsPath);
+    const appState = await this.createStateStore(panelsPath).load();
     const entries = await Promise.all(
-      fileNames.map((fileName) => this.buildPanelAppEntry(panelsPath, fileName)),
+      fileNames.map((fileName) =>
+        this.buildPanelAppEntry(
+          panelsPath,
+          fileName,
+          appState[this.encodePanelAppId(fileName)] ?? {},
+        ),
+      ),
     );
 
     return {
       workspacePath,
       panelsPath,
-      entries: entries.sort((left, right) =>
-        left.title.localeCompare(right.title),
-      ),
+      entries: entries.sort(this.comparePanelApps),
     };
   };
 
@@ -102,11 +117,36 @@ export class PanelAppManager {
     }
   };
 
+  updatePanelAppPreferences = async (
+    id: string,
+    preferences: PanelAppPreferencesUpdate,
+  ): Promise<PanelAppEntry> => {
+    const fileName = await this.resolvePanelAppFileName(id);
+    const panelsPath = this.getPanelsPath(this.getWorkspacePath());
+    const state = await this.createStateStore(panelsPath).updatePreferences(
+      this.encodePanelAppId(fileName),
+      preferences,
+    );
+    return await this.buildPanelAppEntry(panelsPath, fileName, state);
+  };
+
+  recordPanelAppOpened = async (id: string): Promise<PanelAppEntry> => {
+    const fileName = await this.resolvePanelAppFileName(id);
+    const panelsPath = this.getPanelsPath(this.getWorkspacePath());
+    const state = await this.createStateStore(panelsPath).recordOpened(
+      this.encodePanelAppId(fileName),
+    );
+    return await this.buildPanelAppEntry(panelsPath, fileName, state);
+  };
+
   private getWorkspacePath = (): string =>
     getWorkspacePathFromConfig(this.params.configManager.config);
 
   private getPanelsPath = (workspacePath: string): string =>
     join(workspacePath, DEFAULT_PANELS_DIR);
+
+  private createStateStore = (panelsPath: string): PanelAppStateStore =>
+    new PanelAppStateStore(panelsPath);
 
   private listPanelAppFileNames = async (panelsPath: string): Promise<string[]> => {
     try {
@@ -128,17 +168,56 @@ export class PanelAppManager {
   private buildPanelAppEntry = async (
     panelsPath: string,
     fileName: string,
+    state: PanelAppStateEntry,
   ): Promise<PanelAppEntry> => {
-    const fileStat = await stat(join(panelsPath, fileName));
+    const filePath = join(panelsPath, fileName);
+    const [fileStat, html] = await Promise.all([
+      stat(filePath),
+      readFile(filePath, "utf8"),
+    ]);
+    const manifest = parsePanelAppManifest(html);
     const id = this.encodePanelAppId(fileName);
-    return {
+    const entry: PanelAppEntry = {
       id,
       fileName,
-      title: this.toPanelAppTitle(fileName),
+      title: manifest.title ?? this.toPanelAppTitle(fileName),
       contentPath: `${PANEL_APP_CONTENT_BASE_PATH}/${encodeURIComponent(id)}/content`,
       updatedAt: fileStat.mtime.toISOString(),
       sizeBytes: fileStat.size,
+      favorite: state.favorite ?? false,
+      openCount: state.openCount ?? 0,
     };
+    if (manifest.description) {
+      entry.description = manifest.description;
+    }
+    if (manifest.icon) {
+      entry.icon = manifest.icon;
+    }
+    if (state.lastOpenedAt) {
+      entry.lastOpenedAt = state.lastOpenedAt;
+    }
+    return entry;
+  };
+
+  private resolvePanelAppFileName = async (id: string): Promise<string> => {
+    const fileName = this.decodePanelAppId(id);
+    const panelsPath = this.getPanelsPath(this.getWorkspacePath());
+    const filePath = join(panelsPath, fileName);
+    try {
+      const fileStat = await stat(filePath);
+      if (fileStat.isFile()) {
+        return fileName;
+      }
+    } catch (error) {
+      if (this.isMissingFileError(error)) {
+        throw new PanelAppError("PANEL_APP_NOT_FOUND", "panel app not found");
+      }
+      throw new PanelAppError(
+        "PANEL_APP_READ_FAILED",
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+    throw new PanelAppError("PANEL_APP_NOT_FOUND", "panel app not found");
   };
 
   private encodePanelAppId = (fileName: string): string =>
@@ -175,6 +254,15 @@ export class PanelAppManager {
       .slice(0, -PANEL_APP_FILE_SUFFIX.length)
       .replace(/[-_]+/g, " ")
       .trim() || fileName;
+
+  private comparePanelApps = (left: PanelAppEntry, right: PanelAppEntry): number =>
+    Number(right.favorite) - Number(left.favorite) ||
+    this.compareIsoDesc(left.lastOpenedAt, right.lastOpenedAt) ||
+    this.compareIsoDesc(left.updatedAt, right.updatedAt) ||
+    left.title.localeCompare(right.title);
+
+  private compareIsoDesc = (left?: string, right?: string): number =>
+    new Date(right ?? 0).getTime() - new Date(left ?? 0).getTime();
 
   private isMissingFileError = (error: unknown): boolean =>
     typeof error === "object" &&

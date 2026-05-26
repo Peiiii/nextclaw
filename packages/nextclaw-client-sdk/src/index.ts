@@ -115,3 +115,4 @@ export type {
 export type { NcpSessionSummary } from "@nextclaw/ncp";
 export type { UpdatePreferences, UpdateSnapshot } from "@nextclaw/shared";
 export type ChannelConfigUpdate = Record<string, unknown>;
+export type PanelAppPreferencesUpdateView = { favorite?: boolean };

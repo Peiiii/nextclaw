@@ -355,15 +355,24 @@ export type PanelAppEntryView = {
   id: string;
   fileName: string;
   title: string;
+  description?: string;
+  icon?: string;
   contentPath: string;
   updatedAt: string;
   sizeBytes: number;
+  favorite: boolean;
+  lastOpenedAt?: string;
+  openCount: number;
 };
 
 export type PanelAppListView = {
   workspacePath: string;
   panelsPath: string;
   entries: PanelAppEntryView[];
+};
+
+export type PanelAppPreferencesUpdateView = {
+  favorite?: boolean;
 };
 
 export type {

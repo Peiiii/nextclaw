@@ -8,6 +8,17 @@ import { t } from '@/shared/lib/i18n';
 export const PANEL_APPS_LIST_TAB_KIND = 'panel-apps';
 export const PANEL_APP_TAB_KIND = 'panel-app';
 const PANEL_APPS_LIST_URL = 'nextclaw://panel-apps';
+const PANEL_APP_IFRAME_SANDBOX = [
+  'allow-same-origin',
+  'allow-scripts',
+  'allow-forms',
+  'allow-modals',
+  'allow-popups',
+  'allow-popups-to-escape-sandbox',
+  'allow-downloads',
+  'allow-pointer-lock',
+  'allow-presentation',
+].join(' ');
 
 export function openPanelApps(docBrowser: Pick<DocBrowserContextValue, 'open'>): void {
   docBrowser.open(PANEL_APPS_LIST_URL, {
@@ -32,7 +43,7 @@ export const PANEL_APPS_DOC_BROWSER_RENDERERS: DocBrowserCustomTabRenderers = {
     ),
   },
   [PANEL_APP_TAB_KIND]: {
-    getIframeSandbox: () => 'allow-scripts allow-forms',
+    getIframeSandbox: () => PANEL_APP_IFRAME_SANDBOX,
     getTitle: (tab) => tab.title || t('panelAppsTitle'),
     renderIcon: () => <AppWindow className="w-4 h-4 text-primary shrink-0" />,
     renderToolbar: ({ open, refreshIframe }) => (

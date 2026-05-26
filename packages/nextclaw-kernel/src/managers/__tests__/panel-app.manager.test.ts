@@ -92,6 +92,58 @@ describe("PanelAppManager", () => {
     });
   });
 
+  it("reads lightweight manifest metadata from panel app HTML", async () => {
+    const workspacePath = createTempDir();
+    const panelsPath = join(workspacePath, "panels");
+    mkdirSync(panelsPath, { recursive: true });
+    writeFileSync(
+      join(panelsPath, "tomato.panel.html"),
+      [
+        "<!doctype html>",
+        "<html><head>",
+        "<title>Fallback Tomato</title>",
+        "<meta name=\"nextclaw-panel-title\" content=\"番茄便签\">",
+        "<meta name=\"nextclaw-panel-description\" content=\"轻量番茄钟和任务清单\">",
+        "<meta name=\"nextclaw-panel-icon\" content=\"🍅\">",
+        "</head><body></body></html>",
+      ].join(""),
+    );
+
+    const [entry] = (await createPanelAppManager(workspacePath).listPanelApps()).entries;
+
+    expect(entry).toEqual(expect.objectContaining({
+      title: "番茄便签",
+      description: "轻量番茄钟和任务清单",
+      icon: "🍅",
+    }));
+  });
+
+  it("persists favorite and open state for launcher sorting", async () => {
+    const workspacePath = createTempDir();
+    const panelsPath = join(workspacePath, "panels");
+    mkdirSync(panelsPath, { recursive: true });
+    writeFileSync(join(panelsPath, "alpha.panel.html"), "<h1>Alpha</h1>");
+    writeFileSync(join(panelsPath, "zed.panel.html"), "<h1>Zed</h1>");
+    const manager = createPanelAppManager(workspacePath);
+    const zed = (await manager.listPanelApps()).entries.find((entry) =>
+      entry.fileName === "zed.panel.html"
+    );
+
+    expect(zed).toBeDefined();
+    await manager.updatePanelAppPreferences(zed?.id ?? "", { favorite: true });
+    const opened = await manager.recordPanelAppOpened(zed?.id ?? "");
+    const refreshed = await manager.listPanelApps();
+
+    expect(opened.favorite).toBe(true);
+    expect(opened.openCount).toBe(1);
+    expect(opened.lastOpenedAt).toEqual(expect.any(String));
+    expect(refreshed.entries[0]).toEqual(expect.objectContaining({
+      fileName: "zed.panel.html",
+      favorite: true,
+      openCount: 1,
+    }));
+  });
+
   it("rejects invalid ids before reading from disk", async () => {
     const workspacePath = createTempDir();
     const manager = createPanelAppManager(workspacePath);

@@ -27,6 +27,20 @@ function createTestApp(panelAppManager: UiKernelHost["panelAppManager"]) {
   });
 }
 
+function createPanelAppEntry(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "demo",
+    fileName: "demo.panel.html",
+    title: "demo",
+    contentPath: "/api/panel-apps/demo/content",
+    updatedAt: "2026-05-26T00:00:00.000Z",
+    sizeBytes: 12,
+    favorite: false,
+    openCount: 0,
+    ...overrides,
+  };
+}
+
 afterEach(() => {
   while (tempDirs.length > 0) {
     const dir = tempDirs.pop();
@@ -42,14 +56,7 @@ describe("panel apps routes", () => {
       listPanelApps: async () => ({
         workspacePath: "/tmp/workspace",
         panelsPath: "/tmp/workspace/panels",
-        entries: [{
-          id: "demo",
-          fileName: "demo.panel.html",
-          title: "demo",
-          contentPath: "/api/panel-apps/demo/content",
-          updatedAt: "2026-05-26T00:00:00.000Z",
-          sizeBytes: 12,
-        }],
+        entries: [createPanelAppEntry()],
       }),
       getPanelAppContent: async () => {
         throw new Error("not used");
@@ -88,6 +95,71 @@ describe("panel apps routes", () => {
     expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(await response.text()).toBe("<!doctype html><h1>Demo</h1>");
+  });
+
+  it("updates panel app preferences through the manager", async () => {
+    const app = createTestApp({
+      listPanelApps: async () => ({
+        workspacePath: "",
+        panelsPath: "",
+        entries: [],
+      }),
+      getPanelAppContent: async () => {
+        throw new Error("not used");
+      },
+      updatePanelAppPreferences: async (id: string, preferences: { favorite?: boolean }) =>
+        createPanelAppEntry({ id, favorite: preferences.favorite }),
+      recordPanelAppOpened: async () => {
+        throw new Error("not used");
+      },
+    } as never);
+
+    const response = await app.request("http://localhost/api/panel-apps/demo/preferences", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ favorite: true }),
+    });
+    const payload = await response.json() as {
+      ok: true;
+      data: { favorite: boolean };
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.data.favorite).toBe(true);
+  });
+
+  it("records panel app opens through the manager", async () => {
+    const app = createTestApp({
+      listPanelApps: async () => ({
+        workspacePath: "",
+        panelsPath: "",
+        entries: [],
+      }),
+      getPanelAppContent: async () => {
+        throw new Error("not used");
+      },
+      updatePanelAppPreferences: async () => {
+        throw new Error("not used");
+      },
+      recordPanelAppOpened: async (id: string) =>
+        createPanelAppEntry({
+          id,
+          lastOpenedAt: "2026-05-27T10:00:00.000Z",
+          openCount: 1,
+        }),
+    } as never);
+
+    const response = await app.request("http://localhost/api/panel-apps/demo/open", {
+      method: "POST",
+    });
+    const payload = await response.json() as {
+      ok: true;
+      data: { lastOpenedAt: string; openCount: number };
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.data.openCount).toBe(1);
+    expect(payload.data.lastOpenedAt).toBe("2026-05-27T10:00:00.000Z");
   });
 
   it("maps panel app manager errors to route errors", async () => {

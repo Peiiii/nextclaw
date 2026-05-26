@@ -39,6 +39,10 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       }),
       getPanelAppContent: async () =>
         unavailable("panelAppManager.getPanelAppContent"),
+      updatePanelAppPreferences: async () =>
+        unavailable("panelAppManager.updatePanelAppPreferences"),
+      recordPanelAppOpened: async () =>
+        unavailable("panelAppManager.recordPanelAppOpened"),
     } as never,
     ...overrides,
   };

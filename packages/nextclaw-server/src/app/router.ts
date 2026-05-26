@@ -58,7 +58,7 @@ function createUiRouteControllers(
 }
 
 type UiRouteControllers = ReturnType<typeof createUiRouteControllers>;
-type HttpMethod = "delete" | "get" | "post" | "put";
+type HttpMethod = "delete" | "get" | "patch" | "post" | "put";
 type RouteDefinition = readonly [HttpMethod, string, Handler];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -216,6 +216,8 @@ class UiRouteRegistry {
       ["get", "/api/ncp/sessions/:sessionId/skills", ncpSession.getSessionSkills],
       ["delete", "/api/ncp/sessions/:sessionId", ncpSession.deleteSession],
       ["get", "/api/panel-apps", panelApps.list],
+      ["patch", "/api/panel-apps/:id/preferences", panelApps.updatePanelAppPreferences],
+      ["post", "/api/panel-apps/:id/open", panelApps.recordPanelAppOpened],
       ["get", "/api/panel-apps/:id/content", panelApps.getPanelAppContent],
       ["get", "/api/server-paths/browse", serverPath.browse],
       ["get", "/api/server-paths/read", serverPath.read],
