@@ -96,7 +96,7 @@ export class InputBudgetPruner {
   }): InputBudgetPruneState => {
     const contextTokens = this.resolveContextTokens(params.contextTokens);
     return {
-      work: params.messages.map(cloneMessage),
+      work: params.messages.map((message) => structuredClone(message)),
       contextTokens,
       budgetTokens: this.resolveBudgetTokens(params),
       droppedHistoryCount: 0,
@@ -128,19 +128,76 @@ export class InputBudgetPruner {
 
   private prepareStateForBudget = (state: InputBudgetPruneState): void => {
     this.truncateToolResults(state);
-    this.dropInvalidToolHistory(state);
+    this.dropOrphanToolResults(state);
   };
 
-  private dropInvalidToolHistory = (state: InputBudgetPruneState): void => {
-    const normalized = sanitizeHistoricalToolProtocol(state.work);
-    state.droppedHistoryCount += state.work.length - normalized.length;
-    state.work.splice(0, state.work.length, ...normalized);
+  private pruneToolPairsUntilWithinBudget = (state: InputBudgetPruneState): void => {
+    while (estimateTokens(state.work) > state.budgetTokens) {
+      const assistantIndex = state.work.findIndex(hasToolCalls);
+      if (assistantIndex < 0) {
+        break;
+      }
+      this.removeAssistantToolProtocol(state, assistantIndex);
+    }
   };
 
   private dropOldHistoryUntilWithinBudget = (state: InputBudgetPruneState): void => {
+    this.pruneToolPairsUntilWithinBudget(state);
     while (estimateTokens(state.work) > state.budgetTokens && state.work.length > 2) {
       state.work.splice(1, 1);
       state.droppedHistoryCount += 1;
+    }
+    this.dropOrphanToolResults(state);
+  };
+
+  private removeAssistantToolProtocol = (state: InputBudgetPruneState, index: number): void => {
+    const toolCallIds = getToolCallIds(state.work[index]);
+    for (let resultIndex = state.work.length - 1; resultIndex >= 0; resultIndex -= 1) {
+      const resultToolCallId = readToolCallId(state.work[resultIndex]);
+      if (resultToolCallId && toolCallIds.includes(resultToolCallId)) {
+        state.work.splice(resultIndex, 1);
+        state.droppedHistoryCount += 1;
+      }
+    }
+    const assistant = stripAssistantToolCallFields(state.work[index]);
+    if (hasRenderableContent(assistant.content)) {
+      state.work[index] = assistant;
+    } else {
+      state.work.splice(index, 1);
+      state.droppedHistoryCount += 1;
+    }
+  };
+
+  private dropOrphanToolResults = (state: InputBudgetPruneState): void => {
+    const toolCallIds = new Set(state.work.flatMap(getToolCallIds));
+    const toolResultIds = new Set<string>();
+    for (let index = state.work.length - 1; index >= 0; index -= 1) {
+      const toolCallId = readToolCallId(state.work[index]);
+      if (state.work[index].role === "tool" && (!toolCallId || !toolCallIds.has(toolCallId))) {
+        state.work.splice(index, 1);
+        state.droppedHistoryCount += 1;
+        continue;
+      }
+      if (toolCallId) {
+        toolResultIds.add(toolCallId);
+      }
+    }
+
+    for (let index = state.work.length - 1; index >= 0; index -= 1) {
+      const missingToolCallIds = getToolCallIds(state.work[index]).filter((id) => !toolResultIds.has(id));
+      if (missingToolCallIds.length === 0) {
+        continue;
+      }
+      state.work.splice(
+        index + 1,
+        0,
+        ...missingToolCallIds.map((toolCallId) => ({
+          role: "tool",
+          tool_call_id: toolCallId,
+          content: "[Tool execution was interrupted before a result was recorded.]"
+        }))
+      );
+      missingToolCallIds.forEach((toolCallId) => toolResultIds.add(toolCallId));
     }
   };
 
@@ -198,101 +255,26 @@ export class InputBudgetPruner {
     softThresholdTokens?: number;
   }): number => {
     const contextTokens = this.resolveContextTokens(params.contextTokens);
-    const reserveTokens = sanitizeNonNegativeInt(params.reserveTokensFloor) ?? DEFAULT_RESERVE_TOKENS_FLOOR;
-    const softThreshold = sanitizeNonNegativeInt(params.softThresholdTokens) ?? DEFAULT_SOFT_THRESHOLD_TOKENS;
+    const reserveTokens = sanitizeInt(params.reserveTokensFloor, 0) ?? DEFAULT_RESERVE_TOKENS_FLOOR;
+    const softThreshold = sanitizeInt(params.softThresholdTokens, 0) ?? DEFAULT_SOFT_THRESHOLD_TOKENS;
     return Math.max(1, contextTokens - reserveTokens - softThreshold);
   };
 
   private resolveContextTokens = (value: number | null | undefined): number => {
-    return sanitizePositiveInt(value) ?? DEFAULT_CONTEXT_TOKENS;
+    return sanitizeInt(value, 1) ?? DEFAULT_CONTEXT_TOKENS;
   };
 }
 
-function sanitizePositiveInt(value: unknown): number | null {
+function sanitizeInt(value: unknown, min: number): number | null {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return null;
   }
   const normalized = Math.floor(value);
-  return normalized > 0 ? normalized : null;
-}
-
-function sanitizeNonNegativeInt(value: unknown): number | null {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return null;
-  }
-  const normalized = Math.floor(value);
-  return normalized >= 0 ? normalized : null;
-}
-
-function cloneMessage(message: RuntimeMessage): RuntimeMessage {
-  const cloned: RuntimeMessage = {};
-  for (const [key, value] of Object.entries(message)) {
-    cloned[key] = deepCloneValue(value);
-  }
-  return cloned;
-}
-
-function deepCloneValue(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => deepCloneValue(item));
-  }
-  if (value && typeof value === "object") {
-    const cloned: Record<string, unknown> = {};
-    for (const [key, nested] of Object.entries(value)) {
-      cloned[key] = deepCloneValue(nested);
-    }
-    return cloned;
-  }
-  return value;
-}
-
-function sanitizeHistoricalToolProtocol(messages: RuntimeMessage[]): RuntimeMessage[] {
-  const activeToolChainStart = findActiveToolChainStart(messages);
-  const sanitized: RuntimeMessage[] = [];
-
-  for (let index = 0; index < messages.length; index += 1) {
-    const message = messages[index];
-    if (activeToolChainStart >= 0 && index >= activeToolChainStart) {
-      sanitized.push(message);
-      continue;
-    }
-
-    if (message.role === "tool") {
-      continue;
-    }
-
-    if (message.role === "assistant" && hasToolCalls(message)) {
-      const stripped = stripAssistantToolCallFields(message);
-      if (hasRenderableContent(stripped.content)) {
-        sanitized.push(stripped);
-      }
-      continue;
-    }
-
-    sanitized.push(message);
-  }
-
-  return sanitized;
-}
-
-function findActiveToolChainStart(messages: RuntimeMessage[]): number {
-  let index = messages.length - 1;
-  while (index >= 0 && messages[index].role === "tool") {
-    index -= 1;
-  }
-  if (index < 0) {
-    return -1;
-  }
-  const candidate = messages[index];
-  if (candidate.role === "assistant" && hasToolCalls(candidate)) {
-    return index;
-  }
-  return -1;
+  return normalized >= min ? normalized : null;
 }
 
 function hasToolCalls(message: RuntimeMessage): boolean {
-  const toolCalls = message.tool_calls;
-  return Array.isArray(toolCalls) && toolCalls.length > 0;
+  return getToolCallIds(message).length > 0;
 }
 
 function stripAssistantToolCallFields(message: RuntimeMessage): RuntimeMessage {
@@ -306,11 +288,27 @@ function stripAssistantToolCallFields(message: RuntimeMessage): RuntimeMessage {
   return stripped;
 }
 
-function hasRenderableContent(content: unknown): boolean {
-  if (typeof content === "string") {
-    return content.trim().length > 0;
+function getToolCallIds(message: RuntimeMessage): string[] {
+  const toolCalls = message.tool_calls;
+  if (!Array.isArray(toolCalls)) {
+    return [];
   }
-  return estimateChars(content) > 0;
+  return toolCalls.flatMap((toolCall) => {
+    if (!toolCall || typeof toolCall !== "object" || Array.isArray(toolCall)) {
+      return [];
+    }
+    const id = (toolCall as { id?: unknown }).id;
+    return typeof id === "string" && id.length > 0 ? [id] : [];
+  });
+}
+
+function readToolCallId(message: RuntimeMessage): string | null {
+  const id = message.tool_call_id;
+  return typeof id === "string" && id.length > 0 ? id : null;
+}
+
+function hasRenderableContent(content: unknown): boolean {
+  return typeof content === "string" ? content.trim().length > 0 : estimateChars(content) > 0;
 }
 
 function estimateTokens(messages: RuntimeMessage[]): number {
