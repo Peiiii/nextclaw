@@ -16,7 +16,7 @@ import {
 import { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
 import { LearningLoopContribution } from "@kernel/contributions/learning-loop/index.js";
 import { SessionActivityPreviewContribution } from "@kernel/contributions/session-activity-preview/index.js";
-import { ToolContribution } from "@kernel/contributions/tool-contribution/index.js";
+import { ToolProviderContribution } from "@kernel/contributions/tool-provider/index.js";
 import type { AgentRuntimeSessionTypeDescribeParams } from "@kernel/features/runtime-registry/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
@@ -116,6 +116,7 @@ export class NextclawKernel {
   readonly ncpSessionManager: NcpSessionManager;
   readonly extensions: ExtensionManager;
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
+  private readonly kernelBranch: KernelBranch;
   private readonly agentRunContribution: AgentRunContribution;
   private readonly contributions: KernelContribution[];
   private gatewayController: GatewayController | undefined;
@@ -187,9 +188,10 @@ export class NextclawKernel {
         ingress: this.ingress,
       }),
     });
-    this.agentRunContribution = new KernelBranch(this);
+    this.kernelBranch = new KernelBranch(this);
+    this.agentRunContribution = this.kernelBranch;
     this.contributions = [
-      new ToolContribution(this),
+      new ToolProviderContribution(this, this.kernelBranch),
       new SessionActivityPreviewContribution(this),
       new LearningLoopContribution(this),
       this.agentRunContribution,
