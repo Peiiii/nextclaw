@@ -6,6 +6,7 @@ import type { UiTheme } from '@/shared/lib/theme';
 import {
   BookOpen,
   ChevronRight,
+  AppWindow,
   Languages,
   Palette,
   Settings,
@@ -29,6 +30,7 @@ type ChatSidebarUtilityMenuProps = {
   languageOptions: ChatSidebarUtilityOption<I18nLanguage>[];
   onSelectLanguage: (language: I18nLanguage) => void;
   onOpenDocs: () => void;
+  onOpenPanelApps: () => void;
 };
 
 export function ChatSidebarUtilityMenu({
@@ -43,9 +45,15 @@ export function ChatSidebarUtilityMenu({
   languageOptions,
   onSelectLanguage,
   onOpenDocs,
+  onOpenPanelApps,
 }: ChatSidebarUtilityMenuProps) {
   const handleOpenDocs = () => {
     onOpenDocs();
+    onOpenChange(false);
+  };
+
+  const handleOpenPanelApps = () => {
+    onOpenPanelApps();
     onOpenChange(false);
   };
 
@@ -81,6 +89,14 @@ export function ChatSidebarUtilityMenu({
           >
             <BookOpen className="h-4 w-4 text-gray-400" />
             <span className="flex-1 text-left">{t('docBrowserHelp')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenPanelApps}
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-gray-700 transition-colors hover:bg-gray-100"
+          >
+            <AppWindow className="h-4 w-4 text-gray-400" />
+            <span className="flex-1 text-left">{t('panelAppsTitle')}</span>
           </button>
         </div>
 

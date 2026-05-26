@@ -9,6 +9,7 @@ import { useI18n } from "@/app/components/i18n-provider";
 import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
 import { DesktopAppShell, getDesktopHostPlatform } from "@/platforms/desktop";
 import { MobileAppShell } from "@/platforms/mobile";
+import { PANEL_APPS_DOC_BROWSER_RENDERERS } from "@/features/panel-apps";
 import { resolveUiDocumentTitle } from "@/shared/lib/ui-document-title";
 
 interface AppLayoutProps {
@@ -29,14 +30,14 @@ function AppLayoutInner({ children }: AppLayoutProps) {
 
   if (isMobile && desktopHostPlatform !== "win32") {
     return (
-      <MobileAppShell pathname={pathname} isDocBrowserOpen={isOpen} topbarLeadingInset={desktopHostPlatform === "darwin" ? "4.75rem" : undefined}>
+      <MobileAppShell pathname={pathname} isDocBrowserOpen={isOpen} docBrowserRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} topbarLeadingInset={desktopHostPlatform === "darwin" ? "4.75rem" : undefined}>
         {children}
       </MobileAppShell>
     );
   }
 
   return (
-    <DesktopAppShell pathname={pathname} isMobileLayout={isMobile} isDocBrowserOpen={isOpen} docBrowserMode={mode}>
+    <DesktopAppShell pathname={pathname} isMobileLayout={isMobile} isDocBrowserOpen={isOpen} docBrowserMode={mode} docBrowserRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS}>
       {children}
     </DesktopAppShell>
   );

@@ -72,6 +72,8 @@ export type {
   MarketplaceSkillContentView,
   MarketplaceSort,
   NcpSessionSkillsView,
+  PanelAppEntryView,
+  PanelAppListView,
   ProviderAuthImportResult,
   ProviderAuthPollRequest,
   ProviderAuthPollResult,

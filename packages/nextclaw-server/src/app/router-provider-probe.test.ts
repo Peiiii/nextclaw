@@ -43,6 +43,16 @@ describe("provider connection probe route", () => {
         isSessionRunning: () => false,
         listSessionTypes: async () => ({ defaultType: "native", options: [] }),
         ncpSessionManager: {} as never,
+        panelAppManager: {
+          listPanelApps: async () => ({
+            workspacePath: "",
+            panelsPath: "",
+            entries: [],
+          }),
+          getPanelAppContent: async () => {
+            throw new Error("not used");
+          },
+        } as never,
         llmProviders: {
           testConnection: testConnectionMock,
         } as unknown as LlmProviderManager,

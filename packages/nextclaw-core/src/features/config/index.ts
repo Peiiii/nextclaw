@@ -2,6 +2,7 @@ export * from "./configs/brand.js";
 export * from "./configs/actions.js";
 export * from "./configs/agent-profiles.js";
 export * from "./configs/loader.js";
+export * from "./configs/panels.config.js";
 export * from "./configs/provider-runtime-resolution.js";
 export * from "./configs/reload.js";
 export * from "./configs/redact.js";

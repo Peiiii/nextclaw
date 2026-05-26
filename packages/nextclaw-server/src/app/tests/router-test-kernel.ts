@@ -31,6 +31,15 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       deleteSession: async () => undefined,
       getContextWindow: async () => null,
     } as never,
+    panelAppManager: {
+      listPanelApps: async () => ({
+        workspacePath: "",
+        panelsPath: "",
+        entries: [],
+      }),
+      getPanelAppContent: async () =>
+        unavailable("panelAppManager.getPanelAppContent"),
+    } as never,
     ...overrides,
   };
 }

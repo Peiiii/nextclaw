@@ -351,6 +351,21 @@ export type ServerPathBrowseView = {
 
 export type ServerPathReadView = { requestedPath: string; resolvedPath: string; kind: "text" | "markdown" | "binary"; sizeBytes: number; truncated: boolean; text?: string; languageHint?: string | null };
 
+export type PanelAppEntryView = {
+  id: string;
+  fileName: string;
+  title: string;
+  contentPath: string;
+  updatedAt: string;
+  sizeBytes: number;
+};
+
+export type PanelAppListView = {
+  workspacePath: string;
+  panelsPath: string;
+  entries: PanelAppEntryView[];
+};
+
 export type {
   ChatSessionTypeCtaView,
   ChatSessionTypeOptionView,

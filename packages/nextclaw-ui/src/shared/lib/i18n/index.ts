@@ -13,6 +13,7 @@ import {
   type I18nLanguage
 } from './runtime/i18n-language-owner';
 import { DESKTOP_UPDATE_LABELS } from './desktop-update-labels.utils';
+import { DOC_BROWSER_LABELS } from './runtime/doc-browser-labels.utils';
 import { MARKETPLACE_LABELS } from './marketplace';
 import { PATH_PICKER_LABELS } from './runtime/i18n.path-picker';
 import { PWA_LABELS } from './pwa';
@@ -476,18 +477,7 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   enterTag: { zh: '输入后按回车...', en: 'Type and press Enter...' },
   headerName: { zh: 'Header 名称', en: 'Header Name' },
   headerValue: { zh: 'Header 值', en: 'Header Value' },
-  // Doc Browser
-  docBrowserTitle: { zh: '内嵌浏览器', en: 'Embedded Browser' },
-  docBrowserSearchPlaceholder: { zh: '搜索，也可以输入文档地址直接打开', en: 'Search, or enter a doc URL to open' },
-  docBrowserUrlPlaceholder: { zh: '输入文档路径，如 /guide/channels', en: 'Enter a doc path, e.g. /guide/channels' },
-  docBrowserOpenExternal: { zh: '文档中心打开', en: 'Open in Docs' },
-  docBrowserFloatMode: { zh: '悬浮窗口', en: 'Float Window' },
-  docBrowserDockMode: { zh: '固定到侧栏', en: 'Dock to Sidebar' },
-  docBrowserClose: { zh: '关闭', en: 'Close' },
-  docBrowserHelp: { zh: '帮助文档', en: 'Help Docs' },
-  docBrowserNewTab: { zh: '新建标签', en: 'New Tab' },
-  docBrowserCloseTab: { zh: '关闭标签', en: 'Close Tab' },
-  docBrowserTabUntitled: { zh: '未命名', en: 'Untitled' },
+  ...DOC_BROWSER_LABELS,
   ...PATH_PICKER_LABELS,
   ...PWA_LABELS,
   ...CHANNEL_AUTH_LABELS,

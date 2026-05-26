@@ -9,6 +9,7 @@ export * from "@kernel/managers/extension.manager.js";
 export * from "@kernel/managers/ncp-session.manager.js";
 export * from "@kernel/managers/llm-usage.manager.js";
 export * from "@kernel/managers/mcp.manager.js";
+export * from "@kernel/managers/panel-app.manager.js";
 export * from "@kernel/stores/llm-usage.store.js";
 export * from "@kernel/stores/ncp-agent-session-journal.store.js";
 export { readLearningLoopRuntimeConfig } from "@kernel/contributions/learning-loop/config.js";

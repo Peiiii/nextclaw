@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { APP_NAME, DEFAULT_SKILLS_DIR } from "@nextclaw/core";
+import { APP_NAME, DEFAULT_PANELS_DIR, DEFAULT_SKILLS_DIR } from "@nextclaw/core";
 
 export class WorkspaceManager {
   private readonly pkgRoot = resolve(
@@ -51,18 +51,23 @@ export class WorkspaceManager {
       }
     }
 
-    const memoryDir = join(workspace, "memory");
-    if (!existsSync(memoryDir)) {
-      mkdirSync(memoryDir, { recursive: true });
-      created.push(join("memory", ""));
-    }
-
-    const skillsDir = join(workspace, DEFAULT_SKILLS_DIR);
-    if (!existsSync(skillsDir)) {
-      mkdirSync(skillsDir, { recursive: true });
-      created.push(join(DEFAULT_SKILLS_DIR, ""));
-    }
+    this.ensureWorkspaceDir(workspace, "memory", created);
+    this.ensureWorkspaceDir(workspace, DEFAULT_SKILLS_DIR, created);
+    this.ensureWorkspaceDir(workspace, DEFAULT_PANELS_DIR, created);
     return { created };
+  };
+
+  private readonly ensureWorkspaceDir = (
+    workspace: string,
+    dirName: string,
+    created: string[],
+  ): void => {
+    const dir = join(workspace, dirName);
+    if (existsSync(dir)) {
+      return;
+    }
+    mkdirSync(dir, { recursive: true });
+    created.push(join(dirName, ""));
   };
 
   private readonly resolveTemplateDir = (): string | null => {

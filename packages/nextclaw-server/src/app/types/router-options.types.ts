@@ -37,7 +37,14 @@ export type UiExtensionHost = {
 
 export type UiKernelHost = Pick<
   NextclawKernel,
-  "assetStore" | "eventBus" | "ingress" | "isSessionRunning" | "listSessionTypes" | "llmProviders" | "ncpSessionManager"
+  | "assetStore"
+  | "eventBus"
+  | "ingress"
+  | "isSessionRunning"
+  | "listSessionTypes"
+  | "llmProviders"
+  | "ncpSessionManager"
+  | "panelAppManager"
 >;
 
 export type UiCronHost = {

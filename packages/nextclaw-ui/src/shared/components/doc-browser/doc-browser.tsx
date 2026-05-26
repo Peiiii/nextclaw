@@ -1,22 +1,22 @@
 import { useState, useRef, useCallback, useEffect, type CSSProperties } from 'react';
-import { DOCS_DEFAULT_BASE_URL, isDocsUrl, useDocBrowser } from './doc-browser-context';
+import {
+  DOCS_DEFAULT_BASE_URL,
+  useDocBrowser,
+} from './doc-browser-context';
+import type { DocBrowserCustomTabRenderers } from './doc-browser-renderer.types';
+import {
+  DocBrowserDocsToolbar,
+  DocBrowserExternalLink,
+  DocBrowserFrameContent,
+  DocBrowserPanelHeader,
+} from './doc-browser-panel-parts';
+import { DocBrowserTabStrip } from './doc-browser-tab-strip';
 import { ResizableRightPanel } from '@/shared/components/resizable-right-panel/resizable-right-panel';
 import { cn } from '@/shared/lib/utils';
-import { t } from '@/shared/lib/i18n';
-import {
-  ArrowLeft,
-  ArrowRight,
-  X,
-  ExternalLink,
-  PanelRightOpen,
-  Maximize2,
-  GripVertical,
-  Search,
-  BookOpen,
-  Plus,
-} from 'lucide-react';
+import { GripVertical } from 'lucide-react';
 
 type DocBrowserProps = {
+  customTabRenderers?: DocBrowserCustomTabRenderers;
   displayMode?: 'desktop' | 'fullscreen';
 };
 
@@ -46,7 +46,10 @@ function getPanelStyle(params: {
   };
 }
 
-export function DocBrowser({ displayMode = 'desktop' }: DocBrowserProps) {
+export function DocBrowser({
+  customTabRenderers = {},
+  displayMode = 'desktop',
+}: DocBrowserProps) {
   const {
     isOpen,
     mode,
@@ -67,6 +70,7 @@ export function DocBrowser({ displayMode = 'desktop' }: DocBrowserProps) {
   const [urlInput, setUrlInput] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
+  const [iframeReloadVersion, setIframeReloadVersion] = useState(0);
   const [floatPos, setFloatPos] = useState(() => ({
     x: Math.max(40, window.innerWidth - 520),
     y: 80,
@@ -232,148 +236,73 @@ export function DocBrowser({ displayMode = 'desktop' }: DocBrowserProps) {
     window.addEventListener('mouseup', onUp);
   }, [floatSize.w, floatPos.x]);
 
+  const refreshIframe = useCallback(() => {
+    setIframeReloadVersion((version) => version + 1);
+  }, []);
+
   if (!isOpen) return null;
 
   const isDocked = mode === 'docked';
   const isFullscreen = displayMode === 'fullscreen';
+  const customRenderer = currentTab ? customTabRenderers[currentTab.kind] : undefined;
+  const customRenderParams = currentTab ? {
+    currentUrl,
+    open,
+    refreshIframe,
+    tab: currentTab,
+  } : undefined;
+  const customToolbar = customRenderParams ? customRenderer?.renderToolbar?.(customRenderParams) : null;
+  const customContent = customRenderParams ? customRenderer?.renderContent?.(customRenderParams) : null;
+  const iframeSandbox = currentTab
+    ? customRenderer?.getIframeSandbox?.(currentTab) ?? 'allow-same-origin allow-scripts allow-popups allow-forms'
+    : 'allow-same-origin allow-scripts allow-popups allow-forms';
 
   const panelContent = (
     <>
-      <div
-        className={cn(
-          'flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200 shrink-0 select-none',
-          !isDocked && !isFullscreen && 'cursor-grab active:cursor-grabbing',
-          isFullscreen && 'pt-[calc(env(safe-area-inset-top,0px)+0.625rem)]',
-        )}
-        onMouseDown={!isDocked && !isFullscreen ? onDragStart : undefined}
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <BookOpen className="w-4 h-4 text-primary shrink-0" />
-          <span className="text-sm font-semibold text-gray-900 truncate">{t('docBrowserTitle')}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          {!isFullscreen ? (
-            <button
-              onClick={toggleMode}
-              className="hover:bg-gray-200 rounded-md p-1.5 text-gray-500 hover:text-gray-700 transition-colors"
-              title={isDocked ? t('docBrowserFloatMode') : t('docBrowserDockMode')}
-            >
-              {isDocked ? <Maximize2 className="w-3.5 h-3.5" /> : <PanelRightOpen className="w-3.5 h-3.5" />}
-            </button>
-          ) : null}
-          <button
-            onClick={close}
-            className="hover:bg-gray-200 rounded-md p-1.5 text-gray-500 hover:text-gray-700 transition-colors"
-            title={t('docBrowserClose')}
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+      <DocBrowserPanelHeader
+        currentTab={currentTab}
+        customRenderer={customRenderer}
+        isDocked={isDocked}
+        isFullscreen={isFullscreen}
+        onClose={close}
+        onDragStart={onDragStart}
+        onToggleMode={toggleMode}
+      />
 
-      <div className="flex items-center gap-1.5 px-2.5 py-2 bg-background border-b border-[#f1e7d4] overflow-x-auto custom-scrollbar">
-        {tabs.map((tab) => {
-          const isActive = tab.id === activeTabId;
-          return (
-            <div
-              key={tab.id}
-              className={cn(
-                'inline-flex items-center gap-1 h-7 px-1.5 rounded-lg text-xs border max-w-[220px] shrink-0 transition-colors',
-                isActive
-                  ? 'bg-amber-50/80 border-amber-200 text-amber-900 shadow-[0_1px_2px_rgba(30,20,10,0.04)]'
-                  : 'bg-[#f9f8f5] border-[#eee3d1] text-[#78644d] hover:bg-[#fff7ea] hover:text-[#2f2212]'
-              )}
-            >
-              <button
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className="truncate text-left px-1"
-                title={tab.title}
-              >
-                {tab.title || t('docBrowserTabUntitled')}
-              </button>
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  closeTab(tab.id);
-                }}
-                className="rounded p-0.5 hover:bg-black/10"
-                aria-label={t('docBrowserCloseTab')}
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          );
-        })}
-        <button
-          onClick={() => open(undefined, { kind: 'docs', newTab: true, title: 'Docs' })}
-          className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-[#eee3d1] bg-white text-[#78644d] hover:bg-[#fff7ea] hover:text-[#2f2212] shrink-0"
-          title={t('docBrowserNewTab')}
-        >
-          <Plus className="w-3.5 h-3.5" />
-        </button>
-      </div>
+      <DocBrowserTabStrip
+        tabs={tabs}
+        activeTabId={activeTabId}
+        onOpenDocs={() => open(undefined, { kind: 'docs', newTab: true, title: 'Docs' })}
+        onSetActiveTab={setActiveTab}
+        onCloseTab={closeTab}
+      />
 
-      {isDocsTab && (
-        <div className="flex items-center gap-2 px-3.5 py-2 bg-white border-b border-gray-100 shrink-0">
-          <button
-            onClick={goBack}
-            disabled={!isDocsTab || (currentTab?.historyIndex ?? 0) <= 0}
-            className="p-1.5 rounded-md hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <button
-            onClick={goForward}
-            disabled={!isDocsTab || (currentTab?.historyIndex ?? 0) >= (currentTab?.history.length ?? 0) - 1}
-            className="p-1.5 rounded-md hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600 transition-colors"
-          >
-            <ArrowRight className="w-4 h-4" />
-          </button>
+      <DocBrowserDocsToolbar
+        currentTab={currentTab}
+        isDocsTab={isDocsTab}
+        onBack={goBack}
+        onForward={goForward}
+        onSubmit={handleUrlSubmit}
+        onUrlInputChange={setUrlInput}
+        urlInput={urlInput}
+      />
 
-          <form onSubmit={handleUrlSubmit} className="flex-1 relative">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              placeholder={t('docBrowserSearchPlaceholder')}
-              className="w-full h-8 pl-8 pr-3 rounded-lg bg-gray-50 border border-gray-200 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 transition-colors placeholder:text-gray-400"
-            />
-          </form>
-        </div>
-      )}
+      {customToolbar}
 
-      <div className="flex-1 relative overflow-hidden">
-        <iframe
-          ref={iframeRef}
-          key={`${activeTabId}:${navVersion}`}
-          src={currentUrl}
-          className="absolute inset-0 w-full h-full border-0"
-          title={currentTab?.title || 'NextClaw Docs'}
-          sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-          allow="clipboard-read; clipboard-write"
-        />
-        {(isResizing || isDragging) && (
-          <div className="absolute inset-0 z-10" />
-        )}
-      </div>
+      <DocBrowserFrameContent
+        activeTabId={activeTabId}
+        currentTab={currentTab}
+        currentUrl={currentUrl}
+        customContent={customContent}
+        iframeRef={iframeRef}
+        iframeReloadVersion={iframeReloadVersion}
+        iframeSandbox={iframeSandbox}
+        isDragging={isDragging}
+        isResizing={isResizing}
+        navVersion={navVersion}
+      />
 
-      {isDocsTab && isDocsUrl(currentUrl) && (
-        <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-t border-gray-200 shrink-0">
-          <a
-            href={currentUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-doc-external
-            className="flex items-center gap-1.5 text-xs text-primary hover:text-primary-hover font-medium transition-colors"
-          >
-            {t('docBrowserOpenExternal')}
-            <ExternalLink className="w-3 h-3" />
-          </a>
-        </div>
-      )}
+      <DocBrowserExternalLink currentUrl={currentUrl} isDocsTab={isDocsTab} />
     </>
   );
 

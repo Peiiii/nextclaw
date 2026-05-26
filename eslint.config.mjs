@@ -53,6 +53,10 @@ const testFiles = [
   "workers/**/{__tests__,tests}/**/*.{ts,tsx,mts,cts}"
 ];
 const uiComponentFiles = [
+  "packages/nextclaw-ui/src/app/**/*.tsx",
+  "packages/nextclaw-ui/src/features/**/*.tsx",
+  "packages/nextclaw-ui/src/platforms/**/*.tsx",
+  "packages/nextclaw-ui/src/shared/**/*.tsx",
   "packages/nextclaw-ui/src/components/**/*.tsx",
   "packages/nextclaw-ui/src/App.tsx",
   "packages/nextclaw-agent-chat-ui/src/components/**/*.tsx"

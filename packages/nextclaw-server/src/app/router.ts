@@ -25,6 +25,7 @@ import {
 import { RemoteRoutesController } from "@nextclaw-server/features/remote-access/index.js";
 import { RuntimeControlRoutesController } from "@nextclaw-server/features/runtime-control/index.js";
 import { RuntimeUpdateRoutesController } from "@nextclaw-server/features/runtime-update/index.js";
+import { PanelAppsRoutesController } from "@nextclaw-server/features/panel-apps/index.js";
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import { createNcpSessionEventStreamResponse } from "@nextclaw-server/app/utils/ncp-session-event-stream.utils.js";
 import { ServerPathRoutesController } from "@nextclaw-server/features/server-path/index.js";
@@ -46,6 +47,7 @@ function createUiRouteControllers(
     cron: new CronRoutesController(options),
     ncpSession: new NcpSessionRoutesController(options),
     ncpAsset: new NcpAssetRoutesController(options),
+    panelApps: new PanelAppsRoutesController(options.kernel.panelAppManager),
     serverPath: new ServerPathRoutesController(),
     remote: remoteAccess ? new RemoteRoutesController(remoteAccess) : null,
     runtimeControl: runtimeControl ? new RuntimeControlRoutesController(runtimeControl) : null,
@@ -161,6 +163,7 @@ class UiRouteRegistry {
       cron,
       ncpAsset,
       ncpSession,
+      panelApps,
       remote,
       runtimeControl,
       runtimeUpdate,
@@ -212,6 +215,8 @@ class UiRouteRegistry {
       ["get", "/api/ncp/sessions/:sessionId/messages", ncpSession.listSessionMessages],
       ["get", "/api/ncp/sessions/:sessionId/skills", ncpSession.getSessionSkills],
       ["delete", "/api/ncp/sessions/:sessionId", ncpSession.deleteSession],
+      ["get", "/api/panel-apps", panelApps.list],
+      ["get", "/api/panel-apps/:id/content", panelApps.getPanelAppContent],
       ["get", "/api/server-paths/browse", serverPath.browse],
       ["get", "/api/server-paths/read", serverPath.read],
     ]);

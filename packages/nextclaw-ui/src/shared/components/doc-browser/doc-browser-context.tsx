@@ -14,7 +14,7 @@ export const DOCS_DEFAULT_BASE_URL = `https://${DOCS_PRIMARY_DOMAIN}`;
 const DOCS_DEFAULT_GUIDE_PATH = '/guide/getting-started';
 
 export type DocBrowserMode = 'floating' | 'docked';
-export type DocBrowserTabKind = 'docs' | 'content';
+export type DocBrowserTabKind = 'docs' | 'content' | (string & {});
 
 export type DocBrowserTab = {
   id: string;
@@ -55,7 +55,7 @@ interface DocBrowserActions {
   setActiveTab: (tabId: string) => void;
 }
 
-type DocBrowserContextValue = DocBrowserState & DocBrowserActions & {
+export type DocBrowserContextValue = DocBrowserState & DocBrowserActions & {
   currentTab?: DocBrowserTab;
 };
 
@@ -224,15 +224,15 @@ function resolveOpenTargetUrl(params: {
   kind: DocBrowserTabKind;
   activeTab?: DocBrowserTab;
 }): string {
-  if (params.url && params.url.trim().length > 0) {
-    return normalizeUrlByKind(params.url, params.kind);
+  const { activeTab, kind, url } = params;
+  if (url && url.trim().length > 0) {
+    return normalizeUrlByKind(url, kind);
   }
 
-  if (params.kind === 'docs') {
+  if (kind === 'docs') {
     return getDefaultDocsUrl();
   }
-
-  return params.activeTab?.currentUrl ?? getDefaultDocsUrl();
+  return activeTab?.currentUrl ?? getDefaultDocsUrl();
 }
 
 function openDocBrowserState(

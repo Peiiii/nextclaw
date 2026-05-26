@@ -9,6 +9,7 @@ import { ChannelAuthService } from "./services/channel-auth.service.js";
 import { ConfigService } from "./services/config.service.js";
 import { MarketplaceService } from "./services/marketplace.service.js";
 import { McpMarketplaceService } from "./services/mcp-marketplace.service.js";
+import { PanelAppsClientService } from "./services/panel-apps.service.js";
 import { RealtimeService } from "./services/realtime.service.js";
 import { RemoteService } from "./services/remote.service.js";
 import { RequestService } from "./services/request.service.js";
@@ -27,6 +28,7 @@ export class NextClawClient {
   readonly eventBus: EventBus;
   readonly marketplace: MarketplaceService;
   readonly mcpMarketplace: McpMarketplaceService;
+  readonly panelApps: PanelAppsClientService;
   readonly realtime: RealtimeService;
   readonly remote: RemoteService;
   readonly runtimeControl: RuntimeControlService;
@@ -66,6 +68,7 @@ export class NextClawClient {
     this.config = new ConfigService(requestService);
     this.marketplace = new MarketplaceService(requestService);
     this.mcpMarketplace = new McpMarketplaceService(requestService);
+    this.panelApps = new PanelAppsClientService(requestService);
     this.remote = new RemoteService(requestService);
     this.runtimeControl = new RuntimeControlService(requestService);
     this.runtimeUpdate = new RuntimeUpdateService(requestService);
