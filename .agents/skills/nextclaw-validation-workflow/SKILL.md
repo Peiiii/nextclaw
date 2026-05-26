@@ -43,6 +43,7 @@ Source code, scripts, tests, or runtime-path config:
   - the unrelated existing package-level errors that still block full lint.
 - Governance commands do not replace ESLint. `pnpm lint:new-code:governance` catches repository governance rules, but it is not a substitute for `@typescript-eslint` / ESLint checks.
 - Cross-workspace package import boundary changes must pass `pnpm lint:new-code:package-public-imports` directly or through `pnpm lint:new-code:governance`.
+- Agent execution path changes must keep live code on the NCP agent-run main chain. `pnpm lint:new-code:governance` performs a live-code scan and fails if `AgentLoop`, `NativeAgentEngine`, `runtimePool`, `GatewayAgentRuntimePool`, or `processDirect(...)` reappears under `packages/`, `apps/`, or `workers/`.
 - Do not commit code after touching source files unless package-level lint passed, or targeted ESLint for all touched files passed and the full package lint failure is explicitly identified as unrelated existing debt.
 
 User-visible or runnable behavior:

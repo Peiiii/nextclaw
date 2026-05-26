@@ -5,7 +5,7 @@ import {
 import {
   AgentRunClient,
   dispatchPromptOverNcp,
-  type LlmProviderRuntime,
+  type DirectPromptDispatchParams,
   type NextclawKernel,
 } from "@nextclaw/kernel";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -15,19 +15,11 @@ import type { AgentCommandOptions } from "@nextclaw-service/shared/types/cli.typ
 import { printAgentResponse, prompt } from "@nextclaw-service/shared/utils/cli.utils.js";
 
 const EXIT_COMMANDS = new Set(["exit", "quit", "/exit", "/quit", ":q"]);
-
-function buildCliSharedMetadata(
-  opts: Pick<AgentCommandOptions, "model">,
-): Record<string, unknown> {
-  return typeof opts.model === "string" && opts.model.trim()
-    ? { model: opts.model.trim() }
-    : {};
-}
+type CliPromptParams = Pick<DirectPromptDispatchParams, "agentRunClient" | "config" | "content" | "metadata" | "sessionKey">;
 
 function createCliHistoryInterface() {
   const historyFile = join(getDataDir(), "history", "cli_history");
-  const historyDir = resolve(historyFile, "..");
-  mkdirSync(historyDir, { recursive: true });
+  mkdirSync(resolve(historyFile, ".."), { recursive: true });
 
   const history = existsSync(historyFile)
     ? readFileSync(historyFile, "utf-8").split("\n").filter(Boolean)
@@ -47,6 +39,18 @@ function createCliHistoryInterface() {
   return rl;
 }
 
+async function sendCliPrompt(params: CliPromptParams): Promise<boolean> {
+  try {
+    const response = await dispatchPromptOverNcp(params);
+    printAgentResponse(response);
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error ?? "Unknown error");
+    console.error(`Error: ${message.trim() || "Unknown error"}`);
+    return false;
+  }
+}
+
 async function runCliInteractiveLoop(params: {
   logo: string;
   config: Config;
@@ -58,8 +62,7 @@ async function runCliInteractiveLoop(params: {
   console.log(`${logo} Interactive mode (type exit or Ctrl+C to quit)\n`);
   const rl = createCliHistoryInterface();
 
-  let running = true;
-  while (running) {
+  while (true) {
     const line = await prompt(rl, "You: ");
     const trimmed = line.trim();
     if (!trimmed) {
@@ -67,17 +70,15 @@ async function runCliInteractiveLoop(params: {
     }
     if (EXIT_COMMANDS.has(trimmed.toLowerCase())) {
       rl.close();
-      running = false;
       break;
     }
-    const response = await dispatchPromptOverNcp({
+    await sendCliPrompt({
       config,
       agentRunClient,
       sessionKey,
       content: trimmed,
       metadata,
     });
-    printAgentResponse(response);
   }
 }
 
@@ -86,7 +87,6 @@ export async function runCliAgentCommand(params: {
   opts: AgentCommandOptions;
   config: Config;
   kernel: NextclawKernel;
-  providerManager: LlmProviderRuntime;
 }): Promise<void> {
   const {
     config,
@@ -103,17 +103,21 @@ export async function runCliAgentCommand(params: {
       ingress: kernel.ingress,
     });
     const sessionKey = opts.session ?? "cli:default";
-    const sharedMetadata = buildCliSharedMetadata(opts);
+    const sharedMetadata = typeof opts.model === "string" && opts.model.trim()
+      ? { model: opts.model.trim() }
+      : {};
 
     if (opts.message) {
-      const response = await dispatchPromptOverNcp({
+      const success = await sendCliPrompt({
         config,
         agentRunClient,
         sessionKey,
         content: opts.message,
         metadata: sharedMetadata,
       });
-      printAgentResponse(response);
+      if (!success) {
+        process.exitCode = 1;
+      }
       return;
     }
 

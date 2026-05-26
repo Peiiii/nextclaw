@@ -438,17 +438,11 @@ export class NextclawServiceRuntime {
     });
     const config = kernel.configManager.config;
 
-    const providerManager = kernel.llmUsage.observeProviderManager(
-      kernel.llmProviders,
-      "cli-agent",
-    );
-
     await runCliAgentCommand({
       logo: this.logo,
       opts,
       config,
       kernel,
-      providerManager,
     });
   };
 
