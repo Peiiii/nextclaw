@@ -50,7 +50,6 @@ type ExtensionLoadParams = {
 
 function createEmptyExtensionRegistry(): ExtensionRegistry {
   return {
-    tools: [],
     channels: [],
     diagnostics: [],
   };

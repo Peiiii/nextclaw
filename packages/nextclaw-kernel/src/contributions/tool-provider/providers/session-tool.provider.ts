@@ -1,24 +1,26 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
-import type {
-  ToolProvider,
-  ToolRegistrationContext,
-  ToolRunContext,
-} from "@kernel/managers/tool.manager.js";
+import type { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
+import type { AgentRunRequest, ToolProvider } from "@kernel/features/agent-run/index.js";
+import { resolveToolProviderRunContext } from "@kernel/contributions/tool-provider/utils/tool-provider-run-context.utils.js";
 import { SessionsHistoryTool, SessionsListTool } from "@kernel/tools/session-history.tools.js";
 import { SessionRequestTool } from "@kernel/tools/session-request.tools.js";
 import { SessionSearchTool } from "@kernel/tools/session-search.tools.js";
 import { SessionSpawnTool } from "@kernel/tools/session-spawn.tools.js";
+import type { NcpTool } from "@nextclaw/ncp";
 
 export class SessionToolProvider implements ToolProvider {
-  readonly id = "nextclaw-session-tools";
+  constructor(
+    private readonly kernel: NextclawKernel,
+    private readonly branch: KernelBranch,
+  ) {}
 
-  constructor(private readonly kernel: NextclawKernel) {}
-
-  registerTools = (
-    context: ToolRunContext,
-    registry: ToolRegistrationContext,
-  ): void => {
-    const { handoffDepth, metadata, sessionId } = context;
+  provide = async (request: AgentRunRequest): Promise<readonly NcpTool[]> => {
+    const { toolRunContext } = await resolveToolProviderRunContext({
+      branch: this.branch,
+      kernel: this.kernel,
+      request,
+    });
+    const { handoffDepth, metadata, sessionId } = toolRunContext;
     const sessionsSpawnTool = new SessionSpawnTool(
       this.kernel.ncpSessionManager,
       this.kernel.sessionRequests,
@@ -28,26 +30,27 @@ export class SessionToolProvider implements ToolProvider {
       sourceSessionMetadata: metadata,
       handoffDepth,
     });
-    registry.registerTool(sessionsSpawnTool);
 
     const sessionsRequestTool = new SessionRequestTool(this.kernel.sessionRequests);
     sessionsRequestTool.setContext({
       sourceSessionId: sessionId,
       handoffDepth,
     });
-    registry.registerTool(sessionsRequestTool);
-
-    registry.registerTool(new SessionsListTool(this.kernel.ncpSessionManager));
-    registry.registerTool(new SessionsHistoryTool(this.kernel.ncpSessionManager));
-
+    const tools: NcpTool[] = [
+      sessionsSpawnTool,
+      sessionsRequestTool,
+      new SessionsListTool(this.kernel.ncpSessionManager),
+      new SessionsHistoryTool(this.kernel.ncpSessionManager),
+    ];
     if (!this.kernel.sessionSearch.isReady()) {
-      return;
+      return tools;
     }
-    registry.registerNcpTool(
+    tools.push(
       new SessionSearchTool(
         { search: this.kernel.sessionSearch.search },
         { currentSessionId: sessionId },
       ),
     );
+    return tools;
   };
 }

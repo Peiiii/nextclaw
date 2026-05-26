@@ -1,4 +1,4 @@
-import { Tool } from "./base.tools.js";
+import { Tool, normalizeToolParams } from "./base.tools.js";
 import type { SubagentManager } from "@core/features/agent/managers/subagent.manager.js";
 
 export class SubagentsTool extends Tool {
@@ -33,7 +33,8 @@ export class SubagentsTool extends Tool {
     };
   }
 
-  execute = async (params: Record<string, unknown>): Promise<string> => {
+  execute = async (args: unknown): Promise<string> => {
+    const params = normalizeToolParams(args);
     const action = String(params.action ?? "");
     if (action === "list") {
       return this.listRuns(params);

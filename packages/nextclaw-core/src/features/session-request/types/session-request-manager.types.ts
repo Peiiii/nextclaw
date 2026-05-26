@@ -11,7 +11,7 @@ export type UpdateSessionRequestToolCallResult = (
 export type SpawnSessionAndRequestParams = {
   sourceSessionId: string;
   sourceToolCallId?: string;
-  updateToolCallResult: UpdateSessionRequestToolCallResult;
+  updateToolCallResult?: UpdateSessionRequestToolCallResult;
   sourceSessionMetadata: Record<string, unknown>;
   metadataOverrides?: Record<string, unknown>;
   task: string;
@@ -30,7 +30,7 @@ export type SpawnSessionAndRequestParams = {
 export type RequestSessionParams = {
   sourceSessionId: string;
   sourceToolCallId?: string;
-  updateToolCallResult: UpdateSessionRequestToolCallResult;
+  updateToolCallResult?: UpdateSessionRequestToolCallResult;
   targetSessionId: string;
   task: string;
   title?: string;
@@ -42,7 +42,7 @@ export type DispatchRequestParams = {
   requestId: string;
   sourceSessionId: string;
   sourceToolCallId?: string;
-  updateToolCallResult: UpdateSessionRequestToolCallResult;
+  updateToolCallResult?: UpdateSessionRequestToolCallResult;
   targetSessionId: string;
   task: string;
   title: string;
@@ -57,7 +57,7 @@ export type DispatchRequestParams = {
 export type SessionRequestResultContext = {
   task: string;
   title: string;
-  updateToolCallResult: UpdateSessionRequestToolCallResult;
+  updateToolCallResult?: UpdateSessionRequestToolCallResult;
   agentId?: string;
   isChildSession: boolean;
   parentSessionId?: string;

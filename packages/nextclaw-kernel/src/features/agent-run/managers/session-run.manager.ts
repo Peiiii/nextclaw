@@ -5,6 +5,10 @@ import {
   type NcpEndpointEvent,
   type NcpMessage,
 } from "@nextclaw/ncp";
+import {
+  eventKeys,
+  type EventBus,
+} from "@nextclaw/shared";
 import { DefaultNcpAgentConversationStateManager } from "@nextclaw/ncp-toolkit";
 import type { SessionRepository } from "@kernel/features/agent-run/repositories/session.repository.js";
 
@@ -15,6 +19,11 @@ export type SessionRunSnapshot = {
 export type SessionRunSeed = {
   sessionId: string;
   messages: readonly NcpMessage[];
+};
+
+export type SessionRunEventPublishMeta = {
+  emittedAt?: string;
+  source: string;
 };
 
 export type SessionRunActiveRun = {
@@ -48,6 +57,7 @@ export class SessionRun {
 
   constructor(
     seed: SessionRunSeed,
+    private readonly eventBus?: EventBus,
     private readonly stateManager: NcpAgentConversationStateManager = new DefaultNcpAgentConversationStateManager(),
   ) {
     this.sessionId = seed.sessionId;
@@ -69,6 +79,19 @@ export class SessionRun {
     const conversationEvents = events.filter(isConversationStateEvent);
     if (conversationEvents.length > 0) {
       await this.stateManager.dispatchBatch(conversationEvents);
+    }
+  };
+
+  applyAndPublishEvents = async (
+    events: readonly NcpEndpointEvent[],
+    meta: SessionRunEventPublishMeta,
+  ): Promise<void> => {
+    await this.applyEvents(events);
+    for (const event of events) {
+      this.eventBus?.emit(eventKeys.ncpEvent, event, {
+        emittedAt: meta.emittedAt ?? new Date().toISOString(),
+        source: meta.source,
+      });
     }
   };
 
@@ -125,7 +148,10 @@ export class SessionRun {
 export class SessionRunManager {
   private readonly runs = new Map<string, SessionRun>();
 
-  constructor(private readonly sessionRepository: SessionRepository) {}
+  constructor(
+    private readonly sessionRepository: SessionRepository,
+    private readonly eventBus?: EventBus,
+  ) {}
 
   getSessionRun = (sessionId: string): SessionRun | null =>
     this.runs.get(sessionId) ?? null;
@@ -141,7 +167,7 @@ export class SessionRunManager {
       messages,
       sessionId,
     };
-    const run = new SessionRun(seed);
+    const run = new SessionRun(seed, this.eventBus);
     this.runs.set(sessionId, run);
     return run;
   };

@@ -1,5 +1,5 @@
-import { Tool } from "@nextclaw/core";
-import type { NcpMessage, NcpSessionSummary } from "@nextclaw/ncp";
+import { normalizeToolParams } from "@nextclaw/core";
+import type { NcpMessage, NcpSessionSummary, NcpTool } from "@nextclaw/ncp";
 import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
 
 const DEFAULT_LIMIT = 20;
@@ -49,31 +49,22 @@ function sessionLabel(summary: NcpSessionSummary): string | undefined {
   return readString(summary.metadata?.label) ?? readString(summary.metadata?.session_label);
 }
 
-export class SessionsListTool extends Tool {
-  constructor(private readonly sessions: NcpSessionManager) {
-    super();
-  }
+export class SessionsListTool implements NcpTool {
+  readonly name = "sessions_list";
+  readonly description = "List available sessions with timestamps.";
+  readonly parameters = {
+    type: "object",
+    properties: {
+      sessionKey: { type: "string", description: "Only include the exact session key" },
+      limit: { type: "integer", minimum: 1, description: "Maximum number of sessions to return" },
+      messageLimit: { type: "integer", minimum: 0, description: "Include last N messages (max 20)" },
+    },
+  };
 
-  get name(): string {
-    return "sessions_list";
-  }
+  constructor(private readonly sessions: NcpSessionManager) {}
 
-  get description(): string {
-    return "List available sessions with timestamps.";
-  }
-
-  get parameters(): Record<string, unknown> {
-    return {
-      type: "object",
-      properties: {
-        sessionKey: { type: "string", description: "Only include the exact session key" },
-        limit: { type: "integer", minimum: 1, description: "Maximum number of sessions to return" },
-        messageLimit: { type: "integer", minimum: 0, description: "Include last N messages (max 20)" },
-      },
-    };
-  }
-
-  execute = async (params: Record<string, unknown>): Promise<string> => {
+  execute = async (args: unknown): Promise<string> => {
+    const params = normalizeToolParams(args);
     const { limit, messageLimit, sessionKey } = params;
     const exactSessionKey = readString(sessionKey);
     const summaries = exactSessionKey
@@ -106,32 +97,23 @@ export class SessionsListTool extends Tool {
   };
 }
 
-export class SessionsHistoryTool extends Tool {
-  constructor(private readonly sessions: NcpSessionManager) {
-    super();
-  }
+export class SessionsHistoryTool implements NcpTool {
+  readonly name = "sessions_history";
+  readonly description = "Fetch recent messages from a session";
+  readonly parameters = {
+    type: "object",
+    properties: {
+      sessionKey: { type: "string", description: "Session id" },
+      limit: { type: "integer", minimum: 1, description: "Maximum number of messages to return" },
+      includeTools: { type: "boolean", description: "Include tool messages" },
+    },
+    required: ["sessionKey"],
+  };
 
-  get name(): string {
-    return "sessions_history";
-  }
+  constructor(private readonly sessions: NcpSessionManager) {}
 
-  get description(): string {
-    return "Fetch recent messages from a session";
-  }
-
-  get parameters(): Record<string, unknown> {
-    return {
-      type: "object",
-      properties: {
-        sessionKey: { type: "string", description: "Session id" },
-        limit: { type: "integer", minimum: 1, description: "Maximum number of messages to return" },
-        includeTools: { type: "boolean", description: "Include tool messages" },
-      },
-      required: ["sessionKey"],
-    };
-  }
-
-  execute = async (params: Record<string, unknown>): Promise<string> => {
+  execute = async (args: unknown): Promise<string> => {
+    const params = normalizeToolParams(args);
     const { includeTools, limit, sessionKey: rawSessionKey } = params;
     const sessionKey = readString(rawSessionKey);
     if (!sessionKey) return "Error: sessionKey is required";

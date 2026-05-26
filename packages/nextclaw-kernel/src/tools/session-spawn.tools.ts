@@ -1,8 +1,9 @@
 import {
-  Tool,
+  normalizeToolParams,
   type SessionRequestNotifyMode,
   type ToolExecutionContext,
 } from "@nextclaw/core";
+import type { NcpTool } from "@nextclaw/ncp";
 import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
 import type { SessionRequestManager } from "@kernel/features/session-request/index.js";
 
@@ -45,7 +46,47 @@ function readSpawnNotify(value: unknown): SessionRequestNotifyMode | undefined {
   throw new Error('notify must be "none" or "final_reply".');
 }
 
-export class SessionSpawnTool extends Tool {
+export class SessionSpawnTool implements NcpTool {
+  readonly name = "sessions_spawn";
+  readonly description =
+    "Create a new session. Use scope=\"child\" to create a child session of the current flow, and add notify when the new session should start immediately.";
+  readonly parameters = {
+    type: "object",
+    properties: {
+      task: {
+        type: "string",
+        description: "Seed text used to title the new session. If notify is provided, this same task is also sent as the first request to that new session.",
+      },
+      scope: {
+        type: "string",
+        enum: ["standalone", "child"],
+        description: "Whether the new session should be a standalone thread or a child session of the current session.",
+      },
+      title: {
+        type: "string",
+        description: "Optional explicit session title.",
+      },
+      model: {
+        type: "string",
+        description: "Optional model override for the new session.",
+      },
+      runtime: {
+        type: "string",
+        description: "Optional runtime override for the new session, for example native or codex.",
+      },
+      agentId: {
+        type: "string",
+        description: "Optional target agent id for the new session. Omit to use the default agent.",
+      },
+      notify: {
+        type: "string",
+        enum: ["none", "final_reply"],
+        description: "Optional. Starts the new session immediately. Use \"final_reply\" to continue this session after the new session reaches its final reply, or \"none\" to let it run independently.",
+      },
+    },
+    required: ["task"],
+    additionalProperties: false,
+  };
   private sourceSessionId = "";
   private sourceSessionMetadata: Record<string, unknown> = {};
   private handoffDepth = 0;
@@ -53,57 +94,7 @@ export class SessionSpawnTool extends Tool {
   constructor(
     private readonly ncpSessionManager: NcpSessionManager,
     private readonly sessionRequestManager: SessionRequestManager,
-  ) {
-    super();
-  }
-
-  get name(): string {
-    return "sessions_spawn";
-  }
-
-  get description(): string {
-    return "Create a new session. Use scope=\"child\" to create a child session of the current flow, and add notify when the new session should start immediately.";
-  }
-
-  get parameters(): Record<string, unknown> {
-    return {
-      type: "object",
-      properties: {
-        task: {
-          type: "string",
-          description: "Seed text used to title the new session. If notify is provided, this same task is also sent as the first request to that new session.",
-        },
-        scope: {
-          type: "string",
-          enum: ["standalone", "child"],
-          description: "Whether the new session should be a standalone thread or a child session of the current session.",
-        },
-        title: {
-          type: "string",
-          description: "Optional explicit session title.",
-        },
-        model: {
-          type: "string",
-          description: "Optional model override for the new session.",
-        },
-        runtime: {
-          type: "string",
-          description: "Optional runtime override for the new session, for example native or codex.",
-        },
-        agentId: {
-          type: "string",
-          description: "Optional target agent id for the new session. Omit to use the default agent.",
-        },
-        notify: {
-          type: "string",
-          enum: ["none", "final_reply"],
-          description: "Optional. Starts the new session immediately. Use \"final_reply\" to continue this session after the new session reaches its final reply, or \"none\" to let it run independently.",
-        },
-      },
-      required: ["task"],
-      additionalProperties: false,
-    };
-  }
+  ) {}
 
   setContext = (params: {
     sourceSessionId: string;
@@ -115,7 +106,8 @@ export class SessionSpawnTool extends Tool {
     this.handoffDepth = params.handoffDepth ?? 0;
   };
 
-  execute = async (params: Record<string, unknown>, context: ToolExecutionContext): Promise<unknown> => {
+  execute = async (args: unknown, context?: ToolExecutionContext): Promise<unknown> => {
+    const params = normalizeToolParams(args);
     const {
       agentId: rawAgentId,
       model: rawModel,
@@ -129,13 +121,12 @@ export class SessionSpawnTool extends Tool {
     const scope = readSpawnScope(rawScope);
     const notify = readSpawnNotify(rawNotify);
     const parentSessionId = scope === "child" ? this.readParentSessionIdOrThrow() : undefined;
-    const { toolCallId, updateToolCallResult } = context;
 
     if (notify) {
       return this.sessionRequestManager.spawnSessionAndRequest({
         sourceSessionId: this.sourceSessionId,
-        ...(toolCallId ? { sourceToolCallId: toolCallId } : {}),
-        updateToolCallResult,
+        sourceToolCallId: context?.toolCallId,
+        updateToolCallResult: context?.updateToolCallResult,
         sourceSessionMetadata: this.sourceSessionMetadata,
         task,
         title: readOptionalString(rawTitle),
@@ -143,7 +134,7 @@ export class SessionSpawnTool extends Tool {
         model: readOptionalString(rawModel),
         runtime: readOptionalString(rawRuntime),
         handoffDepth: this.handoffDepth,
-        ...(parentSessionId ? { parentSessionId } : {}),
+        parentSessionId,
         notify,
       });
     }
@@ -156,14 +147,14 @@ export class SessionSpawnTool extends Tool {
       agentId: readOptionalString(rawAgentId),
       model: readOptionalString(rawModel),
       runtime: readOptionalString(rawRuntime),
-      ...(parentSessionId ? { parentSessionId } : {}),
+      parentSessionId,
     });
 
     return {
       kind: "nextclaw.session",
       sessionId: session.sessionId,
-      ...(session.agentId ? { agentId: session.agentId } : {}),
-      ...(session.parentSessionId ? { parentSessionId: session.parentSessionId } : {}),
+      agentId: session.agentId,
+      parentSessionId: session.parentSessionId,
       isChildSession: Boolean(session.parentSessionId),
       lifecycle: session.lifecycle,
       title: session.title,

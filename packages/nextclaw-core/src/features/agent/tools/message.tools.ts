@@ -1,5 +1,5 @@
 import type { OutboundMessage } from "@core/features/bus/index.js";
-import { Tool } from "./base.tools.js";
+import { Tool, normalizeToolParams } from "./base.tools.js";
 
 type MessageToolOptions = {
   resolveChannels?: () => readonly string[];
@@ -71,7 +71,8 @@ export class MessageTool extends Tool {
     return issues;
   };
 
-  override async execute(params: Record<string, unknown>): Promise<string> {
+  override async execute(args: unknown): Promise<string> {
+    const params = normalizeToolParams(args);
     const action = params.action ? String(params.action) : "send";
     if (action !== "send") {
       return `Error: Unsupported action '${action}'`;
@@ -132,11 +133,12 @@ export class MessageTool extends Tool {
   };
 
   private resolveContent = (params: Record<string, unknown>): string | null => {
-    if (typeof params.content === "string" && params.content.trim().length > 0) {
-      return params.content;
+    const { content, message } = params;
+    if (typeof content === "string" && content.trim().length > 0) {
+      return content;
     }
-    if (typeof params.message === "string" && params.message.trim().length > 0) {
-      return params.message;
+    if (typeof message === "string" && message.trim().length > 0) {
+      return message;
     }
     return null;
   };

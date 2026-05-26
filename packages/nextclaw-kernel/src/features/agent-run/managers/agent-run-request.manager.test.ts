@@ -6,7 +6,12 @@ import {
   ingressKeys,
   type AgentRunSendIngressPayload,
 } from "@nextclaw/shared";
-import { NcpEventType, type NcpEndpointEvent, type NcpRunHandle } from "@nextclaw/ncp";
+import {
+  NcpEventType,
+  type NcpEndpointEvent,
+  type NcpRunHandle,
+  type NcpTool,
+} from "@nextclaw/ncp";
 import { AgentRunRequestManager } from "./agent-run-request.manager.js";
 import { SessionRun } from "./session-run.manager.js";
 
@@ -180,6 +185,98 @@ describe("AgentRunRequestManager branch session creation", () => {
       role: "assistant",
       status: "final",
       parts: [{ type: "text", text: "最终回复" }],
+    });
+    manager.dispose();
+  });
+});
+
+describe("AgentRunRequestManager tool context", () => {
+  it("lets the runtime publish asynchronous tool result updates from the tool call context", async () => {
+    const ingress = new Ingress();
+    const eventBus = new EventBus();
+    const sessionRun = new SessionRun({ sessionId: "session-1", messages: [] }, eventBus);
+    const publishedEvents: NcpEndpointEvent[] = [];
+    eventBus.on(eventKeys.ncpEvent, (event) => {
+      publishedEvents.push(event);
+    });
+    const tool: NcpTool = {
+      name: "async_tool",
+      parameters: { type: "object" },
+      execute: async (_args, context) => {
+        await context?.updateToolCallResult?.({ done: true });
+        return { started: true };
+      },
+    };
+    const manager = new AgentRunRequestManager(
+      {
+        getOrCreate: () => ({
+          run: async function* (_spec: unknown, options: {
+            sessionRun: SessionRun;
+            tools: readonly NcpTool[];
+            updateToolCallResult?: unknown;
+          }): AsyncGenerator<NcpEndpointEvent> {
+            expect("updateToolCallResult" in options).toBe(false);
+            await options.tools[0]?.execute({}, {
+              toolCallId: "tool-call-1",
+              updateToolCallResult: async (content) => {
+                await options.sessionRun.applyAndPublishEvents([{
+                  type: NcpEventType.MessageToolCallResult,
+                  payload: {
+                    sessionId: "session-1",
+                    toolCallId: "tool-call-1",
+                    content,
+                  },
+                }], { source: "test-runtime" });
+              },
+            });
+            yield {
+              type: NcpEventType.RunStarted,
+              payload: { sessionId: "session-1", messageId: "assistant-message-1", runId: "run-1" },
+            };
+          },
+        }),
+      } as never,
+      {
+        getDefaultModel: () => "test-model",
+        getModelMaxTokens: () => 12000,
+        loadConfig: () => ({}),
+      } as never,
+      { buildContext: async () => [] } as never,
+      eventBus,
+      ingress,
+      {
+        getOrCreateSession: async () => ({
+          sessionId: "session-1",
+          agentId: "main",
+          agentRuntimeId: "native",
+          metadata: {},
+          model: "test-model",
+          thinkingEffort: null,
+        }),
+      } as never,
+      {
+        getSessionRun: () => null,
+        createSessionRun: async () => sessionRun,
+      } as never,
+      { buildTools: async () => [tool] } as never,
+    );
+    manager.start();
+
+    await ingress.handle<AgentRunSendIngressPayload, NcpRunHandle>({
+      type: ingressKeys.agentRun.send,
+      payload: {
+        content: [{ type: "text", text: "开始" }],
+      },
+    }, { source: "test" });
+    await waitForEvent(publishedEvents, NcpEventType.MessageToolCallResult);
+
+    expect(publishedEvents).toContainEqual({
+      type: NcpEventType.MessageToolCallResult,
+      payload: {
+        sessionId: "session-1",
+        toolCallId: "tool-call-1",
+        content: { done: true },
+      },
     });
     manager.dispose();
   });

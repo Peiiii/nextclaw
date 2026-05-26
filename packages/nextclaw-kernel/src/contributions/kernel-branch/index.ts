@@ -35,7 +35,10 @@ export class KernelBranch implements KernelContribution {
       kernel.llmProviders,
       this.sessionRepository,
     );
-    this.sessionRunManager = new SessionRunManager(this.sessionRepository);
+    this.sessionRunManager = new SessionRunManager(
+      this.sessionRepository,
+      kernel.eventBus,
+    );
     this.agentRunRequestManager = new AgentRunRequestManager(
       this.agentRuntimeManager,
       kernel.configManager,

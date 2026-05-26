@@ -19,7 +19,7 @@ export {
   type ExecuteCollectedToolCallOptions,
 } from "./runtime/utils/tool-call-execution.utils.js";
 export { DefaultNcpStreamEncoder } from "./runtime/stream-encoder.js";
-export { DefaultNcpToolRegistry } from "./runtime/tool-registry.js";
+export { DefaultNcpToolRegistry } from "./runtime/tool-registry.manager.js";
 export { EchoNcpLLMApi } from "./runtime/llm-api-echo.js";
 export { DefaultNcpAgentRuntime } from "./runtime/agent-runtime.service.js";
 export type { DefaultNcpAgentRuntimeConfig } from "./runtime/agent-runtime.service.js";

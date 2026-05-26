@@ -36,14 +36,17 @@ export class KernelContextProvider implements ContextProvider {
       sessionMetadata: session?.metadata ?? requestMetadata,
       storedAgentId: request.agentId ?? session?.agentId,
     });
-    const toolRegistry = this.kernel.toolManager.createRuntimeRegistry({
-      updateToolCallResult: async () => undefined,
-    });
-    toolRegistry.prepareForRun(runContext.toolRunContext);
+    const tools = await this.branch.toolProviderManager.buildTools(request);
 
     return [
       this.buildSystemContextBlock({
-        availableTools: buildToolCatalogEntries(toolRegistry.getToolDefinitions()),
+        availableTools: buildToolCatalogEntries(
+          tools.map((tool) => ({
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.parameters,
+          })),
+        ),
         runContext,
       }),
     ];

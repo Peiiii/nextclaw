@@ -150,7 +150,6 @@ export class LearningLoopContribution implements KernelContribution {
     try {
       const reviewSession = await this.sessionRequester.spawnSessionAndRequest({
         sourceSessionId: sessionId,
-        updateToolCallResult: async () => undefined,
         sourceSessionMetadata: metadata,
         metadataOverrides: {
           requested_skills: LEARNING_LOOP_REQUESTED_SKILLS,

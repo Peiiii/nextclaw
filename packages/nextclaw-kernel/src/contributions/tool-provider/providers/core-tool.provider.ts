@@ -1,9 +1,7 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
-import type {
-  ToolProvider,
-  ToolRegistrationContext,
-  ToolRunContext,
-} from "@kernel/managers/tool.manager.js";
+import type { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
+import type { AgentRunRequest, ToolProvider } from "@kernel/features/agent-run/index.js";
+import { resolveToolProviderRunContext } from "@kernel/contributions/tool-provider/utils/tool-provider-run-context.utils.js";
 import {
   EditFileTool,
   ExecTool,
@@ -16,16 +14,20 @@ import {
   WebSearchTool,
   WriteFileTool,
 } from "@nextclaw/core";
+import type { NcpTool } from "@nextclaw/ncp";
 
 export class CoreToolProvider implements ToolProvider {
-  readonly id = "nextclaw-core-tools";
+  constructor(
+    private readonly kernel: NextclawKernel,
+    private readonly branch: KernelBranch,
+  ) {}
 
-  constructor(private readonly kernel: NextclawKernel) {}
-
-  registerTools = (
-    context: ToolRunContext,
-    registry: ToolRegistrationContext,
-  ): void => {
+  provide = async (request: AgentRunRequest): Promise<readonly NcpTool[]> => {
+    const { toolRunContext } = await resolveToolProviderRunContext({
+      branch: this.branch,
+      kernel: this.kernel,
+      request,
+    });
     const {
       channel,
       chatId,
@@ -34,32 +36,27 @@ export class CoreToolProvider implements ToolProvider {
       searchConfig,
       sessionId,
       workspace,
-    } = context;
+    } = toolRunContext;
     const allowedDir = restrictToWorkspace ? workspace : undefined;
-    registry.registerTool(new ReadFileTool(allowedDir));
-    registry.registerTool(new WriteFileTool(allowedDir));
-    registry.registerTool(new EditFileTool(allowedDir));
-    registry.registerTool(new ListDirTool(allowedDir));
-
     const execTool = new ExecTool({
-      workingDir: workspace,
-      timeout: execTimeoutSeconds,
       restrictToWorkspace,
+      timeout: execTimeoutSeconds,
+      workingDir: workspace,
     });
-    execTool.setContext({
-      sessionKey: sessionId,
-      channel,
-      chatId,
-    });
-    registry.registerTool(execTool);
-
-    registry.registerTool(new WebSearchTool(searchConfig));
-    registry.registerTool(new WebFetchTool());
-    registry.registerTool(new MemorySearchTool(workspace));
-    registry.registerTool(new MemoryGetTool(workspace));
-
+    execTool.setContext({ channel, chatId, sessionKey: sessionId });
     const gatewayTool = new GatewayTool(this.kernel.getGatewayController());
     gatewayTool.setContext({ sessionKey: sessionId });
-    registry.registerTool(gatewayTool);
+    return [
+      new ReadFileTool(allowedDir),
+      new WriteFileTool(allowedDir),
+      new EditFileTool(allowedDir),
+      new ListDirTool(allowedDir),
+      execTool,
+      new WebSearchTool(searchConfig),
+      new WebFetchTool(),
+      new MemorySearchTool(workspace),
+      new MemoryGetTool(workspace),
+      gatewayTool,
+    ];
   };
 }

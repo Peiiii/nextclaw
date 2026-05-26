@@ -172,7 +172,7 @@ Agent 主循环中注册的默认工具（`nextclaw-core` `agent/loop.ts` + `age
 | gateway | 配置与运维：config.get / config.schema / config.apply / config.patch / restart / update.run |
 | cron | 定时任务列表/添加/删除/启用/禁用/立即执行（依赖 cronService） |
 
-Extension 通过 `extensionRegistry.tools` 注册，经 `ExtensionToolAdapter` 暴露为额外工具名。
+Extension 当前只通过 channel contribution 接入；旧的 `extensionRegistry.tools` / `ExtensionToolAdapter` 工具适配链路已删除。
 
 ---
 

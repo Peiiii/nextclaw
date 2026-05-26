@@ -1,4 +1,4 @@
-import { Tool } from "./base.tools.js";
+import { Tool, normalizeToolParams } from "./base.tools.js";
 import type { CronSchedule, CronService } from "@core/features/cron/index.js";
 
 export class CronTool extends Tool {
@@ -84,7 +84,8 @@ export class CronTool extends Tool {
     this.accountId = typeof accountId === "string" && accountId.trim().length > 0 ? accountId : undefined;
   };
 
-  execute = async (params: Record<string, unknown>): Promise<string> => {
+  execute = async (args: unknown): Promise<string> => {
+    const params = normalizeToolParams(args);
     const action = this.readAction(params);
     if (action === "list") {
       return this.handleList(params);
@@ -203,11 +204,12 @@ export class CronTool extends Tool {
   };
 
   private readIncludeDisabled = (params: Record<string, unknown>): boolean => {
-    if (typeof params.enabledOnly === "boolean") {
-      return !params.enabledOnly;
+    const { enabledOnly, includeDisabled } = params;
+    if (typeof enabledOnly === "boolean") {
+      return !enabledOnly;
     }
-    if (typeof params.includeDisabled === "boolean") {
-      return params.includeDisabled;
+    if (typeof includeDisabled === "boolean") {
+      return includeDisabled;
     }
     return true;
   };

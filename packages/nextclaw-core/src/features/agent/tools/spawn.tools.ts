@@ -1,4 +1,9 @@
-import { Tool, type ToolExecutionContext } from "./base.tools.js";
+import {
+  Tool,
+  createToolExecutionContext,
+  normalizeToolParams,
+  type ToolExecutionContext,
+} from "./base.tools.js";
 import type { SubagentManager } from "@core/features/agent/managers/subagent.manager.js";
 
 export class SpawnTool extends Tool {
@@ -46,7 +51,9 @@ export class SpawnTool extends Tool {
     this.agentId = agentId;
   };
 
-  execute = async (params: Record<string, unknown>, context: ToolExecutionContext): Promise<unknown> => {
+  execute = async (args: unknown, context?: ToolExecutionContext): Promise<unknown> => {
+    const params = normalizeToolParams(args);
+    const toolContext = context ?? createToolExecutionContext();
     const { task: taskParam, label: labelParam, model: modelParam } = params;
     const task = String(taskParam ?? "");
     const label = labelParam ? String(labelParam) : undefined;
@@ -60,7 +67,7 @@ export class SpawnTool extends Tool {
       originChatId: this.chatId,
       originSessionKey: this.sessionKey,
       originAgentId: this.agentId,
-      originToolCallId: context.toolCallId || undefined,
+      originToolCallId: toolContext.toolCallId || undefined,
     });
   };
 }

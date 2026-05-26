@@ -8,7 +8,6 @@ import { McpManager } from "@kernel/managers/mcp.manager.js";
 import { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
-import { ToolManager } from "@kernel/managers/tool.manager.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import {
   createAgentRuntimeSessionRequestDispatcher,
@@ -106,7 +105,6 @@ export class NextclawKernel {
   readonly agents: AgentManager;
   readonly sessions: SessionManager;
   readonly control: NextclawKernelControlManager<unknown, unknown, unknown>;
-  readonly toolManager: ToolManager;
   readonly skills: SkillManager;
   readonly automation: AutomationManager;
   readonly channels: ChannelManager;
@@ -147,7 +145,6 @@ export class NextclawKernel {
       unknown,
       unknown
     >();
-    this.toolManager = new ToolManager();
     this.channels = new ChannelManager({
       bus: this.messageBus,
       sessionManager: this.sessions,

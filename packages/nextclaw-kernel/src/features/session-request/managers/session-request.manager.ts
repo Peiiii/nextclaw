@@ -266,7 +266,7 @@ export class SessionRequestManager {
   ): Promise<void> => {
     try {
       const result = await this.runRequest(payload);
-      await payload.resultContext.updateToolCallResult(result);
+      await payload.resultContext.updateToolCallResult?.(result);
     } catch (error) {
       console.error(
         `[session-request] Background request ${payload.request.requestId} crashed: ${

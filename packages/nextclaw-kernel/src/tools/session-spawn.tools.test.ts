@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createToolExecutionContext } from "@nextclaw/core";
+import type { ToolExecutionContext } from "@nextclaw/core";
 import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
 import type { SessionRequestManager } from "@kernel/features/session-request/index.js";
 import { SessionSpawnTool } from "./session-spawn.tools.js";
@@ -31,26 +31,31 @@ describe("SessionSpawnTool", () => {
 
   it("starts child sessions from top-level notify", async () => {
     const { sessionRequestManager, tool } = createTool();
+    const updateToolCallResult = vi.fn(async () => undefined);
+    const context: ToolExecutionContext = {
+      toolCallId: "call-1",
+      updateToolCallResult,
+    };
 
     await tool.execute({
       scope: "child",
       task: "测试一下子代理",
       notify: "final_reply",
-    }, createToolExecutionContext({ toolCallId: "call-1" }));
+    }, context);
 
     expect(sessionRequestManager.spawnSessionAndRequest).toHaveBeenCalledWith(expect.objectContaining({
       parentSessionId: "parent-session",
       notify: "final_reply",
+      sourceToolCallId: "call-1",
       task: "测试一下子代理",
+      updateToolCallResult,
     }));
   });
 
-  it("rejects unknown fields through the canonical schema contract", () => {
+  it("declares the canonical schema without legacy request", () => {
     const { tool } = createTool();
 
-    expect(tool.validateParams({
-      task: "legacy caller",
-      request: { notify: "none" },
-    })).toEqual(["request is not supported"]);
+    expect(tool.parameters).toMatchObject({ additionalProperties: false });
+    expect((tool.parameters.properties as Record<string, unknown>).request).toBeUndefined();
   });
 });

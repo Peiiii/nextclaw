@@ -1,7 +1,7 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { resolve } from "node:path";
-import { Tool } from "./base.tools.js";
+import { Tool, normalizeToolParams } from "./base.tools.js";
 import { createExternalCommandEnv } from "@core/shared/lib/core-utils/index.js";
 
 const execAsync = promisify(exec);
@@ -78,10 +78,11 @@ export class ExecTool extends Tool {
   }
 
   setContext = (context: { sessionKey?: string; channel?: string; chatId?: string }): void => {
+    const { channel, chatId, sessionKey } = context;
     this.context = {
-      sessionKey: typeof context.sessionKey === "string" ? context.sessionKey.trim() || undefined : undefined,
-      channel: typeof context.channel === "string" ? context.channel.trim() || undefined : undefined,
-      chatId: typeof context.chatId === "string" ? context.chatId.trim() || undefined : undefined
+      sessionKey: typeof sessionKey === "string" ? sessionKey.trim() || undefined : undefined,
+      channel: typeof channel === "string" ? channel.trim() || undefined : undefined,
+      chatId: typeof chatId === "string" ? chatId.trim() || undefined : undefined
     };
   };
 
@@ -104,7 +105,8 @@ export class ExecTool extends Tool {
     };
   }
 
-  execute = async (params: Record<string, unknown>): Promise<ExecToolResult> => {
+  execute = async (args: unknown): Promise<ExecToolResult> => {
+    const params = normalizeToolParams(args);
     const command = String(params.command ?? "");
     const cwd = String(params.workingDir ?? this.options.workingDir ?? process.cwd());
     const guardError = this.guardCommand(command, cwd);
@@ -227,10 +229,16 @@ function createBlockedExecResult(params: {
   message: string;
   blockedReason: string;
 }): ExecToolResult {
+  const {
+    blockedReason,
+    command,
+    message,
+    workingDir,
+  } = params;
   return {
     ok: false,
-    command: params.command,
-    workingDir: params.workingDir,
+    command,
+    workingDir,
     exitCode: null,
     errorCode: null,
     signal: null,
@@ -241,9 +249,9 @@ function createBlockedExecResult(params: {
     killed: false,
     stdoutTruncated: false,
     stderrTruncated: false,
-    message: params.message,
+    message,
     blocked: true,
-    blockedReason: params.blockedReason
+    blockedReason
   };
 }
 
@@ -261,23 +269,37 @@ function createExecResult(params: {
   killed: boolean;
   message?: string;
 }): ExecToolResult {
-  const stdout = truncateExecStream(params.stdout);
-  const stderr = truncateExecStream(params.stderr);
+  const {
+    command,
+    durationMs,
+    errorCode,
+    exitCode,
+    killed,
+    message,
+    ok,
+    signal,
+    stderr: rawStderr,
+    stdout: rawStdout,
+    timedOut,
+    workingDir,
+  } = params;
+  const stdout = truncateExecStream(rawStdout);
+  const stderr = truncateExecStream(rawStderr);
   return {
-    ok: params.ok,
-    command: params.command,
-    workingDir: params.workingDir,
-    exitCode: params.exitCode,
-    errorCode: params.errorCode,
-    signal: params.signal,
+    ok,
+    command,
+    workingDir,
+    exitCode,
+    errorCode,
+    signal,
     stdout: stdout.text,
     stderr: stderr.text,
-    durationMs: params.durationMs,
-    timedOut: params.timedOut,
-    killed: params.killed,
+    durationMs,
+    timedOut,
+    killed,
     stdoutTruncated: stdout.truncated,
     stderrTruncated: stderr.truncated,
-    ...(params.message ? { message: params.message } : {})
+    message: message || undefined
   };
 }
 

@@ -32,13 +32,4 @@ export class DefaultNcpToolRegistry implements NcpToolRegistry {
       parameters: t.parameters,
     }));
   };
-
-  execute = async (
-    _toolCallId: string,
-    toolName: string,
-    args: unknown,
-  ): Promise<unknown> => {
-    const tool = this.tools.get(toolName);
-    return tool ? await tool.execute(args) : undefined;
-  };
 }

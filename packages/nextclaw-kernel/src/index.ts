@@ -1,6 +1,5 @@
 export * from "@kernel/app/nextclaw-kernel.js";
 export * from "@kernel/managers/agent.manager.js";
-export * from "@kernel/managers/tool.manager.js";
 export * from "@kernel/managers/skill.manager.js";
 export * from "@kernel/managers/llm-provider.manager.js";
 export * from "@kernel/managers/automation.manager.js";

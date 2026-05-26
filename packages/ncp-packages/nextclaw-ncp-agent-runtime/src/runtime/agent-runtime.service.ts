@@ -134,7 +134,7 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
       const toolResults: NcpToolCallResult[] = [];
       for (const toolCall of roundCollector.getToolCalls()) {
         const toolResult = this.toolResultContentManager.normalizeToolCallResult(
-          await this.executeToolCall(toolCall),
+          await this.executeToolCall(toolCall, ctx),
         );
         toolResults.push(toolResult);
         yield {
@@ -170,12 +170,40 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
   private executeToolCall = async function (
     this: DefaultNcpAgentRuntime,
     toolCall: CollectedToolCall,
+    ctx: NcpEncodeContext,
   ): Promise<NcpToolCallResult> {
     return executeCollectedToolCall({
       toolCall,
       tool: this.toolRegistry.getTool(toolCall.toolName),
-      execute: (_tool, args) =>
-        this.toolRegistry.execute(toolCall.toolCallId, toolCall.toolName, args),
+      execute: async (tool, args) => {
+        const updateToolCallResult = async (updatedResult: unknown): Promise<void> => {
+          const normalized = this.toolResultContentManager.normalizeToolCallResult({
+            toolCallId: toolCall.toolCallId,
+            toolName: toolCall.toolName,
+            args: typeof args === "object" && args !== null && !Array.isArray(args)
+              ? args as Record<string, unknown>
+              : null,
+            rawArgsText: toolCall.args,
+            result: updatedResult,
+          });
+          await this.stateManager.dispatch({
+            type: NcpEventType.MessageToolCallResult,
+            payload: {
+              sessionId: ctx.sessionId,
+              toolCallId: toolCall.toolCallId,
+              content: normalized.result,
+              contentItems: normalized.contentItems,
+              correlationId: ctx.correlationId,
+            },
+          });
+        };
+        return tool
+          ? await tool.execute(args, {
+              toolCallId: toolCall.toolCallId,
+              updateToolCallResult,
+            })
+          : undefined;
+      },
     });
   };
 

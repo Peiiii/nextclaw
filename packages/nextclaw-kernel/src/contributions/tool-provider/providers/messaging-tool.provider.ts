@@ -1,11 +1,10 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
-import type {
-  ToolProvider,
-  ToolRegistrationContext,
-  ToolRunContext,
-} from "@kernel/managers/tool.manager.js";
+import type { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
+import type { AgentRunRequest, ToolProvider } from "@kernel/features/agent-run/index.js";
+import { resolveToolProviderRunContext } from "@kernel/contributions/tool-provider/utils/tool-provider-run-context.utils.js";
 import { normalizeString } from "@kernel/utils/ncp-message-bridge.utils.js";
 import { CronTool, MessageTool } from "@nextclaw/core";
+import type { NcpTool } from "@nextclaw/ncp";
 
 function readMetadataAccountId(metadata: Record<string, unknown>): string | undefined {
   const candidates = [metadata.accountId, metadata.account_id];
@@ -19,26 +18,27 @@ function readMetadataAccountId(metadata: Record<string, unknown>): string | unde
 }
 
 export class MessagingToolProvider implements ToolProvider {
-  readonly id = "nextclaw-messaging-tools";
+  constructor(
+    private readonly kernel: NextclawKernel,
+    private readonly branch: KernelBranch,
+  ) {}
 
-  constructor(private readonly kernel: NextclawKernel) {}
-
-  registerTools = (
-    context: ToolRunContext,
-    registry: ToolRegistrationContext,
-  ): void => {
-    const { channel, chatId, metadata } = context;
+  provide = async (request: AgentRunRequest): Promise<readonly NcpTool[]> => {
+    const { toolRunContext } = await resolveToolProviderRunContext({
+      branch: this.branch,
+      kernel: this.kernel,
+      request,
+    });
+    const { channel, chatId, metadata } = toolRunContext;
     const accountId = readMetadataAccountId(metadata);
     const messageTool = new MessageTool(
       (message) => this.kernel.messageBus.publishOutbound(message),
       { resolveChannels: this.resolveMessageChannels },
     );
     messageTool.setContext(channel, chatId, accountId ?? null);
-    registry.registerTool(messageTool);
-
     const cronTool = new CronTool(this.kernel.automation);
     cronTool.setContext(channel, chatId, accountId ?? null);
-    registry.registerTool(cronTool);
+    return [messageTool, cronTool];
   };
 
   private resolveMessageChannels = (): string[] => {

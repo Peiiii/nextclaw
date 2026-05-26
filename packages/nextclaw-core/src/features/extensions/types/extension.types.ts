@@ -7,37 +7,6 @@ export type ExtensionDiagnostic = {
   source?: string;
 };
 
-export type ExtensionTool = {
-  label?: string;
-  name: string;
-  description?: string;
-  parameters: Record<string, unknown>;
-  execute:
-    | ((toolCallId: string, params: Record<string, unknown>) => Promise<unknown> | unknown)
-    | ((params: Record<string, unknown>) => Promise<unknown> | unknown);
-};
-
-export type ExtensionToolContext = {
-  config?: Config;
-  workspaceDir?: string;
-  sessionKey?: string;
-  channel?: string;
-  chatId?: string;
-  sandboxed?: boolean;
-};
-
-export type ExtensionToolFactory = (
-  ctx: ExtensionToolContext
-) => ExtensionTool | ExtensionTool[] | null | undefined;
-
-export type ExtensionToolRegistration = {
-  extensionId: string;
-  factory: ExtensionToolFactory;
-  names: string[];
-  optional: boolean;
-  source: string;
-};
-
 export type ExtensionChannel = {
   id: string;
   meta?: Record<string, unknown>;
@@ -168,7 +137,6 @@ export type ExtensionChannelRegistration = {
 };
 
 export type ExtensionRegistry = {
-  tools: ExtensionToolRegistration[];
   channels: ExtensionChannelRegistration[];
   diagnostics: ExtensionDiagnostic[];
 };

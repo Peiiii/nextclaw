@@ -1,21 +1,21 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
-import type {
-  ToolProvider,
-  ToolRegistrationContext,
-  ToolRunContext,
-} from "@kernel/managers/tool.manager.js";
+import type { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
+import type { AgentRunRequest, ToolProvider } from "@kernel/features/agent-run/index.js";
+import { resolveToolProviderRunContext } from "@kernel/contributions/tool-provider/utils/tool-provider-run-context.utils.js";
+import type { NcpTool } from "@nextclaw/ncp";
 
 export class McpToolProvider implements ToolProvider {
-  readonly id = "nextclaw-mcp-tools";
+  constructor(
+    private readonly kernel: NextclawKernel,
+    private readonly branch: KernelBranch,
+  ) {}
 
-  constructor(private readonly kernel: NextclawKernel) {}
-
-  registerTools = (
-    context: ToolRunContext,
-    registry: ToolRegistrationContext,
-  ): void => {
-    for (const tool of this.kernel.mcpManager.listToolsForRun({ agentId: context.agentId })) {
-      registry.registerNcpTool(tool);
-    }
+  provide = async (request: AgentRunRequest): Promise<readonly NcpTool[]> => {
+    const { toolRunContext } = await resolveToolProviderRunContext({
+      branch: this.branch,
+      kernel: this.kernel,
+      request,
+    });
+    return this.kernel.mcpManager.listToolsForRun({ agentId: toolRunContext.agentId });
   };
 }

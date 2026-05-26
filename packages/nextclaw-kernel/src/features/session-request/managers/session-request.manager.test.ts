@@ -63,7 +63,6 @@ describe("SessionRequestManager", () => {
     const fixture = createFixture();
     const result = await fixture.manager.spawnSessionAndRequest({
       sourceSessionId: "source-session",
-      updateToolCallResult: async () => undefined,
       sourceSessionMetadata: {},
       task: "Review this",
       notify: "final_reply",
@@ -87,7 +86,6 @@ describe("SessionRequestManager", () => {
     await expect(fixture.manager.requestSession({
       sourceSessionId: "same",
       targetSessionId: "same",
-      updateToolCallResult: async () => undefined,
       task: "loop",
       notify: "none",
     })).rejects.toThrow("sessions_request cannot target the current session");

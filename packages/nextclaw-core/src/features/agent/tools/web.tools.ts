@@ -1,5 +1,5 @@
 import { fetch } from "undici";
-import { Tool } from "./base.tools.js";
+import { Tool, normalizeToolParams } from "./base.tools.js";
 import { APP_USER_AGENT } from "@core/features/config/index.js";
 import type { SearchConfig, SearchProviderName } from "@core/features/config/index.js";
 
@@ -238,7 +238,8 @@ export class WebSearchTool extends Tool {
     };
   }
 
-  execute = async (params: Record<string, unknown>): Promise<string> => {
+  execute = async (args: unknown): Promise<string> => {
+    const params = normalizeToolParams(args);
     const query = String(params.query ?? "");
     const provider = this.config?.provider ?? "bocha";
     const enabledProviders = this.config?.enabledProviders ?? [];
@@ -344,7 +345,8 @@ export class WebFetchTool extends Tool {
     };
   }
 
-  execute = async (params: Record<string, unknown>): Promise<string> => {
+  execute = async (args: unknown): Promise<string> => {
+    const params = normalizeToolParams(args);
     const url = String(params.url ?? "");
     const response = await fetch(url, { headers: { "User-Agent": APP_USER_AGENT } });
     if (!response.ok) {

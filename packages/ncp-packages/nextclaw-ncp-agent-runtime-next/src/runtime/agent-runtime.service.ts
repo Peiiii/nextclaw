@@ -34,6 +34,10 @@ export type AgentRuntimeSessionState = {
   };
   getSnapshot(): AgentRuntimeSessionStateSnapshot;
   applyEvents(events: readonly NcpEndpointEvent[]): Promise<void>;
+  applyAndPublishEvents?(
+    events: readonly NcpEndpointEvent[],
+    meta: { source: string; emittedAt?: string },
+  ): Promise<void>;
 };
 
 export type DefaultNcpAgentRuntimeRunOptions = {
@@ -177,7 +181,7 @@ export class DefaultNcpAgentRuntime {
           if (this.isAbortRequested(signal)) {
             break;
           }
-          const toolResultEvent = await this.executeToolCall(tools, sessionId, spec, toolCall);
+          const toolResultEvent = await this.executeToolCall(tools, sessionRun, spec, toolCall);
           if (this.isAbortRequested(signal)) {
             break;
           }
@@ -291,7 +295,7 @@ export class DefaultNcpAgentRuntime {
 
   private executeToolCall = async (
     tools: readonly NcpTool[],
-    sessionId: string,
+    sessionRun: AgentRuntimeSessionState,
     spec: DefaultNcpAgentRunSpec,
     toolCall: CollectedToolCall,
   ): Promise<NcpEndpointEvent> => {
@@ -304,14 +308,45 @@ export class DefaultNcpAgentRuntime {
           if (!availableTool) {
             throw new Error("Tool is not available in this run.");
           }
-          return availableTool.execute(args);
+          const updateToolCallResult = async (updatedResult: unknown): Promise<void> => {
+            const normalized = this.toolResultContentManager.normalizeToolCallResult({
+              toolCallId: toolCall.toolCallId,
+              toolName: toolCall.toolName,
+              args: typeof args === "object" && args !== null && !Array.isArray(args)
+                ? args as Record<string, unknown>
+                : null,
+              rawArgsText: toolCall.args,
+              result: updatedResult,
+            });
+            const event: NcpEndpointEvent = {
+              type: NcpEventType.MessageToolCallResult,
+              payload: {
+                sessionId: sessionRun.sessionId,
+                toolCallId: toolCall.toolCallId,
+                correlationId: spec.correlationId,
+                content: normalized.result,
+                contentItems: normalized.contentItems,
+              },
+            };
+            if (sessionRun.applyAndPublishEvents) {
+              await sessionRun.applyAndPublishEvents([event], {
+                source: "agent-runtime-tool-call-update",
+              });
+              return;
+            }
+            await sessionRun.applyEvents([event]);
+          };
+          return availableTool.execute(args, {
+            toolCallId: toolCall.toolCallId,
+            updateToolCallResult,
+          });
         },
       }),
     );
     return {
       type: NcpEventType.MessageToolCallResult,
       payload: {
-        sessionId,
+        sessionId: sessionRun.sessionId,
         toolCallId: toolCall.toolCallId,
         correlationId: spec.correlationId,
         content: result.result,

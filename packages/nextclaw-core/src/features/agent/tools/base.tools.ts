@@ -14,7 +14,7 @@ export type ToolSchema = {
 
 export type ToolExecutionContext = {
   toolCallId: string;
-  updateToolCallResult: (result: unknown) => Promise<void>;
+  updateToolCallResult?: (result: unknown) => Promise<void>;
 };
 
 export function createToolExecutionContext(
@@ -22,8 +22,25 @@ export function createToolExecutionContext(
 ): ToolExecutionContext {
   return {
     toolCallId: context.toolCallId ?? "",
-    updateToolCallResult: context.updateToolCallResult ?? (async () => undefined),
+    updateToolCallResult: context.updateToolCallResult,
   };
+}
+
+export function normalizeToolParams(args: unknown): Record<string, unknown> {
+  if (args && typeof args === "object" && !Array.isArray(args)) {
+    return args as Record<string, unknown>;
+  }
+  if (typeof args !== "string") {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(args) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : {};
+  } catch {
+    return {};
+  }
 }
 
 export abstract class Tool {
@@ -40,7 +57,7 @@ export abstract class Tool {
   abstract get description(): string;
   abstract get parameters(): Record<string, unknown>;
 
-  abstract execute(params: Record<string, unknown>, context: ToolExecutionContext): Promise<unknown>;
+  abstract execute(params: unknown, context?: ToolExecutionContext): Promise<unknown>;
 
   isAvailable = (): boolean => true;
 

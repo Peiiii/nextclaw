@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { resolve, dirname } from "node:path";
-import { Tool } from "./base.tools.js";
+import { Tool, normalizeToolParams } from "./base.tools.js";
 
 function resolvePath(path: string, allowedDir?: string): string {
   const resolved = resolve(path);
@@ -41,7 +41,8 @@ export class ReadFileTool extends Tool {
     };
   }
 
-  execute = async (params: Record<string, unknown>): Promise<string> => {
+  execute = async (args: unknown): Promise<string> => {
+    const params = normalizeToolParams(args);
     const path = resolvePath(String(params.path), this.allowedDir);
     if (!existsSync(path)) {
       return `Error: File not found: ${path}`;
@@ -74,7 +75,8 @@ export class WriteFileTool extends Tool {
     };
   }
 
-  execute = async (params: Record<string, unknown>): Promise<string> => {
+  execute = async (args: unknown): Promise<string> => {
+    const params = normalizeToolParams(args);
     const path = resolvePath(String(params.path), this.allowedDir);
     const content = String(params.content ?? "");
     const dir = dirname(path);
@@ -111,7 +113,8 @@ export class EditFileTool extends Tool {
     };
   }
 
-  execute = async (params: Record<string, unknown>): Promise<unknown> => {
+  execute = async (args: unknown): Promise<unknown> => {
+    const params = normalizeToolParams(args);
     const requestedPath = String(params.path);
     const path = resolvePath(requestedPath, this.allowedDir);
     if (!existsSync(path)) {
@@ -159,7 +162,8 @@ export class ListDirTool extends Tool {
     };
   }
 
-  execute = async (params: Record<string, unknown>): Promise<string> => {
+  execute = async (args: unknown): Promise<string> => {
+    const params = normalizeToolParams(args);
     const path = resolvePath(String(params.path), this.allowedDir);
     if (!existsSync(path)) {
       return `Error: Directory not found: ${path}`;

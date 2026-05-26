@@ -1,4 +1,4 @@
-import { Tool } from "./base.tools.js";
+import { Tool, normalizeToolParams } from "./base.tools.js";
 
 export type GatewayConfigSnapshot = {
   raw?: string | null;
@@ -179,11 +179,12 @@ export class GatewayTool extends Tool {
     if (!this.controller?.restart) {
       return this.renderResult({ ok: false, error: "restart not supported" });
     }
+    const { delayMs: rawDelayMs, reason: rawReason } = params;
     const delayMs =
-      typeof params.delayMs === "number" && Number.isFinite(params.delayMs)
-        ? Math.floor(params.delayMs)
+      typeof rawDelayMs === "number" && Number.isFinite(rawDelayMs)
+        ? Math.floor(rawDelayMs)
         : undefined;
-    const reason = typeof params.reason === "string" ? params.reason.trim() || undefined : undefined;
+    const reason = typeof rawReason === "string" ? rawReason.trim() || undefined : undefined;
     const sessionKey = this.resolveSessionKey(params);
     const result = await this.controller.restart({ delayMs, reason, sessionKey });
     return this.renderResult({ ok: true, result: result ?? "Restart scheduled" });
@@ -193,21 +194,27 @@ export class GatewayTool extends Tool {
     if (!this.controller?.updateRun) {
       return this.renderResult({ ok: false, error: "update.run not supported in this runtime" });
     }
+    const {
+      note: rawNote,
+      restartDelayMs: rawRestartDelayMs,
+      timeoutMs: rawTimeoutMs,
+    } = params;
     const restartDelayMs =
-      typeof params.restartDelayMs === "number" && Number.isFinite(params.restartDelayMs)
-        ? Math.floor(params.restartDelayMs)
+      typeof rawRestartDelayMs === "number" && Number.isFinite(rawRestartDelayMs)
+        ? Math.floor(rawRestartDelayMs)
         : undefined;
     const timeoutMs =
-      typeof params.timeoutMs === "number" && Number.isFinite(params.timeoutMs)
-        ? Math.max(1, Math.floor(params.timeoutMs))
+      typeof rawTimeoutMs === "number" && Number.isFinite(rawTimeoutMs)
+        ? Math.max(1, Math.floor(rawTimeoutMs))
         : undefined;
-    const note = typeof params.note === "string" ? params.note.trim() || undefined : undefined;
+    const note = typeof rawNote === "string" ? rawNote.trim() || undefined : undefined;
     const sessionKey = this.resolveSessionKey(params);
     const result = await this.controller.updateRun({ note, restartDelayMs, timeoutMs, sessionKey });
     return this.renderResult({ ok: true, result });
   };
 
-  execute = async (params: Record<string, unknown>): Promise<string> => {
+  execute = async (args: unknown): Promise<string> => {
+    const params = normalizeToolParams(args);
     const action = String(params.action ?? "");
     if (!this.controller) {
       return this.renderResult({ ok: false, error: "gateway controller not available in this runtime" });
