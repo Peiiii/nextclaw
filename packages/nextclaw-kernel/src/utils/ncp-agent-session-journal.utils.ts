@@ -98,7 +98,9 @@ export function createNcpAgentSessionSummary(record: AgentSessionRecord): NcpSes
   if (label) {
     metadata.label = label;
   }
-  const lastMessageAt = readMessageTimestamp(record.messages.at(-1));
+  const lastMessageAt = record.messages.reduceRight<string | undefined>(
+    (timestamp, message) => timestamp ?? readMessageTimestamp(message),
+    undefined);
   return {
     sessionId: record.sessionId,
     ...(normalizeNcpAgentId(record.agentId) ? { agentId: normalizeNcpAgentId(record.agentId) } : {}),
@@ -196,7 +198,7 @@ export function readNcpSessionSummaryActivityAt(summary: NcpSessionSummary): str
 }
 
 function readMessageTimestamp(message: NcpMessage | undefined): string | undefined {
-  return toIsoString(message?.timestamp, "") || undefined;
+  return message?.status === "final" ? toIsoString(message.timestamp, "") || undefined : undefined;
 }
 
 function truncateLabel(value: string): string {
@@ -229,14 +231,12 @@ function resolveAutoSessionLabel(messages: readonly NcpMessage[]): string | null
 }
 
 function readMessageFromSummaryEvent(event: NcpAgentSessionJournalReplayEvent): NcpMessage | undefined {
-  switch (event.type) {
-    case NcpEventType.MessageSent:
-      return event.payload.message;
-    case NcpEventType.MessageCompleted:
-      return event.payload.message;
-    case NCP_AGENT_SESSION_SNAPSHOT_MESSAGE_EVENT_TYPE:
-      return event.payload.message;
-    default:
-      return undefined;
+  if (
+    event.type === NcpEventType.MessageSent ||
+    event.type === NcpEventType.MessageCompleted ||
+    event.type === NCP_AGENT_SESSION_SNAPSHOT_MESSAGE_EVENT_TYPE
+  ) {
+    return event.payload.message;
   }
+  return undefined;
 }

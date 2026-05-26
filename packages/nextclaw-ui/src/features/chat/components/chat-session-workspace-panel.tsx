@@ -269,7 +269,7 @@ export function ChatSessionWorkspacePanel({
   );
 
   useEffect(() => {
-    if (activeSelection?.kind !== "child-session") {
+    if (activeSelection?.kind !== "child-session" || activeSelection.tab.runStatus === "running") {
       return;
     }
     const activeTabReadAt = activeSelection.tab.lastMessageAt?.trim() ?? null;

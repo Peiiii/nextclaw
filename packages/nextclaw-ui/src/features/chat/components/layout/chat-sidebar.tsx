@@ -159,7 +159,7 @@ function useChatSessionUnreadState(
         return;
       }
       const selectedItem = items.find(({ session }) => session.key === selectedSessionKey);
-      if (!selectedItem) {
+      if (!selectedItem || selectedItem.runStatus === 'running') {
         return;
       }
       const { session: selectedSession } = selectedItem;

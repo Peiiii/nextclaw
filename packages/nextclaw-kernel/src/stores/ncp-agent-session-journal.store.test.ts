@@ -111,6 +111,7 @@ describe("NcpAgentSessionJournalStore", () => {
     expect(summaries[0]).toMatchObject({
       sessionId,
       messageCount: 2,
+      lastMessageAt: userMessage.timestamp,
     });
     expect(summaries[0]?.metadata).toBeUndefined();
   });
@@ -277,6 +278,7 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
     const reloaded = new NcpAgentSessionJournalStore(tempDir);
     const session = await reloaded.getSession(sessionId);
     const messages = await reloaded.listSessionMessages(sessionId);
+    const summaries = await reloaded.listSessionSummaries();
 
     expect(session?.metadata).toEqual({});
     expect(messages).toHaveLength(2);
@@ -286,6 +288,7 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
       status: "streaming",
       parts: [{ type: "text", text: "hi" }],
     });
+    expect(summaries[0]?.lastMessageAt).toBe(userMessage.timestamp);
   });
 
   it("writes fetched html payloads as one valid JSONL line", async () => {
