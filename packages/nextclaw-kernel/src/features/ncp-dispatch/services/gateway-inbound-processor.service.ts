@@ -15,13 +15,13 @@ import {
   dispatchChannelReplyRoute,
   resolveChannelReplyRoute,
 } from "@kernel/features/ncp-dispatch/utils/channel-reply.utils.js";
-import { buildRunMetadata } from "@kernel/features/ncp-dispatch/utils/ncp-run-metadata.utils.js";
 import {
   buildAgentRunSendPayload,
+  buildRunMetadata,
   type AgentRunClient,
   type AgentRunReply,
   type AssetApi,
-} from "@kernel/features/ncp-dispatch/utils/nextclaw-ncp-runner.utils.js";
+} from "@kernel/features/agent-run/index.js";
 
 export type GatewayInboundLoopRuntime = {
   kernel: {

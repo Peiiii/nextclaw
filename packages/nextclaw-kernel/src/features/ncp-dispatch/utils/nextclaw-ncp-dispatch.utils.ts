@@ -6,11 +6,11 @@ import {
   type InboundAttachment,
   type InboundMessage,
 } from "@nextclaw/core";
-import { buildRunMetadata } from "./ncp-run-metadata.utils.js";
 import {
   buildAgentRunSendPayload,
+  buildRunMetadata,
   type AgentRunClient,
-} from "./nextclaw-ncp-runner.utils.js";
+} from "@kernel/features/agent-run/index.js";
 export type DirectPromptDispatchParams = {
   config: Config;
   agentRunClient: AgentRunClient;

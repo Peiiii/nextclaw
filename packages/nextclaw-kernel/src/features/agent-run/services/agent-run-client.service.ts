@@ -1,9 +1,7 @@
-import type { InboundAttachment } from "@nextclaw/core";
 import {
   NcpEventType,
   type NcpEndpointEvent,
   type NcpMessage,
-  type NcpMessagePart,
   type NcpRunHandle,
 } from "@nextclaw/ncp";
 import {
@@ -13,28 +11,8 @@ import {
   type EventBus,
   type Ingress,
 } from "@nextclaw/shared";
-import { readFile } from "node:fs/promises";
-import { basename } from "node:path";
 import { randomUUID } from "node:crypto";
 import { extractTextFromNcpMessage } from "@kernel/utils/ncp-message-bridge.utils.js";
-
-export type AssetApi = {
-  putBytes: (input: {
-    fileName: string;
-    mimeType?: string | null;
-    bytes: Uint8Array;
-    createdAt?: Date;
-  }) => Promise<{ uri: string }>;
-  resolveContentPath?: (uri: string) => string | null;
-};
-
-export type BuildAgentRunSendPayloadParams = {
-  sessionId: string;
-  content: string;
-  attachments?: InboundAttachment[];
-  metadata?: Record<string, unknown>;
-  assetApi?: AssetApi;
-};
 
 export type AgentRunReplyOptions = {
   abortSignal?: AbortSignal;
@@ -54,162 +32,6 @@ export type AgentRunReply = {
   text: string;
   completedMessage: NcpMessage;
 };
-
-function normalizeOptionalString(value: unknown): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-  const trimmed = value.trim();
-  return trimmed || undefined;
-}
-
-function resolveAttachmentName(attachment: InboundAttachment): string {
-  const explicitName = normalizeOptionalString(attachment.name);
-  if (explicitName) {
-    return explicitName;
-  }
-  const explicitPath = normalizeOptionalString(attachment.path);
-  if (explicitPath) {
-    return basename(explicitPath);
-  }
-  const explicitUrl = normalizeOptionalString(attachment.url);
-  if (explicitUrl) {
-    try {
-      const parsed = new URL(explicitUrl);
-      return basename(parsed.pathname) || "asset.bin";
-    } catch {
-      return basename(explicitUrl) || "asset.bin";
-    }
-  }
-  return "asset.bin";
-}
-
-async function attachmentToPart(
-  attachment: InboundAttachment,
-  assetApi?: AssetApi,
-): Promise<NcpMessagePart> {
-  const assetUri = normalizeOptionalString(attachment.assetUri);
-  if (assetUri) {
-    return createFilePartFromAssetUri(attachment, assetUri);
-  }
-
-  const remoteUrl = normalizeOptionalString(attachment.url);
-  const localPath = normalizeOptionalString(attachment.path);
-  if (localPath) {
-    return await createFilePartFromLocalPath(attachment, localPath, assetApi);
-  }
-
-  if (remoteUrl) {
-    return createFilePartFromRemoteUrl(attachment, remoteUrl);
-  }
-
-  throw new Error(
-    `Unsupported attachment payload for "${resolveAttachmentName(attachment)}".`,
-  );
-}
-
-function createBaseFilePart(attachment: InboundAttachment): {
-  name?: string;
-  mimeType?: string;
-  sizeBytes?: number;
-} {
-  return {
-    ...(attachment.name ? { name: attachment.name } : {}),
-    ...(attachment.mimeType ? { mimeType: attachment.mimeType } : {}),
-    ...(typeof attachment.size === "number"
-      ? { sizeBytes: attachment.size }
-      : {}),
-  };
-}
-
-function createFilePartFromAssetUri(
-  attachment: InboundAttachment,
-  assetUri: string,
-): NcpMessagePart {
-  return {
-    type: "file",
-    assetUri,
-    ...createBaseFilePart(attachment),
-  };
-}
-
-async function createFilePartFromLocalPath(
-  attachment: InboundAttachment,
-  localPath: string,
-  assetApi?: AssetApi,
-): Promise<NcpMessagePart> {
-  if (!assetApi) {
-    throw new Error("NCP asset api is unavailable for local attachments.");
-  }
-
-  const fileName = resolveAttachmentName(attachment);
-  const bytes = await readFile(localPath);
-  const stored = await assetApi.putBytes({
-    fileName,
-    mimeType: attachment.mimeType ?? null,
-    bytes,
-  });
-  return {
-    type: "file",
-    assetUri: stored.uri,
-    name: attachment.name ?? fileName,
-    ...(attachment.mimeType ? { mimeType: attachment.mimeType } : {}),
-    ...(typeof attachment.size === "number"
-      ? { sizeBytes: attachment.size }
-      : {}),
-  };
-}
-
-function createFilePartFromRemoteUrl(
-  attachment: InboundAttachment,
-  remoteUrl: string,
-): NcpMessagePart {
-  return {
-    type: "file",
-    url: remoteUrl,
-    name: attachment.name ?? resolveAttachmentName(attachment),
-    ...(attachment.mimeType ? { mimeType: attachment.mimeType } : {}),
-    ...(typeof attachment.size === "number"
-      ? { sizeBytes: attachment.size }
-      : {}),
-  };
-}
-
-export async function buildUserMessageParts(params: {
-  content: string;
-  attachments?: InboundAttachment[];
-  assetApi?: AssetApi;
-}): Promise<NcpMessagePart[]> {
-  const { assetApi, attachments, content } = params;
-  const parts: NcpMessagePart[] = [];
-  if (content.length > 0) {
-    parts.push({
-      type: "text",
-      text: content,
-    });
-  }
-
-  for (const attachment of attachments ?? []) {
-    parts.push(await attachmentToPart(attachment, assetApi));
-  }
-
-  return parts;
-}
-
-export async function buildAgentRunSendPayload(
-  params: BuildAgentRunSendPayloadParams,
-): Promise<AgentRunSendIngressPayload> {
-  const { assetApi, attachments, content, metadata, sessionId } = params;
-  return {
-    sessionId,
-    content: await buildUserMessageParts({
-      content,
-      attachments,
-      assetApi,
-    }),
-    metadata: structuredClone(metadata ?? {}),
-  };
-}
 
 function readEventCorrelationId(event: NcpEndpointEvent): string | undefined {
   if (!("payload" in event)) {
@@ -255,26 +77,30 @@ function isRunEventMatch(params: {
   runId?: string;
   sessionId?: string;
 }): boolean {
-  const eventCorrelationId = readEventCorrelationId(params.event);
+  const {
+    correlationId,
+    event,
+    runId,
+    sessionId,
+  } = params;
+  const eventCorrelationId = readEventCorrelationId(event);
   if (eventCorrelationId) {
-    return eventCorrelationId === params.correlationId;
+    return eventCorrelationId === correlationId;
   }
-  if (!params.sessionId || !params.runId) {
+  if (!sessionId || !runId) {
     return false;
   }
-  return readEventSessionId(params.event) === params.sessionId &&
-    readEventRunId(params.event) === params.runId;
+  return readEventSessionId(event) === sessionId &&
+    readEventRunId(event) === runId;
 }
 
 class AsyncEventQueue<T> implements AsyncIterable<T> {
   private readonly values: T[] = [];
   private readonly waiters: Array<(result: IteratorResult<T>) => void> = [];
   private closed = false;
-  private failure: unknown;
-  private hasFailure = false;
 
   push = (value: T): void => {
-    if (this.closed || this.hasFailure) {
+    if (this.closed) {
       return;
     }
     const waiter = this.waiters.shift();
@@ -295,26 +121,12 @@ class AsyncEventQueue<T> implements AsyncIterable<T> {
     }
   };
 
-  fail = (error: unknown): void => {
-    if (this.closed || this.hasFailure) {
-      return;
-    }
-    this.hasFailure = true;
-    this.failure = error;
-    while (this.waiters.length > 0) {
-      this.waiters.shift()?.({ done: true, value: undefined as T });
-    }
-  };
-
   next = async (): Promise<IteratorResult<T>> => {
     if (this.values.length > 0) {
       return {
         done: false,
         value: this.values.shift() as T,
       };
-    }
-    if (this.hasFailure) {
-      throw this.failure;
     }
     if (this.closed) {
       return {

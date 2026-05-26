@@ -12,7 +12,7 @@ import {
   buildAgentRunSendPayload,
   type AgentRunClient,
   type AssetApi,
-} from "./nextclaw-ncp-runner.utils.js";
+} from "@kernel/features/agent-run/index.js";
 
 type ReplyCapableChannel = BaseChannel<Record<string, unknown>> & {
   consumeNcpReply(input: NcpReplyInput): Promise<void>;

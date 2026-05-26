@@ -7,7 +7,7 @@ import {
   ingressKeys,
   type AgentRunSendIngressPayload,
 } from "@nextclaw/shared";
-import { AgentRunClient } from "./nextclaw-ncp-runner.utils.js";
+import { AgentRunClient } from "./agent-run-client.service.js";
 
 function createAssistantMessage(params: {
   sessionId: string;
