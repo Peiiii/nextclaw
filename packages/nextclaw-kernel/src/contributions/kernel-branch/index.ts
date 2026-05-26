@@ -37,7 +37,6 @@ export class KernelBranch implements KernelContribution {
       this.sessionRepository,
     );
     this.sessionRunManager = new SessionRunManager(this.sessionRepository);
-    this.sessionRepository.bindRunStatusSource(this.sessionRunManager);
     this.agentRunRequestManager = new AgentRunRequestManager(
       this.agentRuntimeManager,
       kernel.configManager,
@@ -71,7 +70,8 @@ export class KernelBranch implements KernelContribution {
   listSessionTypes = (params?: AgentRuntimeSessionTypeDescribeParams) =>
     this.agentRuntimeManager.listSessionTypes(params);
 
-  isSessionRunning = (sessionId: string): boolean => this.sessionRepository.isSessionRunning(sessionId);
+  isSessionRunning = (sessionId: string): boolean =>
+    this.sessionRunManager.isSessionRunning(sessionId);
 
   dispose = async (): Promise<void> => {
     if (!this.started) {

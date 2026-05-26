@@ -8,6 +8,8 @@
 
 确认方式：先用代码搜索确认旧链路入口、旧 owner、旧 contribution、旧 factory 的引用边界，再删除并用残留扫描、TypeScript、定向测试、lint、build 验证新链路仍然闭合。
 
+Review 修正：删除 `SessionRepository.bindRunStatusSource` 二次绑定，让 `KernelBranch.isSessionRunning()` 直接读取 `SessionRunManager`，避免 repository 感知 live run 状态。
+
 ## 测试/验证/验收方式
 
 - `pnpm -C packages/nextclaw-kernel tsc`
@@ -25,6 +27,9 @@
 - `pnpm -C packages/nextclaw-kernel build`
 - `pnpm -C packages/nextclaw-server build`
 - `pnpm -C packages/nextclaw-service build`
+- Review 修正补充验证：`pnpm -C packages/nextclaw-kernel tsc`
+- Review 修正补充验证：`pnpm -C packages/nextclaw-kernel exec vitest run src/features/agent-run/managers/agent-run-request.manager.test.ts src/features/agent-run/services/agent-run-client.service.test.ts`
+- Review 修正补充验证：`pnpm -C packages/nextclaw-kernel lint`
 
 ## 发布/部署方式
 
@@ -39,6 +44,7 @@
 ## 可维护性总结汇总
 
 - 已删除旧链路代码、旧测试和旧 public export。
+- Review 修正继续删除 repository 对 live run status 的反向绑定。
 - 非测试代码净变化为 `+22 / -1387 / net -1365`。
 - 全量变更净变化为 `+22 / -2751 / net -2729`，不含本迭代记录与方案文档。
 - `post-edit-maintainability-guard` 结果：Errors 0，Warnings 0。

@@ -59,16 +59,11 @@ function readProjectRoot(metadata: Record<string, unknown> | undefined): string 
 export class SessionRepository {
   readonly cleanups: Array<() => void> = [];
   private started = false;
-  private runStatusSource: { isSessionRunning: (sessionId: string) => boolean } | null = null;
 
   constructor(
     private readonly eventBus: EventBus,
     private readonly ncpSessionManager: NcpSessionManager,
   ) {}
-
-  bindRunStatusSource = (source: { isSessionRunning: (sessionId: string) => boolean }): void => {
-    this.runStatusSource = source;
-  };
 
   start = (): void => {
     if (this.started) {
@@ -166,8 +161,6 @@ export class SessionRepository {
   listSessionMessages = async (sessionId: string): Promise<readonly NcpMessage[]> => {
     return await this.ncpSessionManager.listSessionMessages(sessionId);
   };
-
-  isSessionRunning = (sessionId: string): boolean => this.runStatusSource?.isSessionRunning(sessionId.trim()) ?? false;
 
   patchSessionMetadata = async (
     sessionId: string,
