@@ -8,7 +8,7 @@ import { BrandHeader } from '@/shared/components/common/brand-header';
 import { SidebarActionItem, SidebarNavLinkItem, SidebarSelectItem } from '@/app/components/layout/sidebar-items';
 import { useTheme } from '@/app/components/theme-provider';
 import { SelectItem } from '@/shared/components/ui/select';
-import { useAppManager } from '@/app/components/app-manager-provider';
+import { useAppPresenter } from '@/app/components/app-presenter-provider';
 import { useRemoteStatus } from '@/features/remote';
 import { getSettingsNavItems } from '@/app/configs/app-navigation.config';
 import { useLanguagePreference } from '@/features/settings';
@@ -20,7 +20,7 @@ type SidebarProps = {
 };
 
 export function Sidebar({ mode }: SidebarProps) {
-  const manager = useAppManager();
+  const presenter = useAppPresenter();
   const docBrowser = useDocBrowser();
   const remoteStatus = useRemoteStatus();
   const {
@@ -118,7 +118,7 @@ export function Sidebar({ mode }: SidebarProps) {
         <div className={cn('shrink-0 border-t border-[#dde0ea] bg-secondary', isSettingsMode ? 'mt-2 pt-3' : 'mt-3 pt-3')}>
           {isSettingsMode ? (
             <SidebarActionItem
-              onClick={() => manager.accountManager.openAccountPanel()}
+              onClick={() => presenter.accountManager.openAccountPanel()}
               icon={KeyRound}
               label={t('remoteAccountEntryManage')}
               density="compact"

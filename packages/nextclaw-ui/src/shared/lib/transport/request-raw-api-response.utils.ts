@@ -1,4 +1,4 @@
-import type { ApiResponse } from '@nextclaw/server';
+import type { ApiResponse } from '@nextclaw/client-sdk';
 import { systemStatusManager } from '@/features/system-status';
 
 function compactSnippet(text: string) {

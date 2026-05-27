@@ -12,6 +12,8 @@
 
 补充合同收敛：Service Actions 列表语义改为纯读取 `service-app.json.actions`，不再在列表页暗中 warm MCP server。新增显式 `POST /api/service-apps/:appId/actions/discover`，只发现单个 Service App 的运行时 `tools/list`，并标记 `matched`、`missing`、`undeclared` 三类 manifest/runtime 合同状态。`invoke` 路径先校验 manifest 声明、Panel App allowlist 与 grant，再 lazy start 目标 Service App 执行 action。
 
+补充前端 owner 纠偏：Service Action 授权与 Panel App bridge 不再通过 feature-level presenter、manager singleton 或 `afterSignedIn` / `bindXxx` 之类 callback 二阶段装配串联。前端统一由应用级 `AppPresenter` 像后端 kernel 一样装配长期 manager，manager 之间保持平级 direct dependency。账号登录完成改为 `AccountManager` 返回登录完成结果，`RemoteAccessManager` 直接依赖 `AccountManager` 并继续自己的远程访问流程，不再把 pending action 写入账号 store。
+
 ## 测试/验证/验收方式
 
 - `pnpm --filter @nextclaw/core tsc`
@@ -63,6 +65,15 @@ Service Actions 合同收敛补充验证：
 - `pnpm check:governance-backlog-ratchet`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths <本批 Service Apps 触达文件>`
 
+Frontend owner 纠偏补充验证：
+
+- `pnpm --filter @nextclaw/ui tsc`：通过。
+- `pnpm --filter @nextclaw/ui test -- src/features/remote/components/remote-access-page.test.tsx src/app/components/layout/sidebar.layout.test.tsx src/features/panel-apps/managers/panel-app-bridge.manager.test.ts`：3 个测试文件、6 个用例通过。
+- `pnpm --filter @nextclaw/ui exec eslint src/app/presenters/app.presenter.ts src/app/components/app-presenter-provider.tsx src/app/index.tsx src/app/components/layout/sidebar.tsx src/app/components/layout/sidebar.layout.test.tsx src/features/account/index.ts src/features/account/stores/account.store.ts src/features/account/managers/account.manager.ts src/features/account/components/account-panel.tsx src/features/remote/managers/remote-access.manager.ts src/features/remote/components/remote-access-page.tsx src/features/remote/components/remote-access-page.test.tsx`：通过。
+- `pnpm lint:new-code:governance`：通过。
+- `pnpm check:governance-backlog-ratchet`：通过。
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs`：通过，0 errors / 2 warnings；warning 为既有 client-sdk services 目录预算与本批 doc-browser 测试增长观察点。
+
 已知验证说明：`pnpm --filter @nextclaw/client-sdk lint` 当前因既有 `request.service.ts` 的 `max-statements` warning 在 `--max-warnings=0` 下失败；本次改动文件已用 targeted ESLint 通过。`pnpm --filter @nextclaw/ui lint` 当前因 chat/marketplace/system-status 等既有无关 lint error 失败；本次 UI 触达文件已用 targeted ESLint 通过。
 
 已知验证说明：`pnpm lint:maintainability:hotspots` 当前因既有 tracked hotspots 的 missing/current 状态退出 1，本次未触达这些红区文件。
@@ -90,6 +101,8 @@ Service Actions 合同收敛补充验证：
 Bridge 注入补丁为非功能 bugfix，非测试代码净增 `0` 行。正向减债动作是简化：删除 Panel App 主路径对外链 bridge script 的运行时依赖，减少一次资源加载和一类 sandbox/CORS 失败面，职责仍收敛在 kernel `PanelAppManager` 的 HTML 注入链路内。
 
 Service Actions 合同收敛属于发布级 Service Apps 能力完善，生产代码有必要增长。正向维护动作是职责收敛与查询/命令分离：`ServiceAppManager` 统一拥有静态 catalog、grant 校验和 runtime discovery 编排；server/client/UI 只暴露显式 discovery 入口；creator skill 同步约束生成物，减少后续生成旧合同的概率。维护性 guard 针对本批文件通过，剩余 warning 为既有目录预算超限：`packages/nextclaw-client-sdk/src/services` 与 `packages/nextclaw-server/src/app`。
+
+Frontend owner 纠偏属于非功能架构修复，正向减债动作是职责收敛与隐藏通道删除：删除 feature-level presenter / manager singleton / callback 二阶段装配的错误路径，把长期 manager 图收回应用级 `AppPresenter`，并将账号登录继续流程从 account store pending action 改成 manager 方法的明确返回值。该批次减少了隐式状态与初始化顺序风险，但同一工作区仍有此前 Service Apps/DocBrowser 能力开发带来的总体净增长，后续应继续优先收敛测试 fixture 与 client-sdk services 目录。
 
 ## NPM 包发布记录
 

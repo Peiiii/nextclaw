@@ -6,7 +6,11 @@ import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
 import { ServiceAppManager } from "@kernel/managers/service-app.manager.js";
 import type { ServiceAppError } from "@kernel/managers/service-app.manager.js";
-import type { ServiceAction, ServiceActionCaller } from "@kernel/types/service-app.types.js";
+import type {
+  ServiceAction,
+  ServiceActionCaller,
+  ServiceAppRecord,
+} from "@kernel/types/service-app.types.js";
 
 const tempDirs: string[] = [];
 
@@ -70,10 +74,13 @@ function writeServiceApp(
   );
 }
 
-function createRuntime(actions: ServiceAction | ServiceAction[]) {
+function createRuntime(
+  actions: ServiceAction | ServiceAction[],
+  status: Pick<ServiceAppRecord, "lastFailedAt" | "lastReadyAt" | "lastStartedAt" | "status"> = { status: "idle" },
+) {
   const actionList = Array.isArray(actions) ? actions : [actions];
   return {
-    getStatus: vi.fn(() => ({ status: "idle" as const })),
+    getStatus: vi.fn(() => status),
     listActions: vi.fn(async () => actionList),
     invokeAction: vi.fn(async () => ({ ok: true })),
     restart: vi.fn(async () => {}),
@@ -157,7 +164,11 @@ describe("ServiceAppManager", () => {
     expect(list.workspacePath).toBe(workspacePath);
     expect(list.serviceAppsPath).toBe(join(workspacePath, "service-apps"));
     expect(list.entries[0]).toEqual(expect.objectContaining({
+      args: ["server.mjs"],
+      command: "node",
+      cwd: join(workspacePath, "service-apps", "notes"),
       id: "notes",
+      manifestPath: join(workspacePath, "service-apps", "notes", "service-app.json"),
       title: "Notes",
       enabled: true,
       protocol: "mcp",
@@ -206,6 +217,7 @@ describe("ServiceAppManager", () => {
 
     expect(list.entries).toEqual([
       expect.objectContaining({
+        cwd: appPath,
         id: "bad-json",
         status: "failed",
         lastError: expect.stringContaining("not valid JSON"),

@@ -22,6 +22,14 @@ export class NextClawClientError extends Error {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function readTransportErrorField(error: unknown, key: "code" | "details" | "status"): unknown {
+  return isRecord(error) ? error[key] : undefined;
+}
+
 export class RequestService {
   private readonly baseUrl: string;
   private readonly fetchImpl: typeof fetch;
@@ -45,27 +53,12 @@ export class RequestService {
   readonly request = async <T>(path: string, options: NextClawRequestOptions = {}): Promise<T> => {
     const { body, headers, method, query, signal, timeoutMs } = options;
     if (this.transport) {
-      return await this.transport.request<T>({
-        method: method ?? "GET",
-        path,
-        ...(body !== undefined ? { body } : {}),
-        ...(query ? { query } : {}),
-        ...(headers ? { headers } : {}),
-        ...(signal ? { signal } : {}),
-          ...(timeoutMs !== undefined ? { timeoutMs } : {})
-        });
+      return await this.requestWithTransport(path, options);
     }
 
     const controller = new AbortController();
     const effectiveTimeoutMs = Math.max(1000, timeoutMs ?? this.requestTimeoutMs);
-    const abortOnSignal = () => controller.abort(signal?.reason);
-    if (signal) {
-      if (signal.aborted) {
-        controller.abort(signal.reason);
-      } else {
-        signal.addEventListener("abort", abortOnSignal, { once: true });
-      }
-    }
+    const abortOnSignal = this.bindAbortSignal(controller, signal);
     const timeoutId = setTimeout(() => controller.abort(), effectiveTimeoutMs);
     const requestHeaders = {
       ...this.defaultHeaders,
@@ -124,6 +117,57 @@ export class RequestService {
     } finally {
       signal?.removeEventListener("abort", abortOnSignal);
       clearTimeout(timeoutId);
+    }
+  };
+
+  private readonly bindAbortSignal = (
+    controller: AbortController,
+    signal: AbortSignal | undefined,
+  ): (() => void) => {
+    const abortOnSignal = () => controller.abort(signal?.reason);
+    if (!signal) {
+      return abortOnSignal;
+    }
+    if (signal.aborted) {
+      controller.abort(signal.reason);
+      return abortOnSignal;
+    }
+    signal.addEventListener("abort", abortOnSignal, { once: true });
+    return abortOnSignal;
+  };
+
+  private readonly requestWithTransport = async <T>(
+    path: string,
+    options: NextClawRequestOptions,
+  ): Promise<T> => {
+    const { body, headers, method, query, signal, timeoutMs } = options;
+    const { transport } = this;
+    if (!transport) {
+      throw new NextClawClientError({ message: "NextClaw transport is not configured." });
+    }
+    try {
+      return await transport.request<T>({
+        method: method ?? "GET",
+        path,
+        ...(body !== undefined ? { body } : {}),
+        ...(query ? { query } : {}),
+        ...(headers ? { headers } : {}),
+        ...(signal ? { signal } : {}),
+        ...(timeoutMs !== undefined ? { timeoutMs } : {})
+      });
+    } catch (error) {
+      if (error instanceof NextClawClientError) {
+        throw error;
+      }
+      const code = readTransportErrorField(error, "code");
+      const details = readTransportErrorField(error, "details");
+      const status = readTransportErrorField(error, "status");
+      throw new NextClawClientError({
+        message: error instanceof Error ? error.message : "NextClaw API request failed.",
+        code: typeof code === "string" ? code : undefined,
+        details: isRecord(details) ? details : undefined,
+        status: typeof status === "number" ? status : undefined
+      });
     }
   };
 

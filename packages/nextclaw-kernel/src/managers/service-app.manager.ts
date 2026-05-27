@@ -341,6 +341,7 @@ export class ServiceAppManager {
         title: toTitle(dirName),
         dirPath,
         manifestPath: getServiceAppManifestPath(dirPath),
+        cwd: dirPath,
         enabled: false,
         protocol: "mcp",
         status: "failed",
@@ -359,6 +360,9 @@ export class ServiceAppManager {
       title: manifest.title,
       dirPath,
       manifestPath: getServiceAppManifestPath(dirPath),
+      command: manifest.command,
+      args: manifest.args,
+      cwd: dirPath,
       enabled: manifest.enabled,
       protocol: manifest.protocol,
       status: manifest.enabled ? runtimeStatus.status : "stopped",
@@ -369,8 +373,14 @@ export class ServiceAppManager {
     if (runtimeStatus.lastError) {
       record.lastError = runtimeStatus.lastError;
     }
+    if (runtimeStatus.lastStartedAt) {
+      record.lastStartedAt = runtimeStatus.lastStartedAt;
+    }
     if (runtimeStatus.lastReadyAt) {
       record.lastReadyAt = runtimeStatus.lastReadyAt;
+    }
+    if (runtimeStatus.lastFailedAt) {
+      record.lastFailedAt = runtimeStatus.lastFailedAt;
     }
     return record;
   };

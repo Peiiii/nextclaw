@@ -110,4 +110,29 @@ describe("@nextclaw/client-sdk", () => {
 
     await expect(client.sessions.list()).rejects.toBeInstanceOf(NextClawClientError);
   });
+
+  it("preserves transport error metadata", async () => {
+    const client = new NextClawClient({
+      baseUrl: "http://127.0.0.1:55667",
+      transport: {
+        request: async () => {
+          const error = new Error("authorization required") as Error & {
+            code?: string;
+            details?: Record<string, unknown>;
+            status?: number;
+          };
+          error.code = "AUTHORIZATION_REQUIRED";
+          error.details = { actionId: "notes.write" };
+          error.status = 403;
+          throw error;
+        }
+      }
+    });
+
+    await expect(client.serviceApps.listServiceApps()).rejects.toMatchObject({
+      code: "AUTHORIZATION_REQUIRED",
+      details: { actionId: "notes.write" },
+      status: 403
+    });
+  });
 });

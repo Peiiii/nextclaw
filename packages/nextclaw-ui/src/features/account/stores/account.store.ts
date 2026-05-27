@@ -1,14 +1,5 @@
 import { create } from 'zustand';
 
-export type AccountPendingAction =
-  | {
-      type: 'enable-remote';
-    }
-  | {
-      type: 'repair-remote';
-    }
-  | null;
-
 type AccountStoreState = {
   panelOpen: boolean;
   authSessionId: string | null;
@@ -16,11 +7,8 @@ type AccountStoreState = {
   authExpiresAt: string | null;
   authStatusMessage: string;
   authPollIntervalMs: number;
-  pendingAction: AccountPendingAction;
   openPanel: () => void;
   closePanel: () => void;
-  setPendingAction: (next: AccountPendingAction) => void;
-  clearPendingAction: () => void;
   beginBrowserAuth: (payload: {
     sessionId: string;
     verificationUri: string;
@@ -40,11 +28,8 @@ export const useAccountStore = create<AccountStoreState>((set) => ({
   authExpiresAt: null,
   authStatusMessage: '',
   authPollIntervalMs: 1500,
-  pendingAction: null,
   openPanel: () => set({ panelOpen: true }),
   closePanel: () => set({ panelOpen: false }),
-  setPendingAction: (next) => set({ pendingAction: next }),
-  clearPendingAction: () => set({ pendingAction: null }),
   beginBrowserAuth: ({ sessionId, verificationUri, expiresAt, intervalMs, statusMessage }) =>
     set({
       panelOpen: true,

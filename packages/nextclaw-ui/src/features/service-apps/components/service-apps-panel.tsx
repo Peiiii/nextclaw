@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from 'react';
 import type {
   ServiceActionGrantView,
-  ServiceActionView,
+  ServiceActionListView,
   ServiceAppRecordView,
-} from '@nextclaw/server';
+} from '@nextclaw/client-sdk';
 import {
   RefreshCw,
   RotateCw,
@@ -22,6 +22,8 @@ import {
   useServiceApps,
 } from '@/features/service-apps/hooks/use-service-apps';
 import { t } from '@/shared/lib/i18n';
+
+type ServiceActionView = ServiceActionListView['actions'][number];
 
 export function ServiceAppsPanel({
   headerContent,
@@ -178,6 +180,7 @@ function ServiceAppCard({
           </button>
         </div>
       </div>
+      <ServiceAppDiagnostics app={app} />
       <div className="mt-3 space-y-1">
         {actions.map((action) => (
           <ServiceActionRow
@@ -189,6 +192,49 @@ function ServiceAppCard({
         ))}
       </div>
     </section>
+  );
+}
+
+function ServiceAppDiagnostics({ app }: { app: ServiceAppRecordView }) {
+  const command = [app.command, ...(app.args ?? [])]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join(' ');
+  const rows = [
+    { label: t('serviceAppsCommand'), value: command },
+    { label: t('serviceAppsCwd'), value: app.cwd },
+    { label: t('serviceAppsManifest'), value: app.manifestPath },
+    { label: t('serviceAppsLastStarted'), value: app.lastStartedAt },
+    { label: t('serviceAppsLastReady'), value: app.lastReadyAt },
+    { label: t('serviceAppsLastFailed'), value: app.lastFailedAt },
+  ].filter((row) => row.value);
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return (
+    <dl className="mt-3 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-2 gap-y-1 border-t border-gray-100 pt-2 text-[11px]">
+      {rows.map((row) => (
+        <ServiceAppDiagnosticRow key={row.label} label={row.label} value={row.value} />
+      ))}
+    </dl>
+  );
+}
+
+function ServiceAppDiagnosticRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | undefined;
+}) {
+  return (
+    <>
+      <dt className="text-gray-400">{label}</dt>
+      <dd className="min-w-0 truncate font-mono text-gray-500" title={value}>
+        {value}
+      </dd>
+    </>
   );
 }
 

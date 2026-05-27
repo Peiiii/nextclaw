@@ -6,9 +6,25 @@ import { resolveTransportWebSocketUrl } from './transport-websocket-url.utils';
 
 type EventHandler = (event: AppEvent) => void;
 
-function createTransportError(response: { ok: boolean; error?: { message?: string } }, fallback: string): Error {
+function createTransportError(
+  response: {
+    ok: boolean;
+    error?: {
+      code?: string;
+      message?: string;
+      details?: Record<string, unknown>;
+    };
+  },
+  fallback: string
+): Error {
   if (!response.ok) {
-    return new Error(response.error?.message || fallback);
+    const error = new Error(response.error?.message || fallback) as Error & {
+      code?: string;
+      details?: Record<string, unknown>;
+    };
+    error.code = response.error?.code;
+    error.details = response.error?.details;
+    return error;
   }
   return new Error(fallback);
 }

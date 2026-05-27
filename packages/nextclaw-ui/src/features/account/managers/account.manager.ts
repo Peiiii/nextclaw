@@ -8,19 +8,16 @@ import {
 } from '@/features/remote';
 import { formatDateTime, t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
-import type { AccountPendingAction } from '@/features/account/stores/account.store';
 import { useAccountStore } from '@/features/account/stores/account.store';
 
-type SignedInContinuation = (action: AccountPendingAction, status: RemoteAccessView) => Promise<void>;
+type BrowserSignInCompletion = {
+  resolve: (status: RemoteAccessView) => void;
+  reject: (error: Error) => void;
+};
 
 export class AccountManager {
   private authPollTimerId: number | null = null;
-
-  private afterSignedIn: SignedInContinuation | null = null;
-
-  bindSignedInContinuation = (handler: SignedInContinuation) => {
-    this.afterSignedIn = handler;
-  };
+  private browserSignInCompletion: BrowserSignInCompletion | null = null;
 
   openAccountPanel = () => {
     useAccountStore.getState().openPanel();
@@ -35,34 +32,35 @@ export class AccountManager {
       return;
     }
     this.clearPollTimer();
+    this.resolveBrowserSignIn(status);
     useAccountStore.getState().clearBrowserAuth();
   };
 
-  ensureSignedIn = async (params?: { pendingAction?: AccountPendingAction; apiBase?: string }) => {
-    const status = await ensureRemoteStatus();
+  ensureSignedIn = async (params?: { apiBase?: string; status?: RemoteAccessView }) => {
+    const status = params?.status ?? (await ensureRemoteStatus());
     if (status.account.loggedIn) {
-      return true;
-    }
-    if (params?.pendingAction) {
-      useAccountStore.getState().setPendingAction(params.pendingAction);
+      return status;
     }
     this.openAccountPanel();
-    await this.startBrowserSignIn({ apiBase: params?.apiBase, status });
-    return false;
+    return await this.startBrowserSignInAndWait({
+      apiBase: params?.apiBase,
+      status
+    });
+  };
+
+  startBrowserSignInAndWait = async (params?: { apiBase?: string; status?: RemoteAccessView }) => {
+    const completion = this.createBrowserSignInCompletion();
+    await this.startBrowserSignIn(params);
+    return await completion;
   };
 
   startBrowserSignIn = async (params?: {
     apiBase?: string;
     status?: RemoteAccessView;
-    pendingAction?: AccountPendingAction;
   }) => {
     try {
       const apiBase = params?.apiBase;
-      const pendingAction = params?.pendingAction;
       const status = params?.status ?? (await ensureRemoteStatus());
-      if (pendingAction) {
-        useAccountStore.getState().setPendingAction(pendingAction);
-      }
       const result = await startRemoteBrowserAuth({
         apiBase: resolveRemotePlatformApiBase(status, apiBase)
       });
@@ -80,6 +78,7 @@ export class AccountManager {
       this.scheduleBrowserAuthPoll();
     } catch (error) {
       const message = error instanceof Error ? error.message : t('remoteBrowserAuthStartFailed');
+      this.rejectBrowserSignIn(error);
       toast.error(`${t('remoteBrowserAuthStartFailed')}: ${message}`);
     }
   };
@@ -95,7 +94,7 @@ export class AccountManager {
   logout = async () => {
     try {
       await logoutRemote();
-      useAccountStore.getState().clearPendingAction();
+      this.rejectBrowserSignIn(new Error('Signed out before browser sign-in completed.'));
       useAccountStore.getState().clearBrowserAuth();
       await refreshRemoteStatus();
       toast.success(t('remoteLogoutSuccess'));
@@ -162,6 +161,7 @@ export class AccountManager {
       }
       if (result.status === 'expired') {
         this.clearPollTimer();
+        this.rejectBrowserSignIn(new Error(result.message || t('remoteBrowserAuthExpired')));
         useAccountStore.getState().clearBrowserAuth();
         toast.error(result.message || t('remoteBrowserAuthExpired'));
         return;
@@ -169,16 +169,13 @@ export class AccountManager {
 
       useAccountStore.getState().setAuthStatusMessage(t('remoteBrowserAuthCompleted'));
       const nextStatus = await refreshRemoteStatus();
-      const { pendingAction } = useAccountStore.getState();
       this.clearPollTimer();
+      this.resolveBrowserSignIn(nextStatus);
       useAccountStore.getState().clearBrowserAuth();
       toast.success(t('remoteLoginSuccess'));
-      if (pendingAction && this.afterSignedIn) {
-        await this.afterSignedIn(pendingAction, nextStatus);
-      }
-      useAccountStore.getState().clearPendingAction();
     } catch (error) {
       this.clearPollTimer();
+      this.rejectBrowserSignIn(error);
       useAccountStore.getState().clearBrowserAuth();
       const message = error instanceof Error ? error.message : t('remoteBrowserAuthPollFailed');
       toast.error(`${t('remoteBrowserAuthPollFailed')}: ${message}`);
@@ -190,6 +187,34 @@ export class AccountManager {
       window.clearTimeout(this.authPollTimerId);
       this.authPollTimerId = null;
     }
+  };
+
+  private createBrowserSignInCompletion = () => {
+    this.rejectBrowserSignIn(new Error('Browser sign-in was replaced by a newer request.'));
+    return new Promise<RemoteAccessView>((resolve, reject) => {
+      this.browserSignInCompletion = {
+        resolve,
+        reject
+      };
+    });
+  };
+
+  private resolveBrowserSignIn = (status: RemoteAccessView) => {
+    const completion = this.browserSignInCompletion;
+    if (!completion) {
+      return;
+    }
+    this.browserSignInCompletion = null;
+    completion.resolve(status);
+  };
+
+  private rejectBrowserSignIn = (error: unknown) => {
+    const completion = this.browserSignInCompletion;
+    if (!completion) {
+      return;
+    }
+    this.browserSignInCompletion = null;
+    completion.reject(error instanceof Error ? error : new Error(String(error)));
   };
 
   getBrowserAuthSummary = () => {

@@ -23,8 +23,8 @@ vi.mock('@/shared/components/doc-browser', () => ({
   })
 }));
 
-vi.mock('@/app/components/app-manager-provider', () => ({
-  useAppManager: () => ({
+vi.mock('@/app/components/app-presenter-provider', () => ({
+  useAppPresenter: () => ({
     accountManager: {
       openAccountPanel: mocks.openAccountPanel
     }

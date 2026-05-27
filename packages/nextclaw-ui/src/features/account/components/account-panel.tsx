@@ -11,7 +11,7 @@ import { Label } from "@/shared/components/ui/label";
 import { NoticeCard } from "@/shared/components/ui/notice-card";
 import { useRemoteStatus } from "@/features/remote";
 import { formatDateTime, t } from "@/shared/lib/i18n";
-import { useAppManager } from "@/app/components/app-manager-provider";
+import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import { useAccountStore } from "@/features/account/stores/account.store";
 import { KeyRound, LogOut, SquareArrowOutUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -175,7 +175,7 @@ function SignedOutAccountSection(props: {
 }
 
 export function AccountPanel() {
-  const manager = useAppManager();
+  const presenter = useAppPresenter();
   const remoteStatus = useRemoteStatus();
   const panelOpen = useAccountStore((state) => state.panelOpen);
   const authSessionId = useAccountStore((state) => state.authSessionId);
@@ -189,8 +189,8 @@ export function AccountPanel() {
   const [savingUsername, setSavingUsername] = useState(false);
 
   useEffect(() => {
-    manager.accountManager.syncRemoteStatus(status);
-  }, [manager, status]);
+    presenter.accountManager.syncRemoteStatus(status);
+  }, [presenter, status]);
 
   const canSubmitUsername =
     !savingUsername &&
@@ -202,8 +202,8 @@ export function AccountPanel() {
       open={panelOpen}
       onOpenChange={(open) =>
         open
-          ? manager.accountManager.openAccountPanel()
-          : manager.accountManager.closeAccountPanel()
+          ? presenter.accountManager.openAccountPanel()
+          : presenter.accountManager.closeAccountPanel()
       }
     >
       <DialogContent className="max-w-xl">
@@ -227,13 +227,13 @@ export function AccountPanel() {
             onSubmitUsername={async () => {
               setSavingUsername(true);
               try {
-                await manager.accountManager.updateUsername(usernameDraft);
+                await presenter.accountManager.updateUsername(usernameDraft);
               } finally {
                 setSavingUsername(false);
               }
             }}
-            onOpenDeviceList={() => manager.accountManager.openNextClawWeb('/account')}
-            onLogout={() => manager.accountManager.logout()}
+            onOpenDeviceList={() => presenter.accountManager.openNextClawWeb('/account')}
+            onLogout={() => presenter.accountManager.logout()}
           />
         ) : (
           <SignedOutAccountSection
@@ -242,10 +242,10 @@ export function AccountPanel() {
             authStatusMessage={authStatusMessage}
             authVerificationUri={authVerificationUri}
             onStartBrowserSignIn={() =>
-              manager.accountManager.startBrowserSignIn()
+              presenter.accountManager.startBrowserSignIn()
             }
             onResumeBrowserSignIn={() =>
-              manager.accountManager.resumeBrowserSignIn()
+              presenter.accountManager.resumeBrowserSignIn()
             }
           />
         )}

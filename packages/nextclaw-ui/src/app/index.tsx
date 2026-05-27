@@ -4,12 +4,13 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "sonner";
 import { appQueryClient } from "@/app-query-client";
-import { AppManagerProvider } from "@/app/components/app-manager-provider";
+import { AppPresenterProvider } from "@/app/components/app-presenter-provider";
 import { AppLayout } from "@/app/components/layout/app-layout";
 import { LanguageSettingsPage } from "@/features/settings";
 import { SettingsEntryPage } from "@/app/components/layout/settings-entry-page";
 import { LoginPage } from "@/components/auth/login-page";
 import { AccountPanel } from "@/features/account";
+import { ServiceActionAuthorizationDialog } from "@/features/service-apps";
 import { runtimeUpdateManager, useSystemStatusSources } from "@/features/system-status";
 import {
   isTransientAuthStatusBootstrapError,
@@ -211,12 +212,13 @@ function ProtectedApp() {
   }, []);
 
   return (
-    <AppManagerProvider>
+    <AppPresenterProvider>
       <AppLayout>
         <ProtectedRoutes />
       </AppLayout>
       <AccountPanel />
-    </AppManagerProvider>
+      <ServiceActionAuthorizationDialog />
+    </AppPresenterProvider>
   );
 }
 

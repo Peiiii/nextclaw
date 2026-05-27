@@ -20,8 +20,8 @@ vi.mock("@/features/remote/hooks/use-remote-access", () => ({
   useRemoteStatus: () => mocks.statusQuery,
 }));
 
-vi.mock("@/app/components/app-manager-provider", () => ({
-  useAppManager: () => ({
+vi.mock("@/app/components/app-presenter-provider", () => ({
+  useAppPresenter: () => ({
     remoteAccessManager: {
       reauthorizeRemoteAccess: mocks.reauthorizeRemoteAccess,
       repairRemoteAccess: mocks.repairRemoteAccess,

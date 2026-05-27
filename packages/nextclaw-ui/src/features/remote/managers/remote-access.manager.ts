@@ -1,17 +1,13 @@
 import { controlRemoteService, fetchRemoteDoctor, updateRemoteSettings } from '@/shared/lib/api';
 import type { RemoteAccessView } from '@/shared/lib/api';
-import type { AccountManager, AccountPendingAction } from '@/features/account';
+import type { AccountManager } from '@/features/account';
 import { t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
 import { refreshRemoteStatus } from '@/features/remote/services/remote-access-query.service';
 import { useRemoteAccessStore } from '@/features/remote/stores/remote-access.store';
 
 export class RemoteAccessManager {
-  private accountManager: AccountManager | null = null;
-
-  bindAccountManager = (accountManager: AccountManager) => {
-    this.accountManager = accountManager;
-  };
+  constructor(private readonly params: { accountManager: AccountManager }) {}
 
   syncStatus = (status: RemoteAccessView | undefined) => {
     if (!status) {
@@ -43,14 +39,8 @@ export class RemoteAccessManager {
   enableRemoteAccess = async (status: RemoteAccessView | undefined) => {
     const currentStatus = status ?? (await refreshRemoteStatus());
     const draft = useRemoteAccessStore.getState();
-    if (!currentStatus.account.loggedIn) {
-      await this.accountManager?.ensureSignedIn({
-        pendingAction: { type: 'enable-remote' },
-        apiBase: draft.platformApiBase
-      });
-      return;
-    }
-    await this.applyEnabledState(true, currentStatus);
+    const readyStatus = await this.ensureRemoteAccount(currentStatus, draft.platformApiBase);
+    await this.applyEnabledState(true, readyStatus);
   };
 
   disableRemoteAccess = async (status: RemoteAccessView | undefined) => {
@@ -60,13 +50,8 @@ export class RemoteAccessManager {
 
   repairRemoteAccess = async (status: RemoteAccessView | undefined) => {
     const currentStatus = status ?? (await refreshRemoteStatus());
-    if (!currentStatus.account.loggedIn) {
-      await this.accountManager?.ensureSignedIn({
-        pendingAction: { type: 'enable-remote' }
-      });
-      return;
-    }
-    const action = currentStatus.service.running ? 'restart' : 'start';
+    const readyStatus = await this.ensureRemoteAccount(currentStatus);
+    const action = readyStatus.service.running ? 'restart' : 'start';
     await this.runManagedAction({
       actionLabel: action === 'restart' ? t('remoteActionRestarting') : t('remoteActionStarting'),
       job: async () => {
@@ -80,11 +65,11 @@ export class RemoteAccessManager {
 
   reauthorizeRemoteAccess = async (status: RemoteAccessView | undefined) => {
     const currentStatus = status ?? (await refreshRemoteStatus());
-    await this.accountManager?.startBrowserSignIn({
+    const readyStatus = await this.params.accountManager.startBrowserSignInAndWait({
       status: currentStatus,
-      apiBase: useRemoteAccessStore.getState().platformApiBase,
-      pendingAction: { type: 'repair-remote' }
+      apiBase: useRemoteAccessStore.getState().platformApiBase
     });
+    await this.repairRemoteAccess(readyStatus);
   };
 
   saveAdvancedSettings = async (status: RemoteAccessView | undefined) => {
@@ -128,19 +113,6 @@ export class RemoteAccessManager {
     await this.runServiceAction('stop', t('remoteActionStopping'));
   };
 
-  resumePendingActionAfterSignIn = async (action: AccountPendingAction, status: RemoteAccessView) => {
-    if (!action) {
-      return;
-    }
-    if (action.type === 'enable-remote') {
-      await this.applyEnabledState(true, status);
-      return;
-    }
-    if (action.type === 'repair-remote') {
-      await this.repairRemoteAccess(status);
-    }
-  };
-
   private applyEnabledState = async (enabled: boolean, status: RemoteAccessView) => {
     const draft = useRemoteAccessStore.getState();
     await this.runManagedAction({
@@ -163,6 +135,16 @@ export class RemoteAccessManager {
         this.hydrateDraftFromStatus(finalStatus);
       },
       successMessage: enabled ? t('remoteEnabledReady') : t('remoteDisabledDone')
+    });
+  };
+
+  private ensureRemoteAccount = async (status: RemoteAccessView, apiBase?: string) => {
+    if (status.account.loggedIn) {
+      return status;
+    }
+    return await this.params.accountManager.ensureSignedIn({
+      apiBase,
+      status
     });
   };
 
@@ -191,11 +173,12 @@ export class RemoteAccessManager {
     job: () => Promise<void>;
     successMessage?: string;
   }) => {
-    useRemoteAccessStore.getState().beginAction(params.actionLabel);
+    const { actionLabel, job, successMessage } = params;
+    useRemoteAccessStore.getState().beginAction(actionLabel);
     try {
-      await params.job();
-      if (params.successMessage) {
-        toast.success(params.successMessage);
+      await job();
+      if (successMessage) {
+        toast.success(successMessage);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : t('error');

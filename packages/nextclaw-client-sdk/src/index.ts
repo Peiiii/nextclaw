@@ -29,6 +29,7 @@ export type {
   AgentProfileView,
   AgentUpdateRequest,
   ApiError,
+  ApiResponse,
   AppMetaView,
   AuthEnabledUpdateRequest,
   AuthLoginRequest,

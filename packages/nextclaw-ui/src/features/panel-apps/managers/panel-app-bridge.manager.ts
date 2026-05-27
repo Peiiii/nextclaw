@@ -5,6 +5,7 @@ import type {
   ServiceActionInvokeResultView,
   ServiceActionListView,
 } from '@nextclaw/client-sdk';
+import type { ServiceActionAuthorizationManager } from '@/features/service-apps';
 import type { DocBrowserIframeMessageParams } from '@/shared/components/doc-browser/doc-browser-renderer.types';
 import { nextclawClient } from '@/shared/lib/api';
 
@@ -39,11 +40,9 @@ type PanelAppBridgeResponse =
 export class PanelAppBridgeManager {
   private readonly sessions = new Map<string, Promise<PanelAppBridgeSessionView>>();
 
-  handleIframeMessage = ({
-    event,
-    iframe,
-    tab,
-  }: DocBrowserIframeMessageParams): void => {
+  constructor(private readonly authorizationManager: ServiceActionAuthorizationManager) {}
+
+  handleIframeMessage = ({ event, iframe, tab }: DocBrowserIframeMessageParams): void => {
     if (!this.isBridgeRequest(event.data)) {
       return;
     }
@@ -119,7 +118,7 @@ export class PanelAppBridgeManager {
       if (!(error instanceof NextClawClientError) || error.code !== 'AUTHORIZATION_REQUIRED') {
         throw error;
       }
-      await this.confirmAndGrant(session, actionId);
+      await this.confirmAndGrant(session, actionId, request.payload?.input);
       return await nextclawClient.serviceApps.invokeServiceAction(
         actionId,
         request.payload?.input,
@@ -131,8 +130,18 @@ export class PanelAppBridgeManager {
   private confirmAndGrant = async (
     session: PanelAppBridgeSessionView,
     actionId: string,
+    input?: Record<string, unknown>,
   ): Promise<ServiceActionGrantView> => {
-    if (!window.confirm(`Allow this Panel App to call ${actionId}?`)) {
+    const action = await this.findAction(session, actionId);
+    const allowed = await this.authorizationManager.requestAuthorization({
+      panelAppId: session.panelAppId,
+      actionId,
+      actionTitle: action?.title,
+      actionDescription: action?.description,
+      risk: action?.risk,
+      inputPreview: this.createInputPreview(input),
+    });
+    if (!allowed) {
       throw new NextClawClientError({
         code: 'AUTHORIZATION_REJECTED',
         message: `Permission rejected for ${actionId}.`,
@@ -142,6 +151,28 @@ export class PanelAppBridgeManager {
       actionId,
       { bridgeSessionToken: session.token },
     );
+  };
+
+  private findAction = async (
+    session: PanelAppBridgeSessionView,
+    actionId: string,
+  ): Promise<ServiceActionListView['actions'][number] | undefined> => {
+    const actions = await nextclawClient.serviceApps.listServiceActions({
+      bridgeSessionToken: session.token,
+    });
+    return actions.actions.find((action) => action.id === actionId);
+  };
+
+  private createInputPreview = (input: Record<string, unknown> | undefined): string | undefined => {
+    if (!input || Object.keys(input).length === 0) {
+      return undefined;
+    }
+    try {
+      const value = JSON.stringify(input, null, 2);
+      return value.length > 500 ? `${value.slice(0, 500)}...` : value;
+    } catch {
+      return '[unserializable input]';
+    }
   };
 
   private getSession = async (
@@ -214,5 +245,3 @@ export class PanelAppBridgeManager {
     );
   };
 }
-
-export const panelAppBridgeManager = new PanelAppBridgeManager();

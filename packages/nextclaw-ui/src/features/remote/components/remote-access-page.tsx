@@ -9,7 +9,7 @@ import {
 } from "@/shared/components/ui/card";
 import { NoticeCard } from "@/shared/components/ui/notice-card";
 import { StatusDot } from "@/shared/components/ui/status-dot";
-import { useAppManager } from "@/app/components/app-manager-provider";
+import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import {
   buildRemoteAccessFeedbackView,
   resolveRemoteWebBase,
@@ -45,7 +45,7 @@ function KeyValueRow(props: {
 }
 
 export function RemoteAccessPage() {
-  const manager = useAppManager();
+  const presenter = useAppPresenter();
   const remoteStatus = useRemoteStatus();
   const status = remoteStatus.data;
   const actionLabel = useRemoteAccessStore((state) => state.actionLabel);
@@ -64,8 +64,8 @@ export function RemoteAccessPage() {
   const { hero: heroView, issueHint } = feedbackView;
 
   useEffect(() => {
-    manager.remoteAccessManager.syncStatus(status);
-  }, [manager, status]);
+    presenter.remoteAccessManager.syncStatus(status);
+  }, [presenter, status]);
 
   if (remoteStatus.isLoading && !status) {
     return <div className="p-8 text-gray-400">{t("remoteLoading")}</div>;
@@ -117,18 +117,18 @@ export function RemoteAccessPage() {
                 <Button
                   onClick={() => {
                     if (feedbackView.primaryAction?.kind === "reauthorize") {
-                      void manager.remoteAccessManager.reauthorizeRemoteAccess(
+                      void presenter.remoteAccessManager.reauthorizeRemoteAccess(
                         status,
                       );
                       return;
                     }
                     if (feedbackView.primaryAction?.kind === "repair") {
-                      void manager.remoteAccessManager.repairRemoteAccess(
+                      void presenter.remoteAccessManager.repairRemoteAccess(
                         status,
                       );
                       return;
                     }
-                    void manager.remoteAccessManager.enableRemoteAccess(
+                    void presenter.remoteAccessManager.enableRemoteAccess(
                       status,
                     );
                   }}
@@ -143,7 +143,7 @@ export function RemoteAccessPage() {
 
               <Button
                 variant="outline"
-                onClick={() => void manager.accountManager.openNextClawWeb()}
+                onClick={() => void presenter.accountManager.openNextClawWeb()}
                 disabled={busy || !canOpenDeviceList}
               >
                 <SquareArrowOutUpRight className="mr-2 h-4 w-4" />
@@ -154,7 +154,7 @@ export function RemoteAccessPage() {
                 <Button
                   variant="outline"
                   onClick={() =>
-                    void manager.remoteAccessManager.disableRemoteAccess(
+                    void presenter.remoteAccessManager.disableRemoteAccess(
                       status,
                     )
                   }

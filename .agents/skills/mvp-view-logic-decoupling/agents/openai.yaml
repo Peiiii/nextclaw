@@ -1,4 +1,4 @@
 interface:
   display_name: "MVP View-Logic Decoupling"
-  short_description: "Design decoupled MVP presenter-manager-store architecture"
-  default_prompt: "Design and refactor frontend modules with MVP decoupling: UI components stay logic-free, business components consume presenter + stores, and manager/presenter arrow-function actions organize domain logic."
+  short_description: "Design decoupled MVP presenter-manager-store architecture with Zustand persistence"
+  default_prompt: "Design and refactor frontend modules with MVP decoupling: UI components stay logic-free, business components consume presenter + stores, reload-restorable frontend state uses Zustand persist, and manager/presenter arrow-function actions organize domain logic."

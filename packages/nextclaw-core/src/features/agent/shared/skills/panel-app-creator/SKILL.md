@@ -82,6 +82,7 @@ try {
 3. **try/catch 包裹**：所有 service action 调用必须在 try/catch 中，catch 里回退到 localStorage。
 4. **功能完整性**：即使 Service App 完全不可用，Panel App 的所有核心功能（增删改查、展示、交互）必须仍能正常工作。
 5. **运行时探测**：不要假设 Service App 可用或不可用——在代码中动态检测，而非硬编码跳过。
+6. **运行时失败快速决策**：如果 Service App 已部署但返回错误（如 Internal Server Error），不要反复重试或在 assistant 输出中反复描述同一诊断计划。最多调试 2 次（检查 manifest、检查 server 日志），如果仍然失败，立刻告知用户并切换到 localStorage-only 方案。调试循环是 token 浪费——快速降级比完美诊断更重要。
 
 ## 实现建议
 

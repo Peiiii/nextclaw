@@ -33,11 +33,16 @@ export type ServiceAppRecord = {
   description?: string;
   dirPath: string;
   manifestPath: string;
+  command?: string;
+  args?: string[];
+  cwd: string;
   enabled: boolean;
   protocol: ServiceAppProtocol;
   status: ServiceAppRuntimeStatus;
   lastError?: string;
+  lastStartedAt?: string;
   lastReadyAt?: string;
+  lastFailedAt?: string;
 };
 
 export type ServiceActionGrantState =

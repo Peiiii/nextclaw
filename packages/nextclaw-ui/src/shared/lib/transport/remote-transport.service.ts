@@ -1,4 +1,4 @@
-import type { ApiError } from '@nextclaw/server';
+import type { ApiError } from '@nextclaw/client-sdk';
 import type { AppEvent, AppTransport, RemoteRuntimeInfo, RequestInput, StreamInput, StreamSession } from './transport.types';
 import { resolveTransportWebSocketUrl } from './transport-websocket-url.utils';
 
@@ -41,7 +41,15 @@ function normalizeApiError(body: unknown, status: number, fallback: string): Err
   if (typeof body === 'object' && body && 'ok' in body) {
     const typed = body as { ok?: boolean; error?: ApiError; data?: unknown };
     if (typed.ok === false && typed.error?.message) {
-      return new Error(typed.error.message);
+      const error = new Error(typed.error.message) as Error & {
+        code?: string;
+        details?: Record<string, unknown>;
+        status?: number;
+      };
+      error.code = typed.error.code;
+      error.details = typed.error.details;
+      error.status = status;
+      return error;
     }
     if (typed.ok === true) {
       return new Error(fallback);
@@ -57,7 +65,13 @@ function unwrapApiBody<T>(body: unknown): T {
   if (typeof body === 'object' && body && 'ok' in body) {
     const typed = body as { ok?: boolean; error?: ApiError; data?: T };
     if (typed.ok === false) {
-      throw new Error(typed.error?.message ?? 'Remote request failed.');
+      const error = new Error(typed.error?.message ?? 'Remote request failed.') as Error & {
+        code?: string;
+        details?: Record<string, unknown>;
+      };
+      error.code = typed.error?.code;
+      error.details = typed.error?.details;
+      throw error;
     }
     if (typed.ok === true) {
       return typed.data as T;

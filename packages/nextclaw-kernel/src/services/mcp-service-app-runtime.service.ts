@@ -15,7 +15,9 @@ import {
 type RuntimeState = {
   status: ServiceAppRuntimeStatus;
   lastError?: string;
+  lastStartedAt?: string;
   lastReadyAt?: string;
+  lastFailedAt?: string;
 };
 
 export class McpServiceAppRuntimeService {
@@ -42,13 +44,15 @@ export class McpServiceAppRuntimeService {
     if (!app.enabled) {
       return [];
     }
-    this.states.set(app.id, { status: "starting" });
+    const lastStartedAt = new Date().toISOString();
+    this.states.set(app.id, { status: "starting", lastStartedAt });
     try {
       const state = await this.lifecycleManager.warmServer(
         this.toMcpServerRecord(app, manifest),
       );
       this.states.set(app.id, {
         status: "running",
+        lastStartedAt,
         lastReadyAt: state.lastReadyAt,
       });
       return state.tools.map((tool) => this.toServiceAction(manifest, tool));
@@ -57,6 +61,8 @@ export class McpServiceAppRuntimeService {
       this.states.set(app.id, {
         status: "failed",
         lastError,
+        lastStartedAt,
+        lastFailedAt: new Date().toISOString(),
       });
       return [];
     }
@@ -73,7 +79,8 @@ export class McpServiceAppRuntimeService {
     actionName: string;
     input: Record<string, unknown>;
   }): Promise<unknown> => {
-    this.states.set(app.id, { status: "starting" });
+    const lastStartedAt = new Date().toISOString();
+    this.states.set(app.id, { status: "starting", lastStartedAt });
     try {
       const result = await this.lifecycleManager.callTool(
         this.toMcpServerRecord(app, manifest),
@@ -82,6 +89,7 @@ export class McpServiceAppRuntimeService {
       );
       this.states.set(app.id, {
         status: "running",
+        lastStartedAt,
         lastReadyAt: new Date().toISOString(),
       });
       return result;
@@ -90,6 +98,8 @@ export class McpServiceAppRuntimeService {
       this.states.set(app.id, {
         status: "failed",
         lastError,
+        lastStartedAt,
+        lastFailedAt: new Date().toISOString(),
       });
       throw error;
     }
