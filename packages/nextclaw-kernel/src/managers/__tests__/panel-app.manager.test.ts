@@ -90,7 +90,8 @@ describe("PanelAppManager", () => {
       contentType: "text/html; charset=utf-8",
       serviceActions: [],
     }));
-    expect(content.html).toContain("<script src=\"/api/panel-app-bridge.js\"></script>");
+    expect(content.html).toContain("window.nextclaw");
+    expect(content.html).not.toContain("<script src=\"/api/panel-app-bridge.js\"></script>");
     expect(content.html).toContain("<!doctype html><h1>Todo</h1>");
   });
 

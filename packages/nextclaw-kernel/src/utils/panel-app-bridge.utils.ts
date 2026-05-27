@@ -1,10 +1,10 @@
-const PANEL_APP_BRIDGE_SCRIPT_PATH = "/api/panel-app-bridge.js";
+const PANEL_APP_BRIDGE_MARKER = "nextclaw:panel-app-service-actions:request";
 
 export function injectPanelAppBridgeScript(html: string): string {
-  if (html.includes(PANEL_APP_BRIDGE_SCRIPT_PATH)) {
+  if (html.includes(PANEL_APP_BRIDGE_MARKER)) {
     return html;
   }
-  const script = `<script src="${PANEL_APP_BRIDGE_SCRIPT_PATH}"></script>`;
+  const script = `<script>${getPanelAppBridgeScript()}</script>`;
   const headMatch = /<head(?:\s[^>]*)?>/i.exec(html);
   if (headMatch?.index !== undefined) {
     const insertAt = headMatch.index + headMatch[0].length;

@@ -8,6 +8,8 @@
 
 内置 skill 方面，新增 `service-app-creator`，并更新 `panel-app-creator`，让 AI 后续能生成配套 Service App 与声明了 action allowlist 的 Panel App。
 
+补充修复：Panel App bridge 改为内联注入，不再依赖外链 `/api/panel-app-bridge.js` 作为 Panel App 主路径。根因是 sandbox iframe 在 Vite dev/proxy 环境下加载 classic script 时会触发跨 origin 限制，Network 可能显示 bridge 请求 200，但脚本未执行，导致 `window.nextclaw.serviceActions` 缺失，Panel App 保存时报 `Service actions unavailable`。修复后 bridge 随 HTML 一起返回，避免被 script origin 策略挡住；独立 `/api/panel-app-bridge.js` 仍保留为调试/兼容资源。
+
 ## 测试/验证/验收方式
 
 - `pnpm --filter @nextclaw/core tsc`
@@ -31,6 +33,16 @@
 
 补充验收：创建中的 `service-apps/<id>/` 空目录不会被识别为 failed Service App；存在但 JSON 非法的 `service-app.json` 会被识别为 failed，并展示解析错误。
 
+Bridge 注入修复补充验证：
+
+- `pnpm -C packages/nextclaw-kernel tsc --noEmit`
+- `pnpm -C packages/nextclaw-kernel exec vitest run src/managers/__tests__/panel-app.manager.test.ts`
+- `pnpm -C packages/nextclaw-kernel lint`
+- `pnpm lint:new-code:governance`
+- `pnpm check:governance-backlog-ratchet`
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs`
+- `curl http://127.0.0.1:5174/api/panel-apps/<心情日历-id>/content` 确认返回 HTML 已内联 bridge 脚本，不再注入外链 bridge script。
+
 已知验证说明：`pnpm lint:maintainability:hotspots` 当前因既有 tracked hotspots 的 missing/current 状态退出 1，本次未触达这些红区文件。
 
 ## 发布/部署方式
@@ -52,6 +64,8 @@
 本次是新增用户能力，非测试代码净增长是功能闭环所必需。实现中按 owner 收敛：kernel 管业务语义、MCP runtime service 管进程与 MCP lifecycle、server/controller 只做薄路由、client SDK 只做传输封装、UI manager 只做 iframe bridge 消息协调。
 
 正向减债动作：将新 Service/Panel Apps API view 类型从接近预算的 `server-api.types.ts` 拆到 feature-owned types 文件，避免共享类型巨石继续越过 900 行预算。维护性 guard 通过，剩余为既有目录预算 warning：`packages/nextclaw-client-sdk/src/services`、`packages/nextclaw-server/src/app` 和 `server-api.types.ts` 接近预算。
+
+Bridge 注入补丁为非功能 bugfix，非测试代码净增 `0` 行。正向减债动作是简化：删除 Panel App 主路径对外链 bridge script 的运行时依赖，减少一次资源加载和一类 sandbox/CORS 失败面，职责仍收敛在 kernel `PanelAppManager` 的 HTML 注入链路内。
 
 ## NPM 包发布记录
 
