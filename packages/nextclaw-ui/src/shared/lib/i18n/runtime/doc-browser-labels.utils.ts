@@ -26,4 +26,12 @@ export const DOC_BROWSER_LABELS = {
   panelAppsUnfavorite: { zh: '取消收藏面板应用', en: 'Unfavorite panel app' },
   panelAppsLastOpened: { zh: '上次打开', en: 'Last opened' },
   panelAppsUpdated: { zh: '更新于', en: 'Updated' },
+  serviceAppsTitle: { zh: '服务应用', en: 'Service Apps' },
+  serviceAppsLoading: { zh: '加载服务应用中...', en: 'Loading service apps...' },
+  serviceAppsLoadFailed: { zh: '服务应用加载失败', en: 'Failed to load service apps' },
+  serviceAppsEmpty: { zh: '暂无服务应用', en: 'No service apps yet' },
+  serviceAppsRefresh: { zh: '刷新服务应用', en: 'Refresh service apps' },
+  serviceAppsRestart: { zh: '重启服务应用', en: 'Restart service app' },
+  serviceAppsGrantedTo: { zh: '已授权给', en: 'Granted to' },
+  serviceAppsRevokeGrant: { zh: '撤销授权', en: 'Revoke grant' },
 } as const;

@@ -45,6 +45,7 @@ export type UiKernelHost = Pick<
   | "llmProviders"
   | "ncpSessionManager"
   | "panelAppManager"
+  | "serviceAppManager"
 >;
 
 export type UiCronHost = {

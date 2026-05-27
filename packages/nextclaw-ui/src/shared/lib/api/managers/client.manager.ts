@@ -11,11 +11,12 @@ import { appClient } from '@/shared/lib/transport';
 import type { ApiResponse } from '@/shared/lib/api/types';
 
 const nextclawUiTransport: NextClawTransport = {
-  request: async <T>({ body, method, path, query, signal, timeoutMs }: NextClawTransportRequestInput): Promise<T> => {
+  request: async <T>({ body, headers, method, path, query, signal, timeoutMs }: NextClawTransportRequestInput): Promise<T> => {
     return await appClient.request({
       method,
       path: appendQueryToPath(path, serializeQuery(query)),
       ...(body !== undefined ? { body } : {}),
+      ...(headers ? { headers } : {}),
       ...(signal ? { signal } : {}),
       ...(timeoutMs !== undefined ? { timeoutMs } : {})
     });

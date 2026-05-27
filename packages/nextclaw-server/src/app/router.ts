@@ -26,6 +26,7 @@ import { RemoteRoutesController } from "@nextclaw-server/features/remote-access/
 import { RuntimeControlRoutesController } from "@nextclaw-server/features/runtime-control/index.js";
 import { RuntimeUpdateRoutesController } from "@nextclaw-server/features/runtime-update/index.js";
 import { PanelAppsRoutesController } from "@nextclaw-server/features/panel-apps/index.js";
+import { ServiceAppsRoutesController } from "@nextclaw-server/features/service-apps/index.js";
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import { createNcpSessionEventStreamResponse } from "@nextclaw-server/app/utils/ncp-session-event-stream.utils.js";
 import { ServerPathRoutesController } from "@nextclaw-server/features/server-path/index.js";
@@ -48,6 +49,10 @@ function createUiRouteControllers(
     ncpSession: new NcpSessionRoutesController(options),
     ncpAsset: new NcpAssetRoutesController(options),
     panelApps: new PanelAppsRoutesController(options.kernel.panelAppManager),
+    serviceApps: new ServiceAppsRoutesController({
+      panelAppManager: options.kernel.panelAppManager,
+      serviceAppManager: options.kernel.serviceAppManager,
+    }),
     serverPath: new ServerPathRoutesController(),
     remote: remoteAccess ? new RemoteRoutesController(remoteAccess) : null,
     runtimeControl: runtimeControl ? new RuntimeControlRoutesController(runtimeControl) : null,
@@ -164,6 +169,7 @@ class UiRouteRegistry {
       ncpAsset,
       ncpSession,
       panelApps,
+      serviceApps,
       remote,
       runtimeControl,
       runtimeUpdate,
@@ -216,9 +222,21 @@ class UiRouteRegistry {
       ["get", "/api/ncp/sessions/:sessionId/skills", ncpSession.getSessionSkills],
       ["delete", "/api/ncp/sessions/:sessionId", ncpSession.deleteSession],
       ["get", "/api/panel-apps", panelApps.list],
+      ["get", "/api/panel-app-bridge.js", panelApps.getPanelAppBridgeScript],
+      ["post", "/api/panel-app-bridge-sessions", panelApps.createBridgeSession],
+      ["delete", "/api/panel-app-bridge-sessions/:token", panelApps.deleteBridgeSession],
       ["patch", "/api/panel-apps/:id/preferences", panelApps.updatePanelAppPreferences],
       ["post", "/api/panel-apps/:id/open", panelApps.recordPanelAppOpened],
       ["get", "/api/panel-apps/:id/content", panelApps.getPanelAppContent],
+      ["get", "/api/service-apps", serviceApps.listServiceApps],
+      ["post", "/api/service-apps/:appId/restart", serviceApps.restartServiceApp],
+      ["get", "/api/service-apps/:appId", serviceApps.getServiceApp],
+      ["get", "/api/service-actions", serviceApps.listServiceActions],
+      ["post", "/api/service-actions/:actionId/invoke", serviceApps.invokeServiceAction],
+      ["post", "/api/service-actions/:actionId/grant", serviceApps.grantServiceAction],
+      ["delete", "/api/service-actions/:actionId/grant", serviceApps.revokeServiceAction],
+      ["get", "/api/service-action-grants", serviceApps.listServiceActionGrants],
+      ["delete", "/api/service-action-grants/:actionId", serviceApps.revokeServiceActionGrant],
       ["get", "/api/server-paths/browse", serverPath.browse],
       ["get", "/api/server-paths/read", serverPath.read],
     ]);

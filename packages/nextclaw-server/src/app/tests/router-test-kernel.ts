@@ -44,6 +44,27 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       recordPanelAppOpened: async () =>
         unavailable("panelAppManager.recordPanelAppOpened"),
     } as never,
+    serviceAppManager: {
+      listServiceApps: async () => ({
+        workspacePath: "",
+        serviceAppsPath: "",
+        entries: [],
+      }),
+      getServiceApp: async () =>
+        unavailable("serviceAppManager.getServiceApp"),
+      listServiceActions: async () => ({
+        entries: [],
+      }),
+      invokeServiceAction: async () =>
+        unavailable("serviceAppManager.invokeServiceAction"),
+      grantServiceAction: async () =>
+        unavailable("serviceAppManager.grantServiceAction"),
+      listServiceActionGrants: async () => [],
+      revokeServiceAction: async () =>
+        unavailable("serviceAppManager.revokeServiceAction"),
+      restartServiceApp: async () =>
+        unavailable("serviceAppManager.restartServiceApp"),
+    } as never,
     ...overrides,
   };
 }

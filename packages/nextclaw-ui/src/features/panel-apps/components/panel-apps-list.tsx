@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { HelpCircle, RefreshCw } from 'lucide-react';
+import { HelpCircle, RefreshCw, Server } from 'lucide-react';
 import { PanelAppListItem } from '@/features/panel-apps/components/panel-app-list-item';
 import { usePanelApps, useRecordPanelAppOpened, useUpdatePanelAppPreferences } from '@/features/panel-apps/hooks/use-panel-apps';
 import { getPanelAppViewEntries } from '@/features/panel-apps/utils/panel-app-view.utils';
@@ -11,8 +11,10 @@ import { t } from '@/shared/lib/i18n';
 
 export function PanelAppsList({
   onOpenPanelApp,
+  onOpenServiceApps,
 }: {
   onOpenPanelApp: (entry: PanelAppEntryView) => void;
+  onOpenServiceApps: () => void;
 }) {
   const panelApps = usePanelApps();
   const updatePreferences = useUpdatePanelAppPreferences();
@@ -66,6 +68,15 @@ export function PanelAppsList({
             </TooltipProvider>
           ) : null}
         </div>
+        <button
+          type="button"
+          onClick={onOpenServiceApps}
+          className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800"
+          title={t('serviceAppsTitle')}
+          aria-label={t('serviceAppsTitle')}
+        >
+          <Server className="h-3.5 w-3.5" />
+        </button>
         <button
           type="button"
           onClick={() => void panelApps.refetch()}

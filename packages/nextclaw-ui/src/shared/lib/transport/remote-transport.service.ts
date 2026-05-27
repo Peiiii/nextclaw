@@ -6,6 +6,7 @@ type RemoteTarget = {
   method: string;
   path: string;
   body?: unknown;
+  headers?: Record<string, string>;
 };
 
 type RemoteBrowserFrame =
@@ -108,6 +109,7 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
         target: {
           method: input.method,
           path: input.path,
+          ...(input.headers ? { headers: input.headers } : {}),
           ...(input.body !== undefined ? { body: input.body } : {})
         }
       });

@@ -84,12 +84,41 @@ describe("PanelAppManager", () => {
 
     const content = await manager.getPanelAppContent(entry.id);
 
-    expect(content).toEqual({
+    expect(content).toEqual(expect.objectContaining({
       id: entry.id,
       fileName: "todo.panel.html",
-      html: "<!doctype html><h1>Todo</h1>",
       contentType: "text/html; charset=utf-8",
+      serviceActions: [],
+    }));
+    expect(content.html).toContain("<script src=\"/api/panel-app-bridge.js\"></script>");
+    expect(content.html).toContain("<!doctype html><h1>Todo</h1>");
+  });
+
+  it("creates bridge sessions with service actions declared by the panel app", async () => {
+    const workspacePath = createTempDir();
+    const panelsPath = join(workspacePath, "panels");
+    mkdirSync(panelsPath, { recursive: true });
+    writeFileSync(
+      join(panelsPath, "todo.panel.html"),
+      [
+        "<!doctype html>",
+        "<html><head>",
+        "<meta name=\"nextclaw-panel-actions\" content=\"notes.read notes.write\">",
+        "</head><body></body></html>",
+      ].join(""),
+    );
+    const manager = createPanelAppManager(workspacePath);
+    const [entry] = (await manager.listPanelApps()).entries;
+
+    const session = await manager.createPanelAppBridgeSession({
+      id: entry.id,
+      tabId: "tab-1",
     });
+
+    expect(session.panelAppId).toBe(entry.id);
+    expect(session.caller).toEqual({ surface: "panel-app", appId: entry.id });
+    expect(session.declaredActions).toEqual(["notes.read", "notes.write"]);
+    expect(manager.resolvePanelAppBridgeSession(session.token).id).toBe(session.id);
   });
 
   it("reads lightweight manifest metadata from panel app HTML", async () => {

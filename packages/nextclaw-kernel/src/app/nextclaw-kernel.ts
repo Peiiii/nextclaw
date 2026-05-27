@@ -7,6 +7,7 @@ import { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
 import { McpManager } from "@kernel/managers/mcp.manager.js";
 import { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
+import { ServiceAppManager } from "@kernel/managers/service-app.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import {
@@ -114,6 +115,7 @@ export class NextclawKernel {
   readonly mcpManager: McpManager;
   readonly ncpSessionManager: NcpSessionManager;
   readonly panelAppManager: PanelAppManager;
+  readonly serviceAppManager: ServiceAppManager;
   readonly extensions: ExtensionManager;
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
   private readonly kernelBranch: KernelBranch;
@@ -155,6 +157,9 @@ export class NextclawKernel {
       providerManager: this.llmProviders,
     });
     this.panelAppManager = new PanelAppManager({
+      configManager: this.configManager,
+    });
+    this.serviceAppManager = new ServiceAppManager({
       configManager: this.configManager,
     });
     this.extensions = new ExtensionManager({
@@ -227,6 +232,7 @@ export class NextclawKernel {
     }
     this.ncpSessionManager.dispose();
     await this.mcpManager.dispose();
+    await this.serviceAppManager.dispose();
     await this.sessionSearch.dispose();
   };
 }

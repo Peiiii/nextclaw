@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -7,6 +8,11 @@ import {
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import { PanelAppStateStore } from "@kernel/stores/panel-app-state.store.js";
 import type { PanelAppPreferencesUpdate, PanelAppStateEntry } from "@kernel/stores/panel-app-state.store.js";
+import type { ServiceActionCaller } from "@kernel/types/service-app.types.js";
+import {
+  getPanelAppBridgeScript,
+  injectPanelAppBridgeScript,
+} from "@kernel/utils/panel-app-bridge.utils.js";
 import { parsePanelAppManifest } from "@kernel/utils/panel-app-manifest.utils.js";
 
 export type { PanelAppPreferencesUpdate } from "@kernel/stores/panel-app-state.store.js";
@@ -40,9 +46,22 @@ export type PanelAppContent = {
   fileName: string;
   html: string;
   contentType: typeof PANEL_APP_CONTENT_TYPE;
+  serviceActions: string[];
+};
+
+export type PanelAppBridgeSession = {
+  id: string;
+  token: string;
+  panelAppId: string;
+  tabId: string;
+  caller: ServiceActionCaller;
+  declaredActions: string[];
+  createdAt: string;
+  expiresAt: string;
 };
 
 export type PanelAppErrorCode =
+  | "PANEL_APP_BRIDGE_SESSION_NOT_FOUND"
   | "PANEL_APP_INVALID_ID"
   | "PANEL_APP_NOT_FOUND"
   | "PANEL_APP_READ_FAILED";
@@ -62,6 +81,8 @@ export function isPanelAppError(error: unknown): error is PanelAppError {
 }
 
 export class PanelAppManager {
+  private readonly bridgeSessions = new Map<string, PanelAppBridgeSession>();
+
   constructor(private readonly params: { configManager: ConfigManager }) {}
 
   listPanelApps = async (): Promise<PanelAppList> => {
@@ -97,11 +118,13 @@ export class PanelAppManager {
         throw new PanelAppError("PANEL_APP_NOT_FOUND", "panel app not found");
       }
       const html = await readFile(filePath, "utf8");
+      const manifest = parsePanelAppManifest(html);
       return {
         id: this.encodePanelAppId(fileName),
         fileName,
-        html,
+        html: injectPanelAppBridgeScript(html),
         contentType: PANEL_APP_CONTENT_TYPE,
+        serviceActions: manifest.serviceActions,
       };
     } catch (error) {
       if (isPanelAppError(error)) {
@@ -115,6 +138,47 @@ export class PanelAppManager {
         error instanceof Error ? error.message : String(error),
       );
     }
+  };
+
+  getPanelAppBridgeScript = (): string => getPanelAppBridgeScript();
+
+  createPanelAppBridgeSession = async (params: {
+    id: string;
+    tabId: string;
+  }): Promise<PanelAppBridgeSession> => {
+    const content = await this.getPanelAppContent(params.id);
+    const now = new Date();
+    const session: PanelAppBridgeSession = {
+      id: randomUUID(),
+      token: randomUUID(),
+      panelAppId: content.id,
+      tabId: params.tabId,
+      caller: {
+        surface: "panel-app",
+        appId: content.id,
+      },
+      declaredActions: content.serviceActions,
+      createdAt: now.toISOString(),
+      expiresAt: new Date(now.getTime() + 60 * 60 * 1000).toISOString(),
+    };
+    this.bridgeSessions.set(session.token, session);
+    return session;
+  };
+
+  resolvePanelAppBridgeSession = (token: string): PanelAppBridgeSession => {
+    this.deleteExpiredBridgeSessions();
+    const session = this.bridgeSessions.get(token.trim());
+    if (!session) {
+      throw new PanelAppError(
+        "PANEL_APP_BRIDGE_SESSION_NOT_FOUND",
+        "panel app bridge session not found",
+      );
+    }
+    return session;
+  };
+
+  deletePanelAppBridgeSession = (token: string): void => {
+    this.bridgeSessions.delete(token.trim());
   };
 
   updatePanelAppPreferences = async (
@@ -263,6 +327,15 @@ export class PanelAppManager {
 
   private compareIsoDesc = (left?: string, right?: string): number =>
     new Date(right ?? 0).getTime() - new Date(left ?? 0).getTime();
+
+  private deleteExpiredBridgeSessions = (): void => {
+    const now = Date.now();
+    for (const [token, session] of this.bridgeSessions) {
+      if (new Date(session.expiresAt).getTime() <= now) {
+        this.bridgeSessions.delete(token);
+      }
+    }
+  };
 
   private isMissingFileError = (error: unknown): boolean =>
     typeof error === "object" &&

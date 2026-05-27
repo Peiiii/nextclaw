@@ -8,9 +8,16 @@ export type DocBrowserCustomTabRenderParams = {
   tab: DocBrowserTab;
 };
 
+export type DocBrowserIframeMessageParams = {
+  event: MessageEvent;
+  iframe: HTMLIFrameElement | null;
+  tab: DocBrowserTab;
+};
+
 export type DocBrowserCustomTabRenderer = {
   getIframeSandbox?: (tab: DocBrowserTab) => string;
   getTitle?: (tab: DocBrowserTab) => string;
+  onIframeMessage?: (params: DocBrowserIframeMessageParams) => void;
   renderContent?: (params: DocBrowserCustomTabRenderParams) => ReactNode;
   renderIcon?: (tab: DocBrowserTab) => ReactNode;
   renderToolbar?: (params: DocBrowserCustomTabRenderParams) => ReactNode;

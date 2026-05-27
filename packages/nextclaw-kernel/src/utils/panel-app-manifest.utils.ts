@@ -2,17 +2,22 @@ export type PanelAppManifest = {
   title?: string;
   description?: string;
   icon?: string;
+  serviceActions: string[];
 };
 
 export function parsePanelAppManifest(html: string): PanelAppManifest {
-  return {
+  const fields = {
     ...readHtmlTitle(html),
     ...readStandardIcon(html),
     ...readPanelAppMeta(html),
   };
+  return {
+    ...fields,
+    serviceActions: readPanelAppServiceActions(html),
+  };
 }
 
-function readPanelAppMeta(html: string): PanelAppManifest {
+function readPanelAppMeta(html: string): Partial<PanelAppManifest> {
   return {
     ...readPanelAppMetaField(html, "title"),
     ...readPanelAppMetaField(html, "description"),
@@ -20,22 +25,25 @@ function readPanelAppMeta(html: string): PanelAppManifest {
   };
 }
 
-function readPanelAppMetaField(html: string, field: keyof PanelAppManifest): PanelAppManifest {
+function readPanelAppMetaField(
+  html: string,
+  field: keyof Omit<PanelAppManifest, "serviceActions">,
+): Partial<PanelAppManifest> {
   const content = readMetaContent(html, `nextclaw-panel-${field}`, field === "icon" ? "attribute" : "text");
-  const manifest: PanelAppManifest = {};
+  const manifest: Partial<PanelAppManifest> = {};
   if (content) {
     manifest[field] = content;
   }
   return manifest;
 }
 
-function readHtmlTitle(html: string): PanelAppManifest {
+function readHtmlTitle(html: string): Partial<PanelAppManifest> {
   const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   const title = normalizeTextValue(match?.[1]);
   return title ? { title } : {};
 }
 
-function readStandardIcon(html: string): PanelAppManifest {
+function readStandardIcon(html: string): Partial<PanelAppManifest> {
   const icon = readLinkHref(html, (relTokens) => relTokens.includes("icon"));
   const appleTouchIcon = readLinkHref(html, (relTokens) =>
     relTokens.some((token) => token === "apple-touch-icon" || token === "apple-touch-icon-precomposed")
@@ -76,6 +84,19 @@ function readLinkHref(html: string, matchesRel: (relTokens: string[]) => boolean
 function readHtmlAttribute(attributes: string, attribute: string): string | undefined {
   const match = attributes.match(new RegExp(`(?:^|\\s)${attribute}\\s*=\\s*(["'])(.*?)\\1`, "i"));
   return match?.[2] ? decodeHtmlAttribute(match[2]) : undefined;
+}
+
+function readPanelAppServiceActions(html: string): string[] {
+  const content = readMetaContent(html, "nextclaw-panel-actions", "attribute");
+  if (!content) {
+    return [];
+  }
+  return [...new Set(
+    content
+      .split(/[,\s]+/)
+      .map((entry) => entry.trim())
+      .filter(Boolean),
+  )];
 }
 
 function normalizeTextValue(value: string | undefined): string | undefined {

@@ -73,6 +73,7 @@ export function DocBrowser({
   const navVersion = currentTab?.navVersion ?? 0;
   const prevNavVersionRef = useRef(navVersion);
   const isDocsTab = currentTab?.kind === 'docs';
+  const customRenderer = currentTab ? customTabRenderers[currentTab.kind] : undefined;
 
   useEffect(() => {
     if (!isDocsTab) {
@@ -120,6 +121,21 @@ export function DocBrowser({
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, [syncUrl, isDocsTab]);
+
+  useEffect(() => {
+    if (!currentTab || !customRenderer?.onIframeMessage) {
+      return;
+    }
+    const handler = (event: MessageEvent) => {
+      customRenderer.onIframeMessage?.({
+        event,
+        iframe: iframeRef.current,
+        tab: currentTab,
+      });
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [currentTab, customRenderer]);
 
   const startFloatDrag = useCallback((event: React.PointerEvent<HTMLElement>) => {
     event.preventDefault();
@@ -213,7 +229,6 @@ export function DocBrowser({
 
   const isDocked = mode === 'docked';
   const isFullscreen = displayMode === 'fullscreen';
-  const customRenderer = currentTab ? customTabRenderers[currentTab.kind] : undefined;
   const customRenderParams = currentTab ? {
     currentUrl,
     open,

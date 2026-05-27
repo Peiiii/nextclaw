@@ -36,7 +36,7 @@ describe("provider connection probe route", () => {
     const app = createUiRouter({
       configPath,
       appEventBus: new EventBus(),
-    kernel: {
+      kernel: {
         assetStore: {} as never,
         eventBus: new EventBus(),
         ingress: {} as never,
@@ -53,6 +53,7 @@ describe("provider connection probe route", () => {
             throw new Error("not used");
           },
         } as never,
+        serviceAppManager: {} as never,
         llmProviders: {
           testConnection: testConnectionMock,
         } as unknown as LlmProviderManager,

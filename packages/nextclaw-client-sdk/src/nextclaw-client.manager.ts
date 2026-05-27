@@ -16,6 +16,7 @@ import { RequestService } from "./services/request.service.js";
 import { RuntimeControlService } from "./services/runtime-control.service.js";
 import { RuntimeUpdateService } from "./services/runtime-update.service.js";
 import { ServerPathsService } from "./services/server-paths.service.js";
+import { ServiceAppsClientService } from "./services/service-apps.service.js";
 import { SessionsService } from "./services/sessions.service.js";
 
 export class NextClawClient {
@@ -34,6 +35,7 @@ export class NextClawClient {
   readonly runtimeControl: RuntimeControlService;
   readonly runtimeUpdate: RuntimeUpdateService;
   readonly serverPaths: ServerPathsService;
+  readonly serviceApps: ServiceAppsClientService;
   readonly sessions: SessionsService;
 
   constructor(options: NextClawClientOptions) {
@@ -73,6 +75,7 @@ export class NextClawClient {
     this.runtimeControl = new RuntimeControlService(requestService);
     this.runtimeUpdate = new RuntimeUpdateService(requestService);
     this.serverPaths = new ServerPathsService(requestService);
+    this.serviceApps = new ServiceAppsClientService(requestService);
     this.sessions = new SessionsService(requestService, this.eventBus);
   }
 }

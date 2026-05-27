@@ -19,7 +19,7 @@ description_zh: 创建或修改 NextClaw 右侧面板里的单文件 HTML Panel 
 - 每个 Panel App 只允许一个 HTML 文件。
 - CSS 和 JavaScript 默认内联在同一个 HTML 文件里。
 - 不创建 manifest、不创建多文件资源目录、不要求服务器部署。
-- 不假设存在未声明的 bridge、SDK 或宿主注入对象；需要 AI 动作时，可以先做按钮和占位交互，再说明后续需要接入正式 API。
+- 需要后端能力时，优先配套 `service-app-creator` 创建 Service App，并在 Panel App 中声明 action allowlist。
 - `<head>` 里必须提供用于 Panel Apps 启动器展示的标题、描述和图标。
 
 ## 启动器元信息
@@ -39,6 +39,24 @@ description_zh: 创建或修改 NextClaw 右侧面板里的单文件 HTML Panel 
 - 如果用户要求正式图片图标，再使用 Web 标准 favicon，例如 `<link rel="icon" href="data:image/svg+xml,...">`。
 - 不要省略图标；没有用户指定时，按应用主题选择一个克制、可识别的 emoji。
 - 不要使用相对图片路径如 `./icon.png`，因为第一版 Panel App 是单 HTML 文件，没有资源目录。
+
+## Service Actions
+
+Panel App 调用 Service App 前，必须在 `<head>` 声明允许使用的 action：
+
+```html
+<meta name="nextclaw-panel-actions" content="workspace-notes.readNote workspace-notes.writeNote">
+```
+
+运行时通过宿主注入的 SDK 调用：
+
+```js
+const result = await window.nextclaw.serviceActions.invoke("workspace-notes.readNote", {
+  path: "notes/today.md"
+});
+```
+
+不要在 Panel App 里伪造 caller、保存 token 或直接请求 Service Gateway；首次调用授权由宿主处理。
 
 ## 实现建议
 
