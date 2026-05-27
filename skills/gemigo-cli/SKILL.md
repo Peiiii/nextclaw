@@ -51,6 +51,8 @@ If the user says "deploy my app" and gives you source code, first help them buil
 
 Current `gemigo` scope is intentionally narrow:
 
+- generate a complete static-app manifest with `gemigo init`
+- preflight the manifest and static output directory with `gemigo validate`
 - log in with `gemigo login`
 - inspect login state with `gemigo whoami`
 - clear login state with `gemigo logout`
@@ -63,10 +65,12 @@ Do not claim that `gemigo` can currently:
 - build the app for the user without running a real build command,
 - deploy server-side code,
 - or publish a raw source repository root that has not been built.
+- infer rich app metadata beyond the explicit `gemigo init` defaults and provided flags.
 
 The safe rule is simple:
 
 - build first,
+- validate locally,
 - deploy the generated static output second.
 
 ## Install Boundary: NextClaw Skill vs Local CLI
@@ -109,7 +113,7 @@ Classify the task into one of these:
 
 - install or verify `gemigo`,
 - log in or inspect login state,
-- create or fix `gemigo.app.json`,
+- create, validate, or fix `gemigo.app.json`,
 - deploy a built static directory,
 - troubleshoot a failed deployment.
 
@@ -223,6 +227,15 @@ Do not deploy the repo root just because it is the most obvious path.
 
 Create the manifest in the project root or pass a custom path with `--config`.
 
+Preferred path:
+
+```bash
+gemigo init <dir> --config ./gemigo.app.json --name "My App" --description "A short app description."
+gemigo validate <dir> --config ./gemigo.app.json
+```
+
+Use `gemigo init` instead of hand-writing the manifest from memory when the local CLI supports it. Use `gemigo validate` before deploy; do not use `gemigo deploy` as the first schema checker.
+
 Required fields:
 
 - `visibility`
@@ -264,6 +277,8 @@ Portable example:
 ```
 
 If the manifest is incomplete or invalid, fix it before deploy instead of letting the user hit a later failure.
+
+For older local CLI versions that do not support `init` or `validate`, fall back to the portable example above, then upgrade the local CLI when possible.
 
 ### Step 6: Require explicit confirmation before deploy
 
@@ -315,26 +330,30 @@ If the user gives you source code only:
 2. run the build
 3. locate the built static output directory
 4. validate the directory shape
-5. create or fix `gemigo.app.json`
-6. verify `gemigo whoami`
-7. ask for deploy confirmation
-8. run `gemigo deploy`
-9. report the resulting URL
+5. run `gemigo init` or fix the existing `gemigo.app.json`
+6. run `gemigo validate`
+7. verify `gemigo whoami`
+8. ask for deploy confirmation
+9. run `gemigo deploy`
+10. report the resulting URL
 
 If the user already gives you a built directory:
 
 1. validate the directory
-2. create or fix `gemigo.app.json`
-3. verify `gemigo whoami`
-4. ask for confirmation
-5. run `gemigo deploy`
+2. run `gemigo init` or fix the existing `gemigo.app.json`
+3. run `gemigo validate`
+4. verify `gemigo whoami`
+5. ask for confirmation
+6. run `gemigo deploy`
 
 ## Safe Execution Rules
 
 - Keep read actions and write actions distinct.
 - `whoami` is safe to run before asking for confirmation.
+- `init` and `validate` are local preflight actions and should happen before remote deploy confirmation.
 - `deploy` or `publish` must stay behind explicit confirmation.
 - Do not hide missing login, origin mismatch, or invalid static directory errors.
+- Do not repeatedly retry `gemigo deploy` to discover manifest fields; use `gemigo validate` first and fix all local preflight errors together.
 - Do not claim that a source repo root is deployable unless it is actually the built output directory.
 - Prefer the hosted schema URL in manifests.
 - If the user is using a non-default environment, keep `--origin` or `GEMIGO_ORIGIN` explicit through the whole flow.
