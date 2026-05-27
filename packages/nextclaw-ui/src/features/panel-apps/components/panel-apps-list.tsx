@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { HelpCircle, RefreshCw, Server } from 'lucide-react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { HelpCircle, RefreshCw } from 'lucide-react';
 import { PanelAppListItem } from '@/features/panel-apps/components/panel-app-list-item';
 import { usePanelApps, useRecordPanelAppOpened, useUpdatePanelAppPreferences } from '@/features/panel-apps/hooks/use-panel-apps';
 import { getPanelAppViewEntries } from '@/features/panel-apps/utils/panel-app-view.utils';
@@ -10,11 +10,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shar
 import { t } from '@/shared/lib/i18n';
 
 export function PanelAppsList({
+  headerContent,
   onOpenPanelApp,
-  onOpenServiceApps,
 }: {
+  headerContent?: ReactNode;
   onOpenPanelApp: (entry: PanelAppEntryView) => void;
-  onOpenServiceApps: () => void;
 }) {
   const panelApps = usePanelApps();
   const updatePreferences = useUpdatePanelAppPreferences();
@@ -56,7 +56,9 @@ export function PanelAppsList({
     <div className="flex h-full min-h-0 flex-col bg-white">
       <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">
         <div className="flex min-w-0 items-center gap-1.5">
-          <div className="truncate text-sm font-semibold text-gray-900">{t('panelAppsTitle')}</div>
+          {headerContent ?? (
+            <div className="truncate text-sm font-semibold text-gray-900">{t('panelAppsTitle')}</div>
+          )}
           {panelApps.data?.panelsPath ? (
             <TooltipProvider delayDuration={250}>
               <Tooltip>
@@ -68,15 +70,6 @@ export function PanelAppsList({
             </TooltipProvider>
           ) : null}
         </div>
-        <button
-          type="button"
-          onClick={onOpenServiceApps}
-          className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800"
-          title={t('serviceAppsTitle')}
-          aria-label={t('serviceAppsTitle')}
-        >
-          <Server className="h-3.5 w-3.5" />
-        </button>
         <button
           type="button"
           onClick={() => void panelApps.refetch()}

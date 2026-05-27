@@ -10,6 +10,7 @@ export const DOC_BROWSER_LABELS = {
   docBrowserNewTab: { zh: '新建标签', en: 'New Tab' },
   docBrowserCloseTab: { zh: '关闭标签', en: 'Close Tab' },
   docBrowserTabUntitled: { zh: '未命名', en: 'Untitled' },
+  appsTitle: { zh: '应用', en: 'Apps' },
   panelAppsTitle: { zh: '面板应用', en: 'Panel Apps' },
   panelAppsLoading: { zh: '加载面板应用中...', en: 'Loading panel apps...' },
   panelAppsLoadFailed: { zh: '面板应用加载失败', en: 'Failed to load panel apps' },

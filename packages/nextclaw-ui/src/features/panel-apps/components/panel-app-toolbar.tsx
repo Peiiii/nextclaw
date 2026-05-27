@@ -2,23 +2,23 @@ import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { t } from '@/shared/lib/i18n';
 
 type PanelAppToolbarProps = {
-  onOpenPanelApps: () => void;
+  onOpenApps: () => void;
   onRefresh: () => void;
 };
 
 export function PanelAppToolbar({
-  onOpenPanelApps,
+  onOpenApps,
   onRefresh,
 }: PanelAppToolbarProps) {
   return (
     <div className="flex items-center justify-between gap-2 px-3.5 py-2 bg-white border-b border-gray-100 shrink-0">
       <button
         type="button"
-        onClick={onOpenPanelApps}
+        onClick={onOpenApps}
         className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        {t('panelAppsTitle')}
+        {t('appsTitle')}
       </button>
       <button
         type="button"

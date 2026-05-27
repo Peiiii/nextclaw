@@ -30,7 +30,7 @@ import {
   ChatSidebarMobileToolbar,
 } from '@/features/chat/components/layout/chat-sidebar-toolbar';
 import { ChatSidebarUtilityMenu } from '@/features/chat/components/layout/chat-sidebar-utility-menu';
-import { openPanelApps } from '@/features/panel-apps';
+import { openApps } from '@/features/panel-apps';
 import { isWindowsDesktopHost } from '@/platforms/desktop';
 
 type DateGroup = {
@@ -379,7 +379,8 @@ export function ChatSidebar({
             currentLanguageLabel={currentLanguageLabel}
             languageOptions={utilityLanguageOptions}
             onSelectLanguage={handleLanguageSwitch}
-            onOpenDocs={() => docBrowser.open(undefined, { kind: 'docs', newTab: true, title: 'Docs' })} onOpenPanelApps={() => openPanelApps(docBrowser)}
+            onOpenDocs={() => docBrowser.open(undefined, { kind: 'docs', newTab: true, title: 'Docs' })}
+            onOpenApps={() => openApps(docBrowser)}
           />
         </div>
       ) : null}

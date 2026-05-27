@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { RefreshCw, RotateCw, Server, ShieldCheck, Trash2, Wrench } from 'lucide-react';
 import {
   useRestartServiceApp,
@@ -8,7 +9,11 @@ import {
 } from '@/features/service-apps/hooks/use-service-apps';
 import { t } from '@/shared/lib/i18n';
 
-export function ServiceAppsPanel() {
+export function ServiceAppsPanel({
+  headerContent,
+}: {
+  headerContent?: ReactNode;
+}) {
   const serviceApps = useServiceApps();
   const serviceActions = useServiceActions();
   const serviceActionGrants = useServiceActionGrants();
@@ -46,8 +51,12 @@ export function ServiceAppsPanel() {
     <div className="flex h-full min-h-0 flex-col bg-white">
       <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
-          <Server className="h-4 w-4 text-primary" />
-          <div className="truncate text-sm font-semibold text-gray-900">{t('serviceAppsTitle')}</div>
+          {headerContent ?? (
+            <>
+              <Server className="h-4 w-4 text-primary" />
+              <div className="truncate text-sm font-semibold text-gray-900">{t('serviceAppsTitle')}</div>
+            </>
+          )}
         </div>
         <button
           type="button"
