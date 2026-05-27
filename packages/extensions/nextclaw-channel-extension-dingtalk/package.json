@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-extension-dingtalk",
-  "version": "0.1.1-beta.3",
+  "version": "0.1.1-beta.4",
   "private": false,
   "description": "NextClaw DingTalk channel extension process.",
   "type": "module",

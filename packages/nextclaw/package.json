@@ -1,6 +1,6 @@
 {
   "name": "nextclaw",
-  "version": "0.19.31-beta.3",
+  "version": "0.19.31-beta.4",
   "description": "Powerful AI assistant for coordinating agents, skills, CLI tools, automations, and messaging apps.",
   "private": false,
   "type": "module",
