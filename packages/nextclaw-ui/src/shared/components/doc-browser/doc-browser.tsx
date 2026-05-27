@@ -21,7 +21,7 @@ type DocBrowserProps = {
 };
 
 type FloatingPanelRect = { x: number; y: number; w: number; h: number };
-type FloatingPanelResizeEdge = 'left' | 'right' | 'bottom' | 'bottom-right';
+type FloatingPanelResizeEdge = 'left' | 'right' | 'top' | 'bottom' | 'bottom-right';
 type FloatingPanelInteraction = {
   kind: 'drag' | 'resize';
   edge?: FloatingPanelResizeEdge;
@@ -36,15 +36,6 @@ const FLOATING_PANEL_MIN_HEIGHT = 400;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
-}
-
-function getPanelClassName(isFullscreen: boolean): string {
-  return cn(
-    'flex flex-col bg-white overflow-hidden relative',
-    isFullscreen
-      ? 'fixed inset-0 z-[9999] h-[100dvh] w-screen rounded-none border-0 shadow-2xl'
-      : 'rounded-2xl shadow-2xl border border-gray-200',
-  );
 }
 
 export function DocBrowser({
@@ -169,10 +160,13 @@ export function DocBrowser({
         return;
       }
 
-      if (floatInteraction.edge === 'left') {
-        const right = startRect.x + startRect.w;
-        const x = clamp(startRect.x + dx, FLOATING_PANEL_MARGIN, right - FLOATING_PANEL_MIN_WIDTH);
-        setFloatRect({ ...startRect, x, w: right - x });
+      if (floatInteraction.edge === 'left' || floatInteraction.edge === 'top') {
+        const isLeftEdge = floatInteraction.edge === 'left';
+        const fixedEdge = isLeftEdge ? startRect.x + startRect.w : startRect.y + startRect.h;
+        const movingEdge = isLeftEdge ? startRect.x + dx : startRect.y + dy;
+        const minSize = isLeftEdge ? FLOATING_PANEL_MIN_WIDTH : FLOATING_PANEL_MIN_HEIGHT;
+        const nextEdge = clamp(movingEdge, FLOATING_PANEL_MARGIN, fixedEdge - minSize);
+        setFloatRect(isLeftEdge ? { ...startRect, x: nextEdge, w: fixedEdge - nextEdge } : { ...startRect, y: nextEdge, h: fixedEdge - nextEdge });
         return;
       }
 
@@ -294,10 +288,15 @@ export function DocBrowser({
     );
   }
 
-  const panel = (
+  return (
     <div
       data-testid="doc-browser-panel"
-      className={getPanelClassName(isFullscreen)}
+      className={cn(
+        'flex flex-col bg-white overflow-hidden relative',
+        isFullscreen
+          ? 'fixed inset-0 z-[9999] h-[100dvh] w-screen rounded-none border-0 shadow-2xl'
+          : 'rounded-2xl shadow-2xl border border-gray-200',
+      )}
       style={
         isFullscreen
           ? undefined
@@ -315,6 +314,7 @@ export function DocBrowser({
 
       {!isDocked && !isFullscreen && (
         <>
+          <div className="absolute top-0 left-0 h-1.5 w-full cursor-ns-resize z-20 hover:bg-primary/10 transition-colors" data-testid="doc-browser-resize-top" onPointerDown={startFloatResize('top')} />
           <div
             className="absolute top-0 left-0 w-1.5 h-full cursor-ew-resize z-20 hover:bg-primary/10 transition-colors"
             data-testid="doc-browser-resize-left"
@@ -341,6 +341,4 @@ export function DocBrowser({
       )}
     </div>
   );
-
-  return panel;
 }

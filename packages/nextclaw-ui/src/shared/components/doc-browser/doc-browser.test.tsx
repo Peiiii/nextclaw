@@ -130,4 +130,25 @@ describe("DocBrowser", () => {
     expect(panel.style.left).toBe("620px");
     expect(panel.style.width).toBe("540px");
   });
+
+  it("keeps the floating panel bottom edge stable when resizing from the top", () => {
+    docBrowserState.mode = "floating";
+
+    render(<DocBrowser />);
+
+    firePointerEvent(screen.getByTestId("doc-browser-resize-top"), "pointerdown", {
+      clientX: 900,
+      clientY: 80,
+      pointerId: 1,
+    });
+    firePointerEvent(window, "pointermove", {
+      clientX: 900,
+      clientY: 120,
+      pointerId: 1,
+    });
+
+    const panel = screen.getByTestId("doc-browser-panel");
+    expect(panel.style.top).toBe("120px");
+    expect(panel.style.height).toBe("560px");
+  });
 });

@@ -12,25 +12,29 @@
 - 将浮窗位置和尺寸收敛为单一 `floatRect` 状态。
 - 使用统一 pointer interaction 记录拖拽/缩放起点，由同一条 `pointermove` 链路计算 drag、left、right、bottom、bottom-right 几何。
 - 左侧 resize 固定右边缘，右侧 resize 固定左边缘，底部 resize 固定顶部边缘。
+- 同批次补充顶部 resize handle：顶部 resize 固定底边，避免 header 拖拽区域吞掉上边界缩放入口。
 - 保留 docked 模式继续使用共享 `ResizableRightPanel`。
 
 根因确认方式：
 
 - 代码链路确认到旧 effect 会在 `floatSize.w` 变化时写 `floatPos.x`。
-- 新增回归测试覆盖右侧缩放时左边缘不变、左侧缩放时右边缘不变。
+- 新增回归测试覆盖右侧缩放时左边缘不变、左侧缩放时右边缘不变、顶部缩放时底边不变。
 
 ## 测试/验证/验收方式
 
 - `pnpm --filter @nextclaw/ui test -- src/shared/components/doc-browser/doc-browser.test.tsx src/shared/components/resizable-right-panel/resizable-right-panel.test.tsx`
   - 通过，2 个测试文件、6 个用例通过。
+  - 顶部 handle 补充后复跑通过，2 个测试文件、7 个用例通过。
 - `pnpm --filter @nextclaw/ui exec eslint src/shared/components/doc-browser/doc-browser.tsx src/shared/components/doc-browser/doc-browser-panel-parts.tsx src/shared/components/doc-browser/doc-browser.test.tsx src/shared/components/resizable-right-panel/resizable-right-panel.test.tsx`
   - 通过。
 - `pnpm lint:new-code:governance`
   - 通过。
+  - 顶部 handle 补充后复跑时，文档浏览器相关检查已通过，但当前工作区额外出现未跟踪的 `scripts/dev/workspace-package-dist-watcher.mjs` 与 `package.json` 脚本改动；全量 governance 被该脚本中的参数 mutation 检查阻塞，非本次文档浏览器 resize 链路问题。
 - `pnpm check:governance-backlog-ratchet`
   - 通过。
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/shared/components/doc-browser/doc-browser.tsx packages/nextclaw-ui/src/shared/components/doc-browser/doc-browser-panel-parts.tsx packages/nextclaw-ui/src/shared/components/doc-browser/doc-browser.test.tsx`
-  - 通过，非测试代码净增 `-1` 行。
+  - 初次修复通过，非测试代码净增 `-1` 行。
+  - 顶部 handle 补充后复跑通过，非测试代码净增 `-2` 行。
 - `pnpm --filter @nextclaw/ui tsc`
   - 未通过；失败点是既有 `@nextclaw/client-sdk` / `@nextclaw/server` 导出与 alias 问题，以及既有 `ncp-attachments.utils.ts` implicit any。本次触达文件没有新增 TypeScript 错误。
 - 浏览器冒烟：
@@ -44,10 +48,11 @@
 ## 用户/产品视角的验收步骤
 
 1. 打开文档浏览器并切换到浮窗模式。
-2. 从右侧边缘向内/向外拖动，确认左边缘不跳变。
-3. 从左侧边缘向内/向外拖动，确认右边缘不跳变。
-4. 从底部边缘和右下角拖动，确认尺寸连续变化，无抖动或突然吸附。
-5. 切回 docked 模式，确认右侧面板仍可通过左侧 handle 调整宽度。
+2. 从顶部边缘向内/向外拖动，确认底边不跳变，且不会触发标题栏拖拽。
+3. 从右侧边缘向内/向外拖动，确认左边缘不跳变。
+4. 从左侧边缘向内/向外拖动，确认右边缘不跳变。
+5. 从底部边缘和右下角拖动，确认尺寸连续变化，无抖动或突然吸附。
+6. 切回 docked 模式，确认右侧面板仍可通过左侧 handle 调整宽度。
 
 ## 可维护性总结汇总
 
