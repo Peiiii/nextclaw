@@ -79,14 +79,10 @@ function parseArgs(argv) {
     }
   }
 
-  if (options.releaseTag === "") {
-    options.releaseTag = null;
-  }
-  if (options.minimumLauncherVersionOverride === "") {
-    options.minimumLauncherVersionOverride = null;
-  }
-  if (options.branch === "") {
-    options.branch = null;
+  for (const key of ["releaseTag", "minimumLauncherVersionOverride", "branch"]) {
+    if (options[key] === "") {
+      options[key] = null;
+    }
   }
 
   return options;
@@ -180,11 +176,14 @@ function buildReleaseTagsFromCheckpoint(checkpoint) {
     .sort();
 }
 
-function pushReleaseState(branch, checkpoint) {
+function pushReleaseState(branch, checkpoint, tagCommit) {
   run("git", ["push", "origin", `HEAD:${branch}`]);
   const releaseTags = buildReleaseTagsFromCheckpoint(checkpoint);
   if (releaseTags.length === 0) {
     return;
+  }
+  for (const tag of tagCommit ? releaseTags : []) {
+    run("git", ["tag", "-f", tag, tagCommit]);
   }
   run("git", [
     "push",
@@ -330,7 +329,7 @@ function runLocalBetaRelease(branch) {
   const checkpoint = readLatestCheckpointBatch();
   const nextclawVersion = readNextclawVersionFromCheckpoint(checkpoint);
   const releaseCommit = commitReleaseArtifactsIfNeeded();
-  pushReleaseState(branch, checkpoint);
+  pushReleaseState(branch, checkpoint, releaseCommit);
   return {
     nextclawVersion,
     releaseCommit
