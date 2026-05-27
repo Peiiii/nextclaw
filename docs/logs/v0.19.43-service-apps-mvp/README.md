@@ -10,6 +10,8 @@
 
 补充修复：Panel App bridge 改为内联注入，不再依赖外链 `/api/panel-app-bridge.js` 作为 Panel App 主路径。根因是 sandbox iframe 在 Vite dev/proxy 环境下加载 classic script 时会触发跨 origin 限制，Network 可能显示 bridge 请求 200，但脚本未执行，导致 `window.nextclaw.serviceActions` 缺失，Panel App 保存时报 `Service actions unavailable`。修复后 bridge 随 HTML 一起返回，避免被 script origin 策略挡住；独立 `/api/panel-app-bridge.js` 仍保留为调试/兼容资源。
 
+补充合同收敛：Service Actions 列表语义改为纯读取 `service-app.json.actions`，不再在列表页暗中 warm MCP server。新增显式 `POST /api/service-apps/:appId/actions/discover`，只发现单个 Service App 的运行时 `tools/list`，并标记 `matched`、`missing`、`undeclared` 三类 manifest/runtime 合同状态。`invoke` 路径先校验 manifest 声明、Panel App allowlist 与 grant，再 lazy start 目标 Service App 执行 action。
+
 ## 测试/验证/验收方式
 
 - `pnpm --filter @nextclaw/core tsc`
@@ -43,6 +45,26 @@ Bridge 注入修复补充验证：
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs`
 - `curl http://127.0.0.1:5174/api/panel-apps/<心情日历-id>/content` 确认返回 HTML 已内联 bridge 脚本，不再注入外链 bridge script。
 
+Service Actions 合同收敛补充验证：
+
+- `pnpm --filter @nextclaw/kernel test -- src/managers/__tests__/service-app.manager.test.ts`
+- `pnpm --filter @nextclaw/server test -- src/features/service-apps/controllers/service-apps.controller.test.ts`
+- `pnpm --filter @nextclaw/kernel tsc`
+- `pnpm --filter @nextclaw/server tsc`
+- `pnpm --filter @nextclaw/client-sdk tsc`
+- `pnpm --filter @nextclaw/ui tsc`
+- `pnpm --filter @nextclaw/kernel lint`
+- `pnpm --filter @nextclaw/server lint`
+- `pnpm --filter @nextclaw/client-sdk exec eslint src/services/service-apps.service.ts --max-warnings=0`
+- `pnpm --filter @nextclaw/ui exec eslint src/features/service-apps/components/service-apps-panel.tsx src/features/service-apps/hooks/use-service-apps.ts src/shared/lib/i18n/runtime/doc-browser-labels.utils.ts --max-warnings=0`
+- `pnpm --filter @nextclaw/server exec eslint src/features/service-apps/controllers/service-apps.controller.ts src/features/service-apps/controllers/service-apps.controller.test.ts src/app/router.ts src/app/tests/router-test-kernel.ts --max-warnings=0`
+- `pnpm lint:new-code:doc-file-names`
+- `pnpm lint:new-code:governance`
+- `pnpm check:governance-backlog-ratchet`
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths <本批 Service Apps 触达文件>`
+
+已知验证说明：`pnpm --filter @nextclaw/client-sdk lint` 当前因既有 `request.service.ts` 的 `max-statements` warning 在 `--max-warnings=0` 下失败；本次改动文件已用 targeted ESLint 通过。`pnpm --filter @nextclaw/ui lint` 当前因 chat/marketplace/system-status 等既有无关 lint error 失败；本次 UI 触达文件已用 targeted ESLint 通过。
+
 已知验证说明：`pnpm lint:maintainability:hotspots` 当前因既有 tracked hotspots 的 missing/current 状态退出 1，本次未触达这些红区文件。
 
 ## 发布/部署方式
@@ -66,6 +88,8 @@ Bridge 注入修复补充验证：
 正向减债动作：将新 Service/Panel Apps API view 类型从接近预算的 `server-api.types.ts` 拆到 feature-owned types 文件，避免共享类型巨石继续越过 900 行预算。维护性 guard 通过，剩余为既有目录预算 warning：`packages/nextclaw-client-sdk/src/services`、`packages/nextclaw-server/src/app` 和 `server-api.types.ts` 接近预算。
 
 Bridge 注入补丁为非功能 bugfix，非测试代码净增 `0` 行。正向减债动作是简化：删除 Panel App 主路径对外链 bridge script 的运行时依赖，减少一次资源加载和一类 sandbox/CORS 失败面，职责仍收敛在 kernel `PanelAppManager` 的 HTML 注入链路内。
+
+Service Actions 合同收敛属于发布级 Service Apps 能力完善，生产代码有必要增长。正向维护动作是职责收敛与查询/命令分离：`ServiceAppManager` 统一拥有静态 catalog、grant 校验和 runtime discovery 编排；server/client/UI 只暴露显式 discovery 入口；creator skill 同步约束生成物，减少后续生成旧合同的概率。维护性 guard 针对本批文件通过，剩余 warning 为既有目录预算超限：`packages/nextclaw-client-sdk/src/services` 与 `packages/nextclaw-server/src/app`。
 
 ## NPM 包发布记录
 

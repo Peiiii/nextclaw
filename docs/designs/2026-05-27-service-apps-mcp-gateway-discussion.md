@@ -557,7 +557,8 @@ grant API 的输入应围绕 caller + action，而不是围绕 MCP server：
 当前倾向是 **lazy start**：
 
 - `GET /api/service-apps` 可以只读 manifest。
-- `GET /api/service-actions` 可以按需 warm enabled service apps，或先返回 cached catalog + 状态。
+- `GET /api/service-actions` 应默认只读 manifest 静态 action catalog，不启动 service。
+- 需要运行时 tools 详情时，使用显式的单 service discovery/load API，只 warm 一个指定 Service App。
 - `POST /api/service-actions/:id/invoke` 必须确保对应 app 已启动，再调用 action。
 
 理由：
@@ -568,6 +569,22 @@ grant API 的输入应围绕 caller + action，而不是围绕 MCP server：
 - 对 disposable / experimental apps 更友好。
 
 后续如果某些 Service App 需要后台任务、watcher、缓存或主动事件，再引入显式 `startup: "eager" | "lazy"`，但第一版不需要。
+
+### Action catalog 来源分层
+
+这里需要明确区分两个 action catalog：
+
+1. **静态 catalog**：来自 `service-app.json`，用于 UI 列表、Panel App allowlist 校验、权限风险展示和不启动进程的可见性。
+2. **运行时 catalog**：来自 MCP `tools/list`，用于输入 schema、description 补全、运行时合同校验和开发诊断。
+
+这两个 catalog 不应混成一个 read path：
+
+- `listServiceApps()` 是纯读取，不启动 service。
+- `listServiceActions()` 是纯读取，默认只返回 manifest 声明的静态 actions。
+- `discoverServiceAppActions(appId)` / `loadServiceAppActions(appId)` 是显式 action，会启动或连接指定 Service App，并读取 MCP `tools/list`。
+- `invokeServiceAction(actionId)` 是执行路径，只 lazy start action 所属的 Service App。
+
+manifest 是产品层授权和可见性的事实源；MCP `tools/list` 是 runtime protocol 层的事实源。二者不一致时应暴露 `contract mismatch` / `schema mismatch` 状态，而不是静默用运行时结果覆盖 manifest，也不是在列表页为了补全详情启动所有服务。
 
 ## 发布级 MVP v0 合同
 
@@ -596,10 +613,14 @@ Service App 目录：
   "command": "node",
   "args": ["server.js"],
   "actions": {
-    "notes.read": {
+    "readNotes": {
+      "title": "Read notes",
+      "description": "Read workspace notes.",
       "risk": "read"
     },
-    "notes.write": {
+    "writeNotes": {
+      "title": "Write notes",
+      "description": "Update workspace notes.",
       "risk": "write"
     }
   }
@@ -616,7 +637,11 @@ manifest 规则：
 - `command` 必填。
 - `args` 可选，默认 `[]`。
 - `command` 和 `args` 中的相对路径以该 Service App 目录为 cwd 解析。
-- `actions` 可选，只用于补充 NextClaw 自己需要的 metadata，例如 `risk`；它不替代 MCP `tools/list`。
+- `actions` 必须声明面向 NextClaw 的静态 actions，key 是 MCP tool name，完整 action id 由 `<service-app-id>.<tool-name>` 派生。
+- `service-app-id` 不允许包含点号；`tool-name` 可以包含点号。解析 action id 时以已知 service app id 前缀判断归属，而不是把所有点都当成层级分隔。
+- 每个 action 至少声明 `risk`；`title`、`description`、`inputSchema` 可选。
+- 静态 actions 用于列表、授权和 allowlist；它不要求启动 MCP server。
+- MCP `tools/list` 用于运行时 schema 校验和详情补全，不再作为列表页获取 action 的唯一事实源。
 - MCP tool 未声明 risk 时，默认 `risk: "dangerous"`。
 
 ### 2. Kernel owner
@@ -628,7 +653,11 @@ manifest 规则：
 ```ts
 listServiceApps(): Promise<ServiceAppRecord[]>;
 getServiceApp(appId: string): Promise<ServiceAppRecord>;
-listServiceActions(caller?: ServiceActionCaller): Promise<ServiceAction[]>;
+listServiceActions(params?: {
+  caller?: ServiceActionCaller;
+  appId?: string;
+}): Promise<ServiceAction[]>;
+discoverServiceAppActions(appId: string): Promise<ServiceAction[]>;
 invokeServiceAction(
   actionId: string,
   request: ServiceActionInvokeRequest,
@@ -657,7 +686,7 @@ v0 只实现 `McpServiceAppRuntime`。
 它负责：
 
 - 按 manifest 启动 MCP stdio server。
-- 使用 MCP `tools/list` 构建 action catalog。
+- 使用 MCP `tools/list` 构建指定 Service App 的运行时 action catalog。
 - 使用 MCP `tools/call` 执行 action。
 - 捕获启动失败、调用失败、调用超时、进程退出码和最近一次错误。
 - 暴露 runtime status：`idle | starting | running | failed | stopped`。
@@ -665,8 +694,16 @@ v0 只实现 `McpServiceAppRuntime`。
 启动策略：
 
 - `listServiceApps()` 只读 manifest，不启动 service。
-- `listServiceActions()` 自动 warm enabled Service Apps；单个 Service App 失败只标记该 app 状态，不阻塞全局 action 列表。
-- `invokeServiceAction()` 必须确保对应 app running；如果未启动则 lazy start。
+- `listServiceActions()` 只读 manifest 静态 actions，不启动 service；可按 `appId` 过滤。
+- `discoverServiceAppActions(appId)` 显式 warm 指定 Service App，并读取 MCP `tools/list`。
+- `invokeServiceAction()` 必须确保对应 app running；如果未启动则按 action 所属 service lazy start。
+
+调用校验：
+
+- Panel App allowlist 与 grant 只针对 manifest 静态 action id 生效。
+- invoke 前应确认 action 在 manifest 中存在；未声明则拒绝，不因为 MCP server 临时返回了该 tool 就开放调用。
+- runtime tools/list 返回的 tool 若不在 manifest 中，应标记为未声明 runtime tool，不进入默认授权面。
+- manifest 声明但 runtime 不存在的 action，调用时返回 contract mismatch，并在 Service Apps 面板展示。
 
 ### 4. Panel App 如何访问 Service Actions
 
@@ -721,7 +758,7 @@ Panel App 的 action allowlist 先从 HTML meta 读取：
 
 ### 4.1 Panel App Bridge 注入方案
 
-`window.nextclaw.serviceActions` 不能靠父窗口事后写入 `iframe.contentWindow`。推荐 v0 使用 **服务端 HTML 注入外部 bridge script + 父窗口 postMessage RPC**。
+`window.nextclaw.serviceActions` 不能靠父窗口事后写入 `iframe.contentWindow`。推荐 v0 使用 **宿主 HTML 注入 bridge script + 父窗口 postMessage RPC**。
 
 注入链路：
 
@@ -729,7 +766,7 @@ Panel App 的 action allowlist 先从 HTML meta 读取：
 PanelAppManager.getPanelAppContent()
   -> 读取原始 HTML
   -> 解析 nextclaw-panel-actions meta
-  -> 注入 <script src="/api/panel-app-bridge.js"></script>
+  -> 在返回给 iframe 的 HTML 中尽早注入 bridge script
   -> 返回给 iframe
 ```
 
@@ -737,7 +774,8 @@ PanelAppManager.getPanelAppContent()
 
 - bridge script 尽量插入到 `<head>` 起始处，保证早于用户脚本执行。
 - 如果 HTML 没有 `<head>`，prepend 到 HTML 顶部。
-- 注入外部 script，不注入大段 inline script，减少 CSP 与调试问题。
+- 当前实现优先使用 inline bridge 注入，避免 sandbox/null origin 与 Vite dev proxy 下 classic script 取回但不执行的问题。
+- `/api/panel-app-bridge.js` 可以继续作为调试或兼容入口，但不作为当前主注入路径。
 - bridge script 不包含 token、caller 或授权状态，只提供 `window.nextclaw.serviceActions` 的 postMessage SDK。
 
 iframe 内 SDK 只做消息封装：
@@ -872,6 +910,7 @@ DELETE /api/panel-app-bridge-sessions/:token
 GET    /api/service-apps
 GET    /api/service-apps/:appId
 POST   /api/service-apps/:appId/restart
+POST   /api/service-apps/:appId/actions/discover
 GET    /api/service-actions
 POST   /api/service-actions/:actionId/invoke
 POST   /api/service-actions/:actionId/grant
@@ -881,6 +920,8 @@ DELETE /api/service-action-grants/:actionId?surface=panel-app&appId=xxx
 ```
 
 仍然不使用 `/api/mcp/...`，因为 MCP 是 runtime protocol，不是应用层产品语义。
+
+`GET /api/service-actions` 是 read-shaped API，必须保持无副作用：只读 manifest 静态 catalog，不启动进程、不注册 runtime tool、不写状态。运行时 discovery 使用 `POST /api/service-apps/:appId/actions/discover`；这个 API 可以启动指定 Service App，因此必须是 command-shaped POST，UI 不应在页面加载时对全部 service 自动调用它。
 
 Panel App 调用 `service-actions` 的 invoke/grant/revoke 必须通过 `x-nextclaw-panel-bridge-session` header 绑定宿主创建的 bridge session；状态面板的 grant 列表和撤销使用显式 `surface/appId` 查询参数，服务于用户管理授权。
 
@@ -920,21 +961,127 @@ MVP 需要内置两类 AI 使用说明：
 
 这样用户可以让 AI 自己给 Panel App 配套 Service App，但生成物仍然遵守目录、manifest、授权和宿主 bridge 约束。
 
+## 下一阶段优化路线
+
+当前 MVP 已经证明 Panel App 可以通过 NextClaw Service Gateway 调用用户自定义 Service App。下一阶段不应急着扩展更多协议或做 marketplace，而应先把这个扩展底座变得可预测、可诊断、可授权、可生成、可迁移。
+
+### 1. 收敛 lazy/discovery 语义
+
+优先级最高。核心目标是把 read path 与 execution path 分开：
+
+- `listServiceApps()`：纯读取 manifest，不启动。
+- `listServiceActions()`：纯读取 manifest 静态 action catalog，不启动。
+- `discoverServiceAppActions(appId)`：显式 discovery，只 warm 一个指定 Service App。
+- `invokeServiceAction(actionId)`：执行路径，按 action 所属 service lazy start。
+
+验收标准：
+
+- 打开 Service Apps 列表不会启动任何 service 进程。
+- 打开 action 列表不会启动任何 service 进程。
+- 点击某个 Service App 的 discovery / 详情补全，只启动该 service。
+- Panel App 调用 `invoke` 时，只启动 action 所属 service。
+- manifest 与 runtime tools 不一致时可观察为 contract mismatch，不静默修正。
+
+### 2. 补 Service App 状态、日志与错误体验
+
+MVP 已有 `status`、`lastError`、`restart`，但发布级开发者体验还不够。下一步应补一个轻量详情区，不做完整日志系统，但要让用户知道“为什么不能用”。
+
+状态详情建议展示：
+
+- `status`：`idle | starting | running | failed | stopped`。
+- `command` / `args` / `cwd`。
+- `enabled` 与 manifest path。
+- `lastStartedAt`、`lastExitedAt`、`lastExitCode`。
+- `lastError`。
+- 最近 stderr 若干行，优先限制长度和行数。
+- manifest/runtime mismatch 列表：未声明 runtime tool、manifest 声明但 runtime 缺失的 action。
+
+交互建议：
+
+- 列表默认轻量，只展示 title、description、status、restart。
+- 展开单个 Service App 才看 action、grant、错误和 stderr。
+- discovery 是显式按钮或详情页操作，不在列表加载时自动触发。
+
+### 3. 把授权 UX 从 `confirm` 升级为宿主 modal
+
+`window.confirm` 只能作为 MVP 过渡，不适合作为产品级授权体验。下一步应由父窗口/宿主统一弹 modal，Panel App 不控制授权 UI。
+
+授权 modal 至少展示：
+
+- 请求来源：Panel App 标题、文件名或 app id。
+- 请求 action：`<service-app-id>.<tool-name>`。
+- risk：`read | write | dangerous`。
+- action title / description。
+- 如果有 input preview，只展示安全截断后的摘要。
+- 允许 / 拒绝；后续可扩展“本次允许 / 持久允许”。
+
+授权原则：
+
+- caller 与 allowlist 仍由 bridge session 和 kernel 维护，不能由 iframe 自报。
+- 用户拒绝后返回稳定错误，不写 grant。
+- 用户可在 Service Apps 状态面板撤销 grant。
+- 高风险 action 后续可以要求更强确认，但不要在第一版引入复杂权限系统。
+
+### 4. 加强 creator skill 与生成规范
+
+这个系统的价值不只是手写扩展，而是让用户可以让 AI 快速生成可用、可丢弃、可迁移的小应用。因此 `panel-app-creator` 与 `service-app-creator` 要把配套生成做成稳定流程。
+
+生成规范应要求：
+
+- Panel App 生成单文件 `*.panel.html`。
+- 需要后端能力时，同步生成 `service-apps/<app-id>/service-app.json` 和 MCP-compatible stdio server。
+- Panel App `<meta name="nextclaw-panel-actions">` 与 `service-app.json.actions` 必须一致。
+- Service App manifest 必须声明 action risk，推荐补 title/description。
+- Panel App 调用 `window.nextclaw.serviceActions.invoke()`，不要直接 fetch Service Gateway。
+- 生成物要包含基础错误提示和空状态，不把内部异常原样暴露给用户。
+- 验收必须至少覆盖 manifest JSON 合法性、MCP tools/list、一次 tools/call、Panel App allowlist 对齐。
+
+skill 文案还要明确当前能力边界：Service Apps 是用户自定义外部扩展能力，不是 NextClaw 内部系统能力出口，也不是默认 Agent tools。
+
+### 5. 预留 App 级打包、分发与可移植形态
+
+短期不做完整 marketplace，但目录结构和 manifest 语义要保证未来可以迁移到可分发形态。未来一个可移植 App 可以是一个目录包，包含 UI 与 service：
+
+```text
+my-app.nextclaw-app/
+  app.json
+  panel/
+    main.panel.html
+  service-app/
+    service-app.json
+    server.mjs
+  README.md
+```
+
+第一阶段不实现安装器，但设计上应避免把 Panel App 和 Service App 永久绑死在本机绝对路径或隐藏状态里。需要提前保留的语义：
+
+- stable app id。
+- panel 与 service 的关联关系。
+- actions allowlist。
+- grant state 可按 app id 迁移或重置。
+- data 目录约定，例如 `workspace/data/<app-id>/`。
+- README / manifest 中说明权限、启动命令和数据位置。
+
+非目标仍然保持：不做完整 marketplace、不做通用微服务平台、不把所有 actions 默认投影给 Agent。
+
 ## 需要继续讨论的问题
 
 1. **日志与可恢复性**
-   v0 已要求展示最近一次错误；后续是否需要完整日志查看、日志导出和运行历史？
+   下一阶段先做轻量 stderr/exit/status 详情；后续是否需要完整日志查看、日志导出和运行历史？
 
 2. **risk 来源**
-   v0 推荐通过 `service-app.json` 的 `actions` 覆盖 risk，未声明默认 `dangerous`。后续是否引入更细的权限分类？
+   v0 通过 `service-app.json` 的 `actions` 声明 risk；后续是否引入更细的权限分类？
 
-3. **Panel App action 声明来源**
+3. **Action schema 来源**
+   v0 将 manifest 作为静态授权事实源，将 MCP `tools/list` 作为运行时 schema 事实源。后续是否要求 manifest 中也持久化 `inputSchema`，还是只在开发/详情页按需 discovery？
+
+4. **Panel App action 声明来源**
    v0 先用 HTML meta。后续是否补 Panel App manifest？如果补 manifest，如何避免把单 HTML 形态做重？
 
-4. **Grant UI 形态**
-   v0 由宿主统一弹确认。后续是否提供 app 可主动触发的授权预申请 API？
+5. **Grant UI 形态**
+   下一阶段应从 `window.confirm` 升级为宿主 modal；后续是否提供 app 可主动触发的授权预申请 API？
 
-5. **Agent Projection**
+6. **Agent Projection**
    第一版不做，但未来如果做，选择依据是用户 intent、Panel App 上下文、显式 allowlist，还是 skill 推荐？
 
 ## 当前非目标

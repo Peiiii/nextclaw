@@ -37,20 +37,38 @@ service-apps/
   "command": "node",
   "args": ["server.mjs"],
   "actions": {
-    "readNote": { "risk": "read" },
-    "writeNote": { "risk": "write" }
+    "readNote": {
+      "title": "Read note",
+      "description": "Read one note from the app data folder.",
+      "risk": "read"
+    },
+    "writeNote": {
+      "title": "Write note",
+      "description": "Create or update one note in the app data folder.",
+      "risk": "write"
+    }
   }
 }
 ```
+
+## 前置检查
+
+当前 NextClaw 版本可能尚未支持 Service App 运行时（配置中无 `serviceApps` 字段、`nextclaw doctor` 无 service app 检查项）。在创建 Service App 前：
+
+1. 检查 `nextclaw doctor` 输出中是否有 service app 相关检查。
+2. 如果不确定，先创建一个最小 Service App 并通过 Panel App 验证 `window.nextclaw.serviceActions.invoke()` 是否可用。
+3. 如果 Service App 不可用，**仍应创建 Service App 文件**（未来版本会支持），但必须同时告知用户：当前版本的 Panel App 应使用 `localStorage` 作为临时后端，并在 Service App 可用后切换。
 
 ## 实现规则
 
 1. 第一版只创建 `protocol: "mcp"` 的 stdio 服务，不创建 HTTP server、不后台常驻监听端口。
 2. `command` 和 `args` 的相对路径以 Service App 目录作为 cwd。
-3. 每个 MCP tool 都会映射成 Service Action，action id 形如 `<service-app-id>.<tool-name>`。
-4. `actions` 里为每个 tool 声明风险等级；可用值为 `read`、`write`、`external`、`dangerous`，不确定时用 `dangerous`。
-5. 不把 NextClaw 内部 kernel/server API 当作默认能力暴露；需要访问用户文件、外部服务或本地命令时，在 Service App 自己的代码里清楚收敛边界。
-6. 完成后告诉用户在右侧面板的“服务应用”页刷新查看状态。
+3. 每个 MCP tool 都必须在 `service-app.json.actions` 中静态声明；NextClaw 的列表、授权和 allowlist 都以 manifest 为事实源，不靠启动服务后临时发现。
+4. action id 形如 `<service-app-id>.<tool-name>`；`<app-id>` 不包含点号，tool name 可以包含点号。
+5. `actions` 里为每个 tool 声明风险等级；可用值为 `read`、`write`、`external`、`dangerous`，不确定时用 `dangerous`。
+6. 推荐为每个 action 写 `title` 和 `description`；有稳定入参时可补 `inputSchema`，但运行时 schema 仍以 MCP `tools/list` 作为校验来源。
+7. 不把 NextClaw 内部 kernel/server API 当作默认能力暴露；需要访问用户文件、外部服务或本地命令时，在 Service App 自己的代码里清楚收敛边界。
+8. 完成后告诉用户在右侧面板的“服务应用”页刷新查看状态；需要运行时 schema 或 mismatch 时，点击单个服务应用的发现/刷新动作。
 
 ## 配套 Panel App
 
@@ -75,6 +93,7 @@ const result = await window.nextclaw.serviceActions.invoke(
 ## 验收建议
 
 - 检查 `service-app.json` 是合法 JSON，`id` 与目录名一致。
-- 检查 MCP server 至少能列出 tools，并且 tool 名和 manifest `actions` 对齐。
+- 检查 manifest `actions` 非空，并且每个 action 都有 `risk`。
+- 检查 MCP server 至少能列出 tools，并且 tool 名和 manifest `actions` 对齐；manifest 声明但 runtime 缺失、runtime 多出未声明 tool 都需要向用户说明。
 - 如果配套 Panel App，同时检查 `<meta name="nextclaw-panel-actions">` 包含要调用的 action id。
 - 用“服务应用”面板刷新，确认 app 状态不是 failed；再从 Panel App 触发一次调用，确认授权和结果都能走通。

@@ -50,13 +50,26 @@ export class ServiceAppsRoutesController {
   readonly listServiceActions = async (c: Context) => {
     try {
       const bridgeSession = this.readOptionalBridgeSession(c);
+      const appId = c.req.query("appId")?.trim();
       const actions = await this.params.serviceAppManager.listServiceActions(
         bridgeSession
           ? {
               caller: bridgeSession.caller,
+              appId,
               declaredActions: bridgeSession.declaredActions,
             }
-          : {},
+          : { appId },
+      );
+      return c.json(ok({ actions }));
+    } catch (error) {
+      return this.handleServiceAppError(c, error);
+    }
+  };
+
+  readonly discoverServiceAppActions = async (c: Context) => {
+    try {
+      const actions = await this.params.serviceAppManager.discoverServiceAppActions(
+        c.req.param("appId"),
       );
       return c.json(ok({ actions }));
     } catch (error) {

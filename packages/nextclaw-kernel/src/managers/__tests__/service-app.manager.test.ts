@@ -70,10 +70,11 @@ function writeServiceApp(
   );
 }
 
-function createRuntime(action: ServiceAction) {
+function createRuntime(actions: ServiceAction | ServiceAction[]) {
+  const actionList = Array.isArray(actions) ? actions : [actions];
   return {
     getStatus: vi.fn(() => ({ status: "idle" as const })),
-    listActions: vi.fn(async () => [action]),
+    listActions: vi.fn(async () => actionList),
     invokeAction: vi.fn(async () => ({ ok: true })),
     restart: vi.fn(async () => {}),
     dispose: vi.fn(async () => {}),
@@ -145,9 +146,10 @@ describe("ServiceAppManager", () => {
       name: "read",
       risk: "read",
     };
+    const runtime = createRuntime(action);
     const manager = new ServiceAppManager({
       configManager: createConfigManager(workspacePath),
-      runtimeService: createRuntime(action),
+      runtimeService: runtime,
     });
 
     const list = await manager.listServiceApps();
@@ -173,9 +175,10 @@ describe("ServiceAppManager", () => {
       name: "read",
       risk: "read",
     };
+    const runtime = createRuntime(action);
     const manager = new ServiceAppManager({
       configManager: createConfigManager(workspacePath),
-      runtimeService: createRuntime(action),
+      runtimeService: runtime,
     });
 
     const list = await manager.listServiceApps();
@@ -234,6 +237,8 @@ describe("ServiceAppManager", () => {
     await expect(manager.invokeServiceAction("notes.read", request)).rejects.toMatchObject({
       code: "AUTHORIZATION_REQUIRED",
     } satisfies Partial<ServiceAppError>);
+    expect(runtime.listActions).not.toHaveBeenCalled();
+    expect(runtime.invokeAction).not.toHaveBeenCalled();
 
     await expect(manager.grantServiceAction("notes.read", {
       caller,
@@ -247,12 +252,15 @@ describe("ServiceAppManager", () => {
       actionId: "notes.read",
       result: { ok: true },
     });
+    expect(runtime.listActions).not.toHaveBeenCalled();
     expect(runtime.invokeAction).toHaveBeenCalledWith(expect.objectContaining({
       actionName: "read",
       input: { path: "memory.md" },
     }));
   });
+});
 
+describe("ServiceAppManager action catalog", () => {
   it("marks grant state from the caller and panel declaration", async () => {
     const workspacePath = createTempDir();
     writeServiceApp(workspacePath);
@@ -262,9 +270,10 @@ describe("ServiceAppManager", () => {
       name: "read",
       risk: "read",
     };
+    const runtime = createRuntime(action);
     const manager = new ServiceAppManager({
       configManager: createConfigManager(workspacePath),
-      runtimeService: createRuntime(action),
+      runtimeService: runtime,
     });
     const caller: ServiceActionCaller = { surface: "panel-app", appId: "todo-panel" };
 
@@ -274,6 +283,7 @@ describe("ServiceAppManager", () => {
     })).resolves.toEqual([
       expect.objectContaining({ id: "notes.read", grantState: "not-declared" }),
     ]);
+    expect(runtime.listActions).not.toHaveBeenCalled();
     await expect(manager.listServiceActions({
       caller,
       declaredActions: ["notes.read"],
@@ -296,5 +306,55 @@ describe("ServiceAppManager", () => {
     })).resolves.toEqual([
       expect.objectContaining({ id: "notes.read", grantState: "granted" }),
     ]);
+  });
+
+  it("discovers runtime actions explicitly and marks manifest mismatches", async () => {
+    const workspacePath = createTempDir();
+    writeServiceApp(workspacePath, {
+      actions: {
+        read: { risk: "read" },
+        write: { risk: "write" },
+      },
+    });
+    const runtime = createRuntime([
+      {
+        id: "notes.read",
+        appId: "notes",
+        name: "read",
+        description: "Runtime read",
+        inputSchema: { type: "object" },
+        risk: "read",
+      },
+      {
+        id: "notes.extra",
+        appId: "notes",
+        name: "extra",
+        risk: "dangerous",
+      },
+    ]);
+    const manager = new ServiceAppManager({
+      configManager: createConfigManager(workspacePath),
+      runtimeService: runtime,
+    });
+
+    await expect(manager.discoverServiceAppActions("notes")).resolves.toEqual([
+      expect.objectContaining({
+        id: "notes.extra",
+        runtimeState: "undeclared",
+        risk: "dangerous",
+      }),
+      expect.objectContaining({
+        id: "notes.read",
+        description: "Runtime read",
+        inputSchema: { type: "object" },
+        runtimeState: "matched",
+      }),
+      expect.objectContaining({
+        id: "notes.write",
+        runtimeState: "missing",
+        risk: "write",
+      }),
+    ]);
+    expect(runtime.listActions).toHaveBeenCalledTimes(1);
   });
 });

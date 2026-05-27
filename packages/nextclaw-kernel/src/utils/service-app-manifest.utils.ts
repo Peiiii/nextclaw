@@ -68,10 +68,13 @@ export function parseServiceAppManifest(raw: string): ServiceAppManifest {
 
 function readManifestActions(value: unknown): Record<string, ServiceAppManifestAction> {
   if (value === undefined) {
-    return {};
+    throw new Error("service app actions are required.");
   }
   if (!isRecord(value)) {
     throw new Error("service app actions must be an object.");
+  }
+  if (Object.keys(value).length === 0) {
+    throw new Error("service app actions cannot be empty.");
   }
 
   const actions: Record<string, ServiceAppManifestAction> = {};
@@ -86,8 +89,15 @@ function readManifestActions(value: unknown): Record<string, ServiceAppManifestA
     if (risk !== undefined && !SERVICE_ACTION_RISKS.has(risk as ServiceActionRisk)) {
       throw new Error(`service app action ${name} has invalid risk.`);
     }
+    const inputSchema = action.inputSchema;
+    if (inputSchema !== undefined && !isRecord(inputSchema)) {
+      throw new Error(`service app action ${name} inputSchema must be an object.`);
+    }
     actions[name] = {
       risk: risk as ServiceActionRisk | undefined,
+      title: readOptionalString(action, "title"),
+      description: readOptionalString(action, "description"),
+      inputSchema,
     };
   }
   return actions;

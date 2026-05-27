@@ -11,6 +11,9 @@ export type ServiceAppRuntimeStatus =
 
 export type ServiceAppManifestAction = {
   risk?: ServiceActionRisk;
+  title?: string;
+  description?: string;
+  inputSchema?: Record<string, unknown>;
 };
 
 export type ServiceAppManifest = {
@@ -42,6 +45,11 @@ export type ServiceActionGrantState =
   | "not-granted"
   | "not-declared";
 
+export type ServiceActionRuntimeState =
+  | "matched"
+  | "missing"
+  | "undeclared";
+
 export type ServiceAction = {
   id: string;
   appId: string;
@@ -50,6 +58,7 @@ export type ServiceAction = {
   description?: string;
   inputSchema?: Record<string, unknown>;
   risk: ServiceActionRisk;
+  runtimeState?: ServiceActionRuntimeState;
   grantState?: ServiceActionGrantState;
 };
 

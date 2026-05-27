@@ -115,6 +115,53 @@ describe("service apps routes", () => {
     });
   });
 
+  it("uses POST for explicit service action discovery", async () => {
+    const discoverServiceAppActions = vi.fn(async () => [{
+      id: "notes.read",
+      appId: "notes",
+      name: "read",
+      risk: "read" as const,
+      runtimeState: "matched" as const,
+    }]);
+    const app = createTestApp({
+      panelAppManager: {},
+      serviceAppManager: {
+        discoverServiceAppActions,
+      },
+    });
+
+    const response = await app.request(
+      "http://localhost/api/service-apps/notes/actions/discover",
+      { method: "POST" },
+    );
+    const payload = await response.json() as {
+      ok: true;
+      data: { actions: Array<{ id: string; runtimeState: string }> };
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.data.actions[0]).toEqual(expect.objectContaining({
+      id: "notes.read",
+      runtimeState: "matched",
+    }));
+    expect(discoverServiceAppActions).toHaveBeenCalledWith("notes");
+  });
+
+  it("passes optional app id filtering into action list queries", async () => {
+    const listServiceActions = vi.fn(async () => []);
+    const app = createTestApp({
+      panelAppManager: {},
+      serviceAppManager: {
+        listServiceActions,
+      },
+    });
+
+    const response = await app.request("http://localhost/api/service-actions?appId=notes");
+
+    expect(response.status).toBe(200);
+    expect(listServiceActions).toHaveBeenCalledWith({ appId: "notes" });
+  });
+
   it("creates panel bridge sessions through the thin panel app route", async () => {
     const bridgeSession = createBridgeSession();
     const createPanelAppBridgeSession = vi.fn(async () => bridgeSession);

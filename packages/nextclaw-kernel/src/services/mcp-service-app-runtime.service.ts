@@ -136,13 +136,14 @@ export class McpServiceAppRuntimeService {
     tool: McpToolCatalogEntry,
   ): ServiceAction => {
     const actionId = buildServiceActionId(manifest.id, tool.toolName);
-    const risk = manifest.actions[tool.toolName]?.risk ?? DEFAULT_SERVICE_ACTION_RISK;
+    const manifestAction = manifest.actions[tool.toolName];
+    const risk = manifestAction?.risk ?? DEFAULT_SERVICE_ACTION_RISK;
     return {
       id: actionId,
       appId: manifest.id,
       name: tool.toolName,
-      title: tool.toolName,
-      description: tool.description,
+      title: manifestAction?.title ?? tool.toolName,
+      description: manifestAction?.description ?? tool.description,
       inputSchema: tool.parameters,
       risk,
     };

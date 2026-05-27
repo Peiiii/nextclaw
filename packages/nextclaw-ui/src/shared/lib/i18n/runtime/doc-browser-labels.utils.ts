@@ -32,7 +32,11 @@ export const DOC_BROWSER_LABELS = {
   serviceAppsLoadFailed: { zh: '服务应用加载失败', en: 'Failed to load service apps' },
   serviceAppsEmpty: { zh: '暂无服务应用', en: 'No service apps yet' },
   serviceAppsRefresh: { zh: '刷新服务应用', en: 'Refresh service apps' },
+  serviceAppsDiscoverActions: { zh: '发现运行时动作', en: 'Discover runtime actions' },
   serviceAppsRestart: { zh: '重启服务应用', en: 'Restart service app' },
   serviceAppsGrantedTo: { zh: '已授权给', en: 'Granted to' },
   serviceAppsRevokeGrant: { zh: '撤销授权', en: 'Revoke grant' },
+  serviceAppsRuntimeState_matched: { zh: '已匹配', en: 'Matched' },
+  serviceAppsRuntimeState_missing: { zh: '运行时缺失', en: 'Missing' },
+  serviceAppsRuntimeState_undeclared: { zh: '未声明', en: 'Undeclared' },
 } as const;

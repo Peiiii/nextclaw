@@ -230,6 +230,7 @@ class UiRouteRegistry {
       ["get", "/api/panel-apps/:id/content", panelApps.getPanelAppContent],
       ["get", "/api/service-apps", serviceApps.listServiceApps],
       ["post", "/api/service-apps/:appId/restart", serviceApps.restartServiceApp],
+      ["post", "/api/service-apps/:appId/actions/discover", serviceApps.discoverServiceAppActions],
       ["get", "/api/service-apps/:appId", serviceApps.getServiceApp],
       ["get", "/api/service-actions", serviceApps.listServiceActions],
       ["post", "/api/service-actions/:actionId/invoke", serviceApps.invokeServiceAction],

@@ -14,6 +14,10 @@ type BridgeRequestOptions = {
   bridgeSessionToken?: string;
 };
 
+type ListServiceActionsOptions = BridgeRequestOptions & {
+  appId?: string;
+};
+
 function bridgeHeaders(token?: string): Record<string, string> | undefined {
   return token ? { [PANEL_BRIDGE_SESSION_HEADER]: token } : undefined;
 }
@@ -38,11 +42,23 @@ export class ServiceAppsClientService {
   };
 
   readonly listServiceActions = async (
-    options: BridgeRequestOptions = {},
+    options: ListServiceActionsOptions = {},
   ): Promise<ServiceActionListView> => {
+    const search = options.appId
+      ? `?${new URLSearchParams({ appId: options.appId }).toString()}`
+      : "";
     return await this.requestService.get<ServiceActionListView>(
-      "/api/service-actions",
+      `/api/service-actions${search}`,
       { headers: bridgeHeaders(options.bridgeSessionToken) },
+    );
+  };
+
+  readonly discoverServiceAppActions = async (
+    appId: string,
+  ): Promise<ServiceActionListView> => {
+    return await this.requestService.post<ServiceActionListView>(
+      `/api/service-apps/${encodeURIComponent(appId)}/actions/discover`,
+      {},
     );
   };
 

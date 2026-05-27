@@ -19,7 +19,8 @@ description_zh: 创建或修改 NextClaw 右侧面板里的单文件 HTML Panel 
 - 每个 Panel App 只允许一个 HTML 文件。
 - CSS 和 JavaScript 默认内联在同一个 HTML 文件里。
 - 不创建 manifest、不创建多文件资源目录、不要求服务器部署。
-- 需要后端能力时，优先配套 `service-app-creator` 创建 Service App，并在 Panel App 中声明 action allowlist。
+- 需要后端能力时，可配套 `service-app-creator` 创建 Service App，但必须先执行 Service App 可用性检查（见下方"Service App 可用性"节）。
+- **永远以 `localStorage` 作为默认持久化**，Service App 仅作为可选增强。不要让 Panel App 的核心功能依赖 Service App——如果 Service App 不可用，Panel App 必须仍能完整工作。
 - `<head>` 里必须提供用于 Panel Apps 启动器展示的标题、描述和图标。
 
 ## 启动器元信息
@@ -48,18 +49,43 @@ Panel App 调用 Service App 前，必须在 `<head>` 声明允许使用的 acti
 <meta name="nextclaw-panel-actions" content="workspace-notes.readNote workspace-notes.writeNote">
 ```
 
+action id 必须来自对应 `service-app.json.actions`：`<service-app-id>.<tool-name>`。`service-app-id` 不包含点号，tool name 可以包含点号。
+
 运行时通过宿主注入的 SDK 调用：
 
 ```js
-const result = await window.nextclaw.serviceActions.invoke("workspace-notes.readNote", {
-  path: "notes/today.md"
-});
+// Service App 调用必须在 try/catch 中，并始终有 localStorage 回退
+try {
+  if (window.nextclaw?.serviceActions?.invoke) {
+    const result = await window.nextclaw.serviceActions.invoke("workspace-notes.readNote", {
+      path: "notes/today.md"
+    });
+  } else {
+    // Service App 不可用，回退到 localStorage
+    const data = JSON.parse(localStorage.getItem("my-app-data") || "[]");
+  }
+} catch (e) {
+  console.warn("Service App unavailable, using localStorage:", e);
+  // localStorage 回退
+}
 ```
 
 不要在 Panel App 里伪造 caller、保存 token 或直接请求 Service Gateway；首次调用授权由宿主处理。
+不要为了发现 action 在 Panel App 启动时自行触发后端探测；Service Actions 列表由宿主读取静态 manifest，运行时 discovery 由服务应用面板中的显式操作完成。
+
+## Service App 可用性
+
+当前版本的 NextClaw 可能尚未支持 Service App（`window.nextclaw.serviceActions` 可能不存在或不可用）。构建 Panel App 时必须遵循以下原则：
+
+1. **先检查，后调用**：在调用任何 service action 前，检查 `window.nextclaw?.serviceActions?.invoke` 是否存在。
+2. **localStorage 为主**：所有数据持久化必须默认使用 `localStorage`。Service App 调用仅作为可选增强路径。
+3. **try/catch 包裹**：所有 service action 调用必须在 try/catch 中，catch 里回退到 localStorage。
+4. **功能完整性**：即使 Service App 完全不可用，Panel App 的所有核心功能（增删改查、展示、交互）必须仍能正常工作。
+5. **运行时探测**：不要假设 Service App 可用或不可用——在代码中动态检测，而非硬编码跳过。
 
 ## 实现建议
 
+0. **信任 write_file 结果**：`write_file` 返回成功即表示文件已写入。不要用 `exec ls -la`、`head` 或 `read_file` 去"验证"刚写入的文件——这会浪费工具调用，并可能因批量执行的时间戳不一致导致分析循环。需要验证时，只在全部写入完成后的验收阶段做一次。
 1. 明确用户要解决的实际工作流，不把临时工具做成复杂产品。
 2. 生成完整可打开的 HTML：`<!doctype html>`、`<meta charset="utf-8">`、响应式布局、可访问的按钮和输入。
 3. 每次新建或重写 Panel App 时，都要先补齐 `<title>`、`nextclaw-panel-title`、`nextclaw-panel-description` 和 `nextclaw-panel-icon`。

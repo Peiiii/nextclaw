@@ -52,9 +52,9 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       }),
       getServiceApp: async () =>
         unavailable("serviceAppManager.getServiceApp"),
-      listServiceActions: async () => ({
-        entries: [],
-      }),
+      listServiceActions: async () => [],
+      discoverServiceAppActions: async () =>
+        unavailable("serviceAppManager.discoverServiceAppActions"),
       invokeServiceAction: async () =>
         unavailable("serviceAppManager.invokeServiceAction"),
       grantServiceAction: async () =>

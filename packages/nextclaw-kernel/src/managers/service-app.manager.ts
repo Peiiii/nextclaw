@@ -22,6 +22,8 @@ import {
   readServiceAppManifest,
 } from "@kernel/utils/service-app-manifest.utils.js";
 import {
+  buildServiceActionId,
+  DEFAULT_SERVICE_ACTION_RISK,
   getServiceActionName,
   resolveServiceActionGrantState,
 } from "@kernel/utils/service-action.utils.js";
@@ -94,18 +96,24 @@ export class ServiceAppManager {
 
   listServiceActions = async (params: {
     caller?: ServiceActionCaller;
+    appId?: string;
     declaredActions?: readonly string[];
   } = {}): Promise<ServiceAction[]> => {
-    const manifests = await this.listValidServiceApps();
-    const actionGroups = await Promise.all(
-      manifests.map(async ({ manifest, record }) =>
-        await this.runtimeService.listActions({ app: record, manifest }),
-      ),
+    const manifests = params.appId
+      ? [await this.requireServiceApp(params.appId)]
+      : await this.listValidServiceApps();
+    const actions = manifests.flatMap(({ manifest, record }) =>
+      this.listManifestActions(record, manifest),
     );
-    const actions = actionGroups.flat();
     return await Promise.all(
       actions.map(async (action) => await this.withGrantState(action, params)),
     );
+  };
+
+  discoverServiceAppActions = async (appId: string): Promise<ServiceAction[]> => {
+    const { manifest, record } = await this.requireServiceApp(appId);
+    const runtimeActions = await this.runtimeService.listActions({ app: record, manifest });
+    return this.mergeRuntimeActions(record, manifest, runtimeActions);
   };
 
   invokeServiceAction = async (
@@ -116,9 +124,7 @@ export class ServiceAppManager {
     this.assertDeclaredAction(actionId, request.declaredActions);
     const { manifest, record } = await this.requireServiceAppForAction(actionId);
     const actionName = getServiceActionName(actionId, record.id);
-    const actions = await this.runtimeService.listActions({ app: record, manifest });
-    const action = actions.find((entry) => entry.id === actionId);
-    if (!action) {
+    if (!Object.hasOwn(manifest.actions, actionName)) {
       throw new ServiceAppError("SERVICE_APP_ACTION_NOT_FOUND", "service action not found");
     }
     if (!await this.createGrantStore().isGranted(request.caller, actionId)) {
@@ -196,8 +202,8 @@ export class ServiceAppManager {
 
   private requireServiceAction = async (actionId: string): Promise<ServiceAction> => {
     const { manifest, record } = await this.requireServiceAppForAction(actionId);
-    const actions = await this.runtimeService.listActions({ app: record, manifest });
-    const action = actions.find((entry) => entry.id === actionId);
+    const action = this.listManifestActions(record, manifest)
+      .find((entry) => entry.id === actionId);
     if (!action) {
       throw new ServiceAppError("SERVICE_APP_ACTION_NOT_FOUND", "service action not found");
     }
@@ -212,6 +218,51 @@ export class ServiceAppManager {
       throw new ServiceAppError("SERVICE_APP_INVALID_ACTION", "service action id is invalid");
     }
     return await this.requireServiceApp(appId);
+  };
+
+  private listManifestActions = (
+    record: ServiceAppRecord,
+    manifest: ServiceAppManifest,
+  ): ServiceAction[] => {
+    if (!record.enabled) {
+      return [];
+    }
+    return Object.entries(manifest.actions)
+      .map(([name, action]) => ({
+        id: buildServiceActionId(record.id, name),
+        appId: record.id,
+        name,
+        title: action.title ?? name,
+        description: action.description,
+        inputSchema: action.inputSchema,
+        risk: action.risk ?? DEFAULT_SERVICE_ACTION_RISK,
+      }))
+      .sort((left, right) => left.id.localeCompare(right.id));
+  };
+
+  private mergeRuntimeActions = (
+    record: ServiceAppRecord,
+    manifest: ServiceAppManifest,
+    runtimeActions: ServiceAction[],
+  ): ServiceAction[] => {
+    const runtimeByName = new Map(runtimeActions.map((action) => [action.name, action]));
+    const declared = this.listManifestActions(record, manifest).map((action) => {
+      const runtimeAction = runtimeByName.get(action.name);
+      return {
+        ...action,
+        description: runtimeAction?.description ?? action.description,
+        inputSchema: runtimeAction?.inputSchema ?? action.inputSchema,
+        runtimeState: runtimeAction ? "matched" as const : "missing" as const,
+      };
+    });
+    const undeclared = runtimeActions
+      .filter((action) => !Object.hasOwn(manifest.actions, action.name))
+      .map((action) => ({
+        ...action,
+        risk: DEFAULT_SERVICE_ACTION_RISK,
+        runtimeState: "undeclared" as const,
+      }));
+    return [...declared, ...undeclared].sort((left, right) => left.id.localeCompare(right.id));
   };
 
   private requireServiceApp = async (

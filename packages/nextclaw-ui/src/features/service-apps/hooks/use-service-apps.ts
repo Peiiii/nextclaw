@@ -39,6 +39,16 @@ export function useRestartServiceApp() {
   });
 }
 
+export function useDiscoverServiceAppActions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (appId: string) => nextclawClient.serviceApps.discoverServiceAppActions(appId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: SERVICE_APPS_QUERY_KEY });
+    },
+  });
+}
+
 export function useRevokeServiceActionGrant() {
   const queryClient = useQueryClient();
   return useMutation({
