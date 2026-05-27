@@ -29,7 +29,7 @@ export function getPanelAppBridgeScript(): string {
   function request(method, payload) {
     const requestId = createRequestId();
     return new Promise((resolve, reject) => {
-      pending.set(requestId, { resolve, reject });
+      pending.set(requestId, { method, resolve, reject });
       window.parent.postMessage({ type: requestType, requestId, method, payload }, "*");
     });
   }
@@ -45,7 +45,7 @@ export function getPanelAppBridgeScript(): string {
     }
     pending.delete(data.requestId);
     if (data.ok) {
-      entry.resolve(data.data);
+      entry.resolve(entry.method === "invoke" ? data.data?.result : data.data);
       return;
     }
     const error = new Error(data.error?.message || "NextClaw panel bridge request failed.");

@@ -57,9 +57,11 @@ action id 必须来自对应 `service-app.json.actions`：`<service-app-id>.<too
 // Service App 调用必须在 try/catch 中，并始终有 localStorage 回退
 try {
   if (window.nextclaw?.serviceActions?.invoke) {
-    const result = await window.nextclaw.serviceActions.invoke("workspace-notes.readNote", {
+    // invoke() 返回 action 的业务结果 payload，不需要读取 response.result
+    const note = await window.nextclaw.serviceActions.invoke("workspace-notes.readNote", {
       path: "notes/today.md"
     });
+    renderNote(note.content ?? "");
   } else {
     // Service App 不可用，回退到 localStorage
     const data = JSON.parse(localStorage.getItem("my-app-data") || "[]");
@@ -69,6 +71,15 @@ try {
   // localStorage 回退
 }
 ```
+
+`invoke()` 已由宿主 SDK 解包，返回值就是 Service App tool 的 result。不要写 `response.result`、`response.files` 这种不确定访问；如果 action 返回 `{ files: [...] }`，应写：
+
+```js
+const payload = await window.nextclaw.serviceActions.invoke("workspace-files.list", {});
+const files = payload.files ?? [];
+```
+
+错误提示要区分原因：bridge 不存在才说 Service Actions 不可用；调用抛错才说 Service Action 调用失败；返回结构不符合预期要说返回格式未识别，不要统一误报为 Service App 不可用。
 
 不要在 Panel App 里伪造 caller、保存 token 或直接请求 Service Gateway；首次调用授权由宿主处理。
 不要为了发现 action 在 Panel App 启动时自行触发后端探测；Service Actions 列表由宿主读取静态 manifest，运行时 discovery 由服务应用面板中的显式操作完成。

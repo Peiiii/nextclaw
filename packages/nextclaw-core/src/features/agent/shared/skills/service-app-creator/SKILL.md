@@ -82,10 +82,19 @@ Panel App 内通过宿主注入的 SDK 调用：
 
 ```js
 const actions = await window.nextclaw.serviceActions.list();
-const result = await window.nextclaw.serviceActions.invoke(
+// invoke() 返回 Service App tool 的业务结果 payload，不需要读取 response.result
+const note = await window.nextclaw.serviceActions.invoke(
   "workspace-notes.readNote",
   { path: "notes/today.md" }
 );
+renderNote(note.content ?? "");
+```
+
+如果 tool 返回 `{ files: [...] }`，Panel App 应直接读取：
+
+```js
+const payload = await window.nextclaw.serviceActions.invoke("workspace-files.list", {});
+const files = payload.files ?? [];
 ```
 
 第一次调用需要用户授权。不要在 Panel App 中伪造 caller、保存 bridge token 或直接调用 Service Gateway；caller、allowlist 和 grant 都由宿主与 kernel 管理。

@@ -91,6 +91,7 @@ describe("PanelAppManager", () => {
       serviceActions: [],
     }));
     expect(content.html).toContain("window.nextclaw");
+    expect(content.html).toContain('entry.method === "invoke" ? data.data?.result : data.data');
     expect(content.html).not.toContain("<script src=\"/api/panel-app-bridge.js\"></script>");
     expect(content.html).toContain("<!doctype html><h1>Todo</h1>");
   });
