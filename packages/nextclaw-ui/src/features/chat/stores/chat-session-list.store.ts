@@ -1,4 +1,5 @@
 import { create, type StateCreator } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import type { SessionRunStatus } from '@/features/chat/types/session-run-status.types';
 export type ChatSessionListMode = 'time-first' | 'project-first';
 export type ChatSessionListSnapshot = {
@@ -7,6 +8,30 @@ export type ChatSessionListSnapshot = {
   query: string;
   listMode: ChatSessionListMode;
 };
+
+const CHAT_SESSION_LIST_MODE_STORAGE_KEY = 'nextclaw.chat.session-list.mode';
+const CHAT_SESSION_LIST_DEFAULT_MODE: ChatSessionListMode = 'time-first';
+
+type PersistedChatSessionListStore = {
+  snapshot?: {
+    listMode?: unknown;
+  };
+};
+
+function isChatSessionListMode(value: unknown): value is ChatSessionListMode {
+  return value === 'time-first' || value === 'project-first';
+}
+
+function resolvePersistedChatSessionListMode(persistedState: unknown): ChatSessionListMode | null {
+  if (!persistedState || typeof persistedState !== 'object') {
+    return null;
+  }
+  const { snapshot } = persistedState as PersistedChatSessionListStore;
+  if (!snapshot || typeof snapshot !== 'object') {
+    return null;
+  }
+  return isChatSessionListMode(snapshot.listMode) ? snapshot.listMode : null;
+}
 
 export function hasUnreadSessionUpdate(
   lastMessageAt: string | null | undefined,
@@ -50,7 +75,7 @@ const initialSnapshot: ChatSessionListSnapshot = {
   selectedSessionKey: null,
   selectedAgentId: 'main',
   query: '',
-  listMode: 'time-first'
+  listMode: CHAT_SESSION_LIST_DEFAULT_MODE
 };
 
 function createSetSnapshotAction(set: ChatSessionListStoreSet) {
@@ -85,9 +110,35 @@ function createMarkSessionReadAction(set: ChatSessionListStoreSet) {
     });
 }
 
-export const useChatSessionListStore = create<ChatSessionListStore>((set) => ({
-  snapshot: initialSnapshot,
-  optimisticReadAtBySessionKey: {},
-  setSnapshot: createSetSnapshotAction(set),
-  markSessionRead: createMarkSessionReadAction(set)
-}));
+export const useChatSessionListStore = create<ChatSessionListStore>()(
+  persist(
+    (set) => ({
+      snapshot: initialSnapshot,
+      optimisticReadAtBySessionKey: {},
+      setSnapshot: createSetSnapshotAction(set),
+      markSessionRead: createMarkSessionReadAction(set)
+    }),
+    {
+      name: CHAT_SESSION_LIST_MODE_STORAGE_KEY,
+      storage: createJSONStorage(() => window.localStorage),
+      partialize: (state): PersistedChatSessionListStore => ({
+        snapshot: {
+          listMode: state.snapshot.listMode
+        }
+      }),
+      merge: (persistedState, currentState) => {
+        const listMode = resolvePersistedChatSessionListMode(persistedState);
+        if (!listMode) {
+          return currentState;
+        }
+        return {
+          ...currentState,
+          snapshot: {
+            ...currentState.snapshot,
+            listMode
+          }
+        };
+      }
+    }
+  )
+);

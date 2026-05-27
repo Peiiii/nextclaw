@@ -5,6 +5,16 @@ import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 
+const chatSessionListModeStorageKey = 'nextclaw.chat.session-list.mode';
+
+function createLocalStoragePersistStorage() {
+  return {
+    getItem: (name: string) => JSON.parse(window.localStorage.getItem(name) ?? 'null'),
+    setItem: (name: string, value: unknown) => window.localStorage.setItem(name, JSON.stringify(value)),
+    removeItem: (name: string) => window.localStorage.removeItem(name)
+  };
+}
+
 const mocks = vi.hoisted(() => ({
   updateNcpSession: vi.fn(),
 }));
@@ -19,6 +29,8 @@ vi.mock('@/shared/lib/api', async (importOriginal) => {
 
 describe('ChatSessionListManager', () => {
   beforeEach(() => {
+    window.localStorage.clear();
+    useChatSessionListStore.persist.setOptions({ storage: createLocalStoragePersistStorage() });
     mocks.updateNcpSession.mockReset();
     mocks.updateNcpSession.mockResolvedValue({});
     useChatInputStore.setState({
@@ -193,6 +205,13 @@ describe('ChatSessionListManager', () => {
 
     expect(useChatSessionListStore.getState().snapshot.listMode).toBe('project-first');
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBe('session-1');
+    expect(JSON.parse(window.localStorage.getItem(chatSessionListModeStorageKey) ?? '{}')).toMatchObject({
+      state: {
+        snapshot: {
+          listMode: 'project-first'
+        }
+      }
+    });
   });
 
   it('marks a session as read through the session list owner boundary', () => {
@@ -250,5 +269,44 @@ describe('ChatSessionListManager', () => {
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
     expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
     expect(uiManager.goToSession).toHaveBeenCalledWith('ncp-materialized-session', { replace: true });
+  });
+});
+
+describe('ChatSessionListStore persistence', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    useChatSessionListStore.persist.setOptions({ storage: createLocalStoragePersistStorage() });
+    useChatSessionListStore.setState({
+      snapshot: {
+        ...useChatSessionListStore.getState().snapshot,
+        listMode: 'time-first'
+      }
+    });
+  });
+
+  it('falls back to time-first when the persisted sidebar list mode is invalid', () => {
+    useChatSessionListStore.persist.setOptions({
+      storage: {
+        getItem: () => ({ state: { snapshot: { listMode: 'sideways' } } }),
+        setItem: vi.fn(),
+        removeItem: vi.fn()
+      }
+    });
+
+    useChatSessionListStore.persist.rehydrate();
+
+    expect(useChatSessionListStore.getState().snapshot.listMode).toBe('time-first');
+  });
+
+  it('hydrates the sidebar list mode from persisted preference on store initialization', async () => {
+    window.localStorage.setItem(
+      chatSessionListModeStorageKey,
+      JSON.stringify({ state: { snapshot: { listMode: 'project-first' } }, version: 0 })
+    );
+    vi.resetModules();
+
+    const hydratedStoreModule = await import('@/features/chat/stores/chat-session-list.store');
+
+    expect(hydratedStoreModule.useChatSessionListStore.getState().snapshot.listMode).toBe('project-first');
   });
 });
