@@ -83,6 +83,7 @@ if (!existsSync(backendBin) || !existsSync(frontendBin) || !pnpmCliPath) {
 function parseDevStartOptions(argv) {
   let backendWatchEnabled = process.env.NEXTCLAW_DEV_BACKEND_WATCH !== "0";
   let companionEnabled = process.env.NEXTCLAW_DEV_ENABLE_COMPANION === "1";
+  let packageWatchEnabled = process.env.NEXTCLAW_DEV_PACKAGE_WATCH === "1";
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -98,10 +99,18 @@ function parseDevStartOptions(argv) {
       companionEnabled = true;
       continue;
     }
+    if (arg === "--package-watch") {
+      packageWatchEnabled = true;
+      continue;
+    }
+    if (arg === "--no-package-watch") {
+      packageWatchEnabled = false;
+      continue;
+    }
     throw new Error(`Unsupported dev option: ${arg}`);
   }
 
-  return { backendWatchEnabled, companionEnabled };
+  return { backendWatchEnabled, companionEnabled, packageWatchEnabled };
 }
 
 let devStartOptions;
@@ -162,6 +171,9 @@ console.log(
 );
 console.log(
   `[dev] Backend watch: ${devStartOptions.backendWatchEnabled ? "enabled" : "disabled (pass --backend-watch or unset NEXTCLAW_DEV_BACKEND_WATCH=0 to enable)"}`
+);
+console.log(
+  `[dev] Package dist watch: ${devStartOptions.packageWatchEnabled ? "enabled" : "disabled (pass --package-watch or set NEXTCLAW_DEV_PACKAGE_WATCH=1 to enable)"}`
 );
 console.log(`[dev] NEXTCLAW_HOME: ${nextclawHome}`);
 
@@ -267,6 +279,17 @@ async function waitForBackendReady(child, port, timeoutMs) {
     } catch { await new Promise((resolveDelay) => setTimeout(resolveDelay, BACKEND_READY_POLL_MS)); }
   }
   throw new Error(`[dev:backend] timed out waiting for port ${port} to accept connections after ${timeoutMs}ms.`);
+}
+
+if (devStartOptions.packageWatchEnabled) {
+  spawnProcess(
+    "package-watch",
+    process.execPath,
+    [resolve(rootDir, "scripts/dev/workspace-package-dist-watcher.mjs"), "--watch"],
+    rootDir,
+    {},
+    { critical: false }
+  );
 }
 
 const backendProcess = spawnProcess(
