@@ -1,18 +1,18 @@
 export default {
-  "generatedAt": "2026-05-26T17:33:16.973Z",
+  "generatedAt": "2026-05-27T03:24:37.648Z",
   "hero": {
-    "currentLoc": 168021,
-    "testLoc": 44631,
+    "currentLoc": 168014,
+    "testLoc": 44697,
     "trackedFiles": 1747,
-    "recentCommitCount": 455,
-    "activeDays30": 22,
+    "recentCommitCount": 472,
+    "activeDays30": 23,
     "recentReleaseCount": 63,
-    "latestReleaseDate": "2026-05-26",
+    "latestReleaseDate": "2026-05-27",
     "latestNoteDate": "2026-05-06",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 1463689,
-    "basePercentOfBenchmark": 11.51,
-    "lighterByPercent": 88.49
+    "benchmarkCodeLines": 1475557,
+    "basePercentOfBenchmark": 11.39,
+    "lighterByPercent": 88.61
   },
   "trends": {
     "locDaily": [
@@ -499,7 +499,12 @@ export default {
       {
         "key": "2026-05-26",
         "label": "05-26",
-        "value": 168021
+        "value": 168508
+      },
+      {
+        "key": "2026-05-27",
+        "label": "05-27",
+        "value": 168014
       }
     ],
     "testLocDaily": [
@@ -581,15 +586,15 @@ export default {
       {
         "key": "2026-05-26",
         "label": "05-26",
-        "value": 44631
+        "value": 45159
+      },
+      {
+        "key": "2026-05-27",
+        "label": "05-27",
+        "value": 44697
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-04-27",
-        "label": "04-27",
-        "value": 0
-      },
       {
         "key": "2026-04-28",
         "label": "04-28",
@@ -734,6 +739,11 @@ export default {
         "key": "2026-05-26",
         "label": "05-26",
         "value": 22
+      },
+      {
+        "key": "2026-05-27",
+        "label": "05-27",
+        "value": 17
       }
     ],
     "commitWeekly": [
@@ -795,7 +805,7 @@ export default {
       {
         "key": "2026-05-25",
         "label": "05-25",
-        "value": 42
+        "value": 53
       }
     ],
     "releaseMonthly": [
@@ -857,7 +867,7 @@ export default {
       {
         "key": "2026-05",
         "label": "05/26",
-        "value": 15
+        "value": 16
       }
     ]
   },
@@ -865,8 +875,8 @@ export default {
     "topScopes": [
       {
         "name": "packages/nextclaw-ui",
-        "codeLines": 36847,
-        "testCodeLines": 13047,
+        "codeLines": 36840,
+        "testCodeLines": 13113,
         "files": 432,
         "sharePercent": 21.9
       },
@@ -922,11 +932,20 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 1463689,
-      "basePercentOfBenchmark": 11.51,
-      "lighterByPercent": 88.49
+      "benchmarkCodeLines": 1475557,
+      "basePercentOfBenchmark": 11.39,
+      "lighterByPercent": 88.61
     },
     "recentReleaseBatches": [
+      {
+        "date": "2026-05-27",
+        "tagCount": 92,
+        "sampleTags": [
+          "@nextclaw/channel-extension-dingtalk@0.1.1-beta.2",
+          "@nextclaw/channel-extension-discord@0.1.1-beta.2",
+          "@nextclaw/channel-extension-email@0.1.1-beta.2"
+        ]
+      },
       {
         "date": "2026-05-26",
         "tagCount": 92,
@@ -938,20 +957,20 @@ export default {
       },
       {
         "date": "2026-05-24",
-        "tagCount": 59,
+        "tagCount": 12,
         "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.3.24",
-          "@nextclaw/agent-chat@0.1.22",
-          "@nextclaw/app-runtime@0.7.12"
+          "v0.19.28-desktop-beta.1",
+          "v0.19.28-desktop-beta.2",
+          "v0.19.28-desktop-beta.3"
         ]
       },
       {
         "date": "2026-05-23",
-        "tagCount": 150,
+        "tagCount": 9,
         "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.3.21",
-          "@nextclaw/agent-chat@0.1.19",
-          "@nextclaw/app-runtime@0.7.9"
+          "v0.19.24-desktop-beta.1",
+          "v0.19.24-desktop-beta.2",
+          "v0.19.24-desktop-beta.3"
         ]
       },
       {
@@ -970,15 +989,6 @@ export default {
           "v0.19.17-desktop-beta.1",
           "v0.19.17-desktop-beta.2",
           "v0.19.17-desktop-beta.3"
-        ]
-      },
-      {
-        "date": "2026-05-19",
-        "tagCount": 110,
-        "sampleTags": [
-          "v0.19.10-desktop-beta.1",
-          "v0.19.10-desktop-beta.2",
-          "v0.19.12-desktop-beta.1"
         ]
       }
     ]
@@ -1163,7 +1173,7 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-05-26T17:33:16.464Z",
+    "locGeneratedAt": "2026-05-27T03:24:36.410Z",
     "sourceCount": {
       "notes": 5,
       "scopes": 8
