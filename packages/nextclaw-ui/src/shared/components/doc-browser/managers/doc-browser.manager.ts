@@ -32,6 +32,18 @@ function updateActiveTab(state: DocBrowserState, updater: (tab: DocBrowserTab) =
   return updateTab(state, state.activeTabId, updater);
 }
 
+function areOpenUrlsEquivalent(
+  currentUrl: string,
+  nextUrl: string,
+  currentKind: DocBrowserTabKind,
+  nextKind: DocBrowserTabKind,
+): boolean {
+  if (currentKind === 'docs' && nextKind === 'docs') {
+    return normalizeDocUrl(currentUrl) === normalizeDocUrl(nextUrl);
+  }
+  return currentUrl === nextUrl;
+}
+
 function updateTabForOpen(
   tab: DocBrowserTab,
   url: string,
@@ -46,7 +58,7 @@ function updateTabForOpen(
     dedupeKey,
   };
 
-  if (normalizeDocUrl(url) === normalizeDocUrl(tab.currentUrl)) {
+  if (areOpenUrlsEquivalent(tab.currentUrl, url, tab.kind, kind)) {
     return baseTab;
   }
 

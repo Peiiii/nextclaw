@@ -134,6 +134,32 @@ describe('DocBrowserProvider dedupe keys', () => {
       currentUrl: 'data:text/html,A-loaded',
     });
   });
+
+  it('updates custom URL query state for the same dedupe key', () => {
+    const { result } = renderHook(() => useDocBrowser(), { wrapper });
+
+    act(() => {
+      result.current.open('nextclaw://apps', {
+        dedupeKey: 'apps',
+        kind: 'apps',
+        title: 'Apps',
+      });
+    });
+    act(() => {
+      result.current.open('nextclaw://apps?tab=service-apps', {
+        activate: false,
+        dedupeKey: 'apps',
+        kind: 'apps',
+        title: 'Apps',
+      });
+    });
+
+    expect(result.current.currentTab).toMatchObject({
+      currentUrl: 'nextclaw://apps?tab=service-apps',
+      dedupeKey: 'apps',
+      kind: 'apps',
+    });
+  });
 });
 
 describe('DocBrowserProvider persistence', () => {

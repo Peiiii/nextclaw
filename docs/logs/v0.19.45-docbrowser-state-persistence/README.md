@@ -2,7 +2,7 @@
 
 ## 迭代完成说明
 
-本次为全局右侧栏 DocBrowser 增加刷新后的状态恢复能力。DocBrowser 原本已经维护 `isOpen`、`mode`、`tabs`、`activeTabId` 和每个 tab 的 `currentUrl/history/dedupeKey`，本次将这组可序列化状态收敛到 Zustand store，并通过 Zustand `persist` middleware 持久化到 `localStorage`，刷新后可以恢复右侧栏是否打开、当前激活 tab、Docs / Apps / Panel App 等 tab 内容。
+本次为全局右侧栏 DocBrowser 增加刷新后的状态恢复能力。DocBrowser 原本已经维护 `isOpen`、`mode`、`tabs`、`activeTabId` 和每个 tab 的 `currentUrl/history/dedupeKey`，本次将这组可序列化状态收敛到 Zustand store，并通过 Zustand `persist` middleware 持久化到 `localStorage`，刷新后可以恢复右侧栏是否打开、当前激活 tab、Docs / Apps / Panel App 等 tab 内容。后续修正了 Apps 隐藏 URL 的相等判断：Docs URL 继续按文档 pathname 归一化比较，非 Docs 自定义 URL 按完整字符串比较，避免 `nextclaw://apps` 和 `nextclaw://apps?tab=service-apps` 被误判为相同 URL。
 
 应用面板内部的“面板应用 / 服务应用”子 tab 改为由隐藏 URL 表达：默认是 `nextclaw://apps`，服务应用页是 `nextclaw://apps?tab=service-apps`。这样 Apps 面板刷新后能尽量回到上一次展示的内部位置，而不是只恢复到外层“应用”入口。
 
@@ -12,13 +12,13 @@
 
 ## 测试/验证/验收方式
 
-- `pnpm --filter @nextclaw/ui test -- src/shared/components/doc-browser/doc-browser-context.test.tsx src/shared/components/doc-browser/doc-browser.test.tsx src/features/panel-apps/utils/panel-app-doc-browser.utils.test.ts`：3 个测试文件、14 个用例通过。
+- `pnpm --filter @nextclaw/ui test -- src/shared/components/doc-browser/doc-browser-context.test.tsx src/shared/components/doc-browser/doc-browser.test.tsx src/features/panel-apps/utils/panel-app-doc-browser.utils.test.ts`：3 个测试文件、15 个用例通过。
 - `pnpm --filter @nextclaw/ui exec eslint src/shared/components/doc-browser/doc-browser-context.tsx src/shared/components/doc-browser/types/doc-browser.types.ts src/shared/components/doc-browser/utils/doc-browser-url.utils.ts src/shared/components/doc-browser/utils/doc-browser-state.utils.ts src/shared/components/doc-browser/stores/doc-browser.store.ts src/shared/components/doc-browser/managers/doc-browser.manager.ts src/shared/components/doc-browser/doc-browser-context.test.tsx src/features/apps/index.ts src/features/apps/components/apps-panel.tsx src/features/panel-apps/index.ts src/features/panel-apps/utils/panel-app-doc-browser.utils.tsx src/features/panel-apps/utils/panel-app-doc-browser.utils.test.ts`：通过。
 - `pnpm --filter @nextclaw/ui tsc`：通过。
-- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths ...`：通过，0 errors / 1 warning；warning 为 `doc-browser-context.test.tsx` 本次增长较多，后续可按 seam 拆 fixtures/builders。
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths ...`：全范围检查通过，0 errors / 1 warning；warning 为 `doc-browser-context.test.tsx` 本次增长较多，后续可按 seam 拆 fixtures/builders。后续切换修复的定向范围复跑通过，0 errors / 0 warnings。
 - `pnpm check:governance-backlog-ratchet`：通过。
+- `pnpm lint:new-code:governance`：后续切换修复的定向 diff 范围通过。
 - `pnpm --filter @nextclaw/ui lint`：未通过，阻塞来自既有无关 lint 错误；本次触达文件的 targeted ESLint 已通过。
-- `pnpm lint:new-code:governance`：未通过，当前仅剩阻塞来自当前工作区已有改动 `packages/nextclaw-ui/src/app/managers/app.manager.ts` deep import `features/panel-apps/managers/panel-app-bridge.manager`，不属于本次右侧栏恢复改动。
 
 ## 发布/部署方式
 
