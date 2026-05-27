@@ -23,7 +23,7 @@ type DocBrowserPanelHeaderProps = {
   isDocked: boolean;
   isFullscreen: boolean;
   onClose: () => void;
-  onDragStart: (e: React.MouseEvent) => void;
+  onDragStart: (e: React.PointerEvent<HTMLElement>) => void;
   onToggleMode: () => void;
 };
 
@@ -73,7 +73,7 @@ export function DocBrowserPanelHeader({
         !isDocked && !isFullscreen && 'cursor-grab active:cursor-grabbing',
         isFullscreen && 'pt-[calc(env(safe-area-inset-top,0px)+0.625rem)]',
       )}
-      onMouseDown={!isDocked && !isFullscreen ? onDragStart : undefined}
+      onPointerDown={!isDocked && !isFullscreen ? onDragStart : undefined}
     >
       <div className="flex items-center gap-2.5 min-w-0">
         {icon}

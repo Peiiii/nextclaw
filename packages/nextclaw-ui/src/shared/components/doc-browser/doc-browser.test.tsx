@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DocBrowser } from "@/shared/components/doc-browser/doc-browser";
 
 const { docBrowserState } = vi.hoisted(() => ({
@@ -49,7 +49,34 @@ vi.mock("@/shared/components/doc-browser/doc-browser-context", async () => {
   };
 });
 
+function firePointerEvent(
+  target: Window | Document | Node | Element,
+  type: string,
+  point: { clientX: number; clientY?: number; pointerId?: number },
+) {
+  const event = new Event(type, { bubbles: true });
+  Object.defineProperties(event, {
+    clientX: { value: point.clientX },
+    clientY: { value: point.clientY ?? 0 },
+    pointerId: { value: point.pointerId ?? 1 },
+  });
+  fireEvent(target, event);
+}
+
 describe("DocBrowser", () => {
+  beforeEach(() => {
+    docBrowserState.mode = "docked";
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 1200,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 900,
+    });
+    HTMLElement.prototype.setPointerCapture = vi.fn();
+  });
+
   it("uses the shared right panel resize handle in docked mode", () => {
     render(<DocBrowser />);
 
@@ -70,5 +97,37 @@ describe("DocBrowser", () => {
     ).toBeNull();
     expect(panel.querySelector(".cursor-ew-resize")).toBeNull();
     expect(panel.querySelector(".cursor-se-resize")).toBeNull();
+  });
+
+  it("keeps the floating panel left edge stable when resizing from the right", () => {
+    docBrowserState.mode = "floating";
+
+    render(<DocBrowser />);
+
+    firePointerEvent(screen.getByTestId("doc-browser-resize-right"), "pointerdown", {
+      clientX: 1160,
+      pointerId: 1,
+    });
+    firePointerEvent(window, "pointermove", { clientX: 1120, pointerId: 1 });
+
+    const panel = screen.getByTestId("doc-browser-panel");
+    expect(panel.style.left).toBe("680px");
+    expect(panel.style.width).toBe("440px");
+  });
+
+  it("keeps the floating panel right edge stable when resizing from the left", () => {
+    docBrowserState.mode = "floating";
+
+    render(<DocBrowser />);
+
+    firePointerEvent(screen.getByTestId("doc-browser-resize-left"), "pointerdown", {
+      clientX: 680,
+      pointerId: 1,
+    });
+    firePointerEvent(window, "pointermove", { clientX: 620, pointerId: 1 });
+
+    const panel = screen.getByTestId("doc-browser-panel");
+    expect(panel.style.left).toBe("620px");
+    expect(panel.style.width).toBe("540px");
   });
 });

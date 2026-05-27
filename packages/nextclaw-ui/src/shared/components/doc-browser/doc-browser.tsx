@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, type CSSProperties } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   DOCS_DEFAULT_BASE_URL,
   useDocBrowser,
@@ -20,6 +20,24 @@ type DocBrowserProps = {
   displayMode?: 'desktop' | 'fullscreen';
 };
 
+type FloatingPanelRect = { x: number; y: number; w: number; h: number };
+type FloatingPanelResizeEdge = 'left' | 'right' | 'bottom' | 'bottom-right';
+type FloatingPanelInteraction = {
+  kind: 'drag' | 'resize';
+  edge?: FloatingPanelResizeEdge;
+  startX: number;
+  startY: number;
+  startRect: FloatingPanelRect;
+};
+
+const FLOATING_PANEL_MARGIN = 40;
+const FLOATING_PANEL_MIN_WIDTH = 360;
+const FLOATING_PANEL_MIN_HEIGHT = 400;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
 function getPanelClassName(isFullscreen: boolean): string {
   return cn(
     'flex flex-col bg-white overflow-hidden relative',
@@ -27,23 +45,6 @@ function getPanelClassName(isFullscreen: boolean): string {
       ? 'fixed inset-0 z-[9999] h-[100dvh] w-screen rounded-none border-0 shadow-2xl'
       : 'rounded-2xl shadow-2xl border border-gray-200',
   );
-}
-
-function getPanelStyle(params: {
-  isFullscreen: boolean;
-  floatPos: { x: number; y: number };
-  floatSize: { w: number; h: number };
-}): CSSProperties | undefined {
-  const { isFullscreen, floatPos, floatSize } = params;
-  if (isFullscreen) return undefined;
-  return {
-    position: 'fixed',
-    left: floatPos.x,
-    top: floatPos.y,
-    width: floatSize.w,
-    height: floatSize.h,
-    zIndex: 9999,
-  };
 }
 
 export function DocBrowser({
@@ -68,16 +69,14 @@ export function DocBrowser({
   } = useDocBrowser();
 
   const [urlInput, setUrlInput] = useState('');
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
   const [iframeReloadVersion, setIframeReloadVersion] = useState(0);
-  const [floatPos, setFloatPos] = useState(() => ({
-    x: Math.max(40, window.innerWidth - 520),
+  const [floatRect, setFloatRect] = useState<FloatingPanelRect>(() => ({
+    x: Math.max(FLOATING_PANEL_MARGIN, window.innerWidth - 520),
     y: 80,
+    w: 480,
+    h: 600,
   }));
-  const [floatSize, setFloatSize] = useState({ w: 480, h: 600 });
-  const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number } | null>(null);
-  const resizeRef = useRef<{ startX: number; startY: number; startW: number; startH: number } | null>(null);
+  const [floatInteraction, setFloatInteraction] = useState<FloatingPanelInteraction | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const currentUrl = currentTab?.currentUrl ?? DOCS_DEFAULT_BASE_URL;
   const navVersion = currentTab?.navVersion ?? 0;
@@ -119,15 +118,6 @@ export function DocBrowser({
   }, [currentUrl, navVersion, isDocsTab]);
 
   useEffect(() => {
-    if (mode === 'floating') {
-      setFloatPos((prev) => ({
-        x: Math.max(40, window.innerWidth - floatSize.w - 40),
-        y: prev.y,
-      }));
-    }
-  }, [mode, floatSize.w]);
-
-  useEffect(() => {
     const handler = (e: MessageEvent) => {
       if (!isDocsTab) {
         return;
@@ -139,6 +129,73 @@ export function DocBrowser({
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, [syncUrl, isDocsTab]);
+
+  const startFloatDrag = useCallback((event: React.PointerEvent<HTMLElement>) => {
+    event.preventDefault();
+    setFloatInteraction({
+      kind: 'drag',
+      startX: event.clientX,
+      startY: event.clientY,
+      startRect: floatRect,
+    });
+  }, [floatRect]);
+
+  const startFloatResize = useCallback((edge: FloatingPanelResizeEdge) => (event: React.PointerEvent<HTMLElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setFloatInteraction({
+      kind: 'resize',
+      edge,
+      startX: event.clientX,
+      startY: event.clientY,
+      startRect: floatRect,
+    });
+  }, [floatRect]);
+
+  useEffect(() => {
+    if (!floatInteraction) return;
+
+    const onMove = (event: PointerEvent) => {
+      const { startRect, startX, startY } = floatInteraction;
+      const dx = event.clientX - startX;
+      const dy = event.clientY - startY;
+
+      if (floatInteraction.kind === 'drag') {
+        setFloatRect({
+          ...startRect,
+          x: clamp(startRect.x + dx, FLOATING_PANEL_MARGIN, window.innerWidth - FLOATING_PANEL_MARGIN - startRect.w),
+          y: clamp(startRect.y + dy, FLOATING_PANEL_MARGIN, window.innerHeight - FLOATING_PANEL_MARGIN - startRect.h),
+        });
+        return;
+      }
+
+      if (floatInteraction.edge === 'left') {
+        const right = startRect.x + startRect.w;
+        const x = clamp(startRect.x + dx, FLOATING_PANEL_MARGIN, right - FLOATING_PANEL_MIN_WIDTH);
+        setFloatRect({ ...startRect, x, w: right - x });
+        return;
+      }
+
+      const right = clamp(startRect.x + startRect.w + dx, startRect.x + FLOATING_PANEL_MIN_WIDTH, window.innerWidth - FLOATING_PANEL_MARGIN);
+      const bottom = clamp(startRect.y + startRect.h + dy, startRect.y + FLOATING_PANEL_MIN_HEIGHT, window.innerHeight - FLOATING_PANEL_MARGIN);
+      setFloatRect({
+        ...startRect,
+        w: floatInteraction.edge === 'bottom' ? startRect.w : right - startRect.x,
+        h: floatInteraction.edge === 'right' ? startRect.h : bottom - startRect.y,
+      });
+    };
+
+    const onEnd = () => setFloatInteraction(null);
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onEnd);
+    window.addEventListener('pointercancel', onEnd);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onEnd);
+      window.removeEventListener('pointercancel', onEnd);
+    };
+  }, [floatInteraction]);
 
   const handleUrlSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -153,88 +210,6 @@ export function DocBrowser({
       navigate(`${DOCS_DEFAULT_BASE_URL}/${input}`);
     }
   }, [urlInput, navigate, isDocsTab]);
-
-  const onDragStart = useCallback((e: React.MouseEvent) => {
-    if (mode !== 'floating') return;
-    setIsDragging(true);
-    dragRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      startPosX: floatPos.x,
-      startPosY: floatPos.y,
-    };
-  }, [mode, floatPos]);
-
-  useEffect(() => {
-    if (!isDragging) return;
-    const onMove = (e: MouseEvent) => {
-      if (!dragRef.current) return;
-      setFloatPos({
-        x: dragRef.current.startPosX + (e.clientX - dragRef.current.startX),
-        y: dragRef.current.startPosY + (e.clientY - dragRef.current.startY),
-      });
-    };
-    const onUp = () => {
-      setIsDragging(false);
-      dragRef.current = null;
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-  }, [isDragging]);
-
-  const onResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsResizing(true);
-    const { axis } = (e.currentTarget as HTMLElement).dataset;
-    resizeRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      startW: floatSize.w,
-      startH: floatSize.h,
-    };
-    const onMove = (ev: MouseEvent) => {
-      if (!resizeRef.current) return;
-      setFloatSize((prev) => ({
-        w: axis === 'y' ? prev.w : Math.max(360, resizeRef.current!.startW + (ev.clientX - resizeRef.current!.startX)),
-        h: axis === 'x' ? prev.h : Math.max(400, resizeRef.current!.startH + (ev.clientY - resizeRef.current!.startY)),
-      }));
-    };
-    const onUp = () => {
-      setIsResizing(false);
-      resizeRef.current = null;
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  }, [floatSize]);
-
-  const onLeftResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsResizing(true);
-    const startX = e.clientX;
-    const startW = floatSize.w;
-    const startPosX = floatPos.x;
-    const onMove = (ev: MouseEvent) => {
-      const delta = startX - ev.clientX;
-      const newW = Math.max(360, startW + delta);
-      setFloatSize((prev) => ({ ...prev, w: newW }));
-      setFloatPos((prev) => ({ ...prev, x: startPosX - (newW - startW) }));
-    };
-    const onUp = () => {
-      setIsResizing(false);
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  }, [floatSize.w, floatPos.x]);
 
   const refreshIframe = useCallback(() => {
     setIframeReloadVersion((version) => version + 1);
@@ -265,7 +240,7 @@ export function DocBrowser({
         isDocked={isDocked}
         isFullscreen={isFullscreen}
         onClose={close}
-        onDragStart={onDragStart}
+        onDragStart={startFloatDrag}
         onToggleMode={toggleMode}
       />
 
@@ -297,8 +272,8 @@ export function DocBrowser({
         iframeRef={iframeRef}
         iframeReloadVersion={iframeReloadVersion}
         iframeSandbox={iframeSandbox}
-        isDragging={isDragging}
-        isResizing={isResizing}
+        isDragging={floatInteraction?.kind === 'drag'}
+        isResizing={floatInteraction?.kind === 'resize'}
         navVersion={navVersion}
       />
 
@@ -323,18 +298,42 @@ export function DocBrowser({
     <div
       data-testid="doc-browser-panel"
       className={getPanelClassName(isFullscreen)}
-      style={getPanelStyle({ isFullscreen, floatPos, floatSize })}
+      style={
+        isFullscreen
+          ? undefined
+          : {
+              position: 'fixed',
+              left: floatRect.x,
+              top: floatRect.y,
+              width: floatRect.w,
+              height: floatRect.h,
+              zIndex: 9999,
+            }
+      }
     >
       {panelContent}
 
       {!isDocked && !isFullscreen && (
         <>
-          <div className="absolute top-0 left-0 w-1.5 h-full cursor-ew-resize z-20 hover:bg-primary/10 transition-colors" onMouseDown={onLeftResizeStart} />
-          <div className="absolute top-0 right-0 w-1.5 h-full cursor-ew-resize z-20 hover:bg-primary/10 transition-colors" onMouseDown={onResizeStart} data-axis="x" />
-          <div className="absolute bottom-0 left-0 h-1.5 w-full cursor-ns-resize z-20 hover:bg-primary/10 transition-colors" onMouseDown={onResizeStart} data-axis="y" />
+          <div
+            className="absolute top-0 left-0 w-1.5 h-full cursor-ew-resize z-20 hover:bg-primary/10 transition-colors"
+            data-testid="doc-browser-resize-left"
+            onPointerDown={startFloatResize('left')}
+          />
+          <div
+            className="absolute top-0 right-0 w-1.5 h-full cursor-ew-resize z-20 hover:bg-primary/10 transition-colors"
+            data-testid="doc-browser-resize-right"
+            onPointerDown={startFloatResize('right')}
+          />
+          <div
+            className="absolute bottom-0 left-0 h-1.5 w-full cursor-ns-resize z-20 hover:bg-primary/10 transition-colors"
+            data-testid="doc-browser-resize-bottom"
+            onPointerDown={startFloatResize('bottom')}
+          />
           <div
             className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-30 flex items-center justify-center text-gray-300 hover:text-gray-500 transition-colors"
-            onMouseDown={onResizeStart}
+            data-testid="doc-browser-resize-bottom-right"
+            onPointerDown={startFloatResize('bottom-right')}
           >
             <GripVertical className="w-3 h-3 rotate-[-45deg]" />
           </div>
