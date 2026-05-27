@@ -281,15 +281,10 @@ async function waitForBackendReady(child, port, timeoutMs) {
   throw new Error(`[dev:backend] timed out waiting for port ${port} to accept connections after ${timeoutMs}ms.`);
 }
 
-if (devStartOptions.packageWatchEnabled) {
-  spawnProcess(
-    "package-watch",
-    process.execPath,
-    [resolve(rootDir, "scripts/dev/workspace-package-dist-watcher.mjs"), "--watch"],
-    rootDir,
-    {},
-    { critical: false }
-  );
+function printReadyUrls() {
+  console.log("[dev] Ready");
+  console.log(`[dev] Frontend: http://127.0.0.1:${frontendPort}`);
+  console.log(`[dev] Backend:  http://127.0.0.1:${backendPort}`);
 }
 
 const backendProcess = spawnProcess(
@@ -340,6 +335,20 @@ if (devStartOptions.companionEnabled) {
     "companion",
     process.execPath,
     [pnpmCliPath, "-C", companionDir, "dev", "--", "--base-url", `http://127.0.0.1:${backendPort}`],
+    rootDir,
+    {},
+    { critical: false }
+  );
+}
+
+printReadyUrls();
+
+if (devStartOptions.packageWatchEnabled) {
+  console.log("[dev] Starting package dist watcher; successful package builds stay compact here.");
+  spawnProcess(
+    "package-watch",
+    process.execPath,
+    [resolve(rootDir, "scripts/dev/workspace-package-dist-watcher.mjs"), "--watch", "--build-output=error"],
     rootDir,
     {},
     { critical: false }

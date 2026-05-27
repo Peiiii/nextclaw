@@ -5,6 +5,7 @@
 - 新增 workspace package dist/types 同步入口，用于让开发态 `exports.types -> dist/*.d.ts` 合同保持新鲜。
 - 新增根命令 `dev:packages:build` 与 `dev:packages:watch`，自动发现带 `exports.types`、`dist/*.d.ts` 与 `build` 脚本的 workspace package。
 - `pnpm dev start` 新增显式 `--package-watch` / `NEXTCLAW_DEV_PACKAGE_WATCH=1` 开关；默认不启用，避免影响普通开发启动成本。
+- `--package-watch` 集成到 `pnpm dev start` 时会先打印前后端地址，再启动 package watcher；成功构建输出保持简洁，失败时再展开 build 日志。
 - 改动限定在开发工具与基建层，不涉及业务链路代码。
 
 ## 测试/验证/验收方式
@@ -13,7 +14,9 @@
 - `node --check scripts/dev/dev-runner.mjs`
 - `pnpm exec eslint scripts/dev/workspace-package-dist-watcher.mjs scripts/dev/dev-runner.mjs`
 - `node scripts/dev/workspace-package-dist-watcher.mjs --once --package @nextclaw/ncp`
+- `node scripts/dev/workspace-package-dist-watcher.mjs --once --package @nextclaw/ncp --build-output=error`
 - `touch packages/ncp-packages/nextclaw-ncp/src/index.ts && node scripts/dev/workspace-package-dist-watcher.mjs --once --package @nextclaw/ncp`
+- `touch packages/ncp-packages/nextclaw-ncp/src/index.ts && node scripts/dev/workspace-package-dist-watcher.mjs --once --package @nextclaw/ncp --build-output=error`
 - `pnpm dev:packages:build -- --package @nextclaw/ncp`
 - `pnpm dev:packages:watch -- --package @nextclaw/ncp`
 - `pnpm lint:new-code:governance`
@@ -28,7 +31,7 @@
 
 1. 修改某个 workspace package 的 `src/**` 后运行 `pnpm dev:packages:build -- --package <package-name>`，应自动发现 stale dist 并执行该包自己的 `build`。
 2. 开发 package dist/types 时运行 `pnpm dev:packages:watch -- --package <package-name>`，应保持监听并在源码变更后重建 dist。
-3. 需要和主 dev server 一起启动时运行 `pnpm dev start --package-watch`，默认 `pnpm dev` 不应额外启动 package watcher。
+3. 需要和主 dev server 一起启动时运行 `pnpm dev start --package-watch`，应先看到 `Frontend` / `Backend` 地址摘要，再看到 package watcher 启动信息；默认 `pnpm dev` 不应额外启动 package watcher。
 
 ## 可维护性总结汇总
 

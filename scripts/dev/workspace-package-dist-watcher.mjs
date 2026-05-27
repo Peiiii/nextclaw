@@ -10,6 +10,7 @@ const rootPackageJsonPath = resolve(rootDir, "package.json");
 const rootPackageJson = readJson(rootPackageJsonPath);
 const packageNames = new Set();
 let mode = "watch";
+let buildOutputMode = "inherit";
 
 for (let index = 2; index < process.argv.length; index += 1) {
   const arg = process.argv[index];
@@ -33,11 +34,28 @@ for (let index = 2; index < process.argv.length; index += 1) {
     index += 1;
     continue;
   }
+  if (arg === "--build-output") {
+    const value = process.argv[index + 1];
+    buildOutputMode = parseBuildOutputMode(value);
+    index += 1;
+    continue;
+  }
+  if (arg.startsWith("--build-output=")) {
+    buildOutputMode = parseBuildOutputMode(arg.slice("--build-output=".length));
+    continue;
+  }
   throw new Error(`Unsupported option: ${arg}`);
 }
 
 function readJson(filePath) {
   return JSON.parse(readFileSync(filePath, "utf8"));
+}
+
+function parseBuildOutputMode(value) {
+  if (value === "inherit" || value === "error") {
+    return value;
+  }
+  throw new Error("--build-output must be inherit or error");
 }
 
 async function main() {
@@ -55,7 +73,7 @@ async function main() {
     return;
   }
 
-  const buildQueue = new PackageBuildQueue(packages);
+  const buildQueue = new PackageBuildQueue(packages, buildOutputMode);
   const stalePackages = [];
   for (const workspacePackage of packages) {
     if (await isPackageDistStale(workspacePackage)) {
@@ -328,9 +346,10 @@ function isWatchedPackagePath(filename) {
 }
 
 class PackageBuildQueue {
-  constructor(workspacePackages) {
+  constructor(workspacePackages, currentBuildOutputMode) {
     this.packageByName = new Map(workspacePackages.map((workspacePackage) => [workspacePackage.name, workspacePackage]));
     this.orderByName = new Map(workspacePackages.map((workspacePackage, index) => [workspacePackage.name, index]));
+    this.buildOutputMode = currentBuildOutputMode;
     this.pendingNames = new Set();
     this.running = false;
     this.waiters = [];
@@ -362,7 +381,7 @@ class PackageBuildQueue {
       })[0];
       this.pendingNames.delete(packageName);
       const workspacePackage = this.packageByName.get(packageName);
-      const success = await buildPackage(workspacePackage);
+      const success = await buildPackage(workspacePackage, this.buildOutputMode);
       this.hasFailed = this.hasFailed || !success;
     }
     this.running = false;
@@ -373,15 +392,28 @@ class PackageBuildQueue {
   };
 }
 
-function buildPackage(workspacePackage) {
+const BUILD_OUTPUT_LIMIT = 200_000;
+
+function buildPackage(workspacePackage, currentBuildOutputMode) {
   console.log(`[packages] build ${workspacePackage.name} (${workspacePackage.relativeDir})`);
   return new Promise((resolveBuild) => {
+    const captureOutput = currentBuildOutputMode === "error";
     const child = spawn("pnpm", ["-C", workspacePackage.dir, "build"], {
       cwd: rootDir,
-      stdio: "inherit",
+      stdio: captureOutput ? ["ignore", "pipe", "pipe"] : "inherit",
       env: process.env,
       shell: process.platform === "win32"
     });
+    let buildOutput = "";
+
+    if (captureOutput) {
+      child.stdout?.on("data", (chunk) => {
+        buildOutput = appendBuildOutput(buildOutput, chunk);
+      });
+      child.stderr?.on("data", (chunk) => {
+        buildOutput = appendBuildOutput(buildOutput, chunk);
+      });
+    }
 
     child.on("error", (error) => {
       console.error(`[packages] ${workspacePackage.name} failed to start: ${error instanceof Error ? error.message : String(error)}`);
@@ -395,9 +427,20 @@ function buildPackage(workspacePackage) {
         return;
       }
       console.error(`[packages] ${workspacePackage.name} failed${typeof code === "number" ? ` with code ${code}` : ` with signal ${signal}`}`);
+      if (captureOutput && buildOutput.trim().length > 0) {
+        console.error(`[packages] ${workspacePackage.name} build output:\n${buildOutput.trimEnd()}`);
+      }
       resolveBuild(false);
     });
   });
+}
+
+function appendBuildOutput(currentOutput, chunk) {
+  const nextOutput = `${currentOutput}${chunk.toString()}`;
+  if (nextOutput.length <= BUILD_OUTPUT_LIMIT) {
+    return nextOutput;
+  }
+  return nextOutput.slice(-BUILD_OUTPUT_LIMIT);
 }
 
 await main();
