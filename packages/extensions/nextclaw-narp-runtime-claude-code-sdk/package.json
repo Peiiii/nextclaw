@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/nextclaw-narp-runtime-claude-code-sdk",
-  "version": "0.1.15-beta.2",
+  "version": "0.1.15-beta.3",
   "private": false,
   "description": "NARP stdio launcher for the NextClaw Claude Code SDK runtime.",
   "type": "module",
