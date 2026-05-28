@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-extension-wecom",
-  "version": "0.1.1-beta.7",
+  "version": "0.1.1",
   "private": false,
   "description": "NextClaw WeCom channel extension process.",
   "type": "module",

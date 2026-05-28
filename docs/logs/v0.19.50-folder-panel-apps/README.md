@@ -51,7 +51,22 @@
 
 ## 发布/部署方式
 
-本次未执行发布或部署。
+已执行整体 NPM 正式发布：
+
+- `pnpm changeset pre exit`
+- `pnpm release:version`
+- `pnpm release:publish`
+- `pnpm release:verify:published`
+- `npm view nextclaw dist-tags --json`
+
+发布结果：`nextclaw@0.19.31` 已发布到 `latest`，完整 public workspace batch 共 46 个包已发布并通过 registry 验证。
+
+发布后真实安装冒烟：
+
+- 临时目录执行 `npm install --prefix <tmp> nextclaw@latest`。
+- `nextclaw --version` 返回 `0.19.31`。
+- 已确认安装包包含 `resources/update-bundle-public.pem`、`dist/cli/launcher/index.js`、`dist/cli/app/index.js`。
+- 在隔离 `NEXTCLAW_HOME` 且未设置 update public key 环境变量时，`nextclaw update --check` 返回 runtime 已是最新。
 
 ## 用户/产品视角的验收步骤
 
@@ -80,4 +95,21 @@
 
 ## NPM 包发布记录
 
-不涉及 NPM 包发布。
+已发布整体 public workspace stable batch：
+
+- `nextclaw@0.19.31`
+- `@nextclaw/ui@0.12.35`
+- `@nextclaw/core@0.12.25`
+- `@nextclaw/kernel@0.1.15`
+- `@nextclaw/server@0.12.26`
+- `@nextclaw/service@0.1.18`
+- `@nextclaw/shared@0.1.12`
+- `@nextclaw/client-sdk@0.1.14`
+- `@nextclaw/runtime@0.2.57`
+- `@nextclaw/remote@0.1.103`
+- 以及本次 changeset batch 内其余 public workspace packages，共 46 个包。
+
+Registry 验证：
+
+- `pnpm release:verify:published`：46/46 package versions published。
+- `npm view nextclaw dist-tags --json`：`latest` 指向 `0.19.31`，`beta` 保持 `0.19.31-beta.7`。
