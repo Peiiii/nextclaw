@@ -34,7 +34,21 @@
 
 ## 发布/部署方式
 
-待执行整体 NPM 正式发布。
+已执行整体 NPM 正式发布：
+
+- `pnpm release:auto:changeset`
+- `pnpm release:version`
+- `pnpm release:publish`
+- `pnpm release:verify:published`
+- `npm view nextclaw dist-tags --json`
+- `npm view nextclaw version --json`
+
+发布结果：
+
+- `nextclaw@0.19.32` 已发布到 `latest`。
+- `@nextclaw/core@0.12.26` 已发布。
+- `@nextclaw/ui@0.12.36` 已发布。
+- 本批次共 46 个 public workspace package 已发布并通过 registry 验证。
 
 ## 用户/产品视角的验收步骤
 
@@ -61,4 +75,18 @@
 
 ## NPM 包发布记录
 
-待统一发布。
+已统一发布完整 public workspace stable 批次。
+
+关键包：
+
+- `nextclaw@0.19.32`
+- `@nextclaw/core@0.12.26`
+- `@nextclaw/ui@0.12.36`
+
+发布后验证：
+
+- `pnpm release:verify:published`：46/46 package versions published。
+- `npm view nextclaw dist-tags --json`：`latest` 指向 `0.19.32`。
+- 临时目录真实安装 `nextclaw@latest` 成功。
+- 安装包中存在 `resources/update-bundle-public.pem`、launcher entry 和 app entry。
+- 隔离 `NEXTCLAW_HOME` 执行 `nextclaw update --check` 成功，结果为 runtime already up to date。
