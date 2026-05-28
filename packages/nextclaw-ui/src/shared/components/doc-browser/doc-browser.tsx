@@ -4,6 +4,7 @@ import {
   DOC_BROWSER_HOME_TAB_KIND,
   useDocBrowser,
 } from './doc-browser-context';
+import { normalizeDocUrl } from './utils/doc-browser-url.utils';
 import { DocBrowserHomePage } from './doc-browser-home-page';
 import type { DocBrowserCustomTabRenderers } from './doc-browser-renderer.types';
 import {
@@ -39,6 +40,15 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+function createInitialFloatingPanelRect(): FloatingPanelRect {
+  return {
+    x: Math.max(FLOATING_PANEL_MARGIN, window.innerWidth - 520),
+    y: 80,
+    w: 480,
+    h: 600,
+  };
+}
+
 export function DocBrowser({
   customTabRenderers = {},
   displayMode = 'desktop',
@@ -48,6 +58,8 @@ export function DocBrowser({
     mode,
     tabs,
     activeTabId,
+    activeHistory,
+    activeHistoryIndex,
     currentTab,
     open,
     openNewTab,
@@ -63,19 +75,17 @@ export function DocBrowser({
 
   const [urlInput, setUrlInput] = useState('');
   const [iframeReloadVersion, setIframeReloadVersion] = useState(0);
-  const [floatRect, setFloatRect] = useState<FloatingPanelRect>(() => ({
-    x: Math.max(FLOATING_PANEL_MARGIN, window.innerWidth - 520),
-    y: 80,
-    w: 480,
-    h: 600,
-  }));
+  const [floatRect, setFloatRect] = useState<FloatingPanelRect>(createInitialFloatingPanelRect);
   const [floatInteraction, setFloatInteraction] = useState<FloatingPanelInteraction | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const currentUrl = currentTab?.currentUrl ?? DOCS_DEFAULT_BASE_URL;
   const navVersion = currentTab?.navVersion ?? 0;
+  const pendingParentDocsUrlRef = useRef<string | null>(null);
   const prevNavVersionRef = useRef(navVersion);
   const isDocsTab = currentTab?.kind === 'docs';
   const isHomeTab = currentTab?.kind === DOC_BROWSER_HOME_TAB_KIND;
+  const canGoBack = activeHistoryIndex > 0;
+  const canGoForward = activeHistoryIndex < activeHistory.length - 1;
   const customRenderer = currentTab ? customTabRenderers[currentTab.kind] : undefined;
 
   useEffect(() => {
@@ -95,16 +105,19 @@ export function DocBrowser({
   // use postMessage to SPA-navigate inside the iframe instead of remounting.
   useEffect(() => {
     if (!isDocsTab) {
+      pendingParentDocsUrlRef.current = null;
       return;
     }
     if (navVersion !== prevNavVersionRef.current) {
       prevNavVersionRef.current = navVersion;
+      pendingParentDocsUrlRef.current = normalizeDocUrl(currentUrl);
       return;
     }
 
     if (iframeRef.current?.contentWindow) {
       try {
         const path = new URL(currentUrl).pathname;
+        pendingParentDocsUrlRef.current = normalizeDocUrl(currentUrl);
         iframeRef.current.contentWindow.postMessage({ type: 'docs-navigate', path }, '*');
       } catch {
         // ignore postMessage errors
@@ -118,12 +131,17 @@ export function DocBrowser({
         return;
       }
       if (e.data?.type === 'docs-route-change' && typeof e.data.url === 'string') {
+        const eventUrl = normalizeDocUrl(e.data.url);
+        if (pendingParentDocsUrlRef.current && eventUrl !== pendingParentDocsUrlRef.current) {
+          return;
+        }
+        pendingParentDocsUrlRef.current = null;
         syncUrl(e.data.url);
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [syncUrl, isDocsTab]);
+  }, [currentUrl, syncUrl, isDocsTab]);
 
   useEffect(() => {
     if (!currentTab || !customRenderer?.onIframeMessage) {
@@ -251,8 +269,12 @@ export function DocBrowser({
       <DocBrowserTabStrip
         tabs={tabs}
         activeTabId={activeTabId}
+        canGoBack={canGoBack}
+        canGoForward={canGoForward}
         isDocked={isDocked}
         isFullscreen={isFullscreen}
+        onGoBack={goBack}
+        onGoForward={goForward}
         onOpenNewTab={openNewTab}
         onSetActiveTab={setActiveTab}
         onCloseTab={closeTab}
@@ -262,10 +284,7 @@ export function DocBrowser({
       />
 
       <DocBrowserDocsToolbar
-        currentTab={currentTab}
         isDocsTab={isDocsTab}
-        onBack={goBack}
-        onForward={goForward}
         onSubmit={handleUrlSubmit}
         onUrlInputChange={setUrlInput}
         urlInput={urlInput}

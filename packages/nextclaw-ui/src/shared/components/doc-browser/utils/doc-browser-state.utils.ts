@@ -1,4 +1,5 @@
 import type {
+  DocBrowserActiveHistoryEntry,
   DocBrowserState,
   DocBrowserTab,
   DocBrowserTabKind,
@@ -35,6 +36,14 @@ export function createDocBrowserTab(
   };
 }
 
+export function createDocBrowserActiveHistoryEntry(tab: DocBrowserTab): DocBrowserActiveHistoryEntry {
+  return {
+    kind: tab.kind,
+    tabId: tab.id,
+    url: tab.currentUrl,
+  };
+}
+
 export function createDefaultDocBrowserState(): DocBrowserState {
   const initialUrl = getDefaultDocsUrl();
   const initialTab = createDocBrowserTab(initialUrl, 'docs', 'Docs');
@@ -43,5 +52,7 @@ export function createDefaultDocBrowserState(): DocBrowserState {
     mode: 'docked',
     tabs: [initialTab],
     activeTabId: initialTab.id,
+    activeHistory: [createDocBrowserActiveHistoryEntry(initialTab)],
+    activeHistoryIndex: 0,
   };
 }

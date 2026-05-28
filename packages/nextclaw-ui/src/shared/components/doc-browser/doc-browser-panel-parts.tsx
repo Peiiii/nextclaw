@@ -1,7 +1,5 @@
 import type { ReactNode, Ref } from 'react';
 import {
-  ArrowLeft,
-  ArrowRight,
   ExternalLink,
   Search,
 } from 'lucide-react';
@@ -12,10 +10,7 @@ import {
 import { t } from '@/shared/lib/i18n';
 
 type DocBrowserDocsToolbarProps = {
-  currentTab?: DocBrowserTab;
   isDocsTab: boolean;
-  onBack: () => void;
-  onForward: () => void;
   onSubmit: (e: React.FormEvent) => void;
   onUrlInputChange: (value: string) => void;
   urlInput: string;
@@ -35,10 +30,7 @@ type DocBrowserFrameContentProps = {
 };
 
 export function DocBrowserDocsToolbar({
-  currentTab,
   isDocsTab,
-  onBack,
-  onForward,
   onSubmit,
   onUrlInputChange,
   urlInput,
@@ -49,21 +41,6 @@ export function DocBrowserDocsToolbar({
 
   return (
     <div className="flex items-center gap-2 px-3.5 py-2 bg-white border-b border-gray-100 shrink-0">
-      <button
-        onClick={onBack}
-        disabled={!isDocsTab || (currentTab?.historyIndex ?? 0) <= 0}
-        className="p-1.5 rounded-md hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-      </button>
-      <button
-        onClick={onForward}
-        disabled={!isDocsTab || (currentTab?.historyIndex ?? 0) >= (currentTab?.history.length ?? 0) - 1}
-        className="p-1.5 rounded-md hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-gray-600 transition-colors"
-      >
-        <ArrowRight className="w-4 h-4" />
-      </button>
-
       <form onSubmit={onSubmit} className="flex-1 relative">
         <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input

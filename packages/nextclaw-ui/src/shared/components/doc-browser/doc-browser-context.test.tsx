@@ -219,6 +219,117 @@ describe('DocBrowserProvider dedupe keys', () => {
       kind: 'content',
     });
   });
+
+  it('stops back and forward navigation at browser history boundaries', () => {
+    const { result } = renderHook(() => useDocBrowser(), { wrapper });
+
+    act(() => {
+      result.current.open('data:text/html,A', {
+        kind: 'content',
+        title: 'A',
+      });
+      result.current.navigate('data:text/html,B');
+    });
+
+    act(() => {
+      result.current.goBack();
+      result.current.goBack();
+      result.current.goBack();
+    });
+
+    expect(result.current.currentTab).toMatchObject({
+      kind: 'docs',
+    });
+    expect(result.current.activeHistoryIndex).toBe(0);
+
+    act(() => {
+      result.current.goForward();
+      result.current.goForward();
+      result.current.goForward();
+    });
+
+    expect(result.current.currentTab).toMatchObject({
+      currentUrl: 'data:text/html,B',
+      historyIndex: 1,
+      history: ['data:text/html,A', 'data:text/html,B'],
+    });
+    expect(result.current.activeHistoryIndex).toBe(2);
+  });
+
+  it('records active tab switching in the top-level browser history', () => {
+    const { result } = renderHook(() => useDocBrowser(), { wrapper });
+
+    act(() => {
+      result.current.open('data:text/html,A', {
+        kind: 'content',
+        title: 'A',
+      });
+      result.current.openNewTab();
+    });
+
+    expect(result.current.currentTab).toMatchObject({
+      currentUrl: 'nextclaw://new-tab',
+      kind: 'home',
+    });
+
+    act(() => {
+      result.current.goBack();
+    });
+
+    expect(result.current.currentTab).toMatchObject({
+      currentUrl: 'data:text/html,A',
+      kind: 'content',
+    });
+
+    act(() => {
+      result.current.goForward();
+    });
+
+    expect(result.current.currentTab).toMatchObject({
+      currentUrl: 'nextclaw://new-tab',
+      kind: 'home',
+    });
+  });
+
+  it('truncates forward history before appending manual navigation after going back', () => {
+    const { result } = renderHook(() => useDocBrowser(), { wrapper });
+
+    act(() => {
+      result.current.open('data:text/html,A', {
+        kind: 'content',
+        title: 'A',
+      });
+      result.current.navigate('data:text/html,B');
+      result.current.navigate('data:text/html,C');
+      result.current.goBack();
+      result.current.navigate('data:text/html,D');
+    });
+
+    expect(result.current.currentTab).toMatchObject({
+      currentUrl: 'data:text/html,D',
+      historyIndex: 2,
+      history: ['data:text/html,A', 'data:text/html,B', 'data:text/html,D'],
+    });
+  });
+
+  it('deduplicates consecutive manual navigation to the current URL', () => {
+    const { result } = renderHook(() => useDocBrowser(), { wrapper });
+
+    act(() => {
+      result.current.open('data:text/html,A', {
+        kind: 'content',
+        title: 'A',
+      });
+      result.current.navigate('data:text/html,B');
+      result.current.navigate('data:text/html,B');
+    });
+
+    expect(result.current.currentTab).toMatchObject({
+      currentUrl: 'data:text/html,B',
+      historyIndex: 1,
+      history: ['data:text/html,A', 'data:text/html,B'],
+    });
+  });
 });
 
 describe('DocBrowserProvider persistence', () => {

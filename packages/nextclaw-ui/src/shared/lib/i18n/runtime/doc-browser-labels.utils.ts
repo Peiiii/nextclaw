@@ -7,6 +7,8 @@ export const DOC_BROWSER_LABELS = {
   docBrowserDockMode: { zh: '固定到侧栏', en: 'Dock to Sidebar' },
   docBrowserClose: { zh: '关闭', en: 'Close' },
   docBrowserHelp: { zh: '帮助文档', en: 'Help Docs' },
+  docBrowserBack: { zh: '后退', en: 'Back' },
+  docBrowserForward: { zh: '前进', en: 'Forward' },
   docBrowserNewTab: { zh: '新建标签', en: 'New Tab' },
   docBrowserHomeTitle: { zh: '导航页', en: 'Start Page' },
   docBrowserCloseTab: { zh: '关闭标签', en: 'Close Tab' },

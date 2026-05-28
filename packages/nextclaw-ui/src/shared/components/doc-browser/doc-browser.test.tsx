@@ -28,6 +28,12 @@ const { docBrowserState } = vi.hoisted<{ docBrowserState: DocBrowserContextValue
       },
     ],
     activeTabId: "docs",
+    activeHistory: [{
+      kind: "docs" as const,
+      tabId: "docs",
+      url: "https://docs.nextclaw.io/en/guide/getting-started",
+    }],
+    activeHistoryIndex: 0,
     currentTab: {
       id: "docs",
       kind: "docs" as const,
@@ -91,6 +97,12 @@ describe("DocBrowser", () => {
       },
     ];
     docBrowserState.activeTabId = "docs";
+    docBrowserState.activeHistory = [{
+      kind: "docs" as const,
+      tabId: "docs",
+      url: "https://docs.nextclaw.io/en/guide/getting-started",
+    }];
+    docBrowserState.activeHistoryIndex = 0;
     docBrowserState.currentTab = docBrowserState.tabs[0];
     Object.defineProperty(window, "innerWidth", {
       configurable: true,
@@ -131,10 +143,88 @@ describe("DocBrowser", () => {
     const tabStrip = screen.getByTestId("doc-browser-tab-strip");
     const tabActions = screen.getByTestId("doc-browser-tab-actions");
 
+    expect(tabActions.contains(screen.getByTitle("Back"))).toBe(true);
+    expect(tabActions.contains(screen.getByTitle("Forward"))).toBe(true);
     expect(tabStrip.contains(screen.getByTitle("Float Window"))).toBe(true);
     expect(tabStrip.contains(screen.getByTitle("Close"))).toBe(true);
     expect(tabActions.contains(screen.getByTitle("New Tab"))).toBe(true);
     expect(screen.queryByText("Embedded Browser")).toBeNull();
+  });
+
+  it("uses active history to enable browser back and forward actions", () => {
+    const history = [
+      "https://docs.nextclaw.io/en/guide/getting-started",
+      "https://docs.nextclaw.io/en/guide/channels",
+      "https://docs.nextclaw.io/en/guide/apps",
+    ];
+    const historyTab: DocBrowserTab = {
+      id: "docs",
+      kind: "docs",
+      title: "Docs",
+      currentUrl: history[1],
+      history,
+      historyIndex: 1,
+      navVersion: 0,
+    };
+    docBrowserState.tabs = [historyTab];
+    docBrowserState.activeTabId = historyTab.id;
+    docBrowserState.activeHistory = [
+      { kind: "home" as const, tabId: "home", url: "nextclaw://new-tab" },
+      { kind: "docs" as const, tabId: historyTab.id, url: history[1] },
+      { kind: "apps" as const, tabId: "apps", url: "nextclaw://apps" },
+    ];
+    docBrowserState.activeHistoryIndex = 1;
+    docBrowserState.currentTab = historyTab;
+
+    render(<DocBrowser />);
+
+    fireEvent.click(screen.getByTitle("Back"));
+    fireEvent.click(screen.getByTitle("Forward"));
+
+    expect(docBrowserState.goBack).toHaveBeenCalled();
+    expect(docBrowserState.goForward).toHaveBeenCalled();
+  });
+
+  it("disables browser history actions at the active history edges", () => {
+    const history = [
+      "https://docs.nextclaw.io/en/guide/getting-started",
+      "https://docs.nextclaw.io/en/guide/apps",
+    ];
+    const latestTab: DocBrowserTab = {
+      id: "docs",
+      kind: "docs",
+      title: "Docs",
+      currentUrl: history[1],
+      history,
+      historyIndex: 1,
+      navVersion: 0,
+    };
+    docBrowserState.tabs = [latestTab];
+    docBrowserState.activeTabId = latestTab.id;
+    docBrowserState.activeHistory = [
+      { kind: "docs" as const, tabId: latestTab.id, url: history[0] },
+      { kind: "docs" as const, tabId: latestTab.id, url: history[1] },
+    ];
+    docBrowserState.activeHistoryIndex = 1;
+    docBrowserState.currentTab = latestTab;
+
+    const { rerender } = render(<DocBrowser />);
+
+    expect(screen.getByTitle("Back")).toHaveProperty("disabled", false);
+    expect(screen.getByTitle("Forward")).toHaveProperty("disabled", true);
+
+    const oldestTab: DocBrowserTab = {
+      ...latestTab,
+      currentUrl: history[0],
+      historyIndex: 0,
+    };
+    docBrowserState.tabs = [oldestTab];
+    docBrowserState.currentTab = oldestTab;
+    docBrowserState.activeHistoryIndex = 0;
+    rerender(<DocBrowser />);
+
+    expect(screen.getByTitle("Back")).toHaveProperty("disabled", true);
+    expect(screen.getByTitle("Forward")).toHaveProperty("disabled", false);
   });
 
   it("opens the start page from the fixed new tab action", () => {

@@ -1,5 +1,5 @@
 import type { PointerEvent } from 'react';
-import { Maximize2, PanelRightOpen, Plus, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Maximize2, PanelRightOpen, Plus, X } from 'lucide-react';
 import type { DocBrowserTab } from './doc-browser-context';
 import { cn } from '@/shared/lib/utils';
 import { t } from '@/shared/lib/i18n';
@@ -7,8 +7,12 @@ import { t } from '@/shared/lib/i18n';
 type DocBrowserTabStripProps = {
   tabs: DocBrowserTab[];
   activeTabId: string;
+  canGoBack: boolean;
+  canGoForward: boolean;
   isDocked: boolean;
   isFullscreen: boolean;
+  onGoBack: () => void;
+  onGoForward: () => void;
   onOpenNewTab: () => void;
   onSetActiveTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
@@ -20,8 +24,12 @@ type DocBrowserTabStripProps = {
 export function DocBrowserTabStrip({
   tabs,
   activeTabId,
+  canGoBack,
+  canGoForward,
   isDocked,
   isFullscreen,
+  onGoBack,
+  onGoForward,
   onOpenNewTab,
   onSetActiveTab,
   onCloseTab,
@@ -82,6 +90,24 @@ export function DocBrowserTabStrip({
         data-testid="doc-browser-tab-actions"
         onPointerDown={(event) => event.stopPropagation()}
       >
+        <button
+          type="button"
+          onClick={onGoBack}
+          disabled={!canGoBack}
+          className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:text-gray-300 disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-gray-300"
+          title={t('docBrowserBack')}
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onGoForward}
+          disabled={!canGoForward}
+          className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:text-gray-300 disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-gray-300"
+          title={t('docBrowserForward')}
+        >
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
         <button
           type="button"
           onClick={onOpenNewTab}

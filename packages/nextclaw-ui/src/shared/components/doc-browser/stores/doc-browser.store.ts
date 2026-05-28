@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type {
+  DocBrowserActiveHistoryEntry,
   DocBrowserMode,
   DocBrowserState,
   DocBrowserStateUpdate,
@@ -71,6 +72,36 @@ function normalizePersistedDocBrowserTab(value: unknown): DocBrowserTab | null {
   };
 }
 
+function createActiveHistoryEntryFromTab(tab: DocBrowserTab): DocBrowserActiveHistoryEntry {
+  return {
+    kind: tab.kind,
+    tabId: tab.id,
+    url: tab.currentUrl,
+  };
+}
+
+function normalizePersistedActiveHistoryEntry(
+  value: unknown,
+  tabsById: Map<string, DocBrowserTab>,
+): DocBrowserActiveHistoryEntry | null {
+  if (
+    !isRecord(value)
+    || typeof value.tabId !== 'string'
+    || typeof value.kind !== 'string'
+    || typeof value.url !== 'string'
+    || value.url.trim().length === 0
+    || !tabsById.has(value.tabId)
+  ) {
+    return null;
+  }
+
+  return {
+    kind: value.kind,
+    tabId: value.tabId,
+    url: value.url,
+  };
+}
+
 function normalizePersistedDocBrowserState(value: unknown): DocBrowserState | null {
   if (!isRecord(value)) {
     return null;
@@ -88,12 +119,30 @@ function normalizePersistedDocBrowserState(value: unknown): DocBrowserState | nu
   const activeTabId = tabs.some((tab) => tab.id === persistedActiveTabId)
     ? persistedActiveTabId ?? tabs[0].id
     : tabs[0].id;
+  const tabsById = new Map(tabs.map((tab) => [tab.id, tab]));
+  const activeHistory = Array.isArray(value.activeHistory)
+    ? value.activeHistory
+      .map((entry) => normalizePersistedActiveHistoryEntry(entry, tabsById))
+      .filter((entry): entry is DocBrowserActiveHistoryEntry => entry !== null)
+    : [];
+  const fallbackHistory = [createActiveHistoryEntryFromTab(tabsById.get(activeTabId) ?? tabs[0])];
+  const resolvedActiveHistory = activeHistory.length > 0 ? activeHistory : fallbackHistory;
+  const activeHistoryIndex = normalizePersistedNumber(
+    value.activeHistoryIndex,
+    0,
+    resolvedActiveHistory.length - 1,
+    resolvedActiveHistory.length - 1,
+  );
+  const activeHistoryEntry = resolvedActiveHistory[activeHistoryIndex];
+  const resolvedActiveTabId = tabsById.has(activeHistoryEntry.tabId) ? activeHistoryEntry.tabId : activeTabId;
 
   return {
     isOpen: value.isOpen === true,
     mode: isDocBrowserMode(value.mode) ? value.mode : 'docked',
     tabs,
-    activeTabId,
+    activeTabId: resolvedActiveTabId,
+    activeHistory: resolvedActiveHistory,
+    activeHistoryIndex,
   };
 }
 
@@ -122,6 +171,8 @@ export const useDocBrowserStore = create<DocBrowserStore>()(
           mode: state.snapshot.mode,
           tabs: state.snapshot.tabs.slice(-DOC_BROWSER_MAX_PERSISTED_TABS),
           activeTabId: state.snapshot.activeTabId,
+          activeHistory: state.snapshot.activeHistory,
+          activeHistoryIndex: state.snapshot.activeHistoryIndex,
         },
       }),
       merge: (persistedState, currentState) => {

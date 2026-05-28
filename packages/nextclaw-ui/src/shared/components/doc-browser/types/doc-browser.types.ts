@@ -13,6 +13,12 @@ export type DocBrowserTab = {
   navVersion: number;
 };
 
+export type DocBrowserActiveHistoryEntry = {
+  kind: DocBrowserTabKind;
+  tabId: string;
+  url: string;
+};
+
 export type DocBrowserOpenOptions = {
   activate?: boolean;
   dedupeKey?: string;
@@ -26,6 +32,8 @@ export type DocBrowserState = {
   mode: DocBrowserMode;
   tabs: DocBrowserTab[];
   activeTabId: string;
+  activeHistory: DocBrowserActiveHistoryEntry[];
+  activeHistoryIndex: number;
 };
 
 export type DocBrowserStateUpdate = DocBrowserState | ((prev: DocBrowserState) => DocBrowserState);
