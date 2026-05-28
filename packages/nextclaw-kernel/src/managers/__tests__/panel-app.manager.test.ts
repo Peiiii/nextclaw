@@ -3,9 +3,11 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
+import { NcpEventType } from "@nextclaw/ncp";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
-import type { PanelAppError } from "@kernel/managers/panel-app.manager.js";
+import type { PanelAppError } from "@kernel/types/panel-app.types.js";
+import { STRUCTURED_RESULT_TOOL_NAME } from "@kernel/tools/structured-result.tools.js";
 
 const tempDirs: string[] = [];
 
@@ -15,7 +17,12 @@ function createTempDir(): string {
   return dir;
 }
 
-function createPanelAppManager(workspacePath: string): PanelAppManager {
+function createPanelAppManager(
+  workspacePath: string,
+  options: {
+    agentRunClient?: ConstructorParameters<typeof PanelAppManager>[0]["agentRunClient"];
+  } = {},
+): PanelAppManager {
   const configPath = join(createTempDir(), "config.json");
   saveConfig(
     ConfigSchema.parse({
@@ -37,7 +44,7 @@ function createPanelAppManager(workspacePath: string): PanelAppManager {
       load: vi.fn(),
     } as never,
   });
-  return new PanelAppManager({ configManager });
+  return new PanelAppManager({ configManager, agentRunClient: options.agentRunClient });
 }
 
 afterEach(() => {
@@ -87,16 +94,17 @@ describe("PanelAppManager", () => {
     expect(content).toEqual(expect.objectContaining({
       id: entry.id,
       fileName: "todo.panel.html",
+      capabilities: [],
       contentType: "text/html; charset=utf-8",
       serviceActions: [],
     }));
     expect(content.html).toContain("window.nextclaw");
-    expect(content.html).toContain('entry.method === "invoke" ? data.data?.result : data.data');
+    expect(content.html).toContain('entry.method === "invoke" || entry.method === "agent.generateObject"');
     expect(content.html).not.toContain("<script src=\"/api/panel-app-bridge.js\"></script>");
     expect(content.html).toContain("<!doctype html><h1>Todo</h1>");
   });
 
-  it("creates bridge sessions with service actions declared by the panel app", async () => {
+  it("creates bridge sessions with declared service actions and agent capabilities", async () => {
     const workspacePath = createTempDir();
     const panelsPath = join(workspacePath, "panels");
     mkdirSync(panelsPath, { recursive: true });
@@ -106,6 +114,7 @@ describe("PanelAppManager", () => {
         "<!doctype html>",
         "<html><head>",
         "<meta name=\"nextclaw-panel-actions\" content=\"notes.read notes.write\">",
+        "<meta name=\"nextclaw-panel-capabilities\" content=\"agent:send agent:generateObject\">",
         "</head><body></body></html>",
       ].join(""),
     );
@@ -119,10 +128,122 @@ describe("PanelAppManager", () => {
 
     expect(session.panelAppId).toBe(entry.id);
     expect(session.caller).toEqual({ surface: "panel-app", appId: entry.id });
+    expect(session.declaredCapabilities).toEqual(["agent:send", "agent:generateObject"]);
     expect(session.declaredActions).toEqual(["notes.read", "notes.write"]);
     expect(manager.resolvePanelAppBridgeSession(session.token).id).toBe(session.id);
   });
+});
 
+describe("PanelAppManager agent bridge", () => {
+  it("sends panel app agent messages only after the declared capability is granted", async () => {
+    const workspacePath = createTempDir();
+    const panelsPath = join(workspacePath, "panels");
+    const send = vi.fn().mockResolvedValue({
+      runId: "run-1",
+      sessionId: "session-1",
+      userMessageId: "message-1",
+    });
+    mkdirSync(panelsPath, { recursive: true });
+    writeFileSync(
+      join(panelsPath, "sender.panel.html"),
+      "<meta name=\"nextclaw-panel-capabilities\" content=\"agent:send\">",
+    );
+    const manager = createPanelAppManager(workspacePath, {
+      agentRunClient: {
+        send,
+        sendAndStreamEvents: vi.fn(),
+      },
+    });
+    const [entry] = (await manager.listPanelApps()).entries;
+    const session = await manager.createPanelAppBridgeSession({
+      id: entry.id,
+      tabId: "tab-1",
+    });
+
+    await expect(manager.sendAgentMessage(session.token, {
+      content: [{ type: "text", text: "hello" }],
+    })).rejects.toMatchObject({ code: "AUTHORIZATION_REQUIRED" });
+
+    await manager.grantAgentCapability(session.token, "agent:send");
+    await expect(manager.sendAgentMessage(session.token, {
+      content: [{ type: "text", text: "hello" }],
+    })).resolves.toEqual(expect.objectContaining({ sessionId: "session-1" }));
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({
+      content: [{ type: "text", text: "hello" }],
+      metadata: expect.objectContaining({
+        panel_app_id: entry.id,
+        source_kind: "panel_app",
+      }),
+    }));
+  });
+
+  it("uses the structured result tool to resolve generateObject", async () => {
+    const workspacePath = createTempDir();
+    const panelsPath = join(workspacePath, "panels");
+    let sentPayload: unknown;
+    const sendAndStreamEvents = vi.fn(async function* (payload) {
+      sentPayload = payload;
+      yield {
+        type: NcpEventType.MessageToolCallStart,
+        payload: {
+          sessionId: "session-1",
+          toolCallId: "tool-1",
+          toolName: STRUCTURED_RESULT_TOOL_NAME,
+        },
+      };
+      yield {
+        type: NcpEventType.MessageToolCallResult,
+        payload: {
+          sessionId: "session-1",
+          toolCallId: "tool-1",
+          content: { answer: 42 },
+        },
+      };
+    });
+    mkdirSync(panelsPath, { recursive: true });
+    writeFileSync(
+      join(panelsPath, "object.panel.html"),
+      "<meta name=\"nextclaw-panel-capabilities\" content=\"agent:generateObject\">",
+    );
+    const manager = createPanelAppManager(workspacePath, {
+      agentRunClient: {
+        send: vi.fn(),
+        sendAndStreamEvents,
+      },
+    });
+    const [entry] = (await manager.listPanelApps()).entries;
+    const session = await manager.createPanelAppBridgeSession({
+      id: entry.id,
+      tabId: "tab-1",
+    });
+    await manager.grantAgentCapability(session.token, "agent:generateObject");
+
+    await expect(manager.generateAgentObject(session.token, {
+      peerId: "mood-summary",
+      prompt: "Summarize it",
+      schema: {
+        type: "object",
+        properties: { answer: { type: "number" } },
+        required: ["answer"],
+      },
+      context: { mood: "good" },
+    })).resolves.toEqual({ result: { answer: 42 } });
+    expect(sentPayload).toEqual(expect.objectContaining({
+      sessionId: expect.stringMatching(/^panel-app-agent-/),
+      message: expect.objectContaining({
+        metadata: expect.objectContaining({
+          panel_app_id: entry.id,
+          panel_app_peer_id: "mood-summary",
+          structured_result: expect.objectContaining({
+            tool_name: STRUCTURED_RESULT_TOOL_NAME,
+          }),
+        }),
+      }),
+    }));
+  });
+});
+
+describe("PanelAppManager metadata and state", () => {
   it("reads lightweight manifest metadata from panel app HTML", async () => {
     const workspacePath = createTempDir();
     const panelsPath = join(workspacePath, "panels");

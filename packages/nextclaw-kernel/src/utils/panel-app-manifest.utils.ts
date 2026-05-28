@@ -2,6 +2,7 @@ export type PanelAppManifest = {
   title?: string;
   description?: string;
   icon?: string;
+  capabilities: string[];
   serviceActions: string[];
 };
 
@@ -13,6 +14,7 @@ export function parsePanelAppManifest(html: string): PanelAppManifest {
   };
   return {
     ...fields,
+    capabilities: readPanelAppCapabilities(html),
     serviceActions: readPanelAppServiceActions(html),
   };
 }
@@ -27,7 +29,7 @@ function readPanelAppMeta(html: string): Partial<PanelAppManifest> {
 
 function readPanelAppMetaField(
   html: string,
-  field: keyof Omit<PanelAppManifest, "serviceActions">,
+  field: keyof Pick<PanelAppManifest, "description" | "icon" | "title">,
 ): Partial<PanelAppManifest> {
   const content = readMetaContent(html, `nextclaw-panel-${field}`, field === "icon" ? "attribute" : "text");
   const manifest: Partial<PanelAppManifest> = {};
@@ -88,6 +90,15 @@ function readHtmlAttribute(attributes: string, attribute: string): string | unde
 
 function readPanelAppServiceActions(html: string): string[] {
   const content = readMetaContent(html, "nextclaw-panel-actions", "attribute");
+  return parseTokenList(content);
+}
+
+function readPanelAppCapabilities(html: string): string[] {
+  const content = readMetaContent(html, "nextclaw-panel-capabilities", "attribute");
+  return parseTokenList(content);
+}
+
+function parseTokenList(content: string | undefined): string[] {
   if (!content) {
     return [];
   }

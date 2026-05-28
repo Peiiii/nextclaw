@@ -1,14 +1,17 @@
 import { NextClawClientError } from '@nextclaw/client-sdk';
 import { waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PanelAppBridgeManager } from '@/features/panel-apps/managers/panel-app-bridge.manager';
 import type { ServiceActionAuthorizationManager } from '@/features/service-apps';
 
 const mocks = vi.hoisted(() => ({
   createBridgeSession: vi.fn(),
+  generateAgentObject: vi.fn(),
+  grantAgentCapability: vi.fn(),
   grantServiceAction: vi.fn(),
   invokeServiceAction: vi.fn(),
   listServiceActions: vi.fn(),
+  sendAgentMessage: vi.fn(),
   requestAuthorization: vi.fn(),
 }));
 
@@ -16,6 +19,9 @@ vi.mock('@/shared/lib/api', () => ({
   nextclawClient: {
     panelApps: {
       createBridgeSession: mocks.createBridgeSession,
+      generateAgentObject: mocks.generateAgentObject,
+      grantAgentCapability: mocks.grantAgentCapability,
+      sendAgentMessage: mocks.sendAgentMessage,
     },
     serviceApps: {
       grantServiceAction: mocks.grantServiceAction,
@@ -25,6 +31,10 @@ vi.mock('@/shared/lib/api', () => ({
     },
   },
 }));
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('PanelAppBridgeManager', () => {
   it('opens the authorization flow before retrying a protected service action', async () => {
@@ -105,6 +115,80 @@ describe('PanelAppBridgeManager', () => {
       data: { actionId, result: { saved: true } },
       ok: true,
       requestId: 'request-1',
+      type: 'nextclaw:panel-app-service-actions:response',
+    }, '*');
+  });
+
+  it('opens the authorization flow before retrying a protected generateObject call', async () => {
+    const manager = new PanelAppBridgeManager({
+      requestAuthorization: mocks.requestAuthorization,
+    } as unknown as ServiceActionAuthorizationManager);
+    const postMessage = vi.fn();
+    const contentWindow = { postMessage } as unknown as Window;
+    const iframe = { contentWindow } as HTMLIFrameElement;
+    mocks.createBridgeSession.mockResolvedValue({
+      expiresAt: '2026-05-28T00:00:00.000Z',
+      id: 'session-1',
+      panelAppId: 'mood-calendar',
+      tabId: 'tab-1',
+      token: 'token-1',
+    });
+    mocks.generateAgentObject
+      .mockRejectedValueOnce(new NextClawClientError({
+        code: 'AUTHORIZATION_REQUIRED',
+        message: 'authorization required',
+      }))
+      .mockResolvedValueOnce({ result: { summary: 'sunny' } });
+    mocks.requestAuthorization.mockResolvedValue(true);
+    mocks.grantAgentCapability.mockResolvedValue({
+      caller: { surface: 'panel-app', appId: 'mood-calendar' },
+      capability: 'agent:generateObject',
+      grantedAt: '2026-05-28T00:00:00.000Z',
+    });
+
+    manager.handleIframeMessage({
+      event: {
+        data: {
+          method: 'agent.generateObject',
+          payload: {
+            input: {
+              peerId: 'mood-summary',
+              prompt: 'summarize',
+              schema: { type: 'object' },
+            },
+          },
+          requestId: 'request-2',
+          type: 'nextclaw:panel-app-service-actions:request',
+        },
+        source: contentWindow,
+      } as MessageEvent,
+      iframe,
+      tab: {
+        currentUrl: '/api/panel-apps/mood-calendar/content',
+        history: [],
+        historyIndex: 0,
+        id: 'tab-1',
+        kind: 'content',
+        navVersion: 0,
+        title: 'Mood Calendar',
+      },
+    });
+
+    await waitFor(() => expect(postMessage).toHaveBeenCalled());
+
+    expect(mocks.requestAuthorization).toHaveBeenCalledWith(expect.objectContaining({
+      actionId: 'agent:generateObject',
+      panelAppId: 'mood-calendar',
+      risk: 'write',
+    }));
+    expect(mocks.grantAgentCapability).toHaveBeenCalledWith('agent:generateObject', {
+      bridgeSessionToken: 'token-1',
+    });
+    expect(mocks.generateAgentObject).toHaveBeenCalledTimes(2);
+    expect(postMessage).toHaveBeenCalledWith({
+      data: { result: { summary: 'sunny' } },
+      ok: true,
+      requestId: 'request-2',
       type: 'nextclaw:panel-app-service-actions:response',
     }, '*');
   });

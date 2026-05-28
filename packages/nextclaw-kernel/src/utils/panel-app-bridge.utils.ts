@@ -45,7 +45,11 @@ export function getPanelAppBridgeScript(): string {
     }
     pending.delete(data.requestId);
     if (data.ok) {
-      entry.resolve(entry.method === "invoke" ? data.data?.result : data.data);
+      entry.resolve(
+        entry.method === "invoke" || entry.method === "agent.generateObject"
+          ? data.data?.result
+          : data.data
+      );
       return;
     }
     const error = new Error(data.error?.message || "NextClaw panel bridge request failed.");
@@ -64,6 +68,10 @@ export function getPanelAppBridgeScript(): string {
         invoke: (actionId, input) => request("invoke", { actionId, input }),
         requestGrant: (actionId) => request("requestGrant", { actionId }),
         revokeGrant: (actionId) => request("revokeGrant", { actionId })
+      },
+      agent: {
+        send: (input) => request("agent.send", { request: input }),
+        generateObject: (input) => request("agent.generateObject", { input })
       }
     }
   });

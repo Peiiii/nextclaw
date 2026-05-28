@@ -1,6 +1,12 @@
 import { NextClawClientError } from '@nextclaw/client-sdk';
 import type {
+  PanelAppAgentCapabilityView,
+  PanelAppAgentGenerateObjectRequestView,
+  PanelAppAgentGenerateObjectResultView,
+  PanelAppAgentSendRequestView,
+  PanelAppAgentSendResultView,
   PanelAppBridgeSessionView,
+  PanelAppCapabilityGrantView,
   ServiceActionGrantView,
   ServiceActionInvokeResultView,
   ServiceActionListView,
@@ -12,10 +18,17 @@ import { nextclawClient } from '@/shared/lib/api';
 type PanelAppBridgeRequest = {
   type: 'nextclaw:panel-app-service-actions:request';
   requestId: string;
-  method: 'invoke' | 'list' | 'requestGrant' | 'revokeGrant';
+  method:
+    | 'agent.generateObject'
+    | 'agent.send'
+    | 'invoke'
+    | 'list'
+    | 'requestGrant'
+    | 'revokeGrant';
   payload?: {
     actionId?: string;
-    input?: Record<string, unknown>;
+    input?: unknown;
+    request?: unknown;
   };
 };
 
@@ -79,6 +92,9 @@ export class PanelAppBridgeManager {
     session: PanelAppBridgeSessionView,
     request: PanelAppBridgeRequest,
   ): Promise<
+    | PanelAppAgentGenerateObjectResultView
+    | PanelAppAgentSendResultView
+    | PanelAppCapabilityGrantView
     | ServiceActionGrantView
     | ServiceActionInvokeResultView
     | ServiceActionListView
@@ -98,6 +114,10 @@ export class PanelAppBridgeManager {
         );
       case 'invoke':
         return await this.invokeWithAuthorization(session, request);
+      case 'agent.send':
+        return await this.sendAgentMessageWithAuthorization(session, request);
+      case 'agent.generateObject':
+        return await this.generateAgentObjectWithAuthorization(session, request);
       default:
         throw new Error(`Unsupported panel bridge method: ${String(request.method)}`);
     }
@@ -111,20 +131,87 @@ export class PanelAppBridgeManager {
     try {
       return await nextclawClient.serviceApps.invokeServiceAction(
         actionId,
-        request.payload?.input,
+        this.readOptionalRecord(request.payload?.input),
         { bridgeSessionToken: session.token },
       );
     } catch (error) {
       if (!(error instanceof NextClawClientError) || error.code !== 'AUTHORIZATION_REQUIRED') {
         throw error;
       }
-      await this.confirmAndGrant(session, actionId, request.payload?.input);
+      await this.confirmAndGrant(session, actionId, this.readOptionalRecord(request.payload?.input));
       return await nextclawClient.serviceApps.invokeServiceAction(
         actionId,
-        request.payload?.input,
+        this.readOptionalRecord(request.payload?.input),
         { bridgeSessionToken: session.token },
       );
     }
+  };
+
+  private sendAgentMessageWithAuthorization = async (
+    session: PanelAppBridgeSessionView,
+    request: PanelAppBridgeRequest,
+  ): Promise<PanelAppAgentSendResultView> => {
+    try {
+      return await nextclawClient.panelApps.sendAgentMessage(
+        this.readAgentSendRequest(request),
+        { bridgeSessionToken: session.token },
+      );
+    } catch (error) {
+      if (!(error instanceof NextClawClientError) || error.code !== 'AUTHORIZATION_REQUIRED') {
+        throw error;
+      }
+      await this.confirmAndGrantAgentCapability(session, 'agent:send');
+      return await nextclawClient.panelApps.sendAgentMessage(
+        this.readAgentSendRequest(request),
+        { bridgeSessionToken: session.token },
+      );
+    }
+  };
+
+  private generateAgentObjectWithAuthorization = async (
+    session: PanelAppBridgeSessionView,
+    request: PanelAppBridgeRequest,
+  ): Promise<PanelAppAgentGenerateObjectResultView> => {
+    try {
+      return await nextclawClient.panelApps.generateAgentObject(
+        this.readGenerateObjectRequest(request),
+        { bridgeSessionToken: session.token },
+      );
+    } catch (error) {
+      if (!(error instanceof NextClawClientError) || error.code !== 'AUTHORIZATION_REQUIRED') {
+        throw error;
+      }
+      await this.confirmAndGrantAgentCapability(session, 'agent:generateObject');
+      return await nextclawClient.panelApps.generateAgentObject(
+        this.readGenerateObjectRequest(request),
+        { bridgeSessionToken: session.token },
+      );
+    }
+  };
+
+  private confirmAndGrantAgentCapability = async (
+    session: PanelAppBridgeSessionView,
+    capability: PanelAppAgentCapabilityView,
+  ): Promise<PanelAppCapabilityGrantView> => {
+    const allowed = await this.authorizationManager.requestAuthorization({
+      panelAppId: session.panelAppId,
+      actionId: capability,
+      actionTitle: capability === 'agent:send' ? 'Send agent message' : 'Generate object',
+      actionDescription: capability === 'agent:send'
+        ? 'Send a message to a NextClaw Agent session.'
+        : 'Send context to a NextClaw Agent session and receive a structured object.',
+      risk: 'write',
+    });
+    if (!allowed) {
+      throw new NextClawClientError({
+        code: 'AUTHORIZATION_REJECTED',
+        message: `Permission rejected for ${capability}.`,
+      });
+    }
+    return await nextclawClient.panelApps.grantAgentCapability(
+      capability,
+      { bridgeSessionToken: session.token },
+    );
   };
 
   private confirmAndGrant = async (
@@ -160,7 +247,9 @@ export class PanelAppBridgeManager {
     const actions = await nextclawClient.serviceApps.listServiceActions({
       bridgeSessionToken: session.token,
     });
-    return actions.actions.find((action) => action.id === actionId);
+    return actions.actions.find(
+      (action: ServiceActionListView['actions'][number]) => action.id === actionId,
+    );
   };
 
   private createInputPreview = (input: Record<string, unknown> | undefined): string | undefined => {
@@ -208,6 +297,32 @@ export class PanelAppBridgeManager {
     return actionId;
   };
 
+  private readOptionalRecord = (value: unknown): Record<string, unknown> | undefined => {
+    if (value === undefined) {
+      return undefined;
+    }
+    return this.requireRecord(value, 'input');
+  };
+
+  private readAgentSendRequest = (
+    request: PanelAppBridgeRequest,
+  ): PanelAppAgentSendRequestView => ({
+    payload: this.requireRecord(request.payload?.request, 'agent.send request') as PanelAppAgentSendRequestView['payload'],
+  });
+
+  private readGenerateObjectRequest = (
+    request: PanelAppBridgeRequest,
+  ): PanelAppAgentGenerateObjectRequestView => ({
+    input: this.requireRecord(request.payload?.input, 'generateObject input') as PanelAppAgentGenerateObjectRequestView['input'],
+  });
+
+  private requireRecord = (value: unknown, label: string): Record<string, unknown> => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error(`${label} is required.`);
+    }
+    return value as Record<string, unknown>;
+  };
+
   private postResponse = (
     params: DocBrowserIframeMessageParams,
     response: PanelAppBridgeResponse,
@@ -239,6 +354,8 @@ export class PanelAppBridgeManager {
       candidate.type === 'nextclaw:panel-app-service-actions:request' &&
       typeof candidate.requestId === 'string' &&
       (candidate.method === 'invoke' ||
+        candidate.method === 'agent.send' ||
+        candidate.method === 'agent.generateObject' ||
         candidate.method === 'list' ||
         candidate.method === 'requestGrant' ||
         candidate.method === 'revokeGrant')

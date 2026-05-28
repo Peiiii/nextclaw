@@ -1,14 +1,30 @@
 import type {
+  PanelAppAgentCapabilityView,
+  PanelAppAgentGenerateObjectRequestView,
+  PanelAppAgentGenerateObjectResultView,
+  PanelAppAgentSendRequestView,
+  PanelAppAgentSendResultView,
   PanelAppBridgeSessionCreateRequest,
   PanelAppBridgeSessionView,
+  PanelAppCapabilityGrantView,
   PanelAppEntryView,
   PanelAppListView,
 } from "@nextclaw/server";
 import type { RequestService } from "./request.service.js";
 
+const PANEL_BRIDGE_SESSION_HEADER = "x-nextclaw-panel-bridge-session";
+
 type PanelAppPreferencesUpdateView = {
   favorite?: boolean;
 };
+
+type BridgeRequestOptions = {
+  bridgeSessionToken?: string;
+};
+
+function bridgeHeaders(token?: string): Record<string, string> | undefined {
+  return token ? { [PANEL_BRIDGE_SESSION_HEADER]: token } : undefined;
+}
 
 export class PanelAppsClientService {
   constructor(private readonly requestService: RequestService) {}
@@ -48,6 +64,39 @@ export class PanelAppsClientService {
   readonly deleteBridgeSession = async (token: string): Promise<{ deleted: boolean }> => {
     return await this.requestService.delete<{ deleted: boolean }>(
       `/api/panel-app-bridge-sessions/${encodeURIComponent(token)}`,
+    );
+  };
+
+  readonly sendAgentMessage = async (
+    request: PanelAppAgentSendRequestView,
+    options: BridgeRequestOptions = {},
+  ): Promise<PanelAppAgentSendResultView> => {
+    return await this.requestService.post<PanelAppAgentSendResultView>(
+      "/api/panel-app-agent/send",
+      request,
+      { headers: bridgeHeaders(options.bridgeSessionToken) },
+    );
+  };
+
+  readonly generateAgentObject = async (
+    request: PanelAppAgentGenerateObjectRequestView,
+    options: BridgeRequestOptions = {},
+  ): Promise<PanelAppAgentGenerateObjectResultView> => {
+    return await this.requestService.post<PanelAppAgentGenerateObjectResultView>(
+      "/api/panel-app-agent/generate-object",
+      request,
+      { headers: bridgeHeaders(options.bridgeSessionToken) },
+    );
+  };
+
+  readonly grantAgentCapability = async (
+    capability: PanelAppAgentCapabilityView,
+    options: BridgeRequestOptions = {},
+  ): Promise<PanelAppCapabilityGrantView> => {
+    return await this.requestService.post<PanelAppCapabilityGrantView>(
+      `/api/panel-app-agent-capabilities/${encodeURIComponent(capability)}/grant`,
+      {},
+      { headers: bridgeHeaders(options.bridgeSessionToken) },
     );
   };
 }

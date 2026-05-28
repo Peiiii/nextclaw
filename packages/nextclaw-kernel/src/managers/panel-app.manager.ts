@@ -8,18 +8,47 @@ import {
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import { PanelAppStateStore } from "@kernel/stores/panel-app-state.store.js";
 import type { PanelAppPreferencesUpdate, PanelAppStateEntry } from "@kernel/stores/panel-app-state.store.js";
+import { PanelAppCapabilityGrantStore } from "@kernel/stores/panel-app-capability-grant.store.js";
 import type { ServiceActionCaller } from "@kernel/types/service-app.types.js";
+import type {
+  PanelAppAgentCapability,
+  PanelAppAgentGenerateObjectInput,
+  PanelAppAgentGenerateObjectResult,
+  PanelAppAgentRunClient,
+  PanelAppAgentSendPayload,
+  PanelAppAgentSendResult,
+  PanelAppCapabilityGrant,
+} from "@kernel/types/panel-app.types.js";
+import {
+  isPanelAppAgentCapability,
+  isPanelAppError,
+  PanelAppError,
+} from "@kernel/types/panel-app.types.js";
+import { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
 import {
   getPanelAppBridgeScript,
   injectPanelAppBridgeScript,
 } from "@kernel/utils/panel-app-bridge.utils.js";
 import { parsePanelAppManifest } from "@kernel/utils/panel-app-manifest.utils.js";
+import {
+  createPanelAppAgentMetadata,
+  createPanelAppAgentSessionId,
+  createPanelAppGenerateObjectMessage,
+  normalizePanelAppGenerateObjectInput,
+  waitForPanelAppStructuredResult,
+  withPanelAppAgentMetadata,
+} from "@kernel/utils/panel-app-agent.utils.js";
+import type {
+  EventBus,
+  Ingress,
+} from "@nextclaw/shared";
 
 export type { PanelAppPreferencesUpdate } from "@kernel/stores/panel-app-state.store.js";
 
 const PANEL_APP_FILE_SUFFIX = ".panel.html";
 const PANEL_APP_CONTENT_BASE_PATH = "/api/panel-apps";
 const PANEL_APP_CONTENT_TYPE = "text/html; charset=utf-8" as const;
+const PANEL_APP_CAPABILITY_GRANTS_FILE_NAME = ".panel-app-capability-grants.json";
 
 export type PanelAppEntry = {
   id: string;
@@ -46,6 +75,7 @@ export type PanelAppContent = {
   fileName: string;
   html: string;
   contentType: typeof PANEL_APP_CONTENT_TYPE;
+  capabilities: string[];
   serviceActions: string[];
 };
 
@@ -55,35 +85,27 @@ export type PanelAppBridgeSession = {
   panelAppId: string;
   tabId: string;
   caller: ServiceActionCaller;
+  declaredCapabilities: string[];
   declaredActions: string[];
   createdAt: string;
   expiresAt: string;
 };
 
-export type PanelAppErrorCode =
-  | "PANEL_APP_BRIDGE_SESSION_NOT_FOUND"
-  | "PANEL_APP_INVALID_ID"
-  | "PANEL_APP_NOT_FOUND"
-  | "PANEL_APP_READ_FAILED";
-
-export class PanelAppError extends Error {
-  constructor(
-    readonly code: PanelAppErrorCode,
-    message: string,
-  ) {
-    super(message);
-    this.name = "PanelAppError";
-  }
-}
-
-export function isPanelAppError(error: unknown): error is PanelAppError {
-  return error instanceof PanelAppError;
-}
-
 export class PanelAppManager {
   private readonly bridgeSessions = new Map<string, PanelAppBridgeSession>();
+  private readonly agentRunClient: PanelAppAgentRunClient | null;
 
-  constructor(private readonly params: { configManager: ConfigManager }) {}
+  constructor(private readonly params: {
+    agentRunClient?: PanelAppAgentRunClient;
+    configManager: ConfigManager;
+    eventBus?: EventBus;
+    ingress?: Ingress;
+  }) {
+    this.agentRunClient = params.agentRunClient ??
+      (params.eventBus && params.ingress
+        ? new AgentRunClient({ eventBus: params.eventBus, ingress: params.ingress })
+        : null);
+  }
 
   listPanelApps = async (): Promise<PanelAppList> => {
     const workspacePath = this.getWorkspacePath();
@@ -123,6 +145,7 @@ export class PanelAppManager {
         id: this.encodePanelAppId(fileName),
         fileName,
         html: injectPanelAppBridgeScript(html),
+        capabilities: manifest.capabilities,
         contentType: PANEL_APP_CONTENT_TYPE,
         serviceActions: manifest.serviceActions,
       };
@@ -157,6 +180,7 @@ export class PanelAppManager {
         surface: "panel-app",
         appId: content.id,
       },
+      declaredCapabilities: content.capabilities,
       declaredActions: content.serviceActions,
       createdAt: now.toISOString(),
       expiresAt: new Date(now.getTime() + 60 * 60 * 1000).toISOString(),
@@ -181,6 +205,65 @@ export class PanelAppManager {
     this.bridgeSessions.delete(token.trim());
   };
 
+  sendAgentMessage = async (
+    bridgeSessionToken: string,
+    payload: PanelAppAgentSendPayload,
+  ): Promise<PanelAppAgentSendResult> => {
+    const bridgeSession = this.resolvePanelAppBridgeSession(bridgeSessionToken);
+    await this.assertAgentCapabilityGranted(bridgeSession, "agent:send");
+    return await this.requireAgentRunClient().send(
+      withPanelAppAgentMetadata(payload, bridgeSession),
+    );
+  };
+
+  generateAgentObject = async (
+    bridgeSessionToken: string,
+    input: PanelAppAgentGenerateObjectInput,
+  ): Promise<PanelAppAgentGenerateObjectResult> => {
+    const bridgeSession = this.resolvePanelAppBridgeSession(bridgeSessionToken);
+    await this.assertAgentCapabilityGranted(bridgeSession, "agent:generateObject");
+    const request = normalizePanelAppGenerateObjectInput(input);
+    const requestId = randomUUID();
+    const sessionId = createPanelAppAgentSessionId(bridgeSession.panelAppId, request.peerId);
+    const message = createPanelAppGenerateObjectMessage({
+      bridgeSession,
+      request,
+      requestId,
+      sessionId,
+    });
+    const result = await waitForPanelAppStructuredResult(this.requireAgentRunClient(), {
+      payload: {
+        message,
+        metadata: {
+          ...createPanelAppAgentMetadata(bridgeSession),
+          panel_app_peer_id: request.peerId,
+        },
+        sessionId,
+      },
+      timeoutMs: request.timeoutMs,
+    });
+    return { result };
+  };
+
+  grantAgentCapability = async (
+    bridgeSessionToken: string,
+    capability: PanelAppAgentCapability,
+  ): Promise<PanelAppCapabilityGrant> => {
+    const bridgeSession = this.resolvePanelAppBridgeSession(bridgeSessionToken);
+    if (!isPanelAppAgentCapability(capability)) {
+      throw new PanelAppError(
+        "PANEL_APP_AGENT_REQUEST_INVALID",
+        "unknown panel app agent capability",
+      );
+    }
+    this.assertDeclaredCapability(bridgeSession, capability);
+    return await this.createCapabilityGrantStore().grant({
+      caller: bridgeSession.caller,
+      capability,
+      grantedAt: new Date().toISOString(),
+    });
+  };
+
   updatePanelAppPreferences = async (
     id: string,
     preferences: PanelAppPreferencesUpdate,
@@ -203,6 +286,45 @@ export class PanelAppManager {
     return await this.buildPanelAppEntry(panelsPath, fileName, state);
   };
 
+  private assertAgentCapabilityGranted = async (
+    bridgeSession: PanelAppBridgeSession,
+    capability: PanelAppAgentCapability,
+  ): Promise<void> => {
+    this.assertDeclaredCapability(bridgeSession, capability);
+    const granted = await this.createCapabilityGrantStore().isGranted(
+      bridgeSession.caller,
+      capability,
+    );
+    if (!granted) {
+      throw new PanelAppError(
+        "AUTHORIZATION_REQUIRED",
+        `This panel app needs permission to use ${capability}.`,
+      );
+    }
+  };
+
+  private assertDeclaredCapability = (
+    bridgeSession: PanelAppBridgeSession,
+    capability: PanelAppAgentCapability,
+  ): void => {
+    if (!bridgeSession.declaredCapabilities.includes(capability)) {
+      throw new PanelAppError(
+        "PANEL_APP_CAPABILITY_NOT_DECLARED",
+        "panel app did not declare this agent capability",
+      );
+    }
+  };
+
+  private requireAgentRunClient = (): PanelAppAgentRunClient => {
+    if (!this.agentRunClient) {
+      throw new PanelAppError(
+        "PANEL_APP_AGENT_REQUEST_INVALID",
+        "panel app agent client is not configured",
+      );
+    }
+    return this.agentRunClient;
+  };
+
   private getWorkspacePath = (): string =>
     getWorkspacePathFromConfig(this.params.configManager.config);
 
@@ -211,6 +333,11 @@ export class PanelAppManager {
 
   private createStateStore = (panelsPath: string): PanelAppStateStore =>
     new PanelAppStateStore(panelsPath);
+
+  private createCapabilityGrantStore = (): PanelAppCapabilityGrantStore =>
+    new PanelAppCapabilityGrantStore(
+      join(this.getPanelsPath(this.getWorkspacePath()), PANEL_APP_CAPABILITY_GRANTS_FILE_NAME),
+    );
 
   private listPanelAppFileNames = async (panelsPath: string): Promise<string[]> => {
     try {

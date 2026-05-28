@@ -3,6 +3,12 @@ import type {
   PanelAppEntry,
   PanelAppList,
   PanelAppPreferencesUpdate,
+  PanelAppAgentCapability,
+  PanelAppAgentGenerateObjectRequest,
+  PanelAppAgentGenerateObjectResult,
+  PanelAppAgentSendRequest,
+  PanelAppAgentSendResult,
+  PanelAppCapabilityGrant,
 } from "@nextclaw/kernel";
 
 export type PanelAppBridgeSessionCreateRequest = {
@@ -18,3 +24,9 @@ export type PanelAppBridgeSessionView = Pick<
 export type PanelAppEntryView = PanelAppEntry;
 export type PanelAppListView = PanelAppList;
 export type PanelAppPreferencesUpdateView = PanelAppPreferencesUpdate;
+export type PanelAppAgentCapabilityView = PanelAppAgentCapability;
+export type PanelAppAgentGenerateObjectRequestView = PanelAppAgentGenerateObjectRequest;
+export type PanelAppAgentGenerateObjectResultView = PanelAppAgentGenerateObjectResult;
+export type PanelAppAgentSendRequestView = PanelAppAgentSendRequest;
+export type PanelAppAgentSendResultView = PanelAppAgentSendResult;
+export type PanelAppCapabilityGrantView = PanelAppCapabilityGrant;

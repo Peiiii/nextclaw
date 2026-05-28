@@ -54,6 +54,18 @@ describe("SkillsLoader builtin skills", () => {
     expect(loader.loadSkill("nextclaw-autostart")).toContain("nextclaw service autostart status");
   });
 
+  it("documents Panel App Agent APIs in the builtin panel app creator skill", () => {
+    const workspace = createWorkspace();
+    const loader = new SkillsLoader(workspace);
+    const skill = loader.loadSkill("panel-app-creator");
+
+    expect(skill).toContain("window.nextclaw.agent.generateObject");
+    expect(skill).toContain("window.nextclaw.agent.send");
+    expect(skill).toContain("nextclaw-panel-capabilities");
+    expect(skill).toContain("agent:generateObject");
+    expect(skill).toContain("agent:send");
+  });
+
   it("keeps builtin skill descriptions bilingual", () => {
     const workspace = createWorkspace();
     const loader = new SkillsLoader(workspace);

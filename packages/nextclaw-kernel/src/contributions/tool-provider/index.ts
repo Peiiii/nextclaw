@@ -6,6 +6,7 @@ import { CoreToolProvider } from "./providers/core-tool.provider.js";
 import { McpToolProvider } from "./providers/mcp-tool.provider.js";
 import { MessagingToolProvider } from "./providers/messaging-tool.provider.js";
 import { SessionToolProvider } from "./providers/session-tool.provider.js";
+import { StructuredResultToolProvider } from "./providers/structured-result-tool.provider.js";
 
 export class ToolProviderContribution implements KernelContribution {
   private readonly cleanups: Array<() => void> = [];
@@ -29,6 +30,7 @@ export class ToolProviderContribution implements KernelContribution {
   };
 
   private createToolProviders = (): ToolProvider[] => [
+    new StructuredResultToolProvider(),
     new CoreToolProvider(this.kernel),
     new MessagingToolProvider(this.kernel),
     new SessionToolProvider(this.kernel),

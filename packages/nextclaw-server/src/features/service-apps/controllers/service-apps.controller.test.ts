@@ -44,6 +44,7 @@ function createBridgeSession(): PanelAppBridgeSession {
     panelAppId: "todo-panel",
     tabId: "tab-1",
     caller,
+    declaredCapabilities: [],
     declaredActions: ["notes.read"],
     createdAt: "2026-05-27T00:00:00.000Z",
     expiresAt: "2026-05-27T01:00:00.000Z",

@@ -1,7 +1,7 @@
 ---
 name: panel-app-creator
-description: Create or update NextClaw single-file HTML Panel Apps shown in the right-side Panel Apps view. Use for lightweight dashboards, tools, forms, boards, visualizations, calculators, and disposable UI experiments.
-description_zh: 创建或修改 NextClaw 右侧面板里的单文件 HTML Panel App。适用于轻量 dashboard、工具、表单、看板、可视化、计算器和可随时丢弃的临时 UI。
+description: Create or update NextClaw single-file HTML Panel Apps shown in the right-side Panel Apps view. Use for lightweight dashboards, tools, forms, boards, visualizations, calculators, disposable UI experiments, Service Actions via window.nextclaw.serviceActions, and Agent calls via window.nextclaw.agent.send or window.nextclaw.agent.generateObject.
+description_zh: 创建或修改 NextClaw 右侧面板里的单文件 HTML Panel App。适用于轻量 dashboard、工具、表单、看板、可视化、计算器、可随时丢弃的临时 UI、通过 window.nextclaw.serviceActions 调用 Service Actions，以及通过 window.nextclaw.agent.send 或 window.nextclaw.agent.generateObject 调用 Agent。
 ---
 
 # NextClaw Panel App Creator
@@ -94,6 +94,75 @@ const files = payload.files ?? [];
 4. **功能完整性**：即使 Service App 完全不可用，Panel App 的所有核心功能（增删改查、展示、交互）必须仍能正常工作。
 5. **运行时探测**：不要假设 Service App 可用或不可用——在代码中动态检测，而非硬编码跳过。
 6. **运行时失败快速决策**：如果 Service App 已部署但返回错误（如 Internal Server Error），不要反复重试或在 assistant 输出中反复描述同一诊断计划。最多调试 2 次（检查 manifest、检查 server 日志），如果仍然失败，立刻告知用户并切换到 localStorage-only 方案。调试循环是 token 浪费——快速降级比完美诊断更重要。
+
+## Agent API
+
+Panel App 可以通过宿主注入的 `window.nextclaw.agent` 调用 NextClaw Agent。需要 Agent 能力时，必须先在 `<head>` 声明 capability：
+
+```html
+<meta name="nextclaw-panel-capabilities" content="agent:send agent:generateObject">
+```
+
+只声明实际会用到的能力：
+
+- 只触发会话 run：声明 `agent:send`。
+- 需要结构化对象返回：声明 `agent:generateObject`。
+
+### generateObject
+
+`generateObject` 适合把当前 UI 状态交给持续 Agent 会话，并拿回可以直接写入应用状态的 JSON object：
+
+```js
+if (!window.nextclaw?.agent?.generateObject) {
+  throw new Error("当前环境不支持 NextClaw Agent API");
+}
+
+const result = await window.nextclaw.agent.generateObject({
+  peerId: "mood-summary",
+  prompt: "总结这些心情记录，并给出三个具体建议。",
+  context: { entries },
+  schema: {
+    type: "object",
+    properties: {
+      summary: { type: "string" },
+      suggestions: {
+        type: "array",
+        items: { type: "string" }
+      }
+    },
+    required: ["summary", "suggestions"],
+    additionalProperties: false
+  }
+});
+```
+
+关键约定：
+
+- `peerId` 由 Panel App 自己生成并保持稳定；同一个 Panel App + 同一个 `peerId` 会复用同一个 Agent 会话。
+- `schema` 必须描述期望返回对象；不要要求 Agent 在自然语言里输出 JSON。
+- 返回值就是结构化对象本身，不是字符串，也不是 `{ result: ... }` envelope。
+- 第一次调用受保护 Agent capability 时，宿主会负责弹授权，不要自己实现授权 UI。
+
+### send
+
+`send` 适合只触发一次 Agent 会话 run，不等待最终回复：
+
+```js
+const handle = await window.nextclaw.agent.send({
+  content: [{ type: "text", text: "请根据当前数据生成一份后续分析。" }]
+});
+```
+
+后续可以用返回的 `handle.sessionId` 继续向同一会话投送：
+
+```js
+await window.nextclaw.agent.send({
+  sessionId: handle.sessionId,
+  content: [{ type: "text", text: "继续上一轮，补充风险点。" }]
+});
+```
+
+不要在未声明 `nextclaw-panel-capabilities` 时调用 `window.nextclaw.agent.*`。调用失败时展示明确错误，不要静默当作成功，也不要退回到直接请求某个本地 Agent HTTP 接口。
 
 ## 实现建议
 

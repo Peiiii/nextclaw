@@ -82,9 +82,11 @@ describe("panel apps routes", () => {
         entries: [],
       }),
       getPanelAppContent: async () => ({
+        capabilities: [],
         id: "demo",
         fileName: "demo.panel.html",
         html: "<!doctype html><h1>Demo</h1>",
+        serviceActions: [],
         contentType: "text/html; charset=utf-8" as const,
       }),
     } as never);
@@ -179,5 +181,78 @@ describe("panel apps routes", () => {
 
     expect(response.status).toBe(404);
     expect(payload.error.code).toBe("PANEL_APP_NOT_FOUND");
+  });
+
+  it("sends panel app agent requests with the bridge session header", async () => {
+    const app = createTestApp({
+      listPanelApps: async () => ({
+        workspacePath: "",
+        panelsPath: "",
+        entries: [],
+      }),
+      getPanelAppContent: async () => {
+        throw new Error("not used");
+      },
+      sendAgentMessage: async (token: string, payload: unknown) => ({
+        runId: "run-1",
+        sessionId: `session-for-${token}`,
+        userMessageId: JSON.stringify(payload),
+      }),
+    } as never);
+
+    const response = await app.request("http://localhost/api/panel-app-agent/send", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-nextclaw-panel-bridge-session": "token-1",
+      },
+      body: JSON.stringify({
+        payload: {
+          content: [{ type: "text", text: "hello" }],
+        },
+      }),
+    });
+    const payload = await response.json() as {
+      ok: true;
+      data: { sessionId: string };
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.data.sessionId).toBe("session-for-token-1");
+  });
+
+  it("maps panel app agent authorization errors to 401", async () => {
+    const app = createTestApp({
+      listPanelApps: async () => ({
+        workspacePath: "",
+        panelsPath: "",
+        entries: [],
+      }),
+      getPanelAppContent: async () => {
+        throw new Error("not used");
+      },
+      generateAgentObject: async () => {
+        throw new PanelAppError("AUTHORIZATION_REQUIRED", "authorization required");
+      },
+    } as never);
+
+    const response = await app.request("http://localhost/api/panel-app-agent/generate-object", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-nextclaw-panel-bridge-session": "token-1",
+      },
+      body: JSON.stringify({
+        input: {
+          peerId: "demo",
+          prompt: "return json",
+          schema: { type: "object" },
+        },
+      }),
+    });
+    const payload = await response.json() as { ok: false; error: { code: string } };
+
+    expect(response.status).toBe(401);
+    expect(payload.error.code).toBe("AUTHORIZATION_REQUIRED");
   });
 });
