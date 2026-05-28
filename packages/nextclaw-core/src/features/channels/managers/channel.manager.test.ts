@@ -1,7 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   isNextclawControlMessage,
   MessageBus,
@@ -10,24 +7,12 @@ import {
 } from "@core/features/bus/index.js";
 import type { Config } from "@core/features/config/index.js";
 import type { ExtensionChannelRegistration } from "@core/features/extensions/index.js";
-import { SessionManager } from "@core/features/session/index.js";
 import { ChannelManager } from "./channel.manager.js";
 
 describe("ChannelManager", () => {
-  let tempDir: string | null = null;
-
-  afterEach(() => {
-    if (tempDir) {
-      rmSync(tempDir, { recursive: true, force: true });
-      tempDir = null;
-    }
-  });
-
   const createManager = () => {
-    tempDir = mkdtempSync(join(tmpdir(), "nextclaw-channel-manager-"));
     const bus = new MessageBus();
-    const sessions = new SessionManager({ sessionsDir: tempDir });
-    const manager = new ChannelManager({ bus, sessionManager: sessions });
+    const manager = new ChannelManager({ bus });
     return { bus, manager };
   };
 

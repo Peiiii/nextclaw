@@ -44,11 +44,11 @@ export class SessionActivityPreviewContribution implements KernelContribution {
   };
 
   private updatePreviewMetadata = async (projection: SessionActivityPreviewProjection): Promise<void> => {
-    const session = await this.kernel.ncpSessionManager.getSessionRecord(projection.sessionId);
+    const session = await this.kernel.sessionManager.getSessionRecord(projection.sessionId);
     const nextMetadata = writeSessionActivityPreviewMetadata(session?.metadata, projection);
     if (!nextMetadata) {
       return;
     }
-    await this.kernel.ncpSessionManager.updateSessionMetadata(projection.sessionId, nextMetadata);
+    await this.kernel.sessionManager.updateSessionMetadata(projection.sessionId, nextMetadata);
   };
 }

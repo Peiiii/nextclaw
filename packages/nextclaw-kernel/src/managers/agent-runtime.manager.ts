@@ -8,7 +8,7 @@ import type {
   ContextBlock,
 } from "@kernel/types/agent-run.types.js";
 import { DEFAULT_AGENT_RUNTIME_ENTRY_ID } from "@kernel/configs/agent-runtime.config.js";
-import type { AgentRunSession } from "@kernel/repositories/session.repository.js";
+import type { AgentRunSession } from "@kernel/types/session.types.js";
 import type {
   AgentRuntimeEntry,
   AgentRuntimeSessionTypeDescribeParams,

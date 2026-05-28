@@ -10,7 +10,7 @@ import {
   type EventBus,
 } from "@nextclaw/shared";
 import { DefaultNcpAgentConversationStateManager } from "@nextclaw/ncp-toolkit";
-import type { SessionRepository } from "@kernel/repositories/session.repository.js";
+import type { SessionManager } from "@kernel/managers/session.manager.js";
 
 export type SessionRunSnapshot = {
   messages: readonly NcpMessage[];
@@ -149,7 +149,7 @@ export class SessionRunManager {
   private readonly runs = new Map<string, SessionRun>();
 
   constructor(
-    private readonly sessionRepository: SessionRepository,
+    private readonly sessionManager: SessionManager,
     private readonly eventBus?: EventBus,
   ) {}
 
@@ -162,7 +162,7 @@ export class SessionRunManager {
     if (this.runs.has(sessionId)) {
       throw new Error(`Session run already exists: ${sessionId}`);
     }
-    const messages = await this.sessionRepository.listSessionMessages(sessionId);
+    const messages = await this.sessionManager.listSessionMessages(sessionId);
     const seed = {
       messages,
       sessionId,

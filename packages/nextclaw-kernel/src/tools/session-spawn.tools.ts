@@ -4,7 +4,7 @@ import {
   type ToolExecutionContext,
 } from "@nextclaw/core";
 import type { NcpTool } from "@nextclaw/ncp";
-import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
+import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type { SessionRequestManager } from "@kernel/features/session-request/index.js";
 
 function readRequiredString(value: unknown, key: string): string {
@@ -92,7 +92,7 @@ export class SessionSpawnTool implements NcpTool {
   private handoffDepth = 0;
 
   constructor(
-    private readonly ncpSessionManager: NcpSessionManager,
+    private readonly sessionManager: SessionManager,
     private readonly sessionRequestManager: SessionRequestManager,
   ) {}
 
@@ -139,7 +139,7 @@ export class SessionSpawnTool implements NcpTool {
       });
     }
 
-    const session = await this.ncpSessionManager.createSession({
+    const session = await this.sessionManager.createSession({
       sourceSessionId: this.sourceSessionId,
       task,
       title: readOptionalString(rawTitle),

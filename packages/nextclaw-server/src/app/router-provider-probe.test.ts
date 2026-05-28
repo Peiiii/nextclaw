@@ -42,7 +42,7 @@ describe("provider connection probe route", () => {
         ingress: {} as never,
         isSessionRunning: () => false,
         listSessionTypes: async () => ({ defaultType: "native", options: [] }),
-        ncpSessionManager: {} as never,
+        sessionManager: {} as never,
         panelAppManager: {
           listPanelApps: async () => ({
             workspacePath: "",

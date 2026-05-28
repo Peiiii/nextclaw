@@ -138,7 +138,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly listSessions = async (c: Context) => {
-    const sessionManager = this.options.kernel.ncpSessionManager;
+    const sessionManager = this.options.kernel.sessionManager;
     const sessions = await sessionManager.listSessions({
       limit: readPositiveInt(c.req.query("limit")),
     });
@@ -150,7 +150,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly getSession = async (c: Context) => {
-    const sessionManager = this.options.kernel.ncpSessionManager;
+    const sessionManager = this.options.kernel.sessionManager;
     const sessionId = decodeURIComponent(c.req.param("sessionId"));
     const session = await sessionManager.getSession(sessionId);
     if (!session) {
@@ -160,7 +160,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly listSessionMessages = async (c: Context) => {
-    const sessionManager = this.options.kernel.ncpSessionManager;
+    const sessionManager = this.options.kernel.sessionManager;
     const sessionId = decodeURIComponent(c.req.param("sessionId"));
     const session = await sessionManager.getSession(sessionId);
     if (!session) {
@@ -182,7 +182,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly getSessionSkills = async (c: Context) => {
-    const sessionManager = this.options.kernel.ncpSessionManager;
+    const sessionManager = this.options.kernel.sessionManager;
     const sessionId = decodeURIComponent(c.req.param("sessionId"));
     const query = c.req.query();
     const hasProjectRootOverride = Object.prototype.hasOwnProperty.call(query, "projectRoot");
@@ -213,7 +213,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly patchSession = async (c: Context) => {
-    const sessionManager = this.options.kernel.ncpSessionManager;
+    const sessionManager = this.options.kernel.sessionManager;
     const sessionId = decodeURIComponent(c.req.param("sessionId"));
     const body = await readJson<Record<string, unknown>>(c.req.raw);
     if (!body.ok || !body.data || typeof body.data !== "object") {
@@ -260,7 +260,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly deleteSession = async (c: Context) => {
-    const sessionManager = this.options.kernel.ncpSessionManager;
+    const sessionManager = this.options.kernel.sessionManager;
     const sessionId = decodeURIComponent(c.req.param("sessionId"));
     const existing = await sessionManager.getSession(sessionId);
     if (!existing) {

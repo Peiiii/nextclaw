@@ -1,6 +1,5 @@
 import {
   AgentRouteResolver,
-  CommandRegistry,
   createAssistantStreamDeltaControlMessage,
   createAssistantStreamResetControlMessage,
   createTypingStopControlMessage,
@@ -8,8 +7,9 @@ import {
   type Config,
   type InboundMessage,
   type MessageBus,
-  type SessionManager,
 } from "@nextclaw/core";
+import { CommandRegistry } from "@kernel/services/command-registry.service.js";
+import type { SessionManager } from "@kernel/managers/session.manager.js";
 import { eventKeys, type EventBus } from "@nextclaw/shared";
 import {
   dispatchChannelReplyRoute,

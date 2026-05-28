@@ -282,7 +282,7 @@ function createTestKernel(agent: StubNcpAgent): UiKernelHost {
       },
     },
     eventBus: new EventBus(),
-    ncpSessionManager: agent,
+    sessionManager: agent,
     llmProviders: {},
   } as unknown as UiKernelHost;
 }

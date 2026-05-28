@@ -101,7 +101,7 @@ describe("ServiceBootstrapStatusStore", () => {
         assetStore: {},
         ingress: {},
         llmProviders: {},
-        ncpSessionManager: {},
+        sessionManager: {},
         sessionRunManager: {},
       } as never,
       configPath: "/tmp/nextclaw-bootstrap-status-route-test.json",

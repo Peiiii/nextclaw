@@ -1,16 +1,15 @@
 import {
   type GatewayController,
   type CronService,
-  type SessionManager
 } from "@nextclaw/core";
-import type { ChannelManager, ConfigManager } from "@nextclaw/kernel";
+import type { ChannelManager, ConfigManager, SessionManager } from "@nextclaw/kernel";
 import { getPackageVersion } from "../utils/cli.utils.js";
 import { NpmRuntimeUpdateCommandService } from "@nextclaw-service/launcher/npm-runtime-update-command.service.js";
 import {
   parseSessionKey,
   type RestartSentinelDeliveryContext,
   writeRestartSentinel
-} from "../services/restart/restart-sentinel.service.js";
+} from "../utils/restart/restart-sentinel.utils.js";
 
 type ControllerDeps = {
   configManager: ConfigManager;
@@ -31,11 +30,13 @@ export class GatewayControllerImpl implements GatewayController {
     return trimmed || undefined;
   };
 
-  private resolveDeliveryContext = (sessionKey?: string): RestartSentinelDeliveryContext | undefined => {
+  private resolveDeliveryContext = async (sessionKey?: string): Promise<RestartSentinelDeliveryContext | undefined> => {
     const normalizedSessionKey = this.normalizeOptionalString(sessionKey);
     const keyTarget = parseSessionKey(normalizedSessionKey);
     const keyRoute = keyTarget && keyTarget.channel !== "agent" ? keyTarget : null;
-    const session = normalizedSessionKey ? this.deps.sessionManager?.getIfExists(normalizedSessionKey) : null;
+    const session = normalizedSessionKey
+      ? await this.deps.sessionManager?.getSessionRecord(normalizedSessionKey)
+      : null;
     const metadata = session?.metadata ?? {};
     const rawContext = metadata.last_delivery_context;
     const cachedContext =
@@ -87,7 +88,7 @@ export class GatewayControllerImpl implements GatewayController {
   }): Promise<string | null> => {
     const { kind, note, reason, sessionKey: rawSessionKey, status, strategy } = params;
     const sessionKey = this.normalizeOptionalString(rawSessionKey);
-    const deliveryContext = this.resolveDeliveryContext(sessionKey);
+    const deliveryContext = await this.resolveDeliveryContext(sessionKey);
     try {
       return await writeRestartSentinel({
         kind,

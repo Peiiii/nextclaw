@@ -6,7 +6,7 @@ import { spawn } from "node:child_process";
 import { RestartCoordinator } from "@nextclaw-service/shared/services/restart/restart-coordinator.service.js";
 import type { RestartStrategy } from "@nextclaw-service/shared/services/restart/restart-coordinator.service.js";
 import { initializeConfigIfMissing } from "@nextclaw-service/shared/services/runtime/runtime-config-init.service.js";
-import { writeRestartSentinel } from "@nextclaw-service/shared/services/restart/restart-sentinel.service.js";
+import { writeRestartSentinel } from "@nextclaw-service/shared/utils/restart/restart-sentinel.utils.js";
 import { createTopLevelNextclawCommandEnv } from "@nextclaw-service/shared/utils/top-level-nextclaw-command-env.utils.js";
 import { resolveCliSubcommandLaunch } from "@nextclaw-service/shared/utils/marketplace/cli-subcommand-launch.utils.js";
 import { logStartupTrace, measureStartupSync } from "@nextclaw-service/shared/utils/startup-trace.js";

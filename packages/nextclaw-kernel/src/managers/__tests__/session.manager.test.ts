@@ -6,7 +6,7 @@ import type { NcpMessage } from "@nextclaw/ncp";
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import { EventBus } from "@nextclaw/shared";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
-import { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
+import { SessionManager } from "@kernel/managers/session.manager.js";
 
 vi.mock("@kernel/features/context-compaction/index.js", () => ({
   ContextWindowPreviewManager: class {
@@ -101,7 +101,7 @@ async function createFixture(records: AgentSessionRecord[] = []) {
   for (const record of records) {
     await journalStore.importSessionSnapshot(record);
   }
-  const manager = new NcpSessionManager({
+  const manager = new SessionManager({
     configManager: { loadConfig: createConfig } as never,
     eventBus,
     journalStore,
@@ -124,7 +124,7 @@ afterEach(() => {
   }
 });
 
-describe("NcpSessionManager", () => {
+describe("SessionManager", () => {
   it("serves UI session API from the journal owner", async () => {
     const fixture = await createFixture([
       createRecord({

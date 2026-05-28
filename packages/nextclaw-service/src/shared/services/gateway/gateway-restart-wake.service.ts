@@ -6,7 +6,7 @@ import {
   consumeRestartSentinel,
   formatRestartSentinelMessage,
   parseSessionKey,
-} from "@nextclaw-service/shared/services/restart/restart-sentinel.service.js";
+} from "@nextclaw-service/shared/utils/restart/restart-sentinel.utils.js";
 import { resolveSessionRouteCandidate } from "@nextclaw-service/shared/services/runtime/service-managed-startup.service.js";
 
 function normalizeOptionalString(value: unknown): string | undefined {
@@ -31,7 +31,7 @@ export class GatewayRestartWakeService {
     const payload = sentinel.payload;
     const summary = formatRestartSentinelMessage(payload);
     const sentinelSessionKey = normalizeOptionalString(payload.sessionKey);
-    const fallbackSessionKey = sentinelSessionKey ? undefined : this.resolveMostRecentRoutableSessionKey();
+    const fallbackSessionKey = sentinelSessionKey ? undefined : await this.resolveMostRecentRoutableSessionKey();
     if (!sentinelSessionKey && fallbackSessionKey) {
       console.warn(`Warning: restart sentinel missing sessionKey; fallback to ${fallbackSessionKey}.`);
     }
@@ -41,14 +41,16 @@ export class GatewayRestartWakeService {
     const parsedSessionRoute = parsedSession && parsedSession.channel !== "agent" ? parsedSession : null;
 
     const context = payload.deliveryContext;
+    const fallbackSession = await this.gateway.sessionManager.getSessionRecord(sessionKey);
+    const fallbackMetadata = fallbackSession?.metadata ?? {};
     const channel =
       normalizeOptionalString(context?.channel) ??
       parsedSessionRoute?.channel ??
-      normalizeOptionalString((this.gateway.sessionManager.getIfExists(sessionKey)?.metadata ?? {}).last_channel);
+      normalizeOptionalString(fallbackMetadata.last_channel);
     const chatId =
       normalizeOptionalString(context?.chatId) ??
       parsedSessionRoute?.chatId ??
-      normalizeOptionalString((this.gateway.sessionManager.getIfExists(sessionKey)?.metadata ?? {}).last_to);
+      normalizeOptionalString(fallbackMetadata.last_to);
     const replyTo = normalizeOptionalString(context?.replyTo);
     const accountId = normalizeOptionalString(context?.accountId);
 
@@ -80,11 +82,15 @@ export class GatewayRestartWakeService {
     });
   };
 
-  private resolveMostRecentRoutableSessionKey = (): string | undefined => {
+  private resolveMostRecentRoutableSessionKey = async (): Promise<string | undefined> => {
     let best: { key: string; updatedAt: number } | null = null;
-    for (const session of this.gateway.sessionManager.listSessions()) {
+    for (const session of await this.gateway.sessionManager.listSessions()) {
       const candidate = resolveSessionRouteCandidate({
-        session,
+        session: {
+          key: session.sessionId,
+          updated_at: session.updatedAt,
+          metadata: session.metadata,
+        },
         normalizeOptionalString,
       });
       if (!candidate) {

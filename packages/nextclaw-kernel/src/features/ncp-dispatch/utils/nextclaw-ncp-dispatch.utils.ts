@@ -1,11 +1,11 @@
 import {
   AgentRouteResolver,
-  CommandRegistry,
   parseAgentScopedSessionKey,
   type Config,
   type InboundAttachment,
   type InboundMessage,
 } from "@nextclaw/core";
+import { CommandRegistry } from "@kernel/services/command-registry.service.js";
 import type { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
 import { buildRunMetadata } from "@kernel/utils/agent-run-metadata.utils.js";
 import { buildAgentRunSendPayload } from "@kernel/utils/agent-run-send-payload.utils.js";

@@ -9,7 +9,8 @@ import {
   type IngressContext,
   type IngressEnvelope,
 } from "@nextclaw/shared";
-import { AgentRouteResolver, CommandRegistry } from "@nextclaw/core";
+import { AgentRouteResolver } from "@nextclaw/core";
+import { CommandRegistry } from "@kernel/services/command-registry.service.js";
 import type {
   ExtensionChannelAuthConnectResult,
   ExtensionChannelAuthLoginResult,

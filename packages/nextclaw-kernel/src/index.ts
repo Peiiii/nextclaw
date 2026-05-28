@@ -5,7 +5,7 @@ export * from "@kernel/managers/llm-provider.manager.js";
 export * from "@kernel/managers/automation.manager.js";
 export * from "@kernel/managers/config.manager.js";
 export * from "@kernel/managers/extension.manager.js";
-export * from "@kernel/managers/ncp-session.manager.js";
+export * from "@kernel/managers/session.manager.js";
 export * from "@kernel/managers/llm-usage.manager.js";
 export * from "@kernel/managers/mcp.manager.js";
 export * from "@kernel/managers/panel-app.manager.js";
@@ -20,6 +20,7 @@ export * from "@kernel/configs/agent-runtime.config.js";
 export * from "@kernel/features/narp-runtime/index.js";
 export * from "@kernel/features/ncp-dispatch/index.js";
 export { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
+export { CommandRegistry } from "@kernel/services/command-registry.service.js";
 export { buildAgentRunSendPayload } from "@kernel/utils/agent-run-send-payload.utils.js";
 export type {
   AgentRunReply,
@@ -44,3 +45,5 @@ export * from "@kernel/types/llm-usage.types.js";
 export * from "@kernel/types/update.types.js";
 export * from "@kernel/types/update-manifest.types.js";
 export * from "@kernel/types/service-app.types.js";
+export * from "@kernel/types/panel-app.types.js";
+export * from "@kernel/types/session.types.js";

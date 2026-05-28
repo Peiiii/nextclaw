@@ -1,8 +1,8 @@
-import { CHILD_SESSION_PARENT_METADATA_KEY } from "../../session/managers/session.manager.js";
+import { CHILD_SESSION_PARENT_METADATA_KEY } from "@core/features/session/index.js";
 import type {
   SessionRequestRecord,
   SessionRequestToolResult,
-} from "../types/session-request.types.js";
+} from "@core/features/session-request/types/session-request.types.js";
 
 export function readOptionalString(value: unknown): string | null {
   if (typeof value !== "string") {

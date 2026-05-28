@@ -1,4 +1,4 @@
-import type { AgentRunSession } from "@kernel/repositories/session.repository.js";
+import type { AgentRunSession } from "@kernel/types/session.types.js";
 import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
 
 function normalizeString(value: string | null | undefined): string | undefined {

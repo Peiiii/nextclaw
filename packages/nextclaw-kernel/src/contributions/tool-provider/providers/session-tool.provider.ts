@@ -17,7 +17,7 @@ export class SessionToolProvider implements ToolProvider {
     });
     const { handoffDepth, metadata, sessionId } = toolRunContext;
     const sessionsSpawnTool = new SessionSpawnTool(
-      this.kernel.ncpSessionManager,
+      this.kernel.sessionManager,
       this.kernel.sessionRequests,
     );
     sessionsSpawnTool.setContext({
@@ -34,8 +34,8 @@ export class SessionToolProvider implements ToolProvider {
     const tools: NcpTool[] = [
       sessionsSpawnTool,
       sessionsRequestTool,
-      new SessionsListTool(this.kernel.ncpSessionManager),
-      new SessionsHistoryTool(this.kernel.ncpSessionManager),
+      new SessionsListTool(this.kernel.sessionManager),
+      new SessionsHistoryTool(this.kernel.sessionManager),
     ];
     if (!this.kernel.sessionSearch.isReady()) {
       return tools;

@@ -2,7 +2,6 @@ import { evaluateSilentReply } from "@core/features/agent/index.js";
 import { isNextclawControlMessage, type MessageBus, type OutboundMessage } from "@core/features/bus/index.js";
 import type { Config } from "@core/features/config/index.js";
 import type { ExtensionRegistry } from "@core/features/extensions/index.js";
-import type { SessionManager } from "@core/features/session/index.js";
 import { sanitizeOutboundAssistantContent } from "@core/shared/lib/core-utils/index.js";
 import type { BaseChannel } from "@core/features/channels/services/base.js";
 import { ExtensionChannelAdapter } from "@core/features/channels/services/extension-channel.service.js";
@@ -17,7 +16,6 @@ export class ChannelManager {
   constructor(
     private readonly deps: {
       bus: MessageBus;
-      sessionManager: SessionManager;
     },
   ) {}
 

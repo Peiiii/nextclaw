@@ -12,8 +12,8 @@ import {
   type NcpRunHandle,
   type NcpTool,
 } from "@nextclaw/ncp";
-import { AgentRunRequestManager } from "../agent-run-request.manager.js";
-import { SessionRun } from "../session-run.manager.js";
+import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
+import { SessionRun } from "@kernel/managers/session-run.manager.js";
 
 async function waitForEvent(
   events: readonly NcpEndpointEvent[],
@@ -30,7 +30,7 @@ async function waitForEvent(
 describe("AgentRunRequestManager branch session creation", () => {
   it("uses the first user message as the new session task", async () => {
     const ingress = new Ingress();
-    const getOrCreateSessionCalls: Array<{
+    const getOrCreateAgentRunSessionCalls: Array<{
       agentRuntimeId?: string;
       metadata?: Record<string, unknown>;
       sessionId?: string;
@@ -51,13 +51,13 @@ describe("AgentRunRequestManager branch session creation", () => {
       new EventBus(),
       ingress,
       {
-        getOrCreateSession: async (params: {
+        getOrCreateAgentRunSession: async (params: {
           agentRuntimeId?: string;
           metadata?: Record<string, unknown>;
           sessionId?: string;
           task?: string;
         }) => {
-          getOrCreateSessionCalls.push(params);
+          getOrCreateAgentRunSessionCalls.push(params);
           return {
             sessionId: "session-1",
             agentId: "main",
@@ -89,11 +89,11 @@ describe("AgentRunRequestManager branch session creation", () => {
       },
     }, { source: "test" });
 
-    expect(getOrCreateSessionCalls[0]?.agentRuntimeId).toBe("codex");
-    expect(getOrCreateSessionCalls[0]?.metadata).toMatchObject({
+    expect(getOrCreateAgentRunSessionCalls[0]?.agentRuntimeId).toBe("codex");
+    expect(getOrCreateAgentRunSessionCalls[0]?.metadata).toMatchObject({
       agentRuntimeId: "codex",
     });
-    expect(getOrCreateSessionCalls[0]?.task).toBe("用户的第一句话");
+    expect(getOrCreateAgentRunSessionCalls[0]?.task).toBe("用户的第一句话");
     expect(handle.sessionId).toBe("session-1");
     manager.dispose();
   });
@@ -149,7 +149,7 @@ describe("AgentRunRequestManager branch session creation", () => {
       eventBus,
       ingress,
       {
-        getOrCreateSession: async () => ({
+        getOrCreateAgentRunSession: async () => ({
           sessionId: "session-1",
           agentId: "main",
           agentRuntimeId: "native",
@@ -245,7 +245,7 @@ describe("AgentRunRequestManager tool context", () => {
       eventBus,
       ingress,
       {
-        getOrCreateSession: async () => ({
+        getOrCreateAgentRunSession: async () => ({
           sessionId: "session-1",
           agentId: "main",
           agentRuntimeId: "native",

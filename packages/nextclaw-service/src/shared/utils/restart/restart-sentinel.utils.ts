@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { getDataDir, type SessionManager } from "@nextclaw/core";
+import { getDataDir } from "@nextclaw/core";
 
 export type RestartSentinelDeliveryContext = {
   channel?: string;
@@ -30,7 +30,6 @@ type RestartSentinelFile = {
 };
 
 const RESTART_SENTINEL_FILENAME = "restart-sentinel.json";
-const PENDING_SYSTEM_EVENTS_KEY = "pending_system_events";
 const RESTART_REASON_MAX_CHARS = 240;
 const RESTART_NOTE_MAX_CHARS = 600;
 const RESTART_OUTBOUND_MAX_CHARS = 1200;
@@ -134,33 +133,4 @@ export function parseSessionKey(
     channel: value.slice(0, separator),
     chatId: value.slice(separator + 1)
   };
-}
-
-export function enqueuePendingSystemEvent(
-  sessionManager: SessionManager,
-  sessionKey: string,
-  message: string
-): void {
-  const text = message.trim();
-  if (!text) {
-    return;
-  }
-  const session = sessionManager.getOrCreate(sessionKey);
-  const queueRaw = session.metadata[PENDING_SYSTEM_EVENTS_KEY];
-  const queue = Array.isArray(queueRaw)
-    ? queueRaw
-        .filter((item): item is string => typeof item === "string")
-        .map((item) => item.trim())
-        .filter(Boolean)
-    : [];
-  if (queue.at(-1) === text) {
-    return;
-  }
-  queue.push(text);
-  if (queue.length > 20) {
-    queue.splice(0, queue.length - 20);
-  }
-  session.metadata[PENDING_SYSTEM_EVENTS_KEY] = queue;
-  session.updatedAt = new Date();
-  sessionManager.save(session);
 }

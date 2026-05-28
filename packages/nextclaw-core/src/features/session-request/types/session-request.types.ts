@@ -1,4 +1,4 @@
-import type { SessionLifecycle } from "../../session/managers/session.manager.js";
+import type { SessionLifecycle } from "@core/features/session/index.js";
 
 export type SessionRequestStatus =
   | "queued"

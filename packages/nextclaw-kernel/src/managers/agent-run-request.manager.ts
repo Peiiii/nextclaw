@@ -22,7 +22,7 @@ import type { AgentRuntimeManager } from "./agent-runtime.manager.js";
 import type { ContextProviderManager } from "./context-provider.manager.js";
 import type { SessionRunManager } from "./session-run.manager.js";
 import type { ToolProviderManager } from "./tool-provider.manager.js";
-import type { SessionRepository } from "@kernel/repositories/session.repository.js";
+import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type {
   AgentRunAbortRequest,
   AgentRunAccepted,
@@ -142,7 +142,7 @@ export class AgentRunRequestManager {
     private readonly contextProviderManager: ContextProviderManager,
     private readonly eventBus: EventBus,
     private readonly ingress: Ingress,
-    private readonly sessionRepository: SessionRepository,
+    private readonly sessionManager: SessionManager,
     private readonly sessionRunManager: SessionRunManager,
     private readonly toolProviderManager: ToolProviderManager,
   ) {}
@@ -207,7 +207,7 @@ export class AgentRunRequestManager {
   private send = async (
     request: AgentRunRequest,
   ): Promise<AgentRunAccepted> => {
-    const session = await this.sessionRepository.getOrCreateSession({
+    const session = await this.sessionManager.getOrCreateAgentRunSession({
       sessionId: request.sessionId,
       agentId: request.agentId,
       agentRuntimeId: request.agentRuntimeId,

@@ -2,9 +2,8 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { SessionManager } from "@nextclaw/core";
 import { EventBus } from "@nextclaw/shared";
-import { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
+import { SessionManager } from "@kernel/managers/session.manager.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import { SessionRequestManager } from "./session-request.manager.js";
 
@@ -13,7 +12,6 @@ const tempDirs: string[] = [];
 function createFixture() {
   const dir = mkdtempSync(join(tmpdir(), "nextclaw-session-request-manager-"));
   tempDirs.push(dir);
-  const sessionManager = new SessionManager({ sessionsDir: join(dir, "legacy") });
   const configManager = {
     loadConfig: () => ({
       agents: {
@@ -31,14 +29,14 @@ function createFixture() {
       },
     }) as never,
   };
-  const ncpSessionManager = new NcpSessionManager({
+  const sessionManager = new SessionManager({
     configManager: configManager as never,
     eventBus: new EventBus(),
     journalStore: new NcpAgentSessionJournalStore(join(dir, "journal")),
     sessionSearch: { handleSessionUpdated: async () => undefined } as never,
   });
   const manager = new SessionRequestManager({
-    ncpSessionManager,
+    sessionManager,
     dispatcher: {
       dispatch: async ({ onAccepted, request }) => {
         onAccepted(`accepted-${request.requestId}`);
@@ -49,7 +47,7 @@ function createFixture() {
       },
     },
   });
-  return { dir, manager, ncpSessionManager, sessionManager };
+  return { dir, manager, sessionManager };
 }
 
 afterEach(() => {
@@ -69,9 +67,7 @@ describe("SessionRequestManager", () => {
     });
 
     expect(result.status).toBe("completed");
-    expect(fixture.sessionManager.getIfExists(result.sessionId)).toBeNull();
-
-    const record = await fixture.ncpSessionManager.getSessionRecord(result.sessionId);
+    const record = await fixture.sessionManager.getSessionRecord(result.sessionId);
     expect(record?.metadata?.label).toBe("Review this");
     const journal = readdirSync(join(fixture.dir, "journal"))
       .filter((name) => name.endsWith(".jsonl"))

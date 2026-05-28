@@ -43,7 +43,7 @@ export type UiKernelHost = Pick<
   | "isSessionRunning"
   | "listSessionTypes"
   | "llmProviders"
-  | "ncpSessionManager"
+  | "sessionManager"
   | "panelAppManager"
   | "serviceAppManager"
 >;

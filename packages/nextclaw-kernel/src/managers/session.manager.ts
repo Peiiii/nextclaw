@@ -8,6 +8,7 @@ import { BUILTIN_MAIN_AGENT_ID } from "@nextclaw/core";
 import type {
   ListMessagesOptions,
   ListSessionsOptions,
+  NcpEndpointEvent,
   NcpMessage,
   NcpSessionApi,
   NcpSessionPatch,
@@ -15,13 +16,22 @@ import type {
 } from "@nextclaw/ncp";
 import { NcpEventType } from "@nextclaw/ncp";
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
+import { DEFAULT_AGENT_RUNTIME_ENTRY_ID } from "@kernel/configs/agent-runtime.config.js";
 import { ContextWindowPreviewManager } from "@kernel/features/context-compaction/index.js";
 import type { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
+import type {
+  AgentRunSession,
+  CreateAgentRunSessionParams,
+} from "@kernel/types/session.types.js";
+import type { ThinkingEffort } from "@kernel/types/agent-run.types.js";
 import {
   createNcpAgentSessionSummary,
   type NcpAgentSessionJournalReplayEvent,
 } from "@kernel/utils/ncp-agent-session-journal.utils.js";
-import { eventKeys, type EventBus } from "@nextclaw/shared";
+import {
+  eventKeys,
+  type EventBus,
+} from "@nextclaw/shared";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 
 type CreateNcpSessionInput = CreateSessionInput & {
@@ -35,7 +45,7 @@ const CHILD_SESSION_PARENT_METADATA_KEY = "parent_session_id";
 const CHILD_SESSION_REQUEST_METADATA_KEY = "spawned_by_request_id";
 const CHILD_SESSION_LIFECYCLE_METADATA_KEY = "session_lifecycle";
 
-export type NcpSessionManagerOptions = {
+export type SessionManagerOptions = {
   configManager: ConfigManager;
   eventBus: EventBus;
   journalStore: NcpAgentSessionJournalStore;
@@ -59,6 +69,29 @@ function readOptionalString(value: unknown): string | null {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function readOptionalMetadataString(value: unknown): string | undefined {
+  const trimmed = typeof value === "string" ? value.trim() : "";
+  return trimmed || undefined;
+}
+
+function readEventSessionId(event: NcpEndpointEvent): string | undefined {
+  return "payload" in event && "sessionId" in event.payload
+    ? readOptionalMetadataString(event.payload.sessionId)
+    : undefined;
+}
+
+function isDurableSessionEvent(event: NcpEndpointEvent): boolean {
+  return event.type !== NcpEventType.ContextWindowUpdated;
+}
+
+function readThinkingEffort(metadata: Record<string, unknown> | undefined): ThinkingEffort | null {
+  return readOptionalMetadataString(metadata?.thinkingEffort) ?? null;
+}
+
+function readProjectRoot(metadata: Record<string, unknown> | undefined): string | undefined {
+  return readOptionalMetadataString(metadata?.project_root) ?? readOptionalMetadataString(metadata?.projectRoot);
 }
 
 function summarizeTask(task: string): string {
@@ -176,16 +209,40 @@ function isSessionSummaryRefreshEvent(event: NcpAgentSessionJournalReplayEvent):
   }
 }
 
-export class NcpSessionManager implements NcpSessionApi {
+export class SessionManager implements NcpSessionApi {
+  readonly cleanups: Array<() => void> = [];
   private readonly contextWindowPreview: ContextWindowPreviewManager;
+  private started = false;
 
-  constructor(private readonly options: NcpSessionManagerOptions) {
+  constructor(private readonly options: SessionManagerOptions) {
     this.contextWindowPreview = new ContextWindowPreviewManager({
       configManager: options.configManager,
     });
   }
 
-  dispose = (): void => {};
+  start = (): void => {
+    if (this.started) {
+      return;
+    }
+    this.started = true;
+    this.cleanups.push(this.options.eventBus.on(eventKeys.ncpEvent, async (event) => {
+      const sessionId = readEventSessionId(event);
+      if (!sessionId || !isDurableSessionEvent(event)) {
+        return;
+      }
+      await this.appendSessionEvent({
+        event,
+        sessionId,
+      });
+    }));
+  };
+
+  dispose = (): void => {
+    while (this.cleanups.length > 0) {
+      this.cleanups.pop()?.();
+    }
+    this.started = false;
+  };
 
   createSession = async (params: CreateNcpSessionInput): Promise<CreatedSession> => {
     const {
@@ -377,6 +434,111 @@ export class NcpSessionManager implements NcpSessionApi {
       ? this.createSummaryFromRecord(liveRecord, true)
       : await this.getSession(sessionId);
     return summary?.contextWindow ?? null;
+  };
+
+  getAgentRunSession = async (sessionId: string): Promise<AgentRunSession> => {
+    const record = await this.getSessionRecord(sessionId);
+    if (!record) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+    const agentRuntimeId = readOptionalMetadataString(record.metadata?.agentRuntimeId) ??
+      DEFAULT_AGENT_RUNTIME_ENTRY_ID;
+    const model = readOptionalMetadataString(record.metadata?.model);
+    return {
+      sessionId: record.sessionId,
+      agentId: record.agentId,
+      agentRuntimeId,
+      metadata: structuredClone(record.metadata ?? {}),
+      model,
+      projectRoot: readProjectRoot(record.metadata),
+      thinkingEffort: readThinkingEffort(record.metadata),
+    };
+  };
+
+  createAgentRunSession = async (
+    params: CreateAgentRunSessionParams,
+  ): Promise<AgentRunSession> => {
+    const {
+      agentId,
+      agentRuntimeId: requestedAgentRuntimeId,
+      channel,
+      metadata,
+      model,
+      projectRoot,
+      sessionId,
+      task,
+      thinkingEffort,
+    } = params;
+    const agentRuntimeId = requestedAgentRuntimeId ?? DEFAULT_AGENT_RUNTIME_ENTRY_ID;
+    const created = await this.createSession({
+      sourceSessionMetadata: {},
+      sessionId,
+      task: task ?? "Session",
+      agentId,
+      metadataOverrides: {
+        ...structuredClone(metadata ?? {}),
+        agentRuntimeId,
+        channel,
+      },
+      model,
+      projectRoot,
+      runtime: agentRuntimeId,
+      sessionType: agentRuntimeId,
+      thinkingLevel: thinkingEffort ?? undefined,
+    });
+    return {
+      sessionId: created.sessionId,
+      agentId,
+      agentRuntimeId,
+      metadata: structuredClone(created.metadata ?? {}),
+      model,
+      projectRoot,
+      thinkingEffort: thinkingEffort ?? null,
+    };
+  };
+
+  getOrCreateAgentRunSession = async (
+    params: CreateAgentRunSessionParams,
+  ): Promise<AgentRunSession> => {
+    if (!params.sessionId) {
+      return await this.createAgentRunSession(params);
+    }
+    const existing = await this.getSessionRecord(params.sessionId);
+    if (existing) {
+      return await this.getAgentRunSession(params.sessionId);
+    }
+    return await this.createAgentRunSession(params);
+  };
+
+  patchSessionMetadata = async (
+    sessionId: string,
+    patch: Record<string, unknown>,
+  ): Promise<void> => {
+    const updated = await this.updateSessionMetadata(sessionId, patch);
+    if (!updated) {
+      throw new Error(`Session metadata was not updated: ${sessionId}`);
+    }
+  };
+
+  clearSessionMessages = async (sessionId: string): Promise<number> => {
+    const record = await this.getSessionRecord(sessionId);
+    if (!record) {
+      await this.createSession({
+        sessionId,
+        sourceSessionMetadata: {},
+        task: "Session",
+      });
+      return 0;
+    }
+    const nextRecord: AgentSessionRecord = {
+      ...record,
+      messages: [],
+      updatedAt: new Date().toISOString(),
+      metadata: structuredClone(record.metadata ?? {}),
+    };
+    await this.options.journalStore.importSessionSnapshot(nextRecord);
+    await this.publishSessionChange(record.sessionId);
+    return record.messages.length;
   };
 
   publishSessionChange = async (sessionKey: string): Promise<void> => {

@@ -1,6 +1,6 @@
 import { normalizeToolParams } from "@nextclaw/core";
 import type { NcpMessage, NcpSessionSummary, NcpTool } from "@nextclaw/ncp";
-import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
+import type { SessionManager } from "@kernel/managers/session.manager.js";
 
 const DEFAULT_LIMIT = 20;
 const MAX_MESSAGE_LIMIT = 20;
@@ -61,7 +61,7 @@ export class SessionsListTool implements NcpTool {
     },
   };
 
-  constructor(private readonly sessions: NcpSessionManager) {}
+  constructor(private readonly sessions: SessionManager) {}
 
   execute = async (args: unknown): Promise<string> => {
     const params = normalizeToolParams(args);
@@ -110,7 +110,7 @@ export class SessionsHistoryTool implements NcpTool {
     required: ["sessionKey"],
   };
 
-  constructor(private readonly sessions: NcpSessionManager) {}
+  constructor(private readonly sessions: SessionManager) {}
 
   execute = async (args: unknown): Promise<string> => {
     const params = normalizeToolParams(args);

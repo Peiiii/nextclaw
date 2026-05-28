@@ -17,7 +17,7 @@ describe("ingress route", () => {
         ingress: { handle } as unknown as Ingress,
         listSessionTypes: async () => ({ defaultType: "native", options: [] }),
         llmProviders: {} as never,
-        ncpSessionManager: {} as never,
+        sessionManager: {} as never,
       } as unknown as UiKernelHost,
     });
 

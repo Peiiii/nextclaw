@@ -106,7 +106,7 @@ export class ContextWindowContribution implements KernelContribution {
     if (!sessionRun) {
       return;
     }
-    const session = await this.kernel.sessionRepository.getSession(sessionId);
+    const session = await this.kernel.sessionManager.getAgentRunSession(sessionId);
     const contextWindow = this.contextWindowPreview.preview({
       requestMetadata: session.metadata,
       sessionId,

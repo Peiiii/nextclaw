@@ -13,7 +13,7 @@ export async function resolveToolProviderRunContext(params: {
 }) {
   const { kernel, request } = params;
   const session = request.sessionId
-    ? await kernel.sessionRepository.getSession(request.sessionId)
+    ? await kernel.sessionManager.getAgentRunSession(request.sessionId)
     : null;
   const sessionId = session?.sessionId ?? request.sessionId ?? request.message.sessionId ?? "";
   const requestMetadata = buildAgentRunRequestMetadata({ request, session });

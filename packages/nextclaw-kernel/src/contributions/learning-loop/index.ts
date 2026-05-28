@@ -6,7 +6,7 @@ import {
 import { NcpEventType, type NcpEndpointEvent, type NcpMessage } from "@nextclaw/ncp";
 import { eventKeys, type Unsubscribe } from "@nextclaw/shared";
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
-import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
+import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import {
   LEARNING_LOOP_DISABLED_METADATA_KEY,
@@ -27,7 +27,7 @@ export type LearningLoopSessionRequester = {
 };
 
 type LearningLoopSessionStore = Pick<
-  NcpSessionManager,
+  SessionManager,
   "getSessionRecord" | "updateSessionMetadata"
 >;
 
@@ -91,7 +91,7 @@ export class LearningLoopContribution implements KernelContribution {
   private unsubscribe: Unsubscribe | null = null;
 
   constructor(private readonly kernel: NextclawKernel) {
-    this.sessionStore = kernel.ncpSessionManager;
+    this.sessionStore = kernel.sessionManager;
     this.sessionRequester = kernel.sessionRequests;
   }
 

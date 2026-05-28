@@ -8,9 +8,9 @@ import {
   type ExtensionRegistry,
   type ExtensionUiMetadata,
   type MessageBus,
-  type SessionManager,
 } from "@nextclaw/core";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
+import type { SessionManager } from "@kernel/managers/session.manager.js";
 import { ExtensionRuntimeService } from "@kernel/services/extension-runtime.service.js";
 import type { EventBus, Ingress } from "@nextclaw/shared";
 

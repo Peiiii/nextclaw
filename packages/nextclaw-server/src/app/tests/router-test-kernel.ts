@@ -20,7 +20,7 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
     eventBus: new EventBus(),
     ingress: new Ingress(),
     llmProviders: {} as never,
-    ncpSessionManager: {
+    sessionManager: {
       listSessions: async () => [],
       listSessionMessages: async () => [],
       getSession: async () => null,
@@ -39,6 +39,16 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       }),
       getPanelAppContent: async () =>
         unavailable("panelAppManager.getPanelAppContent"),
+      createPanelAppBridgeSession: async () =>
+        unavailable("panelAppManager.createPanelAppBridgeSession"),
+      deletePanelAppBridgeSession: () =>
+        unavailable("panelAppManager.deletePanelAppBridgeSession"),
+      sendAgentMessage: async () =>
+        unavailable("panelAppManager.sendAgentMessage"),
+      generateAgentObject: async () =>
+        unavailable("panelAppManager.generateAgentObject"),
+      grantAgentCapability: async () =>
+        unavailable("panelAppManager.grantAgentCapability"),
       updatePanelAppPreferences: async () =>
         unavailable("panelAppManager.updatePanelAppPreferences"),
       recordPanelAppOpened: async () =>

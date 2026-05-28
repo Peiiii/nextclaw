@@ -1,10 +1,10 @@
-import type { Config } from "../../config/configs/schema.js";
-import type { SessionManager } from "../../session/managers/session.manager.js";
 import {
   CLEAR_THINKING_TOKENS,
   THINKING_LEVELS,
-  parseThinkingLevel
-} from "../../../shared/lib/core-utils/utils/thinking.js";
+  parseThinkingLevel,
+  type Config,
+} from "@nextclaw/core";
+import type { SessionManager } from "@kernel/managers/session.manager.js";
 
 export type CommandOptionType = "string" | "boolean" | "number";
 
@@ -33,9 +33,8 @@ export type ParsedTextCommand = {
 };
 
 type CommandHandlerContext = CommandExecutionContext & {
-  sessionKey: string;
   config: Config;
-  sessionManager?: SessionManager;
+  sessionKey: string;
 };
 
 type CommandSpec = {
@@ -43,7 +42,10 @@ type CommandSpec = {
   description: string;
   options?: CommandOption[];
   aliases?: string[];
-  execute: (ctx: CommandHandlerContext, args: Record<string, unknown>) => Promise<CommandResult> | CommandResult;
+  execute: (
+    ctx: CommandHandlerContext,
+    args: Record<string, unknown>,
+  ) => Promise<CommandResult> | CommandResult;
 };
 
 type SlashCommandSpec = {
@@ -55,49 +57,66 @@ type SlashCommandSpec = {
 const DEFAULT_EPHEMERAL = true;
 const CLEAR_MODEL_TOKENS = new Set(["clear", "reset", "off", "none"]);
 
-export class CommandRegistry {
-  private specs: CommandSpec[] = [];
-  private lookup = new Map<string, CommandSpec>();
+function normalizeCommandName(name: string): string {
+  return name.trim().replace(/^\//, "").toLowerCase();
+}
 
-  constructor(private config: Config, private sessionManager?: SessionManager) {
+function cloneSessionMetadata(metadata: Record<string, unknown> | undefined): Record<string, unknown> {
+  return structuredClone(metadata ?? {});
+}
+
+export class CommandRegistry {
+  private readonly specs: CommandSpec[] = [];
+  private readonly lookup = new Map<string, CommandSpec>();
+
+  constructor(
+    private readonly config: Config,
+    private readonly sessionManager?: SessionManager,
+  ) {
     this.registerDefaults();
   }
 
-  listSlashCommands(): SlashCommandSpec[] {
+  listSlashCommands = (): SlashCommandSpec[] => {
     const commands: SlashCommandSpec[] = [];
     for (const spec of this.specs) {
-      commands.push({ name: spec.name, description: spec.description, options: spec.options });
+      commands.push({
+        description: spec.description,
+        name: spec.name,
+        options: spec.options,
+      });
       for (const alias of spec.aliases ?? []) {
-        commands.push({ name: alias, description: spec.description, options: spec.options });
+        commands.push({
+          description: spec.description,
+          name: alias,
+          options: spec.options,
+        });
       }
     }
     return commands;
-  }
+  };
 
-  async execute(
+  execute = async (
     name: string,
     args: Record<string, unknown> | undefined,
-    ctx: CommandExecutionContext
-  ): Promise<CommandResult> {
+    ctx: CommandExecutionContext,
+  ): Promise<CommandResult> => {
     const trimmedName = normalizeCommandName(name);
     const spec = this.lookup.get(trimmedName);
     if (!spec) {
       return {
         content: `Unknown command: /${trimmedName}. Try /help for the command list.`,
-        ephemeral: DEFAULT_EPHEMERAL
+        ephemeral: DEFAULT_EPHEMERAL,
       };
     }
     const sessionKey = ctx.sessionKey ?? `${ctx.channel}:${ctx.chatId}`;
-    const commandCtx: CommandHandlerContext = {
+    return await spec.execute({
       ...ctx,
-      sessionKey,
       config: this.config,
-      sessionManager: this.sessionManager
-    };
-    return await spec.execute(commandCtx, args ?? {});
-  }
+      sessionKey,
+    }, args ?? {});
+  };
 
-  parseTextCommand(input: string): ParsedTextCommand | null {
+  parseTextCommand = (input: string): ParsedTextCommand | null => {
     const trimmed = input.trim();
     if (!trimmed.startsWith("/")) {
       return null;
@@ -113,30 +132,32 @@ export class CommandRegistry {
     }
     const spec = this.lookup.get(name);
     const restText = restTokens.join(" ").trim();
-    const args = spec ? this.parseTextArgs(spec, restText) : {};
     return {
+      args: spec ? this.parseTextArgs(spec, restText) : {},
       name,
-      args
     };
-  }
+  };
 
-  async executeText(input: string, ctx: CommandExecutionContext): Promise<CommandResult | null> {
+  executeText = async (
+    input: string,
+    ctx: CommandExecutionContext,
+  ): Promise<CommandResult | null> => {
     const parsed = this.parseTextCommand(input);
     if (!parsed) {
       return null;
     }
     return await this.execute(parsed.name, parsed.args, ctx);
-  }
+  };
 
-  private registerDefaults(): void {
+  private registerDefaults = (): void => {
     this.register({
       name: "help",
       description: "Show available commands",
       aliases: ["commands"],
       execute: () => ({
         content: this.buildHelpText(),
-        ephemeral: DEFAULT_EPHEMERAL
-      })
+        ephemeral: DEFAULT_EPHEMERAL,
+      }),
     });
 
     this.register({
@@ -148,100 +169,100 @@ export class CommandRegistry {
           `Channel: ${ctx.channel}`,
           `Sender: ${ctx.senderId}`,
           `Chat: ${ctx.chatId}`,
-          `Session: ${ctx.sessionKey}`
+          `Session: ${ctx.sessionKey}`,
         ].join("\n"),
-        ephemeral: DEFAULT_EPHEMERAL
-      })
+        ephemeral: DEFAULT_EPHEMERAL,
+      }),
     });
 
     this.register({
       name: "status",
       description: "Show current session status",
-      execute: (ctx) => {
-        const session = ctx.sessionManager?.getIfExists(ctx.sessionKey);
+      execute: async (ctx) => {
+        const session = await this.sessionManager?.getSessionRecord(ctx.sessionKey);
         const model = this.resolveSessionModel(session?.metadata);
         const thinking = this.resolveSessionThinking(session?.metadata);
         return {
           content: [
             `Session: ${ctx.sessionKey}`,
             `Model: ${model}`,
-            `Thinking: ${thinking ? `${thinking} (session override)` : "default"}`
+            `Thinking: ${thinking ? `${thinking} (session override)` : "default"}`,
           ].join("\n"),
-          ephemeral: DEFAULT_EPHEMERAL
+          ephemeral: DEFAULT_EPHEMERAL,
         };
-      }
+      },
     });
 
     this.register({
       name: "reset",
       description: "Reset conversation history",
       aliases: ["new"],
-      execute: (ctx) => {
-        if (!ctx.sessionManager) {
+      execute: async (ctx) => {
+        if (!this.sessionManager) {
           return { content: "Session management is not available.", ephemeral: DEFAULT_EPHEMERAL };
         }
-        const session = ctx.sessionManager.getOrCreate(ctx.sessionKey);
-        const totalCleared = session.messages.length;
-        ctx.sessionManager.clear(session);
-        ctx.sessionManager.save(session);
+        const totalCleared = await this.sessionManager.clearSessionMessages(ctx.sessionKey);
         return {
           content: `Conversation history cleared (${totalCleared} messages).`,
-          ephemeral: DEFAULT_EPHEMERAL
+          ephemeral: DEFAULT_EPHEMERAL,
         };
-      }
+      },
     });
 
     this.register({
       name: "model",
       description: "Get or set the session model",
-      options: [
-        {
-          name: "name",
-          description: "Model name (or 'clear' to reset)",
-          type: "string",
-          required: false
-        }
-      ],
-      execute: (ctx, args) => {
-        if (!ctx.sessionManager) {
+      options: [{
+        name: "name",
+        description: "Model name (or 'clear' to reset)",
+        type: "string",
+      }],
+      execute: async (ctx, args) => {
+        if (!this.sessionManager) {
           return { content: "Session management is not available.", ephemeral: DEFAULT_EPHEMERAL };
         }
-        const session = ctx.sessionManager.getOrCreate(ctx.sessionKey);
+        const session = await this.getOrCreateCommandSession(ctx.sessionKey);
         const raw = typeof args.name === "string" ? args.name.trim() : "";
         if (!raw) {
-          const model = this.resolveSessionModel(session.metadata);
-          return { content: `Current model: ${model}`, ephemeral: DEFAULT_EPHEMERAL };
+          return {
+            content: `Current model: ${this.resolveSessionModel(session.metadata)}`,
+            ephemeral: DEFAULT_EPHEMERAL,
+          };
         }
-        const lowered = raw.toLowerCase();
-        if (CLEAR_MODEL_TOKENS.has(lowered)) {
-          delete session.metadata.preferred_model;
-          ctx.sessionManager.save(session);
-          const model = this.resolveSessionModel(session.metadata);
-          return { content: `Model override cleared. Current model: ${model}`, ephemeral: DEFAULT_EPHEMERAL };
+        const metadata = cloneSessionMetadata(session.metadata);
+        if (CLEAR_MODEL_TOKENS.has(raw.toLowerCase())) {
+          delete metadata.preferred_model;
+          delete metadata.model;
+          await this.sessionManager.setSessionMetadata(session.sessionId, metadata);
+          return {
+            content: `Model override cleared. Current model: ${this.resolveSessionModel(metadata)}`,
+            ephemeral: DEFAULT_EPHEMERAL,
+          };
         }
-        session.metadata.preferred_model = raw;
-        ctx.sessionManager.save(session);
-        return { content: `Model set to ${raw}.`, ephemeral: DEFAULT_EPHEMERAL };
-      }
+        metadata.preferred_model = raw;
+        metadata.model = raw;
+        await this.sessionManager.setSessionMetadata(session.sessionId, metadata);
+        return {
+          content: `Model set to ${raw}.`,
+          ephemeral: DEFAULT_EPHEMERAL,
+        };
+      },
     });
 
     this.register({
       name: "thinking",
       description: "Get or set the session thinking effort",
       aliases: ["effort"],
-      options: [
-        {
-          name: "level",
-          description: `Thinking level (${THINKING_LEVELS.join("|")} or clear/reset/default)`,
-          type: "string",
-          required: false
-        }
-      ],
-      execute: (ctx, args) => {
-        if (!ctx.sessionManager) {
+      options: [{
+        name: "level",
+        description: `Thinking level (${THINKING_LEVELS.join("|")} or clear/reset/default)`,
+        type: "string",
+      }],
+      execute: async (ctx, args) => {
+        if (!this.sessionManager) {
           return { content: "Session management is not available.", ephemeral: DEFAULT_EPHEMERAL };
         }
-        const session = ctx.sessionManager.getOrCreate(ctx.sessionKey);
+        const session = await this.getOrCreateCommandSession(ctx.sessionKey);
         const raw = typeof args.level === "string" ? args.level.trim() : "";
         if (!raw) {
           const current = this.resolveSessionThinking(session.metadata);
@@ -249,36 +270,39 @@ export class CommandRegistry {
             content: current
               ? `Current thinking effort: ${current} (session override)`
               : "Current thinking effort: default",
-            ephemeral: DEFAULT_EPHEMERAL
+            ephemeral: DEFAULT_EPHEMERAL,
           };
         }
         const normalized = raw.toLowerCase();
+        const metadata = cloneSessionMetadata(session.metadata);
         if (CLEAR_THINKING_TOKENS.has(normalized)) {
-          delete session.metadata.preferred_thinking;
-          ctx.sessionManager.save(session);
+          delete metadata.preferred_thinking;
+          delete metadata.thinking;
+          await this.sessionManager.setSessionMetadata(session.sessionId, metadata);
           return {
             content: "Thinking override cleared. Current thinking effort: default",
-            ephemeral: DEFAULT_EPHEMERAL
+            ephemeral: DEFAULT_EPHEMERAL,
           };
         }
         const level = parseThinkingLevel(normalized);
         if (!level) {
           return {
             content: `Invalid thinking level: ${raw}. Allowed: ${THINKING_LEVELS.join(", ")}. Use clear/reset/default to remove override.`,
-            ephemeral: DEFAULT_EPHEMERAL
+            ephemeral: DEFAULT_EPHEMERAL,
           };
         }
-        session.metadata.preferred_thinking = level;
-        ctx.sessionManager.save(session);
+        metadata.preferred_thinking = level;
+        metadata.thinking = level;
+        await this.sessionManager.setSessionMetadata(session.sessionId, metadata);
         return {
           content: `Thinking effort set to ${level}.`,
-          ephemeral: DEFAULT_EPHEMERAL
+          ephemeral: DEFAULT_EPHEMERAL,
         };
-      }
+      },
     });
-  }
+  };
 
-  private register(spec: CommandSpec): void {
+  private register = (spec: CommandSpec): void => {
     const name = normalizeCommandName(spec.name);
     if (this.lookup.has(name)) {
       return;
@@ -292,40 +316,58 @@ export class CommandRegistry {
         this.lookup.set(normalized, normalizedSpec);
       }
     }
-  }
+  };
 
-  private buildHelpText(): string {
-    const lines: string[] = ["Available commands:"];
+  private buildHelpText = (): string => {
+    const lines = ["Available commands:"];
     const specs = [...this.specs].sort((a, b) => a.name.localeCompare(b.name));
     for (const spec of specs) {
       const optionText = (spec.options ?? [])
-        .map((opt) => `${opt.required ? "<" : "["}${opt.name}${opt.required ? ">" : "]"}`)
+        .map((option) => `${option.required ? "<" : "["}${option.name}${option.required ? ">" : "]"}`)
         .join(" ");
       const aliasText =
-        spec.aliases && spec.aliases.length > 0 ? ` (alias: ${spec.aliases.map((a) => `/${a}`).join(", ")})` : "";
+        spec.aliases && spec.aliases.length > 0 ? ` (alias: ${spec.aliases.map((alias) => `/${alias}`).join(", ")})` : "";
       const usage = optionText ? `/${spec.name} ${optionText}` : `/${spec.name}`;
-      lines.push(`${usage} — ${spec.description}${aliasText}`);
+      lines.push(`${usage} - ${spec.description}${aliasText}`);
     }
     return lines.join("\n");
-  }
+  };
 
-  private resolveSessionModel(metadata: Record<string, unknown> | undefined): string {
+  private getOrCreateCommandSession = async (sessionId: string) => {
+    const sessionManager = this.sessionManager;
+    if (!sessionManager) {
+      throw new Error("Session management is not available.");
+    }
+    const existing = await sessionManager.getSessionRecord(sessionId);
+    if (existing) {
+      return existing;
+    }
+    await sessionManager.createSession({
+      sessionId,
+      sourceSessionMetadata: {},
+      task: "Session",
+    });
+    const created = await sessionManager.getSessionRecord(sessionId);
+    if (!created) {
+      throw new Error(`Session was not created: ${sessionId}`);
+    }
+    return created;
+  };
+
+  private resolveSessionModel = (metadata: Record<string, unknown> | undefined): string => {
     const preferred =
       metadata && typeof metadata.preferred_model === "string" ? metadata.preferred_model.trim() : "";
-    if (preferred) {
-      return preferred;
-    }
-    return this.config.agents.defaults.model;
-  }
+    return preferred || this.config.agents.defaults.model;
+  };
 
-  private resolveSessionThinking(metadata: Record<string, unknown> | undefined): string | null {
+  private resolveSessionThinking = (metadata: Record<string, unknown> | undefined): string | null => {
     if (!metadata) {
       return null;
     }
     return parseThinkingLevel(metadata.preferred_thinking);
-  }
+  };
 
-  private parseTextArgs(spec: CommandSpec, raw: string): Record<string, unknown> {
+  private parseTextArgs = (spec: CommandSpec, raw: string): Record<string, unknown> => {
     if (!spec.options || spec.options.length === 0 || !raw) {
       return {};
     }
@@ -346,9 +388,12 @@ export class CommandRegistry {
       }
     }
     return args;
-  }
+  };
 
-  private parseTextOptionValue(type: CommandOptionType, raw: string): string | number | boolean | undefined {
+  private parseTextOptionValue = (
+    type: CommandOptionType,
+    raw: string,
+  ): string | number | boolean | undefined => {
     const value = raw.trim();
     if (!value) {
       return undefined;
@@ -358,19 +403,8 @@ export class CommandRegistry {
       return Number.isFinite(parsed) ? parsed : undefined;
     }
     if (type === "boolean") {
-      const lowered = value.toLowerCase();
-      if (["1", "true", "yes", "on"].includes(lowered)) {
-        return true;
-      }
-      if (["0", "false", "no", "off"].includes(lowered)) {
-        return false;
-      }
-      return undefined;
+      return ["true", "1", "yes", "on"].includes(value.toLowerCase());
     }
     return value;
-  }
-}
-
-function normalizeCommandName(name: string): string {
-  return name.trim().toLowerCase();
+  };
 }

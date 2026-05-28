@@ -9,13 +9,12 @@ import { ExtensionManager } from "@kernel/managers/extension.manager.js";
 import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
 import { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
 import { McpManager } from "@kernel/managers/mcp.manager.js";
-import { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
+import { SessionManager } from "@kernel/managers/session.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
 import { ServiceAppManager } from "@kernel/managers/service-app.manager.js";
 import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
 import { ToolProviderManager } from "@kernel/managers/tool-provider.manager.js";
-import { SessionRepository } from "@kernel/repositories/session.repository.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import {
   createAgentRuntimeSessionRequestDispatcher,
@@ -39,7 +38,6 @@ import {
   getSessionsPath,
   getWorkspacePath,
   MessageBus,
-  SessionManager,
   SessionSearchManager,
 } from "@nextclaw/core";
 import { EventBus, Ingress } from "@nextclaw/shared";
@@ -110,7 +108,6 @@ export class NextclawKernel {
   readonly llmUsage: LlmUsageManager = new LlmUsageManager();
   readonly configManager: ConfigManager;
   readonly agents: AgentManager;
-  readonly sessions: SessionManager;
   readonly control: NextclawKernelControlManager<unknown, unknown, unknown>;
   readonly skills: SkillManager;
   readonly automation: AutomationManager;
@@ -119,14 +116,13 @@ export class NextclawKernel {
   readonly sessionSearch: SessionSearchManager;
   readonly assetStore: LocalAssetStore;
   readonly mcpManager: McpManager;
-  readonly ncpSessionManager: NcpSessionManager;
+  readonly sessionManager: SessionManager;
   readonly panelAppManager: PanelAppManager;
   readonly serviceAppManager: ServiceAppManager;
   readonly extensions: ExtensionManager;
   readonly agentRuntimeManager = new AgentRuntimeManager();
   readonly contextCompactionManager: AgentRunContextCompactionManager;
   readonly contextProviderManager = new ContextProviderManager();
-  readonly sessionRepository: SessionRepository;
   readonly sessionRunManager: SessionRunManager;
   readonly toolProviderManager = new ToolProviderManager();
   readonly agentRunRequestManager: AgentRunRequestManager;
@@ -136,9 +132,6 @@ export class NextclawKernel {
 
   constructor(options: NextclawKernelOptions = {}) {
     const sessionsDir = resolveKernelSessionsDir(options);
-    this.sessions = new SessionManager({
-      sessionsDir,
-    });
     this.sessionSearch = new SessionSearchManager({
       databasePath: resolve(getDataDir(), "session-search.db"),
       sessionsDir,
@@ -160,15 +153,22 @@ export class NextclawKernel {
     >();
     this.channels = new ChannelManager({
       bus: this.messageBus,
-      sessionManager: this.sessions,
     });
     this.configManager = new ConfigManager({
       configPath: options.configPath,
       channels: this.channels,
       providerManager: this.llmProviders,
     });
+    this.sessionManager = new SessionManager({
+      configManager: this.configManager,
+      eventBus: this.eventBus,
+      journalStore: this.ncpAgentSessionJournalStore,
+      sessionSearch: this.sessionSearch,
+    });
     this.panelAppManager = new PanelAppManager({
       configManager: this.configManager,
+      eventBus: this.eventBus,
+      ingress: this.ingress,
     });
     this.serviceAppManager = new ServiceAppManager({
       configManager: this.configManager,
@@ -178,7 +178,7 @@ export class NextclawKernel {
       eventBus: this.eventBus,
       ingress: this.ingress,
       messageBus: this.messageBus,
-      sessionManager: this.sessions,
+      sessionManager: this.sessionManager,
     });
     this.skills = new SkillManager({
       workspace: getWorkspacePath(
@@ -193,30 +193,20 @@ export class NextclawKernel {
       reloadMcp: async ({ config }) =>
         await this.mcpManager.applyConfig(config),
     });
-    this.ncpSessionManager = new NcpSessionManager({
-      configManager: this.configManager,
-      eventBus: this.eventBus,
-      journalStore: this.ncpAgentSessionJournalStore,
-      sessionSearch: this.sessionSearch,
-    });
     this.sessionRequests = new SessionRequestManager({
-      ncpSessionManager: this.ncpSessionManager,
+      sessionManager: this.sessionManager,
       dispatcher: createAgentRuntimeSessionRequestDispatcher({
         eventBus: this.eventBus,
         ingress: this.ingress,
       }),
     });
-    this.sessionRepository = new SessionRepository(
-      this.eventBus,
-      this.ncpSessionManager,
-    );
     this.contextCompactionManager = new AgentRunContextCompactionManager(
       this.configManager,
       this.llmProviders,
-      this.sessionRepository,
+      this.sessionManager,
     );
     this.sessionRunManager = new SessionRunManager(
-      this.sessionRepository,
+      this.sessionManager,
       this.eventBus,
     );
     this.agentRunRequestManager = new AgentRunRequestManager(
@@ -225,7 +215,7 @@ export class NextclawKernel {
       this.contextProviderManager,
       this.eventBus,
       this.ingress,
-      this.sessionRepository,
+      this.sessionManager,
       this.sessionRunManager,
       this.toolProviderManager,
     );
@@ -255,7 +245,7 @@ export class NextclawKernel {
   start = async (): Promise<void> => {
     void this.sessionSearch.start();
     this.mcpManager.start();
-    this.sessionRepository.start();
+    this.sessionManager.start();
     for (const contribution of this.contributions) {
       contribution.start();
     }
@@ -271,8 +261,7 @@ export class NextclawKernel {
     this.contextProviderManager.dispose();
     await this.agentRuntimeManager.dispose();
     this.sessionRunManager.dispose();
-    this.sessionRepository.dispose();
-    this.ncpSessionManager.dispose();
+    this.sessionManager.dispose();
     await this.mcpManager.dispose();
     await this.serviceAppManager.dispose();
     await this.sessionSearch.dispose();

@@ -36,7 +36,7 @@ function createKernelStub(initialMetadata: Record<string, unknown>) {
     updateSession,
     kernel: {
       eventBus,
-      ncpSessionManager: {
+      sessionManager: {
         getSessionRecord,
         updateSessionMetadata,
       },

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ToolExecutionContext } from "@nextclaw/core";
-import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
+import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type { SessionRequestManager } from "@kernel/features/session-request/index.js";
 import { SessionSpawnTool } from "./session-spawn.tools.js";
 
@@ -9,7 +9,7 @@ function createTool() {
     spawnSessionAndRequest: vi.fn(async () => ({ status: "completed", sessionId: "child-session" })),
   };
   const tool = new SessionSpawnTool(
-    { createSession: vi.fn() } as unknown as NcpSessionManager,
+    { createSession: vi.fn() } as unknown as SessionManager,
     sessionRequestManager as unknown as SessionRequestManager,
   );
   tool.setContext({

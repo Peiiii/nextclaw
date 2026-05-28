@@ -32,7 +32,7 @@ function createKernel(eventBus: EventBus): UiKernelHost {
     eventBus,
     ingress: {},
     llmProviders: {},
-    ncpSessionManager: {},
+    sessionManager: {},
   } as unknown as UiKernelHost;
 }
 

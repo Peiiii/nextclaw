@@ -1,7 +1,6 @@
 export * from "../features/agent/index.js";
 export * from "../features/bus/index.js";
 export * from "../features/channels/index.js";
-export * from "../features/command-registry/index.js";
 export * from "../features/config/index.js";
 export * from "../features/cron/index.js";
 export * from "../features/extensions/index.js";

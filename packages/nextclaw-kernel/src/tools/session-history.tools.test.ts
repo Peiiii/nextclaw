@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { NcpMessage, NcpSessionSummary } from "@nextclaw/ncp";
-import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
+import type { SessionManager } from "@kernel/managers/session.manager.js";
 import { SessionsHistoryTool, SessionsListTool } from "./session-history.tools.js";
 
 function createMessage(params: {
@@ -21,7 +21,7 @@ function createMessage(params: {
 function createSessionsFixture(params: {
   messages?: Map<string, NcpMessage[]>;
   summaries: NcpSessionSummary[];
-}): NcpSessionManager {
+}): SessionManager {
   return {
     getSession: async (sessionId: string) =>
       params.summaries.find((summary) => summary.sessionId === sessionId) ?? null,
@@ -31,7 +31,7 @@ function createSessionsFixture(params: {
       typeof options?.limit === "number"
         ? params.summaries.slice(0, options.limit)
         : params.summaries,
-  } as NcpSessionManager;
+  } as SessionManager;
 }
 
 describe("session history tools", () => {

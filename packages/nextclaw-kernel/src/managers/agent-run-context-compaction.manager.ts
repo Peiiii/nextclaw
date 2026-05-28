@@ -1,6 +1,6 @@
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
-import type { SessionRepository } from "@kernel/repositories/session.repository.js";
+import type { SessionManager } from "@kernel/managers/session.manager.js";
 import {
   ContextCompactionPreflightService,
   type ContextCompactionPreflightResult,
@@ -24,7 +24,7 @@ export class AgentRunContextCompactionManager {
   constructor(
     configManager: ConfigManager,
     providerManager: LlmProviderRuntime,
-    private readonly sessionRepository: SessionRepository,
+    private readonly sessionManager: SessionManager,
   ) {
     this.preflightService = new ContextCompactionPreflightService({
       configManager,
@@ -59,7 +59,7 @@ export class AgentRunContextCompactionManager {
     result: ContextCompactionPreflightResult,
   ): Promise<NcpEndpointEvent[]> => {
     if (Object.keys(result.metadataPatch).length > 0) {
-      await this.sessionRepository.patchSessionMetadata(sessionId, result.metadataPatch);
+      await this.sessionManager.patchSessionMetadata(sessionId, result.metadataPatch);
     }
     if (!result.timelineMessage) {
       return [];

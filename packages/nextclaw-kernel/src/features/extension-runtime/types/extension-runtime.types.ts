@@ -5,12 +5,12 @@ import type {
   ExtensionChannelBinding,
   ExtensionUiMetadata,
 } from "@nextclaw/core";
+import type { SessionManager } from "@kernel/managers/session.manager.js";
 
 export type Config = NextclawCore.Config;
 export type InboundAttachment = NextclawCore.InboundAttachment;
 export type InboundMessage = NextclawCore.InboundMessage;
 export type MessageBus = NextclawCore.MessageBus;
-export type SessionManager = NextclawCore.SessionManager;
 
 export type ExtensionServerConfig = {
   type: "stdio";

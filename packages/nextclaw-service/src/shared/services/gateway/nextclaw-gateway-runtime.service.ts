@@ -6,6 +6,7 @@ import {
   type AutomationManager,
   type ConfigManager,
   type LlmProviderManager,
+  type SessionManager,
 } from "@nextclaw/kernel";
 import type { EventBus, Ingress } from "@nextclaw/shared";
 import {
@@ -60,7 +61,6 @@ function resolveApplyRestartMode(uiPort: number): "managed-service-restart" | "m
 
 type Config = NextclawCore.Config;
 type MessageBus = NextclawCore.MessageBus;
-type SessionManager = NextclawCore.SessionManager;
 
 type GatewayRuntimeOptions = {
   uiOverrides?: Partial<Config["ui"]>;
@@ -128,7 +128,7 @@ export class NextclawGatewayRuntime {
       ingress: this.kernel.ingress,
     });
     this.messageBus = this.kernel.messageBus;
-    this.sessionManager = this.kernel.sessions;
+    this.sessionManager = this.kernel.sessionManager;
     this.automation = this.kernel.automation;
     this.productVersion = this.distribution.version;
     this.extensions = new GatewayExtensionManager(this);

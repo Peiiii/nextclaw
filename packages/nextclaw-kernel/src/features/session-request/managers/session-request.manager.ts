@@ -17,7 +17,7 @@ import {
   type SpawnSessionAndRequestParams,
 } from "@nextclaw/core";
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
-import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
+import type { SessionManager } from "@kernel/managers/session.manager.js";
 import {
   NCP_SESSION_REQUEST_ACCEPTED_EVENT_TYPE,
   NCP_SESSION_REQUEST_COMPLETED_EVENT_TYPE,
@@ -28,7 +28,7 @@ import {
 
 export type SessionRequestManagerOptions = {
   dispatcher: SessionRequestDispatcher;
-  ncpSessionManager: NcpSessionManager;
+  sessionManager: SessionManager;
 };
 
 function readRecordLabel(record: AgentSessionRecord): string | undefined {
@@ -60,7 +60,7 @@ export class SessionRequestManager {
       notify,
     } = params;
     const requestId = randomUUID();
-    const createdSession = await this.options.ncpSessionManager.createSession({
+    const createdSession = await this.options.sessionManager.createSession({
       sourceSessionId,
       ...(parentSessionId ? { parentSessionId } : {}),
       task,
@@ -111,7 +111,7 @@ export class SessionRequestManager {
     if (normalizedTargetSessionId === sourceSessionId.trim()) {
       throw new Error("sessions_request cannot target the current session.");
     }
-    const targetSession = await this.options.ncpSessionManager.getSessionRecord(normalizedTargetSessionId);
+    const targetSession = await this.options.sessionManager.getSessionRecord(normalizedTargetSessionId);
     if (!targetSession) {
       throw new Error(`Target session not found: ${targetSessionId}`);
     }
@@ -300,7 +300,7 @@ export class SessionRequestManager {
         request: structuredClone(request),
       },
     };
-    await this.options.ncpSessionManager.appendSessionEvent({
+    await this.options.sessionManager.appendSessionEvent({
       sessionId,
       event,
     });
