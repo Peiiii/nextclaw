@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Stats } from "node:fs";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, readFile, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import {
   DEFAULT_PANELS_DIR,
@@ -32,8 +31,11 @@ import {
 } from "@kernel/utils/panel-app-bridge.utils.js";
 import { parsePanelAppManifest } from "@kernel/utils/panel-app-manifest.utils.js";
 import {
+  resolvePanelAppActivityMs,
+  resolvePanelAppCreatedAt,
+} from "@kernel/utils/panel-app-time.utils.js";
+import {
   createPanelAppAgentMetadata,
-  createPanelAppAgentSessionId,
   createPanelAppGenerateObjectMessage,
   normalizePanelAppGenerateObjectInput,
   waitForPanelAppStructuredResult,
@@ -226,12 +228,10 @@ export class PanelAppManager {
     await this.assertAgentCapabilityGranted(bridgeSession, "agent:generateObject");
     const request = normalizePanelAppGenerateObjectInput(input);
     const requestId = randomUUID();
-    const sessionId = createPanelAppAgentSessionId(bridgeSession.panelAppId, request.peerId);
     const message = createPanelAppGenerateObjectMessage({
       bridgeSession,
       request,
       requestId,
-      sessionId,
     });
     const result = await waitForPanelAppStructuredResult(this.requireAgentRunClient(), {
       payload: {
@@ -240,7 +240,7 @@ export class PanelAppManager {
           ...createPanelAppAgentMetadata(bridgeSession),
           panel_app_peer_id: request.peerId,
         },
-        sessionId,
+        peerId: request.peerId,
       },
       timeoutMs: request.timeoutMs,
     });
@@ -286,6 +286,20 @@ export class PanelAppManager {
       this.encodePanelAppId(fileName),
     );
     return await this.buildPanelAppEntry(panelsPath, fileName, state);
+  };
+
+  deletePanelApp = async (id: string) => {
+    const fileName = await this.resolvePanelAppFileName(id);
+    const panelsPath = this.getPanelsPath(this.getWorkspacePath());
+    const panelAppId = this.encodePanelAppId(fileName);
+    await rm(join(panelsPath, fileName));
+    await this.createStateStore(panelsPath).deleteEntry(panelAppId);
+    await this.createCapabilityGrantStore().deleteCaller({
+      surface: "panel-app",
+      appId: panelAppId,
+    });
+    this.deleteBridgeSessionsByPanelAppId(panelAppId);
+    return { deleted: true as const, fileName, id: panelAppId };
   };
 
   private assertAgentCapabilityGranted = async (
@@ -370,7 +384,7 @@ export class PanelAppManager {
     ]);
     const manifest = parsePanelAppManifest(html);
     const id = this.encodePanelAppId(fileName);
-    const createdAt = this.resolvePanelAppCreatedAt(fileStat);
+    const createdAt = resolvePanelAppCreatedAt(fileStat);
     const updatedAt = fileStat.mtime.toISOString();
     const entry: PanelAppEntry = {
       id,
@@ -452,28 +466,22 @@ export class PanelAppManager {
       .trim() || fileName;
 
   private comparePanelApps = (left: PanelAppEntry, right: PanelAppEntry): number =>
-    this.resolvePanelAppActivityMs(right) - this.resolvePanelAppActivityMs(left) ||
+    resolvePanelAppActivityMs(right) - resolvePanelAppActivityMs(left) ||
     Number(right.favorite) - Number(left.favorite) ||
     left.title.localeCompare(right.title);
-
-  private resolvePanelAppCreatedAt = (fileStat: Stats): string =>
-    fileStat.birthtimeMs > 0 ? fileStat.birthtime.toISOString() : fileStat.mtime.toISOString();
-
-  private resolvePanelAppActivityMs = (entry: {
-    createdAt: string;
-    lastOpenedAt?: string;
-    updatedAt: string;
-  }): number =>
-    Math.max(
-      new Date(entry.lastOpenedAt ?? 0).getTime(),
-      new Date(entry.createdAt).getTime(),
-      new Date(entry.updatedAt).getTime(),
-    );
 
   private deleteExpiredBridgeSessions = (): void => {
     const now = Date.now();
     for (const [token, session] of this.bridgeSessions) {
       if (new Date(session.expiresAt).getTime() <= now) {
+        this.bridgeSessions.delete(token);
+      }
+    }
+  };
+
+  private deleteBridgeSessionsByPanelAppId = (panelAppId: string): void => {
+    for (const [token, session] of this.bridgeSessions) {
+      if (session.panelAppId === panelAppId) {
         this.bridgeSessions.delete(token);
       }
     }

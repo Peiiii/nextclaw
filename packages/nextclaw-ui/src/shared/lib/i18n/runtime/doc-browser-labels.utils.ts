@@ -28,6 +28,13 @@ export const DOC_BROWSER_LABELS = {
   panelAppsSortName: { zh: '名称', en: 'Name' },
   panelAppsFavorite: { zh: '收藏面板应用', en: 'Favorite panel app' },
   panelAppsUnfavorite: { zh: '取消收藏面板应用', en: 'Unfavorite panel app' },
+  panelAppsMoreActions: { zh: '更多面板应用操作', en: 'More panel app actions' },
+  panelAppsDelete: { zh: '删除面板应用', en: 'Delete panel app' },
+  panelAppsDeleteConfirmTitle: { zh: '删除面板应用？', en: 'Delete panel app?' },
+  panelAppsDeleteConfirmDescription: {
+    zh: '将删除这个面板应用文件，删除后不可恢复。',
+    en: 'This will delete the panel app file and cannot be undone.',
+  },
   panelAppsLastOpened: { zh: '上次打开', en: 'Last opened' },
   panelAppsUpdated: { zh: '更新于', en: 'Updated' },
   serviceAppsTitle: { zh: '服务应用', en: 'Service Apps' },

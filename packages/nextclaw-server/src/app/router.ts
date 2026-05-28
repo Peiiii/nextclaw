@@ -78,10 +78,9 @@ function isValidSendEnvelope(value: unknown): value is AgentRunSendIngressPayloa
   if (!isRecord(value)) {
     return false;
   }
-  if (
-    hasOwn(value, "sessionId") &&
-    (typeof value.sessionId !== "string" || value.sessionId.trim().length === 0)
-  ) {
+  const sessionId = readOptionalSendIdentity(value, "sessionId");
+  const peerId = readOptionalSendIdentity(value, "peerId");
+  if (sessionId === null || peerId === null || (sessionId && peerId)) {
     return false;
   }
   const hasMessage = hasOwn(value, "message");
@@ -90,6 +89,21 @@ function isValidSendEnvelope(value: unknown): value is AgentRunSendIngressPayloa
     return false;
   }
   return hasMessage ? isRecord(value.message) : Array.isArray(value.content);
+}
+
+function readOptionalSendIdentity(
+  value: Record<string, unknown>,
+  key: "peerId" | "sessionId",
+): string | null | undefined {
+  if (!hasOwn(value, key)) {
+    return undefined;
+  }
+  const raw = value[key];
+  if (typeof raw !== "string") {
+    return null;
+  }
+  const trimmed = raw.trim();
+  return trimmed || null;
 }
 
 function readStreamPayload(url: string): NcpStreamRequestPayload | null {
@@ -229,6 +243,7 @@ class UiRouteRegistry {
       ["post", "/api/panel-app-agent/generate-object", panelApps.generateAgentObject],
       ["post", "/api/panel-app-agent-capabilities/:capability/grant", panelApps.grantAgentCapability],
       ["patch", "/api/panel-apps/:id/preferences", panelApps.updatePanelAppPreferences],
+      ["delete", "/api/panel-apps/:id", panelApps.deletePanelApp],
       ["post", "/api/panel-apps/:id/open", panelApps.recordPanelAppOpened],
       ["get", "/api/panel-apps/:id/content", panelApps.getPanelAppContent],
       ["get", "/api/service-apps", serviceApps.listServiceApps],

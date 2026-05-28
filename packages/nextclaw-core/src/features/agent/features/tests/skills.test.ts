@@ -61,6 +61,10 @@ describe("SkillsLoader builtin skills", () => {
 
     expect(skill).toContain("window.nextclaw.agent.generateObject");
     expect(skill).toContain("window.nextclaw.agent.send");
+    expect(skill).toContain("peerId");
+    expect(skill).toContain("不要自己生成、缓存或猜测稳定 `sessionId`");
+    expect(skill).toContain("窄侧栏优先布局");
+    expect(skill).toContain("320px-480px");
     expect(skill).toContain("nextclaw-panel-capabilities");
     expect(skill).toContain("agent:generateObject");
     expect(skill).toContain("agent:send");

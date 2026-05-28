@@ -7,6 +7,7 @@ import type {
   PanelAppBridgeSessionCreateRequest,
   PanelAppBridgeSessionView,
   PanelAppCapabilityGrantView,
+  PanelAppDeleteResultView,
   PanelAppEntryView,
   PanelAppListView,
 } from "@nextclaw/server";
@@ -49,6 +50,12 @@ export class PanelAppsClientService {
   readonly recordPanelAppOpened = async (id: string): Promise<PanelAppEntryView> => {
     return await this.requestService.post<PanelAppEntryView>(
       `/api/panel-apps/${encodeURIComponent(id)}/open`,
+    );
+  };
+
+  readonly deletePanelApp = async (id: string): Promise<PanelAppDeleteResultView> => {
+    return await this.requestService.delete<PanelAppDeleteResultView>(
+      `/api/panel-apps/${encodeURIComponent(id)}`,
     );
   };
 

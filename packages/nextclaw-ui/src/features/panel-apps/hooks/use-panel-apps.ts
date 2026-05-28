@@ -37,3 +37,13 @@ export function useRecordPanelAppOpened() {
     },
   });
 }
+
+export function useDeletePanelApp() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => nextclawClient.panelApps.deletePanelApp(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: PANEL_APPS_QUERY_KEY });
+    },
+  });
+}

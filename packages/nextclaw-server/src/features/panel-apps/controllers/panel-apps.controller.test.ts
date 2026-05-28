@@ -164,6 +164,45 @@ describe("panel apps routes", () => {
     expect(payload.data.lastOpenedAt).toBe("2026-05-27T10:00:00.000Z");
   });
 
+  it("deletes panel apps through the manager", async () => {
+    const app = createTestApp({
+      listPanelApps: async () => ({
+        workspacePath: "",
+        panelsPath: "",
+        entries: [],
+      }),
+      getPanelAppContent: async () => {
+        throw new Error("not used");
+      },
+      updatePanelAppPreferences: async () => {
+        throw new Error("not used");
+      },
+      recordPanelAppOpened: async () => {
+        throw new Error("not used");
+      },
+      deletePanelApp: async (id: string) => ({
+        deleted: true,
+        fileName: "demo.panel.html",
+        id,
+      }),
+    } as never);
+
+    const response = await app.request("http://localhost/api/panel-apps/demo", {
+      method: "DELETE",
+    });
+    const payload = await response.json() as {
+      ok: true;
+      data: { deleted: true; fileName: string; id: string };
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.data).toEqual({
+      deleted: true,
+      fileName: "demo.panel.html",
+      id: "demo",
+    });
+  });
+
   it("maps panel app manager errors to route errors", async () => {
     const app = createTestApp({
       listPanelApps: async () => ({
@@ -182,7 +221,9 @@ describe("panel apps routes", () => {
     expect(response.status).toBe(404);
     expect(payload.error.code).toBe("PANEL_APP_NOT_FOUND");
   });
+});
 
+describe("panel app agent routes", () => {
   it("sends panel app agent requests with the bridge session header", async () => {
     const app = createTestApp({
       listPanelApps: async () => ({

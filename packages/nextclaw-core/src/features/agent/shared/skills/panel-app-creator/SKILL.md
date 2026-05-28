@@ -41,6 +41,18 @@ description_zh: 创建或修改 NextClaw 右侧面板里的单文件 HTML Panel 
 - 不要省略图标；没有用户指定时，按应用主题选择一个克制、可识别的 emoji。
 - 不要使用相对图片路径如 `./icon.png`，因为第一版 Panel App 是单 HTML 文件，没有资源目录。
 
+## 窄侧栏优先布局
+
+Panel App 默认打开在 NextClaw 右侧栏里，初始宽度通常较窄；用户可以把右侧栏拉宽，但不能假设一开始就是桌面宽屏。
+
+- 默认按 `320px-480px` 窄面板优先设计，再逐步增强到宽屏。
+- 主流程、核心按钮、表单和列表在窄宽度下必须完整可用，不横向溢出。
+- 使用单列布局作为基础；宽屏时再用 CSS media query 升级为双列、网格或并排详情。
+- 工具栏和筛选项在窄屏下允许换行、折叠或变成分段按钮，不要做依赖大宽度的顶部横排。
+- 卡片、表格、图表要适配窄容器：长文本换行，表格优先改成列表/详情卡，图表使用 `width: 100%` 和稳定高度。
+- 不使用固定桌面宽度容器，例如 `width: 960px`；容器应使用 `max-width: 100%`、`min-width: 0`、`box-sizing: border-box`。
+- 验收时至少想象两种宽度：窄侧栏和用户拉宽后的面板。窄侧栏可用性优先于宽屏装饰性。
+
 ## Service Actions
 
 Panel App 调用 Service App 前，必须在 `<head>` 声明允许使用的 action：
@@ -139,6 +151,7 @@ const result = await window.nextclaw.agent.generateObject({
 关键约定：
 
 - `peerId` 由 Panel App 自己生成并保持稳定；同一个 Panel App + 同一个 `peerId` 会复用同一个 Agent 会话。
+- 不要自己生成、缓存或猜测稳定 `sessionId`；需要固定会话时只传 `peerId`，由 NextClaw 内部创建或复用 session。
 - `schema` 必须描述期望返回对象；不要要求 Agent 在自然语言里输出 JSON。
 - 返回值就是结构化对象本身，不是字符串，也不是 `{ result: ... }` envelope。
 - 第一次调用受保护 Agent capability 时，宿主会负责弹授权，不要自己实现授权 UI。
@@ -149,11 +162,21 @@ const result = await window.nextclaw.agent.generateObject({
 
 ```js
 const handle = await window.nextclaw.agent.send({
+  peerId: "daily-analysis",
   content: [{ type: "text", text: "请根据当前数据生成一份后续分析。" }]
 });
 ```
 
-后续可以用返回的 `handle.sessionId` 继续向同一会话投送：
+后续继续使用同一个 `peerId` 即可投送到同一会话：
+
+```js
+await window.nextclaw.agent.send({
+  peerId: "daily-analysis",
+  content: [{ type: "text", text: "继续上一轮，补充风险点。" }]
+});
+```
+
+如果你已经明确拿到了已有会话的 `sessionId`，也可以把它作为历史 continuation 使用：
 
 ```js
 await window.nextclaw.agent.send({
@@ -161,6 +184,8 @@ await window.nextclaw.agent.send({
   content: [{ type: "text", text: "继续上一轮，补充风险点。" }]
 });
 ```
+
+不要同时传 `peerId` 和 `sessionId`。这两个字段分别代表“由系统按稳定 peer 创建/复用会话”和“继续一个已知会话”，混用会被拒绝。
 
 不要在未声明 `nextclaw-panel-capabilities` 时调用 `window.nextclaw.agent.*`。调用失败时展示明确错误，不要静默当作成功，也不要退回到直接请求某个本地 Agent HTTP 接口。
 

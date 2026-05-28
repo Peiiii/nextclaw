@@ -28,6 +28,7 @@ import {
   createNcpAgentSessionSummary,
   type NcpAgentSessionJournalReplayEvent,
 } from "@kernel/utils/ncp-agent-session-journal.utils.js";
+import { createAgentPeerSessionIdentity } from "@kernel/utils/agent-peer-session.utils.js";
 import {
   eventKeys,
   type EventBus,
@@ -464,22 +465,27 @@ export class SessionManager implements NcpSessionApi {
       channel,
       metadata,
       model,
+      peerId: rawPeerId,
       projectRoot,
       sessionId,
       task,
       thinkingEffort,
     } = params;
     const agentRuntimeId = requestedAgentRuntimeId ?? DEFAULT_AGENT_RUNTIME_ENTRY_ID;
+    const peerId = readOptionalString(rawPeerId);
+    const peerIdentity = peerId
+      ? createAgentPeerSessionIdentity({ agentId, channel, metadata, peerId })
+      : undefined;
+    const requestedSessionId = readOptionalString(sessionId);
     const created = await this.createSession({
       sourceSessionMetadata: {},
-      sessionId,
+      sessionId: requestedSessionId ?? peerIdentity?.sessionId,
       task: task ?? "Session",
       agentId,
-      metadataOverrides: {
-        ...structuredClone(metadata ?? {}),
+      metadataOverrides: Object.assign(structuredClone(metadata ?? {}), peerIdentity?.metadata, {
         agentRuntimeId,
         channel,
-      },
+      }),
       model,
       projectRoot,
       runtime: agentRuntimeId,

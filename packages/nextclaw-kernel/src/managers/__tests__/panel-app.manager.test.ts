@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -167,11 +167,15 @@ describe("PanelAppManager agent bridge", () => {
     await manager.grantAgentCapability(session.token, "agent:send");
     await expect(manager.sendAgentMessage(session.token, {
       content: [{ type: "text", text: "hello" }],
+      peerId: "sender-thread",
     })).resolves.toEqual(expect.objectContaining({ sessionId: "session-1" }));
     expect(send).toHaveBeenCalledWith(expect.objectContaining({
       content: [{ type: "text", text: "hello" }],
+      peerId: "sender-thread",
       metadata: expect.objectContaining({
+        agent_peer_scope: `panel-app:${entry.id}`,
         panel_app_id: entry.id,
+        panel_app_peer_id: "sender-thread",
         source_kind: "panel_app",
       }),
     }));
@@ -228,10 +232,13 @@ describe("PanelAppManager agent bridge", () => {
       },
       context: { mood: "good" },
     })).resolves.toEqual({ result: { answer: 42 } });
+    const sentRecord = sentPayload as Record<string, unknown>;
+    const sentMessage = sentRecord.message as Record<string, unknown>;
     expect(sentPayload).toEqual(expect.objectContaining({
-      sessionId: expect.stringMatching(/^panel-app-agent-/),
+      peerId: "mood-summary",
       message: expect.objectContaining({
         metadata: expect.objectContaining({
+          agent_peer_scope: `panel-app:${entry.id}`,
           panel_app_id: entry.id,
           panel_app_peer_id: "mood-summary",
           structured_result: expect.objectContaining({
@@ -240,6 +247,8 @@ describe("PanelAppManager agent bridge", () => {
         }),
       }),
     }));
+    expect(sentRecord).not.toHaveProperty("sessionId");
+    expect(sentMessage).not.toHaveProperty("sessionId");
   });
 });
 
@@ -350,6 +359,31 @@ describe("PanelAppManager metadata and state", () => {
       fileName: "recently-modified.panel.html",
       updatedAt: "2030-01-01T00:00:00.000Z",
     }));
+  });
+
+  it("deletes panel app files and clears launcher state", async () => {
+    const workspacePath = createTempDir();
+    const panelsPath = join(workspacePath, "panels");
+    const filePath = join(panelsPath, "delete-me.panel.html");
+    mkdirSync(panelsPath, { recursive: true });
+    writeFileSync(filePath, "<h1>Delete Me</h1>");
+    const manager = createPanelAppManager(workspacePath);
+    const [entry] = (await manager.listPanelApps()).entries;
+
+    await manager.updatePanelAppPreferences(entry.id, { favorite: true });
+    const result = await manager.deletePanelApp(entry.id);
+
+    expect(result).toEqual({
+      deleted: true,
+      fileName: "delete-me.panel.html",
+      id: entry.id,
+    });
+    expect(existsSync(filePath)).toBe(false);
+    await expect(manager.listPanelApps()).resolves.toEqual({
+      workspacePath,
+      panelsPath,
+      entries: [],
+    });
   });
 
   it("rejects invalid ids before reading from disk", async () => {

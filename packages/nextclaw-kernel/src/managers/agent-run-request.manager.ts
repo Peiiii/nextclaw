@@ -34,6 +34,7 @@ function toAgentRunRequest(
   envelope: AgentRunSendIngressPayload,
 ): AgentRunRequest {
   const metadata = envelope.metadata ?? {};
+  const peerId = readOptionalString(envelope.peerId);
   const requestMetadata = {
     agentRuntimeId: metadata.agentRuntimeId,
     agentId: metadata.agentId,
@@ -46,11 +47,16 @@ function toAgentRunRequest(
     thinkingEffort: metadata.thinkingEffort,
   };
   if (Array.isArray(envelope.content)) {
+    const sessionId = readOptionalString(envelope.sessionId);
+    if (sessionId && peerId) {
+      throw new Error("agent-run.send cannot accept both sessionId and peerId.");
+    }
     return {
       ...requestMetadata,
-      sessionId: envelope.sessionId,
+      sessionId,
+      peerId,
       message: {
-        sessionId: envelope.sessionId ?? "",
+        sessionId: sessionId ?? "",
         id: `user-message-${randomUUID()}`,
         role: "user",
         status: "final",
@@ -63,10 +69,15 @@ function toAgentRunRequest(
   if (!sourceMessage) {
     throw new Error("Invalid agent run send request.");
   }
-  const messageSessionId = sourceMessage.sessionId;
+  const envelopeSessionId = readOptionalString(envelope.sessionId);
+  const messageSessionId = readOptionalString(sourceMessage.sessionId);
+  const sessionId = envelopeSessionId ?? messageSessionId;
+  if (sessionId && peerId) {
+    throw new Error("agent-run.send cannot accept both sessionId and peerId.");
+  }
   const message: NcpMessage = {
     ...sourceMessage,
-    sessionId: messageSessionId ?? envelope.sessionId ?? "",
+    sessionId: sessionId ?? "",
     id: sourceMessage.id ?? `user-message-${randomUUID()}`,
     role: sourceMessage.role ?? "user",
     status: sourceMessage.status ?? "final",
@@ -75,9 +86,18 @@ function toAgentRunRequest(
   };
   return {
     ...requestMetadata,
-    sessionId: envelope.sessionId ?? messageSessionId,
+    sessionId,
+    peerId,
     message,
   };
+}
+
+function readOptionalString(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed || undefined;
 }
 
 function toSessionMessageRequest(
@@ -209,6 +229,7 @@ export class AgentRunRequestManager {
   ): Promise<AgentRunAccepted> => {
     const session = await this.sessionManager.getOrCreateAgentRunSession({
       sessionId: request.sessionId,
+      peerId: request.peerId,
       agentId: request.agentId,
       agentRuntimeId: request.agentRuntimeId,
       channel: request.channel,

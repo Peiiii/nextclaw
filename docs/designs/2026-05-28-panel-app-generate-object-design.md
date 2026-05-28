@@ -67,12 +67,14 @@ const result = await window.nextclaw.agent.generateObject({
 type AgentSendInput =
   | {
       sessionId?: string;
+      peerId?: string;
       content: NcpMessagePart[];
       message?: never;
       metadata?: Record<string, unknown>;
     }
   | {
       sessionId?: string;
+      peerId?: string;
       message: NcpMessage;
       content?: never;
       metadata?: Record<string, unknown>;
@@ -89,7 +91,7 @@ type AgentRunHandle = {
 window.nextclaw.agent.send(input): Promise<AgentRunHandle>;
 ```
 
-`agent.send` 的设计目标是不做智能包装：它的输入形态对齐现有 `AgentRunSendIngressPayload`，输出对齐现有 `NcpRunHandle`。Panel App 可以用它只触发一次会话 run，不关心最终回复；也可以拿返回的 `sessionId` 后续继续投送到同一会话。
+`agent.send` 的设计目标是不做智能包装：它的输入形态对齐现有 `AgentRunSendIngressPayload`，输出对齐现有 `NcpRunHandle`。Panel App 可以用它只触发一次会话 run，不关心最终回复；也可以传入稳定 `peerId`，由底层主链路复用同一个持续会话。
 
 `agent.send` 与 `generateObject` 的关系：
 
@@ -111,28 +113,32 @@ window.nextclaw.agent.send(input): Promise<AgentRunHandle>;
 
 ## peerId 与会话复用
 
-`peerId` 只属于 `generateObject` 这种“应用便利能力”。它不做系统级语义建模，只是 Panel App 作者传入的稳定 key：
+`peerId` 是 `agent-run.send` 主链路的通用稳定会话身份输入，不只属于 `generateObject`。它不做系统级 peer 实体建模，也不需要 registry；调用方只提供一个稳定 key，session id 必须由内部 session owner 派生，不能由 Panel App、Service App、iframe 或其它外部扩展自己生成。
 
 - `writing-assistant`：整个应用共用一个写作会话。
 - `doc:${docId}`：每个文档一个会话。
 - `game:${gameId}`：每盘棋一个会话。
 - 随机 ID：一次性会话。
 
-内部用当前 bridge session 还原出的 `appId` 加 `peerId` 生成稳定 sessionId，交给现有 `AgentRunRequestManager` / `SessionRepository.getOrCreateSession(...)` 完成复用或创建。建议 metadata 使用与现有 session metadata 风格一致的 snake_case 字段：
+Panel App 场景由 bridge 还原出的 `appId` 提供内部 peer scope，再把 `peerId` 透传到 `Ingress agent-run.send`。`AgentRunRequestManager` 不生成 session id，只把 `peerId` 交给 `SessionManager.getOrCreateAgentRunSession(...)`。`SessionManager` 作为 session 事实 owner，用内部 peer scope + `peerId` 派生稳定 session id，并完成复用或创建。
+
+metadata 使用与现有 session metadata 风格一致的 snake_case 字段：
 
 ```json
 {
+  "agent_peer_id": "mood-summary",
+  "agent_peer_scope": "panel-app:mood-calendar",
   "panel_app_id": "mood-calendar",
   "panel_app_peer_id": "mood-summary",
   "label": "心情日历 / mood-summary"
 }
 ```
 
-稳定 sessionId 可以用 `panel-app-agent-${hash(appId + "\0" + peerId)}` 这类确定性格式。这里不新增 `PeerManager` 或 `AppSessionManager`，也不为了第一版扫描全部 session metadata。
+稳定 sessionId 的具体格式是内部实现细节，第一版由 `SessionManager` 统一负责。外部扩展、注入 SDK、HTTP adapter 和 Panel App manager 不允许拼装或约定稳定 session id。这里不新增 `PeerManager` 或 `AppSessionManager`，也不为了第一版扫描全部 session metadata。
 
 如果后续确实需要按 metadata 查询，再由 `NcpSessionManager` 作为 session 事实 owner 补索引能力；第一版不为这个场景新增索引或 registry。
 
-`agent.send` 不引入 `peerId`。它对齐现有 agent run send 语义：调用方传 `sessionId` 就投送到已有会话，不传 `sessionId` 就由现有主链路创建新会话，并通过返回的 run handle 告知调用方实际 `sessionId`。
+`sessionId` 只保留给已有明确会话的 continuation 或历史兼容入口。新扩展能力如果想稳定绑定会话，默认必须使用 `peerId`，不能在外部生成、缓存或反推出稳定 session id。若同一请求同时传 `sessionId` 和 `peerId`，应视为身份语义冲突并拒绝。
 
 ## 结构化输出机制
 
@@ -265,11 +271,10 @@ Controller / bridge adapter 的共同职责：
 `generateObject` 的 adapter 在共同职责之后继续做：
 
 1. 校验 `peerId`、`prompt`、`schema` 的基本形状与大小限制。
-2. 用 `appId + peerId` 生成稳定 sessionId。
-3. 构造带 `structured_result` metadata 的 session message。
-4. 通过现有 `AgentRunClient.sendAndStreamEvents(...)` 发起 run。
-5. 从现有 event stream 等待 `nextclaw_submit_result` 的 tool result 或错误/超时。
-6. 返回 object 给 iframe。
+2. 构造带 `structured_result` metadata 的 message draft，不填 sessionId。
+3. 把 `peerId` 交给现有 `AgentRunClient.sendAndStreamEvents(...)` 发起 run。
+4. 从现有 event stream 等待 `nextclaw_submit_result` 的 tool result 或错误/超时。
+5. 返回 object 给 iframe。
 
 两者内部仍走 `Ingress agent-run.send` 与 `eventKeys.ncpEvent`。server 仍然应保持薄层；如果这段适配逻辑变长，优先放到现有 Panel Apps feature 内部的 bridge service/utility，而不是新增 kernel manager。
 
@@ -338,7 +343,7 @@ message metadata 建议包含：
 1. 注入 `window.nextclaw.agent.generateObject`。
 2. 注入 `window.nextclaw.agent.send`。
 3. Panel App capability / grant 支持 `agent:send` 与 `agent:generateObject`。
-4. `appId + peerId` 自动复用或创建 session。
+4. `agent-run.send` 支持 `peerId`，由 `SessionManager` 内部复用或创建稳定 session。
 5. `StructuredResultToolProvider` 按 message metadata 提供 `nextclaw_submit_result` tool。
 6. schema 校验后返回 object。
 7. 超时与错误码。
@@ -358,8 +363,9 @@ message metadata 建议包含：
 
 ## 验收标准
 
-- 一个 Panel App 调用 `generateObject`，第一次会自动创建 session；第二次同 `peerId` 复用同一 session。
-- 一个 Panel App 调用 `agent.send`，可新建会话并拿到 run handle；传入返回的 `sessionId` 后可继续投送同一会话。
+- 一个 Panel App 调用 `generateObject`，第一次会自动创建 session；第二次同 `peerId` 复用同一 session，且 Panel App manager 不生成 sessionId。
+- 一个 Panel App 调用 `agent.send({ peerId, ... })`，第一次会自动创建 session；第二次同 `peerId` 复用同一 session。
+- 一个 Panel App 调用 `agent.send({ sessionId, ... })`，仍可作为已有会话 continuation；同时传 `sessionId` 与 `peerId` 必须失败。
 - Agent 必须通过 `nextclaw_submit_result` 返回结构化结果；Panel App 拿到的是 object，不是字符串。
 - Agent 不调用 result tool 时，Panel App 收到明确错误。
 - schema 校验失败时，Panel App 收到明确错误。
@@ -375,4 +381,4 @@ message metadata 建议包含：
 4. `prompt` 与 `context` 做硬上限，避免 Panel App 一次性塞入过大上下文。
 5. result tool 被调用后不 abort run；`generateObject` 收到 tool result 即返回，同时退订事件监听，让 run 按现有 runtime 语义自然完成。
 6. capability grant 独立存储为 Panel App capability grant，不和 Service Action grant 混在一起，但授权 UI 复用现有确认 manager。
-7. server/client/UI 只做薄 adapter；核心身份还原、能力声明校验、授权校验、sessionId 生成和 structured result 等待归 `PanelAppManager`。
+7. server/client/UI 只做薄 adapter；核心身份还原、能力声明校验、授权校验和 structured result 等待归 `PanelAppManager`，稳定 sessionId 派生归 `SessionManager`。

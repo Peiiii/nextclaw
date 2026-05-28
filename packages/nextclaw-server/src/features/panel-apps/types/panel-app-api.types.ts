@@ -23,6 +23,11 @@ export type PanelAppBridgeSessionView = Pick<
 
 export type PanelAppEntryView = PanelAppEntry;
 export type PanelAppListView = PanelAppList;
+export type PanelAppDeleteResultView = {
+  deleted: true;
+  fileName: string;
+  id: string;
+};
 export type PanelAppPreferencesUpdateView = PanelAppPreferencesUpdate;
 export type PanelAppAgentCapabilityView = PanelAppAgentCapability;
 export type PanelAppAgentGenerateObjectRequestView = PanelAppAgentGenerateObjectRequest;

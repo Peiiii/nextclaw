@@ -12,6 +12,7 @@ export type AgentRunSession = {
 
 export type CreateAgentRunSessionParams = {
   sessionId?: string;
+  peerId?: string;
   agentId?: string;
   agentRuntimeId?: string;
   channel?: string;

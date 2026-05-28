@@ -126,11 +126,13 @@ export type AgentRunSendIngressPayload =
   | (Omit<NcpAgentSendEnvelope, "metadata"> & {
       content?: never;
       metadata?: AgentRunSendIngressMetadata;
+      peerId?: string;
     })
   | (Omit<NcpAgentSendEnvelope, "message" | "metadata"> & {
       content: NcpMessagePart[];
       metadata?: AgentRunSendIngressMetadata;
       message?: never;
+      peerId?: string;
     });
 
 export const ingressKeys = {

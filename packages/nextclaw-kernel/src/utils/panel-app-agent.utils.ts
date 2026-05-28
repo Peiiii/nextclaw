@@ -1,8 +1,8 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import {
   NcpEventType,
   type NcpEndpointEvent,
-  type NcpMessage,
+  type NcpOutboundMessageDraft,
 } from "@nextclaw/ncp";
 import type { AgentRunSendIngressPayload } from "@nextclaw/shared";
 import {
@@ -57,9 +57,8 @@ export function createPanelAppGenerateObjectMessage(params: {
   bridgeSession: PanelAppAgentBridgeSession;
   request: NormalizedPanelAppGenerateObjectInput;
   requestId: string;
-  sessionId: string;
-}): NcpMessage {
-  const { bridgeSession, request, requestId, sessionId } = params;
+}): NcpOutboundMessageDraft {
+  const { bridgeSession, request, requestId } = params;
   return {
     id: `panel-app-agent-message-${randomUUID()}`,
     metadata: {
@@ -76,7 +75,6 @@ export function createPanelAppGenerateObjectMessage(params: {
       text: buildGenerateObjectPrompt(bridgeSession, request),
     }],
     role: "user",
-    sessionId,
     status: "final",
     timestamp: new Date().toISOString(),
   };
@@ -132,15 +130,27 @@ export function withPanelAppAgentMetadata(
   bridgeSession: PanelAppAgentBridgeSession,
 ): AgentRunSendIngressPayload {
   const panelAppMetadata = createPanelAppAgentMetadata(bridgeSession);
-  const metadata = {
+  const peerId = readOptionalPeerId(payload.peerId);
+  const sessionId = readOptionalSessionId(payload.sessionId);
+  if (peerId && sessionId) {
+    throw new PanelAppError(
+      "PANEL_APP_AGENT_REQUEST_INVALID",
+      "agent send request cannot include both sessionId and peerId",
+    );
+  }
+  const metadata: Record<string, unknown> = {
     ...(payload.metadata ?? {}),
     ...panelAppMetadata,
   };
+  if (peerId) {
+    metadata.panel_app_peer_id = peerId;
+  }
   if (Array.isArray(payload.content)) {
     return {
       content: structuredClone(payload.content),
       metadata,
-      sessionId: payload.sessionId,
+      peerId,
+      sessionId,
     };
   }
   if (!payload.message) {
@@ -155,7 +165,8 @@ export function withPanelAppAgentMetadata(
       },
     },
     metadata,
-    sessionId: payload.sessionId,
+    peerId,
+    sessionId,
   };
 }
 
@@ -163,17 +174,11 @@ export function createPanelAppAgentMetadata(
   bridgeSession: PanelAppAgentBridgeSession,
 ): Record<string, unknown> {
   return {
+    agent_peer_scope: `panel-app:${bridgeSession.panelAppId}`,
     panel_app_bridge_request_id: randomUUID(),
     panel_app_id: bridgeSession.panelAppId,
     source_kind: "panel_app",
   };
-}
-
-export function createPanelAppAgentSessionId(panelAppId: string, peerId: string): string {
-  return `panel-app-agent-${createHash("sha256")
-    .update(`${panelAppId}\0${peerId}`)
-    .digest("hex")
-    .slice(0, 32)}`;
 }
 
 function normalizeTimeoutMs(timeoutMs: number | undefined): number {
@@ -184,6 +189,28 @@ function normalizeTimeoutMs(timeoutMs: number | undefined): number {
     PANEL_APP_AGENT_MAX_TIMEOUT_MS,
     Math.max(1000, Math.trunc(timeoutMs)),
   );
+}
+
+function readOptionalPeerId(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const peerId = value.trim();
+  if (!peerId) {
+    throw new PanelAppError("PANEL_APP_AGENT_REQUEST_INVALID", "agent peerId cannot be empty");
+  }
+  return peerId;
+}
+
+function readOptionalSessionId(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const sessionId = value.trim();
+  if (!sessionId) {
+    throw new PanelAppError("PANEL_APP_AGENT_REQUEST_INVALID", "agent sessionId cannot be empty");
+  }
+  return sessionId;
 }
 
 function buildGenerateObjectPrompt(

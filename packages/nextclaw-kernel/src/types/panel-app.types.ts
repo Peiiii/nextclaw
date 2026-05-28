@@ -57,12 +57,14 @@ export type PanelAppCapabilityGrant = {
 export type PanelAppAgentSendPayload =
   | {
       sessionId?: string;
+      peerId?: string;
       content: NcpMessagePart[];
       message?: never;
       metadata?: Record<string, unknown>;
     }
   | {
       sessionId?: string;
+      peerId?: string;
       message: NcpMessage | (Omit<NcpMessage, "sessionId"> & { sessionId?: string });
       content?: never;
       metadata?: Record<string, unknown>;

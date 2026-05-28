@@ -231,4 +231,37 @@ describe("SessionManager", () => {
       },
     });
   });
+
+  it("internally derives stable agent run sessions from peerId", async () => {
+    const fixture = await createFixture();
+
+    const first = await fixture.manager.getOrCreateAgentRunSession({
+      agentId: "main",
+      metadata: { agent_peer_scope: "panel-app:mood-calendar" },
+      peerId: "mood-summary",
+      task: "Summarize mood",
+    });
+    const second = await fixture.manager.getOrCreateAgentRunSession({
+      agentId: "main",
+      metadata: { agent_peer_scope: "panel-app:mood-calendar" },
+      peerId: "mood-summary",
+      task: "Continue mood",
+    });
+    const other = await fixture.manager.getOrCreateAgentRunSession({
+      agentId: "main",
+      metadata: { agent_peer_scope: "panel-app:other" },
+      peerId: "mood-summary",
+      task: "Other app",
+    });
+
+    expect(first.sessionId).toMatch(/^agent-peer-/);
+    expect(second.sessionId).toBe(first.sessionId);
+    expect(other.sessionId).not.toBe(first.sessionId);
+    expect(await fixture.journalStore.getSession(first.sessionId)).toMatchObject({
+      metadata: {
+        agent_peer_id: "mood-summary",
+        agent_peer_scope: "panel-app:mood-calendar",
+      },
+    });
+  });
 });

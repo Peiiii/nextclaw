@@ -9,6 +9,7 @@ export type ContextBlock = string;
 
 export type AgentRunRequest = {
   sessionId?: string;
+  peerId?: string;
   message: NcpMessage;
   agentRuntimeId?: string;
   agentId?: string;

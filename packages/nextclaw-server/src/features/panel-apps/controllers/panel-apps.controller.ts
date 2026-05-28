@@ -82,6 +82,21 @@ export class PanelAppsRoutesController {
     }
   };
 
+  readonly deletePanelApp = async (c: Context) => {
+    try {
+      const payload = await this.panelAppManager.deletePanelApp(c.req.param("id"));
+      return c.json(ok(payload));
+    } catch (error) {
+      if (isPanelAppError(error)) {
+        return c.json(
+          err(error.code, error.message),
+          statusForPanelAppError(error.code),
+        );
+      }
+      throw error;
+    }
+  };
+
   readonly getPanelAppContent = async (c: Context): Promise<Response> => {
     try {
       const payload = await this.panelAppManager.getPanelAppContent(

@@ -54,6 +54,16 @@ export class PanelAppCapabilityGrantStore {
     };
   };
 
+  deleteCaller = async (caller: PanelAppCapabilityGrantCaller): Promise<void> => {
+    const data = await this.load();
+    const callerKey = getCallerKey(caller);
+    if (!(callerKey in data.grants)) {
+      return;
+    }
+    delete data.grants[callerKey];
+    await this.save(data);
+  };
+
   private load = async (): Promise<PanelAppCapabilityGrantStoreData> => {
     try {
       return normalizeStoreData(JSON.parse(await readFile(this.filePath, "utf8")));

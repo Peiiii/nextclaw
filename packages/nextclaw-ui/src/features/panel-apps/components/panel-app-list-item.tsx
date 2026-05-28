@@ -1,58 +1,148 @@
-import type { MouseEvent } from 'react';
-import { AppWindow, Star } from 'lucide-react';
+import { useState, type MouseEvent } from 'react';
+import { AppWindow, MoreVertical, Star, Trash2, type LucideIcon } from 'lucide-react';
 import type { PanelAppEntryView } from '@/shared/lib/api';
-import { formatDateTime, t } from '@/shared/lib/i18n';
+import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
+import { getLanguage, getLocale, t } from '@/shared/lib/i18n';
+import { cn } from '@/shared/lib/utils';
 
 export function PanelAppListItem({
+  deletePending,
   entry,
   favoritePending,
+  onDelete,
   onOpen,
   onToggleFavorite,
 }: {
+  deletePending: boolean;
   entry: PanelAppEntryView;
   favoritePending: boolean;
+  onDelete: () => void;
   onOpen: () => void;
   onToggleFavorite: () => void;
 }) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const favoriteLabel = entry.favorite ? t('panelAppsUnfavorite') : t('panelAppsFavorite');
   const secondary = entry.lastOpenedAt
-    ? `${t('panelAppsLastOpened')} ${formatDateTime(entry.lastOpenedAt)}`
-    : `${t('panelAppsUpdated')} ${formatDateTime(entry.updatedAt)}`;
+    ? `${t('panelAppsLastOpened')} ${formatPanelAppTime(entry.lastOpenedAt)}`
+    : `${t('panelAppsUpdated')} ${formatPanelAppTime(entry.updatedAt)}`;
+
   const handleFavorite = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     onToggleFavorite();
   };
+  const openDeleteDialog = () => {
+    setIsMenuOpen(false);
+    setIsDeleteDialogOpen(true);
+  };
 
   return (
-    <div className="group flex w-full min-w-0 items-start gap-2 rounded-lg border border-gray-200 bg-white px-2.5 py-2.5 transition-colors hover:border-amber-200 hover:bg-amber-50/50">
-      <button
-        type="button"
-        onClick={onOpen}
-        className="flex min-w-0 flex-1 items-start gap-3 text-left"
-      >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-50 text-base text-amber-700">
-          <PanelAppIcon icon={entry.icon} title={entry.title} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-gray-900">{entry.title}</span>
+    <div className="group w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2.5 py-2.5 transition-colors hover:border-amber-200 hover:bg-amber-50/50">
+      <div className="flex min-w-0 items-start gap-2">
+        <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-amber-50 text-base text-amber-700">
+              <PanelAppIcon icon={entry.icon} title={entry.title} />
+            </span>
+            <span className="block min-w-0 flex-1 truncate text-sm font-medium text-gray-900">{entry.title}</span>
+          </span>
           {entry.description ? (
-            <span className="mt-0.5 block line-clamp-2 text-xs leading-5 text-gray-600">{entry.description}</span>
+            <span className="mt-1.5 block truncate text-xs leading-5 text-gray-600">{entry.description}</span>
           ) : null}
-          <span className="mt-1 block truncate text-xs text-gray-400">{secondary}</span>
-        </span>
-      </button>
-      <button
-        type="button"
-        onClick={handleFavorite}
-        disabled={favoritePending}
-        className="rounded-md p-1.5 text-gray-400 transition-colors hover:bg-white hover:text-amber-500 disabled:opacity-50"
-        title={favoriteLabel}
-        aria-label={favoriteLabel}
-      >
-        <Star className={entry.favorite ? 'h-4 w-4 fill-amber-400 text-amber-500' : 'h-4 w-4'} />
-      </button>
+          <span className="mt-0.5 block truncate text-[11px] leading-4 text-gray-400">{secondary}</span>
+        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={handleFavorite}
+            disabled={favoritePending}
+            className="rounded-md p-1.5 text-gray-400 transition-colors hover:bg-white hover:text-amber-500 disabled:opacity-50"
+            title={favoriteLabel}
+            aria-label={favoriteLabel}
+          >
+            <Star className={entry.favorite ? 'h-4 w-4 fill-amber-400 text-amber-500' : 'h-4 w-4'} />
+          </button>
+          <Popover open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="rounded-md p-1.5 text-gray-400 transition-colors hover:bg-white hover:text-gray-700"
+                aria-label={t('panelAppsMoreActions')}
+                disabled={deletePending}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-48 rounded-xl p-1.5">
+              <PanelAppMenuItem
+                destructive
+                disabled={deletePending}
+                icon={Trash2}
+                label={t('panelAppsDelete')}
+                onClick={openDeleteDialog}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title={t('panelAppsDeleteConfirmTitle')}
+        description={`${t('panelAppsDeleteConfirmDescription')} ${entry.fileName}`}
+        confirmLabel={t('delete')}
+        variant="destructive"
+        onConfirm={onDelete}
+        onCancel={() => undefined}
+      />
     </div>
   );
+}
+
+function PanelAppMenuItem({
+  destructive = false,
+  disabled = false,
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  destructive?: boolean;
+  disabled?: boolean;
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+        destructive ? 'text-destructive hover:bg-destructive/10' : 'text-gray-700 hover:bg-gray-100',
+      )}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <Icon className="h-4 w-4 shrink-0" />
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function formatPanelAppTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  const locale = getLocale(getLanguage());
+  const now = new Date();
+  if (date.toDateString() === now.toDateString()) {
+    return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(date);
+  }
+  if (date.getFullYear() === now.getFullYear()) {
+    return new Intl.DateTimeFormat(locale, { month: 'numeric', day: 'numeric' }).format(date);
+  }
+  return new Intl.DateTimeFormat(locale, { year: '2-digit', month: 'numeric', day: 'numeric' }).format(date);
 }
 
 function PanelAppIcon({ icon, title }: { icon?: string; title: string }) {

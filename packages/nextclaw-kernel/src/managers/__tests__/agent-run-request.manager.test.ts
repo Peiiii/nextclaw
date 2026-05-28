@@ -97,7 +97,111 @@ describe("AgentRunRequestManager branch session creation", () => {
     expect(handle.sessionId).toBe("session-1");
     manager.dispose();
   });
+});
 
+describe("AgentRunRequestManager peer session identity", () => {
+  it("passes peerId to the session owner instead of materializing sessionId at ingress", async () => {
+    const ingress = new Ingress();
+    const getOrCreateAgentRunSessionCalls: Array<{
+      peerId?: string;
+      sessionId?: string;
+    }> = [];
+    const manager = new AgentRunRequestManager(
+      {
+        getOrCreate: () => ({
+          run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
+        }),
+      } as never,
+      {
+        getDefaultModel: () => "test-model",
+        getModelMaxTokens: () => 12000,
+        loadConfig: () => ({}),
+      } as never,
+      { buildContext: async () => [] } as never,
+      new EventBus(),
+      ingress,
+      {
+        getOrCreateAgentRunSession: async (params: {
+          peerId?: string;
+          sessionId?: string;
+        }) => {
+          getOrCreateAgentRunSessionCalls.push(params);
+          return {
+            sessionId: "agent-peer-stable",
+            agentId: "main",
+            agentRuntimeId: "native",
+            metadata: {},
+            model: "test-model",
+            thinkingEffort: null,
+          };
+        },
+      } as never,
+      {
+        getSessionRun: () => null,
+        createSessionRun: async () => ({
+          inbox: { enqueue: () => undefined },
+          beginRun: () => ({ runId: "run-1", signal: new AbortController().signal }),
+        }),
+      } as never,
+      { buildTools: async () => [] } as never,
+    );
+    manager.start();
+
+    const handle = await ingress.handle<AgentRunSendIngressPayload, NcpRunHandle>({
+      type: ingressKeys.agentRun.send,
+      payload: {
+        content: [{ type: "text", text: "保持这个会话" }],
+        peerId: "mood-summary",
+      },
+    }, { source: "test" });
+
+    expect(getOrCreateAgentRunSessionCalls[0]).toMatchObject({
+      peerId: "mood-summary",
+      sessionId: undefined,
+    });
+    expect(handle.sessionId).toBe("agent-peer-stable");
+    manager.dispose();
+  });
+
+  it("rejects ambiguous agent-run send identity", async () => {
+    const ingress = new Ingress();
+    const manager = new AgentRunRequestManager(
+      {
+        getOrCreate: () => ({
+          run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
+        }),
+      } as never,
+      {
+        getDefaultModel: () => "test-model",
+        getModelMaxTokens: () => 12000,
+        loadConfig: () => ({}),
+      } as never,
+      { buildContext: async () => [] } as never,
+      new EventBus(),
+      ingress,
+      {
+        getOrCreateAgentRunSession: async () => {
+          throw new Error("should not reach session owner");
+        },
+      } as never,
+      { getSessionRun: () => null } as never,
+      { buildTools: async () => [] } as never,
+    );
+    manager.start();
+
+    await expect(ingress.handle<AgentRunSendIngressPayload, NcpRunHandle>({
+      type: ingressKeys.agentRun.send,
+      payload: {
+        content: [{ type: "text", text: "ambiguous" }],
+        peerId: "mood-summary",
+        sessionId: "session-1",
+      },
+    }, { source: "test" })).rejects.toThrow("cannot accept both sessionId and peerId");
+    manager.dispose();
+  });
+});
+
+describe("AgentRunRequestManager event publication", () => {
   it("publishes the final assistant message before run finished for session previews", async () => {
     const ingress = new Ingress();
     const eventBus = new EventBus();

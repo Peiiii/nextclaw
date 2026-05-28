@@ -65,6 +65,15 @@ export class PanelAppStateStore {
     return next;
   };
 
+  deleteEntry = async (id: string): Promise<void> => {
+    const apps = await this.load();
+    if (!(id in apps)) {
+      return;
+    }
+    delete apps[id];
+    await this.persist(apps);
+  };
+
   private persist = async (apps: PanelAppStateSnapshot): Promise<void> => {
     const statePath = this.getStatePath();
     const tempPath = `${statePath}.${randomUUID()}.tmp`;

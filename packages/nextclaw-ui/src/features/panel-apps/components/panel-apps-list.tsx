@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { HelpCircle, RefreshCw } from 'lucide-react';
 import { PanelAppListItem } from '@/features/panel-apps/components/panel-app-list-item';
-import { usePanelApps, useRecordPanelAppOpened, useUpdatePanelAppPreferences } from '@/features/panel-apps/hooks/use-panel-apps';
+import { useDeletePanelApp, usePanelApps, useRecordPanelAppOpened, useUpdatePanelAppPreferences } from '@/features/panel-apps/hooks/use-panel-apps';
 import { getPanelAppViewEntries } from '@/features/panel-apps/utils/panel-app-view.utils';
 import type { PanelAppViewMode } from '@/features/panel-apps/utils/panel-app-view.utils';
 import type { PanelAppEntryView } from '@/shared/lib/api';
@@ -17,6 +17,7 @@ export function PanelAppsList({
   onOpenPanelApp: (entry: PanelAppEntryView) => void;
 }) {
   const panelApps = usePanelApps();
+  const deletePanelApp = useDeletePanelApp();
   const updatePreferences = useUpdatePanelAppPreferences();
   const recordOpened = useRecordPanelAppOpened();
   const [viewMode, setViewMode] = useState<PanelAppViewMode>('smart');
@@ -38,6 +39,10 @@ export function PanelAppsList({
       id: entry.id,
       preferences: { favorite: !entry.favorite },
     });
+  };
+
+  const deleteEntry = (entry: PanelAppEntryView) => {
+    deletePanelApp.mutate(entry.id);
   };
 
   if (panelApps.isLoading) {
@@ -100,7 +105,9 @@ export function PanelAppsList({
               <PanelAppListItem
                 key={entry.id}
                 entry={entry}
+                deletePending={deletePanelApp.isPending}
                 favoritePending={updatePreferences.isPending}
+                onDelete={() => deleteEntry(entry)}
                 onOpen={() => void openPanelApp(entry)}
                 onToggleFavorite={() => toggleFavorite(entry)}
               />
