@@ -1,12 +1,12 @@
 ---
 name: panel-app-creator
-description: Create or update NextClaw Panel Apps shown in the right-side Panel Apps view. Use for lightweight dashboards, tools, forms, boards, visualizations, calculators, disposable UI experiments, single-file HTML apps, folder-based static apps, Service Actions via window.nextclaw.serviceActions, and Agent calls via window.nextclaw.agent.send or window.nextclaw.agent.generateObject.
-description_zh: 创建或修改 NextClaw 右侧面板里的 Panel App。适用于轻量 dashboard、工具、表单、看板、可视化、计算器、可随时丢弃的临时 UI、单文件 HTML 应用、目录式静态应用、通过 window.nextclaw.serviceActions 调用 Service Actions，以及通过 window.nextclaw.agent.send 或 window.nextclaw.agent.generateObject 调用 Agent。
+description: Create or update the Panel App UI part of a NextClaw lightweight app. Use after nextclaw-app-creator selects Panel-only or Panel + Service, or when the user explicitly asks for a right-side Panel App UI, single-file HTML panel, folder-based static panel, Service Actions UI, or Agent-powered Panel App.
+description_zh: 创建或修改 NextClaw 轻量应用中的 Panel App UI 部分。适用于 nextclaw-app-creator 判断为 Panel-only 或 Panel + Service 后，或用户明确要求右侧面板 UI、单文件 HTML 面板、目录式静态面板、Service Actions UI、Agent 驱动的 Panel App。
 ---
 
 # NextClaw Panel App Creator
 
-当用户想做一个轻量 UI、小工具、dashboard、todo board、表单、计算器、数据可视化或一次性 HTML 应用时，优先使用这个 skill。
+当用户需要实现右侧面板 UI 时使用这个专项 skill。若用户表达的是“做一个 NextClaw 小应用”而不是明确只做 UI，先读取 `nextclaw-app-creator` 判断是否还需要 Service App。
 
 ## 输出位置
 

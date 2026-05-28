@@ -70,6 +70,21 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("agent:send");
   });
 
+  it("loads the NextClaw app creator orchestration skill", () => {
+    const workspace = createWorkspace();
+    const loader = new SkillsLoader(workspace);
+    const skill = loader.loadSkill("nextclaw-app-creator");
+
+    expect(skill).toContain("Panel-only");
+    expect(skill).toContain("Service-only");
+    expect(skill).toContain("Panel + Service");
+    expect(skill).toContain("panel-app-creator");
+    expect(skill).toContain("service-app-creator");
+    expect(skill).toContain("window.nextclaw.serviceActions.invoke()");
+    expect(skill).toContain("window.nextclaw.agent.generateObject()");
+    expect(skill).toContain("不要外部生成稳定 `sessionId`");
+  });
+
   it("keeps builtin skill descriptions bilingual", () => {
     const workspace = createWorkspace();
     const loader = new SkillsLoader(workspace);

@@ -1,0 +1,82 @@
+---
+name: nextclaw-app-creator
+description: Create or update complete NextClaw lightweight apps, deciding whether the user needs a Panel App, a Service App, or a combined Panel + Service App. Use for NextClaw applets, small tools, dashboards, local file tools, AI-assisted UI tools, and apps that may combine right-side UI with backend actions.
+description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使用 Panel App、Service App，还是 Panel App + Service App 组合。适用于 NextClaw 小应用、小工具、dashboard、本地文件工具、AI 辅助 UI 工具，以及需要右侧 UI 搭配后端动作的应用。
+---
+
+# NextClaw App Creator
+
+当用户说“做一个应用 / 小工具 / dashboard / 管理器 / 可视化 / 本地文件工具 / AI 辅助工具”时，先使用这个总入口 skill。目标不是把 Panel App 和 Service App 混成一个概念，而是先判断形态，再按需读取专项 skill。
+
+## 先判断应用形态
+
+优先按用户想完成的工作流选择，而不是按技术名词选择：
+
+1. **Panel-only**
+   - 用户主要需要一个可交互 UI、表单、列表、看板、图表、计算器或轻量 dashboard。
+   - 数据可以存在浏览器 `localStorage`。
+   - 不需要读写本地文件、调用外部 API、本地命令或权限动作。
+   - 下一步：读取 `panel-app-creator`。
+
+2. **Service-only**
+   - 用户明确只需要给某个能力提供后端 actions。
+   - 不需要新建右侧 UI。
+   - 典型场景是给已有 Panel App 或未来应用提供文件读写、外部 API、本地命令封装。
+   - 下一步：读取 `service-app-creator`。
+
+3. **Panel + Service**
+   - 用户要的是一个完整小应用，并且 UI 需要后端能力。
+   - 典型信号：读写 workspace 文件、管理 Markdown/记忆/配置、调用外部 API、执行本地命令、需要权限确认、需要多个用户可授权 action。
+   - 下一步：先读取 `service-app-creator` 设计 actions，再读取 `panel-app-creator` 设计 UI 和调用方式。
+
+如果不确定是否需要后端，默认先做 **Panel-only**，并让核心功能完整依赖 `localStorage`。Service App 只在真实需要文件、网络、命令或权限边界时加入。
+
+## 组合原则
+
+- Panel App 是用户界面层，默认展示在右侧面板，必须窄侧栏优先。
+- Service App 是用户自定义后端扩展，提供可授权 actions；它不是 NextClaw 内部系统能力，也不默认投射给 Agent 使用。
+- Panel App 调用 Service App 时，必须通过 `window.nextclaw.serviceActions.invoke()`，并在 Panel App 声明 `nextclaw-panel-actions`。
+- Panel App 调用 Agent 时，必须声明 `nextclaw-panel-capabilities`，并通过 `window.nextclaw.agent.send()` 或 `window.nextclaw.agent.generateObject()`。
+- 不要让 Panel App 自己启动 HTTP server、直连 Service Gateway、伪造 caller、保存 bridge token 或猜测 sessionId。
+- 不要为了“像应用工程”而创建 `package.json`、Vite、node_modules 或后台 dev server；第一版 NextClaw 轻量应用默认是静态 Panel App + 可选 MCP stdio Service App。
+
+## 实现顺序
+
+### Panel-only
+
+1. 读取 `panel-app-creator`。
+2. 选择目录式或单文件形态；不确定时用目录式。
+3. 确保标题、描述、图标、窄侧栏布局和核心交互完整。
+4. 数据默认写入 `localStorage`。
+5. 做 Panel App 打开和刷新验收。
+
+### Service-only
+
+1. 读取 `service-app-creator`。
+2. 设计 `service-app.json.actions`，为每个 action 写清 `title`、`description` 和 `risk`。
+3. 实现 MCP stdio server，不创建 HTTP 常驻端口。
+4. 验证 manifest actions 与 MCP `tools/list` 对齐。
+5. 用“服务应用”面板刷新状态。
+
+### Panel + Service
+
+1. 先读取 `service-app-creator`，确定 action 边界、risk 和入参输出。
+2. 再读取 `panel-app-creator`，实现 UI、allowlist、调用和降级体验。
+3. Panel App 的核心 UI 必须在 Service App 不可用时仍有可理解状态；如确实没有后端就无法完成核心目标，要在 UI 中明确展示需要授权或服务状态，而不是静默失败。
+4. 完成后分别验收 Service App 状态、Panel App 展示、首次授权、action 调用和错误提示。
+
+## 设计约束
+
+- 先做能被用户立即使用的小闭环，不做重型工程脚手架。
+- 一个小应用的 UI、后端 actions、Agent 调用和授权声明必须互相一致。
+- 静态 manifest 是列表、授权和 allowlist 的事实源；不要依赖启动服务后临时发现来决定 UI 是否允许调用。
+- action id 统一使用 `<service-app-id>.<tool-name>`。
+- Agent capability 统一使用 `agent:send`、`agent:generateObject`，不要写 `agent.send`、`agent.generateObject` 或泛化的 `agent`。
+
+## 验收清单
+
+- Panel App：能在“面板应用”列表出现，标题、描述、图标正确；窄侧栏可用；打开后无横向溢出。
+- Service App：能在“服务应用”列表出现，状态不是 failed；manifest actions 非空且有 risk。
+- Panel + Service：Panel App 声明的 `nextclaw-panel-actions` 覆盖实际调用的 action；首次调用触发授权；授权后返回值按业务 payload 读取，不读 `response.result`。
+- Agent：Panel App 声明的 `nextclaw-panel-capabilities` 精确覆盖实际调用；需要稳定会话时传 `peerId`，不要外部生成稳定 `sessionId`。
+- 错误提示：区分 bridge 不存在、未授权、Service Action 调用失败、返回结构不符合预期、Agent capability 未声明。

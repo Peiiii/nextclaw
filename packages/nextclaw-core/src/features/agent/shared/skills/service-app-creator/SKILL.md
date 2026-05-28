@@ -1,12 +1,12 @@
 ---
 name: service-app-creator
-description: Create or update NextClaw Service Apps under the workspace service-apps directory, especially MCP-compatible backend helpers for Panel Apps that need file access, external API calls, or privileged actions.
-description_zh: 创建或修改 NextClaw workspace/service-apps 下的 Service App，尤其适用于给 Panel App 配套后端能力、文件读写、外部 API 调用或需要授权的动作。
+description: Create or update the Service App backend action part of a NextClaw lightweight app. Use after nextclaw-app-creator selects Service-only or Panel + Service, or when the user explicitly asks for workspace service-apps, MCP-compatible backend helpers, file access, external API calls, local commands, or privileged actions.
+description_zh: 创建或修改 NextClaw 轻量应用中的 Service App 后端 action 部分。适用于 nextclaw-app-creator 判断为 Service-only 或 Panel + Service 后，或用户明确要求 workspace/service-apps、MCP 后端 helper、文件访问、外部 API、本地命令或需要授权的动作。
 ---
 
 # NextClaw Service App Creator
 
-当用户要给 Panel App、小工具或轻量应用增加后端能力时使用这个 skill。第一版 Service App 是用户自定义后端扩展，不是 NextClaw 内部系统能力，也不默认投射给 Agent 使用。
+当用户要给 Panel App、小工具或轻量应用增加后端 actions 时使用这个专项 skill。若用户表达的是“做一个完整 NextClaw 小应用”，先读取 `nextclaw-app-creator` 判断是否还需要 Panel App。第一版 Service App 是用户自定义后端扩展，不是 NextClaw 内部系统能力，也不默认投射给 Agent 使用。
 
 ## 输出位置
 
