@@ -2,30 +2,14 @@ import type { ReactNode, Ref } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
-  BookOpen,
   ExternalLink,
-  Maximize2,
-  PanelRightOpen,
   Search,
-  X,
 } from 'lucide-react';
 import {
   isDocsUrl,
   type DocBrowserTab,
 } from './doc-browser-context';
-import type { DocBrowserCustomTabRenderer } from './doc-browser-renderer.types';
-import { cn } from '@/shared/lib/utils';
 import { t } from '@/shared/lib/i18n';
-
-type DocBrowserPanelHeaderProps = {
-  currentTab?: DocBrowserTab;
-  customRenderer?: DocBrowserCustomTabRenderer;
-  isDocked: boolean;
-  isFullscreen: boolean;
-  onClose: () => void;
-  onDragStart: (e: React.PointerEvent<HTMLElement>) => void;
-  onToggleMode: () => void;
-};
 
 type DocBrowserDocsToolbarProps = {
   currentTab?: DocBrowserTab;
@@ -49,57 +33,6 @@ type DocBrowserFrameContentProps = {
   isResizing: boolean;
   navVersion: number;
 };
-
-export function DocBrowserPanelHeader({
-  currentTab,
-  customRenderer,
-  isDocked,
-  isFullscreen,
-  onClose,
-  onDragStart,
-  onToggleMode,
-}: DocBrowserPanelHeaderProps) {
-  const title = currentTab && customRenderer?.getTitle
-    ? customRenderer.getTitle(currentTab)
-    : t('docBrowserTitle');
-  const icon = currentTab && customRenderer?.renderIcon
-    ? customRenderer.renderIcon(currentTab)
-    : <BookOpen className="w-4 h-4 text-primary shrink-0" />;
-
-  return (
-    <div
-      className={cn(
-        'flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200 shrink-0 select-none',
-        !isDocked && !isFullscreen && 'cursor-grab active:cursor-grabbing',
-        isFullscreen && 'pt-[calc(env(safe-area-inset-top,0px)+0.625rem)]',
-      )}
-      onPointerDown={!isDocked && !isFullscreen ? onDragStart : undefined}
-    >
-      <div className="flex items-center gap-2.5 min-w-0">
-        {icon}
-        <span className="text-sm font-semibold text-gray-900 truncate">{title}</span>
-      </div>
-      <div className="flex items-center gap-1">
-        {!isFullscreen ? (
-          <button
-            onClick={onToggleMode}
-            className="hover:bg-gray-200 rounded-md p-1.5 text-gray-500 hover:text-gray-700 transition-colors"
-            title={isDocked ? t('docBrowserFloatMode') : t('docBrowserDockMode')}
-          >
-            {isDocked ? <Maximize2 className="w-3.5 h-3.5" /> : <PanelRightOpen className="w-3.5 h-3.5" />}
-          </button>
-        ) : null}
-        <button
-          onClick={onClose}
-          className="hover:bg-gray-200 rounded-md p-1.5 text-gray-500 hover:text-gray-700 transition-colors"
-          title={t('docBrowserClose')}
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export function DocBrowserDocsToolbar({
   currentTab,

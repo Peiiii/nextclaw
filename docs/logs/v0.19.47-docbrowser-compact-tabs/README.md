@@ -1,0 +1,43 @@
+# v0.19.47 DocBrowser Compact Tabs
+
+## 迭代完成说明
+
+- 将内嵌浏览器独立标题栏收敛到标签栏：关闭、浮动/停靠按钮进入 tab 同一行，移除重复标题展示。
+- 调整标签栏布局：tabs 区域作为独立横向滚动层占据剩余空间，右侧操作按钮固定在 titlebar 最右侧，不跟随 tabs 横向滚动。
+- 为内嵌浏览器 tabs 添加专用薄滚动条，避免复用全局滚动条导致标签栏显得过厚。
+
+## 测试/验证/验收方式
+
+- `pnpm -C packages/nextclaw-ui exec vitest run src/shared/components/doc-browser/doc-browser.test.tsx`：通过。
+- `pnpm -C packages/nextclaw-ui tsc`：通过。
+- `pnpm -C packages/nextclaw-ui exec eslint src/shared/components/doc-browser/doc-browser.tsx src/shared/components/doc-browser/doc-browser-tab-strip.tsx src/shared/components/doc-browser/doc-browser-panel-parts.tsx src/shared/components/doc-browser/doc-browser.test.tsx src/index.css`：触达 TS/TSX 文件无错误；`src/index.css` 被当前 ESLint 配置忽略。
+- `pnpm -C packages/nextclaw-ui lint -- ...`：包级 lint 被既有无关错误阻塞，本次改动改用触达文件 ESLint 验证。
+- `pnpm lint:new-code:governance`：通过。
+- `pnpm check:governance-backlog-ratchet`：通过。
+- 本地 Vite 冒烟：复用 `http://127.0.0.1:5174`，确认 `doc-browser-tab-strip` 加载当前源码；单 tab 场景下新建标签按钮与右侧操作按钮间距为 `8px`，tabs 滚动区域应用 `doc-browser-tab-scrollbar`。
+- 滚动条位置冒烟：多 tab 场景下 titlebar 高 `44px`，scroll 容器底边到 titlebar 底边距离为 `1px`，该距离等于底部分界线自身宽度，滚动条已贴近分界线。
+- 右侧操作按钮定位冒烟：多 tab 场景下 actions 到 titlebar 右边距离为 `10px`，等于外层右内边距；tabs scroll 区域独立滚动，actions 不参与横向滚动。
+
+## 发布/部署方式
+
+- 未发布。
+- 本次只修改前端源码与样式，后续随常规前端发布批次进入包发布或桌面打包。
+
+## 用户/产品视角的验收步骤
+
+1. 打开 NextClaw 桌面或 Web UI。
+2. 打开内嵌浏览器。
+3. 确认顶部只有一行：tabs、添加按钮、浮动/停靠按钮、关闭按钮位于同一行。
+4. 确认 tabs 与右侧按钮之间没有大段空白。
+5. 创建多个标签，确认标签区域横向滚动条明显变薄。
+
+## 可维护性总结汇总
+
+- 已使用 `post-edit-maintainability-guard` 与 `post-edit-maintainability-review` 口径复核。
+- 本次正向减债动作为删除与职责收敛：删除独立 `DocBrowserPanelHeader` 组件，把窗口级操作合并进现有 `DocBrowserTabStrip`，避免标题栏和标签栏重复承担顶部 chrome 职责。
+- 代码体积未增长：总计 `+126 / -121 / net +5`；排除测试后为 `+116 / -121 / net -5`。
+- 未新增文件组织或目录膨胀；doc browser 顶部 UI owner 更集中。
+
+## NPM 包发布记录
+
+不涉及 NPM 包发布。

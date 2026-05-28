@@ -91,6 +91,29 @@
     background: hsl(var(--gray-400) / 0.48);
   }
 
+  .doc-browser-tab-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--gray-300) / 0.34) transparent;
+  }
+
+  .doc-browser-tab-scrollbar::-webkit-scrollbar {
+    width: 2px;
+    height: 2px;
+  }
+
+  .doc-browser-tab-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .doc-browser-tab-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--gray-300) / 0.34);
+    border-radius: 999px;
+  }
+
+  .doc-browser-tab-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--gray-400) / 0.44);
+  }
+
   /* ========================================
      GLASSMORPHISM
      ======================================== */

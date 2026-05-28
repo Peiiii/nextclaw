@@ -99,6 +99,16 @@ describe("DocBrowser", () => {
     expect(panel.querySelector(".cursor-se-resize")).toBeNull();
   });
 
+  it("keeps browser window controls on the tab strip", () => {
+    render(<DocBrowser />);
+
+    const tabStrip = screen.getByTestId("doc-browser-tab-strip");
+
+    expect(tabStrip.contains(screen.getByTitle("Float Window"))).toBe(true);
+    expect(tabStrip.contains(screen.getByTitle("Close"))).toBe(true);
+    expect(screen.queryByText("Embedded Browser")).toBeNull();
+  });
+
   it("keeps the floating panel left edge stable when resizing from the right", () => {
     docBrowserState.mode = "floating";
 

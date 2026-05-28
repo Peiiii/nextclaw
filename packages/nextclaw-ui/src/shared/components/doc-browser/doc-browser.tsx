@@ -8,7 +8,6 @@ import {
   DocBrowserDocsToolbar,
   DocBrowserExternalLink,
   DocBrowserFrameContent,
-  DocBrowserPanelHeader,
 } from './doc-browser-panel-parts';
 import { DocBrowserTabStrip } from './doc-browser-tab-strip';
 import { ResizableRightPanel } from '@/shared/components/resizable-right-panel/resizable-right-panel';
@@ -243,22 +242,17 @@ export function DocBrowser({
 
   const panelContent = (
     <>
-      <DocBrowserPanelHeader
-        currentTab={currentTab}
-        customRenderer={customRenderer}
-        isDocked={isDocked}
-        isFullscreen={isFullscreen}
-        onClose={close}
-        onDragStart={startFloatDrag}
-        onToggleMode={toggleMode}
-      />
-
       <DocBrowserTabStrip
         tabs={tabs}
         activeTabId={activeTabId}
+        isDocked={isDocked}
+        isFullscreen={isFullscreen}
         onOpenDocs={() => open(undefined, { kind: 'docs', newTab: true, title: 'Docs' })}
         onSetActiveTab={setActiveTab}
         onCloseTab={closeTab}
+        onClose={close}
+        onDragStart={startFloatDrag}
+        onToggleMode={toggleMode}
       />
 
       <DocBrowserDocsToolbar
