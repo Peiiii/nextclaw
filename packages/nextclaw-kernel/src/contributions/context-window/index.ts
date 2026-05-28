@@ -98,7 +98,7 @@ export class ContextWindowContribution implements KernelContribution {
       this.pendingTimers.delete(sessionId);
     }
     void this.publishContextWindow(sessionId).catch((error: unknown) => {
-      console.error(`[kernel-branch-context-window] failed to refresh ${sessionId}: ${formatBackgroundError(error)}`);
+      console.error(`[context-window] failed to refresh ${sessionId}: ${formatBackgroundError(error)}`);
     });
   };
 
@@ -134,7 +134,7 @@ export class ContextWindowContribution implements KernelContribution {
       },
     }, {
       emittedAt: new Date().toISOString(),
-      source: "kernel-branch-context-window",
+      source: "context-window",
     });
   };
 

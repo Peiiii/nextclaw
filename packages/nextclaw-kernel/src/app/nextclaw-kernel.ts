@@ -15,6 +15,7 @@ import {
   SessionRequestManager,
 } from "@kernel/features/session-request/index.js";
 import { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
+import { ContextWindowContribution } from "@kernel/contributions/context-window/index.js";
 import { LearningLoopContribution } from "@kernel/contributions/learning-loop/index.js";
 import { SessionActivityPreviewContribution } from "@kernel/contributions/session-activity-preview/index.js";
 import { ToolProviderContribution } from "@kernel/contributions/tool-provider/index.js";
@@ -40,9 +41,6 @@ export type NextclawKernelOptions = {
   homeDir?: string;
   configPath?: string;
 };
-
-type AgentRunContribution = KernelContribution &
-  Pick<KernelBranch, "listSessionTypes" | "isSessionRunning">;
 
 function resolveKernelSessionsDir(options: NextclawKernelOptions): string {
   const homeDir = options.homeDir?.trim();
@@ -119,7 +117,6 @@ export class NextclawKernel {
   readonly extensions: ExtensionManager;
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
   private readonly kernelBranch: KernelBranch;
-  private readonly agentRunContribution: AgentRunContribution;
   private readonly contributions: KernelContribution[];
   private gatewayController: GatewayController | undefined;
 
@@ -196,20 +193,20 @@ export class NextclawKernel {
       }),
     });
     this.kernelBranch = new KernelBranch(this);
-    this.agentRunContribution = this.kernelBranch;
     this.contributions = [
       new ToolProviderContribution(this, this.kernelBranch),
       new SessionActivityPreviewContribution(this),
       new LearningLoopContribution(this),
-      this.agentRunContribution,
+      this.kernelBranch,
+      new ContextWindowContribution(this, this.kernelBranch),
     ];
   }
 
   listSessionTypes = (params?: AgentRuntimeSessionTypeDescribeParams) =>
-    this.agentRunContribution.listSessionTypes(params);
+    this.kernelBranch.listSessionTypes(params);
 
   isSessionRunning = (sessionId: string): boolean =>
-    this.agentRunContribution.isSessionRunning(sessionId);
+    this.kernelBranch.isSessionRunning(sessionId);
 
   provideGatewayController = (gatewayController: GatewayController): void => {
     this.gatewayController = gatewayController;

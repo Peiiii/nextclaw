@@ -1,6 +1,5 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import { AgentRunRuntimeContribution } from "@kernel/contributions/kernel-branch/contributions/agent-run-runtime/index.js";
-import { ContextWindowContribution } from "@kernel/contributions/kernel-branch/contributions/context-window/index.js";
 import { ContextProviderContribution } from "@kernel/contributions/kernel-branch/contributions/context-provider/index.js";
 import {
   AgentRunContextCompactionManager,
@@ -51,7 +50,6 @@ export class KernelBranch implements KernelContribution {
     );
     this.contributions = [
       new ContextProviderContribution(kernel, this),
-      new ContextWindowContribution(kernel, this),
       new AgentRunRuntimeContribution(kernel, this),
     ];
   }
