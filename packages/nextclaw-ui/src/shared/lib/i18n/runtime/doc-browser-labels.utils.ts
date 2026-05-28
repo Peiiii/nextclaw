@@ -8,6 +8,7 @@ export const DOC_BROWSER_LABELS = {
   docBrowserClose: { zh: '关闭', en: 'Close' },
   docBrowserHelp: { zh: '帮助文档', en: 'Help Docs' },
   docBrowserNewTab: { zh: '新建标签', en: 'New Tab' },
+  docBrowserHomeTitle: { zh: '导航页', en: 'Start Page' },
   docBrowserCloseTab: { zh: '关闭标签', en: 'Close Tab' },
   docBrowserTabUntitled: { zh: '未命名', en: 'Untitled' },
   appsTitle: { zh: '应用', en: 'Apps' },

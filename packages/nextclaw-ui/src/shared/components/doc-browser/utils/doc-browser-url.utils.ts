@@ -11,6 +11,8 @@ const DOCS_HOSTS = new Set([
 ]);
 
 export const DOCS_DEFAULT_BASE_URL = `https://${DOCS_PRIMARY_DOMAIN}`;
+export const DOC_BROWSER_HOME_TAB_KIND = 'home';
+export const DOC_BROWSER_HOME_URL = 'nextclaw://new-tab';
 const DOCS_DEFAULT_GUIDE_PATH = '/guide/getting-started';
 
 function toDocsLocale(language: I18nLanguage): 'en' | 'zh' {

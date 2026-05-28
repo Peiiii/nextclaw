@@ -5,18 +5,24 @@
 - 将内嵌浏览器独立标题栏收敛到标签栏：关闭、浮动/停靠按钮进入 tab 同一行，移除重复标题展示。
 - 调整标签栏布局：tabs 区域作为独立横向滚动层占据剩余空间，右侧操作按钮固定在 titlebar 最右侧，不跟随 tabs 横向滚动。
 - 为内嵌浏览器 tabs 添加专用薄滚动条，避免复用全局滚动条导致标签栏显得过厚。
+- 将新建标签加号移入右侧固定操作区，并把默认新建内容从文档首页升级为 `nextclaw://new-tab` 导航页。
+- 新建导航页第一版提供应用、服务应用、帮助文档、技能市场、MCP 市场入口；应用和文档在 doc browser 内打开，市场入口走应用内路由导航。
+- 导航页视觉改为新建页/launcher 形态：主体直接使用自适应彩色图标网格，移除页面标题、副标题、卡片列表、URL meta 和孤立标题图标。
 
 ## 测试/验证/验收方式
 
-- `pnpm -C packages/nextclaw-ui exec vitest run src/shared/components/doc-browser/doc-browser.test.tsx`：通过。
+- `pnpm -C packages/nextclaw-ui exec vitest run src/shared/components/doc-browser/doc-browser.test.tsx src/shared/components/doc-browser/doc-browser-context.test.tsx`：通过。
 - `pnpm -C packages/nextclaw-ui tsc`：通过。
-- `pnpm -C packages/nextclaw-ui exec eslint src/shared/components/doc-browser/doc-browser.tsx src/shared/components/doc-browser/doc-browser-tab-strip.tsx src/shared/components/doc-browser/doc-browser-panel-parts.tsx src/shared/components/doc-browser/doc-browser.test.tsx src/index.css`：触达 TS/TSX 文件无错误；`src/index.css` 被当前 ESLint 配置忽略。
+- `pnpm -C packages/nextclaw-ui exec eslint ...`：触达 TS/TSX 文件无错误；`src/index.css` 被当前 ESLint 配置忽略。
 - `pnpm -C packages/nextclaw-ui lint -- ...`：包级 lint 被既有无关错误阻塞，本次改动改用触达文件 ESLint 验证。
 - `pnpm lint:new-code:governance`：通过。
 - `pnpm check:governance-backlog-ratchet`：通过。
 - 本地 Vite 冒烟：复用 `http://127.0.0.1:5174`，确认 `doc-browser-tab-strip` 加载当前源码；单 tab 场景下新建标签按钮与右侧操作按钮间距为 `8px`，tabs 滚动区域应用 `doc-browser-tab-scrollbar`。
 - 滚动条位置冒烟：多 tab 场景下 titlebar 高 `44px`，scroll 容器底边到 titlebar 底边距离为 `1px`，该距离等于底部分界线自身宽度，滚动条已贴近分界线。
 - 右侧操作按钮定位冒烟：多 tab 场景下 actions 到 titlebar 右边距离为 `10px`，等于外层右内边距；tabs scroll 区域独立滚动，actions 不参与横向滚动。
+- 新建页冒烟：点击右侧固定 `New Tab` 后打开 `Start Page`，导航卡片包含 Apps、Service Apps、Help Docs、Skill Marketplace、MCP Marketplace。
+- 视觉冒烟：截图确认导航页内容靠上、入口为图标网格，正文不再出现 `Start Page`/`NextClaw` 标题区。
+- 自适应网格冒烟：默认 `420px` 面板下首行 3 个入口；临时扩展到 `760px` 后首行自动展示 5 个入口，确认不再写死列数。
 
 ## 发布/部署方式
 
@@ -27,16 +33,17 @@
 
 1. 打开 NextClaw 桌面或 Web UI。
 2. 打开内嵌浏览器。
-3. 确认顶部只有一行：tabs、添加按钮、浮动/停靠按钮、关闭按钮位于同一行。
-4. 确认 tabs 与右侧按钮之间没有大段空白。
-5. 创建多个标签，确认标签区域横向滚动条明显变薄。
+3. 确认顶部只有一行：tabs 位于左侧滚动区，添加按钮、浮动/停靠按钮、关闭按钮固定在右侧。
+4. 点击添加按钮，确认打开导航页而不是直接打开文档首页。
+5. 确认导航页以自适应图标网格展示应用、服务应用、文档和市场入口，宽度变化时列数随可用空间变化。
+6. 创建多个标签，确认标签区域横向滚动条贴近底部分界线且明显变薄。
 
 ## 可维护性总结汇总
 
 - 已使用 `post-edit-maintainability-guard` 与 `post-edit-maintainability-review` 口径复核。
 - 本次正向减债动作为删除与职责收敛：删除独立 `DocBrowserPanelHeader` 组件，把窗口级操作合并进现有 `DocBrowserTabStrip`，避免标题栏和标签栏重复承担顶部 chrome 职责。
-- 代码体积未增长：总计 `+126 / -121 / net +5`；排除测试后为 `+116 / -121 / net -5`。
-- 未新增文件组织或目录膨胀；doc browser 顶部 UI owner 更集中。
+- 顶部 UI owner 更集中：加号、浮动/停靠、关闭都归右侧固定 action group；tabs 只负责选择、关闭和横向滚动。
+- 新增 `doc-browser-home-page.tsx` 是展示组件，不新增 manager/service 假 owner；新建页 tab 语义由 doc browser URL owner 提供。
 
 ## NPM 包发布记录
 

@@ -160,6 +160,24 @@ describe('DocBrowserProvider dedupe keys', () => {
       kind: 'apps',
     });
   });
+
+  it('opens the built-in start page without falling back to docs', () => {
+    const { result } = renderHook(() => useDocBrowser(), { wrapper });
+
+    act(() => {
+      result.current.open(undefined, {
+        kind: 'home',
+        newTab: true,
+        title: 'Start Page',
+      });
+    });
+
+    expect(result.current.currentTab).toMatchObject({
+      currentUrl: 'nextclaw://new-tab',
+      kind: 'home',
+      title: 'Start Page',
+    });
+  });
 });
 
 describe('DocBrowserProvider persistence', () => {

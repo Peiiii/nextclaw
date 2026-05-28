@@ -9,7 +9,7 @@ type DocBrowserTabStripProps = {
   activeTabId: string;
   isDocked: boolean;
   isFullscreen: boolean;
-  onOpenDocs: () => void;
+  onOpenNewTab: () => void;
   onSetActiveTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
   onClose: () => void;
@@ -22,7 +22,7 @@ export function DocBrowserTabStrip({
   activeTabId,
   isDocked,
   isFullscreen,
-  onOpenDocs,
+  onOpenNewTab,
   onSetActiveTab,
   onCloseTab,
   onClose,
@@ -76,20 +76,20 @@ export function DocBrowserTabStrip({
             </div>
           );
         })}
-        <button
-          type="button"
-          onClick={onOpenDocs}
-          className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-[#eee3d1] bg-white text-[#78644d] hover:bg-[#fff7ea] hover:text-[#2f2212] shrink-0"
-          title={t('docBrowserNewTab')}
-        >
-          <Plus className="w-3.5 h-3.5" />
-        </button>
       </div>
       <div
         className="flex h-full items-center gap-1 shrink-0"
         data-testid="doc-browser-tab-actions"
         onPointerDown={(event) => event.stopPropagation()}
       >
+        <button
+          type="button"
+          onClick={onOpenNewTab}
+          className="hover:bg-gray-100 rounded-md p-1.5 text-gray-500 hover:text-gray-700 transition-colors"
+          title={t('docBrowserNewTab')}
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </button>
         {!isFullscreen ? (
           <button
             type="button"

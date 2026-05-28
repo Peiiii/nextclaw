@@ -1,8 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   DOCS_DEFAULT_BASE_URL,
+  DOC_BROWSER_HOME_TAB_KIND,
+  DOC_BROWSER_HOME_URL,
   useDocBrowser,
 } from './doc-browser-context';
+import { DocBrowserHomePage } from './doc-browser-home-page';
 import type { DocBrowserCustomTabRenderers } from './doc-browser-renderer.types';
 import {
   DocBrowserDocsToolbar,
@@ -12,6 +15,7 @@ import {
 import { DocBrowserTabStrip } from './doc-browser-tab-strip';
 import { ResizableRightPanel } from '@/shared/components/resizable-right-panel/resizable-right-panel';
 import { cn } from '@/shared/lib/utils';
+import { t } from '@/shared/lib/i18n';
 import { GripVertical } from 'lucide-react';
 
 type DocBrowserProps = {
@@ -72,6 +76,7 @@ export function DocBrowser({
   const navVersion = currentTab?.navVersion ?? 0;
   const prevNavVersionRef = useRef(navVersion);
   const isDocsTab = currentTab?.kind === 'docs';
+  const isHomeTab = currentTab?.kind === DOC_BROWSER_HOME_TAB_KIND;
   const customRenderer = currentTab ? customTabRenderers[currentTab.kind] : undefined;
 
   useEffect(() => {
@@ -235,7 +240,9 @@ export function DocBrowser({
     tab: currentTab,
   } : undefined;
   const customToolbar = customRenderParams ? customRenderer?.renderToolbar?.(customRenderParams) : null;
-  const customContent = customRenderParams ? customRenderer?.renderContent?.(customRenderParams) : null;
+  const customContent = customRenderParams
+    ? customRenderer?.renderContent?.(customRenderParams) ?? (isHomeTab ? <DocBrowserHomePage open={open} /> : null)
+    : null;
   const iframeSandbox = currentTab
     ? customRenderer?.getIframeSandbox?.(currentTab) ?? 'allow-same-origin allow-scripts allow-popups allow-forms'
     : 'allow-same-origin allow-scripts allow-popups allow-forms';
@@ -247,7 +254,7 @@ export function DocBrowser({
         activeTabId={activeTabId}
         isDocked={isDocked}
         isFullscreen={isFullscreen}
-        onOpenDocs={() => open(undefined, { kind: 'docs', newTab: true, title: 'Docs' })}
+        onOpenNewTab={() => open(DOC_BROWSER_HOME_URL, { kind: DOC_BROWSER_HOME_TAB_KIND, newTab: true, title: t('docBrowserHomeTitle') })}
         onSetActiveTab={setActiveTab}
         onCloseTab={closeTab}
         onClose={close}

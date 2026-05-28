@@ -1,8 +1,18 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DocBrowser } from "@/shared/components/doc-browser/doc-browser";
+import type { DocBrowserContextValue, DocBrowserTab } from "@/shared/components/doc-browser/doc-browser-context";
 
-const { docBrowserState } = vi.hoisted(() => ({
+const { navigateMock } = vi.hoisted(() => ({
+  navigateMock: vi.fn(),
+}));
+
+vi.mock("react-router-dom", async () => ({
+  ...(await vi.importActual("react-router-dom") as object),
+  useNavigate: () => navigateMock,
+}));
+
+const { docBrowserState } = vi.hoisted<{ docBrowserState: DocBrowserContextValue }>(() => ({
   docBrowserState: {
     isOpen: true,
     mode: "docked" as "docked" | "floating",
@@ -27,6 +37,7 @@ const { docBrowserState } = vi.hoisted(() => ({
       historyIndex: 0,
       navVersion: 0,
     },
+    open: vi.fn(),
     close: vi.fn(),
     toggleMode: vi.fn(),
     goBack: vi.fn(),
@@ -65,7 +76,21 @@ function firePointerEvent(
 
 describe("DocBrowser", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     docBrowserState.mode = "docked";
+    docBrowserState.tabs = [
+      {
+        id: "docs",
+        kind: "docs" as const,
+        title: "Docs",
+        currentUrl: "https://docs.nextclaw.io/en/guide/getting-started",
+        history: ["https://docs.nextclaw.io/en/guide/getting-started"],
+        historyIndex: 0,
+        navVersion: 0,
+      },
+    ];
+    docBrowserState.activeTabId = "docs";
+    docBrowserState.currentTab = docBrowserState.tabs[0];
     Object.defineProperty(window, "innerWidth", {
       configurable: true,
       value: 1200,
@@ -103,10 +128,46 @@ describe("DocBrowser", () => {
     render(<DocBrowser />);
 
     const tabStrip = screen.getByTestId("doc-browser-tab-strip");
+    const tabActions = screen.getByTestId("doc-browser-tab-actions");
 
     expect(tabStrip.contains(screen.getByTitle("Float Window"))).toBe(true);
     expect(tabStrip.contains(screen.getByTitle("Close"))).toBe(true);
+    expect(tabActions.contains(screen.getByTitle("New Tab"))).toBe(true);
     expect(screen.queryByText("Embedded Browser")).toBeNull();
+  });
+
+  it("opens the start page from the fixed new tab action", () => {
+    render(<DocBrowser />);
+
+    fireEvent.click(screen.getByTitle("New Tab"));
+
+    expect(docBrowserState.open).toHaveBeenCalledWith("nextclaw://new-tab", {
+      kind: "home",
+      newTab: true,
+      title: "Start Page",
+    });
+  });
+
+  it("renders a start page for home tabs", () => {
+    const homeTab: DocBrowserTab = {
+      id: "home",
+      kind: "home" as const,
+      title: "Start Page",
+      currentUrl: "nextclaw://new-tab",
+      history: ["nextclaw://new-tab"],
+      historyIndex: 0,
+      navVersion: 0,
+    };
+    docBrowserState.tabs = [homeTab];
+    docBrowserState.activeTabId = homeTab.id;
+    docBrowserState.currentTab = homeTab;
+
+    render(<DocBrowser />);
+
+    expect(screen.getAllByText("Start Page").length).toBeGreaterThan(0);
+    expect(screen.getByText("Apps")).toBeTruthy();
+    expect(screen.getByText("Service Apps")).toBeTruthy();
+    expect(screen.getByText("Help Docs")).toBeTruthy();
   });
 
   it("keeps the floating panel left edge stable when resizing from the right", () => {

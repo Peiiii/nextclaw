@@ -10,6 +10,8 @@ import {
   createDocBrowserTab,
 } from '@/shared/components/doc-browser/utils/doc-browser-state.utils';
 import {
+  DOC_BROWSER_HOME_TAB_KIND,
+  DOC_BROWSER_HOME_URL,
   getDefaultDocsUrl,
   inferTabKind,
   normalizeDocUrl,
@@ -83,6 +85,9 @@ function resolveOpenTargetUrl(params: {
 
   if (kind === 'docs') {
     return getDefaultDocsUrl();
+  }
+  if (kind === DOC_BROWSER_HOME_TAB_KIND) {
+    return DOC_BROWSER_HOME_URL;
   }
   return activeTab?.currentUrl ?? getDefaultDocsUrl();
 }
