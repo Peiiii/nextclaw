@@ -165,17 +165,58 @@ describe('DocBrowserProvider dedupe keys', () => {
     const { result } = renderHook(() => useDocBrowser(), { wrapper });
 
     act(() => {
-      result.current.open(undefined, {
-        kind: 'home',
-        newTab: true,
-        title: 'Start Page',
-      });
+      result.current.openNewTab();
     });
 
     expect(result.current.currentTab).toMatchObject({
       currentUrl: 'nextclaw://new-tab',
       kind: 'home',
       title: 'Start Page',
+    });
+  });
+
+  it('infers built-in apps routes without component-level options', () => {
+    const { result } = renderHook(() => useDocBrowser(), { wrapper });
+
+    act(() => {
+      result.current.open('nextclaw://apps?tab=service-apps');
+    });
+
+    expect(result.current.currentTab).toMatchObject({
+      currentUrl: 'nextclaw://apps?tab=service-apps',
+      dedupeKey: 'apps',
+      kind: 'apps',
+      title: 'Service Apps',
+    });
+  });
+
+  it('uses managed history for non-doc routes', () => {
+    const { result } = renderHook(() => useDocBrowser(), { wrapper });
+
+    act(() => {
+      result.current.open('data:text/html,A', {
+        kind: 'content',
+        title: 'A',
+      });
+    });
+    act(() => {
+      result.current.navigate('data:text/html,B');
+    });
+
+    expect(result.current.currentTab).toMatchObject({
+      currentUrl: 'data:text/html,B',
+      historyIndex: 1,
+      kind: 'content',
+    });
+
+    act(() => {
+      result.current.goBack();
+    });
+
+    expect(result.current.currentTab).toMatchObject({
+      currentUrl: 'data:text/html,A',
+      historyIndex: 0,
+      kind: 'content',
     });
   });
 });

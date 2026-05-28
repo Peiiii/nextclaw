@@ -11,12 +11,11 @@ import {
 } from '@/shared/components/doc-browser/utils/doc-browser-state.utils';
 import {
   DOC_BROWSER_HOME_TAB_KIND,
-  DOC_BROWSER_HOME_URL,
   getDefaultDocsUrl,
-  inferTabKind,
-  normalizeDocUrl,
-  normalizeUrlByKind,
 } from '@/shared/components/doc-browser/utils/doc-browser-url.utils';
+import {
+  docBrowserRouteRegistry,
+} from '@/shared/components/doc-browser/utils/doc-browser-route-registry.utils';
 import { useDocBrowserStore } from '@/shared/components/doc-browser/stores/doc-browser.store';
 
 function updateTab(
@@ -34,62 +33,34 @@ function updateActiveTab(state: DocBrowserState, updater: (tab: DocBrowserTab) =
   return updateTab(state, state.activeTabId, updater);
 }
 
-function areOpenUrlsEquivalent(
-  currentUrl: string,
-  nextUrl: string,
-  currentKind: DocBrowserTabKind,
-  nextKind: DocBrowserTabKind,
-): boolean {
-  if (currentKind === 'docs' && nextKind === 'docs') {
-    return normalizeDocUrl(currentUrl) === normalizeDocUrl(nextUrl);
-  }
-  return currentUrl === nextUrl;
-}
-
 function updateTabForOpen(
   tab: DocBrowserTab,
-  url: string,
-  kind: DocBrowserTabKind,
+  target: {
+    kind: DocBrowserTabKind;
+    title: string;
+    url: string;
+  },
   options?: DocBrowserOpenOptions,
   dedupeKey?: string,
 ): DocBrowserTab {
   const baseTab = {
     ...tab,
-    title: options?.title || tab.title,
-    kind,
+    title: options?.title || target.title || tab.title,
+    kind: target.kind,
     dedupeKey,
   };
 
-  if (areOpenUrlsEquivalent(tab.currentUrl, url, tab.kind, kind)) {
+  if (docBrowserRouteRegistry.areUrlsEquivalent(tab.currentUrl, target.url, tab.kind, target.kind)) {
     return baseTab;
   }
 
   return {
     ...baseTab,
-    currentUrl: url,
-    history: [...tab.history.slice(0, tab.historyIndex + 1), url],
+    currentUrl: target.url,
+    history: [...tab.history.slice(0, tab.historyIndex + 1), target.url],
     historyIndex: tab.historyIndex + 1,
     navVersion: tab.navVersion + 1,
   };
-}
-
-function resolveOpenTargetUrl(params: {
-  url?: string;
-  kind: DocBrowserTabKind;
-  activeTab?: DocBrowserTab;
-}): string {
-  const { activeTab, kind, url } = params;
-  if (url && url.trim().length > 0) {
-    return normalizeUrlByKind(url, kind);
-  }
-
-  if (kind === 'docs') {
-    return getDefaultDocsUrl();
-  }
-  if (kind === DOC_BROWSER_HOME_TAB_KIND) {
-    return DOC_BROWSER_HOME_URL;
-  }
-  return activeTab?.currentUrl ?? getDefaultDocsUrl();
 }
 
 function openDocBrowserState(
@@ -105,9 +76,12 @@ function openDocBrowserState(
     title,
   } = options ?? {};
   const activeTab = prev.tabs.find((tab) => tab.id === prev.activeTabId) ?? prev.tabs[0];
-  const targetKind = kind ?? (url ? inferTabKind(url) : activeTab?.kind ?? 'docs');
-  const targetUrl = resolveOpenTargetUrl({ url, kind: targetKind, activeTab });
-  const dedupeKey = rawDedupeKey?.trim() || undefined;
+  const target = docBrowserRouteRegistry.resolveOpenTarget({
+    activeTab,
+    kind,
+    url,
+  });
+  const dedupeKey = rawDedupeKey?.trim() || target.dedupeKey;
   const matchedTab = dedupeKey
     ? prev.tabs.find((tab) => tab.dedupeKey === dedupeKey)
     : undefined;
@@ -116,7 +90,7 @@ function openDocBrowserState(
     const next = updateTab(
       prev,
       matchedTab.id,
-      (tab) => updateTabForOpen(tab, targetUrl, targetKind, options, dedupeKey),
+      (tab) => updateTabForOpen(tab, target, options, dedupeKey),
     );
     return {
       ...next,
@@ -125,8 +99,8 @@ function openDocBrowserState(
     };
   }
 
-  if (shouldForceNewTab || dedupeKey || !activeTab || activeTab.kind !== targetKind) {
-    const newTab = createDocBrowserTab(targetUrl, targetKind, title, dedupeKey);
+  if (shouldForceNewTab || dedupeKey || !activeTab || activeTab.kind !== target.kind) {
+    const newTab = createDocBrowserTab(target.url, target.kind, title ?? target.title, dedupeKey);
     return {
       ...prev,
       isOpen: true,
@@ -137,7 +111,7 @@ function openDocBrowserState(
 
   const next = updateActiveTab(
     prev,
-    (tab) => updateTabForOpen(tab, targetUrl, targetKind, options, dedupeKey),
+    (tab) => updateTabForOpen(tab, target, options, dedupeKey),
   );
   return { ...next, isOpen: true };
 }
@@ -149,6 +123,10 @@ export class DocBrowserManager {
 
   readonly open = (url?: string, options?: DocBrowserOpenOptions): void => {
     this.setSnapshot((prev) => openDocBrowserState(prev, url, options));
+  };
+
+  readonly openNewTab = (): void => {
+    this.open(undefined, { kind: DOC_BROWSER_HOME_TAB_KIND, newTab: true });
   };
 
   readonly close = (): void => {
@@ -172,21 +150,24 @@ export class DocBrowserManager {
       }
 
       return updateActiveTab(prev, (tab) => {
-        if (tab.kind !== 'docs') {
+        if (!docBrowserRouteRegistry.usesManagedHistory(tab)) {
           return tab;
         }
+        const target = docBrowserRouteRegistry.resolveOpenTarget({ activeTab: tab, url });
 
-        const targetUrl = normalizeUrlByKind(url, 'docs');
-        if (normalizeDocUrl(targetUrl) === normalizeDocUrl(tab.currentUrl)) {
+        if (docBrowserRouteRegistry.areUrlsEquivalent(tab.currentUrl, target.url, tab.kind, target.kind)) {
           return tab;
         }
 
         return {
           ...tab,
-          currentUrl: targetUrl,
-          history: [...tab.history.slice(0, tab.historyIndex + 1), targetUrl],
+          currentUrl: target.url,
+          dedupeKey: target.dedupeKey,
+          history: [...tab.history.slice(0, tab.historyIndex + 1), target.url],
           historyIndex: tab.historyIndex + 1,
+          kind: target.kind,
           navVersion: tab.navVersion + 1,
+          title: target.title,
         };
       });
     });
@@ -204,19 +185,23 @@ export class DocBrowserManager {
       }
 
       return updateActiveTab(prev, (tab) => {
-        if (tab.kind !== 'docs') {
+        if (!docBrowserRouteRegistry.usesManagedHistory(tab)) {
           return tab;
         }
+        const target = docBrowserRouteRegistry.resolveOpenTarget({ activeTab: tab, kind: tab.kind, url });
 
-        if (normalizeDocUrl(url) === normalizeDocUrl(tab.currentUrl)) {
+        if (docBrowserRouteRegistry.areUrlsEquivalent(tab.currentUrl, target.url, tab.kind, target.kind)) {
           return tab;
         }
 
         return {
           ...tab,
-          currentUrl: url,
-          history: [...tab.history.slice(0, tab.historyIndex + 1), url],
+          currentUrl: target.url,
+          dedupeKey: target.dedupeKey,
+          history: [...tab.history.slice(0, tab.historyIndex + 1), target.url],
           historyIndex: tab.historyIndex + 1,
+          kind: target.kind,
+          title: target.title,
         };
       });
     });
@@ -224,17 +209,39 @@ export class DocBrowserManager {
 
   readonly goBack = (): void => {
     this.setSnapshot((prev) => updateActiveTab(prev, (tab) => {
-      if (tab.kind !== 'docs' || tab.historyIndex <= 0) return tab;
+      if (!docBrowserRouteRegistry.usesManagedHistory(tab) || tab.historyIndex <= 0) return tab;
       const newIndex = tab.historyIndex - 1;
-      return { ...tab, historyIndex: newIndex, currentUrl: tab.history[newIndex] };
+      const target = docBrowserRouteRegistry.resolveOpenTarget({
+        activeTab: tab,
+        url: tab.history[newIndex],
+      });
+      return {
+        ...tab,
+        currentUrl: target.url,
+        dedupeKey: target.dedupeKey,
+        historyIndex: newIndex,
+        kind: target.kind,
+        title: target.title,
+      };
     }));
   };
 
   readonly goForward = (): void => {
     this.setSnapshot((prev) => updateActiveTab(prev, (tab) => {
-      if (tab.kind !== 'docs' || tab.historyIndex >= tab.history.length - 1) return tab;
+      if (!docBrowserRouteRegistry.usesManagedHistory(tab) || tab.historyIndex >= tab.history.length - 1) return tab;
       const newIndex = tab.historyIndex + 1;
-      return { ...tab, historyIndex: newIndex, currentUrl: tab.history[newIndex] };
+      const target = docBrowserRouteRegistry.resolveOpenTarget({
+        activeTab: tab,
+        url: tab.history[newIndex],
+      });
+      return {
+        ...tab,
+        currentUrl: target.url,
+        dedupeKey: target.dedupeKey,
+        historyIndex: newIndex,
+        kind: target.kind,
+        title: target.title,
+      };
     }));
   };
 

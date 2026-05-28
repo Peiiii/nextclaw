@@ -39,6 +39,7 @@ export function DocBrowserProvider({ children }: { children: ReactNode }) {
     ...snapshot,
     currentTab,
     open: docBrowserManager.open,
+    openNewTab: docBrowserManager.openNewTab,
     close: docBrowserManager.close,
     toggleMode: docBrowserManager.toggleMode,
     navigate: docBrowserManager.navigate,

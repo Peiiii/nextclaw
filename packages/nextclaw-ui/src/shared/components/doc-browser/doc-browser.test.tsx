@@ -38,6 +38,7 @@ const { docBrowserState } = vi.hoisted<{ docBrowserState: DocBrowserContextValue
       navVersion: 0,
     },
     open: vi.fn(),
+    openNewTab: vi.fn(),
     close: vi.fn(),
     toggleMode: vi.fn(),
     goBack: vi.fn(),
@@ -141,11 +142,7 @@ describe("DocBrowser", () => {
 
     fireEvent.click(screen.getByTitle("New Tab"));
 
-    expect(docBrowserState.open).toHaveBeenCalledWith("nextclaw://new-tab", {
-      kind: "home",
-      newTab: true,
-      title: "Start Page",
-    });
+    expect(docBrowserState.openNewTab).toHaveBeenCalled();
   });
 
   it("renders a start page for home tabs", () => {

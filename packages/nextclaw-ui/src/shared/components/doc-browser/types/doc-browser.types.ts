@@ -32,6 +32,7 @@ export type DocBrowserStateUpdate = DocBrowserState | ((prev: DocBrowserState) =
 
 export type DocBrowserActions = {
   open: (url?: string, options?: DocBrowserOpenOptions) => void;
+  openNewTab: () => void;
   close: () => void;
   toggleMode: () => void;
   navigate: (url: string) => void;

@@ -4,11 +4,15 @@ import type { DocBrowserCustomTabRenderers } from '@/shared/components/doc-brows
 import { getPresenter } from '@/app/presenters/app.presenter';
 import { AppsPanel, type AppsPanelTab } from '@/features/apps';
 import { PanelAppToolbar } from '@/features/panel-apps/components/panel-app-toolbar';
+import {
+  DOC_BROWSER_APPS_TAB_KIND,
+  DOC_BROWSER_APPS_URL,
+  DOC_BROWSER_SERVICE_APPS_URL,
+} from '@/shared/components/doc-browser/utils/doc-browser-route-registry.utils';
 import { t } from '@/shared/lib/i18n';
 
-export const APPS_TAB_KIND = 'apps';
+export const APPS_TAB_KIND = DOC_BROWSER_APPS_TAB_KIND;
 export const PANEL_APP_TAB_KIND = 'panel-app';
-const APPS_URL = 'nextclaw://apps';
 const DEFAULT_APPS_PANEL_TAB: AppsPanelTab = 'panel-apps';
 const PANEL_APP_IFRAME_SANDBOX = [
   'allow-scripts',
@@ -26,7 +30,7 @@ function isAppsPanelTab(value: unknown): value is AppsPanelTab {
 }
 
 export function createAppsPanelUrl(tab: AppsPanelTab = DEFAULT_APPS_PANEL_TAB): string {
-  return tab === DEFAULT_APPS_PANEL_TAB ? APPS_URL : `${APPS_URL}?tab=${tab}`;
+  return tab === DEFAULT_APPS_PANEL_TAB ? DOC_BROWSER_APPS_URL : DOC_BROWSER_SERVICE_APPS_URL;
 }
 
 export function getAppsPanelTabFromUrl(url: string): AppsPanelTab {

@@ -2,7 +2,6 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   DOCS_DEFAULT_BASE_URL,
   DOC_BROWSER_HOME_TAB_KIND,
-  DOC_BROWSER_HOME_URL,
   useDocBrowser,
 } from './doc-browser-context';
 import { DocBrowserHomePage } from './doc-browser-home-page';
@@ -15,7 +14,6 @@ import {
 import { DocBrowserTabStrip } from './doc-browser-tab-strip';
 import { ResizableRightPanel } from '@/shared/components/resizable-right-panel/resizable-right-panel';
 import { cn } from '@/shared/lib/utils';
-import { t } from '@/shared/lib/i18n';
 import { GripVertical } from 'lucide-react';
 
 type DocBrowserProps = {
@@ -52,6 +50,7 @@ export function DocBrowser({
     activeTabId,
     currentTab,
     open,
+    openNewTab,
     close,
     toggleMode,
     goBack,
@@ -254,7 +253,7 @@ export function DocBrowser({
         activeTabId={activeTabId}
         isDocked={isDocked}
         isFullscreen={isFullscreen}
-        onOpenNewTab={() => open(DOC_BROWSER_HOME_URL, { kind: DOC_BROWSER_HOME_TAB_KIND, newTab: true, title: t('docBrowserHomeTitle') })}
+        onOpenNewTab={openNewTab}
         onSetActiveTab={setActiveTab}
         onCloseTab={closeTab}
         onClose={close}
