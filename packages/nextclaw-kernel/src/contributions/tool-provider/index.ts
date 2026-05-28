@@ -1,6 +1,6 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import type { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
-import type { ToolProvider } from "@kernel/features/agent-run/index.js";
+import type { ToolProvider } from "@kernel/types/agent-run.types.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import { AssetToolProvider } from "./providers/asset-tool.provider.js";
 import { CoreToolProvider } from "./providers/core-tool.provider.js";

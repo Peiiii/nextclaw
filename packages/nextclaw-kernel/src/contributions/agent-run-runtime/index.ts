@@ -1,18 +1,16 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import type { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
 import { DEFAULT_AGENT_RUNTIME_ENTRY_ID } from "@kernel/configs/agent-runtime.config.js";
-import {
-  AgentRunMessageProjector,
-  AgentRunModelInputBudgeter,
-  AgentRunModelInputBuilder,
-  NcpAgentRuntimeWrapper,
-} from "@kernel/features/agent-run/index.js";
 import { BuiltinNarpRuntimeProviderService } from "@kernel/features/narp-runtime/index.js";
 import { ProviderManagerNcpLLMApi } from "@kernel/features/native-runtime/index.js";
 import {
   resolveAgentRuntimeEntries,
   type AgentRuntimeProviderRegistration,
 } from "@kernel/features/runtime-registry/index.js";
+import { AgentRunMessageProjector } from "@kernel/services/agent-run-message-projector.service.js";
+import { AgentRunModelInputBudgeter } from "@kernel/services/agent-run-model-input-budgeter.service.js";
+import { AgentRunModelInputBuilder } from "@kernel/services/agent-run-model-input-builder.service.js";
+import { NcpAgentRuntimeWrapper } from "@kernel/services/ncp-agent-runtime-wrapper.service.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import { DefaultNcpAgentRuntime } from "@nextclaw/ncp-agent-runtime-next";
 

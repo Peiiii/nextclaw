@@ -1,6 +1,6 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import type { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
-import type { AgentRunRequest, ToolProvider } from "@kernel/features/agent-run/index.js";
+import type { AgentRunRequest, ToolProvider } from "@kernel/types/agent-run.types.js";
 import { resolveToolProviderRunContext } from "@kernel/contributions/tool-provider/utils/tool-provider-run-context.utils.js";
 import { SessionsHistoryTool, SessionsListTool } from "@kernel/tools/session-history.tools.js";
 import { SessionRequestTool } from "@kernel/tools/session-request.tools.js";

@@ -22,7 +22,7 @@ import type { AgentRuntimeManager } from "./agent-runtime.manager.js";
 import type { ContextProviderManager } from "./context-provider.manager.js";
 import type { SessionRunManager } from "./session-run.manager.js";
 import type { ToolProviderManager } from "./tool-provider.manager.js";
-import type { SessionRepository } from "@kernel/features/agent-run/repositories/session.repository.js";
+import type { SessionRepository } from "@kernel/repositories/session.repository.js";
 import type {
   AgentRunAbortRequest,
   AgentRunAccepted,

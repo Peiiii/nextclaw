@@ -1,9 +1,7 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import type { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
-import {
-  buildAgentRunRequestMetadata,
-  type AgentRunRequest,
-} from "@kernel/features/agent-run/index.js";
+import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
+import { buildAgentRunRequestMetadata } from "@kernel/utils/agent-run-request-metadata.utils.js";
 import { resolveNextclawNcpRunContext } from "@kernel/features/native-runtime/index.js";
 
 export type ToolProviderResolvedRunContext = Awaited<

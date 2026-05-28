@@ -1,6 +1,6 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import { createAssetTools } from "@kernel/features/native-runtime/index.js";
-import type { AgentRunRequest, ToolProvider } from "@kernel/features/agent-run/index.js";
+import type { AgentRunRequest, ToolProvider } from "@kernel/types/agent-run.types.js";
 import type { NcpTool } from "@nextclaw/ncp";
 
 export class AssetToolProvider implements ToolProvider {

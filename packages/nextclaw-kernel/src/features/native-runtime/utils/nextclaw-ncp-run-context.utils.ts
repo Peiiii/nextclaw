@@ -18,7 +18,7 @@ import {
 import {
   resolveAgentHandoffDepth,
   type ToolRunContext,
-} from "@kernel/features/agent-run/index.js";
+} from "@kernel/managers/tool-provider.manager.js";
 
 export type NextclawNcpResolvedAgentProfile = {
   agentId: string;

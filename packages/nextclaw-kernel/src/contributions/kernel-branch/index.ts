@@ -1,15 +1,13 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import { AgentRunRuntimeContribution } from "@kernel/contributions/agent-run-runtime/index.js";
 import { ContextProviderContribution } from "@kernel/contributions/context-provider/index.js";
-import {
-  AgentRunContextCompactionManager,
-  AgentRunRequestManager,
-  AgentRuntimeManager,
-  ContextProviderManager,
-  SessionRepository,
-  SessionRunManager,
-  ToolProviderManager,
-} from "@kernel/features/agent-run/index.js";
+import { AgentRunContextCompactionManager } from "@kernel/managers/agent-run-context-compaction.manager.js";
+import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
+import { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
+import { ContextProviderManager } from "@kernel/managers/context-provider.manager.js";
+import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
+import { ToolProviderManager } from "@kernel/managers/tool-provider.manager.js";
+import { SessionRepository } from "@kernel/repositories/session.repository.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import type { AgentRuntimeSessionTypeDescribeParams } from "@kernel/features/runtime-registry/index.js";
 

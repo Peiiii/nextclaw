@@ -8,11 +8,11 @@ import type {
   NcpReplyInput,
 } from "@nextclaw/ncp-toolkit";
 import type { NcpEndpointEvent } from "@nextclaw/ncp";
+import type { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
 import {
   buildAgentRunSendPayload,
-  type AgentRunClient,
   type AssetApi,
-} from "@kernel/features/agent-run/index.js";
+} from "@kernel/utils/agent-run-send-payload.utils.js";
 
 type ReplyCapableChannel = BaseChannel<Record<string, unknown>> & {
   consumeNcpReply(input: NcpReplyInput): Promise<void>;

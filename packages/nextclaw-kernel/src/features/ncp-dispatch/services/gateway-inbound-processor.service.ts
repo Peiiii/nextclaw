@@ -16,12 +16,16 @@ import {
   resolveChannelReplyRoute,
 } from "@kernel/features/ncp-dispatch/utils/channel-reply.utils.js";
 import {
-  buildAgentRunSendPayload,
   buildRunMetadata,
-  type AgentRunClient,
-  type AgentRunReply,
+} from "@kernel/utils/agent-run-metadata.utils.js";
+import {
+  buildAgentRunSendPayload,
   type AssetApi,
-} from "@kernel/features/agent-run/index.js";
+} from "@kernel/utils/agent-run-send-payload.utils.js";
+import type {
+  AgentRunClient,
+  AgentRunReply,
+} from "@kernel/services/agent-run-client.service.js";
 
 export type GatewayInboundLoopRuntime = {
   kernel: {

@@ -1,11 +1,11 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import type { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
-import {
-  buildAgentRunRequestMetadata,
-  type AgentRunRequest,
-  type ContextBlock,
-  type ContextProvider,
-} from "@kernel/features/agent-run/index.js";
+import type {
+  AgentRunRequest,
+  ContextBlock,
+  ContextProvider,
+} from "@kernel/types/agent-run.types.js";
+import { buildAgentRunRequestMetadata } from "@kernel/utils/agent-run-request-metadata.utils.js";
 import {
   buildSessionOrchestrationSection,
   resolveNextclawNcpRunContext,

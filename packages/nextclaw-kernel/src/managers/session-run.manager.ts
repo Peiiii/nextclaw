@@ -10,7 +10,7 @@ import {
   type EventBus,
 } from "@nextclaw/shared";
 import { DefaultNcpAgentConversationStateManager } from "@nextclaw/ncp-toolkit";
-import type { SessionRepository } from "@kernel/features/agent-run/repositories/session.repository.js";
+import type { SessionRepository } from "@kernel/repositories/session.repository.js";
 
 export type SessionRunSnapshot = {
   messages: readonly NcpMessage[];

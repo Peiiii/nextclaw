@@ -12,8 +12,8 @@ import {
   type NcpRunHandle,
   type NcpTool,
 } from "@nextclaw/ncp";
-import { AgentRunRequestManager } from "./agent-run-request.manager.js";
-import { SessionRun } from "./session-run.manager.js";
+import { AgentRunRequestManager } from "../agent-run-request.manager.js";
+import { SessionRun } from "../session-run.manager.js";
 
 async function waitForEvent(
   events: readonly NcpEndpointEvent[],

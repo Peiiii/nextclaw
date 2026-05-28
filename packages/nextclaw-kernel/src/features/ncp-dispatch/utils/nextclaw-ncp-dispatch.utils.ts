@@ -6,11 +6,9 @@ import {
   type InboundAttachment,
   type InboundMessage,
 } from "@nextclaw/core";
-import {
-  buildAgentRunSendPayload,
-  buildRunMetadata,
-  type AgentRunClient,
-} from "@kernel/features/agent-run/index.js";
+import type { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
+import { buildRunMetadata } from "@kernel/utils/agent-run-metadata.utils.js";
+import { buildAgentRunSendPayload } from "@kernel/utils/agent-run-send-payload.utils.js";
 export type DirectPromptDispatchParams = {
   config: Config;
   agentRunClient: AgentRunClient;

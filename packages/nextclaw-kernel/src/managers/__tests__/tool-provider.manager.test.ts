@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { NcpTool } from "@nextclaw/ncp";
-import { ToolProviderManager } from "./tool-provider.manager.js";
+import { ToolProviderManager } from "../tool-provider.manager.js";
 
 function createTool(name: string): NcpTool {
   return {

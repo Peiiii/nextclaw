@@ -1,6 +1,6 @@
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
-import type { SessionRepository } from "@kernel/features/agent-run/repositories/session.repository.js";
+import type { SessionRepository } from "@kernel/repositories/session.repository.js";
 import {
   ContextCompactionPreflightService,
   type ContextCompactionPreflightResult,

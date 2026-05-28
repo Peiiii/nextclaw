@@ -13,8 +13,8 @@ import { DefaultNcpAgentConversationStateManager } from "@nextclaw/ncp-toolkit";
 import type {
   AgentRuntime,
   AgentRuntimeRunOptions,
-} from "@kernel/features/agent-run/managers/agent-runtime.manager.js";
-import type { AgentRunSession } from "@kernel/features/agent-run/repositories/session.repository.js";
+} from "@kernel/managers/agent-runtime.manager.js";
+import type { AgentRunSession } from "@kernel/repositories/session.repository.js";
 import type { AgentRunSpec } from "@kernel/types/agent-run.types.js";
 
 export type NcpAgentRuntimeWrapperParams = {
