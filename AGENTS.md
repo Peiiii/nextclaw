@@ -87,7 +87,7 @@
 - 普通函数、顶层 helper、对象字面量函数默认不得原地修改入参；优先返回新值或 patch。若需要状态和生命周期，收敛到 owner class。
 - 对象构造默认保持稳定、直接的合同形状；禁止用条件 spread 拼可选字段来隐藏对象形态变化。字段值本身可以用清晰的三元表达式表达 `undefined` / `null`。
 - 前端复杂业务逻辑、状态流或数据流默认收敛到 manager / store / presenter，优先由 manager 承载；组件和 hook 主要做连接、订阅、调用与轻量本地状态，合适时评估 RxJS 等显式数据流工具。
-- React `useEffect` / `useLayoutEffect` 默认只同步外部系统；业务编排、状态迁移、query/store 镜像应回到 query/view hook、store、manager 或 presenter。
+- React `useEffect` / `useLayoutEffect` 是高优先级克制项，默认先避免、尽量减少；新增或保留 effect 必须能说明它是在同步外部系统，业务编排、状态迁移、query/store 镜像应回到 query/view hook、store、manager 或 presenter。
 - 生命周期 owner 的订阅、临时 stream、watcher、runtime dispose 等清理职责默认收敛到 `cleanups` / `disposables` collection，`dispose/stop` 统一 drain；避免多个平行 nullable cleanup 字段或按资源类型散落清理逻辑。
 - 不允许同一功能、职责链路、数据变换、组件表面或交互结构出现平行重复实现；新增前先查找可复用实现。
 - 跨 workspace package 依赖默认只能导入对方 package 根公共入口；禁止从另一个 workspace 直接 deep import `shared/`、`commands/`、`src/` 等内部子路径。

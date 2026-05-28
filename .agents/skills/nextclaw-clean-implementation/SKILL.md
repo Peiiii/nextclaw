@@ -189,7 +189,8 @@ description: Use when implementing, refactoring, or designing source-level contr
 
 先回答：
 
-- `useEffect` 是在同步外部系统，还是在偷偷做业务编排
+- 能否直接避免或减少 `useEffect` / `useLayoutEffect`，用渲染期派生、事件处理、query/view hook、store、manager 或 presenter 承接
+- 若新增或保留 effect，它是否明确只是在同步外部系统，而不是偷偷做业务编排
 - 普通函数有没有原地改入参
 - helper / utils 里是不是偷偷长出了状态、缓存、重试、流程控制
 
