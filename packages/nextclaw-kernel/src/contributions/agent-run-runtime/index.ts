@@ -7,10 +7,7 @@ import {
   AgentRunModelInputBuilder,
   NcpAgentRuntimeWrapper,
 } from "@kernel/features/agent-run/index.js";
-import {
-  BuiltinNarpRuntimeProviderService,
-  NARP_STDIO_RUNTIME_KIND,
-} from "@kernel/features/narp-runtime/index.js";
+import { BuiltinNarpRuntimeProviderService } from "@kernel/features/narp-runtime/index.js";
 import { ProviderManagerNcpLLMApi } from "@kernel/features/native-runtime/index.js";
 import {
   resolveAgentRuntimeEntries,
@@ -83,7 +80,7 @@ export class AgentRunRuntimeContribution implements KernelContribution {
     this.branch.agentRuntimeManager.register({
       kind: provider.kind,
       label: provider.label,
-      defaultReuseScope: provider.kind === NARP_STDIO_RUNTIME_KIND ? "session" : "session",
+      defaultReuseScope: "session",
       describeSessionTypeForEntry: provider.describeSessionTypeForEntry,
       createRuntime: ({ entry, session }) => {
         if (!provider.createRuntimeForEntry) {
