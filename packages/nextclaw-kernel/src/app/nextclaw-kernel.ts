@@ -1,6 +1,10 @@
 import { AgentManager } from "@kernel/managers/agent.manager.js";
+import { AgentRunContextCompactionManager } from "@kernel/managers/agent-run-context-compaction.manager.js";
+import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
+import { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
+import { ContextProviderManager } from "@kernel/managers/context-provider.manager.js";
 import { ExtensionManager } from "@kernel/managers/extension.manager.js";
 import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
 import { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
@@ -8,13 +12,17 @@ import { McpManager } from "@kernel/managers/mcp.manager.js";
 import { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
 import { ServiceAppManager } from "@kernel/managers/service-app.manager.js";
+import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
+import { ToolProviderManager } from "@kernel/managers/tool-provider.manager.js";
+import { SessionRepository } from "@kernel/repositories/session.repository.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import {
   createAgentRuntimeSessionRequestDispatcher,
   SessionRequestManager,
 } from "@kernel/features/session-request/index.js";
-import { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
+import { AgentRunRuntimeContribution } from "@kernel/contributions/agent-run-runtime/index.js";
+import { ContextProviderContribution } from "@kernel/contributions/context-provider/index.js";
 import { ContextWindowContribution } from "@kernel/contributions/context-window/index.js";
 import { LearningLoopContribution } from "@kernel/contributions/learning-loop/index.js";
 import { SessionActivityPreviewContribution } from "@kernel/contributions/session-activity-preview/index.js";
@@ -115,8 +123,14 @@ export class NextclawKernel {
   readonly panelAppManager: PanelAppManager;
   readonly serviceAppManager: ServiceAppManager;
   readonly extensions: ExtensionManager;
+  readonly agentRuntimeManager = new AgentRuntimeManager();
+  readonly contextCompactionManager: AgentRunContextCompactionManager;
+  readonly contextProviderManager = new ContextProviderManager();
+  readonly sessionRepository: SessionRepository;
+  readonly sessionRunManager: SessionRunManager;
+  readonly toolProviderManager = new ToolProviderManager();
+  readonly agentRunRequestManager: AgentRunRequestManager;
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
-  private readonly kernelBranch: KernelBranch;
   private readonly contributions: KernelContribution[];
   private gatewayController: GatewayController | undefined;
 
@@ -192,21 +206,44 @@ export class NextclawKernel {
         ingress: this.ingress,
       }),
     });
-    this.kernelBranch = new KernelBranch(this);
+    this.sessionRepository = new SessionRepository(
+      this.eventBus,
+      this.ncpSessionManager,
+    );
+    this.contextCompactionManager = new AgentRunContextCompactionManager(
+      this.configManager,
+      this.llmProviders,
+      this.sessionRepository,
+    );
+    this.sessionRunManager = new SessionRunManager(
+      this.sessionRepository,
+      this.eventBus,
+    );
+    this.agentRunRequestManager = new AgentRunRequestManager(
+      this.agentRuntimeManager,
+      this.configManager,
+      this.contextProviderManager,
+      this.eventBus,
+      this.ingress,
+      this.sessionRepository,
+      this.sessionRunManager,
+      this.toolProviderManager,
+    );
     this.contributions = [
-      new ToolProviderContribution(this, this.kernelBranch),
+      new ToolProviderContribution(this),
       new SessionActivityPreviewContribution(this),
       new LearningLoopContribution(this),
-      this.kernelBranch,
-      new ContextWindowContribution(this, this.kernelBranch),
+      new ContextProviderContribution(this),
+      new AgentRunRuntimeContribution(this),
+      new ContextWindowContribution(this),
     ];
   }
 
   listSessionTypes = (params?: AgentRuntimeSessionTypeDescribeParams) =>
-    this.kernelBranch.listSessionTypes(params);
+    this.agentRuntimeManager.listSessionTypes(params);
 
   isSessionRunning = (sessionId: string): boolean =>
-    this.kernelBranch.isSessionRunning(sessionId);
+    this.sessionRunManager.isSessionRunning(sessionId);
 
   provideGatewayController = (gatewayController: GatewayController): void => {
     this.gatewayController = gatewayController;
@@ -218,15 +255,23 @@ export class NextclawKernel {
   start = async (): Promise<void> => {
     void this.sessionSearch.start();
     this.mcpManager.start();
+    this.sessionRepository.start();
     for (const contribution of this.contributions) {
       contribution.start();
     }
+    this.agentRunRequestManager.start();
   };
 
   dispose = async (): Promise<void> => {
+    this.agentRunRequestManager.dispose();
     for (const contribution of [...this.contributions].reverse()) {
       await contribution.dispose();
     }
+    this.toolProviderManager.dispose();
+    this.contextProviderManager.dispose();
+    await this.agentRuntimeManager.dispose();
+    this.sessionRunManager.dispose();
+    this.sessionRepository.dispose();
     this.ncpSessionManager.dispose();
     await this.mcpManager.dispose();
     await this.serviceAppManager.dispose();

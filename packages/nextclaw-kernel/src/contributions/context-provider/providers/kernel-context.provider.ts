@@ -1,5 +1,4 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
-import type { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
 import type {
   AgentRunRequest,
   ContextBlock,
@@ -18,14 +17,11 @@ import {
 } from "@nextclaw/core";
 
 export class KernelContextProvider implements ContextProvider {
-  constructor(
-    private readonly kernel: NextclawKernel,
-    private readonly branch: KernelBranch,
-  ) {}
+  constructor(private readonly kernel: NextclawKernel) {}
 
   provide = async (request: AgentRunRequest): Promise<readonly ContextBlock[]> => {
     const session = request.sessionId
-      ? await this.branch.sessionRepository.getSession(request.sessionId)
+      ? await this.kernel.sessionRepository.getSession(request.sessionId)
       : null;
     const sessionId = session?.sessionId ?? request.sessionId ?? request.message.sessionId ?? "";
     const requestMetadata = buildAgentRunRequestMetadata({ request, session });
@@ -36,7 +32,7 @@ export class KernelContextProvider implements ContextProvider {
       sessionMetadata: session?.metadata ?? requestMetadata,
       storedAgentId: request.agentId ?? session?.agentId,
     });
-    const tools = await this.branch.toolProviderManager.buildTools(request);
+    const tools = await this.kernel.toolProviderManager.buildTools(request);
 
     return [
       this.buildSystemContextBlock({

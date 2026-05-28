@@ -1,5 +1,4 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
-import type { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
 import {
   ContextCompactionPreflightService,
   createContextWindowSignature,
@@ -34,10 +33,7 @@ export class ContextWindowContribution implements KernelContribution {
   private stopped = true;
   private unsubscribeNcpEvent: Unsubscribe | null = null;
 
-  constructor(
-    private readonly kernel: NextclawKernel,
-    private readonly branch: KernelBranch,
-  ) {
+  constructor(private readonly kernel: NextclawKernel) {
     this.contextWindowPreview = new ContextCompactionPreflightService({
       configManager: kernel.configManager,
     });
@@ -64,7 +60,7 @@ export class ContextWindowContribution implements KernelContribution {
 
   private handleNcpEvent = (event: NcpEndpointEvent): void => {
     const sessionId = readContextWindowEventSessionId(event);
-    if (!sessionId || !this.branch.sessionRunManager.getSessionRun(sessionId)) {
+    if (!sessionId || !this.kernel.sessionRunManager.getSessionRun(sessionId)) {
       return;
     }
     if (event.type === NcpEventType.ContextWindowUpdated) {
@@ -106,11 +102,11 @@ export class ContextWindowContribution implements KernelContribution {
     if (this.stopped) {
       return;
     }
-    const sessionRun = this.branch.sessionRunManager.getSessionRun(sessionId);
+    const sessionRun = this.kernel.sessionRunManager.getSessionRun(sessionId);
     if (!sessionRun) {
       return;
     }
-    const session = await this.branch.sessionRepository.getSession(sessionId);
+    const session = await this.kernel.sessionRepository.getSession(sessionId);
     const contextWindow = this.contextWindowPreview.preview({
       requestMetadata: session.metadata,
       sessionId,

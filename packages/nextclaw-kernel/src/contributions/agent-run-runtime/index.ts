@@ -1,5 +1,4 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
-import type { KernelBranch } from "@kernel/contributions/kernel-branch/index.js";
 import { DEFAULT_AGENT_RUNTIME_ENTRY_ID } from "@kernel/configs/agent-runtime.config.js";
 import { BuiltinNarpRuntimeProviderService } from "@kernel/features/narp-runtime/index.js";
 import { ProviderManagerNcpLLMApi } from "@kernel/features/native-runtime/index.js";
@@ -18,10 +17,7 @@ export class AgentRunRuntimeContribution implements KernelContribution {
   private readonly cleanups: Array<() => Promise<void>> = [];
   private readonly modelInputBuilder: AgentRunModelInputBuilder;
 
-  constructor(
-    private readonly kernel: NextclawKernel,
-    private readonly branch: KernelBranch,
-  ) {
+  constructor(private readonly kernel: NextclawKernel) {
     this.modelInputBuilder = new AgentRunModelInputBuilder(
       new AgentRunMessageProjector(),
       new AgentRunModelInputBudgeter(kernel.configManager),
@@ -36,7 +32,7 @@ export class AgentRunRuntimeContribution implements KernelContribution {
     const { entries } = resolveAgentRuntimeEntries({
       config: this.kernel.configManager.loadConfig(),
     });
-    this.branch.agentRuntimeManager.applyEntries(entries);
+    this.kernel.agentRuntimeManager.applyEntries(entries);
     this.cleanups.push(this.registerNativeRuntime());
     for (const provider of new BuiltinNarpRuntimeProviderService(
       this.kernel.configManager,
@@ -52,7 +48,7 @@ export class AgentRunRuntimeContribution implements KernelContribution {
   };
 
   private registerNativeRuntime = (): (() => Promise<void>) =>
-    this.branch.agentRuntimeManager.register({
+    this.kernel.agentRuntimeManager.register({
       kind: DEFAULT_AGENT_RUNTIME_ENTRY_ID,
       label: "Native",
       defaultReuseScope: "global",
@@ -61,8 +57,8 @@ export class AgentRunRuntimeContribution implements KernelContribution {
           llmApi: new ProviderManagerNcpLLMApi(this.kernel.llmProviders),
           modelInputBuilder: this.modelInputBuilder,
           runPreflight: async ({ spec, sessionRun }) => {
-            const session = await this.branch.sessionRepository.getSession(sessionRun.sessionId);
-            return await this.branch.contextCompactionManager.runPreflight({
+            const session = await this.kernel.sessionRepository.getSession(sessionRun.sessionId);
+            return await this.kernel.contextCompactionManager.runPreflight({
               agentId: spec.agentId,
               messages: sessionRun.getSnapshot().messages,
               metadata: session.metadata,
@@ -75,7 +71,7 @@ export class AgentRunRuntimeContribution implements KernelContribution {
   private registerNarpRuntime = (
     provider: AgentRuntimeProviderRegistration,
   ): (() => Promise<void>) =>
-    this.branch.agentRuntimeManager.register({
+    this.kernel.agentRuntimeManager.register({
       kind: provider.kind,
       label: provider.label,
       defaultReuseScope: "session",
