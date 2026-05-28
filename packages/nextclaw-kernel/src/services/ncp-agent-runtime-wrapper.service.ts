@@ -15,7 +15,7 @@ import type {
   AgentRuntimeRunOptions,
 } from "@kernel/features/agent-run/managers/agent-runtime.manager.js";
 import type { AgentRunSession } from "@kernel/features/agent-run/repositories/session.repository.js";
-import type { AgentRunSpec } from "@kernel/features/agent-run/types/agent-run.types.js";
+import type { AgentRunSpec } from "@kernel/types/agent-run.types.js";
 
 export type NcpAgentRuntimeWrapperParams = {
   session: AgentRunSession;

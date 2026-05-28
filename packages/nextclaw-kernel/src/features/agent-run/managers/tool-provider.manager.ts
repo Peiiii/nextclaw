@@ -6,7 +6,7 @@ import type {
 import type {
   AgentRunRequest,
   ToolProvider,
-} from "@kernel/features/agent-run/types/agent-run.types.js";
+} from "@kernel/types/agent-run.types.js";
 
 export type ToolRunContext = {
   agentId: string;

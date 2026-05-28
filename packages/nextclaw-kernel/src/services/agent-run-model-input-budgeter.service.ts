@@ -7,7 +7,7 @@ import {
 } from "@nextclaw/core";
 import type { OpenAIChatMessage } from "@nextclaw/ncp";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
-import type { AgentRunSpec } from "@kernel/features/agent-run/types/agent-run.types.js";
+import type { AgentRunSpec } from "@kernel/types/agent-run.types.js";
 
 export type AgentRunModelInputBudgeterPruneParams = {
   spec: AgentRunSpec;

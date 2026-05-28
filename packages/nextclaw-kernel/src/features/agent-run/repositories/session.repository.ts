@@ -8,7 +8,7 @@ import {
   type NcpMessage,
 } from "@nextclaw/ncp";
 import { DEFAULT_AGENT_RUNTIME_ENTRY_ID } from "@kernel/configs/agent-runtime.config.js";
-import type { ThinkingEffort } from "@kernel/features/agent-run/types/agent-run.types.js";
+import type { ThinkingEffort } from "@kernel/types/agent-run.types.js";
 import type { NcpSessionManager } from "@kernel/managers/ncp-session.manager.js";
 
 export type AgentRunSession = {

@@ -2,7 +2,7 @@ import type {
   AgentRunRequest,
   ContextBlock,
   ContextProvider,
-} from "@kernel/features/agent-run/types/agent-run.types.js";
+} from "@kernel/types/agent-run.types.js";
 
 export class ContextProviderManager {
   private readonly providers = new Set<ContextProvider>();

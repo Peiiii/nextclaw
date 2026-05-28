@@ -28,7 +28,7 @@ import type {
   AgentRunAccepted,
   AgentRunRequest,
   AgentRunSpec,
-} from "@kernel/features/agent-run/types/agent-run.types.js";
+} from "@kernel/types/agent-run.types.js";
 
 function toAgentRunRequest(
   envelope: AgentRunSendIngressPayload,

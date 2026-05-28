@@ -6,7 +6,7 @@ import type { SessionRun } from "./session-run.manager.js";
 import type {
   AgentRunSpec,
   ContextBlock,
-} from "@kernel/features/agent-run/types/agent-run.types.js";
+} from "@kernel/types/agent-run.types.js";
 import { DEFAULT_AGENT_RUNTIME_ENTRY_ID } from "@kernel/configs/agent-runtime.config.js";
 import type { AgentRunSession } from "@kernel/features/agent-run/repositories/session.repository.js";
 import type {
