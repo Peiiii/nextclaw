@@ -358,6 +358,7 @@ export type PanelAppEntryView = {
   description?: string;
   icon?: string;
   contentPath: string;
+  createdAt: string;
   updatedAt: string;
   sizeBytes: number;
   favorite: boolean;

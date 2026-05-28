@@ -27,15 +27,26 @@ function comparePanelApps(left: PanelAppEntryView, right: PanelAppEntryView, mod
     return compareByName(left, right);
   }
   return (
+    comparePanelAppActivityDesc(left, right) ||
     Number(right.favorite) - Number(left.favorite) ||
-    compareIsoDesc(left.lastOpenedAt, right.lastOpenedAt) ||
-    compareIsoDesc(left.updatedAt, right.updatedAt) ||
     compareByName(left, right)
   );
 }
 
 function compareByName(left: PanelAppEntryView, right: PanelAppEntryView): number {
   return left.title.localeCompare(right.title);
+}
+
+function comparePanelAppActivityDesc(left: PanelAppEntryView, right: PanelAppEntryView): number {
+  return resolvePanelAppActivityMs(right) - resolvePanelAppActivityMs(left);
+}
+
+function resolvePanelAppActivityMs(entry: PanelAppEntryView): number {
+  return Math.max(
+    new Date(entry.lastOpenedAt ?? 0).getTime(),
+    new Date(entry.createdAt).getTime(),
+    new Date(entry.updatedAt).getTime(),
+  );
 }
 
 function compareIsoDesc(left?: string, right?: string): number {

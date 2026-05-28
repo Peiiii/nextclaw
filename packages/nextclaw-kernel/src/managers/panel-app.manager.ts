@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { Stats } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -57,6 +58,7 @@ export type PanelAppEntry = {
   description?: string;
   icon?: string;
   contentPath: string;
+  createdAt: string;
   updatedAt: string;
   sizeBytes: number;
   favorite: boolean;
@@ -368,12 +370,15 @@ export class PanelAppManager {
     ]);
     const manifest = parsePanelAppManifest(html);
     const id = this.encodePanelAppId(fileName);
+    const createdAt = this.resolvePanelAppCreatedAt(fileStat);
+    const updatedAt = fileStat.mtime.toISOString();
     const entry: PanelAppEntry = {
       id,
       fileName,
       title: manifest.title ?? this.toPanelAppTitle(fileName),
       contentPath: `${PANEL_APP_CONTENT_BASE_PATH}/${encodeURIComponent(id)}/content`,
-      updatedAt: fileStat.mtime.toISOString(),
+      createdAt,
+      updatedAt,
       sizeBytes: fileStat.size,
       favorite: state.favorite ?? false,
       openCount: state.openCount ?? 0,
@@ -447,13 +452,23 @@ export class PanelAppManager {
       .trim() || fileName;
 
   private comparePanelApps = (left: PanelAppEntry, right: PanelAppEntry): number =>
+    this.resolvePanelAppActivityMs(right) - this.resolvePanelAppActivityMs(left) ||
     Number(right.favorite) - Number(left.favorite) ||
-    this.compareIsoDesc(left.lastOpenedAt, right.lastOpenedAt) ||
-    this.compareIsoDesc(left.updatedAt, right.updatedAt) ||
     left.title.localeCompare(right.title);
 
-  private compareIsoDesc = (left?: string, right?: string): number =>
-    new Date(right ?? 0).getTime() - new Date(left ?? 0).getTime();
+  private resolvePanelAppCreatedAt = (fileStat: Stats): string =>
+    fileStat.birthtimeMs > 0 ? fileStat.birthtime.toISOString() : fileStat.mtime.toISOString();
+
+  private resolvePanelAppActivityMs = (entry: {
+    createdAt: string;
+    lastOpenedAt?: string;
+    updatedAt: string;
+  }): number =>
+    Math.max(
+      new Date(entry.lastOpenedAt ?? 0).getTime(),
+      new Date(entry.createdAt).getTime(),
+      new Date(entry.updatedAt).getTime(),
+    );
 
   private deleteExpiredBridgeSessions = (): void => {
     const now = Date.now();

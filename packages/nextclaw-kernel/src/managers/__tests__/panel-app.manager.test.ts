@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -316,6 +316,39 @@ describe("PanelAppManager metadata and state", () => {
       fileName: "zed.panel.html",
       favorite: true,
       openCount: 1,
+    }));
+  });
+
+  it("uses the latest created, opened, or modified timestamp for launcher sorting", async () => {
+    const workspacePath = createTempDir();
+    const panelsPath = join(workspacePath, "panels");
+    mkdirSync(panelsPath, { recursive: true });
+    const oldFavoritePath = join(panelsPath, "old-favorite.panel.html");
+    const recentlyModifiedPath = join(panelsPath, "recently-modified.panel.html");
+    writeFileSync(oldFavoritePath, "<h1>Old Favorite</h1>");
+    writeFileSync(recentlyModifiedPath, "<h1>Recently Modified</h1>");
+    utimesSync(
+      oldFavoritePath,
+      new Date("2026-01-01T00:00:00.000Z"),
+      new Date("2026-01-01T00:00:00.000Z"),
+    );
+    utimesSync(
+      recentlyModifiedPath,
+      new Date("2030-01-01T00:00:00.000Z"),
+      new Date("2030-01-01T00:00:00.000Z"),
+    );
+    const manager = createPanelAppManager(workspacePath);
+    const oldFavorite = (await manager.listPanelApps()).entries.find((entry) =>
+      entry.fileName === "old-favorite.panel.html"
+    );
+
+    expect(oldFavorite).toBeDefined();
+    await manager.updatePanelAppPreferences(oldFavorite?.id ?? "", { favorite: true });
+    const refreshed = await manager.listPanelApps();
+
+    expect(refreshed.entries[0]).toEqual(expect.objectContaining({
+      fileName: "recently-modified.panel.html",
+      updatedAt: "2030-01-01T00:00:00.000Z",
     }));
   });
 
