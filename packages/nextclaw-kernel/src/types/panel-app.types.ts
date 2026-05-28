@@ -15,7 +15,9 @@ export type PanelAppErrorCode =
   | "PANEL_APP_AGENT_REQUEST_INVALID"
   | "PANEL_APP_BRIDGE_SESSION_NOT_FOUND"
   | "PANEL_APP_CAPABILITY_NOT_DECLARED"
+  | "PANEL_APP_INVALID_ASSET_PATH"
   | "PANEL_APP_INVALID_ID"
+  | "PANEL_APP_MANIFEST_INVALID"
   | "PANEL_APP_NOT_FOUND"
   | "PANEL_APP_READ_FAILED";
 
@@ -33,14 +35,17 @@ export function isPanelAppError(error: unknown): error is PanelAppError {
   return error instanceof PanelAppError;
 }
 
-export type PanelAppAgentCapability =
-  | "agent:send"
-  | "agent:generateObject";
+export const PANEL_APP_AGENT_CAPABILITIES = [
+  "agent:send",
+  "agent:generateObject",
+] as const;
+
+export type PanelAppAgentCapability = typeof PANEL_APP_AGENT_CAPABILITIES[number];
 
 export function isPanelAppAgentCapability(
   value: unknown,
 ): value is PanelAppAgentCapability {
-  return value === "agent:send" || value === "agent:generateObject";
+  return (PANEL_APP_AGENT_CAPABILITIES as readonly unknown[]).includes(value);
 }
 
 export type PanelAppCapabilityGrantCaller = {

@@ -1,7 +1,7 @@
 ---
 name: panel-app-creator
-description: Create or update NextClaw single-file HTML Panel Apps shown in the right-side Panel Apps view. Use for lightweight dashboards, tools, forms, boards, visualizations, calculators, disposable UI experiments, Service Actions via window.nextclaw.serviceActions, and Agent calls via window.nextclaw.agent.send or window.nextclaw.agent.generateObject.
-description_zh: 创建或修改 NextClaw 右侧面板里的单文件 HTML Panel App。适用于轻量 dashboard、工具、表单、看板、可视化、计算器、可随时丢弃的临时 UI、通过 window.nextclaw.serviceActions 调用 Service Actions，以及通过 window.nextclaw.agent.send 或 window.nextclaw.agent.generateObject 调用 Agent。
+description: Create or update NextClaw Panel Apps shown in the right-side Panel Apps view. Use for lightweight dashboards, tools, forms, boards, visualizations, calculators, disposable UI experiments, single-file HTML apps, folder-based static apps, Service Actions via window.nextclaw.serviceActions, and Agent calls via window.nextclaw.agent.send or window.nextclaw.agent.generateObject.
+description_zh: 创建或修改 NextClaw 右侧面板里的 Panel App。适用于轻量 dashboard、工具、表单、看板、可视化、计算器、可随时丢弃的临时 UI、单文件 HTML 应用、目录式静态应用、通过 window.nextclaw.serviceActions 调用 Service Actions，以及通过 window.nextclaw.agent.send 或 window.nextclaw.agent.generateObject 调用 Agent。
 ---
 
 # NextClaw Panel App Creator
@@ -12,16 +12,62 @@ description_zh: 创建或修改 NextClaw 右侧面板里的单文件 HTML Panel 
 
 - Panel App 必须写入 NextClaw workspace 的 `panels/` 目录。
 - 默认 workspace 是 `~/.nextclaw/workspace`；如果当前任务能读取 NextClaw 配置，则以 `agents.defaults.workspace` 为准。
-- 文件名必须使用 kebab-case，并以 `.panel.html` 结尾，例如 `todo-board.panel.html`。
+- 单文件应用的文件名必须使用 kebab-case，并以 `.panel.html` 结尾，例如 `todo-board.panel.html`。
+- 目录式应用的目录名必须使用 kebab-case，并以 `.panel` 结尾，例如 `todo-board.panel/`。
 
 ## 文件形态
 
-- 每个 Panel App 只允许一个 HTML 文件。
-- CSS 和 JavaScript 默认内联在同一个 HTML 文件里。
-- 不创建 manifest、不创建多文件资源目录、不要求服务器部署。
+- 单文件 Panel App 只适合明确一次性、明确小型、明确不会继续扩展的应用。
+- 只要用户需求里出现后续扩展、持续维护、后续加功能、可能接入 Service App/Agent、更复杂交互、图片资源、多文件资源、较多代码拆分或更可维护文件组织的信号，就优先使用目录式 Panel App。
+- 不确定未来是否会扩展时，默认选目录式 Panel App；不要把可能长期使用的应用做成越来越大的单文件 HTML。
+- 目录式 Panel App 必须包含 `panel-app.json` 和入口 HTML；不要求服务器部署，不创建 npm 项目，不运行构建工具。
 - 需要后端能力时，可配套 `service-app-creator` 创建 Service App，但必须先执行 Service App 可用性检查（见下方"Service App 可用性"节）。
 - **永远以 `localStorage` 作为默认持久化**，Service App 仅作为可选增强。不要让 Panel App 的核心功能依赖 Service App——如果 Service App 不可用，Panel App 必须仍能完整工作。
 - `<head>` 里必须提供用于 Panel Apps 启动器展示的标题、描述和图标。
+
+### 单文件应用
+
+仅适合明确不会继续扩展的轻量工具、一次性 UI、极小 dashboard 和表单：
+
+```text
+panels/todo-board.panel.html
+```
+
+单文件应用的元信息写在 HTML `<head>` 中。
+
+### 目录式静态应用
+
+适合需要后续扩展、持续维护、资源拆分或更清晰代码组织的静态应用：
+
+```text
+panels/markdown-manager.panel/
+  panel-app.json
+  index.html
+  app.js
+  styles.css
+  assets/icon.svg
+```
+
+`panel-app.json` 示例：
+
+```json
+{
+  "title": "Markdown 管理器",
+  "description": "浏览、编辑和整理本地 Markdown 文件",
+  "icon": "assets/icon.svg",
+  "entry": "index.html",
+  "capabilities": ["agent:generateObject"],
+  "actions": ["workspace-files.list", "workspace-files.read"]
+}
+```
+
+目录式规则：
+
+- `id` 可以省略，系统会使用目录名作为身份；如果显式填写 `id`，必须等于目录名去掉 `.panel` 后的值，例如 `markdown-manager.panel` 对应 `markdown-manager`。
+- `entry` 必须是目录内的 HTML 文件，通常是 `index.html`。
+- `icon` 可以是 emoji、data URL、http/https/绝对路径，也可以是目录内相对资源路径，例如 `assets/icon.svg`。
+- 相对 CSS、JS、图片路径可以直接写 `styles.css`、`app.js`、`assets/icon.svg`；NextClaw 会通过资源接口托管它们。
+- 不要在目录式 Panel App 里创建 `package.json`、`node_modules`、Vite 配置或后台 dev server，除非用户明确要求后续升级为更重的形态。
 
 ## 启动器元信息
 
@@ -39,7 +85,8 @@ description_zh: 创建或修改 NextClaw 右侧面板里的单文件 HTML Panel 
 - 最简单优先使用 `nextclaw-panel-icon` 放一个语义明确的 emoji 或 1-2 个短字符。
 - 如果用户要求正式图片图标，再使用 Web 标准 favicon，例如 `<link rel="icon" href="data:image/svg+xml,...">`。
 - 不要省略图标；没有用户指定时，按应用主题选择一个克制、可识别的 emoji。
-- 不要使用相对图片路径如 `./icon.png`，因为第一版 Panel App 是单 HTML 文件，没有资源目录。
+- 单文件应用不要使用相对图片路径如 `./icon.png`。
+- 目录式应用可以在 `panel-app.json.icon` 中使用相对资源路径。
 
 ## 窄侧栏优先布局
 
@@ -119,6 +166,7 @@ Panel App 可以通过宿主注入的 `window.nextclaw.agent` 调用 NextClaw Ag
 
 - 只触发会话 run：声明 `agent:send`。
 - 需要结构化对象返回：声明 `agent:generateObject`。
+- capability 名称必须精确使用冒号形式。不要写 `agent.send`、`agent.generateObject` 或泛化的 `agent`。
 
 ### generateObject
 

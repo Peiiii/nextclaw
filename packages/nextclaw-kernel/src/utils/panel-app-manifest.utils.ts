@@ -1,10 +1,14 @@
 export type PanelAppManifest = {
+  id?: string;
   title?: string;
   description?: string;
   icon?: string;
+  entry?: string;
   capabilities: string[];
   serviceActions: string[];
 };
+
+const PANEL_APP_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function parsePanelAppManifest(html: string): PanelAppManifest {
   const fields = {
@@ -16,6 +20,38 @@ export function parsePanelAppManifest(html: string): PanelAppManifest {
     ...fields,
     capabilities: readPanelAppCapabilities(html),
     serviceActions: readPanelAppServiceActions(html),
+  };
+}
+
+export function parsePanelAppFolderManifest(raw: string): PanelAppManifest & {
+  title: string;
+  entry: string;
+} {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    throw new Error(
+      `panel-app.json is not valid JSON: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+  if (!isRecord(parsed)) {
+    throw new Error("panel-app.json must contain an object.");
+  }
+  const id = readOptionalString(parsed, "id");
+  if (id && !PANEL_APP_ID_PATTERN.test(id)) {
+    throw new Error("panel app id must be kebab-case.");
+  }
+  return {
+    id,
+    title: readRequiredString(parsed, "title"),
+    description: readOptionalString(parsed, "description"),
+    icon: readOptionalString(parsed, "icon"),
+    entry: readRequiredString(parsed, "entry"),
+    capabilities: readStringArray(parsed.capabilities, "capabilities"),
+    serviceActions: readStringArray(parsed.actions, "actions"),
   };
 }
 
@@ -108,6 +144,37 @@ function parseTokenList(content: string | undefined): string[] {
       .map((entry) => entry.trim())
       .filter(Boolean),
   )];
+}
+
+function readRequiredString(record: Record<string, unknown>, key: string): string {
+  const value = readOptionalString(record, key);
+  if (!value) {
+    throw new Error(`panel app ${key} is required.`);
+  }
+  return value;
+}
+
+function readOptionalString(
+  record: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  return typeof record[key] === "string" && record[key].trim()
+    ? record[key].trim()
+    : undefined;
+}
+
+function readStringArray(value: unknown, key: string): string[] {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string")) {
+    throw new Error(`panel app ${key} must be a string array.`);
+  }
+  return [...new Set(value.map((entry) => entry.trim()).filter(Boolean))];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function normalizeTextValue(value: string | undefined): string | undefined {

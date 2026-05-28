@@ -81,6 +81,79 @@ describe("PanelAppManager", () => {
     );
   });
 
+  it("lists folder panel apps from manifest directories", async () => {
+    const workspacePath = createTempDir();
+    const panelsPath = join(workspacePath, "panels");
+    const appPath = join(panelsPath, "markdown-manager.panel");
+    mkdirSync(appPath, { recursive: true });
+    mkdirSync(join(panelsPath, "creating.panel"));
+    writeFileSync(join(appPath, "index.html"), "<!doctype html><h1>Markdown</h1>");
+    writeFileSync(join(appPath, "panel-app.json"), JSON.stringify({
+      id: "markdown-manager",
+      title: "Markdown 管理器",
+      description: "整理本地 Markdown",
+      icon: "assets/icon.svg",
+      entry: "index.html",
+      capabilities: ["agent:generateObject"],
+      actions: ["workspace-files.list"],
+    }));
+
+    const list = await createPanelAppManager(workspacePath).listPanelApps();
+
+    expect(list.entries).toHaveLength(1);
+    expect(list.entries[0]).toEqual(expect.objectContaining({
+      fileName: "markdown-manager.panel",
+      kind: "folder",
+      title: "Markdown 管理器",
+      description: "整理本地 Markdown",
+      icon: expect.stringMatching(/^\/api\/panel-apps\/.+\/assets\/assets\/icon\.svg$/),
+      contentPath: expect.stringMatching(/^\/api\/panel-apps\/.+\/content$/),
+    }));
+  });
+
+  it("uses the folder name as panel app id when manifest id is omitted", async () => {
+    const workspacePath = createTempDir();
+    const panelsPath = join(workspacePath, "panels");
+    const appPath = join(panelsPath, "nav-directory.panel");
+    mkdirSync(appPath, { recursive: true });
+    writeFileSync(join(appPath, "index.html"), "<!doctype html><h1>Navigation</h1>");
+    writeFileSync(join(appPath, "panel-app.json"), JSON.stringify({
+      version: 1,
+      title: "个人导航站",
+      description: "按分类管理你的常用链接目录",
+      icon: "🗂️",
+      entry: "index.html",
+      files: ["index.html", "styles.css", "app.js"],
+    }));
+
+    const [entry] = (await createPanelAppManager(workspacePath).listPanelApps()).entries;
+
+    expect(entry).toEqual(expect.objectContaining({
+      fileName: "nav-directory.panel",
+      kind: "folder",
+      title: "个人导航站",
+      description: "按分类管理你的常用链接目录",
+      icon: "🗂️",
+    }));
+  });
+
+  it("rejects folder manifests whose explicit id does not match the directory name", async () => {
+    const workspacePath = createTempDir();
+    const panelsPath = join(workspacePath, "panels");
+    const appPath = join(panelsPath, "real-name.panel");
+    mkdirSync(appPath, { recursive: true });
+    writeFileSync(join(appPath, "index.html"), "<!doctype html>");
+    writeFileSync(join(appPath, "panel-app.json"), JSON.stringify({
+      id: "other-name",
+      title: "Mismatch",
+      entry: "index.html",
+    }));
+
+    await expect(createPanelAppManager(workspacePath).listPanelApps()).rejects.toMatchObject({
+      code: "PANEL_APP_MANIFEST_INVALID",
+    } satisfies Partial<PanelAppError>);
+  });
+
   it("returns panel app HTML content by stable encoded id", async () => {
     const workspacePath = createTempDir();
     const panelsPath = join(workspacePath, "panels");
@@ -102,6 +175,64 @@ describe("PanelAppManager", () => {
     expect(content.html).toContain('entry.method === "invoke" || entry.method === "agent.generateObject"');
     expect(content.html).not.toContain("<script src=\"/api/panel-app-bridge.js\"></script>");
     expect(content.html).toContain("<!doctype html><h1>Todo</h1>");
+  });
+
+  it("returns folder panel app HTML content with asset base and bridge injection", async () => {
+    const workspacePath = createTempDir();
+    const panelsPath = join(workspacePath, "panels");
+    const appPath = join(panelsPath, "folder-demo.panel");
+    mkdirSync(appPath, { recursive: true });
+    writeFileSync(
+      join(appPath, "panel-app.json"),
+      JSON.stringify({
+        id: "folder-demo",
+        title: "Folder Demo",
+        entry: "index.html",
+        capabilities: ["agent:send"],
+        actions: ["demo.run"],
+      }),
+    );
+    writeFileSync(
+      join(appPath, "index.html"),
+      "<!doctype html><html><head><script src=\"app.js\"></script></head><body></body></html>",
+    );
+    const manager = createPanelAppManager(workspacePath);
+    const [entry] = (await manager.listPanelApps()).entries;
+
+    const content = await manager.getPanelAppContent(entry.id);
+
+    expect(content).toEqual(expect.objectContaining({
+      id: entry.id,
+      fileName: "folder-demo.panel",
+      capabilities: ["agent:send"],
+      serviceActions: ["demo.run"],
+    }));
+    expect(content.html).toContain(`<base href="/api/panel-apps/${encodeURIComponent(entry.id)}/assets/">`);
+    expect(content.html).toContain("window.nextclaw");
+    expect(content.html).toContain("<script src=\"app.js\"></script>");
+  });
+
+  it("serves folder panel app assets and rejects traversal", async () => {
+    const workspacePath = createTempDir();
+    const panelsPath = join(workspacePath, "panels");
+    const appPath = join(panelsPath, "asset-demo.panel");
+    mkdirSync(appPath, { recursive: true });
+    writeFileSync(
+      join(appPath, "panel-app.json"),
+      JSON.stringify({ id: "asset-demo", title: "Asset Demo", entry: "index.html" }),
+    );
+    writeFileSync(join(appPath, "index.html"), "<!doctype html>");
+    writeFileSync(join(appPath, "app.js"), "window.loaded = true;");
+    const manager = createPanelAppManager(workspacePath);
+    const [entry] = (await manager.listPanelApps()).entries;
+
+    await expect(manager.getPanelAppAsset(entry.id, "app.js")).resolves.toEqual({
+      content: Buffer.from("window.loaded = true;"),
+      contentType: "application/javascript; charset=utf-8",
+    });
+    await expect(manager.getPanelAppAsset(entry.id, "../secret.txt")).rejects.toMatchObject({
+      code: "PANEL_APP_INVALID_ASSET_PATH",
+    } satisfies Partial<PanelAppError>);
   });
 
   it("creates bridge sessions with declared service actions and agent capabilities", async () => {
@@ -179,6 +310,36 @@ describe("PanelAppManager agent bridge", () => {
         source_kind: "panel_app",
       }),
     }));
+  });
+
+  it("explains invalid agent capability declarations", async () => {
+    const workspacePath = createTempDir();
+    const panelsPath = join(workspacePath, "panels");
+    mkdirSync(panelsPath, { recursive: true });
+    writeFileSync(
+      join(panelsPath, "wrong-capability.panel.html"),
+      "<meta name=\"nextclaw-panel-capabilities\" content=\"agent.generateObject\">",
+    );
+    const manager = createPanelAppManager(workspacePath, {
+      agentRunClient: {
+        send: vi.fn(),
+        sendAndStreamEvents: vi.fn(),
+      },
+    });
+    const [entry] = (await manager.listPanelApps()).entries;
+    const session = await manager.createPanelAppBridgeSession({
+      id: entry.id,
+      tabId: "tab-1",
+    });
+
+    await expect(manager.generateAgentObject(session.token, {
+      peerId: "concept-map",
+      prompt: "Explore it",
+      schema: { type: "object" },
+    })).rejects.toMatchObject({
+      code: "PANEL_APP_CAPABILITY_NOT_DECLARED",
+      message: expect.stringContaining("Use agent:generateObject, not agent.generateObject."),
+    } satisfies Partial<PanelAppError>);
   });
 
   it("uses the structured result tool to resolve generateObject", async () => {
@@ -384,6 +545,47 @@ describe("PanelAppManager metadata and state", () => {
       panelsPath,
       entries: [],
     });
+  });
+
+  it("deletes folder panel apps and clears launcher state", async () => {
+    const workspacePath = createTempDir();
+    const panelsPath = join(workspacePath, "panels");
+    const appPath = join(panelsPath, "delete-folder.panel");
+    mkdirSync(appPath, { recursive: true });
+    writeFileSync(
+      join(appPath, "panel-app.json"),
+      JSON.stringify({ id: "delete-folder", title: "Delete Folder", entry: "index.html" }),
+    );
+    writeFileSync(join(appPath, "index.html"), "<!doctype html>");
+    const manager = createPanelAppManager(workspacePath);
+    const [entry] = (await manager.listPanelApps()).entries;
+
+    await manager.updatePanelAppPreferences(entry.id, { favorite: true });
+    const result = await manager.deletePanelApp(entry.id);
+
+    expect(result).toEqual({
+      deleted: true,
+      fileName: "delete-folder.panel",
+      id: entry.id,
+    });
+    expect(existsSync(appPath)).toBe(false);
+    await expect(manager.listPanelApps()).resolves.toEqual({
+      workspacePath,
+      panelsPath,
+      entries: [],
+    });
+  });
+
+  it("surfaces invalid folder manifests clearly", async () => {
+    const workspacePath = createTempDir();
+    const panelsPath = join(workspacePath, "panels");
+    const appPath = join(panelsPath, "broken.panel");
+    mkdirSync(appPath, { recursive: true });
+    writeFileSync(join(appPath, "panel-app.json"), "{ nope");
+
+    await expect(createPanelAppManager(workspacePath).listPanelApps()).rejects.toMatchObject({
+      code: "PANEL_APP_MANIFEST_INVALID",
+    } satisfies Partial<PanelAppError>);
   });
 
   it("rejects invalid ids before reading from disk", async () => {

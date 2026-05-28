@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { readdir, readFile, rm, stat } from "node:fs/promises";
+import { readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import {
   DEFAULT_PANELS_DIR,
@@ -22,6 +22,7 @@ import type {
 import {
   isPanelAppAgentCapability,
   isPanelAppError,
+  PANEL_APP_AGENT_CAPABILITIES,
   PanelAppError,
 } from "@kernel/types/panel-app.types.js";
 import { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
@@ -30,6 +31,15 @@ import {
   injectPanelAppBridgeScript,
 } from "@kernel/utils/panel-app-bridge.utils.js";
 import { parsePanelAppManifest } from "@kernel/utils/panel-app-manifest.utils.js";
+import {
+  encodePanelAppId,
+  injectPanelAppAssetBase,
+  resolvePanelAppIconUrl,
+  toPanelAppTitle,
+  type PanelAppAsset,
+  type PanelAppSource,
+} from "@kernel/utils/panel-app-source.utils.js";
+import { PanelAppSourceService } from "@kernel/services/panel-app-source.service.js";
 import {
   resolvePanelAppActivityMs,
   resolvePanelAppCreatedAt,
@@ -48,7 +58,6 @@ import type {
 
 export type { PanelAppPreferencesUpdate } from "@kernel/stores/panel-app-state.store.js";
 
-const PANEL_APP_FILE_SUFFIX = ".panel.html";
 const PANEL_APP_CONTENT_BASE_PATH = "/api/panel-apps";
 const PANEL_APP_CONTENT_TYPE = "text/html; charset=utf-8" as const;
 const PANEL_APP_CAPABILITY_GRANTS_FILE_NAME = ".panel-app-capability-grants.json";
@@ -56,6 +65,7 @@ const PANEL_APP_CAPABILITY_GRANTS_FILE_NAME = ".panel-app-capability-grants.json
 export type PanelAppEntry = {
   id: string;
   fileName: string;
+  kind: "single-file" | "folder";
   title: string;
   description?: string;
   icon?: string;
@@ -83,6 +93,12 @@ export type PanelAppContent = {
   serviceActions: string[];
 };
 
+export type PanelAppDeleteResult = {
+  deleted: true;
+  fileName: string;
+  id: string;
+};
+
 export type PanelAppBridgeSession = {
   id: string;
   token: string;
@@ -98,6 +114,7 @@ export type PanelAppBridgeSession = {
 export class PanelAppManager {
   private readonly bridgeSessions = new Map<string, PanelAppBridgeSession>();
   private readonly agentRunClient: PanelAppAgentRunClient | null;
+  private readonly sourceService = new PanelAppSourceService();
 
   constructor(private readonly params: {
     agentRunClient?: PanelAppAgentRunClient;
@@ -114,14 +131,13 @@ export class PanelAppManager {
   listPanelApps = async (): Promise<PanelAppList> => {
     const workspacePath = this.getWorkspacePath();
     const panelsPath = this.getPanelsPath(workspacePath);
-    const fileNames = await this.listPanelAppFileNames(panelsPath);
+    const sources = await this.sourceService.listSources(panelsPath);
     const appState = await this.createStateStore(panelsPath).load();
     const entries = await Promise.all(
-      fileNames.map((fileName) =>
+      sources.map((source) =>
         this.buildPanelAppEntry(
-          panelsPath,
-          fileName,
-          appState[this.encodePanelAppId(fileName)] ?? {},
+          source,
+          appState[encodePanelAppId(source.sourceName)] ?? {},
         ),
       ),
     );
@@ -134,21 +150,20 @@ export class PanelAppManager {
   };
 
   getPanelAppContent = async (id: string): Promise<PanelAppContent> => {
-    const fileName = this.decodePanelAppId(id);
     const panelsPath = this.getPanelsPath(this.getWorkspacePath());
-    const filePath = join(panelsPath, fileName);
 
     try {
-      const fileStat = await stat(filePath);
-      if (!fileStat.isFile()) {
-        throw new PanelAppError("PANEL_APP_NOT_FOUND", "panel app not found");
-      }
-      const html = await readFile(filePath, "utf8");
-      const manifest = parsePanelAppManifest(html);
+      const source = await this.sourceService.resolveSource(panelsPath, id);
+      const html = await readFile(source.entryPath, "utf8");
+      const manifest = source.manifest ?? parsePanelAppManifest(html);
+      const sourceId = encodePanelAppId(source.sourceName);
+      const htmlWithBase = source.kind === "folder"
+        ? injectPanelAppAssetBase(html, sourceId)
+        : html;
       return {
-        id: this.encodePanelAppId(fileName),
-        fileName,
-        html: injectPanelAppBridgeScript(html),
+        id: sourceId,
+        fileName: source.sourceName,
+        html: injectPanelAppBridgeScript(htmlWithBase),
         capabilities: manifest.capabilities,
         contentType: PANEL_APP_CONTENT_TYPE,
         serviceActions: manifest.serviceActions,
@@ -165,6 +180,11 @@ export class PanelAppManager {
         error instanceof Error ? error.message : String(error),
       );
     }
+  };
+
+  getPanelAppAsset = async (id: string, assetPath: string): Promise<PanelAppAsset> => {
+    const panelsPath = this.getPanelsPath(this.getWorkspacePath());
+    return await this.sourceService.getAsset(panelsPath, id, assetPath);
   };
 
   getPanelAppBridgeScript = (): string => getPanelAppBridgeScript();
@@ -273,33 +293,39 @@ export class PanelAppManager {
     const fileName = await this.resolvePanelAppFileName(id);
     const panelsPath = this.getPanelsPath(this.getWorkspacePath());
     const state = await this.createStateStore(panelsPath).updatePreferences(
-      this.encodePanelAppId(fileName),
+      encodePanelAppId(fileName),
       preferences,
     );
-    return await this.buildPanelAppEntry(panelsPath, fileName, state);
+    return await this.buildPanelAppEntry(
+      await this.sourceService.resolveSource(panelsPath, encodePanelAppId(fileName)),
+      state,
+    );
   };
 
   recordPanelAppOpened = async (id: string): Promise<PanelAppEntry> => {
     const fileName = await this.resolvePanelAppFileName(id);
     const panelsPath = this.getPanelsPath(this.getWorkspacePath());
     const state = await this.createStateStore(panelsPath).recordOpened(
-      this.encodePanelAppId(fileName),
+      encodePanelAppId(fileName),
     );
-    return await this.buildPanelAppEntry(panelsPath, fileName, state);
+    return await this.buildPanelAppEntry(
+      await this.sourceService.resolveSource(panelsPath, encodePanelAppId(fileName)),
+      state,
+    );
   };
 
-  deletePanelApp = async (id: string) => {
-    const fileName = await this.resolvePanelAppFileName(id);
+  deletePanelApp = async (id: string): Promise<PanelAppDeleteResult> => {
     const panelsPath = this.getPanelsPath(this.getWorkspacePath());
-    const panelAppId = this.encodePanelAppId(fileName);
-    await rm(join(panelsPath, fileName));
+    const source = await this.sourceService.resolveSource(panelsPath, id);
+    const panelAppId = encodePanelAppId(source.sourceName);
+    await rm(source.sourcePath, { recursive: source.kind === "folder" });
     await this.createStateStore(panelsPath).deleteEntry(panelAppId);
     await this.createCapabilityGrantStore().deleteCaller({
       surface: "panel-app",
       appId: panelAppId,
     });
     this.deleteBridgeSessionsByPanelAppId(panelAppId);
-    return { deleted: true as const, fileName, id: panelAppId };
+    return { deleted: true, fileName: source.sourceName, id: panelAppId };
   };
 
   private assertAgentCapabilityGranted = async (
@@ -326,9 +352,29 @@ export class PanelAppManager {
     if (!bridgeSession.declaredCapabilities.includes(capability)) {
       throw new PanelAppError(
         "PANEL_APP_CAPABILITY_NOT_DECLARED",
-        "panel app did not declare this agent capability",
+        this.describeMissingAgentCapability(bridgeSession.declaredCapabilities, capability),
       );
     }
+  };
+
+  private describeMissingAgentCapability = (
+    declaredCapabilities: string[],
+    capability: PanelAppAgentCapability,
+  ): string => {
+    const declared = declaredCapabilities.length > 0
+      ? declaredCapabilities.join(", ")
+      : "none";
+    const valid = PANEL_APP_AGENT_CAPABILITIES.join(", ");
+    const hint = declaredCapabilities.includes(capability.replace(":", "."))
+      ? ` Use ${capability}, not ${capability.replace(":", ".")}.`
+      : "";
+    return [
+      `panel app did not declare ${capability}.`,
+      `Declared: ${declared}.`,
+      `Valid capabilities: ${valid}.`,
+      `Declare it with nextclaw-panel-capabilities or panel-app.json capabilities.`,
+      hint.trim(),
+    ].filter(Boolean).join(" ");
   };
 
   private requireAgentRunClient = (): PanelAppAgentRunClient => {
@@ -355,45 +401,23 @@ export class PanelAppManager {
       join(this.getPanelsPath(this.getWorkspacePath()), PANEL_APP_CAPABILITY_GRANTS_FILE_NAME),
     );
 
-  private listPanelAppFileNames = async (panelsPath: string): Promise<string[]> => {
-    try {
-      const entries = await readdir(panelsPath, { withFileTypes: true });
-      return entries
-        .filter((entry) => entry.isFile() && this.isPanelAppFileName(entry.name))
-        .map((entry) => entry.name);
-    } catch (error) {
-      if (this.isMissingFileError(error)) {
-        return [];
-      }
-      throw new PanelAppError(
-        "PANEL_APP_READ_FAILED",
-        error instanceof Error ? error.message : String(error),
-      );
-    }
-  };
-
   private buildPanelAppEntry = async (
-    panelsPath: string,
-    fileName: string,
+    source: PanelAppSource,
     state: PanelAppStateEntry,
   ): Promise<PanelAppEntry> => {
-    const filePath = join(panelsPath, fileName);
-    const [fileStat, html] = await Promise.all([
-      stat(filePath),
-      readFile(filePath, "utf8"),
-    ]);
-    const manifest = parsePanelAppManifest(html);
-    const id = this.encodePanelAppId(fileName);
-    const createdAt = resolvePanelAppCreatedAt(fileStat);
-    const updatedAt = fileStat.mtime.toISOString();
+    const manifest = source.manifest ?? parsePanelAppManifest(await readFile(source.entryPath, "utf8"));
+    const id = encodePanelAppId(source.sourceName);
+    const createdAt = resolvePanelAppCreatedAt(source.sourceStat);
+    const updatedAt = source.sourceStat.mtime.toISOString();
     const entry: PanelAppEntry = {
       id,
-      fileName,
-      title: manifest.title ?? this.toPanelAppTitle(fileName),
+      fileName: source.sourceName,
+      kind: source.kind,
+      title: manifest.title ?? toPanelAppTitle(source.sourceName),
       contentPath: `${PANEL_APP_CONTENT_BASE_PATH}/${encodeURIComponent(id)}/content`,
       createdAt,
       updatedAt,
-      sizeBytes: fileStat.size,
+      sizeBytes: source.sourceStat.size,
       favorite: state.favorite ?? false,
       openCount: state.openCount ?? 0,
     };
@@ -401,7 +425,9 @@ export class PanelAppManager {
       entry.description = manifest.description;
     }
     if (manifest.icon) {
-      entry.icon = manifest.icon;
+      entry.icon = source.kind === "folder"
+        ? resolvePanelAppIconUrl(id, manifest.icon)
+        : manifest.icon;
     }
     if (state.lastOpenedAt) {
       entry.lastOpenedAt = state.lastOpenedAt;
@@ -410,60 +436,12 @@ export class PanelAppManager {
   };
 
   private resolvePanelAppFileName = async (id: string): Promise<string> => {
-    const fileName = this.decodePanelAppId(id);
-    const panelsPath = this.getPanelsPath(this.getWorkspacePath());
-    const filePath = join(panelsPath, fileName);
-    try {
-      const fileStat = await stat(filePath);
-      if (fileStat.isFile()) {
-        return fileName;
-      }
-    } catch (error) {
-      if (this.isMissingFileError(error)) {
-        throw new PanelAppError("PANEL_APP_NOT_FOUND", "panel app not found");
-      }
-      throw new PanelAppError(
-        "PANEL_APP_READ_FAILED",
-        error instanceof Error ? error.message : String(error),
-      );
-    }
-    throw new PanelAppError("PANEL_APP_NOT_FOUND", "panel app not found");
+    const source = await this.sourceService.resolveSource(
+      this.getPanelsPath(this.getWorkspacePath()),
+      id,
+    );
+    return source.sourceName;
   };
-
-  private encodePanelAppId = (fileName: string): string =>
-    Buffer.from(fileName, "utf8").toString("base64url");
-
-  private decodePanelAppId = (id: string): string => {
-    const normalizedId = id.trim();
-    if (!normalizedId) {
-      throw new PanelAppError("PANEL_APP_INVALID_ID", "panel app id is required");
-    }
-    let fileName = "";
-    try {
-      fileName = Buffer.from(normalizedId, "base64url").toString("utf8");
-    } catch {
-      throw new PanelAppError("PANEL_APP_INVALID_ID", "invalid panel app id");
-    }
-    if (
-      this.encodePanelAppId(fileName) !== normalizedId ||
-      !this.isPanelAppFileName(fileName)
-    ) {
-      throw new PanelAppError("PANEL_APP_INVALID_ID", "invalid panel app id");
-    }
-    return fileName;
-  };
-
-  private isPanelAppFileName = (fileName: string): boolean =>
-    fileName.endsWith(PANEL_APP_FILE_SUFFIX) &&
-    !fileName.includes("/") &&
-    !fileName.includes("\\") &&
-    !fileName.includes("\0");
-
-  private toPanelAppTitle = (fileName: string): string =>
-    fileName
-      .slice(0, -PANEL_APP_FILE_SUFFIX.length)
-      .replace(/[-_]+/g, " ")
-      .trim() || fileName;
 
   private comparePanelApps = (left: PanelAppEntry, right: PanelAppEntry): number =>
     resolvePanelAppActivityMs(right) - resolvePanelAppActivityMs(left) ||

@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import {
   isPanelAppError,
+  PanelAppError,
   type PanelAppAgentCapability,
   type PanelAppManager,
 } from "@nextclaw/kernel";
@@ -27,6 +28,9 @@ function statusForPanelAppError(code: string): 400 | 401 | 403 | 404 | 408 {
     case "PANEL_APP_NOT_FOUND":
     case "PANEL_APP_BRIDGE_SESSION_NOT_FOUND":
       return 404;
+    case "PANEL_APP_INVALID_ASSET_PATH":
+    case "PANEL_APP_MANIFEST_INVALID":
+      return 400;
     case "AGENT_OBJECT_RESULT_TIMEOUT":
       return 408;
     default:
@@ -103,6 +107,29 @@ export class PanelAppsRoutesController {
         c.req.param("id"),
       );
       return new Response(payload.html, {
+        headers: {
+          "content-type": payload.contentType,
+          "cache-control": "no-store",
+        },
+      });
+    } catch (error) {
+      if (isPanelAppError(error)) {
+        return c.json(
+          err(error.code, error.message),
+          statusForPanelAppError(error.code),
+        );
+      }
+      throw error;
+    }
+  };
+
+  readonly getPanelAppAsset = async (c: Context): Promise<Response> => {
+    try {
+      const payload = await this.panelAppManager.getPanelAppAsset(
+        c.req.param("id"),
+        readAssetPath(c.req.raw.url),
+      );
+      return new Response(payload.content, {
         headers: {
           "content-type": payload.contentType,
           "cache-control": "no-store",
@@ -227,4 +254,18 @@ export class PanelAppsRoutesController {
     }
     throw error;
   };
+}
+
+function readAssetPath(url: string): string {
+  const pathname = new URL(url).pathname;
+  const marker = "/assets/";
+  const markerIndex = pathname.indexOf(marker);
+  if (markerIndex < 0) {
+    return "";
+  }
+  try {
+    return decodeURIComponent(pathname.slice(markerIndex + marker.length));
+  } catch {
+    throw new PanelAppError("PANEL_APP_INVALID_ASSET_PATH", "invalid panel app asset path");
+  }
 }

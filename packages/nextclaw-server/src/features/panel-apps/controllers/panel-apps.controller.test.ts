@@ -99,6 +99,52 @@ describe("panel apps routes", () => {
     expect(await response.text()).toBe("<!doctype html><h1>Demo</h1>");
   });
 
+  it("serves panel app assets without wrapping them as JSON", async () => {
+    const app = createTestApp({
+      listPanelApps: async () => ({
+        workspacePath: "",
+        panelsPath: "",
+        entries: [],
+      }),
+      getPanelAppContent: async () => {
+        throw new Error("not used");
+      },
+      getPanelAppAsset: async (_id: string, assetPath: string) => ({
+        content: Buffer.from(`asset:${assetPath}`),
+        contentType: "text/css; charset=utf-8" as const,
+      }),
+    } as never);
+
+    const response = await app.request("http://localhost/api/panel-apps/demo/assets/styles/app.css");
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("text/css; charset=utf-8");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.text()).toBe("asset:styles/app.css");
+  });
+
+  it("maps panel app asset errors to route errors", async () => {
+    const app = createTestApp({
+      listPanelApps: async () => ({
+        workspacePath: "",
+        panelsPath: "",
+        entries: [],
+      }),
+      getPanelAppContent: async () => {
+        throw new Error("not used");
+      },
+      getPanelAppAsset: async () => {
+        throw new PanelAppError("PANEL_APP_INVALID_ASSET_PATH", "invalid panel app asset path");
+      },
+    } as never);
+
+    const response = await app.request("http://localhost/api/panel-apps/demo/assets/..%2Fsecret");
+    const payload = await response.json() as { ok: false; error: { code: string } };
+
+    expect(response.status).toBe(400);
+    expect(payload.error.code).toBe("PANEL_APP_INVALID_ASSET_PATH");
+  });
+
   it("updates panel app preferences through the manager", async () => {
     const app = createTestApp({
       listPanelApps: async () => ({

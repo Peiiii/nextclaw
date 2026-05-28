@@ -246,6 +246,7 @@ class UiRouteRegistry {
       ["delete", "/api/panel-apps/:id", panelApps.deletePanelApp],
       ["post", "/api/panel-apps/:id/open", panelApps.recordPanelAppOpened],
       ["get", "/api/panel-apps/:id/content", panelApps.getPanelAppContent],
+      ["get", "/api/panel-apps/:id/assets/*", panelApps.getPanelAppAsset],
       ["get", "/api/service-apps", serviceApps.listServiceApps],
       ["post", "/api/service-apps/:appId/restart", serviceApps.restartServiceApp],
       ["post", "/api/service-apps/:appId/actions/discover", serviceApps.discoverServiceAppActions],
