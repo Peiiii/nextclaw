@@ -244,6 +244,39 @@ describe("ui server api cors", () => {
     expect(await pageResponse.text()).toContain("ui shell");
   });
 
+  it("serves packaged ui assets without cache and recovers missing stale chunks", async () => {
+    const port = await reservePort();
+    const rootDir = mkdtempSync(join(tmpdir(), "nextclaw-server-ui-assets-"));
+    const staticDir = join(rootDir, "ui-dist");
+    const assetsDir = join(staticDir, "assets");
+    mkdirSync(assetsDir, { recursive: true });
+    writeFileSync(join(staticDir, "index.html"), "<!doctype html><script type=\"module\" src=\"/assets/app.js\"></script>");
+    writeFileSync(join(assetsDir, "app.js"), "export const ok = true;");
+    const configPath = join(rootDir, "config.json");
+    const handle = await startUiServer(createTestGateway({
+      configPath,
+      port,
+      uiStaticDir: staticDir,
+    }));
+    handles.push(handle);
+
+    const baseUrl = `http://127.0.0.1:${port}`;
+    await waitForServer(baseUrl);
+
+    const assetResponse = await fetch(`${baseUrl}/assets/app.js`);
+    expect(assetResponse.status).toBe(200);
+    expect(assetResponse.headers.get("cache-control")).toBe("no-store");
+
+    const staleChunkResponse = await fetch(`${baseUrl}/assets/old-chunk.js`);
+    expect(staleChunkResponse.status).toBe(200);
+    expect(staleChunkResponse.headers.get("cache-control")).toBe("no-store");
+    expect(staleChunkResponse.headers.get("content-type")).toContain("application/javascript");
+    expect(await staleChunkResponse.text()).toContain("location?.reload");
+
+    const pageResponse = await fetch(`${baseUrl}/settings`);
+    expect(pageResponse.headers.get("cache-control")).toBe("no-store");
+  });
+
   it("rejects startup when the target port is already in use", async () => {
     const port = await reservePort();
     const configPath = join(mkdtempSync(join(tmpdir(), "nextclaw-server-port-conflict-")), "config.json");

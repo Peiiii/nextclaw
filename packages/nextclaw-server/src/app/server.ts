@@ -30,11 +30,8 @@ const DEFAULT_CORS_ORIGINS = (origin: string | undefined | null) => {
 
 const DEFAULT_ALLOWED_CORS_HEADERS = "Content-Type, Authorization";
 const DEFAULT_ALLOWED_CORS_METHODS = "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS";
+const STALE_UI_ASSET_RELOAD_MODULE = "globalThis.location?.reload();\nexport {};\n";
 type CorsPolicy = string[] | "*" | typeof DEFAULT_CORS_ORIGINS;
-
-function readRequestHeader(request: Request, name: string): string | null {
-  return request.headers.get(name)?.trim() ?? null;
-}
 
 function buildVaryHeader(current: string | null, value: string): string {
   if (!current) {
@@ -66,12 +63,8 @@ function resolveAllowedCorsOrigin(
   return policy(requestOrigin) ?? null;
 }
 
-function applyCorsHeaders(params: {
-  headers: Headers;
-  allowOrigin: string;
-  allowHeaders?: string | null;
-}): void {
-  const { headers, allowOrigin, allowHeaders } = params;
+function createCorsHeaders(allowOrigin: string, allowHeaders?: string | null, currentVary?: string | null): Headers {
+  const headers = new Headers();
   headers.set("Access-Control-Allow-Origin", allowOrigin);
   headers.set("Access-Control-Allow-Credentials", "true");
   headers.set("Access-Control-Allow-Methods", DEFAULT_ALLOWED_CORS_METHODS);
@@ -79,8 +72,9 @@ function applyCorsHeaders(params: {
     "Access-Control-Allow-Headers",
     allowHeaders?.trim() || DEFAULT_ALLOWED_CORS_HEADERS
   );
-  const varyWithOrigin = buildVaryHeader(headers.get("Vary"), "Origin");
+  const varyWithOrigin = buildVaryHeader(currentVary ?? null, "Origin");
   headers.set("Vary", buildVaryHeader(varyWithOrigin, "Access-Control-Request-Headers"));
+  return headers;
 }
 
 function createUiEventPublisher(clients: Set<WebSocket>): (event: AppEventEnvelope) => void {
@@ -118,15 +112,27 @@ function mountUiStaticAssets(app: Hono, staticDir: string): void {
         } catch {
           return false;
         }
+      },
+      onFound: (_, c) => {
+        c.header("cache-control", "no-store");
       }
     })
   );
+  app.get("/assets/*", (c) => {
+    if (!c.req.path.endsWith(".js")) {
+      return c.notFound();
+    }
+    return c.body(STALE_UI_ASSET_RELOAD_MODULE, 200, {
+      "content-type": "application/javascript; charset=utf-8",
+      "cache-control": "no-store"
+    });
+  });
   app.get("*", (c) => {
     const path = c.req.path;
     if (path.startsWith("/api") || path.startsWith("/ws") || path.startsWith("/_remote") || path.startsWith("/webhook")) {
       return c.notFound();
     }
-    return c.html(indexHtml);
+    return c.html(indexHtml, 200, { "cache-control": "no-store" });
   });
 }
 
@@ -170,17 +176,12 @@ export async function startUiServer(gateway: UiRouterOptions): Promise<UiServerH
   const corsPolicy = corsOrigins ?? DEFAULT_CORS_ORIGINS;
   const authService = new UiAuthService(gateway.configPath);
   app.use("/api/*", async (c, next) => {
-    const allowOrigin = resolveAllowedCorsOrigin(readRequestHeader(c.req.raw, "origin"), corsPolicy);
-    const allowHeaders = readRequestHeader(c.req.raw, "access-control-request-headers");
+    const allowOrigin = resolveAllowedCorsOrigin(c.req.header("origin")?.trim() ?? null, corsPolicy);
+    const allowHeaders = c.req.header("access-control-request-headers")?.trim() ?? null;
 
     if (c.req.method === "OPTIONS") {
       if (allowOrigin) {
-        const headers = new Headers();
-        applyCorsHeaders({
-          headers,
-          allowOrigin,
-          allowHeaders
-        });
+        const headers = createCorsHeaders(allowOrigin, allowHeaders);
         return new Response(null, { status: 204, headers });
       }
       return new Response(null, { status: 204 });
@@ -189,11 +190,9 @@ export async function startUiServer(gateway: UiRouterOptions): Promise<UiServerH
     await next();
 
     if (allowOrigin) {
-      applyCorsHeaders({
-        headers: c.res.headers,
-        allowOrigin,
-        allowHeaders
-      });
+      for (const [name, value] of createCorsHeaders(allowOrigin, allowHeaders, c.res.headers.get("Vary"))) {
+        c.res.headers.set(name, value);
+      }
     }
   });
 
