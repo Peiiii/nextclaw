@@ -14,6 +14,7 @@
 - 删除目录应用时递归删除目录，并清理 launcher 状态、授权状态和 bridge session。
 - 内置 `panel-app-creator` skill 已补充单文件/目录式应用选择规则和示例。
 - Agent capability 声明错误时会返回可操作错误信息，提示已声明值、合法值和常见冒号写法。
+- Panel App bridge session 改为 iframe 加载实例级缓存；刷新 iframe 后会重新创建 bridge session 并重读当前 manifest/HTML 声明。
 
 ## 测试/验证/验收方式
 
@@ -46,6 +47,7 @@
 - 删除目录应用并清理状态。
 - server assets route 返回原始资源内容而不是 JSON envelope。
 - 错误声明 `agent.generateObject` 时，系统拒绝调用并提示应使用 `agent:generateObject`。
+- 同一个 iframe 实例内 bridge 调用复用同一个 session；iframe reload version 变化后会创建新 session，避免旧 capability 声明快照卡住。
 
 ## 发布/部署方式
 

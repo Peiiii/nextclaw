@@ -55,14 +55,14 @@ export class PanelAppBridgeManager {
 
   constructor(private readonly authorizationManager: ServiceActionAuthorizationManager) {}
 
-  handleIframeMessage = ({ event, iframe, tab }: DocBrowserIframeMessageParams): void => {
+  handleIframeMessage = ({ event, iframe, iframeInstanceId, tab }: DocBrowserIframeMessageParams): void => {
     if (!this.isBridgeRequest(event.data)) {
       return;
     }
     if (!iframe?.contentWindow || event.source !== iframe.contentWindow) {
       return;
     }
-    void this.handleBridgeRequest({ event, iframe, tab }, event.data);
+    void this.handleBridgeRequest({ event, iframe, iframeInstanceId, tab }, event.data);
   };
 
   private handleBridgeRequest = async (
@@ -268,7 +268,7 @@ export class PanelAppBridgeManager {
     params: DocBrowserIframeMessageParams,
   ): Promise<PanelAppBridgeSessionView> => {
     const panelAppId = this.readPanelAppId(params.tab.currentUrl);
-    const key = `${params.tab.id}:${panelAppId}`;
+    const key = `${params.iframeInstanceId}:${panelAppId}`;
     let session = this.sessions.get(key);
     if (!session) {
       session = nextclawClient.panelApps.createBridgeSession({

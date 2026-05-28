@@ -80,6 +80,7 @@ export function DocBrowser({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const currentUrl = currentTab?.currentUrl ?? DOCS_DEFAULT_BASE_URL;
   const navVersion = currentTab?.navVersion ?? 0;
+  const iframeInstanceId = `${activeTabId}:${navVersion}:${iframeReloadVersion}`;
   const pendingParentDocsUrlRef = useRef<string | null>(null);
   const prevNavVersionRef = useRef(navVersion);
   const isDocsTab = currentTab?.kind === 'docs';
@@ -151,12 +152,13 @@ export function DocBrowser({
       customRenderer.onIframeMessage?.({
         event,
         iframe: iframeRef.current,
+        iframeInstanceId,
         tab: currentTab,
       });
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [currentTab, customRenderer]);
+  }, [currentTab, customRenderer, iframeInstanceId]);
 
   const startFloatDrag = useCallback((event: React.PointerEvent<HTMLElement>) => {
     event.preventDefault();
@@ -293,16 +295,14 @@ export function DocBrowser({
       {customToolbar}
 
       <DocBrowserFrameContent
-        activeTabId={activeTabId}
         currentTab={currentTab}
         currentUrl={currentUrl}
         customContent={customContent}
         iframeRef={iframeRef}
-        iframeReloadVersion={iframeReloadVersion}
+        iframeInstanceId={iframeInstanceId}
         iframeSandbox={iframeSandbox}
         isDragging={floatInteraction?.kind === 'drag'}
         isResizing={floatInteraction?.kind === 'resize'}
-        navVersion={navVersion}
       />
 
       <DocBrowserExternalLink currentUrl={currentUrl} isDocsTab={isDocsTab} />

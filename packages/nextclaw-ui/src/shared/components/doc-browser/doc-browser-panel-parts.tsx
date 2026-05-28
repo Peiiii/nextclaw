@@ -17,16 +17,14 @@ type DocBrowserDocsToolbarProps = {
 };
 
 type DocBrowserFrameContentProps = {
-  activeTabId: string;
   currentTab?: DocBrowserTab;
   currentUrl: string;
   customContent: ReactNode;
   iframeRef: Ref<HTMLIFrameElement>;
-  iframeReloadVersion: number;
+  iframeInstanceId: string;
   iframeSandbox: string;
   isDragging: boolean;
   isResizing: boolean;
-  navVersion: number;
 };
 
 export function DocBrowserDocsToolbar({
@@ -56,16 +54,14 @@ export function DocBrowserDocsToolbar({
 }
 
 export function DocBrowserFrameContent({
-  activeTabId,
   currentTab,
   currentUrl,
   customContent,
   iframeRef,
-  iframeReloadVersion,
+  iframeInstanceId,
   iframeSandbox,
   isDragging,
   isResizing,
-  navVersion,
 }: DocBrowserFrameContentProps) {
   return (
     <div className="flex-1 relative overflow-hidden">
@@ -74,7 +70,7 @@ export function DocBrowserFrameContent({
       ) : (
         <iframe
           ref={iframeRef}
-          key={`${activeTabId}:${navVersion}:${iframeReloadVersion}`}
+          key={iframeInstanceId}
           src={currentUrl}
           className="absolute inset-0 w-full h-full border-0"
           title={currentTab?.title || 'NextClaw Docs'}

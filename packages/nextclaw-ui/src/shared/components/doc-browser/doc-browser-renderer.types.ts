@@ -11,6 +11,7 @@ export type DocBrowserCustomTabRenderParams = {
 export type DocBrowserIframeMessageParams = {
   event: MessageEvent;
   iframe: HTMLIFrameElement | null;
+  iframeInstanceId: string;
   tab: DocBrowserTab;
 };
 

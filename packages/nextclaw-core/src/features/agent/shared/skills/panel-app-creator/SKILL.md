@@ -204,6 +204,19 @@ const result = await window.nextclaw.agent.generateObject({
 - 返回值就是结构化对象本身，不是字符串，也不是 `{ result: ... }` envelope。
 - 第一次调用受保护 Agent capability 时，宿主会负责弹授权，不要自己实现授权 UI。
 
+#### Capability 声明格式
+
+`generateObject` 和 `send` 各自需要独立声明，多个用逗号分隔。声明必须使用**完整格式**（`agent:generateObject`、`agent:send`），不能用笼统的 `agent`：
+
+```html
+<!-- ✅ 正确 -->
+<meta name="nextclaw-panel-capabilities" content="agent:generateObject">
+<meta name="nextclaw-panel-capabilities" content="agent:generateObject, agent:send">
+
+<!-- ❌ 错误 — "agent" 不是合法 capability，会导致 "Declared: none" -->
+<meta name="nextclaw-panel-capabilities" content="agent">
+```
+
 ### send
 
 `send` 适合只触发一次 Agent 会话 run，不等待最终回复：
@@ -240,6 +253,7 @@ await window.nextclaw.agent.send({
 ## 实现建议
 
 0. **信任 write_file 结果**：`write_file` 返回成功即表示文件已写入。不要用 `exec ls -la`、`head` 或 `read_file` 去"验证"刚写入的文件——这会浪费工具调用，并可能因批量执行的时间戳不一致导致分析循环。需要验证时，只在全部写入完成后的验收阶段做一次。
+0b. **避免用 edit_file 修改 HTML meta 标签**：Panel App 的 HTML 文件中，短字符串（如 `"agent"`、`"title"`、`"icon"`）可能在多个位置出现（meta 属性名、注释、内容文本等）。`edit_file` 的 `oldText` 匹配第一个出现位置，极易改错地方。修正 meta 标签时，直接用 `write_file` 重写整个文件，不要用 `edit_file` 做局部替换。
 1. 明确用户要解决的实际工作流，不把临时工具做成复杂产品。
 2. 生成完整可打开的 HTML：`<!doctype html>`、`<meta charset="utf-8">`、响应式布局、可访问的按钮和输入。
 3. 每次新建或重写 Panel App 时，都要先补齐 `<title>`、`nextclaw-panel-title`、`nextclaw-panel-description` 和 `nextclaw-panel-icon`。
