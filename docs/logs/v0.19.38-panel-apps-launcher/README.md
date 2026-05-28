@@ -14,6 +14,8 @@
 
 补充验收修正：智能排序从“收藏优先，再看打开/更新时间”调整为“最近活跃优先”。最近活跃由最近打开时间、文件创建时间和文件修改时间共同决定；收藏只作为同一活跃时间下的辅助权重，避免刚创建、刚修改或刚打开的 Panel App 被旧收藏压到后面。
 
+补充体验优化：Panel App 列表项改为“图标 + 标题”同一首行，描述与时间从下一行直接占满主内容宽度，不再被图标列挤压；描述固定单行截断，时间改成类似聊天列表的紧凑显示。列表项新增三点更多菜单，删除操作放入菜单并经过确认弹窗；删除链路由 kernel 删除 HTML 文件并清理偏好状态、capability grant 与活动 bridge session，server / SDK / UI 只保留薄转发。
+
 这是新增用户能力，不适用“非功能改动生产代码净增 <= 0”的硬门槛；本轮新增代码主要来自新状态 owner、manifest 解析、API 合同、UI 交互和定向测试。
 
 ## 测试/验证/验收方式
@@ -38,6 +40,18 @@
   - `pnpm --filter @nextclaw/kernel tsc`
   - `pnpm --filter @nextclaw/ui tsc`
   - touched-file ESLint：kernel PanelAppManager / panel app manager test、UI panel app view utils / test / API types。
+- 补充列表布局与删除验证：
+  - `pnpm --filter @nextclaw/kernel test -- src/managers/__tests__/panel-app.manager.test.ts`
+  - `pnpm --filter @nextclaw/server test -- src/features/panel-apps/controllers/panel-apps.controller.test.ts`
+  - `pnpm --filter @nextclaw/ui test -- src/features/panel-apps/components/panel-app-list-item.test.tsx src/features/panel-apps/utils/panel-app-view.utils.test.ts`
+  - `pnpm --filter @nextclaw/kernel tsc`
+  - `pnpm --filter @nextclaw/server tsc`
+  - `pnpm --filter @nextclaw/client-sdk tsc`
+  - `pnpm --filter @nextclaw/ui tsc`
+  - touched-file ESLint：kernel / server / client-sdk / UI 本次触达文件均通过。
+  - `pnpm lint:new-code:governance`
+  - `pnpm check:governance-backlog-ratchet`
+  - Playwright 打开 `http://127.0.0.1:5174`，mock `/api/panel-apps`，从 Settings -> Apps 打开列表，确认描述 class 包含 `truncate`，三点菜单内可见 `Delete panel app`；截图写入 `/tmp/nextclaw-panel-app-list-menu-check.png`。
 
 ## 发布/部署方式
 
@@ -52,6 +66,8 @@
 5. 切换胶囊 tabs：智能排序、收藏、最近打开、最近更新、名称，列表展示应符合对应模块语义。
 6. 带脚本的本地 Panel App 应能响应点击、弹出 `alert/confirm/prompt`、读写浏览器本地状态，并在需要时调用同源 API。
 7. 配置 `nextclaw-panel-icon` 的应用应显示 emoji / 短字符图标；配置标准 favicon 的应用应显示图片图标；都未配置时显示默认图标。
+8. 列表项首行应只承载图标、标题、收藏和更多菜单；描述和时间应从下一行直接占满主内容宽度，描述超长时单行截断。
+9. 点击三点菜单里的删除，应先弹出确认；确认后对应 `*.panel.html`、偏好状态、capability grant 与活动 bridge session 被清理，列表刷新后不再显示该应用。
 
 ## 可维护性总结汇总
 
@@ -63,6 +79,8 @@
 - `post-edit-maintainability-review` 已执行主观复核；当前主要后续缝隙是把前端 API 大类型文件继续拆分，避免 `shared/lib/api/types.ts` 逼近预算。
 
 补充修正可维护性说明：本次只给 Panel App entry 增加真实 `createdAt` 事实，不新增派生 `activityAt` 合同；活跃时间在 `PanelAppManager` 与 UI view utils 的排序 owner 中按需计算，避免把排序派生状态写入 API 表面。
+
+补充列表布局与删除可维护性说明：本次是用户可见能力增量，非测试代码净增为正符合能力新增性质。实现上删除没有新增平行 owner：文件删除和状态清理由 `PanelAppManager` 统一装配，store 只补最小删除 mutation；UI 复用既有 `Popover` / `ConfirmDialog`，没有放置显眼独立删除按钮。为避免 manager 继续越过 500 行预算，已将 panel app 时间计算抽到 `panel-app-time.utils.ts`；最新 maintainability guard 0 error，仅保留 `PanelAppManager` 与 UI API types 接近预算的 warning。
 
 ## 红区触达与减债记录
 
