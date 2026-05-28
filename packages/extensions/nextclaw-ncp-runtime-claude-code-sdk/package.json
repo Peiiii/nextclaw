@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/nextclaw-ncp-runtime-claude-code-sdk",
-  "version": "0.1.40-beta.5",
+  "version": "0.1.40-beta.6",
   "private": false,
   "description": "Optional NCP runtime adapter backed by Anthropic Claude Agent SDK.",
   "type": "module",
