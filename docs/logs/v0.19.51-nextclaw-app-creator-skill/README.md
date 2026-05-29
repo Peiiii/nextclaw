@@ -94,3 +94,20 @@
 - 临时目录真实安装 `nextclaw@latest` 成功。
 - 安装包中存在 `resources/update-bundle-public.pem`、launcher entry 和 app entry。
 - 隔离 `NEXTCLAW_HOME` 执行 `nextclaw update --check` 成功，结果为 runtime already up to date。
+
+### 后续修正发布
+
+为避免 AI 继续生成目录式 Panel App 但把 Service action allowlist 写入 HTML meta，本迭代后续又发布一次正式版本：
+
+- `nextclaw@0.19.33`
+- `@nextclaw/core@0.12.27`
+- `@nextclaw/ui@0.12.37`
+
+验证结果：
+
+- `pnpm release:publish`：发布 46 个 public workspace package。
+- `pnpm release:verify:published`：46/46 package versions published。
+- `npm view nextclaw dist-tags --json`：`latest` 指向 `0.19.33`。
+- 临时目录真实安装 `nextclaw@latest` 成功，`nextclaw --version` 输出 `0.19.33`。
+- 安装包中存在 `resources/update-bundle-public.pem`、launcher entry 和 app entry。
+- 隔离 `NEXTCLAW_HOME` 执行 `nextclaw update --check` 成功，结果为 runtime already up to date。

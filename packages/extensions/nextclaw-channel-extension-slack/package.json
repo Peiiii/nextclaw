@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-extension-slack",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": false,
   "description": "NextClaw Slack channel extension process.",
   "type": "module",
