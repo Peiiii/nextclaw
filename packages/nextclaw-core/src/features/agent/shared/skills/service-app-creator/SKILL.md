@@ -8,6 +8,8 @@ description_zh: 创建或修改 NextClaw 轻量应用中的 Service App 后端 a
 
 当用户要给 Panel App、小工具或轻量应用增加后端 actions 时使用这个专项 skill。若用户表达的是“做一个完整 NextClaw 小应用”，先读取 `nextclaw-app-creator` 判断是否还需要 Panel App。第一版 Service App 是用户自定义后端扩展，不是 NextClaw 内部系统能力，也不默认投射给 Agent 使用。
 
+Service App 只负责浏览器做不了或不该做的后端动作：本地文件、外部 API、本地命令、权限边界和可授权原子能力。AI 分析、总结、分类、结构化 JSON 输出默认走 Panel App 的 `window.nextclaw.agent.generateObject()`，不要为了 AI 分析新建 Service App 自己调用模型，除非用户明确要求接入某个外部模型服务。
+
 ## 输出位置
 
 - Service App 必须写入 NextClaw workspace 的 `service-apps/<app-id>/` 目录。
@@ -98,6 +100,16 @@ renderNote(note.content ?? "");
 const payload = await window.nextclaw.serviceActions.invoke("workspace-files.list", {});
 const files = payload.files ?? [];
 ```
+
+Bridge SDK 返回合同：
+
+- `serviceActions.list()` 返回 action 数组，不返回 `{ actions }`。
+- `serviceActions.invoke()` 返回业务 payload，不返回 `{ actionId, result }`。
+- 如果 MCP tool result 使用 `structuredContent`，Panel App 会收到 `structuredContent`。
+- 如果 MCP tool result 使用单条 text content 且 text 是 JSON，Panel App 会收到解析后的对象。
+- 如果 text 不是 JSON，Panel App 会收到字符串。
+
+因此 Service App 的 MCP server 可以按 MCP 标准返回 tool result，但业务 JSON 应保持稳定 shape，避免同一个 action 有时返回数组、有时返回对象、有时返回纯文本。
 
 第一次调用需要用户授权。不要在 Panel App 中伪造 caller、保存 bridge token 或直接调用 Service Gateway；caller、allowlist 和 grant 都由宿主与 kernel 管理。
 

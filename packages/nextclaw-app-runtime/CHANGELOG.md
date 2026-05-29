@@ -1,5 +1,13 @@
 # @nextclaw/app-runtime
 
+## 0.8.0
+
+### Minor Changes
+
+- Release the NextClaw lightweight app platform as a minor feature line.
+
+  Panel Apps now receive developer-friendly bridge results: service action lists resolve to arrays, service action invokes resolve to business payloads, and built-in app creator skills document the canonical Panel + Service + Agent contract.
+
 ## 0.7.15
 
 ### Patch Changes

@@ -1,5 +1,18 @@
 # @nextclaw/mcp
 
+## 0.2.0
+
+### Minor Changes
+
+- Release the NextClaw lightweight app platform as a minor feature line.
+
+  Panel Apps now receive developer-friendly bridge results: service action lists resolve to arrays, service action invokes resolve to business payloads, and built-in app creator skills document the canonical Panel + Service + Agent contract.
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/core@0.13.0
+
 ## 0.1.92
 
 ### Patch Changes

@@ -37,6 +37,7 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 - Service App 是用户自定义后端扩展，提供可授权 actions；它不是 NextClaw 内部系统能力，也不默认投射给 Agent 使用。
 - Panel App 调用 Service App 时，必须通过 `window.nextclaw.serviceActions.invoke()`，并在 `panel-app.json.actions` 声明 action allowlist。
 - Panel App 调用 Agent 时，必须在 `panel-app.json.capabilities` 声明 capability，并通过 `window.nextclaw.agent.send()` 或 `window.nextclaw.agent.generateObject()`。
+- AI 分析、总结、分类、结构化 JSON 输出优先走 `window.nextclaw.agent.generateObject()`；Service App 用于本地文件、外部 API、本地命令和权限动作，不默认承担模型调用。
 - 不要让 Panel App 自己启动 HTTP server、直连 Service Gateway、伪造 caller、保存 bridge token 或猜测 sessionId。
 - 不要为了“像应用工程”而创建 `package.json`、Vite、node_modules 或后台 dev server；第一版 NextClaw 轻量应用默认是静态 Panel App + 可选 MCP stdio Service App。
 
@@ -72,6 +73,7 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 - `panel-app.json` 是 Panel App 标题、入口、图标、Agent capabilities 和 Service action allowlist 的唯一事实源；不要在 HTML meta 中重复声明 NextClaw manifest 字段。
 - action id 统一使用 `<service-app-id>.<tool-name>`。
 - Agent capability 统一使用 `agent:send`、`agent:generateObject`，不要写 `agent.send`、`agent.generateObject` 或泛化的 `agent`。
+- `window.nextclaw.serviceActions.list()` 返回数组；`window.nextclaw.serviceActions.invoke()` 返回业务 payload；不要读取 `response.actions` 或 `response.result`。
 
 ## 验收清单
 

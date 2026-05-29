@@ -34,6 +34,37 @@ export function getPanelAppBridgeScript(): string {
     });
   }
 
+  function unwrapServiceActionResult(result) {
+    if (!result || typeof result !== "object") {
+      return result;
+    }
+    if (Object.prototype.hasOwnProperty.call(result, "structuredContent") && result.structuredContent !== undefined) {
+      return result.structuredContent;
+    }
+    const content = Array.isArray(result.content) ? result.content : undefined;
+    if (content && content.length === 1 && content[0]?.type === "text" && typeof content[0].text === "string") {
+      try {
+        return JSON.parse(content[0].text);
+      } catch {
+        return content[0].text;
+      }
+    }
+    return result;
+  }
+
+  function resolveBridgeData(entry, data) {
+    if (entry.method === "list") {
+      return Array.isArray(data.data?.actions) ? data.data.actions : [];
+    }
+    if (entry.method === "invoke") {
+      return unwrapServiceActionResult(data.data?.result);
+    }
+    if (entry.method === "agent.generateObject") {
+      return data.data?.result;
+    }
+    return data.data;
+  }
+
   window.addEventListener("message", (event) => {
     const data = event.data;
     if (!data || data.type !== responseType || typeof data.requestId !== "string") {
@@ -45,11 +76,7 @@ export function getPanelAppBridgeScript(): string {
     }
     pending.delete(data.requestId);
     if (data.ok) {
-      entry.resolve(
-        entry.method === "invoke" || entry.method === "agent.generateObject"
-          ? data.data?.result
-          : data.data
-      );
+      entry.resolve(resolveBridgeData(entry, data));
       return;
     }
     const error = new Error(data.error?.message || "NextClaw panel bridge request failed.");

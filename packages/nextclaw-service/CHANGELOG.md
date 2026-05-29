@@ -1,5 +1,38 @@
 # @nextclaw/service
 
+## 0.2.0
+
+### Minor Changes
+
+- Release the NextClaw lightweight app platform as a minor feature line.
+
+  Panel Apps now receive developer-friendly bridge results: service action lists resolve to arrays, service action invokes resolve to business payloads, and built-in app creator skills document the canonical Panel + Service + Agent contract.
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/core@0.13.0
+  - @nextclaw/kernel@0.2.0
+  - @nextclaw/mcp@0.2.0
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.2.0
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.2.0
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.2.0
+  - @nextclaw/remote@0.2.0
+  - @nextclaw/runtime@0.3.0
+  - @nextclaw/server@0.13.0
+  - @nextclaw/shared@0.2.0
+  - @nextclaw/channel-extension-dingtalk@0.1.4
+  - @nextclaw/channel-extension-discord@0.1.4
+  - @nextclaw/channel-extension-email@0.1.4
+  - @nextclaw/channel-extension-slack@0.1.4
+  - @nextclaw/channel-extension-telegram@0.1.4
+  - @nextclaw/channel-extension-wecom@0.1.4
+  - @nextclaw/channel-extension-whatsapp@0.1.4
+  - @nextclaw/channel-extension-feishu@0.1.12
+  - @nextclaw/channel-extension-qq@0.1.9
+  - @nextclaw/channel-extension-weixin@0.1.15
+  - @nextclaw/ncp-mcp@0.1.95
+
 ## 0.1.20
 
 ### Patch Changes

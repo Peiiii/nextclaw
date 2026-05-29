@@ -61,6 +61,7 @@ describe("SkillsLoader builtin skills", () => {
 
     expect(skill).toContain("window.nextclaw.agent.generateObject");
     expect(skill).toContain("window.nextclaw.agent.send");
+    expect(skill).toContain("references/panel-app-bridge-api.md");
     expect(skill).toContain("peerId");
     expect(skill).toContain("不要自己生成、缓存或猜测稳定 `sessionId`");
     expect(skill).toContain("窄侧栏优先布局");
@@ -72,6 +73,9 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("agent:send");
     expect(skill).toContain("\"actions\": [\"workspace-files.list\", \"workspace-files.read\"]");
     expect(skill).toContain("不要在 HTML `<head>` 中添加 NextClaw manifest meta");
+    expect(skill).toContain("`list()` 返回 action 数组");
+    expect(skill).toContain("`invoke()` 已由宿主 SDK 解包");
+    expect(skill).toContain("不要为了 AI 分析新建 Service App 自己调用模型");
   });
 
   it("loads the NextClaw app creator orchestration skill", () => {
@@ -89,6 +93,20 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("不要外部生成稳定 `sessionId`");
     expect(skill).toContain("创建目录式 Panel App");
     expect(skill).toContain("`panel-app.json` 是 Panel App 标题、入口、图标、Agent capabilities 和 Service action allowlist 的唯一事实源");
+    expect(skill).toContain("AI 分析、总结、分类、结构化 JSON 输出优先走 `window.nextclaw.agent.generateObject()`");
+    expect(skill).toContain("`window.nextclaw.serviceActions.list()` 返回数组");
+  });
+
+  it("documents the Service App bridge payload contract", () => {
+    const workspace = createWorkspace();
+    const loader = new SkillsLoader(workspace);
+    const skill = loader.loadSkill("service-app-creator");
+
+    expect(skill).toContain("Service App 只负责浏览器做不了或不该做的后端动作");
+    expect(skill).toContain("AI 分析、总结、分类、结构化 JSON 输出默认走 Panel App 的 `window.nextclaw.agent.generateObject()`");
+    expect(skill).toContain("`serviceActions.list()` 返回 action 数组");
+    expect(skill).toContain("`serviceActions.invoke()` 返回业务 payload");
+    expect(skill).toContain("如果 MCP tool result 使用 `structuredContent`");
   });
 
   it("keeps builtin skill descriptions bilingual", () => {

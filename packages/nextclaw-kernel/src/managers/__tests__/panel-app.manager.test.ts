@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { createContext, runInContext } from "node:vm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { NcpEventType } from "@nextclaw/ncp";
@@ -8,8 +9,16 @@ import { ConfigManager } from "@kernel/managers/config.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
 import type { PanelAppError } from "@kernel/types/panel-app.types.js";
 import { STRUCTURED_RESULT_TOOL_NAME } from "@kernel/tools/structured-result.tools.js";
+import { getPanelAppBridgeScript } from "@kernel/utils/panel-app-bridge.utils.js";
 
 const tempDirs: string[] = [];
+
+type BridgeApi = {
+  serviceActions: {
+    invoke: (actionId: string, input: Record<string, unknown>) => Promise<unknown>;
+    list: () => Promise<unknown>;
+  };
+};
 
 function createTempDir(): string {
   const dir = mkdtempSync(join(tmpdir(), "nextclaw-panel-app-manager-test-"));
@@ -45,6 +54,35 @@ function createPanelAppManager(
     } as never,
   });
   return new PanelAppManager({ configManager, agentRunClient: options.agentRunClient });
+}
+
+async function runBridgeRequest<T>(
+  call: (nextclaw: BridgeApi) => Promise<T>,
+  data: unknown,
+): Promise<T> {
+  let listener: ((event: { data: unknown }) => void) | undefined;
+  let requestId = "";
+  const windowLike = {
+    addEventListener: (_type: string, handler: (event: { data: unknown }) => void) => {
+      listener = handler;
+    },
+    parent: {
+      postMessage: (message: { requestId: string }) => {
+        requestId = message.requestId;
+      },
+    },
+  };
+  runInContext(getPanelAppBridgeScript(), createContext({ window: windowLike }));
+  const promise = call((windowLike as unknown as { nextclaw: BridgeApi }).nextclaw);
+  listener?.({
+    data: {
+      data,
+      ok: true,
+      requestId,
+      type: "nextclaw:panel-app-service-actions:response",
+    },
+  });
+  return await promise;
 }
 
 afterEach(() => {
@@ -172,9 +210,24 @@ describe("PanelAppManager", () => {
       serviceActions: [],
     }));
     expect(content.html).toContain("window.nextclaw");
-    expect(content.html).toContain('entry.method === "invoke" || entry.method === "agent.generateObject"');
+    expect(content.html).toContain("resolveBridgeData");
     expect(content.html).not.toContain("<script src=\"/api/panel-app-bridge.js\"></script>");
     expect(content.html).toContain("<!doctype html><h1>Todo</h1>");
+  });
+
+  it("exposes array and business payload shapes from the injected bridge SDK", async () => {
+    await expect(runBridgeRequest(
+      (nextclaw) => nextclaw.serviceActions.list(),
+      { actions: [{ id: "workspace-files.list" }] },
+    )).resolves.toEqual([{ id: "workspace-files.list" }]);
+    await expect(runBridgeRequest(
+      (nextclaw) => nextclaw.serviceActions.invoke("workspace-files.list", {}),
+      { result: { structuredContent: { files: ["a.md"] } } },
+    )).resolves.toEqual({ files: ["a.md"] });
+    await expect(runBridgeRequest(
+      (nextclaw) => nextclaw.serviceActions.invoke("workspace-files.list", {}),
+      { result: { content: [{ type: "text", text: "{\"files\":[\"b.md\"]}" }] } },
+    )).resolves.toEqual({ files: ["b.md"] });
   });
 
   it("returns folder panel app HTML content with asset base and bridge injection", async () => {
