@@ -72,10 +72,12 @@ service-apps/
 
 ## 配套 Panel App
 
-如果 Panel App 需要调用 Service App，必须在 HTML `<head>` 声明 allowlist：
+如果 Panel App 需要调用 Service App，必须在目录式 Panel App 的 `panel-app.json.actions` 声明 allowlist：
 
-```html
-<meta name="nextclaw-panel-actions" content="workspace-notes.readNote workspace-notes.writeNote">
+```json
+{
+  "actions": ["workspace-notes.readNote", "workspace-notes.writeNote"]
+}
 ```
 
 Panel App 内通过宿主注入的 SDK 调用：
@@ -104,5 +106,5 @@ const files = payload.files ?? [];
 - 检查 `service-app.json` 是合法 JSON，`id` 与目录名一致。
 - 检查 manifest `actions` 非空，并且每个 action 都有 `risk`。
 - 检查 MCP server 至少能列出 tools，并且 tool 名和 manifest `actions` 对齐；manifest 声明但 runtime 缺失、runtime 多出未声明 tool 都需要向用户说明。
-- 如果配套 Panel App，同时检查 `<meta name="nextclaw-panel-actions">` 包含要调用的 action id。
+- 如果配套 Panel App，同时检查 `panel-app.json.actions` 包含要调用的 action id。
 - 用“服务应用”面板刷新，确认 app 状态不是 failed；再从 Panel App 触发一次调用，确认授权和结果都能走通。

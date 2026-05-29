@@ -65,9 +65,13 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("不要自己生成、缓存或猜测稳定 `sessionId`");
     expect(skill).toContain("窄侧栏优先布局");
     expect(skill).toContain("320px-480px");
-    expect(skill).toContain("nextclaw-panel-capabilities");
+    expect(skill).toContain("新建或重写 Panel App 时只使用目录式 Panel App");
+    expect(skill).toContain("`panel-app.json` 是标题、描述、图标、入口、Agent capabilities 和 Service actions 的唯一 manifest 事实源");
+    expect(skill).toContain("\"capabilities\": [\"agent:generateObject\", \"agent:send\"]");
     expect(skill).toContain("agent:generateObject");
     expect(skill).toContain("agent:send");
+    expect(skill).toContain("\"actions\": [\"workspace-files.list\", \"workspace-files.read\"]");
+    expect(skill).toContain("不要在 HTML `<head>` 中添加 NextClaw manifest meta");
   });
 
   it("loads the NextClaw app creator orchestration skill", () => {
@@ -83,6 +87,8 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("window.nextclaw.serviceActions.invoke()");
     expect(skill).toContain("window.nextclaw.agent.generateObject()");
     expect(skill).toContain("不要外部生成稳定 `sessionId`");
+    expect(skill).toContain("创建目录式 Panel App");
+    expect(skill).toContain("`panel-app.json` 是 Panel App 标题、入口、图标、Agent capabilities 和 Service action allowlist 的唯一事实源");
   });
 
   it("keeps builtin skill descriptions bilingual", () => {

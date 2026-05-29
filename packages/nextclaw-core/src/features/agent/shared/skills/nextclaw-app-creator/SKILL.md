@@ -35,8 +35,8 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 
 - Panel App 是用户界面层，默认展示在右侧面板，必须窄侧栏优先。
 - Service App 是用户自定义后端扩展，提供可授权 actions；它不是 NextClaw 内部系统能力，也不默认投射给 Agent 使用。
-- Panel App 调用 Service App 时，必须通过 `window.nextclaw.serviceActions.invoke()`，并在 Panel App 声明 `nextclaw-panel-actions`。
-- Panel App 调用 Agent 时，必须声明 `nextclaw-panel-capabilities`，并通过 `window.nextclaw.agent.send()` 或 `window.nextclaw.agent.generateObject()`。
+- Panel App 调用 Service App 时，必须通过 `window.nextclaw.serviceActions.invoke()`，并在 `panel-app.json.actions` 声明 action allowlist。
+- Panel App 调用 Agent 时，必须在 `panel-app.json.capabilities` 声明 capability，并通过 `window.nextclaw.agent.send()` 或 `window.nextclaw.agent.generateObject()`。
 - 不要让 Panel App 自己启动 HTTP server、直连 Service Gateway、伪造 caller、保存 bridge token 或猜测 sessionId。
 - 不要为了“像应用工程”而创建 `package.json`、Vite、node_modules 或后台 dev server；第一版 NextClaw 轻量应用默认是静态 Panel App + 可选 MCP stdio Service App。
 
@@ -45,7 +45,7 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 ### Panel-only
 
 1. 读取 `panel-app-creator`。
-2. 选择目录式或单文件形态；不确定时用目录式。
+2. 创建目录式 Panel App。
 3. 确保标题、描述、图标、窄侧栏布局和核心交互完整。
 4. 数据默认写入 `localStorage`。
 5. 做 Panel App 打开和刷新验收。
@@ -69,7 +69,7 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 
 - 先做能被用户立即使用的小闭环，不做重型工程脚手架。
 - 一个小应用的 UI、后端 actions、Agent 调用和授权声明必须互相一致。
-- 静态 manifest 是列表、授权和 allowlist 的事实源；不要依赖启动服务后临时发现来决定 UI 是否允许调用。
+- `panel-app.json` 是 Panel App 标题、入口、图标、Agent capabilities 和 Service action allowlist 的唯一事实源；不要在 HTML meta 中重复声明 NextClaw manifest 字段。
 - action id 统一使用 `<service-app-id>.<tool-name>`。
 - Agent capability 统一使用 `agent:send`、`agent:generateObject`，不要写 `agent.send`、`agent.generateObject` 或泛化的 `agent`。
 
@@ -77,6 +77,6 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 
 - Panel App：能在“面板应用”列表出现，标题、描述、图标正确；窄侧栏可用；打开后无横向溢出。
 - Service App：能在“服务应用”列表出现，状态不是 failed；manifest actions 非空且有 risk。
-- Panel + Service：Panel App 声明的 `nextclaw-panel-actions` 覆盖实际调用的 action；首次调用触发授权；授权后返回值按业务 payload 读取，不读 `response.result`。
-- Agent：Panel App 声明的 `nextclaw-panel-capabilities` 精确覆盖实际调用；需要稳定会话时传 `peerId`，不要外部生成稳定 `sessionId`。
+- Panel + Service：`panel-app.json.actions` 覆盖实际调用的 action；首次调用触发授权；授权后返回值按业务 payload 读取，不读 `response.result`。
+- Agent：`panel-app.json.capabilities` 精确覆盖实际调用；需要稳定会话时传 `peerId`，不要外部生成稳定 `sessionId`。
 - 错误提示：区分 bridge 不存在、未授权、Service Action 调用失败、返回结构不符合预期、Agent capability 未声明。

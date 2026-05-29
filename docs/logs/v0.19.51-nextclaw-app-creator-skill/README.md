@@ -12,6 +12,7 @@
 - `service-app-creator` 保持为 Service App backend actions 专项 skill，并明确应由总入口判断是否需要配套 Panel App。
 - 更新内置 skills README，补充三个 NextClaw app 相关 skill 的职责。
 - 增加 loader 测试，确认 `nextclaw-app-creator` 可加载，并包含对两个专项 skill、Service Actions、Agent API 与 sessionId 约束的导航。
+- 后续根据真实 Panel App 创建失败案例继续收敛：内置开发 skill 只教目录式 Panel App，`panel-app.json` 成为标题、入口、图标、Agent capabilities 和 Service action allowlist 的唯一事实源。
 
 ## 测试/验证/验收方式
 
@@ -31,6 +32,7 @@
 - 新总入口 skill 能引导 Panel-only、Service-only、Panel + Service 三种形态。
 - 新总入口 skill 能指向 `panel-app-creator` 与 `service-app-creator`。
 - 新总入口 skill 保留关键 runtime API 约束：`window.nextclaw.serviceActions.invoke()`、`window.nextclaw.agent.generateObject()`、不外部生成稳定 `sessionId`。
+- Panel App creator skill 不再引导 `.panel.html`、HTML manifest meta、`nextclaw-panel-actions` 或 `nextclaw-panel-capabilities`；目录式 `panel-app.json.actions` 与 `panel-app.json.capabilities` 是唯一推荐路径。
 
 ## 发布/部署方式
 
@@ -56,6 +58,7 @@
 2. Agent 应优先读取 `nextclaw-app-creator`。
 3. Agent 根据是否需要 UI、文件读写、外部 API、本地命令或权限动作，选择 Panel-only、Service-only 或 Panel + Service。
 4. Agent 再按需读取 `panel-app-creator` 或 `service-app-creator`，而不是在一个超长 skill 里混杂所有细节。
+5. 新建 Panel App 时必须创建 `panels/<app-id>.panel/panel-app.json`，并把 `actions`、`capabilities` 都写入该 manifest。
 
 ## 可维护性总结汇总
 
@@ -66,6 +69,7 @@
 - 用 `nextclaw-app-creator` 承接产品级形态判断，避免 Panel App skill 继续承担所有入口判断。
 - 保留 `panel-app-creator` 与 `service-app-creator` 的专项自包含性，避免单体大 skill 膨胀。
 - 通过测试锁定新总入口的关键导航和约束。
+- 删除 skill 层面的多形态教学，避免 AI 在目录式 Panel App 里把 Service action allowlist 写到 HTML meta，导致宿主识别为未声明。
 
 维护性检查结果：
 
