@@ -8,6 +8,7 @@ import {
   normalizeUrlByKind,
 } from '@/shared/components/doc-browser/utils/doc-browser-url.utils';
 import type {
+  RightPanelResourceHomeNavigationItem,
   RightPanelResourceRouteDefinition,
   RightPanelResourceTarget,
 } from '@/features/right-panel-resources/types/right-panel-resource.types';
@@ -17,6 +18,7 @@ import {
   RIGHT_PANEL_HOME_TAB_KIND,
   RIGHT_PANEL_HOME_URL,
   RIGHT_PANEL_PANEL_APP_TAB_KIND,
+  RIGHT_PANEL_SERVICE_APPS_URL,
   normalizeRightPanelAppsUrl,
 } from '@/features/right-panel-resources/utils/right-panel-resource-uri.utils';
 
@@ -138,3 +140,37 @@ export const RIGHT_PANEL_RESOURCE_ROUTE_DEFINITIONS_FOR_RESOURCE_URI: ResourceUr
     match: definition.match,
     resolve: definition.resolve,
   }));
+
+export function getRightPanelResourceHomeNavigationItems(): RightPanelResourceHomeNavigationItem[] {
+  return [
+    {
+      id: 'apps',
+      label: t('appsTitle'),
+      target: { type: 'right-panel-resource', uri: RIGHT_PANEL_APPS_URL },
+    },
+    {
+      id: 'service-apps',
+      label: t('serviceAppsTitle'),
+      target: { type: 'right-panel-resource', uri: RIGHT_PANEL_SERVICE_APPS_URL },
+    },
+    {
+      id: 'docs',
+      label: t('docBrowserHelp'),
+      target: {
+        options: { newTab: true },
+        type: 'right-panel-resource',
+        uri: getDefaultDocsUrl(),
+      },
+    },
+    {
+      id: 'skill-marketplace',
+      label: t('marketplaceSkillsPageTitle'),
+      target: { path: '/marketplace/skills', type: 'app-route' },
+    },
+    {
+      id: 'mcp-marketplace',
+      label: t('marketplaceMcpPageTitle'),
+      target: { path: '/marketplace/mcp', type: 'app-route' },
+    },
+  ];
+}

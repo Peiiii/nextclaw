@@ -48,6 +48,9 @@ Source code, scripts, tests, or runtime-path config:
 
 User-visible or runnable behavior:
 
+- “验证通过”不是只指编译、类型、lint、单测或治理检查通过；只要改动有可运行行为、用户路径、API/transport 行为或功能语义变化，就必须包含功能验证。
+- 功能验证优先级：真实用户路径 / 真实复现路径 > 最贴近链路的冒烟或 assembled boundary test > 最小可证明替代验证。
+- 如果功能验证没有执行、只能执行替代验证，或仍有路径没覆盖，最终回复不得笼统说“验证通过”；必须明确写出“功能未验证”或“剩余功能验收缺口”。
 - run a smoke test close to the real workflow,
 - use a non-repo isolated location for smoke data when possible.
 - If a workspace UI/runtime package is consumed from source by another local app, package-level `tsc`/tests are not enough. Verify the consuming app path too, either by loading the app in the dev server or by directly requesting the transformed Vite `@fs` module for the touched source file. This catches alias/import-resolution failures that the edited package can miss.

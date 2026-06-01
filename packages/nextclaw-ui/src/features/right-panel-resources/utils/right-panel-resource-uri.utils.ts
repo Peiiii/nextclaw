@@ -8,6 +8,31 @@ export const RIGHT_PANEL_APPS_URL = 'nextclaw://apps';
 export const RIGHT_PANEL_SERVICE_APPS_URL = `${RIGHT_PANEL_APPS_URL}?tab=service-apps`;
 export const RIGHT_PANEL_PANEL_APP_TAB_KIND = 'panel-app';
 
+export type RightPanelAppsTab = 'panel-apps' | 'service-apps';
+
+const DEFAULT_RIGHT_PANEL_APPS_TAB: RightPanelAppsTab = 'panel-apps';
+
+function isRightPanelAppsTab(value: unknown): value is RightPanelAppsTab {
+  return value === 'panel-apps' || value === 'service-apps';
+}
+
+export function createRightPanelAppsUrl(tab: RightPanelAppsTab = DEFAULT_RIGHT_PANEL_APPS_TAB): string {
+  return tab === DEFAULT_RIGHT_PANEL_APPS_TAB ? RIGHT_PANEL_APPS_URL : RIGHT_PANEL_SERVICE_APPS_URL;
+}
+
+export function getRightPanelAppsTabFromUrl(url: string): RightPanelAppsTab {
+  try {
+    const tab = new URL(url).searchParams.get('tab');
+    return isRightPanelAppsTab(tab) ? tab : DEFAULT_RIGHT_PANEL_APPS_TAB;
+  } catch {
+    return DEFAULT_RIGHT_PANEL_APPS_TAB;
+  }
+}
+
+export function normalizeRightPanelAppsUrl(url: string): string {
+  return createRightPanelAppsUrl(getRightPanelAppsTabFromUrl(url));
+}
+
 export function createPanelAppResourceUri(appId: string): string {
   return `nextclaw://panel-app/${encodeURIComponent(appId)}`;
 }
