@@ -5,14 +5,18 @@ import { getPresenter } from '@/app/presenters/app.presenter';
 import { AppsPanel, type AppsPanelTab } from '@/features/apps';
 import { PanelAppToolbar } from '@/features/panel-apps/components/panel-app-toolbar';
 import {
-  DOC_BROWSER_APPS_TAB_KIND,
-  DOC_BROWSER_APPS_URL,
-  DOC_BROWSER_SERVICE_APPS_URL,
-} from '@/shared/components/doc-browser/utils/doc-browser-route-registry.utils';
+  createPanelAppRightPanelResourceTarget,
+  RIGHT_PANEL_APPS_TAB_KIND,
+  RIGHT_PANEL_APPS_URL,
+  RIGHT_PANEL_HOME_TAB_KIND,
+  RIGHT_PANEL_PANEL_APP_TAB_KIND,
+  RIGHT_PANEL_SERVICE_APPS_URL,
+  RightPanelResourceHomePage,
+} from '@/features/right-panel-resources';
 import { t } from '@/shared/lib/i18n';
 
-export const APPS_TAB_KIND = DOC_BROWSER_APPS_TAB_KIND;
-export const PANEL_APP_TAB_KIND = 'panel-app';
+export const APPS_TAB_KIND = RIGHT_PANEL_APPS_TAB_KIND;
+export const PANEL_APP_TAB_KIND = RIGHT_PANEL_PANEL_APP_TAB_KIND;
 const DEFAULT_APPS_PANEL_TAB: AppsPanelTab = 'panel-apps';
 const PANEL_APP_IFRAME_SANDBOX = [
   'allow-scripts',
@@ -30,7 +34,7 @@ function isAppsPanelTab(value: unknown): value is AppsPanelTab {
 }
 
 export function createAppsPanelUrl(tab: AppsPanelTab = DEFAULT_APPS_PANEL_TAB): string {
-  return tab === DEFAULT_APPS_PANEL_TAB ? DOC_BROWSER_APPS_URL : DOC_BROWSER_SERVICE_APPS_URL;
+  return tab === DEFAULT_APPS_PANEL_TAB ? RIGHT_PANEL_APPS_URL : RIGHT_PANEL_SERVICE_APPS_URL;
 }
 
 export function getAppsPanelTabFromUrl(url: string): AppsPanelTab {
@@ -51,10 +55,14 @@ export function openApps(docBrowser: Pick<DocBrowserContextValue, 'open'>): void
 }
 
 export const PANEL_APPS_DOC_BROWSER_RENDERERS: DocBrowserCustomTabRenderers = {
+  [RIGHT_PANEL_HOME_TAB_KIND]: {
+    getTitle: () => t('docBrowserHomeTitle'),
+    renderContent: ({ open }) => <RightPanelResourceHomePage open={open} />,
+  },
   [APPS_TAB_KIND]: {
     getTitle: () => t('appsTitle'),
     renderIcon: () => <Boxes className="w-4 h-4 text-primary shrink-0" />,
-    renderContent: ({ currentUrl, open }) => (
+    renderContent: ({ currentUrl, open, openTarget }) => (
       <AppsPanel
         activeTab={getAppsPanelTabFromUrl(currentUrl)}
         onActiveTabChange={(tab) => open(createAppsPanelUrl(tab), {
@@ -63,11 +71,7 @@ export const PANEL_APPS_DOC_BROWSER_RENDERERS: DocBrowserCustomTabRenderers = {
           title: t('appsTitle'),
           dedupeKey: 'apps',
         })}
-        onOpenPanelApp={(entry) => open(entry.contentPath, {
-          kind: PANEL_APP_TAB_KIND,
-          title: entry.title,
-          dedupeKey: `panel-app:${entry.id}`,
-        })}
+        onOpenPanelApp={(entry) => openTarget(createPanelAppRightPanelResourceTarget(entry))}
       />
     ),
   },

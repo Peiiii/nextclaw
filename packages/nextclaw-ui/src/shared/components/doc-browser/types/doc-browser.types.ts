@@ -13,6 +13,29 @@ export type DocBrowserTab = {
   navVersion: number;
 };
 
+export type DocBrowserRouteTarget = {
+  dedupeKey?: string;
+  historyPolicy: 'managed' | 'none';
+  kind: DocBrowserTabKind;
+  title: string;
+  url: string;
+};
+
+export type DocBrowserRouteResolver = {
+  areUrlsEquivalent: (
+    currentUrl: string,
+    nextUrl: string,
+    currentKind: DocBrowserTabKind,
+    nextKind: DocBrowserTabKind,
+  ) => boolean;
+  resolveOpenTarget: (params: {
+    activeTab?: DocBrowserTab;
+    kind?: DocBrowserTabKind;
+    url?: string;
+  }) => DocBrowserRouteTarget;
+  usesManagedHistory: (tab: DocBrowserTab) => boolean;
+};
+
 export type DocBrowserActiveHistoryEntry = {
   kind: DocBrowserTabKind;
   tabId: string;
@@ -40,6 +63,7 @@ export type DocBrowserStateUpdate = DocBrowserState | ((prev: DocBrowserState) =
 
 export type DocBrowserActions = {
   open: (url?: string, options?: DocBrowserOpenOptions) => void;
+  openTarget: (target: DocBrowserRouteTarget, options?: DocBrowserOpenOptions) => void;
   openNewTab: () => void;
   close: () => void;
   toggleMode: () => void;

@@ -1,10 +1,11 @@
 import type {
   DocBrowserActiveHistoryEntry,
   DocBrowserOpenOptions,
+  DocBrowserRouteResolver,
+  DocBrowserRouteTarget,
   DocBrowserState,
   DocBrowserStateUpdate,
   DocBrowserTab,
-  DocBrowserTabKind,
 } from '@/shared/components/doc-browser/types/doc-browser.types';
 import {
   createDocBrowserActiveHistoryEntry,
@@ -15,10 +16,10 @@ import {
   DOC_BROWSER_HOME_TAB_KIND,
   getDefaultDocsUrl,
 } from '@/shared/components/doc-browser/utils/doc-browser-url.utils';
-import {
-  docBrowserRouteRegistry,
-} from '@/shared/components/doc-browser/utils/doc-browser-route-registry.utils';
+import { DefaultDocBrowserRouteResolver } from '@/shared/components/doc-browser/utils/doc-browser-route-resolver.utils';
 import { useDocBrowserStore } from '@/shared/components/doc-browser/stores/doc-browser.store';
+
+const defaultDocBrowserRouteResolver = new DefaultDocBrowserRouteResolver();
 
 function updateTab(
   state: DocBrowserState,
@@ -44,17 +45,22 @@ function appendManualNavigation(tab: DocBrowserTab, url: string): Pick<DocBrowse
 }
 
 function areActiveHistoryEntriesEquivalent(
+  routeResolver: DocBrowserRouteResolver,
   current: DocBrowserActiveHistoryEntry,
   next: DocBrowserActiveHistoryEntry,
 ): boolean {
   return current.tabId === next.tabId
     && current.kind === next.kind
-    && docBrowserRouteRegistry.areUrlsEquivalent(current.url, next.url, current.kind, next.kind);
+    && routeResolver.areUrlsEquivalent(current.url, next.url, current.kind, next.kind);
 }
 
-function pushActiveHistory(state: DocBrowserState, entry: DocBrowserActiveHistoryEntry): DocBrowserState {
+function pushActiveHistory(
+  routeResolver: DocBrowserRouteResolver,
+  state: DocBrowserState,
+  entry: DocBrowserActiveHistoryEntry,
+): DocBrowserState {
   const current = state.activeHistory[state.activeHistoryIndex];
-  if (current && areActiveHistoryEntriesEquivalent(current, entry)) {
+  if (current && areActiveHistoryEntriesEquivalent(routeResolver, current, entry)) {
     return state;
   }
   const activeHistory = [...state.activeHistory.slice(0, state.activeHistoryIndex + 1), entry];
@@ -65,26 +71,30 @@ function pushActiveHistory(state: DocBrowserState, entry: DocBrowserActiveHistor
   };
 }
 
-function findTabHistoryIndex(tab: DocBrowserTab, url: string): number {
+function findTabHistoryIndex(routeResolver: DocBrowserRouteResolver, tab: DocBrowserTab, url: string): number {
   for (let index = tab.history.length - 1; index >= 0; index -= 1) {
-    if (docBrowserRouteRegistry.areUrlsEquivalent(tab.history[index], url, tab.kind, tab.kind)) {
+    if (routeResolver.areUrlsEquivalent(tab.history[index], url, tab.kind, tab.kind)) {
       return index;
     }
   }
   return -1;
 }
 
-function restoreActiveHistoryEntry(state: DocBrowserState, entry: DocBrowserActiveHistoryEntry): DocBrowserState {
+function restoreActiveHistoryEntry(
+  routeResolver: DocBrowserRouteResolver,
+  state: DocBrowserState,
+  entry: DocBrowserActiveHistoryEntry,
+): DocBrowserState {
   const tab = state.tabs.find((item) => item.id === entry.tabId);
   if (!tab) {
     return state;
   }
-  const target = docBrowserRouteRegistry.resolveOpenTarget({
+  const target = routeResolver.resolveOpenTarget({
     activeTab: tab,
     kind: entry.kind,
     url: entry.url,
   });
-  const historyIndex = findTabHistoryIndex(tab, target.url);
+  const historyIndex = findTabHistoryIndex(routeResolver, tab, target.url);
   return updateTab(
     {
       ...state,
@@ -104,12 +114,9 @@ function restoreActiveHistoryEntry(state: DocBrowserState, entry: DocBrowserActi
 }
 
 function updateTabForOpen(
+  routeResolver: DocBrowserRouteResolver,
   tab: DocBrowserTab,
-  target: {
-    kind: DocBrowserTabKind;
-    title: string;
-    url: string;
-  },
+  target: DocBrowserRouteTarget,
   options?: DocBrowserOpenOptions,
   dedupeKey?: string,
 ): DocBrowserTab {
@@ -120,7 +127,7 @@ function updateTabForOpen(
     dedupeKey,
   };
 
-  if (docBrowserRouteRegistry.areUrlsEquivalent(tab.currentUrl, target.url, tab.kind, target.kind)) {
+  if (routeResolver.areUrlsEquivalent(tab.currentUrl, target.url, tab.kind, target.kind)) {
     return baseTab;
   }
 
@@ -132,25 +139,20 @@ function updateTabForOpen(
   };
 }
 
-function openDocBrowserState(
+function openResolvedDocBrowserState(
+  routeResolver: DocBrowserRouteResolver,
   prev: DocBrowserState,
-  url?: string,
+  target: DocBrowserRouteTarget,
   options?: DocBrowserOpenOptions,
 ): DocBrowserState {
   const {
     activate,
     dedupeKey: rawDedupeKey,
-    kind,
     newTab: shouldForceNewTab,
     title,
   } = options ?? {};
-  const activeTab = prev.tabs.find((tab) => tab.id === prev.activeTabId) ?? prev.tabs[0];
-  const target = docBrowserRouteRegistry.resolveOpenTarget({
-    activeTab,
-    kind,
-    url,
-  });
   const dedupeKey = rawDedupeKey?.trim() || target.dedupeKey;
+  const activeTab = prev.tabs.find((tab) => tab.id === prev.activeTabId) ?? prev.tabs[0];
   const matchedTab = dedupeKey
     ? prev.tabs.find((tab) => tab.dedupeKey === dedupeKey)
     : undefined;
@@ -159,7 +161,7 @@ function openDocBrowserState(
     const next = updateTab(
       prev,
       matchedTab.id,
-      (tab) => updateTabForOpen(tab, target, options, dedupeKey),
+      (tab) => updateTabForOpen(routeResolver, tab, target, options, dedupeKey),
     );
     const shouldActivate = activate !== false;
     const activeTabId = shouldActivate ? matchedTab.id : prev.activeTabId;
@@ -170,7 +172,7 @@ function openDocBrowserState(
     };
     const shouldPushActiveHistory = shouldActivate || matchedTab.id === prev.activeTabId;
     return shouldPushActiveHistory
-      ? pushActiveHistory(nextState, { kind: target.kind, tabId: matchedTab.id, url: target.url })
+      ? pushActiveHistory(routeResolver, nextState, { kind: target.kind, tabId: matchedTab.id, url: target.url })
       : nextState;
   }
 
@@ -182,26 +184,53 @@ function openDocBrowserState(
       tabs: [...prev.tabs, newTab],
       activeTabId: newTab.id,
     };
-    return pushActiveHistory(nextState, createDocBrowserActiveHistoryEntry(newTab));
+    return pushActiveHistory(routeResolver, nextState, createDocBrowserActiveHistoryEntry(newTab));
   }
 
   const next = updateActiveTab(
     prev,
-    (tab) => updateTabForOpen(tab, target, options, dedupeKey),
+    (tab) => updateTabForOpen(routeResolver, tab, target, options, dedupeKey),
   );
   return pushActiveHistory(
+    routeResolver,
     { ...next, isOpen: true },
     { kind: target.kind, tabId: prev.activeTabId, url: target.url },
   );
 }
 
+function openDocBrowserState(
+  routeResolver: DocBrowserRouteResolver,
+  prev: DocBrowserState,
+  url?: string,
+  options?: DocBrowserOpenOptions,
+): DocBrowserState {
+  const activeTab = prev.tabs.find((tab) => tab.id === prev.activeTabId) ?? prev.tabs[0];
+  const target = routeResolver.resolveOpenTarget({
+    activeTab,
+    kind: options?.kind,
+    url,
+  });
+  return openResolvedDocBrowserState(routeResolver, prev, target, options);
+}
+
 export class DocBrowserManager {
+  constructor(private readonly routeResolver: DocBrowserRouteResolver = defaultDocBrowserRouteResolver) {}
+
   private readonly setSnapshot = (next: DocBrowserStateUpdate): void => {
     useDocBrowserStore.getState().setSnapshot(next);
   };
 
   readonly open = (url?: string, options?: DocBrowserOpenOptions): void => {
-    this.setSnapshot((prev) => openDocBrowserState(prev, url, options));
+    this.setSnapshot((prev) => openDocBrowserState(this.routeResolver, prev, url, options));
+  };
+
+  readonly openTarget = (target: DocBrowserRouteTarget, options?: DocBrowserOpenOptions): void => {
+    this.setSnapshot((prev) => openResolvedDocBrowserState(this.routeResolver, prev, target, {
+      ...options,
+      dedupeKey: options?.dedupeKey ?? target.dedupeKey,
+      kind: options?.kind ?? target.kind,
+      title: options?.title ?? target.title,
+    }));
   };
 
   readonly openNewTab = (): void => {
@@ -229,12 +258,12 @@ export class DocBrowserManager {
       }
 
       const next = updateActiveTab(prev, (tab) => {
-        if (!docBrowserRouteRegistry.usesManagedHistory(tab)) {
+        if (!this.routeResolver.usesManagedHistory(tab)) {
           return tab;
         }
-        const target = docBrowserRouteRegistry.resolveOpenTarget({ activeTab: tab, url });
+        const target = this.routeResolver.resolveOpenTarget({ activeTab: tab, url });
 
-        if (docBrowserRouteRegistry.areUrlsEquivalent(tab.currentUrl, target.url, tab.kind, target.kind)) {
+        if (this.routeResolver.areUrlsEquivalent(tab.currentUrl, target.url, tab.kind, target.kind)) {
           return tab;
         }
 
@@ -250,7 +279,7 @@ export class DocBrowserManager {
       });
       const currentTab = next.tabs.find((tab) => tab.id === next.activeTabId);
       return currentTab
-        ? pushActiveHistory(next, createDocBrowserActiveHistoryEntry(currentTab))
+        ? pushActiveHistory(this.routeResolver, next, createDocBrowserActiveHistoryEntry(currentTab))
         : next;
     });
   };
@@ -267,12 +296,12 @@ export class DocBrowserManager {
       }
 
       const next = updateActiveTab(prev, (tab) => {
-        if (!docBrowserRouteRegistry.usesManagedHistory(tab)) {
+        if (!this.routeResolver.usesManagedHistory(tab)) {
           return tab;
         }
-        const target = docBrowserRouteRegistry.resolveOpenTarget({ activeTab: tab, kind: tab.kind, url });
+        const target = this.routeResolver.resolveOpenTarget({ activeTab: tab, kind: tab.kind, url });
 
-        if (docBrowserRouteRegistry.areUrlsEquivalent(tab.currentUrl, target.url, tab.kind, target.kind)) {
+        if (this.routeResolver.areUrlsEquivalent(tab.currentUrl, target.url, tab.kind, target.kind)) {
           return tab;
         }
 
@@ -287,7 +316,7 @@ export class DocBrowserManager {
       });
       const currentTab = next.tabs.find((tab) => tab.id === next.activeTabId);
       return currentTab
-        ? pushActiveHistory(next, createDocBrowserActiveHistoryEntry(currentTab))
+        ? pushActiveHistory(this.routeResolver, next, createDocBrowserActiveHistoryEntry(currentTab))
         : next;
     });
   };
@@ -302,7 +331,7 @@ export class DocBrowserManager {
       if (!entry) {
         return prev;
       }
-      return restoreActiveHistoryEntry({ ...prev, activeHistoryIndex }, entry);
+      return restoreActiveHistoryEntry(this.routeResolver, { ...prev, activeHistoryIndex }, entry);
     });
   };
 
@@ -316,7 +345,7 @@ export class DocBrowserManager {
       if (!entry) {
         return prev;
       }
-      return restoreActiveHistoryEntry({ ...prev, activeHistoryIndex }, entry);
+      return restoreActiveHistoryEntry(this.routeResolver, { ...prev, activeHistoryIndex }, entry);
     });
   };
 
@@ -361,7 +390,7 @@ export class DocBrowserManager {
         ),
       };
       return prev.activeTabId === tabId
-        ? pushActiveHistory(reconciledState, createDocBrowserActiveHistoryEntry(nextActiveTab))
+        ? pushActiveHistory(this.routeResolver, reconciledState, createDocBrowserActiveHistoryEntry(nextActiveTab))
         : reconciledState;
     });
   };
@@ -376,6 +405,7 @@ export class DocBrowserManager {
         return prev;
       }
       return pushActiveHistory(
+        this.routeResolver,
         { ...prev, activeTabId: tabId, isOpen: true },
         createDocBrowserActiveHistoryEntry(tab),
       );

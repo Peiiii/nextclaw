@@ -4,6 +4,7 @@ import type { DocBrowserContextValue, DocBrowserTab } from './doc-browser-contex
 export type DocBrowserCustomTabRenderParams = {
   currentUrl: string;
   open: DocBrowserContextValue['open'];
+  openTarget: DocBrowserContextValue['openTarget'];
   refreshIframe: () => void;
   tab: DocBrowserTab;
 };

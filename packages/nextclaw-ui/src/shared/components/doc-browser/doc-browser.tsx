@@ -62,6 +62,7 @@ export function DocBrowser({
     activeHistoryIndex,
     currentTab,
     open,
+    openTarget,
     openNewTab,
     close,
     toggleMode,
@@ -255,12 +256,13 @@ export function DocBrowser({
   const customRenderParams = currentTab ? {
     currentUrl,
     open,
+    openTarget,
     refreshIframe,
     tab: currentTab,
   } : undefined;
   const customToolbar = customRenderParams ? customRenderer?.renderToolbar?.(customRenderParams) : null;
   const customContent = customRenderParams
-    ? customRenderer?.renderContent?.(customRenderParams) ?? (isHomeTab ? <DocBrowserHomePage open={open} /> : null)
+    ? customRenderer?.renderContent?.(customRenderParams) ?? (isHomeTab ? <DocBrowserHomePage /> : null)
     : null;
   const iframeSandbox = currentTab
     ? customRenderer?.getIframeSandbox?.(currentTab) ?? 'allow-same-origin allow-scripts allow-popups allow-forms'

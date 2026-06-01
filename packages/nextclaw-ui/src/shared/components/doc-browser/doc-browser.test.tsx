@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DocBrowser } from "@/shared/components/doc-browser/doc-browser";
 import type { DocBrowserContextValue, DocBrowserTab } from "@/shared/components/doc-browser/doc-browser-context";
+import { PANEL_APPS_DOC_BROWSER_RENDERERS } from "@/features/panel-apps";
 
 const { navigateMock } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
@@ -44,6 +45,7 @@ const { docBrowserState } = vi.hoisted<{ docBrowserState: DocBrowserContextValue
       navVersion: 0,
     },
     open: vi.fn(),
+    openTarget: vi.fn(),
     openNewTab: vi.fn(),
     close: vi.fn(),
     toggleMode: vi.fn(),
@@ -138,7 +140,7 @@ describe("DocBrowser", () => {
   });
 
   it("keeps browser window controls on the tab strip", () => {
-    render(<DocBrowser />);
+    render(<DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />);
 
     const tabStrip = screen.getByTestId("doc-browser-tab-strip");
     const tabActions = screen.getByTestId("doc-browser-tab-actions");
@@ -176,7 +178,7 @@ describe("DocBrowser", () => {
     docBrowserState.activeHistoryIndex = 1;
     docBrowserState.currentTab = historyTab;
 
-    render(<DocBrowser />);
+    render(<DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />);
 
     fireEvent.click(screen.getByTitle("Back"));
     fireEvent.click(screen.getByTitle("Forward"));
@@ -249,7 +251,7 @@ describe("DocBrowser", () => {
     docBrowserState.activeTabId = homeTab.id;
     docBrowserState.currentTab = homeTab;
 
-    render(<DocBrowser />);
+    render(<DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />);
 
     expect(screen.getAllByText("Start Page").length).toBeGreaterThan(0);
     expect(screen.getByText("Apps")).toBeTruthy();

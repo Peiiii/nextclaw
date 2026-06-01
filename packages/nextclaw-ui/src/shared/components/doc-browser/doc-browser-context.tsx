@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { DocBrowserManager } from '@/shared/components/doc-browser/managers/doc-browser.manager';
+import type { DocBrowserManager } from '@/shared/components/doc-browser/managers/doc-browser.manager';
 import { useDocBrowserStore } from '@/shared/components/doc-browser/stores/doc-browser.store';
 import type { DocBrowserContextValue } from '@/shared/components/doc-browser/types/doc-browser.types';
 
@@ -8,6 +8,8 @@ export type {
   DocBrowserContextValue,
   DocBrowserMode,
   DocBrowserOpenOptions,
+  DocBrowserRouteResolver,
+  DocBrowserRouteTarget,
   DocBrowserState,
   DocBrowserStateUpdate,
   DocBrowserTab,
@@ -21,7 +23,6 @@ export {
 } from '@/shared/components/doc-browser/utils/doc-browser-url.utils';
 
 const DocBrowserContext = createContext<DocBrowserContextValue | null>(null);
-const docBrowserManager = new DocBrowserManager();
 
 export function useDocBrowser(): DocBrowserContextValue {
   const ctx = useContext(DocBrowserContext);
@@ -29,7 +30,13 @@ export function useDocBrowser(): DocBrowserContextValue {
   return ctx;
 }
 
-export function DocBrowserProvider({ children }: { children: ReactNode }) {
+export function DocBrowserProvider({
+  children,
+  manager,
+}: {
+  children: ReactNode;
+  manager: DocBrowserManager;
+}) {
   const snapshot = useDocBrowserStore((state) => state.snapshot);
   const currentTab = useMemo(() => {
     return snapshot.tabs.find((tab) => tab.id === snapshot.activeTabId) ?? snapshot.tabs[0];
@@ -38,17 +45,18 @@ export function DocBrowserProvider({ children }: { children: ReactNode }) {
   const value = useMemo<DocBrowserContextValue>(() => ({
     ...snapshot,
     currentTab,
-    open: docBrowserManager.open,
-    openNewTab: docBrowserManager.openNewTab,
-    close: docBrowserManager.close,
-    toggleMode: docBrowserManager.toggleMode,
-    navigate: docBrowserManager.navigate,
-    syncUrl: docBrowserManager.syncUrl,
-    goBack: docBrowserManager.goBack,
-    goForward: docBrowserManager.goForward,
-    closeTab: docBrowserManager.closeTab,
-    setActiveTab: docBrowserManager.setActiveTab,
-  }), [currentTab, snapshot]);
+    open: manager.open,
+    openTarget: manager.openTarget,
+    openNewTab: manager.openNewTab,
+    close: manager.close,
+    toggleMode: manager.toggleMode,
+    navigate: manager.navigate,
+    syncUrl: manager.syncUrl,
+    goBack: manager.goBack,
+    goForward: manager.goForward,
+    closeTab: manager.closeTab,
+    setActiveTab: manager.setActiveTab,
+  }), [currentTab, manager, snapshot]);
 
   return (
     <DocBrowserContext.Provider value={value}>

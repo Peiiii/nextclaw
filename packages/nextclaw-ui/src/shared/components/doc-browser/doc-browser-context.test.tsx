@@ -1,6 +1,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { DocBrowserProvider, useDocBrowser } from './doc-browser-context';
+import { RightPanelResourceRouteResolver } from '@/features/right-panel-resources';
+import { DocBrowserManager } from '@/shared/components/doc-browser/managers/doc-browser.manager';
 import { createDefaultDocBrowserState } from '@/shared/components/doc-browser/utils/doc-browser-state.utils';
 import { useDocBrowserStore } from '@/shared/components/doc-browser/stores/doc-browser.store';
 
@@ -13,8 +15,10 @@ vi.mock('@/shared/lib/i18n', async () => {
 });
 
 const wrapper = ({ children }: { children: ReactNode }) => (
-  <DocBrowserProvider>{children}</DocBrowserProvider>
+  <DocBrowserProvider manager={testDocBrowserManager}>{children}</DocBrowserProvider>
 );
+
+const testDocBrowserManager = new DocBrowserManager(new RightPanelResourceRouteResolver());
 
 const docBrowserStorageKey = 'nextclaw.doc-browser.state';
 
@@ -187,6 +191,27 @@ describe('DocBrowserProvider dedupe keys', () => {
       dedupeKey: 'apps',
       kind: 'apps',
       title: 'Service Apps',
+    });
+  });
+
+  it('opens an already resolved panel app target without reparsing its content URL', () => {
+    const { result } = renderHook(() => useDocBrowser(), { wrapper });
+
+    act(() => {
+      result.current.openTarget({
+        dedupeKey: 'panel-app:demo',
+        historyPolicy: 'managed',
+        kind: 'panel-app',
+        title: 'Demo Panel App',
+        url: '/api/panel-apps/demo/content',
+      });
+    });
+
+    expect(result.current.currentTab).toMatchObject({
+      currentUrl: '/api/panel-apps/demo/content',
+      dedupeKey: 'panel-app:demo',
+      kind: 'panel-app',
+      title: 'Demo Panel App',
     });
   });
 

@@ -10,6 +10,7 @@ import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
 import { DesktopAppShell, getDesktopHostPlatform } from "@/platforms/desktop";
 import { MobileAppShell } from "@/platforms/mobile";
 import { PANEL_APPS_DOC_BROWSER_RENDERERS } from "@/features/panel-apps";
+import { getPresenter } from "@/app/presenters/app.presenter";
 import { resolveUiDocumentTitle } from "@/shared/lib/ui-document-title";
 
 interface AppLayoutProps {
@@ -44,8 +45,10 @@ function AppLayoutInner({ children }: AppLayoutProps) {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const presenter = getPresenter();
+
   return (
-    <DocBrowserProvider>
+    <DocBrowserProvider manager={presenter.docBrowserManager}>
       <AppLayoutInner>{children}</AppLayoutInner>
     </DocBrowserProvider>
   );

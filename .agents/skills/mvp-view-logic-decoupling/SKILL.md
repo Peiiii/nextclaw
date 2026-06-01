@@ -67,7 +67,7 @@ Apply a strict Presenter-Manager-Store structure that keeps UI components free o
 2. Manager files export manager classes, not singleton instances; long-lived manager instances belong in presenter fields.
 3. Managers are peer business owners under the presenter. A manager may depend on another manager, but it must not create, own, or lifecycle-manage another manager.
 4. Stable manager-to-manager dependencies are allowed and should be expressed directly through constructor injection wired by the presenter; do not introduce ports/factories/callback wrappers just to hide a stable frontend business dependency.
-5. Do not create a feature-level presenter for every domain; presenter is app-level or one of a very small number of top-level product-surface owners.
+5. Do not create a feature-level presenter for every domain; presenter is app-level or one of a very small number of top-level product-surface owners. Do not add local `presenters/` directories under feature/app submodules such as navigation, panels, settings, or sidebars unless the product surface is genuinely top-level and explicitly approved as a presenter owner.
 6. Do not use `bindXxxManager`, `installXxx`, `setXxxManager`, `afterXxx` callbacks, handler props, or local port objects to do second-stage wiring between stable managers.
 7. A stable manager dependency should be typed as the manager itself. If only one method is needed, that usually still means direct manager dependency; callback/function injection is reserved for real external events, reusable library hooks, or intentionally pluggable boundaries.
 8. Avoid `this`-binding ambiguity by using class fields with arrow methods.
@@ -236,6 +236,7 @@ Run this check before finishing:
 - Create wide business component props APIs that mirror store snapshot fields or presenter methods.
 - Mix orchestration logic into low-level feature modules.
 - Create one feature-level presenter per domain when the existing app-level presenter can wire the stable manager graph.
+- Add a local presenter merely because a module has managers or UI state; use the app-level presenter for composition and keep module-specific orchestration in managers/stores/containers.
 - Let a manager create or own another manager; peer manager dependencies must be wired by presenter.
 - Hide stable manager collaboration behind callbacks, local ports, handler objects, or second-stage `bind`/`install` methods.
 - Export singleton manager instances from `*.manager.ts` instead of wiring them from presenter/app-level owners.
