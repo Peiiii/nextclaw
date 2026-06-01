@@ -1,0 +1,27 @@
+{
+  "slug": "opencode-runtime",
+  "name": "OpenCode Runtime",
+  "summary": "Set up OpenCode as a formal NextClaw runtime entry on the narp-stdio(acp) path, with ACP readiness checks and real model plus agent task smoke.",
+  "summaryI18n": {
+    "en": "Set up OpenCode as a formal NextClaw runtime entry on the narp-stdio(acp) path, with ACP readiness checks and real model plus agent task smoke.",
+    "zh": "把 OpenCode 按 narp-stdio(acp) 路径接成正式 NextClaw runtime，并覆盖 ACP 就绪检查、真实模型与 agent 任务冒烟。"
+  },
+  "description": "Use this skill when OpenCode/opencode needs to become a formal NextClaw session type instead of a core runtime fork or legacy plugin path. It guides `opencode acp` installation checks, runtime entry setup, OpenCode provider config isolation, session-type readiness, and real text plus file-writing agent smoke.",
+  "descriptionI18n": {
+    "en": "Use this skill when OpenCode/opencode needs to become a formal NextClaw session type instead of a core runtime fork or legacy plugin path. It guides `opencode acp` installation checks, runtime entry setup, OpenCode provider config isolation, session-type readiness, and real text plus file-writing agent smoke.",
+    "zh": "当需要把 OpenCode/opencode 接成正式 NextClaw 会话类型，而不是新增 core runtime 或走旧插件路径时使用。它覆盖 `opencode acp` 安装检查、runtime entry 配置、OpenCode provider 隔离配置、会话类型就绪，以及真实文本与文件写入 agent 冒烟。"
+  },
+  "author": "NextClaw",
+  "tags": [
+    "skill",
+    "opencode",
+    "runtime",
+    "narp-stdio",
+    "acp",
+    "external-runtime",
+    "coding-agent",
+    "diagnostics"
+  ],
+  "sourceRepo": "https://github.com/sst/opencode",
+  "homepage": "https://opencode.ai"
+}
