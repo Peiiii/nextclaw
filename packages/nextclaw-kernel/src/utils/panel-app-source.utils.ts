@@ -160,8 +160,8 @@ export function resolvePanelAppIconUrl(
   return `/api/panel-apps/${encodeURIComponent(id)}/assets/${encodePanelAppAssetPath(icon)}`;
 }
 
-export function injectPanelAppAssetBase(html: string, id: string): string {
-  const base = `<base href="/api/panel-apps/${encodeURIComponent(id)}/assets/">`;
+export function injectPanelAppAssetBase(html: string, baseHref: string): string {
+  const base = `<base href="${baseHref}">`;
   if (/<base\b/i.test(html)) {
     return html;
   }

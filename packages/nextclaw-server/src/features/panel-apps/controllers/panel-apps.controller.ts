@@ -28,6 +28,9 @@ function statusForPanelAppError(code: string): 400 | 401 | 403 | 404 | 408 {
     case "PANEL_APP_NOT_FOUND":
     case "PANEL_APP_BRIDGE_SESSION_NOT_FOUND":
       return 404;
+    case "PANEL_APP_ASSET_TOKEN_EXPIRED":
+    case "PANEL_APP_ASSET_TOKEN_INVALID":
+      return 401;
     case "PANEL_APP_INVALID_ASSET_PATH":
     case "PANEL_APP_MANIFEST_INVALID":
       return 400;
@@ -128,6 +131,29 @@ export class PanelAppsRoutesController {
       const payload = await this.panelAppManager.getPanelAppAsset(
         c.req.param("id"),
         readAssetPath(c.req.raw.url),
+      );
+      return new Response(payload.content, {
+        headers: {
+          "content-type": payload.contentType,
+          "cache-control": "no-store",
+        },
+      });
+    } catch (error) {
+      if (isPanelAppError(error)) {
+        return c.json(
+          err(error.code, error.message),
+          statusForPanelAppError(error.code),
+        );
+      }
+      throw error;
+    }
+  };
+
+  readonly getPanelAppAssetByToken = async (c: Context): Promise<Response> => {
+    try {
+      const payload = await this.panelAppManager.getPanelAppAssetByToken(
+        c.req.param("token"),
+        readTokenizedAssetPath(c.req.raw.url, c.req.param("token")),
       );
       return new Response(payload.content, {
         headers: {
@@ -265,6 +291,19 @@ function readAssetPath(url: string): string {
   }
   try {
     return decodeURIComponent(pathname.slice(markerIndex + marker.length));
+  } catch {
+    throw new PanelAppError("PANEL_APP_INVALID_ASSET_PATH", "invalid panel app asset path");
+  }
+}
+
+function readTokenizedAssetPath(url: string, token: string): string {
+  const pathname = new URL(url).pathname;
+  const marker = `/api/panel-app-assets/${encodeURIComponent(token)}/`;
+  if (!pathname.startsWith(marker)) {
+    return "";
+  }
+  try {
+    return decodeURIComponent(pathname.slice(marker.length));
   } catch {
     throw new PanelAppError("PANEL_APP_INVALID_ASSET_PATH", "invalid panel app asset path");
   }

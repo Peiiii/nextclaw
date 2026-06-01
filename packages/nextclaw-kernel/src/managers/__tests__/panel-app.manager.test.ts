@@ -7,6 +7,7 @@ import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { NcpEventType } from "@nextclaw/ncp";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
+import { PanelAppAssetTokenService } from "@kernel/services/panel-app-asset-token.service.js";
 import type { PanelAppError } from "@kernel/types/panel-app.types.js";
 import { STRUCTURED_RESULT_TOOL_NAME } from "@kernel/tools/structured-result.tools.js";
 import { getPanelAppBridgeScript } from "@kernel/utils/panel-app-bridge.utils.js";
@@ -85,6 +86,15 @@ async function runBridgeRequest<T>(
   return await promise;
 }
 
+function readPanelAppTokenErrorCode(action: () => unknown): string {
+  try {
+    action();
+  } catch (error) {
+    return (error as { code?: string }).code ?? "";
+  }
+  return "";
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
   while (tempDirs.length > 0) {
@@ -93,6 +103,48 @@ afterEach(() => {
       rmSync(dir, { recursive: true, force: true });
     }
   }
+});
+
+describe("PanelAppAssetTokenService", () => {
+  it("issues scoped panel app asset tokens", () => {
+    const service = new PanelAppAssetTokenService({
+      now: () => 1_000,
+      secret: Buffer.from("test-secret"),
+      ttlMs: 100,
+    });
+
+    const token = service.issue({
+      panelAppId: "demo-id",
+      sourceName: "demo.panel",
+    });
+
+    expect(service.verify(token)).toEqual(expect.objectContaining({
+      panelAppId: "demo-id",
+      sourceName: "demo.panel",
+      expiresAt: 1_100,
+    }));
+  });
+
+  it("rejects invalid and expired panel app asset tokens", () => {
+    let now = 1_000;
+    const service = new PanelAppAssetTokenService({
+      now: () => now,
+      secret: Buffer.from("test-secret"),
+      ttlMs: 100,
+    });
+    const token = service.issue({
+      panelAppId: "demo-id",
+      sourceName: "demo.panel",
+    });
+
+    expect(readPanelAppTokenErrorCode(() => service.verify(`${token}x`))).toBe(
+      "PANEL_APP_ASSET_TOKEN_INVALID",
+    );
+    now = 1_101;
+    expect(readPanelAppTokenErrorCode(() => service.verify(token))).toBe(
+      "PANEL_APP_ASSET_TOKEN_EXPIRED",
+    );
+  });
 });
 
 describe("PanelAppManager", () => {
@@ -260,12 +312,12 @@ describe("PanelAppManager", () => {
       capabilities: ["agent:send"],
       serviceActions: ["demo.run"],
     }));
-    expect(content.html).toContain(`<base href="/api/panel-apps/${encodeURIComponent(entry.id)}/assets/">`);
+    expect(content.html).toMatch(/<base href="\/api\/panel-app-assets\/[^"]+\/">/);
     expect(content.html).toContain("window.nextclaw");
     expect(content.html).toContain("<script src=\"app.js\"></script>");
   });
 
-  it("serves folder panel app assets and rejects traversal", async () => {
+  it("serves folder panel app assets by id and token while rejecting traversal", async () => {
     const workspacePath = createTempDir();
     const panelsPath = join(workspacePath, "panels");
     const appPath = join(panelsPath, "asset-demo.panel");
@@ -276,14 +328,28 @@ describe("PanelAppManager", () => {
     );
     writeFileSync(join(appPath, "index.html"), "<!doctype html>");
     writeFileSync(join(appPath, "app.js"), "window.loaded = true;");
+    writeFileSync(join(appPath, "styles.css"), "body { color: red; }");
     const manager = createPanelAppManager(workspacePath);
     const [entry] = (await manager.listPanelApps()).entries;
+    const content = await manager.getPanelAppContent(entry.id);
+    const token = /\/api\/panel-app-assets\/([^/]+)\//.exec(content.html)?.[1];
 
     await expect(manager.getPanelAppAsset(entry.id, "app.js")).resolves.toEqual({
       content: Buffer.from("window.loaded = true;"),
       contentType: "application/javascript; charset=utf-8",
     });
+    expect(token).toBeTruthy();
+    await expect(manager.getPanelAppAssetByToken(token!, "styles.css")).resolves.toEqual({
+      content: Buffer.from("body { color: red; }"),
+      contentType: "text/css; charset=utf-8",
+    });
+    await expect(manager.getPanelAppAssetByToken("bad-token", "styles.css")).rejects.toMatchObject({
+      code: "PANEL_APP_ASSET_TOKEN_INVALID",
+    } satisfies Partial<PanelAppError>);
     await expect(manager.getPanelAppAsset(entry.id, "../secret.txt")).rejects.toMatchObject({
+      code: "PANEL_APP_INVALID_ASSET_PATH",
+    } satisfies Partial<PanelAppError>);
+    await expect(manager.getPanelAppAssetByToken(token!, "../secret.txt")).rejects.toMatchObject({
       code: "PANEL_APP_INVALID_ASSET_PATH",
     } satisfies Partial<PanelAppError>);
   });

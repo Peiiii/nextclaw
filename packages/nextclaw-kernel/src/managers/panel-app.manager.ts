@@ -6,6 +6,7 @@ import {
   getWorkspacePathFromConfig,
 } from "@nextclaw/core";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
+import { PanelAppAssetTokenService } from "@kernel/services/panel-app-asset-token.service.js";
 import { PanelAppStateStore } from "@kernel/stores/panel-app-state.store.js";
 import type { PanelAppPreferencesUpdate, PanelAppStateEntry } from "@kernel/stores/panel-app-state.store.js";
 import { PanelAppCapabilityGrantStore } from "@kernel/stores/panel-app-capability-grant.store.js";
@@ -59,6 +60,7 @@ import type {
 export type { PanelAppPreferencesUpdate } from "@kernel/stores/panel-app-state.store.js";
 
 const PANEL_APP_CONTENT_BASE_PATH = "/api/panel-apps";
+const PANEL_APP_TOKENIZED_ASSET_BASE_PATH = "/api/panel-app-assets";
 const PANEL_APP_CONTENT_TYPE = "text/html; charset=utf-8" as const;
 const PANEL_APP_CAPABILITY_GRANTS_FILE_NAME = ".panel-app-capability-grants.json";
 
@@ -114,6 +116,7 @@ export type PanelAppBridgeSession = {
 export class PanelAppManager {
   private readonly bridgeSessions = new Map<string, PanelAppBridgeSession>();
   private readonly agentRunClient: PanelAppAgentRunClient | null;
+  private readonly assetTokenService = new PanelAppAssetTokenService();
   private readonly sourceService = new PanelAppSourceService();
 
   constructor(private readonly params: {
@@ -158,7 +161,7 @@ export class PanelAppManager {
       const manifest = source.manifest ?? parsePanelAppManifest(html);
       const sourceId = encodePanelAppId(source.sourceName);
       const htmlWithBase = source.kind === "folder"
-        ? injectPanelAppAssetBase(html, sourceId)
+        ? injectPanelAppAssetBase(html, this.createAssetBaseHref(source))
         : html;
       return {
         id: sourceId,
@@ -185,6 +188,21 @@ export class PanelAppManager {
   getPanelAppAsset = async (id: string, assetPath: string): Promise<PanelAppAsset> => {
     const panelsPath = this.getPanelsPath(this.getWorkspacePath());
     return await this.sourceService.getAsset(panelsPath, id, assetPath);
+  };
+
+  getPanelAppAssetByToken = async (
+    token: string,
+    assetPath: string,
+  ): Promise<PanelAppAsset> => {
+    const claims = this.assetTokenService.verify(token);
+    if (encodePanelAppId(claims.sourceName) !== claims.panelAppId) {
+      throw new PanelAppError(
+        "PANEL_APP_ASSET_TOKEN_INVALID",
+        "invalid panel app asset token",
+      );
+    }
+    const panelsPath = this.getPanelsPath(this.getWorkspacePath());
+    return await this.sourceService.getAsset(panelsPath, claims.panelAppId, assetPath);
   };
 
   getPanelAppBridgeScript = (): string => getPanelAppBridgeScript();
@@ -392,6 +410,14 @@ export class PanelAppManager {
 
   private getPanelsPath = (workspacePath: string): string =>
     join(workspacePath, DEFAULT_PANELS_DIR);
+
+  private createAssetBaseHref = (source: PanelAppSource): string => {
+    const token = this.assetTokenService.issue({
+      panelAppId: encodePanelAppId(source.sourceName),
+      sourceName: source.sourceName,
+    });
+    return `${PANEL_APP_TOKENIZED_ASSET_BASE_PATH}/${encodeURIComponent(token)}/`;
+  };
 
   private createStateStore = (panelsPath: string): PanelAppStateStore =>
     new PanelAppStateStore(panelsPath);

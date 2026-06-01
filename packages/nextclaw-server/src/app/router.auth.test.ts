@@ -8,6 +8,7 @@ import { UiAuthService } from "@nextclaw-server/features/auth/index.js";
 import { createUiRouter } from "./router.js";
 import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
 import { EventBus } from "@nextclaw/shared";
+import type { UiKernelHost } from "@nextclaw-server/app/types/router-options.types.js";
 
 const tempDirs: string[] = [];
 const originalHome = process.env.NEXTCLAW_HOME;
@@ -29,9 +30,9 @@ function useIsolatedHome(): string {
   return homeDir;
 }
 
-function createApp(configPath: string) {
+function createApp(configPath: string, kernelOverrides: Partial<UiKernelHost> = {}) {
   return createUiRouter({
-    kernel: createRouterTestKernel(),
+    kernel: createRouterTestKernel(kernelOverrides),
     configPath,
     appEventBus: new EventBus(),
   });
@@ -191,6 +192,39 @@ describe("ui auth protection flows", () => {
       configured: true,
       authenticated: false
     });
+  });
+
+  it("keeps tokenized panel app assets public while protected asset routes still require login", async () => {
+    useIsolatedHome();
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+
+    const app = createApp(configPath, {
+      panelAppManager: {
+        listPanelApps: async () => ({
+          workspacePath: "",
+          panelsPath: "",
+          entries: [],
+        }),
+        getPanelAppAssetByToken: async (_token: string, assetPath: string) => ({
+          content: Buffer.from(`asset:${assetPath}`),
+          contentType: "text/css; charset=utf-8" as const,
+        }),
+      } as never,
+    });
+    await setupUiAuth(app);
+
+    const protectedAssetResponse = await app.request(
+      "http://localhost/api/panel-apps/demo/assets/styles.css",
+    );
+    expect(protectedAssetResponse.status).toBe(401);
+
+    const tokenAssetResponse = await app.request(
+      "http://localhost/api/panel-app-assets/token-1/styles.css",
+    );
+    expect(tokenAssetResponse.status).toBe(200);
+    expect(tokenAssetResponse.headers.get("content-type")).toBe("text/css; charset=utf-8");
+    expect(await tokenAssetResponse.text()).toBe("asset:styles.css");
   });
 
   it("supports logout, rejects wrong passwords, and allows logging back in", async () => {

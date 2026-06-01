@@ -41,6 +41,8 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
         unavailable("panelAppManager.getPanelAppContent"),
       getPanelAppAsset: async () =>
         unavailable("panelAppManager.getPanelAppAsset"),
+      getPanelAppAssetByToken: async () =>
+        unavailable("panelAppManager.getPanelAppAssetByToken"),
       createPanelAppBridgeSession: async () =>
         unavailable("panelAppManager.createPanelAppBridgeSession"),
       deletePanelAppBridgeSession: () =>

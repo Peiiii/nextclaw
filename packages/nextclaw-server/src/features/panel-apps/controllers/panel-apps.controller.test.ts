@@ -122,7 +122,57 @@ describe("panel apps routes", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(await response.text()).toBe("asset:styles/app.css");
   });
+});
 
+describe("tokenized panel app asset routes", () => {
+  it("serves tokenized panel app assets without wrapping them as JSON", async () => {
+    const app = createTestApp({
+      listPanelApps: async () => ({
+        workspacePath: "",
+        panelsPath: "",
+        entries: [],
+      }),
+      getPanelAppContent: async () => {
+        throw new Error("not used");
+      },
+      getPanelAppAssetByToken: async (token: string, assetPath: string) => ({
+        content: Buffer.from(`token:${token}:${assetPath}`),
+        contentType: "application/javascript; charset=utf-8" as const,
+      }),
+    } as never);
+
+    const response = await app.request("http://localhost/api/panel-app-assets/token-1/scripts/app.js");
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("application/javascript; charset=utf-8");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.text()).toBe("token:token-1:scripts/app.js");
+  });
+
+  it("maps tokenized panel app asset errors to route errors", async () => {
+    const app = createTestApp({
+      listPanelApps: async () => ({
+        workspacePath: "",
+        panelsPath: "",
+        entries: [],
+      }),
+      getPanelAppContent: async () => {
+        throw new Error("not used");
+      },
+      getPanelAppAssetByToken: async () => {
+        throw new PanelAppError("PANEL_APP_ASSET_TOKEN_INVALID", "invalid panel app asset token");
+      },
+    } as never);
+
+    const response = await app.request("http://localhost/api/panel-app-assets/bad-token/app.js");
+    const payload = await response.json() as { ok: false; error: { code: string } };
+
+    expect(response.status).toBe(401);
+    expect(payload.error.code).toBe("PANEL_APP_ASSET_TOKEN_INVALID");
+  });
+});
+
+describe("panel app asset error routes", () => {
   it("maps panel app asset errors to route errors", async () => {
     const app = createTestApp({
       listPanelApps: async () => ({

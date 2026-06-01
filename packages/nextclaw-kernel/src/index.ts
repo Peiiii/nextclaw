@@ -20,6 +20,7 @@ export * from "@kernel/configs/agent-runtime.config.js";
 export * from "@kernel/features/narp-runtime/index.js";
 export * from "@kernel/features/ncp-dispatch/index.js";
 export { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
+export { PanelAppAssetTokenService } from "@kernel/services/panel-app-asset-token.service.js";
 export { CommandRegistry } from "@kernel/services/command-registry.service.js";
 export { buildAgentRunSendPayload } from "@kernel/utils/agent-run-send-payload.utils.js";
 export type {

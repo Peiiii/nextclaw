@@ -247,6 +247,7 @@ class UiRouteRegistry {
       ["post", "/api/panel-apps/:id/open", panelApps.recordPanelAppOpened],
       ["get", "/api/panel-apps/:id/content", panelApps.getPanelAppContent],
       ["get", "/api/panel-apps/:id/assets/*", panelApps.getPanelAppAsset],
+      ["get", "/api/panel-app-assets/:token/*", panelApps.getPanelAppAssetByToken],
       ["get", "/api/service-apps", serviceApps.listServiceApps],
       ["post", "/api/service-apps/:appId/restart", serviceApps.restartServiceApp],
       ["post", "/api/service-apps/:appId/actions/discover", serviceApps.discoverServiceAppActions],
@@ -334,7 +335,12 @@ export function createUiRouter(options: UiRouterOptions, authServiceOverride?: U
 
   app.use("/api/*", async (c, next) => {
     const path = c.req.path;
-    if (path === "/api/health" || path === "/api/runtime/bootstrap-status" || path.startsWith("/api/auth/")) {
+    if (
+      path === "/api/health" ||
+      path === "/api/runtime/bootstrap-status" ||
+      path.startsWith("/api/auth/") ||
+      path.startsWith("/api/panel-app-assets/")
+    ) {
       await next();
       return;
     }
