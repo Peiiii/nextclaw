@@ -55,9 +55,39 @@ pnpm check:governance-backlog-ratchet
 
 ## 发布/部署方式
 
-本次尚未发布或部署。用户当前要求是一次性落地并验证，未要求 commit、push 或 NPM release。
+已发布 NPM 正式版本。
 
-若后续发布，建议作为 patch 版本发布，因为这是运行时 bugfix。
+发布方式：
+
+```bash
+pnpm release:report:health
+pnpm release:auto
+npm view nextclaw dist-tags --json
+npm view nextclaw@latest version
+npm view @nextclaw/kernel@latest version
+npm view @nextclaw/server@latest version
+```
+
+发布结果：
+
+- `nextclaw@0.20.1` 已发布到 `latest`。
+- `@nextclaw/kernel@0.2.1` 已发布到 `latest`。
+- `@nextclaw/server@0.13.1` 已发布到 `latest`。
+- `release:verify:published` 确认本批次 `46/46` 个 package version 已发布。
+- 已创建 release tags，包括 `nextclaw@0.20.1`、`@nextclaw/kernel@0.2.1`、`@nextclaw/server@0.13.1`。
+
+真实安装 smoke：
+
+```bash
+npm install --prefix /tmp/nextclaw-npm-smoke-9HdPyx nextclaw@0.20.1
+NEXTCLAW_HOME=/tmp/nextclaw-npm-home-oIO0SV /tmp/nextclaw-npm-smoke-9HdPyx/node_modules/.bin/nextclaw --version
+NEXTCLAW_HOME=/tmp/nextclaw-npm-home-oIO0SV /tmp/nextclaw-npm-smoke-9HdPyx/node_modules/.bin/nextclaw update --check
+```
+
+结果：
+
+- `nextclaw --version` 输出 `0.20.1`。
+- `nextclaw update --check` 输出当前 npm launcher/runtime 已是 `0.20.1`，无需更新。
 
 ## 用户/产品视角的验收步骤
 
@@ -93,4 +123,19 @@ pnpm check:governance-backlog-ratchet
 
 ## NPM 包发布记录
 
-不涉及 NPM 包发布。
+已发布。
+
+本次 `pnpm release:auto` 生成完整 public workspace patch release batch，并发布 `46` 个包，核心用户路径版本为：
+
+- `nextclaw@0.20.1`
+- `@nextclaw/kernel@0.2.1`
+- `@nextclaw/server@0.13.1`
+
+NPM dist-tag：
+
+```json
+{
+  "beta": "0.19.31-beta.7",
+  "latest": "0.20.1"
+}
+```
