@@ -11,6 +11,7 @@ import {
 
 type TestSocket = {
   url: string;
+  options?: { headers?: Record<string, string> };
   onopen: (() => void) | null;
   onmessage: ((event: { data: unknown }) => void) | null;
   onerror: ((event: unknown) => void) | null;
@@ -39,9 +40,10 @@ function createExtensionHarness(responseData?: unknown): {
     extensionId: "fake-extension",
     token: "secret",
     fetch: fetchImpl,
-    webSocketFactory: (url) => {
+    webSocketFactory: (url, options) => {
       const socket = {
         url,
+        options,
         onopen: null,
         onmessage: null,
         onerror: null,
@@ -205,6 +207,10 @@ describe("@nextclaw/extension-sdk", () => {
     await vi.waitFor(() => expect(configHandler).toHaveBeenCalled());
 
     expect(sockets[0]?.url).toBe("ws://127.0.0.1:55667/ws");
+    expect(sockets[0]?.options?.headers).toEqual({
+      authorization: "Bearer secret",
+      "x-nextclaw-extension-id": "fake-extension",
+    });
     expect(ncpHandler).toHaveBeenCalledWith(
       {
         type: "message.text-delta",

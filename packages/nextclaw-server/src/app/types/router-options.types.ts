@@ -31,6 +31,10 @@ export type UiBootstrapStatusHost = {
 };
 
 export type UiExtensionHost = {
+  authenticateEventStreamCredential: (input: {
+    extensionId: string | null;
+    token: string | null;
+  }) => { extensionId: string } | null;
   getChannelBindings: () => ExtensionChannelBinding[];
   getUiMetadata: () => ExtensionUiMetadata[];
 };

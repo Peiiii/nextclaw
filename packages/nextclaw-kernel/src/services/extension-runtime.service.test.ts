@@ -158,6 +158,7 @@ describe("ExtensionRuntimeService", () => {
 
     await ingress.handle({
       type: "extension.response",
+      extensionId: "fake-extension",
       payload: {
         requestId,
         ok: true,
@@ -170,7 +171,7 @@ describe("ExtensionRuntimeService", () => {
       },
     }, {
       source: "test",
-      token: runtime.token,
+      token: runtime.getExtensionProcessToken("fake-extension"),
     });
 
     await expect(startPromise).resolves.toEqual(expect.objectContaining({
@@ -204,6 +205,7 @@ describe("ExtensionRuntimeService", () => {
 
     await ingress.handle({
       type: "extension.response",
+      extensionId: "fake-extension",
       payload: {
         requestId: connectRequestId,
         ok: true,
@@ -215,7 +217,7 @@ describe("ExtensionRuntimeService", () => {
       },
     }, {
       source: "test",
-      token: runtime.token,
+      token: runtime.getExtensionProcessToken("fake-extension"),
     });
 
     await expect(connectPromise).resolves.toEqual(expect.objectContaining({
@@ -300,6 +302,7 @@ describe("ExtensionRuntimeService", () => {
 
     await ingress.handle({
       type: "extension.response",
+      extensionId: "fake-extension",
       payload: {
         requestId: event?.payload?.requestId,
         ok: true,
@@ -307,9 +310,36 @@ describe("ExtensionRuntimeService", () => {
       },
     }, {
       source: "test",
-      token: runtime.token,
+      token: runtime.getExtensionProcessToken("fake-extension"),
     });
 
     await expect(sendPromise).resolves.toEqual({ accepted: true });
+  });
+});
+
+describe("ExtensionRuntimeService event stream credentials", () => {
+  it("binds event stream credentials to the extension id", () => {
+    const runtime = new ExtensionRuntimeService({
+      eventBus: {
+        emitEnvelope: vi.fn(),
+      },
+      getConfig: () => ({}) as never,
+      getWorkspace: () => createTempDir(),
+      ingress: new Ingress(),
+      messageBus: {
+        publishInbound: vi.fn(async () => undefined),
+      },
+      sessionManager,
+    });
+    const token = runtime.getExtensionProcessToken("fake-extension");
+
+    expect(runtime.authenticateEventStreamCredential({
+      extensionId: "fake-extension",
+      token,
+    })).toEqual({ extensionId: "fake-extension" });
+    expect(runtime.authenticateEventStreamCredential({
+      extensionId: "other-extension",
+      token,
+    })).toBeNull();
   });
 });

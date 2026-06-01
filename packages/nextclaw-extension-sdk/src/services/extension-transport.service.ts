@@ -2,12 +2,13 @@ import type {
   ExtensionRequestResponse,
   ExtensionTransportEnvelope,
   NextClawExtensionOptions,
+  NextClawExtensionWebSocketFactoryOptions,
   NextClawExtensionWebSocketLike,
 } from "../types/extension-sdk.types.js";
 import { getKeyId, ingressKeys } from "@nextclaw/shared";
 import { normalizeEndpoint, resolveWebSocketUrl } from "../utils/extension-url.utils.js";
 
-type RealtimeHandler = (event: ExtensionTransportEnvelope) => void;
+type EventStreamHandler = (event: ExtensionTransportEnvelope) => void;
 
 type RuntimeEnv = {
   NEXTCLAW_EXTENSION_ENDPOINT?: string;
@@ -34,7 +35,10 @@ export class ExtensionTransportService {
   readonly extensionId: string;
   private readonly endpoint: string;
   private readonly fetchImpl: typeof fetch;
-  private readonly webSocketFactory?: (url: string) => NextClawExtensionWebSocketLike;
+  private readonly webSocketFactory?: (
+    url: string,
+    options?: NextClawExtensionWebSocketFactoryOptions,
+  ) => NextClawExtensionWebSocketLike;
 
   constructor(options: NextClawExtensionOptions = {}) {
     const env = readRuntimeEnv();
@@ -81,8 +85,13 @@ export class ExtensionTransportService {
     await this.postIngress(getKeyId(ingressKeys.extension.response), response);
   };
 
-  readonly subscribe = (handler: RealtimeHandler): { close: () => void } => {
-    const socket = this.createSocket(resolveWebSocketUrl(this.endpoint, "/ws"));
+  readonly subscribe = (handler: EventStreamHandler): { close: () => void } => {
+    const socket = this.createSocket(resolveWebSocketUrl(this.endpoint, "/ws"), {
+      headers: {
+        authorization: `Bearer ${this.token}`,
+        "x-nextclaw-extension-id": this.extensionId,
+      },
+    });
     socket.onmessage = (event) => {
       const envelope = this.parseEnvelope(event.data);
       if (envelope) {
@@ -94,9 +103,12 @@ export class ExtensionTransportService {
     };
   };
 
-  private readonly createSocket = (url: string): NextClawExtensionWebSocketLike => {
+  private readonly createSocket = (
+    url: string,
+    options: NextClawExtensionWebSocketFactoryOptions,
+  ): NextClawExtensionWebSocketLike => {
     if (this.webSocketFactory) {
-      return this.webSocketFactory(url);
+      return this.webSocketFactory(url, options);
     }
     if (typeof globalThis.WebSocket !== "function") {
       throw new Error("WebSocket is unavailable. Provide webSocketFactory when creating the extension.");

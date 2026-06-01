@@ -135,6 +135,7 @@ function createTestGateway(params: {
       }),
     },
     extensions: {
+      authenticateEventStreamCredential: () => null,
       getChannelBindings: () => [],
       getUiMetadata: () => [],
     },

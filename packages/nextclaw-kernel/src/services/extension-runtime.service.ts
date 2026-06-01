@@ -207,8 +207,8 @@ class ExtensionChannelClient implements ExtensionChannelAuthClient, ExtensionCha
 }
 
 export class ExtensionRuntimeService {
-  readonly token = randomUUID();
   private readonly lifecycle = new ExtensionLifecycleService();
+  private readonly extensionTokens = new Map<string, string>();
   private readonly pendingRequests = new Map<string, PendingExtensionRequest>();
   private manifests: ExtensionManifest[] = [];
 
@@ -258,11 +258,34 @@ export class ExtensionRuntimeService {
         });
     const running = this.lifecycle.startAll(manifests, {
       endpoint,
-      token: this.token,
+      tokenForExtension: this.getExtensionProcessToken,
     });
     if (running.length > 0) {
       console.log(`✓ Extensions started: ${running.map((entry) => entry.manifest.id).join(", ")}`);
     }
+  };
+
+  getExtensionProcessToken = (extensionId: string): string => {
+    const id = readRequiredString(extensionId, "extensionId");
+    const current = this.extensionTokens.get(id);
+    if (current) {
+      return current;
+    }
+    const token = randomUUID();
+    this.extensionTokens.set(id, token);
+    return token;
+  };
+
+  authenticateEventStreamCredential = (input: {
+    extensionId: string | null;
+    token: string | null;
+  }): { extensionId: string } | null => {
+    const extensionId = readString(input.extensionId);
+    const token = readString(input.token);
+    if (!extensionId || !token || token !== this.extensionTokens.get(extensionId)) {
+      return null;
+    }
+    return { extensionId };
   };
 
   readonly stop = async (): Promise<void> => {
@@ -327,7 +350,7 @@ export class ExtensionRuntimeService {
     envelope: IngressEnvelope<ExtensionChannelConfigGetIngressPayload>,
     context: IngressContext,
   ) => {
-    this.assertAuthorized(context);
+    this.assertAuthorized(envelope, context);
     const payload = readRecord(envelope.payload);
     const channelId = readRequiredString(payload.channelId, "channelId");
     return {
@@ -339,16 +362,16 @@ export class ExtensionRuntimeService {
     envelope: IngressEnvelope<ExtensionChannelMessageSubmitIngressPayload>,
     context: IngressContext,
   ) => {
-    this.assertAuthorized(context);
+    this.assertAuthorized(envelope, context);
     await this.options.messageBus.publishInbound(toInboundMessage(envelope.payload));
     return { accepted: true };
   };
 
   private readonly handleChannelCommandList = (
-    _envelope: IngressEnvelope<ExtensionChannelCommandListIngressPayload>,
+    envelope: IngressEnvelope<ExtensionChannelCommandListIngressPayload>,
     context: IngressContext,
   ) => {
-    this.assertAuthorized(context);
+    this.assertAuthorized(envelope, context);
     const registry = new CommandRegistry(this.options.getConfig(), this.options.sessionManager);
     return {
       commands: registry.listSlashCommands(),
@@ -359,7 +382,7 @@ export class ExtensionRuntimeService {
     envelope: IngressEnvelope<ExtensionChannelCommandExecuteIngressPayload>,
     context: IngressContext,
   ) => {
-    this.assertAuthorized(context);
+    this.assertAuthorized(envelope, context);
     const payload = readRecord(envelope.payload);
     const channel = readRequiredString(payload.channelId, "channelId");
     const chatId = readRequiredString(payload.conversationId, "conversationId");
@@ -409,7 +432,7 @@ export class ExtensionRuntimeService {
     envelope: IngressEnvelope<ExtensionResponseIngressPayload>,
     context: IngressContext,
   ) => {
-    this.assertAuthorized(context);
+    this.assertAuthorized(envelope, context);
     const payload = readRecord(envelope.payload);
     const requestId = readRequiredString(payload.requestId, "requestId");
     const pending = this.pendingRequests.get(requestId);
@@ -487,8 +510,9 @@ export class ExtensionRuntimeService {
     return await result;
   };
 
-  private readonly assertAuthorized = (context: IngressContext): void => {
-    if (context.token !== this.token) {
+  private readonly assertAuthorized = (envelope: IngressEnvelope<unknown>, context: IngressContext): void => {
+    const extensionId = readString(envelope.extensionId);
+    if (!extensionId || context.token !== this.extensionTokens.get(extensionId)) {
       throw new Error("Unauthorized ingress token");
     }
   };

@@ -28,7 +28,14 @@ export type NextClawExtensionOptions = {
   token?: string;
   extensionId?: string;
   fetch?: typeof fetch;
-  webSocketFactory?: (url: string) => NextClawExtensionWebSocketLike;
+  webSocketFactory?: (
+    url: string,
+    options?: NextClawExtensionWebSocketFactoryOptions,
+  ) => NextClawExtensionWebSocketLike;
+};
+
+export type NextClawExtensionWebSocketFactoryOptions = {
+  headers?: Record<string, string>;
 };
 
 export type NextClawExtensionWebSocketLike = {

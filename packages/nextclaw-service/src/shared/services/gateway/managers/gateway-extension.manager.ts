@@ -9,6 +9,12 @@ export class GatewayExtensionManager {
 
   getUiMetadata = (): ExtensionUiMetadata[] => this.gateway.kernel.extensions.getUiMetadata();
 
+  authenticateEventStreamCredential = (input: {
+    extensionId: string | null;
+    token: string | null;
+  }): { extensionId: string } | null =>
+    this.gateway.kernel.extensions.authenticateEventStreamCredential(input);
+
   load = async (): Promise<void> => {
     const config = this.gateway.configManager.loadConfig();
     this.gateway.bootstrapStatus.markChannelsPending();

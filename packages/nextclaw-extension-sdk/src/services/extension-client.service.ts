@@ -145,20 +145,20 @@ export class NextClawExtension {
   readonly capabilities: ExtensionCapabilities;
   readonly extensionId: string;
   private readonly transport: ExtensionTransportService;
-  private realtimeSubscription: { close: () => void } | null = null;
+  private eventStreamSubscription: { close: () => void } | null = null;
 
   constructor(options: NextClawExtensionOptions = {}) {
     this.transport = new ExtensionTransportService(options);
     this.extensionId = this.transport.extensionId;
     this.eventBus = new EventBus({
       onFirstSubscriber: () => {
-        this.realtimeSubscription ??= this.transport.subscribe((event) => {
+        this.eventStreamSubscription ??= this.transport.subscribe((event) => {
           this.eventBus.emitEnvelope(this.toEventBusEnvelope(event));
         });
       },
       onNoSubscribers: () => {
-        this.realtimeSubscription?.close();
-        this.realtimeSubscription = null;
+        this.eventStreamSubscription?.close();
+        this.eventStreamSubscription = null;
       },
     });
     this.channels = new ExtensionChannelRegistry({
@@ -173,8 +173,8 @@ export class NextClawExtension {
   }
 
   readonly close = (): void => {
-    this.realtimeSubscription?.close();
-    this.realtimeSubscription = null;
+    this.eventStreamSubscription?.close();
+    this.eventStreamSubscription = null;
   };
 
   readonly onRequest = (handler: ExtensionRequestHandler): (() => void) =>
@@ -192,7 +192,7 @@ export class NextClawExtension {
   private readonly toEventBusEnvelope = (event: ExtensionTransportEnvelope): ExtensionTransportEnvelope => ({
     ...event,
     emittedAt: event.emittedAt ?? new Date().toISOString(),
-    source: event.source ?? "realtime",
+    source: event.source ?? "event-stream",
   });
 
 }

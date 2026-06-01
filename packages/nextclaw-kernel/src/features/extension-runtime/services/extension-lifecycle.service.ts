@@ -29,7 +29,7 @@ export class ExtensionLifecycleService {
 
   startAll = (manifests: ExtensionManifest[], params: {
     endpoint: string;
-    token: string;
+    tokenForExtension: (extensionId: string) => string;
   }): RunningExtensionProcess[] => {
     const started: RunningExtensionProcess[] = [];
     for (const manifest of manifests) {
@@ -62,7 +62,7 @@ export class ExtensionLifecycleService {
     manifest: ExtensionManifest,
     params: {
       endpoint: string;
-      token: string;
+      tokenForExtension: (extensionId: string) => string;
     },
   ): RunningExtensionProcess => {
     const existing = this.processes.get(manifest.id);
@@ -80,7 +80,7 @@ export class ExtensionLifecycleService {
         ...manifest.server.env,
         NEXTCLAW_EXTENSION_ID: manifest.id,
         NEXTCLAW_EXTENSION_ENDPOINT: params.endpoint,
-        NEXTCLAW_EXTENSION_TOKEN: params.token,
+        NEXTCLAW_EXTENSION_TOKEN: params.tokenForExtension(manifest.id),
       },
       stdio: ["ignore", "ignore", "inherit"],
       windowsHide: true,
