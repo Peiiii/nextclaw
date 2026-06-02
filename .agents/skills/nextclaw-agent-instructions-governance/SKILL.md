@@ -7,7 +7,13 @@ description: Use when editing AGENTS.md, commands/commands.md, Rulebook or Proje
 
 ## Goal
 
-Keep agent instructions reliable without turning `AGENTS.md` into a giant prompt.
+Keep agent instructions reliable without turning `AGENTS.md` or skills into giant prompts.
+
+Token budget is an explicit governance goal:
+
+- Prefer deleting, merging, or moving details to lazy-loaded references before adding new instruction text.
+- A skill should stay short enough to guide action; long examples, recovery maps, and logs belong in scripts or focused references.
+- For long-running workflows, prefer compact automation and JSON summaries over transcript-scale manual polling.
 
 Default structure:
 
@@ -114,6 +120,7 @@ When creating or updating a skill:
 - Do not create extra README/changelog files inside a skill.
 - Prefer direct checklists and commands over long philosophy.
 - If the body is getting large, split details into `references/` and link them from `SKILL.md` with clear loading conditions.
+- When updating a skill, treat token reduction as a success criterion: remove stale or duplicated guidance in the same pass when practical.
 
 ## Command Rules
 
