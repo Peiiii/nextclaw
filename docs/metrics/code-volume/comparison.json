@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-01T03:26:14.526Z",
+  "generatedAt": "2026-06-02T03:26:12.792Z",
   "base": {
     "name": "nextclaw",
     "projectRoot": "/home/runner/work/nextclaw/nextclaw",
@@ -30,6 +30,7 @@
         "packages/extensions/nextclaw-feishu-core/src",
         "packages/extensions/nextclaw-narp-runtime-claude-code-sdk/src",
         "packages/extensions/nextclaw-narp-runtime-codex-sdk/src",
+        "packages/extensions/nextclaw-narp-runtime-opencode/src",
         "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk/src",
         "packages/extensions/nextclaw-ncp-runtime-codex-sdk/src",
         "packages/ncp-packages/nextclaw-ncp-agent-runtime-next/src",
@@ -91,12 +92,12 @@
       ]
     },
     "totals": {
-      "files": 1789,
-      "totalLines": 242603,
-      "blankLines": 22507,
+      "files": 1827,
+      "totalLines": 245340,
+      "blankLines": 22795,
       "commentLines": 623,
-      "codeLines": 172514,
-      "testCodeLines": 46959
+      "codeLines": 174106,
+      "testCodeLines": 47816
     }
   },
   "benchmark": {
@@ -133,18 +134,18 @@
       ]
     },
     "totals": {
-      "files": 14525,
-      "totalLines": 3756117,
-      "blankLines": 312250,
-      "commentLines": 56303,
-      "codeLines": 1598353,
-      "testCodeLines": 1789211
+      "files": 14547,
+      "totalLines": 3767916,
+      "blankLines": 313665,
+      "commentLines": 56657,
+      "codeLines": 1602709,
+      "testCodeLines": 1794885
     }
   },
   "comparison": {
-    "baseMinusBenchmarkLines": -1425839,
-    "basePercentOfBenchmark": 10.79,
-    "benchmarkMultipleOfBase": 9.27,
-    "baseIsLighterByPercent": 89.21
+    "baseMinusBenchmarkLines": -1428603,
+    "basePercentOfBenchmark": 10.86,
+    "benchmarkMultipleOfBase": 9.21,
+    "baseIsLighterByPercent": 89.14
   }
 }
