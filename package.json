@@ -57,6 +57,8 @@
     "dev:kill": "node scripts/dev/dev-process-status.mjs --kill",
     "dev:packages:build": "node scripts/dev/workspace-package-dist-watcher.mjs --once",
     "dev:packages:watch": "node scripts/dev/workspace-package-dist-watcher.mjs --watch",
+    "clean:generated": "node scripts/dev/clean-generated-artifacts.mjs",
+    "check:generated-clean": "node scripts/dev/clean-generated-artifacts.mjs --check",
     "dev:extensions:build": "pnpm -r --filter \"@nextclaw/channel-extension-*\" build",
     "dev:extensions:watch": "pnpm -r --parallel --filter \"@nextclaw/channel-extension-*\" build --watch",
     "dev:apps-web": "pnpm -C apps/nextclaw-apps-web dev",

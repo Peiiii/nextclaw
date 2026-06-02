@@ -26,6 +26,13 @@ Pure docs, wording, or trivial metadata:
 - say why they are not applicable,
 - still do structural checks that match the edit, such as links, headings, or size stats.
 
+Generated artifacts after validation/build:
+
+- If local validation or build dirties generated frontend/package artifacts, run `pnpm clean:generated` before closeout unless the task explicitly requires committing refreshed artifacts.
+- Use `pnpm check:generated-clean` when you only need to assert the generated-artifact allowlist is clean.
+- `packages/nextclaw/ui-dist` is treated as generated package payload: normal source/UI work must not commit its hash churn; release/package flows may generate it in an isolated worktree for npm packaging, then clean it before final status review.
+- If generated artifacts are intentionally committed, state why they are part of the deliverable and keep them separate from unrelated source WIP.
+
 TypeScript source, type declarations, import/export boundaries, or runtime path:
 
 - `tsc` is required,
