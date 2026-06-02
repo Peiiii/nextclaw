@@ -1309,10 +1309,16 @@ importers:
       '@nextclaw/shared':
         specifier: workspace:*
         version: link:../nextclaw-shared
+      ws:
+        specifier: ^8.18.0
+        version: 8.19.0
     devDependencies:
       '@types/node':
         specifier: ^20.17.6
         version: 20.19.33
+      '@types/ws':
+        specifier: ^8.5.14
+        version: 8.18.1
       typescript:
         specifier: ^5.6.3
         version: 5.9.3

@@ -7,6 +7,7 @@ import type {
 } from "../types/extension-sdk.types.js";
 import { getKeyId, ingressKeys } from "@nextclaw/shared";
 import { normalizeEndpoint, resolveWebSocketUrl } from "../utils/extension-url.utils.js";
+import WebSocket from "ws";
 
 type EventStreamHandler = (event: ExtensionTransportEnvelope) => void;
 
@@ -110,10 +111,9 @@ export class ExtensionTransportService {
     if (this.webSocketFactory) {
       return this.webSocketFactory(url, options);
     }
-    if (typeof globalThis.WebSocket !== "function") {
-      throw new Error("WebSocket is unavailable. Provide webSocketFactory when creating the extension.");
-    }
-    return new globalThis.WebSocket(url) as unknown as NextClawExtensionWebSocketLike;
+    const socket = new WebSocket(url, { headers: options.headers });
+    socket.on("error", () => undefined);
+    return socket as unknown as NextClawExtensionWebSocketLike;
   };
 
   private readonly parseEnvelope = (value: unknown): ExtensionTransportEnvelope | null => {
