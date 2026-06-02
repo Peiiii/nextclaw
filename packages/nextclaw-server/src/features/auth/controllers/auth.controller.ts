@@ -41,7 +41,7 @@ export class AuthRoutesController {
     }
 
     try {
-      const result = this.authService.setup(c.req.raw, body.data);
+      const result = await this.authService.setup(c.req.raw, body.data);
       setCookieHeader(c, result.cookie);
       return c.json(ok(result.status), 201);
     } catch (error) {
@@ -87,7 +87,7 @@ export class AuthRoutesController {
     }
 
     try {
-      const result = this.authService.updatePassword(c.req.raw, body.data);
+      const result = await this.authService.updatePassword(c.req.raw, body.data);
       setCookieHeader(c, result.cookie);
       return c.json(ok(result.status));
     } catch (error) {
@@ -108,7 +108,7 @@ export class AuthRoutesController {
     }
 
     try {
-      const result = this.authService.updateEnabled(c.req.raw, body.data);
+      const result = await this.authService.updateEnabled(c.req.raw, body.data);
       setCookieHeader(c, result.cookie);
       return c.json(ok(result.status));
     } catch (error) {

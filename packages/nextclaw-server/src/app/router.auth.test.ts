@@ -1,9 +1,10 @@
 import type { IncomingMessage } from "node:http";
-import { mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema, loadConfig, saveConfig } from "@nextclaw/core";
+import { AccessManager } from "@nextclaw/kernel";
 import { UiAuthService } from "@nextclaw-server/features/auth/index.js";
 import { createUiRouter } from "./router.js";
 import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
@@ -300,15 +301,48 @@ describe("ui auth protection flows", () => {
     const publicConfigResponse = await app.request("http://localhost/api/config");
     expect(publicConfigResponse.status).toBe(200);
   });
-});
 
-describe("ui auth sessions", () => {
-  it("accepts websocket cookies only for the current process lifetime", () => {
+  it("revokes old sessions after password updates and keeps the new session authenticated", async () => {
+    useIsolatedHome();
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
 
-    const authService = new UiAuthService(configPath);
-    const result = authService.setup(
+    const app = createApp(configPath);
+    const cookie = await setupUiAuth(app);
+
+    const updateResponse = await app.request("http://localhost/api/auth/password", {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+        cookie
+      },
+      body: JSON.stringify({
+        password: "new-password123"
+      })
+    });
+    expect(updateResponse.status).toBe(200);
+    const newCookie = readSessionCookie(updateResponse);
+
+    const oldCookieResponse = await app.request("http://localhost/api/config", {
+      headers: { cookie }
+    });
+    expect(oldCookieResponse.status).toBe(401);
+
+    const newCookieResponse = await app.request("http://localhost/api/config", {
+      headers: { cookie: newCookie }
+    });
+    expect(newCookieResponse.status).toBe(200);
+  });
+});
+
+describe("ui auth sessions", () => {
+  it("persists route and websocket sessions across auth manager restarts", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+
+    const accessManager = new AccessManager({ configPath });
+    const authService = new UiAuthService(accessManager);
+    const result = await authService.setup(
       new Request("http://localhost/api/auth/setup"),
       {
         username: "admin",
@@ -321,7 +355,72 @@ describe("ui auth sessions", () => {
       headers: { cookie }
     } as IncomingMessage)).toBe(true);
 
-    const restartedAuthService = new UiAuthService(configPath);
+    const restartedAccessManager = new AccessManager({ configPath });
+    const restartedAuthService = new UiAuthService(restartedAccessManager);
+    expect(restartedAuthService.isSocketAuthenticated({
+      headers: { cookie }
+    } as IncomingMessage)).toBe(true);
+
+    const restartedApp = createApp(configPath, { accessManager: restartedAccessManager });
+    const configResponse = await restartedApp.request("http://localhost/api/config", {
+      headers: { cookie },
+    });
+    expect(configResponse.status).toBe(200);
+  });
+
+  it("stores only session token hashes", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+
+    const accessManager = new AccessManager({ configPath });
+    const authService = new UiAuthService(accessManager);
+    const result = await authService.setup(
+      new Request("http://localhost/api/auth/setup"),
+      {
+        username: "admin",
+        password: "password123"
+      }
+    );
+    const token = result.cookie.split(";")[0].split("=")[1];
+    expect(token).toBeTruthy();
+    const rawState = readFileSync(join(dirname(configPath), "access", "access-sessions.json"), "utf-8");
+    const state = JSON.parse(rawState) as {
+      kind?: string;
+      sessions?: Array<{ tokenHash?: string }>;
+    };
+
+    expect(state.kind).toBe("nextclaw.access.sessions");
+    expect(state.sessions).toHaveLength(1);
+    expect(state.sessions?.[0]?.tokenHash).toBeTruthy();
+    expect(rawState).not.toContain(decodeURIComponent(token!));
+  });
+
+  it("rejects expired persisted sessions", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+    let now = new Date("2026-06-02T00:00:00.000Z");
+
+    const accessManager = new AccessManager({
+      configPath,
+      sessionTtlMs: 1000,
+      now: () => now,
+    });
+    const authService = new UiAuthService(accessManager);
+    const result = await authService.setup(
+      new Request("http://localhost/api/auth/setup"),
+      {
+        username: "admin",
+        password: "password123"
+      }
+    );
+    const cookie = result.cookie.split(";")[0];
+
+    now = new Date("2026-06-02T00:00:02.000Z");
+
+    const restartedAuthService = new UiAuthService(new AccessManager({
+      configPath,
+      now: () => now,
+    }));
     expect(restartedAuthService.isSocketAuthenticated({
       headers: { cookie }
     } as IncomingMessage)).toBe(false);

@@ -1,5 +1,6 @@
 export * from "@kernel/app/nextclaw-kernel.js";
 export * from "@kernel/managers/agent.manager.js";
+export * from "@kernel/managers/access.manager.js";
 export * from "@kernel/managers/skill.manager.js";
 export * from "@kernel/managers/llm-provider.manager.js";
 export * from "@kernel/managers/automation.manager.js";
@@ -40,6 +41,7 @@ export * from "@kernel/utils/ncp-session-message-adapter.utils.js";
 export { ChannelManager } from "@nextclaw/core";
 export * from "@kernel/types/entity-ids.types.js";
 export * from "@kernel/types/agent.types.js";
+export * from "@kernel/types/access.types.js";
 export * from "@kernel/types/tool.types.js";
 export * from "@kernel/types/skill.types.js";
 export * from "@kernel/types/llm-usage.types.js";

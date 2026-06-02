@@ -2,6 +2,7 @@ import { AgentManager } from "@kernel/managers/agent.manager.js";
 import { AgentRunContextCompactionManager } from "@kernel/managers/agent-run-context-compaction.manager.js";
 import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
 import { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
+import { AccessManager } from "@kernel/managers/access.manager.js";
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
 import { ContextProviderManager } from "@kernel/managers/context-provider.manager.js";
@@ -107,6 +108,7 @@ export class NextclawKernel {
   readonly llmProviders: LlmProviderManager = new LlmProviderManager();
   readonly llmUsage: LlmUsageManager = new LlmUsageManager();
   readonly configManager: ConfigManager;
+  readonly accessManager: AccessManager;
   readonly agents: AgentManager;
   readonly control: NextclawKernelControlManager<unknown, unknown, unknown>;
   readonly skills: SkillManager;
@@ -158,6 +160,10 @@ export class NextclawKernel {
       configPath: options.configPath,
       channels: this.channels,
       providerManager: this.llmProviders,
+    });
+    this.accessManager = new AccessManager({
+      configManager: this.configManager,
+      homeDir: options.homeDir,
     });
     this.sessionManager = new SessionManager({
       configManager: this.configManager,

@@ -50,7 +50,9 @@ export type UiKernelHost = Pick<
   | "sessionManager"
   | "panelAppManager"
   | "serviceAppManager"
->;
+> & {
+  accessManager?: NextclawKernel["accessManager"];
+};
 
 export type UiCronHost = {
   listJobs: (includeDisabled?: boolean) => CronJobEntry[];

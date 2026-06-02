@@ -157,6 +157,9 @@ export class ConfigManager {
   patchRawConfig = async (params: RawConfigMutationParams): Promise<ConfigMutationResult> =>
     this.mutateRawConfig(params, (snapshot, patch) => mergeDeep(snapshot.config as Record<string, unknown>, patch));
 
+  applyConfig = async (nextConfig: Config, note?: string): Promise<ConfigMutationResult> =>
+    this.applyConfigChange({ nextConfig, note });
+
   scheduleReload = (reason: string): void => {
     if (this.reloadTimer) {
       clearTimeout(this.reloadTimer);

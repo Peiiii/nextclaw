@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { compress } from "hono/compress";
 import { serve } from "@hono/node-server";
+import { AccessManager } from "@nextclaw/kernel";
 import { WebSocketServer } from "ws";
 import { existsSync, readFileSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
@@ -168,7 +169,9 @@ export async function startUiServer(gateway: UiRouterOptions): Promise<UiServerH
   const app = new Hono();
   app.use("/*", compress());
   const corsPolicy = corsOrigins ?? DEFAULT_CORS_ORIGINS;
-  const authService = new UiAuthService(gateway.configPath);
+  const authService = new UiAuthService(
+    gateway.kernel.accessManager ?? new AccessManager({ configPath: gateway.configPath }),
+  );
   app.use("/api/*", async (c, next) => {
     const allowOrigin = resolveAllowedCorsOrigin(c.req.header("origin")?.trim() ?? null, corsPolicy);
     const allowHeaders = c.req.header("access-control-request-headers")?.trim() ?? null;

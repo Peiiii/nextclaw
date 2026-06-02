@@ -4,6 +4,7 @@ import type {
   NcpRunHandle,
   NcpStreamRequestPayload,
 } from "@nextclaw/ncp";
+import { AccessManager } from "@nextclaw/kernel";
 import {
   ingressKeys,
   type AgentRunSendIngressPayload,
@@ -328,7 +329,9 @@ class UiRouteRegistry {
 export function createUiRouter(options: UiRouterOptions, authServiceOverride?: UiAuthService): Hono {
   const app = new Hono();
   const marketplaceBaseUrl = normalizeMarketplaceBaseUrl(options);
-  const authService = authServiceOverride ?? options.authService ?? new UiAuthService(options.configPath);
+  const authService = authServiceOverride ?? options.authService ?? new UiAuthService(
+    options.kernel.accessManager ?? new AccessManager({ configPath: options.configPath }),
+  );
   const controllers = createUiRouteControllers(options, authService, marketplaceBaseUrl);
 
   app.notFound((c) => c.json(err("NOT_FOUND", "endpoint not found"), 404));
