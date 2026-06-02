@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-extension-email",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": false,
   "description": "NextClaw Email channel extension process.",
   "type": "module",
