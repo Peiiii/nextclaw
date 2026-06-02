@@ -1,5 +1,14 @@
 # @nextclaw/channel-extension-weixin
 
+## 0.1.18
+
+### Patch Changes
+
+- Publish with `@nextclaw/extension-sdk@0.2.3` so Weixin channel auth requests receive extension event-stream messages.
+
+- Updated dependencies
+  - @nextclaw/extension-sdk@0.2.3
+
 ## 0.1.17
 
 ### Patch Changes

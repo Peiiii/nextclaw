@@ -1,5 +1,11 @@
 # @nextclaw/extension-sdk
 
+## 0.2.3
+
+### Patch Changes
+
+- Fix default Node.js WebSocket transport to send extension event-stream authentication headers.
+
 ## 0.2.2
 
 ### Patch Changes
