@@ -19,12 +19,29 @@ fi
 
 DEB_DIR="$(dirname "${DEB_PATH}")"
 DEB_NAME="$(basename "${DEB_PATH}")"
+SMOKE_IMAGE="ubuntu:24.04"
+
+pull_smoke_image() {
+  local attempt
+  for attempt in 1 2 3; do
+    if docker pull "${SMOKE_IMAGE}"; then
+      return 0
+    fi
+    if [ "${attempt}" -eq 3 ]; then
+      echo "[desktop-smoke] failed to pull ${SMOKE_IMAGE} after ${attempt} attempts" >&2
+      return 1
+    fi
+    echo "[desktop-smoke] retrying docker pull ${SMOKE_IMAGE} (${attempt}/3)" >&2
+    sleep $((attempt * 5))
+  done
+}
 
 echo "[desktop-smoke] validating deb package ${DEB_NAME}"
+pull_smoke_image
 
 docker run --rm \
   -v "${DEB_DIR}:/artifacts:ro" \
-  ubuntu:24.04 \
+  "${SMOKE_IMAGE}" \
   bash -lc "
     set -euo pipefail
     export DEBIAN_FRONTEND=noninteractive

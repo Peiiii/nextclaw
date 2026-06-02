@@ -12,8 +12,31 @@ function run(command, args) {
   return typeof output === "string" ? output.trim() : "";
 }
 
-function readJsonCommand(command, args) {
-  return JSON.parse(run(command, args));
+function isRetryableCommandError(error) {
+  const stderr = String(error?.stderr ?? "");
+  const message = String(error?.message ?? "");
+  return /tls: failed to verify certificate|Client\.Timeout|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|502 Bad Gateway|503 Service Unavailable|504 Gateway Timeout/.test(
+    `${stderr}\n${message}`
+  );
+}
+
+async function readJsonCommand(command, args) {
+  const output = await readTextCommand(command, args);
+  return JSON.parse(output);
+}
+
+async function readTextCommand(command, args) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return run(command, args);
+    } catch (error) {
+      if (attempt >= 3 || !isRetryableCommandError(error)) {
+        throw error;
+      }
+      console.warn(`[desktop:release] retrying ${command} query after transient network error (${attempt}/3)`);
+      await sleep(1000 * attempt);
+    }
+  }
 }
 
 function isRetryableGitFetchError(error) {
@@ -49,11 +72,11 @@ function readTagSha(tag) {
 async function waitForWorkflowRun(options, tagSha) {
   const { repo, runId, runtimeVersion, tag, workflow } = options;
   if (runId) {
-    return readWorkflowRun(repo, runId);
+    return await readWorkflowRun(repo, runId);
   }
 
   for (let attempt = 1; attempt <= 30; attempt += 1) {
-    const runs = readJsonCommand("gh", [
+    const runs = await readJsonCommand("gh", [
       "run",
       "list",
       "--repo",
@@ -82,8 +105,8 @@ async function waitForWorkflowRun(options, tagSha) {
   throw new Error(`Timed out locating ${workflow} release run for ${tag}.`);
 }
 
-function readWorkflowRun(repo, runId) {
-  return readJsonCommand("gh", [
+async function readWorkflowRun(repo, runId) {
+  return await readJsonCommand("gh", [
     "run",
     "view",
     String(runId),
@@ -118,7 +141,7 @@ async function waitForWorkflowSuccess(options, runEntry) {
   const runId = runEntry.databaseId ?? optionRunId;
   let previousLine = "";
   for (let attempt = 1; attempt <= runAttempts; attempt += 1) {
-    const runSummary = readWorkflowRun(repo, runId);
+    const runSummary = await readWorkflowRun(repo, runId);
     const jobSummary = summarizeJobs(runSummary);
     const line = `[desktop:release] run ${runId}: ${runSummary.status}/${runSummary.conclusion || "pending"} jobs ${jobSummary.completed}/${jobSummary.total} ${jobSummary.important}`;
     if (line !== previousLine) {
@@ -139,9 +162,9 @@ async function waitForWorkflowSuccess(options, runEntry) {
   throw new Error(`Timed out waiting for workflow success: ${runEntry.url ?? runId}`);
 }
 
-function verifyReleaseAssets(options) {
+async function verifyReleaseAssets(options) {
   const { channel, desktopVersion, repo, runtimeVersion, tag } = options;
-  const release = readJsonCommand("gh", [
+  const release = await readJsonCommand("gh", [
     "release",
     "view",
     tag,
@@ -207,7 +230,7 @@ async function waitForPublicManifest(options) {
   const manifestUrl =
     `https://peiiii.github.io/nextclaw/desktop-updates/${channel}/manifest-${channel}-win32-x64.json`;
   for (let attempt = 1; attempt <= publicAttempts; attempt += 1) {
-    const manifest = readJsonCommand("curl", ["-fsSL", `${manifestUrl}?desktopRelease=${Date.now()}-${attempt}`]);
+    const manifest = await readJsonCommand("curl", ["-fsSL", `${manifestUrl}?desktopRelease=${Date.now()}-${attempt}`]);
     if (manifest.latestVersion === runtimeVersion) {
       assertManifest(manifest, options, "public Pages manifest");
       console.log(`[desktop:release] public Pages manifest OK: ${manifest.latestVersion}`);
@@ -239,7 +262,7 @@ async function waitForPublicStableAptRepo(options) {
     return;
   }
   for (let attempt = 1; attempt <= publicAttempts; attempt += 1) {
-    const packagesText = run("curl", [
+    const packagesText = await readTextCommand("curl", [
       "-fsSL",
       `https://peiiii.github.io/nextclaw/apt/dists/stable/main/binary-amd64/Packages?desktopRelease=${Date.now()}-${attempt}`
     ]);
@@ -259,7 +282,7 @@ export async function waitForDesktopReleaseClosure(options) {
   const tagSha = readTagSha(options.tag);
   const runEntry = await waitForWorkflowRun(options, tagSha);
   await waitForWorkflowSuccess(options, runEntry);
-  verifyReleaseAssets(options);
+  await verifyReleaseAssets(options);
 
   const ghPagesManifest = await readGhPagesManifest(options);
   assertManifest(ghPagesManifest, options, "gh-pages manifest");

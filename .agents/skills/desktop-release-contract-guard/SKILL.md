@@ -85,6 +85,10 @@ description: Use when building, verifying, or releasing NextClaw desktop install
    - workflow is fully green
    - public update-channel content reflects the new version
    - official website/download links, when changed, are deployed and verified against the completed release
+9. When the desktop release is executed from an isolated worktree, the isolation protects active WIP but does not make release side effects disposable.
+   - After closure, merge or otherwise safely return release metadata, tags, logs, notes, version files, and workflow fixes back to the local target branch, normally `master`.
+   - If the local target branch has WIP, only fast-forward or apply non-overlapping release files; do not stash, reset, or overwrite user work.
+   - The final report must state whether the local target branch contains the released commit and any release metadata, and whether active WIP was preserved.
 
 ## Beta Preview Automation
 - Preferred one-command entry:
@@ -111,6 +115,8 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - Use `--skip-remote-preflight` only for recovery after the exact `desktop-release-preflight` signing-secret gate already passed for the same target SHA. Do not skip it during normal beta or stable publishing.
 - Windows installer smoke must absorb known retryable NSIS runner crashes inside the smoke script. In particular, a silent installer exit code `0xC0000005` should be retried after cleanup before the release is failed; do not rely on manual workflow reruns for this class of infrastructure/installer transient.
 - If closure fails after workflow success on `git fetch origin gh-pages` with `cannot lock ref` / `is at ... but expected`, treat it as a local ref race and rerun the closure gate for the existing tag/run instead of creating another release. The closure scripts should retry this automatically.
+- If Linux deb smoke fails with Docker exit code `125` while pulling `ubuntu:24.04` or reaching Docker Hub, classify it as CI registry/network transient unless later logs prove package install failure. Rerun the existing workflow/release identity first; do not create a new beta tag for a Docker pull timeout.
+- If the local closure command fails while querying GitHub with transient TLS, timeout, DNS, or 5xx errors, rerun the closure gate for the existing run/tag after confirming the workflow status. Do not treat a local API query failure as release failure.
 
 ## Stable Desktop Release Automation
 - Preferred one-command entry:
