@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,5 +12,6 @@ if (!existsSync(src)) {
 }
 
 mkdirSync(join(root, "dist"), { recursive: true });
+rmSync(dest, { recursive: true, force: true });
 cpSync(src, dest, { recursive: true, force: true });
 console.log("[copy-skills] copied", src, "->", dest);
