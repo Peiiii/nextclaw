@@ -168,6 +168,7 @@ const enBlogSidebar = [
     text: 'Blog',
     items: [
       { text: 'Overview', link: '/en/blog/' },
+      { text: '2026-06-03: Real-Time Agent Progress: Current State and Next Steps', link: '/en/blog/2026-06-03-real-time-agent-progress' },
       { text: '2026-04-03: Why Project-Aware Sessions Matter More Than One More AI Feature', link: '/en/blog/2026-04-03-why-project-aware-sessions-matter' }
     ]
   }
@@ -270,6 +271,7 @@ const zhBlogSidebar = [
     text: '博客',
     items: [
       { text: '总览', link: '/zh/blog/' },
+      { text: '2026-06-03：实时 Agent 进展：现状与下一步', link: '/zh/blog/2026-06-03-real-time-agent-progress' },
       { text: '2026-04-03：为什么项目感知会话比再多一个 AI 功能更重要', link: '/zh/blog/2026-04-03-why-project-aware-sessions-matter' }
     ]
   }
@@ -317,6 +319,7 @@ export default defineConfig({
           { text: 'Reference', link: '/en/guide/commands' },
           { text: 'Project', link: '/en/project/' },
           { text: 'Release Notes', link: '/en/project/release-notes' },
+          { text: 'Blog', link: '/en/blog/' },
         ],
         sidebar: {
           '/en/': enDocsSidebar
@@ -343,6 +346,7 @@ export default defineConfig({
           { text: '参考', link: '/zh/guide/commands' },
           { text: '项目', link: '/zh/project/' },
           { text: '更新笔记', link: '/zh/project/release-notes' },
+          { text: '博客', link: '/zh/blog/' },
         ],
         sidebar: {
           '/zh/': zhDocsSidebar

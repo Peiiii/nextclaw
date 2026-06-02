@@ -14,6 +14,7 @@ description: 用更长的篇幅解释产品判断、设计取舍与 NextClaw 的
 
 ## 最新文章
 
+- [2026-06-03 · 实时 Agent 进展：现状与下一步](./2026-06-03-real-time-agent-progress)
 - [2026-04-03 · 为什么项目感知会话比再多一个 AI 功能更重要](./2026-04-03-why-project-aware-sessions-matter)
 
 ## 定位说明

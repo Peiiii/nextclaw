@@ -18,6 +18,9 @@ hero:
     - theme: alt
       text: Reference
       link: /en/guide/commands
+    - theme: alt
+      text: Blog
+      link: /en/blog/
 
 features:
   - title: Get Started
@@ -30,4 +33,6 @@ features:
     details: Use the manuals when you need the formal explanation of configuration, runtime, sessions, secrets, and resources.
   - title: Reference
     details: Use this layer for troubleshooting, command lookup, and advanced configuration. It exists, but it is not the onboarding path.
+  - title: Blog
+    details: Short essays that explain NextClaw's product judgment, design trade-offs, and key advantages beyond release notes.
 ---

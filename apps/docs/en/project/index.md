@@ -24,6 +24,7 @@ If you are here to get value quickly, start with:
 - [Vision](/en/project/vision): what NextClaw is trying to become over the long term.
 - [Roadmap](/en/project/roadmap): current priorities and next-stage directions.
 - [Release Notes](/en/project/release-notes): recent public updates written from user value first.
+- [Blog](/en/blog/): short essays about product advantages, design trade-offs, and the thinking behind NextClaw.
 - [Community](/en/project/community): GitHub, notes, blog, and follow-up entry points.
 
 ## When to read this section

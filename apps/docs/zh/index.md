@@ -18,6 +18,9 @@ hero:
     - theme: alt
       text: 参考
       link: /zh/guide/commands
+    - theme: alt
+      text: 博客
+      link: /zh/blog/
 
 features:
   - title: 开始
@@ -30,4 +33,6 @@ features:
     details: 当你已经在用，需要理解配置、运行方式、会话、密钥和资源边界时，从这里查正式说明。
   - title: 参考
     details: 出问题、查命令、看高级配置时使用。参考层存在，但不抢新用户主路径。
+  - title: 博客
+    details: 用短文解释 NextClaw 的产品判断、设计取舍和关键优势，而不只是列出做了什么。
 ---
