@@ -4,7 +4,7 @@ import {
   useAgents,
   useUpdateAgent,
 } from "@/shared/hooks/use-agents";
-import { useConfig, useConfigMeta } from "@/shared/hooks/use-config";
+import { useConfig, useProviderTemplates, useProviders } from "@/shared/hooks/use-config";
 import type { AgentProfileView } from "@/shared/lib/api";
 import {
   AgentEditDialog,
@@ -237,7 +237,8 @@ export function AgentsPage() {
   const presenter = usePresenter();
   const agentsQuery = useAgents();
   const configQuery = useConfig();
-  const configMetaQuery = useConfigMeta();
+  const providersQuery = useProviders();
+  const templatesQuery = useProviderTemplates();
   const sessionTypesQuery = useNcpChatSessionTypes();
   const updateAgent = useUpdateAgent();
   const deleteAgent = useDeleteAgent();
@@ -261,10 +262,11 @@ export function AgentsPage() {
     () =>
       buildProviderModelCatalog({
         config: configQuery.data,
-        meta: configMetaQuery.data,
+        providersView: providersQuery.data,
+        templatesView: templatesQuery.data,
         onlyConfigured: true,
       }),
-    [configMetaQuery.data, configQuery.data],
+    [configQuery.data, providersQuery.data, templatesQuery.data],
   );
   const runtimeOptions = useMemo(
     () => buildSessionTypeOptions(sessionTypesQuery.data?.options ?? []),

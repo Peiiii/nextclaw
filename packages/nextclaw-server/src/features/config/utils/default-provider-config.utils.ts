@@ -3,10 +3,12 @@ import { normalizeProviderModelConfig, type ProviderConfig, type ProviderSpec } 
 export function createDefaultProviderConfig(
   defaultWireApi: "auto" | "chat" | "responses" = "auto",
   defaultModels: string[] = [],
-  modelConfig: ProviderConfig["modelConfig"] = {}
+  modelConfig: ProviderConfig["modelConfig"] = {},
+  providerType?: string | null
 ): ProviderConfig {
   return {
     enabled: true,
+    providerType,
     displayName: "",
     apiKey: "",
     apiBase: null,
@@ -21,6 +23,7 @@ export function createDefaultProviderConfigFromSpec(spec: ProviderSpec | undefin
   return createDefaultProviderConfig(
     spec?.defaultWireApi ?? "auto",
     spec?.defaultModels ?? [],
-    normalizeProviderModelConfig(spec?.modelConfig ?? {})
+    normalizeProviderModelConfig(spec?.modelConfig ?? {}),
+    spec?.name
   );
 }

@@ -9,18 +9,6 @@ import type {
   CronEnableRequest,
   CronListView,
   CronRunRequest,
-  ProviderAuthImportResult,
-  ProviderAuthPollRequest,
-  ProviderAuthPollResult,
-  ProviderAuthStartRequest,
-  ProviderAuthStartResult,
-  ProviderConfigView,
-  ProviderConfigUpdate,
-  ProviderConnectionTestRequest,
-  ProviderConnectionTestResult,
-  ProviderCreateRequest,
-  ProviderCreateResult,
-  ProviderDeleteResult,
   RuntimeConfigUpdate,
   SearchConfigUpdate,
   SearchConfigView,
@@ -50,55 +38,6 @@ export class ConfigService {
 
   readonly updateSearch = async (data: SearchConfigUpdate): Promise<SearchConfigView> => {
     return await this.requestService.put<SearchConfigView>("/api/config/search", data);
-  };
-
-  readonly updateProvider = async (provider: string, data: ProviderConfigUpdate): Promise<ProviderConfigView> => {
-    return await this.requestService.put<ProviderConfigView>(`/api/config/providers/${provider}`, data);
-  };
-
-  readonly createProvider = async (data: ProviderCreateRequest = {}): Promise<ProviderCreateResult> => {
-    return await this.requestService.post<ProviderCreateResult>("/api/config/providers", data);
-  };
-
-  readonly deleteProvider = async (provider: string): Promise<ProviderDeleteResult> => {
-    return await this.requestService.delete<ProviderDeleteResult>(`/api/config/providers/${provider}`);
-  };
-
-  readonly testProviderConnection = async (
-    provider: string,
-    data: ProviderConnectionTestRequest
-  ): Promise<ProviderConnectionTestResult> => {
-    return await this.requestService.post<ProviderConnectionTestResult>(
-      `/api/config/providers/${provider}/test`,
-      data
-    );
-  };
-
-  readonly startProviderAuth = async (
-    provider: string,
-    data: ProviderAuthStartRequest = {}
-  ): Promise<ProviderAuthStartResult> => {
-    return await this.requestService.post<ProviderAuthStartResult>(
-      `/api/config/providers/${provider}/auth/start`,
-      data
-    );
-  };
-
-  readonly pollProviderAuth = async (
-    provider: string,
-    data: ProviderAuthPollRequest
-  ): Promise<ProviderAuthPollResult> => {
-    return await this.requestService.post<ProviderAuthPollResult>(
-      `/api/config/providers/${provider}/auth/poll`,
-      data
-    );
-  };
-
-  readonly importProviderAuthFromCli = async (provider: string): Promise<ProviderAuthImportResult> => {
-    return await this.requestService.post<ProviderAuthImportResult>(
-      `/api/config/providers/${provider}/auth/import-cli`,
-      {}
-    );
   };
 
   readonly updateChannel = async (

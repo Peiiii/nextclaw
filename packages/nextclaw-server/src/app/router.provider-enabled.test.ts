@@ -57,8 +57,13 @@ describe("provider enabled state route", () => {
       configPath,
       appEventBus: new EventBus(),
     });
+    await app.request("http://localhost/api/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ providerType: "openai" })
+    });
 
-    const updateResponse = await app.request("http://localhost/api/config/providers/openai", {
+    const updateResponse = await app.request("http://localhost/api/providers/openai", {
       method: "PUT",
       headers: {
         "content-type": "application/json"

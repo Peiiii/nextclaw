@@ -20,7 +20,6 @@ import {
   normalizeProviderModelConfig
 } from "@nextclaw/core";
 import type { LlmProviderManager } from "@nextclaw/kernel";
-import { createDefaultProviderConfigFromSpec } from "@nextclaw-server/features/config/utils/default-provider-config.utils.js";
 import {
   buildExtensionChannelUiHints,
   buildProjectedChannelMeta,
@@ -37,10 +36,14 @@ import type {
   RuntimeConfigUpdate,
   ConfigSchemaResponse,
   ConfigView,
+  ProviderCreateRequest,
   ProviderConfigUpdate,
   ProviderConnectionTestRequest,
   ProviderConnectionTestResult,
   ProviderConfigView,
+  ProviderInstanceView,
+  ProvidersView,
+  ProviderTemplatesView,
   SecretsConfigUpdate,
   SecretsView
 } from "@nextclaw-server/shared/types/server-api.types.js";
@@ -60,7 +63,6 @@ const PREFERRED_PROVIDER_ORDER_INDEX: Map<string, number> = new Map(
 );
 const BUILTIN_PROVIDERS = listServerBuiltinProviders();
 const BUILTIN_PROVIDER_NAMES = new Set(BUILTIN_PROVIDERS.map((spec) => spec.name));
-const CUSTOM_PROVIDER_WIRE_API_OPTIONS: Array<"auto" | "chat" | "responses"> = ["auto", "chat", "responses"];
 const CUSTOM_PROVIDER_PREFIX = "custom-";
 const PROVIDER_TEST_MAX_TOKENS = 16;
 
@@ -86,20 +88,15 @@ function resolveCustomProviderFallbackDisplayName(name: string): string {
   return name;
 }
 
-function resolveProviderDisplayName(
-  providerName: string,
+function resolveProviderInstanceDisplayName(
+  providerId: string,
   provider: ProviderConfig | undefined,
-  spec?: ProviderSpec
+  spec?: ProviderSpec | null
 ): string | undefined {
   const configDisplayName = normalizeOptionalDisplayName(provider?.displayName);
-  if (isCustomProviderName(providerName)) {
-    return configDisplayName ?? resolveCustomProviderFallbackDisplayName(providerName);
-  }
-  return spec?.displayName ?? configDisplayName ?? spec?.name;
-}
-
-function listCustomProviderNames(config: Config): string[] {
-  return Object.keys(config.providers).filter((name) => isCustomProviderName(name));
+  return configDisplayName ?? spec?.displayName ?? (providerId.startsWith(CUSTOM_PROVIDER_PREFIX)
+    ? resolveCustomProviderFallbackDisplayName(providerId)
+    : providerId);
 }
 
 function findNextCustomProviderName(config: Config): string {
@@ -111,22 +108,53 @@ function findNextCustomProviderName(config: Config): string {
   return `${CUSTOM_PROVIDER_PREFIX}${index}`;
 }
 
-function ensureProviderConfig(config: Config, providerName: string): ProviderConfig | null {
+function normalizeProviderId(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.includes("/")) {
+    return null;
+  }
+  return trimmed;
+}
+
+function resolveProviderType(providerId: string, provider?: ProviderConfig | null): string | null {
+  const configuredType = normalizeProviderId(provider?.providerType);
+  if (configuredType && findServerBuiltinProviderByName(configuredType)) {
+    return configuredType;
+  }
+  if (findServerBuiltinProviderByName(providerId)) {
+    return providerId;
+  }
+  return null;
+}
+
+function findNextProviderId(config: Config, baseProviderId: string): string {
   const providers = config.providers as Record<string, ProviderConfig>;
-  const existing = providers[providerName];
-  if (existing) {
-    return existing;
+  let providerId = baseProviderId;
+  let index = 2;
+  while (providers[providerId]) {
+    providerId = `${baseProviderId}-${index}`;
+    index += 1;
   }
-  if (isCustomProviderName(providerName)) {
-    return null;
+  return providerId;
+}
+
+function resolveProviderDisplayNameSuffix(providerId: string, baseProviderId: string): string {
+  if (providerId === baseProviderId) {
+    return "";
   }
-  const spec = findServerBuiltinProviderByName(providerName);
-  if (!spec) {
-    return null;
-  }
-  const created = createDefaultProviderConfigFromSpec(spec);
-  providers[providerName] = created;
-  return created;
+  const suffix = providerId.slice(baseProviderId.length + 1).trim();
+  return suffix ? ` ${suffix}` : "";
+}
+
+function buildProviderScopedModels(providerId: string, models: string[]): string[] {
+  return normalizeModelList(models).map((model) => {
+    const slashIndex = model.indexOf("/");
+    const modelSuffix = slashIndex >= 0 ? model.slice(slashIndex + 1).trim() : model;
+    return modelSuffix ? `${providerId}/${modelSuffix}` : "";
+  }).filter(Boolean);
 }
 
 function clearSecretRefsByPrefix(refs: Config["secrets"]["refs"], pathPrefix: string): Config["secrets"]["refs"] {
@@ -395,24 +423,29 @@ function normalizeModelList(input: string[] | null | undefined): string[] {
 function toProviderView(
   config: Config,
   provider: ProviderConfig,
-  providerName: string,
+  providerId: string,
   uiHints: ConfigUiHints,
   spec?: ProviderSpec
-): ProviderConfigView {
-  const apiKeyPath = `providers.${providerName}.apiKey`;
+): ProviderInstanceView {
+  const providerType = resolveProviderType(providerId, provider);
+  const apiKeyPath = `providers.${providerId}.apiKey`;
   const apiKeyRefSet = hasSecretRef(config, apiKeyPath);
   const masked = maskApiKey(provider.apiKey);
   const extraHeaders =
     provider.extraHeaders && Object.keys(provider.extraHeaders).length > 0
       ? (sanitizePublicConfigValue(
           provider.extraHeaders,
-          `providers.${providerName}.extraHeaders`,
+          `providers.${providerId}.extraHeaders`,
           uiHints
         ) as Record<string, string>)
       : null;
-  const view: ProviderConfigView = {
+  const view: ProviderInstanceView = {
+    providerId,
+    providerType,
+    isBuiltInType: providerType !== null,
+    isCustom: providerType === null,
     enabled: provider.enabled !== false,
-    displayName: resolveProviderDisplayName(providerName, provider, spec),
+    displayName: resolveProviderInstanceDisplayName(providerId, provider, spec),
     apiKeySet: masked.apiKeySet || apiKeyRefSet,
     apiKeyMasked: masked.apiKeyMasked ?? (apiKeyRefSet ? "****" : undefined),
     apiBase: provider.apiBase ?? null,
@@ -420,7 +453,7 @@ function toProviderView(
     models: normalizeModelList(provider.models ?? []),
     modelConfig: normalizeProviderModelConfig(provider.modelConfig ?? {})
   };
-  const supportsWireApi = Boolean(spec?.supportsWireApi) || isCustomProviderName(providerName);
+  const supportsWireApi = Boolean(spec?.supportsWireApi) || providerType === null;
   if (supportsWireApi) {
     view.wireApi = provider.wireApi ?? spec?.defaultWireApi ?? "auto";
   }
@@ -431,9 +464,10 @@ export function buildConfigView(config: Config, options?: ExtensionConfigProject
   const uiHints = buildUiHints(config, options);
   const projectedChannels = getProjectedChannelMap(config, options);
   const providers: Record<string, ProviderConfigView> = {};
-  for (const [name, provider] of Object.entries(config.providers)) {
-    const spec = findServerBuiltinProviderByName(name);
-    providers[name] = toProviderView(config, provider as ProviderConfig, name, uiHints, spec);
+  for (const [providerId, provider] of Object.entries(config.providers)) {
+    const providerConfig = provider as ProviderConfig;
+    const spec = findServerBuiltinProviderByName(resolveProviderType(providerId, providerConfig) ?? "");
+    providers[providerId] = toProviderView(config, providerConfig, providerId, uiHints, spec);
   }
   return {
     companion: sanitizePublicConfigValue(config.companion, "companion", uiHints),
@@ -545,13 +579,17 @@ function clearSecretRef(refs: Config["secrets"]["refs"], path: string): Config["
 }
 
 export function buildConfigMeta(config: Config, options?: ExtensionConfigProjectionOptions): ConfigMetaView {
-  const configProviders = config.providers as Record<string, ProviderConfig>;
-  const builtinProviders = BUILTIN_PROVIDERS.map((spec) => {
-    const providerConfig = configProviders[spec.name];
+  const channels = buildProjectedChannelMeta(config, options);
+  return { search: SEARCH_PROVIDER_META, channels };
+}
+
+export function buildProviderTemplatesView(): ProviderTemplatesView {
+  const providerTemplates = BUILTIN_PROVIDERS.map((spec) => {
     return {
-      name: spec.name,
-      displayName: resolveProviderDisplayName(spec.name, providerConfig, spec),
-      isCustom: false,
+      id: spec.name,
+      providerType: spec.name,
+      displayName: spec.displayName ?? spec.name,
+      apiProtocol: spec.apiProtocol,
       modelPrefix: spec.modelPrefix,
       keywords: spec.keywords,
       envKey: spec.envKey,
@@ -581,8 +619,8 @@ export function buildConfigMeta(config: Config, options?: ExtensionConfigProject
       defaultWireApi: spec.defaultWireApi
     };
   }).sort((left, right) => {
-    const leftRank = PREFERRED_PROVIDER_ORDER_INDEX.get(left.name);
-    const rightRank = PREFERRED_PROVIDER_ORDER_INDEX.get(right.name);
+    const leftRank = PREFERRED_PROVIDER_ORDER_INDEX.get(left.id);
+    const rightRank = PREFERRED_PROVIDER_ORDER_INDEX.get(right.id);
     if (leftRank !== undefined && rightRank !== undefined) {
       return leftRank - rightRank;
     }
@@ -592,37 +630,21 @@ export function buildConfigMeta(config: Config, options?: ExtensionConfigProject
     if (rightRank !== undefined) {
       return 1;
     }
-    return left.name.localeCompare(right.name);
+    return left.id.localeCompare(right.id);
   });
 
-  const customProviders = listCustomProviderNames(config)
-    .sort((left, right) => left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" }))
-    .map((name) => {
-      const providerConfig = configProviders[name];
-      const displayName = resolveProviderDisplayName(name, providerConfig);
-      return {
-        name,
-        displayName,
-        isCustom: true,
-        modelPrefix: name,
-        keywords: normalizeModelList([name, displayName ?? ""]),
-        envKey: "OPENAI_API_KEY",
-        isGateway: false,
-        isLocal: false,
-        defaultApiBase: undefined,
-        logo: undefined,
-        apiBaseHelp: undefined,
-        auth: undefined,
-        defaultModels: [],
-        modelConfig: {},
-        supportsWireApi: true,
-        wireApiOptions: CUSTOM_PROVIDER_WIRE_API_OPTIONS,
-        defaultWireApi: "auto" as const
-      };
-    });
-  const providers = [...customProviders, ...builtinProviders];
-  const channels = buildProjectedChannelMeta(config, options);
-  return { providers, search: SEARCH_PROVIDER_META, channels };
+  return { providerTemplates };
+}
+
+export function buildProvidersView(config: Config): ProvidersView {
+  const uiHints = buildUiHints(config);
+  const providers: Record<string, ProviderInstanceView> = {};
+  for (const [providerId, provider] of Object.entries(config.providers)) {
+    const providerConfig = provider as ProviderConfig;
+    const spec = findServerBuiltinProviderByName(resolveProviderType(providerId, providerConfig) ?? "");
+    providers[providerId] = toProviderView(config, providerConfig, providerId, uiHints, spec);
+  }
+  return { providers };
 }
 
 export function buildConfigSchemaView(_config: Config, options?: ExtensionConfigProjectionOptions): ConfigSchemaResponse {
@@ -716,17 +738,24 @@ export function updateModel(configPath: string, patch: { model?: string; workspa
 
 export function updateProvider(
   configPath: string,
-  providerName: string,
+  providerId: string,
   patch: ProviderConfigUpdate
 ): ProviderConfigView | null {
   const config = loadConfigOrDefault(configPath);
-  const provider = ensureProviderConfig(config, providerName);
+  const providers = config.providers as Record<string, ProviderConfig>;
+  const provider = providers[providerId];
   if (!provider) {
     return null;
   }
-  const spec = findServerBuiltinProviderByName(providerName);
-  const isCustom = isCustomProviderName(providerName);
-  if (Object.prototype.hasOwnProperty.call(patch, "displayName") && isCustom) {
+  const currentProviderType = resolveProviderType(providerId, provider);
+  const requestedProviderType = Object.prototype.hasOwnProperty.call(patch, "providerType")
+    ? normalizeProviderId(patch.providerType)
+    : currentProviderType;
+  const spec = findServerBuiltinProviderByName(requestedProviderType ?? "");
+  if (Object.prototype.hasOwnProperty.call(patch, "providerType")) {
+    provider.providerType = spec?.name ?? null;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "displayName")) {
     provider.displayName = normalizeOptionalDisplayName(patch.displayName) ?? "";
   }
   if (Object.prototype.hasOwnProperty.call(patch, "enabled")) {
@@ -734,7 +763,7 @@ export function updateProvider(
   }
   if (Object.prototype.hasOwnProperty.call(patch, "apiKey")) {
     provider.apiKey = patch.apiKey ?? "";
-    config.secrets.refs = clearSecretRef(config.secrets.refs, `providers.${providerName}.apiKey`);
+    config.secrets.refs = clearSecretRef(config.secrets.refs, `providers.${providerId}.apiKey`);
   }
   if (Object.prototype.hasOwnProperty.call(patch, "apiBase")) {
     provider.apiBase = patch.apiBase ?? null;
@@ -742,7 +771,7 @@ export function updateProvider(
   if (Object.prototype.hasOwnProperty.call(patch, "extraHeaders")) {
     provider.extraHeaders = patch.extraHeaders ?? null;
   }
-  if (Object.prototype.hasOwnProperty.call(patch, "wireApi") && (spec?.supportsWireApi || isCustom)) {
+  if (Object.prototype.hasOwnProperty.call(patch, "wireApi") && (spec?.supportsWireApi || !spec)) {
     provider.wireApi = patch.wireApi ?? spec?.defaultWireApi ?? "auto";
   }
   if (Object.prototype.hasOwnProperty.call(patch, "models")) {
@@ -754,49 +783,61 @@ export function updateProvider(
   const next = ConfigSchema.parse(config);
   saveConfig(next, configPath);
   const uiHints = buildUiHints(next);
-  const updated = (next.providers as Record<string, ProviderConfig>)[providerName];
-  return toProviderView(next, updated, providerName, uiHints, spec ?? undefined);
+  const updated = (next.providers as Record<string, ProviderConfig>)[providerId];
+  return toProviderView(next, updated, providerId, uiHints, spec ?? undefined);
 }
 
-export function createCustomProvider(
+export function createProvider(
   configPath: string,
-  patch: ProviderConfigUpdate = {}
-): { name: string; provider: ProviderConfigView } {
+  patch: ProviderCreateRequest = {}
+): { providerId: string; provider: ProviderConfigView } | null {
   const config = loadConfigOrDefault(configPath);
-  const providerName = findNextCustomProviderName(config);
   const providers = config.providers as Record<string, ProviderConfig>;
-  const generatedDisplayName = resolveCustomProviderFallbackDisplayName(providerName);
-  providers[providerName] = {
+  const requestedProviderType = normalizeProviderId(patch.providerType);
+  const spec = requestedProviderType ? findServerBuiltinProviderByName(requestedProviderType) : undefined;
+  const fallbackProviderId = spec ? spec.name : findNextCustomProviderName(config);
+  const requestedProviderId = normalizeProviderId(patch.providerId);
+  if (requestedProviderId && providers[requestedProviderId]) {
+    return null;
+  }
+  const providerId = requestedProviderId
+    ? requestedProviderId
+    : findNextProviderId(config, fallbackProviderId);
+  const generatedDisplayName = spec
+    ? `${spec.displayName}${resolveProviderDisplayNameSuffix(providerId, spec.name)}`
+    : resolveCustomProviderFallbackDisplayName(providerId);
+  const defaultModels = spec ? buildProviderScopedModels(providerId, spec.defaultModels ?? []) : [];
+  providers[providerId] = {
     enabled: patch.enabled !== false,
+    providerType: spec?.name ?? null,
     displayName: normalizeOptionalDisplayName(patch.displayName) ?? generatedDisplayName,
     apiKey: normalizeOptionalString(patch.apiKey) ?? "",
-    apiBase: normalizeOptionalString(patch.apiBase),
+    apiBase: normalizeOptionalString(patch.apiBase) ?? spec?.defaultApiBase ?? null,
     extraHeaders: normalizeHeaders(patch.extraHeaders ?? null),
-    wireApi: patch.wireApi ?? "auto",
-    models: normalizeModelList(patch.models ?? []),
-    modelConfig: normalizeProviderModelConfig(patch.modelConfig ?? {})
+    wireApi: patch.wireApi ?? spec?.defaultWireApi ?? "auto",
+    models: Object.prototype.hasOwnProperty.call(patch, "models")
+      ? normalizeModelList(patch.models ?? [])
+      : defaultModels,
+    modelConfig: normalizeProviderModelConfig(patch.modelConfig ?? spec?.modelConfig ?? {})
   };
   const next = ConfigSchema.parse(config);
   saveConfig(next, configPath);
   const uiHints = buildUiHints(next);
-  const created = (next.providers as Record<string, ProviderConfig>)[providerName];
+  const created = (next.providers as Record<string, ProviderConfig>)[providerId];
   return {
-    name: providerName,
-    provider: toProviderView(next, created, providerName, uiHints)
+    providerId,
+    provider: toProviderView(next, created, providerId, uiHints, spec)
   };
 }
 
-export function deleteCustomProvider(configPath: string, providerName: string): boolean | null {
-  if (!isCustomProviderName(providerName)) {
-    return null;
-  }
+export function deleteProvider(configPath: string, providerId: string): boolean | null {
   const config = loadConfigOrDefault(configPath);
   const providers = config.providers as Record<string, ProviderConfig>;
-  if (!providers[providerName]) {
+  if (!providers[providerId]) {
     return null;
   }
-  delete providers[providerName];
-  config.secrets.refs = clearSecretRefsByPrefix(config.secrets.refs, `providers.${providerName}`);
+  delete providers[providerId];
+  config.secrets.refs = clearSecretRefsByPrefix(config.secrets.refs, `providers.${providerId}`);
   const next = ConfigSchema.parse(config);
   saveConfig(next, configPath);
   return true;
@@ -879,25 +920,31 @@ function buildScopedProviderModel(
   return `${prefix}/${trimmed}`;
 }
 
+function stripProviderIdPrefix(providerId: string, model: string): string {
+  const prefix = `${providerId}/`;
+  if (!model.startsWith(prefix)) {
+    return model;
+  }
+  const stripped = model.slice(prefix.length).trim();
+  return stripped || model;
+}
+
 function resolveTestModel(
   config: Config,
-  providerName: string,
+  providerId: string,
   requestedModel: string | null,
   provider: ProviderConfig,
   spec?: ProviderSpec
 ): string | null {
   if (requestedModel) {
-    if (isCustomProviderName(providerName)) {
-      const prefix = `${providerName}/`;
-      if (requestedModel.startsWith(prefix)) {
-        return requestedModel.slice(prefix.length) || null;
-      }
-    }
-    return requestedModel;
+    return spec ? requestedModel.replace(`${providerId}/`, `${spec.name}/`) : stripProviderIdPrefix(providerId, requestedModel);
   }
 
   const providerModels = normalizeModelList(provider.models ?? [])
-    .map((modelId) => buildScopedProviderModel(providerName, modelId, spec))
+    .map((modelId) => {
+      const providerModel = stripProviderIdPrefix(providerId, modelId);
+      return spec ? buildScopedProviderModel(spec.name, providerModel, spec) : providerModel;
+    })
     .filter((modelId) => modelId.length > 0);
   if (providerModels.length > 0) {
     return providerModels[0];
@@ -906,12 +953,12 @@ function resolveTestModel(
   const defaultModel = normalizeOptionalString(config.agents.defaults.model);
   if (defaultModel) {
     const routedProvider = getProviderName(config, defaultModel);
-    if (!routedProvider || routedProvider === providerName) {
-      return defaultModel;
+    if (!routedProvider || routedProvider === providerId) {
+      return spec ? defaultModel.replace(`${providerId}/`, `${spec.name}/`) : stripProviderIdPrefix(providerId, defaultModel);
     }
   }
 
-  if (isCustomProviderName(providerName)) {
+  if (!spec) {
     return null;
   }
   const specDefaultModel = normalizeModelList(spec?.defaultModels ?? [])[0] ?? null;
@@ -925,17 +972,18 @@ function stringifyError(error: unknown): string {
 
 export async function testProviderConnection(
   configPath: string,
-  providerName: string,
+  providerId: string,
   patch: ProviderConnectionTestRequest,
   providerManager?: LlmProviderManager
 ): Promise<ProviderConnectionTestResult | null> {
   const config = loadConfigOrDefault(configPath);
-  const provider = ensureProviderConfig(config, providerName);
+  const provider = (config.providers as Record<string, ProviderConfig>)[providerId];
   if (!provider) {
     return null;
   }
 
-  const spec = findServerBuiltinProviderByName(providerName);
+  const providerType = resolveProviderType(providerId, provider);
+  const spec = findServerBuiltinProviderByName(providerType ?? "");
   const hasApiKeyPatch = Object.prototype.hasOwnProperty.call(patch, "apiKey");
   const providedApiKey = normalizeOptionalString(patch.apiKey);
   const currentApiKey = normalizeOptionalString(provider.apiKey);
@@ -953,26 +1001,25 @@ export async function testProviderConnection(
     ? normalizeHeaders(patch.extraHeaders ?? null)
     : normalizeHeaders(provider.extraHeaders ?? null);
 
-  const isCustom = isCustomProviderName(providerName);
-  const wireApi = (spec?.supportsWireApi || isCustom)
+  const wireApi = (spec?.supportsWireApi || !spec)
     ? patch.wireApi ?? provider.wireApi ?? spec?.defaultWireApi ?? "auto"
     : null;
 
   if (!apiKey && !spec?.isLocal) {
     return {
       success: false,
-      provider: providerName,
+      provider: providerId,
       latencyMs: 0,
       message: "API key is required before testing the connection."
     };
   }
 
   const requestedModel = normalizeOptionalString(patch.model);
-  const model = resolveTestModel(config, providerName, requestedModel, provider, spec ?? undefined);
+  const model = resolveTestModel(config, providerId, requestedModel, provider, spec ?? undefined);
   if (!model) {
     return {
       success: false,
-      provider: providerName,
+      provider: providerId,
       latencyMs: 0,
       message: "No test model found. Configure provider models or set a default model for this provider, then try again."
     };
@@ -982,7 +1029,7 @@ export async function testProviderConnection(
   if (!providerManager) {
     return {
       success: false,
-      provider: providerName,
+      provider: providerId,
       model,
       latencyMs: Date.now() - startedAtMs,
       message: "Provider manager is unavailable."
@@ -990,7 +1037,7 @@ export async function testProviderConnection(
   }
   try {
     await providerManager.testConnection({
-      providerName,
+      providerName: providerType,
       apiKey,
       apiBase,
       defaultModel: model,
@@ -1001,7 +1048,7 @@ export async function testProviderConnection(
     });
     return {
       success: true,
-      provider: providerName,
+      provider: providerId,
       model,
       latencyMs: Date.now() - startedAtMs,
       message: "Connection test passed."
@@ -1009,7 +1056,7 @@ export async function testProviderConnection(
   } catch (error) {
     return {
       success: false,
-      provider: providerName,
+      provider: providerId,
       model,
       latencyMs: Date.now() - startedAtMs,
       message: stringifyError(error) || "Connection test failed."

@@ -1,10 +1,12 @@
 import type { ProviderCatalogPlugin } from "@nextclaw/core";
-import { dashscopeCodingPlanProviderSpec } from "./dashscope-coding-plan.js"; import { kimiCodingProviderSpec } from "./kimi-coding.provider.js";
-export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runtime-providers",
+import { dashscopeCodingPlanProviderSpec } from "./dashscope-coding-plan.provider.js";
+import { kimiCodingProviderSpec } from "./kimi-coding.provider.js";
+export const builtinProviderPlugin: ProviderCatalogPlugin = {
+  id: "builtin-runtime-providers",
   providers: [
     {
       name: "nextclaw",
-      keywords: ["nextclaw", "dashscope/", "qwen3.5", "qwen"],
+      keywords: ["nextclaw", "dashscope/", "qwen3.7", "qwen3.5", "qwen"],
       envKey: "NEXTCLAW_API_KEY",
       displayName: "NextClaw Built-in",
       modelPrefix: "nextclaw",
@@ -17,13 +19,17 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       detectByBaseKeyword: "nextclaw.io",
       defaultApiBase: "https://ai-gateway-api.nextclaw.io/v1",
       defaultModels: [
-        "dashscope/qwen3.5-plus",
-        "dashscope/qwen3.5-flash",
-        "dashscope/qwen3.5-122b-a10b",
-        "dashscope/qwen3.5-35b-a3b"
+        "dashscope/qwen3.7-plus",
+        "dashscope/qwen3.7-max",
+        "dashscope/qwen3.5-27b",
       ],
+      modelConfig: {
+        "dashscope/qwen3.7-plus": { vision: true },
+        "dashscope/qwen3.7-max": { vision: true },
+        "dashscope/qwen3.5-27b": { vision: true },
+      },
       stripModelPrefix: false,
-      modelOverrides: []
+      modelOverrides: [],
     },
     {
       name: "openrouter",
@@ -40,17 +46,36 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       detectByBaseKeyword: "openrouter",
       defaultApiBase: "https://openrouter.ai/api/v1",
       defaultModels: [
-        "openrouter/minimax/minimax-m2.5", "openrouter/xiaomi/mimo-v2-pro",
-        "openrouter/stepfun/step-3.5-flash:free", "openrouter/google/gemini-3-flash-preview",
+        "openrouter/minimax/minimax-m3",
+        "openrouter/xiaomi/mimo-v2.5-pro",
+        "openrouter/xiaomi/mimo-v2.5",
+        "openrouter/stepfun/step-3.5-flash:free",
+        "openrouter/google/gemini-3-flash-preview",
         "openrouter/deepseek/deepseek-v3.2",
         "openrouter/x-ai/grok-4.1-fast",
-        "openrouter/z-ai/glm-5",
+        "openrouter/z-ai/glm-5.1",
+        "openrouter/anthropic/claude-opus-4.8",
+        "openrouter/anthropic/claude-opus-4.7",
         "openrouter/anthropic/claude-opus-4.6",
-        "openrouter/openai/gpt-5.3-codex"
+        "openrouter/openai/gpt-5.5",
+        "openrouter/openai/gpt-5.4",
+        "openrouter/qwen/qwen3.7-plus",
       ],
+      modelConfig: {
+        "openrouter/minimax/minimax-m3": { vision: true },
+        "openrouter/xiaomi/mimo-v2.5-pro": { vision: true },
+        "openrouter/xiaomi/mimo-v2.5": { vision: true },
+        "openrouter/google/gemini-3-flash-preview": { vision: true },
+        "openrouter/anthropic/claude-opus-4.8": { vision: true },
+        "openrouter/anthropic/claude-opus-4.7": { vision: true },
+        "openrouter/anthropic/claude-opus-4.6": { vision: true },
+        "openrouter/openai/gpt-5.5": { vision: true },
+        "openrouter/openai/gpt-5.4": { vision: true },
+        "openrouter/qwen/qwen3.7-plus": { vision: true },
+      },
       stripModelPrefix: false,
       modelOverrides: [],
-      logo: "openrouter.svg"
+      logo: "openrouter.svg",
     },
     {
       name: "aihubmix",
@@ -66,11 +91,33 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       detectByKeyPrefix: "",
       detectByBaseKeyword: "aihubmix",
       defaultApiBase: "https://aihubmix.com/v1",
-      defaultModels: ["aihubmix/gpt-5.3-codex", "aihubmix/claude-opus-4.6", "aihubmix/gemini-3.1-pro-preview"],
-      modelConfig: { "aihubmix/gemini-3.1-pro-preview": { vision: true }, "aihubmix/gpt-5.4": { vision: true } },
+      defaultModels: [
+        "aihubmix/gpt-5.5",
+        "aihubmix/gpt-5.4",
+        "aihubmix/claude-opus-4.8",
+        "aihubmix/claude-opus-4.7",
+        "aihubmix/claude-opus-4.6",
+        "aihubmix/gemini-3.1-pro-preview",
+        "aihubmix/kimi-k2.6",
+        "aihubmix/kimi-k2.5",
+        "aihubmix/minimax-m3",
+        "aihubmix/qwen3.7-plus",
+      ],
+      modelConfig: {
+        "aihubmix/gpt-5.5": { vision: true },
+        "aihubmix/gpt-5.4": { vision: true },
+        "aihubmix/claude-opus-4.8": { vision: true },
+        "aihubmix/claude-opus-4.7": { vision: true },
+        "aihubmix/claude-opus-4.6": { vision: true },
+        "aihubmix/gemini-3.1-pro-preview": { vision: true },
+        "aihubmix/kimi-k2.6": { vision: true },
+        "aihubmix/kimi-k2.5": { vision: true },
+        "aihubmix/minimax-m3": { vision: true },
+        "aihubmix/qwen3.7-plus": { vision: true },
+      },
       stripModelPrefix: true,
       modelOverrides: [],
-      logo: "aihubmix.png"
+      logo: "aihubmix.png",
     },
     {
       name: "anthropic",
@@ -86,10 +133,21 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       detectByKeyPrefix: "",
       detectByBaseKeyword: "",
       defaultApiBase: "https://api.anthropic.com",
-      defaultModels: ["anthropic/claude-opus-4-6", "anthropic/claude-sonnet-4-6"],
+      defaultModels: [
+        "anthropic/claude-opus-4-8",
+        "anthropic/claude-opus-4-7",
+        "anthropic/claude-opus-4-6",
+        "anthropic/claude-sonnet-4-6",
+      ],
+      modelConfig: {
+        "anthropic/claude-opus-4-8": { vision: true },
+        "anthropic/claude-opus-4-7": { vision: true },
+        "anthropic/claude-opus-4-6": { vision: true },
+        "anthropic/claude-sonnet-4-6": { vision: true },
+      },
       stripModelPrefix: false,
       modelOverrides: [],
-      logo: "anthropic.svg"
+      logo: "anthropic.svg",
     },
     {
       name: "openai",
@@ -105,14 +163,17 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       detectByKeyPrefix: "",
       detectByBaseKeyword: "",
       defaultApiBase: "https://api.openai.com/v1",
-      defaultModels: ["openai/gpt-5.3-codex", "openai/gpt-5-mini", "openai/gpt-5-nano"],
-      modelConfig: { "openai/gpt-5.4": { vision: true } },
+      defaultModels: ["openai/gpt-5.5", "openai/gpt-5.4"],
+      modelConfig: {
+        "openai/gpt-5.5": { vision: true },
+        "openai/gpt-5.4": { vision: true },
+      },
       stripModelPrefix: false,
       modelOverrides: [],
       supportsWireApi: true,
       wireApiOptions: ["auto", "chat", "responses"],
       defaultWireApi: "auto",
-      logo: "openai.svg"
+      logo: "openai.svg",
     },
     {
       name: "deepseek",
@@ -128,10 +189,15 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       detectByKeyPrefix: "",
       detectByBaseKeyword: "",
       defaultApiBase: "https://api.deepseek.com",
-      defaultModels: ["deepseek/deepseek-chat", "deepseek/deepseek-reasoner", "deepseek/deepseek-v4-flash", "deepseek/deepseek-v4-pro"],
+      defaultModels: [
+        "deepseek/deepseek-chat",
+        "deepseek/deepseek-reasoner",
+        "deepseek/deepseek-v4-flash",
+        "deepseek/deepseek-v4-pro",
+      ],
       stripModelPrefix: false,
       modelOverrides: [],
-      logo: "deepseek.png"
+      logo: "deepseek.png",
     },
     {
       name: "gemini",
@@ -147,11 +213,17 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       detectByKeyPrefix: "",
       detectByBaseKeyword: "",
       defaultApiBase: "https://generativelanguage.googleapis.com/v1beta/openai",
-      defaultModels: ["gemini/gemini-3.1-pro-preview", "gemini/gemini-3-flash-preview"],
-      modelConfig: { "gemini/gemini-3.1-pro-preview": { vision: true }, "gemini/gemini-3-flash-preview": { vision: true } },
+      defaultModels: [
+        "gemini/gemini-3.1-pro-preview",
+        "gemini/gemini-3-flash-preview",
+      ],
+      modelConfig: {
+        "gemini/gemini-3.1-pro-preview": { vision: true },
+        "gemini/gemini-3-flash-preview": { vision: true },
+      },
       stripModelPrefix: false,
       modelOverrides: [],
-      logo: "gemini.svg"
+      logo: "gemini.svg",
     },
     {
       name: "zhipu",
@@ -167,10 +239,10 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       detectByKeyPrefix: "",
       detectByBaseKeyword: "",
       defaultApiBase: "https://open.bigmodel.cn/api/paas/v4",
-      defaultModels: ["zai/glm-5"],
+      defaultModels: ["zai/glm-5.1", "zai/glm-5"],
       stripModelPrefix: false,
       modelOverrides: [],
-      logo: "zhipu.svg"
+      logo: "zhipu.svg",
     },
     {
       name: "dashscope",
@@ -187,19 +259,22 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       detectByBaseKeyword: "",
       defaultApiBase: "https://dashscope.aliyuncs.com/compatible-mode/v1",
       defaultModels: [
-        "dashscope/qwen3.5-plus",
-        "dashscope/qwen3.5-flash",
-        "dashscope/qwen3.5-397b-a17b",
-        "dashscope/qwen3.5-122b-a10b",
-        "dashscope/qwen3.5-35b-a3b",
-        "dashscope/qwen3.5-27b"
+        "dashscope/qwen3.7-plus",
+        "dashscope/qwen3.7-max",
+        "dashscope/qwen3.5-27b",
       ],
+      modelConfig: {
+        "dashscope/qwen3.7-plus": { vision: true },
+        "dashscope/qwen3.7-max": { vision: true },
+        "dashscope/qwen3.5-27b": { vision: true },
+      },
       stripModelPrefix: false,
       modelOverrides: [],
       supportsResponsesApi: false,
-      logo: "dashscope.png"
+      logo: "dashscope.png",
     },
-    dashscopeCodingPlanProviderSpec, kimiCodingProviderSpec,
+    dashscopeCodingPlanProviderSpec,
+    kimiCodingProviderSpec,
     {
       name: "qwen-portal",
       keywords: ["qwen-portal", "qwen"],
@@ -232,19 +307,19 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
           path: "~/.qwen/oauth_creds.json",
           accessTokenField: "access_token",
           refreshTokenField: "refresh_token",
-          expiresAtField: "expiry_date"
+          expiresAtField: "expiry_date",
         },
         note: {
           zh: "通过浏览器登录 Qwen 后即可在 NextClaw 中使用该 Provider。",
-          en: "Log in to Qwen in your browser, then use this provider in NextClaw."
-        }
-      }
+          en: "Log in to Qwen in your browser, then use this provider in NextClaw.",
+        },
+      },
     },
     {
       name: "moonshot",
       keywords: ["moonshot", "kimi"],
       envKey: "MOONSHOT_API_KEY",
-      displayName: "Moonshot",
+      displayName: "Kimi",
       modelPrefix: "moonshot",
       litellmPrefix: "moonshot",
       skipPrefixes: ["moonshot/", "openrouter/"],
@@ -254,10 +329,14 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       detectByKeyPrefix: "",
       detectByBaseKeyword: "",
       defaultApiBase: "https://api.moonshot.ai/v1",
-      defaultModels: ["moonshot/kimi-k2.5"],
+      defaultModels: ["moonshot/kimi-k2.6", "moonshot/kimi-k2.5"],
+      modelConfig: {
+        "moonshot/kimi-k2.6": { vision: true },
+        "moonshot/kimi-k2.5": { vision: true },
+      },
       stripModelPrefix: false,
       modelOverrides: [],
-      logo: "moonshot.png"
+      logo: "moonshot.png",
     },
     {
       name: "minimax",
@@ -273,7 +352,12 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       detectByKeyPrefix: "",
       detectByBaseKeyword: "",
       defaultApiBase: "https://api.minimaxi.com/v1",
-      defaultModels: ["minimax/MiniMax-M2.7", "minimax/MiniMax-M2.7-highspeed", "minimax/MiniMax-M2.5", "minimax/MiniMax-M2.5-highspeed"],
+      defaultModels: [
+        "minimax/MiniMax-M3",
+        "minimax/MiniMax-M2.7",
+        "minimax/MiniMax-M2.7-highspeed",
+      ],
+      modelConfig: { "minimax/MiniMax-M3": { vision: true } },
       stripModelPrefix: false,
       modelOverrides: [],
       supportsWireApi: true,
@@ -281,9 +365,9 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       defaultWireApi: "chat",
       logo: "minimax.svg",
       apiBaseHelp: {
-        zh: "MiniMax 中国区请使用 https://api.minimaxi.com/v1；海外请使用 https://api.minimax.io/v1。AI Coding Tools 推荐使用 MiniMax-M2.7，并将 Wire API 设为 Chat。",
-        en: "Use https://api.minimaxi.com/v1 for Mainland China accounts, and https://api.minimax.io/v1 for overseas accounts. For AI Coding Tools, prefer MiniMax-M2.7 with Wire API set to Chat."
-      }
+        zh: "MiniMax 中国区请使用 https://api.minimaxi.com/v1；海外请使用 https://api.minimax.io/v1。AI Coding Tools 推荐使用 MiniMax-M3，并将 Wire API 设为 Chat。",
+        en: "Use https://api.minimaxi.com/v1 for Mainland China accounts, and https://api.minimax.io/v1 for overseas accounts. For AI Coding Tools, prefer MiniMax-M3 with Wire API set to Chat.",
+      },
     },
     {
       name: "minimax-portal",
@@ -299,13 +383,18 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       detectByKeyPrefix: "",
       detectByBaseKeyword: "",
       defaultApiBase: "https://api.minimax.io/v1",
-      defaultModels: ["minimax-portal/MiniMax-M2.5", "minimax-portal/MiniMax-M2.5-highspeed"],
+      defaultModels: [
+        "minimax-portal/MiniMax-M3",
+        "minimax-portal/MiniMax-M2.5",
+        "minimax-portal/MiniMax-M2.5-highspeed",
+      ],
+      modelConfig: { "minimax-portal/MiniMax-M3": { vision: true } },
       stripModelPrefix: false,
       modelOverrides: [],
       logo: "minimax.svg",
       apiBaseHelp: {
         zh: "OAuth Global 默认使用 https://api.minimax.io/v1；OAuth 中国区默认使用 https://api.minimaxi.com/v1。",
-        en: "OAuth Global uses https://api.minimax.io/v1 by default; OAuth CN uses https://api.minimaxi.com/v1."
+        en: "OAuth Global uses https://api.minimax.io/v1 by default; OAuth CN uses https://api.minimaxi.com/v1.",
       },
       auth: {
         kind: "device_code",
@@ -324,34 +413,57 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
             id: "global",
             label: {
               zh: "Global（海外）",
-              en: "Global"
+              en: "Global",
             },
             hint: {
               zh: "适用于海外用户，默认 API Base 为 https://api.minimax.io/v1。",
-              en: "For international users. Default API base: https://api.minimax.io/v1."
+              en: "For international users. Default API base: https://api.minimax.io/v1.",
             },
             baseUrl: "https://api.minimax.io",
-            defaultApiBase: "https://api.minimax.io/v1"
+            defaultApiBase: "https://api.minimax.io/v1",
           },
           {
             id: "cn",
             label: {
               zh: "中国区（CN）",
-              en: "China Mainland (CN)"
+              en: "China Mainland (CN)",
             },
             hint: {
               zh: "适用于中国区用户，默认 API Base 为 https://api.minimaxi.com/v1。",
-              en: "For Mainland China users. Default API base: https://api.minimaxi.com/v1."
+              en: "For Mainland China users. Default API base: https://api.minimaxi.com/v1.",
             },
             baseUrl: "https://api.minimaxi.com",
-            defaultApiBase: "https://api.minimaxi.com/v1"
-          }
+            defaultApiBase: "https://api.minimaxi.com/v1",
+          },
         ],
         note: {
           zh: "通过浏览器完成 MiniMax OAuth 授权后即可使用，无需手动填写 API Key。",
-          en: "Complete MiniMax OAuth in browser to use this provider without manually entering an API key."
-        }
-      }
+          en: "Complete MiniMax OAuth in browser to use this provider without manually entering an API key.",
+        },
+      },
+    },
+    {
+      name: "mimo",
+      keywords: ["mimo", "xiaomi"],
+      envKey: "MIMO_API_KEY",
+      displayName: "Xiaomi MiMo",
+      modelPrefix: "mimo",
+      litellmPrefix: "openai",
+      skipPrefixes: ["mimo/"],
+      envExtras: [],
+      isGateway: false,
+      isLocal: false,
+      detectByKeyPrefix: "",
+      detectByBaseKeyword: "xiaomimimo.com",
+      defaultApiBase: "https://api.xiaomimimo.com/v1",
+      defaultModels: ["mimo/mimo-v2.5-pro", "mimo/mimo-v2.5"],
+      modelConfig: {
+        "mimo/mimo-v2.5-pro": { vision: true },
+        "mimo/mimo-v2.5": { vision: true },
+      },
+      stripModelPrefix: false,
+      modelOverrides: [],
+      logo: "mimo.svg",
     },
     {
       name: "vllm",
@@ -369,11 +481,11 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       defaultApiBase: "http://127.0.0.1:8000/v1",
       defaultModels: [
         "hosted_vllm/meta-llama/Llama-3.1-8B-Instruct",
-        "hosted_vllm/Qwen/Qwen2.5-7B-Instruct"
+        "hosted_vllm/Qwen/Qwen2.5-7B-Instruct",
       ],
       stripModelPrefix: false,
       modelOverrides: [],
-      logo: "vllm.svg"
+      logo: "vllm.svg",
     },
     {
       name: "groq",
@@ -392,7 +504,7 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       defaultModels: ["groq/openai/gpt-oss-120b", "groq/llama-3.1-8b-instant"],
       stripModelPrefix: false,
       modelOverrides: [],
-      logo: "groq.svg"
-    }
-  ]
+      logo: "groq.svg",
+    },
+  ],
 };

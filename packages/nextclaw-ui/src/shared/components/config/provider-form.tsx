@@ -3,12 +3,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { CircleDotDashed, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  useConfig,
-  useConfigMeta,
   useConfigSchema,
   useDeleteProvider,
   useImportProviderAuthFromCli,
   usePollProviderAuth,
+  useProviders,
+  useProviderTemplates,
   useStartProviderAuth,
   useTestProviderConnection,
   useUpdateProvider
@@ -26,10 +26,10 @@ import {
   ConfigSplitPaneBody,
   ConfigSplitPaneFooter,
   ConfigSplitPaneHeader
-} from '../config-split-page';
-import { ProviderAdvancedSettingsSection } from '../provider-advanced-settings-section';
-import { ProviderAuthSection } from '../provider-auth-section';
-import { ProviderEnabledField } from '../provider-enabled-field';
+} from '@/shared/components/config-split-page';
+import { ProviderAdvancedSettingsSection } from '@/shared/components/provider-advanced-settings-section';
+import { ProviderAuthSection } from '@/shared/components/provider-auth-section';
+import { ProviderEnabledField } from '@/shared/components/provider-enabled-field';
 import {
   applyEnabledPatch,
   EMPTY_PROVIDER_CONFIG,
@@ -37,9 +37,9 @@ import {
   headersEqual,
   modelListsEqual,
   modelConfigEqual,
+  mergeModelConfig,
   normalizeHeaders,
   normalizeModelList,
-  normalizeModelConfig,
   normalizeModelConfigForModels,
   resolveEditableModels,
   resolvePreferredAuthMethodId,
@@ -51,8 +51,8 @@ import {
   type WireApiType
 } from './provider-form-support';
 import { ProviderModelsSection } from './provider-models-section';
-import type { PillSelectOption } from '../provider-pill-selector';
-import { ProviderStatusBadge } from '../provider-status-badge';
+import type { PillSelectOption } from '@/shared/components/provider-pill-selector';
+import { ProviderStatusBadge } from '@/shared/components/provider-status-badge';
 
 type ProviderFormProps = {
   providerName?: string;
@@ -61,8 +61,8 @@ type ProviderFormProps = {
 
 export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormProps) {
   const queryClient = useQueryClient();
-  const { data: config } = useConfig();
-  const { data: meta } = useConfigMeta();
+  const { data: providersView } = useProviders();
+  const { data: templatesView } = useProviderTemplates();
   const { data: schema } = useConfigSchema();
   const updateProvider = useUpdateProvider();
   const deleteProvider = useDeleteProvider();
@@ -87,23 +87,23 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   const [authMethodId, setAuthMethodId] = useState('');
   const authPollTimerRef = useRef<number | null>(null);
 
-  const providerSpec = meta?.providers.find((p) => p.name === providerName);
-  const providerConfig = providerName ? config?.providers[providerName] : null;
+  const providerConfig = providerName ? providersView?.providers[providerName] : null;
+  const providerSpec = templatesView?.providerTemplates.find((template) => template.providerType === providerConfig?.providerType);
   const resolvedProviderConfig = providerConfig ?? EMPTY_PROVIDER_CONFIG;
   const uiHints = schema?.uiHints;
-  const isCustomProvider = Boolean(providerSpec?.isCustom);
+  const isCustomProvider = Boolean(providerConfig?.isCustom);
   const apiKeyHint = providerName ? hintForPath(`providers.${providerName}.apiKey`, uiHints) : undefined;
   const apiBaseHint = providerName ? hintForPath(`providers.${providerName}.apiBase`, uiHints) : undefined;
   const extraHeadersHint = providerName ? hintForPath(`providers.${providerName}.extraHeaders`, uiHints) : undefined;
   const wireApiHint = providerName ? hintForPath(`providers.${providerName}.wireApi`, uiHints) : undefined;
-  const defaultDisplayName = providerSpec?.displayName || providerName || '';
+  const defaultDisplayName = providerSpec?.displayName || providerConfig?.displayName || providerName || '';
   const currentDisplayName = (resolvedProviderConfig.displayName || '').trim();
   const effectiveDisplayName = currentDisplayName || defaultDisplayName;
   const currentEnabled = resolvedProviderConfig.enabled !== false;
   const providerTitle = providerDisplayName.trim() || effectiveDisplayName || providerName || t('providersSelectPlaceholder');
   const providerModelAliases = useMemo(
-    () => normalizeModelList([providerSpec?.modelPrefix || providerName || '', providerName || '']),
-    [providerName, providerSpec?.modelPrefix]
+    () => normalizeModelList([providerSpec?.modelPrefix || providerSpec?.providerType || '', providerName || '']),
+    [providerName, providerSpec?.modelPrefix, providerSpec?.providerType]
   );
   const defaultApiBase = providerSpec?.defaultApiBase || '';
   const currentApiBase = resolvedProviderConfig.apiBase || defaultApiBase;
@@ -127,7 +127,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   const currentModelConfig = useMemo(
     () =>
       normalizeModelConfigForModels(
-        normalizeModelConfig(resolvedProviderConfig.modelConfig ?? providerSpec?.modelConfig, providerModelAliases),
+        mergeModelConfig(providerSpec?.modelConfig, resolvedProviderConfig.modelConfig, providerModelAliases),
         currentEditableModels
       ),
     [currentEditableModels, providerModelAliases, providerSpec?.modelConfig, resolvedProviderConfig.modelConfig]
@@ -136,7 +136,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   const apiBaseHelpText =
     providerSpec?.apiBaseHelp?.[language] || providerSpec?.apiBaseHelp?.en || apiBaseHint?.help || t('providerApiBaseHelp');
   const providerAuth = providerSpec?.auth;
-  const providerAuthMethods = providerAuth?.methods ?? [];
+  const providerAuthMethods = useMemo(() => providerAuth?.methods ?? [], [providerAuth?.methods]);
   const supportsWireApi = Boolean(providerSpec?.supportsWireApi) || isCustomProvider;
   const providerAuthMethodOptions = useMemo(
     () =>
@@ -147,8 +147,8 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     [providerAuthMethods, language]
   );
   const preferredAuthMethodId = useMemo(
-    () => resolvePreferredAuthMethodId({ providerName, methods: providerAuthMethods, defaultMethodId: providerAuth?.defaultMethodId, language }),
-    [providerName, providerAuth?.defaultMethodId, providerAuthMethods, language]
+    () => resolvePreferredAuthMethodId({ providerName: providerSpec?.providerType ?? providerName, methods: providerAuthMethods, defaultMethodId: providerAuth?.defaultMethodId, language }),
+    [providerName, providerAuth?.defaultMethodId, providerAuthMethods, language, providerSpec?.providerType]
   );
   const resolvedAuthMethodId = useMemo(() => {
     if (!providerAuthMethods.length) {
@@ -207,7 +207,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
               setAuthStatusMessage(t('providerAuthCompleted'));
               toast.success(t('providerAuthCompleted'));
               queryClient.invalidateQueries({ queryKey: ['config'] });
-              queryClient.invalidateQueries({ queryKey: ['config-meta'] });
+              queryClient.invalidateQueries({ queryKey: ['providers'] });
               return;
             }
             setAuthSessionId(null);
@@ -286,7 +286,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
       (supportsWireApi && wireApi !== currentWireApi) ||
       !modelListsEqual(models, currentEditableModels) ||
       !modelConfigEqual(modelConfig, currentModelConfig) ||
-      (isCustomProvider && providerDisplayName.trim() !== effectiveDisplayName)
+      providerDisplayName.trim() !== effectiveDisplayName
     );
   }, [
     providerName,
@@ -304,7 +304,6 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     currentEditableModels,
     modelConfig,
     currentModelConfig,
-    isCustomProvider,
     providerDisplayName,
     effectiveDisplayName
   ]);
@@ -312,6 +311,10 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   const handleAddModel = () => {
     const next = toProviderLocalModelId(modelDraft, providerModelAliases);
     if (!next) {
+      return;
+    }
+    if (next.includes('/')) {
+      toast.error(t('providerModelInvalidProviderPrefix'));
       return;
     }
     if (models.includes(next)) {
@@ -403,7 +406,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     const normalizedHeaders = normalizeHeaders(extraHeaders);
     const trimmedDisplayName = providerDisplayName.trim();
 
-    if (isCustomProvider && trimmedDisplayName !== effectiveDisplayName) {
+    if (trimmedDisplayName !== effectiveDisplayName) {
       payload.displayName = trimmedDisplayName.length > 0 ? trimmedDisplayName : null;
     }
     if (trimmedApiKey.length > 0) {
@@ -420,7 +423,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
       payload.wireApi = wireApi;
     }
     if (!modelListsEqual(models, currentEditableModels)) {
-      payload.models = serializeModelsForSave(models, defaultModels);
+      payload.models = serializeModelsForSave(models, providerName);
     }
     if (!modelConfigEqual(modelConfig, currentModelConfig)) {
       payload.modelConfig = normalizeModelConfigForModels(modelConfig, models);
@@ -465,7 +468,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   };
 
   const handleDeleteProvider = async () => {
-    if (!providerName || !isCustomProvider) {
+    if (!providerName) {
       return;
     }
     if (!window.confirm(t('providerDeleteConfirm'))) {
@@ -517,7 +520,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
       setAuthStatusMessage(`${t('providerAuthImportStatusPrefix')}${result.expiresAt ? ` (expires: ${result.expiresAt})` : ''}`);
       toast.success(t('providerAuthImportSuccess'));
       queryClient.invalidateQueries({ queryKey: ['config'] });
-      queryClient.invalidateQueries({ queryKey: ['config-meta'] });
+      queryClient.invalidateQueries({ queryKey: ['providers'] });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       setAuthStatusMessage(message);
@@ -525,7 +528,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     }
   };
 
-  if (!providerName || !providerSpec) {
+  if (!providerName || !providerConfig) {
     return (
       <ConfigSplitEmptyPane>
         <div>
@@ -542,17 +545,15 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
         <div className='flex items-center justify-between'>
           <h3 className='truncate text-lg font-semibold text-gray-900'>{providerTitle}</h3>
           <div className='flex items-center gap-3'>
-            {isCustomProvider && (
-              <button
-                type='button'
-                onClick={handleDeleteProvider}
-                disabled={deleteProvider.isPending}
-                className='text-gray-400 transition-colors hover:text-red-500'
-                title={t('providerDelete')}
-              >
-                <Trash2 className='h-4 w-4' />
-              </button>
-            )}
+            <button
+              type='button'
+              onClick={handleDeleteProvider}
+              disabled={deleteProvider.isPending}
+              className='text-gray-400 transition-colors hover:text-red-500'
+              title={t('providerDelete')}
+            >
+              <Trash2 className='h-4 w-4' />
+            </button>
             <ProviderStatusBadge enabled={currentEnabled} apiKeySet={resolvedProviderConfig.apiKeySet} />
           </div>
         </div>
@@ -562,22 +563,20 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
         <ConfigSplitPaneBody className='space-y-5 px-6 py-5'>
           <ProviderEnabledField enabled={enabled} onChange={setEnabled} />
 
-          {isCustomProvider && (
-            <div className='space-y-2'>
-              <Label htmlFor='providerDisplayName' className='text-sm font-medium text-gray-900'>
-                {t('providerDisplayName')}
-              </Label>
-              <Input
-                id='providerDisplayName'
-                type='text'
-                value={providerDisplayName}
-                onChange={(e) => setProviderDisplayName(e.target.value)}
-                placeholder={defaultDisplayName || t('providerDisplayNamePlaceholder')}
-                className='rounded-xl'
-              />
-              <p className='text-xs text-gray-500'>{t('providerDisplayNameHelpShort')}</p>
-            </div>
-          )}
+          <div className='space-y-2'>
+            <Label htmlFor='providerDisplayName' className='text-sm font-medium text-gray-900'>
+              {t('providerDisplayName')}
+            </Label>
+            <Input
+              id='providerDisplayName'
+              type='text'
+              value={providerDisplayName}
+              onChange={(e) => setProviderDisplayName(e.target.value)}
+              placeholder={defaultDisplayName || t('providerDisplayNamePlaceholder')}
+              className='rounded-xl'
+            />
+            <p className='text-xs text-gray-500'>{t('providerDisplayNameHelpShort')}</p>
+          </div>
 
           <div className='space-y-2'>
             <Label htmlFor='apiKey' className='text-sm font-medium text-gray-900'>

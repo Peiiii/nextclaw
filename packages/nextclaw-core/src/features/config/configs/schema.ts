@@ -289,6 +289,7 @@ export const AgentsConfigSchema = z.object({
 
 export const ProviderConfigSchema = z.object({
   enabled: z.boolean().default(true),
+  providerType: z.string().trim().min(1).nullable().optional(),
   displayName: z.string().trim().max(80).default(""),
   apiKey: z.string().default(""),
   apiBase: z.string().nullable().default(null),

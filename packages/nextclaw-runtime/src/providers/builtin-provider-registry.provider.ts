@@ -1,9 +1,9 @@
 import {
   ProviderRegistry,
   type ProviderCatalogPlugin,
-  type ProviderSpec
+  type ProviderSpec,
 } from "@nextclaw/core";
-import { BUILTIN_PROVIDER_PLUGINS } from "./plugins/index.js";
+import { BUILTIN_PROVIDER_PLUGINS } from "./builtin-provider-plugins.provider.js";
 
 let builtinProviderRegistry: ProviderRegistry | null = null;
 
@@ -20,7 +20,9 @@ export function listBuiltinProviders(): ProviderSpec[] {
   return getBuiltinProviderRegistry().listProviderSpecs();
 }
 
-export function findBuiltinProviderByName(name: string): ProviderSpec | undefined {
+export function findBuiltinProviderByName(
+  name: string,
+): ProviderSpec | undefined {
   return getBuiltinProviderRegistry().findProviderByName(name);
 }
 

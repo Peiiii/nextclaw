@@ -61,7 +61,11 @@ export type BootstrapStatusView = {
   lastError?: string;
 };
 
-export type ProviderConfigView = {
+export type ProviderInstanceView = {
+  providerId: string;
+  providerType: string | null;
+  isBuiltInType: boolean;
+  isCustom: boolean;
   enabled: boolean;
   displayName?: string;
   apiKeySet: boolean;
@@ -76,8 +80,11 @@ export type ProviderConfigView = {
   }>;
 };
 
+export type ProviderConfigView = ProviderInstanceView;
+
 export type ProviderConfigUpdate = {
   enabled?: boolean;
+  providerType?: string | null;
   displayName?: string | null;
   apiKey?: string | null;
   apiBase?: string | null;
@@ -94,16 +101,18 @@ export type ProviderConnectionTestRequest = ProviderConfigUpdate & {
   model?: string | null;
 };
 
-export type ProviderCreateRequest = ProviderConfigUpdate;
+export type ProviderCreateRequest = ProviderConfigUpdate & {
+  providerId?: string | null;
+};
 
 export type ProviderCreateResult = {
-  name: string;
-  provider: ProviderConfigView;
+  providerId: string;
+  provider: ProviderInstanceView;
 };
 
 export type ProviderDeleteResult = {
   deleted: boolean;
-  provider: string;
+  providerId: string;
 };
 
 export type ProviderConnectionTestResult = {
@@ -112,6 +121,10 @@ export type ProviderConnectionTestResult = {
   model?: string;
   latencyMs: number;
   message: string;
+};
+
+export type ProvidersView = {
+  providers: Record<string, ProviderInstanceView>;
 };
 
 export type SearchProviderName = "bocha" | "tavily" | "brave";
@@ -742,10 +755,11 @@ export type ConfigView = {
   secrets?: SecretsView;
 };
 
-export type ProviderSpecView = {
-  name: string;
+export type ProviderTemplateView = {
+  id: string;
+  providerType: string;
   displayName?: string;
-  isCustom?: boolean;
+  apiProtocol?: "openai-compatible" | "anthropic-messages";
   modelPrefix?: string;
   keywords: string[];
   envKey: string;
@@ -788,6 +802,10 @@ export type ProviderSpecView = {
   defaultWireApi?: "auto" | "chat" | "responses";
 };
 
+export type ProviderTemplatesView = {
+  providerTemplates: ProviderTemplateView[];
+};
+
 export type ChannelSpecView = {
   name: string;
   displayName?: string;
@@ -810,7 +828,6 @@ export type SearchProviderSpecView = {
 };
 
 export type ConfigMetaView = {
-  providers: ProviderSpecView[];
   search: SearchProviderSpecView[];
   channels: ChannelSpecView[];
 };

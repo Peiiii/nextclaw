@@ -12,12 +12,12 @@ import {
   type ProviderDeviceCodeAuthSpec
 } from "@nextclaw/core";
 import type { ProviderAuthImportResult, ProviderAuthPollResult, ProviderAuthStartResult } from "@nextclaw-server/shared/types/server-api.types.js";
-import { createDefaultProviderConfigFromSpec } from "./default-provider-config.utils.js";
 import { findServerBuiltinProviderByName } from "@nextclaw-server/features/config/providers/server-builtin-provider.provider.js";
 
 type DeviceCodeSession = {
   sessionId: string;
-  provider: string;
+  providerId: string;
+  providerType: string;
   configPath: string;
   authorizationCode: string;
   tokenCodeField: "device_code" | "user_code";
@@ -326,28 +326,52 @@ function setProviderApiKey({ configPath, provider, accessToken, defaultApiBase }
   const config = loadConfig(configPath);
   const providers = config.providers as Record<string, ProviderConfig>;
   if (!providers[provider]) {
-    providers[provider] = createDefaultProviderConfigFromSpec(findServerBuiltinProviderByName(provider));
+    return;
   }
 
   const target = providers[provider];
   target.apiKey = accessToken;
-  if (!target.apiBase && defaultApiBase) {
+  if (defaultApiBase) {
     target.apiBase = defaultApiBase;
   }
   const next = ConfigSchema.parse(config);
   saveConfig(next, configPath);
 }
 
+function resolveProviderAuthTarget(configPath: string, providerId: string): {
+  providerId: string;
+  providerType: string;
+  provider: ProviderConfig;
+} | null {
+  const config = loadConfig(configPath);
+  const provider = (config.providers as Record<string, ProviderConfig>)[providerId];
+  if (!provider) {
+    return null;
+  }
+  const configuredType = typeof provider.providerType === "string" ? provider.providerType.trim() : "";
+  if (configuredType && findServerBuiltinProviderByName(configuredType)) {
+    return { providerId, providerType: configuredType, provider };
+  }
+  if (findServerBuiltinProviderByName(providerId)) {
+    return { providerId, providerType: providerId, provider };
+  }
+  return null;
+}
+
 export async function startProviderAuth(
   configPath: string,
-  providerName: string,
+  providerId: string,
   options?: {
     methodId?: string;
   }
 ): Promise<ProviderAuthStartResult | null> {
   cleanupExpiredAuthSessions();
 
-  const spec = findServerBuiltinProviderByName(providerName);
+  const target = resolveProviderAuthTarget(configPath, providerId);
+  if (!target) {
+    return null;
+  }
+  const spec = findServerBuiltinProviderByName(target.providerType);
   if (!spec?.auth || spec.auth.kind !== "device_code") {
     return null;
   }
@@ -445,7 +469,8 @@ export async function startProviderAuth(
 
   authSessions.set(sessionId, {
     sessionId,
-    provider: providerName,
+    providerId,
+    providerType: target.providerType,
     configPath,
     authorizationCode,
     tokenCodeField,
@@ -465,7 +490,7 @@ export async function startProviderAuth(
   const methodHint = methodConfig ? resolveLocalizedMethodHint(methodConfig) : undefined;
 
   return {
-    provider: providerName,
+    provider: providerId,
     kind: "device_code",
     methodId: resolvedMethod.id,
     sessionId,
@@ -482,18 +507,18 @@ export async function pollProviderAuth(params: {
   providerName: string;
   sessionId: string;
 }): Promise<ProviderAuthPollResult | null> {
-  const { configPath, providerName, sessionId } = params;
+  const { configPath, providerName: providerId, sessionId } = params;
   cleanupExpiredAuthSessions();
 
   const session = authSessions.get(sessionId);
-  if (!session || session.provider !== providerName || session.configPath !== configPath) {
+  if (!session || session.providerId !== providerId || session.configPath !== configPath) {
     return null;
   }
 
   if (Date.now() >= session.expiresAtMs) {
     authSessions.delete(sessionId);
     return {
-      provider: providerName,
+      provider: providerId,
       status: "expired",
       message: "authorization session expired"
     };
@@ -531,7 +556,7 @@ export async function pollProviderAuth(params: {
     if (!response.ok) {
       const message = buildMinimaxErrorMessage(payload, raw || response.statusText || "authorization failed");
       return {
-        provider: providerName,
+        provider: providerId,
         status: "error",
         message
       };
@@ -542,7 +567,7 @@ export async function pollProviderAuth(params: {
       accessToken = payload.access_token?.trim() ?? "";
       if (!accessToken) {
         return {
-          provider: providerName,
+          provider: providerId,
           status: "error",
           message: "provider token response missing access token"
         };
@@ -554,7 +579,7 @@ export async function pollProviderAuth(params: {
         authSessions.delete(sessionId);
       }
       return {
-        provider: providerName,
+        provider: providerId,
         status: classified,
         message
       };
@@ -563,7 +588,7 @@ export async function pollProviderAuth(params: {
       session.intervalMs = nextPollMs;
       authSessions.set(sessionId, session);
       return {
-        provider: providerName,
+        provider: providerId,
         status: "pending",
         nextPollMs
       };
@@ -574,7 +599,7 @@ export async function pollProviderAuth(params: {
       const errorCode = payload.error?.trim().toLowerCase();
       if (errorCode === "authorization_pending") {
         return {
-          provider: providerName,
+          provider: providerId,
           status: "pending",
           nextPollMs: session.intervalMs
         };
@@ -585,7 +610,7 @@ export async function pollProviderAuth(params: {
         session.intervalMs = nextPollMs;
         authSessions.set(sessionId, session);
         return {
-          provider: providerName,
+          provider: providerId,
           status: "pending",
           nextPollMs
         };
@@ -594,7 +619,7 @@ export async function pollProviderAuth(params: {
       if (errorCode === "access_denied") {
         authSessions.delete(sessionId);
         return {
-          provider: providerName,
+          provider: providerId,
           status: "denied",
           message: payload.error_description || "authorization denied"
         };
@@ -603,14 +628,14 @@ export async function pollProviderAuth(params: {
       if (errorCode === "expired_token") {
         authSessions.delete(sessionId);
         return {
-          provider: providerName,
+          provider: providerId,
           status: "expired",
           message: payload.error_description || "authorization session expired"
         };
       }
 
       return {
-        provider: providerName,
+        provider: providerId,
         status: "error",
         message: payload.error_description || payload.error || response.statusText || "authorization failed"
       };
@@ -619,7 +644,7 @@ export async function pollProviderAuth(params: {
     accessToken = payload.access_token?.trim() ?? "";
     if (!accessToken) {
       return {
-        provider: providerName,
+        provider: providerId,
         status: "error",
         message: "provider token response missing access token"
       };
@@ -628,23 +653,27 @@ export async function pollProviderAuth(params: {
 
   setProviderApiKey({
     configPath,
-    provider: providerName,
+    provider: providerId,
     accessToken,
     defaultApiBase: session.defaultApiBase
   });
 
   authSessions.delete(sessionId);
   return {
-    provider: providerName,
+    provider: providerId,
     status: "authorized"
   };
 }
 
 export async function importProviderAuthFromCli(
   configPath: string,
-  providerName: string
+  providerId: string
 ): Promise<ProviderAuthImportResult | null> {
-  const spec = findServerBuiltinProviderByName(providerName);
+  const target = resolveProviderAuthTarget(configPath, providerId);
+  if (!target) {
+    return null;
+  }
+  const spec = findServerBuiltinProviderByName(target.providerType);
   if (!spec?.auth || spec.auth.kind !== "device_code" || !spec.auth.cliCredential) {
     return null;
   }
@@ -692,13 +721,13 @@ export async function importProviderAuthFromCli(
 
   setProviderApiKey({
     configPath,
-    provider: providerName,
+    provider: providerId,
     accessToken,
     defaultApiBase: spec.defaultApiBase
   });
 
   return {
-    provider: providerName,
+    provider: providerId,
     status: "imported",
     source: "cli",
     expiresAt: expiresAtMs ? new Date(expiresAtMs).toISOString() : undefined

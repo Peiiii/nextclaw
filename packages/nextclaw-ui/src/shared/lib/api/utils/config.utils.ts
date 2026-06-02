@@ -11,6 +11,8 @@ import type {
   ConfigMetaView,
   ConfigSchemaResponse,
   ProviderConfigView,
+  ProvidersView,
+  ProviderTemplatesView,
   ChannelConfigUpdate,
   ProviderConfigUpdate,
   ProviderConnectionTestRequest,
@@ -79,6 +81,14 @@ export async function fetchConfigMeta(): Promise<ConfigMetaView> {
   return await nextclawClient.config.fetchMeta();
 }
 
+export async function fetchProviders(): Promise<ProvidersView> {
+  return await nextclawClient.providers.list();
+}
+
+export async function fetchProviderTemplates(): Promise<ProviderTemplatesView> {
+  return await nextclawClient.providers.listTemplates();
+}
+
 export async function fetchConfigSchema(): Promise<ConfigSchemaResponse> {
   return await nextclawClient.config.fetchSchema();
 }
@@ -92,40 +102,40 @@ export async function updateSearch(data: SearchConfigUpdate): Promise<SearchConf
 }
 
 export async function updateProvider(provider: string, data: ProviderConfigUpdate): Promise<ProviderConfigView> {
-  return await nextclawClient.config.updateProvider(provider, data);
+  return await nextclawClient.providers.update(provider, data);
 }
 
 export async function createProvider(data: ProviderCreateRequest = {}): Promise<ProviderCreateResult> {
-  return await nextclawClient.config.createProvider(data);
+  return await nextclawClient.providers.create(data);
 }
 
 export async function deleteProvider(provider: string): Promise<ProviderDeleteResult> {
-  return await nextclawClient.config.deleteProvider(provider);
+  return await nextclawClient.providers.delete(provider);
 }
 
 export async function testProviderConnection(
   provider: string,
   data: ProviderConnectionTestRequest
 ): Promise<ProviderConnectionTestResult> {
-  return await nextclawClient.config.testProviderConnection(provider, data);
+  return await nextclawClient.providers.testConnection(provider, data);
 }
 
 export async function startProviderAuth(
   provider: string,
   data: ProviderAuthStartRequest = {}
 ): Promise<ProviderAuthStartResult> {
-  return await nextclawClient.config.startProviderAuth(provider, data);
+  return await nextclawClient.providers.startAuth(provider, data);
 }
 
 export async function pollProviderAuth(
   provider: string,
   data: ProviderAuthPollRequest
 ): Promise<ProviderAuthPollResult> {
-  return await nextclawClient.config.pollProviderAuth(provider, data);
+  return await nextclawClient.providers.pollAuth(provider, data);
 }
 
 export async function importProviderAuthFromCli(provider: string): Promise<ProviderAuthImportResult> {
-  return await nextclawClient.config.importProviderAuthFromCli(provider);
+  return await nextclawClient.providers.importAuthFromCli(provider);
 }
 
 export async function updateChannel(

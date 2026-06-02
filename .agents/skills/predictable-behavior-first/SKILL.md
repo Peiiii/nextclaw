@@ -24,6 +24,7 @@ Default stance:
 - Prefer explicit dev-only switches over automatic environment sniffing.
 - Prefer fixing release/build/deploy contracts at the source over teaching shipped runtime to recognize incident signatures.
 - Compatibility is not the default for internal refactors. If a new owner or primary path is chosen, migrate callers to it and delete the old path instead of keeping aliases, adapters, proxies, or `asXxx()` bridges for convenience.
+- API compatibility is not a data migration. When an old route or public method does not own persisted user data, external protocol obligations, or state handoff, do not keep a bridge merely because callers once used it; migrate known callers and delete the old API surface.
 - Do not repair bad upstream intent, prompt, skill, schema, or protocol output by silently normalizing it downstream. Fix the contract that produced the bad value, and make invalid values fail visibly.
 - Do not couple operation workflows into low-level schemas. A schema or tool contract must not become a discovery guide, runtime catalog, or CLI instruction carrier; put discovery in an explicit command/owner and put AI procedure in the relevant skill.
 
@@ -60,6 +61,7 @@ Trigger this skill when work includes any of these patterns:
 6. If compatibility still seems necessary, apply the exception bar from [references/predictable-behavior-policy.md](references/predictable-behavior-policy.md).
 7. When keeping any compatibility path, record its trigger, scope, owner, and removal condition in the change summary.
 8. For internal owner migrations, prefer editing all known callers in the same change. If a temporary bridge is unavoidable, it must have a named deletion point and must not become a second public entry.
+9. For old APIs/routes, ask whether there is persisted user data, external clients with a documented contract, or an unavoidable staged rollout that the old API must serve. If not, delete the old API instead of forwarding it to the new owner.
 
 ## Read vs Action Checklist
 
@@ -116,6 +118,7 @@ If the problem is a broken published package, broken installer, broken deploy, o
 - Do not encode one-off incident knowledge into runtime conditionals just because the current failure is easy to pattern-match.
 - Do not keep dual paths unless the old path has a real, current, externally constrained purpose.
 - Do not keep internal compatibility bridges merely to avoid updating callers.
+- Do not keep old API routes, endpoint aliases, SDK methods, or controller wrappers when the old surface has no persisted state to migrate and no proven external contract. A route is code, not user data.
 - Do not preserve two managers/registries that can both mutate or resolve the same domain.
 - If a fallback is only for development, require an explicit switch or explicit environment variable.
 - Do not let read-shaped APIs hide load/register/write/execute behavior.
@@ -135,6 +138,7 @@ When this skill is used, the answer should state:
 - whether any auto-triggered caller could hit side effects,
 - whether the proposed fallback makes behavior less predictable or masks a real defect,
 - whether the proposal is actually an incident-specific runtime patch that should be rejected,
+- whether the old path owns persisted data or a proven external contract, or is just code that should be deleted,
 - whether the path is forbidden, dev-only, or temporarily allowed,
 - and, if allowed, what removes it later.
 

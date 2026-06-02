@@ -8,7 +8,7 @@ function compactSnippet(text: string) {
 function inferNonJsonHint(endpoint: string, status: number): string | undefined {
   if (
     status === 404 &&
-    endpoint.startsWith('/api/config/providers/') &&
+    endpoint.startsWith('/api/providers/') &&
     endpoint.endsWith('/test')
   ) {
     return 'Provider test endpoint is missing. This usually means nextclaw runtime version is outdated.';

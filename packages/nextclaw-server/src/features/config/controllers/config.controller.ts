@@ -3,13 +3,15 @@ import {
   buildConfigSchemaView,
   buildConfigMeta,
   buildConfigView,
+  buildProvidersView,
+  buildProviderTemplatesView,
   loadConfigOrDefault,
   executeConfigAction,
   updateChannel,
   updateModel,
   updateSearch,
-  createCustomProvider,
-  deleteCustomProvider,
+  createProvider,
+  deleteProvider,
   updateProvider,
   testProviderConnection,
   updateSecrets,
@@ -120,6 +122,15 @@ export class ConfigRoutesController {
     return c.json(ok(buildConfigMeta(config, this.getExtensionConfigProjectionOptions())));
   };
 
+  readonly listProviders = (c: Context) => {
+    const config = loadConfigOrDefault(this.options.configPath);
+    return c.json(ok(buildProvidersView(config)));
+  };
+
+  readonly listProviderTemplates = (c: Context) => {
+    return c.json(ok(buildProviderTemplatesView()));
+  };
+
   readonly getConfigSchema = (c: Context) => {
     const config = loadConfigOrDefault(this.options.configPath);
     return c.json(ok(buildConfigSchemaView(config, this.getExtensionConfigProjectionOptions())));
@@ -167,16 +178,16 @@ export class ConfigRoutesController {
   };
 
   readonly updateProvider = async (c: Context) => {
-    const provider = c.req.param("provider");
+    const providerId = c.req.param("providerId");
     const body = await readJson<Record<string, unknown>>(c.req.raw);
     if (!body.ok) {
       return c.json(err("INVALID_BODY", "invalid json body"), 400);
     }
-    const result = updateProvider(this.options.configPath, provider, body.data as ProviderConfigUpdate);
+    const result = updateProvider(this.options.configPath, providerId, body.data as ProviderConfigUpdate);
     if (!result) {
-      return c.json(err("NOT_FOUND", `unknown provider: ${provider}`), 404);
+      return c.json(err("NOT_FOUND", `unknown provider: ${providerId}`), 404);
     }
-    await this.publishConfigUpdates([`providers.${provider}`]);
+    await this.publishConfigUpdates([`providers.${providerId}`]);
     return c.json(ok(result));
   };
 
@@ -185,32 +196,35 @@ export class ConfigRoutesController {
     if (!body.ok) {
       return c.json(err("INVALID_BODY", "invalid json body"), 400);
     }
-    const result = createCustomProvider(
+    const result = createProvider(
       this.options.configPath,
       body.data as ProviderCreateRequest
     );
-    await this.publishConfigUpdates([`providers.${result.name}`]);
+    if (!result) {
+      return c.json(err("PROVIDER_EXISTS", "provider already exists"), 409);
+    }
+    await this.publishConfigUpdates([`providers.${result.providerId}`]);
     return c.json(ok({
-      name: result.name,
+      providerId: result.providerId,
       provider: result.provider
     } satisfies ProviderCreateResult));
   };
 
   readonly deleteProvider = async (c: Context) => {
-    const provider = c.req.param("provider");
-    const result = deleteCustomProvider(this.options.configPath, provider);
+    const providerId = c.req.param("providerId");
+    const result = deleteProvider(this.options.configPath, providerId);
     if (result === null) {
-      return c.json(err("NOT_FOUND", `custom provider not found: ${provider}`), 404);
+      return c.json(err("NOT_FOUND", `provider not found: ${providerId}`), 404);
     }
-    await this.publishConfigUpdates([`providers.${provider}`]);
+    await this.publishConfigUpdates([`providers.${providerId}`]);
     return c.json(ok({
       deleted: true,
-      provider
+      providerId
     } satisfies ProviderDeleteResult));
   };
 
   readonly testProviderConnection = async (c: Context) => {
-    const provider = c.req.param("provider");
+    const provider = c.req.param("providerId");
     const body = await readJson<Record<string, unknown>>(c.req.raw);
     if (!body.ok) {
       return c.json(err("INVALID_BODY", "invalid json body"), 400);
@@ -228,7 +242,7 @@ export class ConfigRoutesController {
   };
 
   readonly startProviderAuth = async (c: Context) => {
-    const provider = c.req.param("provider");
+    const provider = c.req.param("providerId");
     let payload: Record<string, unknown> = {};
     const rawBody = await c.req.raw.text();
     if (rawBody.trim().length > 0) {
@@ -256,7 +270,7 @@ export class ConfigRoutesController {
   };
 
   readonly pollProviderAuth = async (c: Context) => {
-    const provider = c.req.param("provider");
+    const provider = c.req.param("providerId");
     const body = await readJson<Record<string, unknown>>(c.req.raw);
     if (!body.ok) {
       return c.json(err("INVALID_BODY", "invalid json body"), 400);
@@ -281,7 +295,7 @@ export class ConfigRoutesController {
   };
 
   readonly importProviderAuthFromCli = async (c: Context) => {
-    const provider = c.req.param("provider");
+    const provider = c.req.param("providerId");
     try {
       const result = await importProviderAuthFromCli(this.options.configPath, provider);
       if (!result) {

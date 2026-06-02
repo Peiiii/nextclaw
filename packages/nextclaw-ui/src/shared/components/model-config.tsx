@@ -4,7 +4,7 @@ import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { ProviderScopedModelInput } from '@/shared/components/common/provider-scoped-model-input';
-import { useConfig, useConfigMeta, useConfigSchema, useUpdateModel } from '@/shared/hooks/use-config';
+import { useConfig, useConfigSchema, useProviderTemplates, useProviders, useUpdateModel } from '@/shared/hooks/use-config';
 import { hintForPath } from '@/shared/lib/config-hints';
 import { t } from '@/shared/lib/i18n';
 import { buildProviderModelCatalog } from '@/shared/lib/provider-models';
@@ -85,7 +85,8 @@ function ModelConfigForm(props: {
 
 export function ModelConfig() {
   const { data: config, isLoading } = useConfig();
-  const { data: meta } = useConfigMeta();
+  const { data: providersView } = useProviders();
+  const { data: templatesView } = useProviderTemplates();
   const { data: schema } = useConfigSchema();
   const updateModel = useUpdateModel();
   const uiHints = schema?.uiHints;
@@ -93,8 +94,8 @@ export function ModelConfig() {
   const workspaceHint = hintForPath('agents.defaults.workspace', uiHints);
 
   const providerCatalog = useMemo(
-    () => buildProviderModelCatalog({ meta, config, onlyConfigured: true }),
-    [config, meta]
+    () => buildProviderModelCatalog({ providersView, templatesView, config, onlyConfigured: true }),
+    [config, providersView, templatesView]
   );
   const modelHelpText = t('modelIdentifierHelp') || modelHint?.help || '';
   const initialModel = (config?.agents?.defaults?.model || '').trim();

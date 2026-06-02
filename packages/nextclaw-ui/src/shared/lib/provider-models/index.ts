@@ -1,6 +1,6 @@
-import type { ConfigMetaView, ConfigView, ProviderConfigView, ThinkingLevel } from '@/shared/lib/api';
+import type { ConfigView, ProviderConfigView, ProviderTemplateView, ProvidersView, ProviderTemplatesView, ThinkingLevel } from '@/shared/lib/api';
 
-const THINKING_LEVELS: ThinkingLevel[] = ['off', 'minimal', 'low', 'medium', 'high', 'adaptive', 'xhigh'];
+export const THINKING_LEVELS: ThinkingLevel[] = ['off', 'minimal', 'low', 'medium', 'high', 'adaptive', 'xhigh'];
 const THINKING_LEVEL_SET = new Set<string>(THINKING_LEVELS);
 
 export type ModelThinkingCapability = {
@@ -36,6 +36,14 @@ export function normalizeStringList(input: string[] | null | undefined): string[
     }
   }
   return [...deduped];
+}
+
+export function resolveModelsWithDefaults(defaultModels: string[], savedModels: string[]): string[] {
+  const normalizedSavedModels = normalizeStringList(savedModels);
+  if (normalizedSavedModels.length > 0) {
+    return normalizedSavedModels;
+  }
+  return normalizeStringList(defaultModels);
 }
 
 export function stripProviderPrefix(model: string, prefix: string): string {
@@ -74,7 +82,7 @@ export function composeProviderModel(prefix: string, localModel: string): string
   return `${normalizedPrefix}/${normalizedModel}`;
 }
 
-function parseThinkingLevel(value: unknown): ThinkingLevel | null {
+export function parseThinkingLevel(value: unknown): ThinkingLevel | null {
   if (typeof value !== 'string') {
     return null;
   }
@@ -85,7 +93,7 @@ function parseThinkingLevel(value: unknown): ThinkingLevel | null {
   return THINKING_LEVEL_SET.has(normalized) ? (normalized as ThinkingLevel) : null;
 }
 
-function normalizeThinkingLevels(values: unknown): ThinkingLevel[] {
+export function normalizeThinkingLevels(values: unknown): ThinkingLevel[] {
   if (!Array.isArray(values)) {
     return [];
   }
@@ -132,11 +140,9 @@ export function normalizeModelConfigMap(
   return normalized;
 }
 
-export function normalizeModelThinkingMap(
-  input: ProviderConfigView['modelConfig'],
-  aliases: string[]
+function extractModelThinkingMap(
+  modelConfig: Record<string, ModelConfig>
 ): Record<string, ModelThinkingCapability> {
-  const modelConfig = normalizeModelConfigMap(input, aliases);
   return Object.fromEntries(
     Object.entries(modelConfig)
       .filter((entry): entry is [string, ModelConfig & { thinking: ModelThinkingCapability }] =>
@@ -204,28 +210,37 @@ function isProviderConfigured(provider: ProviderConfigView | undefined): boolean
 }
 
 export function buildProviderModelCatalog(params: {
-  meta?: ConfigMetaView;
+  providersView?: ProvidersView;
+  templatesView?: ProviderTemplatesView;
   config?: ConfigView;
   onlyConfigured?: boolean;
 }): ProviderModelCatalogItem[] {
-  const { meta, config, onlyConfigured = false } = params;
+  const { providersView, templatesView, config, onlyConfigured = false } = params;
+  const templateByType = new Map((templatesView?.providerTemplates ?? []).map((template) => [template.providerType, template]));
+  const providerEntries = Object.values(providersView?.providers ?? config?.providers ?? {});
 
-  const catalog = (meta?.providers ?? []).map((spec) => {
-    const providerConfig = config?.providers?.[spec.name];
-    const prefix = (spec.modelPrefix || spec.name || '').trim();
-    const aliases = normalizeStringList([spec.modelPrefix || '', spec.name || '']);
-    const models = normalizeStringList(
+  const catalog = providerEntries.map((providerConfig) => {
+    const { providerId } = providerConfig;
+    const template: ProviderTemplateView | undefined = providerConfig.providerType
+      ? templateByType.get(providerConfig.providerType)
+      : undefined;
+    const prefix = providerId.trim();
+    const aliases = normalizeStringList([providerId, template?.modelPrefix || '', template?.providerType || '']);
+    const savedModels = normalizeStringList(
       (providerConfig?.models ?? []).map((model) => toProviderLocalModel(model, aliases))
     );
-    const rawModelConfig = providerConfig?.modelConfig ?? spec.modelConfig;
-    const modelConfig = normalizeModelConfigMap(rawModelConfig, aliases);
-    const modelThinking = normalizeModelThinkingMap(rawModelConfig, aliases);
+    const models = savedModels;
+    const modelConfig = {
+      ...normalizeModelConfigMap(template?.modelConfig, aliases),
+      ...normalizeModelConfigMap(providerConfig?.modelConfig, aliases)
+    };
+    const modelThinking = extractModelThinkingMap(modelConfig);
     const configDisplayName = providerConfig?.displayName?.trim();
     const configured = isProviderConfigured(providerConfig);
 
     return {
-      name: spec.name,
-      displayName: configDisplayName || spec.displayName || spec.name,
+      name: providerId,
+      displayName: configDisplayName || template?.displayName || providerId,
       prefix,
       aliases,
       models,

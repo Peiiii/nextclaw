@@ -3,6 +3,7 @@ import {
   LiteLLMProvider,
   ProviderRegistry,
   modelSupportsVision,
+  normalizeProviderModelConfig,
   type Config,
   type LLMResponse,
   type LLMStreamEvent,
@@ -29,9 +30,11 @@ export type LlmProviderRuntime = {
 
 type ProviderRoute = {
   model: string;
+  providerId: string | null;
   providerName: string | null;
   provider: ProviderConfig | null;
   apiBase: string | null;
+  modelConfig?: ProviderConfig["modelConfig"];
 };
 
 type ProviderConnectionTestInput = {
@@ -130,8 +133,10 @@ export class LlmProviderManager {
   readonly testConnection = async (input: ProviderConnectionTestInput): Promise<void> => {
     const provider = this.createProvider({
       providerName: input.providerName,
+      providerId: input.providerName,
       provider: {
         enabled: true,
+        providerType: input.providerName,
         displayName: "",
         apiKey: input.apiKey ?? "",
         apiBase: input.apiBase ?? null,
@@ -157,23 +162,34 @@ export class LlmProviderManager {
     }
 
     const effectiveModel = normalizedModel(model) ?? this.config.agents.defaults.model;
-    const { provider, name } = this.resolveProvider(effectiveModel);
+    const route = this.resolveProvider(effectiveModel);
+    const { provider, name } = route;
     const providerSpec = name ? this.providerRegistry.findProviderByName(name) : undefined;
+    const specModelConfig = normalizeProviderModelConfig(providerSpec?.modelConfig ?? {});
+    const providerModelConfig = this.normalizeProviderModelConfigForRoute(
+      provider?.modelConfig ?? {},
+      route.providerId,
+      name
+    );
     return {
-      model: effectiveModel,
+      model: route.model,
+      providerId: route.providerId,
       providerName: name,
       provider,
       apiBase: provider?.apiBase ?? providerSpec?.defaultApiBase ?? null,
+      modelConfig: { ...specModelConfig, ...providerModelConfig },
     };
   };
 
   private resolveProvider = (model: string): {
     provider: ProviderConfig | null;
     name: string | null;
+    providerId: string | null;
+    model: string;
   } => {
     const providers = this.config?.providers as Record<string, ProviderConfig> | undefined;
     if (!providers) {
-      return { provider: null, name: null };
+      return { provider: null, name: null, providerId: null, model };
     }
 
     const specs = this.providerRegistry.listProviderSpecs();
@@ -183,22 +199,28 @@ export class LlmProviderManager {
       : "";
 
     if (modelPrefix) {
-      const prefixed = this.matchPrefixedProvider(providers, modelPrefix);
+      const prefixed = this.matchPrefixedProvider(providers, modelPrefix, model);
       if (prefixed) {
         return prefixed;
       }
     }
 
-    const keywordMatches = specs
-      .map((spec) => ({ name: spec.name, provider: providers[spec.name], spec }))
+    const keywordMatches = Object.entries(providers)
+      .map(([providerId, provider]) => {
+        const providerType = this.resolveProviderType(providerId, provider);
+        const spec = providerType ? this.providerRegistry.findProviderByName(providerType) : undefined;
+        return { name: providerType, providerId, provider, spec };
+      })
+      .filter((entry): entry is { name: string; providerId: string; provider: ProviderConfig; spec: NonNullable<ReturnType<ProviderRegistry["findProviderByName"]>> } => Boolean(entry.name && entry.spec))
       .filter((entry) => entry.provider?.enabled !== false && Boolean(entry.provider?.apiKey))
       .filter((entry) => entry.spec.keywords.some((keyword) => modelLower.includes(keyword)));
     if (keywordMatches.length === 1) {
       const match = keywordMatches[0];
-      return { provider: match.provider ?? null, name: match.name };
+      const providerId = match.providerId;
+      return { provider: match.provider ?? null, name: match.name, providerId, model: this.rewriteModelForTemplate(model, providerId, match.name) };
     }
     if (keywordMatches.length > 1) {
-      return { provider: null, name: null };
+      return { provider: null, name: null, providerId: null, model };
     }
 
     const builtinNames = new Set(specs.map((spec) => spec.name));
@@ -207,38 +229,75 @@ export class LlmProviderManager {
     const enabledBuiltin = enabledProviders.filter(([name]) => builtinNames.has(name));
     if (enabledBuiltin.length === 1) {
       const [name, provider] = enabledBuiltin[0];
-      return { provider, name };
+      const providerType = this.resolveProviderType(name, provider);
+      return { provider, name: providerType, providerId: name, model: this.rewriteModelForTemplate(model, name, providerType) };
     }
     const enabledCustom = enabledProviders.filter(([name]) => !builtinNames.has(name));
     if (enabledCustom.length === 1) {
       const [name, provider] = enabledCustom[0];
-      return { provider, name };
+      const providerType = this.resolveProviderType(name, provider);
+      return { provider, name: providerType, providerId: name, model: this.rewriteModelForTemplate(model, name, providerType) };
     }
-    return { provider: null, name: null };
+    return { provider: null, name: null, providerId: null, model };
   };
 
   private matchPrefixedProvider = (
     providers: Record<string, ProviderConfig>,
-    modelPrefix: string
-  ): { provider: ProviderConfig | null; name: string | null } | null => {
-    for (const spec of this.providerRegistry.listProviderSpecs()) {
-      const provider = providers[spec.name];
-      const aliases = [spec.name, spec.modelPrefix ?? ""]
-        .map((value) => value.trim().toLowerCase())
-        .filter(Boolean);
-      if (provider && aliases.includes(modelPrefix)) {
-        return provider.enabled !== false
-          ? { provider, name: spec.name }
-          : { provider: null, name: null };
-      }
-    }
+    modelPrefix: string,
+    model: string
+  ): { provider: ProviderConfig | null; name: string | null; providerId: string | null; model: string } | null => {
     const customProvider = Object.entries(providers)
       .find(([name]) => name.toLowerCase() === modelPrefix);
     if (!customProvider) {
       return null;
     }
-    const [name, provider] = customProvider;
-    return provider.enabled !== false ? { provider, name } : { provider: null, name: null };
+    const [providerId, provider] = customProvider;
+    if (provider.enabled === false) {
+      return { provider: null, name: null, providerId, model };
+    }
+    const providerType = this.resolveProviderType(providerId, provider);
+    return {
+      provider,
+      name: providerType,
+      providerId,
+      model: this.rewriteModelForTemplate(model, providerId, providerType),
+    };
+  };
+
+  private resolveProviderType = (providerId: string, provider: ProviderConfig): string | null => {
+    const configuredType = typeof provider.providerType === "string" ? provider.providerType.trim() : "";
+    if (configuredType && this.providerRegistry.findProviderByName(configuredType)) {
+      return configuredType;
+    }
+    return this.providerRegistry.findProviderByName(providerId) ? providerId : null;
+  };
+
+  private rewriteModelForTemplate = (model: string, providerId: string, providerType: string | null): string => {
+    const prefix = `${providerId}/`;
+    if (!model.startsWith(prefix)) {
+      return model;
+    }
+    const suffix = model.slice(prefix.length).trim();
+    if (!suffix) {
+      return model;
+    }
+    return providerType ? `${providerType}/${suffix}` : suffix;
+  };
+
+  private normalizeProviderModelConfigForRoute = (
+    modelConfig: ProviderConfig["modelConfig"],
+    providerId: string | null,
+    providerType: string | null,
+  ): ProviderConfig["modelConfig"] => {
+    const normalized = normalizeProviderModelConfig(modelConfig ?? {});
+    if (!providerId || !providerType) {
+      return normalized;
+    }
+    const rewritten: ProviderConfig["modelConfig"] = {};
+    for (const [model, config] of Object.entries(normalized)) {
+      rewritten[this.rewriteModelForTemplate(model, providerId, providerType)] = config;
+    }
+    return rewritten;
   };
 
   private getOrCreateProvider = (route: ProviderRoute): LLMProvider => {
@@ -278,7 +337,7 @@ export class LlmProviderManager {
       supportsVision: modelSupportsVision({
         model: route?.model,
         providerName: route?.providerName,
-        modelConfig: route?.provider?.modelConfig,
+        modelConfig: route?.modelConfig,
       }),
     });
   };
@@ -287,6 +346,7 @@ export class LlmProviderManager {
     const routeProvider = route.provider;
     return [
       route.providerName ?? "",
+      route.providerId ?? "",
       routeProvider?.apiKey ?? "",
       route.apiBase ?? "",
       routeProvider?.wireApi ?? "",

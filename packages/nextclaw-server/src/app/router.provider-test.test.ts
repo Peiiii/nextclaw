@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -13,6 +13,14 @@ function createTempConfigPath(): string {
   const dir = mkdtempSync(join(tmpdir(), "nextclaw-ui-provider-test-"));
   tempDirs.push(dir);
   return join(dir, "config.json");
+}
+
+function createProviderTestApp(configPath: string) {
+  return createUiRouter({
+    kernel: createRouterTestKernel(),
+    configPath,
+    appEventBus: new EventBus(),
+  });
 }
 
 afterEach(() => {
@@ -30,22 +38,21 @@ describe("provider connection test route", () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
 
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
-    });
+    const app = createProviderTestApp(configPath);
 
-    const response = await app.request("http://localhost/api/config/providers/not-exists/test", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
+    const response = await app.request(
+      "http://localhost/api/providers/not-exists/test",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({}),
       },
-      body: JSON.stringify({})
-    });
+    );
 
     expect(response.status).toBe(404);
-    const payload = await response.json() as {
+    const payload = (await response.json()) as {
       ok: false;
       error: {
         code: string;
@@ -59,24 +66,28 @@ describe("provider connection test route", () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
 
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
+    const app = createProviderTestApp(configPath);
+    await app.request("http://localhost/api/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ providerType: "openai" }),
     });
 
-    const response = await app.request("http://localhost/api/config/providers/openai/test", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
+    const response = await app.request(
+      "http://localhost/api/providers/openai/test",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          apiKey: "",
+        }),
       },
-      body: JSON.stringify({
-        apiKey: ""
-      })
-    });
+    );
 
     expect(response.status).toBe(200);
-    const payload = await response.json() as {
+    const payload = (await response.json()) as {
       ok: true;
       data: {
         success: boolean;
@@ -92,678 +103,214 @@ describe("provider connection test route", () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
 
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
+    const app = createProviderTestApp(configPath);
+    await app.request("http://localhost/api/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ providerType: "deepseek" }),
     });
 
-    const updateResponse = await app.request("http://localhost/api/config/providers/deepseek", {
-      method: "PUT",
-      headers: {
-        "content-type": "application/json"
+    const updateResponse = await app.request(
+      "http://localhost/api/providers/deepseek",
+      {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          models: [
+            " deepseek-chat ",
+            "deepseek/deepseek-reasoner",
+            "deepseek-chat",
+            "",
+          ],
+        }),
       },
-      body: JSON.stringify({
-        models: [" deepseek-chat ", "deepseek/deepseek-reasoner", "deepseek-chat", ""]
-      })
-    });
+    );
     expect(updateResponse.status).toBe(200);
-    const updatePayload = await updateResponse.json() as {
+    const updatePayload = (await updateResponse.json()) as {
       ok: true;
       data: {
         models?: string[];
       };
     };
     expect(updatePayload.ok).toBe(true);
-    expect(updatePayload.data.models).toEqual(["deepseek-chat", "deepseek/deepseek-reasoner"]);
+    expect(updatePayload.data.models).toEqual([
+      "deepseek-chat",
+      "deepseek/deepseek-reasoner",
+    ]);
 
     const configResponse = await app.request("http://localhost/api/config");
     expect(configResponse.status).toBe(200);
-    const configPayload = await configResponse.json() as {
+    const configPayload = (await configResponse.json()) as {
       ok: true;
       data: {
         providers: Record<string, { models?: string[] }>;
       };
     };
-    expect(configPayload.data.providers.deepseek.models).toEqual(["deepseek-chat", "deepseek/deepseek-reasoner"]);
+    expect(configPayload.data.providers.deepseek.models).toEqual([
+      "deepseek-chat",
+      "deepseek/deepseek-reasoner",
+    ]);
 
-    const metaResponse = await app.request("http://localhost/api/config/meta");
+    const metaResponse = await app.request("http://localhost/api/provider-templates");
     expect(metaResponse.status).toBe(200);
-    const metaPayload = await metaResponse.json() as {
+    const metaPayload = (await metaResponse.json()) as {
       ok: true;
       data: {
-        providers: Array<{
-          name: string;
+        providerTemplates: Array<{
+          providerType: string;
           defaultModels?: string[];
         }>;
       };
     };
-    const deepseekSpec = metaPayload.data.providers.find((provider) => provider.name === "deepseek");
+    const deepseekSpec = metaPayload.data.providerTemplates.find(
+      (provider) => provider.providerType === "deepseek",
+    );
     expect(deepseekSpec?.defaultModels?.length ?? 0).toBeGreaterThan(0);
     expect(deepseekSpec?.defaultModels).toContain("deepseek/deepseek-chat");
+  });
+
+  it("generates distinct display names for multiple instances of the same provider type", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+
+    const app = createProviderTestApp(configPath);
+    const firstResponse = await app.request("http://localhost/api/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ providerType: "openai" }),
+    });
+    const secondResponse = await app.request("http://localhost/api/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ providerType: "openai" }),
+    });
+
+    const firstPayload = (await firstResponse.json()) as {
+      ok: true;
+      data: { providerId: string; provider: { displayName?: string } };
+    };
+    const secondPayload = (await secondResponse.json()) as {
+      ok: true;
+      data: { providerId: string; provider: { displayName?: string } };
+    };
+
+    expect(firstPayload.data.providerId).toBe("openai");
+    expect(firstPayload.data.provider.displayName).toBe("OpenAI");
+    expect(secondPayload.data.providerId).toBe("openai-2");
+    expect(secondPayload.data.provider.displayName).toBe("OpenAI 2");
   });
 
   it("supports creating, renaming, and deleting custom providers", async () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
 
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
-    });
+    const app = createProviderTestApp(configPath);
 
-    const createResponse = await app.request("http://localhost/api/config/providers", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
+    const createResponse = await app.request(
+      "http://localhost/api/providers",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          displayName: "Relay A",
+          apiBase: "https://relay-b.example.com/v1",
+        }),
       },
-      body: JSON.stringify({
-        displayName: "Relay A",
-        apiBase: "https://relay-b.example.com/v1"
-      })
-    });
+    );
     expect(createResponse.status).toBe(200);
-    const createPayload = await createResponse.json() as {
+    const createPayload = (await createResponse.json()) as {
       ok: true;
       data: {
-        name: string;
+        providerId: string;
       };
     };
-    const customProviderName = createPayload.data.name;
+    const customProviderName = createPayload.data.providerId;
     expect(customProviderName).toBe("custom-1");
 
-    const updateResponse = await app.request(`http://localhost/api/config/providers/${customProviderName}`, {
-      method: "PUT",
-      headers: {
-        "content-type": "application/json"
+    const duplicateResponse = await app.request(
+      "http://localhost/api/providers",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          providerId: customProviderName,
+          displayName: "Relay Duplicate",
+        }),
       },
-      body: JSON.stringify({
-        displayName: "Relay B"
-      })
-    });
+    );
+    expect(duplicateResponse.status).toBe(409);
+
+    const updateResponse = await app.request(
+      `http://localhost/api/providers/${customProviderName}`,
+      {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          displayName: "Relay B",
+        }),
+      },
+    );
     expect(updateResponse.status).toBe(200);
 
     const configResponse = await app.request("http://localhost/api/config");
     expect(configResponse.status).toBe(200);
-    const configPayload = await configResponse.json() as {
+    const configPayload = (await configResponse.json()) as {
       ok: true;
       data: {
-        providers: Record<string, { displayName?: string; apiBase?: string | null }>;
+        providers: Record<
+          string,
+          { displayName?: string; apiBase?: string | null }
+        >;
       };
     };
-    expect(configPayload.data.providers[customProviderName]?.displayName).toBe("Relay B");
-    expect(configPayload.data.providers[customProviderName]?.apiBase).toBe("https://relay-b.example.com/v1");
+    expect(configPayload.data.providers[customProviderName]?.displayName).toBe(
+      "Relay B",
+    );
+    expect(configPayload.data.providers[customProviderName]?.apiBase).toBe(
+      "https://relay-b.example.com/v1",
+    );
 
-    const metaResponse = await app.request("http://localhost/api/config/meta");
-    expect(metaResponse.status).toBe(200);
-    const metaPayload = await metaResponse.json() as {
+    const providersResponse = await app.request("http://localhost/api/providers");
+    expect(providersResponse.status).toBe(200);
+    const providersPayload = (await providersResponse.json()) as {
       ok: true;
       data: {
-        providers: Array<{
-          name: string;
+        providers: Record<string, {
           displayName?: string;
           isCustom?: boolean;
         }>;
       };
     };
 
-    expect(metaPayload.data.providers[0]?.isCustom).toBe(true);
-    expect(metaPayload.data.providers[0]?.name).toBe(customProviderName);
-    const customSpec = metaPayload.data.providers.find((provider) => provider.name === customProviderName);
-    expect(customSpec?.displayName).toBe("Relay B");
-    expect(customSpec?.isCustom).toBe(true);
+    expect(providersPayload.data.providers[customProviderName]?.displayName).toBe("Relay B");
+    expect(providersPayload.data.providers[customProviderName]?.isCustom).toBe(true);
 
-    const deleteResponse = await app.request(`http://localhost/api/config/providers/${customProviderName}`, {
-      method: "DELETE"
-    });
+    const deleteResponse = await app.request(
+      `http://localhost/api/providers/${customProviderName}`,
+      {
+        method: "DELETE",
+      },
+    );
     expect(deleteResponse.status).toBe(200);
 
     const configAfterDelete = await app.request("http://localhost/api/config");
     expect(configAfterDelete.status).toBe(200);
-    const configAfterDeletePayload = await configAfterDelete.json() as {
+    const configAfterDeletePayload = (await configAfterDelete.json()) as {
       ok: true;
       data: {
         providers: Record<string, { displayName?: string }>;
       };
     };
-    expect(configAfterDeletePayload.data.providers[customProviderName]).toBeUndefined();
-  });
-
-  it("exposes qwen-portal auth metadata in provider meta", async () => {
-    const configPath = createTempConfigPath();
-    saveConfig(ConfigSchema.parse({}), configPath);
-
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
-    });
-
-    const metaResponse = await app.request("http://localhost/api/config/meta");
-    expect(metaResponse.status).toBe(200);
-    const metaPayload = await metaResponse.json() as {
-      ok: true;
-      data: {
-        providers: Array<{
-          name: string;
-          auth?: {
-            kind: string;
-            supportsCliImport?: boolean;
-          };
-        }>;
-      };
-    };
-    const qwenPortal = metaPayload.data.providers.find((provider) => provider.name === "qwen-portal");
-    expect(qwenPortal).toBeDefined();
-    expect(qwenPortal?.auth?.kind).toBe("device_code");
-    expect(qwenPortal?.auth?.supportsCliImport).toBe(true);
-  });
-
-  it("exposes minimax-portal auth methods in provider meta", async () => {
-    const configPath = createTempConfigPath();
-    saveConfig(ConfigSchema.parse({}), configPath);
-
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
-    });
-
-    const metaResponse = await app.request("http://localhost/api/config/meta");
-    expect(metaResponse.status).toBe(200);
-    const metaPayload = await metaResponse.json() as {
-      ok: true;
-      data: {
-        providers: Array<{
-          name: string;
-          auth?: {
-            kind: string;
-            defaultMethodId?: string;
-            methods?: Array<{ id: string }>;
-          };
-        }>;
-      };
-    };
-    const minimaxPortal = metaPayload.data.providers.find((provider) => provider.name === "minimax-portal");
-    expect(minimaxPortal).toBeDefined();
-    expect(minimaxPortal?.auth?.kind).toBe("device_code");
-    expect(minimaxPortal?.auth?.defaultMethodId).toBe("cn");
-    expect(minimaxPortal?.auth?.methods?.map((method) => method.id)).toEqual(["global", "cn"]);
-  });
-
-  it("exposes minimax model defaults in provider meta", async () => {
-    const configPath = createTempConfigPath();
-    saveConfig(ConfigSchema.parse({}), configPath);
-
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
-    });
-
-    const metaResponse = await app.request("http://localhost/api/config/meta");
-    expect(metaResponse.status).toBe(200);
-    const metaPayload = await metaResponse.json() as {
-      ok: true;
-      data: {
-        providers: Array<{
-          name: string;
-          defaultModels?: string[];
-          supportsWireApi?: boolean;
-          defaultWireApi?: "auto" | "chat" | "responses";
-        }>;
-      };
-    };
-    const minimax = metaPayload.data.providers.find((provider) => provider.name === "minimax");
-    expect(minimax).toBeDefined();
-    expect(minimax?.defaultModels).toEqual([
-      "minimax/MiniMax-M2.7",
-      "minimax/MiniMax-M2.7-highspeed",
-      "minimax/MiniMax-M2.5",
-      "minimax/MiniMax-M2.5-highspeed"
-    ]);
-    expect(minimax?.supportsWireApi).toBe(true);
-    expect(minimax?.defaultWireApi).toBe("chat");
-  });
-
-  it("defaults minimax-portal auth method to cn when methodId is omitted", async () => {
-    const configPath = createTempConfigPath();
-    saveConfig(ConfigSchema.parse({}), configPath);
-
-    const fetchSpy = vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        user_code: "MINI-DEFAULT-CN",
-        verification_uri: "https://www.minimaxi.com/oauth/device",
-        expired_in: Date.now() + 600000,
-        interval: 1500
-      }), {
-        status: 200,
-        headers: {
-          "content-type": "application/json"
-        }
-      }));
-
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
-    });
-
-    const startResponse = await app.request("http://localhost/api/config/providers/minimax-portal/auth/start", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({})
-    });
-    expect(startResponse.status).toBe(200);
-    const startPayload = await startResponse.json() as {
-      ok: true;
-      data: {
-        methodId?: string;
-      };
-    };
-    expect(startPayload.data.methodId).toBe("cn");
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(String(fetchSpy.mock.calls[0]?.[0])).toContain("https://api.minimaxi.com/oauth/code");
-  });
-
-  it("completes qwen-portal device auth and stores access token", async () => {
-    const configPath = createTempConfigPath();
-    saveConfig(ConfigSchema.parse({}), configPath);
-
-    const fetchSpy = vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        device_code: "device-code-123",
-        user_code: "ABCD-EFGH",
-        verification_uri: "https://chat.qwen.ai/device",
-        verification_uri_complete: "https://chat.qwen.ai/device?code=ABCD-EFGH",
-        expires_in: 600,
-        interval: 2
-      }), {
-        status: 200,
-        headers: {
-          "content-type": "application/json"
-        }
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        access_token: "qwen-access-token",
-        refresh_token: "qwen-refresh-token",
-        expires_in: 3600
-      }), {
-        status: 200,
-        headers: {
-          "content-type": "application/json"
-        }
-      }));
-
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
-    });
-
-    const startResponse = await app.request("http://localhost/api/config/providers/qwen-portal/auth/start", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({})
-    });
-    expect(startResponse.status).toBe(200);
-    const startPayload = await startResponse.json() as {
-      ok: true;
-      data: {
-        sessionId: string;
-      };
-    };
-    const sessionId = startPayload.data.sessionId;
-    expect(sessionId).toBeTruthy();
-
-    const pollResponse = await app.request("http://localhost/api/config/providers/qwen-portal/auth/poll", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        sessionId
-      })
-    });
-    expect(pollResponse.status).toBe(200);
-    const pollPayload = await pollResponse.json() as {
-      ok: true;
-      data: {
-        status: string;
-      };
-    };
-    expect(pollPayload.data.status).toBe("authorized");
-
-    const configResponse = await app.request("http://localhost/api/config");
-    expect(configResponse.status).toBe(200);
-    const configPayload = await configResponse.json() as {
-      ok: true;
-      data: {
-        providers: Record<string, { apiKeySet: boolean; apiBase?: string | null }>;
-      };
-    };
-    expect(configPayload.data.providers["qwen-portal"]?.apiKeySet).toBe(true);
-    expect(configPayload.data.providers["qwen-portal"]?.apiBase).toBe("https://portal.qwen.ai/v1");
-
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
-  });
-
-  it("completes minimax-portal auth with cn method and stores region api base", async () => {
-    const configPath = createTempConfigPath();
-    saveConfig(ConfigSchema.parse({}), configPath);
-
-    const fetchSpy = vi.spyOn(globalThis, "fetch")
-      .mockImplementationOnce(async (_input, init) => {
-        const params = new URLSearchParams(init?.body as URLSearchParams);
-        const state = params.get("state") ?? "";
-        return new Response(
-          JSON.stringify({
-            user_code: "MINI-CN-1234",
-            verification_uri: "https://www.minimaxi.com/oauth/device",
-            expired_in: Date.now() + 600000,
-            interval: 1500,
-            state
-          }),
-          {
-            status: 200,
-            headers: {
-              "content-type": "application/json"
-            }
-          }
-        );
-      })
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        status: "success",
-        access_token: "minimax-cn-access-token",
-        refresh_token: "minimax-cn-refresh-token",
-        expired_in: 3600
-      }), {
-        status: 200,
-        headers: {
-          "content-type": "application/json"
-        }
-      }));
-
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
-    });
-
-    const startResponse = await app.request("http://localhost/api/config/providers/minimax-portal/auth/start", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        methodId: "cn"
-      })
-    });
-    expect(startResponse.status).toBe(200);
-    const startPayload = await startResponse.json() as {
-      ok: true;
-      data: {
-        sessionId: string;
-        methodId?: string;
-      };
-    };
-    const sessionId = startPayload.data.sessionId;
-    expect(sessionId).toBeTruthy();
-    expect(startPayload.data.methodId).toBe("cn");
-
-    const pollResponse = await app.request("http://localhost/api/config/providers/minimax-portal/auth/poll", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        sessionId
-      })
-    });
-    expect(pollResponse.status).toBe(200);
-    const pollPayload = await pollResponse.json() as {
-      ok: true;
-      data: {
-        status: string;
-      };
-    };
-    expect(pollPayload.data.status).toBe("authorized");
-
-    const configResponse = await app.request("http://localhost/api/config");
-    expect(configResponse.status).toBe(200);
-    const configPayload = await configResponse.json() as {
-      ok: true;
-      data: {
-        providers: Record<string, { apiKeySet: boolean; apiBase?: string | null }>;
-      };
-    };
-    expect(configPayload.data.providers["minimax-portal"]?.apiKeySet).toBe(true);
-    expect(configPayload.data.providers["minimax-portal"]?.apiBase).toBe("https://api.minimaxi.com/v1");
-
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
-    expect(String(fetchSpy.mock.calls[0]?.[0])).toContain("https://api.minimaxi.com/oauth/code");
-    expect(String(fetchSpy.mock.calls[1]?.[0])).toContain("https://api.minimaxi.com/oauth/token");
-    const tokenParams = new URLSearchParams(fetchSpy.mock.calls[1]?.[1]?.body as URLSearchParams);
-    expect(tokenParams.get("user_code")).toBe("MINI-CN-1234");
-  });
-
-  it("imports qwen-portal access token from qwen cli credentials", async () => {
-    const configPath = createTempConfigPath();
-    saveConfig(ConfigSchema.parse({}), configPath);
-    const fakeHome = mkdtempSync(join(tmpdir(), "nextclaw-qwen-home-"));
-    tempDirs.push(fakeHome);
-    const qwenDir = join(fakeHome, ".qwen");
-    mkdirSync(qwenDir, { recursive: true });
-    writeFileSync(
-      join(qwenDir, "oauth_creds.json"),
-      JSON.stringify({
-        access_token: "qwen-cli-access-token",
-        refresh_token: "qwen-cli-refresh-token",
-        expiry_date: Date.now() + 3600 * 1000
-      })
-    );
-
-    const originalHome = process.env.HOME;
-    process.env.HOME = fakeHome;
-    try {
-      const app = createUiRouter({
-        kernel: createRouterTestKernel(),
-        configPath,
-        appEventBus: new EventBus(),
-      });
-
-      const importResponse = await app.request("http://localhost/api/config/providers/qwen-portal/auth/import-cli", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({})
-      });
-      expect(importResponse.status).toBe(200);
-      const importPayload = await importResponse.json() as {
-        ok: true;
-        data: {
-          status: string;
-        };
-      };
-      expect(importPayload.data.status).toBe("imported");
-
-      const configResponse = await app.request("http://localhost/api/config");
-      expect(configResponse.status).toBe(200);
-      const configPayload = await configResponse.json() as {
-        ok: true;
-        data: {
-          providers: Record<string, { apiKeySet: boolean; apiBase?: string | null }>;
-        };
-      };
-      expect(configPayload.data.providers["qwen-portal"]?.apiKeySet).toBe(true);
-      expect(configPayload.data.providers["qwen-portal"]?.apiBase).toBe("https://portal.qwen.ai/v1");
-    } finally {
-      process.env.HOME = originalHome;
-    }
-  });
-
-  it("returns 400 when qwen cli credentials file is missing", async () => {
-    const configPath = createTempConfigPath();
-    saveConfig(ConfigSchema.parse({}), configPath);
-    const fakeHome = mkdtempSync(join(tmpdir(), "nextclaw-qwen-home-missing-"));
-    tempDirs.push(fakeHome);
-
-    const originalHome = process.env.HOME;
-    process.env.HOME = fakeHome;
-    try {
-      const app = createUiRouter({
-        kernel: createRouterTestKernel(),
-        configPath,
-        appEventBus: new EventBus(),
-      });
-
-      const importResponse = await app.request("http://localhost/api/config/providers/qwen-portal/auth/import-cli", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({})
-      });
-      expect(importResponse.status).toBe(400);
-      const payload = await importResponse.json() as {
-        ok: false;
-        error: {
-          code: string;
-          message: string;
-        };
-      };
-      expect(payload.error.code).toBe("AUTH_IMPORT_FAILED");
-      expect(payload.error.message).toContain("failed to read CLI credential");
-    } finally {
-      process.env.HOME = originalHome;
-    }
-  });
-
-  it("returns 400 when imported qwen cli credential is expired", async () => {
-    const configPath = createTempConfigPath();
-    saveConfig(ConfigSchema.parse({}), configPath);
-    const fakeHome = mkdtempSync(join(tmpdir(), "nextclaw-qwen-home-expired-"));
-    tempDirs.push(fakeHome);
-    const qwenDir = join(fakeHome, ".qwen");
-    mkdirSync(qwenDir, { recursive: true });
-    writeFileSync(
-      join(qwenDir, "oauth_creds.json"),
-      JSON.stringify({
-        access_token: "expired-qwen-access-token",
-        refresh_token: "expired-qwen-refresh-token",
-        expiry_date: Date.now() - 1000
-      })
-    );
-
-    const originalHome = process.env.HOME;
-    process.env.HOME = fakeHome;
-    try {
-      const app = createUiRouter({
-        kernel: createRouterTestKernel(),
-        configPath,
-        appEventBus: new EventBus(),
-      });
-
-      const importResponse = await app.request("http://localhost/api/config/providers/qwen-portal/auth/import-cli", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({})
-      });
-      expect(importResponse.status).toBe(400);
-      const payload = await importResponse.json() as {
-        ok: false;
-        error: {
-          code: string;
-          message: string;
-        };
-      };
-      expect(payload.error.code).toBe("AUTH_IMPORT_FAILED");
-      expect(payload.error.message).toContain("expired");
-    } finally {
-      process.env.HOME = originalHome;
-    }
-  });
-});
-
-describe("provider meta catalog", () => {
-  it("exposes dashscope coding plan as a dedicated provider in meta", async () => {
-    const configPath = createTempConfigPath();
-    saveConfig(ConfigSchema.parse({}), configPath);
-
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
-    });
-
-    const metaResponse = await app.request("http://localhost/api/config/meta");
-    expect(metaResponse.status).toBe(200);
-    const metaPayload = await metaResponse.json() as {
-      ok: true;
-      data: {
-        providers: Array<{
-          name: string;
-          displayName?: string;
-          envKey?: string;
-          defaultApiBase?: string;
-          defaultModels?: string[];
-        }>;
-      };
-    };
-    const codingPlan = metaPayload.data.providers.find((provider) => provider.name === "dashscope-coding-plan");
-    expect(codingPlan).toBeDefined();
-    expect(codingPlan?.displayName).toBe("DashScope Coding Plan");
-    expect(codingPlan?.envKey).toBe("DASHSCOPE_CODING_PLAN_API_KEY");
-    expect(codingPlan?.defaultApiBase).toBe("https://coding.dashscope.aliyuncs.com/v1");
-    expect(codingPlan?.defaultModels).toEqual([
-      "dashscope-coding-plan/qwen3.5-plus",
-      "dashscope-coding-plan/qwen3-max-2026-01-23",
-      "dashscope-coding-plan/qwen3-coder-next",
-      "dashscope-coding-plan/qwen3-coder-plus",
-      "dashscope-coding-plan/MiniMax-M2.5",
-      "dashscope-coding-plan/glm-5",
-      "dashscope-coding-plan/glm-4.7",
-      "dashscope-coding-plan/kimi-k2.5"
-    ]);
-  });
-
-  it("exposes kimi coding as a dedicated provider in meta", async () => {
-    const configPath = createTempConfigPath();
-    saveConfig(ConfigSchema.parse({}), configPath);
-
-    const app = createUiRouter({
-      kernel: createRouterTestKernel(),
-      configPath,
-      appEventBus: new EventBus(),
-    });
-
-    const metaResponse = await app.request("http://localhost/api/config/meta");
-    expect(metaResponse.status).toBe(200);
-    const metaPayload = await metaResponse.json() as {
-      ok: true;
-      data: {
-        providers: Array<{
-          name: string;
-          displayName?: string;
-          envKey?: string;
-          defaultApiBase?: string;
-          defaultModels?: string[];
-        }>;
-      };
-    };
-    const kimiCoding = metaPayload.data.providers.find((provider) => provider.name === "kimi-coding");
-    expect(kimiCoding).toBeDefined();
-    expect(kimiCoding?.displayName).toBe("Kimi Coding");
-    expect(kimiCoding?.envKey).toBe("KIMI_CODING_API_KEY");
-    expect(kimiCoding?.defaultApiBase).toBe("https://api.kimi.com/coding");
-    expect(kimiCoding?.defaultModels).toEqual(["kimi-coding/kimi-for-coding"]);
+    expect(
+      configAfterDeletePayload.data.providers[customProviderName],
+    ).toBeUndefined();
   });
 });

@@ -2,19 +2,10 @@ import { AGENT_LABELS } from './agents';
 import { CHANNEL_LABELS } from './channels';
 import { CHANNEL_AUTH_LABELS } from './channel-auth.constants';
 import { CHAT_LABELS } from './chat-labels.utils';
-import {
-  getLanguage,
-  getLocale,
-  initializeI18n,
-  LANGUAGE_OPTIONS,
-  resolveInitialLanguage,
-  setLanguage,
-  subscribeLanguageChange,
-  type I18nLanguage
-} from './runtime/i18n-language-owner';
+import { getLanguage, getLocale, initializeI18n, LANGUAGE_OPTIONS, resolveInitialLanguage, setLanguage, subscribeLanguageChange, type I18nLanguage } from './runtime/i18n-language-owner';
 import { DESKTOP_UPDATE_LABELS } from './desktop-update-labels.utils';
 import { DOC_BROWSER_LABELS } from './runtime/doc-browser-labels.utils';
-import { MARKETPLACE_LABELS } from './marketplace';
+import { MARKETPLACE_LABELS } from './marketplace-labels.utils';
 import { PATH_PICKER_LABELS } from './runtime/i18n.path-picker';
 import { PWA_LABELS } from './pwa';
 import { REMOTE_LABELS } from './remote';
@@ -87,6 +78,7 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   unchanged: { zh: '未修改', en: 'Unchanged' },
   saving: { zh: '保存中...', en: 'Saving...' },
   remove: { zh: '移除', en: 'Remove' },
+  more: { zh: '更多', en: 'More' },
   all: { zh: '全部', en: 'All' },
   yes: { zh: '是', en: 'Yes' },
   no: { zh: '否', en: 'No' },
@@ -127,9 +119,11 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   providersTabAll: { zh: '全部提供商', en: 'All Providers' },
   providersFilterPlaceholder: { zh: '搜索提供商', en: 'Search providers' },
   providersNoMatch: { zh: '没有匹配的提供商', en: 'No matching providers' },
+  providerAdd: { zh: '新增提供商', en: 'Add Provider' },
   providerAddCustom: { zh: '新增自定义提供商', en: 'Add Custom Provider' },
+  providerTemplatePickerTitle: { zh: '选择提供商模板', en: 'Choose a provider template' },
   providerDelete: { zh: '删除该提供商', en: 'Delete Provider' },
-  providerDeleteConfirm: { zh: '确认删除这个自定义提供商吗？删除后不可恢复。', en: 'Delete this custom provider? This action cannot be undone.' },
+  providerDeleteConfirm: { zh: '确认删除这个提供商吗？删除后不可恢复。', en: 'Delete this provider? This action cannot be undone.' },
   providersSelectPlaceholder: { zh: '选择提供商', en: 'Select Provider' },
   providersSelectTitle: { zh: '选择左侧提供商开始配置', en: 'Select a provider from the left to configure' },
   providersSelectDescription: { zh: '你可以连续切换多个提供商并逐个保存配置。', en: 'Switch between providers continuously and save each configuration.' },
@@ -198,6 +192,10 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   providerModelThinkingDefault: { zh: '默认思考档位', en: 'Default Thinking Level' },
   providerModelThinkingDefaultNone: { zh: '无默认（回落 off）', en: 'No default (fallback off)' },
   providerModelThinkingNoSupported: { zh: '请先至少选择一个支持档位。', en: 'Select at least one supported level first.' },
+  providerModelInvalidProviderPrefix: {
+    zh: '模型 ID 不能使用其他 provider 前缀。',
+    en: 'Model id cannot use another provider prefix.'
+  },
   providerDisplayNameHelpShort: { zh: '便于区分多个自定义提供商', en: 'Helps distinguish multiple custom providers' },
   providerApiBaseHelpShort: { zh: '一般只需填写域名，系统自动补全路径', en: 'Usually just the domain; path auto-appended' },
   providerExtraHeadersHelpShort: { zh: '可选，用于自定义鉴权等场景', en: 'Optional, for custom auth etc.' },

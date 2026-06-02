@@ -8,6 +8,8 @@ import {
   fetchConfig,
   fetchConfigMeta,
   fetchConfigSchema,
+  fetchProviders,
+  fetchProviderTemplates,
   updateModel,
   updateSearch,
   createProvider,
@@ -61,6 +63,23 @@ export function useConfigMeta() {
   });
 }
 
+export function useProviders() {
+  return useQuery({
+    queryKey: ['providers'],
+    queryFn: fetchProviders,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true
+  });
+}
+
+export function useProviderTemplates() {
+  return useQuery({
+    queryKey: ['provider-templates'],
+    queryFn: fetchProviderTemplates,
+    staleTime: Infinity
+  });
+}
+
 export function useConfigSchema() {
   return useQuery({
     queryKey: ['config-schema'],
@@ -107,8 +126,8 @@ export function useUpdateProvider() {
     mutationFn: ({ provider, data }: { provider: string; data: unknown }) =>
       updateProvider(provider, data as Parameters<typeof updateProvider>[1]),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['providers'] });
       queryClient.invalidateQueries({ queryKey: ['config'] });
-      queryClient.invalidateQueries({ queryKey: ['config-meta'] });
       toast.success(t('configSaved'));
     },
     onError: (error: Error) => {
@@ -124,8 +143,8 @@ export function useCreateProvider() {
     mutationFn: ({ data }: { data?: unknown }) =>
       createProvider((data ?? {}) as Parameters<typeof createProvider>[0]),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['providers'] });
       queryClient.invalidateQueries({ queryKey: ['config'] });
-      queryClient.invalidateQueries({ queryKey: ['config-meta'] });
       toast.success(t('configSaved'));
     },
     onError: (error: Error) => {
@@ -140,8 +159,8 @@ export function useDeleteProvider() {
   return useMutation({
     mutationFn: ({ provider }: { provider: string }) => deleteProvider(provider),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['providers'] });
       queryClient.invalidateQueries({ queryKey: ['config'] });
-      queryClient.invalidateQueries({ queryKey: ['config-meta'] });
       toast.success(t('configSaved'));
     },
     onError: (error: Error) => {

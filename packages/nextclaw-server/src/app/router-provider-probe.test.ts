@@ -59,8 +59,13 @@ describe("provider connection probe route", () => {
         } as unknown as LlmProviderManager,
       } satisfies UiKernelHost,
     });
+    await app.request("http://localhost/api/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ providerType: "openai" })
+    });
 
-    const response = await app.request("http://localhost/api/config/providers/openai/test", {
+    const response = await app.request("http://localhost/api/providers/openai/test", {
       method: "POST",
       headers: {
         "content-type": "application/json"

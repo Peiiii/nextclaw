@@ -12,9 +12,10 @@ import {
 } from '@/features/chat/utils/chat-session-preference-governance.utils';
 import {
   useConfig,
-  useConfigMeta,
   useNcpSessionSkills,
-  useNcpSessions
+  useNcpSessions,
+  useProviders,
+  useProviderTemplates
 } from '@/shared/hooks/use-config';
 import { useNcpChatSessionTypes } from './use-ncp-chat-session-types';
 import { buildProviderModelCatalog, composeProviderModel, resolveModelThinkingCapability } from '@/shared/lib/provider-models';
@@ -38,12 +39,14 @@ function filterSessionsByQuery(sessions: SessionEntryView[], query: string): Ses
 
 function useNcpChatModelOptions(params: {
   config: ReturnType<typeof useConfig>['data'];
-  meta: ReturnType<typeof useConfigMeta>['data'];
+  providersView: ReturnType<typeof useProviders>['data'];
+  templatesView: ReturnType<typeof useProviderTemplates>['data'];
 }) {
-  const { config, meta } = params;
+  const { config, providersView, templatesView } = params;
   return useMemo<ChatModelOption[]>(() => {
     const providers = buildProviderModelCatalog({
-      meta,
+      providersView,
+      templatesView,
       config,
       onlyConfigured: true
     });
@@ -71,7 +74,7 @@ function useNcpChatModelOptions(params: {
       }
       return left.modelLabel.localeCompare(right.modelLabel);
     });
-  }, [config, meta]);
+  }, [config, providersView, templatesView]);
 }
 
 function useRecentSessionPreferences(params: {
@@ -154,7 +157,8 @@ export function useNcpChatPageData(params: UseNcpChatPageDataParams) {
     setSelectedThinkingLevel,
   } = params;
   const configQuery = useConfig();
-  const configMetaQuery = useConfigMeta();
+  const providersQuery = useProviders();
+  const templatesQuery = useProviderTemplates();
   const sessionsQuery = useNcpSessions({ limit: 200 });
   const sessionTypesQuery = useNcpChatSessionTypes();
   const sessionSkillsQuery = useNcpSessionSkills({
@@ -165,10 +169,12 @@ export function useNcpChatPageData(params: UseNcpChatPageDataParams) {
   });
   const isProviderStateResolved =
     (configQuery.isFetched || configQuery.isSuccess) &&
-    (configMetaQuery.isFetched || configMetaQuery.isSuccess);
+    (providersQuery.isFetched || providersQuery.isSuccess) &&
+    (templatesQuery.isFetched || templatesQuery.isSuccess);
   const modelOptions = useNcpChatModelOptions({
     config: configQuery.data,
-    meta: configMetaQuery.data
+    providersView: providersQuery.data,
+    templatesView: templatesQuery.data
   });
 
   const sessionSummaries = useMemo(
@@ -238,7 +244,8 @@ export function useNcpChatPageData(params: UseNcpChatPageDataParams) {
 
   return {
     configQuery,
-    configMetaQuery,
+    providersQuery,
+    templatesQuery,
     sessionsQuery,
     sessionTypesQuery,
     sessionSkillsQuery,
