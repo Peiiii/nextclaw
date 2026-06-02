@@ -1,10 +1,10 @@
-import { ChatUiPrimitives } from '../primitives/chat-ui-primitives';
+import { ChatUiPrimitives } from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
 import type {
   ChatInputBarToolbarProps,
   ChatToolbarAccessoryIcon,
   ChatToolbarIcon,
   ChatToolbarSelect
-} from '../../view-models/chat-ui.types';
+} from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import { Brain, Paperclip, Sparkles } from 'lucide-react';
 import { ChatInputBarActions } from './chat-input-bar-actions';
 import { ChatInputBarSkillPicker } from './chat-input-bar-skill-picker';
@@ -22,7 +22,7 @@ function AccessoryIcon({ icon }: { icon?: ChatToolbarAccessoryIcon }) {
 }
 
 const TRIGGER_WIDTH_BY_KEY: Record<string, string> = {
-  model: 'min-w-0 flex-1 sm:min-w-[220px] sm:flex-none',
+  model: 'min-w-0 max-w-full flex-1 basis-[12rem] sm:max-w-[320px]',
   'session-type': 'shrink-0',
   thinking: 'shrink-0'
 };
@@ -51,13 +51,15 @@ function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
   return (
     <Select value={item.value} onValueChange={item.onValueChange} disabled={item.disabled}>
       <SelectTrigger
-        className={`h-8 w-auto rounded-lg border-0 bg-transparent px-2 text-xs font-medium text-gray-600 shadow-none hover:bg-gray-100 focus:ring-0 sm:px-3 ${TRIGGER_WIDTH_BY_KEY[item.key] ?? ''}`}
+        aria-label={item.selectedLabel ? `${item.placeholder}: ${item.selectedLabel}` : item.placeholder}
+        title={item.selectedLabel}
+        className={`nextclaw-chat-toolbar-select-trigger h-8 w-auto rounded-lg border-0 bg-transparent px-2 text-xs font-medium text-gray-600 shadow-none hover:bg-gray-100 focus:ring-0 sm:px-3 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!basis-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!justify-center [@container_nextclaw-chat-input-bar_(max-width:440px)]:!max-w-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!min-w-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!px-0 ${TRIGGER_WIDTH_BY_KEY[item.key] ?? ''}`}
       >
         {item.selectedLabel ? (
           <div className="flex min-w-0 items-center gap-2 text-left">
             <ToolbarIcon icon={item.icon} />
-            <span className="truncate text-xs font-semibold text-gray-700 sm:hidden">{mobileSelectedLabel}</span>
-            <span className="hidden truncate text-xs font-semibold text-gray-700 sm:inline">{item.selectedLabel}</span>
+            <span className="nextclaw-chat-toolbar-mobile-label truncate text-xs font-semibold text-gray-700 sm:hidden [@container_nextclaw-chat-input-bar_(max-width:440px)]:hidden">{mobileSelectedLabel}</span>
+            <span className="nextclaw-chat-toolbar-label hidden truncate text-xs font-semibold text-gray-700 sm:inline [@container_nextclaw-chat-input-bar_(max-width:440px)]:hidden">{item.selectedLabel}</span>
           </div>
         ) : item.loading ? (
           <div className="h-3 w-24 animate-pulse rounded bg-gray-200" />
@@ -105,8 +107,8 @@ function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
 export function ChatInputBarToolbar({ actions, accessories, selects, skillPicker }: ChatInputBarToolbarProps) {
   const { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } = ChatUiPrimitives;
   return (
-    <div className="flex items-center justify-between gap-2 px-3 pb-3">
-      <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+    <div className="flex flex-wrap items-end justify-between gap-2 px-3 pb-3">
+      <div className="flex min-w-[12rem] flex-1 flex-wrap items-center gap-1 overflow-hidden">
         {skillPicker ? <ChatInputBarSkillPicker picker={skillPicker} /> : null}
         {selects.map((item) => (
           <ToolbarSelect key={item.key} item={item} />

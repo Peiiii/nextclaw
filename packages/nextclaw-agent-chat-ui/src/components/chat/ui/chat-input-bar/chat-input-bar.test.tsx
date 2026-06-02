@@ -629,6 +629,49 @@ it('keeps the model dropdown narrower on mobile while preserving desktop width',
   expect(listbox.className).toContain('sm:w-[320px]');
 });
 
+it('lets the toolbar wrap instead of forcing the model select to squeeze the send action', () => {
+  render(
+    <ChatInputBar
+      {...createInputBarProps({
+        toolbar: {
+          selects: [
+            {
+              key: 'model',
+              value: 'deepseek/deepseek-v3.2-super-long-model-name',
+              placeholder: 'Select model',
+              selectedLabel: 'DeepSeek/deepseek-v3.2-super-long-model-name',
+              options: [],
+              onValueChange: vi.fn(),
+            },
+          ],
+          accessories: [{ key: 'attach', label: 'Attach file', icon: 'paperclip', iconOnly: true }],
+          actions: {
+            isSending: false,
+            canStopGeneration: false,
+            sendDisabled: false,
+            stopDisabled: true,
+            stopHint: 'Stop unavailable',
+            sendButtonLabel: 'Send',
+            stopButtonLabel: 'Stop',
+            onSend: vi.fn(),
+            onStop: vi.fn(),
+          },
+        },
+      })}
+    />
+  );
+
+  const modelTrigger = screen.getByRole('combobox');
+  expect(document.querySelector('.nextclaw-chat-input-bar-shell')).toBeTruthy();
+  expect(modelTrigger.className).toContain('basis-[12rem]');
+  expect(modelTrigger.className).toContain('max-w-full');
+  expect(modelTrigger.className).toContain('nextclaw-chat-toolbar-select-trigger');
+  expect(screen.getByText('DeepSeek/deepseek-v3.2-super-long-model-name').className).toContain(
+    'nextclaw-chat-toolbar-label',
+  );
+  expect(screen.getByRole('button', { name: 'Send' })).toBeTruthy();
+});
+
 it('renders disabled accessories as icon-only triggers when tooltip copy exists', () => {
   render(
     <ChatInputBar

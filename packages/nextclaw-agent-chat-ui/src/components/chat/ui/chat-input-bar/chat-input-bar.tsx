@@ -101,8 +101,8 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
   }), []);
 
   return (
-    <div className="border-t border-gray-200/80 bg-white p-4">
-      <div className="mx-auto w-full max-w-[min(1120px,100%)]">
+    <div className="border-t border-gray-200/80 bg-white px-3 py-3 sm:px-4 sm:py-4">
+      <div className="nextclaw-chat-input-bar-shell mx-auto w-full max-w-[min(1120px,100%)] [container:nextclaw-chat-input-bar/inline-size]">
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card">
           <div className="relative">
             <ChatInputBarTokenizedComposer

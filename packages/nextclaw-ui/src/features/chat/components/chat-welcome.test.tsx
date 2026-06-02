@@ -27,4 +27,19 @@ describe('ChatWelcome', () => {
     expect(onSelectAgent).toHaveBeenCalledWith('engineer');
     expect(screen.queryByText('Current Agent:')).toBeNull();
   });
+
+  it('uses an adaptive capability grid for narrow docked layouts', () => {
+    render(
+      <ChatWelcome
+        onCreateSession={vi.fn()}
+        agents={[{ id: 'main', displayName: 'Main' }]}
+        selectedAgentId="main"
+        onSelectAgent={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: /Smart Conversations/ }).parentElement?.className).toContain(
+      'auto-fit',
+    );
+  });
 });

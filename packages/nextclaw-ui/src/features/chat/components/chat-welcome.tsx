@@ -28,14 +28,12 @@ export function ChatWelcome({ onCreateSession, agents, selectedAgentId, onSelect
   const selectedAgent = agents.find((agent) => agent.id === selectedAgentId) ?? null;
 
   return (
-    <div className="h-full flex items-center justify-center p-8">
-      <div className="max-w-lg w-full text-center">
-        {/* Bot avatar */}
+    <div className="min-h-full flex items-center justify-center px-4 py-6 sm:p-8">
+      <div className="max-w-lg w-full min-w-0 text-center">
         <div className="mx-auto mb-6 h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center">
           <Bot className="h-8 w-8 text-primary" />
         </div>
 
-        {/* Greeting */}
         <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('chatWelcomeTitle')}</h2>
         <p className="text-sm text-gray-500 mb-8">{t('chatWelcomeSubtitle')}</p>
 
@@ -80,15 +78,14 @@ export function ChatWelcome({ onCreateSession, agents, selectedAgentId, onSelect
           </Select>
         </div>
 
-        {/* Capability cards */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,9.5rem),1fr))] gap-3">
           {capabilities.map((cap) => {
             const Icon = cap.icon;
             return (
               <button
                 key={cap.titleKey}
                 onClick={onCreateSession}
-                className="rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-card hover:shadow-card-hover transition-shadow cursor-pointer"
+                className="min-w-0 rounded-2xl border border-gray-200 bg-white p-3 text-left shadow-card hover:shadow-card-hover transition-shadow cursor-pointer sm:p-4"
               >
                 <div className="h-9 w-9 rounded-xl bg-primary/8 flex items-center justify-center mb-3">
                   <Icon className="h-4.5 w-4.5 text-primary" />

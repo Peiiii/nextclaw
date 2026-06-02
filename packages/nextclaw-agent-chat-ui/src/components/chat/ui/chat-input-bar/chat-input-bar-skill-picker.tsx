@@ -107,7 +107,7 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
           className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg px-0 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 sm:w-auto sm:gap-1.5 sm:px-3"
         >
           <BrainCircuit className="h-4 w-4" />
-          <span className="hidden sm:inline">{picker.title}</span>
+          <span className="nextclaw-chat-skill-picker-label hidden sm:inline [@container_nextclaw-chat-input-bar_(max-width:440px)]:hidden">{picker.title}</span>
           {selectedCount > 0 ? (
             <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-white shadow-sm sm:static sm:ml-0.5 sm:bg-primary/10 sm:text-primary sm:shadow-none">
               {selectedCount}
