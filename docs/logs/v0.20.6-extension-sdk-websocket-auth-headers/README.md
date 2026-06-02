@@ -33,13 +33,15 @@
 
 ## 发布/部署方式
 
-已执行 NPM stable publish。本次没有发布 desktop installer、runtime update channel 或部署服务。
+已执行 NPM stable full public workspace publish。本次没有发布 desktop installer、runtime update channel 或部署服务。
 
 发布方式：
 
 - 使用隔离 worktree `/Users/peiwang/Projects/nextbot-release-extension-sdk`，从已提交修复 `2e6117cd8` 创建 release branch `codex/release-extension-sdk-stable`。
 - 避免把当前主工作区中未完成的 provider/model/llm-provider WIP 带入发布。
-- 最终采用受控窄发布：只发布 `@nextclaw/extension-sdk` 与 `@nextclaw/channel-extension-weixin`。原因是 changesets 自动扩大到所有 channel extension 时会触发 dingtalk 既有 tsc 债务，超出本次微信二维码超时修复范围。
+- 先做过一次受控窄发布：`@nextclaw/extension-sdk@0.2.3` 与 `@nextclaw/channel-extension-weixin@0.1.18`。
+- 用户明确纠偏为“全部发布”后，改走 full public workspace batch，发布全部 47 个公开 workspace NPM 包。
+- 全量发布使用 `pnpm release:auto:changeset`、`pnpm release:version`、`pnpm release:publish`；发布前将全量 version/changelog commit 固定为 `4439824f3 Release all public packages stable`，确保 release tags 指向包含 release metadata 的 commit。
 - 使用项目 `.npmrc` 作为 npm auth 来源：`NPM_CONFIG_USERCONFIG=/Users/peiwang/Projects/nextbot/.npmrc`。
 
 ## 用户/产品视角的验收步骤
@@ -62,22 +64,28 @@
 
 ## NPM 包发布记录
 
-已发布 NPM stable 包：
+已发布 NPM stable 包。最终全量 stable 批次为 47/47 published：
 
-- `@nextclaw/extension-sdk@0.2.3`，dist-tag: `latest`
-- `@nextclaw/channel-extension-weixin@0.1.18`，dist-tag: `latest`
+- `nextclaw@0.20.3`
+- `@nextclaw/extension-sdk@0.2.4`
+- `@nextclaw/channel-extension-weixin@0.1.19`
+- 其他 44 个公开 workspace 包也已在同一批次 patch 发布到 `latest`，完整清单由 `release:verify:published` 的 batch checkpoint 覆盖。
 
 验证记录：
 
-- `npm view @nextclaw/extension-sdk version dist-tags dependencies --json`：确认 `latest=0.2.3`，依赖包含 `ws`、`@nextclaw/ncp@0.5.22`、`@nextclaw/shared@0.2.2`。
-- `npm view @nextclaw/channel-extension-weixin version dist-tags dependencies --json`：确认 `latest=0.1.18`，依赖 `@nextclaw/extension-sdk@0.2.3`。
-- 临时目录安装 `@nextclaw/channel-extension-weixin@latest`：确认安装到 weixin `0.1.18`，实际依赖 SDK `0.2.3`，且 SDK manifest 包含 `ws`。
+- `pnpm release:check`：通过，覆盖全量发布批次 build 与 tsc。
+- `pnpm release:publish`：通过，`release:verify:published` 输出 `published 47/47 package versions`。
+- 临时目录安装 `nextclaw@latest`：确认 `nextclaw --version` 为 `0.20.3`。
+- 独立 `NEXTCLAW_HOME` 执行 `nextclaw update --check`：通过，输出 runtime 已是最新 `0.20.3`。
+- 临时目录安装 `@nextclaw/channel-extension-weixin@latest`：确认安装到 weixin `0.1.19`，实际依赖 SDK `0.2.4`，且 SDK manifest 包含 `ws`。
 
-Release commit:
+Release commits:
 
 - `a9c6fb2f8 Release extension SDK websocket auth fix`
+- `4439824f3 Release all public packages stable`
 
-Tags:
+关键 tags:
 
-- `@nextclaw/extension-sdk@0.2.3`
-- `@nextclaw/channel-extension-weixin@0.1.18`
+- `nextclaw@0.20.3`
+- `@nextclaw/extension-sdk@0.2.4`
+- `@nextclaw/channel-extension-weixin@0.1.19`
