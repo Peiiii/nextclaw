@@ -20,7 +20,7 @@ description: 当修改前端样式、响应式布局、紧凑模式、Tailwind/C
 ## 实现规则
 
 - 紧凑模式应有明确阈值和取舍：先保留核心操作，再收起次要文字，最后才隐藏低频控制；不要过早牺牲可读信息。
-- 收起文字时必须保留可理解入口：图标、`aria-label`、`title`、tooltip、popover/select content 至少有一种能表达当前含义或当前值。
+- 收起文字时必须保留可理解入口：图标、`aria-label`、tooltip、popover/select content 等要能表达当前含义或当前值；纯图标操作的体验细则走 `frontend-interaction-quality`，不要只依赖浏览器原生 `title`。
 - 不要用宿主全局 CSS 反向选择 reusable 组件内部结构；这会制造隐式依赖，让组件离开当前 app 后行为丢失。
 - 不要把一次 bugfix 写成硬编码覆盖。优先用组件已有设计体系、Tailwind container variant、CSS container query、组件 variant 或局部 class 表达稳定语义。
 - 样式新增应贴近 DOM owner，不为了一个局部状态新建远距离 CSS 文件、全局选择器或页面级 wrapper。

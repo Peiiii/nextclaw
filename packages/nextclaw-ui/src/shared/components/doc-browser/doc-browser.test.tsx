@@ -1,7 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DocBrowser } from "@/shared/components/doc-browser/doc-browser";
-import type { DocBrowserContextValue, DocBrowserTab } from "@/shared/components/doc-browser/doc-browser-context";
+import type {
+  DocBrowserContextValue,
+  DocBrowserTab,
+} from "@/shared/components/doc-browser/doc-browser-context";
 import { PANEL_APPS_DOC_BROWSER_RENDERERS } from "@/features/panel-apps";
 
 const { navigateMock } = vi.hoisted(() => ({
@@ -9,11 +13,13 @@ const { navigateMock } = vi.hoisted(() => ({
 }));
 
 vi.mock("react-router-dom", async () => ({
-  ...(await vi.importActual("react-router-dom") as object),
+  ...((await vi.importActual("react-router-dom")) as object),
   useNavigate: () => navigateMock,
 }));
 
-const { docBrowserState } = vi.hoisted<{ docBrowserState: DocBrowserContextValue }>(() => ({
+const { docBrowserState } = vi.hoisted<{
+  docBrowserState: DocBrowserContextValue;
+}>(() => ({
   docBrowserState: {
     isOpen: true,
     mode: "docked" as "docked" | "floating",
@@ -29,11 +35,13 @@ const { docBrowserState } = vi.hoisted<{ docBrowserState: DocBrowserContextValue
       },
     ],
     activeTabId: "docs",
-    activeHistory: [{
-      kind: "docs" as const,
-      tabId: "docs",
-      url: "https://docs.nextclaw.io/en/guide/getting-started",
-    }],
+    activeHistory: [
+      {
+        kind: "docs" as const,
+        tabId: "docs",
+        url: "https://docs.nextclaw.io/en/guide/getting-started",
+      },
+    ],
     activeHistoryIndex: 0,
     currentTab: {
       id: "docs",
@@ -99,11 +107,13 @@ describe("DocBrowser", () => {
       },
     ];
     docBrowserState.activeTabId = "docs";
-    docBrowserState.activeHistory = [{
-      kind: "docs" as const,
-      tabId: "docs",
-      url: "https://docs.nextclaw.io/en/guide/getting-started",
-    }];
+    docBrowserState.activeHistory = [
+      {
+        kind: "docs" as const,
+        tabId: "docs",
+        url: "https://docs.nextclaw.io/en/guide/getting-started",
+      },
+    ];
     docBrowserState.activeHistoryIndex = 0;
     docBrowserState.currentTab = docBrowserState.tabs[0];
     Object.defineProperty(window, "innerWidth", {
@@ -133,24 +143,41 @@ describe("DocBrowser", () => {
     expect(panel.className).toContain("inset-0");
     expect(panel.className).toContain("w-screen");
     expect(
-      screen.queryByTitle(/float/i) ?? screen.queryByTitle(/dock/i),
+      screen.queryByRole("button", { name: /float/i }) ??
+        screen.queryByRole("button", { name: /dock/i }),
     ).toBeNull();
     expect(panel.querySelector(".cursor-ew-resize")).toBeNull();
     expect(panel.querySelector(".cursor-se-resize")).toBeNull();
   });
 
-  it("keeps browser window controls on the tab strip", () => {
-    render(<DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />);
+  it("keeps browser window controls on the tab strip", async () => {
+    const user = userEvent.setup();
+    render(
+      <DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />,
+    );
 
     const tabStrip = screen.getByTestId("doc-browser-tab-strip");
     const tabActions = screen.getByTestId("doc-browser-tab-actions");
+    const newTabButton = screen.getByRole("button", { name: "New Tab" });
 
-    expect(tabActions.contains(screen.getByTitle("Back"))).toBe(true);
-    expect(tabActions.contains(screen.getByTitle("Forward"))).toBe(true);
-    expect(tabStrip.contains(screen.getByTitle("Float Window"))).toBe(true);
-    expect(tabStrip.contains(screen.getByTitle("Close"))).toBe(true);
-    expect(tabActions.contains(screen.getByTitle("New Tab"))).toBe(true);
+    expect(
+      tabActions.contains(screen.getByRole("button", { name: "Back" })),
+    ).toBe(true);
+    expect(
+      tabActions.contains(screen.getByRole("button", { name: "Forward" })),
+    ).toBe(true);
+    expect(
+      tabStrip.contains(screen.getByRole("button", { name: "Float Window" })),
+    ).toBe(true);
+    expect(
+      tabStrip.contains(screen.getByRole("button", { name: "Close" })),
+    ).toBe(true);
+    expect(tabActions.contains(newTabButton)).toBe(true);
     expect(screen.queryByText("Embedded Browser")).toBeNull();
+
+    await user.hover(newTabButton);
+
+    expect((await screen.findAllByText("New Tab")).length).toBeGreaterThan(0);
   });
 
   it("uses active history to enable browser back and forward actions", () => {
@@ -178,10 +205,12 @@ describe("DocBrowser", () => {
     docBrowserState.activeHistoryIndex = 1;
     docBrowserState.currentTab = historyTab;
 
-    render(<DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />);
+    render(
+      <DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />,
+    );
 
-    fireEvent.click(screen.getByTitle("Back"));
-    fireEvent.click(screen.getByTitle("Forward"));
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    fireEvent.click(screen.getByRole("button", { name: "Forward" }));
 
     expect(docBrowserState.goBack).toHaveBeenCalled();
     expect(docBrowserState.goForward).toHaveBeenCalled();
@@ -212,8 +241,14 @@ describe("DocBrowser", () => {
 
     const { rerender } = render(<DocBrowser />);
 
-    expect(screen.getByTitle("Back")).toHaveProperty("disabled", false);
-    expect(screen.getByTitle("Forward")).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: "Back" })).toHaveProperty(
+      "disabled",
+      false,
+    );
+    expect(screen.getByRole("button", { name: "Forward" })).toHaveProperty(
+      "disabled",
+      true,
+    );
 
     const oldestTab: DocBrowserTab = {
       ...latestTab,
@@ -225,14 +260,20 @@ describe("DocBrowser", () => {
     docBrowserState.activeHistoryIndex = 0;
     rerender(<DocBrowser />);
 
-    expect(screen.getByTitle("Back")).toHaveProperty("disabled", true);
-    expect(screen.getByTitle("Forward")).toHaveProperty("disabled", false);
+    expect(screen.getByRole("button", { name: "Back" })).toHaveProperty(
+      "disabled",
+      true,
+    );
+    expect(screen.getByRole("button", { name: "Forward" })).toHaveProperty(
+      "disabled",
+      false,
+    );
   });
 
   it("opens the start page from the fixed new tab action", () => {
     render(<DocBrowser />);
 
-    fireEvent.click(screen.getByTitle("New Tab"));
+    fireEvent.click(screen.getByRole("button", { name: "New Tab" }));
 
     expect(docBrowserState.openNewTab).toHaveBeenCalled();
   });
@@ -241,13 +282,21 @@ describe("DocBrowser", () => {
     const pinTab = vi.fn();
     const unpinTab = vi.fn();
 
-    render(<DocBrowser dockControls={{
-      getDockState: () => ({ canDock: true, isDocked: false, removable: false }),
-      pinTab,
-      unpinTab,
-    }} />);
+    render(
+      <DocBrowser
+        dockControls={{
+          getDockState: () => ({
+            canDock: true,
+            isDocked: false,
+            removable: false,
+          }),
+          pinTab,
+          unpinTab,
+        }}
+      />,
+    );
 
-    fireEvent.click(screen.getByTitle("Pin to SideDock"));
+    fireEvent.click(screen.getByRole("button", { name: "Pin to SideDock" }));
 
     expect(pinTab).toHaveBeenCalledWith(docBrowserState.currentTab);
     expect(unpinTab).not.toHaveBeenCalled();
@@ -257,26 +306,46 @@ describe("DocBrowser", () => {
     const pinTab = vi.fn();
     const unpinTab = vi.fn();
 
-    render(<DocBrowser dockControls={{
-      getDockState: () => ({ canDock: true, isDocked: true, removable: true }),
-      pinTab,
-      unpinTab,
-    }} />);
+    render(
+      <DocBrowser
+        dockControls={{
+          getDockState: () => ({
+            canDock: true,
+            isDocked: true,
+            removable: true,
+          }),
+          pinTab,
+          unpinTab,
+        }}
+      />,
+    );
 
-    fireEvent.click(screen.getByTitle("Remove from SideDock"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove from SideDock" }),
+    );
 
     expect(unpinTab).toHaveBeenCalledWith(docBrowserState.currentTab);
     expect(pinTab).not.toHaveBeenCalled();
   });
 
   it("disables dock controls for built-in shortcuts", () => {
-    render(<DocBrowser dockControls={{
-      getDockState: () => ({ canDock: true, isDocked: true, removable: false }),
-      pinTab: vi.fn(),
-      unpinTab: vi.fn(),
-    }} />);
+    render(
+      <DocBrowser
+        dockControls={{
+          getDockState: () => ({
+            canDock: true,
+            isDocked: true,
+            removable: false,
+          }),
+          pinTab: vi.fn(),
+          unpinTab: vi.fn(),
+        }}
+      />,
+    );
 
-    expect(screen.getByTitle("Built-in shortcut")).toHaveProperty("disabled", true);
+    expect(
+      screen.getByRole("button", { name: "Built-in shortcut" }),
+    ).toHaveProperty("disabled", true);
   });
 
   it("renders a start page for home tabs", () => {
@@ -293,7 +362,9 @@ describe("DocBrowser", () => {
     docBrowserState.activeTabId = homeTab.id;
     docBrowserState.currentTab = homeTab;
 
-    render(<DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />);
+    render(
+      <DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />,
+    );
 
     expect(screen.getAllByText("Start Page").length).toBeGreaterThan(0);
     expect(screen.getByText("Apps")).toBeTruthy();
@@ -306,10 +377,14 @@ describe("DocBrowser", () => {
 
     render(<DocBrowser />);
 
-    firePointerEvent(screen.getByTestId("doc-browser-resize-right"), "pointerdown", {
-      clientX: 1160,
-      pointerId: 1,
-    });
+    firePointerEvent(
+      screen.getByTestId("doc-browser-resize-right"),
+      "pointerdown",
+      {
+        clientX: 1160,
+        pointerId: 1,
+      },
+    );
     firePointerEvent(window, "pointermove", { clientX: 1120, pointerId: 1 });
 
     const panel = screen.getByTestId("doc-browser-panel");
@@ -322,10 +397,14 @@ describe("DocBrowser", () => {
 
     render(<DocBrowser />);
 
-    firePointerEvent(screen.getByTestId("doc-browser-resize-left"), "pointerdown", {
-      clientX: 680,
-      pointerId: 1,
-    });
+    firePointerEvent(
+      screen.getByTestId("doc-browser-resize-left"),
+      "pointerdown",
+      {
+        clientX: 680,
+        pointerId: 1,
+      },
+    );
     firePointerEvent(window, "pointermove", { clientX: 620, pointerId: 1 });
 
     const panel = screen.getByTestId("doc-browser-panel");
@@ -338,11 +417,15 @@ describe("DocBrowser", () => {
 
     render(<DocBrowser />);
 
-    firePointerEvent(screen.getByTestId("doc-browser-resize-top"), "pointerdown", {
-      clientX: 900,
-      clientY: 80,
-      pointerId: 1,
-    });
+    firePointerEvent(
+      screen.getByTestId("doc-browser-resize-top"),
+      "pointerdown",
+      {
+        clientX: 900,
+        clientY: 80,
+        pointerId: 1,
+      },
+    );
     firePointerEvent(window, "pointermove", {
       clientX: 900,
       clientY: 120,

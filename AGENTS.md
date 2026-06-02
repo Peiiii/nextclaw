@@ -46,6 +46,7 @@
 - 写或改源码、脚本、测试、运行链路配置前，默认使用 `nextclaw-clean-implementation` skill；涉及 fallback / compatibility / rescue path 时，同时使用 `predictable-behavior-first`。
 - 讨论、审查或重构代码审美、代码是否干净/优雅/美丽、是否过度防卫或过度抽象时，使用 `writing-beautiful-code`；项目专属规则仍归对应项目 skill。
 - 涉及前端样式、响应式布局、紧凑模式、组件视觉状态或样式 owner / 可移植性判断时，使用 `frontend-style-encapsulation`。
+- 涉及前端交互体验、操作含义、tooltip/popover、键盘可达性、状态反馈或紧凑模式下的操作可理解性时，使用 `frontend-interaction-quality`。
 - 涉及 kernel 主干/分支、manager/service/store/presenter owner 依赖、稳定业务 owner 是否直连、factory/create/registry 是否过度抽象、prop 透传或链路过长时，必须使用 `kernel-branch-owner-architecture`。
 - 改完源码、脚本、测试或运行链路配置后，默认使用 `post-edit-maintainability-guard`，再使用 `post-edit-maintainability-review`。
 - 创建、拆分、移动文件/模块/目录前，必须先判断并读取命名、角色、目录组织相关 skill，再按其规则实现。
