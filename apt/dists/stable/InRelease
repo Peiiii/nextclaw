@@ -4,36 +4,36 @@ Hash: SHA512
 Architectures: amd64
 Codename: stable
 Components: main
-Date: Sun, 24 May 2026 13:33:32 +0000
+Date: Tue, 02 Jun 2026 17:21:59 +0000
 Description: NextClaw Linux APT Repository
 Label: NextClaw
 Origin: NextClaw
 Suite: stable
 MD5Sum:
- a12156cb65dd0df94a0fa509c4a0901a             8369 main/binary-amd64/Packages
- bf13fc70a9aa96855c6ed1aebe54ea99             1615 main/binary-amd64/Packages.gz
+ 82c2a723d737381ef12987666b1137c7             9066 main/binary-amd64/Packages
+ daac0917c749b94e7a555cca965c204a             1718 main/binary-amd64/Packages.gz
 SHA1:
- 19aae2cc7bbc03fd78a996da8c60b0a090419922             8369 main/binary-amd64/Packages
- 451c26f8cbd3cad2eacc0be56dc82c58ad37d105             1615 main/binary-amd64/Packages.gz
+ 553177ba6fcec8349c8a1aa6f59942b65e348dcf             9066 main/binary-amd64/Packages
+ df6f195ff181fb45172e41545dce4579545680a2             1718 main/binary-amd64/Packages.gz
 SHA256:
- a05be8dae9b63847767eac4d9585400d6d114c7ff097f074dadd3066b05a3378             8369 main/binary-amd64/Packages
- 2f3987f7172031f275bff6fd0aba620e8ecf8ba93773c6b292648b4e1614709f             1615 main/binary-amd64/Packages.gz
+ 6496b0e9220e88553ac01609de6697eb70f36a2336bd35fa57d4400245cec3b0             9066 main/binary-amd64/Packages
+ fe855cdbedb972d650c05fa93e87a8cd8b32c024a934962940e37c1cc612a7cf             1718 main/binary-amd64/Packages.gz
 SHA512:
- 95862cc2c35bf87e03e3425f1438e9713ed4ee92891c706f4a0aa1dc0e00e6c3172ea16335512a8359893966d0f329bc386f5244979cd6c392af69b2fd9fd549             8369 main/binary-amd64/Packages
- e6519053d49277e4d81290d4f20a612a62ce7267a3e6222c5b6a2422a2fd8804c831a529027720ade02b958317ce1effa0de7db51cd932f43eb64a90895d44a3             1615 main/binary-amd64/Packages.gz
+ 560b0af703c3a7e71b9da7e18751ff7720afde43839a9f03ff83078c99478e324aebbb4c5fa78acfff3a02064cbf7b373d35f3e4b5d2d619ecab44d2e7789162             9066 main/binary-amd64/Packages
+ 3ba49f080887ffee43a38c225c6fb35243a5ac295c36455189bb8ee681209b7de4c010ef4bb60ca659345b98c26282df1fbbcef940ce14fbd9522fe13a8f93dd             1718 main/binary-amd64/Packages.gz
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAEBCgAdFiEEftow2+KCd730BV/ph7cXlsPi8LIFAmoS/iwACgkQh7cXlsPi
-8LI63BAAj6YJFLfxfWOGZA79/S1Kq+a2HSwG+4nPe9ijtkFZMUsEafi55f8Oh/jT
-WYGrAeXJ7Fr/HBiPhgK6w37OuhzCfPjSJsAogiOBnAeFyx38U7sG6HZ28KxZubaf
-d6MAhwdhCu+nTYXgRy/vWQynVE/GfQ2pd0eVLHv15zhazss580WM/mEHsjlUt3R8
-dVlE7d72Qda8vnfUdZQfo+sE8HsWyv0YYTffvRLO8A2tlTf7FsnHONqCUh6f1Rmz
-o714R287RZj8aUQ57gtIBpeWXJVYQsgmx1NScyOv0Yosrdct68DFVh7PNyXvORHs
-kmIqKOE7GX58alKfpRFXvJjTAj4OKDttUx/gi2MOWl3MvCwsRNA/0s0teIR8m+Tj
-h8pY9zZcpL3k4zkD9RyLS2Cw+b5MMX9oeKoGAl5XKsmF5+zv3ZSduT+IUy7CPI30
-xEr7piJTb4ZiFrFcLqNCiVfpNHmN+DKRqr0ti2kNZrOxmkx2euD+tT8/AJ5juJlx
-etjR1rm6IjryJdHDWmOtaEvQcHIpo19m6gARtkqa4BYFU1aNwgw0dp01CqtZhkmb
-mN4RdPBK/xNCsl+fmoaArsFasDmy8qVmwwdqtAXVRvhUK4lEKvFcGU7MnJEp3jkG
-/ZNDXeMfMGpoyWkgGrHN3i/Oz/Vj5hGGW8qOmYiW5t6I6UnIeUo=
-=rjjQ
+iQIzBAEBCgAdFiEEftow2+KCd730BV/ph7cXlsPi8LIFAmofETcACgkQh7cXlsPi
+8LJ0AhAAtvaHnt4OGoyVAcarW7jSVzJlyRq19EBWRFQjvCScZJ6d7D1kYitwTimq
+74jphP36DF1Tr0rMD973mNcVBHnYuwpDehpiB3PbiPJb63Ci66vHObzaubn5+exC
+If3YQaEcXHq8knPQ0C3yY6jlhzakeZrzHez+xMavmqZbJu/joo83QmbBH7XM87GH
+K/gENbCY7j1YdscTVphGN5NX56SvPL68hQByKj2QRA2TYZ958SfMpdbjwO6a7NLd
+MHHEU2y0b76wg+TS3Ht0K0mS0Sb/T+b9HGDhTUnEXZKcJTan4VgoSTqF0cnuIIJP
+KMucxbd4lQ53bG8rjMuFg2DFhgOJz9QlrvPwTJRbvvx2h1xHjRXM6QwrrV7xlw9w
+/KGs3m7LlEg6ViI/Gh7DqyeNexNSNSmw5PLaXe9MIRYUbKGiZCpk4YqjIjQVDZTY
+PEoMIjY8skL7OtR3tM8b5hT7n1OaLY36wpgec/xkHyG7U5svqSYLnKpJ/WejklSc
+L3L3b+L3fl4L3+ZDLe6r7BMIrpAjz+SkBKKjwxFqLvtzCQe8SPL8zVlLNG+h97jx
+7ppiy8sufXdNwf6WUX8OUGmsQgyBOMkUHvGMUgNqmN7u6Ul7LdDLFWkmxuDHxSgL
+coz7+xxNnj6W6gsmXfha47C60hjsIU5J+q0PawYcGfs/ZsWN67U=
+=FXSV
 -----END PGP SIGNATURE-----
