@@ -3,7 +3,7 @@
   "organizationModel": "legacy-cli-skills-command",
   "rootPolicy": "legacy-frozen",
   "enforcement": "error",
-  "allowedRootDirectories": ["services", "utils"],
+  "allowedRootDirectories": ["services", "stores", "utils"],
   "allowedRootFiles": [
     "index.ts",
     "marketplace-client.ts",

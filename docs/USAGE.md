@@ -494,8 +494,9 @@ Skill loading contract:
 - `<workspace>/skills/` is for custom skills and marketplace-installed skills.
 - With the default workspace, the default skill directory is `~/.nextclaw/workspace/skills/`.
 - Use `nextclaw skills installed` / `nextclaw skills info <selector>` for the **installed/local domain**.
-- Use `nextclaw marketplace skills search|info|recommend|install` for the **marketplace/catalog domain**.
+- Use `nextclaw marketplace skills search|info|recommend|install|update` for the **marketplace/catalog and installed marketplace lifecycle domain**.
 - `nextclaw skills install <slug>` remains available as a compatibility shortcut for marketplace installation into that directory.
+- Marketplace-installed skills write a local `.nextclaw-install.json` state file so `update` can compare the installed copy with the marketplace source.
 - Built-in marketplace skills are already available by default; marketplace install does not copy them into the workspace when the target skill is built-in.
 - Historical copied built-in skills under `<workspace>/skills/` are deprecated artifacts.
 - If a built-in skill and a workspace skill share the same name, NextClaw ignores the workspace copy and uses the built-in definition as the source of truth.
@@ -565,6 +566,7 @@ Skill loading contract:
 | `nextclaw marketplace skills info <slug>` | Show marketplace skill details (`--json`) |
 | `nextclaw marketplace skills recommend` | List recommended marketplace skills (`--json`, `--scene`, `--limit`) |
 | `nextclaw marketplace skills install <slug>` | Install a marketplace skill using the explicit marketplace domain |
+| `nextclaw marketplace skills update <slug>` | Update an installed marketplace skill; refuses local file drift unless `--force` is used |
 | `nextclaw config get <path>` | Get config value by path (use `--json` for structured output) |
 | `nextclaw config set <path> <value>` | Set config value by path (use `--json` to parse value as JSON) |
 | `nextclaw config unset <path>` | Remove config value by path |

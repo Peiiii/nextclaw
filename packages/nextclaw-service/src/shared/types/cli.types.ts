@@ -68,6 +68,14 @@ export type MarketplaceSkillsRecommendCommandOptions = {
   json?: boolean;
 };
 
+export type MarketplaceSkillsUpdateCommandOptions = {
+  apiBase?: string;
+  workdir?: string;
+  dir?: string;
+  force?: boolean;
+  json?: boolean;
+};
+
 export type UpdateCommandOptions = {
   check?: boolean;
   download?: boolean;

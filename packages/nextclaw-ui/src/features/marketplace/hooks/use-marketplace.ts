@@ -178,7 +178,9 @@ export function useManageMarketplaceItem() {
         ? t('marketplaceEnableSuccess')
         : result.action === 'disable'
           ? t('marketplaceDisableSuccess')
-          : t('marketplaceUninstallSuccess');
+          : result.action === 'update'
+            ? t('marketplaceUpdateSuccess')
+            : t('marketplaceUninstallSuccess');
       toast.success(result.message || fallback);
     },
     onError: (error: Error) => {

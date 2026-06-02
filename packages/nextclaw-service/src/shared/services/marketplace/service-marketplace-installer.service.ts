@@ -7,7 +7,11 @@ import type {
 } from "@nextclaw/server";
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "@nextclaw-service/shared/utils/marketplace/service-marketplace-helpers.utils.js";
+import {
+  buildMarketplaceSkillInstallArgs,
+  buildMarketplaceSkillUpdateArgs,
+  pickUserFacingCommandSummary
+} from "@nextclaw-service/shared/utils/marketplace/service-marketplace-helpers.utils.js";
 import { ServiceMcpMarketplaceOps } from "@nextclaw-service/shared/services/marketplace/service-mcp-marketplace-ops.js";
 
 type UserFacingResult = {
@@ -29,6 +33,7 @@ export class ServiceMarketplaceInstaller {
   createInstaller(): MarketplaceInstaller {
     return {
       installSkill: (params) => this.installSkill(params),
+      updateSkill: (params) => this.updateSkill(params),
       installMcp: (params) => this.installMcp(params),
       uninstallSkill: (slug) => this.uninstallSkill(slug),
       enableMcp: (name) => this.enableMcp(name),
@@ -39,31 +44,32 @@ export class ServiceMarketplaceInstaller {
   }
 
   private async installSkill(params: MarketplaceInstallSkillParams): Promise<UserFacingResult> {
-    if (params.kind === "builtin") {
-      const result = this.deps.installBuiltinSkill(params.slug, params.force);
+    const { force, kind, slug } = params;
+    if (kind === "builtin") {
+      const result = this.deps.installBuiltinSkill(slug, force);
       if (!result) {
-        throw new Error(`Builtin skill not found: ${params.slug}`);
+        throw new Error(`Builtin skill not found: ${slug}`);
       }
       return result;
     }
 
-    if (params.kind && params.kind !== "marketplace") {
-      throw new Error(`Unsupported marketplace skill kind: ${params.kind}`);
+    if (kind && kind !== "marketplace") {
+      throw new Error(`Unsupported marketplace skill kind: ${kind}`);
     }
 
     const workspace = getWorkspacePath(loadConfig().agents.defaults.workspace);
     const args = buildMarketplaceSkillInstallArgs({
-      slug: params.slug,
+      slug,
       workspace,
-      force: params.force
+      force
     });
 
     try {
       const output = await this.deps.runCliSubcommand(args);
-      const summary = pickUserFacingCommandSummary(output, `Installed skill: ${params.slug}`);
+      const summary = pickUserFacingCommandSummary(output, `Installed skill: ${slug}`);
       return { message: summary };
     } catch (error) {
-      const fallback = this.deps.installBuiltinSkill(params.slug, params.force);
+      const fallback = this.deps.installBuiltinSkill(slug, force);
       if (!fallback) {
         throw error;
       }
@@ -73,6 +79,17 @@ export class ServiceMarketplaceInstaller {
 
   private async installMcp(params: MarketplaceMcpInstallRequest): Promise<{ name: string; message: string; output?: string }> {
     return await this.createMcpMarketplaceOps().install(params);
+  }
+
+  private async updateSkill(params: MarketplaceInstallSkillParams): Promise<UserFacingResult> {
+    const workspace = getWorkspacePath(loadConfig().agents.defaults.workspace);
+    const output = await this.deps.runCliSubcommand(buildMarketplaceSkillUpdateArgs({
+      slug: params.slug,
+      workspace,
+      force: params.force
+    }));
+    const summary = pickUserFacingCommandSummary(output, `Updated skill: ${params.slug}`);
+    return { message: summary, output };
   }
 
   private async uninstallSkill(slug: string): Promise<UserFacingResult> {

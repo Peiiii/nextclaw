@@ -77,14 +77,35 @@ async function manageMarketplaceSkill(params: {
       ? body.spec.trim()
       : "";
 
-  if (action !== "uninstall" || !targetId) {
-    throw new Error("INVALID_BODY:skill manage requires uninstall action and non-empty id/spec");
+  if ((action !== "update" && action !== "uninstall") || !targetId) {
+    throw new Error("INVALID_BODY:skill manage requires update/uninstall action and non-empty id/spec");
   }
 
   const installer = options.marketplace?.installer;
   if (!installer) {
     throw new Error("NOT_AVAILABLE:marketplace installer is not configured");
   }
+
+  if (action === "update") {
+    if (!installer.updateSkill) {
+      throw new Error("NOT_AVAILABLE:skill update is not configured");
+    }
+
+    const result = await installer.updateSkill({
+      slug: targetId,
+      force: body.force
+    });
+    emitConfigUpdated(options, "skills");
+
+    return {
+      type: "skill",
+      action,
+      id: targetId,
+      message: result.message,
+      output: result.output
+    };
+  }
+
   if (!installer.uninstallSkill) {
     throw new Error("NOT_AVAILABLE:skill uninstall is not configured");
   }

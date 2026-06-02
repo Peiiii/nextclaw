@@ -282,7 +282,9 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
     action: MarketplaceManageAction,
     record: MarketplaceInstalledRecord,
   ) => {
-    const targetId = record.id || record.spec;
+    const targetId = action === "update"
+      ? record.catalogSlug || record.id || record.spec
+      : record.id || record.spec;
     if (!targetId) {
       return;
     }

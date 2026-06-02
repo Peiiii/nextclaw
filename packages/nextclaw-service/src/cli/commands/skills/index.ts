@@ -5,9 +5,19 @@ import {
   buildMarketplaceUpdateOptions,
   type MarketplacePublishCommandOptions,
 } from "./marketplace-command-options.utils.js";
-import { installMarketplaceSkill, publishMarketplaceSkill } from "./marketplace.utils.js";
+import {
+  installMarketplaceSkill,
+  publishMarketplaceSkill,
+  updateInstalledMarketplaceSkill
+} from "./marketplace.utils.js";
 import { SkillsQueryService } from "./skills-query.service.js";
-import type { MarketplaceSkillsRecommendCommandOptions, MarketplaceSkillsSearchCommandOptions, SkillsInfoCommandOptions, SkillsInstalledCommandOptions } from "@nextclaw-service/shared/types/cli.types.js";
+import type {
+  MarketplaceSkillsRecommendCommandOptions,
+  MarketplaceSkillsSearchCommandOptions,
+  MarketplaceSkillsUpdateCommandOptions,
+  SkillsInfoCommandOptions,
+  SkillsInstalledCommandOptions
+} from "@nextclaw-service/shared/types/cli.types.js";
 
 export class SkillsCommands {
   private readonly skillsQueryService = new SkillsQueryService();
@@ -173,6 +183,36 @@ export class SkillsCommands {
     for (const item of result.items) {
       console.log(`- ${item.name} (${item.slug})`);
     }
+  };
+
+  marketplaceUpdateInstalled = async (
+    slug: string,
+    options: MarketplaceSkillsUpdateCommandOptions = {}
+  ): Promise<void> => {
+    const config = loadConfig();
+    const workdir = resolveSkillsInstallWorkdir({
+      explicitWorkdir: options.workdir,
+      configuredWorkspace: config.agents.defaults.workspace,
+    });
+    const result = await updateInstalledMarketplaceSkill({
+      slug,
+      workdir,
+      dir: options.dir,
+      force: options.force,
+      apiBaseUrl: options.apiBase,
+    });
+
+    if (options.json) {
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+
+    if (result.updated) {
+      console.log(`✓ Updated ${result.slug}`);
+    } else {
+      console.log(`✓ ${result.slug} is already up to date`);
+    }
+    console.log(`  Path: ${result.destinationDir}`);
   };
 
   publish = async (options: MarketplacePublishCommandOptions): Promise<void> => {

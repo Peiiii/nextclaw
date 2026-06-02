@@ -34,7 +34,7 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 - In desktop-installed runtimes, still use the same `nextclaw ...` commands. The desktop launcher provides a managed command surface to AI command tools; do not ask the user to install the NPM CLI just to run self-management commands.
 - Keep installed skills and marketplace catalog as two different domains:
   - local installed: `nextclaw skills installed|info`
-  - marketplace catalog: `nextclaw marketplace skills search|info|recommend|install`
+  - marketplace catalog and installed marketplace lifecycle: `nextclaw marketplace skills search|info|recommend|install|update`
 - After mutating operations, close the loop with:
   - `nextclaw status --json`
   - and `nextclaw doctor --json` when needed
@@ -70,4 +70,4 @@ When user asks "what changed in version X", follow:
 - Agents: `nextclaw agents list|new|update|remove`
 - Automation: `nextclaw cron list|add|remove|enable|run`
 - Installed skills: `nextclaw skills installed|info`
-- Marketplace skills: `nextclaw marketplace skills search|info|recommend|install`
+- Marketplace skills: `nextclaw marketplace skills search|info|recommend|install|update`

@@ -1,9 +1,9 @@
-export type MarketplaceItemType = "skill" | "mcp";
+export type MarketplaceItemType = 'skill' | 'mcp';
 
-export type MarketplaceSort = "relevance" | "updated";
+export type MarketplaceSort = 'relevance' | 'updated';
 
-export type MarketplaceSkillInstallKind = "builtin" | "marketplace";
-export type MarketplaceMcpInstallKind = "template";
+export type MarketplaceSkillInstallKind = 'builtin' | 'marketplace';
+export type MarketplaceMcpInstallKind = 'template';
 export type MarketplaceInstallKind = MarketplaceSkillInstallKind | MarketplaceMcpInstallKind;
 
 export type MarketplaceInstallSpec = {
@@ -22,9 +22,9 @@ export type MarketplaceMcpTemplateInput = {
 };
 
 export type MarketplaceMcpInstallSpec = MarketplaceInstallSpec & {
-  kind: "template";
+  kind: 'template';
   defaultName: string;
-  transportTypes: Array<"stdio" | "http" | "sse">;
+  transportTypes: Array<'stdio' | 'http' | 'sse'>;
   template: Record<string, unknown>;
   inputs: MarketplaceMcpTemplateInput[];
 };
@@ -53,11 +53,11 @@ export type MarketplaceItemView = MarketplaceItemSummary & {
 };
 
 export type MarketplaceSkillContentView = {
-  type: "skill";
+  type: 'skill';
   slug: string;
   name: string;
   install: MarketplaceInstallSpec;
-  source: "builtin" | "marketplace" | "remote";
+  source: 'builtin' | 'marketplace' | 'remote';
   raw: string;
   metadataRaw?: string;
   bodyRaw: string;
@@ -65,11 +65,11 @@ export type MarketplaceSkillContentView = {
 };
 
 export type MarketplaceMcpContentView = {
-  type: "mcp";
+  type: 'mcp';
   slug: string;
   name: string;
   install: MarketplaceMcpInstallSpec;
-  source: "marketplace" | "remote";
+  source: 'marketplace' | 'remote';
   raw: string;
   metadataRaw?: string;
   bodyRaw: string;
@@ -119,7 +119,7 @@ export type MarketplaceInstalledRecord = {
   runtimeStatus?: string;
   origin?: string;
   installPath?: string;
-  transport?: "stdio" | "http" | "sse";
+  transport?: 'stdio' | 'http' | 'sse';
   scope?: {
     allAgents: boolean;
     agents: string[];
@@ -128,7 +128,7 @@ export type MarketplaceInstalledRecord = {
   vendor?: string;
   docsUrl?: string;
   homepage?: string;
-  trustLevel?: "official" | "verified" | "community";
+  trustLevel?: 'official' | 'verified' | 'community';
   toolCount?: number;
   accessible?: boolean;
   lastReadyAt?: string;
@@ -143,124 +143,51 @@ export type MarketplaceInstalledView = {
   records: MarketplaceInstalledRecord[];
 };
 
-export type MarketplaceInstallSkillParams = {
-  slug: string;
-  kind?: MarketplaceSkillInstallKind;
+export type MarketplaceInstallRequest = {
+  type: MarketplaceItemType;
+  spec: string;
+  kind?: MarketplaceInstallKind;
   skill?: string;
   installPath?: string;
   force?: boolean;
-};
-
-export type MarketplaceSkillInstallRequest = {
-  type?: "skill";
-  spec: string;
-  kind?: MarketplaceSkillInstallKind;
-  skill?: string;
-  installPath?: string;
-  force?: boolean;
-};
-
-export type MarketplaceMcpInstallRequest = {
-  type?: "mcp";
-  spec: string;
   name?: string;
   enabled?: boolean;
   allAgents?: boolean;
   agents?: string[];
   inputs?: Record<string, string>;
-  template?: MarketplaceMcpInstallSpec;
 };
 
-export type MarketplaceInstallRequest =
-  | MarketplaceSkillInstallRequest
-  | MarketplaceMcpInstallRequest;
-
-export type MarketplaceSkillInstallResult = {
-  type: "skill";
+export type MarketplaceInstallResult = {
+  type: MarketplaceItemType;
   spec: string;
   message: string;
   output?: string;
+  name?: string;
 };
 
-export type MarketplaceMcpInstallResult = {
-  type: "mcp";
-  spec: string;
-  name: string;
-  message: string;
-  output?: string;
-};
+export type MarketplaceManageAction = 'enable' | 'disable' | 'update' | 'uninstall' | 'remove';
 
-export type MarketplaceInstallResult =
-  | MarketplaceSkillInstallResult
-  | MarketplaceMcpInstallResult;
-
-export type MarketplaceSkillManageAction = "update" | "uninstall";
-export type MarketplaceMcpManageAction = "enable" | "disable" | "remove";
-
-export type MarketplaceManageAction =
-  | MarketplaceSkillManageAction
-  | MarketplaceMcpManageAction;
-
-export type MarketplaceSkillManageRequest = {
-  type?: "skill";
-  action: MarketplaceSkillManageAction;
+export type MarketplaceManageRequest = {
+  type: MarketplaceItemType;
+  action: MarketplaceManageAction;
   id?: string;
   spec?: string;
   force?: boolean;
 };
 
-export type MarketplaceMcpManageRequest = {
-  type?: "mcp";
-  action: MarketplaceMcpManageAction;
-  id?: string;
-  spec?: string;
-};
-
-export type MarketplaceManageRequest =
-  | MarketplaceSkillManageRequest
-  | MarketplaceMcpManageRequest;
-
-export type MarketplaceSkillManageResult = {
-  type: "skill";
-  action: MarketplaceSkillManageAction;
+export type MarketplaceManageResult = {
+  type: MarketplaceItemType;
+  action: MarketplaceManageAction;
   id: string;
   message: string;
   output?: string;
 };
-
-export type MarketplaceMcpManageResult = {
-  type: "mcp";
-  action: MarketplaceMcpManageAction;
-  id: string;
-  message: string;
-  output?: string;
-};
-
-export type MarketplaceManageResult =
-  | MarketplaceSkillManageResult
-  | MarketplaceMcpManageResult;
 
 export type MarketplaceMcpDoctorResult = {
   name: string;
   enabled: boolean;
-  transport: "stdio" | "http" | "sse";
+  transport: 'stdio' | 'http' | 'sse';
   accessible: boolean;
   toolCount: number;
   error?: string;
-};
-
-export type MarketplaceInstaller = {
-  installSkill?: (params: MarketplaceInstallSkillParams) => Promise<{ message: string; output?: string }>;
-  updateSkill?: (params: MarketplaceInstallSkillParams) => Promise<{ message: string; output?: string }>;
-  uninstallSkill?: (slug: string) => Promise<{ message: string; output?: string }>;
-  installMcp?: (params: MarketplaceMcpInstallRequest) => Promise<{ name: string; message: string; output?: string }>;
-  enableMcp?: (name: string) => Promise<{ message: string; output?: string }>;
-  disableMcp?: (name: string) => Promise<{ message: string; output?: string }>;
-  removeMcp?: (name: string) => Promise<{ message: string; output?: string }>;
-  doctorMcp?: (name: string) => Promise<MarketplaceMcpDoctorResult>;
-};
-
-export type MarketplaceApiConfig = {
-  apiBaseUrl?: string;
-  installer?: MarketplaceInstaller;
 };

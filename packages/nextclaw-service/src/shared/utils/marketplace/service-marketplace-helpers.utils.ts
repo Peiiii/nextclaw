@@ -58,3 +58,15 @@ export const buildMarketplaceSkillInstallArgs = (params: {
   }
   return args;
 };
+
+export const buildMarketplaceSkillUpdateArgs = (params: {
+  slug: string;
+  workspace: string;
+  force?: boolean;
+}): string[] => {
+  const args = ["marketplace", "skills", "update", params.slug, "--workdir", params.workspace];
+  if (params.force) {
+    args.push("--force");
+  }
+  return args;
+};

@@ -133,6 +133,14 @@ export function applyManageResultToInstalledView(params: {
       };
     }
 
+    if (params.result.action === 'update') {
+      return {
+        ...record,
+        installedAt: new Date().toISOString(),
+        origin: record.origin ?? 'marketplace'
+      };
+    }
+
     return {
       ...record,
       enabled: true,

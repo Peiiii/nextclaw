@@ -1,8 +1,11 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { installMarketplaceSkill } from "./marketplace.utils.js";
+import {
+  installMarketplaceSkill,
+  updateInstalledMarketplaceSkill
+} from "./marketplace.utils.js";
 
 const cleanupDirs: string[] = [];
 
@@ -34,7 +37,8 @@ function stubMarketplaceFetch(): void {
           data: {
             install: {
               kind: "marketplace"
-            }
+            },
+            updatedAt: "2026-06-01T00:00:00.000Z"
           }
         }), {
           status: 200,
@@ -83,7 +87,106 @@ describe("installMarketplaceSkill", () => {
 
     expect(result.alreadyInstalled).toBeUndefined();
     expect(existsSync(join(destinationDir, "SKILL.md"))).toBe(true);
+    expect(existsSync(join(destinationDir, ".nextclaw-install.json"))).toBe(true);
     expect(readFileSync(join(destinationDir, "SKILL.md"), "utf8")).toContain("agent-browser");
+  });
+
+  it("reports and applies marketplace updates for tracked installs", async () => {
+    const workspace = createTempWorkspace();
+    const skillBodyByVersion = new Map([
+      ["2026-06-01T00:00:00.000Z", "# agent-browser\nold"],
+      ["2026-06-02T00:00:00.000Z", "# agent-browser\nnew"],
+    ]);
+    let updatedAt = "2026-06-01T00:00:00.000Z";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL | Request) => {
+        const url = String(input);
+        if (url.endsWith("/api/v1/skills/items/agent-browser")) {
+          return new Response(JSON.stringify({
+            ok: true,
+            data: {
+              slug: "agent-browser",
+              packageName: "@nextclaw/agent-browser",
+              updatedAt,
+              install: {
+                kind: "marketplace"
+              }
+            }
+          }), {
+            status: 200,
+            headers: { "content-type": "application/json" }
+          });
+        }
+
+        if (url.endsWith("/api/v1/skills/items/agent-browser/files")) {
+          return new Response(JSON.stringify({
+            ok: true,
+            data: {
+              files: [{
+                path: "SKILL.md",
+                contentBase64: Buffer.from(skillBodyByVersion.get(updatedAt) ?? "").toString("base64")
+              }]
+            }
+          }), {
+            status: 200,
+            headers: { "content-type": "application/json" }
+          });
+        }
+
+        return new Response(JSON.stringify({
+          ok: false,
+          error: { message: `unexpected url: ${url}` }
+        }), {
+          status: 404,
+          headers: { "content-type": "application/json" }
+        });
+      })
+    );
+
+    await installMarketplaceSkill({
+      slug: "agent-browser",
+      workdir: workspace,
+      apiBaseUrl: "https://marketplace-api.nextclaw.io"
+    });
+    renameSync(
+      join(workspace, "skills", "agent-browser", ".nextclaw-install.json"),
+      join(workspace, "skills", "agent-browser", ".nextclaw-marketplace.json")
+    );
+
+    updatedAt = "2026-06-02T00:00:00.000Z";
+    const update = await updateInstalledMarketplaceSkill({
+      slug: "agent-browser",
+      workdir: workspace,
+      apiBaseUrl: "https://marketplace-api.nextclaw.io"
+    });
+
+    expect(update.updated).toBe(true);
+    expect(readFileSync(join(workspace, "skills", "agent-browser", "SKILL.md"), "utf8")).toContain("new");
+    expect(JSON.parse(readFileSync(join(workspace, "skills", "agent-browser", ".nextclaw-install.json"), "utf8"))).toEqual(
+      expect.objectContaining({
+        slug: "agent-browser",
+        packageName: "@nextclaw/agent-browser",
+        marketplaceUpdatedAt: "2026-06-02T00:00:00.000Z",
+      })
+    );
+  });
+
+  it("refuses to update locally modified marketplace skills without force", async () => {
+    const workspace = createTempWorkspace();
+    stubMarketplaceFetch();
+    await installMarketplaceSkill({
+      slug: "agent-browser",
+      workdir: workspace,
+      apiBaseUrl: "https://marketplace-api.nextclaw.io"
+    });
+    writeFileSync(join(workspace, "skills", "agent-browser", "SKILL.md"), "# custom local edit\n");
+
+    await expect(() => updateInstalledMarketplaceSkill({
+      slug: "agent-browser",
+      workdir: workspace,
+      apiBaseUrl: "https://marketplace-api.nextclaw.io",
+    })).rejects.toThrow("Local skill files changed since install: agent-browser; use --force to overwrite local changes.");
   });
 
   it("keeps refusing directories that contain unrelated files", async () => {

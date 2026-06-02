@@ -19,6 +19,7 @@ import { cn } from "@/shared/lib/utils";
 import {
   CheckCircle2,
   Download,
+  RefreshCw,
   Trash2,
 } from "lucide-react";
 
@@ -35,6 +36,7 @@ type MarketplaceListCardActionProps = {
   record?: MarketplaceInstalledRecord;
   isInstalling: boolean;
   isDisabled: boolean;
+  canUpdate: boolean;
   canUninstall: boolean;
   busyAction?: MarketplaceManageAction;
   busyForRecord: boolean;
@@ -96,6 +98,7 @@ function MarketplaceListCardActions(props: MarketplaceListCardActionProps) {
     record,
     isInstalling,
     isDisabled,
+    canUpdate,
     canUninstall,
     busyAction,
     busyForRecord,
@@ -103,7 +106,7 @@ function MarketplaceListCardActions(props: MarketplaceListCardActionProps) {
     onInstall,
     onManage,
   } = props;
-  const hasActions = Boolean((item && !record) || (record && canUninstall));
+  const hasActions = Boolean((item && !record) || (record && (canUpdate || canUninstall)));
 
   return (
     <div
@@ -145,6 +148,22 @@ function MarketplaceListCardActions(props: MarketplaceListCardActionProps) {
           >
             <Download className="h-3.5 w-3.5" />
             {isInstalling ? t("marketplaceInstalling") : t("marketplaceInstall")}
+          </button>
+        )}
+
+        {record && canUpdate && (
+          <button
+            disabled={busyForRecord}
+            onClick={(event) => {
+              event.stopPropagation();
+              onManage("update", record);
+            }}
+            className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-xl border border-blue-200/80 bg-white px-3 text-xs font-medium text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-50 disabled:opacity-50"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            {busyAction === "update"
+              ? t("marketplaceUpdating")
+              : t("marketplaceUpdate")}
           </button>
         )}
 
@@ -241,6 +260,7 @@ export function MarketplaceListCard(props: {
     : undefined;
   const busyForRecord = Boolean(busyAction);
   const canUninstall = record?.type === "skill" && record.source === "workspace";
+  const canUpdate = record?.type === "skill" && record.origin === "marketplace";
   const isDisabled = record
     ? record.enabled === false || record.runtimeStatus === "disabled"
     : false;
@@ -269,6 +289,7 @@ export function MarketplaceListCard(props: {
         record={record}
         isInstalling={isInstalling}
         isDisabled={isDisabled}
+        canUpdate={canUpdate}
         canUninstall={canUninstall}
         busyAction={busyAction}
         busyForRecord={busyForRecord}

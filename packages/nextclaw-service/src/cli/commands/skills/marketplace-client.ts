@@ -1,6 +1,11 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { runWithMarketplaceNetworkRetry } from "./marketplace-network-retry.js";
+import {
+  hashMarketplaceFileBytes,
+  isLocalMarketplaceInstallStateFile,
+  type MarketplaceSkillInstallStateFileEntry
+} from "./stores/marketplace-install-state.store.js";
 
 const DEFAULT_MARKETPLACE_API_BASE = "https://marketplace-api.nextclaw.io";
 
@@ -21,6 +26,13 @@ export type MarketplaceSkillFileManifestEntry = {
   contentBase64?: string;
 };
 
+export type MarketplaceSkillItem = {
+  slug: string;
+  packageName?: string;
+  updatedAt?: string;
+  install: { kind: MarketplaceSkillInstallKind };
+};
+
 export function resolveMarketplaceApiBase(explicitBase: string | undefined): string {
   const raw = explicitBase?.trim()
     || process.env.NEXTCLAW_MARKETPLACE_API_BASE?.trim()
@@ -36,7 +48,7 @@ export function resolveMarketplaceAdminToken(explicitToken: string | undefined):
 export async function fetchMarketplaceSkillItem(
   apiBase: string,
   slug: string
-): Promise<{ slug: string; packageName?: string; install: { kind: MarketplaceSkillInstallKind } }> {
+): Promise<MarketplaceSkillItem> {
   return runWithMarketplaceNetworkRetry(async () => {
     const response = await fetch(`${apiBase}/api/v1/skills/items/${encodeURIComponent(slug)}`, {
       headers: {
@@ -46,6 +58,7 @@ export async function fetchMarketplaceSkillItem(
     const payload = await readMarketplaceEnvelope<{
       slug?: string;
       packageName?: string;
+      updatedAt?: string;
       install: { kind: MarketplaceSkillInstallKind | string };
     }>(response);
 
@@ -65,6 +78,9 @@ export async function fetchMarketplaceSkillItem(
         : slug,
       packageName: typeof payload.data.packageName === "string" && payload.data.packageName.trim()
         ? payload.data.packageName.trim()
+        : undefined,
+      updatedAt: typeof payload.data.updatedAt === "string" && payload.data.updatedAt.trim()
+        ? payload.data.updatedAt.trim()
         : undefined,
       install: {
         kind
@@ -150,6 +166,9 @@ export function collectMarketplaceSkillFiles(rootDir: string): Array<{ path: str
       if (!entry.isFile()) {
         continue;
       }
+      if (isLocalMarketplaceInstallStateFile(relativePath)) {
+        continue;
+      }
       output.push({
         path: relativePath,
         contentBase64: readFileSync(absolute).toString("base64"),
@@ -166,8 +185,9 @@ export async function writeMarketplaceSkillFiles(params: {
   files: MarketplaceSkillFileManifestEntry[];
   apiBase: string;
   slug: string;
-}): Promise<void> {
+}): Promise<MarketplaceSkillInstallStateFileEntry[]> {
   const { destinationDir, files, apiBase, slug } = params;
+  const writtenFiles: MarketplaceSkillInstallStateFileEntry[] = [];
   for (const file of files) {
     const targetPath = resolve(destinationDir, ...file.path.split("/"));
     const rel = relative(destinationDir, targetPath);
@@ -180,7 +200,12 @@ export async function writeMarketplaceSkillFiles(params: {
       ? decodeMarketplaceFileContent(file.path, file.contentBase64)
       : await fetchMarketplaceSkillFileBlob(apiBase, slug, file);
     writeFileSync(targetPath, bytes);
+    writtenFiles.push({
+      path: normalizeMarketplaceRelativePath(file.path),
+      sha256: hashMarketplaceFileBytes(bytes),
+    });
   }
+  return writtenFiles;
 }
 
 export async function readMarketplaceEnvelope<T>(response: Response): Promise<MarketplaceEnvelope<T>> {
@@ -230,6 +255,10 @@ function decodeMarketplaceFileContent(path: string, contentBase64: string): Buff
     throw new Error(`Invalid marketplace file contentBase64 for path: ${path}`);
   }
   return Buffer.from(normalized, "base64");
+}
+
+function normalizeMarketplaceRelativePath(path: string): string {
+  return path.replace(/\\/g, "/");
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

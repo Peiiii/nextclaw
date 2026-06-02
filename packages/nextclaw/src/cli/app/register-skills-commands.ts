@@ -102,6 +102,16 @@ export function registerSkillsCommands(program: Command, nextclaw: NextclawServi
     .action(async (opts) => await skillsCommands.marketplaceRecommend(opts));
 
   marketplaceSkills
+    .command("update <slug>")
+    .description("Update an installed marketplace skill")
+    .option("--api-base <url>", "Marketplace API base URL")
+    .option("--workdir <dir>", "Workspace directory to update")
+    .option("--dir <dir>", "Skills directory name (default: skills)")
+    .option("-f, --force", "Overwrite local skill files", false)
+    .option("--json", "Output JSON", false)
+    .action(async (slug, opts) => await skillsCommands.marketplaceUpdateInstalled(slug, opts));
+
+  marketplaceSkills
     .command("install <slug>")
     .description("Install a skill from marketplace")
     .option("--api-base <url>", "Marketplace API base URL")

@@ -1,5 +1,7 @@
 import * as NextclawCore from "@nextclaw/core";
 import { loadConfigOrDefault } from "@nextclaw-server/features/config/index.js";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import type {
   MarketplaceInstalledRecord,
   MarketplaceInstalledView,
@@ -11,6 +13,8 @@ import type { SkillsLoaderConstructor, SkillsLoaderInstance, UiRouterOptions } f
 import { MARKETPLACE_ZH_COPY_BY_SLUG } from "@nextclaw-server/features/marketplace/index.js";
 
 const getWorkspacePathFromConfig = NextclawCore.getWorkspacePathFromConfig;
+const MARKETPLACE_INSTALL_STATE_FILE = ".nextclaw-install.json";
+const LEGACY_MARKETPLACE_INSTALL_STATE_FILE = ".nextclaw-marketplace.json";
 
 function createSkillsLoader(workspace: string): SkillsLoaderInstance | null {
   const ctor = (NextclawCore as { SkillsLoader?: SkillsLoaderConstructor }).SkillsLoader;
@@ -39,14 +43,21 @@ export function collectInstalledSkillRecords(options: UiRouterOptions): {
         readNonEmptyString(metadata?.description_zh) ??
         readNonEmptyString(metadata?.descriptionZh) ??
         readNonEmptyString(MARKETPLACE_ZH_COPY_BY_SLUG[skill.name]?.description);
+      const marketplaceState = readMarketplaceSkillInstallState(dirname(skill.path));
+      const origin = marketplaceState ? "marketplace" : undefined;
+      const catalogSlug = marketplaceState?.slug;
+      const installedAt = marketplaceState?.installedAt;
       return {
         type: "skill",
         id: skill.name,
         spec: skill.name,
         label: skill.name,
-        ...(description ? { description } : {}),
-        ...(descriptionZh ? { descriptionZh } : {}),
+        description,
+        descriptionZh,
         source: skill.source,
+        origin,
+        catalogSlug,
+        installedAt,
         enabled,
         runtimeStatus: enabled ? "enabled" : "disabled"
       } satisfies MarketplaceInstalledRecord;
@@ -57,6 +68,43 @@ export function collectInstalledSkillRecords(options: UiRouterOptions): {
     specs: records.map((record) => record.spec),
     records
   };
+}
+
+function readMarketplaceSkillInstallState(destinationDir: string): {
+  slug: string;
+  installedAt?: string;
+} | null {
+  const statePath = [MARKETPLACE_INSTALL_STATE_FILE, LEGACY_MARKETPLACE_INSTALL_STATE_FILE]
+    .map((file) => join(destinationDir, file))
+    .find((path) => existsSync(path));
+  if (!statePath) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(readFileSync(statePath, "utf8")) as {
+      schemaVersion?: unknown;
+      type?: unknown;
+      source?: unknown;
+      slug?: unknown;
+      installedAt?: unknown;
+    };
+    if (
+      parsed.schemaVersion !== 1
+      || parsed.type !== "skill"
+      || parsed.source !== "marketplace"
+      || typeof parsed.slug !== "string"
+    ) {
+      return null;
+    }
+
+    return {
+      slug: parsed.slug,
+      installedAt: typeof parsed.installedAt === "string" ? parsed.installedAt : undefined
+    };
+  } catch {
+    return null;
+  }
 }
 
 export function collectSkillMarketplaceInstalledView(options: UiRouterOptions): MarketplaceInstalledView {
