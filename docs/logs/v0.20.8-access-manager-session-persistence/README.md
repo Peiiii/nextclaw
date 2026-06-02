@@ -47,7 +47,7 @@
 
 ## NPM 包发布记录
 
-本次计划执行 public workspace 全量 stable 发布，核心用户可见产物包括：
+本次已执行 public workspace 全量 stable 发布，核心用户可见产物包括：
 
 - `nextclaw@0.20.4`
 - `@nextclaw/kernel@0.2.4`
@@ -64,4 +64,12 @@
 - `pnpm release:version`
 - `pnpm release:check`
 
-发布后需要以 `pnpm release:publish`、`pnpm release:verify:published`、registry dist-tag 查询和临时安装冒烟闭合。
+发布后已闭合：
+
+- `pnpm release:publish`：通过，发布 47 个 public package，并创建对应本地 changeset tags。
+- `pnpm release:verify:published`：通过，确认 `published 47/47 package versions`。
+- `npm view nextclaw dist-tags version --json`：确认 `latest` 为 `0.20.4`。
+- `npm view @nextclaw/kernel@0.2.4 version dist-tags --json`：确认 `latest` 为 `0.2.4`。
+- `npm view @nextclaw/server@0.13.4 version dist-tags --json`：确认 `latest` 为 `0.13.4`。
+- 临时目录全局安装 `nextclaw@latest`：通过，`nextclaw --version` 返回 `0.20.4`，包内 launcher 和 `resources/update-bundle-public.pem` 存在，`nextclaw update --check` 返回 runtime 已是 `0.20.4`。
+- `pnpm release:report:health`：通过，`Repository release health is clean.`
