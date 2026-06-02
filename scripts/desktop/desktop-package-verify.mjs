@@ -178,11 +178,13 @@ function assertSeedBundleVersion(seedBundlePath) {
 }
 
 function assertSeedBundleRuntimeShape(seedBundlePath) {
+  const expectedChannelExtensionPackages = JSON.stringify(channelExtensionPackages);
   const script = [
     "const JSZip=require('jszip');",
     "const fs=require('fs');",
     "const zipPath=process.argv[1];",
     `const runtimeFileBudget=${RUNTIME_BUNDLE_FILE_BUDGET};`,
+    `const expectedChannelExtensionPackages=${expectedChannelExtensionPackages};`,
     "JSZip.loadAsync(fs.readFileSync(zipPath))",
     "  .then((zip) => {",
     "    const entries = Object.keys(zip.files);",
@@ -194,7 +196,15 @@ function assertSeedBundleRuntimeShape(seedBundlePath) {
     "    if (runtimeFiles.length > runtimeFileBudget) {",
     "      throw new Error(`seed bundle runtime file count ${runtimeFiles.length} exceeds budget ${runtimeFileBudget}: ${zipPath}`);",
     "    }",
-    "    console.log(`runtimeFiles=${runtimeFiles.length}`);",
+    "    const missingExtensionFiles = expectedChannelExtensionPackages.flatMap((name) => [",
+    "      `bundle/plugins/${name}/nextclaw.extension.json`,",
+    "      `bundle/plugins/${name}/dist/main.mjs`",
+    "    ].filter((entry) => !zip.file(entry)));",
+    "    if (missingExtensionFiles.length > 0) {",
+    "      throw new Error(`seed bundle missing packaged channel extension files: ${missingExtensionFiles.join(', ')}`);",
+    "    }",
+    "    const pluginFiles = entries.filter((name) => name.startsWith('bundle/plugins/') && !zip.files[name].dir);",
+    "    console.log(`runtimeFiles=${runtimeFiles.length} pluginFiles=${pluginFiles.length}`);",
     "  })",
     "  .catch((error) => { console.error(error instanceof Error ? error.message : String(error)); process.exit(1); });"
   ].join(" ");

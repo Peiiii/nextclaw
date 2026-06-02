@@ -7,6 +7,7 @@ import {
   ExtensionManifestDiscoveryService,
   resolveBuiltinExtensionManifestRoots,
   resolveExtensionManifestRoots,
+  resolvePackagedExtensionManifestRoots,
 } from "@kernel/features/extension-runtime/index.js";
 import {
   ExtensionRuntimeService,
@@ -80,6 +81,35 @@ describe("resolveExtensionManifestRoots", () => {
     });
 
     expect(roots).toContain(join(workspace, ".nextclaw", "extensions"));
+  });
+
+  it("keeps explicit packaged extension roots when builtin discovery is disabled", () => {
+    const workspace = createTempDir();
+    const packagedRoot = createTempDir();
+    const originalPackagedRoot = process.env.NEXTCLAW_PACKAGED_EXTENSION_DIR;
+    const originalDisableBuiltins = process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS;
+    process.env.NEXTCLAW_PACKAGED_EXTENSION_DIR = packagedRoot;
+    process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS = "1";
+
+    try {
+      expect(resolveBuiltinExtensionManifestRoots()).toEqual([]);
+      expect(resolvePackagedExtensionManifestRoots()).toEqual([packagedRoot]);
+      expect(resolveExtensionManifestRoots({
+        workspace,
+        config: {} as never,
+      })).toContain(packagedRoot);
+    } finally {
+      if (originalPackagedRoot === undefined) {
+        delete process.env.NEXTCLAW_PACKAGED_EXTENSION_DIR;
+      } else {
+        process.env.NEXTCLAW_PACKAGED_EXTENSION_DIR = originalPackagedRoot;
+      }
+      if (originalDisableBuiltins === undefined) {
+        delete process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS;
+      } else {
+        process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS = originalDisableBuiltins;
+      }
+    }
   });
 });
 

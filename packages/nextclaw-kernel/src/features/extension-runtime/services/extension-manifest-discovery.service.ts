@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import type { Config, ExtensionManifest } from "@kernel/features/extension-runtime/index.js";
 
 const EXTENSION_MANIFEST_FILE = "nextclaw.extension.json";
+const PACKAGED_EXTENSION_DIR_ENV = "NEXTCLAW_PACKAGED_EXTENSION_DIR";
 const BUILTIN_EXTENSION_PACKAGES = [
   "@nextclaw/channel-extension-dingtalk",
   "@nextclaw/channel-extension-discord",
@@ -142,6 +143,13 @@ export function resolveBuiltinExtensionManifestRoots(): string[] {
   return uniquePaths(roots);
 }
 
+export function resolvePackagedExtensionManifestRoots(
+  explicitDir = process.env[PACKAGED_EXTENSION_DIR_ENV],
+): string[] {
+  const configured = explicitDir?.trim();
+  return configured ? [resolve(configured)] : [];
+}
+
 export function resolveExtensionManifestRoots(params: {
   config: Config;
   workspace: string;
@@ -151,6 +159,7 @@ export function resolveExtensionManifestRoots(params: {
     join(getDataPath(), "extensions"),
     join(params.workspace, ".nextclaw", "extensions"),
     ...(devExtensionsDir ? [devExtensionsDir] : []),
+    ...resolvePackagedExtensionManifestRoots(),
     ...resolveBuiltinExtensionManifestRoots(),
   ]);
 }

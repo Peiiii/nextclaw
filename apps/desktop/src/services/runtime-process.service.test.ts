@@ -23,3 +23,16 @@ test("desktop runtime disables duplicate built-in extension child processes", ()
   assert.equal(runtimeEnv.ELECTRON_RUN_AS_NODE, "1");
   assert.equal(runtimeEnv.NEXTCLAW_COMMAND_SURFACE_BIN, "/tmp/nextclaw-command-surface/bin");
 });
+
+test("desktop runtime passes packaged extension root to embedded runtime", () => {
+  const runtimeEnv = createDesktopRuntimeEnv(
+    {
+      NEXTCLAW_HOME: "/tmp/ambient"
+    },
+    {
+      packagedExtensionDir: "/tmp/nextclaw-desktop-bundle/plugins"
+    }
+  );
+
+  assert.equal(runtimeEnv.NEXTCLAW_PACKAGED_EXTENSION_DIR, "/tmp/nextclaw-desktop-bundle/plugins");
+});

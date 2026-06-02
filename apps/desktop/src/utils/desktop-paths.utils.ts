@@ -16,6 +16,11 @@ export {
 const DEFAULT_NEXTCLAW_HOME_DIR = ".nextclaw";
 const LEGACY_RUNTIME_HOME_ENV = "NEXTCLAW_HOME";
 const LEGACY_DESKTOP_DATA_ENV = "NEXTCLAW_DESKTOP_DATA_DIR";
+const PACKAGED_EXTENSION_DIR_ENV = "NEXTCLAW_PACKAGED_EXTENSION_DIR";
+
+type DesktopRuntimeEnvOptions = {
+  packagedExtensionDir?: string | null;
+};
 
 function readOptionalEnv(name: string): string | null {
   const value = process.env[name]?.trim();
@@ -42,7 +47,7 @@ function resolveDesktopRuntimeHomeFromEnv(env: NodeJS.ProcessEnv): string {
   return resolve(homedir(), DEFAULT_NEXTCLAW_HOME_DIR);
 }
 
-function normalizeOptionalPath(value: string | undefined): string | null {
+function normalizeOptionalPath(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
   return trimmed ? resolve(trimmed) : null;
 }
@@ -67,12 +72,25 @@ export function resolveDesktopDataDir(explicitBaseDir?: string): string {
   return resolve(app.getPath("userData"));
 }
 
-export function createDesktopRuntimeEnv(baseEnv: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+export function createDesktopRuntimeEnv(
+  baseEnv: NodeJS.ProcessEnv = process.env,
+  options: DesktopRuntimeEnvOptions = {},
+): NodeJS.ProcessEnv {
   const runtimeEnv = { ...baseEnv };
   delete runtimeEnv[LEGACY_RUNTIME_HOME_ENV];
   delete runtimeEnv[LEGACY_DESKTOP_DATA_ENV];
   runtimeEnv.ELECTRON_RUN_AS_NODE = "1";
   runtimeEnv.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS = "1";
+  const packagedExtensionDir = normalizeOptionalPath(
+    options.packagedExtensionDir !== undefined
+      ? options.packagedExtensionDir
+      : runtimeEnv[PACKAGED_EXTENSION_DIR_ENV]
+  );
+  if (packagedExtensionDir) {
+    runtimeEnv[PACKAGED_EXTENSION_DIR_ENV] = packagedExtensionDir;
+  } else {
+    delete runtimeEnv[PACKAGED_EXTENSION_DIR_ENV];
+  }
   runtimeEnv[LEGACY_RUNTIME_HOME_ENV] = resolveDesktopRuntimeHomeFromEnv(baseEnv);
   return runtimeEnv;
 }

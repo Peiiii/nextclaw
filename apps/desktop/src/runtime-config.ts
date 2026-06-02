@@ -10,6 +10,7 @@ export type RuntimeCommand = {
   source: "bundle" | "environment-override" | "packaged-runtime";
   bundleVersion?: string;
   bundleDirectory?: string;
+  pluginsDirectory?: string;
 };
 
 export class RuntimeConfigResolver {
@@ -56,7 +57,8 @@ export class RuntimeConfigResolver {
       scriptPath: resolvedBundle.runtimeScriptPath,
       source: "bundle",
       bundleVersion: resolvedBundle.manifest.bundleVersion,
-      bundleDirectory: resolvedBundle.bundleDirectory
+      bundleDirectory: resolvedBundle.bundleDirectory,
+      pluginsDirectory: resolvedBundle.pluginsDirectory
     };
   };
 

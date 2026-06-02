@@ -164,7 +164,7 @@ class DesktopApplication {
       runtimeCommand = await this.runtimeCommandService.resolve();
       logger.info(`Desktop bundle bootstrap finished in ${Date.now() - bundleBootstrapStartedAt}ms.`);
       logger.info(`Runtime source: ${runtimeCommand.source}${runtimeCommand.bundleVersion ? ` bundleVersion=${runtimeCommand.bundleVersion}` : ""}${runtimeCommand.bundleDirectory ? ` bundleDirectory=${runtimeCommand.bundleDirectory}` : ""}`);
-      await this.startRuntimeAndLoadWindow(runtimeCommand.scriptPath);
+      await this.startRuntimeAndLoadWindow(runtimeCommand);
       if (runtimeCommand.source === "bundle" && runtimeCommand.bundleVersion) {
         await this.bundleManager.markBundleHealthy(runtimeCommand.bundleVersion);
       }
@@ -183,15 +183,20 @@ class DesktopApplication {
       return await this.handleBootstrapFailure(error);
     }
   };
-  private startRuntimeAndLoadWindow = async (scriptPath: string): Promise<void> => {
+  private startRuntimeAndLoadWindow = async (runtimeCommand: RuntimeCommand): Promise<void> => {
     const commandSurface = await this.ensureDesktopCommandSurface();
     const runtime = new RuntimeServiceProcess({
       logger,
-      scriptPath,
-      runtimeEnv: createDesktopRuntimeEnv({
-        ...process.env,
-        ...commandSurface.runtimeEnvPatch
-      })
+      scriptPath: runtimeCommand.scriptPath,
+      runtimeEnv: createDesktopRuntimeEnv(
+        {
+          ...process.env,
+          ...commandSurface.runtimeEnvPatch
+        },
+        {
+          packagedExtensionDir: runtimeCommand.pluginsDirectory
+        }
+      )
     });
     const runtimeStartStartedAt = Date.now();
     const { baseUrl } = await runtime.start();

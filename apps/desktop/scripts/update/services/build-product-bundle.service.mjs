@@ -18,6 +18,18 @@ const nextclawPackageJsonPath = resolve(nextclawPackageRoot, "package.json");
 const RUNTIME_BUNDLE_FILE_BUDGET = 400;
 const RUNTIME_ENTRYPOINT = "runtime/dist/cli/app/index.js";
 const SESSION_SEARCH_WORKER_RELATIVE_PATH = "features/session-search/worker/session-search-worker-host.utils.js";
+const CHANNEL_EXTENSION_PACKAGE_DIRS = [
+  "nextclaw-channel-extension-dingtalk",
+  "nextclaw-channel-extension-discord",
+  "nextclaw-channel-extension-email",
+  "nextclaw-channel-extension-feishu",
+  "nextclaw-channel-extension-qq",
+  "nextclaw-channel-extension-slack",
+  "nextclaw-channel-extension-telegram",
+  "nextclaw-channel-extension-wecom",
+  "nextclaw-channel-extension-whatsapp",
+  "nextclaw-channel-extension-weixin"
+];
 
 function parseArgs(argv) {
   const args = {};
@@ -61,6 +73,22 @@ function runCommand(command, args, cwd) {
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(" ")} failed with exit code ${result.status ?? 1}`);
   }
+}
+
+function writePackagedExtensionManifest(sourcePackageRoot, targetRoot) {
+  const manifest = readJson(join(sourcePackageRoot, "nextclaw.extension.json"));
+  const packagedManifest = {
+    ...manifest,
+    server: {
+      ...manifest.server,
+      args: ["dist/main.mjs"]
+    }
+  };
+  return writeFile(
+    join(targetRoot, "nextclaw.extension.json"),
+    `${JSON.stringify(packagedManifest, null, 2)}\n`,
+    "utf8"
+  );
 }
 
 function ensureFreshRuntimeArtifacts() {
@@ -184,6 +212,59 @@ async function copySessionSearchWorkerAssets(workspace) {
   await cp(join(coreDistRoot, "skills"), join(workspace.runtimeEntrypointDir, "skills"), { recursive: true });
 }
 
+function bundlePackagedExtensionEntrypoint(sourcePackageRoot, targetRoot) {
+  runCommand(
+    "pnpm",
+    [
+      "exec",
+      "tsdown",
+      join(sourcePackageRoot, "src", "main.ts"),
+      "--no-config",
+      "--format",
+      "esm",
+      "--platform",
+      "node",
+      "--target",
+      "es2022",
+      "--out-dir",
+      join(targetRoot, "dist"),
+      "--shims",
+      "--logLevel",
+      "error"
+    ],
+    workspaceRoot
+  );
+}
+
+async function copyPackagedChannelExtensions(workspace) {
+  await mkdir(workspace.pluginsRoot, { recursive: true });
+  await writeFile(join(workspace.pluginsRoot, ".keep"), "\n", "utf8");
+
+  for (const packageDir of CHANNEL_EXTENSION_PACKAGE_DIRS) {
+    const sourcePackageRoot = join(workspaceRoot, "packages", "extensions", packageDir);
+    const targetRoot = join(workspace.pluginsRoot, packageDir);
+    if (!existsSync(join(sourcePackageRoot, "nextclaw.extension.json"))) {
+      throw new Error(`Channel extension manifest is missing: ${relative(workspaceRoot, sourcePackageRoot)}`);
+    }
+    const packageJson = readJson(join(sourcePackageRoot, "package.json"));
+    await mkdir(targetRoot, { recursive: true });
+    await Promise.all([
+      writePackagedExtensionManifest(sourcePackageRoot, targetRoot),
+      writeFile(
+        join(targetRoot, "package.json"),
+        `${JSON.stringify({
+          name: packageJson.name,
+          version: packageJson.version,
+          type: "module",
+          private: true
+        }, null, 2)}\n`,
+        "utf8"
+      )
+    ]);
+    bundlePackagedExtensionEntrypoint(sourcePackageRoot, targetRoot);
+  }
+}
+
 async function countFiles(targetDir) {
   let fileCount = 0;
   const entries = await readdir(targetDir, { withFileTypes: true });
@@ -207,13 +288,18 @@ async function prepareBundleWorkspace(workspace) {
   await copySessionSearchWorkerAssets(workspace);
   await writeFile(join(workspace.runtimeEntrypointDir, "index.js"), 'import "./index.mjs";\n', "utf8");
   assertRuntimeBundleContract(workspace.runtimeRoot);
-  await mkdir(workspace.pluginsRoot, { recursive: true });
-  await writeFile(join(workspace.pluginsRoot, ".keep"), "\n", "utf8");
+  await copyPackagedChannelExtensions(workspace);
+  assertPackagedExtensionBundleContract(workspace.pluginsRoot);
   const runtimeFileCount = await countFiles(workspace.runtimeRoot);
+  const pluginFileCount = await countFiles(workspace.pluginsRoot);
   if (runtimeFileCount > RUNTIME_BUNDLE_FILE_BUDGET) {
     throw new Error(`Runtime bundle file count ${runtimeFileCount} exceeds budget ${RUNTIME_BUNDLE_FILE_BUDGET}.`);
   }
-  return { runtimeFileCount };
+  return {
+    runtimeFileCount,
+    pluginFileCount,
+    packagedExtensionCount: CHANNEL_EXTENSION_PACKAGE_DIRS.length
+  };
 }
 
 function assertRuntimeBundleContract(runtimeRoot) {
@@ -231,6 +317,18 @@ function assertRuntimeBundleContract(runtimeRoot) {
   }
   if (existsSync(join(runtimeRoot, "node_modules"))) {
     throw new Error("Runtime bundle must not include node_modules.");
+  }
+}
+
+function assertPackagedExtensionBundleContract(pluginsRoot) {
+  const missingFiles = CHANNEL_EXTENSION_PACKAGE_DIRS.flatMap((packageDir) => {
+    return [
+      join(packageDir, "nextclaw.extension.json"),
+      join(packageDir, "dist", "main.mjs")
+    ].filter((relativePath) => !existsSync(join(pluginsRoot, relativePath)));
+  });
+  if (missingFiles.length > 0) {
+    throw new Error(`Product bundle is missing packaged channel extension files: ${missingFiles.join(", ")}`);
   }
 }
 
@@ -275,8 +373,11 @@ function reportBundleBuildResult(archivePath, options, workspace, buildResult) {
         arch: options.arch,
         runtimeFileCount: buildResult.runtimeFileCount,
         runtimeFileBudget: RUNTIME_BUNDLE_FILE_BUDGET,
+        packagedExtensionCount: buildResult.packagedExtensionCount,
+        pluginFileCount: buildResult.pluginFileCount,
         runtimeRoot: relative(workspaceRoot, workspace.runtimeRoot),
-        uiRoot: relative(workspaceRoot, workspace.uiRoot)
+        uiRoot: relative(workspaceRoot, workspace.uiRoot),
+        pluginsRoot: relative(workspaceRoot, workspace.pluginsRoot)
       },
       null,
       2
