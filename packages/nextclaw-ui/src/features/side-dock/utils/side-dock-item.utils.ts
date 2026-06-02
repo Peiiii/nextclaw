@@ -9,6 +9,7 @@ const SIDE_DOCK_BUILTIN_ICON_NAMES: SideDockIconName[] = [
   'apps',
   'docs',
   'new-tab',
+  'panel-app',
   'service-apps',
 ];
 
@@ -39,6 +40,13 @@ function normalizeSideDockIcon(value: unknown): SideDockItemIcon | null {
     };
   }
 
+  if (value.type === 'text' && typeof value.value === 'string' && value.value.trim().length > 0) {
+    return {
+      type: 'text',
+      value: value.value.trim(),
+    };
+  }
+
   return null;
 }
 
@@ -47,8 +55,8 @@ export function normalizeSideDockPinnedItem(value: unknown): SideDockPinnedItem 
     !isRecord(value)
     || typeof value.id !== 'string'
     || value.id.trim().length === 0
-    || typeof value.labelKey !== 'string'
-    || value.labelKey.trim().length === 0
+    || typeof value.label !== 'string'
+    || value.label.trim().length === 0
     || typeof value.createdAt !== 'string'
     || value.createdAt.trim().length === 0
     || !isRecord(value.target)
@@ -68,7 +76,7 @@ export function normalizeSideDockPinnedItem(value: unknown): SideDockPinnedItem 
     createdAt: value.createdAt,
     icon,
     id: value.id.trim(),
-    labelKey: value.labelKey.trim(),
+    label: value.label.trim(),
     target: {
       type: 'right-panel-resource',
       uri: value.target.uri.trim(),
@@ -96,7 +104,7 @@ export function createPinnedSideDockItem(item: SideDockItem, createdAt: string):
     createdAt,
     icon: item.icon,
     id: item.id,
-    labelKey: item.labelKey,
+    label: item.label,
     target: item.target,
   };
 }
@@ -106,7 +114,7 @@ export function createSideDockItemFromPinnedItem(item: SideDockPinnedItem): Side
     builtIn: false,
     icon: item.icon,
     id: item.id,
-    labelKey: item.labelKey,
+    label: item.label,
     removable: true,
     target: item.target,
   };

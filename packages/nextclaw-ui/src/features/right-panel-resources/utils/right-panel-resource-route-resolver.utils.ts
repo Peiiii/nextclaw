@@ -21,7 +21,7 @@ function inferFallbackKind(url?: string): DocBrowserTabKind {
 export class RightPanelResourceRouteResolver implements DocBrowserRouteResolver {
   private readonly resourceUriResolver = new ResourceUriResolver<RightPanelResourceTarget>(
     RIGHT_PANEL_RESOURCE_ROUTE_DEFINITIONS_FOR_RESOURCE_URI,
-    { getNormalizedUri: (target) => target.url },
+    { getNormalizedUri: (target) => target.resourceUri ?? target.url },
   );
 
   resolve = (uri: string): RightPanelResourceTarget => this.resourceUriResolver.resolve(uri);

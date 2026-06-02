@@ -50,9 +50,23 @@ function areActiveHistoryEntriesEquivalent(
   current: DocBrowserActiveHistoryEntry,
   next: DocBrowserActiveHistoryEntry,
 ): boolean {
+  const currentUri = current.resourceUri ?? current.url;
+  const nextUri = next.resourceUri ?? next.url;
   return current.tabId === next.tabId
     && current.kind === next.kind
-    && routeResolver.areUrlsEquivalent(current.url, next.url, current.kind, next.kind);
+    && routeResolver.areUrlsEquivalent(currentUri, nextUri, current.kind, next.kind);
+}
+
+function createActiveHistoryEntryFromTarget(
+  tabId: string,
+  target: DocBrowserRouteTarget,
+): DocBrowserActiveHistoryEntry {
+  return {
+    kind: target.kind,
+    resourceUri: target.resourceUri ?? target.url,
+    tabId,
+    url: target.url,
+  };
 }
 
 function pushActiveHistory(
@@ -90,12 +104,14 @@ function restoreActiveHistoryEntry(
   if (!tab) {
     return state;
   }
+  const restoreUri = entry.resourceUri ?? entry.url;
   const target = routeResolver.resolveOpenTarget({
     activeTab: tab,
     kind: entry.kind,
-    url: entry.url,
+    url: restoreUri,
   });
   const historyIndex = findTabHistoryIndex(routeResolver, tab, target.url);
+  const shouldPreserveCurrentTitle = entry.resourceUri !== undefined && entry.resourceUri === tab.resourceUri;
   return updateTab(
     {
       ...state,
@@ -107,9 +123,11 @@ function restoreActiveHistoryEntry(
       ...currentTab,
       currentUrl: target.url,
       dedupeKey: target.dedupeKey,
+      dockIcon: target.dockIcon ?? currentTab.dockIcon,
       historyIndex: historyIndex >= 0 ? historyIndex : currentTab.historyIndex,
       kind: target.kind,
-      title: target.title,
+      resourceUri: target.resourceUri ?? target.url,
+      title: shouldPreserveCurrentTitle ? currentTab.title : target.title,
     }),
   );
 }
@@ -125,6 +143,8 @@ function updateTabForOpen(
     ...tab,
     title: options?.title || target.title || tab.title,
     kind: target.kind,
+    resourceUri: target.resourceUri ?? target.url,
+    dockIcon: options?.dockIcon ?? target.dockIcon,
     dedupeKey,
   };
 
@@ -180,12 +200,12 @@ function openResolvedDocBrowserState(
     };
     const shouldPushActiveHistory = shouldActivate || matchedTab.id === prev.activeTabId;
     return shouldPushActiveHistory
-      ? pushActiveHistory(routeResolver, nextState, { kind: target.kind, tabId: matchedTab.id, url: target.url })
+      ? pushActiveHistory(routeResolver, nextState, createActiveHistoryEntryFromTarget(matchedTab.id, target))
       : nextState;
   }
 
   if (shouldForceNewTab || dedupeKey || !activeTab || activeTab.kind !== target.kind) {
-    const newTab = createDocBrowserTab(target.url, target.kind, title ?? target.title, dedupeKey);
+    const newTab = createDocBrowserTab(target.url, target.kind, title ?? target.title, dedupeKey, target.resourceUri ?? target.url, options?.dockIcon ?? target.dockIcon);
     if (isClosedDefaultHomeState(prev, activeTab)) {
       const nextState = {
         ...prev,
@@ -213,7 +233,7 @@ function openResolvedDocBrowserState(
   return pushActiveHistory(
     routeResolver,
     { ...next, isOpen: true },
-    { kind: target.kind, tabId: prev.activeTabId, url: target.url },
+    createActiveHistoryEntryFromTarget(prev.activeTabId, target),
   );
 }
 
@@ -290,9 +310,11 @@ export class DocBrowserManager {
           ...tab,
           currentUrl: target.url,
           dedupeKey: target.dedupeKey,
+          dockIcon: target.dockIcon,
           ...appendManualNavigation(tab, target.url),
           kind: target.kind,
           navVersion: tab.navVersion + 1,
+          resourceUri: target.resourceUri ?? target.url,
           title: target.title,
         };
       });
@@ -328,8 +350,10 @@ export class DocBrowserManager {
           ...tab,
           currentUrl: target.url,
           dedupeKey: target.dedupeKey,
+          dockIcon: target.dockIcon,
           ...appendManualNavigation(tab, target.url),
           kind: target.kind,
+          resourceUri: target.resourceUri ?? target.url,
           title: target.title,
         };
       });

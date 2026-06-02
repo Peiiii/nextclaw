@@ -6,6 +6,9 @@ import type { DocBrowserContextValue } from '@/shared/components/doc-browser/typ
 export type {
   DocBrowserActions,
   DocBrowserContextValue,
+  DocBrowserDockControls,
+  DocBrowserDockIcon,
+  DocBrowserDockState,
   DocBrowserMode,
   DocBrowserOpenOptions,
   DocBrowserRouteResolver,

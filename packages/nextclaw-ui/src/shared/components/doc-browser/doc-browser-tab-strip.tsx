@@ -1,6 +1,6 @@
 import type { PointerEvent } from 'react';
-import { ArrowLeft, ArrowRight, Maximize2, PanelRightOpen, Plus, X } from 'lucide-react';
-import type { DocBrowserTab } from './doc-browser-context';
+import { ArrowLeft, ArrowRight, Maximize2, PanelRightOpen, Pin, PinOff, Plus, X } from 'lucide-react';
+import type { DocBrowserDockState, DocBrowserTab } from './doc-browser-context';
 import { cn } from '@/shared/lib/utils';
 import { t } from '@/shared/lib/i18n';
 
@@ -11,9 +11,11 @@ type DocBrowserTabStripProps = {
   canGoForward: boolean;
   isDocked: boolean;
   isFullscreen: boolean;
+  dockState?: DocBrowserDockState;
   onGoBack: () => void;
   onGoForward: () => void;
   onOpenNewTab: () => void;
+  onToggleDock?: () => void;
   onSetActiveTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
   onClose: () => void;
@@ -28,9 +30,11 @@ export function DocBrowserTabStrip({
   canGoForward,
   isDocked,
   isFullscreen,
+  dockState,
   onGoBack,
   onGoForward,
   onOpenNewTab,
+  onToggleDock,
   onSetActiveTab,
   onCloseTab,
   onClose,
@@ -116,6 +120,25 @@ export function DocBrowserTabStrip({
         >
           <Plus className="w-3.5 h-3.5" />
         </button>
+        {dockState?.canDock ? (
+          <button
+            type="button"
+            onClick={onToggleDock}
+            disabled={dockState.isDocked && !dockState.removable}
+            className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:text-gray-300 disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-gray-300"
+            title={
+              dockState.isDocked
+                ? dockState.removable ? t('sideDockUnpinCurrent') : t('sideDockBuiltInDocked')
+                : t('sideDockPinCurrent')
+            }
+          >
+            {dockState.isDocked && dockState.removable ? (
+              <PinOff className="w-3.5 h-3.5" />
+            ) : (
+              <Pin className="w-3.5 h-3.5" />
+            )}
+          </button>
+        ) : null}
         {!isFullscreen ? (
           <button
             type="button"

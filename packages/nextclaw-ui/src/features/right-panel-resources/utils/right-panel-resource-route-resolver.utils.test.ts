@@ -8,11 +8,13 @@ describe('RightPanelResourceRouteResolver', () => {
     expect(resolver.resolve('nextclaw://apps')).toMatchObject({
       dedupeKey: 'apps',
       kind: 'apps',
+      resourceUri: 'nextclaw://apps',
       url: 'nextclaw://apps',
     });
     expect(resolver.resolve('nextclaw://apps?tab=service-apps')).toMatchObject({
       dedupeKey: 'apps',
       kind: 'apps',
+      resourceUri: 'nextclaw://apps?tab=service-apps',
       url: 'nextclaw://apps?tab=service-apps',
     });
   });
@@ -22,6 +24,7 @@ describe('RightPanelResourceRouteResolver', () => {
     const target = resolver.resolve('nextclaw://docs/guide/getting-started');
 
     expect(target.kind).toBe('docs');
+    expect(target.resourceUri).toBe('nextclaw://docs/guide/getting-started');
     expect(target.title).toBe('Help Docs');
     expect(target.url).toContain('/guide/getting-started');
   });
@@ -32,7 +35,28 @@ describe('RightPanelResourceRouteResolver', () => {
     expect(resolver.resolve('nextclaw://panel-app/timer')).toMatchObject({
       dedupeKey: 'panel-app:timer',
       kind: 'panel-app',
-      url: 'nextclaw://panel-app/timer',
+      resourceUri: 'nextclaw://panel-app/timer',
+      url: '/api/panel-apps/timer/content',
     });
+  });
+
+  it('keeps panel app content URLs idempotent under panel app kind', () => {
+    const resolver = new RightPanelResourceRouteResolver();
+
+    expect(resolver.resolveOpenTarget({
+      kind: 'panel-app',
+      url: '/api/panel-apps/timer/content',
+    })).toMatchObject({
+      dedupeKey: 'panel-app:timer',
+      kind: 'panel-app',
+      resourceUri: 'nextclaw://panel-app/timer',
+      url: '/api/panel-apps/timer/content',
+    });
+    expect(resolver.areUrlsEquivalent(
+      'nextclaw://panel-app/timer',
+      '/api/panel-apps/timer/content',
+      'panel-app',
+      'panel-app',
+    )).toBe(true);
   });
 });

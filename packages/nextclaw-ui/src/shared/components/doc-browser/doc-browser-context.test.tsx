@@ -164,7 +164,9 @@ describe('DocBrowserProvider dedupe keys', () => {
       kind: 'apps',
     });
   });
+});
 
+describe('DocBrowserProvider built-in routes', () => {
   it('opens the built-in start page without falling back to docs', () => {
     const { result } = renderHook(() => useDocBrowser(), { wrapper });
 
@@ -211,15 +213,19 @@ describe('DocBrowserProvider dedupe keys', () => {
       title: 'Service Apps',
     });
   });
+});
 
+describe('DocBrowserProvider panel app resources', () => {
   it('opens an already resolved panel app target without reparsing its content URL', () => {
     const { result } = renderHook(() => useDocBrowser(), { wrapper });
 
     act(() => {
       result.current.openTarget({
         dedupeKey: 'panel-app:demo',
+        dockIcon: { type: 'url', url: '/api/panel-apps/demo/assets/icon.png' },
         historyPolicy: 'managed',
         kind: 'panel-app',
+        resourceUri: 'nextclaw://panel-app/demo',
         title: 'Demo Panel App',
         url: '/api/panel-apps/demo/content',
       });
@@ -228,11 +234,15 @@ describe('DocBrowserProvider dedupe keys', () => {
     expect(result.current.currentTab).toMatchObject({
       currentUrl: '/api/panel-apps/demo/content',
       dedupeKey: 'panel-app:demo',
+      dockIcon: { type: 'url', url: '/api/panel-apps/demo/assets/icon.png' },
       kind: 'panel-app',
+      resourceUri: 'nextclaw://panel-app/demo',
       title: 'Demo Panel App',
     });
   });
+});
 
+describe('DocBrowserProvider managed history', () => {
   it('uses managed history for non-doc routes', () => {
     const { result } = renderHook(() => useDocBrowser(), { wrapper });
 
@@ -335,6 +345,44 @@ describe('DocBrowserProvider dedupe keys', () => {
     });
   });
 
+  it('restores panel app history by stable resource URI instead of reparsing content URL as an app id', () => {
+    const { result } = renderHook(() => useDocBrowser(), { wrapper });
+
+    act(() => {
+      result.current.openTarget({
+        dedupeKey: 'panel-app:demo',
+        historyPolicy: 'managed',
+        kind: 'panel-app',
+        resourceUri: 'nextclaw://panel-app/demo',
+        title: 'Demo Panel App',
+        url: '/api/panel-apps/demo/content',
+      });
+      result.current.openNewTab();
+    });
+
+    expect(result.current.currentTab).toMatchObject({
+      currentUrl: 'nextclaw://new-tab',
+      kind: 'home',
+    });
+
+    act(() => {
+      result.current.goBack();
+    });
+
+    expect(result.current.currentTab).toMatchObject({
+      currentUrl: '/api/panel-apps/demo/content',
+      dedupeKey: 'panel-app:demo',
+      kind: 'panel-app',
+      resourceUri: 'nextclaw://panel-app/demo',
+      title: 'Demo Panel App',
+    });
+    expect(result.current.currentTab?.currentUrl).not.toBe('/api/panel-apps/api/content');
+    expect(result.current.activeHistory[result.current.activeHistoryIndex]).toMatchObject({
+      resourceUri: 'nextclaw://panel-app/demo',
+      url: '/api/panel-apps/demo/content',
+    });
+  });
+
   it('truncates forward history before appending manual navigation after going back', () => {
     const { result } = renderHook(() => useDocBrowser(), { wrapper });
 
@@ -377,6 +425,31 @@ describe('DocBrowserProvider dedupe keys', () => {
 });
 
 describe('DocBrowserProvider persistence', () => {
+  it('persists dock icon metadata for restored tabs', async () => {
+    const { result } = renderHook(() => useDocBrowser(), { wrapper });
+
+    act(() => {
+      result.current.openTarget({
+        dedupeKey: 'panel-app:demo',
+        dockIcon: { type: 'text', value: 'D' },
+        historyPolicy: 'managed',
+        kind: 'panel-app',
+        resourceUri: 'nextclaw://panel-app/demo',
+        title: 'Demo App',
+        url: '/api/panel-apps/demo/content',
+      });
+    });
+
+    const savedState = window.localStorage.getItem(docBrowserStorageKey);
+    await resetMemoryThenRehydrate(savedState);
+    const restored = renderHook(() => useDocBrowser(), { wrapper });
+
+    expect(restored.result.current.currentTab).toMatchObject({
+      dockIcon: { type: 'text', value: 'D' },
+      resourceUri: 'nextclaw://panel-app/demo',
+    });
+  });
+
   it('restores the open panel and active tab from the persisted Zustand store', async () => {
     const { result } = renderHook(() => useDocBrowser(), { wrapper });
 

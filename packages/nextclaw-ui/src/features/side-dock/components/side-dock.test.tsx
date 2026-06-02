@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SIDE_DOCK_BUILT_IN_ITEMS } from '@/features/side-dock/configs/side-dock-built-in-items.config';
+import { getSideDockBuiltInItems } from '@/features/side-dock/configs/side-dock-built-in-items.config';
 import { SideDock } from '@/features/side-dock/components/side-dock';
 import { useSideDockStore } from '@/features/side-dock/stores/side-dock.store';
 import type { SideDockManager } from '@/features/side-dock/managers/side-dock.manager';
@@ -28,7 +28,8 @@ describe('SideDock', () => {
     );
 
     expect(screen.getByTestId('side-dock')).toBeTruthy();
-    SIDE_DOCK_BUILT_IN_ITEMS.forEach((item) => {
+    const builtInItems = getSideDockBuiltInItems();
+    builtInItems.forEach((item) => {
       expect(document.querySelector(`[data-side-dock-item-id="${item.id}"]`)).toBeTruthy();
     });
 
@@ -36,7 +37,7 @@ describe('SideDock', () => {
     expect(appsButton).toBeTruthy();
     fireEvent.click(appsButton as Element);
 
-    expect(openItem).toHaveBeenCalledWith(SIDE_DOCK_BUILT_IN_ITEMS[0]);
+    expect(openItem).toHaveBeenCalledWith(builtInItems[0]);
   });
 
   it('does not highlight the default docs tab while DocBrowser is closed', () => {
@@ -54,5 +55,59 @@ describe('SideDock', () => {
     expect(docsButton).toBeTruthy();
     expect(docsButton?.className).toContain('bg-transparent');
     expect(docsButton?.className).not.toContain('shadow-sm');
+  });
+
+  it('renders removable pinned entries and calls manager unpin by item id', () => {
+    const manager = {
+      openItem: vi.fn(),
+      unpinItem: vi.fn(),
+    } as unknown as SideDockManager;
+    const docBrowserManager = new DocBrowserManager();
+    useSideDockStore.getState().setPinnedItems([
+      {
+        createdAt: '2026-06-02T00:00:00.000Z',
+        icon: { type: 'builtin', name: 'docs' },
+        id: 'pinned-docs-custom',
+        label: 'Custom Docs',
+        target: { type: 'right-panel-resource', uri: 'nextclaw://docs/custom' },
+      },
+    ]);
+
+    render(
+      <DocBrowserProvider manager={docBrowserManager}>
+        <SideDock manager={manager} />
+      </DocBrowserProvider>,
+    );
+
+    expect(document.querySelector('[data-side-dock-item-id="pinned-docs-custom"]')).toBeTruthy();
+
+    fireEvent.click(screen.getByTitle('Remove shortcut'));
+
+    expect(manager.unpinItem).toHaveBeenCalledWith('pinned-docs-custom');
+  });
+
+  it('renders text icons for pinned entries', () => {
+    const manager = {
+      openItem: vi.fn(),
+      unpinItem: vi.fn(),
+    } as unknown as SideDockManager;
+    const docBrowserManager = new DocBrowserManager();
+    useSideDockStore.getState().setPinnedItems([
+      {
+        createdAt: '2026-06-02T00:00:00.000Z',
+        icon: { type: 'text', value: 'D' },
+        id: 'pinned-panel-app-demo',
+        label: 'Demo App',
+        target: { type: 'right-panel-resource', uri: 'nextclaw://panel-app/demo' },
+      },
+    ]);
+
+    render(
+      <DocBrowserProvider manager={docBrowserManager}>
+        <SideDock manager={manager} />
+      </DocBrowserProvider>,
+    );
+
+    expect(screen.getByText('D')).toBeTruthy();
   });
 });

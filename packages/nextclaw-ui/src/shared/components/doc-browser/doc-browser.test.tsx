@@ -237,6 +237,48 @@ describe("DocBrowser", () => {
     expect(docBrowserState.openNewTab).toHaveBeenCalled();
   });
 
+  it("pins the current tab through injected dock controls", () => {
+    const pinTab = vi.fn();
+    const unpinTab = vi.fn();
+
+    render(<DocBrowser dockControls={{
+      getDockState: () => ({ canDock: true, isDocked: false, removable: false }),
+      pinTab,
+      unpinTab,
+    }} />);
+
+    fireEvent.click(screen.getByTitle("Pin to SideDock"));
+
+    expect(pinTab).toHaveBeenCalledWith(docBrowserState.currentTab);
+    expect(unpinTab).not.toHaveBeenCalled();
+  });
+
+  it("unpins a removable docked tab through injected dock controls", () => {
+    const pinTab = vi.fn();
+    const unpinTab = vi.fn();
+
+    render(<DocBrowser dockControls={{
+      getDockState: () => ({ canDock: true, isDocked: true, removable: true }),
+      pinTab,
+      unpinTab,
+    }} />);
+
+    fireEvent.click(screen.getByTitle("Remove from SideDock"));
+
+    expect(unpinTab).toHaveBeenCalledWith(docBrowserState.currentTab);
+    expect(pinTab).not.toHaveBeenCalled();
+  });
+
+  it("disables dock controls for built-in shortcuts", () => {
+    render(<DocBrowser dockControls={{
+      getDockState: () => ({ canDock: true, isDocked: true, removable: false }),
+      pinTab: vi.fn(),
+      unpinTab: vi.fn(),
+    }} />);
+
+    expect(screen.getByTitle("Built-in shortcut")).toHaveProperty("disabled", true);
+  });
+
   it("renders a start page for home tabs", () => {
     const homeTab: DocBrowserTab = {
       id: "home",

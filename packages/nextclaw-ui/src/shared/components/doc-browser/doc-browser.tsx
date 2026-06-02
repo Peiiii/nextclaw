@@ -2,6 +2,9 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   DOCS_DEFAULT_BASE_URL,
   DOC_BROWSER_HOME_TAB_KIND,
+  type DocBrowserDockControls,
+  type DocBrowserDockState,
+  type DocBrowserTab,
   useDocBrowser,
 } from './doc-browser-context';
 import { normalizeDocUrl } from './utils/doc-browser-url.utils';
@@ -20,6 +23,7 @@ import { GripVertical } from 'lucide-react';
 type DocBrowserProps = {
   customTabRenderers?: DocBrowserCustomTabRenderers;
   displayMode?: 'desktop' | 'fullscreen';
+  dockControls?: DocBrowserDockControls;
 };
 
 type FloatingPanelRect = { x: number; y: number; w: number; h: number };
@@ -35,6 +39,33 @@ type FloatingPanelInteraction = {
 const FLOATING_PANEL_MARGIN = 40;
 const FLOATING_PANEL_MIN_WIDTH = 360;
 const FLOATING_PANEL_MIN_HEIGHT = 400;
+const DEFAULT_IFRAME_SANDBOX = 'allow-same-origin allow-scripts allow-popups allow-forms';
+
+function resolveIframeSandbox(
+  customRenderer: DocBrowserCustomTabRenderers[string] | undefined,
+  currentTab: DocBrowserTab | undefined,
+): string {
+  return currentTab ? customRenderer?.getIframeSandbox?.(currentTab) ?? DEFAULT_IFRAME_SANDBOX : DEFAULT_IFRAME_SANDBOX;
+}
+
+function useDocBrowserDockAction(
+  dockControls: DocBrowserDockControls | undefined,
+  currentTab: DocBrowserTab | undefined,
+  dockState: DocBrowserDockState | undefined,
+) {
+  return useCallback(() => {
+    if (!dockState?.canDock) {
+      return;
+    }
+    if (dockState.isDocked) {
+      if (dockState.removable) {
+        dockControls?.unpinTab(currentTab);
+      }
+      return;
+    }
+    dockControls?.pinTab(currentTab);
+  }, [currentTab, dockControls, dockState]);
+}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -49,10 +80,7 @@ function createInitialFloatingPanelRect(): FloatingPanelRect {
   };
 }
 
-export function DocBrowser({
-  customTabRenderers = {},
-  displayMode = 'desktop',
-}: DocBrowserProps) {
+export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', dockControls }: DocBrowserProps) {
   const {
     isOpen,
     mode,
@@ -89,6 +117,7 @@ export function DocBrowser({
   const canGoBack = activeHistoryIndex > 0;
   const canGoForward = activeHistoryIndex < activeHistory.length - 1;
   const customRenderer = currentTab ? customTabRenderers[currentTab.kind] : undefined;
+  const dockState = dockControls?.getDockState(currentTab);
 
   useEffect(() => {
     if (!isDocsTab) {
@@ -249,6 +278,8 @@ export function DocBrowser({
     setIframeReloadVersion((version) => version + 1);
   }, []);
 
+  const handleToggleDock = useDocBrowserDockAction(dockControls, currentTab, dockState);
+
   if (!isOpen) return null;
 
   const isDocked = mode === 'docked';
@@ -264,9 +295,7 @@ export function DocBrowser({
   const customContent = customRenderParams
     ? customRenderer?.renderContent?.(customRenderParams) ?? (isHomeTab ? <DocBrowserHomePage /> : null)
     : null;
-  const iframeSandbox = currentTab
-    ? customRenderer?.getIframeSandbox?.(currentTab) ?? 'allow-same-origin allow-scripts allow-popups allow-forms'
-    : 'allow-same-origin allow-scripts allow-popups allow-forms';
+  const iframeSandbox = resolveIframeSandbox(customRenderer, currentTab);
 
   const panelContent = (
     <>
@@ -275,11 +304,13 @@ export function DocBrowser({
         activeTabId={activeTabId}
         canGoBack={canGoBack}
         canGoForward={canGoForward}
+        dockState={dockState}
         isDocked={isDocked}
         isFullscreen={isFullscreen}
         onGoBack={goBack}
         onGoForward={goForward}
         onOpenNewTab={openNewTab}
+        onToggleDock={handleToggleDock}
         onSetActiveTab={setActiveTab}
         onCloseTab={closeTab}
         onClose={close}

@@ -6,6 +6,8 @@ export type DocBrowserTab = {
   kind: DocBrowserTabKind;
   title: string;
   currentUrl: string;
+  resourceUri?: string;
+  dockIcon?: DocBrowserDockIcon;
   dedupeKey?: string;
   history: string[];
   historyIndex: number;
@@ -14,11 +16,30 @@ export type DocBrowserTab = {
 };
 
 export type DocBrowserRouteTarget = {
+  dockIcon?: DocBrowserDockIcon;
   dedupeKey?: string;
   historyPolicy: 'managed' | 'none';
   kind: DocBrowserTabKind;
+  resourceUri?: string;
   title: string;
   url: string;
+};
+
+export type DocBrowserDockIcon =
+  | { type: 'builtin'; name: string }
+  | { type: 'url'; url: string }
+  | { type: 'text'; value: string };
+
+export type DocBrowserDockState = {
+  canDock: boolean;
+  isDocked: boolean;
+  removable: boolean;
+};
+
+export type DocBrowserDockControls = {
+  getDockState: (tab?: DocBrowserTab) => DocBrowserDockState;
+  pinTab: (tab?: DocBrowserTab) => void;
+  unpinTab: (tab?: DocBrowserTab) => void;
 };
 
 export type DocBrowserRouteResolver = {
@@ -38,6 +59,7 @@ export type DocBrowserRouteResolver = {
 
 export type DocBrowserActiveHistoryEntry = {
   kind: DocBrowserTabKind;
+  resourceUri?: string;
   tabId: string;
   url: string;
 };
@@ -45,6 +67,7 @@ export type DocBrowserActiveHistoryEntry = {
 export type DocBrowserOpenOptions = {
   activate?: boolean;
   dedupeKey?: string;
+  dockIcon?: DocBrowserDockIcon;
   newTab?: boolean;
   title?: string;
   kind?: DocBrowserTabKind;

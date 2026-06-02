@@ -10,7 +10,7 @@ const builtInItem: SideDockItem = {
   builtIn: true,
   icon: { type: 'builtin', name: 'apps' },
   id: 'apps',
-  labelKey: 'appsTitle',
+  label: 'Apps',
   removable: false,
   target: { type: 'right-panel-resource', uri: 'nextclaw://apps' },
 };
@@ -20,16 +20,16 @@ describe('side-dock-item utils', () => {
     const items = normalizeSideDockPinnedItems([
       {
         createdAt: '2026-06-02T00:00:00.000Z',
-        icon: { type: 'builtin', name: 'docs' },
+        icon: { type: 'text', value: 'D' },
         id: 'docs-custom',
-        labelKey: 'docBrowserHelp',
+        label: 'Help Docs',
         target: { type: 'right-panel-resource', uri: 'nextclaw://docs' },
       },
       {
         createdAt: '2026-06-02T00:00:00.000Z',
         icon: { type: 'builtin', name: 'unknown' },
         id: 'bad-icon',
-        labelKey: 'bad',
+        label: 'Bad',
         target: { type: 'right-panel-resource', uri: 'nextclaw://bad' },
       },
     ]);
@@ -37,9 +37,9 @@ describe('side-dock-item utils', () => {
     expect(items).toEqual([
       {
         createdAt: '2026-06-02T00:00:00.000Z',
-        icon: { type: 'builtin', name: 'docs' },
+        icon: { type: 'text', value: 'D' },
         id: 'docs-custom',
-        labelKey: 'docBrowserHelp',
+        label: 'Help Docs',
         target: { type: 'right-panel-resource', uri: 'nextclaw://docs' },
       },
     ]);
@@ -58,14 +58,14 @@ describe('side-dock-item utils', () => {
           createdAt: '2026-06-02T00:00:00.000Z',
           icon: { type: 'builtin', name: 'docs' },
           id: 'docs-custom',
-          labelKey: 'docBrowserHelp',
+          label: 'Help Docs',
           target: { type: 'right-panel-resource', uri: 'nextclaw://docs' },
         },
         {
           createdAt: '2026-06-02T00:00:00.000Z',
           icon: { type: 'builtin', name: 'apps' },
           id: 'apps-copy',
-          labelKey: 'appsTitle',
+          label: 'Apps',
           target: { type: 'right-panel-resource', uri: 'nextclaw://apps' },
         },
       ],

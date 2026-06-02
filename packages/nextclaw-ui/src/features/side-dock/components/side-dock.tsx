@@ -1,7 +1,7 @@
-import { AppWindow, BookOpen, Boxes, Plus } from 'lucide-react';
+import { AppWindow, BookOpen, Boxes, Plus, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { SideDockManager } from '@/features/side-dock/managers/side-dock.manager';
-import { SIDE_DOCK_BUILT_IN_ITEMS } from '@/features/side-dock/configs/side-dock-built-in-items.config';
+import { getSideDockBuiltInItems } from '@/features/side-dock/configs/side-dock-built-in-items.config';
 import { useSideDockStore } from '@/features/side-dock/stores/side-dock.store';
 import type {
   SideDockIconName,
@@ -30,12 +30,20 @@ const SIDE_DOCK_ICON_COMPONENTS: Record<SideDockIconName, LucideIcon> = {
   apps: Boxes,
   docs: BookOpen,
   'new-tab': Plus,
+  'panel-app': AppWindow,
   'service-apps': AppWindow,
 };
 
 function SideDockItemIconView({ icon }: { icon: SideDockItemIcon }) {
   if (icon.type === 'url') {
     return <img src={icon.url} alt="" className="h-5 w-5 rounded object-cover" />;
+  }
+  if (icon.type === 'text') {
+    return (
+      <span className="max-w-7 truncate text-center text-[13px] font-semibold leading-none" aria-hidden="true">
+        {icon.value}
+      </span>
+    );
   }
 
   const Icon = SIDE_DOCK_ICON_COMPONENTS[icon.name];
@@ -46,56 +54,100 @@ function SideDockButton({
   active,
   item,
   onOpen,
+  onUnpin,
 }: {
   active: boolean;
   item: SideDockItem;
   onOpen: (item: SideDockItem) => void;
+  onUnpin: (item: SideDockItem) => void;
 }) {
-  const label = t(item.labelKey);
+  const { label } = item;
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          aria-label={label}
-          title={label}
-          data-side-dock-item-id={item.id}
-          onClick={() => onOpen(item)}
-          className={cn(
-            'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors',
-            'hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            active
-              ? 'bg-primary/10 text-primary'
-              : 'bg-transparent',
-          )}
-        >
-          <SideDockItemIconView icon={item.icon} />
-        </button>
-      </TooltipTrigger>
+      <div className="group relative">
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={label}
+            title={label}
+            data-side-dock-item-id={item.id}
+            onClick={() => onOpen(item)}
+            className={cn(
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors',
+              'hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              active
+                ? 'bg-primary/10 text-primary'
+                : 'bg-transparent',
+            )}
+          >
+            <SideDockItemIconView icon={item.icon} />
+          </button>
+        </TooltipTrigger>
+        {item.removable ? (
+          <button
+            type="button"
+            aria-label={t('sideDockUnpinItem')}
+            title={t('sideDockUnpinItem')}
+            onClick={(event) => {
+              event.stopPropagation();
+              onUnpin(item);
+            }}
+            className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-background text-muted-foreground shadow-sm ring-1 ring-border/70 transition-colors hover:bg-muted hover:text-foreground group-hover:flex focus-visible:flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="h-3 w-3" aria-hidden="true" />
+          </button>
+        ) : null}
+      </div>
       <TooltipContent side="left">{label}</TooltipContent>
     </Tooltip>
   );
+}
+
+function normalizeSideDockUri(uri?: string): string {
+  return uri?.trim() ?? '';
 }
 
 function isSideDockItemActive(
   item: SideDockItem,
   isDocBrowserOpen: boolean,
   currentTab?: DocBrowserTab,
+  hasExactActiveItem = false,
 ): boolean {
   if (!isDocBrowserOpen || !currentTab) {
     return false;
   }
-  if (currentTab.currentUrl === item.target.uri) {
+  const itemUri = normalizeSideDockUri(item.target.uri);
+  const currentResourceUri = normalizeSideDockUri(currentTab.resourceUri);
+  if (
+    (currentResourceUri && currentResourceUri === itemUri)
+    || normalizeSideDockUri(currentTab.currentUrl) === itemUri
+  ) {
     return true;
   }
+  if (hasExactActiveItem) {
+    return false;
+  }
   return item.id === 'docs' && currentTab.kind === 'docs';
+}
+
+function hasExactActiveSideDockItem(items: SideDockItem[], currentTab?: DocBrowserTab): boolean {
+  if (!currentTab) {
+    return false;
+  }
+  const currentResourceUri = normalizeSideDockUri(currentTab.resourceUri);
+  const currentUrl = normalizeSideDockUri(currentTab.currentUrl);
+  return items.some((item) => {
+    const itemUri = normalizeSideDockUri(item.target.uri);
+    return itemUri === currentResourceUri || itemUri === currentUrl;
+  });
 }
 
 export function SideDock({ manager }: SideDockProps) {
   const pinnedItems = useSideDockStore((state) => state.pinnedItems);
   const { currentTab, isOpen } = useDocBrowser();
-  const items = mergeSideDockItems(SIDE_DOCK_BUILT_IN_ITEMS, pinnedItems);
+  const items = mergeSideDockItems(getSideDockBuiltInItems(), pinnedItems);
+  const hasExactActiveItem = hasExactActiveSideDockItem(items, currentTab);
 
   return (
     <TooltipProvider delayDuration={250}>
@@ -106,9 +158,10 @@ export function SideDock({ manager }: SideDockProps) {
         {items.map((item) => (
           <SideDockButton
             key={item.id}
-            active={isSideDockItemActive(item, isOpen, currentTab)}
+            active={isSideDockItemActive(item, isOpen, currentTab, hasExactActiveItem)}
             item={item}
             onOpen={manager.openItem}
+            onUnpin={(dockItem) => manager.unpinItem(dockItem.id)}
           />
         ))}
       </aside>

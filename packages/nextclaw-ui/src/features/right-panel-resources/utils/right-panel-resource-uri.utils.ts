@@ -1,4 +1,5 @@
 import type { PanelAppEntryView } from '@/shared/lib/api';
+import type { DocBrowserDockIcon } from '@/shared/components/doc-browser';
 import type { RightPanelResourceTarget } from '@/features/right-panel-resources/types/right-panel-resource.types';
 
 export const RIGHT_PANEL_HOME_TAB_KIND = 'home';
@@ -37,11 +38,32 @@ export function createPanelAppResourceUri(appId: string): string {
   return `nextclaw://panel-app/${encodeURIComponent(appId)}`;
 }
 
+function isPanelAppImageIcon(icon: string): boolean {
+  return (
+    icon.startsWith('data:image/') ||
+    icon.startsWith('http://') ||
+    icon.startsWith('https://') ||
+    icon.startsWith('/')
+  );
+}
+
+function createPanelAppDockIcon(entry: PanelAppEntryView): DocBrowserDockIcon | undefined {
+  const icon = entry.icon?.trim();
+  if (!icon) {
+    return undefined;
+  }
+  return isPanelAppImageIcon(icon)
+    ? { type: 'url', url: icon }
+    : { type: 'text', value: icon };
+}
+
 export function createPanelAppRightPanelResourceTarget(entry: PanelAppEntryView): RightPanelResourceTarget {
   return {
     dedupeKey: `panel-app:${entry.id}`,
+    dockIcon: createPanelAppDockIcon(entry),
     historyPolicy: 'managed',
     kind: RIGHT_PANEL_PANEL_APP_TAB_KIND,
+    resourceUri: createPanelAppResourceUri(entry.id),
     title: entry.title,
     url: entry.contentPath,
   };

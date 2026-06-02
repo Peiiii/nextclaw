@@ -9,6 +9,7 @@ import { DesktopWindowChrome } from "@/platforms/desktop/components/desktop-wind
 import { isWindowsDesktopHost } from "@/platforms/desktop/utils/desktop-host.utils";
 import { MobileBottomNav } from "@/platforms/mobile";
 import type { DocBrowserCustomTabRenderers } from "@/shared/components/doc-browser/doc-browser-renderer.types";
+import type { DocBrowserDockControls } from "@/shared/components/doc-browser/doc-browser-context";
 import { cn } from "@/shared/lib/utils";
 
 const DocBrowser = lazy(async () => ({
@@ -20,6 +21,7 @@ type DesktopAppShellProps = {
   isMobileLayout?: boolean;
   isDocBrowserOpen: boolean;
   docBrowserMode: "floating" | "docked";
+  docBrowserDockControls?: DocBrowserDockControls;
   docBrowserRenderers?: DocBrowserCustomTabRenderers;
   sideDock?: React.ReactNode;
   children: React.ReactNode;
@@ -30,6 +32,7 @@ export function DesktopAppShell({
   isMobileLayout = false,
   isDocBrowserOpen,
   docBrowserMode,
+  docBrowserDockControls,
   docBrowserRenderers = {},
   sideDock,
   children,
@@ -67,7 +70,7 @@ export function DesktopAppShell({
           </div>
           {isDocBrowserOpen && docBrowserMode === "docked" ? (
             <Suspense fallback={null}>
-              <DocBrowser customTabRenderers={docBrowserRenderers} />
+              <DocBrowser customTabRenderers={docBrowserRenderers} dockControls={docBrowserDockControls} />
             </Suspense>
           ) : null}
           {sideDock}
@@ -76,7 +79,7 @@ export function DesktopAppShell({
       {showMobileBottomNav ? <MobileBottomNav /> : null}
       {isDocBrowserOpen && docBrowserMode === "floating" ? (
         <Suspense fallback={null}>
-          <DocBrowser customTabRenderers={docBrowserRenderers} />
+          <DocBrowser customTabRenderers={docBrowserRenderers} dockControls={docBrowserDockControls} />
         </Suspense>
       ) : null}
     </div>

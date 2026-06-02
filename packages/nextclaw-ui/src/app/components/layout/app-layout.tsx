@@ -10,9 +10,10 @@ import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
 import { DesktopAppShell, getDesktopHostPlatform } from "@/platforms/desktop";
 import { MobileAppShell } from "@/platforms/mobile";
 import { PANEL_APPS_DOC_BROWSER_RENDERERS } from "@/features/panel-apps";
-import { SideDock, type SideDockManager } from "@/features/side-dock";
+import { SideDock, type SideDockManager, useSideDockStore } from "@/features/side-dock";
 import { getPresenter } from "@/app/presenters/app.presenter";
 import { resolveUiDocumentTitle } from "@/shared/lib/ui-document-title";
+import type { DocBrowserDockControls } from "@/shared/components/doc-browser/doc-browser-context";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -28,6 +29,12 @@ function AppLayoutInner({
   const { language } = useI18n();
   const { isMobile } = useViewportLayout();
   const desktopHostPlatform = getDesktopHostPlatform();
+  useSideDockStore((state) => state.pinnedItems);
+  const docBrowserDockControls: DocBrowserDockControls = {
+    getDockState: sideDockManager.getDockState,
+    pinTab: sideDockManager.pinTab,
+    unpinTab: sideDockManager.unpinTab,
+  };
 
   useEffect(() => {
     document.title = resolveUiDocumentTitle(pathname);
@@ -35,7 +42,7 @@ function AppLayoutInner({
 
   if (isMobile && desktopHostPlatform !== "win32") {
     return (
-      <MobileAppShell pathname={pathname} isDocBrowserOpen={isOpen} docBrowserRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} topbarLeadingInset={desktopHostPlatform === "darwin" ? "4.75rem" : undefined}>
+      <MobileAppShell pathname={pathname} isDocBrowserOpen={isOpen} docBrowserDockControls={docBrowserDockControls} docBrowserRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} topbarLeadingInset={desktopHostPlatform === "darwin" ? "4.75rem" : undefined}>
         {children}
       </MobileAppShell>
     );
@@ -47,6 +54,7 @@ function AppLayoutInner({
       isMobileLayout={isMobile}
       isDocBrowserOpen={isOpen}
       docBrowserMode={mode}
+      docBrowserDockControls={docBrowserDockControls}
       docBrowserRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS}
       sideDock={<SideDock manager={sideDockManager} />}
     >

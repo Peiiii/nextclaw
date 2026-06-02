@@ -73,6 +73,7 @@ docBrowserManager.open(item.target.uri);
   - New Tab / Start Page
 - 用户可 pin 的入口模型。
 - 用户 pin 列表持久化。
+- 在 DocBrowser 当前资源上支持 pin / unpin 第一版闭环。
 - 内置入口不可 unpin。
 - 点击入口打开对应 right-panel resource。
 - 当前 active / open 状态的基础视觉反馈。
@@ -102,11 +103,14 @@ docBrowserManager.open(item.target.uri);
 
 用户在可 pin 的资源入口处选择 Pin to SideDock：
 
-1. 调用 SideDock manager 的 `pinItem`。
-2. SideDock store 持久化 item。
-3. SideDock UI 立即出现该入口。
+1. 右侧栏资源 owner 产出当前资源的 dock candidate。
+2. 调用 SideDock manager 的 `pinTab` 或 `pinItem`。
+3. SideDock store 持久化 item。
+4. SideDock UI 立即出现该入口。
 
 可 pin 的资源必须能表达为 `SideDockItemTarget`。如果一个页面不能稳定表达为 right-panel resource URI，则第一阶段不支持 pin。
+
+SideDock 不自己推断“当前页面是什么”。这个判断属于 right-panel-resource / DocBrowser route resolver 的信息专家职责。
 
 ### Unpin
 
@@ -137,11 +141,12 @@ export type SideDockIconName = 'apps' | 'docs' | 'new-tab' | 'service-apps';
 
 export type SideDockItemIcon =
   | { type: 'builtin'; name: SideDockIconName }
-  | { type: 'url'; url: string };
+  | { type: 'url'; url: string }
+  | { type: 'text'; value: string };
 
 export type SideDockItem = {
   id: SideDockItemId;
-  labelKey: string;
+  label: string;
   icon: SideDockItemIcon;
   target: SideDockItemTarget;
   builtIn: boolean;
@@ -150,7 +155,7 @@ export type SideDockItem = {
 
 export type SideDockPinnedItem = {
   id: SideDockItemId;
-  labelKey: string;
+  label: string;
   icon: SideDockItemIcon;
   target: SideDockItemTarget;
   createdAt: string;
@@ -158,6 +163,70 @@ export type SideDockPinnedItem = {
 ```
 
 内置入口来自 config，不进入用户持久化列表。用户持久化只保存 `SideDockPinnedItem[]`。
+
+### 文案与 i18n 边界
+
+SideDock 的业务模型不感知 i18n key。`i18n key` 是展示文案解析机制，不是快捷入口业务事实。
+
+因此：
+
+- `SideDockItem.label` 和 `SideDockPinnedItem.label` 都是最终可展示字符串。
+- manager / store / persisted payload 只读写最终字符串。
+- 内置入口由函数生成，在靠近 UI/config 的地方调用 `t(...)` 得到最终字符串。
+- 用户 pin 的动态入口保存 pin 当时的标题；后续如果要自动刷新标题，需要另设资源 metadata 刷新机制，不在 SideDock store 里保存 i18n key 或资源查询参数。
+
+### 可 Dock 资源合同
+
+右侧栏资源提供可 dock 候选项：
+
+```ts
+export type RightPanelDockCandidate = {
+  icon: SideDockItemIcon;
+  title: string;
+  uri: string;
+};
+```
+
+候选项只表达 SideDock 需要的事实：
+
+- `uri`：稳定可打开的 right-panel resource URI。
+- `title`：最终可展示字符串。
+- `icon`：快捷入口图标。
+
+DocBrowser tab 同时需要区分：
+
+- `currentUrl`：当前渲染 / iframe / 页面导航地址。
+- `resourceUri`：可 pin、可恢复、可去重的资源身份。
+- `dockIcon`：当前资源作为 SideDock 快捷入口时应展示的图标。
+
+例如 panel app 的 `currentUrl` 可以是 app content path，但 `resourceUri` 应是 `nextclaw://panel-app/<id>`。
+
+Panel App 必须把自身 `entry.icon` 转成 `dockIcon` 传入 DocBrowser tab：
+
+- 图片 URL、`data:image/*`、站内绝对路径：保存为 `{ type: 'url', url }`。
+- emoji、单字符或短文本：保存为 `{ type: 'text', value }`。
+- 只有没有声明 icon 时，才 fallback 到 panel app 通用图标。
+
+SideDock 不应根据 `nextclaw://panel-app/<id>` 反查 panel app 列表；这个 metadata 应由 panel app 打开资源时提供，避免 SideDock 感知 panel app 业务。
+
+### 返回历史与资源身份
+
+DocBrowser 的顶层前进 / 后退历史也必须保存 `resourceUri`，不能只保存 `currentUrl`。
+
+原因是 panel app、docs、Apps 这类右侧栏资源通常同时存在两种地址：
+
+- 稳定资源身份：例如 `nextclaw://panel-app/demo`。
+- 实际渲染地址：例如 `/api/panel-apps/demo/content`。
+
+返回历史恢复时应优先用 `resourceUri` 解析目标，再把解析出的 `url` 写回 `currentUrl`。这样可以避免把 `/api/panel-apps/demo/content` 当成 `nextclaw://panel-app/<id>` 重新解析，从而误把 `api` 识别成 panel app id。
+
+right-panel resource route resolver 也需要对已解析的 content URL 保持幂等：
+
+- `nextclaw://panel-app/demo` 应解析为 `/api/panel-apps/demo/content`。
+- `/api/panel-apps/demo/content` 在 `panel-app` kind 下再次解析时，仍应得到 `resourceUri = nextclaw://panel-app/demo`。
+- `areEquivalent` 比较 panel app 时应按稳定资源身份比较，而不是简单比较原始字符串。
+
+这条规则是 SideDock pinning 的基础：SideDock 保存的是稳定 `target.uri`，DocBrowser 展示的是 `currentUrl`，历史恢复和 pin/unpin 都不能把二者混用。
 
 ## 代码组织
 
@@ -181,8 +250,8 @@ packages/nextclaw-ui/src/features/side-dock/
 角色说明：
 
 - `stores/side-dock.store.ts`：Zustand persist owner，保存用户 pin 的入口、排序等轻量状态。
-- `managers/side-dock.manager.ts`：SideDock 业务 action owner，负责 pin、unpin、reorder、open item。
-- `configs/side-dock-built-in-items.config.ts`：系统内置不可移除入口。
+- `managers/side-dock.manager.ts`：SideDock 业务 action owner，负责 pin resource、unpin、reorder、open item。
+- `configs/side-dock-built-in-items.config.ts`：系统内置不可移除入口；以函数生成最终字符串 label。
 - `components/side-dock.tsx`：渲染右侧快捷入口条，只连接 store / manager，不承载内容。
 - `utils/side-dock-item.utils.ts`：无状态合并和校验，例如合并内置入口与用户 pin 入口。
 
@@ -220,49 +289,62 @@ SideDock 不放进 DocBrowser 内部。理由：
 ## 内置入口草案
 
 ```ts
-export const SIDE_DOCK_BUILT_IN_ITEMS: SideDockItem[] = [
-  {
-    id: 'apps',
-    labelKey: 'appsTitle',
-    icon: { type: 'builtin', name: 'apps' },
-    target: { type: 'right-panel-resource', uri: 'nextclaw://apps' },
-    builtIn: true,
-    removable: false,
-  },
-  {
-    id: 'service-apps',
-    labelKey: 'serviceAppsTitle',
-    icon: { type: 'builtin', name: 'service-apps' },
-    target: { type: 'right-panel-resource', uri: 'nextclaw://apps?tab=service-apps' },
-    builtIn: true,
-    removable: false,
-  },
-  {
-    id: 'docs',
-    labelKey: 'docBrowserHelp',
-    icon: { type: 'builtin', name: 'docs' },
-    target: { type: 'right-panel-resource', uri: 'nextclaw://docs' },
-    builtIn: true,
-    removable: false,
-  },
-  {
-    id: 'new-tab',
-    labelKey: 'docBrowserHomeTitle',
-    icon: { type: 'builtin', name: 'new-tab' },
-    target: { type: 'right-panel-resource', uri: 'nextclaw://new-tab' },
-    builtIn: true,
-    removable: false,
-  },
-];
+export function getSideDockBuiltInItems(): SideDockItem[] {
+  return [
+    {
+      id: 'apps',
+      label: t('appsTitle'),
+      icon: { type: 'builtin', name: 'apps' },
+      target: { type: 'right-panel-resource', uri: 'nextclaw://apps' },
+      builtIn: true,
+      removable: false,
+    },
+    {
+      id: 'service-apps',
+      label: t('serviceAppsTitle'),
+      icon: { type: 'builtin', name: 'service-apps' },
+      target: { type: 'right-panel-resource', uri: 'nextclaw://apps?tab=service-apps' },
+      builtIn: true,
+      removable: false,
+    },
+    {
+      id: 'docs',
+      label: t('docBrowserHelp'),
+      icon: { type: 'builtin', name: 'docs' },
+      target: { type: 'right-panel-resource', uri: 'nextclaw://docs' },
+      builtIn: true,
+      removable: false,
+    },
+    {
+      id: 'new-tab',
+      label: t('docBrowserHomeTitle'),
+      icon: { type: 'builtin', name: 'new-tab' },
+      target: { type: 'right-panel-resource', uri: 'nextclaw://new-tab' },
+      builtIn: true,
+      removable: false,
+    },
+  ];
+}
 ```
 
-本次第一版实现已经落地 SideDock rail、内置入口、pin/unpin/reorder 的 manager/store 合同和持久化校验。具体资源页面上的 `Pin to SideDock` 入口可以在后续按资源场景逐个接入，不需要再改 SideDock 的 owner 结构。
+## 第一版落地边界
+
+第一版实现应支持：
+
+- SideDock 内置入口和用户 pin 入口都使用 `label: string`。
+- DocBrowser 顶部提供当前资源 pin / unpin 按钮。
+- 当前资源如果已是内置入口，按钮显示已 dock 但不可取消。
+- 用户 pin 的资源可从 SideDock item 菜单 unpin。
+- 暂不做拖拽排序、分组、自动标题刷新和 pin 任意主路由页面。
 
 ## Pin 入口来源
 
 第一阶段可支持以下来源：
 
 - DocBrowser tab menu：Pin current tab to SideDock。
+
+后续可支持以下来源：
+
 - Apps / Panel App 列表：Pin app to SideDock。
 - RightPanelResourceHomePage：对支持 pin 的入口提供 pin action。
 

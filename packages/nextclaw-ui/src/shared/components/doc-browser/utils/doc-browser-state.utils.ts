@@ -1,5 +1,6 @@
 import type {
   DocBrowserActiveHistoryEntry,
+  DocBrowserDockIcon,
   DocBrowserState,
   DocBrowserTab,
   DocBrowserTabKind,
@@ -23,14 +24,19 @@ export function createDocBrowserTab(
   kind: DocBrowserTabKind,
   title?: string,
   dedupeKey?: string,
+  resourceUri?: string,
+  dockIcon?: DocBrowserDockIcon,
 ): DocBrowserTab {
   const tabTitle = title?.trim() || inferTabTitle(url, kind, kind === 'docs' ? t('docBrowserHelp') : 'Detail');
+  const normalizedResourceUri = resourceUri?.trim();
 
   return {
     id: nextTabId(),
     kind,
     title: tabTitle,
     currentUrl: url,
+    resourceUri: normalizedResourceUri ? normalizedResourceUri : undefined,
+    dockIcon,
     dedupeKey,
     history: [url],
     historyIndex: 0,
@@ -41,6 +47,7 @@ export function createDocBrowserTab(
 export function createDocBrowserActiveHistoryEntry(tab: DocBrowserTab): DocBrowserActiveHistoryEntry {
   return {
     kind: tab.kind,
+    resourceUri: tab.resourceUri,
     tabId: tab.id,
     url: tab.currentUrl,
   };

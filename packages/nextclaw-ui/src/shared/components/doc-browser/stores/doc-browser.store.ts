@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type {
   DocBrowserActiveHistoryEntry,
+  DocBrowserDockIcon,
   DocBrowserMode,
   DocBrowserState,
   DocBrowserStateUpdate,
@@ -42,6 +43,22 @@ function normalizePersistedNumber(value: unknown, min: number, max: number, fall
     : fallback;
 }
 
+function normalizePersistedDockIcon(value: unknown): DocBrowserDockIcon | undefined {
+  if (!isRecord(value) || typeof value.type !== 'string') {
+    return undefined;
+  }
+  if (value.type === 'builtin' && typeof value.name === 'string' && value.name.trim().length > 0) {
+    return { type: 'builtin', name: value.name.trim() };
+  }
+  if (value.type === 'url' && typeof value.url === 'string' && value.url.trim().length > 0) {
+    return { type: 'url', url: value.url.trim() };
+  }
+  if (value.type === 'text' && typeof value.value === 'string' && value.value.trim().length > 0) {
+    return { type: 'text', value: value.value.trim() };
+  }
+  return undefined;
+}
+
 function normalizePersistedDocBrowserTab(value: unknown): DocBrowserTab | null {
   if (
     !isRecord(value)
@@ -59,12 +76,18 @@ function normalizePersistedDocBrowserTab(value: unknown): DocBrowserTab | null {
   const dedupeKey = typeof value.dedupeKey === 'string' && value.dedupeKey.trim().length > 0
     ? value.dedupeKey
     : undefined;
+  const resourceUri = typeof value.resourceUri === 'string' && value.resourceUri.trim().length > 0
+    ? value.resourceUri.trim()
+    : undefined;
+  const dockIcon = normalizePersistedDockIcon(value.dockIcon);
 
   return {
     id: value.id,
     kind: value.kind,
     title: value.title,
     currentUrl: history[historyIndex] ?? value.currentUrl,
+    resourceUri,
+    dockIcon,
     dedupeKey,
     history,
     historyIndex,
@@ -75,6 +98,7 @@ function normalizePersistedDocBrowserTab(value: unknown): DocBrowserTab | null {
 function createActiveHistoryEntryFromTab(tab: DocBrowserTab): DocBrowserActiveHistoryEntry {
   return {
     kind: tab.kind,
+    resourceUri: tab.resourceUri,
     tabId: tab.id,
     url: tab.currentUrl,
   };
@@ -95,8 +119,13 @@ function normalizePersistedActiveHistoryEntry(
     return null;
   }
 
+  const resourceUri = typeof value.resourceUri === 'string' && value.resourceUri.trim().length > 0
+    ? value.resourceUri.trim()
+    : undefined;
+
   return {
     kind: value.kind,
+    resourceUri,
     tabId: value.tabId,
     url: value.url,
   };
