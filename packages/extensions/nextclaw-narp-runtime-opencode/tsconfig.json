@@ -1,0 +1,16 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@opencode-narp/*": ["src/*"],
+      "@narp-stdio-wrapper/*": ["../../nextclaw-narp-stdio-runtime-wrapper/src/*"],
+      "@nextclaw/ncp": ["../../ncp-packages/nextclaw-ncp/src/index.ts"],
+      "@nextclaw/nextclaw-narp-stdio-runtime-wrapper": ["../../nextclaw-narp-stdio-runtime-wrapper/src/index.ts"],
+      "@nextclaw/nextclaw-ncp-runtime-stdio-client": ["../../nextclaw-ncp-runtime-stdio-client/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}

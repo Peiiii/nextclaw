@@ -1,7 +1,7 @@
 ---
 name: opencode-runtime
-description: 当需要把 OpenCode/opencode 接入为正式 NextClaw runtime，尤其是通过 narp-stdio(acp) 配置 runtime entry、安装或诊断 opencode acp、修复 OpenCode provider 配置、做真实模型回复和 agent 文件任务 smoke 时使用。
-description_zh: 用于将 OpenCode/opencode 接入为正式 NextClaw runtime，覆盖 narp-stdio(acp) runtime entry、opencode acp 安装诊断、OpenCode provider 配置、真实模型回复与 agent 文件任务验收。
+description: 当需要把 OpenCode/opencode 接入为正式 NextClaw runtime，尤其是通过 nextclaw-opencode-narp 继承 NextClaw provider route、配置 narp-stdio(acp) runtime entry、安装或诊断 opencode acp、修复 OpenCode provider 配置、做真实模型回复和 agent 文件任务 smoke 时使用。
+description_zh: 用于将 OpenCode/opencode 接入为正式 NextClaw runtime，覆盖 nextclaw-opencode-narp provider route 继承、narp-stdio(acp) runtime entry、opencode acp 安装诊断、真实模型回复与 agent 文件任务验收。
 metadata: {"nextclaw":{"emoji":"⌘"}}
 ---
 
@@ -17,7 +17,10 @@ metadata: {"nextclaw":{"emoji":"⌘"}}
 - runtime label：`OpenCode`
 - runtime type：`narp-stdio`
 - wire dialect：`acp`
-- launcher：`opencode acp`
+- launcher：`nextclaw-opencode-narp`
+- `nextclaw-opencode-narp` 内部生成 prompt/session-scoped OpenCode config，再启动 `opencode acp`
+
+裸 `opencode acp` 只能作为上游 ACP 探针。它不会自动消费 NextClaw `providerRoute`，不能作为正式产品 runtime entry。
 
 禁止：
 
@@ -40,8 +43,8 @@ metadata: {"nextclaw":{"emoji":"⌘"}}
           "config": {
             "wireDialect": "acp",
             "processScope": "per-session",
-            "command": "opencode",
-            "args": ["acp"],
+            "command": "nextclaw-opencode-narp",
+            "args": [],
             "env": {},
             "startupTimeoutMs": 15000,
             "probeTimeoutMs": 5000,
@@ -89,7 +92,7 @@ export PATH=/tmp/nextclaw-opencode-smoke-bin/bin:$PATH
 
 3. 准备隔离 `NEXTCLAW_HOME`，写入 `agents.runtimes.entries.opencode`。
 
-4. 准备隔离 OpenCode config。OpenCode 不会自动消费 NextClaw 注入给 NARP 子进程的 `NEXTCLAW_MODEL`、`NEXTCLAW_API_BASE`、`NEXTCLAW_API_KEY`、`NEXTCLAW_HEADERS_JSON`；若要复用 NextClaw provider route，需用薄 launcher 把 route 转成 OpenCode 可消费的 config 或环境变量。
+4. runtime entry 必须指向 `nextclaw-opencode-narp`。OpenCode 不会自动消费 NextClaw 注入给 NARP 子进程的 `NEXTCLAW_MODEL`、`NEXTCLAW_API_BASE`、`NEXTCLAW_API_KEY`、`NEXTCLAW_HEADERS_JSON`；必须由该 launcher 把 `promptMeta.providerRoute` 转成 OpenCode 可消费的临时 config 和环境变量。
 
 ## 验收
 
@@ -147,13 +150,14 @@ pnpm smoke:ncp-chat -- \
 - `$TARGET` 存在
 - 文件内容严格等于 `NEXTCLAW_OPENCODE_AGENT_FILE_OK`
 
-## 什么时候需要薄 launcher
+## Launcher 合同
 
-第一阶段可以直接使用 `opencode acp`。出现以下需求时，再新增 `nextclaw-opencode-narp` 这类薄 launcher：
+`nextclaw-opencode-narp` 仍然只属于 OpenCode 接入边界；不要改通用 `narp-stdio` host client。
 
-- 要开箱即用安装或 repair OpenCode CLI。
-- 要把 NextClaw provider route 稳定继承给 OpenCode。
-- 要固定和验证 workspace/cwd 合同。
-- 要统一 doctor、readiness、真实首条消息 smoke。
+launcher 必须：
 
-薄 launcher 仍然只属于 OpenCode 接入边界；不要改通用 `narp-stdio` host client。
+- 读取 `promptMeta.providerRoute` 和会话 metadata 中的 NextClaw 选模信息。
+- 生成隔离 `OPENCODE_CONFIG`，把 NextClaw provider/model 映射成 OpenCode `provider` / `model`。
+- API key 和 custom header 值必须通过环境变量注入，不写入 config 明文。
+- 子进程使用当前源码构建出的 launcher 和本机 `opencode acp`。
+- 真实 smoke 必须覆盖文本和 agent 文件任务，不接受只验证 `opencode acp --help`。

@@ -1,0 +1,39 @@
+{
+  "name": "@nextclaw/nextclaw-narp-runtime-opencode",
+  "version": "0.1.0",
+  "private": false,
+  "description": "NARP stdio launcher for the OpenCode runtime.",
+  "type": "module",
+  "bin": {
+    "nextclaw-opencode-narp": "dist/controllers/opencode-narp.controller.js"
+  },
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown src/index.ts src/controllers/opencode-narp.controller.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension --unbundle",
+    "prepack": "pnpm run build",
+    "lint": "eslint .",
+    "tsc": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "prepublishOnly": "node ../../../scripts/release/ensure-pnpm-publish.mjs"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "dependencies": {
+    "@nextclaw/ncp": "workspace:*",
+    "@nextclaw/nextclaw-narp-stdio-runtime-wrapper": "workspace:*",
+    "@nextclaw/nextclaw-ncp-runtime-stdio-client": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.2"
+  }
+}
