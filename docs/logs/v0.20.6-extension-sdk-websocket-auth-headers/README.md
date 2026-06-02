@@ -33,7 +33,14 @@
 
 ## 发布/部署方式
 
-未执行发布、部署或 NPM publish。本次只完成源码修复、本地构建与接口级功能验证。
+已执行 NPM stable publish。本次没有发布 desktop installer、runtime update channel 或部署服务。
+
+发布方式：
+
+- 使用隔离 worktree `/Users/peiwang/Projects/nextbot-release-extension-sdk`，从已提交修复 `2e6117cd8` 创建 release branch `codex/release-extension-sdk-stable`。
+- 避免把当前主工作区中未完成的 provider/model/llm-provider WIP 带入发布。
+- 最终采用受控窄发布：只发布 `@nextclaw/extension-sdk` 与 `@nextclaw/channel-extension-weixin`。原因是 changesets 自动扩大到所有 channel extension 时会触发 dingtalk 既有 tsc 债务，超出本次微信二维码超时修复范围。
+- 使用项目 `.npmrc` 作为 npm auth 来源：`NPM_CONFIG_USERCONFIG=/Users/peiwang/Projects/nextbot/.npmrc`。
 
 ## 用户/产品视角的验收步骤
 
@@ -55,10 +62,22 @@
 
 ## NPM 包发布记录
 
-本次未发布 NPM 包。
+已发布 NPM stable 包：
 
-受影响包：
+- `@nextclaw/extension-sdk@0.2.3`，dist-tag: `latest`
+- `@nextclaw/channel-extension-weixin@0.1.18`，dist-tag: `latest`
 
-- `@nextclaw/extension-sdk`
+验证记录：
 
-状态：待后续统一发布批次评估；发布时需要确保 `ws` 运行时依赖进入包依赖闭环。
+- `npm view @nextclaw/extension-sdk version dist-tags dependencies --json`：确认 `latest=0.2.3`，依赖包含 `ws`、`@nextclaw/ncp@0.5.22`、`@nextclaw/shared@0.2.2`。
+- `npm view @nextclaw/channel-extension-weixin version dist-tags dependencies --json`：确认 `latest=0.1.18`，依赖 `@nextclaw/extension-sdk@0.2.3`。
+- 临时目录安装 `@nextclaw/channel-extension-weixin@latest`：确认安装到 weixin `0.1.18`，实际依赖 SDK `0.2.3`，且 SDK manifest 包含 `ws`。
+
+Release commit:
+
+- `a9c6fb2f8 Release extension SDK websocket auth fix`
+
+Tags:
+
+- `@nextclaw/extension-sdk@0.2.3`
+- `@nextclaw/channel-extension-weixin@0.1.18`

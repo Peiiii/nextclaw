@@ -1,0 +1,61 @@
+---
+name: isolated-npm-release-worktree
+description: 当用户要发布已经提交的 NPM 包，但当前工作区还有未完成、半吊子、staged/unstaged WIP，或用户明确要求“不要把未完成改动发上去”“隔离发布”“发布产物再合回 master”时使用。覆盖 git worktree 隔离发布、NPM stable/beta 窄发布、保护当前 WIP、registry 验证、release commit/tag 回流本地目标分支。
+---
+
+# Isolated NPM Release Worktree
+
+## 目标
+
+从已提交代码发布 NPM，同时保护当前工作区的未完成改动。发布完成后，把 release metadata、tags、skill/日志等可回流产物安全合回本地目标分支。
+
+## 触发条件
+
+- 用户要发布 NPM，但当前工作区不干净。
+- 用户说已提交部分可以发，半成品不要发。
+- 用户希望在隔离目录发布，发布产物最终回到本地 `master` / 当前目标分支。
+- 用户要求沉淀可复用发布流程。
+
+## 工作流
+
+1. 冻结发布目标：
+   - 记录当前目标分支、目标提交、dirty/staged/untracked 状态。
+   - 明确哪些提交允许发布，哪些 WIP 禁止发布。
+   - 禁止 stash、reset、checkout 用户 WIP，除非用户明确要求。
+
+2. 创建隔离 worktree：
+   - `git worktree add -b codex/release-<slug> <release-dir> <target-commit>`
+   - 后续发布、version、build、pack、publish 都在 release worktree 内执行。
+
+3. 决定 release 范围：
+   - 先用 `npm-release-contract-guard` 判断 closure。
+   - 若 repo changeset flow 会把无关旧债或半成品 package 拉进 batch，允许改用受控窄发布，但必须说明原因。
+   - 受控窄发布仍必须用 `pnpm publish`，禁止 raw `npm publish`。
+
+4. 发布前验证：
+   - 使用与 publish 相同的 npm config 验证 auth，例如 `NPM_CONFIG_USERCONFIG=<project>/.npmrc npm whoami`。
+   - 运行被发布包的 `test`、`tsc`、`lint`、`build`。
+   - 用 `pnpm pack` 检查 tarball manifest，确认 `workspace:*` 已转成已发布或本批次将发布的精确版本。
+   - 对依赖闭包关键包做临时安装验证。
+
+5. 发布：
+   - 先发布底层依赖，再发布依赖它的包。
+   - 在非 `master/main` 的 release branch 上使用 `pnpm publish --publish-branch <branch>`。
+   - 每个包发布后用 `npm view <pkg> version dist-tags dependencies --json` 验证 registry。
+
+6. 回流本地目标分支：
+   - release branch 只含 release metadata / skill / 日志等已完成产物时，优先在目标工作区执行 `git merge --ff-only <release-branch>`。
+   - 若目标工作区有 WIP，只允许在不重叠时 fast-forward；失败就停止，不要 stash 或强行 merge。
+   - 最终回复必须说明目标分支是否缺功能代码、是否缺 release metadata、WIP 是否仍保留。
+
+7. 收尾：
+   - 创建/更新本次 `docs/logs` 发布记录。
+   - 若流程暴露了可复用规则，更新本 skill 或相关 release skill。
+   - 给出发布包名、版本、dist-tag、验证命令、临时安装结果、release commit、tags。
+
+## 关键约束
+
+- 已提交代码可以发布；未完成 WIP 不能发布。
+- 不要为了发布去整理、修复或提交无关 WIP。
+- 不要让 changeset 自动扩大的旧债 batch 偷偷变成本次发布范围。
+- 若发布了 NPM registry，但 release metadata 尚未回流目标分支，不能说“全部完成”。
