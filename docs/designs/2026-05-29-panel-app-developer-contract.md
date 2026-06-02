@@ -9,6 +9,7 @@
 - Panel App 调用 `window.nextclaw.serviceActions.list()` 后按数组使用，但宿主实际返回 `{ actions: [...] }`。
 - Panel App 调用 `window.nextclaw.serviceActions.invoke()` 后期待业务对象，但 Service App MCP 返回常见是 `{ content: [{ type: "text", text: "..." }] }` envelope。
 - AI 分析类需求被写成 Service App 自己调用外部模型，导致输出格式、授权、运行依赖和失败提示都不稳定。
+- Service App `server.mjs` 使用官方 MCP SDK 时没有生成本地 `package.json` 和安装步骤，导致宿主能启动服务但 Node.js 解析不到 `@modelcontextprotocol/sdk`。
 
 这些问题不是单个应用写错，而是开发者合同不够单一、SDK 返回形态不够直觉、skill 没有把坑点压成唯一可执行路径。
 
@@ -65,9 +66,25 @@ Service App 只推荐目录式：
 service-apps/<service-app-id>/
   service-app.json
   server.mjs
+  package.json  # 仅当 server.mjs import 第三方包时需要
 ```
 
 第一期 protocol 为 `mcp`。`service-app.json.actions` 是静态 action 事实源，宿主列表、授权和 Panel allowlist 都以它为准。
+
+Service App 零依赖优先。能用 Node.js 内置模块完成的本地文件、JSON 数据、目录扫描、简单计算和本地命令封装，默认只写 `service-app.json` + `server.mjs`，手写最小 MCP stdio / JSON-RPC 分发，不创建 `package.json` 或 `node_modules`。
+
+Service App 仍然可以自由使用第三方包；运行依赖由 Service App 目录自己拥有。NextClaw runtime 只按 `service-app.json` 的 `command` / `args` / `cwd` 启动进程，不把 NextClaw 自身依赖注入给用户后端，也不在运行时隐式联网安装。若 `server.mjs` 确实 import 官方 MCP SDK，Service App 目录应包含：
+
+```json
+{
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1"
+  }
+}
+```
+
+创建或更新这类 Service App 时，生成器必须在该目录运行安装命令，并用 dependency import 或 Service Apps discovery 验证依赖可解析。
 
 Service action id 使用点号：
 
@@ -142,6 +159,7 @@ Service App runtime 和 server 可以继续保持 MCP tool result 形态；Panel
 - `nextclaw-app-creator`：作为总入口，先判定 Panel-only / Service-only / Panel + Service，并强制读取对应专项 skill。
 - `panel-app-creator`：沉淀唯一 Panel 开发合同、bridge API 返回值、窄侧栏布局和 manifest 唯一事实源。
 - `service-app-creator`：沉淀 MCP Service App manifest、action id 规则、Service action result 如何被 Panel bridge 解包，以及 AI 需求不要默认放进 Service App。
+- `service-app-creator`：同时沉淀 Service App 零依赖优先的依赖策略；简单 tools 默认不创建 `package.json`，凡是 `server.mjs` 确实 import 第三方包，才生成本地 `package.json`、安装依赖并验证可解析。
 
 同时新增 Panel bridge API reference，让 AI 在使用 SDK 前能读到简短、精确、可复制的 API 合同。
 
@@ -152,5 +170,6 @@ Service App runtime 和 server 可以继续保持 MCP tool result 形态；Panel
 3. 内置 skill 明确只推荐目录式 Panel App，且 `panel-app.json` 是唯一 manifest。
 4. 内置 skill 明确点号 action id 与冒号 capability 的区别。
 5. 内置 skill 明确 AI 结构化分析走 `agent.generateObject()`。
-6. 定向测试覆盖 bridge script 合同和 skill 文案合同。
-7. 发布一个 minor NPM 版本，并用真实安装验证 `nextclaw@latest` 可用。
+6. 内置 skill 明确 Service App 零依赖优先，并明确第三方依赖例外归 Service App 目录自己声明和安装。
+7. 定向测试覆盖 bridge script 合同和 skill 文案合同。
+8. 发布一个 minor NPM 版本，并用真实安装验证 `nextclaw@latest` 可用。

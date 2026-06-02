@@ -39,7 +39,7 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 - Panel App 调用 Agent 时，必须在 `panel-app.json.capabilities` 声明 capability，并通过 `window.nextclaw.agent.send()` 或 `window.nextclaw.agent.generateObject()`。
 - AI 分析、总结、分类、结构化 JSON 输出优先走 `window.nextclaw.agent.generateObject()`；Service App 用于本地文件、外部 API、本地命令和权限动作，不默认承担模型调用。
 - 不要让 Panel App 自己启动 HTTP server、直连 Service Gateway、伪造 caller、保存 bridge token 或猜测 sessionId。
-- 不要为了“像应用工程”而创建 `package.json`、Vite、node_modules 或后台 dev server；第一版 NextClaw 轻量应用默认是静态 Panel App + 可选 MCP stdio Service App。
+- 不要为了“像应用工程”而给 Panel App 创建 Vite、后台 dev server 或无意义的 `package.json`；第一版 NextClaw 轻量应用默认是静态 Panel App + 可选 MCP stdio Service App。Service App 零依赖优先，能用 Node.js 内置模块手写最小 MCP stdio / JSON-RPC server 就不要引入包；确实 import 第三方包时，才在该 Service App 目录声明自己的 `package.json` 并安装依赖。
 
 ## 实现顺序
 
@@ -56,8 +56,9 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 1. 读取 `service-app-creator`。
 2. 设计 `service-app.json.actions`，为每个 action 写清 `title`、`description` 和 `risk`。
 3. 实现 MCP stdio server，不创建 HTTP 常驻端口。
-4. 验证 manifest actions 与 MCP `tools/list` 对齐。
-5. 用“服务应用”面板刷新状态。
+4. 优先实现零依赖 `server.mjs`；如果确实 import 官方 MCP SDK 或其它第三方包，在 Service App 目录创建 `package.json` 并运行安装命令。
+5. 验证 manifest actions 与 MCP `tools/list` 对齐。
+6. 用“服务应用”面板刷新状态。
 
 ### Panel + Service
 

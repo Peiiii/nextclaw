@@ -27,6 +27,10 @@ service-apps/
     server.mjs
 ```
 
+默认优先做零依赖 Service App：`server.mjs` 使用 Node.js 内置模块，并手写最小 MCP stdio / JSON-RPC 分发即可。不要为了简单 tools 默认引入 `package.json`、`node_modules` 或官方 MCP SDK。
+
+只有当用户目标确实需要第三方包时，才让 Service App 目录包含自己的 `package.json` 并安装依赖。NextClaw 只负责按 `service-app.json` 启动这个目录里的后端进程，不把 NextClaw 自身的 `node_modules` 或 `@nextclaw/mcp` 依赖注入给用户 Service App。
+
 `service-app.json` 第一版只使用轻量字段：
 
 ```json
@@ -71,6 +75,25 @@ service-apps/
 6. 推荐为每个 action 写 `title` 和 `description`；有稳定入参时可补 `inputSchema`，但运行时 schema 仍以 MCP `tools/list` 作为校验来源。
 7. 不把 NextClaw 内部 kernel/server API 当作默认能力暴露；需要访问用户文件、外部服务或本地命令时，在 Service App 自己的代码里清楚收敛边界。
 8. 完成后告诉用户在右侧面板的“服务应用”页刷新查看状态；需要运行时 schema 或 mismatch 时，点击单个服务应用的发现/刷新动作。
+
+## 依赖策略
+
+- 零依赖优先：能用 Node.js 内置模块完成的本地文件、JSON 数据、目录扫描、简单计算和本地命令封装，不创建 `package.json`，不安装 `node_modules`。
+- Service App 可以自由使用第三方包；一旦使用，运行依赖归 Service App 自己声明和安装，不要把依赖加到 NextClaw 仓库根 `package.json`、`@nextclaw/service` 或 `@nextclaw/mcp` 来让用户后端“顺便能跑”。
+- 如果确实使用官方 MCP SDK，可在 Service App 目录创建：
+
+```json
+{
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1"
+  }
+}
+```
+
+- 创建或改动依赖后，必须在该 Service App 目录运行安装命令；优先用当前环境可用的 `pnpm install`，不可用时用 `npm install`。不要假设用户已经手动装过。
+- `service-app.json.command` 继续使用 `node`、`args` 指向 `server.mjs`；安装后的 `node_modules` 由 Node.js 按 Service App 目录解析。
+- 验收时除了检查 manifest，还要验证依赖可解析：最小可用 `node -e "import('@modelcontextprotocol/sdk/server/mcp.js').then(() => console.log('ok'))"`，更完整的是通过“服务应用”面板 discovery 确认 MCP tools 能列出。
 
 ## 配套 Panel App
 

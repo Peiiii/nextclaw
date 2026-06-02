@@ -95,6 +95,7 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("`panel-app.json` 是 Panel App 标题、入口、图标、Agent capabilities 和 Service action allowlist 的唯一事实源");
     expect(skill).toContain("AI 分析、总结、分类、结构化 JSON 输出优先走 `window.nextclaw.agent.generateObject()`");
     expect(skill).toContain("`window.nextclaw.serviceActions.list()` 返回数组");
+    expect(skill).toContain("Service App 零依赖优先");
   });
 
   it("documents the Service App bridge payload contract", () => {
@@ -107,6 +108,11 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("`serviceActions.list()` 返回 action 数组");
     expect(skill).toContain("`serviceActions.invoke()` 返回业务 payload");
     expect(skill).toContain("如果 MCP tool result 使用 `structuredContent`");
+    expect(skill).toContain("默认优先做零依赖 Service App");
+    expect(skill).toContain("零依赖优先：能用 Node.js 内置模块完成");
+    expect(skill).toContain("Service App 可以自由使用第三方包");
+    expect(skill).toContain("@modelcontextprotocol/sdk");
+    expect(skill).toContain("不要假设用户已经手动装过");
   });
 
   it("keeps builtin skill descriptions bilingual", () => {
