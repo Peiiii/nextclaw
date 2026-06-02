@@ -8,7 +8,7 @@
   - 若本地文件自安装后被修改，普通 update 会拒绝覆盖，必须显式 `--force`。
 - UI marketplace 已安装 skill 卡片增加 update 管理动作；server marketplace manage action 支持 `update`，service installer 复用 CLI 子命令执行。
 - 将 marketplace 前端 API 类型从超长 `types.ts` 拆到 `marketplace.types.ts`，将 skill install/update lifecycle 从发布工具模块拆到 `utils/marketplace-skill-lifecycle.utils.ts`。
-- 将 `.nextclaw-install.json` 读写、旧文件名兼容、文件 hash/drift 判断收敛到 `stores/marketplace-install-state.store.ts`，让 marketplace client 回到 API 与文件下载职责。
+- 将 `.nextclaw-install.json` 读写、文件 hash/drift 判断收敛到 `stores/marketplace-install-state.store.ts`，让 marketplace client 回到 API 与文件下载职责。
 - 同步更新 `docs/USAGE.md`、打包资源 `packages/nextclaw/resources/USAGE.md` 与 `nextclaw-self-manage` skill，使 AI 自管理入口知道 `update` 命令。
 
 ## 测试/验证/验收方式

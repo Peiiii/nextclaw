@@ -14,7 +14,6 @@ import { MARKETPLACE_ZH_COPY_BY_SLUG } from "@nextclaw-server/features/marketpla
 
 const getWorkspacePathFromConfig = NextclawCore.getWorkspacePathFromConfig;
 const MARKETPLACE_INSTALL_STATE_FILE = ".nextclaw-install.json";
-const LEGACY_MARKETPLACE_INSTALL_STATE_FILE = ".nextclaw-marketplace.json";
 
 function createSkillsLoader(workspace: string): SkillsLoaderInstance | null {
   const ctor = (NextclawCore as { SkillsLoader?: SkillsLoaderConstructor }).SkillsLoader;
@@ -74,10 +73,8 @@ function readMarketplaceSkillInstallState(destinationDir: string): {
   slug: string;
   installedAt?: string;
 } | null {
-  const statePath = [MARKETPLACE_INSTALL_STATE_FILE, LEGACY_MARKETPLACE_INSTALL_STATE_FILE]
-    .map((file) => join(destinationDir, file))
-    .find((path) => existsSync(path));
-  if (!statePath) {
+  const statePath = join(destinationDir, MARKETPLACE_INSTALL_STATE_FILE);
+  if (!existsSync(statePath)) {
     return null;
   }
 

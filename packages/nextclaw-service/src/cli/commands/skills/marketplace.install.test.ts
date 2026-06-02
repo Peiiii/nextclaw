@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -149,11 +149,6 @@ describe("installMarketplaceSkill", () => {
       workdir: workspace,
       apiBaseUrl: "https://marketplace-api.nextclaw.io"
     });
-    renameSync(
-      join(workspace, "skills", "agent-browser", ".nextclaw-install.json"),
-      join(workspace, "skills", "agent-browser", ".nextclaw-marketplace.json")
-    );
-
     updatedAt = "2026-06-02T00:00:00.000Z";
     const update = await updateInstalledMarketplaceSkill({
       slug: "agent-browser",

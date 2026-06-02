@@ -24,6 +24,7 @@ Default stance:
 - Prefer explicit dev-only switches over automatic environment sniffing.
 - Prefer fixing release/build/deploy contracts at the source over teaching shipped runtime to recognize incident signatures.
 - Compatibility is not the default for internal refactors. If a new owner or primary path is chosen, migrate callers to it and delete the old path instead of keeping aliases, adapters, proxies, or `asXxx()` bridges for convenience.
+- Do not add compatibility for unpublished, unreleased, or developer-only intermediate states. If no external user, released artifact, persisted production data, or documented public contract could have depended on the old shape, delete the old shape instead of reading both.
 - API compatibility is not a data migration. When an old route or public method does not own persisted user data, external protocol obligations, or state handoff, do not keep a bridge merely because callers once used it; migrate known callers and delete the old API surface.
 - Do not repair bad upstream intent, prompt, skill, schema, or protocol output by silently normalizing it downstream. Fix the contract that produced the bad value, and make invalid values fail visibly.
 - Do not couple operation workflows into low-level schemas. A schema or tool contract must not become a discovery guide, runtime catalog, or CLI instruction carrier; put discovery in an explicit command/owner and put AI procedure in the relevant skill.
@@ -118,6 +119,7 @@ If the problem is a broken published package, broken installer, broken deploy, o
 - Do not encode one-off incident knowledge into runtime conditionals just because the current failure is easy to pattern-match.
 - Do not keep dual paths unless the old path has a real, current, externally constrained purpose.
 - Do not keep internal compatibility bridges merely to avoid updating callers.
+- Do not preserve compatibility for temporary names, files, routes, or schemas created and changed within the same unreleased development window; those are work-in-progress artifacts, not user contracts.
 - Do not keep old API routes, endpoint aliases, SDK methods, or controller wrappers when the old surface has no persisted state to migrate and no proven external contract. A route is code, not user data.
 - Do not preserve two managers/registries that can both mutate or resolve the same domain.
 - If a fallback is only for development, require an explicit switch or explicit environment variable.

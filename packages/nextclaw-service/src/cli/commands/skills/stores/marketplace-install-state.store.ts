@@ -5,7 +5,6 @@ import { join, resolve } from "node:path";
 export type MarketplaceSkillUpdateStatus = "outdated" | "up-to-date" | "unknown";
 
 export const MARKETPLACE_INSTALL_STATE_FILE = ".nextclaw-install.json";
-const LEGACY_MARKETPLACE_INSTALL_STATE_FILE = ".nextclaw-marketplace.json";
 
 export type MarketplaceSkillInstallStateFileEntry = {
   path: string;
@@ -29,8 +28,7 @@ export function hashMarketplaceFileBytes(bytes: Buffer): string {
 }
 
 export function isLocalMarketplaceInstallStateFile(path: string): boolean {
-  const normalized = normalizeMarketplaceRelativePath(path);
-  return normalized === MARKETPLACE_INSTALL_STATE_FILE || normalized === LEGACY_MARKETPLACE_INSTALL_STATE_FILE;
+  return normalizeMarketplaceRelativePath(path) === MARKETPLACE_INSTALL_STATE_FILE;
 }
 
 export function buildMarketplaceSkillInstallState(params: {
@@ -68,10 +66,8 @@ export function writeMarketplaceSkillInstallState(params: {
 }
 
 export function readMarketplaceSkillInstallState(destinationDir: string): MarketplaceSkillInstallState | null {
-  const statePath = [MARKETPLACE_INSTALL_STATE_FILE, LEGACY_MARKETPLACE_INSTALL_STATE_FILE]
-    .map((file) => join(destinationDir, file))
-    .find((path) => existsSync(path));
-  if (!statePath) {
+  const statePath = join(destinationDir, MARKETPLACE_INSTALL_STATE_FILE);
+  if (!existsSync(statePath)) {
     return null;
   }
 
