@@ -1,6 +1,6 @@
 ---
 name: desktop-release-contract-guard
-description: Use when building, verifying, or releasing NextClaw desktop installers, DMGs, update bundles, or update manifests. Enforces the packaged update public key contract, the required verification commands, and the rule that raw electron-builder output is not enough.
+description: Use when building, verifying, or releasing NextClaw desktop installers, DMGs, update bundles, update manifests, or one-command desktop beta/stable release automation. Enforces the packaged update public key contract, the required verification commands, and the rule that raw electron-builder output is not enough.
 ---
 
 # Desktop Release Contract Guard
@@ -12,6 +12,9 @@ description: Use when building, verifying, or releasing NextClaw desktop install
   - shipping a bad package
   - mistaking a partial publish for a finished release
   - changing code when the real problem is release infrastructure or propagation
+- Release automation should be self-contained enough that the maintainer can normally run one command and get a finished release decision.
+- When a repeatable release pitfall appears, do not leave the lesson only in chat memory. Encode it in the release script, closure gate, retry/classification logic, or this skill before closing the loop.
+- Prefer improving the release command so the next run succeeds with less manual judgment. If the fix is too large for the current release, record the exact follow-up owner and keep the release report explicit about the remaining manual step.
 
 ## When to Use
 - Any NextClaw desktop packaging, preview release, local installer handoff, or update-channel verification task.
