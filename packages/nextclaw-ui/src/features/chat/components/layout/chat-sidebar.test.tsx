@@ -287,8 +287,7 @@ describe('ChatSidebar create and list basics', () => {
 
     expect(mocks.docOpen).toHaveBeenCalledWith(undefined, {
       kind: 'docs',
-      newTab: true,
-      title: 'Docs',
+      title: 'Help Docs',
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Settings menu' }));

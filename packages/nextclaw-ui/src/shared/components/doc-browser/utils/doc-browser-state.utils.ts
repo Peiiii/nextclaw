@@ -5,9 +5,11 @@ import type {
   DocBrowserTabKind,
 } from '@/shared/components/doc-browser/types/doc-browser.types';
 import {
-  getDefaultDocsUrl,
+  DOC_BROWSER_HOME_TAB_KIND,
+  DOC_BROWSER_HOME_URL,
   inferTabTitle,
 } from './doc-browser-url.utils';
+import { t } from '@/shared/lib/i18n';
 
 let tabCounter = 0;
 
@@ -22,7 +24,7 @@ export function createDocBrowserTab(
   title?: string,
   dedupeKey?: string,
 ): DocBrowserTab {
-  const tabTitle = title?.trim() || inferTabTitle(url, kind, kind === 'docs' ? 'Docs' : 'Detail');
+  const tabTitle = title?.trim() || inferTabTitle(url, kind, kind === 'docs' ? t('docBrowserHelp') : 'Detail');
 
   return {
     id: nextTabId(),
@@ -45,8 +47,7 @@ export function createDocBrowserActiveHistoryEntry(tab: DocBrowserTab): DocBrows
 }
 
 export function createDefaultDocBrowserState(): DocBrowserState {
-  const initialUrl = getDefaultDocsUrl();
-  const initialTab = createDocBrowserTab(initialUrl, 'docs', 'Docs');
+  const initialTab = createDocBrowserTab(DOC_BROWSER_HOME_URL, DOC_BROWSER_HOME_TAB_KIND, t('docBrowserHomeTitle'));
   return {
     isOpen: false,
     mode: 'docked',

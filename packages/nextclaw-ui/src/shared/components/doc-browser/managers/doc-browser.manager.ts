@@ -14,6 +14,7 @@ import {
 } from '@/shared/components/doc-browser/utils/doc-browser-state.utils';
 import {
   DOC_BROWSER_HOME_TAB_KIND,
+  DOC_BROWSER_HOME_URL,
   getDefaultDocsUrl,
 } from '@/shared/components/doc-browser/utils/doc-browser-url.utils';
 import { DefaultDocBrowserRouteResolver } from '@/shared/components/doc-browser/utils/doc-browser-route-resolver.utils';
@@ -139,6 +140,13 @@ function updateTabForOpen(
   };
 }
 
+function isClosedDefaultHomeState(state: DocBrowserState, activeTab?: DocBrowserTab): boolean {
+  return !state.isOpen
+    && state.tabs.length === 1
+    && activeTab?.kind === DOC_BROWSER_HOME_TAB_KIND
+    && activeTab.currentUrl === DOC_BROWSER_HOME_URL;
+}
+
 function openResolvedDocBrowserState(
   routeResolver: DocBrowserRouteResolver,
   prev: DocBrowserState,
@@ -178,6 +186,17 @@ function openResolvedDocBrowserState(
 
   if (shouldForceNewTab || dedupeKey || !activeTab || activeTab.kind !== target.kind) {
     const newTab = createDocBrowserTab(target.url, target.kind, title ?? target.title, dedupeKey);
+    if (isClosedDefaultHomeState(prev, activeTab)) {
+      const nextState = {
+        ...prev,
+        isOpen: true,
+        tabs: [newTab],
+        activeTabId: newTab.id,
+        activeHistory: [createDocBrowserActiveHistoryEntry(newTab)],
+        activeHistoryIndex: 0,
+      };
+      return nextState;
+    }
     const nextState = {
       ...prev,
       isOpen: true,

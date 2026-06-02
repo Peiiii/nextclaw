@@ -171,7 +171,7 @@ export function Sidebar({ mode }: SidebarProps) {
             </SidebarSelectItem>
           </div>
           <SidebarActionItem
-            onClick={() => docBrowser.open(undefined, { kind: 'docs', newTab: true, title: 'Docs' })}
+            onClick={() => docBrowser.open(undefined, { kind: 'docs', title: t('docBrowserHelp') })}
             icon={BookOpen}
             label={t('docBrowserHelp')}
             density={sidebarDensity}

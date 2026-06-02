@@ -379,7 +379,7 @@ export function ChatSidebar({
             currentLanguageLabel={currentLanguageLabel}
             languageOptions={utilityLanguageOptions}
             onSelectLanguage={handleLanguageSwitch}
-            onOpenDocs={() => docBrowser.open(undefined, { kind: 'docs', newTab: true, title: 'Docs' })}
+            onOpenDocs={() => docBrowser.open(undefined, { kind: 'docs', title: t('docBrowserHelp') })}
             onOpenApps={() => openApps(docBrowser)}
           />
         </div>

@@ -72,7 +72,8 @@ describe("AppLayout", () => {
 
     expect(screen.getByTestId("agents-content")).toBeTruthy();
     expect(screen.queryByTestId("settings-sidebar-header")).toBeNull();
-    expect(container.querySelector("aside")).toBeNull();
+    expect(container.querySelector("main")).toBeNull();
+    expect(screen.getByTestId("side-dock")).toBeTruthy();
   });
 
   it("keeps settings routes on the shared shell without channel-specific scroll locking", () => {

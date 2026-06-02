@@ -61,7 +61,7 @@ export const RIGHT_PANEL_RESOURCE_ROUTE_DEFINITIONS: RightPanelResourceRouteDefi
       return {
         historyPolicy: 'managed',
         kind: 'docs',
-        title: 'Docs',
+        title: t('docBrowserHelp'),
         url,
       };
     },
@@ -77,7 +77,7 @@ export const RIGHT_PANEL_RESOURCE_ROUTE_DEFINITIONS: RightPanelResourceRouteDefi
       return {
         historyPolicy: 'managed',
         kind: 'docs',
-        title: 'Docs',
+        title: t('docBrowserHelp'),
         url,
       };
     },
@@ -166,11 +166,6 @@ export function getRightPanelResourceHomeNavigationItems(): RightPanelResourceHo
       id: 'skill-marketplace',
       label: t('marketplaceSkillsPageTitle'),
       target: { path: '/marketplace/skills', type: 'app-route' },
-    },
-    {
-      id: 'mcp-marketplace',
-      label: t('marketplaceMcpPageTitle'),
-      target: { path: '/marketplace/mcp', type: 'app-route' },
     },
   ];
 }

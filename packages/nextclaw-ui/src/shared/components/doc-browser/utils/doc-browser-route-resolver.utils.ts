@@ -14,6 +14,7 @@ import {
   normalizeDocUrl,
   normalizeUrlByKind,
 } from '@/shared/components/doc-browser/utils/doc-browser-url.utils';
+import { t } from '@/shared/lib/i18n';
 
 export class DefaultDocBrowserRouteResolver implements DocBrowserRouteResolver {
   resolveOpenTarget = (params: {
@@ -24,7 +25,7 @@ export class DefaultDocBrowserRouteResolver implements DocBrowserRouteResolver {
     const { activeTab, kind, url: requestedUrl } = params;
     const targetKind = kind
       ?? (requestedUrl ? undefined : activeTab?.kind)
-      ?? (requestedUrl && isDocsUrl(requestedUrl) ? 'docs' : 'content');
+      ?? (requestedUrl && isDocsUrl(requestedUrl) ? 'docs' : DOC_BROWSER_HOME_TAB_KIND);
     const rawUrl = requestedUrl?.trim()
       || (!kind && activeTab && activeTab.kind !== 'docs'
         ? activeTab.currentUrl
@@ -38,8 +39,8 @@ export class DefaultDocBrowserRouteResolver implements DocBrowserRouteResolver {
       historyPolicy: 'managed',
       kind: targetKind,
       title: targetKind === DOC_BROWSER_HOME_TAB_KIND
-        ? 'Start Page'
-        : inferTabTitle(url, targetKind, targetKind === 'docs' ? 'Docs' : 'Detail'),
+        ? t('docBrowserHomeTitle')
+        : inferTabTitle(url, targetKind, targetKind === 'docs' ? t('docBrowserHelp') : 'Detail'),
       url,
     };
   };

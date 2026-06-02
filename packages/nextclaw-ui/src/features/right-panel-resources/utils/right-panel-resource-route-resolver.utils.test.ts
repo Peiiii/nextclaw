@@ -22,6 +22,7 @@ describe('RightPanelResourceRouteResolver', () => {
     const target = resolver.resolve('nextclaw://docs/guide/getting-started');
 
     expect(target.kind).toBe('docs');
+    expect(target.title).toBe('Help Docs');
     expect(target.url).toContain('/guide/getting-started');
   });
 

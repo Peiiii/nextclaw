@@ -179,6 +179,24 @@ describe('DocBrowserProvider dedupe keys', () => {
     });
   });
 
+  it('replaces the closed default start page when opening docs as a new tab', () => {
+    const { result } = renderHook(() => useDocBrowser(), { wrapper });
+
+    act(() => {
+      result.current.open(undefined, {
+        kind: 'docs',
+        newTab: true,
+        title: 'Help Docs',
+      });
+    });
+
+    expect(result.current.tabs).toHaveLength(1);
+    expect(result.current.currentTab).toMatchObject({
+      kind: 'docs',
+      title: 'Help Docs',
+    });
+  });
+
   it('infers built-in apps routes without component-level options', () => {
     const { result } = renderHook(() => useDocBrowser(), { wrapper });
 
@@ -263,7 +281,8 @@ describe('DocBrowserProvider dedupe keys', () => {
     });
 
     expect(result.current.currentTab).toMatchObject({
-      kind: 'docs',
+      currentUrl: 'data:text/html,A',
+      kind: 'content',
     });
     expect(result.current.activeHistoryIndex).toBe(0);
 
@@ -278,7 +297,7 @@ describe('DocBrowserProvider dedupe keys', () => {
       historyIndex: 1,
       history: ['data:text/html,A', 'data:text/html,B'],
     });
-    expect(result.current.activeHistoryIndex).toBe(2);
+    expect(result.current.activeHistoryIndex).toBe(1);
   });
 
   it('records active tab switching in the top-level browser history', () => {
@@ -425,7 +444,7 @@ describe('DocBrowserProvider persistence', () => {
     });
   });
 
-  it('falls back to the default docs tab when persisted state is malformed', async () => {
+  it('falls back to the start page when persisted state is malformed', async () => {
     window.localStorage.setItem(docBrowserStorageKey, JSON.stringify({
       version: 1,
       state: {
@@ -441,6 +460,9 @@ describe('DocBrowserProvider persistence', () => {
     const { result } = renderHook(() => useDocBrowser(), { wrapper });
 
     expect(result.current.isOpen).toBe(false);
-    expect(result.current.currentTab?.kind).toBe('docs');
+    expect(result.current.currentTab).toMatchObject({
+      currentUrl: 'nextclaw://new-tab',
+      kind: 'home',
+    });
   });
 });

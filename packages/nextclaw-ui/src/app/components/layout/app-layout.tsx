@@ -10,6 +10,7 @@ import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
 import { DesktopAppShell, getDesktopHostPlatform } from "@/platforms/desktop";
 import { MobileAppShell } from "@/platforms/mobile";
 import { PANEL_APPS_DOC_BROWSER_RENDERERS } from "@/features/panel-apps";
+import { SideDock, type SideDockManager } from "@/features/side-dock";
 import { getPresenter } from "@/app/presenters/app.presenter";
 import { resolveUiDocumentTitle } from "@/shared/lib/ui-document-title";
 
@@ -17,7 +18,10 @@ interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-function AppLayoutInner({ children }: AppLayoutProps) {
+function AppLayoutInner({
+  children,
+  sideDockManager,
+}: AppLayoutProps & { sideDockManager: SideDockManager }) {
   const { isOpen, mode } = useDocBrowser();
   useDocLinkInterceptor();
   const { pathname } = useLocation();
@@ -38,7 +42,14 @@ function AppLayoutInner({ children }: AppLayoutProps) {
   }
 
   return (
-    <DesktopAppShell pathname={pathname} isMobileLayout={isMobile} isDocBrowserOpen={isOpen} docBrowserMode={mode} docBrowserRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS}>
+    <DesktopAppShell
+      pathname={pathname}
+      isMobileLayout={isMobile}
+      isDocBrowserOpen={isOpen}
+      docBrowserMode={mode}
+      docBrowserRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS}
+      sideDock={<SideDock manager={sideDockManager} />}
+    >
       {children}
     </DesktopAppShell>
   );
@@ -49,7 +60,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <DocBrowserProvider manager={presenter.docBrowserManager}>
-      <AppLayoutInner>{children}</AppLayoutInner>
+      <AppLayoutInner sideDockManager={presenter.sideDockManager}>{children}</AppLayoutInner>
     </DocBrowserProvider>
   );
 }

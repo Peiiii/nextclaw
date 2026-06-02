@@ -21,6 +21,7 @@ type DesktopAppShellProps = {
   isDocBrowserOpen: boolean;
   docBrowserMode: "floating" | "docked";
   docBrowserRenderers?: DocBrowserCustomTabRenderers;
+  sideDock?: React.ReactNode;
   children: React.ReactNode;
 };
 
@@ -30,6 +31,7 @@ export function DesktopAppShell({
   isDocBrowserOpen,
   docBrowserMode,
   docBrowserRenderers = {},
+  sideDock,
   children,
 }: DesktopAppShellProps) {
   const isMainRoute = isMainWorkspaceRoute(pathname);
@@ -68,6 +70,7 @@ export function DesktopAppShell({
               <DocBrowser customTabRenderers={docBrowserRenderers} />
             </Suspense>
           ) : null}
+          {sideDock}
         </div>
       </div>
       {showMobileBottomNav ? <MobileBottomNav /> : null}

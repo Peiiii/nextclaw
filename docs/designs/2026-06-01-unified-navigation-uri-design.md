@@ -1,5 +1,9 @@
 # NextClaw 右侧栏资源 URI 设计
 
+## 关联文档
+
+- [NextClaw SideDock 右侧快捷入口设计](2026-06-02-side-dock-design.md)：定义右侧快捷入口层。SideDock 使用本文定义的 right-panel resource URI 作为打开目标，但不拥有 URI 解析和 DocBrowser 内容承载职责。
+
 ## 背景
 
 NextClaw 前端已经有右侧 DocBrowser，它不再只是帮助文档窗口，而是在承载一组可在右侧栏展示的资源：
