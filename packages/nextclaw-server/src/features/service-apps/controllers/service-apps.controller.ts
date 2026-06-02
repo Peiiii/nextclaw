@@ -157,6 +157,14 @@ export class ServiceAppsRoutesController {
     }
   };
 
+  readonly deleteServiceApp = async (c: Context) => {
+    try {
+      return c.json(ok(await this.params.serviceAppManager.deleteServiceApp(c.req.param("appId"))));
+    } catch (error) {
+      return this.handleServiceAppError(c, error);
+    }
+  };
+
   private requireBridgeSession = (c: Context) => {
     const token = c.req.raw.headers.get(PANEL_BRIDGE_SESSION_HEADER)?.trim();
     if (!token) {

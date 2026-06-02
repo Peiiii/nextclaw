@@ -3,6 +3,7 @@ import type {
   ServiceActionGrantListView,
   ServiceActionInvokeResultView,
   ServiceActionListView,
+  ServiceAppDeleteResultView,
   ServiceAppListView,
   ServiceAppRecordView,
 } from "@nextclaw/server";
@@ -38,6 +39,12 @@ export class ServiceAppsClientService {
   readonly restartServiceApp = async (appId: string): Promise<ServiceAppRecordView> => {
     return await this.requestService.post<ServiceAppRecordView>(
       `/api/service-apps/${encodeURIComponent(appId)}/restart`,
+    );
+  };
+
+  readonly deleteServiceApp = async (appId: string): Promise<ServiceAppDeleteResultView> => {
+    return await this.requestService.delete<ServiceAppDeleteResultView>(
+      `/api/service-apps/${encodeURIComponent(appId)}`,
     );
   };
 

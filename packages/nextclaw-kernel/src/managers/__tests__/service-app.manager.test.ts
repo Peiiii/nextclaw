@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -203,14 +203,15 @@ describe("ServiceAppManager", () => {
     const appPath = join(workspacePath, "service-apps", "bad-json");
     mkdirSync(appPath, { recursive: true });
     writeFileSync(join(appPath, "service-app.json"), "{");
+    const runtime = createRuntime({
+      id: "notes.read",
+      appId: "notes",
+      name: "read",
+      risk: "read",
+    });
     const manager = new ServiceAppManager({
       configManager: createConfigManager(workspacePath),
-      runtimeService: createRuntime({
-        id: "notes.read",
-        appId: "notes",
-        name: "read",
-        risk: "read",
-      }),
+      runtimeService: runtime,
     });
 
     const list = await manager.listServiceApps();
@@ -269,6 +270,41 @@ describe("ServiceAppManager", () => {
       actionName: "read",
       input: { path: "memory.md" },
     }));
+  });
+
+  it("deletes a service app directory and clears its grants", async () => {
+    const workspacePath = createTempDir();
+    writeServiceApp(workspacePath);
+    const appPath = join(workspacePath, "service-apps", "notes");
+    const runtime = createRuntime({
+      id: "notes.read",
+      appId: "notes",
+      name: "read",
+      risk: "read",
+    });
+    const manager = new ServiceAppManager({
+      configManager: createConfigManager(workspacePath),
+      runtimeService: runtime,
+    });
+    const caller: ServiceActionCaller = { surface: "panel-app", appId: "todo-panel" };
+
+    await manager.grantServiceAction("notes.read", {
+      caller,
+      declaredActions: ["notes.read"],
+    });
+    await expect(manager.listServiceActionGrants()).resolves.toHaveLength(1);
+
+    await expect(manager.deleteServiceApp("notes")).resolves.toEqual({
+      deleted: true,
+      id: "notes",
+    });
+
+    expect(existsSync(appPath)).toBe(false);
+    expect(runtime.restart).toHaveBeenCalledWith("notes");
+    await expect(manager.listServiceActionGrants()).resolves.toEqual([]);
+    await expect(manager.getServiceApp("notes")).rejects.toMatchObject({
+      code: "SERVICE_APP_NOT_FOUND",
+    } satisfies Partial<ServiceAppError>);
   });
 });
 

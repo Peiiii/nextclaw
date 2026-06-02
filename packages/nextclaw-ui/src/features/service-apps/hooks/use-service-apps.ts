@@ -39,6 +39,20 @@ export function useRestartServiceApp() {
   });
 }
 
+export function useDeleteServiceApp() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (appId: string) => nextclawClient.serviceApps.deleteServiceApp(appId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: SERVICE_APPS_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: SERVICE_ACTIONS_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: SERVICE_ACTION_GRANTS_QUERY_KEY }),
+      ]);
+    },
+  });
+}
+
 export function useDiscoverServiceAppActions() {
   const queryClient = useQueryClient();
   return useMutation({

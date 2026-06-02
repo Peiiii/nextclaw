@@ -101,6 +101,25 @@ export class ServiceActionGrantStore {
     await this.save(data);
   };
 
+  revokeActionsByPrefix = async (actionIdPrefix: string): Promise<void> => {
+    const data = await this.load();
+    let changed = false;
+    for (const [callerKey, callerGrants] of Object.entries(data.grants)) {
+      for (const actionId of Object.keys(callerGrants.actions)) {
+        if (actionId.startsWith(actionIdPrefix)) {
+          delete callerGrants.actions[actionId];
+          changed = true;
+        }
+      }
+      if (Object.keys(callerGrants.actions).length === 0) {
+        delete data.grants[callerKey];
+      }
+    }
+    if (changed) {
+      await this.save(data);
+    }
+  };
+
   private load = async (): Promise<ServiceActionGrantStoreData> => {
     try {
       return normalizeStoreData(JSON.parse(await readFile(this.storePath, "utf8")));

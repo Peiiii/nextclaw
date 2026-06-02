@@ -1,4 +1,4 @@
-import { readdir, stat } from "node:fs/promises";
+import { readdir, rm, stat } from "node:fs/promises";
 import { basename, join } from "node:path";
 import {
   DEFAULT_SERVICE_APPS_DIR,
@@ -34,6 +34,11 @@ export type ServiceAppList = {
   workspacePath: string;
   serviceAppsPath: string;
   entries: ServiceAppRecord[];
+};
+
+export type ServiceAppDeleteResult = {
+  deleted: true;
+  id: string;
 };
 
 export type ServiceAppErrorCode =
@@ -173,6 +178,17 @@ export class ServiceAppManager {
     const { record } = await this.requireServiceApp(appId);
     await this.runtimeService.restart(record.id);
     return await this.getServiceApp(appId);
+  };
+
+  deleteServiceApp = async (appId: string): Promise<ServiceAppDeleteResult> => {
+    const { record } = await this.requireServiceApp(appId);
+    await this.runtimeService.restart(record.id);
+    await rm(record.dirPath, { recursive: true });
+    await this.createGrantStore().revokeActionsByPrefix(`${record.id}.`);
+    return {
+      deleted: true,
+      id: record.id,
+    };
   };
 
   dispose = async (): Promise<void> => {

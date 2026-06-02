@@ -148,6 +148,29 @@ describe("service apps routes", () => {
     expect(discoverServiceAppActions).toHaveBeenCalledWith("notes");
   });
 
+  it("deletes service apps through the service app manager", async () => {
+    const deleteServiceApp = vi.fn(async (id: string) => ({ deleted: true as const, id }));
+    const app = createTestApp({
+      panelAppManager: {},
+      serviceAppManager: {
+        deleteServiceApp,
+      },
+    });
+
+    const response = await app.request(
+      "http://localhost/api/service-apps/notes",
+      { method: "DELETE" },
+    );
+    const payload = await response.json() as {
+      ok: true;
+      data: { deleted: true; id: string };
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.data).toEqual({ deleted: true, id: "notes" });
+    expect(deleteServiceApp).toHaveBeenCalledWith("notes");
+  });
+
   it("passes optional app id filtering into action list queries", async () => {
     const listServiceActions = vi.fn(async () => []);
     const app = createTestApp({

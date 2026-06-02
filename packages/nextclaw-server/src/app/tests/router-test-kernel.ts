@@ -78,6 +78,8 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
         unavailable("serviceAppManager.revokeServiceAction"),
       restartServiceApp: async () =>
         unavailable("serviceAppManager.restartServiceApp"),
+      deleteServiceApp: async () =>
+        unavailable("serviceAppManager.deleteServiceApp"),
     } as never,
     ...overrides,
   };

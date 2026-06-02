@@ -174,6 +174,50 @@ class UiRouteRegistry {
     ]);
   };
 
+  private readonly mountResourceRoutes = (): void => {
+    const {
+      ncpSession,
+      panelApps,
+      serviceApps,
+      serverPath,
+    } = this.controllers;
+    this.mountRoutes([
+      ["get", "/api/ncp/session-types", ncpSession.getSessionTypes],
+      ["get", "/api/ncp/sessions", ncpSession.listSessions],
+      ["get", "/api/ncp/sessions/:sessionId", ncpSession.getSession],
+      ["put", "/api/ncp/sessions/:sessionId", ncpSession.patchSession],
+      ["get", "/api/ncp/sessions/:sessionId/messages", ncpSession.listSessionMessages],
+      ["get", "/api/ncp/sessions/:sessionId/skills", ncpSession.getSessionSkills],
+      ["delete", "/api/ncp/sessions/:sessionId", ncpSession.deleteSession],
+      ["get", "/api/panel-apps", panelApps.list],
+      ["get", "/api/panel-app-bridge.js", panelApps.getPanelAppBridgeScript],
+      ["post", "/api/panel-app-bridge-sessions", panelApps.createBridgeSession],
+      ["delete", "/api/panel-app-bridge-sessions/:token", panelApps.deleteBridgeSession],
+      ["post", "/api/panel-app-agent/send", panelApps.sendAgentMessage],
+      ["post", "/api/panel-app-agent/generate-object", panelApps.generateAgentObject],
+      ["post", "/api/panel-app-agent-capabilities/:capability/grant", panelApps.grantAgentCapability],
+      ["patch", "/api/panel-apps/:id/preferences", panelApps.updatePanelAppPreferences],
+      ["delete", "/api/panel-apps/:id", panelApps.deletePanelApp],
+      ["post", "/api/panel-apps/:id/open", panelApps.recordPanelAppOpened],
+      ["get", "/api/panel-apps/:id/content", panelApps.getPanelAppContent],
+      ["get", "/api/panel-apps/:id/assets/*", panelApps.getPanelAppAsset],
+      ["get", "/api/panel-app-assets/:token/*", panelApps.getPanelAppAssetByToken],
+      ["get", "/api/service-apps", serviceApps.listServiceApps],
+      ["post", "/api/service-apps/:appId/restart", serviceApps.restartServiceApp],
+      ["post", "/api/service-apps/:appId/actions/discover", serviceApps.discoverServiceAppActions],
+      ["get", "/api/service-apps/:appId", serviceApps.getServiceApp],
+      ["delete", "/api/service-apps/:appId", serviceApps.deleteServiceApp],
+      ["get", "/api/service-actions", serviceApps.listServiceActions],
+      ["post", "/api/service-actions/:actionId/invoke", serviceApps.invokeServiceAction],
+      ["post", "/api/service-actions/:actionId/grant", serviceApps.grantServiceAction],
+      ["delete", "/api/service-actions/:actionId/grant", serviceApps.revokeServiceAction],
+      ["get", "/api/service-action-grants", serviceApps.listServiceActionGrants],
+      ["delete", "/api/service-action-grants/:actionId", serviceApps.revokeServiceActionGrant],
+      ["get", "/api/server-paths/browse", serverPath.browse],
+      ["get", "/api/server-paths/read", serverPath.read],
+    ]);
+  };
+
   readonly register = (): void => {
     const {
       agents,
@@ -182,13 +226,9 @@ class UiRouteRegistry {
       config,
       cron,
       ncpAsset,
-      ncpSession,
-      panelApps,
-      serviceApps,
       remote,
       runtimeControl,
       runtimeUpdate,
-      serverPath
     } = this.controllers;
     this.mountRoutes([
       ["get", "/api/health", app.health],
@@ -228,40 +268,7 @@ class UiRouteRegistry {
       ["put", "/api/config/runtime", config.updateRuntime],
       ["post", "/api/config/actions/:actionId/execute", config.executeAction],
     ]);
-    this.mountRoutes([
-      ["get", "/api/ncp/session-types", ncpSession.getSessionTypes],
-      ["get", "/api/ncp/sessions", ncpSession.listSessions],
-      ["get", "/api/ncp/sessions/:sessionId", ncpSession.getSession],
-      ["put", "/api/ncp/sessions/:sessionId", ncpSession.patchSession],
-      ["get", "/api/ncp/sessions/:sessionId/messages", ncpSession.listSessionMessages],
-      ["get", "/api/ncp/sessions/:sessionId/skills", ncpSession.getSessionSkills],
-      ["delete", "/api/ncp/sessions/:sessionId", ncpSession.deleteSession],
-      ["get", "/api/panel-apps", panelApps.list],
-      ["get", "/api/panel-app-bridge.js", panelApps.getPanelAppBridgeScript],
-      ["post", "/api/panel-app-bridge-sessions", panelApps.createBridgeSession],
-      ["delete", "/api/panel-app-bridge-sessions/:token", panelApps.deleteBridgeSession],
-      ["post", "/api/panel-app-agent/send", panelApps.sendAgentMessage],
-      ["post", "/api/panel-app-agent/generate-object", panelApps.generateAgentObject],
-      ["post", "/api/panel-app-agent-capabilities/:capability/grant", panelApps.grantAgentCapability],
-      ["patch", "/api/panel-apps/:id/preferences", panelApps.updatePanelAppPreferences],
-      ["delete", "/api/panel-apps/:id", panelApps.deletePanelApp],
-      ["post", "/api/panel-apps/:id/open", panelApps.recordPanelAppOpened],
-      ["get", "/api/panel-apps/:id/content", panelApps.getPanelAppContent],
-      ["get", "/api/panel-apps/:id/assets/*", panelApps.getPanelAppAsset],
-      ["get", "/api/panel-app-assets/:token/*", panelApps.getPanelAppAssetByToken],
-      ["get", "/api/service-apps", serviceApps.listServiceApps],
-      ["post", "/api/service-apps/:appId/restart", serviceApps.restartServiceApp],
-      ["post", "/api/service-apps/:appId/actions/discover", serviceApps.discoverServiceAppActions],
-      ["get", "/api/service-apps/:appId", serviceApps.getServiceApp],
-      ["get", "/api/service-actions", serviceApps.listServiceActions],
-      ["post", "/api/service-actions/:actionId/invoke", serviceApps.invokeServiceAction],
-      ["post", "/api/service-actions/:actionId/grant", serviceApps.grantServiceAction],
-      ["delete", "/api/service-actions/:actionId/grant", serviceApps.revokeServiceAction],
-      ["get", "/api/service-action-grants", serviceApps.listServiceActionGrants],
-      ["delete", "/api/service-action-grants/:actionId", serviceApps.revokeServiceActionGrant],
-      ["get", "/api/server-paths/browse", serverPath.browse],
-      ["get", "/api/server-paths/read", serverPath.read],
-    ]);
+    this.mountResourceRoutes();
     this.mountNcpAgentRoutes(this.options.kernel, ncpAsset);
     this.mountRoutes([
       ["get", "/api/cron", cron.listJobs],

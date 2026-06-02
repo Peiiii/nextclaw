@@ -2,12 +2,14 @@ import type {
   ServiceAction,
   ServiceActionGrant,
   ServiceActionInvokeResult,
+  ServiceAppDeleteResult,
   ServiceAppList,
   ServiceAppRecord,
 } from "@nextclaw/kernel";
 
 export type ServiceAppListView = ServiceAppList;
 export type ServiceAppRecordView = ServiceAppRecord;
+export type ServiceAppDeleteResultView = ServiceAppDeleteResult;
 export type ServiceActionView = ServiceAction;
 export type ServiceActionListView = { actions: ServiceActionView[] };
 export type ServiceActionInvokeRequestView = { input?: Record<string, unknown> };
