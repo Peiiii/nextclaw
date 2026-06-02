@@ -25,9 +25,9 @@
 
 ## 发布/部署方式
 
-未执行发布/部署。
+隔离 worktree 执行 NPM 全量 public workspace 发布准备。
 
-本次变更涉及 kernel/server 源码和测试，未涉及数据库 migration、远程 deploy 或线上服务配置。需要随下一次正常构建/发布进入包产物。
+本次变更涉及 kernel/server 源码和测试，未涉及数据库 migration、远程 deploy 或线上服务配置。NPM 发布通过 `/private/tmp/nextbot-npm-release-access-sessions` 隔离 worktree 从 `108e60122` 生成版本元数据，避免主工作区未完成 provider/runtime/UI WIP 混入发布。
 
 ## 用户/产品视角的验收步骤
 
@@ -47,4 +47,21 @@
 
 ## NPM 包发布记录
 
-不涉及 NPM 包发布。
+本次计划执行 public workspace 全量 stable 发布，核心用户可见产物包括：
+
+- `nextclaw@0.20.4`
+- `@nextclaw/kernel@0.2.4`
+- `@nextclaw/server@0.13.4`
+- 其余 public workspace package 由 `pnpm release:auto:changeset` 同批次 patch 发布并同步 CHANGELOG。
+
+发布前已执行：
+
+- `pnpm release:report:health`
+- `pnpm release:sync-readmes`
+- `pnpm release:check-readmes`
+- `pnpm release:check:groups`
+- `pnpm release:auto:changeset`
+- `pnpm release:version`
+- `pnpm release:check`
+
+发布后需要以 `pnpm release:publish`、`pnpm release:verify:published`、registry dist-tag 查询和临时安装冒烟闭合。
