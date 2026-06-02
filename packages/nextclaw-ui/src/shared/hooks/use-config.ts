@@ -123,12 +123,14 @@ export function useUpdateProvider() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ provider, data }: { provider: string; data: unknown }) =>
+    mutationFn: ({ provider, data }: { provider: string; data: unknown; silentSuccess?: boolean }) =>
       updateProvider(provider, data as Parameters<typeof updateProvider>[1]),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['providers'] });
       queryClient.invalidateQueries({ queryKey: ['config'] });
-      toast.success(t('configSaved'));
+      if (!variables.silentSuccess) {
+        toast.success(t('configSaved'));
+      }
     },
     onError: (error: Error) => {
       toast.error(t('configSaveFailed') + ': ' + error.message);

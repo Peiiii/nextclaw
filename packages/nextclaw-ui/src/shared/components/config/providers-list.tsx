@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { KeyRound, MoreHorizontal, Plus, Search, Trash2 } from 'lucide-react';
-import { useCreateProvider, useDeleteProvider, useProviders, useProviderTemplates } from '@/shared/hooks/use-config';
+import { useCreateProvider, useDeleteProvider, useProviders, useProviderTemplates, useUpdateProvider } from '@/shared/hooks/use-config';
 import { LogoBadge } from '@/shared/components/common/logo-badge';
 import { PageHeader, PageLayout } from '@/app/components/layout/page-layout';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
+import { Switch } from '@/shared/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog';
 import { StatusDot } from '@/shared/components/ui/status-dot';
@@ -75,6 +76,7 @@ export function ProvidersList() {
   const { data: templatesView } = useProviderTemplates();
   const createProvider = useCreateProvider();
   const deleteProvider = useDeleteProvider();
+  const updateProvider = useUpdateProvider();
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [providerToDelete, setProviderToDelete] = useState<string | null>(null);
   const [providerPickerOpen, setProviderPickerOpen] = useState(false);
@@ -225,8 +227,8 @@ export function ProvidersList() {
                       : 'border-gray-200/70 bg-white hover:border-gray-300 hover:bg-gray-50/70',
                   )}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-3">
+                  <div className="relative min-h-10">
+                    <div className="flex min-w-0 items-center gap-3 pr-20">
                       <LogoBadge
                         name={provider.providerType ?? provider.providerId}
                         src={template?.logo ? `/logos/${template.logo}` : null}
@@ -245,17 +247,28 @@ export function ProvidersList() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <StatusDot
-                        status={isEnabled ? (isReady ? 'ready' : 'setup') : 'inactive'}
-                        label={isEnabled ? (isReady ? t('statusReady') : t('statusSetup')) : t('disabled')}
-                        className="min-w-[56px] justify-center"
-                      />
+                    <div className="absolute right-0 top-0 flex items-center gap-1.5">
+                      <div onClick={(event) => event.stopPropagation()}>
+                        <Switch
+                          checked={isEnabled}
+                          disabled={updateProvider.isPending}
+                          title={isEnabled ? t('disabled') : t('enabled')}
+                          className="h-[18px] w-8"
+                          thumbClassName="h-4 w-4 data-[state=checked]:translate-x-4"
+                          onCheckedChange={(enabled) => {
+                            void updateProvider.mutateAsync({
+                              provider: provider.providerId,
+                              data: { enabled },
+                              silentSuccess: true,
+                            });
+                          }}
+                        />
+                      </div>
                       <Popover>
                         <PopoverTrigger asChild>
                           <button
                             type="button"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700"
                             onClick={(event) => event.stopPropagation()}
                             title={t('more')}
                           >
@@ -274,6 +287,11 @@ export function ProvidersList() {
                         </PopoverContent>
                       </Popover>
                     </div>
+                    <StatusDot
+                      status={isEnabled ? (isReady ? 'ready' : 'setup') : 'inactive'}
+                      label={isEnabled ? (isReady ? t('statusReady') : t('statusSetup')) : t('disabled')}
+                      className="absolute bottom-0 right-0 justify-end"
+                    />
                   </div>
                 </div>
               );

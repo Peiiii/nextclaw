@@ -4,10 +4,11 @@ import { cn } from '@/shared/lib/utils';
 interface SwitchProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onChange'> {
   checked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
+  thumbClassName?: string;
 }
 
 const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
-  ({ className, checked = false, onCheckedChange, ...props }, ref) => {
+  ({ className, checked = false, onCheckedChange, thumbClassName, ...props }, ref) => {
     return (
       <button
         type="button"
@@ -23,9 +24,11 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
         {...props}
       >
         <span
+          data-state={checked ? 'checked' : 'unchecked'}
           className={cn(
             'pointer-events-none block h-5 w-5 rounded-full bg-white shadow-md ring-0 transition-transform duration-fast',
-            checked ? 'translate-x-5' : 'translate-x-0'
+            checked ? 'translate-x-5' : 'translate-x-0',
+            thumbClassName
           )}
         />
       </button>

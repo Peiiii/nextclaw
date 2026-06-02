@@ -29,9 +29,7 @@ import {
 } from '@/shared/components/config-split-page';
 import { ProviderAdvancedSettingsSection } from '@/shared/components/provider-advanced-settings-section';
 import { ProviderAuthSection } from '@/shared/components/provider-auth-section';
-import { ProviderEnabledField } from '@/shared/components/provider-enabled-field';
 import {
-  applyEnabledPatch,
   EMPTY_PROVIDER_CONFIG,
   formatThinkingLevelLabel,
   headersEqual,
@@ -72,7 +70,6 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   const importProviderAuthFromCli = useImportProviderAuthFromCli();
 
   const [apiKey, setApiKey] = useState('');
-  const [enabled, setEnabled] = useState(true);
   const [apiBase, setApiBase] = useState('');
   const [extraHeaders, setExtraHeaders] = useState<Record<string, string> | null>(null);
   const [wireApi, setWireApi] = useState<WireApiType>('auto');
@@ -230,7 +227,6 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   useEffect(() => {
     if (!providerName) {
       setApiKey('');
-      setEnabled(true);
       setApiBase('');
       setExtraHeaders(null);
       setWireApi('auto');
@@ -246,7 +242,6 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     }
 
     setApiKey('');
-    setEnabled(currentEnabled);
     setApiBase(currentApiBase);
     setExtraHeaders(resolvedProviderConfig.extraHeaders || null);
     setWireApi(currentWireApi);
@@ -261,7 +256,6 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   }, [
     providerName,
     currentApiBase,
-    currentEnabled,
     resolvedProviderConfig.extraHeaders,
     currentWireApi,
     currentEditableModels,
@@ -280,7 +274,6 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     }
     return (
       apiKey.trim().length > 0 ||
-      enabled !== currentEnabled ||
       apiBase.trim() !== currentApiBase.trim() ||
       !headersEqual(extraHeaders, currentHeaders) ||
       (supportsWireApi && wireApi !== currentWireApi) ||
@@ -291,8 +284,6 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   }, [
     providerName,
     apiKey,
-    enabled,
-    currentEnabled,
     apiBase,
     currentApiBase,
     extraHeaders,
@@ -412,7 +403,6 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     if (trimmedApiKey.length > 0) {
       payload.apiKey = trimmedApiKey;
     }
-    applyEnabledPatch(payload, enabled, currentEnabled);
     if (trimmedApiBase !== currentApiBase.trim()) {
       payload.apiBase = trimmedApiBase.length > 0 && trimmedApiBase !== defaultApiBase ? trimmedApiBase : null;
     }
@@ -561,8 +551,6 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
 
       <form onSubmit={handleSubmit} className='flex min-h-0 flex-1 flex-col'>
         <ConfigSplitPaneBody className='space-y-5 px-6 py-5'>
-          <ProviderEnabledField enabled={enabled} onChange={setEnabled} />
-
           <div className='space-y-2'>
             <Label htmlFor='providerDisplayName' className='text-sm font-medium text-gray-900'>
               {t('providerDisplayName')}

@@ -1,6 +1,6 @@
 import { t } from '@/shared/lib/i18n';
 import type { getLanguage } from '@/shared/lib/i18n';
-import type { ProviderConfigUpdate, ProviderConfigView, ThinkingLevel } from '@/shared/lib/api';
+import type { ProviderConfigView, ThinkingLevel } from '@/shared/lib/api';
 import {
   normalizeModelConfigMap,
   normalizeThinkingLevels,
@@ -126,12 +126,6 @@ function serializeModelsForSave(models: string[], providerId: string): string[] 
     }
     return `${providerId}/${trimmed}`;
   });
-}
-
-function applyEnabledPatch(payload: ProviderConfigUpdate, enabled: boolean, currentEnabled: boolean): void {
-  if (enabled !== currentEnabled) {
-    payload.enabled = enabled;
-  }
 }
 
 function normalizeModelConfigForModels(modelConfig: ModelConfig, models: string[]): ModelConfig {
@@ -291,7 +285,6 @@ function shouldUsePillSelector(params: {
 
 export type { ModelConfig, ProviderAuthMethodOption, WireApiType };
 export {
-  applyEnabledPatch,
   EMPTY_PROVIDER_CONFIG,
   formatThinkingLevelLabel,
   headersEqual,
