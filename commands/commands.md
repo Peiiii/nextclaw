@@ -38,7 +38,7 @@
 
 - 用途：提交当前变更。
 - 输入格式：`/commit`，可附提交范围或说明。
-- 输出/期望行为：只有用户明确发出该命令或等价提交请求时才执行；提交信息必须使用英文。提交前确认暂存范围，不纳入无关用户改动；使用 `nextclaw-release-notes-automation` 判断本次 staged 范围是否需要进入用户 changelog，需要时添加 `.changeset`。
+- 输出/期望行为：只有用户明确发出该命令或等价提交请求时才执行；提交信息必须使用英文。提交前必须先使用 `nextclaw-release-notes-automation` 判断是否需要 `.changeset`，使用 `nextclaw-iteration-log-governance` 判断是否需要更新 `docs/logs` 与 NPM 发布记录；必要更新完成后再确认暂存范围，不纳入无关用户改动。
 
 ## `/close-task`
 

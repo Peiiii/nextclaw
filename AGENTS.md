@@ -27,6 +27,7 @@
 
 - 除非用户明确要求，禁止擅自 `git commit`、`git push`、创建 PR 或执行破坏性 git 操作。
 - 工作区可能已有用户改动。不得 revert、覆盖或格式化无关改动；若改动文件已被用户触达，先读懂现状再小心合并。
+- 用户要求提交或等价表达时，提交前必须先使用 `nextclaw-release-notes-automation` 与 `nextclaw-iteration-log-governance` 完成 `.changeset`、`docs/logs`、NPM 发布记录适用性判断和必要更新，再 stage/commit。
 - 执行提交/推送/建分支/建 PR 成功后，最终回复必须按 Codex app 要求输出对应 git directive。
 - 搜索文本或文件优先用 `rg` / `rg --files`。
 - 手工编辑文件默认使用 `apply_patch`；不要用 shell here-doc、`cat > file` 或 Python 读写来绕过编辑约束。
@@ -127,7 +128,7 @@
 - `/add-to-plan`：将想法纳入规划体系，默认写入 `docs/TODO.md` 的 `Inbox`，并给出分流建议和 Issue 草案；中长期方向同步 `docs/ROADMAP.md`。
 - `/check-meta`：检查 `AGENTS.md` 机制问题、自相矛盾、过度常驻、skill 触发缺失或规则漂移。
 - `/new-rule`：创建新规则条目；优先判断是否应写入 AGENTS 常驻内核、已有 skill、新 skill，还是普通文档。
-- `/commit`：进行提交操作，提交信息使用英文；只有用户明确要求才执行。
+- `/commit`：进行提交操作；必须先闭合 release notes 与迭代记录判断，提交信息使用英文，只有用户明确要求才执行。
 - `/close-task`：对当前任务执行标准交付收尾流程，使用 `nextclaw-delivery-workflow`。
 - `/maintainability-review`：执行独立于实现阶段的可维护性复核，使用 `post-edit-maintainability-review`。
 - `/validate`：运行项目验证，使用 `nextclaw-validation-workflow`。

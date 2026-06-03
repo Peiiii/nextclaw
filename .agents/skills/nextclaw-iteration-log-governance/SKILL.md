@@ -1,6 +1,6 @@
 ---
 name: nextclaw-iteration-log-governance
-description: Use when deciding, creating, or updating docs/logs iteration records; when changes touch code, scripts, tests, runtime config, large non-code governance/docs rewrites, NPM release records, root-cause fix notes, red-zone touch records, work notes, or goal-progress anchors.
+description: Use when deciding, creating, or updating docs/logs iteration records; when the user asks to commit/提交/收尾 after changes; when changes touch code, scripts, tests, runtime config, large non-code governance/docs rewrites, NPM release records, root-cause fix notes, red-zone touch records, work notes, or goal-progress anchors.
 ---
 
 # NextClaw Iteration Log Governance
