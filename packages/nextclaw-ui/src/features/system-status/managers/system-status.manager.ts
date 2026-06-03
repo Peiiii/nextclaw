@@ -22,12 +22,18 @@ import {
   useSystemStatusStore,
 } from '@/features/system-status/stores/system-status.store';
 import { isTransientRuntimeConnectionErrorMessage } from '@/shared/lib/transport';
+import { AdaptiveCadence } from '@/shared/lib/cadence';
 
 const RECOVERY_TIMEOUT_MS = 30_000;
-const RUNTIME_BOOTSTRAP_PROBE_POLICY = {
-  activePollIntervalMs: 1_000,
-  errorPollIntervalMs: 2_000,
-  maxErrorPollIntervalMs: 5_000,
+const RUNTIME_BOOTSTRAP_PROBE_CADENCE = {
+  idleDelayMs: 1_000,
+  manualTriggerDelayMs: 0,
+  successDelayMs: false,
+  stages: [
+    { untilElapsedMs: 30_000, delaysMs: [500, 1_000, 2_000, 4_000, 5_000] },
+    { untilElapsedMs: 5 * 60_000, delaysMs: [10_000, 15_000, 30_000] },
+    { delaysMs: [60_000] },
+  ],
 } as const;
 
 function getErrorMessage(error: unknown): string {
@@ -61,32 +67,29 @@ function resolveActionHelp(action: RuntimeControlAction): string {
 
 export class SystemStatusManager {
   private recoveryTimeoutId: number | null = null;
+  private readonly runtimeBootstrapProbeCadence = new AdaptiveCadence(
+    RUNTIME_BOOTSTRAP_PROBE_CADENCE,
+  );
 
   getRuntimeBootstrapPollInterval = (
     status: BootstrapStatusView | null | undefined,
-    fetchFailureCount = 0
   ): number | false => {
     const { lifecyclePhase, activeSystemAction } = this.getState();
-    if (fetchFailureCount > 0) {
-      return Math.min(
-        RUNTIME_BOOTSTRAP_PROBE_POLICY.maxErrorPollIntervalMs,
-        RUNTIME_BOOTSTRAP_PROBE_POLICY.errorPollIntervalMs * fetchFailureCount
-      );
-    }
-    if (
+    const isRecovering =
       lifecyclePhase === 'recovering' ||
       lifecyclePhase === 'stalled' ||
-      activeSystemAction?.lifecycle === 'recovering'
-    ) {
-      return RUNTIME_BOOTSTRAP_PROBE_POLICY.activePollIntervalMs;
+      activeSystemAction?.lifecycle === 'recovering';
+    if (this.runtimeBootstrapProbeCadence.hasManualTrigger()) {
+      return this.runtimeBootstrapProbeCadence.getNextDelay({
+        consumeManualTrigger: true,
+      });
     }
-    if (status?.ncpAgent.state === 'ready') {
+    if (!isRecovering && status?.ncpAgent.state === 'ready') {
       return false;
     }
-    if (status?.ncpAgent.state === 'error' || status?.phase === 'error') {
-      return RUNTIME_BOOTSTRAP_PROBE_POLICY.errorPollIntervalMs;
-    }
-    return RUNTIME_BOOTSTRAP_PROBE_POLICY.activePollIntervalMs;
+    return this.runtimeBootstrapProbeCadence.getNextDelay({
+      consumeManualTrigger: true,
+    });
   };
 
   getRuntimeControl = async (): Promise<RuntimeControlView> => {
@@ -137,6 +140,7 @@ export class SystemStatusManager {
     }
     const state = this.getState();
     if (!state.hasReachedReady) {
+      this.runtimeBootstrapProbeCadence.recordFailure();
       this.patchState({
         lastTransportError: message,
       });
@@ -150,6 +154,7 @@ export class SystemStatusManager {
     const state = this.getState();
     const normalizedMessage = message?.trim() || null;
     if (!state.hasReachedReady) {
+      this.runtimeBootstrapProbeCadence.recordFailure();
       if (normalizedMessage) {
         this.patchState({
           lastTransportError: normalizedMessage,
@@ -215,6 +220,7 @@ export class SystemStatusManager {
           message: t('runtimeControlRecoveringHelp'),
         },
       });
+      this.runtimeBootstrapProbeCadence.requestManualTrigger();
 
       const recoveredView = await this.waitForRecovery();
       this.syncRuntimeControlQueryCache(recoveredView);
@@ -240,8 +246,16 @@ export class SystemStatusManager {
 
   getStatusView = () => toSystemStatusView(this.getState());
 
+  requestRuntimeBootstrapProbeNow = (): void => {
+    this.runtimeBootstrapProbeCadence.requestManualTrigger();
+    void appQueryClient.refetchQueries({
+      queryKey: ['runtime-bootstrap-status'],
+    });
+  };
+
   resetForTests = (): void => {
     this.clearRecoveryTimeout();
+    this.runtimeBootstrapProbeCadence.reset();
     useSystemStatusStore.setState({
       state: initialSystemStatusState,
     });
@@ -258,6 +272,7 @@ export class SystemStatusManager {
   private transitionToColdStarting = (
     bootstrapStatus: BootstrapStatusView
   ): void => {
+    this.runtimeBootstrapProbeCadence.recordFailure();
     this.clearRecoveryTimeout();
     this.patchState({
       lifecyclePhase: 'cold-starting',
@@ -271,6 +286,7 @@ export class SystemStatusManager {
     errorMessage: string | null,
     bootstrapStatus?: BootstrapStatusView
   ): void => {
+    this.runtimeBootstrapProbeCadence.recordFailure();
     this.clearRecoveryTimeout();
     this.patchState({
       lifecyclePhase: 'startup-failed',
@@ -284,6 +300,7 @@ export class SystemStatusManager {
     errorMessage: string | null,
     bootstrapStatus?: BootstrapStatusView
   ): void => {
+    this.runtimeBootstrapProbeCadence.recordFailure();
     const state = this.getState();
     if (!state.hasReachedReady) {
       this.patchState({
@@ -321,6 +338,7 @@ export class SystemStatusManager {
   private transitionToReady = (
     bootstrapStatus: BootstrapStatusView | null
   ): void => {
+    this.runtimeBootstrapProbeCadence.recordSuccess();
     const state = this.getState();
     const shouldRefreshQueries =
       state.lifecyclePhase === 'recovering' || state.lifecyclePhase === 'stalled';

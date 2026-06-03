@@ -8,6 +8,7 @@ import { setLanguage } from '@/shared/lib/i18n';
 const mocks = vi.hoisted(() => ({
   useRuntimeStatusBadgeView: vi.fn(),
   runRuntimeControlAction: vi.fn(),
+  requestRuntimeBootstrapProbeNow: vi.fn(),
 }));
 
 vi.mock('sonner', () => ({
@@ -23,6 +24,8 @@ vi.mock('@/features/system-status', () => ({
   systemStatusManager: {
     runRuntimeControlAction: (...args: unknown[]) =>
       mocks.runRuntimeControlAction(...args),
+    requestRuntimeBootstrapProbeNow: (...args: unknown[]) =>
+      mocks.requestRuntimeBootstrapProbeNow(...args),
   },
 }));
 
@@ -58,6 +61,7 @@ describe('RuntimeStatusEntry', () => {
 
     await user.click(screen.getByTestId('runtime-status-entry'));
 
+    expect(mocks.requestRuntimeBootstrapProbeNow).toHaveBeenCalledTimes(1);
     expect(screen.getByText('待重启')).toBeTruthy();
     expect(
       screen.getByText(
@@ -95,6 +99,7 @@ describe('RuntimeStatusEntry', () => {
 
     await user.click(screen.getByTestId('runtime-status-entry'));
 
+    expect(mocks.requestRuntimeBootstrapProbeNow).not.toHaveBeenCalled();
     expect(screen.getByText('系统正常')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '立即重启' })).toBeNull();
   });

@@ -17,10 +17,7 @@ export function useSystemStatusSources() {
       timeoutMs: 5_000,
     }),
     refetchInterval: (query) => {
-      return systemStatusManager.getRuntimeBootstrapPollInterval(
-        query.state.data,
-        query.state.fetchFailureCount
-      );
+      return systemStatusManager.getRuntimeBootstrapPollInterval(query.state.data);
     },
     retry: false,
   });

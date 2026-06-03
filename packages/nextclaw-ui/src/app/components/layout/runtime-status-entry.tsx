@@ -28,6 +28,13 @@ export function RuntimeStatusEntry() {
   const summary = useRuntimeStatusBadgeView() as RuntimeStatusSummary;
   const canRestart = summary.actionLabel === t('runtimeStatusRestartAction');
 
+  const handleStatusEntryClick = () => {
+    if (summary.tone === 'healthy') {
+      return;
+    }
+    systemStatusManager.requestRuntimeBootstrapProbeNow();
+  };
+
   const handleRestart = async () => {
     if (!canRestart) {
       return;
@@ -51,6 +58,7 @@ export function RuntimeStatusEntry() {
           aria-label={summary.title}
           title={summary.title}
           data-testid="runtime-status-entry"
+          onClick={handleStatusEntryClick}
         >
           <span className={cn('h-2.5 w-2.5 rounded-full', runtimeStatusToneStyles[summary.tone])} />
         </button>
