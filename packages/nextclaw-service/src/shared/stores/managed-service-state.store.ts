@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { getDataDir } from "@nextclaw/core";
+import { getRunPath } from "@nextclaw/core";
 import type { RemoteRuntimeState } from "@nextclaw/remote";
 
 export type ManagedServiceLease = {
@@ -43,7 +43,7 @@ export type ManagedServiceState = {
 
 export class ManagedServiceStateStore {
   get path(): string {
-    return resolve(getDataDir(), "run", "service.json");
+    return resolve(getRunPath(), "service.json");
   }
 
   readonly read = (): ManagedServiceState | null => {

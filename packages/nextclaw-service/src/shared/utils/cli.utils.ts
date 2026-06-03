@@ -5,7 +5,7 @@ import { isIP } from "node:net";
 import type { Interface } from "node:readline";
 import {
   createExternalCommandEnv,
-  getLogsPath,
+  getRuntimeLogsPath,
   resolveLocalUiBaseUrl,
   type Config
 } from "@nextclaw/core";
@@ -61,7 +61,7 @@ export async function resolvePublicIp(timeoutMs = 1500): Promise<string | null> 
 }
 
 export function resolveServiceLogPath(): string {
-  return resolve(getLogsPath(), "service.log");
+  return resolve(getRuntimeLogsPath(), "service.log");
 }
 
 export function isProcessRunning(pid: number): boolean {

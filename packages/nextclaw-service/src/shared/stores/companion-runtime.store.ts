@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { getDataDir } from "@nextclaw/core";
+import { getRunPath } from "@nextclaw/core";
 
 export type CompanionRuntimeState = {
   pid: number;
@@ -10,7 +10,7 @@ export type CompanionRuntimeState = {
 
 export class CompanionRuntimeStore {
   get path(): string {
-    return resolve(getDataDir(), "run", "companion.json");
+    return resolve(getRunPath(), "companion.json");
   }
 
   readonly read = (): CompanionRuntimeState | null => {

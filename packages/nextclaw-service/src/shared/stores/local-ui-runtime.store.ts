@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { getDataDir, type Config } from "@nextclaw/core";
+import { getRunPath, type Config } from "@nextclaw/core";
 import type { RemoteRuntimeState } from "@nextclaw/remote";
 import { resolveUiApiBase } from "../utils/cli.utils.js";
 
@@ -16,7 +16,7 @@ export type LocalUiRuntimeState = {
 
 export class LocalUiRuntimeStore {
   get path(): string {
-    return resolve(getDataDir(), "run", "ui-runtime.json");
+    return resolve(getRunPath(), "ui-runtime.json");
   }
 
   readonly read = (): LocalUiRuntimeState | null => {

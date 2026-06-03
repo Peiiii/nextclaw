@@ -11,7 +11,7 @@ import {
   writeFileSync
 } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { getDataDir } from "@nextclaw/core";
+import { getRunPath } from "@nextclaw/core";
 import { resolveUiApiBase, isProcessRunning } from "@nextclaw-service/shared/utils/cli.utils.js";
 import {
   managedServiceStateStore,
@@ -42,7 +42,7 @@ type RemoteRuntimeOwnerRecord = {
 type RemoteRuntimeOwnershipClaim = { ok: true; release: () => void } | { ok: false; error: string };
 
 function resolveRemoteOwnershipLockPath(): string {
-  return resolve(getDataDir(), "run", "remote-owner.lock.json");
+  return resolve(getRunPath(), "remote-owner.lock.json");
 }
 
 function readRemoteOwnershipRecord(lockPath: string): RemoteRuntimeOwnerRecord | null {
@@ -139,16 +139,17 @@ function tryClaimRemoteOwnershipLock(params: {
   currentPid: number;
   isProcessRunningFn: (pid: number) => boolean;
 }): RemoteRuntimeOwnershipClaim {
+  const { claim, currentPid, isProcessRunningFn, lockPath } = params;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      const fd = openSync(params.lockPath, "wx");
-      writeFileSync(fd, `${JSON.stringify(params.claim, null, 2)}\n`, "utf-8");
+      const fd = openSync(lockPath, "wx");
+      writeFileSync(fd, `${JSON.stringify(claim, null, 2)}\n`, "utf-8");
       closeSync(fd);
       return {
         ok: true,
         release: createRemoteOwnershipRelease({
-          lockPath: params.lockPath,
-          claim: params.claim
+          lockPath,
+          claim
         })
       };
     } catch (error) {
@@ -160,15 +161,15 @@ function tryClaimRemoteOwnershipLock(params: {
         };
       }
 
-      const existing = readRemoteOwnershipRecord(params.lockPath);
-      if (existing && existing.pid !== params.currentPid && params.isProcessRunningFn(existing.pid)) {
+      const existing = readRemoteOwnershipRecord(lockPath);
+      if (existing && existing.pid !== currentPid && isProcessRunningFn(existing.pid)) {
         return {
           ok: false,
           error: buildLocalProcessOwnershipError(existing)
         };
       }
 
-      removeRemoteOwnershipLock(params.lockPath);
+      removeRemoteOwnershipLock(lockPath);
     }
   }
 
@@ -186,11 +187,19 @@ export function claimManagedRemoteRuntimeOwnership(params: {
   isProcessRunningFn?: (pid: number) => boolean;
   readServiceStateFn?: () => ManagedServiceState | null;
 }): RemoteRuntimeOwnershipClaim {
-  const lockPath = params.lockPath ?? resolveRemoteOwnershipLockPath();
-  const currentPid = params.currentPid ?? process.pid;
-  const now = params.now ?? (() => new Date().toISOString());
-  const isProcessRunningFn = params.isProcessRunningFn ?? isProcessRunning;
-  const readServiceStateFn = params.readServiceStateFn ?? managedServiceStateStore.read;
+  const {
+    localOrigin,
+    lockPath: lockPathOverride,
+    currentPid: currentPidOverride,
+    now: nowOverride,
+    isProcessRunningFn: isProcessRunningOverride,
+    readServiceStateFn: readServiceStateOverride
+  } = params;
+  const lockPath = lockPathOverride ?? resolveRemoteOwnershipLockPath();
+  const currentPid = currentPidOverride ?? process.pid;
+  const now = nowOverride ?? (() => new Date().toISOString());
+  const isProcessRunningFn = isProcessRunningOverride ?? isProcessRunning;
+  const readServiceStateFn = readServiceStateOverride ?? managedServiceStateStore.read;
   const managedConflict = detectManagedRemoteOwnershipConflict({
     currentPid,
     isProcessRunningFn,
@@ -208,7 +217,7 @@ export function claimManagedRemoteRuntimeOwnership(params: {
     lockPath,
     claim: {
       pid: currentPid,
-      localOrigin: params.localOrigin,
+      localOrigin,
       claimedAt: now()
     },
     currentPid,
@@ -222,16 +231,17 @@ export function createManagedRemoteModule(params: {
   localOrigin: string;
   onRemoteStateChange?: (state: RemoteRuntimeState) => void;
 }): RemoteServiceModule | null {
-  if (!params.uiEnabled) {
+  const { loadConfig, localOrigin, onRemoteStateChange, uiEnabled } = params;
+  if (!uiEnabled) {
     return null;
   }
   return new RemoteServiceModule({
-    loadConfig: params.loadConfig,
-    uiEnabled: params.uiEnabled,
-    localOrigin: params.localOrigin,
-    statusStore: createNextclawRemoteStatusStore("service", params.onRemoteStateChange),
+    loadConfig,
+    uiEnabled,
+    localOrigin,
+    statusStore: createNextclawRemoteStatusStore("service", onRemoteStateChange),
     createConnector: (logger) => createNextclawRemoteConnector({ logger }),
-    claimOwnership: () => claimManagedRemoteRuntimeOwnership({ localOrigin: params.localOrigin }),
+    claimOwnership: () => claimManagedRemoteRuntimeOwnership({ localOrigin }),
     logger: {
       info: (message) => console.log(`[remote] ${message}`),
       warn: (message) => console.warn(`[remote] ${message}`),
@@ -245,15 +255,16 @@ export function createManagedRemoteModuleForUi(params: {
   uiConfig: Pick<Config["ui"], "enabled" | "host" | "port">;
   localOriginOverride?: string; onRemoteStateChange?: (state: RemoteRuntimeState) => void;
 }): RemoteServiceModule | null {
-  const explicitLocalOrigin = params.localOriginOverride?.trim() ?? process.env.NEXTCLAW_REMOTE_LOCAL_ORIGIN?.trim();
+  const { loadConfig, localOriginOverride, onRemoteStateChange, uiConfig } = params;
+  const explicitLocalOrigin = localOriginOverride?.trim() ?? process.env.NEXTCLAW_REMOTE_LOCAL_ORIGIN?.trim();
   return createManagedRemoteModule({
-    loadConfig: params.loadConfig,
-    uiEnabled: params.uiConfig.enabled,
-    onRemoteStateChange: params.onRemoteStateChange,
+    loadConfig,
+    uiEnabled: uiConfig.enabled,
+    onRemoteStateChange,
     localOrigin:
       explicitLocalOrigin && explicitLocalOrigin.length > 0
         ? explicitLocalOrigin.replace(/\/+$/, "")
-        : resolveUiApiBase(params.uiConfig.host, params.uiConfig.port)
+        : resolveUiApiBase(uiConfig.host, uiConfig.port)
   });
 }
 

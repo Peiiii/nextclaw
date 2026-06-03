@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { getDataDir } from "@nextclaw/core";
+import { getRunPath } from "@nextclaw/core";
 
 export type RestartSentinelDeliveryContext = {
   channel?: string;
@@ -51,7 +51,7 @@ function normalizeLine(value: string, maxChars: number): string | null {
 }
 
 export function resolveRestartSentinelPath(): string {
-  return resolve(getDataDir(), "run", RESTART_SENTINEL_FILENAME);
+  return resolve(getRunPath(), RESTART_SENTINEL_FILENAME);
 }
 
 export async function writeRestartSentinel(payload: RestartSentinelPayload): Promise<string> {
