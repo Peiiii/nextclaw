@@ -50,11 +50,8 @@ type ProviderConnectionTestInput = {
 };
 
 const normalizedModel = (value: string | null | undefined): string | null => {
-  if (typeof value !== "string") {
-    return null;
-  }
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
+  const trimmed = typeof value === "string" ? value.trim() : "";
+  return trimmed || null;
 };
 
 const headersFingerprint = (headers: Record<string, string> | null | undefined): string => {
@@ -112,6 +109,7 @@ export class LlmProviderManager {
     const provider = route ? this.getOrCreateProvider(route) : this.missingProvider;
     return provider.chat({
       ...params,
+      model: route?.model ?? params.model,
       messages: this.prepareMessagesForProvider(route, params.messages),
     });
   };
@@ -124,6 +122,7 @@ export class LlmProviderManager {
     const provider = route ? this.getOrCreateProvider(route) : this.missingProvider;
     for await (const event of provider.chatStream({
       ...params,
+      model: route?.model ?? params.model,
       messages: this.prepareMessagesForProvider(route, params.messages),
     })) {
       yield event;
