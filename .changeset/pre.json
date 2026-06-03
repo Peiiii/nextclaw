@@ -61,5 +61,10 @@
     "@nextclaw/marketplace-api-worker": "0.0.1",
     "@nextclaw/provider-gateway-api-worker": "0.0.1"
   },
-  "changesets": []
+  "changesets": [
+    "auto-release-batch-20260603175607584",
+    "panel-app-client-sdk-injection",
+    "session-activity-preview-tools",
+    "session-run-status-events"
+  ]
 }

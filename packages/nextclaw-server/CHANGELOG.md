@@ -1,5 +1,20 @@
 # nextclaw-server
 
+## 0.13.10-beta.0
+
+### Patch Changes
+
+- 86a0dc8: Inject the standard NextClaw client SDK into authorized folder Panel Apps as `window.nextclaw.client`, with persistent app-level client grants and the existing bridge APIs preserved.
+- Updated dependencies
+- Updated dependencies [86a0dc8]
+- Updated dependencies [170c8be]
+- Updated dependencies [86acdbe]
+  - @nextclaw/mcp@0.2.10-beta.0
+  - @nextclaw/ncp@0.5.29-beta.0
+  - @nextclaw/runtime@0.3.10-beta.0
+  - @nextclaw/core@0.13.10-beta.0
+  - @nextclaw/kernel@0.3.4-beta.0
+
 ## 0.13.9
 
 ### Patch Changes

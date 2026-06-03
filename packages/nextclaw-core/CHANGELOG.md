@@ -1,5 +1,14 @@
 # nextclaw-core
 
+## 0.13.10-beta.0
+
+### Patch Changes
+
+- 86a0dc8: Inject the standard NextClaw client SDK into authorized folder Panel Apps as `window.nextclaw.client`, with persistent app-level client grants and the existing bridge APIs preserved.
+- Updated dependencies
+  - @nextclaw/feishu-core@0.2.30-beta.0
+  - @nextclaw/shared@0.2.9-beta.0
+
 ## 0.13.9
 
 ### Patch Changes

@@ -1,5 +1,21 @@
 # @nextclaw/ui
 
+## 0.13.10-beta.0
+
+### Patch Changes
+
+- 86a0dc8: Inject the standard NextClaw client SDK into authorized folder Panel Apps as `window.nextclaw.client`, with persistent app-level client grants and the existing bridge APIs preserved.
+- 86acdbe: Publish session run status updates from the agent run request flow, keep realtime running overlays from being overwritten by persisted idle summaries, and remove the unused session run publish API from the runtime-next session state contract.
+- Updated dependencies
+- Updated dependencies [86a0dc8]
+  - @nextclaw/agent-chat@0.2.9-beta.0
+  - @nextclaw/agent-chat-ui@0.4.9-beta.0
+  - @nextclaw/ncp@0.5.29-beta.0
+  - @nextclaw/ncp-http-agent-client@0.3.41-beta.0
+  - @nextclaw/ncp-react@0.4.49-beta.0
+  - @nextclaw/shared@0.2.9-beta.0
+  - @nextclaw/client-sdk@0.2.10-beta.0
+
 ## 0.13.9
 
 ### Patch Changes

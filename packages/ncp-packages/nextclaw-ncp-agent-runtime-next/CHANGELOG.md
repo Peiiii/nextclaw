@@ -1,5 +1,14 @@
 # @nextclaw/ncp-agent-runtime-next
 
+## 0.0.12-beta.0
+
+### Patch Changes
+
+- 86acdbe: Publish session run status updates from the agent run request flow, keep realtime running overlays from being overwritten by persisted idle summaries, and remove the unused session run publish API from the runtime-next session state contract.
+- Updated dependencies
+  - @nextclaw/ncp@0.5.29-beta.0
+  - @nextclaw/ncp-agent-runtime@0.3.40-beta.0
+
 ## 0.0.11
 
 ### Patch Changes

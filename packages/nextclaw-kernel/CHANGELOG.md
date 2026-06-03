@@ -1,5 +1,29 @@
 # @nextclaw/kernel
 
+## 0.3.4-beta.0
+
+### Patch Changes
+
+- 86a0dc8: Inject the standard NextClaw client SDK into authorized folder Panel Apps as `window.nextclaw.client`, with persistent app-level client grants and the existing bridge APIs preserved.
+- 170c8be: Improve session activity previews so thinking states read as thinking and completed tool calls keep the tool name visible.
+- 86acdbe: Publish session run status updates from the agent run request flow, keep realtime running overlays from being overwritten by persisted idle summaries, and remove the unused session run publish API from the runtime-next session state contract.
+- Updated dependencies
+- Updated dependencies [86a0dc8]
+- Updated dependencies [86acdbe]
+  - @nextclaw/channel-extension-feishu@0.1.21-beta.0
+  - @nextclaw/channel-extension-weixin@0.1.25-beta.0
+  - @nextclaw/mcp@0.2.10-beta.0
+  - @nextclaw/ncp@0.5.29-beta.0
+  - @nextclaw/ncp-agent-runtime@0.3.40-beta.0
+  - @nextclaw/ncp-mcp@0.1.105-beta.0
+  - @nextclaw/ncp-toolkit@0.5.34-beta.0
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.2.9-beta.0
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.2.9-beta.0
+  - @nextclaw/runtime@0.3.10-beta.0
+  - @nextclaw/shared@0.2.9-beta.0
+  - @nextclaw/core@0.13.10-beta.0
+  - @nextclaw/ncp-agent-runtime-next@0.0.12-beta.0
+
 ## 0.3.3
 
 ### Patch Changes

@@ -1,5 +1,40 @@
 # @nextclaw/service
 
+## 0.2.10-beta.0
+
+### Patch Changes
+
+- 86a0dc8: Inject the standard NextClaw client SDK into authorized folder Panel Apps as `window.nextclaw.client`, with persistent app-level client grants and the existing bridge APIs preserved.
+- Updated dependencies
+- Updated dependencies [86a0dc8]
+- Updated dependencies [170c8be]
+- Updated dependencies [86acdbe]
+  - @nextclaw/channel-extension-dingtalk@0.1.14-beta.0
+  - @nextclaw/channel-extension-discord@0.1.14-beta.0
+  - @nextclaw/channel-extension-email@0.1.14-beta.0
+  - @nextclaw/channel-extension-feishu@0.1.21-beta.0
+  - @nextclaw/channel-extension-qq@0.1.18-beta.0
+  - @nextclaw/channel-extension-slack@0.1.14-beta.0
+  - @nextclaw/channel-extension-telegram@0.1.14-beta.0
+  - @nextclaw/channel-extension-wecom@0.1.14-beta.0
+  - @nextclaw/channel-extension-weixin@0.1.25-beta.0
+  - @nextclaw/channel-extension-whatsapp@0.1.14-beta.0
+  - @nextclaw/mcp@0.2.10-beta.0
+  - @nextclaw/ncp@0.5.29-beta.0
+  - @nextclaw/ncp-agent-runtime@0.3.40-beta.0
+  - @nextclaw/ncp-mcp@0.1.105-beta.0
+  - @nextclaw/ncp-toolkit@0.5.34-beta.0
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.2.9-beta.0
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.2.9-beta.0
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.2.9-beta.0
+  - @nextclaw/remote@0.2.10-beta.0
+  - @nextclaw/runtime@0.3.10-beta.0
+  - @nextclaw/shared@0.2.9-beta.0
+  - @nextclaw/client-sdk@0.2.10-beta.0
+  - @nextclaw/core@0.13.10-beta.0
+  - @nextclaw/kernel@0.3.4-beta.0
+  - @nextclaw/server@0.13.10-beta.0
+
 ## 0.2.9
 
 ### Patch Changes
