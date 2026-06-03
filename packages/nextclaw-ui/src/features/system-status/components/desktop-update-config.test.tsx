@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useRuntimeUpdateStore } from '@/features/system-status';
 import { DesktopUpdateConfig } from '@/features/system-status/components/desktop-update-config';
 import { setLanguage } from '@/shared/lib/i18n';
+import type * as SystemStatusModule from '@/features/system-status';
 
 const mocks = vi.hoisted(() => ({
   start: vi.fn(),
@@ -16,7 +17,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/features/system-status', async () => {
-  const actual = await vi.importActual<typeof import('@/features/system-status')>(
+  const actual = await vi.importActual<typeof SystemStatusModule>(
     '@/features/system-status'
   );
   return {

@@ -5,6 +5,7 @@ import type {
   MarketplaceInstalledView,
   MarketplaceListView,
 } from "@/shared/lib/api";
+import type * as ReactQueryModule from "@tanstack/react-query";
 
 type ItemsQueryState = {
   data?: MarketplaceListView;
@@ -42,7 +43,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@tanstack/react-query", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@tanstack/react-query")>();
+  const actual = await importOriginal<typeof ReactQueryModule>();
   return {
     ...actual,
     useMutation: () => mocks.doctorMutation,

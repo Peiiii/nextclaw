@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/shared",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "private": false,
   "description": "Shared lightweight primitives and contracts for NextClaw packages.",
   "type": "module",

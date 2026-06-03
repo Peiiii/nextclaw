@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { toast } from 'sonner';
 import { useChatSessionUpdate } from '@/features/chat/hooks/use-chat-session-update';
+import type * as SharedApiModule from '@/shared/lib/api';
 
 const mocks = vi.hoisted(() => ({
   updateNcpSession: vi.fn(),
@@ -18,7 +19,7 @@ vi.mock('sonner', () => ({
 }));
 
 vi.mock('@/shared/lib/api', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/shared/lib/api')>();
+  const actual = await importOriginal<typeof SharedApiModule>();
   return {
     ...actual,
     updateNcpSession: (...args: unknown[]) => mocks.updateNcpSession(...args),

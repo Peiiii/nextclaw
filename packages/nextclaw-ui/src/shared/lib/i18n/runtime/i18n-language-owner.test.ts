@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type * as I18nRuntimeModule from './i18n-language-owner';
 
-type I18nRuntimeModule = typeof import('./i18n-language-owner');
+type I18nRuntimeOwnerModule = typeof I18nRuntimeModule;
 
 type MockStorage = {
   clear: () => void;
@@ -18,7 +19,7 @@ declare global {
   }
 }
 
-async function loadOwner(): Promise<I18nRuntimeModule> {
+async function loadOwner(): Promise<I18nRuntimeOwnerModule> {
   vi.resetModules();
   return await import('./i18n-language-owner');
 }

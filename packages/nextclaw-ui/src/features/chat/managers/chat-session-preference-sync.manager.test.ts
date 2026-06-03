@@ -4,9 +4,10 @@ import { ChatSessionPreferenceSync } from './chat-session-preference-sync.manage
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
+import type * as SharedApiModule from '@/shared/lib/api';
 
 vi.mock('@/shared/lib/api', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/shared/lib/api')>();
+  const actual = await importOriginal<typeof SharedApiModule>();
   return {
     ...actual,
     updateNcpSession: vi.fn(async () => ({

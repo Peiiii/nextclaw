@@ -46,12 +46,6 @@ type ChatTimelineItem =
       checkpoint: ContextCompactionTimelineView;
     };
 
-type TimelineCheckpointPlacement = {
-  key: string;
-  checkpoint: ContextCompactionTimelineView;
-  boundaryIndex: number;
-};
-
 function buildChatMessageAdapterTexts(
   language: string,
 ): ChatMessageAdapterTexts {

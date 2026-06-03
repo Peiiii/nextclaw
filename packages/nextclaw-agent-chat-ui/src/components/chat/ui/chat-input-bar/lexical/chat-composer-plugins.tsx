@@ -35,50 +35,65 @@ type ChatComposerBindingsPluginProps = {
 };
 
 export function ChatComposerBindingsPlugin(
-  props: ChatComposerBindingsPluginProps,
+  {
+    disabled,
+    editorRef,
+    editorSignatureRef,
+    isApplyingExternalUpdateRef,
+    isComposingRef,
+    lastPublishedSignatureRef,
+    nodes,
+    onBlur,
+    onKeyDown,
+    onNodesChange,
+    pendingSelectionRef,
+    selectionRef,
+    shouldFocusAfterSyncRef,
+    syncSlashState,
+  }: ChatComposerBindingsPluginProps,
 ): null {
   const [editor] = useLexicalComposerContext();
 
   useLayoutEffect(() => {
-    props.editorRef.current = editor;
+    editorRef.current = editor;
     return () => {
-      if (props.editorRef.current === editor) {
-        props.editorRef.current = null;
+      if (editorRef.current === editor) {
+        editorRef.current = null;
       }
     };
-  }, [editor, props.editorRef]);
+  }, [editor, editorRef]);
 
   useLayoutEffect(() => {
-    editor.setEditable(!props.disabled);
-  }, [editor, props.disabled]);
+    editor.setEditable(!disabled);
+  }, [disabled, editor]);
 
   useLayoutEffect(() => {
-    const nextSignature = getChatComposerNodesSignature(props.nodes);
-    const pendingSelection = props.pendingSelectionRef.current;
-    const shouldSyncDocument = nextSignature !== props.editorSignatureRef.current;
+    const nextSignature = getChatComposerNodesSignature(nodes);
+    const pendingSelection = pendingSelectionRef.current;
+    const shouldSyncDocument = nextSignature !== editorSignatureRef.current;
 
     if (!shouldSyncDocument && !pendingSelection) {
       return;
     }
 
-    props.isApplyingExternalUpdateRef.current = true;
+    isApplyingExternalUpdateRef.current = true;
 
     if (shouldSyncDocument) {
-      syncLexicalEditorFromChatComposerState(editor, props.nodes, pendingSelection);
-      props.editorSignatureRef.current = nextSignature;
-      props.lastPublishedSignatureRef.current = nextSignature;
+      syncLexicalEditorFromChatComposerState(editor, nodes, pendingSelection);
+      editorSignatureRef.current = nextSignature;
+      lastPublishedSignatureRef.current = nextSignature;
     } else if (pendingSelection) {
       syncLexicalSelectionFromChatComposerSelection(editor, pendingSelection);
     }
 
     if (pendingSelection) {
-      props.selectionRef.current = pendingSelection;
-      props.pendingSelectionRef.current = null;
+      selectionRef.current = pendingSelection;
+      pendingSelectionRef.current = null;
     }
 
-    if (props.shouldFocusAfterSyncRef.current) {
-      props.shouldFocusAfterSyncRef.current = false;
-      const targetSelection = props.selectionRef.current;
+    if (shouldFocusAfterSyncRef.current) {
+      shouldFocusAfterSyncRef.current = false;
+      const targetSelection = selectionRef.current;
       editor.focus(() => {
         if (targetSelection) {
           syncLexicalSelectionFromChatComposerSelection(editor, targetSelection);
@@ -87,17 +102,17 @@ export function ChatComposerBindingsPlugin(
     }
 
     requestAnimationFrame(() => {
-      props.isApplyingExternalUpdateRef.current = false;
+      isApplyingExternalUpdateRef.current = false;
     });
   }, [
     editor,
-    props.editorSignatureRef,
-    props.isApplyingExternalUpdateRef,
-    props.lastPublishedSignatureRef,
-    props.nodes,
-    props.pendingSelectionRef,
-    props.selectionRef,
-    props.shouldFocusAfterSyncRef,
+    editorSignatureRef,
+    isApplyingExternalUpdateRef,
+    lastPublishedSignatureRef,
+    nodes,
+    pendingSelectionRef,
+    selectionRef,
+    shouldFocusAfterSyncRef,
   ]);
 
   useEffect(() => {
@@ -106,28 +121,28 @@ export function ChatComposerBindingsPlugin(
         const snapshot = readChatComposerSnapshotFromEditorState(editorState);
         const signature = getChatComposerNodesSignature(snapshot.nodes);
 
-        props.selectionRef.current = snapshot.selection;
-        props.editorSignatureRef.current = signature;
-        props.syncSlashState(snapshot.nodes, snapshot.selection);
+        selectionRef.current = snapshot.selection;
+        editorSignatureRef.current = signature;
+        syncSlashState(snapshot.nodes, snapshot.selection);
 
-        if (props.isApplyingExternalUpdateRef.current || props.isComposingRef.current) {
+        if (isApplyingExternalUpdateRef.current || isComposingRef.current) {
           return;
         }
 
-        if (signature === props.lastPublishedSignatureRef.current) {
+        if (signature === lastPublishedSignatureRef.current) {
           return;
         }
 
-        props.lastPublishedSignatureRef.current = signature;
-        props.onNodesChange(snapshot.nodes);
+        lastPublishedSignatureRef.current = signature;
+        onNodesChange(snapshot.nodes);
       }),
       editor.registerCommand(
         SELECTION_CHANGE_COMMAND,
         () => {
           const snapshot = readChatComposerSnapshotFromEditorState(editor.getEditorState());
-          props.selectionRef.current = snapshot.selection;
-          if (!props.isComposingRef.current) {
-            props.syncSlashState(snapshot.nodes, snapshot.selection);
+          selectionRef.current = snapshot.selection;
+          if (!isComposingRef.current) {
+            syncSlashState(snapshot.nodes, snapshot.selection);
           }
           return false;
         },
@@ -136,28 +151,28 @@ export function ChatComposerBindingsPlugin(
       editor.registerCommand(
         BLUR_COMMAND,
         () => {
-          props.onBlur();
+          onBlur();
           return false;
         },
         COMMAND_PRIORITY_EDITOR,
       ),
       editor.registerCommand(
         KEY_DOWN_COMMAND,
-        (event) => props.onKeyDown(event),
+        (event) => onKeyDown(event),
         COMMAND_PRIORITY_HIGH,
       ),
     );
   }, [
     editor,
-    props.editorSignatureRef,
-    props.isApplyingExternalUpdateRef,
-    props.isComposingRef,
-    props.lastPublishedSignatureRef,
-    props.onBlur,
-    props.onKeyDown,
-    props.onNodesChange,
-    props.selectionRef,
-    props.syncSlashState,
+    editorSignatureRef,
+    isApplyingExternalUpdateRef,
+    isComposingRef,
+    lastPublishedSignatureRef,
+    onBlur,
+    onKeyDown,
+    onNodesChange,
+    selectionRef,
+    syncSlashState,
   ]);
 
   return null;

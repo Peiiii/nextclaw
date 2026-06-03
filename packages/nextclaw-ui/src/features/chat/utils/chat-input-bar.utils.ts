@@ -12,9 +12,7 @@ export {
 } from "./chat-input-toolbar.utils";
 import type {
   ChatInputBarAdapterTexts,
-  ChatModelRecord,
   ChatSkillRecord,
-  ChatThinkingLevel,
 } from "@/features/chat/types/chat-input-bar.types";
 
 export type {

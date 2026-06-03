@@ -1,5 +1,19 @@
 # @nextclaw/ui
 
+## 0.13.9
+
+### Patch Changes
+
+- 3061877: Decouple cron jobs from channel delivery settings. Scheduled jobs now ask the agent to call the message tool for notifications, while Weixin sends fail honestly when account, channel, API, or context_token delivery state is unavailable.
+- Updated dependencies
+  - @nextclaw/agent-chat@0.2.8
+  - @nextclaw/agent-chat-ui@0.4.8
+  - @nextclaw/client-sdk@0.2.9
+  - @nextclaw/ncp@0.5.28
+  - @nextclaw/ncp-http-agent-client@0.3.40
+  - @nextclaw/ncp-react@0.4.48
+  - @nextclaw/shared@0.2.8
+
 ## 0.13.8
 
 ### Patch Changes

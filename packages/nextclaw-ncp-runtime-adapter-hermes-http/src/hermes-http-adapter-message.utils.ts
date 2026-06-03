@@ -4,7 +4,6 @@ import {
   type NcpError,
   type NcpMessage,
   type NcpMessagePart,
-  type NcpProviderRuntimeRoute,
   type NcpRequestEnvelope,
   type NcpToolInvocationPart,
   NcpEventType,
@@ -493,7 +492,7 @@ export class HermesReasoningDeltaTranslator {
       yield event;
     }
 
-    yield* this.flushSegments();
+    this.flushSegments();
   };
 
   private emitNormalizedTextDelta = function* (
@@ -534,7 +533,7 @@ export class HermesReasoningDeltaTranslator {
     const sessionId = this.readEventSessionId(event);
     const messageId = this.readEventMessageId(event);
     if (!sessionId || !messageId) {
-      yield* this.flushSegments();
+      this.flushSegments();
       return;
     }
 
@@ -565,9 +564,7 @@ export class HermesReasoningDeltaTranslator {
     }
   };
 
-  private flushSegments = function* (
-    this: HermesReasoningDeltaTranslator,
-  ): Generator<NcpEndpointEvent> {
+  private flushSegments = (): void => {
     this.normalizer.finish();
   };
 

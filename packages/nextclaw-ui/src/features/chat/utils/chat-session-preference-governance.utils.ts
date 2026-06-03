@@ -187,7 +187,10 @@ function useSyncSessionPreference<T>(params: UseSyncSessionPreferenceParams<T>) 
   const previousSessionKeyRef = useRef<string | null | undefined>(undefined);
   const resolveValueRef = useRef(resolveValue);
   const lastSyncedValueRef = useRef<T>(emptyValue);
-  resolveValueRef.current = resolveValue;
+
+  useEffect(() => {
+    resolveValueRef.current = resolveValue;
+  }, [resolveValue]);
 
   useEffect(() => {
     const sessionChanged = previousSessionKeyRef.current !== selectedSessionKey;

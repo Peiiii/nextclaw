@@ -323,7 +323,6 @@ class HermesHttpAdapterRouteService {
   ): AsyncGenerator<NcpEndpointEvent> {
     const { response, run, signal } = params;
     const sessionId = run.envelope.sessionId;
-    const providerRoute = this.readProviderRoute(run.envelope);
     const requestedModel = normalizeHermesRequestedModel(resolveHermesModel({
       envelope: run.envelope,
       fallbackModel: this.config.model,
