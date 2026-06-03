@@ -19,10 +19,14 @@ function createTempConfigPath(): string {
   return configPath;
 }
 
-function createTestApp(panelAppManager: UiKernelHost["panelAppManager"]) {
+function createTestApp(
+  panelAppManager: UiKernelHost["panelAppManager"],
+  options: { panelAppClientSdkScript?: () => Promise<string> | string } = {},
+) {
   return createUiRouter({
     configPath: createTempConfigPath(),
     appEventBus: new EventBus(),
+    ...options,
     kernel: createRouterTestKernel({ panelAppManager }),
   });
 }
@@ -30,12 +34,16 @@ function createTestApp(panelAppManager: UiKernelHost["panelAppManager"]) {
 function createPanelAppEntry(overrides: Record<string, unknown> = {}) {
   return {
     id: "demo",
+    appId: "demo",
     fileName: "demo.panel.html",
+    kind: "single-file",
     title: "demo",
     contentPath: "/api/panel-apps/demo/content",
     updatedAt: "2026-05-26T00:00:00.000Z",
     sizeBytes: 12,
     favorite: false,
+    clientDeclared: false,
+    clientGranted: false,
     openCount: 0,
     ...overrides,
   };
@@ -83,6 +91,9 @@ describe("panel apps routes", () => {
       }),
       getPanelAppContent: async () => ({
         capabilities: [],
+        appId: "demo",
+        clientDeclared: false,
+        clientGranted: false,
         id: "demo",
         fileName: "demo.panel.html",
         html: "<!doctype html><h1>Demo</h1>",
@@ -97,6 +108,25 @@ describe("panel apps routes", () => {
     expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(await response.text()).toBe("<!doctype html><h1>Demo</h1>");
+  });
+
+  it("serves the configured panel app client SDK browser script", async () => {
+    const app = createTestApp({
+      listPanelApps: async () => ({
+        workspacePath: "",
+        panelsPath: "",
+        entries: [],
+      }),
+    } as never, {
+      panelAppClientSdkScript: () => "window.NextClawClient = function NextClawClient() {};",
+    });
+
+    const response = await app.request("http://localhost/api/panel-app-client-sdk.js");
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("application/javascript; charset=utf-8");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.text()).toContain("window.NextClawClient");
   });
 
   it("serves panel app assets without wrapping them as JSON", async () => {

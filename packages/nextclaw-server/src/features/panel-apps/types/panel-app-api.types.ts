@@ -9,16 +9,18 @@ import type {
   PanelAppAgentSendRequest,
   PanelAppAgentSendResult,
   PanelAppCapabilityGrant,
+  PanelAppClientGrant,
 } from "@nextclaw/kernel";
 
 export type PanelAppBridgeSessionCreateRequest = {
-  panelAppId: string;
-  tabId: string;
+  appId?: string;
+  panelAppId?: string;
+  tabId?: string;
 };
 
 export type PanelAppBridgeSessionView = Pick<
   PanelAppBridgeSession,
-  "expiresAt" | "id" | "panelAppId" | "tabId" | "token"
+  "appId" | "expiresAt" | "id" | "token"
 >;
 
 export type PanelAppEntryView = PanelAppEntry;
@@ -35,3 +37,4 @@ export type PanelAppAgentGenerateObjectResultView = PanelAppAgentGenerateObjectR
 export type PanelAppAgentSendRequestView = PanelAppAgentSendRequest;
 export type PanelAppAgentSendResultView = PanelAppAgentSendResult;
 export type PanelAppCapabilityGrantView = PanelAppCapabilityGrant;
+export type PanelAppClientGrantView = PanelAppClientGrant;

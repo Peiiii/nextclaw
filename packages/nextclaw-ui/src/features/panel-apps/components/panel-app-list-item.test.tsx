@@ -5,7 +5,9 @@ import { PanelAppListItem } from './panel-app-list-item';
 
 const baseEntry = {
   id: 'demo',
+  appId: 'demo',
   fileName: 'demo.panel.html',
+  kind: 'single-file' as const,
   title: 'Demo Panel',
   description: 'A compact panel app with a longer description that should stay on one line.',
   contentPath: '/api/panel-apps/demo/content',
@@ -13,6 +15,8 @@ const baseEntry = {
   updatedAt: '2026-05-28T09:00:00.000Z',
   sizeBytes: 12,
   favorite: false,
+  clientDeclared: false,
+  clientGranted: false,
   openCount: 0,
 };
 

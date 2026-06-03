@@ -147,7 +147,7 @@ describe("PanelAppAssetTokenService", () => {
   });
 });
 
-describe("PanelAppManager", () => {
+describe("PanelAppManager listing", () => {
   it("lists direct single-file panel apps from the NextClaw workspace", async () => {
     const workspacePath = createTempDir();
     const panelsPath = join(workspacePath, "panels");
@@ -243,7 +243,9 @@ describe("PanelAppManager", () => {
       code: "PANEL_APP_MANIFEST_INVALID",
     } satisfies Partial<PanelAppError>);
   });
+});
 
+describe("PanelAppManager content", () => {
   it("returns panel app HTML content by stable encoded id", async () => {
     const workspacePath = createTempDir();
     const panelsPath = join(workspacePath, "panels");
@@ -265,21 +267,6 @@ describe("PanelAppManager", () => {
     expect(content.html).toContain("resolveBridgeData");
     expect(content.html).not.toContain("<script src=\"/api/panel-app-bridge.js\"></script>");
     expect(content.html).toContain("<!doctype html><h1>Todo</h1>");
-  });
-
-  it("exposes array and business payload shapes from the injected bridge SDK", async () => {
-    await expect(runBridgeRequest(
-      (nextclaw) => nextclaw.serviceActions.list(),
-      { actions: [{ id: "workspace-files.list" }] },
-    )).resolves.toEqual([{ id: "workspace-files.list" }]);
-    await expect(runBridgeRequest(
-      (nextclaw) => nextclaw.serviceActions.invoke("workspace-files.list", {}),
-      { result: { structuredContent: { files: ["a.md"] } } },
-    )).resolves.toEqual({ files: ["a.md"] });
-    await expect(runBridgeRequest(
-      (nextclaw) => nextclaw.serviceActions.invoke("workspace-files.list", {}),
-      { result: { content: [{ type: "text", text: "{\"files\":[\"b.md\"]}" }] } },
-    )).resolves.toEqual({ files: ["b.md"] });
   });
 
   it("returns folder panel app HTML content with asset base and bridge injection", async () => {
@@ -316,7 +303,71 @@ describe("PanelAppManager", () => {
     expect(content.html).toContain("window.nextclaw");
     expect(content.html).toContain("<script src=\"app.js\"></script>");
   });
+});
 
+describe("PanelAppManager bridge and client injection", () => {
+  it("exposes array and business payload shapes from the injected bridge SDK", async () => {
+    await expect(runBridgeRequest(
+      (nextclaw) => nextclaw.serviceActions.list(),
+      { actions: [{ id: "workspace-files.list" }] },
+    )).resolves.toEqual([{ id: "workspace-files.list" }]);
+    await expect(runBridgeRequest(
+      (nextclaw) => nextclaw.serviceActions.invoke("workspace-files.list", {}),
+      { result: { structuredContent: { files: ["a.md"] } } },
+    )).resolves.toEqual({ files: ["a.md"] });
+    await expect(runBridgeRequest(
+      (nextclaw) => nextclaw.serviceActions.invoke("workspace-files.list", {}),
+      { result: { content: [{ type: "text", text: "{\"files\":[\"b.md\"]}" }] } },
+    )).resolves.toEqual({ files: ["b.md"] });
+  });
+
+  it("injects the standard client SDK only after a persistent client grant", async () => {
+    const workspacePath = createTempDir();
+    const panelsPath = join(workspacePath, "panels");
+    const appPath = join(panelsPath, "client-demo.panel");
+    mkdirSync(appPath, { recursive: true });
+    writeFileSync(
+      join(appPath, "panel-app.json"),
+      JSON.stringify({
+        id: "client-demo",
+        title: "Client Demo",
+        entry: "index.html",
+        client: true,
+      }),
+    );
+    writeFileSync(
+      join(appPath, "index.html"),
+      "<!doctype html><html><head></head><body></body></html>",
+    );
+    const manager = createPanelAppManager(workspacePath);
+    const [entry] = (await manager.listPanelApps()).entries;
+
+    expect(entry).toEqual(expect.objectContaining({
+      appId: "client-demo",
+      clientDeclared: true,
+      clientGranted: false,
+    }));
+    await expect(manager.getPanelAppContent(entry.id)).resolves.toEqual(expect.objectContaining({
+      appId: "client-demo",
+      clientDeclared: true,
+      clientGranted: false,
+      html: expect.not.stringContaining("/api/panel-app-client-sdk.js"),
+    }));
+
+    await manager.grantPanelAppClient(entry.appId);
+    const content = await manager.getPanelAppContent(entry.id);
+
+    expect((await manager.listPanelApps()).entries[0]).toEqual(expect.objectContaining({
+      clientGranted: true,
+    }));
+    expect(content.clientGranted).toBe(true);
+    expect(content.html).toContain("<script src=\"/api/panel-app-client-sdk.js\"></script>");
+    expect(content.html).toContain("window.NextClawClient");
+    expect(content.html).toContain("\"x-nextclaw-panel-bridge-session\"");
+  });
+});
+
+describe("PanelAppManager assets", () => {
   it("serves folder panel app assets by id and token while rejecting traversal", async () => {
     const workspacePath = createTempDir();
     const panelsPath = join(workspacePath, "panels");
@@ -353,7 +404,9 @@ describe("PanelAppManager", () => {
       code: "PANEL_APP_INVALID_ASSET_PATH",
     } satisfies Partial<PanelAppError>);
   });
+});
 
+describe("PanelAppManager runtime sessions", () => {
   it("creates bridge sessions with declared service actions and agent capabilities", async () => {
     const workspacePath = createTempDir();
     const panelsPath = join(workspacePath, "panels");
@@ -373,10 +426,9 @@ describe("PanelAppManager", () => {
 
     const session = await manager.createPanelAppBridgeSession({
       id: entry.id,
-      tabId: "tab-1",
     });
 
-    expect(session.panelAppId).toBe(entry.id);
+    expect(session.appId).toBe(entry.appId);
     expect(session.caller).toEqual({ surface: "panel-app", appId: entry.id });
     expect(session.declaredCapabilities).toEqual(["agent:send", "agent:generateObject"]);
     expect(session.declaredActions).toEqual(["notes.read", "notes.write"]);
@@ -407,7 +459,6 @@ describe("PanelAppManager agent bridge", () => {
     const [entry] = (await manager.listPanelApps()).entries;
     const session = await manager.createPanelAppBridgeSession({
       id: entry.id,
-      tabId: "tab-1",
     });
 
     await expect(manager.sendAgentMessage(session.token, {
@@ -448,7 +499,6 @@ describe("PanelAppManager agent bridge", () => {
     const [entry] = (await manager.listPanelApps()).entries;
     const session = await manager.createPanelAppBridgeSession({
       id: entry.id,
-      tabId: "tab-1",
     });
 
     await expect(manager.generateAgentObject(session.token, {
@@ -498,7 +548,6 @@ describe("PanelAppManager agent bridge", () => {
     const [entry] = (await manager.listPanelApps()).entries;
     const session = await manager.createPanelAppBridgeSession({
       id: entry.id,
-      tabId: "tab-1",
     });
     await manager.grantAgentCapability(session.token, "agent:generateObject");
 

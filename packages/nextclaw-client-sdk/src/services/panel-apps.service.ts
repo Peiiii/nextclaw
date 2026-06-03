@@ -7,6 +7,7 @@ import type {
   PanelAppBridgeSessionCreateRequest,
   PanelAppBridgeSessionView,
   PanelAppCapabilityGrantView,
+  PanelAppClientGrantView,
   PanelAppDeleteResultView,
   PanelAppEntryView,
   PanelAppListView,
@@ -71,6 +72,19 @@ export class PanelAppsClientService {
   readonly deleteBridgeSession = async (token: string): Promise<{ deleted: boolean }> => {
     return await this.requestService.delete<{ deleted: boolean }>(
       `/api/panel-app-bridge-sessions/${encodeURIComponent(token)}`,
+    );
+  };
+
+  readonly grantClient = async (appId: string): Promise<PanelAppClientGrantView> => {
+    return await this.requestService.post<PanelAppClientGrantView>(
+      `/api/panel-app-client-grants/${encodeURIComponent(appId)}`,
+      {},
+    );
+  };
+
+  readonly revokeClient = async (appId: string): Promise<{ revoked: boolean }> => {
+    return await this.requestService.delete<{ revoked: boolean }>(
+      `/api/panel-app-client-grants/${encodeURIComponent(appId)}`,
     );
   };
 

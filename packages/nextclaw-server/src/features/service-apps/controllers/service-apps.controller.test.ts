@@ -41,11 +41,11 @@ function createBridgeSession(): PanelAppBridgeSession {
   return {
     id: "session-1",
     token: "bridge-token",
-    panelAppId: "todo-panel",
-    tabId: "tab-1",
+    appId: "todo-panel",
     caller,
     declaredCapabilities: [],
     declaredActions: ["notes.read"],
+    clientDeclared: false,
     createdAt: "2026-05-27T00:00:00.000Z",
     expiresAt: "2026-05-27T01:00:00.000Z",
   };
@@ -203,15 +203,14 @@ describe("service apps routes", () => {
     });
     const payload = await response.json() as {
       ok: true;
-      data: { token: string; panelAppId: string };
+      data: { appId: string; token: string };
     };
 
     expect(response.status).toBe(200);
     expect(payload.data.token).toBe("bridge-token");
-    expect(payload.data.panelAppId).toBe("todo-panel");
+    expect(payload.data.appId).toBe("todo-panel");
     expect(createPanelAppBridgeSession).toHaveBeenCalledWith({
       id: "todo-panel",
-      tabId: "tab-1",
     });
   });
 

@@ -39,6 +39,11 @@ export const DOC_BROWSER_LABELS = {
     zh: '将删除这个面板应用文件，删除后不可恢复。',
     en: 'This will delete the panel app file and cannot be undone.',
   },
+  panelAppsClientGrantTitle: { zh: 'NextClaw Client SDK', en: 'NextClaw Client SDK' },
+  panelAppsClientGrantDescription: {
+    zh: '允许这个面板应用使用完整 NextClaw Client SDK。',
+    en: 'Allow this panel app to use the full NextClaw Client SDK.',
+  },
   panelAppsLastOpened: { zh: '上次打开', en: 'Last opened' },
   panelAppsUpdated: { zh: '更新于', en: 'Updated' },
   serviceAppsTitle: { zh: '服务应用', en: 'Service Apps' },

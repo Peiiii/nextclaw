@@ -363,7 +363,9 @@ export type ServerPathReadView = { requestedPath: string; resolvedPath: string; 
 
 export type PanelAppEntryView = {
   id: string;
+  appId: string;
   fileName: string;
+  kind: "single-file" | "folder";
   title: string;
   description?: string;
   icon?: string;
@@ -372,6 +374,8 @@ export type PanelAppEntryView = {
   updatedAt: string;
   sizeBytes: number;
   favorite: boolean;
+  clientDeclared: boolean;
+  clientGranted: boolean;
   lastOpenedAt?: string;
   openCount: number;
 };

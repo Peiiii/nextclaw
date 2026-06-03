@@ -4,11 +4,15 @@ import { createPanelAppRightPanelResourceTarget } from '@/features/right-panel-r
 
 function createPanelAppEntry(overrides: Partial<PanelAppEntryView> = {}): PanelAppEntryView {
   return {
+    appId: 'demo',
+    clientDeclared: false,
+    clientGranted: false,
     contentPath: '/api/panel-apps/demo/content',
     createdAt: '2026-06-02T00:00:00.000Z',
     favorite: false,
     fileName: 'demo.html',
     id: 'demo',
+    kind: 'single-file',
     openCount: 0,
     sizeBytes: 1024,
     title: 'Demo App',

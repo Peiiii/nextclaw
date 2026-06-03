@@ -21,7 +21,7 @@ const PANEL_APP_AGENT_MAX_PROMPT_CHARS = 20_000;
 const PANEL_APP_AGENT_MAX_CONTEXT_CHARS = 80_000;
 
 type PanelAppAgentBridgeSession = {
-  panelAppId: string;
+  appId: string;
 };
 
 export type NormalizedPanelAppGenerateObjectInput =
@@ -174,9 +174,9 @@ export function createPanelAppAgentMetadata(
   bridgeSession: PanelAppAgentBridgeSession,
 ): Record<string, unknown> {
   return {
-    agent_peer_scope: `panel-app:${bridgeSession.panelAppId}`,
+    agent_peer_scope: `panel-app:${bridgeSession.appId}`,
     panel_app_bridge_request_id: randomUUID(),
-    panel_app_id: bridgeSession.panelAppId,
+    panel_app_id: bridgeSession.appId,
     source_kind: "panel_app",
   };
 }
@@ -220,7 +220,7 @@ function buildGenerateObjectPrompt(
   return [
     "Panel App generateObject request",
     "",
-    `Panel App ID: ${bridgeSession.panelAppId}`,
+    `Panel App ID: ${bridgeSession.appId}`,
     `Peer ID: ${request.peerId}`,
     "",
     "Context JSON:",

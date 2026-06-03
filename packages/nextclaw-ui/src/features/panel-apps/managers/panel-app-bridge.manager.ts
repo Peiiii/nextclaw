@@ -5,7 +5,6 @@ import type {
   PanelAppAgentGenerateObjectResultView,
   PanelAppAgentSendRequestView,
   PanelAppAgentSendResultView,
-  PanelAppBridgeSessionView,
   PanelAppCapabilityGrantView,
   ServiceActionGrantView,
   ServiceActionInvokeResultView,
@@ -18,6 +17,8 @@ import { nextclawClient } from '@/shared/lib/api';
 type PanelAppBridgeRequest = {
   type: 'nextclaw:panel-app-service-actions:request';
   requestId: string;
+  appId: string;
+  runtimeToken: string;
   method:
     | 'agent.generateObject'
     | 'agent.send'
@@ -30,6 +31,11 @@ type PanelAppBridgeRequest = {
     input?: unknown;
     request?: unknown;
   };
+};
+
+type PanelAppBridgeContext = {
+  appId: string;
+  token: string;
 };
 
 type PanelAppBridgeResponse =
@@ -51,8 +57,6 @@ type PanelAppBridgeResponse =
     };
 
 export class PanelAppBridgeManager {
-  private readonly sessions = new Map<string, Promise<PanelAppBridgeSessionView>>();
-
   constructor(private readonly authorizationManager: ServiceActionAuthorizationManager) {}
 
   handleIframeMessage = ({ event, iframe, iframeInstanceId, tab }: DocBrowserIframeMessageParams): void => {
@@ -70,7 +74,7 @@ export class PanelAppBridgeManager {
     request: PanelAppBridgeRequest,
   ): Promise<void> => {
     try {
-      const session = await this.getSession(params);
+      const session = this.getBridgeContext(request);
       const data = await this.dispatchRequest(session, request);
       this.postResponse(params, {
         type: 'nextclaw:panel-app-service-actions:response',
@@ -89,7 +93,7 @@ export class PanelAppBridgeManager {
   };
 
   private dispatchRequest = async (
-    session: PanelAppBridgeSessionView,
+    session: PanelAppBridgeContext,
     request: PanelAppBridgeRequest,
   ): Promise<
     | PanelAppAgentGenerateObjectResultView
@@ -124,7 +128,7 @@ export class PanelAppBridgeManager {
   };
 
   private invokeWithAuthorization = async (
-    session: PanelAppBridgeSessionView,
+    session: PanelAppBridgeContext,
     request: PanelAppBridgeRequest,
   ): Promise<ServiceActionInvokeResultView> => {
     const actionId = this.requireActionId(request);
@@ -148,7 +152,7 @@ export class PanelAppBridgeManager {
   };
 
   private sendAgentMessageWithAuthorization = async (
-    session: PanelAppBridgeSessionView,
+    session: PanelAppBridgeContext,
     request: PanelAppBridgeRequest,
   ): Promise<PanelAppAgentSendResultView> => {
     try {
@@ -169,7 +173,7 @@ export class PanelAppBridgeManager {
   };
 
   private generateAgentObjectWithAuthorization = async (
-    session: PanelAppBridgeSessionView,
+    session: PanelAppBridgeContext,
     request: PanelAppBridgeRequest,
   ): Promise<PanelAppAgentGenerateObjectResultView> => {
     try {
@@ -190,11 +194,11 @@ export class PanelAppBridgeManager {
   };
 
   private confirmAndGrantAgentCapability = async (
-    session: PanelAppBridgeSessionView,
+    session: PanelAppBridgeContext,
     capability: PanelAppAgentCapabilityView,
   ): Promise<PanelAppCapabilityGrantView> => {
     const allowed = await this.authorizationManager.requestAuthorization({
-      panelAppId: session.panelAppId,
+      panelAppId: session.appId,
       actions: [{
         actionId: capability,
         actionTitle: capability === 'agent:send' ? 'Send agent message' : 'Generate object',
@@ -217,13 +221,13 @@ export class PanelAppBridgeManager {
   };
 
   private confirmAndGrant = async (
-    session: PanelAppBridgeSessionView,
+    session: PanelAppBridgeContext,
     actionId: string,
     input?: Record<string, unknown>,
   ): Promise<ServiceActionGrantView> => {
     const actions = await this.listGrantCandidateActions(session, actionId);
     const allowed = await this.authorizationManager.requestAuthorization({
-      panelAppId: session.panelAppId,
+      panelAppId: session.appId,
       actions: actions.map((action) => ({
         actionId: action.id,
         actionTitle: action.title,
@@ -250,7 +254,7 @@ export class PanelAppBridgeManager {
   };
 
   private listGrantCandidateActions = async (
-    session: PanelAppBridgeSessionView,
+    session: PanelAppBridgeContext,
     actionId: string,
   ): Promise<Array<ServiceActionListView['actions'][number]>> => {
     const actionList = await nextclawClient.serviceApps.listServiceActions({
@@ -294,29 +298,11 @@ export class PanelAppBridgeManager {
     }
   };
 
-  private getSession = async (
-    params: DocBrowserIframeMessageParams,
-  ): Promise<PanelAppBridgeSessionView> => {
-    const panelAppId = this.readPanelAppId(params.tab.currentUrl);
-    const key = `${params.iframeInstanceId}:${panelAppId}`;
-    let session = this.sessions.get(key);
-    if (!session) {
-      session = nextclawClient.panelApps.createBridgeSession({
-        panelAppId,
-        tabId: params.tab.id,
-      });
-      this.sessions.set(key, session);
-    }
-    return await session;
-  };
-
-  private readPanelAppId = (url: string): string => {
-    const parsed = new URL(url, window.location.origin);
-    const match = /^\/api\/panel-apps\/([^/]+)\/content$/.exec(parsed.pathname);
-    if (!match?.[1]) {
-      throw new Error('Current tab is not a Panel App.');
-    }
-    return decodeURIComponent(match[1]);
+  private getBridgeContext = (request: PanelAppBridgeRequest): PanelAppBridgeContext => {
+    return {
+      appId: request.appId,
+      token: request.runtimeToken,
+    };
   };
 
   private requireActionId = (request: PanelAppBridgeRequest): string => {
@@ -383,6 +369,8 @@ export class PanelAppBridgeManager {
     return (
       candidate.type === 'nextclaw:panel-app-service-actions:request' &&
       typeof candidate.requestId === 'string' &&
+      typeof candidate.runtimeToken === 'string' &&
+      typeof candidate.appId === 'string' &&
       (candidate.method === 'invoke' ||
         candidate.method === 'agent.send' ||
         candidate.method === 'agent.generateObject' ||

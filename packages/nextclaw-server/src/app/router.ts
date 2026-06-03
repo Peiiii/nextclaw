@@ -40,7 +40,13 @@ function createUiRouteControllers(
   authService: UiAuthService,
   marketplaceBaseUrl: string
 ) {
-  const { remoteAccess, runtimeControl, runtimeUpdate } = options;
+  const {
+    kernel,
+    panelAppClientSdkScript,
+    remoteAccess,
+    runtimeControl,
+    runtimeUpdate,
+  } = options;
   return {
     app: new AppRoutesController(options),
     agents: new AgentsRoutesController(options),
@@ -49,10 +55,12 @@ function createUiRouteControllers(
     cron: new CronRoutesController(options),
     ncpSession: new NcpSessionRoutesController(options),
     ncpAsset: new NcpAssetRoutesController(options),
-    panelApps: new PanelAppsRoutesController(options.kernel.panelAppManager),
+    panelApps: new PanelAppsRoutesController(kernel.panelAppManager, {
+      panelAppClientSdkScript,
+    }),
     serviceApps: new ServiceAppsRoutesController({
-      panelAppManager: options.kernel.panelAppManager,
-      serviceAppManager: options.kernel.serviceAppManager,
+      panelAppManager: kernel.panelAppManager,
+      serviceAppManager: kernel.serviceAppManager,
     }),
     serverPath: new ServerPathRoutesController(),
     remote: remoteAccess ? new RemoteRoutesController(remoteAccess) : null,
@@ -191,8 +199,11 @@ class UiRouteRegistry {
       ["delete", "/api/ncp/sessions/:sessionId", ncpSession.deleteSession],
       ["get", "/api/panel-apps", panelApps.list],
       ["get", "/api/panel-app-bridge.js", panelApps.getPanelAppBridgeScript],
+      ["get", "/api/panel-app-client-sdk.js", panelApps.getPanelAppClientSdkScript],
       ["post", "/api/panel-app-bridge-sessions", panelApps.createBridgeSession],
       ["delete", "/api/panel-app-bridge-sessions/:token", panelApps.deleteBridgeSession],
+      ["post", "/api/panel-app-client-grants/:appId", panelApps.grantClient],
+      ["delete", "/api/panel-app-client-grants/:appId", panelApps.revokeClient],
       ["post", "/api/panel-app-agent/send", panelApps.sendAgentMessage],
       ["post", "/api/panel-app-agent/generate-object", panelApps.generateAgentObject],
       ["post", "/api/panel-app-agent-capabilities/:capability/grant", panelApps.grantAgentCapability],

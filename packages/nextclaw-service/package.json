@@ -57,6 +57,7 @@
     "@nextclaw/channel-extension-wecom": "workspace:*",
     "@nextclaw/channel-extension-weixin": "workspace:*",
     "@nextclaw/channel-extension-whatsapp": "workspace:*",
+    "@nextclaw/client-sdk": "workspace:*",
     "@nextclaw/core": "workspace:*",
     "@nextclaw/kernel": "workspace:*",
     "@nextclaw/mcp": "workspace:*",

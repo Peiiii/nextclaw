@@ -36,6 +36,7 @@ import { localUiRuntimeStore } from "@nextclaw-service/shared/stores/local-ui-ru
 import { managedServiceStateStore } from "@nextclaw-service/shared/stores/managed-service-state.store.js";
 import type { RequestRestartParams } from "@nextclaw-service/shared/types/cli.types.js";
 import { openBrowser, resolveUiConfig, resolveUiStaticDir } from "@nextclaw-service/shared/utils/cli.utils.js";
+import { readPanelAppClientSdkScript } from "@nextclaw-service/shared/utils/panel-app-client-sdk/panel-app-client-sdk-script.utils.js";
 import { logStartupTrace, measureStartupAsync, measureStartupSync } from "@nextclaw-service/shared/utils/startup-trace.js";
 
 const {
@@ -236,6 +237,7 @@ export class NextclawGatewayRuntime {
     appEventBus: this.appEventBus,
     uiConfig: this.uiConfig,
     uiStaticDir: this.uiStaticDir,
+    panelAppClientSdkScript: readPanelAppClientSdkScript,
     productVersion: this.productVersion,
     applyLiveConfigReload: this.configManager.applyLiveConfigReload,
     initializeAgentHomeDirectory: this.deps.initializeAgentHomeDirectory,

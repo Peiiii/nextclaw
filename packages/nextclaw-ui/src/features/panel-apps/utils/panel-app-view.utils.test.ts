@@ -7,13 +7,17 @@ function createPanelAppEntry(overrides: Partial<PanelAppEntryView> = {}): PanelA
   const updatedAt = overrides.updatedAt ?? createdAt;
   return {
     id: overrides.id ?? overrides.fileName ?? 'demo.panel.html',
+    appId: overrides.appId ?? 'demo',
     fileName: overrides.fileName ?? 'demo.panel.html',
+    kind: overrides.kind ?? 'single-file',
     title: overrides.title ?? 'Demo',
     contentPath: overrides.contentPath ?? '/api/panel-apps/demo/content',
     createdAt,
     updatedAt,
     sizeBytes: overrides.sizeBytes ?? 12,
     favorite: overrides.favorite ?? false,
+    clientDeclared: overrides.clientDeclared ?? false,
+    clientGranted: overrides.clientGranted ?? false,
     openCount: overrides.openCount ?? 0,
     ...overrides,
   };

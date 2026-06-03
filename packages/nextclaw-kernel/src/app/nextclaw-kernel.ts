@@ -211,10 +211,7 @@ export class NextclawKernel {
       this.llmProviders,
       this.sessionManager,
     );
-    this.sessionRunManager = new SessionRunManager(
-      this.sessionManager,
-      this.eventBus,
-    );
+    this.sessionRunManager = new SessionRunManager(this.sessionManager);
     this.agentRunRequestManager = new AgentRunRequestManager(
       this.agentRuntimeManager,
       this.configManager,

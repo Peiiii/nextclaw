@@ -1,7 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { HelpCircle, RefreshCw } from 'lucide-react';
+import { useAppPresenter } from '@/app/components/app-presenter-provider';
 import { PanelAppListItem } from '@/features/panel-apps/components/panel-app-list-item';
-import { useDeletePanelApp, usePanelApps, useRecordPanelAppOpened, useUpdatePanelAppPreferences } from '@/features/panel-apps/hooks/use-panel-apps';
+import { useDeletePanelApp, useGrantPanelAppClient, usePanelApps, useRecordPanelAppOpened, useUpdatePanelAppPreferences } from '@/features/panel-apps/hooks/use-panel-apps';
 import { getPanelAppViewEntries } from '@/features/panel-apps/utils/panel-app-view.utils';
 import type { PanelAppViewMode } from '@/features/panel-apps/utils/panel-app-view.utils';
 import type { PanelAppEntryView } from '@/shared/lib/api';
@@ -20,6 +21,8 @@ export function PanelAppsList({
   const deletePanelApp = useDeletePanelApp();
   const updatePreferences = useUpdatePanelAppPreferences();
   const recordOpened = useRecordPanelAppOpened();
+  const grantClient = useGrantPanelAppClient();
+  const presenter = useAppPresenter();
   const [viewMode, setViewMode] = useState<PanelAppViewMode>('smart');
   const entries = useMemo(
     () => getPanelAppViewEntries(panelApps.data?.entries ?? [], viewMode),
@@ -27,11 +30,34 @@ export function PanelAppsList({
   );
 
   const openPanelApp = async (entry: PanelAppEntryView) => {
+    if (!(await ensurePanelAppClientGrant(entry))) {
+      return;
+    }
     try {
       onOpenPanelApp(await recordOpened.mutateAsync(entry.id));
     } catch {
       onOpenPanelApp(entry);
     }
+  };
+
+  const ensurePanelAppClientGrant = async (entry: PanelAppEntryView): Promise<boolean> => {
+    if (!entry.clientDeclared || entry.clientGranted) {
+      return true;
+    }
+    const allowed = await presenter.serviceActionAuthorizationManager.requestAuthorization({
+      panelAppId: entry.appId,
+      actions: [{
+        actionId: 'nextclaw.client',
+        actionTitle: t('panelAppsClientGrantTitle'),
+        actionDescription: t('panelAppsClientGrantDescription'),
+        risk: 'dangerous',
+      }],
+    });
+    if (!allowed) {
+      return false;
+    }
+    await grantClient.mutateAsync(entry.appId);
+    return true;
   };
 
   const toggleFavorite = (entry: PanelAppEntryView) => {

@@ -82,6 +82,7 @@ export type {
   PanelAppBridgeSessionCreateRequest,
   PanelAppBridgeSessionView,
   PanelAppCapabilityGrantView,
+  PanelAppClientGrantView,
   PanelAppListView,
   ProviderAuthImportResult,
   ProviderAuthPollRequest,

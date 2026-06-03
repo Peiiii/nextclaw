@@ -75,6 +75,7 @@ export type UiRouterOptions = {
   appEventBus: UiAppEventBus;
   uiConfig?: Pick<NextclawCore.Config["ui"], "enabled" | "host" | "open" | "port">;
   uiStaticDir?: string | null;
+  panelAppClientSdkScript?: () => Promise<string> | string;
   corsOrigins?: string[] | "*";
   productVersion?: string;
   applyLiveConfigReload?: () => Promise<void>;

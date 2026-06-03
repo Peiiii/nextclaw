@@ -1,10 +1,13 @@
 const PANEL_APP_BRIDGE_MARKER = "nextclaw:panel-app-service-actions:request";
 
-export function injectPanelAppBridgeScript(html: string): string {
+export function injectPanelAppBridgeScript(html: string, params: {
+  appId: string;
+  runtimeToken: string;
+}): string {
   if (html.includes(PANEL_APP_BRIDGE_MARKER)) {
     return html;
   }
-  const script = `<script>${getPanelAppBridgeScript()}</script>`;
+  const script = `<script>${getPanelAppBridgeScript(params)}</script>`;
   const headMatch = /<head(?:\s[^>]*)?>/i.exec(html);
   if (headMatch?.index !== undefined) {
     const insertAt = headMatch.index + headMatch[0].length;
@@ -13,11 +16,18 @@ export function injectPanelAppBridgeScript(html: string): string {
   return `${script}${html}`;
 }
 
-export function getPanelAppBridgeScript(): string {
+export function getPanelAppBridgeScript(params: {
+  appId: string;
+  runtimeToken: string;
+} = { appId: "", runtimeToken: "" }): string {
+  const appId = JSON.stringify(params.appId);
+  const runtimeToken = JSON.stringify(params.runtimeToken);
   return `
 (() => {
   const requestType = "nextclaw:panel-app-service-actions:request";
   const responseType = "nextclaw:panel-app-service-actions:response";
+  const appId = ${appId};
+  const runtimeToken = ${runtimeToken};
   const pending = new Map();
   let counter = 0;
 
@@ -30,7 +40,7 @@ export function getPanelAppBridgeScript(): string {
     const requestId = createRequestId();
     return new Promise((resolve, reject) => {
       pending.set(requestId, { method, resolve, reject });
-      window.parent.postMessage({ type: requestType, requestId, method, payload }, "*");
+      window.parent.postMessage({ type: requestType, requestId, appId, runtimeToken, method, payload }, "*");
     });
   }
 

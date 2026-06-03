@@ -5,7 +5,6 @@ import { PanelAppBridgeManager } from '@/features/panel-apps/managers/panel-app-
 import type { ServiceActionAuthorizationManager } from '@/features/service-apps';
 
 const mocks = vi.hoisted(() => ({
-  createBridgeSession: vi.fn(),
   generateAgentObject: vi.fn(),
   grantAgentCapability: vi.fn(),
   grantServiceAction: vi.fn(),
@@ -19,7 +18,6 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/shared/lib/api', () => ({
   nextclawClient: {
     panelApps: {
-      createBridgeSession: mocks.createBridgeSession,
       generateAgentObject: mocks.generateAgentObject,
       grantAgentCapability: mocks.grantAgentCapability,
       sendAgentMessage: mocks.sendAgentMessage,
@@ -51,10 +49,17 @@ function createIframeHarness(manager: PanelAppBridgeManager) {
   return {
     postMessage,
     send: (
-      data: unknown,
+      data: Record<string, unknown>,
       iframeInstanceId = 'tab-1:0:0',
     ) => manager.handleIframeMessage({
-      event: { data, source: contentWindow } as MessageEvent,
+      event: {
+        data: {
+          appId: 'mood-calendar',
+          runtimeToken: 'token-1',
+          ...data,
+        },
+        source: contentWindow,
+      } as MessageEvent,
       iframe,
       iframeInstanceId,
       tab: {
@@ -70,22 +75,11 @@ function createIframeHarness(manager: PanelAppBridgeManager) {
   };
 }
 
-function mockBridgeSession(token = 'token-1') {
-  mocks.createBridgeSession.mockResolvedValue({
-    expiresAt: '2026-05-28T00:00:00.000Z',
-    id: `session-${token}`,
-    panelAppId: 'mood-calendar',
-    tabId: 'tab-1',
-    token,
-  });
-}
-
 describe('PanelAppBridgeManager', () => {
   it('authorizes missing service actions in one flow before retrying a protected action', async () => {
     const manager = createManager();
     const { postMessage, send } = createIframeHarness(manager);
     const actionId = 'mood-tracker.saveMood';
-    mockBridgeSession();
     mocks.invokeServiceAction
       .mockRejectedValueOnce(new NextClawClientError({
         code: 'AUTHORIZATION_REQUIRED',
@@ -176,7 +170,6 @@ describe('PanelAppBridgeManager', () => {
   it('opens the authorization flow before retrying a protected generateObject call', async () => {
     const manager = createManager();
     const { postMessage, send } = createIframeHarness(manager);
-    mockBridgeSession();
     mocks.generateAgentObject
       .mockRejectedValueOnce(new NextClawClientError({
         code: 'AUTHORIZATION_REQUIRED',
@@ -221,49 +214,34 @@ describe('PanelAppBridgeManager', () => {
     }, '*');
   });
 
-  it('creates a fresh bridge session for each iframe instance', async () => {
+  it('uses the injected runtime token without creating a bridge session', async () => {
     const manager = createManager();
     const { postMessage, send } = createIframeHarness(manager);
-    mocks.createBridgeSession
-      .mockResolvedValueOnce({
-        expiresAt: '2026-05-28T00:00:00.000Z',
-        id: 'session-1',
-        panelAppId: 'mood-calendar',
-        tabId: 'tab-1',
-        token: 'token-1',
-      })
-      .mockResolvedValueOnce({
-        expiresAt: '2026-05-28T00:00:00.000Z',
-        id: 'session-2',
-        panelAppId: 'mood-calendar',
-        tabId: 'tab-1',
-        token: 'token-2',
-      });
     mocks.listServiceActions.mockResolvedValue({ actions: [] });
 
-    for (const [requestId, iframeInstanceId] of [
-      ['request-1', 'tab-1:0:0'],
-      ['request-2', 'tab-1:0:0'],
-      ['request-3', 'tab-1:0:1'],
+    for (const [requestId, runtimeToken] of [
+      ['request-1', 'token-1'],
+      ['request-2', 'token-2'],
+      ['request-3', 'token-3'],
     ]) {
       send({
         method: 'list',
         requestId,
+        runtimeToken,
         type: 'nextclaw:panel-app-service-actions:request',
-      }, iframeInstanceId);
+      });
     }
 
     await waitFor(() => expect(postMessage).toHaveBeenCalledTimes(3));
 
-    expect(mocks.createBridgeSession).toHaveBeenCalledTimes(2);
     expect(mocks.listServiceActions).toHaveBeenNthCalledWith(1, {
       bridgeSessionToken: 'token-1',
     });
     expect(mocks.listServiceActions).toHaveBeenNthCalledWith(2, {
-      bridgeSessionToken: 'token-1',
+      bridgeSessionToken: 'token-2',
     });
     expect(mocks.listServiceActions).toHaveBeenNthCalledWith(3, {
-      bridgeSessionToken: 'token-2',
+      bridgeSessionToken: 'token-3',
     });
   });
 });

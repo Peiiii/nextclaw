@@ -1635,6 +1635,9 @@ importers:
       '@nextclaw/channel-extension-whatsapp':
         specifier: workspace:*
         version: link:../extensions/nextclaw-channel-extension-whatsapp
+      '@nextclaw/client-sdk':
+        specifier: workspace:*
+        version: link:../nextclaw-client-sdk
       '@nextclaw/core':
         specifier: workspace:*
         version: link:../nextclaw-core

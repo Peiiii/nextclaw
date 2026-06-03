@@ -5,6 +5,7 @@ export type PanelAppManifest = {
   icon?: string;
   entry?: string;
   capabilities: string[];
+  client: boolean;
   serviceActions: string[];
 };
 
@@ -19,6 +20,7 @@ export function parsePanelAppManifest(html: string): PanelAppManifest {
   return {
     ...fields,
     capabilities: readPanelAppCapabilities(html),
+    client: false,
     serviceActions: readPanelAppServiceActions(html),
   };
 }
@@ -51,6 +53,7 @@ export function parsePanelAppFolderManifest(raw: string): PanelAppManifest & {
     icon: readOptionalString(parsed, "icon"),
     entry: readRequiredString(parsed, "entry"),
     capabilities: readStringArray(parsed.capabilities, "capabilities"),
+    client: readOptionalBoolean(parsed, "client"),
     serviceActions: readStringArray(parsed.actions, "actions"),
   };
 }
@@ -161,6 +164,20 @@ function readOptionalString(
   return typeof record[key] === "string" && record[key].trim()
     ? record[key].trim()
     : undefined;
+}
+
+function readOptionalBoolean(
+  record: Record<string, unknown>,
+  key: string,
+): boolean {
+  const value = record[key];
+  if (value === undefined) {
+    return false;
+  }
+  if (typeof value !== "boolean") {
+    throw new Error(`panel app ${key} must be a boolean.`);
+  }
+  return value;
 }
 
 function readStringArray(value: unknown, key: string): string[] {

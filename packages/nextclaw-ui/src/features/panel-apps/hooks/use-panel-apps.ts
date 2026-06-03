@@ -38,6 +38,16 @@ export function useRecordPanelAppOpened() {
   });
 }
 
+export function useGrantPanelAppClient() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (appId: string) => nextclawClient.panelApps.grantClient(appId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: PANEL_APPS_QUERY_KEY });
+    },
+  });
+}
+
 export function useDeletePanelApp() {
   const queryClient = useQueryClient();
   return useMutation({

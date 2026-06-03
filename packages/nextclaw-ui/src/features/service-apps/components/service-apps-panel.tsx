@@ -77,9 +77,9 @@ export function ServiceAppsPanel({
     );
   }
 
-  const apps = serviceApps.data?.entries ?? [];
-  const actions = serviceActions.data?.actions ?? [];
-  const grants = serviceActionGrants.data?.grants ?? [];
+  const apps: ServiceAppRecordView[] = serviceApps.data?.entries ?? [];
+  const actions: ServiceActionView[] = serviceActions.data?.actions ?? [];
+  const grants: ServiceActionGrantView[] = serviceActionGrants.data?.grants ?? [];
   const discover = (appId: string) => {
     void discoverServiceAppActions.mutateAsync(appId).then((result) => {
       setDiscoveredActionsByApp((current) => ({

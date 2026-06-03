@@ -24,6 +24,7 @@ function statusForPanelAppError(code: string): 400 | 401 | 403 | 404 | 408 {
     case "AUTHORIZATION_REQUIRED":
       return 401;
     case "PANEL_APP_CAPABILITY_NOT_DECLARED":
+    case "PANEL_APP_CLIENT_NOT_DECLARED":
       return 403;
     case "PANEL_APP_NOT_FOUND":
     case "PANEL_APP_BRIDGE_SESSION_NOT_FOUND":
@@ -42,7 +43,12 @@ function statusForPanelAppError(code: string): 400 | 401 | 403 | 404 | 408 {
 }
 
 export class PanelAppsRoutesController {
-  constructor(private readonly panelAppManager: PanelAppManager) {}
+  constructor(
+    private readonly panelAppManager: PanelAppManager,
+    private readonly params: {
+      panelAppClientSdkScript?: () => Promise<string> | string;
+    } = {},
+  ) {}
 
   readonly list = async (c: Context) => {
     const payload = await this.panelAppManager.listPanelApps();
@@ -181,26 +187,47 @@ export class PanelAppsRoutesController {
     });
   };
 
+  readonly getPanelAppClientSdkScript = async (): Promise<Response> => {
+    if (!this.params.panelAppClientSdkScript) {
+      return new Response("Panel App client SDK script is not configured.", {
+        status: 404,
+        headers: {
+          "content-type": "text/plain; charset=utf-8",
+          "cache-control": "no-store",
+        },
+      });
+    }
+    return new Response(await this.params.panelAppClientSdkScript(), {
+      headers: {
+        "content-type": "application/javascript; charset=utf-8",
+        "cache-control": "no-store",
+      },
+    });
+  };
+
   readonly createBridgeSession = async (c: Context) => {
     const body = await readJson<PanelAppBridgeSessionCreateRequest>(c.req.raw);
     if (
       !body.ok ||
       !isRecord(body.data) ||
-      typeof body.data.panelAppId !== "string" ||
-      typeof body.data.tabId !== "string"
+      (typeof body.data.panelAppId !== "string" && typeof body.data.appId !== "string")
     ) {
+      return c.json(err("INVALID_PANEL_APP_BRIDGE_SESSION", "invalid bridge session request"), 400);
+    }
+    const panelAppId = typeof body.data.appId === "string"
+      ? body.data.appId
+      : body.data.panelAppId;
+    if (typeof panelAppId !== "string") {
       return c.json(err("INVALID_PANEL_APP_BRIDGE_SESSION", "invalid bridge session request"), 400);
     }
     try {
       const session = await this.panelAppManager.createPanelAppBridgeSession({
-        id: body.data.panelAppId,
-        tabId: body.data.tabId,
+        id: panelAppId,
       });
       return c.json(ok({
         id: session.id,
         token: session.token,
-        panelAppId: session.panelAppId,
-        tabId: session.tabId,
+        appId: session.appId,
         expiresAt: session.expiresAt,
       }));
     } catch (error) {
@@ -217,6 +244,25 @@ export class PanelAppsRoutesController {
   readonly deleteBridgeSession = (c: Context) => {
     this.panelAppManager.deletePanelAppBridgeSession(c.req.param("token"));
     return c.json(ok({ deleted: true }));
+  };
+
+  readonly grantClient = async (c: Context) => {
+    try {
+      return c.json(ok(await this.panelAppManager.grantPanelAppClient(
+        c.req.param("appId"),
+      )));
+    } catch (error) {
+      return this.handlePanelAppError(c, error);
+    }
+  };
+
+  readonly revokeClient = async (c: Context) => {
+    try {
+      await this.panelAppManager.revokePanelAppClient(c.req.param("appId"));
+      return c.json(ok({ revoked: true }));
+    } catch (error) {
+      return this.handlePanelAppError(c, error);
+    }
   };
 
   readonly sendAgentMessage = async (c: Context) => {

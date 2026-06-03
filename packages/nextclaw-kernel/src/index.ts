@@ -13,6 +13,7 @@ export * from "@kernel/managers/panel-app.manager.js";
 export * from "@kernel/managers/service-app.manager.js";
 export * from "@kernel/stores/llm-usage.store.js";
 export * from "@kernel/stores/ncp-agent-session-journal.store.js";
+export type { PanelAppClientGrant } from "@kernel/stores/panel-app-client-grant.store.js";
 export { readLearningLoopRuntimeConfig } from "@kernel/contributions/learning-loop/config.js";
 export type { LearningLoopRuntimeConfig } from "@kernel/contributions/learning-loop/config.js";
 export * from "@kernel/utils/skill-frontmatter.utils.js";
