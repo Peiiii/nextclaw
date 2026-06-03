@@ -1,5 +1,13 @@
 # @nextclaw/runtime
 
+## 0.3.7
+
+### Patch Changes
+
+- Clarify built-in app creator skills so generated Panel Apps and Service Apps do not ask users to restart NextClaw for normal workspace changes.
+- Updated dependencies
+  - @nextclaw/core@0.13.7
+
 ## 0.3.6
 
 ### Patch Changes

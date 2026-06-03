@@ -1,5 +1,26 @@
 # @nextclaw/service
 
+## 0.2.7
+
+### Patch Changes
+
+- Clarify built-in app creator skills so generated Panel Apps and Service Apps do not ask users to restart NextClaw for normal workspace changes.
+- Updated dependencies
+  - @nextclaw/core@0.13.7
+  - @nextclaw/kernel@0.3.1
+  - @nextclaw/server@0.13.7
+  - @nextclaw/runtime@0.3.7
+  - @nextclaw/remote@0.2.7
+  - @nextclaw/mcp@0.2.7
+  - @nextclaw/channel-extension-dingtalk@0.1.11
+  - @nextclaw/channel-extension-discord@0.1.11
+  - @nextclaw/channel-extension-email@0.1.11
+  - @nextclaw/channel-extension-slack@0.1.11
+  - @nextclaw/channel-extension-telegram@0.1.11
+  - @nextclaw/channel-extension-wecom@0.1.11
+  - @nextclaw/channel-extension-whatsapp@0.1.11
+  - @nextclaw/ncp-mcp@0.1.102
+
 ## 0.2.6
 
 ### Patch Changes

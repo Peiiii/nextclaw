@@ -1,5 +1,16 @@
 # @nextclaw/kernel
 
+## 0.3.1
+
+### Patch Changes
+
+- Clarify built-in app creator skills so generated Panel Apps and Service Apps do not ask users to restart NextClaw for normal workspace changes.
+- Updated dependencies
+  - @nextclaw/core@0.13.7
+  - @nextclaw/runtime@0.3.7
+  - @nextclaw/mcp@0.2.7
+  - @nextclaw/ncp-mcp@0.1.102
+
 ## 0.3.0
 
 ### Minor Changes

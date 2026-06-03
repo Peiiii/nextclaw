@@ -1,5 +1,11 @@
 # @nextclaw/ui
 
+## 0.13.7
+
+### Patch Changes
+
+- @nextclaw/client-sdk@0.2.7
+
 ## 0.13.6
 
 ### Patch Changes

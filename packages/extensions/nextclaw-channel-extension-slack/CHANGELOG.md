@@ -1,5 +1,13 @@
 # @nextclaw/channel-extension-slack
 
+## 0.1.11
+
+### Patch Changes
+
+- Clarify built-in app creator skills so generated Panel Apps and Service Apps do not ask users to restart NextClaw for normal workspace changes.
+- Updated dependencies
+  - @nextclaw/core@0.13.7
+
 ## 0.1.10
 
 ### Patch Changes
