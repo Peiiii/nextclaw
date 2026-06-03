@@ -77,6 +77,7 @@ description: Use when implementing, refactoring, or designing source-level contr
 默认倾向：
 
 - 业务主干进 class owner
+- “轻量”不等于“不用 class”。轻量化反对的是错误 owner、不必要状态、跨层绑定和运行时管理负担；当一个小工具已经拥有多步流程、诊断合同、输出语义或可演进检查规则时，合适的 service/controller class 可以降低认知负担。先判断它应是 manager、service、controller 还是 utils，而不是用“简单”机械排斥 class。
 - 使用箭头函数 class field 表达实例方法时，不给函数属性额外加 `readonly`；`readonly` 保留给真实不可重绑定的数据字段，避免把方法签名写成噪音。
 - 普通函数只保留给纯工具、纯计算、纯无状态辅助
 - 字段和派生状态归属数据生成者或视图生成者，不能归属路过的装配层、bridge、router 或 callback

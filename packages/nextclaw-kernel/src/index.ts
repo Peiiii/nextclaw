@@ -22,8 +22,24 @@ export * from "@kernel/features/narp-runtime/index.js";
 export * from "@kernel/features/ncp-dispatch/index.js";
 export { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
 export { PanelAppAssetTokenService } from "@kernel/services/panel-app-asset-token.service.js";
+export { McpServiceAppRuntimeService } from "@kernel/services/mcp-service-app-runtime.service.js";
 export { CommandRegistry } from "@kernel/services/command-registry.service.js";
 export { buildAgentRunSendPayload } from "@kernel/utils/agent-run-send-payload.utils.js";
+export {
+  getServiceAppManifestPath,
+  parseServiceAppManifest,
+  readServiceAppManifest,
+  SERVICE_APP_MANIFEST_FILE_NAME,
+} from "@kernel/utils/service-app-manifest.utils.js";
+export {
+  listServiceAppManifestActions,
+  mergeServiceAppRuntimeActions,
+} from "@kernel/utils/service-app-runtime-action.utils.js";
+export {
+  buildServiceActionId,
+  DEFAULT_SERVICE_ACTION_RISK,
+  getServiceActionName,
+} from "@kernel/utils/service-action.utils.js";
 export type {
   AgentRunReply,
   AgentRunReplyOptions,

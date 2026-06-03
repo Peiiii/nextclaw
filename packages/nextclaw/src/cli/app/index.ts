@@ -8,6 +8,7 @@ import { registerLearningLoopCommands } from "./register-learning-loop-commands.
 import { registerSkillsCommands } from "./register-skills-commands.js";
 import { registerHostServiceControls } from "./service-command-registration.utils.js";
 import { createNextclawDistribution } from "@nextclaw-cli/cli/shared/lib/distribution/index.js";
+import { registerAppCommands } from "./register-app-commands.js";
 
 const LOGO = "🤖";
 
@@ -138,6 +139,8 @@ program
 registerSkillsCommands(program, runtime);
 
 registerAgentsCommands(program, runtime);
+
+registerAppCommands(program);
 
 const config = program.command("config").description("Manage config values");
 

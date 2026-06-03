@@ -10,6 +10,8 @@ description_zh: 创建或修改 NextClaw 轻量应用中的 Service App 后端 a
 
 Service App 只负责浏览器做不了或不该做的后端动作：本地文件、外部 API、本地命令、权限边界和可授权原子能力。AI 分析、总结、分类、结构化 JSON 输出默认走 Panel App 的 `window.nextclaw.agent.generateObject()`，不要为了 AI 分析新建 Service App 自己调用模型，除非用户明确要求接入某个外部模型服务。
 
+本 skill 是 `service-app.json`、Service Action、`risk`、MCP stdio server、Service App command 和依赖安装的唯一专项规则源。只读 `nextclaw-app-creator` 或 `panel-app-creator` 时，不得编写或修改 Service App 后端细节。
+
 ## 输出位置
 
 - Service App 必须写入 NextClaw workspace 的 `service-apps/<app-id>/` 目录。
@@ -71,7 +73,7 @@ service-apps/
 2. `command` 和 `args` 的相对路径以 Service App 目录作为 cwd。
 3. 每个 MCP tool 都必须在 `service-app.json.actions` 中静态声明；NextClaw 的列表、授权和 allowlist 都以 manifest 为事实源，不靠启动服务后临时发现。
 4. action id 形如 `<service-app-id>.<tool-name>`；`<app-id>` 不包含点号，tool name 可以包含点号。
-5. `actions` 里为每个 tool 声明风险等级；可用值为 `read`、`write`、`external`、`dangerous`，不确定时用 `dangerous`。
+5. `actions` 里为每个 tool 声明风险等级；`risk` 只能使用 `read`、`write`、`external`、`dangerous` 四个值，不允许 `low`、`medium`、`high`、`safe`、`file`、`filesystem` 等自造值；不确定时用 `dangerous`。
 6. 推荐为每个 action 写 `title` 和 `description`；有稳定入参时可补 `inputSchema`，但运行时 schema 仍以 MCP `tools/list` 作为校验来源。
 7. 不把 NextClaw 内部 kernel/server API 当作默认能力暴露；需要访问用户文件、外部服务或本地命令时，在 Service App 自己的代码里清楚收敛边界。
 8. 完成后告诉用户在右侧面板的“服务应用”页刷新查看状态；需要运行时 schema 或 mismatch 时，点击单个服务应用的发现/刷新动作。
@@ -138,6 +140,9 @@ Bridge SDK 返回合同：
 
 ## 验收建议
 
+- 新建或修改 Service App 后，必须运行 `nextclaw app check ~/.nextclaw/workspace/service-apps/<app-id>`；检查失败必须先修复，再交付给用户。
+- 静态检查通过后，必须运行 `nextclaw app dev ~/.nextclaw/workspace/service-apps/<app-id>`；它会通过真实 Service App runtime 启动 MCP server、执行 `tools/list`，并标出 matched / missing / undeclared actions。
+- 至少选择一个关键 action 运行 `nextclaw app call ~/.nextclaw/workspace/service-apps/<app-id> <action-name> --input '{}'`；有必填参数时传入最小合法 JSON。`app call` 是显式副作用测试，不要默认调用所有 action。
 - 检查 `service-app.json` 是合法 JSON，`id` 与目录名一致。
 - 检查 manifest `actions` 非空，并且每个 action 都有 `risk`。
 - 检查 MCP server 至少能列出 tools，并且 tool 名和 manifest `actions` 对齐；manifest 声明但 runtime 缺失、runtime 多出未声明 tool 都需要向用户说明。
