@@ -18,9 +18,9 @@ import {
 } from "./tool-result-content.utils.js";
 import { ToolResultImageService } from "./tool-result-image.service.js";
 
-const DEFAULT_MAX_MODEL_VISIBLE_CHARS = 10_000;
+const DEFAULT_MAX_MODEL_VISIBLE_CHARS = 60_000;
 const DEFAULT_MAX_TOOL_MESSAGES_CHARS = 60_000;
-const DEFAULT_MAX_STRING_VALUE_CHARS = 4_000;
+const DEFAULT_MAX_STRING_VALUE_CHARS = 60_000;
 const DEFAULT_MAX_MODEL_VISIBLE_IMAGES = 4;
 const DEFAULT_MAX_ARRAY_ITEMS = 50;
 const DEFAULT_MAX_OBJECT_KEYS = 80;

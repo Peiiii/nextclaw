@@ -26,6 +26,27 @@ describe("validateToolArgs", () => {
 });
 
 describe("tool result budget handling", () => {
+  it("keeps an OpenCode-sized read_file page visible by default", () => {
+    const contentManager = new ToolResultContentManager();
+    const page = [
+      "<path>/tmp/SKILL.md</path>",
+      "<type>file</type>",
+      "<content>",
+      `1: ${"a".repeat(50 * 1024 - 300)}`,
+      "",
+      "(Output capped at 50 KB. Showing lines 1-1. Use offset=2 to continue.)",
+      "</content>",
+    ].join("\n");
+
+    const modelContent = contentManager.toModelContent(page, {
+      toolName: "read_file",
+      toolCallId: "call-read",
+    });
+
+    expect(modelContent).toBe(page);
+    expect(modelContent).toContain("Use offset=2 to continue");
+  });
+
   it("keeps oversized string tool results out of the next model input", () => {
     const contentManager = new ToolResultContentManager({ maxModelVisibleChars: 500 });
     const input = appendToolRoundToInput(

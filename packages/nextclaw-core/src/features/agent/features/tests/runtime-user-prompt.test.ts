@@ -2,11 +2,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
-import { SkillsLoader } from "../../services/skills-loader.js";
+import { SkillsLoader } from "@core/features/agent/services/skills-loader.js";
 import {
   DEFAULT_RUNTIME_USER_PROMPT_BUILDER,
   buildBootstrapAwareUserPrompt,
-} from "../../../runtime-context/types/runtime-user-prompt.js";
+} from "@core/features/runtime-context/index.js";
 
 const tempWorkspaces: string[] = [];
 

@@ -3,7 +3,7 @@ export * from "./services/context.service.js";
 export * from "./features/content/user-content.js";
 export * from "./utils/execution-prompt.utils.js";
 export * from "./utils/tool-catalog.utils.js";
-export * from "./services/skill-context.js";
+export * from "./utils/skill-context.utils.js";
 export { SkillsLoader } from "./services/skills-loader.js";
 export type { SkillInfo, SkillScope } from "./services/skills-loader.js";
 export * from "./services/silent-reply-policy.js";

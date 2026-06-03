@@ -6,7 +6,7 @@ import {
   buildAvailableSkillsSystemSection,
   buildSkillLearningSystemSection,
   buildRequestedSkillsSystemSection
-} from "./skill-context.js";
+} from "@core/features/agent/utils/skill-context.utils.js";
 import { SkillsLoader } from "./skills-loader.js";
 import { DEFAULT_TOOL_CATALOG, normalizeToolCatalogEntries, type ToolCatalogEntry } from "@core/features/agent/utils/tool-catalog.utils.js";
 import { APP_NAME, type Config } from "@core/features/config/index.js";

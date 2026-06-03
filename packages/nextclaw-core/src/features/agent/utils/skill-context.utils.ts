@@ -1,4 +1,4 @@
-import type { SkillsLoader } from "./skills-loader.js";
+import type { SkillsLoader } from "@core/features/agent/services/skills-loader.js";
 
 function wrapSkillTag(tagName: string, manifest: string): string {
   return [`<${tagName}>`, manifest, `</${tagName}>`].join("\n");
@@ -84,6 +84,7 @@ export function buildAvailableSkillsSystemSection(skills: SkillsLoader): string 
     "Always-on skills in <active_skills> take precedence over this list.",
     "Before replying: first check whether any entry in <available_skills> may be relevant to the user's intent, task type, or requested output. Do not skip this check just because the task seems familiar.",
     "- If one skill looks like the best relevant match, read its SKILL.md at <location> with `read_file`, then decide whether following it is actually helpful.",
+    "- If a SKILL.md read says `Use offset=... to continue`, continue reading until the relevant trigger, required workflow, constraints, and output requirements are covered.",
     "- If the user is asking to manage NextClaw itself, read the built-in NextClaw self-management guide first and do not open unrelated generic skills before that.",
     "- If multiple skills share the same <name>, use <ref> to distinguish them. Never assume duplicate names mean the same skill.",
     "- If none clearly apply: do not read any SKILL.md.",
