@@ -27,12 +27,28 @@
 - `pnpm check:governance-backlog-ratchet`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs`
 - `rg` bundle 自检确认 `packages/nextclaw-client-sdk/dist/browser/browser-global-registration.utils.iife.js` 没有外部 NextClaw workspace import。
+- `pnpm release:beta`
+- `pnpm install`
+- `pnpm pack --pack-destination /tmp/nextclaw-service-pack-test`，验证 `@nextclaw/service` tarball 中 workspace 依赖已解析为具体 beta 版本。
+- `pnpm publish --tag beta --no-git-checks`，补发 `@nextclaw/service@0.2.10-beta.0`。
+- `pnpm release:verify:published`
+- `pnpm release:beta:runtime -- --version 0.21.4-beta.0`
+- `npm install -g --prefix /tmp/nextclaw-beta-global-yciYkQ nextclaw@beta`
+- `NEXTCLAW_HOME=/tmp/nextclaw-beta-home-GCpyo1 /tmp/nextclaw-beta-global-yciYkQ/bin/nextclaw restart --ui-port 48923 --start-timeout 45000`
 
 ## 发布/部署方式
 
-本次未执行发布、部署、提交或推送。
+已完成统一 NPM beta 发布。
 
-落地代码已准备进入后续统一发布链路。由于变更涉及多个 workspace package 和浏览器 bundle，发布前需要按标准 NPM 发布闭环重新构建并确认包间依赖版本。
+- 功能提交：`86a0dc8f3 Add panel app client SDK injection`
+- beta pre-mode 提交：`785c2fcbc Enter beta prerelease mode`
+- release artifact 提交：`14c5730a9 chore: release beta batch`
+- 发布入口：`pnpm release:beta`
+- runtime channel：已触发 `npm-runtime-update-release` workflow，run `26903875954` 成功。
+- runtime release：`nextclaw@0.21.4-beta.0`
+- public beta manifest：四个平台均已验证为 `0.21.4-beta.0`，`hostKind = npm-runtime-bundle`。
+
+发布过程中 `@nextclaw/service@0.2.10-beta.0` 第一次 publish 因新增 workspace 依赖尚未安装导致 `ERR_PNPM_CANNOT_RESOLVE_WORKSPACE_PROTOCOL`。已通过 `pnpm install` 修复 workspace 安装态，确认 tarball manifest 正确后补发成功。
 
 ## 用户/产品视角的验收步骤
 
@@ -56,15 +72,14 @@
 
 ## NPM 包发布记录
 
-本次未发布 NPM 包。
+本次已发布全量 public workspace beta batch，其中与本迭代直接相关的包版本包括：
 
-后续需要随统一发布流程评估并发布受影响包：
+- `@nextclaw/client-sdk@0.2.10-beta.0`
+- `@nextclaw/core@0.13.10-beta.0`
+- `@nextclaw/kernel@0.3.4-beta.0`
+- `@nextclaw/server@0.13.10-beta.0`
+- `@nextclaw/service@0.2.10-beta.0`
+- `@nextclaw/ui@0.13.10-beta.0`
+- `nextclaw@0.21.4-beta.0`
 
-- `@nextclaw/client-sdk`
-- `@nextclaw/kernel`
-- `@nextclaw/server`
-- `@nextclaw/service`
-- `@nextclaw/ui`
-- 以及包含 Panel App 创建 skill 的相关发布包
-
-当前状态：待统一发布。
+全量 batch 的 47 个 package tags 已推送到 `origin/master`。真实安装验证使用临时 npm prefix 安装 `nextclaw@beta`，`nextclaw --version` 与 `/api/app/meta.productVersion` 均为 `0.21.4-beta.0`。
