@@ -68,6 +68,7 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("320px-480px");
     expect(skill).toContain("新建或重写 Panel App 时只使用目录式 Panel App");
     expect(skill).toContain("`panel-app.json` 是标题、描述、图标、入口、Agent capabilities 和 Service actions 的唯一 manifest 事实源");
+    expect(skill).toContain("创建或修改 Panel App 后不需要重启 NextClaw 宿主");
     expect(skill).toContain("\"capabilities\": [\"agent:generateObject\", \"agent:send\"]");
     expect(skill).toContain("agent:generateObject");
     expect(skill).toContain("agent:send");
@@ -96,6 +97,8 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("AI 分析、总结、分类、结构化 JSON 输出优先走 `window.nextclaw.agent.generateObject()`");
     expect(skill).toContain("`window.nextclaw.serviceActions.list()` 返回数组");
     expect(skill).toContain("Service App 零依赖优先");
+    expect(skill).toContain("创建或修改 Panel App / Service App 后，默认不需要重启 NextClaw 宿主");
+    expect(skill).toContain("交付说明不要让用户 restart");
   });
 
   it("documents the Service App bridge payload contract", () => {
@@ -113,6 +116,7 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("Service App 可以自由使用第三方包");
     expect(skill).toContain("@modelcontextprotocol/sdk");
     expect(skill).toContain("不要假设用户已经手动装过");
+    expect(skill).toContain("创建或修改 Service App 后不需要重启 NextClaw 宿主");
   });
 
   it("keeps builtin skill descriptions bilingual", () => {

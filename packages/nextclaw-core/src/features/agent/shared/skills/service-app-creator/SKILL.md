@@ -77,6 +77,7 @@ service-apps/
 6. 推荐为每个 action 写 `title` 和 `description`；有稳定入参时可补 `inputSchema`，但运行时 schema 仍以 MCP `tools/list` 作为校验来源。
 7. 不把 NextClaw 内部 kernel/server API 当作默认能力暴露；需要访问用户文件、外部服务或本地命令时，在 Service App 自己的代码里清楚收敛边界。
 8. 完成后告诉用户在右侧面板的“服务应用”页刷新查看状态；需要运行时 schema 或 mismatch 时，点击单个服务应用的发现/刷新动作。
+9. 创建或修改 Service App 后不需要重启 NextClaw 宿主、server 或桌面应用；Service App 会按 workspace manifest 动态发现，正确动作是刷新“服务应用”列表、运行 `nextclaw app dev` 重新启动这个 Service App，或用 `nextclaw app call` 验证 action。
 
 ## 依赖策略
 
@@ -148,3 +149,4 @@ Bridge SDK 返回合同：
 - 检查 MCP server 至少能列出 tools，并且 tool 名和 manifest `actions` 对齐；manifest 声明但 runtime 缺失、runtime 多出未声明 tool 都需要向用户说明。
 - 如果配套 Panel App，同时检查 `panel-app.json.actions` 包含要调用的 action id。
 - 用“服务应用”面板刷新，确认 app 状态不是 failed；再从 Panel App 触发一次调用，确认授权和结果都能走通。
+- 交付说明不要要求用户 restart；只有宿主进程异常、版本切换或进程崩溃这类证据明确的情况，才把重启作为异常恢复手段。Service App 普通代码/manifest 修改应通过刷新服务、`app dev` 或 `app call` 验收。

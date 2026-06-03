@@ -59,6 +59,7 @@ panels/markdown-manager.panel/
 - `icon` 可以是 emoji、data URL、http/https/绝对路径，也可以是目录内相对资源路径，例如 `assets/icon.svg`。
 - 相对 CSS、JS、图片路径可以直接写 `styles.css`、`app.js`、`assets/icon.svg`；NextClaw 会通过资源接口托管它们。
 - 不要在目录式 Panel App 里创建 `package.json`、`node_modules`、Vite 配置或后台 dev server，除非用户明确要求后续升级为更重的形态。
+- 创建或修改 Panel App 后不需要重启 NextClaw 宿主、server 或桌面应用；目录内容会在 workspace 中被重新读取。需要看到最新效果时，刷新“面板应用”列表、重新打开该 Panel App，或使用面板右上角刷新/重新加载内容。
 
 ## 启动器元信息
 
@@ -170,6 +171,8 @@ nextclaw app check ~/.nextclaw/workspace/panels/<app-id>.panel
 `nextclaw app check` 失败时必须先修复，再交付给用户。它会检查目录式 `panel-app.json`、入口 HTML、资源路径、Agent capabilities、Service action allowlist 以及常见 bridge 调用漏声明问题。
 
 如果这个 Panel App 配套修改了 Service App，还必须对对应服务目录运行 `nextclaw app check`、`nextclaw app dev`，并用 `nextclaw app call <service-app-dir> <action-name> --input '{}'` 抽测关键 action。Panel App 自检不替代后端真实 runtime 验收。
+
+交付说明不要要求用户 restart；除非已经验证是宿主进程异常、版本切换或进程崩溃，否则重启不是 Panel App 生效步骤。
 
 ## Agent API
 
