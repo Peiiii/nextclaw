@@ -109,6 +109,12 @@ pnpm release:beta:runtime -- --minimum-launcher-version-override 0.18.12-beta.3
    - `resources/update-bundle-public.pem` 必须进入包内
    - runtime update workflow 必须真正成功，不能只停在 dispatch
 
+发布前还必须联动 `nextclaw-release-notes-automation`：
+
+- 先汇总未发布 `.changeset`，生成本次用户可读变更摘要。
+- 若明确有用户可见产品变更但缺少 `.changeset`，先补齐再发布。
+- 不能只用 full public beta batch changeset 代替具体变更说明。
+
 ## 本地安装验证契约
 
 发布后验证必须使用真实发布版本，不允许把 workspace link、源码构建或本地 `packages/nextclaw` 路径当作用户安装态：
