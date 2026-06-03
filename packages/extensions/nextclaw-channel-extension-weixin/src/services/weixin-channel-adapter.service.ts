@@ -272,6 +272,11 @@ export class WeixinChannelAdapter {
     contextToken?: string;
   }): Promise<void> => {
     const { account, contextToken, conversationId, text } = params;
+    if (!contextToken) {
+      throw new Error(
+        `weixin send failed: missing context_token for "${conversationId}". Ask the user to message the bot first, then retry.`,
+      );
+    }
     writeWeixinDebugProbe("send-text", {
       accountId: account.accountId,
       conversationId,
@@ -426,7 +431,10 @@ export class WeixinChannelAdapter {
     if (typeof metadataToken === "string" && metadataToken.trim()) {
       return metadataToken.trim();
     }
-    return this.contextTokens.get(`${accountId}:${target.conversationId}`);
+    return (
+      this.contextTokens.get(`${accountId}:${target.conversationId}`) ??
+      this.store.loadContextToken(accountId, target.conversationId)
+    );
   };
 
   private readonly runPollingLoop = async (accountId: string, signal: AbortSignal): Promise<void> => {
@@ -497,6 +505,7 @@ export class WeixinChannelAdapter {
     const contextToken = message.context_token?.trim();
     if (contextToken) {
       this.contextTokens.set(`${account.accountId}:${senderId}`, contextToken);
+      this.store.saveContextToken(account.accountId, senderId, contextToken);
     }
     this.canonicalRoutes.set(normalizeRouteKey(senderId), {
       accountId: account.accountId,

@@ -46,6 +46,8 @@ function findCronJob(service: UiCronHost, id: string): CronJobEntry | null {
 }
 
 type CronCreateParams = Parameters<UiCronHost["addJob"]>[0];
+type CronCreateInput = CronCreateRequest & Record<string, unknown>;
+const legacyCronDeliveryKeys = ["deliver", "channel", "to", "accountId", "account_id"] as const;
 
 function normalizeCronSchedule(schedule: CronCreateRequest["schedule"] | undefined): CronJobEntry["schedule"] | null {
   if (!schedule) {
@@ -74,7 +76,15 @@ function normalizeCronSchedule(schedule: CronCreateRequest["schedule"] | undefin
   return null;
 }
 
-function readCronCreateParams(input: CronCreateRequest): { params: CronCreateParams } | { error: string } {
+function readLegacyDeliveryKey(input: Record<string, unknown>): string | null {
+  return legacyCronDeliveryKeys.find((key) => input[key] !== undefined) ?? null;
+}
+
+function readCronCreateParams(input: CronCreateInput): { params: CronCreateParams } | { error: string } {
+  const legacyDeliveryKey = readLegacyDeliveryKey(input);
+  if (legacyDeliveryKey) {
+    return { error: `cron jobs do not accept ${legacyDeliveryKey}; put delivery instructions in message and use the message tool at run time` };
+  }
   const name = readNonEmptyString(input.name);
   if (!name) {
     return { error: "name must be a non-empty string" };
@@ -94,10 +104,6 @@ function readCronCreateParams(input: CronCreateRequest): { params: CronCreatePar
       schedule,
       agentId: readNonEmptyString(input.agentId),
       sessionId: readNonEmptyString(input.sessionId),
-      deliver: input.deliver === true,
-      channel: readNonEmptyString(input.channel),
-      to: readNonEmptyString(input.to),
-      accountId: readNonEmptyString(input.accountId),
       deleteAfterRun: input.deleteAfterRun === true
     }
   };
@@ -127,7 +133,7 @@ export class CronRoutesController {
     if (!this.options.cron) {
       return c.json(err("NOT_AVAILABLE", "cron service unavailable"), 503);
     }
-    const body = await readJson<CronCreateRequest>(c.req.raw);
+    const body = await readJson<CronCreateInput>(c.req.raw);
     if (!body.ok) {
       return c.json(err("INVALID_BODY", "invalid json body"), 400);
     }

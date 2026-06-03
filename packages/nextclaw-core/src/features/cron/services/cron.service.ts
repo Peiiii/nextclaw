@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import cronParser from "cron-parser";
-import type { CronJob, CronJobState, CronPayload, CronSchedule, CronStore } from "@core/features/cron/types/types.js";
+import type { CronJob, CronJobState, CronPayload, CronSchedule, CronStore } from "@core/features/cron/types/cron.types.js";
 
 const nowMs = () => Date.now();
 
@@ -54,6 +54,20 @@ function serializeStore(store: CronStore): string {
   return JSON.stringify(store, null, 2);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizeCronPayload(value: unknown): CronPayload {
+  const record = isRecord(value) ? value : {};
+  return {
+    kind: record.kind === "system_event" || record.kind === "agent_turn" ? record.kind : undefined,
+    message: typeof record.message === "string" ? record.message : "",
+    agentId: typeof record.agentId === "string" ? record.agentId : undefined,
+    sessionId: typeof record.sessionId === "string" ? record.sessionId : undefined,
+  };
+}
+
 export class CronService {
   private store: CronStore | null = null;
   private timer: NodeJS.Timeout | null = null;
@@ -72,13 +86,14 @@ export class CronService {
     }
     if (existsSync(this.storePath)) {
       try {
-        const data = JSON.parse(readFileSync(this.storePath, "utf-8"));
+        const rawStoreJson = readFileSync(this.storePath, "utf-8");
+        const data = JSON.parse(rawStoreJson);
         const jobs = (data.jobs ?? []).map((job: Record<string, unknown>) => ({
           id: String(job.id),
           name: String(job.name),
           enabled: Boolean(job.enabled ?? true),
           schedule: (job.schedule ?? {}) as CronSchedule,
-          payload: (job.payload ?? {}) as CronPayload,
+          payload: normalizeCronPayload(job.payload),
           state: (job.state ?? {}) as CronJobState,
           createdAtMs: Number(job.createdAtMs ?? 0),
           updatedAtMs: Number(job.updatedAtMs ?? 0),
@@ -86,15 +101,17 @@ export class CronService {
         }));
         this.store = { version: data.version ?? 1, jobs };
         this.storeExistsOnDisk = true;
+        this.lastPersistedStoreJson = rawStoreJson;
       } catch {
         this.store = { version: 1, jobs: [] };
         this.storeExistsOnDisk = false;
+        this.lastPersistedStoreJson = serializeStore(this.store);
       }
     } else {
       this.store = { version: 1, jobs: [] };
       this.storeExistsOnDisk = false;
+      this.lastPersistedStoreJson = serializeStore(this.store);
     }
-    this.lastPersistedStoreJson = serializeStore(this.store);
     return this.store;
   };
 
@@ -286,13 +303,9 @@ export class CronService {
     message: string;
     agentId?: string;
     sessionId?: string;
-    deliver?: boolean;
-    channel?: string;
-    to?: string;
-    accountId?: string;
     deleteAfterRun?: boolean;
   }): CronJob => {
-    const { accountId, agentId, channel, deleteAfterRun, deliver, message, name, schedule, sessionId, to } = params;
+    const { agentId, deleteAfterRun, message, name, schedule, sessionId } = params;
     const store = this.loadStore();
     const now = nowMs();
     const job: CronJob = {
@@ -304,11 +317,7 @@ export class CronService {
         kind: "agent_turn",
         message,
         agentId,
-        sessionId,
-        deliver: deliver ?? false,
-        channel,
-        to,
-        accountId
+        sessionId
       },
       state: {
         nextRunAtMs: computeNextRun(schedule, now)

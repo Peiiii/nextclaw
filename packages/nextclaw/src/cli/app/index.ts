@@ -310,10 +310,6 @@ cron
   .option("-e, --every <seconds>", "Run every N seconds")
   .option("-c, --cron <expr>", "Cron expression")
   .option("--at <iso>", "Run once at time (ISO format)")
-  .option("-d, --deliver", "Deliver response to channel")
-  .option("--to <recipient>", "Recipient for delivery")
-  .option("--channel <channel>", "Channel for delivery")
-  .option("--account <id>", "Account id for channel delivery")
   .action(async (opts) => runtime.commands.cron.add(opts));
 
 cron

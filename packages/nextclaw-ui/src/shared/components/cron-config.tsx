@@ -7,7 +7,6 @@ import { Input } from '@/shared/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import {
-  describeCronDelivery,
   describeCronSchedule,
   describeCronSession,
   formatCronDate,
@@ -26,9 +25,7 @@ function matchQuery(job: CronJobView, query: string): boolean {
     job.id,
     job.name,
     job.payload.message,
-    job.payload.sessionId ?? '',
-    job.payload.channel ?? '',
-    job.payload.to ?? ''
+    job.payload.sessionId ?? ''
   ].join(' ').toLowerCase();
   return haystack.includes(q);
 }
@@ -64,7 +61,6 @@ function CronJobCard(props: {
             <div className="mt-2 text-xs text-gray-500">{t('cronScheduleLabel')}: {describeCronSchedule(job)}</div>
             <div className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-700">{job.payload.message}</div>
             <div className="mt-2 text-xs text-gray-500">{t('cronSessionLabel')}: {describeCronSession(job)}</div>
-            <div className="mt-2 text-xs text-gray-500">{t('cronDeliverTo')}: {describeCronDelivery(job)}</div>
           </div>
           <div className="min-w-[220px] space-y-2 text-xs text-gray-500">
             <div><span className="font-medium text-gray-700">{t('cronNextRun')}:</span> {formatCronDate(job.state.nextRunAt)}</div>

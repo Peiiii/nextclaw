@@ -4,8 +4,8 @@ import { Button } from "@/shared/components/ui/button";
 import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
 import { useDeleteCronJob } from "@/shared/hooks/use-config";
 import {
-  describeCronDelivery,
   describeCronSchedule,
+  describeCronSession,
   formatCronDate,
 } from "@/shared/lib/cron";
 import { t } from "@/shared/lib/i18n";
@@ -86,8 +86,8 @@ export function SessionCronJobContent({ jobs }: { jobs: readonly CronJobView[] }
                   {job.state.lastStatus ?? "-"}
                 </div>
                 <div>
-                  <span className="font-medium text-gray-700">{t("cronDeliverTo")}:</span>{" "}
-                  {describeCronDelivery(job)}
+                  <span className="font-medium text-gray-700">{t("cronSessionLabel")}:</span>{" "}
+                  {describeCronSession(job)}
                 </div>
               </div>
               <div className="mt-3 whitespace-pre-wrap break-words text-sm text-gray-700">

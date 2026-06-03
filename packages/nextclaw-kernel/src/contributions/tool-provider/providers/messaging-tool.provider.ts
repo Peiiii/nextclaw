@@ -27,12 +27,16 @@ export class MessagingToolProvider implements ToolProvider {
     const { channel, chatId, metadata } = toolRunContext;
     const accountId = readMetadataAccountId(metadata);
     const messageTool = new MessageTool(
-      (message) => this.kernel.messageBus.publishOutbound(message),
+      async (message) => {
+        const delivered = await this.kernel.channels.deliver(message);
+        if (!delivered) {
+          throw new Error(`channel "${message.channel}" is not available`);
+        }
+      },
       { resolveChannels: this.resolveMessageChannels },
     );
     messageTool.setContext(channel, chatId, accountId ?? null);
     const cronTool = new CronTool(this.kernel.automation);
-    cronTool.setContext(channel, chatId, accountId ?? null);
     return [messageTool, cronTool];
   };
 

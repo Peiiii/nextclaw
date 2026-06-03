@@ -121,6 +121,26 @@ describe("CronTool", () => {
     );
   });
 
+  it("rejects legacy delivery params when adding a job", async () => {
+    const cronService = {
+      addJob: vi.fn()
+    };
+    const tool = new CronTool(cronService as never);
+
+    const result = await tool.execute({
+      action: "add",
+      name: "notify",
+      message: "send a message",
+      every: 300,
+      deliver: true,
+    });
+
+    expect(result).toBe(
+      "Error: cron does not accept deliver; include delivery instructions in message and have the scheduled agent use the message tool.",
+    );
+    expect(cronService.addJob).not.toHaveBeenCalled();
+  });
+
   it("lists jobs when action is list", async () => {
     const cronService = {
       listJobs: vi.fn().mockReturnValue([{ id: "job-1", name: "reminder" }])

@@ -1087,10 +1087,10 @@ Optional: run the job in a specific NCP session:
 nextclaw cron add -n "follow-up" -m "Continue the existing work" -e 3600 --session <session-id>
 ```
 
-Optional: deliver the agent’s reply to a channel:
+Optional: ask the scheduled agent to send through a channel with the `message` tool:
 
 ```bash
-nextclaw cron add -n "daily" -m "Daily briefing" -c "0 9 * * *" --deliver --to <recipient> --channel <channel>
+nextclaw cron add -n "daily" -m "Create a daily briefing, then use the message tool to send it to weixin:<recipient>." -c "0 9 * * *"
 ```
 
 List all jobs by default, or only enabled ones if needed:

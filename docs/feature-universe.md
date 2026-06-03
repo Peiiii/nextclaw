@@ -178,7 +178,7 @@ Extension 当前只通过 channel contribution 接入；旧的 `extensionRegistr
 
 ## 8. 自动化
 
-- **Cron**：一次性（`--at`）、cron 表达式（`-c`）、固定间隔秒（`-e`）；可选 `--deliver --to --channel` 将回复投递到渠道。
+- **Cron**：一次性（`--at`）、cron 表达式（`-c`）、固定间隔秒（`-e`）；通知由定时运行的 Agent 显式调用 `message` 工具完成，不绑定在 cron 任务合同里。
 - **Session-bound automation**：可通过 `--session` 让 cron 延续既有对话/调查线程，而不是启动独立特殊机制。
 
 ---

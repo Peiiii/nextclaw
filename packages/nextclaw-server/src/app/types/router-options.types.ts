@@ -62,10 +62,6 @@ export type UiCronHost = {
     message: string;
     agentId?: string;
     sessionId?: string;
-    deliver?: boolean;
-    channel?: string;
-    to?: string;
-    accountId?: string;
     deleteAfterRun?: boolean;
   }) => CronJobEntry;
   removeJob: (jobId: string) => boolean;
@@ -137,10 +133,6 @@ export type CronJobEntry = {
     message: string;
     agentId?: string | null;
     sessionId?: string | null;
-    deliver?: boolean;
-    channel?: string | null;
-    to?: string | null;
-    accountId?: string | null;
   };
   state: {
     nextRunAtMs?: number | null;

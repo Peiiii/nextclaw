@@ -14,8 +14,30 @@ function createAssistantMessage(text: string) {
   };
 }
 
+function createAssistantMessageWithMessageToolFailure(message: string) {
+  return {
+    ...createAssistantMessage("failed"),
+    parts: [
+      {
+        type: "tool-invocation" as const,
+        toolName: "message",
+        toolCallId: "call-message-1",
+        state: "result" as const,
+        result: {
+          ok: false,
+          error: {
+            code: "tool_execution_failed",
+            message,
+          },
+        },
+      },
+      { type: "text" as const, text: "failed" },
+    ],
+  };
+}
+
 describe("createCronJobHandler", () => {
-  it("runs cron jobs through the NCP run api and publishes the final reply when deliver is enabled", async () => {
+  it("runs cron jobs through the NCP run api without binding channel delivery", async () => {
     const sendAndWaitForReply = vi.fn(async (_payload: unknown, _options?: unknown) => ({
       handle: {
         sessionId: "cron:job-1",
@@ -26,13 +48,9 @@ describe("createCronJobHandler", () => {
       text: "NCP says hi",
       completedMessage: createAssistantMessage("NCP says hi"),
     }));
-    const publishOutbound = vi.fn(async () => undefined);
     const handler = createCronJobHandler({
       agentRunClient: {
         sendAndWaitForReply,
-      } as never,
-      bus: {
-        publishOutbound,
       } as never,
     });
 
@@ -42,10 +60,6 @@ describe("createCronJobHandler", () => {
       payload: {
         message: "review inbox",
         agentId: "engineer",
-        deliver: true,
-        channel: "slack",
-        to: "room-1",
-        accountId: "acct-1",
       },
     });
 
@@ -56,9 +70,6 @@ describe("createCronJobHandler", () => {
       content: [{ type: "text", text: "review inbox" }],
       metadata: expect.objectContaining({
         agentId: "engineer",
-        accountId: "acct-1",
-        channel: "slack",
-        chatId: "room-1",
         label: "daily-review",
         cron_job_id: "job-1",
         cron_job_name: "daily-review",
@@ -68,16 +79,9 @@ describe("createCronJobHandler", () => {
     expect(payload.metadata).not.toHaveProperty("agent_id");
     expect(payload.metadata).not.toHaveProperty("account_id");
     expect(payload.metadata).not.toHaveProperty("chat_id");
-    expect(publishOutbound).toHaveBeenCalledWith({
-      channel: "slack",
-      chatId: "room-1",
-      content: "NCP says hi",
-      media: [],
-      metadata: expect.objectContaining({
-        agentId: "engineer",
-        accountId: "acct-1",
-      }),
-    });
+    expect(payload.metadata).not.toHaveProperty("accountId");
+    expect(payload.metadata).not.toHaveProperty("channel");
+    expect(payload.metadata).not.toHaveProperty("chatId");
   });
 
   it("uses a configured target session id instead of the job-owned cron session", async () => {
@@ -94,9 +98,6 @@ describe("createCronJobHandler", () => {
     const handler = createCronJobHandler({
       agentRunClient: {
         sendAndWaitForReply,
-      } as never,
-      bus: {
-        publishOutbound: vi.fn(async () => undefined),
       } as never,
     });
 
@@ -126,9 +127,6 @@ describe("createCronJobHandler", () => {
       agentRunClient: {
         sendAndWaitForReply,
       } as never,
-      bus: {
-        publishOutbound: vi.fn(async () => undefined),
-      } as never,
     });
 
     await expect(
@@ -140,5 +138,35 @@ describe("createCronJobHandler", () => {
         },
       }),
     ).rejects.toThrow("cron job completed without a final assistant message");
+  });
+
+  it("marks cron runs as failed when the message tool reports delivery failure", async () => {
+    const sendAndWaitForReply = vi.fn(async () => ({
+      handle: {
+        sessionId: "cron:job-4",
+        userMessageId: "user-1",
+        assistantMessageId: null,
+        runId: "run-1",
+      },
+      text: "failed",
+      completedMessage: createAssistantMessageWithMessageToolFailure(
+        "weixin send failed: account \"missing@im.bot\" is not logged in",
+      ),
+    }));
+    const handler = createCronJobHandler({
+      agentRunClient: {
+        sendAndWaitForReply,
+      } as never,
+    });
+
+    await expect(
+      handler({
+        id: "job-4",
+        name: "message-failure",
+        payload: {
+          message: "send weixin",
+        },
+      }),
+    ).rejects.toThrow("cron message delivery failed: weixin send failed: account \"missing@im.bot\" is not logged in");
   });
 });

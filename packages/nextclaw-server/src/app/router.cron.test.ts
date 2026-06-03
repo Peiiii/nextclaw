@@ -33,7 +33,7 @@ describe("cron routes", () => {
       name: "job created",
       enabled: true,
       schedule: { kind: "every" as const, everyMs: 60_000 },
-      payload: { message: "Ping", deliver: true, channel: "weixin", to: "chat-1" },
+      payload: { message: "Ping", sessionId: "session-existing" },
       state: { nextRunAtMs: 60_000, lastStatus: null, lastError: null },
       createdAtMs: 1,
       updatedAtMs: 2,
@@ -59,11 +59,7 @@ describe("cron routes", () => {
         message: "  Ping  ",
         schedule: { kind: "every", everyMs: 60_000 },
         agentId: "main",
-        sessionId: "session-existing",
-        deliver: true,
-        channel: "weixin",
-        to: "chat-1",
-        accountId: "acct-1"
+        sessionId: "session-existing"
       })
     });
 
@@ -89,12 +85,37 @@ describe("cron routes", () => {
       schedule: { kind: "every", everyMs: 60_000 },
       agentId: "main",
       sessionId: "session-existing",
-      deliver: true,
-      channel: "weixin",
-      to: "chat-1",
-      accountId: "acct-1",
       deleteAfterRun: false
     });
+  });
+
+  it("rejects legacy delivery fields on cron create", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+    const cron = {
+      addJob: vi.fn(),
+      listJobs: vi.fn(() => [])
+    };
+    const app = createUiRouter({
+      kernel: createRouterTestKernel(),
+      configPath,
+      cron: cron as never,
+      appEventBus: new EventBus(),
+    });
+
+    const response = await app.request("http://localhost/api/cron", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "job created",
+        message: "Ping",
+        schedule: { kind: "every", everyMs: 60_000 },
+        deliver: true,
+      })
+    });
+
+    expect(response.status).toBe(400);
+    expect(cron.addJob).not.toHaveBeenCalled();
   });
 
   it("lists disabled jobs by default and filters them when enabledOnly is set", async () => {

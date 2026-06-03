@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CronService } from "./cron.service.js";
-import type { CronStore } from "@core/features/cron/types/types.js";
+import type { CronStore } from "@core/features/cron/types/cron.types.js";
 
 function createStorePath(rootDir: string): string {
   return join(rootDir, "cron", "jobs.json");
@@ -46,6 +46,43 @@ describe("CronService", () => {
 
     expect(job.payload.sessionId).toBe("session-existing");
     expect(readStore(storePath).jobs[0]?.payload.sessionId).toBe("session-existing");
+  });
+
+  it("strips legacy delivery fields from persisted jobs on load", async () => {
+    const scheduledAtMs = Date.parse("2026-04-08T02:10:00.000Z");
+    writeStore(storePath, {
+      version: 1,
+      jobs: [
+        {
+          id: "job-legacy",
+          name: "legacy-delivery",
+          enabled: true,
+          schedule: { kind: "every", everyMs: 60_000 },
+          payload: {
+            message: "review inbox",
+            deliver: true,
+            channel: "weixin",
+            to: "user-1@im.wechat",
+            accountId: "old-account",
+          },
+          state: {
+            nextRunAtMs: scheduledAtMs,
+          },
+          createdAtMs: scheduledAtMs - 60_000,
+          updatedAtMs: scheduledAtMs - 60_000,
+          deleteAfterRun: false,
+        }
+      ]
+    } as unknown as CronStore);
+    vi.setSystemTime(scheduledAtMs - 1_000);
+
+    const service = new CronService(storePath);
+    await service.start();
+    service.stop();
+
+    expect(readStore(storePath).jobs[0]?.payload).toEqual({
+      message: "review inbox",
+    });
   });
 
   it("preserves every-job cadence across service start without replaying missed runs", async () => {

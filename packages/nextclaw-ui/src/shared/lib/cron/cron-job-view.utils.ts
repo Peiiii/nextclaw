@@ -40,15 +40,6 @@ export function describeCronSchedule(job: CronJobView): string {
   return "-";
 }
 
-export function describeCronDelivery(job: CronJobView): string {
-  if (!job.payload.deliver) {
-    return "-";
-  }
-  const channel = job.payload.channel ?? "-";
-  const target = job.payload.to ?? "-";
-  return `${channel}:${target}`;
-}
-
 export function describeCronSession(job: CronJobView): string {
   return job.payload.sessionId?.trim() || `cron:${job.id}`;
 }

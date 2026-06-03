@@ -40,6 +40,7 @@ Always use the built-in NextClaw self-management guide as the operation guide.
   - and `nextclaw doctor --json` when needed
 - Be explicit about restart semantics after changes.
 - For channel discovery before messaging, use `nextclaw channels list --json` and treat returned `channels[].id` values as authoritative.
+- For cron notifications, do not add delivery flags to the cron command. Put the notification intent in the scheduled message and let the scheduled agent call the `message` tool with an explicit channel and recipient.
 - For Agent creation/update/removal, treat `nextclaw agents list|new|update|remove --json` as the default path and follow the Agent management section in the self-management guide.
 - Do not edit `config.json` or `agents.list` directly for normal Agent CRUD; only do that when the user explicitly wants a manual recovery path.
 - When creating an Agent, prefer an explicit non-text avatar and avoid text-based styles such as DiceBear `initials`.

@@ -2,10 +2,6 @@ import { Tool, normalizeToolParams } from "./base.tools.js";
 import type { CronSchedule, CronService } from "@core/features/cron/index.js";
 
 export class CronTool extends Tool {
-  private channel = "cli";
-  private chatId = "direct";
-  private accountId?: string;
-
   constructor(private cronService: CronService) {
     super();
   }
@@ -51,10 +47,6 @@ export class CronTool extends Tool {
           type: "string",
           description: "Run once at a specific ISO datetime with timezone, for example 2026-03-31T18:05:00+08:00. If the user gave a relative time such as 'in 5 minutes', first check the current local time with an available tool, then convert it to this absolute value."
         },
-        deliver: {
-          type: "boolean",
-          description: "Whether the result should be delivered back to the current chat/channel."
-        },
         agentId: {
           type: "string",
           description: "Optional target agent id for the scheduled job. Omit to use the default agent."
@@ -67,8 +59,6 @@ export class CronTool extends Tool {
           type: "string",
           description: "Alias of sessionId."
         },
-        accountId: { type: "string" },
-        account_id: { type: "string" },
         includeDisabled: { type: "boolean", description: "For list only. When omitted, disabled jobs are included by default." },
         enabledOnly: { type: "boolean", description: "For list only. Set true to show only enabled jobs." },
         jobId: { type: "string", description: "Job id for enable, disable, or remove." },
@@ -77,12 +67,6 @@ export class CronTool extends Tool {
       }
     };
   }
-
-  setContext = (channel: string, chatId: string, accountId?: string | null): void => {
-    this.channel = channel;
-    this.chatId = chatId;
-    this.accountId = typeof accountId === "string" && accountId.trim().length > 0 ? accountId : undefined;
-  };
 
   execute = async (args: unknown): Promise<string> => {
     const params = normalizeToolParams(args);
@@ -149,10 +133,6 @@ export class CronTool extends Tool {
       message: parsed.message,
       agentId: parsed.agentId,
       sessionId: parsed.sessionId,
-      deliver: parsed.deliver,
-      channel: this.channel,
-      to: this.chatId,
-      accountId: parsed.accountId
     });
 
     return JSON.stringify({
@@ -169,12 +149,16 @@ export class CronTool extends Tool {
         name: string;
         message: string;
         schedule: CronSchedule;
-        deliver: boolean;
         agentId?: string;
         sessionId?: string;
-        accountId?: string;
       }
     | { error: string } => {
+    const legacyDeliveryKey = this.readLegacyDeliveryKey(params);
+    if (legacyDeliveryKey) {
+      return {
+        error: `Error: cron does not accept ${legacyDeliveryKey}; include delivery instructions in message and have the scheduled agent use the message tool.`,
+      };
+    }
     const name = this.readString(params, "name");
     const message = this.readString(params, "message");
     if (!name || !message) {
@@ -188,10 +172,8 @@ export class CronTool extends Tool {
       name,
       message,
       schedule,
-      deliver: Boolean(params.deliver ?? false),
       agentId: this.readString(params, "agentId"),
       sessionId: this.readSessionId(params),
-      accountId: this.readAccountId(params),
     };
   };
 
@@ -237,12 +219,13 @@ export class CronTool extends Tool {
     return this.readString(params, "jobId") ?? this.readString(params, "job_id") ?? this.readString(params, "id");
   };
 
-  private readAccountId = (params: Record<string, unknown>): string | undefined => {
-    return this.readString(params, "accountId") ?? this.readString(params, "account_id") ?? this.accountId;
-  };
-
   private readSessionId = (params: Record<string, unknown>): string | undefined => {
     return this.readString(params, "sessionId") ?? this.readString(params, "session_id");
+  };
+
+  private readLegacyDeliveryKey = (params: Record<string, unknown>): string | null => {
+    const legacyKeys = ["deliver", "channel", "to", "accountId", "account_id"];
+    return legacyKeys.find((key) => params[key] !== undefined) ?? null;
   };
 
   private readString = (params: Record<string, unknown>, key: string): string | undefined => {

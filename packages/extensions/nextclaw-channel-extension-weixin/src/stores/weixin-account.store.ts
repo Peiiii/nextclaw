@@ -18,6 +18,8 @@ export type WeixinAccountStore = {
   loadCursor: (accountId: string) => string | undefined;
   saveCursor: (accountId: string, cursor: string | undefined) => void;
   deleteCursor: (accountId: string) => void;
+  loadContextToken: (accountId: string, conversationId: string) => string | undefined;
+  saveContextToken: (accountId: string, conversationId: string, contextToken: string) => void;
 };
 
 const NEXTCLAW_HOME_ENV_KEY = "NEXTCLAW_HOME";
@@ -40,8 +42,16 @@ function resolveCursorsDir(): string {
   return join(resolveWeixinDataDir(), "cursors");
 }
 
+function resolveContextsDir(): string {
+  return join(resolveWeixinDataDir(), "contexts");
+}
+
 function toFileName(accountId: string): string {
   return `${encodeURIComponent(accountId)}.json`;
+}
+
+function toContextFileName(accountId: string, conversationId: string): string {
+  return `${encodeURIComponent(accountId)}--${encodeURIComponent(conversationId)}.json`;
 }
 
 function readJsonFile<T>(filePath: string): T | null {
@@ -98,4 +108,29 @@ export class FileWeixinAccountStore implements WeixinAccountStore {
   readonly deleteCursor = (accountId: string): void => {
     rmSync(join(resolveCursorsDir(), toFileName(accountId)), { force: true });
   };
+
+  readonly loadContextToken = (accountId: string, conversationId: string): string | undefined => {
+    const payload = readJsonFile<{ contextToken?: string }>(
+      join(resolveContextsDir(), toContextFileName(accountId, conversationId)),
+    );
+    return payload?.contextToken?.trim() || undefined;
+  };
+
+  readonly saveContextToken = (
+    accountId: string,
+    conversationId: string,
+    contextToken: string,
+  ): void => {
+    mkdirSync(resolveContextsDir(), { recursive: true });
+    writeFileSync(
+      join(resolveContextsDir(), toContextFileName(accountId, conversationId)),
+      JSON.stringify({
+        accountId,
+        conversationId,
+        contextToken,
+        updatedAt: new Date().toISOString(),
+      }, null, 2),
+    );
+  };
+
 }

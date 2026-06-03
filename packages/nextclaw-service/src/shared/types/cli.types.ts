@@ -248,10 +248,6 @@ export type CronAddOptions = {
   every?: string;
   cron?: string;
   at?: string;
-  deliver?: boolean;
-  to?: string;
-  channel?: string;
-  account?: string;
 };
 
 export type StatusCommandOptions = {

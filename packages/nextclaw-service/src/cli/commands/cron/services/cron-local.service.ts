@@ -55,10 +55,6 @@ export function createCronCreateRequest(opts: CronAddOptions): { request?: CronC
       schedule: schedule.schedule,
       agentId: readTrimmed(opts.agent),
       sessionId: readTrimmed(opts.session),
-      deliver: Boolean(opts.deliver),
-      channel: readTrimmed(opts.channel),
-      to: readTrimmed(opts.to),
-      accountId: readTrimmed(opts.account)
     }
   };
 }
@@ -81,10 +77,6 @@ export class CronLocalService {
       message: request.message,
       agentId: request.agentId ?? undefined,
       sessionId: request.sessionId ?? undefined,
-      deliver: request.deliver === true,
-      channel: request.channel ?? undefined,
-      to: request.to ?? undefined,
-      accountId: request.accountId ?? undefined,
       deleteAfterRun: request.deleteAfterRun === true
     }) as CronJobView;
   };

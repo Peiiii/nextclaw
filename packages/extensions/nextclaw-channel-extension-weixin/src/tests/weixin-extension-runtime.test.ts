@@ -293,7 +293,9 @@ describe("Weixin extension channel adapter flow", () => {
     }));
     await controller.stop();
   });
+});
 
+describe("Weixin extension channel context_token delivery", () => {
   it("sends completed NCP replies back to Weixin conversation routes", async () => {
     const channel = createChannel({ enabled: true, defaultAccountId: "bot-1@im.bot" });
     let ncpHandler: ((event: Parameters<ExtensionChannel["onNcpEvent"]>[0] extends (event: infer T) => unknown ? T : never) => void | Promise<void>) | null = null;
@@ -302,9 +304,11 @@ describe("Weixin extension channel adapter flow", () => {
       return vi.fn();
     });
     const api = createIdleApi();
+    const store = createMemoryStore();
+    store.saveContextToken("bot-1@im.bot", "user-1@im.wechat", "ctx-reply");
     const adapter = new WeixinChannelAdapter({
       api,
-      store: createMemoryStore(),
+      store,
     });
     const controller = new ExtensionChannelController({
       channel,
@@ -332,7 +336,7 @@ describe("Weixin extension channel adapter flow", () => {
       token: "token-1",
       toUserId: "user-1@im.wechat",
       text: "reply from ai",
-      contextToken: undefined,
+      contextToken: "ctx-reply",
     });
     await controller.stop();
   });
@@ -340,9 +344,11 @@ describe("Weixin extension channel adapter flow", () => {
   it("sends outbound message tool text through Weixin API", async () => {
     const channel = createChannel({ enabled: true, defaultAccountId: "bot-1@im.bot" });
     const api = createIdleApi();
+    const store = createMemoryStore();
+    store.saveContextToken("bot-1@im.bot", "user-1@im.wechat", "ctx-tool");
     const adapter = new WeixinChannelAdapter({
       api,
-      store: createMemoryStore(),
+      store,
     });
     const controller = new ExtensionChannelController({
       channel,
@@ -362,9 +368,90 @@ describe("Weixin extension channel adapter flow", () => {
       token: "token-1",
       toUserId: "user-1@im.wechat",
       text: "hello from message tool",
-      contextToken: undefined,
+      contextToken: "ctx-tool",
     });
     await controller.stop();
+  });
+
+  it("fails outbound sends before the Weixin API when context_token is missing", async () => {
+    const channel = createChannel({ enabled: true, defaultAccountId: "bot-1@im.bot" });
+    const api = createIdleApi();
+    const controller = new ExtensionChannelController({
+      channel,
+      adapter: new WeixinChannelAdapter({
+        api,
+        store: createMemoryStore(),
+      }),
+      mapInbound: toWeixinSubmittedMessage,
+    });
+
+    await controller.start();
+    await expect(controller.sendOutboundText({
+      to: "user-1@im.wechat",
+      text: "hello from message tool",
+      accountId: "bot-1@im.bot",
+    })).rejects.toThrow('weixin send failed: missing context_token for "user-1@im.wechat"');
+
+    expect(api.sendTextMessage).not.toHaveBeenCalled();
+    await controller.stop();
+  });
+
+  it("reuses persisted inbound context_token for later outbound sends", async () => {
+    const store = createMemoryStore();
+    const firstChannel = createChannel({ enabled: true, defaultAccountId: "bot-1@im.bot" });
+    const firstApi = createIdleApi();
+    firstApi.fetchUpdates = vi.fn()
+      .mockResolvedValueOnce({
+        get_updates_buf: "cursor-2",
+        msgs: [{
+          from_user_id: "user-1@im.wechat",
+          context_token: "ctx-persisted",
+          item_list: [{ type: 1, text_item: { text: "seed context" } }],
+        }],
+      })
+      .mockImplementation(async ({ signal }) => await waitUntilAbort(signal));
+    const firstController = new ExtensionChannelController({
+      channel: firstChannel,
+      adapter: new WeixinChannelAdapter({
+        api: firstApi,
+        store,
+        sleep: async () => undefined,
+      }),
+      mapInbound: toWeixinSubmittedMessage,
+    });
+
+    await firstController.start();
+    await waitFor(() => {
+      expect(firstChannel.submitMessage).toHaveBeenCalledWith(expect.objectContaining({
+        metadata: expect.objectContaining({
+          context_token: "ctx-persisted",
+        }),
+      }));
+    });
+    await firstController.stop();
+
+    const secondApi = createIdleApi();
+    const secondController = new ExtensionChannelController({
+      channel: createChannel({ enabled: true, defaultAccountId: "bot-1@im.bot" }),
+      adapter: new WeixinChannelAdapter({
+        api: secondApi,
+        store,
+      }),
+      mapInbound: toWeixinSubmittedMessage,
+    });
+
+    await secondController.start();
+    await secondController.sendOutboundText({
+      to: "user-1@im.wechat",
+      text: "later cron message",
+    });
+
+    expect(secondApi.sendTextMessage).toHaveBeenCalledWith(expect.objectContaining({
+      contextToken: "ctx-persisted",
+      text: "later cron message",
+      toUserId: "user-1@im.wechat",
+    }));
+    await secondController.stop();
   });
 });
 
@@ -385,9 +472,11 @@ describe("Weixin extension channel route normalization", () => {
       return vi.fn();
     });
     const api = createIdleApi();
+    const store = createMemoryStore();
+    store.saveContextToken("bot-1@im.bot", "User-Case@im.wechat", "ctx-case");
     const adapter = new WeixinChannelAdapter({
       api,
-      store: createMemoryStore(),
+      store,
     });
     const controller = new ExtensionChannelController({
       channel,
@@ -412,6 +501,7 @@ describe("Weixin extension channel route normalization", () => {
 
     expect(api.sendTextMessage).toHaveBeenCalledWith(expect.objectContaining({
       toUserId: "User-Case@im.wechat",
+      contextToken: "ctx-case",
     }));
     await controller.stop();
   });
@@ -593,6 +683,7 @@ describe("Weixin extension channel feature parity", () => {
 class TestWeixinAccountStore implements WeixinAccountStore {
   private cursor: string | undefined;
   private accounts = new Map<string, StoredWeixinAccount>();
+  private contextTokens = new Map<string, string>();
 
   constructor(accounts: StoredWeixinAccount[] = [{
     accountId: "bot-1@im.bot",
@@ -618,13 +709,25 @@ class TestWeixinAccountStore implements WeixinAccountStore {
 
   loadCursor = (): string | undefined => this.cursor;
 
-  saveCursor = (_accountId: string, nextCursor: string): void => {
+  saveCursor = (_accountId: string, nextCursor: string | undefined): void => {
     this.cursor = nextCursor;
   };
 
   deleteCursor = (): void => {
     this.cursor = undefined;
   };
+
+  loadContextToken = (accountId: string, conversationId: string): string | undefined =>
+    this.contextTokens.get(`${accountId}:${conversationId}`);
+
+  saveContextToken = (
+    accountId: string,
+    conversationId: string,
+    contextToken: string,
+  ): void => {
+    this.contextTokens.set(`${accountId}:${conversationId}`, contextToken);
+  };
+
 }
 
 function createMemoryStore(accounts?: StoredWeixinAccount[]): WeixinAccountStore {
