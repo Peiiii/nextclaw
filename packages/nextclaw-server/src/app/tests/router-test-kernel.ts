@@ -73,6 +73,8 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
         unavailable("serviceAppManager.invokeServiceAction"),
       grantServiceAction: async () =>
         unavailable("serviceAppManager.grantServiceAction"),
+      grantServiceActions: async () =>
+        unavailable("serviceAppManager.grantServiceActions"),
       listServiceActionGrants: async () => [],
       revokeServiceAction: async () =>
         unavailable("serviceAppManager.revokeServiceAction"),

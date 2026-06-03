@@ -249,4 +249,44 @@ describe("service apps routes", () => {
       "notes.read",
     );
   });
+
+  it("grants multiple service actions with the bridge caller and declarations", async () => {
+    const bridgeSession = createBridgeSession();
+    const grantServiceActions = vi.fn(async () => [
+      {
+        caller: bridgeSession.caller,
+        actionId: "notes.read",
+        risk: "read" as const,
+        grantedAt: "2026-05-27T00:00:00.000Z",
+      },
+    ]);
+    const app = createTestApp({
+      panelAppManager: {
+        resolvePanelAppBridgeSession: () => bridgeSession,
+      },
+      serviceAppManager: {
+        grantServiceActions,
+      },
+    });
+
+    const response = await app.request("http://localhost/api/service-action-grants", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-nextclaw-panel-bridge-session": "bridge-token",
+      },
+      body: JSON.stringify({ actionIds: ["notes.read"] }),
+    });
+    const payload = await response.json() as {
+      ok: true;
+      data: { grants: Array<{ actionId: string }> };
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.data.grants[0]?.actionId).toBe("notes.read");
+    expect(grantServiceActions).toHaveBeenCalledWith(["notes.read"], {
+      caller: bridgeSession.caller,
+      declaredActions: bridgeSession.declaredActions,
+    });
+  });
 });

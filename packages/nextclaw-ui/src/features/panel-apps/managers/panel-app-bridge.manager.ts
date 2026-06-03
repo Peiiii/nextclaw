@@ -195,12 +195,14 @@ export class PanelAppBridgeManager {
   ): Promise<PanelAppCapabilityGrantView> => {
     const allowed = await this.authorizationManager.requestAuthorization({
       panelAppId: session.panelAppId,
-      actionId: capability,
-      actionTitle: capability === 'agent:send' ? 'Send agent message' : 'Generate object',
-      actionDescription: capability === 'agent:send'
-        ? 'Send a message to a NextClaw Agent session.'
-        : 'Send context to a NextClaw Agent session and receive a structured object.',
-      risk: 'write',
+      actions: [{
+        actionId: capability,
+        actionTitle: capability === 'agent:send' ? 'Send agent message' : 'Generate object',
+        actionDescription: capability === 'agent:send'
+          ? 'Send a message to a NextClaw Agent session.'
+          : 'Send context to a NextClaw Agent session and receive a structured object.',
+        risk: 'write',
+      }],
     });
     if (!allowed) {
       throw new NextClawClientError({
@@ -219,13 +221,15 @@ export class PanelAppBridgeManager {
     actionId: string,
     input?: Record<string, unknown>,
   ): Promise<ServiceActionGrantView> => {
-    const action = await this.findAction(session, actionId);
+    const actions = await this.listGrantCandidateActions(session, actionId);
     const allowed = await this.authorizationManager.requestAuthorization({
       panelAppId: session.panelAppId,
-      actionId,
-      actionTitle: action?.title,
-      actionDescription: action?.description,
-      risk: action?.risk,
+      actions: actions.map((action) => ({
+        actionId: action.id,
+        actionTitle: action.title,
+        actionDescription: action.description,
+        risk: action.risk,
+      })),
       inputPreview: this.createInputPreview(input),
     });
     if (!allowed) {
@@ -234,22 +238,48 @@ export class PanelAppBridgeManager {
         message: `Permission rejected for ${actionId}.`,
       });
     }
-    return await nextclawClient.serviceApps.grantServiceAction(
-      actionId,
+    const result = await nextclawClient.serviceApps.grantServiceActions(
+      actions.map((action) => action.id),
       { bridgeSessionToken: session.token },
     );
+    const grant = result.grants.find((entry) => entry.actionId === actionId) ?? result.grants[0];
+    if (!grant) {
+      throw new Error(`No permission grant returned for ${actionId}.`);
+    }
+    return grant;
   };
 
-  private findAction = async (
+  private listGrantCandidateActions = async (
     session: PanelAppBridgeSessionView,
     actionId: string,
-  ): Promise<ServiceActionListView['actions'][number] | undefined> => {
-    const actions = await nextclawClient.serviceApps.listServiceActions({
+  ): Promise<Array<ServiceActionListView['actions'][number]>> => {
+    const actionList = await nextclawClient.serviceApps.listServiceActions({
       bridgeSessionToken: session.token,
     });
-    return actions.actions.find(
+    const target = actionList.actions.find(
       (action: ServiceActionListView['actions'][number]) => action.id === actionId,
     );
+    if (target && target.grantState !== 'not-granted') {
+      return [target];
+    }
+    const ungrantedActions = actionList.actions.filter((action) =>
+      action.grantState === 'not-granted'
+    );
+    const orderedActions = [
+      ...ungrantedActions.filter((action) => action.id === actionId),
+      ...ungrantedActions.filter((action) => action.id !== actionId),
+    ];
+    if (orderedActions.length > 0) {
+      return orderedActions;
+    }
+    return [{
+      appId: target?.appId ?? actionId.split('.')[0] ?? actionId,
+      description: target?.description,
+      id: actionId,
+      name: target?.name ?? actionId,
+      risk: target?.risk ?? 'dangerous',
+      title: target?.title,
+    }];
   };
 
   private createInputPreview = (input: Record<string, unknown> | undefined): string | undefined => {

@@ -3,13 +3,17 @@ import type { ServiceActionListView } from '@nextclaw/client-sdk';
 
 type ServiceActionRisk = ServiceActionListView['actions'][number]['risk'];
 
-export type ServiceActionAuthorizationRequest = {
-  id: string;
-  panelAppId: string;
+export type ServiceActionAuthorizationItem = {
   actionId: string;
   actionTitle?: string;
   actionDescription?: string;
   risk?: ServiceActionRisk;
+};
+
+export type ServiceActionAuthorizationRequest = {
+  id: string;
+  panelAppId: string;
+  actions: ServiceActionAuthorizationItem[];
   inputPreview?: string;
 };
 

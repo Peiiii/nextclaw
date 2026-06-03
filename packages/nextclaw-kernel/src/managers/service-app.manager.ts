@@ -153,15 +153,39 @@ export class ServiceAppManager {
     actionId: string,
     request: ServiceActionGrantRequest,
   ): Promise<ServiceActionGrant> => {
+    const [grant] = await this.grantServiceActions([actionId], request);
+    if (!grant) {
+      throw new ServiceAppError("SERVICE_APP_INVALID_ACTION", "service action id is invalid");
+    }
+    return grant;
+  };
+
+  grantServiceActions = async (
+    actionIds: readonly string[],
+    request: ServiceActionGrantRequest,
+  ): Promise<ServiceActionGrant[]> => {
     this.assertCaller(request.caller);
-    this.assertDeclaredAction(actionId, request.declaredActions);
-    const action = await this.requireServiceAction(actionId);
-    return await this.createGrantStore().grant({
-      caller: request.caller,
-      actionId,
-      risk: action.risk,
-      grantedAt: new Date().toISOString(),
-    });
+    const normalizedActionIds = this.normalizeActionIds(actionIds);
+    if (normalizedActionIds.length === 0) {
+      throw new ServiceAppError("SERVICE_APP_INVALID_ACTION", "service action id is invalid");
+    }
+    const actions: ServiceAction[] = [];
+    for (const actionId of normalizedActionIds) {
+      this.assertDeclaredAction(actionId, request.declaredActions);
+      actions.push(await this.requireServiceAction(actionId));
+    }
+    const grantedAt = new Date().toISOString();
+    const grantStore = this.createGrantStore();
+    const grants: ServiceActionGrant[] = [];
+    for (const action of actions) {
+      grants.push(await grantStore.grant({
+        caller: request.caller,
+        actionId: action.id,
+        risk: action.risk,
+        grantedAt,
+      }));
+    }
+    return grants;
   };
 
   listServiceActionGrants = async (): Promise<ServiceActionGrant[]> => {
@@ -380,6 +404,13 @@ export class ServiceAppManager {
       );
     }
   };
+
+  private normalizeActionIds = (actionIds: readonly string[]): string[] =>
+    Array.from(new Set(
+      actionIds
+        .map((actionId) => actionId.trim())
+        .filter((actionId) => actionId.length > 0),
+    ));
 
   private getWorkspacePath = (): string =>
     getWorkspacePathFromConfig(this.params.configManager.config);

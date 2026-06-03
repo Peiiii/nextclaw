@@ -115,6 +115,7 @@ export type {
   RuntimeControlView,
   SearchConfigUpdate,
   SearchConfigView,
+  ServiceActionGrantBatchRequestView,
   ServiceActionGrantView,
   ServiceActionGrantListView,
   ServiceActionInvokeResultView,

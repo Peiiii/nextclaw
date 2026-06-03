@@ -308,6 +308,77 @@ describe("ServiceAppManager", () => {
   });
 });
 
+describe("ServiceAppManager batch action grants", () => {
+  it("grants multiple declared service actions without starting the runtime", async () => {
+    const workspacePath = createTempDir();
+    writeServiceApp(workspacePath, {
+      actions: {
+        read: { risk: "read" },
+        write: { risk: "write" },
+      },
+    });
+    const runtime = createRuntime([
+      {
+        id: "notes.read",
+        appId: "notes",
+        name: "read",
+        risk: "read",
+      },
+      {
+        id: "notes.write",
+        appId: "notes",
+        name: "write",
+        risk: "write",
+      },
+    ]);
+    const manager = new ServiceAppManager({
+      configManager: createConfigManager(workspacePath),
+      runtimeService: runtime,
+    });
+    const caller: ServiceActionCaller = { surface: "panel-app", appId: "todo-panel" };
+
+    await expect(manager.grantServiceActions(["notes.read", "notes.write", "notes.read"], {
+      caller,
+      declaredActions: ["notes.read", "notes.write"],
+    })).resolves.toEqual([
+      expect.objectContaining({ actionId: "notes.read", risk: "read" }),
+      expect.objectContaining({ actionId: "notes.write", risk: "write" }),
+    ]);
+
+    await expect(manager.listServiceActions({
+      caller,
+      declaredActions: ["notes.read", "notes.write"],
+    })).resolves.toEqual([
+      expect.objectContaining({ id: "notes.read", grantState: "granted" }),
+      expect.objectContaining({ id: "notes.write", grantState: "granted" }),
+    ]);
+    expect(runtime.listActions).not.toHaveBeenCalled();
+  });
+
+  it("rejects undeclared actions without writing partial grants", async () => {
+    const workspacePath = createTempDir();
+    writeServiceApp(workspacePath, {
+      actions: {
+        read: { risk: "read" },
+        write: { risk: "write" },
+      },
+    });
+    const manager = new ServiceAppManager({
+      configManager: createConfigManager(workspacePath),
+      runtimeService: createRuntime([]),
+    });
+    const caller: ServiceActionCaller = { surface: "panel-app", appId: "todo-panel" };
+
+    await expect(manager.grantServiceActions(["notes.read", "notes.write"], {
+      caller,
+      declaredActions: ["notes.read"],
+    })).rejects.toMatchObject({
+      code: "SERVICE_APP_ACTION_NOT_DECLARED",
+    } satisfies Partial<ServiceAppError>);
+    await expect(manager.listServiceActionGrants()).resolves.toEqual([]);
+  });
+});
+
 describe("ServiceAppManager action catalog", () => {
   it("marks grant state from the caller and panel declaration", async () => {
     const workspacePath = createTempDir();

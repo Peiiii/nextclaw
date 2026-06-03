@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   generateAgentObject: vi.fn(),
   grantAgentCapability: vi.fn(),
   grantServiceAction: vi.fn(),
+  grantServiceActions: vi.fn(),
   invokeServiceAction: vi.fn(),
   listServiceActions: vi.fn(),
   sendAgentMessage: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock('@/shared/lib/api', () => ({
     },
     serviceApps: {
       grantServiceAction: mocks.grantServiceAction,
+      grantServiceActions: mocks.grantServiceActions,
       invokeServiceAction: mocks.invokeServiceAction,
       listServiceActions: mocks.listServiceActions,
       revokeServiceAction: vi.fn(),
@@ -36,58 +38,25 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe('PanelAppBridgeManager', () => {
-  it('opens the authorization flow before retrying a protected service action', async () => {
-    const manager = new PanelAppBridgeManager({
-      requestAuthorization: mocks.requestAuthorization,
-    } as unknown as ServiceActionAuthorizationManager);
-    const postMessage = vi.fn();
-    const contentWindow = { postMessage } as unknown as Window;
-    const iframe = { contentWindow } as HTMLIFrameElement;
-    const actionId = 'mood-tracker.saveMood';
-    mocks.createBridgeSession.mockResolvedValue({
-      expiresAt: '2026-05-28T00:00:00.000Z',
-      id: 'session-1',
-      panelAppId: 'mood-calendar',
-      tabId: 'tab-1',
-      token: 'token-1',
-    });
-    mocks.invokeServiceAction
-      .mockRejectedValueOnce(new NextClawClientError({
-        code: 'AUTHORIZATION_REQUIRED',
-        message: 'authorization required',
-      }))
-      .mockResolvedValueOnce({ actionId, result: { saved: true } });
-    mocks.listServiceActions.mockResolvedValue({
-      actions: [{
-        appId: 'mood-tracker',
-        description: 'Save daily mood entries',
-        id: actionId,
-        name: 'saveMood',
-        risk: 'write',
-        title: 'Save mood',
-      }],
-    });
-    mocks.requestAuthorization.mockResolvedValue(true);
-    mocks.grantServiceAction.mockResolvedValue({
-      actionId,
-      caller: { surface: 'panel-app', appId: 'mood-calendar' },
-      grantedAt: '2026-05-28T00:00:00.000Z',
-      risk: 'write',
-    });
+function createManager(): PanelAppBridgeManager {
+  return new PanelAppBridgeManager({
+    requestAuthorization: mocks.requestAuthorization,
+  } as unknown as ServiceActionAuthorizationManager);
+}
 
-    manager.handleIframeMessage({
-      event: {
-        data: {
-          method: 'invoke',
-          payload: { actionId, input: { mood: 'happy' } },
-          requestId: 'request-1',
-          type: 'nextclaw:panel-app-service-actions:request',
-        },
-        source: contentWindow,
-      } as MessageEvent,
+function createIframeHarness(manager: PanelAppBridgeManager) {
+  const postMessage = vi.fn();
+  const contentWindow = { postMessage } as unknown as Window;
+  const iframe = { contentWindow } as HTMLIFrameElement;
+  return {
+    postMessage,
+    send: (
+      data: unknown,
+      iframeInstanceId = 'tab-1:0:0',
+    ) => manager.handleIframeMessage({
+      event: { data, source: contentWindow } as MessageEvent,
       iframe,
-      iframeInstanceId: 'tab-1:0:0',
+      iframeInstanceId,
       tab: {
         currentUrl: '/api/panel-apps/mood-calendar/content',
         history: [],
@@ -97,20 +66,104 @@ describe('PanelAppBridgeManager', () => {
         navVersion: 0,
         title: 'Mood Calendar',
       },
+    }),
+  };
+}
+
+function mockBridgeSession(token = 'token-1') {
+  mocks.createBridgeSession.mockResolvedValue({
+    expiresAt: '2026-05-28T00:00:00.000Z',
+    id: `session-${token}`,
+    panelAppId: 'mood-calendar',
+    tabId: 'tab-1',
+    token,
+  });
+}
+
+describe('PanelAppBridgeManager', () => {
+  it('authorizes missing service actions in one flow before retrying a protected action', async () => {
+    const manager = createManager();
+    const { postMessage, send } = createIframeHarness(manager);
+    const actionId = 'mood-tracker.saveMood';
+    mockBridgeSession();
+    mocks.invokeServiceAction
+      .mockRejectedValueOnce(new NextClawClientError({
+        code: 'AUTHORIZATION_REQUIRED',
+        message: 'authorization required',
+      }))
+      .mockResolvedValueOnce({ actionId, result: { saved: true } });
+    mocks.listServiceActions.mockResolvedValue({
+      actions: [
+        {
+          appId: 'mood-tracker',
+          description: 'Save daily mood entries',
+          grantState: 'not-granted',
+          id: actionId,
+          name: 'saveMood',
+          risk: 'write',
+          title: 'Save mood',
+        },
+        {
+          appId: 'mood-tracker',
+          description: 'Read mood history',
+          grantState: 'not-granted',
+          id: 'mood-tracker.listMoods',
+          name: 'listMoods',
+          risk: 'read',
+          title: 'List moods',
+        },
+      ],
+    });
+    mocks.requestAuthorization.mockResolvedValue(true);
+    mocks.grantServiceActions.mockResolvedValue({
+      grants: [
+        {
+          actionId,
+          caller: { surface: 'panel-app', appId: 'mood-calendar' },
+          grantedAt: '2026-05-28T00:00:00.000Z',
+          risk: 'write',
+        },
+        {
+          actionId: 'mood-tracker.listMoods',
+          caller: { surface: 'panel-app', appId: 'mood-calendar' },
+          grantedAt: '2026-05-28T00:00:00.000Z',
+          risk: 'read',
+        },
+      ],
+    });
+
+    send({
+      method: 'invoke',
+      payload: { actionId, input: { mood: 'happy' } },
+      requestId: 'request-1',
+      type: 'nextclaw:panel-app-service-actions:request',
     });
 
     await waitFor(() => expect(postMessage).toHaveBeenCalled());
 
     expect(mocks.requestAuthorization).toHaveBeenCalledWith(expect.objectContaining({
-      actionId,
-      actionTitle: 'Save mood',
+      actions: [
+        expect.objectContaining({
+          actionId,
+          actionTitle: 'Save mood',
+          risk: 'write',
+        }),
+        expect.objectContaining({
+          actionId: 'mood-tracker.listMoods',
+          actionTitle: 'List moods',
+          risk: 'read',
+        }),
+      ],
       inputPreview: expect.stringContaining('happy'),
       panelAppId: 'mood-calendar',
-      risk: 'write',
     }));
-    expect(mocks.grantServiceAction).toHaveBeenCalledWith(actionId, {
+    expect(mocks.grantServiceActions).toHaveBeenCalledWith([
+      actionId,
+      'mood-tracker.listMoods',
+    ], {
       bridgeSessionToken: 'token-1',
     });
+    expect(mocks.grantServiceAction).not.toHaveBeenCalled();
     expect(mocks.invokeServiceAction).toHaveBeenCalledTimes(2);
     expect(postMessage).toHaveBeenCalledWith({
       data: { actionId, result: { saved: true } },
@@ -121,19 +174,9 @@ describe('PanelAppBridgeManager', () => {
   });
 
   it('opens the authorization flow before retrying a protected generateObject call', async () => {
-    const manager = new PanelAppBridgeManager({
-      requestAuthorization: mocks.requestAuthorization,
-    } as unknown as ServiceActionAuthorizationManager);
-    const postMessage = vi.fn();
-    const contentWindow = { postMessage } as unknown as Window;
-    const iframe = { contentWindow } as HTMLIFrameElement;
-    mocks.createBridgeSession.mockResolvedValue({
-      expiresAt: '2026-05-28T00:00:00.000Z',
-      id: 'session-1',
-      panelAppId: 'mood-calendar',
-      tabId: 'tab-1',
-      token: 'token-1',
-    });
+    const manager = createManager();
+    const { postMessage, send } = createIframeHarness(manager);
+    mockBridgeSession();
     mocks.generateAgentObject
       .mockRejectedValueOnce(new NextClawClientError({
         code: 'AUTHORIZATION_REQUIRED',
@@ -147,41 +190,24 @@ describe('PanelAppBridgeManager', () => {
       grantedAt: '2026-05-28T00:00:00.000Z',
     });
 
-    manager.handleIframeMessage({
-      event: {
-        data: {
-          method: 'agent.generateObject',
-          payload: {
-            input: {
-              peerId: 'mood-summary',
-              prompt: 'summarize',
-              schema: { type: 'object' },
-            },
-          },
-          requestId: 'request-2',
-          type: 'nextclaw:panel-app-service-actions:request',
+    send({
+      method: 'agent.generateObject',
+      payload: {
+        input: {
+          peerId: 'mood-summary',
+          prompt: 'summarize',
+          schema: { type: 'object' },
         },
-        source: contentWindow,
-      } as MessageEvent,
-      iframe,
-      iframeInstanceId: 'tab-1:0:0',
-      tab: {
-        currentUrl: '/api/panel-apps/mood-calendar/content',
-        history: [],
-        historyIndex: 0,
-        id: 'tab-1',
-        kind: 'content',
-        navVersion: 0,
-        title: 'Mood Calendar',
       },
+      requestId: 'request-2',
+      type: 'nextclaw:panel-app-service-actions:request',
     });
 
     await waitFor(() => expect(postMessage).toHaveBeenCalled());
 
     expect(mocks.requestAuthorization).toHaveBeenCalledWith(expect.objectContaining({
-      actionId: 'agent:generateObject',
+      actions: [expect.objectContaining({ actionId: 'agent:generateObject' })],
       panelAppId: 'mood-calendar',
-      risk: 'write',
     }));
     expect(mocks.grantAgentCapability).toHaveBeenCalledWith('agent:generateObject', {
       bridgeSessionToken: 'token-1',
@@ -196,12 +222,8 @@ describe('PanelAppBridgeManager', () => {
   });
 
   it('creates a fresh bridge session for each iframe instance', async () => {
-    const manager = new PanelAppBridgeManager({
-      requestAuthorization: mocks.requestAuthorization,
-    } as unknown as ServiceActionAuthorizationManager);
-    const postMessage = vi.fn();
-    const contentWindow = { postMessage } as unknown as Window;
-    const iframe = { contentWindow } as HTMLIFrameElement;
+    const manager = createManager();
+    const { postMessage, send } = createIframeHarness(manager);
     mocks.createBridgeSession
       .mockResolvedValueOnce({
         expiresAt: '2026-05-28T00:00:00.000Z',
@@ -224,27 +246,11 @@ describe('PanelAppBridgeManager', () => {
       ['request-2', 'tab-1:0:0'],
       ['request-3', 'tab-1:0:1'],
     ]) {
-      manager.handleIframeMessage({
-        event: {
-          data: {
-            method: 'list',
-            requestId,
-            type: 'nextclaw:panel-app-service-actions:request',
-          },
-          source: contentWindow,
-        } as MessageEvent,
-        iframe,
-        iframeInstanceId,
-        tab: {
-          currentUrl: '/api/panel-apps/mood-calendar/content',
-          history: [],
-          historyIndex: 0,
-          id: 'tab-1',
-          kind: 'content',
-          navVersion: 0,
-          title: 'Mood Calendar',
-        },
-      });
+      send({
+        method: 'list',
+        requestId,
+        type: 'nextclaw:panel-app-service-actions:request',
+      }, iframeInstanceId);
     }
 
     await waitFor(() => expect(postMessage).toHaveBeenCalledTimes(3));

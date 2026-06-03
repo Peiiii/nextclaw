@@ -92,6 +92,17 @@ export class ServiceAppsClientService {
     );
   };
 
+  readonly grantServiceActions = async (
+    actionIds: string[],
+    options: BridgeRequestOptions = {},
+  ): Promise<ServiceActionGrantListView> => {
+    return await this.requestService.post<ServiceActionGrantListView>(
+      "/api/service-action-grants",
+      { actionIds },
+      { headers: bridgeHeaders(options.bridgeSessionToken) },
+    );
+  };
+
   readonly listServiceActionGrants = async (): Promise<ServiceActionGrantListView> => {
     return await this.requestService.get<ServiceActionGrantListView>(
       "/api/service-action-grants",

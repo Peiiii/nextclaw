@@ -11,7 +11,10 @@ import {
   ok,
   readJson,
 } from "@nextclaw-server/shared/utils/http-response.utils.js";
-import type { ServiceActionInvokeRequestView } from "@nextclaw-server/shared/types/server-api.types.js";
+import type {
+  ServiceActionGrantBatchRequestView,
+  ServiceActionInvokeRequestView,
+} from "@nextclaw-server/shared/types/server-api.types.js";
 
 const PANEL_BRIDGE_SESSION_HEADER = "x-nextclaw-panel-bridge-session";
 
@@ -109,6 +112,26 @@ export class ServiceAppsRoutesController {
         },
       );
       return c.json(ok(payload));
+    } catch (error) {
+      return this.handleServiceAppError(c, error);
+    }
+  };
+
+  readonly grantServiceActions = async (c: Context) => {
+    const body = await readJson<ServiceActionGrantBatchRequestView>(c.req.raw);
+    if (!body.ok || !Array.isArray(body.data?.actionIds)) {
+      return c.json(err("INVALID_SERVICE_ACTION_GRANT_REQUEST", "invalid service action grant request"), 400);
+    }
+    try {
+      const bridgeSession = this.requireBridgeSession(c);
+      const grants = await this.params.serviceAppManager.grantServiceActions(
+        body.data.actionIds,
+        {
+          caller: bridgeSession.caller,
+          declaredActions: bridgeSession.declaredActions,
+        },
+      );
+      return c.json(ok({ grants }));
     } catch (error) {
       return this.handleServiceAppError(c, error);
     }

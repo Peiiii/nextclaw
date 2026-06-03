@@ -15,4 +15,5 @@ export type ServiceActionListView = { actions: ServiceActionView[] };
 export type ServiceActionInvokeRequestView = { input?: Record<string, unknown> };
 export type ServiceActionInvokeResultView = ServiceActionInvokeResult;
 export type ServiceActionGrantView = ServiceActionGrant;
+export type ServiceActionGrantBatchRequestView = { actionIds?: string[] };
 export type ServiceActionGrantListView = { grants: ServiceActionGrantView[] };
