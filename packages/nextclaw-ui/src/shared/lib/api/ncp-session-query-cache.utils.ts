@@ -14,18 +14,11 @@ function shouldReplaceSessionSummary(
   next: NcpSessionSummaryView
 ): boolean {
   const timeOrder = next.updatedAt.localeCompare(current.updatedAt);
-  if (timeOrder > 0) {
-    return true;
-  }
-  if (timeOrder < 0) {
-    return false;
+  if (timeOrder !== 0) {
+    return timeOrder > 0;
   }
 
-  if (current.status === next.status) {
-    return true;
-  }
-
-  return next.status === 'idle';
+  return current.status === next.status || next.status === 'idle';
 }
 
 export function upsertNcpSessionSummaryList(
@@ -40,7 +33,12 @@ export function upsertNcpSessionSummaryList(
   const nextSessions =
     existingIndex >= 0
       ? current.sessions.map((session, index) =>
-          index === existingIndex && shouldReplaceSessionSummary(session, summary) ? summary : session
+          index === existingIndex && shouldReplaceSessionSummary(session, summary)
+            ? {
+                ...summary,
+                status: session.status === 'running' && summary.status === 'idle' ? 'running' : summary.status
+              }
+            : session
         )
       : [...current.sessions, summary];
   const sortedSessions = sortSessionSummaries(nextSessions);

@@ -5,31 +5,8 @@ import {
   type NcpEndpointEvent,
   type NcpMessage,
 } from "@nextclaw/ncp";
-import {
-  eventKeys,
-  type EventBus,
-} from "@nextclaw/shared";
 import { DefaultNcpAgentConversationStateManager } from "@nextclaw/ncp-toolkit";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
-
-export type SessionRunSnapshot = {
-  messages: readonly NcpMessage[];
-};
-
-export type SessionRunSeed = {
-  sessionId: string;
-  messages: readonly NcpMessage[];
-};
-
-export type SessionRunEventPublishMeta = {
-  emittedAt?: string;
-  source: string;
-};
-
-export type SessionRunActiveRun = {
-  runId: string;
-  signal: AbortSignal;
-};
 
 export class MessageInbox<T> {
   private readonly messages: T[] = [];
@@ -41,8 +18,6 @@ export class MessageInbox<T> {
   drain = (): T[] => {
     return this.messages.splice(0, this.messages.length);
   };
-
-  isEmpty = (): boolean => this.messages.length === 0;
 }
 
 function isConversationStateEvent(event: NcpEndpointEvent): boolean {
@@ -52,12 +27,15 @@ function isConversationStateEvent(event: NcpEndpointEvent): boolean {
 export class SessionRun {
   readonly inbox = new MessageInbox<NcpMessage>();
   readonly sessionId: string;
+  private readonly statusListeners = new Set<(status: "idle" | "running") => void>();
   private activeRunId: string | null = null;
   private activeRunController: AbortController | null = null;
 
   constructor(
-    seed: SessionRunSeed,
-    private readonly eventBus?: EventBus,
+    seed: {
+      sessionId: string;
+      messages: readonly NcpMessage[];
+    },
     private readonly stateManager: NcpAgentConversationStateManager = new DefaultNcpAgentConversationStateManager(),
   ) {
     this.sessionId = seed.sessionId;
@@ -67,7 +45,7 @@ export class SessionRun {
     });
   }
 
-  getSnapshot = (): SessionRunSnapshot => {
+  getSnapshot = (): { messages: readonly NcpMessage[] } => {
     const snapshot = this.stateManager.getSnapshot();
     return {
       messages: snapshot.streamingMessage ? [...snapshot.messages, snapshot.streamingMessage] : snapshot.messages,
@@ -82,27 +60,25 @@ export class SessionRun {
     }
   };
 
-  applyAndPublishEvents = async (
-    events: readonly NcpEndpointEvent[],
-    meta: SessionRunEventPublishMeta,
-  ): Promise<void> => {
-    await this.applyEvents(events);
-    for (const event of events) {
-      this.eventBus?.emit(eventKeys.ncpEvent, event, {
-        emittedAt: meta.emittedAt ?? new Date().toISOString(),
-        source: meta.source,
-      });
-    }
+  onStatusChange = (
+    listener: (status: "idle" | "running") => void,
+  ): (() => void) => {
+    this.statusListeners.add(listener);
+    return () => {
+      this.statusListeners.delete(listener);
+    };
   };
 
-  beginRun = (): SessionRunActiveRun => {
+  beginRun = (): { runId: string; signal: AbortSignal } => {
     if (this.activeRunId) {
       throw new Error(`Session ${this.sessionId} already has an active run.`);
     }
+    const wasRunning = this.isRunning();
     const runId = `agent-run-${randomUUID()}`;
     const controller = new AbortController();
     this.activeRunId = runId;
     this.activeRunController = controller;
+    this.emitStatusChangeIfNeeded(wasRunning);
     return {
       runId,
       signal: controller.signal,
@@ -116,31 +92,51 @@ export class SessionRun {
     if (runId && this.activeRunId !== runId) {
       return false;
     }
+    const wasRunning = this.isRunning();
     this.activeRunController.abort();
+    this.activeRunController = null;
+    this.activeRunId = null;
+    this.emitStatusChangeIfNeeded(wasRunning);
     return true;
   };
 
   isRunning = (): boolean => this.activeRunId !== null;
 
   dispose = (): void => {
+    const wasRunning = this.isRunning();
     this.activeRunController?.abort();
     this.activeRunController = null;
     this.activeRunId = null;
+    this.emitStatusChangeIfNeeded(wasRunning);
+    this.statusListeners.clear();
   };
 
   private applyRunEvents = (events: readonly NcpEndpointEvent[]): void => {
+    const wasRunning = this.isRunning();
     for (const event of events) {
       if (event.type === NcpEventType.RunStarted && event.payload.runId) {
         this.activeRunId = event.payload.runId;
       }
       if (
-        event.type === NcpEventType.MessageAbort ||
-        ((event.type === NcpEventType.RunFinished || event.type === NcpEventType.RunError) &&
-          (!event.payload.runId || event.payload.runId === this.activeRunId))
+        (event.type === NcpEventType.RunFinished || event.type === NcpEventType.RunError) &&
+        (!event.payload.runId || event.payload.runId === this.activeRunId)
       ) {
         this.activeRunId = null;
         this.activeRunController = null;
       }
+    }
+    this.emitStatusChangeIfNeeded(wasRunning);
+  };
+
+  private emitStatusChangeIfNeeded = (
+    wasRunning: boolean,
+  ): void => {
+    const running = this.isRunning();
+    if (running === wasRunning) {
+      return;
+    }
+    for (const listener of [...this.statusListeners]) {
+      listener(running ? "running" : "idle");
     }
   };
 }
@@ -148,10 +144,7 @@ export class SessionRun {
 export class SessionRunManager {
   private readonly runs = new Map<string, SessionRun>();
 
-  constructor(
-    private readonly sessionManager: SessionManager,
-    private readonly eventBus?: EventBus,
-  ) {}
+  constructor(private readonly sessionManager: SessionManager) {}
 
   getSessionRun = (sessionId: string): SessionRun | null =>
     this.runs.get(sessionId) ?? null;
@@ -167,7 +160,7 @@ export class SessionRunManager {
       messages,
       sessionId,
     };
-    const run = new SessionRun(seed, this.eventBus);
+    const run = new SessionRun(seed);
     this.runs.set(sessionId, run);
     return run;
   };

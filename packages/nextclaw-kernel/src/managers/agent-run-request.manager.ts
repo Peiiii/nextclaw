@@ -100,19 +100,6 @@ function readOptionalString(value: unknown): string | undefined {
   return trimmed || undefined;
 }
 
-function toSessionMessageRequest(
-  payload: AgentRunSessionMessageRequestPayload,
-): AgentRunRequest {
-  return {
-    sessionId: payload.sessionId,
-    message: {
-      ...payload.message,
-      sessionId: payload.sessionId,
-    },
-    correlationId: payload.requestId,
-  };
-}
-
 function toRunHandle(accepted: AgentRunAccepted): NcpRunHandle {
   return {
     sessionId: accepted.sessionId,
@@ -220,7 +207,14 @@ export class AgentRunRequestManager {
       throw new Error("Invalid agent run session message request.");
     }
     return toRunHandle(
-      await this.send(toSessionMessageRequest(envelope.payload)),
+      await this.send({
+        sessionId: envelope.payload.sessionId,
+        message: {
+          ...envelope.payload.message,
+          sessionId: envelope.payload.sessionId,
+        },
+        correlationId: envelope.payload.requestId,
+      }),
     );
   };
 
@@ -252,7 +246,28 @@ export class AgentRunRequestManager {
       message,
     };
     sessionRun.inbox.enqueue(message);
-    const activeRun = sessionRun.beginRun();
+    let stopPublishingRunStatus = (): void => undefined;
+    stopPublishingRunStatus = sessionRun.onStatusChange((status) => {
+      this.eventBus.emit(eventKeys.sessionRunStatus, {
+        sessionKey: sessionRun.sessionId,
+        status,
+      }, {
+        emittedAt: new Date().toISOString(),
+        source: "agent-run-request",
+      });
+      if (status === "idle") {
+        stopPublishingRunStatus();
+      }
+    });
+    this.cleanups.push(stopPublishingRunStatus);
+    const activeRun = (() => {
+      try {
+        return sessionRun.beginRun();
+      } catch (error) {
+        stopPublishingRunStatus();
+        throw error;
+      }
+    })();
 
     const model =
       request.model ?? session.model ?? this.configManager.getDefaultModel();

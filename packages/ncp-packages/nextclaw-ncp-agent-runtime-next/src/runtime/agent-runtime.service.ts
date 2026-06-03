@@ -30,14 +30,9 @@ export type AgentRuntimeSessionState = {
   readonly sessionId: string;
   readonly inbox: {
     drain(): NcpMessage[];
-    isEmpty(): boolean;
   };
   getSnapshot(): AgentRuntimeSessionStateSnapshot;
   applyEvents(events: readonly NcpEndpointEvent[]): Promise<void>;
-  applyAndPublishEvents?(
-    events: readonly NcpEndpointEvent[],
-    meta: { source: string; emittedAt?: string },
-  ): Promise<void>;
 };
 
 export type DefaultNcpAgentRuntimeRunOptions = {
@@ -328,12 +323,6 @@ export class DefaultNcpAgentRuntime {
                 contentItems: normalized.contentItems,
               },
             };
-            if (sessionRun.applyAndPublishEvents) {
-              await sessionRun.applyAndPublishEvents([event], {
-                source: "agent-runtime-tool-call-update",
-              });
-              return;
-            }
             await sessionRun.applyEvents([event]);
           };
           return availableTool.execute(args, {

@@ -11,7 +11,7 @@ export * from './utils/mcp-marketplace.utils';
 export * from './utils/ncp-attachments.utils';
 export * from './utils/ncp-session.utils';
 export * from './ncp-session.types';
-export * from './ncp-session-query-cache';
+export * from './ncp-session-query-cache.utils';
 export * from './raw-client.utils';
 export * from './utils/remote.utils';
 export * from './remote.types';

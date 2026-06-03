@@ -73,6 +73,7 @@ describe("AgentRunRequestManager branch session creation", () => {
         createSessionRun: async () => ({
           inbox: { enqueue: () => undefined },
           beginRun: () => ({ runId: "run-1", signal: new AbortController().signal }),
+          onStatusChange: () => () => undefined,
         }),
       } as never,
       { buildTools: async () => [] } as never,
@@ -141,6 +142,7 @@ describe("AgentRunRequestManager peer session identity", () => {
         createSessionRun: async () => ({
           inbox: { enqueue: () => undefined },
           beginRun: () => ({ runId: "run-1", signal: new AbortController().signal }),
+          onStatusChange: () => () => undefined,
         }),
       } as never,
       { buildTools: async () => [] } as never,
@@ -202,6 +204,102 @@ describe("AgentRunRequestManager peer session identity", () => {
 });
 
 describe("AgentRunRequestManager event publication", () => {
+  it("publishes session run status changes from the session run owner", async () => {
+    const ingress = new Ingress();
+    const eventBus = new EventBus();
+    const sessionRun = new SessionRun({ sessionId: "session-1", messages: [] });
+    const publishedEvents: NcpEndpointEvent[] = [];
+    const runStatuses: Array<{
+      sessionKey: string;
+      status: "running" | "idle";
+    }> = [];
+    eventBus.on(eventKeys.ncpEvent, (event) => {
+      publishedEvents.push(event);
+    });
+    eventBus.on(eventKeys.sessionRunStatus, (payload) => {
+      runStatuses.push(payload);
+    });
+    const assistantMessageId = "assistant-message-1";
+    const manager = new AgentRunRequestManager(
+      {
+        getOrCreate: () => ({
+          run: async function* (_spec: unknown, options: { sessionRun: SessionRun }): AsyncGenerator<NcpEndpointEvent> {
+            const events: NcpEndpointEvent[] = [
+              {
+                type: NcpEventType.RunStarted,
+                payload: { sessionId: "session-1", messageId: assistantMessageId, runId: "run-1" },
+              },
+              {
+                type: NcpEventType.MessageAbort,
+                payload: { sessionId: "session-1", messageId: assistantMessageId },
+              },
+              {
+                type: NcpEventType.MessageCompleted,
+                payload: {
+                  sessionId: "session-1",
+                  message: {
+                    id: assistantMessageId,
+                    sessionId: "session-1",
+                    role: "assistant",
+                    status: "final",
+                    timestamp: new Date().toISOString(),
+                    parts: [{ type: "text", text: "完成" }],
+                  },
+                },
+              },
+              {
+                type: NcpEventType.RunFinished,
+                payload: { sessionId: "session-1", messageId: assistantMessageId, runId: "run-1" },
+              },
+            ];
+            for (const event of events) {
+              await options.sessionRun.applyEvents([event]);
+              yield event;
+            }
+          },
+        }),
+      } as never,
+      {
+        getDefaultModel: () => "test-model",
+        getModelMaxTokens: () => 12000,
+        loadConfig: () => ({}),
+      } as never,
+      { buildContext: async () => [] } as never,
+      eventBus,
+      ingress,
+      {
+        getOrCreateAgentRunSession: async () => ({
+          sessionId: "session-1",
+          agentId: "main",
+          agentRuntimeId: "native",
+          metadata: {},
+          model: "test-model",
+          thinkingEffort: null,
+        }),
+      } as never,
+      {
+        getSessionRun: () => null,
+        createSessionRun: async () => sessionRun,
+      } as never,
+      { buildTools: async () => [] } as never,
+    );
+    manager.start();
+
+    await ingress.handle<AgentRunSendIngressPayload, NcpRunHandle>({
+      type: ingressKeys.agentRun.send,
+      payload: {
+        content: [{ type: "text", text: "开始" }],
+      },
+    }, { source: "test" });
+    await waitForEvent(publishedEvents, NcpEventType.RunFinished);
+
+    expect(runStatuses).toEqual([
+      { sessionKey: "session-1", status: "running" },
+      { sessionKey: "session-1", status: "idle" },
+    ]);
+    manager.dispose();
+  });
+
   it("publishes the final assistant message before run finished for session previews", async () => {
     const ingress = new Ingress();
     const eventBus = new EventBus();
@@ -298,7 +396,7 @@ describe("AgentRunRequestManager tool context", () => {
   it("lets the runtime publish asynchronous tool result updates from the tool call context", async () => {
     const ingress = new Ingress();
     const eventBus = new EventBus();
-    const sessionRun = new SessionRun({ sessionId: "session-1", messages: [] }, eventBus);
+    const sessionRun = new SessionRun({ sessionId: "session-1", messages: [] });
     const publishedEvents: NcpEndpointEvent[] = [];
     eventBus.on(eventKeys.ncpEvent, (event) => {
       publishedEvents.push(event);
@@ -323,14 +421,19 @@ describe("AgentRunRequestManager tool context", () => {
             await options.tools[0]?.execute({}, {
               toolCallId: "tool-call-1",
               updateToolCallResult: async (content) => {
-                await options.sessionRun.applyAndPublishEvents([{
+                const event: NcpEndpointEvent = {
                   type: NcpEventType.MessageToolCallResult,
                   payload: {
                     sessionId: "session-1",
                     toolCallId: "tool-call-1",
                     content,
                   },
-                }], { source: "test-runtime" });
+                };
+                await options.sessionRun.applyEvents([event]);
+                eventBus.emit(eventKeys.ncpEvent, event, {
+                  emittedAt: new Date().toISOString(),
+                  source: "test-runtime",
+                });
               },
             });
             yield {
