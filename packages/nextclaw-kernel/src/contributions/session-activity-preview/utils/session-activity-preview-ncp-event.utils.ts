@@ -6,6 +6,10 @@ import type {
 
 const PREVIEW_TEXT_MAX_LENGTH = 160;
 
+type SessionActivityPreviewEventOptions = {
+  readToolName?: (sessionId: string, toolCallId: string) => string | null;
+};
+
 function readSessionId(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
@@ -60,15 +64,28 @@ function formatErrorStatus(error: unknown): string {
   return "运行出错";
 }
 
+function readToolCallId(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function formatToolDoneStatus(toolName: string | null): string {
+  return toolName ? `工具调用完成：${toolName}` : "工具调用完成";
+}
+
 export function createSessionActivityPreviewFromNcpEvent(
   event: NcpEndpointEvent,
   timestamp: string,
+  options: SessionActivityPreviewEventOptions = {},
 ): SessionActivityPreviewProjection | null {
   switch (event.type) {
     case NcpEventType.RunStarted:
       return createProjection(readSessionId(event.payload.sessionId), {
         state: "running",
-        statusText: "正在处理...",
+        statusText: "正在思考",
         timestamp,
       });
     case NcpEventType.RunFinished:
@@ -117,12 +134,17 @@ export function createSessionActivityPreviewFromNcpEvent(
         timestamp,
       });
     case NcpEventType.MessageToolCallEnd:
-    case NcpEventType.MessageToolCallResult:
-      return createProjection(readSessionId(event.payload.sessionId), {
+    case NcpEventType.MessageToolCallResult: {
+      const sessionId = readSessionId(event.payload.sessionId);
+      const toolCallId = readToolCallId(event.payload.toolCallId);
+      return createProjection(sessionId, {
         state: "running",
-        statusText: "工具调用完成",
+        statusText: formatToolDoneStatus(
+          sessionId && toolCallId ? options.readToolName?.(sessionId, toolCallId) ?? null : null,
+        ),
         timestamp,
       });
+    }
     default:
       return null;
   }

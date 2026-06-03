@@ -14,6 +14,8 @@
 
 追加修复：branch 链路接管后，agent run 结束时侧边栏会话列表没有展示最终 assistant 回复预览，但工具完成状态能展示。确认根因是新 branch runtime event pipeline 只发布 `run.finished`，缺少旧链路在 `run.finished` 前合成发布的 `message.completed` 事件；而侧边栏 `last_activity_preview` 的最终回复正文来自 `message.completed.payload.message`，工具完成预览则直接来自 tool result/end 事件。修复后 `AgentRunRequestManager` 在发布 `run.finished` 前，如果本轮还没看到 `message.completed`，会从已结算的 `SessionRun` 快照中读取最终 assistant message 并补发 `message.completed`，恢复旧链路事件合同；同时删除 `SessionRun` 未被使用的订阅/notify 表面，避免 branch 运行态 owner 继续膨胀。
 
+追加优化：`SessionActivityPreviewContribution` 现在会在工具开始事件中记录本轮 `sessionId + toolCallId -> toolName`，让后续不携带 `toolName` 的 `message.tool-call-end/result` 事件也能把侧边栏预览显示为 `工具调用完成：<toolName>`。同时 `run.started` 默认文案从 `正在处理...` 改为 `正在思考`，让 AI 思考态更贴近用户理解。
+
 关联大方案：[会话运行态与持久化架构设计草案](../../designs/2026-05-23-session-runtime-architecture-design.md)。
 
 临时小方案：
@@ -44,6 +46,13 @@
 - `pnpm lint:new-code:governance`
 - `pnpm check:governance-backlog-ratchet`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs`
+- `pnpm -C packages/nextclaw-kernel test -- src/contributions/session-activity-preview/utils/session-activity-preview-ncp-event.utils.test.ts src/contributions/session-activity-preview/utils/session-activity-preview-contribution.utils.test.ts src/contributions/session-activity-preview/utils/session-activity-preview-metadata.utils.test.ts`
+- `pnpm -C packages/nextclaw-kernel exec eslint src/contributions/session-activity-preview/index.ts src/contributions/session-activity-preview/utils/session-activity-preview-ncp-event.utils.ts src/contributions/session-activity-preview/utils/session-activity-preview-ncp-event.utils.test.ts src/contributions/session-activity-preview/utils/session-activity-preview-contribution.utils.test.ts`
+- `pnpm -C packages/nextclaw-kernel exec tsc --noEmit`
+- `pnpm -C packages/nextclaw-kernel lint`
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-kernel/src/contributions/session-activity-preview/index.ts packages/nextclaw-kernel/src/contributions/session-activity-preview/utils/session-activity-preview-ncp-event.utils.ts packages/nextclaw-kernel/src/contributions/session-activity-preview/utils/session-activity-preview-ncp-event.utils.test.ts packages/nextclaw-kernel/src/contributions/session-activity-preview/utils/session-activity-preview-contribution.utils.test.ts`
+- `pnpm lint:new-code:governance`
+- `pnpm check:governance-backlog-ratchet`
 
 说明：agent-run 核心骨架初始批次不保留细粒度行为测试，避免过早固化未稳定 API；branch 链路接管后的用户可见回归必须补定向行为测试。
 
@@ -56,6 +65,8 @@
 用户可 review 两个临时方案。当前已优先推进 agent run 核心骨架；branch 链路接管后，新会话首发消息应继续把会话名显示为用户第一句话，而不是固定显示 `Session`。
 
 branch 链路接管后，agent run 完成时侧边栏会话列表预览应展示最终 assistant 回复；如果本轮发生工具调用，工具完成中的运行态预览仍可在最终回复完成前展示，但 run 完成后的 completed 预览应优先显示最终回复正文。
+
+AI 思考中时，侧边栏 activity preview 应显示 `正在思考`。工具调用完成但最终回复尚未完成时，侧边栏 activity preview 应保留工具名，例如 `工具调用完成：read_file`。
 
 ## 可维护性总结汇总
 
@@ -70,6 +81,8 @@ branch 链路接管后，agent run 完成时侧边栏会话列表预览应展示
 追加修复的正向减债动作是复用和简化：branch request manager 复用旧链路已有 `readMessageTask(...)`，避免复制标题推导规则；同时删除 `SessionRepository` 中两个只调用一次的薄 wrapper。追加修复 strict non-feature touched-scope 结果为非测试代码净增 `-4` 行，并补了 branch 专属行为测试。
 
 本次预览修复的正向减债动作是职责收敛和删除：最终回复预览合同恢复到 agent-run event publisher 边界，而不是前端预览层或 metadata 层兜底读取消息；同时删除 `SessionRun` 未使用的订阅、notify、snapshot `activeRunId` 表面和未调用的 inbox 转事件方法。当前 touched-scope 非测试代码净增为负数，并新增 branch 专属测试覆盖 `message.completed` 必须先于 `run.finished` 发布。
+
+本次 activity preview 文案优化属于用户可见行为增强，生产代码净增来自必要的短生命周期工具名索引：NCP 工具完成/结果事件合同只有 `toolCallId`，因此 preview owner 必须在同一 contribution 内记录工具开始事件的名称，再在完成事件投影中复用。maintainability guard 检查 4 个文件，Errors 0，Warnings 0；总计新增 129 行、删除 6 行、净增 123 行；非测试代码新增 75 行、删除 5 行、净增 70 行。未新增平行 preview 链路，状态仍归 `SessionActivityPreviewContribution` 单一 owner。
 
 ## NPM 包发布记录
 

@@ -15,7 +15,29 @@ describe("createSessionActivityPreviewFromNcpEvent", () => {
       sessionId: "session-1",
       preview: {
         state: "running",
-        statusText: "正在处理...",
+        statusText: "正在思考",
+        timestamp: TIMESTAMP,
+      },
+    });
+  });
+
+  it("projects tool completion with the remembered tool name", () => {
+    expect(
+      createSessionActivityPreviewFromNcpEvent({
+        type: NcpEventType.MessageToolCallResult,
+        payload: {
+          sessionId: "session-1",
+          toolCallId: "tool-call-1",
+          content: "ok",
+        },
+      }, TIMESTAMP, {
+        readToolName: (_sessionId, toolCallId) => toolCallId === "tool-call-1" ? "read_file" : null,
+      }),
+    ).toEqual({
+      sessionId: "session-1",
+      preview: {
+        state: "running",
+        statusText: "工具调用完成：read_file",
         timestamp: TIMESTAMP,
       },
     });

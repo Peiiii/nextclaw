@@ -87,4 +87,35 @@ describe("SessionActivityPreviewContribution", () => {
     });
     contribution.dispose();
   });
+
+  it("keeps the tool name visible after the tool call completes", async () => {
+    const { eventBus, getMetadata, kernel } = createKernelStub({});
+    const contribution = new SessionActivityPreviewContribution(kernel);
+    contribution.start();
+
+    eventBus.emit(eventKeys.ncpEvent, {
+      type: NcpEventType.MessageToolCallStart,
+      payload: {
+        sessionId: "session-1",
+        toolCallId: "tool-call-1",
+        toolName: "read_file",
+      },
+    });
+    eventBus.emit(eventKeys.ncpEvent, {
+      type: NcpEventType.MessageToolCallResult,
+      payload: {
+        sessionId: "session-1",
+        toolCallId: "tool-call-1",
+        content: "ok",
+      },
+    });
+
+    await flushPromises();
+
+    expect(getMetadata()[SESSION_ACTIVITY_PREVIEW_METADATA_KEY]).toMatchObject({
+      state: "running",
+      statusText: "工具调用完成：read_file",
+    });
+    contribution.dispose();
+  });
 });

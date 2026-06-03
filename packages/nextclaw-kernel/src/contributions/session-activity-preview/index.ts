@@ -1,5 +1,6 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
+import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
 import { eventKeys, type Unsubscribe } from "@nextclaw/shared";
 import type { SessionActivityPreviewProjection } from "./types/session-activity-preview.types.js";
 import { createSessionActivityPreviewFromNcpEvent } from "./utils/session-activity-preview-ncp-event.utils.js";
@@ -8,6 +9,7 @@ import { writeSessionActivityPreviewMetadata } from "./utils/session-activity-pr
 export class SessionActivityPreviewContribution implements KernelContribution {
   private unsubscribeNcpEvent: Unsubscribe | null = null;
   private readonly metadataWriteChains = new Map<string, Promise<void>>();
+  private readonly toolNames = new Map<string, string>();
 
   constructor(private readonly kernel: NextclawKernel) {}
 
@@ -16,7 +18,11 @@ export class SessionActivityPreviewContribution implements KernelContribution {
       return;
     }
     this.unsubscribeNcpEvent = this.kernel.eventBus.on(eventKeys.ncpEvent, (event) => {
-      const projection = createSessionActivityPreviewFromNcpEvent(event, new Date().toISOString());
+      this.rememberToolName(event);
+      const projection = createSessionActivityPreviewFromNcpEvent(event, new Date().toISOString(), {
+        readToolName: this.readToolName,
+      });
+      this.clearFinishedRunToolNames(event);
       if (!projection) {
         return;
       }
@@ -28,7 +34,49 @@ export class SessionActivityPreviewContribution implements KernelContribution {
     this.unsubscribeNcpEvent?.();
     this.unsubscribeNcpEvent = null;
     this.metadataWriteChains.clear();
+    this.toolNames.clear();
   };
+
+  private rememberToolName = (event: NcpEndpointEvent): void => {
+    if (event.type !== NcpEventType.MessageToolCallStart) {
+      return;
+    }
+    const sessionId = event.payload.sessionId.trim();
+    const toolCallId = event.payload.toolCallId.trim();
+    const toolName = event.payload.toolName.trim();
+    if (!sessionId || !toolCallId || !toolName) {
+      return;
+    }
+    this.toolNames.set(this.createToolNameKey(sessionId, toolCallId), toolName);
+  };
+
+  private readToolName = (sessionId: string, toolCallId: string): string | null =>
+    this.toolNames.get(this.createToolNameKey(sessionId, toolCallId)) ?? null;
+
+  private clearFinishedRunToolNames = (event: NcpEndpointEvent): void => {
+    if (event.type !== NcpEventType.RunFinished && event.type !== NcpEventType.RunError) {
+      return;
+    }
+    const sessionId = this.readNonEmptyString(event.payload.sessionId);
+    if (!sessionId) {
+      return;
+    }
+    for (const key of this.toolNames.keys()) {
+      if (key.startsWith(`${sessionId}:`)) {
+        this.toolNames.delete(key);
+      }
+    }
+  };
+
+  private readNonEmptyString = (value: unknown): string | null => {
+    if (typeof value !== "string") {
+      return null;
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  };
+
+  private createToolNameKey = (sessionId: string, toolCallId: string): string => `${sessionId}:${toolCallId}`;
 
   private updatePreview = (projection: SessionActivityPreviewProjection): void => {
     const previous = this.metadataWriteChains.get(projection.sessionId) ?? Promise.resolve();
