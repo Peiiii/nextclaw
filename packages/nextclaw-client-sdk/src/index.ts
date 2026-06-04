@@ -1,7 +1,17 @@
 export { NextClawClient } from "./nextclaw-client.manager.js";
 export { NextClawClientError } from "./services/request.service.js";
 export { eventKeys } from "@nextclaw/shared";
-export type { AppEvent, AppEventEnvelope, AppEventKey } from "@nextclaw/shared";
+export type {
+  AgentRunSendIngressPayload,
+  AppEvent,
+  AppEventEnvelope,
+  AppEventKey
+} from "@nextclaw/shared";
+export type {
+  NextClawAgentRunStreamHandler,
+  NextClawAgentRunStreamOptions,
+  NextClawAgentRunStreamSubscription
+} from "./services/agent-runs.service.js";
 export type {
   NextClawClientOptions,
   NextClawRealtimeHandler,
@@ -133,7 +143,13 @@ export type {
   UiNcpSessionMessagesView,
   UiServerEvent
 } from "@nextclaw/server";
-export type { NcpSessionSummary } from "@nextclaw/ncp";
+export type {
+  NcpEndpointEvent,
+  NcpMessageAbortPayload,
+  NcpRunHandle,
+  NcpSessionSummary,
+  NcpStreamRequestPayload
+} from "@nextclaw/ncp";
 export type { UpdatePreferences, UpdateSnapshot } from "@nextclaw/shared";
 export type ChannelConfigUpdate = Record<string, unknown>;
 export type PanelAppPreferencesUpdateView = { favorite?: boolean };

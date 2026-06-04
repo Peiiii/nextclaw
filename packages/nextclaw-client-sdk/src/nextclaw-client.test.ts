@@ -39,6 +39,92 @@ describe("@nextclaw/client-sdk", () => {
     );
   });
 
+  it("maps agent run send and abort to the standard agent-runs api", async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.endsWith("/api/agent-runs/send")) {
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            data: {
+              sessionId: "session-1",
+              userMessageId: "user-1",
+              assistantMessageId: null,
+              runId: "run-1"
+            }
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          data: { accepted: true }
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    });
+    const client = new NextClawClient({
+      baseUrl: "http://127.0.0.1:55667/",
+      fetchImpl
+    });
+
+    await expect(client.agentRuns.send({
+      content: [{ type: "text", text: "hello" }],
+      metadata: { agentId: "writer/default" }
+    })).resolves.toMatchObject({
+      runId: "run-1",
+      sessionId: "session-1"
+    });
+    await expect(client.agentRuns.abort({ sessionId: "session-1" }))
+      .resolves.toEqual({ accepted: true });
+
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      1,
+      "http://127.0.0.1:55667/api/agent-runs/send",
+      expect.objectContaining({ method: "POST" })
+    );
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      2,
+      "http://127.0.0.1:55667/api/agent-runs/abort",
+      expect.objectContaining({ method: "POST" })
+    );
+  });
+
+  it("streams agent run events from the standard agent-runs api", async () => {
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(
+          "event: ncp-event\n" +
+          "data: {\"type\":\"run.started\",\"payload\":{\"sessionId\":\"session-1\",\"runId\":\"run-1\"}}\n\n"
+        ));
+        controller.close();
+      }
+    });
+    const fetchImpl = vi.fn(async () => new Response(stream, {
+      status: 200,
+      headers: { "Content-Type": "text/event-stream" }
+    }));
+    const client = new NextClawClient({
+      baseUrl: "http://127.0.0.1:55667",
+      fetchImpl
+    });
+    const events: unknown[] = [];
+
+    client.agentRuns.stream({ sessionId: "session-1" }, (event) => {
+      events.push(event);
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(events).toEqual([
+      { type: "run.started", payload: { sessionId: "session-1", runId: "run-1" } }
+    ]);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "http://127.0.0.1:55667/api/agent-runs/stream?sessionId=session-1",
+      expect.objectContaining({ method: "GET" })
+    );
+  });
+
   it("reconnects websocket subscriptions through the shared realtime service", () => {
     vi.useFakeTimers();
     const sockets: Array<{

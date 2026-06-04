@@ -34,6 +34,7 @@ import { ServerPathRoutesController } from "@nextclaw-server/features/server-pat
 import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 
 const NCP_AGENT_BASE_PATH = "/api/ncp/agent";
+const AGENT_RUNS_BASE_PATH = "/api/agent-runs";
 
 function createUiRouteControllers(
   options: UiRouterOptions,
@@ -137,11 +138,11 @@ class UiRouteRegistry {
     }
   };
 
-  private readonly mountNcpAgentRoutes = (
+  private readonly mountAgentRunRoutes = (
+    basePath: string,
     kernel: UiRouterOptions["kernel"],
-    ncpAsset: UiRouteControllers["ncpAsset"],
   ): void => {
-    this.app.post(`${NCP_AGENT_BASE_PATH}/send`, async (c) => {
+    this.app.post(`${basePath}/send`, async (c) => {
       const body = await readJson<AgentRunSendIngressPayload>(c.req.raw);
       if (!body.ok || !isValidSendEnvelope(body.data)) {
         return c.json(err("INVALID_BODY", "Invalid NCP request envelope."), 400);
@@ -155,14 +156,14 @@ class UiRouteRegistry {
       );
       return c.json(ok(handle));
     });
-    this.app.get(`${NCP_AGENT_BASE_PATH}/stream`, (c) => {
+    this.app.get(`${basePath}/stream`, (c) => {
       const payload = readStreamPayload(c.req.raw.url);
       if (!payload) {
         return c.json(err("INVALID_QUERY", "sessionId is required."), 400);
       }
       return createNcpSessionEventStreamResponse(kernel.eventBus, payload, c.req.raw.signal);
     });
-    this.app.post(`${NCP_AGENT_BASE_PATH}/abort`, async (c) => {
+    this.app.post(`${basePath}/abort`, async (c) => {
       const body = await readJson<NcpMessageAbortPayload>(c.req.raw);
       if (!body.ok || !isAbortPayload(body.data)) {
         return c.json(err("INVALID_BODY", "sessionId is required."), 400);
@@ -176,6 +177,13 @@ class UiRouteRegistry {
       );
       return c.json(ok({ accepted: true }));
     });
+  };
+
+  private readonly mountNcpAgentRoutes = (
+    kernel: UiRouterOptions["kernel"],
+    ncpAsset: UiRouteControllers["ncpAsset"],
+  ): void => {
+    this.mountAgentRunRoutes(NCP_AGENT_BASE_PATH, kernel);
     this.mountRoutes([
       ["post", "/api/ncp/assets", ncpAsset.putAssets],
       ["get", "/api/ncp/assets/content", ncpAsset.getAssetContent],
@@ -283,6 +291,7 @@ class UiRouteRegistry {
       ["post", "/api/config/actions/:actionId/execute", config.executeAction],
     ]);
     this.mountResourceRoutes();
+    this.mountAgentRunRoutes(AGENT_RUNS_BASE_PATH, this.options.kernel);
     this.mountNcpAgentRoutes(this.options.kernel, ncpAsset);
     this.mountRoutes([
       ["get", "/api/cron", cron.listJobs],

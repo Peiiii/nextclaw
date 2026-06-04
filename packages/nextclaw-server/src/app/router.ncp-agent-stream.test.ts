@@ -92,3 +92,32 @@ it("streams context-window updates through the ncp agent SSE route", async () =>
   expect(body).toContain("\"type\":\"context-window.updated\"");
   expect(body).toContain("\"usedContextTokens\":12");
 });
+
+it("streams ncp events through the standard agent-runs SSE route", async () => {
+  const eventBus = new EventBus();
+  const app = createTestApp(eventBus);
+  const controller = new AbortController();
+  const response = await app.request(
+    new Request("http://localhost/api/agent-runs/stream?sessionId=session-1", {
+      signal: controller.signal,
+    }),
+  );
+  const reader = response.body?.getReader();
+  eventBus.emit(eventKeys.ncpEvent, {
+    type: NcpEventType.RunStarted,
+    payload: {
+      runId: "run-1",
+      sessionId: "session-1",
+    },
+  });
+  const chunk = await reader?.read();
+  controller.abort();
+  reader?.releaseLock();
+  const body = new TextDecoder().decode(chunk?.value);
+
+  expect(response.status).toBe(200);
+  expect(response.headers.get("content-type")).toContain("text/event-stream");
+  expect(body).toContain("event: ncp-event");
+  expect(body).toContain("\"type\":\"run.started\"");
+  expect(body).toContain("\"runId\":\"run-1\"");
+});

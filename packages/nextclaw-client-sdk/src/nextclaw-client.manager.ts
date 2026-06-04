@@ -2,6 +2,7 @@ import { EventBus } from "@nextclaw/shared";
 import type { NextClawClientOptions } from "./types/nextclaw-request.types.js";
 import type { NextClawRealtimeSubscription } from "./types/nextclaw-realtime.types.js";
 import { normalizeBaseUrl } from "./utils/url.utils.js";
+import { AgentRunsService } from "./services/agent-runs.service.js";
 import { AgentsService } from "./services/agents.service.js";
 import { AppService } from "./services/app.service.js";
 import { AuthService } from "./services/auth.service.js";
@@ -22,6 +23,7 @@ import { SessionsService } from "./services/sessions.service.js";
 
 export class NextClawClient {
   readonly baseUrl: string;
+  readonly agentRuns: AgentRunsService;
   readonly app: AppService;
   readonly agents: AgentsService;
   readonly auth: AuthService;
@@ -65,6 +67,7 @@ export class NextClawClient {
         realtimeSubscription = null;
       }
     });
+    this.agentRuns = new AgentRunsService(requestService, normalizedOptions);
     this.app = new AppService(requestService);
     this.agents = new AgentsService(requestService, this.baseUrl);
     this.auth = new AuthService(requestService);
