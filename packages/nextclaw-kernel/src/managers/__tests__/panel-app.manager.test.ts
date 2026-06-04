@@ -363,6 +363,7 @@ describe("PanelAppManager bridge and client injection", () => {
     expect(content.clientGranted).toBe(true);
     expect(content.html).toContain("<script src=\"/api/panel-app-client-sdk.js\"></script>");
     expect(content.html).toContain("window.NextClawClient");
+    expect(content.html).toContain("window.createNextClawAppClient");
     expect(content.html).toContain("\"x-nextclaw-panel-bridge-session\"");
   });
 });

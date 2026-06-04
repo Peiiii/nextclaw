@@ -1,7 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
-import { eventKeys, NextClawClient, NextClawClientError } from "./index.js";
+import { expect, it, vi } from "vitest";
+import {
+  createNextClawAppClient,
+  eventKeys,
+  NextClawClient,
+  NextClawClientError
+} from "./index.js";
 
-describe("@nextclaw/client-sdk", () => {
   it("lists sessions from the existing ncp api", async () => {
     const fetchImpl = vi.fn(async () => {
       return new Response(
@@ -125,6 +129,65 @@ describe("@nextclaw/client-sdk", () => {
     );
   });
 
+  it("projects the app-facing client without exposing host-only namespaces", () => {
+    const hostClient = new NextClawClient({
+      baseUrl: "http://127.0.0.1:55667"
+    });
+    const appClient = createNextClawAppClient(hostClient);
+
+    expect(Object.keys(appClient).sort()).toEqual([
+      "agentRuns",
+      "agents",
+      "assets",
+      "events",
+      "serviceActions",
+      "sessions"
+    ]);
+    expect("config" in appClient).toBe(false);
+    expect("eventBus" in appClient).toBe(false);
+    expect("panelApps" in appClient).toBe(false);
+    expect("runtimeControl" in appClient).toBe(false);
+    expect("serviceApps" in appClient).toBe(false);
+    expect(appClient.sessions.list).toBe(hostClient.sessions.list);
+    expect(appClient.agents.resolveAvatarUrl).toBe(hostClient.agents.resolveAvatarUrl);
+    expect(appClient.agentRuns.send).toBe(hostClient.agentRuns.send);
+    expect(appClient.agentRuns.stream).toBe(hostClient.agentRuns.stream);
+    expect(appClient.agentRuns.abort).toBe(hostClient.agentRuns.abort);
+    expect(appClient.serviceActions.list).toBe(hostClient.serviceApps.listServiceActions);
+    expect(appClient.serviceActions.invoke).toBe(hostClient.serviceApps.invokeServiceAction);
+    expect(appClient.assets.upload).toBe(hostClient.sessions.uploadAssets);
+    expect(appClient.events.subscribe).toBe(hostClient.realtime.subscribe);
+  });
+
+  it("uses host client methods through the app-facing projection", async () => {
+    const fetchImpl = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          data: {
+            sessions: [],
+            total: 0
+          }
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    });
+    const hostClient = new NextClawClient({
+      baseUrl: "http://127.0.0.1:55667",
+      fetchImpl
+    });
+    const appClient = createNextClawAppClient(hostClient);
+
+    await expect(appClient.sessions.list()).resolves.toEqual({
+      sessions: [],
+      total: 0
+    });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "http://127.0.0.1:55667/api/ncp/sessions",
+      expect.objectContaining({ method: "GET" })
+    );
+  });
+
   it("reconnects websocket subscriptions through the shared realtime service", () => {
     vi.useFakeTimers();
     const sockets: Array<{
@@ -221,4 +284,3 @@ describe("@nextclaw/client-sdk", () => {
       status: 403
     });
   });
-});

@@ -1,3 +1,8 @@
+export {
+  createNextClawAppClient,
+  type NextClawAppClient,
+  type NextClawPanelAppNamespace
+} from "./nextclaw-app-client.utils.js";
 export { NextClawClient } from "./nextclaw-client.manager.js";
 export { NextClawClientError } from "./services/request.service.js";
 export { eventKeys } from "@nextclaw/shared";

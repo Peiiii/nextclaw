@@ -28,13 +28,18 @@ function getPanelAppClientInitScript(params: { runtimeToken: string }): string {
     console.error("[NextClaw] Panel App client SDK failed to load.");
     return;
   }
+  if (typeof window.createNextClawAppClient !== "function") {
+    console.error("[NextClaw] Panel App client projection failed to load.");
+    return;
+  }
   const existing = window.nextclaw && typeof window.nextclaw === "object" ? window.nextclaw : {};
-  const client = new window.NextClawClient({
+  const hostClient = new window.NextClawClient({
     baseUrl: window.location.origin,
     headers: {
       "x-nextclaw-panel-bridge-session": ${runtimeToken}
     }
   });
+  const client = window.createNextClawAppClient(hostClient);
   Object.defineProperty(window, "nextclaw", {
     configurable: true,
     value: {
