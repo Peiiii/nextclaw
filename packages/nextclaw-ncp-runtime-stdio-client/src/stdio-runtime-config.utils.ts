@@ -1,4 +1,5 @@
 import type { OpenAITool, NcpProviderRuntimeRoute } from "@nextclaw/ncp";
+import { createRuntimeChildEnv } from "@nextclaw/core/child-process-env";
 
 export const NARP_STDIO_PROMPT_META_KEY = "nextclaw_narp";
 const DEFAULT_STARTUP_TIMEOUT_MS = 10_000;
@@ -173,15 +174,10 @@ export function buildStdioRuntimeLaunchEnv(params: {
   configEnv?: StdioRuntimeEnv;
   providerRoute?: NcpProviderRuntimeRoute;
 }): Record<string, string> {
-  const baseEnv: Record<string, string> = {};
-  for (const [key, value] of Object.entries(params.baseEnv ?? process.env)) {
-    if (typeof value === "string") {
-      baseEnv[key] = value;
-    }
-  }
   return {
-    ...baseEnv,
-    ...(params.configEnv ?? {}),
+    ...createRuntimeChildEnv(params.baseEnv ?? process.env, params.configEnv, {
+      inheritBaseEnv: true,
+    }),
     ...buildRuntimeRouteBridgeEnv({
       providerRoute: params.providerRoute,
     }),

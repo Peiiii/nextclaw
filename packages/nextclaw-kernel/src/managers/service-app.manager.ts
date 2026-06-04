@@ -110,7 +110,7 @@ export class ServiceAppManager {
       ? [await this.requireServiceApp(params.appId)]
       : await this.listValidServiceApps();
     const actions = manifests.flatMap(({ manifest, record }) =>
-      this.listManifestActions(record, manifest),
+      listServiceAppManifestActions(record, manifest),
     );
     return await Promise.all(
       actions.map(async (action) => await this.withGrantState(action, params)),
@@ -244,7 +244,7 @@ export class ServiceAppManager {
 
   private requireServiceAction = async (actionId: string): Promise<ServiceAction> => {
     const { manifest, record } = await this.requireServiceAppForAction(actionId);
-    const action = this.listManifestActions(record, manifest)
+    const action = listServiceAppManifestActions(record, manifest)
       .find((entry) => entry.id === actionId);
     if (!action) {
       throw new ServiceAppError("SERVICE_APP_ACTION_NOT_FOUND", "service action not found");
@@ -261,11 +261,6 @@ export class ServiceAppManager {
     }
     return await this.requireServiceApp(appId);
   };
-
-  private listManifestActions = (
-    record: ServiceAppRecord,
-    manifest: ServiceAppManifest,
-  ): ServiceAction[] => listServiceAppManifestActions(record, manifest);
 
   private requireServiceApp = async (
     appId: string,
@@ -357,9 +352,10 @@ export class ServiceAppManager {
     manifest: ServiceAppManifest,
   ): ServiceAppRecord => {
     const runtimeStatus = this.runtimeService.getStatus(manifest.id);
-    const record: ServiceAppRecord = {
+    return {
       id: manifest.id,
       title: manifest.title,
+      description: manifest.description,
       dirPath,
       manifestPath: getServiceAppManifestPath(dirPath),
       command: manifest.command,
@@ -368,23 +364,11 @@ export class ServiceAppManager {
       enabled: manifest.enabled,
       protocol: manifest.protocol,
       status: manifest.enabled ? runtimeStatus.status : "stopped",
+      lastError: runtimeStatus.lastError,
+      lastStartedAt: runtimeStatus.lastStartedAt,
+      lastReadyAt: runtimeStatus.lastReadyAt,
+      lastFailedAt: runtimeStatus.lastFailedAt,
     };
-    if (manifest.description) {
-      record.description = manifest.description;
-    }
-    if (runtimeStatus.lastError) {
-      record.lastError = runtimeStatus.lastError;
-    }
-    if (runtimeStatus.lastStartedAt) {
-      record.lastStartedAt = runtimeStatus.lastStartedAt;
-    }
-    if (runtimeStatus.lastReadyAt) {
-      record.lastReadyAt = runtimeStatus.lastReadyAt;
-    }
-    if (runtimeStatus.lastFailedAt) {
-      record.lastFailedAt = runtimeStatus.lastFailedAt;
-    }
-    return record;
   };
 
   private assertCaller = (caller: ServiceActionCaller): void => {
@@ -443,8 +427,7 @@ export class ServiceAppManager {
   };
 
   private isMissingFileError = (error: unknown): boolean =>
-    Boolean(error) &&
-    typeof error === "object" &&
+    typeof error === "object" && error !== null &&
     (error as { code?: unknown }).code === "ENOENT";
 }
 

@@ -64,7 +64,7 @@
 - 第一步：先对齐目标与成功标准，明确这是新增用户能力还是非功能改动，并先定义可观察验收条件。
   默认联动：`nextclaw-delivery-workflow`。
   条件联动：复杂 debug 用 `long-chain-debugging`；复杂跨轮或易漂移任务用 `iteration-work-notes`，必要时加 `goal-progress-anchor`。
-- 第二步：实现前先判断能删什么、能合并什么、owner 是谁；若不是新增用户能力，默认目标是 `非测试代码净增 <= 0`，并优先通过删旧实现、重构收敛或相关链路减债达成；不要求删减只发生在当前改动点，但禁止靠 hack、强行压行或牺牲可读性硬过线。
+- 第二步：实现前先判断能删什么、能合并什么、owner 是谁；若不是新增用户能力，默认目标是 `非测试代码净增 <= 0`，并优先通过删旧实现、重构收敛或相关链路减债达成；完成标准是系统确实变得更好，不能靠 hack、强行压行或牺牲可读性硬过线；若找不到无争议的正向改动，必须停止压缩并申请豁免。
   默认联动：`nextclaw-clean-implementation`。
   条件联动：涉及 fallback / compatibility / rescue path 用 `predictable-behavior-first`；涉及命名、目录、文件组织时按场景用 `file-naming-convention`、`role-first-file-organization`、`collapsible-feature-root-architecture`、`file-organization-governance`。
 - 第三步：再进入实现，优先单一路径、清晰 owner、避免补丁式分支和重复实现。
@@ -84,7 +84,7 @@
 
 - 代码目标默认不是“最小 diff”，而是在满足目标前提下让系统更少、更简单、更清晰、更可预测。
 - 单一链路优先是核心编码理念：同一事实、事件、状态变更或传输语义默认只能有一条标准主链路；发现平行通道、双写路径、重复 publisher、重复 facade 或多套入口时，优先删除并收敛到唯一 owner / 唯一总线 / 唯一 mutation API。
-- 新增之前先判断能否删除、合并、复用、收敛职责；非新增用户能力的改动默认应避免生产代码净增长，优先通过删除旧实现、重构收敛职责或在同责任链/同问题域偿还债务达成；不要求删减只发生在当前改动点，但禁止通过 hack、把复杂度外移、缩短命名/折叠语句等强行压缩来伪造净减。
+- 新增之前先判断能否删除、合并、复用、收敛职责；非新增用户能力的改动默认应避免生产代码净增长，优先通过删除旧实现、重构收敛职责或在同责任链/同问题域偿还债务达成；不要求删减只发生在当前改动点，但只接受让系统更清晰、更少或更可预测的真实改善；若只能靠 hack、把复杂度外移、缩短命名/折叠语句等方式伪造净减，必须申请豁免而不是继续压缩。
 - 业务逻辑默认必须有清晰 owner，通常落到 class / manager / service / controller / presenter；普通函数只用于纯常量、纯类型、极小纯计算、纯数据映射、纯业务无关工具。
 - 业务层之间默认传递并依赖 owner 对象，而不是拆成一堆小参数；只有纯工具、纯计算或跨业务解耦边界才传最小小参数。
 - 使用 class 承载业务逻辑时，新增或触达的实例方法默认写成箭头函数 class field；`constructor`、`get/set`、`static`、`abstract`、`override`、decorator、async generator 方法按语义例外处理。
@@ -94,7 +94,7 @@
 - React `useEffect` / `useLayoutEffect` 是高优先级克制项，默认先避免、尽量减少；新增或保留 effect 必须能说明它是在同步外部系统，业务编排、状态迁移、query/store 镜像应回到 query/view hook、store、manager 或 presenter。
 - 生命周期 owner 的订阅、临时 stream、watcher、runtime dispose 等清理职责默认收敛到 `cleanups` / `disposables` collection，`dispose/stop` 统一 drain；避免多个平行 nullable cleanup 字段或按资源类型散落清理逻辑。
 - 不允许同一功能、职责链路、数据变换、组件表面或交互结构出现平行重复实现；新增前先查找可复用实现。
-- 跨 workspace package 依赖默认只能导入对方 package 根公共入口；禁止从另一个 workspace 直接 deep import `shared/`、`commands/`、`src/` 等内部子路径。
+- 跨 workspace package 依赖默认只能导入对方 package 根公共入口，或对方 `package.json` 明确声明的 `exports` 子入口；禁止从另一个 workspace 直接 deep import `shared/`、`commands/`、`src/` 等内部子路径。
 - 禁止为修复跨包编译或导入问题，在消费者包 `tsconfig` 中新增指向另一个包内部目录的子路径 alias；应收敛到根级 workspace paths owner、被依赖包公共入口或 package 自身 `exports`。
 - 禁止用结构性搬运替代语义建模：小字段、小状态或局部行为若需要多层透传、手写接口 proxy、原样转发方法，必须先回到真正的数据生成者或语义 owner。
 - 前端 UI 默认复用现有展示组件、图标和设计体系；同一骨架多变体优先配置驱动和组合式设计，避免复制 JSX 和样式。

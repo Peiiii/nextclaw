@@ -9,13 +9,19 @@
       "development": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./child-process-env": {
+      "development": "./src/shared/lib/core-utils/utils/child-process-env.utils.ts",
+      "types": "./src/shared/lib/core-utils/utils/child-process-env.utils.ts",
+      "default": "./dist/shared/lib/core-utils/utils/child-process-env.utils.js"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src/shared/lib/core-utils/utils/child-process-env.utils.ts"
   ],
   "scripts": {
-    "build": "tsdown src/index.ts src/features/llm-providers/providers/types.ts src/features/session-search/worker/session-search-worker-host.utils.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension && node scripts/copy-skills.mjs",
+    "build": "tsdown src/index.ts src/features/llm-providers/providers/types.ts src/features/session-search/worker/session-search-worker-host.utils.ts src/shared/lib/core-utils/utils/child-process-env.utils.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension && node scripts/copy-skills.mjs",
     "prepack": "pnpm run build",
     "lint": "eslint .",
     "tsc": "tsc -p tsconfig.json",

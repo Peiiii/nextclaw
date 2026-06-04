@@ -1,10 +1,11 @@
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it, vi } from "vitest";
 import { ExecTool } from "./shell.tools.js";
 import {
   createExternalCommandEnv,
+  createRuntimeChildEnv,
   NEXTCLAW_COMMAND_SURFACE_BIN_ENV,
   sanitizeNodeOptionsForExternalCommand
 } from "@core/shared/lib/core-utils/index.js";
@@ -226,5 +227,47 @@ describe("createExternalCommandEnv", () => {
     });
 
     expect(String(env.PATH ?? "").split(":")).not.toContain("/tmp/nextclaw-missing-command-surface-bin");
+  });
+});
+
+describe("createRuntimeChildEnv", () => {
+  const nodeBinDir = dirname(process.execPath);
+  const splitPath = (value: string | undefined): string[] =>
+    (value ?? "").split(delimiter).filter(Boolean);
+
+  it("appends the current node bin directory without inheriting unrelated base env", () => {
+    const env = createRuntimeChildEnv({
+      NODE_OPTIONS: "--require=/tmp/missing-hook.cjs",
+      PATH: ["/usr/bin", "/bin"].join(delimiter),
+    });
+
+    expect(splitPath(env.PATH)).toEqual(["/usr/bin", "/bin", nodeBinDir]);
+    expect(env.NODE_OPTIONS).toBeUndefined();
+  });
+
+  it("preserves manual PATH order and avoids duplicate node bin entries", () => {
+    const originalEntries = [nodeBinDir, "/opt/homebrew/bin", "/usr/bin", "/bin"];
+    const env = createRuntimeChildEnv({ PATH: originalEntries.join(delimiter) });
+
+    expect(splitPath(env.PATH)).toEqual(originalEntries);
+  });
+
+  it("preserves the existing Windows-style Path key", () => {
+    const env = createRuntimeChildEnv({ Path: ["/windows/System32"].join(delimiter) });
+
+    expect(env.PATH).toBeUndefined();
+    expect(splitPath(env.Path)).toEqual(["/windows/System32", nodeBinDir]);
+  });
+
+  it("can preserve the full base env for direct spawn callers", () => {
+    const env = createRuntimeChildEnv(
+      { PATH: "/usr/bin", KEEP: "base" },
+      { NEXTCLAW_HOME: "/tmp/nextclaw-home" },
+      { inheritBaseEnv: true },
+    );
+
+    expect(env.KEEP).toBe("base");
+    expect(env.NEXTCLAW_HOME).toBe("/tmp/nextclaw-home");
+    expect(splitPath(env.PATH)).toEqual(["/usr/bin", nodeBinDir]);
   });
 });

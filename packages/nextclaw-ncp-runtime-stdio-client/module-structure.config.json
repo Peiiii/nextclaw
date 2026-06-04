@@ -2,5 +2,16 @@
   "contractKind": "protocol",
   "protocol": "app-l1",
   "rootPolicy": "contract-only",
-  "enforcement": "error"
+  "enforcement": "error",
+  "allowedRootFiles": [
+    "index.ts",
+    "stdio-runtime-abort.test.ts",
+    "stdio-runtime-config.utils.ts",
+    "stdio-runtime-error.utils.ts",
+    "stdio-runtime-probe.utils.ts",
+    "stdio-runtime-tool-name.utils.ts",
+    "stdio-runtime.service.ts",
+    "stdio-runtime.test.ts"
+  ],
+  "allowedRootDirectories": ["test-fixtures"]
 }

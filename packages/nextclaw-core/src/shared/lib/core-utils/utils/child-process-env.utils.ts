@@ -21,6 +21,17 @@ function splitPathEntries(rawPath: string): string[] {
     .filter(Boolean);
 }
 
+function copyStringEnv(env: NodeJS.ProcessEnv): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(env).filter(([, value]) => typeof value === "string"),
+  ) as Record<string, string>;
+}
+
+export type RuntimeChildEnvOptions = {
+  execPath?: string;
+  inheritBaseEnv?: boolean;
+};
+
 function collectNodeModulesBinDirs(cwd: string): string[] {
   const entries: string[] = [];
   let current = resolve(cwd);
@@ -94,6 +105,23 @@ export function sanitizeNodeOptionsForExternalCommand(nodeOptions?: string): str
     .replace(/\s+/g, " ")
     .trim();
   return sanitized || undefined;
+}
+
+export function createRuntimeChildEnv(
+  baseEnv: NodeJS.ProcessEnv = process.env,
+  extraEnv: NodeJS.ProcessEnv = {},
+  options: RuntimeChildEnvOptions = {},
+): Record<string, string> {
+  const env = options.inheritBaseEnv
+    ? { ...copyStringEnv(baseEnv), ...copyStringEnv(extraEnv) }
+    : copyStringEnv(extraEnv);
+  const pathKey = resolvePathKey({ ...baseEnv, ...extraEnv });
+  env[pathKey] = Array.from(new Set([
+    ...splitPathEntries(baseEnv[pathKey] ?? ""),
+    ...splitPathEntries(extraEnv[pathKey] ?? ""),
+    dirname(options.execPath ?? process.execPath),
+  ])).join(delimiter);
+  return env;
 }
 
 export function createExternalCommandEnv(

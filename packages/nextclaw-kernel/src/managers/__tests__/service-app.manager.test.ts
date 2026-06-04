@@ -98,6 +98,55 @@ afterEach(() => {
   }
 });
 
+describe("ServiceAppManager runtime env", () => {
+  it("runs a node command service app when the parent process PATH is minimal", async () => {
+    const originalPath = process.env.PATH;
+    const originalNodeOptions = process.env.NODE_OPTIONS;
+    process.env.PATH = ["/usr/bin", "/bin"].join(":");
+    process.env.NODE_OPTIONS = "--require=/tmp/nextclaw-missing-node-options-hook.cjs";
+    const workspacePath = createTempDir();
+    writeServiceApp(workspacePath, {
+      command: "node",
+      args: [mcpFixturePath, "stdio"],
+      actions: {
+        echo: { risk: "read" },
+      },
+    });
+    const manager = new ServiceAppManager({
+      configManager: createConfigManager(workspacePath),
+    });
+    const caller: ServiceActionCaller = { surface: "panel-app", appId: "todo-panel" };
+
+    try {
+      await manager.grantServiceAction("notes.echo", {
+        caller,
+        declaredActions: ["notes.echo"],
+      });
+      await expect(manager.invokeServiceAction("notes.echo", {
+        caller,
+        declaredActions: ["notes.echo"],
+      })).resolves.toEqual({
+        actionId: "notes.echo",
+        result: expect.objectContaining({
+          content: [expect.objectContaining({ text: "echo:ok" })],
+        }),
+      });
+    } finally {
+      await manager.dispose();
+      if (originalPath === undefined) {
+        delete process.env.PATH;
+      } else {
+        process.env.PATH = originalPath;
+      }
+      if (originalNodeOptions === undefined) {
+        delete process.env.NODE_OPTIONS;
+      } else {
+        process.env.NODE_OPTIONS = originalNodeOptions;
+      }
+    }
+  });
+});
+
 describe("ServiceAppManager", () => {
   it("discovers and invokes a real MCP-backed service app after grant", async () => {
     const workspacePath = createTempDir();

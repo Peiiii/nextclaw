@@ -25,6 +25,7 @@
   ],
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.19.0",
+    "@nextclaw/core": "workspace:*",
     "@nextclaw/ncp": "workspace:*"
   },
   "devDependencies": {

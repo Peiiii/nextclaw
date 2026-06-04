@@ -1496,6 +1496,9 @@ importers:
       '@agentclientprotocol/sdk':
         specifier: ^0.19.0
         version: 0.19.0(zod@4.3.6)
+      '@nextclaw/core':
+        specifier: workspace:*
+        version: link:../nextclaw-core
       '@nextclaw/ncp':
         specifier: workspace:*
         version: link:../ncp-packages/nextclaw-ncp

@@ -17,7 +17,7 @@ const usage = `Usage:
   node scripts/governance/lint-new-code-package-public-imports.mjs --base origin/main
   node scripts/governance/lint-new-code-package-public-imports.mjs -- packages/nextclaw/src
 
-Blocks cross-workspace package deep imports. A workspace may import another workspace package only through its package root public entry.`;
+Blocks cross-workspace package deep imports. A workspace may import another workspace package only through its package root public entry or an explicit package.json exports subpath.`;
 
 const workspaceRootNames = ["apps", "packages", "workers"];
 const codeFilePattern = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
@@ -25,6 +25,14 @@ const codeFilePattern = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
 const normalizePath = (value) => value.split(path.sep).join("/");
 
 const readJson = (filePath) => JSON.parse(fs.readFileSync(filePath, "utf8"));
+
+const collectExportedSubpaths = (exportsValue) => new Set(
+  exportsValue && typeof exportsValue === "object" && !Array.isArray(exportsValue)
+    ? Object.keys(exportsValue)
+      .filter((key) => key.startsWith("./") && key !== "./")
+      .map((key) => key.slice(2))
+    : [],
+);
 
 const collectWorkspacePackages = () => {
   const packages = [];
@@ -37,6 +45,7 @@ const collectWorkspacePackages = () => {
         packages.push({
           name: packageJson.name,
           rootPath: normalizePath(path.relative(rootDir, absoluteDir)),
+          exportedSubpaths: collectExportedSubpaths(packageJson.exports),
         });
       }
       return;
@@ -148,12 +157,15 @@ export const collectPackagePublicImportViolations = (filePaths, workspacePackage
       if (resolvedImport.targetPackage.rootPath === importerPackage.rootPath) {
         continue;
       }
+      if (resolvedImport.targetPackage.exportedSubpaths.has(resolvedImport.subpath)) {
+        continue;
+      }
       findings.push({
         filePath,
         line: specifier.line,
         column: specifier.column,
         level: "error",
-        message: `cross-workspace package imports must use '${resolvedImport.packageName}' public root instead of deep importing '${specifier.value}'`,
+        message: `cross-workspace package imports must use '${resolvedImport.packageName}' public root or an explicit package.json exports subpath instead of deep importing '${specifier.value}'`,
       });
     }
   }

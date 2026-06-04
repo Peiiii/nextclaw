@@ -1,9 +1,10 @@
-import { join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
 import {
+  buildStdioRuntimeLaunchEnv,
   probeStdioRuntime,
   StdioRuntimeConfigResolver,
   StdioRuntimeNcpAgentRuntime,
@@ -76,6 +77,28 @@ describe("StdioRuntimeConfigResolver", () => {
       probeTimeoutMs: 2222,
       requestTimeoutMs: 4567,
     });
+  });
+});
+
+describe("buildStdioRuntimeLaunchEnv", () => {
+  it("preserves base env for direct spawn while appending the current node bin directory", () => {
+    const env = buildStdioRuntimeLaunchEnv({
+      baseEnv: {
+        KEEP: "base",
+        PATH: ["/usr/bin", "/bin"].join(delimiter),
+      },
+      configEnv: {
+        EXTRA: "config",
+      },
+    });
+
+    expect(env.KEEP).toBe("base");
+    expect(env.EXTRA).toBe("config");
+    expect(env.PATH?.split(delimiter)).toEqual([
+      "/usr/bin",
+      "/bin",
+      dirname(process.execPath),
+    ]);
   });
 });
 
