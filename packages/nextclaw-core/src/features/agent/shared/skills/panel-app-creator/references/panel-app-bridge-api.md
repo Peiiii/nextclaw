@@ -146,18 +146,95 @@ const sessions = await client.sessions.list();
 
 - 标准 NextClaw 客户端能力：声明 `client: true`，授权后可以用 `window.nextclaw.client`。
 - 标准 Agent Run：可以用 `client.agentRuns.send()` 和 `client.agentRuns.abort()`。
-- **流式 Agent 回复**：`client.agentRuns.stream()` 在 Panel App 中会抛错（host 已有 transport，无法再开一个）。需要流式输出时，改用 `client.events.subscribe()` 监听 `message.*` WebSocket 事件，配合 `client.agentRuns.send()` 触发 run。示例：
+- **流式 Agent 回复**：`client.agentRuns.stream()` 在 Panel App 中会抛错（host 已有 transport，无法再开一个）。需要流式输出时，改用 `client.events.subscribe()` 监听实时事件，配合 `client.agentRuns.send()` 触发 run。
+
+  **事件类型与 payload 结构**（NcpEndpointEvent）：
+
+  | 事件类型 | payload 字段 | 说明 |
+  |---|---|---|
+  | `text.start` | `{ sessionId, messageId }` | 文本段开始 |
+  | `text.delta` | `{ sessionId, messageId, delta }` | 文本增量追加 |
+  | `text.end` | `{ sessionId, messageId }` | 文本段结束 |
+  | `reasoning.start` | `{ sessionId, messageId }` | 思考过程段开始 |
+  | `reasoning.delta` | `{ sessionId, messageId, delta }` | 思考过程增量 |
+  | `reasoning.end` | `{ sessionId, messageId }` | 思考过程段结束 |
+  | `message.completed` | `{ sessionId, message }` | 回复完成（`message.parts` 含 text/reasoning） |
+  | `message.failed` | `{ sessionId, messageId?, error }` | 回复失败 |
+  | `run.metadata` | `{ sessionId, metadata }` | 运行元数据（`metadata.kind === 'ready'` 表示开始流式） |
+  | `connection.open` | — | WebSocket 连接建立 |
+  | `connection.error` | — | 连接异常 |
+  | `connection.close` | — | 连接断开 |
+
+  **完整流式示例**：
   ```js
   // 1. 订阅实时事件
   const unsub = client.events.subscribe((event) => {
-    if (event.type === "message.content-delta") appendText(event.delta);
-    if (event.type === "message.completed") finalize();
+    // 连接事件
+    if (event.type === 'connection.open') { /* 连接恢复 */ }
+    if (event.type === 'connection.error') { /* 连接异常 */ }
+    // 只处理当前会话的事件
+    if (event.payload?.sessionId !== currentSessionId) return;
+    switch (event.type) {
+      case 'text.start': {
+        segments[event.payload.messageId] = '';
+        break;
+      }
+      case 'text.delta': {
+        const mid = event.payload.messageId;
+        if (segments[mid] !== undefined) {
+          segments[mid] += event.payload.delta;
+          // 合并所有段落并渲染
+          renderedText = Object.values(segments).join('');
+        }
+        break;
+      }
+      case 'reasoning.delta': {
+        const mid = event.payload.messageId;
+        if (rSegments[mid] !== undefined) {
+          rSegments[mid] += event.payload.delta;
+          renderedReasoning = Object.values(rSegments).join('');
+        }
+        break;
+      }
+      case 'message.completed': {
+        const msg = event.payload.message;
+        if (msg) {
+          // msg.parts: [{ type: 'text', text: '...' }, { type: 'reasoning', text: '...' }]
+        }
+        finalize();
+        break;
+      }
+      case 'message.failed': {
+        showError(event.payload.error?.message || '未知错误');
+        finalize();
+        break;
+      }
+      case 'run.metadata': {
+        if (event.payload.metadata?.kind === 'ready') { /* 流式开始 */ }
+        break;
+      }
+    }
   });
-  // 2. 触发 run（sessionId 来自 agentRuns.send 返回值或已有会话）
-  await client.agentRuns.send({ sessionId, content: [{ type: "text", text }] });
-  // 3. 完成后取消订阅
-  unsub();
+
+  // 2. 触发 run
+  const handle = await client.agentRuns.send({
+    peerId: "my-panel-app",          // 稳定 peerId，由系统创建/复用会话
+    content: [{ type: 'text', text }],
+    metadata: { agentId: selectedAgentId }
+  });
+  const currentSessionId = handle.sessionId;
+
+  // 3. 等待流完成后取消订阅
+  // message.completed 或 message.failed 触发后调用 unsub()
   ```
+
+  **关键注意事项**：
+  - 事件类型使用 `text.delta`（不是 `message.content-delta`），payload 在 `event.payload` 内。
+  - 一次回复可能包含多个 `text.start/delta/end` 段（多个 `messageId`），需要用 `_segments` 对象按 `messageId` 分别累积再合并。
+  - `reasoning` 和 `text` 是独立的事件流，分别追踪。
+  - 中止生成：`await client.agentRuns.abort({ sessionId })`。
+  - 安全超时：建议 3 分钟后自动 finalize，防止事件丢失导致永久卡住。
+  - 使用 `peerId`（不是手动缓存 sessionId）来保持会话稳定；首次 send 会自动创建会话，后续 send 复用。
 - Service App action：当前推荐用 `window.nextclaw.serviceActions.*`，不要默认替换成 `client.serviceActions.*`。
 - AI 结构化便利层：只有明确需要旧 bridge 的 `generateObject()` 时才用 `window.nextclaw.agent.generateObject()`。
 - 本地文件、外部 API、本地命令、权限动作：能力本身仍由 Service App action 提供。

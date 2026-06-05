@@ -10,6 +10,8 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 
 总入口只负责形态决策、组合顺序和最终验收，不拥有 Panel App 或 Service App 的字段细节。判断出形态后，必须继续读取对应专项 skill；不能只读本 skill 就直接编写 `panel-app.json`、`service-app.json`、bridge 调用或 MCP server。
 
+如果用户明确要求 Vite、React、Tailwind、现代前端技术栈、工程化源码、可构建 Panel App，或希望用 pnpm 开发再交付静态产物，先读取 `panel-app-react-vite-creator`，再按需读取 `panel-app-creator` 处理 manifest、bridge、Client SDK 和验收规则。
+
 ## 能力发现
 
 当用户问“这个应用能做什么”“Panel App 能接哪些能力”“能不能做 AI 相关应用”“有哪些 API 可以用”时，必须说明 `window.nextclaw.client` 这类 App Client 能力，但不要把 Service Actions 迁移成 App Client 主路径。Service Actions 当前推荐继续使用旧 bridge，因为旧 bridge 拥有 Panel App 所需的授权确认和自动 retry 体验。
@@ -50,6 +52,7 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 ## 组合原则
 
 - Panel App 是用户界面层，默认展示在右侧面板，必须窄侧栏优先。
+- 工程化 React/Vite/Tailwind Panel App 由 `panel-app-react-vite-creator` 负责；最终仍必须产出静态目录式 `.panel`，不要让宿主运行 Vite dev server。
 - Service App 是用户自定义后端扩展，提供可授权 actions；它不是 NextClaw 内部系统能力，也不默认投射给 Agent 使用。
 - Panel App 调用 Service App 时，当前推荐继续使用 `window.nextclaw.serviceActions.invoke()`，并在 `panel-app.json.actions` 声明 action allowlist；不要因为 App Client 里存在 `client.serviceActions.*` 就默认替代旧 bridge。
 - Panel App 如果已经声明 `"client": true`，触发标准 Agent Run 优先使用 `window.nextclaw.client.agentRuns.*`；未开启 App Client 或需要旧 bridge 独有高层能力时，才使用 `window.nextclaw.agent.*` 并声明 capability。
