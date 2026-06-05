@@ -1,0 +1,38 @@
+{
+  "name": "@nextclaw/aigen",
+  "version": "0.1.0-beta.0",
+  "private": false,
+  "description": "Stateless AI media generation CLI.",
+  "type": "module",
+  "bin": {
+    "aigen": "./dist/app/main.js"
+  },
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "scripts": {
+    "build": "tsdown src/index.ts src/app/main.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension && chmod +x dist/app/main.js",
+    "prepack": "pnpm run build",
+    "lint": "cd ../.. && pnpm exec eslint packages/aigen --config eslint.config.mjs",
+    "test": "vitest run",
+    "tsc": "tsc -p tsconfig.json",
+    "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "prettier": "^3.3.3",
+    "tsdown": "^0.21.7",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.2"
+  }
+}
