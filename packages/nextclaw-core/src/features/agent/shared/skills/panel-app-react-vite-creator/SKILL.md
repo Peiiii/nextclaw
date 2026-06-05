@@ -16,6 +16,7 @@ description_zh: 使用 pnpm、Vite、React、TypeScript、Tailwind CSS 创建或
 - 源码工程可以放在用户指定位置；最终产物必须复制或构建到 `~/.nextclaw/workspace/panels/<app-id>.panel/`。
 - 运行期目录里可以包含构建产物和 `panel-app.json`，不要依赖运行期 `node_modules`。
 - Vite 必须配置 `base: "./"`，避免资源路径指向 NextClaw host 根路径。
+- 构建出来的应用运行在 sandbox iframe 中，不具备普通同源网页能力；不要使用 `localStorage`、`sessionStorage`、cookie、IndexedDB 或默认启用浏览器持久化的状态库插件。需要持久化时按 `panel-app-creator` 选择 Service App、App Client 或导出/导入 JSON。
 
 ## 推荐目录
 

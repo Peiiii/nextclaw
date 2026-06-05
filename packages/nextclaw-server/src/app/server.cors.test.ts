@@ -7,6 +7,7 @@ import { AutomationManager } from "@nextclaw/kernel";
 import { EventBus } from "@nextclaw/shared";
 import { startUiServer } from "./server.js";
 import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
+import type { UiKernelHost } from "@nextclaw-server/app/types/router-options.types.js";
 
 async function reservePort(): Promise<number> {
   return await new Promise((resolve, reject) => {
@@ -49,11 +50,13 @@ function createTestGateway(params: {
   configPath: string;
   port: number;
   corsOrigins?: Parameters<typeof startUiServer>[0]["corsOrigins"];
+  kernelOverrides?: Partial<UiKernelHost>;
   uiStaticDir?: string | null;
 }): Parameters<typeof startUiServer>[0] {
   const {
     configPath,
     corsOrigins,
+    kernelOverrides,
     port,
     uiStaticDir = null,
   } = params;
@@ -94,7 +97,7 @@ function createTestGateway(params: {
     ...(corsOrigins ? { corsOrigins } : {}),
     configPath,
     appEventBus: new EventBus(),
-    kernel: createRouterTestKernel(),
+    kernel: createRouterTestKernel(kernelOverrides),
     productVersion: "test",
     applyLiveConfigReload: async () => {},
     initializeAgentHomeDirectory: () => {},
@@ -188,6 +191,57 @@ describe("ui server api cors", () => {
     });
     expect(response.status).toBe(200);
     expect(response.headers.get("access-control-allow-origin")).toBe("http://127.0.0.1:5174");
+    expect(response.headers.get("access-control-allow-credentials")).toBe("true");
+  });
+
+  it("allows null-origin panel app runtime API requests only with a runtime token", async () => {
+    const port = await reservePort();
+    const configPath = join(mkdtempSync(join(tmpdir(), "nextclaw-server-panel-app-cors-")), "config.json");
+    const handle = await startUiServer(createTestGateway({
+      configPath,
+      port,
+      kernelOverrides: {
+        panelAppManager: {
+          resolvePanelAppBridgeSession: (token: string) => {
+            if (token !== "runtime-token") {
+              throw new Error("invalid token");
+            }
+            return { token };
+          },
+        } as never,
+      },
+    }));
+    handles.push(handle);
+
+    const baseUrl = `http://127.0.0.1:${port}`;
+    await waitForServer(baseUrl);
+
+    const blockedResponse = await fetch(`${baseUrl}/api/health`, {
+      headers: { Origin: "null" },
+    });
+    expect(blockedResponse.status).toBe(401);
+    expect(blockedResponse.headers.get("access-control-allow-origin")).toBeNull();
+
+    const preflight = await fetch(`${baseUrl}/api/health`, {
+      method: "OPTIONS",
+      headers: {
+        Origin: "null",
+        "Access-Control-Request-Method": "GET",
+        "Access-Control-Request-Headers": "x-nextclaw-panel-bridge-session",
+      },
+    });
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get("access-control-allow-origin")).toBe("null");
+    expect(preflight.headers.get("access-control-allow-headers")).toBe("x-nextclaw-panel-bridge-session");
+
+    const response = await fetch(`${baseUrl}/api/health`, {
+      headers: {
+        Origin: "null",
+        "x-nextclaw-panel-bridge-session": "runtime-token",
+      },
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBe("null");
     expect(response.headers.get("access-control-allow-credentials")).toBe("true");
   });
 

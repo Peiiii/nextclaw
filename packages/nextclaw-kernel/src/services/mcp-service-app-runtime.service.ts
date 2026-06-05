@@ -1,5 +1,5 @@
 import type { Config } from "@nextclaw/core";
-import { createRuntimeChildEnv } from "@nextclaw/core/child-process-env";
+import { createRuntimeChildEnv } from "@nextclaw/core";
 import { McpServerLifecycleManager } from "@nextclaw/mcp";
 import type { McpServerRecord, McpToolCatalogEntry } from "@nextclaw/mcp";
 import type {

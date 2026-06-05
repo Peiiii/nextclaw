@@ -265,6 +265,8 @@ describe("PanelAppManager content", () => {
     }));
     expect(content.html).toContain("window.nextclaw");
     expect(content.html).toContain("resolveBridgeData");
+    expect(content.html).toContain("createFetchInitWithRuntimeToken");
+    expect(content.html).toContain("\"x-nextclaw-panel-bridge-session\"");
     expect(content.html).not.toContain("<script src=\"/api/panel-app-bridge.js\"></script>");
     expect(content.html).toContain("<!doctype html><h1>Todo</h1>");
   });
@@ -286,7 +288,12 @@ describe("PanelAppManager content", () => {
     );
     writeFileSync(
       join(appPath, "index.html"),
-      "<!doctype html><html><head><script src=\"app.js\"></script></head><body></body></html>",
+      [
+        "<!doctype html><html><head>",
+        "<script src=\"app.js\"></script>",
+        "<script src=\"https://cdn.example.com/widget.js\"></script>",
+        "</head><body></body></html>",
+      ].join(""),
     );
     const manager = createPanelAppManager(workspacePath);
     const [entry] = (await manager.listPanelApps()).entries;
@@ -301,7 +308,8 @@ describe("PanelAppManager content", () => {
     }));
     expect(content.html).toMatch(/<base href="\/api\/panel-app-assets\/[^"]+\/">/);
     expect(content.html).toContain("window.nextclaw");
-    expect(content.html).toContain("<script src=\"app.js\"></script>");
+    expect(content.html).toContain("<script src=\"app.js\" crossorigin=\"anonymous\"></script>");
+    expect(content.html).toContain("<script src=\"https://cdn.example.com/widget.js\"></script>");
   });
 });
 
@@ -361,7 +369,7 @@ describe("PanelAppManager bridge and client injection", () => {
       clientGranted: true,
     }));
     expect(content.clientGranted).toBe(true);
-    expect(content.html).toContain("<script src=\"/api/panel-app-client-sdk.js\"></script>");
+    expect(content.html).toContain("<script src=\"/api/panel-app-client-sdk.js\" crossorigin=\"anonymous\"></script>");
     expect(content.html).toContain("window.NextClawClient");
     expect(content.html).toContain("window.createNextClawAppClient");
     expect(content.html).toContain("\"x-nextclaw-panel-bridge-session\"");

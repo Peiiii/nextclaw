@@ -44,6 +44,35 @@ export function getPanelAppBridgeScript(params: {
     });
   }
 
+  function resolveApiFetchUrl(input) {
+    const raw = typeof input === "string" || input instanceof URL ? input.toString() : input?.url;
+    if (typeof raw !== "string") {
+      return null;
+    }
+    try {
+      const url = new URL(raw, window.location.href);
+      return url.origin === window.location.origin && url.pathname.startsWith("/api/") ? url : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function createFetchInitWithRuntimeToken(input, init) {
+    if (!resolveApiFetchUrl(input)) {
+      return init;
+    }
+    const headers = new Headers(init?.headers || (typeof input === "object" && input ? input.headers : undefined));
+    if (!headers.has("x-nextclaw-panel-bridge-session")) {
+      headers.set("x-nextclaw-panel-bridge-session", runtimeToken);
+    }
+    return { ...init, headers };
+  }
+
+  const nativeFetch = window.fetch?.bind(window);
+  if (nativeFetch) {
+    window.fetch = (input, init) => nativeFetch(input, createFetchInitWithRuntimeToken(input, init));
+  }
+
   function unwrapServiceActionResult(result) {
     if (!result || typeof result !== "object") {
       return result;

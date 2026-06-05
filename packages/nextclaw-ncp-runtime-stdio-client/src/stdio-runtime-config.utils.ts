@@ -1,5 +1,5 @@
 import type { OpenAITool, NcpProviderRuntimeRoute } from "@nextclaw/ncp";
-import { createRuntimeChildEnv } from "@nextclaw/core/child-process-env";
+import { createRuntimeChildEnv } from "@nextclaw/core";
 
 export const NARP_STDIO_PROMPT_META_KEY = "nextclaw_narp";
 const DEFAULT_STARTUP_TIMEOUT_MS = 10_000;

@@ -8,7 +8,7 @@ export function injectPanelAppClientScript(html: string, params: {
     return html;
   }
   const script = [
-    `<script src="${PANEL_APP_CLIENT_SDK_PATH}"></script>`,
+    `<script src="${PANEL_APP_CLIENT_SDK_PATH}" crossorigin="anonymous"></script>`,
     `<script>${getPanelAppClientInitScript(params)}</script>`,
   ].join("");
   const headMatch = /<head(?:\s[^>]*)?>/i.exec(html);

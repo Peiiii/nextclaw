@@ -39,6 +39,14 @@ export default defineConfig({
   server: {
     host: '127.0.0.1',
     port: 5174,
+    cors: {
+      credentials: true,
+      origin: [
+        /^http:\/\/localhost:\d+$/,
+        /^http:\/\/127\.0\.0\.1:\d+$/,
+        'null',
+      ],
+    },
     strictPort: true,
     proxy: {
       '/api': {

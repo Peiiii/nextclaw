@@ -2,6 +2,8 @@
 
 Panel App 只能通过宿主注入的 `window.nextclaw` 与 NextClaw 交互。不要直接请求 NextClaw gateway、不要伪造 caller、不要保存 bridge token。
 
+Panel App 运行在不带 `allow-same-origin` 的 sandbox iframe 中，文档 origin 是 opaque / `null`。不要访问 `localStorage`、`sessionStorage`、cookie 或 IndexedDB，也不要使用会在初始化时自动读写这些 API 的持久化库。需要稳定保存数据时，使用 Service App action、已授权的 App Client 能力，或提供显式导出/导入 JSON。
+
 ## Manifest 声明
 
 所有 NextClaw 能力都必须写在 `panel-app.json`：

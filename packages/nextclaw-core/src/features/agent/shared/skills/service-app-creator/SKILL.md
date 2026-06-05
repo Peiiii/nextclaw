@@ -65,7 +65,7 @@ service-apps/
 
 1. 检查 `nextclaw doctor` 输出中是否有 service app 相关检查。
 2. 如果不确定，先创建一个最小 Service App 并通过 Panel App 验证 `window.nextclaw.serviceActions.invoke()` 是否可用。
-3. 如果 Service App 不可用，**仍应创建 Service App 文件**（未来版本会支持），但必须同时告知用户：当前版本的 Panel App 应使用 `localStorage` 作为临时后端，并在 Service App 可用后切换。
+3. 如果 Service App 不可用，**仍应创建 Service App 文件**（未来版本会支持），但必须同时告知用户：当前版本的 Panel App 只能使用页面内临时状态或显式导出/导入 JSON；不要把 `localStorage` 当作临时后端。
 
 ## 实现规则
 

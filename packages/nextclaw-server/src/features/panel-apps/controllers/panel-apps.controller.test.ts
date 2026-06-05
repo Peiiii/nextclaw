@@ -126,6 +126,7 @@ describe("panel apps routes", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("application/javascript; charset=utf-8");
     expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
     expect(await response.text()).toContain("window.NextClawClient");
   });
 
@@ -150,6 +151,7 @@ describe("panel apps routes", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("text/css; charset=utf-8");
     expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
     expect(await response.text()).toBe("asset:styles/app.css");
   });
 });
@@ -176,6 +178,7 @@ describe("tokenized panel app asset routes", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("application/javascript; charset=utf-8");
     expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
     expect(await response.text()).toBe("token:token-1:scripts/app.js");
   });
 

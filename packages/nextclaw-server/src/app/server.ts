@@ -34,6 +34,8 @@ const DEFAULT_CORS_ORIGINS = (origin: string | undefined | null) => {
 
 const DEFAULT_ALLOWED_CORS_HEADERS = "Content-Type, Authorization";
 const DEFAULT_ALLOWED_CORS_METHODS = "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS";
+const NULL_ORIGIN = "null";
+const PANEL_APP_RUNTIME_TOKEN_HEADER = "x-nextclaw-panel-bridge-session";
 const STALE_UI_ASSET_RELOAD_MODULE = "globalThis.location?.reload();\nexport {};\n";
 type CorsPolicy = string[] | "*" | typeof DEFAULT_CORS_ORIGINS;
 
@@ -79,6 +81,36 @@ function createCorsHeaders(allowOrigin: string, allowHeaders?: string | null, cu
   const varyWithOrigin = buildVaryHeader(currentVary ?? null, "Origin");
   headers.set("Vary", buildVaryHeader(varyWithOrigin, "Access-Control-Request-Headers"));
   return headers;
+}
+
+function readRequestedHeaderNames(value: string | null): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((header) => header.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function isPanelAppPublicBrowserResource(path: string): boolean {
+  return path === "/api/panel-app-client-sdk.js" ||
+    path.startsWith("/api/panel-app-assets/") ||
+    (/^\/api\/panel-apps\/[^/]+\/content$/.test(path));
+}
+
+function isPanelAppRuntimePreflight(origin: string | null, allowHeaders: string | null): boolean {
+  return origin === NULL_ORIGIN && readRequestedHeaderNames(allowHeaders).includes(PANEL_APP_RUNTIME_TOKEN_HEADER);
+}
+
+function isValidPanelAppRuntimeRequest(gateway: UiRouterOptions, request: Request): boolean {
+  const token = request.headers.get(PANEL_APP_RUNTIME_TOKEN_HEADER)?.trim();
+  if (!token) {
+    return false;
+  }
+  try {
+    gateway.kernel.panelAppManager.resolvePanelAppBridgeSession(token);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function mountUiStaticAssets(app: Hono, staticDir: string): void {
@@ -173,21 +205,42 @@ export async function startUiServer(gateway: UiRouterOptions): Promise<UiServerH
     gateway.kernel.accessManager ?? new AccessManager({ configPath: gateway.configPath }),
   );
   app.use("/api/*", async (c, next) => {
-    const allowOrigin = resolveAllowedCorsOrigin(c.req.header("origin")?.trim() ?? null, corsPolicy);
+    const origin = c.req.header("origin")?.trim() ?? null;
+    const path = c.req.path;
+    const allowOrigin = resolveAllowedCorsOrigin(origin, corsPolicy);
     const allowHeaders = c.req.header("access-control-request-headers")?.trim() ?? null;
+    const isPanelAppRuntimeCors = isPanelAppRuntimePreflight(origin, allowHeaders) ||
+      (origin === NULL_ORIGIN && isValidPanelAppRuntimeRequest(gateway, c.req.raw));
 
     if (c.req.method === "OPTIONS") {
       if (allowOrigin) {
         const headers = createCorsHeaders(allowOrigin, allowHeaders);
         return new Response(null, { status: 204, headers });
       }
+      if (isPanelAppRuntimePreflight(origin, allowHeaders)) {
+        const headers = createCorsHeaders(NULL_ORIGIN, allowHeaders);
+        return new Response(null, { status: 204, headers });
+      }
       return new Response(null, { status: 204 });
+    }
+
+    if (
+      origin === NULL_ORIGIN &&
+      !allowOrigin &&
+      !isPanelAppRuntimeCors &&
+      !isPanelAppPublicBrowserResource(path)
+    ) {
+      return new Response("Panel App runtime token is required.", {
+        status: 401,
+        headers: { "content-type": "text/plain; charset=utf-8" },
+      });
     }
 
     await next();
 
-    if (allowOrigin) {
-      for (const [name, value] of createCorsHeaders(allowOrigin, allowHeaders, c.res.headers.get("Vary"))) {
+    const resolvedAllowOrigin = allowOrigin ?? (isPanelAppRuntimeCors ? NULL_ORIGIN : null);
+    if (resolvedAllowOrigin) {
+      for (const [name, value] of createCorsHeaders(resolvedAllowOrigin, allowHeaders, c.res.headers.get("Vary"))) {
         c.res.headers.set(name, value);
       }
     }

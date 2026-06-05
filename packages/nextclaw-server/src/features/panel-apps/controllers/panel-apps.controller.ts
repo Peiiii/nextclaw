@@ -19,6 +19,14 @@ import {
 
 const PANEL_BRIDGE_SESSION_HEADER = "x-nextclaw-panel-bridge-session";
 
+function createPanelAppResourceHeaders(contentType: string): Record<string, string> {
+  return {
+    "content-type": contentType,
+    "cache-control": "no-store",
+    "access-control-allow-origin": "*",
+  };
+}
+
 function statusForPanelAppError(code: string): 400 | 401 | 403 | 404 | 408 {
   switch (code) {
     case "AUTHORIZATION_REQUIRED":
@@ -139,10 +147,7 @@ export class PanelAppsRoutesController {
         readAssetPath(c.req.raw.url),
       );
       return new Response(payload.content, {
-        headers: {
-          "content-type": payload.contentType,
-          "cache-control": "no-store",
-        },
+        headers: createPanelAppResourceHeaders(payload.contentType),
       });
     } catch (error) {
       if (isPanelAppError(error)) {
@@ -162,10 +167,7 @@ export class PanelAppsRoutesController {
         readTokenizedAssetPath(c.req.raw.url, c.req.param("token")),
       );
       return new Response(payload.content, {
-        headers: {
-          "content-type": payload.contentType,
-          "cache-control": "no-store",
-        },
+        headers: createPanelAppResourceHeaders(payload.contentType),
       });
     } catch (error) {
       if (isPanelAppError(error)) {
@@ -198,10 +200,7 @@ export class PanelAppsRoutesController {
       });
     }
     return new Response(await this.params.panelAppClientSdkScript(), {
-      headers: {
-        "content-type": "application/javascript; charset=utf-8",
-        "cache-control": "no-store",
-      },
+      headers: createPanelAppResourceHeaders("application/javascript; charset=utf-8"),
     });
   };
 

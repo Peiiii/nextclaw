@@ -162,13 +162,39 @@ export function resolvePanelAppIconUrl(
 
 export function injectPanelAppAssetBase(html: string, baseHref: string): string {
   const base = `<base href="${baseHref}">`;
-  if (/<base\b/i.test(html)) {
-    return html;
+  const htmlWithBase = (() => {
+    if (/<base\b/i.test(html)) {
+      return html;
+    }
+    if (/<head[^>]*>/i.test(html)) {
+      return html.replace(/<head[^>]*>/i, (head) => `${head}${base}`);
+    }
+    return `${base}${html}`;
+  })();
+  return injectLocalScriptCrossOrigin(htmlWithBase);
+}
+
+function injectLocalScriptCrossOrigin(html: string): string {
+  return html.replace(/<script\b(?=[^>]*\bsrc\s*=)(?![^>]*\bcrossorigin\b)[^>]*>/gi, (tag) => {
+    const src = extractScriptSrc(tag);
+    if (!src || !isLocalScriptSrc(src)) {
+      return tag;
+    }
+    return `${tag.slice(0, -1)} crossorigin="anonymous">`;
+  });
+}
+
+function extractScriptSrc(tag: string): string | undefined {
+  const match = /\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(tag);
+  return match?.[1] ?? match?.[2] ?? match?.[3];
+}
+
+function isLocalScriptSrc(src: string): boolean {
+  const value = src.trim();
+  if (!value || value.startsWith("//")) {
+    return false;
   }
-  if (/<head[^>]*>/i.test(html)) {
-    return html.replace(/<head[^>]*>/i, (head) => `${head}${base}`);
-  }
-  return `${base}${html}`;
+  return !/^(?:https?|data|blob|javascript):/i.test(value);
 }
 
 function encodePanelAppAssetPath(path: string): string {

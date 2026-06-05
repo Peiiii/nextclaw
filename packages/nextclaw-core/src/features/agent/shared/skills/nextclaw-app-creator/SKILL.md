@@ -18,7 +18,7 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 
 能力盘点默认按三层说明：
 
-- Panel UI：右侧面板里的静态 UI、表单、列表、图表、本地 `localStorage`。
+- Panel UI：右侧面板里的静态 UI、表单、列表、图表和页面内临时状态。
 - App Client：声明 `"client": true` 并整体授权后，使用同步注入的 `window.nextclaw.client` 访问标准客户端能力，例如 sessions、agents、agentRuns、assets、events。`client.serviceActions.*` 当前存在，但不要作为 Panel App Service Actions 推荐路径。
 - Service App：提供本地文件、外部 API、本地命令和其它需要授权的后端原子动作；Panel App 当前推荐通过旧 bridge `window.nextclaw.serviceActions.*` 调用，以保留授权确认、grant 和自动 retry。
 
@@ -30,7 +30,7 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 
 1. **Panel-only**
    - 用户主要需要一个可交互 UI、表单、列表、看板、图表、计算器或轻量 dashboard。
-   - 数据可以存在浏览器 `localStorage`。
+   - 核心数据不需要跨重新打开持久保存；临时状态只存在内存中，或通过导入/导出 JSON 手动保存。
    - 不需要读写本地文件、调用外部 API、本地命令或权限动作。
    - 下一步：读取 `panel-app-creator`。
 
@@ -47,7 +47,7 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
    - 下一步：先读取 `service-app-creator` 设计 actions，再读取 `panel-app-creator` 设计 UI 和调用方式。
    - 不要跳过 `service-app-creator` 直接在 Panel App 中猜 Service Action；后端 action 的 manifest 字段以 `service-app-creator` 为唯一专项规则源。
 
-如果不确定是否需要后端，默认先做 **Panel-only**，并让核心功能完整依赖 `localStorage`。Service App 只在真实需要文件、网络、命令或权限边界时加入。
+如果不确定是否需要后端，默认先做 **Panel-only**，但只能依赖页面内临时状态和手动导入/导出；不能依赖 `localStorage`、`sessionStorage`、cookie 或 IndexedDB。只要用户目标需要稳定持久化、文件、网络、命令或权限边界，就加入 Service App 或使用已授权的 App Client 能力。
 
 ## 组合原则
 
@@ -69,7 +69,7 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 1. 读取 `panel-app-creator`。
 2. 创建目录式 Panel App。
 3. 确保标题、描述、图标、窄侧栏布局和核心交互完整。
-4. 数据默认写入 `localStorage`。
+4. 状态默认只保存在内存；需要保存时提供导出/导入 JSON，或升级为 Panel + Service。
 5. 做 Panel App 打开和刷新验收。
 
 ### Service-only
