@@ -80,8 +80,9 @@ export const PANEL_APPS_DOC_BROWSER_RENDERERS: DocBrowserCustomTabRenderers = {
     getTitle: (tab) => tab.title || t('panelAppsTitle'),
     onIframeMessage: (params) => getPresenter().panelAppBridgeManager.handleIframeMessage(params),
     renderIcon: () => <AppWindow className="w-4 h-4 text-primary shrink-0" />,
-    renderToolbar: ({ open, refreshIframe }) => (
+    renderToolbar: ({ open, refreshIframe, tab }) => (
       <PanelAppToolbar
+        appTitle={tab.title || t('panelAppsTitle')}
         onOpenApps={() => openApps({ open })}
         onRefresh={refreshIframe}
       />

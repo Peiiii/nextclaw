@@ -6,6 +6,7 @@ import type {
 } from "@nextclaw/ncp";
 import type { AgentRunSendIngressPayload } from "@nextclaw/shared";
 import type { NextClawClientOptions } from "../types/nextclaw-request.types.js";
+import { resolveFetchImpl } from "../utils/fetch.utils.js";
 import { resolveApiUrl } from "../utils/url.utils.js";
 import type { RequestService } from "./request.service.js";
 
@@ -68,7 +69,7 @@ export class AgentRunsService {
   ) {
     const { baseUrl, fetchImpl, headers, token, transport } = options;
     this.baseUrl = baseUrl;
-    this.fetchImpl = fetchImpl ?? fetch;
+    this.fetchImpl = resolveFetchImpl(fetchImpl);
     this.transport = transport;
     this.defaultHeaders = {
       Accept: "application/json",

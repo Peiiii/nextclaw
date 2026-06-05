@@ -1,16 +1,32 @@
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
 const CLIENT_SDK_BROWSER_BUNDLE = join("browser", "browser-global-registration.utils.iife.js");
 
-let cachedScript: Promise<string> | null = null;
+type CachedClientSdkScript = {
+  mtimeMs: number;
+  path: string;
+  script: string;
+};
 
-export function readPanelAppClientSdkScript(): Promise<string> {
-  cachedScript ??= readFile(resolvePanelAppClientSdkScriptPath(), "utf8");
-  return cachedScript;
+let cachedScript: CachedClientSdkScript | null = null;
+
+export async function readPanelAppClientSdkScript(): Promise<string> {
+  const bundlePath = resolvePanelAppClientSdkScriptPath();
+  const stats = await stat(bundlePath);
+  if (cachedScript?.path === bundlePath && cachedScript.mtimeMs === stats.mtimeMs) {
+    return cachedScript.script;
+  }
+  const script = await readFile(bundlePath, "utf8");
+  cachedScript = {
+    mtimeMs: stats.mtimeMs,
+    path: bundlePath,
+    script,
+  };
+  return script;
 }
 
 function resolvePanelAppClientSdkScriptPath(): string {

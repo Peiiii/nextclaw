@@ -95,6 +95,42 @@ import {
     );
   });
 
+  it("calls browser fetch with the global receiver", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchImpl = vi.fn(function (this: typeof globalThis) {
+      if (this !== globalThis) {
+        throw new TypeError("Failed to execute 'fetch' on 'Window': Illegal invocation");
+      }
+      return Promise.resolve(new Response(
+        JSON.stringify({
+          ok: true,
+          data: {
+            sessionId: "session-1",
+            userMessageId: "user-1",
+            assistantMessageId: null,
+            runId: "run-1"
+          }
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      ));
+    }) as unknown as typeof fetch;
+    vi.stubGlobal("fetch", fetchImpl);
+    const client = new NextClawClient({
+      baseUrl: "http://127.0.0.1:55667"
+    });
+
+    try {
+      await expect(client.agentRuns.send({
+        content: [{ type: "text", text: "hello" }]
+      })).resolves.toMatchObject({
+        runId: "run-1",
+        sessionId: "session-1"
+      });
+    } finally {
+      vi.stubGlobal("fetch", originalFetch);
+    }
+  });
+
   it("streams agent run events from the standard agent-runs api", async () => {
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {

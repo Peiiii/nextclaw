@@ -125,6 +125,8 @@ const client = window.nextclaw.client;
 
 `client` 是已初始化的 `NextClawAppClient` projection，不是完整底层 `NextClawClient`。Panel App 可以选择直接写 `window.nextclaw.client.sessions.list()`，也可以先赋值：
 
+对启用 App Client 的 AI/聊天类应用，NextClaw 是会话、消息、Agent Run、实时事件和资产的事实源。不要把 SDK 仅当作发送消息的 API，然后再用浏览器 storage 保存会话历史或 `sessionId` 映射。稳定上下文用 `peerId`，历史恢复用 `client.sessions.listMessages(sessionId)`，运行中增量用 `client.events.subscribe()`，当前页面只保存临时渲染态。
+
 ```js
 const client = window.nextclaw?.client;
 if (!client) {

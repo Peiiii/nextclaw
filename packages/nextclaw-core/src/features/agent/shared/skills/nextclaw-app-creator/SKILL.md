@@ -57,6 +57,7 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 - Panel App 调用 Service App 时，当前推荐继续使用 `window.nextclaw.serviceActions.invoke()`，并在 `panel-app.json.actions` 声明 action allowlist；不要因为 App Client 里存在 `client.serviceActions.*` 就默认替代旧 bridge。
 - Panel App 如果已经声明 `"client": true`，触发标准 Agent Run 优先使用 `window.nextclaw.client.agentRuns.*`；未开启 App Client 或需要旧 bridge 独有高层能力时，才使用 `window.nextclaw.agent.*` 并声明 capability。
 - Panel App 只有确实需要 NextClaw App Client 时，才在 `panel-app.json` 声明 `client: true`，并在运行时使用宿主同步注入的 `window.nextclaw.client`；不要让 Panel App 自己 import、保存 token 或猜测 Client SDK 接口。需要接口形状时，从用户机器已安装的 `@nextclaw/client-sdk` NPM 包声明文件解析 `NextClawAppClient`。
+- 使用 App Client 时，把 NextClaw 当作会话、消息、Agent Run 和资产的持久化 owner。Panel App 不要再用浏览器 storage 镜像会话历史、保存 sessionId 映射或自建聊天存档；稳定会话用 `peerId`，历史数据用 `client.sessions.*` 读取，运行中状态用 `client.events.subscribe()` 追踪。
 - AI 分析、总结、分类、结构化 JSON 输出优先判断 App Client 的 `agentRuns` 是否能覆盖；只有明确需要旧 bridge 的 `generateObject()` 便利层时才走 `window.nextclaw.agent.generateObject()`。Service App 用于本地文件、外部 API、本地命令和权限动作，不默认承担模型调用。
 - 不要让 Panel App 自己启动 HTTP server、直连 Service Gateway、伪造 caller、保存 bridge token 或猜测 sessionId。
 - 不要为了“像应用工程”而给 Panel App 创建 Vite、后台 dev server 或无意义的 `package.json`；第一版 NextClaw 轻量应用默认是静态 Panel App + 可选 MCP stdio Service App。Service App 零依赖优先，能用 Node.js 内置模块手写最小 MCP stdio / JSON-RPC server 就不要引入包；确实 import 第三方包时，才在该 Service App 目录声明自己的 `package.json` 并安装依赖。

@@ -5,6 +5,7 @@ import type {
   NextClawUploadOptions
 } from "../types/nextclaw-request.types.js";
 import type { NextClawQueryParams } from "../types/nextclaw-transport.types.js";
+import { resolveFetchImpl } from "../utils/fetch.utils.js";
 import { appendQueryToPath, resolveApiUrl } from "../utils/url.utils.js";
 
 export class NextClawClientError extends Error {
@@ -40,7 +41,7 @@ export class RequestService {
   constructor(private readonly options: NextClawClientOptions) {
     const { baseUrl, fetchImpl, headers, requestTimeoutMs, token } = options;
     this.baseUrl = baseUrl;
-    this.fetchImpl = fetchImpl ?? fetch;
+    this.fetchImpl = resolveFetchImpl(fetchImpl);
     this.requestTimeoutMs = Math.max(1000, requestTimeoutMs ?? 15000);
     this.transport = options.transport;
     this.defaultHeaders = {
