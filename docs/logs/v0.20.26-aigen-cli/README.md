@@ -61,4 +61,6 @@
 - 发布范围：仅 `@nextclaw/aigen`，该包无 workspace runtime 依赖，只依赖 `commander`，窄发布不会影响 `nextclaw` 安装闭包。
 - 发布版本：`0.1.0-beta.1`。
 - 发布 dist-tag：`beta`。
-- 发布状态：提交后执行 NPM 发布并回填 registry 验证结果。
+- 发布状态：已发布。
+- registry 验证：`npm view @nextclaw/aigen version dist-tags versions --json --prefer-online` 返回 `version=0.1.0-beta.1`，`beta=0.1.0-beta.1`，`latest=0.1.0-beta.1`。
+- 已发布包冒烟：从临时目录安装 `@nextclaw/aigen@beta`，`aigen --version` 返回 `0.1.0-beta.1`；使用隔离 `AIGEN_HOME` 与 OpenRouter 测试 key 通过 `x-ai/grok-imagine-image-quality` 生成 JPEG 图片。
