@@ -1,5 +1,17 @@
 # @nextclaw/nextclaw-ncp-runtime-stdio-client
 
+## 0.2.9-beta.1
+
+### Patch Changes
+
+- 240d5ab: Fix runtime child process environments so Service App and NARP stdio launches can resolve the current Node executable after autostart.
+- Updated dependencies
+- Updated dependencies [226b3cf]
+- Updated dependencies [240d5ab]
+- Updated dependencies [75e0dcb]
+  - @nextclaw/ncp@0.5.29-beta.1
+  - @nextclaw/core@0.14.0-beta.1
+
 ## 0.2.9-beta.0
 
 ### Patch Changes

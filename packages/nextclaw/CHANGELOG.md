@@ -1,5 +1,30 @@
 # nextclaw
 
+## 0.21.4-beta.1
+
+### Patch Changes
+
+- 13eaf56: Simplify the PWA runtime so service workers no longer reload chat pages or serve stale runtime chunks.
+- Updated dependencies
+- Updated dependencies [bfa611f]
+- Updated dependencies [226b3cf]
+- Updated dependencies [240d5ab]
+- Updated dependencies [75e0dcb]
+  - @nextclaw/mcp@0.2.10-beta.1
+  - @nextclaw/ncp@0.5.29-beta.1
+  - @nextclaw/ncp-agent-runtime@0.3.40-beta.1
+  - @nextclaw/ncp-mcp@0.1.105-beta.1
+  - @nextclaw/ncp-toolkit@0.5.34-beta.1
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.2.9-beta.1
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.2.9-beta.1
+  - @nextclaw/remote@0.2.10-beta.1
+  - @nextclaw/runtime@0.3.10-beta.1
+  - @nextclaw/service@0.2.10-beta.1
+  - @nextclaw/server@0.14.0-beta.1
+  - @nextclaw/core@0.14.0-beta.1
+  - @nextclaw/kernel@0.4.0-beta.1
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.2.9-beta.1
+
 ## 0.21.4-beta.0
 
 ### Patch Changes

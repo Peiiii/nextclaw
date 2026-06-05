@@ -1,5 +1,23 @@
 # nextclaw-server
 
+## 0.14.0-beta.1
+
+### Minor Changes
+
+- bfa611f: Add standard agent run client APIs and HTTP routes.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [226b3cf]
+- Updated dependencies [240d5ab]
+- Updated dependencies [75e0dcb]
+  - @nextclaw/mcp@0.2.10-beta.1
+  - @nextclaw/ncp@0.5.29-beta.1
+  - @nextclaw/runtime@0.3.10-beta.1
+  - @nextclaw/core@0.14.0-beta.1
+  - @nextclaw/kernel@0.4.0-beta.1
+
 ## 0.13.10-beta.0
 
 ### Patch Changes

@@ -59,11 +59,18 @@
     "@nextclaw/shared": "0.2.8",
     "@nextclaw/ui": "0.13.9",
     "@nextclaw/marketplace-api-worker": "0.0.1",
-    "@nextclaw/provider-gateway-api-worker": "0.0.1"
+    "@nextclaw/provider-gateway-api-worker": "0.0.1",
+    "@nextclaw/aigen": "0.1.0"
   },
   "changesets": [
     "auto-release-batch-20260603175607584",
+    "auto-release-batch-20260605013017262",
+    "client-sdk-agent-runs",
+    "client-sdk-app-client-projection",
     "panel-app-client-sdk-injection",
+    "pwa-runtime-cache-recovery",
+    "runtime-child-env",
+    "service-actions-skill-guidance",
     "session-activity-preview-tools",
     "session-run-status-events"
   ]

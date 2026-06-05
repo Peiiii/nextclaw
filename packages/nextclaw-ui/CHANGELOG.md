@@ -1,5 +1,21 @@
 # @nextclaw/ui
 
+## 0.13.10-beta.1
+
+### Patch Changes
+
+- 13eaf56: Simplify the PWA runtime so service workers no longer reload chat pages or serve stale runtime chunks.
+- Updated dependencies
+- Updated dependencies [bfa611f]
+- Updated dependencies [226b3cf]
+  - @nextclaw/agent-chat@0.2.9-beta.1
+  - @nextclaw/agent-chat-ui@0.4.9-beta.1
+  - @nextclaw/ncp@0.5.29-beta.1
+  - @nextclaw/ncp-http-agent-client@0.3.41-beta.1
+  - @nextclaw/ncp-react@0.4.49-beta.1
+  - @nextclaw/shared@0.2.9-beta.1
+  - @nextclaw/client-sdk@0.3.0-beta.1
+
 ## 0.13.10-beta.0
 
 ### Patch Changes

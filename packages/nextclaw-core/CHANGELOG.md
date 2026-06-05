@@ -1,5 +1,19 @@
 # nextclaw-core
 
+## 0.14.0-beta.1
+
+### Minor Changes
+
+- 226b3cf: Expose an app-facing NextClaw App Client projection for Panel Apps.
+
+### Patch Changes
+
+- 240d5ab: Fix runtime child process environments so Service App and NARP stdio launches can resolve the current Node executable after autostart.
+- 75e0dcb: Clarify Panel App skill guidance so Service Actions continue to use the existing bridge authorization flow.
+- Updated dependencies
+  - @nextclaw/feishu-core@0.2.30-beta.1
+  - @nextclaw/shared@0.2.9-beta.1
+
 ## 0.13.10-beta.0
 
 ### Patch Changes

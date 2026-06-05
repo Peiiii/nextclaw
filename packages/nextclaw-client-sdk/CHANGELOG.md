@@ -1,5 +1,20 @@
 # @nextclaw/client-sdk
 
+## 0.3.0-beta.1
+
+### Minor Changes
+
+- bfa611f: Add standard agent run client APIs and HTTP routes.
+- 226b3cf: Expose an app-facing NextClaw App Client projection for Panel Apps.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [bfa611f]
+  - @nextclaw/ncp@0.5.29-beta.1
+  - @nextclaw/shared@0.2.9-beta.1
+  - @nextclaw/server@0.14.0-beta.1
+
 ## 0.2.10-beta.0
 
 ### Patch Changes
