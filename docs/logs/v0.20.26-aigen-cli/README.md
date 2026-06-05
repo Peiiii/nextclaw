@@ -56,11 +56,9 @@
 
 涉及新增 NPM 包：`@nextclaw/aigen`。
 
-- 当前状态：新增 workspace package，准备按当前仓库 prerelease 通道发布。
+- 当前状态：新增 workspace package，按正式版本发布。
 - 是否需要发布：用户要求针对该包提交并发布 NPM。
 - 发布范围：仅 `@nextclaw/aigen`，该包无 workspace runtime 依赖，只依赖 `commander`，窄发布不会影响 `nextclaw` 安装闭包。
-- 发布版本：`0.1.0-beta.1`。
-- 发布 dist-tag：`beta`。
-- 发布状态：已发布。
-- registry 验证：`npm view @nextclaw/aigen version dist-tags versions --json --prefer-online` 返回 `version=0.1.0-beta.1`，`beta=0.1.0-beta.1`，`latest=0.1.0-beta.1`。
-- 已发布包冒烟：从临时目录安装 `@nextclaw/aigen@beta`，`aigen --version` 返回 `0.1.0-beta.1`；使用隔离 `AIGEN_HOME` 与 OpenRouter 测试 key 通过 `x-ai/grok-imagine-image-quality` 生成 JPEG 图片。
+- 发布版本：`0.1.0`。
+- 发布 dist-tag：`latest`。
+- 发布状态：准备发布正式版并回填 registry 验证结果。

@@ -54,7 +54,7 @@ describe("AigenApp", () => {
 
     expect(output).toEqual({
       ok: true,
-      output: "0.1.0-beta.1"
+      output: "0.1.0"
     });
   });
 });
