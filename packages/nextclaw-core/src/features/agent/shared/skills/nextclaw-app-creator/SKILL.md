@@ -1,7 +1,7 @@
 ---
 name: nextclaw-app-creator
-description: Create or update complete NextClaw lightweight apps, deciding whether the user needs a Panel App, a Service App, or a combined Panel + Service App. Use for NextClaw applets, small tools, dashboards, local file tools, AI-assisted UI tools, and apps that may combine right-side UI with backend actions.
-description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使用 Panel App、Service App，还是 Panel App + Service App 组合。适用于 NextClaw 小应用、小工具、dashboard、本地文件工具、AI 辅助 UI 工具，以及需要右侧 UI 搭配后端动作的应用。
+description: Create or update complete NextClaw lightweight apps, deciding whether the user needs a Panel App, a Service App, or a combined Panel + Service App. Use for NextClaw applets, small tools, dashboards, local file tools, AI-assisted UI tools, apps that may combine right-side UI with backend actions, or questions about what NextClaw/Panel apps can do and which app APIs/capabilities they can use.
+description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使用 Panel App、Service App，还是 Panel App + Service App 组合。适用于 NextClaw 小应用、小工具、dashboard、本地文件工具、AI 辅助 UI 工具、需要右侧 UI 搭配后端动作的应用，或用户询问 NextClaw/Panel App 能做什么、能使用哪些 app API/能力。
 ---
 
 # NextClaw App Creator
@@ -9,6 +9,18 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 当用户说“做一个应用 / 小工具 / dashboard / 管理器 / 可视化 / 本地文件工具 / AI 辅助工具”时，先使用这个总入口 skill。目标不是把 Panel App 和 Service App 混成一个概念，而是先判断形态，再按需读取专项 skill。
 
 总入口只负责形态决策、组合顺序和最终验收，不拥有 Panel App 或 Service App 的字段细节。判断出形态后，必须继续读取对应专项 skill；不能只读本 skill 就直接编写 `panel-app.json`、`service-app.json`、bridge 调用或 MCP server。
+
+## 能力发现
+
+当用户问“这个应用能做什么”“Panel App 能接哪些能力”“能不能做 AI 相关应用”“有哪些 API 可以用”时，必须说明 `window.nextclaw.client` 这类 App Client 能力，但不要把 Service Actions 迁移成 App Client 主路径。Service Actions 当前推荐继续使用旧 bridge，因为旧 bridge 拥有 Panel App 所需的授权确认和自动 retry 体验。
+
+能力盘点默认按三层说明：
+
+- Panel UI：右侧面板里的静态 UI、表单、列表、图表、本地 `localStorage`。
+- App Client：声明 `"client": true` 并整体授权后，使用同步注入的 `window.nextclaw.client` 访问标准客户端能力，例如 sessions、agents、agentRuns、assets、events。`client.serviceActions.*` 当前存在，但不要作为 Panel App Service Actions 推荐路径。
+- Service App：提供本地文件、外部 API、本地命令和其它需要授权的后端原子动作；Panel App 当前推荐通过旧 bridge `window.nextclaw.serviceActions.*` 调用，以保留授权确认、grant 和自动 retry。
+
+`window.nextclaw.serviceActions.*` 不是待替代的历史细节，而是当前 Panel App 调用 Service Actions 的推荐入口。AI 应用可以优先介绍 App Client 的 `agentRuns`；需要旧 bridge 独有的高层结构化能力，或用户不希望开启整体 client 授权时，再提 `window.nextclaw.agent.*`。
 
 ## 先判断应用形态
 
@@ -39,10 +51,10 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 
 - Panel App 是用户界面层，默认展示在右侧面板，必须窄侧栏优先。
 - Service App 是用户自定义后端扩展，提供可授权 actions；它不是 NextClaw 内部系统能力，也不默认投射给 Agent 使用。
-- Panel App 调用 Service App 时，必须通过 `window.nextclaw.serviceActions.invoke()`，并在 `panel-app.json.actions` 声明 action allowlist。
-- Panel App 调用 Agent 时，必须在 `panel-app.json.capabilities` 声明 capability，并通过 `window.nextclaw.agent.send()` 或 `window.nextclaw.agent.generateObject()`。
+- Panel App 调用 Service App 时，当前推荐继续使用 `window.nextclaw.serviceActions.invoke()`，并在 `panel-app.json.actions` 声明 action allowlist；不要因为 App Client 里存在 `client.serviceActions.*` 就默认替代旧 bridge。
+- Panel App 如果已经声明 `"client": true`，触发标准 Agent Run 优先使用 `window.nextclaw.client.agentRuns.*`；未开启 App Client 或需要旧 bridge 独有高层能力时，才使用 `window.nextclaw.agent.*` 并声明 capability。
 - Panel App 只有确实需要 NextClaw App Client 时，才在 `panel-app.json` 声明 `client: true`，并在运行时使用宿主同步注入的 `window.nextclaw.client`；不要让 Panel App 自己 import、保存 token 或猜测 Client SDK 接口。需要接口形状时，从用户机器已安装的 `@nextclaw/client-sdk` NPM 包声明文件解析 `NextClawAppClient`。
-- AI 分析、总结、分类、结构化 JSON 输出优先走 `window.nextclaw.agent.generateObject()`；Service App 用于本地文件、外部 API、本地命令和权限动作，不默认承担模型调用。
+- AI 分析、总结、分类、结构化 JSON 输出优先判断 App Client 的 `agentRuns` 是否能覆盖；只有明确需要旧 bridge 的 `generateObject()` 便利层时才走 `window.nextclaw.agent.generateObject()`。Service App 用于本地文件、外部 API、本地命令和权限动作，不默认承担模型调用。
 - 不要让 Panel App 自己启动 HTTP server、直连 Service Gateway、伪造 caller、保存 bridge token 或猜测 sessionId。
 - 不要为了“像应用工程”而给 Panel App 创建 Vite、后台 dev server 或无意义的 `package.json`；第一版 NextClaw 轻量应用默认是静态 Panel App + 可选 MCP stdio Service App。Service App 零依赖优先，能用 Node.js 内置模块手写最小 MCP stdio / JSON-RPC server 就不要引入包；确实 import 第三方包时，才在该 Service App 目录声明自己的 `package.json` 并安装依赖。
 - 创建或修改 Panel App / Service App 后，默认不需要重启 NextClaw 宿主、server 或桌面应用才会生效；系统会按 workspace 目录动态发现，正确动作是刷新“面板应用/服务应用”列表、重新打开 Panel App，或运行 `nextclaw app check/dev/call` 做验收。

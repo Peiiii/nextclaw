@@ -94,7 +94,8 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("不要外部生成稳定 `sessionId`");
     expect(skill).toContain("创建目录式 Panel App");
     expect(skill).toContain("`panel-app.json` 是 Panel App 标题、入口、图标、Agent capabilities 和 Service action allowlist 的唯一事实源");
-    expect(skill).toContain("AI 分析、总结、分类、结构化 JSON 输出优先走 `window.nextclaw.agent.generateObject()`");
+    expect(skill).toContain("Service Actions 当前推荐继续使用旧 bridge");
+    expect(skill).toContain("只有明确需要旧 bridge 的 `generateObject()` 便利层时才走 `window.nextclaw.agent.generateObject()`");
     expect(skill).toContain("`window.nextclaw.serviceActions.list()` 返回数组");
     expect(skill).toContain("Service App 零依赖优先");
     expect(skill).toContain("创建或修改 Panel App / Service App 后，默认不需要重启 NextClaw 宿主");

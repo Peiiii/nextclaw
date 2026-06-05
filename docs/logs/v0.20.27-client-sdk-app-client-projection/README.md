@@ -6,6 +6,8 @@
 
 同步更新了 Panel App / NextClaw App creator skill 和注入设计文档，避免继续引导 AI 把 `window.nextclaw.client` 当完整底层 client 使用。
 
+后续跟进：复核发现 `client.serviceActions.*` 虽然和旧 Service Actions bridge 进入同一后端权限 owner，但缺少旧 bridge 的授权确认、grant 与自动 retry 体验，且返回形状与旧 bridge 不完全一致。因此本批次进一步修正内置 skill 口径：Service Actions 当前仍推荐 `window.nextclaw.serviceActions.*`，App Client 主要推荐 `sessions`、`agents`、`agentRuns`、`assets`、`events` 等能力；`client.serviceActions.*` 暂不作为 Panel App 推荐路径。
+
 ## 测试/验证/验收方式
 
 - `pnpm --filter @nextclaw/client-sdk test -- src/nextclaw-client.test.ts`：通过，覆盖 app-facing projection key set、host-only namespace 不暴露、projection 方法直连 host client。
@@ -18,6 +20,7 @@
 - `pnpm lint:new-code:governance`：通过。
 - `pnpm check:governance-backlog-ratchet`：通过。
 - `pnpm check:generated-clean`：通过。
+- `pnpm --filter @nextclaw/core test -- src/features/agent/features/tests/skills.test.ts`：通过，覆盖内置 skill 对 Service Actions 旧 bridge 推荐路径与 Agent bridge 便利层的文字合同。
 
 真实接口验收：用当前源码 runtime `http://127.0.0.1:18888` 创建真实 Panel App `client-projection-smoke-1780595200000`，声明 `client: true` 并通过 `/api/panel-app-client-grants/...` 授权。拉取 content 后执行真实 `/api/panel-app-client-sdk.js` bundle 与 HTML inline scripts，确认：
 
@@ -39,6 +42,10 @@
 
 本次是新增用户可见 app-facing SDK 能力，非测试代码净增为必要增长。实现保持单一事实源：`createNextClawAppClient()` 的返回对象就是 API map；注入链路只调用该 factory，不复制 namespace 映射；旧 bridge 不迁移、不删除、不新增并行业务代理。maintainability guard 0 error，1 个既有测试文件接近预算 warning。
 
+跟进修正是 skill/test 级别的推荐路径收敛：避免把尚未具备完整授权体验的 `client.serviceActions.*` 推成 Service Actions 主入口，减少 AI 生成 Panel App 时的授权失败风险。未新增运行时并行链路。
+
 ## NPM 包发布记录
 
 涉及 `@nextclaw/client-sdk`、`@nextclaw/core`、`@nextclaw/kernel` 的发布包内容变化，已新增 changeset。状态：待后续统一 beta 发布流程发布。
+
+跟进修正新增 `@nextclaw/core` patch changeset，状态：待后续统一 beta 发布流程发布。
