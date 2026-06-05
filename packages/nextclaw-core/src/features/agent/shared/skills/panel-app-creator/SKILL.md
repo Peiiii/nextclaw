@@ -203,6 +203,8 @@ const sessions = await client.sessions.list();
 4. **返回值校验**：`invoke()` 返回业务 payload；如果 payload 结构不符合 UI 预期，提示“返回格式未识别”，不要误报为连接失败。
 5. **本地降级有边界**：只有用户目标允许纯浏览器状态时才用 `localStorage` 降级；读写文件、执行命令、外部 API 这类目标不能静默降级为假成功。
 6. **运行时失败快速决策**：如果 Service App 已部署但返回错误，最多调试 2 次（检查 manifest、检查 server 日志），仍失败就明确告知用户当前阻塞点，不要反复空转。
+7. **多文件写入后做交叉一致性检查**：CSS/JS/HTML 分开写时容易出现类名、ID、事件名不一致。全部文件写完后、交付前，快速检查：(a) JS 中的 `querySelector`/`className` 是否在 CSS 中有对应规则；(b) HTML 中的 `id`/`class` 是否在 JS 中被引用；(c) CSS 选择器是否覆盖了 JS 动态生成的 DOM 结构。不要依赖浏览器调试工具发现这些问题——它们在写入阶段就能通过代码审读发现。
+8. **Panel App 不工作时先自审代码，再用外部工具**：用户报告"没看到"/"没反应"时，第一反应应该是读自己写的代码（manifest、JS API 调用格式、bridge 声明），而不是立即用 Chrome DevTools 等外部调试工具。先按清单自查：(a) `panel-app.json` 是否声明了需要的 `client`/`capabilities`/`actions`；(b) JS 中的 bridge/SDK 调用格式是否正确；(c) `waitForClient`/初始化逻辑是否有静默失败。用户给出方向性提示时（如"你是不是 api 格式没搞对"、"有没有声明 client: true"），优先验证用户指出的方向，不要继续自己的推理链。
 
 ## 交付前自检
 

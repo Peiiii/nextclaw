@@ -145,7 +145,19 @@ const sessions = await client.sessions.list();
 ## 边界判断
 
 - 标准 NextClaw 客户端能力：声明 `client: true`，授权后可以用 `window.nextclaw.client`。
-- 标准 Agent Run：可以用 `client.agentRuns.*`。
+- 标准 Agent Run：可以用 `client.agentRuns.send()` 和 `client.agentRuns.abort()`。
+- **流式 Agent 回复**：`client.agentRuns.stream()` 在 Panel App 中会抛错（host 已有 transport，无法再开一个）。需要流式输出时，改用 `client.events.subscribe()` 监听 `message.*` WebSocket 事件，配合 `client.agentRuns.send()` 触发 run。示例：
+  ```js
+  // 1. 订阅实时事件
+  const unsub = client.events.subscribe((event) => {
+    if (event.type === "message.content-delta") appendText(event.delta);
+    if (event.type === "message.completed") finalize();
+  });
+  // 2. 触发 run（sessionId 来自 agentRuns.send 返回值或已有会话）
+  await client.agentRuns.send({ sessionId, content: [{ type: "text", text }] });
+  // 3. 完成后取消订阅
+  unsub();
+  ```
 - Service App action：当前推荐用 `window.nextclaw.serviceActions.*`，不要默认替换成 `client.serviceActions.*`。
 - AI 结构化便利层：只有明确需要旧 bridge 的 `generateObject()` 时才用 `window.nextclaw.agent.generateObject()`。
 - 本地文件、外部 API、本地命令、权限动作：能力本身仍由 Service App action 提供。

@@ -8,6 +8,8 @@
 
 后续跟进：复核发现 `client.serviceActions.*` 虽然和旧 Service Actions bridge 进入同一后端权限 owner，但缺少旧 bridge 的授权确认、grant 与自动 retry 体验，且返回形状与旧 bridge 不完全一致。因此本批次进一步修正内置 skill 口径：Service Actions 当前仍推荐 `window.nextclaw.serviceActions.*`，App Client 主要推荐 `sessions`、`agents`、`agentRuns`、`assets`、`events` 等能力；`client.serviceActions.*` 暂不作为 Panel App 推荐路径。
 
+二次跟进：补充 Panel App creator skill 中的 Agent Runs 使用边界。`client.agentRuns.stream()` 在 Panel App host 已有 transport 时不作为推荐路径；需要流式输出时应通过 `client.events.subscribe()` 监听 `message.*` 事件，并用 `client.agentRuns.send()` 触发 run。同时补充多文件 HTML/CSS/JS 写入后的交叉一致性检查，以及 Panel App 不工作时先自审 manifest、bridge/API 调用与 client 声明的交付纪律。
+
 ## 测试/验证/验收方式
 
 - `pnpm --filter @nextclaw/client-sdk test -- src/nextclaw-client.test.ts`：通过，覆盖 app-facing projection key set、host-only namespace 不暴露、projection 方法直连 host client。
@@ -44,8 +46,12 @@
 
 跟进修正是 skill/test 级别的推荐路径收敛：避免把尚未具备完整授权体验的 `client.serviceActions.*` 推成 Service Actions 主入口，减少 AI 生成 Panel App 时的授权失败风险。未新增运行时并行链路。
 
+二次跟进仍为内置 skill 文档收敛，没有新增运行时链路或代码 owner；它把 Panel App Agent Runs 的流式推荐路径收敛到现有 `events` + `agentRuns.send` 合同，并增加交付前静态自检要求，降低生成多文件 Panel App 时的低级一致性错误。
+
 ## NPM 包发布记录
 
 涉及 `@nextclaw/client-sdk`、`@nextclaw/core`、`@nextclaw/kernel` 的发布包内容变化，已新增 changeset。状态：待后续统一 beta 发布流程发布。
 
 跟进修正新增 `@nextclaw/core` patch changeset，状态：待后续统一 beta 发布流程发布。
+
+二次跟进新增 `@nextclaw/core` patch changeset `panel-app-agent-runs-guidance.md`，状态：待后续统一 beta 发布流程发布。
