@@ -19,7 +19,6 @@ import {
 import { useAppEventConsumers } from "@/app/hooks/use-app-event-consumers";
 import {
   PwaInstallBanner,
-  PwaUpdateBanner,
 } from "@/pwa/components/pwa-install-entry";
 import { startNextClawPwa } from "@/pwa/register-pwa";
 
@@ -251,7 +250,6 @@ export default function AppContent() {
     <QueryClientProvider client={appQueryClient}>
       <AuthGate />
       <PwaInstallBanner />
-      <PwaUpdateBanner />
       <Toaster position="top-right" richColors offset={window.nextclawDesktop?.platform === "win32" ? 56 : undefined} mobileOffset={window.nextclawDesktop?.platform === "win32" ? 56 : undefined} />
     </QueryClientProvider>
   );

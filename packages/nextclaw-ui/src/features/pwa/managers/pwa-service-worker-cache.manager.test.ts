@@ -6,11 +6,13 @@ describe('NextClaw service worker cache policy', () => {
   });
 
   it('does not fall back to stale navigation responses', () => {
-    const navigationHandler = serviceWorkerSource.slice(
-      serviceWorkerSource.indexOf('async function handleNavigation'),
-      serviceWorkerSource.indexOf('async function handleStaticAsset')
-    );
+    expect(serviceWorkerSource).not.toContain("request.mode === 'navigate'");
+    expect(serviceWorkerSource).not.toContain('handleNavigation');
+    expect(serviceWorkerSource).toContain('SHELL_ASSETS.includes(url.pathname)');
+  });
 
-    expect(navigationHandler).not.toContain('caches.match(request)');
+  it('does not force service worker activation or page control', () => {
+    expect(serviceWorkerSource).not.toContain('skipWaiting');
+    expect(serviceWorkerSource).not.toContain('clients.claim');
   });
 });

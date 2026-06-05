@@ -43,7 +43,6 @@
   </script>
   <script>
     (() => {
-      const devResetKey = 'nextclaw-pwa-dev-sw-reset';
       const isViteDevServer = '%MODE%' === 'development';
       if (!isViteDevServer || !('serviceWorker' in navigator)) {
         return;
@@ -57,7 +56,6 @@
         });
 
         if (nextclawRegistrations.length === 0) {
-          window.sessionStorage.removeItem(devResetKey);
           return;
         }
 
@@ -66,14 +64,43 @@
           const keys = await caches.keys();
           await Promise.all(keys.filter((key) => key.startsWith('nextclaw-ui-')).map(async (key) => await caches.delete(key)));
         }
-
-        if (navigator.serviceWorker.controller && window.sessionStorage.getItem(devResetKey) !== '1') {
-          window.sessionStorage.setItem(devResetKey, '1');
-          window.location.reload();
-          return;
+      });
+    })();
+  </script>
+  <script>
+    (() => {
+      const cleanupKey = 'nextclaw-pwa-legacy-runtime-cache-cleaned-v1';
+      const hasCleaned = () => {
+        try {
+          return window.localStorage.getItem(cleanupKey) === '1';
+        } catch {
+          return false;
         }
+      };
+      const markCleaned = () => {
+        try {
+          window.localStorage.setItem(cleanupKey, '1');
+        } catch {
+          // ignore storage failures; cache cleanup is still safe to attempt once
+        }
+      };
+      if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller || hasCleaned()) {
+        return;
+      }
 
-        window.sessionStorage.removeItem(devResetKey);
+      markCleaned();
+      window.stop();
+      void Promise.all([
+        navigator.serviceWorker.getRegistrations().then((registrations) =>
+          Promise.all(registrations.map((registration) => registration.unregister()))
+        ),
+        'caches' in window
+          ? caches.keys().then((keys) =>
+              Promise.all(keys.filter((key) => key.startsWith('nextclaw-ui-')).map((key) => caches.delete(key)))
+            )
+          : Promise.resolve()
+      ]).finally(() => {
+        window.location.reload();
       });
     })();
   </script>

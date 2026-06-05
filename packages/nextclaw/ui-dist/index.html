@@ -43,7 +43,6 @@
   </script>
   <script>
     (() => {
-      const devResetKey = 'nextclaw-pwa-dev-sw-reset';
       const isViteDevServer = 'production' === 'development';
       if (!isViteDevServer || !('serviceWorker' in navigator)) {
         return;
@@ -57,7 +56,6 @@
         });
 
         if (nextclawRegistrations.length === 0) {
-          window.sessionStorage.removeItem(devResetKey);
           return;
         }
 
@@ -66,26 +64,55 @@
           const keys = await caches.keys();
           await Promise.all(keys.filter((key) => key.startsWith('nextclaw-ui-')).map(async (key) => await caches.delete(key)));
         }
-
-        if (navigator.serviceWorker.controller && window.sessionStorage.getItem(devResetKey) !== '1') {
-          window.sessionStorage.setItem(devResetKey, '1');
-          window.location.reload();
-          return;
+      });
+    })();
+  </script>
+  <script>
+    (() => {
+      const cleanupKey = 'nextclaw-pwa-legacy-runtime-cache-cleaned-v1';
+      const hasCleaned = () => {
+        try {
+          return window.localStorage.getItem(cleanupKey) === '1';
+        } catch {
+          return false;
         }
+      };
+      const markCleaned = () => {
+        try {
+          window.localStorage.setItem(cleanupKey, '1');
+        } catch {
+          // ignore storage failures; cache cleanup is still safe to attempt once
+        }
+      };
+      if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller || hasCleaned()) {
+        return;
+      }
 
-        window.sessionStorage.removeItem(devResetKey);
+      markCleaned();
+      window.stop();
+      void Promise.all([
+        navigator.serviceWorker.getRegistrations().then((registrations) =>
+          Promise.all(registrations.map((registration) => registration.unregister()))
+        ),
+        'caches' in window
+          ? caches.keys().then((keys) =>
+              Promise.all(keys.filter((key) => key.startsWith('nextclaw-ui-')).map((key) => caches.delete(key)))
+            )
+          : Promise.resolve()
+      ]).finally(() => {
+        window.location.reload();
       });
     })();
   </script>
   <title>NextClaw</title>
-  <script type="module" crossorigin src="/assets/index-DFC_DdT1.js"></script>
+  <script type="module" crossorigin src="/assets/index-DZoXsgdz.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/react-Bl8iJUcF.js">
   <link rel="modulepreload" crossorigin href="/assets/dist-T6rf86Nf.js">
   <link rel="modulepreload" crossorigin href="/assets/es2015-BSPOGpH4.js">
   <link rel="modulepreload" crossorigin href="/assets/dist-DQoV-62W.js">
-  <link rel="modulepreload" crossorigin href="/assets/api-CA2udGyv.js">
+  <link rel="modulepreload" crossorigin href="/assets/api-DhI2lb1f.js">
   <link rel="modulepreload" crossorigin href="/assets/x-BV4iiea8.js">
-  <link rel="modulepreload" crossorigin href="/assets/confirm-dialog-l4FYdzga.js">
+  <link rel="modulepreload" crossorigin href="/assets/confirm-dialog-DXRWJ5uB.js">
   <link rel="modulepreload" crossorigin href="/assets/popover-D_pJfOlM.js">
   <link rel="modulepreload" crossorigin href="/assets/tooltip-fs7VQG7d.js">
   <link rel="modulepreload" crossorigin href="/assets/arrow-left-CI0Ocu9p.js">
@@ -95,14 +122,14 @@
   <link rel="modulepreload" crossorigin href="/assets/refresh-cw-CqfS1EhK.js">
   <link rel="modulepreload" crossorigin href="/assets/trash-2-Bb8mTTLl.js">
   <link rel="modulepreload" crossorigin href="/assets/doc-browser-context-CP2tI-Br.js">
-  <link rel="modulepreload" crossorigin href="/assets/notice-card-BfXlhPjX.js">
+  <link rel="modulepreload" crossorigin href="/assets/notice-card-BLklZuEa.js">
   <link rel="modulepreload" crossorigin href="/assets/status-dot-DY0xUUvK.js">
   <link rel="modulepreload" crossorigin href="/assets/tabs-C77i1w90.js">
-  <link rel="modulepreload" crossorigin href="/assets/app-presenter-provider-B9ChYida.js">
+  <link rel="modulepreload" crossorigin href="/assets/app-presenter-provider-BFbrQp8q.js">
   <link rel="modulepreload" crossorigin href="/assets/external-link-CefT35zP.js">
   <link rel="modulepreload" crossorigin href="/assets/search-C0b2yzmt.js">
   <link rel="modulepreload" crossorigin href="/assets/doc-browser-CTFB6ACN.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-BCq7kbC8.css">
+  <link rel="stylesheet" crossorigin href="/assets/index-CevK3jug.css">
 </head>
 
 <body>

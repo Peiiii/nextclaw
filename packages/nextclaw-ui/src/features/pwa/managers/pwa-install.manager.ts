@@ -1,6 +1,5 @@
 import { usePwaStore, createInitialPwaState } from '@/features/pwa/stores/pwa.store';
 import type { PwaInstallBlockedReason, PwaInstallMethod, PwaInstallPromptOutcome, PwaInstallabilityState } from '@/features/pwa/types/pwa.types';
-import { pwaRuntimeManager } from '@/features/pwa/managers/pwa-runtime.manager';
 import {
   clearPwaInstallBannerDismissal,
   dismissPwaInstallBanner,
@@ -68,7 +67,6 @@ export class PwaInstallManager {
       blockedReason: resolution.blockedReason,
       dismissedInstallPrompt: isPwaInstallBannerDismissed()
     }));
-    void pwaRuntimeManager.syncUpdateAvailability();
   };
 
   dismissInstallPrompt = () => {

@@ -17,6 +17,4 @@ export interface PwaInstallStateSnapshot {
   installMethod: PwaInstallMethod;
   blockedReason: PwaInstallBlockedReason;
   dismissedInstallPrompt: boolean;
-  updateAvailable: boolean;
-  registrationFailed: boolean;
 }

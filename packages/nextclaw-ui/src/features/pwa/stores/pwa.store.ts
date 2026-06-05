@@ -8,9 +8,7 @@ export function createInitialPwaState(): PwaInstallStateSnapshot {
     installability: 'unsupported',
     installMethod: 'none',
     blockedReason: 'missing-browser-support',
-    dismissedInstallPrompt: isPwaInstallBannerDismissed(),
-    updateAvailable: false,
-    registrationFailed: false
+    dismissedInstallPrompt: isPwaInstallBannerDismissed()
   };
 }
 

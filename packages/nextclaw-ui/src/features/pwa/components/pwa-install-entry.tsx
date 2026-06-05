@@ -2,10 +2,9 @@ import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { usePwaStore } from '@/features/pwa/stores/pwa.store';
 import { pwaInstallManager } from '@/features/pwa/managers/pwa-install.manager';
-import { pwaRuntimeManager } from '@/features/pwa/managers/pwa-runtime.manager';
 import { t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
-import { Download, RefreshCw, Smartphone, X } from 'lucide-react';
+import { Download, Smartphone, X } from 'lucide-react';
 
 function InstallStatusBadge() {
   const installability = usePwaStore((state) => state.installability);
@@ -165,39 +164,6 @@ export function PwaInstallBanner() {
           }}
         >
           {t('pwaInstallDismiss')}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-export function PwaUpdateBanner() {
-  const updateAvailable = usePwaStore((state) => state.updateAvailable);
-  const installability = usePwaStore((state) => state.installability);
-
-  if (!updateAvailable || installability !== 'installed') {
-    return null;
-  }
-
-  return (
-    <div className="fixed top-5 right-5 z-50 w-[min(420px,calc(100vw-2rem))] rounded-[26px] border border-gray-200 bg-white/95 p-5 shadow-2xl backdrop-blur-xl">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <p className="text-sm font-semibold text-gray-900">{t('pwaUpdateBannerTitle')}</p>
-          <p className="text-sm leading-6 text-gray-600">{t('pwaUpdateBannerDescription')}</p>
-        </div>
-      </div>
-      <div className="mt-4">
-        <Button
-          type="button"
-          size="sm"
-          className="gap-2"
-          onClick={() => {
-            void pwaRuntimeManager.applyUpdate();
-          }}
-        >
-          <RefreshCw className="h-4 w-4" />
-          {t('pwaUpdateAction')}
         </Button>
       </div>
     </div>
