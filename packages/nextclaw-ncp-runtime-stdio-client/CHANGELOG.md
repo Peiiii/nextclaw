@@ -1,5 +1,64 @@
 # @nextclaw/nextclaw-ncp-runtime-stdio-client
 
+## 0.2.9
+
+### Patch Changes
+
+- 14c5730: Auto-generated full public beta release batch.
+
+  Packages:
+  - @nextclaw/agent-chat
+  - @nextclaw/agent-chat-ui
+  - @nextclaw/app-runtime
+  - @nextclaw/app-sdk
+  - @nextclaw/channel-extension-dingtalk
+  - @nextclaw/channel-extension-discord
+  - @nextclaw/channel-extension-email
+  - @nextclaw/channel-extension-feishu
+  - @nextclaw/channel-extension-qq
+  - @nextclaw/channel-extension-slack
+  - @nextclaw/channel-extension-telegram
+  - @nextclaw/channel-extension-wecom
+  - @nextclaw/channel-extension-weixin
+  - @nextclaw/channel-extension-whatsapp
+  - @nextclaw/companion
+  - @nextclaw/extension-sdk
+  - @nextclaw/feishu-core
+  - @nextclaw/mcp
+  - @nextclaw/ncp
+  - @nextclaw/ncp-agent-runtime
+  - @nextclaw/ncp-http-agent-client
+  - @nextclaw/ncp-http-agent-server
+  - @nextclaw/ncp-mcp
+  - @nextclaw/ncp-react
+  - @nextclaw/ncp-react-ui
+  - @nextclaw/ncp-toolkit
+  - @nextclaw/nextclaw-hermes-acp-bridge
+  - @nextclaw/nextclaw-narp-runtime-claude-code-sdk
+  - @nextclaw/nextclaw-narp-runtime-codex-sdk
+  - @nextclaw/nextclaw-narp-runtime-opencode
+  - @nextclaw/nextclaw-narp-stdio-runtime-wrapper
+  - @nextclaw/nextclaw-ncp-runtime-adapter-hermes-http
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk
+  - @nextclaw/nextclaw-ncp-runtime-codex-sdk
+  - @nextclaw/nextclaw-ncp-runtime-http-client
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client
+  - @nextclaw/remote
+  - @nextclaw/runtime
+  - @nextclaw/shared
+  - nextclaw
+
+- 240d5ab: Fix runtime child process environments so Service App and NARP stdio launches can resolve the current Node executable after autostart.
+- Updated dependencies [14c5730]
+- Updated dependencies [43da21a]
+- Updated dependencies [226b3cf]
+- Updated dependencies [0dc6471]
+- Updated dependencies [86a0dc8]
+- Updated dependencies [240d5ab]
+- Updated dependencies [75e0dcb]
+  - @nextclaw/ncp@0.5.29
+  - @nextclaw/core@0.14.0
+
 ## 0.2.9-beta.1
 
 ### Patch Changes

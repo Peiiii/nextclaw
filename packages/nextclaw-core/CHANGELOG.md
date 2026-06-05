@@ -1,5 +1,22 @@
 # nextclaw-core
 
+## 0.14.0
+
+### Minor Changes
+
+- 226b3cf: Expose an app-facing NextClaw App Client projection for Panel Apps.
+
+### Patch Changes
+
+- 0dc6471: Clarify Panel App creator guidance for Agent Runs streaming, client declarations, and pre-delivery code consistency checks.
+- 86a0dc8: Inject the standard NextClaw client SDK into authorized folder Panel Apps as `window.nextclaw.client`, with persistent app-level client grants and the existing bridge APIs preserved.
+- 240d5ab: Fix runtime child process environments so Service App and NARP stdio launches can resolve the current Node executable after autostart.
+- 75e0dcb: Clarify Panel App skill guidance so Service Actions continue to use the existing bridge authorization flow.
+- Updated dependencies [14c5730]
+- Updated dependencies [43da21a]
+  - @nextclaw/feishu-core@0.2.30
+  - @nextclaw/shared@0.2.9
+
 ## 0.14.0-beta.1
 
 ### Minor Changes

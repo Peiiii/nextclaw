@@ -1,5 +1,39 @@
 # @nextclaw/kernel
 
+## 0.4.0
+
+### Minor Changes
+
+- 226b3cf: Expose an app-facing NextClaw App Client projection for Panel Apps.
+
+### Patch Changes
+
+- 86a0dc8: Inject the standard NextClaw client SDK into authorized folder Panel Apps as `window.nextclaw.client`, with persistent app-level client grants and the existing bridge APIs preserved.
+- 240d5ab: Fix runtime child process environments so Service App and NARP stdio launches can resolve the current Node executable after autostart.
+- 170c8be: Improve session activity previews so thinking states read as thinking and completed tool calls keep the tool name visible.
+- 86acdbe: Publish session run status updates from the agent run request flow, keep realtime running overlays from being overwritten by persisted idle summaries, and remove the unused session run publish API from the runtime-next session state contract.
+- Updated dependencies [14c5730]
+- Updated dependencies [43da21a]
+- Updated dependencies [226b3cf]
+- Updated dependencies [0dc6471]
+- Updated dependencies [86a0dc8]
+- Updated dependencies [240d5ab]
+- Updated dependencies [75e0dcb]
+- Updated dependencies [86acdbe]
+  - @nextclaw/channel-extension-feishu@0.1.21
+  - @nextclaw/channel-extension-weixin@0.1.25
+  - @nextclaw/mcp@0.2.10
+  - @nextclaw/ncp@0.5.29
+  - @nextclaw/ncp-agent-runtime@0.3.40
+  - @nextclaw/ncp-mcp@0.1.105
+  - @nextclaw/ncp-toolkit@0.5.34
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.2.9
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.2.9
+  - @nextclaw/runtime@0.3.10
+  - @nextclaw/shared@0.2.9
+  - @nextclaw/ncp-agent-runtime-next@0.0.12
+  - @nextclaw/core@0.14.0
+
 ## 0.4.0-beta.1
 
 ### Minor Changes

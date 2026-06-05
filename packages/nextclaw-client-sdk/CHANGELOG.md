@@ -1,5 +1,23 @@
 # @nextclaw/client-sdk
 
+## 0.3.0
+
+### Minor Changes
+
+- bfa611f: Add standard agent run client APIs and HTTP routes.
+- 226b3cf: Expose an app-facing NextClaw App Client projection for Panel Apps.
+
+### Patch Changes
+
+- 86a0dc8: Inject the standard NextClaw client SDK into authorized folder Panel Apps as `window.nextclaw.client`, with persistent app-level client grants and the existing bridge APIs preserved.
+- Updated dependencies [14c5730]
+- Updated dependencies [43da21a]
+- Updated dependencies [bfa611f]
+- Updated dependencies [86a0dc8]
+  - @nextclaw/ncp@0.5.29
+  - @nextclaw/shared@0.2.9
+  - @nextclaw/server@0.14.0
+
 ## 0.3.0-beta.1
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/nextclaw-narp-runtime-codex-sdk",
-  "version": "0.1.28-beta.1",
+  "version": "0.1.28",
   "private": false,
   "description": "NARP stdio launcher for the NextClaw Codex SDK runtime.",
   "type": "module",

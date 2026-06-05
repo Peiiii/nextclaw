@@ -1,5 +1,25 @@
 # @nextclaw/ui
 
+## 0.13.10
+
+### Patch Changes
+
+- 86a0dc8: Inject the standard NextClaw client SDK into authorized folder Panel Apps as `window.nextclaw.client`, with persistent app-level client grants and the existing bridge APIs preserved.
+- 13eaf56: Simplify the PWA runtime so service workers no longer reload chat pages or serve stale runtime chunks.
+- 86acdbe: Publish session run status updates from the agent run request flow, keep realtime running overlays from being overwritten by persisted idle summaries, and remove the unused session run publish API from the runtime-next session state contract.
+- Updated dependencies [14c5730]
+- Updated dependencies [43da21a]
+- Updated dependencies [bfa611f]
+- Updated dependencies [226b3cf]
+- Updated dependencies [86a0dc8]
+  - @nextclaw/agent-chat@0.2.9
+  - @nextclaw/agent-chat-ui@0.4.9
+  - @nextclaw/ncp@0.5.29
+  - @nextclaw/ncp-http-agent-client@0.3.41
+  - @nextclaw/ncp-react@0.4.49
+  - @nextclaw/shared@0.2.9
+  - @nextclaw/client-sdk@0.3.0
+
 ## 0.13.10-beta.1
 
 ### Patch Changes

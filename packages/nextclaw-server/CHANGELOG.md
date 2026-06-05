@@ -1,5 +1,29 @@
 # nextclaw-server
 
+## 0.14.0
+
+### Minor Changes
+
+- bfa611f: Add standard agent run client APIs and HTTP routes.
+
+### Patch Changes
+
+- 86a0dc8: Inject the standard NextClaw client SDK into authorized folder Panel Apps as `window.nextclaw.client`, with persistent app-level client grants and the existing bridge APIs preserved.
+- Updated dependencies [14c5730]
+- Updated dependencies [43da21a]
+- Updated dependencies [226b3cf]
+- Updated dependencies [0dc6471]
+- Updated dependencies [86a0dc8]
+- Updated dependencies [240d5ab]
+- Updated dependencies [75e0dcb]
+- Updated dependencies [170c8be]
+- Updated dependencies [86acdbe]
+  - @nextclaw/mcp@0.2.10
+  - @nextclaw/ncp@0.5.29
+  - @nextclaw/runtime@0.3.10
+  - @nextclaw/core@0.14.0
+  - @nextclaw/kernel@0.4.0
+
 ## 0.14.0-beta.1
 
 ### Minor Changes

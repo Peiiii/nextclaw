@@ -1,5 +1,91 @@
 # @nextclaw/service
 
+## 0.2.10
+
+### Patch Changes
+
+- 43da21a: Auto-generated full public beta release batch.
+
+  Packages:
+  - @nextclaw/agent-chat
+  - @nextclaw/agent-chat-ui
+  - @nextclaw/aigen
+  - @nextclaw/app-runtime
+  - @nextclaw/app-sdk
+  - @nextclaw/channel-extension-dingtalk
+  - @nextclaw/channel-extension-discord
+  - @nextclaw/channel-extension-email
+  - @nextclaw/channel-extension-feishu
+  - @nextclaw/channel-extension-qq
+  - @nextclaw/channel-extension-slack
+  - @nextclaw/channel-extension-telegram
+  - @nextclaw/channel-extension-wecom
+  - @nextclaw/channel-extension-weixin
+  - @nextclaw/channel-extension-whatsapp
+  - @nextclaw/companion
+  - @nextclaw/extension-sdk
+  - @nextclaw/feishu-core
+  - @nextclaw/mcp
+  - @nextclaw/ncp
+  - @nextclaw/ncp-agent-runtime
+  - @nextclaw/ncp-agent-runtime-next
+  - @nextclaw/ncp-http-agent-client
+  - @nextclaw/ncp-http-agent-server
+  - @nextclaw/ncp-mcp
+  - @nextclaw/ncp-react
+  - @nextclaw/ncp-react-ui
+  - @nextclaw/ncp-toolkit
+  - @nextclaw/nextclaw-hermes-acp-bridge
+  - @nextclaw/nextclaw-narp-runtime-claude-code-sdk
+  - @nextclaw/nextclaw-narp-runtime-codex-sdk
+  - @nextclaw/nextclaw-narp-runtime-opencode
+  - @nextclaw/nextclaw-narp-stdio-runtime-wrapper
+  - @nextclaw/nextclaw-ncp-runtime-adapter-hermes-http
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk
+  - @nextclaw/nextclaw-ncp-runtime-codex-sdk
+  - @nextclaw/nextclaw-ncp-runtime-http-client
+  - @nextclaw/remote
+  - @nextclaw/runtime
+  - @nextclaw/service
+  - @nextclaw/shared
+
+- 86a0dc8: Inject the standard NextClaw client SDK into authorized folder Panel Apps as `window.nextclaw.client`, with persistent app-level client grants and the existing bridge APIs preserved.
+- Updated dependencies [14c5730]
+- Updated dependencies [43da21a]
+- Updated dependencies [bfa611f]
+- Updated dependencies [226b3cf]
+- Updated dependencies [0dc6471]
+- Updated dependencies [86a0dc8]
+- Updated dependencies [240d5ab]
+- Updated dependencies [75e0dcb]
+- Updated dependencies [170c8be]
+- Updated dependencies [86acdbe]
+  - @nextclaw/channel-extension-dingtalk@0.1.14
+  - @nextclaw/channel-extension-discord@0.1.14
+  - @nextclaw/channel-extension-email@0.1.14
+  - @nextclaw/channel-extension-feishu@0.1.21
+  - @nextclaw/channel-extension-qq@0.1.18
+  - @nextclaw/channel-extension-slack@0.1.14
+  - @nextclaw/channel-extension-telegram@0.1.14
+  - @nextclaw/channel-extension-wecom@0.1.14
+  - @nextclaw/channel-extension-weixin@0.1.25
+  - @nextclaw/channel-extension-whatsapp@0.1.14
+  - @nextclaw/mcp@0.2.10
+  - @nextclaw/ncp@0.5.29
+  - @nextclaw/ncp-agent-runtime@0.3.40
+  - @nextclaw/ncp-mcp@0.1.105
+  - @nextclaw/ncp-toolkit@0.5.34
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.2.9
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.2.9
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.2.9
+  - @nextclaw/remote@0.2.10
+  - @nextclaw/runtime@0.3.10
+  - @nextclaw/shared@0.2.9
+  - @nextclaw/client-sdk@0.3.0
+  - @nextclaw/server@0.14.0
+  - @nextclaw/core@0.14.0
+  - @nextclaw/kernel@0.4.0
+
 ## 0.2.10-beta.1
 
 ### Patch Changes
