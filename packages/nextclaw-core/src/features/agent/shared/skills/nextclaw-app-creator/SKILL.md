@@ -10,7 +10,7 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 
 总入口只负责形态决策、组合顺序和最终验收，不拥有 Panel App 或 Service App 的字段细节。判断出形态后，必须继续读取对应专项 skill；不能只读本 skill 就直接编写 `panel-app.json`、`service-app.json`、bridge 调用或 MCP server。
 
-如果用户明确要求 Vite、React、Tailwind、现代前端技术栈、工程化源码、可构建 Panel App，或希望用 pnpm 开发再交付静态产物，先读取 `panel-app-react-vite-creator`，再按需读取 `panel-app-creator` 处理 manifest、bridge、Client SDK 和验收规则。
+先主动判断 Panel App 的前端形态，不要只在用户点名技术栈时才选择工程化方案。明显是多组件 UI、AI 对话/Agent Run、列表筛选、图表、复杂表单、持续维护、需要 TypeScript 类型辅助，或用户要求现代/可构建/可复用源码时，优先读取 `panel-app-react-vite-creator`，再按需读取 `panel-app-creator` 处理 manifest、bridge、Client SDK 和验收规则。工程化推荐栈是 `React + Vite + TypeScript + Tailwind CSS + pnpm` 一整套，缺一不可；只有极小、一次性、无复杂状态、无构建收益的静态面板，才直接走轻量目录式 Panel App。
 
 ## 能力发现
 
@@ -48,6 +48,11 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
    - 不要跳过 `service-app-creator` 直接在 Panel App 中猜 Service Action；后端 action 的 manifest 字段以 `service-app-creator` 为唯一专项规则源。
 
 如果不确定是否需要后端，默认先做 **Panel-only**，但只能依赖页面内临时状态和手动导入/导出；不能依赖 `localStorage`、`sessionStorage`、cookie 或 IndexedDB。只要用户目标需要稳定持久化、文件、网络、命令或权限边界，就加入 Service App 或使用已授权的 App Client 能力。
+
+完成 Panel/Service 形态判断后，再判断前端工程形态：
+
+- **工程化 React/Vite/TypeScript/Tailwind/pnpm**：适合 AI 应用、对话体验、需要 App Client 类型、多个视图/组件、列表筛选排序、图表、复杂表单、异步加载状态、错误/空状态较多，或后续会持续迭代的 Panel App。推荐栈必须作为一整套使用：`React + Vite + TypeScript + Tailwind CSS + pnpm`，不要只选其中一部分；最终仍交付静态 `.panel` 目录。
+- **轻量目录式静态 Panel App**：适合极小工具、一次性页面、纯展示/简单表单、少量内存状态、无明显组件拆分和构建收益的应用。不要为了“像工程”而引入 npm 工程。
 
 ## 组合原则
 

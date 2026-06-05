@@ -14,6 +14,10 @@
 
 同批次还补充 Panel App 页面 Header：返回按钮与应用标题拆开，标题使用原“应用”文本的轻量样式但显示具体 Panel App 名称；并将低频 `Illegal invocation` 排障说明拆到专门 troubleshooting reference，主 skill 只保留遇到运行时报错时再查的路由提示。
 
+随后针对 AI 生成 React/Vite/TypeScript Panel App 时容易误解 App Client 的问题，补充工程化开发路径：开发期可以安装 `@nextclaw/client-sdk` 作为类型来源，只 `import type` 使用 `NextClawAppClient`；运行期仍只能读取宿主同步注入的 `window.nextclaw.client`。同时在 `@nextclaw/client-sdk` 包内新增 README 作为 App Client 轻量合同，修正 `agentRuns.stream()` 与 `events.subscribe()` 的边界，避免 AI 把全局 realtime envelope 当作 raw NCP stream event，或继续使用旧的 `text.delta` 事件名。新增 `docs:check-app-client-api` 漂移检查，确保 README 中的 App Client API map 与真实 `createNextClawAppClient()` 投影保持一致。
+
+同批次继续补充 Panel App 技术栈选择规则：AI 不应只在用户明确点名时才使用工程化方案，而应先判断应用复杂度和可维护性需求。复杂或可维护 Panel App 的推荐栈明确为 `React + Vite + TypeScript + Tailwind CSS + pnpm` 一整套，缺一不可；极小、一次性、无构建收益的应用才走轻量目录式静态 Panel App。
+
 ## 测试/验证/验收方式
 
 - `pnpm --filter @nextclaw/kernel test -- src/managers/__tests__/panel-app.manager.test.ts`：通过。
@@ -40,6 +44,11 @@
 - `pnpm lint:maintainability:guard`：通过；提示 `packages/nextclaw-client-sdk/src/services` 目录仍使用已记录预算豁免。
 - `pnpm lint:new-code:governance`：通过。
 - `pnpm check:governance-backlog-ratchet`：通过。
+- `pnpm docs:check-app-client-api`：通过。
+- `pnpm --filter @nextclaw/core test -- src/features/agent/features/tests/skills.test.ts`：通过，确认 React/Vite Panel App skill 会暴露 `@nextclaw/client-sdk` type-only 接入说明。
+- `pnpm --filter @nextclaw/core tsc`：通过。
+- `pnpm --filter @nextclaw/client-sdk tsc`：通过。
+- `pnpm exec eslint scripts/docs/check-app-client-api-docs.mjs packages/nextclaw-core/src/features/agent/features/tests/skills.test.ts`：通过。
 - 真实用户路径：打开 `http://127.0.0.1:5174/chat`，进入右侧“应用”里的“墨爪助手”，loading 消失，Agent 列表、输入框和发送按钮可见。
 - 运行中 SDK bundle 对比：`http://127.0.0.1:55667/api/panel-app-client-sdk.js` 仍为全局安装版旧 bundle；`http://127.0.0.1:18792/api/panel-app-client-sdk.js` 已包含 `.call(globalThis)`。
 

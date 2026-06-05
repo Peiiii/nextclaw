@@ -105,6 +105,7 @@
     "dev:desktop": "pnpm -C apps/desktop dev",
     "dev:companion": "pnpm -C apps/companion dev",
     "dev:docs": "pnpm --filter @nextclaw/docs dev",
+    "docs:check-app-client-api": "node scripts/docs/check-app-client-api-docs.mjs",
     "docs:i18n:check": "node scripts/docs/docs-i18n-check.mjs",
     "project:pulse": "node scripts/project-pulse/generate-data.mjs",
     "dev:landing": "pnpm --filter @nextclaw/landing dev",

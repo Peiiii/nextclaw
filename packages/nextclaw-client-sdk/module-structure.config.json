@@ -3,6 +3,6 @@
   "organizationModel": "legacy-package-shell",
   "rootPolicy": "contract-only",
   "allowedRootDirectories": ["src"],
-  "allowedRootFiles": ["package.json", "tsconfig.json", "vitest.config.ts"],
+  "allowedRootFiles": ["package.json", "README.md", "tsconfig.json", "vitest.config.ts"],
   "enforcement": "error"
 }

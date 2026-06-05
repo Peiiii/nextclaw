@@ -68,7 +68,8 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("320px-480px");
     expect(skill).toContain("新建或重写 Panel App 时只使用目录式 Panel App");
     expect(skill).toContain("panel-app-react-vite-creator");
-    expect(skill).toContain("工程化 React/Vite/Tailwind 路由");
+    expect(skill).toContain("前端工程形态判断");
+    expect(skill).toContain("先主动判断是否需要工程化 `React + Vite + TypeScript + Tailwind CSS + pnpm`");
     expect(skill).toContain("`panel-app.json` 是标题、描述、图标、入口、Agent capabilities 和 Service actions 的唯一 manifest 事实源");
     expect(skill).toContain("创建或修改 Panel App 后不需要重启 NextClaw 宿主");
     expect(skill).toContain("\"capabilities\": [\"agent:generateObject\", \"agent:send\"]");
@@ -92,6 +93,9 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("panel-app-creator");
     expect(skill).toContain("service-app-creator");
     expect(skill).toContain("panel-app-react-vite-creator");
+    expect(skill).toContain("完成 Panel/Service 形态判断后，再判断前端工程形态");
+    expect(skill).toContain("React + Vite + TypeScript + Tailwind CSS + pnpm");
+    expect(skill).toContain("AI 应用、对话体验、需要 App Client 类型");
     expect(skill).toContain("window.nextclaw.serviceActions.invoke()");
     expect(skill).toContain("window.nextclaw.agent.generateObject()");
     expect(skill).toContain("不要外部生成稳定 `sessionId`");
@@ -117,6 +121,10 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("base: \"./\"");
     expect(skill).toContain("静态 `.panel` 目录");
     expect(skill).toContain("不要让 NextClaw 宿主运行 `vite dev`");
+    expect(skill).toContain("pnpm add -D @nextclaw/client-sdk");
+    expect(skill).toContain("import type { NextClawAppClient } from \"@nextclaw/client-sdk\"");
+    expect(skill).toContain("真实 client 必须来自宿主同步注入的 `window.nextclaw.client`");
+    expect(skill).toContain("不要凭记忆写 `panelApps.*`");
     expect(skill).toContain("nextclaw app check");
   });
 
