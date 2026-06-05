@@ -1,0 +1,28 @@
+{
+  "slug": "aigen-image-generation",
+  "name": "aigen Image Generation",
+  "summary": "Generate images with the local aigen CLI through providers such as OpenRouter or OpenAI.",
+  "summaryI18n": {
+    "en": "Generate images with the local aigen CLI through providers such as OpenRouter or OpenAI.",
+    "zh": "使用本地 aigen CLI 通过 OpenRouter 或 OpenAI 等 provider 生成图片。"
+  },
+  "description": "Use this skill when the user wants AI-generated images through the local aigen CLI. The skill guides installation, provider/model setup, safe API key handling, readiness checks, image generation, and troubleshooting without treating aigen as a built-in NextClaw runtime.",
+  "descriptionI18n": {
+    "en": "Use this skill when the user wants AI-generated images through the local aigen CLI. The skill guides installation, provider/model setup, safe API key handling, readiness checks, image generation, and troubleshooting without treating aigen as a built-in NextClaw runtime.",
+    "zh": "当用户希望通过本地 aigen CLI 生成 AI 图片时使用此技能。该技能会引导安装、provider/model 配置、安全 API key 写入、就绪检查、图片生成与故障排查，并明确 aigen 不是 NextClaw 内置运行时。"
+  },
+  "author": "NextClaw",
+  "tags": [
+    "skill",
+    "aigen",
+    "image-generation",
+    "openrouter",
+    "openai",
+    "ai-generation",
+    "external-tool",
+    "cli",
+    "onboarding"
+  ],
+  "sourceRepo": "https://github.com/NextClaw/nextbot",
+  "homepage": "https://www.npmjs.com/package/@nextclaw/aigen"
+}

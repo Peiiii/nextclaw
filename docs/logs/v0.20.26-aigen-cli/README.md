@@ -33,7 +33,9 @@
 
 ## 发布/部署方式
 
-本次未发布、未部署。新增 package 已接入 root `build` / `lint` / `tsc` 脚本，后续发布按统一 NPM 发布流程执行。
+本次已按用户要求发布正式 NPM 包 `@nextclaw/aigen@0.1.0`，dist-tag `latest` 指向正式版。新增 package 已接入 root `build` / `lint` / `tsc` 脚本。
+
+同时新增 marketplace skill `aigen-image-generation`，用于让 AI 通过外部 `aigen` CLI 为用户生成图片。该 skill 仅作为 marketplace 扩展发布，不内置到 NextClaw 常驻 skill 集合。
 
 ## 用户/产品视角的验收步骤
 
@@ -64,3 +66,13 @@
 - 发布状态：已发布正式版。
 - registry 验证：`npm view @nextclaw/aigen version dist-tags versions --json --prefer-online` 返回 `version=0.1.0`，`latest=0.1.0`，`beta=0.1.0-beta.1`。
 - 已发布包冒烟：从临时目录安装 `@nextclaw/aigen@latest`，`aigen --version` 返回 `0.1.0`；使用隔离 `AIGEN_HOME` 与 OpenRouter 测试 key 通过 `x-ai/grok-imagine-image-quality` 生成 JPEG 图片。
+
+## Marketplace Skill 发布记录
+
+涉及新增 marketplace skill：`aigen-image-generation`。
+
+- 发布方式：`nextclaw skills publish skills/aigen-image-generation --meta skills/aigen-image-generation/marketplace.json --api-base https://marketplace-api.nextclaw.io`。
+- 发布状态：已发布新 skill `@nextclaw/aigen-image-generation`，alias 为 `aigen-image-generation`。
+- 本地校验：`validate_marketplace_skill.py --skill-dir skills/aigen-image-generation` 返回 Errors 0，Warnings 0。
+- 远端验证：`GET /api/v1/skills/items/aigen-image-generation` 返回 `ok=true`，`publishStatus=published`，install command 为 `nextclaw skills install @nextclaw/aigen-image-generation`。
+- 安装冒烟：在 `/tmp` 临时 workdir 执行 `nextclaw skills install aigen-image-generation --api-base https://marketplace-api.nextclaw.io --workdir <tmp>`，确认安装出 `SKILL.md`、`marketplace.json` 与 `.nextclaw-install.json`。
