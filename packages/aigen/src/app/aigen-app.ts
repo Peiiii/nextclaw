@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { Command, CommanderError } from "commander";
 import { DoctorController } from "@/controllers/doctor.controller.js";
 import { ImageController } from "@/controllers/image.controller.js";
@@ -27,6 +28,7 @@ export class AigenApp {
     private readonly modelsController: ModelsController,
     private readonly secretsController: SecretsController,
     private readonly doctorController: DoctorController,
+    private readonly version = resolveAigenPackageVersion(),
   ) {}
 
   run = async (argv: string[]): Promise<AigenCommandOutput> => {
@@ -72,7 +74,7 @@ export class AigenApp {
     program
       .name("aigen")
       .description("Stateless AI media generation CLI.")
-      .version("0.0.0", "-v, --version");
+      .version(this.version, "-v, --version");
     program.exitOverride();
     program.showHelpAfterError();
 
@@ -145,4 +147,13 @@ export const createAigenApp = (homeDir?: string): AigenApp => {
       providerRuntimeManager,
     ),
   );
+};
+
+const resolveAigenPackageVersion = (): string => {
+  const packageJsonUrl = new URL("../../package.json", import.meta.url);
+  const packageJson = JSON.parse(readFileSync(packageJsonUrl, "utf8")) as {
+    version?: unknown;
+  };
+
+  return typeof packageJson.version === "string" ? packageJson.version : "0.0.0";
 };

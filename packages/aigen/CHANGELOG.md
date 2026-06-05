@@ -1,5 +1,11 @@
 # @nextclaw/aigen
 
+## 0.1.0-beta.1
+
+### Patch Changes
+
+- Report the package version from the aigen CLI version command.
+
 ## 0.1.0-beta.0
 
 ### Minor Changes

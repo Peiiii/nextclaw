@@ -47,4 +47,14 @@ describe("AigenApp", () => {
     });
     expect(output.ok ? "" : output.error.message).toContain("must be a number");
   });
+
+  it("reports the package version", async () => {
+    const app = createAigenApp(homeDir);
+    const output = await app.run(["--version"]);
+
+    expect(output).toEqual({
+      ok: true,
+      output: "0.1.0-beta.1"
+    });
+  });
 });

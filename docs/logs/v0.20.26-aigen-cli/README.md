@@ -59,6 +59,6 @@
 - 当前状态：新增 workspace package，准备按当前仓库 prerelease 通道发布。
 - 是否需要发布：用户要求针对该包提交并发布 NPM。
 - 发布范围：仅 `@nextclaw/aigen`，该包无 workspace runtime 依赖，只依赖 `commander`，窄发布不会影响 `nextclaw` 安装闭包。
-- 发布版本：`0.1.0-beta.0`。
+- 发布版本：`0.1.0-beta.1`。
 - 发布 dist-tag：`beta`。
 - 发布状态：提交后执行 NPM 发布并回填 registry 验证结果。
