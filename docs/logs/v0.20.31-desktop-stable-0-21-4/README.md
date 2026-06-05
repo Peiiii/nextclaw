@@ -32,14 +32,14 @@
 PATH=/opt/homebrew/bin:$PATH pnpm release:desktop:stable -- --notes-file docs/logs/v0.20.31-desktop-stable-0-21-4/github-release.md
 ```
 
-官网/landing 下载 fallback 是下游发布面，已在 GitHub release assets、public stable update manifest 与 stable APT repo 全部闭合后同步更新到 `v0.21.4-desktop.1 / 0.0.207`。
+官网/landing 下载 fallback 是下游发布面，已在 GitHub release assets、public stable update manifest 与 stable APT repo 全部闭合后同步更新到 `v0.21.4-desktop.1 / 0.0.207`，并部署到 `https://17842e36.nextclaw-landing.pages.dev`。
 
 ## 用户/产品视角的验收步骤
 
 - stable 桌面用户检查更新时，应看到 runtime bundle `0.21.4`。
 - 新用户从正式 GitHub release 下载 `0.0.207` 安装包。
 - Linux 用户通过 stable APT 源应能安装或升级到 `nextclaw-desktop 0.0.207`。
-- 官网下载页若 GitHub API 可用，应自动解析最新正式桌面 release；fallback 已更新到本次正式版。
+- 官网下载页若 GitHub API 可用，应自动解析最新正式桌面 release；fallback 已更新到本次正式版，并已在 `https://nextclaw.io/en/download/` 复验结构化 `downloadUrl`。
 
 ## 可维护性总结汇总
 
