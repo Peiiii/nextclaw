@@ -1,5 +1,11 @@
 # @nextclaw/ncp
 
+## 0.6.1
+
+### Patch Changes
+
+- 36c4e56: Expose session workingDir and use it as the base path for chat local file link previews.
+
 ## 0.6.0
 
 ### Minor Changes

@@ -1,5 +1,26 @@
 # @nextclaw/kernel
 
+## 0.4.2
+
+### Patch Changes
+
+- 36c4e56: Expose session workingDir and use it as the base path for chat local file link previews.
+- Updated dependencies
+- Updated dependencies [36c4e56]
+  - @nextclaw/channel-extension-feishu@0.1.23
+  - @nextclaw/channel-extension-weixin@0.1.27
+  - @nextclaw/core@0.14.2
+  - @nextclaw/mcp@0.2.12
+  - @nextclaw/ncp-agent-runtime@0.3.42
+  - @nextclaw/ncp-agent-runtime-next@0.0.14
+  - @nextclaw/ncp-mcp@0.1.107
+  - @nextclaw/ncp-toolkit@0.5.36
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.2.11
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.2.11
+  - @nextclaw/runtime@0.3.12
+  - @nextclaw/shared@0.2.11
+  - @nextclaw/ncp@0.6.1
+
 ## 0.4.1
 
 ### Patch Changes

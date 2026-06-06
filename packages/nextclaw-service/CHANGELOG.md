@@ -1,5 +1,38 @@
 # @nextclaw/service
 
+## 0.2.12
+
+### Patch Changes
+
+- 990a171: Fix npm runtime update checks so a beta launcher can detect and update to the matching stable release.
+- Updated dependencies
+- Updated dependencies [36c4e56]
+  - @nextclaw/channel-extension-dingtalk@0.1.16
+  - @nextclaw/channel-extension-discord@0.1.16
+  - @nextclaw/channel-extension-email@0.1.16
+  - @nextclaw/channel-extension-feishu@0.1.23
+  - @nextclaw/channel-extension-qq@0.1.20
+  - @nextclaw/channel-extension-slack@0.1.16
+  - @nextclaw/channel-extension-telegram@0.1.16
+  - @nextclaw/channel-extension-wecom@0.1.16
+  - @nextclaw/channel-extension-weixin@0.1.27
+  - @nextclaw/channel-extension-whatsapp@0.1.16
+  - @nextclaw/client-sdk@0.4.1
+  - @nextclaw/core@0.14.2
+  - @nextclaw/mcp@0.2.12
+  - @nextclaw/ncp-agent-runtime@0.3.42
+  - @nextclaw/ncp-mcp@0.1.107
+  - @nextclaw/ncp-toolkit@0.5.36
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.2.11
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.2.11
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.2.11
+  - @nextclaw/remote@0.2.12
+  - @nextclaw/runtime@0.3.12
+  - @nextclaw/server@0.14.2
+  - @nextclaw/shared@0.2.11
+  - @nextclaw/ncp@0.6.1
+  - @nextclaw/kernel@0.4.2
+
 ## 0.2.11
 
 ### Patch Changes

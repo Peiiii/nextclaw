@@ -1,5 +1,20 @@
 # @nextclaw/ui
 
+## 0.13.12
+
+### Patch Changes
+
+- 36c4e56: Expose session workingDir and use it as the base path for chat local file link previews.
+- Updated dependencies
+- Updated dependencies [36c4e56]
+  - @nextclaw/agent-chat@0.2.11
+  - @nextclaw/agent-chat-ui@0.4.11
+  - @nextclaw/client-sdk@0.4.1
+  - @nextclaw/ncp-http-agent-client@0.3.43
+  - @nextclaw/ncp-react@0.4.51
+  - @nextclaw/shared@0.2.11
+  - @nextclaw/ncp@0.6.1
+
 ## 0.13.11
 
 ### Patch Changes
