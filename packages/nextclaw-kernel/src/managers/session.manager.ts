@@ -30,10 +30,18 @@ import {
 } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import { createAgentPeerSessionIdentity } from "@kernel/utils/agent-peer-session.utils.js";
 import {
+  applyLimit,
+  normalizeSessionId,
+  readEventSessionId,
+  readOptionalMetadataString,
+  readOptionalString,
+} from "@kernel/utils/session-manager.utils.js";
+import {
   eventKeys,
   type EventBus,
 } from "@nextclaw/shared";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
+import { SessionWorkingDirResolver } from "@kernel/services/session-working-dir-resolver.service.js";
 
 type CreateNcpSessionInput = CreateSessionInput & {
   sessionId?: string;
@@ -52,36 +60,6 @@ export type SessionManagerOptions = {
   journalStore: NcpAgentSessionJournalStore;
   sessionSearch: SessionSearchManager;
 };
-
-function normalizeSessionId(sessionId: string): string {
-  return sessionId.trim();
-}
-
-function applyLimit<T>(items: T[], limit?: number): T[] {
-  if (!Number.isFinite(limit) || typeof limit !== "number" || limit <= 0) {
-    return items;
-  }
-  return items.slice(0, Math.trunc(limit));
-}
-
-function readOptionalString(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
-function readOptionalMetadataString(value: unknown): string | undefined {
-  const trimmed = typeof value === "string" ? value.trim() : "";
-  return trimmed || undefined;
-}
-
-function readEventSessionId(event: NcpEndpointEvent): string | undefined {
-  return "payload" in event && "sessionId" in event.payload
-    ? readOptionalMetadataString(event.payload.sessionId)
-    : undefined;
-}
 
 function isDurableSessionEvent(event: NcpEndpointEvent): boolean {
   return event.type !== NcpEventType.ContextWindowUpdated;
@@ -213,12 +191,14 @@ function isSessionSummaryRefreshEvent(event: NcpAgentSessionJournalReplayEvent):
 export class SessionManager implements NcpSessionApi {
   readonly cleanups: Array<() => void> = [];
   private readonly contextWindowPreview: ContextWindowPreviewManager;
+  private readonly workingDirResolver: SessionWorkingDirResolver;
   private started = false;
 
   constructor(private readonly options: SessionManagerOptions) {
     this.contextWindowPreview = new ContextWindowPreviewManager({
       configManager: options.configManager,
     });
+    this.workingDirResolver = new SessionWorkingDirResolver(options.configManager);
   }
 
   start = (): void => {
@@ -407,7 +387,12 @@ export class SessionManager implements NcpSessionApi {
 
   listSessions = async (options?: ListSessionsOptions): Promise<NcpSessionSummary[]> => {
     const peerId = readOptionalString(options?.peerId);
-    return applyLimit((await this.options.journalStore.listSessionSummaries()).filter((summary) => !peerId || summary.peerId === peerId), options?.limit);
+    return applyLimit(
+      (await this.options.journalStore.listSessionSummaries())
+        .filter((summary) => !peerId || summary.peerId === peerId)
+        .map(this.workingDirResolver.withWorkingDir),
+      options?.limit,
+    );
   };
 
   listSessionMessages = async (
@@ -571,7 +556,7 @@ export class SessionManager implements NcpSessionApi {
     record: AgentSessionRecord,
     includeContextWindow = false,
   ): NcpSessionSummary => {
-    const summary = createNcpAgentSessionSummary(record);
+    const summary = this.workingDirResolver.withWorkingDir(createNcpAgentSessionSummary(record));
     const contextWindow = includeContextWindow
       ? this.contextWindowPreview.preview({
         requestMetadata: record.metadata ?? {},

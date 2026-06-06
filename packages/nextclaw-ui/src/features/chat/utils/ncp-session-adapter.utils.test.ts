@@ -22,6 +22,7 @@ describe('adaptNcpSessionSummary', () => {
       createSummary({
         agentId: 'engineer',
         lastMessageAt: '2026-03-18T00:00:00.000Z',
+        workingDir: '/Users/demo/workspace/project-alpha',
         metadata: {
           label: 'NCP Planning Thread',
           model: 'openai/gpt-5',
@@ -40,6 +41,7 @@ describe('adaptNcpSessionSummary', () => {
       preferredModel: 'openai/gpt-5',
       preferredThinking: 'medium',
       projectRoot: '/Users/demo/workspace/project-alpha',
+      workingDir: '/Users/demo/workspace/project-alpha',
       projectName: 'project-alpha',
       lastMessageAt: '2026-03-18T00:00:00.000Z',
       readAt: '2026-03-17T23:59:00.000Z',
@@ -48,6 +50,25 @@ describe('adaptNcpSessionSummary', () => {
       isChildSession: false,
       messageCount: 3
     });
+  });
+
+  it('uses workingDir as the local file base even when projectRoot is absent', () => {
+    const adapted = adaptNcpSessionSummary(
+      createSummary({
+        workingDir: '/Users/demo/workspace',
+        metadata: {
+          label: 'Workspace Thread',
+          session_type: 'native',
+        },
+      }),
+    );
+
+    expect(adapted).toMatchObject({
+      key: 'ncp-session-1',
+      label: 'Workspace Thread',
+      workingDir: '/Users/demo/workspace',
+    });
+    expect(adapted.projectRoot).toBeUndefined();
   });
 
   it('marks child sessions from parent_session_id metadata and keeps the request link', () => {

@@ -55,6 +55,7 @@ describe("ChatSessionWorkspaceFilePreview", () => {
       <ChatSessionWorkspaceFilePreview
         file={buildWorkspaceFile({ viewMode: "preview" })}
         sessionProjectRoot="/tmp"
+        sessionWorkingDir="/tmp"
         onFileOpen={vi.fn()}
       />,
     );
@@ -81,6 +82,7 @@ describe("ChatSessionWorkspaceFilePreview", () => {
           newStartLine: 1,
         })}
         sessionProjectRoot="/tmp"
+        sessionWorkingDir="/tmp"
         onFileOpen={vi.fn()}
       />,
     );
@@ -106,6 +108,7 @@ describe("ChatSessionWorkspaceFilePreview", () => {
       <ChatSessionWorkspaceFilePreview
         file={buildWorkspaceFile({ viewMode: "preview" })}
         sessionProjectRoot="/tmp"
+        sessionWorkingDir="/tmp"
         onFileOpen={vi.fn()}
       />,
     );
@@ -132,6 +135,7 @@ describe("ChatSessionWorkspaceFilePreview", () => {
       <ChatSessionWorkspaceFilePreview
         file={buildWorkspaceFile({ viewMode: "preview" })}
         sessionProjectRoot="/tmp/workspace"
+        sessionWorkingDir="/tmp/workspace"
         onFileOpen={vi.fn()}
       />,
     );
@@ -167,6 +171,7 @@ describe("ChatSessionWorkspaceFilePreview", () => {
           column: 4,
         })}
         sessionProjectRoot="/tmp"
+        sessionWorkingDir="/tmp"
         onFileOpen={vi.fn()}
       />,
     );
@@ -174,5 +179,39 @@ describe("ChatSessionWorkspaceFilePreview", () => {
     expect(screen.getByText("L12:4")).toBeTruthy();
     expect(screen.getByText(t("chatWorkspacePreviewTruncated"))).toBeTruthy();
     expect(screen.queryByText(t("chatWorkspacePreview"))).toBeNull();
+  });
+
+  it("uses the session working directory as the base path when no project root is set", () => {
+    serverPathReadMock.mockReturnValue({
+      isLoading: false,
+      error: null,
+      data: {
+        kind: "text",
+        resolvedPath: "/tmp/agent-workspace/AGENTS.md",
+        text: "# Agent rules\n",
+        truncated: false,
+      },
+    });
+
+    render(
+      <ChatSessionWorkspaceFilePreview
+        file={buildWorkspaceFile({
+          path: "AGENTS.md",
+          label: "AGENTS.md",
+          viewMode: "preview",
+        })}
+        sessionProjectRoot={null}
+        sessionWorkingDir="/tmp/agent-workspace"
+        onFileOpen={vi.fn()}
+      />,
+    );
+
+    expect(serverPathReadMock).toHaveBeenCalledWith({
+      path: "AGENTS.md",
+      basePath: "/tmp/agent-workspace",
+      enabled: true,
+    });
+    expect(screen.getByText("agent-workspace")).toBeTruthy();
+    expect(screen.getByText("AGENTS.md")).toBeTruthy();
   });
 });

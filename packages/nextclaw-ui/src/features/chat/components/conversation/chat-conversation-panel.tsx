@@ -366,6 +366,7 @@ function ChatSessionWorkspacePanelContainer({
       activePanelKind={snapshot.activeWorkspacePanelKind ?? null}
       sessionCronJobs={sessionCronJobs}
       sessionProjectRoot={snapshot.sessionProjectRoot ?? null}
+      sessionWorkingDir={snapshot.sessionWorkingDir ?? snapshot.sessionProjectRoot ?? null}
       displayMode={layoutMode === "mobile" ? "overlay" : "docked"}
     />
   );

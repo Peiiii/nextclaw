@@ -552,6 +552,7 @@ describe("ChatSessionWorkspacePanel", () => {
         workspaceFileTabs={[]}
         activeWorkspaceFileKey={null}
         sessionProjectRoot="/Users/demo/project-alpha"
+        sessionWorkingDir="/Users/demo/project-alpha"
       />,
     );
 
@@ -622,6 +623,7 @@ describe("ChatSessionWorkspacePanel", () => {
         workspaceFileTabs={[]}
         activeWorkspaceFileKey={null}
         sessionProjectRoot="/Users/demo/project-alpha"
+        sessionWorkingDir="/Users/demo/project-alpha"
       />,
     );
 
@@ -645,6 +647,7 @@ describe("ChatSessionWorkspacePanel", () => {
         ]}
         activeWorkspaceFileKey="parent-session-1::preview::README.md"
         sessionProjectRoot="/Users/demo/project-alpha"
+        sessionWorkingDir="/Users/demo/project-alpha"
       />,
     );
 
@@ -691,6 +694,7 @@ describe("ChatSessionWorkspacePanel", () => {
         activePanelKind="cron"
         sessionCronJobs={[job]}
         sessionProjectRoot="/Users/demo/project-alpha"
+        sessionWorkingDir="/Users/demo/project-alpha"
       />,
     );
 

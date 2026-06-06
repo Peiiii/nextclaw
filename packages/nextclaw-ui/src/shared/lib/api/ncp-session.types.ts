@@ -51,6 +51,7 @@ export type SessionEntryView = {
   preferredModel?: string;
   preferredThinking?: ThinkingLevel | null;
   projectRoot?: string | null;
+  workingDir?: string | null;
   projectName?: string | null;
   sessionType: string;
   sessionTypeMutable: boolean;

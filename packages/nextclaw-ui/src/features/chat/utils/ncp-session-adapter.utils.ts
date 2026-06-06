@@ -120,6 +120,10 @@ function readNcpSessionProjectRoot(summary: NcpSessionSummaryView): string | nul
   return normalizeSessionProjectRootValue(metadata.project_root ?? metadata.projectRoot);
 }
 
+function readNcpSessionWorkingDir(summary: NcpSessionSummaryView): string | null {
+  return readOptionalString(summary.workingDir);
+}
+
 function readNcpSessionReadAt(summary: NcpSessionSummaryView): string | null {
   const metadata = readMetadata(summary);
   if (!metadata) {
@@ -308,6 +312,7 @@ export function adaptNcpSessionSummary(summary: NcpSessionSummaryView): SessionE
   const preferredModel = readNcpSessionPreferredModel(summary);
   const preferredThinking = readNcpSessionPreferredThinking(summary);
   const projectRoot = readNcpSessionProjectRoot(summary);
+  const workingDir = readNcpSessionWorkingDir(summary) ?? projectRoot;
   const readAt = readNcpSessionReadAt(summary);
   const lastMessageAt = readOptionalString(summary.lastMessageAt);
   const projectName = getSessionProjectName(projectRoot);
@@ -328,6 +333,7 @@ export function adaptNcpSessionSummary(summary: NcpSessionSummaryView): SessionE
     ...(preferredModel ? { preferredModel } : {}),
     ...(preferredThinking ? { preferredThinking } : {}),
     ...(projectRoot ? { projectRoot } : {}),
+    ...(workingDir ? { workingDir } : {}),
     ...(projectName ? { projectName } : {}),
     sessionType: readNcpSessionType(summary),
     sessionTypeMutable: false,

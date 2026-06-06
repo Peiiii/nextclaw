@@ -22,11 +22,11 @@ function createTempDir(): string {
   return dir;
 }
 
-function createConfig() {
+function createConfig(workspace = createTempDir()) {
   return {
     agents: {
       defaults: {
-        workspace: "",
+        workspace,
         model: "",
         engine: "native",
         engineConfig: {},
@@ -90,7 +90,10 @@ function createRecord(params: {
   };
 }
 
-async function createFixture(records: AgentSessionRecord[] = []) {
+async function createFixture(
+  records: AgentSessionRecord[] = [],
+  config: unknown = createConfig(),
+) {
   const eventBus = new EventBus();
   const sessionsDir = createTempDir();
   const journalStore = new NcpAgentSessionJournalStore(join(sessionsDir, ".ncp-agent-journal"));
@@ -102,7 +105,7 @@ async function createFixture(records: AgentSessionRecord[] = []) {
     await journalStore.importSessionSnapshot(record);
   }
   const manager = new SessionManager({
-    configManager: { loadConfig: createConfig } as never,
+    configManager: { loadConfig: () => config } as never,
     eventBus,
     journalStore,
     sessionSearch: sessionSearch as never,
@@ -150,6 +153,44 @@ describe("SessionManager", () => {
       role: "user",
       sessionId: "session-1",
     });
+  });
+
+  it("exposes the session working directory from project root or agent workspace", async () => {
+    const agentWorkspace = createTempDir();
+    const projectRoot = createTempDir();
+    const fixture = await createFixture(
+      [
+        createRecord({
+          sessionId: "project-session",
+          agentId: "main",
+          metadata: { project_root: projectRoot },
+        }),
+        createRecord({
+          sessionId: "workspace-session",
+          agentId: "main",
+        }),
+      ],
+      createConfig(agentWorkspace),
+    );
+
+    await expect(fixture.manager.getSession("project-session")).resolves.toMatchObject({
+      workingDir: projectRoot,
+    });
+    await expect(fixture.manager.getSession("workspace-session")).resolves.toMatchObject({
+      workingDir: agentWorkspace,
+    });
+    await expect(fixture.manager.listSessions()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sessionId: "project-session",
+          workingDir: projectRoot,
+        }),
+        expect.objectContaining({
+          sessionId: "workspace-session",
+          workingDir: agentWorkspace,
+        }),
+      ]),
+    );
   });
 
   it("updates metadata and publishes realtime summary events from one owner", async () => {

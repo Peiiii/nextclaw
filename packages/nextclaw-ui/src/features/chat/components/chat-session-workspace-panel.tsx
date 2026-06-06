@@ -43,6 +43,7 @@ type ChatSessionWorkspacePanelProps = {
   activePanelKind?: "child-session" | "file" | "cron" | null;
   sessionCronJobs?: readonly CronJobView[];
   sessionProjectRoot: string | null;
+  sessionWorkingDir: string | null;
   displayMode?: "docked" | "overlay";
 };
 
@@ -249,6 +250,7 @@ export function ChatSessionWorkspacePanel({
   activePanelKind,
   sessionCronJobs = [],
   sessionProjectRoot,
+  sessionWorkingDir,
   displayMode = "docked",
 }: ChatSessionWorkspacePanelProps) {
   const presenter = usePresenter();
@@ -357,6 +359,7 @@ export function ChatSessionWorkspacePanel({
           <ChatSessionWorkspaceFilePreview
             file={activeSelection.file}
             sessionProjectRoot={sessionProjectRoot}
+            sessionWorkingDir={sessionWorkingDir}
             onFileOpen={presenter.chatThreadManager.openFilePreview}
           />
         ) : (

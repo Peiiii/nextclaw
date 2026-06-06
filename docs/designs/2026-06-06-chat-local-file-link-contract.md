@@ -44,7 +44,13 @@ Chat markdown 链接的 `href` 按以下顺序解释：
 - 带行列号：`AGENTS.md:12`、`packages/a.ts:12:4`
 - 带 query/hash 的文件链接：解析文件打开 action 时忽略 `?` 与 `#` 后缀
 
-“项目相对路径”的基准不是浏览器 URL，而是当前会话的 `project_root` / `projectRoot`。渲染层只负责识别并发出相对路径 action；实际路径解析、越界保护和文件读取由宿主的 `server-path-read` 链路基于 `basePath=sessionProjectRoot` 完成。
+“项目相对路径”的基准不是浏览器 URL，而是当前会话的 `workingDir`。`workingDir` 由 kernel 在 session summary 中给出，解析规则与 native exec 工具默认 cwd 对齐：
+
+1. 若会话 metadata 中存在 `project_root` / `projectRoot`，`workingDir` 使用该项目根目录。
+2. 若会话没有项目根，`workingDir` 使用当前 agent profile 的 workspace。
+3. 若 agent profile 不存在，回退到默认 agent workspace。
+
+前端不感知 `agentWorkspace` 这类业务来源，只消费 session summary 的 `workingDir`。渲染层只负责识别并发出相对路径 action；实际路径解析、越界保护和文件读取由宿主的 `server-path-read` 链路基于 `basePath=sessionWorkingDir` 完成。后端 `server-path-read` 仍要求相对路径必须显式传入 `basePath`，避免文件读取 API 自己猜测会话或 agent 上下文。
 
 ### 不应当成本地文件链接
 
@@ -72,7 +78,8 @@ Chat markdown 链接的 `href` 按以下顺序解释：
 - `resolveSafeHref` 负责判断 href 是否允许渲染成 anchor。
 - `parseLocalFileAction` 负责把本地文件 href 转成 `ChatFileOpenActionViewModel`。
 - 宿主 `NcpChatThreadManager.openFilePreview` 接收 action 并打开 workspace file tab。
-- `ChatSessionWorkspaceFilePreview` 使用 `useServerPathRead({ path, basePath: sessionProjectRoot })` 完成基于项目根的真实读取。
+- `SessionManager` 在 `listSessions` / `getSession` / `session.summary.upsert` 中为 NCP session summary 注入 `workingDir`。
+- `ChatSessionWorkspaceFilePreview` 使用 `useServerPathRead({ path, basePath: sessionWorkingDir })` 完成基于当前会话工作目录的真实读取。
 
 ## 验收用例
 
@@ -89,4 +96,4 @@ Chat markdown 链接的 `href` 按以下顺序解释：
 
 - 对更多 IDE 常见文件名做显式支持，例如 `Dockerfile`、`Makefile`、`.env.example`。
 - 在 hover tooltip 中显示“在当前项目中打开 <path>”。
-- 当会话没有项目根且 href 是项目相对路径时，在文件预览中展示“缺少项目根，无法解析相对路径”。
+- 当 session summary 缺少 `workingDir` 且 href 是相对路径时，在文件预览中展示“缺少工作目录，无法解析相对路径”。

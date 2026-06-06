@@ -189,17 +189,23 @@ function WorkspacePreviewBody({
   return <WorkspaceFilePreviewStatus text={t("chatWorkspacePreviewEmpty")} />;
 }
 
-type ChatSessionWorkspaceFilePreviewProps = { file: ChatWorkspaceFileTab; sessionProjectRoot: string | null; onFileOpen: (action: ChatFileOpenActionViewModel) => void };
+type ChatSessionWorkspaceFilePreviewProps = {
+  file: ChatWorkspaceFileTab;
+  sessionProjectRoot: string | null;
+  sessionWorkingDir: string | null;
+  onFileOpen: (action: ChatFileOpenActionViewModel) => void;
+};
 
 export function ChatSessionWorkspaceFilePreview({
   file,
   sessionProjectRoot,
+  sessionWorkingDir,
   onFileOpen,
 }: ChatSessionWorkspaceFilePreviewProps) {
   const isPreviewMode = file.viewMode === "preview";
   const previewQuery = useServerPathRead({
     path: file.path,
-    basePath: sessionProjectRoot,
+    basePath: sessionWorkingDir,
     enabled: isPreviewMode,
   });
   const diffBlock = useMemo(
@@ -224,16 +230,17 @@ export function ChatSessionWorkspaceFilePreview({
   }, [file.line, file.path, isPreviewMode, previewQuery.data?.resolvedPath, previewText]);
   const resolvedPath = previewQuery.data?.resolvedPath ?? file.path;
   const isTruncated = Boolean(previewQuery.data?.truncated);
+  const breadcrumbBasePath = sessionProjectRoot ?? sessionWorkingDir;
   const breadcrumb = useMemo(
     () =>
       buildWorkspaceFileBreadcrumb({
         path: resolvedPath,
-        sessionProjectRoot,
+        sessionProjectRoot: breadcrumbBasePath,
         line: file.line,
         column: file.column,
         truncated: isTruncated,
       }),
-    [file.column, file.line, isTruncated, resolvedPath, sessionProjectRoot],
+    [breadcrumbBasePath, file.column, file.line, isTruncated, resolvedPath],
   );
 
   return (

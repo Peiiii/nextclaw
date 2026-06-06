@@ -47,6 +47,7 @@ export type ChatThreadSnapshot = {
   availableAgents?: AgentProfileView[];
   sessionDisplayName?: string;
   sessionProjectRoot?: string | null;
+  sessionWorkingDir?: string | null;
   sessionProjectName?: string | null;
   canDeleteSession: boolean;
   isDeletePending: boolean;
@@ -86,6 +87,7 @@ const initialSnapshot: ChatThreadSnapshot = {
   availableAgents: [],
   sessionDisplayName: undefined,
   sessionProjectRoot: null,
+  sessionWorkingDir: null,
   sessionProjectName: null,
   canDeleteSession: false,
   isDeletePending: false,

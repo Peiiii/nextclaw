@@ -119,6 +119,7 @@ export function useNcpChatSnapshotSync(params: {
   availableAgents: AgentProfileView[];
   currentSessionDisplayName?: string;
   effectiveSessionProjectRoot: string | null;
+  effectiveSessionWorkingDir: string | null;
   effectiveSessionProjectName: string | null;
   selectedSession: SessionEntryView | null;
   threadRef: MutableRefObject<HTMLDivElement | null>;
@@ -159,6 +160,7 @@ export function useNcpChatSnapshotSync(params: {
       availableAgents: params.availableAgents,
       sessionDisplayName: params.currentSessionDisplayName,
       sessionProjectRoot: params.effectiveSessionProjectRoot,
+      sessionWorkingDir: params.effectiveSessionWorkingDir,
       sessionProjectName: params.effectiveSessionProjectName,
       canDeleteSession: Boolean(params.selectedSession),
       threadRef: params.threadRef,

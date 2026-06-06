@@ -195,6 +195,8 @@ function useNcpChatPageState(presenter: NcpChatPresenter) {
   const effectiveSessionProjectRoot = hasSessionProjectRootOverride
     ? pendingProjectRoot
     : (selectedSession?.projectRoot ?? null);
+  const effectiveSessionWorkingDir =
+    selectedSession?.workingDir ?? effectiveSessionProjectRoot;
   const effectiveSessionProjectName = hasSessionProjectRootOverride
     ? getSessionProjectName(effectiveSessionProjectRoot)
     : (selectedSession?.projectName ??
@@ -224,6 +226,7 @@ function useNcpChatPageState(presenter: NcpChatPresenter) {
     ...baseState,
     availableAgents,
     effectiveSessionProjectRoot,
+    effectiveSessionWorkingDir,
     effectiveSessionProjectName,
     isSending: agent.isSending || currentSessionRunning,
     isAwaitingAssistantOutput: currentSessionRunning,
@@ -438,6 +441,7 @@ export function NcpChatPage({ view }: ChatPageProps) {
     availableAgents: state.availableAgents,
     currentSessionDisplayName: state.currentSessionDisplayName,
     effectiveSessionProjectRoot: state.effectiveSessionProjectRoot,
+    effectiveSessionWorkingDir: state.effectiveSessionWorkingDir,
     effectiveSessionProjectName: state.effectiveSessionProjectName,
     selectedSession: state.selectedSession,
     threadRef: state.threadRef,

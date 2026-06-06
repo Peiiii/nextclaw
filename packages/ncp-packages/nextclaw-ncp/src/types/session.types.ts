@@ -12,6 +12,7 @@ export type NcpSessionSummary = {
   lastMessageAt?: string;
   status?: NcpSessionStatus;
   metadata?: Record<string, unknown>;
+  workingDir?: string;
   contextWindow?: Record<string, unknown> | null;
 };
 
