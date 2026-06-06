@@ -3,4 +3,4 @@
 "@nextclaw/kernel": patch
 ---
 
-Route native reply-format guidance through context providers so agents format local project file references as clickable Markdown links, and remove unused core prompt/message assembly paths.
+Move native prompt ownership from core prompt builders to kernel context providers while preserving prompt content, and route local file reply-format guidance through the native provider chain.

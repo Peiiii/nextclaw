@@ -57,10 +57,14 @@ export type NextclawNcpResolvedRunContext = {
 
 const REQUESTED_SKILLS_METADATA_READER = new RequestedSkillsMetadataReader();
 
-function readRequestedAgentId(metadata: Record<string, unknown>): string | null {
-  return normalizeOptionalString(metadata.agent_id)?.toLowerCase() ??
+function readRequestedAgentId(
+  metadata: Record<string, unknown>,
+): string | null {
+  return (
+    normalizeOptionalString(metadata.agent_id)?.toLowerCase() ??
     normalizeOptionalString(metadata.agentId)?.toLowerCase() ??
-    null;
+    null
+  );
 }
 
 function resolveAgentProfile(params: {
@@ -94,17 +98,21 @@ function resolveAgentProfile(params: {
     workspace: getWorkspacePath(profile.workspace ?? defaults.workspace),
     model: profile.model ?? defaults.model,
     contextTokens,
-    reservedContextTokens: ContextWindowBudgetService.resolveReservedContextTokens({
-      contextTokens,
-      configuredReservedContextTokens: profile.reservedContextTokens ?? defaults.reservedContextTokens,
-    }),
+    reservedContextTokens:
+      ContextWindowBudgetService.resolveReservedContextTokens({
+        contextTokens,
+        configuredReservedContextTokens:
+          profile.reservedContextTokens ?? defaults.reservedContextTokens,
+      }),
     restrictToWorkspace,
     searchConfig,
     execTimeoutSeconds,
   };
 }
 
-function resolveRequestedToolNames(metadata: Record<string, unknown>): string[] {
+function resolveRequestedToolNames(
+  metadata: Record<string, unknown>,
+): string[] {
   const rawValue = metadata.requested_tools ?? metadata.requestedTools;
   if (!Array.isArray(rawValue)) {
     return [];
@@ -129,20 +137,6 @@ function mergeRunMetadata(params: {
   };
 }
 
-export function buildSessionOrchestrationSection(): string {
-  return [
-    "## Session Orchestration",
-    "- Before passing a non-default `runtime` to `sessions_spawn` or agent creation/update flows, inspect the installed runtime kinds with `nextclaw agents runtimes --json`.",
-    "- `sessions_spawn` is the unified session-creation tool. Omit `scope` or use `scope=\"standalone\"` for a regular session, and use `scope=\"child\"` when the new session should be a child session of the current flow.",
-    "- `sessions_spawn` only creates the session by default. Add top-level `notify: \"none\" | \"final_reply\"` when the new session should start working immediately.",
-    "- When `sessions_spawn.scope=\"child\"` and `sessions_spawn.notify=\"final_reply\"`, the new child session starts right away and this session automatically continues after that child reaches its final reply.",
-    "- Use `sessions_spawn` without `notify` when the user wants a separate thread created now but does not need it to start working yet.",
-    "- Use `sessions_request` to send one task to an existing session, including a session that was just created by `sessions_spawn` or a previously created child session.",
-    "- `sessions_request.target` must be an object shaped like `{ \"session_id\": \"<target-session-id>\" }`. Do not pass a bare string.",
-    "- Prefer `notify=\"final_reply\"` when the current session should continue after the target session produces its final reply. Use `notify=\"none\"` when you only want the target session to run independently.",
-  ].join("\n");
-}
-
 export function resolveNextclawNcpRunContext(
   params: NextclawNcpRunContextParams,
 ): NextclawNcpResolvedRunContext {
@@ -163,11 +157,12 @@ export function resolveNextclawNcpRunContext(
     storedAgentId,
     requestMetadata,
   });
-  const { metadata: modelMetadata, model: effectiveModel } = resolveEffectiveModel({
-    sessionMetadata: requestMetadata,
-    requestMetadata,
-    fallbackModel: profile.model,
-  });
+  const { metadata: modelMetadata, model: effectiveModel } =
+    resolveEffectiveModel({
+      sessionMetadata: requestMetadata,
+      requestMetadata,
+      fallbackModel: profile.model,
+    });
   const effectiveWorkspace = resolveSessionWorkspacePath({
     sessionMetadata: modelMetadata,
     workspace: profile.workspace,
@@ -177,12 +172,14 @@ export function resolveNextclawNcpRunContext(
     requestMetadata,
   });
   const sessionMetadata = channelContext.metadata;
-  const requestedSkills = REQUESTED_SKILLS_METADATA_READER.readSelection(requestMetadata);
+  const requestedSkills =
+    REQUESTED_SKILLS_METADATA_READER.readSelection(requestMetadata);
   const runtimeThinking = resolveThinkingLevel({
     config,
     agentId: profile.agentId,
     model: effectiveModel,
-    sessionThinkingLevel: parseThinkingLevel(sessionMetadata.preferred_thinking) ?? null,
+    sessionThinkingLevel:
+      parseThinkingLevel(sessionMetadata.preferred_thinking) ?? null,
   });
 
   return {

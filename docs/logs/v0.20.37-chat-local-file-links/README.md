@@ -16,6 +16,7 @@
 - 补充 `chat-message-markdown.test.tsx` 覆盖绝对路径、项目相对路径、项目根文件、外链、裸域名和危险协议。
 - 清理 native 提示词主干中的失效旧分支：删除未被 native kernel 消费的 `RuntimeUserPromptBuilder`、`ContextBuilder.buildMessages(...)` 与 attachment user-content 旧组装入口。
 - 新增 `ReplyFormatContextProvider`：当 AI 在用户可见回复中提到本地项目文件时，优先输出 `[AGENTS.md](AGENTS.md)` / `[file](packages/example/file.ts)` 这类 Markdown 链接；项目内文件使用项目相对路径，项目外文件才使用绝对路径。该规则通过 `ContextProviderContribution -> ContextProviderManager` native 主链路注入，不再混入 `BootstrapContextBuilder`。
+- 一次性完成 native prompt owner 目标架构：删除 core `ContextBuilder`、core `BootstrapContextBuilder` prompt renderer 和 core execution/skill prompt renderer；业务提示词全部由 kernel context providers 按原 prompt 顺序注入，core 只保留 loader、metadata reader、memory store、repo identity resolver 等数据能力。
 
 ## 测试/验证/验收方式
 
@@ -33,6 +34,8 @@
   - 结果：通过。
 - `pnpm -C packages/nextclaw-kernel test -- src/contributions/context-provider/providers/reply-format-context.provider.test.ts src/managers/__tests__/context-provider.manager.test.ts`
   - 结果：通过，`2` 个测试文件、`2` 个测试通过。
+- `pnpm -C packages/nextclaw-kernel test -- src/contributions/context-provider/providers/context-provider-contract.provider.test.ts src/contributions/context-provider/providers/reply-format-context.provider.test.ts src/managers/__tests__/context-provider.manager.test.ts`
+  - 结果：通过，`3` 个测试文件、`3` 个测试通过。
 - `pnpm -C packages/nextclaw-kernel tsc`
   - 结果：通过。
 - `pnpm -C packages/nextclaw-core lint`
@@ -47,6 +50,14 @@
   - 结果：通过，Errors 0，Warnings 0；总代码 `+351 / -685 / net -334`，非测试代码 `+231 / -470 / net -239`。
 - `rg -n "RuntimeUserPromptBuilder|buildBootstrapAwareUserPrompt|DEFAULT_RUNTIME_USER_PROMPT_BUILDER|buildSessionPromptContext|buildSkillLearningUserPromptSection|DefaultUserContentBuilder|ContextUserContent|ContextUserContentBuilder|buildDefaultUserContent|buildMessages\\(|addToolResult\\(|addAssistantMessage\\(" packages/nextclaw-core packages/nextclaw-kernel`
   - 结果：无命中，旧 prompt/message 组装入口已不再残留于 core/kernel。
+- `rg -n "ContextBuilder|buildSystemPrompt|buildWorkspaceProjectContextSection|buildSkillLearningSystemSection|buildAvailableSkillsSystemSection|buildActiveSkillsSystemSection|buildRequestedSkillsSystemSection|buildMinimalSystemExecutionPrompt|buildMinimalRuntimeExecutionPrompt|buildSessionOrchestrationSection" packages/nextclaw-core/src packages/nextclaw-kernel/src -g '*.ts' -g '*.tsx'`
+  - 结果：无命中，core/kernel 生产代码不再残留旧 prompt assembler 和旧 section builder 名称。
+- 迁移前后 prompt 内容无损对比：
+  - 方法：用 `HEAD` 临时 worktree 生成迁移前旧 `ContextBuilder` prompt，用当前 kernel provider chain 生成迁移后 prompt；标准化临时路径、行尾空格和空行后比较。
+  - 结果：`PROMPT_CONTENT_MATCH`，有效内容 `296` 行一致。
+- static provider factory 压缩前后 prompt 内容对比：
+  - 方法：保留压缩前 kernel provider prompt 快照，压缩后重新生成当前 provider prompt；标准化行尾和连续空行后比较。
+  - 结果：`STATIC_FACTORY_PROMPT_MATCH`，说明通过 factory 降低样板代码没有改变模型输入文本。
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-agent-chat-ui/src/components/chat/ui/chat-message-list/chat-message-markdown.tsx packages/nextclaw-agent-chat-ui/src/components/chat/ui/chat-message-list/__tests__/chat-message-markdown.test.tsx docs/designs/2026-06-06-chat-local-file-link-contract.md`
   - 结果：Errors 0，Warnings 1。warning 为 `chat-message-list` 目录既有文件数预算提醒，`delta_count=+0`，本次未新增该目录文件。
 
@@ -73,6 +84,8 @@
 `post-edit-maintainability-review` 结论：通过。总代码和测试行数有净增，原因是本次属于用户可见能力补齐，并新增了覆盖安全边界的测试与设计文档。未新增生产文件，未扩大目录平铺度；维护性剩余关注点是 `chat-message-list` 目录已有文件数超预算，后续应按既有 seam 拆分，但本次 delta 为 0。
 
 native prompt 链路清理的 `post-edit-maintainability-review` 结论：通过。本轮属于非功能清理，总代码 `net -334`，非测试代码 `net -239`；正向减债动作是删除失效旧路径与职责收敛：`RuntimeUserPromptBuilder`、`ContextBuilder.buildMessages(...)`、attachment user-content 旧入口不再干扰 native provider 主链路，新增 reply-format 规则落到独立 kernel context provider。
+
+kernel context provider 目标架构清理的 `post-edit-maintainability-review` 结论：通过。本轮属于非功能目标架构清理，总代码 `+1078 / -1035 / net +43`，非测试代码 `+893 / -898 / net -5`，满足非测试代码净增 `<= 0`。正向减债动作是删除 core `ContextBuilder`、core `BootstrapContextBuilder` prompt renderer、core execution/skill prompt renderer 和旧 `KernelContextProvider -> ContextBuilder` 路径；业务提示词 owner 收敛到 kernel context provider 注册链。维护性剩余关注点：`native-dynamic-context.provider.ts` 当前 `508` 行，接近 `600` 行预算但未超限；后续若继续扩展 dynamic provider，应先拆新的 contribution owner 或继续压缩现有动态读取逻辑。
 
 ## NPM 包发布记录
 
