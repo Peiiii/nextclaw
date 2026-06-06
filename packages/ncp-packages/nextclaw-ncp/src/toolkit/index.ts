@@ -19,7 +19,7 @@ export {
   readAssistantReasoningNormalizationModeFromMetadata,
   writeAssistantReasoningNormalizationModeToMetadata,
 } from "./reasoning-normalization.js";
-export { consumeNcpRunHandle, createNcpRunHandle } from "./run-handle.js";
+export { consumeNcpRunHandle, createNcpRunHandle } from "./run-handle.utils.js";
 export type {
   NcpAssistantReasoningNormalizationMode,
   NcpAssistantReasoningSegment,

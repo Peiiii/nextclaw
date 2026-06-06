@@ -4,6 +4,7 @@ export type NcpSessionStatus = "idle" | "running";
 
 export type NcpSessionSummary = {
   sessionId: string;
+  peerId?: string;
   agentId?: string;
   messageCount: number;
   createdAt?: string;
@@ -17,6 +18,7 @@ export type NcpSessionSummary = {
 export type ListSessionsOptions = {
   limit?: number;
   cursor?: string;
+  peerId?: string;
 };
 
 export type ListMessagesOptions = {

@@ -198,4 +198,39 @@ describe('ncp-session-query-cache', () => {
       queryClient.getQueryData<NcpSessionsListView>(['ncp-sessions', 200])?.sessions.map((session) => session.sessionId)
     ).toEqual(['session-3', 'session-2']);
   });
+
+  it('does not upsert a peer summary into another peer filtered session cache', () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(['ncp-sessions', 200, 'peer-a'], {
+      sessions: [],
+      total: 0
+    });
+    queryClient.setQueryData(['ncp-sessions', 200, 'peer-b'], {
+      sessions: [],
+      total: 0
+    });
+
+    applyNcpSessionRealtimeEvent(queryClient, {
+      type: 'session.summary.upsert',
+      payload: {
+        summary: {
+          sessionId: 'session-peer-a',
+          peerId: 'peer-a',
+          messageCount: 1,
+          updatedAt: '2026-03-29T12:00:00.000Z',
+          status: 'idle'
+        }
+      }
+    });
+
+    expect(
+      queryClient.getQueryData<NcpSessionsListView>(['ncp-sessions', 200, 'peer-a'])?.sessions
+    ).toEqual([
+      expect.objectContaining({
+        peerId: 'peer-a',
+        sessionId: 'session-peer-a'
+      })
+    ]);
+    expect(queryClient.getQueryData<NcpSessionsListView>(['ncp-sessions', 200, 'peer-b'])?.sessions).toEqual([]);
+  });
 });

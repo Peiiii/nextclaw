@@ -24,11 +24,11 @@ import {
       fetchImpl
     });
 
-    const result = await client.sessions.list();
+    const result = await client.sessions.list({ limit: 10, peerId: "peer-1" });
 
     expect(result.total).toBe(1);
     expect(fetchImpl).toHaveBeenCalledWith(
-      "http://127.0.0.1:55667/api/ncp/sessions",
+      "http://127.0.0.1:55667/api/ncp/sessions?limit=10&peerId=peer-1",
       expect.objectContaining({ method: "GET" })
     );
   });

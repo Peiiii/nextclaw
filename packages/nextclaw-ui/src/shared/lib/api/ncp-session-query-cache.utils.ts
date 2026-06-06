@@ -21,6 +21,14 @@ function shouldReplaceSessionSummary(
   return current.status === next.status || next.status === 'idle';
 }
 
+function queryKeyAcceptsSessionSummary(queryKey: readonly unknown[], summary: NcpSessionSummaryView): boolean {
+  if (queryKey[0] !== 'ncp-sessions') {
+    return false;
+  }
+  const peerId = typeof queryKey[2] === 'string' ? queryKey[2].trim() : '';
+  return !peerId || summary.peerId === peerId;
+}
+
 export function upsertNcpSessionSummaryList(
   current: NcpSessionsListView | undefined,
   summary: NcpSessionSummaryView
@@ -80,7 +88,7 @@ export function upsertNcpSessionSummaryInQueryClient(
   summary: NcpSessionSummaryView
 ): void {
   queryClient?.setQueriesData<NcpSessionsListView>(
-    { queryKey: ['ncp-sessions'] },
+    { predicate: (query) => queryKeyAcceptsSessionSummary(query.queryKey, summary) },
     (current) => upsertNcpSessionSummaryList(current, summary)
   );
 }

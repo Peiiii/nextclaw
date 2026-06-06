@@ -253,15 +253,62 @@ describe("SessionManager", () => {
       peerId: "mood-summary",
       task: "Other app",
     });
+    const differentPeer = await fixture.manager.getOrCreateAgentRunSession({
+      agentId: "main",
+      metadata: { agent_peer_scope: "panel-app:mood-calendar" },
+      peerId: "todo-summary",
+      task: "Summarize todos",
+    });
 
     expect(first.sessionId).toMatch(/^agent-peer-/);
     expect(second.sessionId).toBe(first.sessionId);
     expect(other.sessionId).not.toBe(first.sessionId);
+    expect(differentPeer.sessionId).not.toBe(first.sessionId);
     expect(await fixture.journalStore.getSession(first.sessionId)).toMatchObject({
       metadata: {
         agent_peer_id: "mood-summary",
         agent_peer_scope: "panel-app:mood-calendar",
       },
     });
+    await expect(fixture.manager.getSession(first.sessionId)).resolves.toMatchObject({
+      peerId: "mood-summary",
+    });
+    await expect(fixture.manager.listSessions()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          peerId: "mood-summary",
+          sessionId: first.sessionId,
+        }),
+      ]),
+    );
+    const moodSummaries = await fixture.manager.listSessions({ peerId: "mood-summary" });
+    expect(moodSummaries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          peerId: "mood-summary",
+          sessionId: first.sessionId,
+        }),
+        expect.objectContaining({
+          peerId: "mood-summary",
+          sessionId: other.sessionId,
+        }),
+      ]),
+    );
+    expect(moodSummaries).toHaveLength(2);
+    expect(moodSummaries).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          peerId: "todo-summary",
+          sessionId: differentPeer.sessionId,
+        }),
+      ]),
+    );
+    await expect(fixture.manager.listSessions({ peerId: "todo-summary" })).resolves.toEqual([
+      expect.objectContaining({
+        peerId: "todo-summary",
+        sessionId: differentPeer.sessionId,
+      }),
+    ]);
+    await expect(fixture.manager.listSessions({ peerId: "missing-peer" })).resolves.toEqual([]);
   });
 });

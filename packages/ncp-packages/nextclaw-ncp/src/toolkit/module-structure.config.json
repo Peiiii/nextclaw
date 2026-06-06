@@ -1,0 +1,11 @@
+{
+  "contractKind": "legacy",
+  "organizationModel": "legacy-ncp-toolkit-root",
+  "rootPolicy": "legacy-frozen",
+  "allowedRootDirectories": [],
+  "allowedRootFiles": [
+    "index.ts",
+    "run-handle.utils.ts"
+  ],
+  "enforcement": "error"
+}

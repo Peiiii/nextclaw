@@ -17,10 +17,15 @@ export class SessionsService {
     private readonly eventBus: EventBus
   ) {}
 
-  readonly list = async (params?: { limit?: number }): Promise<UiNcpSessionListView> => {
+  readonly list = async (params?: { limit?: number; peerId?: string }): Promise<UiNcpSessionListView> => {
+    const { limit, peerId: rawPeerId } = params ?? {};
     const query = new URLSearchParams();
-    if (typeof params?.limit === "number" && Number.isFinite(params.limit)) {
-      query.set("limit", String(Math.max(1, Math.trunc(params.limit))));
+    if (typeof limit === "number" && Number.isFinite(limit)) {
+      query.set("limit", String(Math.max(1, Math.trunc(limit))));
+    }
+    const peerId = rawPeerId?.trim();
+    if (peerId) {
+      query.set("peerId", peerId);
     }
     return await this.requestService.get<UiNcpSessionListView>("/api/ncp/sessions", {
       ...(query.size > 0 ? { query } : {})

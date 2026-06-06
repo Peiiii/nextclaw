@@ -141,6 +141,7 @@ export class NcpSessionRoutesController {
     const sessionManager = this.options.kernel.sessionManager;
     const sessions = await sessionManager.listSessions({
       limit: readPositiveInt(c.req.query("limit")),
+      peerId: c.req.query("peerId"),
     });
     const payload: UiNcpSessionListView = {
       sessions: sessions.map(this.withRuntimeStatus),

@@ -406,8 +406,8 @@ export class SessionManager implements NcpSessionApi {
   };
 
   listSessions = async (options?: ListSessionsOptions): Promise<NcpSessionSummary[]> => {
-    const summaries = await this.options.journalStore.listSessionSummaries();
-    return applyLimit(summaries, options?.limit);
+    const peerId = readOptionalString(options?.peerId);
+    return applyLimit((await this.options.journalStore.listSessionSummaries()).filter((summary) => !peerId || summary.peerId === peerId), options?.limit);
   };
 
   listSessionMessages = async (

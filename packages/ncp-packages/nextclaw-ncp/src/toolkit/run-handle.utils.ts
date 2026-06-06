@@ -3,7 +3,7 @@ import {
   NcpEventType,
   type NcpRequestEnvelope,
   type NcpRunHandle,
-} from "../types/index.js";
+} from "../types/ncp.types.js";
 
 export function createNcpRunHandle(envelope: NcpRequestEnvelope): NcpRunHandle {
   return {

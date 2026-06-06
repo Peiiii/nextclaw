@@ -257,9 +257,9 @@ export function useExecuteConfigAction() {
   });
 }
 
-export function useNcpSessions(params?: { limit?: number }) {
+export function useNcpSessions(params?: { limit?: number; peerId?: string }) {
   return useQuery({
-    queryKey: ['ncp-sessions', params?.limit ?? null],
+    queryKey: ['ncp-sessions', params?.limit ?? null, params?.peerId?.trim() || null],
     queryFn: () => fetchNcpSessions(params),
     staleTime: 5_000,
     retry: false

@@ -12,6 +12,7 @@ import {
   type NcpAgentSessionJournalReplayEvent,
   normalizeNcpAgentId,
   normalizeNcpSessionId,
+  readNcpAgentSessionPeerId,
   replayNcpAgentSessionEvents,
   safeNcpSessionFilename,
   toIsoString,
@@ -38,6 +39,22 @@ function serializeJournalEntry(entry: NcpAgentSessionJournalEventEntry): string 
     throw new Error("ncp agent session journal entry serialization produced a non-object entry");
   }
   return serialized;
+}
+
+function attachJournalTimestamp(
+  event: NcpAgentSessionJournalReplayEvent,
+  timestamp: string,
+): NcpAgentSessionJournalReplayEvent {
+  if (!("payload" in event) || !isRecord(event.payload)) {
+    return event;
+  }
+  return {
+    ...event,
+    payload: {
+      ...event.payload,
+      timestamp,
+    },
+  } as unknown as NcpAgentSessionJournalReplayEvent;
 }
 
 export class NcpAgentSessionJournalStore {
@@ -269,8 +286,10 @@ export class NcpAgentSessionJournalStore {
       updatedAt: summary.updatedAt,
       metadata: {},
     });
+    const peerId = summary.peerId ?? readNcpAgentSessionPeerId(snapshot.metadata);
     return {
       ...summary,
+      peerId: peerId ?? undefined,
       ...(!summary.agentId && snapshot.agentId ? { agentId: snapshot.agentId } : {}),
       ...(Object.keys(snapshot.metadata).length > 0 ? { metadata: snapshot.metadata } : {}),
     };
@@ -337,9 +356,10 @@ export class NcpAgentSessionJournalStore {
       if (parsed._type === "event" && isRecord(parsed.event)) {
         const seq = Number(parsed.seq);
         nextSeq = Math.max(nextSeq, Number.isFinite(seq) ? Math.trunc(seq) + 1 : nextSeq);
-        updatedAt = toIsoString(parsed.timestamp, updatedAt);
+        const eventTimestamp = toIsoString(parsed.timestamp, updatedAt);
+        updatedAt = eventTimestamp;
         const event = structuredClone(parsed.event) as NcpAgentSessionJournalReplayEvent;
-        events.push(event);
+        events.push(attachJournalTimestamp(event, eventTimestamp));
       }
     }
     return { metadata, ...(agentId ? { agentId } : {}), createdAt, updatedAt, nextSeq, events };

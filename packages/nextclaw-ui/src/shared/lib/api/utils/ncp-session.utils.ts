@@ -1,4 +1,4 @@
-import { nextclawClient } from '../managers/client.manager';
+import { nextclawClient } from '@/shared/lib/api/managers/client.manager';
 import type {
   NcpSessionMessagesView,
   NcpSessionSkillsView,
@@ -8,7 +8,7 @@ import type {
 } from '@/shared/lib/api/types';
 
 // GET /api/ncp/sessions
-export async function fetchNcpSessions(params?: { limit?: number }): Promise<NcpSessionsListView> {
+export async function fetchNcpSessions(params?: { limit?: number; peerId?: string }): Promise<NcpSessionsListView> {
   return await nextclawClient.sessions.list(params) as NcpSessionsListView;
 }
 
