@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/ncp-http-agent-client",
-  "version": "0.3.41",
+  "version": "0.3.42-beta.0",
   "private": false,
   "description": "HTTP/SSE client transport adapter for NCP agent endpoints.",
   "type": "module",

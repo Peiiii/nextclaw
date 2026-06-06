@@ -1,5 +1,22 @@
 # @nextclaw/ui
 
+## 0.13.11-beta.0
+
+### Patch Changes
+
+- cc024b3: Expose the original agent-run peerId on NCP session summaries and support filtering session lists by peerId.
+- 6ec95a0: Fix Panel App sandbox loading and runtime API access, make injected App Client browser fetch calls safe inside Panel Apps, refresh the served client SDK bundle after rebuilds, show Panel App titles in the app toolbar, and teach bundled app-creation skills not to rely on browser storage inside sandboxed Panel Apps.
+- Updated dependencies
+- Updated dependencies [cc024b3]
+- Updated dependencies [6ec95a0]
+  - @nextclaw/agent-chat@0.2.10-beta.0
+  - @nextclaw/agent-chat-ui@0.4.10-beta.0
+  - @nextclaw/ncp-http-agent-client@0.3.42-beta.0
+  - @nextclaw/ncp-react@0.4.50-beta.0
+  - @nextclaw/shared@0.2.10-beta.0
+  - @nextclaw/ncp@0.6.0-beta.0
+  - @nextclaw/client-sdk@0.4.0-beta.0
+
 ## 0.13.10
 
 ### Patch Changes

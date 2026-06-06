@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/agent-chat",
-  "version": "0.2.9",
+  "version": "0.2.10-beta.0",
   "private": false,
   "description": "Nextclaw agent chat core library.",
   "type": "module",

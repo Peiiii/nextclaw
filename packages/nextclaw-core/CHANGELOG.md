@@ -1,5 +1,15 @@
 # nextclaw-core
 
+## 0.14.1-beta.0
+
+### Patch Changes
+
+- 458c9b0: Add a builtin skill for creating React, Vite, and Tailwind based Panel Apps that build into static .panel directories, and document typed App Client development through @nextclaw/client-sdk type-only imports.
+- 6ec95a0: Fix Panel App sandbox loading and runtime API access, make injected App Client browser fetch calls safe inside Panel Apps, refresh the served client SDK bundle after rebuilds, show Panel App titles in the app toolbar, and teach bundled app-creation skills not to rely on browser storage inside sandboxed Panel Apps.
+- Updated dependencies
+  - @nextclaw/feishu-core@0.2.31-beta.0
+  - @nextclaw/shared@0.2.10-beta.0
+
 ## 0.14.0
 
 ### Minor Changes

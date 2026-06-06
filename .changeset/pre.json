@@ -62,5 +62,11 @@
     "@nextclaw/marketplace-api-worker": "0.0.1",
     "@nextclaw/provider-gateway-api-worker": "0.0.1"
   },
-  "changesets": []
+  "changesets": [
+    "auto-release-batch-20260606044957322",
+    "context-compaction-message-ids",
+    "ncp-session-summary-peer-id",
+    "panel-app-react-vite-skill",
+    "panel-app-sandbox-runtime"
+  ]
 }

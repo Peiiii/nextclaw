@@ -1,5 +1,11 @@
 # @nextclaw/ncp
 
+## 0.6.0-beta.0
+
+### Minor Changes
+
+- cc024b3: Expose the original agent-run peerId on NCP session summaries and support filtering session lists by peerId.
+
 ## 0.5.29
 
 ### Patch Changes

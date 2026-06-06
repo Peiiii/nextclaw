@@ -1,5 +1,30 @@
 # @nextclaw/kernel
 
+## 0.4.1-beta.0
+
+### Patch Changes
+
+- 42281c8: Fix rolling context compaction so repeated checkpoints use unique service message ids and legacy journal markers replay as separate timeline records.
+- cc024b3: Expose the original agent-run peerId on NCP session summaries and support filtering session lists by peerId.
+- 6ec95a0: Fix Panel App sandbox loading and runtime API access, make injected App Client browser fetch calls safe inside Panel Apps, refresh the served client SDK bundle after rebuilds, show Panel App titles in the app toolbar, and teach bundled app-creation skills not to rely on browser storage inside sandboxed Panel Apps.
+- Updated dependencies
+- Updated dependencies [cc024b3]
+- Updated dependencies [458c9b0]
+- Updated dependencies [6ec95a0]
+  - @nextclaw/channel-extension-feishu@0.1.22-beta.0
+  - @nextclaw/channel-extension-weixin@0.1.26-beta.0
+  - @nextclaw/mcp@0.2.11-beta.0
+  - @nextclaw/ncp-agent-runtime@0.3.41-beta.0
+  - @nextclaw/ncp-agent-runtime-next@0.0.13-beta.0
+  - @nextclaw/ncp-mcp@0.1.106-beta.0
+  - @nextclaw/ncp-toolkit@0.5.35-beta.0
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.2.10-beta.0
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.2.10-beta.0
+  - @nextclaw/runtime@0.3.11-beta.0
+  - @nextclaw/shared@0.2.10-beta.0
+  - @nextclaw/ncp@0.6.0-beta.0
+  - @nextclaw/core@0.14.1-beta.0
+
 ## 0.4.0
 
 ### Minor Changes
