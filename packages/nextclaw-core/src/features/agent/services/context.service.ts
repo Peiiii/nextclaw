@@ -1,34 +1,32 @@
 import { MemoryStore } from "@core/features/agent/features/memory/memory-store.js";
 import { resolveNextclawSelfManageGuidePaths } from "@core/features/agent/features/self-manage/guide-path.js";
-import { buildWorkspaceProjectContextSection, DEFAULT_BOOTSTRAP_CONTEXT_CONFIG } from "@core/features/runtime-context/index.js";
+import {
+  buildWorkspaceProjectContextSection,
+  DEFAULT_BOOTSTRAP_CONTEXT_CONFIG,
+} from "@core/features/runtime-context/index.js";
 import {
   buildActiveSkillsSystemSection,
   buildAvailableSkillsSystemSection,
   buildSkillLearningSystemSection,
-  buildRequestedSkillsSystemSection
+  buildRequestedSkillsSystemSection,
 } from "@core/features/agent/utils/skill-context.utils.js";
 import { SkillsLoader } from "./skills-loader.js";
-import { DEFAULT_TOOL_CATALOG, normalizeToolCatalogEntries, type ToolCatalogEntry } from "@core/features/agent/utils/tool-catalog.utils.js";
+import {
+  DEFAULT_TOOL_CATALOG,
+  normalizeToolCatalogEntries,
+  type ToolCatalogEntry,
+} from "@core/features/agent/utils/tool-catalog.utils.js";
 import { APP_NAME, type Config } from "@core/features/config/index.js";
-import type { InboundAttachment } from "@core/features/bus/index.js";
 import { SILENT_REPLY_TOKEN } from "@core/features/agent/types/tokens.js";
-import type { ThinkingLevel } from "@core/shared/lib/core-utils/index.js";
 import {
   SessionProjectContextResolver,
   type SessionProjectContext,
 } from "@core/features/session/index.js";
-import {
-  DefaultUserContentBuilder,
-  type ContextUserContent,
-  type ContextUserContentBuilder,
-} from "@core/features/agent/features/content/user-content.js";
 
-export type Message = Record<string, unknown>;
 type ContextConfig = Config["agents"]["context"];
 type ContextBuilderOptions = {
   hostWorkspace?: string;
   sessionProjectRoot?: string | null;
-  buildUserContent?: ContextUserContentBuilder;
 };
 
 const DEFAULT_CONTEXT_CONFIG: ContextConfig = {
@@ -37,20 +35,20 @@ const DEFAULT_CONTEXT_CONFIG: ContextConfig = {
   },
   memory: {
     enabled: true,
-    maxChars: 8000
-  }
+    maxChars: 8000,
+  },
 };
 
 function mergeContextConfig(contextConfig?: ContextConfig): ContextConfig {
   return {
     bootstrap: {
       ...DEFAULT_CONTEXT_CONFIG.bootstrap,
-      ...(contextConfig?.bootstrap ?? {})
+      ...(contextConfig?.bootstrap ?? {}),
     },
     memory: {
       ...DEFAULT_CONTEXT_CONFIG.memory,
-      ...(contextConfig?.memory ?? {})
-    }
+      ...(contextConfig?.memory ?? {}),
+    },
   };
 }
 
@@ -60,8 +58,6 @@ export class ContextBuilder {
   private contextConfig: ContextConfig;
   private readonly projectContext: SessionProjectContext;
   private readonly projectContextResolver = new SessionProjectContextResolver();
-  private readonly customUserContentBuilder?: ContextUserContentBuilder;
-  private readonly defaultUserContentBuilder = new DefaultUserContentBuilder();
 
   constructor(
     private workspace: string,
@@ -82,7 +78,6 @@ export class ContextBuilder {
       projectRoot: this.projectContext.projectRoot,
     });
     this.contextConfig = mergeContextConfig(contextConfig);
-    this.customUserContentBuilder = options.buildUserContent;
   }
 
   setContextConfig = (contextConfig?: ContextConfig): void => {
@@ -99,7 +94,10 @@ export class ContextBuilder {
     parts.push(this.getIdentity(availableTools));
 
     if (skillNames && skillNames.length) {
-      const requestedSection = buildRequestedSkillsSystemSection(this.skills, skillNames);
+      const requestedSection = buildRequestedSkillsSystemSection(
+        this.skills,
+        skillNames,
+      );
       if (requestedSection) {
         parts.push(requestedSection);
       }
@@ -121,13 +119,18 @@ export class ContextBuilder {
 
     const alwaysSkills = this.skills.getAlwaysSkills();
     if (alwaysSkills.length) {
-      const activeSection = buildActiveSkillsSystemSection(this.skills, alwaysSkills);
+      const activeSection = buildActiveSkillsSystemSection(
+        this.skills,
+        alwaysSkills,
+      );
       if (activeSection) {
         parts.push(activeSection);
       }
     }
 
-    const availableSkillsSection = buildAvailableSkillsSystemSection(this.skills);
+    const availableSkillsSection = buildAvailableSkillsSystemSection(
+      this.skills,
+    );
     if (availableSkillsSection) {
       parts.push(availableSkillsSection);
     }
@@ -142,79 +145,10 @@ export class ContextBuilder {
     return parts.join("\n\n");
   };
 
-  buildMessages = (params: {
-    history: Message[];
-    currentMessage: string;
-    skillNames?: string[];
-    attachments?: InboundAttachment[];
-    channel?: string;
-    chatId?: string;
-    sessionKey?: string;
-    thinkingLevel?: ThinkingLevel | null;
-    availableTools?: ToolCatalogEntry[];
-    additionalSystemSections?: string[];
-  }): Message[] => {
-    const {
-      history,
-      currentMessage,
-      skillNames,
-      attachments,
-      channel,
-      chatId,
-      sessionKey,
-      thinkingLevel,
-      availableTools,
-      additionalSystemSections,
-    } = params;
-    const messages: Message[] = [];
-    let systemPrompt = this.buildSystemPrompt(skillNames, sessionKey, availableTools, additionalSystemSections);
-    if (channel && chatId) {
-      systemPrompt += `\n\n## Current Session\nChannel: ${channel}\nChat ID: ${chatId}`;
-    }
-    if (sessionKey) {
-      systemPrompt += `\nSession: ${sessionKey}`;
-    }
-    if (thinkingLevel) {
-      systemPrompt += `\nThinking policy: ${thinkingLevel}`;
-    }
-    messages.push({ role: "system", content: systemPrompt });
-    messages.push(...history);
-
-    const userContent = this.resolveUserContent(currentMessage, attachments ?? []);
-    messages.push({ role: "user", content: userContent });
-
-    return messages;
-  };
-
-  addToolResult = (messages: Message[], toolCallId: string, toolName: string, result: string): Message[] => {
-    messages.push({
-      role: "tool",
-      tool_call_id: toolCallId,
-      name: toolName,
-      content: result
-    });
-    return messages;
-  };
-
-  addAssistantMessage = (
-    messages: Message[],
-    content: string | null,
-    toolCalls?: Message[] | null,
-    reasoningContent?: string | null
-  ): Message[] => {
-    const msg: Message = { role: "assistant", content: content ?? "" };
-    if (toolCalls?.length) {
-      msg.tool_calls = toolCalls;
-    }
-    if (reasoningContent) {
-      msg.reasoning_content = reasoningContent;
-    }
-    messages.push(msg);
-    return messages;
-  };
-
   private getIdentity = (availableTools?: ToolCatalogEntry[]): string => {
-    const toolCatalog = availableTools ? normalizeToolCatalogEntries(availableTools) : [...DEFAULT_TOOL_CATALOG];
+    const toolCatalog = availableTools
+      ? normalizeToolCatalogEntries(availableTools)
+      : [...DEFAULT_TOOL_CATALOG];
     const appLower = APP_NAME.toLowerCase();
     const selfManageGuide = resolveNextclawSelfManageGuidePaths();
     const lines = [
@@ -302,7 +236,7 @@ export class ContextBuilder {
       "",
       "⚠️ Rules:",
       "- It must be your ENTIRE message — nothing else",
-      '- If <noreply/> appears anywhere, the system will stop reply/output and subsequent processing',
+      "- If <noreply/> appears anywhere, the system will stop reply/output and subsequent processing",
       "- Never wrap it in markdown or code blocks",
       "",
       '❌ Wrong: "Here\'s help... <noreply/>"',
@@ -319,18 +253,23 @@ export class ContextBuilder {
       "- Do not load unrelated generic skills before reading the built-in self-management guide for a self-management intent.",
       "- Workspace `USAGE.md` snapshots and copied built-in skills are deprecated artifacts; the built-in package guide is the source of truth.",
       ...(selfManageGuide.repoDocsPath
-        ? [`- In repo source checkouts, the authoring copy is \`${selfManageGuide.repoDocsPath}\`; only use it when the packaged guide path above is unavailable.`]
+        ? [
+            `- In repo source checkouts, the authoring copy is \`${selfManageGuide.repoDocsPath}\`; only use it when the packaged guide path above is unavailable.`,
+          ]
         : []),
       "- If no guide file is available, fall back to command help output.",
       `- For version lookup, use \`${appLower} --version\` exactly; do not infer version from status output.`,
       `- After mutating operations, validate with \`${appLower} status --json\` (and \`${appLower} doctor --json\` when needed).`,
       `- For Agent CRUD, use \`${appLower} agents list|new|update|remove --json\` for the normal path; do not directly edit \`config.json\` or \`agents.list\` for routine Agent management.`,
       "- When creating Agents, prefer explicit non-text avatars and avoid text/initial-based avatar styles such as DiceBear `initials` as the default recommendation.",
-      ""
+      "",
     ];
     const toolLines =
       toolCatalog.length > 0
-        ? toolCatalog.map((tool) => `- ${tool.name}: ${tool.description ?? "No description available"}`)
+        ? toolCatalog.map(
+            (tool) =>
+              `- ${tool.name}: ${tool.description ?? "No description available"}`,
+          )
         : ["- No tools available for this turn."];
     lines.splice(5, 0, ...toolLines);
     return lines.join("\n");
@@ -360,15 +299,5 @@ export class ContextBuilder {
     }
     const head = text.slice(0, limit - suffix.length).trimEnd();
     return `${head}${suffix}`;
-  };
-
-  private resolveUserContent = (text: string, attachments: InboundAttachment[]): ContextUserContent => {
-    if (this.customUserContentBuilder) {
-      return this.customUserContentBuilder({
-        text,
-        attachments,
-      });
-    }
-    return this.defaultUserContentBuilder.build({ text, attachments });
   };
 }

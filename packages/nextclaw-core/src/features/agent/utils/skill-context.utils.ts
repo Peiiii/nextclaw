@@ -1,7 +1,89 @@
 import type { SkillsLoader } from "@core/features/agent/services/skills-loader.js";
 
+function readString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+function readStringList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => readString(entry))
+      .filter((entry): entry is string => Boolean(entry));
+  }
+  if (typeof value === "string") {
+    return value
+      .split(/[,\s]+/g)
+      .map((entry) => readString(entry))
+      .filter((entry): entry is string => Boolean(entry));
+  }
+  return [];
+}
+
+function dedupeRequestedSkills(values: string[]): string[] {
+  return Array.from(new Set(values)).slice(0, 8);
+}
+
 function wrapSkillTag(tagName: string, manifest: string): string {
   return [`<${tagName}>`, manifest, `</${tagName}>`].join("\n");
+}
+
+export type RequestedSkillsSelection = {
+  refs: string[];
+  names: string[];
+  selectors: string[];
+  eventMetadata: Record<string, unknown>;
+};
+
+export class RequestedSkillsMetadataReader {
+  readRefs = (metadata: Record<string, unknown> | undefined): string[] => {
+    if (!metadata) {
+      return [];
+    }
+    return dedupeRequestedSkills(
+      readStringList(
+        metadata.requested_skill_refs ?? metadata.requestedSkillRefs,
+      ),
+    );
+  };
+
+  readNames = (metadata: Record<string, unknown> | undefined): string[] => {
+    if (!metadata) {
+      return [];
+    }
+    return dedupeRequestedSkills(
+      readStringList(metadata.requested_skills ?? metadata.requestedSkills),
+    );
+  };
+
+  readSelectors = (metadata: Record<string, unknown> | undefined): string[] => {
+    const refs = this.readRefs(metadata);
+    if (refs.length > 0) {
+      return refs;
+    }
+    return this.readNames(metadata);
+  };
+
+  readSelection = (
+    metadata: Record<string, unknown> | undefined,
+  ): RequestedSkillsSelection => {
+    const refs = this.readRefs(metadata);
+    const names = refs.length > 0 ? [] : this.readNames(metadata);
+    return {
+      refs,
+      names,
+      selectors: refs.length > 0 ? refs : names,
+      eventMetadata:
+        refs.length > 0
+          ? { requested_skill_refs: refs }
+          : names.length > 0
+            ? { requested_skills: names }
+            : {},
+    };
+  };
 }
 
 const SKILL_LEARNING_SYSTEM_LINES = [
@@ -15,12 +97,10 @@ const SKILL_LEARNING_SYSTEM_LINES = [
   "- Keep the review concise and action-oriented. Do not add user-visible review text unless it materially helps or the user asks for it.",
 ];
 
-const SKILL_LEARNING_USER_LINES = [
-  "## Skill Learning",
-  "Before finishing non-trivial work, do a brief review: extract the reusable lesson, decide whether it means `no_skill_change`, `patch_existing_skill`, or `create_new_skill`, and only promote it when the trigger, steps, and failure checks are clear.",
-];
-
-function buildSelectedSkillsBlock(skills: SkillsLoader, skillSelectors: string[]): string {
+function buildSelectedSkillsBlock(
+  skills: SkillsLoader,
+  skillSelectors: string[],
+): string {
   const manifest = skills.buildSkillsManifest(skillSelectors);
   if (!manifest) {
     return "";
@@ -37,7 +117,10 @@ function buildSelectedSkillsBlock(skills: SkillsLoader, skillSelectors: string[]
   ].join("\n\n");
 }
 
-export function buildRequestedSkillsSystemSection(skills: SkillsLoader, skillSelectors: string[]): string {
+export function buildRequestedSkillsSystemSection(
+  skills: SkillsLoader,
+  skillSelectors: string[],
+): string {
   const block = buildSelectedSkillsBlock(skills, skillSelectors);
   if (!block) {
     return "";
@@ -57,7 +140,10 @@ export function buildRequestedSkillsUserPrompt(
   return [block, "## User Message", userMessage].join("\n\n");
 }
 
-export function buildActiveSkillsSystemSection(skills: SkillsLoader, skillSelectors: string[]): string {
+export function buildActiveSkillsSystemSection(
+  skills: SkillsLoader,
+  skillSelectors: string[],
+): string {
   const manifest = skills.buildSkillsManifest(skillSelectors);
   if (!manifest) {
     return "";
@@ -74,7 +160,9 @@ export function buildActiveSkillsSystemSection(skills: SkillsLoader, skillSelect
   ].join("\n\n");
 }
 
-export function buildAvailableSkillsSystemSection(skills: SkillsLoader): string {
+export function buildAvailableSkillsSystemSection(
+  skills: SkillsLoader,
+): string {
   const summary = skills.buildSkillsSummary();
   if (!summary) {
     return "";
@@ -98,8 +186,4 @@ export function buildAvailableSkillsSystemSection(skills: SkillsLoader): string 
 
 export function buildSkillLearningSystemSection(): string {
   return SKILL_LEARNING_SYSTEM_LINES.join("\n");
-}
-
-export function buildSkillLearningUserPromptSection(): string {
-  return SKILL_LEARNING_USER_LINES.join("\n\n");
 }

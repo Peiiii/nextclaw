@@ -36,7 +36,9 @@ describe("ContextBuilder tool catalog", () => {
     expect(prompt).toContain("- read_file: Read file contents");
     expect(prompt).toContain("- feishu_doc: Feishu document operations");
     expect(prompt).toContain("- feishu_wiki: Feishu knowledge base operations");
-    expect(prompt).not.toContain("- gateway: Restart/apply config/update running process");
+    expect(prompt).not.toContain(
+      "- gateway: Restart/apply config/update running process",
+    );
   });
 
   it("includes skill descriptions in the available skills list", () => {
@@ -58,17 +60,27 @@ describe("ContextBuilder tool catalog", () => {
     const prompt = builder.buildSystemPrompt();
 
     expect(prompt).toContain("<name>demo-skill</name>");
-    expect(prompt).toContain("<description>Demo skill for routing tests</description>");
+    expect(prompt).toContain(
+      "<description>Demo skill for routing tests</description>",
+    );
     expect(prompt).toContain("<available_skills>");
     expect(prompt).toContain("# Active Skills");
     expect(prompt).toContain("<active_skills>");
-    expect(prompt).toContain("first check whether any entry in <available_skills> may be relevant");
-    expect(prompt).toContain("then decide whether following it is actually helpful");
+    expect(prompt).toContain(
+      "first check whether any entry in <available_skills> may be relevant",
+    );
+    expect(prompt).toContain(
+      "then decide whether following it is actually helpful",
+    );
     expect(prompt).toContain("Use offset=... to continue");
-    expect(prompt).toContain("relevant trigger, required workflow, constraints, and output requirements");
+    expect(prompt).toContain(
+      "relevant trigger, required workflow, constraints, and output requirements",
+    );
     expect(prompt).toContain("# Skill Learning Loop");
     expect(prompt).toContain("Decide exactly one outcome");
-    expect(prompt).toContain("clear trigger, repeatable steps, and failure signals/checks");
+    expect(prompt).toContain(
+      "clear trigger, repeatable steps, and failure signals/checks",
+    );
   });
 
   it("tells the agent to check current time before converting relative schedules", () => {
@@ -110,34 +122,16 @@ describe("ContextBuilder tool catalog", () => {
     const prompt = builder.buildSystemPrompt();
 
     expect(prompt).toContain("self-management operations");
-    expect(prompt).toContain("service/channels/config/agents/cron/remote/update");
+    expect(prompt).toContain(
+      "service/channels/config/agents/cron/remote/update",
+    );
     expect(prompt).toContain("resources/USAGE.md");
     expect(prompt).not.toContain(`${workspace}/USAGE.md`);
-    expect(prompt).toContain("Do not load unrelated generic skills before reading the built-in self-management guide");
+    expect(prompt).toContain(
+      "Do not load unrelated generic skills before reading the built-in self-management guide",
+    );
     expect(prompt).toContain("deprecated artifacts");
     expect(prompt).toContain("agents list|new|update|remove --json");
     expect(prompt).toContain("avoid text/initial-based avatar styles");
-  });
-
-  it("allows callers to override how attachments become user content", () => {
-    const workspace = createWorkspace();
-    const builder = new ContextBuilder(workspace, undefined, {
-      buildUserContent: ({ text, attachments }) => [
-        { type: "text", text: `override:${text}` },
-        { type: "text", text: `attachments:${attachments.length}` },
-      ],
-    });
-
-    const messages = builder.buildMessages({
-      history: [],
-      currentMessage: "hello",
-      attachments: [{ name: "notes.md", mimeType: "text/markdown" }],
-    });
-
-    expect(messages[1]?.role).toBe("user");
-    expect(messages[1]?.content).toEqual([
-      { type: "text", text: "override:hello" },
-      { type: "text", text: "attachments:1" },
-    ]);
   });
 });

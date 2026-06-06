@@ -1,6 +1,5 @@
 export * from "./services/route-resolver.js";
 export * from "./services/context.service.js";
-export * from "./features/content/user-content.js";
 export * from "./utils/execution-prompt.utils.js";
 export * from "./utils/tool-catalog.utils.js";
 export * from "./utils/skill-context.utils.js";

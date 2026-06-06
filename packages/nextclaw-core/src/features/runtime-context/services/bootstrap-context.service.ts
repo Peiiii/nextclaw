@@ -27,16 +27,22 @@ function truncateText(text: string, limit: number): string {
 }
 
 export const DEFAULT_BOOTSTRAP_CONTEXT_CONFIG: BootstrapContextConfig = {
-  files: ["AGENTS.md", "SOUL.md", "USER.md", "IDENTITY.md", "TOOLS.md", "BOOT.md", "BOOTSTRAP.md"],
+  files: [
+    "AGENTS.md",
+    "SOUL.md",
+    "USER.md",
+    "IDENTITY.md",
+    "TOOLS.md",
+    "BOOT.md",
+    "BOOTSTRAP.md",
+  ],
   minimalFiles: ["AGENTS.md", "SOUL.md", "TOOLS.md", "IDENTITY.md"],
   perFileChars: 4000,
   totalChars: 12000,
 };
 
 export class BootstrapContextBuilder {
-  resolveConfig = (
-    contextConfig?: ContextConfig,
-  ): BootstrapContextConfig => {
+  resolveConfig = (contextConfig?: ContextConfig): BootstrapContextConfig => {
     return {
       ...DEFAULT_BOOTSTRAP_CONTEXT_CONFIG,
       ...(contextConfig?.bootstrap ?? {}),
@@ -48,32 +54,38 @@ export class BootstrapContextBuilder {
     contextConfig?: ContextConfig;
     sessionKey?: string;
   }): string => {
-    const budget = this.createReadBudget(params.contextConfig);
+    const { contextConfig, projectContext, sessionKey } = params;
+    const budget = this.createReadBudget(contextConfig);
     const projectBootstrap = this.loadBootstrapFiles({
-      workspace: params.projectContext.effectiveWorkspace,
-      root: params.projectContext.projectBootstrapRoot ?? params.projectContext.effectiveWorkspace,
-      contextConfig: params.contextConfig,
-      sessionKey: params.sessionKey,
+      workspace: projectContext.effectiveWorkspace,
+      root:
+        projectContext.projectBootstrapRoot ??
+        projectContext.effectiveWorkspace,
+      contextConfig,
+      sessionKey,
       budget,
     });
     const hasDistinctHostWorkspace =
-      params.projectContext.hostWorkspace !== params.projectContext.effectiveWorkspace;
-    const repositoryIdentity = DEFAULT_WORKSPACE_REPOSITORY_IDENTITY_RESOLVER.resolve(
-      params.projectContext.effectiveWorkspace,
-    );
+      projectContext.hostWorkspace !== projectContext.effectiveWorkspace;
+    const repositoryIdentity =
+      DEFAULT_WORKSPACE_REPOSITORY_IDENTITY_RESOLVER.resolve(
+        projectContext.effectiveWorkspace,
+      );
     const hostBootstrap = hasDistinctHostWorkspace
       ? this.loadBootstrapFiles({
-          workspace: params.projectContext.hostWorkspace,
-          root: params.projectContext.hostWorkspace,
-          contextConfig: params.contextConfig,
-          sessionKey: params.sessionKey,
+          workspace: projectContext.hostWorkspace,
+          root: projectContext.hostWorkspace,
+          contextConfig,
+          sessionKey,
           budget,
         })
       : "";
-    const hasSoulFile = /##\s+SOUL\.md\b/i.test(`${projectBootstrap}\n${hostBootstrap}`);
+    const hasSoulFile = /##\s+SOUL\.md\b/i.test(
+      `${projectBootstrap}\n${hostBootstrap}`,
+    );
     const sections = [
       this.buildProjectSection({
-        projectContext: params.projectContext,
+        projectContext,
         projectBootstrap,
         hasSoulFile,
         repositoryIdentity,
@@ -83,7 +95,7 @@ export class BootstrapContextBuilder {
     if (hasDistinctHostWorkspace) {
       sections.push(
         this.buildHostWorkspaceSection({
-          hostWorkspace: params.projectContext.hostWorkspace,
+          hostWorkspace: projectContext.hostWorkspace,
           hostBootstrap,
         }),
       );
@@ -98,15 +110,21 @@ export class BootstrapContextBuilder {
     hasSoulFile: boolean;
     repositoryIdentity: WorkspaceRepositoryIdentity;
   }): string => {
+    const {
+      projectContext,
+      projectBootstrap,
+      hasSoulFile,
+      repositoryIdentity,
+    } = params;
     const lines = [
       "# Project Context",
       "",
-      `Active project directory: ${params.projectContext.effectiveWorkspace}`,
+      `Active project directory: ${projectContext.effectiveWorkspace}`,
     ];
 
-    if (params.projectContext.projectRoot) {
+    if (projectContext.projectRoot) {
       lines.push(
-        `Session-bound project root: ${params.projectContext.projectRoot}`,
+        `Session-bound project root: ${projectContext.projectRoot}`,
         "This session is explicitly bound to that project directory. Use it as the primary repo and file-operation context for the user's work.",
       );
     } else {
@@ -115,23 +133,21 @@ export class BootstrapContextBuilder {
       );
     }
 
-    lines.push(...this.buildRepositoryIdentityLines(params.repositoryIdentity));
+    lines.push(...this.buildRepositoryIdentityLines(repositoryIdentity));
 
-    if (params.hasSoulFile) {
+    if (hasSoulFile) {
       lines.push(
         "If SOUL.md is present, embody its persona and tone unless higher-priority instructions override it.",
       );
     }
 
-    if (params.projectBootstrap) {
+    if (projectBootstrap) {
+      lines.push("", "Project bootstrap files loaded:", "", projectBootstrap);
+    } else {
       lines.push(
         "",
-        "Project bootstrap files loaded:",
-        "",
-        params.projectBootstrap,
+        "No bootstrap context files were found in the active project directory.",
       );
-    } else {
-      lines.push("", "No bootstrap context files were found in the active project directory.");
     }
 
     return lines.join("\n");
@@ -154,7 +170,9 @@ export class BootstrapContextBuilder {
       const remoteLabel = repositoryIdentity.canonicalRemoteName
         ? ` (${repositoryIdentity.canonicalRemoteName})`
         : "";
-      lines.push(`Canonical git remote${remoteLabel}: ${repositoryIdentity.canonicalRemoteUrl}`);
+      lines.push(
+        `Canonical git remote${remoteLabel}: ${repositoryIdentity.canonicalRemoteUrl}`,
+      );
     }
 
     lines.push(
@@ -183,7 +201,10 @@ export class BootstrapContextBuilder {
         params.hostBootstrap,
       );
     } else {
-      lines.push("", "No bootstrap context files were found in the host workspace directory.");
+      lines.push(
+        "",
+        "No bootstrap context files were found in the host workspace directory.",
+      );
     }
 
     return lines.join("\n");
@@ -196,12 +217,13 @@ export class BootstrapContextBuilder {
     sessionKey?: string;
     budget: BootstrapReadBudget;
   }): string => {
+    const { budget, contextConfig, root, sessionKey } = params;
     const parts: string[] = [];
-    const { perFileChars } = this.resolveConfig(params.contextConfig);
-    const fileList = this.selectBootstrapFiles(params.contextConfig, params.sessionKey);
+    const { perFileChars } = this.resolveConfig(contextConfig);
+    const fileList = this.selectBootstrapFiles(contextConfig, sessionKey);
 
     for (const filename of fileList) {
-      const filePath = join(params.root, filename);
+      const filePath = join(root, filename);
       if (!existsSync(filePath)) {
         continue;
       }
@@ -212,15 +234,15 @@ export class BootstrapContextBuilder {
       }
 
       const perFileLimit = perFileChars > 0 ? perFileChars : raw.length;
-      const allowed = Math.min(perFileLimit, params.budget.remaining);
+      const allowed = Math.min(perFileLimit, budget.remaining);
       if (allowed <= 0) {
         break;
       }
 
       const content = truncateText(raw, allowed);
       parts.push(`## ${filename}\n\n${content}`);
-      params.budget.remaining -= content.length;
-      if (params.budget.remaining <= 0) {
+      budget.remaining -= content.length;
+      if (budget.remaining <= 0) {
         break;
       }
     }
@@ -228,7 +250,9 @@ export class BootstrapContextBuilder {
     return parts.join("\n\n");
   };
 
-  private createReadBudget = (contextConfig?: ContextConfig): BootstrapReadBudget => {
+  private createReadBudget = (
+    contextConfig?: ContextConfig,
+  ): BootstrapReadBudget => {
     const { totalChars } = this.resolveConfig(contextConfig);
     return {
       remaining: totalChars > 0 ? totalChars : Number.POSITIVE_INFINITY,
@@ -263,5 +287,7 @@ export function buildWorkspaceProjectContextSection(params: {
   contextConfig?: ContextConfig;
   sessionKey?: string;
 }): string {
-  return DEFAULT_BOOTSTRAP_CONTEXT_BUILDER.buildWorkspaceProjectContextSection(params);
+  return DEFAULT_BOOTSTRAP_CONTEXT_BUILDER.buildWorkspaceProjectContextSection(
+    params,
+  );
 }

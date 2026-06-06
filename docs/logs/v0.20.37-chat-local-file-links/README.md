@@ -14,6 +14,8 @@
 - 扩展 `ChatMessageMarkdown` 的本地文件 href 识别，支持 `AGENTS.md` 和 `packages/.../*.tsx` 这类 IDE 风格项目相对链接。
 - 保持外链和危险协议边界：`https://...` 不触发文件预览，`example.com` 不误判成本地文件，`javascript:` 不生成 anchor。
 - 补充 `chat-message-markdown.test.tsx` 覆盖绝对路径、项目相对路径、项目根文件、外链、裸域名和危险协议。
+- 清理 native 提示词主干中的失效旧分支：删除未被 native kernel 消费的 `RuntimeUserPromptBuilder`、`ContextBuilder.buildMessages(...)` 与 attachment user-content 旧组装入口。
+- 新增 `ReplyFormatContextProvider`：当 AI 在用户可见回复中提到本地项目文件时，优先输出 `[AGENTS.md](AGENTS.md)` / `[file](packages/example/file.ts)` 这类 Markdown 链接；项目内文件使用项目相对路径，项目外文件才使用绝对路径。该规则通过 `ContextProviderContribution -> ContextProviderManager` native 主链路注入，不再混入 `BootstrapContextBuilder`。
 
 ## 测试/验证/验收方式
 
@@ -23,10 +25,28 @@
   - 结果：通过。
 - `pnpm -C packages/nextclaw-agent-chat-ui exec eslint src/components/chat/ui/chat-message-list/chat-message-markdown.tsx src/components/chat/ui/chat-message-list/__tests__/chat-message-markdown.test.tsx`
   - 结果：通过，无输出。
+- `pnpm -C packages/nextclaw-core test -- src/features/agent/features/tests/context.test.ts`
+  - 结果：通过，`1` 个测试文件、`6` 个测试通过。
+- `pnpm -C packages/nextclaw-core test -- src/features/agent/features/tests/context.test.ts src/features/agent/features/tests/skill-context.test.ts`
+  - 结果：通过，`2` 个测试文件、`8` 个测试通过。
+- `pnpm -C packages/nextclaw-core tsc`
+  - 结果：通过。
+- `pnpm -C packages/nextclaw-kernel test -- src/contributions/context-provider/providers/reply-format-context.provider.test.ts src/managers/__tests__/context-provider.manager.test.ts`
+  - 结果：通过，`2` 个测试文件、`2` 个测试通过。
+- `pnpm -C packages/nextclaw-kernel tsc`
+  - 结果：通过。
+- `pnpm -C packages/nextclaw-core lint`
+  - 结果：通过，`0` errors；保留 `29` 个既有 warnings。
+- `pnpm -C packages/nextclaw-kernel lint`
+  - 结果：通过，无输出。
 - `pnpm lint:new-code:governance`
   - 结果：通过。
 - `pnpm check:governance-backlog-ratchet`
   - 结果：通过，ratchet status OK。
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature`
+  - 结果：通过，Errors 0，Warnings 0；总代码 `+351 / -685 / net -334`，非测试代码 `+231 / -470 / net -239`。
+- `rg -n "RuntimeUserPromptBuilder|buildBootstrapAwareUserPrompt|DEFAULT_RUNTIME_USER_PROMPT_BUILDER|buildSessionPromptContext|buildSkillLearningUserPromptSection|DefaultUserContentBuilder|ContextUserContent|ContextUserContentBuilder|buildDefaultUserContent|buildMessages\\(|addToolResult\\(|addAssistantMessage\\(" packages/nextclaw-core packages/nextclaw-kernel`
+  - 结果：无命中，旧 prompt/message 组装入口已不再残留于 core/kernel。
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-agent-chat-ui/src/components/chat/ui/chat-message-list/chat-message-markdown.tsx packages/nextclaw-agent-chat-ui/src/components/chat/ui/chat-message-list/__tests__/chat-message-markdown.test.tsx docs/designs/2026-06-06-chat-local-file-link-contract.md`
   - 结果：Errors 0，Warnings 1。warning 为 `chat-message-list` 目录既有文件数预算提醒，`delta_count=+0`，本次未新增该目录文件。
 
@@ -52,6 +72,8 @@
 
 `post-edit-maintainability-review` 结论：通过。总代码和测试行数有净增，原因是本次属于用户可见能力补齐，并新增了覆盖安全边界的测试与设计文档。未新增生产文件，未扩大目录平铺度；维护性剩余关注点是 `chat-message-list` 目录已有文件数超预算，后续应按既有 seam 拆分，但本次 delta 为 0。
 
+native prompt 链路清理的 `post-edit-maintainability-review` 结论：通过。本轮属于非功能清理，总代码 `net -334`，非测试代码 `net -239`；正向减债动作是删除失效旧路径与职责收敛：`RuntimeUserPromptBuilder`、`ContextBuilder.buildMessages(...)`、attachment user-content 旧入口不再干扰 native provider 主链路，新增 reply-format 规则落到独立 kernel context provider。
+
 ## NPM 包发布记录
 
 本次未发布 NPM 包。
@@ -59,5 +81,7 @@
 涉及包：
 
 - `@nextclaw/agent-chat-ui`
+- `@nextclaw/core`
+- `@nextclaw/kernel`
 
 发布判断：需要随下一次统一 NPM 发布批次带出，否则已安装的外部包不会获得该链接合同修复。本轮未执行发布，状态为待后续统一发布。
