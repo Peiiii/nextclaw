@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { ChatMessageMarkdown } from "../chat-message-markdown";
+import { ChatMessageMarkdown } from "@agent-chat-ui/components/chat/ui/chat-message-list/chat-message-markdown";
 
 const defaultTexts = {
   copyCodeLabel: "Copy",
@@ -29,6 +29,48 @@ it("opens local file links through the file preview action", () => {
   });
 });
 
+it("opens project-relative file links through the file preview action", () => {
+  const onFileOpen = vi.fn();
+
+  render(
+    <ChatMessageMarkdown
+      text="[cron](packages/nextclaw-ui/src/features/chat/components/workspace/session-cron-job-content.tsx)"
+      role="assistant"
+      texts={defaultTexts}
+      onFileOpen={onFileOpen}
+    />,
+  );
+
+  fireEvent.click(screen.getByRole("link", { name: "cron" }));
+
+  expect(onFileOpen).toHaveBeenCalledWith({
+    path: "packages/nextclaw-ui/src/features/chat/components/workspace/session-cron-job-content.tsx",
+    label: "session-cron-job-content.tsx",
+    viewMode: "preview",
+  });
+});
+
+it("opens project-root file links through the file preview action", () => {
+  const onFileOpen = vi.fn();
+
+  render(
+    <ChatMessageMarkdown
+      text="[rules](AGENTS.md)"
+      role="assistant"
+      texts={defaultTexts}
+      onFileOpen={onFileOpen}
+    />,
+  );
+
+  fireEvent.click(screen.getByRole("link", { name: "rules" }));
+
+  expect(onFileOpen).toHaveBeenCalledWith({
+    path: "AGENTS.md",
+    label: "AGENTS.md",
+    viewMode: "preview",
+  });
+});
+
 it("leaves external links alone when file preview interception is enabled", () => {
   const onFileOpen = vi.fn();
 
@@ -45,6 +87,44 @@ it("leaves external links alone when file preview interception is enabled", () =
   fireEvent.click(link);
 
   expect(link.getAttribute("href")).toBe("https://nextclaw.io");
+  expect(onFileOpen).not.toHaveBeenCalled();
+});
+
+it("does not treat bare domains as project-root file links", () => {
+  const onFileOpen = vi.fn();
+
+  const { container } = render(
+    <ChatMessageMarkdown
+      text="[site](example.com)"
+      role="assistant"
+      texts={defaultTexts}
+      onFileOpen={onFileOpen}
+    />,
+  );
+
+  expect(screen.queryByRole("link", { name: "site" })).toBeNull();
+  expect(container.querySelector(".chat-link-invalid")?.textContent).toBe(
+    "site",
+  );
+  expect(onFileOpen).not.toHaveBeenCalled();
+});
+
+it("does not render unsafe links as anchors", () => {
+  const onFileOpen = vi.fn();
+
+  const { container } = render(
+    <ChatMessageMarkdown
+      text="[bad](javascript:alert(1))"
+      role="assistant"
+      texts={defaultTexts}
+      onFileOpen={onFileOpen}
+    />,
+  );
+
+  expect(screen.queryByRole("link", { name: "bad" })).toBeNull();
+  expect(container.querySelector(".chat-link-invalid")?.textContent).toBe(
+    "bad",
+  );
   expect(onFileOpen).not.toHaveBeenCalled();
 });
 

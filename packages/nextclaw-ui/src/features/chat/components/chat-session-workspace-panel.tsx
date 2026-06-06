@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { ArrowLeft, FolderGit2, Loader2, X } from "lucide-react";
+import { FolderGit2, Loader2 } from "lucide-react";
 import type {
   ChatFileOpenActionViewModel,
   ChatToolActionViewModel,
@@ -269,7 +269,10 @@ export function ChatSessionWorkspacePanel({
   );
 
   useEffect(() => {
-    if (activeSelection?.kind !== "child-session" || activeSelection.tab.runStatus === "running") {
+    if (
+      activeSelection?.kind !== "child-session" ||
+      activeSelection.tab.runStatus === "running"
+    ) {
       return;
     }
     const activeTabReadAt = activeSelection.tab.lastMessageAt?.trim() ?? null;
@@ -326,29 +329,15 @@ export function ChatSessionWorkspacePanel({
       maxWidth={860}
       overlay={displayMode === "overlay"}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-gray-200/70 px-4 py-2.5">
-        <button
-          type="button"
-          onClick={presenter.chatThreadManager.goToParentSession}
-          className={cn(
-            "inline-flex items-center gap-1 text-xs font-medium text-gray-600 transition-colors hover:text-gray-900",
-            !hasParentSession && "pointer-events-none opacity-0",
-          )}
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          <span>{t("chatBackToParent")}</span>
-        </button>
-        <button
-          type="button"
-          onClick={presenter.chatThreadManager.closeWorkspacePanel}
-          className="rounded-full border border-gray-200/80 p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
-          aria-label={t("chatWorkspaceClosePanel")}
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      <WorkspaceTabsBar tabs={workspaceTabs} />
+      <WorkspaceTabsBar
+        tabs={workspaceTabs}
+        onBack={
+          hasParentSession
+            ? presenter.chatThreadManager.goToParentSession
+            : undefined
+        }
+        onClose={presenter.chatThreadManager.closeWorkspacePanel}
+      />
 
       <div className="flex min-h-0 flex-1 flex-col bg-white">
         {activeSelection.kind === "child-session" ? (

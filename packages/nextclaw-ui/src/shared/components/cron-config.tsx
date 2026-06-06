@@ -1,22 +1,50 @@
-import { useMemo, useState } from 'react';
-import type { CronJobView } from '@/shared/lib/api';
-import { useConfirmDialog } from '@/shared/hooks/use-confirm-dialog';
-import { useCronJobs, useDeleteCronJob, useToggleCronJob, useRunCronJob } from '@/shared/hooks/use-config';
-import { Button } from '@/shared/components/ui/button';
-import { Input } from '@/shared/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
-import { Card, CardContent } from '@/shared/components/ui/card';
+import { useMemo, useState } from "react";
+import type { CronJobView } from "@/shared/lib/api";
+import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
+import {
+  useCronJobs,
+  useDeleteCronJob,
+  useToggleCronJob,
+  useRunCronJob,
+} from "@/shared/hooks/use-config";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import { Switch } from "@/shared/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/shared/components/ui/popover";
 import {
   describeCronSchedule,
   describeCronSession,
   formatCronDate,
-} from '@/shared/lib/cron';
-import { cn } from '@/shared/lib/utils';
-import { t } from '@/shared/lib/i18n';
-import { PageLayout, PageHeader } from '@/app/components/layout/page-layout';
-import { AlarmClock, RefreshCw, Trash2, Play, Power } from 'lucide-react';
+  formatRelativeTime,
+} from "@/shared/lib/cron";
+import { cn } from "@/shared/lib/utils";
+import { t } from "@/shared/lib/i18n";
+import { PageLayout, PageHeader } from "@/app/components/layout/page-layout";
+import {
+  AlarmClock,
+  RefreshCw,
+  Trash2,
+  Play,
+  MoreVertical,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  CalendarClock,
+  ListTodo,
+} from "lucide-react";
 
-type StatusFilter = 'all' | 'enabled' | 'disabled';
+type StatusFilter = "all" | "enabled" | "disabled";
 
 function matchQuery(job: CronJobView, query: string): boolean {
   const q = query.trim().toLowerCase();
@@ -25,72 +53,293 @@ function matchQuery(job: CronJobView, query: string): boolean {
     job.id,
     job.name,
     job.payload.message,
-    job.payload.sessionId ?? ''
-  ].join(' ').toLowerCase();
+    job.payload.sessionId ?? "",
+  ]
+    .join(" ")
+    .toLowerCase();
   return haystack.includes(q);
 }
 
 function filterByStatus(job: CronJobView, status: StatusFilter): boolean {
-  if (status === 'all') return true;
-  if (status === 'enabled') return job.enabled;
+  if (status === "all") return true;
+  if (status === "enabled") return job.enabled;
   return !job.enabled;
+}
+
+function StatusBadge({ job }: { job: CronJobView }) {
+  const hasError = job.state.lastStatus === "error";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+        hasError
+          ? "bg-red-50 text-red-600"
+          : job.enabled
+            ? "bg-emerald-50 text-emerald-700"
+            : "bg-gray-100 text-gray-500",
+      )}
+    >
+      <span
+        className={cn(
+          "h-1.5 w-1.5 rounded-full",
+          hasError
+            ? "bg-red-400"
+            : job.enabled
+              ? "bg-emerald-400"
+              : "bg-gray-400",
+        )}
+      />
+      {job.enabled ? t("enabled") : t("disabled")}
+    </span>
+  );
 }
 
 function CronJobCard(props: {
   job: CronJobView;
   onDelete: (job: CronJobView) => void;
   onRun: (job: CronJobView) => void;
-  onToggle: (job: CronJobView) => void;
+  onToggle: (job: CronJobView, nextEnabled: boolean) => void;
 }) {
   const { job, onDelete, onRun, onToggle } = props;
+  const [expanded, setExpanded] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const hasError = Boolean(job.state.lastError);
+  const barColor = hasError
+    ? "bg-red-400"
+    : job.enabled
+      ? "bg-emerald-400"
+      : "bg-gray-300";
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't expand when clicking switch or menu
+    const target = e.target as HTMLElement;
+    if (target.closest("[data-no-expand]")) return;
+    setExpanded(!expanded);
+  };
+
   return (
-    <Card className="border border-gray-200">
-      <CardContent className="pt-5 pb-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-[220px] flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold text-gray-900">{job.name || job.id}</span>
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">{job.id}</span>
-              <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold', job.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500')}>
-                {job.enabled ? t('enabled') : t('disabled')}
+    <div
+      className={cn(
+        "group relative overflow-hidden rounded-xl border bg-white transition-all duration-150 cursor-pointer",
+        expanded
+          ? "border-gray-300 shadow-sm"
+          : "border-gray-200 hover:border-gray-300 hover:shadow-sm",
+      )}
+      onClick={handleCardClick}
+    >
+      {/* Left color bar */}
+      <div
+        className={cn(
+          "absolute left-0 top-0 bottom-0 w-1 rounded-l-xl",
+          barColor,
+        )}
+      />
+
+      <div className="pl-4 pr-3 py-3">
+        {/* Row 1: name + badges + actions */}
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              {expanded ? (
+                <ChevronDown className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5 text-gray-300 shrink-0 group-hover:text-gray-500 transition-colors" />
+              )}
+              <span className="text-sm font-semibold text-gray-900 truncate">
+                {job.name || job.id}
               </span>
-              {job.deleteAfterRun ? (
-                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">{t('cronOneShot')}</span>
-              ) : null}
+              <StatusBadge job={job} />
+              {job.deleteAfterRun && (
+                <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-600">
+                  {t("cronOneShot")}
+                </span>
+              )}
             </div>
-            <div className="mt-2 text-xs text-gray-500">{t('cronScheduleLabel')}: {describeCronSchedule(job)}</div>
-            <div className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-700">{job.payload.message}</div>
-            <div className="mt-2 text-xs text-gray-500">{t('cronSessionLabel')}: {describeCronSession(job)}</div>
           </div>
-          <div className="min-w-[220px] space-y-2 text-xs text-gray-500">
-            <div><span className="font-medium text-gray-700">{t('cronNextRun')}:</span> {formatCronDate(job.state.nextRunAt)}</div>
-            <div><span className="font-medium text-gray-700">{t('cronLastRun')}:</span> {formatCronDate(job.state.lastRunAt)}</div>
-            <div><span className="font-medium text-gray-700">{t('cronLastStatus')}:</span> {job.state.lastStatus ?? '-'}</div>
-            {job.state.lastError ? <div className="break-words text-[11px] text-red-500">{job.state.lastError}</div> : null}
-          </div>
-          <div className="flex flex-wrap items-start justify-end gap-2">
-            <Button variant="subtle" size="sm" onClick={() => onRun(job)} className="gap-1">
-              <Play className="h-3.5 w-3.5" />
-              {t('cronRunNow')}
-            </Button>
-            <Button variant={job.enabled ? 'outline' : 'primary'} size="sm" onClick={() => onToggle(job)} className="gap-1">
-              <Power className="h-3.5 w-3.5" />
-              {job.enabled ? t('cronDisable') : t('cronEnable')}
-            </Button>
-            <Button variant="destructive" size="sm" onClick={() => onDelete(job)} className="gap-1">
-              <Trash2 className="h-3.5 w-3.5" />
-              {t('delete')}
-            </Button>
+
+          {/* Actions - stop propagation so they don't toggle expand */}
+          <div className="flex items-center gap-1.5 shrink-0" data-no-expand>
+            <Switch
+              checked={job.enabled}
+              onCheckedChange={(checked) => onToggle(job, checked)}
+            />
+            <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-gray-400 hover:text-gray-600"
+                  aria-label={t("cronMoreActions")}
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" sideOffset={4} className="w-40 p-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onRun(job);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                >
+                  <Play className="h-3.5 w-3.5 text-gray-500" />
+                  {t("cronRunNow")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onDelete(job);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  {t("delete")}
+                </button>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Row 2: schedule + next run + last run (always visible) */}
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 pl-6">
+          <span className="flex items-center gap-1">
+            <CalendarClock className="h-3 w-3 text-gray-400" />
+            <span className="font-mono text-gray-600">
+              {describeCronSchedule(job)}
+            </span>
+          </span>
+          {job.state.nextRunAt && (
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3 text-gray-400" />
+              <span>{formatRelativeTime(job.state.nextRunAt)}</span>
+            </span>
+          )}
+          {job.state.lastRunAt && (
+            <span className="flex items-center gap-1">
+              <span className="text-gray-300">•</span>
+              <span
+                className={cn(
+                  job.state.lastStatus === "ok"
+                    ? "text-emerald-400"
+                    : job.state.lastStatus === "error"
+                      ? "text-orange-400"
+                      : "text-gray-400",
+                )}
+              >
+                {job.state.lastStatus === "ok"
+                  ? "✓"
+                  : job.state.lastStatus === "error"
+                    ? "✗"
+                    : ""}
+              </span>
+              <span>{formatRelativeTime(job.state.lastRunAt)}</span>
+            </span>
+          )}
+        </div>
+
+        {/* Row 3: message preview (always visible, 2 lines) */}
+        <div className="mt-2 pl-6">
+          <div
+            className={cn(
+              "text-sm text-gray-600 break-words",
+              !expanded && "line-clamp-2",
+            )}
+          >
+            {job.payload.message}
+          </div>
+        </div>
+
+        {/* Expanded details */}
+        {expanded && (
+          <div className="mt-3 ml-6 space-y-3 animate-in fade-in-0 slide-in-from-top-1 duration-150">
+            {/* Metadata grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
+              <div>
+                <div className="text-[11px] text-gray-400 mb-0.5">
+                  {t("cronSessionLabel")}
+                </div>
+                <div
+                  className="text-gray-700 font-mono text-[11px] truncate"
+                  title={describeCronSession(job)}
+                >
+                  {describeCronSession(job)}
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-400 mb-0.5">
+                  {t("cronNextRun")}
+                </div>
+                <div className="text-gray-700">
+                  {formatCronDate(job.state.nextRunAt)}
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-400 mb-0.5">
+                  {t("cronLastRun")}
+                </div>
+                <div className="text-gray-700">
+                  {formatCronDate(job.state.lastRunAt)}
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-400 mb-0.5">
+                  {t("cronLastStatus")}
+                </div>
+                <div
+                  className={cn(
+                    "inline-flex items-center gap-1 font-medium",
+                    job.state.lastStatus === "ok"
+                      ? "text-emerald-600"
+                      : job.state.lastStatus === "error"
+                        ? "text-red-600"
+                        : job.state.lastStatus === "skipped"
+                          ? "text-amber-600"
+                          : "text-gray-500",
+                  )}
+                >
+                  {job.state.lastStatus ?? "-"}
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-400 mb-0.5">
+                  {t("cronCreatedAt")}
+                </div>
+                <div className="text-gray-700">
+                  {formatCronDate(job.createdAt)}
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-400 mb-0.5">
+                  {t("cronId")}
+                </div>
+                <div
+                  className="text-gray-700 font-mono text-[11px] truncate"
+                  title={job.id}
+                >
+                  {job.id}
+                </div>
+              </div>
+            </div>
+
+            {/* Error */}
+            {job.state.lastError && (
+              <div className="rounded-lg bg-red-50 border border-red-100 px-3 py-2 text-xs text-red-600 break-words">
+                {job.state.lastError}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
 export function CronConfig() {
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<StatusFilter>('all');
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<StatusFilter>("all");
   const cronQuery = useCronJobs({ all: true });
   const deleteCronJob = useDeleteCronJob();
   const toggleCronJob = useToggleCronJob();
@@ -106,43 +355,37 @@ export function CronConfig() {
 
   const handleDelete = async (job: CronJobView) => {
     const confirmed = await confirm({
-      title: `${t('cronDeleteConfirm')}?`,
+      title: `${t("cronDeleteConfirm")}?`,
       description: job.name ? `${job.name} (${job.id})` : job.id,
-      variant: 'destructive',
-      confirmLabel: t('delete')
+      variant: "destructive",
+      confirmLabel: t("delete"),
     });
     if (!confirmed) return;
     deleteCronJob.mutate({ id: job.id });
   };
 
-  const handleToggle = async (job: CronJobView) => {
-    const nextEnabled = !job.enabled;
-    const confirmed = await confirm({
-      title: nextEnabled ? `${t('cronEnableConfirm')}?` : `${t('cronDisableConfirm')}?`,
-      description: job.name ? `${job.name} (${job.id})` : job.id,
-      variant: nextEnabled ? 'default' : 'destructive',
-      confirmLabel: nextEnabled ? t('cronEnable') : t('cronDisable')
-    });
-    if (!confirmed) return;
+  const handleToggle = (job: CronJobView, nextEnabled: boolean) => {
     toggleCronJob.mutate({ id: job.id, enabled: nextEnabled });
   };
 
   const handleRun = async (job: CronJobView) => {
     const force = !job.enabled;
-    const confirmed = await confirm({
-      title: force ? `${t('cronRunForceConfirm')}?` : `${t('cronRunConfirm')}?`,
-      description: job.name ? `${job.name} (${job.id})` : job.id,
-      confirmLabel: t('cronRunNow')
-    });
-    if (!confirmed) return;
+    if (force) {
+      const confirmed = await confirm({
+        title: `${t("cronRunForceConfirm")}?`,
+        description: job.name ? `${job.name} (${job.id})` : job.id,
+        confirmLabel: t("cronRunNow"),
+      });
+      if (!confirmed) return;
+    }
     runCronJob.mutate({ id: job.id, force });
   };
 
   return (
     <PageLayout fullHeight>
       <PageHeader
-        title={t('cronPageTitle')}
-        description={t('cronPageDescription')}
+        title={t("cronPageTitle")}
+        description={t("cronPageDescription")}
         actions={
           <Button
             variant="ghost"
@@ -150,49 +393,75 @@ export function CronConfig() {
             className="h-9 w-9 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
             onClick={() => cronQuery.refetch()}
           >
-            <RefreshCw className={cn('h-4 w-4', cronQuery.isFetching && 'animate-spin')} />
+            <RefreshCw
+              className={cn("h-4 w-4", cronQuery.isFetching && "animate-spin")}
+            />
           </Button>
         }
       />
 
-      <div className="mb-6">
+      <div className="mb-5">
         <div className="flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-[240px]">
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={t('cronSearchPlaceholder')}
+              placeholder={t("cronSearchPlaceholder")}
               className="pl-9"
             />
             <AlarmClock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           </div>
-          <div className="min-w-[180px]">
-            <Select value={status} onValueChange={(value) => setStatus(value as StatusFilter)}>
+          <div className="min-w-[140px]">
+            <Select
+              value={status}
+              onValueChange={(value) => setStatus(value as StatusFilter)}
+            >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder={t('cronStatusLabel')} />
+                <SelectValue placeholder={t("cronStatusLabel")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t('cronStatusAll')}</SelectItem>
-                <SelectItem value="enabled">{t('cronStatusEnabled')}</SelectItem>
-                <SelectItem value="disabled">{t('cronStatusDisabled')}</SelectItem>
+                <SelectItem value="all">{t("cronStatusAll")}</SelectItem>
+                <SelectItem value="enabled">
+                  {t("cronStatusEnabled")}
+                </SelectItem>
+                <SelectItem value="disabled">
+                  {t("cronStatusDisabled")}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="text-xs text-gray-500 ml-auto">
-            {t('cronTotalLabel')}: {cronQuery.data?.total ?? 0} / {jobs.length}
+          <div className="text-xs text-gray-400 ml-auto tabular-nums">
+            {jobs.length} / {cronQuery.data?.total ?? 0}
           </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-auto custom-scrollbar">
         {cronQuery.isLoading ? (
-          <div className="text-sm text-gray-400 p-4 text-center">{t('cronLoading')}</div>
+          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+            <RefreshCw className="h-6 w-6 animate-spin mb-3" />
+            <span className="text-sm">{t("cronLoading")}</span>
+          </div>
         ) : jobs.length === 0 ? (
-          <div className="text-sm text-gray-400 p-4 text-center">{t('cronEmpty')}</div>
+          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+            <ListTodo className="h-10 w-10 mb-3 text-gray-300" />
+            <span className="text-sm font-medium text-gray-500">
+              {t("cronEmpty")}
+            </span>
+            <span className="text-xs text-gray-400 mt-1">
+              {t("cronEmptyGuide")}
+            </span>
+          </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-2.5">
             {jobs.map((job) => (
-              <CronJobCard key={job.id} job={job} onDelete={handleDelete} onRun={handleRun} onToggle={handleToggle} />
+              <CronJobCard
+                key={job.id}
+                job={job}
+                onDelete={handleDelete}
+                onRun={handleRun}
+                onToggle={handleToggle}
+              />
             ))}
           </div>
         )}

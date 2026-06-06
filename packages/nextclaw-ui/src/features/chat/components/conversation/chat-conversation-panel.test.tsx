@@ -653,9 +653,9 @@ describe("ChatSessionWorkspacePanel", () => {
     expect(screen.getByTestId("workspace-file-preview").textContent).toBe(
       "README.md",
     );
-    expect(screen.getByTestId("workspace-tabs-bar").className).toContain(
-      "workspace-horizontal-scrollbar",
-    );
+    expect(
+      screen.getByTestId("workspace-tabs-scroll").parentElement?.className,
+    ).toContain("workspace-horizontal-scrollbar");
   });
 
   it("renders session cron jobs in the workspace sidebar and deletes with a neutral confirmation", async () => {

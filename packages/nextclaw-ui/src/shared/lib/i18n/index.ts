@@ -2,6 +2,7 @@ import { AGENT_LABELS } from './agents';
 import { CHANNEL_LABELS } from './channels';
 import { CHANNEL_AUTH_LABELS } from './channel-auth.constants';
 import { CHAT_LABELS } from './chat-labels.utils';
+import { CRON_LABELS } from './cron-labels.utils';
 import { getLanguage, getLocale, initializeI18n, LANGUAGE_OPTIONS, resolveInitialLanguage, setLanguage, subscribeLanguageChange, type I18nLanguage } from './runtime/i18n-language-owner';
 import { DESKTOP_UPDATE_LABELS } from './desktop-update-labels.utils';
 import { DOC_BROWSER_LABELS } from './runtime/doc-browser-labels.utils';
@@ -427,31 +428,7 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   ...CHAT_LABELS,
 
   // Cron
-  cronPageTitle: { zh: '定时任务', en: 'Cron Jobs' },
-  cronPageDescription: { zh: '查看与删除定时任务，关注执行时间与状态。', en: 'View and delete cron jobs, track schedule and status.' },
-  cronSearchPlaceholder: { zh: '搜索名称 / 消息 / ID', en: 'Search name / message / ID' },
-  cronStatusLabel: { zh: '状态', en: 'Status' },
-  cronStatusAll: { zh: '全部', en: 'All' },
-  cronStatusEnabled: { zh: '仅启用', en: 'Enabled' },
-  cronStatusDisabled: { zh: '仅禁用', en: 'Disabled' },
-  cronTotalLabel: { zh: '总数', en: 'Total' },
-  cronLoading: { zh: '加载定时任务中...', en: 'Loading cron jobs...' },
-  cronEmpty: { zh: '暂无定时任务。', en: 'No cron jobs yet.' },
-  cronScheduleLabel: { zh: '计划', en: 'Schedule' },
-  cronSessionLabel: { zh: '会话', en: 'Session' },
-  cronDeliverTo: { zh: '投递到', en: 'Deliver to' },
-  cronNextRun: { zh: '下次执行', en: 'Next run' },
-  cronLastRun: { zh: '上次执行', en: 'Last run' },
-  cronLastStatus: { zh: '上次状态', en: 'Last status' },
-  cronDeleteConfirm: { zh: '确认删除定时任务', en: 'Delete cron job' },
-  cronOneShot: { zh: '一次性', en: 'One-shot' },
-  cronEnable: { zh: '启用', en: 'Enable' },
-  cronDisable: { zh: '禁用', en: 'Disable' },
-  cronRunNow: { zh: '立即执行', en: 'Run now' },
-  cronEnableConfirm: { zh: '确认启用定时任务', en: 'Enable cron job' },
-  cronDisableConfirm: { zh: '确认禁用定时任务', en: 'Disable cron job' },
-  cronRunConfirm: { zh: '确认立即执行定时任务', en: 'Run cron job now' },
-  cronRunForceConfirm: { zh: '任务已禁用，仍要立即执行', en: 'Cron job disabled. Force run now' },
+  ...CRON_LABELS,
 
   // Marketplace
   ...MARKETPLACE_LABELS,
