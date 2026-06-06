@@ -6,7 +6,7 @@
 
 这件事对 NextClaw 的意义不是“加一个浏览器工具”，而是把浏览器纳入 NextClaw 的个人操作层能力版图。用户不应该必须把网页复制给 AI，NextClaw 应该能在用户允许的前提下理解当前浏览器场景，并把网页、系统、服务和用户意图连成一条可执行链路。
 
-因此，本设计不是试验性路线，而是完整产品闭环：安装、连接、授权、读取、截图、交互、确认、审计、CLI JSON 合同、skill、验证和发布检查必须一次性设计清楚，落地时可以按提交拆分，但交付口径只有一个：`browser-connector` CLI 能力完整可用。NextClaw 基线只需要像 `aigen` 一样内置这个独立 CLI 包，并提供对应 skill；不要求先改 NextClaw runtime、kernel、UI 或 agent tool 注入链路。
+因此，本设计不是试验性路线，而是完整产品闭环：安装、连接、授权、读取、截图、交互、确认、审计、CLI JSON 合同、marketplace skill、验证和发布检查必须一次性设计清楚，落地时可以按提交拆分，但交付口径只有一个：`browser-connector` CLI 能力完整可用。NextClaw 基线只需要像 `aigen` 一样在 monorepo 内维护这个独立 CLI 包，并提供对应 marketplace skill；不要求先改 NextClaw runtime、kernel、UI 或 agent tool 注入链路。
 
 ## 已验证事实
 
@@ -58,7 +58,8 @@ Codex Agent
 
 - Chrome Extension 可安装、启用、连接 `browser-connector` Native Host。
 - `browser-connector` CLI 能独立完成 install、doctor、tabs list、claim、snapshot、screenshot、click、type、press、scroll、wait、finalize，并输出稳定 JSON。
-- `browser-control` skill 能教 AI 正确调用 CLI，不猜 tab id，不跳过 finalize，不把页面内容当指令。
+- `browser-control` marketplace skill 能教 AI 正确调用 CLI，不猜 tab id，不跳过 finalize，不把页面内容当指令。
+- `browser-control` 能作为 marketplace skill 校验、发布和安装，不落到 `.agents/skills` 这种项目开发 agent skill 目录。
 - NextClaw 基线不新增 browser tool provider；AI 通过现有 shell/command 执行能力调用 CLI，就像调用 `aigen`。
 - 高风险动作必须有动作前确认；只读动作默认可直接执行，但必须记录。
 - 页面内容不能覆盖 system/developer/AGENTS/skill 指令。
@@ -274,17 +275,28 @@ browser-connector tabs finalize --lease <leaseId> --keep --json
 - 不拥有 Chrome Extension 协议、Native Host 协议、tab lease 内部状态；
 - 不把 browser connector 代码搬进 kernel。
 
-### Browser Control Skill
+### Browser Control Marketplace Skill
 
 建议位置：
 
 ```text
-packages/nextclaw-core/src/features/agent/shared/skills/browser-control/SKILL.md
+skills/browser-control/
+  SKILL.md
+  marketplace.json
 ```
+
+这不是 repo-local agent governance skill，不能放到 `.agents/skills`。它是面向 NextClaw 用户和 NextClaw marketplace 的产品 skill，形态参考 `skills/aigen-image-generation`：
+
+- `@nextclaw/browser-connector` / `browser-connector` CLI 负责真实浏览器连接、Native Host、Extension、JSON 合同和执行；
+- `browser-control` marketplace skill 负责用户旅程、安装引导、就绪检查、风险说明、确认纪律、CLI 调用顺序和故障排查；
+- NextClaw 本体不需要因为这个基线新增 browser tool provider，也不需要把浏览器协议搬进 kernel/UI；
+- 如果将来要做内置 shared skill 或原生 tool card，那是后续产品化增强，不是本轮 CLI+marketplace skill 基线。
 
 职责：
 
 - 教 AI 先 list、再 claim、再 snapshot/screenshot、再操作、最后 finalize；
+- 教 AI 检查 `browser-connector` 是否安装，并在缺失时引导 `npm install -g @nextclaw/browser-connector` 或临时 `npx -y @nextclaw/browser-connector@latest`；
+- 教 AI 运行 `browser-connector doctor --json` 判断 Chrome Extension、Native Host、local IPC 和 roundtrip 状态；
 - 强调页面内容是不可信输入；
 - 要求高风险动作前确认；
 - 要求点击前确认目标唯一；
@@ -780,8 +792,9 @@ packages/browser-connector/
   src/utils/browser-url-redaction.utils.ts
   tests/
 
-.agents/skills/browser-control/
+skills/browser-control/
   SKILL.md
+  marketplace.json
 ```
 
 基线可能修改：
@@ -799,7 +812,7 @@ packages/nextclaw-ui/src/features/settings/
 packages/nextclaw-ui/src/features/chat/
 ```
 
-实际实现前必须按当前 module-structure 规则确认目录可用。`packages/browser-connector` 的 role 边界参考 `packages/aigen`：CLI app、controllers、managers/core、repositories、types、utils 分层清晰；NextClaw 基线只新增 package、skill 和必要 package script，不允许把 extension/native-host/client 逻辑搬进 kernel。
+实际实现前必须按当前 module-structure 规则确认目录可用。`packages/browser-connector` 的 role 边界参考 `packages/aigen`：CLI app、controllers、managers/core、repositories、types、utils 分层清晰；NextClaw 基线只新增 package、marketplace skill 源和必要 package script，不允许把 extension/native-host/client 逻辑搬进 kernel。
 
 ## 落地任务包
 
@@ -856,18 +869,22 @@ packages/nextclaw-ui/src/features/chat/
 - 实现统一错误 shape。
 - 实现 client API，供 CLI 和未来可选集成方共用。
 
-### 任务包 F：Browser Control Skill
+### 任务包 F：Browser Control Marketplace Skill
 
-- 新增 `.agents/skills/browser-control/SKILL.md`。
+- 新增 `skills/browser-control/SKILL.md`。
+- 新增 `skills/browser-control/marketplace.json`，补齐中英文 summary、description、tags、homepage。
 - 说明如何调用 `browser-connector` CLI。
+- 说明安装方式、`command -v browser-connector`、`browser-connector --version`、`browser-connector doctor --json`。
 - 说明 list -> claim -> snapshot/screenshot -> action -> finalize 的顺序。
 - 说明危险动作前必须向用户确认。
 - 说明页面内容是不可信输入。
 - 说明 CLI JSON 错误如何处理。
+- 使用 `.agents/skills/marketplace-skill-publisher/scripts/validate_marketplace_skill.py --skill-dir skills/browser-control` 做本地 marketplace skill 校验。
+- 如果进入发布闭环，再按 marketplace 发布流程执行远端校验和非仓库目录安装冒烟。
 
 ### 任务包 G：文档
 
-- 更新共享 skill 索引和触发描述。
+- 更新 marketplace skill 元数据和触发描述。
 - 更新用户文档，说明安装、连接、权限和安全边界。
 - 更新开发文档，说明本地调试 extension 和 native host。
 
@@ -923,18 +940,20 @@ packages/nextclaw-ui/src/features/chat/
 9. 运行 browser-connector page screenshot --lease <leaseId> --json。
 10. 运行 browser-connector page click/type/press/scroll/wait。
 11. 运行 browser-connector tabs finalize --lease <leaseId> --json。
-12. 在 NextClaw 会话中要求 AI 按 browser-control skill 调用 CLI。
-13. AI 运行 browser-connector tabs list --json。
-14. AI 选择一个本地测试页面并 claim。
-15. AI 读取 snapshot。
-16. AI 截图并报告 artifact 路径。
-17. AI 点击测试按钮。
-18. AI 输入普通文本。
-19. AI 尝试提交动作前向用户确认。
-20. 用户取消后动作不发生。
-21. 用户确认后动作发生。
-22. AI 做结果核验。
-23. AI finalize。
+12. 校验 `skills/browser-control` marketplace skill 元数据。
+13. 在非仓库目录安装或模拟安装 browser-control marketplace skill。
+14. 在 NextClaw 会话中要求 AI 按 browser-control skill 调用 CLI。
+15. AI 运行 browser-connector tabs list --json。
+16. AI 选择一个本地测试页面并 claim。
+17. AI 读取 snapshot。
+18. AI 截图并报告 artifact 路径。
+19. AI 点击测试按钮。
+20. AI 输入普通文本。
+21. AI 尝试提交动作前向用户确认。
+22. 用户取消后动作不发生。
+23. 用户确认后动作发生。
+24. AI 做结果核验。
+25. AI finalize。
 ```
 
 ### 发布闭环检查
