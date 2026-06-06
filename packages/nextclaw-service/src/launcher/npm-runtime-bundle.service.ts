@@ -163,17 +163,21 @@ export class NpmRuntimeBundleService {
 }
 
 export function compareNpmRuntimeVersions(left: string, right: string): number {
-  const leftParts = parseVersionParts(left);
-  const rightParts = parseVersionParts(right);
+  const [leftCore = "", leftPrerelease = ""] = left.split("+")[0]?.split("-", 2) ?? [];
+  const [rightCore = "", rightPrerelease = ""] = right.split("+")[0]?.split("-", 2) ?? [];
+  const leftParts = parseVersionParts(leftCore);
+  const rightParts = parseVersionParts(rightCore);
   const length = Math.max(leftParts.length, rightParts.length);
   for (let index = 0; index < length; index += 1) {
-    const leftPart = leftParts[index] ?? 0;
-    const rightPart = rightParts[index] ?? 0;
-    if (leftPart !== rightPart) {
-      return leftPart - rightPart;
+    const compared = (leftParts[index] ?? 0) - (rightParts[index] ?? 0);
+    if (compared !== 0) {
+      return compared;
     }
   }
-  return left.localeCompare(right);
+  if (!leftPrerelease || !rightPrerelease) {
+    return Number(!leftPrerelease) - Number(!rightPrerelease);
+  }
+  return leftPrerelease.localeCompare(rightPrerelease, undefined, { numeric: true });
 }
 
 export function resolveEffectiveNpmRuntimeVersion(params: {
@@ -198,16 +202,12 @@ export function shouldPreferPackagedNpmRuntime(params: {
   currentBundleVersion: string | null;
 }): boolean {
   const launcherVersion = params.launcherVersion?.trim() || null;
-  const currentBundleVersion = params.currentBundleVersion?.trim() || null;
-  if (!launcherVersion || !currentBundleVersion) {
-    return false;
-  }
-  return resolveEffectiveNpmRuntimeVersion(params) === launcherVersion;
+  return Boolean(launcherVersion) && resolveEffectiveNpmRuntimeVersion(params) === launcherVersion;
 }
 
 function parseVersionParts(version: string): number[] {
   return version
-    .split(/[.-]/)
+    .split(".")
     .map((part) => Number(part))
     .map((part) => (Number.isFinite(part) ? part : 0));
 }

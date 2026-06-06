@@ -12,6 +12,7 @@ import {
 } from "@nextclaw/kernel";
 import { NpmRuntimeBundleLayoutStore } from "./npm-runtime-bundle-layout.store.js";
 import {
+  compareNpmRuntimeVersions,
   NpmRuntimeBundleService,
   resolveEffectiveNpmRuntimeVersion,
   shouldPreferPackagedNpmRuntime
@@ -106,26 +107,32 @@ function createManager(params: {
   archiveBytes?: Buffer;
   launcherVersion?: string;
 }) {
-  const layout = new NpmRuntimeBundleLayoutStore(join(params.rootDir, "runtime-bundles"));
-  const stateStore = new NpmRuntimeUpdateStateStore(join(params.rootDir, "state.json"));
+  const {
+    rootDir,
+    manifest,
+    archiveBytes,
+    launcherVersion = "0.1.0"
+  } = params;
+  const layout = new NpmRuntimeBundleLayoutStore(join(rootDir, "runtime-bundles"));
+  const stateStore = new NpmRuntimeUpdateStateStore(join(rootDir, "state.json"));
   const bundleService = new NpmRuntimeBundleService({
     layout,
     stateStore,
-    launcherVersion: params.launcherVersion ?? "0.1.0"
+    launcherVersion
   });
   const updateService = new NpmRuntimeUpdateService({
     layout,
     bundleService,
-    launcherVersion: params.launcherVersion ?? "0.1.0",
+    launcherVersion,
     bundlePublicKey: publicKey,
     fetchImpl: async (url) => {
       if (String(url).includes("manifest")) {
-        return Response.json(params.manifest);
+        return Response.json(manifest);
       }
-      return new Response(params.archiveBytes ?? Buffer.from(""), {
+      return new Response(archiveBytes ?? Buffer.from(""), {
         status: 200,
         headers: {
-          "content-length": String(params.archiveBytes?.byteLength ?? 0)
+          "content-length": String(archiveBytes?.byteLength ?? 0)
         }
       });
     }
@@ -136,7 +143,7 @@ function createManager(params: {
     bundleService,
     updateService,
     resolveManifestUrl: () => "https://example.com/manifest.json",
-    launcherVersion: params.launcherVersion ?? "0.1.0",
+    launcherVersion,
     channel: "stable"
   });
   return {
@@ -224,9 +231,31 @@ describe("NpmRuntimeUpdateManager", () => {
       expect(snapshot.blockReason).toBe("host-too-old");
       expect(snapshot.recoveryCommand).toBe("npm install -g nextclaw@latest");
     }));
+
+  it("offers the stable runtime when a beta launcher checks the matching stable release", async () =>
+    await withTempDir(async (rootDir) => {
+      const manifest = createManifest({
+        latestVersion: "0.21.5"
+      });
+      const { manager } = createManager({ rootDir, manifest, launcherVersion: "0.21.5-beta.0" });
+
+      const snapshot = await manager.run({ checkOnly: true });
+
+      expect(snapshot.status).toBe("update-available");
+      expect(snapshot.currentVersion).toBe("0.21.5-beta.0");
+      expect(snapshot.availableVersion).toBe("0.21.5");
+    }));
 });
 
 describe("Npm runtime update defaults", () => {
+  it("compares npm runtime versions with prerelease precedence", () => {
+    expect(compareNpmRuntimeVersions("0.21.5", "0.21.5-beta.0")).toBeGreaterThan(0);
+    expect(compareNpmRuntimeVersions("0.21.5-beta.1", "0.21.5-beta.0")).toBeGreaterThan(0);
+    expect(compareNpmRuntimeVersions("0.21.5-beta.0", "0.21.5")).toBeLessThan(0);
+    expect(compareNpmRuntimeVersions("0.21.6-beta.0", "0.21.5")).toBeGreaterThan(0);
+    expect(compareNpmRuntimeVersions("0.21.5+build.2", "0.21.5+build.1")).toBe(0);
+  });
+
   it("prefers the packaged npm runtime when the installed launcher is newer than current bundle", () => {
     expect(
       resolveEffectiveNpmRuntimeVersion({
