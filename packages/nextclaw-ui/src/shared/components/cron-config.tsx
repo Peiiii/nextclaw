@@ -23,6 +23,12 @@ import {
   PopoverTrigger,
 } from "@/shared/components/ui/popover";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/shared/components/ui/tooltip";
+import {
   describeCronSchedule,
   describeCronSession,
   formatCronDate,
@@ -42,6 +48,7 @@ import {
   Clock,
   CalendarClock,
   ListTodo,
+  AlertCircle,
 } from "lucide-react";
 
 type StatusFilter = "all" | "enabled" | "disabled";
@@ -67,26 +74,19 @@ function filterByStatus(job: CronJobView, status: StatusFilter): boolean {
 }
 
 function StatusBadge({ job }: { job: CronJobView }) {
-  const hasError = job.state.lastStatus === "error";
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-        hasError
-          ? "bg-red-50 text-red-600"
-          : job.enabled
-            ? "bg-emerald-50 text-emerald-700"
-            : "bg-gray-100 text-gray-500",
+        job.enabled
+          ? "bg-emerald-50 text-emerald-700"
+          : "bg-gray-100 text-gray-500",
       )}
     >
       <span
         className={cn(
           "h-1.5 w-1.5 rounded-full",
-          hasError
-            ? "bg-red-400"
-            : job.enabled
-              ? "bg-emerald-400"
-              : "bg-gray-400",
+          job.enabled ? "bg-emerald-400" : "bg-gray-400",
         )}
       />
       {job.enabled ? t("enabled") : t("disabled")}
@@ -104,12 +104,7 @@ function CronJobCard(props: {
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const hasError = Boolean(job.state.lastError);
-  const barColor = hasError
-    ? "bg-red-400"
-    : job.enabled
-      ? "bg-emerald-400"
-      : "bg-gray-300";
+  const barColor = job.enabled ? "bg-emerald-400" : "bg-gray-300";
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Don't expand when clicking switch or menu
@@ -136,8 +131,7 @@ function CronJobCard(props: {
         )}
       />
 
-      <div className="pl-4 pr-3 py-3">
-        {/* Row 1: name + badges + actions */}
+      <div className="pl-4 pr-3 py-3">        {/* Row 1: name + badges + actions */}
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
@@ -218,23 +212,36 @@ function CronJobCard(props: {
             </span>
           )}
           {job.state.lastRunAt && (
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1" data-no-expand>
               <span className="text-gray-300">•</span>
-              <span
-                className={cn(
-                  job.state.lastStatus === "ok"
-                    ? "text-emerald-400"
-                    : job.state.lastStatus === "error"
-                      ? "text-orange-400"
+              {job.state.lastStatus === "error" && job.state.lastError ? (
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center gap-0.5 text-orange-400 cursor-help">
+                        <AlertCircle className="h-3 w-3" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      align="start"
+                      className="max-w-xs text-xs bg-red-50 text-red-700 border-red-200"
+                    >
+                      {job.state.lastError}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <span
+                  className={cn(
+                    job.state.lastStatus === "ok"
+                      ? "text-emerald-400"
                       : "text-gray-400",
-                )}
-              >
-                {job.state.lastStatus === "ok"
-                  ? "✓"
-                  : job.state.lastStatus === "error"
-                    ? "✗"
-                    : ""}
-              </span>
+                  )}
+                >
+                  {job.state.lastStatus === "ok" ? "✓" : ""}
+                </span>
+              )}
               <span>{formatRelativeTime(job.state.lastRunAt)}</span>
             </span>
           )}
