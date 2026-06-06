@@ -147,7 +147,8 @@ describe("ContextProviderContribution native prompt contract", () => {
     );
     expect(context).toContain("- read_file: Read file contents");
     expect(context).toContain("# Project Context");
-    expect(context).toContain("Project bootstrap files loaded:");
+    expect(context).toContain("# Agent Bootstrap Context");
+    expect(context).toContain("Agent bootstrap files loaded:");
     expect(context).toContain("## AGENTS.md\n\nProject rules.");
     expect(context).toContain("<name>demo-skill</name>");
     expect(context).toContain("## Session Orchestration");
@@ -164,7 +165,6 @@ describe("ContextProviderContribution native prompt contract", () => {
       "## nextclaw CLI Quick Reference",
       "## nextclaw Self-Update",
       "## Workspace",
-      "## Workspace Files (injected)",
       "## Reply Tags",
       "## Messaging",
       "## Memory Recall",
@@ -172,6 +172,7 @@ describe("ContextProviderContribution native prompt contract", () => {
       "## Runtime",
       "## nextclaw Self-Management Guide",
       "# Project Context",
+      "# Agent Bootstrap Context",
       "## Skills (mandatory)",
       "# Skill Learning Loop",
       "## Session Orchestration",

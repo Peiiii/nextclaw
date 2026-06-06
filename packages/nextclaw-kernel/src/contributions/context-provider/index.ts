@@ -1,14 +1,8 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
-import {
-  CurrentSessionContextProvider,
-  ExecutionPolicyContextProvider,
-  ProjectContextProvider,
-  SkillsContextProvider,
-  ToolingContextProvider,
-  WorkspaceContextProvider,
-  WorkspaceMemoryContextProvider,
-} from "./providers/native-dynamic-context.provider.js";
+import { AgentBootstrapContextProvider } from "./providers/agent-bootstrap-context.provider.js";
+import { CurrentSessionContextProvider } from "./providers/current-session-context.provider.js";
+import { ExecutionPolicyContextProvider } from "./providers/execution-policy-context.provider.js";
 import {
   createAssistantIdentityContextProvider,
   createChatComposerTokensContextProvider,
@@ -23,9 +17,13 @@ import {
   createSessionOrchestrationContextProvider,
   createSilentRepliesContextProvider,
   createToolCallStyleContextProvider,
-  createWorkspaceFilesContextProvider,
 } from "./providers/native-static-context.provider.js";
+import { ProjectContextProvider } from "./providers/project-context.provider.js";
 import { ReplyFormatContextProvider } from "./providers/reply-format-context.provider.js";
+import { SkillsContextProvider } from "./providers/skills-context.provider.js";
+import { ToolingContextProvider } from "./providers/tooling-context.provider.js";
+import { WorkspaceContextProvider } from "./providers/workspace-context.provider.js";
+import { WorkspaceMemoryContextProvider } from "./providers/workspace-memory-context.provider.js";
 import { ContextProviderRunContextService } from "./services/context-provider-run-context.service.js";
 
 export { ReplyFormatContextProvider } from "./providers/reply-format-context.provider.js";
@@ -50,7 +48,6 @@ export class ContextProviderContribution implements KernelContribution {
       createCliQuickReferenceContextProvider(),
       createSelfUpdateContextProvider(),
       new WorkspaceContextProvider(context),
-      createWorkspaceFilesContextProvider(),
       createReplyTagsContextProvider(),
       createMessagingContextProvider(),
       createMemoryRecallContextProvider(),
@@ -58,6 +55,7 @@ export class ContextProviderContribution implements KernelContribution {
       createRuntimeContextProvider(),
       createSelfManagementContextProvider(),
       new ProjectContextProvider(context),
+      new AgentBootstrapContextProvider(context),
       new WorkspaceMemoryContextProvider(context),
       new SkillsContextProvider(context),
       createSessionOrchestrationContextProvider(),

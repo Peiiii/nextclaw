@@ -48,6 +48,8 @@
   - 结果：通过，ratchet status OK。
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature`
   - 结果：通过，Errors 0，Warnings 0；总代码 `+351 / -685 / net -334`，非测试代码 `+231 / -470 / net -239`。
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --no-fail`
+  - 结果：源码非测试净增豁免记录；总代码 `+570 / -526 / net +44`，非测试代码 `+567 / -524 / net +43`。净增来自每个 provider class 独立文件后的显式 `implements ContextProvider`、显式 `Promise<readonly ContextBlock[]>` 返回合同和必要 import/constructor 样板。已按成本自适应范围检查 `context-provider` contribution、manager/type 边界和同类 truncate/helper；未发现低成本、同责任链、足以抵消 `43` 行且不伤害 contract 清晰度的真实减债点。
 - `rg -n "RuntimeUserPromptBuilder|buildBootstrapAwareUserPrompt|DEFAULT_RUNTIME_USER_PROMPT_BUILDER|buildSessionPromptContext|buildSkillLearningUserPromptSection|DefaultUserContentBuilder|ContextUserContent|ContextUserContentBuilder|buildDefaultUserContent|buildMessages\\(|addToolResult\\(|addAssistantMessage\\(" packages/nextclaw-core packages/nextclaw-kernel`
   - 结果：无命中，旧 prompt/message 组装入口已不再残留于 core/kernel。
 - `rg -n "ContextBuilder|buildSystemPrompt|buildWorkspaceProjectContextSection|buildSkillLearningSystemSection|buildAvailableSkillsSystemSection|buildActiveSkillsSystemSection|buildRequestedSkillsSystemSection|buildMinimalSystemExecutionPrompt|buildMinimalRuntimeExecutionPrompt|buildSessionOrchestrationSection" packages/nextclaw-core/src packages/nextclaw-kernel/src -g '*.ts' -g '*.tsx'`
@@ -85,7 +87,11 @@
 
 native prompt 链路清理的 `post-edit-maintainability-review` 结论：通过。本轮属于非功能清理，总代码 `net -334`，非测试代码 `net -239`；正向减债动作是删除失效旧路径与职责收敛：`RuntimeUserPromptBuilder`、`ContextBuilder.buildMessages(...)`、attachment user-content 旧入口不再干扰 native provider 主链路，新增 reply-format 规则落到独立 kernel context provider。
 
-kernel context provider 目标架构清理的 `post-edit-maintainability-review` 结论：通过。本轮属于非功能目标架构清理，总代码 `+1078 / -1035 / net +43`，非测试代码 `+893 / -898 / net -5`，满足非测试代码净增 `<= 0`。正向减债动作是删除 core `ContextBuilder`、core `BootstrapContextBuilder` prompt renderer、core execution/skill prompt renderer 和旧 `KernelContextProvider -> ContextBuilder` 路径；业务提示词 owner 收敛到 kernel context provider 注册链。维护性剩余关注点：`native-dynamic-context.provider.ts` 当前 `508` 行，接近 `600` 行预算但未超限；后续若继续扩展 dynamic provider，应先拆新的 contribution owner 或继续压缩现有动态读取逻辑。
+kernel context provider 目标架构清理的 `post-edit-maintainability-review` 结论：通过。本轮属于非功能目标架构清理，总代码 `+1078 / -1035 / net +43`，非测试代码 `+893 / -898 / net -5`，满足非测试代码净增 `<= 0`。正向减债动作是删除 core `ContextBuilder`、core `BootstrapContextBuilder` prompt renderer、core execution/skill prompt renderer 和旧 `KernelContextProvider -> ContextBuilder` 路径；业务提示词 owner 收敛到 kernel context provider 注册链。
+
+bootstrap context 语义纠偏的 `post-edit-maintainability-review` 结论：通过。本轮属于非功能 owner 修正，总代码 `+90 / -89 / net +1`，非测试代码 `+87 / -87 / net +0`。正向减债动作是把启动设定文件从 `ProjectContextProvider` 拆到 `AgentBootstrapContextProvider`：`ProjectContextProvider` 只保留 active project、session project root 和 repository identity；`AGENTS.md` / `SOUL.md` / `USER.md` / `IDENTITY.md` / `TOOLS.md` / `BOOT.md` / `BOOTSTRAP.md` 这类项目、workspace、用户、身份、工具、启动或 agent operating instructions 由 `AgentBootstrapContextProvider` 读取和注入。
+
+provider class 文件组织纠偏的 `post-edit-maintainability-review` 结论：源码净增豁免后通过。每个 `ContextProvider` class 已拆成自己的 `providers/*-context.provider.ts` 文件，删除 `native-dynamic-context.provider.ts` 聚合大文件；`native-static-context.provider.ts` 仅保留非 class 的静态 provider factories。恢复显式 `implements ContextProvider` 与显式 provider 返回合同后，本轮源码总代码 `+570 / -526 / net +44`，非测试源码 `+567 / -524 / net +43`；该净增是独立 provider 文件表达 owner 与 contract 的必要结构成本。按成本自适应半径检查了 `context-provider` contribution、manager/type 边界和同类 helper，未发现低成本、同责任链、足以抵消净增且不削弱结构清晰度的减债点；继续压缩会回到删除 contract、揉回聚合文件或降低可读性的错误方向。维护性剩余关注点：`context-provider/providers/` 达到目录文件数硬预算，已在 `providers/README.md` 记录豁免；后续再增加 provider 前必须优先评估新的 contribution owner 或治理合同调整。
 
 ## NPM 包发布记录
 

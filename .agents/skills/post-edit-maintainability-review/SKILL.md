@@ -67,8 +67,10 @@ Answer these in order:
 9. Did the change duplicate existing logic or an existing component surface that should have been reused or factored into a stable shared core?
 10. If React code was touched, are `useEffect` / `useLayoutEffect` still limited to external-system sync, or is business coordination still leaking through effects instead of store / manager / presenter / query-view ownership?
 11. If this is a pure bugfix, pure refactor, or other non-feature change, is `非测试代码增减报告` already `净增：0 行` or negative? If not, has a line-growth exemption been explicitly requested and accepted? Without that exemption, the review must conclude `需继续修改`.
-12. If this is a non-feature change that passes the line gate, which positive resolution action made it pass: deletion, simplification, reuse, responsibility convergence, or a necessary decoupling abstraction? If none is identifiable, the review must conclude `需继续修改`.
-13. What is the observable code-quality or maintainability improvement after the change? If the answer is only “the line count is lower,” the review must conclude `需继续修改`.
+12. Was the debt-search radius cost-adaptive: near owner first, then related chain/domain while cost stays reasonable, stopping only when marginal cost or risk exceeds expected improvement?
+13. If this is a non-feature change that passes the line gate, which positive resolution action made it pass: deletion, simplification, reuse, responsibility convergence, or a necessary decoupling abstraction? If none is identifiable, the review must conclude `需继续修改`.
+14. Did the change remove explicit contract signals such as `implements`, named public contracts, explicit return types, or protocol/type protections only to reduce line count? If yes, the review must conclude `需继续修改`.
+15. What is the observable code-quality or maintainability improvement after the change? If the answer is only “the line count is lower,” the review must conclude `需继续修改`.
 
 ## Output
 

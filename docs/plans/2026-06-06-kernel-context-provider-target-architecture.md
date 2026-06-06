@@ -21,7 +21,7 @@
 - 通过临时旧 worktree 对比迁移前旧 prompt 与迁移后 provider prompt；标准化临时路径、行尾空格和空行后内容一致。
 - 最终文件形态按 contribution 目录治理收敛为：
   - `providers/native-static-context.provider.ts`：无 run context 依赖的静态业务提示词 provider factories。
-  - `providers/native-dynamic-context.provider.ts`：需要 run context / tool catalog / bootstrap / skills / memory 的 provider classes。
+  - `providers/*-context.provider.ts`：每个 `ContextProvider` class 单独一个 provider 文件。
   - `providers/reply-format-context.provider.ts`：本地文件 Markdown 链接回复格式规则。
 
 ## 关键判断
@@ -119,26 +119,45 @@ AgentRunRequestManager
 - active project directory
 - session-bound project root
 - repository identity rule
-- bootstrap files loaded
-- host workspace context
-- workspace files injected 说明
 
 依赖：
 
 - `SessionProjectContextResolver`
 - `DEFAULT_WORKSPACE_REPOSITORY_IDENTITY_RESOLVER`
-- bootstrap file loading budget/config
 
 目标处理：
 
 - 删除 `BootstrapContextBuilder.buildWorkspaceProjectContextSection(...)` 这类 core prompt renderer。
+- `ProjectContextProvider` 只表达项目事实，不读取 `AGENTS.md` / `SOUL.md` / `USER.md` / `IDENTITY.md` / `TOOLS.md` / `BOOT.md` / `BOOTSTRAP.md`。
+- 这些启动设定文件属于 `AgentBootstrapContextProvider`，不是 project context。
+
+### 4. `AgentBootstrapContextProvider`
+
+归属内容：
+
+- `Agent Bootstrap Context`
+- `AGENTS.md` / `SOUL.md` / `USER.md` / `IDENTITY.md` / `TOOLS.md` / `BOOT.md` / `BOOTSTRAP.md`
+- project/session bootstrap root 中的项目或 agent 设定文件
+- NextClaw workspace 中的 workspace / user / identity / boot / tools / agent operating instructions
+- `SOUL.md` persona rule
+
+依赖：
+
+- `SessionProjectContextResolver` 输出的 `projectBootstrapRoot` / `hostWorkspace`
+- `runContext.config.agents.context.bootstrap`
+- bootstrap file loading budget/config
+
+目标处理：
+
+- 启动设定文件不再混入 `# Project Context`。
+- `ProjectContextProvider` 与 `AgentBootstrapContextProvider` 保持相邻注册，避免模型上下文距离变远。
 - 若 core 仍需提供低层能力，只保留不产出 prompt 文本的数据 reader，例如 `BootstrapContextDataReader`：
   - 输入：project root、host workspace、context config、session key
   - 输出：结构化数据 `{ projectContext, repositoryIdentity, projectBootstrapFiles, hostBootstrapFiles }`
   - 不输出 `# Project Context` 等模型提示词文本。
 - 如果低层 reader 只被 kernel 使用，也可以直接把它放到 kernel，彻底减少 core 表面。
 
-### 4. `WorkspaceMemoryContextProvider`
+### 5. `WorkspaceMemoryContextProvider`
 
 归属内容：
 
@@ -156,7 +175,7 @@ AgentRunRequestManager
 - `MemoryStore` 可以暂留 core，因为它是数据存取能力。
 - `# Memory` 的标题、截断提示、是否注入模型，属于 kernel provider。
 
-### 5. `SkillsContextProvider`
+### 6. `SkillsContextProvider`
 
 归属内容：
 
@@ -184,7 +203,7 @@ AgentRunRequestManager
 - `SkillsLoader` 可以继续留 core，前提是只负责扫描和生成 manifest 数据。
 - 如果 `SkillsLoader.buildSkillsManifest(...)` 当前直接输出 XML-ish prompt 片段，接受暂留，但 provider 必须拥有外层说明文案；后续若要进一步纯化 core，可把 manifest 输出改成结构化 skill data。
 
-### 6. `MessagingContextProvider`
+### 7. `MessagingContextProvider`
 
 归属内容：
 
@@ -208,7 +227,7 @@ AgentRunRequestManager
 - 这是最典型的 NextClaw 产品业务提示词，必须在 kernel。
 - `Current Session` 不再由 `KernelContextProvider` 在末尾手工拼接；它也是 provider 的职责。
 
-### 7. `SessionOrchestrationContextProvider`
+### 8. `SessionOrchestrationContextProvider`
 
 归属内容：
 
@@ -225,7 +244,7 @@ AgentRunRequestManager
 - 当前位置在 `kernel/features/native-runtime` 已经比 core 合理。
 - 本轮把它改造成 provider，避免作为 `additionalSystemSections` 参数继续塞给 core builder。
 
-### 8. `ExecutionPolicyContextProvider`
+### 9. `ExecutionPolicyContextProvider`
 
 归属内容：
 
@@ -241,7 +260,7 @@ AgentRunRequestManager
 - 若 `buildMinimalSystemExecutionPrompt` 在 core 只是纯模型执行策略，也仍然属于产品/runtime prompt，不应从 core 输出。
 - 迁到 kernel provider；core 最多保留 model capability 解析数据。
 
-### 9. `SelfManagementContextProvider`
+### 10. `SelfManagementContextProvider`
 
 归属内容：
 
@@ -322,6 +341,7 @@ AgentRunRequestManager
    - `You are a personal assistant running inside NextClaw.`
    - `Tool availability (filtered by policy):`
    - `# Project Context`
+   - `# Agent Bootstrap Context`
    - `# Active Skills`
    - `<available_skills>`
    - `# Skill Learning Loop`
@@ -341,7 +361,14 @@ AgentRunRequestManager
 **Files:**
 
 - Create: `packages/nextclaw-kernel/src/contributions/context-provider/providers/native-static-context.provider.ts`
-- Create: `packages/nextclaw-kernel/src/contributions/context-provider/providers/native-dynamic-context.provider.ts`
+- Create: `packages/nextclaw-kernel/src/contributions/context-provider/providers/agent-bootstrap-context.provider.ts`
+- Create: `packages/nextclaw-kernel/src/contributions/context-provider/providers/current-session-context.provider.ts`
+- Create: `packages/nextclaw-kernel/src/contributions/context-provider/providers/execution-policy-context.provider.ts`
+- Create: `packages/nextclaw-kernel/src/contributions/context-provider/providers/project-context.provider.ts`
+- Create: `packages/nextclaw-kernel/src/contributions/context-provider/providers/skills-context.provider.ts`
+- Create: `packages/nextclaw-kernel/src/contributions/context-provider/providers/tooling-context.provider.ts`
+- Create: `packages/nextclaw-kernel/src/contributions/context-provider/providers/workspace-context.provider.ts`
+- Create: `packages/nextclaw-kernel/src/contributions/context-provider/providers/workspace-memory-context.provider.ts`
 - Keep: `packages/nextclaw-kernel/src/contributions/context-provider/providers/reply-format-context.provider.ts`
 
 **Steps:**
@@ -367,16 +394,14 @@ AgentRunRequestManager
 
 1. 删除 `KernelContextProvider` 注册，或者把它重命名为只负责 shared run context 的非 prompt helper。
 2. 按目标顺序注册 providers：
-   1. `AgentIdentityContextProvider`
-   2. `ToolingContextProvider`
-   3. `ProjectContextProvider`
-   4. `WorkspaceMemoryContextProvider`
-   5. `SkillsContextProvider`
-   6. `SessionOrchestrationContextProvider`
-   7. `ExecutionPolicyContextProvider`
-   8. `MessagingContextProvider`
-   9. `SelfManagementContextProvider`
-   10. `ReplyFormatContextProvider`
+   1. identity / tooling / tool-call-style / composer / safety / CLI / self-update
+   2. `WorkspaceContextProvider`
+   3. reply / messaging / memory recall / silent replies / runtime / self-management
+   4. `ProjectContextProvider`
+   5. `AgentBootstrapContextProvider`
+   6. `WorkspaceMemoryContextProvider`
+   7. `SkillsContextProvider`
+   8. session orchestration / execution policy / current session / reply formatting
 3. 保留 `cleanups` collection。
 4. 不保留 `KernelContextProvider -> ContextBuilder` 过渡路径。
 
@@ -401,7 +426,7 @@ AgentRunRequestManager
 1. 删除 `ContextBuilder` 和测试。
 2. 移除 `ContextBuilder` 导出。
 3. 把 skill prompt renderer 搬到 `SkillsContextProvider`，core 只留下 metadata reader 和 loader。
-4. 把 project prompt renderer 搬到 `ProjectContextProvider`。
+4. 把 project facts renderer 搬到 `ProjectContextProvider`，把 bootstrap files renderer 搬到 `AgentBootstrapContextProvider`。
 5. 若 `bootstrap-context.service.ts` 迁移后只剩 provider 私用逻辑，直接移动到 kernel 并从 core 删除。
 6. 跑引用确认：
    `rg -n "ContextBuilder|buildSystemPrompt|buildWorkspaceProjectContextSection|buildSkillLearningSystemSection|buildAvailableSkillsSystemSection|buildActiveSkillsSystemSection|buildRequestedSkillsSystemSection" packages -g '*.ts' -g '*.tsx'`

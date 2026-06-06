@@ -70,12 +70,6 @@ export const createSelfUpdateContextProvider = (): ContextProvider =>
     `After restart, ${APP_NAME} pings the last active session automatically.`,
   ]);
 
-export const createWorkspaceFilesContextProvider = (): ContextProvider =>
-  staticBlock([
-    "## Workspace Files (injected)",
-    `These user-editable files are loaded by ${APP_NAME} and included below in Project Context.`,
-  ]);
-
 export const createReplyTagsContextProvider = (): ContextProvider =>
   staticBlock([
     "## Reply Tags",
