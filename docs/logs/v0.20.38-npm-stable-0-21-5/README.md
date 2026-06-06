@@ -11,11 +11,11 @@
 - 发布 `nextclaw@0.21.5` 以及直接运行时依赖闭包中的 public workspace packages。
 - 确认 npm registry 上 `nextclaw@latest` 已指向 `0.21.5`，`beta` 保持 `0.21.5-beta.0`。
 
-当前未闭合项：
+后续闭环：
 
-- stable NPM runtime update channel 的 public manifest 仍指向 `0.21.4`。
-- 本地 release metadata、changelog、生成的 `ui-dist` 与 release record 尚未 commit/push；项目硬规则要求没有用户明确授权时不得执行 commit/push。
-- 因此 stable runtime workflow 尚未触发到 `0.21.5`。
+- release metadata、changelog、生成的 `ui-dist` 与 release record 已提交并推送到 `master`。
+- 48 个 stable release tags 已推送到远端。
+- stable NPM runtime update channel 已通过 GitHub Actions 发布到 `0.21.5`。
 
 ## 测试/验证/验收方式
 
@@ -46,10 +46,21 @@
   - `npm install -g nextclaw@latest --prefix <temp>/prefix`
   - `<temp>/prefix/bin/nextclaw --version` 输出 `0.21.5`
   - `NEXTCLAW_HOME=<temp>/home <temp>/prefix/bin/nextclaw update --check --json` 返回 stable `up-to-date`，未依赖自定义 manifest URL 或 public key env。
-- public stable manifests 与 `origin/gh-pages` manifests 检查：
-  - 当前仍为 `latestVersion: 0.21.4`
+- `origin/gh-pages` stable manifests 检查：
+  - 当前为 `latestVersion: 0.21.5`
   - `minimumLauncherVersion: 0.18.11`
   - `hostKind: npm-runtime-bundle`
+- public stable manifests 检查：
+  - 当前为 `latestVersion: 0.21.5`
+  - `minimumLauncherVersion: 0.18.11`
+  - `hostKind: npm-runtime-bundle`
+- 真实旧版升级烟测：
+  - `npm install -g nextclaw@0.21.3 --prefix <temp>/prefix`
+  - 初始 `nextclaw --version` 输出 `0.21.3`
+  - `update --check --json` 返回 `update-available`，`availableVersion: 0.21.5`
+  - `update --download-only --json` 返回 `downloaded`，`downloadedVersion: 0.21.5`
+  - `update --apply --json` 返回 `restart-required`，`currentVersion: 0.21.5`
+  - fresh process `nextclaw --version` 输出 `0.21.5`
 
 ## 发布/部署方式
 
@@ -59,21 +70,19 @@ NPM 已发布到 registry：
 - 主包：`nextclaw@0.21.5`
 - registry 验证：`release:verify:published` 通过，48/48 package versions 可见。
 
-尚未执行：
+已执行：
 
-- 未 commit/push release metadata。
-- 未 push 本地 release tags。
-- 未触发 stable `npm-runtime-update-release.yml` 到 `0.21.5`。
-
-待用户明确授权后继续：
-
-1. commit 当前 release metadata 与本记录。
-2. 重新确认或重建 release tags 指向 release commit。
-3. push commit 与 tags。
-4. 触发 `npm-runtime-update-release.yml`，`channel=stable`，`release_tag=nextclaw@0.21.5` 或项目确认的 stable release tag。
-5. 等待 workflow success。
-6. 验证 GitHub release assets、`origin/gh-pages` manifests、public Pages manifests。
-7. 再做从旧版到 `0.21.5` 的 check / download-only / apply / fresh-process version smoke。
+- commit：`decc2998c chore: release npm stable 0.21.5`
+- push：`master -> origin/master`
+- tags：48 个 stable release tags 已推送。
+- runtime workflow：`npm-runtime-update-release.yml` run `27067428239`
+- workflow URL：`https://github.com/Peiiii/nextclaw/actions/runs/27067428239`
+- runtime release URL：`https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.21.5`
+- release assets：
+  - `nextclaw-runtime-darwin-arm64-0.21.5.zip`
+  - `nextclaw-runtime-darwin-x64-0.21.5.zip`
+  - `nextclaw-runtime-linux-x64-0.21.5.zip`
+  - `nextclaw-runtime-win32-x64-0.21.5.zip`
 
 ## 用户/产品视角的验收步骤
 
@@ -98,8 +107,9 @@ NEXTCLAW_HOME="$(mktemp -d)" nextclaw update --check --json
 
 当前结果：
 
-- 安装态 `hostVersion/currentVersion` 为 `0.21.5`。
-- public stable runtime channel 仍为 `0.21.4`，因此新安装的 `0.21.5` 返回 `up-to-date`。
+- 新安装态 `hostVersion/currentVersion` 为 `0.21.5`。
+- public stable runtime channel 为 `0.21.5`。
+- 旧正式安装 `0.21.3` 可通过 stable update channel 下载并应用 `0.21.5`。
 
 ## 可维护性总结汇总
 
@@ -108,7 +118,7 @@ NEXTCLAW_HOME="$(mktemp -d)" nextclaw update --check --json
 - 代码实现可维护性评估：不适用，未手写业务源码改动。
 - 生成产物：`release:check` 重新生成了 package `dist` 与 `packages/nextclaw/ui-dist`；其中 `ui-dist` 当前在工作区体现为 hash asset 替换。
 - release metadata：Changesets 消费了既有 changesets，生成 package versions 与 changelog。
-- 当前工作区尚未收尾到干净状态，因为 commit/push 需要用户明确授权。
+- 当前 release metadata 已提交并推送；本记录后续更新用于补齐 runtime channel 闭环事实。
 
 ## NPM 包发布记录
 
@@ -168,4 +178,4 @@ NEXTCLAW_HOME="$(mktemp -d)" nextclaw update --check --json
 - npm registry：已发布。
 - `latest` dist-tag：已指向 `nextclaw@0.21.5`。
 - release health：干净。
-- stable runtime channel：未更新，等待 commit/push 与 workflow 闭环。
+- stable runtime channel：已更新到 `0.21.5`，workflow success，public manifests 已验证。
