@@ -185,6 +185,10 @@ export async function replayNcpAgentSessionEvents(
 function createReplayEvent(event: NcpAgentSessionReplayableEvent): NcpEndpointEvent {
   const replayEvent = structuredClone(event);
   const replayMessage = readMessageFromSummaryEvent(replayEvent);
+  const legacyCompactionMessageId = readLegacyContextCompactionMessageId(replayMessage);
+  if (replayMessage && legacyCompactionMessageId) {
+    replayMessage.id = legacyCompactionMessageId;
+  }
   if (
     replayMessage?.role === "assistant" &&
     (replayMessage.status === "pending" || replayMessage.status === "streaming")
@@ -198,6 +202,14 @@ function createReplayEvent(event: NcpAgentSessionReplayableEvent): NcpEndpointEv
     return { type: NcpEventType.MessageSent, payload: replayEvent.payload };
   }
   return replayEvent;
+}
+
+function readLegacyContextCompactionMessageId(message: NcpMessage | undefined): string | null {
+  const checkpoint = isRecord(message?.metadata?.checkpoint) ? message.metadata.checkpoint : null;
+  const checkpointId = typeof checkpoint?.id === "string" ? checkpoint.id : "";
+  const coveredCount = checkpoint?.coveredSessionMessageCount;
+  const legacyId = `${message?.sessionId}:service:context-compaction:${checkpointId}`;
+  return typeof coveredCount === "number" && message?.id === legacyId ? `${legacyId}:${coveredCount}` : null;
 }
 
 function createReplayStreamingBootstrapEvent(

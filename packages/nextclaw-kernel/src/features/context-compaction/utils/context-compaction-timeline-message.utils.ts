@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { Session, SessionEvent, SessionMessage } from "@nextclaw/core";
 import type { NcpMessage } from "@nextclaw/ncp";
 
@@ -16,6 +17,16 @@ export type ContextCompactionTimelineCheckpoint = {
   createdAt: string;
   updatedAt: string;
 };
+
+function readCheckpointTimelineText(checkpoint: ContextCompactionTimelineCheckpoint): string {
+  return checkpoint.status === "compressing"
+    ? "正在压缩较早上下文"
+    : "较早上下文已自动压缩";
+}
+
+export function createContextCompactionMessageId(): string {
+  return `context-compaction-message-${randomUUID()}`;
+}
 
 type ContextCompactionTimelineMetadata = {
   [NEXTCLAW_TIMELINE_KIND_METADATA_KEY]: typeof CONTEXT_COMPACTION_TIMELINE_KIND;
@@ -45,20 +56,15 @@ function readTimelineMetadata(message: SessionMessage | null | undefined): Conte
 }
 
 function buildTimelineMessage(checkpoint: ContextCompactionTimelineCheckpoint): SessionMessage {
+  const text = readCheckpointTimelineText(checkpoint);
   return {
     role: "service",
-    content:
-      checkpoint.status === "compressing"
-        ? "正在压缩较早上下文"
-        : "较早上下文已自动压缩",
+    content: text,
     timestamp: checkpoint.updatedAt,
     ncp_parts: [
       {
         type: "text",
-        text:
-          checkpoint.status === "compressing"
-            ? "正在压缩较早上下文"
-            : "较早上下文已自动压缩",
+        text,
       },
     ],
     ncp_metadata: {
@@ -69,16 +75,14 @@ function buildTimelineMessage(checkpoint: ContextCompactionTimelineCheckpoint): 
 }
 
 export function buildContextCompactionTimelineNcpMessage(params: {
+  messageId: string;
   sessionId: string;
   checkpoint: ContextCompactionTimelineCheckpoint;
 }): NcpMessage {
-  const { checkpoint, sessionId } = params;
-  const text =
-    checkpoint.status === "compressing"
-      ? "正在压缩较早上下文"
-      : "较早上下文已自动压缩";
+  const { checkpoint, messageId, sessionId } = params;
+  const text = readCheckpointTimelineText(checkpoint);
   return {
-    id: `${sessionId}:service:context-compaction:${checkpoint.id}`,
+    id: messageId,
     sessionId,
     role: "service",
     status: "final",

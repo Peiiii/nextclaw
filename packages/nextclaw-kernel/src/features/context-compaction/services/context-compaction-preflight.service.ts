@@ -20,9 +20,10 @@ import {
   normalizeString,
   toLegacyMessages,
 } from "@kernel/utils/ncp-message-bridge.utils.js";
-import { projectNcpMessagesWithContextCompaction } from "@kernel/features/context-compaction/utils/context-compaction-projection.utils.js";
+import { projectNcpMessagesWithContextCompaction, readLatestContextCompactionCheckpoint } from "@kernel/features/context-compaction/utils/context-compaction-projection.utils.js";
 import {
   buildContextCompactionTimelineNcpMessage,
+  createContextCompactionMessageId,
   isContextCompactionTimelineMessage,
 } from "@kernel/features/context-compaction/utils/context-compaction-timeline-message.utils.js";
 
@@ -40,6 +41,7 @@ export type ContextCompactionPreflightBeginResult = ContextCompactionPreflightRe
 type ContextCompactionPendingWork = {
   checkpoint: ReturnType<typeof buildCompressingCompactionCheckpoint>;
   contextTokens: number;
+  serviceMessageId: string;
   model: string;
   plan: ContextCompactionPlan;
   reservedContextTokens: number;
@@ -127,39 +129,6 @@ function buildContextWindowSnapshotFromBudget(params: {
   });
 }
 
-function buildContextWindowSnapshotForMessages(
-  contextWindowBudgetService: ContextWindowBudgetService,
-  params: {
-    checkpoint: ReturnType<typeof readCompressedContextCompactionCheckpoint>;
-    contextTokens: number;
-    reservedContextTokens: number;
-    sessionId: string;
-    sessionMessages: readonly NcpMessage[];
-  },
-): ContextWindowSnapshot {
-  const { checkpoint, contextTokens, reservedContextTokens, sessionId, sessionMessages } = params;
-  const modelCandidateMessages = sessionMessages.filter(
-    (message) => !isContextCompactionTimelineMessage(message),
-  );
-  const projectedMessages = checkpoint
-    ? projectNcpMessagesWithContextCompaction({
-        sessionId,
-        sessionMessages,
-      })
-    : modelCandidateMessages;
-  const messages = toLegacyMessages(projectedMessages) as Record<string, unknown>[];
-  const budget = contextWindowBudgetService.evaluate({
-    messages,
-    contextTokens,
-    reservedContextTokens,
-  });
-  return buildContextWindowSnapshotFromBudget({
-    budget,
-    checkpoint,
-    totalContextTokens: contextTokens,
-  });
-}
-
 export class ContextCompactionPreflightService {
   private readonly compactionService = new ContextCompactionService();
   private readonly contextWindowBudgetService = new ContextWindowBudgetService();
@@ -192,13 +161,22 @@ export class ContextCompactionPreflightService {
     });
     const existingCheckpoint = readCompressedContextCompactionCheckpoint(
       storedMetadata[CONTEXT_COMPACTION_METADATA_KEY],
-    );
-    return buildContextWindowSnapshotForMessages(this.contextWindowBudgetService, {
-      checkpoint: existingCheckpoint,
+    ) ?? readLatestContextCompactionCheckpoint(sessionMessages);
+    const projectedMessages = existingCheckpoint
+      ? projectNcpMessagesWithContextCompaction({
+          sessionId,
+          sessionMessages,
+        })
+      : sessionMessages.filter((message) => !isContextCompactionTimelineMessage(message));
+    const budget = this.contextWindowBudgetService.evaluate({
+      messages: toLegacyMessages(projectedMessages) as Record<string, unknown>[],
       contextTokens: profile.contextTokens,
       reservedContextTokens: profile.reservedContextTokens,
-      sessionId,
-      sessionMessages,
+    });
+    return buildContextWindowSnapshotFromBudget({
+      budget,
+      checkpoint: existingCheckpoint,
+      totalContextTokens: profile.contextTokens,
     });
   };
 
@@ -228,38 +206,39 @@ export class ContextCompactionPreflightService {
       inputMessages,
       sessionMessages,
     });
-    const modelCandidateMessages = ncpMessages.filter(
-      (message) => !isContextCompactionTimelineMessage(message),
-    );
     const existingCheckpoint = readCompressedContextCompactionCheckpoint(
       storedMetadata[CONTEXT_COMPACTION_METADATA_KEY],
-    );
+    ) ?? readLatestContextCompactionCheckpoint(ncpMessages);
     const projectedMessages = existingCheckpoint
       ? projectNcpMessagesWithContextCompaction({
           sessionId,
           sessionMessages: ncpMessages,
         })
-      : modelCandidateMessages;
+      : ncpMessages.filter((message) => !isContextCompactionTimelineMessage(message));
     const messages = toLegacyMessages(projectedMessages) as Record<string, unknown>[];
     const budget = this.contextWindowBudgetService.evaluate({
       messages,
       contextTokens,
       reservedContextTokens,
     });
-    const plan = existingCheckpoint || !budget.shouldCompact
+    const plan = !budget.shouldCompact
       ? null
       : this.compactionService.prepareForModelInput({
           messages: budget.messages,
           contextTokens,
           compactionThresholdTokens: budget.triggerTokens,
         });
+    const coveredSessionMessageCount = plan
+      ? (existingCheckpoint?.coveredSessionMessageCount ?? 0) + plan.coveredMessages.length - (existingCheckpoint ? 1 : 0)
+      : 0;
+    const serviceMessageId = createContextCompactionMessageId();
     const checkpoint = plan
       ? {
           ...buildCompressingCompactionCheckpoint(
             storedMetadata[CONTEXT_COMPACTION_METADATA_KEY],
           ),
-          coveredMessageCount: plan.coveredMessages.length,
-          coveredSessionMessageCount: plan.coveredMessages.length,
+          coveredMessageCount: coveredSessionMessageCount,
+          coveredSessionMessageCount,
           originalEstimatedTokens: plan.originalEstimatedTokens,
           projectedEstimatedTokens: budget.estimatedTokens,
         }
@@ -278,6 +257,7 @@ export class ContextCompactionPreflightService {
       sessionMessages: ncpMessages,
       timelineMessage: plan && checkpoint
         ? buildContextCompactionTimelineNcpMessage({
+            messageId: serviceMessageId,
             sessionId,
             checkpoint,
           })
@@ -286,6 +266,7 @@ export class ContextCompactionPreflightService {
         ? {
             checkpoint,
             contextTokens,
+            serviceMessageId,
             model: profile.model,
             plan,
             reservedContextTokens,
@@ -316,6 +297,8 @@ export class ContextCompactionPreflightService {
       ...generatedCheckpoint,
       id: pending.checkpoint.id,
       createdAt: pending.checkpoint.createdAt,
+      coveredMessageCount: pending.checkpoint.coveredMessageCount,
+      coveredSessionMessageCount: pending.checkpoint.coveredSessionMessageCount,
       status: "compressed" as const,
     };
     const budget = this.contextWindowBudgetService.evaluate({
@@ -335,6 +318,7 @@ export class ContextCompactionPreflightService {
       },
       sessionMessages: pending.sessionMessages,
       timelineMessage: buildContextCompactionTimelineNcpMessage({
+        messageId: pending.serviceMessageId,
         sessionId: pending.sessionId,
         checkpoint,
       }),

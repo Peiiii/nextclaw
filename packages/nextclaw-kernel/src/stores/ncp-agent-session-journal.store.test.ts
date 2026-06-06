@@ -116,6 +116,54 @@ describe("NcpAgentSessionJournalStore", () => {
     expect(summaries[0]?.metadata).toBeUndefined();
   });
 
+  it("keeps journal timestamps for orphaned streaming messages during replay", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
+    const journalPath = join(tempDir, `${sessionId}.jsonl`);
+    await writeFile(
+      journalPath,
+      [
+        {
+          _type: "event",
+          version: 1,
+          seq: 1,
+          timestamp: "2026-05-14T00:00:01.000Z",
+          event: {
+            type: NcpEventType.MessageReasoningDelta,
+            payload: {
+              sessionId,
+              messageId: "assistant-orphan",
+              delta: "thinking",
+            },
+          },
+        },
+        {
+          _type: "event",
+          version: 1,
+          seq: 2,
+          timestamp: "2026-05-14T00:00:02.000Z",
+          event: {
+            type: NcpEventType.MessageAbort,
+            payload: {
+              sessionId,
+              messageId: "assistant-orphan",
+            },
+          },
+        },
+      ].map((entry) => JSON.stringify(entry)).join("\n") + "\n",
+      "utf-8",
+    );
+
+    const reloaded = new NcpAgentSessionJournalStore(tempDir);
+    const messages = await reloaded.listSessionMessages(sessionId);
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).toMatchObject({
+      id: "assistant-orphan",
+      status: "final",
+      timestamp: "2026-05-14T00:00:01.000Z",
+    });
+  });
+
   it("materializes legacy records so historical history survives reload", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
     const store = new NcpAgentSessionJournalStore(tempDir);
@@ -220,6 +268,59 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
       status: "final",
       parts: [{ type: "text", text: "already done" }],
     });
+  });
+
+  it("expands legacy context compaction marker ids during replay", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
+    const journalPath = join(tempDir, `${sessionId}.jsonl`);
+    const legacyMessageId = `${sessionId}:service:context-compaction:ctx-1`;
+    await writeFile(
+      journalPath,
+      [10, 20].map((coveredCount, index) => JSON.stringify({
+        _type: "event",
+        version: 1,
+        seq: index + 1,
+        timestamp: `2026-05-14T00:00:0${index + 1}.000Z`,
+        event: {
+          type: NcpEventType.MessageSent,
+          payload: {
+            sessionId,
+            message: {
+              id: legacyMessageId,
+              sessionId,
+              role: "service",
+              status: "final",
+              timestamp: `2026-05-14T00:00:0${index + 1}.000Z`,
+              parts: [{ type: "text", text: "较早上下文已自动压缩" }],
+              metadata: {
+                nextclaw_timeline_kind: "context_compaction",
+                checkpoint: {
+                  version: 1,
+                  id: "ctx-1",
+                  status: "compressed",
+                  summary: `summary ${coveredCount}`,
+                  coveredMessageCount: coveredCount,
+                  coveredSessionMessageCount: coveredCount,
+                  originalEstimatedTokens: 100,
+                  projectedEstimatedTokens: 10,
+                  createdAt: "2026-05-14T00:00:00.000Z",
+                  updatedAt: `2026-05-14T00:00:0${index + 1}.000Z`,
+                },
+              },
+            },
+          },
+        },
+      })).join("\n") + "\n",
+      "utf-8",
+    );
+
+    const reloaded = new NcpAgentSessionJournalStore(tempDir);
+    const messages = await reloaded.listSessionMessages(sessionId);
+
+    expect(messages.map((message) => message.id)).toEqual([
+      `${legacyMessageId}:10`,
+      `${legacyMessageId}:20`,
+    ]);
   });
 
   it("skips corrupted journal lines without losing later valid events", async () => {
