@@ -10,7 +10,7 @@ description: 在本仓库将本地 skill 发布或更新到 NextClaw marketplace
 这个 skill 用于把本地 skill 稳定地发布到本项目的 marketplace，并完成最小闭环验证。默认优先走本仓库已有 CLI：
 
 ```bash
-node packages/nextclaw/dist/cli/index.js skills publish <skill-dir> --meta <skill-dir>/marketplace.json --api-base <marketplace-api>
+node packages/nextclaw/dist/cli/app/index.js skills publish <skill-dir> --meta <skill-dir>/marketplace.json --api-base <marketplace-api>
 ```
 
 不要绕过 CLI 直接手写 admin API payload，除非 CLI 本身有缺陷需要修。
@@ -59,13 +59,13 @@ python3 .agents/skills/marketplace-skill-publisher/scripts/validate_marketplace_
 3. 若 marketplace 中还没有该 skill，执行发布：
 
 ```bash
-node packages/nextclaw/dist/cli/index.js skills publish skills/<slug> --meta skills/<slug>/marketplace.json --api-base https://marketplace-api.nextclaw.io
+node packages/nextclaw/dist/cli/app/index.js skills publish skills/<slug> --meta skills/<slug>/marketplace.json --api-base https://marketplace-api.nextclaw.io
 ```
 
 4. 若 skill 已存在，执行更新：
 
 ```bash
-node packages/nextclaw/dist/cli/index.js skills update skills/<slug> --meta skills/<slug>/marketplace.json --api-base https://marketplace-api.nextclaw.io
+node packages/nextclaw/dist/cli/app/index.js skills update skills/<slug> --meta skills/<slug>/marketplace.json --api-base https://marketplace-api.nextclaw.io
 ```
 
 5. 发布后做远端校验：
@@ -84,10 +84,12 @@ curl -sS https://marketplace-api.nextclaw.io/api/v1/skills/items/<slug>
 
 ```bash
 tmp_dir=$(mktemp -d /tmp/nextclaw-marketplace-skill.XXXXXX)
-node packages/nextclaw/dist/cli/index.js skills install <slug> --api-base https://marketplace-api.nextclaw.io --workdir "$tmp_dir"
+node packages/nextclaw/dist/cli/app/index.js skills install <slug> --api-base https://marketplace-api.nextclaw.io --workdir "$tmp_dir"
 find "$tmp_dir/skills/<slug>" -maxdepth 2 -type f | sort
 rm -rf "$tmp_dir"
 ```
+
+如果 `packages/nextclaw/dist/cli/app/index.js` 不存在，先构建 `packages/nextclaw`，不要退回旧的 `dist/cli/index.js` 路径。
 
 ## 默认判断
 

@@ -40,6 +40,12 @@
 - `node packages/browser-connector/dist/app/main.js tabs selected --json`
 - `node packages/browser-connector/dist/app/main.js tabs open "https://example.com/" --reason "verify default background opening does not interrupt the active Chrome tab" --json`
 - `python3 .agents/skills/marketplace-skill-publisher/scripts/validate_marketplace_skill.py --skill-dir skills/browser-control`
+- `NPM_CONFIG_USERCONFIG=/Users/peiwang/Projects/nextbot/.npmrc pnpm publish --access public --tag latest --publish-branch codex/release-browser-connector-20260607181529`
+- `NPM_CONFIG_USERCONFIG=/Users/peiwang/Projects/nextbot/.npmrc npm view @nextclaw/browser-connector version dist-tags bin files --json`
+- 非仓库目录 `npm install --prefix <tmp> @nextclaw/browser-connector@latest`，再执行 `<tmp>/node_modules/.bin/browser-connector --version`
+- `node packages/nextclaw/dist/cli/app/index.js skills publish skills/browser-control --meta skills/browser-control/marketplace.json --api-base https://marketplace-api.nextclaw.io`
+- `curl -sS https://marketplace-api.nextclaw.io/api/v1/skills/items/browser-control`
+- 非仓库目录 `node packages/nextclaw/dist/cli/app/index.js skills install browser-control --api-base https://marketplace-api.nextclaw.io --workdir <tmp>`
 - dist CLI smoke：临时 home + 临时 Native Host manifest 目录，验证 `setup chrome`、`install chrome`、`doctor` host warning、fake IPC 下 `status`、`tabs list`、`tabs claim`、`page snapshot`、`page click`、`tabs finalize`
 - Native Host 协议级单测：模拟 Chrome Extension Native Messaging ready/response，验证 IPC request 经 Native Host 转发并返回
 - Native Host wrapper smoke：使用 Chrome 近似的瘦 `PATH=/usr/bin:/bin:/usr/sbin:/sbin` 启动 manifest 指向的 wrapper，模拟 `extension.ready` native frame，确认 host 不因找不到 Node 秒退
@@ -59,14 +65,15 @@
 
 ## 发布/部署方式
 
-本次未执行 NPM 发布、marketplace 远端发布、desktop 发布或 runtime update。
+本次已执行 NPM 首发与 marketplace skill 发布；未执行 desktop 发布或 runtime update。
 
-发布前需要：
+发布结果：
 
-- 发布 `@nextclaw/browser-connector` NPM 包；
-- 发布或更新 `browser-control` marketplace skill；
-- 发布后做非仓库目录安装冒烟；
-- 如进入桌面分发，再接入桌面安装/更新/卸载时的 Native Host manifest 注册闭环。
+- NPM：`@nextclaw/browser-connector@0.1.0` 已发布到 `latest`。
+- Marketplace：`@nextclaw/browser-control` 已发布，alias 为 `browser-control`。
+- NPM 安装冒烟：非仓库目录安装 `@nextclaw/browser-connector@latest` 后，`browser-connector --version` 输出 `0.1.0`，`setup chrome --json` 返回 ready。
+- Marketplace 安装冒烟：非仓库目录安装 `browser-control` 成功，包含 `SKILL.md`、`marketplace.json` 与 `.nextclaw-install.json`。
+- 如进入桌面分发，仍需再接入桌面安装/更新/卸载时的 Native Host manifest 注册闭环。
 
 ## 用户/产品视角的验收步骤
 
@@ -113,6 +120,15 @@
 
 涉及 NPM 包，首发状态：
 
-- `@nextclaw/browser-connector`：新增包，首发版本为 `0.1.0`，发布目标为 NPM `latest`。
+- `@nextclaw/browser-connector`：新增包，首发版本 `0.1.0` 已发布到 NPM `latest`。
+- registry 验证：`npm view @nextclaw/browser-connector version dist-tags --json` 返回 `0.1.0` 与 `latest: 0.1.0`。
+- 安装验证：非仓库目录安装 published package 后，CLI 输出 `0.1.0`，setup readiness checks 通过。
 
 不涉及已发布版本更新、GitHub release 或 runtime update channel。
+
+## 本次发布流程教训沉淀
+
+- 隔离 worktree 发布必须贯穿使用主仓库 `.npmrc`：`publish`、`npm view`、`npm install` 都要使用同一个 `NPM_CONFIG_USERCONFIG`，否则会出现用户级 npm 配置未登录导致的 401/404 误判。
+- `pnpm publish --publish-branch` 不能在 detached HEAD 直接跑；隔离发布要创建明确 release branch。
+- scoped package 首发成功后，`npm view` 或 `npm install` 可能短暂 404，应使用同一 npm config 做有限重试，不要立刻重复 publish。
+- marketplace 发布 CLI 当前真实入口是 `packages/nextclaw/dist/cli/app/index.js`，不是旧的 `dist/cli/index.js`。

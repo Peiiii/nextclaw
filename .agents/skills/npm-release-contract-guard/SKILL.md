@@ -23,7 +23,7 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 
 ## Primary Contracts
 - Prefer the repo release flow; do not publish from package folders with raw `npm publish`.
-- Before any publish attempt, verify npm auth with the same npm config source that the publish command will use. If publishing from a temp worktree or copied checkout, first check whether the project root has a private `.npmrc`; when it does, run publish with `NPM_CONFIG_USERCONFIG=<project-root>/.npmrc` instead of assuming the user-level npm login is the source of truth.
+- Before any publish attempt, verify npm auth with the same npm config source that the publish command will use. If publishing from a temp worktree or copied checkout, first check whether the project root has a private `.npmrc`; when it does, run publish and post-publish registry/install verification with `NPM_CONFIG_USERCONFIG=<project-root>/.npmrc` instead of assuming the user-level npm login is the source of truth.
 - A published `nextclaw` package must include `resources/update-bundle-public.pem`.
 - The published package must include both launcher and app runtime entries:
   - `dist/cli/launcher/index.js`
@@ -70,6 +70,7 @@ Never justify a single-package `nextclaw` release only because `packages/nextcla
 6. Verify the registry state:
    - `pnpm release:verify:published`
    - `npm view nextclaw dist-tags --json`
+   - For a first publish of a scoped standalone package, an immediate `npm view` or `npm install` may briefly return 404 after a successful publish. Retry with the same npm config used for publish before declaring failure; do not rerun publish unless registry verification proves the version is absent after propagation.
 
 ## Branch And Source Closure
 - If publishing from a temporary worktree, release branch, detached HEAD, or any branch other than the user's current target branch, do not close after registry verification alone.
