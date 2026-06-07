@@ -458,7 +458,6 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = {
       defaultApiBase: "https://api.xiaomimimo.com/v1",
       defaultModels: ["mimo/mimo-v2.5-pro", "mimo/mimo-v2.5"],
       modelConfig: {
-        "mimo/mimo-v2.5-pro": { vision: true },
         "mimo/mimo-v2.5": { vision: true },
       },
       stripModelPrefix: false,

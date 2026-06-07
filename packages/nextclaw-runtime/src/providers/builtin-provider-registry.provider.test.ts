@@ -20,7 +20,6 @@ describe('@nextclaw/runtime module boundary', () => {
     assert.equal(mimo?.defaultApiBase, 'https://api.xiaomimimo.com/v1');
     assert.deepEqual(mimo?.defaultModels, ['mimo/mimo-v2.5-pro', 'mimo/mimo-v2.5']);
     assert.deepEqual(mimo?.modelConfig, {
-      'mimo/mimo-v2.5-pro': { vision: true },
       'mimo/mimo-v2.5': { vision: true }
     });
   });
