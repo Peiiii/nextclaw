@@ -8,6 +8,17 @@
 
 因此，本设计不是试验性路线，而是完整产品闭环：安装、连接、授权、读取、截图、交互、确认、审计、CLI JSON 合同、marketplace skill、验证和发布检查必须一次性设计清楚，落地时可以按提交拆分，但交付口径只有一个：`browser-connector` CLI 能力完整可用。NextClaw 基线只需要像 `aigen` 一样在 monorepo 内维护这个独立 CLI 包，并提供对应 marketplace skill；不要求先改 NextClaw runtime、kernel、UI 或 agent tool 注入链路。
 
+## 配套文档关系
+
+本设计负责定义浏览器控制能力的产品目标、路线取舍和总体架构。后续落地必须同时参考两份配套文档，避免只看到架构设计却遗漏对标审计或真实评估：
+
+- [Browser Connector Codex 对标审计与闭环落地计划](../plans/2026-06-07-browser-connector-codex-parity-review-plan.md)：负责把 Codex Chrome 插件公开 API 能力拆成可执行审计矩阵，定义 P0/P1/P2/P3 缺口、修复任务包和退出条件。
+- [Browser Connector 真实场景评估集](2026-06-07-browser-connector-real-world-evaluation.md)：负责真实 Chrome 中的文本用例、评分标准、执行记录和低分项回流。
+
+执行要求：实现和验证不能只看其中一份文档。总设计回答“该做什么和为什么”，对标计划回答“按什么顺序补齐能力”，评估集回答“真实体验是否达标”。
+
+文档同步要求：后续任何实现如果改变 CLI 合同、extension/native host 职责、安全边界、恢复流程或 AI 使用方式，必须同步更新本设计、对标计划、真实评估集和 `browser-control` marketplace skill 中受影响的部分；不能只改代码或只改其中一份文档。
+
 ## 已验证事实
 
 本次外部参照来自 Codex 当前可用的 Chrome 能力。实际成功链路是：
@@ -157,7 +168,7 @@ packages/browser-connector/
   src/controllers/
   src/client/
   src/core/
-  src/extension/
+  resources/extension/
   src/native-host/
   src/repositories/
   src/types/
@@ -177,7 +188,7 @@ packages/browser-connector/
 
 ### Chrome Extension
 
-建议位置：`packages/browser-connector/src/extension/`。
+建议位置：`packages/browser-connector/resources/extension/`。
 
 职责：
 
@@ -228,6 +239,8 @@ manifest 注册：
 - Windows：注册表 `NativeMessagingHosts`
 - Linux：`~/.config/google-chrome/NativeMessagingHosts/<host>.json`
 
+manifest 的 `path` 不直接指向带 `#!/usr/bin/env node` shebang 的 JS launcher。Chrome 拉起 Native Host 时通常没有用户 shell / nvm PATH，因此 `browser-connector setup chrome` 必须生成一个本地 wrapper，并在 wrapper 中写入安装时的 `process.execPath` 绝对 Node 路径，再由 manifest 指向该 wrapper。
+
 桌面打包需要同时处理安装、升级和卸载时的 native host manifest。CLI 安装命令也必须能在非桌面环境注册或校验 manifest。
 
 ### Browser Connector CLI
@@ -247,13 +260,25 @@ manifest 注册：
 
 ```text
 browser-connector install chrome
+browser-connector setup chrome
+browser-connector setup chrome --open
 browser-connector uninstall chrome
 browser-connector doctor --json
 browser-connector status --json
 browser-connector tabs list --json
+browser-connector tabs selected --json
+browser-connector tabs get <tabRef> --json
+browser-connector tabs open <url> --reason <reason> --json
+browser-connector tabs open <url> --reason <reason> --background --json
+browser-connector tabs open <url> --reason <reason> --foreground --json
 browser-connector tabs claim <tabRef> --reason <reason> --json
 browser-connector page snapshot --lease <leaseId> --json
 browser-connector page screenshot --lease <leaseId> --json
+browser-connector page screenshot --lease <leaseId> --output <file> --json
+browser-connector page goto --lease <leaseId> --url <url> --reason <reason> --json
+browser-connector page reload --lease <leaseId> --reason <reason> --json
+browser-connector page back --lease <leaseId> --reason <reason> --json
+browser-connector page forward --lease <leaseId> --reason <reason> --json
 browser-connector page click --lease <leaseId> --selector <selector> --reason <reason> --json
 browser-connector page type --lease <leaseId> --selector <selector> --text <text> --reason <reason> --json
 browser-connector page press --lease <leaseId> --keys <keys> --reason <reason> --json
@@ -325,6 +350,7 @@ UI 只做状态和授权入口，不承载浏览器自动化业务逻辑。
 - `tabRef`、`leaseId`、`browserInstanceId` 都是不透明字符串，只能来自工具返回。
 - CLI 调用方和 Agent 不得猜 tab id、Chrome window id 或 extension 内部 id。
 - 所有 URL 输出默认经过 query/hash 脱敏。
+- setup / doctor / status 必须暴露 protocol version、extension capabilities 和缺失 capability，用于发现 CLI 与 unpacked extension 不匹配。
 - 所有写操作都有 `reason`；NextClaw 包装时可以由上层 run context 生成 reason。
 - 所有命令都有超时。
 - 所有 JSON 结果有 bounded size。
@@ -363,6 +389,42 @@ UI 只做状态和授权入口，不承载浏览器自动化业务逻辑。
 ```
 
 风险等级：read。
+
+### `browser-connector tabs selected --json`
+
+返回当前 Chrome window 选中的 tab。用于减少 AI 猜测 active tab。
+
+输出：
+
+```json
+{
+  "tab": {
+    "tabRef": "opaque-tab-ref",
+    "title": "Current page",
+    "url": "https://example.com/",
+    "active": true,
+    "status": "complete"
+  }
+}
+```
+
+风险等级：read。
+
+### `browser-connector tabs get <tabRef> --json`
+
+刷新指定 tab 的 title、URL、active、status 和 pendingUrl 等元信息。`tabRef` 必须来自 `tabs list`、`tabs selected` 或 `tabs open`。
+
+风险等级：read。
+
+### `browser-connector tabs claim <tabRef> --json`
+
+### `browser-connector tabs open <url> --reason <reason> --json`
+
+打开新的 `http:` / `https:` 页面。默认后台打开，不选中新 tab，用于 AI 临时读取、评估或研究材料时避免打断用户当前正在使用的 Chrome tab。只有当用户明确要求“帮我打开并切过去看”，或后续动作确实依赖新 tab 成为当前 active tab 时，才传 `--foreground`。`--background` 作为显式后台打开信号保留，但不是默认 AI 工作流的必需参数。
+
+输出返回新 tab 的 `tabRef/title/url/active/status/pendingUrl`。`tabs open` 必须等待 tab 出现可观察 URL/title/status 后再返回，不能返回空 title/url 让 AI 误判。
+
+风险等级：write，原因是会改变用户浏览器 tab 状态；但不涉及外部数据提交。
 
 ### `browser-connector tabs claim <tabRef> --json`
 
@@ -451,12 +513,20 @@ UI 只做状态和授权入口，不承载浏览器自动化业务逻辑。
 ```json
 {
   "imageRef": "session-artifact-ref",
-  "width": 1200,
-  "height": 800
+  "mimeType": "image/png",
+  "outputPath": "/tmp/browser-connector-page.png"
 }
 ```
 
 风险等级：read。
+
+默认可直接返回 data URL；当传入 `--output <file>` 时，CLI 会写入 PNG 文件，默认不在 JSON 中保留大 data URL，除非显式传入 `--include-data-url`。
+
+### `browser-connector page goto/reload/back/forward --lease <leaseId> --json`
+
+在已 claim tab 上执行导航。`goto` 只允许 `http:` / `https:` URL。
+
+风险等级：write。必须记录 `reason`，并在操作后通过 snapshot、screenshot、URL、title 或 wait 做状态核验。
 
 ### `browser-connector page click --lease <leaseId> --json`
 
@@ -690,6 +760,7 @@ Browser Connector 和 tools 禁止：
 6. CLI 或 NextClaw client 通过 local IPC 发送 `status` / `tabs list` / `claim` 等请求。
 7. Native Host 将请求转发给 Extension，Extension 调用 Chrome API 执行。
 8. `browser-connector doctor --json` 和 `browser-connector status --json` 可展示连接、最近调用和断开状态。
+9. Extension ready 消息会广播 `protocolVersion` 与 `capabilities`；Native Host 会在 `status/setup/doctor` 中报告缺失 capability，指导用户 reload stale unpacked extension。
 
 连接状态：
 
@@ -778,10 +849,10 @@ packages/browser-connector/
   src/core/browser-lease.manager.ts
   src/core/browser-protocol.router.ts
   src/core/browser-security-policy.ts
-  src/extension/manifest.json
-  src/extension/background.ts
-  src/extension/content-script.ts
-  src/extension/popup.tsx
+  resources/extension/manifest.json
+  resources/extension/background.controller.js
+  resources/extension/popup.html
+  resources/extension/popup.controller.js
   src/native-host/native-host-app.ts
   src/native-host/native-messaging-protocol.ts
   src/native-host/native-host-registration.service.ts
@@ -929,10 +1000,10 @@ packages/nextclaw-ui/src/features/chat/
 必须在真实 Chrome 中验证：
 
 ```text
-1. 安装或加载 Browser Connector Chrome Extension。
-2. 注册 Native Messaging Host。
-3. 打开 Chrome Extension，让 Chrome 自动拉起 Native Host。
-4. 运行 browser-connector doctor --json。
+1. 本地源码测试运行 `pnpm browser-connector:setup:open`；发布包测试运行 `browser-connector setup chrome --open --json`。
+2. 若 ready=false，按返回的 nextSteps 安装或重载 Browser Connector Chrome Extension；`--open` 应已打开 Chrome extensions 页面和 extension 目录。
+3. 重新运行 browser-connector setup chrome --json，直到 ready=true。
+4. 必要时运行 browser-connector doctor --json 排障。
 5. 打开多个标签页。
 6. 运行 browser-connector tabs list --json。
 7. 运行 browser-connector tabs claim <tabRef> --json。
@@ -976,6 +1047,7 @@ packages/nextclaw-ui/src/features/chat/
 
 - 设置页显示具体失败原因；
 - 提供重新注册动作；
+- 如果 Chrome 报 `Native host has exited`，优先重新执行 `browser-connector setup chrome --json` 生成绝对 Node wrapper，然后 reload unpacked extension；
 - 开发态允许 loopback connector 诊断；
 - 桌面 smoke 必须检查 manifest 文件和 Chrome 连接状态。
 

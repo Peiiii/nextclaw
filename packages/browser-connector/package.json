@@ -1,0 +1,39 @@
+{
+  "name": "@nextclaw/browser-connector",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Local browser control connector CLI.",
+  "type": "module",
+  "bin": {
+    "browser-connector": "./dist/app/main.js"
+  },
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "CHANGELOG.md",
+    "dist"
+  ],
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "scripts": {
+    "build": "tsdown src/index.ts src/app/main.ts src/app/native-host-launcher.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension && node scripts/copy-browser-assets.mjs && chmod +x dist/app/main.js dist/app/native-host-launcher.js",
+    "prepack": "pnpm run build",
+    "lint": "cd ../.. && pnpm exec eslint packages/browser-connector --config eslint.config.mjs",
+    "test": "vitest run",
+    "tsc": "tsc -p tsconfig.json",
+    "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "prettier": "^3.3.3",
+    "tsdown": "^0.21.7",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.2"
+  }
+}

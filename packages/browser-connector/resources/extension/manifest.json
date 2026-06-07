@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Browser Connector",
+  "version": "0.1.0",
+  "description": "Connects Chrome tabs to the local browser-connector Native Host.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArkykkhgSULFklt7dbsnUd/k2sHv6ykgJZq4zonaFp2Ak6jrgV2AxEz3H5z/CvgI7Uk/bA6hVepSks8acJF/SAwF5P1WzTvvGZ4JPeGxAM/BkFEol9Vph52ygzfrWA7uVCRcqbyXnO0cK5AAqHCJVhgBdO7oZDlHxnhAozao7z9rdTM58rpDtcbw7If9I+ly3ygVYmkYhx8bieOJS/br/DQVk87a0fS1TQEyXQMAAETAivwVlN7MpWD+7sz3dMtwKMvgQFGLad/A7KpqviguJGsBV+GUGqugpAvLyFXkxklz7iOdzTdt21Vv1dvGU9vkrslvdi7HO7pHHYnltgyvHBwIDAQAB",
+  "permissions": [
+    "activeTab",
+    "nativeMessaging",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.controller.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Browser Connector"
+  }
+}

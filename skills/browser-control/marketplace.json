@@ -1,0 +1,28 @@
+{
+  "slug": "browser-control",
+  "name": "Browser Control",
+  "summary": "Inspect and operate the user's current Chrome tabs through the local browser-connector CLI.",
+  "summaryI18n": {
+    "en": "Inspect and operate the user's current Chrome tabs through the local browser-connector CLI.",
+    "zh": "通过本地 browser-connector CLI 查看并操作用户当前 Chrome 标签页。"
+  },
+  "description": "Use this skill when the user wants the AI to list open Chrome tabs, read a current page, capture screenshots, or perform controlled browser interactions through the local browser-connector CLI, Chrome Extension, and Native Host. The skill guides installation, readiness checks, safe tab lease workflow, explicit confirmation for risky actions, and troubleshooting without treating browser control as a built-in NextClaw runtime.",
+  "descriptionI18n": {
+    "en": "Use this skill when the user wants the AI to list open Chrome tabs, read a current page, capture screenshots, or perform controlled browser interactions through the local browser-connector CLI, Chrome Extension, and Native Host. The skill guides installation, readiness checks, safe tab lease workflow, explicit confirmation for risky actions, and troubleshooting without treating browser control as a built-in NextClaw runtime.",
+    "zh": "当用户希望 AI 列出当前 Chrome 标签页、读取当前页面、截图或执行受控浏览器交互时使用此技能。该技能通过本地 browser-connector CLI、Chrome Extension 与 Native Host 工作，并引导安装、就绪检查、安全 tab lease 流程、高风险动作显式确认与故障排查，同时明确浏览器控制不是 NextClaw 内置运行时。"
+  },
+  "author": "NextClaw",
+  "tags": [
+    "skill",
+    "browser",
+    "chrome",
+    "browser-control",
+    "browser-connector",
+    "native-messaging",
+    "external-tool",
+    "cli",
+    "onboarding"
+  ],
+  "sourceRepo": "https://github.com/NextClaw/nextbot",
+  "homepage": "https://www.npmjs.com/package/@nextclaw/browser-connector"
+}

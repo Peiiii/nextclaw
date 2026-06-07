@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Browser Connector</title>
+    <style>
+      body {
+        min-width: 260px;
+        margin: 0;
+        padding: 12px;
+        font: 13px system-ui, sans-serif;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .value {
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="row">
+      <span>Native Host</span>
+      <span class="value" id="status">Checking</span>
+    </div>
+    <script src="popup.controller.js"></script>
+  </body>
+</html>

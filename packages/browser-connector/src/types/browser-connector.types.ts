@@ -1,0 +1,73 @@
+export type BrowserConnectorStatus = {
+  connected: boolean;
+  browserInstanceId?: string;
+  extensionVersion?: string;
+  protocolVersion?: number;
+  extensionCapabilities?: string[];
+  missingExtensionCapabilities?: string[];
+  activeLeaseCount: number;
+  nativeHostName: string;
+};
+
+export type BrowserTabInfo = {
+  tabRef: string;
+  title: string;
+  url: string;
+  active: boolean;
+  windowId?: number;
+  lastAccessed?: number;
+  status?: string;
+  pendingUrl?: string;
+};
+
+export type BrowserTabLease = {
+  leaseId: string;
+  tab: BrowserTabInfo;
+  expiresAt: string;
+};
+
+export type BrowserPageSnapshot = {
+  tab: BrowserTabInfo;
+  title: string;
+  url: string;
+  text: string;
+  links: BrowserSnapshotNode[];
+  buttons: BrowserSnapshotNode[];
+  inputs: BrowserSnapshotNode[];
+  truncated: boolean;
+  warning: "untrusted-browser-page-content";
+};
+
+export type BrowserSnapshotNode = {
+  selector: string;
+  text?: string;
+  ariaLabel?: string;
+  placeholder?: string;
+  role?: string;
+  tagName: string;
+  visible?: boolean;
+  disabled?: boolean;
+  unique?: boolean;
+};
+
+export type BrowserScreenshot = {
+  tab: BrowserTabInfo;
+  dataUrl?: string;
+  mimeType: "image/png";
+  outputPath?: string;
+};
+
+export type BrowserActionResult = {
+  tab: BrowserTabInfo;
+  action: string;
+  selector?: string;
+  textMatched?: string;
+};
+
+export type BrowserConnectorConfig = {
+  homeDir: string;
+  nativeHostName: string;
+  extensionId: string;
+  extensionDir: string;
+  ipcPath: string;
+};
