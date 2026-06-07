@@ -110,4 +110,29 @@ describe('SideDock', () => {
 
     expect(screen.getByText('D')).toBeTruthy();
   });
+
+  it('renders emoji icons as visual dock icons instead of small text labels', () => {
+    const manager = {
+      openItem: vi.fn(),
+      unpinItem: vi.fn(),
+    } as unknown as SideDockManager;
+    const docBrowserManager = new DocBrowserManager();
+    useSideDockStore.getState().setPinnedItems([
+      {
+        createdAt: '2026-06-02T00:00:00.000Z',
+        icon: { type: 'text', value: '🎨' },
+        id: 'pinned-panel-app-palette',
+        label: 'Palette App',
+        target: { type: 'right-panel-resource', uri: 'nextclaw://panel-app/palette' },
+      },
+    ]);
+
+    render(
+      <DocBrowserProvider manager={docBrowserManager}>
+        <SideDock manager={manager} />
+      </DocBrowserProvider>,
+    );
+
+    expect(screen.getByText('🎨').className).toContain('text-[20px]');
+  });
 });

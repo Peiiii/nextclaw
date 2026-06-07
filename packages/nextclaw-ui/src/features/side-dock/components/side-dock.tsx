@@ -34,11 +34,24 @@ const SIDE_DOCK_ICON_COMPONENTS: Record<SideDockIconName, LucideIcon> = {
   'service-apps': AppWindow,
 };
 
+const SIDE_DOCK_EMOJI_ICON_PATTERN = /^\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?)*$/u;
+
+function isSideDockEmojiIcon(value: string): boolean {
+  return SIDE_DOCK_EMOJI_ICON_PATTERN.test(value.trim());
+}
+
 function SideDockItemIconView({ icon }: { icon: SideDockItemIcon }) {
   if (icon.type === 'url') {
     return <img src={icon.url} alt="" className="h-5 w-5 rounded object-cover" />;
   }
   if (icon.type === 'text') {
+    if (isSideDockEmojiIcon(icon.value)) {
+      return (
+        <span className="flex h-7 w-7 items-center justify-center text-[20px] leading-none" aria-hidden="true">
+          {icon.value}
+        </span>
+      );
+    }
     return (
       <span className="max-w-7 truncate text-center text-[13px] font-semibold leading-none" aria-hidden="true">
         {icon.value}
