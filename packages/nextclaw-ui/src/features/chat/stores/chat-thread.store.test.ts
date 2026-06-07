@@ -24,6 +24,8 @@ function resetChatThreadStore() {
       activeChildSessionKey: null,
       workspaceFileTabs: [],
       activeWorkspaceFileKey: null,
+      workspaceNavigationHistory: [],
+      workspaceNavigationHistoryIndex: 0,
     },
   });
 }
@@ -56,6 +58,11 @@ describe('chat thread workspace panel persistence', () => {
         },
       ],
       activeWorkspaceFileKey: 'session-1::preview::README.md',
+      workspaceNavigationHistory: [
+        { kind: 'child-session', key: 'child-session-1' },
+        { kind: 'file', key: 'session-1::preview::README.md' },
+      ],
+      workspaceNavigationHistoryIndex: 1,
     });
 
     const persisted = JSON.parse(
@@ -66,6 +73,11 @@ describe('chat thread workspace panel persistence', () => {
       workspacePanelParentKey: 'session-1',
       activeWorkspacePanelKind: 'file',
       activeWorkspaceFileKey: 'session-1::preview::README.md',
+      workspaceNavigationHistory: [
+        { kind: 'child-session', key: 'child-session-1' },
+        { kind: 'file', key: 'session-1::preview::README.md' },
+      ],
+      workspaceNavigationHistoryIndex: 1,
     });
     expect(persisted.state.snapshot.sessionKey).toBeUndefined();
     expect(persisted.state.snapshot.isSending).toBeUndefined();
@@ -83,6 +95,11 @@ describe('chat thread workspace panel persistence', () => {
             activeWorkspacePanelKind: 'file',
             activeWorkspaceFileKey: 'missing-file',
             activeChildSessionKey: 'child-session-1',
+            workspaceNavigationHistory: [
+              { kind: 'file', key: 'missing-file' },
+              { kind: 'file', key: 'session-1::preview::README.md' },
+            ],
+            workspaceNavigationHistoryIndex: 1,
             workspaceFileTabs: [
               {
                 key: 'session-1::preview::README.md',
@@ -101,7 +118,7 @@ describe('chat thread workspace panel persistence', () => {
             ],
           },
         },
-        version: 1,
+        version: 2,
       }),
     );
 
@@ -112,6 +129,10 @@ describe('chat thread workspace panel persistence', () => {
       activeWorkspacePanelKind: 'file',
       activeWorkspaceFileKey: 'session-1::preview::README.md',
       activeChildSessionKey: 'child-session-1',
+      workspaceNavigationHistory: [
+        { kind: 'file', key: 'session-1::preview::README.md' },
+      ],
+      workspaceNavigationHistoryIndex: 0,
       workspaceFileTabs: [
         {
           key: 'session-1::preview::README.md',

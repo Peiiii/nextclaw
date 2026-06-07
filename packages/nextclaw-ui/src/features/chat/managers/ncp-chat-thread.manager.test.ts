@@ -19,33 +19,37 @@ vi.mock('@/shared/lib/api', async (importOriginal) => {
   };
 });
 
-describe('NcpChatThreadManager', () => {
-  beforeEach(() => {
-    useChatSessionListStore.setState({
-      optimisticReadAtBySessionKey: {},
-      snapshot: {
-        ...useChatSessionListStore.getState().snapshot,
-        selectedSessionKey: 'parent-session-1',
-      },
-    });
-    useChatThreadStore.setState({
-      snapshot: {
-        ...useChatThreadStore.getState().snapshot,
-        sessionKey: 'parent-session-1',
-        workspacePanelParentKey: null,
-        childSessionTabs: [
-          {
-            sessionKey: 'child-session-1',
-            parentSessionKey: 'parent-session-1',
-            label: 'Child Session 1',
-            agentId: 'reviewer',
-          },
-        ],
-        activeChildSessionKey: null,
-      },
-    });
+beforeEach(() => {
+  useChatSessionListStore.setState({
+    optimisticReadAtBySessionKey: {},
+    snapshot: {
+      ...useChatSessionListStore.getState().snapshot,
+      selectedSessionKey: 'parent-session-1',
+    },
   });
+  useChatThreadStore.setState({
+    snapshot: {
+      ...useChatThreadStore.getState().snapshot,
+      sessionKey: 'parent-session-1',
+      workspacePanelParentKey: null,
+      childSessionTabs: [
+        {
+          sessionKey: 'child-session-1',
+          parentSessionKey: 'parent-session-1',
+          label: 'Child Session 1',
+          agentId: 'reviewer',
+        },
+      ],
+      activeChildSessionKey: null,
+      workspaceFileTabs: [],
+      activeWorkspaceFileKey: null,
+      workspaceNavigationHistory: [],
+      workspaceNavigationHistoryIndex: 0,
+    },
+  });
+});
 
+describe('NcpChatThreadManager', () => {
   it('opens the child-session panel for the requested parent session and keeps focus on the chosen child', () => {
     const uiManager = {
       goToSession: vi.fn(),
@@ -190,7 +194,129 @@ describe('NcpChatThreadManager', () => {
       ]),
     );
   });
+});
 
+describe('NcpChatThreadManager workspace navigation', () => {
+  it('navigates backward and forward through workspace selections', () => {
+    const uiManager = {
+      goToSession: vi.fn(),
+      goToChatRoot: vi.fn(),
+      goToProviders: vi.fn(),
+      confirm: vi.fn(),
+    } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0];
+    const manager = new NcpChatThreadManager(
+      uiManager,
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+    );
+
+    manager.openChildSessionPanel({
+      parentSessionKey: 'parent-session-1',
+      activeChildSessionKey: 'child-session-1',
+    });
+    manager.openFilePreview({
+      path: 'README.md',
+      label: 'README.md',
+      viewMode: 'preview',
+    });
+    manager.openSessionCronPanel('parent-session-1');
+
+    expect(useChatThreadStore.getState().snapshot.workspaceNavigationHistory).toEqual([
+      { kind: 'child-session', key: 'child-session-1' },
+      { kind: 'file', key: 'parent-session-1::preview::README.md' },
+      { kind: 'cron' },
+    ]);
+
+    manager.goBackWorkspacePanel();
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      activeWorkspacePanelKind: 'file',
+      activeWorkspaceFileKey: 'parent-session-1::preview::README.md',
+      workspaceNavigationHistoryIndex: 1,
+    });
+
+    manager.goBackWorkspacePanel();
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      activeWorkspacePanelKind: 'child-session',
+      activeChildSessionKey: 'child-session-1',
+      workspaceNavigationHistoryIndex: 0,
+    });
+
+    manager.goForwardWorkspacePanel();
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      activeWorkspacePanelKind: 'file',
+      activeWorkspaceFileKey: 'parent-session-1::preview::README.md',
+      workspaceNavigationHistoryIndex: 1,
+    });
+  });
+
+  it('truncates workspace forward history after selecting a new entry', () => {
+    useChatThreadStore.getState().setSnapshot({
+      childSessionTabs: [
+        ...useChatThreadStore.getState().snapshot.childSessionTabs,
+        {
+          sessionKey: 'child-session-2',
+          parentSessionKey: 'parent-session-1',
+          label: 'Child Session 2',
+          agentId: 'writer',
+        },
+      ],
+    });
+    const manager = new NcpChatThreadManager(
+      { goToSession: vi.fn() } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0],
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+    );
+
+    manager.openChildSessionPanel({
+      parentSessionKey: 'parent-session-1',
+      activeChildSessionKey: 'child-session-1',
+    });
+    manager.openFilePreview({
+      path: 'README.md',
+      label: 'README.md',
+      viewMode: 'preview',
+    });
+    manager.goBackWorkspacePanel();
+    manager.selectChildSessionDetail('child-session-2');
+
+    expect(useChatThreadStore.getState().snapshot.workspaceNavigationHistory).toEqual([
+      { kind: 'child-session', key: 'child-session-1' },
+      { kind: 'child-session', key: 'child-session-2' },
+    ]);
+    expect(useChatThreadStore.getState().snapshot.workspaceNavigationHistoryIndex).toBe(1);
+  });
+
+  it('removes a closed active file from workspace history and restores the previous entry', () => {
+    const manager = new NcpChatThreadManager(
+      { goToSession: vi.fn() } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0],
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+    );
+
+    manager.openChildSessionPanel({
+      parentSessionKey: 'parent-session-1',
+      activeChildSessionKey: 'child-session-1',
+    });
+    manager.openFilePreview({
+      path: 'README.md',
+      label: 'README.md',
+      viewMode: 'preview',
+    });
+    manager.closeWorkspaceFile('parent-session-1::preview::README.md');
+
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      activeWorkspacePanelKind: 'child-session',
+      activeChildSessionKey: 'child-session-1',
+      activeWorkspaceFileKey: null,
+      workspaceNavigationHistory: [
+        { kind: 'child-session', key: 'child-session-1' },
+      ],
+      workspaceNavigationHistoryIndex: 0,
+    });
+  });
+});
+
+describe('NcpChatThreadManager deletion', () => {
   it('clears the selected thread state after deleting the current session', async () => {
     const removeQueries = vi.spyOn(appQueryClient, 'removeQueries').mockImplementation(async () => undefined);
     const uiManager = {
@@ -228,6 +354,8 @@ describe('NcpChatThreadManager', () => {
       activeChildSessionKey: null,
       workspaceFileTabs: [],
       activeWorkspaceFileKey: null,
+      workspaceNavigationHistory: [],
+      workspaceNavigationHistoryIndex: 0,
     });
     expect(streamActionsManager.resetStreamState).toHaveBeenCalledTimes(1);
     expect(deleteSummaryMock).toHaveBeenCalledWith(appQueryClient, 'parent-session-1');

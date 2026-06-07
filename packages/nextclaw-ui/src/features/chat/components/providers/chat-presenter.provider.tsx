@@ -42,6 +42,8 @@ export type ChatThreadManagerLike = {
   selectWorkspaceFile: (fileKey: string) => void;
   closeWorkspaceFile: (fileKey: string) => void;
   closeWorkspacePanel: () => void;
+  goBackWorkspacePanel: () => void;
+  goForwardWorkspacePanel: () => void;
   goToParentSession: () => void;
 };
 

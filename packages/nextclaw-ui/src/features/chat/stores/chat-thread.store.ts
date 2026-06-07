@@ -34,6 +34,19 @@ export type ChatWorkspaceFileTab = {
   fullLines?: ChatFileOperationLineViewModel[];
 };
 
+export type ChatWorkspaceNavigationEntry =
+  | {
+      kind: 'child-session';
+      key: string;
+    }
+  | {
+      kind: 'file';
+      key: string;
+    }
+  | {
+      kind: 'cron';
+    };
+
 export type ChatThreadSnapshot = {
   isProviderStateResolved: boolean;
   modelOptions: ChatModelOption[];
@@ -66,11 +79,13 @@ export type ChatThreadSnapshot = {
   activeChildSessionKey?: string | null;
   workspaceFileTabs: ChatWorkspaceFileTab[];
   activeWorkspaceFileKey?: string | null;
+  workspaceNavigationHistory: ChatWorkspaceNavigationEntry[];
+  workspaceNavigationHistoryIndex: number;
   contextWindow?: SessionContextWindowView | null;
 };
 
 const CHAT_THREAD_WORKSPACE_STORAGE_KEY = 'nextclaw.chat.workspace-panel.state';
-const CHAT_THREAD_WORKSPACE_STORAGE_VERSION = 1;
+const CHAT_THREAD_WORKSPACE_STORAGE_VERSION = 2;
 const CHAT_THREAD_MAX_PERSISTED_WORKSPACE_FILE_TABS = 8;
 
 type ChatThreadStore = {
@@ -85,6 +100,8 @@ type PersistedChatThreadStore = {
     activeChildSessionKey?: unknown;
     workspaceFileTabs?: unknown;
     activeWorkspaceFileKey?: unknown;
+    workspaceNavigationHistory?: unknown;
+    workspaceNavigationHistoryIndex?: unknown;
   };
 };
 
@@ -95,6 +112,8 @@ type PersistedChatWorkspaceSnapshot = Pick<
   | 'activeChildSessionKey'
   | 'workspaceFileTabs'
   | 'activeWorkspaceFileKey'
+  | 'workspaceNavigationHistory'
+  | 'workspaceNavigationHistoryIndex'
 >;
 
 const initialSnapshot: ChatThreadSnapshot = {
@@ -129,6 +148,8 @@ const initialSnapshot: ChatThreadSnapshot = {
   activeChildSessionKey: null,
   workspaceFileTabs: [],
   activeWorkspaceFileKey: null,
+  workspaceNavigationHistory: [],
+  workspaceNavigationHistoryIndex: 0,
   contextWindow: null
 };
 
@@ -148,10 +169,62 @@ function normalizeOptionalNumber(value: unknown): number | null {
     : null;
 }
 
+function normalizeHistoryIndex(value: unknown, maxIndex: number): number {
+  return typeof value === 'number' && Number.isInteger(value)
+    ? Math.min(Math.max(0, value), maxIndex)
+    : maxIndex;
+}
+
 function isWorkspacePanelKind(
   value: unknown,
 ): value is NonNullable<ChatThreadSnapshot['activeWorkspacePanelKind']> {
   return value === 'child-session' || value === 'file' || value === 'cron';
+}
+
+function normalizePersistedWorkspaceNavigationEntry(
+  value: unknown,
+): ChatWorkspaceNavigationEntry | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  if (value.kind === 'cron') {
+    return { kind: 'cron' };
+  }
+  const key = normalizeOptionalString(value.key);
+  if (!key || (value.kind !== 'child-session' && value.kind !== 'file')) {
+    return null;
+  }
+  return {
+    kind: value.kind,
+    key,
+  };
+}
+
+function createWorkspaceNavigationEntryFromSnapshot({
+  activeChildSessionKey,
+  activeWorkspaceFileKey,
+  activeWorkspacePanelKind,
+}: {
+  activeWorkspacePanelKind: ChatThreadSnapshot['activeWorkspacePanelKind'];
+  activeChildSessionKey: string | null;
+  activeWorkspaceFileKey: string | null;
+}): ChatWorkspaceNavigationEntry | null {
+  if (activeWorkspacePanelKind === 'cron') {
+    return { kind: 'cron' };
+  }
+  if (activeWorkspacePanelKind === 'child-session' && activeChildSessionKey) {
+    return {
+      kind: 'child-session',
+      key: activeChildSessionKey,
+    };
+  }
+  if (activeWorkspacePanelKind === 'file' && activeWorkspaceFileKey) {
+    return {
+      kind: 'file',
+      key: activeWorkspaceFileKey,
+    };
+  }
+  return null;
 }
 
 function normalizeOptionalText(value: unknown): string | null {
@@ -235,13 +308,42 @@ function normalizePersistedWorkspaceSnapshot(
     activeWorkspacePanelKind === 'file' && !resolvedActiveWorkspaceFileKey
       ? null
       : activeWorkspacePanelKind;
+  const activeChildSessionKey = normalizeOptionalString(value.activeChildSessionKey);
+  const fallbackHistoryEntry = createWorkspaceNavigationEntryFromSnapshot({
+    activeWorkspacePanelKind: resolvedActiveWorkspacePanelKind,
+    activeChildSessionKey,
+    activeWorkspaceFileKey: resolvedActiveWorkspaceFileKey,
+  });
+  const normalizedNavigationHistory = Array.isArray(value.workspaceNavigationHistory)
+    ? value.workspaceNavigationHistory
+      .map(normalizePersistedWorkspaceNavigationEntry)
+      .filter((entry): entry is ChatWorkspaceNavigationEntry => entry !== null)
+      .filter((entry) =>
+        entry.kind !== 'file' || workspaceFileTabs.some((tab) => tab.key === entry.key),
+      )
+    : [];
+  const workspaceNavigationHistory =
+    normalizedNavigationHistory.length > 0
+      ? normalizedNavigationHistory
+      : fallbackHistoryEntry
+        ? [fallbackHistoryEntry]
+        : [];
+  const workspaceNavigationHistoryIndex =
+    workspaceNavigationHistory.length > 0
+      ? normalizeHistoryIndex(
+        value.workspaceNavigationHistoryIndex,
+        workspaceNavigationHistory.length - 1,
+      )
+      : 0;
 
   return {
     workspacePanelParentKey: normalizeOptionalString(value.workspacePanelParentKey),
     activeWorkspacePanelKind: resolvedActiveWorkspacePanelKind,
-    activeChildSessionKey: normalizeOptionalString(value.activeChildSessionKey),
+    activeChildSessionKey,
     workspaceFileTabs,
     activeWorkspaceFileKey: resolvedActiveWorkspaceFileKey,
+    workspaceNavigationHistory,
+    workspaceNavigationHistoryIndex,
   };
 }
 
@@ -269,7 +371,9 @@ export const useChatThreadStore = create<ChatThreadStore>()(
           workspaceFileTabs: state.snapshot.workspaceFileTabs
             .slice(-CHAT_THREAD_MAX_PERSISTED_WORKSPACE_FILE_TABS)
             .map(toPersistedWorkspaceFileTab),
-          activeWorkspaceFileKey: state.snapshot.activeWorkspaceFileKey
+          activeWorkspaceFileKey: state.snapshot.activeWorkspaceFileKey,
+          workspaceNavigationHistory: state.snapshot.workspaceNavigationHistory,
+          workspaceNavigationHistoryIndex: state.snapshot.workspaceNavigationHistoryIndex,
         }
       }),
       merge: (persistedState, currentState) => {

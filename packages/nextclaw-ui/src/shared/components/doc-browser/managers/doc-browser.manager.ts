@@ -19,6 +19,11 @@ import {
 } from '@/shared/components/doc-browser/utils/doc-browser-url.utils';
 import { DefaultDocBrowserRouteResolver } from '@/shared/components/doc-browser/utils/doc-browser-route-resolver.utils';
 import { useDocBrowserStore } from '@/shared/components/doc-browser/stores/doc-browser.store';
+import {
+  filterNavigationHistoryEntries,
+  pushNavigationHistoryEntry,
+  stepNavigationHistory,
+} from '@/shared/lib/navigation-history';
 
 const defaultDocBrowserRouteResolver = new DefaultDocBrowserRouteResolver();
 
@@ -74,15 +79,15 @@ function pushActiveHistory(
   state: DocBrowserState,
   entry: DocBrowserActiveHistoryEntry,
 ): DocBrowserState {
-  const current = state.activeHistory[state.activeHistoryIndex];
-  if (current && areActiveHistoryEntriesEquivalent(routeResolver, current, entry)) {
-    return state;
-  }
-  const activeHistory = [...state.activeHistory.slice(0, state.activeHistoryIndex + 1), entry];
+  const activeHistory = pushNavigationHistoryEntry(
+    { entries: state.activeHistory, index: state.activeHistoryIndex },
+    entry,
+    (current, next) => areActiveHistoryEntriesEquivalent(routeResolver, current, next),
+  );
   return {
     ...state,
-    activeHistory,
-    activeHistoryIndex: activeHistory.length - 1,
+    activeHistory: [...activeHistory.entries],
+    activeHistoryIndex: activeHistory.index,
   };
 }
 
@@ -366,29 +371,35 @@ export class DocBrowserManager {
 
   readonly goBack = (): void => {
     this.setSnapshot((prev) => {
-      if (prev.activeHistoryIndex <= 0) {
+      const step = stepNavigationHistory(
+        { entries: prev.activeHistory, index: prev.activeHistoryIndex },
+        'back',
+      );
+      if (!step) {
         return prev;
       }
-      const activeHistoryIndex = prev.activeHistoryIndex - 1;
-      const entry = prev.activeHistory[activeHistoryIndex];
-      if (!entry) {
-        return prev;
-      }
-      return restoreActiveHistoryEntry(this.routeResolver, { ...prev, activeHistoryIndex }, entry);
+      return restoreActiveHistoryEntry(this.routeResolver, {
+        ...prev,
+        activeHistory: [...step.history.entries],
+        activeHistoryIndex: step.history.index,
+      }, step.entry);
     });
   };
 
   readonly goForward = (): void => {
     this.setSnapshot((prev) => {
-      if (prev.activeHistoryIndex >= prev.activeHistory.length - 1) {
+      const step = stepNavigationHistory(
+        { entries: prev.activeHistory, index: prev.activeHistoryIndex },
+        'forward',
+      );
+      if (!step) {
         return prev;
       }
-      const activeHistoryIndex = prev.activeHistoryIndex + 1;
-      const entry = prev.activeHistory[activeHistoryIndex];
-      if (!entry) {
-        return prev;
-      }
-      return restoreActiveHistoryEntry(this.routeResolver, { ...prev, activeHistoryIndex }, entry);
+      return restoreActiveHistoryEntry(this.routeResolver, {
+        ...prev,
+        activeHistory: [...step.history.entries],
+        activeHistoryIndex: step.history.index,
+      }, step.entry);
     });
   };
 
@@ -417,20 +428,16 @@ export class DocBrowserManager {
         tabs: nextTabs,
         activeTabId: nextActiveId,
       };
-      const activeHistory = nextState.activeHistory.filter((entry) => entry.tabId !== tabId);
-      const activeHistoryBeforeIndex = nextState.activeHistory
-        .slice(0, nextState.activeHistoryIndex + 1)
-        .filter((entry) => entry.tabId !== tabId);
       const nextActiveTab = nextTabs.find((tab) => tab.id === nextActiveId) ?? nextTabs[0];
+      const activeHistory = filterNavigationHistoryEntries(
+        { entries: nextState.activeHistory, index: nextState.activeHistoryIndex },
+        (entry) => entry.tabId !== tabId,
+        createDocBrowserActiveHistoryEntry(nextActiveTab),
+      );
       const reconciledState = {
         ...nextState,
-        activeHistory: activeHistory.length > 0
-          ? activeHistory
-          : [createDocBrowserActiveHistoryEntry(nextActiveTab)],
-        activeHistoryIndex: Math.min(
-          Math.max(0, activeHistoryBeforeIndex.length - 1),
-          Math.max(0, activeHistory.length - 1),
-        ),
+        activeHistory: [...activeHistory.entries],
+        activeHistoryIndex: activeHistory.index,
       };
       return prev.activeTabId === tabId
         ? pushActiveHistory(this.routeResolver, reconciledState, createDocBrowserActiveHistoryEntry(nextActiveTab))

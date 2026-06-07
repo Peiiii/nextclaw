@@ -11,11 +11,30 @@ import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import type {
   ChatThreadSnapshot,
+  ChatWorkspaceNavigationEntry,
   ChatWorkspaceFileTab,
 } from '@/features/chat/stores/chat-thread.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 import { viewportLayoutManager } from '@/app/managers/viewport-layout.manager';
 import { t } from '@/shared/lib/i18n';
+import {
+  filterNavigationHistoryEntries,
+  pushNavigationHistoryEntry,
+  stepNavigationHistory,
+} from '@/shared/lib/navigation-history';
+
+function areWorkspaceNavigationEntriesEqual(
+  current: ChatWorkspaceNavigationEntry,
+  next: ChatWorkspaceNavigationEntry,
+): boolean {
+  if (current.kind !== next.kind) {
+    return false;
+  }
+  if (current.kind === 'cron') {
+    return true;
+  }
+  return next.kind !== 'cron' && current.key === next.key;
+}
 
 export class NcpChatThreadManager {
   constructor(
@@ -67,6 +86,8 @@ export class NcpChatThreadManager {
       activeChildSessionKey: null,
       workspaceFileTabs: [],
       activeWorkspaceFileKey: null,
+      workspaceNavigationHistory: [],
+      workspaceNavigationHistoryIndex: 0,
     });
   };
 
@@ -134,6 +155,57 @@ export class NcpChatThreadManager {
     }
   };
 
+  private createWorkspaceSelectionPatch = (
+    entry: ChatWorkspaceNavigationEntry,
+    snapshot: ChatThreadSnapshot,
+  ): Partial<ChatThreadSnapshot> | null => {
+    if (entry.kind === 'cron') {
+      return {
+        activeWorkspacePanelKind: 'cron',
+        activeChildSessionKey: null,
+        activeWorkspaceFileKey: null,
+      };
+    }
+    if (entry.kind === 'file') {
+      if (!snapshot.workspaceFileTabs.some((tab) => tab.key === entry.key)) {
+        return null;
+      }
+      return {
+        activeWorkspacePanelKind: 'file',
+        activeChildSessionKey: null,
+        activeWorkspaceFileKey: entry.key,
+      };
+    }
+    if (!entry.key) {
+      return null;
+    }
+    return {
+      activeWorkspacePanelKind: 'child-session',
+      activeChildSessionKey: entry.key,
+      activeWorkspaceFileKey: null,
+    };
+  };
+
+  private setWorkspaceSelection = (
+    patch: Partial<ChatThreadSnapshot>,
+    entry: ChatWorkspaceNavigationEntry,
+  ) => {
+    const { snapshot } = useChatThreadStore.getState();
+    const history = pushNavigationHistoryEntry(
+      {
+        entries: snapshot.workspaceNavigationHistory,
+        index: snapshot.workspaceNavigationHistoryIndex,
+      },
+      entry,
+      areWorkspaceNavigationEntriesEqual,
+    );
+    useChatThreadStore.getState().setSnapshot({
+      ...patch,
+      workspaceNavigationHistory: [...history.entries],
+      workspaceNavigationHistoryIndex: history.index,
+    });
+  };
+
   deleteSession = () => {
     void this.deleteCurrentSession();
   };
@@ -155,12 +227,20 @@ export class NcpChatThreadManager {
       return;
     }
     const activeChildSessionKey = params.activeChildSessionKey?.trim() || null;
-    useChatThreadStore.getState().setSnapshot({
+    const patch: Partial<ChatThreadSnapshot> = {
       workspacePanelParentKey: parentSessionKey,
       activeWorkspacePanelKind: 'child-session',
       activeChildSessionKey,
       activeWorkspaceFileKey: null,
-    });
+    };
+    if (activeChildSessionKey) {
+      this.setWorkspaceSelection(patch, {
+        kind: 'child-session',
+        key: activeChildSessionKey,
+      });
+    } else {
+      useChatThreadStore.getState().setSnapshot(patch);
+    }
     this.ensureWorkspaceParentRoute(parentSessionKey);
   };
 
@@ -170,12 +250,15 @@ export class NcpChatThreadManager {
     if (!nextTab) {
       return;
     }
-    useChatThreadStore.getState().setSnapshot({
+    this.setWorkspaceSelection({
       workspacePanelParentKey: parentSessionKey,
       activeWorkspacePanelKind: 'file',
       workspaceFileTabs: this.upsertWorkspaceFileTab(nextTab),
       activeWorkspaceFileKey: nextTab.key,
       activeChildSessionKey: null,
+    }, {
+      kind: 'file',
+      key: nextTab.key,
     });
     this.ensureWorkspaceParentRoute(parentSessionKey);
   };
@@ -202,6 +285,8 @@ export class NcpChatThreadManager {
       activeWorkspacePanelKind: null,
       activeChildSessionKey: null,
       activeWorkspaceFileKey: null,
+      workspaceNavigationHistory: [],
+      workspaceNavigationHistoryIndex: 0,
     });
     this.uiManager.goToSession(action.sessionId);
   };
@@ -215,10 +300,13 @@ export class NcpChatThreadManager {
     if (!childSessionTabs.some((tab) => tab.sessionKey === normalizedSessionKey)) {
       return;
     }
-    useChatThreadStore.getState().setSnapshot({
+    this.setWorkspaceSelection({
       activeChildSessionKey: normalizedSessionKey,
       activeWorkspaceFileKey: null,
       activeWorkspacePanelKind: 'child-session',
+    }, {
+      kind: 'child-session',
+      key: normalizedSessionKey,
     });
   };
 
@@ -231,10 +319,13 @@ export class NcpChatThreadManager {
     if (!workspaceFileTabs.some((tab) => tab.key === normalizedFileKey)) {
       return;
     }
-    useChatThreadStore.getState().setSnapshot({
+    this.setWorkspaceSelection({
       activeWorkspaceFileKey: normalizedFileKey,
       activeChildSessionKey: null,
       activeWorkspacePanelKind: 'file',
+    }, {
+      kind: 'file',
+      key: normalizedFileKey,
     });
   };
 
@@ -248,11 +339,31 @@ export class NcpChatThreadManager {
     const nextTabs = workspaceFileTabs.filter(
       (tab) => tab.key !== normalizedFileKey,
     );
+    const history = filterNavigationHistoryEntries(
+      {
+        entries: snapshot.workspaceNavigationHistory,
+        index: snapshot.workspaceNavigationHistoryIndex,
+      },
+      (entry) => entry.kind !== 'file' || entry.key !== normalizedFileKey,
+    );
     const nextPatch: Partial<ChatThreadSnapshot> = {
       workspaceFileTabs: nextTabs,
+      workspaceNavigationHistory: [...history.entries],
+      workspaceNavigationHistoryIndex: history.index,
     };
     if (activeWorkspaceFileKey === normalizedFileKey) {
-      nextPatch.activeWorkspaceFileKey = null;
+      const nextSnapshot = {
+        ...snapshot,
+        workspaceFileTabs: nextTabs,
+      };
+      const restoreEntry = history.entries[history.index];
+      const restorePatch = restoreEntry
+        ? this.createWorkspaceSelectionPatch(restoreEntry, nextSnapshot)
+        : null;
+      Object.assign(nextPatch, restorePatch ?? {
+        activeWorkspacePanelKind: null,
+        activeWorkspaceFileKey: null,
+      });
     }
     useChatThreadStore.getState().setSnapshot(nextPatch);
   };
@@ -263,6 +374,8 @@ export class NcpChatThreadManager {
       activeWorkspacePanelKind: null,
       activeChildSessionKey: null,
       activeWorkspaceFileKey: null,
+      workspaceNavigationHistory: [],
+      workspaceNavigationHistoryIndex: 0,
     });
   };
 
@@ -271,13 +384,46 @@ export class NcpChatThreadManager {
     if (!parentSessionKey) {
       return;
     }
-    useChatThreadStore.getState().setSnapshot({
+    this.setWorkspaceSelection({
       workspacePanelParentKey: parentSessionKey,
       activeWorkspacePanelKind: 'cron',
       activeChildSessionKey: null,
       activeWorkspaceFileKey: null,
+    }, {
+      kind: 'cron',
     });
     this.ensureWorkspaceParentRoute(parentSessionKey);
+  };
+
+  goBackWorkspacePanel = () => {
+    this.restoreWorkspaceNavigationStep('back');
+  };
+
+  goForwardWorkspacePanel = () => {
+    this.restoreWorkspaceNavigationStep('forward');
+  };
+
+  private restoreWorkspaceNavigationStep = (direction: 'back' | 'forward') => {
+    const { snapshot } = useChatThreadStore.getState();
+    const step = stepNavigationHistory(
+      {
+        entries: snapshot.workspaceNavigationHistory,
+        index: snapshot.workspaceNavigationHistoryIndex,
+      },
+      direction,
+    );
+    if (!step) {
+      return;
+    }
+    const selectionPatch = this.createWorkspaceSelectionPatch(step.entry, snapshot);
+    if (!selectionPatch) {
+      return;
+    }
+    useChatThreadStore.getState().setSnapshot({
+      ...selectionPatch,
+      workspaceNavigationHistory: [...step.history.entries],
+      workspaceNavigationHistoryIndex: step.history.index,
+    });
   };
 
   closeChildSessionDetail = () => {

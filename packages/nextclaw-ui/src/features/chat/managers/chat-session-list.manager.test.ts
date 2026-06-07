@@ -57,6 +57,10 @@ describe('ChatSessionListManager', () => {
         activeWorkspacePanelKind: 'child-session',
         activeChildSessionKey: 'child-session-1',
         activeWorkspaceFileKey: null,
+        workspaceNavigationHistory: [
+          { kind: 'child-session', key: 'child-session-1' },
+        ],
+        workspaceNavigationHistoryIndex: 0,
       },
     });
   });

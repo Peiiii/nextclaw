@@ -1,4 +1,4 @@
-import { AlarmClock, ArrowLeft, FileCode2, MessageSquareText, X } from "lucide-react";
+import { AlarmClock, ArrowLeft, ArrowRight, FileCode2, MessageSquareText, X } from "lucide-react";
 import type { ResolvedChildSessionTab } from "@/features/chat/hooks/use-ncp-child-session-tabs-view";
 import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.store";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
@@ -184,12 +184,18 @@ function WorkspaceTabItem({ tab }: { tab: WorkspaceTabViewModel }) {
 }
 
 export function WorkspaceTabsBar({
-  onBack,
+  canGoBack,
+  canGoForward,
   onClose,
+  onGoBack,
+  onGoForward,
   tabs,
 }: {
-  onBack?: () => void;
+  canGoBack: boolean;
+  canGoForward: boolean;
   onClose: () => void;
+  onGoBack: () => void;
+  onGoForward: () => void;
   tabs: readonly WorkspaceTabViewModel[];
 }) {
   return (
@@ -208,16 +214,42 @@ export function WorkspaceTabsBar({
             ))}
           </div>
         </div>
-        {onBack ? (
-          <button
-            type="button"
-            onClick={onBack}
-            className="mx-1 flex h-7 w-7 shrink-0 self-center items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-            aria-label={t("chatBackToParent")}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
-        ) : null}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="ml-1 inline-flex self-center">
+              <button
+                type="button"
+                onClick={onGoBack}
+                disabled={!canGoBack}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent"
+                aria-label={t("chatWorkspaceBack")}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">
+            {t("chatWorkspaceBack")}
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex self-center">
+              <button
+                type="button"
+                onClick={onGoForward}
+                disabled={!canGoForward}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent"
+                aria-label={t("chatWorkspaceForward")}
+              >
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">
+            {t("chatWorkspaceForward")}
+          </TooltipContent>
+        </Tooltip>
         <button
           type="button"
           onClick={onClose}

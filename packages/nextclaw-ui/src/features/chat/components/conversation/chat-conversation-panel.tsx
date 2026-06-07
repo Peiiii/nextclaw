@@ -363,6 +363,8 @@ function ChatSessionWorkspacePanelContainer({
       activeChildSessionKey={snapshot.activeChildSessionKey ?? null}
       workspaceFileTabs={workspaceFileTabs}
       activeWorkspaceFileKey={snapshot.activeWorkspaceFileKey ?? null}
+      workspaceNavigationHistory={snapshot.workspaceNavigationHistory}
+      workspaceNavigationHistoryIndex={snapshot.workspaceNavigationHistoryIndex}
       activePanelKind={snapshot.activeWorkspacePanelKind ?? null}
       sessionCronJobs={sessionCronJobs}
       sessionProjectRoot={snapshot.sessionProjectRoot ?? null}

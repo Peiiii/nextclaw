@@ -44,6 +44,8 @@ export const CHAT_LABELS: Record<string, { zh: string; en: string }> = {
   chatSessionOpenCronJobs: { zh: '查看本会话定时任务', en: 'View session cron jobs' },
   chatChildSessionLoading: { zh: '正在加载子会话…', en: 'Loading child session…' },
   chatChildSessionEmpty: { zh: '子会话还没有消息。', en: 'No child session messages yet.' },
+  chatWorkspaceBack: { zh: '工作区后退', en: 'Back in workspace' },
+  chatWorkspaceForward: { zh: '工作区前进', en: 'Forward in workspace' },
   chatWorkspaceClosePanel: { zh: '关闭工作区侧栏', en: 'Close workspace panel' },
   chatWorkspaceChildSessions: { zh: '子会话', en: 'Child sessions' },
   chatWorkspaceOpenFiles: { zh: '打开的文件', en: 'Open files' },

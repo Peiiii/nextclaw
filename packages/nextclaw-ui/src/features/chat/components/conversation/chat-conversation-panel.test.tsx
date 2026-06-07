@@ -16,6 +16,8 @@ const mocks = vi.hoisted(() => ({
   goToChatRoot: vi.fn(),
   goToSession: vi.fn(),
   openSessionCronPanel: vi.fn(),
+  goBackWorkspacePanel: vi.fn(),
+  goForwardWorkspacePanel: vi.fn(),
   deleteCronJob: vi.fn(),
   cronJobs: [] as CronJobView[],
   setSelectedAgentId: vi.fn(),
@@ -119,6 +121,8 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
       selectWorkspaceFile: vi.fn(),
       closeWorkspaceFile: vi.fn(),
       closeWorkspacePanel: vi.fn(),
+      goBackWorkspacePanel: mocks.goBackWorkspacePanel,
+      goForwardWorkspacePanel: mocks.goForwardWorkspacePanel,
       goToParentSession: vi.fn(),
     },
     chatSessionListManager: {
@@ -200,8 +204,25 @@ function resetChatConversationPanelTestState() {
   mocks.goToChatRoot.mockReset();
   mocks.goToSession.mockReset();
   mocks.openSessionCronPanel.mockReset();
+  mocks.goBackWorkspacePanel.mockReset();
+  mocks.goForwardWorkspacePanel.mockReset();
   mocks.deleteCronJob.mockReset();
   mocks.cronJobs = [];
+  mocks.resolvedChildTabs = [
+    {
+      sessionKey: "child-session-1",
+      parentSessionKey: "parent-session-1",
+      title: "北京天气",
+      agentId: "weather",
+      updatedAt: "2026-04-10T09:00:00.000Z",
+      lastMessageAt: "2026-04-10T09:00:00.000Z",
+      readAt: "2026-04-10T09:00:00.000Z",
+      sessionTypeLabel: "Codex",
+      preferredModel: "openai/gpt-5.3-codex",
+      projectName: "project-alpha",
+      projectRoot: "/Users/demo/project-alpha",
+    },
+  ];
   mocks.setSelectedAgentId.mockReset();
   mocks.setPendingSessionType.mockReset();
   mocks.stickyBottomScroll.mockClear();
@@ -247,6 +268,8 @@ function resetChatConversationPanelTestState() {
       activeChildSessionKey: null,
       workspaceFileTabs: [],
       activeWorkspaceFileKey: null,
+      workspaceNavigationHistory: [],
+      workspaceNavigationHistoryIndex: 0,
     },
   });
   useChatSessionListStore.setState({
@@ -520,6 +543,8 @@ describe("ChatConversationPanel", () => {
 });
 
 describe("ChatSessionWorkspacePanel", () => {
+  beforeEach(resetChatConversationPanelTestState);
+
   it("renders child session tabs and active child metadata in the workspace sidebar", () => {
     mocks.resolvedChildTabs = [
       {
@@ -659,6 +684,45 @@ describe("ChatSessionWorkspacePanel", () => {
     expect(
       screen.getByTestId("workspace-tabs-scroll").parentElement?.className,
     ).toContain("workspace-horizontal-scrollbar");
+  });
+
+  it("uses workspace-local backward and forward history actions in the tab bar", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ChatSessionWorkspacePanel
+        sessionKey="parent-session-1"
+        childSessionTabs={[]}
+        activeChildSessionKey={null}
+        workspaceFileTabs={[
+          {
+            key: "parent-session-1::preview::README.md",
+            parentSessionKey: "parent-session-1",
+            path: "README.md",
+            label: "README.md",
+            viewMode: "preview",
+          },
+        ]}
+        activeWorkspaceFileKey="parent-session-1::preview::README.md"
+        workspaceNavigationHistory={[
+          { kind: "child-session", key: "child-session-1" },
+          { kind: "file", key: "parent-session-1::preview::README.md" },
+          { kind: "cron" },
+        ]}
+        workspaceNavigationHistoryIndex={1}
+        sessionProjectRoot="/Users/demo/project-alpha"
+        sessionWorkingDir="/Users/demo/project-alpha"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Back in workspace" }));
+    await user.click(
+      screen.getByRole("button", { name: "Forward in workspace" }),
+    );
+
+    expect(mocks.goBackWorkspacePanel).toHaveBeenCalledTimes(1);
+    expect(mocks.goForwardWorkspacePanel).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "Back to parent" })).toBeNull();
   });
 
   it("renders session cron jobs in the workspace sidebar and deletes with a neutral confirmation", async () => {

@@ -18,6 +18,7 @@ import {
 } from "@/features/chat/stores/chat-session-list.store";
 import type {
   ChatChildSessionTab,
+  ChatWorkspaceNavigationEntry,
   ChatWorkspaceFileTab,
 } from "@/features/chat/stores/chat-thread.store";
 import {
@@ -33,6 +34,10 @@ import { SessionCronJobContent } from "@/features/chat/components/workspace/sess
 import { ResizableRightPanel } from "@/shared/components/resizable-right-panel/resizable-right-panel";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
+import {
+  canGoBackInNavigationHistory,
+  canGoForwardInNavigationHistory,
+} from "@/shared/lib/navigation-history";
 
 type ChatSessionWorkspacePanelProps = {
   sessionKey: string | null;
@@ -40,6 +45,8 @@ type ChatSessionWorkspacePanelProps = {
   activeChildSessionKey: string | null;
   workspaceFileTabs: readonly ChatWorkspaceFileTab[];
   activeWorkspaceFileKey: string | null;
+  workspaceNavigationHistory?: readonly ChatWorkspaceNavigationEntry[];
+  workspaceNavigationHistoryIndex?: number;
   activePanelKind?: "child-session" | "file" | "cron" | null;
   sessionCronJobs?: readonly CronJobView[];
   sessionProjectRoot: string | null;
@@ -247,6 +254,8 @@ export function ChatSessionWorkspacePanel({
   activeChildSessionKey,
   workspaceFileTabs,
   activeWorkspaceFileKey,
+  workspaceNavigationHistory = [],
+  workspaceNavigationHistoryIndex = 0,
   activePanelKind,
   sessionCronJobs = [],
   sessionProjectRoot,
@@ -266,9 +275,10 @@ export function ChatSessionWorkspacePanel({
     workspaceFileTabs,
     sessionCronJobCount: sessionCronJobs.length,
   });
-  const hasParentSession = resolvedChildTabs.some((tab) =>
-    Boolean(tab.parentSessionKey),
-  );
+  const workspaceHistory = {
+    entries: workspaceNavigationHistory,
+    index: workspaceNavigationHistoryIndex,
+  };
 
   useEffect(() => {
     if (
@@ -333,11 +343,10 @@ export function ChatSessionWorkspacePanel({
     >
       <WorkspaceTabsBar
         tabs={workspaceTabs}
-        onBack={
-          hasParentSession
-            ? presenter.chatThreadManager.goToParentSession
-            : undefined
-        }
+        canGoBack={canGoBackInNavigationHistory(workspaceHistory)}
+        canGoForward={canGoForwardInNavigationHistory(workspaceHistory)}
+        onGoBack={presenter.chatThreadManager.goBackWorkspacePanel}
+        onGoForward={presenter.chatThreadManager.goForwardWorkspacePanel}
         onClose={presenter.chatThreadManager.closeWorkspacePanel}
       />
 
