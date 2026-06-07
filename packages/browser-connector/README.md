@@ -89,16 +89,50 @@ button-like custom elements:
 browser-connector page snapshot --lease "<leaseId>" --interactive --json
 ```
 
+Inspect a candidate before acting:
+
+```bash
+browser-connector page inspect --lease "<leaseId>" --ref "i2" --json
+```
+
+Fill editable fields with verified post-input state:
+
+```bash
+browser-connector page fill --lease "<leaseId>" --selector "textarea[data-testid=\"lyrics-textarea\"]" --text "lyrics" --reason "fill lyrics" --json
+```
+
+For editor-like fields that ignore direct value assignment, use the explicit
+paste input mode and verify the returned evidence:
+
+```bash
+browser-connector page fill --lease "<leaseId>" --selector ".editor" --mode paste --text "long text" --reason "fill rich editor" --json
+```
+
+When replacing existing content in a complex editor, verify the old text is no
+longer visible before submitting.
+
+Read field evidence from `action.element` or `action.after` for actions, and
+from `inspect.element` for inspections.
+
 Click either by CSS selector or by an interactive ref:
 
 ```bash
 browser-connector page click --lease "<leaseId>" --ref "i2" --reason "click the selected create button" --json
 ```
 
+Wait for URL, load state, or an element when an action changes the page:
+
+```bash
+browser-connector page wait-url --lease "<leaseId>" --url "create" --reason "wait for create page" --json
+browser-connector page wait-load --lease "<leaseId>" --reason "wait for page load" --json
+browser-connector page wait-element --lease "<leaseId>" --text "Done" --reason "wait for completion" --json
+```
+
 Capture a screenshot:
 
 ```bash
 browser-connector page screenshot --lease "<leaseId>" --output /tmp/browser-page.png --json
+browser-connector page screenshot --lease "<leaseId>" --full-page --output /tmp/browser-full-page.png --json
 ```
 
 Release the lease when done:

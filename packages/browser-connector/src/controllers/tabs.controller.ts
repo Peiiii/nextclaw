@@ -12,6 +12,11 @@ export type OpenTabOptions = {
   foreground?: boolean;
 };
 
+export type CloseTabOptions = {
+  reason?: string;
+  confirmed?: boolean;
+};
+
 export class TabsController {
   constructor(private readonly browserConnectorManager: BrowserConnectorManager) {}
 
@@ -82,6 +87,27 @@ export class TabsController {
     return {
       ok: true,
       lease,
+    };
+  };
+
+  close = async (
+    tabRef: string,
+    options: CloseTabOptions,
+  ): Promise<BrowserConnectorCommandOutput> => {
+    if (!options.reason) {
+      throw new BrowserConnectorError(
+        "INVALID_ARGUMENT",
+        "tabs close requires --reason.",
+      );
+    }
+
+    return {
+      ok: true,
+      close: await this.browserConnectorManager.closeTab(
+        tabRef,
+        options.reason,
+        options.confirmed ?? false,
+      ),
     };
   };
 

@@ -30,6 +30,12 @@ export type BrowserTabInfo = {
   pendingUrl?: string;
 };
 
+export type BrowserTabCloseResult = {
+  closed: true;
+  tabRef: string;
+  ownedByConnector: boolean;
+};
+
 export type BrowserTabLease = {
   leaseId: string;
   tab: BrowserTabInfo;
@@ -44,6 +50,7 @@ export type BrowserPageSnapshot = {
   links: BrowserSnapshotNode[];
   buttons: BrowserSnapshotNode[];
   inputs: BrowserSnapshotNode[];
+  frames?: BrowserSnapshotNode[];
   interactive: BrowserSnapshotNode[];
   truncated: boolean;
   warning: "untrusted-browser-page-content";
@@ -51,7 +58,9 @@ export type BrowserPageSnapshot = {
 
 export type BrowserSnapshotNode = {
   ref?: string;
+  elementId?: string;
   selector: string;
+  selectorCandidates?: string[];
   text?: string;
   ariaLabel?: string;
   placeholder?: string;
@@ -63,6 +72,12 @@ export type BrowserSnapshotNode = {
   boundingBox?: BrowserElementBoundingBox;
   visible?: boolean;
   disabled?: boolean;
+  enabled?: boolean;
+  editable?: boolean;
+  value?: string;
+  valueLength?: number;
+  checked?: boolean;
+  selected?: boolean;
   unique?: boolean;
 };
 
@@ -80,11 +95,31 @@ export type BrowserPageLocateResult = {
   warning: "untrusted-browser-page-content";
 };
 
+export type BrowserElementTarget = {
+  selector?: string;
+  ref?: string;
+  frameSelector?: string;
+};
+
+export type BrowserElementInspection = BrowserSnapshotNode & {
+  count: number;
+  unique: boolean;
+};
+
+export type BrowserPageInspectResult = {
+  tab: BrowserTabInfo;
+  target: BrowserElementTarget;
+  element: BrowserElementInspection;
+  warning: "untrusted-browser-page-content";
+};
+
 export type BrowserScreenshot = {
   tab: BrowserTabInfo;
   dataUrl?: string;
   mimeType: "image/png";
   outputPath?: string;
+  fullPage?: boolean;
+  clip?: BrowserElementBoundingBox;
 };
 
 export type BrowserActionResult = {
@@ -92,7 +127,41 @@ export type BrowserActionResult = {
   action: string;
   selector?: string;
   ref?: string;
+  element?: BrowserElementInspection;
+  before?: BrowserElementInspection;
+  after?: BrowserElementInspection;
+  receiver?: BrowserElementInspection;
+  changed?: boolean;
+  inputMode?: string;
+  pasteAccepted?: boolean;
+  valueLength?: number;
+  preview?: string;
+  matchedExpectedText?: boolean;
+  pageTextMatched?: boolean;
   textMatched?: string;
+  urlMatched?: string;
+  loadState?: string;
+  scroll?: BrowserScrollState;
+  logs?: BrowserPageLogEntry[];
+  closed?: true;
+  tabRef?: string;
+  ownedByConnector?: boolean;
+};
+
+export type BrowserScrollState = {
+  scrollX: number;
+  scrollY: number;
+  viewportWidth: number;
+  viewportHeight: number;
+  documentWidth: number;
+  documentHeight: number;
+};
+
+export type BrowserPageLogEntry = {
+  level: "debug" | "info" | "log" | "warn" | "error";
+  message: string;
+  timestamp: string;
+  url?: string;
 };
 
 export type BrowserConnectorConfig = {

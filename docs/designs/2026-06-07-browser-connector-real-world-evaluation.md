@@ -487,6 +487,38 @@ browser-connector page click --lease "<leaseId>" --ref "<ref>" --reason "<why cl
 
 后续增强建议：
 
-1. 增加 DOM node id / locator API，降低复杂 CSS path 的脆弱性。
-2. `page scroll` 返回 scrollY 或 viewport 状态。
-3. 长期增加 tab close/finalize keep 语义，清理 agent 创建的临时 tab。
+1. 增加 DOM node id / scoped locator API，进一步降低复杂 CSS path 的脆弱性。
+2. 将 `page logs` 从轻量注入捕获升级为更完整的 DevTools 日志能力，前提是不扩大敏感存储读取面。
+3. 长期增强 finalize keep/handoff/deliverable 语义。
+
+## 2026-06-07 彻底对齐整改补验项
+
+本批次新增对标能力后，真实 Chrome 需要补跑：
+
+- E04：`page inspect` + `page fill` 在本地 demo input/textarea/contenteditable 上返回 `valueLength`、`preview`、`changed` 和 `matchedExpectedText`。
+- E05：`page click` 返回点击目标的 before/after 元素状态。
+- E06：`page scroll` 返回 `scrollY/viewportHeight/documentHeight`。
+- E07：`page screenshot --full-page` 与 clip 输出 PNG 文件。
+- E09：`page press` 未确认仍被拦截；`tabs close` 对用户既有 tab 未确认也被拦截。
+- E12：Suno lyrics textarea 使用 `page fill` 后直接返回字段事实；后续点击 `Create song` 不使用剪贴板 paste。
+
+补验结果：
+
+- 本地 HTTP demo 页面真实 Chrome 通过：`page inspect`、`page fill`、contenteditable fill、`page check`、`page select`、`page click`、`page wait-element`、`page logs`、`page scroll`、`page wait-url`、`page wait-load` 均返回结构化状态证据。
+- `page screenshot --full-page` 初次触发 Chrome `MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND` 限制；已将 full-page stitching 的 capture 间隔加大到 750ms，重新 build/reload 后真实 Chrome 生成 `/tmp/browser-smoke-full.png`，clip 截图生成 `/tmp/browser-smoke-clip.png`。
+- `tabs close` 对 connector-owned 临时 tab 无需额外确认并返回 `ownedByConnector=true`。
+- Suno create 页真实验证通过：`textarea[data-testid="lyrics-textarea"]` inspect 返回 `count=1`、`visible=true`、`enabled=true`、`editable=true`；`page fill` 返回 `changed=true`、`valueLength=37`、`matchedExpectedText=true`、preview 为 `Browser Connector verified fill smoke`；随后用 `page fill` 恢复原值，恢复后 `valueLength=400` 且与原值一致。
+
+最终 post-fix smoke：
+
+- extension self-reload 后 capabilities 包含 `page.inspect/page.fill/page.check/page.select/page.wait-url/page.wait-load/page.wait-element/page.logs/tabs.close`，`missingExtensionCapabilities=[]`。
+- 本地 HTTP demo 最终通过：textarea 填入 `金陵灯灭 是我亲手葬` 后 `matchedExpectedText=true` 且 inspect 读回原文；contenteditable fill、checkbox check、select value `folk` 均通过。
+- `page click` 双触发问题已修复；点击 `#go` 后 `page logs --level error` 中 `clicked smoke button` 正好出现 `1` 次。
+- full-page 与 clip 截图最终输出 `/tmp/browser-smoke-full-post-click-fix.png`、`/tmp/browser-smoke-clip-post-click-fix.png`。
+- Suno create 页 post-fix 验证通过：lyrics textarea 原始 `valueLength=400`，填入 `Browser Connector post-fix Suno lyrics smoke` 后 inspect 确认值一致，再恢复原文且 `restoredToOriginal=true`。
+
+可维护性拆分后的最终补验：
+
+- action 注入改为先注入 `page-action-dom.utils.js` 与 `page-action-runner.utils.js`，再调用 `__nextclawBrowserConnectorRunPageAction`；真实 Chrome reload 后能力列表未丢失。
+- 本地 HTTP demo 再次通过完整链路：textarea/contenteditable fill、checkbox check、select value `folk`、click、logs、wait、scroll、full-page screenshot、clip screenshot 均成功；`clicked smoke button` 日志仍正好 `1` 条。
+- Suno create 页再次通过非破坏 smoke：lyrics textarea 原始 `valueLength=400`，填入 `Browser Connector post-refactor Suno lyrics smoke` 后 `matchedExpectedText=true`，恢复后 `restoredToOriginal=true`。

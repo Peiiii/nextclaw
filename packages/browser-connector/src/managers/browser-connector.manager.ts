@@ -7,9 +7,13 @@ import type {
   BrowserActionResult,
   BrowserConnectorStatus,
   BrowserExtensionReloadResult,
+  BrowserElementBoundingBox,
+  BrowserElementTarget,
+  BrowserPageInspectResult,
   BrowserPageLocateResult,
   BrowserPageSnapshot,
   BrowserScreenshot,
+  BrowserTabCloseResult,
   BrowserTabInfo,
   BrowserTabLease,
 } from "@/types/browser-connector.types.js";
@@ -19,8 +23,16 @@ export type BrowserActionOptions = {
   reason: string;
   selector?: string;
   ref?: string;
+  frameSelector?: string;
+  mode?: string;
   url?: string;
   text?: string;
+  state?: string;
+  value?: string;
+  label?: string;
+  index?: number;
+  level?: string;
+  limit?: number;
   keys?: string;
   x?: number;
   y?: number;
@@ -29,6 +41,8 @@ export type BrowserActionOptions = {
 
 export type ScreenshotOptions = {
   includeDataUrl?: boolean;
+  fullPage?: boolean;
+  clip?: BrowserElementBoundingBox;
 };
 
 export type SnapshotOptions = {
@@ -114,6 +128,23 @@ export class BrowserConnectorManager {
     return client.request("tabs.open", { url, reason, active: options.active });
   };
 
+  closeTab = async (
+    tabRef: string,
+    reason: string,
+    confirmed: boolean,
+  ): Promise<BrowserTabCloseResult> => {
+    const auditRepository = await this.createAuditRepository();
+    const client = await this.createClient();
+    await auditRepository.appendEvent({
+      command: "tabs.close",
+      reason,
+      tabRef,
+      at: new Date().toISOString(),
+    });
+
+    return client.request("tabs.close", { tabRef, reason, confirmed });
+  };
+
   claimTab = async (
     tabRef: string,
     reason: string,
@@ -163,6 +194,14 @@ export class BrowserConnectorManager {
     return client.request("page.locate", { leaseId, text });
   };
 
+  inspectPage = async (
+    leaseId: string,
+    target: BrowserElementTarget,
+  ): Promise<BrowserPageInspectResult> => {
+    const client = await this.createClient();
+    return client.request("page.inspect", { leaseId, ...target });
+  };
+
   screenshotPage = async (
     leaseId: string,
     options: ScreenshotOptions = {},
@@ -171,6 +210,8 @@ export class BrowserConnectorManager {
     return client.request("page.screenshot", {
       leaseId,
       includeDataUrl: options.includeDataUrl ?? true,
+      fullPage: options.fullPage ?? false,
+      clip: options.clip,
     });
   };
 
@@ -181,10 +222,18 @@ export class BrowserConnectorManager {
       | "page.back"
       | "page.forward"
       | "page.click"
+      | "page.fill"
       | "page.type"
+      | "page.check"
+      | "page.uncheck"
+      | "page.select"
       | "page.press"
       | "page.scroll"
-      | "page.wait",
+      | "page.wait"
+      | "page.wait-url"
+      | "page.wait-load"
+      | "page.wait-element"
+      | "page.logs",
     options: BrowserActionOptions,
   ): Promise<BrowserActionResult> => {
     const auditRepository = await this.createAuditRepository();

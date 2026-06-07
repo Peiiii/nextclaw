@@ -10,12 +10,23 @@ export type PageActionOptions = {
   lease?: string;
   selector?: string;
   ref?: string;
+  frameSelector?: string;
+  mode?: string;
   interactive?: boolean;
   url?: string;
   text?: string;
+  state?: string;
+  value?: string;
+  label?: string;
+  index?: number;
+  level?: string;
+  limit?: number;
   keys?: string;
   x?: number;
   y?: number;
+  width?: number;
+  height?: number;
+  fullPage?: boolean;
   reason?: string;
   confirmed?: boolean;
   timeoutMs?: number;
@@ -49,13 +60,34 @@ export class PageController {
     ),
   });
 
+  inspect = async (
+    options: PageActionOptions,
+  ): Promise<BrowserConnectorCommandOutput> => {
+    const { frameSelector, lease, ref, selector } = options;
+    this.assertElementTarget("page inspect", options);
+
+    return {
+      ok: true,
+      inspect: await this.browserConnectorManager.inspectPage(
+        required(lease, "--lease"),
+        {
+          selector,
+          ref,
+          frameSelector,
+        },
+      ),
+    };
+  };
+
   screenshot = async (
     options: PageActionOptions,
   ): Promise<BrowserConnectorCommandOutput> => {
-    const { lease, output, includeDataUrl } = options;
+    const { lease, output, includeDataUrl, fullPage, x, y, width, height } = options;
     const leaseId = required(lease, "--lease");
     const screenshot = await this.browserConnectorManager.screenshotPage(leaseId, {
       includeDataUrl: true,
+      fullPage: fullPage ?? false,
+      clip: buildClip({ x, y, width, height }),
     });
 
     if (!output) {
@@ -109,14 +141,54 @@ export class PageController {
   click = async (
     options: PageActionOptions,
   ): Promise<BrowserConnectorCommandOutput> => {
-    this.assertClickTarget(options);
+    this.assertElementTarget("page click", options);
     return this.runAction("page.click", options);
+  };
+
+  fill = async (
+    options: PageActionOptions,
+  ): Promise<BrowserConnectorCommandOutput> => {
+    this.assertElementTarget("page fill", options);
+    required(options.text, "--text");
+    this.assertTextEntryMode(options.mode);
+    return this.runAction("page.fill", options);
   };
 
   type = async (
     options: PageActionOptions,
-  ): Promise<BrowserConnectorCommandOutput> =>
-    this.runAction("page.type", options);
+  ): Promise<BrowserConnectorCommandOutput> => {
+    this.assertElementTarget("page type", options);
+    required(options.text, "--text");
+    this.assertTextEntryMode(options.mode);
+    return this.runAction("page.type", options);
+  };
+
+  check = async (
+    options: PageActionOptions,
+  ): Promise<BrowserConnectorCommandOutput> => {
+    this.assertElementTarget("page check", options);
+    return this.runAction("page.check", options);
+  };
+
+  uncheck = async (
+    options: PageActionOptions,
+  ): Promise<BrowserConnectorCommandOutput> => {
+    this.assertElementTarget("page uncheck", options);
+    return this.runAction("page.uncheck", options);
+  };
+
+  select = async (
+    options: PageActionOptions,
+  ): Promise<BrowserConnectorCommandOutput> => {
+    this.assertElementTarget("page select", options);
+    if (!options.value && !options.label && options.index === undefined) {
+      throw new BrowserConnectorError(
+        "INVALID_ARGUMENT",
+        "page select requires --value, --label, or --index.",
+      );
+    }
+    return this.runAction("page.select", options);
+  };
 
   press = async (
     options: PageActionOptions,
@@ -133,6 +205,35 @@ export class PageController {
   ): Promise<BrowserConnectorCommandOutput> =>
     this.runAction("page.wait", options);
 
+  waitUrl = async (
+    options: PageActionOptions,
+  ): Promise<BrowserConnectorCommandOutput> => {
+    required(options.url, "--url");
+    return this.runAction("page.wait-url", options);
+  };
+
+  waitLoad = async (
+    options: PageActionOptions,
+  ): Promise<BrowserConnectorCommandOutput> =>
+    this.runAction("page.wait-load", options);
+
+  waitElement = async (
+    options: PageActionOptions,
+  ): Promise<BrowserConnectorCommandOutput> =>
+    this.runAction("page.wait-element", options);
+
+  logs = async (
+    options: PageActionOptions,
+  ): Promise<BrowserConnectorCommandOutput> => ({
+    ok: true,
+    action: await this.browserConnectorManager.runPageAction("page.logs", {
+      leaseId: required(options.lease, "--lease"),
+      reason: "read current page logs",
+      level: options.level,
+      limit: options.limit,
+    }),
+  });
+
   private runAction = async (
     command:
       | "page.goto"
@@ -140,19 +241,26 @@ export class PageController {
       | "page.back"
       | "page.forward"
       | "page.click"
+      | "page.fill"
       | "page.type"
+      | "page.check"
+      | "page.uncheck"
+      | "page.select"
       | "page.press"
       | "page.scroll"
-      | "page.wait",
+      | "page.wait"
+      | "page.wait-url"
+      | "page.wait-load"
+      | "page.wait-element",
     options: PageActionOptions,
   ): Promise<BrowserConnectorCommandOutput> => {
-    const { lease, reason, confirmed, selector, ref, url, text, keys, x, y, timeoutMs } =
+    const { lease, reason, confirmed, selector, ref, frameSelector, mode, url, text, keys, x, y, timeoutMs, state, value, label, index } =
       options;
     const leaseId = required(lease, "--lease");
     const actionReason = required(reason, "--reason");
-    const targetUrl = command === "page.goto"
+    const actionUrl = command === "page.goto"
       ? normalizeOpenableUrl(url)
-      : undefined;
+      : url;
     this.browserSecurityPolicyService.assertWriteAllowed({
       command,
       reason: actionReason,
@@ -166,23 +274,29 @@ export class PageController {
         reason: actionReason,
         selector,
         ref,
-        url: targetUrl,
+        frameSelector,
+        mode,
+        url: actionUrl,
         text,
         keys,
         x,
         y,
         timeoutMs,
+        state,
+        value,
+        label,
+        index,
       }),
     };
   };
 
-  private assertClickTarget = (options: PageActionOptions): void => {
+  private assertElementTarget = (command: string, options: PageActionOptions): void => {
     const { selector, ref } = options;
 
     if (selector && ref) {
       throw new BrowserConnectorError(
         "INVALID_ARGUMENT",
-        "page click accepts either --selector or --ref, not both.",
+        `${command} accepts either --selector or --ref, not both.`,
         { recoverable: false },
       );
     }
@@ -190,12 +304,44 @@ export class PageController {
     if (!selector && !ref) {
       throw new BrowserConnectorError(
         "INVALID_ARGUMENT",
-        "page click requires --selector or --ref.",
+        `${command} requires --selector or --ref.`,
         { recoverable: false },
       );
     }
   };
+
+  private assertTextEntryMode = (mode: string | undefined): void => {
+    if (mode === undefined || mode === "direct" || mode === "paste") {
+      return;
+    }
+
+    throw new BrowserConnectorError(
+      "INVALID_ARGUMENT",
+      "page fill/type --mode must be direct or paste.",
+      { recoverable: false },
+    );
+  };
 }
+
+const buildClip = (
+  options: Pick<PageActionOptions, "x" | "y" | "width" | "height">,
+): { x: number; y: number; width: number; height: number } | undefined => {
+  const { x, y, width, height } = options;
+  const hasAny = x !== undefined || y !== undefined || width !== undefined || height !== undefined;
+
+  if (!hasAny) {
+    return undefined;
+  }
+
+  if (x === undefined || y === undefined || width === undefined || height === undefined) {
+    throw new BrowserConnectorError(
+      "INVALID_ARGUMENT",
+      "page screenshot clip requires --x, --y, --width, and --height together.",
+    );
+  }
+
+  return { x, y, width, height };
+};
 
 const required = (value: string | undefined, name: string): string => {
   if (!value) {

@@ -36,6 +36,7 @@ type ExtensionInfo = {
 
 export class NativeHostService {
   private readonly leaseManager = new BrowserLeaseManager();
+  private readonly connectorOpenedTabs = new Set<string>();
   private readonly pendingRequests = new Map<string, PendingExtensionRequest>();
   private ipcServer?: LocalIpcServerService;
   private extensionInfo?: ExtensionInfo;
@@ -104,6 +105,30 @@ export class NativeHostService {
         request.payload,
       );
       return this.leaseManager.createLease(tab);
+    }
+
+    if (request.command === "tabs.open") {
+      const tab = await this.forwardToExtension<BrowserTabInfo>(
+        request.command,
+        request.payload,
+      );
+      this.connectorOpenedTabs.add(tab.tabRef);
+      return tab;
+    }
+
+    if (request.command === "tabs.close") {
+      const tabRef = assertPayloadString(request.payload, "tabRef");
+      const ownedByConnector = this.connectorOpenedTabs.has(tabRef);
+      if (!ownedByConnector && request.payload?.confirmed !== true) {
+        throw new BrowserConnectorError(
+          "ACTION_REQUIRES_CONFIRMATION",
+          "tabs.close requires confirmed user approval for tabs not opened by Browser Connector.",
+          { recoverable: true },
+        );
+      }
+      await this.forwardToExtension(request.command, request.payload);
+      this.connectorOpenedTabs.delete(tabRef);
+      return { closed: true, tabRef, ownedByConnector };
     }
 
     if (request.command === "tabs.get" || request.command === "tabs.selected") {

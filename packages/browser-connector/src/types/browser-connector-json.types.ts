@@ -3,8 +3,10 @@ import type {
   BrowserConnectorStatus,
   BrowserExtensionReloadResult,
   BrowserPageLocateResult,
+  BrowserPageInspectResult,
   BrowserPageSnapshot,
   BrowserScreenshot,
+  BrowserTabCloseResult,
   BrowserTabInfo,
   BrowserTabLease,
 } from "@/types/browser-connector.types.js";
@@ -20,6 +22,7 @@ export const SUPPORTED_BROWSER_IPC_COMMANDS = [
   "tabs.selected",
   "tabs.open",
   "tabs.claim",
+  "tabs.close",
   "tabs.finalize",
   "page.snapshot",
   "page.screenshot",
@@ -28,11 +31,20 @@ export const SUPPORTED_BROWSER_IPC_COMMANDS = [
   "page.back",
   "page.forward",
   "page.locate",
+  "page.inspect",
   "page.click",
+  "page.fill",
   "page.type",
+  "page.check",
+  "page.uncheck",
+  "page.select",
   "page.press",
   "page.scroll",
   "page.wait",
+  "page.wait-url",
+  "page.wait-load",
+  "page.wait-element",
+  "page.logs",
 ] as const;
 
 export type BrowserIpcCommand = (typeof SUPPORTED_BROWSER_IPC_COMMANDS)[number];
@@ -91,9 +103,11 @@ export type BrowserCommandData =
   | BrowserExtensionReloadResult
   | { tabs: BrowserTabInfo[] }
   | BrowserTabInfo
+  | BrowserTabCloseResult
   | BrowserTabLease
   | BrowserPageSnapshot
   | BrowserPageLocateResult
+  | BrowserPageInspectResult
   | BrowserScreenshot
   | BrowserActionResult
   | { finalized: true; leaseId: string };

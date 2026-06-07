@@ -25,7 +25,8 @@ This is a wrapped external tool skill:
 - Locate ref-addressable interactive elements by text, label, placeholder, role, or kind.
 - Capture a visible-tab screenshot, optionally writing it to a local PNG file.
 - Navigate a claimed tab with goto, reload, back, and forward.
-- Click, type, press keys, scroll, and wait for text through the connector.
+- Inspect elements, fill editable fields with verified state, click, type, press
+  keys, scroll, wait, and read captured page logs through the connector.
 - Release the tab lease when done.
 
 ## What This Skill Does Not Cover
@@ -165,6 +166,14 @@ Use the returned `ref`, `role`, `kind`, `text`, `ariaLabel`, `placeholder`,
 `visible`, `disabled`, `unique`, and `boundingBox` fields to disambiguate repeated
 labels such as multiple `Create` controls.
 
+Before filling, clicking, checking, selecting, or waiting on a complex element,
+use `page inspect` when uniqueness or enabled/editable state is not already clear:
+
+```bash
+browser-connector page inspect --lease "<leaseId>" --ref "<ref>" --json
+browser-connector page inspect --lease "<leaseId>" --selector "<selector>" --json
+```
+
 Use screenshot only when visual layout matters:
 
 ```bash
@@ -181,12 +190,35 @@ browser-connector page back --lease "<leaseId>" --reason "<why going back>" --js
 browser-connector page forward --lease "<leaseId>" --reason "<why going forward>" --json
 browser-connector page click --lease "<leaseId>" --selector "<selector>" --reason "<why clicking>" --json
 browser-connector page click --lease "<leaseId>" --ref "<ref>" --reason "<why clicking>" --json
-browser-connector page type --lease "<leaseId>" --selector "<selector>" --text "<text>" --reason "<why typing>" --json
+browser-connector page fill --lease "<leaseId>" --selector "<selector>" --text "<text>" --reason "<why filling>" --json
+browser-connector page fill --lease "<leaseId>" --selector "<selector>" --mode paste --text "<text>" --reason "<why filling rich editor>" --json
+browser-connector page fill --lease "<leaseId>" --ref "<ref>" --text "<text>" --reason "<why filling>" --json
+browser-connector page type --lease "<leaseId>" --selector "<selector>" --text "<text>" --reason "<why typing legacy field>" --json
+browser-connector page check --lease "<leaseId>" --selector "<selector>" --reason "<why checking>" --json
+browser-connector page uncheck --lease "<leaseId>" --selector "<selector>" --reason "<why unchecking>" --json
+browser-connector page select --lease "<leaseId>" --selector "<selector>" --value "<value>" --reason "<why selecting>" --json
 browser-connector page scroll --lease "<leaseId>" --y 600 --reason "<why scrolling>" --json
 browser-connector page wait --lease "<leaseId>" --text "<expected text>" --timeout-ms 5000 --reason "<why waiting>" --json
+browser-connector page wait-url --lease "<leaseId>" --url "<expected-url-text>" --reason "<why waiting>" --json
+browser-connector page wait-load --lease "<leaseId>" --reason "<why waiting>" --json
+browser-connector page wait-element --lease "<leaseId>" --text "<expected text>" --reason "<why waiting>" --json
+browser-connector page logs --lease "<leaseId>" --level error --limit 20 --json
 ```
 
-7. Verify the result with snapshot, screenshot, wait, URL, or title change.
+For normal form entry, prefer `page fill` over `page type` because `fill` returns
+post-input evidence such as `valueLength`, `preview`, `changed`, and
+`matchedExpectedText`. Start with the default direct mode for native inputs.
+When a complex editor returns field-level success but the visible page/editor
+model still lacks the text, retry explicitly with `page fill --mode paste` and
+verify `pageTextMatched`, a follow-up `page inspect`, or `page wait-element`.
+For complex editors that already contain text, also verify old text disappeared;
+if the editor appended instead of replaced, stop and report the limitation
+rather than submitting or publishing.
+Do not use OS clipboard paste as a hidden text-entry fallback.
+
+7. Verify the result with the action result first, then snapshot, screenshot,
+wait, URL, title change, or logs only when the next decision still needs more
+evidence.
 
 8. Always finalize:
 

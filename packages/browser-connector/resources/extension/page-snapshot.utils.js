@@ -53,11 +53,16 @@ export function collectPageSnapshot(maxTextLength) {
     return parts.join(" > ") || element.tagName.toLowerCase();
   };
   const selectorFor = (element) => {
+    const candidates = selectorCandidatesFor(element);
+    return candidates.find(isUniqueSelector) ?? candidates[0] ?? element.tagName.toLowerCase();
+  };
+  const selectorCandidatesFor = (element) => {
+    const candidates = [];
     if (element.id) {
-      return `#${CSS.escape(element.id)}`;
+      candidates.push(`#${CSS.escape(element.id)}`);
     }
     const tagName = element.tagName.toLowerCase();
-    const candidates = [
+    candidates.push(...[
       attributeSelector(tagName, element, "data-testid"),
       attributeSelector(tagName, element, "data-test"),
       attributeSelector(tagName, element, "data-cy"),
@@ -65,8 +70,9 @@ export function collectPageSnapshot(maxTextLength) {
       attributeSelector(tagName, element, "aria-label"),
       attributeSelector(tagName, element, "placeholder"),
       attributeSelector(tagName, element, "href"),
-    ].filter(Boolean);
-    return candidates.find(isUniqueSelector) ?? cssPathFor(element);
+    ].filter(Boolean));
+    candidates.push(cssPathFor(element));
+    return Array.from(new Set(candidates));
   };
   const visibleText = (element) => {
     const elementText = element.innerText || element.textContent || "";
@@ -87,17 +93,30 @@ export function collectPageSnapshot(maxTextLength) {
   };
   const isDisabled = (element) =>
     Boolean(element.disabled) || element.getAttribute("aria-disabled") === "true";
+  const isEditable = (element) => {
+    const tagName = element.tagName.toLowerCase();
+    const inputType = element.getAttribute("type");
+    return element.isContentEditable || tagName === "textarea" || tagName === "select" || (tagName === "input" && inputType !== "hidden");
+  };
+  const valueFor = (element) => "value" in element ? String(element.value ?? "") : "";
   const nodeFor = (element) => {
     const stableSelector = selectorFor(element);
+    const value = valueFor(element);
+    const disabled = isDisabled(element);
     return {
       selector: stableSelector,
+      selectorCandidates: selectorCandidatesFor(element),
       text: visibleText(element),
       ariaLabel: element.getAttribute("aria-label") ?? undefined,
       placeholder: element.getAttribute("placeholder") ?? undefined,
       role: element.getAttribute("role") ?? implicitRole(element),
       tagName: element.tagName.toLowerCase(),
       visible: isVisible(element),
-      disabled: isDisabled(element),
+      disabled,
+      enabled: !disabled,
+      editable: isEditable(element),
+      value: value || undefined,
+      valueLength: value.length,
       unique: isUniqueSelector(stableSelector),
     };
   };
@@ -122,6 +141,7 @@ export function collectPageSnapshot(maxTextLength) {
     links: collectNodes("a[href]", 50),
     buttons: collectNodes("button,[role='button'],input[type='button'],input[type='submit']", 50),
     inputs: collectNodes("input,textarea,select", 50),
+    frames: collectNodes("iframe", 25),
     interactive: [],
     truncated: text.length > maxTextLength,
     warning: "untrusted-browser-page-content",
@@ -130,11 +150,7 @@ export function collectPageSnapshot(maxTextLength) {
 
 export function collectInteractiveNodes() {
   const isUniqueSelector = (selector) => {
-    try {
-      return document.querySelectorAll(selector).length === 1;
-    } catch {
-      return false;
-    }
+    try { return document.querySelectorAll(selector).length === 1; } catch { return false; }
   };
   const quotedAttribute = (value) =>
     String(value).replaceAll("\\", "\\\\").replaceAll("\"", "\\\"");
@@ -160,11 +176,16 @@ export function collectInteractiveNodes() {
     return parts.join(" > ") || element.tagName.toLowerCase();
   };
   const selectorFor = (element) => {
+    const candidates = selectorCandidatesFor(element);
+    return candidates.find(isUniqueSelector) ?? candidates[0] ?? element.tagName.toLowerCase();
+  };
+  const selectorCandidatesFor = (element) => {
+    const candidates = [];
     if (element.id) {
-      return `#${CSS.escape(element.id)}`;
+      candidates.push(`#${CSS.escape(element.id)}`);
     }
     const tagName = element.tagName.toLowerCase();
-    const candidates = [
+    candidates.push(...[
       attributeSelector(tagName, element, "data-testid"),
       attributeSelector(tagName, element, "data-test"),
       attributeSelector(tagName, element, "data-cy"),
@@ -172,8 +193,9 @@ export function collectInteractiveNodes() {
       attributeSelector(tagName, element, "aria-label"),
       attributeSelector(tagName, element, "placeholder"),
       attributeSelector(tagName, element, "href"),
-    ].filter(Boolean);
-    return candidates.find(isUniqueSelector) ?? cssPathFor(element);
+    ].filter(Boolean));
+    candidates.push(cssPathFor(element));
+    return Array.from(new Set(candidates));
   };
   const visibleText = (element) => {
     const elementText = element.innerText || element.textContent || "";
@@ -193,6 +215,12 @@ export function collectInteractiveNodes() {
     return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
   };
   const isDisabled = (element) => Boolean(element.disabled) || element.getAttribute("aria-disabled") === "true";
+  const isEditable = (element) => {
+    const tagName = element.tagName.toLowerCase();
+    const inputType = element.getAttribute("type");
+    return element.isContentEditable || tagName === "textarea" || tagName === "select" || (tagName === "input" && inputType !== "hidden");
+  };
+  const valueFor = (element) => "value" in element ? String(element.value ?? "") : "";
   const boundingBox = (element) => {
     const rect = element.getBoundingClientRect();
     return { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) };
@@ -203,17 +231,13 @@ export function collectInteractiveNodes() {
       parsed.search = "";
       parsed.hash = "";
       return parsed.toString();
-    } catch {
-      return url;
-    }
+    } catch { return url; }
   };
   const hrefFor = (element) => {
     const href = element.getAttribute("href");
     try {
       return href ? redactPageUrl(new URL(href, location.href).toString()) : undefined;
-    } catch {
-      return undefined;
-    }
+    } catch { return undefined; }
   };
   const kindFor = (element) => {
     const tagName = element.tagName.toLowerCase();
@@ -226,10 +250,6 @@ export function collectInteractiveNodes() {
   const nativeTags = ["a", "button", "input", "textarea", "select", "summary"];
   const roleIsInteractive = (role) => interactiveRoles.includes(role);
   const explicitInteractiveSelector = nativeTags.concat(interactiveRoles.map((role) => `[role='${role}']`)).join(",");
-  const hasExplicitInteractiveDescendant = (element) =>
-    Boolean(element.querySelector(explicitInteractiveSelector));
-  const hasExplicitInteractiveAncestor = (element) =>
-    Boolean(element.parentElement?.closest(explicitInteractiveSelector));
   const isInteractiveCandidate = (element) => {
     if (!isVisible(element) || isDisabled(element) || element.getAttribute("aria-hidden") === "true") {
       return false;
@@ -247,7 +267,7 @@ export function collectInteractiveNodes() {
 
     const genericInteractive = element.hasAttribute("onclick") || (Number.isInteger(tabIndex) && tabIndex >= 0) || element.isContentEditable || style.cursor === "pointer";
 
-    if (!genericInteractive || hasExplicitInteractiveDescendant(element) || hasExplicitInteractiveAncestor(element)) {
+    if (!genericInteractive || element.querySelector(explicitInteractiveSelector) || element.parentElement?.closest(explicitInteractiveSelector)) {
       return false;
     }
 
@@ -256,14 +276,17 @@ export function collectInteractiveNodes() {
   };
   const nodeFor = (element, ref) => {
     const stableSelector = selectorFor(element);
+    const value = valueFor(element);
+    const disabled = isDisabled(element);
     return {
-      ref, selector: stableSelector, text: visibleText(element),
+      ref, elementId: ref, selector: stableSelector, selectorCandidates: selectorCandidatesFor(element), text: visibleText(element),
       ariaLabel: element.getAttribute("aria-label") ?? undefined,
       placeholder: element.getAttribute("placeholder") ?? undefined,
       role: element.getAttribute("role") ?? implicitRole(element), kind: kindFor(element), tagName: element.tagName.toLowerCase(),
       inputType: element.getAttribute("type") ?? undefined,
       href: hrefFor(element), boundingBox: boundingBox(element), visible: isVisible(element),
-      disabled: isDisabled(element), unique: isUniqueSelector(stableSelector),
+      disabled, enabled: !disabled, editable: isEditable(element), value: value || undefined,
+      valueLength: value.length, unique: isUniqueSelector(stableSelector),
     };
   };
   const candidates = [];

@@ -124,7 +124,8 @@
 - T6 已实现源码与测试：`page screenshot` 支持 `--output <file>`，默认可不回传大 data URL。
 - T7 已完成核心真实验证：用户手动 reload 后，E00/E01/E02/E03/E04/E05/E06/E07/E09/E10/E11/E12 已跑通并回写评估集。
 - 2026-06-07 追加修正：Suno 真实会话证明“复杂页面 selector 生成增强”仍不足以支撑无截图模型定位底部 Create 按钮；已补结构化交互方案，并实现 `page snapshot --interactive`、`page locate --text` 与 `page click --ref`。
-- 长期方向：DOM node id / locator API 仍可继续增强，但当前 P1 闭环优先依赖 ref-addressable interactive candidates。
+- 2026-06-07 彻底对齐整改：Suno 歌词会话证明“动作执行成功”仍不足以让弱模型稳定推进；已新增 `page inspect`、`page fill`、动作后状态证据、`wait-url/wait-load/wait-element`、`page logs`、`check/uncheck/select`、full-page/clip screenshot 与 `tabs close`。
+- 长期方向：DOM node id / scoped locator 仍可继续增强，但当前 P0/P1 主链路优先依赖 ref-addressable candidates、inspect 和 verified fill。
 
 本状态表示本轮闭环达到可用标准；剩余 P2/P3 进入后续增强，不阻塞当前交付。
 

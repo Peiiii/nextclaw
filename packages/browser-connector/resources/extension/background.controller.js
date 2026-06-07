@@ -1,35 +1,17 @@
-/* global chrome, crypto, document, MouseEvent, InputEvent, Event, KeyboardEvent, window */
+/* global chrome, crypto */
 
 import { collectInteractiveNodes, collectPageSnapshot } from "./page-snapshot.utils.js";
+import { assertWebUrl, toBrowserTabInfo, waitForTabReady } from "./browser-tab.utils.js";
+import { SUPPORTED_COMMANDS } from "./browser-commands.constants.js";
+import { capturePageScreenshot } from "./page-screenshot.utils.js";
 
 const HOST_NAME = "com.nextclaw.browserconnector";
 const PROTOCOL_VERSION = 1;
 const MAX_TEXT_LENGTH = 12000;
 const RECONNECT_DELAY_MS = 2000;
 const TAB_READY_TIMEOUT_MS = 10000;
-const SUPPORTED_COMMANDS = [
-  "browser.status",
-  "extension.reload",
-  "tabs.list",
-  "tabs.get",
-  "tabs.selected",
-  "tabs.open",
-  "tabs.claim",
-  "tabs.finalize",
-  "page.snapshot",
-  "page.screenshot",
-  "page.goto",
-  "page.reload",
-  "page.back",
-  "page.forward",
-  "page.locate",
-  "page.click",
-  "page.type",
-  "page.press",
-  "page.scroll",
-  "page.wait",
-];
-
+const PAGE_ACTION_SCRIPT_FILES = ["page-action-dom.utils.js", "page-action-runner.utils.js"];
+const PAGE_ACTION_RUNNER_NAME = "__nextclawBrowserConnectorRunPageAction";
 class BrowserConnectorExtensionError extends Error {
   constructor(code, message, recoverable = true) {
     super(message);
@@ -156,10 +138,16 @@ async function dispatchRequest(command, payload) {
       return openTab(payload.url, payload.active !== false);
     case "tabs.claim":
       return claimTab(payload.tabRef);
+    case "tabs.close":
+      return closeTab(payload.tabRef);
     case "page.snapshot":
       return snapshotPage(payload.tabRef, payload.interactive === true);
     case "page.screenshot":
-      return screenshotPage(payload.tabRef, payload.includeDataUrl !== false);
+      return screenshotPage(payload.tabRef, {
+        includeDataUrl: payload.includeDataUrl !== false,
+        fullPage: payload.fullPage === true,
+        clip: payload.clip,
+      });
     case "page.goto":
       return navigateToUrl(payload.tabRef, payload.url);
     case "page.reload":
@@ -170,19 +158,34 @@ async function dispatchRequest(command, payload) {
       return goForward(payload.tabRef);
     case "page.locate":
       return locatePage(payload.tabRef, payload.text);
+    case "page.inspect":
+      return inspectPage(payload.tabRef, payload);
     case "page.click":
-      return clickPage(payload.tabRef, payload.selector, payload.ref);
+      return clickPage(payload.tabRef, payload.selector, payload.ref, payload.frameSelector);
+    case "page.fill":
+      return fillPage(payload.tabRef, payload.selector, payload.ref, payload.text, payload.frameSelector, payload.mode);
     case "page.type":
-      return executePageScript(payload.tabRef, typeIntoElement, [
-        payload.selector,
-        payload.text,
-      ]);
+      return fillPage(payload.tabRef, payload.selector, payload.ref, payload.text, payload.frameSelector, payload.mode, "page.type");
+    case "page.check":
+      return checkPage(payload.tabRef, payload.selector, payload.ref, payload.frameSelector);
+    case "page.uncheck":
+      return uncheckPage(payload.tabRef, payload.selector, payload.ref, payload.frameSelector);
+    case "page.select":
+      return selectPage(payload.tabRef, payload);
     case "page.press":
-      return executePageScript(payload.tabRef, pressKeys, [payload.keys]);
+      return runPageActionScript(payload.tabRef, "press", { keys: payload.keys });
     case "page.scroll":
-      return executePageScript(payload.tabRef, scrollPage, [payload.x ?? 0, payload.y ?? 0]);
+      return runPageActionScript(payload.tabRef, "scroll", { x: payload.x ?? 0, y: payload.y ?? 0 });
     case "page.wait":
       return waitForText(payload.tabRef, payload.text, payload.timeoutMs ?? 5000);
+    case "page.wait-url":
+      return runPageActionScript(payload.tabRef, "wait-url", { url: payload.url, timeoutMs: payload.timeoutMs ?? 5000 });
+    case "page.wait-load":
+      return runPageActionScript(payload.tabRef, "wait-load", { state: payload.state, timeoutMs: payload.timeoutMs ?? 5000 });
+    case "page.wait-element":
+      return waitForPageElement(payload.tabRef, payload);
+    case "page.logs":
+      return logsPage(payload.tabRef, payload);
     default:
       throw new BrowserConnectorExtensionError(
         "UNSUPPORTED_COMMAND",
@@ -224,10 +227,19 @@ async function selectedTab() {
 
 async function openTab(url, active) {
   const tab = await chrome.tabs.create({
-    url: assertWebUrl(url, "tabs.open"),
+    url: assertWebUrl(url, "tabs.open", createExtensionError),
     active,
   });
-  return toBrowserTabInfo(await waitForTabReady(tab.id, TAB_READY_TIMEOUT_MS));
+  return toBrowserTabInfo(await waitForTabReady(tab.id, TAB_READY_TIMEOUT_MS, createExtensionError));
+}
+
+async function closeTab(tabRef) {
+  const tab = await getTabByRef(tabRef);
+  await chrome.tabs.remove(tab.id);
+  return {
+    closed: true,
+    tabRef,
+  };
 }
 
 async function snapshotPage(tabRef, includeInteractive = false) {
@@ -267,16 +279,104 @@ async function locatePage(tabRef, text) {
   };
 }
 
-async function clickPage(tabRef, selector, ref) {
-  const targetSelector = typeof selector === "string" && selector.length > 0
-    ? selector
-    : await resolveSelectorByRef(tabRef, ref);
-  return executePageScript(tabRef, clickElement, [{ selector: targetSelector, ref }]);
+async function inspectPage(tabRef, payload) {
+  const targetSelector = await resolveActionSelector(tabRef, payload.selector, payload.ref, "page.inspect");
+  return runPageActionScript(tabRef, "inspect", {
+    selector: targetSelector,
+    ref: payload.ref,
+    frameSelector: payload.frameSelector,
+  }).then((element) => ({
+    tab: element.tab,
+    target: {
+      selector: targetSelector,
+      ref: payload.ref,
+      frameSelector: payload.frameSelector,
+    },
+    element: stripActionTab(element),
+    warning: "untrusted-browser-page-content",
+  }));
 }
 
-async function resolveSelectorByRef(tabRef, ref) {
+async function clickPage(tabRef, selector, ref, frameSelector) {
+  const targetSelector = await resolveActionSelector(tabRef, selector, ref, "page.click");
+  return runPageActionScript(tabRef, "click", { selector: targetSelector, ref, frameSelector });
+}
+
+async function fillPage(tabRef, selector, ref, text, frameSelector, mode = "direct", actionName = "page.fill") {
+  const targetSelector = await resolveActionSelector(tabRef, selector, ref, actionName);
+  const result = await runPageActionScript(tabRef, "fill", {
+    selector: targetSelector,
+    ref,
+    text,
+    frameSelector,
+    mode,
+  });
+  return { ...result, action: actionName };
+}
+
+async function checkPage(tabRef, selector, ref, frameSelector) {
+  const targetSelector = await resolveActionSelector(tabRef, selector, ref, "page.check");
+  return runPageActionScript(tabRef, "check", { selector: targetSelector, ref, frameSelector });
+}
+
+async function uncheckPage(tabRef, selector, ref, frameSelector) {
+  const targetSelector = await resolveActionSelector(tabRef, selector, ref, "page.uncheck");
+  return runPageActionScript(tabRef, "uncheck", { selector: targetSelector, ref, frameSelector });
+}
+
+async function selectPage(tabRef, payload) {
+  const targetSelector = await resolveActionSelector(tabRef, payload.selector, payload.ref, "page.select");
+  return runPageActionScript(tabRef, "select", {
+    selector: targetSelector,
+    ref: payload.ref,
+    frameSelector: payload.frameSelector,
+    value: payload.value,
+    label: payload.label,
+    index: payload.index,
+  });
+}
+
+async function waitForPageElement(tabRef, payload) {
+  const targetSelector = payload.selector || (payload.ref
+    ? await resolveActionSelector(tabRef, payload.selector, payload.ref, "page.wait-element")
+    : undefined);
+  return runPageActionScript(tabRef, "wait-element", {
+    selector: targetSelector ?? "body",
+    ref: payload.ref,
+    frameSelector: payload.frameSelector,
+    text: payload.text,
+    timeoutMs: payload.timeoutMs ?? 5000,
+  });
+}
+
+async function logsPage(tabRef, payload) {
+  const tab = await getTabByRef(tabRef);
+  await executePageAction(tab.id, "logs-install", {}, "page.logs install", "MAIN");
+  const [result] = await executePageAction(tab.id, "logs-read", {
+    level: payload.level,
+    limit: payload.limit,
+  }, "page.logs", "MAIN");
+  const logs = requiredInjectionResult(result, "page.logs");
+  return {
+    tab: toBrowserTabInfo(await chrome.tabs.get(tab.id)),
+    ...logs,
+  };
+}
+
+async function runPageActionScript(tabRef, action, payload) {
+  return executePageScript(tabRef, action, payload);
+}
+
+async function resolveActionSelector(tabRef, selector, ref, command) {
+  const targetSelector = typeof selector === "string" && selector.length > 0
+    ? selector
+    : await resolveSelectorByRef(tabRef, ref, command);
+  return targetSelector;
+}
+
+async function resolveSelectorByRef(tabRef, ref, command = "page action") {
   if (typeof ref !== "string" || ref.length === 0) {
-    throw new BrowserConnectorExtensionError("INVALID_ARGUMENT", "page.click requires selector or ref.", false);
+    throw new BrowserConnectorExtensionError("INVALID_ARGUMENT", `${command} requires selector or ref.`, false);
   }
 
   const snapshot = await snapshotPage(tabRef, true);
@@ -285,6 +385,12 @@ async function resolveSelectorByRef(tabRef, ref) {
     throw new BrowserConnectorExtensionError("INVALID_ARGUMENT", `Interactive ref not found: ${ref}. Run page locate or page snapshot --interactive again.`, true);
   }
   return candidate.selector;
+}
+
+function stripActionTab(result) {
+  const rest = { ...result };
+  delete rest.tab;
+  return rest;
 }
 
 function candidateMatches(candidate, needle) {
@@ -298,52 +404,34 @@ function candidateMatches(candidate, needle) {
   ].some((value) => String(value ?? "").toLowerCase().includes(needle));
 }
 
-async function screenshotPage(tabRef, includeDataUrl) {
+async function screenshotPage(tabRef, options) {
   const tab = await getTabByRef(tabRef);
-  const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
-    format: "png",
-  });
   return {
     tab: toBrowserTabInfo(tab),
-    dataUrl: includeDataUrl ? dataUrl : undefined,
-    mimeType: "image/png",
+    ...await capturePageScreenshot(tab, options, async (action, payload, label) => {
+      const [result] = await executePageAction(tab.id, action, payload, label);
+      return requiredInjectionResult(result, label);
+    }),
   };
 }
 
 async function navigateToUrl(tabRef, url) {
   const tab = await getTabByRef(tabRef);
-  await chrome.tabs.update(tab.id, { url: assertWebUrl(url, "page.goto"), active: true });
+  await chrome.tabs.update(tab.id, {
+    url: assertWebUrl(url, "page.goto", createExtensionError),
+    active: true,
+  });
   return {
-    tab: toBrowserTabInfo(await waitForTabReady(tab.id, TAB_READY_TIMEOUT_MS)),
+    tab: toBrowserTabInfo(await waitForTabReady(tab.id, TAB_READY_TIMEOUT_MS, createExtensionError)),
     action: "page.goto",
   };
-}
-
-function assertWebUrl(url, command) {
-  if (typeof url !== "string" || url.length === 0) {
-    throw new BrowserConnectorExtensionError("INVALID_ARGUMENT", `${command} requires url.`, false);
-  }
-
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      throw new Error("Unsupported protocol");
-    }
-    return parsed.toString();
-  } catch {
-    throw new BrowserConnectorExtensionError(
-      "INVALID_ARGUMENT",
-      `${command} requires an http or https URL.`,
-      false,
-    );
-  }
 }
 
 async function reloadTab(tabRef) {
   const tab = await getTabByRef(tabRef);
   await chrome.tabs.reload(tab.id);
   return {
-    tab: toBrowserTabInfo(await waitForTabReady(tab.id, TAB_READY_TIMEOUT_MS)),
+    tab: toBrowserTabInfo(await waitForTabReady(tab.id, TAB_READY_TIMEOUT_MS, createExtensionError)),
     action: "page.reload",
   };
 }
@@ -352,7 +440,7 @@ async function goBack(tabRef) {
   const tab = await getTabByRef(tabRef);
   await chrome.tabs.goBack(tab.id);
   return {
-    tab: toBrowserTabInfo(await waitForTabReady(tab.id, TAB_READY_TIMEOUT_MS)),
+    tab: toBrowserTabInfo(await waitForTabReady(tab.id, TAB_READY_TIMEOUT_MS, createExtensionError)),
     action: "page.back",
   };
 }
@@ -361,7 +449,7 @@ async function goForward(tabRef) {
   const tab = await getTabByRef(tabRef);
   await chrome.tabs.goForward(tab.id);
   return {
-    tab: toBrowserTabInfo(await waitForTabReady(tab.id, TAB_READY_TIMEOUT_MS)),
+    tab: toBrowserTabInfo(await waitForTabReady(tab.id, TAB_READY_TIMEOUT_MS, createExtensionError)),
     action: "page.forward",
   };
 }
@@ -387,14 +475,27 @@ async function waitForText(tabRef, text, timeoutMs) {
   );
 }
 
-async function executePageScript(tabRef, func, args) {
+async function executePageScript(tabRef, actionName, payload) {
   const tab = await getTabByRef(tabRef);
-  const [result] = await executeScript(tab.id, func, args, "page action");
+  const [result] = await executePageAction(tab.id, actionName, payload, "page action");
   const action = requiredInjectionResult(result, "page action");
   return {
     tab: toBrowserTabInfo(await chrome.tabs.get(tab.id)),
     ...action,
   };
+}
+
+async function executePageAction(tabId, actionName, payload, action, world) {
+  await executeScriptFiles(tabId, PAGE_ACTION_SCRIPT_FILES, action, world);
+  return executeScript(tabId, invokeInjectedPageAction, [PAGE_ACTION_RUNNER_NAME, actionName, payload], action, world);
+}
+
+function invokeInjectedPageAction(runnerName, actionName, payload) {
+  const runner = globalThis[runnerName];
+  if (typeof runner !== "function") {
+    throw new Error(`Browser Connector page action runner is not installed: ${runnerName}`);
+  }
+  return runner(actionName, payload);
 }
 
 async function getTabByRef(tabRef) {
@@ -413,34 +514,18 @@ async function getTabByRef(tabRef) {
   }
 }
 
-async function waitForTabReady(tabId, timeoutMs) {
-  const startedAt = Date.now();
-  let latest = await chrome.tabs.get(tabId);
-
-  while (Date.now() - startedAt < timeoutMs) {
-    latest = await chrome.tabs.get(tabId);
-    if ((latest.url || latest.pendingUrl) && latest.status === "complete") {
-      return latest;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 150));
-  }
-
-  if (latest.url || latest.pendingUrl || latest.title) {
-    return latest;
-  }
-
-  throw new BrowserConnectorExtensionError(
-    "NAVIGATION_TIMEOUT",
-    `Timed out waiting for Chrome tab to load: chrome-tab:${tabId}`,
-  );
-}
-
-async function executeScript(tabId, func, args, action) {
+async function executeScript(tabId, func, args, action, world) {
   try {
-    return await chrome.scripting.executeScript({
+    const options = {
       target: { tabId },
       func,
       args,
+    };
+    if (world) {
+      options.world = world;
+    }
+    return await chrome.scripting.executeScript({
+      ...options,
     });
   } catch (error) {
     throw new BrowserConnectorExtensionError(
@@ -450,40 +535,22 @@ async function executeScript(tabId, func, args, action) {
   }
 }
 
-function toBrowserTabInfo(tab) {
-  return {
-    tabRef: `chrome-tab:${tab.id}`,
-    title: tab.title ?? "",
-    url: redactUrl(tab.url ?? ""),
-    active: Boolean(tab.active),
-    windowId: tab.windowId,
-    lastAccessed: tab.lastAccessed,
-    status: tab.status,
-    pendingUrl: tab.pendingUrl ? redactUrl(tab.pendingUrl) : undefined,
-  };
-}
-
-function redactUrl(url) {
+async function executeScriptFiles(tabId, files, action, world) {
   try {
-    const parsed = new URL(url);
-    parsed.pathname = parsed.pathname
-      .split("/")
-      .map(redactPathSegment)
-      .join("/");
-    parsed.search = "";
-    parsed.hash = "";
-    return parsed.toString();
-  } catch {
-    return url;
+    const options = {
+      target: { tabId },
+      files,
+    };
+    if (world) {
+      options.world = world;
+    }
+    return await chrome.scripting.executeScript(options);
+  } catch (error) {
+    throw new BrowserConnectorExtensionError(
+      "PAGE_SCRIPT_FAILED",
+      `${action} script injection failed. Reload the page or check whether Chrome allows script injection for this tab. ${error instanceof Error ? error.message : ""}`.trim(),
+    );
   }
-}
-
-function redactPathSegment(segment) {
-  if (/^sid_[A-Za-z0-9_-]+$/.test(segment)) {
-    return "sid_redacted";
-  }
-
-  return segment;
 }
 
 function requiredInjectionResult(result, action) {
@@ -497,62 +564,8 @@ function requiredInjectionResult(result, action) {
   return result.result;
 }
 
-function clickElement(target) {
-  const selector = typeof target?.selector === "string" ? target.selector : undefined;
-  const ref = typeof target?.ref === "string" ? target.ref : undefined;
-  const element = selector ? document.querySelector(selector) : undefined;
-  if (!element) {
-    throw new Error(`Element not found: ${selector ?? ref}`);
-  }
-  element.scrollIntoView({ block: "center", inline: "center" });
-  element.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
-  element.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
-  element.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
-  if (typeof element.click === "function") {
-    element.click();
-  }
-  return { action: "page.click", selector: selector ?? selectorForClickTarget(element), ref };
-}
-
-function selectorForClickTarget(element) {
-  if (element.id && window.CSS?.escape) {
-    return `#${window.CSS.escape(element.id)}`;
-  }
-  const tagName = element.tagName.toLowerCase();
-  const dataTestId = element.getAttribute("data-testid");
-  if (dataTestId) {
-    return `${tagName}[data-testid="${String(dataTestId).replaceAll("\\", "\\\\").replaceAll("\"", "\\\"")}"]`;
-  }
-  return tagName;
-}
-
-function typeIntoElement(selector, text) {
-  const element = document.querySelector(selector);
-  if (!element) {
-    throw new Error(`Element not found: ${selector}`);
-  }
-  element.focus();
-  if ("value" in element) {
-    element.value = text;
-    element.dispatchEvent(new InputEvent("input", { bubbles: true, data: text }));
-    element.dispatchEvent(new Event("change", { bubbles: true }));
-    return { action: "page.type", selector };
-  }
-  element.textContent = text;
-  element.dispatchEvent(new InputEvent("input", { bubbles: true, data: text }));
-  return { action: "page.type", selector };
-}
-
-function pressKeys(keys) {
-  const key = String(keys);
-  document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
-  document.activeElement?.dispatchEvent(new KeyboardEvent("keyup", { key, bubbles: true }));
-  return { action: "page.press" };
-}
-
-function scrollPage(x, y) {
-  window.scrollBy(Number(x), Number(y));
-  return { action: "page.scroll" };
+function createExtensionError(code, message, recoverable = true) {
+  return new BrowserConnectorExtensionError(code, message, recoverable);
 }
 
 function errorCode(error) {
