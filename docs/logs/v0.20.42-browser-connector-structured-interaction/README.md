@@ -62,8 +62,8 @@
 
 已发布：
 
-- `@nextclaw/browser-connector@0.1.2` 已发布到 npm `latest`。
-- `browser-control` marketplace skill 已执行 update。
+- `@nextclaw/browser-connector@0.2.1` 已发布到 npm `latest`。
+- `browser-control` marketplace skill 已执行 update，远端 `updatedAt=2026-06-07T14:40:30.614Z`。
 
 ## 用户/产品视角的验收步骤
 
@@ -108,8 +108,7 @@ Suno 歌词场景的可观察验收：
 涉及 NPM 包发布：
 
 - `@nextclaw/browser-connector`：需要 patch 发布，原因是新增公开 CLI 命令与行为合同。
-- 当前状态：已发布 `0.1.2` 到 npm `latest`。
-- registry 验证：`npm view @nextclaw/browser-connector version dist-tags --json` 返回 `version=0.1.2`、`latest=0.1.2`。
-- 安装冒烟：在 `/tmp/browser-connector-install-smoke.*` 临时目录安装 `@nextclaw/browser-connector@0.1.2`，执行 `browser-connector --version` 返回 `0.1.2`。
+- 当前状态：已发布 `0.2.1` 到 npm `latest`；`0.2.0` 曾短暂发布，但因包内 extension manifest 仍为 `0.1.2`，立即由 `0.2.1` 修正并覆盖为最新版本。
+- registry 验证：`npm view @nextclaw/browser-connector version dist-tags --json` 返回 `version=0.2.1`、`latest=0.2.1`。
+- 安装冒烟：在 `/tmp/browser-connector-install-smoke.*` 临时目录安装 `@nextclaw/browser-connector@0.2.1`，执行 `browser-connector --version` 返回 `0.2.1`，包内 `dist/extension/manifest.json` 版本也为 `0.2.1`。
 - marketplace skill：`skills/browser-control` 本地校验通过，远端 `browser-control` 更新成功，远端字段包含双语 summary/description 且 `install.kind=marketplace`；非仓库临时目录安装冒烟成功。
-- 追加 paste mode 补充：已更新 `.changeset/browser-connector-codex-parity.md`，`@nextclaw/browser-connector` 需要随下一轮统一 NPM 发布；`browser-control` skill 本地已更新，待 marketplace skill 发布批次同步。
