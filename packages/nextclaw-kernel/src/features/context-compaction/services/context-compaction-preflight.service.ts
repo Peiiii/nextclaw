@@ -20,12 +20,13 @@ import {
   normalizeString,
   toLegacyMessages,
 } from "@kernel/utils/ncp-message-bridge.utils.js";
-import { projectNcpMessagesWithContextCompaction, readLatestContextCompactionCheckpoint } from "@kernel/features/context-compaction/utils/context-compaction-projection.utils.js";
 import {
+  buildContextCompactionModelInput,
   buildContextCompactionTimelineNcpMessage,
   createContextCompactionMessageId,
   isContextCompactionTimelineMessage,
-} from "@kernel/features/context-compaction/utils/context-compaction-timeline-message.utils.js";
+  readLatestContextCompactionCheckpoint,
+} from "@kernel/features/context-compaction/utils/context-compaction.utils.js";
 
 export type ContextCompactionPreflightResult = {
   contextWindow: ContextWindowSnapshot;
@@ -163,7 +164,7 @@ export class ContextCompactionPreflightService {
       storedMetadata[CONTEXT_COMPACTION_METADATA_KEY],
     ) ?? readLatestContextCompactionCheckpoint(sessionMessages);
     const projectedMessages = existingCheckpoint
-      ? projectNcpMessagesWithContextCompaction({
+      ? buildContextCompactionModelInput({
           sessionId,
           sessionMessages,
         })
@@ -210,7 +211,7 @@ export class ContextCompactionPreflightService {
       storedMetadata[CONTEXT_COMPACTION_METADATA_KEY],
     ) ?? readLatestContextCompactionCheckpoint(ncpMessages);
     const projectedMessages = existingCheckpoint
-      ? projectNcpMessagesWithContextCompaction({
+      ? buildContextCompactionModelInput({
           sessionId,
           sessionMessages: ncpMessages,
         })
@@ -224,7 +225,7 @@ export class ContextCompactionPreflightService {
     const plan = !budget.shouldCompact
       ? null
       : this.compactionService.prepareForModelInput({
-          messages: budget.messages,
+          messages,
           contextTokens,
           compactionThresholdTokens: budget.triggerTokens,
         });
@@ -341,16 +342,18 @@ export class ContextCompactionPreflightService {
           role: "system",
           content: [
             "You are NextClaw's context compactor for a coding agent session.",
-            "Create a dense, structured summary that will replace earlier conversation history in a future model request.",
-            "Preserve user goals, explicit instructions, decisions, files touched or inspected, code changes, commands run, test results, failures, blockers, and exact next steps.",
+            "Create a complete compressed working context that will replace all prior conversation messages in a future model request.",
+            "The model will not receive a raw recent-message tail, so preserve the latest user intent and recent turns with high fidelity inside the summary.",
+            "Preserve user goals, explicit instructions, decisions, files touched or inspected, code changes, commands run, test results, failures, blockers, current task state, and exact next steps.",
             "Do not invent facts. If something is uncertain, mark it as uncertain.",
-            "Return Markdown only. Start with '# Compressed Earlier Context'.",
+            "Return Markdown only. Start with '# Compressed Working Context'.",
           ].join("\n"),
         },
         {
           role: "user",
           content: [
-            "Compress these earlier runtime messages into a reusable checkpoint summary.",
+            "Compress these runtime messages into a reusable working context.",
+            "Include a 'Recent High-Fidelity Context' section for the latest important user/assistant turns.",
             "",
             "Messages JSON:",
             stringifyCompactionSource(messages),

@@ -5,7 +5,10 @@ import {
   type ContextCompactionCheckpoint,
 } from "@nextclaw/core";
 import type { NcpMessage } from "@nextclaw/ncp";
-import { buildContextCompactionTimelineNcpMessage } from "@kernel/features/context-compaction/utils/context-compaction-timeline-message.utils.js";
+import {
+  buildContextCompactionModelInput,
+  buildContextCompactionTimelineNcpMessage,
+} from "@kernel/features/context-compaction/utils/context-compaction.utils.js";
 import { ContextCompactionPreflightService } from "./context-compaction-preflight.service.js";
 
 const SESSION_ID = "session-rolling-compaction";
@@ -144,6 +147,43 @@ describe("ContextCompactionPreflightService", () => {
     expect(contextWindow?.usedContextTokens).toBeLessThan(1_000);
   });
 
+  it("builds model input from summary plus checkpoint-after messages", () => {
+    const checkpoint = {
+      ...createCheckpoint(),
+      updatedAt: "2026-06-05T17:13:00.000Z",
+    };
+
+    const projectedMessages = buildContextCompactionModelInput({
+      sessionId: SESSION_ID,
+      sessionMessages: [
+        ...Array.from({ length: 8 }, (_, index) => createAssistantMessage({
+          id: `covered-old-${index}`,
+          text: `covered ${index}`,
+          timestamp: `2026-06-05T17:12:0${index}.000Z`,
+        })),
+        {
+          id: "current-user",
+          sessionId: SESSION_ID,
+          role: "user",
+          status: "final",
+          timestamp: "2026-06-05T17:12:59.000Z",
+          parts: [{ type: "text", text: "please use a modern stack" }],
+        },
+        createTimelineMessage(checkpoint),
+        createAssistantMessage({
+          id: "assistant-after",
+          text: "done",
+          timestamp: "2026-06-05T17:13:01.000Z",
+        }),
+      ],
+    });
+
+    expect(projectedMessages[0]?.parts[0]).toMatchObject({ type: "text", text: checkpoint.summary });
+    expect(projectedMessages.map((message) => message.id)).not.toContain("current-user");
+    expect(projectedMessages.map((message) => message.id)).not.toContain("covered-old-0");
+    expect(projectedMessages.map((message) => message.id)).toContain("assistant-after");
+  });
+
   it("creates a new compaction plan when a compressed session exceeds the context window again", async () => {
     const existingCheckpoint = createCheckpoint();
     const providerManager = {
@@ -172,9 +212,10 @@ describe("ContextCompactionPreflightService", () => {
     expect(beginResult.pendingCompaction).not.toBeNull();
     expect(beginResult.timelineMessage?.id).toMatch(/^context-compaction-message-/);
     expect(beginResult.timelineMessage?.id).not.toBe(`${SESSION_ID}:service:context-compaction:${existingCheckpoint.id}:17`);
-    expect(beginResult.timelineMessage?.metadata?.checkpoint).toMatchObject({
-      coveredMessageCount: 17,
-      coveredSessionMessageCount: 17,
+    const compressingCheckpoint = beginResult.timelineMessage?.metadata?.checkpoint as ContextCompactionCheckpoint;
+    expect(compressingCheckpoint.coveredMessageCount).toBeGreaterThan(existingCheckpoint.coveredMessageCount);
+    expect(compressingCheckpoint.coveredSessionMessageCount).toBe(compressingCheckpoint.coveredMessageCount);
+    expect(compressingCheckpoint).toMatchObject({
       id: existingCheckpoint.id,
       status: "compressing",
     });
@@ -182,10 +223,13 @@ describe("ContextCompactionPreflightService", () => {
     const finishResult = await service.finish(beginResult.pendingCompaction!);
 
     expect(providerManager.chat).toHaveBeenCalledOnce();
+    const summaryRequest = providerManager.chat.mock.calls[0]?.[0].messages[1]?.content ?? "";
+    expect(summaryRequest).toContain("Previously compressed context.");
+    expect(summaryRequest).toContain("after checkpoint 15");
     expect(finishResult.timelineMessage?.id).toBe(beginResult.timelineMessage?.id);
     expect(finishResult.metadataPatch[CONTEXT_COMPACTION_METADATA_KEY]).toMatchObject({
-      coveredMessageCount: 17,
-      coveredSessionMessageCount: 17,
+      coveredMessageCount: compressingCheckpoint.coveredMessageCount,
+      coveredSessionMessageCount: compressingCheckpoint.coveredSessionMessageCount,
       id: existingCheckpoint.id,
       status: "compressed",
       summary: "# Compressed Earlier Context\n\nRolled forward.",

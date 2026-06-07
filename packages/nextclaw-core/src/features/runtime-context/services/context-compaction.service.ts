@@ -28,12 +28,11 @@ export type ContextCompactionResult = {
 export type ContextCompactionPlan = {
   messages: RuntimeMessage[];
   coveredMessages: RuntimeMessage[];
-  keptMessages: RuntimeMessage[];
   originalEstimatedTokens: number;
 };
 
 const MIN_MESSAGES_TO_COMPACT = 8;
-const RECENT_TAIL_MESSAGES = 6;
+
 function createCheckpointId(createdAt: string, coveredMessageCount: number): string {
   return `ctx-${createdAt.replace(/[^0-9]/g, "").slice(0, 14)}-${coveredMessageCount}`;
 }
@@ -60,7 +59,8 @@ export class ContextCompactionService {
       return null;
     }
 
-    const { coveredMessages, keptMessages } = this.splitMessages(messages);
+    const leadingSystemMessage = isSystemMessage(messages[0]) ? messages[0] : null;
+    const coveredMessages = leadingSystemMessage ? messages.slice(1) : messages;
     if (coveredMessages.length < MIN_MESSAGES_TO_COMPACT) {
       return null;
     }
@@ -68,7 +68,6 @@ export class ContextCompactionService {
     return {
       messages,
       coveredMessages,
-      keptMessages,
       originalEstimatedTokens: originalEstimate.estimatedTokens,
     };
   };
@@ -80,7 +79,11 @@ export class ContextCompactionService {
     plan: ContextCompactionPlan;
   }): Promise<ContextCompactionResult> => {
     const { contextTokens, generateSummary, now, plan } = params;
-    const { coveredMessages, keptMessages, messages, originalEstimatedTokens } = plan;
+    const {
+      coveredMessages,
+      messages,
+      originalEstimatedTokens,
+    } = plan;
     const createdAt = (now ?? new Date()).toISOString();
     const summary = await generateSummary({
       messages: coveredMessages.map((message) => structuredClone(message)),
@@ -89,14 +92,10 @@ export class ContextCompactionService {
       role: "user",
       content: summary,
     };
-    const recentHistory = keptMessages.slice(0, -1);
-    const currentTurn = keptMessages.at(-1);
     const leadingSystemMessage = isSystemMessage(messages[0]) ? messages[0] : null;
     const projectedMessages = [
       leadingSystemMessage,
       checkpointMessage,
-      ...recentHistory,
-      currentTurn,
     ].filter((message): message is RuntimeMessage => Boolean(message));
     const projectedEstimate = this.inputBudgetPruner.estimate({
       messages: projectedMessages,
@@ -118,22 +117,6 @@ export class ContextCompactionService {
     return {
       messages: projectedMessages,
       checkpoint,
-    };
-  };
-
-  private splitMessages = (
-    messages: RuntimeMessage[],
-  ): { coveredMessages: RuntimeMessage[]; keptMessages: RuntimeMessage[] } => {
-    const historyStartIndex = isSystemMessage(messages[0]) ? 1 : 0;
-    const history = messages.slice(historyStartIndex, -1);
-    const currentTurn = messages.at(-1);
-    const tailStart = Math.max(0, history.length - RECENT_TAIL_MESSAGES);
-    return {
-      coveredMessages: history.slice(0, tailStart),
-      keptMessages: [
-        ...history.slice(tailStart),
-        ...(currentTurn ? [currentTurn] : []),
-      ],
     };
   };
 
