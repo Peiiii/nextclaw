@@ -51,7 +51,10 @@
 
 ## 发布/部署方式
 
-尚未发布。`@nextclaw/browser-connector` 已更新 package 版本与 changelog，后续按统一 NPM 发布流程进入发布闭环。
+已发布：
+
+- `@nextclaw/browser-connector@0.1.2` 已发布到 npm `latest`。
+- `browser-control` marketplace skill 已执行 update。
 
 ## 用户/产品视角的验收步骤
 
@@ -94,4 +97,7 @@ Suno 歌词场景的可观察验收：
 涉及 NPM 包发布：
 
 - `@nextclaw/browser-connector`：需要 patch 发布，原因是新增公开 CLI 命令与行为合同。
-- 当前状态：`package.json` 已更新到 `0.1.2`，待后续统一 NPM 发布流程发布。
+- 当前状态：已发布 `0.1.2` 到 npm `latest`。
+- registry 验证：`npm view @nextclaw/browser-connector version dist-tags --json` 返回 `version=0.1.2`、`latest=0.1.2`。
+- 安装冒烟：在 `/tmp/browser-connector-install-smoke.*` 临时目录安装 `@nextclaw/browser-connector@0.1.2`，执行 `browser-connector --version` 返回 `0.1.2`。
+- marketplace skill：`skills/browser-control` 本地校验通过，远端 `browser-control` 更新成功，远端字段包含双语 summary/description 且 `install.kind=marketplace`；非仓库临时目录安装冒烟成功。
