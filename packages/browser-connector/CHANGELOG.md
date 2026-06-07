@@ -1,12 +1,10 @@
 # @nextclaw/browser-connector
 
-## Unreleased
+## 0.2.0
 
 ### Minor Changes
 
-- Add Codex-parity browser action primitives: `page inspect`, `page fill`, post-action element state evidence, URL/load/element waits, page logs, checkbox/select actions, full-page/clip screenshots, and guarded tab closing.
-- Add explicit `page fill --mode paste` for editor-like text fields, with `inputMode` and page text match evidence in action results.
-- Fix synthesized page clicks so a single `page click` produces one click event instead of also invoking `element.click()`.
+- c0168a4: Add verified browser action primitives for Codex-parity workflows, including `page inspect`, `page fill`, explicit `page fill --mode paste` for editor-like text entry, post-action state evidence, URL/load/element waits, page logs, checkbox/select actions, full-page/clip screenshots, and guarded tab closing.
 
 ## 0.1.2
 
