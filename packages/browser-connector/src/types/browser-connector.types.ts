@@ -34,20 +34,40 @@ export type BrowserPageSnapshot = {
   links: BrowserSnapshotNode[];
   buttons: BrowserSnapshotNode[];
   inputs: BrowserSnapshotNode[];
+  interactive: BrowserSnapshotNode[];
   truncated: boolean;
   warning: "untrusted-browser-page-content";
 };
 
 export type BrowserSnapshotNode = {
+  ref?: string;
   selector: string;
   text?: string;
   ariaLabel?: string;
   placeholder?: string;
   role?: string;
+  kind?: string;
   tagName: string;
+  inputType?: string;
+  href?: string;
+  boundingBox?: BrowserElementBoundingBox;
   visible?: boolean;
   disabled?: boolean;
   unique?: boolean;
+};
+
+export type BrowserElementBoundingBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type BrowserPageLocateResult = {
+  tab: BrowserTabInfo;
+  query: string;
+  matches: BrowserSnapshotNode[];
+  warning: "untrusted-browser-page-content";
 };
 
 export type BrowserScreenshot = {
@@ -61,6 +81,7 @@ export type BrowserActionResult = {
   tab: BrowserTabInfo;
   action: string;
   selector?: string;
+  ref?: string;
   textMatched?: string;
 };
 

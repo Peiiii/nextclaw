@@ -1,6 +1,6 @@
 /* global chrome, crypto, document, MouseEvent, InputEvent, Event, KeyboardEvent, window */
 
-import { collectPageSnapshot } from "./page-snapshot.utils.js";
+import { collectInteractiveNodes, collectPageSnapshot } from "./page-snapshot.utils.js";
 
 const HOST_NAME = "com.nextclaw.browserconnector";
 const PROTOCOL_VERSION = 1;
@@ -21,6 +21,7 @@ const SUPPORTED_COMMANDS = [
   "page.reload",
   "page.back",
   "page.forward",
+  "page.locate",
   "page.click",
   "page.type",
   "page.press",
@@ -153,7 +154,7 @@ async function dispatchRequest(command, payload) {
     case "tabs.claim":
       return claimTab(payload.tabRef);
     case "page.snapshot":
-      return snapshotPage(payload.tabRef);
+      return snapshotPage(payload.tabRef, payload.interactive === true);
     case "page.screenshot":
       return screenshotPage(payload.tabRef, payload.includeDataUrl !== false);
     case "page.goto":
@@ -164,8 +165,10 @@ async function dispatchRequest(command, payload) {
       return goBack(payload.tabRef);
     case "page.forward":
       return goForward(payload.tabRef);
+    case "page.locate":
+      return locatePage(payload.tabRef, payload.text);
     case "page.click":
-      return executePageScript(payload.tabRef, clickElement, [payload.selector]);
+      return clickPage(payload.tabRef, payload.selector, payload.ref);
     case "page.type":
       return executePageScript(payload.tabRef, typeIntoElement, [
         payload.selector,
@@ -210,14 +213,72 @@ async function openTab(url, active) {
   return toBrowserTabInfo(await waitForTabReady(tab.id, TAB_READY_TIMEOUT_MS));
 }
 
-async function snapshotPage(tabRef) {
+async function snapshotPage(tabRef, includeInteractive = false) {
   const tab = await getTabByRef(tabRef);
   const [result] = await executeScript(tab.id, collectPageSnapshot, [MAX_TEXT_LENGTH], "page.snapshot");
   const snapshot = requiredInjectionResult(result, "page.snapshot");
+  const interactive = includeInteractive
+    ? requiredInjectionResult(
+        (await executeScript(tab.id, collectInteractiveNodes, [], "page.snapshot interactive"))[0],
+        "page.snapshot interactive",
+      )
+    : [];
   return {
     tab: toBrowserTabInfo(await chrome.tabs.get(tab.id)),
     ...snapshot,
+    interactive,
   };
+}
+
+async function locatePage(tabRef, text) {
+  const query = String(text ?? "").trim();
+  if (!query) {
+    throw new BrowserConnectorExtensionError("INVALID_ARGUMENT", "page.locate requires text.", false);
+  }
+
+  const snapshot = await snapshotPage(tabRef, true);
+  const needle = query.toLowerCase();
+  const matches = snapshot.interactive
+    .filter((candidate) => candidateMatches(candidate, needle))
+    .slice(0, 25);
+
+  return {
+    tab: snapshot.tab,
+    query,
+    matches,
+    warning: "untrusted-browser-page-content",
+  };
+}
+
+async function clickPage(tabRef, selector, ref) {
+  const targetSelector = typeof selector === "string" && selector.length > 0
+    ? selector
+    : await resolveSelectorByRef(tabRef, ref);
+  return executePageScript(tabRef, clickElement, [{ selector: targetSelector, ref }]);
+}
+
+async function resolveSelectorByRef(tabRef, ref) {
+  if (typeof ref !== "string" || ref.length === 0) {
+    throw new BrowserConnectorExtensionError("INVALID_ARGUMENT", "page.click requires selector or ref.", false);
+  }
+
+  const snapshot = await snapshotPage(tabRef, true);
+  const candidate = snapshot.interactive.find((item) => item.ref === ref);
+  if (!candidate?.selector) {
+    throw new BrowserConnectorExtensionError("INVALID_ARGUMENT", `Interactive ref not found: ${ref}. Run page locate or page snapshot --interactive again.`, true);
+  }
+  return candidate.selector;
+}
+
+function candidateMatches(candidate, needle) {
+  return [
+    candidate.text,
+    candidate.ariaLabel,
+    candidate.placeholder,
+    candidate.role,
+    candidate.kind,
+    candidate.tagName,
+  ].some((value) => String(value ?? "").toLowerCase().includes(needle));
 }
 
 async function screenshotPage(tabRef, includeDataUrl) {
@@ -419,10 +480,12 @@ function requiredInjectionResult(result, action) {
   return result.result;
 }
 
-function clickElement(selector) {
-  const element = document.querySelector(selector);
+function clickElement(target) {
+  const selector = typeof target?.selector === "string" ? target.selector : undefined;
+  const ref = typeof target?.ref === "string" ? target.ref : undefined;
+  const element = selector ? document.querySelector(selector) : undefined;
   if (!element) {
-    throw new Error(`Element not found: ${selector}`);
+    throw new Error(`Element not found: ${selector ?? ref}`);
   }
   element.scrollIntoView({ block: "center", inline: "center" });
   element.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
@@ -431,7 +494,19 @@ function clickElement(selector) {
   if (typeof element.click === "function") {
     element.click();
   }
-  return { action: "page.click", selector };
+  return { action: "page.click", selector: selector ?? selectorForClickTarget(element), ref };
+}
+
+function selectorForClickTarget(element) {
+  if (element.id && window.CSS?.escape) {
+    return `#${window.CSS.escape(element.id)}`;
+  }
+  const tagName = element.tagName.toLowerCase();
+  const dataTestId = element.getAttribute("data-testid");
+  if (dataTestId) {
+    return `${tagName}[data-testid="${String(dataTestId).replaceAll("\\", "\\\\").replaceAll("\"", "\\\"")}"]`;
+  }
+  return tagName;
 }
 
 function typeIntoElement(selector, text) {

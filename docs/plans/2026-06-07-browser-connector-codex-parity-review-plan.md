@@ -6,12 +6,14 @@
 
 - 总设计文档：[浏览器控制能力完整闭环设计](../designs/2026-06-06-browser-control-capability-design.md)
 - 真实评估集：[Browser Connector 真实场景评估集](../designs/2026-06-07-browser-connector-real-world-evaluation.md)
+- 结构化交互定位方案：[Browser Connector 结构化交互定位方案](2026-06-07-browser-connector-structured-interaction-plan.md)
 
 三份文档的职责边界：
 
 - `2026-06-06-browser-control-capability-design.md` 负责回答“为什么要做、总体架构是什么、为什么采用 Chrome Extension + Native Host + CLI 路线”。
 - 本计划负责回答“如何先对标 Codex 能力做系统审计，如何分级修复缺口，如何避免边测边补导致遗漏”。
 - `2026-06-07-browser-connector-real-world-evaluation.md` 负责回答“真实 Chrome 中哪些场景必须跑通，如何打分，失败如何记录”。
+- `2026-06-07-browser-connector-structured-interaction-plan.md` 负责回答“不靠截图时如何给 AI 提供可复用元素候选与 ref 操作合同”。
 
 执行规则：任何后续实现、修复或验证结论，必须能回链到总设计的目标和本计划的对标审计项；真实验证结果必须更新评估集，而不是只写在聊天里。
 
@@ -101,7 +103,7 @@
 | tab 导航 | `goto/reload/back/forward/close` | 缺失 | P1 | 增加 `page goto/reload/back/forward`；`close` 默认只允许关闭 connector 创建或用户确认的 tab |
 | finalize | 可清理不再需要的 tabs，支持 keep | 当前只释放 lease | P1 | 明确 finalize 语义；本轮至少暴露 lease 释放和旧 lease 不可用，tab 清理由后续确认策略承接 |
 | 页面 DOM 理解 | `playwright.domSnapshot()`、locator、visible DOM | 当前 `page snapshot` 粗粒度 selector/text，且真实注入可能无结果 | P0 | 修复假成功，补明确错误码；审计注入失败根因；后续引入 visible DOM node id |
-| 元素定位 | Playwright locator + DOM node id | CSS selector 为主，容易脆 | P1 | 先输出 role/text/label/placeholder 候选和唯一性信息；node id 操作为下一步 |
+| 元素定位 | Playwright locator + DOM node id | 已补 `interactive` 候选、`page locate` 和 `click --ref`；CSS selector 仍保留 | P1 | 继续以结构化候选/ref 为主；DOM node id 或 locator API 作为后续 P2/P3 |
 | 页面操作 | locator、DOM node、坐标 CUA | selector click/type/scroll/wait/press | P1 | 先稳定 selector 操作和 wait；坐标 CUA 作为 P2 |
 | wait/navigation | `waitForLoadState/waitForURL/expectNavigation` | 只有 text wait | P1 | 增加 URL/load 状态 wait，操作后要求可观察验证 |
 | 截图 | viewport/fullPage/clip，返回 bytes | viewport data URL | P1 | 增加 `--output`，保留 data URL；fullPage/clip 作为 P2 |
@@ -121,7 +123,8 @@
 - T5 已实现源码：snapshot 节点增加 `role/visible/disabled/unique`，继续保留不可信页面内容标记与截断。
 - T6 已实现源码与测试：`page screenshot` 支持 `--output <file>`，默认可不回传大 data URL。
 - T7 已完成核心真实验证：用户手动 reload 后，E00/E01/E02/E03/E04/E05/E06/E07/E09/E10/E11/E12 已跑通并回写评估集。
-- 追加体验修复：复杂页面 selector 生成增强，Suno 页面关键按钮/输入框返回唯一 selector；长期仍建议引入 DOM node id / locator API。
+- 2026-06-07 追加修正：Suno 真实会话证明“复杂页面 selector 生成增强”仍不足以支撑无截图模型定位底部 Create 按钮；已补结构化交互方案，并实现 `page snapshot --interactive`、`page locate --text` 与 `page click --ref`。
+- 长期方向：DOM node id / locator API 仍可继续增强，但当前 P1 闭环优先依赖 ref-addressable interactive candidates。
 
 本状态表示本轮闭环达到可用标准；剩余 P2/P3 进入后续增强，不阻塞当前交付。
 

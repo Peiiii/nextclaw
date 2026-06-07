@@ -21,6 +21,7 @@ This is a wrapped external tool skill:
 - Read the selected tab or refresh metadata for a known tab.
 - Claim a tab before reading or operating it.
 - Read a bounded page snapshot.
+- Locate ref-addressable interactive elements by text, label, placeholder, role, or kind.
 - Capture a visible-tab screenshot, optionally writing it to a local PNG file.
 - Navigate a claimed tab with goto, reload, back, and forward.
 - Click, type, press keys, scroll, and wait for text through the connector.
@@ -137,6 +138,18 @@ browser-connector tabs claim "<tabRef>" --reason "<why this tab is needed>" --js
 browser-connector page snapshot --lease "<leaseId>" --json
 ```
 
+When locating a button, link, input, or custom clickable element without relying
+on screenshots, prefer structured candidates before choosing a selector:
+
+```bash
+browser-connector page locate --lease "<leaseId>" --text "<visible label>" --json
+browser-connector page snapshot --lease "<leaseId>" --interactive --json
+```
+
+Use the returned `ref`, `role`, `kind`, `text`, `ariaLabel`, `placeholder`,
+`visible`, `disabled`, `unique`, and `boundingBox` fields to disambiguate repeated
+labels such as multiple `Create` controls.
+
 Use screenshot only when visual layout matters:
 
 ```bash
@@ -152,6 +165,7 @@ browser-connector page reload --lease "<leaseId>" --reason "<why reloading>" --j
 browser-connector page back --lease "<leaseId>" --reason "<why going back>" --json
 browser-connector page forward --lease "<leaseId>" --reason "<why going forward>" --json
 browser-connector page click --lease "<leaseId>" --selector "<selector>" --reason "<why clicking>" --json
+browser-connector page click --lease "<leaseId>" --ref "<ref>" --reason "<why clicking>" --json
 browser-connector page type --lease "<leaseId>" --selector "<selector>" --text "<text>" --reason "<why typing>" --json
 browser-connector page scroll --lease "<leaseId>" --y 600 --reason "<why scrolling>" --json
 browser-connector page wait --lease "<leaseId>" --text "<expected text>" --timeout-ms 5000 --reason "<why waiting>" --json
@@ -173,7 +187,8 @@ browser-connector tabs finalize --lease "<leaseId>" --json
 - Do not type passwords, OTPs, payment data, identity documents, API keys, or private tokens unless the user explicitly provides that exact value and confirms the destination.
 - Before submit, send, upload, delete, payment, login, permission, or irreversible actions, stop and ask the user for explicit confirmation.
 - Use `--confirmed` only after the user explicitly confirms the exact action.
-- Click only when the target is unique and supported by snapshot or screenshot evidence.
+- Click only when the target is supported by snapshot, locate, or screenshot evidence.
+- Prefer `page locate` / `page snapshot --interactive` and `click --ref` for complex pages, repeated labels, custom button-like elements, and pages where CSS selectors are not obvious.
 - Do not use coordinates unless screenshot evidence makes the target unambiguous.
 - Keep output bounded. Do not paste large page dumps back to the user.
 - Always finalize leases, including after failure or cancellation.
@@ -246,9 +261,9 @@ Then reload the unpacked Browser Connector extension in `chrome://extensions` an
 
 Run `tabs list` and `tabs claim` again. Do not reuse old lease ids.
 
-### Selector not found
+### Selector or ref not found
 
-Run `page snapshot` or `page screenshot` again and choose a better selector. Do not guess.
+Run `page locate --text "<label>"` or `page snapshot --interactive` again and choose a current `ref`. If selector mode is still needed, choose a selector from the fresh snapshot. Do not guess selectors in a loop.
 
 ## Success Criteria
 
@@ -260,6 +275,7 @@ The skill succeeds when:
 - `tabs list` returns the user's current Chrome tabs,
 - a tab is claimed before page access,
 - snapshot or screenshot provides the needed evidence,
+- complex elements can be located through `page locate` or `page snapshot --interactive` before action,
 - requested actions are confirmed when required,
 - the page result is verified,
 - and the tab lease is finalized.

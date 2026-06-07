@@ -228,7 +228,7 @@ Codex 对标差距：
 ## 当前已知差距
 
 - 真实网站的登录墙、反爬、地区限制和复杂 SPA hydration 可能导致 snapshot 文本不足，必须结合 screenshot 判断。
-- 复杂元素定位仍主要依赖 CSS selector；后续需要更好的候选元素选择和点击前 disambiguation。
+- 复杂元素定位已从纯 CSS selector 扩展为结构化候选/ref 流程：`page snapshot --interactive`、`page locate --text`、`page click --ref`。真实 Chrome 中遇到同名按钮时，默认先用 ref 候选消歧；若 extension 尚未 reload，仍会退回旧能力并暴露为 capability mismatch。
 - 截图返回 data URL，AI 侧消费体验取决于宿主是否能直接渲染或转存图片。
 - Web Store / desktop bundled 安装前，首次 unpacked extension 加载仍需要用户授权。
 
@@ -418,8 +418,43 @@ Codex 对标差距：
 
 - `tabs open "https://suno.com/"` 使用用户当前 Chrome，返回 `Suno | AI Music` 与 `https://suno.com/discover`；
 - snapshot 读到账号 `galvanizingaudioquality974`、`530 Credits`、`Create`、`Studio`、`Library`、`Search`、`Describe the song you want to make`；
+
+2026-06-07 追加发现：
+
+- 后续真实会话中，AI 在 Suno create 页面尝试定位底部 `Create` 按钮时反复猜测 `[type="submit"]`、`button[type="submit"]`、`[data-testid*="Create"]`、`[tabindex]` 等 selector；
+- 原因不是单纯模型问题，而是旧 `page snapshot` 没有 ref-addressable interactive candidates，`page click` 只能按 CSS selector 操作；
+- 已新增结构化定位能力，后续补验应使用：
+
+```bash
+browser-connector page locate --lease "<leaseId>" --text "Create" --json
+browser-connector page snapshot --lease "<leaseId>" --interactive --json
+browser-connector page click --lease "<leaseId>" --ref "<ref>" --reason "<why clicking>" --json
+```
+
+补验通过标准：
+
+- `page locate` 至少返回左侧导航 `Create` 与底部生成 `Create` 两类候选，或能清楚暴露页面未加载/不可注入/extension 未 reload；
+- AI 能基于 `role/kind/text/boundingBox/visible/disabled` 选择目标 ref；
+- 不再进入连续 selector 猜测循环。
+
+2026-06-07 歌词生成追加补验：
+
+- `page locate --text "Create"` 在 Suno create 页返回左侧导航、workspace 创建和底部 `ariaLabel="Create song"` 三类候选，底部生成按钮可按 `role=button`、`ariaLabel=Create song`、`boundingBox.y=679` 消歧；
+- `page snapshot --interactive` 能发现 `textarea[data-testid="lyrics-textarea"]`，并识别当前 `disabled=true`、`0/5000`；
+- 对 `textarea[data-testid="lyrics-textarea"]` 执行 `page type` 后，页面文本出现原创歌词，字符计数变为 `83/5000`；
+- 点击底部 `Create song` 后 credits 从 `520` 变为 `500`，列表顶部出现新歌 `朱颜换寂寥` 和 `春水向东流`；
+- 点击 `ariaLabel="Play 朱颜换寂寥 from start"` 的标题后，列表顶部播放按钮变为 `ariaLabel="Pause"`，证明播放态已启动。
+
+补验结论：
+
+- 无截图情况下，结构化候选足够完成“填歌词、生成、播放”的真实闭环，难点主要从“模型猜 selector”变成了“按字段消歧和验证状态”；
+- 当前仍有动作层体验缺口：`click --ref` 需要 extension reload 到新 background 才可用；部分 SPA 切换按钮对合成 click 的状态反馈不稳定，应后续升级 click primitive 的真实输入保真度；
+- `page type` 对 React/Suno 文本框可以触发表单状态更新，本次歌词计数和生成结果证明输入不是单纯 DOM 假值。
+
+既有首轮证据：
+
 - screenshot 输出 `/tmp/browser-connector-suno.png`；
-- 复杂页面 selector 增强后，关键输入框返回唯一 selector：
+- 复杂页面 selector 增强后，关键输入框返回唯一 selector，但这不足以覆盖底部生成按钮这类非原生 button-like 元素：
   - `input[name="search"]`
   - `#simple-create-textarea`
   - `button[aria-label="Play For You"]`
@@ -429,7 +464,7 @@ Codex 对标差距：
 
 剩余差距：
 
-- 对复杂 SPA，部分快速生成的 CSS path 很长；虽然 `unique=true` 可用，但长期最好引入 DOM node id / locator API。
+- 对复杂 SPA，部分快速生成的 CSS path 很长；当前先用 ref-addressable interactive candidates 降低 selector 猜测，长期最好继续引入 DOM node id / locator API。
 
 ## 2026-06-07 Codex 对标修复后待补验记录
 

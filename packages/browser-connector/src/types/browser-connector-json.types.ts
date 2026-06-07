@@ -1,6 +1,7 @@
 import type {
   BrowserActionResult,
   BrowserConnectorStatus,
+  BrowserPageLocateResult,
   BrowserPageSnapshot,
   BrowserScreenshot,
   BrowserTabInfo,
@@ -24,6 +25,7 @@ export const SUPPORTED_BROWSER_IPC_COMMANDS = [
   "page.reload",
   "page.back",
   "page.forward",
+  "page.locate",
   "page.click",
   "page.type",
   "page.press",
@@ -88,6 +90,7 @@ export type BrowserCommandData =
   | BrowserTabInfo
   | BrowserTabLease
   | BrowserPageSnapshot
+  | BrowserPageLocateResult
   | BrowserScreenshot
   | BrowserActionResult
   | { finalized: true; leaseId: string };

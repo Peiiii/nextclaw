@@ -1,5 +1,11 @@
 # @nextclaw/browser-connector
 
+## 0.1.1
+
+### Patch Changes
+
+- Add structured interactive element discovery with `page locate`, `page snapshot --interactive`, and `page click --ref` so agents can operate complex pages without guessing CSS selectors.
+
 ## 0.1.0
 
 ### Minor Changes

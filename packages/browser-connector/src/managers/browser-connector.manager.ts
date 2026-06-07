@@ -5,6 +5,7 @@ import type { ConfigRepository } from "@/repositories/config.repository.js";
 import type {
   BrowserActionResult,
   BrowserConnectorStatus,
+  BrowserPageLocateResult,
   BrowserPageSnapshot,
   BrowserScreenshot,
   BrowserTabInfo,
@@ -15,6 +16,7 @@ export type BrowserActionOptions = {
   leaseId: string;
   reason: string;
   selector?: string;
+  ref?: string;
   url?: string;
   text?: string;
   keys?: string;
@@ -25,6 +27,10 @@ export type BrowserActionOptions = {
 
 export type ScreenshotOptions = {
   includeDataUrl?: boolean;
+};
+
+export type SnapshotOptions = {
+  interactive?: boolean;
 };
 
 export type OpenTabOptions = {
@@ -101,9 +107,23 @@ export class BrowserConnectorManager {
     return client.request("tabs.finalize", { leaseId });
   };
 
-  snapshotPage = async (leaseId: string): Promise<BrowserPageSnapshot> => {
+  snapshotPage = async (
+    leaseId: string,
+    options: SnapshotOptions = {},
+  ): Promise<BrowserPageSnapshot> => {
     const client = await this.createClient();
-    return client.request("page.snapshot", { leaseId });
+    return client.request("page.snapshot", {
+      leaseId,
+      interactive: options.interactive ?? false,
+    });
+  };
+
+  locatePage = async (
+    leaseId: string,
+    text: string,
+  ): Promise<BrowserPageLocateResult> => {
+    const client = await this.createClient();
+    return client.request("page.locate", { leaseId, text });
   };
 
   screenshotPage = async (

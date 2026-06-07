@@ -9,6 +9,8 @@ import type { BrowserConnectorCommandOutput } from "@/types/cli-output.types.js"
 export type PageActionOptions = {
   lease?: string;
   selector?: string;
+  ref?: string;
+  interactive?: boolean;
   url?: string;
   text?: string;
   keys?: string;
@@ -27,9 +29,24 @@ export class PageController {
     private readonly browserSecurityPolicyService: BrowserSecurityPolicyService,
   ) {}
 
-  snapshot = async (leaseId: string): Promise<BrowserConnectorCommandOutput> => ({
+  snapshot = async (
+    options: PageActionOptions,
+  ): Promise<BrowserConnectorCommandOutput> => ({
     ok: true,
-    snapshot: await this.browserConnectorManager.snapshotPage(leaseId),
+    snapshot: await this.browserConnectorManager.snapshotPage(
+      required(options.lease, "--lease"),
+      { interactive: options.interactive ?? false },
+    ),
+  });
+
+  locate = async (
+    options: PageActionOptions,
+  ): Promise<BrowserConnectorCommandOutput> => ({
+    ok: true,
+    locate: await this.browserConnectorManager.locatePage(
+      required(options.lease, "--lease"),
+      required(options.text, "--text"),
+    ),
   });
 
   screenshot = async (
@@ -91,8 +108,10 @@ export class PageController {
 
   click = async (
     options: PageActionOptions,
-  ): Promise<BrowserConnectorCommandOutput> =>
-    this.runAction("page.click", options);
+  ): Promise<BrowserConnectorCommandOutput> => {
+    this.assertClickTarget(options);
+    return this.runAction("page.click", options);
+  };
 
   type = async (
     options: PageActionOptions,
@@ -127,7 +146,7 @@ export class PageController {
       | "page.wait",
     options: PageActionOptions,
   ): Promise<BrowserConnectorCommandOutput> => {
-    const { lease, reason, confirmed, selector, url, text, keys, x, y, timeoutMs } =
+    const { lease, reason, confirmed, selector, ref, url, text, keys, x, y, timeoutMs } =
       options;
     const leaseId = required(lease, "--lease");
     const actionReason = required(reason, "--reason");
@@ -146,6 +165,7 @@ export class PageController {
         leaseId,
         reason: actionReason,
         selector,
+        ref,
         url: targetUrl,
         text,
         keys,
@@ -154,6 +174,26 @@ export class PageController {
         timeoutMs,
       }),
     };
+  };
+
+  private assertClickTarget = (options: PageActionOptions): void => {
+    const { selector, ref } = options;
+
+    if (selector && ref) {
+      throw new BrowserConnectorError(
+        "INVALID_ARGUMENT",
+        "page click accepts either --selector or --ref, not both.",
+        { recoverable: false },
+      );
+    }
+
+    if (!selector && !ref) {
+      throw new BrowserConnectorError(
+        "INVALID_ARGUMENT",
+        "page click requires --selector or --ref.",
+        { recoverable: false },
+      );
+    }
   };
 }
 

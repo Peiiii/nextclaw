@@ -66,6 +66,25 @@ Read a bounded DOM snapshot:
 browser-connector page snapshot --lease "<leaseId>" --json
 ```
 
+Find interactive candidates by visible text, label, or placeholder:
+
+```bash
+browser-connector page locate --lease "<leaseId>" --text "Create" --json
+```
+
+Read ref-addressable interactive candidates when a page has repeated labels or
+button-like custom elements:
+
+```bash
+browser-connector page snapshot --lease "<leaseId>" --interactive --json
+```
+
+Click either by CSS selector or by an interactive ref:
+
+```bash
+browser-connector page click --lease "<leaseId>" --ref "i2" --reason "click the selected create button" --json
+```
+
 Capture a screenshot:
 
 ```bash

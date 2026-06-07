@@ -59,10 +59,13 @@ describe("BrowserConnectorApp", function () {
   it("reports the package version", async () => {
     const app = createBrowserConnectorApp(homeDir);
     const output = await app.run(["--version"]);
+    const packageJson = JSON.parse(
+      await readFile(new URL("../package.json", import.meta.url), "utf8"),
+    ) as { version: string };
 
     expect(output).toEqual({
       ok: true,
-      output: "0.1.0",
+      output: packageJson.version,
     });
   });
 
@@ -187,6 +190,34 @@ describe("BrowserConnectorApp browser workflow commands", function () {
       "lease-1",
       "--json",
     ]);
+    const interactiveSnapshot = await app.run([
+      "page",
+      "snapshot",
+      "--lease",
+      "lease-1",
+      "--interactive",
+      "--json",
+    ]);
+    const located = await app.run([
+      "page",
+      "locate",
+      "--lease",
+      "lease-1",
+      "--text",
+      "Create",
+      "--json",
+    ]);
+    const clickedByRef = await app.run([
+      "page",
+      "click",
+      "--lease",
+      "lease-1",
+      "--ref",
+      "i2",
+      "--reason",
+      "submit generated song request",
+      "--json",
+    ]);
     const screenshotPath = join(homeDir, "screenshot.png");
     const screenshot = await app.run([
       "page",
@@ -245,6 +276,46 @@ describe("BrowserConnectorApp browser workflow commands", function () {
         text: "Hello from the browser",
       },
     });
+    expect(interactiveSnapshot).toMatchObject({
+      ok: true,
+      snapshot: {
+        interactive: [
+          {
+            ref: "i1",
+            text: "Create",
+            role: "link",
+          },
+          {
+            ref: "i2",
+            text: "Create",
+            role: "button",
+          },
+        ],
+      },
+    });
+    expect(located).toMatchObject({
+      ok: true,
+      locate: {
+        query: "Create",
+        matches: [
+          {
+            ref: "i1",
+            text: "Create",
+          },
+          {
+            ref: "i2",
+            text: "Create",
+          },
+        ],
+      },
+    });
+    expect(clickedByRef).toMatchObject({
+      ok: true,
+      action: {
+        action: "page.click",
+        ref: "i2",
+      },
+    });
     expect(screenshot).toMatchObject({
       ok: true,
       screenshot: {
@@ -266,6 +337,32 @@ describe("BrowserConnectorApp browser workflow commands", function () {
       leaseId: "lease-1",
     });
   });
+});
+
+describe("BrowserConnectorApp browser action validation", function () {
+  let homeDir: string;
+  let nativeHostDir: string;
+  let nativeHostPath: string;
+  let fakeServer: Server | undefined;
+
+  beforeEach(async () => {
+    homeDir = await mkdtemp(join(tmpdir(), "browser-connector-home-"));
+    nativeHostDir = await mkdtemp(join(tmpdir(), "browser-connector-hosts-"));
+    nativeHostPath = join(homeDir, "native-host-launcher.js");
+    await writeFile(nativeHostPath, "#!/usr/bin/env node\n");
+    process.env.BROWSER_CONNECTOR_CHROME_NATIVE_HOST_DIR = nativeHostDir;
+    process.env.BROWSER_CONNECTOR_NATIVE_HOST_PATH = nativeHostPath;
+  });
+
+  afterEach(async () => {
+    await stopFakeServer(fakeServer);
+    fakeServer = undefined;
+    delete process.env.BROWSER_CONNECTOR_CHROME_NATIVE_HOST_DIR;
+    delete process.env.BROWSER_CONNECTOR_NATIVE_HOST_LAUNCHER_PATH;
+    delete process.env.BROWSER_CONNECTOR_NATIVE_HOST_PATH;
+    await rm(homeDir, { recursive: true, force: true });
+    await rm(nativeHostDir, { recursive: true, force: true });
+  });
 
   it("requires explicit confirmation for key press actions", async () => {
     const app = createBrowserConnectorApp(homeDir);
@@ -285,6 +382,26 @@ describe("BrowserConnectorApp browser workflow commands", function () {
       ok: false,
       error: {
         code: "ACTION_REQUIRES_CONFIRMATION",
+      },
+    });
+  });
+
+  it("requires a selector or ref for click actions", async () => {
+    const app = createBrowserConnectorApp(homeDir);
+    const output = await app.run([
+      "page",
+      "click",
+      "--lease",
+      "lease-1",
+      "--reason",
+      "click target",
+      "--json",
+    ]);
+
+    expect(output).toMatchObject({
+      ok: false,
+      error: {
+        code: "INVALID_ARGUMENT",
       },
     });
   });
@@ -529,7 +646,67 @@ const fakeResponse = (request: BrowserIpcRequest): BrowserIpcResponse => {
           links: [],
           buttons: [],
           inputs: [],
+          interactive: request.payload?.interactive
+            ? [
+                {
+                  ref: "i1",
+                  selector: "a[href='/create']",
+                  text: "Create",
+                  role: "link",
+                  kind: "link",
+                  tagName: "a",
+                  visible: true,
+                  disabled: false,
+                  unique: true,
+                },
+                {
+                  ref: "i2",
+                  selector: "div:nth-of-type(4) > div:nth-of-type(2)",
+                  text: "Create",
+                  role: "button",
+                  kind: "button",
+                  tagName: "div",
+                  boundingBox: { x: 24, y: 704, width: 180, height: 48 },
+                  visible: true,
+                  disabled: false,
+                  unique: true,
+                },
+              ]
+            : [],
           truncated: false,
+          warning: "untrusted-browser-page-content",
+        },
+      };
+    case "page.locate":
+      return {
+        id: request.id,
+        ok: true,
+        data: {
+          tab: {
+            tabRef: "chrome-tab:1",
+            title: "Example",
+            url: "https://example.com/",
+            active: true,
+          },
+          query: request.payload?.text,
+          matches: [
+            {
+              ref: "i1",
+              selector: "a[href='/create']",
+              text: "Create",
+              role: "link",
+              kind: "link",
+              tagName: "a",
+            },
+            {
+              ref: "i2",
+              selector: "div:nth-of-type(4) > div:nth-of-type(2)",
+              text: "Create",
+              role: "button",
+              kind: "button",
+              tagName: "div",
+            },
+          ],
           warning: "untrusted-browser-page-content",
         },
       };
@@ -549,6 +726,7 @@ const fakeResponse = (request: BrowserIpcRequest): BrowserIpcResponse => {
         },
       };
     case "page.reload":
+    case "page.click":
       return {
         id: request.id,
         ok: true,
@@ -559,7 +737,9 @@ const fakeResponse = (request: BrowserIpcRequest): BrowserIpcResponse => {
             url: "https://example.com/",
             active: true,
           },
-          action: "page.reload",
+          action: request.command,
+          ref: request.payload?.ref,
+          selector: request.payload?.selector,
         },
       };
     case "tabs.finalize":

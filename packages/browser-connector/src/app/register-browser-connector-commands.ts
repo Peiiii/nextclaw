@@ -191,9 +191,24 @@ const registerPageCommands = (
     page
       .command("snapshot")
       .description("Read a bounded DOM/text snapshot")
-      .requiredOption("--lease <leaseId>", "Lease id returned by tabs claim"),
+      .requiredOption("--lease <leaseId>", "Lease id returned by tabs claim")
+      .option(
+        "--interactive",
+        "Include ref-addressable interactive element candidates",
+        false,
+      ),
   ).action(async (options) => {
-    sink(await controllers.pageController.snapshot(options.lease));
+    sink(await controllers.pageController.snapshot(options));
+  });
+
+  withOutputOptions(
+    page
+      .command("locate")
+      .description("Find ref-addressable interactive candidates by text")
+      .requiredOption("--lease <leaseId>", "Lease id returned by tabs claim")
+      .requiredOption("--text <text>", "Text, label, or placeholder to match"),
+  ).action(async (options) => {
+    sink(await controllers.pageController.locate(options));
   });
 
   withOutputOptions(
@@ -251,9 +266,10 @@ const registerPageCommands = (
   withOutputOptions(
     page
       .command("click")
-      .description("Click an element by selector")
+      .description("Click an element by selector or snapshot ref")
       .requiredOption("--lease <leaseId>", "Lease id returned by tabs claim")
-      .requiredOption("--selector <selector>", "CSS selector to click")
+      .option("--selector <selector>", "CSS selector to click")
+      .option("--ref <ref>", "Interactive ref returned by page snapshot or locate")
       .requiredOption("--reason <reason>", "Reason for the browser action"),
   ).action(async (options) => {
     sink(await controllers.pageController.click(options));
