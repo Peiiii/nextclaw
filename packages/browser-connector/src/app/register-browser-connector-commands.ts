@@ -1,6 +1,7 @@
 import { InvalidArgumentError, type Command } from "commander";
 
 import type { DoctorController } from "@/controllers/doctor.controller.js";
+import type { ExtensionController } from "@/controllers/extension.controller.js";
 import type { InstallController } from "@/controllers/install.controller.js";
 import type { PageController } from "@/controllers/page.controller.js";
 import type { StatusController } from "@/controllers/status.controller.js";
@@ -13,6 +14,7 @@ export type BrowserConnectorCommandOutputSink = (
 
 export type BrowserConnectorCommandControllers = {
   installController: InstallController;
+  extensionController: ExtensionController;
   doctorController: DoctorController;
   statusController: StatusController;
   tabsController: TabsController;
@@ -25,6 +27,7 @@ export const registerBrowserConnectorCommands = (
   sink: BrowserConnectorCommandOutputSink,
 ): void => {
   registerInstallCommands(program, controllers, sink);
+  registerExtensionCommands(program, controllers, sink);
   registerSetupCommands(program, controllers, sink);
   registerDoctorCommand(program, controllers, sink);
   registerStatusCommand(program, controllers, sink);
@@ -64,6 +67,26 @@ const registerInstallCommands = (
       .description("Remove the Chrome Native Messaging Host registration"),
   ).action(async () => {
     sink(await controllers.installController.uninstallChrome());
+  });
+};
+
+const registerExtensionCommands = (
+  program: Command,
+  controllers: BrowserConnectorCommandControllers,
+  sink: BrowserConnectorCommandOutputSink,
+): void => {
+  const extension = program
+    .command("extension")
+    .description("Operate the Browser Connector Chrome extension");
+
+  withOutputOptions(
+    extension
+      .command("reload")
+      .description("Ask the connected extension to reload itself")
+      .requiredOption("--reason <reason>", "Reason for reloading the extension")
+      .option("--timeout-ms <ms>", "Maximum time to wait for reconnection"),
+  ).action(async (options) => {
+    sink(await controllers.extensionController.reload(options));
   });
 };
 

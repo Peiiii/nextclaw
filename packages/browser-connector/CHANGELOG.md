@@ -1,5 +1,11 @@
 # @nextclaw/browser-connector
 
+## 0.1.2
+
+### Patch Changes
+
+- Add `browser-connector extension reload` so agents can ask the connected Chrome extension to reload itself after local or package updates.
+
 ## 0.1.1
 
 ### Patch Changes

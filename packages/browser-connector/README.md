@@ -34,6 +34,16 @@ You are ready when the output contains:
 }
 ```
 
+After future CLI or extension updates, ask the connected unpacked extension to
+reload itself:
+
+```bash
+browser-connector extension reload --reason "refresh extension after update" --json
+```
+
+If the installed extension is too old to support self-reload, reload it once in
+`chrome://extensions`, then rerun setup.
+
 ## Basic Workflow
 
 List current Chrome tabs:

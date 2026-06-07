@@ -1,10 +1,12 @@
 import { BrowserConnectorClient } from "@/services/browser-connector-client.service.js";
 import { AuditRepository } from "@/repositories/audit.repository.js";
 import { redactBrowserUrl } from "@/utils/url-redaction.utils.js";
+import { BrowserConnectorError } from "@/types/cli-output.types.js";
 import type { ConfigRepository } from "@/repositories/config.repository.js";
 import type {
   BrowserActionResult,
   BrowserConnectorStatus,
+  BrowserExtensionReloadResult,
   BrowserPageLocateResult,
   BrowserPageSnapshot,
   BrowserScreenshot,
@@ -37,6 +39,13 @@ export type OpenTabOptions = {
   active: boolean;
 };
 
+type ExtensionReloadAck = {
+  action: "extension.reload";
+  reloading: true;
+  requestedAt: string;
+  extensionVersion?: string;
+};
+
 export class BrowserConnectorManager {
   constructor(private readonly configRepository: ConfigRepository) {}
 
@@ -48,6 +57,34 @@ export class BrowserConnectorManager {
   listTabs = async (): Promise<{ tabs: BrowserTabInfo[] }> => {
     const client = await this.createClient();
     return client.request("tabs.list");
+  };
+
+  reloadExtension = async (
+    reason: string,
+    timeoutMs: number,
+  ): Promise<BrowserExtensionReloadResult> => {
+    const auditRepository = await this.createAuditRepository();
+    const before = await this.status();
+    const client = await this.createClient();
+    await auditRepository.appendEvent({
+      command: "extension.reload",
+      reason,
+      at: new Date().toISOString(),
+    });
+    const ack = await client.request<ExtensionReloadAck>("extension.reload", {
+      reason,
+    });
+    const after = await this.waitForReloadedExtension(
+      before.browserInstanceId,
+      timeoutMs,
+    );
+
+    return {
+      ...ack,
+      reloaded: true,
+      before,
+      after,
+    };
   };
 
   getTab = async (tabRef: string): Promise<BrowserTabInfo> => {
@@ -171,4 +208,40 @@ export class BrowserConnectorManager {
     const config = await this.configRepository.readConfig();
     return new AuditRepository(config.homeDir);
   };
+
+  private waitForReloadedExtension = async (
+    previousBrowserInstanceId: string | undefined,
+    timeoutMs: number,
+  ): Promise<BrowserConnectorStatus> => {
+    const deadline = Date.now() + timeoutMs;
+    let lastError: unknown;
+
+    while (Date.now() < deadline) {
+      await sleep(250);
+
+      try {
+        const status = await this.status();
+        const instanceChanged = previousBrowserInstanceId
+          ? status.browserInstanceId !== previousBrowserInstanceId
+          : true;
+
+        if (status.connected && instanceChanged) {
+          return status;
+        }
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw new BrowserConnectorError(
+      "IPC_REQUEST_FAILED",
+      `Timed out waiting for Browser Connector extension reload.${lastError instanceof Error ? ` Last error: ${lastError.message}` : ""}`,
+      { recoverable: true },
+    );
+  };
 }
+
+const sleep = (timeoutMs: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, timeoutMs);
+  });

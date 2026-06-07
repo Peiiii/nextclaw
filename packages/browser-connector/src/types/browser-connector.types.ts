@@ -9,6 +9,16 @@ export type BrowserConnectorStatus = {
   nativeHostName: string;
 };
 
+export type BrowserExtensionReloadResult = {
+  action: "extension.reload";
+  reloading: true;
+  reloaded: true;
+  requestedAt: string;
+  extensionVersion?: string;
+  before: BrowserConnectorStatus;
+  after: BrowserConnectorStatus;
+};
+
 export type BrowserTabInfo = {
   tabRef: string;
   title: string;

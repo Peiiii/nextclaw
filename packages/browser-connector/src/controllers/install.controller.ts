@@ -78,7 +78,8 @@ export class InstallController {
           ? []
           : status.connected
             ? [
-                "Reload the Browser Connector unpacked extension in chrome://extensions.",
+                "Run browser-connector extension reload --reason \"refresh extension after update\" --json.",
+                "If extension reload returns UNSUPPORTED_COMMAND, reload the unpacked extension once in chrome://extensions.",
                 "Then rerun browser-connector setup chrome --json and confirm chrome-extension-capabilities is true.",
               ]
           : [

@@ -337,6 +337,7 @@ describe("BrowserConnectorApp browser workflow commands", function () {
       leaseId: "lease-1",
     });
   });
+
 });
 
 describe("BrowserConnectorApp browser action validation", function () {
@@ -382,6 +383,30 @@ describe("BrowserConnectorApp browser action validation", function () {
       ok: false,
       error: {
         code: "ACTION_REQUIRES_CONFIRMATION",
+      },
+    });
+  });
+
+  it("asks the extension to reload and waits for a new browser instance", async () => {
+    fakeServer = await startFakeServer(resolveBrowserConnectorIpcPath(homeDir));
+    const app = createBrowserConnectorApp(homeDir);
+    const output = await app.run([
+      "extension",
+      "reload",
+      "--reason",
+      "refresh unpacked extension after local build",
+      "--timeout-ms",
+      "2000",
+      "--json",
+    ]);
+
+    expect(output).toMatchObject({
+      ok: true,
+      extensionReload: {
+        action: "extension.reload",
+        reloaded: true,
+        before: { browserInstanceId: "browser-before-reload" },
+        after: { browserInstanceId: "browser-after-reload" },
       },
     });
   });
@@ -534,6 +559,7 @@ describe("NativeHostService", function () {
 });
 
 const startFakeServer = async (ipcPath: string): Promise<Server> => {
+  const state = new FakeBrowserConnectorState();
   const server = createServer((socket) => {
     let buffer = "";
     socket.on("data", (chunk) => {
@@ -545,7 +571,7 @@ const startFakeServer = async (ipcPath: string): Promise<Server> => {
       }
 
       const request = JSON.parse(buffer.slice(0, newlineIndex)) as BrowserIpcRequest;
-      socket.end(`${JSON.stringify(fakeResponse(request))}\n`);
+      socket.end(`${JSON.stringify(fakeResponse(request, state))}\n`);
     });
   });
 
@@ -574,8 +600,15 @@ const stopFakeServer = async (server: Server | undefined): Promise<void> => {
   });
 };
 
-const fakeResponse = (request: BrowserIpcRequest): BrowserIpcResponse => {
+const fakeResponse = (
+  request: BrowserIpcRequest,
+  state: FakeBrowserConnectorState,
+): BrowserIpcResponse => {
   switch (request.command) {
+    case "browser.status":
+      return fakeBrowserStatusResponse(request, state);
+    case "extension.reload":
+      return fakeExtensionReloadResponse(request, state);
     case "tabs.list":
       return {
         id: request.id,
@@ -763,6 +796,54 @@ const fakeResponse = (request: BrowserIpcRequest): BrowserIpcResponse => {
       };
   }
 };
+
+const fakeBrowserStatusResponse = (
+  request: BrowserIpcRequest,
+  state: FakeBrowserConnectorState,
+): BrowserIpcResponse => ({
+  id: request.id,
+  ok: true,
+  data: {
+    connected: true,
+    browserInstanceId: state.isExtensionReloaded()
+      ? "browser-after-reload"
+      : "browser-before-reload",
+    extensionVersion: "0.1.2",
+    protocolVersion: 1,
+    extensionCapabilities: SUPPORTED_BROWSER_IPC_COMMANDS,
+    missingExtensionCapabilities: [],
+    activeLeaseCount: 0,
+    nativeHostName: "com.nextclaw.browserconnector",
+  },
+});
+
+const fakeExtensionReloadResponse = (
+  request: BrowserIpcRequest,
+  state: FakeBrowserConnectorState,
+): BrowserIpcResponse => {
+  state.markExtensionReloaded();
+
+  return {
+    id: request.id,
+    ok: true,
+    data: {
+      action: "extension.reload",
+      reloading: true,
+      requestedAt: "2026-06-07T00:00:00.000Z",
+      extensionVersion: "0.1.2",
+    },
+  };
+};
+
+class FakeBrowserConnectorState {
+  private extensionReloaded = false;
+
+  isExtensionReloaded = (): boolean => this.extensionReloaded;
+
+  markExtensionReloaded = (): void => {
+    this.extensionReloaded = true;
+  };
+}
 
 const writeNativeMessage = (
   stream: PassThrough,

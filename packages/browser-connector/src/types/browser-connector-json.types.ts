@@ -1,6 +1,7 @@
 import type {
   BrowserActionResult,
   BrowserConnectorStatus,
+  BrowserExtensionReloadResult,
   BrowserPageLocateResult,
   BrowserPageSnapshot,
   BrowserScreenshot,
@@ -13,6 +14,7 @@ export const BROWSER_CONNECTOR_PROTOCOL_VERSION = 1;
 
 export const SUPPORTED_BROWSER_IPC_COMMANDS = [
   "browser.status",
+  "extension.reload",
   "tabs.list",
   "tabs.get",
   "tabs.selected",
@@ -86,6 +88,7 @@ export type BrowserExtensionMessage =
 
 export type BrowserCommandData =
   | BrowserConnectorStatus
+  | BrowserExtensionReloadResult
   | { tabs: BrowserTabInfo[] }
   | BrowserTabInfo
   | BrowserTabLease

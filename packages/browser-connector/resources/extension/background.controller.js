@@ -9,6 +9,7 @@ const RECONNECT_DELAY_MS = 2000;
 const TAB_READY_TIMEOUT_MS = 10000;
 const SUPPORTED_COMMANDS = [
   "browser.status",
+  "extension.reload",
   "tabs.list",
   "tabs.get",
   "tabs.selected",
@@ -145,6 +146,8 @@ async function dispatchRequest(command, payload) {
   switch (command) {
     case "tabs.list":
       return { tabs: await listTabs() };
+    case "extension.reload":
+      return reloadExtension();
     case "tabs.get":
       return getTabByRef(payload.tabRef).then(toBrowserTabInfo);
     case "tabs.selected":
@@ -186,6 +189,20 @@ async function dispatchRequest(command, payload) {
         `Unsupported browser connector command: ${command}. Reload the Browser Connector extension if the CLI was just updated.`,
       );
   }
+}
+
+function reloadExtension() {
+  const requestedAt = new Date().toISOString();
+  setTimeout(() => {
+    chrome.runtime.reload();
+  }, 250);
+
+  return {
+    action: "extension.reload",
+    reloading: true,
+    requestedAt,
+    extensionVersion: chrome.runtime.getManifest().version,
+  };
 }
 
 async function listTabs() {

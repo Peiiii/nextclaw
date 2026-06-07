@@ -18,6 +18,7 @@ This is a wrapped external tool skill:
 - List currently open Chrome tabs.
 - Open a new Chrome tab for an http or https URL.
 - Keep new tabs in the background by default for temporary evaluation, research, and page-reading work.
+- Ask the connected unpacked Browser Connector extension to reload itself after local or package updates.
 - Read the selected tab or refresh metadata for a known tab.
 - Claim a tab before reading or operating it.
 - Read a bounded page snapshot.
@@ -74,9 +75,16 @@ browser-connector setup chrome --open --json
 
 If `ready` is true, proceed to the workflow.
 
-If `ready` is false, follow only the returned `nextSteps`. Usually the command already opened `chrome://extensions` and the extension directory; the user only needs to load or reload the returned `nativeHost.extensionDir` as an unpacked extension. Then rerun the same setup command.
+If `ready` is false, follow only the returned `nextSteps`. Usually the command already opened `chrome://extensions` and the extension directory; the user only needs to load the returned `nativeHost.extensionDir` as an unpacked extension. Then rerun the same setup command.
 
-If `chrome-extension-capabilities` is false while `chrome-extension` is true, the CLI and Native Host are connected but Chrome is still running an older unpacked extension background script. Reload the Browser Connector extension in `chrome://extensions`, then rerun setup. Do not continue with newer commands until this check is true.
+If `chrome-extension-capabilities` is false while `chrome-extension` is true, the CLI and Native Host are connected but Chrome is still running an older unpacked extension background script. Prefer:
+
+```bash
+browser-connector extension reload --reason "refresh extension capabilities after CLI update" --json
+browser-connector setup chrome --json
+```
+
+If `extension reload` itself returns `UNSUPPORTED_COMMAND`, the currently loaded extension is too old to self-reload. Reload it once in `chrome://extensions`, then rerun setup. Do not continue with newer commands until this check is true.
 
 For local NextClaw source testing, rerun:
 
@@ -122,6 +130,13 @@ Use these helpers when the task depends on the currently focused tab or a specif
 ```bash
 browser-connector tabs selected --json
 browser-connector tabs get "<tabRef>" --json
+```
+
+If setup or doctor says the extension is stale after a local build or package
+update, reload it from the CLI:
+
+```bash
+browser-connector extension reload --reason "refresh extension after update" --json
 ```
 
 3. Choose the target tab from the returned `tabRef`, title, URL, and active state. Never guess a `tabRef`.
@@ -219,7 +234,13 @@ browser-connector doctor --json
 
 If a command exists in the installed CLI but the extension returns `Unsupported browser connector command`, the unpacked Chrome extension is running old background code.
 
-Reload the Browser Connector extension in `chrome://extensions`, then rerun:
+First try:
+
+```bash
+browser-connector extension reload --reason "refresh stale extension command set" --json
+```
+
+If that command is also unsupported, reload the Browser Connector extension once in `chrome://extensions`, then rerun:
 
 ```bash
 browser-connector setup chrome --json
@@ -227,7 +248,14 @@ browser-connector setup chrome --json
 
 ### Extension capabilities not ready
 
-If setup or doctor returns `chrome-extension=true` but `chrome-extension-capabilities=false`, the extension is connected but stale. Reload the unpacked Browser Connector extension in `chrome://extensions`, then rerun:
+If setup or doctor returns `chrome-extension=true` but `chrome-extension-capabilities=false`, the extension is connected but stale. Prefer CLI self-reload:
+
+```bash
+browser-connector extension reload --reason "refresh stale extension capabilities" --json
+browser-connector setup chrome --json
+```
+
+If self-reload is not supported by the loaded extension, reload the unpacked Browser Connector extension once in `chrome://extensions`, then rerun:
 
 ```bash
 browser-connector setup chrome --json

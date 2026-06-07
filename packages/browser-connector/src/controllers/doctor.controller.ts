@@ -39,7 +39,8 @@ export class DoctorController {
         nextSteps: status.connected && capabilityReady
           ? []
           : [
-              "Reload the Browser Connector unpacked extension in chrome://extensions.",
+              "Run browser-connector extension reload --reason \"refresh extension after update\" --json.",
+              "If extension reload returns UNSUPPORTED_COMMAND, reload the unpacked extension once in chrome://extensions.",
               "Then rerun browser-connector doctor --json and confirm chrome-extension-capabilities is true.",
             ],
       };

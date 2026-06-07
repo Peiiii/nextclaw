@@ -1,6 +1,7 @@
 import { Command, CommanderError } from "commander";
 
 import { DoctorController } from "@/controllers/doctor.controller.js";
+import { ExtensionController } from "@/controllers/extension.controller.js";
 import { InstallController } from "@/controllers/install.controller.js";
 import { PageController } from "@/controllers/page.controller.js";
 import { StatusController } from "@/controllers/status.controller.js";
@@ -24,6 +25,7 @@ import { resolveBrowserConnectorPackageVersion } from "@/utils/package-path.util
 export class BrowserConnectorApp {
   constructor(
     private readonly installController: InstallController,
+    private readonly extensionController: ExtensionController,
     private readonly doctorController: DoctorController,
     private readonly statusController: StatusController,
     private readonly tabsController: TabsController,
@@ -82,6 +84,7 @@ export class BrowserConnectorApp {
       program,
       {
         installController: this.installController,
+        extensionController: this.extensionController,
         doctorController: this.doctorController,
         statusController: this.statusController,
         tabsController: this.tabsController,
@@ -132,6 +135,7 @@ export const createBrowserConnectorApp = (
       browserConnectorManager,
       new BrowserSetupOpenerService(),
     ),
+    new ExtensionController(browserConnectorManager),
     new DoctorController(
       configRepository,
       nativeHostRegistrationService,
