@@ -1,5 +1,11 @@
 # @nextclaw/browser-connector
 
+## 0.2.1
+
+### Patch Changes
+
+- Align the bundled Chrome extension manifest version with the published browser connector package version.
+
 ## 0.2.0
 
 ### Minor Changes
