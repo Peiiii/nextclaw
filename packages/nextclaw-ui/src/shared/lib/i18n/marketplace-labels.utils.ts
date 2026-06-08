@@ -7,7 +7,7 @@ export const MARKETPLACE_LABELS = {
   marketplaceMcpTabCatalog: { zh: 'MCP 市场', en: 'MCP Market' },
   marketplaceMcpTabInstalled: { zh: '已安装 MCP', en: 'Installed MCP' },
   marketplaceTabInstalledSkills: { zh: '已安装技能', en: 'Installed Skills' },
-  marketplaceExternalSkillSourceTitle: { zh: 'SkillHub', en: 'SkillHub' },
+  marketplaceExternalSkillSourceTitle: { zh: '更多 Skills 访问 SkillHub', en: 'More Skills on SkillHub' },
   marketplaceSearchPlaceholderSkills: { zh: '搜索技能...', en: 'Search skills...' },
   marketplaceMcpSearchPlaceholder: { zh: '搜索 MCP servers...', en: 'Search MCP servers...' },
   marketplaceFilterSkills: { zh: '技能', en: 'Skills' },

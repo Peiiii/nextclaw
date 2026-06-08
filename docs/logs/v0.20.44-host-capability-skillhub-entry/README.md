@@ -8,6 +8,7 @@
 - 新增 desktop main 侧 `DesktopHostCapabilityService`，通过现有 `window.nextclawDesktop.host` bridge 调用系统默认浏览器。
 - 新增纯展示基础组件 `ExternalActionLink`，统一 primary 色外部跳转链接样式。
 - Marketplace tab 行右侧新增 SkillHub 外部入口，文案走 marketplace i18n owner。
+- 后续微调入口文案为 `更多 Skills 访问 SkillHub` / `More Skills on SkillHub`，让入口语义从品牌名升级为可理解的跳转动作。
 - 主 UI 内既有外部打开入口收敛到 `hostCapabilityManager.openExternalUrl(...)`，覆盖账号浏览器登录、provider device auth、release notes。
 - 修正本批次暴露出的治理规则：新增治理脚本前必须证明其解决通用、反复、高影响的问题类别；不为一次性坏味道保留窄脚本。
 
@@ -33,6 +34,14 @@
   - 结果：通过，有既有维护性 warning，未出现阻塞错误。
 - `pnpm check:generated-clean`
   - 结果：通过，生成产物干净。
+- SkillHub 入口文案微调补充验证：
+  - `pnpm -C packages/nextclaw-ui test -- src/features/marketplace/components/marketplace-page.test.tsx`
+  - `pnpm -C packages/nextclaw-ui tsc`
+  - `pnpm -C packages/nextclaw-ui exec eslint src/shared/lib/i18n/marketplace-labels.utils.ts src/features/marketplace/components/marketplace-external-skill-source-action.tsx src/features/marketplace/components/marketplace-page.test.tsx`
+  - `pnpm lint:new-code:governance`
+  - `pnpm check:governance-backlog-ratchet`
+  - `pnpm check:generated-clean`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/shared/lib/i18n/marketplace-labels.utils.ts`
 
 ## 发布/部署方式
 
@@ -41,7 +50,7 @@
 ## 用户/产品视角的验收步骤
 
 1. 打开 Skill Marketplace 的全部技能页。
-2. 确认 tab 行最右侧出现 `SkillHub` 按钮。
+2. 确认 tab 行最右侧出现 `更多 Skills 访问 SkillHub` 按钮。
 3. 点击该按钮。
 4. 在桌面端应通过系统默认浏览器打开 `https://skillhub.cn/`；Web/PWA 环境 fallback 到新浏览器标签。
 
