@@ -75,6 +75,7 @@ function getMarketplaceCopyKeys() {
     emptyInstalled: "marketplaceNoInstalledSkills",
     installedCountSuffix: "marketplaceInstalledSkillsCountSuffix",
     allSkills: "marketplaceAllSkills",
+    refreshingResults: "marketplaceRefreshingResults",
   };
 }
 
@@ -203,6 +204,12 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
   };
   const showListSkeleton =
     skeletonState.showCatalog || skeletonState.showInstalled;
+  const isRefreshingList =
+    scope === "all" &&
+    !showListSkeleton &&
+    Boolean(itemsQuery.data) &&
+    itemsQuery.isFetching &&
+    !itemsQuery.isFetchingNextPage;
 
   const listSummary = useMemo(() => {
     if (scope === "installed") {
@@ -446,6 +453,7 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
           <FilterPanel
             scope={scope}
             searchText={searchText}
+            isRefreshing={isRefreshingList}
             searchPlaceholder={t(copyKeys.searchPlaceholder)}
             sort={sort}
             onSearchTextChange={setSearchText}
@@ -464,7 +472,14 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
                   ? t(copyKeys.sectionInstalled)
                   : t(copyKeys.allSkills)}
               </h3>
-              <span className="text-[12px] text-gray-500">{listSummary}</span>
+              <div className="flex items-center gap-2 text-[12px] text-gray-500">
+                {isRefreshingList && (
+                  <span className="font-medium text-primary">
+                    {t(copyKeys.refreshingResults)}
+                  </span>
+                )}
+                <span>{listSummary}</span>
+              </div>
             </div>
           )}
 
@@ -523,8 +538,10 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
                   : t(copyKeys.allSkills)
               }
               summary={listSummary}
+              refreshingLabel={t(copyKeys.refreshingResults)}
               showTitle={curatedSceneRoute.showShelves}
               showListSkeleton={showListSkeleton}
+              isRefreshing={isRefreshingList}
               skeletonCardCount={SKELETON_CARD_COUNT}
               allItems={allItems}
               installedEntries={installedEntries}

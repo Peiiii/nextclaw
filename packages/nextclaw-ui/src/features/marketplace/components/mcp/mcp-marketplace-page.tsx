@@ -288,6 +288,7 @@ export function McpMarketplacePage() {
             <FilterPanel
               scope={scope === "catalog" ? "all" : "installed"}
               searchText={searchText}
+              isRefreshing={false}
               searchPlaceholder={t("marketplaceMcpSearchPlaceholder")}
               sort={sort}
               onSearchTextChange={setSearchText}

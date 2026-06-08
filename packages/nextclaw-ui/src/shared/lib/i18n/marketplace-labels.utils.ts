@@ -35,6 +35,7 @@ export const MARKETPLACE_LABELS = {
   marketplaceErrorLoadingSkillsData: { zh: '加载技能市场数据失败', en: 'Failed to load skill marketplace data' },
   marketplaceErrorLoadingInstalledSkills: { zh: '加载已安装技能失败', en: 'Failed to load installed skills' },
   marketplaceAllSkills: { zh: '全部技能', en: 'All Skills' },
+  marketplaceRefreshingResults: { zh: '正在更新...', en: 'Updating...' },
   marketplaceNoSkills: { zh: '未找到技能。', en: 'No skills found.' },
   marketplaceNoMcp: { zh: '未找到 MCP server。', en: 'No MCP servers found.' },
   marketplaceNoInstalledSkills: { zh: '未找到已安装技能。', en: 'No installed skills found.' },

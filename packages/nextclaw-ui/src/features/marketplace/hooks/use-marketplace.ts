@@ -38,7 +38,7 @@ export function useMarketplaceItems(params: MarketplaceListParams) {
       }
 
       const previousType = 'type' in previousParams ? previousParams.type : undefined;
-      return previousType === params.type && hasSameMarketplaceListIdentity(
+      return previousType === params.type && hasSameMarketplaceListSurface(
         previousParams as MarketplaceListParams,
         params
       )
@@ -56,14 +56,12 @@ export function useMarketplaceItems(params: MarketplaceListParams) {
   };
 }
 
-function hasSameMarketplaceListIdentity(
+function hasSameMarketplaceListSurface(
   previousParams: MarketplaceListParams,
   nextParams: MarketplaceListParams
 ): boolean {
-  return previousParams.q === nextParams.q
-    && previousParams.tag === nextParams.tag
+  return previousParams.tag === nextParams.tag
     && previousParams.scene === nextParams.scene
-    && previousParams.sort === nextParams.sort
     && previousParams.pageSize === nextParams.pageSize;
 }
 

@@ -19,8 +19,10 @@ type MarketplaceCatalogGridProps = {
   scope: "all" | "installed";
   title: string;
   summary: string;
+  refreshingLabel: string;
   showTitle: boolean;
   showListSkeleton: boolean;
+  isRefreshing: boolean;
   skeletonCardCount: number;
   allItems: MarketplaceItemSummary[];
   installedEntries: InstalledRenderEntry[];
@@ -41,8 +43,10 @@ export function MarketplaceCatalogGrid(props: MarketplaceCatalogGridProps) {
     scope,
     title,
     summary,
+    refreshingLabel,
     showTitle,
     showListSkeleton,
+    isRefreshing,
     skeletonCardCount,
     allItems,
     installedEntries,
@@ -60,7 +64,21 @@ export function MarketplaceCatalogGrid(props: MarketplaceCatalogGridProps) {
       {showTitle && (
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-[14px] font-semibold text-gray-950">{title}</h3>
-          <span className="text-[12px] text-gray-500">{summary}</span>
+          <div className="flex items-center gap-2 text-[12px] text-gray-500">
+            {isRefreshing && (
+              <span className="font-medium text-primary">{refreshingLabel}</span>
+            )}
+            <span>{summary}</span>
+          </div>
+        </div>
+      )}
+
+      {isRefreshing && (
+        <div
+          data-testid="marketplace-list-refreshing"
+          className="h-0.5 overflow-hidden rounded-full bg-primary/10"
+        >
+          <div className="h-full w-1/3 animate-pulse rounded-full bg-primary" />
         </div>
       )}
 

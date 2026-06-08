@@ -10,8 +10,10 @@ type ItemsQueryState = {
   data?: MarketplaceListView;
   isLoading: boolean;
   isFetching: boolean;
+  isFetchingNextPage: boolean;
   isError: boolean;
   error: Error | null;
+  hasNextPage: boolean;
 };
 
 type InstalledQueryState = {
@@ -128,8 +130,10 @@ function createItemsQuery(overrides: Partial<Record<string, unknown>> = {}) {
     data: undefined as MarketplaceListView | undefined,
     isLoading: false,
     isFetching: false,
+    isFetchingNextPage: false,
     isError: false,
     error: null,
+    hasNextPage: false,
     ...overrides,
   };
 }
@@ -206,6 +210,8 @@ describe("MarketplacePage", () => {
     render(<MarketplacePage forcedType="skills" />);
 
     expect(screen.queryByTestId("marketplace-list-skeleton")).toBeNull();
+    expect(screen.getByTestId("marketplace-list-refreshing")).toBeTruthy();
+    expect(screen.getAllByText("Updating...").length).toBeGreaterThan(0);
     expect(screen.getByText("Web Search")).toBeTruthy();
   });
 

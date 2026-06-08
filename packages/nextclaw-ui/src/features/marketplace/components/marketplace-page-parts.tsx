@@ -8,11 +8,12 @@ import {
 } from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { t } from "@/shared/lib/i18n";
-import { PackageSearch } from "lucide-react";
+import { Loader2, PackageSearch } from "lucide-react";
 import type { Ref } from "react";
 
 export function FilterPanel({
   scope,
+  isRefreshing,
   searchText,
   searchPlaceholder,
   sort,
@@ -20,6 +21,7 @@ export function FilterPanel({
   onSortChange,
 }: {
   scope: "all" | "installed";
+  isRefreshing: boolean;
   searchText: string;
   searchPlaceholder: string;
   sort: MarketplaceSort;
@@ -35,8 +37,14 @@ export function FilterPanel({
             value={searchText}
             onChange={(event) => onSearchTextChange(event.target.value)}
             placeholder={searchPlaceholder}
-            className="h-9 w-full rounded-xl border border-gray-200/80 pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40"
+            className="h-9 w-full rounded-xl border border-gray-200/80 pl-9 pr-9 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40"
           />
+          {isRefreshing && (
+            <Loader2
+              className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-primary"
+              aria-label={t("marketplaceRefreshingResults")}
+            />
+          )}
         </div>
 
         {scope === "all" && (
