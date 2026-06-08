@@ -8,15 +8,15 @@ AI 在会话回复中经常引用仓库文件，例如：
 - `[cron](packages/nextclaw-ui/src/features/chat/components/workspace/session-cron-job-content.tsx)`
 - `[README](/Users/demo/project/README.md:12:4)`
 
-这些链接不是普通网页导航。它们表达的是“在当前会话所在项目中打开一个本地文件”。如果渲染层只接受 `./`、`../` 或绝对路径，像 `AGENTS.md`、`packages/...` 这类 Cursor / IDE 常见的项目相对引用会被降级成 `chat-link-invalid`，用户看到的只是带下划线但不可打开的文本，无法从 AI 回复进入文件上下文。
+这些链接不是普通网页导航。它们表达的是“打开一个本地可读文件”。其中项目相对路径表达的是“在当前会话所在项目中打开一个本地文件”。如果渲染层只接受 `./`、`../` 或绝对路径，像 `AGENTS.md`、`packages/...` 这类 Cursor / IDE 常见的项目相对引用会被降级成 `chat-link-invalid`，用户看到的只是带下划线但不可打开的文本，无法从 AI 回复进入文件上下文。
 
 ## 产品目标
 
-本地文件链接应增强 NextClaw 的统一入口能力：用户在 chat 中看到 AI 引用文件时，可以直接进入当前会话工作区的文件预览，而不是手动复制路径、切换 IDE 或猜测路径基准。
+本地文件链接应增强 NextClaw 的统一入口能力：用户在 chat 中看到 AI 引用可打开文件时，可以直接进入文件预览，而不是手动复制路径、切换 IDE 或猜测路径基准。
 
 目标体验对齐 Cursor / VS Code 类 IDE：
 
-1. AI 回复里的项目相对文件路径是一等可点击引用。
+1. AI 回复里的本地可打开文件路径是一等可点击引用。
 2. 点击后在 NextClaw 会话 workspace 右侧文件预览打开。
 3. 支持行列号定位语义，至少把 `line` / `column` 传入文件打开 action。
 4. 外链仍按外链处理，危险协议不生成可点击链接。
@@ -66,10 +66,12 @@ Chat markdown 链接的 `href` 按以下顺序解释：
 ## 渲染与交互合同
 
 1. 可识别的本地文件链接渲染为 `<a>`，保持普通链接样式。
-2. 左键无修饰键点击时阻止浏览器默认导航，并调用 `onFileOpen(action)`。
-3. `meta` / `ctrl` / `shift` / `alt` 点击不拦截，保留浏览器或系统默认行为。
-4. 不安全链接渲染为 `chat-link-invalid`，不生成 anchor。
-5. 文件不存在、读取失败或缺少项目根，不应在 markdown renderer 阶段提前吞掉；应交给右侧文件预览展示可理解错误。
+2. AI 回复生成本地可打开文件引用时，必须保持为真正 Markdown link，例如 `[file](path)`；不能降级成粗体、inline code、fenced code block 或纯文本，否则渲染层没有 anchor 可以点击打开。
+3. 生成侧合同覆盖所有可见文件提及位置，包括标题、标签、段落第一处、纠错回复，以及从 tool result 复制出来的文件名；发送最终回复前应自检是否仍有裸文件名或裸路径。如果不准备逐个链接列表里的文件，不应列出具体文件名，只做概括。
+4. 左键无修饰键点击时阻止浏览器默认导航，并调用 `onFileOpen(action)`。
+5. `meta` / `ctrl` / `shift` / `alt` 点击不拦截，保留浏览器或系统默认行为。
+6. 不安全链接渲染为 `chat-link-invalid`，不生成 anchor。
+7. 文件不存在、读取失败或缺少项目根，不应在 markdown renderer 阶段提前吞掉；应交给右侧文件预览展示可理解错误。
 
 ## 当前落地
 
@@ -91,6 +93,8 @@ Chat markdown 链接的 `href` 按以下顺序解释：
 4. `[Docs](https://nextclaw.io)` 保持外链，不触发文件预览。
 5. `[site](example.com)` 不被误判成本地文件链接。
 6. `[bad](javascript:alert(1))` 不生成 anchor。
+7. AI 在纠错回复、列表标题或文件标签中提到主文件时，也应输出 `[MEMORY.md](MEMORY.md)` 或 `[MEMORY.md](/Users/peiwang/.nextclaw/workspace/MEMORY.md)`，不能只给子文件链接。
+8. AI 在目录示例中如果列出具体 `.md` 文件名，就逐个给链接；如果不想逐个链接，则不要列具体文件名。
 
 ## 后续可改进点
 
