@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-07T03:23:51.307Z",
+  "generatedAt": "2026-06-08T03:25:50.184Z",
   "base": {
     "name": "nextclaw",
     "projectRoot": "/home/runner/work/nextclaw/nextclaw",
@@ -18,6 +18,7 @@
         "apps/public-roadmap-feedback-portal/src",
         "bridge/src",
         "packages/aigen/src",
+        "packages/browser-connector/src",
         "packages/extensions/nextclaw-channel-extension-dingtalk/src",
         "packages/extensions/nextclaw-channel-extension-discord/src",
         "packages/extensions/nextclaw-channel-extension-email/src",
@@ -93,12 +94,12 @@
       ]
     },
     "totals": {
-      "files": 1915,
-      "totalLines": 256449,
-      "blankLines": 23879,
+      "files": 1948,
+      "totalLines": 260799,
+      "blankLines": 24398,
       "commentLines": 633,
-      "codeLines": 180619,
-      "testCodeLines": 51318
+      "codeLines": 183957,
+      "testCodeLines": 51811
     }
   },
   "benchmark": {
@@ -135,18 +136,18 @@
       ]
     },
     "totals": {
-      "files": 14649,
-      "totalLines": 3862316,
-      "blankLines": 317447,
-      "commentLines": 100727,
-      "codeLines": 1622060,
-      "testCodeLines": 1822082
+      "files": 14680,
+      "totalLines": 3888294,
+      "blankLines": 319146,
+      "commentLines": 100993,
+      "codeLines": 1633690,
+      "testCodeLines": 1834465
     }
   },
   "comparison": {
-    "baseMinusBenchmarkLines": -1441441,
-    "basePercentOfBenchmark": 11.14,
-    "benchmarkMultipleOfBase": 8.98,
-    "baseIsLighterByPercent": 88.86
+    "baseMinusBenchmarkLines": -1449733,
+    "basePercentOfBenchmark": 11.26,
+    "benchmarkMultipleOfBase": 8.88,
+    "baseIsLighterByPercent": 88.74
   }
 }
