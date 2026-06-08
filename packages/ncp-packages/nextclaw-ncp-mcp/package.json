@@ -4,6 +4,15 @@
   "private": false,
   "description": "Thin NCP adapter for exposing platform MCP tools inside NextClaw NCP runtimes.",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Peiiii/nextclaw.git"
+  },
+  "homepage": "https://github.com/Peiiii/nextclaw/tree/master/packages/ncp-packages/nextclaw-ncp-mcp",
+  "bugs": {
+    "url": "https://github.com/Peiiii/nextclaw/issues"
+  },
   "exports": {
     ".": {
       "development": "./src/index.ts",
