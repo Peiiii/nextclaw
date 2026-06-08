@@ -7,32 +7,29 @@ import {
 import { isKebabSegment, toKebabSegment } from "./file-name-kebab-shared.mjs";
 
 const DOC_EXTENSIONS = new Set([".md", ".mdx"]);
-const DATED_DESIGN_PLAN_DOC_PATH_PATTERN = /^docs\/(?:designs|plans)\//;
 const DATE_PREFIX_PATTERN = /^\d{4}-\d{2}-\d{2}-/;
-const DOC_EXACT_STEM_ALLOWLIST = new Set([
-  "README",
-  "CHANGELOG",
-  "RELEASE",
-  "VALIDATION",
-  "ACCEPTANCE",
-  "ITERATION",
-  "TODO",
-  "ROADMAP",
-  "USAGE",
-  "VISION",
-  "ARCHITECTURE",
-  "SKILL",
-  "index"
-]);
+const KNOWLEDGE_DOC_ROLE_BY_ROOT = { "docs/thoughts": "thought", "docs/designs": "design", "docs/plans": "plan" };
+const DOC_EXACT_STEM_ALLOWLIST = new Set(
+  ["README", "CHANGELOG", "RELEASE", "VALIDATION", "ACCEPTANCE", "ITERATION", "TODO", "ROADMAP", "USAGE", "VISION", "ARCHITECTURE", "SKILL", "index"]
+);
 
 export const isGovernedDocFile = (filePath) => {
   const normalizedPath = normalizeGovernancePath(filePath);
-  const extension = path.posix.extname(normalizedPath);
-  if (!DOC_EXTENSIONS.has(extension)) {
-    return false;
+  return DOC_EXTENSIONS.has(path.posix.extname(normalizedPath))
+    && DOC_NAMING_ROOTS.some((root) => normalizedPath === root || normalizedPath.startsWith(`${root}/`));
+};
+
+const getKnowledgeDocRole = (filePath) => KNOWLEDGE_DOC_ROLE_BY_ROOT[filePath.split("/").slice(0, 2).join("/")];
+
+const applyKnowledgeDocNaming = (filePath, stem) => {
+  const role = getKnowledgeDocRole(filePath);
+  if (!role) {
+    return stem;
   }
 
-  return DOC_NAMING_ROOTS.some((root) => normalizedPath === root || normalizedPath.startsWith(`${root}/`));
+  const datedStem = DATE_PREFIX_PATTERN.test(stem) ? stem : `YYYY-MM-DD-${stem}`;
+  const roleStem = datedStem.endsWith(`-${role}`) ? datedStem.slice(0, -role.length - 1) : datedStem;
+  return roleStem.endsWith(`.${role}`) ? roleStem : `${roleStem}.${role}`;
 };
 
 export const suggestDocKebabFilePath = (filePath) => {
@@ -44,16 +41,10 @@ export const suggestDocKebabFilePath = (filePath) => {
     .split(".")
     .map((segment) => DOC_EXACT_STEM_ALLOWLIST.has(segment) ? segment : toKebabSegment(segment))
     .join(".");
-  const nextStem = DATED_DESIGN_PLAN_DOC_PATH_PATTERN.test(normalizedPath) && !DATE_PREFIX_PATTERN.test(kebabStem)
-    ? `YYYY-MM-DD-${kebabStem}`
-    : kebabStem;
+  const nextStem = applyKnowledgeDocNaming(normalizedPath, kebabStem);
   const nextBaseName = `${nextStem}${extension}`;
 
-  if (directoryPath === "." || directoryPath === "") {
-    return nextBaseName;
-  }
-
-  return path.posix.join(directoryPath, nextBaseName);
+  return directoryPath === "." || directoryPath === "" ? nextBaseName : path.posix.join(directoryPath, nextBaseName);
 };
 
 export const inspectDocKebabFilePath = (filePath) => {
@@ -70,18 +61,26 @@ export const inspectDocKebabFilePath = (filePath) => {
     return null;
   }
 
-  const segments = stem.split(".");
-  const invalidSegment = segments.find((segment) => !isKebabSegment(segment));
-  if (!invalidSegment && (!DATED_DESIGN_PLAN_DOC_PATH_PATTERN.test(normalizedPath) || DATE_PREFIX_PATTERN.test(stem))) {
+  const invalidSegment = stem.split(".").find((segment) => !isKebabSegment(segment));
+  const knowledgeRole = getKnowledgeDocRole(normalizedPath);
+  const missingDatePrefix = knowledgeRole && !DATE_PREFIX_PATTERN.test(stem);
+  const missingRoleSuffix = knowledgeRole && !stem.endsWith(`.${knowledgeRole}`);
+  if (!invalidSegment && !missingDatePrefix && !missingRoleSuffix) {
     return null;
   }
   if (!invalidSegment) {
+    const reason = [
+      missingDatePrefix && "thought/design/plan document file name must start with 'YYYY-MM-DD-'",
+      missingRoleSuffix && `thought/design/plan document file name must end with '.${knowledgeRole}'`
+    ].filter(Boolean).join(" and ");
+
     return {
       filePath: normalizedPath,
       baseName,
       invalidSegment: stem,
       suggestedPath: suggestDocKebabFilePath(normalizedPath),
-      reason: "design/plan document file name must start with 'YYYY-MM-DD-'"
+      legacyBacklog: missingDatePrefix,
+      reason
     };
   }
 

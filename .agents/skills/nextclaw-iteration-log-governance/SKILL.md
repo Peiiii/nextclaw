@@ -25,17 +25,18 @@ Create or update an iteration record when any of these is true:
 Do not automatically create an iteration record when all of these are true:
 
 - no code/runtime path changed,
-- the change is a small metadata, wording, index, plan, design, PRD, or discussion-doc update,
+- the change is a small metadata, wording, index, thought, plan, design, PRD, or discussion-doc update,
 - the user did not explicitly request iteration logging.
 
-Design/plan/PRD documents normally belong under `docs/plans`, `docs/designs`, or `docs/prd`, not `docs/logs`.
+Thought/design/plan/PRD documents normally belong under `docs/thoughts`, `docs/plans`, `docs/designs`, or `docs/prd`, not `docs/logs`.
 
-## Design / Plan Date Prefix
+## Thought / Design / Plan Date Prefix
 
-The iteration mechanism requires dated anchors for design and plan deposits:
+The iteration mechanism requires dated anchors and dotted role suffixes for thought, design, and plan deposits:
 
-- design and plan document file names must use a `YYYY-MM-DD-` date prefix,
-- files under `docs/designs` and `docs/plans` must satisfy this by default,
+- files under `docs/thoughts` must use `YYYY-MM-DD-<topic>.thought.md`,
+- files under `docs/designs` must use `YYYY-MM-DD-<topic>.design.md`,
+- files under `docs/plans` must use `YYYY-MM-DD-<topic>.plan.md`,
 - this rule applies even when the work does not need a `docs/logs` iteration record.
 
 ## Same-Batch Rule

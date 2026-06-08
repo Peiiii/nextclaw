@@ -17,7 +17,7 @@ const usage = `Usage:
   node scripts/governance/lint-doc-file-names.mjs -- docs apps/docs
 
 Blocks changed governed documentation files whose file names are not kebab-case.
-Design and plan docs under docs/designs or docs/plans must also start with YYYY-MM-DD-.
+Thought, design, and plan docs under docs/thoughts, docs/designs, or docs/plans must also start with YYYY-MM-DD- and end with their role suffix (.thought, .design, or .plan).
 Once a doc file is touched, legacy non-compliant names must be renamed in the same change.`;
 
 const getNameStatusArgs = (pathArgs, options) => {

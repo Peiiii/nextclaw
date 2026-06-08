@@ -28,7 +28,7 @@ description: 当用户要求提交、收尾、统一 NPM 发布、GitHub release
 不需要添加 `.changeset/*.md` 的典型情况：
 
 - 只改 `AGENTS.md`、`.agents/skills`、内部治理规则
-- 只改 `docs/logs`、`docs/plans`、内部设计文档
+- 只改 `docs/logs`、`docs/thoughts`、`docs/plans`、内部设计文档
 - 只补测试、lint、工程治理，不改变产品行为
 - 纯内部重构且用户可见行为不变
 

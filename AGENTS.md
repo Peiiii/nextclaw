@@ -40,6 +40,7 @@
 - 项目内新增或重写 skill 默认使用中文；只有在明确面向外部英文受众、外部协议字段要求英文，或用户明确要求时，才使用英文。
 - 项目内方案、计划、设计、PRD、复盘等文档默认使用中文；只有面向外部英文受众、协议字段要求英文，或用户明确要求时，才使用英文。
 - 普通文档只用于人类说明、长期沉淀或被 skill 明确引用；不要把强制流程只拆到普通文档里，因为 AI 不一定会主动读取。
+- 沉淀想法、产品思考、讨论记录、设计、计划、PRD、路线图或迭代记录时，必须使用 `nextclaw-knowledge-governance` 判断进入 `docs/TODO.md`、`docs/thoughts`、`docs/designs`、`docs/plans`、`docs/prd`、`docs/ROADMAP.md` 还是 `docs/logs`。
 - 修改 `AGENTS.md`、命令机制、Rulebook 或 skill 分层时，必须使用 `nextclaw-agent-instructions-governance` skill。
 - 触达 `docs/logs` 迭代记录、NPM 发布记录、工作笔记、目标锚点时，必须使用 `nextclaw-iteration-log-governance` skill。
 - 执行源码、脚本、测试或运行链路配置相关任务时，默认使用 `nextclaw-delivery-workflow` 作为总流程 owner，统一约束实现前删减判断、验证、可维护性披露、复盘与最终汇报；细节再分别联动对应专项 skill。
@@ -115,7 +116,7 @@
 ## 迭代留痕常驻原则
 
 - 不要在改动开始前为了记笔记而自动新建迭代目录；默认改动完成后的收尾阶段再判断是否需要 `docs/logs` 留痕。
-- 迭代机制中的设计和计划沉淀必须带日期锚点：所有设计和计划类文档文件名必须使用 `YYYY-MM-DD-` 日期前缀，落在 `docs/designs/` 或 `docs/plans/` 的文档默认也必须满足该前缀。
+- 迭代机制中的思考、设计和计划沉淀必须带日期锚点和点分角色后缀：`docs/thoughts/`、`docs/designs/`、`docs/plans/` 下的文档默认分别使用 `YYYY-MM-DD-<topic>.thought.md`、`YYYY-MM-DD-<topic>.design.md`、`YYYY-MM-DD-<topic>.plan.md`。
 - 触达项目代码、脚本、测试、影响运行链路的配置，或进行大规模非代码规则/文档重构时，通常必须有迭代记录。
 - 最近一次相关迭代的同批次微调、补丁、验收修正，默认合并更新该迭代 `README.md`，不要拆出细碎新目录。
 - 纯计划、方案、设计、PRD、讨论记录默认写入对应 docs 目录，不因这类设计文档自动创建 `docs/logs`，除非用户明确要求留痕。
@@ -126,7 +127,8 @@
 - 新增和修改项目元指令统一维护在 `commands/commands.md`，这里仅保留索引。
 - `/new-command`：创建新指令。
 - `/config-meta`：调整或更新 `AGENTS.md`、Rulebook、Project Rulebook、命令或 skill 分层；必须使用 `nextclaw-agent-instructions-governance`。
-- `/add-to-plan`：将想法纳入规划体系，默认写入 `docs/TODO.md` 的 `Inbox`，并给出分流建议和 Issue 草案；中长期方向同步 `docs/ROADMAP.md`。
+- `/add-to-plan`：将想法纳入规划体系，先使用 `nextclaw-knowledge-governance` 分流，再按需写入 `docs/TODO.md` 或 `docs/ROADMAP.md`。
+- `/capture-thought`：沉淀尚未成熟到 design/plan 的产品、架构、交互或战略思考，使用 `nextclaw-knowledge-governance`。
 - `/check-meta`：检查 `AGENTS.md` 机制问题、自相矛盾、过度常驻、skill 触发缺失或规则漂移。
 - `/new-rule`：创建新规则条目；优先判断是否应写入 AGENTS 常驻内核、已有 skill、新 skill，还是普通文档。
 - `/commit`：进行提交操作；必须先闭合 release notes 与迭代记录判断，提交信息使用英文，只有用户明确要求才执行。

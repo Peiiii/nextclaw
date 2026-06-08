@@ -20,7 +20,13 @@
 
 - 用途：将想法或用户建议纳入规划体系。
 - 输入格式：`/add-to-plan <一句话事项>`，可附来源、优先级、owner。
-- 输出/期望行为：默认写入 `docs/TODO.md` 的 `Inbox`，给出 `Now / Next / Later / Roadmap Candidate` 分流建议，并生成 Issue 草案；若属于中长期方向，同步更新 `docs/ROADMAP.md`。
+- 输出/期望行为：使用 `nextclaw-knowledge-governance`；先判断内容应进入 `docs/TODO.md`、`docs/thoughts`、`docs/designs`、`docs/plans`、`docs/prd` 还是 `docs/ROADMAP.md`。若仍是一句话事项，默认写入 `docs/TODO.md` 的 `Inbox`，给出 `Now / Next / Later / Roadmap Candidate` 分流建议，并生成 Issue 草案；若属于中长期方向，同步更新 `docs/ROADMAP.md`。
+
+## `/capture-thought`
+
+- 用途：沉淀尚未成熟到 design/plan 的产品、架构、交互、战略或机制思考。
+- 输入格式：`/capture-thought <讨论主题或要沉淀的内容>`，可附来源、相关文档或升级条件。
+- 输出/期望行为：使用 `nextclaw-knowledge-governance`；先判断内容是否应进入 `docs/TODO.md`、`docs/thoughts`、`docs/designs`、`docs/plans`、`docs/prd`、`docs/ROADMAP.md` 或 `docs/logs`。若进入 `docs/thoughts`，文件名使用 `YYYY-MM-DD-<kebab-topic>.thought.md`，正文至少包含背景、核心判断、方案空间、推荐倾向、未决问题和升级条件。
 
 ## `/check-meta`
 

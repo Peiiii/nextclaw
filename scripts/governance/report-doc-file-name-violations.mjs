@@ -78,7 +78,7 @@ export const collectDocFileNameViolations = ({ trackedOnly = false } = {}) => {
   const findings = listGovernedDocFiles(trackedOnly)
     .flatMap((filePath) => {
       const finding = inspectDocKebabFilePath(filePath);
-      if (!finding) {
+      if (!finding || finding.legacyBacklog === false) {
         return [];
       }
       return [{
