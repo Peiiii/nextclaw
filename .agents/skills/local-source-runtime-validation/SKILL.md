@@ -80,6 +80,7 @@ pnpm docker:start
 - 设置容器内 `NEXTCLAW_HOME=/data`；
 - 默认暴露 UI `18891` 和 gateway `18890`，避免占用安装态默认端口；
 - 默认容器名和 compose project 为 `nextclaw-docker`，自定义 `--container-name` 会使用独立 compose project，避免不同验证实例互相 recreate；
+- 依赖下载使用 Docker BuildKit cache 与 `pnpm fetch`，源码变更后不应重新下载依赖；`pnpm install --offline` 仍会执行，用于把当前源码 workspace 装配进镜像；
 - 等待 `/api/health` 并打印 UI、API、logs、down 命令。
 
 常用可选参数：

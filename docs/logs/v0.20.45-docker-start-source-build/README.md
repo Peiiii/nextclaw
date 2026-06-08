@@ -11,6 +11,7 @@
 - 后续补丁让 `docker:start` 使用独立 compose project，避免不同 `--container-name` 实例互相 recreate。
 - 后续补丁同步 Dockerfile `EXPOSE` 元数据为 `18891`，避免 `docker ps` 继续显示旧默认端口。
 - 后续补丁新增 `pnpm docker:stop`，用于关闭默认 Docker 验证实例。
+- 后续补丁将 Docker 依赖下载提前到 `pnpm fetch` 缓存层，源码变更后避免重新下载依赖，并使用离线 install 装配当前 workspace。
 
 ## 测试/验证/验收方式
 
@@ -32,6 +33,8 @@
 - `pnpm docker:start`：通过，缓存命中时实际启动约十几秒，默认输出 `http://127.0.0.1:18891`，容器名 `nextclaw-docker`。
 - `curl http://127.0.0.1:18891/api/health`：通过，默认短命令启动的容器返回 `status=ok`，`ncpAgent=ready`，`cronService=ready`。
 - `pnpm docker:stop`：通过，默认 `nextclaw-docker` 容器和 network 被移除。
+- `docker compose -p nextclaw-docker -f docker/compose.yml build nextclaw`：通过，首次补齐 BuildKit/pnpm store 缓存。
+- `docker compose -p nextclaw-docker -f docker/compose.yml build nextclaw`：通过，二次构建的 `pnpm fetch`、`pnpm install --offline`、`build` 层均命中缓存。
 
 ## 发布/部署方式
 
