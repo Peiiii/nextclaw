@@ -66,7 +66,7 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 - AI 分析、总结、分类、结构化 JSON 输出优先判断 App Client 的 `agentRuns` 是否能覆盖；只有明确需要旧 bridge 的 `generateObject()` 便利层时才走 `window.nextclaw.agent.generateObject()`。Service App 用于本地文件、外部 API、本地命令和权限动作，不默认承担模型调用。
 - 不要让 Panel App 自己启动 HTTP server、直连 Service Gateway、伪造 caller、保存 bridge token 或猜测 sessionId。
 - 不要为了“像应用工程”而给 Panel App 创建 Vite、后台 dev server 或无意义的 `package.json`；第一版 NextClaw 轻量应用默认是静态 Panel App + 可选 MCP stdio Service App。Service App 零依赖优先，能用 Node.js 内置模块手写最小 MCP stdio / JSON-RPC server 就不要引入包；确实 import 第三方包时，才在该 Service App 目录声明自己的 `package.json` 并安装依赖。
-- 创建或修改 Panel App / Service App 后，默认不需要重启 NextClaw 宿主、server 或桌面应用才会生效；系统会按 workspace 目录动态发现，正确动作是刷新“面板应用/服务应用”列表、重新打开 Panel App，或运行 `nextclaw app check/dev/call` 做验收。
+- 创建或修改 Panel App / Service App 后，默认不需要重启 NextClaw 宿主、server 或桌面应用；如果要验证 live 产品实例或 Panel-to-Service 调用，先运行 `nextclaw app restart <service-app-id> --json` 断开旧 Service App runtime，再刷新列表、重新打开 Panel App，或运行 `nextclaw app check/dev/call` 做验收。
 
 ## 实现顺序
 
@@ -107,7 +107,7 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 ## 验收清单
 
 - 创建或修改任何 Panel App / Service App 后，必须运行 `nextclaw app check <app-dir>`；Panel + Service 组合要分别检查两个目录。检查失败必须先修复，不能把失败应用交付给用户。
-- 如果创建或修改 Service App，继续运行 `nextclaw app dev <service-app-dir>`，并用 `nextclaw app call <service-app-dir> <action-name> --input '{}'` 抽测至少一个关键 action；这两个命令复用真实 Service App runtime，不是静态检查替代品。
+- 如果创建或修改 Service App，继续运行 `nextclaw app dev <service-app-dir>`，并用 `nextclaw app call <service-app-dir> <action-name> --input '{}'` 抽测至少一个关键 action；这两个命令使用隔离临时 runtime。若还要验证 live 产品实例或 Panel-to-Service 调用，先运行 `nextclaw app restart <service-app-id> --json`，避免旧运行进程继续响应。
 - Panel App：能在“面板应用”列表出现，标题、描述、图标正确；窄侧栏可用；打开后无横向溢出。
 - Service App：能在“服务应用”列表出现，状态不是 failed；manifest actions 非空且有 risk。
 - Panel + Service：`panel-app.json.actions` 覆盖实际调用的 action；首次调用触发授权；授权后返回值按业务 payload 读取，不读 `response.result`。

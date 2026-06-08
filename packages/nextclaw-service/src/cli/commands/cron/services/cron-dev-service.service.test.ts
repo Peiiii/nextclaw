@@ -24,6 +24,7 @@ type DevServiceHandle = {
 };
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../");
+const nextclawCliPackageRoot = resolve(packageRoot, "../nextclaw");
 const tempDirs: string[] = [];
 const activeServices: DevServiceHandle[] = [];
 let nextPort = 19100;
@@ -104,7 +105,7 @@ async function waitForCondition<T>(
 async function runCli(home: string, args: string[]): Promise<{ stdout: string; stderr: string }> {
   return await new Promise((resolve, reject) => {
     const child = spawnPnpm(args, {
-      cwd: packageRoot,
+      cwd: nextclawCliPackageRoot,
       env: buildChildEnv(home),
     });
     if (!child.stdout || !child.stderr) {
@@ -154,7 +155,7 @@ async function startDevService(home: string): Promise<DevServiceHandle> {
   const port = nextPort;
   nextPort += 1;
   const child = spawnPnpm(["dev", "serve", "--ui-port", String(port)], {
-    cwd: packageRoot,
+    cwd: nextclawCliPackageRoot,
     env: buildChildEnv(home),
   });
   let logs = "";

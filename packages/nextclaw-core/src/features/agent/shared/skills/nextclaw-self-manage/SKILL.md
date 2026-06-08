@@ -39,6 +39,7 @@ Always use the built-in NextClaw self-management guide as the operation guide.
   - `nextclaw status --json`
   - and `nextclaw doctor --json` when needed
 - Be explicit about restart semantics after changes.
+- After modifying a running Service App, run `nextclaw app restart <app-id> --json` before validating through the live product UI or panel-to-service action calls.
 - For channel discovery before messaging, use `nextclaw channels list --json` and treat returned `channels[].id` values as authoritative.
 - For cron notifications, do not add delivery flags to the cron command. Put the notification intent in the scheduled message and let the scheduled agent call the `message` tool with an explicit channel and recipient.
 - For Agent creation/update/removal, treat `nextclaw agents list|new|update|remove --json` as the default path and follow the Agent management section in the self-management guide.
@@ -66,6 +67,7 @@ When user asks "what changed in version X", follow:
 - Service health: `nextclaw status --json` / `nextclaw doctor --json`
 - Local HTTP/API/webhook addresses: `nextclaw status --json` and read `endpoints.uiUrl` / `endpoints.apiUrl`
 - Lifecycle: `nextclaw start|restart|stop`
+- Service App live runtime: `nextclaw app restart <app-id> --json`
 - Channels: `nextclaw channels list --json|status|login`
 - Config: `nextclaw config get|set|unset`
 - Agents: `nextclaw agents list|new|update|remove`

@@ -27,11 +27,22 @@ export type ServiceAppCallReport = {
   issues: ServiceAppDevIssue[];
 };
 
+export type ServiceAppRestartReport = {
+  ok: boolean;
+  target: string;
+  app?: ServiceAppRecord;
+  issues: ServiceAppDevIssue[];
+};
+
 export type ServiceAppDevCommandOptions = {
   json?: boolean;
 };
 
 export type ServiceAppCallCommandOptions = {
   input?: string;
+  json?: boolean;
+};
+
+export type ServiceAppRestartCommandOptions = {
   json?: boolean;
 };

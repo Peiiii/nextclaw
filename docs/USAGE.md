@@ -16,6 +16,7 @@ When NextClaw AI needs to operate the product itself (version/status/doctor/serv
 6. **Be explicit about restart semantics** (hot-apply, auto-restart, or manual restart required).
 7. **Never invent commands**; use documented commands or `nextclaw --help` / `nextclaw <subcommand> --help`.
 8. **Desktop-installed AI uses the same command names**. When NextClaw Desktop launches the runtime, it exposes a managed `nextclaw` command surface to AI command tools, so self-management commands keep using `nextclaw ...` without requiring a global NPM install.
+9. **Restart live Service App runtimes before live retest**: after modifying a running Service App, use `nextclaw app restart <app-id> --json` before validating through the product UI or panel-to-service action calls.
 
 ---
 
@@ -513,6 +514,7 @@ Skill loading contract:
 | `nextclaw start` | Start gateway + UI in the background |
 | `nextclaw restart` | Restart the background service with optional start flags |
 | `nextclaw stop` | Stop the background service |
+| `nextclaw app restart <app-id>` | Restart a live Service App runtime in the running UI before live retest |
 | `nextclaw service install-systemd --user` | Install a user-level Linux `systemd` service for NextClaw |
 | `sudo nextclaw service install-systemd --system` | Install a system-wide Linux `systemd` service for NextClaw |
 | `nextclaw service uninstall-systemd --user` | Remove a user-level Linux `systemd` service |

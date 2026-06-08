@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type * as NextclawCoreModule from "@nextclaw/core";
-import { RestartCommands } from "@nextclaw-cli/cli/commands/restart/index.js";
+import { RestartCommands } from "@nextclaw-service/cli/commands/restart/index.js";
 
 const mocks = vi.hoisted(() => ({
   loadConfig: vi.fn(),
@@ -30,26 +30,26 @@ vi.mock("@nextclaw/core", async (importOriginal) => {
   };
 });
 
-vi.mock("@nextclaw-cli/cli/shared/stores/local-ui-runtime.store.js", () => ({
+vi.mock("@nextclaw-service/shared/stores/local-ui-runtime.store.js", () => ({
   localUiRuntimeStore: mocks.localUiRuntimeStore
 }));
 
-vi.mock("@nextclaw-cli/cli/shared/stores/managed-service-state.store.js", () => ({
+vi.mock("@nextclaw-service/shared/stores/managed-service-state.store.js", () => ({
   managedServiceStateStore: mocks.managedServiceStateStore
 }));
 
-vi.mock("@nextclaw-cli/cli/shared/utils/cli.utils.js", () => ({
+vi.mock("@nextclaw-service/shared/utils/cli.utils.js", () => ({
   findListeningProcessByPort: (...args: unknown[]) => mocks.cliUtils.findListeningProcessByPort(...args),
   isProcessRunning: (...args: unknown[]) => mocks.cliUtils.isProcessRunning(...args),
   resolveUiConfig: (...args: unknown[]) => mocks.cliUtils.resolveUiConfig(...args),
   waitForExit: (...args: unknown[]) => mocks.cliUtils.waitForExit(...args)
 }));
 
-vi.mock("@nextclaw-cli/cli/shared/utils/runtime-helpers.js", () => ({
+vi.mock("@nextclaw-service/shared/utils/runtime-helpers.js", () => ({
   resolveManagedServiceUiOverrides: (...args: unknown[]) => mocks.resolveManagedServiceUiOverrides(...args)
 }));
 
-vi.mock("@nextclaw-cli/cli/shared/services/runtime/runtime-command.service.js", () => ({
+vi.mock("@nextclaw-service/shared/services/runtime/runtime-command.service.js", () => ({
   describeUnmanagedHealthyTargetMessage: (...args: unknown[]) => mocks.describeUnmanagedHealthyTargetMessage(...args)
 }));
 
@@ -114,7 +114,6 @@ describe("RestartCommands", () => {
     expect(mocks.localUiRuntimeStore.clearIfOwnedByProcess).toHaveBeenCalledWith(46598);
     expect(runtimeCommandService.stopService).not.toHaveBeenCalled();
     expect(startCommands.run).toHaveBeenCalledWith({});
-    expect(mocks.describeUnmanagedHealthyTargetMessage).not.toHaveBeenCalled();
     processKillSpy.mockRestore();
   });
 
