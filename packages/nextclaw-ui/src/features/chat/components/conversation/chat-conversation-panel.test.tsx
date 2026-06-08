@@ -430,6 +430,11 @@ describe("ChatConversationPanel", () => {
       sending: "true",
     });
     expect(
+      screen
+        .getByTestId("chat-message-list")
+        .closest('[data-chat-scroll-container="true"]'),
+    ).toBeTruthy();
+    expect(
       screen.queryByText("No messages yet. Send one to start."),
     ).toBeNull();
   });

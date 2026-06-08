@@ -1,4 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type RefObject,
+} from "react";
 
 type UseStickyBottomScrollParams = {
   scrollRef: RefObject<HTMLElement>;
@@ -15,44 +21,41 @@ type UseStickyBottomScrollResult = {
 
 const DEFAULT_STICKY_THRESHOLD_PX = 10;
 
-function scrollElementToBottom(element: HTMLElement) {
-  element.scrollTop = element.scrollHeight;
-}
-
-function queueScrollToBottom(params: {
-  scrollRef: RefObject<HTMLElement>;
-  scheduledScrollFrameRef: { current: number | null };
-  isProgrammaticScrollRef: { current: boolean };
-}) {
-  const element = params.scrollRef.current;
-  if (!element) {
-    return;
-  }
-
-  if (params.scheduledScrollFrameRef.current !== null) {
-    cancelAnimationFrame(params.scheduledScrollFrameRef.current);
-  }
-
-  params.scheduledScrollFrameRef.current = requestAnimationFrame(() => {
-    params.scheduledScrollFrameRef.current = null;
-    const currentElement = params.scrollRef.current;
-    if (!currentElement) {
-      return;
-    }
-
-    params.isProgrammaticScrollRef.current = true;
-    scrollElementToBottom(currentElement);
-  });
-}
-
-export function useStickyBottomScroll(
-  params: UseStickyBottomScrollParams,
-): UseStickyBottomScrollResult {
+export function useStickyBottomScroll({
+  contentVersion,
+  hasContent,
+  isLoading,
+  resetKey,
+  scrollRef,
+  stickyThresholdPx,
+}: UseStickyBottomScrollParams): UseStickyBottomScrollResult {
   const isStickyRef = useRef(true);
   const isProgrammaticScrollRef = useRef(false);
   const previousResetKeyRef = useRef<string | null>(null);
   const pendingInitialScrollRef = useRef(false);
   const scheduledScrollFrameRef = useRef<number | null>(null);
+
+  const queueScrollToBottom = useCallback(() => {
+    const element = scrollRef.current;
+    if (!element) {
+      return;
+    }
+
+    if (scheduledScrollFrameRef.current !== null) {
+      cancelAnimationFrame(scheduledScrollFrameRef.current);
+    }
+
+    scheduledScrollFrameRef.current = requestAnimationFrame(() => {
+      scheduledScrollFrameRef.current = null;
+      const currentElement = scrollRef.current;
+      if (!currentElement) {
+        return;
+      }
+
+      isProgrammaticScrollRef.current = true;
+      currentElement.scrollTop = currentElement.scrollHeight;
+    });
+  }, [scrollRef]);
 
   const onScroll = () => {
     if (isProgrammaticScrollRef.current) {
@@ -60,7 +63,7 @@ export function useStickyBottomScroll(
       return;
     }
 
-    const element = params.scrollRef.current;
+    const element = scrollRef.current;
     if (!element) {
       return;
     }
@@ -69,24 +72,25 @@ export function useStickyBottomScroll(
       element.scrollHeight - element.scrollTop - element.clientHeight;
     isStickyRef.current =
       distanceFromBottom <=
-      (params.stickyThresholdPx ?? DEFAULT_STICKY_THRESHOLD_PX);
+      (stickyThresholdPx ?? DEFAULT_STICKY_THRESHOLD_PX);
   };
 
   useEffect(() => {
-    if (previousResetKeyRef.current === params.resetKey) {
+    if (previousResetKeyRef.current === resetKey) {
       return;
     }
 
-    previousResetKeyRef.current = params.resetKey;
+    previousResetKeyRef.current = resetKey;
     isStickyRef.current = true;
     pendingInitialScrollRef.current = true;
-  }, [params.resetKey]);
+  }, [resetKey]);
 
   useEffect(() => {
-    const scheduledScrollFrame = scheduledScrollFrameRef.current;
     return () => {
+      const scheduledScrollFrame = scheduledScrollFrameRef.current;
       if (scheduledScrollFrame !== null) {
         cancelAnimationFrame(scheduledScrollFrame);
+        scheduledScrollFrameRef.current = null;
       }
     };
   }, []);
@@ -94,41 +98,33 @@ export function useStickyBottomScroll(
   useLayoutEffect(() => {
     if (
       !pendingInitialScrollRef.current ||
-      params.isLoading ||
-      !params.hasContent
+      isLoading ||
+      !hasContent
     ) {
       return;
     }
 
-    const element = params.scrollRef.current;
+    const element = scrollRef.current;
     if (!element) {
       return;
     }
 
     pendingInitialScrollRef.current = false;
-    queueScrollToBottom({
-      scrollRef: params.scrollRef,
-      scheduledScrollFrameRef,
-      isProgrammaticScrollRef,
-    });
-  }, [params.hasContent, params.isLoading, params.scrollRef]);
+    queueScrollToBottom();
+  }, [hasContent, isLoading, queueScrollToBottom, scrollRef]);
 
   useLayoutEffect(() => {
-    if (!isStickyRef.current || !params.hasContent) {
+    if (!isStickyRef.current || !hasContent) {
       return;
     }
 
-    const element = params.scrollRef.current;
+    const element = scrollRef.current;
     if (!element) {
       return;
     }
 
-    queueScrollToBottom({
-      scrollRef: params.scrollRef,
-      scheduledScrollFrameRef,
-      isProgrammaticScrollRef,
-    });
-  }, [params.contentVersion, params.hasContent, params.scrollRef]);
+    queueScrollToBottom();
+  }, [contentVersion, hasContent, queueScrollToBottom, scrollRef]);
 
   return { onScroll };
 }

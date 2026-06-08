@@ -194,6 +194,7 @@ function ChatConversationContent() {
     <div
       ref={threadRef}
       onScroll={onScroll}
+      data-chat-scroll-container="true"
       className="flex-1 min-h-0 overflow-y-auto custom-scrollbar"
     >
       {showWelcome ? (
