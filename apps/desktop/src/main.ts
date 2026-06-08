@@ -1,4 +1,4 @@
-import { app, dialog, type Event as ElectronEvent } from "electron";
+import { app, dialog, ipcMain, shell, type Event as ElectronEvent } from "electron";
 import { join } from "node:path";
 import desktopPackageJson from "../package.json";
 import type { RuntimeCommand } from "./runtime-config";
@@ -10,6 +10,7 @@ import {
 import { DesktopUpdateManager } from "./managers/desktop-update.manager";
 import { DesktopWindowManager } from "./managers/desktop-window.manager";
 import { DesktopPresenceService } from "./services/desktop-presence.service";
+import { DesktopHostCapabilityService } from "./services/desktop-host-capability.service";
 import { setupDesktopInstallationProfile } from "./utils/desktop-installation-profile-electron.utils";
 import { DesktopRuntimeControlService } from "./services/desktop-runtime-control.service";
 import { RuntimeServiceProcess } from "./runtime-service";
@@ -34,6 +35,7 @@ class DesktopApplication {
   private runtime: RuntimeServiceProcess | null = null;
   private stopping = false;
   private readonly desktopRuntimeControlService: DesktopRuntimeControlService;
+  private readonly desktopHostCapabilityService: DesktopHostCapabilityService;
   private readonly desktopPresenceService: DesktopPresenceService;
   private readonly desktopUpdateManager: DesktopUpdateManager;
   private readonly runtimeCommandService: DesktopRuntimeCommandService;
@@ -62,6 +64,10 @@ class DesktopApplication {
       launcherStateStore: this.bundleManager.launcherStateStore
     });
     this.runtimeCommandService = new DesktopRuntimeCommandService(logger, this.bundleManager);
+    this.desktopHostCapabilityService = new DesktopHostCapabilityService({
+      ipcMain,
+      shell
+    });
     this.desktopRuntimeControlService = new DesktopRuntimeControlService({
       logger,
       restartRuntime: this.restartRuntime,
@@ -125,6 +131,7 @@ class DesktopApplication {
     await app.whenReady();
     await this.bundleManager.updateSourceService.ensureStateChannelInitialized();
     this.desktopRuntimeControlService.start();
+    this.desktopHostCapabilityService.start();
     this.windowManager.start();
     this.desktopPresenceService.start();
     this.desktopUpdateManager.start();
@@ -267,6 +274,7 @@ class DesktopApplication {
 
   private dispose = (): void => {
     this.desktopUpdateManager.dispose();
+    this.desktopHostCapabilityService.dispose();
     this.desktopPresenceService.dispose();
     this.windowManager.dispose();
     this.desktopRuntimeControlService.dispose();

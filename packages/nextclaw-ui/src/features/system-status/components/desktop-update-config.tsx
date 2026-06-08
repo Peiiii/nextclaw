@@ -8,6 +8,7 @@ import { Switch } from '@/shared/components/ui/switch';
 import { PageHeader, PageLayout } from '@/app/components/layout/page-layout';
 import { formatDateTime, t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
+import { hostCapabilityManager } from '@/shared/lib/host-capabilities';
 import { Download, ExternalLink, RefreshCw, RotateCw } from 'lucide-react';
 
 const STATUS_LABEL_KEYS: Record<string, string> = {
@@ -249,7 +250,7 @@ export function DesktopUpdateConfig() {
             <RotateCw className={cn('mr-2 h-4 w-4', isApplying && 'animate-spin')} />
             {t('runtimeUpdatesApplyNow')}
           </Button>
-          {snapshot.releaseNotesUrl ? <Button variant="ghost" onClick={() => window.open(snapshot.releaseNotesUrl ?? '', '_blank', 'noopener,noreferrer')}><ExternalLink className="mr-2 h-4 w-4" />{t('desktopUpdatesReleaseNotes')}</Button> : null}
+          {snapshot.releaseNotesUrl ? <Button variant="ghost" onClick={() => void hostCapabilityManager.openExternalUrl(snapshot.releaseNotesUrl ?? '')}><ExternalLink className="mr-2 h-4 w-4" />{t('desktopUpdatesReleaseNotes')}</Button> : null}
         </CardContent>
       </Card>
     </PageLayout>

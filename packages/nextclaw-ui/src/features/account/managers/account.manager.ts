@@ -9,6 +9,7 @@ import {
 import { formatDateTime, t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
 import { useAccountStore } from '@/features/account/stores/account.store';
+import { hostCapabilityManager } from '@/shared/lib/host-capabilities';
 
 type BrowserSignInCompletion = {
   resolve: (status: RemoteAccessView) => void;
@@ -71,8 +72,8 @@ export class AccountManager {
         intervalMs: result.intervalMs,
         statusMessage: t('remoteBrowserAuthWaiting')
       });
-      const opened = window.open(result.verificationUri, '_blank', 'noopener,noreferrer');
-      if (!opened) {
+      const opened = await hostCapabilityManager.openExternalUrl(result.verificationUri);
+      if (!opened.opened) {
         useAccountStore.getState().setAuthStatusMessage(t('remoteBrowserAuthPopupBlocked'));
       }
       this.scheduleBrowserAuthPoll();
@@ -83,12 +84,12 @@ export class AccountManager {
     }
   };
 
-  resumeBrowserSignIn = () => {
+  resumeBrowserSignIn = async () => {
     const verificationUri = useAccountStore.getState().authVerificationUri;
     if (!verificationUri) {
       return;
     }
-    window.open(verificationUri, '_blank', 'noopener,noreferrer');
+    await hostCapabilityManager.openExternalUrl(verificationUri);
   };
 
   logout = async () => {
@@ -125,7 +126,7 @@ export class AccountManager {
       return;
     }
     const targetUrl = new URL(path, `${webBase.replace(/\/+$/, '')}/`).toString();
-    window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    await hostCapabilityManager.openExternalUrl(targetUrl);
   };
 
   private scheduleBrowserAuthPoll = () => {

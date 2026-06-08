@@ -124,7 +124,7 @@ function SignedOutAccountSection(props: {
   authStatusMessage?: string | null;
   authVerificationUri?: string | null;
   onStartBrowserSignIn: () => Promise<void>;
-  onResumeBrowserSignIn: () => void;
+  onResumeBrowserSignIn: () => Promise<void>;
 }) {
   const {
     authSessionId,
@@ -165,7 +165,7 @@ function SignedOutAccountSection(props: {
             : t("remoteBrowserAuthAction")}
         </Button>
         {authVerificationUri ? (
-          <Button variant="outline" onClick={onResumeBrowserSignIn}>
+          <Button variant="outline" onClick={() => void onResumeBrowserSignIn()}>
             {t("remoteBrowserAuthResume")}
           </Button>
         ) : null}

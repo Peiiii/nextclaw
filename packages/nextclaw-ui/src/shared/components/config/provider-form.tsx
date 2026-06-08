@@ -51,7 +51,7 @@ import {
 import { ProviderModelsSection } from './provider-models-section';
 import type { PillSelectOption } from '@/shared/components/provider-pill-selector';
 import { ProviderStatusBadge } from '@/shared/components/provider-status-badge';
-
+import { hostCapabilityManager } from '@/shared/lib/host-capabilities';
 type ProviderFormProps = {
   providerName?: string;
   onProviderDeleted?: (providerName: string) => void;
@@ -488,7 +488,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
       }
       setAuthSessionId(result.sessionId);
       setAuthStatusMessage(`${t('providerAuthOpenPrompt')}${result.userCode}${t('providerAuthOpenPromptSuffix')}`);
-      window.open(result.verificationUri, '_blank', 'noopener,noreferrer');
+      await hostCapabilityManager.openExternalUrl(result.verificationUri);
       scheduleProviderAuthPoll(result.sessionId, result.intervalMs);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

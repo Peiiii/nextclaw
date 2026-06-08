@@ -94,10 +94,11 @@
 - React `useEffect` / `useLayoutEffect` 是高优先级克制项，默认先避免、尽量减少；新增或保留 effect 必须能说明它是在同步外部系统，业务编排、状态迁移、query/store 镜像应回到 query/view hook、store、manager 或 presenter。
 - 生命周期 owner 的订阅、临时 stream、watcher、runtime dispose 等清理职责默认收敛到 `cleanups` / `disposables` collection，`dispose/stop` 统一 drain；避免多个平行 nullable cleanup 字段或按资源类型散落清理逻辑。
 - 不允许同一功能、职责链路、数据变换、组件表面或交互结构出现平行重复实现；新增前先查找可复用实现。
+- 前端用户可见文案必须走 i18n 文案 owner；禁止在组件、hook、manager 或配置里用 `language.startsWith(...)`、`isZh ? ... : ...`、内联双语对象等方式临时拼国际化文案。
 - 跨 workspace package 依赖默认只能导入对方 package 根公共入口，或对方 `package.json` 明确声明的 `exports` 子入口；禁止从另一个 workspace 直接 deep import `shared/`、`commands/`、`src/` 等内部子路径。
 - 禁止为修复跨包编译或导入问题，在消费者包 `tsconfig` 中新增指向另一个包内部目录的子路径 alias；应收敛到根级 workspace paths owner、被依赖包公共入口或 package 自身 `exports`。
 - 禁止用结构性搬运替代语义建模：小字段、小状态或局部行为若需要多层透传、手写接口 proxy、原样转发方法，必须先回到真正的数据生成者或语义 owner。
-- 前端 UI 默认复用现有展示组件、图标和设计体系；同一骨架多变体优先配置驱动和组合式设计，避免复制 JSX 和样式。
+- 前端 UI 默认复用纯展示、业务无关的基础组件、图标和设计体系；基础组件默认落在 shared UI owner，只表达展示/交互语义，不读取业务数据、不内嵌业务文案、不绑定业务流程；业务页面负责组合和传参。同一骨架多变体优先配置驱动和组合式设计，避免复制 JSX 和样式。
 - 涉及 chat 链路演进时，默认只建设 NCP 主链路；legacy 只允许做阻塞迁移的必要修复、删除前兼容清理或用户明确要求的临时保障。
 - 触达 NextClaw 自管理命令语义时，必须同步维护 `docs/USAGE.md`、`packages/nextclaw/resources/USAGE.md` 与 `nextclaw-self-manage` skill，并说明是否运行 `sync-usage-resource`。
 
@@ -150,5 +151,6 @@
 
 - 新规则默认先判断：是否每轮都必须知道。若不是，优先进入 skill。
 - 不允许把 Rulebook 再次扩成大段示例/反例全集；示例、反例、命令细节、模板、检查清单默认属于 skill。
+- 新增治理脚本、自动化检查或强制验证入口前，必须证明它解决的是通用、反复、高影响的问题类别；禁止为一次性纠偏、少量表层坏味道或微末收益新增窄脚本。
 - 修改本文件时，目标是减少常驻 token、提升触发可靠性、减少重复规则，而不是把复杂度搬到不会触发的普通文档。
 - 如果某条常驻规则与 skill 细则冲突，以本文件的高层硬约束为准，并同步修正对应 skill。

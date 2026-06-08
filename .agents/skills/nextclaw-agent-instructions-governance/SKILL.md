@@ -48,6 +48,7 @@ For the full governance-system map, use:
    - `scripts/governance/*`,
    - governance baseline / test files,
    - linked internal governance docs.
+7. Before adding a governance script, automation check, or mandatory validation entry, prove it addresses a reusable class of repeated, high-impact problems. Do not add narrow scripts for one-off corrections, tiny pattern smells, or low-leverage reminders; keep those in AGENTS / skill rules unless a broader executable rule is justified.
 
 ## Placement Decision
 
@@ -77,7 +78,8 @@ When updating AI-readable guides such as `USAGE.md`, avoid turning the top-level
 1. 先判断它是不是每轮都必须知道；是则写入 `AGENTS.md` 的高层规则。
 2. 如果只在特定场景需要，写入对应 skill，并确保 description 能触发。
 3. 如果会影响自动检查，更新对应治理脚本或说明为什么暂不需要脚本。
-4. 如果不应落盘，必须明确说明原因，而不是口头承诺。
+4. 如果自动检查只能覆盖少量表层写法、一次性坏例子或低收益提醒，不要新增窄脚本；应写入对应规则/skill，并说明暂不适合脚本化。
+5. 如果不应落盘，必须明确说明原因，而不是口头承诺。
 
 ## Governance System Scope
 
@@ -93,6 +95,8 @@ Treat the governance system as including at least:
 - related baselines, fixtures, and tests
 
 If a rule change affects executable behavior, do not stop at text edits. Update the corresponding script surface in the same change, or explicitly state why it is not applicable.
+
+Executable governance must be calibrated by leverage. A new script is appropriate only when it can enforce a broad, repeatable problem class with clear signal and low false-positive cost; otherwise prefer a concise always-on rule, a targeted skill step, or reuse/extension of an existing generic check.
 
 The reverse direction is also mandatory:
 

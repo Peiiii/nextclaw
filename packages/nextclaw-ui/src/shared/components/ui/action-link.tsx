@@ -1,10 +1,16 @@
 import { cn } from '@/shared/lib/utils';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ExternalLink } from 'lucide-react';
 
 interface ActionLinkProps {
     label: string;
     className?: string;
     onClick?: () => void;
+}
+
+interface ExternalActionLinkProps {
+    label: string;
+    className?: string;
+    onClick: () => void;
 }
 
 /**
@@ -23,5 +29,21 @@ export function ActionLink({ label, className, onClick }: ActionLinkProps) {
             {label}
             <ArrowRight className="h-3 w-3 transition-transform group-hover/action:translate-x-0.5" />
         </span>
+    );
+}
+
+export function ExternalActionLink({ label, className, onClick }: ExternalActionLinkProps) {
+    return (
+        <button
+            type="button"
+            className={cn(
+                'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-1.5 text-[13px] font-medium text-primary transition-colors hover:text-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                className
+            )}
+            onClick={onClick}
+        >
+            <ExternalLink className="h-3.5 w-3.5" />
+            {label}
+        </button>
     );
 }

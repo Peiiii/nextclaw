@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MarketplacePage } from "@/features/marketplace";
 import type {
   MarketplaceInstalledView,
@@ -26,6 +26,7 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   docOpen: vi.fn(),
   confirm: vi.fn(),
+  openExternalUrl: vi.fn(),
   routeParams: {} as { scene?: string },
   itemsQuery: null as unknown as ItemsQueryState,
   installedQuery: null as unknown as InstalledQueryState,
@@ -68,6 +69,12 @@ vi.mock("@/shared/hooks/use-confirm-dialog", () => ({
     confirm: mocks.confirm,
     ConfirmDialog: () => null,
   }),
+}));
+
+vi.mock("@/shared/lib/host-capabilities", () => ({
+  hostCapabilityManager: {
+    openExternalUrl: mocks.openExternalUrl,
+  },
 }));
 
 vi.mock("@/features/marketplace/hooks/use-marketplace", () => ({
@@ -150,6 +157,7 @@ describe("MarketplacePage", () => {
     mocks.navigate.mockReset();
     mocks.docOpen.mockReset();
     mocks.confirm.mockReset();
+    mocks.openExternalUrl.mockReset();
     mocks.routeParams = {};
     mocks.installMutation.mutateAsync.mockReset();
     mocks.manageMutation.mutate.mockReset();
@@ -239,5 +247,27 @@ describe("MarketplacePage", () => {
 
     expect(screen.getByText("Web Search")).toBeTruthy();
     expect(container.querySelector(".opacity-70")).toBeNull();
+  });
+
+  it("opens SkillHub from the marketplace tab row", () => {
+    mocks.itemsQuery = createItemsQuery({
+      data: {
+        total: 1,
+        page: 1,
+        pageSize: 20,
+        totalPages: 1,
+        sort: "relevance",
+        items: [createMarketplaceItem()],
+      } satisfies MarketplaceListView,
+    });
+
+    render(<MarketplacePage forcedType="skills" />);
+
+    const openButton = screen.getByRole("button", {
+      name: /SkillHub/i,
+    });
+    fireEvent.click(openButton);
+
+    expect(mocks.openExternalUrl).toHaveBeenCalledWith("https://skillhub.cn/");
   });
 });

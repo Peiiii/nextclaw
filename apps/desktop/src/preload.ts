@@ -12,6 +12,7 @@ import {
   DESKTOP_LOCALE_SET_CHANNEL,
   DESKTOP_RUNTIME_RESTART_APP_CHANNEL,
   DESKTOP_RUNTIME_RESTART_SERVICE_CHANNEL,
+  DESKTOP_HOST_OPEN_EXTERNAL_URL_CHANNEL,
   DESKTOP_WINDOW_CONTROL_CHANNEL,
   DESKTOP_WINDOW_STATE_CHANGED_CHANNEL,
   DESKTOP_WINDOW_STATE_GET_CHANNEL,
@@ -45,6 +46,9 @@ type DesktopWindowControlAction = "minimize" | "toggle-maximize" | "close";
 type DesktopWindowStateSnapshot = {
   isMaximized: boolean;
 };
+type DesktopOpenExternalUrlResult =
+  | { opened: true }
+  | { opened: false; reason: "unsupported-url" | "popup-blocked" | "bridge-failed" };
 
 contextBridge.exposeInMainWorld("nextclawDesktop", {
   platform: process.platform,
@@ -73,6 +77,10 @@ contextBridge.exposeInMainWorld("nextclawDesktop", {
     await ipcRenderer.invoke(DESKTOP_WINDOW_STATE_GET_CHANNEL),
   controlWindow: async (action: DesktopWindowControlAction): Promise<void> => {
     await ipcRenderer.invoke(DESKTOP_WINDOW_CONTROL_CHANNEL, action);
+  },
+  host: {
+    openExternalUrl: async (url: string): Promise<DesktopOpenExternalUrlResult> =>
+      await ipcRenderer.invoke(DESKTOP_HOST_OPEN_EXTERNAL_URL_CHANNEL, url)
   },
   onWindowStateChanged: (listener: (snapshot: DesktopWindowStateSnapshot) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, snapshot: DesktopWindowStateSnapshot) => {

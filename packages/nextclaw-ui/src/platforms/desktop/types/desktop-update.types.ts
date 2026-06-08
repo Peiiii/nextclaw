@@ -52,6 +52,14 @@ export type DesktopWindowControlAction = 'minimize' | 'toggle-maximize' | 'close
 
 export type DesktopWindowStateSnapshot = { isMaximized: boolean };
 
+export type DesktopOpenExternalUrlResult =
+  | { opened: true }
+  | { opened: false; reason: 'unsupported-url' | 'popup-blocked' | 'bridge-failed' };
+
+export type DesktopHostBridge = {
+  openExternalUrl: (url: string) => Promise<DesktopOpenExternalUrlResult>;
+};
+
 export type NextClawDesktopBridge = {
   platform: string;
   version: string;
@@ -69,6 +77,7 @@ export type NextClawDesktopBridge = {
   setLocalePreference?: (language: DesktopUiLanguagePreference | null) => Promise<DesktopUiLanguagePreference | null>;
   controlWindow?: (action: DesktopWindowControlAction) => Promise<void>;
   getWindowState?: () => Promise<DesktopWindowStateSnapshot>;
+  host?: DesktopHostBridge;
   onWindowStateChanged?: (listener: (snapshot: DesktopWindowStateSnapshot) => void) => () => void;
   onUpdateStateChanged: (listener: (snapshot: DesktopUpdateSnapshot) => void) => () => void;
 };

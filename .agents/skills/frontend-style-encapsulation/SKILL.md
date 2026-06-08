@@ -1,6 +1,6 @@
 ---
 name: frontend-style-encapsulation
-description: 当修改前端样式、响应式布局、紧凑模式、Tailwind/CSS/container query、组件视觉状态，或用户质疑样式是否内聚、可移植、自洽时使用；尤其适用于 reusable UI package、shared component、跨宿主复用组件的样式 owner 判断。
+description: 当修改前端样式、基础组件、展示组件、响应式布局、紧凑模式、Tailwind/CSS/container query、组件视觉状态，或用户质疑样式是否内聚、可移植、自洽时使用；尤其适用于 reusable UI package、shared component、跨宿主复用组件的样式 owner 判断。
 ---
 
 # 前端样式内聚规则
@@ -16,6 +16,14 @@ description: 当修改前端样式、响应式布局、紧凑模式、Tailwind/C
 - 如果组件来自 reusable package 或 shared component，默认要求样式合同随组件一起走；宿主只负责布局位置、主题 token 和业务数据。
 - 使用全局 CSS 前先证明它是全局主题、reset、字体、scrollbar、design token 或跨组件基础设施；否则优先回到组件 class、组件局部样式、variant API 或包内样式入口。
 - 响应式判断优先基于真实约束容器，而不是整屏 viewport；右侧面板、dock、sidebar、split pane 都可能让组件进入窄容器。
+
+## 基础组件规范
+
+- 基础组件必须纯展示、业务无关：只承接样式、布局、状态、可访问性和通用交互语义，不读取业务数据、不发业务请求、不访问路由、不内嵌业务文案、不知道 marketplace/provider/agent/session 等领域概念。
+- 基础组件 props 应描述通用 UI 语义，例如 `variant`、`size`、`tone`、`isActive`、`isLoading`、`disabled`、`label`、`onClick`；不要把业务实体、业务 action 名或安装/登录/发布等领域流程塞进基础组件。
+- 重复出现的按钮、链接、标签、空态、提示、列表项骨架、卡片壳、工具栏动作等 UI 骨架，默认先沉到 shared UI owner，再由业务组件组合使用；业务组件只负责取数、翻译、权限判断和回调编排。
+- 若一个组件需要读业务 store/query、调用业务 manager、拼业务 i18n key、或理解业务状态机，它就不是基础组件，应留在 feature 组件层，并继续复用基础组件。
+- 颜色应表达稳定 UI 语义：primary 用于主要行动、可跳转链接和可发现入口；destructive 用于危险动作；muted/gray 用于次要信息。不要为单个业务场景临时发明颜色语义。
 
 ## 实现规则
 

@@ -42,6 +42,7 @@ import {
   MarketplaceCuratedSceneView,
   MarketplaceCuratedShelves,
 } from "@/features/marketplace/components/curated-shelves/marketplace-curated-shelves";
+import { MarketplaceExternalSkillSourceAction } from "@/features/marketplace/components/marketplace-external-skill-source-action";
 import { useMarketplaceCuratedSceneRoute } from "@/features/marketplace/hooks/use-marketplace-curated-scene-route";
 import { t } from "@/shared/lib/i18n";
 import { PageLayout } from "@/app/components/layout/page-layout";
@@ -73,6 +74,7 @@ function getMarketplaceCopyKeys() {
     emptyData: "marketplaceNoSkills",
     emptyInstalled: "marketplaceNoInstalledSkills",
     installedCountSuffix: "marketplaceInstalledSkillsCountSuffix",
+    allSkills: "marketplaceAllSkills",
   };
 }
 
@@ -424,19 +426,22 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
     <PageLayout className="flex h-full min-h-0 flex-col pb-0">
       {!curatedSceneRoute.isSceneRoute && (
         <>
-          <Tabs
-            tabs={[
-              { id: "all", label: t(copyKeys.tabMarketplace) },
-              {
-                id: "installed",
-                label: t(copyKeys.tabInstalled),
-                count: installedQuery.data?.total ?? 0,
-              },
-            ]}
-            activeTab={scope}
-            onChange={(value) => setScope(value as ScopeType)}
-            className="mb-3"
-          />
+          <div className="mb-3 flex items-start justify-between gap-3 border-b border-gray-200/60">
+            <Tabs
+              tabs={[
+                { id: "all", label: t(copyKeys.tabMarketplace) },
+                {
+                  id: "installed",
+                  label: t(copyKeys.tabInstalled),
+                  count: installedQuery.data?.total ?? 0,
+                },
+              ]}
+              activeTab={scope}
+              onChange={(value) => setScope(value as ScopeType)}
+              className="mb-0 flex-1 border-b-0"
+            />
+            <MarketplaceExternalSkillSourceAction />
+          </div>
 
           <FilterPanel
             scope={scope}
@@ -457,7 +462,7 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
               <h3 className="text-[14px] font-semibold text-gray-900">
                 {scope === "installed"
                   ? t(copyKeys.sectionInstalled)
-                  : language.startsWith("zh") ? "全部技能" : "All Skills"}
+                  : t(copyKeys.allSkills)}
               </h3>
               <span className="text-[12px] text-gray-500">{listSummary}</span>
             </div>
@@ -515,7 +520,7 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
               title={
                 scope === "installed"
                   ? t(copyKeys.sectionInstalled)
-                  : language.startsWith("zh") ? "全部技能" : "All Skills"
+                  : t(copyKeys.allSkills)
               }
               summary={listSummary}
               showTitle={curatedSceneRoute.showShelves}
