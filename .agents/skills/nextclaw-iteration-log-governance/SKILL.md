@@ -146,7 +146,7 @@ If source red-zone files are touched, add:
 - 下一步拆分缝：
 ```
 
-Use the maintainability guard output and `scripts/governance/maintainability-hotspots.mjs` as the source of truth.
+Use the maintainability guard output and `scripts/governance/maintainability/maintainability-hotspots.mjs` as the source of truth.
 
 ## Closing Output
 

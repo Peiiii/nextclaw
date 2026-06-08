@@ -1,4 +1,4 @@
-import { findFileDirectoryBasenameCollision } from "../file-directory-basename-collision-shared.mjs";
+import { findFileDirectoryBasenameCollision } from "../shared/file-directory-basename-collision-shared.mjs";
 
 const noFileDirectoryBasenameCollisionRule = {
   meta: {

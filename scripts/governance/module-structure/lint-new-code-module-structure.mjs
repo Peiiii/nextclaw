@@ -10,7 +10,7 @@ import {
   parseDiffCheckArgs,
   rootDir,
   runGit
-} from "../lint-new-code-governance-support.mjs";
+} from "../checks/lint-new-code-governance-support.mjs";
 import {
   findModuleStructureContract,
   findWorkspaceRootForPath,

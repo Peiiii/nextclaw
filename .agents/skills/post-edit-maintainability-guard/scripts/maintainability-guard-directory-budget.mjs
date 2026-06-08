@@ -14,12 +14,12 @@ export {
   DIRECTORY_BUDGET_WARNING_COUNT,
   evaluateDirectoryBudget,
   inspectDirectoryBudgetExceptionText
-} from "../../../../scripts/governance/maintainability-directory-budget.mjs";
+} from "../../../../scripts/governance/maintainability/maintainability-directory-budget.mjs";
 import {
   evaluateDirectoryBudget,
   inspectDirectoryBudgetException,
   listDirectCodeFilesInDirectory
-} from "../../../../scripts/governance/maintainability-directory-budget.mjs";
+} from "../../../../scripts/governance/maintainability/maintainability-directory-budget.mjs";
 
 function dirnamePosix(pathText) {
   const normalized = normalizePath(pathText);

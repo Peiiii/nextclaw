@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import parser from "@typescript-eslint/parser";
-import { hasAddedLineInRange, rootDir } from "../lint-new-code-governance-support.mjs";
+import { hasAddedLineInRange, rootDir } from "../checks/lint-new-code-governance-support.mjs";
 import {
   COMMAND_LOCAL_DIRECTORY_NAMES,
   CONTRIBUTION_LOCAL_DIRECTORY_NAMES,

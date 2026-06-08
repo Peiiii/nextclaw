@@ -7,7 +7,7 @@
 - 新增 `source` / `repo-volume` 双口径切换与手动刷新，让同一个入口既能看产品源码体积，也能看更接近工程总体积的仓库口径。
 - 根工作区新增 `dev:maintainability:console`、`smoke:maintainability:console`、`validate:maintainability:console`，方便直接从仓库根启动和验证。
 - 为了对齐仓库命名治理，把 app 内脚本命名收敛为 `scripts/dev.utils.mjs` 与 `scripts/smoke.test.mjs`，并把共享类型文件收敛为 `shared/maintainability.types.ts`。
-- 相关方案文档：[`docs/plans/2026-04-11-maintainability-console-implementation-plan.md`](../../plans/2026-04-11-maintainability-console-implementation-plan.md)
+- 相关方案文档：[`docs/plans/2026-04-11-maintainability-console-implementation.plan.md`](../../plans/2026-04-11-maintainability-console-implementation.plan.md)
 
 ## 测试/验证/验收方式
 

@@ -101,7 +101,7 @@ React hook 文件例外：
 
 - 受治理的文档范围默认包括：`docs/**`、`apps/docs/**`、`commands/**` 下的 `*.md` / `*.mdx` 文件。
 - 文档文件默认也应使用 kebab-case，允许保留少量约定名例外：`README.md`、`CHANGELOG.md`、`RELEASE.md`、`VALIDATION.md`、`ACCEPTANCE.md`、`ITERATION.md`、`index.md`，以及根级治理文档 `TODO.md`、`ROADMAP.md`、`USAGE.md`、`VISION.md`、`ARCHITECTURE.md`。
-- 文档允许使用 kebab-case 主名加可选语义后缀，例如：`provider-options.md`、`workspace-templates.plan.md`、`2026-04-13-touched-legacy-governance-hardening-plan.md`。
+- 文档允许使用 kebab-case 主名加可选语义后缀，例如：`provider-options.md`、`workspace-templates.plan.md`、`2026-04-13-touched-legacy-governance-hardening.plan.md`。
 - 除显式例外外，禁止新增 `PascalCase.md`、`snake_case.md`、带空格文档名，或语义弱、不可预测的文档文件名。
 
 ## 7. 反例

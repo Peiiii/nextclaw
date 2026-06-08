@@ -33,7 +33,7 @@
   - `dev / governance / local / smoke / desktop / metrics / docs / project-pulse` 下的仓库级脚本不再通过 `../..` 或 `..` 猜测 repo root，统一改为共享解析
   - 这次修正的目标不是“把层级多改一层”，而是消除目录重组后容易再次批量失效的脆弱实现
 - 同步更新治理文档与元规则：
-  - [治理计划文档](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-13-touched-legacy-governance-hardening-plan.md)
+  - [治理计划文档](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-13-touched-legacy-governance-hardening.plan.md)
   - [脚本目录整理计划](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-13-scripts-directory-organization-plan.md)
   - [命名工作流](/Users/peiwang/Projects/nextbot/docs/workflows/file-naming-convention.md)
   - [红区治理工作流](/Users/peiwang/Projects/nextbot/docs/workflows/maintainability-hotspot-freeze.md)

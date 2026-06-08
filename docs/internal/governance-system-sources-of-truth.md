@@ -132,7 +132,7 @@
 
 典型内容：
 
-- `scripts/governance/governance-backlog-baseline.json`
+- `scripts/governance/backlog/governance-backlog-baseline.json`
 - `scripts/governance/*.test.mjs`
 - 规则脚本依赖的 shared contract / fixture
 

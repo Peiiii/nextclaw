@@ -2,7 +2,7 @@ import {
   HOTSPOT_LOG_SECTION_TITLE,
   inspectHotspotLogBlock,
   listTouchedMaintainabilityHotspots
-} from "../../../../scripts/governance/maintainability-hotspots.mjs";
+} from "../../../../scripts/governance/maintainability/maintainability-hotspots.mjs";
 import {
   countLinesInText,
   getHeadContent,
