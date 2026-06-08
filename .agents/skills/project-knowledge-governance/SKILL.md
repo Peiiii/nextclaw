@@ -1,13 +1,13 @@
 ---
-name: nextclaw-knowledge-governance
-description: 当用户要求沉淀、整理、归档、维护或分流 NextClaw 的想法、产品思考、讨论记录、PRD、设计、计划、路线图、TODO、docs/thoughts、docs/designs、docs/plans 或 docs/logs 迭代记录时使用。用于判断内容应进入 docs/TODO.md、docs/thoughts、docs/designs、docs/plans、docs/prd、docs/ROADMAP.md 还是 docs/logs，并维护它们之间的升级关系。
+name: project-knowledge-governance
+description: 当用户要求沉淀、整理、归档、维护或分流项目想法、产品思考、讨论记录、PRD、设计、计划、路线图、TODO、docs/thoughts、docs/designs、docs/plans 或 docs/logs 迭代记录时使用。用于判断内容应进入 docs/TODO.md、docs/thoughts、docs/designs、docs/plans、docs/prd、docs/ROADMAP.md 还是 docs/logs，并维护它们之间的升级关系。
 ---
 
-# NextClaw Knowledge Governance
+# Project Knowledge Governance
 
 ## 目标
 
-维护 NextClaw 的知识沉淀链路，让讨论不会丢，也不会过早升级成设计或计划。
+维护项目知识沉淀链路，让讨论不会丢，也不会过早升级成设计或计划。
 
 核心分层：
 
@@ -19,7 +19,7 @@ docs/TODO.md Inbox
   -> docs/logs
 ```
 
-`docs/ROADMAP.md` 承接跨阶段的中长期方向，`docs/prd` 承接产品需求定义。
+`docs/ROADMAP.md` 承接跨阶段的中长期方向，`docs/prd` 承接产品需求定义。若项目已有等价目录或文件，优先遵守当前项目约定。
 
 ## 使用时机
 
@@ -31,9 +31,9 @@ docs/TODO.md Inbox
 - “这个想法后续怎么维护/升级”。
 - 新增或调整知识沉淀目录、模板、命令或规则。
 
-若任务触达 `AGENTS.md`、命令机制或 skill 分层，同时使用 `nextclaw-agent-instructions-governance`。
+若任务触达 `AGENTS.md`、命令机制或 skill 分层，同时使用当前项目的 agent instructions / meta governance 规则。
 
-若任务触达 `docs/logs` 或需要判断是否创建迭代记录，同时使用 `nextclaw-iteration-log-governance`。
+若任务触达 `docs/logs` 或需要判断是否创建迭代记录，同时使用当前项目的 iteration log governance 规则。
 
 ## 分流规则
 
@@ -50,7 +50,7 @@ docs/TODO.md Inbox
 - TODO 升级为 thought：出现明确背景、核心判断、方案空间或未决问题。
 - thought 升级为 design：出现稳定系统边界、模块职责、数据流、协议、交互结构或关键 owner。
 - design 升级为 plan：出现明确执行批次、步骤、验证方式和完成标准。
-- plan / implementation 升级为 docs/logs：实际完成交付、验证、发布、修复或治理后，按 `nextclaw-iteration-log-governance` 判断。
+- plan / implementation 升级为 docs/logs：实际完成交付、验证、发布、修复或治理后，按当前项目的迭代记录规则判断。
 
 升级时保留原文链接，不需要删除旧文；若旧文已明显过时，应在旧文顶部标注升级去向。
 
@@ -95,7 +95,7 @@ docs/TODO.md Inbox
 ## 操作流程
 
 1. 先判断这次内容属于想法、思考、设计、计划、PRD、路线图还是迭代记录。
-2. 若是产品、架构、交互或实现方向判断，先对齐 `docs/VISION.md`。
+2. 若是产品、架构、交互或实现方向判断，先对齐当前项目的愿景、原则、strategy 或 charter 文档；如果项目没有这类文档，明确标注缺失。
 3. 选择最轻的可用沉淀层，不要把早期讨论硬塞进 `docs/designs` 或 `docs/plans`。
 4. 写入或更新目标文档，保持中文正文、日期前缀和清晰升级条件。
 5. 若新增目录、命令、skill 或 AGENTS 路由，同步维护触发入口。
