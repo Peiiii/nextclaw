@@ -153,6 +153,7 @@
     "release:frontend": "node scripts/release/release-frontend.mjs && pnpm release:version && pnpm release:publish:frontend",
     "release": "pnpm changeset && pnpm release:version && pnpm release:publish",
     "docker:start": "bash scripts/dev/docker-start.sh",
+    "docker:stop": "docker compose -p nextclaw-docker -f docker/compose.yml down",
     "deploy:landing": "pnpm --filter @nextclaw/landing build && pnpm dlx wrangler pages deploy apps/landing/dist --project-name nextclaw-landing --branch master",
     "deploy:docs": "pnpm metrics:loc && pnpm --filter @nextclaw/docs build && pnpm dlx wrangler pages deploy apps/docs/.vitepress/dist --project-name nextclaw-docs --branch master",
     "deploy:platform:console": "pnpm -C apps/platform-console build && pnpm dlx wrangler pages deploy apps/platform-console/dist --project-name nextclaw-platform-console --branch master --commit-dirty=true",

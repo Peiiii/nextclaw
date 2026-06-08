@@ -10,6 +10,7 @@
 - 后续补丁将 Docker 默认 UI/API 改为 `18891` / `18890`，避免占用安装态默认端口 `55667`。
 - 后续补丁让 `docker:start` 使用独立 compose project，避免不同 `--container-name` 实例互相 recreate。
 - 后续补丁同步 Dockerfile `EXPOSE` 元数据为 `18891`，避免 `docker ps` 继续显示旧默认端口。
+- 后续补丁新增 `pnpm docker:stop`，用于关闭默认 Docker 验证实例。
 
 ## 测试/验证/验收方式
 
@@ -30,6 +31,7 @@
 - `pnpm docker:start -- --dry-run`：通过，默认 UI/API 为 `18891` / `18890`，默认容器和 compose project 为 `nextclaw-docker`。
 - `pnpm docker:start`：通过，缓存命中时实际启动约十几秒，默认输出 `http://127.0.0.1:18891`，容器名 `nextclaw-docker`。
 - `curl http://127.0.0.1:18891/api/health`：通过，默认短命令启动的容器返回 `status=ok`，`ncpAgent=ready`，`cronService=ready`。
+- `pnpm docker:stop`：通过，默认 `nextclaw-docker` 容器和 network 被移除。
 
 ## 发布/部署方式
 
@@ -41,7 +43,7 @@
 2. 在仓库根目录运行 `pnpm docker:start`。
 3. 打开命令输出的 UI 地址，默认是 `http://127.0.0.1:18891`。
 4. 需要独立端口或一次性数据目录时运行 `pnpm docker:start -- --ui-port 18891 --api-port 18890 --data-dir /tmp/nextclaw-docker-smoke`。
-5. 使用输出的 `docker compose ... logs -f nextclaw` 查看日志，使用输出的 `docker compose ... down` 结束实例。
+5. 运行 `pnpm docker:stop` 关闭默认实例。
 
 ## 可维护性总结汇总
 

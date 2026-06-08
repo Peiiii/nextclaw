@@ -89,6 +89,12 @@ pnpm docker:start -- --ui-port 18891 --api-port 18890 --data-dir /tmp/nextclaw-d
 pnpm docker:start -- --dry-run
 ```
 
+关闭默认 Docker 验证实例：
+
+```bash
+pnpm docker:stop
+```
+
 ## Home 模式
 
 默认 `shared-data`：
