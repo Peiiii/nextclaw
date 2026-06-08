@@ -1,7 +1,20 @@
 # i18n owner
 
-This directory temporarily keeps domain label owner modules next to the i18n runtime entrypoint.
+This module owns the NextClaw UI language runtime and locale catalogs.
 
-## 目录预算豁免
+## 文案维护方式
 
-- 原因：i18n 文案正在从单一超大 `index.ts` 逐步拆到领域 owner 文件，当前新增 cron 文案先落到独立 owner，避免继续膨胀入口文件；后续应迁移为每个语言独立 JSON，由 runtime 统一加载。
+- User-visible labels live in `locales/<locale>/*.json`.
+- `index.ts` only owns catalog assembly, formatting helpers, and the stable `t(key)` API.
+- Keep current flat keys when moving existing labels; semantic nested keys can migrate by domain during future feature work.
+- When adding or editing copy, update both `zh-CN` and `en-US`.
+
+## 验证
+
+Run:
+
+```bash
+node scripts/smoke/i18n/nextclaw-ui-i18n-check.mjs
+```
+
+The check verifies that both locales have the same JSON files, the same message keys, and matching `{placeholder}` names.

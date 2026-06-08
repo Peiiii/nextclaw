@@ -1,0 +1,12 @@
+{
+  "browse": "浏览",
+  "openPath": "打开",
+  "homeDirectory": "主目录",
+  "currentDirectory": "当前目录",
+  "parentDirectory": "上一级",
+  "pathPickerSearchPlaceholder": "搜索当前目录",
+  "pathPickerSearchEmpty": "当前目录下没有匹配结果。",
+  "selectCurrentDirectory": "选择当前目录",
+  "emptyDirectory": "当前目录下暂无可浏览项。",
+  "pathBrowseFailed": "读取目录失败"
+}

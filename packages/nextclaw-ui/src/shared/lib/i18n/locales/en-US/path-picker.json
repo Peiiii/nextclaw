@@ -1,0 +1,12 @@
+{
+  "browse": "Browse",
+  "openPath": "Open",
+  "homeDirectory": "Home",
+  "currentDirectory": "Current Directory",
+  "parentDirectory": "Up",
+  "pathPickerSearchPlaceholder": "Search current directory",
+  "pathPickerSearchEmpty": "No matching entries in the current directory.",
+  "selectCurrentDirectory": "Select Current Directory",
+  "emptyDirectory": "No entries in the current directory.",
+  "pathBrowseFailed": "Failed to load directory"
+}
