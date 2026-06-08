@@ -35,7 +35,7 @@ pnpm local:runtime
 
 ## 推荐流程
 
-1. 启动当前源码构建实例：
+1. 启动当前源码构建实例（复用真实数据、隔离运行态）：
 
 ```bash
 pnpm local:runtime
@@ -63,6 +63,30 @@ pnpm local:runtime:status
 
 ```bash
 pnpm local:runtime:stop
+```
+
+## Docker 干净实例
+
+需要容器级隔离、独立数据目录，并从当前仓库源码 build 镜像时，使用短命令：
+
+```bash
+pnpm docker:start
+```
+
+这个命令会：
+
+- 使用 `docker/compose.yml` 和 `docker/Dockerfile` 从当前仓库源码构建镜像；
+- 使用 `~/.nextclaw-docker` 作为默认数据目录，挂载到容器内 `/data`；
+- 设置容器内 `NEXTCLAW_HOME=/data`；
+- 默认暴露 UI `18891` 和 gateway `18890`，避免占用安装态默认端口；
+- 默认容器名和 compose project 为 `nextclaw-docker`，自定义 `--container-name` 会使用独立 compose project，避免不同验证实例互相 recreate；
+- 等待 `/api/health` 并打印 UI、API、logs、down 命令。
+
+常用可选参数：
+
+```bash
+pnpm docker:start -- --ui-port 18891 --api-port 18890 --data-dir /tmp/nextclaw-docker-smoke
+pnpm docker:start -- --dry-run
 ```
 
 ## Home 模式

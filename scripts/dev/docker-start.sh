@@ -2,13 +2,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 COMPOSE_FILE="${ROOT_DIR}/docker/compose.yml"
 
-UI_PORT="${NEXTCLAW_DOCKER_UI_PORT:-55667}"
-API_PORT="${NEXTCLAW_DOCKER_API_PORT:-18790}"
+UI_PORT="${NEXTCLAW_DOCKER_UI_PORT:-18891}"
+API_PORT="${NEXTCLAW_DOCKER_API_PORT:-18890}"
 DATA_DIR="${NEXTCLAW_DOCKER_DATA_DIR:-${HOME}/.nextclaw-docker}"
-CONTAINER_NAME="${NEXTCLAW_DOCKER_CONTAINER_NAME:-nextclaw}"
+CONTAINER_NAME="${NEXTCLAW_DOCKER_CONTAINER_NAME:-nextclaw-docker}"
 DRY_RUN=0
 WAIT_TIMEOUT_SECONDS=60
 
@@ -17,10 +17,10 @@ usage() {
 Usage: scripts/dev/docker-start.sh [options]
 
 Options:
-  --ui-port <port>          Host/UI port (default: 55667)
-  --api-port <port>         Host gateway API port (default: 18790)
+  --ui-port <port>          Host/UI port (default: 18891)
+  --api-port <port>         Host gateway API port (default: 18890)
   --data-dir <path>         Data directory mounted to /data (default: ~/.nextclaw-docker)
-  --container-name <name>   Docker container name (default: nextclaw)
+  --container-name <name>   Docker container name and compose project (default: nextclaw-docker)
   --dry-run                 Print compose command and environment only
   -h, --help                Show help
 EOF
@@ -137,7 +137,7 @@ export NEXTCLAW_DOCKER_API_PORT="${API_PORT}"
 export NEXTCLAW_DOCKER_DATA_DIR="${DATA_DIR}"
 export NEXTCLAW_DOCKER_CONTAINER_NAME="${CONTAINER_NAME}"
 
-compose_cmd=(docker compose -f "${COMPOSE_FILE}")
+compose_cmd=(docker compose -p "${CONTAINER_NAME}" -f "${COMPOSE_FILE}")
 
 if (( DRY_RUN == 1 )); then
   echo "Dry run enabled."

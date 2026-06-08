@@ -6,6 +6,7 @@ tmp
 workspace
 packages/*/node_modules
 packages/*/dist
+packages/nextclaw/lib
 packages/extensions/*/node_modules
 packages/extensions/*/dist
 apps/*/node_modules
