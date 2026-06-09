@@ -9,7 +9,7 @@ import {
 import {
   buildNcpSendMetadata,
   shouldClearPendingProjectRootOverride
-} from '@/features/chat/pages/ncp-chat-page';
+} from '@/features/chat/utils/ncp-chat-send-metadata.utils';
 import { filterModelOptionsBySessionType } from '@/features/chat/hooks/use-ncp-chat-page-data';
 
 const modelOptions: ChatModelOption[] = [

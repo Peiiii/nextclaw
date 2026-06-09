@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AlarmClock, FolderOpen, GitBranch, MoreVertical, Trash2 } from 'lucide-react';
-import { Button } from '@/shared/components/ui/button';
+import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { useChatSessionProject } from '@/features/chat/hooks/use-chat-session-project';
 import { ChatSessionHeaderMenuItem } from './chat-session-header-menu-item';
@@ -58,44 +58,32 @@ export function ChatSessionHeaderActions({
   return (
     <div className={SESSION_HEADER_ACTION_GROUP_CLASS}>
       {childSessionCount > 0 && onOpenChildSessions ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
+        <IconActionButton
+          icon={<GitBranch className="h-4 w-4" />}
+          label={t('chatSessionOpenChildSessions')}
           className={SESSION_HEADER_ACTION_BUTTON_CLASS}
-          aria-label={t('chatSessionOpenChildSessions')}
-          title={t('chatSessionOpenChildSessions')}
           onClick={onOpenChildSessions}
           disabled={isBusy}
-        >
-          <GitBranch className="h-4 w-4" />
-        </Button>
+        />
       ) : null}
       {sessionCronJobCount > 0 && onOpenSessionCronJobs ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
+        <IconActionButton
+          icon={<AlarmClock className="h-4 w-4" />}
+          label={t('chatSessionOpenCronJobs')}
           className={SESSION_HEADER_ACTION_BUTTON_CLASS}
-          aria-label={t('chatSessionOpenCronJobs')}
-          title={t('chatSessionOpenCronJobs')}
           onClick={onOpenSessionCronJobs}
           disabled={isBusy}
-        >
-          <AlarmClock className="h-4 w-4" />
-        </Button>
+        />
       ) : null}
       <Popover open={isMenuOpen} onOpenChange={setIsMenuOpen}>
         <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
+          <IconActionButton
+            icon={<MoreVertical className="h-4 w-4" />}
+            label={t('chatSessionMoreActions')}
+            tooltip=""
             className={SESSION_HEADER_ACTION_BUTTON_CLASS}
-            aria-label={t('chatSessionMoreActions')}
             disabled={isBusy}
-          >
-            <MoreVertical className="h-4 w-4" />
-          </Button>
+          />
         </PopoverTrigger>
         <PopoverContent align="end" className="w-56 p-2">
           <div className="space-y-1">

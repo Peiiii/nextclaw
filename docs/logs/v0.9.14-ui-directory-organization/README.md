@@ -9,6 +9,8 @@
 - 将 `useAppMeta` 从配置大桶拆到 `shared/hooks/use-app-meta.ts`。
 - 将 chat session preference 的 React 同步 hook 从 `.utils.ts` 拆到 `hooks/use-chat-session-preference-sync.ts`，保留 utils 文件为纯计算规则。
 - 合并无独立 owner 的 `use-chat-session-label.ts` 到 `use-chat-session-update.ts`。
+- 将 chat / doc browser 的紧凑 tab strip 和 icon-only action button 收敛到 shared UI 纯展示组件，移除重复 JSX 与样式。
+- 将 chat conversation header、session item 等组件进一步改成展示 props，由容器/adapter 负责业务数据组装。
 
 ## 测试/验证/验收方式
 
@@ -22,6 +24,8 @@
   - 结果：通过。
 - `pnpm check:governance-backlog-ratchet`
   - 结果：通过。
+- `pnpm -C packages/nextclaw-ui exec vitest run src/features/chat/components/conversation/__tests__/chat-conversation-header.test.tsx src/features/chat/components/conversation/__tests__/chat-conversation-panel.test.tsx src/features/chat/components/__tests__/chat-session-workspace-file-preview.test.tsx src/shared/components/doc-browser/__tests__/doc-browser.test.tsx src/features/chat/components/layout/__tests__/chat-sidebar.test.tsx src/features/chat/components/conversation/session-header/__tests__/chat-session-header-actions.test.tsx`
+  - 结果：6 个测试文件、68 个测试通过。
 - `node .agents/skills/file-organization-governance/scripts/enhanced-check-organization.js packages/nextclaw-ui/src`
   - 结果：目录热点从 4 个降到 3 个；`shared/components` 业务配置页面与 chat hooks 超阈值问题已收敛，剩余 `chat/utils`、`chat/utils/__tests__`、`shared/components/ui` 仍是后续结构债务。
 
@@ -48,6 +52,7 @@
   - 结果：失败；非测试净增 `+288`，主要统计到当前并行 chat show-content WIP 和 shared/ui 新文件，非本次目录整理闭环单独结果。
 - 正向减债动作：删除与职责收敛。
 - 质量与可维护性提升证明：`shared/components` 不再承接 settings/cron 业务页面，`shared/hooks/use-config.ts` 不再混入 NCP session 和 cron query owner，chat preference utils 回到纯计算角色。
+- 展示组件复用补充验证：scoped maintainability guard 通过；本次复用改造范围总计 `+522 / -538 / net -16`，非测试 `+497 / -506 / net -9`。
 - 剩余债务：`features/chat/utils` 和 `shared/components/ui` 仍是目录热点，需要后续按子域/基础 UI 模型继续拆分。
 
 ## NPM 包发布记录

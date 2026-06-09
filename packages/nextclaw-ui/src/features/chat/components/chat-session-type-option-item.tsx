@@ -1,7 +1,7 @@
 import type { ChatInputSnapshot } from "@/features/chat/stores/chat-input.store";
 import { SessionContextIconNode } from "@/features/chat/components/session/session-context-icon";
+import { StatusDot } from "@/shared/components/ui/status-dot";
 import { t } from "@/shared/lib/i18n";
-import { cn } from "@/shared/lib/utils";
 import { Bot } from "lucide-react";
 
 type SessionTypeOption = ChatInputSnapshot["sessionTypeOptions"][number];
@@ -43,20 +43,11 @@ export function ChatSessionTypeOptionItem(props: {
               <div className="truncate text-[13px] font-semibold text-gray-900">
                 {option.label}
               </div>
-              <span
-                className={cn(
-                  "inline-flex shrink-0 items-center gap-1.5 text-[11px] font-medium",
-                  option.ready === false ? "text-amber-700" : "text-emerald-600",
-                )}
-              >
-                <span
-                  className={cn(
-                    "h-1.5 w-1.5 rounded-full",
-                    option.ready === false ? "bg-amber-500" : "bg-emerald-500",
-                  )}
-                />
-                {option.ready === false ? t("statusSetup") : t("statusReady")}
-              </span>
+              <StatusDot
+                status={option.ready === false ? "warning" : "ready"}
+                label={option.ready === false ? t("statusSetup") : t("statusReady")}
+                className="bg-transparent px-0"
+              />
             </div>
             {helperText ? (
               <div className="mt-1 pr-4 text-[11px] leading-4 text-gray-500">

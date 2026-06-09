@@ -1,8 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Plus } from 'lucide-react';
-import { Button } from '@/shared/components/ui/button';
 import { ChatSessionTypeOptionItem } from "./chat-session-type-option-item";
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
+import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
 import type { NcpSessionListItemView } from '@/features/chat/hooks/use-ncp-session-list-view';
 import { t } from '@/shared/lib/i18n';
@@ -70,16 +70,12 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                   }}
                 >
                   <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
+                    <IconActionButton
+                      icon={<Plus className="h-3.5 w-3.5" />}
+                      label={actionLabel}
+                      tooltip=""
                       className="h-7 w-7 shrink-0 rounded-lg text-gray-400 hover:bg-white hover:text-gray-900"
-                      aria-label={actionLabel}
-                      title={actionLabel}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                    </Button>
+                    />
                   </PopoverTrigger>
                   <PopoverContent
                     align="end"
@@ -103,17 +99,12 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                   </PopoverContent>
                 </Popover>
               ) : (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
+                <IconActionButton
+                  icon={<Plus className="h-3.5 w-3.5" />}
+                  label={actionLabel}
                   className="h-7 w-7 shrink-0 rounded-lg text-gray-400 hover:bg-white hover:text-gray-900"
                   onClick={() => onCreateSession(preferredSessionType, group.projectRoot)}
-                  aria-label={actionLabel}
-                  title={actionLabel}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </Button>
+                />
               )}
             </div>
             <div className="space-y-0.5 pl-2">

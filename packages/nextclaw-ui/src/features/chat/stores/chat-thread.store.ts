@@ -1,10 +1,8 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import type { MutableRefObject } from 'react';
 import type { NcpMessage } from '@nextclaw/ncp';
 import type { ChatFileOperationLineViewModel } from '@nextclaw/agent-chat-ui';
 import type {
-  AgentProfileView,
   SessionContextWindowView,
   SessionTypeIconView
 } from '@/shared/lib/api';
@@ -56,16 +54,12 @@ export type ChatThreadSnapshot = {
   sessionTypeIcon?: SessionTypeIconView | null;
   sessionKey: string | null;
   agentId?: string | null;
-  agentDisplayName?: string | null;
-  agentAvatarUrl?: string | null;
-  availableAgents?: AgentProfileView[];
   sessionDisplayName?: string;
   sessionProjectRoot?: string | null;
   sessionWorkingDir?: string | null;
   sessionProjectName?: string | null;
   canDeleteSession: boolean;
   isDeletePending: boolean;
-  threadRef: MutableRefObject<HTMLDivElement | null> | null;
   isHistoryLoading: boolean;
   messages: readonly NcpMessage[];
   isSending: boolean;
@@ -125,16 +119,12 @@ const initialSnapshot: ChatThreadSnapshot = {
   sessionTypeIcon: null,
   sessionKey: null,
   agentId: null,
-  agentDisplayName: null,
-  agentAvatarUrl: null,
-  availableAgents: [],
   sessionDisplayName: undefined,
   sessionProjectRoot: null,
   sessionWorkingDir: null,
   sessionProjectName: null,
   canDeleteSession: false,
   isDeletePending: false,
-  threadRef: null,
   isHistoryLoading: false,
   messages: [],
   isSending: false,

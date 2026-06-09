@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ChatConversationHeader } from "@/features/chat/components/conversation/chat-conversation-header";
-import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
+import { ChatSessionHeaderActions } from "@/features/chat/components/conversation/session-header/chat-session-header-actions";
 
 vi.mock("@/shared/components/common/agent-avatar", () => ({
   AgentAvatar: ({ agentId }: { agentId: string }) => (
@@ -10,38 +10,23 @@ vi.mock("@/shared/components/common/agent-avatar", () => ({
   ),
 }));
 
-function renderHeader(
-  snapshotPatch: Partial<ReturnType<typeof useChatThreadStore.getState>["snapshot"]>,
-) {
+function renderHeader({
+  actions,
+  shouldShow = true,
+  title = "New Task",
+}: {
+  actions?: JSX.Element | null;
+  shouldShow?: boolean;
+  title?: string;
+} = {}) {
   const queryClient = new QueryClient();
-  const snapshot = {
-    ...useChatThreadStore.getState().snapshot,
-    isProviderStateResolved: true,
-    modelOptions: [],
-    sessionTypeLabel: "Codex",
-    sessionKey: null,
-    agentId: "main",
-    canDeleteSession: false,
-    messages: [],
-    ...snapshotPatch,
-  };
-
   return render(
     <QueryClientProvider client={queryClient}>
       <ChatConversationHeader
-        snapshot={snapshot}
-        childSessionCount={0}
-        sessionCronJobCount={0}
         layoutMode="desktop"
-        normalizedAgentId={snapshot.agentId ?? ""}
-        sessionHeaderTitle={snapshot.sessionDisplayName ?? "New Task"}
-        shouldShowHeaderAgentAvatar={false}
-        shouldShowSessionHeader={Boolean(
-          snapshot.sessionKey || snapshot.sessionTypeLabel,
-        )}
-        onOpenChildSessions={vi.fn()}
-        onOpenSessionCronJobs={vi.fn()}
-        onDeleteSession={vi.fn()}
+        title={title}
+        shouldShow={shouldShow}
+        actions={actions}
       />
     </QueryClientProvider>,
   );
@@ -49,7 +34,7 @@ function renderHeader(
 
 describe("ChatConversationHeader", () => {
   it("uses a stable desktop height before and after session materialization", () => {
-    renderHeader({});
+    renderHeader();
 
     const header = screen.getByText("New Task").closest(".border-b");
 
@@ -59,9 +44,17 @@ describe("ChatConversationHeader", () => {
 
   it("uses the standard session-header action button density after the session is materialized", () => {
     renderHeader({
-      sessionKey: "session-1",
-      canDeleteSession: true,
-      sessionDisplayName: "First message",
+      title: "First message",
+      actions: (
+        <ChatSessionHeaderActions
+          sessionKey="session-1"
+          canDeleteSession
+          isDeletePending={false}
+          childSessionCount={0}
+          sessionCronJobCount={0}
+          onDeleteSession={vi.fn()}
+        />
+      ),
     });
 
     const moreActions = screen.getByRole("button", { name: "More actions" });

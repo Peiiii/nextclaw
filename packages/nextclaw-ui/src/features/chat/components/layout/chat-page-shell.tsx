@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { ChatSidebar } from "@/features/chat/components/layout/chat-sidebar";
 import { ChatConversationPanel } from "@/features/chat/components/conversation/chat-conversation-panel";
 import { AgentsPage } from "@/features/agents";
@@ -16,7 +16,6 @@ type UseChatSessionSyncParams = {
   routeSessionKey: string | null;
   selectedSessionKey: string | null;
   setSelectedSessionKey: Dispatch<SetStateAction<string | null>>;
-  selectedSessionKeyRef: MutableRefObject<string | null>;
   resetStreamState: () => void;
 };
 export function useChatSessionSync(params: UseChatSessionSyncParams): void {
@@ -25,7 +24,6 @@ export function useChatSessionSync(params: UseChatSessionSyncParams): void {
     routeSessionKey,
     selectedSessionKey,
     setSelectedSessionKey,
-    selectedSessionKeyRef,
     resetStreamState,
   } = params;
 
@@ -50,10 +48,6 @@ export function useChatSessionSync(params: UseChatSessionSyncParams): void {
     setSelectedSessionKey,
     view,
   ]);
-
-  useEffect(() => {
-    selectedSessionKeyRef.current = selectedSessionKey;
-  }, [selectedSessionKey, selectedSessionKeyRef]);
 }
 type ChatPageLayoutProps = {
   view: MainPanelView;

@@ -90,8 +90,6 @@ export class NcpChatThreadManager {
       sessionKey: null,
       sessionTypeLabel: null,
       agentId: null,
-      agentDisplayName: null,
-      agentAvatarUrl: null,
       sessionDisplayName: undefined,
       sessionProjectRoot: null,
       sessionProjectName: null,

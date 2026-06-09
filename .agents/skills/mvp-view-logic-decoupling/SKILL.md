@@ -16,6 +16,7 @@ description: 当设计或重构前端 MVP / presenter-manager-store 架构、Zus
 - business component 连接 store/query/presenter/manager，并派生 view props。
 - UI component 保持纯展示、业务无关、可复用。
 - 简单优先，但简单不等于把无关职责塞进一个对象。
+- 简化原则：page/hook 只连接 owner，不决策业务转移；看到 page/hook 读多份状态后再调用多个 manager/store，优先收敛成一个 manager 意图方法。
 
 ## 状态与数据流归属
 
@@ -61,6 +62,7 @@ description: 当设计或重构前端 MVP / presenter-manager-store 架构、Zus
 - 不要用 effect 把 query 结果镜像进 store 或 local state。
 - 不要用 effect 在 render 后触发业务动作。
 - 如果 effect 在重置多个业务状态，先把这个 transition 移到 manager method 或 presenter flow。
+- 如果 effect 必须存在，应只把外部事件或 React 生命周期接入 owner；effect body 内不要展开业务分支、构造协议 payload 或直接写 store。
 
 ## 强制规则
 

@@ -1,4 +1,5 @@
 import { Button } from "@/shared/components/ui/button";
+import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 import { Input } from "@/shared/components/ui/input";
 import {
   Popover,
@@ -75,14 +76,12 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
               onOpenChange={onCreateMenuOpenChange}
             >
               <PopoverTrigger asChild>
-                <Button
-                  variant="primary"
-                  size="icon"
-                  className="h-9 w-10 shrink-0 rounded-xl rounded-l-md"
-                  aria-label={t("chatSessionTypeLabel")}
-                >
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
+                <IconActionButton
+                  icon={<ChevronDown className="h-4 w-4" />}
+                  label={t("chatSessionTypeLabel")}
+                  tooltip=""
+                  className="h-9 w-10 shrink-0 rounded-xl rounded-l-md bg-primary text-primary-foreground shadow-sm hover:bg-primary-600 hover:text-primary-foreground active:bg-primary-700"
+                />
               </PopoverTrigger>
               <PopoverContent
                 align="end"
@@ -158,14 +157,12 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps) {
         {hasCreateMenu ? (
           <Popover open={isCreateMenuOpen} onOpenChange={onCreateMenuOpenChange}>
             <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
+              <IconActionButton
+                icon={<Plus className="h-4 w-4" />}
+                label={t("chatSidebarNewTask")}
+                tooltip=""
                 className="h-9 w-9 shrink-0 rounded-full bg-gray-100/80 text-gray-700 shadow-none hover:bg-gray-200/80 hover:text-gray-900"
-                aria-label={t("chatSidebarNewTask")}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+              />
             </PopoverTrigger>
             <PopoverContent
               align="end"
@@ -189,15 +186,12 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps) {
             </PopoverContent>
           </Popover>
         ) : (
-          <Button
-            variant="ghost"
-            size="icon"
+          <IconActionButton
+            icon={<Plus className="h-4 w-4" />}
+            label={t("chatSidebarNewTask")}
             className="h-9 w-9 shrink-0 rounded-full bg-gray-100/80 text-gray-700 shadow-none hover:bg-gray-200/80 hover:text-gray-900"
-            aria-label={t("chatSidebarNewTask")}
             onClick={() => onCreateSession(defaultSessionType)}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+          />
         )}
       </div>
     </div>

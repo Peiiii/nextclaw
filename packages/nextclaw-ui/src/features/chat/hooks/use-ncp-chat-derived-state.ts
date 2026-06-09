@@ -1,6 +1,5 @@
-import { useEffect, useMemo, type MutableRefObject } from 'react';
+import { useEffect, useMemo } from 'react';
 import type {
-  AgentProfileView,
   NcpSessionSummaryView,
   SessionEntryView,
   SessionSkillEntryView
@@ -38,14 +37,12 @@ export function useNcpChatDerivedState(params: {
   sessionKey: string | null;
   selectedSession: SessionEntryView | null;
   selectedAgentId: string;
-  availableAgents: AgentProfileView[];
   parentSessionId: string | null;
   sessionSummaries: NcpSessionSummaryView[];
   selectedSessionType: string;
   sessionTypeOptions: ChatSessionTypeOption[];
 }) {
   const {
-    availableAgents,
     parentSessionId,
     selectedAgentId,
     selectedSession,
@@ -58,8 +55,6 @@ export function useNcpChatDerivedState(params: {
     ? sessionDisplayName(selectedSession)
     : undefined;
   const currentAgentId = selectedSession?.agentId ?? selectedAgentId;
-  const currentAgent =
-    availableAgents.find((agent) => agent.id === currentAgentId) ?? null;
   const parentSession = useMemo(() => {
     if (!parentSessionId) {
       return null;
@@ -87,7 +82,6 @@ export function useNcpChatDerivedState(params: {
   return {
     currentSessionDisplayName,
     currentAgentId,
-    currentAgent,
     parentSession,
     currentSessionTypeLabel,
     currentSessionTypeIcon,
@@ -115,14 +109,11 @@ export function useNcpChatSnapshotSync(params: {
   currentSessionTypeIcon: ChatSessionTypeOption['icon'];
   sessionKey: string | null | undefined;
   currentAgentId: string;
-  currentAgent: AgentProfileView | null;
-  availableAgents: AgentProfileView[];
   currentSessionDisplayName?: string;
   effectiveSessionProjectRoot: string | null;
   effectiveSessionWorkingDir: string | null;
   effectiveSessionProjectName: string | null;
   selectedSession: SessionEntryView | null;
-  threadRef: MutableRefObject<HTMLDivElement | null>;
   agent: Pick<UseHydratedNcpAgentResult, 'isHydrating' | 'snapshot' | 'visibleMessages'>;
   isAwaitingAssistantOutput: boolean;
   parentSession: SessionEntryView | null;
@@ -155,15 +146,11 @@ export function useNcpChatSnapshotSync(params: {
       sessionTypeIcon: params.currentSessionTypeIcon,
       sessionKey: params.sessionKey ?? null,
       agentId: params.currentAgentId,
-      agentDisplayName: params.currentAgent?.displayName ?? null,
-      agentAvatarUrl: params.currentAgent?.avatarUrl ?? null,
-      availableAgents: params.availableAgents,
       sessionDisplayName: params.currentSessionDisplayName,
       sessionProjectRoot: params.effectiveSessionProjectRoot,
       sessionWorkingDir: params.effectiveSessionWorkingDir,
       sessionProjectName: params.effectiveSessionProjectName,
       canDeleteSession: Boolean(params.selectedSession),
-      threadRef: params.threadRef,
       isHistoryLoading: params.agent.isHydrating,
       messages: params.agent.visibleMessages,
       isSending: params.isSending,

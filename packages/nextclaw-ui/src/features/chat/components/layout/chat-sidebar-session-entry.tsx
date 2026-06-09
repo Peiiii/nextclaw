@@ -3,6 +3,10 @@ import type { NcpSessionListItemView } from "@/features/chat/hooks/use-ncp-sessi
 import { ChatSidebarSessionItem } from "@/features/chat";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { shouldShowUnreadSessionIndicator } from "@/features/chat/stores/chat-session-list.store";
+import {
+  formatSessionListTime,
+  sessionActivityPreviewText,
+} from "@/features/chat/utils/chat-session-display.utils";
 import { resolveSessionContextView } from "@/features/chat/utils/session-context.utils";
 
 export function ChatSidebarSessionEntry(props: {
@@ -48,10 +52,16 @@ export function ChatSidebarSessionEntry(props: {
       ? (optimisticReadAt.localeCompare(session.readAt) > 0 ? optimisticReadAt : session.readAt)
       : optimisticReadAt ?? session.readAt;
   const childSessions = childSessionsByParentKey.get(session.key) ?? [];
+  const agentLabel = session.agentId
+    ? (agentsById.get(session.agentId)?.displayName ?? session.agentId)
+    : null;
+  const previewText =
+    sessionActivityPreviewText(session) ??
+    `${agentLabel?.trim() ? `${agentLabel} · ` : ''}${session.messageCount}`;
 
   return (
     <ChatSidebarSessionItem
-      session={session}
+      sessionKey={session.key}
       active={active}
       showUnreadDot={shouldShowUnreadSessionIndicator({
         active,
@@ -62,8 +72,10 @@ export function ChatSidebarSessionEntry(props: {
       runStatus={runStatus}
       context={resolveSessionContextView(session, inputSnapshot.sessionTypeOptions)}
       title={sessionTitle(session)}
+      previewText={previewText}
+      trailingText={formatSessionListTime(session.lastMessageAt ?? session.createdAt)}
       agentId={session.agentId ?? null}
-      agentLabel={session.agentId ? (agentsById.get(session.agentId)?.displayName ?? session.agentId) : null}
+      agentLabel={agentLabel}
       agentAvatarUrl={session.agentId ? (agentsById.get(session.agentId)?.avatarUrl ?? null) : null}
       childSessionCount={childSessions.length}
       isEditing={editingSessionKey === session.key}

@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, PointerEvent, ReactElement } from "react";
+import type { PointerEvent } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -10,14 +10,13 @@ import {
   X,
 } from "lucide-react";
 import type { DocBrowserDockState, DocBrowserTab } from "./doc-browser-context";
+import {
+  CompactTabStrip,
+  type CompactTabStripAction,
+  type CompactTabStripTab,
+} from "@/shared/components/ui/tabs";
 import { cn } from "@/shared/lib/utils";
 import { t } from "@/shared/lib/i18n";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/shared/components/ui/tooltip";
 
 type DocBrowserTabStripProps = {
   tabs: DocBrowserTab[];
@@ -37,53 +36,6 @@ type DocBrowserTabStripProps = {
   onDragStart: (event: PointerEvent<HTMLElement>) => void;
   onToggleMode: () => void;
 };
-
-type DocBrowserIconActionButtonProps = Omit<
-  ButtonHTMLAttributes<HTMLButtonElement>,
-  "children" | "type"
-> & {
-  disabled?: boolean;
-  icon: ReactElement;
-  label: string;
-  variant?: "tab" | "toolbar";
-};
-
-function DocBrowserIconActionButton({
-  className,
-  disabled = false,
-  icon,
-  label,
-  variant = "toolbar",
-  ...buttonProps
-}: DocBrowserIconActionButtonProps) {
-  const button = (
-    <button
-      {...buttonProps}
-      type="button"
-      disabled={disabled}
-      className={cn(
-        variant === "toolbar"
-          ? "rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:text-gray-300 disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-gray-300"
-          : "rounded p-0.5 transition-colors hover:bg-black/10",
-        className,
-      )}
-      aria-label={label}
-    >
-      {icon}
-    </button>
-  );
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        {disabled ? <span className="inline-flex">{button}</span> : button}
-      </TooltipTrigger>
-      <TooltipContent side="bottom" className="text-xs">
-        {label}
-      </TooltipContent>
-    </Tooltip>
-  );
-}
 
 export function DocBrowserTabStrip({
   tabs,
@@ -112,115 +64,66 @@ export function DocBrowserTabStrip({
       : t("sideDockBuiltInDocked")
     : t("sideDockPinCurrent");
   const forwardLabel = t("docBrowserForward");
-  const modeLabel = isDocked
-    ? t("docBrowserFloatMode")
-    : t("docBrowserDockMode");
+  const modeLabel = isDocked ? t("docBrowserFloatMode") : t("docBrowserDockMode");
   const newTabLabel = t("docBrowserNewTab");
+  const compactTabs: CompactTabStripTab[] = tabs.map((tab) => ({
+    key: tab.id,
+    label: tab.title || t("docBrowserTabUntitled"),
+    active: tab.id === activeTabId,
+    tooltip: tab.title,
+    closeLabel: closeTabLabel,
+    closePlacement: "trailing",
+    onSelect: () => onSetActiveTab(tab.id),
+    onClose: () => onCloseTab(tab.id),
+  }));
+  const actions: CompactTabStripAction[] = [
+    { key: "back", disabled: !canGoBack, icon: <ArrowLeft className="h-3.5 w-3.5" />, label: backLabel, onClick: onGoBack },
+    { key: "forward", disabled: !canGoForward, icon: <ArrowRight className="h-3.5 w-3.5" />, label: forwardLabel, onClick: onGoForward },
+    { key: "new-tab", icon: <Plus className="h-3.5 w-3.5" />, label: newTabLabel, onClick: onOpenNewTab },
+    ...(dockState?.canDock
+      ? [
+          {
+            key: "dock",
+            disabled: dockState.isDocked && !dockState.removable,
+            icon: dockState.isDocked && dockState.removable ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />,
+            label: dockLabel,
+            onClick: () => onToggleDock?.(),
+          },
+        ]
+      : []),
+    ...(!isFullscreen
+      ? [
+          {
+            key: "mode",
+            icon: isDocked ? <Maximize2 className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />,
+            label: modeLabel,
+            onClick: onToggleMode,
+          },
+        ]
+      : []),
+    { key: "close", icon: <X className="h-3.5 w-3.5" />, label: closeLabel, onClick: onClose },
+  ];
 
   return (
-    <TooltipProvider delayDuration={250}>
-      <div
-        data-testid="doc-browser-tab-strip"
-        className={cn(
-          "flex h-11 items-stretch gap-2 px-2.5 bg-background border-b border-[#f1e7d4] shrink-0 select-none",
-          isFullscreen &&
-            "h-[calc(env(safe-area-inset-top,0px)+2.75rem)] pt-[env(safe-area-inset-top,0px)]",
-        )}
-        onPointerDown={!isDocked && !isFullscreen ? onDragStart : undefined}
-      >
-        <div
-          className="doc-browser-tab-scrollbar flex h-full min-w-0 flex-1 items-center gap-1.5 overflow-x-auto"
-          onPointerDown={(event) => event.stopPropagation()}
-        >
-          {tabs.map((tab) => {
-            const isActive = tab.id === activeTabId;
-            return (
-              <div
-                key={tab.id}
-                className={cn(
-                  "inline-flex items-center gap-1 h-7 px-1.5 rounded-lg text-xs border max-w-[220px] shrink-0 transition-colors",
-                  isActive
-                    ? "bg-amber-50/80 border-amber-200 text-amber-900 shadow-[0_1px_2px_rgba(30,20,10,0.04)]"
-                    : "bg-[#f9f8f5] border-[#eee3d1] text-[#78644d] hover:bg-[#fff7ea] hover:text-[#2f2212]",
-                )}
-              >
-                <button
-                  type="button"
-                  onClick={() => onSetActiveTab(tab.id)}
-                  className="truncate text-left px-1"
-                  title={tab.title}
-                >
-                  {tab.title || t("docBrowserTabUntitled")}
-                </button>
-                <DocBrowserIconActionButton
-                  icon={<X className="w-3 h-3" />}
-                  label={closeTabLabel}
-                  variant="tab"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onCloseTab(tab.id);
-                  }}
-                />
-              </div>
-            );
-          })}
-        </div>
-        <div
-          className="flex h-full items-center gap-1 shrink-0"
-          data-testid="doc-browser-tab-actions"
-          onPointerDown={(event) => event.stopPropagation()}
-        >
-          <DocBrowserIconActionButton
-            disabled={!canGoBack}
-            icon={<ArrowLeft className="w-3.5 h-3.5" />}
-            label={backLabel}
-            onClick={onGoBack}
-          />
-          <DocBrowserIconActionButton
-            disabled={!canGoForward}
-            icon={<ArrowRight className="w-3.5 h-3.5" />}
-            label={forwardLabel}
-            onClick={onGoForward}
-          />
-          <DocBrowserIconActionButton
-            icon={<Plus className="w-3.5 h-3.5" />}
-            label={newTabLabel}
-            onClick={onOpenNewTab}
-          />
-          {dockState?.canDock ? (
-            <DocBrowserIconActionButton
-              disabled={dockState.isDocked && !dockState.removable}
-              icon={
-                dockState.isDocked && dockState.removable ? (
-                  <PinOff className="w-3.5 h-3.5" />
-                ) : (
-                  <Pin className="w-3.5 h-3.5" />
-                )
-              }
-              label={dockLabel}
-              onClick={onToggleDock}
-            />
-          ) : null}
-          {!isFullscreen ? (
-            <DocBrowserIconActionButton
-              icon={
-                isDocked ? (
-                  <Maximize2 className="w-3.5 h-3.5" />
-                ) : (
-                  <PanelRightOpen className="w-3.5 h-3.5" />
-                )
-              }
-              label={modeLabel}
-              onClick={onToggleMode}
-            />
-          ) : null}
-          <DocBrowserIconActionButton
-            icon={<X className="w-3.5 h-3.5" />}
-            label={closeLabel}
-            onClick={onClose}
-          />
-        </div>
-      </div>
-    </TooltipProvider>
+    <CompactTabStrip
+      testId="doc-browser-tab-strip"
+      actionsTestId="doc-browser-tab-actions"
+      tabs={compactTabs}
+      actions={actions}
+      className={cn(
+        "h-11 gap-2 px-2.5 bg-background border-[#f1e7d4] shrink-0 select-none",
+        isFullscreen && "h-[calc(env(safe-area-inset-top,0px)+2.75rem)] pt-[env(safe-area-inset-top,0px)]",
+      )}
+      scrollClassName="doc-browser-tab-scrollbar flex h-full items-center gap-1.5"
+      tabsClassName="items-center gap-1.5"
+      actionsClassName="h-full items-center gap-1"
+      actionButtonClassName="rounded-md p-1.5 hover:text-gray-700 disabled:opacity-60"
+      tabBaseClassName="group inline-flex min-w-0 items-center gap-1 h-7 px-1.5 rounded-lg text-xs border max-w-[220px] shrink-0 transition-colors"
+      activeTabClassName="bg-amber-50/80 border-amber-200 text-amber-900 shadow-[0_1px_2px_rgba(30,20,10,0.04)]"
+      inactiveTabClassName="bg-[#f9f8f5] border-[#eee3d1] text-[#78644d] hover:bg-[#fff7ea] hover:text-[#2f2212]"
+      labelClassName="px-1 text-xs font-normal"
+      onPointerDown={!isDocked && !isFullscreen ? onDragStart : undefined}
+      onScrollPointerDown={(event) => event.stopPropagation()}
+    />
   );
 }

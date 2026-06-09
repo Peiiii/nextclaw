@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import type { AgentProfileView } from '@/shared/lib/api';
-import { useChatThreadStore } from '@/features/chat';
 import { useAgents } from '@/shared/hooks/use-agents';
 
 export type ResolvedAgentIdentity = {
@@ -11,11 +10,10 @@ export type ResolvedAgentIdentity = {
 };
 
 function buildAgentProfileMap(
-  scopedAgents: readonly AgentProfileView[],
   queryAgents: readonly AgentProfileView[],
 ): Map<string, AgentProfileView> {
   return new Map(
-    [...queryAgents, ...scopedAgents]
+    queryAgents
       .filter((agent) => typeof agent.id === 'string' && agent.id.trim().length > 0)
       .map((agent) => [agent.id, agent]),
   );
@@ -25,14 +23,11 @@ export function useAgentIdentity(
   agentId?: string | null,
 ): ResolvedAgentIdentity | null {
   const normalizedAgentId = agentId?.trim() ?? '';
-  const scopedAgents = useChatThreadStore(
-    (state) => state.snapshot.availableAgents ?? [],
-  );
   const agentsQuery = useAgents();
 
   const agentById = useMemo(
-    () => buildAgentProfileMap(scopedAgents, agentsQuery.data?.agents ?? []),
-    [agentsQuery.data?.agents, scopedAgents],
+    () => buildAgentProfileMap(agentsQuery.data?.agents ?? []),
+    [agentsQuery.data?.agents],
   );
 
   return useMemo(() => {

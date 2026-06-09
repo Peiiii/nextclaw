@@ -6,15 +6,20 @@ import {
   ChatConversationHeader,
   ChatParentSessionBanner,
 } from "@/features/chat/components/conversation/chat-conversation-header";
+import { ChatSessionHeaderActions } from "@/features/chat/components/conversation/session-header/chat-session-header-actions";
+import { ChatSessionProjectBadge } from "@/features/chat/components/conversation/session-header/chat-session-project-badge";
 import { ChatWelcome } from "@/features/chat/components/chat-welcome";
 import { ChatSessionWorkspacePanel } from "@/features/chat/components/chat-session-workspace-panel";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import { resolveAgentRuntimeSessionType } from "@/features/chat/hooks/use-chat-session-type-state";
+import { SessionContextIconNode } from "@/features/chat/components/session/session-context-icon";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 import { useCronJobs } from "@/features/cron";
 import { isCronJobForSession } from "@/shared/lib/cron";
+import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { useAgents } from "@/shared/hooks/use-agents";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
@@ -147,9 +152,12 @@ function ChatConversationContent() {
     (state) => state.snapshot.defaultSessionType,
   );
   const snapshot = useChatThreadStore((state) => state.snapshot);
-  const fallbackThreadRef = useRef<HTMLDivElement | null>(null);
-  const threadRef = snapshot.threadRef ?? fallbackThreadRef;
-  const availableAgents = snapshot.availableAgents ?? [];
+  const threadRef = useRef<HTMLDivElement | null>(null);
+  const agentsQuery = useAgents();
+  const availableAgents =
+    (agentsQuery.data?.agents?.length ?? 0) > 0
+      ? (agentsQuery.data?.agents ?? [])
+      : [{ id: snapshot.agentId ?? "main" }];
   const showWelcome =
     !snapshot.canDeleteSession &&
     !snapshot.hasSubmittedDraftMessage &&
@@ -321,18 +329,64 @@ function ChatConversationHeaderContainer({
 
   return (
     <ChatConversationHeader
-      snapshot={snapshot}
-      childSessionCount={childSessionTabs.length}
-      sessionCronJobCount={sessionCronJobs.length}
       layoutMode={layoutMode}
-      normalizedAgentId={normalizedAgentId}
-      sessionHeaderTitle={sessionHeaderTitle}
-      shouldShowHeaderAgentAvatar={shouldShowHeaderAgentAvatar}
-      shouldShowSessionHeader={shouldShowSessionHeader}
+      title={sessionHeaderTitle}
+      shouldShow={shouldShowSessionHeader}
       onBackToList={onBackToList}
-      onOpenChildSessions={openChildSessions}
-      onOpenSessionCronJobs={openSessionCronJobs}
-      onDeleteSession={presenter.chatThreadManager.deleteSession}
+      leading={
+        shouldShowHeaderAgentAvatar ? (
+          <div className="inline-flex shrink-0 items-center">
+            <AgentIdentityAvatar
+              agentId={normalizedAgentId}
+              className="h-5 w-5"
+            />
+          </div>
+        ) : null
+      }
+      sessionTypeBadge={
+        snapshot.sessionTypeLabel ? (
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
+            {snapshot.sessionTypeIcon?.src ? (
+              <span className="inline-flex h-[1.125rem] w-[1.125rem] items-center justify-center">
+                <SessionContextIconNode
+                  icon={{
+                    kind: "runtime-image",
+                    src: snapshot.sessionTypeIcon.src,
+                    alt: snapshot.sessionTypeIcon.alt ?? null,
+                    name: snapshot.sessionTypeLabel,
+                  }}
+                />
+              </span>
+            ) : null}
+            {snapshot.sessionTypeLabel}
+          </span>
+        ) : null
+      }
+      projectBadge={
+        snapshot.sessionProjectName ? (
+          <ChatSessionProjectBadge
+            sessionKey={snapshot.sessionKey ?? "draft"}
+            projectName={snapshot.sessionProjectName}
+            projectRoot={snapshot.sessionProjectRoot}
+            persistToServer={snapshot.canDeleteSession}
+          />
+        ) : null
+      }
+      actions={
+        snapshot.sessionKey ? (
+          <ChatSessionHeaderActions
+            sessionKey={snapshot.sessionKey}
+            canDeleteSession={snapshot.canDeleteSession}
+            isDeletePending={snapshot.isDeletePending}
+            projectRoot={snapshot.sessionProjectRoot}
+            childSessionCount={childSessionTabs.length}
+            sessionCronJobCount={sessionCronJobs.length}
+            onOpenChildSessions={openChildSessions}
+            onOpenSessionCronJobs={openSessionCronJobs}
+            onDeleteSession={presenter.chatThreadManager.deleteSession}
+          />
+        ) : null
+      }
     />
   );
 }

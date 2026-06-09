@@ -1,26 +1,23 @@
-import type { SessionEntryView } from '@/shared/lib/api';
 import { AgentAvatar } from '@/shared/components/common/agent-avatar';
 import { SessionContextIconNode } from '@/features/chat/components/session/session-context-icon';
 import { SessionRunBadge } from '@/features/chat/components/session/session-run-badge';
-import { Button } from '@/shared/components/ui/button';
+import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import { Input } from '@/shared/components/ui/input';
 import { type SessionContextView } from '@/features/chat/utils/session-context.utils';
-import {
-  formatSessionListTime,
-  sessionActivityPreviewText
-} from '@/features/chat/utils/chat-session-display.utils';
 import type { SessionRunStatus } from '@/features/chat/types/session-run-status.types';
 import { cn } from '@/shared/lib/utils';
 import { t } from '@/shared/lib/i18n';
 import { Check, GitBranch, Pencil, X } from 'lucide-react';
 
 type ChatSidebarSessionItemProps = {
-  session: SessionEntryView;
+  sessionKey: string;
   active: boolean;
   showUnreadDot: boolean;
   runStatus?: SessionRunStatus;
   context: SessionContextView;
   title: string;
+  previewText: string;
+  trailingText: string;
   agentId?: string | null;
   agentLabel?: string | null;
   agentAvatarUrl?: string | null;
@@ -38,11 +35,11 @@ type ChatSidebarSessionItemProps = {
 
 type ChatSidebarSessionEditingViewProps = Pick<
   ChatSidebarSessionItemProps,
-  'session' | 'draftLabel' | 'isSaving' | 'onDraftLabelChange' | 'onSave' | 'onCancel'
+  'sessionKey' | 'draftLabel' | 'isSaving' | 'onDraftLabelChange' | 'onSave' | 'onCancel'
 >;
 
 function ChatSidebarSessionEditingView({
-  session,
+  sessionKey,
   draftLabel,
   isSaving,
   onDraftLabelChange,
@@ -69,30 +66,24 @@ function ChatSidebarSessionEditingView({
         disabled={isSaving}
       />
       <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0 text-[11px] text-gray-400 truncate">{session.key}</div>
+        <div className="min-w-0 text-[11px] text-gray-400 truncate">{sessionKey}</div>
         <div className="flex items-center gap-1">
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
+          <IconActionButton
+            icon={<Check className="h-3.5 w-3.5" />}
+            label={t('save')}
+            tooltip=""
             className="h-7 w-7 rounded-lg text-gray-500 hover:bg-white hover:text-gray-900"
             onClick={() => void onSave()}
             disabled={isSaving}
-            aria-label={t('save')}
-          >
-            <Check className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
+          />
+          <IconActionButton
+            icon={<X className="h-3.5 w-3.5" />}
+            label={t('cancel')}
+            tooltip=""
             className="h-7 w-7 rounded-lg text-gray-500 hover:bg-white hover:text-gray-900"
             onClick={onCancel}
             disabled={isSaving}
-            aria-label={t('cancel')}
-          >
-            <X className="h-3.5 w-3.5" />
-          </Button>
+          />
         </div>
       </div>
     </div>
@@ -101,16 +92,17 @@ function ChatSidebarSessionEditingView({
 
 type ChatSidebarSessionDisplayViewProps = Omit<
   ChatSidebarSessionItemProps,
-  'isEditing' | 'draftLabel' | 'isSaving' | 'onDraftLabelChange' | 'onSave' | 'onCancel'
+  'sessionKey' | 'isEditing' | 'draftLabel' | 'isSaving' | 'onDraftLabelChange' | 'onSave' | 'onCancel'
 >;
 
 function ChatSidebarSessionDisplayView({
-  session,
   active,
   showUnreadDot,
   runStatus,
   context,
   title,
+  previewText,
+  trailingText,
   agentId,
   agentLabel,
   agentAvatarUrl,
@@ -120,8 +112,6 @@ function ChatSidebarSessionDisplayView({
   onStartEditing
 }: ChatSidebarSessionDisplayViewProps) {
   const trailingControlsClassName = childSessionCount > 0 && onOpenChildSessions ? 'pr-14' : 'pr-6';
-  const previewText = sessionActivityPreviewText(session);
-  const fallbackPreviewText = `${agentLabel?.trim() ? `${agentLabel} · ` : ''}${session.messageCount}`;
 
   return (
     <div className="group/session relative">
@@ -158,7 +148,7 @@ function ChatSidebarSessionDisplayView({
         </div>
         <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400">
           <span className="min-w-0 truncate">
-            {previewText ?? fallbackPreviewText}
+            {previewText}
           </span>
           {showUnreadDot ? (
             <span
@@ -166,7 +156,7 @@ function ChatSidebarSessionDisplayView({
               className="ml-auto h-2 w-2 shrink-0 rounded-full bg-primary"
             />
           ) : (
-            <span className="ml-auto shrink-0">{formatSessionListTime(session.lastMessageAt ?? session.createdAt)}</span>
+            <span className="ml-auto shrink-0">{trailingText}</span>
           )}
         </div>
       </button>
@@ -195,8 +185,10 @@ function ChatSidebarSessionDisplayView({
           <SessionRunBadge status={runStatus} />
         </span>
       ) : null}
-      <button
-        type="button"
+      <IconActionButton
+        icon={<Pencil className="h-3 w-3" />}
+        label={t('edit')}
+        tooltip=""
         onClick={(event) => {
           event.stopPropagation();
           onStartEditing();
@@ -205,21 +197,20 @@ function ChatSidebarSessionDisplayView({
           'absolute right-0 top-0 inline-flex h-5 w-5 items-center justify-center rounded-md text-gray-400 transition-all hover:bg-white hover:text-gray-900',
           'opacity-0 group-hover/session:opacity-100 group-focus-within/session:opacity-100'
         )}
-        aria-label={t('edit')}
-      >
-        <Pencil className="h-3 w-3" />
-      </button>
+      />
     </div>
   );
 }
 
 export function ChatSidebarSessionItem({
-  session,
+  sessionKey,
   active,
   showUnreadDot,
   runStatus,
   context,
   title,
+  previewText,
+  trailingText,
   agentId,
   agentLabel,
   agentAvatarUrl,
@@ -245,7 +236,7 @@ export function ChatSidebarSessionItem({
     >
       {isEditing ? (
         <ChatSidebarSessionEditingView
-          session={session}
+          sessionKey={sessionKey}
           draftLabel={draftLabel}
           isSaving={isSaving}
           onDraftLabelChange={onDraftLabelChange}
@@ -254,12 +245,13 @@ export function ChatSidebarSessionItem({
         />
       ) : (
         <ChatSidebarSessionDisplayView
-          session={session}
           active={active}
           showUnreadDot={showUnreadDot}
           runStatus={runStatus}
           context={context}
           title={title}
+          previewText={previewText}
+          trailingText={trailingText}
           agentId={agentId}
           agentLabel={agentLabel}
           agentAvatarUrl={agentAvatarUrl}

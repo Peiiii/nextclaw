@@ -20,6 +20,10 @@ const mocks = vi.hoisted(() => ({
   goForwardWorkspacePanel: vi.fn(),
   deleteCronJob: vi.fn(),
   cronJobs: [] as CronJobView[],
+  agents: [
+    { id: "main", displayName: "Main", runtime: "native" },
+    { id: "engineer", displayName: "Engineer", runtime: "codex" },
+  ],
   setSelectedAgentId: vi.fn(),
   setPendingSessionType: vi.fn(),
   stickyBottomScroll: vi.fn(() => ({
@@ -209,6 +213,12 @@ vi.mock("@/shared/components/common/agent-avatar", () => ({
   ),
 }));
 
+vi.mock("@/shared/hooks/use-agents", () => ({
+  useAgents: () => ({
+    data: { agents: mocks.agents },
+  }),
+}));
+
 vi.mock("@/shared/components/common/agent-identity", () => ({
   AgentIdentityAvatar: ({ agentId }: { agentId: string }) => (
     <div data-testid="agent-identity-avatar">{agentId}</div>
@@ -227,6 +237,10 @@ function resetChatConversationPanelTestState() {
   mocks.goForwardWorkspacePanel.mockReset();
   mocks.deleteCronJob.mockReset();
   mocks.cronJobs = [];
+  mocks.agents = [
+    { id: "main", displayName: "Main", runtime: "native" },
+    { id: "engineer", displayName: "Engineer", runtime: "codex" },
+  ];
   mocks.resolvedChildTabs = [
     {
       sessionKey: "child-session-1",
@@ -266,7 +280,6 @@ function resetChatConversationPanelTestState() {
       sessionKey: "draft-session-1",
       sessionDisplayName: undefined,
       agentId: null,
-      agentDisplayName: null,
       sessionProjectRoot: null,
       sessionProjectName: null,
       canDeleteSession: false,
@@ -279,10 +292,6 @@ function resetChatConversationPanelTestState() {
       parentSessionKey: null,
       parentSessionLabel: null,
       workspacePanelParentKey: null,
-      availableAgents: [
-        { id: "main", displayName: "Main", runtime: "native" },
-        { id: "engineer", displayName: "Engineer", runtime: "codex" },
-      ],
       childSessionTabs: [],
       activeChildSessionKey: null,
       workspaceFileTabs: [],
@@ -360,7 +369,6 @@ describe("ChatConversationPanel", () => {
       snapshot: {
         ...useChatThreadStore.getState().snapshot,
         agentId: "main",
-        agentDisplayName: "Main",
       },
     });
 
@@ -374,13 +382,12 @@ describe("ChatConversationPanel", () => {
       snapshot: {
         ...useChatThreadStore.getState().snapshot,
         agentId: "engineer",
-        agentDisplayName: "Engineer",
       },
     });
 
     render(<ChatConversationPanel />);
 
-    expect(screen.getByTestId("agent-avatar").textContent).toBe("engineer");
+    expect(screen.getByTestId("agent-identity-avatar").textContent).toBe("engineer");
     expect(screen.queryByText("Engineer")).toBeNull();
   });
 
@@ -539,7 +546,6 @@ describe("ChatConversationPanel", () => {
       snapshot: {
         ...useChatThreadStore.getState().snapshot,
         agentId: "engineer",
-        agentDisplayName: "Engineer",
       },
     });
 
