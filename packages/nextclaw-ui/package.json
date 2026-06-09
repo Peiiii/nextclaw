@@ -21,6 +21,7 @@
     "@nextclaw/ncp": "workspace:*",
     "@nextclaw/ncp-http-agent-client": "workspace:*",
     "@nextclaw/ncp-react": "workspace:*",
+    "@nextclaw/ncp-toolkit": "workspace:*",
     "@nextclaw/shared": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.2",
     "@radix-ui/react-label": "^2.1.0",

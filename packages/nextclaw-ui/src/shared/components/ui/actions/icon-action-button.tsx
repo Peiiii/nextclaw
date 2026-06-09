@@ -13,7 +13,7 @@ type IconActionButtonProps = Omit<
 > & {
   icon: React.ReactNode;
   label: string;
-  tooltip?: string | null;
+  tooltip?: string | false | null;
 };
 
 const IconActionButton = React.forwardRef<HTMLButtonElement, IconActionButtonProps>(
@@ -34,7 +34,7 @@ const IconActionButton = React.forwardRef<HTMLButtonElement, IconActionButtonPro
         {icon}
       </button>
     );
-    const content = tooltip ?? label;
+    const content = tooltip === false ? null : tooltip ?? label;
     if (!content) return button;
     return (
       <TooltipProvider delayDuration={250}>

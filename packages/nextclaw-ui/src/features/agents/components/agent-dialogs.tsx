@@ -4,10 +4,10 @@ import {
   normalizeSessionType,
   resolveSessionTypeLabel,
   type ChatSessionTypeOption,
-} from "@/features/chat/hooks/use-chat-session-type-state";
+} from "@/features/chat";
 import { ProviderScopedModelInput } from "@/shared/components/common/provider-scoped-model-input";
 import { Button } from "@/shared/components/ui/button";
-import { NoticeCard } from "@/shared/components/ui/notice-card";
+import { NoticeCard } from "@/shared/components/feedback/notice-card";
 import {
   Select,
   SelectContent,

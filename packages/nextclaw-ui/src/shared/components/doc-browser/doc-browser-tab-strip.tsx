@@ -14,7 +14,7 @@ import {
   CompactTabStrip,
   type CompactTabStripAction,
   type CompactTabStripTab,
-} from "@/shared/components/ui/tabs";
+} from "@/shared/components/ui/tab-strip/compact-tab-strip";
 import { cn } from "@/shared/lib/utils";
 import { t } from "@/shared/lib/i18n";
 

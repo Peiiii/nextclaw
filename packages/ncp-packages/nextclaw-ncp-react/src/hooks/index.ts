@@ -6,4 +6,9 @@ export {
   type UseHydratedNcpAgentResult,
 } from "./use-hydrated-ncp-agent.js";
 export { useNcpAgent } from "./use-ncp-agent.js";
-export type { UseNcpAgentResult } from "./use-ncp-agent-runtime.js";
+export {
+  useNcpAgentRuntime,
+  useScopedAgentManager,
+  type NcpAgentSendInput,
+  type UseNcpAgentResult,
+} from "./use-ncp-agent-runtime.js";

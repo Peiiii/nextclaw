@@ -7,8 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/components/ui/card";
-import { NoticeCard } from "@/shared/components/ui/notice-card";
-import { StatusDot } from "@/shared/components/ui/status-dot";
+import { NoticeCard } from "@/shared/components/feedback/notice-card";
+import { StatusDot } from "@/shared/components/status/status-dot";
 import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import {
   buildRemoteAccessFeedbackView,

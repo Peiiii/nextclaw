@@ -3,7 +3,7 @@ import type {
   MarketplaceItemSummary,
 } from "@/shared/lib/api";
 import { Button } from "@/shared/components/ui/button";
-import { TagChip } from "@/shared/components/ui/tag-chip";
+import { TagChip } from "@/shared/components/tags/tag-chip";
 import { t } from "@/shared/lib/i18n";
 import { readSummary, readTransportLabel } from "./mcp-marketplace-doc";
 

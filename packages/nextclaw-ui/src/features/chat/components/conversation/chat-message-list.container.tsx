@@ -9,13 +9,13 @@ import {
   adaptChatMessage,
   type ChatMessageAdapterTexts,
   type ChatMessageSource,
-} from "@/features/chat/utils/chat-message.utils";
-import { readInlineTokensFromMetadata } from "@/features/chat/utils/chat-inline-token.utils";
-import { adaptNcpMessageToUiMessage } from "@/features/chat/utils/ncp-session-adapter.utils";
+} from "@/features/chat/features/message/utils/chat-message.utils";
+import { readInlineTokensFromMetadata } from "@/features/chat/features/input/utils/chat-inline-token.utils";
+import { adaptNcpMessageToUiMessage } from "@/features/chat/features/session/utils/ncp-session-adapter.utils";
 import {
   readContextCompactionTimeline,
   type ContextCompactionTimelineView,
-} from "@/features/chat/utils/ncp-session-context-metadata.utils";
+} from "@/features/chat/features/session/utils/ncp-session-context-metadata.utils";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
 import { useI18n } from "@/app/components/i18n-provider";
 import { formatDateTime, t } from "@/shared/lib/i18n";

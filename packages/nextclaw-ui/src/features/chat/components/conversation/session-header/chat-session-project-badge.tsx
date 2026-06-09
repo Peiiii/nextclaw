@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, FolderOpen, FolderX, Pencil } from 'lucide-react';
-import { useChatSessionProject } from '@/features/chat/hooks/use-chat-session-project';
+import { useChatSessionProject } from '@/features/chat/features/session/hooks/use-chat-session-project';
 import { ChatSessionHeaderMenuItem } from './chat-session-header-menu-item';
 import { ChatSessionProjectDialog } from './chat-session-project-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';

@@ -8,7 +8,7 @@ import {
 } from "@/shared/components/ui/dialog";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import { NoticeCard } from "@/shared/components/ui/notice-card";
+import { NoticeCard } from "@/shared/components/feedback/notice-card";
 import { useRemoteStatus } from "@/features/remote";
 import { formatDateTime, t } from "@/shared/lib/i18n";
 import { useAppPresenter } from "@/app/components/app-presenter-provider";

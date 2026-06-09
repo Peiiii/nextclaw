@@ -28,6 +28,10 @@ export default defineConfig({
       '@nextclaw/agent-chat-ui': path.resolve(__dirname, '../nextclaw-agent-chat-ui/src/index.ts'),
       '@agent-chat-ui': path.resolve(__dirname, '../nextclaw-agent-chat-ui/src'),
       '@nextclaw/client-sdk': path.resolve(__dirname, '../nextclaw-client-sdk/src/index.ts'),
+      '@nextclaw/ncp': path.resolve(__dirname, '../ncp-packages/nextclaw-ncp/src/index.ts'),
+      '@nextclaw/ncp-http-agent-client': path.resolve(__dirname, '../ncp-packages/nextclaw-ncp-http-agent-client/src/index.ts'),
+      '@nextclaw/ncp-react': path.resolve(__dirname, '../ncp-packages/nextclaw-ncp-react/src/index.ts'),
+      '@nextclaw/ncp-toolkit': path.resolve(__dirname, '../ncp-packages/nextclaw-ncp-toolkit/src/index.ts'),
       '@nextclaw/shared': path.resolve(__dirname, '../nextclaw-shared/src/index.ts')
     }
   },

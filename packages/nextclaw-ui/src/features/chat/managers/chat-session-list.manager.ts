@@ -6,7 +6,7 @@ import type { SetStateAction } from 'react';
 import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
 import { normalizeSessionProjectRootValue } from '@/shared/lib/session-project';
 import { updateNcpSession } from '@/shared/lib/api';
-import { CHAT_DRAFT_SESSION_PATH } from '@/features/chat/utils/chat-session-route.utils';
+import { CHAT_DRAFT_SESSION_PATH } from '@/features/chat/features/session/utils/chat-session-route.utils';
 
 type WorkspaceChildReadState = {
   sessionKey: string | null | undefined;
@@ -73,6 +73,14 @@ export class ChatSessionListManager {
     useChatSessionListStore.getState().setSnapshot({ selectedAgentId: value });
   };
 
+  syncSelectedSessionAgent = (agentId: string | null | undefined) => {
+    const normalizedAgentId = agentId?.trim();
+    if (!normalizedAgentId) {
+      return;
+    }
+    this.setSelectedAgentId(normalizedAgentId);
+  };
+
   setSelectedSessionKey = (next: SetStateAction<string | null>) => {
     const prev = useChatSessionListStore.getState().snapshot.selectedSessionKey;
     const value = this.resolveUpdateValue(prev, next);
@@ -80,6 +88,27 @@ export class ChatSessionListManager {
       return;
     }
     useChatSessionListStore.getState().setSnapshot({ selectedSessionKey: value });
+  };
+
+  syncRouteSessionSelection = (params: {
+    isChatView: boolean;
+    routeSessionKey: string | null;
+  }) => {
+    const { isChatView, routeSessionKey } = params;
+    if (!isChatView) {
+      return;
+    }
+    const { selectedSessionKey } = useChatSessionListStore.getState().snapshot;
+    if (routeSessionKey) {
+      if (selectedSessionKey !== routeSessionKey) {
+        this.setSelectedSessionKey(routeSessionKey);
+      }
+      return;
+    }
+    if (selectedSessionKey !== null) {
+      this.setSelectedSessionKey(null);
+      this.streamActionsManager.resetStreamState();
+    }
   };
 
   setListMode = (next: SetStateAction<'time-first' | 'project-first'>) => {
@@ -128,6 +157,7 @@ export class ChatSessionListManager {
     this.syncDraftThreadState();
     useChatInputStore.getState().setSnapshot({
       pendingSessionType: nextSessionType,
+      selectedSessionType: nextSessionType,
       pendingProjectRoot: normalizedProjectRoot,
       pendingProjectRootSessionKey: null
     });

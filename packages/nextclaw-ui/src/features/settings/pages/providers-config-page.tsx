@@ -8,7 +8,7 @@ import { Input } from '@/shared/components/ui/input';
 import { Switch } from '@/shared/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog';
-import { StatusDot } from '@/shared/components/ui/status-dot';
+import { StatusDot } from '@/shared/components/status/status-dot';
 import { t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
 import { ProviderForm } from '@/features/settings/components/config/provider-form';

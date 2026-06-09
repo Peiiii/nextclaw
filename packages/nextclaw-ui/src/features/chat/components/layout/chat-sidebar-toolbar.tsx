@@ -6,7 +6,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover";
-import { ChatSessionTypeOptionItem } from "@/features/chat/components/chat-session-type-option-item";
+import { ChatSidebarCreateMenu } from "@/features/chat/components/layout/chat-sidebar-create-menu";
 import type { ChatInputSnapshot } from "@/features/chat/stores/chat-input.store";
 import { cn } from "@/shared/lib/utils";
 import { t } from "@/shared/lib/i18n";
@@ -79,7 +79,7 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
                 <IconActionButton
                   icon={<ChevronDown className="h-4 w-4" />}
                   label={t("chatSessionTypeLabel")}
-                  tooltip=""
+                  tooltip={false}
                   className="h-9 w-10 shrink-0 rounded-xl rounded-l-md bg-primary text-primary-foreground shadow-sm hover:bg-primary-600 hover:text-primary-foreground active:bg-primary-700"
                 />
               </PopoverTrigger>
@@ -87,21 +87,13 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
                 align="end"
                 className="w-56 rounded-2xl border border-gray-200/80 bg-white p-1.5 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
               >
-                <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400">
-                  {t("chatSessionTypeLabel")}
-                </div>
-                <div className="space-y-1">
-                  {nonDefaultSessionTypeOptions.map((option) => (
-                    <ChatSessionTypeOptionItem
-                      key={option.value}
-                      option={option}
-                      onSelect={() => {
-                        onCreateSession(option.value);
-                        onCreateMenuOpenChange(false);
-                      }}
-                    />
-                  ))}
-                </div>
+                <ChatSidebarCreateMenu
+                  options={nonDefaultSessionTypeOptions}
+                  onSelect={(sessionType) => {
+                    onCreateSession(sessionType);
+                    onCreateMenuOpenChange(false);
+                  }}
+                />
               </PopoverContent>
             </Popover>
           ) : null}
@@ -160,7 +152,7 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps) {
               <IconActionButton
                 icon={<Plus className="h-4 w-4" />}
                 label={t("chatSidebarNewTask")}
-                tooltip=""
+                tooltip={false}
                 className="h-9 w-9 shrink-0 rounded-full bg-gray-100/80 text-gray-700 shadow-none hover:bg-gray-200/80 hover:text-gray-900"
               />
             </PopoverTrigger>
@@ -168,21 +160,15 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps) {
               align="end"
               className="w-60 rounded-3xl border border-gray-200/80 bg-white p-2 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.45)]"
             >
-              <div className="px-3 pb-1.5 pt-2 text-[11px] font-medium text-gray-400">
-                {t("chatSidebarNewTask")}
-              </div>
-              <div className="space-y-1">
-                {createOptions.map((option) => (
-                  <ChatSessionTypeOptionItem
-                    key={option.value}
-                    option={option}
-                    onSelect={() => {
-                      onCreateSession(option.value);
-                      onCreateMenuOpenChange(false);
-                    }}
-                  />
-                ))}
-              </div>
+              <ChatSidebarCreateMenu
+                options={createOptions}
+                title={t("chatSidebarNewTask")}
+                titleClassName="pb-1.5 text-[11px] font-medium normal-case tracking-normal"
+                onSelect={(sessionType) => {
+                  onCreateSession(sessionType);
+                  onCreateMenuOpenChange(false);
+                }}
+              />
             </PopoverContent>
           </Popover>
         ) : (

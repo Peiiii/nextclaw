@@ -2,7 +2,7 @@ import { render, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatSidebar } from '@/features/chat/components/layout/chat-sidebar';
-import type { NcpSessionListItemView } from '@/features/chat/hooks/use-ncp-session-list-view';
+import type { NcpSessionListItemView } from '@/features/chat/features/ncp/hooks/use-ncp-session-list-view';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 
@@ -32,14 +32,14 @@ vi.mock('@/features/chat/components/providers/chat-presenter.provider', () => ({
   }),
 }));
 
-vi.mock('@/features/chat/hooks/use-ncp-session-list-view', () => ({
+vi.mock('@/features/chat/features/ncp/hooks/use-ncp-session-list-view', () => ({
   useNcpSessionListView: () => ({
     isLoading: false,
     items: mocks.sessionItems,
   }),
 }));
 
-vi.mock('@/features/chat/hooks/use-chat-sidebar-session-label-editor', () => ({
+vi.mock('@/features/chat/features/session/hooks/use-chat-sidebar-session-label-editor', () => ({
   useChatSidebarSessionLabelEditor: () => ({
     editingSessionKey: null,
     draftLabel: '',

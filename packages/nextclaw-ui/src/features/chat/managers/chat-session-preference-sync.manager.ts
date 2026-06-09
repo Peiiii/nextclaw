@@ -1,7 +1,12 @@
 import type { SessionPatchUpdate, ThinkingLevel } from '@/shared/lib/api';
+import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
+import {
+  resolveSelectedModelValue,
+  resolveSelectedThinkingLevelValue,
+} from '@/features/chat/features/session/utils/chat-session-preference-governance.utils';
 
 type QueuedSessionPreferenceSync = { sessionKey: string; patch: SessionPatchUpdate };
 
@@ -9,13 +14,10 @@ function normalizeOptionalModel(value: string): string | null {
   const normalized = value.trim(); return normalized.length > 0 ? normalized : null;
 }
 
-function normalizeOptionalThinking(value: ThinkingLevel | null): ThinkingLevel | null {
-  return value ?? null;
-}
-
 export class ChatSessionPreferenceSync {
   private inFlight: Promise<void> | null = null;
   private queued: QueuedSessionPreferenceSync | null = null;
+  private previousPreferenceSessionKey: string | null | undefined = undefined;
 
   constructor(
     private readonly updateSession: (sessionKey: string, patch: SessionPatchUpdate) => Promise<unknown>
@@ -34,8 +36,60 @@ export class ChatSessionPreferenceSync {
       sessionKey,
       patch: {
         preferredModel: normalizeOptionalModel(inputSnapshot.selectedModel),
-        preferredThinking: normalizeOptionalThinking(inputSnapshot.selectedThinkingLevel)
+        preferredThinking: inputSnapshot.selectedThinkingLevel ?? null
       }
+    });
+  };
+
+  syncInputSelection = (params: {
+    modelOptions: ChatModelOption[];
+    selectedSessionKey?: string | null;
+    selectedSessionExists: boolean;
+    selectedSessionPreferredModel?: string;
+    fallbackPreferredModel?: string;
+    defaultModel?: string;
+    selectedSessionPreferredThinking?: ThinkingLevel | null;
+    fallbackPreferredThinking?: ThinkingLevel | null;
+  }) => {
+    const {
+      defaultModel,
+      fallbackPreferredModel,
+      fallbackPreferredThinking,
+      modelOptions,
+      selectedSessionExists,
+      selectedSessionKey,
+      selectedSessionPreferredModel,
+      selectedSessionPreferredThinking,
+    } = params;
+    const { snapshot } = useChatInputStore.getState();
+    const sessionChanged = this.previousPreferenceSessionKey !== selectedSessionKey;
+    this.previousPreferenceSessionKey = selectedSessionKey;
+    const preserveCurrentPreference = sessionChanged && Boolean(selectedSessionKey) && !selectedSessionExists;
+    const selectedModel = resolveSelectedModelValue({
+      currentSelectedModel: snapshot.selectedModel,
+      modelOptions,
+      selectedSessionPreferredModel,
+      fallbackPreferredModel,
+      defaultModel,
+      preferSessionPreferredModel: sessionChanged,
+      preserveCurrentSelectedModelOnSessionChange: preserveCurrentPreference,
+    });
+    const modelOption = modelOptions.find((option) => option.value === selectedModel);
+    const supportedThinkingLevels =
+      (modelOption?.thinkingCapability?.supported as ThinkingLevel[] | undefined) ?? [];
+    const selectedThinking = resolveSelectedThinkingLevelValue({
+      currentSelectedThinkingLevel: snapshot.selectedThinkingLevel,
+      supportedThinkingLevels,
+      selectedSessionPreferredThinking,
+      fallbackPreferredThinking,
+      defaultThinkingLevel:
+        (modelOption?.thinkingCapability?.default as ThinkingLevel | null | undefined) ?? null,
+      preferSessionPreferredThinking: sessionChanged,
+      preserveCurrentSelectedThinkingOnSessionChange: preserveCurrentPreference,
+    });
+    useChatInputStore.getState().setSnapshot({
+      selectedModel,
+      selectedThinkingLevel: selectedThinking,
     });
   };
 

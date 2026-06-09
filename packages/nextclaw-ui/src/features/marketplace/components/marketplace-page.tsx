@@ -49,7 +49,7 @@ import { PageLayout } from "@/app/components/layout/page-layout";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useInfiniteScrollLoader } from "@/shared/hooks/use-infinite-scroll-loader";
-import { Tabs } from "@/shared/components/ui/tabs-custom";
+import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 
 const PAGE_SIZE = 20;
 const SKELETON_CARD_COUNT = 36;
@@ -435,18 +435,21 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
         <>
           <div className="mb-3 flex items-start justify-between gap-3 border-b border-gray-200/60">
             <Tabs
-              tabs={[
-                { id: "all", label: t(copyKeys.tabMarketplace) },
-                {
-                  id: "installed",
-                  label: t(copyKeys.tabInstalled),
-                  count: installedQuery.data?.total ?? 0,
-                },
-              ]}
-              activeTab={scope}
-              onChange={(value) => setScope(value as ScopeType)}
-              className="mb-0 flex-1 border-b-0"
-            />
+              value={scope}
+              onValueChange={(value) => setScope(value as ScopeType)}
+            >
+              <TabsList className="mb-0 h-auto flex-1 gap-6 border-b-0 bg-transparent p-0">
+                <TabsTrigger value="all" className="px-0 pb-3">
+                  {t(copyKeys.tabMarketplace)}
+                </TabsTrigger>
+                <TabsTrigger value="installed" className="gap-1.5 px-0 pb-3">
+                  {t(copyKeys.tabInstalled)}
+                  <span className="text-[11px] font-medium text-gray-500">
+                    {installedQuery.data?.total ?? 0}
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
             <MarketplaceExternalSkillSourceAction />
           </div>
 

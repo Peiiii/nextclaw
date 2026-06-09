@@ -1,11 +1,11 @@
 import { AlarmClock, ArrowLeft, ArrowRight, FileCode2, MessageSquareText, X } from "lucide-react";
-import type { WorkspaceTabViewModel } from "@/features/chat/utils/chat-workspace-panel-view-model.utils";
+import type { WorkspaceTabViewModel } from "@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
 import {
   CompactTabStrip,
   type CompactTabStripAction,
   type CompactTabStripTab,
-} from "@/shared/components/ui/tabs";
+} from "@/shared/components/ui/tab-strip/compact-tab-strip";
 import { t } from "@/shared/lib/i18n";
 
 function WorkspaceTabIcon({ agentId, kind }: Pick<WorkspaceTabViewModel, "agentId" | "kind">) {

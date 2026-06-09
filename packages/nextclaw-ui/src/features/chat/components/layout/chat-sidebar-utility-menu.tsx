@@ -62,7 +62,7 @@ export function ChatSidebarUtilityMenu({
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label={currentLanguage === 'zh' ? '设置菜单' : 'Settings menu'}
+          aria-label={t('settingsMenu')}
           className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium text-gray-600 transition-all duration-base hover:bg-gray-200/60 hover:text-gray-800"
         >
           <Settings className="h-4 w-4 shrink-0 text-gray-400" />

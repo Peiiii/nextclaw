@@ -3,7 +3,7 @@ import { SessionContextIconNode } from '@/features/chat/components/session/sessi
 import { SessionRunBadge } from '@/features/chat/components/session/session-run-badge';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import { Input } from '@/shared/components/ui/input';
-import { type SessionContextView } from '@/features/chat/utils/session-context.utils';
+import { type SessionContextView } from '@/features/chat/features/session/utils/session-context.utils';
 import type { SessionRunStatus } from '@/features/chat/types/session-run-status.types';
 import { cn } from '@/shared/lib/utils';
 import { t } from '@/shared/lib/i18n';
@@ -71,7 +71,7 @@ function ChatSidebarSessionEditingView({
           <IconActionButton
             icon={<Check className="h-3.5 w-3.5" />}
             label={t('save')}
-            tooltip=""
+            tooltip={false}
             className="h-7 w-7 rounded-lg text-gray-500 hover:bg-white hover:text-gray-900"
             onClick={() => void onSave()}
             disabled={isSaving}
@@ -79,7 +79,7 @@ function ChatSidebarSessionEditingView({
           <IconActionButton
             icon={<X className="h-3.5 w-3.5" />}
             label={t('cancel')}
-            tooltip=""
+            tooltip={false}
             className="h-7 w-7 rounded-lg text-gray-500 hover:bg-white hover:text-gray-900"
             onClick={onCancel}
             disabled={isSaving}
@@ -188,7 +188,7 @@ function ChatSidebarSessionDisplayView({
       <IconActionButton
         icon={<Pencil className="h-3 w-3" />}
         label={t('edit')}
-        tooltip=""
+        tooltip={false}
         onClick={(event) => {
           event.stopPropagation();
           onStartEditing();

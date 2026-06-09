@@ -29,7 +29,7 @@ import {
   DoctorDialog,
   InstallDialog,
 } from "@/features/marketplace/components/mcp/mcp-marketplace-dialogs";
-import { NoticeCard } from "@/shared/components/ui/notice-card";
+import { NoticeCard } from "@/shared/components/feedback/notice-card";
 import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
 import {
   useInstallMcpMarketplaceItem,

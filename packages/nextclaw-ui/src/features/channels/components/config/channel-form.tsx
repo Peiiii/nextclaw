@@ -5,7 +5,7 @@ import { BookOpen, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { LogoBadge } from '@/shared/components/common/logo-badge';
 import { Button } from '@/shared/components/ui/button';
-import { StatusDot } from '@/shared/components/ui/status-dot';
+import { StatusDot } from '@/shared/components/status/status-dot';
 import { nextclawClient } from '@/shared/lib/api';
 import { useConfig, useConfigMeta, useConfigSchema, useExecuteConfigAction, useUpdateChannel } from '@/shared/hooks/use-config';
 import type { ConfigActionManifest, ConfigUiHints } from '@/shared/lib/api';

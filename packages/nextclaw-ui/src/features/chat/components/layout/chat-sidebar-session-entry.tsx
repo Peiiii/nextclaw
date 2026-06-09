@@ -1,13 +1,13 @@
 import type { SessionEntryView } from "@/shared/lib/api";
-import type { NcpSessionListItemView } from "@/features/chat/hooks/use-ncp-session-list-view";
-import { ChatSidebarSessionItem } from "@/features/chat";
+import type { NcpSessionListItemView } from "@/features/chat/features/ncp/hooks/use-ncp-session-list-view";
+import { ChatSidebarSessionItem } from "@/features/chat/components/chat-sidebar-session-item";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { shouldShowUnreadSessionIndicator } from "@/features/chat/stores/chat-session-list.store";
 import {
   formatSessionListTime,
   sessionActivityPreviewText,
-} from "@/features/chat/utils/chat-session-display.utils";
-import { resolveSessionContextView } from "@/features/chat/utils/session-context.utils";
+} from "@/features/chat/features/session/utils/chat-session-display.utils";
+import { resolveSessionContextView } from "@/features/chat/features/session/utils/session-context.utils";
 
 export function ChatSidebarSessionEntry(props: {
   item: NcpSessionListItemView;

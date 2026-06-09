@@ -1,6 +1,6 @@
 import type { ChatInputSnapshot } from "@/features/chat/stores/chat-input.store";
 import { SessionContextIconNode } from "@/features/chat/components/session/session-context-icon";
-import { StatusDot } from "@/shared/components/ui/status-dot";
+import { StatusDot } from "@/shared/components/status/status-dot";
 import { t } from "@/shared/lib/i18n";
 import { Bot } from "lucide-react";
 

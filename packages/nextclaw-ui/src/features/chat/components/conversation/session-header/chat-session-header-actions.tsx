@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { AlarmClock, FolderOpen, GitBranch, MoreVertical, Trash2 } from 'lucide-react';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
-import { useChatSessionProject } from '@/features/chat/hooks/use-chat-session-project';
+import { useChatSessionProject } from '@/features/chat/features/session/hooks/use-chat-session-project';
 import { ChatSessionHeaderMenuItem } from './chat-session-header-menu-item';
 import { ChatSessionProjectDialog } from './chat-session-project-dialog';
 import { t } from '@/shared/lib/i18n';
@@ -80,7 +80,7 @@ export function ChatSessionHeaderActions({
           <IconActionButton
             icon={<MoreVertical className="h-4 w-4" />}
             label={t('chatSessionMoreActions')}
-            tooltip=""
+            tooltip={false}
             className={SESSION_HEADER_ACTION_BUTTON_CLASS}
             disabled={isBusy}
           />

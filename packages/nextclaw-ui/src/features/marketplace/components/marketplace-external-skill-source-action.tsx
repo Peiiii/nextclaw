@@ -1,4 +1,4 @@
-import { ExternalActionLink } from "@/shared/components/ui/action-link";
+import { ExternalActionLink } from "@/shared/components/actions/action-link";
 import { hostCapabilityManager } from "@/shared/lib/host-capabilities";
 import { t } from "@/shared/lib/i18n";
 

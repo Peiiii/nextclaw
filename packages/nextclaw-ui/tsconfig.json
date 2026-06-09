@@ -35,7 +35,8 @@
       "@nextclaw/shared": ["../nextclaw-shared/src/index.ts"],
       "@nextclaw/ncp": ["../ncp-packages/nextclaw-ncp/src/index.ts"],
       "@nextclaw/ncp-http-agent-client": ["../ncp-packages/nextclaw-ncp-http-agent-client/src/index.ts"],
-      "@nextclaw/ncp-react": ["../ncp-packages/nextclaw-ncp-react/src/index.ts"]
+      "@nextclaw/ncp-react": ["../ncp-packages/nextclaw-ncp-react/src/index.ts"],
+      "@nextclaw/ncp-toolkit": ["../ncp-packages/nextclaw-ncp-toolkit/src/index.ts"]
     }
   },
   "include": ["src"]

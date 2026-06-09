@@ -26,7 +26,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover";
-import { TagChip } from "@/shared/components/ui/tag-chip";
+import { TagChip } from "@/shared/components/tags/tag-chip";
 import { PageLayout } from "@/app/components/layout/page-layout";
 import { t } from "@/shared/lib/i18n";
 import { buildProviderModelCatalog } from "@/shared/lib/provider-models";

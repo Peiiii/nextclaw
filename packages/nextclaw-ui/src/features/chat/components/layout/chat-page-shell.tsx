@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import type { Dispatch, SetStateAction } from "react";
 import { ChatSidebar } from "@/features/chat/components/layout/chat-sidebar";
 import { ChatConversationPanel } from "@/features/chat/components/conversation/chat-conversation-panel";
 import { AgentsPage } from "@/features/agents";
@@ -14,38 +13,26 @@ export type ChatPageProps = {
 type UseChatSessionSyncParams = {
   view: MainPanelView;
   routeSessionKey: string | null;
-  selectedSessionKey: string | null;
-  setSelectedSessionKey: Dispatch<SetStateAction<string | null>>;
-  resetStreamState: () => void;
+  syncRouteSessionSelection: (params: {
+    isChatView: boolean;
+    routeSessionKey: string | null;
+  }) => void;
 };
 export function useChatSessionSync(params: UseChatSessionSyncParams): void {
   const {
     view,
     routeSessionKey,
-    selectedSessionKey,
-    setSelectedSessionKey,
-    resetStreamState,
+    syncRouteSessionSelection,
   } = params;
 
   useEffect(() => {
-    if (view !== "chat") {
-      return;
-    }
-    if (routeSessionKey) {
-      if (selectedSessionKey !== routeSessionKey) {
-        setSelectedSessionKey(routeSessionKey);
-      }
-      return;
-    }
-    if (selectedSessionKey !== null) {
-      setSelectedSessionKey(null);
-      resetStreamState();
-    }
+    syncRouteSessionSelection({
+      isChatView: view === "chat",
+      routeSessionKey,
+    });
   }, [
-    resetStreamState,
     routeSessionKey,
-    selectedSessionKey,
-    setSelectedSessionKey,
+    syncRouteSessionSelection,
     view,
   ]);
 }

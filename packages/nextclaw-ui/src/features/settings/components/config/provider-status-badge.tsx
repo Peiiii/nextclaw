@@ -1,4 +1,4 @@
-import { StatusDot } from '@/shared/components/ui/status-dot';
+import { StatusDot } from '@/shared/components/status/status-dot';
 import { t } from '@/shared/lib/i18n';
 
 type ProviderStatusBadgeProps = {

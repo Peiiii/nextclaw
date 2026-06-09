@@ -12,7 +12,7 @@ import {
   pruneComposerAttachments,
   syncComposerAttachments,
   syncComposerSkills
-} from '@/features/chat/utils/chat-composer-state.utils';
+} from '@/features/chat/features/input/utils/chat-composer-state.utils';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
@@ -21,13 +21,14 @@ import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-str
 import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import type { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
 import { ChatSessionPreferenceSync } from '@/features/chat/managers/chat-session-preference-sync.manager';
-import { isNcpChatSendDisabled } from '@/features/chat/utils/ncp-chat-input-availability.utils';
-import { isNcpChatRuntimeBlocked } from '@/features/chat/utils/ncp-chat-runtime-availability.utils';
+import { isNcpChatSendDisabled } from '@/features/chat/features/input/utils/ncp-chat-input-availability.utils';
+import { isNcpChatRuntimeBlocked } from '@/features/chat/features/runtime/utils/ncp-chat-runtime-availability.utils';
 import { chatRecentModelsManager } from '@/features/chat/managers/chat-recent-models.manager';
 import { chatRecentSkillsManager } from '@/features/chat/managers/chat-recent-skills.manager';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
-import { normalizeSessionType } from '@/features/chat/hooks/use-chat-session-type-state';
+import { normalizeSessionType } from '@/features/chat/features/session-type/utils/chat-session-type.utils';
 import { systemStatusManager } from '@/features/system-status';
+import { shouldClearPendingProjectRootOverride } from '@/features/chat/features/session/utils/ncp-chat-send-metadata.utils';
 
 export class NcpChatInputManager {
   private readonly sessionPreferenceSync = new ChatSessionPreferenceSync(updateNcpSession);
@@ -109,19 +110,69 @@ export class NcpChatInputManager {
   };
 
   syncSnapshot = (patch: Partial<ChatInputSnapshot>) => {
-    if (!this.hasSnapshotChanges(patch)) {
+    const current = useChatInputStore.getState().snapshot;
+    let resolvedPatch = patch;
+    if (
+      patch.defaultSessionType &&
+      current.selectedSessionType === undefined &&
+      patch.selectedSessionType === undefined
+    ) {
+      resolvedPatch = Object.assign({}, patch, {
+        selectedSessionType: patch.defaultSessionType,
+      });
+    }
+    if (!this.hasSnapshotChanges(resolvedPatch)) {
       return;
     }
-    useChatInputStore.getState().setSnapshot(patch);
+    useChatInputStore.getState().setSnapshot(resolvedPatch);
     if (
-      Object.prototype.hasOwnProperty.call(patch, 'modelOptions') ||
-      Object.prototype.hasOwnProperty.call(patch, 'selectedModel') ||
-      Object.prototype.hasOwnProperty.call(patch, 'selectedThinkingLevel')
+      Object.prototype.hasOwnProperty.call(resolvedPatch, 'modelOptions') ||
+      Object.prototype.hasOwnProperty.call(resolvedPatch, 'selectedModel') ||
+      Object.prototype.hasOwnProperty.call(resolvedPatch, 'selectedThinkingLevel')
     ) {
       const { selectedModel } = useChatInputStore.getState().snapshot;
       this.reconcileThinkingForModel(selectedModel);
     }
   };
+
+  resolveProjectRootForSend = (params: {
+    sessionKey: string | null | undefined;
+    selectedSessionProjectRoot: string | null | undefined;
+  }): string | null => {
+    const { pendingProjectRoot, pendingProjectRootSessionKey } =
+      useChatInputStore.getState().snapshot;
+    if (
+      pendingProjectRoot !== null &&
+      (!params.sessionKey || params.sessionKey === pendingProjectRootSessionKey)
+    ) {
+      return pendingProjectRoot;
+    }
+    return params.selectedSessionProjectRoot ?? null;
+  };
+
+  clearPendingProjectRootOverrideForSession = (params: {
+    sessionKey: string | null | undefined;
+    selectedSessionProjectRoot: string | null | undefined;
+  }) => {
+    const { pendingProjectRoot, pendingProjectRootSessionKey } =
+      useChatInputStore.getState().snapshot;
+    if (
+      !shouldClearPendingProjectRootOverride({
+        pendingProjectRoot,
+        pendingProjectRootSessionKey,
+        sessionKey: params.sessionKey,
+        selectedSessionProjectRoot: params.selectedSessionProjectRoot,
+      })
+    ) {
+      return;
+    }
+    useChatInputStore.getState().setSnapshot({
+      pendingProjectRoot: null,
+      pendingProjectRootSessionKey: null,
+    });
+  };
+
+  syncSessionPreferences = this.sessionPreferenceSync.syncInputSelection;
 
   setDraft = (next: SetStateAction<string>) => {
     const prev = useChatInputStore.getState().snapshot.draft;
@@ -189,7 +240,10 @@ export class NcpChatInputManager {
     if (value === prev) {
       return;
     }
-    useChatInputStore.getState().setSnapshot({ pendingSessionType: value });
+    useChatInputStore.getState().setSnapshot({
+      pendingSessionType: value,
+      selectedSessionType: value,
+    });
   };
 
   send = async () => {

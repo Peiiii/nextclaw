@@ -2,7 +2,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { t } from "@/shared/lib/i18n";
-import { TagChip } from "@/shared/components/ui/tag-chip";
+import { TagChip } from "@/shared/components/tags/tag-chip";
 
 interface TagInputProps {
   value: string[];

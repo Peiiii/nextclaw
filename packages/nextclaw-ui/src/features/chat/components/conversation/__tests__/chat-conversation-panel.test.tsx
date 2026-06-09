@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatConversationPanel } from "@/features/chat/components/conversation/chat-conversation-panel";
 import { ChatSessionWorkspacePanel } from "@/features/chat/components/chat-session-workspace-panel";
-import type { ResolvedChildSessionTab } from "@/features/chat/hooks/use-ncp-child-session-tabs-view";
+import type { ResolvedChildSessionTab } from "@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view";
 import type { CronJobView } from "@/shared/lib/api";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
@@ -194,11 +194,11 @@ vi.mock(
   }),
 );
 
-vi.mock("@/features/chat/hooks/use-ncp-child-session-tabs-view", () => ({
+vi.mock("@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view", () => ({
   useNcpChildSessionTabsView: () => mocks.resolvedChildTabs,
 }));
 
-vi.mock("@/features/chat/hooks/use-ncp-session-conversation", () => ({
+vi.mock("@/features/chat/features/ncp/hooks/use-ncp-session-conversation", () => ({
   useNcpSessionConversation: () => ({
     visibleMessages: [],
     isHydrating: false,

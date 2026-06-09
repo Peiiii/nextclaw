@@ -5,12 +5,12 @@ import {
   resolveRecentSessionPreferredValue,
   resolveSelectedModelValue,
   resolveSelectedThinkingLevelValue
-} from '@/features/chat/utils/chat-session-preference-governance.utils';
+} from '@/features/chat/features/session/utils/chat-session-preference-governance.utils';
 import {
   buildNcpSendMetadata,
   shouldClearPendingProjectRootOverride
-} from '@/features/chat/utils/ncp-chat-send-metadata.utils';
-import { filterModelOptionsBySessionType } from '@/features/chat/hooks/use-ncp-chat-page-data';
+} from '@/features/chat/features/session/utils/ncp-chat-send-metadata.utils';
+import { filterModelOptionsBySessionType } from '@/features/chat/features/ncp/hooks/use-ncp-chat-page-data';
 
 const modelOptions: ChatModelOption[] = [
   {

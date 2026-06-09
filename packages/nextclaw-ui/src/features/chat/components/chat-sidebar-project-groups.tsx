@@ -1,18 +1,14 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Plus } from 'lucide-react';
-import { ChatSessionTypeOptionItem } from "./chat-session-type-option-item";
+import { ChatSidebarCreateMenu } from "@/features/chat/components/layout/chat-sidebar-create-menu";
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
-import type { NcpSessionListItemView } from '@/features/chat/hooks/use-ncp-session-list-view';
+import type { NcpSessionListItemView } from '@/features/chat/features/ncp/hooks/use-ncp-session-list-view';
+import type { ChatSidebarProjectGroup } from '@/features/chat/features/session/utils/chat-sidebar-session-groups.utils';
 import { t } from '@/shared/lib/i18n';
 
-export type ChatSidebarProjectGroup = {
-  projectRoot: string;
-  projectName: string;
-  items: NcpSessionListItemView[];
-  latestUpdatedAt: number;
-};
+export type { ChatSidebarProjectGroup };
 
 type SessionTypeOption = ChatInputSnapshot['sessionTypeOptions'][number];
 
@@ -73,7 +69,7 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                     <IconActionButton
                       icon={<Plus className="h-3.5 w-3.5" />}
                       label={actionLabel}
-                      tooltip=""
+                      tooltip={false}
                       className="h-7 w-7 shrink-0 rounded-lg text-gray-400 hover:bg-white hover:text-gray-900"
                     />
                   </PopoverTrigger>
@@ -81,21 +77,13 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                     align="end"
                     className="w-56 rounded-2xl border border-gray-200/80 bg-white p-1.5 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
                   >
-                    <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400">
-                      {t('chatSessionTypeLabel')}
-                    </div>
-                    <div className="space-y-1">
-                      {sessionTypeOptions.map((option) => (
-                        <ChatSessionTypeOptionItem
-                          key={`${group.projectRoot}:${option.value}`}
-                          option={option}
-                          onSelect={() => {
-                            onCreateSession(option.value, group.projectRoot);
-                            setOpenProjectRoot(null);
-                          }}
-                        />
-                      ))}
-                    </div>
+                    <ChatSidebarCreateMenu
+                      options={sessionTypeOptions}
+                      onSelect={(sessionType) => {
+                        onCreateSession(sessionType, group.projectRoot);
+                        setOpenProjectRoot(null);
+                      }}
+                    />
                   </PopoverContent>
                 </Popover>
               ) : (

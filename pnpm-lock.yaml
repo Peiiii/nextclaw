@@ -1792,6 +1792,9 @@ importers:
       '@nextclaw/ncp-react':
         specifier: workspace:*
         version: link:../ncp-packages/nextclaw-ncp-react
+      '@nextclaw/ncp-toolkit':
+        specifier: workspace:*
+        version: link:../ncp-packages/nextclaw-ncp-toolkit
       '@nextclaw/shared':
         specifier: workspace:*
         version: link:../nextclaw-shared

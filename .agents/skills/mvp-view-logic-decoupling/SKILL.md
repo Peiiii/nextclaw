@@ -47,6 +47,7 @@ description: 当设计或重构前端 MVP / presenter-manager-store 架构、Zus
 
 - 业务组件应在最贴近业务语义的位置自行订阅 store、读取 presenter、派生 view props，并只把收敛后的展示数据传给纯 UI 组件。
 - 页面级或布局级父组件只负责区域组合、挂载条件和布局模式，不应成为为所有子组件装配 snapshot 字段、计数、派生状态和 presenter action 的参数中转站。
+- 不要把 page 里的 store selector 原样搬进 page-owned aggregate hook；状态应下沉到最终消费它的业务组件/container，除非该 hook 本身就是这个业务组件的私有连接层。
 - 当同一组业务状态或动作需要跨两层以上传递时，优先新增或收敛到业务 container，让该 container 直接连接 presenter/store，而不是继续向下传参。
 - 不要为了“看起来可复用”把业务组件改成宽 props API；真正可复用的是纯 UI 组件，业务组件的可维护性来自明确 owner 和内聚的数据/动作访问。
 - 简单优先不能成为职责混杂的理由；当一个 owner 同时承担多个独立变化原因时，应按真实职责拆分并解耦，而不是把所有逻辑塞进最近的现有对象。
@@ -103,6 +104,7 @@ description: 当设计或重构前端 MVP / presenter-manager-store 架构、Zus
 11. layout/page 是否收集宽 snapshot/action prop bag。
 12. 纯展示组件拆分是否已按 `writing-beautiful-code` 判断收益大于成本。
 13. reload-restorable frontend state 是否使用 Zustand `persist`。
+14. store selector 是否只是从 page 搬进 page hook；如果是，必须继续下沉到最终消费的业务 component/container。
 
 ## 反模式
 

@@ -3,8 +3,8 @@ import { ExternalLink, MessageSquare, Search } from 'lucide-react';
 import { LogoBadge } from '@/shared/components/common/logo-badge';
 import { PageHeader, PageLayout } from '@/app/components/layout/page-layout';
 import { Input } from '@/shared/components/ui/input';
-import { StatusDot } from '@/shared/components/ui/status-dot';
-import { Tabs } from '@/shared/components/ui/tabs-custom';
+import { StatusDot } from '@/shared/components/status/status-dot';
+import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { ChannelForm } from '@/features/channels/components/config/channel-form';
 import { useConfig, useConfigMeta, useConfigSchema } from '@/shared/hooks/use-config';
 import { ConfigSelectionCard, ConfigSplitEmptyState, ConfigSplitPage, ConfigSplitPaneBody, ConfigSplitPaneHeader, ConfigSplitSidebar } from '@/shared/components/config-split-page';
@@ -85,19 +85,22 @@ export function ChannelsList() {
       >
         <ConfigSplitSidebar>
           <ConfigSplitPaneHeader className="px-4 pt-4">
-            <Tabs
-              tabs={[
-                {
-                  id: 'enabled',
-                  label: t('channelsTabEnabled'),
-                  count: channels.filter((channel) => channelConfigs?.[channel.name]?.enabled).length
-                },
-                { id: 'all', label: t('channelsTabAll'), count: channels.length }
-              ]}
-              activeTab={activeTab}
-              onChange={setActiveTab}
-              className="mb-0"
-            />
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="mb-0 h-auto gap-3 border-b-0 bg-transparent p-0">
+                <TabsTrigger value="enabled" className="gap-1.5 px-0 pb-3">
+                  {t('channelsTabEnabled')}
+                  <span className="text-[11px] font-medium text-gray-500">
+                    {channels.filter((channel) => channelConfigs?.[channel.name]?.enabled).length}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="all" className="gap-1.5 px-0 pb-3">
+                  {t('channelsTabAll')}
+                  <span className="text-[11px] font-medium text-gray-500">
+                    {channels.length}
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </ConfigSplitPaneHeader>
 
           <div className="border-b border-gray-100 px-4 py-3">

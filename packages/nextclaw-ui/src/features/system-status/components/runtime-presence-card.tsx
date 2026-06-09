@@ -6,8 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/components/ui/card";
-import { NoticeCard } from "@/shared/components/ui/notice-card";
-import { SettingRow } from "@/shared/components/ui/setting-row";
+import { NoticeCard } from "@/shared/components/feedback/notice-card";
+import { SettingRow } from "@/shared/components/settings/setting-row";
 import { Switch } from "@/shared/components/ui/switch";
 import {
   desktopPresenceManager,

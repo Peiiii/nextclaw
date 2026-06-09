@@ -1,5 +1,5 @@
 import type { NavigateFunction, NavigateOptions } from 'react-router-dom';
-import { CHAT_DRAFT_SESSION_PATH, buildSessionPath } from '@/features/chat/utils/chat-session-route.utils';
+import { CHAT_DRAFT_SESSION_PATH, buildSessionPath } from '@/features/chat/features/session/utils/chat-session-route.utils';
 
 type ChatUiState = {
   pathname: string;

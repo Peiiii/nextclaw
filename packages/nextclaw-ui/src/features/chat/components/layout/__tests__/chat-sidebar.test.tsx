@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatSidebar } from '@/features/chat/components/layout/chat-sidebar';
-import type { NcpSessionListItemView } from '@/features/chat/hooks/use-ncp-session-list-view';
+import type { NcpSessionListItemView } from '@/features/chat/features/ncp/hooks/use-ncp-session-list-view';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 
@@ -58,7 +58,7 @@ vi.mock('@/shared/components/doc-browser', () => ({
   })
 }));
 
-vi.mock('@/features/chat/hooks/use-chat-session-update', () => ({
+vi.mock('@/features/chat/features/session/hooks/use-chat-session-update', () => ({
   useChatSessionLabel: () => async (params: {
     sessionKey: string;
     label: string | null;
@@ -78,7 +78,7 @@ vi.mock('@/features/chat/hooks/use-chat-session-update', () => ({
   }
 }));
 
-vi.mock('@/features/chat/hooks/use-ncp-session-list-view', () => ({
+vi.mock('@/features/chat/features/ncp/hooks/use-ncp-session-list-view', () => ({
   useNcpSessionListView: () => ({
     isLoading: mocks.isLoading,
     items: mocks.sessionItems

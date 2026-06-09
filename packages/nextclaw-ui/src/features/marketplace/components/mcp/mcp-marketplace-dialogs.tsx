@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/shared/components/ui/dialog";
 import { Input } from "@/shared/components/ui/input";
-import { NoticeCard } from "@/shared/components/ui/notice-card";
+import { NoticeCard } from "@/shared/components/feedback/notice-card";
 import { Switch } from "@/shared/components/ui/switch";
 import { t } from "@/shared/lib/i18n";
 
