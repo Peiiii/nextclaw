@@ -1,12 +1,12 @@
 export default {
-  "generatedAt": "2026-06-09T03:24:49.538Z",
+  "generatedAt": "2026-06-09T11:40:05.236Z",
   "hero": {
     "currentLoc": 182721,
     "testLoc": 52298,
     "trackedFiles": 1947,
-    "recentCommitCount": 510,
+    "recentCommitCount": 511,
     "activeDays30": 30,
-    "recentReleaseCount": 61,
+    "recentReleaseCount": 62,
     "latestReleaseDate": "2026-06-09",
     "latestNoteDate": "2026-05-06",
     "benchmarkName": "openclaw",
@@ -873,7 +873,7 @@ export default {
       {
         "key": "2026-06-09",
         "label": "06-09",
-        "value": 6
+        "value": 7
       }
     ],
     "commitWeekly": [
@@ -935,7 +935,7 @@ export default {
       {
         "key": "2026-06-08",
         "label": "06-08",
-        "value": 19
+        "value": 20
       }
     ],
     "releaseMonthly": [
@@ -997,7 +997,7 @@ export default {
       {
         "key": "2026-06",
         "label": "06/26",
-        "value": 7
+        "value": 8
       }
     ]
   },
@@ -1078,7 +1078,7 @@ export default {
       },
       {
         "date": "2026-06-07",
-        "tagCount": 48,
+        "tagCount": 97,
         "sampleTags": [
           "@nextclaw/agent-chat-ui@0.4.10",
           "@nextclaw/agent-chat@0.2.10",
@@ -1096,29 +1096,29 @@ export default {
       },
       {
         "date": "2026-06-05",
-        "tagCount": 50,
+        "tagCount": 51,
         "sampleTags": [
+          "@nextclaw/aigen@0.1.0",
           "@nextclaw/agent-chat-ui@0.4.9-beta.1",
-          "@nextclaw/agent-chat@0.2.9-beta.1",
-          "@nextclaw/aigen@0.1.1-beta.0"
+          "@nextclaw/agent-chat@0.2.9-beta.1"
         ]
       },
       {
         "date": "2026-06-04",
-        "tagCount": 47,
+        "tagCount": 56,
         "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.4.9-beta.0",
-          "@nextclaw/agent-chat@0.2.9-beta.0",
-          "@nextclaw/app-runtime@0.8.9-beta.0"
+          "@nextclaw/agent-chat@0.2.8",
+          "@nextclaw/channel-extension-email@0.1.13",
+          "@nextclaw/channel-extension-feishu@0.1.20"
         ]
       },
       {
         "date": "2026-06-03",
-        "tagCount": 96,
+        "tagCount": 245,
         "sampleTags": [
-          "v0.20.5-desktop-beta.1",
-          "v0.20.5-desktop.1",
-          "@nextclaw/agent-chat-ui@0.4.7-beta.0"
+          "@nextclaw/channel-extension-dingtalk@0.1.9",
+          "@nextclaw/channel-extension-discord@0.1.9",
+          "@nextclaw/channel-extension-email@0.1.9"
         ]
       }
     ]
@@ -1303,7 +1303,7 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-06-09T03:24:48.219Z",
+    "locGeneratedAt": "2026-06-09T11:40:04.737Z",
     "sourceCount": {
       "notes": 5,
       "scopes": 8
