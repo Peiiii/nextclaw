@@ -170,15 +170,12 @@ export function CompactTabStrip({
   testId,
   ...tabProps
 }: CompactTabStripProps) {
-  const activeItemRef = React.useRef<HTMLDivElement>(null);
-  const activeTabKey = tabs.find((tab) => tab.active)?.key ?? null;
-
-  React.useLayoutEffect(() => {
-    activeItemRef.current?.scrollIntoView({
+  const scrollActiveItemIntoView = React.useCallback((item: HTMLDivElement | null) => {
+    item?.scrollIntoView?.({
       block: "nearest",
       inline: "nearest",
     });
-  }, [activeTabKey, tabs.length]);
+  }, []);
 
   return (
     <div
@@ -203,7 +200,7 @@ export function CompactTabStrip({
           {tabs.map((tab) => (
             <CompactTabItem
               key={tab.key}
-              itemRef={tab.active ? activeItemRef : undefined}
+              itemRef={tab.active ? scrollActiveItemIntoView : undefined}
               tab={tab}
               {...tabProps}
             />

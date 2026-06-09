@@ -381,19 +381,19 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
 
       {!isDocked && !isFullscreen && (
         <>
-          <div className="absolute top-0 left-0 h-1.5 w-full cursor-ns-resize z-20 hover:bg-primary/10 transition-colors" data-testid="doc-browser-resize-top" onPointerDown={startFloatResize('top')} />
+          <div className="absolute top-0 left-0 h-3 w-full cursor-ns-resize z-20 hover:bg-primary/10 transition-colors" data-testid="doc-browser-resize-top" onPointerDown={startFloatResize('top')} />
           <div
-            className="absolute top-0 left-0 w-1.5 h-full cursor-ew-resize z-20 hover:bg-primary/10 transition-colors"
+            className="absolute top-0 left-0 w-3 h-full cursor-ew-resize z-20 hover:bg-primary/10 transition-colors"
             data-testid="doc-browser-resize-left"
             onPointerDown={startFloatResize('left')}
           />
           <div
-            className="absolute top-0 right-0 w-1.5 h-full cursor-ew-resize z-20 hover:bg-primary/10 transition-colors"
+            className="absolute top-0 right-0 w-3 h-full cursor-ew-resize z-20 hover:bg-primary/10 transition-colors"
             data-testid="doc-browser-resize-right"
             onPointerDown={startFloatResize('right')}
           />
           <div
-            className="absolute bottom-0 left-0 h-1.5 w-full cursor-ns-resize z-20 hover:bg-primary/10 transition-colors"
+            className="absolute bottom-0 left-0 h-3 w-full cursor-ns-resize z-20 hover:bg-primary/10 transition-colors"
             data-testid="doc-browser-resize-bottom"
             onPointerDown={startFloatResize('bottom')}
           />

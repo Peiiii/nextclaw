@@ -1,8 +1,25 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
-import { ResizableRightPanel } from "../resizable-right-panel";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ResizableRightPanel } from "@/shared/components/resizable-right-panel/resizable-right-panel";
+
+function firePointerEvent(
+  target: Window | Document | Node | Element,
+  type: string,
+  point: { clientX: number; pointerId?: number },
+) {
+  const event = new Event(type, { bubbles: true });
+  Object.defineProperties(event, {
+    clientX: { value: point.clientX },
+    pointerId: { value: point.pointerId ?? 1 },
+  });
+  fireEvent(target, event);
+}
 
 describe("ResizableRightPanel", () => {
+  beforeEach(() => {
+    HTMLElement.prototype.setPointerCapture = vi.fn();
+  });
+
   it("resizes horizontally from the left handle and clamps to max width", () => {
     render(
       <ResizableRightPanel
@@ -15,12 +32,23 @@ describe("ResizableRightPanel", () => {
       </ResizableRightPanel>,
     );
 
-    fireEvent.mouseDown(screen.getByTestId("resizable-right-panel-handle"), {
-      clientX: 800,
-    });
-    fireEvent.mouseMove(window, { clientX: 600 });
+    firePointerEvent(
+      screen.getByTestId("resizable-right-panel-handle"),
+      "pointerdown",
+      { clientX: 800, pointerId: 1 },
+    );
+    firePointerEvent(window, "pointermove", { clientX: 600, pointerId: 1 });
 
     expect(screen.getByTestId("right-panel").style.width).toBe("500px");
+    expect(
+      screen.getByTestId("resizable-right-panel-resize-shield"),
+    ).toBeTruthy();
+
+    firePointerEvent(window, "pointerup", { clientX: 600, pointerId: 1 });
+
+    expect(
+      screen.queryByTestId("resizable-right-panel-resize-shield"),
+    ).toBeNull();
   });
 
   it("does not render resize controls in overlay mode", () => {
