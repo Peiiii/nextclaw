@@ -10,6 +10,9 @@
 - chat message adapter 识别规范工具结果，生成 `show-content` tool-card action。
 - tool-card 使用 icon-only action，提供 tooltip、`aria-label`、focus-visible 状态。
 - `NcpChatThreadManager.showContent` 作为会话级展示 owner，复用 `openFilePreview`、`docBrowser.open` 和 `nextclaw://panel-app/<id>` 路由。
+- 同批次 follow-up：`show_content` 工具执行时通过 shared typed app event `eventKeys.uiShowContent` 发出 `ui.show-content`，前端在 `ChatPresenterProvider` 下用 `useUiShowContentEvent` 订阅，并交给 `NcpChatThreadManager.handleUiShowContentEvent` 自动展示内容。
+- 同批次 follow-up：`ShowContentTool` 的稳定依赖 `eventBus` 改为 constructor 注入，execute context 只保留 `toolCallId` 等本次调用事实；tool result 继续作为聊天记录和手动兜底，不承担自动打开副作用。
+- 同批次 follow-up：补齐 `features/cron` 公共入口，并把 chat 对 cron 的 deep import 收敛到 feature 入口，保证同批 UI 结构迁移能通过 module-structure governance。
 - 同批次 follow-up：`ChatSessionWorkspacePanel` 不再自行判断 child session 的 running/readAt/lastMessageAt 已读规则，改为调用 `ChatSessionListManager.markVisibleWorkspaceChildRead`，由 session list owner 复用既有 read watermark 判定。
 - 同批次 follow-up：workspace panel 的 active selection、file title 和 tabs view model 装配从组件/Nav 移到 `chat-workspace-panel-view-model.utils.ts`，组件只保留渲染、订阅和 manager 调用。
 - 同批次 follow-up：新增 `code-investigation-workflow` skill，只约束代码排查方法，不承载具体架构规范；`ChatMessageListContainer` 明确为 chat feature 的业务 adapter/container，并内聚 `showContent`、tool session action 与 file preview action，删除主会话和 child session 调用方的重复 action props 搬运。
@@ -36,12 +39,18 @@
 - `pnpm --filter @nextclaw/ui tsc --noEmit`
 - `pnpm --filter @nextclaw/ui exec eslint src/features/chat/components/chat-session-workspace-panel.tsx src/features/chat/components/chat-session-workspace-panel-nav.tsx src/features/chat/utils/chat-workspace-panel-view-model.utils.ts src/features/chat/utils/chat-workspace-panel-view-model.utils.test.ts`
 - `pnpm -C packages/nextclaw-ui test src/features/chat/components/conversation/chat-message-list.container.test.tsx src/features/chat/components/conversation/chat-conversation-panel.test.tsx`
+- `pnpm -C packages/nextclaw-ui test src/features/chat/hooks/__tests__/use-ui-show-content-event.test.tsx src/features/chat/managers/__tests__/ncp-chat-thread.manager.test.ts src/features/chat/pages/__tests__/ncp-chat-page.test.ts src/features/chat/components/conversation/__tests__/chat-conversation-header.test.tsx`
 - `pnpm -C packages/nextclaw-ui tsc`
 - `pnpm -C packages/nextclaw-ui lint`
+- `pnpm -C packages/nextclaw-kernel lint`
+- `pnpm -C packages/nextclaw-shared lint`
+- `pnpm -C packages/nextclaw-server test src/app/tests/server-event-stream.test.ts`
+- `pnpm -C packages/nextclaw-server tsc`
 - `pnpm lint:new-code:governance`
 - `pnpm check:governance-backlog-ratchet`
 - `pnpm check:generated-clean`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/features/chat/components/conversation/chat-message-list.container.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-message-list.container.test.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.tsx packages/nextclaw-ui/src/features/chat/components/chat-session-workspace-panel.tsx .agents/skills/code-investigation-workflow/SKILL.md .agents/skills/code-investigation-workflow/agents/openai.yaml .agents/skills/writing-beautiful-code/SKILL.md .agents/skills/mvp-view-logic-decoupling/SKILL.md`
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-shared/src/types/ui-show-content.types.ts packages/nextclaw-shared/src/configs/event-keys.config.ts packages/nextclaw-shared/src/index.ts packages/nextclaw-kernel/src/tools/show-content.tools.ts packages/nextclaw-kernel/src/contributions/tool-provider/providers/show-content-tool.provider.ts packages/nextclaw-kernel/src/contributions/tool-provider/index.ts packages/nextclaw-ui/src/features/chat/hooks/use-ui-show-content-event.ts packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.tsx packages/nextclaw-ui/src/features/chat/managers/ncp-chat-thread.manager.ts packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-header.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.tsx packages/nextclaw-ui/src/features/chat/components/layout/chat-page-shell.tsx packages/nextclaw-ui/src/features/chat/components/workspace/session-cron-job-content.tsx packages/nextclaw-ui/src/features/cron/index.ts`
 
 前端 dev server 验收：
 
@@ -63,6 +72,7 @@
    - `file` 打开会话 workspace 文件预览。
    - `url` 打开 DocBrowser。
    - `panel_app` 通过 `nextclaw://panel-app/<id>` 打开 panel app 承接面。
+4. Agent 执行 `show_content` 工具后，后端发出 `ui.show-content` 事件，当前 Chat UI 自动打开对应文件、URL 或 panel app；聊天里的 tool card action 仍作为手动兜底存在。
 
 ## 可维护性总结汇总
 
@@ -83,6 +93,8 @@ Follow-up 维护性复核：workspace panel view-model 逻辑从 UI 组件剥离
 
 Follow-up 维护性复核：message list action 处理从两个调用方收敛到 `ChatMessageListContainer`，该 container 作为 chat feature 业务 adapter/container 直接连接 `chatThreadManager`；主会话和 child session 不再重复装配 `show-content`、tool session 和 file preview action。触达文件 maintainability guard 结果为总计 `+32/-120`、非测试代码 `+16/-120`、净减 `104`；`chat-conversation-panel.tsx` 仍接近文件预算，但本轮已净减 13 行。
 
+Follow-up 维护性复核：`ui.show-content` 自动展示链路只新增一个 shared event key、一个 kernel emit 点、一个前端订阅 hook，并复用 `NcpChatThreadManager` 作为展示 owner；未新增 command bus、control plane、preview manager 或 presenter 转发 facade。触达文件 maintainability guard 结果为总计 `+417/-376`、非测试代码 `+417/-376`、净增 `41`；本次属于新增用户能力，增长主要来自 shared contract、事件订阅 hook、测试和同批结构迁移补齐。warning：`chat-conversation-panel.tsx` 与 `ncp-chat-thread.manager.ts` 接近文件预算，后续继续增长时应优先拆业务 container / workspace content dispatch 子 owner。
+
 ## NPM 包发布记录
 
-不涉及 NPM 包发布。
+未执行 NPM 包发布。`@nextclaw/kernel`、`@nextclaw/shared`、`@nextclaw/ui`、`@nextclaw/agent-chat-ui` 的用户可见 show-content 行为变更已通过现有 `.changeset/chat-ui-show-content.md` 纳入后续统一发布。

@@ -10,6 +10,7 @@ import type {
   ChatUiShowContentRequest,
   ChatToolActionViewModel,
 } from '@nextclaw/agent-chat-ui';
+import type { UiShowContentEventPayload } from '@nextclaw/shared';
 import type { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
 import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
 import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
@@ -55,6 +56,8 @@ function isPanelAppEntryMatch(entry: PanelAppEntryView, value: string): boolean 
 }
 
 export class NcpChatThreadManager {
+  private readonly handledUiShowContentEventIds = new Set<string>();
+
   constructor(
     private uiManager: ChatUiManager,
     private sessionListManager: ChatSessionListManager,
@@ -309,6 +312,19 @@ export class NcpChatThreadManager {
       return;
     }
     this.openSessionFromToolAction(action);
+  };
+
+  handleUiShowContentEvent = async (payload: UiShowContentEventPayload): Promise<void> => {
+    const eventId = payload.id.trim();
+    if (!eventId || this.handledUiShowContentEventIds.has(eventId)) {
+      return;
+    }
+    this.handledUiShowContentEventIds.add(eventId);
+    await this.showContent({
+      target: payload.target,
+      title: payload.title,
+      purpose: payload.purpose,
+    });
   };
 
   private resolvePanelAppEntry = async (value: string): Promise<PanelAppEntryView | null> => {

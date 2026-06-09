@@ -1,22 +1,25 @@
 import {
   normalizeToolParams,
+  type ToolExecutionContext,
 } from "@nextclaw/core";
 import type { NcpTool } from "@nextclaw/ncp";
+import {
+  eventKeys,
+  type EventBus,
+  type UiShowContentEventPayload,
+  type UiShowContentPurpose,
+  type UiShowContentTarget,
+} from "@nextclaw/shared";
 
 export const SHOW_CONTENT_TOOL_NAME = "show_content";
 
-type ShowContentPurpose = "read" | "preview" | "edit" | "interact";
-
-type ShowContentTarget =
-  | { type: "file"; payload: { path: string; line: number | undefined; column: number | undefined } }
-  | { type: "url"; payload: { url: string } }
-  | { type: "panel_app"; payload: { appId: string } };
-
 type ShowContentRequest = {
-  target: ShowContentTarget;
+  target: UiShowContentTarget;
   title: string | undefined;
-  purpose: ShowContentPurpose | undefined;
+  purpose: UiShowContentPurpose | undefined;
 };
+
+type ShowContentEventBus = Pick<EventBus, "emit">;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -47,7 +50,7 @@ function readOptionalPositiveInteger(value: unknown, key: string): number | unde
   return value;
 }
 
-function readPurpose(value: unknown): ShowContentPurpose | undefined {
+function readPurpose(value: unknown): UiShowContentPurpose | undefined {
   const normalized = readOptionalString(value);
   if (!normalized) {
     return undefined;
@@ -135,6 +138,32 @@ function normalizeShowContentArgs(args: unknown): ShowContentRequest {
   throw new Error('type must be "file", "url", or "panel_app".');
 }
 
+function summarizeTarget(target: UiShowContentTarget): string {
+  if (target.type === "file") {
+    return target.payload.path;
+  }
+  if (target.type === "url") {
+    return target.payload.url;
+  }
+  return target.payload.appId;
+}
+
+function createShowContentEventPayload(
+  request: ShowContentRequest,
+  context: ToolExecutionContext | undefined,
+): UiShowContentEventPayload {
+  const toolCallId = readOptionalString(context?.toolCallId);
+  return {
+    id: toolCallId
+      ? `tool:${toolCallId}:show-content`
+      : `show-content:${request.target.type}:${summarizeTarget(request.target)}`,
+    toolCallId,
+    target: request.target,
+    title: request.title,
+    purpose: request.purpose,
+  };
+}
+
 export class ShowContentTool implements NcpTool {
   readonly name = SHOW_CONTENT_TOOL_NAME;
   readonly description = "Show file, URL, or panel app content in the current chat UI.";
@@ -165,9 +194,19 @@ export class ShowContentTool implements NcpTool {
     additionalProperties: false,
   };
 
-  execute = async (args: unknown): Promise<unknown> => ({
-    ok: true,
-    action: "showContent",
-    request: normalizeShowContentArgs(args),
-  });
+  constructor(private readonly eventBus: ShowContentEventBus) {}
+
+  execute = async (args: unknown, context?: ToolExecutionContext): Promise<unknown> => {
+    const request = normalizeShowContentArgs(args);
+    this.eventBus.emit(
+      eventKeys.uiShowContent,
+      createShowContentEventPayload(request, context),
+      { source: "kernel" },
+    );
+    return {
+      ok: true,
+      action: "showContent",
+      request,
+    };
+  };
 }

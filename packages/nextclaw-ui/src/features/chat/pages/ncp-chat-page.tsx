@@ -39,6 +39,7 @@ import {
   getSessionProjectName,
   normalizeSessionProjectRootValue,
 } from "@/shared/lib/session-project";
+import { useUiShowContentEvent } from "@/features/chat/hooks/use-ui-show-content-event";
 
 function createMetadataFields(value: string | undefined, fields: readonly string[]): Record<string, string> {
   return value ? Object.fromEntries(fields.map((field) => [field, value])) : {};
@@ -402,6 +403,11 @@ function useMaterializedRootSessionRouteSync(
   }, [materializedSessionKey, presenter, routeSessionKey]);
 }
 
+function NcpChatEventBindings() {
+  useUiShowContentEvent();
+  return null;
+}
+
 export function NcpChatPage({ view }: ChatPageProps) {
   const appPresenter = useAppPresenter();
   const [presenter] = useState(() => new NcpChatPresenter(appPresenter));
@@ -454,6 +460,7 @@ export function NcpChatPage({ view }: ChatPageProps) {
   });
   return (
     <ChatPresenterProvider presenter={presenter}>
+      <NcpChatEventBindings />
       <ChatPageLayout view={view} confirmDialog={<state.ConfirmDialog />} />
     </ChatPresenterProvider>
   );

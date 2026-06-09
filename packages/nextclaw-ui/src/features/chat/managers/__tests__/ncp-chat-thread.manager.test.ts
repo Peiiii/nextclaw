@@ -489,6 +489,46 @@ describe('NcpChatThreadManager showContent', () => {
     });
   });
 
+  it('handles ui.show-content events once through the same owner path', async () => {
+    const docBrowserManager = createDocBrowserManager();
+    const manager = new NcpChatThreadManager(
+      { goToSession: vi.fn() } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0],
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      docBrowserManager,
+    );
+
+    await manager.handleUiShowContentEvent({
+      id: 'tool:call-show-content-1:show-content',
+      toolCallId: 'call-show-content-1',
+      target: {
+        type: 'url',
+        payload: {
+          url: 'https://example.com/read',
+        },
+      },
+      title: 'Example URL',
+      purpose: 'read',
+    });
+    await manager.handleUiShowContentEvent({
+      id: 'tool:call-show-content-1:show-content',
+      toolCallId: 'call-show-content-1',
+      target: {
+        type: 'url',
+        payload: {
+          url: 'https://example.com/read',
+        },
+      },
+      title: 'Example URL',
+      purpose: 'read',
+    });
+
+    expect(docBrowserManager.open).toHaveBeenCalledTimes(1);
+    expect(docBrowserManager.open).toHaveBeenCalledWith('https://example.com/read', {
+      title: 'Example URL',
+    });
+  });
+
   it('falls back to a direct panel app resource uri when no listed entry matches', async () => {
     const docBrowserManager = createDocBrowserManager();
     const manager = new NcpChatThreadManager(

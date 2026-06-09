@@ -32,7 +32,7 @@ export class ToolProviderContribution implements KernelContribution {
 
   private createToolProviders = (): ToolProvider[] => [
     new StructuredResultToolProvider(),
-    new ShowContentToolProvider(),
+    new ShowContentToolProvider(this.kernel.eventBus),
     new CoreToolProvider(this.kernel),
     new MessagingToolProvider(this.kernel),
     new SessionToolProvider(this.kernel),
