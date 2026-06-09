@@ -1,5 +1,11 @@
 # @nextclaw/agent-chat-ui
 
+## 0.4.12
+
+### Patch Changes
+
+- ac44df2: Improve chat sticky-scroll lifecycle cleanup so queued scroll frames are cancelled on unmount, reducing the chance of stale chat scroll scheduling after session or view transitions.
+
 ## 0.4.11
 
 ### Patch Changes

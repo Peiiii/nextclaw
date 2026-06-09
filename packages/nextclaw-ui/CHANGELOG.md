@@ -1,5 +1,24 @@
 # @nextclaw/ui
 
+## 0.13.13
+
+### Patch Changes
+
+- ac44df2: Improve chat sticky-scroll lifecycle cleanup so queued scroll frames are cancelled on unmount, reducing the chance of stale chat scroll scheduling after session or view transitions.
+- b2702b9: Persist chat workspace panel state and add workspace-local back/forward navigation across child-session, cron, and file preview tabs.
+- 05d6f6b: Keep skill marketplace results visible while search and sort refresh, with lightweight updating feedback.
+- 41a6435: Add a SkillHub link to the skill marketplace and route external navigation through the host browser bridge.
+- 42ad22f: Improve Side Dock pinned emoji shortcuts so they render as visual dock icons instead of small text labels.
+- Updated dependencies
+- Updated dependencies [ac44df2]
+  - @nextclaw/agent-chat@0.2.12
+  - @nextclaw/client-sdk@0.4.2
+  - @nextclaw/ncp@0.6.2
+  - @nextclaw/ncp-http-agent-client@0.3.44
+  - @nextclaw/ncp-react@0.4.52
+  - @nextclaw/shared@0.2.12
+  - @nextclaw/agent-chat-ui@0.4.12
+
 ## 0.13.12
 
 ### Patch Changes

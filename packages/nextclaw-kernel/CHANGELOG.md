@@ -1,5 +1,30 @@
 # @nextclaw/kernel
 
+## 0.4.3
+
+### Patch Changes
+
+- 6b44d57: Use real context compaction so compressed sessions feed the model a single working-context summary instead of retaining raw message tails.
+- e283af5: Improve the native reply formatting prompt so local file references are emitted as clickable Markdown links.
+- Updated dependencies
+- Updated dependencies [6b44d57]
+- Updated dependencies [d20dc48]
+- Updated dependencies [aa681ba]
+- Updated dependencies [7eed591]
+  - @nextclaw/channel-extension-feishu@0.1.24
+  - @nextclaw/channel-extension-weixin@0.1.28
+  - @nextclaw/mcp@0.2.13
+  - @nextclaw/ncp@0.6.2
+  - @nextclaw/ncp-agent-runtime@0.3.43
+  - @nextclaw/ncp-agent-runtime-next@0.0.15
+  - @nextclaw/ncp-toolkit@0.5.37
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.2.12
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.2.12
+  - @nextclaw/shared@0.2.12
+  - @nextclaw/core@0.14.3
+  - @nextclaw/runtime@0.3.13
+  - @nextclaw/ncp-mcp@0.1.108
+
 ## 0.4.2
 
 ### Patch Changes

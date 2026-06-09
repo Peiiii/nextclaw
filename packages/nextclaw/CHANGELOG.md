@@ -1,5 +1,31 @@
 # nextclaw
 
+## 0.21.7
+
+### Patch Changes
+
+- 7eed591: Add `nextclaw app restart <app-id>` for refreshing live Service App runtimes before product smoke tests.
+- Updated dependencies
+- Updated dependencies [6b44d57]
+- Updated dependencies [d20dc48]
+- Updated dependencies [aa681ba]
+- Updated dependencies [e283af5]
+- Updated dependencies [7eed591]
+  - @nextclaw/mcp@0.2.13
+  - @nextclaw/ncp@0.6.2
+  - @nextclaw/ncp-agent-runtime@0.3.43
+  - @nextclaw/ncp-toolkit@0.5.37
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.2.12
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.2.12
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.2.12
+  - @nextclaw/remote@0.2.13
+  - @nextclaw/server@0.14.3
+  - @nextclaw/service@0.2.13
+  - @nextclaw/core@0.14.3
+  - @nextclaw/kernel@0.4.3
+  - @nextclaw/runtime@0.3.13
+  - @nextclaw/ncp-mcp@0.1.108
+
 ## 0.21.6
 
 ### Patch Changes

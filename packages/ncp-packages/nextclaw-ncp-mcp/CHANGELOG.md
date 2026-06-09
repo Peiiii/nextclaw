@@ -1,5 +1,14 @@
 # @nextclaw/ncp-mcp
 
+## 0.1.108
+
+### Patch Changes
+
+- aa681ba: Add npm package metadata for @nextclaw/ncp-mcp.
+- Updated dependencies
+  - @nextclaw/mcp@0.2.13
+  - @nextclaw/ncp@0.6.2
+
 ## 0.1.107
 
 ### Patch Changes

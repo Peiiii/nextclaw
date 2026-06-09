@@ -1,5 +1,14 @@
 # @nextclaw/runtime
 
+## 0.3.13
+
+### Patch Changes
+
+- d20dc48: Stop marking MiMo v2.5 Pro as vision-capable in built-in provider metadata.
+- Updated dependencies [6b44d57]
+- Updated dependencies [7eed591]
+  - @nextclaw/core@0.14.3
+
 ## 0.3.12
 
 ### Patch Changes

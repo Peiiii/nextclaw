@@ -1,5 +1,15 @@
 # nextclaw-core
 
+## 0.14.3
+
+### Patch Changes
+
+- 6b44d57: Use real context compaction so compressed sessions feed the model a single working-context summary instead of retaining raw message tails.
+- 7eed591: Add `nextclaw app restart <app-id>` for refreshing live Service App runtimes before product smoke tests.
+- Updated dependencies
+  - @nextclaw/feishu-core@0.2.33
+  - @nextclaw/shared@0.2.12
+
 ## 0.14.2
 
 ### Patch Changes
