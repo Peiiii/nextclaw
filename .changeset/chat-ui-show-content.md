@@ -4,4 +4,4 @@
 "@nextclaw/agent-chat-ui": minor
 ---
 
-Add the show_content chat display action so agents can ask the UI to open file, URL, or panel app content from tool results.
+Add the show_content chat display action so agents can ask the UI to open file, URL, or installed panel app content from tool results.

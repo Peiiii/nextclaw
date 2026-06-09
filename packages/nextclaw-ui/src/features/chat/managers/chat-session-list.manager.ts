@@ -8,7 +8,12 @@ import { normalizeSessionProjectRootValue } from '@/shared/lib/session-project';
 import { updateNcpSession } from '@/shared/lib/api';
 import { CHAT_DRAFT_SESSION_PATH } from '@/features/chat/utils/chat-session-route.utils';
 
-type WorkspaceChildReadState = { sessionKey: string | null | undefined; lastMessageAt?: string | null; readAt?: string | null; runStatus?: string | null };
+type WorkspaceChildReadState = {
+  sessionKey: string | null | undefined;
+  lastMessageAt?: string | null;
+  readAt?: string | null;
+  runStatus?: string | null;
+};
 export class ChatSessionListManager {
   constructor(
     private uiManager: ChatUiManager,

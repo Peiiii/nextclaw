@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import type { NcpMessage } from "@nextclaw/ncp";
 import {
-  type ChatToolActionViewModel,
   type ChatMessageViewModel,
   ChatMessageList,
 } from "@nextclaw/agent-chat-ui";
@@ -290,14 +289,6 @@ export function ChatMessageListContainer({
     () => buildTimelineItems({ rawMessages, messages }),
     [messages, rawMessages],
   );
-  const handleToolAction = (action: ChatToolActionViewModel) => {
-    if (action.kind === "show-content") {
-      presenter.chatThreadManager.showContent(action.request);
-      return;
-    }
-    presenter.chatThreadManager.openSessionFromToolAction(action);
-  };
-
   return (
     <div className={className}>
       {timelineItems.map((item, index) =>
@@ -310,7 +301,7 @@ export function ChatMessageListContainer({
             isSending={index === timelineItems.length - 1 ? isSending : false}
             hasAssistantDraft={hasAssistantDraft}
             texts={messageTexts}
-            onToolAction={handleToolAction}
+            onToolAction={presenter.chatThreadManager.handleToolAction}
             onFileOpen={presenter.chatThreadManager.openFilePreview}
             renderToolAgent={(agentId) => (
               <AgentIdentityAvatar

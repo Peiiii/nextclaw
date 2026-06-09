@@ -1,57 +1,16 @@
-import { createContext, useContext, type ReactNode, type SetStateAction } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import type {
-  ChatComposerNode,
-  ChatFileOpenActionViewModel,
-  ChatToolActionViewModel,
-  ChatUiShowContentRequest,
-} from '@nextclaw/agent-chat-ui';
-import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
-import type { ThinkingLevel } from '@/shared/lib/api';
-import type { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
+  ChatSessionListManager,
+} from '@/features/chat/managers/chat-session-list.manager';
 import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
 import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
-import type { ChatThreadSnapshot } from '@/features/chat/stores/chat-thread.store';
+import type { NcpChatInputManager } from '@/features/chat/managers/ncp-chat-input.manager';
+import type { NcpChatThreadManager } from '@/features/chat/managers/ncp-chat-thread.manager';
 
-export type ChatInputManagerLike = {
-  syncSnapshot: (patch: Record<string, unknown>) => void;
-  setDraft: (next: SetStateAction<string>) => void;
-  requestComposerFocusAtEnd: () => void;
-  consumeComposerFocusRequest: (requestId: number) => void;
-  setComposerNodes: (next: SetStateAction<ChatComposerNode[]>) => void;
-  addAttachments?: (attachments: NcpDraftAttachment[]) => NcpDraftAttachment[];
-  restoreComposerState?: (nodes: ChatComposerNode[], attachments: NcpDraftAttachment[]) => void;
-  setPendingSessionType: (next: SetStateAction<string>) => void;
-  send: () => Promise<void>;
-  stop: () => Promise<void>;
-  goToProviders: () => void;
-  setSelectedModel: (next: SetStateAction<string>) => void;
-  setSelectedThinkingLevel: (next: SetStateAction<ThinkingLevel | null>) => void;
-  setSelectedSkills: (next: SetStateAction<string[]>) => void;
-  selectSessionType: (value: string) => void;
-  selectModel: (value: string) => void;
-  selectThinkingLevel: (value: ThinkingLevel) => void;
-  selectSkills: (next: string[]) => void;
-  rememberSkillSelection: (value: string) => void;
-};
+type PublicManager<T extends object> = Pick<T, keyof T>;
 
-export type ChatThreadManagerLike = {
-  syncSnapshot: (patch: Partial<ChatThreadSnapshot>) => void;
-  deleteSession: () => void;
-  createSession: () => void;
-  goToProviders: () => void;
-  openChildSessionPanel: (params: { parentSessionKey: string; activeChildSessionKey?: string | null }) => void;
-  openSessionCronPanel: (sessionKey: string) => void;
-  openFilePreview: (action: ChatFileOpenActionViewModel) => void;
-  openSessionFromToolAction: (action: ChatToolActionViewModel) => void;
-  showContent: (request: ChatUiShowContentRequest) => void;
-  selectChildSessionDetail: (sessionKey: string) => void;
-  selectWorkspaceFile: (fileKey: string) => void;
-  closeWorkspaceFile: (fileKey: string) => void;
-  closeWorkspacePanel: () => void;
-  goBackWorkspacePanel: () => void;
-  goForwardWorkspacePanel: () => void;
-  goToParentSession: () => void;
-};
+export type ChatInputManagerLike = PublicManager<NcpChatInputManager>;
+export type ChatThreadManagerLike = PublicManager<NcpChatThreadManager>;
 
 export type ChatPresenterLike = {
   chatUiManager: ChatUiManager;

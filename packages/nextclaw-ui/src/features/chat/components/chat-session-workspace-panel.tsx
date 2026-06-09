@@ -183,9 +183,7 @@ export function ChatSessionWorkspacePanel({
   };
 
   useEffect(() => {
-    if (activeSelection?.kind === "child-session") {
-      presenter.chatSessionListManager.markVisibleWorkspaceChildRead(activeSelection.tab);
-    }
+    presenter.chatThreadManager.syncVisibleWorkspaceSelection(activeSelection);
   }, [activeSelection, presenter]);
 
   const workspaceTabs = useMemo<WorkspaceTabViewModel[]>(

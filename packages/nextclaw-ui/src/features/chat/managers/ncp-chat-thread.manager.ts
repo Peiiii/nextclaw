@@ -1,6 +1,10 @@
 import { appQueryClient } from '@/app-query-client';
-import { deleteNcpSessionSummaryInQueryClient } from '@/shared/lib/api';
-import { deleteNcpSession as deleteNcpSessionApi } from '@/shared/lib/api';
+import {
+  deleteNcpSession as deleteNcpSessionApi,
+  deleteNcpSessionSummaryInQueryClient,
+  nextclawClient,
+  type PanelAppEntryView,
+} from '@/shared/lib/api';
 import type {
   ChatFileOpenActionViewModel,
   ChatUiShowContentRequest,
@@ -17,7 +21,10 @@ import type {
 } from '@/features/chat/stores/chat-thread.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 import { viewportLayoutManager } from '@/app/managers/viewport-layout.manager';
-import { createPanelAppResourceUri } from '@/features/right-panel-resources';
+import {
+  createPanelAppResourceUri,
+  createPanelAppRightPanelResourceTarget,
+} from '@/features/right-panel-resources';
 import { t } from '@/shared/lib/i18n';
 import {
   filterNavigationHistoryEntries,
@@ -37,6 +44,14 @@ function areWorkspaceNavigationEntriesEqual(
     return true;
   }
   return next.kind !== 'cron' && current.key === next.key;
+}
+
+type WorkspaceChildReadState = Parameters<ChatSessionListManager['markVisibleWorkspaceChildRead']>[0];
+export type ChatVisibleWorkspaceSelection = { kind: 'child-session'; tab: WorkspaceChildReadState } | { kind: 'file' | 'cron' } | null;
+
+function isPanelAppEntryMatch(entry: PanelAppEntryView, value: string): boolean {
+  const normalizedValue = value.trim();
+  return [entry.id, entry.appId, entry.fileName, entry.title].some((candidate) => candidate.trim() === normalizedValue);
 }
 
 export class NcpChatThreadManager {
@@ -267,7 +282,7 @@ export class NcpChatThreadManager {
     this.ensureWorkspaceParentRoute(parentSessionKey);
   };
 
-  openSessionFromToolAction = (action: ChatToolActionViewModel) => {
+  private openSessionFromToolAction = (action: ChatToolActionViewModel) => {
     if (action.kind !== 'open-session') {
       return;
     }
@@ -284,18 +299,32 @@ export class NcpChatThreadManager {
         return;
       }
     }
-    useChatThreadStore.getState().setSnapshot({
-      workspacePanelParentKey: null,
-      activeWorkspacePanelKind: null,
-      activeChildSessionKey: null,
-      activeWorkspaceFileKey: null,
-      workspaceNavigationHistory: [],
-      workspaceNavigationHistoryIndex: 0,
-    });
+    this.closeWorkspacePanel();
     this.uiManager.goToSession(action.sessionId);
   };
 
-  showContent = (request: ChatUiShowContentRequest) => {
+  handleToolAction = async (action: ChatToolActionViewModel): Promise<void> => {
+    if (action.kind === 'show-content') {
+      await this.showContent(action.request);
+      return;
+    }
+    this.openSessionFromToolAction(action);
+  };
+
+  private resolvePanelAppEntry = async (value: string): Promise<PanelAppEntryView | null> => {
+    const normalizedValue = value.trim();
+    if (!normalizedValue) {
+      return null;
+    }
+    try {
+      const { entries } = await nextclawClient.panelApps.listPanelApps();
+      return entries.find((entry) => isPanelAppEntryMatch(entry, normalizedValue)) ?? null;
+    } catch {
+      return null;
+    }
+  };
+
+  private showContent = async (request: ChatUiShowContentRequest): Promise<void> => {
     if (request.target.type === 'file') {
       this.openFilePreview({
         path: request.target.payload.path,
@@ -312,9 +341,22 @@ export class NcpChatThreadManager {
       });
       return;
     }
+    const entry = await this.resolvePanelAppEntry(request.target.payload.appId);
+    if (entry) {
+      this.docBrowserManager.openTarget(createPanelAppRightPanelResourceTarget(entry), {
+        title: request.title,
+      });
+      return;
+    }
     this.docBrowserManager.open(createPanelAppResourceUri(request.target.payload.appId), {
       title: request.title,
     });
+  };
+
+  syncVisibleWorkspaceSelection = (selection: ChatVisibleWorkspaceSelection) => {
+    if (selection?.kind === 'child-session') {
+      this.sessionListManager.markVisibleWorkspaceChildRead(selection.tab);
+    }
   };
 
   selectChildSessionDetail = (sessionKey: string) => {

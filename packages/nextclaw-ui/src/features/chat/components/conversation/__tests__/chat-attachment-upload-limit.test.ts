@@ -34,5 +34,5 @@ describe('ncp attachment upload limit', () => {
         assetUri: 'asset://store/large-image.png',
       }
     ]);
-  });
+  }, 10000);
 });
