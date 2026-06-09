@@ -24,6 +24,9 @@
 - 临时目录安装烟测：`npm install --prefix <tmp> nextclaw@latest`
 - 临时安装版本验证：`<tmp>/node_modules/.bin/nextclaw --version` 输出 `0.21.7`
 - 隔离 `NEXTCLAW_HOME` 稳定更新检查：`nextclaw update --check --json` 返回 `status: "up-to-date"`
+- GitHub Actions stable runtime workflow：`npm-runtime-update-release` run `27178430391` 成功
+- public Pages stable manifest 四个平台均返回 `latestVersion: "0.21.7"`、`hostKind: "npm-runtime-bundle"`、`minimumLauncherVersion: "0.18.11"`
+- 从 `nextclaw@0.21.6` 临时安装执行真实更新烟测：`update --check` -> `update --download-only` -> `update --apply` -> `nextclaw --version`，最终输出 `0.21.7`
 
 ## 发布/部署方式
 
@@ -35,7 +38,12 @@
 
 `release:publish` 已完成 release batch build/tsc、changeset publish、`release:verify:published` 与本地 release tag 生成。
 
-stable npm-runtime update channel 需要在 release commit push 后触发 `npm-runtime-update-release.yml`，使用 `channel=stable` 与 `release_tag=nextclaw@0.21.7`。
+stable npm-runtime update channel 已触发并完成：
+
+- workflow：`https://github.com/Peiiii/nextclaw/actions/runs/27178430391`
+- release tag：`nextclaw@0.21.7`
+- release assets：`nextclaw-runtime-darwin-arm64-0.21.7.zip`、`nextclaw-runtime-darwin-x64-0.21.7.zip`、`nextclaw-runtime-linux-x64-0.21.7.zip`、`nextclaw-runtime-win32-x64-0.21.7.zip`
+- public manifest base：`https://peiiii.github.io/nextclaw/npm-runtime-updates/stable/`
 
 ## 用户/产品视角的验收步骤
 
@@ -43,6 +51,7 @@ stable npm-runtime update channel 需要在 release commit push 后触发 `npm-r
 2. 运行 `nextclaw --version`，确认输出 `0.21.7`。
 3. 使用隔离的 `NEXTCLAW_HOME` 运行 `nextclaw update --check --json`。
 4. 确认稳定通道检查正常返回，不依赖本地源码、不依赖 workspace link。
+5. 从旧版 `nextclaw@0.21.6` 运行稳定更新命令，确认可检测、下载、应用并切换到 `0.21.7`。
 
 ## 可维护性总结汇总
 
