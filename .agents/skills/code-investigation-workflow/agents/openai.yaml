@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Investigation Workflow"
+  short_description: "Investigate code chains before judging changes, then route norms to the right skill"
+  default_prompt: "Investigate the relevant code before making a judgment: inspect the object itself, callers, callees, same-chain patterns, owner/data/action flow, then route concrete norms to the appropriate specialized skill."

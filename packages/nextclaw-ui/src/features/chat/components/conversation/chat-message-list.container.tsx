@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import type { NcpMessage } from "@nextclaw/ncp";
 import {
-  type ChatFileOpenActionViewModel,
   type ChatToolActionViewModel,
   type ChatMessageViewModel,
   ChatMessageList,
 } from "@nextclaw/agent-chat-ui";
+import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import {
   adaptChatMessage,
   type ChatMessageAdapterTexts,
@@ -25,8 +25,6 @@ type ChatMessageListContainerProps = {
   messages: readonly NcpMessage[];
   isSending: boolean;
   className?: string;
-  onToolAction?: (action: ChatToolActionViewModel) => void;
-  onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
 };
 
 const messageViewModelCache = new WeakMap<
@@ -236,9 +234,8 @@ export function ChatMessageListContainer({
   messages: rawMessages,
   isSending,
   className,
-  onToolAction,
-  onFileOpen,
 }: ChatMessageListContainerProps) {
+  const presenter = usePresenter();
   const { language } = useI18n();
   const texts = useMemo<ChatMessageAdapterTexts>(
     () => buildChatMessageAdapterTexts(language),
@@ -293,6 +290,13 @@ export function ChatMessageListContainer({
     () => buildTimelineItems({ rawMessages, messages }),
     [messages, rawMessages],
   );
+  const handleToolAction = (action: ChatToolActionViewModel) => {
+    if (action.kind === "show-content") {
+      presenter.chatThreadManager.showContent(action.request);
+      return;
+    }
+    presenter.chatThreadManager.openSessionFromToolAction(action);
+  };
 
   return (
     <div className={className}>
@@ -306,8 +310,8 @@ export function ChatMessageListContainer({
             isSending={index === timelineItems.length - 1 ? isSending : false}
             hasAssistantDraft={hasAssistantDraft}
             texts={messageTexts}
-            onToolAction={onToolAction}
-            onFileOpen={onFileOpen}
+            onToolAction={handleToolAction}
+            onFileOpen={presenter.chatThreadManager.openFilePreview}
             renderToolAgent={(agentId) => (
               <AgentIdentityAvatar
                 agentId={agentId}

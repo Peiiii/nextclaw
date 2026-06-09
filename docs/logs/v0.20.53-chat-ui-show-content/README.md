@@ -11,6 +11,8 @@
 - tool-card 使用 icon-only action，提供 tooltip、`aria-label`、focus-visible 状态。
 - `NcpChatThreadManager.showContent` 作为会话级展示 owner，复用 `openFilePreview`、`docBrowser.open` 和 `nextclaw://panel-app/<id>` 路由。
 - 同批次 follow-up：`ChatSessionWorkspacePanel` 不再自行判断 child session 的 running/readAt/lastMessageAt 已读规则，改为调用 `ChatSessionListManager.markVisibleWorkspaceChildRead`，由 session list owner 复用既有 read watermark 判定。
+- 同批次 follow-up：workspace panel 的 active selection、file title 和 tabs view model 装配从组件/Nav 移到 `chat-workspace-panel-view-model.utils.ts`，组件只保留渲染、订阅和 manager 调用。
+- 同批次 follow-up：新增 `code-investigation-workflow` skill，只约束代码排查方法，不承载具体架构规范；`ChatMessageListContainer` 明确为 chat feature 的业务 adapter/container，并内聚 `showContent`、tool session action 与 file preview action，删除主会话和 child session 调用方的重复 action props 搬运。
 
 ## 测试/验证/验收方式
 
@@ -30,6 +32,16 @@
 - `pnpm --filter @nextclaw/ui tsc --noEmit`
 - `pnpm --filter @nextclaw/ui exec eslint src/features/chat/components/chat-session-workspace-panel.tsx src/features/chat/managers/chat-session-list.manager.ts src/features/chat/managers/chat-session-list.manager.test.ts src/features/chat/components/conversation/chat-conversation-panel.test.tsx`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/features/chat/components/chat-session-workspace-panel.tsx packages/nextclaw-ui/src/features/chat/managers/chat-session-list.manager.ts packages/nextclaw-ui/src/features/chat/managers/chat-session-list.manager.test.ts packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.test.tsx`
+- `pnpm --filter @nextclaw/ui test -- src/features/chat/utils/chat-workspace-panel-view-model.utils.test.ts src/features/chat/components/conversation/chat-conversation-panel.test.tsx`
+- `pnpm --filter @nextclaw/ui tsc --noEmit`
+- `pnpm --filter @nextclaw/ui exec eslint src/features/chat/components/chat-session-workspace-panel.tsx src/features/chat/components/chat-session-workspace-panel-nav.tsx src/features/chat/utils/chat-workspace-panel-view-model.utils.ts src/features/chat/utils/chat-workspace-panel-view-model.utils.test.ts`
+- `pnpm -C packages/nextclaw-ui test src/features/chat/components/conversation/chat-message-list.container.test.tsx src/features/chat/components/conversation/chat-conversation-panel.test.tsx`
+- `pnpm -C packages/nextclaw-ui tsc`
+- `pnpm -C packages/nextclaw-ui lint`
+- `pnpm lint:new-code:governance`
+- `pnpm check:governance-backlog-ratchet`
+- `pnpm check:generated-clean`
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/features/chat/components/conversation/chat-message-list.container.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-message-list.container.test.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.tsx packages/nextclaw-ui/src/features/chat/components/chat-session-workspace-panel.tsx .agents/skills/code-investigation-workflow/SKILL.md .agents/skills/code-investigation-workflow/agents/openai.yaml .agents/skills/writing-beautiful-code/SKILL.md .agents/skills/mvp-view-logic-decoupling/SKILL.md`
 
 前端 dev server 验收：
 
@@ -66,6 +78,10 @@ Maintainability guard 通过，提示 4 个接近预算文件：
 后续拆分缝：如果 `NcpChatThreadManager` 继续增长，应优先按 workspace file/session/content action 职责拆分，而不是继续追加会话 workspace 行为。
 
 Follow-up 维护性复核：workspace child 已读规则从组件 effect 内的字段判断收敛到 `ChatSessionListManager`。非功能改动的触达文件 maintainability guard 结果为总计 `+72/-17`、非测试代码 `+17/-17`、净增 `0`；保留一个测试文件接近预算 warning，后续应拆分 `chat-conversation-panel.test.tsx` 的 workspace 场景。
+
+Follow-up 维护性复核：workspace panel view-model 逻辑从 UI 组件剥离到 `utils`，`chat-session-workspace-panel.tsx` 和 `chat-session-workspace-panel-nav.tsx` 合计删除约 190 行组件内业务推导；新增 util 与纯函数测试承接选择优先级、tab title、unread dot 和 action 装配合同。非功能改动 maintainability guard 结果为总计 `+293/-190`、非测试代码 `+189/-190`、净减 `1`。
+
+Follow-up 维护性复核：message list action 处理从两个调用方收敛到 `ChatMessageListContainer`，该 container 作为 chat feature 业务 adapter/container 直接连接 `chatThreadManager`；主会话和 child session 不再重复装配 `show-content`、tool session 和 file preview action。触达文件 maintainability guard 结果为总计 `+32/-120`、非测试代码 `+16/-120`、净减 `104`；`chat-conversation-panel.tsx` 仍接近文件预算，但本轮已净减 13 行。
 
 ## NPM 包发布记录
 

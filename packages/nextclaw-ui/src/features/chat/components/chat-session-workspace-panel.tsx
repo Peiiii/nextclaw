@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
 import { FolderGit2, Loader2 } from "lucide-react";
-import type { ChatToolActionViewModel } from "@nextclaw/agent-chat-ui";
 import type { CronJobView } from "@/shared/lib/api";
 import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
 import { ChatMessageListContainer } from "@/features/chat/components/conversation/chat-message-list.container";
@@ -9,21 +8,18 @@ import {
   type ResolvedChildSessionTab,
 } from "@/features/chat/hooks/use-ncp-child-session-tabs-view";
 import { useNcpSessionConversation } from "@/features/chat/hooks/use-ncp-session-conversation";
-import {
-  shouldShowUnreadSessionIndicator,
-  useChatSessionListStore,
-} from "@/features/chat/stores/chat-session-list.store";
+import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import type {
   ChatChildSessionTab,
   ChatWorkspaceNavigationEntry,
   ChatWorkspaceFileTab,
 } from "@/features/chat/stores/chat-thread.store";
 import {
-  readWorkspaceFileTitle,
+  buildWorkspaceTabsViewModel,
   resolveWorkspaceSelection,
   type WorkspaceTabViewModel,
-  WorkspaceTabsBar,
-} from "./chat-session-workspace-panel-nav";
+} from "@/features/chat/utils/chat-workspace-panel-view-model.utils";
+import { WorkspaceTabsBar } from "./chat-session-workspace-panel-nav";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import { ChatSessionWorkspaceFilePreview } from "./chat-session-workspace-file-preview";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
@@ -52,7 +48,6 @@ type ChatSessionWorkspacePanelProps = {
 };
 
 function ChildSessionContent({ sessionKey }: { sessionKey: string }) {
-  const presenter = usePresenter();
   const agent = useNcpSessionConversation(sessionKey);
   const messages = agent.visibleMessages;
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -64,13 +59,6 @@ function ChildSessionContent({ sessionKey }: { sessionKey: string }) {
     contentVersion: messages[messages.length - 1] ?? null,
     stickyThresholdPx: 20,
   });
-  const handleToolAction = (action: ChatToolActionViewModel) => {
-    if (action.kind === "show-content") {
-      presenter.chatThreadManager.showContent(action.request);
-      return;
-    }
-    presenter.chatThreadManager.openSessionFromToolAction(action);
-  };
 
   return (
     <div
@@ -96,8 +84,6 @@ function ChildSessionContent({ sessionKey }: { sessionKey: string }) {
           <ChatMessageListContainer
             messages={messages}
             isSending={agent.isRunning}
-            onToolAction={handleToolAction}
-            onFileOpen={presenter.chatThreadManager.openFilePreview}
           />
         </div>
       )}
@@ -162,87 +148,6 @@ function WorkspaceActiveChildHeader({ tab }: { tab: ResolvedChildSessionTab }) {
       <ChildSessionMetaStrip tab={tab} />
     </div>
   );
-}
-
-function buildWorkspaceTabsViewModel(params: {
-  resolvedChildTabs: ResolvedChildSessionTab[];
-  workspaceFileTabs: readonly ChatWorkspaceFileTab[];
-  sessionCronJobCount: number;
-  activeSelection: ReturnType<typeof resolveWorkspaceSelection>;
-  optimisticReadAtBySessionKey: Record<string, string>;
-  onSelectSession: (sessionKey: string) => void;
-  onSelectFile: (fileKey: string) => void;
-  onCloseFile: (fileKey: string) => void;
-  onSelectCronJobs: () => void;
-}): WorkspaceTabViewModel[] {
-  const {
-    resolvedChildTabs,
-    workspaceFileTabs,
-    sessionCronJobCount,
-    activeSelection,
-    optimisticReadAtBySessionKey,
-    onSelectSession,
-    onSelectFile,
-    onCloseFile,
-    onSelectCronJobs,
-  } = params;
-
-  const childTabs = resolvedChildTabs.map((tab) => {
-    const optimisticReadAt = optimisticReadAtBySessionKey[tab.sessionKey];
-    const effectiveReadAt =
-      optimisticReadAt && tab.readAt
-        ? optimisticReadAt.localeCompare(tab.readAt) > 0
-          ? optimisticReadAt
-          : tab.readAt
-        : (optimisticReadAt ?? tab.readAt);
-    return {
-      key: `child:${tab.sessionKey}`,
-      kind: "child-session" as const,
-      title: tab.title,
-      tooltip: tab.title,
-      agentId: tab.agentId,
-      active:
-        activeSelection?.kind === "child-session" &&
-        activeSelection.tab.sessionKey === tab.sessionKey,
-      showUnreadDot: shouldShowUnreadSessionIndicator({
-        active:
-          activeSelection?.kind === "child-session" &&
-          activeSelection.tab.sessionKey === tab.sessionKey,
-        lastMessageAt: tab.lastMessageAt,
-        readAt: effectiveReadAt,
-        runStatus: tab.runStatus,
-      }),
-      onSelect: () => onSelectSession(tab.sessionKey),
-    };
-  });
-
-  const fileTabs = workspaceFileTabs.map((file) => ({
-    key: `file:${file.key}`,
-    kind: "file" as const,
-    title: readWorkspaceFileTitle(file),
-    tooltip: file.path,
-    viewMode: file.viewMode,
-    active:
-      activeSelection?.kind === "file" && activeSelection.file.key === file.key,
-    onSelect: () => onSelectFile(file.key),
-    onClose: () => onCloseFile(file.key),
-  }));
-
-  const cronTab =
-    sessionCronJobCount > 0
-      ? [
-          {
-            key: "cron:session",
-            kind: "cron" as const,
-            title: t("chatWorkspaceSessionCronJobs"),
-            tooltip: t("chatWorkspaceSessionCronJobs"),
-            active: activeSelection?.kind === "cron",
-            onSelect: onSelectCronJobs,
-          },
-        ]
-      : [];
-
-  return [...childTabs, ...fileTabs, ...cronTab];
 }
 
 export function ChatSessionWorkspacePanel({

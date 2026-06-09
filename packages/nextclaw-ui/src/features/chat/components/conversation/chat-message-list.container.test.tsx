@@ -6,6 +6,9 @@ import { ChatMessageListContainer } from "./chat-message-list.container";
 const captures = vi.hoisted(() => ({
   renders: [] as Array<{ messages: unknown[]; texts?: Record<string, unknown> }>,
   language: "en",
+  openFilePreview: vi.fn(),
+  openSessionFromToolAction: vi.fn(),
+  showContent: vi.fn(),
 }));
 
 vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
@@ -19,6 +22,16 @@ vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
   };
 });
 
+vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
+  usePresenter: () => ({
+    chatThreadManager: {
+      openFilePreview: captures.openFilePreview,
+      openSessionFromToolAction: captures.openSessionFromToolAction,
+      showContent: captures.showContent,
+    },
+  }),
+}));
+
 vi.mock("@/app/components/i18n-provider", () => ({
   useI18n: () => ({ language: captures.language }),
 }));
@@ -31,6 +44,9 @@ vi.mock("@/shared/lib/i18n", () => ({
 beforeEach(() => {
   captures.renders = [];
   captures.language = "en";
+  captures.openFilePreview.mockReset();
+  captures.openSessionFromToolAction.mockReset();
+  captures.showContent.mockReset();
 });
 
 it("reuses adapted message references when the source message object is unchanged", () => {
