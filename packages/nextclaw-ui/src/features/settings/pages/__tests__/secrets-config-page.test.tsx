@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SecretsConfig } from '@/shared/components/config/secrets-config';
+import { SecretsConfigPage } from '@/features/settings/pages/secrets-config-page';
 import { setLanguage } from '@/shared/lib/i18n';
 
 const mocks = vi.hoisted(() => ({
@@ -39,7 +39,7 @@ vi.mock('@/shared/hooks/use-config', () => ({
   }),
 }));
 
-describe('SecretsConfig', () => {
+describe('SecretsConfigPage', () => {
   beforeEach(() => {
     setLanguage('zh');
     mocks.mutate.mockReset();
@@ -57,7 +57,7 @@ describe('SecretsConfig', () => {
   it('submits the loaded secrets config through updateSecrets', async () => {
     const user = userEvent.setup();
 
-    render(<SecretsConfig />);
+    render(<SecretsConfigPage />);
 
     expect(screen.getByText('Secret Providers')).toBeTruthy();
     expect(screen.getByDisplayValue('vault-env')).toBeTruthy();

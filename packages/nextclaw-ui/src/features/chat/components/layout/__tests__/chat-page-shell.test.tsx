@@ -30,7 +30,7 @@ vi.mock("@/features/agents", () => ({
   AgentsPage: () => <div>Agents</div>,
 }));
 
-vi.mock("@/shared/components/cron-config", () => ({
+vi.mock("@/features/cron", () => ({
   CronConfig: () => <div>Cron</div>,
 }));
 

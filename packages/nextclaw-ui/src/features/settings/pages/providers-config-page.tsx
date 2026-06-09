@@ -11,7 +11,7 @@ import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog';
 import { StatusDot } from '@/shared/components/ui/status-dot';
 import { t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
-import { ProviderForm } from '@/shared/components/config/provider-form';
+import { ProviderForm } from '@/features/settings/components/config/provider-form';
 import { useViewportLayout } from '@/app/hooks/use-viewport-layout';
 import {
   ConfigSplitEmptyState,
@@ -70,7 +70,7 @@ function sortTemplatesForPicker<T extends { providerType: string }>(templates: T
     .map(({ template }) => template);
 }
 
-export function ProvidersList() {
+export function ProvidersConfigPage() {
   const { isMobile } = useViewportLayout();
   const { data: providersView } = useProviders();
   const { data: templatesView } = useProviderTemplates();

@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
-import { useSyncSelectedModel } from '@/features/chat/utils/chat-session-preference-governance.utils';
+import { useSyncSelectedModel } from '@/features/chat/hooks/use-chat-session-preference-sync';
 
 const modelOptions: ChatModelOption[] = [
   {

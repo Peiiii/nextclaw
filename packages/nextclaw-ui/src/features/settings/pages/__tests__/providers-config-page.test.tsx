@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ProvidersList } from '@/shared/components/config/providers-list';
+import { ProvidersConfigPage } from '@/features/settings/pages/providers-config-page';
 
 const mocks = vi.hoisted(() => ({
   createProviderMutateAsync: vi.fn(),
@@ -83,15 +83,15 @@ vi.mock('@/shared/hooks/use-config', () => ({
   }),
 }));
 
-vi.mock('@/shared/components/config/provider-form', () => ({
+vi.mock('@/features/settings/components/config/provider-form', () => ({
   ProviderForm: ({ providerName }: { providerName?: string }) => (
     <div data-testid="provider-form">{providerName ?? 'none'}</div>
   ),
 }));
 
-describe('ProvidersList', () => {
+describe('ProvidersConfigPage', () => {
   it('keeps the nextclaw builtin provider at the end of the list', () => {
-    const { container } = render(<ProvidersList />);
+    const { container } = render(<ProvidersConfigPage />);
 
     const sidebarSection = container.querySelector('section');
     if (!(sidebarSection instanceof HTMLElement)) {

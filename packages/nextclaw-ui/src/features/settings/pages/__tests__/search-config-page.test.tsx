@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SearchConfig } from '@/shared/components/search-config';
+import { SearchConfigPage } from '@/features/settings/pages/search-config-page';
 import { setLanguage } from '@/shared/lib/i18n';
 
 const mocks = vi.hoisted(() => ({
@@ -78,7 +78,7 @@ vi.mock('@/shared/hooks/use-config', () => ({
   })
 }));
 
-describe('SearchConfig', () => {
+describe('SearchConfigPage', () => {
   beforeEach(() => {
     setLanguage('zh');
     mocks.mutate.mockReset();
@@ -96,7 +96,7 @@ describe('SearchConfig', () => {
   it('renders Tavily-specific controls and submits Tavily config through updateSearch', async () => {
     const user = userEvent.setup();
 
-    render(<SearchConfig />);
+    render(<SearchConfigPage />);
 
     expect(screen.getByRole('heading', { name: 'Tavily Search' })).toBeTruthy();
     expect(screen.getByText('搜索深度')).toBeTruthy();

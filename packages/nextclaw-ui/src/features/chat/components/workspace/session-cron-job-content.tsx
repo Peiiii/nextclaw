@@ -2,7 +2,7 @@ import { Trash2 } from "lucide-react";
 import type { CronJobView } from "@/shared/lib/api";
 import { Button } from "@/shared/components/ui/button";
 import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
-import { useDeleteCronJob } from "@/shared/hooks/use-config";
+import { useDeleteCronJob } from "@/features/cron";
 import {
   describeCronSchedule,
   describeCronSession,

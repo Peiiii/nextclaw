@@ -6,7 +6,7 @@ import {
   useDeleteCronJob,
   useToggleCronJob,
   useRunCronJob,
-} from "@/shared/hooks/use-config";
+} from "@/features/cron/hooks/use-cron-jobs";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Switch } from "@/shared/components/ui/switch";

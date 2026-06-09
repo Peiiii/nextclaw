@@ -1,8 +1,8 @@
 import { useConfig, useUpdateSecrets } from '@/shared/hooks/use-config';
 import { t } from '@/shared/lib/i18n';
-import { buildSecretsFormState, buildSecretsSubmitPayload, SecretsConfigForm } from '@/shared/components/config/secrets-config-form';
+import { buildSecretsFormState, buildSecretsSubmitPayload, SecretsConfigForm } from '@/features/settings/components/config/secrets-config-form';
 
-export function SecretsConfig() {
+export function SecretsConfigPage() {
   const { data: config, isLoading } = useConfig();
   const updateSecrets = useUpdateSecrets();
 

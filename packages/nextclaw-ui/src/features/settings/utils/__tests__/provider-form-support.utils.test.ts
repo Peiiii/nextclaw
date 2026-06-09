@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveEditableModels, serializeModelsForSave } from '../provider-form-support';
+import { resolveEditableModels, serializeModelsForSave } from '../provider-form-support.utils';
 
 describe('provider form model defaults', () => {
   it('keeps persisted empty models empty', () => {

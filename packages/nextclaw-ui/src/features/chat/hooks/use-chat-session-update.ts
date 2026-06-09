@@ -11,6 +11,11 @@ type UpdateChatSessionParams = {
   successMessage?: string;
 };
 
+type UpdateChatSessionLabelParams = {
+  sessionKey: string;
+  label: string | null;
+};
+
 export function useChatSessionUpdate() {
   const queryClient = useQueryClient();
 
@@ -25,5 +30,17 @@ export function useChatSessionUpdate() {
       toast.error(t('configSaveFailed') + ': ' + (error instanceof Error ? error.message : String(error)));
       throw error;
     }
+  };
+}
+
+export function useChatSessionLabel() {
+  const updateSession = useChatSessionUpdate();
+
+  return async (params: UpdateChatSessionLabelParams): Promise<void> => {
+    await updateSession({
+      sessionKey: params.sessionKey,
+      patch: { label: params.label },
+      successMessage: t('configSavedApplied')
+    });
   };
 }

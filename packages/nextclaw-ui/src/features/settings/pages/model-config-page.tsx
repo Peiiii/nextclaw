@@ -83,7 +83,7 @@ function ModelConfigForm(props: {
   );
 }
 
-export function ModelConfig() {
+export function ModelConfigPage() {
   const { data: config, isLoading } = useConfig();
   const { data: providersView } = useProviders();
   const { data: templatesView } = useProviderTemplates();

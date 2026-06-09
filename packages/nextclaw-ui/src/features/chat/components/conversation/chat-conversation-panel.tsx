@@ -12,7 +12,7 @@ import { usePresenter } from "@/features/chat/components/providers/chat-presente
 import { resolveAgentRuntimeSessionType } from "@/features/chat/hooks/use-chat-session-type-state";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
-import { useCronJobs } from "@/shared/hooks/use-config";
+import { useCronJobs } from "@/features/cron";
 import { isCronJobForSession } from "@/shared/lib/cron";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { t } from "@/shared/lib/i18n";

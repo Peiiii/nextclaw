@@ -164,7 +164,7 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
   }),
 }));
 
-vi.mock("@/shared/hooks/use-config", () => ({
+vi.mock("@/features/cron", () => ({
   useCronJobs: () => ({
     data: { jobs: mocks.cronJobs, total: mocks.cronJobs.length },
   }),

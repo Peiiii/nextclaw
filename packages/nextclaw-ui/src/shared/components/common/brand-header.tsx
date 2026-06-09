@@ -1,6 +1,6 @@
 import type { UpdateSnapshot } from '@nextclaw/shared';
 import { runtimeUpdateManager, useRuntimeUpdateStore } from '@/features/system-status';
-import { useAppMeta } from '@/shared/hooks/use-config';
+import { useAppMeta } from '@/shared/hooks/use-app-meta';
 import { type ReactNode, useState } from 'react';
 import { RuntimeStatusEntry } from '@/app/components/layout/runtime-status-entry';
 import { t } from '@/shared/lib/i18n';

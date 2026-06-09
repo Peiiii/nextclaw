@@ -1,10 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  deleteNcpSessionSummaryInQueryClient,
-  upsertNcpSessionSummaryInQueryClient
-} from '@/shared/lib/api';
-import {
-  fetchAppMeta,
   fetchConfig,
   fetchConfigMeta,
   fetchConfigSchema,
@@ -22,18 +17,7 @@ import {
   updateChannel,
   updateRuntime,
   updateSecrets,
-  executeConfigAction,
-  fetchCronJobs,
-  deleteCronJob,
-  setCronJobEnabled,
-  runCronJob
-} from '@/shared/lib/api';
-import {
-  deleteNcpSession,
-  fetchNcpSessionMessages,
-  fetchNcpSessionSkills,
-  fetchNcpSessions,
-  updateNcpSession
+  executeConfigAction
 } from '@/shared/lib/api';
 import { toast } from 'sonner';
 import { t } from '@/shared/lib/i18n';
@@ -44,14 +28,6 @@ export function useConfig() {
     queryFn: fetchConfig,
     staleTime: 30_000,
     refetchOnWindowFocus: true
-  });
-}
-
-export function useAppMeta() {
-  return useQuery({
-    queryKey: ['app-meta'],
-    queryFn: fetchAppMeta,
-    staleTime: Infinity
   });
 }
 
@@ -253,129 +229,6 @@ export function useExecuteConfigAction() {
       executeConfigAction(actionId, data as Parameters<typeof executeConfigAction>[1]),
     onError: (error: Error) => {
       toast.error(t('error') + ': ' + error.message);
-    }
-  });
-}
-
-export function useNcpSessions(params?: { limit?: number; peerId?: string }) {
-  return useQuery({
-    queryKey: ['ncp-sessions', params?.limit ?? null, params?.peerId?.trim() || null],
-    queryFn: () => fetchNcpSessions(params),
-    staleTime: 5_000,
-    retry: false
-  });
-}
-
-export function useNcpSessionMessages(sessionId: string | null, limit = 200) {
-  return useQuery({
-    queryKey: ['ncp-session-messages', sessionId, limit],
-    queryFn: () => fetchNcpSessionMessages(sessionId as string, limit),
-    enabled: Boolean(sessionId),
-    staleTime: 5_000,
-    retry: false
-  });
-}
-
-export function useNcpSessionSkills(params: {
-  sessionId: string | null;
-  projectRoot?: string | null;
-}) {
-  return useQuery({
-    queryKey: ['ncp-session-skills', params.sessionId, params.projectRoot ?? null],
-    queryFn: () =>
-      fetchNcpSessionSkills(params.sessionId as string, {
-        ...(Object.prototype.hasOwnProperty.call(params, 'projectRoot')
-          ? { projectRoot: params.projectRoot ?? null }
-          : {})
-      }),
-    enabled: Boolean(params.sessionId),
-    staleTime: 5_000,
-    retry: false
-  });
-}
-
-export function useDeleteNcpSession() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ sessionId }: { sessionId: string }) => deleteNcpSession(sessionId),
-    onSuccess: (_data, variables) => {
-      deleteNcpSessionSummaryInQueryClient(queryClient, variables.sessionId);
-      queryClient.removeQueries({ queryKey: ['ncp-session-messages', variables.sessionId] });
-      toast.success(t('configSavedApplied'));
-    },
-    onError: (error: Error) => {
-      toast.error(t('configSaveFailed') + ': ' + error.message);
-    }
-  });
-}
-
-export function useUpdateNcpSession() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ sessionId, data }: { sessionId: string; data: Parameters<typeof updateNcpSession>[1] }) =>
-      updateNcpSession(sessionId, data),
-    onSuccess: (data) => {
-      upsertNcpSessionSummaryInQueryClient(queryClient, data);
-      queryClient.invalidateQueries({ queryKey: ['ncp-session-skills', data.sessionId] });
-      toast.success(t('configSavedApplied'));
-    },
-    onError: (error: Error) => {
-      toast.error(t('configSaveFailed') + ': ' + error.message);
-    }
-  });
-}
-
-export function useCronJobs(params: { all?: boolean } = { all: true }) {
-  return useQuery({
-    queryKey: ['cron', params],
-    queryFn: () => fetchCronJobs(params),
-    staleTime: 10_000
-  });
-}
-
-export function useDeleteCronJob() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id }: { id: string }) => deleteCronJob(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cron'] });
-      toast.success(t('configSavedApplied'));
-    },
-    onError: (error: Error) => {
-      toast.error(t('configSaveFailed') + ': ' + error.message);
-    }
-  });
-}
-
-export function useToggleCronJob() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) => setCronJobEnabled(id, { enabled }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cron'] });
-      toast.success(t('configSavedApplied'));
-    },
-    onError: (error: Error) => {
-      toast.error(t('configSaveFailed') + ': ' + error.message);
-    }
-  });
-}
-
-export function useRunCronJob() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, force }: { id: string; force?: boolean }) => runCronJob(id, { force }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cron'] });
-      toast.success(t('configSavedApplied'));
-    },
-    onError: (error: Error) => {
-      toast.error(t('configSaveFailed') + ': ' + error.message);
     }
   });
 }

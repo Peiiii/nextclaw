@@ -6,17 +6,21 @@ import { sessionMatchesQuery } from '@/features/chat/utils/chat-session-display.
 import { adaptNcpSessionSummaries } from '@/features/chat/utils/ncp-session-adapter.utils';
 import { useChatSessionTypeState } from '@/features/chat/hooks/use-chat-session-type-state';
 import {
-  resolveRecentSessionPreferredValue,
-  useSyncSelectedModel,
-  useSyncSelectedThinking
+  resolveRecentSessionPreferredValue
 } from '@/features/chat/utils/chat-session-preference-governance.utils';
 import {
+  useSyncSelectedModel,
+  useSyncSelectedThinking
+} from '@/features/chat/hooks/use-chat-session-preference-sync';
+import {
   useConfig,
-  useNcpSessionSkills,
-  useNcpSessions,
   useProviders,
   useProviderTemplates
 } from '@/shared/hooks/use-config';
+import {
+  useNcpSessionSkills,
+  useNcpSessions
+} from '@/features/chat/hooks/use-ncp-session-queries';
 import { useNcpChatSessionTypes } from './use-ncp-chat-session-types';
 import { buildProviderModelCatalog, composeProviderModel, resolveModelThinkingCapability } from '@/shared/lib/provider-models';
 

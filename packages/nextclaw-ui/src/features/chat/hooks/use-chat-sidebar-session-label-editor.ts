@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { SessionEntryView } from '@/shared/lib/api';
-import { useChatSessionLabel } from '@/features/chat/hooks/use-chat-session-label';
+import { useChatSessionLabel } from '@/features/chat/hooks/use-chat-session-update';
 
 export function useChatSidebarSessionLabelEditor() {
   const updateSessionLabel = useChatSessionLabel();

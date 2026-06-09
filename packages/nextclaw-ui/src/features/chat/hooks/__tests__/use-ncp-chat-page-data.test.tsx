@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { useNcpChatPageData } from '../use-ncp-chat-page-data';
+import { useNcpChatPageData } from '@/features/chat/hooks/use-ncp-chat-page-data';
 
 const useNcpSessionSkillsMock = vi.fn();
 
@@ -27,14 +27,17 @@ vi.mock('@/shared/hooks/use-config', () => ({
     data: { providerTemplates: [] },
     isFetched: true,
     isSuccess: true
-  }),
+  })
+}));
+
+vi.mock('@/features/chat/hooks/use-ncp-session-queries', () => ({
   useNcpSessions: () => ({
     data: { sessions: [] }
   }),
   useNcpSessionSkills: (params: unknown) => useNcpSessionSkillsMock(params)
 }));
 
-vi.mock('../use-ncp-chat-session-types', () => ({
+vi.mock('@/features/chat/hooks/use-ncp-chat-session-types', () => ({
   useNcpChatSessionTypes: () => ({
     data: {
       defaultType: 'native',

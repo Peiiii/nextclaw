@@ -3,7 +3,7 @@ import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { ChatSidebar } from "@/features/chat/components/layout/chat-sidebar";
 import { ChatConversationPanel } from "@/features/chat/components/conversation/chat-conversation-panel";
 import { AgentsPage } from "@/features/agents";
-import { CronConfig } from "@/shared/components/cron-config";
+import { CronConfig } from "@/features/cron";
 import { MarketplacePage } from "@/features/marketplace";
 import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
 import { ChatMobileShell } from "@/platforms/mobile";

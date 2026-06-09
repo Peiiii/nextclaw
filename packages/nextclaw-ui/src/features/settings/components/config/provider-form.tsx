@@ -27,8 +27,8 @@ import {
   ConfigSplitPaneFooter,
   ConfigSplitPaneHeader
 } from '@/shared/components/config-split-page';
-import { ProviderAdvancedSettingsSection } from '@/shared/components/provider-advanced-settings-section';
-import { ProviderAuthSection } from '@/shared/components/provider-auth-section';
+import { ProviderAdvancedSettingsSection } from '@/features/settings/components/config/provider-advanced-settings-section';
+import { ProviderAuthSection } from '@/features/settings/components/config/provider-auth-section';
 import {
   EMPTY_PROVIDER_CONFIG,
   formatThinkingLevelLabel,
@@ -47,10 +47,10 @@ import {
   toProviderLocalModelId,
   type ModelConfig,
   type WireApiType
-} from './provider-form-support';
+} from '@/features/settings/utils/provider-form-support.utils';
 import { ProviderModelsSection } from './provider-models-section';
-import type { PillSelectOption } from '@/shared/components/provider-pill-selector';
-import { ProviderStatusBadge } from '@/shared/components/provider-status-badge';
+import type { PillSelectOption } from '@/features/settings/components/config/provider-pill-selector';
+import { ProviderStatusBadge } from '@/features/settings/components/config/provider-status-badge';
 import { hostCapabilityManager } from '@/shared/lib/host-capabilities';
 type ProviderFormProps = {
   providerName?: string;

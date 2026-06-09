@@ -23,16 +23,19 @@ import {
 import { startNextClawPwa } from "@/pwa/register-pwa";
 
 const ModelConfigPage = lazy(async () => ({
-  default: (await import("@/components/config/ModelConfig")).ModelConfig,
+  default: (await import("@/features/settings/pages/model-config-page"))
+    .ModelConfigPage,
 }));
 const ChatPage = lazy(async () => ({
   default: (await import("@/components/chat/chat-page")).ChatPage,
 }));
 const SearchConfigPage = lazy(async () => ({
-  default: (await import("@/components/config/SearchConfig")).SearchConfig,
+  default: (await import("@/features/settings/pages/search-config-page"))
+    .SearchConfigPage,
 }));
 const ProvidersListPage = lazy(async () => ({
-  default: (await import("@/components/config/ProvidersList")).ProvidersList,
+  default: (await import("@/features/settings/pages/providers-config-page"))
+    .ProvidersConfigPage,
 }));
 const ChannelsListPage = lazy(async () => ({
   default: (await import("@/components/config/ChannelsList")).ChannelsList,
@@ -48,7 +51,8 @@ const SecurityConfigPage = lazy(async () => ({
   default: (await import("@/components/config/security-config")).SecurityConfig,
 }));
 const SecretsConfigPage = lazy(async () => ({
-  default: (await import("@/components/config/SecretsConfig")).SecretsConfig,
+  default: (await import("@/features/settings/pages/secrets-config-page"))
+    .SecretsConfigPage,
 }));
 const RemoteAccessPage = lazy(async () => ({
   default: (await import("@/features/remote")).RemoteAccessPage,

@@ -58,7 +58,7 @@ vi.mock('@/shared/components/doc-browser', () => ({
   })
 }));
 
-vi.mock('@/features/chat/hooks/use-chat-session-label', () => ({
+vi.mock('@/features/chat/hooks/use-chat-session-update', () => ({
   useChatSessionLabel: () => async (params: {
     sessionKey: string;
     label: string | null;

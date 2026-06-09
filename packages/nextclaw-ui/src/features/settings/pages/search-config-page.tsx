@@ -469,7 +469,7 @@ function SearchConfigForm(props: {
   );
 }
 
-export function SearchConfig() {
+export function SearchConfigPage() {
   const { data: config } = useConfig();
   const { data: meta } = useConfigMeta();
   const updateSearch = useUpdateSearch();

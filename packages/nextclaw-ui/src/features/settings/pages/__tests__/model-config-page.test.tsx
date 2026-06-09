@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { ProviderScopedModelInput } from '@/shared/components/common/provider-scoped-model-input';
-import { ModelConfig } from '@/shared/components/model-config';
+import { ModelConfigPage } from '@/features/settings/pages/model-config-page';
 import { setLanguage } from '@/shared/lib/i18n';
 
 const mocks = vi.hoisted(() => ({
@@ -91,7 +91,7 @@ vi.mock('@/shared/hooks/use-config', () => ({
   })
 }));
 
-describe('ModelConfig', () => {
+describe('ModelConfigPage', () => {
   beforeEach(() => {
     mocks.mutate.mockReset();
     setLanguage('en');
@@ -163,7 +163,7 @@ describe('ModelConfig', () => {
   it('submits the workspace together with the selected model', async () => {
     const user = userEvent.setup();
 
-    render(<ModelConfig />);
+    render(<ModelConfigPage />);
 
     const workspaceInput = await screen.findByLabelText('Default Path');
     await user.clear(workspaceInput);
@@ -193,7 +193,7 @@ describe('ModelConfig', () => {
       providers: []
     } as typeof mocks.metaQuery.data;
 
-    render(<ModelConfig />);
+    render(<ModelConfigPage />);
 
     expect(await screen.findByText('No providers configured')).toBeTruthy();
     expect(screen.getByText('Add an AI provider to start using the platform.')).toBeTruthy();
@@ -213,7 +213,7 @@ describe('ModelConfig', () => {
   it('switches to the new provider without clearing the selection and auto-fills its first model', async () => {
     const user = userEvent.setup();
 
-    render(<ModelConfig />);
+    render(<ModelConfigPage />);
 
     const providerTrigger = screen.getByRole('combobox');
     fireEvent.keyDown(providerTrigger, { key: 'ArrowDown' });
