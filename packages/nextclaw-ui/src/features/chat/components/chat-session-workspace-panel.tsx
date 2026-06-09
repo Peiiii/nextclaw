@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { FolderGit2, Loader2 } from "lucide-react";
-import type {
-  ChatFileOpenActionViewModel,
-  ChatToolActionViewModel,
-} from "@nextclaw/agent-chat-ui";
+import type { ChatToolActionViewModel } from "@nextclaw/agent-chat-ui";
 import type { CronJobView } from "@/shared/lib/api";
 import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
 import { ChatMessageListContainer } from "@/features/chat/components/conversation/chat-message-list.container";
@@ -54,15 +51,8 @@ type ChatSessionWorkspacePanelProps = {
   displayMode?: "docked" | "overlay";
 };
 
-function ChildSessionContent({
-  sessionKey,
-  onToolAction,
-  onFileOpen,
-}: {
-  sessionKey: string;
-  onToolAction?: (action: ChatToolActionViewModel) => void;
-  onFileOpen: (action: ChatFileOpenActionViewModel) => void;
-}) {
+function ChildSessionContent({ sessionKey }: { sessionKey: string }) {
+  const presenter = usePresenter();
   const agent = useNcpSessionConversation(sessionKey);
   const messages = agent.visibleMessages;
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -74,6 +64,13 @@ function ChildSessionContent({
     contentVersion: messages[messages.length - 1] ?? null,
     stickyThresholdPx: 20,
   });
+  const handleToolAction = (action: ChatToolActionViewModel) => {
+    if (action.kind === "show-content") {
+      presenter.chatThreadManager.showContent(action.request);
+      return;
+    }
+    presenter.chatThreadManager.openSessionFromToolAction(action);
+  };
 
   return (
     <div
@@ -99,8 +96,8 @@ function ChildSessionContent({
           <ChatMessageListContainer
             messages={messages}
             isSending={agent.isRunning}
-            onToolAction={onToolAction}
-            onFileOpen={onFileOpen}
+            onToolAction={handleToolAction}
+            onFileOpen={presenter.chatThreadManager.openFilePreview}
           />
         </div>
       )}
@@ -281,21 +278,9 @@ export function ChatSessionWorkspacePanel({
   };
 
   useEffect(() => {
-    if (
-      activeSelection?.kind !== "child-session" ||
-      activeSelection.tab.runStatus === "running"
-    ) {
-      return;
+    if (activeSelection?.kind === "child-session") {
+      presenter.chatSessionListManager.markVisibleWorkspaceChildRead(activeSelection.tab);
     }
-    const activeTabReadAt = activeSelection.tab.lastMessageAt?.trim() ?? null;
-    if (!activeTabReadAt) {
-      return;
-    }
-    presenter.chatSessionListManager.markSessionRead(
-      activeSelection.tab.sessionKey,
-      activeTabReadAt,
-      activeSelection.tab.readAt ?? null,
-    );
   }, [activeSelection, presenter]);
 
   const workspaceTabs = useMemo<WorkspaceTabViewModel[]>(
@@ -357,10 +342,6 @@ export function ChatSessionWorkspacePanel({
             <div className="flex-1 min-h-0">
               <ChildSessionContent
                 sessionKey={activeSelection.tab.sessionKey}
-                onToolAction={
-                  presenter.chatThreadManager.openSessionFromToolAction
-                }
-                onFileOpen={presenter.chatThreadManager.openFilePreview}
               />
             </div>
           </>

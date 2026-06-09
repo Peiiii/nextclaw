@@ -218,14 +218,50 @@ export type ChatFileOperationBlockViewModel = {
   truncated?: boolean;
 };
 
-export type ChatToolActionViewModel = {
-  kind: "open-session";
-  sessionId: string;
-  sessionKind: "child" | "session";
-  agentId?: string;
-  label?: string;
-  parentSessionId?: string;
+export type ChatUiShowContentPurpose = "read" | "preview" | "edit" | "interact";
+
+export type ChatUiShowContentTarget =
+  | {
+      type: "file";
+      payload: {
+        path: string;
+        line?: number;
+        column?: number;
+      };
+    }
+  | {
+      type: "url";
+      payload: {
+        url: string;
+      };
+    }
+  | {
+      type: "panel_app";
+      payload: {
+        appId: string;
+      };
+    };
+
+export type ChatUiShowContentRequest = {
+  target: ChatUiShowContentTarget;
+  title?: string;
+  purpose?: ChatUiShowContentPurpose;
 };
+
+export type ChatToolActionViewModel =
+  | {
+      kind: "open-session";
+      sessionId: string;
+      sessionKind: "child" | "session";
+      agentId?: string;
+      label?: string;
+      parentSessionId?: string;
+    }
+  | {
+      kind: "show-content";
+      label: string;
+      request: ChatUiShowContentRequest;
+    };
 
 export type ChatFileOpenActionViewModel = {
   path: string;

@@ -7,6 +7,8 @@ import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-str
 import { normalizeSessionProjectRootValue } from '@/shared/lib/session-project';
 import { updateNcpSession } from '@/shared/lib/api';
 import { CHAT_DRAFT_SESSION_PATH } from '@/features/chat/utils/chat-session-route.utils';
+
+type WorkspaceChildReadState = { sessionKey: string | null | undefined; lastMessageAt?: string | null; readAt?: string | null; runStatus?: string | null };
 export class ChatSessionListManager {
   constructor(
     private uiManager: ChatUiManager,
@@ -99,6 +101,10 @@ export class ChatSessionListManager {
     }
     useChatSessionListStore.getState().markSessionRead(normalizedSessionKey, normalizedReadAt);
     void updateNcpSession(normalizedSessionKey, { uiReadAt: normalizedReadAt }).catch(() => undefined);
+  };
+
+  markVisibleWorkspaceChildRead = (tab: WorkspaceChildReadState) => {
+    this.markSessionRead(tab.sessionKey, tab.runStatus === 'running' ? null : tab.lastMessageAt, tab.readAt);
   };
 
   createSession = (sessionType?: string, projectRoot?: string | null): void => {

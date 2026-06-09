@@ -69,6 +69,7 @@ function buildChatMessageAdapterTexts(
     toolStatusCompletedLabel: t("chatToolStatusCompleted"),
     toolStatusFailedLabel: t("chatToolStatusFailed"),
     toolStatusCancelledLabel: t("chatToolStatusCancelled"),
+    showContentActionLabel: t("chatShowContentAction"),
     imageAttachmentLabel: t("chatImageAttachment"),
     fileAttachmentLabel: t("chatFileAttachment"),
     unknownPartLabel: t("chatUnknownPart"),

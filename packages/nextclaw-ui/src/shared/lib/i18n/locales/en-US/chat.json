@@ -127,6 +127,7 @@
   "chatToolStatusCompleted": "Completed",
   "chatToolStatusFailed": "Failed",
   "chatToolStatusCancelled": "Cancelled",
+  "chatShowContentAction": "Show content",
   "chatReasoning": "Reasoning",
   "chatImageAttachment": "Image attachment",
   "chatFileAttachment": "File attachment",

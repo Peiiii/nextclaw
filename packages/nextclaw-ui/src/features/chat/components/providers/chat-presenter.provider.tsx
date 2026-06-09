@@ -1,5 +1,10 @@
 import { createContext, useContext, type ReactNode, type SetStateAction } from 'react';
-import type { ChatComposerNode, ChatFileOpenActionViewModel, ChatToolActionViewModel } from '@nextclaw/agent-chat-ui';
+import type {
+  ChatComposerNode,
+  ChatFileOpenActionViewModel,
+  ChatToolActionViewModel,
+  ChatUiShowContentRequest,
+} from '@nextclaw/agent-chat-ui';
 import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
 import type { ThinkingLevel } from '@/shared/lib/api';
 import type { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
@@ -38,6 +43,7 @@ export type ChatThreadManagerLike = {
   openSessionCronPanel: (sessionKey: string) => void;
   openFilePreview: (action: ChatFileOpenActionViewModel) => void;
   openSessionFromToolAction: (action: ChatToolActionViewModel) => void;
+  showContent: (request: ChatUiShowContentRequest) => void;
   selectChildSessionDetail: (sessionKey: string) => void;
   selectWorkspaceFile: (fileKey: string) => void;
   closeWorkspaceFile: (fileKey: string) => void;

@@ -3,21 +3,31 @@ import { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-a
 import { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import { NcpChatInputManager } from '@/features/chat/managers/ncp-chat-input.manager';
 import { NcpChatThreadManager } from '@/features/chat/managers/ncp-chat-thread.manager';
+import type { AppPresenter } from '@/app/presenters/app.presenter';
 
 export class NcpChatPresenter {
-  chatUiManager = new ChatUiManager();
-  chatStreamActionsManager = new ChatStreamActionsManager();
-  chatSessionListManager = new ChatSessionListManager(this.chatUiManager, this.chatStreamActionsManager);
-  chatInputManager = new NcpChatInputManager(
-    this.chatUiManager,
-    this.chatStreamActionsManager,
-    this.chatSessionListManager
-  );
-  chatThreadManager = new NcpChatThreadManager(
-    this.chatUiManager,
-    this.chatSessionListManager,
-    this.chatStreamActionsManager
-  );
+  readonly chatUiManager: ChatUiManager;
+  readonly chatStreamActionsManager: ChatStreamActionsManager;
+  readonly chatSessionListManager: ChatSessionListManager;
+  readonly chatInputManager: NcpChatInputManager;
+  readonly chatThreadManager: NcpChatThreadManager;
+
+  constructor(appPresenter: AppPresenter) {
+    this.chatUiManager = new ChatUiManager();
+    this.chatStreamActionsManager = new ChatStreamActionsManager();
+    this.chatSessionListManager = new ChatSessionListManager(this.chatUiManager, this.chatStreamActionsManager);
+    this.chatInputManager = new NcpChatInputManager(
+      this.chatUiManager,
+      this.chatStreamActionsManager,
+      this.chatSessionListManager
+    );
+    this.chatThreadManager = new NcpChatThreadManager(
+      this.chatUiManager,
+      this.chatSessionListManager,
+      this.chatStreamActionsManager,
+      appPresenter.docBrowserManager
+    );
+  }
 
   startAgentCreationDraft = (prompt: string) => {
     this.chatSessionListManager.createSession();

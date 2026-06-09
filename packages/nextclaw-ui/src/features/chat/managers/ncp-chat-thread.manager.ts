@@ -3,6 +3,7 @@ import { deleteNcpSessionSummaryInQueryClient } from '@/shared/lib/api';
 import { deleteNcpSession as deleteNcpSessionApi } from '@/shared/lib/api';
 import type {
   ChatFileOpenActionViewModel,
+  ChatUiShowContentRequest,
   ChatToolActionViewModel,
 } from '@nextclaw/agent-chat-ui';
 import type { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
@@ -16,12 +17,14 @@ import type {
 } from '@/features/chat/stores/chat-thread.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 import { viewportLayoutManager } from '@/app/managers/viewport-layout.manager';
+import { createPanelAppResourceUri } from '@/features/right-panel-resources';
 import { t } from '@/shared/lib/i18n';
 import {
   filterNavigationHistoryEntries,
   pushNavigationHistoryEntry,
   stepNavigationHistory,
 } from '@/shared/lib/navigation-history';
+import type { DocBrowserManager } from '@/shared/components/doc-browser/managers/doc-browser.manager';
 
 function areWorkspaceNavigationEntriesEqual(
   current: ChatWorkspaceNavigationEntry,
@@ -40,7 +43,8 @@ export class NcpChatThreadManager {
   constructor(
     private uiManager: ChatUiManager,
     private sessionListManager: ChatSessionListManager,
-    private streamActionsManager: ChatStreamActionsManager
+    private streamActionsManager: ChatStreamActionsManager,
+    private docBrowserManager: DocBrowserManager,
   ) {}
 
   private hasSnapshotChanges = (patch: Partial<ChatThreadSnapshot>): boolean => {
@@ -289,6 +293,28 @@ export class NcpChatThreadManager {
       workspaceNavigationHistoryIndex: 0,
     });
     this.uiManager.goToSession(action.sessionId);
+  };
+
+  showContent = (request: ChatUiShowContentRequest) => {
+    if (request.target.type === 'file') {
+      this.openFilePreview({
+        path: request.target.payload.path,
+        label: request.title,
+        viewMode: 'preview',
+        line: request.target.payload.line,
+        column: request.target.payload.column,
+      });
+      return;
+    }
+    if (request.target.type === 'url') {
+      this.docBrowserManager.open(request.target.payload.url, {
+        title: request.title,
+      });
+      return;
+    }
+    this.docBrowserManager.open(createPanelAppResourceUri(request.target.payload.appId), {
+      title: request.title,
+    });
   };
 
   selectChildSessionDetail = (sessionKey: string) => {

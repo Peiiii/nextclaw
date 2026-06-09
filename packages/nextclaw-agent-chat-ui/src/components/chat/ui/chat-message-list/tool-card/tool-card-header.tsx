@@ -1,21 +1,43 @@
-import { ArrowUpRight, ChevronDown, ChevronRight, type LucideIcon } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, ChevronRight, Eye, type LucideIcon } from 'lucide-react';
 import type { MouseEvent, ReactNode } from 'react';
-import { cn } from '../../../internal/cn';
+import { cn } from '@agent-chat-ui/components/chat/internal/cn';
+import { ChatUiPrimitives } from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
 import { ToolStatusLabel } from './tool-card-status';
 import type {
   ChatToolActionViewModel,
   ChatToolPartViewModel,
-} from '../../../view-models/chat-ui.types';
+} from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
-function ToolCardSessionActionButton({
+function resolveToolCardActionView(action: ChatToolActionViewModel): {
+  icon: LucideIcon;
+  label: string;
+  toneClassName: string;
+} {
+  if (action.kind === 'show-content') {
+    return {
+      icon: Eye,
+      label: action.label,
+      toneClassName: 'border-sky-200/80 bg-white/85 text-sky-800 hover:bg-sky-50 focus-visible:ring-sky-300',
+    };
+  }
+
+  return {
+    icon: ArrowUpRight,
+    label: action.label ?? (action.sessionKind === 'child' ? 'Open child session' : 'Open session'),
+    toneClassName: 'border-amber-200/80 bg-white/80 text-amber-800 hover:bg-amber-50 focus-visible:ring-amber-300',
+  };
+}
+
+function ToolCardActionButton({
   action,
   onAction,
 }: {
   action: ChatToolActionViewModel;
   onAction: (action: ChatToolActionViewModel) => void;
 }) {
-  const isChildSession = action.sessionKind === 'child';
-  const label = isChildSession ? 'Open child session' : 'Open session';
+  const { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } = ChatUiPrimitives;
+  const view = resolveToolCardActionView(action);
+  const Icon = view.icon;
 
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -23,18 +45,28 @@ function ToolCardSessionActionButton({
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors',
-        'border-amber-200/80 bg-white/80 text-amber-800 hover:bg-amber-50',
-      )}
-      aria-label={label}
-      title={label}
-    >
-      <ArrowUpRight className="h-3 w-3" strokeWidth={2.5} />
-    </button>
+    <TooltipProvider delayDuration={250}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={handleClick}
+            className={cn(
+              'inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
+              view.toneClassName,
+            )}
+            aria-label={view.label}
+            title={view.label}
+          >
+            <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs">
+          {view.label}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -97,12 +129,12 @@ export function ToolCardHeader({
   );
 }
 
-export function ToolCardHeaderSessionAction({
+export function ToolCardHeaderAction({
   action,
   onAction,
 }: {
   action: ChatToolActionViewModel;
   onAction: (action: ChatToolActionViewModel) => void;
 }) {
-  return <ToolCardSessionActionButton action={action} onAction={onAction} />;
+  return <ToolCardActionButton action={action} onAction={onAction} />;
 }

@@ -4,11 +4,11 @@ import type {
   ChatFileOpenActionViewModel,
   ChatToolActionViewModel,
   ChatToolPartViewModel,
-} from '../../../view-models/chat-ui.types';
+} from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import { ToolCardRoot, ToolCardContent } from './tool-card-root';
-import { ToolCardHeader, ToolCardHeaderSessionAction } from './tool-card-header';
+import { ToolCardHeader, ToolCardHeaderAction } from './tool-card-header';
 import { ToolCardFileOperationContent } from './tool-card-file-operation';
-import { cn } from '../../../internal/cn';
+import { cn } from '@agent-chat-ui/components/chat/internal/cn';
 
 const TOOL_CARD_AUTO_EXPAND_DELAY_MS = 200;
 const ANSI_ESCAPE_PREFIX = String.fromCharCode(27);
@@ -430,7 +430,7 @@ export function GenericToolCard({
             <>
               {card.agentId && renderToolAgent ? renderToolAgent(card.agentId) : null}
               {card.action && onToolAction ? (
-                <ToolCardHeaderSessionAction
+                <ToolCardHeaderAction
                   action={card.action}
                   onAction={onToolAction}
                 />

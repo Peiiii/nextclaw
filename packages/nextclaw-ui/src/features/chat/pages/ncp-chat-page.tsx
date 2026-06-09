@@ -33,6 +33,7 @@ import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
 import { useAgents } from "@/shared/hooks/use-agents";
 import { normalizeRequestedSkills } from "@/features/chat/utils/chat-runtime.utils";
 import { useSystemStatus } from "@/features/system-status";
+import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import { isNcpChatRuntimeBlocked, resolveNcpChatSendErrorMessage } from "@/features/chat/utils/ncp-chat-runtime-availability.utils";
 import {
   getSessionProjectName,
@@ -402,7 +403,8 @@ function useMaterializedRootSessionRouteSync(
 }
 
 export function NcpChatPage({ view }: ChatPageProps) {
-  const [presenter] = useState(() => new NcpChatPresenter());
+  const appPresenter = useAppPresenter();
+  const [presenter] = useState(() => new NcpChatPresenter(appPresenter));
   const state = useNcpChatPageState(presenter);
   useNcpChatStreamBindings(state);
   usePendingProjectRootOverrideCleanup(state);

@@ -1,248 +1,120 @@
 ---
 name: mvp-view-logic-decoupling
-description: Design or refactor frontend modules to a decoupled MVP architecture with Zustand stores, Zustand persist, manager classes, and a global presenter. Use when requests mention MVP, presenter-manager-store, view-logic decoupling, frontend state ownership, local UI state becoming shared, page refresh state restoration, localStorage/sessionStorage persistence, Zustand persist, reducing prop drilling, business component cohesion, self-contained business containers, business orchestration layers, multi-component state/action coordination, complex React hook/component state machines, streaming/data-flow coordination, or RxJS evaluation.
+description: 当设计或重构前端 MVP / presenter-manager-store 架构、Zustand store / persist、前端状态归属、view-logic 解耦、页面刷新状态恢复、localStorage/sessionStorage 替代、减少 prop drilling、业务组件内聚、自包含业务容器、业务编排层、多组件状态/动作协调、复杂 React hook/component 状态机、streaming/data-flow 协调或 RxJS 评估时使用。
 ---
 
 # MVP View-Logic Decoupling
 
-## Overview
+## 目标
 
-Apply a strict Presenter-Manager-Store structure that keeps UI components free of business logic and centralizes cross-module behavior. The frontend presenter should mirror the backend `NextclawKernel` composition-root pattern: it wires long-lived managers as peer owners and expresses stable dependencies between them.
+用 Presenter / Manager / Store 结构让前端业务逻辑有清晰 owner，避免组件、hook、effect 和 prop 链条承载长期业务编排。
 
-## State/Data Flow Ownership
+核心判断：
 
-- Complex business logic, state machines, streaming flows, and cross-event ordering belong in manager/store/presenter, primarily manager.
-- Hooks and components should connect React to the owner: subscribe to stores or queries, call manager/presenter methods, and keep only lightweight local UI state.
-- Frontend state that must survive navigation, reload, cross-component reuse, or future manager orchestration should live in a Zustand store, not only in component/provider local state.
-- Persisted frontend state should use Zustand `persist` middleware as the primary contract. Do not add ad hoc `localStorage` / `sessionStorage` read-write helpers in providers or components unless the state is truly outside a Zustand-owned domain.
-- Pair each persisted Zustand store with a manager/presenter action owner: the store owns state shape, persistence, validation, and atomic setters; the manager/presenter owns business transitions and intent-level methods.
-- When flows need cancellation, buffering, fan-in/fan-out, terminal event handling, retry control, or ordering guarantees, consider an explicit data-flow tool such as RxJS after confirming plain manager/store ownership is insufficient.
-- Do not introduce RxJS for simple local state, one-off effects, or view-only interaction details.
+- store 拥有状态形状、持久化、校验和原子 setter。
+- manager / presenter 拥有业务动作、跨模块编排、长期协作者依赖和意图级方法。
+- business component 连接 store/query/presenter/manager，并派生 view props。
+- UI component 保持纯展示、业务无关、可复用。
+- 简单优先，但简单不等于把无关职责塞进一个对象。
 
-## Target Architecture
+## 状态与数据流归属
 
-1. Put module state in singleton Zustand stores under `stores/`.
-2. Add one manager class per store or stable business capability under `managers/`.
-3. Use manager methods to expose actions and non-subscribed read helpers.
-4. Create one app-level presenter that owns long-lived manager instances and global capabilities; only split into a few top-level presenters when product surfaces are truly isolated or the root is genuinely too large.
-5. Provide the app-level presenter via React Context and expose it with `usePresenter` / `useAppPresenter`.
-6. Let business components call presenter/managers directly and subscribe to stores directly.
+- 复杂业务逻辑、状态机、streaming flow、跨事件顺序控制默认进入 manager / store / presenter，优先进入 manager。
+- hook 和组件主要连接 React 与 owner：订阅 store/query、调用 manager/presenter、承接轻量本地 UI 状态。
+- 需要跨导航、刷新、跨组件复用或未来 manager 编排的前端状态，应进入 Zustand store，不应只放在 component/provider local state。
+- 需要持久化的前端状态，默认使用 Zustand `persist`；不要在 provider/component 里手写 ad hoc `localStorage` / `sessionStorage` effect。
+- 每个持久 store 应有对应 manager/presenter action owner：store 管状态，manager/presenter 管业务转移。
+- 需要取消、缓冲、fan-in/fan-out、terminal event、retry 或严格顺序保证时，可以评估 RxJS；简单局部状态、一两个 effect 或纯视图交互不要引入 RxJS。
 
-## Component Boundaries
+## 目标结构
 
-- `UI components`
-  - Keep pure and reusable.
-  - Accept only view-related props.
-  - Avoid business rules and side effects.
-- `Business components`
-  - Consume presenter for global actions and cross-module communication.
-  - Subscribe to store state via selectors.
-  - Organize by domain.
-- `Business orchestration layer`
-  - Compose lower-level business modules.
-  - Keep high-level flow readable in one place.
-- `Feature implementation modules`
-  - Implement isolated business capabilities per feature.
+1. 模块状态进入 `stores/` 下的 singleton Zustand store。
+2. 每个稳定 store 或业务能力对应一个 manager class。
+3. manager 暴露意图级 action 和必要的非订阅读取方法。
+4. app-level presenter 作为长期 manager 装配根，镜像 backend kernel composition root。
+5. 只有产品 surface 真正独立或根 presenter 过大时，才拆少数 top-level presenter。
+6. 业务组件直接调用 presenter/manager 并订阅 store，避免深层业务 prop drilling。
 
-## Business Component Cohesion
+## 组件边界
+
+- `UI components`：纯展示、可复用；只接收 view props；不读业务 store/query，不调用 manager，不包含业务规则。
+- `Business components`：连接 presenter/manager/store/query；派生 view props；按业务语义组织。
+- `Business orchestration layer`：组合多个业务模块，让高层流程可读。
+- `Feature implementation modules`：实现单个 feature 内部的稳定业务能力。
+
+## 业务组件内聚
 
 - 业务组件应在最贴近业务语义的位置自行订阅 store、读取 presenter、派生 view props，并只把收敛后的展示数据传给纯 UI 组件。
 - 页面级或布局级父组件只负责区域组合、挂载条件和布局模式，不应成为为所有子组件装配 snapshot 字段、计数、派生状态和 presenter action 的参数中转站。
 - 当同一组业务状态或动作需要跨两层以上传递时，优先新增或收敛到业务 container，让该 container 直接连接 presenter/store，而不是继续向下传参。
 - 不要为了“看起来可复用”把业务组件改成宽 props API；真正可复用的是纯 UI 组件，业务组件的可维护性来自明确 owner 和内聚的数据/动作访问。
+- 简单优先不能成为职责混杂的理由；当一个 owner 同时承担多个独立变化原因时，应按真实职责拆分并解耦，而不是把所有逻辑塞进最近的现有对象。
 
-## Effect Boundary
+## 纯展示组件边界
 
-- Use `useEffect` only for external-system synchronization:
-  - DOM and browser APIs
-  - event listeners and subscription lifecycles
-  - runtime resource setup / teardown
-- Do not use `useEffect` to mirror query results into stores or local state.
-- Do not use `useEffect` to trigger business actions after render.
-- If an effect is resetting multiple business states, first move that transition into a manager method or presenter flow.
+- MVP 只定义前端 `business component` 与 `UI component` 的职责边界，不单独决定“该不该拆”。
+- 是否拆出纯展示组件，先按 `writing-beautiful-code` 的 `split-pays-for-itself` / `split-by-change-reason` 判断收益与损失，再按本 skill 确认拆出后是否仍满足 UI 组件业务无关、business component 连接 owner 的边界。
 
-## Mandatory Rules
+## Effect 边界
 
-1. Use arrow functions for all manager and presenter methods.
-2. Manager files export manager classes, not singleton instances; long-lived manager instances belong in presenter fields.
-3. Managers are peer business owners under the presenter. A manager may depend on another manager, but it must not create, own, or lifecycle-manage another manager.
-4. Stable manager-to-manager dependencies are allowed and should be expressed directly through constructor injection wired by the presenter; do not introduce ports/factories/callback wrappers just to hide a stable frontend business dependency.
-5. Do not create a feature-level presenter for every domain; presenter is app-level or one of a very small number of top-level product-surface owners. Do not add local `presenters/` directories under feature/app submodules such as navigation, panels, settings, or sidebars unless the product surface is genuinely top-level and explicitly approved as a presenter owner.
-6. Do not use `bindXxxManager`, `installXxx`, `setXxxManager`, `afterXxx` callbacks, handler props, or local port objects to do second-stage wiring between stable managers.
-7. A stable manager dependency should be typed as the manager itself. If only one method is needed, that usually still means direct manager dependency; callback/function injection is reserved for real external events, reusable library hooks, or intentionally pluggable boundaries.
-8. Avoid `this`-binding ambiguity by using class fields with arrow methods.
-9. Prefer direct presenter/store access over deep business prop drilling.
-10. Remove duplicate data/action plumbing when presenter already provides the capability.
-11. Keep layout components from assembling broad child prop bags; move business data/action selection into the nearest business container.
-12. Keep business-oriented `useEffect` logic out of business components; prefer manager/presenter action ownership.
-13. Keep complex state-flow and data-flow logic out of hooks/components; move it to manager/store/presenter before adding more React effects or local state.
-14. Use Zustand `persist` for reload-restorable frontend state, including view mode, active tab, selected panel, open/closed surface state, lightweight URL-like view state, and similar product-continuity state.
-15. Keep persisted store payloads small, versioned, and validated during rehydrate; never persist non-serializable view objects, React nodes, manager instances, or broad server/query snapshots.
+- `useEffect` / `useLayoutEffect` 只用于同步外部系统，例如 DOM/browser API、事件订阅、runtime resource setup/teardown。
+- 不要用 effect 把 query 结果镜像进 store 或 local state。
+- 不要用 effect 在 render 后触发业务动作。
+- 如果 effect 在重置多个业务状态，先把这个 transition 移到 manager method 或 presenter flow。
 
-## Implementation Workflow
+## 强制规则
 
-1. Identify domains and split state into independent stores.
-2. Create each store as singleton Zustand state + actions.
-3. If the state should survive refresh or app restart, add Zustand `persist` in the store and define the persisted subset, version, merge/rehydrate validation, and storage key before wiring UI.
-4. Create one manager class per store or stable business capability.
-5. Add arrow-function methods; use constructors only for stable manager/infra dependencies that the owner cannot create itself.
-6. Instantiate managers as fields on the app-level presenter, wiring stable manager dependencies there in one pass. Do not follow with `bind` / `install` / `set` calls to patch the graph after construction.
-7. Add Context Provider + `usePresenter`/`useAppPresenter` hook when the owner is consumed from React.
-8. Refactor business components to use presenter/stores directly.
-9. Split broad page components into layout shells plus business containers when the parent is only forwarding snapshot fields or presenter actions.
-10. Shrink remaining effects to external sync only.
-11. Move remaining pure display parts into UI components.
-12. Delete unnecessary business prop forwarding.
+1. manager / presenter 实例方法使用箭头函数 class field。
+2. manager 文件导出 manager class，不导出 singleton instance；长期实例归 presenter 字段持有。
+3. manager 是 presenter 下的平级业务 owner；manager 可以依赖另一个 manager，但不能创建、拥有或 lifecycle-manage 另一个 manager。
+4. 稳定 manager-to-manager 依赖应由 presenter 通过 constructor injection 一次性装配；不要用 `bindXxxManager`、`installXxx`、`setXxxManager`、`afterXxx` callback、handler props 或 local port object 做二阶段 wiring。
+5. 稳定 manager 依赖应直接 typed as manager itself；只需要一个方法通常也应直接依赖 manager。callback/function injection 只用于真实外部事件、可复用 library hook 或明确 pluggable boundary。
+6. presenter 不做普通能力的一跳转发 facade。除非某方法是真正 top-level orchestration、跨 manager workflow 或 app-shell action，否则最近的业务 container 直接调用真实 manager owner。
+7. 业务组件优先直接访问 presenter/manager/store，避免深层业务 prop drilling。
+8. layout/page 不要组装宽 child prop bag；业务数据/action selection 下沉到最近业务 container。
+9. 复杂 state-flow/data-flow 不留在 hook/component；进入 manager/store/presenter 后再考虑 RxJS。
+10. reload-restorable frontend state 使用 Zustand `persist`，payload 必须小、可序列化、versioned，并在 rehydrate 时校验。
 
-## Minimal TypeScript Skeleton
+## 实现流程
 
-```ts
-// stores/todo.store.ts
-import { create } from "zustand";
+1. 识别业务域和状态归属。
+2. 判断状态是否需要 store，是否需要 `persist`。
+3. 判断业务动作和跨模块协作的 manager owner。
+4. 在 app-level presenter 中一次性装配稳定 manager 依赖。
+5. 让业务组件直接连接 owner，删除不必要的 props 转发。
+6. 收缩 effect 到外部系统同步。
+7. 纯 UI 组件拆分先按 `writing-beautiful-code` 判断是否值得，再按 MVP 边界落位。
+8. 删除重复的数据/action plumbing。
 
-type TodoState = {
-  items: string[];
-  add: (item: string) => void;
-};
+## 重构检查
 
-export const useTodoStore = create<TodoState>((set) => ({
-  items: [],
-  add: (item) => set((state) => ({ items: [...state.items, item] })),
-}));
-```
+1. UI component 是否仍然导入 presenter/manager/store。
+2. business component 是否还在做无意义 prop relay。
+3. 每个 store 是否只有一个清晰 manager/action owner。
+4. manager/presenter 方法是否是箭头函数。
+5. manager 文件是否导出了 singleton manager instance。
+6. manager constructor 是否只接收稳定 manager/infra 依赖，并由 app-level presenter 装配。
+7. presenter 是否存在普通一跳 forwarding facade。
+8. 每个 touched owner 是否只有一个清晰职责或紧密内聚的职责集。
+9. 是否出现 `bindXxx`、`installXxx`、`setXxxManager`、`afterXxx`、handler object 或 local port 来连接稳定内部 manager。
+10. business component 是否用 effect 镜像 query/store 数据或触发业务动作。
+11. layout/page 是否收集宽 snapshot/action prop bag。
+12. 纯展示组件拆分是否已按 `writing-beautiful-code` 判断收益大于成本。
+13. reload-restorable frontend state 是否使用 Zustand `persist`。
 
-```ts
-// managers/todo.manager.ts
-import { useTodoStore } from "../stores/todo.store";
+## 反模式
 
-export class TodoManager {
-  addItem = (item: string) => {
-    useTodoStore.getState().add(item);
-  };
-
-  getItemsSnapshot = () => {
-    return useTodoStore.getState().items;
-  };
-}
-```
-
-```ts
-// presenter/app.presenter.ts
-import { TodoManager } from "../managers/todo.manager";
-
-export class AppPresenter {
-  todoManager = new TodoManager();
-
-  notifyGlobal = (message: string) => {
-    console.log("global event", message);
-  };
-}
-
-export const appPresenter = new AppPresenter();
-```
-
-当 manager 之间存在稳定业务依赖时，按 kernel composition-root 模式由 presenter 统一装配。manager 之间是平级协作者，不是上下级从属；依赖应该直接表达为另一个 manager，而不是包装成 callback 或二阶段 bind：
-
-```ts
-// managers/panel-app-bridge.manager.ts
-export class PanelAppBridgeManager {
-  constructor(private readonly authorizationManager: ServiceActionAuthorizationManager) {}
-
-  requestGrant = async () => {
-    return await this.authorizationManager.requestAuthorization(...);
-  };
-}
-
-// app/presenters/app.presenter.ts
-export class AppPresenter {
-  serviceActionAuthorizationManager = new ServiceActionAuthorizationManager();
-  panelAppBridgeManager = new PanelAppBridgeManager(this.serviceActionAuthorizationManager);
-}
-```
-
-不要把同一个关系写成下面这种形式：
-
-```ts
-export class AppPresenter {
-  accountManager = new AccountManager({
-    afterSignedIn: (status) => this.remoteAccessManager.resumeAfterSignIn(status),
-  });
-}
-```
-
-这里 `afterSignedIn` 把稳定 manager 协作伪装成事件回调，隐藏了 owner 拓扑，也容易引入初始化顺序问题。应让需要协作的一方直接依赖另一个 manager，或让被调用 manager 返回明确结果，由调用 manager 接着完成自己的流程。
-
-不推荐在普通 feature `*.manager.ts` 文件末尾写 `export const xxxManager = new XxxManager()`；这会让 manager 自己承担装配职责，也让测试、替换和跨 manager 依赖关系变隐式。应用级 presenter 文件可以导出全局实例，例如 `appPresenter`，因为它本来就是装配根。
-
-```tsx
-// presenter/presenter-context.tsx
-import { createContext, useContext, type PropsWithChildren } from "react";
-import { appPresenter } from "./app.presenter";
-
-const PresenterContext = createContext(appPresenter);
-
-export const PresenterProvider = ({ children }: PropsWithChildren) => (
-  <PresenterContext.Provider value={appPresenter}>{children}</PresenterContext.Provider>
-);
-
-export const usePresenter = () => useContext(PresenterContext);
-```
-
-```tsx
-// business/TodoPanel.tsx
-import { usePresenter } from "../presenter/presenter-context";
-import { useTodoStore } from "../stores/todo.store";
-import { TodoList } from "../ui/TodoList";
-
-export const TodoPanel = () => {
-  const presenter = usePresenter();
-  const items = useTodoStore((s) => s.items);
-
-  return (
-    <TodoList
-      items={items}
-      onAdd={(v) => presenter.todoManager.addItem(v)}
-    />
-  );
-};
-```
-
-## Refactor Checks
-
-Run this check before finishing:
-
-1. Verify UI components do not import presenter/manager/store.
-2. Verify business components avoid unnecessary prop relays.
-3. Verify every store has exactly one manager owner.
-4. Verify manager/presenter methods are arrow functions.
-5. Verify manager files do not export singleton manager instances.
-6. Verify manager constructors, if present, only receive stable manager/infra dependencies and are wired by the app-level presenter.
-7. Verify manager-to-manager dependencies are peer dependencies injected by the presenter, not manager-created subordinate managers.
-8. Verify cross-domain communication goes through app-level presenter APIs or direct stable manager dependencies owned by that presenter.
-9. Scan touched manager/presenter files for `bindXxx`, `installXxx`, `setXxxManager`, `afterXxx`, `onXxx` callback wrappers, and local port objects. If they connect stable internal managers, replace them with direct typed manager dependencies or result-returning manager methods.
-10. Verify business components do not use `useEffect` to mirror query/store data or dispatch business actions.
-11. Verify layout/page components do not collect wide snapshot/action prop bags for child business components.
-12. Verify repeated props passed through two or more layers have been replaced by direct presenter/store access in the nearest business container.
-13. Verify complex async, streaming, or cross-event flows have an explicit owner, and evaluate RxJS only when it simplifies that owner instead of spreading logic.
-14. Verify reload-restorable frontend state uses Zustand `persist`, not provider/component ad hoc storage effects.
-15. Verify persisted payloads are serializable, bounded, versioned, and sanitized on rehydrate.
-
-## Anti-Patterns
-
-- Put business logic in UI components.
-- Duplicate one capability in multiple managers.
-- Pass action/state through several business layers when presenter direct access is possible.
-- Let a page/layout component become a manual prop assembler for child business components.
-- Create wide business component props APIs that mirror store snapshot fields or presenter methods.
-- Mix orchestration logic into low-level feature modules.
-- Create one feature-level presenter per domain when the existing app-level presenter can wire the stable manager graph.
-- Add a local presenter merely because a module has managers or UI state; use the app-level presenter for composition and keep module-specific orchestration in managers/stores/containers.
-- Let a manager create or own another manager; peer manager dependencies must be wired by presenter.
-- Hide stable manager collaboration behind callbacks, local ports, handler objects, or second-stage `bind`/`install` methods.
-- Export singleton manager instances from `*.manager.ts` instead of wiring them from presenter/app-level owners.
-- Use prototype methods (`foo() {}`) in manager/presenter classes.
-- Use `useEffect` as a business patch point for state repair, query-to-store mirroring, or post-render action dispatch.
-- Let hooks/components own long-lived business state machines, stream lifecycles, or cross-event coordination.
-- Add RxJS as a shortcut around unclear ownership.
-- Persist shared/reload-restorable frontend state with hand-written `localStorage` effects in providers/components when a Zustand store owner exists or should exist.
-- Put business transition logic into Zustand action bodies when the domain already has, or should have, a manager/presenter owner.
+- 把业务逻辑放进 UI component。
+- 同一能力在多个 manager 里重复实现。
+- 多层传递业务 action/state，而最近业务 container 本可以直接连接 owner。
+- page/layout 变成手动 props assembler。
+- 为了“可复用”把业务组件改成宽 props API。
+- 每个 domain 都创建 feature-level presenter。
+- 为了统一调用面，把普通 manager 能力包到 presenter 转发方法里。
+- 把“简单”理解成“所有东西塞进一个 owner”。
+- manager 创建或拥有另一个 manager。
+- 用 callback、local port、handler object 或二阶段 bind 隐藏稳定 manager 协作。
+- 用 prototype method 写 manager/presenter 实例方法。
+- 用 effect 作为业务补丁点。
+- 绕过 `writing-beautiful-code` 的拆分收益判断，为了理论洁癖拆纯展示组件，结果只新增 props 搬运和阅读跳转。
+- 用手写 storage effect 持久化共享/可恢复前端状态。

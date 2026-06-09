@@ -1,5 +1,8 @@
 import { useMemo, useRef } from "react";
-import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
+import {
+  useStickyBottomScroll,
+  type ChatToolActionViewModel,
+} from "@nextclaw/agent-chat-ui";
 import { ChatInputBarContainer } from "@/features/chat/components/conversation/chat-input-bar.container";
 import { ChatMessageListContainer } from "@/features/chat/components/conversation/chat-message-list.container";
 import {
@@ -189,6 +192,13 @@ function ChatConversationContent() {
   const isAwaitingAssistantOutput =
     hasMessages && snapshot.isSending && snapshot.isAwaitingAssistantOutput;
   const shouldShowMessages = hasMessages;
+  const handleToolAction = (action: ChatToolActionViewModel) => {
+    if (action.kind === "show-content") {
+      presenter.chatThreadManager.showContent(action.request);
+      return;
+    }
+    presenter.chatThreadManager.openSessionFromToolAction(action);
+  };
 
   return (
     <div
@@ -209,7 +219,7 @@ function ChatConversationContent() {
           <ChatMessageListContainer
             messages={snapshot.messages}
             isSending={isAwaitingAssistantOutput}
-            onToolAction={presenter.chatThreadManager.openSessionFromToolAction}
+            onToolAction={handleToolAction}
             onFileOpen={presenter.chatThreadManager.openFilePreview}
           />
         </div>

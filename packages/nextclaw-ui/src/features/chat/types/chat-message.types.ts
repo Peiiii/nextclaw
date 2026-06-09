@@ -17,6 +17,7 @@ export type ChatMessageAdapterTexts = {
   toolStatusCompletedLabel: string;
   toolStatusFailedLabel: string;
   toolStatusCancelledLabel: string;
+  showContentActionLabel?: string;
   imageAttachmentLabel: string;
   fileAttachmentLabel: string;
   unknownPartLabel: string;

@@ -250,6 +250,44 @@ describe('ChatSessionListManager', () => {
     expect(mocks.updateNcpSession).not.toHaveBeenCalled();
   });
 
+  it('marks a visible workspace child session as read through the session list owner', () => {
+    const manager = new ChatSessionListManager(
+      {} as ConstructorParameters<typeof ChatSessionListManager>[0],
+      {} as ConstructorParameters<typeof ChatSessionListManager>[1]
+    );
+
+    manager.markVisibleWorkspaceChildRead({
+      sessionKey: 'child-session-1',
+      lastMessageAt: '2026-04-10T10:00:00.000Z',
+      readAt: null,
+      runStatus: 'completed',
+    });
+
+    expect(useChatSessionListStore.getState().optimisticReadAtBySessionKey['child-session-1']).toBe(
+      '2026-04-10T10:00:00.000Z'
+    );
+    expect(mocks.updateNcpSession).toHaveBeenCalledWith('child-session-1', {
+      uiReadAt: '2026-04-10T10:00:00.000Z'
+    });
+  });
+
+  it('keeps running workspace child sessions unread until they settle', () => {
+    const manager = new ChatSessionListManager(
+      {} as ConstructorParameters<typeof ChatSessionListManager>[0],
+      {} as ConstructorParameters<typeof ChatSessionListManager>[1]
+    );
+
+    manager.markVisibleWorkspaceChildRead({
+      sessionKey: 'child-session-1',
+      lastMessageAt: '2026-04-10T10:00:00.000Z',
+      readAt: null,
+      runStatus: 'running',
+    });
+
+    expect(useChatSessionListStore.getState().optimisticReadAtBySessionKey['child-session-1']).toBeUndefined();
+    expect(mocks.updateNcpSession).not.toHaveBeenCalled();
+  });
+
   it('routes to the backend-materialized root session without duplicating route-owned selection state', () => {
     useChatSessionListStore.setState({
       snapshot: {

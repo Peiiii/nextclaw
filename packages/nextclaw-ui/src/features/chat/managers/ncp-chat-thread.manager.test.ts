@@ -49,6 +49,12 @@ beforeEach(() => {
   });
 });
 
+function createDocBrowserManager(): ConstructorParameters<typeof NcpChatThreadManager>[3] {
+  return {
+    open: vi.fn(),
+  } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[3];
+}
+
 describe('NcpChatThreadManager', () => {
   it('opens the child-session panel for the requested parent session and keeps focus on the chosen child', () => {
     const uiManager = {
@@ -62,6 +68,7 @@ describe('NcpChatThreadManager', () => {
       uiManager,
       {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
       {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      createDocBrowserManager(),
     );
 
     manager.openChildSessionPanel({
@@ -92,6 +99,7 @@ describe('NcpChatThreadManager', () => {
       uiManager,
       {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
       {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      createDocBrowserManager(),
     );
 
     manager.openChildSessionPanel({
@@ -114,6 +122,7 @@ describe('NcpChatThreadManager', () => {
       uiManager,
       {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
       {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      createDocBrowserManager(),
     );
 
     manager.openSessionCronPanel('parent-session-1');
@@ -145,6 +154,7 @@ describe('NcpChatThreadManager', () => {
       uiManager,
       {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
       {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      createDocBrowserManager(),
     );
 
     manager.openSessionCronPanel('parent-session-1');
@@ -164,6 +174,7 @@ describe('NcpChatThreadManager', () => {
       uiManager,
       {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
       {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      createDocBrowserManager(),
     );
 
     manager.openFilePreview({
@@ -208,6 +219,7 @@ describe('NcpChatThreadManager workspace navigation', () => {
       uiManager,
       {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
       {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      createDocBrowserManager(),
     );
 
     manager.openChildSessionPanel({
@@ -265,6 +277,7 @@ describe('NcpChatThreadManager workspace navigation', () => {
       { goToSession: vi.fn() } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0],
       {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
       {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      createDocBrowserManager(),
     );
 
     manager.openChildSessionPanel({
@@ -291,6 +304,7 @@ describe('NcpChatThreadManager workspace navigation', () => {
       { goToSession: vi.fn() } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0],
       {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
       {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      createDocBrowserManager(),
     );
 
     manager.openChildSessionPanel({
@@ -312,6 +326,78 @@ describe('NcpChatThreadManager workspace navigation', () => {
         { kind: 'child-session', key: 'child-session-1' },
       ],
       workspaceNavigationHistoryIndex: 0,
+    });
+  });
+});
+
+describe('NcpChatThreadManager showContent', () => {
+  it('shows file content through the existing workspace file preview', () => {
+    const manager = new NcpChatThreadManager(
+      { goToSession: vi.fn() } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0],
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      createDocBrowserManager(),
+    );
+
+    manager.showContent({
+      target: {
+        type: 'file',
+        payload: {
+          path: 'docs/example.md',
+          line: 5,
+        },
+      },
+      title: 'Example',
+      purpose: 'read',
+    });
+
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      activeWorkspacePanelKind: 'file',
+      activeWorkspaceFileKey: 'parent-session-1::preview::docs/example.md',
+      workspaceFileTabs: [
+        expect.objectContaining({
+          path: 'docs/example.md',
+          label: 'Example',
+          line: 5,
+          viewMode: 'preview',
+        }),
+      ],
+    });
+  });
+
+  it('shows URL and panel app content through DocBrowser', () => {
+    const docBrowserManager = createDocBrowserManager();
+    const manager = new NcpChatThreadManager(
+      { goToSession: vi.fn() } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0],
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      docBrowserManager,
+    );
+
+    manager.showContent({
+      target: {
+        type: 'url',
+        payload: {
+          url: 'https://example.com/read',
+        },
+      },
+      title: 'Example URL',
+    });
+    manager.showContent({
+      target: {
+        type: 'panel_app',
+        payload: {
+          appId: 'reader.panel',
+        },
+      },
+      title: 'Reader',
+    });
+
+    expect(docBrowserManager.open).toHaveBeenNthCalledWith(1, 'https://example.com/read', {
+      title: 'Example URL',
+    });
+    expect(docBrowserManager.open).toHaveBeenNthCalledWith(2, 'nextclaw://panel-app/reader.panel', {
+      title: 'Reader',
     });
   });
 });
@@ -339,6 +425,7 @@ describe('NcpChatThreadManager deletion', () => {
       uiManager,
       sessionListManager,
       streamActionsManager,
+      createDocBrowserManager(),
     );
 
     await (manager as unknown as { deleteCurrentSession: () => Promise<void> }).deleteCurrentSession();

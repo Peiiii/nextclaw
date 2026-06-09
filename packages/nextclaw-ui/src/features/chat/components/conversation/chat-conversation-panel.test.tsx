@@ -117,6 +117,7 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
       openSessionCronPanel: mocks.openSessionCronPanel,
       openFilePreview: vi.fn(),
       openSessionFromToolAction: vi.fn(),
+      showContent: vi.fn(),
       selectChildSessionDetail: vi.fn(),
       selectWorkspaceFile: vi.fn(),
       closeWorkspaceFile: vi.fn(),
@@ -138,6 +139,22 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
               .getState()
               .markSessionRead(sessionKey, readAt)
           : undefined,
+      markVisibleWorkspaceChildRead: (tab: {
+        sessionKey: string | null | undefined;
+        lastMessageAt?: string | null;
+        readAt?: string | null;
+        runStatus?: string | null;
+      }) => {
+        if (tab.runStatus === "running") {
+          return;
+        }
+        if (!tab.sessionKey || !tab.lastMessageAt) {
+          return;
+        }
+        useChatSessionListStore
+          .getState()
+          .markSessionRead(tab.sessionKey, tab.lastMessageAt);
+      },
     },
     chatInputManager: {
       setPendingSessionType: mocks.setPendingSessionType,

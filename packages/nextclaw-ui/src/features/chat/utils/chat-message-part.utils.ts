@@ -18,6 +18,7 @@ import {
 } from "./chat-message-tool-card.utils";
 import { resolveToolInvocationAgentId } from "./chat-message-tool-agent-id.utils";
 import { buildFileOperationCardData } from "./file-operation/card.utils";
+import { buildShowContentToolCard } from "./chat-message-show-content-tool-card.utils";
 import { buildSessionRequestToolCard } from "./chat-message-session-request-tool-card.utils";
 import type {
   ChatMessagePartViewModel,
@@ -113,6 +114,18 @@ function buildToolInvocationPart(
     return {
       type: "tool-card",
       card: buildToolCard(sessionRequestToolCard, texts),
+    };
+  }
+
+  const showContentToolCard = buildShowContentToolCard({
+    invocation,
+    actionLabel: texts.showContentActionLabel ?? "Show content",
+    statusLabel: texts.toolStatusCompletedLabel,
+  });
+  if (showContentToolCard) {
+    return {
+      type: "tool-card",
+      card: buildToolCard(showContentToolCard, texts),
     };
   }
 

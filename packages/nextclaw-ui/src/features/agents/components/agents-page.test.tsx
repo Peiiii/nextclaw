@@ -121,7 +121,11 @@ vi.mock("@/features/chat", async (importOriginal) => {
 });
 
 function renderAgentsPage() {
-  const presenter = new NcpChatPresenter();
+  const presenter = new NcpChatPresenter({
+    docBrowserManager: {
+      open: vi.fn(),
+    },
+  } as unknown as ConstructorParameters<typeof NcpChatPresenter>[0]);
   return render(
     <MemoryRouter>
       <ChatPresenterProvider presenter={presenter}>
