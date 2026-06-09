@@ -1,4 +1,4 @@
-import { ChatSessionTypeOptionItem } from "@/features/chat/components/chat-session-type-option-item";
+import { ChatSessionTypeOptionItem } from "@/features/chat/features/session-type/components/chat-session-type-option-item";
 import type { ChatInputSnapshot } from "@/features/chat/stores/chat-input.store";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";

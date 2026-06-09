@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
-import { ChatMessageListContainer } from "@/features/chat/components/conversation/chat-message-list.container";
+import { ChatMessageListContainer } from "@/features/chat/features/message/components/chat-message-list.container";
 import { ChatWelcome } from "@/features/chat/components/chat-welcome";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import { resolveAgentRuntimeSessionType } from "@/features/chat/features/session-type/utils/chat-session-type.utils";

@@ -6,7 +6,6 @@ import type {
   SessionContextWindowView,
   SessionTypeIconView
 } from '@/shared/lib/api';
-import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 
 export type ChatChildSessionTab = {
   sessionKey: string;
@@ -46,10 +45,6 @@ export type ChatWorkspaceNavigationEntry =
     };
 
 export type ChatThreadSnapshot = {
-  isProviderStateResolved: boolean;
-  modelOptions: ChatModelOption[];
-  sessionTypeUnavailable: boolean;
-  sessionTypeUnavailableMessage?: string | null;
   sessionTypeLabel?: string | null;
   sessionTypeIcon?: SessionTypeIconView | null;
   sessionKey: string | null;
@@ -111,10 +106,6 @@ type PersistedChatWorkspaceSnapshot = Pick<
 >;
 
 const initialSnapshot: ChatThreadSnapshot = {
-  isProviderStateResolved: false,
-  modelOptions: [],
-  sessionTypeUnavailable: false,
-  sessionTypeUnavailableMessage: null,
   sessionTypeLabel: null,
   sessionTypeIcon: null,
   sessionKey: null,

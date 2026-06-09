@@ -1,8 +1,8 @@
 import { ChatConversationHeader } from "@/features/chat/components/conversation/chat-conversation-header";
-import { ChatSessionHeaderActions } from "@/features/chat/components/conversation/session-header/chat-session-header-actions";
-import { ChatSessionProjectBadge } from "@/features/chat/components/conversation/session-header/chat-session-project-badge";
+import { ChatSessionHeaderActions } from "@/features/chat/features/session/components/session-header/chat-session-header-actions";
+import { ChatSessionProjectBadge } from "@/features/chat/features/session/components/session-header/chat-session-project-badge";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
-import { SessionContextIconNode } from "@/features/chat/components/session/session-context-icon";
+import { SessionContextIconNode } from "@/features/chat/features/session/components/session-context-icon";
 import { useChatConversationWorkspaceState } from "@/features/chat/features/workspace/hooks/use-chat-conversation-workspace-state";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";

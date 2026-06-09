@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatConversationPanel } from "@/features/chat/components/conversation/chat-conversation-panel";
-import { ChatSessionWorkspacePanel } from "@/features/chat/components/chat-session-workspace-panel";
+import { ChatSessionWorkspacePanel } from "@/features/chat/features/workspace/components/chat-session-workspace-panel";
 import type { ResolvedChildSessionTab } from "@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view";
 import type { CronJobView } from "@/shared/lib/api";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
@@ -55,14 +55,14 @@ vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
 });
 
 vi.mock(
-  "@/features/chat/components/conversation/chat-input-bar.container",
+  "@/features/chat/features/input/components/chat-input-bar.container",
   () => ({
     ChatInputBarContainer: () => <div data-testid="chat-input-bar" />,
   }),
 );
 
 vi.mock(
-  "@/features/chat/components/conversation/chat-message-list.container",
+  "@/features/chat/features/message/components/chat-message-list.container",
   () => ({
     ChatMessageListContainer: ({
       isSending,
@@ -81,7 +81,7 @@ vi.mock(
 );
 
 vi.mock(
-  "@/features/chat/components/chat-session-workspace-file-preview",
+  "@/features/chat/features/workspace/components/chat-session-workspace-file-preview",
   () => ({
     ChatSessionWorkspaceFilePreview: ({ file }: { file: { path: string } }) => (
       <div data-testid="workspace-file-preview">{file.path}</div>
@@ -179,14 +179,14 @@ vi.mock("@/features/cron", () => ({
 }));
 
 vi.mock(
-  "@/features/chat/components/conversation/session-header/chat-session-header-actions",
+  "@/features/chat/features/session/components/session-header/chat-session-header-actions",
   () => ({
     ChatSessionHeaderActions: () => <button aria-label="More actions" />,
   }),
 );
 
 vi.mock(
-  "@/features/chat/components/conversation/session-header/chat-session-project-badge",
+  "@/features/chat/features/session/components/session-header/chat-session-project-badge",
   () => ({
     ChatSessionProjectBadge: ({ projectName }: { projectName: string }) => (
       <button>{projectName}</button>
@@ -262,13 +262,10 @@ function resetChatConversationPanelTestState() {
   useChatInputStore.setState({
     snapshot: {
       ...useChatInputStore.getState().snapshot,
-      defaultSessionType: "native",
-    },
-  });
-  useChatThreadStore.setState({
-    snapshot: {
-      ...useChatThreadStore.getState().snapshot,
       isProviderStateResolved: true,
+      defaultSessionType: "native",
+      sessionTypeUnavailable: false,
+      sessionTypeUnavailableMessage: null,
       modelOptions: [
         {
           value: "openai/gpt-5.1",
@@ -276,6 +273,11 @@ function resetChatConversationPanelTestState() {
           providerLabel: "OpenAI",
         } as never,
       ],
+    },
+  });
+  useChatThreadStore.setState({
+    snapshot: {
+      ...useChatThreadStore.getState().snapshot,
       sessionTypeLabel: "Codex",
       sessionKey: "draft-session-1",
       sessionDisplayName: undefined,
@@ -392,9 +394,9 @@ describe("ChatConversationPanel", () => {
   });
 
   it("renders a fuller loading skeleton before provider state settles", () => {
-    useChatThreadStore.setState({
+    useChatInputStore.setState({
       snapshot: {
-        ...useChatThreadStore.getState().snapshot,
+        ...useChatInputStore.getState().snapshot,
         isProviderStateResolved: false,
       },
     });

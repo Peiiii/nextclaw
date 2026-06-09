@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ChatSessionProjectBadge } from '@/features/chat/components/conversation/session-header/chat-session-project-badge';
+import { ChatSessionProjectBadge } from '@/features/chat/features/session/components/session-header/chat-session-project-badge';
 
 const mocks = vi.hoisted(() => ({
   updateSessionProject: vi.fn(),
@@ -11,7 +11,7 @@ vi.mock('@/features/chat/features/session/hooks/use-chat-session-project', () =>
   useChatSessionProject: () => mocks.updateSessionProject,
 }));
 
-vi.mock('@/features/chat/components/conversation/session-header/chat-session-project-dialog', () => ({
+vi.mock('@/features/chat/features/session/components/session-header/chat-session-project-dialog', () => ({
   ChatSessionProjectDialog: () => null,
 }));
 

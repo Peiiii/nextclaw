@@ -1,11 +1,11 @@
-import { ChatInputBarContainer } from "@/features/chat/components/conversation/chat-input-bar.container";
+import { ChatInputBarContainer } from "@/features/chat/features/input/components/chat-input-bar.container";
 import { ChatConversationAlerts } from "@/features/chat/components/conversation/chat-conversation-alerts";
 import { ChatConversationContent } from "@/features/chat/components/conversation/chat-conversation-content";
 import { ChatConversationHeaderSection } from "@/features/chat/components/conversation/chat-conversation-header-section";
 import { ChatConversationParentBanner } from "@/features/chat/components/conversation/chat-conversation-parent-banner";
 import { ChatConversationSkeleton } from "@/features/chat/components/conversation/chat-conversation-skeleton";
 import { ChatConversationWorkspaceSection } from "@/features/chat/components/conversation/chat-conversation-workspace-section";
-import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
+import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 
 type ChatConversationLayoutMode = "desktop" | "mobile";
 
@@ -16,9 +16,11 @@ export function ChatConversationPanel({
   layoutMode?: ChatConversationLayoutMode;
   onBackToList?: () => void;
 }) {
-  const snapshot = useChatThreadStore((state) => state.snapshot);
+  const isProviderStateResolved = useChatInputStore(
+    (state) => state.snapshot.isProviderStateResolved,
+  );
 
-  if (!snapshot.isProviderStateResolved) {
+  if (!isProviderStateResolved) {
     return <ChatConversationSkeleton />;
   }
 

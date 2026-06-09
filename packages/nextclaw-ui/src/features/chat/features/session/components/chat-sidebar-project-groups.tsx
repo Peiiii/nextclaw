@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Plus } from 'lucide-react';
-import { ChatSidebarCreateMenu } from "@/features/chat/components/layout/chat-sidebar-create-menu";
+import { ChatSidebarCreateMenu } from "@/features/chat/features/session-type/components/chat-sidebar-create-menu";
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';

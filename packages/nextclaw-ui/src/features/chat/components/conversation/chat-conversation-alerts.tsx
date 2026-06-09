@@ -1,10 +1,10 @@
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
-import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
+import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { t } from "@/shared/lib/i18n";
 
 export function ChatConversationAlerts() {
   const presenter = usePresenter();
-  const snapshot = useChatThreadStore((state) => state.snapshot);
+  const snapshot = useChatInputStore((state) => state.snapshot);
   const shouldShowProviderHint =
     snapshot.isProviderStateResolved && snapshot.modelOptions.length === 0;
 

@@ -1,6 +1,6 @@
 import { AgentAvatar } from '@/shared/components/common/agent-avatar';
-import { SessionContextIconNode } from '@/features/chat/components/session/session-context-icon';
-import { SessionRunBadge } from '@/features/chat/components/session/session-run-badge';
+import { SessionContextIconNode } from '@/features/chat/features/session/components/session-context-icon';
+import { SessionRunBadge } from '@/features/chat/features/session/components/session-run-badge';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import { Input } from '@/shared/components/ui/input';
 import { type SessionContextView } from '@/features/chat/features/session/utils/session-context.utils';

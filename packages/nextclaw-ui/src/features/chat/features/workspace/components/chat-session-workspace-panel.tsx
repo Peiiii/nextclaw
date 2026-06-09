@@ -14,7 +14,7 @@ import {
 } from "@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils";
 import { WorkspaceTabsBar } from "./chat-session-workspace-panel-nav";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
-import { ChatSessionWorkspacePanelContent } from "@/features/chat/components/workspace/chat-session-workspace-panel-content";
+import { ChatSessionWorkspacePanelContent } from "@/features/chat/features/workspace/components/chat-session-workspace-panel-content";
 import { ResizableRightPanel } from "@/shared/components/resizable-right-panel/resizable-right-panel";
 import { cn } from "@/shared/lib/utils";
 import {

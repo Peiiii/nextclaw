@@ -13,6 +13,7 @@ import type { ChatChildSessionTab } from '@/features/chat/stores/chat-thread.sto
 import type { ChatSessionTypeOption } from '@/features/chat/features/session-type/utils/chat-session-type.utils';
 import { resolveSessionTypeLabel } from '@/features/chat/features/session-type/utils/chat-session-type.utils';
 import { readNcpContextWindowValue } from '@/features/chat/features/session/utils/ncp-session-context-metadata.utils';
+import { getSessionProjectName } from '@/shared/lib/session-project';
 
 function buildChildSessionTabs(params: {
   parentSessionKey: string | null;
@@ -33,26 +34,35 @@ function buildChildSessionTabs(params: {
     }));
 }
 
+function resolveCurrentSessionTypeView(params: {
+  selectedSessionType: string;
+  sessionTypeOptions: ChatSessionTypeOption[];
+}): {
+  label: string;
+  icon: ChatSessionTypeOption['icon'];
+} {
+  const option =
+    params.sessionTypeOptions.find(
+      (sessionTypeOption) =>
+        sessionTypeOption.value === params.selectedSessionType,
+    ) ?? null;
+  return {
+    label: option?.label ?? resolveSessionTypeLabel(params.selectedSessionType),
+    icon: option?.icon ?? null,
+  };
+}
+
 export function useNcpChatDerivedState(params: {
   sessionKey: string | null;
   selectedSession: SessionEntryView | null;
-  parentSessionId: string | null;
   sessionSummaries: NcpSessionSummaryView[];
-  selectedSessionType: string;
-  sessionTypeOptions: ChatSessionTypeOption[];
 }) {
   const {
-    parentSessionId,
     selectedSession,
-    selectedSessionType,
     sessionKey,
     sessionSummaries,
-    sessionTypeOptions,
   } = params;
-  const currentSessionDisplayName = selectedSession
-    ? sessionDisplayName(selectedSession)
-    : undefined;
-  const currentAgentId = selectedSession?.agentId ?? null;
+  const parentSessionId = selectedSession?.parentSessionId ?? null;
   const parentSession = useMemo(() => {
     if (!parentSessionId) {
       return null;
@@ -63,11 +73,6 @@ export function useNcpChatDerivedState(params: {
       ) ?? null;
     return parentSummary ? adaptNcpSessionSummary(parentSummary) : null;
   }, [parentSessionId, sessionSummaries]);
-  const currentSessionTypeOption =
-    sessionTypeOptions.find((option) => option.value === selectedSessionType) ?? null;
-  const currentSessionTypeLabel =
-    currentSessionTypeOption?.label ?? resolveSessionTypeLabel(selectedSessionType);
-  const currentSessionTypeIcon = currentSessionTypeOption?.icon ?? null;
   const currentChildSessionTabs = useMemo(
     () =>
       buildChildSessionTabs({
@@ -78,11 +83,7 @@ export function useNcpChatDerivedState(params: {
   );
 
   return {
-    currentSessionDisplayName,
-    currentAgentId,
     parentSession,
-    currentSessionTypeLabel,
-    currentSessionTypeIcon,
     currentChildSessionTabs,
   };
 }
@@ -92,7 +93,6 @@ export function useNcpChatSnapshotSync(params: {
   isProviderStateResolved: boolean;
   defaultSessionType: string;
   canStopCurrentRun: boolean;
-  stopDisabledReason: string | null;
   lastSendError: string | null;
   isSending: boolean;
   modelOptions: ChatModelOption[];
@@ -105,26 +105,22 @@ export function useNcpChatSnapshotSync(params: {
   sessionTypeUnavailableMessage: string | null;
   fallbackPreferredModel?: string;
   defaultModel?: string;
-  currentSessionTypeLabel: string;
-  currentSessionTypeIcon: ChatSessionTypeOption['icon'];
   sessionKey: string | null | undefined;
-  currentAgentId: string | null;
-  currentSessionDisplayName?: string;
-  effectiveSessionProjectRoot: string | null;
-  effectiveSessionWorkingDir: string | null;
-  effectiveSessionProjectName: string | null;
   selectedSession: SessionEntryView | null;
   agent: Pick<UseHydratedNcpAgentResult, 'isHydrating' | 'snapshot' | 'visibleMessages'>;
-  isAwaitingAssistantOutput: boolean;
   parentSession: SessionEntryView | null;
   childSessionTabs: ChatChildSessionTab[];
 }) {
   useEffect(() => {
+    const currentSessionType = resolveCurrentSessionTypeView({
+      selectedSessionType: params.selectedSessionType,
+      sessionTypeOptions: params.sessionTypeOptions,
+    });
     params.presenter.chatInputManager.syncSnapshot({
       isProviderStateResolved: params.isProviderStateResolved,
       defaultSessionType: params.defaultSessionType,
       canStopGeneration: params.canStopCurrentRun,
-      stopDisabledReason: params.stopDisabledReason,
+      stopDisabledReason: params.canStopCurrentRun ? null : '__preparing__',
       stopSupported: true,
       stopReason: undefined,
       sendError: params.lastSendError,
@@ -133,6 +129,7 @@ export function useNcpChatSnapshotSync(params: {
       sessionTypeOptions: params.sessionTypeOptions,
       canEditSessionType: params.canEditSessionType,
       sessionTypeUnavailable: params.sessionTypeUnavailable,
+      sessionTypeUnavailableMessage: params.sessionTypeUnavailableMessage,
       skillRecords: params.skillRecords,
       isSkillsLoading: params.isSkillsLoading,
     });
@@ -141,41 +138,25 @@ export function useNcpChatSnapshotSync(params: {
         selectedSessionType: params.selectedSessionType,
       });
     }
-    params.presenter.chatInputManager.syncSessionPreferences({
-      modelOptions: params.modelOptions,
-      selectedSessionKey: params.sessionKey ?? null,
-      selectedSessionExists: Boolean(params.selectedSession),
-      selectedSessionPreferredModel: params.selectedSession?.preferredModel,
-      fallbackPreferredModel: params.fallbackPreferredModel,
-      defaultModel: params.defaultModel,
-      selectedSessionPreferredThinking:
-        params.selectedSession?.preferredThinking ?? null,
-    });
-    params.presenter.chatSessionListManager.syncSelectedSessionAgent(
-      params.currentAgentId,
-    );
-    params.presenter.chatInputManager.clearPendingProjectRootOverrideForSession({
-      sessionKey: params.selectedSession?.key ?? null,
-      selectedSessionProjectRoot: params.selectedSession?.projectRoot ?? null,
-    });
+    const sessionProjectRoot = params.selectedSession?.projectRoot ?? null;
     params.presenter.chatThreadManager.syncSnapshot({
-      isProviderStateResolved: params.isProviderStateResolved,
-      modelOptions: params.modelOptions,
-      sessionTypeUnavailable: params.sessionTypeUnavailable,
-      sessionTypeUnavailableMessage: params.sessionTypeUnavailableMessage,
-      sessionTypeLabel: params.currentSessionTypeLabel,
-      sessionTypeIcon: params.currentSessionTypeIcon,
+      sessionTypeLabel: currentSessionType.label,
+      sessionTypeIcon: currentSessionType.icon,
       sessionKey: params.sessionKey ?? null,
-      agentId: params.currentAgentId,
-      sessionDisplayName: params.currentSessionDisplayName,
-      sessionProjectRoot: params.effectiveSessionProjectRoot,
-      sessionWorkingDir: params.effectiveSessionWorkingDir,
-      sessionProjectName: params.effectiveSessionProjectName,
+      agentId: params.selectedSession?.agentId ?? null,
+      sessionDisplayName: params.selectedSession
+        ? sessionDisplayName(params.selectedSession)
+        : undefined,
+      sessionProjectRoot,
+      sessionWorkingDir: params.selectedSession?.workingDir ?? sessionProjectRoot,
+      sessionProjectName:
+        params.selectedSession?.projectName ??
+        getSessionProjectName(sessionProjectRoot),
       canDeleteSession: Boolean(params.selectedSession),
       isHistoryLoading: params.agent.isHydrating,
       messages: params.agent.visibleMessages,
       isSending: params.isSending,
-      isAwaitingAssistantOutput: params.isAwaitingAssistantOutput,
+      isAwaitingAssistantOutput: params.canStopCurrentRun,
       contextWindow: readNcpContextWindowValue(params.agent.snapshot.contextWindow),
       parentSessionKey: params.parentSession?.key ?? null,
       parentSessionLabel: params.parentSession
@@ -183,6 +164,16 @@ export function useNcpChatSnapshotSync(params: {
         : null,
       childSessionTabs: params.childSessionTabs,
     });
+    params.presenter.chatInputManager.syncSessionPreferences({
+      selectedSessionExists: Boolean(params.selectedSession),
+      selectedSessionPreferredModel: params.selectedSession?.preferredModel,
+      fallbackPreferredModel: params.fallbackPreferredModel,
+      defaultModel: params.defaultModel,
+      selectedSessionPreferredThinking:
+        params.selectedSession?.preferredThinking ?? null,
+    });
+    params.presenter.chatSessionListManager.syncSelectedSessionAgent();
+    params.presenter.chatInputManager.clearPendingProjectRootOverrideForCurrentThread();
   }, [
     params
   ]);

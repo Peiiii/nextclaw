@@ -5,7 +5,7 @@ import type {
   ChatSidebarDateGroup,
   ChatSidebarProjectGroup,
 } from "@/features/chat/features/session/utils/chat-sidebar-session-groups.utils";
-import { ChatSidebarProjectGroups } from "@/features/chat/components/chat-sidebar-project-groups";
+import { ChatSidebarProjectGroups } from "@/features/chat/features/session/components/chat-sidebar-project-groups";
 import type { ChatInputSnapshot } from "@/features/chat/stores/chat-input.store";
 import { t } from "@/shared/lib/i18n";
 

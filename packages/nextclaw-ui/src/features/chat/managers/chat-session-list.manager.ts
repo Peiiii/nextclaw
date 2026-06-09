@@ -73,8 +73,8 @@ export class ChatSessionListManager {
     useChatSessionListStore.getState().setSnapshot({ selectedAgentId: value });
   };
 
-  syncSelectedSessionAgent = (agentId: string | null | undefined) => {
-    const normalizedAgentId = agentId?.trim();
+  syncSelectedSessionAgent = () => {
+    const normalizedAgentId = useChatThreadStore.getState().snapshot.agentId?.trim();
     if (!normalizedAgentId) {
       return;
     }

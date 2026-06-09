@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { ChatSessionTypeOptionItem } from "../chat-session-type-option-item";
+import { ChatSessionTypeOptionItem } from "@/features/chat/features/session-type/components/chat-session-type-option-item";
 
 describe("ChatSessionTypeOptionItem", () => {
   it("renders a runtime icon image when the session type option provides an app resource URI", () => {

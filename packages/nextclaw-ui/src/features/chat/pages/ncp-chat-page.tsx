@@ -29,7 +29,6 @@ import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
 import { useSystemStatus } from "@/features/system-status";
 import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import { isNcpChatRuntimeBlocked, resolveNcpChatSendErrorMessage } from "@/features/chat/features/runtime/utils/ncp-chat-runtime-availability.utils";
-import { getSessionProjectName } from "@/shared/lib/session-project";
 import {
   buildNcpSendMetadata,
 } from "@/features/chat/features/session/utils/ncp-chat-send-metadata.utils";
@@ -191,12 +190,6 @@ export function NcpChatPage({ view }: ChatPageProps) {
     sessionSummaries,
     sessionTypeOptions,
   } = pageData;
-  const effectiveSessionProjectRoot = selectedSession?.projectRoot ?? null;
-  const effectiveSessionWorkingDir =
-    selectedSession?.workingDir ?? effectiveSessionProjectRoot;
-  const effectiveSessionProjectName =
-    selectedSession?.projectName ??
-    getSessionProjectName(effectiveSessionProjectRoot);
   const rawLastSendError =
     agent.hydrateError?.message ?? agent.snapshot.error?.message ?? null;
   const filteredLastSendError =
@@ -207,10 +200,7 @@ export function NcpChatPage({ view }: ChatPageProps) {
   const derivedState = useNcpChatDerivedState({
     sessionKey: sessionKey ?? null,
     selectedSession,
-    parentSessionId: selectedSession?.parentSessionId ?? null,
     sessionSummaries,
-    selectedSessionType,
-    sessionTypeOptions,
   });
   const currentSessionRunning = agent.isRunning || selectedSession?.status === "running";
   const isSending = agent.isSending || currentSessionRunning;
@@ -245,7 +235,6 @@ export function NcpChatPage({ view }: ChatPageProps) {
     isProviderStateResolved: pageData.isProviderStateResolved,
     defaultSessionType: pageData.defaultSessionType,
     canStopCurrentRun: currentSessionRunning,
-    stopDisabledReason: currentSessionRunning ? null : "__preparing__",
     lastSendError,
     isSending,
     modelOptions: pageData.modelOptions,
@@ -260,17 +249,9 @@ export function NcpChatPage({ view }: ChatPageProps) {
     defaultModel:
       pageData.selectedSessionTypeOption?.recommendedModel ??
       pageData.configQuery.data?.agents.defaults.model,
-    currentSessionTypeLabel: derivedState.currentSessionTypeLabel,
-    currentSessionTypeIcon: derivedState.currentSessionTypeIcon,
     sessionKey,
-    currentAgentId: derivedState.currentAgentId,
-    currentSessionDisplayName: derivedState.currentSessionDisplayName,
-    effectiveSessionProjectRoot,
-    effectiveSessionWorkingDir,
-    effectiveSessionProjectName,
     selectedSession,
     agent,
-    isAwaitingAssistantOutput: currentSessionRunning,
     parentSession: derivedState.parentSession,
     childSessionTabs: derivedState.currentChildSessionTabs,
   });

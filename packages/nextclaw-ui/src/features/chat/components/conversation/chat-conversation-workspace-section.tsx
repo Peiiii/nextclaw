@@ -1,4 +1,4 @@
-import { ChatSessionWorkspacePanel } from "@/features/chat/components/chat-session-workspace-panel";
+import { ChatSessionWorkspacePanel } from "@/features/chat/features/workspace/components/chat-session-workspace-panel";
 import { useChatConversationWorkspaceState } from "@/features/chat/features/workspace/hooks/use-chat-conversation-workspace-state";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 

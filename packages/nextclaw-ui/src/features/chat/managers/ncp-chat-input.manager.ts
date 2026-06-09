@@ -172,6 +172,14 @@ export class NcpChatInputManager {
     });
   };
 
+  clearPendingProjectRootOverrideForCurrentThread = () => {
+    const { sessionKey, sessionProjectRoot } = useChatThreadStore.getState().snapshot;
+    this.clearPendingProjectRootOverrideForSession({
+      sessionKey,
+      selectedSessionProjectRoot: sessionProjectRoot,
+    });
+  };
+
   syncSessionPreferences = this.sessionPreferenceSync.syncInputSelection;
 
   setDraft = (next: SetStateAction<string>) => {

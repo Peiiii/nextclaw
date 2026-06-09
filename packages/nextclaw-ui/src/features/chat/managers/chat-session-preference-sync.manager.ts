@@ -1,5 +1,4 @@
 import type { SessionPatchUpdate, ThinkingLevel } from '@/shared/lib/api';
-import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
@@ -42,8 +41,6 @@ export class ChatSessionPreferenceSync {
   };
 
   syncInputSelection = (params: {
-    modelOptions: ChatModelOption[];
-    selectedSessionKey?: string | null;
     selectedSessionExists: boolean;
     selectedSessionPreferredModel?: string;
     fallbackPreferredModel?: string;
@@ -55,13 +52,13 @@ export class ChatSessionPreferenceSync {
       defaultModel,
       fallbackPreferredModel,
       fallbackPreferredThinking,
-      modelOptions,
       selectedSessionExists,
-      selectedSessionKey,
       selectedSessionPreferredModel,
       selectedSessionPreferredThinking,
     } = params;
     const { snapshot } = useChatInputStore.getState();
+    const selectedSessionKey = useChatThreadStore.getState().snapshot.sessionKey;
+    const modelOptions = snapshot.modelOptions;
     const sessionChanged = this.previousPreferenceSessionKey !== selectedSessionKey;
     this.previousPreferenceSessionKey = selectedSessionKey;
     const preserveCurrentPreference = sessionChanged && Boolean(selectedSessionKey) && !selectedSessionExists;

@@ -33,6 +33,7 @@ function createSnapshot(
     stopReason: undefined,
     canEditSessionType: true,
     sessionTypeUnavailable: false,
+    sessionTypeUnavailableMessage: null,
     skillRecords: [],
     isSkillsLoading: false,
     selectedSkills: [],

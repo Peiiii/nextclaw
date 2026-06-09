@@ -1,6 +1,6 @@
 import type { SessionEntryView } from "@/shared/lib/api";
 import type { NcpSessionListItemView } from "@/features/chat/features/ncp/hooks/use-ncp-session-list-view";
-import { ChatSidebarSessionItem } from "@/features/chat/components/chat-sidebar-session-item";
+import { ChatSidebarSessionItem } from "@/features/chat/features/session/components/chat-sidebar-session-item";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { shouldShowUnreadSessionIndicator } from "@/features/chat/stores/chat-session-list.store";
 import {

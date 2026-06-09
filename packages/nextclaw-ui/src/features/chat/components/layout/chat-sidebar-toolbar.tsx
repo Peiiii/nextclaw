@@ -6,7 +6,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover";
-import { ChatSidebarCreateMenu } from "@/features/chat/components/layout/chat-sidebar-create-menu";
+import { ChatSidebarCreateMenu } from "@/features/chat/features/session-type/components/chat-sidebar-create-menu";
 import type { ChatInputSnapshot } from "@/features/chat/stores/chat-input.store";
 import { cn } from "@/shared/lib/utils";
 import { t } from "@/shared/lib/i18n";

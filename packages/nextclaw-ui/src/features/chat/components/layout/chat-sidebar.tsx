@@ -28,8 +28,8 @@ import {
   Bot,
   BrainCircuit,
 } from 'lucide-react';
-import { ChatSidebarSessionEntry } from '@/features/chat/components/layout/chat-sidebar-session-entry';
-import { ChatSidebarSessionList } from '@/features/chat/components/layout/chat-sidebar-session-list';
+import { ChatSidebarSessionEntry } from '@/features/chat/features/session/components/chat-sidebar-session-entry';
+import { ChatSidebarSessionList } from '@/features/chat/features/session/components/chat-sidebar-session-list';
 import {
   ChatSidebarDesktopToolbar,
   ChatSidebarMobileToolbar,

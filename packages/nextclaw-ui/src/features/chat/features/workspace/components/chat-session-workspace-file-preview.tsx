@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { ChatFileOpenActionViewModel, ChatFileOperationBlockViewModel } from "@nextclaw/agent-chat-ui";
 import { ChatMessageMarkdown, FileOperationCodeSurface } from "@nextclaw/agent-chat-ui";
 import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.store";
-import { ChatSessionWorkspaceFileBreadcrumbs } from "./workspace/chat-session-workspace-file-breadcrumbs";
+import { ChatSessionWorkspaceFileBreadcrumbs } from "./chat-session-workspace-file-breadcrumbs";
 import { useServerPathRead } from "@/shared/hooks/use-server-path-read";
 import { buildLineDiff, buildPreviewLines } from "@/features/chat/features/message/utils/file-operation/line-builder.utils";
 import { t } from "@/shared/lib/i18n";

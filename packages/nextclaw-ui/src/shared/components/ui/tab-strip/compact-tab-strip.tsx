@@ -100,6 +100,7 @@ function CompactTabLabelButton({
 function CompactTabItem({
   activeTabClassName,
   inactiveTabClassName,
+  itemRef,
   labelClassName,
   tab,
   tabBaseClassName,
@@ -109,10 +110,11 @@ function CompactTabItem({
   | "inactiveTabClassName"
   | "labelClassName"
   | "tabBaseClassName"
-> & { tab: CompactTabStripTab }) {
+> & { itemRef?: React.Ref<HTMLDivElement>; tab: CompactTabStripTab }) {
   const leadingClose = tab.onClose && tab.closePlacement === "leading-hover";
   return (
     <div
+      ref={itemRef}
       className={cn(
         tabBaseClassName ??
           "group flex max-w-[180px] min-w-0 items-center gap-1.5 border-r border-gray-200/70 border-b-2 px-2.5 py-2 transition-colors",
@@ -168,6 +170,16 @@ export function CompactTabStrip({
   testId,
   ...tabProps
 }: CompactTabStripProps) {
+  const activeItemRef = React.useRef<HTMLDivElement>(null);
+  const activeTabKey = tabs.find((tab) => tab.active)?.key ?? null;
+
+  React.useLayoutEffect(() => {
+    activeItemRef.current?.scrollIntoView({
+      block: "nearest",
+      inline: "nearest",
+    });
+  }, [activeTabKey, tabs.length]);
+
   return (
     <div
       data-testid={testId}
@@ -189,7 +201,12 @@ export function CompactTabStrip({
           className={cn("flex min-w-max items-stretch", tabsClassName)}
         >
           {tabs.map((tab) => (
-            <CompactTabItem key={tab.key} tab={tab} {...tabProps} />
+            <CompactTabItem
+              key={tab.key}
+              itemRef={tab.active ? activeItemRef : undefined}
+              tab={tab}
+              {...tabProps}
+            />
           ))}
         </div>
       </div>

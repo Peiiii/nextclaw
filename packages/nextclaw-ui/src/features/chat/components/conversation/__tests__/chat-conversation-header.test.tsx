@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ChatConversationHeader } from "@/features/chat/components/conversation/chat-conversation-header";
-import { ChatSessionHeaderActions } from "@/features/chat/components/conversation/session-header/chat-session-header-actions";
+import { ChatSessionHeaderActions } from "@/features/chat/features/session/components/session-header/chat-session-header-actions";
 
 vi.mock("@/shared/components/common/agent-avatar", () => ({
   AgentAvatar: ({ agentId }: { agentId: string }) => (

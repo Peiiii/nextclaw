@@ -237,6 +237,37 @@ describe('NcpChatInputManager configuration sync', () => {
   beforeEach(resetNcpChatInputManagerStoreState);
 
   it('syncs session model and thinking preferences inside the input manager', () => {
+    useChatInputStore.setState({
+      snapshot: {
+        ...useChatInputStore.getState().snapshot,
+        modelOptions: [
+          {
+            value: 'anthropic/claude-sonnet-4',
+            modelLabel: 'claude-sonnet-4',
+            providerLabel: 'Anthropic',
+            thinkingCapability: {
+              supported: ['off', 'medium'],
+              default: 'medium',
+            },
+          },
+          {
+            value: 'openai/gpt-5',
+            modelLabel: 'gpt-5',
+            providerLabel: 'OpenAI',
+            thinkingCapability: {
+              supported: ['off', 'high'],
+              default: 'high',
+            },
+          },
+        ],
+      },
+    });
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        sessionKey: 'session-1',
+      },
+    });
     const manager = new NcpChatInputManager(
       {} as ConstructorParameters<typeof NcpChatInputManager>[0],
       {} as ConstructorParameters<typeof NcpChatInputManager>[1],
@@ -244,27 +275,6 @@ describe('NcpChatInputManager configuration sync', () => {
     );
 
     manager.syncSessionPreferences({
-      modelOptions: [
-        {
-          value: 'anthropic/claude-sonnet-4',
-          modelLabel: 'claude-sonnet-4',
-          providerLabel: 'Anthropic',
-          thinkingCapability: {
-            supported: ['off', 'medium'],
-            default: 'medium',
-          },
-        },
-        {
-          value: 'openai/gpt-5',
-          modelLabel: 'gpt-5',
-          providerLabel: 'OpenAI',
-          thinkingCapability: {
-            supported: ['off', 'high'],
-            default: 'high',
-          },
-        },
-      ],
-      selectedSessionKey: 'session-1',
       selectedSessionExists: true,
       selectedSessionPreferredModel: 'openai/gpt-5',
       selectedSessionPreferredThinking: 'high',
