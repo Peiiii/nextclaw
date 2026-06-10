@@ -1,5 +1,29 @@
 # @nextclaw/ui
 
+## 0.14.0
+
+### Minor Changes
+
+- c4ee481: Add the show_content chat display action so agents can ask the UI to open file, URL, or installed panel app content from tool results and realtime UI events.
+
+### Patch Changes
+
+- 2d50763: Fix NCP chat loading and header rendering after moving raw query results into the chat query store.
+- cb7f342: Improve DocBrowser tab visibility and resize handling around embedded web content.
+- 2d49463: Fix the Skill Marketplace header tabs and SkillHub action copy while preserving the marketplace refactor.
+- 3624bbb: Allow NARP runtimes to use their own default model instead of always receiving a NextClaw model override.
+- Updated dependencies
+- Updated dependencies [c4ee481]
+- Updated dependencies [3624bbb]
+  - @nextclaw/agent-chat@0.2.13
+  - @nextclaw/client-sdk@0.4.3
+  - @nextclaw/ncp@0.6.3
+  - @nextclaw/ncp-http-agent-client@0.3.45
+  - @nextclaw/ncp-react@0.4.53
+  - @nextclaw/ncp-toolkit@0.5.38
+  - @nextclaw/shared@0.3.0
+  - @nextclaw/agent-chat-ui@0.5.0
+
 ## 0.13.13
 
 ### Patch Changes

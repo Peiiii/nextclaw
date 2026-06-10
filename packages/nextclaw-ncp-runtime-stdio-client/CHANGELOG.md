@@ -1,5 +1,17 @@
 # @nextclaw/nextclaw-ncp-runtime-stdio-client
 
+## 0.2.13
+
+### Patch Changes
+
+- 89f2f73: Fix ACP stdio runtime failures in local dev by preventing dev-only Node export conditions from leaking into external runtime child processes, and surface child stderr in runtime errors.
+- d2ca679: Persist NARP runtime session metadata updates so Codex thread ids are bound back to NextClaw sessions across restarts, and wait for Codex SDK thread metadata writers before continuing a run.
+- 3624bbb: Fix Runtime default model selection for stdio runtimes so the internal sentinel is not forwarded as an ACP session model.
+- Updated dependencies [89f2f73]
+- Updated dependencies
+  - @nextclaw/core@0.14.4
+  - @nextclaw/ncp@0.6.3
+
 ## 0.2.12
 
 ### Patch Changes

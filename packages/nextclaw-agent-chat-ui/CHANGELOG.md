@@ -1,5 +1,11 @@
 # @nextclaw/agent-chat-ui
 
+## 0.5.0
+
+### Minor Changes
+
+- c4ee481: Add the show_content chat display action so agents can ask the UI to open file, URL, or installed panel app content from tool results and realtime UI events.
+
 ## 0.4.12
 
 ### Patch Changes

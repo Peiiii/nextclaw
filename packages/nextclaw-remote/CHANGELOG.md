@@ -1,5 +1,60 @@
 # @nextclaw/remote
 
+## 0.2.14
+
+### Patch Changes
+
+- Auto-generated full public beta release batch.
+
+  Packages:
+  - @nextclaw/agent-chat
+  - @nextclaw/aigen
+  - @nextclaw/app-runtime
+  - @nextclaw/app-sdk
+  - @nextclaw/browser-connector
+  - @nextclaw/channel-extension-dingtalk
+  - @nextclaw/channel-extension-discord
+  - @nextclaw/channel-extension-email
+  - @nextclaw/channel-extension-feishu
+  - @nextclaw/channel-extension-qq
+  - @nextclaw/channel-extension-slack
+  - @nextclaw/channel-extension-telegram
+  - @nextclaw/channel-extension-wecom
+  - @nextclaw/channel-extension-weixin
+  - @nextclaw/channel-extension-whatsapp
+  - @nextclaw/client-sdk
+  - @nextclaw/companion
+  - @nextclaw/extension-sdk
+  - @nextclaw/feishu-core
+  - @nextclaw/mcp
+  - @nextclaw/ncp
+  - @nextclaw/ncp-agent-runtime
+  - @nextclaw/ncp-agent-runtime-next
+  - @nextclaw/ncp-http-agent-client
+  - @nextclaw/ncp-http-agent-server
+  - @nextclaw/ncp-mcp
+  - @nextclaw/ncp-react
+  - @nextclaw/ncp-react-ui
+  - @nextclaw/ncp-toolkit
+  - @nextclaw/nextclaw-hermes-acp-bridge
+  - @nextclaw/nextclaw-narp-runtime-claude-code-sdk
+  - @nextclaw/nextclaw-narp-runtime-opencode
+  - @nextclaw/nextclaw-ncp-runtime-adapter-hermes-http
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk
+  - @nextclaw/nextclaw-ncp-runtime-http-client
+  - @nextclaw/remote
+  - @nextclaw/runtime
+  - @nextclaw/service
+  - nextclaw
+
+- Updated dependencies [89f2f73]
+- Updated dependencies [c4ee481]
+- Updated dependencies [d2ca679]
+- Updated dependencies [3624bbb]
+  - @nextclaw/core@0.14.4
+  - @nextclaw/kernel@0.5.0
+  - @nextclaw/server@0.14.4
+
 ## 0.2.13
 
 ### Patch Changes

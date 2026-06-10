@@ -1,5 +1,16 @@
 # nextclaw-core
 
+## 0.14.4
+
+### Patch Changes
+
+- 89f2f73: Fix ACP stdio runtime failures in local dev by preventing dev-only Node export conditions from leaking into external runtime child processes, and surface child stderr in runtime errors.
+- Updated dependencies
+- Updated dependencies [c4ee481]
+- Updated dependencies [3624bbb]
+  - @nextclaw/feishu-core@0.2.34
+  - @nextclaw/shared@0.3.0
+
 ## 0.14.3
 
 ### Patch Changes

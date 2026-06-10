@@ -1,5 +1,36 @@
 # @nextclaw/kernel
 
+## 0.5.0
+
+### Minor Changes
+
+- c4ee481: Add the show_content chat display action so agents can ask the UI to open file, URL, or installed panel app content from tool results and realtime UI events.
+
+### Patch Changes
+
+- 89f2f73: Fix ACP stdio runtime failures in local dev by preventing dev-only Node export conditions from leaking into external runtime child processes, and surface child stderr in runtime errors.
+- d2ca679: Persist NARP runtime session metadata updates so Codex thread ids are bound back to NextClaw sessions across restarts, and wait for Codex SDK thread metadata writers before continuing a run.
+- 3624bbb: Allow NARP runtimes to use their own default model instead of always receiving a NextClaw model override.
+- Updated dependencies [89f2f73]
+- Updated dependencies
+- Updated dependencies [c4ee481]
+- Updated dependencies [d2ca679]
+- Updated dependencies [3624bbb]
+- Updated dependencies [3624bbb]
+  - @nextclaw/core@0.14.4
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.2.13
+  - @nextclaw/channel-extension-feishu@0.1.25
+  - @nextclaw/channel-extension-weixin@0.1.29
+  - @nextclaw/mcp@0.2.14
+  - @nextclaw/ncp@0.6.3
+  - @nextclaw/ncp-agent-runtime@0.3.44
+  - @nextclaw/ncp-agent-runtime-next@0.0.16
+  - @nextclaw/ncp-mcp@0.1.109
+  - @nextclaw/ncp-toolkit@0.5.38
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.2.13
+  - @nextclaw/runtime@0.3.14
+  - @nextclaw/shared@0.3.0
+
 ## 0.4.3
 
 ### Patch Changes

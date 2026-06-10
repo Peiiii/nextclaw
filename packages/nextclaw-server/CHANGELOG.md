@@ -1,5 +1,21 @@
 # nextclaw-server
 
+## 0.14.4
+
+### Patch Changes
+
+- 3624bbb: Allow NARP runtimes to use their own default model instead of always receiving a NextClaw model override.
+- Updated dependencies [89f2f73]
+- Updated dependencies
+- Updated dependencies [c4ee481]
+- Updated dependencies [d2ca679]
+- Updated dependencies [3624bbb]
+  - @nextclaw/core@0.14.4
+  - @nextclaw/kernel@0.5.0
+  - @nextclaw/mcp@0.2.14
+  - @nextclaw/ncp@0.6.3
+  - @nextclaw/runtime@0.3.14
+
 ## 0.14.3
 
 ### Patch Changes

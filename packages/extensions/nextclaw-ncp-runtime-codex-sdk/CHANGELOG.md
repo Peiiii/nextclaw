@@ -1,5 +1,14 @@
 # @nextclaw/nextclaw-ncp-runtime-codex-sdk
 
+## 0.1.54
+
+### Patch Changes
+
+- d2ca679: Persist NARP runtime session metadata updates so Codex thread ids are bound back to NextClaw sessions across restarts, and wait for Codex SDK thread metadata writers before continuing a run.
+- 7dcd67b: Upgrade the bundled OpenAI Codex SDK dependency to 0.139.0.
+- Updated dependencies
+  - @nextclaw/ncp@0.6.3
+
 ## 0.1.53
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @nextclaw/nextclaw-narp-stdio-runtime-wrapper
 
+## 0.2.13
+
+### Patch Changes
+
+- d2ca679: Persist NARP runtime session metadata updates so Codex thread ids are bound back to NextClaw sessions across restarts, and wait for Codex SDK thread metadata writers before continuing a run.
+- Updated dependencies
+  - @nextclaw/ncp@0.6.3
+
 ## 0.2.12
 
 ### Patch Changes
