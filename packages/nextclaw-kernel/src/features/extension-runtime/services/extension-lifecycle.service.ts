@@ -3,26 +3,7 @@ import type {
   ExtensionManifest,
   RunningExtensionProcess,
 } from "@kernel/features/extension-runtime/index.js";
-
-function sanitizeExtensionNodeOptions(value: string | undefined): string | undefined {
-  if (!value?.trim()) {
-    return undefined;
-  }
-  const tokens = value.split(/\s+/).filter(Boolean);
-  const sanitized: string[] = [];
-  for (let index = 0; index < tokens.length; index += 1) {
-    const token = tokens[index];
-    if (token === "--conditions=development" || token === "-C=development") {
-      continue;
-    }
-    if ((token === "--conditions" || token === "-C") && tokens[index + 1] === "development") {
-      index += 1;
-      continue;
-    }
-    sanitized.push(token);
-  }
-  return sanitized.length > 0 ? sanitized.join(" ") : undefined;
-}
+import { createRuntimeChildEnv } from "@nextclaw/core";
 
 export class ExtensionLifecycleService {
   private readonly processes = new Map<string, RunningExtensionProcess>();
@@ -74,14 +55,12 @@ export class ExtensionLifecycleService {
       : manifest.server.command;
     const child = spawn(command, manifest.server.args ?? [], {
       cwd: manifest.rootDir,
-      env: {
-        ...process.env,
-        NODE_OPTIONS: sanitizeExtensionNodeOptions(process.env.NODE_OPTIONS),
+      env: createRuntimeChildEnv(process.env, {
         ...manifest.server.env,
         NEXTCLAW_EXTENSION_ID: manifest.id,
         NEXTCLAW_EXTENSION_ENDPOINT: params.endpoint,
         NEXTCLAW_EXTENSION_TOKEN: params.tokenForExtension(manifest.id),
-      },
+      }, { inheritBaseEnv: true }),
       stdio: ["ignore", "ignore", "inherit"],
       windowsHide: true,
     });

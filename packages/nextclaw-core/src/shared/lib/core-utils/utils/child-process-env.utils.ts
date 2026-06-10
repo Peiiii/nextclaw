@@ -121,6 +121,12 @@ export function createRuntimeChildEnv(
     ...splitPathEntries(extraEnv[pathKey] ?? ""),
     dirname(options.execPath ?? process.execPath),
   ])).join(delimiter);
+  const sanitizedNodeOptions = sanitizeNodeOptionsForExternalCommand(env.NODE_OPTIONS);
+  if (sanitizedNodeOptions) {
+    env.NODE_OPTIONS = sanitizedNodeOptions;
+  } else {
+    delete env.NODE_OPTIONS;
+  }
   return env;
 }
 

@@ -9,6 +9,7 @@ import {
   StdioRuntimeConfigResolver,
   StdioRuntimeNcpAgentRuntime,
 } from "./index.js";
+import { formatRuntimeErrorMessage } from "./stdio-runtime-error.utils.js";
 
 const FIXTURE_PATH = join(
   import.meta.dirname,
@@ -85,6 +86,7 @@ describe("buildStdioRuntimeLaunchEnv", () => {
     const env = buildStdioRuntimeLaunchEnv({
       baseEnv: {
         KEEP: "base",
+        NODE_OPTIONS: "--conditions=development --trace-warnings",
         PATH: ["/usr/bin", "/bin"].join(delimiter),
       },
       configEnv: {
@@ -94,11 +96,23 @@ describe("buildStdioRuntimeLaunchEnv", () => {
 
     expect(env.KEEP).toBe("base");
     expect(env.EXTRA).toBe("config");
+    expect(env.NODE_OPTIONS).toBe("--trace-warnings");
     expect(env.PATH?.split(delimiter)).toEqual([
       "/usr/bin",
       "/bin",
       dirname(process.execPath),
     ]);
+  });
+
+  it("drops dev-only node conditions before launching external stdio runtimes", () => {
+    const env = buildStdioRuntimeLaunchEnv({
+      baseEnv: {
+        NODE_OPTIONS: "--conditions=development",
+        PATH: "/usr/bin",
+      },
+    });
+
+    expect(env.NODE_OPTIONS).toBeUndefined();
   });
 });
 
@@ -362,6 +376,14 @@ describe("StdioRuntimeNcpAgentRuntime Hermes request-scoped route handling", () 
 });
 
 describe("StdioRuntimeNcpAgentRuntime failure handling", () => {
+  it("preserves stderr diagnostics in runtime errors", () => {
+    expect(
+      formatRuntimeErrorMessage(new Error("Internal error"), {
+        stderr: "fixture stderr diagnostic",
+      }),
+    ).toBe("Internal error. stderr=fixture stderr diagnostic");
+  });
+
   it("emits explicit failure events when the ACP prompt fails", async () => {
     const runtime = new StdioRuntimeNcpAgentRuntime({
       sessionId: "session-stdio-failing-prompt",

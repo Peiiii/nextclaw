@@ -2,16 +2,16 @@ import { randomUUID } from "node:crypto";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { Readable, Writable } from "node:stream";
 import * as acp from "@agentclientprotocol/sdk";
-import type {
-  NcpAgentConversationStateManager,
-  NcpAgentRunInput,
-  NcpAgentRunOptions,
-  NcpAgentRuntime,
-  NcpEndpointEvent,
-  NcpProviderRuntimeRoute,
-  OpenAITool,
+import {
+  NcpEventType,
+  type NcpAgentConversationStateManager,
+  type NcpAgentRunInput,
+  type NcpAgentRunOptions,
+  type NcpAgentRuntime,
+  type NcpEndpointEvent,
+  type NcpProviderRuntimeRoute,
+  type OpenAITool,
 } from "@nextclaw/ncp";
-import { NcpEventType } from "@nextclaw/ncp";
 import type { StdioRuntimeResolvedConfig, NarpStdioPromptMeta } from "./stdio-runtime-config.utils.js";
 import {
   NARP_STDIO_PROMPT_META_KEY,
@@ -32,7 +32,6 @@ export type StdioRuntimeNcpAgentRuntimeConfig = StdioRuntimeResolvedConfig & {
   resolveTools?: (input: NcpAgentRunInput) => ReadonlyArray<OpenAITool> | undefined;
   resolveProviderRoute?: (input: NcpAgentRunInput) => NcpProviderRuntimeRoute | undefined;
 };
-
 type AcpToolState = {
   toolName: string;
   args?: string;
@@ -474,6 +473,7 @@ class StdioRuntimeRunController {
       if (this.shouldExitForAbort(options, promptState.error)) {
         return;
       }
+      if (promptState.error) throw promptState.error;
       yield* this.emitCompletionEvents(assistantMessageId);
     } catch (error) {
       if (this.shouldExitForAbort(options, error)) {
@@ -586,7 +586,7 @@ class StdioRuntimeRunController {
     assistantMessageId: string,
     error: unknown,
   ): AsyncGenerator<NcpEndpointEvent> {
-    const ncpError = normalizeRuntimeError(error);
+    const ncpError = normalizeRuntimeError(error, { stderr: this.session.readStderr() });
     yield* this.emitEvent({
       type: NcpEventType.MessageFailed,
       payload: {

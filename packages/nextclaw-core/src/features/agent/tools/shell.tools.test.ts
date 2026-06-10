@@ -261,13 +261,28 @@ describe("createRuntimeChildEnv", () => {
 
   it("can preserve the full base env for direct spawn callers", () => {
     const env = createRuntimeChildEnv(
-      { PATH: "/usr/bin", KEEP: "base" },
+      {
+        NODE_OPTIONS: "--conditions=development --trace-warnings",
+        PATH: "/usr/bin",
+        KEEP: "base",
+      },
       { NEXTCLAW_HOME: "/tmp/nextclaw-home" },
       { inheritBaseEnv: true },
     );
 
     expect(env.KEEP).toBe("base");
     expect(env.NEXTCLAW_HOME).toBe("/tmp/nextclaw-home");
+    expect(env.NODE_OPTIONS).toBe("--trace-warnings");
     expect(splitPath(env.PATH)).toEqual(["/usr/bin", nodeBinDir]);
+  });
+
+  it("drops inherited node options when only the development condition remains", () => {
+    const env = createRuntimeChildEnv(
+      { NODE_OPTIONS: "--conditions=development", PATH: "/usr/bin" },
+      {},
+      { inheritBaseEnv: true },
+    );
+
+    expect(env.NODE_OPTIONS).toBeUndefined();
   });
 });
