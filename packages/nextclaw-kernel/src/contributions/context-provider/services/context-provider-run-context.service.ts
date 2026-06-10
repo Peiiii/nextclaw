@@ -2,7 +2,7 @@ import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
 import { buildAgentRunRequestMetadata } from "@kernel/utils/agent-run-request-metadata.utils.js";
 import {
-  resolveNextclawNcpRunContext,
+  buildNextclawNcpRunContext,
   type NextclawNcpResolvedRunContext,
 } from "@kernel/features/native-runtime/index.js";
 import {
@@ -55,12 +55,15 @@ export class ContextProviderRunContextService {
       request.message.sessionId ??
       "";
     const requestMetadata = buildAgentRunRequestMetadata({ request, session });
-    const runContext = resolveNextclawNcpRunContext({
-      configManager: this.kernel.configManager,
+    const runContext = buildNextclawNcpRunContext({
+      agentProfile: this.kernel.agents.resolveAgentProfileForRun({
+        requestMetadata,
+        storedAgentId: request.agentId ?? session?.agentId,
+      }),
+      config: this.kernel.configManager.loadConfig(),
       sessionId,
       requestMetadata,
       sessionMetadata: session?.metadata ?? requestMetadata,
-      storedAgentId: request.agentId ?? session?.agentId,
     });
     const tools = await this.kernel.toolProviderManager.buildTools(request);
     const sessionProjectRoot = readSessionProjectRoot(

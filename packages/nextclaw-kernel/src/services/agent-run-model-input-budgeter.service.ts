@@ -1,12 +1,9 @@
 import {
-  ContextWindowBudgetService,
-  findEffectiveAgentProfile,
   InputBudgetPruner,
-  resolveDefaultAgentProfileId,
   type InputBudgetPruneResult,
 } from "@nextclaw/core";
 import type { OpenAIChatMessage } from "@nextclaw/ncp";
-import type { ConfigManager } from "@kernel/managers/config.manager.js";
+import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { AgentRunSpec } from "@kernel/types/agent-run.types.js";
 
 export type AgentRunModelInputBudgeterPruneParams = {
@@ -24,26 +21,16 @@ export type AgentRunModelInputBudgeterPruneResult = Omit<
 export class AgentRunModelInputBudgeter {
   private readonly inputBudgetPruner = new InputBudgetPruner();
 
-  constructor(private readonly configManager: ConfigManager) {}
+  constructor(private readonly agentManager: AgentManager) {}
 
   prune = async (
     params: AgentRunModelInputBudgeterPruneParams,
   ): Promise<AgentRunModelInputBudgeterPruneResult> => {
-    const config = this.configManager.loadConfig();
-    const defaultAgentId = resolveDefaultAgentProfileId(config);
-    const profile =
-      findEffectiveAgentProfile(config, params.spec.agentId) ??
-      findEffectiveAgentProfile(config, defaultAgentId);
-    const contextTokens = profile?.contextTokens ?? config.agents.defaults.contextTokens;
-    const reservedContextTokens = ContextWindowBudgetService.resolveReservedContextTokens({
-      contextTokens,
-      configuredReservedContextTokens:
-        profile?.reservedContextTokens ?? config.agents.defaults.reservedContextTokens,
-    });
+    const profile = this.agentManager.resolveAgentProfile(params.spec.agentId);
     const pruned = this.inputBudgetPruner.prune({
       messages: params.messages.map((message) => ({ ...message })),
-      contextTokens,
-      reserveTokensFloor: reservedContextTokens,
+      contextTokens: profile.contextTokens,
+      reserveTokensFloor: profile.reservedContextTokens,
       softThresholdTokens: 0,
     });
 

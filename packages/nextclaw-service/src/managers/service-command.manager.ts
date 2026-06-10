@@ -1,4 +1,5 @@
 import { APP_NAME } from "@nextclaw/core";
+import { AgentManager } from "@nextclaw/kernel";
 import { RemoteRuntimeActions } from "@nextclaw/remote";
 import { AgentCommands, runCliAgentCommand } from "@nextclaw-service/controllers/commands/agent-command.controller.js";
 import { ChannelCommands } from "@nextclaw-service/controllers/commands/channel-command.controller.js";
@@ -86,9 +87,10 @@ export class ServiceCommandManager {
       secrets: new SecretsCommands({
         requestRestart: (params) => this.deps.restart.requestRestart(params),
       }),
-      agents: new AgentCommands({
-        initializeAgentHomeDirectory: (homeDirectory) => this.deps.workspace.createWorkspaceTemplates(homeDirectory)
-      }),
+      agents: new AgentCommands(new AgentManager(undefined, {
+        initializeAgentHomeDirectory: (homeDirectory) =>
+          this.deps.workspace.createWorkspaceTemplates(homeDirectory),
+      })),
       channels: new ChannelCommands({
         requestRestart: (params) => this.deps.restart.requestRestart(params),
       }),

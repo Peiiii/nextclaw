@@ -1,23 +1,13 @@
-import {
-  BUILTIN_MAIN_AGENT_ID,
-  createAgentProfile,
-  loadConfig,
-  removeAgentProfile,
-  resolveEffectiveAgentProfiles,
-  updateAgentProfile,
-  type EffectiveAgentProfile
-} from "@nextclaw/core";
+import type { EffectiveAgentProfile } from "@nextclaw/core";
+import type { AgentManager } from "@nextclaw/kernel";
 import { listAvailableAgentRuntimes } from "@nextclaw-service/utils/agent-runtime.utils.js";
 import type { AgentsListCommandOptions, AgentsNewCommandOptions, AgentsRemoveCommandOptions, AgentsRuntimesCommandOptions, AgentsUpdateCommandOptions } from "@nextclaw-service/types/cli.types.js";
 
 export class AgentCommands {
-  constructor(private readonly deps: {
-    initializeAgentHomeDirectory: (homeDirectory: string) => void;
-  }) {}
+  constructor(private readonly agentManager: AgentManager) {}
 
   list = (opts: AgentsListCommandOptions = {}): void => {
-    const config = loadConfig();
-    const agents = resolveEffectiveAgentProfiles(config).map((agent) => this.toAgentListEntry(agent));
+    const agents = this.agentManager.listAgents().map((agent) => this.toAgentListEntry(agent));
     if (opts.json) {
       console.log(JSON.stringify(agents, null, 2));
       return;
@@ -59,19 +49,14 @@ export class AgentCommands {
   };
 
   create = async (agentId: string, opts: AgentsNewCommandOptions = {}): Promise<void> => {
-    const created = createAgentProfile(
-      {
-        id: agentId,
-        displayName: opts.name,
-        description: opts.description,
-        avatar: opts.avatar,
-        home: opts.home,
-        runtime: opts.runtime
-      },
-      {
-        initializeHomeDirectory: this.deps.initializeAgentHomeDirectory
-      }
-    );
+    const created = await this.agentManager.createAgent({
+      id: agentId,
+      displayName: opts.name,
+      description: opts.description,
+      avatar: opts.avatar,
+      home: opts.home,
+      runtime: opts.runtime
+    });
     if (opts.json) {
       console.log(JSON.stringify({
         agent: created
@@ -87,7 +72,7 @@ export class AgentCommands {
   };
 
   update = async (agentId: string, opts: AgentsUpdateCommandOptions = {}): Promise<void> => {
-    const updated = updateAgentProfile({
+    const updated = await this.agentManager.updateAgent({
       id: agentId,
       displayName: opts.name,
       description: opts.description,
@@ -109,10 +94,7 @@ export class AgentCommands {
   };
 
   remove = async (agentId: string, opts: AgentsRemoveCommandOptions = {}): Promise<void> => {
-    if (agentId.trim().toLowerCase() === BUILTIN_MAIN_AGENT_ID) {
-      throw new Error(`agent id '${BUILTIN_MAIN_AGENT_ID}' is reserved`);
-    }
-    const removed = removeAgentProfile(agentId);
+    const removed = await this.agentManager.removeAgent(agentId);
     if (!removed) {
       throw new Error(`agent '${agentId}' not found`);
     }

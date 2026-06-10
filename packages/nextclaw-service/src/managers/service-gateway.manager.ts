@@ -28,7 +28,7 @@ import { handleGatewayDeferredStartupError } from "@nextclaw-service/utils/gatew
 import { NextclawApp, type UiStartupHandle } from "@nextclaw-service/services/gateway/nextclaw-app.service.js";
 import { NextclawDistributionService } from "@nextclaw-service/services/runtime/nextclaw-distribution.service.js";
 import { ServiceBootstrapStatusStore } from "@nextclaw-service/services/gateway/service-bootstrap-status.service.js";
-import { ServiceFileWatcherRegistry, markLocalUiRuntimeIfStarted, startGatewayRuntimeSupport, watchServiceConfigFile } from "@nextclaw-service/services/gateway/service-startup-support.service.js";
+import { GatewayRuntimeSupportService, ServiceFileWatcherRegistry, markLocalUiRuntimeIfStarted, watchServiceConfigFile } from "@nextclaw-service/services/gateway/service-startup-support.service.js";
 import { ServiceMarketplaceInstaller } from "@nextclaw-service/services/marketplace/service-marketplace-installer.service.js";
 import { NpmRuntimeUpdateHost } from "@nextclaw-service/services/runtime/npm-runtime-update-host.service.js";
 import { createRuntimeControlHost } from "@nextclaw-service/services/ui/runtime-control-host.service.js";
@@ -334,7 +334,7 @@ export class ServiceGatewayManager {
   private startSupportServices = async (): Promise<void> => {
     this.extensions.publishConfigChanges();
     await measureStartupAsync("service.start_gateway_support_services", async () =>
-      await startGatewayRuntimeSupport({
+      await new GatewayRuntimeSupportService({
         automation: this.automation,
         remoteModule: this.remoteManager.remoteModule,
         watchConfigFile: () => watchServiceConfigFile({
@@ -343,7 +343,7 @@ export class ServiceGatewayManager {
           scheduleReload: (reason) => this.configManager.scheduleReload(reason)
         }),
         watcherRegistry: this.fileWatchers
-      })
+      }).start()
     );
   };
 

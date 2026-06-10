@@ -1,9 +1,9 @@
-import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import type { AgentRunRequest, ToolProvider } from "@kernel/types/agent-run.types.js";
-import { resolveToolProviderRunContext } from "@kernel/contributions/tool-provider/utils/tool-provider-run-context.utils.js";
+import type { ToolProviderRunContextService } from "@kernel/contributions/tool-provider/services/tool-provider-run-context.service.js";
 import {
   EditFileTool,
   ExecTool,
+  type GatewayController,
   GatewayTool,
   ListDirTool,
   MemoryGetTool,
@@ -16,13 +16,13 @@ import {
 import type { NcpTool } from "@nextclaw/ncp";
 
 export class CoreToolProvider implements ToolProvider {
-  constructor(private readonly kernel: NextclawKernel) {}
+  constructor(
+    private readonly runContextService: ToolProviderRunContextService,
+    private readonly getGatewayController: () => GatewayController | undefined,
+  ) {}
 
   provide = async (request: AgentRunRequest): Promise<readonly NcpTool[]> => {
-    const { toolRunContext } = await resolveToolProviderRunContext({
-      kernel: this.kernel,
-      request,
-    });
+    const { toolRunContext } = await this.runContextService.resolve(request);
     const {
       channel,
       chatId,
@@ -39,7 +39,7 @@ export class CoreToolProvider implements ToolProvider {
       workingDir: workspace,
     });
     execTool.setContext({ channel, chatId, sessionKey: sessionId });
-    const gatewayTool = new GatewayTool(this.kernel.getGatewayController());
+    const gatewayTool = new GatewayTool(this.getGatewayController());
     gatewayTool.setContext({ sessionKey: sessionId });
     return [
       new ReadFileTool(allowedDir),

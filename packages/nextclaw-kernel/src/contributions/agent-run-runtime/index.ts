@@ -21,7 +21,7 @@ export class AgentRunRuntimeContribution implements KernelContribution {
   constructor(private readonly kernel: NextclawKernel) {
     this.modelInputBuilder = new AgentRunModelInputBuilder(
       new AgentRunMessageProjector(),
-      new AgentRunModelInputBudgeter(kernel.configManager),
+      new AgentRunModelInputBudgeter(kernel.agents),
       kernel.assetStore,
     );
   }

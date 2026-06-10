@@ -1,4 +1,4 @@
-import type { ConfigManager } from "@kernel/managers/config.manager.js";
+import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import {
@@ -22,14 +22,11 @@ export class AgentRunContextCompactionManager {
   private readonly preflightService: ContextCompactionPreflightService;
 
   constructor(
-    configManager: ConfigManager,
+    agentManager: AgentManager,
     providerManager: LlmProviderRuntime,
     private readonly sessionManager: SessionManager,
   ) {
-    this.preflightService = new ContextCompactionPreflightService({
-      configManager,
-      providerManager,
-    });
+    this.preflightService = new ContextCompactionPreflightService(agentManager, providerManager);
   }
 
   runPreflight = async (

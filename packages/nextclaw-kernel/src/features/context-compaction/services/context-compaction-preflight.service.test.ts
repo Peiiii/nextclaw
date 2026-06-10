@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   CONTEXT_COMPACTION_METADATA_KEY,
-  type Config,
   type ContextCompactionCheckpoint,
 } from "@nextclaw/core";
 import type { NcpMessage } from "@nextclaw/ncp";
@@ -9,26 +8,24 @@ import {
   buildContextCompactionModelInput,
   buildContextCompactionTimelineNcpMessage,
 } from "@kernel/features/context-compaction/utils/context-compaction.utils.js";
+import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import { ContextCompactionPreflightService } from "./context-compaction-preflight.service.js";
 
 const SESSION_ID = "session-rolling-compaction";
 
-function createConfig(): Config {
+function createAgentManager(): AgentManager {
   return {
-    agents: {
-      defaults: {
-        contextTokens: 1_000,
-        engine: "native",
-        engineConfig: {},
-        maxToolIterations: 100,
-        model: "test-model",
-        models: {},
-        thinkingDefault: "off",
-        workspace: "",
-      },
-      list: [],
-    },
-  } as Config;
+    resolveAgentProfileForRun: () => ({
+      id: "main",
+      default: true,
+      workspace: "",
+      model: "test-model",
+      contextTokens: 1_000,
+      reservedContextTokens: 0,
+      displayName: "Main",
+      builtIn: true,
+    }),
+  } as AgentManager;
 }
 
 function createCheckpoint(): ContextCompactionCheckpoint {
@@ -83,9 +80,7 @@ function createAssistantMessage(params: {
 describe("ContextCompactionPreflightService", () => {
   it("projects from the checkpoint timestamp when replay order leaves old messages after the marker", () => {
     const existingCheckpoint = createCheckpoint();
-    const service = new ContextCompactionPreflightService({
-      configManager: { loadConfig: createConfig } as never,
-    });
+    const service = new ContextCompactionPreflightService(createAgentManager());
 
     const contextWindow = service.preview({
       requestMetadata: {},
@@ -114,9 +109,7 @@ describe("ContextCompactionPreflightService", () => {
 
   it("falls back to the timeline checkpoint when metadata is stuck in compressing", () => {
     const existingCheckpoint = createCheckpoint();
-    const service = new ContextCompactionPreflightService({
-      configManager: { loadConfig: createConfig } as never,
-    });
+    const service = new ContextCompactionPreflightService(createAgentManager());
 
     const contextWindow = service.preview({
       requestMetadata: {},
@@ -189,10 +182,7 @@ describe("ContextCompactionPreflightService", () => {
     const providerManager = {
       chat: vi.fn(async () => ({ content: "# Compressed Earlier Context\n\nRolled forward." })),
     };
-    const service = new ContextCompactionPreflightService({
-      configManager: { loadConfig: createConfig } as never,
-      providerManager: providerManager as never,
-    });
+    const service = new ContextCompactionPreflightService(createAgentManager(), providerManager as never);
     const sessionMessages = [
       createTimelineMessage(existingCheckpoint),
       ...Array.from({ length: 16 }, (_, index) => createUserMessage(index)),

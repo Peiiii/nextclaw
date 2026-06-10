@@ -40,6 +40,7 @@ import {
   eventKeys,
   type EventBus,
 } from "@nextclaw/shared";
+import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import { SessionWorkingDirResolver } from "@kernel/services/session-working-dir-resolver.service.js";
 
@@ -56,6 +57,7 @@ const CHILD_SESSION_LIFECYCLE_METADATA_KEY = "session_lifecycle";
 const SESSION_METADATA_PATCH_RUN_METADATA_KIND = "session_metadata_patch";
 
 export type SessionManagerOptions = {
+  agentManager: AgentManager;
   configManager: ConfigManager;
   eventBus: EventBus;
   journalStore: NcpAgentSessionJournalStore;
@@ -215,10 +217,8 @@ export class SessionManager implements NcpSessionApi {
   private started = false;
 
   constructor(private readonly options: SessionManagerOptions) {
-    this.contextWindowPreview = new ContextWindowPreviewManager({
-      configManager: options.configManager,
-    });
-    this.workingDirResolver = new SessionWorkingDirResolver(options.configManager);
+    this.contextWindowPreview = new ContextWindowPreviewManager(options.agentManager);
+    this.workingDirResolver = new SessionWorkingDirResolver(options.agentManager);
   }
 
   start = (): void => {

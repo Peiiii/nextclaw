@@ -4,22 +4,16 @@ import {
   ContextWindowBudgetService,
   buildCompressingCompactionCheckpoint,
   buildContextWindowSnapshot,
-  findEffectiveAgentProfile,
   readCompressedContextCompactionCheckpoint,
-  resolveDefaultAgentProfileId,
-  type Config,
   type ContextCompactionCheckpoint,
   type ContextCompactionPlan,
   type ContextWindowBudgetEvaluation,
   type ContextWindowSnapshot,
 } from "@nextclaw/core";
 import type { NcpMessage } from "@nextclaw/ncp";
-import type { ConfigManager } from "@kernel/managers/config.manager.js";
+import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
-import {
-  normalizeString,
-  toLegacyMessages,
-} from "@kernel/utils/ncp-message-bridge.utils.js";
+import { toLegacyMessages } from "@kernel/utils/ncp-message-bridge.utils.js";
 import {
   buildContextCompactionModelInput,
   buildContextCompactionTimelineNcpMessage,
@@ -58,35 +52,6 @@ type ResolvedCompactionProfile = {
 
 const SUMMARY_MAX_TOKENS = 4000;
 const SUMMARY_SOURCE_MAX_CHARS = 120_000;
-
-function readRequestedAgentId(metadata: Record<string, unknown>): string | null {
-  return normalizeString(metadata.agent_id)?.toLowerCase() ?? normalizeString(metadata.agentId)?.toLowerCase() ?? null;
-}
-
-function resolveCompactionProfile(params: {
-  config: Config;
-  requestMetadata: Record<string, unknown>;
-  storedAgentId?: string;
-}): ResolvedCompactionProfile {
-  const { config, requestMetadata, storedAgentId } = params;
-  const { defaults } = config.agents;
-  const defaultAgentId = resolveDefaultAgentProfileId(config);
-  const agentId =
-    normalizeString(storedAgentId)?.toLowerCase() ??
-    readRequestedAgentId(requestMetadata) ??
-    defaultAgentId;
-  const profile =
-    findEffectiveAgentProfile(config, agentId) ??
-    findEffectiveAgentProfile(config, defaultAgentId);
-  return {
-    contextTokens: profile?.contextTokens ?? defaults.contextTokens,
-    model: profile?.model ?? defaults.model,
-    reservedContextTokens: ContextWindowBudgetService.resolveReservedContextTokens({
-      contextTokens: profile?.contextTokens ?? defaults.contextTokens,
-      configuredReservedContextTokens: profile?.reservedContextTokens ?? defaults.reservedContextTokens,
-    }),
-  };
-}
 
 function mergeInputMessages(params: {
   inputMessages: readonly NcpMessage[];
@@ -135,10 +100,8 @@ export class ContextCompactionPreflightService {
   private readonly contextWindowBudgetService = new ContextWindowBudgetService();
 
   constructor(
-    private readonly options: {
-      configManager: ConfigManager;
-      providerManager?: LlmProviderRuntime;
-    },
+    private readonly agentManager: AgentManager,
+    private readonly providerManager?: LlmProviderRuntime,
   ) {}
 
   preview = (params: {
@@ -155,8 +118,7 @@ export class ContextCompactionPreflightService {
       storedAgentId,
       storedMetadata,
     } = params;
-    const profile = resolveCompactionProfile({
-      config: this.options.configManager.loadConfig(),
+    const profile = this.resolveCompactionProfile({
       requestMetadata,
       storedAgentId,
     });
@@ -197,8 +159,7 @@ export class ContextCompactionPreflightService {
       storedAgentId,
       storedMetadata,
     } = params;
-    const profile = resolveCompactionProfile({
-      config: this.options.configManager.loadConfig(),
+    const profile = this.resolveCompactionProfile({
       requestMetadata,
       storedAgentId,
     });
@@ -330,11 +291,11 @@ export class ContextCompactionPreflightService {
     messages: Record<string, unknown>[];
     model: string;
   }): Promise<string> => {
-    if (!this.options.providerManager) {
+    if (!this.providerManager) {
       throw new Error("context compaction summary generation requires a provider manager");
     }
     const { messages, model } = params;
-    const response = await this.options.providerManager.chat({
+    const response = await this.providerManager.chat({
       model,
       maxTokens: SUMMARY_MAX_TOKENS,
       messages: [
@@ -366,5 +327,20 @@ export class ContextCompactionPreflightService {
       throw new Error("context compaction summary is empty");
     }
     return summary;
+  };
+
+  private resolveCompactionProfile = (params: {
+    requestMetadata: Record<string, unknown>;
+    storedAgentId?: string;
+  }): ResolvedCompactionProfile => {
+    const profile = this.agentManager.resolveAgentProfileForRun({
+      requestMetadata: params.requestMetadata,
+      storedAgentId: params.storedAgentId,
+    });
+    return {
+      contextTokens: profile.contextTokens,
+      model: profile.model,
+      reservedContextTokens: profile.reservedContextTokens,
+    };
   };
 }

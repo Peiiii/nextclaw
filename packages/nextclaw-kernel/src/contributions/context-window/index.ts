@@ -34,9 +34,7 @@ export class ContextWindowContribution implements KernelContribution {
   private unsubscribeNcpEvent: Unsubscribe | null = null;
 
   constructor(private readonly kernel: NextclawKernel) {
-    this.contextWindowPreview = new ContextCompactionPreflightService({
-      configManager: kernel.configManager,
-    });
+    this.contextWindowPreview = new ContextCompactionPreflightService(kernel.agents);
   }
 
   start = (): void => {

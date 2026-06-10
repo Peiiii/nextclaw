@@ -5,40 +5,54 @@ import chokidar, { type FSWatcher } from "chokidar";
 import { resolve } from "node:path";
 import { localUiRuntimeStore } from "@nextclaw-service/stores/local-ui-runtime.store.js";
 
-export async function startGatewaySupportServices(params: {
+type GatewayRuntimeSupportServiceParams = {
   automation: AutomationManager;
   remoteModule: RemoteServiceModule | null;
   watchConfigFile: () => void;
-}): Promise<void> {
-  const { automation, remoteModule, watchConfigFile } = params;
-  const cronJobs = automation.status().jobs;
-  if (cronJobs > 0) {
-    console.log(`✓ Cron: ${cronJobs} scheduled jobs`);
-  }
-  remoteModule?.start();
-  watchConfigFile();
-  await automation.start();
-}
+  watcherRegistry: ServiceFileWatcherRegistry;
+};
 
-export function watchCronStoreFile(automation: AutomationManager): FSWatcher {
-  const cronStorePath = resolve(automation.storePath);
-  const watcher = chokidar.watch(cronStorePath, {
-    ignoreInitial: true,
-    awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 }
-  });
-  watcher.on("all", (event, changedPath) => {
-    if (resolve(changedPath) !== cronStorePath) {
-      return;
+export class GatewayRuntimeSupportService {
+  constructor(private readonly params: GatewayRuntimeSupportServiceParams) {}
+
+  start = async (): Promise<void> => {
+    const {
+      automation,
+      remoteModule,
+      watchConfigFile,
+      watcherRegistry
+    } = this.params;
+    const cronJobs = automation.status().jobs;
+    if (cronJobs > 0) {
+      console.log(`✓ Cron: ${cronJobs} scheduled jobs`);
     }
-    if (event === "add" || event === "change" || event === "unlink") {
-      try {
-        automation.reloadFromStore();
-      } catch (error) {
-        console.error(`Cron store reload failed (${event}): ${String(error)}`);
+    remoteModule?.start();
+    watchConfigFile();
+    await automation.start();
+    watcherRegistry.remember(this.watchCronStoreFile());
+  };
+
+  private watchCronStoreFile = (): FSWatcher => {
+    const { automation } = this.params;
+    const cronStorePath = resolve(automation.storePath);
+    const watcher = chokidar.watch(cronStorePath, {
+      ignoreInitial: true,
+      awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 }
+    });
+    watcher.on("all", (event, changedPath) => {
+      if (resolve(changedPath) !== cronStorePath) {
+        return;
       }
-    }
-  });
-  return watcher;
+      if (event === "add" || event === "change" || event === "unlink") {
+        try {
+          automation.reloadFromStore();
+        } catch (error) {
+          console.error(`Cron store reload failed (${event}): ${String(error)}`);
+        }
+      }
+    });
+    return watcher;
+  };
 }
 
 export function watchServiceConfigFile(params: {
@@ -97,24 +111,4 @@ export function markLocalUiRuntimeIfStarted(params: {
   if (uiStartup) {
     localUiRuntimeStore.writeCurrentProcess(uiConfig);
   }
-}
-
-export async function startGatewayRuntimeSupport(params: {
-  automation: AutomationManager;
-  remoteModule: RemoteServiceModule | null;
-  watchConfigFile: () => void;
-  watcherRegistry: ServiceFileWatcherRegistry;
-}): Promise<void> {
-  const {
-    automation,
-    remoteModule,
-    watchConfigFile,
-    watcherRegistry
-  } = params;
-  await startGatewaySupportServices({
-    automation,
-    remoteModule,
-    watchConfigFile
-  });
-  watcherRegistry.remember(watchCronStoreFile(automation));
 }

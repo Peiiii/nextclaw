@@ -125,10 +125,13 @@
 - 代码目标默认不是“最小 diff”，而是在满足目标前提下让系统更少、更简单、更清晰、更可预测。
 - 单一链路优先是核心编码理念：同一事实、事件、状态变更或传输语义默认只能有一条标准主链路；发现平行通道、双写路径、重复 publisher、重复 facade 或多套入口时，优先删除并收敛到唯一 owner / 唯一总线 / 唯一 mutation API。
 - 新增之前先判断能否删除、合并、复用、收敛职责；非新增用户能力的改动默认应避免生产代码净增长，优先通过删除旧实现、重构收敛职责或在同责任链/同问题域偿还债务达成；不要求删减只发生在当前改动点，但只接受让系统更清晰、更少或更可预测的真实改善；若只能靠 hack、把复杂度外移、缩短命名/折叠语句等方式伪造净减，必须申请豁免而不是继续压缩。
+- 新增 resolver、factory、adapter、wrapper、service、manager 等抽象前，必须证明它减少真实复杂度、表达稳定语义或隔离真实变化点；不得用新抽象掩盖 owner 误判、参数搬运或依赖违规。
 - 命名默认遵循快手最佳实践进行规范化；文件、class、函数、字段等名称必须语义化、无歧义、清晰简洁，并能直接识别其主要职责。
 - 业务逻辑默认必须有清晰 owner，通常落到 class / manager / service / controller / presenter；普通函数只用于纯常量、纯类型、极小纯计算、纯数据映射、纯业务无关工具。
+- NextClaw 产品功能、产品语义和业务规则默认归 `kernel` owner；`service` 默认只承载进程宿主、启动停止、升级发布、远程访问、CLI/daemon 外壳与运行环境适配，触达产品语义时调用 kernel owner。
 - 写代码前必须先判断数据、状态、逻辑或同步动作的最佳归属 owner 和最佳落点；禁止因为当前文件方便、当前组件刚好拿得到数据，就把跨域职责塞进不相干的组件、hook、container 或 manager。
 - 业务层之间默认传递并依赖 owner 对象，而不是拆成一堆小参数；只有纯工具、纯计算或跨业务解耦边界才传最小小参数。
+- 普通函数、工具函数和 helper 不得把 kernel、runtime、manager、store、service、presenter 等稳定 owner 当参数传递；需要稳定协作者时收敛到 class/owner constructor，纯函数只接本次调用的数据快照。
 - 使用 class 承载业务逻辑时，新增或触达的实例方法默认写成箭头函数 class field；`constructor`、`get/set`、`static`、`abstract`、`override`、decorator、async generator 方法按语义例外处理。
 - 普通函数、顶层 helper、对象字面量函数默认不得原地修改入参；优先返回新值或 patch。若需要状态和生命周期，收敛到 owner class。
 - 对象构造默认保持稳定、直接的合同形状；禁止用条件 spread 拼可选字段来隐藏对象形态变化。字段值本身可以用清晰的三元表达式表达 `undefined` / `null`。

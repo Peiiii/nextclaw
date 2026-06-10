@@ -1,15 +1,12 @@
 import {
-  ContextWindowBudgetService,
-  findEffectiveAgentProfile,
   getWorkspacePath,
   parseThinkingLevel,
   RequestedSkillsMetadataReader,
-  resolveDefaultAgentProfileId,
   resolveSessionWorkspacePath,
   resolveThinkingLevel,
   type Config,
 } from "@nextclaw/core";
-import type { ConfigManager } from "@kernel/managers/config.manager.js";
+import type { ResolvedAgentProfile } from "@kernel/managers/agent.manager.js";
 import {
   resolveEffectiveModel,
   resolveSessionChannelContext,
@@ -31,12 +28,12 @@ export type NextclawNcpResolvedAgentProfile = {
   workspace: string;
 };
 
-export type NextclawNcpRunContextParams = {
-  configManager: ConfigManager;
+export type NextclawNcpRunContextResolveParams = {
+  agentProfile: ResolvedAgentProfile;
+  config: Config;
   sessionId: string;
   requestMetadata?: Record<string, unknown>;
   sessionMetadata?: Record<string, unknown>;
-  storedAgentId?: string;
 };
 
 export type NextclawNcpResolvedRunContext = {
@@ -56,59 +53,6 @@ export type NextclawNcpResolvedRunContext = {
 };
 
 const REQUESTED_SKILLS_METADATA_READER = new RequestedSkillsMetadataReader();
-
-function readRequestedAgentId(
-  metadata: Record<string, unknown>,
-): string | null {
-  return (
-    normalizeOptionalString(metadata.agent_id)?.toLowerCase() ??
-    normalizeOptionalString(metadata.agentId)?.toLowerCase() ??
-    null
-  );
-}
-
-function resolveAgentProfile(params: {
-  config: Config;
-  requestMetadata: Record<string, unknown>;
-  storedAgentId?: string;
-}): NextclawNcpResolvedAgentProfile {
-  const { config, requestMetadata, storedAgentId } = params;
-  const {
-    agents: { defaults },
-    search: searchConfig,
-    tools: {
-      restrictToWorkspace,
-      exec: { timeout: execTimeoutSeconds },
-    },
-  } = config;
-  const defaultAgentId = resolveDefaultAgentProfileId(config);
-  const candidateAgentId =
-    normalizeOptionalString(storedAgentId)?.toLowerCase() ??
-    readRequestedAgentId(requestMetadata) ??
-    defaultAgentId;
-  const profile =
-    findEffectiveAgentProfile(config, candidateAgentId) ??
-    findEffectiveAgentProfile(config, defaultAgentId);
-  if (!profile) {
-    throw new Error(`default agent profile not found: ${defaultAgentId}`);
-  }
-  const contextTokens = profile.contextTokens ?? defaults.contextTokens;
-  return {
-    agentId: profile.id,
-    workspace: getWorkspacePath(profile.workspace ?? defaults.workspace),
-    model: profile.model ?? defaults.model,
-    contextTokens,
-    reservedContextTokens:
-      ContextWindowBudgetService.resolveReservedContextTokens({
-        contextTokens,
-        configuredReservedContextTokens:
-          profile.reservedContextTokens ?? defaults.reservedContextTokens,
-      }),
-    restrictToWorkspace,
-    searchConfig,
-    execTimeoutSeconds,
-  };
-}
 
 function resolveRequestedToolNames(
   metadata: Record<string, unknown>,
@@ -137,25 +81,23 @@ function mergeRunMetadata(params: {
   };
 }
 
-export function resolveNextclawNcpRunContext(
-  params: NextclawNcpRunContextParams,
+export function buildNextclawNcpRunContext(
+  params: NextclawNcpRunContextResolveParams,
 ): NextclawNcpResolvedRunContext {
   const {
-    configManager,
+    agentProfile,
+    config,
     requestMetadata: inputRequestMetadata,
     sessionId,
     sessionMetadata: inputSessionMetadata,
-    storedAgentId,
   } = params;
-  const config = configManager.loadConfig();
   const requestMetadata = mergeRunMetadata({
     sessionMetadata: inputSessionMetadata,
     requestMetadata: inputRequestMetadata,
   });
-  const profile = resolveAgentProfile({
+  const profile = buildResolvedAgentProfile({
     config,
-    storedAgentId,
-    requestMetadata,
+    profile: agentProfile,
   });
   const { metadata: modelMetadata, model: effectiveModel } =
     resolveEffectiveModel({
@@ -208,5 +150,32 @@ export function resolveNextclawNcpRunContext(
       searchConfig: profile.searchConfig,
       workspace: effectiveWorkspace,
     },
+  };
+}
+
+function buildResolvedAgentProfile(params: {
+  config: Config;
+  profile: ResolvedAgentProfile;
+}): NextclawNcpResolvedAgentProfile {
+  const {
+    config,
+    profile,
+  } = params;
+  const {
+    search: searchConfig,
+    tools: {
+      restrictToWorkspace,
+      exec: { timeout: execTimeoutSeconds },
+    },
+  } = config;
+  return {
+    agentId: profile.id,
+    workspace: getWorkspacePath(profile.workspace),
+    model: profile.model,
+    contextTokens: profile.contextTokens,
+    reservedContextTokens: profile.reservedContextTokens,
+    restrictToWorkspace,
+    searchConfig,
+    execTimeoutSeconds,
   };
 }

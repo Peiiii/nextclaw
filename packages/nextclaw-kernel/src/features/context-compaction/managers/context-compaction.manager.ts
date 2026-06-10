@@ -1,4 +1,4 @@
-import type { ConfigManager } from "@kernel/managers/config.manager.js";
+import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { ContextWindowSnapshot } from "@nextclaw/core";
 import { type NcpMessage } from "@nextclaw/ncp";
 import { ContextCompactionPreflightService } from "@kernel/features/context-compaction/services/context-compaction-preflight.service.js";
@@ -6,14 +6,8 @@ import { ContextCompactionPreflightService } from "@kernel/features/context-comp
 export class ContextWindowPreviewManager {
   private readonly preflightService: ContextCompactionPreflightService;
 
-  constructor(
-    private readonly options: {
-      configManager: ConfigManager;
-    },
-  ) {
-    this.preflightService = new ContextCompactionPreflightService({
-      configManager: options.configManager,
-    });
+  constructor(agentManager: AgentManager) {
+    this.preflightService = new ContextCompactionPreflightService(agentManager);
   }
 
   preview = (params: {

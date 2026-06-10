@@ -16,7 +16,7 @@ import {
   type NcpRunHandle,
 } from "@nextclaw/ncp";
 import { catchError, from, lastValueFrom, tap } from "rxjs";
-import { resolveDefaultAgentProfileId } from "@nextclaw/core";
+import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import type { AgentRuntimeManager } from "./agent-runtime.manager.js";
 import type { ContextProviderManager } from "./context-provider.manager.js";
@@ -145,6 +145,7 @@ export class AgentRunRequestManager {
 
   constructor(
     private readonly agentRuntimeManager: AgentRuntimeManager,
+    private readonly agentManager: AgentManager,
     private readonly configManager: ConfigManager,
     private readonly contextProviderManager: ContextProviderManager,
     private readonly eventBus: EventBus,
@@ -274,7 +275,7 @@ export class AgentRunRequestManager {
     const agentId =
       request.agentId ??
       session.agentId ??
-      resolveDefaultAgentProfileId(this.configManager.loadConfig());
+      this.agentManager.getDefaultAgentId();
     const spec: AgentRunSpec = {
       runId: activeRun.runId,
       agentId,

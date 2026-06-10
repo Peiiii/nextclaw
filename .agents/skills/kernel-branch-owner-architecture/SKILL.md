@@ -21,6 +21,8 @@ NextClaw 的业务层不是“尽量互相看不见”，而是让稳定业务 o
 
 - `layer-paradigm-fit`：先判断对象属于业务编排层还是业务无关可复用层；不同层级采用不同依赖、抽象和隔离范式。
   - 例子：业务 manager 可以直连 repository/config manager；通用库才更适合 options/factory。
+- `product-kernel-ownership`：NextClaw 产品功能、产品语义和业务规则默认归 kernel owner；service 默认只承载进程宿主、启动停止、升级发布、远程访问、CLI/daemon 外壳和运行环境适配。
+  - 例子：agent profile 的默认值、CRUD 和运行期解析归 `AgentManager`；service CLI 只解析命令参数、展示结果并调用 kernel owner。
 - `ownership-topology`：架构应显式表达谁拥有谁、谁启动谁、谁协调谁；主干和分支的关系应来自真实业务拓扑。
   - 例子：runtime host 持有长期 manager，manager 再持有只服务自己的 store/service。
 - `stable-collaboration-path`：稳定业务协作者之间优先短链路直连，避免用额外中介制造通信成本和不确定性。
@@ -34,6 +36,7 @@ NextClaw 的业务层不是“尽量互相看不见”，而是让稳定业务 o
   - 例子：只包一层 `createXxx()` 而没有真实职责的 factory 通常应删除。
 - `stable-dependency-ownership`：稳定依赖应由 owner 长期持有并直接表达，调用参数只表达本次调用独有的信息。
   - 例子：`send(request)` 传 request；repository/config/eventBus 这类稳定协作者走 constructor。
+  - 例子：普通函数、工具函数和 helper 不得把 kernel / runtime / manager / store / service / presenter 等稳定 owner 当 `params` 字段传来传去；应由最近的 owner constructor 持有，私有 helper 直接用 `this.xxxManager`，纯函数只接本次调用的数据快照。
 - `fact-source-ownership`：事实应由最接近事实来源的 owner 读取、推导和维护；上层不应替下层预先拼装中间事实。
   - 例子：创建 session run 时，由 `SessionRunManager` 自己读取 messages，而不是调用方先读再传入。
 - `semantic-role-naming`：命名应反映对象在系统中的真实角色，例如编排、边界适配、数据拥有、视图协调，而不是反映目录习惯或实现偶然性。
@@ -71,6 +74,7 @@ NextClaw 的业务层不是“尽量互相看不见”，而是让稳定业务 o
   - 例子：context/tool provider 可以注册；固定业务 manager 不应为了“可替换”硬上 registry。
 - `abstraction-earns-place`：新增抽象必须减少真实复杂度、表达稳定语义、隔离真实变化点或形成复用资产。
   - 例子：resolver/adapter/factory 只有在承担稳定语义时才值得独立存在。
+  - 例子：不得为了回避 helper 参数违规、owner 误判或依赖方向问题而新增一层 resolver/factory/wrapper；应先回到正确 owner。
 - `evolutionary-pressure-check`：为未来演进预留结构时，必须说明预期变化压力；没有变化压力的预留通常是噪音。
   - 例子：先问未来会多 runtime、多 provider 还是多存储策略，再决定是否提前抽象。
 - `review-by-concern`：review 时按架构边界、职责依赖、流程数据、生命周期资源和扩展演进逐面检查，而不是追逐零散坏味道。

@@ -1,24 +1,28 @@
-import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
+import type { ToolProviderRunContextService } from "@kernel/contributions/tool-provider/services/tool-provider-run-context.service.js";
+import type { SessionRequestManager } from "@kernel/features/session-request/index.js";
+import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type { AgentRunRequest, ToolProvider } from "@kernel/types/agent-run.types.js";
-import { resolveToolProviderRunContext } from "@kernel/contributions/tool-provider/utils/tool-provider-run-context.utils.js";
 import { SessionsHistoryTool, SessionsListTool } from "@kernel/tools/session-history.tools.js";
 import { SessionRequestTool } from "@kernel/tools/session-request.tools.js";
 import { SessionSearchTool } from "@kernel/tools/session-search.tools.js";
 import { SessionSpawnTool } from "@kernel/tools/session-spawn.tools.js";
+import type { SessionSearchService } from "@nextclaw/core";
 import type { NcpTool } from "@nextclaw/ncp";
 
 export class SessionToolProvider implements ToolProvider {
-  constructor(private readonly kernel: NextclawKernel) {}
+  constructor(
+    private readonly runContextService: ToolProviderRunContextService,
+    private readonly sessionManager: SessionManager,
+    private readonly sessionRequests: SessionRequestManager,
+    private readonly sessionSearch: SessionSearchService,
+  ) {}
 
   provide = async (request: AgentRunRequest): Promise<readonly NcpTool[]> => {
-    const { toolRunContext } = await resolveToolProviderRunContext({
-      kernel: this.kernel,
-      request,
-    });
+    const { toolRunContext } = await this.runContextService.resolve(request);
     const { handoffDepth, metadata, sessionId } = toolRunContext;
     const sessionsSpawnTool = new SessionSpawnTool(
-      this.kernel.sessionManager,
-      this.kernel.sessionRequests,
+      this.sessionManager,
+      this.sessionRequests,
     );
     sessionsSpawnTool.setContext({
       sourceSessionId: sessionId,
@@ -26,7 +30,7 @@ export class SessionToolProvider implements ToolProvider {
       handoffDepth,
     });
 
-    const sessionsRequestTool = new SessionRequestTool(this.kernel.sessionRequests);
+    const sessionsRequestTool = new SessionRequestTool(this.sessionRequests);
     sessionsRequestTool.setContext({
       sourceSessionId: sessionId,
       handoffDepth,
@@ -34,15 +38,15 @@ export class SessionToolProvider implements ToolProvider {
     const tools: NcpTool[] = [
       sessionsSpawnTool,
       sessionsRequestTool,
-      new SessionsListTool(this.kernel.sessionManager),
-      new SessionsHistoryTool(this.kernel.sessionManager),
+      new SessionsListTool(this.sessionManager),
+      new SessionsHistoryTool(this.sessionManager),
     ];
-    if (!this.kernel.sessionSearch.isReady()) {
+    if (!this.sessionSearch.isReady()) {
       return tools;
     }
     tools.push(
       new SessionSearchTool(
-        { search: this.kernel.sessionSearch.search },
+        { search: this.sessionSearch.search },
         { currentSessionId: sessionId },
       ),
     );

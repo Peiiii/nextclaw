@@ -147,7 +147,6 @@ export class NextclawKernel {
     this.assetStore = new LocalAssetStore({
       rootDir: resolve(getDataDir(), "assets"),
     });
-    this.agents = new AgentManager();
     this.control = new NextclawKernelControlManager<
       unknown,
       unknown,
@@ -161,11 +160,13 @@ export class NextclawKernel {
       channels: this.channels,
       providerManager: this.llmProviders,
     });
+    this.agents = new AgentManager(this.configManager);
     this.accessManager = new AccessManager({
       configManager: this.configManager,
       homeDir: options.homeDir,
     });
     this.sessionManager = new SessionManager({
+      agentManager: this.agents,
       configManager: this.configManager,
       eventBus: this.eventBus,
       journalStore: this.ncpAgentSessionJournalStore,
@@ -207,13 +208,14 @@ export class NextclawKernel {
       }),
     });
     this.contextCompactionManager = new AgentRunContextCompactionManager(
-      this.configManager,
+      this.agents,
       this.llmProviders,
       this.sessionManager,
     );
     this.sessionRunManager = new SessionRunManager(this.sessionManager);
     this.agentRunRequestManager = new AgentRunRequestManager(
       this.agentRuntimeManager,
+      this.agents,
       this.configManager,
       this.contextProviderManager,
       this.eventBus,

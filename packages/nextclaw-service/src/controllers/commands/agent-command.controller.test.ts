@@ -1,22 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { EffectiveAgentProfile } from "@nextclaw/core";
+import type { AgentManager } from "@nextclaw/kernel";
 
 const mocks = vi.hoisted(() => ({
-  loadConfigMock: vi.fn(),
-  resolveEffectiveAgentProfilesMock: vi.fn(),
-  createAgentProfileMock: vi.fn(),
-  updateAgentProfileMock: vi.fn(),
-  removeAgentProfileMock: vi.fn(),
   listAvailableAgentRuntimesMock: vi.fn()
-}));
-
-vi.mock("@nextclaw/core", () => ({
-  BUILTIN_MAIN_AGENT_ID: "main",
-  loadConfig: mocks.loadConfigMock,
-  resolveEffectiveAgentProfiles: mocks.resolveEffectiveAgentProfilesMock,
-  createAgentProfile: mocks.createAgentProfileMock,
-  updateAgentProfile: mocks.updateAgentProfileMock,
-  removeAgentProfile: mocks.removeAgentProfileMock
 }));
 
 vi.mock("@nextclaw-service/utils/agent-runtime.utils.js", () => ({
@@ -24,6 +11,16 @@ vi.mock("@nextclaw-service/utils/agent-runtime.utils.js", () => ({
 }));
 
 import { AgentCommands } from "@nextclaw-service/services/agent/agent-commands.service.js";
+
+function createAgentManager(overrides: Partial<AgentManager> = {}): AgentManager {
+  return {
+    listAgents: vi.fn(() => []),
+    createAgent: vi.fn(),
+    updateAgent: vi.fn(),
+    removeAgent: vi.fn(),
+    ...overrides,
+  } as unknown as AgentManager;
+}
 
 describe("AgentCommands", () => {
   beforeEach(() => {
@@ -41,11 +38,11 @@ describe("AgentCommands", () => {
       runtime: "codex",
       engine: "codex"
     };
-    mocks.updateAgentProfileMock.mockReturnValue(updated);
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    const commands = new AgentCommands({
-      initializeAgentHomeDirectory: vi.fn()
+    const agentManager = createAgentManager({
+      updateAgent: vi.fn().mockResolvedValue(updated),
     });
+    const commands = new AgentCommands(agentManager);
 
     await commands.update("researcher", {
       name: "Researcher",
@@ -55,7 +52,7 @@ describe("AgentCommands", () => {
       json: true
     });
 
-    expect(mocks.updateAgentProfileMock).toHaveBeenCalledWith({
+    expect(agentManager.updateAgent).toHaveBeenCalledWith({
       id: "researcher",
       displayName: "Researcher",
       description: "负责调研",
@@ -66,7 +63,7 @@ describe("AgentCommands", () => {
   });
 
   it("updates an agent in normal mode without requesting restart", async () => {
-    mocks.updateAgentProfileMock.mockReturnValue({
+    const updated = {
       id: "main",
       default: true,
       displayName: "Main",
@@ -74,11 +71,12 @@ describe("AgentCommands", () => {
       workspace: "~/.nextclaw/workspace",
       runtime: "native",
       engine: "native"
-    } satisfies EffectiveAgentProfile);
+    } satisfies EffectiveAgentProfile;
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    const commands = new AgentCommands({
-      initializeAgentHomeDirectory: vi.fn()
+    const agentManager = createAgentManager({
+      updateAgent: vi.fn().mockResolvedValue(updated),
     });
+    const commands = new AgentCommands(agentManager);
 
     await commands.update("main", {
       description: "负责统筹"
@@ -88,7 +86,7 @@ describe("AgentCommands", () => {
   });
 
   it("creates an agent with the runtime option", async () => {
-    mocks.createAgentProfileMock.mockReturnValue({
+    const created = {
       id: "engineer",
       default: false,
       displayName: "Engineer",
@@ -96,26 +94,25 @@ describe("AgentCommands", () => {
       workspace: "~/.nextclaw/workspace-engineer",
       runtime: "codex",
       engine: "codex"
-    } satisfies EffectiveAgentProfile);
+    } satisfies EffectiveAgentProfile;
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    const commands = new AgentCommands({
-      initializeAgentHomeDirectory: vi.fn()
+    const agentManager = createAgentManager({
+      createAgent: vi.fn().mockResolvedValue(created),
     });
+    const commands = new AgentCommands(agentManager);
 
     await commands.create("engineer", {
       runtime: "codex",
       json: true
     });
 
-    expect(mocks.createAgentProfileMock).toHaveBeenCalledWith({
+    expect(agentManager.createAgent).toHaveBeenCalledWith({
       id: "engineer",
       displayName: undefined,
       description: undefined,
       avatar: undefined,
       home: undefined,
       runtime: "codex"
-    }, {
-      initializeHomeDirectory: expect.any(Function)
     });
     expect(logSpy).toHaveBeenCalledWith(JSON.stringify({
       agent: {
@@ -158,9 +155,7 @@ describe("AgentCommands", () => {
       ],
     });
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    const commands = new AgentCommands({
-      initializeAgentHomeDirectory: vi.fn()
-    });
+    const commands = new AgentCommands(createAgentManager());
 
     await commands.runtimes({
       json: true,
@@ -196,6 +191,57 @@ describe("AgentCommands", () => {
           supportedModels: ["gpt-5.4", "gpt-5.3"],
         },
       ],
+    }, null, 2));
+  });
+
+  it("lists agents from AgentManager", () => {
+    const agents = [
+      {
+        id: "main",
+        default: true,
+        displayName: "Main",
+        description: "负责统筹",
+        workspace: "~/.nextclaw/workspace",
+        runtime: "native",
+        engine: "native",
+        builtIn: true,
+      },
+    ] satisfies EffectiveAgentProfile[];
+    const agentManager = createAgentManager({
+      listAgents: vi.fn(() => agents),
+    });
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const commands = new AgentCommands(agentManager);
+
+    commands.list({ json: true });
+
+    expect(agentManager.listAgents).toHaveBeenCalledWith();
+    expect(logSpy).toHaveBeenCalledWith(JSON.stringify([
+      {
+        id: "main",
+        displayName: "Main",
+        description: "负责统筹",
+        avatar: null,
+        workspace: "~/.nextclaw/workspace",
+        runtime: "native",
+        builtIn: true,
+      },
+    ], null, 2));
+  });
+
+  it("removes agents through AgentManager", async () => {
+    const agentManager = createAgentManager({
+      removeAgent: vi.fn().mockResolvedValue(true),
+    });
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const commands = new AgentCommands(agentManager);
+
+    await commands.remove("researcher", { json: true });
+
+    expect(agentManager.removeAgent).toHaveBeenCalledWith("researcher");
+    expect(logSpy).toHaveBeenCalledWith(JSON.stringify({
+      removed: true,
+      agentId: "researcher",
     }, null, 2));
   });
 });
