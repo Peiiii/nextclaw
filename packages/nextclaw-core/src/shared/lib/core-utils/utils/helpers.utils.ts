@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DEFAULT_HOME_DIR, DEFAULT_SKILLS_DIR, DEFAULT_WORKSPACE_DIR, DEFAULT_WORKSPACE_PATH, ENV_HOME_KEY } from "../../../../features/config/configs/brand.js";
+import { DEFAULT_HOME_DIR, DEFAULT_SKILLS_DIR, DEFAULT_WORKSPACE_DIR, DEFAULT_WORKSPACE_PATH, ENV_HOME_KEY } from "../../../../features/config/configs/brand.config.js";
 
 export function ensureDir(path: string): string {
   if (!existsSync(path)) {

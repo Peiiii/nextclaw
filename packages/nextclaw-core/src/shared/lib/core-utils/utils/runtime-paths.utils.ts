@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { ensureDir, getDataPath } from "./helpers.js";
+import { ensureDir, getDataPath } from "./helpers.utils.js";
 
 export const ENV_RUN_HOME_KEY = "NEXTCLAW_RUN_HOME";
 

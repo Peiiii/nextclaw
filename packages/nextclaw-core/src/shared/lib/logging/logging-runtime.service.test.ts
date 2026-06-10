@@ -2,8 +2,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { FileLogSink } from "./file-log-sink.js";
-import { LoggingRuntime } from "./logging-runtime.js";
+import { FileLogSink } from "./file-log-sink.service.js";
+import { LoggingRuntime } from "./logging-runtime.service.js";
 
 describe("LoggingRuntime", () => {
   let tempDir: string;

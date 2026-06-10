@@ -1,7 +1,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
-import { getLogsArchivePath, getLogsPath } from "../core-utils/utils/helpers.js";
-import type { AppLogLevel, AppLogRecord } from "./app-logger.js";
+import { getLogsArchivePath, getLogsPath } from "../core-utils/utils/helpers.utils.js";
+import type { AppLogRecord } from "./app-logger.js";
 
 export type AppLogKind = "service" | "crash";
 
@@ -23,10 +23,6 @@ type FileLogSinkOptions = {
 
 const DEFAULT_SERVICE_MAX_BYTES = 10 * 1024 * 1024;
 const DEFAULT_CRASH_MAX_BYTES = 5 * 1024 * 1024;
-
-function shouldMirrorToCrash(level: AppLogLevel): boolean {
-  return level === "error" || level === "fatal";
-}
 
 export class FileLogSink {
   private readonly serviceLogPath: string;
@@ -68,7 +64,7 @@ export class FileLogSink {
     this.ensureReady();
     const line = this.serializeRecord(record);
     this.appendLine(this.serviceLogPath, line);
-    if (shouldMirrorToCrash(record.level)) {
+    if (record.level === "error" || record.level === "fatal") {
       this.appendLine(this.crashLogPath, line);
     }
   };
@@ -87,9 +83,7 @@ export class FileLogSink {
     return lines.slice(-normalizedCount);
   };
 
-  resolveLogPath = (kind: AppLogKind): string => {
-    return kind === "crash" ? this.crashLogPath : this.serviceLogPath;
-  };
+  resolveLogPath = (kind: AppLogKind): string => (kind === "crash" ? this.crashLogPath : this.serviceLogPath);
 
   private ensureFile = (path: string): void => {
     if (!existsSync(path)) {

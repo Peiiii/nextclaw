@@ -1,6 +1,8 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { ensureDir, todayDate } from "../../../../shared/lib/core-utils/utils/helpers.js";
+import { ensureDir, todayDate } from "../../../../shared/lib/core-utils/utils/helpers.utils.js";
+
+const readTextIfExists = (path: string): string => (existsSync(path) ? readFileSync(path, "utf-8") : "");
 
 export class MemoryStore {
   private memoryDir: string;
@@ -13,43 +15,22 @@ export class MemoryStore {
     this.workspaceMemoryFile = join(workspace, "MEMORY.md");
   }
 
-  getTodayFile = (): string => {
-    return join(this.memoryDir, `${todayDate()}.md`);
-  };
+  getTodayFile = (): string => join(this.memoryDir, `${todayDate()}.md`);
 
-  readToday = (): string => {
-    const todayFile = this.getTodayFile();
-    if (existsSync(todayFile)) {
-      return readFileSync(todayFile, "utf-8");
-    }
-    return "";
-  };
+  readToday = (): string => readTextIfExists(this.getTodayFile());
 
   appendToday = (content: string): void => {
     const todayFile = this.getTodayFile();
-    let nextContent = content;
-    if (existsSync(todayFile)) {
-      const existing = readFileSync(todayFile, "utf-8");
-      nextContent = `${existing}\n${content}`;
-    } else {
-      const header = `# ${todayDate()}\n\n`;
-      nextContent = header + content;
-    }
-    writeFileSync(todayFile, nextContent, "utf-8");
+    const prefix = existsSync(todayFile) ? `${readTextIfExists(todayFile)}\n` : `# ${todayDate()}\n\n`;
+    writeFileSync(todayFile, `${prefix}${content}`, "utf-8");
   };
 
   readLongTerm = (): string => {
-    if (existsSync(this.memoryFile)) {
-      return readFileSync(this.memoryFile, "utf-8");
-    }
-    return "";
+    return readTextIfExists(this.memoryFile);
   };
 
   readWorkspaceMemory = (): string => {
-    if (existsSync(this.workspaceMemoryFile)) {
-      return readFileSync(this.workspaceMemoryFile, "utf-8");
-    }
-    return "";
+    return readTextIfExists(this.workspaceMemoryFile);
   };
 
   writeLongTerm = (content: string): void => {
@@ -83,19 +64,11 @@ export class MemoryStore {
   };
 
   getMemoryContext = (): string => {
-    const parts: string[] = [];
-    const workspaceMemory = this.readWorkspaceMemory();
-    if (workspaceMemory) {
-      parts.push(`## Workspace Memory\n${workspaceMemory}`);
-    }
-    const longTerm = this.readLongTerm();
-    if (longTerm) {
-      parts.push(`## Long-term Memory\n${longTerm}`);
-    }
-    const today = this.readToday();
-    if (today) {
-      parts.push(`## Today's Notes\n${today}`);
-    }
-    return parts.length ? parts.join("\n\n") : "";
+    return [
+      ["Workspace Memory", this.readWorkspaceMemory()],
+      ["Long-term Memory", this.readLongTerm()],
+      ["Today's Notes", this.readToday()],
+    ].flatMap(([title, content]) => (content ? [`## ${title}\n${content}`] : []))
+      .join("\n\n");
   };
 }

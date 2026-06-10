@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { loadConfig, saveConfig } from "./config-loader.utils.js";
 import { ConfigSchema } from "@core/features/config/configs/config-schema.config.js";
-import { DEFAULT_WORKSPACE_DIR } from "@core/features/config/configs/brand.js";
+import { DEFAULT_WORKSPACE_DIR } from "@core/features/config/configs/brand.config.js";
 import {
   createAgentProfile,
   resolveAgentHomeDirectory,

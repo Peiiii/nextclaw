@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { FeishuConfigSchema as NextClawFeishuConfigSchema } from "@nextclaw/feishu-core";
-import { DEFAULT_WORKSPACE_PATH } from "./brand.js";
+import { DEFAULT_WORKSPACE_PATH } from "./brand.config.js";
 import { getPackageVersion, getWorkspacePath } from "@core/shared/lib/core-utils/index.js";
 import { applySensitiveHints, buildBaseHints, mapSensitivePaths, type ConfigUiHints } from "@core/features/config/utils/config-schema-hints.utils.js";
 import { buildConfigActions, type ConfigActionManifest } from "@core/features/config/utils/config-actions.utils.js";

@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { DEFAULT_WORKSPACE_DIR, DEFAULT_WORKSPACE_PATH } from "./brand.js";
+import { DEFAULT_WORKSPACE_DIR, DEFAULT_WORKSPACE_PATH } from "./brand.config.js";
 import { ConfigSchema, getWorkspacePathFromConfig } from "./config-schema.config.js";
 
 const tempDirs: string[] = [];

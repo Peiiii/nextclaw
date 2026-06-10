@@ -1,7 +1,8 @@
-import { FileLogSink, type AppLogKind, type AppLogPaths } from "./file-log-sink.js";
+import { FileLogSink, type AppLogKind, type AppLogPaths } from "./file-log-sink.service.js";
 import { ScopedAppLogger, type AppLogRecord, type AppLogWriter, type AppLogger } from "./app-logger.js";
 
-type ConsoleMethodName = "debug" | "info" | "log" | "warn" | "error";
+const CONSOLE_METHOD_NAMES = ["debug", "info", "log", "warn", "error"] as const;
+type ConsoleMethodName = typeof CONSOLE_METHOD_NAMES[number];
 
 type ConfigureAppLoggingOptions = {
   installConsoleMirror?: boolean;
@@ -85,13 +86,9 @@ export class LoggingRuntime implements AppLogWriter {
     installedConsoleMirror?.restore();
     this.ensureReady();
 
-    const originalConsole: Record<ConsoleMethodName, typeof console.log> = {
-      debug: console.debug.bind(console),
-      info: console.info.bind(console),
-      log: console.log.bind(console),
-      warn: console.warn.bind(console),
-      error: console.error.bind(console),
-    };
+    const originalConsole = Object.fromEntries(
+      CONSOLE_METHOD_NAMES.map((name) => [name, console[name].bind(console)])
+    ) as Record<ConsoleMethodName, typeof console.log>;
 
     const consoleLogger = this.getLogger("console");
     const methodLevels: Record<ConsoleMethodName, "debug" | "info" | "warn" | "error"> = {
@@ -103,11 +100,9 @@ export class LoggingRuntime implements AppLogWriter {
     };
 
     const restore = () => {
-      console.debug = originalConsole.debug;
-      console.info = originalConsole.info;
-      console.log = originalConsole.log;
-      console.warn = originalConsole.warn;
-      console.error = originalConsole.error;
+      for (const name of CONSOLE_METHOD_NAMES) {
+        console[name] = originalConsole[name];
+      }
       if (installedConsoleMirror?.runtimeKey === runtimeKey) {
         installedConsoleMirror = null;
       }
@@ -119,27 +114,13 @@ export class LoggingRuntime implements AppLogWriter {
         if (args.length === 0) {
           return;
         }
-        switch (methodLevels[name]) {
-          case "debug":
-            consoleLogger.debug(...args);
-            return;
-          case "warn":
-            consoleLogger.warn(...args);
-            return;
-          case "error":
-            consoleLogger.error(...args);
-            return;
-          default:
-            consoleLogger.info(...args);
-        }
+        consoleLogger[methodLevels[name]](...args);
       }) as typeof console.log;
     };
 
-    installMethod("debug");
-    installMethod("info");
-    installMethod("log");
-    installMethod("warn");
-    installMethod("error");
+    for (const name of CONSOLE_METHOD_NAMES) {
+      installMethod(name);
+    }
 
     installedConsoleMirror = {
       runtimeKey,

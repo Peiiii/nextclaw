@@ -1,13 +1,15 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import parser from "@typescript-eslint/parser";
 
 import {
   defaultSortByLocation,
+  isGovernedWorkspaceFile,
   parseDiffCheckArgs,
   rootDir,
+  runGit,
   walkAst
 } from "../lint-new-code-governance-support.mjs";
 import { collectChangedFileNameEntries } from "../naming/lint-new-code-file-names.mjs";
@@ -125,6 +127,45 @@ const getNearestDirectoryRule = (segments) => {
   return null;
 };
 
+const collectRoleDirectorySiblingEntries = (entries, options = {}) => {
+  const entryByPath = new Map(entries.map((entry) => [toPosixPath(entry.filePath), entry]));
+  const roleDirectories = new Set();
+  for (const entry of entries) {
+    const normalizedPath = toPosixPath(entry.filePath);
+    const segments = getDirectorySegments(normalizedPath);
+    const nearestRule = getNearestDirectoryRule(segments);
+    if (nearestRule?.segment === "configs" && nearestRule.rule.type === "role-suffix") {
+      roleDirectories.add(segments.slice(0, nearestRule.segmentIndex + 1).join("/"));
+    }
+  }
+
+  const listFiles = options.listDirectGovernedFiles ?? ((directoryPath) => {
+    try {
+      return readdirSync(path.resolve(rootDir, directoryPath), { withFileTypes: true })
+        .flatMap((entry) => {
+          const filePath = path.posix.join(directoryPath, entry.name);
+          return entry.isFile() && isGovernedWorkspaceFile(filePath) ? [filePath] : [];
+        });
+    } catch {
+      return [];
+    }
+  });
+
+  for (const roleDirectory of roleDirectories) {
+    for (const filePath of listFiles(roleDirectory)) {
+      const normalizedPath = toPosixPath(filePath);
+      if (!entryByPath.has(normalizedPath)) {
+        entryByPath.set(normalizedPath, {
+          filePath: normalizedPath,
+          status: "M"
+        });
+      }
+    }
+  }
+
+  return Array.from(entryByPath.values()).sort((left, right) => left.filePath.localeCompare(right.filePath));
+};
+
 const hasAllowedRoleSuffix = (stem) => {
   const segments = stem.split(".");
   const lastSegment = segments.at(-1);
@@ -143,7 +184,13 @@ const readEntrySource = (normalizedPath, options) => {
   if (options.sourceByFilePath?.has(normalizedPath)) {
     return options.sourceByFilePath.get(normalizedPath);
   }
-  return readFileSync(path.resolve(rootDir, normalizedPath), "utf8");
+  try {
+    return readFileSync(path.resolve(rootDir, normalizedPath), "utf8");
+  } catch {
+    return runGit(["ls-tree", "--name-only", "HEAD", "--", normalizedPath], { allowFailure: true }).trim()
+      ? runGit(["show", `HEAD:${normalizedPath}`], { allowFailure: true })
+      : "";
+  }
 };
 
 const hasClassDeclaration = (source, filePath) => {
@@ -309,12 +356,15 @@ const preservesExistingRenameViolation = (entry, violation) => {
   return previousViolation?.ruleId === violation.ruleId;
 };
 
-export const collectFileRoleBoundaryViolations = (entries) => defaultSortByLocation(
-  entries
+export const collectFileRoleBoundaryViolations = (entries, options = {}) => {
+  const entriesToInspect = collectRoleDirectorySiblingEntries(entries, options);
+  return defaultSortByLocation(
+    entriesToInspect
     .map(inspectFileRoleBoundaryEntry)
-    .filter((violation, index) => violation && !preservesExistingRenameViolation(entries[index], violation))
+    .filter((violation, index) => violation && !preservesExistingRenameViolation(entriesToInspect[index], violation))
     .filter(Boolean)
-);
+  );
+};
 
 export const runFileRoleBoundaryCheck = (options) => {
   const { changedFiles, entries } = collectChangedFileNameEntries(options);
@@ -323,7 +373,6 @@ export const runFileRoleBoundaryCheck = (options) => {
     const segments = getDirectorySegments(normalizedPath);
     return !shouldSkipRoleBoundaryCheck(normalizedPath, segments);
   });
-
   return {
     changedFiles: changedFiles.filter((filePath) => {
       const normalizedPath = toPosixPath(filePath);

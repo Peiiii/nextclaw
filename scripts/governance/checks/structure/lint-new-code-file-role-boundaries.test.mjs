@@ -36,6 +36,43 @@ test("allows .config files inside configs directories", () => {
   }), null);
 });
 
+test("blocks config role-directory siblings when a config directory is touched", () => {
+  const violations = collectFileRoleBoundaryViolations([
+    {
+      filePath: "packages/demo/src/configs/runtime.config.ts",
+      status: "M"
+    }
+  ], {
+    listDirectGovernedFiles: (directoryPath) => {
+      assert.equal(directoryPath, "packages/demo/src/configs");
+      return [
+        "packages/demo/src/configs/runtime.config.ts",
+        "packages/demo/src/configs/brand.ts"
+      ];
+    }
+  });
+
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].filePath, "packages/demo/src/configs/brand.ts");
+  assert.match(violations[0].message, /touched file in 'configs\/' does not match/);
+});
+
+test("does not sweep non-config role directories into unrelated legacy debt", () => {
+  const violations = collectFileRoleBoundaryViolations([
+    {
+      filePath: "packages/demo/src/utils/runtime-paths.utils.ts",
+      status: "M"
+    }
+  ], {
+    listDirectGovernedFiles: () => [
+      "packages/demo/src/utils/runtime-paths.utils.ts",
+      "packages/demo/src/utils/helpers.ts"
+    ]
+  });
+
+  assert.deepEqual(violations, []);
+});
+
 test("allows .route files inside routes directories", () => {
   assert.equal(inspectFileRoleBoundaryEntry({
     filePath: "packages/demo/src/routes/app.route.ts",
@@ -275,6 +312,16 @@ test("does not turn a package move into a forced legacy role-boundary rename", (
   ]);
 
   assert.deepEqual(violations, []);
+});
+
+test("does not crash when a renamed old service path no longer exists on disk", () => {
+  assert.doesNotThrow(() => collectFileRoleBoundaryViolations([
+    {
+      oldFilePath: "packages/old/src/services/missing.service.ts",
+      filePath: "packages/new/src/services/missing.service.ts",
+      status: "R"
+    }
+  ]));
 });
 
 test("still blocks renames that introduce a role-boundary violation", () => {
