@@ -4,14 +4,15 @@ export function createDefaultProviderConfig(
   defaultWireApi: "auto" | "chat" | "responses" = "auto",
   defaultModels: string[] = [],
   modelConfig: ProviderConfig["modelConfig"] = {},
-  providerType?: string | null
+  providerType?: string | null,
+  defaultApiBase: string | null = null
 ): ProviderConfig {
   return {
     enabled: true,
     providerType,
     displayName: "",
     apiKey: "",
-    apiBase: null,
+    apiBase: defaultApiBase,
     extraHeaders: null,
     wireApi: defaultWireApi,
     models: [...defaultModels],
@@ -24,6 +25,7 @@ export function createDefaultProviderConfigFromSpec(spec: ProviderSpec | undefin
     spec?.defaultWireApi ?? "auto",
     spec?.defaultModels ?? [],
     normalizeProviderModelConfig(spec?.modelConfig ?? {}),
-    spec?.name
+    spec?.name,
+    spec?.defaultApiBase ?? null
   );
 }

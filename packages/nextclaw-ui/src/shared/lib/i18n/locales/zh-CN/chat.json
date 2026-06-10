@@ -8,6 +8,7 @@
   "chatSelectAgent": "选择 Agent",
   "chatModelLabel": "对话模型",
   "chatSelectModel": "选择模型",
+  "chatRuntimeDefaultModel": "运行时默认",
   "chatThinkingLevelOff": "思考关闭",
   "chatThinkingLevelMinimal": "思考 Minimal",
   "chatThinkingLevelLow": "思考 Low",

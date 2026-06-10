@@ -11,6 +11,7 @@ import { AgentRunModelInputBudgeter } from "@kernel/services/agent-run-model-inp
 import { AgentRunModelInputBuilder } from "@kernel/services/agent-run-model-input-builder.service.js";
 import { NcpAgentRuntimeWrapper } from "@kernel/services/ncp-agent-runtime-wrapper.service.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
+import type { Config } from "@nextclaw/core";
 import { DefaultNcpAgentRuntime } from "@nextclaw/ncp-agent-runtime-next";
 
 export class AgentRunRuntimeContribution implements KernelContribution {
@@ -29,10 +30,10 @@ export class AgentRunRuntimeContribution implements KernelContribution {
     if (this.cleanups.length > 0) {
       return;
     }
-    const { entries } = resolveAgentRuntimeEntries({
-      config: this.kernel.configManager.loadConfig(),
+    this.applyRuntimeConfig(this.kernel.configManager.loadConfig());
+    this.kernel.configManager.installRuntimeHooks({
+      applyAgentRuntimeConfig: this.applyRuntimeConfig,
     });
-    this.kernel.agentRuntimeManager.applyEntries(entries);
     this.cleanups.push(this.registerNativeRuntime());
     for (const provider of new BuiltinNarpRuntimeProviderService(
       this.kernel.configManager,
@@ -45,6 +46,13 @@ export class AgentRunRuntimeContribution implements KernelContribution {
     while (this.cleanups.length > 0) {
       await this.cleanups.pop()?.();
     }
+  };
+
+  private readonly applyRuntimeConfig = (config: Config): void => {
+    const { entries } = resolveAgentRuntimeEntries({
+      config,
+    });
+    this.kernel.agentRuntimeManager.applyEntries(entries);
   };
 
   private registerNativeRuntime = (): (() => Promise<void>) =>

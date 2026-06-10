@@ -1,3 +1,5 @@
+import type { RuntimeModelSelectionMode } from "@nextclaw/shared";
+
 export type ChatSessionTypeIconView = {
   kind: "image";
   src: string;
@@ -19,6 +21,7 @@ export type ChatSessionTypeOptionView = {
   reasonMessage?: string | null;
   supportedModels?: string[];
   recommendedModel?: string | null;
+  modelSelectionMode?: RuntimeModelSelectionMode;
   cta?: ChatSessionTypeCtaView | null;
 };
 

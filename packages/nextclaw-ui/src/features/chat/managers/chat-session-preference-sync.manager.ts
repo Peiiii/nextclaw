@@ -1,3 +1,4 @@
+import { isRuntimeDefaultModelValue } from '@nextclaw/shared';
 import type { SessionPatchUpdate, ThinkingLevel } from '@/shared/lib/api';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
@@ -10,6 +11,9 @@ import {
 type QueuedSessionPreferenceSync = { sessionKey: string; patch: SessionPatchUpdate };
 
 function normalizeOptionalModel(value: string): string | null {
+  if (isRuntimeDefaultModelValue(value)) {
+    return null;
+  }
   const normalized = value.trim(); return normalized.length > 0 ? normalized : null;
 }
 
@@ -57,8 +61,8 @@ export class ChatSessionPreferenceSync {
       selectedSessionPreferredThinking,
     } = params;
     const { snapshot } = useChatInputStore.getState();
+    const { modelOptions } = snapshot;
     const selectedSessionKey = useChatThreadStore.getState().snapshot.sessionKey;
-    const modelOptions = snapshot.modelOptions;
     const sessionChanged = this.previousPreferenceSessionKey !== selectedSessionKey;
     this.previousPreferenceSessionKey = selectedSessionKey;
     const preserveCurrentPreference = sessionChanged && Boolean(selectedSessionKey) && !selectedSessionExists;

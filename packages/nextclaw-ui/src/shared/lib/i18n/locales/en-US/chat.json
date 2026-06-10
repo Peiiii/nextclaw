@@ -8,6 +8,7 @@
   "chatSelectAgent": "Select Agent",
   "chatModelLabel": "Chat Model",
   "chatSelectModel": "Select model",
+  "chatRuntimeDefaultModel": "Runtime default",
   "chatThinkingLevelOff": "Thinking Off",
   "chatThinkingLevelMinimal": "Thinking Minimal",
   "chatThinkingLevelLow": "Thinking Low",

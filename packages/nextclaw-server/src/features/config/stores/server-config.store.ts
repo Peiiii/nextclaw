@@ -29,7 +29,9 @@ import {
   normalizeExtensionProjectionOptions,
   type ExtensionConfigProjectionOptions
 } from "@nextclaw-server/features/config/utils/extension-channel-config-projection.utils.js";
+import { createDefaultProviderConfigFromSpec } from "@nextclaw-server/features/config/utils/default-provider-config.utils.js";
 import { findServerBuiltinProviderByName, listServerBuiltinProviders } from "@nextclaw-server/features/config/providers/server-builtin-provider.provider.js";
+import { normalizeRuntimeEntryConfig } from "@nextclaw-server/features/config/utils/runtime-entry-config.utils.js";
 import { buildSearchView, SEARCH_PROVIDER_META } from "@nextclaw-server/features/config/utils/search-config.utils.js";
 import type {
   ConfigMetaView,
@@ -546,32 +548,6 @@ function normalizeRuntimeEntryIcon(
   };
 }
 
-function normalizeRuntimeEntryConfig(
-  type: string,
-  config: Record<string, unknown>,
-): Record<string, unknown> {
-  if (type !== "narp-stdio") {
-    return { ...config };
-  }
-
-  const command = normalizeOptionalString(config.command);
-  const cwd = normalizeOptionalString(config.cwd);
-  const wireDialect = normalizeOptionalString(config.wireDialect) ?? "acp";
-  const processScope = normalizeOptionalString(config.processScope) ?? "per-session";
-
-  return {
-    wireDialect,
-    processScope,
-    ...(command ? { command } : {}),
-    ...(normalizeStringArray(config.args) ? { args: normalizeStringArray(config.args) } : {}),
-    env: normalizeUnknownStringRecord(config.env) ?? {},
-    ...(cwd ? { cwd } : {}),
-    startupTimeoutMs: normalizePositiveInteger(config.startupTimeoutMs) ?? 8000,
-    probeTimeoutMs: normalizePositiveInteger(config.probeTimeoutMs) ?? 3000,
-    requestTimeoutMs: normalizePositiveInteger(config.requestTimeoutMs) ?? 120000,
-  };
-}
-
 function clearSecretRef(refs: Config["secrets"]["refs"], path: string): Config["secrets"]["refs"] {
   const { [path]: _removed, ...nextRefs } = refs;
   void _removed;
@@ -723,6 +699,14 @@ export function loadConfigOrDefault(configPath: string): Config {
   return loadConfig(configPath);
 }
 
+function createProviderForUpdate(providerId: string): ProviderConfig | null {
+  const spec = findServerBuiltinProviderByName(providerId);
+  if (!spec) {
+    return null;
+  }
+  return createDefaultProviderConfigFromSpec(spec);
+}
+
 export function updateModel(configPath: string, patch: { model?: string; workspace?: string }): ConfigView {
   const config = loadConfigOrDefault(configPath);
 
@@ -743,14 +727,14 @@ export function updateProvider(
 ): ProviderConfigView | null {
   const config = loadConfigOrDefault(configPath);
   const providers = config.providers as Record<string, ProviderConfig>;
-  const provider = providers[providerId];
+  const provider = providers[providerId] ?? createProviderForUpdate(providerId);
   if (!provider) {
     return null;
   }
-  const currentProviderType = resolveProviderType(providerId, provider);
+  providers[providerId] = provider;
   const requestedProviderType = Object.prototype.hasOwnProperty.call(patch, "providerType")
     ? normalizeProviderId(patch.providerType)
-    : currentProviderType;
+    : resolveProviderType(providerId, provider);
   const spec = findServerBuiltinProviderByName(requestedProviderType ?? "");
   if (Object.prototype.hasOwnProperty.call(patch, "providerType")) {
     provider.providerType = spec?.name ?? null;
@@ -849,40 +833,6 @@ function normalizeOptionalString(value: unknown): string | null {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
-}
-
-function normalizePositiveInteger(value: unknown): number | null {
-  const parsed =
-    typeof value === "number"
-      ? value
-      : typeof value === "string"
-        ? Number.parseInt(value, 10)
-        : Number.NaN;
-  if (!Number.isFinite(parsed)) {
-    return null;
-  }
-  const normalized = Math.trunc(parsed);
-  return normalized > 0 ? normalized : null;
-}
-
-function normalizeStringArray(value: unknown): string[] | null {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-  const entries = value
-    .map((entry) => normalizeOptionalString(entry))
-    .filter((entry): entry is string => Boolean(entry));
-  return entries.length > 0 ? entries : null;
-}
-
-function normalizeUnknownStringRecord(value: unknown): Record<string, string> | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-  const entries = Object.entries(value)
-    .map(([key, entryValue]) => [key.trim(), normalizeOptionalString(entryValue)] as const)
-    .filter(([key, entryValue]) => key.length > 0 && Boolean(entryValue));
-  return entries.length > 0 ? Object.fromEntries(entries) as Record<string, string> : null;
 }
 
 function normalizeHeaders(input: Record<string, string> | null | undefined): Record<string, string> | null {

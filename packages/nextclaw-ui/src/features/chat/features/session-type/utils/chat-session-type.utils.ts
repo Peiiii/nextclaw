@@ -3,6 +3,7 @@ import type {
   ChatSessionTypeOptionView,
   SessionTypeIconView,
 } from "@/shared/lib/api";
+import type { RuntimeModelSelectionMode } from "@nextclaw/shared";
 import { t } from "@/shared/lib/i18n";
 
 export const DEFAULT_SESSION_TYPE = "native";
@@ -16,6 +17,7 @@ export type ChatSessionTypeOption = {
   reasonMessage?: string | null;
   supportedModels?: string[];
   recommendedModel?: string | null;
+  modelSelectionMode?: RuntimeModelSelectionMode;
   cta?: {
     kind: string;
     label?: string;
@@ -73,6 +75,7 @@ export function buildSessionTypeOptions(
       reasonMessage: option.reasonMessage ?? null,
       supportedModels: option.supportedModels,
       recommendedModel: option.recommendedModel ?? null,
+      modelSelectionMode: option.modelSelectionMode ?? "nextclaw",
       cta: option.cta ?? null,
     });
   }
@@ -86,6 +89,7 @@ export function buildSessionTypeOptions(
       reasonMessage: null,
       supportedModels: undefined,
       recommendedModel: null,
+      modelSelectionMode: "nextclaw",
       cta: null,
     });
   }

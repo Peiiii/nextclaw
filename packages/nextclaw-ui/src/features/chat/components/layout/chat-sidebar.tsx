@@ -1,50 +1,62 @@
-import { useEffect, useMemo, useState } from 'react';
-import { BrandHeader } from '@/shared/components/common/brand-header';
-import { StatusBadge } from '@/shared/components/common/status-badge';
-import { ChatSidebarListModeSwitch } from '@/features/chat/components/chat-sidebar-list-mode-switch';
+import { useEffect, useMemo, useState } from "react";
+import { BrandHeader } from "@/shared/components/common/brand-header";
+import { StatusBadge } from "@/shared/components/common/status-badge";
+import { ChatSidebarListModeSwitch } from "@/features/chat/components/chat-sidebar-list-mode-switch";
 import {
   getSessionTitle,
   groupChildSessionsByParentKey,
   groupSessionsByDate,
   groupSessionsByProject,
   sortSessionItemsByActivityAtDesc,
-} from '@/features/chat/features/session/utils/chat-sidebar-session-groups.utils';
-import { useChatSidebarSessionLabelEditor } from '@/features/chat/features/session/hooks/use-chat-sidebar-session-label-editor';
-import { useNcpSessionListView, type NcpSessionListItemView } from '@/features/chat/features/ncp/hooks/use-ncp-session-list-view';
-import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
-import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
-import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
-import { useSystemStatus } from '@/features/system-status';
-import { useAgents } from '@/shared/hooks/use-agents';
-import { cn } from '@/shared/lib/utils';
-import { LANGUAGE_OPTIONS, t, type I18nLanguage } from '@/shared/lib/i18n';
-import { THEME_OPTIONS } from '@/shared/lib/theme';
-import { useI18n } from '@/app/components/i18n-provider';
-import { useTheme } from '@/app/components/theme-provider';
-import { useDocBrowser } from '@/shared/components/doc-browser';
-import { SidebarNavLinkItem } from '@/app/components/layout/sidebar-items';
+} from "@/features/chat/features/session/utils/chat-sidebar-session-groups.utils";
+import { useChatSidebarSessionLabelEditor } from "@/features/chat/features/session/hooks/use-chat-sidebar-session-label-editor";
 import {
-  AlarmClock,
-  Bot,
-  BrainCircuit,
-} from 'lucide-react';
-import { ChatSidebarSessionEntry } from '@/features/chat/features/session/components/chat-sidebar-session-entry';
-import { ChatSidebarSessionList } from '@/features/chat/features/session/components/chat-sidebar-session-list';
+  useNcpSessionListView,
+  type NcpSessionListItemView,
+} from "@/features/chat/features/ncp/hooks/use-ncp-session-list-view";
+import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
+import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
+import { useNcpChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
+import { useSystemStatus } from "@/features/system-status";
+import { useAgents } from "@/shared/hooks/use-agents";
+import { cn } from "@/shared/lib/utils";
+import { LANGUAGE_OPTIONS, t, type I18nLanguage } from "@/shared/lib/i18n";
+import { THEME_OPTIONS } from "@/shared/lib/theme";
+import { useI18n } from "@/app/components/i18n-provider";
+import { useTheme } from "@/app/components/theme-provider";
+import { useDocBrowser } from "@/shared/components/doc-browser";
+import { SidebarNavLinkItem } from "@/app/components/layout/sidebar-items";
+import { AlarmClock, Bot, BrainCircuit } from "lucide-react";
+import { ChatSidebarSessionEntry } from "@/features/chat/features/session/components/chat-sidebar-session-entry";
+import { ChatSidebarSessionList } from "@/features/chat/features/session/components/chat-sidebar-session-list";
 import {
   ChatSidebarDesktopToolbar,
   ChatSidebarMobileToolbar,
-} from '@/features/chat/components/layout/chat-sidebar-toolbar';
-import { ChatSidebarUtilityMenu } from '@/features/chat/components/layout/chat-sidebar-utility-menu';
-import { openApps } from '@/features/panel-apps';
-import { isWindowsDesktopHost } from '@/platforms/desktop';
+} from "@/features/chat/components/layout/chat-sidebar-toolbar";
+import { ChatSidebarUtilityMenu } from "@/features/chat/components/layout/chat-sidebar-utility-menu";
+import { openApps } from "@/features/panel-apps";
+import { isWindowsDesktopHost } from "@/platforms/desktop";
+import {
+  buildSessionTypeOptions,
+  DEFAULT_SESSION_TYPE,
+  normalizeSessionType,
+} from "@/features/chat/features/session-type/utils/chat-session-type.utils";
 
 const navItems = [
-  { target: '/cron', label: () => t('chatSidebarScheduledTasks'), icon: AlarmClock },
-  { target: '/skills', label: () => t('chatSidebarSkills'), icon: BrainCircuit },
-  { target: '/agents', label: () => t('agentsPageTitle'), icon: Bot },
+  {
+    target: "/cron",
+    label: () => t("chatSidebarScheduledTasks"),
+    icon: AlarmClock,
+  },
+  {
+    target: "/skills",
+    label: () => t("chatSidebarSkills"),
+    icon: BrainCircuit,
+  },
+  { target: "/agents", label: () => t("agentsPageTitle"), icon: Bot },
 ];
 
-type ChatSidebarVariant = 'desktop' | 'mobile';
+type ChatSidebarVariant = "desktop" | "mobile";
 
 function useChatSessionUnreadState(
   items: readonly NcpSessionListItemView[],
@@ -55,15 +67,19 @@ function useChatSessionUnreadState(
     currentReadAt?: string | null,
   ) => void,
 ): Record<string, string> {
-  const optimisticReadAtBySessionKey = useChatSessionListStore((state) => state.optimisticReadAtBySessionKey);
+  const optimisticReadAtBySessionKey = useChatSessionListStore(
+    (state) => state.optimisticReadAtBySessionKey,
+  );
 
   useEffect(() => {
     const syncSelectedSessionReadState = () => {
       if (!selectedSessionKey) {
         return;
       }
-      const selectedItem = items.find(({ session }) => session.key === selectedSessionKey);
-      if (!selectedItem || selectedItem.runStatus === 'running') {
+      const selectedItem = items.find(
+        ({ session }) => session.key === selectedSessionKey,
+      );
+      if (!selectedItem || selectedItem.runStatus === "running") {
         return;
       }
       const { session: selectedSession } = selectedItem;
@@ -80,46 +96,84 @@ function useChatSessionUnreadState(
 }
 
 export function ChatSidebar({
-  variant = 'desktop',
+  variant = "desktop",
 }: {
   variant?: ChatSidebarVariant;
 }) {
-  const isMobileVariant = variant === 'mobile';
+  const isMobileVariant = variant === "mobile";
   const presenter = usePresenter();
   const docBrowser = useDocBrowser();
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
   const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false);
-  const inputSnapshot = useChatInputStore((state) => state.snapshot);
   const listSnapshot = useChatSessionListStore((state) => state.snapshot);
+  const sessionTypesData = useNcpChatQueryStore(
+    (state) => state.snapshot.sessionTypesQuery?.data ?? null,
+  );
   const systemStatus = useSystemStatus();
   const agentsQuery = useAgents();
   const { isLoading, items } = useNcpSessionListView();
   const { language, setLanguage } = useI18n();
   const { theme, setTheme } = useTheme();
-  const currentThemeLabel = t(THEME_OPTIONS.find((o) => o.value === theme)?.labelKey ?? 'themeWarm');
-  const currentLanguageLabel = LANGUAGE_OPTIONS.find((o) => o.value === language)?.label ?? language;
+  const currentThemeLabel = t(
+    THEME_OPTIONS.find((o) => o.value === theme)?.labelKey ?? "themeWarm",
+  );
+  const currentLanguageLabel =
+    LANGUAGE_OPTIONS.find((o) => o.value === language)?.label ?? language;
   const utilityThemeOptions = useMemo(
-    () => THEME_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) })),
+    () =>
+      THEME_OPTIONS.map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
     [],
   );
   const utilityLanguageOptions = useMemo(
-    () => LANGUAGE_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
+    () =>
+      LANGUAGE_OPTIONS.map((option) => ({
+        value: option.value,
+        label: option.label,
+      })),
     [],
   );
   const agentsById = useMemo(
-    () => new Map((agentsQuery.data?.agents ?? []).map((agent) => [agent.id, agent])),
-    [agentsQuery.data?.agents]
+    () =>
+      new Map(
+        (agentsQuery.data?.agents ?? []).map((agent) => [agent.id, agent]),
+      ),
+    [agentsQuery.data?.agents],
   );
-  const sortedItems = useMemo(() => sortSessionItemsByActivityAtDesc(items), [items]);
-  const childSessionsByParentKey = useMemo(() => groupChildSessionsByParentKey(items), [items]);
+  const sortedItems = useMemo(
+    () => sortSessionItemsByActivityAtDesc(items),
+    [items],
+  );
+  const childSessionsByParentKey = useMemo(
+    () => groupChildSessionsByParentKey(items),
+    [items],
+  );
   const groups = useMemo(() => groupSessionsByDate(sortedItems), [sortedItems]);
-  const projectGroups = useMemo(() => groupSessionsByProject(sortedItems), [sortedItems]);
-  const defaultSessionType = inputSnapshot.defaultSessionType || 'native';
-  const nonDefaultSessionTypeOptions = useMemo(
-    () => inputSnapshot.sessionTypeOptions.filter((option) => option.value !== defaultSessionType),
-    [defaultSessionType, inputSnapshot.sessionTypeOptions]
+  const projectGroups = useMemo(
+    () => groupSessionsByProject(sortedItems),
+    [sortedItems],
   );
-  const isProjectFirstView = listSnapshot.listMode === 'project-first';
+  const sessionTypeOptions = useMemo(
+    () => buildSessionTypeOptions(sessionTypesData?.options ?? []),
+    [sessionTypesData?.options],
+  );
+  const defaultSessionType = useMemo(
+    () =>
+      normalizeSessionType(
+        sessionTypesData?.defaultType ?? DEFAULT_SESSION_TYPE,
+      ),
+    [sessionTypesData?.defaultType],
+  );
+  const nonDefaultSessionTypeOptions = useMemo(
+    () =>
+      sessionTypeOptions.filter(
+        (option) => option.value !== defaultSessionType,
+      ),
+    [defaultSessionType, sessionTypeOptions],
+  );
+  const isProjectFirstView = listSnapshot.listMode === "project-first";
   const optimisticReadAtBySessionKey = useChatSessionUnreadState(
     items,
     listSnapshot.selectedSessionKey,
@@ -150,26 +204,38 @@ export function ChatSidebar({
       editingSessionKey={editingSessionKey}
       draftLabel={draftLabel}
       savingSessionKey={savingSessionKey}
+      sessionTypeOptions={sessionTypeOptions}
       sessionTitle={getSessionTitle}
       onSelectSession={presenter.chatSessionListManager.selectSession}
-      onOpenChildSessions={(parentSessionKey, activeChildSessionKey) => presenter.chatThreadManager.openChildSessionPanel({ parentSessionKey, activeChildSessionKey })}
+      onOpenChildSessions={(parentSessionKey, activeChildSessionKey) =>
+        presenter.chatThreadManager.openChildSessionPanel({
+          parentSessionKey,
+          activeChildSessionKey,
+        })
+      }
       onStartEditingSessionLabel={startEditingSessionLabel}
       onDraftLabelChange={setDraftLabel}
       onSaveSessionLabel={saveSessionLabel}
       onCancelEditingSessionLabel={cancelEditingSessionLabel}
     />
   );
-  const createSessionAndOpenIfNeeded = (sessionType: string, projectRoot?: string | null) => {
-    presenter.chatSessionListManager.createSession(sessionType, typeof projectRoot === "string" ? projectRoot : undefined);
+  const createSessionAndOpenIfNeeded = (
+    sessionType: string,
+    projectRoot?: string | null,
+  ) => {
+    presenter.chatSessionListManager.createSession(
+      sessionType,
+      typeof projectRoot === "string" ? projectRoot : undefined,
+    );
   };
 
   return (
     <aside
       className={cn(
-        'flex h-full min-h-0 flex-col bg-secondary',
+        "flex h-full min-h-0 flex-col bg-secondary",
         isMobileVariant
-          ? 'flex-1 overflow-hidden'
-          : 'w-[280px] shrink-0 border-r border-gray-200/60',
+          ? "flex-1 overflow-hidden"
+          : "w-[280px] shrink-0 border-r border-gray-200/60",
       )}
     >
       {!isMobileVariant && !isWindowsDesktopHost() ? (
@@ -185,7 +251,7 @@ export function ChatSidebar({
         <ChatSidebarMobileToolbar
           query={listSnapshot.query}
           defaultSessionType={defaultSessionType}
-          sessionTypeOptions={inputSnapshot.sessionTypeOptions}
+          sessionTypeOptions={sessionTypeOptions}
           nonDefaultSessionTypeOptions={nonDefaultSessionTypeOptions}
           isCreateMenuOpen={isCreateMenuOpen}
           onCreateMenuOpenChange={setIsCreateMenuOpen}
@@ -196,7 +262,7 @@ export function ChatSidebar({
         <ChatSidebarDesktopToolbar
           query={listSnapshot.query}
           defaultSessionType={defaultSessionType}
-          sessionTypeOptions={inputSnapshot.sessionTypeOptions}
+          sessionTypeOptions={sessionTypeOptions}
           nonDefaultSessionTypeOptions={nonDefaultSessionTypeOptions}
           isCreateMenuOpen={isCreateMenuOpen}
           onCreateMenuOpenChange={setIsCreateMenuOpen}
@@ -210,7 +276,12 @@ export function ChatSidebar({
           <ul className="space-y-0.5">
             {navItems.map((item) => (
               <li key={item.target}>
-                <SidebarNavLinkItem to={item.target} label={item.label()} icon={item.icon} density="compact" />
+                <SidebarNavLinkItem
+                  to={item.target}
+                  label={item.label()}
+                  icon={item.icon}
+                  density="compact"
+                />
               </li>
             ))}
           </ul>
@@ -223,7 +294,7 @@ export function ChatSidebar({
 
       <div className="flex items-center justify-between px-5 pb-2 pt-3">
         <div className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
-          {t('chatSidebarTaskRecords')}
+          {t("chatSidebarTaskRecords")}
         </div>
         <ChatSidebarListModeSwitch
           isProjectFirstView={isProjectFirstView}
@@ -238,7 +309,7 @@ export function ChatSidebar({
           groups={groups}
           projectGroups={projectGroups}
           defaultSessionType={defaultSessionType}
-          sessionTypeOptions={inputSnapshot.sessionTypeOptions}
+          sessionTypeOptions={sessionTypeOptions}
           renderSessionItem={renderSessionItem}
           onCreateSession={createSessionAndOpenIfNeeded}
         />
@@ -257,7 +328,12 @@ export function ChatSidebar({
             currentLanguageLabel={currentLanguageLabel}
             languageOptions={utilityLanguageOptions}
             onSelectLanguage={handleLanguageSwitch}
-            onOpenDocs={() => docBrowser.open(undefined, { kind: 'docs', title: t('docBrowserHelp') })}
+            onOpenDocs={() =>
+              docBrowser.open(undefined, {
+                kind: "docs",
+                title: t("docBrowserHelp"),
+              })
+            }
             onOpenApps={() => openApps(docBrowser)}
           />
         </div>

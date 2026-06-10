@@ -1,11 +1,10 @@
 import { loadConfig } from "@nextclaw/core";
-import type { NcpAgentRuntime } from "@nextclaw/ncp";
-import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 import {
-  AgentRuntimeRegistry,
   BuiltinNarpRuntimeProviderService,
   DEFAULT_AGENT_RUNTIME_ENTRY_ID,
+  describeAgentRuntimeSessionTypes,
   resolveAgentRuntimeEntries,
+  type AgentRuntimeSessionTypeProvider,
   type AgentRuntimeSessionTypeDescribeParams,
   type AgentRuntimeSessionTypeOption,
 } from "@nextclaw/kernel";
@@ -20,32 +19,32 @@ export type AgentRuntimeListResult = {
   runtimes: AgentRuntimeListEntry[];
 };
 
-function createUnusedRuntime(_params: RuntimeFactoryParams): NcpAgentRuntime {
-  throw new Error("runtime creation is not available during runtime listing");
-}
-
 export async function listAvailableAgentRuntimes(
   params?: AgentRuntimeSessionTypeDescribeParams,
 ): Promise<AgentRuntimeListResult> {
   const config = loadConfig();
-  const runtimeRegistry = new AgentRuntimeRegistry();
-  const runtimeSourceByKind = new Map<string, {
-    source: "builtin";
-  }>();
-  const runtimeSourceByEntryId = new Map<string, {
-    source: "builtin";
-  }>();
+  const providers = new Map<string, AgentRuntimeSessionTypeProvider>();
+  const runtimeSourceByKind = new Map<
+    string,
+    {
+      source: "builtin";
+    }
+  >();
+  const runtimeSourceByEntryId = new Map<
+    string,
+    {
+      source: "builtin";
+    }
+  >();
 
-  runtimeRegistry.register({
-    kind: DEFAULT_AGENT_RUNTIME_ENTRY_ID,
-    label: "Native",
-    createRuntime: createUnusedRuntime,
-  });
+  providers.set(DEFAULT_AGENT_RUNTIME_ENTRY_ID, {});
   runtimeSourceByKind.set(DEFAULT_AGENT_RUNTIME_ENTRY_ID, {
     source: "builtin",
   });
-  for (const provider of new BuiltinNarpRuntimeProviderService({ loadConfig: () => config }).createProviders()) {
-    runtimeRegistry.register(provider);
+  for (const provider of new BuiltinNarpRuntimeProviderService({
+    loadConfig: () => config,
+  }).createProviders()) {
+    providers.set(provider.kind, provider);
   }
   runtimeSourceByKind.set("narp-http", {
     source: "builtin",
@@ -57,15 +56,22 @@ export async function listAvailableAgentRuntimes(
   const resolvedEntries = resolveAgentRuntimeEntries({
     config,
   });
-  runtimeRegistry.applyEntries(resolvedEntries);
   for (const entry of resolvedEntries.entries) {
     const source = runtimeSourceByKind.get(entry.type);
-    runtimeSourceByEntryId.set(entry.id, source ?? {
-      source: "builtin",
-    });
+    runtimeSourceByEntryId.set(
+      entry.id,
+      source ?? {
+        source: "builtin",
+      },
+    );
   }
 
-  const listed = await runtimeRegistry.listSessionTypes(params);
+  const listed = await describeAgentRuntimeSessionTypes({
+    entries: resolvedEntries.entries,
+    providers,
+    defaultEntryId: resolvedEntries.defaultEntryId,
+    describeParams: params,
+  });
   return {
     defaultRuntime: listed.defaultType,
     runtimes: listed.options.map((runtime) => {

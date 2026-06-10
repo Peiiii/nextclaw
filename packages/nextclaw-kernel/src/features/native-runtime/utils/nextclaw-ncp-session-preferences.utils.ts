@@ -1,4 +1,5 @@
 import { parseThinkingLevel, type ThinkingLevel } from "@nextclaw/core";
+import { isRuntimeDefaultModelValue } from "@nextclaw/shared";
 
 export function normalizeOptionalString(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -61,13 +62,21 @@ export function resolveEffectiveModel(params: {
   }
 
   const inboundModel = readMetadataModel(requestMetadata);
-  if (inboundModel) {
+  if (inboundModel && isRuntimeDefaultModelValue(inboundModel)) {
+    delete metadata.preferred_model;
+    delete metadata.model;
+  } else if (inboundModel) {
     metadata.preferred_model = inboundModel;
+    metadata.model = inboundModel;
   }
 
   return {
     metadata,
-    model: normalizeOptionalString(metadata.preferred_model) ?? fallbackModel,
+    model: (
+      isRuntimeDefaultModelValue(metadata.preferred_model)
+        ? undefined
+        : normalizeOptionalString(metadata.preferred_model)
+    ) ?? fallbackModel,
   };
 }
 

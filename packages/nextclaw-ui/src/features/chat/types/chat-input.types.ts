@@ -9,6 +9,7 @@ export type ChatModelOption = {
   value: string;
   modelLabel: string;
   providerLabel: string;
+  isRuntimeDefault?: boolean;
   thinkingCapability?: ChatModelThinkingCapability | null;
 };
 

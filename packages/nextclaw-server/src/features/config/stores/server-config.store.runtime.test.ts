@@ -45,4 +45,40 @@ describe("runtime config companion updates", () => {
     expect(view?.models).toContain("openrouter/deepseek/deepseek-v3.2");
     expect(loadConfig(configPath).providers.openrouter.models).toContain("openrouter/deepseek/deepseek-v3.2");
   });
+
+  it("preserves narp stdio runtime model selection fields", () => {
+    tempDir = mkdtempSync(join(tmpdir(), "nextclaw-runtime-model-selection-"));
+    const configPath = join(tempDir, "config.json");
+    saveConfig(ConfigSchema.parse({}), configPath);
+
+    updateRuntime(configPath, {
+      agents: {
+        runtimes: {
+          entries: {
+            codex: {
+              enabled: true,
+              label: "Codex",
+              type: "narp-stdio",
+              config: {
+                command: "nextclaw-codex-narp",
+                wireDialect: "acp",
+                modelSelectionMode: "optional",
+                model: "openai/gpt-5",
+                recommendedModel: "openai/gpt-5",
+                supportedModels: ["openai/gpt-5", "dashscope/qwen3-coder-next"],
+              },
+            },
+          },
+        },
+      },
+    });
+
+    expect(loadConfig(configPath).agents.runtimes.entries.codex?.config).toMatchObject({
+      command: "nextclaw-codex-narp",
+      modelSelectionMode: "optional",
+      model: "openai/gpt-5",
+      recommendedModel: "openai/gpt-5",
+      supportedModels: ["openai/gpt-5", "dashscope/qwen3-coder-next"],
+    });
+  });
 });

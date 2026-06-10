@@ -1,4 +1,5 @@
 import type { ChatComposerNode } from '@nextclaw/agent-chat-ui';
+import { isRuntimeDefaultModelValue } from '@nextclaw/shared';
 import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
 import type { SetStateAction } from 'react';
 import type { ThinkingLevel } from '@/shared/lib/api';
@@ -28,6 +29,13 @@ import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import { normalizeSessionType } from '@/features/chat/features/session-type/utils/chat-session-type.utils';
 import { systemStatusManager } from '@/features/system-status';
 import { shouldClearPendingProjectRootOverride } from '@/features/chat/features/session/utils/ncp-chat-send-metadata.utils';
+
+function resolveModelForSend(value: string): string | undefined {
+  if (isRuntimeDefaultModelValue(value)) {
+    return undefined;
+  }
+  return value || undefined;
+}
 
 export class NcpChatInputManager {
   private readonly sessionPreferenceSync = new ChatSessionPreferenceSync(updateNcpSession);
@@ -285,7 +293,7 @@ export class NcpChatInputManager {
       ...(sessionKey ? { sessionKey } : {}),
       agentId: sessionSnapshot.selectedAgentId,
       sessionType: inputSnapshot.selectedSessionType,
-      model: inputSnapshot.selectedModel || undefined,
+      model: resolveModelForSend(inputSnapshot.selectedModel),
       thinkingLevel: inputSnapshot.selectedThinkingLevel ?? undefined,
       stopSupported: true,
       requestedSkills,
@@ -336,7 +344,9 @@ export class NcpChatInputManager {
 
   selectModel = (value: string) => {
     this.setSelectedModel(value);
-    chatRecentModelsManager.remember(value);
+    if (!isRuntimeDefaultModelValue(value)) {
+      chatRecentModelsManager.remember(value);
+    }
     this.sessionPreferenceSync.syncSelectedSessionPreferences();
   };
 

@@ -271,9 +271,15 @@ function useChatInputBarQueryState(snapshot: ChatInputStoreSnapshot) {
     () =>
       filterNcpChatModelOptionsBySessionType({
         modelOptions: providerModelOptions,
+        modelSelectionMode: sessionTypeState.selectedSessionTypeOption?.modelSelectionMode,
+        runtimeDefaultModelLabel: t('chatRuntimeDefaultModel'),
         supportedModels: sessionTypeState.selectedSessionTypeOption?.supportedModels,
       }),
-    [providerModelOptions, sessionTypeState.selectedSessionTypeOption?.supportedModels],
+    [
+      providerModelOptions,
+      sessionTypeState.selectedSessionTypeOption?.modelSelectionMode,
+      sessionTypeState.selectedSessionTypeOption?.supportedModels,
+    ],
   );
 
   return {

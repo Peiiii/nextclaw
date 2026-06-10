@@ -1,6 +1,20 @@
+import {
+  RUNTIME_DEFAULT_MODEL_VALUE,
+  type RuntimeModelSelectionMode,
+} from '@nextclaw/shared';
 import type { ConfigView, ProvidersView, ProviderTemplatesView } from '@/shared/lib/api';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import { buildProviderModelCatalog, composeProviderModel, resolveModelThinkingCapability } from '@/shared/lib/provider-models';
+
+function buildRuntimeDefaultModelOption(label: string): ChatModelOption {
+  return {
+    value: RUNTIME_DEFAULT_MODEL_VALUE,
+    modelLabel: label,
+    providerLabel: '',
+    isRuntimeDefault: true,
+    thinkingCapability: null,
+  };
+}
 
 export function buildNcpChatProviderModelOptions(params: {
   config: ConfigView | null;
@@ -35,13 +49,29 @@ export function buildNcpChatProviderModelOptions(params: {
 
 export function filterNcpChatModelOptionsBySessionType(params: {
   modelOptions: ChatModelOption[];
+  modelSelectionMode?: RuntimeModelSelectionMode;
+  runtimeDefaultModelLabel?: string;
   supportedModels?: string[];
 }): ChatModelOption[] {
-  const { modelOptions, supportedModels } = params;
+  const {
+    modelOptions,
+    modelSelectionMode,
+    runtimeDefaultModelLabel = 'Runtime default',
+    supportedModels,
+  } = params;
+  const runtimeDefaultOption = buildRuntimeDefaultModelOption(runtimeDefaultModelLabel);
+  if (modelSelectionMode === 'runtime-default') {
+    return [runtimeDefaultOption];
+  }
   if (!supportedModels || supportedModels.length === 0) {
-    return modelOptions;
+    return modelSelectionMode === 'optional'
+      ? [runtimeDefaultOption, ...modelOptions]
+      : modelOptions;
   }
   const supportedModelSet = new Set(supportedModels);
   const filtered = modelOptions.filter((option) => supportedModelSet.has(option.value));
-  return filtered.length > 0 ? filtered : modelOptions;
+  const resolved = filtered.length > 0 ? filtered : modelOptions;
+  return modelSelectionMode === 'optional'
+    ? [runtimeDefaultOption, ...resolved]
+    : resolved;
 }

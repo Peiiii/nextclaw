@@ -6,6 +6,11 @@ import {
   resolveProviderRuntime,
   type Config,
 } from "@nextclaw/core";
+import {
+  isRuntimeDefaultModelValue,
+  normalizeRuntimeModelSelectionMode,
+  type RuntimeModelSelectionMode,
+} from "@nextclaw/shared";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import { BUILTIN_PROVIDER_PLUGINS } from "@nextclaw/runtime";
 import type { NcpAgentRunInput, NcpProviderRuntimeRoute } from "@nextclaw/ncp";
@@ -56,21 +61,29 @@ function resolveEntryIcon(
 
 function resolveRequestedModel(params: {
   input: NcpAgentRunInput;
+  modelSelectionMode?: RuntimeModelSelectionMode;
   sessionMetadata: Record<string, unknown>;
   defaultModel?: string;
   configuredModel?: string;
 }): string | undefined {
-  const { configuredModel, defaultModel, input, sessionMetadata } = params;
-  const runMetadata = readRecord(input.metadata);
-  return (
-    readString(runMetadata?.preferred_model) ??
-    readString(runMetadata?.preferredModel) ??
-    readString(runMetadata?.model) ??
+  const { configuredModel, defaultModel, input, modelSelectionMode, sessionMetadata } = params;
+  if (modelSelectionMode === "runtime-default") {
+    return undefined;
+  }
+  const requestedModel =
+    readString(readRecord(input.metadata)?.preferred_model) ??
+    readString(readRecord(input.metadata)?.preferredModel) ??
+    readString(readRecord(input.metadata)?.model) ??
     readString(sessionMetadata.preferred_model) ??
     readString(sessionMetadata.preferredModel) ??
-    readString(sessionMetadata.model) ??
+    readString(sessionMetadata.model);
+  if (isRuntimeDefaultModelValue(requestedModel)) {
+    return undefined;
+  }
+  return (
+    requestedModel ??
     configuredModel ??
-    defaultModel
+    (modelSelectionMode === "optional" ? undefined : defaultModel)
   );
 }
 
@@ -98,6 +111,7 @@ function buildProviderRoute(params: {
   sessionMetadata: Record<string, unknown>;
   defaultModel?: string;
   configuredModel?: string;
+  modelSelectionMode?: RuntimeModelSelectionMode;
 }): NcpProviderRuntimeRoute | undefined {
   const model = resolveRequestedModel(params);
   if (!model) {
@@ -154,6 +168,9 @@ class BuiltinHttpRuntimeSessionTypeService {
     const config = resolver.resolve({
       defaultModel: this.defaultModel,
     });
+    const modelSelectionMode = normalizeRuntimeModelSelectionMode(
+      this.entry.config?.modelSelectionMode,
+    );
 
     if (!config.baseUrl) {
       return {
@@ -162,6 +179,7 @@ class BuiltinHttpRuntimeSessionTypeService {
         reason: "base_url_missing",
         reasonMessage: "Configure the runtime entry baseUrl before starting an HTTP runtime session.",
         recommendedModel: config.recommendedModel ?? null,
+        modelSelectionMode,
         cta: {
           kind: "settings",
           label: "Configure HTTP Runtime",
@@ -177,6 +195,7 @@ class BuiltinHttpRuntimeSessionTypeService {
         reason: null,
         reasonMessage: null,
         recommendedModel: config.recommendedModel ?? null,
+        modelSelectionMode,
         ...(config.supportedModels ? { supportedModels: config.supportedModels } : {}),
         cta: null,
       };
@@ -198,6 +217,7 @@ class BuiltinHttpRuntimeSessionTypeService {
           reason: "healthcheck_failed",
           reasonMessage: `HTTP runtime healthcheck returned HTTP ${response.status}.`,
           recommendedModel: config.recommendedModel ?? null,
+          modelSelectionMode,
           ...(config.supportedModels ? { supportedModels: config.supportedModels } : {}),
           cta: null,
         };
@@ -208,6 +228,7 @@ class BuiltinHttpRuntimeSessionTypeService {
         reason: null,
         reasonMessage: null,
         recommendedModel: config.recommendedModel ?? null,
+        modelSelectionMode,
         ...(config.supportedModels ? { supportedModels: config.supportedModels } : {}),
         cta: null,
       };
@@ -260,6 +281,9 @@ class BuiltinStdioRuntimeSessionTypeService {
     describeMode: "observation" | "probe",
   ): Promise<SessionTypeDescriptor> => {
     const resolver = new StdioRuntimeConfigResolver(this.entry.config ?? {});
+    const modelSelectionMode = normalizeRuntimeModelSelectionMode(
+      this.entry.config?.modelSelectionMode,
+    );
     try {
       const config = resolver.resolve();
       const executablePath = await resolveExecutablePath(config.command);
@@ -273,6 +297,7 @@ class BuiltinStdioRuntimeSessionTypeService {
             kind: "settings",
             label: "Configure Stdio Runtime",
           },
+          modelSelectionMode,
         };
       }
       if (describeMode === "probe") {
@@ -291,6 +316,7 @@ class BuiltinStdioRuntimeSessionTypeService {
               kind: "settings",
               label: "Repair Stdio Runtime",
             },
+            modelSelectionMode,
           };
         }
       }
@@ -299,6 +325,7 @@ class BuiltinStdioRuntimeSessionTypeService {
         ready: true,
         reason: null,
         reasonMessage: null,
+        modelSelectionMode,
         cta: null,
       };
     } catch (error) {
@@ -314,6 +341,7 @@ class BuiltinStdioRuntimeSessionTypeService {
           kind: "settings",
           label: "Configure Stdio Runtime",
         },
+        modelSelectionMode,
       };
     }
   };
@@ -404,6 +432,7 @@ export class BuiltinNarpRuntimeProviderService {
           sessionMetadata: runtimeParams.sessionMetadata,
           defaultModel: this.configManager.loadConfig().agents.defaults.model,
           configuredModel: readString(config.model),
+          modelSelectionMode: normalizeRuntimeModelSelectionMode(config.modelSelectionMode),
         }),
     });
   };
@@ -427,6 +456,7 @@ export class BuiltinNarpRuntimeProviderService {
           sessionMetadata: runtimeParams.sessionMetadata,
           defaultModel: this.configManager.loadConfig().agents.defaults.model,
           configuredModel: readString(config.model),
+          modelSelectionMode: normalizeRuntimeModelSelectionMode(config.modelSelectionMode),
         }),
     });
   };

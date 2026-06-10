@@ -22,8 +22,10 @@ export function applySessionPreferencePatch(params: {
     const preferredModel = typeof patch.preferredModel === "string" ? patch.preferredModel.trim() : "";
     if (preferredModel) {
       nextMetadata.preferred_model = preferredModel;
+      nextMetadata.model = preferredModel;
     } else {
       delete nextMetadata.preferred_model;
+      delete nextMetadata.model;
     }
   }
 

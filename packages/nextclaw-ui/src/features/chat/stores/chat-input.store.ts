@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { ChatComposerNode } from '@nextclaw/agent-chat-ui';
 import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
+import type { RuntimeModelSelectionMode } from '@nextclaw/shared';
 import type { SessionSkillEntryView, SessionTypeIconView, ThinkingLevel } from '@/shared/lib/api';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import { createInitialChatComposerNodes } from '@/features/chat/features/input/utils/chat-composer-state.utils';
@@ -30,6 +31,7 @@ export type ChatInputSnapshot = {
     reasonMessage?: string | null;
     supportedModels?: string[];
     recommendedModel?: string | null;
+    modelSelectionMode?: RuntimeModelSelectionMode;
     cta?: {
       kind: string;
       label?: string;

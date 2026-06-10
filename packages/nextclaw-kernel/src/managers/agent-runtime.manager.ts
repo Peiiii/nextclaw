@@ -1,19 +1,16 @@
-import type {
-  NcpEndpointEvent,
-  NcpTool,
-} from "@nextclaw/ncp";
+import type { NcpEndpointEvent, NcpTool } from "@nextclaw/ncp";
 import type { SessionRun } from "./session-run.manager.js";
 import type {
   AgentRunSpec,
   ContextBlock,
 } from "@kernel/types/agent-run.types.js";
-import { DEFAULT_AGENT_RUNTIME_ENTRY_ID } from "@kernel/configs/agent-runtime.config.js";
 import type { AgentRunSession } from "@kernel/types/session.types.js";
 import type {
   AgentRuntimeEntry,
   AgentRuntimeSessionTypeDescribeParams,
   AgentRuntimeSessionTypeOption,
 } from "@kernel/features/runtime-registry/index.js";
+import { describeAgentRuntimeSessionTypes } from "@kernel/features/runtime-registry/index.js";
 
 export type AgentRuntimeRunOptions = {
   sessionRun: SessionRun;
@@ -38,7 +35,12 @@ export type AgentRuntimeRegistration = {
   describeSessionTypeForEntry?: (params: {
     entry: AgentRuntimeEntry;
     describeParams?: AgentRuntimeSessionTypeDescribeParams;
-  }) => Promise<Omit<AgentRuntimeSessionTypeOption, "value" | "label"> | null | undefined>
+  }) =>
+    | Promise<
+        | Omit<AgentRuntimeSessionTypeOption, "value" | "label">
+        | null
+        | undefined
+      >
     | Omit<AgentRuntimeSessionTypeOption, "value" | "label">
     | null
     | undefined;
@@ -64,7 +66,9 @@ export class AgentRuntimeManager {
   private readonly globalRuntimes = new Map<string, AgentRuntime>();
   private readonly sessionRuntimes = new Map<string, AgentRuntime>();
 
-  register = (registration: AgentRuntimeRegistration): (() => Promise<void>) => {
+  register = (
+    registration: AgentRuntimeRegistration,
+  ): (() => Promise<void>) => {
     const kind = this.normalizeId(registration.kind);
     if (this.providers.has(kind)) {
       throw new Error(`Agent runtime provider is already registered: ${kind}`);
@@ -99,12 +103,10 @@ export class AgentRuntimeManager {
     const entry = this.getEntry(agentRuntimeId);
     const provider = this.getProvider(entry.type);
     const reuseScope = this.resolveReuseScope(entry, provider);
-    const cacheKey = reuseScope === "global"
-      ? entry.id
-      : `${entry.id}:${session.sessionId}`;
-    const cache = reuseScope === "global"
-      ? this.globalRuntimes
-      : this.sessionRuntimes;
+    const cacheKey =
+      reuseScope === "global" ? entry.id : `${entry.id}:${session.sessionId}`;
+    const cache =
+      reuseScope === "global" ? this.globalRuntimes : this.sessionRuntimes;
     const existing = cache.get(cacheKey);
     if (existing) {
       return existing;
@@ -119,38 +121,16 @@ export class AgentRuntimeManager {
   };
 
   listSessionTypes = async (
-    _params?: AgentRuntimeSessionTypeDescribeParams,
+    params?: AgentRuntimeSessionTypeDescribeParams,
   ): Promise<{
     defaultType: string;
     options: AgentRuntimeSessionTypeOption[];
-  }> => {
-    const entries = [...this.entries.values()].filter((entry) => entry.enabled !== false);
-    const options = await Promise.all(entries.map(async (entry) => {
-      const provider = this.providers.get(entry.type);
-      const descriptor = provider?.describeSessionTypeForEntry
-        ? await provider.describeSessionTypeForEntry({ entry, describeParams: _params })
-        : null;
-      return {
-        value: entry.id,
-        label: entry.label,
-        icon: descriptor?.icon ?? entry.icon ?? null,
-        ready: provider ? descriptor?.ready ?? true : false,
-        reason: provider ? descriptor?.reason ?? null : "runtime_provider_unavailable",
-        reasonMessage: provider
-          ? descriptor?.reasonMessage ?? null
-          : `Runtime provider unavailable for type "${entry.type}".`,
-        recommendedModel: descriptor?.recommendedModel ?? null,
-        cta: descriptor?.cta ?? null,
-        ...(descriptor?.supportedModels ? { supportedModels: descriptor.supportedModels } : {}),
-      } satisfies AgentRuntimeSessionTypeOption;
-    }));
-    return {
-      defaultType: this.entries.has(DEFAULT_AGENT_RUNTIME_ENTRY_ID)
-        ? DEFAULT_AGENT_RUNTIME_ENTRY_ID
-        : entries[0]?.id ?? DEFAULT_AGENT_RUNTIME_ENTRY_ID,
-      options,
-    };
-  };
+  }> =>
+    describeAgentRuntimeSessionTypes({
+      entries: [...this.entries.values()],
+      providers: this.providers,
+      describeParams: params,
+    });
 
   dispose = async (): Promise<void> => {
     await this.disposeAllRuntimes();
@@ -187,13 +167,17 @@ export class AgentRuntimeManager {
     entry: AgentRuntimeEntry,
     provider: AgentRuntimeRegistration,
   ): AgentRuntimeReuseScope => {
-    return entry.config?.reuseScope === "session" || entry.config?.reuseScope === "global"
+    return entry.config?.reuseScope === "session" ||
+      entry.config?.reuseScope === "global"
       ? entry.config.reuseScope
       : provider.defaultReuseScope;
   };
 
   private disposeAllRuntimes = async (): Promise<void> => {
-    for (const runtime of [...this.globalRuntimes.values(), ...this.sessionRuntimes.values()]) {
+    for (const runtime of [
+      ...this.globalRuntimes.values(),
+      ...this.sessionRuntimes.values(),
+    ]) {
       await runtime.dispose?.();
     }
     this.globalRuntimes.clear();

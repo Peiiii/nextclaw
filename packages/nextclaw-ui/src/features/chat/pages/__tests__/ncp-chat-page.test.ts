@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { RUNTIME_DEFAULT_MODEL_VALUE } from '@nextclaw/shared';
 import type { SessionEntryView, ThinkingLevel } from '@/shared/lib/api';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import {
@@ -64,6 +65,42 @@ describe('filterNcpChatModelOptionsBySessionType', () => {
         supportedModels: ['unknown/model']
       })
     ).toEqual(modelOptions);
+  });
+
+  it('uses only the runtime default option when the session type owns model selection', () => {
+    expect(
+      filterNcpChatModelOptionsBySessionType({
+        modelOptions,
+        modelSelectionMode: 'runtime-default',
+        runtimeDefaultModelLabel: 'Runtime default',
+      })
+    ).toEqual([{
+      value: RUNTIME_DEFAULT_MODEL_VALUE,
+      modelLabel: 'Runtime default',
+      providerLabel: '',
+      isRuntimeDefault: true,
+      thinkingCapability: null,
+    }]);
+  });
+
+  it('adds the runtime default option beside supported models for optional runtime selection', () => {
+    expect(
+      filterNcpChatModelOptionsBySessionType({
+        modelOptions,
+        modelSelectionMode: 'optional',
+        runtimeDefaultModelLabel: 'Runtime default',
+        supportedModels: ['openai/gpt-5'],
+      })
+    ).toEqual([
+      {
+        value: RUNTIME_DEFAULT_MODEL_VALUE,
+        modelLabel: 'Runtime default',
+        providerLabel: '',
+        isRuntimeDefault: true,
+        thinkingCapability: null,
+      },
+      modelOptions[1],
+    ]);
   });
 });
 

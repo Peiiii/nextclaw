@@ -48,6 +48,14 @@ export {
   eventKeys,
 } from "./configs/event-keys.config.js";
 export { ingressKeys } from "./configs/ingress-keys.config.js";
+export {
+  RUNTIME_DEFAULT_MODEL_VALUE,
+  isRuntimeDefaultModelValue,
+  normalizeRuntimeModelSelectionMode,
+} from "./configs/runtime-model.config.js";
+export type {
+  RuntimeModelSelectionMode,
+} from "./configs/runtime-model.config.js";
 export type {
   AgentRunSendIngressPayload,
   AgentRunSessionMessageRequestPayload,
