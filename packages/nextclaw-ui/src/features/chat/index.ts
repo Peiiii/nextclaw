@@ -2,7 +2,7 @@ export { ChatConversationPanel } from "./components/conversation/chat-conversati
 export { ChatSidebar } from "./components/layout/chat-sidebar";
 export { ChatPresenterProvider } from "./components/providers/chat-presenter.provider";
 export { usePresenter } from "./components/providers/chat-presenter.provider";
-export { NcpChatPresenter } from "./managers/ncp-chat-presenter.manager";
+export { ChatPresenter } from "./presenters/chat.presenter";
 export { useChatInputStore } from "./stores/chat-input.store";
 export { useChatSessionListStore } from "./stores/chat-session-list.store";
 export { useChatThreadStore } from "./stores/chat-thread.store";

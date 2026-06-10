@@ -1,12 +1,12 @@
 import { createChatComposerTextNode } from '@nextclaw/agent-chat-ui';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { NcpChatInputManager } from '@/features/chat/managers/ncp-chat-input.manager';
+import { ChatInputManager } from '@/features/chat/managers/chat-input.manager';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 import { useSystemStatusStore } from '@/features/system-status';
 
-function resetNcpChatInputManagerStoreState() {
+function resetChatInputManagerStoreState() {
   useChatInputStore.setState({
     snapshot: {
       ...useChatInputStore.getState().snapshot,
@@ -69,34 +69,32 @@ function resetNcpChatInputManagerStoreState() {
   });
 }
 
-describe('NcpChatInputManager', () => {
-  beforeEach(resetNcpChatInputManagerStoreState);
+describe('ChatInputManager', () => {
+  beforeEach(resetChatInputManagerStoreState);
 
   it('sends through the current thread session when selected session state is stale', async () => {
-    const streamActionsManager = {
+    const chatRunManager = {
       sendMessage: vi.fn().mockResolvedValue(undefined),
       stopCurrentRun: vi.fn().mockResolvedValue(undefined),
-    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[0];
+    } as unknown as ConstructorParameters<typeof ChatInputManager>[0];
     const sessionListManager = {
       ensureDraftSession: vi.fn(() => 'draft-session'),
-      materializeRootSessionRoute: vi.fn(),
-    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
-    const manager = new NcpChatInputManager(
-      streamActionsManager,
+    } as unknown as ConstructorParameters<typeof ChatInputManager>[1];
+    const manager = new ChatInputManager(
+      chatRunManager,
       sessionListManager,
     );
 
     await manager.send();
 
-    expect(streamActionsManager.sendMessage).toHaveBeenCalledTimes(1);
-    expect(streamActionsManager.sendMessage).toHaveBeenCalledWith(
+    expect(chatRunManager.sendMessage).toHaveBeenCalledTimes(1);
+    expect(chatRunManager.sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionKey: 'current-route-session',
         message: 'hello from current thread',
       }),
     );
     expect(sessionListManager.ensureDraftSession).not.toHaveBeenCalled();
-    expect(sessionListManager.materializeRootSessionRoute).not.toHaveBeenCalled();
   });
 
   it('sends without a session key while /chat is still in blank-draft mode', async () => {
@@ -112,33 +110,31 @@ describe('NcpChatInputManager', () => {
         selectedSessionKey: null,
       },
     });
-    const streamActionsManager = {
+    const chatRunManager = {
       sendMessage: vi.fn().mockResolvedValue(undefined),
       stopCurrentRun: vi.fn().mockResolvedValue(undefined),
-    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[0];
+    } as unknown as ConstructorParameters<typeof ChatInputManager>[0];
     const sessionListManager = {
       ensureDraftSession: vi.fn(() => 'materialized-draft-session'),
-      materializeRootSessionRoute: vi.fn(),
-    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
-    const manager = new NcpChatInputManager(
-      streamActionsManager,
+    } as unknown as ConstructorParameters<typeof ChatInputManager>[1];
+    const manager = new ChatInputManager(
+      chatRunManager,
       sessionListManager,
     );
 
     await manager.send();
 
     expect(sessionListManager.ensureDraftSession).toHaveBeenCalledWith('native');
-    expect(streamActionsManager.sendMessage).toHaveBeenCalledWith(
+    expect(chatRunManager.sendMessage).toHaveBeenCalledWith(
       expect.not.objectContaining({
         sessionKey: expect.any(String),
       }),
     );
-    expect(streamActionsManager.sendMessage).toHaveBeenCalledWith(
+    expect(chatRunManager.sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         message: 'hello from current thread',
       }),
     );
-    expect(sessionListManager.materializeRootSessionRoute).not.toHaveBeenCalled();
   });
 
   it('does not send while the runtime is still blocked during startup', async () => {
@@ -162,23 +158,21 @@ describe('NcpChatInputManager', () => {
         },
       },
     });
-    const streamActionsManager = {
+    const chatRunManager = {
       sendMessage: vi.fn().mockResolvedValue(undefined),
       stopCurrentRun: vi.fn().mockResolvedValue(undefined),
-    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[0];
+    } as unknown as ConstructorParameters<typeof ChatInputManager>[0];
     const sessionListManager = {
       ensureDraftSession: vi.fn(() => 'draft-session'),
-      materializeRootSessionRoute: vi.fn(),
-    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
-    const manager = new NcpChatInputManager(
-      streamActionsManager,
+    } as unknown as ConstructorParameters<typeof ChatInputManager>[1];
+    const manager = new ChatInputManager(
+      chatRunManager,
       sessionListManager,
     );
 
     await manager.send();
 
-    expect(streamActionsManager.sendMessage).not.toHaveBeenCalled();
-    expect(sessionListManager.materializeRootSessionRoute).not.toHaveBeenCalled();
+    expect(chatRunManager.sendMessage).not.toHaveBeenCalled();
   });
 
   it('still attempts to send when provider metadata is stale or the session type is marked unavailable', async () => {
@@ -190,29 +184,76 @@ describe('NcpChatInputManager', () => {
         sessionTypeUnavailable: true,
       },
     });
-    const streamActionsManager = {
+    const chatRunManager = {
       sendMessage: vi.fn().mockResolvedValue(undefined),
       stopCurrentRun: vi.fn().mockResolvedValue(undefined),
-    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[0];
+    } as unknown as ConstructorParameters<typeof ChatInputManager>[0];
     const sessionListManager = {
       ensureDraftSession: vi.fn(() => 'draft-session'),
-      materializeRootSessionRoute: vi.fn(),
-    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
-    const manager = new NcpChatInputManager(
-      streamActionsManager,
+    } as unknown as ConstructorParameters<typeof ChatInputManager>[1];
+    const manager = new ChatInputManager(
+      chatRunManager,
       sessionListManager,
     );
 
     await manager.send();
 
-    expect(streamActionsManager.sendMessage).toHaveBeenCalledTimes(1);
-    expect(sessionListManager.materializeRootSessionRoute).not.toHaveBeenCalled();
+    expect(chatRunManager.sendMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it('includes the current thread project root in the run payload', async () => {
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        sessionKey: 'current-route-session',
+        sessionProjectRoot: '/tmp/project-alpha',
+      },
+    });
+    const chatRunManager = {
+      sendMessage: vi.fn().mockResolvedValue(undefined),
+      stopCurrentRun: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ConstructorParameters<typeof ChatInputManager>[0];
+    const sessionListManager = {
+      ensureDraftSession: vi.fn(() => 'draft-session'),
+    } as unknown as ConstructorParameters<typeof ChatInputManager>[1];
+    const manager = new ChatInputManager(
+      chatRunManager,
+      sessionListManager,
+    );
+
+    await manager.send();
+
+    expect(chatRunManager.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectRoot: '/tmp/project-alpha',
+      }),
+    );
+  });
+
+  it('restores the composer when sending through the run manager fails', async () => {
+    const chatRunManager = {
+      sendMessage: vi.fn().mockRejectedValue(new Error('send failed')),
+      stopCurrentRun: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ConstructorParameters<typeof ChatInputManager>[0];
+    const sessionListManager = {
+      ensureDraftSession: vi.fn(() => 'draft-session'),
+    } as unknown as ConstructorParameters<typeof ChatInputManager>[1];
+    const manager = new ChatInputManager(
+      chatRunManager,
+      sessionListManager,
+    );
+    const originalComposerNodes = useChatInputStore.getState().snapshot.composerNodes;
+
+    await expect(manager.send()).rejects.toThrow('send failed');
+
+    expect(useChatInputStore.getState().snapshot.draft).toBe('hello from current thread');
+    expect(useChatInputStore.getState().snapshot.composerNodes).toEqual(originalComposerNodes);
   });
 
   it('creates and consumes one-shot composer focus requests', () => {
-    const manager = new NcpChatInputManager(
-      {} as ConstructorParameters<typeof NcpChatInputManager>[0],
-      {} as ConstructorParameters<typeof NcpChatInputManager>[1],
+    const manager = new ChatInputManager(
+      {} as ConstructorParameters<typeof ChatInputManager>[0],
+      {} as ConstructorParameters<typeof ChatInputManager>[1],
     );
 
     manager.requestComposerFocusAtEnd();
@@ -228,8 +269,8 @@ describe('NcpChatInputManager', () => {
   });
 });
 
-describe('NcpChatInputManager configuration sync', () => {
-  beforeEach(resetNcpChatInputManagerStoreState);
+describe('ChatInputManager configuration sync', () => {
+  beforeEach(resetChatInputManagerStoreState);
 
   it('syncs session model and thinking preferences inside the input manager', () => {
     useChatInputStore.setState({
@@ -263,9 +304,9 @@ describe('NcpChatInputManager configuration sync', () => {
         sessionKey: 'session-1',
       },
     });
-    const manager = new NcpChatInputManager(
-      {} as ConstructorParameters<typeof NcpChatInputManager>[0],
-      {} as ConstructorParameters<typeof NcpChatInputManager>[1],
+    const manager = new ChatInputManager(
+      {} as ConstructorParameters<typeof ChatInputManager>[0],
+      {} as ConstructorParameters<typeof ChatInputManager>[1],
     );
 
     manager.syncSessionPreferences({
@@ -289,9 +330,9 @@ describe('NcpChatInputManager configuration sync', () => {
         pendingProjectRootSessionKey: 'session-1',
       },
     });
-    const manager = new NcpChatInputManager(
-      {} as ConstructorParameters<typeof NcpChatInputManager>[0],
-      {} as ConstructorParameters<typeof NcpChatInputManager>[1],
+    const manager = new ChatInputManager(
+      {} as ConstructorParameters<typeof ChatInputManager>[0],
+      {} as ConstructorParameters<typeof ChatInputManager>[1],
     );
 
     expect(

@@ -4,7 +4,7 @@ import type { ChatSessionTypesView, ConfigView, NcpSessionSkillsView, NcpSession
 
 type Query<TData> = UseQueryResult<TData, Error>;
 
-export type NcpChatQuerySnapshot = Partial<{
+export type ChatQuerySnapshot = Partial<{
   configQuery: Query<ConfigView> | null;
   providersQuery: Query<ProvidersView> | null;
   providerTemplatesQuery: Query<ProviderTemplatesView> | null;
@@ -14,12 +14,12 @@ export type NcpChatQuerySnapshot = Partial<{
   sessionSkillsQuery: Query<NcpSessionSkillsView> | null;
 }>;
 
-type NcpChatQueryStore = {
-  snapshot: NcpChatQuerySnapshot;
-  setSnapshot: (patch: Partial<NcpChatQuerySnapshot>) => void;
+type ChatQueryStore = {
+  snapshot: ChatQuerySnapshot;
+  setSnapshot: (patch: Partial<ChatQuerySnapshot>) => void;
 };
 
-export const useNcpChatQueryStore = create<NcpChatQueryStore>((set) => ({
+export const useChatQueryStore = create<ChatQueryStore>((set) => ({
   snapshot: {},
   setSnapshot: (patch) => set(({ snapshot }) => ({ snapshot: { ...snapshot, ...patch } })),
 }));

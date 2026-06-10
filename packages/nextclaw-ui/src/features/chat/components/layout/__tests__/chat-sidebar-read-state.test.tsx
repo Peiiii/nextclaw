@@ -3,7 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatSidebar } from "@/features/chat/components/layout/chat-sidebar";
 import type { NcpSessionListItemView } from "@/features/chat/features/ncp/hooks/use-ncp-session-list-view";
-import { useNcpChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
+import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 
 const mocks = vi.hoisted(() => ({
@@ -108,9 +108,9 @@ function createRunningSessionItem(
 
 function resetReadStateTestState() {
   mocks.sessionItems = [];
-  useNcpChatQueryStore.setState({
+  useChatQueryStore.setState({
     snapshot: {
-      ...useNcpChatQueryStore.getState().snapshot,
+      ...useChatQueryStore.getState().snapshot,
       sessionTypesQuery: {
         data: {
           defaultType: "native",

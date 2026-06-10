@@ -4,7 +4,7 @@ import { useNcpSessionSkills, useNcpSessions } from '@/features/chat/features/nc
 import { useNcpChatSessionTypes } from '@/features/chat/features/session-type/hooks/use-ncp-chat-session-types';
 import { useConfig, useProviders, useProviderTemplates } from '@/shared/hooks/use-config';
 
-export function useNcpChatQueryStoreSync(params: { sessionKey: string | null }) {
+export function useChatQueryStoreSync(params: { sessionKey: string | null }) {
   const presenter = usePresenter();
   const configQuery = useConfig();
   const providersQuery = useProviders();

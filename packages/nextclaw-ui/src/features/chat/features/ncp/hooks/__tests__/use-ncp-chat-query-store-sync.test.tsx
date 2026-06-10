@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useNcpChatQueryStoreSync } from '@/features/chat/features/ncp/hooks/use-ncp-chat-query-store-sync';
+import { useChatQueryStoreSync } from '@/features/chat/features/ncp/hooks/use-ncp-chat-query-store-sync';
 
 const useNcpSessionSkillsMock = vi.fn();
 const syncSnapshotMock = vi.fn();
@@ -63,13 +63,13 @@ beforeEach(() => {
 
 function renderQuerySync(params: { sessionKey: string | null }) {
   return renderHook(() =>
-    useNcpChatQueryStoreSync({
+    useChatQueryStoreSync({
       sessionKey: params.sessionKey,
     })
   );
 }
 
-describe('useNcpChatQueryStoreSync skills query', () => {
+describe('useChatQueryStoreSync skills query', () => {
   it('loads draft-session skills before a new chat materializes', async () => {
     const sessionSkillsQuery = createQuery(sessionSkillsData);
     useNcpSessionSkillsMock.mockReturnValue(sessionSkillsQuery);

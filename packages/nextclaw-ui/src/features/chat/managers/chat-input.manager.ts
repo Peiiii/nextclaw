@@ -18,7 +18,7 @@ import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
-import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
+import type { ChatRunManager } from '@/features/chat/managers/chat-run.manager';
 import type { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
 import { ChatSessionPreferenceSync } from '@/features/chat/managers/chat-session-preference-sync.manager';
 import { isNcpChatSendDisabled } from '@/features/chat/features/input/utils/ncp-chat-input-availability.utils';
@@ -28,7 +28,7 @@ import { chatRecentSkillsManager } from '@/features/chat/managers/chat-recent-sk
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import { normalizeSessionType } from '@/features/chat/features/session-type/utils/chat-session-type.utils';
 import { systemStatusManager } from '@/features/system-status';
-import { shouldClearPendingProjectRootOverride } from '@/features/chat/features/session/utils/ncp-chat-send-metadata.utils';
+import { shouldClearPendingProjectRootOverride } from '@/features/chat/features/session/utils/chat-run-metadata.utils';
 
 function resolveModelForSend(value: string): string | undefined {
   if (isRuntimeDefaultModelValue(value)) {
@@ -37,7 +37,7 @@ function resolveModelForSend(value: string): string | undefined {
   return value || undefined;
 }
 
-export class NcpChatInputManager {
+export class ChatInputManager {
   private readonly sessionPreferenceSync = new ChatSessionPreferenceSync(updateNcpSession);
 
   private buildAttachmentSignature = (attachment: NcpDraftAttachment): string =>
@@ -51,7 +51,7 @@ export class NcpChatInputManager {
     ].join(':');
 
   constructor(
-    private streamActionsManager: ChatStreamActionsManager,
+    private chatRunManager: ChatRunManager,
     private sessionListManager: ChatSessionListManager
   ) {}
 
@@ -288,24 +288,31 @@ export class NcpChatInputManager {
       this.sessionListManager.ensureDraftSession(inputSnapshot.selectedSessionType);
     }
     this.setComposerNodes(createInitialChatComposerNodes());
-    await this.streamActionsManager.sendMessage({
-      message,
-      ...(sessionKey ? { sessionKey } : {}),
-      agentId: sessionSnapshot.selectedAgentId,
-      sessionType: inputSnapshot.selectedSessionType,
-      model: resolveModelForSend(inputSnapshot.selectedModel),
-      thinkingLevel: inputSnapshot.selectedThinkingLevel ?? undefined,
-      stopSupported: true,
-      requestedSkills,
-      attachments,
-      parts,
-      restoreDraftOnError: true,
-      composerNodes
-    });
+    try {
+      await this.chatRunManager.sendMessage({
+        message,
+        sessionKey: sessionKey ?? undefined,
+        agentId: sessionSnapshot.selectedAgentId,
+        sessionType: inputSnapshot.selectedSessionType,
+        model: resolveModelForSend(inputSnapshot.selectedModel),
+        thinkingLevel: inputSnapshot.selectedThinkingLevel ?? undefined,
+        projectRoot: this.resolveProjectRootForSend({
+          sessionKey,
+          selectedSessionProjectRoot: threadSnapshot.sessionProjectRoot,
+        }),
+        requestedSkills,
+        attachments,
+        parts,
+        composerNodes,
+      });
+    } catch (error) {
+      this.restoreComposerState(composerNodes, attachments);
+      throw error;
+    }
   };
 
   stop = async () => {
-    await this.streamActionsManager.stopCurrentRun();
+    await this.chatRunManager.stopCurrentRun();
   };
 
   setSelectedModel = (next: SetStateAction<string>) => {

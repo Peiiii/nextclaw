@@ -1,7 +1,7 @@
-import type { NcpChatQuerySnapshot } from '@/features/chat/stores/ncp-chat-query.store';
-import { useNcpChatQueryStore } from '@/features/chat/stores/ncp-chat-query.store';
+import type { ChatQuerySnapshot } from '@/features/chat/stores/ncp-chat-query.store';
+import { useChatQueryStore } from '@/features/chat/stores/ncp-chat-query.store';
 
-function toQuerySnapshotComparable(snapshot: NcpChatQuerySnapshot) {
+function toQuerySnapshotComparable(snapshot: ChatQuerySnapshot) {
   const toQueryComparable = (query: unknown) => {
     if (!query || typeof query !== 'object') {
       return query;
@@ -32,14 +32,14 @@ function toQuerySnapshotComparable(snapshot: NcpChatQuerySnapshot) {
   };
 }
 
-function hasQuerySnapshotChange(current: NcpChatQuerySnapshot, patch: Partial<NcpChatQuerySnapshot>): boolean {
+function hasQuerySnapshotChange(current: ChatQuerySnapshot, patch: Partial<ChatQuerySnapshot>): boolean {
   return JSON.stringify(toQuerySnapshotComparable(current)) !==
     JSON.stringify(toQuerySnapshotComparable({ ...current, ...patch }));
 }
 
-export class NcpChatQueryManager {
-  syncSnapshot = (value: Partial<NcpChatQuerySnapshot>) => {
-    const store = useNcpChatQueryStore.getState();
+export class ChatQueryManager {
+  syncSnapshot = (value: Partial<ChatQuerySnapshot>) => {
+    const store = useChatQueryStore.getState();
     if (!hasQuerySnapshotChange(store.snapshot, value)) {
       return;
     }

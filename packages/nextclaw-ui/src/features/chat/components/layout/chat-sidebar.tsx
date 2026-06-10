@@ -16,7 +16,7 @@ import {
 } from "@/features/chat/features/ncp/hooks/use-ncp-session-list-view";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
-import { useNcpChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
+import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useSystemStatus } from "@/features/system-status";
 import { useAgents } from "@/shared/hooks/use-agents";
 import { cn } from "@/shared/lib/utils";
@@ -106,7 +106,7 @@ export function ChatSidebar({
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
   const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false);
   const listSnapshot = useChatSessionListStore((state) => state.snapshot);
-  const sessionTypesData = useNcpChatQueryStore(
+  const sessionTypesData = useChatQueryStore(
     (state) => state.snapshot.sessionTypesQuery?.data ?? null,
   );
   const systemStatus = useSystemStatus();

@@ -5,8 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentsPage } from "@/features/agents";
 import type * as ChatFeature from "@/features/chat";
 import {
+  ChatPresenter,
   ChatPresenterProvider,
-  NcpChatPresenter,
   useChatInputStore,
   useChatSessionListStore,
   useChatThreadStore,
@@ -156,11 +156,11 @@ vi.mock("@/features/chat", async (importOriginal) => {
 });
 
 function renderAgentsPage() {
-  const presenter = new NcpChatPresenter({
+  const presenter = new ChatPresenter({
     docBrowserManager: {
       open: vi.fn(),
     },
-  } as unknown as ConstructorParameters<typeof NcpChatPresenter>[0]);
+  } as unknown as ConstructorParameters<typeof ChatPresenter>[0]);
   return render(
     <MemoryRouter>
       <ChatPresenterProvider presenter={presenter}>

@@ -8,9 +8,9 @@ import {
   resolveSelectedThinkingLevelValue
 } from '@/features/chat/features/session/utils/chat-session-preference-governance.utils';
 import {
-  buildNcpSendMetadata,
+  buildChatRunMetadata,
   shouldClearPendingProjectRootOverride
-} from '@/features/chat/features/session/utils/ncp-chat-send-metadata.utils';
+} from '@/features/chat/features/session/utils/chat-run-metadata.utils';
 import { filterNcpChatModelOptionsBySessionType } from '@/features/chat/features/ncp/utils/ncp-chat-query-derived.utils';
 
 const modelOptions: ChatModelOption[] = [
@@ -104,10 +104,10 @@ describe('filterNcpChatModelOptionsBySessionType', () => {
   });
 });
 
-describe('buildNcpSendMetadata', () => {
+describe('buildChatRunMetadata', () => {
   it('includes the project root in the first-message metadata when present', () => {
     expect(
-      buildNcpSendMetadata({
+      buildChatRunMetadata({
         agentId: 'engineer',
         sessionType: 'codex',
         projectRoot: ' /tmp/project-alpha ',
@@ -124,7 +124,7 @@ describe('buildNcpSendMetadata', () => {
 
   it('omits project_root when the input is blank', () => {
     expect(
-      buildNcpSendMetadata({
+      buildChatRunMetadata({
         projectRoot: '   ',
       }),
     ).not.toHaveProperty('project_root');
@@ -132,7 +132,7 @@ describe('buildNcpSendMetadata', () => {
 
   it('sends requested skill refs instead of legacy requested skill names', () => {
     expect(
-      buildNcpSendMetadata({
+      buildChatRunMetadata({
         requestedSkills: ['project:/tmp/project-alpha/.agents/skills/review'],
       }),
     ).toMatchObject({

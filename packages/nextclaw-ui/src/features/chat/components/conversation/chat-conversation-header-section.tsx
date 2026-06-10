@@ -15,7 +15,7 @@ import {
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
-import { useNcpChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
+import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
 import { getSessionProjectName } from "@/shared/lib/session-project";
 import { t } from "@/shared/lib/i18n";
@@ -38,7 +38,7 @@ export function ChatConversationHeaderSection({
   const pendingSessionType = useChatInputStore(
     (state) => state.snapshot.pendingSessionType,
   );
-  const sessionTypesData = useNcpChatQueryStore(
+  const sessionTypesData = useChatQueryStore(
     (state) => state.snapshot.sessionTypesQuery?.data ?? null,
   );
   const selectedSession = useNcpChatSelectedSession(sessionKey);

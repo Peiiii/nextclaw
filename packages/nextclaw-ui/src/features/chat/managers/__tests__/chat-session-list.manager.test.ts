@@ -27,43 +27,45 @@ vi.mock('@/shared/lib/api', async (importOriginal) => {
   };
 });
 
-describe('ChatSessionListManager', () => {
-  beforeEach(() => {
-    window.localStorage.clear();
-    useChatSessionListStore.persist.setOptions({ storage: createLocalStoragePersistStorage() });
-    mocks.updateNcpSession.mockReset();
-    mocks.updateNcpSession.mockResolvedValue({});
-    useChatInputStore.setState({
-      snapshot: {
-        ...useChatInputStore.getState().snapshot,
-        defaultSessionType: 'native',
-        pendingSessionType: 'native',
-        pendingProjectRoot: null,
-        pendingProjectRootSessionKey: null
-      }
-    });
-    useChatSessionListStore.setState({
-      optimisticReadAtBySessionKey: {},
-      snapshot: {
-        ...useChatSessionListStore.getState().snapshot,
-        selectedSessionKey: 'session-1',
-        listMode: 'time-first'
-      }
-    });
-    useChatThreadStore.setState({
-      snapshot: {
-        ...useChatThreadStore.getState().snapshot,
-        workspacePanelParentKey: 'session-1',
-        activeWorkspacePanelKind: 'child-session',
-        activeChildSessionKey: 'child-session-1',
-        activeWorkspaceFileKey: null,
-        workspaceNavigationHistory: [
-          { kind: 'child-session', key: 'child-session-1' },
-        ],
-        workspaceNavigationHistoryIndex: 0,
-      },
-    });
+function resetChatSessionListManagerState() {
+  window.localStorage.clear();
+  useChatSessionListStore.persist.setOptions({ storage: createLocalStoragePersistStorage() });
+  mocks.updateNcpSession.mockReset();
+  mocks.updateNcpSession.mockResolvedValue({});
+  useChatInputStore.setState({
+    snapshot: {
+      ...useChatInputStore.getState().snapshot,
+      defaultSessionType: 'native',
+      pendingSessionType: 'native',
+      pendingProjectRoot: null,
+      pendingProjectRootSessionKey: null
+    }
   });
+  useChatSessionListStore.setState({
+    optimisticReadAtBySessionKey: {},
+    snapshot: {
+      ...useChatSessionListStore.getState().snapshot,
+      selectedSessionKey: 'session-1',
+      listMode: 'time-first'
+    }
+  });
+  useChatThreadStore.setState({
+    snapshot: {
+      ...useChatThreadStore.getState().snapshot,
+      workspacePanelParentKey: 'session-1',
+      activeWorkspacePanelKind: 'child-session',
+      activeChildSessionKey: 'child-session-1',
+      activeWorkspaceFileKey: null,
+      workspaceNavigationHistory: [
+        { kind: 'child-session', key: 'child-session-1' },
+      ],
+      workspaceNavigationHistoryIndex: 0,
+    },
+  });
+}
+
+describe('ChatSessionListManager draft and selection flow', () => {
+  beforeEach(resetChatSessionListManagerState);
 
   it('applies the requested session type when creating a session', () => {
     const uiManager = {
@@ -72,14 +74,14 @@ describe('ChatSessionListManager', () => {
       goToSession: vi.fn(),
       isAtChatRoot: vi.fn(() => true),
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
-    const streamActionsManager = {
-      resetStreamState: vi.fn()
+    const chatRunManager = {
+      clearRunState: vi.fn()
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
-    const manager = new ChatSessionListManager(uiManager, streamActionsManager);
+    const manager = new ChatSessionListManager(uiManager, chatRunManager);
     manager.createSession('codex');
 
-    expect(streamActionsManager.resetStreamState).toHaveBeenCalledTimes(1);
+    expect(chatRunManager.clearRunState).toHaveBeenCalledTimes(1);
     expect(uiManager.navigateTo).toHaveBeenCalledWith('/chat/draft');
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
     expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
@@ -96,14 +98,14 @@ describe('ChatSessionListManager', () => {
       goToSession: vi.fn(),
       isAtChatRoot: vi.fn(() => true),
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
-    const streamActionsManager = {
-      resetStreamState: vi.fn()
+    const chatRunManager = {
+      clearRunState: vi.fn()
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
-    const manager = new ChatSessionListManager(uiManager, streamActionsManager);
+    const manager = new ChatSessionListManager(uiManager, chatRunManager);
     manager.startAgentDraftChat('researcher', 'codex');
 
-    expect(streamActionsManager.resetStreamState).toHaveBeenCalledTimes(1);
+    expect(chatRunManager.clearRunState).toHaveBeenCalledTimes(1);
     expect(uiManager.navigateTo).toHaveBeenCalledWith('/chat/draft');
     expect(useChatSessionListStore.getState().snapshot.selectedAgentId).toBe('researcher');
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
@@ -121,11 +123,11 @@ describe('ChatSessionListManager', () => {
       goToSession: vi.fn(),
       isAtChatRoot: vi.fn(() => true),
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
-    const streamActionsManager = {
-      resetStreamState: vi.fn()
+    const chatRunManager = {
+      clearRunState: vi.fn()
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
-    const manager = new ChatSessionListManager(uiManager, streamActionsManager);
+    const manager = new ChatSessionListManager(uiManager, chatRunManager);
     manager.createSession('native', '/tmp/project-alpha');
 
     expect(useChatInputStore.getState().snapshot.pendingProjectRoot).toBe('/tmp/project-alpha');
@@ -145,11 +147,11 @@ describe('ChatSessionListManager', () => {
       goToSession: vi.fn(),
       isAtChatRoot: vi.fn(() => true),
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
-    const streamActionsManager = {
-      resetStreamState: vi.fn()
+    const chatRunManager = {
+      clearRunState: vi.fn()
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
-    const manager = new ChatSessionListManager(uiManager, streamActionsManager);
+    const manager = new ChatSessionListManager(uiManager, chatRunManager);
     const sessionKey = manager.ensureDraftSession('native');
 
     expect(sessionKey).toBeNull();
@@ -167,11 +169,11 @@ describe('ChatSessionListManager', () => {
       goToSession: vi.fn(),
       isAtChatRoot: vi.fn(() => true),
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
-    const streamActionsManager = {
-      resetStreamState: vi.fn()
+    const chatRunManager = {
+      clearRunState: vi.fn()
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
-    const manager = new ChatSessionListManager(uiManager, streamActionsManager);
+    const manager = new ChatSessionListManager(uiManager, chatRunManager);
     manager.createSession('native', '/tmp/project-alpha');
 
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
@@ -185,11 +187,11 @@ describe('ChatSessionListManager', () => {
       goToSession: vi.fn(),
       isAtChatRoot: vi.fn(() => true),
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
-    const streamActionsManager = {
-      resetStreamState: vi.fn()
+    const chatRunManager = {
+      clearRunState: vi.fn()
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
-    const manager = new ChatSessionListManager(uiManager, streamActionsManager);
+    const manager = new ChatSessionListManager(uiManager, chatRunManager);
     manager.selectSession('session-2');
 
     expect(uiManager.goToSession).toHaveBeenCalledWith('session-2');
@@ -199,12 +201,16 @@ describe('ChatSessionListManager', () => {
     expect(useChatThreadStore.getState().snapshot.activeChildSessionKey).toBe('child-session-1');
     expect(useChatThreadStore.getState().snapshot.activeWorkspaceFileKey).toBeNull();
   });
+});
+
+describe('ChatSessionListManager list preference and read state', () => {
+  beforeEach(resetChatSessionListManagerState);
 
   it('updates the sidebar list mode without touching other session list state', () => {
     const uiManager = {} as ConstructorParameters<typeof ChatSessionListManager>[0];
-    const streamActionsManager = {} as ConstructorParameters<typeof ChatSessionListManager>[1];
+    const chatRunManager = {} as ConstructorParameters<typeof ChatSessionListManager>[1];
 
-    const manager = new ChatSessionListManager(uiManager, streamActionsManager);
+    const manager = new ChatSessionListManager(uiManager, chatRunManager);
     manager.setListMode('project-first');
 
     expect(useChatSessionListStore.getState().snapshot.listMode).toBe('project-first');
@@ -288,30 +294,6 @@ describe('ChatSessionListManager', () => {
     expect(mocks.updateNcpSession).not.toHaveBeenCalled();
   });
 
-  it('routes to the backend-materialized root session without duplicating route-owned selection state', () => {
-    useChatSessionListStore.setState({
-      snapshot: {
-        ...useChatSessionListStore.getState().snapshot,
-        selectedSessionKey: null,
-      }
-    });
-    const uiManager = {
-      goToChatRoot: vi.fn(),
-      goToSession: vi.fn(),
-      isAtChatRoot: vi.fn(() => true),
-    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
-    const streamActionsManager = {
-      resetStreamState: vi.fn()
-    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
-    const manager = new ChatSessionListManager(uiManager, streamActionsManager);
-
-    manager.ensureDraftSession('native');
-    manager.materializeRootSessionRoute('ncp-materialized-session');
-
-    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
-    expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
-    expect(uiManager.goToSession).toHaveBeenCalledWith('ncp-materialized-session', { replace: true });
-  });
 });
 
 describe('ChatSessionListStore persistence', () => {

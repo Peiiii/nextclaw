@@ -9,7 +9,7 @@ function createMetadataFields(
   return value ? Object.fromEntries(fields.map((field) => [field, value])) : {};
 }
 
-export function buildNcpSendMetadata(payload: {
+export function buildChatRunMetadata(payload: {
   agentId?: string;
   model?: string;
   thinkingLevel?: string;

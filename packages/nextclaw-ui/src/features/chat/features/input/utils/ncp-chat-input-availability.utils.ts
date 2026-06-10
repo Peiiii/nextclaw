@@ -1,37 +1,37 @@
 import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
 
-type NcpChatInputAvailabilitySnapshot = Pick<
+type ChatInputAvailabilitySnapshot = Pick<
   ChatInputSnapshot,
   'isProviderStateResolved' | 'modelOptions' | 'sessionTypeUnavailable'
 >;
 
 export function hasNcpChatModelOptions(
-  snapshot: NcpChatInputAvailabilitySnapshot
+  snapshot: ChatInputAvailabilitySnapshot
 ): boolean {
   return snapshot.modelOptions.length > 0;
 }
 
 export function isNcpChatModelOptionsLoading(
-  snapshot: NcpChatInputAvailabilitySnapshot
+  snapshot: ChatInputAvailabilitySnapshot
 ): boolean {
   return !snapshot.isProviderStateResolved && !hasNcpChatModelOptions(snapshot);
 }
 
 export function isNcpChatModelOptionsEmpty(
-  snapshot: NcpChatInputAvailabilitySnapshot
+  snapshot: ChatInputAvailabilitySnapshot
 ): boolean {
   return snapshot.isProviderStateResolved && !hasNcpChatModelOptions(snapshot);
 }
 
 export function isNcpChatComposerDisabled(
-  _snapshot: NcpChatInputAvailabilitySnapshot
+  _snapshot: ChatInputAvailabilitySnapshot
 ): boolean {
   return false;
 }
 
 export function isNcpChatSendDisabled(params: {
   hasSendableDraft: boolean;
-  snapshot: NcpChatInputAvailabilitySnapshot;
+  snapshot: ChatInputAvailabilitySnapshot;
   isRuntimeBlocked: boolean;
 }): boolean {
   const { hasSendableDraft, isRuntimeBlocked } = params;

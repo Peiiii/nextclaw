@@ -6,10 +6,10 @@ import { ChatSessionWorkspacePanel } from "@/features/chat/features/workspace/co
 import type { ResolvedChildSessionTab } from "@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view";
 import type { CronJobView, NcpSessionSummaryView } from "@/shared/lib/api";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
-import { useNcpChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
+import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
-import type { NcpChatQuerySnapshot } from "@/features/chat/stores/ncp-chat-query.store";
+import type { ChatQuerySnapshot } from "@/features/chat/stores/ncp-chat-query.store";
 
 const mocks = vi.hoisted(() => ({
   deleteSession: vi.fn(),
@@ -307,18 +307,18 @@ function resetChatConversationPanelTestState() {
       ],
     },
   });
-  useNcpChatQueryStore.setState({
+  useChatQueryStore.setState({
     snapshot: {
-      configQuery: createFetchedQuery({ agents: { defaults: {} }, providers: {} }) as unknown as NcpChatQuerySnapshot["configQuery"],
-      providersQuery: createFetchedQuery({ providers: {} }) as unknown as NcpChatQuerySnapshot["providersQuery"],
-      providerTemplatesQuery: createFetchedQuery({ providerTemplates: [] }) as unknown as NcpChatQuerySnapshot["providerTemplatesQuery"],
+      configQuery: createFetchedQuery({ agents: { defaults: {} }, providers: {} }) as unknown as ChatQuerySnapshot["configQuery"],
+      providersQuery: createFetchedQuery({ providers: {} }) as unknown as ChatQuerySnapshot["providersQuery"],
+      providerTemplatesQuery: createFetchedQuery({ providerTemplates: [] }) as unknown as ChatQuerySnapshot["providerTemplatesQuery"],
       sessionTypesQuery: createFetchedQuery({
         defaultType: "native",
         options: [
           { value: "native", label: "Native", ready: true },
           { value: "codex", label: "Codex", ready: true },
         ],
-      }) as unknown as NcpChatQuerySnapshot["sessionTypesQuery"],
+      }) as unknown as ChatQuerySnapshot["sessionTypesQuery"],
     },
   });
   useChatThreadStore.setState({
@@ -400,9 +400,9 @@ describe("ChatConversationPanel", () => {
         selectedSessionKey: "session-1",
       },
     });
-    useNcpChatQueryStore.setState({
+    useChatQueryStore.setState({
       snapshot: {
-        ...useNcpChatQueryStore.getState().snapshot,
+        ...useChatQueryStore.getState().snapshot,
         sessionsQuery: createFetchedQuery({
           sessions: [
             createSessionSummary({
@@ -415,7 +415,7 @@ describe("ChatConversationPanel", () => {
             }),
           ],
           total: 1,
-        }) as unknown as NcpChatQuerySnapshot["sessionsQuery"],
+        }) as unknown as ChatQuerySnapshot["sessionsQuery"],
       },
     });
     useChatThreadStore.setState({
@@ -460,7 +460,7 @@ describe("ChatConversationPanel", () => {
   });
 
   it("renders a fuller loading skeleton before provider state settles", () => {
-    useNcpChatQueryStore.setState({ snapshot: {} });
+    useChatQueryStore.setState({ snapshot: {} });
 
     render(<ChatConversationPanel />);
 

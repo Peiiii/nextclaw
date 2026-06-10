@@ -3,7 +3,7 @@ import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import type { SetStateAction } from 'react';
-import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
+import type { ChatRunManager } from '@/features/chat/managers/chat-run.manager';
 import { normalizeSessionProjectRootValue } from '@/shared/lib/session-project';
 import { updateNcpSession } from '@/shared/lib/api';
 import { CHAT_DRAFT_SESSION_PATH } from '@/features/chat/features/session/utils/chat-session-route.utils';
@@ -17,7 +17,7 @@ type WorkspaceChildReadState = {
 export class ChatSessionListManager {
   constructor(
     private uiManager: ChatUiManager,
-    private streamActionsManager: ChatStreamActionsManager
+    private chatRunManager: ChatRunManager
   ) {}
 
   private syncDraftThreadState = (hasSubmittedDraftMessage = false) => {
@@ -107,7 +107,7 @@ export class ChatSessionListManager {
     }
     if (selectedSessionKey !== null) {
       this.setSelectedSessionKey(null);
-      this.streamActionsManager.resetStreamState();
+      this.chatRunManager.clearRunState();
     }
   };
 
@@ -150,7 +150,7 @@ export class ChatSessionListManager {
         ? sessionType.trim()
         : defaultSessionType;
     const normalizedProjectRoot = normalizeSessionProjectRootValue(projectRoot);
-    this.streamActionsManager.resetStreamState();
+    this.chatRunManager.clearRunState();
     useChatSessionListStore.getState().setSnapshot({
       selectedSessionKey: null,
     });
@@ -184,17 +184,6 @@ export class ChatSessionListManager {
       useChatInputStore.getState().setSnapshot({ pendingSessionType: normalizedSessionType });
     }
     return null;
-  };
-
-  materializeRootSessionRoute = (sessionKey: string) => {
-    const normalizedSessionKey = sessionKey.trim();
-    if (!normalizedSessionKey) {
-      return;
-    }
-    if (!this.uiManager.isAtChatRoot()) {
-      return;
-    }
-    this.uiManager.goToSession(normalizedSessionKey, { replace: true });
   };
 
   selectSession = (sessionKey: string) => {

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { appQueryClient } from '@/app-query-client';
-import { NcpChatThreadManager } from '@/features/chat/managers/ncp-chat-thread.manager';
+import { ChatThreadManager } from '@/features/chat/managers/chat-thread.manager';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 import type * as SharedApi from '@/shared/lib/api';
@@ -51,7 +51,7 @@ beforeEach(() => {
 
 function createUiManager(
   overrides: Record<string, unknown> = {},
-): ConstructorParameters<typeof NcpChatThreadManager>[0] {
+): ConstructorParameters<typeof ChatThreadManager>[0] {
   return {
     goToSession: vi.fn(),
     goToChatRoot: vi.fn(),
@@ -60,22 +60,22 @@ function createUiManager(
     isCompactViewport: vi.fn(() => false),
     showContent: vi.fn().mockResolvedValue(undefined),
     ...overrides,
-  } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0];
+  } as unknown as ConstructorParameters<typeof ChatThreadManager>[0];
 }
 
-describe('NcpChatThreadManager', () => {
+describe('ChatThreadManager', () => {
   it('opens the child-session panel for the requested parent session and keeps focus on the chosen child', () => {
     const uiManager = {
       goToSession: vi.fn(),
       goToChatRoot: vi.fn(),
       goToProviders: vi.fn(),
       confirm: vi.fn(),
-    } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0];
+    } as unknown as ConstructorParameters<typeof ChatThreadManager>[0];
 
-    const manager = new NcpChatThreadManager(
+    const manager = new ChatThreadManager(
       uiManager,
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      {} as ConstructorParameters<typeof ChatThreadManager>[2],
     );
 
     manager.openChildSessionPanel({
@@ -100,12 +100,12 @@ describe('NcpChatThreadManager', () => {
       goToChatRoot: vi.fn(),
       goToProviders: vi.fn(),
       confirm: vi.fn(),
-    } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0];
+    } as unknown as ConstructorParameters<typeof ChatThreadManager>[0];
 
-    const manager = new NcpChatThreadManager(
+    const manager = new ChatThreadManager(
       uiManager,
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      {} as ConstructorParameters<typeof ChatThreadManager>[2],
     );
 
     manager.openChildSessionPanel({
@@ -122,12 +122,12 @@ describe('NcpChatThreadManager', () => {
       goToChatRoot: vi.fn(),
       goToProviders: vi.fn(),
       confirm: vi.fn(),
-    } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0];
+    } as unknown as ConstructorParameters<typeof ChatThreadManager>[0];
 
-    const manager = new NcpChatThreadManager(
+    const manager = new ChatThreadManager(
       uiManager,
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      {} as ConstructorParameters<typeof ChatThreadManager>[2],
     );
 
     manager.openSessionCronPanel('parent-session-1');
@@ -153,12 +153,12 @@ describe('NcpChatThreadManager', () => {
       goToChatRoot: vi.fn(),
       goToProviders: vi.fn(),
       confirm: vi.fn(),
-    } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0];
+    } as unknown as ConstructorParameters<typeof ChatThreadManager>[0];
 
-    const manager = new NcpChatThreadManager(
+    const manager = new ChatThreadManager(
       uiManager,
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      {} as ConstructorParameters<typeof ChatThreadManager>[2],
     );
 
     manager.openSessionCronPanel('parent-session-1');
@@ -172,12 +172,12 @@ describe('NcpChatThreadManager', () => {
       goToChatRoot: vi.fn(),
       goToProviders: vi.fn(),
       confirm: vi.fn(),
-    } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0];
+    } as unknown as ConstructorParameters<typeof ChatThreadManager>[0];
 
-    const manager = new NcpChatThreadManager(
+    const manager = new ChatThreadManager(
       uiManager,
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      {} as ConstructorParameters<typeof ChatThreadManager>[2],
     );
 
     manager.openFilePreview({
@@ -210,18 +210,18 @@ describe('NcpChatThreadManager', () => {
   });
 });
 
-describe('NcpChatThreadManager workspace navigation', () => {
+describe('ChatThreadManager workspace navigation', () => {
   it('navigates backward and forward through workspace selections', () => {
     const uiManager = {
       goToSession: vi.fn(),
       goToChatRoot: vi.fn(),
       goToProviders: vi.fn(),
       confirm: vi.fn(),
-    } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0];
-    const manager = new NcpChatThreadManager(
+    } as unknown as ConstructorParameters<typeof ChatThreadManager>[0];
+    const manager = new ChatThreadManager(
       uiManager,
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      {} as ConstructorParameters<typeof ChatThreadManager>[2],
     );
 
     manager.openChildSessionPanel({
@@ -275,10 +275,10 @@ describe('NcpChatThreadManager workspace navigation', () => {
         },
       ],
     });
-    const manager = new NcpChatThreadManager(
-      { goToSession: vi.fn() } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0],
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+    const manager = new ChatThreadManager(
+      { goToSession: vi.fn() } as unknown as ConstructorParameters<typeof ChatThreadManager>[0],
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      {} as ConstructorParameters<typeof ChatThreadManager>[2],
     );
 
     manager.openChildSessionPanel({
@@ -301,10 +301,10 @@ describe('NcpChatThreadManager workspace navigation', () => {
   });
 
   it('removes a closed active file from workspace history and restores the previous entry', () => {
-    const manager = new NcpChatThreadManager(
-      { goToSession: vi.fn() } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0],
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+    const manager = new ChatThreadManager(
+      { goToSession: vi.fn() } as unknown as ConstructorParameters<typeof ChatThreadManager>[0],
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      {} as ConstructorParameters<typeof ChatThreadManager>[2],
     );
 
     manager.openChildSessionPanel({
@@ -330,15 +330,15 @@ describe('NcpChatThreadManager workspace navigation', () => {
   });
 });
 
-describe('NcpChatThreadManager showContent', () => {
+describe('ChatThreadManager showContent', () => {
   it('routes tool actions through the thread manager owner', async () => {
     const uiManager = createUiManager({
       goToSession: vi.fn(),
     });
-    const manager = new NcpChatThreadManager(
+    const manager = new ChatThreadManager(
       uiManager,
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      {} as ConstructorParameters<typeof ChatThreadManager>[2],
     );
 
     await manager.handleToolAction({
@@ -373,10 +373,10 @@ describe('NcpChatThreadManager showContent', () => {
   });
 
   it('shows file content through the existing workspace file preview', async () => {
-    const manager = new NcpChatThreadManager(
-      { goToSession: vi.fn() } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0],
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+    const manager = new ChatThreadManager(
+      { goToSession: vi.fn() } as unknown as ConstructorParameters<typeof ChatThreadManager>[0],
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      {} as ConstructorParameters<typeof ChatThreadManager>[2],
     );
 
     await manager.handleToolAction({
@@ -411,10 +411,10 @@ describe('NcpChatThreadManager showContent', () => {
 
   it('shows URL and panel app content through DocBrowser', async () => {
     const uiManager = createUiManager();
-    const manager = new NcpChatThreadManager(
+    const manager = new ChatThreadManager(
       uiManager,
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      {} as ConstructorParameters<typeof ChatThreadManager>[2],
     );
 
     await manager.handleToolAction({
@@ -466,10 +466,10 @@ describe('NcpChatThreadManager showContent', () => {
 
   it('handles ui.show-content events once through the same owner path', async () => {
     const uiManager = createUiManager();
-    const manager = new NcpChatThreadManager(
+    const manager = new ChatThreadManager(
       uiManager,
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      {} as ConstructorParameters<typeof ChatThreadManager>[2],
     );
 
     await manager.handleUiShowContentEvent({
@@ -511,10 +511,10 @@ describe('NcpChatThreadManager showContent', () => {
 
   it('delegates panel app content to the UI manager owner', async () => {
     const uiManager = createUiManager();
-    const manager = new NcpChatThreadManager(
+    const manager = new ChatThreadManager(
       uiManager,
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      {} as ConstructorParameters<typeof ChatThreadManager>[2],
     );
 
     await manager.handleToolAction({
@@ -543,15 +543,15 @@ describe('NcpChatThreadManager showContent', () => {
   });
 });
 
-describe('NcpChatThreadManager visible workspace selection', () => {
+describe('ChatThreadManager visible workspace selection', () => {
   it('delegates visible child-session read state to the session list owner', () => {
     const sessionListManager = {
       markVisibleWorkspaceChildRead: vi.fn(),
-    } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[1];
-    const manager = new NcpChatThreadManager(
-      { goToSession: vi.fn() } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0],
+    } as unknown as ConstructorParameters<typeof ChatThreadManager>[1];
+    const manager = new ChatThreadManager(
+      { goToSession: vi.fn() } as unknown as ConstructorParameters<typeof ChatThreadManager>[0],
       sessionListManager,
-      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+      {} as ConstructorParameters<typeof ChatThreadManager>[2],
     );
     const tab = {
       sessionKey: 'child-session-1',
@@ -569,7 +569,7 @@ describe('NcpChatThreadManager visible workspace selection', () => {
   });
 });
 
-describe('NcpChatThreadManager deletion', () => {
+describe('ChatThreadManager deletion', () => {
   it('clears the selected thread state after deleting the current session', async () => {
     const removeQueries = vi.spyOn(appQueryClient, 'removeQueries').mockImplementation(async () => undefined);
     const uiManager = {
@@ -577,21 +577,21 @@ describe('NcpChatThreadManager deletion', () => {
       goToChatRoot: vi.fn(),
       goToProviders: vi.fn(),
       confirm: vi.fn(async () => true),
-    } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0];
+    } as unknown as ConstructorParameters<typeof ChatThreadManager>[0];
     const sessionListManager = {
       setSelectedSessionKey: vi.fn((value: string | null) => {
         useChatSessionListStore.getState().setSnapshot({
           selectedSessionKey: value,
         });
       }),
-    } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[1];
-    const streamActionsManager = {
-      resetStreamState: vi.fn(),
-    } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[2];
-    const manager = new NcpChatThreadManager(
+    } as unknown as ConstructorParameters<typeof ChatThreadManager>[1];
+    const chatRunManager = {
+      clearRunState: vi.fn(),
+    } as unknown as ConstructorParameters<typeof ChatThreadManager>[2];
+    const manager = new ChatThreadManager(
       uiManager,
       sessionListManager,
-      streamActionsManager,
+      chatRunManager,
     );
 
     await manager.deleteSession();
@@ -610,7 +610,7 @@ describe('NcpChatThreadManager deletion', () => {
       workspaceNavigationHistory: [],
       workspaceNavigationHistoryIndex: 0,
     });
-    expect(streamActionsManager.resetStreamState).toHaveBeenCalledTimes(1);
+    expect(chatRunManager.clearRunState).toHaveBeenCalledTimes(1);
     expect(deleteSummaryMock).toHaveBeenCalledWith(appQueryClient, 'parent-session-1');
     expect(removeQueries).toHaveBeenCalledWith({
       queryKey: ['ncp-session-messages', 'parent-session-1'],

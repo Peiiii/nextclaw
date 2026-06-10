@@ -2,22 +2,22 @@ import { createContext, useContext, type ReactNode } from 'react';
 import type {
   ChatSessionListManager,
 } from '@/features/chat/managers/chat-session-list.manager';
-import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
+import type { ChatRunManager } from '@/features/chat/managers/chat-run.manager';
 import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
-import type { NcpChatInputManager } from '@/features/chat/managers/ncp-chat-input.manager';
-import type { NcpChatQueryManager } from '@/features/chat/managers/ncp-chat-query.manager';
-import type { NcpChatThreadManager } from '@/features/chat/managers/ncp-chat-thread.manager';
+import type { ChatInputManager } from '@/features/chat/managers/chat-input.manager';
+import type { ChatQueryManager } from '@/features/chat/managers/chat-query.manager';
+import type { ChatThreadManager } from '@/features/chat/managers/chat-thread.manager';
 
 type PublicManager<T extends object> = Pick<T, keyof T>;
 
-export type ChatInputManagerLike = PublicManager<NcpChatInputManager>;
-export type ChatThreadManagerLike = PublicManager<NcpChatThreadManager>;
+export type ChatInputManagerLike = PublicManager<ChatInputManager>;
+export type ChatThreadManagerLike = PublicManager<ChatThreadManager>;
 
 export type ChatPresenterLike = {
   chatUiManager: ChatUiManager;
-  chatStreamActionsManager: ChatStreamActionsManager;
+  chatRunManager: ChatRunManager;
   chatInputManager: ChatInputManagerLike;
-  chatQueryManager: NcpChatQueryManager;
+  chatQueryManager: ChatQueryManager;
   chatSessionListManager: ChatSessionListManager;
   chatThreadManager: ChatThreadManagerLike;
   startAgentCreationDraft: (prompt: string) => void;

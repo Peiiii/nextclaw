@@ -10,7 +10,7 @@ import type {
 } from '@nextclaw/agent-chat-ui';
 import type { UiShowContentEventPayload } from '@nextclaw/shared';
 import type { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
-import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
+import type { ChatRunManager } from '@/features/chat/managers/chat-run.manager';
 import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import type {
@@ -42,13 +42,13 @@ function areWorkspaceNavigationEntriesEqual(
 type WorkspaceChildReadState = Parameters<ChatSessionListManager['markVisibleWorkspaceChildRead']>[0];
 export type ChatVisibleWorkspaceSelection = { kind: 'child-session'; tab: WorkspaceChildReadState } | { kind: 'file' | 'cron' } | null;
 
-export class NcpChatThreadManager {
+export class ChatThreadManager {
   private readonly handledUiShowContentEventIds = new Set<string>();
 
   constructor(
     private uiManager: ChatUiManager,
     private sessionListManager: ChatSessionListManager,
-    private streamActionsManager: ChatStreamActionsManager,
+    private chatRunManager: ChatRunManager,
   ) {}
 
   private hasSnapshotChanges = (patch: Partial<ChatThreadSnapshot>): boolean => {
@@ -499,7 +499,7 @@ export class NcpChatThreadManager {
       await deleteNcpSessionApi(selectedSessionKey);
       deleteNcpSessionSummaryInQueryClient(appQueryClient, selectedSessionKey);
       appQueryClient.removeQueries({ queryKey: ['ncp-session-messages', selectedSessionKey] });
-      this.streamActionsManager.resetStreamState();
+      this.chatRunManager.clearRunState();
       this.clearDeletedSessionState(selectedSessionKey);
       this.uiManager.goToChatRoot({ replace: true });
     } finally {

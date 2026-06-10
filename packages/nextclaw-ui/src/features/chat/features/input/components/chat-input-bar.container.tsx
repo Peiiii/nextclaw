@@ -12,7 +12,7 @@ import {
   useNcpChatProviderStateResolved,
   useNcpChatSelectedSession,
 } from '@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state';
-import { useNcpChatQueryStore } from '@/features/chat/stores/ncp-chat-query.store';
+import { useChatQueryStore } from '@/features/chat/stores/ncp-chat-query.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import {
   buildNcpChatProviderModelOptions,
@@ -229,23 +229,23 @@ function useChatInputBarQueryState(snapshot: ChatInputStoreSnapshot) {
   );
   const selectedSession = useNcpChatSelectedSession(selectedSessionKey);
   const isProviderStateResolved = useNcpChatProviderStateResolved();
-  const config = useNcpChatQueryStore(
+  const config = useChatQueryStore(
     (state) => state.snapshot.configQuery?.data ?? null,
   );
-  const providersView = useNcpChatQueryStore(
+  const providersView = useChatQueryStore(
     (state) => state.snapshot.providersQuery?.data ?? null,
   );
-  const templatesView = useNcpChatQueryStore(
+  const templatesView = useChatQueryStore(
     (state) => state.snapshot.providerTemplatesQuery?.data ?? null,
   );
-  const sessionTypesData = useNcpChatQueryStore(
+  const sessionTypesData = useChatQueryStore(
     (state) => state.snapshot.sessionTypesQuery?.data ?? null,
   );
-  const skillRecords = useNcpChatQueryStore(
+  const skillRecords = useChatQueryStore(
     (state) =>
       state.snapshot.sessionSkillsQuery?.data?.records ?? EMPTY_SESSION_SKILL_RECORDS,
   );
-  const isSkillsLoading = useNcpChatQueryStore(
+  const isSkillsLoading = useChatQueryStore(
     (state) =>
       Boolean(
         state.snapshot.sessionSkillsQuery?.isLoading ||

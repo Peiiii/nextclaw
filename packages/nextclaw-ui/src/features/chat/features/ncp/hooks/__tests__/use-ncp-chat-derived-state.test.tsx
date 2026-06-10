@@ -1,11 +1,11 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useNcpChatSelectedSession } from '@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state';
-import { useNcpChatQueryStore } from '@/features/chat/stores/ncp-chat-query.store';
+import { useChatQueryStore } from '@/features/chat/stores/ncp-chat-query.store';
 
 describe('useNcpChatSelectedSession', () => {
   beforeEach(() => {
-    useNcpChatQueryStore.setState({ snapshot: {} });
+    useChatQueryStore.setState({ snapshot: {} });
   });
 
   it('keeps the empty sessions snapshot stable before the sessions query loads', () => {
