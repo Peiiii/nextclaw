@@ -2,11 +2,11 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { createExternalCommandEnv } from "@nextclaw/core";
-import { NpmRuntimeBundleLayoutStore } from "./npm-runtime-bundle-layout.store.js";
-import { NpmRuntimeBundleService, shouldPreferPackagedNpmRuntime } from "./npm-runtime-bundle.service.js";
-import { inferDefaultNpmRuntimeReleaseChannel } from "./npm-runtime-update-source.service.js";
-import { NpmRuntimeUpdateStateStore } from "./npm-runtime-update-state.store.js";
-import { getPackageVersion } from "@nextclaw-service/shared/utils/cli.utils.js";
+import { NpmRuntimeBundleLayoutStore } from "@nextclaw-service/stores/npm-runtime-bundle-layout.store.js";
+import { NpmRuntimeBundleService, shouldPreferPackagedNpmRuntime } from "@nextclaw-service/services/runtime/npm-runtime-bundle.service.js";
+import { inferDefaultNpmRuntimeReleaseChannel } from "@nextclaw-service/services/runtime/npm-runtime-update-source.service.js";
+import { NpmRuntimeUpdateStateStore } from "@nextclaw-service/stores/npm-runtime-update-state.store.js";
+import { getPackageVersion } from "@nextclaw-service/utils/cli.utils.js";
 
 type NpmRuntimeLauncherOptions = {
   argv: string[];

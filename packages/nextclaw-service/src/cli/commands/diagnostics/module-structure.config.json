@@ -1,9 +1,0 @@
-{
-  "contractKind": "legacy",
-  "organizationModel": "legacy-cli-diagnostics-command",
-  "rootPolicy": "legacy-frozen",
-  "enforcement": "error",
-  "allowedRootDirectories": ["services", "utils"],
-  "allowedRootFiles": ["index.ts"],
-  "sharedDirectories": []
-}

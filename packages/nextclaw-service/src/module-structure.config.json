@@ -1,12 +1,9 @@
 {
   "contractKind": "legacy",
-  "organizationModel": "legacy-service-host-src",
+  "organizationModel": "legacy-service-runtime-manager-src",
   "rootPolicy": "legacy-frozen",
   "enforcement": "error",
-  "allowedRootDirectories": ["commands", "launcher", "shared"],
-  "allowedRootFiles": [
-    "index.ts",
-    "service-runtime.service.ts"
-  ],
-  "sharedDirectories": ["shared"]
+  "allowedRootDirectories": ["app", "controllers", "launcher", "managers", "services", "stores", "types", "utils"],
+  "allowedRootFiles": ["index.ts", "module-structure.config.json"],
+  "sharedDirectories": []
 }
