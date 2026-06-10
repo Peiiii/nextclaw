@@ -25,7 +25,7 @@
   ],
   "dependencies": {
     "@nextclaw/ncp": "workspace:*",
-    "@openai/codex-sdk": "^0.130.0"
+    "@openai/codex-sdk": "^0.139.0"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",
