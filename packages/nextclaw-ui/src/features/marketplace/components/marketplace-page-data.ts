@@ -4,12 +4,6 @@ import type {
 } from "@/shared/lib/api";
 import { pickLocalizedText } from "@/features/marketplace/components/marketplace-localization";
 
-export type InstalledRenderEntry = {
-  key: string;
-  record: MarketplaceInstalledRecord;
-  item?: MarketplaceItemSummary;
-};
-
 function normalizeMarketplaceKey(value: string | undefined): string {
   return (value ?? "").trim().toLowerCase();
 }

@@ -23,11 +23,9 @@ import {
   type MarketplaceShelfLocalizedText,
   type MarketplaceShelfSceneVisual,
 } from "@/features/marketplace/components/curated-shelves/marketplace-curated-shelves.config";
-import { Skeleton } from "@/shared/components/ui/skeleton";
 
 const SCENE_CARD_GRID_CLASS =
   "grid grid-cols-[repeat(auto-fill,minmax(240px,320px))] justify-start gap-3";
-const SCENE_SKELETON_CARD_COUNT = 24;
 
 export type MarketplaceShelfEntry = {
   item: MarketplaceItemSummary;
@@ -76,7 +74,14 @@ export function MarketplaceCuratedShelves(props: {
           )}
         />
         {isScenesLoading ? (
-          <SceneGoalSkeletons />
+          <div
+            data-testid="marketplace-scenes-skeleton"
+            className="grid auto-rows-[104px] grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+          >
+            <MarketplaceListSkeleton
+              count={MARKETPLACE_SHELF_SCENE_VISUALS.length}
+            />
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {scenes.map((scene) => (
@@ -111,29 +116,6 @@ export function MarketplaceCuratedShelves(props: {
           onInstall={onInstall}
         />
       )}
-    </div>
-  );
-}
-
-function SceneGoalSkeletons() {
-  return (
-    <div
-      data-testid="marketplace-scenes-skeleton"
-      className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
-    >
-      {MARKETPLACE_SHELF_SCENE_VISUALS.map((scene) => (
-        <div
-          key={scene.scene}
-          className="flex min-h-[74px] flex-col justify-center rounded-lg border border-gray-200/70 bg-white px-3 py-2.5 shadow-sm"
-        >
-          <div className="flex min-w-0 items-center gap-2">
-            <Skeleton className="h-7 w-7 shrink-0 rounded-md" />
-            <Skeleton className="h-3.5 min-w-0 flex-1" />
-            <Skeleton className="h-3 w-8 shrink-0" />
-          </div>
-          <Skeleton className="mt-2 h-3 w-4/5" />
-        </div>
-      ))}
     </div>
   );
 }
@@ -259,7 +241,7 @@ export function MarketplaceCuratedSceneView(props: {
             "min-h-0 flex-1 auto-rows-[166px] content-start",
           )}
         >
-          <MarketplaceListSkeleton count={SCENE_SKELETON_CARD_COUNT} />
+          <MarketplaceListSkeleton count={24} />
         </div>
       ) : entries.length > 0 ? (
         <div className={SCENE_CARD_GRID_CLASS}>
@@ -314,7 +296,12 @@ function ShelfItemRow(props: {
     <section className="space-y-2.5">
       <ShelfHeader icon={Icon} title={title} description={description} />
       {isLoading ? (
-        <RecentShelfSkeletons />
+        <div
+          data-testid="marketplace-recent-skeleton"
+          className="-mx-1 grid auto-rows-[166px] grid-cols-[repeat(4,260px)] gap-2.5 overflow-hidden px-1 pb-1.5"
+        >
+          <MarketplaceListSkeleton count={4} />
+        </div>
       ) : (
         <div className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-1.5 custom-scrollbar">
           {entries.map((entry) => (
@@ -331,39 +318,6 @@ function ShelfItemRow(props: {
         </div>
       )}
     </section>
-  );
-}
-
-function RecentShelfSkeletons() {
-  return (
-    <div
-      data-testid="marketplace-recent-skeleton"
-      className="-mx-1 flex gap-2.5 overflow-hidden px-1 pb-1.5"
-    >
-      {Array.from({ length: 4 }, (_, index) => (
-        <article
-          key={`marketplace-recent-skeleton-${index}`}
-          className="flex min-h-[166px] w-[260px] shrink-0 flex-col justify-between rounded-xl border border-gray-200/70 bg-white p-3 shadow-sm"
-        >
-          <div>
-            <div className="mb-2.5 flex min-w-0 items-start gap-2.5">
-              <Skeleton className="h-10 w-10 shrink-0 rounded-xl" />
-              <div className="min-w-0 flex-1 space-y-1.5 pt-0.5">
-                <Skeleton className="h-3.5 w-32 max-w-full" />
-                <Skeleton className="h-3 w-24 max-w-full" />
-              </div>
-            </div>
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="mt-1.5 h-3 w-4/5" />
-            <Skeleton className="mt-2 h-3 w-24" />
-          </div>
-          <div className="mt-3 flex items-center justify-between gap-3 border-t border-gray-100 pt-2.5">
-            <Skeleton className="h-3 w-20" />
-            <Skeleton className="h-7 w-16 rounded-md" />
-          </div>
-        </article>
-      ))}
-    </div>
   );
 }
 

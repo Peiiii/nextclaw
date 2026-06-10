@@ -82,6 +82,7 @@
 - 目录治理与脚本检查：使用 [file-organization-governance](.agents/skills/file-organization-governance/SKILL.md)，连接目录结构规范、module-structure contract 和可执行治理检查。
 
 前端工程：负责前端样式合同、组件视觉状态和交互可理解性。
+- 前端代码优化入口：使用 [frontend-code-optimization](.agents/skills/frontend-code-optimization/SKILL.md)，管理前端可维护性治理、MVP 视图逻辑解耦、组件拆分、逻辑拆分、prop 透传改造和前端重构优先级。
 - 样式合同与可移植性：使用 [frontend-style-encapsulation](.agents/skills/frontend-style-encapsulation/SKILL.md)，管理样式 owner、响应式布局、紧凑模式、视觉状态和 shared/reusable 组件可移植性。
 - 交互质量与可理解性：使用 [frontend-interaction-quality](.agents/skills/frontend-interaction-quality/SKILL.md)，管理操作含义、tooltip/popover/menu、键盘可达性、hover/focus/disabled 状态和 icon-only 控件可理解性。
 
@@ -104,7 +105,7 @@
 - 第一步：先对齐目标与成功标准，明确这是新增用户能力还是非功能改动，并先定义可观察验收条件。
   默认联动：`nextclaw-delivery-workflow`。
   条件联动：复杂 debug 用 `long-chain-debugging`；复杂跨轮或易漂移任务用 `iteration-work-notes`，必要时加 `goal-progress-anchor`。
-- 第二步：实现前先判断能删什么、能合并什么、owner 是谁；若不是新增用户能力，默认目标是 `非测试代码净增 <= 0`，并优先通过删旧实现、重构收敛或相关链路减债达成；完成标准是系统确实变得更好，不能靠 hack、强行压行或牺牲可读性硬过线；若找不到无争议的正向改动，必须停止压缩并申请豁免。
+- 第二步：实现前先判断能删什么、能合并什么、owner 是谁；若不是新增用户能力，默认目标是排除纯格式化噪音后的 `非测试语义代码净增 <= 0`，并优先通过删旧实现、重构收敛或相关链路减债达成；完成标准是系统确实变得更好，不能靠 hack、强行压行或牺牲可读性硬过线；若找不到无争议的正向改动，必须停止压缩并申请豁免。
   默认联动：`nextclaw-clean-implementation`。
   条件联动：涉及 fallback / compatibility / rescue path 用 `predictable-behavior-first`；涉及命名、目录、文件组织时按场景用 `file-naming-convention`、`role-first-file-organization`、`collapsible-feature-root-architecture`、`file-organization-governance`。
 - 第三步：再进入实现，优先单一路径、清晰 owner、避免补丁式分支和重复实现。
@@ -115,7 +116,7 @@
   条件联动：代码改动收尾默认再跑 `post-edit-maintainability-guard` 与 `post-edit-maintainability-review`；发布闭环场景继续按发布原则执行 migration / deploy / smoke / NPM release 判断。
 - 第五步：收尾时必须主动披露可维护性结果，包括总代码增减、非测试代码增减、是否满足非功能改动行数门槛，以及本次正向减债动作。
   默认联动：`post-edit-maintainability-review`。
-  条件联动：若非功能改动的非测试代码净增大于 `0`，不得收尾，必须继续简化或删除。
+  条件联动：若非功能改动排除纯格式化噪音后的非测试语义代码净增大于 `0`，不得收尾，必须继续简化或删除。
 - 第六步：最后做复盘，判断是否要改进规则、skill、命令、自动化或文档，并决定是否需要 `docs/logs` 留痕、发布闭环说明和最终汇报中的不适用项说明。
   默认联动：`nextclaw-iteration-log-governance`。
   条件联动：若复盘结论涉及 `AGENTS.md`、命令机制、Rulebook、skill 分层或治理脚本，必须用 `nextclaw-agent-instructions-governance` 落实；若是长期自治推进类任务，再考虑 `goal-mode`。
@@ -124,7 +125,7 @@
 
 - 代码目标默认不是“最小 diff”，而是在满足目标前提下让系统更少、更简单、更清晰、更可预测。
 - 单一链路优先是核心编码理念：同一事实、事件、状态变更或传输语义默认只能有一条标准主链路；发现平行通道、双写路径、重复 publisher、重复 facade 或多套入口时，优先删除并收敛到唯一 owner / 唯一总线 / 唯一 mutation API。
-- 新增之前先判断能否删除、合并、复用、收敛职责；非新增用户能力的改动默认应避免生产代码净增长，优先通过删除旧实现、重构收敛职责或在同责任链/同问题域偿还债务达成；不要求删减只发生在当前改动点，但只接受让系统更清晰、更少或更可预测的真实改善；若只能靠 hack、把复杂度外移、缩短命名/折叠语句等方式伪造净减，必须申请豁免而不是继续压缩。
+- 新增之前先判断能否删除、合并、复用、收敛职责；非新增用户能力的改动默认应避免排除纯格式化噪音后的生产语义代码净增长，优先通过删除旧实现、重构收敛职责或在同责任链/同问题域偿还债务达成；不要求删减只发生在当前改动点，但只接受让系统更清晰、更少或更可预测的真实改善；若只能靠 hack、把复杂度外移、缩短命名/折叠语句等方式伪造净减，必须申请豁免而不是继续压缩。
 - 新增 resolver、factory、adapter、wrapper、service、manager 等抽象前，必须证明它减少真实复杂度、表达稳定语义或隔离真实变化点；不得用新抽象掩盖 owner 误判、参数搬运或依赖违规。
 - 命名默认遵循快手最佳实践进行规范化；文件、class、函数、字段等名称必须语义化、无歧义、清晰简洁，并能直接识别其主要职责。
 - 业务逻辑默认必须有清晰 owner，通常落到 class / manager / service / controller / presenter；普通函数只用于纯常量、纯类型、极小纯计算、纯数据映射、纯业务无关工具。

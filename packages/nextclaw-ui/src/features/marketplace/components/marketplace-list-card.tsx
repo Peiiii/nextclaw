@@ -3,6 +3,7 @@ import type {
   MarketplaceItemSummary,
   MarketplaceManageAction,
 } from "@/shared/lib/api";
+import { useI18n } from "@/app/components/i18n-provider";
 import {
   Tooltip,
   TooltipContent,
@@ -34,13 +35,13 @@ export type ManageState = {
 type MarketplaceListCardActionProps = {
   item?: MarketplaceItemSummary;
   record?: MarketplaceInstalledRecord;
-  isInstalling: boolean;
-  isDisabled: boolean;
-  canUpdate: boolean;
-  canUninstall: boolean;
-  busyAction?: MarketplaceManageAction;
-  busyForRecord: boolean;
-  language: string;
+  state: {
+    isInstalling: boolean;
+    isDisabled: boolean;
+    canUpdate: boolean;
+    canUninstall: boolean;
+    busyAction?: MarketplaceManageAction;
+  };
   onInstall: (item: MarketplaceItemSummary) => void;
   onManage: (
     action: MarketplaceManageAction,
@@ -96,16 +97,18 @@ function MarketplaceListCardActions(props: MarketplaceListCardActionProps) {
   const {
     item,
     record,
+    state,
+    onInstall,
+    onManage,
+  } = props;
+  const {
     isInstalling,
     isDisabled,
     canUpdate,
     canUninstall,
     busyAction,
-    busyForRecord,
-    language,
-    onInstall,
-    onManage,
-  } = props;
+  } = state;
+  const busyForRecord = Boolean(busyAction);
   const hasActions = Boolean((item && !record) || (record && (canUpdate || canUninstall)));
 
   return (
@@ -122,10 +125,7 @@ function MarketplaceListCardActions(props: MarketplaceListCardActionProps) {
         )}
       >
         {record ? (
-          <MarketplaceInstalledStatusIcon
-            disabled={isDisabled}
-            language={language}
-          />
+          <MarketplaceInstalledStatusIcon disabled={isDisabled} />
         ) : null}
       </div>
 
@@ -187,11 +187,9 @@ function MarketplaceListCardActions(props: MarketplaceListCardActionProps) {
   );
 }
 
-function MarketplaceInstalledStatusIcon(props: {
-  disabled: boolean;
-  language: string;
-}) {
-  const { disabled, language } = props;
+function MarketplaceInstalledStatusIcon(props: { disabled: boolean }) {
+  const { disabled } = props;
+  const { language } = useI18n();
   const label = disabled
     ? readLocalized({ zh: "已禁用", en: "Disabled" }, language)
     : readLocalized({ zh: "已安装", en: "Installed" }, language);
@@ -223,7 +221,6 @@ function MarketplaceInstalledStatusIcon(props: {
 export function MarketplaceListCard(props: {
   item?: MarketplaceItemSummary;
   record?: MarketplaceInstalledRecord;
-  language: string;
   installState: InstallState;
   manageState: ManageState;
   onOpen: () => void;
@@ -236,13 +233,13 @@ export function MarketplaceListCard(props: {
   const {
     item,
     record,
-    language,
     installState,
     manageState,
     onOpen,
     onInstall,
     onManage,
   } = props;
+  const { language } = useI18n();
   const localeFallbacks = buildLocaleFallbacks(language);
   const title =
     item?.name ??
@@ -258,7 +255,6 @@ export function MarketplaceListCard(props: {
   const busyAction = targetId
     ? manageState.actionsByTarget.get(targetId)
     : undefined;
-  const busyForRecord = Boolean(busyAction);
   const canUninstall = record?.type === "skill" && record.source === "workspace";
   const canUpdate = record?.type === "skill" && record.origin === "marketplace";
   const isDisabled = record
@@ -287,13 +283,13 @@ export function MarketplaceListCard(props: {
       <MarketplaceListCardActions
         item={item}
         record={record}
-        isInstalling={isInstalling}
-        isDisabled={isDisabled}
-        canUpdate={canUpdate}
-        canUninstall={canUninstall}
-        busyAction={busyAction}
-        busyForRecord={busyForRecord}
-        language={language}
+        state={{
+          isInstalling,
+          isDisabled,
+          canUpdate,
+          canUninstall,
+          busyAction,
+        }}
         onInstall={onInstall}
         onManage={onManage}
       />
