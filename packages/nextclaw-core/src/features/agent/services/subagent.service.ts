@@ -10,7 +10,7 @@ import { WebSearchTool, WebFetchTool } from "@core/features/agent/index.js";
 import { InputBudgetPruner } from "@core/features/agent/index.js";
 import { resolveSubagentModel } from "@core/features/agent/features/subagents/subagent-model.utils.js";
 
-export class SubagentManager {
+export class SubagentService {
   private inputBudgetPruner = new InputBudgetPruner();
   private runningTasks = new Map<string, Promise<void>>();
   private runs = new Map<

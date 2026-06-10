@@ -1,12 +1,5 @@
-import { evaluateSilentReply } from "@core/features/agent/index.js";
-import { isNextclawControlMessage } from "@core/features/bus/index.js";
-import type { OutboundMessage } from "@core/features/bus/index.js";
-import type { MessageBus } from "@core/features/bus/index.js";
-import type { Config } from "@core/features/config/index.js";
-import type { ExtensionRegistry } from "@core/features/extensions/index.js";
-import { sanitizeOutboundAssistantContent } from "@core/shared/lib/core-utils/index.js";
-import type { BaseChannel } from "@core/features/channels/services/base.js";
-import { ExtensionChannelAdapter } from "@core/features/channels/services/extension-channel.service.js";
+import { evaluateSilentReply, ExtensionChannelAdapter, isNextclawControlMessage, sanitizeOutboundAssistantContent } from "@nextclaw/core";
+import type { BaseChannel, Config, ExtensionRegistry, MessageBus, OutboundMessage } from "@nextclaw/core";
 
 export class ChannelManager {
   private channels: Record<string, BaseChannel<Record<string, unknown>>> = {};

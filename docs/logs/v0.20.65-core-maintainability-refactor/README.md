@@ -18,6 +18,8 @@
 - 修复 rename 场景治理稳定性：旧路径已从工作区删除时，从 `HEAD:<old path>` 读取旧内容，避免 role-boundary 检查因 ENOENT 崩溃。
 - 补齐触达 core 文件的角色后缀：`brand.config.ts`、`helpers.utils.ts`、`memory.store.ts`、`file-log-sink.service.ts`、`logging-runtime.service.ts`。
 - 在 `MemoryStore` 与 logging runtime/sink 中顺手删除重复分支和重复映射，保持非功能改动的非测试代码净增长不为正。
+- 收敛 core / kernel 职责边界：`Manager` 角色默认归 kernel，`ChannelManager` 迁入 kernel；core 内低层 worker / tool runtime 改为 `SessionSearchService`、`SubagentService`，并移除 core 的 `managers/` 目录和 `*.manager.ts` 文件。
+- 新增 `docs/designs/2026-06-10-core-kernel-responsibility.design.md`，沉淀 core / kernel / service 的职责分工与后续审计准则。
 
 本次属于内部结构和可维护性改进，不改变用户可见行为。
 
@@ -35,6 +37,13 @@
 - `pnpm -C packages/nextclaw-core test src/shared/lib/logging src/features/config src/features/agent/features/memory`
 - `node .agents/skills/file-organization-governance/scripts/enhanced-check-organization.js packages/nextclaw-core/src`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature`
+- `pnpm -C packages/nextclaw-core test src/features/agent/features/tests/subagent.test.ts src/features/agent/tools/spawn.tools.test.ts src/features/session-search/worker/session-search-worker.controller.test.ts`
+- `pnpm -C packages/nextclaw-kernel test src/managers/channel.manager.test.ts`
+- `pnpm -C packages/nextclaw-core lint`
+- `pnpm -C packages/nextclaw-kernel lint`
+- `pnpm lint:new-code:governance -- packages/nextclaw-core/src/features/agent packages/nextclaw-core/src/features/channels packages/nextclaw-core/src/features/session-search packages/nextclaw-core/src/features/session-request packages/nextclaw-kernel/src/managers/channel.manager.ts packages/nextclaw-kernel/src/managers/channel.manager.test.ts packages/nextclaw-kernel/src/app/nextclaw-kernel.ts packages/nextclaw-kernel/src/index.ts docs/designs/2026-06-10-core-kernel-responsibility.design.md`
+- `pnpm check:governance-backlog-ratchet`
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-core/src/features/agent packages/nextclaw-core/src/features/channels packages/nextclaw-core/src/features/session-search packages/nextclaw-core/src/features/session-request packages/nextclaw-kernel/src/managers/channel.manager.ts packages/nextclaw-kernel/src/managers/channel.manager.test.ts packages/nextclaw-kernel/src/app/nextclaw-kernel.ts packages/nextclaw-kernel/src/index.ts docs/designs/2026-06-10-core-kernel-responsibility.design.md`
 
 ## 发布/部署方式
 
@@ -53,6 +62,7 @@
 - `session.store.ts` 从 507 行降到 411 行，仍高于 400 行预算，后续可继续拆分 session persistence / event journal 边界。
 - 命名治理机制补丁后，补丁范围 maintainability guard 通过，非测试代码净减 3 行；`lint-new-code-file-role-boundaries.mjs` 当前 415 行，接近 500 行预算，后续若继续扩展 role-boundary 规则应优先拆分。
 - maintainability guard 通过；保留文件预算警告，均为后续减债候选。
+- 职责边界补丁后，core 下已无 `managers/` 目录、`*.manager.ts` 文件或 `*Manager` 命名残留；本轮 scoped maintainability guard 通过，总净减 4 行，非测试代码净减 7 行。
 
 ## NPM 包发布记录
 

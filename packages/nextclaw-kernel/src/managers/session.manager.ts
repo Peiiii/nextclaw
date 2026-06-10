@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type {
   CreatedSession,
   CreateSessionInput,
-  SessionSearchManager,
+  SessionSearchService,
 } from "@nextclaw/core";
 import { BUILTIN_MAIN_AGENT_ID } from "@nextclaw/core";
 import type {
@@ -59,7 +59,7 @@ export type SessionManagerOptions = {
   configManager: ConfigManager;
   eventBus: EventBus;
   journalStore: NcpAgentSessionJournalStore;
-  sessionSearch: SessionSearchManager;
+  sessionSearch: SessionSearchService;
 };
 
 function isDurableSessionEvent(event: NcpEndpointEvent): boolean {

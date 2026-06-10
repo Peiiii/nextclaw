@@ -4,7 +4,7 @@ import {
   normalizeToolParams,
   type ToolExecutionContext,
 } from "./base.tools.js";
-import type { SubagentManager } from "@core/features/agent/managers/subagent.manager.js";
+import type { SubagentService } from "@core/features/agent/services/subagent.service.js";
 
 export class SpawnTool extends Tool {
   private channel = "cli";
@@ -13,7 +13,7 @@ export class SpawnTool extends Tool {
   private sessionKey: string | undefined;
   private agentId: string | undefined;
 
-  constructor(private manager: SubagentManager) {
+  constructor(private manager: SubagentService) {
     super();
   }
 

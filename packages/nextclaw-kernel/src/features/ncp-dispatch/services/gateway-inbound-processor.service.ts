@@ -3,11 +3,11 @@ import {
   createAssistantStreamDeltaControlMessage,
   createAssistantStreamResetControlMessage,
   createTypingStopControlMessage,
-  type ChannelManager,
   type Config,
   type InboundMessage,
   type MessageBus,
 } from "@nextclaw/core";
+import type { ChannelManager } from "@kernel/managers/channel.manager.js";
 import { CommandRegistry } from "@kernel/services/command-registry.service.js";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import { eventKeys, type EventBus } from "@nextclaw/shared";

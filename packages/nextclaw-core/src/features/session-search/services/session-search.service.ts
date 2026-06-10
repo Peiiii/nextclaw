@@ -13,18 +13,18 @@ type SessionSearchWorkerControllerLike = Pick<
   "start" | "query" | "notifySessionUpdated" | "dispose" | "getState"
 >;
 
-export type SessionSearchManagerOptions = {
+export type SessionSearchServiceOptions = {
   databasePath: string;
   sessionsDir: string;
   workerController?: SessionSearchWorkerControllerLike;
 };
 
-export class SessionSearchManager {
+export class SessionSearchService {
   private readonly workerController: SessionSearchWorkerControllerLike;
   private enabled = true;
   private ready = false;
 
-  constructor(private readonly options: SessionSearchManagerOptions) {
+  constructor(private readonly options: SessionSearchServiceOptions) {
     this.workerController =
       options.workerController ??
       new SessionSearchWorkerController({

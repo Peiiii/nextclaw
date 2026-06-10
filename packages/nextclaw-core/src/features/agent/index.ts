@@ -7,7 +7,7 @@ export { MemoryStore } from "./features/memory/memory.store.js";
 export { resolveNextclawSelfManageGuidePaths } from "./features/self-manage/guide-path.js";
 export { SILENT_REPLY_TOKEN } from "./types/tokens.js";
 export * from "./services/silent-reply-policy.js";
-export * from "./managers/subagent.manager.js";
+export * from "./services/subagent.service.js";
 export * from "./services/agent-thinking.js";
 export * from "./tools/base.tools.js";
 export * from "./tools/cron.tools.js";

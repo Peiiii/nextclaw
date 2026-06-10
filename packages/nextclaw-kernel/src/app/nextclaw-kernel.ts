@@ -4,6 +4,7 @@ import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manag
 import { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
 import { AccessManager } from "@kernel/managers/access.manager.js";
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
+import { ChannelManager } from "@kernel/managers/channel.manager.js";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
 import { ContextProviderManager } from "@kernel/managers/context-provider.manager.js";
 import { ExtensionManager } from "@kernel/managers/extension.manager.js";
@@ -31,7 +32,6 @@ import type { AgentRuntimeSessionTypeDescribeParams } from "@kernel/features/run
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
-  ChannelManager,
   ensureDir,
   expandHome,
   type GatewayController,
@@ -39,7 +39,7 @@ import {
   getSessionsPath,
   getWorkspacePath,
   MessageBus,
-  SessionSearchManager,
+  SessionSearchService,
 } from "@nextclaw/core";
 import { EventBus, Ingress } from "@nextclaw/shared";
 import { resolve } from "node:path";
@@ -115,7 +115,7 @@ export class NextclawKernel {
   readonly automation: AutomationManager;
   readonly channels: ChannelManager;
   readonly sessionRequests: SessionRequestManager;
-  readonly sessionSearch: SessionSearchManager;
+  readonly sessionSearch: SessionSearchService;
   readonly assetStore: LocalAssetStore;
   readonly mcpManager: McpManager;
   readonly sessionManager: SessionManager;
@@ -134,7 +134,7 @@ export class NextclawKernel {
 
   constructor(options: NextclawKernelOptions = {}) {
     const sessionsDir = resolveKernelSessionsDir(options);
-    this.sessionSearch = new SessionSearchManager({
+    this.sessionSearch = new SessionSearchService({
       databasePath: resolve(getDataDir(), "session-search.db"),
       sessionsDir,
     });

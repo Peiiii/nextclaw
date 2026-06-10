@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { SubagentManager } from "../../managers/subagent.manager.js";
+import { SubagentService } from "@core/features/agent/services/subagent.service.js";
 
-describe("SubagentManager announce routing", () => {
+describe("SubagentService announce routing", () => {
   it("publishes completion message with origin session metadata", async () => {
     const publishInbound = vi.fn(async (_message: unknown) => undefined);
-    const manager = new SubagentManager({
+    const service = new SubagentService({
       providerManager: {
         get: () => ({
           getDefaultModel: () => "openai/gpt-5"
@@ -21,7 +21,7 @@ describe("SubagentManager announce routing", () => {
       model: "openai/gpt-5"
     });
 
-    await manager.spawn({
+    await service.spawn({
       task: "collect release notes",
       originChannel: "ui",
       originChatId: "web-ui",

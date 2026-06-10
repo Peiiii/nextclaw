@@ -9,12 +9,12 @@ import {
   redactConfigObject,
   resolveConfigSecrets,
   saveConfig,
-  type ChannelManager,
   type Config,
   type ExtensionRegistry,
 } from "@nextclaw/core";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
+import type { ChannelManager } from "./channel.manager.js";
 import type { LlmProviderManager } from "./llm-provider.manager.js";
 
 export type ConfigManagerRuntimeHooks = {

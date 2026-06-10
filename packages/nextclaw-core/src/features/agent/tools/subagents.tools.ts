@@ -1,8 +1,8 @@
 import { Tool, normalizeToolParams } from "./base.tools.js";
-import type { SubagentManager } from "@core/features/agent/managers/subagent.manager.js";
+import type { SubagentService } from "@core/features/agent/services/subagent.service.js";
 
 export class SubagentsTool extends Tool {
-  constructor(private manager: SubagentManager) {
+  constructor(private manager: SubagentService) {
     super();
   }
 

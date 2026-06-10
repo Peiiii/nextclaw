@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import type { SubagentManager } from "@core/features/agent/managers/subagent.manager.js";
+import type { SubagentService } from "@core/features/agent/services/subagent.service.js";
 import { createToolExecutionContext } from "./base.tools.js";
 import { SpawnTool } from "./spawn.tools.js";
 
 describe("SpawnTool", () => {
   it("forwards explicit model override and session model context", async () => {
     const spawn = vi.fn(async () => "ok");
-    const tool = new SpawnTool({ spawn } as unknown as SubagentManager);
+    const tool = new SpawnTool({ spawn } as unknown as SubagentService);
     tool.setContext("discord", "room-1", "openai/gpt-5");
 
     await tool.execute({
@@ -29,7 +29,7 @@ describe("SpawnTool", () => {
 
   it("ignores blank model and keeps session model fallback", async () => {
     const spawn = vi.fn(async () => "ok");
-    const tool = new SpawnTool({ spawn } as unknown as SubagentManager);
+    const tool = new SpawnTool({ spawn } as unknown as SubagentService);
     tool.setContext("telegram", "chat-2", "openai/gpt-5");
 
     await tool.execute({
@@ -51,7 +51,7 @@ describe("SpawnTool", () => {
 
   it("forwards origin session and agent context when available", async () => {
     const spawn = vi.fn(async () => "ok");
-    const tool = new SpawnTool({ spawn } as unknown as SubagentManager);
+    const tool = new SpawnTool({ spawn } as unknown as SubagentService);
     tool.setContext("ui", "web-ui", "openai/gpt-5", "agent:main:ui:direct:web-ui", "main");
 
     await tool.execute({

@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { isNextclawControlMessage, NEXTCLAW_CONTROL_METADATA_KEY } from "@core/features/bus/index.js";
-import type { OutboundMessage } from "@core/features/bus/index.js";
-import { MessageBus } from "@core/features/bus/index.js";
-import type { Config } from "@core/features/config/index.js";
-import type { ExtensionChannelRegistration } from "@core/features/extensions/index.js";
+import {
+  isNextclawControlMessage,
+  MessageBus,
+  NEXTCLAW_CONTROL_METADATA_KEY,
+  type Config,
+  type ExtensionChannelRegistration,
+  type OutboundMessage,
+} from "@nextclaw/core";
 import { ChannelManager } from "./channel.manager.js";
 
 describe("ChannelManager", () => {
