@@ -17,7 +17,7 @@ export function ChatConversationAlerts() {
           </span>
           <button
             type="button"
-            onClick={presenter.chatThreadManager.goToProviders}
+            onClick={presenter.chatUiManager.goToProviders}
             className="text-xs font-semibold text-amber-900 underline-offset-2 hover:underline"
           >
             {t("chatGoConfigureProvider")}

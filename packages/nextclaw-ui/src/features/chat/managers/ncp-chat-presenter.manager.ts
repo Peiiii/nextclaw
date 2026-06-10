@@ -15,20 +15,18 @@ export class NcpChatPresenter {
   readonly chatThreadManager: NcpChatThreadManager;
 
   constructor(appPresenter: AppPresenter) {
-    this.chatUiManager = new ChatUiManager();
+    this.chatUiManager = new ChatUiManager(appPresenter.docBrowserManager);
     this.chatStreamActionsManager = new ChatStreamActionsManager();
     this.chatSessionListManager = new ChatSessionListManager(this.chatUiManager, this.chatStreamActionsManager);
     this.chatQueryManager = new NcpChatQueryManager();
     this.chatInputManager = new NcpChatInputManager(
-      this.chatUiManager,
       this.chatStreamActionsManager,
       this.chatSessionListManager
     );
     this.chatThreadManager = new NcpChatThreadManager(
       this.chatUiManager,
       this.chatSessionListManager,
-      this.chatStreamActionsManager,
-      appPresenter.docBrowserManager
+      this.chatStreamActionsManager
     );
   }
 

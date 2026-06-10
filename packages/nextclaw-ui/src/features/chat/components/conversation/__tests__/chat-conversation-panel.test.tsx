@@ -115,10 +115,10 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
     chatUiManager: {
       goToChatRoot: mocks.goToChatRoot,
       goToSession: mocks.goToSession,
+      goToProviders: mocks.goToProviders,
     },
     chatThreadManager: {
       deleteSession: mocks.deleteSession,
-      goToProviders: mocks.goToProviders,
       openChildSessionPanel: vi.fn(),
       openSessionCronPanel: mocks.openSessionCronPanel,
       openFilePreview: vi.fn(),

@@ -76,13 +76,12 @@ describe('NcpChatInputManager', () => {
     const streamActionsManager = {
       sendMessage: vi.fn().mockResolvedValue(undefined),
       stopCurrentRun: vi.fn().mockResolvedValue(undefined),
-    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
+    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[0];
     const sessionListManager = {
       ensureDraftSession: vi.fn(() => 'draft-session'),
       materializeRootSessionRoute: vi.fn(),
-    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[2];
+    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
     const manager = new NcpChatInputManager(
-      {} as ConstructorParameters<typeof NcpChatInputManager>[0],
       streamActionsManager,
       sessionListManager,
     );
@@ -116,13 +115,12 @@ describe('NcpChatInputManager', () => {
     const streamActionsManager = {
       sendMessage: vi.fn().mockResolvedValue(undefined),
       stopCurrentRun: vi.fn().mockResolvedValue(undefined),
-    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
+    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[0];
     const sessionListManager = {
       ensureDraftSession: vi.fn(() => 'materialized-draft-session'),
       materializeRootSessionRoute: vi.fn(),
-    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[2];
+    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
     const manager = new NcpChatInputManager(
-      {} as ConstructorParameters<typeof NcpChatInputManager>[0],
       streamActionsManager,
       sessionListManager,
     );
@@ -167,13 +165,12 @@ describe('NcpChatInputManager', () => {
     const streamActionsManager = {
       sendMessage: vi.fn().mockResolvedValue(undefined),
       stopCurrentRun: vi.fn().mockResolvedValue(undefined),
-    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
+    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[0];
     const sessionListManager = {
       ensureDraftSession: vi.fn(() => 'draft-session'),
       materializeRootSessionRoute: vi.fn(),
-    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[2];
+    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
     const manager = new NcpChatInputManager(
-      {} as ConstructorParameters<typeof NcpChatInputManager>[0],
       streamActionsManager,
       sessionListManager,
     );
@@ -196,13 +193,12 @@ describe('NcpChatInputManager', () => {
     const streamActionsManager = {
       sendMessage: vi.fn().mockResolvedValue(undefined),
       stopCurrentRun: vi.fn().mockResolvedValue(undefined),
-    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
+    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[0];
     const sessionListManager = {
       ensureDraftSession: vi.fn(() => 'draft-session'),
       materializeRootSessionRoute: vi.fn(),
-    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[2];
+    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
     const manager = new NcpChatInputManager(
-      {} as ConstructorParameters<typeof NcpChatInputManager>[0],
       streamActionsManager,
       sessionListManager,
     );
@@ -217,7 +213,6 @@ describe('NcpChatInputManager', () => {
     const manager = new NcpChatInputManager(
       {} as ConstructorParameters<typeof NcpChatInputManager>[0],
       {} as ConstructorParameters<typeof NcpChatInputManager>[1],
-      {} as ConstructorParameters<typeof NcpChatInputManager>[2],
     );
 
     manager.requestComposerFocusAtEnd();
@@ -271,7 +266,6 @@ describe('NcpChatInputManager configuration sync', () => {
     const manager = new NcpChatInputManager(
       {} as ConstructorParameters<typeof NcpChatInputManager>[0],
       {} as ConstructorParameters<typeof NcpChatInputManager>[1],
-      {} as ConstructorParameters<typeof NcpChatInputManager>[2],
     );
 
     manager.syncSessionPreferences({
@@ -298,7 +292,6 @@ describe('NcpChatInputManager configuration sync', () => {
     const manager = new NcpChatInputManager(
       {} as ConstructorParameters<typeof NcpChatInputManager>[0],
       {} as ConstructorParameters<typeof NcpChatInputManager>[1],
-      {} as ConstructorParameters<typeof NcpChatInputManager>[2],
     );
 
     expect(

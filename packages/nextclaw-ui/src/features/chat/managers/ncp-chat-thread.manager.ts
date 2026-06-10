@@ -2,8 +2,6 @@ import { appQueryClient } from '@/app-query-client';
 import {
   deleteNcpSession as deleteNcpSessionApi,
   deleteNcpSessionSummaryInQueryClient,
-  nextclawClient,
-  type PanelAppEntryView,
 } from '@/shared/lib/api';
 import type {
   ChatFileOpenActionViewModel,
@@ -21,18 +19,12 @@ import type {
   ChatWorkspaceFileTab,
 } from '@/features/chat/stores/chat-thread.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
-import { viewportLayoutManager } from '@/app/managers/viewport-layout.manager';
-import {
-  createPanelAppResourceUri,
-  createPanelAppRightPanelResourceTarget,
-} from '@/features/right-panel-resources';
 import { t } from '@/shared/lib/i18n';
 import {
   filterNavigationHistoryEntries,
   pushNavigationHistoryEntry,
   stepNavigationHistory,
 } from '@/shared/lib/navigation-history';
-import type { DocBrowserManager } from '@/shared/components/doc-browser/managers/doc-browser.manager';
 
 function areWorkspaceNavigationEntriesEqual(
   current: ChatWorkspaceNavigationEntry,
@@ -50,11 +42,6 @@ function areWorkspaceNavigationEntriesEqual(
 type WorkspaceChildReadState = Parameters<ChatSessionListManager['markVisibleWorkspaceChildRead']>[0];
 export type ChatVisibleWorkspaceSelection = { kind: 'child-session'; tab: WorkspaceChildReadState } | { kind: 'file' | 'cron' } | null;
 
-function isPanelAppEntryMatch(entry: PanelAppEntryView, value: string): boolean {
-  const normalizedValue = value.trim();
-  return [entry.id, entry.appId, entry.fileName, entry.title].some((candidate) => candidate.trim() === normalizedValue);
-}
-
 export class NcpChatThreadManager {
   private readonly handledUiShowContentEventIds = new Set<string>();
 
@@ -62,7 +49,6 @@ export class NcpChatThreadManager {
     private uiManager: ChatUiManager,
     private sessionListManager: ChatSessionListManager,
     private streamActionsManager: ChatStreamActionsManager,
-    private docBrowserManager: DocBrowserManager,
   ) {}
 
   private hasSnapshotChanges = (patch: Partial<ChatThreadSnapshot>): boolean => {
@@ -226,18 +212,6 @@ export class NcpChatThreadManager {
     });
   };
 
-  deleteSession = () => {
-    void this.deleteCurrentSession();
-  };
-
-  createSession = () => {
-    this.sessionListManager.createSession();
-  };
-
-  goToProviders = () => {
-    this.uiManager.goToProviders();
-  };
-
   openChildSessionPanel = (params: {
     parentSessionKey: string;
     activeChildSessionKey?: string | null;
@@ -287,7 +261,7 @@ export class NcpChatThreadManager {
     if (action.kind !== 'open-session') {
       return;
     }
-    if (action.sessionKind === 'child' && !this.isCompactViewport()) {
+    if (action.sessionKind === 'child' && !this.uiManager.isCompactViewport()) {
       const parentSessionKey =
         action.parentSessionId?.trim() ||
         useChatSessionListStore.getState().snapshot.selectedSessionKey ||
@@ -325,19 +299,6 @@ export class NcpChatThreadManager {
     });
   };
 
-  private resolvePanelAppEntry = async (value: string): Promise<PanelAppEntryView | null> => {
-    const normalizedValue = value.trim();
-    if (!normalizedValue) {
-      return null;
-    }
-    try {
-      const { entries } = await nextclawClient.panelApps.listPanelApps();
-      return entries.find((entry) => isPanelAppEntryMatch(entry, normalizedValue)) ?? null;
-    } catch {
-      return null;
-    }
-  };
-
   private showContent = async (request: ChatUiShowContentRequest): Promise<void> => {
     if (request.target.type === 'file') {
       this.openFilePreview({
@@ -349,20 +310,8 @@ export class NcpChatThreadManager {
       });
       return;
     }
-    if (request.target.type === 'url') {
-      this.docBrowserManager.open(request.target.payload.url, {
-        title: request.title,
-      });
-      return;
-    }
-    const entry = await this.resolvePanelAppEntry(request.target.payload.appId);
-    if (entry) {
-      this.docBrowserManager.openTarget(createPanelAppRightPanelResourceTarget(entry), {
-        title: request.title,
-      });
-      return;
-    }
-    this.docBrowserManager.open(createPanelAppResourceUri(request.target.payload.appId), {
+    await this.uiManager.showContent({
+      target: request.target,
       title: request.title,
     });
   };
@@ -530,11 +479,7 @@ export class NcpChatThreadManager {
     this.uiManager.goToSession(resolvedParentSessionKey);
   };
 
-  private isCompactViewport = (): boolean => {
-    return viewportLayoutManager.getSnapshot().mode === 'mobile';
-  };
-
-  private deleteCurrentSession = async () => {
+  deleteSession = async () => {
     const {
       snapshot: { selectedSessionKey }
     } = useChatSessionListStore.getState();

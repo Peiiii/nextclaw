@@ -395,7 +395,7 @@ export function ChatInputBarContainer() {
         hint={buildModelStateHint({
           isModelOptionsLoading,
           isModelOptionsEmpty,
-          onGoToProviders: presenter.chatInputManager.goToProviders,
+          onGoToProviders: presenter.chatUiManager.goToProviders,
           texts: {
             noModelOptionsLabel: t('chatModelNoOptions'),
             configureProviderLabel: t('chatGoConfigureProvider')

@@ -18,7 +18,6 @@ import { useChatSessionListStore } from '@/features/chat/stores/chat-session-lis
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
 import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
-import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import type { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
 import { ChatSessionPreferenceSync } from '@/features/chat/managers/chat-session-preference-sync.manager';
 import { isNcpChatSendDisabled } from '@/features/chat/features/input/utils/ncp-chat-input-availability.utils';
@@ -44,7 +43,6 @@ export class NcpChatInputManager {
     ].join(':');
 
   constructor(
-    private uiManager: ChatUiManager,
     private streamActionsManager: ChatStreamActionsManager,
     private sessionListManager: ChatSessionListManager
   ) {}
@@ -300,10 +298,6 @@ export class NcpChatInputManager {
 
   stop = async () => {
     await this.streamActionsManager.stopCurrentRun();
-  };
-
-  goToProviders = () => {
-    this.uiManager.goToProviders();
   };
 
   setSelectedModel = (next: SetStateAction<string>) => {
