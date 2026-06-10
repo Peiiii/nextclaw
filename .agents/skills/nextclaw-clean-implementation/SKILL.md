@@ -71,6 +71,7 @@ description: Use when implementing, refactoring, or designing source-level contr
 
 - 这段逻辑是不是业务规则或业务编排
 - 它的状态、上下文、生命周期由谁拥有
+- 数据从哪里生成、哪些消费者真正需要它；同步或派生动作应该贴近查询/状态 owner、页面 owner、业务 manager，还是当前组件只是临时路过
 - 主流程现在是在一个清晰 owner 里，还是散落在函数 / hook / effect / action 中
 - 这个 owner 是否完整覆盖领域闭环，还是核心能力仍由上层通过 factory/deps 临时塞进来
 - 这个 owner 的职责边界、感知范围、最小依赖和合理自定义表面分别是什么
@@ -163,6 +164,7 @@ description: Use when implementing, refactoring, or designing source-level contr
 
 - 当前目录是不是正确的 feature root / 角色目录
 - 文件主职责是什么
+- 当前文件是否只是“刚好拿得到数据”的便利位置；如果数据或状态服务的是侧边栏、页面创建入口、会话列表或其他跨组件表面，默认回到查询/store/manager/page owner，而不是塞进输入组件、展示组件或局部 container
 - 有没有现成位置可以直接复用，而不是新增散点
 - 如果这是跨 workspace package 依赖，是否只通过对方 package 根公共入口或 `package.json` 明确声明的 `exports` 子入口导入，而不是 deep import 对方内部文件
 - 如果这是跨包 TypeScript 编译/路径解析问题，是否先回到根级 workspace paths owner、被依赖包根公共入口或 package 自身 `exports`；禁止在消费者包 `tsconfig` 里新增指向另一个包内部目录的子路径 alias，例如 `@kernel/features/*`、`@core/*` 或把本包 `@/*` 指到别的包 `src/*`
@@ -276,7 +278,7 @@ description: Use when implementing, refactoring, or designing source-level contr
 10. 文件为什么放在这里
 11. 最小可信验证是什么
 12. 如果这不是新增能力，为什么最终能保证 `非测试代码净增 <= 0`
-   同时说明按“当前函数/类型 -> 当前文件 -> 当前 owner/class/service -> 同一责任链 -> 同一问题域 -> 本批次相关模块”的顺序，准备在哪个最近的真实冗余点完成减债；若答案只是“我会把代码写得更紧一点”，说明方案仍不合格。
+    同时说明按“当前函数/类型 -> 当前文件 -> 当前 owner/class/service -> 同一责任链 -> 同一问题域 -> 本批次相关模块”的顺序，准备在哪个最近的真实冗余点完成减债；若答案只是“我会把代码写得更紧一点”，说明方案仍不合格。
 
 如果这些问题里有 2 个以上答不清，先不要写代码。
 

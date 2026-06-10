@@ -15,13 +15,21 @@
 - 所有对用户的回复必须以 `[我严格遵守规则]` 开头。
 - 与用户交流必须使用中文。
 - 用户提出需求或评价时，要主动推理深层意图，给出明确判断、推荐方案、取舍理由和最小可执行下一步。
+- 提出任何方案、计划或改动建议时，必须同时说明其依据的思想理念、原则规范和关键取舍；不能只给操作步骤或结论。
 - 用户纠偏、补充上下文或修正判断时，默认视为继续当前任务的新约束，不得当作暂停或收尾信号；除非用户明确要求停下、只回复或等待，否则必须吸收纠偏后继续推进原任务。
 - 对架构、链路、事件流、状态归属或根因作确定性表述前，必须先验证端到端证据；只查到局部代码时只能标注为假设或阶段性判断，不得外推成系统结论。
 - 用户常用语音输入，可能出现转写误差；遇到“绘画”等疑似错词，若上下文在讨论 chat/session/session materialization/消息发送，应优先按“会话”理解，必要时先澄清再展开方案。
 - 用户说“记住”“以后都要”“这是规范/原则”时，禁止只口头确认；必须判断并持久化到 `AGENTS.md`、对应 skill、命令或治理脚本等可自动触发的位置，若不落盘必须说明理由。
-- 若用户明确启动“深思模式”，或对复杂架构/实现方案/规则机制/高风险取舍进行讨论，或用户连续纠偏表明需要重新深挖意图时，必须自动进入深思模式；深思模式下每次收到用户新消息，必须先判断其深层意图、纠偏对象和对当前任务的推进含义，再决定回复或行动；深思模式回复前缀为 `[我严格遵守规则][深思模式]`，直到该复杂议题结束或用户明确关闭。
 - 若用户明确启动“目标模式”，后续回复前缀追加 `[目标模式]` 与 `[锚点 n/20]`，并使用 `goal-mode` skill 持续推进直到目标完成、真实阻塞或用户明确退出。
 - 思考产品和实现方案时，同时站在 CEO + CTO（架构师）+ 产品经理视角：产品价值、技术结构、交付路径都要考虑。
+
+## 深思模式
+
+- 定义：深思模式用于复杂议题、规则机制、高风险取舍或连续纠偏场景；目标是在回复或行动前先重新理解用户真实意图、纠偏对象和当前任务推进含义。
+- 触发：用户明确说“深思模式”；讨论复杂架构、实现方案、规则机制或高风险取舍；用户连续纠偏、反复指出误解，或当前回答明显需要重新深挖意图。
+- 执行：每次收到用户新消息，先判断深层意图、纠偏对象、对原任务的新增约束和下一步该回复还是行动；涉及架构、链路、事件流、状态归属或根因时，必须先找端到端证据，不用局部代码外推系统结论。
+- 输出：深思模式下所有用户可见回复前缀为 `[我严格遵守规则][深思模式]`；若同时处于目标模式，再按目标模式规则追加 `[目标模式]` 与锚点。
+- 退出：复杂议题完成、用户明确关闭深思模式，或后续话题已经不再依赖该复杂判断时退出；不得把用户纠偏当作暂停或收尾信号。
 
 ## 协作与 Git
 
@@ -46,7 +54,7 @@
 - 执行源码、脚本、测试或运行链路配置相关任务时，默认使用 `nextclaw-delivery-workflow` 作为总流程 owner，统一约束实现前删减判断、验证、可维护性披露、复盘与最终汇报；细节再分别联动对应专项 skill。
 - 运行 `/validate`、代码改动收尾验证、bugfix 定向验收、冒烟测试或发布闭环判断时，必须使用 `nextclaw-validation-workflow` skill。
 - 写或改源码、脚本、测试、运行链路配置前，默认使用 `nextclaw-clean-implementation` skill；涉及 fallback / compatibility / rescue path 时，同时使用 `predictable-behavior-first`。
-- 讨论、审查或重构代码审美、代码是否干净/优雅/美丽、是否过度防卫或过度抽象时，使用 `writing-beautiful-code`；项目专属规则仍归对应项目 skill。
+- 写代码、给技术方案，或讨论/审查/重构代码审美、代码是否干净/优雅/美丽、是否过度防卫或过度抽象前，必须先使用 `writing-beautiful-code`；项目专属规则仍归对应项目 skill。
 - 涉及前端样式、响应式布局、紧凑模式、组件视觉状态或样式 owner / 可移植性判断时，使用 `frontend-style-encapsulation`。
 - 涉及前端交互体验、操作含义、tooltip/popover、键盘可达性、状态反馈或紧凑模式下的操作可理解性时，使用 `frontend-interaction-quality`。
 - 涉及 kernel 主干/分支、manager/service/store/presenter owner 依赖、稳定业务 owner 是否直连、factory/create/registry 是否过度抽象、prop 透传或链路过长时，必须使用 `kernel-branch-owner-architecture`。
@@ -58,6 +66,37 @@
 - 用户要求主动干活/继续推进/不要停，或指出任务未完成却停止时，必须使用 `proactive-work-continuation`，吸收最新约束后继续推进到真实完成、真实阻塞或用户明确暂停。
 - 用户指出同类错误反复发生、要求反思/总结教训/避免再次发生时，必须使用 `learning-from-failures`，把教训落到可自动触发的规则、skill、命令、治理脚本或验证流程。
 - 复杂 debug 用 `long-chain-debugging`；复杂跨轮任务、上下文压缩或交接风险用 `iteration-work-notes`，必要时用 `goal-progress-anchor`。
+
+## 规范 Skill 索引
+
+本索引按关注面分组，而不是按用户话术罗列。复杂任务必须先判断涉及哪些组，再组合读取对应 skill；不要只因为任务表面属于“前端”“重构”或“验证”就漏掉设计、实现、结构、验证或知识沉淀。
+
+架构与设计：负责上位工程判断、主干/分支关系、owner 边界、抽象力度，以及把架构边界落实到文件结构和命名。
+- 经典设计原则校准：使用 [classic-software-design-principles](.agents/skills/classic-software-design-principles/SKILL.md)，判断架构方向、模块职责、owner 边界、生命周期、状态归属、抽象力度和方案取舍。
+- 代码审美与拆分判断：使用 [writing-beautiful-code](.agents/skills/writing-beautiful-code/SKILL.md)，判断主流程可见性、抽象必要性、拆分收益和代码是否真正简洁。
+- 主干/分支架构判断：使用 [kernel-branch-owner-architecture](.agents/skills/kernel-branch-owner-architecture/SKILL.md)，判断长期 owner 依赖、稳定 owner 直连关系、factory/create/registry 抽象和链路长度。
+- 前端 MVP 架构：使用 [mvp-view-logic-decoupling](.agents/skills/mvp-view-logic-decoupling/SKILL.md)，判断 presenter-manager-store、Zustand persist、状态归属、view-logic 边界、复杂 hook/component 状态机、streaming/data-flow 和 prop drilling。
+- Feature root 结构判断：使用 [collapsible-feature-root-architecture](.agents/skills/collapsible-feature-root-architecture/SKILL.md)，判断当前作用域应保持单根、折叠子 feature，还是引入更明确的 feature 层级。
+- 文件角色落位判断：使用 [role-first-file-organization](.agents/skills/role-first-file-organization/SKILL.md)，判断文件主角色、职责目录和是否存在假角色、空层或无意义 barrel。
+- 文件命名约束：使用 [file-naming-convention](.agents/skills/file-naming-convention/SKILL.md)，约束 kebab-case、角色后缀和目录/文件命名一致性。
+- 目录治理与脚本检查：使用 [file-organization-governance](.agents/skills/file-organization-governance/SKILL.md)，连接目录结构规范、module-structure contract 和可执行治理检查。
+
+前端工程：负责前端样式合同、组件视觉状态和交互可理解性。
+- 样式合同与可移植性：使用 [frontend-style-encapsulation](.agents/skills/frontend-style-encapsulation/SKILL.md)，管理样式 owner、响应式布局、紧凑模式、视觉状态和 shared/reusable 组件可移植性。
+- 交互质量与可理解性：使用 [frontend-interaction-quality](.agents/skills/frontend-interaction-quality/SKILL.md)，管理操作含义、tooltip/popover/menu、键盘可达性、hover/focus/disabled 状态和 icon-only 控件可理解性。
+
+实现与交付：负责从动手前质量门、可预测行为，到实现闭环、验证和可维护性收口。
+- 干净实现前置判断：使用 [nextclaw-clean-implementation](.agents/skills/nextclaw-clean-implementation/SKILL.md)，在动手前拦住补丁式复杂度、重复路径、假 owner、helper/adapter/wrapper 膨胀和不必要兼容。
+- 可预测行为约束：使用 [predictable-behavior-first](.agents/skills/predictable-behavior-first/SKILL.md)，处理 fallback、兼容、救援路径、环境探测和错误恢复，保证行为可预测、错误可观察。
+- 端到端交付编排：使用 [nextclaw-delivery-workflow](.agents/skills/nextclaw-delivery-workflow/SKILL.md)，把实现、修复、重构或验证串成目标对齐、实现前删减、验证闭环、可维护性披露、复盘和最终汇报流程。
+- 验证闭环判断：使用 [nextclaw-validation-workflow](.agents/skills/nextclaw-validation-workflow/SKILL.md)，证明改动行为正确、类型安全、治理通过，并覆盖 tsc、定向测试、冒烟和运行链路验收。
+- 可维护性自动守卫：使用 [post-edit-maintainability-guard](.agents/skills/post-edit-maintainability-guard/SKILL.md)，检查代码增减、热点、目录膨胀和非功能改动净增长约束。
+- 可维护性主观复核：使用 [post-edit-maintainability-review](.agents/skills/post-edit-maintainability-review/SKILL.md)，复核抽象、owner、文件边界和长期维护成本是否真的改善。
+
+知识与元规则：负责把想法、设计、计划、迭代记录、发布记录和规则改动放到正确长期层级。
+- 项目知识分流：使用 [project-knowledge-governance](.agents/skills/project-knowledge-governance/SKILL.md)，分流想法、设计、计划、PRD 和路线图到 `docs/TODO.md`、`docs/thoughts`、`docs/designs`、`docs/plans`、`docs/prd`、`docs/ROADMAP.md`。
+- 迭代留痕治理：使用 [nextclaw-iteration-log-governance](.agents/skills/nextclaw-iteration-log-governance/SKILL.md)，管理 `docs/logs`、收尾留痕、NPM 发布记录、工作笔记和目标锚点。
+- 元规则与 skill 分层治理：使用 [nextclaw-agent-instructions-governance](.agents/skills/nextclaw-agent-instructions-governance/SKILL.md)，管理 `AGENTS.md`、命令、Rulebook、Project Rulebook 和 skill 分层。
 
 ## 标准交付流程
 
@@ -86,7 +125,9 @@
 - 代码目标默认不是“最小 diff”，而是在满足目标前提下让系统更少、更简单、更清晰、更可预测。
 - 单一链路优先是核心编码理念：同一事实、事件、状态变更或传输语义默认只能有一条标准主链路；发现平行通道、双写路径、重复 publisher、重复 facade 或多套入口时，优先删除并收敛到唯一 owner / 唯一总线 / 唯一 mutation API。
 - 新增之前先判断能否删除、合并、复用、收敛职责；非新增用户能力的改动默认应避免生产代码净增长，优先通过删除旧实现、重构收敛职责或在同责任链/同问题域偿还债务达成；不要求删减只发生在当前改动点，但只接受让系统更清晰、更少或更可预测的真实改善；若只能靠 hack、把复杂度外移、缩短命名/折叠语句等方式伪造净减，必须申请豁免而不是继续压缩。
+- 命名默认遵循快手最佳实践进行规范化；文件、class、函数、字段等名称必须语义化、无歧义、清晰简洁，并能直接识别其主要职责。
 - 业务逻辑默认必须有清晰 owner，通常落到 class / manager / service / controller / presenter；普通函数只用于纯常量、纯类型、极小纯计算、纯数据映射、纯业务无关工具。
+- 写代码前必须先判断数据、状态、逻辑或同步动作的最佳归属 owner 和最佳落点；禁止因为当前文件方便、当前组件刚好拿得到数据，就把跨域职责塞进不相干的组件、hook、container 或 manager。
 - 业务层之间默认传递并依赖 owner 对象，而不是拆成一堆小参数；只有纯工具、纯计算或跨业务解耦边界才传最小小参数。
 - 使用 class 承载业务逻辑时，新增或触达的实例方法默认写成箭头函数 class field；`constructor`、`get/set`、`static`、`abstract`、`override`、decorator、async generator 方法按语义例外处理。
 - 普通函数、顶层 helper、对象字面量函数默认不得原地修改入参；优先返回新值或 patch。若需要状态和生命周期，收敛到 owner class。

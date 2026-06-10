@@ -40,6 +40,8 @@ NextClaw 的业务层不是“尽量互相看不见”，而是让稳定业务 o
   - 例子：负责流程编排的对象叫 manager，比因为目录叫 services 就叫 service 更准确。
 - `private-capability-containment`：只服务某个 owner 的细分能力，应默认收敛在该 owner 内部，而不是无理由提升为系统级分支。
   - 例子：某 manager 私用的小 adapter 不必挂到主干一级。
+- `existing-owner-before-new-owner`：判断职责归属时，必须先评估它是否应进入已有 owner；只有已有 owner 会因此职责混杂、生命周期失真或依赖方向变坏时，才考虑新增 owner。
+  - 例子：新增 manager 前先列出候选现有 manager/store/presenter，以及放入它们各自的收益和损失。
 
 ### 流程数据
 
