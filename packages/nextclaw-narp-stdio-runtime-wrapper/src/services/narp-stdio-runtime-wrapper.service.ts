@@ -213,6 +213,8 @@ export class NarpStdioRuntimeWrapperAgent implements acp.Agent {
       cwd: session.cwd,
       modelId: session.modelId,
       promptMeta,
+      setSessionMetadata: (nextMetadata) =>
+        this.sendSessionMetadataPatch(sessionId, nextMetadata),
     });
 
     await this.runRuntime({
@@ -263,6 +265,23 @@ export class NarpStdioRuntimeWrapperAgent implements acp.Agent {
       throw new Error(`[narp-stdio-wrapper] session ${sessionId} not found`);
     }
     return session;
+  };
+
+  private sendSessionMetadataPatch = async (
+    sessionId: string,
+    nextMetadata: Record<string, unknown>,
+  ): Promise<void> => {
+    await this.connection.sessionUpdate({
+      sessionId,
+      update: {
+        sessionUpdate: "session_info_update",
+        _meta: {
+          [NARP_STDIO_PROMPT_META_KEY]: {
+            sessionMetadataPatch: nextMetadata,
+          },
+        },
+      },
+    });
   };
 }
 

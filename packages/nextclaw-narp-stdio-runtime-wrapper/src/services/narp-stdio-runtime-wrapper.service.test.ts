@@ -88,8 +88,12 @@ describe("NarpStdioRuntimeWrapperAgent", () => {
       },
       {
         agentName: "test-narp-wrapper",
-        createRuntime: (context) => {
+        createRuntime: async (context) => {
           contexts.push(context);
+          await context.setSessionMetadata?.({
+            project_root: "/tmp/project",
+            codex_thread_id: "thread-1",
+          });
           return runtime;
         },
       },
@@ -142,6 +146,7 @@ describe("NarpStdioRuntimeWrapperAgent", () => {
           },
           sessionMetadata: { project_root: "/tmp/project" },
         },
+        setSessionMetadata: expect.any(Function),
       },
     ]);
     expect(runtime.inputs[0]).toMatchObject({
@@ -157,6 +162,17 @@ describe("NarpStdioRuntimeWrapperAgent", () => {
       ],
     });
     expect(updates).toEqual([
+      {
+        sessionUpdate: "session_info_update",
+        _meta: {
+          [NARP_STDIO_PROMPT_META_KEY]: {
+            sessionMetadataPatch: {
+              project_root: "/tmp/project",
+              codex_thread_id: "thread-1",
+            },
+          },
+        },
+      },
       {
         sessionUpdate: "agent_thought_chunk",
         content: { type: "text", text: "thinking" },

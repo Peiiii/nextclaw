@@ -53,6 +53,7 @@ const SESSION_METADATA_LABEL_KEY = "label";
 const CHILD_SESSION_PARENT_METADATA_KEY = "parent_session_id";
 const CHILD_SESSION_REQUEST_METADATA_KEY = "spawned_by_request_id";
 const CHILD_SESSION_LIFECYCLE_METADATA_KEY = "session_lifecycle";
+const SESSION_METADATA_PATCH_RUN_METADATA_KIND = "session_metadata_patch";
 
 export type SessionManagerOptions = {
   configManager: ConfigManager;
@@ -188,6 +189,25 @@ function isSessionSummaryRefreshEvent(event: NcpAgentSessionJournalReplayEvent):
   }
 }
 
+function readRuntimeSessionMetadataPatch(
+  event: NcpEndpointEvent,
+): Record<string, unknown> | null {
+  if (event.type !== NcpEventType.RunMetadata) {
+    return null;
+  }
+  const metadata = event.payload.metadata;
+  if (
+    metadata.kind !== SESSION_METADATA_PATCH_RUN_METADATA_KIND ||
+    !metadata.sessionMetadataPatch ||
+    typeof metadata.sessionMetadataPatch !== "object" ||
+    Array.isArray(metadata.sessionMetadataPatch)
+  ) {
+    return null;
+  }
+  const patch = metadata.sessionMetadataPatch as Record<string, unknown>;
+  return Object.keys(patch).length > 0 ? structuredClone(patch) : null;
+}
+
 export class SessionManager implements NcpSessionApi {
   readonly cleanups: Array<() => void> = [];
   private readonly contextWindowPreview: ContextWindowPreviewManager;
@@ -209,6 +229,11 @@ export class SessionManager implements NcpSessionApi {
     this.cleanups.push(this.options.eventBus.on(eventKeys.ncpEvent, async (event) => {
       const sessionId = readEventSessionId(event);
       if (!sessionId || !isDurableSessionEvent(event)) {
+        return;
+      }
+      const metadataPatch = readRuntimeSessionMetadataPatch(event);
+      if (metadataPatch) {
+        await this.updateSessionMetadata(sessionId, metadataPatch);
         return;
       }
       await this.appendSessionEvent({

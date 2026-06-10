@@ -61,6 +61,41 @@ describe("CodexNarpRuntimeWrapper", () => {
     });
   });
 
+  it("does not override the Codex default model when no route or session model is provided", async () => {
+    const wrapper = new CodexNarpRuntimeWrapper(() => new FakeRuntime());
+
+    const config = await wrapper.buildRuntimeConfig({
+      sessionId: "session-1",
+      cwd: "/tmp/workspace",
+      promptMeta: {
+        sessionMetadata: {},
+      },
+    });
+
+    expect(config.model).toBeUndefined();
+    expect(config.threadOptions?.model).toBeUndefined();
+    expect(config.threadOptions).toMatchObject({
+      workingDirectory: "/tmp/workspace",
+      skipGitRepoCheck: true,
+    });
+  });
+
+  it("passes the NARP session metadata writer into the Codex SDK runtime config", async () => {
+    const wrapper = new CodexNarpRuntimeWrapper(() => new FakeRuntime());
+    const setSessionMetadata = () => undefined;
+
+    const config = await wrapper.buildRuntimeConfig({
+      sessionId: "session-1",
+      cwd: "/tmp/workspace",
+      promptMeta: {
+        sessionMetadata: {},
+      },
+      setSessionMetadata,
+    });
+
+    expect(config.setSessionMetadata).toBe(setSessionMetadata);
+  });
+
   it("uses the Codex Responses bridge for MiniMax chat-compatible routes", async () => {
     const wrapper = new CodexNarpRuntimeWrapper(
       () => new FakeRuntime(),

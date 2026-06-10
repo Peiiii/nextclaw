@@ -2,9 +2,9 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { NcpMessage } from "@nextclaw/ncp";
+import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
-import { EventBus } from "@nextclaw/shared";
+import { EventBus, eventKeys } from "@nextclaw/shared";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import { SessionManager } from "@kernel/managers/session.manager.js";
 
@@ -116,6 +116,25 @@ async function createFixture(
     manager,
     handleSessionUpdated,
   };
+}
+
+async function waitForCondition(assertion: () => void | Promise<void>): Promise<void> {
+  const deadline = Date.now() + 2_000;
+  let lastError: unknown;
+  while (Date.now() < deadline) {
+    try {
+      await assertion();
+      return;
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => {
+        setTimeout(resolve, 20);
+      });
+    }
+  }
+  if (lastError) {
+    throw lastError;
+  }
 }
 
 afterEach(() => {
@@ -351,5 +370,46 @@ describe("SessionManager", () => {
       }),
     ]);
     await expect(fixture.manager.listSessions({ peerId: "missing-peer" })).resolves.toEqual([]);
+  });
+});
+
+describe("SessionManager runtime metadata", () => {
+  it("persists runtime session metadata patches from NCP events", async () => {
+    const fixture = await createFixture([
+      createRecord({
+        sessionId: "codex-session-1",
+        metadata: {
+          label: "Codex",
+          session_type: "codex",
+        },
+      }),
+    ]);
+    fixture.manager.start();
+
+    fixture.eventBus.emit(eventKeys.ncpEvent, {
+      type: NcpEventType.RunMetadata,
+      payload: {
+        sessionId: "codex-session-1",
+        messageId: "assistant-1",
+        runId: "run-1",
+        metadata: {
+          kind: "session_metadata_patch",
+          sessionMetadataPatch: {
+            codex_thread_id: "thread-persisted-1",
+            session_type: "codex",
+          },
+        },
+      },
+    });
+
+    await waitForCondition(async () => {
+      await expect(fixture.manager.getSession("codex-session-1")).resolves.toMatchObject({
+        metadata: {
+          label: "Codex",
+          session_type: "codex",
+          codex_thread_id: "thread-persisted-1",
+        },
+      });
+    });
   });
 });

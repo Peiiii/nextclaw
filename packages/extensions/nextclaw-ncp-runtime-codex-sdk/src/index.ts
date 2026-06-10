@@ -56,7 +56,7 @@ export type CodexSdkNcpAgentRuntimeConfig = {
   cliConfig?: CodexOptions["config"];
   threadOptions?: ThreadOptions;
   sessionMetadata?: Record<string, unknown>;
-  setSessionMetadata?: (nextMetadata: Record<string, unknown>) => void;
+  setSessionMetadata?: (nextMetadata: Record<string, unknown>) => void | Promise<void>;
   inputBuilder?: (input: NcpAgentRunInput) => Promise<CodexThreadInput> | CodexThreadInput;
   liveOutputStream?: CodexLiveOutputStream;
   resolveAssetContentPath?: CodexAssetContentPathResolver;
@@ -265,7 +265,7 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
     }
 
     if (event.type === "thread.started") {
-      this.updateThreadId(event.thread_id);
+      await this.updateThreadId(event.thread_id);
       return false;
     }
 
@@ -319,7 +319,7 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
     return false;
   };
 
-  private updateThreadId = (nextThreadId: string): void => {
+  private updateThreadId = async (nextThreadId: string): Promise<void> => {
     const normalizedThreadId = nextThreadId.trim();
     if (!normalizedThreadId || normalizedThreadId === this.threadId) {
       return;
@@ -332,6 +332,6 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
     };
     this.sessionMetadata.codex_thread_id = normalizedThreadId;
     this.sessionMetadata.session_type = "codex";
-    this.config.setSessionMetadata?.(nextMetadata);
+    await this.config.setSessionMetadata?.(nextMetadata);
   };
 }

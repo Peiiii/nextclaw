@@ -5,4 +5,4 @@ if (process.env.NEXTCLAW_STDIO_PID_FILE) {
   writeFileSync(process.env.NEXTCLAW_STDIO_PID_FILE, String(process.pid));
 }
 
-await import("./echo-agent.mjs");
+await import("./echo-agent.utils.mjs");

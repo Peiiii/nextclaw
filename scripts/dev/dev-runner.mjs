@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, realpathSync } from "node:fs";
 import { spawn } from "node:child_process";
-import { join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { createServer as createNetServer } from "node:net";
 import { homedir } from "node:os";
 import { resolveRepoPath } from "../shared/repo-paths.mjs";
@@ -70,6 +70,11 @@ const BACKEND_READY_POLL_MS = 100;
 const binName = process.platform === "win32" ? (name) => `${name}.cmd` : (name) => name;
 const backendBin = resolve(backendDir, "node_modules/.bin", binName("tsx"));
 const frontendBin = resolve(frontendDir, "node_modules/.bin", binName("vite"));
+const devRuntimeTsconfigPath = resolve(rootDir, "scripts/dev/dev-runtime.tsconfig.json");
+const codexNarpControllerPath = resolve(
+  rootDir,
+  "packages/extensions/nextclaw-narp-runtime-codex-sdk/src/controllers/codex-narp.controller.ts"
+);
 const pnpmCliPath =
   typeof process.env.npm_execpath === "string" && process.env.npm_execpath.trim().length > 0
     ? process.env.npm_execpath
@@ -184,6 +189,39 @@ let exitCode = 0;
 const developmentNodeOptions = [process.env.NODE_OPTIONS, "--conditions=development"]
   .filter((value) => typeof value === "string" && value.trim().length > 0)
   .join(" ");
+
+function parseJsonObject(value) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function createDevNarpCommandOverrides() {
+  const overrides = parseJsonObject(process.env.NEXTCLAW_NARP_STDIO_COMMAND_OVERRIDES);
+  const codexOverride = {
+    command: backendBin,
+    args: [
+      "--tsconfig",
+      devRuntimeTsconfigPath,
+      codexNarpControllerPath,
+    ],
+    cwd: rootDir,
+  };
+  for (const command of [
+    resolve(nextclawHome, "bin", "nextclaw-codex-narp"),
+    resolve(dirname(process.execPath), "nextclaw-codex-narp"),
+    "nextclaw-codex-narp",
+  ]) {
+    overrides[command] = codexOverride;
+  }
+  return JSON.stringify(overrides);
+}
 
 function shouldUseShell(command) {
   return process.platform === "win32" && command.toLowerCase().endsWith(".cmd");
@@ -305,6 +343,7 @@ const backendProcess = spawnProcess(
   {
     NODE_OPTIONS: developmentNodeOptions,
     NEXTCLAW_DEV_FIRST_PARTY_EXTENSION_DIR: firstPartyExtensionDir,
+    NEXTCLAW_NARP_STDIO_COMMAND_OVERRIDES: createDevNarpCommandOverrides(),
     NEXTCLAW_DISABLE_STATIC_UI: "1",
     NEXTCLAW_DISABLE_RUNTIME_UPDATE_HOST: "1",
     NEXTCLAW_REMOTE_LOCAL_ORIGIN: `http://127.0.0.1:${frontendPort}`,

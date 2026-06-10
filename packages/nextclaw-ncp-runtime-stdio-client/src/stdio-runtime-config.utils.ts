@@ -35,6 +35,13 @@ export type StdioRuntimeResolvedConfig = {
   requestTimeoutMs: number;
 };
 
+type StdioRuntimeCommandOverride = {
+  command?: string;
+  args?: string[];
+  cwd?: string;
+  env?: StdioRuntimeEnv;
+};
+
 export function readString(value: unknown): string | undefined {
   if (typeof value !== "string") {
     return undefined;
@@ -89,6 +96,40 @@ export function readStringRecord(value: unknown): Record<string, string> | undef
   return Object.keys(output).length > 0 ? output : undefined;
 }
 
+function readCommandOverrides(value: unknown): Record<string, StdioRuntimeCommandOverride> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  const overrides: Record<string, StdioRuntimeCommandOverride> = {};
+  for (const [rawCommand, rawOverride] of Object.entries(value)) {
+    const commandKey = readString(rawCommand);
+    if (!commandKey || !rawOverride || typeof rawOverride !== "object" || Array.isArray(rawOverride)) {
+      continue;
+    }
+    const overrideRecord = rawOverride as Record<string, unknown>;
+    const command = readString(overrideRecord.command);
+    const args = readStringArray(overrideRecord.args);
+    const cwd = readString(overrideRecord.cwd);
+    const env = readStringRecord(overrideRecord.env);
+    if (!command && !args && !cwd && !env) {
+      continue;
+    }
+    overrides[commandKey] = {
+      ...(command ? { command } : {}),
+      ...(args ? { args } : {}),
+      ...(cwd ? { cwd } : {}),
+      ...(env ? { env } : {}),
+    };
+  }
+  return overrides;
+}
+
+function readCommandOverride(command: string): StdioRuntimeCommandOverride | undefined {
+  const rawOverrides = parseJsonObject(process.env.NEXTCLAW_NARP_STDIO_COMMAND_OVERRIDES);
+  return readCommandOverrides(rawOverrides)[command];
+}
+
 export class StdioRuntimeConfigResolver {
   constructor(private readonly source: Record<string, unknown> = {}) {}
 
@@ -102,28 +143,28 @@ export class StdioRuntimeConfigResolver {
       throw new Error("[narp-stdio] missing stdio command");
     }
 
+    const override = readCommandOverride(command);
+    const args =
+      override?.args ??
+      readStringArray(this.source.args) ??
+      readStringArray(parseJsonArray(process.env.NEXTCLAW_NARP_STDIO_ARGS)) ??
+      [];
+    const cwd =
+      override?.cwd ??
+      readString(this.source.cwd) ??
+      readString(process.env.NEXTCLAW_NARP_STDIO_CWD);
+    const env =
+      override?.env ??
+      readStringRecord(this.source.env) ??
+      readStringRecord(parseJsonObject(process.env.NEXTCLAW_NARP_STDIO_ENV));
+
     return {
       wireDialect,
       processScope,
-      command,
-      args:
-        readStringArray(this.source.args) ??
-        readStringArray(parseJsonArray(process.env.NEXTCLAW_NARP_STDIO_ARGS)) ??
-        [],
-      ...(readString(this.source.cwd) ?? readString(process.env.NEXTCLAW_NARP_STDIO_CWD)
-        ? {
-            cwd:
-              readString(this.source.cwd) ??
-              readString(process.env.NEXTCLAW_NARP_STDIO_CWD),
-          }
-        : {}),
-      ...(readStringRecord(this.source.env) ?? readStringRecord(parseJsonObject(process.env.NEXTCLAW_NARP_STDIO_ENV))
-        ? {
-            env:
-              readStringRecord(this.source.env) ??
-              readStringRecord(parseJsonObject(process.env.NEXTCLAW_NARP_STDIO_ENV)),
-          }
-        : {}),
+      command: override?.command ?? command,
+      args,
+      ...(cwd ? { cwd } : {}),
+      ...(env ? { env } : {}),
       startupTimeoutMs:
         readPositiveInteger(this.source.startupTimeoutMs) ??
         readPositiveInteger(process.env.NEXTCLAW_NARP_STDIO_STARTUP_TIMEOUT_MS) ??

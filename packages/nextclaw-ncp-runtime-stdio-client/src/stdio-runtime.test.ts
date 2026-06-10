@@ -1,7 +1,7 @@
 import { delimiter, dirname, join } from "node:path";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
 import {
   buildStdioRuntimeLaunchEnv,
@@ -14,7 +14,7 @@ import { formatRuntimeErrorMessage } from "./stdio-runtime-error.utils.js";
 const FIXTURE_PATH = join(
   import.meta.dirname,
   "test-fixtures",
-  "echo-agent.mjs",
+  "echo-agent.utils.mjs",
 );
 
 const DISPOSE_FIXTURE_PATH = join(
@@ -58,6 +58,16 @@ function isProcessRunning(pid: number): boolean {
 }
 
 describe("StdioRuntimeConfigResolver", () => {
+  const originalCommandOverrides = process.env.NEXTCLAW_NARP_STDIO_COMMAND_OVERRIDES;
+
+  afterEach(() => {
+    if (originalCommandOverrides === undefined) {
+      delete process.env.NEXTCLAW_NARP_STDIO_COMMAND_OVERRIDES;
+      return;
+    }
+    process.env.NEXTCLAW_NARP_STDIO_COMMAND_OVERRIDES = originalCommandOverrides;
+  });
+
   it("reads command and args from explicit config", () => {
     const resolver = new StdioRuntimeConfigResolver({
       wireDialect: "acp",
@@ -77,6 +87,33 @@ describe("StdioRuntimeConfigResolver", () => {
       startupTimeoutMs: 1234,
       probeTimeoutMs: 2222,
       requestTimeoutMs: 4567,
+    });
+  });
+
+  it("applies command overrides without mutating persisted runtime config", () => {
+    process.env.NEXTCLAW_NARP_STDIO_COMMAND_OVERRIDES = JSON.stringify({
+      "/home/alice/.nextclaw/bin/nextclaw-codex-narp": {
+        command: process.execPath,
+        args: ["local-controller.ts"],
+        cwd: "/repo",
+        env: { LOCAL_RUNTIME: "1" },
+      },
+    });
+
+    const resolver = new StdioRuntimeConfigResolver({
+      wireDialect: "acp",
+      processScope: "per-session",
+      command: "/home/alice/.nextclaw/bin/nextclaw-codex-narp",
+      args: ["configured"],
+      cwd: "/configured",
+      env: { CONFIGURED: "1" },
+    });
+
+    expect(resolver.resolve()).toMatchObject({
+      command: process.execPath,
+      args: ["local-controller.ts"],
+      cwd: "/repo",
+      env: { LOCAL_RUNTIME: "1" },
     });
   });
 });
@@ -315,6 +352,61 @@ describe("StdioRuntimeNcpAgentRuntime event bridging", () => {
   });
 });
 
+describe("StdioRuntimeNcpAgentRuntime session metadata bridging", () => {
+  it("bridges ACP session metadata patches into NCP run metadata", async () => {
+    const runtime = new StdioRuntimeNcpAgentRuntime({
+      sessionId: "session-stdio-runtime-metadata",
+      wireDialect: "acp",
+      processScope: "per-session",
+      command: process.execPath,
+      args: [FIXTURE_PATH],
+      env: {
+        NEXTCLAW_ECHO_SESSION_METADATA_PATCH_JSON: JSON.stringify({
+          session_type: "codex",
+          codex_thread_id: "thread-stdio-1",
+        }),
+      },
+      startupTimeoutMs: 10_000,
+      probeTimeoutMs: 3_000,
+      requestTimeoutMs: 30_000,
+    });
+
+    const events: NcpEndpointEvent[] = [];
+    for await (const event of runtime.run({
+      sessionId: "session-stdio-runtime-metadata",
+      messages: [
+        {
+          id: "user-metadata",
+          sessionId: "session-stdio-runtime-metadata",
+          role: "user",
+          status: "final",
+          timestamp: "2026-04-17T00:00:00.000Z",
+          parts: [{ type: "text", text: "metadata patch" }],
+        },
+      ],
+      correlationId: "corr-metadata",
+    })) {
+      events.push(event);
+    }
+
+    const metadataEvent = events.find(
+      (event): event is Extract<NcpEndpointEvent, { type: NcpEventType.RunMetadata }> =>
+        event.type === NcpEventType.RunMetadata,
+    );
+    expect(metadataEvent?.payload).toMatchObject({
+      sessionId: "session-stdio-runtime-metadata",
+      correlationId: "corr-metadata",
+      metadata: {
+        kind: "session_metadata_patch",
+        sessionMetadataPatch: {
+          session_type: "codex",
+          codex_thread_id: "thread-stdio-1",
+        },
+      },
+    });
+  });
+});
+
 describe("StdioRuntimeNcpAgentRuntime Hermes request-scoped route handling", () => {
   it("skips unstable session model switching for Hermes request-scoped ACP runs", async () => {
     const runtime = new StdioRuntimeNcpAgentRuntime({
@@ -370,6 +462,50 @@ describe("StdioRuntimeNcpAgentRuntime Hermes request-scoped route handling", () 
       headerKeys: ["x-dashscope-workspace"],
       envHeaderKeys: ["x-dashscope-workspace"],
       toolNames: [],
+    });
+  });
+
+  it("does not forward the runtime-default sentinel as an ACP session model", async () => {
+    const runtime = new StdioRuntimeNcpAgentRuntime({
+      sessionId: "session-stdio-runtime-default-model",
+      wireDialect: "acp",
+      processScope: "per-session",
+      command: process.execPath,
+      args: [FIXTURE_PATH],
+      startupTimeoutMs: 10_000,
+      probeTimeoutMs: 3_000,
+      requestTimeoutMs: 30_000,
+    });
+
+    const events: NcpEndpointEvent[] = [];
+    for await (const event of runtime.run({
+      sessionId: "session-stdio-runtime-default-model",
+      messages: [
+        {
+          id: "user-runtime-default-model",
+          sessionId: "session-stdio-runtime-default-model",
+          role: "user",
+          status: "final",
+          timestamp: "2026-04-17T00:00:00.000Z",
+          parts: [{ type: "text", text: "runtime default" }],
+        },
+      ],
+      metadata: {
+        preferred_model: "__nextclaw_runtime_default__",
+        model: "__nextclaw_runtime_default__",
+      },
+    })) {
+      events.push(event);
+    }
+
+    const toolResultEvent = events.find(
+      (event): event is Extract<NcpEndpointEvent, { type: NcpEventType.MessageToolCallResult }> =>
+        event.type === NcpEventType.MessageToolCallResult,
+    );
+    expect(toolResultEvent?.payload.content).toMatchObject({
+      modelId: null,
+      routedModel: null,
+      envRoutedModel: null,
     });
   });
 

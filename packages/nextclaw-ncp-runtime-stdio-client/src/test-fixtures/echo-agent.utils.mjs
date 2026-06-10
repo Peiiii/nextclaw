@@ -52,6 +52,20 @@ class EchoAgent {
     session.abortController = abortController;
 
     const meta = params._meta?.nextclaw_narp ?? {};
+    const sessionMetadataPatch = readJsonObject(process.env.NEXTCLAW_ECHO_SESSION_METADATA_PATCH_JSON);
+    if (sessionMetadataPatch) {
+      await this.connection.sessionUpdate({
+        sessionId: params.sessionId,
+        update: {
+          sessionUpdate: "session_info_update",
+          _meta: {
+            nextclaw_narp: {
+              sessionMetadataPatch,
+            },
+          },
+        },
+      });
+    }
     await this.connection.sessionUpdate({
       sessionId: params.sessionId,
       update: {
@@ -87,14 +101,8 @@ class EchoAgent {
           envRoutedModel: process.env.NEXTCLAW_MODEL ?? null,
           headerKeys: Object.keys(meta.providerRoute?.headers ?? {}),
           envHeaderKeys: (() => {
-            try {
-              const parsed = JSON.parse(process.env.NEXTCLAW_HEADERS_JSON ?? "{}");
-              return typeof parsed === "object" && parsed && !Array.isArray(parsed)
-                ? Object.keys(parsed)
-                : [];
-            } catch {
-              return [];
-            }
+            const parsed = readJsonObject(process.env.NEXTCLAW_HEADERS_JSON);
+            return parsed ? Object.keys(parsed) : [];
           })(),
           toolNames: Array.isArray(meta.tools)
             ? meta.tools.map((tool) => tool?.function?.name).filter(Boolean)
@@ -119,6 +127,17 @@ class EchoAgent {
 
   async cancel(params) {
     this.sessions.get(params.sessionId)?.abortController?.abort();
+  }
+}
+
+function readJsonObject(value) {
+  try {
+    const parsed = JSON.parse(value ?? "{}");
+    return typeof parsed === "object" && parsed && !Array.isArray(parsed)
+      ? parsed
+      : null;
+  } catch {
+    return null;
   }
 }
 

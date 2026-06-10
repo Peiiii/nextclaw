@@ -73,7 +73,7 @@ export class CodexNarpRuntimeWrapper {
   buildRuntimeConfig = (
     context: NarpStdioRuntimeWrapperContext,
   ): Promise<CodexSdkNcpAgentRuntimeConfig> => {
-    const { cwd, modelId, promptMeta, sessionId } = context;
+    const { cwd, modelId, promptMeta, sessionId, setSessionMetadata } = context;
     const providerRoute = promptMeta.providerRoute;
     const sessionMetadata = promptMeta.sessionMetadata ?? {};
     const providerLocalModel =
@@ -98,6 +98,7 @@ export class CodexNarpRuntimeWrapper {
       providerLocalModel,
       sessionId,
       sessionMetadata,
+      setSessionMetadata,
       threadModel:
         readString(modelId) ??
         composeModelRoute({
@@ -120,6 +121,7 @@ export class CodexNarpRuntimeWrapper {
     threadModel?: string;
     upstreamApiBase?: string;
     upstreamExtraHeaders?: Record<string, string>;
+    setSessionMetadata?: CodexSdkNcpAgentRuntimeConfig["setSessionMetadata"];
   }): Promise<CodexSdkNcpAgentRuntimeConfig> => {
     const {
       apiKey,
@@ -128,6 +130,7 @@ export class CodexNarpRuntimeWrapper {
       providerLocalModel,
       sessionId,
       sessionMetadata,
+      setSessionMetadata,
       threadModel: requestedThreadModel,
       upstreamApiBase,
       upstreamExtraHeaders,
@@ -177,6 +180,7 @@ export class CodexNarpRuntimeWrapper {
       threadId: readString(sessionMetadata.codex_thread_id) ?? null,
       ...(codexPathOverride ? { codexPathOverride } : {}),
       sessionMetadata,
+      ...(setSessionMetadata ? { setSessionMetadata } : {}),
       liveOutputStream: bridge ? liveOutputStream : undefined,
       cliConfig: buildCodexCliConfig({
         apiBase,

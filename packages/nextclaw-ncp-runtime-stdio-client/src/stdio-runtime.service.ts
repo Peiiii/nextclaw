@@ -26,6 +26,7 @@ import {
 import { resolveToolNameFromAcpUpdate } from "./stdio-runtime-tool-name.utils.js";
 type AcpClientUpdate = acp.SessionUpdate;
 const HERMES_ACP_ROUTE_BRIDGE_ENV = "NEXTCLAW_HERMES_ACP_ROUTE_BRIDGE";
+const SESSION_METADATA_PATCH_KIND = "session_metadata_patch";
 export type StdioRuntimeNcpAgentRuntimeConfig = StdioRuntimeResolvedConfig & {
   sessionId: string;
   stateManager?: NcpAgentConversationStateManager;
@@ -627,9 +628,36 @@ class StdioRuntimeRunController {
         return this.emitToolCallStart(update, messageId);
       case "tool_call_update":
         return this.emitToolCallUpdate(update);
+      case "session_info_update":
+        return this.emitSessionInfoUpdate(update, messageId);
       default:
         return [];
     }
+  };
+
+  private emitSessionInfoUpdate = (
+    update: Extract<AcpClientUpdate, { sessionUpdate: "session_info_update" }>,
+    messageId: string,
+  ): NcpEndpointEvent[] => {
+    const patch = readSessionMetadataPatch(update._meta);
+    if (!patch) {
+      return [];
+    }
+    return [
+      {
+        type: NcpEventType.RunMetadata,
+        payload: {
+          sessionId: this.input.sessionId,
+          messageId,
+          runId: this.runId,
+          ...(this.input.correlationId ? { correlationId: this.input.correlationId } : {}),
+          metadata: {
+            kind: SESSION_METADATA_PATCH_KIND,
+            sessionMetadataPatch: patch,
+          },
+        },
+      },
+    ];
   };
 
   private emitTextDelta = (
@@ -861,13 +889,30 @@ function resolveModelId(params: {
   metadata?: Record<string, unknown>;
 }): string | undefined {
   const { metadata, providerRoute } = params;
-  return (
+  const modelId =
     providerRoute?.model ??
     readString(metadata?.preferred_model) ??
     readString(metadata?.preferredModel) ??
-    readString(metadata?.model)
-  );
+    readString(metadata?.model);
+  return modelId === "__nextclaw_runtime_default__" ? undefined : modelId;
 }
+
+function readSessionMetadataPatch(meta: unknown): Record<string, unknown> | null {
+  const narpMeta = isRecord(meta)
+    ? meta[NARP_STDIO_PROMPT_META_KEY]
+    : undefined;
+  const patch = isRecord(narpMeta)
+    ? narpMeta.sessionMetadataPatch
+    : undefined;
+  return isRecord(patch) && Object.keys(patch).length > 0
+    ? structuredClone(patch)
+    : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function resolveToolName(
   update: Extract<AcpClientUpdate, { sessionUpdate: "tool_call" }>,
 ): string {
