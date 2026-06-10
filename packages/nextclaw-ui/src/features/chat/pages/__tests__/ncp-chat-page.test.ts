@@ -10,7 +10,7 @@ import {
   buildNcpSendMetadata,
   shouldClearPendingProjectRootOverride
 } from '@/features/chat/features/session/utils/ncp-chat-send-metadata.utils';
-import { filterModelOptionsBySessionType } from '@/features/chat/features/ncp/hooks/use-ncp-chat-page-data';
+import { filterNcpChatModelOptionsBySessionType } from '@/features/chat/features/ncp/utils/ncp-chat-query-derived.utils';
 
 const modelOptions: ChatModelOption[] = [
   {
@@ -39,10 +39,10 @@ const modelOptions: ChatModelOption[] = [
   }
 ];
 
-describe('filterModelOptionsBySessionType', () => {
+describe('filterNcpChatModelOptionsBySessionType', () => {
   it('keeps the full model catalog when the session type does not publish a supportedModels whitelist', () => {
     expect(
-      filterModelOptionsBySessionType({
+      filterNcpChatModelOptionsBySessionType({
         modelOptions
       })
     ).toEqual(modelOptions);
@@ -50,7 +50,7 @@ describe('filterModelOptionsBySessionType', () => {
 
   it('keeps only session-type-supported models when the runtime publishes a filtered list', () => {
     expect(
-      filterModelOptionsBySessionType({
+      filterNcpChatModelOptionsBySessionType({
         modelOptions,
         supportedModels: ['anthropic/claude-sonnet-4']
       })
@@ -59,7 +59,7 @@ describe('filterModelOptionsBySessionType', () => {
 
   it('falls back to the full model catalog when the advertised models do not match the current catalog', () => {
     expect(
-      filterModelOptionsBySessionType({
+      filterNcpChatModelOptionsBySessionType({
         modelOptions,
         supportedModels: ['unknown/model']
       })

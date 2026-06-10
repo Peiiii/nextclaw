@@ -13,17 +13,20 @@ import {
   useChatSessionSync,
 } from "@/features/chat/components/layout/chat-page-shell";
 import { parseSessionKeyFromRoute } from "@/features/chat/features/session/utils/chat-session-route.utils";
-import { useNcpChatPageData } from "@/features/chat/features/ncp/hooks/use-ncp-chat-page-data";
 import { NcpChatPresenter } from "@/features/chat/managers/ncp-chat-presenter.manager";
 import {
   isNcpAgentStartupUnavailableErrorMessage,
   useNcpSessionConversation,
 } from "@/features/chat/features/ncp/hooks/use-ncp-session-conversation";
 import {
-  useNcpChatDerivedState,
+  useNcpChatSelectedSession,
   useNcpChatSnapshotSync,
 } from "@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state";
-import { ChatPresenterProvider } from "@/features/chat/components/providers/chat-presenter.provider";
+import { useNcpChatQueryStoreSync } from "@/features/chat/features/ncp/hooks/use-ncp-chat-query-store-sync";
+import {
+  ChatPresenterProvider,
+  usePresenter,
+} from "@/features/chat/components/providers/chat-presenter.provider";
 import type { ResumeRunParams } from "@/features/chat/types/chat-stream.types";
 import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
 import { useSystemStatus } from "@/features/system-status";
@@ -47,17 +50,16 @@ function useNcpChatRouteSelection() {
 }
 
 type NcpChatConversation = ReturnType<typeof useNcpSessionConversation>;
-type NcpChatSelectedSession = ReturnType<typeof useNcpChatPageData>["selectedSession"];
+type NcpChatSelectedSession = ReturnType<typeof useNcpChatSelectedSession>;
 
 function useNcpChatStreamBindings(params: {
   agent: NcpChatConversation;
-  presenter: NcpChatPresenter;
   selectedSession: NcpChatSelectedSession;
   sessionKey: string | undefined;
 }) {
+  const presenter = usePresenter();
   const {
     agent,
-    presenter,
     selectedSession,
     sessionKey,
   } = params;
@@ -131,7 +133,8 @@ function useNcpChatStreamBindings(params: {
   ]);
 }
 
-function useNcpChatUiBindings(presenter: NcpChatPresenter) {
+function useNcpChatUiBindings() {
+  const presenter = usePresenter();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const location = useLocation();
   const navigate = useNavigate();
@@ -150,11 +153,11 @@ function useNcpChatUiBindings(presenter: NcpChatPresenter) {
 function useMaterializedRootSessionRouteSync(
   params: {
     agent: NcpChatConversation;
-    presenter: NcpChatPresenter;
     routeSessionKey: string | null;
   },
 ) {
-  const { agent, presenter, routeSessionKey } = params;
+  const presenter = usePresenter();
+  const { agent, routeSessionKey } = params;
   const materializedSessionKey =
     agent.snapshot.activeRun?.sessionId ??
     agent.visibleMessages.find((message) => message.sessionId.trim())?.sessionId ??
@@ -167,29 +170,28 @@ function useMaterializedRootSessionRouteSync(
   }, [materializedSessionKey, presenter, routeSessionKey]);
 }
 
-function NcpChatEventBindings() {
-  useUiShowContentEvent();
-  return null;
-}
-
 export function NcpChatPage({ view }: ChatPageProps) {
   const appPresenter = useAppPresenter();
   const [presenter] = useState(() => new NcpChatPresenter(appPresenter));
+  return (
+    <ChatPresenterProvider presenter={presenter}>
+      <NcpChatPageContent view={view} />
+    </ChatPresenterProvider>
+  );
+}
+
+function NcpChatPageContent({ view }: ChatPageProps) {
+  const presenter = usePresenter();
   const systemStatus = useSystemStatus();
   const isRuntimeBlocked = isNcpChatRuntimeBlocked(systemStatus);
-  const confirmDialog = useNcpChatUiBindings(presenter);
+  const confirmDialog = useNcpChatUiBindings();
   const routeSelection = useNcpChatRouteSelection();
   const { routeSessionKey, sessionKey } = routeSelection;
-  const pageData = useNcpChatPageData({
+  useNcpChatQueryStoreSync({
     sessionKey: sessionKey ?? null,
   });
+  const selectedSession = useNcpChatSelectedSession(sessionKey ?? null);
   const agent = useNcpSessionConversation(sessionKey);
-  const {
-    selectedSession,
-    selectedSessionType,
-    sessionSummaries,
-    sessionTypeOptions,
-  } = pageData;
   const rawLastSendError =
     agent.hydrateError?.message ?? agent.snapshot.error?.message ?? null;
   const filteredLastSendError =
@@ -197,11 +199,6 @@ export function NcpChatPage({ view }: ChatPageProps) {
     isNcpAgentStartupUnavailableErrorMessage(rawLastSendError)
       ? null
       : rawLastSendError;
-  const derivedState = useNcpChatDerivedState({
-    sessionKey: sessionKey ?? null,
-    selectedSession,
-    sessionSummaries,
-  });
   const currentSessionRunning = agent.isRunning || selectedSession?.status === "running";
   const isSending = agent.isSending || currentSessionRunning;
   const lastSendError =
@@ -215,13 +212,11 @@ export function NcpChatPage({ view }: ChatPageProps) {
         });
   useNcpChatStreamBindings({
     agent,
-    presenter,
     selectedSession,
     sessionKey,
   });
   useMaterializedRootSessionRouteSync({
     agent,
-    presenter,
     routeSessionKey,
   });
   useChatSessionSync({
@@ -230,35 +225,12 @@ export function NcpChatPage({ view }: ChatPageProps) {
     syncRouteSessionSelection:
       presenter.chatSessionListManager.syncRouteSessionSelection,
   });
+  useUiShowContentEvent();
   useNcpChatSnapshotSync({
-    presenter,
-    isProviderStateResolved: pageData.isProviderStateResolved,
-    defaultSessionType: pageData.defaultSessionType,
     canStopCurrentRun: currentSessionRunning,
     lastSendError,
     isSending,
-    modelOptions: pageData.modelOptions,
-    sessionTypeOptions,
-    selectedSessionType,
-    canEditSessionType: pageData.canEditSessionType,
-    sessionTypeUnavailable: pageData.sessionTypeUnavailable,
-    skillRecords: pageData.skillRecords,
-    isSkillsLoading: pageData.sessionSkillsQuery.isLoading,
-    sessionTypeUnavailableMessage: pageData.sessionTypeUnavailableMessage,
-    fallbackPreferredModel: pageData.selectedSessionTypeOption?.recommendedModel ?? undefined,
-    defaultModel:
-      pageData.selectedSessionTypeOption?.recommendedModel ??
-      pageData.configQuery.data?.agents.defaults.model,
-    sessionKey,
-    selectedSession,
     agent,
-    parentSession: derivedState.parentSession,
-    childSessionTabs: derivedState.currentChildSessionTabs,
   });
-  return (
-    <ChatPresenterProvider presenter={presenter}>
-      <NcpChatEventBindings />
-      <ChatPageLayout view={view} confirmDialog={confirmDialog} />
-    </ChatPresenterProvider>
-  );
+  return <ChatPageLayout view={view} confirmDialog={confirmDialog} />;
 }

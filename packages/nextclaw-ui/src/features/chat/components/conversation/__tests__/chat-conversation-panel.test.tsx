@@ -4,10 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatConversationPanel } from "@/features/chat/components/conversation/chat-conversation-panel";
 import { ChatSessionWorkspacePanel } from "@/features/chat/features/workspace/components/chat-session-workspace-panel";
 import type { ResolvedChildSessionTab } from "@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view";
-import type { CronJobView } from "@/shared/lib/api";
+import type { CronJobView, NcpSessionSummaryView } from "@/shared/lib/api";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
+import { useNcpChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
+import type { NcpChatQuerySnapshot } from "@/features/chat/stores/ncp-chat-query.store";
 
 const mocks = vi.hoisted(() => ({
   deleteSession: vi.fn(),
@@ -225,6 +227,35 @@ vi.mock("@/shared/components/common/agent-identity", () => ({
   ),
 }));
 
+function createFetchedQuery<TData>(data: TData) {
+  return {
+    data,
+    error: null,
+    fetchStatus: "idle",
+    isFetched: true,
+    isFetching: false,
+    isLoading: false,
+    isSuccess: true,
+    status: "success",
+  };
+}
+
+function createSessionSummary(
+  overrides: Partial<NcpSessionSummaryView> & Pick<NcpSessionSummaryView, "sessionId">,
+): NcpSessionSummaryView {
+  return {
+    sessionId: overrides.sessionId,
+    agentId: overrides.agentId ?? "main",
+    createdAt: overrides.createdAt ?? "2026-04-10T08:00:00.000Z",
+    updatedAt: overrides.updatedAt ?? "2026-04-10T09:00:00.000Z",
+    lastMessageAt: overrides.lastMessageAt ?? "2026-04-10T09:00:00.000Z",
+    messageCount: overrides.messageCount ?? 1,
+    metadata: overrides.metadata ?? {},
+    status: overrides.status ?? "idle",
+    workingDir: overrides.workingDir,
+  };
+}
+
 function resetChatConversationPanelTestState() {
   mocks.deleteSession.mockReset();
   mocks.goToProviders.mockReset();
@@ -262,8 +293,9 @@ function resetChatConversationPanelTestState() {
   useChatInputStore.setState({
     snapshot: {
       ...useChatInputStore.getState().snapshot,
-      isProviderStateResolved: true,
+      isProviderStateResolved: false,
       defaultSessionType: "native",
+      pendingSessionType: "codex",
       sessionTypeUnavailable: false,
       sessionTypeUnavailableMessage: null,
       modelOptions: [
@@ -273,6 +305,20 @@ function resetChatConversationPanelTestState() {
           providerLabel: "OpenAI",
         } as never,
       ],
+    },
+  });
+  useNcpChatQueryStore.setState({
+    snapshot: {
+      configQuery: createFetchedQuery({ agents: { defaults: {} }, providers: {} }) as unknown as NcpChatQuerySnapshot["configQuery"],
+      providersQuery: createFetchedQuery({ providers: {} }) as unknown as NcpChatQuerySnapshot["providersQuery"],
+      providerTemplatesQuery: createFetchedQuery({ providerTemplates: [] }) as unknown as NcpChatQuerySnapshot["providerTemplatesQuery"],
+      sessionTypesQuery: createFetchedQuery({
+        defaultType: "native",
+        options: [
+          { value: "native", label: "Native", ready: true },
+          { value: "codex", label: "Codex", ready: true },
+        ],
+      }) as unknown as NcpChatQuerySnapshot["sessionTypesQuery"],
     },
   });
   useChatThreadStore.setState({
@@ -348,14 +394,34 @@ describe("ChatConversationPanel", () => {
   });
 
   it("shows the selected session project badge and more actions trigger", () => {
+    useChatSessionListStore.setState({
+      snapshot: {
+        ...useChatSessionListStore.getState().snapshot,
+        selectedSessionKey: "session-1",
+      },
+    });
+    useNcpChatQueryStore.setState({
+      snapshot: {
+        ...useNcpChatQueryStore.getState().snapshot,
+        sessionsQuery: createFetchedQuery({
+          sessions: [
+            createSessionSummary({
+              sessionId: "session-1",
+              metadata: {
+                label: "Project Thread",
+                project_root: "/Users/demo/workspace/project-alpha",
+                session_type: "codex",
+              },
+            }),
+          ],
+          total: 1,
+        }) as unknown as NcpChatQuerySnapshot["sessionsQuery"],
+      },
+    });
     useChatThreadStore.setState({
       snapshot: {
         ...useChatThreadStore.getState().snapshot,
         sessionKey: "session-1",
-        sessionDisplayName: "Project Thread",
-        sessionProjectRoot: "/Users/demo/workspace/project-alpha",
-        sessionProjectName: "project-alpha",
-        canDeleteSession: true,
       },
     });
 
@@ -394,12 +460,7 @@ describe("ChatConversationPanel", () => {
   });
 
   it("renders a fuller loading skeleton before provider state settles", () => {
-    useChatInputStore.setState({
-      snapshot: {
-        ...useChatInputStore.getState().snapshot,
-        isProviderStateResolved: false,
-      },
-    });
+    useNcpChatQueryStore.setState({ snapshot: {} });
 
     render(<ChatConversationPanel />);
 
@@ -408,6 +469,13 @@ describe("ChatConversationPanel", () => {
       screen.getAllByTestId("chat-conversation-skeleton-bubble"),
     ).toHaveLength(4);
     expect(screen.queryByTestId("chat-input-bar")).toBeNull();
+  });
+
+  it("does not keep the conversation skeleton after provider queries resolve", () => {
+    render(<ChatConversationPanel />);
+
+    expect(screen.queryByTestId("chat-conversation-skeleton")).toBeNull();
+    expect(screen.getByTestId("chat-input-bar")).toBeTruthy();
   });
 
   it("keeps the message area clean while a session history is hydrating", () => {

@@ -5,7 +5,7 @@ import { ChatConversationHeaderSection } from "@/features/chat/components/conver
 import { ChatConversationParentBanner } from "@/features/chat/components/conversation/chat-conversation-parent-banner";
 import { ChatConversationSkeleton } from "@/features/chat/components/conversation/chat-conversation-skeleton";
 import { ChatConversationWorkspaceSection } from "@/features/chat/components/conversation/chat-conversation-workspace-section";
-import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
+import { useNcpChatProviderStateResolved } from "@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state";
 
 type ChatConversationLayoutMode = "desktop" | "mobile";
 
@@ -16,9 +16,7 @@ export function ChatConversationPanel({
   layoutMode?: ChatConversationLayoutMode;
   onBackToList?: () => void;
 }) {
-  const isProviderStateResolved = useChatInputStore(
-    (state) => state.snapshot.isProviderStateResolved,
-  );
+  const isProviderStateResolved = useNcpChatProviderStateResolved();
 
   if (!isProviderStateResolved) {
     return <ChatConversationSkeleton />;

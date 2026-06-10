@@ -8,6 +8,17 @@ import { usePresenter } from '@/features/chat/components/providers/chat-presente
 import { useI18n } from '@/app/components/i18n-provider';
 import { useViewportLayout } from '@/app/hooks/use-viewport-layout';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
+import {
+  useNcpChatProviderStateResolved,
+  useNcpChatSelectedSession,
+} from '@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state';
+import { useNcpChatQueryStore } from '@/features/chat/stores/ncp-chat-query.store';
+import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
+import {
+  buildNcpChatProviderModelOptions,
+  filterNcpChatModelOptionsBySessionType,
+} from '@/features/chat/features/ncp/utils/ncp-chat-query-derived.utils';
+import { useChatSessionTypeState } from '@/features/chat/features/session-type/hooks/use-chat-session-type-state';
 import { chatRecentModelsManager, CHAT_RECENT_MODELS_MIN_OPTIONS } from '@/features/chat/managers/chat-recent-models.manager';
 import { chatRecentSkillsManager, CHAT_RECENT_SKILLS_MIN_OPTIONS } from '@/features/chat/managers/chat-recent-skills.manager';
 import { deriveSelectedSkillsFromComposer } from '@/features/chat/features/input/utils/chat-composer-state.utils';
@@ -18,7 +29,8 @@ import { isNcpChatRuntimeBlocked } from '@/features/chat/features/runtime/utils/
 import { t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
 
-type ChatInputStoreSnapshot = ReturnType<typeof useChatInputStore.getState>['snapshot']; type ChatPresenter = ReturnType<typeof usePresenter>;
+type ChatInputStoreSnapshot = ReturnType<typeof useChatInputStore.getState>['snapshot'];
+const EMPTY_SESSION_SKILL_RECORDS: SessionSkillEntryView[] = [];
 
 function buildThinkingLabels(): Record<ChatThinkingLevel, string> {
   return {
@@ -92,12 +104,16 @@ function useChatInputBarLabels(language: string) {
     allSkillsLabel: t('chatPickerAllSkills')
   };
 }
-function useChatInputBarCollections(snapshot: ChatInputStoreSnapshot, skillScopeLabels: Record<'builtin' | 'project' | 'workspace', string>) {
+function useChatInputBarCollections(params: {
+  modelOptions: ChatInputStoreSnapshot['modelOptions'];
+  skillRecords: SessionSkillEntryView[];
+  skillScopeLabels: Record<'builtin' | 'project' | 'workspace', string>;
+}) {
   const skillRecords = useMemo(
-    () => toSkillRecords(snapshot.skillRecords, skillScopeLabels),
-    [snapshot.skillRecords, skillScopeLabels]
+    () => toSkillRecords(params.skillRecords, params.skillScopeLabels),
+    [params.skillRecords, params.skillScopeLabels]
   );
-  const modelRecords = useMemo(() => toModelRecords(snapshot.modelOptions), [snapshot.modelOptions]);
+  const modelRecords = useMemo(() => toModelRecords(params.modelOptions), [params.modelOptions]);
   return {
     skillRecords,
     modelRecords,
@@ -115,8 +131,9 @@ function useChatInputBarCollections(snapshot: ChatInputStoreSnapshot, skillScope
     })
   };
 }
-function useChatInputBarAttachments(params: { attachmentSupported: boolean; inputBarRef: RefObject<ChatInputBarHandle | null>; presenter: ChatPresenter; }) {
-  const { attachmentSupported, inputBarRef, presenter } = params;
+function useChatInputBarAttachments(params: { attachmentSupported: boolean; inputBarRef: RefObject<ChatInputBarHandle | null>; }) {
+  const { attachmentSupported, inputBarRef } = params;
+  const presenter = usePresenter();
   const showAttachmentError = useCallback((reason: 'unsupported-type' | 'too-large' | 'read-failed') => {
     if (reason === 'unsupported-type') {
       toast.error(t('chatInputAttachmentUnsupported'));
@@ -156,8 +173,8 @@ function useChatInputBarAttachments(params: { attachmentSupported: boolean; inpu
     }, [handleFilesAdd])
   };
 }
-function buildToolbarSelects(params: { allModelsLabel: string; hasModelOptions: boolean; isModelOptionsLoading: boolean; modelRecords: ChatModelRecord[]; presenter: ChatPresenter; recentModelValues: string[]; recentModelsLabel: string; selectedModel: string; selectedThinkingLevel: ChatThinkingLevel | null; thinkingSupportedLevels: ChatThinkingLevel[]; thinkingDefaultLevel: ChatThinkingLevel | null; }) {
-  const { allModelsLabel, hasModelOptions, isModelOptionsLoading, modelRecords, presenter, recentModelValues, recentModelsLabel, selectedModel, selectedThinkingLevel, thinkingSupportedLevels, thinkingDefaultLevel } = params;
+function buildToolbarSelects(params: { allModelsLabel: string; hasModelOptions: boolean; isModelOptionsLoading: boolean; modelRecords: ChatModelRecord[]; onModelChange: (value: string) => void; onThinkingChange: (value: ChatThinkingLevel | null) => void; recentModelValues: string[]; recentModelsLabel: string; selectedModel: string; selectedThinkingLevel: ChatThinkingLevel | null; thinkingSupportedLevels: ChatThinkingLevel[]; thinkingDefaultLevel: ChatThinkingLevel | null; }) {
+  const { allModelsLabel, hasModelOptions, isModelOptionsLoading, modelRecords, onModelChange, onThinkingChange, recentModelValues, recentModelsLabel, selectedModel, selectedThinkingLevel, thinkingSupportedLevels, thinkingDefaultLevel } = params;
   return [
     buildModelToolbarSelect({
       modelOptions: modelRecords,
@@ -165,7 +182,7 @@ function buildToolbarSelects(params: { allModelsLabel: string; hasModelOptions: 
       selectedModel,
       isModelOptionsLoading,
       hasModelOptions,
-      onValueChange: presenter.chatInputManager.selectModel,
+      onValueChange: onModelChange,
       texts: {
         modelSelectPlaceholder: t('chatSelectModel'),
         modelNoOptionsLabel: t('chatModelNoOptions'),
@@ -177,22 +194,22 @@ function buildToolbarSelects(params: { allModelsLabel: string; hasModelOptions: 
       supportedLevels: thinkingSupportedLevels,
       selectedThinkingLevel,
       defaultThinkingLevel: thinkingDefaultLevel,
-      onValueChange: (value) => presenter.chatInputManager.selectThinkingLevel(value),
+      onValueChange: onThinkingChange,
       texts: {
         thinkingLabels: buildThinkingLabels()
       }
     })
   ].filter((item): item is NonNullable<typeof item> => item !== null);
 }
-function buildSkillPicker(params: { allSkillsLabel: string; presenter: ChatPresenter; recentSkillGroupValues: string[]; recentSkillValues: string[]; recentSkillsLabel: string; skillRecords: ChatSkillRecord[]; snapshot: ChatInputStoreSnapshot; }) {
-  const { allSkillsLabel, presenter, recentSkillGroupValues, recentSkillValues, recentSkillsLabel, skillRecords, snapshot } = params;
+function buildSkillPicker(params: { allSkillsLabel: string; isSkillsLoading: boolean; onSelectedKeysChange: (keys: string[]) => void; recentSkillGroupValues: string[]; recentSkillValues: string[]; recentSkillsLabel: string; skillRecords: ChatSkillRecord[]; snapshot: ChatInputStoreSnapshot; }) {
+  const { allSkillsLabel, isSkillsLoading, onSelectedKeysChange, recentSkillGroupValues, recentSkillValues, recentSkillsLabel, skillRecords, snapshot } = params;
   return buildSkillPickerModel({
     skillRecords,
     recentSkillValues,
     groupedRecentSkillValues: recentSkillGroupValues,
     selectedSkills: snapshot.selectedSkills,
-    isLoading: snapshot.isSkillsLoading,
-    onSelectedKeysChange: presenter.chatInputManager.selectSkills,
+    isLoading: isSkillsLoading,
+    onSelectedKeysChange,
     texts: {
       title: t('chatSkillsPickerTitle'),
       searchPlaceholder: t('chatSkillsPickerSearchPlaceholder'),
@@ -204,21 +221,94 @@ function buildSkillPicker(params: { allSkillsLabel: string; presenter: ChatPrese
     }
   });
 }
+
+function useChatInputBarQueryState(snapshot: ChatInputStoreSnapshot) {
+  const presenter = usePresenter();
+  const selectedSessionKey = useChatSessionListStore(
+    (state) => state.snapshot.selectedSessionKey,
+  );
+  const selectedSession = useNcpChatSelectedSession(selectedSessionKey);
+  const isProviderStateResolved = useNcpChatProviderStateResolved();
+  const config = useNcpChatQueryStore(
+    (state) => state.snapshot.configQuery?.data ?? null,
+  );
+  const providersView = useNcpChatQueryStore(
+    (state) => state.snapshot.providersQuery?.data ?? null,
+  );
+  const templatesView = useNcpChatQueryStore(
+    (state) => state.snapshot.providerTemplatesQuery?.data ?? null,
+  );
+  const sessionTypesData = useNcpChatQueryStore(
+    (state) => state.snapshot.sessionTypesQuery?.data ?? null,
+  );
+  const skillRecords = useNcpChatQueryStore(
+    (state) =>
+      state.snapshot.sessionSkillsQuery?.data?.records ?? EMPTY_SESSION_SKILL_RECORDS,
+  );
+  const isSkillsLoading = useNcpChatQueryStore(
+    (state) =>
+      Boolean(
+        state.snapshot.sessionSkillsQuery?.isLoading ||
+          state.snapshot.sessionSkillsQuery?.isFetching,
+      ),
+  );
+  const sessionTypeState = useChatSessionTypeState({
+    selectedSession,
+    pendingSessionType: snapshot.pendingSessionType,
+    setPendingSessionType: presenter.chatInputManager.setPendingSessionType,
+    sessionTypesData,
+  });
+  const providerModelOptions = useMemo(
+    () =>
+      buildNcpChatProviderModelOptions({
+        config,
+        providersView,
+        templatesView,
+      }),
+    [config, providersView, templatesView],
+  );
+  const modelOptions = useMemo(
+    () =>
+      filterNcpChatModelOptionsBySessionType({
+        modelOptions: providerModelOptions,
+        supportedModels: sessionTypeState.selectedSessionTypeOption?.supportedModels,
+      }),
+    [providerModelOptions, sessionTypeState.selectedSessionTypeOption?.supportedModels],
+  );
+
+  return {
+    isProviderStateResolved,
+    isSkillsLoading,
+    modelOptions,
+    skillRecords,
+  };
+}
+
 export function ChatInputBarContainer() {
   const presenter = usePresenter();
   const { language } = useI18n();
   const { isMobile } = useViewportLayout();
   const snapshot = useChatInputStore((state) => state.snapshot);
+  const inputQueryState = useChatInputBarQueryState(snapshot);
   const isRuntimeBlocked = isNcpChatRuntimeBlocked(useSystemStatus());
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
   const inputBarRef = useRef<ChatInputBarHandle | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const labels = useChatInputBarLabels(language);
-  const { skillRecords, modelRecords, recentModelValues, recentSkillValues, recentSkillGroupValues } = useChatInputBarCollections(snapshot, labels.skillScopeLabels);
-  const hasModelOptions = hasNcpChatModelOptions(snapshot);
-  const isModelOptionsLoading = isNcpChatModelOptionsLoading(snapshot);
-  const isModelOptionsEmpty = isNcpChatModelOptionsEmpty(snapshot);
-  const inputDisabled = isNcpChatComposerDisabled(snapshot);
+  const { skillRecords, modelRecords, recentModelValues, recentSkillValues, recentSkillGroupValues } = useChatInputBarCollections({
+    modelOptions: inputQueryState.modelOptions,
+    skillRecords: inputQueryState.skillRecords,
+    skillScopeLabels: labels.skillScopeLabels
+  });
+  const availabilitySnapshot = {
+    ...snapshot,
+    isProviderStateResolved: inputQueryState.isProviderStateResolved,
+    modelOptions: inputQueryState.modelOptions
+  };
+  const hasModelOptions = hasNcpChatModelOptions(availabilitySnapshot);
+  const isModelOptionsLoading = isNcpChatModelOptionsLoading(availabilitySnapshot);
+  const isModelOptionsEmpty = isNcpChatModelOptionsEmpty(availabilitySnapshot);
+  const inputDisabled = isNcpChatComposerDisabled(availabilitySnapshot);
   const attachmentSupported = typeof presenter.chatInputManager.addAttachments === 'function';
   const textareaPlaceholder = isModelOptionsEmpty
     ? t('chatModelNoOptions')
@@ -233,7 +323,7 @@ export function ChatInputBarContainer() {
   const resolvedStopHint = snapshot.stopDisabledReason === '__preparing__'
     ? t('chatStopPreparing')
     : snapshot.stopDisabledReason?.trim() || t('chatStopUnavailable');
-  const { handleFilesAdd, handleFileInputChange } = useChatInputBarAttachments({ attachmentSupported, inputBarRef, presenter });
+  const { handleFilesAdd, handleFileInputChange } = useChatInputBarAttachments({ attachmentSupported, inputBarRef });
   useEffect(() => {
     const request = snapshot.composerFocusRequest;
     if (!request) {
@@ -249,7 +339,12 @@ export function ChatInputBarContainer() {
     hasModelOptions,
     isModelOptionsLoading,
     modelRecords,
-    presenter,
+    onModelChange: presenter.chatInputManager.selectModel,
+    onThinkingChange: (value) => {
+      if (value) {
+        presenter.chatInputManager.selectThinkingLevel(value);
+      }
+    },
     recentModelValues,
     recentModelsLabel: labels.recentModelsLabel,
     selectedModel: snapshot.selectedModel,
@@ -259,10 +354,11 @@ export function ChatInputBarContainer() {
   });
   const skillPicker = buildSkillPicker({
     allSkillsLabel: labels.allSkillsLabel,
-    presenter,
+    onSelectedKeysChange: presenter.chatInputManager.selectSkills,
     recentSkillGroupValues,
     recentSkillValues,
     recentSkillsLabel: labels.recentSkillsLabel,
+    isSkillsLoading: inputQueryState.isSkillsLoading,
     skillRecords,
     snapshot
   });
@@ -281,7 +377,7 @@ export function ChatInputBarContainer() {
           onSlashQueryChange: setSlashQuery
         }}
         slashMenu={{
-          isLoading: snapshot.isSkillsLoading,
+          isLoading: inputQueryState.isSkillsLoading,
           items: slashItems,
           onSelectItem: (item: { value?: string }) => {
             if (item.value) {
@@ -329,7 +425,7 @@ export function ChatInputBarContainer() {
             isSending: snapshot.isSending,
             canStopGeneration: snapshot.canStopGeneration,
             sendDisabled: isNcpChatSendDisabled({
-              snapshot,
+              snapshot: availabilitySnapshot,
               hasSendableDraft,
               isRuntimeBlocked
             }),

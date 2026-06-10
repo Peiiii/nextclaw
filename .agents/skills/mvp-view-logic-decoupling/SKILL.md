@@ -61,6 +61,9 @@ description: 当设计或重构前端 MVP / presenter-manager-store 架构、Zus
 
 - `useEffect` / `useLayoutEffect` 只用于同步外部系统，例如 DOM/browser API、事件订阅、runtime resource setup/teardown。
 - 不要用 effect 把 query 结果镜像进 store 或 local state。
+- 如果确实建立 query store，只允许保存 query hook / SDK / API 返回的原始外部事实对象；禁止在 query sync hook 里拆字段、投影 view model、计算 selected/current/filtered 值后再写入其他 store。
+- query store 的消费者应在最终业务组件、manager query method 或纯 utils 中现场计算衍生值；默认不得把 `selectedSession`、`modelOptions`、`sessionTypeLabel`、`childSessionTabs`、`isProviderResolved` 这类可由原始 query 推导的值同步回 interaction/thread/input store。
+- query store 同步如果需要避免 React Query wrapper identity 造成重复写入，应把语义相等 no-op 放在写入 owner / manager 内；字段类别必须显式建模，禁止用字段名后缀、字符串约定或大段 hook 依赖数组来伪装稳定。
 - 不要用 effect 在 render 后触发业务动作。
 - 如果 effect 在重置多个业务状态，先把这个 transition 移到 manager method 或 presenter flow。
 - 如果 effect 必须存在，应只把外部事件或 React 生命周期接入 owner；effect body 内不要展开业务分支、构造协议 payload 或直接写 store。

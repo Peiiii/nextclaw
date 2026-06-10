@@ -5,6 +5,7 @@ import type {
 import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
 import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import type { NcpChatInputManager } from '@/features/chat/managers/ncp-chat-input.manager';
+import type { NcpChatQueryManager } from '@/features/chat/managers/ncp-chat-query.manager';
 import type { NcpChatThreadManager } from '@/features/chat/managers/ncp-chat-thread.manager';
 
 type PublicManager<T extends object> = Pick<T, keyof T>;
@@ -16,6 +17,7 @@ export type ChatPresenterLike = {
   chatUiManager: ChatUiManager;
   chatStreamActionsManager: ChatStreamActionsManager;
   chatInputManager: ChatInputManagerLike;
+  chatQueryManager: NcpChatQueryManager;
   chatSessionListManager: ChatSessionListManager;
   chatThreadManager: ChatThreadManagerLike;
   startAgentCreationDraft: (prompt: string) => void;
