@@ -1,6 +1,6 @@
 import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { SessionListRecord } from "@core/features/session/types/session-list.types.js";
+import type { SessionListRecord } from "@core/features/session/index.js";
 
 const FIRST_LINE_BUFFER_BYTES = 8192;
 const SESSION_LIST_INDEX_FILE = ".session-list-index.json";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ConfigSchema } from "../../../config/configs/schema.js";
-import { resolveThinkingLevel } from "../thinking/thinking.utils.js";
+import { ConfigSchema } from "@core/features/config/index.js";
+import { resolveThinkingLevel } from "@core/features/agent/features/thinking/thinking.utils.js";
 
 describe("resolveThinkingLevel", () => {
   it("prioritizes session override over config defaults", () => {

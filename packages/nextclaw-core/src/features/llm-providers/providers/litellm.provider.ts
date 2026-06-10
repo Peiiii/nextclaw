@@ -1,6 +1,6 @@
-import { LLMProvider, type LLMResponse, type LLMStreamEvent } from "./base.js";
-import { AnthropicMessagesProvider } from "../features/anthropic/providers/anthropic-messages.provider.js";
-import { OpenAICompatibleProvider } from "./openai_provider.js";
+import { LLMProvider, type LLMResponse, type LLMStreamEvent } from "./base.provider.js";
+import { AnthropicMessagesProvider } from "@core/features/llm-providers/features/anthropic/providers/anthropic-messages.provider.js";
+import { OpenAICompatibleProvider } from "./openai.provider.js";
 import {
   findGateway,
   findProviderByModel,
@@ -8,7 +8,7 @@ import {
   type ProviderRegistry,
   type ProviderSpec
 } from "./registry.js";
-import type { ThinkingLevel } from "../../../shared/lib/core-utils/utils/thinking.js";
+import type { ThinkingLevel } from "@core/shared/lib/core-utils/index.js";
 
 type ProviderRegistryView = Pick<
   ProviderRegistry,

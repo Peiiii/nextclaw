@@ -1,7 +1,4 @@
-import {
-  InputBudgetPruner,
-  type InputBudgetPrepareResult,
-} from "@core/features/agent/index.js";
+import { InputBudgetPruner, type InputBudgetPrepareResult } from "@core/features/agent/index.js";
 
 type RuntimeMessage = Record<string, unknown>;
 

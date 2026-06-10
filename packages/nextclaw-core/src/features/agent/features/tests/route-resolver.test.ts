@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ConfigSchema } from "../../../config/configs/schema.js";
-import { AgentRouteResolver, parseAgentScopedSessionKey } from "../../services/route-resolver.js";
+import { ConfigSchema } from "@core/features/config/index.js";
+import { AgentRouteResolver, parseAgentScopedSessionKey } from "@core/features/agent/services/route-resolver.service.js";
 
 describe("AgentRouteResolver", () => {
   it("routes by binding with channel/account/peer", () => {

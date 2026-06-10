@@ -1,5 +1,5 @@
-import type { LLMResponse, ToolCallRequest } from "../../../../../../features/llm-providers/providers/base.js";
-import { ChatCompletionsPayloadError } from "../../../../../../features/llm-providers/providers/chat-completions-normalizer.js";
+import type { LLMResponse, ToolCallRequest } from "@core/features/llm-providers/index.js";
+import { ChatCompletionsPayloadError } from "@core/features/llm-providers/index.js";
 
 type ResponsesPayload = {
   output?: Array<Record<string, unknown>>;

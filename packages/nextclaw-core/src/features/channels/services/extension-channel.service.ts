@@ -1,4 +1,5 @@
-import type { MessageBus, OutboundMessage } from "@core/features/bus/index.js";
+import type { OutboundMessage } from "@core/features/bus/index.js";
+import type { MessageBus } from "@core/features/bus/index.js";
 import type { Config } from "@core/features/config/index.js";
 import type { ExtensionChannelRegistration } from "@core/features/extensions/index.js";
 import { BaseChannel } from "./base.js";

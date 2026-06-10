@@ -1,12 +1,13 @@
 import { randomUUID } from "node:crypto";
-import type { MessageBus, InboundMessage } from "@core/features/bus/index.js";
+import type { InboundMessage } from "@core/features/bus/index.js";
+import type { MessageBus } from "@core/features/bus/index.js";
 import type { SearchConfig } from "@core/features/config/index.js";
 import type { ProviderManager } from "@core/features/llm-providers/index.js";
-import { ToolRegistry } from "@core/features/agent/tools/registry.tools.js";
-import { ReadFileTool, WriteFileTool, ListDirTool } from "@core/features/agent/tools/filesystem.tools.js";
-import { ExecTool } from "@core/features/agent/tools/shell.tools.js";
-import { WebSearchTool, WebFetchTool } from "@core/features/agent/tools/web.tools.js";
-import { InputBudgetPruner } from "@core/features/agent/services/input-budget-pruner.service.js";
+import { ToolRegistry } from "@core/features/agent/index.js";
+import { ReadFileTool, WriteFileTool, ListDirTool } from "@core/features/agent/index.js";
+import { ExecTool } from "@core/features/agent/index.js";
+import { WebSearchTool, WebFetchTool } from "@core/features/agent/index.js";
+import { InputBudgetPruner } from "@core/features/agent/index.js";
 import { resolveSubagentModel } from "@core/features/agent/features/subagents/subagent-model.utils.js";
 
 export class SubagentManager {

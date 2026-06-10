@@ -1,4 +1,4 @@
-import type { LLMResponse, LLMStreamEvent } from "../../../../../../features/llm-providers/providers/base.js";
+import type { LLMResponse, LLMStreamEvent } from "@core/features/llm-providers/index.js";
 import { isSemanticallyEmptyOpenAiResponse, normalizeOpenAiResponsesOutput } from "./response.utils.js";
 import { parseOpenAiResponsesPayload } from "./responses-payload.utils.js";
 import {

@@ -1,5 +1,6 @@
 import { Tool, normalizeToolParams } from "./base.tools.js";
-import type { CronSchedule, CronService } from "@core/features/cron/index.js";
+import type { CronSchedule } from "@core/features/cron/index.js";
+import type { CronService } from "@core/features/cron/index.js";
 
 export class CronTool extends Tool {
   constructor(private cronService: CronService) {

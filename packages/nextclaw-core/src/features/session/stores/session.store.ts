@@ -1,8 +1,9 @@
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import type { SessionListRecord } from "@core/features/session/types/session-list.types.js";
-import { ensureDir, expandHome, safeFilename } from "@core/shared/lib/core-utils/utils/helpers.js";
+import type { SessionListRecord } from "@core/features/session/index.js";
+import { ensureDir, expandHome, safeFilename } from "@core/shared/lib/core-utils/index.js";
 import { SessionListIndexStore } from "./session-list-index.store.js";
+import { normalizeSessionHistoryWindow } from "@core/features/session/utils/session-history-window.utils.js";
 
 export type SessionMessage = {
   role: string;
@@ -56,11 +57,6 @@ function toOptionalAgentId(value: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-type PendingToolCalls = {
-  expectedIds: Set<string>;
-  blockStart: number;
-};
-
 type SessionLoadState = {
   events: SessionEvent[];
   agentId?: string;
@@ -69,98 +65,6 @@ type SessionLoadState = {
   updatedAt: Date;
   fallbackSeq: number;
 };
-
-
-function collectExpectedToolCallIds(message: SessionMessage): Set<string> {
-  const expectedIds = new Set<string>();
-  if (!Array.isArray(message.tool_calls)) {
-    return expectedIds;
-  }
-  for (const call of message.tool_calls as Array<Record<string, unknown>>) {
-    const callId = typeof call.id === "string" ? call.id.trim() : "";
-    if (callId) {
-      expectedIds.add(callId);
-    }
-  }
-  return expectedIds;
-}
-
-function resetPendingToolCalls(
-  normalized: SessionMessage[],
-  pendingToolCalls: PendingToolCalls | null,
-  role: string,
-): PendingToolCalls | null {
-  if (!pendingToolCalls || role === "tool") {
-    return pendingToolCalls;
-  }
-  if (pendingToolCalls.expectedIds.size > 0) {
-    normalized.splice(pendingToolCalls.blockStart);
-  }
-  return null;
-}
-
-function appendAssistantMessage(
-  normalized: SessionMessage[],
-  message: SessionMessage,
-): PendingToolCalls | null {
-  normalized.push(message);
-  const expectedIds = collectExpectedToolCallIds(message);
-  if (expectedIds.size === 0) {
-    return null;
-  }
-  return {
-    expectedIds,
-    blockStart: normalized.length - 1,
-  };
-}
-
-function appendToolMessage(
-  normalized: SessionMessage[],
-  message: SessionMessage,
-  pendingToolCalls: PendingToolCalls | null,
-): PendingToolCalls | null {
-  if (!pendingToolCalls) {
-    return null;
-  }
-  const callId = typeof message.tool_call_id === "string" ? message.tool_call_id.trim() : "";
-  if (!callId || !pendingToolCalls.expectedIds.has(callId)) {
-    return pendingToolCalls;
-  }
-  normalized.push(message);
-  pendingToolCalls.expectedIds.delete(callId);
-  return pendingToolCalls.expectedIds.size > 0 ? pendingToolCalls : null;
-}
-
-function finalizePendingToolCalls(normalized: SessionMessage[], pendingToolCalls: PendingToolCalls | null): void {
-  if (pendingToolCalls && pendingToolCalls.expectedIds.size > 0) {
-    normalized.splice(pendingToolCalls.blockStart);
-  }
-}
-
-function normalizeSessionHistoryWindow(messages: SessionMessage[]): SessionMessage[] {
-  const normalized: SessionMessage[] = [];
-  let pendingToolCalls: PendingToolCalls | null = null;
-
-  for (const message of messages) {
-    const role = typeof message.role === "string" ? message.role : "";
-    pendingToolCalls = resetPendingToolCalls(normalized, pendingToolCalls, role);
-
-    if (role === "assistant") {
-      pendingToolCalls = appendAssistantMessage(normalized, message);
-      continue;
-    }
-
-    if (role === "tool") {
-      pendingToolCalls = appendToolMessage(normalized, message, pendingToolCalls);
-      continue;
-    }
-
-    normalized.push(message);
-  }
-
-  finalizePendingToolCalls(normalized, pendingToolCalls);
-  return normalized;
-}
 
 function createSessionLoadState(): SessionLoadState {
   return {

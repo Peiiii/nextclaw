@@ -1,4 +1,4 @@
-import type { LLMResponse, LLMStreamEvent, ToolCallRequest } from "../../../../../../features/llm-providers/providers/base.js";
+import type { LLMResponse, LLMStreamEvent, ToolCallRequest } from "@core/features/llm-providers/index.js";
 
 type OpenAiResponsesToolCallBuffer = {
   index: number;

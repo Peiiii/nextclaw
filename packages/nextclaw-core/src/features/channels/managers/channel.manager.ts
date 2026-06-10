@@ -1,5 +1,7 @@
 import { evaluateSilentReply } from "@core/features/agent/index.js";
-import { isNextclawControlMessage, type MessageBus, type OutboundMessage } from "@core/features/bus/index.js";
+import { isNextclawControlMessage } from "@core/features/bus/index.js";
+import type { OutboundMessage } from "@core/features/bus/index.js";
+import type { MessageBus } from "@core/features/bus/index.js";
 import type { Config } from "@core/features/config/index.js";
 import type { ExtensionRegistry } from "@core/features/extensions/index.js";
 import { sanitizeOutboundAssistantContent } from "@core/shared/lib/core-utils/index.js";
