@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   EventBus,
   eventKeys,
@@ -27,6 +27,15 @@ async function waitForEvent(
   }
 }
 
+async function waitForCondition(condition: () => boolean): Promise<void> {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    if (condition()) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+}
+
 describe("AgentRunRequestManager branch session creation", () => {
   it("uses the first user message as the new session task", async () => {
     const ingress = new Ingress();
@@ -42,6 +51,7 @@ describe("AgentRunRequestManager branch session creation", () => {
           run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
         }),
       } as never,
+      { getDefaultAgentId: () => "main" } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -113,6 +123,7 @@ describe("AgentRunRequestManager peer session identity", () => {
           run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
         }),
       } as never,
+      { getDefaultAgentId: () => "main" } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -173,6 +184,7 @@ describe("AgentRunRequestManager peer session identity", () => {
           run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
         }),
       } as never,
+      { getDefaultAgentId: () => "main" } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -259,6 +271,7 @@ describe("AgentRunRequestManager event publication", () => {
           },
         }),
       } as never,
+      { getDefaultAgentId: () => "main" } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -342,6 +355,7 @@ describe("AgentRunRequestManager event publication", () => {
           },
         }),
       } as never,
+      { getDefaultAgentId: () => "main" } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -387,6 +401,97 @@ describe("AgentRunRequestManager event publication", () => {
       role: "assistant",
       status: "final",
       parts: [{ type: "text", text: "最终回复" }],
+    });
+    manager.dispose();
+  });
+
+  it("disposes the cached runtime after a runtime terminal error", async () => {
+    const ingress = new Ingress();
+    const eventBus = new EventBus();
+    const sessionRun = new SessionRun({ sessionId: "session-1", messages: [] });
+    const publishedEvents: NcpEndpointEvent[] = [];
+    const disposeRuntime = vi.fn(async () => true);
+    eventBus.on(eventKeys.ncpEvent, (event) => {
+      publishedEvents.push(event);
+    });
+    const assistantMessageId = "assistant-message-1";
+    const runEvents: NcpEndpointEvent[] = [
+      {
+        type: NcpEventType.RunStarted,
+        payload: { sessionId: "session-1", messageId: assistantMessageId, runId: "run-1" },
+      },
+      {
+        type: NcpEventType.MessageFailed,
+        payload: {
+          sessionId: "session-1",
+          messageId: assistantMessageId,
+          error: { code: "runtime-error", message: "prompt timed out" },
+        },
+      },
+      {
+        type: NcpEventType.RunError,
+        payload: {
+          sessionId: "session-1",
+          messageId: assistantMessageId,
+          runId: "run-1",
+          error: "prompt timed out",
+        },
+      },
+    ];
+    const manager = new AgentRunRequestManager(
+      {
+        getOrCreate: () => ({
+          run: async function* (_spec: unknown, options: { sessionRun: SessionRun }): AsyncGenerator<NcpEndpointEvent> {
+            for (const event of runEvents) {
+              await options.sessionRun.applyEvents([event]);
+              yield event;
+            }
+          },
+        }),
+        disposeRuntime,
+      } as never,
+      { getDefaultAgentId: () => "main" } as never,
+      {
+        getDefaultModel: () => "test-model",
+        getModelMaxTokens: () => 12000,
+        loadConfig: () => ({}),
+      } as never,
+      { buildContext: async () => [] } as never,
+      eventBus,
+      ingress,
+      {
+        getOrCreateAgentRunSession: async () => ({
+          sessionId: "session-1",
+          agentId: "main",
+          agentRuntimeId: "codex",
+          metadata: {},
+          model: "test-model",
+          thinkingEffort: null,
+        }),
+      } as never,
+      {
+        getSessionRun: () => null,
+        createSessionRun: async () => sessionRun,
+      } as never,
+      { buildTools: async () => [] } as never,
+    );
+    manager.start();
+
+    await ingress.handle<AgentRunSendIngressPayload, NcpRunHandle>({
+      type: ingressKeys.agentRun.send,
+      payload: {
+        content: [{ type: "text", text: "开始" }],
+      },
+    }, { source: "test" });
+    await waitForEvent(publishedEvents, NcpEventType.RunError);
+    await waitForCondition(() => disposeRuntime.mock.calls.length > 0);
+
+    expect(disposeRuntime).toHaveBeenCalledWith({
+      agentRuntimeId: "codex",
+      session: expect.objectContaining({
+        sessionId: "session-1",
+      }),
+      sessionRun,
     });
     manager.dispose();
   });
@@ -443,6 +548,7 @@ describe("AgentRunRequestManager tool context", () => {
           },
         }),
       } as never,
+      { getDefaultAgentId: () => "main" } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,

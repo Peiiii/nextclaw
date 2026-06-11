@@ -16,17 +16,20 @@ import type { StdioRuntimeResolvedConfig, NarpStdioPromptMeta } from "./stdio-ru
 import {
   NARP_STDIO_PROMPT_META_KEY,
   buildStdioRuntimeLaunchEnv,
-  readString,
 } from "./stdio-runtime-config.utils.js";
 import {
   buildSpawnFailureMessage,
   isAbortLikeRuntimeError,
   normalizeRuntimeError,
 } from "./stdio-runtime-error.utils.js";
+import {
+  createPromptTimeoutRecoveryEvents,
+  SESSION_METADATA_PATCH_KIND,
+} from "./utils/stdio-runtime-recovery.utils.js";
+import { extractPromptText, resolveModelId } from "./utils/stdio-runtime-input.utils.js";
 import { resolveToolNameFromAcpUpdate } from "./stdio-runtime-tool-name.utils.js";
 type AcpClientUpdate = acp.SessionUpdate;
 const HERMES_ACP_ROUTE_BRIDGE_ENV = "NEXTCLAW_HERMES_ACP_ROUTE_BRIDGE";
-const SESSION_METADATA_PATCH_KIND = "session_metadata_patch";
 export type StdioRuntimeNcpAgentRuntimeConfig = StdioRuntimeResolvedConfig & {
   sessionId: string;
   stateManager?: NcpAgentConversationStateManager;
@@ -399,6 +402,9 @@ class StdioRuntimeSession {
 
   readStderr = (): string => this.stderr;
 
+  readPromptTimeoutMetadataResetKeys = (): readonly string[] | undefined =>
+    this.config.resetSessionMetadataOnPromptTimeout;
+
   dispose = async (): Promise<void> => {
     await this.cancel();
     const child = this.child;
@@ -409,13 +415,17 @@ class StdioRuntimeSession {
       return;
     }
 
+    const exited = new Promise<void>((resolve) => {
+      child.once("exit", () => resolve());
+      child.once("error", () => resolve());
+    });
     const forceKill = setTimeout(() => {
       child.kill("SIGKILL");
     }, 3_000);
-    child.once("exit", () => {
-      clearTimeout(forceKill);
-    });
+    forceKill.unref();
     child.kill("SIGTERM");
+    await exited;
+    clearTimeout(forceKill);
   };
 }
 
@@ -588,6 +598,16 @@ class StdioRuntimeRunController {
     error: unknown,
   ): AsyncGenerator<NcpEndpointEvent> {
     const ncpError = normalizeRuntimeError(error, { stderr: this.session.readStderr() });
+    for (const recoveryEvent of createPromptTimeoutRecoveryEvents({
+      correlationId: this.input.correlationId,
+      error,
+      messageId: assistantMessageId,
+      resetKeys: this.session.readPromptTimeoutMetadataResetKeys(),
+      runId: this.runId,
+      sessionId: this.input.sessionId,
+    })) {
+      yield* this.emitEvent(recoveryEvent);
+    }
     yield* this.emitEvent({
       type: NcpEventType.MessageFailed,
       payload: {
@@ -869,32 +889,6 @@ export class StdioRuntimeNcpAgentRuntime implements NcpAgentRuntime {
   dispose = async (): Promise<void> => {
     await this.session.dispose();
   };
-}
-
-function extractPromptText(message: { parts?: Array<{ type: string; text?: string }> }): string {
-  const text = (message.parts ?? [])
-    .map((part) => {
-      if (part.type === "text" || part.type === "reasoning" || part.type === "rich-text") {
-        return part.text ?? "";
-      }
-      return "";
-    })
-    .join("\n")
-    .trim();
-  return text.length > 0 ? text : "[empty message]";
-}
-
-function resolveModelId(params: {
-  providerRoute?: NcpProviderRuntimeRoute;
-  metadata?: Record<string, unknown>;
-}): string | undefined {
-  const { metadata, providerRoute } = params;
-  const modelId =
-    providerRoute?.model ??
-    readString(metadata?.preferred_model) ??
-    readString(metadata?.preferredModel) ??
-    readString(metadata?.model);
-  return modelId === "__nextclaw_runtime_default__" ? undefined : modelId;
 }
 
 function readSessionMetadataPatch(meta: unknown): Record<string, unknown> | null {

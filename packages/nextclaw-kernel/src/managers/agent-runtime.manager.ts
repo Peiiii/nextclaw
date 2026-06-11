@@ -99,14 +99,8 @@ export class AgentRuntimeManager {
   };
 
   getOrCreate = (params: AgentRuntimeCacheParams): AgentRuntime => {
-    const { agentRuntimeId, session, sessionRun } = params;
-    const entry = this.getEntry(agentRuntimeId);
-    const provider = this.getProvider(entry.type);
-    const reuseScope = this.resolveReuseScope(entry, provider);
-    const cacheKey =
-      reuseScope === "global" ? entry.id : `${entry.id}:${session.sessionId}`;
-    const cache =
-      reuseScope === "global" ? this.globalRuntimes : this.sessionRuntimes;
+    const { session, sessionRun } = params;
+    const { cache, cacheKey, entry, provider } = this.resolveRuntimeCache(params);
     const existing = cache.get(cacheKey);
     if (existing) {
       return existing;
@@ -118,6 +112,19 @@ export class AgentRuntimeManager {
     });
     cache.set(cacheKey, agentRuntime);
     return agentRuntime;
+  };
+
+  disposeRuntime = async (
+    params: AgentRuntimeCacheParams,
+  ): Promise<boolean> => {
+    const { cache, cacheKey } = this.resolveRuntimeCache(params);
+    const runtime = cache.get(cacheKey);
+    if (!runtime) {
+      return false;
+    }
+    cache.delete(cacheKey);
+    await runtime.dispose?.();
+    return true;
   };
 
   listSessionTypes = async (
@@ -171,6 +178,30 @@ export class AgentRuntimeManager {
       entry.config?.reuseScope === "global"
       ? entry.config.reuseScope
       : provider.defaultReuseScope;
+  };
+
+  private resolveRuntimeCache = (
+    params: AgentRuntimeCacheParams,
+  ): {
+    cache: Map<string, AgentRuntime>;
+    cacheKey: string;
+    entry: AgentRuntimeEntry;
+    provider: AgentRuntimeRegistration;
+  } => {
+    const { agentRuntimeId, session } = params;
+    const entry = this.getEntry(agentRuntimeId);
+    const provider = this.getProvider(entry.type);
+    const reuseScope = this.resolveReuseScope(entry, provider);
+    const cacheKey =
+      reuseScope === "global" ? entry.id : `${entry.id}:${session.sessionId}`;
+    const cache =
+      reuseScope === "global" ? this.globalRuntimes : this.sessionRuntimes;
+    return {
+      cache,
+      cacheKey,
+      entry,
+      provider,
+    };
   };
 
   private disposeAllRuntimes = async (): Promise<void> => {

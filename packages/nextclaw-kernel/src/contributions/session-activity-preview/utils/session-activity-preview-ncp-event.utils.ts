@@ -30,7 +30,7 @@ function truncatePreviewText(value: string): string {
   return compacted.slice(0, PREVIEW_TEXT_MAX_LENGTH - 1).trimEnd();
 }
 
-function readMessagePreviewText(message: NcpMessage): string | null {
+export function readSessionActivityPreviewText(message: NcpMessage): string | null {
   const chunks: string[] = [];
   for (const part of message.parts) {
     if ((part.type === "text" || part.type === "rich-text") && part.text.trim()) {
@@ -100,7 +100,7 @@ export function createSessionActivityPreviewFromNcpEvent(
         timestamp,
       });
     case NcpEventType.MessageSent: {
-      const text = readMessagePreviewText(event.payload.message);
+      const text = readSessionActivityPreviewText(event.payload.message);
       if (!text || event.payload.message.role !== "user") {
         return null;
       }
@@ -111,7 +111,7 @@ export function createSessionActivityPreviewFromNcpEvent(
       });
     }
     case NcpEventType.MessageCompleted: {
-      const text = readMessagePreviewText(event.payload.message);
+      const text = readSessionActivityPreviewText(event.payload.message);
       if (!text || event.payload.message.role !== "assistant") {
         return null;
       }

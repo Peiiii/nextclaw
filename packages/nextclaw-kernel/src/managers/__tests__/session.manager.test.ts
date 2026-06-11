@@ -105,6 +105,11 @@ async function createFixture(
     await journalStore.importSessionSnapshot(record);
   }
   const manager = new SessionManager({
+    agentManager: {
+      resolveAgentProfile: () => ({
+        workspace: (config as { agents: { defaults: { workspace: string } } }).agents.defaults.workspace,
+      }),
+    } as never,
     configManager: { loadConfig: () => config } as never,
     eventBus,
     journalStore,
@@ -269,6 +274,138 @@ describe("SessionManager", () => {
         state: "completed",
       },
     });
+  });
+
+  it("updates activity preview from appended run events", async () => {
+    const fixture = await createFixture([
+      createRecord({
+        sessionId: "session-1",
+        metadata: {
+          last_activity_preview: {
+            state: "running",
+            statusText: "正在处理...",
+            timestamp: "2026-05-21T00:00:00.000Z",
+          },
+        },
+      }),
+    ]);
+    fixture.manager.start();
+
+    fixture.eventBus.emit(eventKeys.ncpEvent, {
+      type: NcpEventType.MessageCompleted,
+      payload: {
+        sessionId: "session-1",
+        message: createMessage({
+          id: "assistant-1",
+          role: "assistant",
+          sessionId: "session-1",
+          text: "final preview text",
+          timestamp: "2026-05-21T00:00:01.000Z",
+        }),
+      },
+    });
+    fixture.eventBus.emit(eventKeys.ncpEvent, {
+      type: NcpEventType.RunFinished,
+      payload: {
+        sessionId: "session-1",
+        runId: "run-1",
+      },
+    });
+
+    await waitForCondition(async () => {
+      await expect(fixture.manager.getSession("session-1")).resolves.toMatchObject({
+        metadata: {
+          last_activity_preview: {
+            state: "completed",
+            replyText: "final preview text",
+          },
+        },
+      });
+    });
+    fixture.manager.dispose();
+  });
+
+  it("fills completed activity preview from the latest assistant message", async () => {
+    const fixture = await createFixture([
+      createRecord({
+        sessionId: "session-1",
+        messages: [
+          createMessage({ id: "user-1", sessionId: "session-1", text: "hello" }),
+          createMessage({
+            id: "assistant-1",
+            role: "assistant",
+            sessionId: "session-1",
+            text: "latest assistant reply",
+          }),
+        ],
+        metadata: {
+          last_activity_preview: {
+            state: "running",
+            statusText: "正在思考",
+            timestamp: "2026-05-21T00:00:00.000Z",
+          },
+        },
+      }),
+    ]);
+    fixture.manager.start();
+
+    fixture.eventBus.emit(eventKeys.ncpEvent, {
+      type: NcpEventType.RunFinished,
+      payload: {
+        sessionId: "session-1",
+        runId: "run-1",
+      },
+    });
+
+    await waitForCondition(async () => {
+      await expect(fixture.manager.getSession("session-1")).resolves.toMatchObject({
+        metadata: {
+          last_activity_preview: {
+            state: "completed",
+            replyText: "latest assistant reply",
+          },
+        },
+      });
+    });
+    fixture.manager.dispose();
+  });
+
+  it("keeps the activity preview tool name after tool completion", async () => {
+    const fixture = await createFixture([
+      createRecord({ sessionId: "session-1" }),
+    ]);
+    fixture.manager.start();
+
+    fixture.eventBus.emit(eventKeys.ncpEvent, {
+      type: NcpEventType.MessageToolCallStart,
+      payload: {
+        sessionId: "session-1",
+        messageId: "assistant-1",
+        toolCallId: "tool-call-1",
+        toolName: "read_file",
+      },
+    });
+    fixture.eventBus.emit(eventKeys.ncpEvent, {
+      type: NcpEventType.MessageToolCallResult,
+      payload: {
+        sessionId: "session-1",
+        messageId: "assistant-1",
+        toolCallId: "tool-call-1",
+        content: "ok",
+      },
+    });
+
+    await waitForCondition(async () => {
+      await expect(fixture.manager.getSession("session-1")).resolves.toMatchObject({
+        metadata: {
+          last_activity_preview: {
+            state: "running",
+            statusText: "工具调用完成：read_file",
+          },
+        },
+      });
+    });
+    fixture.manager.dispose();
   });
 
   it("creates new sessions in the journal instead of legacy SessionManager", async () => {

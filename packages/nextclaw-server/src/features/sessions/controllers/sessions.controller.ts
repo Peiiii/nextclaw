@@ -34,6 +34,29 @@ function readSessionMetadata(
   return metadata as Record<string, unknown>;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizeIdleSessionActivityPreview(session: NcpSessionSummary): NcpSessionSummary {
+  const metadata = readSessionMetadata(session.metadata);
+  const preview = metadata.last_activity_preview;
+  if (!isRecord(preview) || preview.state !== "running") {
+    return session;
+  }
+  return {
+    ...session,
+    metadata: {
+      ...metadata,
+      last_activity_preview: {
+        ...preview,
+        state: "failed",
+        statusText: "运行中断：上一轮请求没有完成，请重新发送。",
+      },
+    },
+  };
+}
+
 function applySessionTypePatch(
   metadata: Record<string, unknown>,
   patch: SessionPatchUpdate,
@@ -128,7 +151,7 @@ export class NcpSessionRoutesController {
   private readonly withRuntimeStatus = (session: NcpSessionSummary): NcpSessionSummary =>
     this.options.kernel.isSessionRunning(session.sessionId)
       ? { ...session, status: "running" }
-      : session;
+      : normalizeIdleSessionActivityPreview(session);
 
   readonly getSessionTypes = async (c: Context) => {
     const payload: ChatSessionTypesView = await this.options.kernel.listSessionTypes({

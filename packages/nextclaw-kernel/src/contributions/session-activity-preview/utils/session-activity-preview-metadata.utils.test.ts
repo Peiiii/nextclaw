@@ -55,6 +55,31 @@ describe("writeSessionActivityPreviewMetadata", () => {
     });
   });
 
+  it("clears stale reply text when a new run starts", () => {
+    expect(
+      writeSessionActivityPreviewMetadata({
+        [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: {
+          state: "completed",
+          timestamp: "2026-05-16T01:01:00.000Z",
+          replyText: "上一轮回复",
+        },
+      }, {
+        sessionId: "session-1",
+        preview: {
+          state: "running",
+          statusText: "正在思考",
+          timestamp: "2026-05-16T01:02:00.000Z",
+        },
+      }),
+    ).toEqual({
+      [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: {
+        state: "running",
+        statusText: "正在思考",
+        timestamp: "2026-05-16T01:02:00.000Z",
+      },
+    });
+  });
+
   it("ignores older activity previews", () => {
     expect(
       writeSessionActivityPreviewMetadata({

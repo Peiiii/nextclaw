@@ -295,7 +295,8 @@ export class AgentRunRequestManager {
       await this.contextProviderManager.buildContext(providerRequest);
     const tools = await this.toolProviderManager.buildTools(providerRequest);
     let messageCompletedSeen = false;
-    lastValueFrom(
+    let runtimeFailed = false;
+    void lastValueFrom(
       from(
         runtime.run(spec, {
           contextBlocks,
@@ -306,6 +307,9 @@ export class AgentRunRequestManager {
       ).pipe(
         tap((event) => {
           const eventsToPublish: NcpEndpointEvent[] = [];
+          if (event.type === NcpEventType.RunError) {
+            runtimeFailed = true;
+          }
           if (event.type === NcpEventType.MessageCompleted) {
             messageCompletedSeen = true;
           }
@@ -341,6 +345,7 @@ export class AgentRunRequestManager {
           }
         }),
         catchError(async (error) => {
+          runtimeFailed = true;
           const event: NcpEndpointEvent = {
             type: NcpEventType.RunError,
             payload: {
@@ -358,7 +363,16 @@ export class AgentRunRequestManager {
         }),
       ),
       { defaultValue: undefined },
-    );
+    ).finally(() => {
+      if (!runtimeFailed) {
+        return;
+      }
+      void this.agentRuntimeManager.disposeRuntime({
+        agentRuntimeId: session.agentRuntimeId,
+        session,
+        sessionRun,
+      }).catch(() => undefined);
+    });
 
     return {
       sessionId: session.sessionId,

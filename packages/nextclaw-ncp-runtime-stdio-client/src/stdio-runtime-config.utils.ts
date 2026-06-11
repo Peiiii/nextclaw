@@ -30,6 +30,7 @@ export type StdioRuntimeResolvedConfig = {
   args: string[];
   cwd?: string;
   env?: StdioRuntimeEnv;
+  resetSessionMetadataOnPromptTimeout?: string[];
   startupTimeoutMs: number;
   probeTimeoutMs: number;
   requestTimeoutMs: number;
@@ -157,6 +158,9 @@ export class StdioRuntimeConfigResolver {
       override?.env ??
       readStringRecord(this.source.env) ??
       readStringRecord(parseJsonObject(process.env.NEXTCLAW_NARP_STDIO_ENV));
+    const resetSessionMetadataOnPromptTimeout = readStringArray(
+      this.source.resetSessionMetadataOnPromptTimeout,
+    );
 
     return {
       wireDialect,
@@ -165,6 +169,9 @@ export class StdioRuntimeConfigResolver {
       args,
       ...(cwd ? { cwd } : {}),
       ...(env ? { env } : {}),
+      ...(resetSessionMetadataOnPromptTimeout
+        ? { resetSessionMetadataOnPromptTimeout }
+        : {}),
       startupTimeoutMs:
         readPositiveInteger(this.source.startupTimeoutMs) ??
         readPositiveInteger(process.env.NEXTCLAW_NARP_STDIO_STARTUP_TIMEOUT_MS) ??

@@ -64,7 +64,9 @@ function mergeSessionActivityPreview(
     ...(incoming.statusText ?? (incoming.state === "completed" ? current?.statusText : undefined)
       ? { statusText: incoming.statusText ?? current?.statusText }
       : {}),
-    ...(incoming.replyText ?? current?.replyText ? { replyText: incoming.replyText ?? current?.replyText } : {}),
+    ...(incoming.replyText ?? (incoming.state === "completed" ? current?.replyText : undefined)
+      ? { replyText: incoming.replyText ?? current?.replyText }
+      : {}),
   };
 }
 

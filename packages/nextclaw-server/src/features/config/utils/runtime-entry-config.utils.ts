@@ -62,6 +62,9 @@ export function normalizeRuntimeEntryConfig(
   const processScope = normalizeOptionalString(config.processScope) ?? "per-session";
   const modelSelectionMode = normalizeRuntimeModelSelectionMode(config.modelSelectionMode);
   const supportedModels = normalizeStringArray(config.supportedModels);
+  const resetSessionMetadataOnPromptTimeout = normalizeStringArray(
+    config.resetSessionMetadataOnPromptTimeout,
+  );
   const model = normalizeOptionalString(config.model);
   const recommendedModel = normalizeOptionalString(config.recommendedModel);
 
@@ -76,6 +79,9 @@ export function normalizeRuntimeEntryConfig(
     ...(model ? { model } : {}),
     ...(recommendedModel ? { recommendedModel } : {}),
     ...(supportedModels ? { supportedModels } : {}),
+    ...(resetSessionMetadataOnPromptTimeout
+      ? { resetSessionMetadataOnPromptTimeout }
+      : {}),
     startupTimeoutMs: normalizePositiveInteger(config.startupTimeoutMs) ?? 8000,
     probeTimeoutMs: normalizePositiveInteger(config.probeTimeoutMs) ?? 3000,
     requestTimeoutMs: normalizePositiveInteger(config.requestTimeoutMs) ?? 120000,

@@ -75,3 +75,75 @@ it("passes peerId filters through the ncp session list route", async () => {
   });
   expect(listSessionCalls).toEqual([{ limit: 10, peerId: "peer-1" }]);
 });
+
+it("does not expose stale running previews for idle sessions", async () => {
+  const app = createUiRouter({
+    configPath: createConfigPath(),
+    appEventBus: new EventBus(),
+    kernel: createRouterTestKernel({
+      sessionManager: {
+        getSession: async () => ({
+          sessionId: "session-1",
+          messageCount: 1,
+          updatedAt: "2026-03-17T00:00:00.000Z",
+          status: "idle",
+          metadata: {
+            last_activity_preview: {
+              state: "running",
+              timestamp: "2026-03-17T00:00:01.000Z",
+              statusText: "正在思考",
+              replyText: "上一条回复",
+            },
+          },
+        }),
+      } as never,
+    }),
+  });
+
+  const response = await app.request("http://localhost/api/ncp/sessions/session-1");
+  const payload = await response.json() as {
+    data: { metadata?: { last_activity_preview?: { state?: string; statusText?: string; replyText?: string } } };
+  };
+
+  expect(payload.data.metadata?.last_activity_preview).toMatchObject({
+    state: "failed",
+    statusText: "运行中断：上一轮请求没有完成，请重新发送。",
+    replyText: "上一条回复",
+  });
+});
+
+it("keeps running previews for sessions that are still active", async () => {
+  const app = createUiRouter({
+    configPath: createConfigPath(),
+    appEventBus: new EventBus(),
+    kernel: createRouterTestKernel({
+      isSessionRunning: (sessionId: string) => sessionId === "session-1",
+      sessionManager: {
+        getSession: async () => ({
+          sessionId: "session-1",
+          messageCount: 1,
+          updatedAt: "2026-03-17T00:00:00.000Z",
+          status: "idle",
+          metadata: {
+            last_activity_preview: {
+              state: "running",
+              timestamp: "2026-03-17T00:00:01.000Z",
+              statusText: "正在思考",
+            },
+          },
+        }),
+      } as never,
+    }),
+  });
+
+  const response = await app.request("http://localhost/api/ncp/sessions/session-1");
+  const payload = await response.json() as {
+    data: { status: string; metadata?: { last_activity_preview?: { state?: string; statusText?: string } } };
+  };
+
+  expect(payload.data.status).toBe("running");
+  expect(payload.data.metadata?.last_activity_preview).toMatchObject({
+    state: "running",
+    statusText: "正在思考",
+  });
+});

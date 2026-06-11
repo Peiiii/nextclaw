@@ -51,7 +51,7 @@ describe("runtime config companion updates", () => {
     const configPath = join(tempDir, "config.json");
     saveConfig(ConfigSchema.parse({}), configPath);
 
-    updateRuntime(configPath, {
+    const view = updateRuntime(configPath, {
       agents: {
         runtimes: {
           entries: {
@@ -66,6 +66,7 @@ describe("runtime config companion updates", () => {
                 model: "openai/gpt-5",
                 recommendedModel: "openai/gpt-5",
                 supportedModels: ["openai/gpt-5", "dashscope/qwen3-coder-next"],
+                resetSessionMetadataOnPromptTimeout: ["codex_thread_id"],
               },
             },
           },
@@ -79,6 +80,10 @@ describe("runtime config companion updates", () => {
       model: "openai/gpt-5",
       recommendedModel: "openai/gpt-5",
       supportedModels: ["openai/gpt-5", "dashscope/qwen3-coder-next"],
+      resetSessionMetadataOnPromptTimeout: ["codex_thread_id"],
+    });
+    expect(view.agents.runtimes?.entries?.codex?.config).toMatchObject({
+      resetSessionMetadataOnPromptTimeout: ["codex_thread_id"],
     });
   });
 });

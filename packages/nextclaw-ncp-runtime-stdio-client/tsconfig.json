@@ -5,6 +5,7 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
+      "@/*": ["src/*"],
       "@nextclaw/ncp": ["../ncp-packages/nextclaw-ncp/src/index.ts"],
       "@nextclaw/ncp-http-agent-client": ["../ncp-packages/nextclaw-ncp-http-agent-client/src/index.ts"]
     }

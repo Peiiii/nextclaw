@@ -134,6 +134,7 @@ chmod +x "$NEXTCLAW_HOME/bin/nextclaw-codex-narp"
     "command": "/absolute/NEXTCLAW_HOME/bin/nextclaw-codex-narp",
     "args": [],
     "env": {},
+    "resetSessionMetadataOnPromptTimeout": ["codex_thread_id"],
     "startupTimeoutMs": 10000,
     "probeTimeoutMs": 3000,
     "requestTimeoutMs": 120000

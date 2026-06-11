@@ -23,6 +23,12 @@ const DISPOSE_FIXTURE_PATH = join(
   "dispose-agent.utils.mjs",
 );
 
+const SLOW_CANCEL_FIXTURE_PATH = join(
+  import.meta.dirname,
+  "test-fixtures",
+  "slow-cancel-agent.mjs",
+);
+
 const HERMES_TOOL_TITLE_FIXTURE_PATH = join(
   import.meta.dirname,
   "test-fixtures",
@@ -404,6 +410,61 @@ describe("StdioRuntimeNcpAgentRuntime session metadata bridging", () => {
         },
       },
     });
+  });
+
+  it("emits configured session metadata resets when a prompt times out", async () => {
+    const runtime = new StdioRuntimeNcpAgentRuntime({
+      sessionId: "session-stdio-runtime-timeout-reset",
+      wireDialect: "acp",
+      processScope: "per-session",
+      command: process.execPath,
+      args: [SLOW_CANCEL_FIXTURE_PATH],
+      startupTimeoutMs: 10_000,
+      probeTimeoutMs: 3_000,
+      requestTimeoutMs: 50,
+      resetSessionMetadataOnPromptTimeout: ["codex_thread_id"],
+    });
+
+    const events: NcpEndpointEvent[] = [];
+    try {
+      for await (const event of runtime.run({
+        sessionId: "session-stdio-runtime-timeout-reset",
+        messages: [
+          {
+            id: "user-timeout-reset",
+            sessionId: "session-stdio-runtime-timeout-reset",
+            role: "user",
+            status: "final",
+            timestamp: "2026-06-11T00:00:00.000Z",
+            parts: [{ type: "text", text: "timeout reset" }],
+          },
+        ],
+        correlationId: "corr-timeout-reset",
+        metadata: {
+          codex_thread_id: "thread-stuck-1",
+        },
+      })) {
+        events.push(event);
+      }
+    } finally {
+      await runtime.dispose();
+    }
+
+    const metadataEvent = events.find(
+      (event): event is Extract<NcpEndpointEvent, { type: NcpEventType.RunMetadata }> =>
+        event.type === NcpEventType.RunMetadata,
+    );
+    expect(metadataEvent?.payload).toMatchObject({
+      sessionId: "session-stdio-runtime-timeout-reset",
+      correlationId: "corr-timeout-reset",
+      metadata: {
+        kind: "session_metadata_patch",
+        sessionMetadataPatch: {
+          codex_thread_id: null,
+        },
+      },
+    });
+    expect(events.map((event) => event.type)).toContain(NcpEventType.RunError);
   });
 });
 

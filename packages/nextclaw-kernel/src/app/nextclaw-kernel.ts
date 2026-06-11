@@ -26,7 +26,6 @@ import { AgentRunRuntimeContribution } from "@kernel/contributions/agent-run-run
 import { ContextProviderContribution } from "@kernel/contributions/context-provider/index.js";
 import { ContextWindowContribution } from "@kernel/contributions/context-window/index.js";
 import { LearningLoopContribution } from "@kernel/contributions/learning-loop/index.js";
-import { SessionActivityPreviewContribution } from "@kernel/contributions/session-activity-preview/index.js";
 import { ToolProviderContribution } from "@kernel/contributions/tool-provider/index.js";
 import type { AgentRuntimeSessionTypeDescribeParams } from "@kernel/features/runtime-registry/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
@@ -226,7 +225,6 @@ export class NextclawKernel {
     );
     this.contributions = [
       new ToolProviderContribution(this),
-      new SessionActivityPreviewContribution(this),
       new LearningLoopContribution(this),
       new ContextProviderContribution(this),
       new AgentRunRuntimeContribution(this),

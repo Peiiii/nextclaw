@@ -8,7 +8,6 @@ import { BUILTIN_MAIN_AGENT_ID } from "@nextclaw/core";
 import type {
   ListMessagesOptions,
   ListSessionsOptions,
-  NcpEndpointEvent,
   NcpMessage,
   NcpSessionApi,
   NcpSessionPatch,
@@ -32,7 +31,6 @@ import { createAgentPeerSessionIdentity } from "@kernel/utils/agent-peer-session
 import {
   applyLimit,
   normalizeSessionId,
-  readEventSessionId,
   readOptionalMetadataString,
   readOptionalString,
 } from "@kernel/utils/session-manager.utils.js";
@@ -42,6 +40,7 @@ import {
 } from "@nextclaw/shared";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
+import { SessionEventIngestionService } from "@kernel/services/session-event-ingestion.service.js";
 import { SessionWorkingDirResolver } from "@kernel/services/session-working-dir-resolver.service.js";
 
 type CreateNcpSessionInput = CreateSessionInput & {
@@ -54,7 +53,6 @@ const SESSION_METADATA_LABEL_KEY = "label";
 const CHILD_SESSION_PARENT_METADATA_KEY = "parent_session_id";
 const CHILD_SESSION_REQUEST_METADATA_KEY = "spawned_by_request_id";
 const CHILD_SESSION_LIFECYCLE_METADATA_KEY = "session_lifecycle";
-const SESSION_METADATA_PATCH_RUN_METADATA_KIND = "session_metadata_patch";
 
 export type SessionManagerOptions = {
   agentManager: AgentManager;
@@ -63,10 +61,6 @@ export type SessionManagerOptions = {
   journalStore: NcpAgentSessionJournalStore;
   sessionSearch: SessionSearchService;
 };
-
-function isDurableSessionEvent(event: NcpEndpointEvent): boolean {
-  return event.type !== NcpEventType.ContextWindowUpdated;
-}
 
 function readThinkingEffort(metadata: Record<string, unknown> | undefined): ThinkingEffort | null {
   return readOptionalMetadataString(metadata?.thinkingEffort) ?? null;
@@ -191,32 +185,24 @@ function isSessionSummaryRefreshEvent(event: NcpAgentSessionJournalReplayEvent):
   }
 }
 
-function readRuntimeSessionMetadataPatch(
-  event: NcpEndpointEvent,
-): Record<string, unknown> | null {
-  if (event.type !== NcpEventType.RunMetadata) {
-    return null;
-  }
-  const metadata = event.payload.metadata;
-  if (
-    metadata.kind !== SESSION_METADATA_PATCH_RUN_METADATA_KIND ||
-    !metadata.sessionMetadataPatch ||
-    typeof metadata.sessionMetadataPatch !== "object" ||
-    Array.isArray(metadata.sessionMetadataPatch)
-  ) {
-    return null;
-  }
-  const patch = metadata.sessionMetadataPatch as Record<string, unknown>;
-  return Object.keys(patch).length > 0 ? structuredClone(patch) : null;
-}
-
 export class SessionManager implements NcpSessionApi {
   readonly cleanups: Array<() => void> = [];
   private readonly contextWindowPreview: ContextWindowPreviewManager;
+  private readonly eventIngestion: SessionEventIngestionService;
   private readonly workingDirResolver: SessionWorkingDirResolver;
   private started = false;
 
   constructor(private readonly options: SessionManagerOptions) {
+    this.eventIngestion = new SessionEventIngestionService({
+      appendSessionEvent: (params) => this.appendSessionEvent(params),
+      getSessionRecord: (sessionId) => this.getSessionRecord(sessionId),
+      onError: (sessionId, error) => {
+        const message = error instanceof Error ? error.stack ?? error.message : String(error);
+        console.error(`[session-manager] failed to handle ncp event for ${sessionId}: ${message}`);
+      },
+      updateSessionMetadata: (sessionId, metadata) =>
+        this.updateSessionMetadata(sessionId, metadata),
+    });
     this.contextWindowPreview = new ContextWindowPreviewManager(options.agentManager);
     this.workingDirResolver = new SessionWorkingDirResolver(options.agentManager);
   }
@@ -226,27 +212,14 @@ export class SessionManager implements NcpSessionApi {
       return;
     }
     this.started = true;
-    this.cleanups.push(this.options.eventBus.on(eventKeys.ncpEvent, async (event) => {
-      const sessionId = readEventSessionId(event);
-      if (!sessionId || !isDurableSessionEvent(event)) {
-        return;
-      }
-      const metadataPatch = readRuntimeSessionMetadataPatch(event);
-      if (metadataPatch) {
-        await this.updateSessionMetadata(sessionId, metadataPatch);
-        return;
-      }
-      await this.appendSessionEvent({
-        event,
-        sessionId,
-      });
-    }));
+    this.cleanups.push(this.options.eventBus.on(eventKeys.ncpEvent, this.eventIngestion.handleEvent));
   };
 
   dispose = (): void => {
     while (this.cleanups.length > 0) {
       this.cleanups.pop()?.();
     }
+    this.eventIngestion.clear();
     this.started = false;
   };
 

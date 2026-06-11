@@ -80,6 +80,9 @@ function isWhitelistedSensitivePath(path: string): boolean {
   if (lowerPath.endsWith("runtimeroute.fields.apikey")) {
     return true;
   }
+  if (/^agents\.runtimes\.entries\.[^.]+\.config\.resetsessionmetadataonprompttimeout$/.test(lowerPath)) {
+    return true;
+  }
   return NORMALIZED_SENSITIVE_KEY_WHITELIST_SUFFIXES.some((suffix) => lowerPath.endsWith(suffix));
 }
 

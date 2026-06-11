@@ -174,10 +174,10 @@ type ActionHandler = (
 ) => Promise<ConfigActionExecuteResult>;
 
 function matchesExtraSensitivePath(path: string): boolean {
-  if (path === "session" || path.startsWith("session.")) {
-    return false;
-  }
-  return EXTRA_SENSITIVE_PATH_PATTERNS.some((pattern) => pattern.test(path));
+  return path !== "session" &&
+    !path.startsWith("session.") &&
+    !/^agents\.runtimes\.entries\.[^.]+\.config\.resetSessionMetadataOnPromptTimeout$/.test(path) &&
+    EXTRA_SENSITIVE_PATH_PATTERNS.some((pattern) => pattern.test(path));
 }
 
 function matchHint(path: string, hints: ConfigUiHints): ConfigUiHint | undefined {

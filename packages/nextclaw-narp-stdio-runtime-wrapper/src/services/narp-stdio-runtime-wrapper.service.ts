@@ -286,9 +286,16 @@ export class NarpStdioRuntimeWrapperAgent implements acp.Agent {
 }
 
 export class NarpStdioRuntimeWrapper {
+  private started = false;
+
   constructor(private readonly config: NarpStdioRuntimeWrapperConfig) {}
 
   start = (): void => {
+    if (this.started) {
+      return;
+    }
+    this.started = true;
+    this.bindParentLifecycle();
     const input = Writable.toWeb(process.stdout);
     const output = Readable.toWeb(process.stdin);
     const stream = acp.ndJsonStream(input, output);
@@ -297,6 +304,21 @@ export class NarpStdioRuntimeWrapper {
       (connection) => new NarpStdioRuntimeWrapperAgent(connection, this.config),
       stream,
     );
+  };
+
+  private bindParentLifecycle = (): void => {
+    let shuttingDown = false;
+    const shutdown = (): void => {
+      if (shuttingDown) {
+        return;
+      }
+      shuttingDown = true;
+      process.exitCode = 0;
+      setTimeout(() => process.exit(0), 0).unref();
+    };
+    process.stdin.once("end", shutdown);
+    process.stdin.once("close", shutdown);
+    process.once("disconnect", shutdown);
   };
 }
 
