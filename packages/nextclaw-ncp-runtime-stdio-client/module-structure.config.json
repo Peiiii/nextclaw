@@ -3,6 +3,7 @@
   "protocol": "app-l1",
   "rootPolicy": "contract-only",
   "enforcement": "error",
+  "importAliasPrefixes": ["@stdio-runtime-client/"],
   "allowedRootFiles": [
     "index.ts",
     "stdio-runtime-abort.test.ts",

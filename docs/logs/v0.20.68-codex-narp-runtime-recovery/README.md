@@ -23,6 +23,7 @@
 - 把 activity preview 更新收敛到 `SessionManager` 的 durable NCP event 主链路，并按 session 串行化处理。
 - `run.finished` 没有文本时，从 session journal 的最新 assistant message 补齐 preview `replyText`。
 - stdio client dispose 等待子进程退出，wrapper 在父 stdio 断开时主动退出，减少 orphan process。
+- 后续修正 stdio client 源码运行时的导入合同：将包内 `@/` alias 收敛为 `@stdio-runtime-client/`，并同步 `scripts/dev/dev-runtime.tsconfig.json`，避免 dev 根进程通过 `tsx` 加载源码时把 stdio runtime 内部 alias 当成外部 package 解析并触发 `ERR_MODULE_NOT_FOUND`。
 
 ## 测试/验证/验收方式
 
@@ -34,6 +35,15 @@
 - `pnpm -C packages/nextclaw-ncp-runtime-stdio-client tsc`
 - `pnpm -C packages/nextclaw-narp-stdio-runtime-wrapper test narp-stdio-runtime-wrapper.service.test.ts`
 - `pnpm -C packages/nextclaw-narp-stdio-runtime-wrapper tsc`
+- `pnpm --filter @nextclaw/nextclaw-ncp-runtime-stdio-client exec tsx -e "import('./src/utils/stdio-runtime-input.utils.ts').then(() => console.log('stdio-runtime-input import ok'))"`
+- `pnpm --filter @nextclaw/nextclaw-ncp-runtime-stdio-client tsc`
+- `pnpm --filter @nextclaw/nextclaw-ncp-runtime-stdio-client lint`
+- `pnpm --filter @nextclaw/nextclaw-ncp-runtime-stdio-client test`
+- `pnpm dev`
+  - 结果：通过真实 dev 启动 smoke，backend ready、frontend ready；已手动停止 smoke 进程。
+- `pnpm lint:new-code:governance`
+- `pnpm check:governance-backlog-ratchet`
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ncp-runtime-stdio-client/src/utils/stdio-runtime-input.utils.ts packages/nextclaw-ncp-runtime-stdio-client/tsconfig.json packages/nextclaw-ncp-runtime-stdio-client/vitest.config.ts packages/nextclaw-ncp-runtime-stdio-client/module-structure.config.json scripts/dev/dev-runtime.tsconfig.json`
 - 本地接口验收：清空目标 Codex session 的 `preferredModel`，用 `/api/agent-runs/send` 在不携带 model 的运行时默认条件下发送 `你好`，确认 session 回到 `idle`、最新 assistant message 为 `final`、preview 为 `completed`。
 
 ## 发布/部署方式
@@ -57,6 +67,7 @@
 - 删除旧 `SessionActivityPreviewContribution` 注册入口和对应旁路测试。
 - 由 `SessionManager` 统一负责 journal append、runtime metadata patch 和 activity preview 更新。
 - 为 runtime timeout recovery、preview 完成态补齐、stdio lifecycle 增加定向测试。
+- 将 `nextclaw-ncp-runtime-stdio-client` 的内部别名从 generic `@/` 改为包级 `@stdio-runtime-client/`，让包内 tsconfig、vitest、module-structure 与根 dev-runtime tsconfig 使用同一导入合同。
 
 可维护性风险：
 
@@ -79,4 +90,5 @@
 - `@nextclaw/core`：允许 runtime timeout metadata reset 配置通过公共 config 视图透出。
 - `@nextclaw/server`：stale running preview normalization、runtime config 透传。
 - `@nextclaw/nextclaw-ncp-runtime-stdio-client`：prompt timeout metadata reset、子进程 dispose 等待。
+- `@nextclaw/nextclaw-ncp-runtime-stdio-client`：源码运行时包级 alias 修复，避免 dev 启动阶段模块解析失败。
 - `@nextclaw/nextclaw-narp-stdio-runtime-wrapper`：父 stdio 断开时主动退出。

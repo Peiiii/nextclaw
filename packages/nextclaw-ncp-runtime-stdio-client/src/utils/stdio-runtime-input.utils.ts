@@ -1,5 +1,5 @@
 import type { NcpProviderRuntimeRoute } from "@nextclaw/ncp";
-import { readString } from "@/stdio-runtime-config.utils.js";
+import { readString } from "@stdio-runtime-client/stdio-runtime-config.utils.js";
 
 export function extractPromptText(message: { parts?: Array<{ type: string; text?: string }> }): string {
   const text = (message.parts ?? [])

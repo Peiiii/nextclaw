@@ -10,6 +10,7 @@
       "@codex-narp/*": ["packages/extensions/nextclaw-narp-runtime-codex-sdk/src/*"],
       "@kernel/*": ["packages/nextclaw-kernel/src/*"],
       "@narp-stdio-wrapper/*": ["packages/nextclaw-narp-stdio-runtime-wrapper/src/*"],
+      "@stdio-runtime-client/*": ["packages/nextclaw-ncp-runtime-stdio-client/src/*"],
       "@nextclaw/channel-extension-weixin": ["packages/extensions/nextclaw-channel-extension-weixin/src/index.ts"],
       "@nextclaw/core": ["packages/nextclaw-core/src/index.ts"],
       "@nextclaw-cli/*": ["packages/nextclaw/src/*"],
