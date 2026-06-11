@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { HelpCircle, RefreshCw } from 'lucide-react';
+import { AppWindow, FileCode2, HelpCircle, MessageSquarePlus, RefreshCw } from 'lucide-react';
 import { useAppPresenter } from '@/app/components/app-presenter-provider';
 import { PanelAppListItem } from '@/features/panel-apps/components/panel-app-list-item';
 import { useDeletePanelApp, useGrantPanelAppClient, usePanelApps, useRecordPanelAppOpened, useUpdatePanelAppPreferences } from '@/features/panel-apps/hooks/use-panel-apps';
@@ -9,6 +9,8 @@ import type { PanelAppEntryView } from '@/shared/lib/api';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { t } from '@/shared/lib/i18n';
+
+const EMPTY_PANEL_APP_ENTRIES: PanelAppEntryView[] = [];
 
 export function PanelAppsList({
   headerContent,
@@ -24,9 +26,10 @@ export function PanelAppsList({
   const grantClient = useGrantPanelAppClient();
   const presenter = useAppPresenter();
   const [viewMode, setViewMode] = useState<PanelAppViewMode>('smart');
+  const allEntries = panelApps.data?.entries ?? EMPTY_PANEL_APP_ENTRIES;
   const entries = useMemo(
-    () => getPanelAppViewEntries(panelApps.data?.entries ?? [], viewMode),
-    [panelApps.data?.entries, viewMode],
+    () => getPanelAppViewEntries(allEntries, viewMode),
+    [allEntries, viewMode],
   );
 
   const openPanelApp = async (entry: PanelAppEntryView) => {
@@ -122,8 +125,13 @@ export function PanelAppsList({
           </TabsList>
         </Tabs>
       </div>
-      {entries.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-gray-500">{t('panelAppsEmpty')}</div>
+      {allEntries.length === 0 ? (
+        <PanelAppsEmptyGuide
+          panelsPath={panelApps.data?.panelsPath}
+          onRefresh={() => void panelApps.refetch()}
+        />
+      ) : entries.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-gray-500">{t('panelAppsEmptyFiltered')}</div>
       ) : (
         <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
           <div className="space-y-1.5">
@@ -141,6 +149,75 @@ export function PanelAppsList({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function PanelAppsEmptyGuide({
+  panelsPath,
+  onRefresh,
+}: {
+  panelsPath?: string;
+  onRefresh: () => void;
+}) {
+  return (
+    <div className="flex flex-1 items-center justify-center overflow-y-auto px-5 py-6 text-center">
+      <div className="w-full max-w-sm">
+        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <AppWindow className="h-5 w-5" />
+        </div>
+        <h2 className="mt-3 text-sm font-semibold text-gray-900">{t('panelAppsEmptyTitle')}</h2>
+        <p className="mt-1 text-xs leading-5 text-gray-500">{t('panelAppsEmptyDescription')}</p>
+
+        <div className="mt-4 space-y-2 text-left">
+          <PanelAppsEmptyGuideStep
+            icon={<MessageSquarePlus className="h-4 w-4" />}
+            title={t('panelAppsEmptyAskTitle')}
+            description={t('panelAppsEmptyAskDescription')}
+          />
+          <PanelAppsEmptyGuideStep
+            icon={<FileCode2 className="h-4 w-4" />}
+            title={t('panelAppsEmptyFileTitle')}
+            description={t('panelAppsEmptyFileDescription')}
+          />
+        </div>
+
+        {panelsPath ? (
+          <div className="mt-4 rounded-md bg-gray-50 px-3 py-2 text-left">
+            <div className="text-[11px] font-medium uppercase text-gray-400">{t('panelAppsPanelsPath')}</div>
+            <code className="mt-1 block break-all text-xs text-gray-600">{panelsPath}</code>
+          </div>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={onRefresh}
+          className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          {t('panelAppsRefresh')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PanelAppsEmptyGuideStep({
+  description,
+  icon,
+  title,
+}: {
+  description: string;
+  icon: ReactNode;
+  title: string;
+}) {
+  return (
+    <div className="flex gap-2 rounded-md bg-gray-50 px-3 py-2.5">
+      <div className="mt-0.5 text-gray-500">{icon}</div>
+      <div className="min-w-0">
+        <div className="text-xs font-medium text-gray-800">{title}</div>
+        <div className="mt-0.5 text-xs leading-5 text-gray-500">{description}</div>
+      </div>
     </div>
   );
 }
