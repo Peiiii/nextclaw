@@ -25,6 +25,7 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 - Prefer the repo release flow; do not publish from package folders with raw `npm publish`.
 - Before any publish attempt, verify npm auth with the same npm config source that the publish command will use. If publishing from a temp worktree or copied checkout, first check whether the project root has a private `.npmrc`; when it does, run publish and post-publish registry/install verification with `NPM_CONFIG_USERCONFIG=<project-root>/.npmrc` instead of assuming the user-level npm login is the source of truth.
 - A published `nextclaw` package must include `resources/update-bundle-public.pem`.
+- Publishing, build, and verification commands must not leave generated artifacts in the active worktree. After release commands finish, run `git status --short`; every generated change must either be intentionally committed as part of the release record or removed/restored before final response.
 - The published package must include both launcher and app runtime entries:
   - `dist/cli/launcher/index.js`
   - `dist/cli/app/index.js`
@@ -71,6 +72,11 @@ Never justify a single-package `nextclaw` release only because `packages/nextcla
    - `pnpm release:verify:published`
    - `npm view nextclaw dist-tags --json`
    - For a first publish of a scoped standalone package, an immediate `npm view` or `npm install` may briefly return 404 after a successful publish. Retry with the same npm config used for publish before declaring failure; do not rerun publish unless registry verification proves the version is absent after propagation.
+7. Close generated artifacts:
+   - Run `git status --short` in every worktree used for release or verification.
+   - If release commands refreshed tracked publish assets such as `packages/nextclaw/ui-dist`, decide explicitly whether they are part of the release record.
+   - Commit intended release artifacts before final response; restore tracked drift and remove untracked generated files when they are only local build hash churn.
+   - Never leave dirty generated publish assets for the user to notice after a claimed release closeout.
 
 ## Branch And Source Closure
 - If publishing from a temporary worktree, release branch, detached HEAD, or any branch other than the user's current target branch, do not close after registry verification alone.
@@ -169,6 +175,7 @@ For split download/apply smoke tests, do not run plain `nextclaw update --channe
 - The runtime update workflow finished successfully.
 - The public manifest URL shows the expected version and compatibility floor.
 - A real `nextclaw@beta` or stable install can check, download, and apply without custom manifest URL or public key env vars.
+- Every release/target worktree used in the task is clean, or the final response explicitly names a user-owned WIP that was intentionally preserved. Generated artifacts from the release itself are never left dirty: they are either committed or cleaned.
 - Final release notes must include:
   - NPM package version
   - dist-tag
