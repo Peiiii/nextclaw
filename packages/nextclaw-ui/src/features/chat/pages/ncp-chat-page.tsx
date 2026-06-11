@@ -30,6 +30,23 @@ import { isNcpChatRuntimeBlocked, resolveNcpChatSendErrorMessage } from "@/featu
 import { useUiShowContentEvent } from "@/features/chat/features/ncp/hooks/use-ui-show-content-event";
 import { readNcpContextWindowValue } from "@/features/chat/features/session/utils/ncp-session-context-metadata.utils";
 
+function useChatDraftIntentConsumer() {
+  const appPresenter = useAppPresenter();
+  const presenter = usePresenter();
+  useEffect(() => {
+    const applyIntent = (intent: { id: number; prompt: string }) => {
+      presenter.startAgentCreationDraft(intent.prompt);
+      appPresenter.chatDraftIntentManager.markConsumed(intent.id);
+    };
+    const unsubscribe = appPresenter.chatDraftIntentManager.subscribe(applyIntent);
+    const pendingIntent = appPresenter.chatDraftIntentManager.consumePending();
+    if (pendingIntent) {
+      applyIntent(pendingIntent);
+    }
+    return unsubscribe;
+  }, [appPresenter, presenter]);
+}
+
 function useNcpChatRouteSelection() {
   const { sessionId: routeSessionIdParam } = useParams<{ sessionId?: string }>();
   const routeSessionKey = useMemo(
@@ -170,6 +187,7 @@ function NcpChatPageContent({ view }: ChatPageProps) {
     syncRouteSessionSelection:
       presenter.chatSessionListManager.syncRouteSessionSelection,
   });
+  useChatDraftIntentConsumer();
   useUiShowContentEvent();
   useChatRunSnapshotSync({
     agent,

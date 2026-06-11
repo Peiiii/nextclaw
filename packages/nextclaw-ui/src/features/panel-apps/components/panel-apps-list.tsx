@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { AppWindow, FileCode2, HelpCircle, MessageSquarePlus, RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAppPresenter } from '@/app/components/app-presenter-provider';
 import { PanelAppListItem } from '@/features/panel-apps/components/panel-app-list-item';
 import { useDeletePanelApp, useGrantPanelAppClient, usePanelApps, useRecordPanelAppOpened, useUpdatePanelAppPreferences } from '@/features/panel-apps/hooks/use-panel-apps';
@@ -25,6 +26,7 @@ export function PanelAppsList({
   const recordOpened = useRecordPanelAppOpened();
   const grantClient = useGrantPanelAppClient();
   const presenter = useAppPresenter();
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<PanelAppViewMode>('smart');
   const allEntries = panelApps.data?.entries ?? EMPTY_PANEL_APP_ENTRIES;
   const entries = useMemo(
@@ -72,6 +74,11 @@ export function PanelAppsList({
 
   const deleteEntry = (entry: PanelAppEntryView) => {
     deletePanelApp.mutate(entry.id);
+  };
+
+  const startExamplePanelAppDraft = () => {
+    navigate('/chat');
+    presenter.chatDraftIntentManager.requestDraft(t('panelAppsExamplePrompt'));
   };
 
   if (panelApps.isLoading) {
@@ -128,6 +135,7 @@ export function PanelAppsList({
       {allEntries.length === 0 ? (
         <PanelAppsEmptyGuide
           panelsPath={panelApps.data?.panelsPath}
+          onCreateExample={startExamplePanelAppDraft}
           onRefresh={() => void panelApps.refetch()}
         />
       ) : entries.length === 0 ? (
@@ -154,9 +162,11 @@ export function PanelAppsList({
 }
 
 function PanelAppsEmptyGuide({
+  onCreateExample,
   panelsPath,
   onRefresh,
 }: {
+  onCreateExample: () => void;
   panelsPath?: string;
   onRefresh: () => void;
 }) {
@@ -174,6 +184,8 @@ function PanelAppsEmptyGuide({
             icon={<MessageSquarePlus className="h-4 w-4" />}
             title={t('panelAppsEmptyAskTitle')}
             description={t('panelAppsEmptyAskDescription')}
+            actionLabel={t('panelAppsEmptyAskAction')}
+            onAction={onCreateExample}
           />
           <PanelAppsEmptyGuideStep
             icon={<FileCode2 className="h-4 w-4" />}
@@ -203,21 +215,46 @@ function PanelAppsEmptyGuide({
 }
 
 function PanelAppsEmptyGuideStep({
+  actionLabel,
   description,
   icon,
+  onAction,
   title,
 }: {
+  actionLabel?: string;
   description: string;
   icon: ReactNode;
+  onAction?: () => void;
   title: string;
 }) {
-  return (
-    <div className="flex gap-2 rounded-md bg-gray-50 px-3 py-2.5">
+  const content = (
+    <>
       <div className="mt-0.5 text-gray-500">{icon}</div>
       <div className="min-w-0">
         <div className="text-xs font-medium text-gray-800">{title}</div>
         <div className="mt-0.5 text-xs leading-5 text-gray-500">{description}</div>
+        {actionLabel ? (
+          <div className="mt-2 text-xs font-medium text-primary">{actionLabel}</div>
+        ) : null}
       </div>
+    </>
+  );
+
+  if (onAction) {
+    return (
+      <button
+        type="button"
+        onClick={onAction}
+        className="flex w-full gap-2 rounded-md bg-gray-50 px-3 py-2.5 text-left transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex gap-2 rounded-md bg-gray-50 px-3 py-2.5">
+      {content}
     </div>
   );
 }

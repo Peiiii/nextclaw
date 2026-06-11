@@ -20,15 +20,25 @@ const mocks = vi.hoisted(() => ({
     title: string;
     updatedAt: string;
   }>,
+  navigate: vi.fn(),
   refetchPanelApps: vi.fn(),
+  requestDraft: vi.fn(),
 }));
 
 vi.mock('@/app/components/app-presenter-provider', () => ({
   useAppPresenter: () => ({
+    chatDraftIntentManager: {
+      requestDraft: mocks.requestDraft,
+    },
     serviceActionAuthorizationManager: {
       requestAuthorization: vi.fn(async () => true),
     },
   }),
+}));
+
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom') as object),
+  useNavigate: () => mocks.navigate,
 }));
 
 vi.mock('@/features/panel-apps/hooks/use-panel-apps', () => ({
@@ -81,7 +91,9 @@ function createPanelAppEntry(overrides: Partial<(typeof mocks.entries)[number]> 
 describe('PanelAppsList', () => {
   beforeEach(() => {
     mocks.entries = [];
+    mocks.navigate.mockReset();
     mocks.refetchPanelApps.mockReset();
+    mocks.requestDraft.mockReset();
   });
 
   it('shows first-use guidance when no panel apps exist', async () => {
@@ -96,6 +108,17 @@ describe('PanelAppsList', () => {
     await user.click(screen.getAllByRole('button', { name: 'Refresh panel apps' }).at(-1)!);
 
     expect(mocks.refetchPanelApps).toHaveBeenCalledTimes(1);
+  });
+
+  it('fills a sample panel app prompt from first-use guidance', async () => {
+    const user = userEvent.setup();
+
+    render(<PanelAppsList onOpenPanelApp={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: /Create sample panel app/ }));
+
+    expect(mocks.requestDraft).toHaveBeenCalledWith(expect.stringContaining('personal task board'));
+    expect(mocks.navigate).toHaveBeenCalledWith('/chat');
   });
 
   it('shows a filtered empty state instead of first-use guidance when apps exist', async () => {

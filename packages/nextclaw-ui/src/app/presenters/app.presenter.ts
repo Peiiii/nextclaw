@@ -1,4 +1,5 @@
 import { AccountManager } from '@/features/account';
+import { ChatDraftIntentManager } from '@/features/chat';
 import { PanelAppBridgeManager } from '@/features/panel-apps';
 import { RightPanelResourceRouteResolver } from '@/features/right-panel-resources';
 import { RemoteAccessManager } from '@/features/remote';
@@ -11,6 +12,7 @@ export class AppPresenter {
   rightPanelResourceRouteResolver = new RightPanelResourceRouteResolver();
   docBrowserManager = new DocBrowserManager(this.rightPanelResourceRouteResolver);
   sideDockManager = new SideDockManager(this.docBrowserManager);
+  chatDraftIntentManager = new ChatDraftIntentManager();
   serviceActionAuthorizationManager = new ServiceActionAuthorizationManager();
   panelAppBridgeManager = new PanelAppBridgeManager(this.serviceActionAuthorizationManager);
   remoteAccessManager = new RemoteAccessManager({
