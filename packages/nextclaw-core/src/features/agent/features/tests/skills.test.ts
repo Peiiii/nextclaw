@@ -107,6 +107,7 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("Service App 零依赖优先");
     expect(skill).toContain("创建或修改 Panel App / Service App 后，默认不需要重启 NextClaw 宿主");
     expect(skill).toContain("交付说明不要让用户 restart");
+    expect(skill).toContain('show_content(type="panel_app", placement="inline")');
   });
 
   it("loads the React/Vite Panel App creator builtin skill", () => {

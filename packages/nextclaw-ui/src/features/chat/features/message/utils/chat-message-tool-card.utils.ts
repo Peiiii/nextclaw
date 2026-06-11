@@ -15,6 +15,7 @@ export type ToolCardViewSource = ToolCard & {
   action?: ChatToolPartViewModel["action"];
   fileOperation?: ChatToolPartViewModel["fileOperation"];
   outputData?: unknown;
+  panelApp?: ChatToolPartViewModel["panelApp"];
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -132,6 +133,9 @@ export function buildToolCard(
       : {}),
     ...("fileOperation" in toolCard && toolCard.fileOperation
       ? { fileOperation: toolCard.fileOperation }
+      : {}),
+    ...("panelApp" in toolCard && toolCard.panelApp
+      ? { panelApp: toolCard.panelApp }
       : {}),
   };
 }

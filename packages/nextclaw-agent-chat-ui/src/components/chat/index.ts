@@ -53,6 +53,8 @@ export type {
   ChatFileOperationLineViewModel,
   ChatFileOperationBlockViewModel,
   ChatFileOpenActionViewModel,
+  ChatPanelAppCardViewModel,
+  ChatUiShowContentPlacement,
   ChatUiShowContentPurpose,
   ChatUiShowContentRequest,
   ChatUiShowContentTarget,

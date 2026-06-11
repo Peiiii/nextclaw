@@ -17,6 +17,7 @@ import {
   type ContextCompactionTimelineView,
 } from "@/features/chat/features/session/utils/ncp-session-context-metadata.utils";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
+import { ChatInlinePanelAppCard } from "@/features/chat/features/message/components/chat-inline-panel-app-card";
 import { useI18n } from "@/app/components/i18n-provider";
 import { formatDateTime, t } from "@/shared/lib/i18n";
 
@@ -308,6 +309,9 @@ export function ChatMessageListContainer({
                 agentId={agentId}
                 className="h-4 w-4 shrink-0"
               />
+            )}
+            renderPanelAppCard={(panelApp) => (
+              <ChatInlinePanelAppCard panelApp={panelApp} />
             )}
           />
         ),

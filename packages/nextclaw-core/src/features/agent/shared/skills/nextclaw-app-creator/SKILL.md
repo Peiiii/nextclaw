@@ -115,3 +115,4 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 - Client SDK：只有实际使用 `window.nextclaw.client` 时才声明 `client: true`；首次打开会触发整体授权，授权后 App Client projection 同步可用，接口形状以 `@nextclaw/client-sdk` 导出的 `NextClawAppClient` 为准。
 - 错误提示：区分 bridge 不存在、未授权、Service Action 调用失败、返回结构不符合预期、Agent capability 未声明。
 - 交付说明不要让用户 restart；只有当验证证据明确指向宿主进程自身异常、版本切换或进程崩溃时，才把重启作为异常恢复手段，并说明这是例外不是常规生效步骤。
+- **主动展示结果**：验收通过后，立即用 Service Action 带默认输入跑一次，把真实数据 inline 展示给用户看；有 Panel App 时用 `show_content(type="panel_app", placement="inline")` 打开预览，尤其是天气卡片、计算器、checklist、picker、小 dashboard 这类轻量交互工具。不要等用户问"看看效果"——交付的第一印象是看到跑起来的产物，不是一段文字描述。

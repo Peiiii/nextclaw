@@ -32,6 +32,7 @@ describe('useUiShowContentEvent', () => {
       },
       title: 'Example URL',
       purpose: 'read' as const,
+      placement: undefined,
     };
 
     const rendered = render(

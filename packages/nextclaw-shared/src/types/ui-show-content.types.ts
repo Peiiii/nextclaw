@@ -1,4 +1,5 @@
 export type UiShowContentPurpose = "read" | "preview" | "edit" | "interact";
+export type UiShowContentPlacement = "inline" | "side_panel";
 
 export type UiShowContentTarget =
   | {
@@ -28,4 +29,5 @@ export type UiShowContentEventPayload = {
   target: UiShowContentTarget;
   title: string | undefined;
   purpose: UiShowContentPurpose | undefined;
+  placement: UiShowContentPlacement | undefined;
 };

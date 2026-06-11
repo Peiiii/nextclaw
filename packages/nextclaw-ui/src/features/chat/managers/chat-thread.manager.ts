@@ -296,10 +296,14 @@ export class ChatThreadManager {
       target: payload.target,
       title: payload.title,
       purpose: payload.purpose,
+      placement: payload.placement,
     });
   };
 
   private showContent = async (request: ChatUiShowContentRequest): Promise<void> => {
+    if (request.placement === 'inline') {
+      return;
+    }
     if (request.target.type === 'file') {
       this.openFilePreview({
         path: request.target.payload.path,

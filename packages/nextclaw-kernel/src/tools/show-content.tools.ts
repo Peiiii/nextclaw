@@ -7,6 +7,7 @@ import {
   eventKeys,
   type EventBus,
   type UiShowContentEventPayload,
+  type UiShowContentPlacement,
   type UiShowContentPurpose,
   type UiShowContentTarget,
 } from "@nextclaw/shared";
@@ -17,6 +18,7 @@ type ShowContentRequest = {
   target: UiShowContentTarget;
   title: string | undefined;
   purpose: UiShowContentPurpose | undefined;
+  placement: UiShowContentPlacement | undefined;
 };
 
 type ShowContentEventBus = Pick<EventBus, "emit">;
@@ -66,6 +68,17 @@ function readPurpose(value: unknown): UiShowContentPurpose | undefined {
   throw new Error('purpose must be "read", "preview", "edit", or "interact".');
 }
 
+function readPlacement(value: unknown): UiShowContentPlacement | undefined {
+  const normalized = readOptionalString(value);
+  if (!normalized) {
+    return undefined;
+  }
+  if (normalized === "inline" || normalized === "side_panel") {
+    return normalized;
+  }
+  throw new Error('placement must be "inline" or "side_panel".');
+}
+
 function readPayload(params: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(params.payload)) {
     throw new Error("payload must be an object.");
@@ -93,6 +106,7 @@ function normalizeShowContentArgs(args: unknown): ShowContentRequest {
   const payload = readPayload(params);
   const title = readOptionalString(params.title);
   const purpose = readPurpose(params.purpose);
+  const placement = readPlacement(params.placement);
 
   if (type === "file") {
     return {
@@ -106,6 +120,7 @@ function normalizeShowContentArgs(args: unknown): ShowContentRequest {
       },
       title,
       purpose,
+      placement,
     };
   }
 
@@ -119,6 +134,7 @@ function normalizeShowContentArgs(args: unknown): ShowContentRequest {
       },
       title,
       purpose,
+      placement,
     };
   }
 
@@ -132,6 +148,7 @@ function normalizeShowContentArgs(args: unknown): ShowContentRequest {
       },
       title,
       purpose,
+      placement,
     };
   }
 
@@ -161,12 +178,19 @@ function createShowContentEventPayload(
     target: request.target,
     title: request.title,
     purpose: request.purpose,
+    placement: request.placement,
   };
 }
 
 export class ShowContentTool implements NcpTool {
   readonly name = SHOW_CONTENT_TOOL_NAME;
-  readonly description = "Show file, URL, or panel app content in the current chat UI.";
+  readonly description = [
+    "Show file, URL, or panel app content in the current chat UI.",
+    'placement="inline" embeds a lightweight panel_app as an interactive chat card so the user can try it directly in the conversation.',
+    'placement="side_panel" opens content in the right side panel for larger reading, editing, or sustained workflows.',
+    'Choose the placement yourself: after creating a lightweight Panel App such as a weather card, calculator, timer, checklist, picker, form, preview, or small dashboard, call this tool with placement="inline" without waiting for the user to ask to see it.',
+    "Omit placement only when preserving the existing default side panel behavior is intentional.",
+  ].join(" ");
   readonly parameters = {
     type: "object",
     properties: {
@@ -183,6 +207,11 @@ export class ShowContentTool implements NcpTool {
         type: "string",
         enum: ["read", "preview", "edit", "interact"],
         description: "Optional user intent for the content.",
+      },
+      placement: {
+        type: "string",
+        enum: ["inline", "side_panel"],
+        description: 'Optional display placement. "inline" embeds a lightweight panel app as an interactive chat card; "side_panel" opens it in the right panel for larger workflows. Choose the appropriate placement yourself; defaults to the existing side panel behavior when omitted.',
       },
       payload: {
         type: "object",

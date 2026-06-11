@@ -176,6 +176,7 @@ description: Use when implementing, refactoring, or designing source-level contr
 - 调整导航、侧边栏、菜单或入口时，默认保留既有可用入口和用户已接受的命名；除非用户明确要求删除或改名，否则只能新增/合并入口，不能顺手移除顶栏入口或擅自换标签；改完必须核对同一组既有入口，避免只恢复一个入口却漏掉相邻入口。
 - 前端用户可见文案必须放进所属 i18n 文案 owner，并由组件通过 `t(...)` 或现有 translator 消费；禁止用 `language.startsWith(...)`、`isZh ? ... : ...`、内联 `{ zh, en }` 对象、组件局部文案表等方式临时处理国际化。只有纯协议字段、品牌名、外部专有名词或明确不翻译的技术标识可以直接写字面量。
 - 前端基础组件必须保持纯展示、业务无关，并优先放在 shared UI owner；如果组件需要业务 store/query、业务 manager、业务 i18n key、路由或领域状态机，它应留在 feature 层并组合基础组件，不应伪装成通用组件。
+- 新增或改造 UI surface 时，先按文件角色拆开再验证：组件文件主要承载渲染、hook 连接和事件绑定；无状态构造、匹配、URL/target/tab 构造、协议字段映射应放进同 feature 的 `utils/*.utils.ts`；共享 UI package 的专用 view 应独立成语义组件文件，不要把新 surface 塞进已有大 view 集合文件里。
 
 目录结构不清时联动 `collapsible-feature-root-architecture`。  
 角色和命名不清时联动 `role-first-file-organization` 与 `file-naming-convention`。

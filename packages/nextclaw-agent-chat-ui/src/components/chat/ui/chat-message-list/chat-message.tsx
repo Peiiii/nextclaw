@@ -1,11 +1,12 @@
 import { memo, type ReactNode } from "react";
 import type {
   ChatFileOpenActionViewModel,
+  ChatPanelAppCardViewModel,
   ChatMessageTexts,
   ChatToolActionViewModel,
   ChatMessageViewModel,
-} from "../../view-models/chat-ui.types";
-import { cn } from "../../internal/cn";
+} from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
+import { cn } from "@agent-chat-ui/components/chat/internal/cn";
 import { ChatMessageMarkdown } from "./chat-message-markdown";
 import { ChatMessageInlineContent } from "./chat-message-inline-content";
 import { ChatMessageFile } from "./chat-message-file";
@@ -26,10 +27,11 @@ type ChatMessageProps = {
   onToolAction?: (action: ChatToolActionViewModel) => void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
   renderToolAgent?: (agentId: string) => ReactNode;
+  renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
 };
 
 export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
-  const { message, texts, onToolAction, onFileOpen, renderToolAgent } = props;
+  const { message, texts, onToolAction, onFileOpen, renderToolAgent, renderPanelAppCard } = props;
   const { role } = message;
   const isUser = role === "user";
   const isMessageInProgress =
@@ -93,6 +95,7 @@ export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
                   onToolAction={onToolAction}
                   onFileOpen={onFileOpen}
                   renderToolAgent={renderToolAgent}
+                  renderPanelAppCard={renderPanelAppCard}
                 />
               </div>
             );

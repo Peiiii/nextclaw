@@ -39,6 +39,7 @@ export type {
 } from "./types/typed-key.types.js";
 export type {
   UiShowContentEventPayload,
+  UiShowContentPlacement,
   UiShowContentPurpose,
   UiShowContentTarget,
 } from "./types/ui-show-content.types.js";

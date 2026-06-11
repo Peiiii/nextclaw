@@ -219,6 +219,7 @@ export type ChatFileOperationBlockViewModel = {
 };
 
 export type ChatUiShowContentPurpose = "read" | "preview" | "edit" | "interact";
+export type ChatUiShowContentPlacement = "inline" | "side_panel";
 
 export type ChatUiShowContentTarget =
   | {
@@ -246,6 +247,7 @@ export type ChatUiShowContentRequest = {
   target: ChatUiShowContentTarget;
   title?: string;
   purpose?: ChatUiShowContentPurpose;
+  placement?: ChatUiShowContentPlacement;
 };
 
 export type ChatToolActionViewModel =
@@ -278,6 +280,12 @@ export type ChatFileOpenActionViewModel = {
   fullLines?: ChatFileOperationLineViewModel[];
 };
 
+export type ChatPanelAppCardViewModel = {
+  appId: string;
+  title?: string;
+  action: Extract<ChatToolActionViewModel, { kind: "show-content" }>;
+};
+
 export type ChatToolPartViewModel = {
   kind: "call" | "result";
   toolName: string;
@@ -294,6 +302,7 @@ export type ChatToolPartViewModel = {
   outputLabel: string;
   emptyLabel: string;
   action?: ChatToolActionViewModel;
+  panelApp?: ChatPanelAppCardViewModel;
   fileOperation?: {
     blocks: ChatFileOperationBlockViewModel[];
   };
@@ -392,4 +401,5 @@ export type ChatMessageListProps = {
   onToolAction?: (action: ChatToolActionViewModel) => void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
   renderToolAgent?: (agentId: string) => ReactNode;
+  renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
 };

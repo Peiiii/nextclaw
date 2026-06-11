@@ -6,6 +6,7 @@ import {
   createPanelAppResourceUri,
   createPanelAppRightPanelResourceTarget,
 } from '@/features/right-panel-resources';
+import { findPanelAppEntryByDisplayId } from '@/features/panel-apps';
 import type { DocBrowserManager } from '@/shared/components/doc-browser/managers/doc-browser.manager';
 import { nextclawClient, type PanelAppEntryView } from '@/shared/lib/api';
 
@@ -25,11 +26,6 @@ type ChatUiActions = {
 type ChatUiDisplayContentTarget = Extract<ChatUiShowContentRequest['target'], { type: 'url' | 'panel_app' }>;
 
 const noopConfirm: ChatUiActions['confirm'] = async () => false;
-
-function isPanelAppEntryMatch(entry: PanelAppEntryView, value: string): boolean {
-  const normalizedValue = value.trim();
-  return [entry.id, entry.appId, entry.fileName, entry.title].some((candidate) => candidate.trim() === normalizedValue);
-}
 
 export class ChatUiManager {
   private state: ChatUiState = {
@@ -84,7 +80,7 @@ export class ChatUiManager {
       return null;
     }
     try {
-      return (await nextclawClient.panelApps.listPanelApps()).entries.find((entry) => isPanelAppEntryMatch(entry, normalizedValue)) ?? null;
+      return findPanelAppEntryByDisplayId((await nextclawClient.panelApps.listPanelApps()).entries, normalizedValue);
     } catch {
       return null;
     }

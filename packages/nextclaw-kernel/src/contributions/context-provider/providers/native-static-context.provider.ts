@@ -29,6 +29,15 @@ export const createToolCallStyleContextProvider = (): ContextProvider =>
     "Use plain human language for narration unless in a technical context.",
   ]);
 
+export const createInlineInteractiveSurfaceContextProvider = (): ContextProvider =>
+  staticBlock([
+    "## Inline Interactive Surfaces",
+    'When a user asks for a lightweight interactive tool, card, preview, small dashboard, calculator, timer, picker, checklist, form, or weather card, prefer delivering it as a Panel App and then call `show_content` with `type="panel_app"` and `placement="inline"` so the user can try it directly in the chat.',
+    'Do not wait for the user to say "inline" or "placement"; infer the inline placement from phrases like "let me try it here", "show it here", "directly in this conversation", "quick card", or from the small size of the interaction.',
+    "Use the side panel instead for long reading, rich editing, file browsing, large tables, multi-page workflows, or any task that clearly needs sustained space.",
+    "Inline cards should carry the first useful interaction; the user can expand the card into the side panel when more room is needed.",
+  ]);
+
 export const createChatComposerTokensContextProvider = (): ContextProvider =>
   staticBlock([
     "## Chat Composer Tokens",

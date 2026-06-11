@@ -42,6 +42,12 @@ function readPurpose(value: unknown): ChatUiShowContentRequest["purpose"] {
     : undefined;
 }
 
+function readPlacement(value: unknown): ChatUiShowContentRequest["placement"] {
+  return value === "inline" || value === "side_panel"
+    ? value
+    : undefined;
+}
+
 function readShowContentRequest(value: unknown): ChatUiShowContentRequest | null {
   if (!isRecord(value) || !isRecord(value.target)) {
     return null;
@@ -57,6 +63,7 @@ function readShowContentRequest(value: unknown): ChatUiShowContentRequest | null
   }
   const title = readOptionalString(value.title);
   const purpose = readPurpose(value.purpose);
+  const placement = readPlacement(value.placement);
 
   if (targetType === "file") {
     const path = readOptionalString(payload.path);
@@ -74,6 +81,7 @@ function readShowContentRequest(value: unknown): ChatUiShowContentRequest | null
       },
       title,
       purpose,
+      placement,
     };
   }
 
@@ -91,6 +99,7 @@ function readShowContentRequest(value: unknown): ChatUiShowContentRequest | null
       },
       title,
       purpose,
+      placement,
     };
   }
 
@@ -107,6 +116,7 @@ function readShowContentRequest(value: unknown): ChatUiShowContentRequest | null
     },
     title,
     purpose,
+    placement,
   };
 }
 
@@ -147,6 +157,22 @@ export function buildShowContentToolCard(params: {
   if (!request) {
     return null;
   }
+  const sidePanelRequest: ChatUiShowContentRequest = {
+    ...request,
+    placement: "side_panel",
+  };
+  const showContentAction = {
+    kind: "show-content" as const,
+    label: actionLabel,
+    request: sidePanelRequest,
+  };
+  const panelApp = request.target.type === "panel_app" && request.placement === "inline"
+    ? {
+        appId: request.target.payload.appId,
+        title: request.title,
+        action: showContentAction,
+      }
+    : undefined;
   return {
     kind: "result",
     name: SHOW_CONTENT_TOOL_NAME,
@@ -156,10 +182,7 @@ export function buildShowContentToolCard(params: {
     hasResult: true,
     statusTone: "success",
     statusLabel,
-    action: {
-      kind: "show-content",
-      label: actionLabel,
-      request,
-    },
+    action: showContentAction,
+    ...(panelApp ? { panelApp } : {}),
   };
 }

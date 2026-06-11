@@ -109,6 +109,18 @@ describe("ContextProviderContribution native prompt contract", () => {
     const contribution = new ContextProviderContribution({
       contextProviderManager,
       configManager: { loadConfig: () => createConfig(workspace) },
+      agents: {
+        resolveAgentProfileForRun: () => ({
+          builtIn: true,
+          contextTokens: 200000,
+          default: true,
+          displayName: "Main",
+          id: "main",
+          model: "openai/gpt-5",
+          reservedContextTokens: 0,
+          workspace,
+        }),
+      },
       sessionManager: {
         getAgentRunSession: async () => ({
           sessionId: "session-1",
@@ -146,6 +158,9 @@ describe("ContextProviderContribution native prompt contract", () => {
       "You are a personal assistant running inside nextclaw.",
     );
     expect(context).toContain("- read_file: Read file contents");
+    expect(context).toContain("## Inline Interactive Surfaces");
+    expect(context).toContain("weather card");
+    expect(context).toContain('placement="inline"');
     expect(context).toContain("# Project Context");
     expect(context).toContain("# Agent Bootstrap Context");
     expect(context).toContain("Agent bootstrap files loaded:");
@@ -160,6 +175,7 @@ describe("ContextProviderContribution native prompt contract", () => {
       "You are a personal assistant running inside nextclaw.",
       "## Tooling",
       "## Tool Call Style",
+      "## Inline Interactive Surfaces",
       "## Chat Composer Tokens",
       "## Safety",
       "## nextclaw CLI Quick Reference",

@@ -1,12 +1,13 @@
 import { render } from "@testing-library/react";
 import type { NcpMessage } from "@nextclaw/ncp";
 import { beforeEach, expect, it, vi } from "vitest";
-import { ChatMessageListContainer } from "../chat-message-list.container";
+import { ChatMessageListContainer } from "@/features/chat/features/message/components/chat-message-list.container";
 
 const captures = vi.hoisted(() => ({
   renders: [] as Array<{
     messages: unknown[];
     onToolAction?: (action: unknown) => void;
+    renderPanelAppCard?: (panelApp: unknown) => unknown;
     texts?: Record<string, unknown>;
   }>,
   language: "en",
@@ -21,6 +22,7 @@ vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
     ChatMessageList: (props: {
       messages: unknown[];
       onToolAction?: (action: unknown) => void;
+      renderPanelAppCard?: (panelApp: unknown) => unknown;
       texts?: Record<string, unknown>;
     }) => {
       captures.renders.push(props);
@@ -249,6 +251,12 @@ it("delegates tool actions to the chat thread manager owner", () => {
   captures.renders[captures.renders.length - 1]?.onToolAction?.(toolAction);
 
   expect(captures.handleToolAction).toHaveBeenCalledWith(toolAction);
+});
+
+it("passes the inline panel app renderer to the shared chat UI", () => {
+  render(<ChatMessageListContainer messages={[]} isSending={false} />);
+
+  expect(captures.renders[captures.renders.length - 1]?.renderPanelAppCard).toEqual(expect.any(Function));
 });
 
 it("renders context compaction as an in-flow divider instead of a chat message", () => {

@@ -1,10 +1,11 @@
 import type {
   ChatFileOpenActionViewModel,
+  ChatPanelAppCardViewModel,
   ChatToolActionViewModel,
   ChatToolPartViewModel,
-} from '../../view-models/chat-ui.types';
+} from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import type { ReactNode } from 'react';
-import { TerminalExecutionView, FileOperationView, SearchSnippetView, GenericToolCard } from './chat-tool-specialized';
+import { TerminalExecutionView, FileOperationView, SearchSnippetView, GenericToolCard, PanelAppInlineToolCard } from './chat-tool-specialized';
 
 function isTerminalTool(name: string) {
   const lowered = name.toLowerCase();
@@ -26,12 +27,23 @@ export function ChatToolCard({
   onToolAction,
   onFileOpen,
   renderToolAgent,
+  renderPanelAppCard,
 }: {
   card: ChatToolPartViewModel;
   onToolAction?: (action: ChatToolActionViewModel) => void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
   renderToolAgent?: (agentId: string) => ReactNode;
+  renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
 }) {
+  if (card.panelApp) {
+    return (
+      <PanelAppInlineToolCard
+        card={card}
+        onToolAction={onToolAction}
+        renderPanelAppCard={renderPanelAppCard}
+      />
+    );
+  }
   if (isTerminalTool(card.toolName)) {
     return <TerminalExecutionView card={card} />;
   }

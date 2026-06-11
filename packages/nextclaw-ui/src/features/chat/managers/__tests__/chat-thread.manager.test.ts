@@ -483,6 +483,7 @@ describe('ChatThreadManager showContent', () => {
       },
       title: 'Example URL',
       purpose: 'read',
+      placement: undefined,
     });
     await manager.handleUiShowContentEvent({
       id: 'tool:call-show-content-1:show-content',
@@ -495,6 +496,7 @@ describe('ChatThreadManager showContent', () => {
       },
       title: 'Example URL',
       purpose: 'read',
+      placement: undefined,
     });
 
     expect(uiManager.showContent).toHaveBeenCalledTimes(1);
@@ -540,6 +542,34 @@ describe('ChatThreadManager showContent', () => {
       },
       title: 'Reader',
     });
+  });
+
+});
+
+describe('ChatThreadManager inline showContent', () => {
+  it('does not auto-open inline panel app content outside the message card', async () => {
+    const uiManager = createUiManager();
+    const manager = new ChatThreadManager(
+      uiManager,
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      {} as ConstructorParameters<typeof ChatThreadManager>[2],
+    );
+
+    await manager.handleUiShowContentEvent({
+      id: 'tool:call-show-content-inline:show-content',
+      toolCallId: 'call-show-content-inline',
+      target: {
+        type: 'panel_app',
+        payload: {
+          appId: 'reader',
+        },
+      },
+      title: 'Reader',
+      purpose: 'interact',
+      placement: 'inline',
+    });
+
+    expect(uiManager.showContent).not.toHaveBeenCalled();
   });
 });
 

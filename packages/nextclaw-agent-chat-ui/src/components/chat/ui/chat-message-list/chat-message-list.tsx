@@ -84,8 +84,17 @@ function ChatTypingIndicator({ label }: { label: string }) {
   );
 }
 
-export function ChatMessageList(props: ChatMessageListProps) {
-  const visibleMessages = props.messages.filter(hasRenderableMessageContent);
+export function ChatMessageList({
+  className,
+  isSending,
+  messages,
+  onFileOpen,
+  onToolAction,
+  renderPanelAppCard,
+  renderToolAgent,
+  texts,
+}: ChatMessageListProps) {
+  const visibleMessages = messages.filter(hasRenderableMessageContent);
   const hasRenderableAssistantDraft = visibleMessages.some(
     (message) =>
       message.role === 'assistant' &&
@@ -93,7 +102,7 @@ export function ChatMessageList(props: ChatMessageListProps) {
   );
 
   return (
-    <div className={cn('space-y-5', props.className)}>
+    <div className={cn('space-y-5', className)}>
       {visibleMessages.map((message) => {
         const isUser = message.role === 'user';
         const isGenerating = !isUser && (message.status === 'streaming' || message.status === 'pending');
@@ -104,10 +113,11 @@ export function ChatMessageList(props: ChatMessageListProps) {
             <div className={cn('w-fit max-w-[92%] space-y-2', isUser && 'flex flex-col items-end')}>
               <ChatMessage
                 message={message}
-                texts={props.texts}
-                onToolAction={props.onToolAction}
-                onFileOpen={props.onFileOpen}
-                renderToolAgent={props.renderToolAgent}
+                texts={texts}
+                onToolAction={onToolAction}
+                onFileOpen={onFileOpen}
+                renderToolAgent={renderToolAgent}
+                renderPanelAppCard={renderPanelAppCard}
               />
               <div className={cn('flex items-center gap-2', isUser && 'justify-end')}>
                 {isGenerating ? (
@@ -115,7 +125,7 @@ export function ChatMessageList(props: ChatMessageListProps) {
                 ) : (
                   <>
                     <ChatMessageMeta roleLabel={message.roleLabel} timestampLabel={message.timestampLabel} isUser={isUser} />
-                    {!isUser ? <ChatMessageActionCopy message={message} texts={props.texts} /> : null}
+                    {!isUser ? <ChatMessageActionCopy message={message} texts={texts} /> : null}
                   </>
                 )}
               </div>
@@ -125,10 +135,10 @@ export function ChatMessageList(props: ChatMessageListProps) {
         );
       })}
 
-      {props.isSending && !hasRenderableAssistantDraft ? (
+      {isSending && !hasRenderableAssistantDraft ? (
         <div className="flex justify-start gap-3">
           <ChatMessageAvatar role="assistant" />
-          <ChatTypingIndicator label={props.texts.typingLabel} />
+          <ChatTypingIndicator label={texts.typingLabel} />
         </div>
       ) : null}
     </div>
