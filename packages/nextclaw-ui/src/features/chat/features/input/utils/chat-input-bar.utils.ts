@@ -1,5 +1,4 @@
 import type {
-  ChatSelectedItem,
   ChatSkillPickerOption,
   ChatSkillPickerProps,
   ChatSlashItem,
@@ -7,7 +6,6 @@ import type {
 export {
   buildModelStateHint,
   buildModelToolbarSelect,
-  buildSessionTypeToolbarSelect,
   buildThinkingToolbarSelect,
 } from "./chat-input-toolbar.utils";
 import type {
@@ -34,14 +32,6 @@ const SLASH_ITEM_MATCH_SCORE = {
   subsequence: 300,
   fallback: 1
 } as const;
-
-export function resolveSlashQuery(draft: string): string | null {
-  const match = /^\/([^\s]*)$/.exec(draft);
-  if (!match) {
-    return null;
-  }
-  return (match[1] ?? '').trim().toLowerCase();
-}
 
 function normalizeSearchText(value: string | null | undefined): string {
   return (value ?? '').trim().toLowerCase();
@@ -192,20 +182,7 @@ export function buildChatSlashItems(
     }));
 }
 
-export function buildSelectedSkillItems(
-  selectedSkills: string[],
-  skillRecords: ChatSkillRecord[]
-): ChatSelectedItem[] {
-  return selectedSkills.map((spec) => {
-    const matched = skillRecords.find((record) => record.key === spec);
-    return {
-      key: spec,
-      label: matched?.label || spec
-    };
-  });
-}
-
-export function buildSkillPickerOptions(skillRecords: ChatSkillRecord[]): ChatSkillPickerOption[] {
+function buildSkillPickerOptions(skillRecords: ChatSkillRecord[]): ChatSkillPickerOption[] {
   return skillRecords.map((record) => ({
     key: record.key,
     label: record.label,

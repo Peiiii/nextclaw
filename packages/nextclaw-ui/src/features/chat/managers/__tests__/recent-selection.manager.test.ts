@@ -1,22 +1,16 @@
-import { RecentSelectionManager } from '../recent-selection.manager';
+import { RecentSelectionManager } from '@/features/chat/managers/recent-selection.manager';
+import { useRecentSelectionStore } from '@/features/chat/stores/recent-selection.store';
 
 describe('RecentSelectionManager', () => {
   const storageKey = 'test.recent-selection-manager';
-  let storageState: Record<string, string>;
-  let storage: Pick<Storage, 'getItem' | 'setItem'>;
 
   beforeEach(() => {
-    storageState = {};
-    storage = {
-      getItem: (key) => storageState[key] ?? null,
-      setItem: (key, value) => {
-        storageState[key] = value;
-      }
-    };
+    window.localStorage.clear();
+    useRecentSelectionStore.setState({ entriesByKey: {} });
   });
 
   it('stores recent values in LRU order and respects the size limit', () => {
-    const manager = new RecentSelectionManager({ storageKey, limit: 3, storage });
+    const manager = new RecentSelectionManager({ storageKey, limit: 3 });
 
     manager.remember('openai/gpt-5');
     manager.remember('anthropic/claude-sonnet-4');
@@ -31,7 +25,7 @@ describe('RecentSelectionManager', () => {
   });
 
   it('filters recent values by the currently available list and threshold', () => {
-    const manager = new RecentSelectionManager({ storageKey, limit: 4, storage });
+    const manager = new RecentSelectionManager({ storageKey, limit: 4 });
     manager.remember('openai/gpt-5');
     manager.remember('anthropic/claude-sonnet-4');
     manager.remember('missing/model');
@@ -60,9 +54,38 @@ describe('RecentSelectionManager', () => {
   });
 
   it('returns an empty list when storage content is malformed', () => {
-    storageState[storageKey] = '{broken-json';
-    const manager = new RecentSelectionManager({ storageKey, limit: 3, storage });
+    window.localStorage.setItem(storageKey, '{broken-json');
+    const manager = new RecentSelectionManager({ storageKey, limit: 3 });
 
     expect(manager.read()).toEqual([]);
+  });
+
+  it('does not mutate an empty store while reading recent values', () => {
+    const manager = new RecentSelectionManager({ storageKey, limit: 3 });
+
+    expect(manager.read()).toEqual([]);
+    expect(useRecentSelectionStore.getState().entriesByKey).toEqual({});
+  });
+
+  it('keeps namespaced recent values separate from the global list', () => {
+    const manager = new RecentSelectionManager({ storageKey, limit: 3 });
+
+    manager.remember('openai/gpt-5');
+    manager.remember('anthropic/claude-sonnet-4', { namespace: 'codex' });
+    manager.remember('minimax/MiniMax-M2.7', { namespace: 'hermes' });
+    manager.remember('openai/gpt-5.1', { namespace: 'codex' });
+
+    expect(manager.read()).toEqual(['openai/gpt-5']);
+    expect(manager.read({ namespace: 'codex' })).toEqual([
+      'openai/gpt-5.1',
+      'anthropic/claude-sonnet-4'
+    ]);
+    expect(
+      manager.resolveVisible({
+        namespace: 'hermes',
+        availableValues: ['minimax/MiniMax-M2.7', 'openai/gpt-5'],
+        minAvailableCount: 0
+      })
+    ).toEqual(['minimax/MiniMax-M2.7']);
   });
 });

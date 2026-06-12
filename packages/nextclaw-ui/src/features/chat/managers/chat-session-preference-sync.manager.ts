@@ -45,6 +45,7 @@ export class ChatSessionPreferenceSync {
   };
 
   syncInputSelection = (params: {
+    selectedSessionKey?: string | null;
     selectedSessionExists: boolean;
     selectedSessionPreferredModel?: string;
     fallbackPreferredModel?: string;
@@ -56,15 +57,14 @@ export class ChatSessionPreferenceSync {
       defaultModel,
       fallbackPreferredModel,
       fallbackPreferredThinking,
+      selectedSessionKey = null,
       selectedSessionExists,
       selectedSessionPreferredModel,
       selectedSessionPreferredThinking,
     } = params;
     const { snapshot } = useChatInputStore.getState();
     const { modelOptions } = snapshot;
-    const selectedSessionKey = useChatThreadStore.getState().snapshot.sessionKey;
     const sessionChanged = this.previousPreferenceSessionKey !== selectedSessionKey;
-    this.previousPreferenceSessionKey = selectedSessionKey;
     const preserveCurrentPreference = sessionChanged && Boolean(selectedSessionKey) && !selectedSessionExists;
     const selectedModel = resolveSelectedModelValue({
       currentSelectedModel: snapshot.selectedModel,
@@ -88,10 +88,27 @@ export class ChatSessionPreferenceSync {
       preferSessionPreferredThinking: sessionChanged,
       preserveCurrentSelectedThinkingOnSessionChange: preserveCurrentPreference,
     });
+    if (
+      snapshot.selectedModel === selectedModel &&
+      snapshot.selectedThinkingLevel === selectedThinking
+    ) {
+      this.recordSyncedPreferenceSessionKey(selectedSessionKey, selectedSessionExists);
+      return;
+    }
     useChatInputStore.getState().setSnapshot({
       selectedModel,
       selectedThinkingLevel: selectedThinking,
     });
+    this.recordSyncedPreferenceSessionKey(selectedSessionKey, selectedSessionExists);
+  };
+
+  private recordSyncedPreferenceSessionKey = (
+    selectedSessionKey: string | null,
+    selectedSessionExists: boolean,
+  ): void => {
+    if (!selectedSessionKey || selectedSessionExists) {
+      this.previousPreferenceSessionKey = selectedSessionKey;
+    }
   };
 
   private enqueue = (next: QueuedSessionPreferenceSync): void => {

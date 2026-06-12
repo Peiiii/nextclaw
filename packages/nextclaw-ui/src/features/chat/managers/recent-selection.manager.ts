@@ -1,49 +1,51 @@
+import {
+  useRecentSelectionStore,
+  normalizeRecentSelectionList,
+  normalizeRecentSelectionValue,
+  resolveRecentSelectionKey,
+  type RecentSelectionScope,
+} from '@/features/chat/stores/recent-selection.store';
+
 type RecentSelectionManagerOptions = {
   storageKey: string;
   limit: number;
-  storage?: Pick<Storage, 'getItem' | 'setItem'> | null;
 };
 
 type VisibleRecentSelectionParams = {
   availableValues: string[];
   minAvailableCount: number;
   limit?: number;
-};
+} & RecentSelectionScope;
 
 export class RecentSelectionManager {
   constructor(private readonly options: RecentSelectionManagerOptions) {}
 
-  read = (): string[] => {
-    const storage = this.getStorage();
-    if (!storage) {
-      return [];
-    }
-    try {
-      return this.normalizeList(JSON.parse(storage.getItem(this.options.storageKey) ?? '[]'));
-    } catch {
-      return [];
-    }
+  read = (scope: RecentSelectionScope = {}): string[] => {
+    const key = resolveRecentSelectionKey(this.options, scope);
+    return normalizeRecentSelectionList(useRecentSelectionStore.getState().entriesByKey[key], this.options.limit);
   };
 
-  remember = (value: string): string[] => {
-    const normalizedValue = this.normalizeValue(value);
+  remember = (value: string, scope: RecentSelectionScope = {}): string[] => {
+    const normalizedValue = normalizeRecentSelectionValue(value);
     if (!normalizedValue) {
-      return this.read();
+      return this.read(scope);
     }
-    const next = [normalizedValue, ...this.read().filter((item) => item !== normalizedValue)].slice(0, this.options.limit);
-    this.write(next);
+    const key = resolveRecentSelectionKey(this.options, scope);
+    const next = [normalizedValue, ...this.read(scope).filter((item) => item !== normalizedValue)]
+      .slice(0, this.options.limit);
+    useRecentSelectionStore.getState().setEntries(key, next);
     return next;
   };
 
   resolveVisible = (params: VisibleRecentSelectionParams): string[] => {
-    const availableValues = this.normalizeList(params.availableValues, Number.POSITIVE_INFINITY);
+    const availableValues = normalizeRecentSelectionList(params.availableValues, Number.POSITIVE_INFINITY);
     if (availableValues.length <= params.minAvailableCount) {
       return [];
     }
     const availableSet = new Set(availableValues);
     const visible: string[] = [];
     const maxVisibleItems = Math.max(1, params.limit ?? this.options.limit);
-    for (const value of this.read()) {
+    for (const value of this.read(params)) {
       if (!availableSet.has(value) || visible.includes(value)) {
         continue;
       }
@@ -53,53 +55,5 @@ export class RecentSelectionManager {
       }
     }
     return visible;
-  };
-
-  private write = (values: string[]): void => {
-    const storage = this.getStorage();
-    if (!storage) {
-      return;
-    }
-    try {
-      storage.setItem(this.options.storageKey, JSON.stringify(this.normalizeList(values)));
-    } catch {
-      // Ignore storage write failures and keep the runtime behavior deterministic.
-    }
-  };
-
-  private getStorage = (): Storage | null => {
-    if (Object.prototype.hasOwnProperty.call(this.options, 'storage')) {
-      return (this.options.storage as Storage | null | undefined) ?? null;
-    }
-    if (typeof window === 'undefined') {
-      return null;
-    }
-    return window.localStorage;
-  };
-
-  private normalizeList = (values: unknown, limit = this.options.limit): string[] => {
-    if (!Array.isArray(values)) {
-      return [];
-    }
-    const deduped: string[] = [];
-    for (const value of values) {
-      const normalized = this.normalizeValue(value);
-      if (!normalized || deduped.includes(normalized)) {
-        continue;
-      }
-      deduped.push(normalized);
-      if (deduped.length >= limit) {
-        break;
-      }
-    }
-    return deduped;
-  };
-
-  private normalizeValue = (value: unknown): string | null => {
-    if (typeof value !== 'string') {
-      return null;
-    }
-    const normalized = value.trim();
-    return normalized.length > 0 ? normalized : null;
   };
 }

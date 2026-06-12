@@ -55,16 +55,6 @@ export class ChatInputManager {
     private sessionListManager: ChatSessionListManager
   ) {}
 
-  private hasSnapshotChanges = (patch: Partial<ChatInputSnapshot>): boolean => {
-    const current = useChatInputStore.getState().snapshot;
-    for (const [key, value] of Object.entries(patch) as Array<[keyof ChatInputSnapshot, ChatInputSnapshot[keyof ChatInputSnapshot]]>) {
-      if (!Object.is(current[key], value)) {
-        return true;
-      }
-    }
-    return false;
-  };
-
   private resolveUpdateValue = <T>(prev: T, next: SetStateAction<T>): T => {
     if (typeof next === 'function') {
       return (next as (value: T) => T)(prev);
@@ -74,6 +64,16 @@ export class ChatInputManager {
 
   private isSameStringArray = (left: string[], right: string[]): boolean =>
     left.length === right.length && left.every((value, index) => value === right[index]);
+
+  private hasSnapshotChanges = (patch: Partial<ChatInputSnapshot>): boolean => {
+    const current = useChatInputStore.getState().snapshot;
+    for (const [key, value] of Object.entries(patch) as Array<[keyof ChatInputSnapshot, ChatInputSnapshot[keyof ChatInputSnapshot]]>) {
+      if (!Object.is(current[key], value)) {
+        return true;
+      }
+    }
+    return false;
+  };
 
   private isRuntimeBlockedForSend = (): boolean =>
     isNcpChatRuntimeBlocked(systemStatusManager.getStatusView());
@@ -351,6 +351,9 @@ export class ChatInputManager {
 
   selectModel = (value: string) => {
     this.setSelectedModel(value);
+    chatRecentModelsManager.remember(value, {
+      namespace: useChatInputStore.getState().snapshot.selectedSessionType,
+    });
     if (!isRuntimeDefaultModelValue(value)) {
       chatRecentModelsManager.remember(value);
     }

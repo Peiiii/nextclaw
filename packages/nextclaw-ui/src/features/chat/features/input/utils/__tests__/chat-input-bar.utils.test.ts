@@ -1,10 +1,9 @@
 import {
   buildChatSlashItems,
   buildModelToolbarSelect,
-  buildSelectedSkillItems,
   buildSkillPickerModel
-} from '../chat-input-bar.utils';
-import type { ChatSkillRecord } from '../chat-input-bar.utils';
+} from '@/features/chat/features/input/utils/chat-input-bar.utils';
+import type { ChatSkillRecord } from '@/features/chat/features/input/utils/chat-input-bar.utils';
 
 function createSkillRecord(partial: Partial<ChatSkillRecord>): ChatSkillRecord {
   return {
@@ -69,20 +68,6 @@ describe('buildChatSlashItems', () => {
     );
 
     expect(items.map((item) => item.value)).toEqual(['weather', 'web-search', 'docs']);
-  });
-});
-
-describe('buildSelectedSkillItems', () => {
-  it('keeps selected specs and resolves labels when available', () => {
-    const chips = buildSelectedSkillItems(
-      ['web-search', 'missing-skill'],
-      [createSkillRecord({ key: 'web-search', label: 'Web Search' })]
-    );
-
-    expect(chips).toEqual([
-      { key: 'web-search', label: 'Web Search' },
-      { key: 'missing-skill', label: 'missing-skill' }
-    ]);
   });
 });
 

@@ -128,33 +128,6 @@ export function buildModelToolbarSelect({
   };
 }
 
-export function buildSessionTypeToolbarSelect(params: {
-  selectedSessionType?: string;
-  selectedSessionTypeOption: { value: string; label: string } | null;
-  sessionTypeOptions: Array<{ value: string; label: string }>;
-  onValueChange: (value: string) => void;
-  canEditSessionType: boolean;
-  shouldShow: boolean;
-  texts: Pick<ChatInputBarAdapterTexts, "sessionTypePlaceholder">;
-}): ChatToolbarSelect | null {
-  if (!params.shouldShow) {
-    return null;
-  }
-
-  return {
-    key: "session-type",
-    value: params.selectedSessionType,
-    placeholder: params.texts.sessionTypePlaceholder,
-    selectedLabel: params.selectedSessionTypeOption?.label,
-    options: params.sessionTypeOptions.map((option) => ({
-      value: option.value,
-      label: option.label,
-    })),
-    disabled: !params.canEditSessionType,
-    onValueChange: params.onValueChange,
-  };
-}
-
 export function buildThinkingToolbarSelect(params: {
   supportedLevels: ChatThinkingLevel[];
   selectedThinkingLevel: ChatThinkingLevel | null;

@@ -37,7 +37,6 @@ export type ChatInputBarAdapterTexts = {
   modelNoOptionsLabel: string;
   recentModelsLabel: string;
   allModelsLabel: string;
-  sessionTypePlaceholder: string;
   thinkingLabels: Record<ChatThinkingLevel, string>;
   noModelOptionsLabel: string;
   configureProviderLabel: string;

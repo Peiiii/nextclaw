@@ -8,21 +8,11 @@ import { usePresenter } from '@/features/chat/components/providers/chat-presente
 import { useI18n } from '@/app/components/i18n-provider';
 import { useViewportLayout } from '@/app/hooks/use-viewport-layout';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
-import {
-  useNcpChatProviderStateResolved,
-  useNcpChatSelectedSession,
-} from '@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state';
-import { useChatQueryStore } from '@/features/chat/stores/ncp-chat-query.store';
-import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
-import {
-  buildNcpChatProviderModelOptions,
-  filterNcpChatModelOptionsBySessionType,
-} from '@/features/chat/features/ncp/utils/ncp-chat-query-derived.utils';
-import { useChatSessionTypeState } from '@/features/chat/features/session-type/hooks/use-chat-session-type-state';
 import { chatRecentModelsManager, CHAT_RECENT_MODELS_MIN_OPTIONS } from '@/features/chat/managers/chat-recent-models.manager';
 import { chatRecentSkillsManager, CHAT_RECENT_SKILLS_MIN_OPTIONS } from '@/features/chat/managers/chat-recent-skills.manager';
 import { deriveSelectedSkillsFromComposer } from '@/features/chat/features/input/utils/chat-composer-state.utils';
 import { hasNcpChatModelOptions, isNcpChatComposerDisabled, isNcpChatModelOptionsEmpty, isNcpChatModelOptionsLoading, isNcpChatSendDisabled } from '@/features/chat/features/input/utils/ncp-chat-input-availability.utils';
+import { useChatInputBarQueryState } from '@/features/chat/features/input/hooks/use-chat-input-bar-query-state';
 import { useSelectedSessionContextWindowIndicator } from '@/features/chat/features/session/hooks/use-selected-session-context-window-indicator';
 import { useSystemStatus } from '@/features/system-status';
 import { isNcpChatRuntimeBlocked } from '@/features/chat/features/runtime/utils/ncp-chat-runtime-availability.utils';
@@ -30,7 +20,6 @@ import { t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
 
 type ChatInputStoreSnapshot = ReturnType<typeof useChatInputStore.getState>['snapshot'];
-const EMPTY_SESSION_SKILL_RECORDS: SessionSkillEntryView[] = [];
 
 function buildThinkingLabels(): Record<ChatThinkingLevel, string> {
   return {
@@ -222,74 +211,6 @@ function buildSkillPicker(params: { allSkillsLabel: string; isSkillsLoading: boo
   });
 }
 
-function useChatInputBarQueryState(snapshot: ChatInputStoreSnapshot) {
-  const presenter = usePresenter();
-  const selectedSessionKey = useChatSessionListStore(
-    (state) => state.snapshot.selectedSessionKey,
-  );
-  const selectedSession = useNcpChatSelectedSession(selectedSessionKey);
-  const isProviderStateResolved = useNcpChatProviderStateResolved();
-  const config = useChatQueryStore(
-    (state) => state.snapshot.configQuery?.data ?? null,
-  );
-  const providersView = useChatQueryStore(
-    (state) => state.snapshot.providersQuery?.data ?? null,
-  );
-  const templatesView = useChatQueryStore(
-    (state) => state.snapshot.providerTemplatesQuery?.data ?? null,
-  );
-  const sessionTypesData = useChatQueryStore(
-    (state) => state.snapshot.sessionTypesQuery?.data ?? null,
-  );
-  const skillRecords = useChatQueryStore(
-    (state) =>
-      state.snapshot.sessionSkillsQuery?.data?.records ?? EMPTY_SESSION_SKILL_RECORDS,
-  );
-  const isSkillsLoading = useChatQueryStore(
-    (state) =>
-      Boolean(
-        state.snapshot.sessionSkillsQuery?.isLoading ||
-          state.snapshot.sessionSkillsQuery?.isFetching,
-      ),
-  );
-  const sessionTypeState = useChatSessionTypeState({
-    selectedSession,
-    pendingSessionType: snapshot.pendingSessionType,
-    setPendingSessionType: presenter.chatInputManager.setPendingSessionType,
-    sessionTypesData,
-  });
-  const providerModelOptions = useMemo(
-    () =>
-      buildNcpChatProviderModelOptions({
-        config,
-        providersView,
-        templatesView,
-      }),
-    [config, providersView, templatesView],
-  );
-  const modelOptions = useMemo(
-    () =>
-      filterNcpChatModelOptionsBySessionType({
-        modelOptions: providerModelOptions,
-        modelSelectionMode: sessionTypeState.selectedSessionTypeOption?.modelSelectionMode,
-        runtimeDefaultModelLabel: t('chatRuntimeDefaultModel'),
-        supportedModels: sessionTypeState.selectedSessionTypeOption?.supportedModels,
-      }),
-    [
-      providerModelOptions,
-      sessionTypeState.selectedSessionTypeOption?.modelSelectionMode,
-      sessionTypeState.selectedSessionTypeOption?.supportedModels,
-    ],
-  );
-
-  return {
-    isProviderStateResolved,
-    isSkillsLoading,
-    modelOptions,
-    skillRecords,
-  };
-}
-
 export function ChatInputBarContainer() {
   const presenter = usePresenter();
   const { language } = useI18n();
@@ -330,6 +251,44 @@ export function ChatInputBarContainer() {
     ? t('chatStopPreparing')
     : snapshot.stopDisabledReason?.trim() || t('chatStopUnavailable');
   const { handleFilesAdd, handleFileInputChange } = useChatInputBarAttachments({ attachmentSupported, inputBarRef });
+  useEffect(() => {
+    presenter.chatInputManager.syncSnapshot({
+      isProviderStateResolved: inputQueryState.isProviderStateResolved,
+      modelOptions: inputQueryState.modelOptions,
+      skillRecords: inputQueryState.skillRecords,
+      defaultSessionType: inputQueryState.sessionTypeState.defaultSessionType,
+      sessionTypeOptions: inputQueryState.sessionTypeState.sessionTypeOptions,
+      selectedSessionType: inputQueryState.sessionTypeState.selectedSessionType,
+      canEditSessionType: inputQueryState.sessionTypeState.canEditSessionType,
+      sessionTypeUnavailable: inputQueryState.sessionTypeState.sessionTypeUnavailable,
+      sessionTypeUnavailableMessage: inputQueryState.sessionTypeState.sessionTypeUnavailableMessage,
+    });
+    presenter.chatInputManager.syncSessionPreferences({
+      selectedSessionKey: inputQueryState.selectedSessionKey,
+      selectedSessionExists: Boolean(inputQueryState.selectedSession),
+      selectedSessionPreferredModel: inputQueryState.selectedSession?.preferredModel,
+      selectedSessionPreferredThinking: inputQueryState.selectedSession?.preferredThinking ?? null,
+      fallbackPreferredModel: inputQueryState.fallbackPreferredModel,
+      fallbackPreferredThinking: inputQueryState.fallbackPreferredThinking,
+      defaultModel: inputQueryState.defaultModel,
+    });
+  }, [
+    inputQueryState.defaultModel,
+    inputQueryState.fallbackPreferredModel,
+    inputQueryState.fallbackPreferredThinking,
+    inputQueryState.isProviderStateResolved,
+    inputQueryState.modelOptions,
+    inputQueryState.selectedSession,
+    inputQueryState.selectedSessionKey,
+    inputQueryState.sessionTypeState.canEditSessionType,
+    inputQueryState.sessionTypeState.defaultSessionType,
+    inputQueryState.sessionTypeState.selectedSessionType,
+    inputQueryState.sessionTypeState.sessionTypeOptions,
+    inputQueryState.sessionTypeState.sessionTypeUnavailable,
+    inputQueryState.sessionTypeState.sessionTypeUnavailableMessage,
+    inputQueryState.skillRecords,
+    presenter.chatInputManager,
+  ]);
   useEffect(() => {
     const request = snapshot.composerFocusRequest;
     if (!request) {
