@@ -129,6 +129,7 @@
   "chatToolStatusFailed": "Failed",
   "chatToolStatusCancelled": "Cancelled",
   "chatShowContentAction": "Show content",
+  "chatPanelCardExpand": "Expand to side panel",
   "chatReasoning": "Reasoning",
   "chatImageAttachment": "Image attachment",
   "chatFileAttachment": "File attachment",

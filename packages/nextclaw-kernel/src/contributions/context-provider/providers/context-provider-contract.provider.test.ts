@@ -160,6 +160,12 @@ describe("ContextProviderContribution native prompt contract", () => {
     expect(context).toContain("- read_file: Read file contents");
     expect(context).toContain("## Inline Interactive Surfaces");
     expect(context).toContain("weather card");
+    expect(context).toContain("Do not make every UI an inline card");
+    expect(context).toContain("card-first");
+    expect(context).toContain("landscape composition");
+    expect(context).toContain("wider than it is tall");
+    expect(context).toContain("no reliance on document-level internal scrolling");
+    expect(context).toContain("nextclawDisplayMode=card");
     expect(context).toContain('placement="inline"');
     expect(context).toContain("# Project Context");
     expect(context).toContain("# Agent Bootstrap Context");

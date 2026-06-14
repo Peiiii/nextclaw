@@ -66,6 +66,14 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("不要自己生成、缓存或猜测稳定 `sessionId`");
     expect(skill).toContain("窄侧栏优先布局");
     expect(skill).toContain("320px-480px");
+    expect(skill).toContain("Panel Card 体验合同");
+    expect(skill).toContain("不要把普通右侧面板、编辑器、管理页、大表格或多页工作流硬做成卡片");
+    expect(skill).toContain("首屏 `220px-420px` 高度内必须看见核心价值");
+    expect(skill).toContain("横向优先");
+    expect(skill).toContain("宽度大于高度");
+    expect(skill).toContain("设计上不要依赖 document 级内部滚动");
+    expect(skill).toContain("nextclawDisplayMode=card");
+    expect(skill).toContain('show_content(type="panel_app", placement="inline")');
     expect(skill).toContain("新建或重写 Panel App 时只使用目录式 Panel App");
     expect(skill).toContain("panel-app-react-vite-creator");
     expect(skill).toContain("前端工程形态判断");
@@ -107,6 +115,8 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("Service App 零依赖优先");
     expect(skill).toContain("创建或修改 Panel App / Service App 后，默认不需要重启 NextClaw 宿主");
     expect(skill).toContain("交付说明不要让用户 restart");
+    expect(skill).toContain("只有当交付形态已判断为 Panel Card");
+    expect(skill).toContain("普通 Panel App、编辑器、管理页、大表格和多页工作流应使用 side panel");
     expect(skill).toContain('show_content(type="panel_app", placement="inline")');
   });
 

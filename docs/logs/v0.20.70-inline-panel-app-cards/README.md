@@ -20,6 +20,9 @@
 - 同批次 follow-up：将“天气卡片/轻量小工具/做完直接试”等场景的 inline 展示判断写入产品运行时内置 context provider，而不是项目 `.agents/skills`；真实 NextClaw agent 每轮能看到该交付 surface 指引。
 - 同批次 follow-up：产品内置 `nextclaw-app-creator` skill 的主动展示规则改为 `show_content(type="panel_app", placement="inline")`，并通过 core skill loader 测试锁定该合同。
 - 同批次 follow-up：按产品判断收敛掉 `placement: "auto"`，避免把展示责任推给模糊 resolver；AI 应理解 `inline` / `side_panel` 的效果并主动选择。
+- 同批次 follow-up：补充 Panel Card 体验合同，明确不是所有 UI 都应做成 inline card；只有当 AI 已判断产物适合卡片形态时，才必须 card-first 设计，保证首屏核心价值、紧凑布局、无横向滚动、清晰状态和可展开路径。
+- 同批次 follow-up：inline Panel App iframe 不再禁用滚动条，宿主用 `420px` 受限视口 + iframe 自身滚动作为轻量兜底，避免内容底部被静默裁掉；生成规范仍要求 card mode 不把滚动当成默认体验。
+- 同批次 follow-up：Panel Card 生成规范改为横向优先，鼓励“宽度大于高度”的左右分区卡片；窄容器下再自适应折成单列，避免横向溢出。
 - 用户纠偏“拆分文件”后，将 inline iframe 组件、纯 URL/tab/sandbox 构造、panel app entry 匹配和 agent-chat-ui 专用工具卡分别落到独立文件，并把该教训沉淀到 `nextclaw-clean-implementation` skill。
 
 ## 测试/验证/验收方式
@@ -40,6 +43,7 @@
 - `pnpm --filter @nextclaw/ui tsc --noEmit`
 - `pnpm --filter @nextclaw/ui test -- src/features/chat/features/message/components/__tests__/chat-message-list.container.test.tsx src/features/chat/features/message/utils/__tests__/chat-message-show-content-tool-card.utils.test.ts src/features/chat/managers/__tests__/chat-thread.manager.test.ts src/features/chat/features/ncp/hooks/__tests__/use-ui-show-content-event.test.tsx`
 - `pnpm --filter @nextclaw/ui test -- src/features/chat/features/message/utils/__tests__/chat-message-show-content-tool-card.utils.test.ts`
+- `pnpm --filter @nextclaw/ui test -- src/features/chat/features/message/components/__tests__/chat-inline-panel-app-card.test.tsx`
 - `pnpm --filter @nextclaw/ui lint`
 - `pnpm lint:new-code:governance`
 - `pnpm check:governance-backlog-ratchet`
@@ -74,6 +78,10 @@
 - 已将“新增/修改 UI surface 时先做角色化文件拆分”的教训沉淀进 `.agents/skills/nextclaw-clean-implementation/SKILL.md`。
 - 已新增产品运行时 `Inline Interactive Surfaces` context，把“轻量工具完成后应主动 inline 展示”的判断从口头经验沉淀到真实 agent prompt。
 - 已修正一次错误落点：项目 `.agents/skills` 不能影响产品内置 agent 行为；真实落点应是 kernel context provider 与 `@nextclaw/core` 的内置 app creator skill。
+- 已将 inline card 从“展示位置”补充为“条件触发的产品形态”：决定做成 Panel Card 后才启用 card-first 体验合同，普通 Panel App 仍按 side panel / panel-first 设计。
+- 已将 inline Panel App 的主视觉从工具结果 chrome 调整为纯卡片：当宿主提供 card renderer 时直接展示卡片内容，工具 header 只作为缺失 renderer 时的 fallback。
+- 已主动放弃较重的 Panel Card resize 协议与 iframe observer，改用轻量的固定视口 + 展开入口 + iframe 滚动兜底，避免为了第一版体验引入新的跨 iframe 布局协议。
+- 已把“横向优先、窄容器折单列”写入设计文档、内置 Panel App creator skill 和运行时 prompt，而不是只靠口头约定。
 
 `post-edit-maintainability-guard` 已运行，通过但仍提示两个既有结构风险：
 

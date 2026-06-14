@@ -15,8 +15,20 @@ export const PANEL_APP_INLINE_IFRAME_SANDBOX = [
   'allow-presentation',
 ].join(' ');
 
+export const PANEL_APP_INLINE_CARD_MAX_HEIGHT_PX = 420;
+
+const PANEL_APP_INLINE_CARD_SEARCH_PARAMS = {
+  nextclawDisplayMode: 'card',
+  nextclawPlacement: 'inline',
+} as const;
+
 export function createFallbackPanelAppContentPath(appId: string): string {
   return `/api/panel-apps/${encodeURIComponent(appId)}/content`;
+}
+
+export function createInlinePanelAppCardUrl(url: string): string {
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}${new URLSearchParams(PANEL_APP_INLINE_CARD_SEARCH_PARAMS).toString()}`;
 }
 
 export function createInlinePanelAppTab(params: {

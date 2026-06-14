@@ -130,6 +130,31 @@ Panel App 默认打开在 NextClaw 右侧栏里，初始宽度通常较窄；用
 - 不使用固定桌面宽度容器，例如 `width: 960px`；容器应使用 `max-width: 100%`、`min-width: 0`、`box-sizing: border-box`。
 - 验收时至少想象两种宽度：窄侧栏和用户拉宽后的面板。窄侧栏可用性优先于宽屏装饰性。
 
+## Panel Card 体验合同
+
+只有当你已经判断这个 Panel App 适合以内联卡片展示时，才使用本节；不要把普通右侧面板、编辑器、管理页、大表格或多页工作流硬做成卡片。
+
+适合 Panel Card 的形态：
+
+- 天气卡片、汇率卡、计时器、计算器、checklist、picker、短表单、小 preview、小 dashboard。
+- 用户希望“直接试一下”“快速看一下”“在当前对话里操作”，且核心交互能在有限高度内完成。
+
+不适合 Panel Card 的形态：
+
+- 长文档阅读、富文本/代码/Markdown 编辑器、文件浏览器、设置页、复杂管理台、大表格、多页持续工作区。
+
+如果决定做 Panel Card，必须按 card-first 设计：
+
+- 首屏 `220px-420px` 高度内必须看见核心价值，不要让用户先滚动才知道卡片能做什么。
+- 横向优先：默认让信息沿宽度展开，宽度大于高度；常见结构是左侧主结果/核心状态，右侧短列表、次要指标或一个主操作。容器太窄时再折成单列。
+- 禁止横向滚动、固定桌面宽度、大片空白和过高 hero。
+- 设计上不要依赖 document 级内部滚动；允许 dropdown、select、短列表等控件级局部滚动。内容超出时改成摘要 + 展开，而不是把整张卡片设计成滚动页面。宿主可能用 iframe 滚动兜底旧内容，但不要把它当成默认体验。
+- 只保留一个主操作，最多 2-3 个辅助操作；复杂配置、详情和历史记录交给展开后的 side panel。
+- 必须有 loading、empty、error 状态；错误要可读，不要只在 console 里报错。
+- 视觉要像精美卡片：清晰层级、克制色彩、足够留白、稳定高度、数字/状态突出、按钮和输入控件可点击。
+- inline 宿主会在 URL 上追加 `nextclawDisplayMode=card` 和 `nextclawPlacement=inline`；检测到这些参数时，优先渲染 card-first 布局，不要继续使用完整页面布局。
+- 完成后用 `show_content(type="panel_app", placement="inline")` 展示；如果实现过程中发现卡片空间不足，改用 `placement="side_panel"`，不要勉强塞进 inline。
+
 ## Service Actions
 
 本节只说明 Panel App 如何声明和调用已存在或由 `service-app-creator` 设计出的 Service Action；不要在这里发明 Service App action 的 `risk`、`inputSchema`、command 或 server 实现。当前 Panel App 调用 Service Actions 推荐使用 `window.nextclaw.serviceActions.*`；`client.serviceActions.*` 暂时不作为推荐路径，因为它缺少旧 bridge 的授权确认和自动 retry 体验。

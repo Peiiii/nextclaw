@@ -11,7 +11,7 @@ import { Label } from "@/shared/components/ui/label";
 import { NoticeCard } from "@/shared/components/feedback/notice-card";
 import { useRemoteStatus } from "@/features/remote";
 import { formatDateTime, t } from "@/shared/lib/i18n";
-import { useAppPresenter } from "@/app/components/app-presenter-provider";
+import { getAppPresenter } from "@/app/presenters/app.presenter";
 import { useAccountStore } from "@/features/account/stores/account.store";
 import { KeyRound, LogOut, SquareArrowOutUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -175,7 +175,7 @@ function SignedOutAccountSection(props: {
 }
 
 export function AccountPanel() {
-  const presenter = useAppPresenter();
+  const presenter = getAppPresenter();
   const remoteStatus = useRemoteStatus();
   const panelOpen = useAccountStore((state) => state.panelOpen);
   const authSessionId = useAccountStore((state) => state.authSessionId);

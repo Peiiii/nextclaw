@@ -129,6 +129,7 @@
   "chatToolStatusFailed": "失败",
   "chatToolStatusCancelled": "已取消",
   "chatShowContentAction": "展示内容",
+  "chatPanelCardExpand": "展开到侧栏",
   "chatReasoning": "推理过程",
   "chatImageAttachment": "图片附件",
   "chatFileAttachment": "文件附件",
