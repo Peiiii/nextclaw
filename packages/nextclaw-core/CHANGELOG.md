@@ -1,5 +1,18 @@
 # nextclaw-core
 
+## 0.14.5-beta.0
+
+### Patch Changes
+
+- 13b1d96: Fix Codex NARP sessions getting stuck after prompt timeouts and restore completed activity previews.
+- 595cc16: Add inline placement for `show_content` panel app results so chat messages can render lightweight embedded Panel App cards while keeping the existing side-panel expansion path.
+- 5117e15: Clarify that inline Panel Apps are a card-specific delivery form, add landscape-first card experience guidance for built-in app creation prompts, and render inline Panel Apps as pure bounded chat cards with a side-panel expand affordance.
+- d82790a: Expose runtime-default thinking capability through runtime entry configuration and session type listings, persist Codex thread metadata across NARP stdio, and pass session working directories through NCP execution context instead of coupling agent runtimes to NextClaw session state.
+- Updated dependencies
+- Updated dependencies [595cc16]
+  - @nextclaw/feishu-core@0.2.35-beta.0
+  - @nextclaw/shared@0.3.1-beta.0
+
 ## 0.14.4
 
 ### Patch Changes

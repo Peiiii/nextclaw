@@ -1,5 +1,13 @@
 # @nextclaw/shared
 
+## 0.3.1-beta.0
+
+### Patch Changes
+
+- 595cc16: Add inline placement for `show_content` panel app results so chat messages can render lightweight embedded Panel App cards while keeping the existing side-panel expansion path.
+- Updated dependencies [d82790a]
+  - @nextclaw/ncp@0.6.4-beta.0
+
 ## 0.3.0
 
 ### Minor Changes

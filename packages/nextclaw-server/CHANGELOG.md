@@ -1,5 +1,22 @@
 # nextclaw-server
 
+## 0.14.5-beta.0
+
+### Patch Changes
+
+- 13b1d96: Fix Codex NARP sessions getting stuck after prompt timeouts and restore completed activity previews.
+- d82790a: Expose runtime-default thinking capability through runtime entry configuration and session type listings, persist Codex thread metadata across NARP stdio, and pass session working directories through NCP execution context instead of coupling agent runtimes to NextClaw session state.
+- Updated dependencies
+- Updated dependencies [13b1d96]
+- Updated dependencies [595cc16]
+- Updated dependencies [5117e15]
+- Updated dependencies [d82790a]
+  - @nextclaw/mcp@0.2.15-beta.0
+  - @nextclaw/runtime@0.3.15-beta.0
+  - @nextclaw/kernel@0.5.1-beta.0
+  - @nextclaw/core@0.14.5-beta.0
+  - @nextclaw/ncp@0.6.4-beta.0
+
 ## 0.14.4
 
 ### Patch Changes

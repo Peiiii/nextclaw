@@ -63,5 +63,16 @@
     "@nextclaw/marketplace-api-worker": "0.0.1",
     "@nextclaw/provider-gateway-api-worker": "0.0.1"
   },
-  "changesets": []
+  "changesets": [
+    "auto-release-batch-20260615180356759",
+    "chat-context-window-indicator",
+    "chat-runtime-model-preference",
+    "codex-narp-runtime-recovery",
+    "inline-panel-app-cards",
+    "ncp-think-tags-default",
+    "panel-app-empty-guide",
+    "panel-card-experience-contract",
+    "runtime-default-thinking",
+    "stdio-runtime-source-alias"
+  ]
 }

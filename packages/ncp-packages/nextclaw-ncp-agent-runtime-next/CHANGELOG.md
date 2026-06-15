@@ -1,5 +1,15 @@
 # @nextclaw/ncp-agent-runtime-next
 
+## 0.0.17-beta.0
+
+### Patch Changes
+
+- b7fb4ab: Normalize `<think>` tagged model output into structured reasoning by default for native NCP runtime sessions, while preserving explicit opt-out with `reasoningNormalizationMode: "off"`.
+- Updated dependencies
+- Updated dependencies [d82790a]
+  - @nextclaw/ncp-agent-runtime@0.3.45-beta.0
+  - @nextclaw/ncp@0.6.4-beta.0
+
 ## 0.0.16
 
 ### Patch Changes

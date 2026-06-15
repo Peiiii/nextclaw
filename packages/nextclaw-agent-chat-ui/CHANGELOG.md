@@ -1,5 +1,12 @@
 # @nextclaw/agent-chat-ui
 
+## 0.5.1-beta.0
+
+### Patch Changes
+
+- 595cc16: Add inline placement for `show_content` panel app results so chat messages can render lightweight embedded Panel App cards while keeping the existing side-panel expansion path.
+- 5117e15: Clarify that inline Panel Apps are a card-specific delivery form, add landscape-first card experience guidance for built-in app creation prompts, and render inline Panel Apps as pure bounded chat cards with a side-panel expand affordance.
+
 ## 0.5.0
 
 ### Minor Changes

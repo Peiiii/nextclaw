@@ -1,5 +1,46 @@
 # @nextclaw/aigen
 
+## 0.1.6-beta.0
+
+### Patch Changes
+
+- Auto-generated full public beta release batch.
+
+  Packages:
+  - @nextclaw/agent-chat
+  - @nextclaw/aigen
+  - @nextclaw/app-runtime
+  - @nextclaw/app-sdk
+  - @nextclaw/browser-connector
+  - @nextclaw/channel-extension-dingtalk
+  - @nextclaw/channel-extension-discord
+  - @nextclaw/channel-extension-email
+  - @nextclaw/channel-extension-feishu
+  - @nextclaw/channel-extension-qq
+  - @nextclaw/channel-extension-slack
+  - @nextclaw/channel-extension-telegram
+  - @nextclaw/channel-extension-wecom
+  - @nextclaw/channel-extension-weixin
+  - @nextclaw/channel-extension-whatsapp
+  - @nextclaw/client-sdk
+  - @nextclaw/companion
+  - @nextclaw/extension-sdk
+  - @nextclaw/feishu-core
+  - @nextclaw/mcp
+  - @nextclaw/ncp-agent-runtime
+  - @nextclaw/ncp-http-agent-client
+  - @nextclaw/ncp-http-agent-server
+  - @nextclaw/ncp-mcp
+  - @nextclaw/ncp-react
+  - @nextclaw/ncp-react-ui
+  - @nextclaw/nextclaw-hermes-acp-bridge
+  - @nextclaw/nextclaw-ncp-runtime-adapter-hermes-http
+  - @nextclaw/nextclaw-ncp-runtime-http-client
+  - @nextclaw/remote
+  - @nextclaw/runtime
+  - @nextclaw/service
+  - nextclaw
+
 ## 0.1.5
 
 ### Patch Changes

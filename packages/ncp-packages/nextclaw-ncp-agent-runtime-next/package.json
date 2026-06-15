@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/ncp-agent-runtime-next",
-  "version": "0.0.16",
+  "version": "0.0.17-beta.0",
   "private": false,
   "description": "Next-generation NCP agent runtime implementation for review before replacing @nextclaw/ncp-agent-runtime.",
   "type": "module",

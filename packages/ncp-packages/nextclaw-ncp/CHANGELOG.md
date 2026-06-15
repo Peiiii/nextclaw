@@ -1,5 +1,11 @@
 # @nextclaw/ncp
 
+## 0.6.4-beta.0
+
+### Patch Changes
+
+- d82790a: Expose runtime-default thinking capability through runtime entry configuration and session type listings, persist Codex thread metadata across NARP stdio, and pass session working directories through NCP execution context instead of coupling agent runtimes to NextClaw session state.
+
 ## 0.6.3
 
 ### Patch Changes

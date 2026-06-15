@@ -1,5 +1,28 @@
 # @nextclaw/ui
 
+## 0.14.1-beta.0
+
+### Patch Changes
+
+- afab873: Fix the chat context window indicator so it resets on session switches and appears whenever the active thread has context window metadata.
+- 5cadd07: Fix chat model preference resolution so new draft sessions remember the recent model per runtime while historical sessions keep their own bound model selection.
+- 595cc16: Add inline placement for `show_content` panel app results so chat messages can render lightweight embedded Panel App cards while keeping the existing side-panel expansion path.
+- 4602651: Add first-use guidance to the Panel Apps empty state, including a sample prompt action that opens chat and drafts a starter panel app request.
+- 5117e15: Clarify that inline Panel Apps are a card-specific delivery form, add landscape-first card experience guidance for built-in app creation prompts, and render inline Panel Apps as pure bounded chat cards with a side-panel expand affordance.
+- d82790a: Expose runtime-default thinking capability through runtime entry configuration and session type listings, persist Codex thread metadata across NARP stdio, and pass session working directories through NCP execution context instead of coupling agent runtimes to NextClaw session state.
+- Updated dependencies
+- Updated dependencies [595cc16]
+- Updated dependencies [5117e15]
+- Updated dependencies [d82790a]
+  - @nextclaw/agent-chat@0.2.14-beta.0
+  - @nextclaw/client-sdk@0.4.4-beta.0
+  - @nextclaw/ncp-http-agent-client@0.3.46-beta.0
+  - @nextclaw/ncp-react@0.4.54-beta.0
+  - @nextclaw/agent-chat-ui@0.5.1-beta.0
+  - @nextclaw/shared@0.3.1-beta.0
+  - @nextclaw/ncp@0.6.4-beta.0
+  - @nextclaw/ncp-toolkit@0.5.39-beta.0
+
 ## 0.14.0
 
 ### Minor Changes

@@ -1,0 +1,1 @@
+import{t as e}from"./doc-browser-CDtUtcim.js";export{e as DocBrowser};
