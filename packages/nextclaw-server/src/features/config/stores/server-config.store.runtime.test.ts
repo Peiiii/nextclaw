@@ -55,18 +55,22 @@ describe("runtime config companion updates", () => {
       agents: {
         runtimes: {
           entries: {
-            codex: {
+            external: {
               enabled: true,
-              label: "Codex",
+              label: "External Runtime",
               type: "narp-stdio",
               config: {
-                command: "nextclaw-codex-narp",
+                command: "external-narp",
                 wireDialect: "acp",
                 modelSelectionMode: "optional",
                 model: "openai/gpt-5",
                 recommendedModel: "openai/gpt-5",
                 supportedModels: ["openai/gpt-5", "dashscope/qwen3-coder-next"],
-                resetSessionMetadataOnPromptTimeout: ["codex_thread_id"],
+                runtimeDefaultThinking: {
+                  supported: ["off", "low", "high"],
+                  default: "high",
+                },
+                resetSessionMetadataOnPromptTimeout: ["external_thread_id"],
               },
             },
           },
@@ -74,16 +78,24 @@ describe("runtime config companion updates", () => {
       },
     });
 
-    expect(loadConfig(configPath).agents.runtimes.entries.codex?.config).toMatchObject({
-      command: "nextclaw-codex-narp",
+    expect(loadConfig(configPath).agents.runtimes.entries.external?.config).toMatchObject({
+      command: "external-narp",
       modelSelectionMode: "optional",
       model: "openai/gpt-5",
       recommendedModel: "openai/gpt-5",
       supportedModels: ["openai/gpt-5", "dashscope/qwen3-coder-next"],
-      resetSessionMetadataOnPromptTimeout: ["codex_thread_id"],
+      runtimeDefaultThinking: {
+        supported: ["off", "low", "high"],
+        default: "high",
+      },
+      resetSessionMetadataOnPromptTimeout: ["external_thread_id"],
     });
-    expect(view.agents.runtimes?.entries?.codex?.config).toMatchObject({
-      resetSessionMetadataOnPromptTimeout: ["codex_thread_id"],
+    expect(view.agents.runtimes?.entries?.external?.config).toMatchObject({
+      runtimeDefaultThinking: {
+        supported: ["off", "low", "high"],
+        default: "high",
+      },
+      resetSessionMetadataOnPromptTimeout: ["external_thread_id"],
     });
   });
 });

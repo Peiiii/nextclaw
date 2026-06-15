@@ -62,12 +62,15 @@ export function useChatInputBarQueryState(snapshot: ChatInputSnapshot) {
       filterNcpChatModelOptionsBySessionType({
         modelOptions: providerModelOptions,
         modelSelectionMode: sessionTypeState.selectedSessionTypeOption?.modelSelectionMode,
+        runtimeDefaultThinkingCapability:
+          sessionTypeState.selectedSessionTypeOption?.runtimeDefaultThinking ?? null,
         runtimeDefaultModelLabel: t('chatRuntimeDefaultModel'),
         supportedModels: sessionTypeState.selectedSessionTypeOption?.supportedModels,
       }),
     [
       providerModelOptions,
       sessionTypeState.selectedSessionTypeOption?.modelSelectionMode,
+      sessionTypeState.selectedSessionTypeOption?.runtimeDefaultThinking,
       sessionTypeState.selectedSessionTypeOption?.supportedModels,
     ],
   );

@@ -209,4 +209,39 @@ describe("NarpStdioRuntimeWrapperAgent", () => {
       },
     ]);
   });
+
+  it("treats ACP session model switching as a prompt-scoped override", async () => {
+    const contexts: NarpStdioRuntimeWrapperContext[] = [];
+    const agent = new NarpStdioRuntimeWrapperAgent(
+      { sessionUpdate: async () => undefined },
+      {
+        agentName: "test-narp-wrapper",
+        createRuntime: async (context) => {
+          contexts.push(context);
+          return new FakeRuntime();
+        },
+      },
+    );
+    const session = await agent.newSession({ cwd: "/tmp/project", mcpServers: [] });
+
+    await agent.unstable_setSessionModel({
+      sessionId: session.sessionId,
+      modelId: "deepseek-v4-flash",
+    });
+    await agent.prompt({
+      sessionId: session.sessionId,
+      messageId: "user-1",
+      prompt: [{ type: "text", text: "first" }],
+    });
+    await agent.prompt({
+      sessionId: session.sessionId,
+      messageId: "user-2",
+      prompt: [{ type: "text", text: "second" }],
+    });
+
+    expect(contexts.map((context) => context.modelId)).toEqual([
+      "deepseek-v4-flash",
+      undefined,
+    ]);
+  });
 });

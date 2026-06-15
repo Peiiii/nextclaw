@@ -2,7 +2,7 @@ import type {
   ClaudeCodeMessage,
   ClaudeCodeSdkModule,
   ClaudeCodeSdkNcpAgentRuntimeConfig,
-} from "@claude-code-sdk/claude-code-sdk-types.js";
+} from "@claude-code-sdk/types/claude-code-sdk.types.js";
 import {
   buildQueryEnv,
   DEFAULT_CLAUDE_EXECUTION_PROBE_TIMEOUT_MS,

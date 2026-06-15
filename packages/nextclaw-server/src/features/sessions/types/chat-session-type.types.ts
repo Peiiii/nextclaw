@@ -1,4 +1,5 @@
 import type { RuntimeModelSelectionMode } from "@nextclaw/shared";
+import type { ModelThinkingCapability } from "@nextclaw/core";
 
 export type ChatSessionTypeIconView = {
   kind: "image";
@@ -22,6 +23,7 @@ export type ChatSessionTypeOptionView = {
   supportedModels?: string[];
   recommendedModel?: string | null;
   modelSelectionMode?: RuntimeModelSelectionMode;
+  runtimeDefaultThinking?: ModelThinkingCapability | null;
   cta?: ChatSessionTypeCtaView | null;
 };
 

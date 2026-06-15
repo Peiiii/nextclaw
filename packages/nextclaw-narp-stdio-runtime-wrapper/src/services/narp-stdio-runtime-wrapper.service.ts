@@ -204,6 +204,8 @@ export class NarpStdioRuntimeWrapperAgent implements acp.Agent {
   prompt = async (params: acp.PromptRequest): Promise<acp.PromptResponse> => {
     const { messageId, prompt, sessionId } = params;
     const session = this.readSession(sessionId);
+    const modelId = session.modelId;
+    session.modelId = undefined;
     const abortController = new AbortController();
     session.abortController = abortController;
 
@@ -211,7 +213,7 @@ export class NarpStdioRuntimeWrapperAgent implements acp.Agent {
     const runtime = await this.config.createRuntime({
       sessionId,
       cwd: session.cwd,
-      modelId: session.modelId,
+      modelId,
       promptMeta,
       setSessionMetadata: (nextMetadata) =>
         this.sendSessionMetadataPatch(sessionId, nextMetadata),

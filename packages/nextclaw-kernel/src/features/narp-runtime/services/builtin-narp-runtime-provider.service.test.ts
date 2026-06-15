@@ -40,16 +40,15 @@ function createRuntimeConfig(params: {
     .find((item) => item.kind === NARP_STDIO_RUNTIME_KIND);
   const runtime = provider?.createRuntimeForEntry?.({
     entry: {
-      id: "codex",
-      label: "Codex",
+      id: "external",
+      label: "External",
       type: NARP_STDIO_RUNTIME_KIND,
       config: {
-        command: "codex-narp",
+        command: "external-narp",
         ...params.entryConfig,
       },
     },
     runtimeParams: {
-      sessionId: "session-1",
       sessionMetadata: params.sessionMetadata ?? {},
     },
   });
@@ -61,6 +60,37 @@ function createRuntimeConfig(params: {
 }
 
 describe("BuiltinNarpRuntimeProviderService", () => {
+  it("publishes runtime default thinking from runtime entry config without runtime-id branching", async () => {
+    const service = new BuiltinNarpRuntimeProviderService({
+      loadConfig: () => ({
+        agents: { defaults: { model: "openai/gpt-5" } },
+      }) as never,
+    });
+    const provider = service
+      .createProviders()
+      .find((item) => item.kind === NARP_STDIO_RUNTIME_KIND);
+
+    await expect(provider?.describeSessionTypeForEntry?.({
+      entry: {
+        id: "external",
+        label: "External",
+        type: NARP_STDIO_RUNTIME_KIND,
+        config: {
+          command: "node",
+          runtimeDefaultThinking: {
+            supported: ["off", "minimal", "high", "unknown"],
+            default: "high",
+          },
+        },
+      },
+    })).resolves.toMatchObject({
+      runtimeDefaultThinking: {
+        supported: ["off", "minimal", "high"],
+        default: "high",
+      },
+    });
+  });
+
   it("keeps the default NextClaw model route by default", () => {
     const config = createRuntimeConfig({});
 
@@ -84,6 +114,7 @@ describe("BuiltinNarpRuntimeProviderService", () => {
   it("lets an optional runtime use its own default for the runtime default sentinel", () => {
     const config = createRuntimeConfig({
       entryConfig: { modelSelectionMode: "optional", model: "openai/gpt-5" },
+      sessionMetadata: { preferred_model: "openai/gpt-5" },
     });
 
     expect(config.resolveProviderRoute?.(createRunInput({

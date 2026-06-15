@@ -1,4 +1,5 @@
 import { createChatComposerTextNode } from '@nextclaw/agent-chat-ui';
+import { RUNTIME_DEFAULT_MODEL_VALUE } from '@nextclaw/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatInputManager } from '@/features/chat/managers/chat-input.manager';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
@@ -320,6 +321,33 @@ describe('ChatInputManager configuration sync', () => {
       selectedModel: 'openai/gpt-5',
       selectedThinkingLevel: 'high',
     });
+  });
+
+  it('sends the runtime-default sentinel so the backend can ignore stale session model metadata', async () => {
+    useChatInputStore.setState({
+      snapshot: {
+        ...useChatInputStore.getState().snapshot,
+        selectedSessionType: 'codex',
+        selectedModel: RUNTIME_DEFAULT_MODEL_VALUE,
+      },
+    });
+    const chatRunManager = {
+      sendMessage: vi.fn().mockResolvedValue(undefined),
+      stopCurrentRun: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ConstructorParameters<typeof ChatInputManager>[0];
+    const sessionListManager = {
+      ensureDraftSession: vi.fn(() => 'draft-session'),
+    } as unknown as ConstructorParameters<typeof ChatInputManager>[1];
+    const manager = new ChatInputManager(chatRunManager, sessionListManager);
+
+    await manager.send();
+
+    expect(chatRunManager.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionType: 'codex',
+        model: RUNTIME_DEFAULT_MODEL_VALUE,
+      }),
+    );
   });
 
   it('resolves and clears pending project root overrides inside the input manager', () => {

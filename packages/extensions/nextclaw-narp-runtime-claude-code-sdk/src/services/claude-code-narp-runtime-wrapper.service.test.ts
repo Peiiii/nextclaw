@@ -173,4 +173,21 @@ describe("ClaudeCodeNarpRuntimeWrapper", () => {
       },
     ]);
   });
+
+  it("does not invent a Claude Code working directory from process cwd", () => {
+    const capturedConfigs: Array<{ workingDirectory?: string }> = [];
+    const wrapper = new ClaudeCodeNarpRuntimeWrapper((config) => {
+      capturedConfigs.push(config);
+      return new FakeRuntime();
+    });
+
+    wrapper.createClaudeCodeRuntime({
+      sessionId: "session-1",
+      promptMeta: {
+        sessionMetadata: {},
+      },
+    });
+
+    expect(capturedConfigs[0]?.workingDirectory).toBeUndefined();
+  });
 });

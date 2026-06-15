@@ -1,3 +1,6 @@
+import { appendFileSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 import type {
   NcpAgentRunInput,
   NcpAgentRunOptions,
@@ -9,8 +12,8 @@ import {
   type NarpStdioRuntimeWrapperContext,
 } from "@nextclaw/nextclaw-narp-stdio-runtime-wrapper";
 import {
+  CodexAppServerNcpAgentRuntime,
   CodexLiveOutputStream,
-  CodexSdkNcpAgentRuntime,
   buildCodexBridgeModelProviderId,
   ensureCodexOpenAiResponsesBridge,
   type CodexSdkNcpAgentRuntimeConfig,
@@ -19,6 +22,8 @@ import {
 } from "@nextclaw/nextclaw-ncp-runtime-codex-sdk";
 
 const NARP_API_MODE_HEADER = "x-nextclaw-narp-api-mode";
+const CODEX_NARP_DEBUG_CONFIG_ENV = "NEXTCLAW_CODEX_NARP_DEBUG_CONFIG";
+const RUNTIME_DEFAULT_MODEL_VALUE = "__nextclaw_runtime_default__";
 
 export type CodexNarpRuntimeFactory = (
   config: CodexSdkNcpAgentRuntimeConfig,
@@ -52,7 +57,7 @@ export class CodexNarpRuntimeWrapper {
   constructor(
     private readonly createRuntime: CodexNarpRuntimeFactory = (
       config,
-    ) => new CodexSdkNcpAgentRuntime(config),
+    ) => new CodexAppServerNcpAgentRuntime(config),
     private readonly ensureResponsesBridge: CodexResponsesBridgeFactory =
       ensureCodexOpenAiResponsesBridge,
   ) {}
@@ -76,13 +81,21 @@ export class CodexNarpRuntimeWrapper {
     const { cwd, modelId, promptMeta, sessionId, setSessionMetadata } = context;
     const providerRoute = promptMeta.providerRoute;
     const sessionMetadata = promptMeta.sessionMetadata ?? {};
-    const providerLocalModel =
-      stripProviderPrefix(readString(providerRoute?.model)) ??
-      stripProviderPrefix(readString(modelId)) ??
-      readString(process.env.NEXTCLAW_MODEL);
+    const useCodexRuntimeDefault = isRuntimeDefaultModelValue(
+      readString(sessionMetadata.preferred_model) ??
+        readString(sessionMetadata.preferredModel) ??
+        readString(sessionMetadata.model) ??
+        readString(modelId),
+    );
+    const providerLocalModel = useCodexRuntimeDefault
+      ? undefined
+      : stripProviderPrefix(readString(providerRoute?.model)) ??
+        stripProviderPrefix(readString(modelId)) ??
+        readString(process.env.NEXTCLAW_MODEL);
     const upstreamApiBase =
-      readString(providerRoute?.apiBase) ??
-      readString(process.env.NEXTCLAW_API_BASE);
+      useCodexRuntimeDefault
+        ? undefined
+        : readString(providerRoute?.apiBase) ?? readString(process.env.NEXTCLAW_API_BASE);
     const externalModelProvider = resolveExternalModelProvider({
       apiBase: upstreamApiBase,
       modelId,
@@ -90,8 +103,9 @@ export class CodexNarpRuntimeWrapper {
 
     return this.resolveRuntimeConfig({
       apiKey:
-        readString(providerRoute?.apiKey) ??
-        readString(process.env.NEXTCLAW_API_KEY) ??
+        (useCodexRuntimeDefault
+          ? undefined
+          : readString(providerRoute?.apiKey) ?? readString(process.env.NEXTCLAW_API_KEY)) ??
         "",
       cwd,
       externalModelProvider,
@@ -99,13 +113,14 @@ export class CodexNarpRuntimeWrapper {
       sessionId,
       sessionMetadata,
       setSessionMetadata,
-      threadModel:
-        readString(modelId) ??
-        composeModelRoute({
-          modelProvider: externalModelProvider,
+      threadModel: useCodexRuntimeDefault
+        ? undefined
+        : readString(modelId) ??
+          composeModelRoute({
+            modelProvider: externalModelProvider,
+            providerLocalModel,
+          }) ??
           providerLocalModel,
-        }) ??
-        providerLocalModel,
       upstreamApiBase,
       upstreamExtraHeaders: providerRoute?.headers,
     });
@@ -172,12 +187,13 @@ export class CodexNarpRuntimeWrapper {
         })
       : requestedThreadModel;
 
-    return {
+    const threadModelScope = threadModel ?? RUNTIME_DEFAULT_MODEL_VALUE;
+    const config = {
       sessionId,
       apiKey,
       apiBase,
       model: providerLocalModel,
-      threadId: readString(sessionMetadata.codex_thread_id) ?? null,
+      threadId: resolveReusableThreadId(sessionMetadata, threadModelScope),
       ...(codexPathOverride ? { codexPathOverride } : {}),
       sessionMetadata,
       ...(setSessionMetadata ? { setSessionMetadata } : {}),
@@ -185,15 +201,41 @@ export class CodexNarpRuntimeWrapper {
       cliConfig: buildCodexCliConfig({
         apiBase,
         modelProvider,
+        showRawAgentReasoning: Boolean(modelReasoningEffort),
       }),
       threadOptions: {
         ...(threadModel ? { model: threadModel } : {}),
-        workingDirectory: cwd ?? process.cwd(),
+        workingDirectory: cwd,
         skipGitRepoCheck: true,
         ...(modelReasoningEffort ? { modelReasoningEffort } : {}),
       },
     };
+    logCodexRuntimeConfig({
+      bridgeModelProvider,
+      config,
+      externalModelProvider,
+      providerLocalModel,
+      requestedThreadModel,
+      sessionMetadata,
+      threadModel,
+    });
+    return config;
   };
+}
+
+function resolveReusableThreadId(
+  sessionMetadata: Record<string, unknown>,
+  threadModelScope: string,
+): string | null {
+  const threadId = readString(sessionMetadata.codex_thread_id);
+  if (!threadId) {
+    return null;
+  }
+  const threadScope = readString(sessionMetadata.codex_thread_model);
+  if (!threadScope) {
+    return null;
+  }
+  return threadScope === threadModelScope ? threadId : null;
 }
 
 function readString(value: unknown): string | undefined {
@@ -214,6 +256,10 @@ function stripProviderPrefix(value: string | undefined): string | undefined {
     return normalized;
   }
   return readString(normalized.slice(slashIndex + 1));
+}
+
+function isRuntimeDefaultModelValue(value: string | undefined): boolean {
+  return value === RUNTIME_DEFAULT_MODEL_VALUE;
 }
 
 function readReasoningEffort(value: unknown): CodexReasoningEffort | undefined {
@@ -259,16 +305,21 @@ function composeModelRoute(params: {
 function buildCodexCliConfig(params: {
   apiBase?: string;
   modelProvider?: string;
+  showRawAgentReasoning?: boolean;
 }): CodexSdkNcpAgentRuntimeConfig["cliConfig"] | undefined {
-  const { apiBase, modelProvider } = params;
-  if (!modelProvider) {
+  const { apiBase, modelProvider, showRawAgentReasoning } = params;
+  if (!modelProvider && !showRawAgentReasoning) {
     return undefined;
   }
-  const config: Record<string, unknown> = {
-    model_provider: modelProvider,
-    preferred_auth_method: "apikey",
-  };
-  if (apiBase) {
+  const config: Record<string, unknown> = {};
+  if (showRawAgentReasoning) {
+    config.show_raw_agent_reasoning = true;
+  }
+  if (modelProvider) {
+    config.model_provider = modelProvider;
+    config.preferred_auth_method = "apikey";
+  }
+  if (apiBase && modelProvider) {
     config.model_providers = {
       [modelProvider]: {
         name: modelProvider,
@@ -279,6 +330,88 @@ function buildCodexCliConfig(params: {
     };
   }
   return config as CodexSdkNcpAgentRuntimeConfig["cliConfig"];
+}
+
+function logCodexRuntimeConfig(params: {
+  bridgeModelProvider?: string;
+  config: CodexSdkNcpAgentRuntimeConfig;
+  externalModelProvider?: string;
+  providerLocalModel?: string;
+  requestedThreadModel?: string;
+  sessionMetadata: Record<string, unknown>;
+  threadModel?: string;
+}): void {
+  if (process.env[CODEX_NARP_DEBUG_CONFIG_ENV] !== "1") {
+    return;
+  }
+  const {
+    bridgeModelProvider,
+    config,
+    externalModelProvider,
+    providerLocalModel,
+    requestedThreadModel,
+    sessionMetadata,
+    threadModel,
+  } = params;
+  const cliConfig = config.cliConfig as Record<string, unknown> | undefined;
+  const modelProviders = cliConfig?.model_providers;
+  const snapshot = {
+    bridgeModelProvider: bridgeModelProvider ?? null,
+    externalModelProvider: externalModelProvider ?? null,
+    hasApiBase: Boolean(config.apiBase),
+    hasApiKey: Boolean(config.apiKey),
+    hasLiveOutputStream: Boolean(config.liveOutputStream),
+    providerLocalModel: providerLocalModel ?? null,
+    requestedThreadModel: requestedThreadModel ?? null,
+    sessionId: config.sessionId,
+      sessionMetadata: {
+        codex_thread_id: readString(sessionMetadata.codex_thread_id) ?? null,
+        codex_thread_model: readString(sessionMetadata.codex_thread_model) ?? null,
+        model: readString(sessionMetadata.model) ?? null,
+        preferred_model: readString(sessionMetadata.preferred_model) ?? null,
+        preferred_thinking: readString(sessionMetadata.preferred_thinking) ?? null,
+      thinking: readString(sessionMetadata.thinking) ?? null,
+    },
+    sdkConfig: {
+      cliConfig: cliConfig
+        ? {
+            model_provider: readString(cliConfig.model_provider) ?? null,
+            model_providers:
+              modelProviders && typeof modelProviders === "object" && !Array.isArray(modelProviders)
+                ? Object.keys(modelProviders)
+                : [],
+            preferred_auth_method: readString(cliConfig.preferred_auth_method) ?? null,
+            show_raw_agent_reasoning: cliConfig.show_raw_agent_reasoning === true,
+          }
+        : null,
+      model: config.model ?? null,
+      threadId: config.threadId ?? null,
+      threadOptions: {
+        model: config.threadOptions?.model ?? null,
+        modelReasoningEffort: config.threadOptions?.modelReasoningEffort ?? null,
+        skipGitRepoCheck: config.threadOptions?.skipGitRepoCheck ?? null,
+        workingDirectory: config.threadOptions?.workingDirectory ?? null,
+      },
+    },
+    threadModel: threadModel ?? null,
+    ts: new Date().toISOString(),
+  };
+  const line = `[nextclaw-codex-narp] runtime-config ${JSON.stringify(snapshot)}`;
+  console.error(line);
+  appendDebugLog(snapshot);
+}
+
+function appendDebugLog(snapshot: Record<string, unknown>): void {
+  try {
+    const home = readString(process.env.NEXTCLAW_HOME) ?? join(homedir(), ".nextclaw");
+    const logPath = join(home, "logs", "codex-narp-runtime-config.jsonl");
+    mkdirSync(dirname(logPath), { recursive: true });
+    appendFileSync(logPath, `${JSON.stringify(snapshot)}\n`, "utf8");
+  } catch (error) {
+    console.error(
+      `[nextclaw-codex-narp] failed to write runtime config debug log: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
 
 function readApiMode(headers: Record<string, string> | undefined): string | undefined {

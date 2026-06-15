@@ -1,6 +1,7 @@
 import type { RuntimeModelSelectionMode } from "@nextclaw/shared";
 import type { NcpAgentRuntime } from "@nextclaw/ncp";
 import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
+import type { ModelThinkingCapability } from "@nextclaw/core";
 import { DEFAULT_AGENT_RUNTIME_ENTRY_ID } from "@kernel/configs/agent-runtime.config.js";
 
 export type AgentRuntimeSessionTypeIcon = {
@@ -19,6 +20,7 @@ export type AgentRuntimeSessionTypeOption = {
   supportedModels?: string[];
   recommendedModel?: string | null;
   modelSelectionMode?: RuntimeModelSelectionMode;
+  runtimeDefaultThinking?: ModelThinkingCapability | null;
   cta?: {
     kind: string;
     label?: string;
@@ -265,6 +267,7 @@ export async function describeAgentRuntimeSessionTypes(params: {
           reasonMessage: `Runtime provider unavailable for type "${entry.type}".`,
           recommendedModel: null,
           modelSelectionMode: "nextclaw",
+          runtimeDefaultThinking: null,
           cta: {
             kind: "settings",
             label: "Configure Runtime",
@@ -287,6 +290,7 @@ export async function describeAgentRuntimeSessionTypes(params: {
         reasonMessage: descriptor?.reasonMessage ?? null,
         recommendedModel: descriptor?.recommendedModel ?? null,
         modelSelectionMode: descriptor?.modelSelectionMode ?? "nextclaw",
+        runtimeDefaultThinking: descriptor?.runtimeDefaultThinking ?? null,
         cta: descriptor?.cta ?? null,
         ...(descriptor?.supportedModels
           ? { supportedModels: descriptor.supportedModels }

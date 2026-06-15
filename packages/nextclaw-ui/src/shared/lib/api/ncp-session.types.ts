@@ -53,6 +53,7 @@ export type SessionEntryView = {
   projectRoot?: string | null;
   workingDir?: string | null;
   projectName?: string | null;
+  metadata?: Record<string, unknown>;
   sessionType: string;
   sessionTypeMutable: boolean;
   isChildSession?: boolean;

@@ -21,7 +21,6 @@ export class OpencodeAcpRuntime implements NcpAgentRuntime {
       startupTimeoutMs: config.startupTimeoutMs,
       probeTimeoutMs: config.startupTimeoutMs,
       requestTimeoutMs: config.requestTimeoutMs,
-      sessionId: config.sessionId,
       resolveProviderRoute: () => this.config.providerRoute,
     });
   }

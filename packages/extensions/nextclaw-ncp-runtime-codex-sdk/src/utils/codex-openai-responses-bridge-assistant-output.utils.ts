@@ -10,7 +10,7 @@ import {
   type OpenAiChatCompletionChoiceMessage,
   type OpenResponsesOutputItem,
   type StreamSequenceState,
-} from "./codex-openai-responses-bridge-shared.utils.js";
+} from "@/codex-openai-responses-bridge-shared.utils.js";
 
 function extractAssistantText(content: unknown): string {
   if (typeof content === "string") {
@@ -220,27 +220,28 @@ export function writeReasoningOutputItemEvents(params: {
   outputIndex: number;
   sequenceState: StreamSequenceState;
 }): void {
-  const itemId = readString(params.item.id);
-  const content = readArray(params.item.content);
+  const { item, outputIndex, response, sequenceState } = params;
+  const itemId = readString(item.id);
+  const content = readArray(item.content);
   const textPart = content.find((entry) => readString(readRecord(entry)?.type) === "reasoning_text");
   const text = readString(readRecord(textPart)?.text) ?? "";
-  const summary = readArray(params.item.summary);
+  const summary = readArray(item.summary);
   const summaryIndex = summary.findIndex((entry) => readString(readRecord(entry)?.type) === "summary_text");
   const summaryText =
     summaryIndex >= 0 ? readString(readRecord(summary[summaryIndex])?.text) ?? "" : "";
 
-  writeSseEvent(params.response, "response.output_item.added", {
+  writeSseEvent(response, "response.output_item.added", {
     type: "response.output_item.added",
-    sequence_number: nextSequenceNumber(params.sequenceState),
-    output_index: params.outputIndex,
-    item: buildInProgressReasoningItem(params.item),
+    sequence_number: nextSequenceNumber(sequenceState),
+    output_index: outputIndex,
+    item: buildInProgressReasoningItem(item),
   });
 
   if (itemId && summaryText) {
-    writeSseEvent(params.response, "response.reasoning_summary_part.added", {
+    writeSseEvent(response, "response.reasoning_summary_part.added", {
       type: "response.reasoning_summary_part.added",
-      sequence_number: nextSequenceNumber(params.sequenceState),
-      output_index: params.outputIndex,
+      sequence_number: nextSequenceNumber(sequenceState),
+      output_index: outputIndex,
       item_id: itemId,
       summary_index: summaryIndex,
       part: {
@@ -248,26 +249,26 @@ export function writeReasoningOutputItemEvents(params: {
         text: "",
       },
     });
-    writeSseEvent(params.response, "response.reasoning_summary_text.delta", {
+    writeSseEvent(response, "response.reasoning_summary_text.delta", {
       type: "response.reasoning_summary_text.delta",
-      sequence_number: nextSequenceNumber(params.sequenceState),
-      output_index: params.outputIndex,
+      sequence_number: nextSequenceNumber(sequenceState),
+      output_index: outputIndex,
       item_id: itemId,
       summary_index: summaryIndex,
       delta: summaryText,
     });
-    writeSseEvent(params.response, "response.reasoning_summary_text.done", {
+    writeSseEvent(response, "response.reasoning_summary_text.done", {
       type: "response.reasoning_summary_text.done",
-      sequence_number: nextSequenceNumber(params.sequenceState),
-      output_index: params.outputIndex,
+      sequence_number: nextSequenceNumber(sequenceState),
+      output_index: outputIndex,
       item_id: itemId,
       summary_index: summaryIndex,
       text: summaryText,
     });
-    writeSseEvent(params.response, "response.reasoning_summary_part.done", {
+    writeSseEvent(response, "response.reasoning_summary_part.done", {
       type: "response.reasoning_summary_part.done",
-      sequence_number: nextSequenceNumber(params.sequenceState),
-      output_index: params.outputIndex,
+      sequence_number: nextSequenceNumber(sequenceState),
+      output_index: outputIndex,
       item_id: itemId,
       summary_index: summaryIndex,
       part: {
@@ -277,32 +278,21 @@ export function writeReasoningOutputItemEvents(params: {
     });
   }
 
-  if (itemId && text) {
-    writeSseEvent(params.response, "response.reasoning_text.delta", {
-      type: "response.reasoning_text.delta",
-      sequence_number: nextSequenceNumber(params.sequenceState),
-      output_index: params.outputIndex,
-      item_id: itemId,
-      content_index: 0,
-      delta: text,
-    });
-  }
-
   if (itemId) {
-    writeSseEvent(params.response, "response.reasoning_text.done", {
+    writeSseEvent(response, "response.reasoning_text.done", {
       type: "response.reasoning_text.done",
-      sequence_number: nextSequenceNumber(params.sequenceState),
-      output_index: params.outputIndex,
+      sequence_number: nextSequenceNumber(sequenceState),
+      output_index: outputIndex,
       item_id: itemId,
       content_index: 0,
       text,
     });
   }
 
-  writeSseEvent(params.response, "response.output_item.done", {
+  writeSseEvent(response, "response.output_item.done", {
     type: "response.output_item.done",
-    sequence_number: nextSequenceNumber(params.sequenceState),
-    output_index: params.outputIndex,
-    item: params.item,
+    sequence_number: nextSequenceNumber(sequenceState),
+    output_index: outputIndex,
+    item,
   });
 }

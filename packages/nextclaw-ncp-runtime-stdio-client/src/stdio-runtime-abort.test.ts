@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
 import { StdioRuntimeNcpAgentRuntime } from "./index.js";
@@ -8,10 +8,12 @@ const SLOW_CANCEL_FIXTURE_PATH = join(
   "test-fixtures",
   "slow-cancel-agent.mjs",
 );
+const TEST_EXECUTION_CONTEXT = {
+  cwd: dirname(SLOW_CANCEL_FIXTURE_PATH),
+};
 
 function createAbortRuntime(): StdioRuntimeNcpAgentRuntime {
   return new StdioRuntimeNcpAgentRuntime({
-    sessionId: "session-stdio-manual-abort",
     wireDialect: "acp",
     processScope: "per-session",
     command: process.execPath,
@@ -35,6 +37,7 @@ function createAbortInput() {
         parts: [{ type: "text" as const, text: "abort me" }],
       },
     ],
+    executionContext: TEST_EXECUTION_CONTEXT,
   };
 }
 

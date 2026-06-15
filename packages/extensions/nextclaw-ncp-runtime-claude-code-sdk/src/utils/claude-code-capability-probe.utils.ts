@@ -4,7 +4,7 @@ import type {
   ClaudeCodeLoader,
   ClaudeCodeSdkModule,
   ClaudeCodeSdkNcpAgentRuntimeConfig,
-} from "@claude-code-sdk/claude-code-sdk-types.js";
+} from "@claude-code-sdk/types/claude-code-sdk.types.js";
 import { buildQueryEnv, resolveClaudeGatewayAccess } from "./claude-code-runtime.utils.js";
 import {
   resolveBundledClaudeAgentSdkCliPath,

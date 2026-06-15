@@ -15,7 +15,7 @@ import {
   type BridgeEntry,
   type CodexOpenAiResponsesBridgeConfig,
   type CodexOpenAiResponsesBridgeResult,
-} from "../codex-openai-responses-bridge-shared.utils.js";
+} from "@/codex-openai-responses-bridge-shared.utils.js";
 import type { CodexOpenAiResponsesOutputObserver } from "./codex-openai-responses-stream-writer.utils.js";
 
 const bridgeCache = new Map<string, BridgeEntry>();

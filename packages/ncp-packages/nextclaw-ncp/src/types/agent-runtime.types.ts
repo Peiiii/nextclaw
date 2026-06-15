@@ -9,6 +9,11 @@ export type NcpAgentRunInput = {
   messages: ReadonlyArray<NcpMessage>;
   correlationId?: string;
   metadata?: Record<string, unknown>;
+  executionContext?: NcpAgentRunExecutionContext;
+};
+
+export type NcpAgentRunExecutionContext = {
+  cwd: string;
 };
 
 export type NcpAgentRunOptions = {

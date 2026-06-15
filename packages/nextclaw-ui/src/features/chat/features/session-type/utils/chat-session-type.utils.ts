@@ -1,6 +1,7 @@
 import type {
   AgentProfileView,
   ChatSessionTypeOptionView,
+  RuntimeDefaultThinkingView,
   SessionTypeIconView,
 } from "@/shared/lib/api";
 import type { RuntimeModelSelectionMode } from "@nextclaw/shared";
@@ -18,6 +19,7 @@ export type ChatSessionTypeOption = {
   supportedModels?: string[];
   recommendedModel?: string | null;
   modelSelectionMode?: RuntimeModelSelectionMode;
+  runtimeDefaultThinking?: RuntimeDefaultThinkingView | null;
   cta?: {
     kind: string;
     label?: string;
@@ -76,6 +78,7 @@ export function buildSessionTypeOptions(
       supportedModels: option.supportedModels,
       recommendedModel: option.recommendedModel ?? null,
       modelSelectionMode: option.modelSelectionMode ?? "nextclaw",
+      runtimeDefaultThinking: option.runtimeDefaultThinking ?? null,
       cta: option.cta ?? null,
     });
   }
@@ -90,6 +93,7 @@ export function buildSessionTypeOptions(
       supportedModels: undefined,
       recommendedModel: null,
       modelSelectionMode: "nextclaw",
+      runtimeDefaultThinking: null,
       cta: null,
     });
   }

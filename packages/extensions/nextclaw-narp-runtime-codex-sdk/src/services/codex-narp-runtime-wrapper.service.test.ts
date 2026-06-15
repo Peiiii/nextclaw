@@ -1,10 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NcpAgentRunInput, NcpAgentRuntime } from "@nextclaw/ncp";
 import { CodexNarpRuntimeWrapper } from "./codex-narp-runtime-wrapper.service.js";
 
 class FakeRuntime implements NcpAgentRuntime {
   async *run(_input: NcpAgentRunInput): AsyncGenerator<never> {}
 }
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe("CodexNarpRuntimeWrapper", () => {
   it("builds Codex SDK runtime config from NARP stdio context", async () => {
@@ -23,6 +27,7 @@ describe("CodexNarpRuntimeWrapper", () => {
         },
         sessionMetadata: {
           codex_thread_id: "thread-1",
+          codex_thread_model: "provider/model-a",
           project_root: "/tmp/workspace",
           preferred_thinking: "medium",
         },
@@ -37,12 +42,14 @@ describe("CodexNarpRuntimeWrapper", () => {
       threadId: "thread-1",
       sessionMetadata: {
         codex_thread_id: "thread-1",
+        codex_thread_model: "provider/model-a",
         project_root: "/tmp/workspace",
         preferred_thinking: "medium",
       },
       cliConfig: {
         model_provider: "provider",
         preferred_auth_method: "apikey",
+        show_raw_agent_reasoning: true,
         model_providers: {
           provider: {
             name: "provider",
@@ -80,6 +87,90 @@ describe("CodexNarpRuntimeWrapper", () => {
     });
   });
 
+  it("does not invent a Codex working directory from process cwd", async () => {
+    const wrapper = new CodexNarpRuntimeWrapper(() => new FakeRuntime());
+
+    const config = await wrapper.buildRuntimeConfig({
+      sessionId: "session-1",
+      promptMeta: {
+        sessionMetadata: {},
+      },
+    });
+
+    expect(config.threadOptions?.workingDirectory).toBeUndefined();
+  });
+
+  it("does not resume an unscoped Codex thread when using the runtime default model", async () => {
+    const wrapper = new CodexNarpRuntimeWrapper(() => new FakeRuntime());
+
+    const config = await wrapper.buildRuntimeConfig({
+      sessionId: "session-1",
+      cwd: "/tmp/workspace",
+      promptMeta: {
+        sessionMetadata: {
+          codex_thread_id: "thread-created-by-an-old-model",
+          model: "__nextclaw_runtime_default__",
+          preferred_model: "__nextclaw_runtime_default__",
+        },
+      },
+    });
+
+    expect(config.threadId).toBeNull();
+    expect(config.model).toBeUndefined();
+    expect(config.threadOptions?.model).toBeUndefined();
+  });
+
+  it("does not resume a Codex thread when its model scope differs from the current model", async () => {
+    const wrapper = new CodexNarpRuntimeWrapper(() => new FakeRuntime());
+
+    const config = await wrapper.buildRuntimeConfig({
+      sessionId: "session-1",
+      cwd: "/tmp/workspace",
+      modelId: "__nextclaw_runtime_default__",
+      promptMeta: {
+        sessionMetadata: {
+          codex_thread_id: "thread-created-by-deepseek",
+          codex_thread_model: "nextclaw-codex-bridge-chat/deepseek-v4-flash",
+          model: "__nextclaw_runtime_default__",
+          preferred_model: "__nextclaw_runtime_default__",
+        },
+      },
+    });
+
+    expect(config.threadId).toBeNull();
+    expect(config.model).toBeUndefined();
+    expect(config.threadOptions?.model).toBeUndefined();
+  });
+
+  it("enables raw Codex reasoning output for runtime-default thinking without overriding the model", async () => {
+    vi.stubEnv("NEXTCLAW_MODEL", "deepseek-v4-flash");
+    vi.stubEnv("NEXTCLAW_API_BASE", "https://api.deepseek.com");
+    vi.stubEnv("NEXTCLAW_API_KEY", "deepseek-key");
+    const wrapper = new CodexNarpRuntimeWrapper(() => new FakeRuntime());
+
+    const config = await wrapper.buildRuntimeConfig({
+      sessionId: "session-1",
+      cwd: "/tmp/workspace",
+      promptMeta: {
+        sessionMetadata: {
+          preferred_thinking: "high",
+          model: "__nextclaw_runtime_default__",
+        },
+      },
+    });
+
+    expect(config.model).toBeUndefined();
+    expect(config.apiBase).toBeUndefined();
+    expect(config.apiKey).toBe("");
+    expect(config.threadOptions?.model).toBeUndefined();
+    expect(config.threadOptions?.modelReasoningEffort).toBe("high");
+    expect(config.cliConfig).toEqual({
+      show_raw_agent_reasoning: true,
+    });
+  });
+});
+
+describe("CodexNarpRuntimeWrapper runtime wiring", () => {
   it("passes the NARP session metadata writer into the Codex SDK runtime config", async () => {
     const wrapper = new CodexNarpRuntimeWrapper(() => new FakeRuntime());
     const setSessionMetadata = () => undefined;

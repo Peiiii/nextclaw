@@ -308,6 +308,7 @@ export function adaptNcpMessagesToUiMessages(messages: readonly NcpMessageView[]
 }
 
 export function adaptNcpSessionSummary(summary: NcpSessionSummaryView): SessionEntryView {
+  const metadata = readMetadata(summary);
   const label = readNcpSessionLabel(summary);
   const preferredModel = readNcpSessionPreferredModel(summary);
   const preferredThinking = readNcpSessionPreferredThinking(summary);
@@ -335,6 +336,7 @@ export function adaptNcpSessionSummary(summary: NcpSessionSummaryView): SessionE
     ...(projectRoot ? { projectRoot } : {}),
     ...(workingDir ? { workingDir } : {}),
     ...(projectName ? { projectName } : {}),
+    ...(metadata ? { metadata } : {}),
     sessionType: readNcpSessionType(summary),
     sessionTypeMutable: false,
     status: summary.status ?? 'idle',

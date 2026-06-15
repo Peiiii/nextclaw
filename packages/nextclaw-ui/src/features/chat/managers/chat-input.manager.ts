@@ -31,9 +31,6 @@ import { systemStatusManager } from '@/features/system-status';
 import { shouldClearPendingProjectRootOverride } from '@/features/chat/features/session/utils/chat-run-metadata.utils';
 
 function resolveModelForSend(value: string): string | undefined {
-  if (isRuntimeDefaultModelValue(value)) {
-    return undefined;
-  }
   return value || undefined;
 }
 

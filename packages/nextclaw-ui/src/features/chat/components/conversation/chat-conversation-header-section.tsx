@@ -138,6 +138,7 @@ export function ChatConversationHeaderSection({
             canDeleteSession={canDeleteSession}
             isDeletePending={snapshot.isDeletePending}
             projectRoot={sessionProjectRoot}
+            metadata={selectedSession?.metadata ?? null}
             childSessionCount={childSessionTabs.length}
             sessionCronJobCount={sessionCronJobs.length}
             onOpenChildSessions={openChildSessions}

@@ -31,6 +31,10 @@ export { ensureCodexOpenAiResponsesBridge } from "./utils/codex-openai-responses
 export type { CodexOpenAiResponsesBridgeRuntimeConfig } from "./utils/codex-openai-responses-bridge.utils.js";
 export type { CodexOpenAiResponsesBridgeResult } from "./codex-openai-responses-bridge-shared.utils.js";
 export { CodexLiveOutputStream } from "./services/codex-live-output-stream.service.js";
+export {
+  CodexAppServerNcpAgentRuntime,
+} from "./services/codex-app-server-ncp-agent-runtime.service.js";
+export type { CodexAppServerNcpAgentRuntimeConfig } from "./types/codex-app-server-runtime.types.js";
 export type {
   CodexLiveOutputChannel,
   CodexLiveOutputEvent,
@@ -124,12 +128,8 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
     yield* this.eventEmitter.emitRunStarted(input.sessionId, messageId, runId);
     yield* this.eventEmitter.emitReadyMetadata(input.sessionId, messageId, runId);
 
-    const thread = await this.resolveThread();
     const turnInput = await this.buildTurnInput(input);
-    this.config.liveOutputStream?.reset();
-    const streamed = await thread.runStreamed(turnInput, {
-      ...(signal ? { signal } : {}),
-    });
+    const streamed = await this.runStreamedWithCurrentThread(turnInput, signal);
 
     try {
       yield* this.streamTurnEvents({
@@ -179,6 +179,17 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
     return this.thread;
   };
 
+  private runStreamedWithCurrentThread = async (
+    turnInput: CodexThreadInput,
+    signal?: AbortSignal,
+  ): ReturnType<Thread["runStreamed"]> => {
+    const thread = await this.resolveThread();
+    this.config.liveOutputStream?.reset();
+    return await thread.runStreamed(turnInput, {
+      ...(signal ? { signal } : {}),
+    });
+  };
+
   private buildTurnInput = async (input: NcpAgentRunInput): Promise<CodexThreadInput> => {
     if (this.config.inputBuilder) {
       return await this.config.inputBuilder(input);
@@ -200,7 +211,15 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
       toolStateById: Map<string, ToolSnapshot>;
     },
   ): AsyncGenerator<NcpEndpointEvent> {
-    const { itemTextById, messageId, runId, sessionId, signal, streamed, toolStateById } =
+    const {
+      itemTextById,
+      messageId,
+      runId,
+      sessionId,
+      signal,
+      streamed,
+      toolStateById,
+    } =
       params;
     const liveOutputStream = this.config.liveOutputStream;
     if (liveOutputStream) {
@@ -329,9 +348,15 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
       ...this.sessionMetadata,
       session_type: "codex",
       codex_thread_id: normalizedThreadId,
+      codex_thread_model: buildThreadModelScope(this.config),
     };
     this.sessionMetadata.codex_thread_id = normalizedThreadId;
+    this.sessionMetadata.codex_thread_model = nextMetadata.codex_thread_model;
     this.sessionMetadata.session_type = "codex";
     await this.config.setSessionMetadata?.(nextMetadata);
   };
+}
+
+function buildThreadModelScope(config: CodexSdkNcpAgentRuntimeConfig): string {
+  return config.threadOptions?.model ?? config.model ?? "__nextclaw_runtime_default__";
 }

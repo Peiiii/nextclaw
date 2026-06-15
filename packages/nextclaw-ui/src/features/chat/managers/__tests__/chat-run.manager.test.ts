@@ -1,4 +1,5 @@
 import type { NcpMessage } from '@nextclaw/ncp';
+import { RUNTIME_DEFAULT_MODEL_VALUE } from '@nextclaw/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatRunManager } from '@/features/chat/managers/chat-run.manager';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
@@ -73,6 +74,39 @@ describe('ChatRunManager', () => {
       }),
     );
     expect(uiManager.goToSession).toHaveBeenCalledWith('materialized-session', { replace: true });
+  });
+
+  it('keeps the runtime-default sentinel in request metadata to override stale session model metadata', async () => {
+    const { manager } = createChatRunManager();
+    const sendEnvelope = vi.fn(async () => ({
+      sessionId: 'session-1',
+      userMessageId: 'user-message-1',
+      assistantMessageId: null,
+      runId: 'run-1',
+    }));
+    manager.setActiveRuntime({
+      sessionKey: 'session-1',
+      sendEnvelope,
+      abortCurrentRun: vi.fn(),
+      resumeCurrentSessionRun: vi.fn(),
+    });
+
+    await manager.sendMessage({
+      message: 'hello',
+      sessionKey: 'session-1',
+      agentId: 'main',
+      sessionType: 'codex',
+      model: RUNTIME_DEFAULT_MODEL_VALUE,
+    });
+
+    expect(sendEnvelope).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          model: RUNTIME_DEFAULT_MODEL_VALUE,
+          preferred_model: RUNTIME_DEFAULT_MODEL_VALUE,
+        }),
+      }),
+    );
   });
 
   it('does not send through a runtime for another session', async () => {

@@ -11,7 +11,9 @@ import {
   buildChatRunMetadata,
   shouldClearPendingProjectRootOverride
 } from '@/features/chat/features/session/utils/chat-run-metadata.utils';
-import { filterNcpChatModelOptionsBySessionType } from '@/features/chat/features/ncp/utils/ncp-chat-query-derived.utils';
+import {
+  filterNcpChatModelOptionsBySessionType,
+} from '@/features/chat/features/ncp/utils/ncp-chat-query-derived.utils';
 
 const modelOptions: ChatModelOption[] = [
   {
@@ -83,6 +85,29 @@ describe('filterNcpChatModelOptionsBySessionType', () => {
     }]);
   });
 
+  it('attaches runtime default thinking capability when the runtime publishes one', () => {
+    expect(
+      filterNcpChatModelOptionsBySessionType({
+        modelOptions,
+        modelSelectionMode: 'runtime-default',
+        runtimeDefaultModelLabel: 'Runtime default',
+        runtimeDefaultThinkingCapability: {
+          supported: ['minimal', 'low', 'medium', 'high'],
+          default: 'high',
+        },
+      })
+    ).toEqual([{
+      value: RUNTIME_DEFAULT_MODEL_VALUE,
+      modelLabel: 'Runtime default',
+      providerLabel: '',
+      isRuntimeDefault: true,
+      thinkingCapability: {
+        supported: ['minimal', 'low', 'medium', 'high'],
+        default: 'high',
+      },
+    }]);
+  });
+
   it('adds the runtime default option beside supported models for optional runtime selection', () => {
     expect(
       filterNcpChatModelOptionsBySessionType({
@@ -101,6 +126,27 @@ describe('filterNcpChatModelOptionsBySessionType', () => {
       },
       modelOptions[1],
     ]);
+  });
+
+  it('adds runtime default thinking capability beside supported models for optional runtime selection', () => {
+    expect(
+      filterNcpChatModelOptionsBySessionType({
+        modelOptions,
+        modelSelectionMode: 'optional',
+        runtimeDefaultModelLabel: 'Runtime default',
+        runtimeDefaultThinkingCapability: {
+          supported: ['minimal', 'low', 'medium', 'high'],
+          default: 'high',
+        },
+        supportedModels: ['openai/gpt-5'],
+      })[0]
+    ).toMatchObject({
+      value: RUNTIME_DEFAULT_MODEL_VALUE,
+      thinkingCapability: {
+        supported: ['minimal', 'low', 'medium', 'high'],
+        default: 'high',
+      },
+    });
   });
 });
 

@@ -7,7 +7,7 @@ import type {
   ClaudeCodeMessage,
   ClaudeCodeSdkAnthropicGatewayConfig,
   ClaudeCodeSdkNcpAgentRuntimeConfig,
-} from "@claude-code-sdk/claude-code-sdk-types.js";
+} from "@claude-code-sdk/types/claude-code-sdk.types.js";
 
 const NEXTCLAW_HOME_ENV_KEY = "NEXTCLAW_HOME";
 const NEXTCLAW_DEFAULT_HOME_DIR = ".nextclaw";

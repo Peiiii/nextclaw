@@ -1,5 +1,5 @@
 import type { NcpAgentRunOptions } from "@nextclaw/ncp";
-import type { ClaudeCodeQueryOptions, ClaudeCodeSdkNcpAgentRuntimeConfig } from "@claude-code-sdk/claude-code-sdk-types.js";
+import type { ClaudeCodeQueryOptions, ClaudeCodeSdkNcpAgentRuntimeConfig } from "@claude-code-sdk/types/claude-code-sdk.types.js";
 import { buildQueryEnv, resolveClaudeGatewayAccess } from "./claude-code-runtime.utils.js";
 
 export type ClaudePreparedGatewayAccess = {
@@ -44,11 +44,15 @@ export function buildClaudeQueryOptions(params: {
     typeof baseQueryOptions.executable === "string"
       ? baseQueryOptions.executable
       : currentProcessExecutable;
+  const workingDirectory = config.workingDirectory?.trim();
+  if (!workingDirectory) {
+    throw new Error("[claude-code-sdk] missing execution cwd for Claude Code runtime");
+  }
 
   return {
     ...baseQueryOptions,
     abortController,
-    cwd: config.workingDirectory,
+    cwd: workingDirectory,
     model: config.model,
     env: buildQueryEnv({
       ...config,

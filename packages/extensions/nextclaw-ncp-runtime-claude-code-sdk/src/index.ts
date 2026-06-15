@@ -12,7 +12,7 @@ import {
   type ClaudeCodeMessage,
   type ClaudeCodeSdkModule,
   type ClaudeCodeSdkNcpAgentRuntimeConfig,
-} from "./claude-code-sdk-types.js";
+} from "./types/claude-code-sdk.types.js";
 import {
   createClaudeSdkEventMapperState,
   flushClaudeSdkMessageEventState,
@@ -40,7 +40,7 @@ import {
 const require = createRequire(import.meta.url);
 const claudeCodeLoader = require("../claude-code-loader.cjs") as ClaudeCodeLoader;
 
-export type { ClaudeCodeSdkNcpAgentRuntimeConfig } from "./claude-code-sdk-types.js";
+export type { ClaudeCodeSdkNcpAgentRuntimeConfig } from "./types/claude-code-sdk.types.js";
 export {
   loadAndProbeClaudeCodeSdkCapability,
   probeClaudeCodeSdkCapability,

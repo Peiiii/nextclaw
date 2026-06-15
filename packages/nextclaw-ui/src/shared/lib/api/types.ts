@@ -256,6 +256,7 @@ export type AgentProfileView = {
   runtimeConfig?: Record<string, unknown>;
   engine?: string;
   engineConfig?: Record<string, unknown>;
+  thinkingDefault?: ThinkingLevel;
   contextTokens?: number;
   maxToolIterations?: number;
   builtIn?: boolean;
@@ -447,6 +448,7 @@ export type RuntimeConfigUpdate = {
       contextTokens?: number;
       engine?: string;
       engineConfig?: Record<string, unknown>;
+      thinkingDefault?: ThinkingLevel;
     };
     runtimes?: {
       entries?: Record<string, RuntimeEntryView> | null;
@@ -520,6 +522,7 @@ export type ConfigView = {
       workspace?: string;
       engine?: string;
       engineConfig?: Record<string, unknown>;
+      thinkingDefault?: ThinkingLevel;
       contextTokens?: number;
       maxToolIterations?: number;
     };

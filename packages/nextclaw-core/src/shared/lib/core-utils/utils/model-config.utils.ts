@@ -11,6 +11,24 @@ export type ProviderModelConfigEntry = {
 
 export type ProviderModelConfigMap = Record<string, ProviderModelConfigEntry>;
 
+export function normalizeModelThinkingCapability(
+  value: unknown,
+): ModelThinkingCapability | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const supported = normalizeThinkingLevels(record.supported);
+  if (supported.length === 0) {
+    return null;
+  }
+  const defaultLevel = parseThinkingLevel(record.default);
+  return {
+    supported,
+    default: defaultLevel && supported.includes(defaultLevel) ? defaultLevel : null,
+  };
+}
+
 function stripProviderPrefix(model: string, providerName: string): string {
   const normalizedProvider = providerName.trim().toLowerCase();
   if (!normalizedProvider) {

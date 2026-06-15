@@ -7,6 +7,7 @@ export type AgentRunSession = {
   metadata: Record<string, unknown>;
   model?: string;
   projectRoot?: string;
+  workingDir: string;
   thinkingEffort?: ThinkingEffort | null;
 };
 

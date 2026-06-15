@@ -86,6 +86,10 @@ describe("describeAgentRuntimeSessionTypes", () => {
             describeSessionTypeForEntry: ({ entry }) => ({
               recommendedModel: `${entry.id}-model`,
               modelSelectionMode: "runtime-default",
+              runtimeDefaultThinking: {
+                supported: ["off", "low", "high"],
+                default: "high",
+              },
             }),
           },
         ],
@@ -105,6 +109,10 @@ describe("describeAgentRuntimeSessionTypes", () => {
           ready: true,
           recommendedModel: "external-model",
           modelSelectionMode: "runtime-default",
+          runtimeDefaultThinking: {
+            supported: ["off", "low", "high"],
+            default: "high",
+          },
         }),
       ],
     });

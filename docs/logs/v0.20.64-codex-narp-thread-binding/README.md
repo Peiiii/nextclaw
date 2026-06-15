@@ -31,6 +31,21 @@
 - Codex SDK runtime 在处理 `thread.started` 时等待异步 `setSessionMetadata` 完成，避免跨进程 writer 尚未发出就继续后续事件。
 - `pnpm dev start` 通过 `NEXTCLAW_NARP_STDIO_COMMAND_OVERRIDES` 将 Codex NARP launcher 指到当前仓库源码 controller，避免真实开发态悄悄跑全局旧包；该覆盖只存在于 dev runner 的 backend 环境，不写用户配置。
 
+追加修正：
+
+- runtime-default 模型选择的思考档位能力从 Codex 特化逻辑改为通用 `runtimeDefaultThinking` 配置合同。
+- `runtimeDefaultThinking` 由 runtime entry config 保存，经 NARP runtime provider descriptor、AgentRuntime session type listing、server/UI session type view 透传到 chat model option。
+- 前端不再根据 `sessionType === "codex"` 计算思考档位，也不再从 agent/global `thinkingDefault` 为具体 runtime 拼默认值。
+- host/kernel/server 同样不识别具体 agent runtime id；具体 runtime 若要支持 runtime-default thinking，只能通过 entry config 或自身 provider descriptor 声明。
+
+cwd owner 修正：
+
+- Codex/NARP 的执行工作目录对齐 native 会话语义：优先使用 session metadata 中的 `project_root`，没有时回退到 NextClaw workspace。
+- `workingDir` 由 `SessionManager` 通过既有 `SessionWorkingDirResolver` 解析，随 `AgentRunSession` 进入 NCP run 的 `executionContext.cwd`。
+- runtime factory/provider 不再感知 `workingDir`，agent runtime 也不持有 NextClaw session 数据；runtime 只消费本次 run 的执行上下文。
+- stdio client 在 ACP `newSession` 时使用 `executionContext.cwd`，`config.cwd` 只保留为 runtime 子进程启动目录。
+- Codex/Claude NARP wrapper 不再用 `process.cwd()` 补 `workingDirectory`；probe 路径使用中性的临时目录作为探测 cwd。
+
 已有坏会话说明：
 
 - 已经丢失 `codex_thread_id` 的历史会话无法可靠自动恢复到单一 Codex thread，因为 Codex 侧已经生成了多个独立 thread。
@@ -52,6 +67,32 @@
 - `pnpm --filter @nextclaw/nextclaw-narp-runtime-codex-sdk lint`
 - `pnpm --filter @nextclaw/kernel lint`
 - `node --check scripts/dev/dev-runner.mjs`
+- `pnpm -C packages/nextclaw-kernel test src/features/runtime-registry/utils/agent-runtime-registry.utils.test.ts src/features/narp-runtime/services/builtin-narp-runtime-provider.service.test.ts`
+- `pnpm -C packages/nextclaw-server test src/features/config/stores/server-config.store.runtime.test.ts`
+- `pnpm -C packages/nextclaw-ui test ncp-chat-page.test.ts chat-session-preference-sync.manager.test.ts chat-input.manager.test.ts chat-run.manager.test.ts`
+- `pnpm -C packages/nextclaw-core tsc`
+- `pnpm -C packages/nextclaw-kernel tsc`
+- `pnpm -C packages/nextclaw-server tsc`
+- `pnpm -C packages/nextclaw-ui tsc`
+- `pnpm -C packages/nextclaw-core lint`
+- `pnpm -C packages/nextclaw-kernel lint`
+- `pnpm -C packages/nextclaw-server lint`
+- `pnpm -C packages/nextclaw-ui lint`
+- `pnpm lint:new-code:governance`
+- `pnpm check:governance-backlog-ratchet`
+- `pnpm check:generated-clean`
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths $(git diff --name-only | tr '\n' ' ')`
+- `pnpm --filter @nextclaw/kernel test -- src/services/__tests__/ncp-agent-runtime-wrapper.service.test.ts`
+- `pnpm --filter @nextclaw/nextclaw-ncp-runtime-stdio-client test -- src/stdio-runtime.test.ts src/stdio-runtime-abort.test.ts`
+- `pnpm --filter @nextclaw/nextclaw-narp-runtime-codex-sdk test -- src/services/codex-narp-runtime-wrapper.service.test.ts`
+- `pnpm --filter @nextclaw/nextclaw-ncp-runtime-claude-code-sdk tsc`
+- `pnpm --filter @nextclaw/nextclaw-ncp-runtime-claude-code-sdk test -- src/utils/claude-code-query-runtime.utils.test.ts src/index.test.ts`
+- `pnpm --filter @nextclaw/nextclaw-ncp-runtime-claude-code-sdk lint`
+- `pnpm --filter @nextclaw/nextclaw-ncp-runtime-claude-code-sdk build`
+- `pnpm --filter @nextclaw/nextclaw-narp-runtime-claude-code-sdk tsc`
+- `pnpm --filter @nextclaw/nextclaw-narp-runtime-claude-code-sdk test -- src/services/claude-code-narp-runtime-wrapper.service.test.ts`
+- `pnpm --filter @nextclaw/nextclaw-narp-runtime-claude-code-sdk lint`
+- `pnpm --filter @nextclaw/nextclaw-narp-runtime-claude-code-sdk build`
 - 源码 Codex NARP ACP probe：
   - 配置 command 为 `/Users/peiwang/.nextclaw/bin/nextclaw-codex-narp`。
   - 通过 `NEXTCLAW_NARP_STDIO_COMMAND_OVERRIDES` 解析到 `packages/nextclaw/node_modules/.bin/tsx --tsconfig scripts/dev/dev-runtime.tsconfig.json packages/extensions/nextclaw-narp-runtime-codex-sdk/src/controllers/codex-narp.controller.ts`。
@@ -84,6 +125,12 @@
 
 本轮已按以上步骤在真实 5174 dev 实例完成通过，session 为 `ncp-codex-restart-smoke-mq81d562`。
 
+runtime-default thinking 配置化验收：
+
+1. 在 runtime entry `config.runtimeDefaultThinking` 写入 `supported/default`。
+2. 调用 session type listing，预期对应 option 带出同一份 `runtimeDefaultThinking`。
+3. 前端选择该 session type 且模型为“运行时默认”时，预期 runtime-default model option 的 `thinkingCapability` 来自 listing，而不是来自 Codex 分支或 agent 默认值。
+
 ## 可维护性总结汇总
 
 本次修复遵循正确 owner：
@@ -109,6 +156,24 @@ maintainability guard 结果：
 - `scripts/dev/dev-runner.mjs` 接近预算，本次增长 39 行。
 - 后续减债方向：从 `stdio-runtime.service.ts` 拆出 ACP update -> NCP event translator；从 `session.manager.ts` 拆出 runtime metadata patch projector。
 
+追加修正 maintainability 结果：
+
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths $(git diff --name-only | tr '\n' ' ')`
+- 结果通过，`Errors: 0`。
+- 最新 scoped 总增减：`+445 / -22 / net +423`。
+- 最新 scoped 非测试增减：`+205 / -9 / net +196`。
+- 警告均为既有或接近预算信号：`builtin-narp-runtime-provider.service.ts` 接近 600 行预算，`shared/lib/api` 根目录已有记录例外，`api/types.ts` 接近预算。
+- 正向维护动作：删除前端 Codex 特化 resolver 与 agent 默认值拼接路径，将能力归属收敛到 runtime entry config/session type listing 这一条通用链路。
+
+cwd owner 修正 maintainability 结果：
+
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`
+- 结果未通过。
+- 最新 scoped 总增减：`+704 / -140 / net +564`。
+- 最新 scoped 非测试增减：`+392 / -123 / net +269`。
+- 直接原因：当前工作区已有大量 staged 的 Codex app-server/streaming 前序改动被一并计入 scoped 路径；本轮 cwd owner 的 unstaged 核心修正为 `+44 / -13`。
+- 本轮正向维护动作：删除 runtime factory/provider 的 `workingDir` 感知，把工作目录归属收敛为 `SessionManager -> AgentRunSession.workingDir -> NCP executionContext.cwd -> ACP newSession.cwd` 单一路径。
+
 ## NPM 包发布记录
 
 需要随下一批 NPM patch 发布：
@@ -118,3 +183,6 @@ maintainability guard 结果：
 - `@nextclaw/nextclaw-narp-stdio-runtime-wrapper`：待统一发布。原因是注入并回传 runtime metadata writer。
 - `@nextclaw/nextclaw-narp-runtime-codex-sdk`：待统一发布。原因是把 writer 接入 Codex SDK runtime。
 - `@nextclaw/nextclaw-ncp-runtime-stdio-client`：待统一发布。原因是 host 侧翻译 ACP session metadata patch。
+- `@nextclaw/core`：待统一发布。原因是新增通用 model thinking capability 归一化工具。
+- `@nextclaw/server`：待统一发布。原因是 runtime entry config 保存 `runtimeDefaultThinking`。
+- `@nextclaw/ui`：待统一发布。原因是 runtime-default 模型选项按 session type listing 显示思考档位能力。

@@ -66,7 +66,7 @@ export class ClaudeCodeNarpRuntimeWrapper {
       authToken,
       apiBase,
       model,
-      workingDirectory: cwd ?? process.cwd(),
+      workingDirectory: cwd,
       sessionRuntimeId: readString(sessionMetadata.claude_session_id) ?? null,
       sessionMetadata,
       baseQueryOptions: {

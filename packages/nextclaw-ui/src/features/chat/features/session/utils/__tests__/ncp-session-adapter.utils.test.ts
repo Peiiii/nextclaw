@@ -43,6 +43,14 @@ describe('adaptNcpSessionSummary', () => {
       projectRoot: '/Users/demo/workspace/project-alpha',
       workingDir: '/Users/demo/workspace/project-alpha',
       projectName: 'project-alpha',
+      metadata: {
+        label: 'NCP Planning Thread',
+        model: 'openai/gpt-5',
+        preferred_thinking: 'medium',
+        project_root: '/Users/demo/workspace/project-alpha',
+        session_type: 'native',
+        ui_last_read_at: '2026-03-17T23:59:00.000Z'
+      },
       lastMessageAt: '2026-03-18T00:00:00.000Z',
       readAt: '2026-03-17T23:59:00.000Z',
       sessionType: 'native',

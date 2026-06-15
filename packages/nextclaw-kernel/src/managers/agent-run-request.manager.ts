@@ -280,8 +280,7 @@ export class AgentRunRequestManager {
       runId: activeRun.runId,
       agentId,
       model,
-      maxTokens:
-        request.maxTokens ?? this.configManager.getModelMaxTokens(model),
+      maxTokens: request.maxTokens ?? this.configManager.getModelMaxTokens(model),
       thinkingEffort: request.thinkingEffort ?? session.thinkingEffort ?? null,
       correlationId: request.correlationId,
     };
@@ -300,6 +299,7 @@ export class AgentRunRequestManager {
       from(
         runtime.run(spec, {
           contextBlocks,
+          session,
           sessionRun,
           signal: activeRun.signal,
           tools,

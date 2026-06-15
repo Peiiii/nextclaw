@@ -86,7 +86,7 @@ export type ClaudeCodeSdkNcpAgentRuntimeConfig = {
   authToken?: string;
   apiBase?: string;
   model?: string;
-  workingDirectory: string;
+  workingDirectory?: string;
   sessionRuntimeId?: string | null;
   env?: Record<string, string>;
   baseQueryOptions?: Record<string, unknown>;

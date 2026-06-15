@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { tmpdir } from "node:os";
 import { Readable, Writable } from "node:stream";
 import * as acp from "@agentclientprotocol/sdk";
 import {
@@ -49,6 +50,10 @@ export async function probeStdioRuntime(config: StdioRuntimeResolvedConfig): Pro
     () => createProbeClientBridge(),
     stream,
   );
+  const newSessionParams = {
+    cwd: config.cwd ?? tmpdir(),
+    mcpServers: [],
+  };
 
   try {
     const session = await Promise.race([
@@ -62,10 +67,7 @@ export async function probeStdioRuntime(config: StdioRuntimeResolvedConfig): Pro
           `[narp-stdio] probe timed out initializing stdio runtime`,
         );
         return withTimeout(
-          connection.newSession({
-            cwd: config.cwd ?? process.cwd(),
-            mcpServers: [],
-          }),
+          connection.newSession(newSessionParams),
           config.probeTimeoutMs,
           `[narp-stdio] probe timed out creating remote session`,
         );

@@ -18,7 +18,6 @@ import type { AgentRunSession } from "@kernel/types/session.types.js";
 import type { AgentRunSpec } from "@kernel/types/agent-run.types.js";
 
 export type NcpAgentRuntimeWrapperParams = {
-  session: AgentRunSession;
   createRuntime: (params: {
     resolveTools: (input: NcpAgentRunInput) => ReadonlyArray<OpenAITool> | undefined;
     stateManager: NcpAgentConversationStateManager;
@@ -48,7 +47,10 @@ export class NcpAgentRuntimeWrapper implements AgentRuntime {
       runId: spec.runId,
       messages,
       correlationId: spec.correlationId,
-      metadata: this.buildMetadata(spec),
+      metadata: this.buildMetadata(options.session, spec),
+      executionContext: {
+        cwd: options.session.workingDir,
+      },
     };
     for await (const event of this.getRuntime().run(input, { signal: options.signal })) {
       yield await this.applyEvent(sessionRun, event);
@@ -88,10 +90,10 @@ export class NcpAgentRuntimeWrapper implements AgentRuntime {
       },
     }));
 
-  private buildMetadata = (spec: AgentRunSpec): Record<string, unknown> => ({
-    ...this.params.session.metadata,
+  private buildMetadata = (session: AgentRunSession, spec: AgentRunSpec): Record<string, unknown> => ({
+    ...session.metadata,
     agentId: spec.agentId,
-    agentRuntimeId: this.params.session.agentRuntimeId,
+    agentRuntimeId: session.agentRuntimeId,
     maxTokens: spec.maxTokens,
     model: spec.model,
     preferred_model: spec.model,

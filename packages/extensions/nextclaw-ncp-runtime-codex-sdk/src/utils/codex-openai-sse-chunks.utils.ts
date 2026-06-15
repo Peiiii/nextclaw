@@ -2,7 +2,7 @@ import {
   readArray,
   readRawString,
   readRecord,
-} from "../codex-openai-responses-bridge-shared.utils.js";
+} from "@/codex-openai-responses-bridge-shared.utils.js";
 
 export type OpenAiStreamChoiceDelta = Record<string, unknown> & {
   tool_calls?: unknown;

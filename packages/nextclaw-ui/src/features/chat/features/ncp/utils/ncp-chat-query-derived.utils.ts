@@ -6,13 +6,16 @@ import type { ConfigView, ProvidersView, ProviderTemplatesView } from '@/shared/
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import { buildProviderModelCatalog, composeProviderModel, resolveModelThinkingCapability } from '@/shared/lib/provider-models';
 
-function buildRuntimeDefaultModelOption(label: string): ChatModelOption {
+function buildRuntimeDefaultModelOption(
+  label: string,
+  thinkingCapability?: ChatModelOption['thinkingCapability'],
+): ChatModelOption {
   return {
     value: RUNTIME_DEFAULT_MODEL_VALUE,
     modelLabel: label,
     providerLabel: '',
     isRuntimeDefault: true,
-    thinkingCapability: null,
+    thinkingCapability: thinkingCapability ?? null,
   };
 }
 
@@ -50,16 +53,21 @@ export function buildNcpChatProviderModelOptions(params: {
 export function filterNcpChatModelOptionsBySessionType(params: {
   modelOptions: ChatModelOption[];
   modelSelectionMode?: RuntimeModelSelectionMode;
+  runtimeDefaultThinkingCapability?: ChatModelOption['thinkingCapability'];
   runtimeDefaultModelLabel?: string;
   supportedModels?: string[];
 }): ChatModelOption[] {
   const {
     modelOptions,
     modelSelectionMode,
+    runtimeDefaultThinkingCapability,
     runtimeDefaultModelLabel = 'Runtime default',
     supportedModels,
   } = params;
-  const runtimeDefaultOption = buildRuntimeDefaultModelOption(runtimeDefaultModelLabel);
+  const runtimeDefaultOption = buildRuntimeDefaultModelOption(
+    runtimeDefaultModelLabel,
+    runtimeDefaultThinkingCapability,
+  );
   if (modelSelectionMode === 'runtime-default') {
     return [runtimeDefaultOption];
   }

@@ -31,7 +31,6 @@ import { resolveToolNameFromAcpUpdate } from "./stdio-runtime-tool-name.utils.js
 type AcpClientUpdate = acp.SessionUpdate;
 const HERMES_ACP_ROUTE_BRIDGE_ENV = "NEXTCLAW_HERMES_ACP_ROUTE_BRIDGE";
 export type StdioRuntimeNcpAgentRuntimeConfig = StdioRuntimeResolvedConfig & {
-  sessionId: string;
   stateManager?: NcpAgentConversationStateManager;
   resolveTools?: (input: NcpAgentRunInput) => ReadonlyArray<OpenAITool> | undefined;
   resolveProviderRoute?: (input: NcpAgentRunInput) => NcpProviderRuntimeRoute | undefined;
@@ -238,21 +237,27 @@ class StdioRuntimeSession {
   private connection: acp.ClientSideConnection | null = null;
   private promptInFlight = false;
   private remoteSessionId: string | null = null;
+  private remoteSessionCwd: string | null = null;
   private readonly clientBridge = new StdioRuntimeClientBridge();
   private stderr = "";
   private pendingProviderRoute: NcpProviderRuntimeRoute | undefined;
 
-  constructor(
-    private readonly config: StdioRuntimeResolvedConfig,
-    private readonly sessionId: string,
-  ) {}
+  constructor(private readonly config: StdioRuntimeNcpAgentRuntimeConfig) {}
 
-  ensureStarted = async (params?: {
+  ensureStarted = async (params: {
+    cwd?: string;
     providerRoute?: NcpProviderRuntimeRoute;
   }): Promise<void> => {
-    this.pendingProviderRoute = params?.providerRoute;
+    const { cwd, providerRoute } = params;
+    this.pendingProviderRoute = providerRoute;
     if (this.connection && this.remoteSessionId) {
-      return;
+      if (this.remoteSessionCwd === cwd) {
+        return;
+      }
+      await this.dispose();
+    }
+    if (!cwd) {
+      throw new Error("[narp-stdio] missing execution cwd for stdio runtime session");
     }
 
     const env = buildStdioRuntimeLaunchEnv({
@@ -297,31 +302,33 @@ class StdioRuntimeSession {
             clientCapabilities: {},
           }) ?? Promise.reject(new Error("[narp-stdio] stdio runtime connection not started")),
           this.config.startupTimeoutMs,
-          `[narp-stdio] timed out initializing stdio runtime for session ${this.sessionId}`,
+          "[narp-stdio] timed out initializing stdio runtime",
         );
 
         return withTimeout(
           this.connection?.newSession({
-            cwd: this.config.cwd ?? process.cwd(),
+            cwd,
             mcpServers: [],
           }) ?? Promise.reject(new Error("[narp-stdio] stdio runtime connection not started")),
           this.config.startupTimeoutMs,
-          `[narp-stdio] timed out creating remote session for ${this.sessionId}`,
+          "[narp-stdio] timed out creating remote stdio session",
         );
       })(),
       spawnErrorPromise,
     ]);
     this.remoteSessionId = session.sessionId;
+    this.remoteSessionCwd = cwd;
   };
 
   runPrompt = async (params: {
+    sessionId: string;
     text: string;
     meta: NarpStdioPromptMeta;
     modelId?: string;
     signal?: AbortSignal;
     onUpdate: (update: AcpClientUpdate) => void;
   }): Promise<acp.PromptResponse> => {
-    const { meta, modelId, onUpdate, signal, text } = params;
+    const { meta, modelId, onUpdate, sessionId, signal, text } = params;
     if (!this.connection || !this.remoteSessionId) {
       throw new Error("[narp-stdio] stdio runtime connection not started");
     }
@@ -358,7 +365,7 @@ class StdioRuntimeSession {
           },
         }),
         this.config.requestTimeoutMs,
-        `[narp-stdio] prompt timed out for session ${this.sessionId}`,
+        `[narp-stdio] prompt timed out for session ${sessionId}`,
       );
     } finally {
       releaseAbort();
@@ -410,6 +417,7 @@ class StdioRuntimeSession {
     const child = this.child;
     this.connection = null;
     this.remoteSessionId = null;
+    this.remoteSessionCwd = null;
     this.child = null;
     if (!child || child.killed || child.exitCode !== null || child.signalCode !== null) {
       return;
@@ -461,6 +469,7 @@ class StdioRuntimeRunController {
 
     const assistantMessageId = createAssistantMessageId(requestMessage.id);
     const promptPromise = this.session.runPrompt({
+      sessionId: this.input.sessionId,
       text: extractPromptText(requestMessage),
       meta: {
         ...(this.input.correlationId ? { correlationId: this.input.correlationId } : {}),
@@ -865,7 +874,7 @@ export class StdioRuntimeNcpAgentRuntime implements NcpAgentRuntime {
   private readonly session: StdioRuntimeSession;
 
   constructor(private readonly config: StdioRuntimeNcpAgentRuntimeConfig) {
-    this.session = new StdioRuntimeSession(config, config.sessionId);
+    this.session = new StdioRuntimeSession(config);
   }
 
   run = async function* (
@@ -874,6 +883,7 @@ export class StdioRuntimeNcpAgentRuntime implements NcpAgentRuntime {
     options?: NcpAgentRunOptions,
   ): AsyncGenerator<NcpEndpointEvent> {
     await this.session.ensureStarted({
+      cwd: input.executionContext?.cwd,
       providerRoute: this.config.resolveProviderRoute?.(input),
     });
     const controller = new StdioRuntimeRunController(

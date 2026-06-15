@@ -8,11 +8,12 @@ import {
   readArray,
   readNumber,
   readRecord,
+  readRawString,
   readString,
   writeSseEvent,
   type OpenResponsesOutputItem,
   type StreamSequenceState,
-} from "../codex-openai-responses-bridge-shared.utils.js";
+} from "@/codex-openai-responses-bridge-shared.utils.js";
 import {
   extractContentText,
   extractReasoningText,
@@ -240,13 +241,6 @@ class CodexResponsesOpenAiStreamWriter {
       summary_index: 0,
       delta: reasoningDelta,
     });
-    this.writeEvent("response.reasoning_text.delta", {
-      type: "response.reasoning_text.delta",
-      output_index: state.outputIndex,
-      item_id: state.itemId,
-      content_index: 0,
-      delta: reasoningDelta,
-    });
   };
 
   private writeTextDelta = (textDelta: string): void => {
@@ -270,7 +264,7 @@ class CodexResponsesOpenAiStreamWriter {
     const fn = readRecord(toolCall?.function);
     const state = this.ensureToolCallState(toolIndex, toolCall ?? {});
     state.name = readString(fn?.name) ?? state.name;
-    const argumentsDelta = readString(fn?.arguments) ?? "";
+    const argumentsDelta = readRawString(fn?.arguments) ?? "";
     state.argumentsText += argumentsDelta;
     if (!argumentsDelta) {
       return;

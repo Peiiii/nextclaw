@@ -45,6 +45,7 @@ describe('ChatSessionHeaderActions', () => {
 
     expect(screen.getByText('Set Project Directory')).toBeTruthy();
     expect(screen.queryByText('Clear Project Directory')).toBeNull();
+    expect(screen.getByText('View Metadata')).toBeTruthy();
     expect(screen.getByText('Delete Session')).toBeTruthy();
   });
 
@@ -67,6 +68,32 @@ describe('ChatSessionHeaderActions', () => {
 
     expect(screen.getByText('Set Project Directory')).toBeTruthy();
     expect(screen.queryByText('Clear Project Directory')).toBeNull();
+    expect(screen.getByText('View Metadata')).toBeTruthy();
+  });
+
+  it('opens the session metadata dialog from the more-actions menu', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ChatSessionHeaderActions
+        sessionKey="session-codex"
+        canDeleteSession
+        isDeletePending={false}
+        projectRoot={null}
+        metadata={{
+          codex_thread_id: 'thread-123',
+          runtime: 'codex',
+        }}
+        onDeleteSession={mocks.onDeleteSession}
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    await user.click(screen.getByRole('button', { name: 'View Metadata' }));
+
+    expect(screen.getByRole('dialog', { name: 'Session Metadata' })).toBeTruthy();
+    expect(screen.getByText(/codex_thread_id/)).toBeTruthy();
+    expect(screen.getByText(/thread-123/)).toBeTruthy();
   });
 
   it('shows a dedicated child-session entry button when the current session has child sessions', async () => {

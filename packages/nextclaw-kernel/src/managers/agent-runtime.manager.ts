@@ -13,6 +13,7 @@ import type {
 import { describeAgentRuntimeSessionTypes } from "@kernel/features/runtime-registry/index.js";
 
 export type AgentRuntimeRunOptions = {
+  session: AgentRunSession;
   sessionRun: SessionRun;
   contextBlocks: readonly ContextBlock[];
   tools: readonly NcpTool[];

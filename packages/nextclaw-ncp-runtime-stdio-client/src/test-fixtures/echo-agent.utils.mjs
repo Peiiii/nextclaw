@@ -9,53 +9,55 @@ class EchoAgent {
     this.sessions = new Map();
   }
 
-  async initialize() {
+  initialize = async () => {
     return {
       protocolVersion: acp.PROTOCOL_VERSION,
       agentCapabilities: {
         loadSession: false,
       },
     };
-  }
+  };
 
-  async newSession() {
+  newSession = async (params) => {
     const sessionId = randomUUID();
     this.sessions.set(sessionId, {
       modelId: null,
       abortController: null,
+      cwd: params?.cwd ?? null,
     });
     return { sessionId };
-  }
+  };
 
-  async authenticate() {
+  authenticate = async () => {
     return {};
-  }
+  };
 
-  async setSessionMode() {
+  setSessionMode = async () => {
     return {};
-  }
+  };
 
-  async unstable_setSessionModel(params) {
+  unstable_setSessionModel = async (params) => {
     const session = this.sessions.get(params.sessionId);
     if (session) {
       session.modelId = params.modelId;
     }
     return {};
-  }
+  };
 
-  async prompt(params) {
-    const session = this.sessions.get(params.sessionId);
+  prompt = async (params) => {
+    const { _meta, sessionId } = params;
+    const session = this.sessions.get(sessionId);
     if (!session) {
-      throw new Error(`Session ${params.sessionId} not found`);
+      throw new Error(`Session ${sessionId} not found`);
     }
     const abortController = new AbortController();
     session.abortController = abortController;
 
-    const meta = params._meta?.nextclaw_narp ?? {};
+    const meta = _meta?.nextclaw_narp ?? {};
     const sessionMetadataPatch = readJsonObject(process.env.NEXTCLAW_ECHO_SESSION_METADATA_PATCH_JSON);
     if (sessionMetadataPatch) {
       await this.connection.sessionUpdate({
-        sessionId: params.sessionId,
+        sessionId,
         update: {
           sessionUpdate: "session_info_update",
           _meta: {
@@ -67,7 +69,7 @@ class EchoAgent {
       });
     }
     await this.connection.sessionUpdate({
-      sessionId: params.sessionId,
+      sessionId,
       update: {
         sessionUpdate: "agent_thought_chunk",
         content: {
@@ -77,7 +79,7 @@ class EchoAgent {
       },
     });
     await this.connection.sessionUpdate({
-      sessionId: params.sessionId,
+      sessionId,
       update: {
         sessionUpdate: "tool_call",
         toolCallId: "call-1",
@@ -89,29 +91,34 @@ class EchoAgent {
         },
       },
     });
+    const rawOutput = {
+      modelId: session.modelId,
+      routedModel: meta.providerRoute?.model ?? null,
+      envRoutedModel: process.env.NEXTCLAW_MODEL ?? null,
+      headerKeys: Object.keys(meta.providerRoute?.headers ?? {}),
+      envHeaderKeys: (() => {
+        const parsed = readJsonObject(process.env.NEXTCLAW_HEADERS_JSON);
+        return parsed ? Object.keys(parsed) : [];
+      })(),
+      toolNames: Array.isArray(meta.tools)
+        ? meta.tools.map((tool) => tool?.function?.name).filter(Boolean)
+        : [],
+    };
+    if (process.env.NEXTCLAW_ECHO_CWD_INFO === "1") {
+      rawOutput.sessionCwd = session.cwd;
+      rawOutput.processCwd = process.cwd();
+    }
     await this.connection.sessionUpdate({
-      sessionId: params.sessionId,
+      sessionId,
       update: {
         sessionUpdate: "tool_call_update",
         toolCallId: "call-1",
         status: "completed",
-        rawOutput: {
-          modelId: session.modelId,
-          routedModel: meta.providerRoute?.model ?? null,
-          envRoutedModel: process.env.NEXTCLAW_MODEL ?? null,
-          headerKeys: Object.keys(meta.providerRoute?.headers ?? {}),
-          envHeaderKeys: (() => {
-            const parsed = readJsonObject(process.env.NEXTCLAW_HEADERS_JSON);
-            return parsed ? Object.keys(parsed) : [];
-          })(),
-          toolNames: Array.isArray(meta.tools)
-            ? meta.tools.map((tool) => tool?.function?.name).filter(Boolean)
-            : [],
-        },
+        rawOutput,
       },
     });
     await this.connection.sessionUpdate({
-      sessionId: params.sessionId,
+      sessionId,
       update: {
         sessionUpdate: "agent_message_chunk",
         content: {
@@ -123,11 +130,11 @@ class EchoAgent {
     return {
       stopReason: abortController.signal.aborted ? "cancelled" : "end_turn",
     };
-  }
+  };
 
-  async cancel(params) {
+  cancel = async (params) => {
     this.sessions.get(params.sessionId)?.abortController?.abort();
-  }
+  };
 }
 
 function readJsonObject(value) {

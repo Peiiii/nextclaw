@@ -1,5 +1,5 @@
 import { type NcpEndpointEvent } from "@nextclaw/ncp";
-import type { ClaudeCodeMessage } from "@claude-code-sdk/claude-code-sdk-types.js";
+import type { ClaudeCodeMessage } from "@claude-code-sdk/types/claude-code-sdk.types.js";
 import {
   emitTextDelta,
   emitToolCallArgs,

@@ -89,12 +89,10 @@ export class AgentRunRuntimeContribution implements KernelContribution {
           throw new Error(`Agent runtime provider does not support entries: ${provider.kind}`);
         }
         return new NcpAgentRuntimeWrapper({
-          session,
           createRuntime: ({ resolveTools, stateManager }) =>
             provider.createRuntimeForEntry!({
               entry,
               runtimeParams: {
-                sessionId: session.sessionId,
                 ...(session.agentId ? { agentId: session.agentId } : {}),
                 resolveAssetContentPath: (assetUri) =>
                   this.kernel.assetStore.resolveContentPath(assetUri),

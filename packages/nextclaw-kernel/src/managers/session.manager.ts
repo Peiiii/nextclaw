@@ -435,6 +435,10 @@ export class SessionManager implements NcpSessionApi {
       metadata: structuredClone(record.metadata ?? {}),
       model,
       projectRoot: readProjectRoot(record.metadata),
+      workingDir: this.workingDirResolver.resolve({
+        agentId: record.agentId,
+        metadata: record.metadata,
+      }),
       thinkingEffort: readThinkingEffort(record.metadata),
     };
   };
@@ -482,6 +486,10 @@ export class SessionManager implements NcpSessionApi {
       metadata: structuredClone(created.metadata ?? {}),
       model,
       projectRoot,
+      workingDir: this.workingDirResolver.resolve({
+        agentId,
+        metadata: created.metadata,
+      }),
       thinkingEffort: thinkingEffort ?? null,
     };
   };

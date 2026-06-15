@@ -1,5 +1,5 @@
 import { delimiter, dirname, join } from "node:path";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
@@ -40,6 +40,9 @@ const FAILING_FIXTURE_PATH = join(
   "test-fixtures",
   "failing-agent.mjs",
 );
+const TEST_EXECUTION_CONTEXT = {
+  cwd: dirname(FIXTURE_PATH),
+};
 
 async function waitUntilProcessStops(pid: number): Promise<void> {
   const deadline = Date.now() + 5_000;
@@ -162,7 +165,6 @@ describe("buildStdioRuntimeLaunchEnv", () => {
 describe("StdioRuntimeNcpAgentRuntime event bridging", () => {
   it("bridges ACP stdio updates into NCP events and forwards prompt meta", async () => {
     const runtime = new StdioRuntimeNcpAgentRuntime({
-      sessionId: "session-stdio-runtime",
       wireDialect: "acp",
       processScope: "per-session",
       command: process.execPath,
@@ -208,6 +210,7 @@ describe("StdioRuntimeNcpAgentRuntime event bridging", () => {
         },
       ],
       correlationId: "corr-1",
+      executionContext: TEST_EXECUTION_CONTEXT,
       metadata: {
         preferredModel: "minimax/MiniMax-M2.7",
       },
@@ -279,7 +282,6 @@ describe("StdioRuntimeNcpAgentRuntime event bridging", () => {
 
   it("fails cleanly when the stdio command cannot be spawned", async () => {
     const runtime = new StdioRuntimeNcpAgentRuntime({
-      sessionId: "session-stdio-missing-command",
       wireDialect: "acp",
       processScope: "per-session",
       command: "/definitely/missing/hermes",
@@ -303,6 +305,7 @@ describe("StdioRuntimeNcpAgentRuntime event bridging", () => {
               parts: [{ type: "text", text: "ping" }],
             },
           ],
+          executionContext: TEST_EXECUTION_CONTEXT,
         })) {
           void event;
           // no-op
@@ -315,7 +318,6 @@ describe("StdioRuntimeNcpAgentRuntime event bridging", () => {
     const tempDir = await mkdtemp(join(tmpdir(), "nextclaw-stdio-runtime-"));
     const pidFile = join(tempDir, "agent.pid");
     const runtime = new StdioRuntimeNcpAgentRuntime({
-      sessionId: "session-stdio-runtime-dispose",
       wireDialect: "acp",
       processScope: "per-session",
       command: process.execPath,
@@ -341,6 +343,7 @@ describe("StdioRuntimeNcpAgentRuntime event bridging", () => {
             parts: [{ type: "text", text: "dispose child" }],
           },
         ],
+        executionContext: TEST_EXECUTION_CONTEXT,
       })) {
         void event;
       }
@@ -356,12 +359,68 @@ describe("StdioRuntimeNcpAgentRuntime event bridging", () => {
       await rm(tempDir, { recursive: true, force: true });
     }
   });
+
+});
+
+describe("StdioRuntimeNcpAgentRuntime cwd handling", () => {
+  it("uses executionContext cwd for the ACP session while keeping cwd for the child process", async () => {
+    const processCwd = await mkdtemp(join(tmpdir(), "nextclaw-stdio-process-cwd-"));
+    const sessionCwd = await mkdtemp(join(tmpdir(), "nextclaw-stdio-session-cwd-"));
+    const resolvedProcessCwd = await realpath(processCwd);
+    const runtime = new StdioRuntimeNcpAgentRuntime({
+      wireDialect: "acp",
+      processScope: "per-session",
+      command: process.execPath,
+      args: [FIXTURE_PATH],
+      cwd: processCwd,
+      env: {
+        NEXTCLAW_ECHO_CWD_INFO: "1",
+      },
+      startupTimeoutMs: 10_000,
+      probeTimeoutMs: 3_000,
+      requestTimeoutMs: 30_000,
+    });
+
+    try {
+      const events: NcpEndpointEvent[] = [];
+      for await (const event of runtime.run({
+        sessionId: "session-stdio-runtime-cwd",
+        messages: [
+          {
+            id: "user-cwd",
+            sessionId: "session-stdio-runtime-cwd",
+            role: "user",
+            status: "final",
+            timestamp: "2026-06-16T00:00:00.000Z",
+            parts: [{ type: "text", text: "cwd" }],
+          },
+        ],
+        executionContext: {
+          cwd: sessionCwd,
+        },
+      })) {
+        events.push(event);
+      }
+
+      const toolResultEvent = events.find(
+        (event): event is Extract<NcpEndpointEvent, { type: NcpEventType.MessageToolCallResult }> =>
+          event.type === NcpEventType.MessageToolCallResult,
+      );
+      expect(toolResultEvent?.payload.content).toMatchObject({
+        processCwd: resolvedProcessCwd,
+        sessionCwd,
+      });
+    } finally {
+      await runtime.dispose();
+      await rm(processCwd, { recursive: true, force: true });
+      await rm(sessionCwd, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("StdioRuntimeNcpAgentRuntime session metadata bridging", () => {
   it("bridges ACP session metadata patches into NCP run metadata", async () => {
     const runtime = new StdioRuntimeNcpAgentRuntime({
-      sessionId: "session-stdio-runtime-metadata",
       wireDialect: "acp",
       processScope: "per-session",
       command: process.execPath,
@@ -391,6 +450,7 @@ describe("StdioRuntimeNcpAgentRuntime session metadata bridging", () => {
         },
       ],
       correlationId: "corr-metadata",
+      executionContext: TEST_EXECUTION_CONTEXT,
     })) {
       events.push(event);
     }
@@ -414,7 +474,6 @@ describe("StdioRuntimeNcpAgentRuntime session metadata bridging", () => {
 
   it("emits configured session metadata resets when a prompt times out", async () => {
     const runtime = new StdioRuntimeNcpAgentRuntime({
-      sessionId: "session-stdio-runtime-timeout-reset",
       wireDialect: "acp",
       processScope: "per-session",
       command: process.execPath,
@@ -440,6 +499,7 @@ describe("StdioRuntimeNcpAgentRuntime session metadata bridging", () => {
           },
         ],
         correlationId: "corr-timeout-reset",
+        executionContext: TEST_EXECUTION_CONTEXT,
         metadata: {
           codex_thread_id: "thread-stuck-1",
         },
@@ -471,7 +531,6 @@ describe("StdioRuntimeNcpAgentRuntime session metadata bridging", () => {
 describe("StdioRuntimeNcpAgentRuntime Hermes request-scoped route handling", () => {
   it("skips unstable session model switching for Hermes request-scoped ACP runs", async () => {
     const runtime = new StdioRuntimeNcpAgentRuntime({
-      sessionId: "session-stdio-hermes-route-truth",
       wireDialect: "acp",
       processScope: "per-session",
       command: process.execPath,
@@ -508,6 +567,7 @@ describe("StdioRuntimeNcpAgentRuntime Hermes request-scoped route handling", () 
       metadata: {
         preferredModel: "dashscope/qwen3.6-plus",
       },
+      executionContext: TEST_EXECUTION_CONTEXT,
     })) {
       events.push(event);
     }
@@ -528,7 +588,6 @@ describe("StdioRuntimeNcpAgentRuntime Hermes request-scoped route handling", () 
 
   it("does not forward the runtime-default sentinel as an ACP session model", async () => {
     const runtime = new StdioRuntimeNcpAgentRuntime({
-      sessionId: "session-stdio-runtime-default-model",
       wireDialect: "acp",
       processScope: "per-session",
       command: process.execPath,
@@ -555,6 +614,7 @@ describe("StdioRuntimeNcpAgentRuntime Hermes request-scoped route handling", () 
         preferred_model: "__nextclaw_runtime_default__",
         model: "__nextclaw_runtime_default__",
       },
+      executionContext: TEST_EXECUTION_CONTEXT,
     })) {
       events.push(event);
     }
@@ -583,7 +643,6 @@ describe("StdioRuntimeNcpAgentRuntime failure handling", () => {
 
   it("emits explicit failure events when the ACP prompt fails", async () => {
     const runtime = new StdioRuntimeNcpAgentRuntime({
-      sessionId: "session-stdio-failing-prompt",
       wireDialect: "acp",
       processScope: "per-session",
       command: process.execPath,
@@ -606,6 +665,7 @@ describe("StdioRuntimeNcpAgentRuntime failure handling", () => {
           parts: [{ type: "text", text: "fail please" }],
         },
       ],
+      executionContext: TEST_EXECUTION_CONTEXT,
     })) {
       events.push(event);
     }
@@ -635,7 +695,6 @@ describe("StdioRuntimeNcpAgentRuntime failure handling", () => {
 describe("StdioRuntimeNcpAgentRuntime tool normalization", () => {
   it("normalizes Hermes ACP tool titles back to canonical tool names", async () => {
     const runtime = new StdioRuntimeNcpAgentRuntime({
-      sessionId: "session-stdio-hermes-tool-title",
       wireDialect: "acp",
       processScope: "per-session",
       command: process.execPath,
@@ -658,6 +717,7 @@ describe("StdioRuntimeNcpAgentRuntime tool normalization", () => {
           parts: [{ type: "text", text: "normalize Hermes title" }],
         },
       ],
+      executionContext: TEST_EXECUTION_CONTEXT,
     })) {
       events.push(event);
     }

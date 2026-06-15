@@ -11,7 +11,6 @@ import type {
 import type { EventPublisher } from "./event-publisher.js";
 
 export type RuntimeFactoryParams = {
-  sessionId: string;
   agentId?: string;
   stateManager: NcpAgentConversationStateManager;
   sessionMetadata: Record<string, unknown>;

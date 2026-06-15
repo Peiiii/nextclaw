@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { RUNTIME_DEFAULT_MODEL_VALUE } from '@nextclaw/shared';
 import { updateNcpSession } from '@/shared/lib/api';
 import { ChatSessionPreferenceSync } from '@/features/chat/managers/chat-session-preference-sync.manager';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
@@ -73,6 +74,72 @@ describe('ChatSessionPreferenceSync', () => {
         preferredModel: 'openai/gpt-5',
         preferredThinking: 'high'
       });
+    });
+  });
+
+  it('clears the persisted model preference when runtime default is selected', async () => {
+    useChatInputStore.setState((state) => ({
+      snapshot: {
+        ...state.snapshot,
+        selectedModel: RUNTIME_DEFAULT_MODEL_VALUE,
+        selectedThinkingLevel: null
+      }
+    }));
+    useChatSessionListStore.setState((state) => ({
+      snapshot: {
+        ...state.snapshot,
+        selectedSessionKey: 'session-1'
+      }
+    }));
+    useChatThreadStore.setState((state) => ({
+      snapshot: {
+        ...state.snapshot,
+        canDeleteSession: true
+      }
+    }));
+
+    const sync = new ChatSessionPreferenceSync(updateNcpSession);
+    sync.syncSelectedSessionPreferences();
+    await vi.waitFor(() => {
+      expect(updateNcpSession).toHaveBeenCalledWith('session-1', {
+        preferredModel: null,
+        preferredThinking: null
+      });
+    });
+  });
+
+  it('uses the runtime-default thinking capability default when no session thinking is persisted', () => {
+    useChatInputStore.setState((state) => ({
+      snapshot: {
+        ...state.snapshot,
+        modelOptions: [
+          {
+            value: RUNTIME_DEFAULT_MODEL_VALUE,
+            modelLabel: 'Runtime default',
+            providerLabel: '',
+            isRuntimeDefault: true,
+            thinkingCapability: {
+              supported: ['off', 'minimal', 'low', 'medium', 'high', 'xhigh'],
+              default: 'high',
+            },
+          },
+        ],
+        selectedModel: '',
+        selectedThinkingLevel: null,
+      }
+    }));
+
+    const sync = new ChatSessionPreferenceSync(updateNcpSession);
+    sync.syncInputSelection({
+      selectedSessionExists: true,
+      defaultModel: RUNTIME_DEFAULT_MODEL_VALUE,
+      selectedSessionPreferredThinking: null,
+      fallbackPreferredThinking: null,
+    });
+
+    expect(useChatInputStore.getState().snapshot).toMatchObject({
+      selectedModel: RUNTIME_DEFAULT_MODEL_VALUE,
+      selectedThinkingLevel: 'high',
     });
   });
 

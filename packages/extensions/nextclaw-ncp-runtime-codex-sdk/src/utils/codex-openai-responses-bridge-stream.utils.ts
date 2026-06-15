@@ -1,5 +1,5 @@
 import type { ServerResponse } from "node:http";
-import { buildAssistantOutputItems } from "../codex-openai-responses-bridge-assistant-output.utils.js";
+import { buildAssistantOutputItems } from "./codex-openai-responses-bridge-assistant-output.utils.js";
 import {
   readArray,
   readNumber,
@@ -8,7 +8,7 @@ import {
   writeSseEvent,
   type OpenAiChatCompletionResponse,
   type OpenResponsesOutputItem,
-} from "../codex-openai-responses-bridge-shared.utils.js";
+} from "@/codex-openai-responses-bridge-shared.utils.js";
 
 function buildOpenResponsesOutputItems(
   response: OpenAiChatCompletionResponse,

@@ -1,3 +1,5 @@
+import { normalizeModelThinkingCapability } from "@nextclaw/core";
+
 function normalizeOptionalString(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
@@ -51,8 +53,15 @@ export function normalizeRuntimeEntryConfig(
   type: string,
   config: Record<string, unknown>,
 ): Record<string, unknown> {
+  const runtimeDefaultThinking = normalizeModelThinkingCapability(config.runtimeDefaultThinking);
   if (type !== "narp-stdio") {
-    return { ...config };
+    const restConfig = Object.fromEntries(
+      Object.entries(config).filter(([key]) => key !== "runtimeDefaultThinking"),
+    );
+    return {
+      ...restConfig,
+      ...(runtimeDefaultThinking ? { runtimeDefaultThinking } : {}),
+    };
   }
 
   const command = normalizeOptionalString(config.command);
@@ -79,6 +88,7 @@ export function normalizeRuntimeEntryConfig(
     ...(model ? { model } : {}),
     ...(recommendedModel ? { recommendedModel } : {}),
     ...(supportedModels ? { supportedModels } : {}),
+    ...(runtimeDefaultThinking ? { runtimeDefaultThinking } : {}),
     ...(resetSessionMetadataOnPromptTimeout
       ? { resetSessionMetadataOnPromptTimeout }
       : {}),

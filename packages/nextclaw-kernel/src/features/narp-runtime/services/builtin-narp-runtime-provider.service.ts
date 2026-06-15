@@ -2,6 +2,7 @@ import { access } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { delimiter } from "node:path";
 import {
+  normalizeModelThinkingCapability,
   ProviderRegistry,
   resolveProviderRuntime,
   type Config,
@@ -51,12 +52,6 @@ function readString(value: unknown): string | undefined {
   }
   const trimmed = value.trim();
   return trimmed || undefined;
-}
-
-function resolveEntryIcon(
-  entry: AgentRuntimeEntry,
-): SessionTypeDescriptor["icon"] {
-  return entry.icon ?? null;
 }
 
 function resolveRequestedModel(params: {
@@ -171,15 +166,21 @@ class BuiltinHttpRuntimeSessionTypeService {
     const modelSelectionMode = normalizeRuntimeModelSelectionMode(
       this.entry.config?.modelSelectionMode,
     );
+    const baseDescriptor = {
+      icon: this.entry.icon ?? null,
+      modelSelectionMode,
+      runtimeDefaultThinking: normalizeModelThinkingCapability(
+        this.entry.config?.runtimeDefaultThinking,
+      ),
+    };
 
     if (!config.baseUrl) {
       return {
-        icon: resolveEntryIcon(this.entry),
+        ...baseDescriptor,
         ready: false,
         reason: "base_url_missing",
         reasonMessage: "Configure the runtime entry baseUrl before starting an HTTP runtime session.",
         recommendedModel: config.recommendedModel ?? null,
-        modelSelectionMode,
         cta: {
           kind: "settings",
           label: "Configure HTTP Runtime",
@@ -190,12 +191,11 @@ class BuiltinHttpRuntimeSessionTypeService {
     const shouldProbe = (config.capabilityProbe ?? true) && Boolean(config.healthcheckUrl);
     if (!shouldProbe) {
       return {
-        icon: resolveEntryIcon(this.entry),
+        ...baseDescriptor,
         ready: true,
         reason: null,
         reasonMessage: null,
         recommendedModel: config.recommendedModel ?? null,
-        modelSelectionMode,
         ...(config.supportedModels ? { supportedModels: config.supportedModels } : {}),
         cta: null,
       };
@@ -212,29 +212,27 @@ class BuiltinHttpRuntimeSessionTypeService {
       });
       if (!response.ok) {
         return {
-          icon: resolveEntryIcon(this.entry),
+          ...baseDescriptor,
           ready: false,
           reason: "healthcheck_failed",
           reasonMessage: `HTTP runtime healthcheck returned HTTP ${response.status}.`,
           recommendedModel: config.recommendedModel ?? null,
-          modelSelectionMode,
           ...(config.supportedModels ? { supportedModels: config.supportedModels } : {}),
           cta: null,
         };
       }
       return {
-        icon: resolveEntryIcon(this.entry),
+        ...baseDescriptor,
         ready: true,
         reason: null,
         reasonMessage: null,
         recommendedModel: config.recommendedModel ?? null,
-        modelSelectionMode,
         ...(config.supportedModels ? { supportedModels: config.supportedModels } : {}),
         cta: null,
       };
     } catch (error) {
       return {
-        icon: resolveEntryIcon(this.entry),
+        ...baseDescriptor,
         ready: false,
         reason: "healthcheck_unreachable",
         reasonMessage:
@@ -284,12 +282,19 @@ class BuiltinStdioRuntimeSessionTypeService {
     const modelSelectionMode = normalizeRuntimeModelSelectionMode(
       this.entry.config?.modelSelectionMode,
     );
+    const baseDescriptor = {
+      icon: this.entry.icon ?? null,
+      modelSelectionMode,
+      runtimeDefaultThinking: normalizeModelThinkingCapability(
+        this.entry.config?.runtimeDefaultThinking,
+      ),
+    };
     try {
       const config = resolver.resolve();
       const executablePath = await resolveExecutablePath(config.command);
       if (!executablePath) {
         return {
-          icon: resolveEntryIcon(this.entry),
+          ...baseDescriptor,
           ready: false,
           reason: "command_missing",
           reasonMessage: `Configured stdio command "${config.command}" is not available. Update the runtime entry command or install the required launcher first.`,
@@ -297,7 +302,6 @@ class BuiltinStdioRuntimeSessionTypeService {
             kind: "settings",
             label: "Configure Stdio Runtime",
           },
-          modelSelectionMode,
         };
       }
       if (describeMode === "probe") {
@@ -305,7 +309,7 @@ class BuiltinStdioRuntimeSessionTypeService {
           await probeStdioRuntime(config);
         } catch (error) {
           return {
-            icon: resolveEntryIcon(this.entry),
+            ...baseDescriptor,
             ready: false,
             reason: "probe_failed",
             reasonMessage:
@@ -316,21 +320,19 @@ class BuiltinStdioRuntimeSessionTypeService {
               kind: "settings",
               label: "Repair Stdio Runtime",
             },
-            modelSelectionMode,
           };
         }
       }
       return {
-        icon: resolveEntryIcon(this.entry),
+        ...baseDescriptor,
         ready: true,
         reason: null,
         reasonMessage: null,
-        modelSelectionMode,
         cta: null,
       };
     } catch (error) {
       return {
-        icon: resolveEntryIcon(this.entry),
+        ...baseDescriptor,
         ready: false,
         reason: "command_missing",
         reasonMessage:
@@ -341,7 +343,6 @@ class BuiltinStdioRuntimeSessionTypeService {
           kind: "settings",
           label: "Configure Stdio Runtime",
         },
-        modelSelectionMode,
       };
     }
   };
@@ -446,7 +447,6 @@ export class BuiltinNarpRuntimeProviderService {
     const resolvedConfig = resolver.resolve();
     return new StdioRuntimeNcpAgentRuntime({
       ...resolvedConfig,
-      sessionId: runtimeParams.sessionId,
       resolveTools: runtimeParams.resolveTools,
       stateManager: runtimeParams.stateManager,
       resolveProviderRoute: (input: NcpAgentRunInput) =>

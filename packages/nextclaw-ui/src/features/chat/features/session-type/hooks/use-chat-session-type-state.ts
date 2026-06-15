@@ -55,6 +55,7 @@ export function useChatSessionTypeState(params: UseChatSessionTypeStateParams): 
         supportedModels: undefined,
         recommendedModel: null,
         modelSelectionMode: 'nextclaw',
+        runtimeDefaultThinking: null,
         cta: null
       });
     }
