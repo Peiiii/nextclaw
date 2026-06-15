@@ -81,7 +81,7 @@ export class DefaultNcpAgentRuntime {
     this.llmApi = llmApi;
     this.modelInputBuilder = modelInputBuilder;
     this.runPreflight = runPreflight;
-    this.reasoningNormalizationMode = reasoningNormalizationMode ?? "off";
+    this.reasoningNormalizationMode = reasoningNormalizationMode ?? "think-tags";
     this.streamEncoder =
       streamEncoder ??
       new DefaultNcpStreamEncoder({

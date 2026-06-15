@@ -18,6 +18,7 @@
     "build": "tsdown src/index.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension",
     "lint": "eslint .",
     "prepublishOnly": "node ../../../scripts/release/ensure-pnpm-publish.mjs",
+    "test": "vitest run",
     "tsc": "tsc -p tsconfig.json"
   },
   "dependencies": {
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.17.6",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.2"
   }
 }
