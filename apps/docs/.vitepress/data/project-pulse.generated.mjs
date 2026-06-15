@@ -1,18 +1,18 @@
 export default {
-  "generatedAt": "2026-06-14T03:24:31.722Z",
+  "generatedAt": "2026-06-15T03:26:45.147Z",
   "hero": {
-    "currentLoc": 183613,
-    "testLoc": 54341,
-    "trackedFiles": 1989,
-    "recentCommitCount": 459,
+    "currentLoc": 183870,
+    "testLoc": 54662,
+    "trackedFiles": 1995,
+    "recentCommitCount": 450,
     "activeDays30": 29,
-    "recentReleaseCount": 56,
+    "recentReleaseCount": 55,
     "latestReleaseDate": "2026-06-09",
     "latestNoteDate": "2026-05-06",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 1663544,
-    "basePercentOfBenchmark": 11.04,
-    "lighterByPercent": 88.96
+    "benchmarkCodeLines": 1675220,
+    "basePercentOfBenchmark": 10.98,
+    "lighterByPercent": 89.02
   },
   "trends": {
     "locDaily": [
@@ -595,6 +595,11 @@ export default {
         "key": "2026-06-14",
         "label": "06-14",
         "value": 183613
+      },
+      {
+        "key": "2026-06-15",
+        "label": "06-15",
+        "value": 183870
       }
     ],
     "testLocDaily": [
@@ -772,14 +777,14 @@ export default {
         "key": "2026-06-14",
         "label": "06-14",
         "value": 54341
+      },
+      {
+        "key": "2026-06-15",
+        "label": "06-15",
+        "value": 54662
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-05-16",
-        "label": "05-16",
-        "value": 13
-      },
       {
         "key": "2026-05-17",
         "label": "05-17",
@@ -913,25 +918,25 @@ export default {
       {
         "key": "2026-06-12",
         "label": "06-12",
-        "value": 2
+        "value": 3
       },
       {
         "key": "2026-06-13",
         "label": "06-13",
-        "value": 1
+        "value": 2
       },
       {
         "key": "2026-06-14",
         "label": "06-14",
+        "value": 2
+      },
+      {
+        "key": "2026-06-15",
+        "label": "06-15",
         "value": 0
       }
     ],
     "commitWeekly": [
-      {
-        "key": "2026-03-23",
-        "label": "03-23",
-        "value": 164
-      },
       {
         "key": "2026-03-30",
         "label": "03-30",
@@ -985,7 +990,12 @@ export default {
       {
         "key": "2026-06-08",
         "label": "06-08",
-        "value": 57
+        "value": 61
+      },
+      {
+        "key": "2026-06-15",
+        "label": "06-15",
+        "value": 0
       }
     ],
     "releaseMonthly": [
@@ -1055,15 +1065,15 @@ export default {
     "topScopes": [
       {
         "name": "packages/nextclaw-ui",
-        "codeLines": 40090,
-        "testCodeLines": 16740,
-        "files": 511,
-        "sharePercent": 21.8
+        "codeLines": 40244,
+        "testCodeLines": 16900,
+        "files": 515,
+        "sharePercent": 21.9
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 16681,
-        "testCodeLines": 5299,
+        "codeLines": 16719,
+        "testCodeLines": 5390,
         "files": 173,
         "sharePercent": 9.1
       },
@@ -1077,7 +1087,7 @@ export default {
       {
         "name": "packages/nextclaw-core",
         "codeLines": 13900,
-        "testCodeLines": 4162,
+        "testCodeLines": 4173,
         "files": 156,
         "sharePercent": 7.6
       },
@@ -1093,13 +1103,13 @@ export default {
         "codeLines": 8907,
         "testCodeLines": 6067,
         "files": 98,
-        "sharePercent": 4.9
+        "sharePercent": 4.8
       },
       {
         "name": "packages/nextclaw-agent-chat-ui",
-        "codeLines": 6389,
-        "testCodeLines": 3031,
-        "files": 68,
+        "codeLines": 6451,
+        "testCodeLines": 3090,
+        "files": 70,
         "sharePercent": 3.5
       },
       {
@@ -1112,9 +1122,9 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 1663544,
-      "basePercentOfBenchmark": 11.04,
-      "lighterByPercent": 88.96
+      "benchmarkCodeLines": 1675220,
+      "basePercentOfBenchmark": 10.98,
+      "lighterByPercent": 89.02
     },
     "recentReleaseBatches": [
       {
@@ -1353,7 +1363,7 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-06-14T03:24:30.410Z",
+    "locGeneratedAt": "2026-06-15T03:26:43.854Z",
     "sourceCount": {
       "notes": 5,
       "scopes": 8
