@@ -61,6 +61,8 @@ export class ChatRunManager {
 
   applyRunSnapshot = (snapshot: ChatRunSnapshot) => {
     const isSending = snapshot.isSending || snapshot.isRunning;
+    const sessionKey =
+      snapshot.routeSessionKey ?? snapshot.materializedSessionKey ?? null;
     useChatInputStore.getState().setSnapshot({
       canStopGeneration: snapshot.isRunning,
       stopDisabledReason: snapshot.isRunning ? null : '__preparing__',
@@ -70,6 +72,7 @@ export class ChatRunManager {
       isSending,
     });
     useChatThreadStore.getState().setSnapshot({
+      sessionKey,
       isHistoryLoading: snapshot.isHydrating,
       messages: snapshot.visibleMessages,
       isSending,
