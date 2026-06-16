@@ -211,7 +211,11 @@ function buildSkillPicker(params: { allSkillsLabel: string; isSkillsLoading: boo
   });
 }
 
-export function ChatInputBarContainer() {
+type ChatInputBarContainerProps = {
+  surface?: 'default' | 'embedded';
+};
+
+export function ChatInputBarContainer({ surface = 'default' }: ChatInputBarContainerProps) {
   const presenter = usePresenter();
   const { language } = useI18n();
   const { isMobile } = useViewportLayout();
@@ -257,6 +261,7 @@ export function ChatInputBarContainer() {
       modelOptions: inputQueryState.modelOptions,
       skillRecords: inputQueryState.skillRecords,
       defaultSessionType: inputQueryState.sessionTypeState.defaultSessionType,
+      defaultProjectRoot: inputQueryState.defaultProjectRoot,
       sessionTypeOptions: inputQueryState.sessionTypeState.sessionTypeOptions,
       selectedSessionType: inputQueryState.sessionTypeState.selectedSessionType,
       canEditSessionType: inputQueryState.sessionTypeState.canEditSessionType,
@@ -274,6 +279,7 @@ export function ChatInputBarContainer() {
     });
   }, [
     inputQueryState.defaultModel,
+    inputQueryState.defaultProjectRoot,
     inputQueryState.fallbackPreferredModel,
     inputQueryState.fallbackPreferredThinking,
     inputQueryState.isProviderStateResolved,
@@ -333,6 +339,7 @@ export function ChatInputBarContainer() {
     <>
       <ChatInputBar
         ref={inputBarRef}
+        surface={surface}
         composer={{
           nodes: snapshot.composerNodes,
           placeholder: textareaPlaceholder,

@@ -138,6 +138,46 @@ describe('ChatInputManager', () => {
     );
   });
 
+  it('uses the default workspace as the project root for a blank draft send', async () => {
+    useChatInputStore.setState({
+      snapshot: {
+        ...useChatInputStore.getState().snapshot,
+        defaultProjectRoot: '/Users/demo/.nextclaw/workspace',
+      },
+    });
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        sessionKey: null,
+      },
+    });
+    useChatSessionListStore.setState({
+      snapshot: {
+        ...useChatSessionListStore.getState().snapshot,
+        selectedSessionKey: null,
+      },
+    });
+    const chatRunManager = {
+      sendMessage: vi.fn().mockResolvedValue(undefined),
+      stopCurrentRun: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ConstructorParameters<typeof ChatInputManager>[0];
+    const sessionListManager = {
+      ensureDraftSession: vi.fn(() => 'materialized-draft-session'),
+    } as unknown as ConstructorParameters<typeof ChatInputManager>[1];
+    const manager = new ChatInputManager(
+      chatRunManager,
+      sessionListManager,
+    );
+
+    await manager.send();
+
+    expect(chatRunManager.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectRoot: '/Users/demo/.nextclaw/workspace',
+      }),
+    );
+  });
+
   it('does not send while the runtime is still blocked during startup', async () => {
     useChatInputStore.setState({
       snapshot: {

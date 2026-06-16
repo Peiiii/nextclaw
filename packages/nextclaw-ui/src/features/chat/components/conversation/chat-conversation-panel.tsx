@@ -6,6 +6,9 @@ import { ChatConversationParentBanner } from "@/features/chat/components/convers
 import { ChatConversationSkeleton } from "@/features/chat/components/conversation/chat-conversation-skeleton";
 import { ChatConversationWorkspaceSection } from "@/features/chat/components/conversation/chat-conversation-workspace-section";
 import { useNcpChatProviderStateResolved } from "@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state";
+import { ChatConversationWelcome } from "@/features/chat/features/welcome/components/chat-conversation-welcome";
+import { shouldShowChatWelcome } from "@/features/chat/features/welcome/utils/chat-welcome-visibility.utils";
+import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 
 type ChatConversationLayoutMode = "desktop" | "mobile";
 
@@ -17,6 +20,9 @@ export function ChatConversationPanel({
   onBackToList?: () => void;
 }) {
   const isProviderStateResolved = useNcpChatProviderStateResolved();
+  const showWelcome = useChatThreadStore((state) =>
+    shouldShowChatWelcome(state.snapshot),
+  );
 
   if (!isProviderStateResolved) {
     return <ChatConversationSkeleton />;
@@ -31,8 +37,15 @@ export function ChatConversationPanel({
           onBackToList={onBackToList}
         />
         <ChatConversationAlerts />
-        <ChatConversationContent />
-        <ChatInputBarContainer />
+        <ChatConversationContent
+          showWelcome={showWelcome}
+          welcomeSlot={
+            <ChatConversationWelcome
+              inputSlot={<ChatInputBarContainer surface="embedded" />}
+            />
+          }
+        />
+        {showWelcome ? null : <ChatInputBarContainer />}
       </div>
 
       <ChatConversationWorkspaceSection layoutMode={layoutMode} />

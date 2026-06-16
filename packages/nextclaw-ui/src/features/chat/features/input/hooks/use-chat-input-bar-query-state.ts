@@ -14,6 +14,7 @@ import { chatRecentModelsManager } from '@/features/chat/managers/chat-recent-mo
 import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
 import { useChatQueryStore } from '@/features/chat/stores/ncp-chat-query.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
+import { normalizeSessionProjectRootValue } from '@/shared/lib/session-project';
 
 const EMPTY_SESSION_SKILL_RECORDS: SessionSkillEntryView[] = [];
 const EMPTY_NCP_SESSION_SUMMARIES: NcpSessionSummaryView[] = [];
@@ -105,6 +106,7 @@ export function useChatInputBarQueryState(snapshot: ChatInputSnapshot) {
 
   return {
     defaultModel: config?.agents.defaults.model,
+    defaultProjectRoot: normalizeSessionProjectRootValue(config?.agents.defaults.workspace),
     fallbackPreferredModel,
     fallbackPreferredThinking,
     isProviderStateResolved,

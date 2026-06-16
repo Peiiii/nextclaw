@@ -29,6 +29,7 @@ import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import { normalizeSessionType } from '@/features/chat/features/session-type/utils/chat-session-type.utils';
 import { systemStatusManager } from '@/features/system-status';
 import { shouldClearPendingProjectRootOverride } from '@/features/chat/features/session/utils/chat-run-metadata.utils';
+import { normalizeSessionProjectRootValue } from '@/shared/lib/session-project';
 
 function resolveModelForSend(value: string): string | undefined {
   return value || undefined;
@@ -142,15 +143,19 @@ export class ChatInputManager {
     sessionKey: string | null | undefined;
     selectedSessionProjectRoot: string | null | undefined;
   }): string | null => {
+    const { sessionKey, selectedSessionProjectRoot } = params;
     const { pendingProjectRoot, pendingProjectRootSessionKey } =
       useChatInputStore.getState().snapshot;
     if (
       pendingProjectRoot !== null &&
-      (!params.sessionKey || params.sessionKey === pendingProjectRootSessionKey)
+      (!sessionKey || sessionKey === pendingProjectRootSessionKey)
     ) {
       return pendingProjectRoot;
     }
-    return params.selectedSessionProjectRoot ?? null;
+    if (!sessionKey) {
+      return useChatInputStore.getState().snapshot.defaultProjectRoot;
+    }
+    return selectedSessionProjectRoot ?? null;
   };
 
   clearPendingProjectRootOverrideForSession = (params: {
@@ -254,6 +259,14 @@ export class ChatInputManager {
     useChatInputStore.getState().setSnapshot({
       pendingSessionType: value,
       selectedSessionType: value,
+    });
+  };
+
+  setPendingProjectRoot = (projectRoot: string | null) => {
+    const normalizedProjectRoot = normalizeSessionProjectRootValue(projectRoot);
+    useChatInputStore.getState().setSnapshot({
+      pendingProjectRoot: normalizedProjectRoot,
+      pendingProjectRootSessionKey: null,
     });
   };
 

@@ -19,6 +19,7 @@ export type ChatInputSnapshot = {
   pendingSessionType: string;
   pendingProjectRoot: string | null;
   pendingProjectRootSessionKey: string | null;
+  defaultProjectRoot: string | null;
   defaultSessionType: string;
   canStopGeneration: boolean;
   stopDisabledReason: string | null;
@@ -69,6 +70,7 @@ const initialSnapshot: ChatInputSnapshot = {
   pendingSessionType: 'native',
   pendingProjectRoot: null,
   pendingProjectRootSessionKey: null,
+  defaultProjectRoot: null,
   defaultSessionType: 'native',
   canStopGeneration: false,
   stopDisabledReason: null,

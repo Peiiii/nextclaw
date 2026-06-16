@@ -1,0 +1,27 @@
+{
+  "status": "in_progress",
+  "objective": "Upgrade the new-session welcome entry and continue at least 30 maintainability, clarity, pluggability, and restrained UI optimizations.",
+  "activeBatch": "welcome-context-picker-upgrade",
+  "completedOptimizations": 41,
+  "targetOptimizations": 30,
+  "nextOptimizations": [
+    "add project picker badge and disabled-state tests",
+    "review ChatInputBarContainer for pure mapping extraction",
+    "check welcome mobile height and long path truncation"
+  ],
+  "lastValidated": [
+    "pnpm --filter @nextclaw/ui test -- src/features/chat/features/welcome/components/__tests__/chat-welcome.test.tsx src/features/chat/features/welcome/components/__tests__/chat-conversation-welcome.test.tsx src/features/chat/features/welcome/utils/__tests__/chat-welcome-draft.utils.test.ts src/features/chat/features/welcome/utils/__tests__/chat-welcome-project-options.utils.test.ts src/features/chat/features/welcome/utils/__tests__/chat-welcome-visibility.utils.test.ts src/features/chat/components/conversation/__tests__/chat-conversation-panel.test.tsx src/features/chat/managers/__tests__/chat-input.manager.test.ts src/features/chat/features/input/utils/__tests__/ncp-chat-input-availability.utils.test.ts",
+    "pnpm --filter @nextclaw/agent-chat-ui test -- src/components/chat/ui/chat-input-bar/chat-input-bar.test.tsx",
+    "pnpm --filter @nextclaw/ui tsc",
+    "pnpm --filter @nextclaw/agent-chat-ui tsc",
+    "pnpm --filter @nextclaw/ui lint",
+    "pnpm --filter @nextclaw/agent-chat-ui lint",
+    "pnpm --filter @nextclaw/ui build",
+    "pnpm --filter @nextclaw/agent-chat-ui build",
+    "pnpm lint:new-code:governance",
+    "pnpm check:governance-backlog-ratchet",
+    "pnpm check:generated-clean",
+    "pnpm --filter @nextclaw/ui test -- src/features/chat/components/conversation/__tests__/chat-conversation-panel.test.tsx src/features/chat/features/welcome/components/__tests__/chat-conversation-welcome.test.tsx",
+    "local dev UI smoke on http://127.0.0.1:5176/chat"
+  ]
+}

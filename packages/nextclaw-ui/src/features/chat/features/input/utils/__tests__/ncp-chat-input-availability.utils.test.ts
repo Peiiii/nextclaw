@@ -19,6 +19,7 @@ function createSnapshot(
     pendingSessionType: 'native',
     pendingProjectRoot: null,
     pendingProjectRootSessionKey: null,
+    defaultProjectRoot: null,
     defaultSessionType: 'native',
     canStopGeneration: false,
     stopDisabledReason: null,

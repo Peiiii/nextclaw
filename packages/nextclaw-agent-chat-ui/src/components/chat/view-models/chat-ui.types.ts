@@ -173,6 +173,7 @@ export type ChatSlashMenuProps = {
 };
 
 export type ChatInputBarProps = {
+  surface?: 'default' | 'embedded';
   composer: {
     nodes: ChatComposerNode[];
     placeholder: string;

@@ -208,6 +208,8 @@ src/
 
 如果只是把文件按技术层重新分组，而没有形成新的业务边界，就不要称之为子 feature。
 
+前端 feature 内部的用户入口、面板、欢迎页、配置页等，如果已经拥有自己的容器、展示部件、测试和业务上下文选择逻辑，应优先作为父 feature 下的子 feature 落到 `features/<subfeature>/`。父级 `components/` 只放 layout、shell、跨子 feature 组合层或非常轻量的展示部件；不要因为某个 UI 当前由父页面渲染，就把独立业务入口长期塞在父级 `components/` 下。
+
 ### 什么时候引入 `contributions/`
 
 `contributions/` 是 kernel 内部旁路能力的顶层组织角色，不是 `features/` 的别名，也不是通用插件目录。

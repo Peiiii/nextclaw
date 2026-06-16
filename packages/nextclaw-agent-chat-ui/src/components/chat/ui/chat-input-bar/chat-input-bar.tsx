@@ -99,9 +99,13 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
     focusComposer: () => composerRef.current?.focusComposer(),
     focusComposerAtEnd: () => composerRef.current?.focusComposerAtEnd(),
   }), []);
+  const surfaceClassName =
+    props.surface === 'embedded'
+      ? 'bg-transparent px-0 py-0'
+      : 'border-t border-gray-200/80 bg-white px-3 py-3 sm:px-4 sm:py-4';
 
   return (
-    <div className="border-t border-gray-200/80 bg-white px-3 py-3 sm:px-4 sm:py-4">
+    <div className={surfaceClassName}>
       <div className="nextclaw-chat-input-bar-shell mx-auto w-full max-w-[min(1120px,100%)] [container:nextclaw-chat-input-bar/inline-size]">
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card">
           <div className="relative">

@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import type { ReactNode } from "react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatConversationPanel } from "@/features/chat/components/conversation/chat-conversation-panel";
@@ -59,7 +60,9 @@ vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
 vi.mock(
   "@/features/chat/features/input/components/chat-input-bar.container",
   () => ({
-    ChatInputBarContainer: () => <div data-testid="chat-input-bar" />,
+    ChatInputBarContainer: ({ surface = "default" }: { surface?: string }) => (
+      <div data-testid="chat-input-bar" data-surface={surface} />
+    ),
   }),
 );
 
@@ -91,22 +94,9 @@ vi.mock(
   }),
 );
 
-vi.mock("@/features/chat/components/chat-welcome", () => ({
-  ChatWelcome: ({
-    onCreateSession,
-    onSelectAgent,
-  }: {
-    onCreateSession: () => void;
-    onSelectAgent: (agentId: string) => void;
-  }) => (
-    <div data-testid="chat-welcome">
-      <button type="button" onClick={onCreateSession}>
-        create draft session
-      </button>
-      <button type="button" onClick={() => onSelectAgent("engineer")}>
-        switch draft agent
-      </button>
-    </div>
+vi.mock("@/features/chat/features/welcome/components/chat-welcome", () => ({
+  ChatWelcome: ({ inputSlot }: { inputSlot?: ReactNode }) => (
+    <div data-testid="chat-welcome">{inputSlot}</div>
   ),
 }));
 
@@ -380,19 +370,6 @@ describe("ChatConversationPanel", () => {
     expect(onBackToList).toHaveBeenCalledTimes(1);
   });
 
-  it("lets the session list owner route new mobile welcome drafts", async () => {
-    const user = userEvent.setup();
-
-    render(<ChatConversationPanel layoutMode="mobile" />);
-
-    await user.click(
-      screen.getByRole("button", { name: "create draft session" }),
-    );
-
-    expect(mocks.createSession).toHaveBeenCalledWith("native");
-    expect(mocks.goToChatRoot).not.toHaveBeenCalled();
-  });
-
   it("shows the selected session project badge and more actions trigger", () => {
     useChatSessionListStore.setState({
       snapshot: {
@@ -475,7 +452,10 @@ describe("ChatConversationPanel", () => {
     render(<ChatConversationPanel />);
 
     expect(screen.queryByTestId("chat-conversation-skeleton")).toBeNull();
-    expect(screen.getByTestId("chat-input-bar")).toBeTruthy();
+    const welcome = screen.getByTestId("chat-welcome");
+    const inputBar = within(welcome).getByTestId("chat-input-bar");
+    expect(inputBar.dataset.surface).toBe("embedded");
+    expect(screen.getAllByTestId("chat-input-bar")).toHaveLength(1);
   });
 
   it("keeps the message area clean while a session history is hydrating", () => {
@@ -609,37 +589,6 @@ describe("ChatConversationPanel", () => {
     expect(screen.queryByLabelText("Close child session panel")).toBeNull();
   });
 
-  it("creates a draft session with the selected draft agent runtime", async () => {
-    const user = userEvent.setup();
-
-    useChatThreadStore.setState({
-      snapshot: {
-        ...useChatThreadStore.getState().snapshot,
-        agentId: "engineer",
-      },
-    });
-
-    render(<ChatConversationPanel />);
-
-    await user.click(
-      screen.getByRole("button", { name: "create draft session" }),
-    );
-
-    expect(mocks.createSession).toHaveBeenCalledWith("codex");
-  });
-
-  it("syncs the pending session type when switching the draft agent", async () => {
-    const user = userEvent.setup();
-
-    render(<ChatConversationPanel />);
-
-    await user.click(
-      screen.getByRole("button", { name: "switch draft agent" }),
-    );
-
-    expect(mocks.setSelectedAgentId).toHaveBeenCalledWith("engineer");
-    expect(mocks.setPendingSessionType).toHaveBeenCalledWith("codex");
-  });
 });
 
 describe("ChatSessionWorkspacePanel", () => {
