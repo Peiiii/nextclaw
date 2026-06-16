@@ -22,7 +22,7 @@
 - kernel 启动扩展进程时写入 `NEXTCLAW_EXTENSION_PARENT_PID`。
 - extension SDK 统一监听父 PID；父进程不存在时关闭 event stream 并 `process.exit(0)`。
 - kernel 启动扩展前清理历史遗留的 NextClaw channel extension 孤儿进程，避免旧版本残留污染新实例。
-- QQ channel 创建 websocket 前预检 `session_start_limit`；quota 为 0 时直接输出 reset 时间，不再继续创建 websocket session。
+- QQ channel 创建 websocket 前预检 `session_start_limit`；quota 为 0 时直接输出 reset 时间，按 reset 时间调度下一次重试，不再继续创建 websocket session。
 - QQ channel 监听 ready 前的 `receiver.close`、`receiver.error`、`session.error` 和 `session DISCONNECT`，把 QQ gateway 的 close code/reason 直接暴露出来，不再只显示 90 秒 timeout。
 
 纠偏说明：
@@ -46,7 +46,7 @@
 - `pnpm --filter @nextclaw/service lint`：通过，剩余 warning 均为既有非本次 touched 面。
 - 历史孤儿清理冒烟：停止所有 NextClaw runtime 后，按 cwd 精确清理 `PPID=1` 的 channel extension 进程，复查 `REMAINING_CHANNEL_EXTENSION_ORPHANS=0`。
 - QQ 裸 SDK 探针：不打印密钥，确认 access token 可获取、websocket 收到 `HELLO`，`IDENTIFY` 后收到 `op=9 INVALID_SESSION`，close code `4903`、reason `create session error`。
-- 真实 dev 冒烟：最终 dist 构建后执行 `pnpm dev start --package-watch`，QQ 在数秒内输出 `QQ gateway session start limit exhausted; reset_after_ms=3105274, total=1500, max_concurrency=1`，不再等待 90 秒 timeout；停止 dev 后复查 `REMAINING_CHANNEL_EXTENSION_PROCESSES=0` 且相关端口清空。
+- 真实 dev 冒烟：最终 dist 构建后执行 `pnpm dev start --package-watch`，QQ 在数秒内输出 `QQ gateway session start limit exhausted; reset_after_ms=1239618, total=1500, max_concurrency=1`，并显示 `retry in 1239618ms`，不再等待 90 秒 timeout 或短间隔刷屏；停止 dev 后复查 `REMAINING_CHANNEL_EXTENSION_PROCESSES=0` 且相关端口清空。
 - 功能冒烟：使用 `pnpm --filter @nextclaw/extension-sdk exec tsx` 启动真实 SDK 子进程，注入不存在的 `NEXTCLAW_EXTENSION_PARENT_PID=999999999`，结果子进程 `durationMs=1860`、`code=0`、`signal=null`。
 - 父死亡冒烟：真实创建父进程与 SDK 扩展子进程，终止父进程后确认扩展子进程 `durationMs=1527` 内退出，未长期残留为 orphan。
 - `pnpm lint:new-code:governance`：通过。
@@ -85,4 +85,4 @@
 - `@nextclaw/extension-sdk`：父进程死亡 watchdog。
 - `@nextclaw/kernel`：扩展子进程 env 注入 `NEXTCLAW_EXTENSION_PARENT_PID`。
 - `@nextclaw/service`：service signal shutdown hook 与 gateway cleanup 收敛。
-- `@nextclaw/channel-extension-qq`：QQ gateway quota 预检与 ready 前 websocket/session 错误显式诊断。
+- `@nextclaw/channel-extension-qq`：QQ gateway quota 预检、按 reset 时间重试，以及 ready 前 websocket/session 错误显式诊断。

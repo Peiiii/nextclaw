@@ -19,6 +19,15 @@ type QQGatewayStartupProbeConfig = {
   fetchImpl?: QQFetch;
 };
 
+export class QQGatewaySessionLimitError extends Error {
+  constructor(readonly resetAfterMs: number | null, readonly total: number | null, readonly maxConcurrency: number | null) {
+    super(
+      `QQ gateway session start limit exhausted; reset_after_ms=${resetAfterMs ?? "unknown"}, total=${total ?? "unknown"}, max_concurrency=${maxConcurrency ?? "unknown"}`
+    );
+    this.name = "QQGatewaySessionLimitError";
+  }
+}
+
 export class QQGatewayStartupProbeService {
   constructor(private readonly config: QQGatewayStartupProbeConfig) {}
 
@@ -30,9 +39,10 @@ export class QQGatewayStartupProbeService {
     if (remaining === undefined || remaining > 0) {
       return;
     }
-    const resetAfter = this.readFiniteNumber(limit?.reset_after);
-    throw new Error(
-      `QQ gateway session start limit exhausted; reset_after_ms=${resetAfter ?? "unknown"}, total=${this.readFiniteNumber(limit?.total) ?? "unknown"}, max_concurrency=${this.readFiniteNumber(limit?.max_concurrency) ?? "unknown"}`
+    throw new QQGatewaySessionLimitError(
+      this.readFiniteNumber(limit?.reset_after) ?? null,
+      this.readFiniteNumber(limit?.total) ?? null,
+      this.readFiniteNumber(limit?.max_concurrency) ?? null
     );
   };
 

@@ -43,7 +43,7 @@
 
 前三条链路分别覆盖正常可处理信号、父进程异常消失和旧版本历史残留。它们不依赖 QQ、Feishu、Weixin 等具体 channel 实现，也不要求每个扩展自己重写生命周期守卫。
 
-QQ channel 的启动失败诊断是另一条局部增强：它不解决 lifecycle 所有权，但能在 `session_start_limit.remaining=0` 时停止创建 websocket session，并把 QQ gateway 返回的 `INVALID_SESSION` / `4903 create session error` 直接暴露给外层日志，避免被误判为纯 timeout 或网络慢。
+QQ channel 的启动失败诊断是另一条局部增强：它不解决 lifecycle 所有权，但能在 `session_start_limit.remaining=0` 时停止创建 websocket session，并按 `reset_after` 等待下一次重试；同时把 QQ gateway 返回的 `INVALID_SESSION` / `4903 create session error` 直接暴露给外层日志，避免被误判为纯 timeout 或网络慢。
 
 ## 验收标准
 
@@ -52,7 +52,7 @@ QQ channel 的启动失败诊断是另一条局部增强：它不解决 lifecycl
 - service 捕获 `SIGTERM` / `SIGINT` / `SIGHUP` 后，必须等待注册的 shutdown hook 执行，再调用进程退出。
 - `ServiceGatewayManager` 的 shutdown hook 必须走同一个 gateway cleanup，至少覆盖 `kernel.extensions.stop()`。
 - kernel 启动扩展前，必须能清理 cwd 明确属于 NextClaw channel extension 的历史孤儿进程。
-- QQ gateway quota 为 0 时，日志必须显示 reset 时间，并且不能继续创建 websocket bot。
+- QQ gateway quota 为 0 时，日志必须显示 reset 时间，按 reset 时间调度下一次重试，并且不能继续创建 websocket bot。
 - QQ gateway 在 ready 前 close/error 时，日志必须显示 close code/reason，而不是只显示 90 秒 timeout。
 - 功能验证必须覆盖单元测试和贴近真实运行的 SDK watchdog 冒烟。
 

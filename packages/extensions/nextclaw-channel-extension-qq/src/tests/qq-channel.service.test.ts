@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import type { BusChannelMessageBus } from "@nextclaw/extension-sdk";
 import type { Bot, PrivateMessageEvent, ReceiverMode } from "qq-official-bot";
-import { QQGatewayStartupProbeService } from "../services/qq-gateway-startup-probe.service.js";
+import {
+  QQGatewaySessionLimitError,
+  QQGatewayStartupProbeService
+} from "../services/qq-gateway-startup-probe.service.js";
 import { QQChannel } from "../services/qq-channel.service.js";
 
 type FakeBot = {
@@ -176,7 +179,7 @@ describe("QQChannel startup lifecycle", () => {
     const fakeBot = createFakeBot(async () => {});
     class QuotaBlockedQQChannel extends TestQQChannel {
       protected override verifyGatewaySessionAvailability = async (): Promise<void> => {
-        throw new Error("QQ gateway session start limit exhausted; reset_after_ms=60000");
+        throw new QQGatewaySessionLimitError(60000, 1500, 1);
       };
     }
     const channel = new QuotaBlockedQQChannel(fakeBot);
@@ -186,6 +189,7 @@ describe("QQChannel startup lifecycle", () => {
     assert.equal(fakeBot.start.mock.callCount(), 0);
     assert.equal(channel.isRunning, false);
     assert.match(String(errorLogs[0]?.[0] ?? ""), /session start limit exhausted/);
+    assert.match(String(errorLogs[0]?.[0] ?? ""), /retry in 60000ms/);
 
     await channel.stop();
   });

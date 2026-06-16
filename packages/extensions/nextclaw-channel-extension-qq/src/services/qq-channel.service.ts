@@ -6,7 +6,10 @@ import {
   type GroupMessageEvent,
   type PrivateMessageEvent
 } from "qq-official-bot";
-import { QQGatewayStartupProbeService } from "./qq-gateway-startup-probe.service.js";
+import {
+  QQGatewaySessionLimitError,
+  QQGatewayStartupProbeService
+} from "./qq-gateway-startup-probe.service.js";
 
 export type QQChannelConfig = { appId?: string; secret?: string; allowFrom?: string[] };
 
@@ -361,7 +364,7 @@ export class QQChannel {
         return;
       }
       this.reconnectAttempt += 1;
-      const delayMs = this.getBackoffDelayMs(this.reconnectAttempt);
+      const delayMs = this.getReconnectDelayMs(error, this.reconnectAttempt);
       // eslint-disable-next-line no-console
       console.error(
         `[qq] start failed (${trigger}, attempt ${this.reconnectAttempt}), retry in ${delayMs}ms: ${this.formatError(error)}`
@@ -554,6 +557,13 @@ export class QQChannel {
     const jitter = Math.floor(Math.random() * 500);
     const exp = Math.min(this.reconnectMaxMs, this.reconnectBaseMs * 2 ** Math.max(0, attempt - 1));
     return Math.min(this.reconnectMaxMs, exp + jitter);
+  };
+
+  private getReconnectDelayMs = (error: unknown, attempt: number): number => {
+    if (error instanceof QQGatewaySessionLimitError && typeof error.resetAfterMs === "number") {
+      return Math.max(this.reconnectBaseMs, error.resetAfterMs);
+    }
+    return this.getBackoffDelayMs(attempt);
   };
 
   private formatError = (error: unknown): string => {
