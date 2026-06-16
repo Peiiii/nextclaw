@@ -1,22 +1,25 @@
 import { afterEach, describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
+import { EventEmitter } from "node:events";
 import type { BusChannelMessageBus } from "@nextclaw/extension-sdk";
-import type { Bot, PrivateMessageEvent } from "qq-official-bot";
+import type { Bot, PrivateMessageEvent, ReceiverMode } from "qq-official-bot";
+import { QQGatewayStartupProbeService } from "../services/qq-gateway-startup-probe.service.js";
 import { QQChannel } from "../services/qq-channel.service.js";
 
 type FakeBot = {
   start: ReturnType<typeof mock.fn>;
   stop: ReturnType<typeof mock.fn>;
   removeAllListeners: ReturnType<typeof mock.fn>;
-  sessionManager: {
+  receiver: EventEmitter;
+  sessionManager: EventEmitter & {
     removeAllListeners: ReturnType<typeof mock.fn>;
   };
 };
 
 class TestQQChannel extends QQChannel {
-  protected override readonly connectTimeoutMs = 10;
+  protected override readonly connectTimeoutMs: number;
 
-  constructor(private readonly fakeBot: FakeBot) {
+  constructor(private readonly fakeBot: FakeBot, connectTimeoutMs = 10) {
     super(
       {
         appId: "test-app",
@@ -25,11 +28,14 @@ class TestQQChannel extends QQChannel {
       },
       { publishInbound: mock.fn(async () => {}) } as BusChannelMessageBus
     );
+    this.connectTimeoutMs = connectTimeoutMs;
   }
 
-  protected override createBot = (): Bot => {
-    return this.fakeBot as unknown as Bot;
+  protected override createBot = (): Bot<ReceiverMode.WEBSOCKET> => {
+    return this.fakeBot as unknown as Bot<ReceiverMode.WEBSOCKET>;
   };
+
+  protected override verifyGatewaySessionAvailability = async (): Promise<void> => {};
 }
 
 class InboundTestQQChannel extends QQChannel {
@@ -52,15 +58,68 @@ class InboundTestQQChannel extends QQChannel {
 }
 
 function createFakeBot(start: () => Promise<void>): FakeBot {
+  const sessionManager = new EventEmitter() as FakeBot["sessionManager"];
+  sessionManager.removeAllListeners = mock.fn(sessionManager.removeAllListeners.bind(sessionManager)) as never;
   return {
     start: mock.fn(start),
     stop: mock.fn(async () => {}),
     removeAllListeners: mock.fn(),
-    sessionManager: {
-      removeAllListeners: mock.fn()
-    }
+    receiver: new EventEmitter(),
+    sessionManager
   };
 }
+
+function createFetchResponse(payload: Record<string, unknown>, status = 200): Response {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => payload,
+  } as Response;
+}
+
+function createGatewayProbeFetch(sessionLimit: Record<string, unknown>): typeof fetch {
+  const fetchMock = mock.fn(async (url: string | URL | Request) => {
+    const target = String(url);
+    if (target.includes("getAppAccessToken")) {
+      return createFetchResponse({ access_token: "token" });
+    }
+    return createFetchResponse({
+      url: "wss://gateway.example",
+      session_start_limit: sessionLimit,
+    });
+  });
+  return fetchMock as unknown as typeof fetch;
+}
+
+describe("QQGatewayStartupProbeService", () => {
+  it("allows startup when QQ gateway session quota remains", async () => {
+    const probe = new QQGatewayStartupProbeService({
+      appId: "test-app",
+      secret: "test-secret",
+      fetchImpl: createGatewayProbeFetch({ remaining: 1 }),
+    });
+
+    await probe.verifySessionAvailable();
+  });
+
+  it("blocks startup when QQ gateway session quota is exhausted", async () => {
+    const probe = new QQGatewayStartupProbeService({
+      appId: "test-app",
+      secret: "test-secret",
+      fetchImpl: createGatewayProbeFetch({
+        remaining: 0,
+        reset_after: 60000,
+        total: 1500,
+        max_concurrency: 1,
+      }),
+    });
+
+    await assert.rejects(
+      probe.verifySessionAvailable(),
+      /session start limit exhausted; reset_after_ms=60000, total=1500, max_concurrency=1/
+    );
+  });
+});
 
 describe("QQChannel startup lifecycle", () => {
   const originalConsoleError = console.error;
@@ -85,6 +144,48 @@ describe("QQChannel startup lifecycle", () => {
     assert.equal(channel.isRunning, false);
     assert.equal(fakeBot.stop.mock.callCount(), 1);
     assert.match(String(errorLogs[0]?.[0] ?? ""), /\[qq\] start failed \(startup, attempt 1\)/);
+
+    await channel.stop();
+  });
+
+  it("reports gateway session close errors without waiting for the full startup timeout", async () => {
+    const errorLogs: unknown[][] = [];
+    console.error = (...args: unknown[]) => {
+      errorLogs.push(args);
+    };
+    const fakeBot = createFakeBot(() => new Promise(() => {}));
+    const channel = new TestQQChannel(fakeBot, 500);
+
+    const startPromise = channel.start();
+    await new Promise((resolve) => setImmediate(resolve));
+    fakeBot.receiver.emit("close", 4903, Buffer.from("create session error"));
+    await startPromise;
+
+    assert.equal(channel.isRunning, false);
+    assert.equal(fakeBot.stop.mock.callCount(), 1);
+    assert.match(String(errorLogs[0]?.[0] ?? ""), /code=4903, reason=create session error/);
+
+    await channel.stop();
+  });
+
+  it("does not create a websocket bot when QQ gateway quota is exhausted", async () => {
+    const errorLogs: unknown[][] = [];
+    console.error = (...args: unknown[]) => {
+      errorLogs.push(args);
+    };
+    const fakeBot = createFakeBot(async () => {});
+    class QuotaBlockedQQChannel extends TestQQChannel {
+      protected override verifyGatewaySessionAvailability = async (): Promise<void> => {
+        throw new Error("QQ gateway session start limit exhausted; reset_after_ms=60000");
+      };
+    }
+    const channel = new QuotaBlockedQQChannel(fakeBot);
+
+    await channel.start();
+
+    assert.equal(fakeBot.start.mock.callCount(), 0);
+    assert.equal(channel.isRunning, false);
+    assert.match(String(errorLogs[0]?.[0] ?? ""), /session start limit exhausted/);
 
     await channel.stop();
   });
@@ -125,9 +226,11 @@ describe("QQChannel startup lifecycle", () => {
         );
       }
 
-      protected override createBot = (): Bot => {
-        return this.slowFakeBot as unknown as Bot;
+      protected override createBot = (): Bot<ReceiverMode.WEBSOCKET> => {
+        return this.slowFakeBot as unknown as Bot<ReceiverMode.WEBSOCKET>;
       };
+
+      protected override verifyGatewaySessionAvailability = async (): Promise<void> => {};
     }
     const channel = new SlowQQChannel(fakeBot);
 

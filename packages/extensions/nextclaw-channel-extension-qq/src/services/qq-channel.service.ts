@@ -6,9 +6,11 @@ import {
   type GroupMessageEvent,
   type PrivateMessageEvent
 } from "qq-official-bot";
+import { QQGatewayStartupProbeService } from "./qq-gateway-startup-probe.service.js";
 
 export type QQChannelConfig = { appId?: string; secret?: string; allowFrom?: string[] };
 
+type QQBot = Bot<ReceiverMode.WEBSOCKET>;
 type QQMessageEvent = PrivateMessageEvent | GroupMessageEvent;
 type QQMessageType = "private" | "group";
 type QQRawUser = Partial<Record<
@@ -22,7 +24,7 @@ type QQIncomingRoute = { chatId: string; metadata: Record<string, unknown> };
 export class QQChannel {
   name = "qq";
   protected running = false;
-  private bot: Bot | null = null;
+  private bot: QQBot | null = null;
   private processedIds: string[] = [];
   private processedSet: Set<string> = new Set();
   private senderNameCache: Map<string, string> = new Map();
@@ -338,8 +340,9 @@ export class QQChannel {
   };
 
   private connect = async (trigger: string): Promise<void> => {
-    let candidate: Bot | null = null;
+    let candidate: QQBot | null = null;
     try {
+      await this.verifyGatewaySessionAvailability();
       candidate = this.createBot();
       await this.startBotWithTimeout(candidate);
       if (!this.running) {
@@ -367,7 +370,7 @@ export class QQChannel {
     }
   };
 
-  protected createBot = (): Bot => {
+  protected createBot = (): QQBot => {
     const bot = new Bot({
       appid: this.config.appId!,
       secret: this.config.secret!,
@@ -392,7 +395,14 @@ export class QQChannel {
     return bot;
   };
 
-  private handleSessionDead = async (bot: Bot): Promise<void> => {
+  protected verifyGatewaySessionAvailability = async (): Promise<void> => {
+    await new QQGatewayStartupProbeService({
+      appId: this.config.appId!,
+      secret: this.config.secret!,
+    }).verifySessionAvailable();
+  };
+
+  private handleSessionDead = async (bot: QQBot): Promise<void> => {
     if (!this.running || this.bot !== bot) {
       return;
     }
@@ -433,7 +443,7 @@ export class QQChannel {
     await this.safeStopBot(bot);
   };
 
-  private safeStopBot = async (bot: Bot): Promise<void> => {
+  private safeStopBot = async (bot: QQBot): Promise<void> => {
     bot.removeAllListeners("message.private");
     bot.removeAllListeners("message.group");
     bot.sessionManager.removeAllListeners(SessionEvents.DEAD);
@@ -444,20 +454,96 @@ export class QQChannel {
     }
   };
 
-  private startBotWithTimeout = async (bot: Bot): Promise<void> => {
+  private startBotWithTimeout = async (bot: QQBot): Promise<void> => {
     let timer: ReturnType<typeof setTimeout> | null = null;
+    const startupFailure = this.watchStartupFailure(bot);
     try {
       await Promise.race([
         bot.start(),
         new Promise<never>((_, reject) => {
           timer = setTimeout(() => reject(new Error(`QQ bot start timed out after ${this.connectTimeoutMs}ms`)), this.connectTimeoutMs);
+        }),
+        new Promise<never>((_, reject) => {
+          startupFailure.reject = reject;
         })
       ]);
     } finally {
+      startupFailure.stop();
       if (timer) {
         clearTimeout(timer);
       }
     }
+  };
+
+  private watchStartupFailure = (bot: QQBot): {
+    reject: ((error: Error) => void) | null;
+    stop: () => void;
+  } => {
+    const state: {
+      rejected: boolean;
+      reject: ((error: Error) => void) | null;
+      stop: () => void;
+    } = {
+      rejected: false,
+      reject: null,
+      stop: () => {},
+    };
+    const fail = (error: Error): void => {
+      if (state.rejected) {
+        return;
+      }
+      state.rejected = true;
+      state.reject?.(error);
+    };
+    const onReceiverError = (error: unknown): void => {
+      fail(new Error(`QQ bot websocket failed before ready: ${this.formatErrorMessage(error)}`));
+    };
+    const onReceiverClose = (code: number, reason: unknown): void => {
+      fail(new Error(`QQ bot websocket closed before ready: code=${code}, reason=${this.formatCloseReason(reason)}`));
+    };
+    const onSessionError = (code: unknown, message: unknown): void => {
+      fail(new Error(`QQ bot session failed before ready: code=${String(code)}, message=${this.formatErrorMessage(message)}`));
+    };
+    const onSessionEvent = (data: unknown): void => {
+      const event = data && typeof data === "object" ? data as Record<string, unknown> : {};
+      if (event.eventType !== SessionEvents.DISCONNECT) {
+        return;
+      }
+      fail(
+        new Error(
+          `QQ bot session disconnected before ready: code=${String(event.code ?? "unknown")}, event=${this.formatErrorMessage(event.eventMsg)}`
+        )
+      );
+    };
+    bot.receiver.on("error", onReceiverError);
+    bot.receiver.on("close", onReceiverClose);
+    bot.sessionManager.on(SessionEvents.ERROR, onSessionError);
+    bot.sessionManager.on(SessionEvents.EVENT_WS, onSessionEvent);
+    state.stop = () => {
+      bot.receiver.off("error", onReceiverError);
+      bot.receiver.off("close", onReceiverClose);
+      bot.sessionManager.off(SessionEvents.ERROR, onSessionError);
+      bot.sessionManager.off(SessionEvents.EVENT_WS, onSessionEvent);
+    };
+    return state;
+  };
+
+  private formatCloseReason = (reason: unknown): string => {
+    return Buffer.isBuffer(reason) ? reason.toString() : this.formatErrorMessage(reason);
+  };
+
+  private formatErrorMessage = (error: unknown): string => {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (error && typeof error === "object") {
+      try {
+        return JSON.stringify(error);
+      } catch {
+        return String(error);
+      }
+    }
+    return String(error);
   };
 
   get isRunning(): boolean {

@@ -1,17 +1,32 @@
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
+import { realpathSync, readlinkSync } from "node:fs";
+import { resolve } from "node:path";
 import type {
   ExtensionManifest,
   RunningExtensionProcess,
 } from "@kernel/features/extension-runtime/index.js";
 import { createRuntimeChildEnv } from "@nextclaw/core";
 
+type ExtensionLifecycleServiceOptions = {
+  cleanupOrphanProcesses?: (manifests: ExtensionManifest[]) => void;
+};
+
+type ProcessSnapshot = {
+  pid: number;
+  ppid: number;
+  command: string;
+};
+
 export class ExtensionLifecycleService {
   private readonly processes = new Map<string, RunningExtensionProcess>();
+
+  constructor(private readonly options: ExtensionLifecycleServiceOptions = {}) {}
 
   startAll = (manifests: ExtensionManifest[], params: {
     endpoint: string;
     tokenForExtension: (extensionId: string) => string;
   }): RunningExtensionProcess[] => {
+    this.cleanupOrphanProcesses(manifests);
     const started: RunningExtensionProcess[] = [];
     for (const manifest of manifests) {
       try {
@@ -77,5 +92,101 @@ export class ExtensionLifecycleService {
       console.warn(`Extension ${manifest.id} failed: ${error.message}`);
     });
     return running;
+  };
+
+  private cleanupOrphanProcesses = (manifests: ExtensionManifest[]): void => {
+    if (this.options.cleanupOrphanProcesses) {
+      this.options.cleanupOrphanProcesses(manifests);
+      return;
+    }
+    if (process.platform === "win32" || process.env.NEXTCLAW_EXTENSION_ORPHAN_CLEANUP === "0") {
+      return;
+    }
+    try {
+      const roots = this.resolveManifestRoots(manifests);
+      for (const snapshot of this.listOrphanNodeDistMainProcesses()) {
+        const cwd = this.readProcessCwd(snapshot.pid);
+        if (!cwd || !this.isNextClawChannelExtensionCwd(cwd, roots)) {
+          continue;
+        }
+        try {
+          process.kill(snapshot.pid, "SIGTERM");
+          console.warn(`Stopped orphan extension process ${snapshot.pid} (${cwd}).`);
+        } catch (error) {
+          console.warn(
+            `Failed to stop orphan extension process ${snapshot.pid}: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
+      }
+    } catch (error) {
+      console.warn(`Extension orphan cleanup skipped: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
+  private resolveManifestRoots = (manifests: ExtensionManifest[]): Set<string> => {
+    return new Set(manifests.map((manifest) => this.normalizePath(manifest.rootDir)));
+  };
+
+  private normalizePath = (value: string): string => {
+    try {
+      return realpathSync(value);
+    } catch {
+      return resolve(value);
+    }
+  };
+
+  private listOrphanNodeDistMainProcesses = (): ProcessSnapshot[] => {
+    const output = execFileSync("ps", ["-axo", "pid=,ppid=,command="], {
+      encoding: "utf8",
+      maxBuffer: 16 * 1024 * 1024,
+    });
+    return output.split("\n")
+      .map((line) => {
+        const match = line.trim().match(/^(\d+)\s+(\d+)\s+(.*)$/);
+        if (!match) {
+          return null;
+        }
+        return {
+          pid: Number(match[1]),
+          ppid: Number(match[2]),
+          command: match[3] ?? "",
+        };
+      })
+      .filter((snapshot): snapshot is ProcessSnapshot =>
+        Boolean(snapshot && snapshot.ppid === 1 && this.isNodeDistMainCommand(snapshot.command))
+      );
+  };
+
+  private isNodeDistMainCommand = (command: string): boolean => {
+    return /(?:^|\s|\/)node(?:\.exe)?\s+dist\/main\.js(?:\s|$)/.test(command);
+  };
+
+  private readProcessCwd = (pid: number): string | null => {
+    if (process.platform === "linux") {
+      try {
+        return this.normalizePath(readlinkSync(`/proc/${pid}/cwd`));
+      } catch {
+        return null;
+      }
+    }
+    try {
+      const output = execFileSync("lsof", ["-a", "-p", String(pid), "-d", "cwd", "-Fn"], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      });
+      const cwd = output.split("\n").find((line) => line.startsWith("n"))?.slice(1).trim();
+      return cwd ? this.normalizePath(cwd) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  private isNextClawChannelExtensionCwd = (cwd: string, roots: Set<string>): boolean => {
+    if (roots.has(cwd)) {
+      return true;
+    }
+    return /(?:^|\/)nextclaw-channel-extension-[^/]+$/.test(cwd)
+      || /\/node_modules\/@nextclaw\/channel-extension-[^/]+$/.test(cwd)
+      || /\/node_modules\/\.nextclaw-[^/]+\/node_modules\/@nextclaw\/channel-extension-[^/]+$/.test(cwd);
   };
 }

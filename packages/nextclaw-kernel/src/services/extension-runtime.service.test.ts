@@ -144,10 +144,34 @@ describe("resolveExtensionManifestRoots", () => {
 });
 
 describe("ExtensionLifecycleService", () => {
+  it("cleans orphan extension processes before spawning extensions", () => {
+    const root = createTempDir();
+    const cleanupOrphanProcesses = vi.fn();
+    spawnMock.mockImplementation(() => createFakeChildProcess(4321));
+    const manifest = {
+      id: "fake-extension",
+      rootDir: root,
+      server: {
+        type: "stdio",
+        command: "node",
+        args: ["dist/index.js"],
+      },
+    } as const;
+    const lifecycle = new ExtensionLifecycleService({ cleanupOrphanProcesses });
+
+    lifecycle.startAll([manifest], {
+      endpoint: "http://127.0.0.1:55667",
+      tokenForExtension: () => "token-1",
+    });
+
+    expect(cleanupOrphanProcesses.mock.invocationCallOrder[0]).toBeLessThan(spawnMock.mock.invocationCallOrder[0] ?? 0);
+    expect(cleanupOrphanProcesses).toHaveBeenCalledWith([manifest]);
+  });
+
   it("passes the service pid to spawned extension processes", () => {
     const root = createTempDir();
     spawnMock.mockImplementation(() => createFakeChildProcess(4321));
-    const lifecycle = new ExtensionLifecycleService();
+    const lifecycle = new ExtensionLifecycleService({ cleanupOrphanProcesses: () => undefined });
 
     lifecycle.startAll([{
       id: "fake-extension",
