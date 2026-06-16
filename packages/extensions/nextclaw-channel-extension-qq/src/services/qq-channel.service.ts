@@ -365,10 +365,13 @@ export class QQChannel {
       }
       this.reconnectAttempt += 1;
       const delayMs = this.getReconnectDelayMs(error, this.reconnectAttempt);
-      // eslint-disable-next-line no-console
-      console.error(
-        `[qq] start failed (${trigger}, attempt ${this.reconnectAttempt}), retry in ${delayMs}ms: ${this.formatError(error)}`
-      );
+      if (error instanceof QQGatewaySessionLimitError) {
+        // eslint-disable-next-line no-console
+        console.warn(`[qq] startup paused (${trigger}, attempt ${this.reconnectAttempt}); gateway session quota exhausted, retry in ${delayMs}ms: reset_after_ms=${error.resetAfterMs ?? "unknown"}, total=${error.total ?? "unknown"}, max_concurrency=${error.maxConcurrency ?? "unknown"}`);
+      } else {
+        // eslint-disable-next-line no-console
+        console.error(`[qq] start failed (${trigger}, attempt ${this.reconnectAttempt}), retry in ${delayMs}ms: ${this.formatErrorMessage(error)}`);
+      }
       this.scheduleReconnect(delayMs, `${trigger}-retry`);
     }
   };
@@ -564,12 +567,5 @@ export class QQChannel {
       return Math.max(this.reconnectBaseMs, error.resetAfterMs);
     }
     return this.getBackoffDelayMs(attempt);
-  };
-
-  private formatError = (error: unknown): string => {
-    if (error instanceof Error) {
-      return error.stack ?? error.message;
-    }
-    return String(error);
   };
 }

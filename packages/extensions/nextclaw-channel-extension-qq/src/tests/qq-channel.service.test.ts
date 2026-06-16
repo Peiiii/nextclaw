@@ -127,10 +127,12 @@ describe("QQGatewayStartupProbeService", () => {
 describe("QQChannel startup lifecycle", () => {
   const originalConsoleError = console.error;
   const originalConsoleLog = console.log;
+  const originalConsoleWarn = console.warn;
 
   afterEach(() => {
     console.error = originalConsoleError;
     console.log = originalConsoleLog;
+    console.warn = originalConsoleWarn;
     mock.reset();
   });
 
@@ -173,8 +175,12 @@ describe("QQChannel startup lifecycle", () => {
 
   it("does not create a websocket bot when QQ gateway quota is exhausted", async () => {
     const errorLogs: unknown[][] = [];
+    const warnLogs: unknown[][] = [];
     console.error = (...args: unknown[]) => {
       errorLogs.push(args);
+    };
+    console.warn = (...args: unknown[]) => {
+      warnLogs.push(args);
     };
     const fakeBot = createFakeBot(async () => {});
     class QuotaBlockedQQChannel extends TestQQChannel {
@@ -188,8 +194,10 @@ describe("QQChannel startup lifecycle", () => {
 
     assert.equal(fakeBot.start.mock.callCount(), 0);
     assert.equal(channel.isRunning, false);
-    assert.match(String(errorLogs[0]?.[0] ?? ""), /session start limit exhausted/);
-    assert.match(String(errorLogs[0]?.[0] ?? ""), /retry in 60000ms/);
+    assert.equal(errorLogs.length, 0);
+    assert.match(String(warnLogs[0]?.[0] ?? ""), /startup paused/);
+    assert.match(String(warnLogs[0]?.[0] ?? ""), /gateway session quota exhausted/);
+    assert.match(String(warnLogs[0]?.[0] ?? ""), /retry in 60000ms/);
 
     await channel.stop();
   });

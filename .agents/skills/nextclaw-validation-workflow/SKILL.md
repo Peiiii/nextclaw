@@ -1,6 +1,6 @@
 ---
 name: nextclaw-validation-workflow
-description: Use when running /validate, choosing validation commands after changes, closing code work, checking TypeScript/build/lint requirements, doing bugfix resolution verification, smoke testing, maintainability guard/review, governance ratchets, or release validation.
+description: Use when running /validate, choosing validation commands after changes, closing code work, checking TypeScript/build/lint requirements, doing bugfix resolution verification, smoke testing, runtime startup/status log verification, maintainability guard/review, governance ratchets, or release validation.
 ---
 
 # NextClaw Validation Workflow
@@ -64,6 +64,7 @@ User-visible or runnable behavior:
 - If a workspace UI/runtime package is consumed from source by another local app, package-level `tsc`/tests are not enough. Verify the consuming app path too, either by loading the app in the dev server or by directly requesting the transformed Vite `@fs` module for the touched source file. This catches alias/import-resolution failures that the edited package can miss.
 - If the user reported a specific local command, URL, endpoint, port, or desktop/dev entrypoint, run that exact path after the fix whenever it is safe; package tests or route-level substitutes are not enough to claim the user-visible issue is fixed.
 - If local dev falls back to a different port because the user's reported port is occupied, do not treat the fallback port as proof for the reported issue. Verify the reported port directly, or restart the stale local dev process and re-run the same user-facing path on the original port.
+- For runtime startup or status-log fixes, assert the visible log/status wording matches the intended state. Cooldown, disabled, degraded, or externally rate-limited states must not be reported as generic startup failure when the system is intentionally waiting or skipping work.
 
 HTTP/API/transport contract changes:
 
