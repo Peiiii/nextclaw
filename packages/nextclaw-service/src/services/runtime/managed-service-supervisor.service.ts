@@ -18,7 +18,10 @@ import { isProcessRunning, resolveServiceLogPath } from "@nextclaw-service/utils
 
 const DEFAULT_HEARTBEAT_INTERVAL_MS = 2_000;
 const DEFAULT_LEASE_TTL_MS = 10_000;
-const SIGNAL_EXIT_CODES: Record<string, number> = {
+const MANAGED_SERVICE_EXIT_SIGNALS = ["SIGHUP", "SIGINT", "SIGTERM"] as const;
+type ManagedServiceExitSignal = typeof MANAGED_SERVICE_EXIT_SIGNALS[number];
+
+const SIGNAL_EXIT_CODES: Record<ManagedServiceExitSignal, number> = {
   SIGHUP: 129,
   SIGINT: 130,
   SIGTERM: 143
@@ -49,25 +52,36 @@ type ManagedServiceSupervisorOptions = {
   stateStore?: ManagedServiceStateStore;
   now?: () => Date;
   isProcessRunningFn?: (pid: number) => boolean;
+  exitProcess?: (code: number) => never | void;
+  processEvents?: Pick<NodeJS.Process, "once">;
   heartbeatIntervalMs?: number;
   leaseTtlMs?: number;
+};
+
+type CurrentProcessLifecycleOptions = {
+  onSignal?: (params: { signal: ManagedServiceExitSignal; code: number }) => Promise<void> | void;
 };
 
 export class ManagedServiceSupervisor {
   private readonly stateStore: ManagedServiceStateStore;
   private readonly now: () => Date;
   private readonly isProcessRunningFn: (pid: number) => boolean;
+  private readonly exitProcess: (code: number) => never | void;
+  private readonly processEvents: Pick<NodeJS.Process, "once">;
   private readonly heartbeatIntervalMs: number;
   private readonly leaseTtlMs: number;
   private readonly serviceStartupLogger = NextclawCore.getAppLogger("service.startup");
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private lifecycleTrackingInstalled = false;
   private pendingExit: ManagedServiceLastExit | null = null;
+  private signalExitInProgress = false;
 
   constructor(options: ManagedServiceSupervisorOptions = {}) {
     this.stateStore = options.stateStore ?? managedServiceStateStore;
     this.now = options.now ?? (() => new Date());
     this.isProcessRunningFn = options.isProcessRunningFn ?? isProcessRunning;
+    this.exitProcess = options.exitProcess ?? ((code) => process.exit(code));
+    this.processEvents = options.processEvents ?? process;
     this.heartbeatIntervalMs = options.heartbeatIntervalMs ?? DEFAULT_HEARTBEAT_INTERVAL_MS;
     this.leaseTtlMs = options.leaseTtlMs ?? DEFAULT_LEASE_TTL_MS;
   }
@@ -194,29 +208,20 @@ export class ManagedServiceSupervisor {
     });
   };
 
-  installCurrentProcessLifecycleTracking = (): void => {
+  installCurrentProcessLifecycleTracking = (options: CurrentProcessLifecycleOptions = {}): void => {
     if (this.lifecycleTrackingInstalled) {
       return;
     }
     this.lifecycleTrackingInstalled = true;
     this.startHeartbeatForCurrentProcess();
 
-    for (const signal of ["SIGHUP", "SIGINT", "SIGTERM"] as const) {
-      process.once(signal, () => {
-        this.pendingExit = {
-          pid: process.pid,
-          reason: "signal",
-          exitedAt: this.now().toISOString(),
-          code: SIGNAL_EXIT_CODES[signal],
-          signal
-        };
-        this.recordCurrentProcessExit(this.pendingExit);
-        this.stopHeartbeat();
-        process.exit(SIGNAL_EXIT_CODES[signal]);
+    for (const signal of MANAGED_SERVICE_EXIT_SIGNALS) {
+      this.processEvents.once(signal, () => {
+        void this.handleCurrentProcessSignal(signal, options.onSignal);
       });
     }
 
-    process.once("uncaughtExceptionMonitor", (error) => {
+    this.processEvents.once("uncaughtExceptionMonitor", (error) => {
       this.pendingExit = {
         pid: process.pid,
         reason: "uncaughtException",
@@ -225,7 +230,7 @@ export class ManagedServiceSupervisor {
       };
     });
 
-    process.once("exit", (code) => {
+    this.processEvents.once("exit", (code) => {
       this.recordCurrentProcessExit({
         ...(this.pendingExit ?? {
           pid: process.pid,
@@ -236,6 +241,36 @@ export class ManagedServiceSupervisor {
       });
       this.stopHeartbeat();
     });
+  };
+
+  private readonly handleCurrentProcessSignal = async (
+    signal: ManagedServiceExitSignal,
+    onSignal: CurrentProcessLifecycleOptions["onSignal"],
+  ): Promise<void> => {
+    if (this.signalExitInProgress) {
+      return;
+    }
+    this.signalExitInProgress = true;
+    const code = SIGNAL_EXIT_CODES[signal];
+    this.pendingExit = {
+      pid: process.pid,
+      reason: "signal",
+      exitedAt: this.now().toISOString(),
+      code,
+      signal
+    };
+    this.recordCurrentProcessExit(this.pendingExit);
+    this.stopHeartbeat();
+    try {
+      await onSignal?.({ signal, code });
+    } catch (error) {
+      this.serviceStartupLogger.warn("runtime.process.shutdown_failed", {
+        signal,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    } finally {
+      this.exitProcess(code);
+    }
   };
 
   startHeartbeatForCurrentProcess = (pid = process.pid): void => {

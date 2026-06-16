@@ -203,6 +203,36 @@ describe("@nextclaw/extension-sdk", () => {
     );
   });
 
+  it("exits when the declared parent process is gone", async () => {
+    const previousParentPid = process.env.NEXTCLAW_EXTENSION_PARENT_PID;
+    process.env.NEXTCLAW_EXTENSION_PARENT_PID = "999999";
+    vi.useFakeTimers();
+    const killSpy = vi.spyOn(process, "kill").mockImplementation(() => {
+      const error = new Error("process missing") as NodeJS.ErrnoException;
+      error.code = "ESRCH";
+      throw error;
+    });
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
+
+    try {
+      const { extension } = createExtensionHarness();
+      await vi.advanceTimersByTimeAsync(1000);
+
+      expect(killSpy).toHaveBeenCalledWith(999999, 0);
+      expect(exitSpy).toHaveBeenCalledWith(0);
+      extension.close();
+    } finally {
+      if (previousParentPid === undefined) {
+        delete process.env.NEXTCLAW_EXTENSION_PARENT_PID;
+      } else {
+        process.env.NEXTCLAW_EXTENSION_PARENT_PID = previousParentPid;
+      }
+      vi.useRealTimers();
+      killSpy.mockRestore();
+      exitSpy.mockRestore();
+    }
+  });
+
   it("routes websocket events through eventBus-backed channel APIs", async () => {
     const { extension, sockets } = createExtensionHarness({ config: { enabled: true, token: "updated" } });
     const channel = extension.channels.use("fake");

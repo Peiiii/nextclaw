@@ -38,13 +38,7 @@ export class ManagedServiceManager {
   startGateway = async (options: { uiOverrides?: Partial<Config["ui"]>; uiStaticDir?: string | null } = {}): Promise<void> => {
     this.ensureRuntimeLoggingInstalled();
     this.installProcessExitLogging();
-    this.managedServiceSupervisor.installCurrentProcessLifecycleTracking();
-    this.runtimeLogger.info("runtime.process.started", {
-      runtimeKind: "serve-process",
-      pid: process.pid,
-      source: "ManagedServiceManager.startGateway"
-    });
-    await new ServiceGatewayManager({
+    const gateway = new ServiceGatewayManager({
       requestRestart: this.deps.requestRestart,
       initializeAgentHomeDirectory: this.deps.initializeAgentHomeDirectory,
       startService: this.startService,
@@ -53,7 +47,16 @@ export class ManagedServiceManager {
       installBuiltinMarketplaceSkill: this.installBuiltinMarketplaceSkill,
     }, {
       ...options
-    }).start();
+    });
+    this.managedServiceSupervisor.installCurrentProcessLifecycleTracking({
+      onSignal: async () => await gateway.stop(),
+    });
+    this.runtimeLogger.info("runtime.process.started", {
+      runtimeKind: "serve-process",
+      pid: process.pid,
+      source: "ManagedServiceManager.startGateway"
+    });
+    await gateway.start();
     this.runtimeLogger.info("runtime.process.ready", {
       runtimeKind: "serve-process",
       pid: process.pid,

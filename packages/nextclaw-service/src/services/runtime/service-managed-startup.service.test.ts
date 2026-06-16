@@ -51,6 +51,22 @@ function createStateStore(initialState: ManagedServiceState | null): ManagedServ
   } as ManagedServiceStateStore;
 }
 
+function createProcessEventsHarness(): {
+  handlers: Map<string, (...args: unknown[]) => void>;
+  processEvents: Pick<NodeJS.Process, "once">;
+} {
+  const handlers = new Map<string, (...args: unknown[]) => void>();
+  return {
+    handlers,
+    processEvents: {
+      once: vi.fn((event: string | symbol, handler: (...args: unknown[]) => void) => {
+        handlers.set(String(event), handler);
+        return process;
+      })
+    } as Pick<NodeJS.Process, "once">
+  };
+}
+
 describe("spawnManagedService", () => {
   let tempDir: string;
   let originalArgv: string[];
@@ -304,5 +320,47 @@ describe("ManagedServiceSupervisor lifecycle", () => {
       code: 143,
       exitedAt: "2026-05-23T00:00:02.000Z"
     });
+  });
+
+  it("runs the signal shutdown hook before exiting", async () => {
+    const store = createStateStore({
+      pid: process.pid,
+      startedAt: "2026-05-23T00:00:00.000Z",
+      uiUrl: "http://127.0.0.1:18791",
+      apiUrl: "http://127.0.0.1:18791/api",
+      logPath: "/tmp/service.log"
+    });
+    const order: string[] = [];
+    const exitProcess = vi.fn(() => {
+      order.push("exit");
+    });
+    const onSignal = vi.fn(async () => {
+      order.push("shutdown");
+    });
+    const { handlers, processEvents } = createProcessEventsHarness();
+    const supervisor = new ManagedServiceSupervisor({
+      stateStore: store,
+      now: () => new Date("2026-05-23T00:00:02.000Z"),
+      exitProcess,
+      processEvents
+    });
+
+    supervisor.installCurrentProcessLifecycleTracking({ onSignal });
+    try {
+      handlers.get("SIGTERM")?.();
+      await vi.waitFor(() => expect(exitProcess).toHaveBeenCalledWith(143));
+
+      expect(onSignal).toHaveBeenCalledWith({ signal: "SIGTERM", code: 143 });
+      expect(order).toEqual(["shutdown", "exit"]);
+      expect(store.read()?.lastExit).toEqual({
+        pid: process.pid,
+        reason: "signal",
+        signal: "SIGTERM",
+        code: 143,
+        exitedAt: "2026-05-23T00:00:02.000Z"
+      });
+    } finally {
+      supervisor.stopHeartbeatForCurrentProcess();
+    }
   });
 });

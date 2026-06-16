@@ -59,6 +59,7 @@ export class ExtensionLifecycleService {
         ...manifest.server.env,
         NEXTCLAW_EXTENSION_ID: manifest.id,
         NEXTCLAW_EXTENSION_ENDPOINT: params.endpoint,
+        NEXTCLAW_EXTENSION_PARENT_PID: String(process.pid),
         NEXTCLAW_EXTENSION_TOKEN: params.tokenForExtension(manifest.id),
       }, { inheritBaseEnv: true }),
       stdio: ["ignore", "ignore", "inherit"],

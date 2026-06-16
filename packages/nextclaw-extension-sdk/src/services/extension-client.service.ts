@@ -11,6 +11,8 @@ import type {
 import { ExtensionChannelService } from "./extension-channel.service.js";
 import { ExtensionTransportService } from "./extension-transport.service.js";
 
+const EXTENSION_PARENT_WATCH_INTERVAL_MS = 1000;
+
 class ExtensionChannelRegistry implements ExtensionChannels {
   private readonly channels = new Map<string, ExtensionChannelService>();
 
@@ -93,6 +95,24 @@ async function handleRequest(
   }
 }
 
+function readParentProcessId(): number | null {
+  const raw = process.env.NEXTCLAW_EXTENSION_PARENT_PID?.trim();
+  if (!raw) {
+    return null;
+  }
+  const pid = Number(raw);
+  return Number.isInteger(pid) && pid > 0 ? pid : null;
+}
+
+function isProcessRunning(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
 class ExtensionCapabilityRegistry implements ExtensionCapabilities {
   constructor(
     private readonly params: {
@@ -146,6 +166,7 @@ export class NextClawExtension {
   readonly extensionId: string;
   private readonly transport: ExtensionTransportService;
   private eventStreamSubscription: { close: () => void } | null = null;
+  private parentProcessWatcher: ReturnType<typeof setInterval> | null = null;
 
   constructor(options: NextClawExtensionOptions = {}) {
     this.transport = new ExtensionTransportService(options);
@@ -170,9 +191,14 @@ export class NextClawExtension {
       extensionId: this.extensionId,
       transport: this.transport,
     });
+    this.parentProcessWatcher = this.startParentProcessWatcher();
   }
 
   readonly close = (): void => {
+    if (this.parentProcessWatcher) {
+      clearInterval(this.parentProcessWatcher);
+      this.parentProcessWatcher = null;
+    }
     this.eventStreamSubscription?.close();
     this.eventStreamSubscription = null;
   };
@@ -194,5 +220,21 @@ export class NextClawExtension {
     emittedAt: event.emittedAt ?? new Date().toISOString(),
     source: event.source ?? "event-stream",
   });
+
+  private readonly startParentProcessWatcher = (): ReturnType<typeof setInterval> | null => {
+    const parentPid = readParentProcessId();
+    if (!parentPid) {
+      return null;
+    }
+    const timer = setInterval(() => {
+      if (isProcessRunning(parentPid)) {
+        return;
+      }
+      this.close();
+      process.exit(0);
+    }, EXTENSION_PARENT_WATCH_INTERVAL_MS);
+    (timer as NodeJS.Timeout).unref?.();
+    return timer;
+  };
 
 }

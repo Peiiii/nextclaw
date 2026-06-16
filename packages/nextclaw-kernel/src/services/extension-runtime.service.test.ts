@@ -1,9 +1,12 @@
+import type * as ChildProcessModule from "node:child_process";
+import { EventEmitter } from "node:events";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Ingress } from "@nextclaw/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  ExtensionLifecycleService,
   ExtensionManifestDiscoveryService,
   resolveBuiltinExtensionManifestRoots,
   resolveExtensionManifestRoots,
@@ -13,14 +16,40 @@ import {
   ExtensionRuntimeService,
 } from "./extension-runtime.service.js";
 
+const spawnMock = vi.hoisted(() => vi.fn());
+
+vi.mock("node:child_process", async (importOriginal) => {
+  const actual = await importOriginal<typeof ChildProcessModule>();
+  return {
+    ...actual,
+    spawn: spawnMock
+  };
+});
+
 const tempDirs: string[] = [];
 
 const sessionManager = {} as never;
+
+type FakeChildProcess = EventEmitter & {
+  pid: number;
+  exitCode: number | null;
+  signalCode: NodeJS.Signals | null;
+  kill: ReturnType<typeof vi.fn>;
+};
 
 function createTempDir(): string {
   const dir = mkdtempSync(join(tmpdir(), "nextclaw-kernel-extension-runtime-test-"));
   tempDirs.push(dir);
   return dir;
+}
+
+function createFakeChildProcess(pid: number): FakeChildProcess {
+  const child = new EventEmitter() as FakeChildProcess;
+  child.pid = pid;
+  child.exitCode = null;
+  child.signalCode = null;
+  child.kill = vi.fn();
+  return child;
 }
 
 function writeExtensionManifest(root: string): void {
@@ -50,6 +79,7 @@ function writeExtensionManifest(root: string): void {
 }
 
 afterEach(() => {
+  spawnMock.mockReset();
   while (tempDirs.length > 0) {
     const dir = tempDirs.pop();
     if (dir) {
@@ -110,6 +140,36 @@ describe("resolveExtensionManifestRoots", () => {
         process.env.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS = originalDisableBuiltins;
       }
     }
+  });
+});
+
+describe("ExtensionLifecycleService", () => {
+  it("passes the service pid to spawned extension processes", () => {
+    const root = createTempDir();
+    spawnMock.mockImplementation(() => createFakeChildProcess(4321));
+    const lifecycle = new ExtensionLifecycleService();
+
+    lifecycle.startAll([{
+      id: "fake-extension",
+      rootDir: root,
+      server: {
+        type: "stdio",
+        command: "node",
+        args: ["dist/index.js"],
+      },
+    }], {
+      endpoint: "http://127.0.0.1:55667",
+      tokenForExtension: () => "token-1",
+    });
+
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    const [, , options] = spawnMock.mock.calls[0] as unknown as [string, string[], { env: NodeJS.ProcessEnv }];
+    expect(options.env).toEqual(expect.objectContaining({
+      NEXTCLAW_EXTENSION_ID: "fake-extension",
+      NEXTCLAW_EXTENSION_ENDPOINT: "http://127.0.0.1:55667",
+      NEXTCLAW_EXTENSION_PARENT_PID: String(process.pid),
+      NEXTCLAW_EXTENSION_TOKEN: "token-1",
+    }));
   });
 });
 

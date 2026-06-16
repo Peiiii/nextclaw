@@ -265,7 +265,7 @@ export class ServiceGatewayManager {
       if (startupTask) {
         await startupTask.catch(() => undefined);
       }
-      await this.cleanup();
+      await this.stop();
     }
   };
 
@@ -298,7 +298,7 @@ export class ServiceGatewayManager {
     }).createInstaller(),
   });
 
-  private cleanup = async (): Promise<void> => {
+  readonly stop = async (): Promise<void> => {
     localUiRuntimeStore.clearIfOwnedByProcess();
     await this.fileWatchers.clear();
     await this.kernel.extensions.stop();
