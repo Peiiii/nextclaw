@@ -291,6 +291,11 @@ describe('ChatInputManager', () => {
     expect(useChatInputStore.getState().snapshot.composerNodes).toEqual(originalComposerNodes);
   });
 
+});
+
+describe('ChatInputManager composer focus', () => {
+  beforeEach(resetChatInputManagerStoreState);
+
   it('creates and consumes one-shot composer focus requests', () => {
     const manager = new ChatInputManager(
       {} as ConstructorParameters<typeof ChatInputManager>[0],
@@ -307,6 +312,26 @@ describe('ChatInputManager', () => {
 
     manager.consumeComposerFocusRequest(request!.id);
     expect(useChatInputStore.getState().snapshot.composerFocusRequest).toBeNull();
+  });
+
+  it('applies prompt suggestions to the composer and requests focus', () => {
+    const manager = new ChatInputManager(
+      {} as ConstructorParameters<typeof ChatInputManager>[0],
+      {} as ConstructorParameters<typeof ChatInputManager>[1],
+    );
+
+    manager.applyPromptSuggestion('  Build a release plan  ');
+
+    expect(useChatInputStore.getState().snapshot).toMatchObject({
+      draft: 'Build a release plan',
+      composerNodes: [
+        expect.objectContaining({
+          type: 'text',
+          text: 'Build a release plan',
+        }),
+      ],
+      composerFocusRequest: { id: 1, placement: 'end' },
+    });
   });
 });
 

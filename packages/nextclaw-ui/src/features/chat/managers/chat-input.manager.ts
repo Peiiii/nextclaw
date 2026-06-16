@@ -199,6 +199,15 @@ export class ChatInputManager {
     this.syncComposerSnapshot(createChatComposerNodesFromDraft(value));
   };
 
+  applyPromptSuggestion = (prompt: string) => {
+    const normalizedPrompt = prompt.trim();
+    if (!normalizedPrompt) {
+      return;
+    }
+    this.setDraft(normalizedPrompt);
+    this.requestComposerFocusAtEnd();
+  };
+
   requestComposerFocusAtEnd = () => {
     const currentRequest = useChatInputStore.getState().snapshot.composerFocusRequest;
     useChatInputStore.getState().setSnapshot({

@@ -1,18 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   resolveChatWelcomeAgents,
-  resolveChatWelcomeDraftAgent,
-  resolveChatWelcomeDraftProjectRoot,
+  resolveChatWelcomeSelectedAgent,
   resolveChatWelcomeSelectedSessionType,
-} from "@/features/chat/features/welcome/utils/chat-welcome-draft.utils";
+} from "@/features/chat/features/welcome/utils/chat-welcome-selection.utils";
 
 const agents = [
   { id: "main", displayName: "Main", runtime: "native" },
   { id: "engineer", displayName: "Engineer", runtime: "codex" },
 ];
 
-describe("chat welcome draft utils", () => {
-  it("falls back to the selected draft agent when agent loading is empty", () => {
+describe("chat welcome selection utils", () => {
+  it("falls back to the selected agent when agent loading is empty", () => {
     expect(
       resolveChatWelcomeAgents({
         agents: [],
@@ -21,25 +20,16 @@ describe("chat welcome draft utils", () => {
     ).toEqual([{ id: "main" }]);
   });
 
-  it("resolves the selected draft agent", () => {
+  it("resolves the selected welcome agent", () => {
     expect(
-      resolveChatWelcomeDraftAgent({
+      resolveChatWelcomeSelectedAgent({
         agents,
         agentId: "engineer",
       })?.runtime,
     ).toBe("codex");
   });
 
-  it("prefers the explicit draft project over the default workspace", () => {
-    expect(
-      resolveChatWelcomeDraftProjectRoot({
-        selectedProjectRoot: "/tmp/project-alpha",
-        defaultProjectRoot: "/Users/demo/.nextclaw/workspace",
-      }),
-    ).toBe("/tmp/project-alpha");
-  });
-
-  it("resolves the draft session type from the selected agent runtime", () => {
+  it("resolves the session type from the selected agent runtime", () => {
     expect(
       resolveChatWelcomeSelectedSessionType({
         agents,

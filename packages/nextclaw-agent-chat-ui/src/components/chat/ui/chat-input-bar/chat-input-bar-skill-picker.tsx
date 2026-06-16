@@ -18,6 +18,8 @@ function filterOptions(options: ChatSkillPickerOption[], query: string): ChatSki
   });
 }
 
+const SKILL_PICKER_MAX_HEIGHT = 'min(24rem, calc(var(--radix-popover-content-available-height) - 0.75rem))';
+
 export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps }) {
   const { Input, Popover, PopoverContent, PopoverTrigger } = ChatUiPrimitives;
   const { picker } = props;
@@ -115,8 +117,14 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
           ) : null}
         </button>
       </PopoverTrigger>
-      <PopoverContent side="top" align="start" className="w-[360px] p-0">
-        <div className="space-y-2 border-b border-gray-100 px-4 py-3">
+      <PopoverContent
+        side="top"
+        align="start"
+        collisionPadding={12}
+        className="flex w-[min(360px,calc(100vw-1rem))] flex-col overflow-hidden p-0"
+        style={{ maxHeight: SKILL_PICKER_MAX_HEIGHT }}
+      >
+        <div className="shrink-0 space-y-2 border-b border-gray-100 px-4 py-3">
           <div className="text-sm font-semibold text-gray-900">{picker.title}</div>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-2.5 h-3.5 w-3.5 text-gray-400" />
@@ -140,7 +148,7 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
           id={listId}
           role="listbox"
           aria-multiselectable="true"
-          className="custom-scrollbar max-h-[320px] overflow-y-auto"
+          className="custom-scrollbar min-h-0 flex-1 overflow-y-auto"
         >
           {picker.isLoading ? (
             <div className="p-4 text-xs text-gray-500">{picker.loadingLabel}</div>
@@ -214,7 +222,7 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
         </div>
 
         {picker.manageHref && picker.manageLabel ? (
-          <div className="border-t border-gray-100 px-4 py-2.5">
+          <div className="shrink-0 border-t border-gray-100 px-4 py-2.5">
             <a
               href={picker.manageHref}
               className="inline-flex items-center gap-1.5 text-xs font-medium text-primary transition-colors hover:text-primary/80"

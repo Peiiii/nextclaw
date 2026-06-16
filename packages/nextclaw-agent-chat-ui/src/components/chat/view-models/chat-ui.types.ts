@@ -63,6 +63,19 @@ export type ChatToolbarSelectGroup = {
   options: ChatToolbarSelectOption[];
 };
 
+export type ChatToolbarSelectSearch = {
+  placeholder: string;
+  emptyLabel?: string;
+};
+
+export type ChatToolbarSelectOptionAction = {
+  kind: "favorite";
+  activeValues: string[];
+  activeLabel: string;
+  inactiveLabel: string;
+  onToggle: (value: string, active: boolean) => void;
+};
+
 export type ChatToolbarSelect = {
   key: string;
   value?: string;
@@ -74,6 +87,8 @@ export type ChatToolbarSelect = {
   disabled?: boolean;
   loading?: boolean;
   emptyLabel?: string;
+  search?: ChatToolbarSelectSearch;
+  optionAction?: ChatToolbarSelectOptionAction;
   onValueChange: (value: string) => void;
 };
 

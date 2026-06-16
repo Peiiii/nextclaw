@@ -35,10 +35,16 @@ export function buildModelStateHint(params: {
     "noModelOptionsLabel" | "configureProviderLabel"
   >;
 }): ChatInlineHint | null {
-  if (!params.isModelOptionsLoading && !params.isModelOptionsEmpty) {
+  const {
+    isModelOptionsEmpty,
+    isModelOptionsLoading,
+    onGoToProviders,
+    texts,
+  } = params;
+  if (!isModelOptionsLoading && !isModelOptionsEmpty) {
     return null;
   }
-  if (params.isModelOptionsLoading) {
+  if (isModelOptionsLoading) {
     return {
       tone: "neutral",
       loading: true,
@@ -46,25 +52,40 @@ export function buildModelStateHint(params: {
   }
   return {
     tone: "warning",
-    text: params.texts.noModelOptionsLabel,
-    actionLabel: params.texts.configureProviderLabel,
-    onAction: params.onGoToProviders,
+    text: texts.noModelOptionsLabel,
+    actionLabel: texts.configureProviderLabel,
+    onAction: onGoToProviders,
   };
 }
 
 export function buildModelToolbarSelect({
-  modelOptions, recentModelValues, selectedModel, isModelOptionsLoading, hasModelOptions, onValueChange, texts,
+  modelOptions,
+  favoriteModelValues,
+  recentModelValues,
+  selectedModel,
+  isModelOptionsLoading,
+  hasModelOptions,
+  onFavoriteToggle,
+  onValueChange,
+  texts,
 }: {
   modelOptions: ChatModelRecord[];
+  favoriteModelValues?: string[];
   recentModelValues?: string[];
   selectedModel: string;
   isModelOptionsLoading: boolean;
   hasModelOptions: boolean;
+  onFavoriteToggle?: (value: string, favorite: boolean) => void;
   onValueChange: (value: string) => void;
   texts: Pick<
     ChatInputBarAdapterTexts,
     | "modelSelectPlaceholder"
     | "modelNoOptionsLabel"
+    | "modelSearchPlaceholder"
+    | "modelSearchEmptyLabel"
+    | "favoriteModelsLabel"
+    | "favoriteModelLabel"
+    | "unfavoriteModelLabel"
     | "recentModelsLabel"
     | "allModelsLabel"
   >;
@@ -76,19 +97,33 @@ export function buildModelToolbarSelect({
   const resolvedValue = hasModelOptions
     ? resolvedModelOption?.value
     : undefined;
-  const recentValueSet = new Set(recentModelValues ?? []);
   const modelOptionMap = new Map(
     modelOptions.map((option) => [option.value, option] as const),
   );
-  const recentOptions = (recentModelValues ?? [])
+  const favoriteOptions = (favoriteModelValues ?? [])
     .map((value) => modelOptionMap.get(value))
     .filter((option): option is ChatModelRecord => Boolean(option));
+  const favoriteValueSet = new Set(favoriteOptions.map((option) => option.value));
+  const recentOptions = (recentModelValues ?? [])
+    .map((value) => modelOptionMap.get(value))
+    .filter(
+      (option): option is ChatModelRecord =>
+        option !== undefined && !favoriteValueSet.has(option.value),
+    );
+  const recentValueSet = new Set(recentOptions.map((option) => option.value));
   const remainingOptions = modelOptions.filter(
-    (option) => !recentValueSet.has(option.value),
+    (option) => !favoriteValueSet.has(option.value) && !recentValueSet.has(option.value),
   );
-  const optionGroups =
-    recentOptions.length > 0
-      ? [
+  const optionGroups = favoriteOptions.length > 0 || recentOptions.length > 0
+    ? [
+          {
+            key: "favorite-models",
+            label: texts.favoriteModelsLabel,
+            options: favoriteOptions.map((option) => ({
+              value: option.value,
+              label: formatModelOptionLabel(option),
+            })),
+          },
           {
             key: "recent-models",
             label: texts.recentModelsLabel,
@@ -106,7 +141,7 @@ export function buildModelToolbarSelect({
             })),
           },
         ].filter((group) => group.options.length > 0)
-      : undefined;
+    : undefined;
 
   return {
     key: "model",
@@ -124,6 +159,19 @@ export function buildModelToolbarSelect({
     disabled: !hasModelOptions,
     loading: isModelOptionsLoading,
     emptyLabel: texts.modelNoOptionsLabel,
+    search: {
+      placeholder: texts.modelSearchPlaceholder,
+      emptyLabel: texts.modelSearchEmptyLabel,
+    },
+    optionAction: onFavoriteToggle
+      ? {
+          kind: "favorite",
+          activeValues: favoriteOptions.map((option) => option.value),
+          activeLabel: texts.unfavoriteModelLabel,
+          inactiveLabel: texts.favoriteModelLabel,
+          onToggle: onFavoriteToggle,
+        }
+      : undefined,
     onValueChange,
   };
 }
@@ -135,31 +183,38 @@ export function buildThinkingToolbarSelect(params: {
   onValueChange: (value: ChatThinkingLevel) => void;
   texts: Pick<ChatInputBarAdapterTexts, "thinkingLabels">;
 }): ChatToolbarSelect | null {
-  if (params.supportedLevels.length === 0) {
+  const {
+    defaultThinkingLevel,
+    onValueChange,
+    selectedThinkingLevel,
+    supportedLevels,
+    texts,
+  } = params;
+  if (supportedLevels.length === 0) {
     return null;
   }
 
-  const options = normalizeThinkingLevels(params.supportedLevels);
+  const options = normalizeThinkingLevels(supportedLevels);
   const fallback = options.includes("off") ? "off" : options[0];
   const resolvedValue =
-    (params.selectedThinkingLevel &&
-      options.includes(params.selectedThinkingLevel) &&
-      params.selectedThinkingLevel) ||
-    (params.defaultThinkingLevel &&
-      options.includes(params.defaultThinkingLevel) &&
-      params.defaultThinkingLevel) ||
+    (selectedThinkingLevel &&
+      options.includes(selectedThinkingLevel) &&
+      selectedThinkingLevel) ||
+    (defaultThinkingLevel &&
+      options.includes(defaultThinkingLevel) &&
+      defaultThinkingLevel) ||
     fallback;
 
   return {
     key: "thinking",
     value: resolvedValue,
-    placeholder: params.texts.thinkingLabels[resolvedValue],
-    selectedLabel: params.texts.thinkingLabels[resolvedValue],
+    placeholder: texts.thinkingLabels[resolvedValue],
+    selectedLabel: texts.thinkingLabels[resolvedValue],
     icon: "brain",
     options: options.map((level) => ({
       value: level,
-      label: params.texts.thinkingLabels[level],
+      label: texts.thinkingLabels[level],
     })),
-    onValueChange: (value) => params.onValueChange(value as ChatThinkingLevel),
+    onValueChange: (value) => onValueChange(value as ChatThinkingLevel),
   };
 }

@@ -58,6 +58,12 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       recordPanelAppOpened: async () =>
         unavailable("panelAppManager.recordPanelAppOpened"),
     } as never,
+    preferenceManager: {
+      getPreference: async () => null,
+      setPreference: async () =>
+        unavailable("preferenceManager.setPreference"),
+      deletePreference: async () => false,
+    } as never,
     serviceAppManager: {
       listServiceApps: async () => ({
         workspacePath: "",

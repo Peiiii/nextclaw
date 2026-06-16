@@ -106,7 +106,7 @@ export function resolveLexicalComposerKeyboardAction(params: {
 
 type LexicalComposerHandleOwnerParams = {
   focusComposer: () => void;
-  focusComposerAtEnd: () => void;
+  focusComposerAtEnd: (nodes?: ChatComposerNode[]) => void;
   onSlashItemSelect?: (item: ChatSlashItem) => void;
   optionsReader: () => {
     nodes: ChatComposerNode[];
@@ -178,8 +178,8 @@ class LexicalComposerHandleOwner implements ChatInputBarTokenizedComposerHandle 
     this.params.focusComposer();
   };
 
-  focusComposerAtEnd = (): void => {
-    this.params.focusComposerAtEnd();
+  focusComposerAtEnd = (nodes?: ChatComposerNode[]): void => {
+    this.params.focusComposerAtEnd(nodes);
   };
 
   syncSelectedSkills = (nextKeys: string[], options: ChatSkillPickerOption[]): void => {

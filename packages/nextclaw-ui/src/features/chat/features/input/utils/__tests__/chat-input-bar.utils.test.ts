@@ -13,6 +13,20 @@ function createSkillRecord(partial: Partial<ChatSkillRecord>): ChatSkillRecord {
   };
 }
 
+function createModelTexts() {
+  return {
+    modelSelectPlaceholder: 'Select model',
+    modelNoOptionsLabel: 'No models',
+    modelSearchPlaceholder: 'Search models',
+    modelSearchEmptyLabel: 'No matching models',
+    favoriteModelsLabel: 'Favorites',
+    favoriteModelLabel: 'Favorite model',
+    unfavoriteModelLabel: 'Remove favorite',
+    recentModelsLabel: 'Recent',
+    allModelsLabel: 'All models'
+  };
+}
+
 describe('buildChatSlashItems', () => {
   const texts = {
     slashSkillSubtitle: 'Skill',
@@ -188,12 +202,7 @@ describe('buildModelToolbarSelect', () => {
       isModelOptionsLoading: false,
       hasModelOptions: true,
       onValueChange,
-      texts: {
-        modelSelectPlaceholder: 'Select model',
-        modelNoOptionsLabel: 'No models',
-        recentModelsLabel: 'Recent',
-        allModelsLabel: 'All models'
-      }
+      texts: createModelTexts()
     });
 
     expect(select.value).toBe('minimax/MiniMax-M2.7');
@@ -218,12 +227,7 @@ describe('buildModelToolbarSelect', () => {
       isModelOptionsLoading: false,
       hasModelOptions: true,
       onValueChange: vi.fn(),
-      texts: {
-        modelSelectPlaceholder: 'Select model',
-        modelNoOptionsLabel: 'No models',
-        recentModelsLabel: 'Recent',
-        allModelsLabel: 'All models'
-      }
+      texts: createModelTexts()
     });
 
     expect(select.selectedLabel).toBe('Anthropic/claude-sonnet-4-very-long-name');
@@ -254,12 +258,7 @@ describe('buildModelToolbarSelect', () => {
       isModelOptionsLoading: false,
       hasModelOptions: true,
       onValueChange: vi.fn(),
-      texts: {
-        modelSelectPlaceholder: 'Select model',
-        modelNoOptionsLabel: 'No models',
-        recentModelsLabel: 'Recent',
-        allModelsLabel: 'All models'
-      }
+      texts: createModelTexts()
     });
 
     expect(select.groups).toEqual([
@@ -290,6 +289,52 @@ describe('buildModelToolbarSelect', () => {
     ]);
   });
 
+  it('groups favorite models ahead of recent models without duplicates', () => {
+    const onFavoriteToggle = vi.fn();
+    const select = buildModelToolbarSelect({
+      modelOptions: [
+        {
+          value: 'openai/gpt-5',
+          modelLabel: 'gpt-5',
+          providerLabel: 'OpenAI'
+        },
+        {
+          value: 'anthropic/claude-sonnet-4',
+          modelLabel: 'claude-sonnet-4',
+          providerLabel: 'Anthropic'
+        },
+        {
+          value: 'minimax/MiniMax-M2.7',
+          modelLabel: 'MiniMax-M2.7',
+          providerLabel: 'MiniMax'
+        }
+      ],
+      favoriteModelValues: ['openai/gpt-5'],
+      recentModelValues: ['anthropic/claude-sonnet-4', 'openai/gpt-5'],
+      selectedModel: 'openai/gpt-5',
+      isModelOptionsLoading: false,
+      hasModelOptions: true,
+      onFavoriteToggle,
+      onValueChange: vi.fn(),
+      texts: createModelTexts()
+    });
+
+    expect(select.groups?.map((group) => group.key)).toEqual([
+      'favorite-models',
+      'recent-models',
+      'all-models'
+    ]);
+    expect(select.groups?.[0]?.options.map((option) => option.value)).toEqual(['openai/gpt-5']);
+    expect(select.groups?.[1]?.options.map((option) => option.value)).toEqual(['anthropic/claude-sonnet-4']);
+    expect(select.groups?.[2]?.options.map((option) => option.value)).toEqual(['minimax/MiniMax-M2.7']);
+    expect(select.optionAction).toMatchObject({
+      kind: 'favorite',
+      activeValues: ['openai/gpt-5'],
+      activeLabel: 'Remove favorite',
+      inactiveLabel: 'Favorite model'
+    });
+  });
+
   it('preserves recent model order from newest to oldest', () => {
     const select = buildModelToolbarSelect({
       modelOptions: [
@@ -314,12 +359,7 @@ describe('buildModelToolbarSelect', () => {
       isModelOptionsLoading: false,
       hasModelOptions: true,
       onValueChange: vi.fn(),
-      texts: {
-        modelSelectPlaceholder: 'Select model',
-        modelNoOptionsLabel: 'No models',
-        recentModelsLabel: 'Recent',
-        allModelsLabel: 'All models'
-      }
+      texts: createModelTexts()
     });
 
     expect(select.groups?.[0]?.options.map((option) => option.value)).toEqual([

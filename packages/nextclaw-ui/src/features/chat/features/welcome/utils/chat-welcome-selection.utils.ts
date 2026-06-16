@@ -16,18 +16,11 @@ export function resolveChatWelcomeAgents(params: {
   return (agents?.length ?? 0) > 0 ? (agents ?? []) : [{ id: fallbackAgentId }];
 }
 
-export function resolveChatWelcomeDraftAgent(params: {
+export function resolveChatWelcomeSelectedAgent(params: {
   agents: AgentProfileView[];
   agentId: string;
 }): AgentProfileView | null {
   return params.agents.find((agent) => agent.id === params.agentId) ?? null;
-}
-
-export function resolveChatWelcomeDraftProjectRoot(params: {
-  defaultProjectRoot: string | null;
-  selectedProjectRoot: string | null;
-}): string | null {
-  return params.selectedProjectRoot ?? params.defaultProjectRoot;
 }
 
 function resolveAvailableSessionType(
@@ -68,7 +61,7 @@ export function resolveChatWelcomeSelectedSessionType(params: {
     agents && agentId
       ? resolveAvailableSessionType(
           resolveAgentRuntimeSessionType(
-            resolveChatWelcomeDraftAgent({
+            resolveChatWelcomeSelectedAgent({
               agents,
               agentId,
             }),

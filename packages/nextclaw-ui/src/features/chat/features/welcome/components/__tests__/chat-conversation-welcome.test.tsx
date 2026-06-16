@@ -10,8 +10,8 @@ import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 import type { ChatQuerySnapshot } from "@/features/chat/stores/ncp-chat-query.store";
 
 const mocks = vi.hoisted(() => ({
-  createSession: vi.fn(),
   setSelectedAgentId: vi.fn(),
+  applyPromptSuggestion: vi.fn(),
   setPendingProjectRoot: vi.fn(),
   setPendingSessionType: vi.fn(),
   agents: [
@@ -23,24 +23,24 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/features/chat/features/welcome/components/chat-welcome", () => ({
   ChatWelcome: ({
     inputSlot,
-    onCreateSession,
     onSelectAgent,
+    onSelectPrompt,
     onSelectProjectRoot,
     onSelectSessionType,
   }: {
     inputSlot: ReactNode;
-    onCreateSession: () => void;
     onSelectAgent: (agentId: string) => void;
+    onSelectPrompt: (prompt: string) => void;
     onSelectProjectRoot: (projectRoot: string) => void;
     onSelectSessionType: (sessionType: string) => void;
   }) => (
     <div>
       {inputSlot}
-      <button type="button" onClick={onCreateSession}>
-        create draft session
-      </button>
       <button type="button" onClick={() => onSelectAgent("engineer")}>
         switch draft agent
+      </button>
+      <button type="button" onClick={() => onSelectPrompt("example prompt")}>
+        pick prompt
       </button>
       <button type="button" onClick={() => onSelectSessionType("codex")}>
         switch session type
@@ -58,10 +58,10 @@ vi.mock("@/features/chat/features/welcome/components/chat-welcome", () => ({
 vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
   usePresenter: () => ({
     chatSessionListManager: {
-      createSession: mocks.createSession,
       setSelectedAgentId: mocks.setSelectedAgentId,
     },
     chatInputManager: {
+      applyPromptSuggestion: mocks.applyPromptSuggestion,
       setPendingProjectRoot: mocks.setPendingProjectRoot,
       setPendingSessionType: mocks.setPendingSessionType,
     },
@@ -88,8 +88,8 @@ function createFetchedQuery<TData>(data: TData) {
 }
 
 function resetWelcomeTestState() {
-  mocks.createSession.mockReset();
   mocks.setSelectedAgentId.mockReset();
+  mocks.applyPromptSuggestion.mockReset();
   mocks.setPendingProjectRoot.mockReset();
   mocks.setPendingSessionType.mockReset();
   useChatInputStore.setState({
@@ -141,39 +141,6 @@ function resetWelcomeTestState() {
 describe("ChatConversationWelcome", () => {
   beforeEach(resetWelcomeTestState);
 
-  it("creates a welcome draft with the configured default workspace", async () => {
-    const user = userEvent.setup();
-
-    render(<ChatConversationWelcome inputSlot={<div data-testid="input-slot" />} />);
-
-    await user.click(
-      screen.getByRole("button", { name: "create draft session" }),
-    );
-
-    expect(mocks.createSession).toHaveBeenCalledWith(
-      "native",
-      "/Users/demo/.nextclaw/workspace",
-    );
-  });
-
-  it("uses an explicit draft project instead of the default workspace", async () => {
-    const user = userEvent.setup();
-    useChatInputStore.setState({
-      snapshot: {
-        ...useChatInputStore.getState().snapshot,
-        pendingProjectRoot: "/tmp/project-alpha",
-      },
-    });
-
-    render(<ChatConversationWelcome inputSlot={<div data-testid="input-slot" />} />);
-
-    await user.click(
-      screen.getByRole("button", { name: "create draft session" }),
-    );
-
-    expect(mocks.createSession).toHaveBeenCalledWith("native", "/tmp/project-alpha");
-  });
-
   it("stores the selected welcome project through the input manager", async () => {
     const user = userEvent.setup();
 
@@ -186,26 +153,18 @@ describe("ChatConversationWelcome", () => {
     expect(mocks.setPendingProjectRoot).toHaveBeenCalledWith("/tmp/project-alpha");
   });
 
-  it("creates a draft session with the selected welcome session type", async () => {
+  it("applies a selected prompt suggestion through the input manager", async () => {
     const user = userEvent.setup();
-    useChatInputStore.setState({
-      snapshot: {
-        ...useChatInputStore.getState().snapshot,
-        pendingSessionType: "codex",
-      },
-    });
 
     render(<ChatConversationWelcome inputSlot={<div data-testid="input-slot" />} />);
 
     await user.click(
-      screen.getByRole("button", { name: "create draft session" }),
+      screen.getByRole("button", { name: "pick prompt" }),
     );
 
-    expect(mocks.createSession).toHaveBeenCalledWith(
-      "codex",
-      "/Users/demo/.nextclaw/workspace",
-    );
+    expect(mocks.applyPromptSuggestion).toHaveBeenCalledWith("example prompt");
   });
+
 
   it("syncs the pending session type when switching the draft agent", async () => {
     const user = userEvent.setup();

@@ -13,6 +13,7 @@ import { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
 import { McpManager } from "@kernel/managers/mcp.manager.js";
 import { SessionManager } from "@kernel/managers/session.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
+import { PreferenceManager } from "@kernel/managers/preference.manager.js";
 import { ServiceAppManager } from "@kernel/managers/service-app.manager.js";
 import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
@@ -64,6 +65,16 @@ function resolveKernelAutomationStorePath(
     return resolve(expandHome(homeDir), "cron", "jobs.json");
   }
   return resolve(getDataDir(), "cron", "jobs.json");
+}
+
+function resolveKernelPreferenceStorePath(
+  options: NextclawKernelOptions,
+): string {
+  const homeDir = options.homeDir?.trim();
+  if (homeDir) {
+    return resolve(expandHome(homeDir), "preferences", "preferences.json");
+  }
+  return resolve(getDataDir(), "preferences", "preferences.json");
 }
 
 type NextclawKernelRuntimeControl<TGatewayInput, TUiInput, TStartInput> = {
@@ -119,6 +130,7 @@ export class NextclawKernel {
   readonly mcpManager: McpManager;
   readonly sessionManager: SessionManager;
   readonly panelAppManager: PanelAppManager;
+  readonly preferenceManager: PreferenceManager;
   readonly serviceAppManager: ServiceAppManager;
   readonly extensions: ExtensionManager;
   readonly agentRuntimeManager = new AgentRuntimeManager();
@@ -175,6 +187,9 @@ export class NextclawKernel {
       configManager: this.configManager,
       eventBus: this.eventBus,
       ingress: this.ingress,
+    });
+    this.preferenceManager = new PreferenceManager({
+      storePath: resolveKernelPreferenceStorePath(options),
     });
     this.serviceAppManager = new ServiceAppManager({
       configManager: this.configManager,

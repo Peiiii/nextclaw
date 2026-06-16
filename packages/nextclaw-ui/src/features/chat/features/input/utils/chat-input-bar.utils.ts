@@ -208,8 +208,17 @@ export function buildSkillPickerModel(params: {
     allSkillsLabel: string;
   };
 }): ChatSkillPickerProps {
-  const prioritizedSkillRecords = prioritizeSkillRecords(params.skillRecords, params.recentSkillValues ?? []);
-  const recentKeySet = new Set(params.groupedRecentSkillValues ?? []);
+  const {
+    groupedRecentSkillValues,
+    isLoading,
+    onSelectedKeysChange,
+    recentSkillValues,
+    selectedSkills,
+    skillRecords,
+    texts,
+  } = params;
+  const prioritizedSkillRecords = prioritizeSkillRecords(skillRecords, recentSkillValues ?? []);
+  const recentKeySet = new Set(groupedRecentSkillValues ?? []);
   const recentSkillOptions = buildSkillPickerOptions(
     prioritizedSkillRecords.filter((record) => recentKeySet.has(record.key))
   );
@@ -217,12 +226,12 @@ export function buildSkillPickerModel(params: {
     prioritizedSkillRecords.filter((record) => !recentKeySet.has(record.key))
   );
   return {
-    title: params.texts.title,
-    searchPlaceholder: params.texts.searchPlaceholder,
-    emptyLabel: params.texts.emptyLabel,
-    loadingLabel: params.texts.loadingLabel,
-    isLoading: params.isLoading,
-    manageLabel: params.texts.manageLabel,
+    title: texts.title,
+    searchPlaceholder: texts.searchPlaceholder,
+    emptyLabel: texts.emptyLabel,
+    loadingLabel: texts.loadingLabel,
+    isLoading,
+    manageLabel: texts.manageLabel,
     manageHref: '/marketplace/skills',
     options: buildSkillPickerOptions(prioritizedSkillRecords),
     groups:
@@ -230,17 +239,17 @@ export function buildSkillPickerModel(params: {
         ? [
             {
               key: 'recent-skills',
-              label: params.texts.recentSkillsLabel,
+              label: texts.recentSkillsLabel,
               options: recentSkillOptions
             },
             {
               key: 'all-skills',
-              label: params.texts.allSkillsLabel,
+              label: texts.allSkillsLabel,
               options: remainingSkillOptions
             }
           ].filter((group) => group.options.length > 0)
         : undefined,
-    selectedKeys: params.selectedSkills,
-    onSelectedKeysChange: params.onSelectedKeysChange
+    selectedKeys: selectedSkills,
+    onSelectedKeysChange
   };
 }

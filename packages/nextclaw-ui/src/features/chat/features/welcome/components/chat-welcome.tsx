@@ -22,8 +22,8 @@ type ChatWelcomeProps = {
   selectedProjectRoot?: string | null;
   selectedSessionType: string;
   sessionTypeOptions: readonly SessionTypeOption[];
-  onCreateSession: () => void;
   onSelectAgent: (agentId: string) => void;
+  onSelectPrompt: (prompt: string) => void;
   onSelectProjectRoot?: (projectRoot: string) => Promise<void> | void;
   onSelectSessionType: (sessionType: string) => void;
 };
@@ -37,8 +37,8 @@ export function ChatWelcome({
   selectedProjectRoot,
   selectedSessionType,
   sessionTypeOptions,
-  onCreateSession,
   onSelectAgent,
+  onSelectPrompt,
   onSelectProjectRoot,
   onSelectSessionType,
 }: ChatWelcomeProps) {
@@ -104,7 +104,7 @@ export function ChatWelcome({
           />
         </div>
 
-        <ChatWelcomeCapabilityGrid onCreateSession={onCreateSession} />
+        <ChatWelcomeCapabilityGrid onSelectPrompt={onSelectPrompt} />
       </div>
 
       {onSelectProjectRoot ? (

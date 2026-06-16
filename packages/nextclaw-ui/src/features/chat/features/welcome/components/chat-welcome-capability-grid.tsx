@@ -6,23 +6,26 @@ const WELCOME_CAPABILITIES = [
     icon: MessageCircle,
     titleKey: 'chatWelcomeCapability1Title' as const,
     descKey: 'chatWelcomeCapability1Desc' as const,
+    promptKey: 'chatWelcomeCapability1Prompt' as const,
   },
   {
     icon: BrainCircuit,
     titleKey: 'chatWelcomeCapability2Title' as const,
     descKey: 'chatWelcomeCapability2Desc' as const,
+    promptKey: 'chatWelcomeCapability2Prompt' as const,
   },
   {
     icon: AlarmClock,
     titleKey: 'chatWelcomeCapability3Title' as const,
     descKey: 'chatWelcomeCapability3Desc' as const,
+    promptKey: 'chatWelcomeCapability3Prompt' as const,
   },
 ];
 
 export function ChatWelcomeCapabilityGrid({
-  onCreateSession,
+  onSelectPrompt,
 }: {
-  onCreateSession: () => void;
+  onSelectPrompt: (prompt: string) => void;
 }) {
   return (
     <div className="mt-8 grid grid-cols-[repeat(auto-fit,minmax(min(100%,9.5rem),1fr))] gap-3">
@@ -31,7 +34,7 @@ export function ChatWelcomeCapabilityGrid({
         return (
           <button
             key={capability.titleKey}
-            onClick={onCreateSession}
+            onClick={() => onSelectPrompt(t(capability.promptKey))}
             className="min-w-0 rounded-2xl border border-gray-200 bg-white p-3 text-left shadow-card transition-shadow hover:shadow-card-hover sm:p-4"
           >
             <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-primary/8">

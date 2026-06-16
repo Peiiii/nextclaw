@@ -1,5 +1,6 @@
 import {
   forwardRef,
+  useCallback,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -23,6 +24,7 @@ import { resolveChatComposerSlashTrigger } from '@agent-chat-ui/components/chat/
 import {
   getChatComposerNodesSignature,
   readChatComposerSnapshotFromEditorState,
+  syncLexicalEditorFromChatComposerState,
   syncLexicalSelectionFromChatComposerSelection,
   writeChatComposerStateToLexicalRoot,
 } from './chat-composer-lexical-adapter';
@@ -40,7 +42,7 @@ export type ChatInputBarTokenizedComposerHandle = {
   insertFileToken: (tokenKey: string, label: string) => void;
   insertFileTokens: (tokens: Array<{ tokenKey: string; label: string }>) => void;
   focusComposer: () => void;
-  focusComposerAtEnd: () => void;
+  focusComposerAtEnd: (nodes?: ChatComposerNode[]) => void;
   syncSelectedSkills: (nextKeys: string[], options: ChatSkillPickerOption[]) => void;
 };
 
@@ -60,10 +62,31 @@ type ChatInputBarTokenizedComposerProps = {
   activeSlashIndex: number;
 };
 
+function getChatComposerDocumentLength(nodes: ChatComposerNode[]): number {
+  return nodes.reduce((cursor, node) => cursor + (node.type === 'text' ? node.text.length : 1), 0);
+}
+
 export const ChatInputBarTokenizedComposer = forwardRef<
   ChatInputBarTokenizedComposerHandle,
   ChatInputBarTokenizedComposerProps
->(function ChatInputBarTokenizedComposer(props, ref) {
+>(function ChatInputBarTokenizedComposer(
+  {
+    actions,
+    activeSlashIndex,
+    disabled,
+    nodes,
+    onFilesAdd,
+    onNodesChange,
+    onSlashActiveIndexChange,
+    onSlashItemSelect,
+    onSlashOpenChange,
+    onSlashQueryChange,
+    onSlashTriggerChange,
+    placeholder,
+    slashItems,
+  },
+  ref,
+) {
   const editorRef = useRef<LexicalEditor | null>(null);
   const selectionRef = useRef<ChatComposerSelection | null>(null);
   const pendingSelectionRef = useRef<ChatComposerSelection | null>(null);
@@ -73,18 +96,25 @@ export const ChatInputBarTokenizedComposer = forwardRef<
   const editorSignatureRef = useRef('');
   const lastPublishedSignatureRef = useRef('');
 
-  const syncSlashState = (nodes: ChatComposerNode[], selection: ChatComposerSelection | null): void => {
-    const trigger = resolveChatComposerSlashTrigger(nodes, selection);
-    props.onSlashTriggerChange?.(trigger);
-    props.onSlashQueryChange?.(trigger?.query ?? null);
-    props.onSlashOpenChange(trigger !== null);
-  };
+  const syncSlashState = useCallback(
+    (nodes: ChatComposerNode[], selection: ChatComposerSelection | null): void => {
+      const trigger = resolveChatComposerSlashTrigger(nodes, selection);
+      onSlashTriggerChange?.(trigger);
+      onSlashQueryChange?.(trigger?.query ?? null);
+      onSlashOpenChange(trigger !== null);
+    },
+    [
+      onSlashOpenChange,
+      onSlashQueryChange,
+      onSlashTriggerChange,
+    ],
+  );
 
-  const readCurrentNodes = (): ChatComposerNode[] => {
-    return props.nodes;
-  };
+  const readCurrentNodes = useCallback((): ChatComposerNode[] => {
+    return nodes;
+  }, [nodes]);
 
-  const readCurrentSelection = (): ChatComposerSelection | null => {
+  const readCurrentSelection = useCallback((): ChatComposerSelection | null => {
     if (selectionRef.current) {
       return selectionRef.current;
     }
@@ -96,29 +126,32 @@ export const ChatInputBarTokenizedComposer = forwardRef<
     const snapshot = readChatComposerSnapshotFromEditorState(editorRef.current.getEditorState());
     selectionRef.current = snapshot.selection;
     return snapshot.selection;
-  };
+  }, []);
 
-  const publishSnapshot = (
-    snapshot: { nodes: ChatComposerNode[]; selection: ChatComposerSelection | null },
-    options?: { focusAfterSync?: boolean; forcePublish?: boolean },
-  ): void => {
-    selectionRef.current = snapshot.selection;
-    pendingSelectionRef.current = snapshot.selection;
+  const publishSnapshot = useCallback(
+    (
+      snapshot: { nodes: ChatComposerNode[]; selection: ChatComposerSelection | null },
+      options?: { focusAfterSync?: boolean; forcePublish?: boolean },
+    ): void => {
+      selectionRef.current = snapshot.selection;
+      pendingSelectionRef.current = snapshot.selection;
 
-    if (options?.focusAfterSync) {
-      shouldFocusAfterSyncRef.current = true;
-    }
+      if (options?.focusAfterSync) {
+        shouldFocusAfterSyncRef.current = true;
+      }
 
-    const signature = getChatComposerNodesSignature(snapshot.nodes);
-    syncSlashState(snapshot.nodes, snapshot.selection);
+      const signature = getChatComposerNodesSignature(snapshot.nodes);
+      syncSlashState(snapshot.nodes, snapshot.selection);
 
-    if (options?.forcePublish || signature !== lastPublishedSignatureRef.current) {
-      lastPublishedSignatureRef.current = signature;
-      props.onNodesChange(snapshot.nodes);
-    }
-  };
+      if (options?.forcePublish || signature !== lastPublishedSignatureRef.current) {
+        lastPublishedSignatureRef.current = signature;
+        onNodesChange(snapshot.nodes);
+      }
+    },
+    [onNodesChange, syncSlashState],
+  );
 
-  const focusComposer = (): void => {
+  const focusComposer = useCallback((): void => {
     const editor = editorRef.current;
     if (!editor) {
       return;
@@ -130,26 +163,41 @@ export const ChatInputBarTokenizedComposer = forwardRef<
       syncLexicalSelectionFromChatComposerSelection(editor, targetSelection);
     }
     editor.focus();
-  };
+  }, []);
 
-  const focusComposerAtEnd = (): void => {
+  const focusComposerAtEnd = useCallback((nodes?: ChatComposerNode[]): void => {
     const editor = editorRef.current;
     if (!editor) {
       return;
     }
-    const snapshot = readChatComposerSnapshotFromEditorState(editor.getEditorState());
-    const end = snapshot.nodes.reduce((cursor, node) => cursor + (node.type === 'text' ? node.text.length : 1), 0);
+    const targetNodes =
+      nodes ?? readChatComposerSnapshotFromEditorState(editor.getEditorState()).nodes;
+    const end = getChatComposerDocumentLength(targetNodes);
     const targetSelection = { start: end, end };
     selectionRef.current = targetSelection;
+    pendingSelectionRef.current = targetSelection;
     editor.getRootElement()?.focus({ preventScroll: true });
-    syncLexicalSelectionFromChatComposerSelection(editor, targetSelection);
-    editor.focus();
-  };
+    if (nodes) {
+      isApplyingExternalUpdateRef.current = true;
+      const signature = getChatComposerNodesSignature(nodes);
+      syncLexicalEditorFromChatComposerState(editor, nodes, targetSelection);
+      editorSignatureRef.current = signature;
+      lastPublishedSignatureRef.current = signature;
+      requestAnimationFrame(() => {
+        isApplyingExternalUpdateRef.current = false;
+      });
+    } else {
+      syncLexicalSelectionFromChatComposerSelection(editor, targetSelection);
+    }
+    editor.focus(() => {
+      syncLexicalSelectionFromChatComposerSelection(editor, targetSelection);
+    });
+  }, []);
 
-  const readComposerSnapshot = (): { nodes: ChatComposerNode[]; selection: ChatComposerSelection | null } => ({
+  const readComposerSnapshot = useCallback((): { nodes: ChatComposerNode[]; selection: ChatComposerSelection | null } => ({
     nodes: readCurrentNodes(),
     selection: readCurrentSelection(),
-  });
+  }), [readCurrentNodes, readCurrentSelection]);
 
   useImperativeHandle(
     ref,
@@ -157,18 +205,24 @@ export const ChatInputBarTokenizedComposer = forwardRef<
       createLexicalComposerHandle({
         focusComposer,
         focusComposerAtEnd,
-        onSlashItemSelect: props.onSlashItemSelect,
+        onSlashItemSelect,
         optionsReader: readComposerSnapshot,
         publishSnapshot,
       }),
-    [props.onSlashItemSelect],
+    [
+      focusComposer,
+      focusComposerAtEnd,
+      onSlashItemSelect,
+      publishSnapshot,
+      readComposerSnapshot,
+    ],
   );
 
   const initialConfig = useMemo(
     () => ({
-      editable: !props.disabled,
+      editable: !disabled,
       editorState: () => {
-        writeChatComposerStateToLexicalRoot(props.nodes, null);
+        writeChatComposerStateToLexicalRoot(nodes, null);
       },
       namespace: 'NextClawChatComposerLexical',
       nodes: [ChatComposerTokenNode],
@@ -177,7 +231,7 @@ export const ChatInputBarTokenizedComposer = forwardRef<
       },
       theme: {},
     }),
-    [props.disabled, props.nodes],
+    [disabled, nodes],
   );
 
   return (
@@ -189,9 +243,9 @@ export const ChatInputBarTokenizedComposer = forwardRef<
               <ContentEditable
                 className="min-h-7 max-h-[188px] w-full overflow-y-auto whitespace-pre-wrap break-words bg-transparent py-0.5 text-sm leading-6 text-gray-800 outline-none"
                 onBeforeInput={(event: FormEvent<HTMLDivElement>) => {
-                  handleLexicalComposerBeforeInput({
-                    disabled: props.disabled,
-                    event,
+	                  handleLexicalComposerBeforeInput({
+	                    disabled,
+	                    event,
                     isComposing: isComposingRef.current,
                     publishSnapshot,
                     snapshotReader: readComposerSnapshot,
@@ -215,37 +269,37 @@ export const ChatInputBarTokenizedComposer = forwardRef<
                 onCompositionStart={() => {
                   isComposingRef.current = true;
                 }}
-                onPaste={(event: ClipboardEvent<HTMLDivElement>) => {
-                  const files = Array.from(event.clipboardData.files ?? []);
-                  if (files.length > 0 && props.onFilesAdd) {
-                    event.preventDefault();
-                    void props.onFilesAdd(files);
-                  }
-                }}
+	                onPaste={(event: ClipboardEvent<HTMLDivElement>) => {
+	                  const files = Array.from(event.clipboardData.files ?? []);
+	                  if (files.length > 0 && onFilesAdd) {
+	                    event.preventDefault();
+	                    void onFilesAdd(files);
+	                  }
+	                }}
               />
             }
-            placeholder={
-              <div className="pointer-events-none absolute left-3 top-2 select-none text-sm leading-6 text-gray-400 sm:left-4 sm:top-2.5">
-                {props.placeholder}
-              </div>
-            }
+	            placeholder={
+	              <div className="pointer-events-none absolute left-3 top-2 select-none text-sm leading-6 text-gray-400 sm:left-4 sm:top-2.5">
+	                {placeholder}
+	              </div>
+	            }
             ErrorBoundary={LexicalErrorBoundary}
           />
         </div>
       </div>
       <EditorRefPlugin editorRef={editorRef} />
-      <ChatComposerBindingsPlugin
-        disabled={props.disabled}
-        editorRef={editorRef}
+	      <ChatComposerBindingsPlugin
+	        disabled={disabled}
+	        editorRef={editorRef}
         editorSignatureRef={editorSignatureRef}
         isApplyingExternalUpdateRef={isApplyingExternalUpdateRef}
         isComposingRef={isComposingRef}
         lastPublishedSignatureRef={lastPublishedSignatureRef}
-        nodes={props.nodes}
-        onBlur={() => {
-          props.onSlashQueryChange?.(null);
-          props.onSlashOpenChange(false);
-        }}
+	        nodes={nodes}
+	        onBlur={() => {
+	          onSlashQueryChange?.(null);
+	          onSlashOpenChange(false);
+	        }}
         onKeyDown={(event) => {
           const editor = editorRef.current;
           if (!editor) {
@@ -253,21 +307,21 @@ export const ChatInputBarTokenizedComposer = forwardRef<
           }
 
           const snapshot = readChatComposerSnapshotFromEditorState(editor.getEditorState());
-          selectionRef.current = snapshot.selection;
-          return handleLexicalComposerKeyboardCommand({
-            actions: props.actions,
-            activeSlashIndex: props.activeSlashIndex,
-            nativeEvent: event,
-            onSlashActiveIndexChange: props.onSlashActiveIndexChange,
-            onSlashItemSelect: props.onSlashItemSelect,
-            onSlashOpenChange: props.onSlashOpenChange,
-            onSlashQueryChange: props.onSlashQueryChange,
-            publishSnapshot,
-            slashItems: props.slashItems,
-            snapshot,
-          });
-        }}
-        onNodesChange={props.onNodesChange}
+	          selectionRef.current = snapshot.selection;
+	          return handleLexicalComposerKeyboardCommand({
+	            actions,
+	            activeSlashIndex,
+	            nativeEvent: event,
+	            onSlashActiveIndexChange,
+	            onSlashItemSelect,
+	            onSlashOpenChange,
+	            onSlashQueryChange,
+	            publishSnapshot,
+	            slashItems,
+	            snapshot,
+	          });
+	        }}
+	        onNodesChange={onNodesChange}
         pendingSelectionRef={pendingSelectionRef}
         selectionRef={selectionRef}
         shouldFocusAfterSyncRef={shouldFocusAfterSyncRef}

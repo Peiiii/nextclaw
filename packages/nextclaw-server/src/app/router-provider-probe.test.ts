@@ -53,6 +53,13 @@ describe("provider connection probe route", () => {
             throw new Error("not used");
           },
         } as never,
+        preferenceManager: {
+          getPreference: async () => null,
+          setPreference: async () => {
+            throw new Error("not used");
+          },
+          deletePreference: async () => false,
+        } as never,
         serviceAppManager: {} as never,
         llmProviders: {
           testConnection: testConnectionMock,

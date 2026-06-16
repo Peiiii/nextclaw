@@ -15,6 +15,8 @@ type ChatWelcomeAgentPickerProps = {
   onSelectAgent: (agentId: string) => void;
 };
 
+const AGENT_PICKER_MAX_HEIGHT = 'min(18rem, calc(var(--radix-select-content-available-height) - 0.75rem))';
+
 export function ChatWelcomeAgentPicker({
   agents,
   selectedAgent,
@@ -44,7 +46,11 @@ export function ChatWelcomeAgentPicker({
           ) : null}
         </div>
       </SelectTrigger>
-      <SelectContent className="rounded-xl border-gray-200/80 shadow-lg">
+      <SelectContent
+        collisionPadding={12}
+        className="rounded-xl border-gray-200/80 shadow-lg"
+        style={{ maxHeight: AGENT_PICKER_MAX_HEIGHT }}
+      >
         {agents.map((agent) => (
           <SelectItem key={agent.id} value={agent.id} className="rounded-lg pr-10">
             <div className="flex min-w-0 items-center gap-2">

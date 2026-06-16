@@ -19,7 +19,6 @@ function renderWelcome(
 ) {
   return render(
     <ChatWelcome
-      onCreateSession={vi.fn()}
       agents={[
         { id: 'main', displayName: 'Main' },
         { id: 'engineer', displayName: 'Engineer' },
@@ -29,6 +28,7 @@ function renderWelcome(
       selectedSessionType="native"
       sessionTypeOptions={sessionTypeOptions}
       onSelectAgent={vi.fn()}
+      onSelectPrompt={vi.fn()}
       onSelectSessionType={vi.fn()}
       {...overrides}
     />,
@@ -37,10 +37,9 @@ function renderWelcome(
 
 describe('ChatWelcome', () => {
   it('renders a lightweight draft agent select and allows switching', () => {
-    const onCreateSession = vi.fn();
     const onSelectAgent = vi.fn();
 
-    renderWelcome({ onCreateSession, onSelectAgent });
+    renderWelcome({ onSelectAgent });
 
     const trigger = screen.getByRole('combobox', { name: 'Draft agent' });
     expect(screen.getByText('Main')).toBeTruthy();
@@ -58,6 +57,18 @@ describe('ChatWelcome', () => {
       screen.getByRole('button', { name: /Smart Conversations/ }).parentElement
         ?.className,
     ).toContain('auto-fit');
+  });
+
+  it('fills the composer with a prompt suggestion when clicking a capability card', () => {
+    const onSelectPrompt = vi.fn();
+
+    renderWelcome({ onSelectPrompt });
+
+    fireEvent.click(screen.getByRole('button', { name: /Smart Conversations/ }));
+
+    expect(onSelectPrompt).toHaveBeenCalledWith(
+      expect.stringContaining('next three concrete things'),
+    );
   });
 
   it('lets users switch the welcome session type', () => {

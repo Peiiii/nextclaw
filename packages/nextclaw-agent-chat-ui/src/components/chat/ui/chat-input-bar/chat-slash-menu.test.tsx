@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ChatSlashMenu } from './chat-slash-menu';
-import type { ChatSlashMenuProps } from '../../view-models/chat-ui.types';
+import type { ChatSlashMenuProps } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
 function createSlashMenuProps(overrides?: Partial<ChatSlashMenuProps>): ChatSlashMenuProps {
   return {
@@ -56,5 +56,15 @@ describe('ChatSlashMenu', () => {
     expect(screen.getByText(/workspace:\/Users\/tongwenwen\/\.nextclaw\/workspace\/skills\/bird/i).className).toContain('break-all');
     fireEvent.click(screen.getByRole('option', { name: /Web Search/i }));
     expect(onSelectItem).toHaveBeenCalledWith(item);
+  });
+
+  it('constrains the slash menu to the available viewport height', () => {
+    render(<ChatSlashMenu {...createSlashMenuProps()} />);
+
+    const listbox = screen.getByRole('listbox', { name: 'Skills' });
+    expect(listbox.className).toContain('overflow-y-auto');
+    expect(listbox.closest('[data-state="open"]')?.getAttribute('style')).toContain(
+      'min(24rem, calc(var(--radix-popover-content-available-height) - 0.75rem))',
+    );
   });
 });

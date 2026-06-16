@@ -14,6 +14,8 @@ type ChatWelcomeSessionTypePickerProps = {
   onSelectSessionType: (sessionType: string) => void;
 };
 
+const SESSION_TYPE_PICKER_MAX_HEIGHT = 'min(18rem, calc(var(--radix-popover-content-available-height) - 0.75rem))';
+
 export function ChatWelcomeSessionTypePicker({
   options,
   selectedSessionType,
@@ -54,9 +56,11 @@ export function ChatWelcomeSessionTypePicker({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-64 rounded-2xl border border-gray-200/80 bg-white p-1.5 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
+        collisionPadding={12}
+        className="flex w-[min(16rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-2xl border border-gray-200/80 bg-white p-1.5 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
+        style={{ maxHeight: SESSION_TYPE_PICKER_MAX_HEIGHT }}
       >
-        <div className="max-h-72 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {options.map((option) => (
             <ChatSessionTypeOptionItem
               key={option.value}

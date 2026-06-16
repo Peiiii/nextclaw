@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import type { ChatInputBarProps } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import { ChatSlashMenu } from './chat-slash-menu';
 import { ChatInputBarToolbar } from './chat-input-bar-toolbar';
@@ -47,60 +47,50 @@ export type ChatInputBarHandle = {
   insertFileToken: (tokenKey: string, label: string) => void;
   insertFileTokens: (tokens: Array<{ tokenKey: string; label: string }>) => void;
   focusComposer: () => void;
-  focusComposerAtEnd: () => void;
+  focusComposerAtEnd: (nodes?: ChatInputBarProps['composer']['nodes']) => void;
 };
 
-export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(function ChatInputBar(props, ref) {
+export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(function ChatInputBar(
+  { composer, hint, slashMenu, surface, toolbar: toolbarProps },
+  ref
+) {
   const composerRef = useRef<ChatInputBarTokenizedComposerHandle | null>(null);
   const isSlashMenuInteractionRef = useRef(false);
   const [activeSlashIndex, setActiveSlashIndex] = useState(0);
   const [activeSlashTriggerStart, setActiveSlashTriggerStart] = useState<number | null>(null);
   const [dismissedSlashTriggerStart, setDismissedSlashTriggerStart] = useState<number | null>(null);
   const isSlashPanelOpen = activeSlashTriggerStart !== null && dismissedSlashTriggerStart !== activeSlashTriggerStart;
-  const activeSlashItem = props.slashMenu.items[activeSlashIndex] ?? null;
+  const activeSlashIndexInRange =
+    slashMenu.items.length === 0 ? 0 : Math.min(activeSlashIndex, slashMenu.items.length - 1);
+  const activeSlashItem = slashMenu.items[activeSlashIndexInRange] ?? null;
   const dismissSlashTrigger = () => activeSlashTriggerStart !== null && !isSlashMenuInteractionRef.current
     ? setDismissedSlashTriggerStart(activeSlashTriggerStart)
     : undefined;
 
-  useEffect(() => {
-    setActiveSlashIndex((current) => {
-      if (props.slashMenu.items.length === 0) {
-        return 0;
-      }
-      return Math.min(current, props.slashMenu.items.length - 1);
-    });
-  }, [props.slashMenu.items.length]);
-
-  useEffect(() => {
-    if (activeSlashTriggerStart === null && dismissedSlashTriggerStart !== null) {
-      setDismissedSlashTriggerStart(null);
-    }
-  }, [activeSlashTriggerStart, dismissedSlashTriggerStart]);
-
   const toolbar = useMemo(() => {
-    if (!props.toolbar.skillPicker) {
-      return props.toolbar;
+    if (!toolbarProps.skillPicker) {
+      return toolbarProps;
     }
     return {
-      ...props.toolbar,
+      ...toolbarProps,
       skillPicker: {
-        ...props.toolbar.skillPicker,
+        ...toolbarProps.skillPicker,
         onSelectedKeysChange: (nextKeys: string[]) => {
-          composerRef.current?.syncSelectedSkills(nextKeys, props.toolbar.skillPicker?.options ?? []);
-          props.toolbar.skillPicker?.onSelectedKeysChange(nextKeys);
+          composerRef.current?.syncSelectedSkills(nextKeys, toolbarProps.skillPicker?.options ?? []);
+          toolbarProps.skillPicker?.onSelectedKeysChange(nextKeys);
         }
       }
     };
-  }, [props.toolbar]);
+  }, [toolbarProps]);
 
   useImperativeHandle(ref, () => ({
     insertFileToken: (tokenKey, label) => composerRef.current?.insertFileToken(tokenKey, label),
     insertFileTokens: (tokens) => composerRef.current?.insertFileTokens(tokens),
     focusComposer: () => composerRef.current?.focusComposer(),
-    focusComposerAtEnd: () => composerRef.current?.focusComposerAtEnd(),
+    focusComposerAtEnd: (nodes) => composerRef.current?.focusComposerAtEnd(nodes),
   }), []);
   const surfaceClassName =
-    props.surface === 'embedded'
+    surface === 'embedded'
       ? 'bg-transparent px-0 py-0'
       : 'border-t border-gray-200/80 bg-white px-3 py-3 sm:px-4 sm:py-4';
 
@@ -111,22 +101,26 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
           <div className="relative">
             <ChatInputBarTokenizedComposer
               ref={composerRef}
-              nodes={props.composer.nodes}
-              placeholder={props.composer.placeholder}
-              disabled={props.composer.disabled}
-              slashItems={props.slashMenu.items}
-              onSlashItemSelect={props.slashMenu.onSelectItem}
-              actions={props.toolbar.actions}
-              activeSlashIndex={activeSlashIndex}
-              onNodesChange={props.composer.onNodesChange}
-              onFilesAdd={props.composer.onFilesAdd}
+              nodes={composer.nodes}
+              placeholder={composer.placeholder}
+              disabled={composer.disabled}
+              slashItems={slashMenu.items}
+              onSlashItemSelect={slashMenu.onSelectItem}
+              actions={toolbarProps.actions}
+              activeSlashIndex={activeSlashIndexInRange}
+              onNodesChange={composer.onNodesChange}
+              onFilesAdd={composer.onFilesAdd}
               onSlashQueryChange={(query) => {
                 if (query === null && isSlashMenuInteractionRef.current) return;
                 if (query !== null) setActiveSlashIndex(0);
-                props.composer.onSlashQueryChange?.(query);
+                composer.onSlashQueryChange?.(query);
               }}
               onSlashTriggerChange={(trigger) => {
-                setActiveSlashTriggerStart(trigger?.start ?? null);
+                const nextTriggerStart = trigger?.start ?? null;
+                setActiveSlashTriggerStart(nextTriggerStart);
+                if (nextTriggerStart === null) {
+                  setDismissedSlashTriggerStart(null);
+                }
               }}
               onSlashOpenChange={(open) => {
                 if (!open) dismissSlashTrigger();
@@ -135,11 +129,11 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
             />
             <ChatSlashMenu
               isOpen={isSlashPanelOpen}
-              isLoading={props.slashMenu.isLoading}
-              items={props.slashMenu.items}
-              activeIndex={activeSlashIndex}
+              isLoading={slashMenu.isLoading}
+              items={slashMenu.items}
+              activeIndex={activeSlashIndexInRange}
               activeItem={activeSlashItem}
-              texts={props.slashMenu.texts}
+              texts={slashMenu.texts}
               onSelectItem={(item) => {
                 setDismissedSlashTriggerStart(null);
                 composerRef.current?.insertSlashItem(item);
@@ -155,7 +149,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
             />
           </div>
 
-          <InputBarHint hint={props.hint} />
+          <InputBarHint hint={hint} />
           <ChatInputBarToolbar {...toolbar} />
         </div>
       </div>

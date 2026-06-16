@@ -27,6 +27,7 @@ import { RemoteRoutesController } from "@nextclaw-server/features/remote-access/
 import { RuntimeControlRoutesController } from "@nextclaw-server/features/runtime-control/index.js";
 import { RuntimeUpdateRoutesController } from "@nextclaw-server/features/runtime-update/index.js";
 import { PanelAppsRoutesController } from "@nextclaw-server/features/panel-apps/index.js";
+import { PreferencesRoutesController } from "@nextclaw-server/features/preferences/index.js";
 import { ServiceAppsRoutesController } from "@nextclaw-server/features/service-apps/index.js";
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import { createNcpSessionEventStreamResponse } from "@nextclaw-server/app/utils/ncp-session-event-stream.utils.js";
@@ -59,6 +60,7 @@ function createUiRouteControllers(
     panelApps: new PanelAppsRoutesController(kernel.panelAppManager, {
       panelAppClientSdkScript,
     }),
+    preferences: new PreferencesRoutesController(kernel.preferenceManager),
     serviceApps: new ServiceAppsRoutesController({
       panelAppManager: kernel.panelAppManager,
       serviceAppManager: kernel.serviceAppManager,
@@ -194,6 +196,7 @@ class UiRouteRegistry {
     const {
       ncpSession,
       panelApps,
+      preferences,
       serviceApps,
       serverPath,
     } = this.controllers;
@@ -216,6 +219,9 @@ class UiRouteRegistry {
       ["post", "/api/panel-app-agent/generate-object", panelApps.generateAgentObject],
       ["post", "/api/panel-app-agent-capabilities/:capability/grant", panelApps.grantAgentCapability],
       ["patch", "/api/panel-apps/:id/preferences", panelApps.updatePanelAppPreferences],
+      ["get", "/api/preferences/:key", preferences.get],
+      ["put", "/api/preferences/:key", preferences.update],
+      ["delete", "/api/preferences/:key", preferences.delete],
       ["delete", "/api/panel-apps/:id", panelApps.deletePanelApp],
       ["post", "/api/panel-apps/:id/open", panelApps.recordPanelAppOpened],
       ["get", "/api/panel-apps/:id/content", panelApps.getPanelAppContent],

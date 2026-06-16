@@ -37,6 +37,11 @@ export type ChatInputBarAdapterTexts = {
   modelNoOptionsLabel: string;
   recentModelsLabel: string;
   allModelsLabel: string;
+  favoriteModelsLabel: string;
+  modelSearchPlaceholder: string;
+  modelSearchEmptyLabel: string;
+  favoriteModelLabel: string;
+  unfavoriteModelLabel: string;
   thinkingLabels: Record<ChatThinkingLevel, string>;
   noModelOptionsLabel: string;
   configureProviderLabel: string;

@@ -13,6 +13,7 @@ import { chatRecentSkillsManager, CHAT_RECENT_SKILLS_MIN_OPTIONS } from '@/featu
 import { deriveSelectedSkillsFromComposer } from '@/features/chat/features/input/utils/chat-composer-state.utils';
 import { hasNcpChatModelOptions, isNcpChatComposerDisabled, isNcpChatModelOptionsEmpty, isNcpChatModelOptionsLoading, isNcpChatSendDisabled } from '@/features/chat/features/input/utils/ncp-chat-input-availability.utils';
 import { useChatInputBarQueryState } from '@/features/chat/features/input/hooks/use-chat-input-bar-query-state';
+import { useChatModelFavorites } from '@/features/chat/features/input/hooks/use-chat-model-favorites';
 import { useSelectedSessionContextWindowIndicator } from '@/features/chat/features/session/hooks/use-selected-session-context-window-indicator';
 import { useSystemStatus } from '@/features/system-status';
 import { isNcpChatRuntimeBlocked } from '@/features/chat/features/runtime/utils/ncp-chat-runtime-availability.utils';
@@ -89,6 +90,11 @@ function useChatInputBarLabels(language: string) {
     slashTexts,
     recentModelsLabel: t('chatPickerRecentModels'),
     allModelsLabel: t('chatPickerAllModels'),
+    favoriteModelsLabel: t('chatPickerFavoriteModels'),
+    modelSearchPlaceholder: t('chatModelSearchPlaceholder'),
+    modelSearchEmptyLabel: t('chatModelSearchEmpty'),
+    favoriteModelLabel: t('chatFavoriteModel'),
+    unfavoriteModelLabel: t('chatUnfavoriteModel'),
     recentSkillsLabel: t('chatPickerRecent'),
     allSkillsLabel: t('chatPickerAllSkills')
   };
@@ -162,19 +168,69 @@ function useChatInputBarAttachments(params: { attachmentSupported: boolean; inpu
     }, [handleFilesAdd])
   };
 }
-function buildToolbarSelects(params: { allModelsLabel: string; hasModelOptions: boolean; isModelOptionsLoading: boolean; modelRecords: ChatModelRecord[]; onModelChange: (value: string) => void; onThinkingChange: (value: ChatThinkingLevel | null) => void; recentModelValues: string[]; recentModelsLabel: string; selectedModel: string; selectedThinkingLevel: ChatThinkingLevel | null; thinkingSupportedLevels: ChatThinkingLevel[]; thinkingDefaultLevel: ChatThinkingLevel | null; }) {
-  const { allModelsLabel, hasModelOptions, isModelOptionsLoading, modelRecords, onModelChange, onThinkingChange, recentModelValues, recentModelsLabel, selectedModel, selectedThinkingLevel, thinkingSupportedLevels, thinkingDefaultLevel } = params;
+
+type ToolbarSelectBuildParams = {
+  allModelsLabel: string;
+  favoriteModelLabel: string;
+  favoriteModelValues: string[];
+  favoriteModelsLabel: string;
+  hasModelOptions: boolean;
+  isModelOptionsLoading: boolean;
+  modelRecords: ChatModelRecord[];
+  modelSearchEmptyLabel: string;
+  modelSearchPlaceholder: string;
+  onFavoriteModelToggle: (value: string, favorite: boolean) => void;
+  onModelChange: (value: string) => void;
+  onThinkingChange: (value: ChatThinkingLevel | null) => void;
+  recentModelValues: string[];
+  recentModelsLabel: string;
+  selectedModel: string;
+  selectedThinkingLevel: ChatThinkingLevel | null;
+  thinkingDefaultLevel: ChatThinkingLevel | null;
+  thinkingSupportedLevels: ChatThinkingLevel[];
+  unfavoriteModelLabel: string;
+};
+
+function buildToolbarSelects(params: ToolbarSelectBuildParams) {
+  const {
+    allModelsLabel,
+    favoriteModelLabel,
+    favoriteModelValues,
+    favoriteModelsLabel,
+    hasModelOptions,
+    isModelOptionsLoading,
+    modelRecords,
+    modelSearchEmptyLabel,
+    modelSearchPlaceholder,
+    onFavoriteModelToggle,
+    onModelChange,
+    onThinkingChange,
+    recentModelValues,
+    recentModelsLabel,
+    selectedModel,
+    selectedThinkingLevel,
+    thinkingDefaultLevel,
+    thinkingSupportedLevels,
+    unfavoriteModelLabel
+  } = params;
   return [
     buildModelToolbarSelect({
       modelOptions: modelRecords,
+      favoriteModelValues,
       recentModelValues,
       selectedModel,
       isModelOptionsLoading,
       hasModelOptions,
+      onFavoriteToggle: onFavoriteModelToggle,
       onValueChange: onModelChange,
       texts: {
         modelSelectPlaceholder: t('chatSelectModel'),
         modelNoOptionsLabel: t('chatModelNoOptions'),
+        modelSearchPlaceholder,
+        modelSearchEmptyLabel,
+        favoriteModelsLabel,
+        favoriteModelLabel,
+        unfavoriteModelLabel,
         recentModelsLabel,
         allModelsLabel
       }
@@ -231,6 +287,14 @@ export function ChatInputBarContainer({ surface = 'default' }: ChatInputBarConta
     skillRecords: inputQueryState.skillRecords,
     skillScopeLabels: labels.skillScopeLabels
   });
+  const modelRecordValues = useMemo(
+    () => modelRecords.map((option) => option.value),
+    [modelRecords]
+  );
+  const {
+    favoriteModelValues,
+    setModelFavorite,
+  } = useChatModelFavorites(modelRecordValues);
   const availabilitySnapshot = {
     ...snapshot,
     isProviderStateResolved: inputQueryState.isProviderStateResolved,
@@ -301,15 +365,21 @@ export function ChatInputBarContainer({ surface = 'default' }: ChatInputBarConta
       return;
     }
     if (request.placement === 'end') {
-      inputBarRef.current?.focusComposerAtEnd();
+      inputBarRef.current?.focusComposerAtEnd(snapshot.composerNodes);
     }
     presenter.chatInputManager.consumeComposerFocusRequest(request.id);
-  }, [presenter.chatInputManager, snapshot.composerFocusRequest]);
+  }, [presenter.chatInputManager, snapshot.composerFocusRequest, snapshot.composerNodes]);
   const toolbarSelects = buildToolbarSelects({
     allModelsLabel: labels.allModelsLabel,
+    favoriteModelLabel: labels.favoriteModelLabel,
+    favoriteModelValues,
+    favoriteModelsLabel: labels.favoriteModelsLabel,
     hasModelOptions,
     isModelOptionsLoading,
     modelRecords,
+    modelSearchEmptyLabel: labels.modelSearchEmptyLabel,
+    modelSearchPlaceholder: labels.modelSearchPlaceholder,
+    onFavoriteModelToggle: setModelFavorite,
     onModelChange: presenter.chatInputManager.selectModel,
     onThinkingChange: (value) => {
       if (value) {
@@ -321,7 +391,8 @@ export function ChatInputBarContainer({ surface = 'default' }: ChatInputBarConta
     selectedModel: snapshot.selectedModel,
     selectedThinkingLevel: snapshot.selectedThinkingLevel as ChatThinkingLevel | null,
     thinkingSupportedLevels,
-    thinkingDefaultLevel: selectedModelOption?.thinkingCapability?.default ?? null
+    thinkingDefaultLevel: selectedModelOption?.thinkingCapability?.default ?? null,
+    unfavoriteModelLabel: labels.unfavoriteModelLabel
   });
   const skillPicker = buildSkillPicker({
     allSkillsLabel: labels.allSkillsLabel,

@@ -1,12 +1,14 @@
 import { useMemo, useRef } from 'react';
-import { useActiveItemScroll } from '../../hooks/use-active-item-scroll';
-import { useElementWidth } from '../../hooks/use-element-width';
-import { ChatUiPrimitives } from '../primitives/chat-ui-primitives';
-import type { ChatSlashMenuProps } from '../../view-models/chat-ui.types';
+import { useActiveItemScroll } from '@agent-chat-ui/components/chat/hooks/use-active-item-scroll';
+import { useElementWidth } from '@agent-chat-ui/components/chat/hooks/use-element-width';
+import { ChatUiPrimitives } from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
+import type { ChatSlashMenuProps } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
 const SLASH_PANEL_MAX_WIDTH = 680;
 const SLASH_PANEL_DESKTOP_SHRINK_RATIO = 0.82;
 const SLASH_PANEL_DESKTOP_MIN_WIDTH = 560;
+const SLASH_PANEL_MAX_HEIGHT = 'min(24rem, calc(var(--radix-popover-content-available-height) - 0.75rem))';
+const SLASH_PANEL_MIN_HEIGHT = 'min(240px, calc(var(--radix-popover-content-available-height) - 0.75rem))';
 
 export function ChatSlashMenu(props: ChatSlashMenuProps) {
   const { Popover, PopoverAnchor, PopoverContent } = ChatUiPrimitives;
@@ -52,16 +54,23 @@ export function ChatSlashMenu(props: ChatSlashMenuProps) {
         side="top"
         align="start"
         sideOffset={10}
-        className="z-[70] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white/95 p-0 shadow-2xl backdrop-blur-md"
+        collisionPadding={12}
+        className="z-[70] flex max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white/95 p-0 shadow-2xl backdrop-blur-md"
         onOpenAutoFocus={(event) => event.preventDefault()}
-        style={resolvedWidth ? { width: `${resolvedWidth}px` } : undefined}
+        style={{
+          maxHeight: SLASH_PANEL_MAX_HEIGHT,
+          width: resolvedWidth ? `${resolvedWidth}px` : undefined,
+        }}
       >
-        <div className="grid min-h-[240px] grid-cols-[minmax(220px,300px)_minmax(0,1fr)]">
+        <div
+          className="grid min-h-0 flex-1 grid-cols-[minmax(220px,300px)_minmax(0,1fr)]"
+          style={{ minHeight: SLASH_PANEL_MIN_HEIGHT }}
+        >
           <div
             ref={listRef}
             role="listbox"
             aria-label={texts.slashSectionLabel}
-            className="custom-scrollbar max-h-[320px] overflow-y-auto border-r border-gray-200 p-2.5"
+            className="custom-scrollbar min-h-0 overflow-y-auto border-r border-gray-200 p-2.5"
           >
             {isLoading ? (
               <div className="p-2 text-xs text-gray-500">{texts.slashLoadingLabel}</div>
@@ -99,7 +108,7 @@ export function ChatSlashMenu(props: ChatSlashMenuProps) {
               </>
             )}
           </div>
-          <div className="min-w-0 p-2.5" onPointerDown={onDetailsPointerDown}>
+          <div className="custom-scrollbar min-h-0 min-w-0 overflow-y-auto p-2.5" onPointerDown={onDetailsPointerDown}>
             {activeItem ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">

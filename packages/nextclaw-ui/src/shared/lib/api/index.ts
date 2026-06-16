@@ -10,6 +10,8 @@ export * from './utils/marketplace.utils';
 export * from './utils/mcp-marketplace.utils';
 export * from './utils/ncp-attachments.utils';
 export * from './utils/ncp-session.utils';
+export * from './preferences/preference.utils';
+export * from './preferences/preference.types';
 export * from './ncp-session.types';
 export * from './ncp-session-query-cache.utils';
 export * from './raw-client.utils';

@@ -132,11 +132,19 @@ function FileTokenInsertionHarness() {
 function FocusAtEndHarness() {
   const [nodes, setNodes] = useState<ChatComposerNode[]>([createChatComposerTextNode('Hello')]);
   const inputRef = useRef<ChatInputBarHandle | null>(null);
+  const applyPromptAndFocusEnd = () => {
+    const nextNodes = [createChatComposerTextNode('Hello prompt')];
+    setNodes(nextNodes);
+    inputRef.current?.focusComposerAtEnd(nextNodes);
+  };
 
   return (
     <>
       <button type="button" onClick={() => inputRef.current?.focusComposerAtEnd()}>
         Focus end
+      </button>
+      <button type="button" onClick={applyPromptAndFocusEnd}>
+        Apply prompt and focus end
       </button>
       <ChatInputBar
         ref={inputRef}
@@ -341,6 +349,19 @@ it('shows a selected skill inside the composer after choosing it from the skill 
   expect(screen.getByRole('textbox').querySelector('[data-composer-token-key="web-search"]')).toBeTruthy();
 });
 
+it('keeps the skill picker panel constrained to the available viewport height', async () => {
+  render(<SkillPickerInsertionHarness />);
+
+  fireEvent.click(screen.getByRole('button', { name: /skills/i }));
+
+  const listbox = await screen.findByRole('listbox');
+  expect(listbox.className).toContain('flex-1');
+  expect(listbox.className).toContain('overflow-y-auto');
+  expect(listbox.closest('[data-state="open"]')?.getAttribute('style')).toContain(
+    'min(24rem, calc(var(--radix-popover-content-available-height) - 0.75rem))',
+  );
+});
+
 it('keeps skill option text selectable without toggling the skill', async () => {
   render(<SkillPickerInsertionHarness />);
 
@@ -436,6 +457,24 @@ it('focuses the composer at the end through the imperative handle', async () => 
     const selection = window.getSelection();
     expect(selection?.anchorOffset).toBe(5);
     expect(selection?.focusOffset).toBe(5);
+  });
+});
+
+it('focuses at the end of externally supplied composer nodes', async () => {
+  render(<FocusAtEndHarness />);
+
+  const textbox = screen.getByRole('textbox');
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Apply prompt and focus end' }));
+    await Promise.resolve();
+  });
+
+  await waitFor(() => expect(document.activeElement).toBe(textbox));
+  await waitFor(() => expect(textbox.textContent).toBe('Hello prompt'));
+  await waitFor(() => {
+    const selection = window.getSelection();
+    expect(selection?.anchorOffset).toBe(12);
+    expect(selection?.focusOffset).toBe(12);
   });
 });
 

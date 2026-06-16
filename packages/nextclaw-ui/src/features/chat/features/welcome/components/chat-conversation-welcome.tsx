@@ -8,9 +8,8 @@ import {
 import { ChatWelcome } from "@/features/chat/features/welcome/components/chat-welcome";
 import {
   resolveChatWelcomeAgents,
-  resolveChatWelcomeDraftProjectRoot,
   resolveChatWelcomeSelectedSessionType,
-} from "@/features/chat/features/welcome/utils/chat-welcome-draft.utils";
+} from "@/features/chat/features/welcome/utils/chat-welcome-selection.utils";
 import { buildChatWelcomeProjectOptions } from "@/features/chat/features/welcome/utils/chat-welcome-project-options.utils";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
@@ -72,17 +71,6 @@ export function ChatConversationWelcome({
     defaultProjectRoot,
     sessionSummaries,
   });
-  const createDraftSessionForAgent = () => {
-    const projectRoot = resolveChatWelcomeDraftProjectRoot({
-      defaultProjectRoot,
-      selectedProjectRoot,
-    });
-    if (projectRoot) {
-      presenter.chatSessionListManager.createSession(selectedSessionType, projectRoot);
-      return;
-    }
-    presenter.chatSessionListManager.createSession(selectedSessionType);
-  };
   const selectDraftAgent = (agentId: string) => {
     presenter.chatSessionListManager.setSelectedAgentId(agentId);
     presenter.chatInputManager.setPendingSessionType(
@@ -107,8 +95,8 @@ export function ChatConversationWelcome({
       selectedProjectRoot={selectedProjectRoot}
       selectedSessionType={selectedSessionType}
       sessionTypeOptions={sessionTypeOptions}
-      onCreateSession={createDraftSessionForAgent}
       onSelectAgent={selectDraftAgent}
+      onSelectPrompt={presenter.chatInputManager.applyPromptSuggestion}
       onSelectProjectRoot={presenter.chatInputManager.setPendingProjectRoot}
       onSelectSessionType={presenter.chatInputManager.setPendingSessionType}
     />

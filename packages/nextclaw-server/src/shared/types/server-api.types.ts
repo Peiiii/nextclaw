@@ -5,6 +5,7 @@ import type { UiNcpStoredAssetRecord } from "@nextclaw-server/features/attachmen
 export type * from "@nextclaw-server/features/marketplace/types/marketplace.types.js";
 export type * from "@nextclaw-server/features/attachments/index.js";
 export type * from "@nextclaw-server/features/panel-apps/index.js";
+export type * from "@nextclaw-server/features/preferences/index.js";
 export type * from "@nextclaw-server/features/service-apps/index.js";
 export type ApiError = {
   code: string;
