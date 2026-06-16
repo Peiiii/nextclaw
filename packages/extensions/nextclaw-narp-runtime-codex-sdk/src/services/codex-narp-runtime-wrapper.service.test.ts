@@ -1,18 +1,64 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NcpAgentRunInput, NcpAgentRuntime } from "@nextclaw/ncp";
-import { CodexNarpRuntimeWrapper } from "./codex-narp-runtime-wrapper.service.js";
+import type { CodexDesktopVisibilityPatch } from "./codex-desktop-visibility-patch.service.js";
+import {
+  CodexNarpRuntimeWrapper,
+  type CodexResponsesBridgeFactory,
+} from "./codex-narp-runtime-wrapper.service.js";
 
 class FakeRuntime implements NcpAgentRuntime {
   async *run(_input: NcpAgentRunInput): AsyncGenerator<never> {}
 }
+
+const noopDesktopVisibilityPatch: CodexDesktopVisibilityPatch = {
+  ensureWorkspaceVisible: async () => undefined,
+};
+
+function createWrapper(
+  ensureResponsesBridge?: CodexResponsesBridgeFactory,
+): CodexNarpRuntimeWrapper {
+  return new CodexNarpRuntimeWrapper(
+    () => new FakeRuntime(),
+    ensureResponsesBridge ?? failUnexpectedResponsesBridge,
+    noopDesktopVisibilityPatch,
+  );
+}
+
+const failUnexpectedResponsesBridge: CodexResponsesBridgeFactory = async () => {
+  throw new Error("Responses bridge should not be created in this test.");
+};
 
 afterEach(() => {
   vi.unstubAllEnvs();
 });
 
 describe("CodexNarpRuntimeWrapper", () => {
+  it("patches Codex Desktop visibility for the final working directory", async () => {
+    const workingDirectories: Array<string | undefined> = [];
+    const desktopVisibilityPatch: CodexDesktopVisibilityPatch = {
+      ensureWorkspaceVisible: async ({ workingDirectory }) => {
+        workingDirectories.push(workingDirectory);
+      },
+    };
+    const wrapper = new CodexNarpRuntimeWrapper(
+      () => new FakeRuntime(),
+      async () => ({ baseUrl: "http://127.0.0.1:43210" }),
+      desktopVisibilityPatch,
+    );
+
+    await wrapper.buildRuntimeConfig({
+      sessionId: "session-1",
+      cwd: "/tmp/workspace",
+      promptMeta: {
+        sessionMetadata: {},
+      },
+    });
+
+    expect(workingDirectories).toEqual(["/tmp/workspace"]);
+  });
+
   it("builds Codex SDK runtime config from NARP stdio context", async () => {
-    const wrapper = new CodexNarpRuntimeWrapper(() => new FakeRuntime());
+    const wrapper = createWrapper();
 
     const config = await wrapper.buildRuntimeConfig({
       sessionId: "session-1",
@@ -69,7 +115,7 @@ describe("CodexNarpRuntimeWrapper", () => {
   });
 
   it("does not override the Codex default model when no route or session model is provided", async () => {
-    const wrapper = new CodexNarpRuntimeWrapper(() => new FakeRuntime());
+    const wrapper = createWrapper();
 
     const config = await wrapper.buildRuntimeConfig({
       sessionId: "session-1",
@@ -88,7 +134,7 @@ describe("CodexNarpRuntimeWrapper", () => {
   });
 
   it("does not invent a Codex working directory from process cwd", async () => {
-    const wrapper = new CodexNarpRuntimeWrapper(() => new FakeRuntime());
+    const wrapper = createWrapper();
 
     const config = await wrapper.buildRuntimeConfig({
       sessionId: "session-1",
@@ -101,7 +147,7 @@ describe("CodexNarpRuntimeWrapper", () => {
   });
 
   it("does not resume an unscoped Codex thread when using the runtime default model", async () => {
-    const wrapper = new CodexNarpRuntimeWrapper(() => new FakeRuntime());
+    const wrapper = createWrapper();
 
     const config = await wrapper.buildRuntimeConfig({
       sessionId: "session-1",
@@ -121,7 +167,7 @@ describe("CodexNarpRuntimeWrapper", () => {
   });
 
   it("does not resume a Codex thread when its model scope differs from the current model", async () => {
-    const wrapper = new CodexNarpRuntimeWrapper(() => new FakeRuntime());
+    const wrapper = createWrapper();
 
     const config = await wrapper.buildRuntimeConfig({
       sessionId: "session-1",
@@ -146,7 +192,7 @@ describe("CodexNarpRuntimeWrapper", () => {
     vi.stubEnv("NEXTCLAW_MODEL", "deepseek-v4-flash");
     vi.stubEnv("NEXTCLAW_API_BASE", "https://api.deepseek.com");
     vi.stubEnv("NEXTCLAW_API_KEY", "deepseek-key");
-    const wrapper = new CodexNarpRuntimeWrapper(() => new FakeRuntime());
+    const wrapper = createWrapper();
 
     const config = await wrapper.buildRuntimeConfig({
       sessionId: "session-1",
@@ -172,7 +218,7 @@ describe("CodexNarpRuntimeWrapper", () => {
 
 describe("CodexNarpRuntimeWrapper runtime wiring", () => {
   it("passes the NARP session metadata writer into the Codex SDK runtime config", async () => {
-    const wrapper = new CodexNarpRuntimeWrapper(() => new FakeRuntime());
+    const wrapper = createWrapper();
     const setSessionMetadata = () => undefined;
 
     const config = await wrapper.buildRuntimeConfig({
@@ -188,8 +234,7 @@ describe("CodexNarpRuntimeWrapper runtime wiring", () => {
   });
 
   it("uses the Codex Responses bridge for MiniMax chat-compatible routes", async () => {
-    const wrapper = new CodexNarpRuntimeWrapper(
-      () => new FakeRuntime(),
+    const wrapper = createWrapper(
       async (bridgeConfig) => {
         expect(bridgeConfig).toMatchObject({
           upstreamApiBase: "https://api.minimaxi.com/v1",
@@ -238,8 +283,7 @@ describe("CodexNarpRuntimeWrapper runtime wiring", () => {
   });
 
   it("uses the Codex Responses bridge for any chat-completions provider route", async () => {
-    const wrapper = new CodexNarpRuntimeWrapper(
-      () => new FakeRuntime(),
+    const wrapper = createWrapper(
       async (bridgeConfig) => {
         expect(bridgeConfig).toMatchObject({
           upstreamApiBase: "https://api.deepseek.com",

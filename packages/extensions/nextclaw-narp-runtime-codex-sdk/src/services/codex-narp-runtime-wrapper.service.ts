@@ -20,6 +20,10 @@ import {
   type CodexOpenAiResponsesBridgeResult,
   type CodexOpenAiResponsesBridgeRuntimeConfig,
 } from "@nextclaw/nextclaw-ncp-runtime-codex-sdk";
+import {
+  CodexDesktopVisibilityPatchService,
+  type CodexDesktopVisibilityPatch,
+} from "./codex-desktop-visibility-patch.service.js";
 
 const NARP_API_MODE_HEADER = "x-nextclaw-narp-api-mode";
 const CODEX_NARP_DEBUG_CONFIG_ENV = "NEXTCLAW_CODEX_NARP_DEBUG_CONFIG";
@@ -60,6 +64,8 @@ export class CodexNarpRuntimeWrapper {
     ) => new CodexAppServerNcpAgentRuntime(config),
     private readonly ensureResponsesBridge: CodexResponsesBridgeFactory =
       ensureCodexOpenAiResponsesBridge,
+    private readonly desktopVisibilityPatch: CodexDesktopVisibilityPatch =
+      new CodexDesktopVisibilityPatchService(),
   ) {}
 
   start = (): void => {
@@ -186,6 +192,9 @@ export class CodexNarpRuntimeWrapper {
           providerLocalModel,
         })
       : requestedThreadModel;
+    await this.desktopVisibilityPatch.ensureWorkspaceVisible({
+      workingDirectory: cwd,
+    });
 
     const threadModelScope = threadModel ?? RUNTIME_DEFAULT_MODEL_VALUE;
     const config = {
