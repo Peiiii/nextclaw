@@ -15,7 +15,7 @@
     "build": "tsdown src/index.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension --unbundle",
     "prepack": "pnpm run build",
     "lint": "eslint .",
-    "test": "vitest run src/services/codex-sdk-runtime-thread-metadata.service.test.ts src/utils/codex-model-provider.utils.test.ts src/utils/codex-sdk-ncp-event-mapper.utils.test.ts src/services/codex-live-output-stream.service.test.ts src/utils/codex-openai-sse-chunks.utils.test.ts src/utils/codex-openai-responses-stream-writer.utils.test.ts",
+    "test": "vitest run src/services/codex-sdk-runtime-thread-metadata.service.test.ts src/services/codex-desktop-thread-index-sync.service.test.ts src/utils/codex-model-provider.utils.test.ts src/utils/codex-sdk-ncp-event-mapper.utils.test.ts src/services/codex-live-output-stream.service.test.ts src/utils/codex-openai-sse-chunks.utils.test.ts src/utils/codex-openai-responses-stream-writer.utils.test.ts",
     "tsc": "tsc -p tsconfig.json",
     "prepublishOnly": "node ../../../scripts/release/ensure-pnpm-publish.mjs"
   },

@@ -7,6 +7,7 @@ import type {
   CodexAssetContentPathResolver,
   CodexThreadInput,
 } from "@/codex-input.utils.js";
+import type { CodexDesktopThreadIndexSync } from "@/services/codex-desktop-thread-index-sync.service.js";
 
 export type JsonObject = Record<string, unknown>;
 
@@ -38,4 +39,5 @@ export type CodexAppServerNcpAgentRuntimeConfig = {
   inputBuilder?: (input: NcpAgentRunInput) => Promise<CodexThreadInput> | CodexThreadInput;
   resolveAssetContentPath?: CodexAssetContentPathResolver;
   stateManager?: NcpAgentConversationStateManager;
+  desktopThreadIndexSync?: CodexDesktopThreadIndexSync | false;
 };

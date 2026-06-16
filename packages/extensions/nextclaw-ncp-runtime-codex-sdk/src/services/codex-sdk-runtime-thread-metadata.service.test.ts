@@ -83,4 +83,43 @@ describe("CodexAppServerNcpAgentRuntime thread metadata", () => {
       },
     ]);
   });
+
+  it("runs the pluggable desktop thread index sync after turn completion", async () => {
+    const syncedThreadIds: Array<string | null | undefined> = [];
+    const runtime = new CodexAppServerNcpAgentRuntime({
+      sessionId: "session-1",
+      apiKey: "sk-test",
+      threadId: "thread-1",
+      desktopThreadIndexSync: {
+        syncThread: async ({ threadId }) => {
+          syncedThreadIds.push(threadId);
+        },
+      },
+    });
+
+    const generator = (runtime as unknown as {
+      handleNotification: (params: unknown) => AsyncGenerator<unknown, boolean>;
+    }).handleNotification({
+      sessionId: "session-1",
+      messageId: "message-1",
+      runId: "run-1",
+      notification: {
+        method: "turn/completed",
+        params: {},
+      },
+      textState: new Set(),
+      textDeltaState: new Set(),
+      reasoningState: new Set(),
+      reasoningDeltaState: new Set(),
+      toolState: new Set(),
+    });
+
+    let result = await generator.next();
+    while (!result.done) {
+      result = await generator.next();
+    }
+
+    expect(result.value).toBe(true);
+    expect(syncedThreadIds).toEqual(["thread-1"]);
+  });
 });

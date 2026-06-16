@@ -31,15 +31,21 @@ import type {
   JsonObject,
 } from "@/types/codex-app-server-runtime.types.js";
 import { CodexNcpRunEventEmitter } from "./codex-ncp-run-event-emitter.service.js";
+import {
+  CodexDesktopThreadIndexSyncService,
+  type CodexDesktopThreadIndexSync,
+} from "./codex-desktop-thread-index-sync.service.js";
 
 export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
   private readonly eventEmitter: CodexNcpRunEventEmitter;
   private readonly sessionMetadata: Record<string, unknown>;
+  private readonly desktopThreadIndexSync: CodexDesktopThreadIndexSync | null;
   private clientPromise: Promise<CodexAppServerClient> | null = null;
   private threadId: string | null;
 
   constructor(private readonly config: CodexAppServerNcpAgentRuntimeConfig) {
     this.eventEmitter = new CodexNcpRunEventEmitter(config.stateManager);
+    this.desktopThreadIndexSync = resolveDesktopThreadIndexSync(config);
     this.threadId = config.threadId?.trim() || null;
     this.sessionMetadata = {
       ...(config.sessionMetadata ? structuredClone(config.sessionMetadata) : {}),
@@ -242,6 +248,7 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
     }
     if (notification.method === "turn/completed") {
       yield* this.eventEmitter.emitRunCompleted(sessionId, messageId, runId);
+      await this.syncDesktopThreadIndex();
       return true;
     }
     if (notification.method === "turn/failed") {
@@ -499,10 +506,31 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
     this.sessionMetadata.session_type = "codex";
     await this.config.setSessionMetadata?.(nextMetadata);
   };
+
+  private syncDesktopThreadIndex = async (): Promise<void> => {
+    try {
+      await this.desktopThreadIndexSync?.syncThread({ threadId: this.threadId });
+    } catch (error) {
+      console.error(
+        `[nextclaw-codex-app-server] failed to run Codex Desktop thread index sync: ${formatError(error)}`,
+      );
+    }
+  };
 }
 
 function createId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function resolveDesktopThreadIndexSync(
+  config: CodexAppServerNcpAgentRuntimeConfig,
+): CodexDesktopThreadIndexSync | null {
+  if (config.desktopThreadIndexSync === false) {
+    return null;
+  }
+  return config.desktopThreadIndexSync ?? new CodexDesktopThreadIndexSyncService({
+    env: { ...process.env, ...config.env },
+  });
 }
 
 function readString(value: unknown): string | undefined {
@@ -531,4 +559,8 @@ function toAbortError(reason: unknown): Error {
   const error = new Error(message);
   error.name = "AbortError";
   return error;
+}
+
+function formatError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

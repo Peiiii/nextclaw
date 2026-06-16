@@ -34,7 +34,14 @@ export { CodexLiveOutputStream } from "./services/codex-live-output-stream.servi
 export {
   CodexAppServerNcpAgentRuntime,
 } from "./services/codex-app-server-ncp-agent-runtime.service.js";
+export {
+  CodexDesktopThreadIndexSyncService,
+} from "./services/codex-desktop-thread-index-sync.service.js";
 export type { CodexAppServerNcpAgentRuntimeConfig } from "./types/codex-app-server-runtime.types.js";
+export type {
+  CodexDesktopThreadIndexSync,
+  CodexDesktopThreadIndexSyncServiceOptions,
+} from "./services/codex-desktop-thread-index-sync.service.js";
 export type {
   CodexLiveOutputChannel,
   CodexLiveOutputEvent,
