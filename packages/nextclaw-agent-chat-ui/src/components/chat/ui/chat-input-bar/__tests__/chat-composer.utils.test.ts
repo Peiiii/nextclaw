@@ -5,7 +5,7 @@ import {
   replaceChatComposerRange,
   resolveChatComposerSlashTrigger,
   serializeChatComposerPlainText
-} from './chat-composer.utils';
+} from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 
 describe('chat composer utils', () => {
   it('keeps an existing token when inserting text at the token boundary', () => {

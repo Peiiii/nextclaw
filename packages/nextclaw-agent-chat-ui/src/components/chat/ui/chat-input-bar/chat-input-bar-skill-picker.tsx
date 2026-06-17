@@ -1,7 +1,10 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEventHandler } from 'react';
 import { BrainCircuit, Check, ExternalLink, Puzzle, Search } from 'lucide-react';
 import { useActiveItemScroll } from '@agent-chat-ui/components/chat/hooks/use-active-item-scroll';
-import { ChatUiPrimitives } from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
+import {
+  ChatUiPrimitives,
+  createChatPopoverAvailableHeightLimit,
+} from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
 import type { ChatSkillPickerOption, ChatSkillPickerOptionGroup, ChatSkillPickerProps } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
 function filterOptions(options: ChatSkillPickerOption[], query: string): ChatSkillPickerOption[] {
@@ -18,7 +21,7 @@ function filterOptions(options: ChatSkillPickerOption[], query: string): ChatSki
   });
 }
 
-const SKILL_PICKER_MAX_HEIGHT = 'min(24rem, calc(var(--radix-popover-content-available-height) - 0.75rem))';
+const SKILL_PICKER_MAX_HEIGHT = createChatPopoverAvailableHeightLimit('24rem');
 
 export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps }) {
   const { Input, Popover, PopoverContent, PopoverTrigger } = ChatUiPrimitives;
@@ -120,7 +123,6 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
       <PopoverContent
         side="top"
         align="start"
-        collisionPadding={12}
         className="flex w-[min(360px,calc(100vw-1rem))] flex-col overflow-hidden p-0"
         style={{ maxHeight: SKILL_PICKER_MAX_HEIGHT }}
       >
@@ -148,7 +150,7 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
           id={listId}
           role="listbox"
           aria-multiselectable="true"
-          className="custom-scrollbar min-h-0 flex-1 overflow-y-auto"
+          className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain"
         >
           {picker.isLoading ? (
             <div className="p-4 text-xs text-gray-500">{picker.loadingLabel}</div>

@@ -1,4 +1,8 @@
-import { ChatUiPrimitives } from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
+import {
+  ChatUiPrimitives,
+  createChatPopoverAvailableHeightLimit,
+  createChatSelectAvailableHeightLimit,
+} from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
 import type {
   ChatInputBarToolbarProps,
   ChatToolbarAccessoryIcon,
@@ -34,8 +38,8 @@ const CONTENT_WIDTH_BY_KEY: Record<string, string> = {
   thinking: 'w-[180px]'
 };
 
-const TOOLBAR_POPOVER_MAX_HEIGHT = 'min(22rem, calc(var(--radix-popover-content-available-height) - 0.75rem))';
-const TOOLBAR_SELECT_MAX_HEIGHT = 'min(18rem, calc(var(--radix-select-content-available-height) - 0.75rem))';
+const TOOLBAR_POPOVER_MAX_HEIGHT = createChatPopoverAvailableHeightLimit('18rem');
+const TOOLBAR_SELECT_MAX_HEIGHT = createChatSelectAvailableHeightLimit('18rem');
 
 function resolveMobileSelectedLabel(item: ChatToolbarSelect): string | undefined {
   return item.key === 'model' && item.selectedLabel
@@ -121,7 +125,6 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
         </button>
       </PopoverTrigger>
       <PopoverContent
-        collisionPadding={12}
         className={`flex flex-col overflow-hidden p-2 ${CONTENT_WIDTH_BY_KEY[item.key] ?? ''}`}
         style={{ maxHeight: TOOLBAR_POPOVER_MAX_HEIGHT }}
       >
@@ -148,7 +151,7 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
         {hasOptions && !hasFilteredOptions ? (
           <div className="px-2 py-1 text-xs text-gray-500">{item.search?.emptyLabel ?? item.emptyLabel}</div>
         ) : null}
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {filteredGroups.map((group, groupIndex) => (
             <div key={group.key} className={groupIndex > 0 ? 'border-t border-gray-100 pt-1' : undefined}>
               {group.label ? (
@@ -181,6 +184,7 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
                             <button
                               type="button"
                               aria-label={actionLabel}
+                              aria-pressed={isActive}
                               className="mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-white hover:text-amber-500 focus:outline-none focus:ring-1 focus:ring-primary/40"
                               onClick={(event) => {
                                 event.stopPropagation();
@@ -226,7 +230,6 @@ function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
         {item.selectedLabel || item.loading ? <ToolbarSelectTriggerContent item={item} /> : <SelectValue placeholder={item.placeholder} />}
       </SelectTrigger>
       <SelectContent
-        collisionPadding={12}
         className={CONTENT_WIDTH_BY_KEY[item.key] ?? ''}
         style={{ maxHeight: TOOLBAR_SELECT_MAX_HEIGHT }}
       >

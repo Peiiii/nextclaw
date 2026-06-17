@@ -3,7 +3,12 @@ import { ChevronDown, FolderOpen, FolderX, Pencil } from 'lucide-react';
 import { useChatSessionProject } from '@/features/chat/features/session/hooks/use-chat-session-project';
 import { ChatSessionHeaderMenuItem } from './chat-session-header-menu-item';
 import { ChatSessionProjectDialog } from './chat-session-project-dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  createPopoverAvailableHeightLimit,
+} from '@/shared/components/ui/popover';
 import { t } from '@/shared/lib/i18n';
 
 type ChatSessionProjectBadgeProps = {
@@ -11,6 +16,10 @@ type ChatSessionProjectBadgeProps = {
   projectName: string;
   projectRoot?: string | null;
   persistToServer: boolean;
+};
+
+const SESSION_PROJECT_MENU_STYLE = {
+  maxHeight: createPopoverAvailableHeightLimit('18rem'),
 };
 
 export function ChatSessionProjectBadge({
@@ -57,7 +66,11 @@ export function ChatSessionProjectBadge({
             </span>
           </button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-72 p-2">
+        <PopoverContent
+          align="start"
+          className="w-72 p-2"
+          style={SESSION_PROJECT_MENU_STYLE}
+        >
           <div className="px-3 pb-2 pt-1">
             <div className="text-[11px] font-medium uppercase tracking-wider text-gray-500">
               {projectName}

@@ -1,8 +1,14 @@
-import type { ChatMessageListProps } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
+import type { ReactNode } from 'react';
+import type {
+  ChatFileOpenActionViewModel,
+  ChatMessageTexts,
+  ChatMessageViewModel,
+  ChatPanelAppCardViewModel,
+  ChatToolActionViewModel,
+} from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import { cn } from '@agent-chat-ui/components/chat/internal/cn';
 import { ChatMessageAvatar } from './chat-message-avatar';
 import { ChatMessage } from './chat-message';
-import { ChatMessageMeta } from './chat-message-meta';
 import { ChatMessageActionCopy } from './chat-message-action-copy';
 
 const INVISIBLE_ONLY_TEXT_PATTERN = /\u200B|\u200C|\u200D|\u2060|\uFEFF/g;
@@ -54,7 +60,19 @@ function hasRenderableText(value: string): boolean {
   return trimmed.replace(INVISIBLE_ONLY_TEXT_PATTERN, '').trim().length > 0;
 }
 
-function hasRenderableMessageContent(message: ChatMessageListProps['messages'][number]): boolean {
+export type ChatMessageListProps = {
+  messages: ChatMessageViewModel[];
+  isSending: boolean;
+  hasAssistantDraft: boolean;
+  texts: ChatMessageTexts;
+  className?: string;
+  onToolAction?: (action: ChatToolActionViewModel) => void;
+  onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  renderToolAgent?: (agentId: string) => ReactNode;
+  renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
+};
+
+function hasRenderableMessageContent(message: ChatMessageViewModel): boolean {
   return message.parts.some((part) => {
     if (part.type === 'markdown' || part.type === 'reasoning') {
       return hasRenderableText(part.text);
@@ -124,7 +142,14 @@ export function ChatMessageList({
                   <ChatMessageTypingFooter />
                 ) : (
                   <>
-                    <ChatMessageMeta roleLabel={message.roleLabel} timestampLabel={message.timestampLabel} isUser={isUser} />
+                    <div
+                      className={cn(
+                        'px-1 text-[11px] leading-4 text-gray-400',
+                        isUser ? 'text-right' : 'text-left'
+                      )}
+                    >
+                      {message.roleLabel} · {message.timestampLabel}
+                    </div>
                     {!isUser ? <ChatMessageActionCopy message={message} texts={texts} /> : null}
                   </>
                 )}

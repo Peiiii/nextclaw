@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { cn } from '../internal/cn';
+import { cn } from '@agent-chat-ui/components/chat/internal/cn';
 
 export type ChatInputProps = React.InputHTMLAttributes<HTMLInputElement>;
 

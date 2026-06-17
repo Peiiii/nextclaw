@@ -1,6 +1,6 @@
-import { deleteChatComposerContent } from './lexical/chat-composer-lexical-adapter';
-import { createChatComposerTextNode } from './chat-composer.utils';
-import { replaceChatComposerSelectionWithText } from './lexical/chat-composer-lexical-adapter';
+import { deleteChatComposerContent } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-adapter';
+import { createChatComposerTextNode } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
+import { replaceChatComposerSelectionWithText } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-adapter';
 
 describe('ChatInputBar selection behavior', () => {
   it('deletes the whole selected draft instead of only the last character', () => {

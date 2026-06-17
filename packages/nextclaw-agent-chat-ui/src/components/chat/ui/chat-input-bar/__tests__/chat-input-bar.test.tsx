@@ -1,10 +1,17 @@
 import { useRef, useState } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { ChatInputBar, type ChatInputBarHandle } from './chat-input-bar';
-import { createChatComposerTextNode, createChatComposerTokenNode, resolveChatComposerSlashTrigger } from './chat-composer.utils';
-import { insertFileTokenIntoChatComposer, insertSkillTokenIntoChatComposer } from './lexical/chat-composer-lexical-adapter';
-import { handleLexicalComposerKeyboardCommand } from './lexical/chat-composer-lexical-controller';
-import type { ChatComposerNode, ChatInputBarProps } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
+import { ChatInputBar, type ChatInputBarHandle } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-input-bar';
+import { createChatComposerTextNode, createChatComposerTokenNode, resolveChatComposerSlashTrigger } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
+import { insertFileTokenIntoChatComposer, insertSkillTokenIntoChatComposer } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-adapter';
+import { handleLexicalComposerKeyboardCommand } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-controller';
+import type { ChatComposerNode, ChatInputBarProps, ChatToolbarSelect } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
+
+type ChatInputBarPropsOverrides = Omit<Partial<ChatInputBarProps>, 'composer' | 'toolbar'> & {
+  composer?: Partial<ChatInputBarProps['composer']>;
+  toolbar?: Omit<Partial<ChatInputBarProps['toolbar']>, 'actions'> & {
+    actions?: Partial<ChatInputBarProps['toolbar']['actions']>;
+  };
+};
 
 Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
   value: vi.fn(),
@@ -44,8 +51,8 @@ async function insertText(textbox: HTMLElement, text: string) {
   });
 }
 
-function createInputBarProps(overrides?: Partial<ChatInputBarProps>): ChatInputBarProps {
-  return {
+function createInputBarProps(overrides: ChatInputBarPropsOverrides = {}): ChatInputBarProps {
+  const defaults: ChatInputBarProps = {
     composer: {
       nodes: [createChatComposerTextNode('Hello')],
       placeholder: 'Type a message',
@@ -78,7 +85,48 @@ function createInputBarProps(overrides?: Partial<ChatInputBarProps>): ChatInputB
         onStop: vi.fn()
       }
     },
-    ...overrides
+  };
+
+  return {
+    ...defaults,
+    ...overrides,
+    composer: {
+      ...defaults.composer,
+      ...overrides.composer,
+    },
+    slashMenu: overrides.slashMenu ?? defaults.slashMenu,
+    toolbar: {
+      ...defaults.toolbar,
+      ...overrides.toolbar,
+      actions: {
+        ...defaults.toolbar.actions,
+        ...overrides.toolbar?.actions,
+      },
+    },
+  };
+}
+
+function createInputBarElement(overrides?: ChatInputBarPropsOverrides) {
+  return <ChatInputBar {...createInputBarProps(overrides)} />;
+}
+
+function renderInputBar(overrides?: ChatInputBarPropsOverrides) {
+  return render(createInputBarElement(overrides));
+}
+
+function createComposer(nodes: ChatComposerNode[], overrides: Omit<Partial<ChatInputBarProps['composer']>, 'nodes'> = {}) {
+  return { nodes, onNodesChange: vi.fn(), ...overrides };
+}
+
+function createModelSelect(overrides: Partial<ChatToolbarSelect> = {}): ChatToolbarSelect {
+  return {
+    key: 'model',
+    value: 'minimax/minimax-m2.7',
+    placeholder: 'Select model',
+    selectedLabel: 'MiniMax/MiniMax-M2.7',
+    options: [{ value: 'minimax/minimax-m2.7', label: 'MiniMax/MiniMax-M2.7' }],
+    onValueChange: vi.fn(),
+    ...overrides,
   };
 }
 
@@ -91,12 +139,7 @@ function ExistingSkillTokenHarness() {
   return (
     <ChatInputBar
       {...createInputBarProps({
-        composer: {
-          nodes,
-          placeholder: 'Type a message',
-          disabled: false,
-          onNodesChange: setNodes
-        }
+        composer: createComposer(nodes, { onNodesChange: setNodes })
       })}
     />
   );
@@ -117,12 +160,7 @@ function FileTokenInsertionHarness() {
       <ChatInputBar
         ref={inputRef}
         {...createInputBarProps({
-          composer: {
-            nodes,
-            placeholder: 'Type a message',
-            disabled: false,
-            onNodesChange: setNodes
-          }
+          composer: createComposer(nodes, { onNodesChange: setNodes })
         })}
       />
     </>
@@ -149,12 +187,7 @@ function FocusAtEndHarness() {
       <ChatInputBar
         ref={inputRef}
         {...createInputBarProps({
-          composer: {
-            nodes,
-            placeholder: 'Type a message',
-            disabled: false,
-            onNodesChange: setNodes
-          }
+          composer: createComposer(nodes, { onNodesChange: setNodes })
         })}
       />
     </>
@@ -168,14 +201,8 @@ function SkillPickerInsertionHarness() {
   return (
     <ChatInputBar
       {...createInputBarProps({
-        composer: {
-          nodes,
-          placeholder: 'Type a message',
-          disabled: false,
-          onNodesChange: setNodes,
-        },
+        composer: createComposer(nodes, { onNodesChange: setNodes }),
         toolbar: {
-          selects: [],
           skillPicker: {
             title: 'Skills',
             searchPlaceholder: 'Search skills',
@@ -190,17 +217,6 @@ function SkillPickerInsertionHarness() {
               },
             ],
             onSelectedKeysChange: setSelectedKeys,
-          },
-          actions: {
-            isSending: false,
-            canStopGeneration: false,
-            sendDisabled: false,
-            stopDisabled: true,
-            stopHint: 'Stop unavailable',
-            sendButtonLabel: 'Send',
-            stopButtonLabel: 'Stop',
-            onSend: vi.fn(),
-            onStop: vi.fn(),
           },
         },
       })}
@@ -261,21 +277,12 @@ it('replaces the current slash query with a skill token', () => {
 });
 
 it('renders inline skill tokens inside the composer surface', async () => {
-  render(
-    <ChatInputBar
-      {...createInputBarProps({
-        composer: {
-          nodes: [
-            createChatComposerTokenNode({ tokenKind: 'skill', tokenKey: 'web-search', label: 'Web Search' }),
-            createChatComposerTextNode('')
-          ],
-          placeholder: 'Type a message',
-          disabled: false,
-          onNodesChange: vi.fn()
-        }
-      })}
-    />
-  );
+  renderInputBar({
+    composer: createComposer([
+      createChatComposerTokenNode({ tokenKind: 'skill', tokenKey: 'web-search', label: 'Web Search' }),
+      createChatComposerTextNode('')
+    ])
+  });
 
   expect(screen.getByRole('textbox')).toBeTruthy();
   await waitFor(() => expect(screen.getByText('Web Search')).toBeTruthy());
@@ -357,9 +364,12 @@ it('keeps the skill picker panel constrained to the available viewport height', 
   const listbox = await screen.findByRole('listbox');
   expect(listbox.className).toContain('flex-1');
   expect(listbox.className).toContain('overflow-y-auto');
-  expect(listbox.closest('[data-state="open"]')?.getAttribute('style')).toContain(
-    'min(24rem, calc(var(--radix-popover-content-available-height) - 0.75rem))',
-  );
+  const panelStyle = listbox.closest('[data-state="open"]')?.getAttribute('style') ?? '';
+  expect(panelStyle).toContain('24rem');
+  expect(panelStyle).toContain('--radix-popover-content-available-height');
+  expect(panelStyle).toContain('100vh');
+  expect(panelStyle).toContain('2rem');
+  expect(listbox.className).toContain('overscroll-contain');
 });
 
 it('keeps skill option text selectable without toggling the skill', async () => {
@@ -387,19 +397,11 @@ it('keeps an existing skill token when typing plain text after it', async () => 
 it('forwards pasted files to the attachment handler', () => {
   const onFilesAdd = vi.fn();
 
-  render(
-    <ChatInputBar
-      {...createInputBarProps({
-        composer: {
-          nodes: [createChatComposerTextNode('')],
-          placeholder: 'Type a message',
-          disabled: false,
-          onNodesChange: vi.fn(),
-          onFilesAdd,
-        }
-      })}
-    />
-  );
+  renderInputBar({
+    composer: createComposer([createChatComposerTextNode('')], {
+      onFilesAdd,
+    })
+  });
 
   const textbox = screen.getByRole('textbox');
   const file = new File(['image-bytes'], 'sample.png', { type: 'image/png' });
@@ -481,18 +483,9 @@ it('focuses at the end of externally supplied composer nodes', async () => {
 it('does not commit intermediate IME composition text before composition ends', () => {
   const onNodesChange = vi.fn();
 
-  render(
-    <ChatInputBar
-      {...createInputBarProps({
-        composer: {
-          nodes: [createChatComposerTextNode('')],
-          placeholder: 'Type a message',
-          disabled: false,
-          onNodesChange
-        }
-      })}
-    />
-  );
+  renderInputBar({
+    composer: createComposer([createChatComposerTextNode('')], { onNodesChange })
+  });
 
   const textbox = screen.getByRole('textbox');
   fireEvent.focus(textbox);
@@ -509,33 +502,16 @@ it('does not commit intermediate IME composition text before composition ends', 
 });
 
 it('ignores Windows IME precomposition key events without crashing', () => {
-  render(
-    <ChatInputBar
-      {...createInputBarProps({
-        composer: {
-          nodes: [createChatComposerTextNode('')],
-          placeholder: 'Type a message',
-          disabled: false,
-          onNodesChange: vi.fn()
-        }
-      })}
-    />
-  );
+  renderInputBar({
+    composer: createComposer([createChatComposerTextNode('')])
+  });
 
   const textbox = screen.getByRole('textbox');
   fireEvent.focus(textbox);
+  const imePrecompositionEvent = { key: 'Process', keyCode: 229, which: 229 };
 
-  fireEvent.keyDown(textbox, {
-    key: 'Process',
-    keyCode: 229,
-      which: 229
-  });
-
-  fireEvent.keyUp(textbox, {
-    key: 'Process',
-    keyCode: 229,
-      which: 229
-  });
+  fireEvent.keyDown(textbox, imePrecompositionEvent);
+  fireEvent.keyUp(textbox, imePrecompositionEvent);
 
   expect(screen.getByRole('textbox')).toBeTruthy();
 });
@@ -543,22 +519,16 @@ it('ignores Windows IME precomposition key events without crashing', () => {
 it('removes the last selected chip when backspace is pressed on an empty draft', () => {
   const onNodesChange = vi.fn();
 
-  render(
-    <ChatInputBar
-      {...createInputBarProps({
-        composer: {
-          nodes: [
-            createChatComposerTokenNode({ tokenKind: 'skill', tokenKey: 'web-search', label: 'Web Search' }),
-            createChatComposerTokenNode({ tokenKind: 'skill', tokenKey: 'docs', label: 'Docs' }),
-            createChatComposerTextNode('')
-          ],
-          placeholder: 'Type a message',
-          disabled: false,
-          onNodesChange
-        }
-      })}
-    />
-  );
+  renderInputBar({
+    composer: createComposer(
+      [
+        createChatComposerTokenNode({ tokenKind: 'skill', tokenKey: 'web-search', label: 'Web Search' }),
+        createChatComposerTokenNode({ tokenKind: 'skill', tokenKey: 'docs', label: 'Docs' }),
+        createChatComposerTextNode('')
+      ],
+      { onNodesChange }
+    )
+  });
 
   const textbox = screen.getByRole('textbox');
   fireEvent.focus(textbox);
@@ -574,50 +544,32 @@ it('removes the last selected chip when backspace is pressed on an empty draft',
 it('switches between send and stop controls', () => {
   const onSend = vi.fn();
   const onStop = vi.fn();
-  const { rerender } = render(
-    <ChatInputBar
-      {...createInputBarProps({
-        toolbar: {
-          selects: [],
-          actions: {
-            isSending: false,
-            canStopGeneration: false,
-            sendDisabled: false,
-            stopDisabled: true,
-            stopHint: 'Stop unavailable',
-            sendButtonLabel: 'Send',
-            stopButtonLabel: 'Stop',
-            onSend,
-            onStop
-          }
-        }
-      })}
-    />
-  );
+  const { rerender } = renderInputBar({
+    toolbar: {
+      actions: {
+        onSend,
+        onStop
+      }
+    }
+  });
 
   fireEvent.click(screen.getByRole('button', { name: 'Send' }));
   expect(onSend).toHaveBeenCalled();
   expect(screen.queryByTestId('chat-stop-icon')).toBeNull();
 
   rerender(
-    <ChatInputBar
-      {...createInputBarProps({
-        toolbar: {
-          selects: [],
-          actions: {
-            isSending: true,
-            canStopGeneration: true,
-            sendDisabled: true,
-            stopDisabled: false,
-            stopHint: 'Stop unavailable',
-            sendButtonLabel: 'Send',
-            stopButtonLabel: 'Stop',
-            onSend,
-            onStop
-          }
+    createInputBarElement({
+      toolbar: {
+        actions: {
+          isSending: true,
+          canStopGeneration: true,
+          sendDisabled: true,
+          stopDisabled: false,
+          onSend,
+          onStop
         }
-      })}
-    />
+      }
+    })
   );
 
   expect(screen.getByTestId('chat-stop-icon').className).toContain('bg-gray-700');
@@ -626,40 +578,11 @@ it('switches between send and stop controls', () => {
 });
 
 it('keeps the model dropdown narrower on mobile while preserving desktop width', async () => {
-  render(
-    <ChatInputBar
-      {...createInputBarProps({
-        toolbar: {
-          selects: [
-            {
-              key: 'model',
-              value: 'minimax/minimax-m2.7',
-              placeholder: 'Select model',
-              selectedLabel: 'MiniMax/MiniMax-M2.7',
-              options: [
-                {
-                  value: 'minimax/minimax-m2.7',
-                  label: 'MiniMax/MiniMax-M2.7',
-                },
-              ],
-              onValueChange: vi.fn(),
-            },
-          ],
-          actions: {
-            isSending: false,
-            canStopGeneration: false,
-            sendDisabled: false,
-            stopDisabled: true,
-            stopHint: 'Stop unavailable',
-            sendButtonLabel: 'Send',
-            stopButtonLabel: 'Stop',
-            onSend: vi.fn(),
-            onStop: vi.fn(),
-          },
-        },
-      })}
-    />
-  );
+  renderInputBar({
+    toolbar: {
+      selects: [createModelSelect()],
+    },
+  });
 
   fireEvent.click(screen.getByRole('combobox'));
 
@@ -669,36 +592,18 @@ it('keeps the model dropdown narrower on mobile while preserving desktop width',
 });
 
 it('lets the toolbar wrap instead of forcing the model select to squeeze the send action', () => {
-  render(
-    <ChatInputBar
-      {...createInputBarProps({
-        toolbar: {
-          selects: [
-            {
-              key: 'model',
-              value: 'deepseek/deepseek-v3.2-super-long-model-name',
-              placeholder: 'Select model',
-              selectedLabel: 'DeepSeek/deepseek-v3.2-super-long-model-name',
-              options: [],
-              onValueChange: vi.fn(),
-            },
-          ],
-          accessories: [{ key: 'attach', label: 'Attach file', icon: 'paperclip', iconOnly: true }],
-          actions: {
-            isSending: false,
-            canStopGeneration: false,
-            sendDisabled: false,
-            stopDisabled: true,
-            stopHint: 'Stop unavailable',
-            sendButtonLabel: 'Send',
-            stopButtonLabel: 'Stop',
-            onSend: vi.fn(),
-            onStop: vi.fn(),
-          },
-        },
-      })}
-    />
-  );
+  renderInputBar({
+    toolbar: {
+      selects: [
+        createModelSelect({
+          value: 'deepseek/deepseek-v3.2-super-long-model-name',
+          selectedLabel: 'DeepSeek/deepseek-v3.2-super-long-model-name',
+          options: [],
+        }),
+      ],
+      accessories: [{ key: 'attach', label: 'Attach file', icon: 'paperclip', iconOnly: true }],
+    },
+  });
 
   const modelTrigger = screen.getByRole('combobox');
   expect(document.querySelector('.nextclaw-chat-input-bar-shell')).toBeTruthy();
@@ -712,36 +617,20 @@ it('lets the toolbar wrap instead of forcing the model select to squeeze the sen
 });
 
 it('renders disabled accessories as icon-only triggers when tooltip copy exists', () => {
-  render(
-    <ChatInputBar
-      {...createInputBarProps({
-        toolbar: {
-          selects: [],
-          accessories: [
-            {
-              key: 'attach',
-              label: 'Attach file',
-              icon: 'paperclip',
-              iconOnly: true,
-              disabled: true,
-              tooltip: 'Coming soon'
-            }
-          ],
-          actions: {
-            isSending: false,
-            canStopGeneration: false,
-            sendDisabled: false,
-            stopDisabled: true,
-            stopHint: 'Stop unavailable',
-            sendButtonLabel: 'Send',
-            stopButtonLabel: 'Stop',
-            onSend: vi.fn(),
-            onStop: vi.fn()
-          }
+  renderInputBar({
+    toolbar: {
+      accessories: [
+        {
+          key: 'attach',
+          label: 'Attach file',
+          icon: 'paperclip',
+          iconOnly: true,
+          disabled: true,
+          tooltip: 'Coming soon'
         }
-      })}
-    />
-  );
+      ],
+    }
+  });
 
   const button = screen.getByRole('button', { name: 'Attach file' });
   const trigger = button.parentElement as HTMLElement;
@@ -756,28 +645,14 @@ it('collapses long send errors and reveals the full text in a details popover', 
   const longError =
     'NotFoundError [HTTP 404]\nProvider: custom Model: MiniMax-M2.7\nEndpoint: https://dashscope.aliyuncs.com/compatible-mode/v1\nThis model does not exist or you do not have access to it.';
 
-  render(
-    <ChatInputBar
-      {...createInputBarProps({
-        toolbar: {
-          selects: [],
-          actions: {
-            sendError: longError,
-            sendErrorDetailsLabel: 'View details',
-            isSending: false,
-            canStopGeneration: false,
-            sendDisabled: false,
-            stopDisabled: true,
-            stopHint: 'Stop unavailable',
-            sendButtonLabel: 'Send',
-            stopButtonLabel: 'Stop',
-            onSend: vi.fn(),
-            onStop: vi.fn()
-          }
-        }
-      })}
-    />
-  );
+  renderInputBar({
+    toolbar: {
+      actions: {
+        sendError: longError,
+        sendErrorDetailsLabel: 'View details',
+      }
+    }
+  });
 
   expect(screen.getByText(/NotFoundError \[HTTP 404\]/)).toBeTruthy();
   expect(
@@ -797,65 +672,37 @@ it('reveals the original send error on hover even when the summary stays on one 
   const hoverError =
     'timeout while contacting upstream\nrequest_id=req-123\nprovider=narp-stdio';
 
-  render(
-    <ChatInputBar
-      {...createInputBarProps({
-        toolbar: {
-          selects: [],
-          actions: {
-            sendError: hoverError,
-            sendErrorDetailsLabel: 'View details',
-            isSending: false,
-            canStopGeneration: false,
-            sendDisabled: false,
-            stopDisabled: true,
-            stopHint: 'Stop unavailable',
-            sendButtonLabel: 'Send',
-            stopButtonLabel: 'Stop',
-            onSend: vi.fn(),
-            onStop: vi.fn()
-          }
-        }
-      })}
-    />
-  );
+  renderInputBar({
+    toolbar: {
+      actions: {
+        sendError: hoverError,
+        sendErrorDetailsLabel: 'View details',
+      }
+    }
+  });
 
   expect(screen.getByRole('button', { name: 'View details' })).toBeTruthy();
   expect((document.querySelector('span[title]') as HTMLElement | null)?.getAttribute('title')).toBe(hoverError);
 });
 
 it('renders a subtle context window indicator without persistent percent text', () => {
-  render(
-    <ChatInputBar
-      {...createInputBarProps({
-        toolbar: {
-          selects: [],
-          actions: {
-            isSending: false,
-            canStopGeneration: false,
-            sendDisabled: false,
-            stopDisabled: true,
-            stopHint: 'Stop unavailable',
-            sendButtonLabel: 'Send',
-            stopButtonLabel: 'Stop',
-            contextWindow: {
-              label: 'Context window',
-              percentLabel: '38%',
-              ratio: 0.38,
-              tone: 'neutral',
-              details: [
-                { label: 'Used', value: '76k' },
-                { label: 'Total', value: '200k' },
-                { label: 'Available', value: '124k' }
-              ]
-            },
-            onSend: vi.fn(),
-            onStop: vi.fn()
-          }
-        }
-      })}
-    />
-  );
+  renderInputBar({
+    toolbar: {
+      actions: {
+        contextWindow: {
+          label: 'Context window',
+          percentLabel: '38%',
+          ratio: 0.38,
+          tone: 'neutral',
+          details: [
+            { label: 'Used', value: '76k' },
+            { label: 'Total', value: '200k' },
+            { label: 'Available', value: '124k' }
+          ]
+        },
+      }
+    }
+  });
 
   const indicator = screen.getByRole('button', { name: 'Context window' });
   expect(indicator).toBeTruthy();

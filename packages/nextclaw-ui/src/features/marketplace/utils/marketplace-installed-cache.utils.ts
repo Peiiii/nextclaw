@@ -16,29 +16,30 @@ function buildInstalledRecordFromInstall(params: {
   request: MarketplaceInstallRequest;
   result: MarketplaceInstallResult;
 }): MarketplaceInstalledRecord {
+  const { request, result } = params;
   const installedAt = new Date().toISOString();
 
-  if (params.result.type === 'skill') {
+  if (result.type === 'skill') {
     return {
       type: 'skill',
-      spec: params.result.spec,
-      id: params.request.skill ?? params.result.spec,
-      label: params.request.skill ?? params.result.name ?? params.result.spec,
+      spec: result.spec,
+      id: request.skill ?? result.spec,
+      label: request.skill ?? result.name ?? result.spec,
       source: 'workspace',
-      installPath: params.request.installPath,
+      installPath: request.installPath,
       installedAt
     };
   }
 
   return {
-    type: params.result.type,
-    spec: params.result.spec,
-    id: params.result.name ?? params.result.spec,
-    label: params.result.name ?? params.result.spec,
+    type: result.type,
+    spec: result.spec,
+    id: result.name ?? result.spec,
+    label: result.name ?? result.spec,
     source: 'marketplace',
     origin: 'marketplace',
-    enabled: params.request.enabled ?? true,
-    runtimeStatus: params.request.enabled === false ? 'disabled' : 'ready',
+    enabled: request.enabled ?? true,
+    runtimeStatus: request.enabled === false ? 'disabled' : 'ready',
     installedAt
   };
 }
@@ -47,10 +48,11 @@ function matchesInstalledRecord(record: MarketplaceInstalledRecord, params: {
   id?: string;
   spec?: string;
 }): boolean {
-  if (params.spec && record.spec === params.spec) {
+  const { id, spec } = params;
+  if (spec && record.spec === spec) {
     return true;
   }
-  if (params.id && record.id === params.id) {
+  if (id && record.id === id) {
     return true;
   }
   return false;
@@ -70,7 +72,8 @@ export function applyInstallResultToInstalledView(params: {
   request: MarketplaceInstallRequest;
   result: MarketplaceInstallResult;
 }): MarketplaceInstalledView {
-  const current = ensureInstalledView(params.result.type, params.view);
+  const { result, view } = params;
+  const current = ensureInstalledView(result.type, view);
   const optimisticRecord = buildInstalledRecordFromInstall(params);
   const existingIndex = current.records.findIndex((record) => matchesInstalledRecord(record, {
     id: optimisticRecord.id,
@@ -89,7 +92,7 @@ export function applyInstallResultToInstalledView(params: {
 
   return {
     ...current,
-    type: params.result.type,
+    type: result.type,
     records: nextRecords,
     specs: dedupeSpecs(nextRecords),
     total: nextRecords.length
@@ -101,12 +104,13 @@ export function applyManageResultToInstalledView(params: {
   request: MarketplaceManageRequest;
   result: MarketplaceManageResult;
 }): MarketplaceInstalledView {
-  const current = ensureInstalledView(params.result.type, params.view);
+  const { request, result, view } = params;
+  const current = ensureInstalledView(result.type, view);
 
-  if (params.result.action === 'uninstall' || params.result.action === 'remove') {
+  if (result.action === 'uninstall' || result.action === 'remove') {
     const nextRecords = current.records.filter((record) => !matchesInstalledRecord(record, {
-      id: params.result.id,
-      spec: params.request.spec
+      id: result.id,
+      spec: request.spec
     }));
 
     return {
@@ -119,13 +123,13 @@ export function applyManageResultToInstalledView(params: {
 
   const nextRecords = current.records.map((record) => {
     if (!matchesInstalledRecord(record, {
-      id: params.result.id,
-      spec: params.request.spec
+      id: result.id,
+      spec: request.spec
     })) {
       return record;
     }
 
-    if (params.result.action === 'disable') {
+    if (result.action === 'disable') {
       return {
         ...record,
         enabled: false,
@@ -133,7 +137,7 @@ export function applyManageResultToInstalledView(params: {
       };
     }
 
-    if (params.result.action === 'update') {
+    if (result.action === 'update') {
       return {
         ...record,
         installedAt: new Date().toISOString(),

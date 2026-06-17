@@ -3,7 +3,12 @@ import { Bot, ChevronDown } from 'lucide-react';
 import { SessionContextIconNode } from '@/features/chat/features/session/components/session-context-icon';
 import { ChatSessionTypeOptionItem } from '@/features/chat/features/session-type/components/chat-session-type-option-item';
 import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
-import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  createPopoverAvailableHeightLimit,
+} from '@/shared/components/ui/popover';
 import { t } from '@/shared/lib/i18n';
 
 type SessionTypeOption = ChatInputSnapshot['sessionTypeOptions'][number];
@@ -14,7 +19,7 @@ type ChatWelcomeSessionTypePickerProps = {
   onSelectSessionType: (sessionType: string) => void;
 };
 
-const SESSION_TYPE_PICKER_MAX_HEIGHT = 'min(18rem, calc(var(--radix-popover-content-available-height) - 0.75rem))';
+const SESSION_TYPE_PICKER_MAX_HEIGHT = createPopoverAvailableHeightLimit('18rem');
 
 export function ChatWelcomeSessionTypePicker({
   options,
@@ -56,7 +61,6 @@ export function ChatWelcomeSessionTypePicker({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        collisionPadding={12}
         className="flex w-[min(16rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-2xl border border-gray-200/80 bg-white p-1.5 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
         style={{ maxHeight: SESSION_TYPE_PICKER_MAX_HEIGHT }}
       >

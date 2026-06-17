@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { ChatSlashMenu } from './chat-slash-menu';
+import { createChatPopoverAvailableHeightLimit } from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
+import { ChatSlashMenu } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-slash-menu';
 import type { ChatSlashMenuProps } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
 function createSlashMenuProps(overrides?: Partial<ChatSlashMenuProps>): ChatSlashMenuProps {
@@ -64,7 +65,11 @@ describe('ChatSlashMenu', () => {
     const listbox = screen.getByRole('listbox', { name: 'Skills' });
     expect(listbox.className).toContain('overflow-y-auto');
     expect(listbox.closest('[data-state="open"]')?.getAttribute('style')).toContain(
-      'min(24rem, calc(var(--radix-popover-content-available-height) - 0.75rem))',
+      createChatPopoverAvailableHeightLimit('24rem'),
     );
+    expect(listbox.closest('[data-state="open"]')?.getAttribute('style')).toContain('max(0px');
+    expect(listbox.closest('[data-state="open"]')?.getAttribute('style')).toContain('100vh');
+    expect(listbox.closest('[data-state="open"]')?.getAttribute('style')).toContain('2rem');
+    expect(listbox.className).toContain('overscroll-contain');
   });
 });

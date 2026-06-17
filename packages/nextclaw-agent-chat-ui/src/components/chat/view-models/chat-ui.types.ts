@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-
 export type ChatTexts = {
   slashLoadingLabel: string;
   slashSectionLabel: string;
@@ -406,16 +404,4 @@ export type ChatMessageTexts = {
   attachmentOpenLabel?: string;
   attachmentAttachedLabel?: string;
   attachmentCategoryLabels?: Partial<Record<ChatAttachmentCategory, string>>;
-};
-
-export type ChatMessageListProps = {
-  messages: ChatMessageViewModel[];
-  isSending: boolean;
-  hasAssistantDraft: boolean;
-  texts: ChatMessageTexts;
-  className?: string;
-  onToolAction?: (action: ChatToolActionViewModel) => void;
-  onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
-  renderToolAgent?: (agentId: string) => ReactNode;
-  renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
 };

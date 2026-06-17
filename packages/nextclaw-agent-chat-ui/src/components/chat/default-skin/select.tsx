@@ -1,11 +1,18 @@
 import * as React from 'react';
 import * as SelectPrimitive from '@radix-ui/react-select';
 import { Check, ChevronDown, ChevronUp } from 'lucide-react';
-import { cn } from '../internal/cn';
+import { cn } from '@agent-chat-ui/components/chat/internal/cn';
 
 const ChatSelect = SelectPrimitive.Root;
 const ChatSelectGroup = SelectPrimitive.Group;
 const ChatSelectValue = SelectPrimitive.Value;
+const CHAT_SELECT_CONTENT_AVAILABLE_HEIGHT_GAP = '2rem';
+
+function createChatSelectAvailableHeightLimit(limit: string): string {
+  return `min(${limit}, max(0px, calc(var(--radix-select-content-available-height, 100vh) - ${CHAT_SELECT_CONTENT_AVAILABLE_HEIGHT_GAP})))`;
+}
+
+const CHAT_SELECT_CONTENT_MAX_HEIGHT = createChatSelectAvailableHeightLimit('24rem');
 
 const ChatSelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
@@ -50,25 +57,35 @@ const ChatSelectScrollDownButton = React.forwardRef<
 
 ChatSelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayName;
 
+type ChatSelectContentProps = React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & {
+  viewportClassName?: string;
+};
+
 const ChatSelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = 'popper', ...props }, ref) => (
+  ChatSelectContentProps
+>(({ className, children, collisionPadding = 12, position = 'popper', style, viewportClassName, ...props }, ref) => (
   <SelectPrimitive.Portal>
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        'relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md bg-white text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
+        'relative z-50 flex max-h-96 min-w-[8rem] flex-col overflow-hidden rounded-md bg-white text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
         position === 'popper' &&
           'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
         className
       )}
+      collisionPadding={collisionPadding}
       position={position}
+      style={{ maxHeight: CHAT_SELECT_CONTENT_MAX_HEIGHT, ...style }}
       {...props}
     >
       <ChatSelectScrollUpButton />
       <SelectPrimitive.Viewport
-        className={cn('p-1', position === 'popper' && 'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]')}
+        className={cn(
+          'min-h-0 flex-1 overflow-y-auto overscroll-contain p-1',
+          position === 'popper' && 'w-full min-w-[var(--radix-select-trigger-width)]',
+          viewportClassName,
+        )}
       >
         {children}
       </SelectPrimitive.Viewport>
@@ -128,5 +145,6 @@ export {
   ChatSelectLabel,
   ChatSelectSeparator,
   ChatSelectTrigger,
-  ChatSelectValue
+  ChatSelectValue,
+  createChatSelectAvailableHeightLimit
 };

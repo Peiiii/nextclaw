@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { ChevronDown, FolderOpen } from 'lucide-react';
 import type { ChatWelcomeProjectOption } from '@/features/chat/features/welcome/utils/chat-welcome-project-options.utils';
-import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  createPopoverAvailableHeightLimit,
+} from '@/shared/components/ui/popover';
 import { t } from '@/shared/lib/i18n';
 import { getSessionProjectName } from '@/shared/lib/session-project';
 
@@ -15,7 +20,7 @@ type ChatWelcomeProjectPickerProps = {
   onSelectProjectRoot: (projectRoot: string) => Promise<void> | void;
 };
 
-const PROJECT_PICKER_MAX_HEIGHT = 'min(20rem, calc(var(--radix-popover-content-available-height) - 0.75rem))';
+const PROJECT_PICKER_MAX_HEIGHT = createPopoverAvailableHeightLimit('20rem');
 
 export function ChatWelcomeProjectPicker({
   defaultProjectRoot,
@@ -61,7 +66,6 @@ export function ChatWelcomeProjectPicker({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        collisionPadding={12}
         className="flex w-[min(20rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-2xl border border-gray-200/80 bg-white p-0 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
         style={{ maxHeight: PROJECT_PICKER_MAX_HEIGHT }}
       >

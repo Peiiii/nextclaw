@@ -1,6 +1,11 @@
 import { t } from '@/shared/lib/i18n';
 import type { getLanguage } from '@/shared/lib/i18n';
-import type { ProviderConfigView, ThinkingLevel } from '@/shared/lib/api';
+import type {
+  ProviderConfigUpdate,
+  ProviderConfigView,
+  ProviderConnectionTestRequest,
+  ThinkingLevel
+} from '@/shared/lib/api';
 import {
   normalizeModelConfigMap,
   normalizeThinkingLevels,
@@ -13,6 +18,35 @@ type WireApiType = 'auto' | 'chat' | 'responses';
 type ModelConfig = Record<string, ModelConfigEntry>;
 type ProviderAuthMethodOption = {
   id: string;
+};
+type ProviderFormChangeInput = {
+  providerName?: string;
+  apiKey: string;
+  apiBase: string;
+  currentApiBase: string;
+  extraHeaders: Record<string, string> | null;
+  currentHeaders: Record<string, string> | null;
+  supportsWireApi: boolean;
+  wireApi: WireApiType;
+  currentWireApi: WireApiType;
+  models: string[];
+  currentEditableModels: string[];
+  modelConfig: ModelConfig;
+  currentModelConfig: ModelConfig;
+  providerDisplayName: string;
+  effectiveDisplayName: string;
+};
+type ProviderSavePayloadInput = ProviderFormChangeInput & {
+  defaultApiBase: string;
+};
+type ProviderConnectionTestPayloadInput = {
+  apiKey: string;
+  apiBase: string;
+  extraHeaders: Record<string, string> | null;
+  supportsWireApi: boolean;
+  wireApi: WireApiType;
+  models: string[];
+  providerModelAliases: string[];
 };
 
 const EMPTY_PROVIDER_CONFIG: ProviderConfigView = {
@@ -196,6 +230,70 @@ function modelConfigEqual(left: ModelConfig, right: ModelConfig): boolean {
   return true;
 }
 
+function hasProviderFormChanges(input: ProviderFormChangeInput): boolean {
+  if (!input.providerName) {
+    return false;
+  }
+  return (
+    input.apiKey.trim().length > 0 ||
+    input.apiBase.trim() !== input.currentApiBase.trim() ||
+    !headersEqual(input.extraHeaders, input.currentHeaders) ||
+    (input.supportsWireApi && input.wireApi !== input.currentWireApi) ||
+    !modelListsEqual(input.models, input.currentEditableModels) ||
+    !modelConfigEqual(input.modelConfig, input.currentModelConfig) ||
+    input.providerDisplayName.trim() !== input.effectiveDisplayName
+  );
+}
+
+function buildProviderSavePayload(input: ProviderSavePayloadInput): ProviderConfigUpdate {
+  const payload: ProviderConfigUpdate = {};
+  const trimmedApiKey = input.apiKey.trim();
+  const trimmedApiBase = input.apiBase.trim();
+  const normalizedHeaders = normalizeHeaders(input.extraHeaders);
+  const trimmedDisplayName = input.providerDisplayName.trim();
+
+  if (trimmedDisplayName !== input.effectiveDisplayName) {
+    payload.displayName = trimmedDisplayName.length > 0 ? trimmedDisplayName : null;
+  }
+  if (trimmedApiKey.length > 0) {
+    payload.apiKey = trimmedApiKey;
+  }
+  if (trimmedApiBase !== input.currentApiBase.trim()) {
+    payload.apiBase = trimmedApiBase.length > 0 && trimmedApiBase !== input.defaultApiBase ? trimmedApiBase : null;
+  }
+  if (!headersEqual(normalizedHeaders, input.currentHeaders)) {
+    payload.extraHeaders = normalizedHeaders;
+  }
+  if (input.supportsWireApi && input.wireApi !== input.currentWireApi) {
+    payload.wireApi = input.wireApi;
+  }
+  if (!modelListsEqual(input.models, input.currentEditableModels)) {
+    payload.models = serializeModelsForSave(input.models, input.providerName ?? '');
+  }
+  if (!modelConfigEqual(input.modelConfig, input.currentModelConfig)) {
+    payload.modelConfig = normalizeModelConfigForModels(input.modelConfig, input.models);
+  }
+
+  return payload;
+}
+
+function buildProviderConnectionTestPayload(input: ProviderConnectionTestPayloadInput): ProviderConnectionTestRequest {
+  const preferredModel = input.models.find((modelName) => modelName.trim().length > 0) ?? '';
+  const testModel = toProviderLocalModelId(preferredModel, input.providerModelAliases);
+  const payload: ProviderConnectionTestRequest = {
+    apiBase: input.apiBase.trim(),
+    extraHeaders: normalizeHeaders(input.extraHeaders),
+    model: testModel || null
+  };
+  if (input.apiKey.trim().length > 0) {
+    payload.apiKey = input.apiKey.trim();
+  }
+  if (input.supportsWireApi) {
+    payload.wireApi = input.wireApi;
+  }
+  return payload;
+}
+
 function formatThinkingLevelLabel(level: ThinkingLevel): string {
   if (level === 'off') {
     return t('chatThinkingLevelOff');
@@ -285,8 +383,11 @@ function shouldUsePillSelector(params: {
 
 export type { ModelConfig, ProviderAuthMethodOption, WireApiType };
 export {
+  buildProviderConnectionTestPayload,
+  buildProviderSavePayload,
   EMPTY_PROVIDER_CONFIG,
   formatThinkingLevelLabel,
+  hasProviderFormChanges,
   headersEqual,
   modelListsEqual,
   modelConfigEqual,

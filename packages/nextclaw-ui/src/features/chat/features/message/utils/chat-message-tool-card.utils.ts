@@ -150,17 +150,18 @@ export function resolveToolCardStatus(params: {
   ChatToolPartViewModel,
   "kind" | "hasResult" | "statusTone" | "statusLabel"
 > {
+  const { cancelled, error, result, status, texts } = params;
   const rawStatus =
-    typeof params.status === "string" ? params.status.trim().toLowerCase() : "";
+    typeof status === "string" ? status.trim().toLowerCase() : "";
   const hasError =
-    typeof params.error === "string" && params.error.trim().length > 0;
-  const isCancelled = params.cancelled === true || rawStatus === "cancelled";
+    typeof error === "string" && error.trim().length > 0;
+  const isCancelled = cancelled === true || rawStatus === "cancelled";
   if (isCancelled) {
     return {
       kind: "result",
       hasResult: true,
       statusTone: "cancelled",
-      statusLabel: params.texts.toolStatusCancelledLabel,
+      statusLabel: texts.toolStatusCancelledLabel,
     };
   }
   if (hasError || rawStatus === "error") {
@@ -168,15 +169,15 @@ export function resolveToolCardStatus(params: {
       kind: "result",
       hasResult: true,
       statusTone: "error",
-      statusLabel: params.texts.toolStatusFailedLabel,
+      statusLabel: texts.toolStatusFailedLabel,
     };
   }
-  if (rawStatus === "result" || params.result != null) {
+  if (rawStatus === "result" || result != null) {
     return {
       kind: "result",
       hasResult: true,
       statusTone: "success",
-      statusLabel: params.texts.toolStatusCompletedLabel,
+      statusLabel: texts.toolStatusCompletedLabel,
     };
   }
   if (rawStatus === "partial-call") {
@@ -184,14 +185,14 @@ export function resolveToolCardStatus(params: {
       kind: "call",
       hasResult: false,
       statusTone: "running",
-      statusLabel: params.texts.toolStatusRunningLabel,
+      statusLabel: texts.toolStatusRunningLabel,
     };
   }
   return {
     kind: "call",
     hasResult: false,
     statusTone: "running",
-    statusLabel: params.texts.toolStatusRunningLabel,
+    statusLabel: texts.toolStatusRunningLabel,
   };
 }
 

@@ -1,8 +1,8 @@
 import {
   handleLexicalComposerCompositionEnd,
   resolveLexicalComposerKeyboardAction,
-} from './lexical/chat-composer-lexical-controller';
-import { createChatComposerTextNode } from './chat-composer.utils';
+} from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-controller';
+import { createChatComposerTextNode } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 
 describe('chat composer keyboard utils', () => {
   it('moves the slash menu selection with arrow keys', () => {

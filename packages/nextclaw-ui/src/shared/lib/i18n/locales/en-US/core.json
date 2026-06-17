@@ -49,6 +49,7 @@
   "modelName": "Model",
   "modelPickerNoOptions": "No model options available",
   "modelPickerUseCustom": "Use custom model: {value}",
+  "modelPickerToggleOptions": "Toggle model options",
   "modelInputCustomHint": "If the model is not listed, type a custom model ID directly.",
   "modelIdentifierHelp": "Default model identifier used by the agent. Use provider-prefixed format. Examples: openai/gpt-5.1 · anthropic/claude-opus-4-1 · deepseek/deepseek-chat · minimax/MiniMax-M2.5 · openrouter/openai/gpt-5.3-codex.",
   "maxToolIterations": "Max Tool Iterations",

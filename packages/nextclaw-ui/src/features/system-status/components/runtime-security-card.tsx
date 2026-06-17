@@ -40,7 +40,29 @@ function SecurityCardFrame({ children, contentClassName = 'space-y-6' }: { child
   );
 }
 
-function RuntimeSecuritySetupSection(props: { setupUsername: string; setSetupUsername: (value: string) => void; setupPassword: string; setSetupPassword: (value: string) => void; setupConfirmPassword: string; setSetupConfirmPassword: (value: string) => void; canSubmitSetup: boolean; isPending: boolean; onSubmit: () => void }) {
+type RuntimeSecuritySetupSectionProps = {
+  setupUsername: string;
+  setSetupUsername: (value: string) => void;
+  setupPassword: string;
+  setSetupPassword: (value: string) => void;
+  setupConfirmPassword: string;
+  setSetupConfirmPassword: (value: string) => void;
+  canSubmitSetup: boolean;
+  isPending: boolean;
+  onSubmit: () => void;
+};
+
+function RuntimeSecuritySetupSection({
+  canSubmitSetup,
+  isPending,
+  onSubmit,
+  setSetupConfirmPassword,
+  setSetupPassword,
+  setSetupUsername,
+  setupConfirmPassword,
+  setupPassword,
+  setupUsername
+}: RuntimeSecuritySetupSectionProps) {
   return (
     <SecurityCardFrame contentClassName="space-y-5">
       <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/70 p-4">
@@ -52,8 +74,8 @@ function RuntimeSecuritySetupSection(props: { setupUsername: string; setSetupUse
           <Label htmlFor="auth-setup-username">{t('authUsername')}</Label>
           <Input
             id="auth-setup-username"
-            value={props.setupUsername}
-            onChange={(event) => props.setSetupUsername(event.target.value)}
+            value={setupUsername}
+            onChange={(event) => setSetupUsername(event.target.value)}
             placeholder={t('authUsernamePlaceholder')}
           />
         </div>
@@ -62,8 +84,8 @@ function RuntimeSecuritySetupSection(props: { setupUsername: string; setSetupUse
           <Input
             id="auth-setup-password"
             type="password"
-            value={props.setupPassword}
-            onChange={(event) => props.setSetupPassword(event.target.value)}
+            value={setupPassword}
+            onChange={(event) => setSetupPassword(event.target.value)}
             placeholder={t('authPasswordPlaceholder')}
           />
         </div>
@@ -73,43 +95,75 @@ function RuntimeSecuritySetupSection(props: { setupUsername: string; setSetupUse
         <Input
           id="auth-setup-confirm"
           type="password"
-          value={props.setupConfirmPassword}
-          onChange={(event) => props.setSetupConfirmPassword(event.target.value)}
+          value={setupConfirmPassword}
+          onChange={(event) => setSetupConfirmPassword(event.target.value)}
           placeholder={t('authConfirmPasswordPlaceholder')}
         />
         <p className="text-xs text-gray-500">{t('authPasswordMinLengthHint')}</p>
       </div>
-      <Button type="button" disabled={!props.canSubmitSetup} onClick={() => void props.onSubmit()}>
-        {props.isPending ? t('authSettingUp') : t('authSetupAction')}
+      <Button type="button" disabled={!canSubmitSetup} onClick={() => void onSubmit()}>
+        {isPending ? t('authSettingUp') : t('authSetupAction')}
       </Button>
     </SecurityCardFrame>
   );
 }
 
-function RuntimeSecurityConfiguredSection(props: { authenticated: boolean; enabled: boolean; username: string | null | undefined; nextPassword: string; setNextPassword: (value: string) => void; nextConfirmPassword: string; setNextConfirmPassword: (value: string) => void; canUpdatePassword: boolean; isUpdatingEnabled: boolean; isUpdatingPassword: boolean; isLoggingOut: boolean; onEnabledChange: (enabled: boolean) => void; onPasswordUpdate: () => void; onLogout: () => void }) {
+type RuntimeSecurityConfiguredSectionProps = {
+  authenticated: boolean;
+  enabled: boolean;
+  username: string | null | undefined;
+  nextPassword: string;
+  setNextPassword: (value: string) => void;
+  nextConfirmPassword: string;
+  setNextConfirmPassword: (value: string) => void;
+  canUpdatePassword: boolean;
+  isUpdatingEnabled: boolean;
+  isUpdatingPassword: boolean;
+  isLoggingOut: boolean;
+  onEnabledChange: (enabled: boolean) => void;
+  onPasswordUpdate: () => void;
+  onLogout: () => void;
+};
+
+function RuntimeSecurityConfiguredSection({
+  authenticated,
+  canUpdatePassword,
+  enabled,
+  isLoggingOut,
+  isUpdatingEnabled,
+  isUpdatingPassword,
+  nextConfirmPassword,
+  nextPassword,
+  onEnabledChange,
+  onLogout,
+  onPasswordUpdate,
+  setNextConfirmPassword,
+  setNextPassword,
+  username
+}: RuntimeSecurityConfiguredSectionProps) {
   return (
     <SecurityCardFrame>
       <div className="rounded-xl border border-gray-200 p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-900">{t('authStatusLabel')}</p>
-            <p className="text-sm text-gray-600">{t('authStatusConfiguredUser').replace('{username}', props.username ?? '')}</p>
+            <p className="text-sm text-gray-600">{t('authStatusConfiguredUser').replace('{username}', username ?? '')}</p>
             <p className="text-xs text-gray-500">{t('authUsernameFixedHelp')}</p>
           </div>
           <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-            {props.enabled ? t('enabled') : t('disabled')}
+            {enabled ? t('enabled') : t('disabled')}
           </span>
         </div>
         <div className="mt-4 flex flex-col gap-4 border-t border-gray-200 pt-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-900">{t('authEnableLabel')}</p>
-            <p className="text-xs text-gray-500">{props.enabled ? t('authEnableOnHelp') : t('authEnableOffHelp')}</p>
+            <p className="text-xs text-gray-500">{enabled ? t('authEnableOnHelp') : t('authEnableOffHelp')}</p>
           </div>
           <Switch
-            checked={props.enabled}
-            disabled={props.isUpdatingEnabled}
+            checked={enabled}
+            disabled={isUpdatingEnabled}
             onCheckedChange={(checked) => {
-              void props.onEnabledChange(checked);
+              void onEnabledChange(checked);
             }}
           />
         </div>
@@ -125,8 +179,8 @@ function RuntimeSecurityConfiguredSection(props: { authenticated: boolean; enabl
             <Input
               id="auth-password-next"
               type="password"
-              value={props.nextPassword}
-              onChange={(event) => props.setNextPassword(event.target.value)}
+              value={nextPassword}
+              onChange={(event) => setNextPassword(event.target.value)}
               placeholder={t('authPasswordPlaceholder')}
             />
           </div>
@@ -135,19 +189,19 @@ function RuntimeSecurityConfiguredSection(props: { authenticated: boolean; enabl
             <Input
               id="auth-password-confirm"
               type="password"
-              value={props.nextConfirmPassword}
-              onChange={(event) => props.setNextConfirmPassword(event.target.value)}
+              value={nextConfirmPassword}
+              onChange={(event) => setNextConfirmPassword(event.target.value)}
               placeholder={t('authConfirmPasswordPlaceholder')}
             />
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" disabled={!props.canUpdatePassword} onClick={() => void props.onPasswordUpdate()}>
-            {props.isUpdatingPassword ? t('authPasswordUpdating') : t('authPasswordAction')}
+          <Button type="button" disabled={!canUpdatePassword} onClick={() => void onPasswordUpdate()}>
+            {isUpdatingPassword ? t('authPasswordUpdating') : t('authPasswordAction')}
           </Button>
-          {props.enabled && props.authenticated ? (
-            <Button type="button" variant="outline" disabled={props.isLoggingOut} onClick={() => void props.onLogout()}>
-              {props.isLoggingOut ? t('authLoggingOut') : t('authLogoutAction')}
+          {enabled && authenticated ? (
+            <Button type="button" variant="outline" disabled={isLoggingOut} onClick={() => void onLogout()}>
+              {isLoggingOut ? t('authLoggingOut') : t('authLogoutAction')}
             </Button>
           ) : null}
         </div>

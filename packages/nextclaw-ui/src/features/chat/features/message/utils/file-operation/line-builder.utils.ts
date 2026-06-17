@@ -19,14 +19,15 @@ export function createLine(params: {
   oldLineNumber?: number;
   newLineNumber?: number;
 }): ChatFileOperationLineViewModel {
+  const { kind, newLineNumber, oldLineNumber, text } = params;
   return {
-    kind: params.kind,
-    text: params.text,
-    ...(typeof params.oldLineNumber === "number"
-      ? { oldLineNumber: params.oldLineNumber }
+    kind,
+    text,
+    ...(typeof oldLineNumber === "number"
+      ? { oldLineNumber }
       : {}),
-    ...(typeof params.newLineNumber === "number"
-      ? { newLineNumber: params.newLineNumber }
+    ...(typeof newLineNumber === "number"
+      ? { newLineNumber }
       : {}),
   };
 }
@@ -51,18 +52,19 @@ export function buildPreviewLines(params: {
   oldStartLine: number;
   newStartLine: number;
 }): ChatFileOperationLineViewModel[] {
-  return splitLines(params.text).map((line, index) =>
-    params.kind === "add"
+  const { kind, newStartLine, oldStartLine, text } = params;
+  return splitLines(text).map((line, index) =>
+    kind === "add"
       ? createLine({
           kind: "add",
           text: line,
-          newLineNumber: params.newStartLine + index,
+          newLineNumber: newStartLine + index,
         })
       : createLine({
           kind: "context",
           text: line,
-          oldLineNumber: params.oldStartLine + index,
-          newLineNumber: params.newStartLine + index,
+          oldLineNumber: oldStartLine + index,
+          newLineNumber: newStartLine + index,
         }),
   );
 }
@@ -73,10 +75,11 @@ function buildFallbackDiffLines(params: {
   oldStartLine?: number;
   newStartLine?: number;
 }): ChatFileOperationLineViewModel[] {
-  let oldLineNumber = params.oldStartLine;
-  let newLineNumber = params.newStartLine;
+  const { afterLines, beforeLines, newStartLine, oldStartLine } = params;
+  let oldLineNumber = oldStartLine;
+  let newLineNumber = newStartLine;
   return [
-    ...params.beforeLines.map((line) => {
+    ...beforeLines.map((line) => {
       const nextLine = createLine({
         kind: "remove",
         text: line,
@@ -85,7 +88,7 @@ function buildFallbackDiffLines(params: {
       oldLineNumber = incrementLineNumber(oldLineNumber);
       return nextLine;
     }),
-    ...params.afterLines.map((line) => {
+    ...afterLines.map((line) => {
       const nextLine = createLine({
         kind: "add",
         text: line,
@@ -101,22 +104,23 @@ function buildLcsMatrix(params: {
   beforeLines: string[];
   afterLines: string[];
 }): number[][] {
+  const { afterLines, beforeLines } = params;
   const matrix: number[][] = Array.from(
-    { length: params.beforeLines.length + 1 },
-    () => Array.from({ length: params.afterLines.length + 1 }, () => 0),
+    { length: beforeLines.length + 1 },
+    () => Array.from({ length: afterLines.length + 1 }, () => 0),
   );
   for (
-    let beforeIndex = params.beforeLines.length - 1;
+    let beforeIndex = beforeLines.length - 1;
     beforeIndex >= 0;
     beforeIndex -= 1
   ) {
     for (
-      let afterIndex = params.afterLines.length - 1;
+      let afterIndex = afterLines.length - 1;
       afterIndex >= 0;
       afterIndex -= 1
     ) {
       matrix[beforeIndex]![afterIndex] =
-        params.beforeLines[beforeIndex] === params.afterLines[afterIndex]
+        beforeLines[beforeIndex] === afterLines[afterIndex]
           ? (matrix[beforeIndex + 1]![afterIndex + 1] ?? 0) + 1
           : Math.max(
               matrix[beforeIndex + 1]![afterIndex] ?? 0,
@@ -136,33 +140,36 @@ function appendRemainingDiffLines(params: {
   oldLineNumber?: number;
   newLineNumber?: number;
 }): void {
+  const { afterIndex, afterLines, beforeIndex, beforeLines, lines, newLineNumber: initialNewLineNumber, oldLineNumber: initialOldLineNumber } = params;
+  let oldLineNumber = initialOldLineNumber;
+  let newLineNumber = initialNewLineNumber;
   for (
-    let index = params.beforeIndex;
-    index < params.beforeLines.length;
+    let index = beforeIndex;
+    index < beforeLines.length;
     index += 1
   ) {
-    params.lines.push(
+    lines.push(
       createLine({
         kind: "remove",
-        text: params.beforeLines[index] ?? "",
-        oldLineNumber: params.oldLineNumber,
+        text: beforeLines[index] ?? "",
+        oldLineNumber,
       }),
     );
-    params.oldLineNumber = incrementLineNumber(params.oldLineNumber);
+    oldLineNumber = incrementLineNumber(oldLineNumber);
   }
   for (
-    let index = params.afterIndex;
-    index < params.afterLines.length;
+    let index = afterIndex;
+    index < afterLines.length;
     index += 1
   ) {
-    params.lines.push(
+    lines.push(
       createLine({
         kind: "add",
-        text: params.afterLines[index] ?? "",
-        newLineNumber: params.newLineNumber,
+        text: afterLines[index] ?? "",
+        newLineNumber,
       }),
     );
-    params.newLineNumber = incrementLineNumber(params.newLineNumber);
+    newLineNumber = incrementLineNumber(newLineNumber);
   }
 }
 
@@ -172,14 +179,15 @@ export function buildLineDiff(params: {
   oldStartLine?: number;
   newStartLine?: number;
 }): ChatFileOperationLineViewModel[] {
-  const beforeLines = splitLines(params.beforeText);
-  const afterLines = splitLines(params.afterText);
+  const { afterText, beforeText, newStartLine, oldStartLine } = params;
+  const beforeLines = splitLines(beforeText);
+  const afterLines = splitLines(afterText);
   if (beforeLines.length * afterLines.length > MAX_DIFF_MATRIX_CELLS) {
     return buildFallbackDiffLines({
       beforeLines,
       afterLines,
-      oldStartLine: params.oldStartLine,
-      newStartLine: params.newStartLine,
+      oldStartLine,
+      newStartLine,
     });
   }
 
@@ -190,8 +198,8 @@ export function buildLineDiff(params: {
   const lines: ChatFileOperationLineViewModel[] = [];
   let beforeIndex = 0;
   let afterIndex = 0;
-  let oldLineNumber = params.oldStartLine;
-  let newLineNumber = params.newStartLine;
+  let oldLineNumber = oldStartLine;
+  let newLineNumber = newStartLine;
   while (beforeIndex < beforeLines.length && afterIndex < afterLines.length) {
     if (beforeLines[beforeIndex] === afterLines[afterIndex]) {
       lines.push(

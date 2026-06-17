@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
-import { cn } from '../internal/cn';
+import { cn } from '@agent-chat-ui/components/chat/internal/cn';
 
 const ChatTooltipProvider = TooltipPrimitive.Provider;
 const ChatTooltip = TooltipPrimitive.Root;

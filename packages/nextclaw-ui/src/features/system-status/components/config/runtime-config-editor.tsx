@@ -24,11 +24,14 @@ type UpdateRuntimeMutation = {
   isPending: boolean;
 };
 
-export function RuntimeConfigEditor(props: {
+export function RuntimeConfigEditor({
+  config,
+  updateRuntime
+}: {
   config: ConfigView;
   updateRuntime: UpdateRuntimeMutation;
 }) {
-  const initialState = useMemo(() => createRuntimeConfigEditorState(props.config), [props.config]);
+  const initialState = useMemo(() => createRuntimeConfigEditorState(config), [config]);
   const [agents, setAgents] = useState(initialState.agents);
   const [bindings, setBindings] = useState(initialState.bindings);
   const [runtimeEntries, setRuntimeEntries] = useState(initialState.runtimeEntries);
@@ -68,7 +71,7 @@ export function RuntimeConfigEditor(props: {
         defaultEngine,
         knownAgentIds
       });
-      props.updateRuntime.mutate({ data });
+      updateRuntime.mutate({ data });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error));
     }
@@ -109,9 +112,9 @@ export function RuntimeConfigEditor(props: {
         onAddBinding={() => setBindings((previous) => [...previous, createEmptyRuntimeBinding()])}
       />
       <div className="flex justify-end">
-        <Button type="button" onClick={handleSave} disabled={props.updateRuntime.isPending}>
+        <Button type="button" onClick={handleSave} disabled={updateRuntime.isPending}>
           <Save className="h-4 w-4 mr-2" />
-          {props.updateRuntime.isPending ? t('saving') : t('saveRuntimeSettings')}
+          {updateRuntime.isPending ? t('saving') : t('saveRuntimeSettings')}
         </Button>
       </div>
     </PageLayout>

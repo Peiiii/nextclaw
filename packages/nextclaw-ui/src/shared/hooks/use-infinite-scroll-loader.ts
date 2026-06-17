@@ -9,33 +9,37 @@ type UseInfiniteScrollLoaderParams = {
   watchValue?: string | number;
 };
 
-export function useInfiniteScrollLoader(params: UseInfiniteScrollLoaderParams) {
+export function useInfiniteScrollLoader({
+  disabled,
+  onLoadMore,
+  thresholdPx = DEFAULT_THRESHOLD_PX,
+  watchValue
+}: UseInfiniteScrollLoaderParams) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const onLoadMoreRef = useRef(params.onLoadMore);
+  const onLoadMoreRef = useRef(onLoadMore);
   const loadingRef = useRef(false);
 
   useEffect(() => {
-    onLoadMoreRef.current = params.onLoadMore;
-  }, [params.onLoadMore]);
+    onLoadMoreRef.current = onLoadMore;
+  }, [onLoadMore]);
 
   useEffect(() => {
-    if (params.disabled) {
+    if (disabled) {
       loadingRef.current = false;
     }
-  }, [params.disabled]);
+  }, [disabled]);
 
   useEffect(() => {
     const container = containerRef.current;
     const sentinel = sentinelRef.current;
-    const thresholdPx = params.thresholdPx ?? DEFAULT_THRESHOLD_PX;
 
-    if (params.disabled || !container || !sentinel) {
+    if (disabled || !container || !sentinel) {
       return;
     }
 
     const triggerLoadMore = () => {
-      if (loadingRef.current || params.disabled) {
+      if (loadingRef.current || disabled) {
         return;
       }
 
@@ -79,7 +83,7 @@ export function useInfiniteScrollLoader(params: UseInfiniteScrollLoaderParams) {
     return () => {
       container.removeEventListener('scroll', maybeLoadMore);
     };
-  }, [params.disabled, params.thresholdPx, params.watchValue]);
+  }, [disabled, thresholdPx, watchValue]);
 
   return {
     containerRef,

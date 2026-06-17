@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { ProviderScopedModelInput } from '@/shared/components/common/provider-scoped-model-input';
 import { ModelConfigPage } from '@/features/settings/pages/model-config-page';
+import { createPopoverAvailableHeightLimit } from '@/shared/components/ui/popover';
 import { setLanguage } from '@/shared/lib/i18n';
 
 const mocks = vi.hoisted(() => ({
@@ -278,5 +279,20 @@ describe('ModelConfigPage', () => {
 
     expect(providerTrigger.textContent).toContain('CustomHub');
     expect(screen.getByDisplayValue('reasoner-v1')).toBeTruthy();
+  });
+
+  it('uses the shared popover height contract for searchable model options', async () => {
+    const user = userEvent.setup();
+
+    render(<ModelConfigPage />);
+
+    await user.click(screen.getByRole('button', { name: 'Toggle model options' }));
+
+    const option = await screen.findByText('gpt-5.2');
+    const panel = option.closest('[data-state="open"]') as HTMLElement | null;
+    expect(panel?.style.maxHeight).toBe(createPopoverAvailableHeightLimit('15rem'));
+    expect(panel?.style.maxHeight).toContain('max(0px');
+    expect(panel?.style.maxHeight).toContain('100vh');
+    expect(panel?.className).toContain('overflow-hidden');
   });
 });

@@ -1,15 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
 import { CircleDotDashed, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useConfigSchema,
   useDeleteProvider,
-  useImportProviderAuthFromCli,
-  usePollProviderAuth,
   useProviders,
   useProviderTemplates,
-  useStartProviderAuth,
   useTestProviderConnection,
   useUpdateProvider
 } from '@/shared/hooks/use-config';
@@ -17,9 +13,8 @@ import { MaskedInput } from '@/shared/components/common/masked-input';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
-import { hintForPath } from '@/shared/lib/config-hints';
 import { getLanguage, t } from '@/shared/lib/i18n';
-import type { ProviderConfigUpdate, ProviderConnectionTestRequest, ThinkingLevel } from '@/shared/lib/api';
+import type { ThinkingLevel } from '@/shared/lib/api';
 import {
   ConfigSplitDetailPane,
   ConfigSplitEmptyPane,
@@ -30,44 +25,82 @@ import {
 import { ProviderAdvancedSettingsSection } from '@/features/settings/components/config/provider-advanced-settings-section';
 import { ProviderAuthSection } from '@/features/settings/components/config/provider-auth-section';
 import {
-  EMPTY_PROVIDER_CONFIG,
+  buildProviderConnectionTestPayload,
+  buildProviderSavePayload,
   formatThinkingLevelLabel,
-  headersEqual,
-  modelListsEqual,
-  modelConfigEqual,
-  mergeModelConfig,
-  normalizeHeaders,
-  normalizeModelList,
+  hasProviderFormChanges,
   normalizeModelConfigForModels,
-  resolveEditableModels,
-  resolvePreferredAuthMethodId,
-  serializeModelsForSave,
-  shouldUsePillSelector,
   THINKING_LEVELS,
-  toProviderLocalModelId,
   type ModelConfig,
   type WireApiType
 } from '@/features/settings/utils/provider-form-support.utils';
+import {
+  addProviderLocalModel,
+  removeProviderLocalModel,
+  setModelThinkingDefaultInConfig,
+  setModelVisionInConfig,
+  toggleModelThinkingLevelInConfig
+} from '@/features/settings/utils/provider-form-model.utils';
+import { resolveProviderFormContext } from '@/features/settings/utils/provider-form-context.utils';
 import { ProviderModelsSection } from './provider-models-section';
-import type { PillSelectOption } from '@/features/settings/components/config/provider-pill-selector';
 import { ProviderStatusBadge } from '@/features/settings/components/config/provider-status-badge';
-import { hostCapabilityManager } from '@/shared/lib/host-capabilities';
+import { useProviderAuthFlow } from '@/features/settings/hooks/use-provider-auth-flow';
 type ProviderFormProps = {
   providerName?: string;
   onProviderDeleted?: (providerName: string) => void;
 };
+type ProviderFormContext = ReturnType<typeof resolveProviderFormContext>;
+type ProviderFormDetailPaneProps = {
+  context: ProviderFormContext;
+  language: ReturnType<typeof getLanguage>;
+  providerTitle: string;
+  providerDisplayName: string;
+  apiKey: string;
+  apiBase: string;
+  extraHeaders: Record<string, string> | null;
+  wireApi: WireApiType;
+  models: string[];
+  modelConfig: ModelConfig;
+  modelDraft: string;
+  showAdvanced: boolean;
+  showModelInput: boolean;
+  resolvedAuthMethodId: string;
+  authSessionId: string | null;
+  authStatusMessage: string;
+  hasChanges: boolean;
+  isDeletePending: boolean;
+  isUpdatePending: boolean;
+  isTestPending: boolean;
+  startPending: boolean;
+  importPending: boolean;
+  onProviderDisplayNameChange: (value: string) => void;
+  onApiKeyChange: (value: string) => void;
+  onApiBaseChange: (value: string) => void;
+  onAuthMethodChange: (value: string) => void;
+  onStartProviderAuth: () => void;
+  onImportProviderAuthFromCli: () => void;
+  onModelDraftChange: (value: string) => void;
+  onShowModelInputChange: (show: boolean) => void;
+  onAddModel: () => void;
+  onRemoveModel: (modelName: string) => void;
+  onToggleModelThinkingLevel: (modelName: string, level: ThinkingLevel) => void;
+  onSetModelThinkingDefault: (modelName: string, level: ThinkingLevel | null) => void;
+  onSetModelVision: (modelName: string, vision: boolean) => void;
+  onShowAdvancedChange: (show: boolean) => void;
+  onWireApiChange: (wireApi: WireApiType) => void;
+  onExtraHeadersChange: (headers: Record<string, string> | null) => void;
+  onDeleteProvider: () => void;
+  onSubmit: React.FormEventHandler<HTMLFormElement>;
+  onTestConnection: () => void;
+};
 
 export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormProps) {
-  const queryClient = useQueryClient();
   const { data: providersView } = useProviders();
   const { data: templatesView } = useProviderTemplates();
   const { data: schema } = useConfigSchema();
   const updateProvider = useUpdateProvider();
   const deleteProvider = useDeleteProvider();
   const testProviderConnection = useTestProviderConnection();
-  const startProviderAuth = useStartProviderAuth();
-  const pollProviderAuth = usePollProviderAuth();
-  const importProviderAuthFromCli = useImportProviderAuthFromCli();
 
   const [apiKey, setApiKey] = useState('');
   const [apiBase, setApiBase] = useState('');
@@ -79,74 +112,30 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   const [providerDisplayName, setProviderDisplayName] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showModelInput, setShowModelInput] = useState(false);
-  const [authSessionId, setAuthSessionId] = useState<string | null>(null);
-  const [authStatusMessage, setAuthStatusMessage] = useState('');
   const [authMethodId, setAuthMethodId] = useState('');
-  const authPollTimerRef = useRef<number | null>(null);
 
-  const providerConfig = providerName ? providersView?.providers[providerName] : null;
-  const providerSpec = templatesView?.providerTemplates.find((template) => template.providerType === providerConfig?.providerType);
-  const resolvedProviderConfig = providerConfig ?? EMPTY_PROVIDER_CONFIG;
-  const uiHints = schema?.uiHints;
-  const isCustomProvider = Boolean(providerConfig?.isCustom);
-  const apiKeyHint = providerName ? hintForPath(`providers.${providerName}.apiKey`, uiHints) : undefined;
-  const apiBaseHint = providerName ? hintForPath(`providers.${providerName}.apiBase`, uiHints) : undefined;
-  const extraHeadersHint = providerName ? hintForPath(`providers.${providerName}.extraHeaders`, uiHints) : undefined;
-  const wireApiHint = providerName ? hintForPath(`providers.${providerName}.wireApi`, uiHints) : undefined;
-  const defaultDisplayName = providerSpec?.displayName || providerConfig?.displayName || providerName || '';
-  const currentDisplayName = (resolvedProviderConfig.displayName || '').trim();
-  const effectiveDisplayName = currentDisplayName || defaultDisplayName;
-  const currentEnabled = resolvedProviderConfig.enabled !== false;
-  const providerTitle = providerDisplayName.trim() || effectiveDisplayName || providerName || t('providersSelectPlaceholder');
-  const providerModelAliases = useMemo(
-    () => normalizeModelList([providerSpec?.modelPrefix || providerSpec?.providerType || '', providerName || '']),
-    [providerName, providerSpec?.modelPrefix, providerSpec?.providerType]
-  );
-  const defaultApiBase = providerSpec?.defaultApiBase || '';
-  const currentApiBase = resolvedProviderConfig.apiBase || defaultApiBase;
-  const currentHeaders = normalizeHeaders(resolvedProviderConfig.extraHeaders || null);
-  const currentWireApi = (resolvedProviderConfig.wireApi || providerSpec?.defaultWireApi || 'auto') as WireApiType;
-  const defaultModels = useMemo(
-    () =>
-      normalizeModelList(
-        (providerSpec?.defaultModels ?? []).map((model) => toProviderLocalModelId(model, providerModelAliases))
-      ),
-    [providerSpec?.defaultModels, providerModelAliases]
-  );
-  const currentModels = useMemo(
-    () =>
-      normalizeModelList(
-        (resolvedProviderConfig.models ?? []).map((model) => toProviderLocalModelId(model, providerModelAliases))
-      ),
-    [resolvedProviderConfig.models, providerModelAliases]
-  );
-  const currentEditableModels = useMemo(() => resolveEditableModels(defaultModels, currentModels), [defaultModels, currentModels]);
-  const currentModelConfig = useMemo(
-    () =>
-      normalizeModelConfigForModels(
-        mergeModelConfig(providerSpec?.modelConfig, resolvedProviderConfig.modelConfig, providerModelAliases),
-        currentEditableModels
-      ),
-    [currentEditableModels, providerModelAliases, providerSpec?.modelConfig, resolvedProviderConfig.modelConfig]
-  );
   const language = getLanguage();
-  const apiBaseHelpText =
-    providerSpec?.apiBaseHelp?.[language] || providerSpec?.apiBaseHelp?.en || apiBaseHint?.help || t('providerApiBaseHelp');
-  const providerAuth = providerSpec?.auth;
-  const providerAuthMethods = useMemo(() => providerAuth?.methods ?? [], [providerAuth?.methods]);
-  const supportsWireApi = Boolean(providerSpec?.supportsWireApi) || isCustomProvider;
-  const providerAuthMethodOptions = useMemo(
-    () =>
-      providerAuthMethods.map((method) => ({
-        value: method.id,
-        label: method.label?.[language] || method.label?.en || method.id
-      })),
-    [providerAuthMethods, language]
+  const providerFormContext = useMemo(
+    () => resolveProviderFormContext({ providerName, providersView, templatesView, schema, language }),
+    [language, providerName, providersView, schema, templatesView]
   );
-  const preferredAuthMethodId = useMemo(
-    () => resolvePreferredAuthMethodId({ providerName: providerSpec?.providerType ?? providerName, methods: providerAuthMethods, defaultMethodId: providerAuth?.defaultMethodId, language }),
-    [providerName, providerAuth?.defaultMethodId, providerAuthMethods, language, providerSpec?.providerType]
-  );
+  const {
+    currentApiBase,
+    currentEditableModels,
+    currentHeaders,
+    currentModelConfig,
+    currentWireApi,
+    defaultApiBase,
+    effectiveDisplayName,
+    providerAuth,
+    providerAuthMethods,
+    providerConfig,
+    providerModelAliases,
+    resolvedProviderConfig,
+    preferredAuthMethodId,
+    supportsWireApi,
+  } = providerFormContext;
+  const providerTitle = providerDisplayName.trim() || effectiveDisplayName || providerName || t('providersSelectPlaceholder');
   const resolvedAuthMethodId = useMemo(() => {
     if (!providerAuthMethods.length) {
       return '';
@@ -157,72 +146,14 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     }
     return preferredAuthMethodId || providerAuthMethods[0]?.id || '';
   }, [authMethodId, preferredAuthMethodId, providerAuthMethods]);
-  const selectedAuthMethod = useMemo(
-    () => providerAuthMethods.find((method) => method.id === resolvedAuthMethodId),
-    [providerAuthMethods, resolvedAuthMethodId]
-  );
-  const shouldUseAuthMethodPills = shouldUsePillSelector({
-    required: providerAuth?.kind === 'device_code',
-    hasDefault: Boolean(providerAuth?.defaultMethodId?.trim()),
-    optionCount: providerAuthMethods.length
-  });
-  const wireApiSelectOptions: PillSelectOption[] = (providerSpec?.wireApiOptions || ['auto', 'chat', 'responses']).map((option) => ({
-    value: option,
-    label: option === 'chat' ? t('wireApiChat') : option === 'responses' ? t('wireApiResponses') : t('wireApiAuto')
-  }));
-  const shouldUseWireApiPills = shouldUsePillSelector({
-    required: supportsWireApi,
-    hasDefault: typeof providerSpec?.defaultWireApi === 'string' && providerSpec.defaultWireApi.length > 0,
-    optionCount: wireApiSelectOptions.length
-  });
-
-  const clearAuthPollTimer = useCallback(() => {
-    if (authPollTimerRef.current !== null) {
-      window.clearTimeout(authPollTimerRef.current);
-      authPollTimerRef.current = null;
-    }
-  }, []);
-
-  const scheduleProviderAuthPoll = useCallback(
-    (sessionId: string, delayMs: number) => {
-      clearAuthPollTimer();
-      authPollTimerRef.current = window.setTimeout(() => {
-        void (async () => {
-          if (!providerName) {
-            return;
-          }
-          try {
-            const result = await pollProviderAuth.mutateAsync({ provider: providerName, data: { sessionId } });
-            if (result.status === 'pending') {
-              setAuthStatusMessage(t('providerAuthWaitingBrowser'));
-              scheduleProviderAuthPoll(sessionId, result.nextPollMs ?? delayMs);
-              return;
-            }
-            if (result.status === 'authorized') {
-              setAuthSessionId(null);
-              clearAuthPollTimer();
-              setAuthStatusMessage(t('providerAuthCompleted'));
-              toast.success(t('providerAuthCompleted'));
-              queryClient.invalidateQueries({ queryKey: ['config'] });
-              queryClient.invalidateQueries({ queryKey: ['providers'] });
-              return;
-            }
-            setAuthSessionId(null);
-            clearAuthPollTimer();
-            setAuthStatusMessage(result.message || `Authorization ${result.status}.`);
-            toast.error(result.message || `Authorization ${result.status}.`);
-          } catch (error) {
-            setAuthSessionId(null);
-            clearAuthPollTimer();
-            const message = error instanceof Error ? error.message : String(error);
-            setAuthStatusMessage(message);
-            toast.error(`Authorization failed: ${message}`);
-          }
-        })();
-      }, Math.max(1000, delayMs));
-    },
-    [clearAuthPollTimer, pollProviderAuth, providerName, queryClient]
-  );
+  const {
+    authSessionId,
+    authStatusMessage,
+    importAuthFromCli,
+    importPending,
+    startAuth,
+    startPending
+  } = useProviderAuthFlow({ providerName, providerAuth, resolvedAuthMethodId });
 
   useEffect(() => {
     if (!providerName) {
@@ -234,10 +165,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
       setModelConfig({});
       setModelDraft('');
       setProviderDisplayName('');
-      setAuthSessionId(null);
-      setAuthStatusMessage('');
       setAuthMethodId('');
-      clearAuthPollTimer();
       return;
     }
 
@@ -249,10 +177,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     setModelConfig(currentModelConfig);
     setModelDraft('');
     setProviderDisplayName(effectiveDisplayName);
-    setAuthSessionId(null);
-    setAuthStatusMessage('');
     setAuthMethodId(preferredAuthMethodId);
-    clearAuthPollTimer();
   }, [
     providerName,
     currentApiBase,
@@ -261,26 +186,29 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     currentEditableModels,
     currentModelConfig,
     effectiveDisplayName,
-    preferredAuthMethodId,
-    clearAuthPollTimer
+    preferredAuthMethodId
   ]);
 
-  useEffect(() => () => clearAuthPollTimer(), [clearAuthPollTimer]);
   useEffect(() => setModelConfig((prev) => normalizeModelConfigForModels(prev, models)), [models]);
 
   const hasChanges = useMemo(() => {
-    if (!providerName) {
-      return false;
-    }
-    return (
-      apiKey.trim().length > 0 ||
-      apiBase.trim() !== currentApiBase.trim() ||
-      !headersEqual(extraHeaders, currentHeaders) ||
-      (supportsWireApi && wireApi !== currentWireApi) ||
-      !modelListsEqual(models, currentEditableModels) ||
-      !modelConfigEqual(modelConfig, currentModelConfig) ||
-      providerDisplayName.trim() !== effectiveDisplayName
-    );
+    return hasProviderFormChanges({
+      providerName,
+      apiKey,
+      apiBase,
+      currentApiBase,
+      extraHeaders,
+      currentHeaders,
+      supportsWireApi,
+      wireApi,
+      currentWireApi,
+      models,
+      currentEditableModels,
+      modelConfig,
+      currentModelConfig,
+      providerDisplayName,
+      effectiveDisplayName
+    });
   }, [
     providerName,
     apiKey,
@@ -300,89 +228,25 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   ]);
 
   const handleAddModel = () => {
-    const next = toProviderLocalModelId(modelDraft, providerModelAliases);
-    if (!next) {
-      return;
-    }
-    if (next.includes('/')) {
+    const result = addProviderLocalModel(models, modelDraft, providerModelAliases);
+    if (result.errorKey) {
       toast.error(t('providerModelInvalidProviderPrefix'));
       return;
     }
-    if (models.includes(next)) {
-      setModelDraft('');
-      return;
-    }
-    setModels((prev) => [...prev, next]);
-    setModelDraft('');
+    setModels(result.models);
+    setModelDraft(result.draft);
   };
 
   const toggleModelThinkingLevel = (modelName: string, level: ThinkingLevel) => {
-    setModelConfig((prev) => {
-      const currentEntry = prev[modelName];
-      const currentLevels = currentEntry?.thinking?.supported ?? [];
-      const nextLevels = currentLevels.includes(level)
-        ? currentLevels.filter((item) => item !== level)
-        : THINKING_LEVELS.filter((item) => item === level || currentLevels.includes(item));
-      const nextDefault =
-        currentEntry?.thinking?.default && nextLevels.includes(currentEntry.thinking.default)
-          ? currentEntry.thinking.default
-          : undefined;
-      const nextEntry = {
-        ...currentEntry,
-        thinking:
-          nextLevels.length > 0
-            ? nextDefault
-              ? { supported: nextLevels, default: nextDefault }
-              : { supported: nextLevels }
-            : undefined
-      };
-      const next = { ...prev };
-      if (nextEntry.thinking || nextEntry.vision === true) {
-        next[modelName] = nextEntry;
-      } else {
-        delete next[modelName];
-      }
-      return next;
-    });
+    setModelConfig((prev) => toggleModelThinkingLevelInConfig(prev, modelName, level));
   };
 
   const setModelThinkingDefault = (modelName: string, level: ThinkingLevel | null) => {
-    setModelConfig((prev) => {
-      const currentEntry = prev[modelName];
-      const currentThinking = currentEntry?.thinking;
-      if (!currentThinking || currentThinking.supported.length === 0) {
-        return prev;
-      }
-      if (level && !currentThinking.supported.includes(level)) {
-        return prev;
-      }
-      return {
-        ...prev,
-        [modelName]: {
-          ...currentEntry,
-          thinking: level
-            ? { supported: currentThinking.supported, default: level }
-            : { supported: currentThinking.supported }
-        }
-      };
-    });
+    setModelConfig((prev) => setModelThinkingDefaultInConfig(prev, modelName, level));
   };
 
   const setModelVision = (modelName: string, vision: boolean) => {
-    setModelConfig((prev) => {
-      const currentEntry = prev[modelName];
-      const nextEntry = {
-        ...currentEntry,
-        vision: vision ? true : undefined
-      };
-      const next = { ...prev };
-      if (nextEntry.thinking || nextEntry.vision === true) {
-        next[modelName] = nextEntry;
-      } else {
-        delete next[modelName];
-      }
-      return next;
-    });
+    setModelConfig((prev) => setModelVisionInConfig(prev, modelName, vision));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -391,57 +255,46 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
       return;
     }
 
-    const payload: ProviderConfigUpdate = {};
-    const trimmedApiKey = apiKey.trim();
-    const trimmedApiBase = apiBase.trim();
-    const normalizedHeaders = normalizeHeaders(extraHeaders);
-    const trimmedDisplayName = providerDisplayName.trim();
-
-    if (trimmedDisplayName !== effectiveDisplayName) {
-      payload.displayName = trimmedDisplayName.length > 0 ? trimmedDisplayName : null;
-    }
-    if (trimmedApiKey.length > 0) {
-      payload.apiKey = trimmedApiKey;
-    }
-    if (trimmedApiBase !== currentApiBase.trim()) {
-      payload.apiBase = trimmedApiBase.length > 0 && trimmedApiBase !== defaultApiBase ? trimmedApiBase : null;
-    }
-    if (!headersEqual(normalizedHeaders, currentHeaders)) {
-      payload.extraHeaders = normalizedHeaders;
-    }
-    if (supportsWireApi && wireApi !== currentWireApi) {
-      payload.wireApi = wireApi;
-    }
-    if (!modelListsEqual(models, currentEditableModels)) {
-      payload.models = serializeModelsForSave(models, providerName);
-    }
-    if (!modelConfigEqual(modelConfig, currentModelConfig)) {
-      payload.modelConfig = normalizeModelConfigForModels(modelConfig, models);
-    }
-
-    updateProvider.mutate({ provider: providerName, data: payload });
+    updateProvider.mutate({
+      provider: providerName,
+      data: buildProviderSavePayload({
+        providerName,
+        apiKey,
+        apiBase,
+        currentApiBase,
+        defaultApiBase,
+        extraHeaders,
+        currentHeaders,
+        supportsWireApi,
+        wireApi,
+        currentWireApi,
+        models,
+        currentEditableModels,
+        modelConfig,
+        currentModelConfig,
+        providerDisplayName,
+        effectiveDisplayName
+      })
+    });
   };
 
   const handleTestConnection = async () => {
     if (!providerName) {
       return;
     }
-    const preferredModel = models.find((modelName) => modelName.trim().length > 0) ?? '';
-    const testModel = toProviderLocalModelId(preferredModel, providerModelAliases);
-    const payload: ProviderConnectionTestRequest = {
-      apiBase: apiBase.trim(),
-      extraHeaders: normalizeHeaders(extraHeaders),
-      model: testModel || null
-    };
-    if (apiKey.trim().length > 0) {
-      payload.apiKey = apiKey.trim();
-    }
-    if (supportsWireApi) {
-      payload.wireApi = wireApi;
-    }
-
     try {
-      const result = await testProviderConnection.mutateAsync({ provider: providerName, data: payload });
+      const result = await testProviderConnection.mutateAsync({
+        provider: providerName,
+        data: buildProviderConnectionTestPayload({
+          apiKey,
+          apiBase,
+          extraHeaders,
+          supportsWireApi,
+          wireApi,
+          models,
+          providerModelAliases
+        })
+      });
       if (result.success) {
         toast.success(`${t('providerTestConnectionSuccess')} (${result.latencyMs}ms)`);
         return;
@@ -472,52 +325,6 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     }
   };
 
-  const handleStartProviderAuth = async () => {
-    if (!providerName || providerAuth?.kind !== 'device_code') {
-      return;
-    }
-
-    try {
-      setAuthStatusMessage('');
-      const result = await startProviderAuth.mutateAsync({
-        provider: providerName,
-        data: resolvedAuthMethodId ? { methodId: resolvedAuthMethodId } : {}
-      });
-      if (!result.sessionId || !result.verificationUri) {
-        throw new Error(t('providerAuthStartFailed'));
-      }
-      setAuthSessionId(result.sessionId);
-      setAuthStatusMessage(`${t('providerAuthOpenPrompt')}${result.userCode}${t('providerAuthOpenPromptSuffix')}`);
-      await hostCapabilityManager.openExternalUrl(result.verificationUri);
-      scheduleProviderAuthPoll(result.sessionId, result.intervalMs);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setAuthSessionId(null);
-      clearAuthPollTimer();
-      setAuthStatusMessage(message);
-      toast.error(`${t('providerAuthStartFailed')}: ${message}`);
-    }
-  };
-
-  const handleImportProviderAuthFromCli = async () => {
-    if (!providerName || providerAuth?.kind !== 'device_code') {
-      return;
-    }
-    try {
-      clearAuthPollTimer();
-      setAuthSessionId(null);
-      const result = await importProviderAuthFromCli.mutateAsync({ provider: providerName });
-      setAuthStatusMessage(`${t('providerAuthImportStatusPrefix')}${result.expiresAt ? ` (expires: ${result.expiresAt})` : ''}`);
-      toast.success(t('providerAuthImportSuccess'));
-      queryClient.invalidateQueries({ queryKey: ['config'] });
-      queryClient.invalidateQueries({ queryKey: ['providers'] });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setAuthStatusMessage(message);
-      toast.error(`${t('providerAuthImportFailed')}: ${message}`);
-    }
-  };
-
   if (!providerName || !providerConfig) {
     return (
       <ConfigSplitEmptyPane>
@@ -530,6 +337,103 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   }
 
   return (
+    <ProviderFormDetailPane
+      context={providerFormContext}
+      language={language}
+      providerTitle={providerTitle}
+      providerDisplayName={providerDisplayName}
+      apiKey={apiKey}
+      apiBase={apiBase}
+      extraHeaders={extraHeaders}
+      wireApi={wireApi}
+      models={models}
+      modelConfig={modelConfig}
+      modelDraft={modelDraft}
+      showAdvanced={showAdvanced}
+      showModelInput={showModelInput}
+      resolvedAuthMethodId={resolvedAuthMethodId}
+      authSessionId={authSessionId}
+      authStatusMessage={authStatusMessage}
+      hasChanges={hasChanges}
+      isDeletePending={deleteProvider.isPending}
+      isUpdatePending={updateProvider.isPending}
+      isTestPending={testProviderConnection.isPending}
+      startPending={startPending}
+      importPending={importPending}
+      onProviderDisplayNameChange={setProviderDisplayName}
+      onApiKeyChange={setApiKey}
+      onApiBaseChange={setApiBase}
+      onAuthMethodChange={setAuthMethodId}
+      onStartProviderAuth={startAuth}
+      onImportProviderAuthFromCli={importAuthFromCli}
+      onModelDraftChange={setModelDraft}
+      onShowModelInputChange={setShowModelInput}
+      onAddModel={handleAddModel}
+      onRemoveModel={(modelName) => {
+        const next = removeProviderLocalModel(models, modelConfig, modelName);
+        setModels(next.models);
+        setModelConfig(next.modelConfig);
+      }}
+      onToggleModelThinkingLevel={toggleModelThinkingLevel}
+      onSetModelThinkingDefault={setModelThinkingDefault}
+      onSetModelVision={setModelVision}
+      onShowAdvancedChange={setShowAdvanced}
+      onWireApiChange={setWireApi}
+      onExtraHeadersChange={setExtraHeaders}
+      onDeleteProvider={handleDeleteProvider}
+      onSubmit={handleSubmit}
+      onTestConnection={handleTestConnection}
+    />
+  );
+}
+
+function ProviderFormDetailPane(props: ProviderFormDetailPaneProps) {
+  const {
+    context,
+    language,
+    providerTitle,
+    providerDisplayName,
+    apiKey,
+    apiBase,
+    extraHeaders,
+    wireApi,
+    models,
+    modelConfig,
+    modelDraft,
+    showAdvanced,
+    showModelInput,
+    resolvedAuthMethodId,
+    authSessionId,
+    authStatusMessage,
+    hasChanges,
+    isDeletePending,
+    isUpdatePending,
+    isTestPending,
+    startPending,
+    importPending,
+    onProviderDisplayNameChange,
+    onApiKeyChange,
+    onApiBaseChange,
+    onAuthMethodChange,
+    onStartProviderAuth,
+    onImportProviderAuthFromCli,
+    onModelDraftChange,
+    onShowModelInputChange,
+    onAddModel,
+    onRemoveModel,
+    onToggleModelThinkingLevel,
+    onSetModelThinkingDefault,
+    onSetModelVision,
+    onShowAdvancedChange,
+    onWireApiChange,
+    onExtraHeadersChange,
+    onDeleteProvider,
+    onSubmit,
+    onTestConnection
+  } = props;
+  const selectedAuthMethod = context.providerAuthMethods.find((method) => method.id === resolvedAuthMethodId);
+
+  return (
     <ConfigSplitDetailPane>
       <ConfigSplitPaneHeader className='px-6 py-4'>
         <div className='flex items-center justify-between'>
@@ -537,19 +441,19 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
           <div className='flex items-center gap-3'>
             <button
               type='button'
-              onClick={handleDeleteProvider}
-              disabled={deleteProvider.isPending}
+              onClick={onDeleteProvider}
+              disabled={isDeletePending}
               className='text-gray-400 transition-colors hover:text-red-500'
               title={t('providerDelete')}
             >
               <Trash2 className='h-4 w-4' />
             </button>
-            <ProviderStatusBadge enabled={currentEnabled} apiKeySet={resolvedProviderConfig.apiKeySet} />
+            <ProviderStatusBadge enabled={context.currentEnabled} apiKeySet={context.resolvedProviderConfig.apiKeySet} />
           </div>
         </div>
       </ConfigSplitPaneHeader>
 
-      <form onSubmit={handleSubmit} className='flex min-h-0 flex-1 flex-col'>
+      <form onSubmit={onSubmit} className='flex min-h-0 flex-1 flex-col'>
         <ConfigSplitPaneBody className='space-y-5 px-6 py-5'>
           <div className='space-y-2'>
             <Label htmlFor='providerDisplayName' className='text-sm font-medium text-gray-900'>
@@ -559,8 +463,8 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
               id='providerDisplayName'
               type='text'
               value={providerDisplayName}
-              onChange={(e) => setProviderDisplayName(e.target.value)}
-              placeholder={defaultDisplayName || t('providerDisplayNamePlaceholder')}
+              onChange={(e) => onProviderDisplayNameChange(e.target.value)}
+              placeholder={context.defaultDisplayName || t('providerDisplayNamePlaceholder')}
               className='rounded-xl'
             />
             <p className='text-xs text-gray-500'>{t('providerDisplayNameHelpShort')}</p>
@@ -568,49 +472,49 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
 
           <div className='space-y-2'>
             <Label htmlFor='apiKey' className='text-sm font-medium text-gray-900'>
-              {apiKeyHint?.label ?? t('apiKey')}
+              {context.apiKeyHint?.label ?? t('apiKey')}
             </Label>
             <MaskedInput
               id='apiKey'
               value={apiKey}
-              isSet={resolvedProviderConfig.apiKeySet}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder={apiKeyHint?.placeholder ?? t('enterApiKey')}
+              isSet={context.resolvedProviderConfig.apiKeySet}
+              onChange={(e) => onApiKeyChange(e.target.value)}
+              placeholder={context.apiKeyHint?.placeholder ?? t('enterApiKey')}
               className='rounded-xl'
             />
             <p className='text-xs text-gray-500'>{t('leaveBlankToKeepUnchanged')}</p>
           </div>
 
           <ProviderAuthSection
-            providerAuth={providerAuth}
-            providerAuthNote={providerAuth?.note?.[language] || providerAuth?.note?.en || providerAuth?.displayName || ''}
-            providerAuthMethodOptions={providerAuthMethodOptions}
-            providerAuthMethodsCount={providerAuthMethods.length}
+            providerAuth={context.providerAuth}
+            providerAuthNote={context.providerAuth?.note?.[language] || context.providerAuth?.note?.en || context.providerAuth?.displayName || ''}
+            providerAuthMethodOptions={context.providerAuthMethodOptions}
+            providerAuthMethodsCount={context.providerAuthMethods.length}
             selectedAuthMethodHint={selectedAuthMethod?.hint?.[language] || selectedAuthMethod?.hint?.en || ''}
-            shouldUseAuthMethodPills={shouldUseAuthMethodPills}
+            shouldUseAuthMethodPills={context.shouldUseAuthMethodPills}
             resolvedAuthMethodId={resolvedAuthMethodId}
-            onAuthMethodChange={setAuthMethodId}
-            onStartProviderAuth={handleStartProviderAuth}
-            onImportProviderAuthFromCli={handleImportProviderAuthFromCli}
-            startPending={startProviderAuth.isPending}
-            importPending={importProviderAuthFromCli.isPending}
+            onAuthMethodChange={onAuthMethodChange}
+            onStartProviderAuth={onStartProviderAuth}
+            onImportProviderAuthFromCli={onImportProviderAuthFromCli}
+            startPending={startPending}
+            importPending={importPending}
             authSessionId={authSessionId}
             authStatusMessage={authStatusMessage}
           />
 
           <div className='space-y-2'>
             <Label htmlFor='apiBase' className='text-sm font-medium text-gray-900'>
-              {apiBaseHint?.label ?? t('apiBase')}
+              {context.apiBaseHint?.label ?? t('apiBase')}
             </Label>
             <Input
               id='apiBase'
               type='text'
               value={apiBase}
-              onChange={(e) => setApiBase(e.target.value)}
-              placeholder={defaultApiBase || apiBaseHint?.placeholder || 'https://api.example.com'}
+              onChange={(e) => onApiBaseChange(e.target.value)}
+              placeholder={context.defaultApiBase || context.apiBaseHint?.placeholder || 'https://api.example.com'}
               className='rounded-xl'
             />
-            <p className='text-xs text-gray-500'>{apiBaseHelpText}</p>
+            <p className='text-xs text-gray-500'>{context.apiBaseHelpText}</p>
           </div>
 
           <ProviderModelsSection
@@ -618,46 +522,39 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
             modelConfig={modelConfig}
             modelDraft={modelDraft}
             showModelInput={showModelInput}
-            onModelDraftChange={setModelDraft}
-            onShowModelInputChange={setShowModelInput}
-            onAddModel={handleAddModel}
-            onRemoveModel={(modelName) => {
-              setModels((prev) => prev.filter((name) => name !== modelName));
-              setModelConfig((prev) => {
-                const next = { ...prev };
-                delete next[modelName];
-                return next;
-              });
-            }}
-            onToggleModelThinkingLevel={toggleModelThinkingLevel}
-            onSetModelThinkingDefault={setModelThinkingDefault}
-            onSetModelVision={setModelVision}
+            onModelDraftChange={onModelDraftChange}
+            onShowModelInputChange={onShowModelInputChange}
+            onAddModel={onAddModel}
+            onRemoveModel={onRemoveModel}
+            onToggleModelThinkingLevel={onToggleModelThinkingLevel}
+            onSetModelThinkingDefault={onSetModelThinkingDefault}
+            onSetModelVision={onSetModelVision}
             thinkingLevels={THINKING_LEVELS}
             formatThinkingLevelLabel={formatThinkingLevelLabel}
           />
 
           <ProviderAdvancedSettingsSection
             showAdvanced={showAdvanced}
-            onShowAdvancedChange={setShowAdvanced}
-            supportsWireApi={supportsWireApi}
-            wireApiLabel={wireApiHint?.label ?? t('wireApi')}
+            onShowAdvancedChange={onShowAdvancedChange}
+            supportsWireApi={context.supportsWireApi}
+            wireApiLabel={context.wireApiHint?.label ?? t('wireApi')}
             wireApi={wireApi}
-            onWireApiChange={setWireApi}
-            shouldUseWireApiPills={shouldUseWireApiPills}
-            wireApiSelectOptions={wireApiSelectOptions}
-            extraHeadersLabel={extraHeadersHint?.label ?? t('extraHeaders')}
+            onWireApiChange={onWireApiChange}
+            shouldUseWireApiPills={context.shouldUseWireApiPills}
+            wireApiSelectOptions={context.wireApiSelectOptions}
+            extraHeadersLabel={context.extraHeadersHint?.label ?? t('extraHeaders')}
             extraHeaders={extraHeaders}
-            onExtraHeadersChange={setExtraHeaders}
+            onExtraHeadersChange={onExtraHeadersChange}
           />
         </ConfigSplitPaneBody>
 
         <ConfigSplitPaneFooter className='flex items-center justify-between px-6 py-4'>
-          <Button type='button' variant='outline' size='sm' onClick={handleTestConnection} disabled={testProviderConnection.isPending}>
+          <Button type='button' variant='outline' size='sm' onClick={onTestConnection} disabled={isTestPending}>
             <CircleDotDashed className='mr-1.5 h-4 w-4' />
-            {testProviderConnection.isPending ? t('providerTestingConnection') : t('providerTestConnection')}
+            {isTestPending ? t('providerTestingConnection') : t('providerTestConnection')}
           </Button>
-          <Button type='submit' disabled={updateProvider.isPending || !hasChanges}>
-            {updateProvider.isPending ? t('saving') : hasChanges ? t('save') : t('unchanged')}
+          <Button type='submit' disabled={isUpdatePending || !hasChanges}>
+            {isUpdatePending ? t('saving') : hasChanges ? t('save') : t('unchanged')}
           </Button>
         </ConfigSplitPaneFooter>
       </form>

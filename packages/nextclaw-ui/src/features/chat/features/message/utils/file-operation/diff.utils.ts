@@ -24,16 +24,17 @@ export function buildRawPreviewBlock(params: {
   oldStartLine?: number | null;
   newStartLine?: number | null;
 }): ParsedBlock | null {
-  const previewText = params.text.trim();
+  const { newStartLine: rawNewStartLine, oldStartLine: rawOldStartLine, operation, path, text } = params;
+  const previewText = text.trim();
   if (!previewText) {
     return null;
   }
   const previewKind =
-    params.operation?.trim().toLowerCase() === "write" ? "add" : "context";
+    operation?.trim().toLowerCase() === "write" ? "add" : "context";
   const oldStartLine =
-    typeof params.oldStartLine === "number" ? params.oldStartLine : 1;
+    typeof rawOldStartLine === "number" ? rawOldStartLine : 1;
   const newStartLine =
-    typeof params.newStartLine === "number" ? params.newStartLine : 1;
+    typeof rawNewStartLine === "number" ? rawNewStartLine : 1;
   const lines = buildPreviewLines({
     text: previewText,
     kind: previewKind,
@@ -41,10 +42,10 @@ export function buildRawPreviewBlock(params: {
     newStartLine,
   });
   return {
-    path: params.path,
+    path,
     display: "preview",
     caption: buildCaption({
-      operation: params.operation,
+      operation,
       lines,
     }),
     lines,
@@ -62,10 +63,11 @@ export function buildFullReplaceBlock(params: {
   oldStartLine?: number | null;
   newStartLine?: number | null;
 }): ParsedBlock | null {
+  const { afterText, beforeText, operation, path } = params;
   const { oldStartLine, newStartLine } = readDefaultDiffStartLines(params);
   const lines = buildLineDiff({
-    beforeText: params.beforeText ?? "",
-    afterText: params.afterText ?? "",
+    beforeText: beforeText ?? "",
+    afterText: afterText ?? "",
     oldStartLine,
     newStartLine,
   });
@@ -74,16 +76,16 @@ export function buildFullReplaceBlock(params: {
     return null;
   }
   return {
-    path: params.path,
+    path,
     display: "diff",
     caption: buildCaption({
-      operation: params.operation,
+      operation,
       lines,
     }),
     lines: limited.lines,
     ...(limited.truncated ? { fullLines: lines } : {}),
-    ...(params.beforeText != null ? { beforeText: params.beforeText } : {}),
-    ...(params.afterText != null ? { afterText: params.afterText } : {}),
+    ...(beforeText != null ? { beforeText } : {}),
+    ...(afterText != null ? { afterText } : {}),
     ...(typeof oldStartLine === "number" ? { oldStartLine } : {}),
     ...(typeof newStartLine === "number" ? { newStartLine } : {}),
     truncated: limited.truncated,
@@ -95,23 +97,24 @@ function updateApplyPatchCursor(params: {
   flushCurrent: () => void;
   setCurrent: (path: string, operation: string) => void;
 }): boolean {
-  if (params.line.startsWith("*** Update File: ")) {
-    params.flushCurrent();
-    params.setCurrent(
-      params.line.slice("*** Update File: ".length).trim(),
+  const { flushCurrent, line, setCurrent } = params;
+  if (line.startsWith("*** Update File: ")) {
+    flushCurrent();
+    setCurrent(
+      line.slice("*** Update File: ".length).trim(),
       "update",
     );
     return true;
   }
-  if (params.line.startsWith("*** Add File: ")) {
-    params.flushCurrent();
-    params.setCurrent(params.line.slice("*** Add File: ".length).trim(), "add");
+  if (line.startsWith("*** Add File: ")) {
+    flushCurrent();
+    setCurrent(line.slice("*** Add File: ".length).trim(), "add");
     return true;
   }
-  if (params.line.startsWith("*** Delete File: ")) {
-    params.flushCurrent();
-    params.setCurrent(
-      params.line.slice("*** Delete File: ".length).trim(),
+  if (line.startsWith("*** Delete File: ")) {
+    flushCurrent();
+    setCurrent(
+      line.slice("*** Delete File: ".length).trim(),
       "delete",
     );
     return true;
@@ -128,18 +131,18 @@ function appendPatchLine(params: {
   oldLineNumber?: number;
   newLineNumber?: number;
 } {
-  const { currentLines, line } = params;
+  const { currentLines, line, newLineNumber, oldLineNumber } = params;
   if (line.startsWith("+")) {
     currentLines.push(
       createLine({
         kind: "add",
         text: line.slice(1),
-        newLineNumber: params.newLineNumber,
+        newLineNumber,
       }),
     );
     return {
-      oldLineNumber: params.oldLineNumber,
-      newLineNumber: incrementLineNumber(params.newLineNumber),
+      oldLineNumber,
+      newLineNumber: incrementLineNumber(newLineNumber),
     };
   }
   if (line.startsWith("-")) {
@@ -147,12 +150,12 @@ function appendPatchLine(params: {
       createLine({
         kind: "remove",
         text: line.slice(1),
-        oldLineNumber: params.oldLineNumber,
+        oldLineNumber,
       }),
     );
     return {
-      oldLineNumber: incrementLineNumber(params.oldLineNumber),
-      newLineNumber: params.newLineNumber,
+      oldLineNumber: incrementLineNumber(oldLineNumber),
+      newLineNumber,
     };
   }
   if (line.startsWith(" ")) {
@@ -160,18 +163,18 @@ function appendPatchLine(params: {
       createLine({
         kind: "context",
         text: line.slice(1),
-        oldLineNumber: params.oldLineNumber,
-        newLineNumber: params.newLineNumber,
+        oldLineNumber,
+        newLineNumber,
       }),
     );
     return {
-      oldLineNumber: incrementLineNumber(params.oldLineNumber),
-      newLineNumber: incrementLineNumber(params.newLineNumber),
+      oldLineNumber: incrementLineNumber(oldLineNumber),
+      newLineNumber: incrementLineNumber(newLineNumber),
     };
   }
   return {
-    oldLineNumber: params.oldLineNumber,
-    newLineNumber: params.newLineNumber,
+    oldLineNumber,
+    newLineNumber,
   };
 }
 

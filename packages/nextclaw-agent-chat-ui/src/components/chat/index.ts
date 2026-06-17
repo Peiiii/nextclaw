@@ -1,6 +1,7 @@
 export { ChatInputBar } from './ui/chat-input-bar/chat-input-bar';
 export type { ChatInputBarHandle } from './ui/chat-input-bar/chat-input-bar';
 export { ChatMessageList } from './ui/chat-message-list/chat-message-list';
+export type { ChatMessageListProps } from './ui/chat-message-list/chat-message-list';
 export { ChatMessageMarkdown } from './ui/chat-message-list/chat-message-markdown';
 export {
   FileOperationCodeSurface,
@@ -11,7 +12,7 @@ export { useActiveItemScroll } from './hooks/use-active-item-scroll';
 export { useCopyFeedback } from './hooks/use-copy-feedback';
 export { useElementWidth } from './hooks/use-element-width';
 export { useStickyBottomScroll } from './hooks/use-sticky-bottom-scroll';
-export { copyText } from './utils/copy-text';
+export { copyText } from './utils/copy-text.utils';
 export {
   createChatComposerTextNode,
   createChatComposerTokenNode,
@@ -64,6 +65,5 @@ export type {
   ChatToolPartViewModel,
   ChatMessagePartViewModel,
   ChatMessageViewModel,
-  ChatMessageTexts,
-  ChatMessageListProps
+  ChatMessageTexts
 } from './view-models/chat-ui.types';

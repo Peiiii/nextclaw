@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { copyText } from '../utils/copy-text';
+import { copyText } from '@agent-chat-ui/components/chat/utils/copy-text.utils';
 
 type UseCopyFeedbackParams = {
   text: string;

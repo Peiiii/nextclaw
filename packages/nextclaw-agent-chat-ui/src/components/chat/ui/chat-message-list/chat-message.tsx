@@ -12,7 +12,6 @@ import { ChatMessageInlineContent } from "./chat-message-inline-content";
 import { ChatMessageFile } from "./chat-message-file";
 import { ChatReasoningBlock } from "./chat-reasoning-block";
 import { ChatToolCard } from "./chat-tool-card";
-import { ChatUnknownPart } from "./chat-unknown-part";
 
 type ChatMessageProps = {
   message: ChatMessageViewModel;
@@ -30,8 +29,14 @@ type ChatMessageProps = {
   renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
 };
 
-export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
-  const { message, texts, onToolAction, onFileOpen, renderToolAgent, renderPanelAppCard } = props;
+export const ChatMessage = memo(function ChatMessage({
+  message,
+  texts,
+  onToolAction,
+  onFileOpen,
+  renderToolAgent,
+  renderPanelAppCard,
+}: ChatMessageProps) {
   const { role } = message;
   const isUser = role === "user";
   const isMessageInProgress =
@@ -53,21 +58,23 @@ export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
           const { type } = part;
 
           if (type === "markdown") {
+            const { text } = part;
             return (
               <ChatMessageMarkdown
-              key={`markdown-${index}`}
-              text={part.text}
-              role={role}
-              texts={texts}
-              onFileOpen={onFileOpen}
-            />
-          );
-        }
+                key={`markdown-${index}`}
+                text={text}
+                role={role}
+                texts={texts}
+                onFileOpen={onFileOpen}
+              />
+            );
+          }
           if (type === "inline-content") {
+            const { segments } = part;
             return (
               <ChatMessageInlineContent
                 key={`inline-content-${index}`}
-                segments={part.segments}
+                segments={segments}
                 role={role}
                 texts={texts}
                 onFileOpen={onFileOpen}
@@ -75,11 +82,12 @@ export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
             );
           }
           if (type === "reasoning") {
+            const { label, text } = part;
             return (
               <ChatReasoningBlock
                 key={`reasoning-${index}`}
-                label={part.label}
-                text={part.text}
+                label={label}
+                text={text}
                 isUser={isUser}
                 isInProgress={
                   isMessageInProgress && index === message.parts.length - 1
@@ -88,10 +96,11 @@ export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
             );
           }
           if (type === "tool-card") {
+            const { card } = part;
             return (
               <div key={`tool-${index}`} className="mt-0.5">
                 <ChatToolCard
-                  card={part.card}
+                  card={card}
                   onToolAction={onToolAction}
                   onFileOpen={onFileOpen}
                   renderToolAgent={renderToolAgent}
@@ -101,23 +110,28 @@ export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
             );
           }
           if (type === "file") {
+            const { file } = part;
             return (
               <ChatMessageFile
                 key={`file-${index}`}
-                file={part.file}
+                file={file}
                 isUser={isUser}
                 texts={texts}
               />
             );
           }
           if (type === "unknown") {
+            const { label, rawType, text } = part;
             return (
-              <ChatUnknownPart
+              <div
                 key={`unknown-${index}`}
-                label={part.label}
-                rawType={part.rawType}
-                text={part.text}
-              />
+                className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-2 text-xs text-gray-600"
+              >
+                <div className="font-semibold text-gray-700">
+                  {label}: {rawType}
+                </div>
+                {text ? <pre className="mt-1 whitespace-pre-wrap break-words text-[11px] text-gray-500">{text}</pre> : null}
+              </div>
             );
           }
           return null;

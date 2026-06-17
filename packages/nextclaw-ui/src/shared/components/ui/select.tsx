@@ -6,6 +6,13 @@ import { cn } from "@/shared/lib/utils"
 const Select = SelectPrimitive.Root
 const SelectGroup = SelectPrimitive.Group
 const SelectValue = SelectPrimitive.Value
+const SELECT_CONTENT_AVAILABLE_HEIGHT_GAP = "2rem"
+
+function createSelectAvailableHeightLimit(limit: string): string {
+    return `min(${limit}, max(0px, calc(var(--radix-select-content-available-height, 100vh) - ${SELECT_CONTENT_AVAILABLE_HEIGHT_GAP})))`
+}
+
+const SELECT_CONTENT_MAX_HEIGHT = createSelectAvailableHeightLimit("24rem")
 
 type SelectTriggerProps = React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & {
     indicator?: React.ReactNode
@@ -66,24 +73,26 @@ type SelectContentProps = React.ComponentPropsWithoutRef<typeof SelectPrimitive.
 const SelectContent = React.forwardRef<
     React.ElementRef<typeof SelectPrimitive.Content>,
     SelectContentProps
->(({ className, children, position = "popper", viewportClassName, ...props }, ref) => (
+>(({ className, children, collisionPadding = 12, position = "popper", style, viewportClassName, ...props }, ref) => (
     <SelectPrimitive.Portal>
         <SelectPrimitive.Content
             ref={ref}
             className={cn(
-                "relative z-[var(--z-popover,50)] max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 bg-white",
+                "relative z-[var(--z-popover,50)] flex max-h-96 min-w-[8rem] flex-col overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 bg-white",
                 position === "popper" &&
                 "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
                 className
             )}
+            collisionPadding={collisionPadding}
             position={position}
+            style={{ maxHeight: SELECT_CONTENT_MAX_HEIGHT, ...style }}
             {...props}
         >
             <SelectScrollUpButton />
             <SelectPrimitive.Viewport
                 className={cn(
-                    "p-1",
-                    position === "popper" && "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
+                    "min-h-0 flex-1 overflow-y-auto overscroll-contain p-1",
+                    position === "popper" && "w-full min-w-[var(--radix-select-trigger-width)]",
                     viewportClassName
                 )}
             >
@@ -144,4 +153,5 @@ export {
     SelectSeparator,
     SelectScrollUpButton,
     SelectScrollDownButton,
+    createSelectAvailableHeightLimit,
 }

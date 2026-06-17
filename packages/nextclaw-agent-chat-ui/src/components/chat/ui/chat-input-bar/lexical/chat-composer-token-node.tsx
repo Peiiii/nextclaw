@@ -8,8 +8,8 @@ import {
   type SerializedLexicalNode,
 } from 'lexical';
 import type { ReactElement } from 'react';
-import { CHAT_COMPOSER_TOKEN_PLACEHOLDER } from '../chat-composer.utils';
-import type { ChatComposerTokenKind } from '../../../view-models/chat-ui.types';
+import { CHAT_COMPOSER_TOKEN_PLACEHOLDER } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
+import type { ChatComposerTokenKind } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
 type SerializedChatComposerTokenNode = SerializedLexicalNode & {
   composerId: string;
@@ -61,7 +61,10 @@ function buildTokenClassName(tokenKind: ChatComposerTokenKind): string {
   ].join(' ');
 }
 
-function ChatComposerTokenChip(props: {
+function ChatComposerTokenChip({
+  label,
+  tokenKind,
+}: {
   label: string;
   tokenKind: ChatComposerTokenKind;
 }): ReactElement {
@@ -69,12 +72,12 @@ function ChatComposerTokenChip(props: {
     <>
       <span
         className={
-          props.tokenKind === 'file'
+          tokenKind === 'file'
             ? 'inline-flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-md bg-white text-slate-500 ring-1 ring-black/5'
             : 'inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center text-primary/70'
         }
       >
-        {props.tokenKind === 'file' ? (
+        {tokenKind === 'file' ? (
           <svg
             viewBox="0 0 16 16"
             fill="none"
@@ -109,12 +112,12 @@ function ChatComposerTokenChip(props: {
       </span>
       <span
         className={
-          props.tokenKind === 'file'
+          tokenKind === 'file'
             ? 'min-w-0 flex-1 truncate text-[12px] font-medium text-slate-700'
             : 'truncate'
         }
       >
-        {props.label}
+        {label}
       </span>
     </>
   );

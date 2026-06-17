@@ -7,9 +7,9 @@ type ProviderStatusBadgeProps = {
   className?: string;
 };
 
-export function ProviderStatusBadge(props: ProviderStatusBadgeProps) {
-  if (!props.enabled) {
-    return <StatusDot status="inactive" label={t('disabled')} className={props.className} />;
+export function ProviderStatusBadge({ apiKeySet, className, enabled }: ProviderStatusBadgeProps) {
+  if (!enabled) {
+    return <StatusDot status="inactive" label={t('disabled')} className={className} />;
   }
-  return <StatusDot status={props.apiKeySet ? 'ready' : 'setup'} label={props.apiKeySet ? t('statusReady') : t('statusSetup')} className={props.className} />;
+  return <StatusDot status={apiKeySet ? 'ready' : 'setup'} label={apiKeySet ? t('statusReady') : t('statusSetup')} className={className} />;
 }

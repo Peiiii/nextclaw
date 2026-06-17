@@ -4,6 +4,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
+  createSelectAvailableHeightLimit,
 } from '@/shared/components/ui/select';
 import type { AgentProfileView } from '@/shared/lib/api';
 import { t } from '@/shared/lib/i18n';
@@ -15,7 +16,7 @@ type ChatWelcomeAgentPickerProps = {
   onSelectAgent: (agentId: string) => void;
 };
 
-const AGENT_PICKER_MAX_HEIGHT = 'min(18rem, calc(var(--radix-select-content-available-height) - 0.75rem))';
+const AGENT_PICKER_MAX_HEIGHT = createSelectAvailableHeightLimit('18rem');
 
 export function ChatWelcomeAgentPicker({
   agents,
@@ -47,7 +48,6 @@ export function ChatWelcomeAgentPicker({
         </div>
       </SelectTrigger>
       <SelectContent
-        collisionPadding={12}
         className="rounded-xl border-gray-200/80 shadow-lg"
         style={{ maxHeight: AGENT_PICKER_MAX_HEIGHT }}
       >

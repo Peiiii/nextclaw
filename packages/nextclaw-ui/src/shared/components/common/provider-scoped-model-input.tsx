@@ -151,6 +151,7 @@ export function ProviderScopedModelInput({
           inputClassName="h-10 rounded-xl"
           emptyText={t('modelPickerNoOptions')}
           createText={t('modelPickerUseCustom')}
+          toggleLabel={t('modelPickerToggleOptions')}
         />
       </div>
       <p className="mt-2 text-xs text-gray-500">{t('modelInputCustomHint')}</p>

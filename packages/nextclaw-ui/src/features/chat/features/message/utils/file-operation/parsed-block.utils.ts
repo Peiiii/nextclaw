@@ -20,10 +20,11 @@ export function buildCaption(params: {
   operation?: string | null;
   lines: ChatFileOperationLineViewModel[];
 }): string | undefined {
-  const additions = params.lines.filter((line) => line.kind === "add").length;
-  const deletions = params.lines.filter((line) => line.kind === "remove").length;
+  const { lines, operation } = params;
+  const additions = lines.filter((line) => line.kind === "add").length;
+  const deletions = lines.filter((line) => line.kind === "remove").length;
   const parts: string[] = [];
-  const normalizedOperation = params.operation?.trim().toLowerCase() ?? "";
+  const normalizedOperation = operation?.trim().toLowerCase() ?? "";
   if (normalizedOperation && normalizedOperation !== "update") {
     parts.push(normalizedOperation);
   }
@@ -46,20 +47,21 @@ export function readDefaultDiffStartLines(params: {
   oldStartLine?: number;
   newStartLine?: number;
 } {
-  const normalizedOperation = params.operation?.trim().toLowerCase() ?? "";
+  const { afterText, beforeText, newStartLine: rawNewStartLine, oldStartLine: rawOldStartLine, operation } = params;
+  const normalizedOperation = operation?.trim().toLowerCase() ?? "";
   const oldStartLine =
-    typeof params.oldStartLine === "number"
-      ? params.oldStartLine
+    typeof rawOldStartLine === "number"
+      ? rawOldStartLine
       : (normalizedOperation === "delete" ||
             normalizedOperation === "remove") &&
-          params.beforeText != null
+          beforeText != null
         ? 1
         : undefined;
   const newStartLine =
-    typeof params.newStartLine === "number"
-      ? params.newStartLine
+    typeof rawNewStartLine === "number"
+      ? rawNewStartLine
       : (normalizedOperation === "write" || normalizedOperation === "add") &&
-          params.afterText != null
+          afterText != null
         ? 1
         : undefined;
   return { oldStartLine, newStartLine };
@@ -83,16 +85,17 @@ export function buildParsedPatchBlock(params: {
   operation: string | null;
   lines: ChatFileOperationLineViewModel[];
 }): ParsedBlock {
-  const limited = limitLines(params.lines);
+  const { lines, operation, path } = params;
+  const limited = limitLines(lines);
   return {
-    path: params.path,
+    path,
     display: "diff",
     caption: buildCaption({
-      operation: params.operation,
-      lines: params.lines,
+      operation,
+      lines,
     }),
     lines: limited.lines,
-    ...(limited.truncated ? { fullLines: params.lines } : {}),
+    ...(limited.truncated ? { fullLines: lines } : {}),
     truncated: limited.truncated,
   };
 }

@@ -49,6 +49,7 @@
   "modelName": "模型",
   "modelPickerNoOptions": "暂无可选模型",
   "modelPickerUseCustom": "使用自定义模型：{value}",
+  "modelPickerToggleOptions": "展开或收起模型选项",
   "modelInputCustomHint": "如果列表里没有目标模型，可直接输入自定义模型 ID。",
   "modelIdentifierHelp": "智能体默认模型标识，使用带提供商前缀的格式。例如：openai/gpt-5.1、anthropic/claude-opus-4-1、deepseek/deepseek-chat、minimax/MiniMax-M2.5、openrouter/openai/gpt-5.3-codex。",
   "maxToolIterations": "最大工具迭代次数",

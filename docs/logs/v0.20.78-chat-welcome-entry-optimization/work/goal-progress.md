@@ -28,23 +28,26 @@
 
 - 1-41：welcome 子 feature 迁移、嵌入 input surface、默认 workspace/projectRoot 链路、显示规则 util、会话类型选择、历史项目下拉、agent 名称展示、真实页面冒烟、panel/welcome 测试瘦身、相关测试与规范补充。
 - 42：欢迎页批次已提交为 `dd91bfbf5 feat(chat): add welcome context entry`。
-- 43：新增 kernel 通用偏好 KV manager/store 草案，并接入 server preferences route 与 UI preference API。
-- 44：模型选择器 view-model 增加收藏优先分组、搜索文案和通用 option action 合同。
-- 45：欢迎页能力卡片改为 prompt suggestion，点击后填入输入框并聚焦，发送时继续走原会话创建主链路。
-- 46：输入栏技能选择、模型搜索、slash 技能菜单、welcome 项目/会话类型菜单改为基于 Popover available height 的动态高度约束。
-- 47：`focusComposerAtEnd(nodes?)` 扩展为可按外部 composer nodes 定位，修复欢迎卡片填入 prompt 后光标没有稳定落到新内容末尾的问题。
-- 48：chat slash menu 触达后顺手收敛跨目录 import 到 `@agent-chat-ui/` alias，满足 module-structure drift 治理。
-- 49：模型搜索、普通 select、技能选择、slash、welcome project/session type 浮层统一增加 `collisionPadding=12` 与设计高度上限，避免小高度设备贴边或顶到视口边界。
-- 50：开始新一轮维护性减债：preference API 类型从共享大 `types.ts` 迁入 `preferences/` 子目录，ChatInputManager 测试按 focus 主题拆 describe，tokenized composer 准备整理 imperative handle 依赖。
-- 51：tokenized composer 改为边界解构与稳定回调，清掉新增 React Compiler / props 读法风险。
-- 52：输入区主组件与 textarea 组件同步改为边界解构，并把旧 textarea 跨目录相对导入收敛到 `@agent-chat-ui/` alias。
-- 53：已复跑 agent-chat-ui 输入区 29 个测试、agent-chat-ui tsc/lint、UI 侧 37 个定向测试、UI tsc/lint；当前 lint 仅剩未触达旧警告。
-- 54：真实 DOM 枚举发现欢迎页 Agent 选择器也是同类入口浮层，已补上 `collisionPadding=12` 与 Radix available-height maxHeight 合同。
+- 43-63：接入 kernel 通用偏好 KV、server preferences route、UI preference API、模型收藏分组/搜索/action 合同；能力卡片填充 prompt 并复用原输入主链路；输入区组件和 token node 做边界解构、alias import、lint warning 清理，`copy-text` 改名为 `copy-text.utils.ts`。
+- 64-79：把浮层高度责任归到 Popover/Select primitive；`ChatMessageListProps` 回到组件边界；agent-chat-ui 目录预算 README、shared UI README、sidebar create menu、project badge、primitive helper、真实 DOM 560/440/360 高度验证和治理闭环完成。
+- 80-93：`SearchableModelInput` 删除自制 absolute dropdown，改用 shared Popover；empty/create/toggle 文案回到 i18n 调用方；模型、技能、slash、project、Agent、session type 面板补充 `100vh` fallback、内部滚动断言和真实 DOM 验证。
+- 94-99：`chat-input-bar/` 测试迁入 `__tests__/`，`chat-input-bar.test.tsx` 从 866 行降到 709 行；`ChatUnknownPart` / `ChatMessageMeta` 单用组件内联删除；copy fallback 拆分并补测试，agent-chat-ui 全量 95 个测试通过。
+- 100：UI 小组件 props 边界解构 warning 清理，`pnpm --filter @nextclaw/ui lint` warning 从 28 降到 20。
+- 101：shared hook 与 marketplace utils 的 params 解构 warning 清理，UI lint warning 从 20 降到 16。
+- 102：chat message / file-operation utils 参数解构与入参突变整理，UI lint warning 从 16 降到 4。
+- 103：`chat-message.utils.test.ts` 抽出 shared test helper，并把 file-operation preview 用例拆到独立测试文件；主测试文件降到 541 行，UI lint warning 降到 3。
+- 104：模型面板高度问题确认属于 floating primitive 合同；shared UI 与 agent-chat-ui Popover/Select available-height gap 升级为 `2rem`，Select content/viewport 改为 flex 内部滚动，toolbar 模型面板上限从 `22rem` 收紧到 `18rem`。
+- 105：真实 dev 页面 `http://127.0.0.1:5174/chat/draft` 用 Playwright 在 `1200x420` 和 `1200x360` 打开模型面板；`360` 高度下 content `58.9-321.1`，scrollHeight `854` / clientHeight `218`，未贴边且内部滚动。
+- 106：本轮收尾通过 agent-chat-ui 全量 96 个测试、UI 相关 33 个页面测试、message 18 个测试、ui/agent-chat-ui tsc/lint、governance、generated-clean、diff check；UI lint 剩余 3 个 settings 既有 warning。
+- 107：`SecretsConfigForm` 的 provider/ref 映射、提交归一化和校验迁出 React component，落到 `features/settings/utils/secrets-config-form.utils.ts`；组件只保留 UI、本地编辑态和 toast 展示，新增 utils 单测覆盖 round-trip、重复 provider alias、未知 provider ref。
+- 108：`ProviderForm` 的 device-code 授权轮询迁出到 `useProviderAuthFlow`，provider/template/schema 派生收敛到 `resolveProviderFormContext`，模型增删、thinking 配置、保存 payload、测试连接 payload 收敛到 `provider-form-support.utils.ts`；详情 JSX 拆成内部 detail pane，主组件只连接 query/mutation、编辑态和意图动作。
+- 109：settings 定向验证通过：`secrets-config-page`、`secrets-config-form.utils`、`provider-form-support.utils`、`providers-config-page` 共 11 个测试通过；`@nextclaw/ui` tsc 通过；`@nextclaw/ui` lint 从 3 个 warning 收敛到 0 error / 0 warning。
+- 110：最终治理验证通过：`pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet`、`pnpm check:generated-clean`、`git diff --check` 均通过；maintainability guard 为 0 error / 4 warning，剩余为既有预算提醒或本轮继续下降中的 `ProviderForm` / `provider-form-support.utils` 接近预算提醒。
 
 ## 当前下一步
 
-复跑 governance / generated clean / maintainability guard，并用真实页面 DOM 验证模型、技能、slash、project、agent、session type 的小高度浮层边界。
+继续跑治理类收尾验证，并优先寻找同责任链上能自然减债的优化点；避免为了凑数继续机械拆分或扩大到无关产品面。
 
 ## 锚点计数器
 
-0/20
+182/20
