@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { AgentAvatar } from '../agent-avatar';
+import { AgentAvatar } from '@/shared/components/common/agent-avatar';
 
 describe('AgentAvatar', () => {
   it('uses the configured image for the main agent before fallback', () => {
@@ -23,6 +23,8 @@ describe('AgentAvatar', () => {
     const avatar = screen.getByLabelText('Main');
     expect(avatar.querySelector('svg')).toBeTruthy();
     expect(avatar.textContent).not.toContain('M');
+    expect(avatar.className).toContain('bg-primary');
+    expect(avatar.className).toContain('text-primary-foreground');
   });
 
   it('keeps letter fallback avatars for specialist agents', () => {

@@ -28,7 +28,10 @@ function hashText(value: string): number {
 
 export function AgentAvatar({ agentId, displayName, avatarUrl, className }: AgentAvatarProps) {
   const seed = displayName?.trim() || agentId;
-  const [bgClass, textClass] = PALETTE[hashText(agentId) % PALETTE.length] ?? PALETTE[0];
+  const isMainAgent = agentId.trim().toLowerCase() === 'main';
+  const [paletteBgClass, paletteTextClass] = PALETTE[hashText(agentId) % PALETTE.length] ?? PALETTE[0];
+  const bgClass = isMainAgent ? 'bg-primary' : paletteBgClass;
+  const textClass = isMainAgent ? 'text-primary-foreground' : paletteTextClass;
 
   if (avatarUrl?.trim()) {
     return (
@@ -50,7 +53,7 @@ export function AgentAvatar({ agentId, displayName, avatarUrl, className }: Agen
       )}
       aria-label={displayName?.trim() || agentId}
     >
-      {agentId.trim().toLowerCase() === 'main' ? (
+      {isMainAgent ? (
         <Bot className="h-[55%] w-[55%]" strokeWidth={2.4} />
       ) : (
         (seed.trim() || 'A').slice(0, 1).toUpperCase()
