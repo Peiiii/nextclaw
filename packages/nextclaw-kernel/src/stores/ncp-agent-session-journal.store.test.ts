@@ -432,6 +432,103 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
       expect(() => JSON.parse(line)).not.toThrow();
     }
   });
+
+});
+
+describe("NcpAgentSessionJournalStore tool result replay", () => {
+  it("does not let stale completed snapshots downgrade replayed tool results", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+
+    await store.appendSessionEvent({
+      sessionId,
+      event: {
+        type: NcpEventType.MessageToolCallStart,
+        payload: {
+          sessionId,
+          messageId: "assistant-1",
+          toolCallId: "tool-1",
+          toolName: "Bash",
+        },
+      },
+    });
+    await store.appendSessionEvent({
+      sessionId,
+      event: {
+        type: NcpEventType.MessageToolCallEnd,
+        payload: {
+          sessionId,
+          toolCallId: "tool-1",
+        },
+      },
+    });
+    await store.appendSessionEvent({
+      sessionId,
+      event: {
+        type: NcpEventType.MessageToolCallResult,
+        payload: {
+          sessionId,
+          toolCallId: "tool-1",
+          content: "pwd output",
+        },
+      },
+    });
+    await store.appendSessionEvent({
+      sessionId,
+      event: {
+        type: NcpEventType.MessageCompleted,
+        payload: {
+          sessionId,
+          message: {
+            id: "assistant-1",
+            sessionId,
+            role: "assistant",
+            status: "final",
+            timestamp: "2026-05-14T00:00:02.000Z",
+            parts: [
+              {
+                type: "tool-invocation",
+                toolCallId: "tool-1",
+                toolName: "Bash",
+                state: "call",
+                args: { command: "pwd" },
+              },
+            ],
+          },
+        },
+      },
+    });
+    await store.appendSessionEvent({
+      sessionId,
+      event: {
+        type: NcpEventType.RunFinished,
+        payload: {
+          sessionId,
+          messageId: "assistant-1",
+          runId: "run-1",
+        },
+      },
+    });
+
+    const reloaded = new NcpAgentSessionJournalStore(tempDir);
+    const messages = await reloaded.listSessionMessages(sessionId);
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).toMatchObject({
+      id: "assistant-1",
+      status: "final",
+      parts: [
+        {
+          type: "tool-invocation",
+          toolCallId: "tool-1",
+          toolName: "Bash",
+          state: "result",
+          args: { command: "pwd" },
+          result: "pwd output",
+        },
+      ],
+    });
+  });
 });
 
 describe("NcpAgentSessionJournalStore metadata writes", () => {

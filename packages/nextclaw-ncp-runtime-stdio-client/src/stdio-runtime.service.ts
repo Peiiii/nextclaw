@@ -9,9 +9,11 @@ import {
   type NcpAgentRunOptions,
   type NcpAgentRuntime,
   type NcpEndpointEvent,
+  type NcpMessage,
   type NcpProviderRuntimeRoute,
   type OpenAITool,
 } from "@nextclaw/ncp";
+import { DefaultNcpAgentConversationStateManager } from "@nextclaw/ncp-toolkit";
 import type { StdioRuntimeResolvedConfig, NarpStdioPromptMeta } from "./stdio-runtime-config.utils.js";
 import {
   NARP_STDIO_PROMPT_META_KEY,
@@ -78,120 +80,6 @@ class UpdateBuffer {
     for (const waiter of waiters) {
       waiter();
     }
-  };
-}
-
-class PromptUpdateCollector {
-  private readonly parts: Array<
-    | { type: "text"; text: string }
-    | { type: "reasoning"; text: string }
-    | { type: "tool-invocation"; toolCallId: string; toolName: string; state: "partial-call" | "call"; args: string }
-  > = [];
-  private readonly toolIndex = new Map<string, number>();
-
-  apply = (event: NcpEndpointEvent): void => {
-    switch (event.type) {
-      case NcpEventType.MessageTextDelta:
-        this.appendPart("text", event.payload.delta);
-        return;
-      case NcpEventType.MessageReasoningDelta:
-        this.appendPart("reasoning", event.payload.delta);
-        return;
-      case NcpEventType.MessageToolCallStart:
-        this.upsertTool({
-          toolCallId: event.payload.toolCallId,
-          toolName: event.payload.toolName,
-          args: "",
-          state: "partial-call",
-        });
-        return;
-      case NcpEventType.MessageToolCallArgs:
-        {
-          const tool = this.readTool(event.payload.toolCallId);
-          this.upsertTool({
-            toolCallId: event.payload.toolCallId,
-            toolName: tool.toolName,
-            args: event.payload.args,
-            state: "partial-call",
-          });
-        }
-        return;
-      case NcpEventType.MessageToolCallArgsDelta:
-        {
-          const tool = this.readTool(event.payload.toolCallId);
-          this.upsertTool({
-            toolCallId: event.payload.toolCallId,
-            toolName: tool.toolName,
-            args: `${tool.args}${event.payload.delta}`,
-            state: "partial-call",
-          });
-        }
-        return;
-      case NcpEventType.MessageToolCallEnd:
-        {
-          const tool = this.readTool(event.payload.toolCallId);
-          this.upsertTool({
-            toolCallId: event.payload.toolCallId,
-            toolName: tool.toolName,
-            args: tool.args,
-            state: "call",
-          });
-        }
-        return;
-      default:
-        return;
-    }
-  };
-
-  hasParts = (): boolean => this.parts.length > 0;
-
-  buildParts = (): Array<Record<string, unknown>> => structuredClone(this.parts);
-
-  private appendPart = (type: "text" | "reasoning", text: string): void => {
-    if (!text) {
-      return;
-    }
-    const last = this.parts.at(-1);
-    if (last?.type === type) {
-      last.text = `${last.text}${text}`;
-      return;
-    }
-    this.parts.push({ type, text });
-  };
-
-  private upsertTool = (nextTool: {
-    toolCallId: string;
-    toolName: string;
-    args: string;
-    state: "partial-call" | "call";
-  }): void => {
-    const existingIndex = this.toolIndex.get(nextTool.toolCallId);
-    if (typeof existingIndex === "number") {
-      const existing = this.parts[existingIndex];
-      if (existing?.type !== "tool-invocation") {
-        return;
-      }
-      this.parts[existingIndex] = {
-        ...existing,
-        ...nextTool,
-      };
-      return;
-    }
-
-    this.toolIndex.set(nextTool.toolCallId, this.parts.length);
-    this.parts.push({
-      type: "tool-invocation",
-      ...nextTool,
-    });
-  };
-
-  private readTool = (toolCallId: string): { toolName: string; args: string } => {
-    const index = this.toolIndex.get(toolCallId);
-    const part = typeof index === "number" ? this.parts[index] : null;
-    if (part?.type !== "tool-invocation") {
-      return { toolName: "unknown", args: "" };
-    }
-    return { toolName: part.toolName, args: part.args };
   };
 }
 
@@ -439,7 +327,7 @@ class StdioRuntimeSession {
 
 class StdioRuntimeRunController {
   private readonly buffer = new UpdateBuffer();
-  private readonly collector = new PromptUpdateCollector();
+  private readonly conversationStateManager: NcpAgentConversationStateManager;
   private readonly toolStates = new Map<string, AcpToolState>();
   private textStarted = false;
   private reasoningStarted = false;
@@ -450,10 +338,12 @@ class StdioRuntimeRunController {
   constructor(
     private readonly session: StdioRuntimeSession,
     private readonly input: NcpAgentRunInput,
-    private readonly stateManager?: NcpAgentConversationStateManager,
+    stateManager?: NcpAgentConversationStateManager,
     private readonly resolveTools?: (input: NcpAgentRunInput) => ReadonlyArray<OpenAITool> | undefined,
     private readonly resolveProviderRoute?: (input: NcpAgentRunInput) => NcpProviderRuntimeRoute | undefined,
   ) {
+    this.conversationStateManager =
+      stateManager ?? new DefaultNcpAgentConversationStateManager();
     this.resolvedTools = resolveTools?.(input) ?? [];
     this.resolvedProviderRoute = resolveProviderRoute?.(input);
     this.runId = (input as NcpAgentRunInput & { runId?: string }).runId ?? `narp-stdio:${input.sessionId}:${randomUUID()}`;
@@ -571,7 +461,8 @@ class StdioRuntimeRunController {
       yield* this.emitEvent(terminalEvent);
     }
 
-    if (!this.collector.hasParts()) {
+    const completedMessage = this.buildCompletedAssistantMessage(assistantMessageId);
+    if (!completedMessage.parts.length) {
       throw new Error(
         `[narp-stdio] ACP prompt completed without any assistant content for session ${this.input.sessionId}. stderr=${this.session.readStderr()}`,
       );
@@ -582,14 +473,7 @@ class StdioRuntimeRunController {
       payload: {
         sessionId: this.input.sessionId,
         correlationId: this.input.correlationId,
-        message: {
-          id: assistantMessageId,
-          sessionId: this.input.sessionId,
-          role: "assistant",
-          status: "final",
-          parts: this.collector.buildParts() as never,
-          timestamp: new Date().toISOString(),
-        },
+        message: completedMessage,
       },
     });
     yield* this.emitEvent({
@@ -640,9 +524,24 @@ class StdioRuntimeRunController {
     this: StdioRuntimeRunController,
     event: NcpEndpointEvent,
   ): AsyncGenerator<NcpEndpointEvent> {
-    this.collector.apply(event);
-    await this.stateManager?.dispatch(event);
+    await this.conversationStateManager.dispatch(event);
     yield event;
+  };
+  private buildCompletedAssistantMessage = (assistantMessageId: string): NcpMessage => {
+    const snapshot = this.conversationStateManager.getSnapshot();
+    const message = snapshot.streamingMessage?.id === assistantMessageId
+      ? snapshot.streamingMessage
+      : snapshot.messages.find((candidate) => candidate.id === assistantMessageId);
+    return message
+      ? { ...structuredClone(message), status: "final" }
+      : {
+          id: assistantMessageId,
+          sessionId: this.input.sessionId,
+          role: "assistant",
+          status: "final",
+          parts: [],
+          timestamp: new Date().toISOString(),
+        };
   };
   private translateUpdate = (
     update: AcpClientUpdate,

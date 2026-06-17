@@ -267,8 +267,16 @@ describe("StdioRuntimeNcpAgentRuntime event bridging", () => {
         type: "tool-invocation",
         toolCallId: "call-1",
         toolName: "emit_meta",
-        state: "call",
+        state: "result",
         args: "{\"requested\":true}",
+        result: {
+          modelId: "MiniMax-M2.7",
+          routedModel: "MiniMax-M2.7",
+          envRoutedModel: "MiniMax-M2.7",
+          headerKeys: ["x-minimax-group-id"],
+          envHeaderKeys: ["x-minimax-group-id"],
+          toolNames: ["list_dir"],
+        },
       },
       { type: "text", text: "pong via ACP" },
     ]);
@@ -737,8 +745,11 @@ describe("StdioRuntimeNcpAgentRuntime tool normalization", () => {
         type: "tool-invocation",
         toolCallId: "hermes-title-call-1",
         toolName: "terminal",
-        state: "call",
+        state: "result",
         args: "{\"command\":\"pwd\"}",
+        result: {
+          ok: true,
+        },
       },
       { type: "text", text: "done" },
     ]);

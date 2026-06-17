@@ -1549,6 +1549,9 @@ importers:
       '@nextclaw/ncp':
         specifier: workspace:*
         version: link:../ncp-packages/nextclaw-ncp
+      '@nextclaw/ncp-toolkit':
+        specifier: workspace:*
+        version: link:../ncp-packages/nextclaw-ncp-toolkit
     devDependencies:
       '@types/node':
         specifier: ^20.17.6

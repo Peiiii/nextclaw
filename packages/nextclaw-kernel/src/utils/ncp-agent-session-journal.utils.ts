@@ -53,6 +53,10 @@ export type NcpAgentSessionJournalReplayEvent =
   | NcpSessionRequestJournalEvent;
 
 type NcpAgentSessionReplayableEvent = NcpEndpointEvent | NcpAgentSessionSnapshotMessageEvent;
+type NcpToolCallResultReplayPayload = Extract<
+  NcpEndpointEvent,
+  { type: NcpEventType.MessageToolCallResult }
+>["payload"];
 
 export type NcpAgentSessionJournalEventEntry = {
   _type: "event";
@@ -163,17 +167,21 @@ export async function replayNcpAgentSessionEvents(
 ): Promise<NcpMessage[]> {
   const stateManager = new DefaultNcpAgentConversationStateManager();
   const knownMessageIds = new Set<string>();
+  const toolResultsByCallId = new Map<string, NcpToolCallResultReplayPayload>();
   for (const event of events) {
     if (isJournalOnlyEvent(event)) {
       continue;
     }
-    const replayEvent = createReplayEvent(event);
+    const replayEvent = createReplayEvent(event, toolResultsByCallId);
     const bootstrapEvent = createReplayStreamingBootstrapEvent(replayEvent, knownMessageIds);
     if (bootstrapEvent) {
       await stateManager.dispatch(bootstrapEvent);
     }
     rememberReplayMessageId(replayEvent, knownMessageIds);
     await stateManager.dispatch(replayEvent);
+    if (replayEvent.type === NcpEventType.MessageToolCallResult) {
+      toolResultsByCallId.set(replayEvent.payload.toolCallId, replayEvent.payload);
+    }
   }
   const snapshot = stateManager.getSnapshot();
   return [
@@ -182,7 +190,10 @@ export async function replayNcpAgentSessionEvents(
   ];
 }
 
-function createReplayEvent(event: NcpAgentSessionReplayableEvent): NcpEndpointEvent {
+function createReplayEvent(
+  event: NcpAgentSessionReplayableEvent,
+  toolResultsByCallId: ReadonlyMap<string, NcpToolCallResultReplayPayload>,
+): NcpEndpointEvent {
   const replayEvent = structuredClone(event);
   const replayMessage = readMessageFromSummaryEvent(replayEvent);
   const legacyCompactionMessageId = readLegacyContextCompactionMessageId(replayMessage);
@@ -199,9 +210,37 @@ function createReplayEvent(event: NcpAgentSessionReplayableEvent): NcpEndpointEv
     replayEvent.type === NCP_AGENT_SESSION_SNAPSHOT_MESSAGE_EVENT_TYPE ||
     replayEvent.type === NcpEventType.MessageCompleted
   ) {
+    replayEvent.payload.message = mergeReplayCompletedToolResults(
+      replayEvent.payload.message,
+      toolResultsByCallId,
+    );
     return { type: NcpEventType.MessageSent, payload: replayEvent.payload };
   }
   return replayEvent;
+}
+
+function mergeReplayCompletedToolResults(
+  message: NcpMessage,
+  toolResultsByCallId: ReadonlyMap<string, NcpToolCallResultReplayPayload>,
+): NcpMessage {
+  let changed = false;
+  const parts = message.parts.map((part) => {
+    if (part.type !== "tool-invocation" || part.state === "result" || !part.toolCallId) {
+      return part;
+    }
+    const result = toolResultsByCallId.get(part.toolCallId);
+    if (!result) {
+      return part;
+    }
+    changed = true;
+    return {
+      ...part,
+      state: "result" as const,
+      result: result.content,
+      resultContentItems: result.contentItems,
+    };
+  });
+  return changed ? { ...message, parts } : message;
 }
 
 function readLegacyContextCompactionMessageId(message: NcpMessage | undefined): string | null {
