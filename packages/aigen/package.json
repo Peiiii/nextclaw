@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/aigen",
-  "version": "0.1.6-beta.1",
+  "version": "0.1.6",
   "private": false,
   "description": "Stateless AI media generation CLI.",
   "type": "module",

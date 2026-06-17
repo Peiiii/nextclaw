@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/service",
-  "version": "0.2.15-beta.1",
+  "version": "0.2.15",
   "private": false,
   "description": "NextClaw long-running service host and runtime lifecycle.",
   "type": "module",

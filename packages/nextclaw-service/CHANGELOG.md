@@ -1,5 +1,135 @@
 # @nextclaw/service
 
+## 0.2.15
+
+### Patch Changes
+
+- f8dfffa: Auto-generated full public beta release batch.
+
+  Packages:
+  - @nextclaw/agent-chat
+  - @nextclaw/aigen
+  - @nextclaw/app-runtime
+  - @nextclaw/app-sdk
+  - @nextclaw/browser-connector
+  - @nextclaw/channel-extension-dingtalk
+  - @nextclaw/channel-extension-discord
+  - @nextclaw/channel-extension-email
+  - @nextclaw/channel-extension-feishu
+  - @nextclaw/channel-extension-qq
+  - @nextclaw/channel-extension-slack
+  - @nextclaw/channel-extension-telegram
+  - @nextclaw/channel-extension-wecom
+  - @nextclaw/channel-extension-weixin
+  - @nextclaw/channel-extension-whatsapp
+  - @nextclaw/client-sdk
+  - @nextclaw/companion
+  - @nextclaw/extension-sdk
+  - @nextclaw/feishu-core
+  - @nextclaw/mcp
+  - @nextclaw/ncp-agent-runtime
+  - @nextclaw/ncp-http-agent-client
+  - @nextclaw/ncp-http-agent-server
+  - @nextclaw/ncp-mcp
+  - @nextclaw/ncp-react
+  - @nextclaw/ncp-react-ui
+  - @nextclaw/nextclaw-hermes-acp-bridge
+  - @nextclaw/nextclaw-ncp-runtime-adapter-hermes-http
+  - @nextclaw/nextclaw-ncp-runtime-http-client
+  - @nextclaw/remote
+  - @nextclaw/runtime
+  - @nextclaw/service
+  - nextclaw
+
+- Auto-generated full public beta release batch.
+
+  Packages:
+  - @nextclaw/agent-chat
+  - @nextclaw/agent-chat-ui
+  - @nextclaw/aigen
+  - @nextclaw/app-runtime
+  - @nextclaw/app-sdk
+  - @nextclaw/browser-connector
+  - @nextclaw/channel-extension-dingtalk
+  - @nextclaw/channel-extension-discord
+  - @nextclaw/channel-extension-email
+  - @nextclaw/channel-extension-feishu
+  - @nextclaw/channel-extension-qq
+  - @nextclaw/channel-extension-slack
+  - @nextclaw/channel-extension-telegram
+  - @nextclaw/channel-extension-wecom
+  - @nextclaw/channel-extension-weixin
+  - @nextclaw/channel-extension-whatsapp
+  - @nextclaw/client-sdk
+  - @nextclaw/companion
+  - @nextclaw/core
+  - @nextclaw/extension-sdk
+  - @nextclaw/feishu-core
+  - @nextclaw/mcp
+  - @nextclaw/ncp
+  - @nextclaw/ncp-agent-runtime
+  - @nextclaw/ncp-agent-runtime-next
+  - @nextclaw/ncp-http-agent-client
+  - @nextclaw/ncp-http-agent-server
+  - @nextclaw/ncp-mcp
+  - @nextclaw/ncp-react
+  - @nextclaw/ncp-react-ui
+  - @nextclaw/ncp-toolkit
+  - @nextclaw/nextclaw-hermes-acp-bridge
+  - @nextclaw/nextclaw-narp-runtime-claude-code-sdk
+  - @nextclaw/nextclaw-narp-runtime-codex-sdk
+  - @nextclaw/nextclaw-narp-runtime-opencode
+  - @nextclaw/nextclaw-narp-stdio-runtime-wrapper
+  - @nextclaw/nextclaw-ncp-runtime-adapter-hermes-http
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk
+  - @nextclaw/nextclaw-ncp-runtime-codex-sdk
+  - @nextclaw/nextclaw-ncp-runtime-http-client
+  - @nextclaw/remote
+  - @nextclaw/runtime
+  - @nextclaw/server
+  - @nextclaw/service
+  - @nextclaw/shared
+  - nextclaw
+
+- 9c02046: Stop extension processes from surviving their service runtime by passing the parent service PID to extension children, shutting down extensions during service signal cleanup, exiting SDK processes when their parent disappears, sweeping legacy orphan channel extension processes on startup, preflighting QQ gateway session quota, waiting for the quota reset before retrying, and surfacing QQ gateway close errors before the startup timeout.
+- Updated dependencies [f8dfffa]
+- Updated dependencies [7067713]
+- Updated dependencies
+- Updated dependencies [6bb305f]
+- Updated dependencies [31601cd]
+- Updated dependencies [13b1d96]
+- Updated dependencies [9c02046]
+- Updated dependencies [595cc16]
+- Updated dependencies [5117e15]
+- Updated dependencies [461f681]
+- Updated dependencies [d82790a]
+- Updated dependencies [07d776b]
+  - @nextclaw/channel-extension-dingtalk@0.1.19
+  - @nextclaw/channel-extension-discord@0.1.19
+  - @nextclaw/channel-extension-email@0.1.19
+  - @nextclaw/channel-extension-feishu@0.1.26
+  - @nextclaw/channel-extension-qq@0.1.23
+  - @nextclaw/channel-extension-slack@0.1.19
+  - @nextclaw/channel-extension-telegram@0.1.19
+  - @nextclaw/channel-extension-wecom@0.1.19
+  - @nextclaw/channel-extension-weixin@0.1.30
+  - @nextclaw/channel-extension-whatsapp@0.1.19
+  - @nextclaw/client-sdk@0.4.4
+  - @nextclaw/mcp@0.2.15
+  - @nextclaw/ncp-agent-runtime@0.3.45
+  - @nextclaw/ncp-mcp@0.1.110
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.2.14
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.2.14
+  - @nextclaw/remote@0.2.15
+  - @nextclaw/runtime@0.3.15
+  - @nextclaw/core@0.14.5
+  - @nextclaw/ncp@0.6.4
+  - @nextclaw/ncp-toolkit@0.5.39
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.2.14
+  - @nextclaw/shared@0.3.1
+  - @nextclaw/server@0.14.5
+  - @nextclaw/kernel@0.5.1
+
 ## 0.2.15-beta.1
 
 ### Patch Changes

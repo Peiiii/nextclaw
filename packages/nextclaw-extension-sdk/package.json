@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/extension-sdk",
-  "version": "0.2.15-beta.1",
+  "version": "0.2.15",
   "private": false,
   "description": "Backend SDK for NextClaw extension server processes.",
   "type": "module",

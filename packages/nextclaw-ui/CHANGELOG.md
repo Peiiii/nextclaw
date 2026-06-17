@@ -1,5 +1,37 @@
 # @nextclaw/ui
 
+## 0.14.1
+
+### Patch Changes
+
+- a2f4451: Update the built-in main agent fallback avatar to use the NextClaw brand primary background with a primary foreground icon.
+- afab873: Fix the chat context window indicator so it resets on session switches and appears whenever the active thread has context window metadata.
+- 6bb305f: Improve the chat welcome composer with prompt suggestions, searchable and pinned model choices, and a kernel-backed preference store for saved UI preferences.
+- e812753: Improve the chat sidebar new-session control so the session type switcher stores the next-session type preference, shows the current runtime icon with a dropdown affordance, and keeps the create action separate from type selection.
+- 5cadd07: Fix chat model preference resolution so new draft sessions remember the recent model per runtime while historical sessions keep their own bound model selection.
+- dd91bfb: Upgrade the new chat welcome entry with a centered composer, project history picker, visible agent selector, and session type selector while reusing the existing chat input flow.
+- 595cc16: Add inline placement for `show_content` panel app results so chat messages can render lightweight embedded Panel App cards while keeping the existing side-panel expansion path.
+- 4602651: Add first-use guidance to the Panel Apps empty state, including a sample prompt action that opens chat and drafts a starter panel app request.
+- 5117e15: Clarify that inline Panel Apps are a card-specific delivery form, add landscape-first card experience guidance for built-in app creation prompts, and render inline Panel Apps as pure bounded chat cards with a side-panel expand affordance.
+- d82790a: Expose runtime-default thinking capability through runtime entry configuration and session type listings, persist Codex thread metadata across NARP stdio, and pass session working directories through NCP execution context instead of coupling agent runtimes to NextClaw session state.
+- df32fb2: Make Skill Marketplace cards denser and easier to scan with a three-column desktop layout, bottom-aligned tags, filtered redundant skill tags, and hover-revealed card actions.
+- Updated dependencies [f8dfffa]
+- Updated dependencies [7067713]
+- Updated dependencies
+- Updated dependencies [6bb305f]
+- Updated dependencies [dd91bfb]
+- Updated dependencies [595cc16]
+- Updated dependencies [5117e15]
+- Updated dependencies [d82790a]
+  - @nextclaw/agent-chat@0.2.14
+  - @nextclaw/client-sdk@0.4.4
+  - @nextclaw/ncp-http-agent-client@0.3.46
+  - @nextclaw/ncp-react@0.4.54
+  - @nextclaw/ncp@0.6.4
+  - @nextclaw/ncp-toolkit@0.5.39
+  - @nextclaw/shared@0.3.1
+  - @nextclaw/agent-chat-ui@0.5.1
+
 ## 0.14.1-beta.1
 
 ### Patch Changes
