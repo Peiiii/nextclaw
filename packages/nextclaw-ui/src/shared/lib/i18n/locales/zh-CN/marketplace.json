@@ -20,6 +20,8 @@
   "marketplaceTypeMcp": "MCP",
   "marketplaceInstall": "安装",
   "marketplaceInstalling": "安装中...",
+  "marketplaceInstalledStatus": "已安装",
+  "marketplaceDisabledStatus": "已禁用",
   "marketplaceEnable": "启用",
   "marketplaceDisable": "禁用",
   "marketplaceEnabling": "启用中...",

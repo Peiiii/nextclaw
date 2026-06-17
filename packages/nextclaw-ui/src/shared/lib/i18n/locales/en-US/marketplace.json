@@ -20,6 +20,8 @@
   "marketplaceTypeMcp": "MCP",
   "marketplaceInstall": "Install",
   "marketplaceInstalling": "Installing...",
+  "marketplaceInstalledStatus": "Installed",
+  "marketplaceDisabledStatus": "Disabled",
   "marketplaceEnable": "Enable",
   "marketplaceDisable": "Disable",
   "marketplaceEnabling": "Enabling...",

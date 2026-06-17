@@ -37,7 +37,6 @@ type MarketplaceListCardActionProps = {
   record?: MarketplaceInstalledRecord;
   state: {
     isInstalling: boolean;
-    isDisabled: boolean;
     canUpdate: boolean;
     canUninstall: boolean;
     busyAction?: MarketplaceManageAction;
@@ -52,17 +51,15 @@ type MarketplaceListCardActionProps = {
 function MarketplaceListCardMeta({
   title,
   spec,
-  summary,
 }: {
   title: string;
   spec: string;
-  summary: string;
 }) {
   return (
     <TooltipProvider delayDuration={400}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="truncate text-[14px] font-semibold leading-tight text-gray-900">
+          <div className="truncate text-[14px] font-semibold leading-tight text-gray-950">
             {title}
           </div>
         </TooltipTrigger>
@@ -71,11 +68,11 @@ function MarketplaceListCardMeta({
         </TooltipContent>
       </Tooltip>
 
-      <div className="mb-1.5 mt-0.5 flex min-w-0 items-center gap-1.5">
+      <div className="mb-2 mt-1 flex min-w-0 items-center gap-1.5">
         {spec ? (
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="max-w-full truncate text-[11px] font-mono text-gray-400">
+              <span className="max-w-full truncate text-[11px] font-mono leading-tight text-gray-400">
                 {spec}
               </span>
             </TooltipTrigger>
@@ -85,15 +82,11 @@ function MarketplaceListCardMeta({
           </Tooltip>
         ) : null}
       </div>
-
-      <p className="line-clamp-2 text-left text-[12px] leading-relaxed text-gray-500/90">
-        {summary}
-      </p>
     </TooltipProvider>
   );
 }
 
-function MarketplaceListCardActions(props: MarketplaceListCardActionProps) {
+function MarketplaceListCardActionButtons(props: MarketplaceListCardActionProps) {
   const {
     item,
     record,
@@ -103,96 +96,94 @@ function MarketplaceListCardActions(props: MarketplaceListCardActionProps) {
   } = props;
   const {
     isInstalling,
-    isDisabled,
     canUpdate,
     canUninstall,
     busyAction,
   } = state;
   const busyForRecord = Boolean(busyAction);
   const hasActions = Boolean((item && !record) || (record && (canUpdate || canUninstall)));
+  if (!hasActions) {
+    return null;
+  }
 
   return (
     <div
       className={cn(
-        "relative flex h-8 shrink-0 items-center justify-end",
-        record ? "md:w-5" : "md:w-0",
+        "flex shrink-0 items-center justify-end gap-1.5 opacity-100 transition-opacity duration-150",
+        "md:pointer-events-none md:opacity-0",
+        "md:group-hover:pointer-events-auto md:group-hover:opacity-100",
+        "md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100",
       )}
     >
-      <div
-        className={cn(
-          "hidden items-center justify-end transition-opacity duration-150 md:flex",
-          hasActions && "group-hover:opacity-0 group-focus-within:opacity-0",
-        )}
-      >
-        {record ? (
-          <MarketplaceInstalledStatusIcon disabled={isDisabled} />
-        ) : null}
-      </div>
+      {item && !record && (
+        <button
+          onClick={(event) => {
+            event.stopPropagation();
+            onInstall(item);
+          }}
+          disabled={isInstalling}
+          className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md bg-primary px-2 text-[11px] font-medium text-white transition-colors hover:bg-primary-600 disabled:opacity-50"
+        >
+          <Download className="h-3 w-3" />
+          {isInstalling ? t("marketplaceInstalling") : t("marketplaceInstall")}
+        </button>
+      )}
 
-      <div
-        className={cn(
-          "flex w-max items-center justify-end gap-2 transition-opacity duration-150",
-          "opacity-100 md:pointer-events-none md:absolute md:right-0 md:opacity-0",
-          "md:group-hover:pointer-events-auto md:group-hover:opacity-100",
-          "md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100",
-        )}
-      >
-        {item && !record && (
-          <button
-            onClick={(event) => {
-              event.stopPropagation();
-              onInstall(item);
-            }}
-            disabled={isInstalling}
-            className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-xl bg-primary px-3 text-xs font-medium text-white transition-colors hover:bg-primary-600 disabled:opacity-50"
-          >
-            <Download className="h-3.5 w-3.5" />
-            {isInstalling ? t("marketplaceInstalling") : t("marketplaceInstall")}
-          </button>
-        )}
+      {record && canUpdate && (
+        <button
+          disabled={busyForRecord}
+          onClick={(event) => {
+            event.stopPropagation();
+            onManage("update", record);
+          }}
+          className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md border border-blue-200/80 bg-white px-2 text-[11px] font-medium text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-50 disabled:opacity-50"
+        >
+          <RefreshCw className="h-3 w-3" />
+          {busyAction === "update"
+            ? t("marketplaceUpdating")
+            : t("marketplaceUpdate")}
+        </button>
+      )}
 
-        {record && canUpdate && (
-          <button
-            disabled={busyForRecord}
-            onClick={(event) => {
-              event.stopPropagation();
-              onManage("update", record);
-            }}
-            className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-xl border border-blue-200/80 bg-white px-3 text-xs font-medium text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-50 disabled:opacity-50"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            {busyAction === "update"
-              ? t("marketplaceUpdating")
-              : t("marketplaceUpdate")}
-          </button>
-        )}
+      {record && canUninstall && (
+        <button
+          disabled={busyForRecord}
+          onClick={(event) => {
+            event.stopPropagation();
+            onManage("uninstall", record);
+          }}
+          className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md border border-gray-200/80 bg-white px-2 text-[11px] font-medium text-gray-500 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+        >
+          <Trash2 className="h-3 w-3" />
+          {busyAction === "uninstall"
+            ? t("marketplaceRemoving")
+            : t("marketplaceUninstall")}
+        </button>
+      )}
+    </div>
+  );
+}
 
-        {record && canUninstall && (
-          <button
-            disabled={busyForRecord}
-            onClick={(event) => {
-              event.stopPropagation();
-              onManage("uninstall", record);
-            }}
-            className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-xl border border-gray-200/80 bg-white px-3 text-xs font-medium text-gray-500 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            {busyAction === "uninstall"
-              ? t("marketplaceRemoving")
-              : t("marketplaceUninstall")}
-          </button>
-        )}
-      </div>
+function MarketplaceListCardStatus(props: {
+  record?: MarketplaceInstalledRecord;
+  disabled: boolean;
+}) {
+  const { record, disabled } = props;
+  if (!record) {
+    return null;
+  }
+  return (
+    <div className="flex h-5 w-5 shrink-0 items-center justify-end">
+      <MarketplaceInstalledStatusIcon disabled={disabled} />
     </div>
   );
 }
 
 function MarketplaceInstalledStatusIcon(props: { disabled: boolean }) {
   const { disabled } = props;
-  const { language } = useI18n();
   const label = disabled
-    ? readLocalized({ zh: "已禁用", en: "Disabled" }, language)
-    : readLocalized({ zh: "已安装", en: "Installed" }, language);
+    ? t("marketplaceDisabledStatus")
+    : t("marketplaceInstalledStatus");
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -251,6 +242,7 @@ export function MarketplaceListCard(props: {
     pickLocalizedText(item?.summaryI18n, item?.summary, localeFallbacks) ||
     (record ? t("marketplaceInstalledLocalSummary") : "");
   const spec = item?.install.spec ?? record?.spec ?? "";
+  const tags = item?.tags ?? [];
   const targetId = record?.id || record?.spec;
   const busyAction = targetId
     ? manageState.actionsByTarget.get(targetId)
@@ -268,35 +260,69 @@ export function MarketplaceListCard(props: {
   return (
     <article
       onClick={onOpen}
-      className="group flex cursor-pointer items-start justify-between gap-3.5 rounded-2xl border border-gray-200/40 bg-white px-5 py-4 shadow-sm transition-all hover:border-blue-300/80 hover:shadow-md"
+      className="group flex h-full min-h-[156px] cursor-pointer flex-col rounded-xl border border-gray-200/60 bg-white p-3.5 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50/60"
     >
-      <div className="flex min-w-0 flex-1 gap-3">
+      <div className="flex min-w-0 items-start gap-2.5">
         <MarketplaceItemIcon
           name={title}
           fallback={spec || t("marketplaceTypeSkill")}
+          className="h-9 w-9 rounded-lg text-xs"
         />
-        <div className="flex min-w-0 flex-1 flex-col justify-center">
-          <MarketplaceListCardMeta title={title} spec={spec} summary={summary} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <MarketplaceListCardMeta title={title} spec={spec} />
         </div>
+
+        <MarketplaceListCardStatus record={record} disabled={isDisabled} />
       </div>
 
-      <MarketplaceListCardActions
-        item={item}
-        record={record}
-        state={{
-          isInstalling,
-          isDisabled,
-          canUpdate,
-          canUninstall,
-          busyAction,
-        }}
-        onInstall={onInstall}
-        onManage={onManage}
-      />
+      <div className="mt-2 flex min-w-0 flex-1 flex-col">
+        <p className="line-clamp-2 text-left text-[12px] leading-relaxed text-gray-500">
+          {summary}
+        </p>
+
+        <div className="mt-auto flex min-w-0 items-end justify-between gap-2 pt-2">
+          <div className="min-w-0 flex-1">
+            <MarketplaceListCardTags tags={tags} />
+          </div>
+          <MarketplaceListCardActionButtons
+            item={item}
+            record={record}
+            state={{
+              isInstalling,
+              canUpdate,
+              canUninstall,
+              busyAction,
+            }}
+            onInstall={onInstall}
+            onManage={onManage}
+          />
+        </div>
+      </div>
     </article>
   );
 }
 
-function readLocalized(text: { zh: string; en: string }, language: string) {
-  return language.startsWith("zh") ? text.zh : text.en;
+function MarketplaceListCardTags({ tags }: { tags: string[] }) {
+  const visibleTags = tags.filter(isVisibleMarketplaceTag).slice(0, 3);
+  if (visibleTags.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex min-w-0 flex-wrap gap-1.5 overflow-hidden">
+      {visibleTags.map((tag) => (
+        <span
+          key={tag}
+          className="max-w-[104px] truncate rounded-md bg-gray-100 px-2 py-0.5 text-[11px] font-medium leading-5 text-gray-500"
+        >
+          {tag}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function isVisibleMarketplaceTag(tag: string) {
+  const normalized = tag.trim().toLowerCase();
+  return normalized.length > 0 && normalized !== "skill";
 }

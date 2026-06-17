@@ -46,7 +46,7 @@ export function SkillShelfCard(props: {
         layout === "rail" ? "w-[260px] shrink-0" : "w-full min-w-0",
       )}
     >
-      <div>
+      <div className="flex min-h-0 flex-1 flex-col">
         <div className="mb-2.5 flex min-w-0 items-start gap-2.5">
           <MarketplaceItemIcon name={item.name} fallback={item.install.spec} />
           <div className="min-w-0 flex-1 pt-0.5">
@@ -97,15 +97,20 @@ function formatShelfMeta(item: MarketplaceItemSummary) {
 }
 
 function TagLine({ tags }: { tags: string[] }) {
-  const visibleTags = tags.slice(0, 2);
+  const visibleTags = tags.filter(isVisibleShelfTag).slice(0, 2);
   if (visibleTags.length === 0) {
     return null;
   }
   return (
-    <div className="mt-2 truncate text-[11px] font-medium text-gray-400">
+    <div className="mt-auto truncate pt-2 text-[11px] font-medium text-gray-400">
       {visibleTags.join(" / ")}
     </div>
   );
+}
+
+function isVisibleShelfTag(tag: string) {
+  const normalized = tag.trim().toLowerCase();
+  return normalized.length > 0 && normalized !== "skill";
 }
 
 function formatUpdatedAt(value: string) {

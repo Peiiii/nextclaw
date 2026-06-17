@@ -236,6 +236,30 @@ describe("MarketplacePage", () => {
     expect(card?.textContent).not.toContain("Skill");
   });
 
+  it("hides redundant skill tags while keeping useful tags", () => {
+    mocks.itemsQuery = createItemsQuery({
+      data: {
+        total: 1,
+        page: 1,
+        pageSize: 20,
+        totalPages: 1,
+        sort: "relevance",
+        items: [
+          createMarketplaceItem({
+            tags: ["skill", "automation", "Skill", "ops"],
+          }),
+        ],
+      } satisfies MarketplaceListView,
+    });
+
+    render(<MarketplacePage forcedType="skills" />);
+
+    expect(screen.queryByText("skill")).toBeNull();
+    expect(screen.queryByText("Skill")).toBeNull();
+    expect(screen.getAllByText("automation").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("ops").length).toBeGreaterThan(0);
+  });
+
   it("does not dim the loaded list during background refresh", () => {
     mocks.itemsQuery = createItemsQuery({
       data: {
