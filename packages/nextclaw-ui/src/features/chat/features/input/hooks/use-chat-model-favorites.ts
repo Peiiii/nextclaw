@@ -2,12 +2,13 @@ import { useCallback, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   fetchPreference,
+  PREFERENCE_KEYS,
   updatePreference,
   type PreferenceEntryView,
   type PreferenceJsonValue,
 } from '@/shared/lib/api';
 
-const CHAT_MODEL_FAVORITES_PREFERENCE_KEY = 'chat.modelFavorites';
+const CHAT_MODEL_FAVORITES_PREFERENCE_KEY = PREFERENCE_KEYS.chat.modelFavorites;
 const chatModelFavoritesQueryKey = ['preference', CHAT_MODEL_FAVORITES_PREFERENCE_KEY] as const;
 
 function normalizeFavoriteModelValues(value: PreferenceJsonValue | null | undefined): string[] {

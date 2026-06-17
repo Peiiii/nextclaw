@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -5,7 +6,7 @@ import { ChatSidebar } from "@/features/chat/components/layout/chat-sidebar";
 import type { NcpSessionListItemView } from "@/features/chat/features/ncp/hooks/use-ncp-session-list-view";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
-import type { ChatSessionTypeOptionView } from "@/shared/lib/api";
+import { PREFERENCE_KEYS, type ChatSessionTypeOptionView } from "@/shared/lib/api";
 
 const mocks = vi.hoisted(() => ({
   createSession: vi.fn(() => "draft-session-key"),
@@ -18,6 +19,8 @@ const mocks = vi.hoisted(() => ({
   docOpen: vi.fn(),
   setLanguage: vi.fn(),
   setTheme: vi.fn(),
+  fetchPreference: vi.fn(),
+  updatePreference: vi.fn(),
   updateNcpSession: vi.fn(),
   agents: [] as Array<{
     id: string;
@@ -27,6 +30,15 @@ const mocks = vi.hoisted(() => ({
   sessionItems: [] as NcpSessionListItemView[],
   isLoading: false,
 }));
+
+vi.mock("@/shared/lib/api", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...(actual as Record<string, unknown>),
+    fetchPreference: mocks.fetchPreference,
+    updatePreference: mocks.updatePreference,
+  };
+});
 
 function createSessionItem(
   session: NcpSessionListItemView["session"],
@@ -53,15 +65,28 @@ function setSessionTypes(
 }
 
 function sidebarElement(variant?: "desktop" | "mobile") {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
   return (
-    <MemoryRouter>
-      <ChatSidebar variant={variant} />
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <ChatSidebar variant={variant} />
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 }
 
 function renderSidebar(variant?: "desktop" | "mobile") {
   return render(sidebarElement(variant));
+}
+
+function expectCodexSelectedInSessionTypeMenu() {
+  fireEvent.click(screen.getByLabelText("Session Type"));
+  expect(screen.getByRole("button", { name: /Codex/i }).getAttribute("aria-pressed")).toBe("true");
 }
 
 vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
@@ -177,6 +202,16 @@ function resetSidebarTestState() {
   mocks.docOpen.mockReset();
   mocks.setLanguage.mockReset();
   mocks.setTheme.mockReset();
+  mocks.fetchPreference.mockReset();
+  mocks.fetchPreference.mockResolvedValue({
+    key: PREFERENCE_KEYS.chat.newSessionType,
+    value: null,
+  });
+  mocks.updatePreference.mockReset();
+  mocks.updatePreference.mockImplementation(async (key: string, value: string) => ({
+    key, value,
+    updatedAt: "2026-06-17T00:00:00.000Z",
+  }));
   mocks.updateNcpSession.mockReset();
   mocks.updateNcpSession.mockResolvedValue({});
   mocks.agents = [];
@@ -201,16 +236,44 @@ function resetSidebarTestState() {
 describe("ChatSidebar create and list basics", () => {
   beforeEach(resetSidebarTestState);
 
-  it("closes the create-session menu after choosing a non-default session type", async () => {
+  it("switches the desktop new-session type without creating until the left button is clicked", async () => {
     renderSidebar();
 
     fireEvent.click(screen.getByLabelText("Session Type"));
-    fireEvent.click(screen.getByText("Codex"));
+    fireEvent.click(screen.getByRole("button", { name: /Codex/i }));
+
+    expect(mocks.createSession).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mocks.updatePreference).toHaveBeenCalledWith(
+        PREFERENCE_KEYS.chat.newSessionType,
+        "codex",
+      );
+      expect(screen.getByLabelText("Session Type").textContent).toBe("");
+    });
+    expectCodexSelectedInSessionTypeMenu();
+
+    fireEvent.click(screen.getByRole("button", { name: "New Task" }));
 
     expect(mocks.createSession).toHaveBeenCalledWith("codex", undefined);
-    await waitFor(() => {
-      expect(screen.queryByText("Codex")).toBeNull();
+  });
+
+  it("hydrates the desktop new-session type from stored preferences", async () => {
+    mocks.fetchPreference.mockResolvedValue({
+      key: PREFERENCE_KEYS.chat.newSessionType,
+      value: "codex",
     });
+
+    renderSidebar();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Session Type").textContent).toBe("");
+    });
+    expectCodexSelectedInSessionTypeMenu();
+    fireEvent.click(screen.getByLabelText("Session Type"));
+
+    fireEvent.click(screen.getByRole("button", { name: "New Task" }));
+
+    expect(mocks.createSession).toHaveBeenCalledWith("codex", undefined);
   });
 
   it("does not animate the desktop create task button width during runtime option hydration", () => {

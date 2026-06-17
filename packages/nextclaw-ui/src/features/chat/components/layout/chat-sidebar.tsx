@@ -41,6 +41,7 @@ import {
   DEFAULT_SESSION_TYPE,
   normalizeSessionType,
 } from "@/features/chat/features/session-type/utils/chat-session-type.utils";
+import { useChatNewSessionTypePreference } from "@/features/chat/features/session-type/hooks/use-chat-new-session-type-preference";
 
 const navItems = [
   {
@@ -173,6 +174,10 @@ export function ChatSidebar({
       ),
     [defaultSessionType, sessionTypeOptions],
   );
+  const newSessionTypePreference = useChatNewSessionTypePreference({
+    defaultSessionType,
+    sessionTypeOptions,
+  });
   const isProjectFirstView = listSnapshot.listMode === "project-first";
   const optimisticReadAtBySessionKey = useChatSessionUnreadState(
     items,
@@ -250,12 +255,19 @@ export function ChatSidebar({
       {isMobileVariant ? (
         <ChatSidebarMobileToolbar
           query={listSnapshot.query}
-          defaultSessionType={defaultSessionType}
+          defaultSessionType={newSessionTypePreference.selectedSessionType}
           sessionTypeOptions={sessionTypeOptions}
           nonDefaultSessionTypeOptions={nonDefaultSessionTypeOptions}
+          selectedNewSessionType={newSessionTypePreference.selectedSessionType}
+          selectedNewSessionTypeOption={
+            newSessionTypePreference.selectedSessionTypeOption
+          }
           isCreateMenuOpen={isCreateMenuOpen}
           onCreateMenuOpenChange={setIsCreateMenuOpen}
           onCreateSession={createSessionAndOpenIfNeeded}
+          onSelectNewSessionType={
+            newSessionTypePreference.setSelectedSessionType
+          }
           onQueryChange={presenter.chatSessionListManager.setQuery}
         />
       ) : (
@@ -264,9 +276,16 @@ export function ChatSidebar({
           defaultSessionType={defaultSessionType}
           sessionTypeOptions={sessionTypeOptions}
           nonDefaultSessionTypeOptions={nonDefaultSessionTypeOptions}
+          selectedNewSessionType={newSessionTypePreference.selectedSessionType}
+          selectedNewSessionTypeOption={
+            newSessionTypePreference.selectedSessionTypeOption
+          }
           isCreateMenuOpen={isCreateMenuOpen}
           onCreateMenuOpenChange={setIsCreateMenuOpen}
           onCreateSession={createSessionAndOpenIfNeeded}
+          onSelectNewSessionType={
+            newSessionTypePreference.setSelectedSessionType
+          }
           onQueryChange={presenter.chatSessionListManager.setQuery}
         />
       )}
@@ -308,7 +327,7 @@ export function ChatSidebar({
           isProjectFirstView={isProjectFirstView}
           groups={groups}
           projectGroups={projectGroups}
-          defaultSessionType={defaultSessionType}
+          defaultSessionType={newSessionTypePreference.selectedSessionType}
           sessionTypeOptions={sessionTypeOptions}
           renderSessionItem={renderSessionItem}
           onCreateSession={createSessionAndOpenIfNeeded}

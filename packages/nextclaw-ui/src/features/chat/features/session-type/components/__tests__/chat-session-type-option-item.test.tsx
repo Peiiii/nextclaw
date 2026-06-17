@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ChatSessionTypeOptionItem } from "@/features/chat/features/session-type/components/chat-session-type-option-item";
 
@@ -58,5 +58,31 @@ describe("ChatSessionTypeOptionItem", () => {
 
     expect(screen.getByRole("button", { name: /native/i })).toBeTruthy();
     expect(screen.getByText("Native")).toBeTruthy();
+  });
+
+  it("marks selected options and does not call select when disabled", () => {
+    const onSelect = vi.fn();
+
+    render(
+      <ChatSessionTypeOptionItem
+        disabled
+        selected
+        option={{
+          value: "claude",
+          label: "Claude",
+          ready: false,
+          reasonMessage: "Configure a provider API key first.",
+        }}
+        onSelect={onSelect}
+      />,
+    );
+
+    const optionButton = screen.getByRole("button", { name: /claude/i });
+    expect(optionButton.getAttribute("aria-pressed")).toBe("true");
+    expect((optionButton as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.click(optionButton);
+
+    expect(onSelect).not.toHaveBeenCalled();
   });
 });

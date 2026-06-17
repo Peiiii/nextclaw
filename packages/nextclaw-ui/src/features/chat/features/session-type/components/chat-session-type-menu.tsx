@@ -5,31 +5,33 @@ import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
 type SessionTypeOption = ChatInputSnapshot["sessionTypeOptions"][number];
-const CHAT_SIDEBAR_CREATE_MENU_MAX_HEIGHT =
+const CHAT_SESSION_TYPE_MENU_MAX_HEIGHT =
   createPopoverAvailableHeightLimit("18rem");
-const CHAT_SIDEBAR_CREATE_MENU_STYLE = {
-  maxHeight: CHAT_SIDEBAR_CREATE_MENU_MAX_HEIGHT,
+const CHAT_SESSION_TYPE_MENU_STYLE = {
+  maxHeight: CHAT_SESSION_TYPE_MENU_MAX_HEIGHT,
 };
 
-type ChatSidebarCreateMenuProps = {
+type ChatSessionTypeMenuProps = {
   options: readonly SessionTypeOption[];
   onSelect: (sessionType: string) => void;
+  selectedSessionType?: string;
   title?: string;
   className?: string;
   titleClassName?: string;
 };
 
-export function ChatSidebarCreateMenu({
+export function ChatSessionTypeMenu({
   className,
   onSelect,
   options,
+  selectedSessionType,
   title = t("chatSessionTypeLabel"),
   titleClassName,
-}: ChatSidebarCreateMenuProps) {
+}: ChatSessionTypeMenuProps) {
   return (
     <div
       className={cn("space-y-1 overflow-y-auto overscroll-contain", className)}
-      style={CHAT_SIDEBAR_CREATE_MENU_STYLE}
+      style={CHAT_SESSION_TYPE_MENU_STYLE}
     >
       <div
         className={cn(
@@ -42,7 +44,9 @@ export function ChatSidebarCreateMenu({
       {options.map((option) => (
         <ChatSessionTypeOptionItem
           key={option.value}
+          disabled={option.ready === false}
           option={option}
+          selected={option.value === selectedSessionType}
           onSelect={() => onSelect(option.value)}
         />
       ))}

@@ -1,4 +1,4 @@
-import { Button } from "@/shared/components/ui/button";
+import { Button, type ButtonProps } from "@/shared/components/ui/button";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -6,22 +6,71 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover";
-import { ChatSidebarCreateMenu } from "@/features/chat/features/session-type/components/chat-sidebar-create-menu";
+import { SessionContextIconNode } from "@/features/chat/features/session/components/session-context-icon";
+import { ChatSessionTypeMenu } from "@/features/chat/features/session-type/components/chat-session-type-menu";
 import type { ChatInputSnapshot } from "@/features/chat/stores/chat-input.store";
 import { cn } from "@/shared/lib/utils";
 import { t } from "@/shared/lib/i18n";
-import { ChevronDown, Plus, Search } from "lucide-react";
+import { Bot, ChevronDown, Plus, Search } from "lucide-react";
 
 type SessionTypeOption = ChatInputSnapshot["sessionTypeOptions"][number];
+type NewSessionActionStyleVariant =
+  | "neutralSurface"
+  | "brandSoft"
+  | "brandTextSurface"
+  | "brandSolid";
+
+const NEW_SESSION_ACTION_STYLE_VARIANT: NewSessionActionStyleVariant =
+  "brandSoft";
+
+const NEW_SESSION_ACTION_STYLE_CLASSES: Record<
+  NewSessionActionStyleVariant,
+  {
+    leftVariant: ButtonProps["variant"];
+    leftClassName: string;
+    rightClassName: string;
+  }
+> = {
+  neutralSurface: {
+    leftVariant: "ghost",
+    leftClassName:
+      "bg-white/90 text-gray-700 shadow-none transition-[background-color,color,box-shadow] hover:bg-white hover:text-gray-950 hover:shadow-sm active:bg-white/95",
+    rightClassName:
+      "bg-white/90 text-gray-600 shadow-none transition-[background-color,color,box-shadow] hover:bg-white hover:text-gray-900 hover:shadow-sm active:bg-white/95",
+  },
+  brandSoft: {
+    leftVariant: "ghost",
+    leftClassName:
+      "bg-primary/10 text-primary shadow-none transition-[background-color,color,box-shadow] hover:bg-primary/15 hover:text-primary-700 hover:shadow-sm active:bg-primary/20",
+    rightClassName:
+      "bg-primary/10 text-primary shadow-none transition-[background-color,color,box-shadow] hover:bg-primary/15 hover:text-primary-700 hover:shadow-sm active:bg-primary/20",
+  },
+  brandTextSurface: {
+    leftVariant: "ghost",
+    leftClassName:
+      "bg-white/90 text-primary shadow-none transition-[background-color,color,box-shadow] hover:bg-primary/10 hover:text-primary-700 hover:shadow-sm active:bg-primary/15",
+    rightClassName:
+      "bg-white/90 text-primary shadow-none transition-[background-color,color,box-shadow] hover:bg-primary/10 hover:text-primary-700 hover:shadow-sm active:bg-primary/15",
+  },
+  brandSolid: {
+    leftVariant: "primary",
+    leftClassName: "",
+    rightClassName:
+      "bg-primary text-primary-foreground shadow-sm hover:bg-primary-600 hover:text-primary-foreground active:bg-primary-700",
+  },
+};
 
 type ChatSidebarToolbarProps = {
   query: string;
   defaultSessionType: string;
   sessionTypeOptions: SessionTypeOption[];
   nonDefaultSessionTypeOptions: SessionTypeOption[];
+  selectedNewSessionType: string;
+  selectedNewSessionTypeOption: SessionTypeOption | null;
   isCreateMenuOpen: boolean;
   onCreateMenuOpenChange: (open: boolean) => void;
   onCreateSession: (sessionType: string) => void;
+  onSelectNewSessionType: (sessionType: string) => void;
   onQueryChange: (query: string) => void;
 };
 
@@ -39,58 +88,96 @@ function getMobileCreateOptions(params: {
   ];
 }
 
+function SessionTypeTriggerIcon({
+  option,
+}: {
+  option: SessionTypeOption | null;
+}) {
+  if (option?.icon?.src) {
+    return (
+      <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
+        <SessionContextIconNode
+          icon={{
+            kind: "runtime-image",
+            src: option.icon.src,
+            alt: option.icon.alt ?? null,
+            name: option.label,
+          }}
+          className="h-4 w-4"
+        />
+      </span>
+    );
+  }
+  return <Bot className="h-4 w-4 shrink-0" />;
+}
+
 export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
   const {
     query,
-    defaultSessionType,
-    nonDefaultSessionTypeOptions,
+    selectedNewSessionType,
+    selectedNewSessionTypeOption,
+    sessionTypeOptions,
     isCreateMenuOpen,
     onCreateMenuOpenChange,
     onCreateSession,
+    onSelectNewSessionType,
     onQueryChange,
   } = props;
+  const supportsSessionTypeSwitch = sessionTypeOptions.length > 1;
+  const actionStyle =
+    NEW_SESSION_ACTION_STYLE_CLASSES[NEW_SESSION_ACTION_STYLE_VARIANT];
 
   return (
     <>
       <div className="px-4 pb-3">
         <div className="flex items-center gap-2">
           <Button
-            variant="primary"
+            variant={actionStyle.leftVariant}
             className={cn(
               "min-w-0 rounded-xl",
-              nonDefaultSessionTypeOptions.length > 0
+              actionStyle.leftClassName,
+              supportsSessionTypeSwitch
                 ? "flex-1 rounded-r-md"
                 : "w-full",
             )}
             onClick={() => {
               onCreateMenuOpenChange(false);
-              onCreateSession(defaultSessionType);
+              onCreateSession(selectedNewSessionType);
             }}
           >
             <Plus className="mr-2 h-4 w-4" />
             {t("chatSidebarNewTask")}
           </Button>
-          {nonDefaultSessionTypeOptions.length > 0 ? (
+          {supportsSessionTypeSwitch ? (
             <Popover
               open={isCreateMenuOpen}
               onOpenChange={onCreateMenuOpenChange}
             >
               <PopoverTrigger asChild>
                 <IconActionButton
-                  icon={<ChevronDown className="h-4 w-4" />}
+                  icon={
+                    <span className="inline-flex items-center gap-0.5">
+                      <SessionTypeTriggerIcon option={selectedNewSessionTypeOption} />
+                      <ChevronDown className="h-3 w-3 opacity-60" />
+                    </span>
+                  }
                   label={t("chatSessionTypeLabel")}
-                  tooltip={false}
-                  className="h-9 w-10 shrink-0 rounded-xl rounded-l-md bg-primary text-primary-foreground shadow-sm hover:bg-primary-600 hover:text-primary-foreground active:bg-primary-700"
+                  tooltip={t("chatSessionTypeLabel")}
+                  className={cn(
+                    "h-9 w-12 shrink-0 rounded-xl rounded-l-md",
+                    actionStyle.rightClassName,
+                  )}
                 />
               </PopoverTrigger>
               <PopoverContent
                 align="end"
                 className="w-56 rounded-2xl border border-gray-200/80 bg-white p-1.5 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
               >
-                <ChatSidebarCreateMenu
-                  options={nonDefaultSessionTypeOptions}
+                <ChatSessionTypeMenu
+                  options={sessionTypeOptions}
+                  selectedSessionType={selectedNewSessionType}
                   onSelect={(sessionType) => {
-                    onCreateSession(sessionType);
+                    onSelectNewSessionType(sessionType);
                     onCreateMenuOpenChange(false);
                   }}
                 />
@@ -160,8 +247,9 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps) {
               align="end"
               className="w-60 rounded-3xl border border-gray-200/80 bg-white p-2 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.45)]"
             >
-              <ChatSidebarCreateMenu
+              <ChatSessionTypeMenu
                 options={createOptions}
+                selectedSessionType={defaultSessionType}
                 title={t("chatSidebarNewTask")}
                 titleClassName="pb-1.5 text-[11px] font-medium normal-case tracking-normal"
                 onSelect={(sessionType) => {

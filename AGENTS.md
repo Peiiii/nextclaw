@@ -51,7 +51,8 @@
 - 沉淀想法、产品思考、讨论记录、设计、计划、PRD、路线图或迭代记录时，必须使用 `project-knowledge-governance` 判断进入 `docs/TODO.md`、`docs/thoughts`、`docs/designs`、`docs/plans`、`docs/prd`、`docs/ROADMAP.md` 还是 `docs/logs`。
 - 修改 `AGENTS.md`、命令机制、Rulebook 或 skill 分层时，必须使用 `nextclaw-agent-instructions-governance` skill。
 - 触达 `docs/logs` 迭代记录、NPM 发布记录、工作笔记、目标锚点时，必须使用 `nextclaw-iteration-log-governance` skill。
-- 执行源码、脚本、测试或运行链路配置相关任务时，默认使用 `nextclaw-delivery-workflow` 作为总流程 owner，统一约束实现前删减判断、验证、可维护性披露、复盘与最终汇报；细节再分别联动对应专项 skill。
+- 执行源码、脚本、测试、运行链路配置或“方案到实现”相关任务时，默认使用 `nextclaw-delivery-workflow` 作为标准开发流程总 owner，统一约束目标、方案阶段门、实现前删减判断、验证、可维护性披露、复盘与最终汇报；细节再分别联动对应专项 skill。
+- 用户要求技术方案、方案设计、设计文档、架构方案或实现前设计时，使用 `nextclaw-solution-design` 作为方案设计专项；它不替代 `nextclaw-delivery-workflow` 的总流程 owner。
 - 运行 `/validate`、代码改动收尾验证、bugfix 定向验收、冒烟测试或发布闭环判断时，必须使用 `nextclaw-validation-workflow` skill。
 - 写或改源码、脚本、测试、运行链路配置前，默认使用 `nextclaw-clean-implementation` skill；涉及 fallback / compatibility / rescue path 时，同时使用 `predictable-behavior-first`。
 - 写代码、给技术方案，或讨论/审查/重构代码审美、代码是否干净/优雅/美丽、是否过度防卫或过度抽象前，必须先使用 `writing-beautiful-code`；项目专属规则仍归对应项目 skill。
@@ -72,6 +73,7 @@
 本索引按关注面分组，而不是按用户话术罗列。复杂任务必须先判断涉及哪些组，再组合读取对应 skill；不要只因为任务表面属于“前端”“重构”或“验证”就漏掉设计、实现、结构、验证或知识沉淀。
 
 架构与设计：负责上位工程判断、主干/分支关系、owner 边界、抽象力度，以及把架构边界落实到文件结构和命名。
+- 方案设计专项：使用 [nextclaw-solution-design](.agents/skills/nextclaw-solution-design/SKILL.md)，在实现前产出可执行方案，覆盖现状依据、owner、数据流、目录组织、可维护性、非目标和验证标准。
 - 经典设计原则校准：使用 [classic-software-design-principles](.agents/skills/classic-software-design-principles/SKILL.md)，判断架构方向、模块职责、owner 边界、生命周期、状态归属、抽象力度和方案取舍。
 - 代码审美与拆分判断：使用 [writing-beautiful-code](.agents/skills/writing-beautiful-code/SKILL.md)，判断主流程可见性、抽象必要性、拆分收益和代码是否真正简洁。
 - 主干/分支架构判断：使用 [kernel-branch-owner-architecture](.agents/skills/kernel-branch-owner-architecture/SKILL.md)，判断长期 owner 依赖、稳定 owner 直连关系、factory/create/registry 抽象和链路长度。
@@ -89,7 +91,7 @@
 实现与交付：负责从动手前质量门、可预测行为，到实现闭环、验证和可维护性收口。
 - 干净实现前置判断：使用 [nextclaw-clean-implementation](.agents/skills/nextclaw-clean-implementation/SKILL.md)，在动手前拦住补丁式复杂度、重复路径、假 owner、helper/adapter/wrapper 膨胀和不必要兼容。
 - 可预测行为约束：使用 [predictable-behavior-first](.agents/skills/predictable-behavior-first/SKILL.md)，处理 fallback、兼容、救援路径、环境探测和错误恢复，保证行为可预测、错误可观察。
-- 端到端交付编排：使用 [nextclaw-delivery-workflow](.agents/skills/nextclaw-delivery-workflow/SKILL.md)，把实现、修复、重构或验证串成目标对齐、实现前删减、验证闭环、可维护性披露、复盘和最终汇报流程。
+- 标准开发流程编排：使用 [nextclaw-delivery-workflow](.agents/skills/nextclaw-delivery-workflow/SKILL.md)，把方案、实现、修复、重构或验证串成目标对齐、方案阶段门、实现前删减、验证闭环、可维护性披露、复盘和最终汇报流程。
 - 验证闭环判断：使用 [nextclaw-validation-workflow](.agents/skills/nextclaw-validation-workflow/SKILL.md)，证明改动行为正确、类型安全、治理通过，并覆盖 tsc、定向测试、冒烟和运行链路验收。
 - 可维护性自动守卫：使用 [post-edit-maintainability-guard](.agents/skills/post-edit-maintainability-guard/SKILL.md)，检查代码增减、热点、目录膨胀和非功能改动净增长约束。
 - 可维护性主观复核：使用 [post-edit-maintainability-review](.agents/skills/post-edit-maintainability-review/SKILL.md)，复核抽象、owner、文件边界和长期维护成本是否真的改善。
@@ -99,25 +101,26 @@
 - 迭代留痕治理：使用 [nextclaw-iteration-log-governance](.agents/skills/nextclaw-iteration-log-governance/SKILL.md)，管理 `docs/logs`、收尾留痕、NPM 发布记录、工作笔记和目标锚点。
 - 元规则与 skill 分层治理：使用 [nextclaw-agent-instructions-governance](.agents/skills/nextclaw-agent-instructions-governance/SKILL.md)，管理 `AGENTS.md`、命令、Rulebook、Project Rulebook 和 skill 分层。
 
-## 标准交付流程
+## 标准开发流程
 
-- 适用范围：源码、脚本、测试、运行链路配置相关任务，默认都按这条标准流程推进；`nextclaw-delivery-workflow` 负责条件细节和收尾强制检查。
+- 适用范围：源码、脚本、测试、运行链路配置和方案到实现相关任务，默认都按这条标准流程推进；`nextclaw-delivery-workflow` 负责条件细节、阶段门和收尾强制检查。
 - 第一步：先对齐目标与成功标准，明确这是新增用户能力还是非功能改动，并先定义可观察验收条件。
   默认联动：`nextclaw-delivery-workflow`。
   条件联动：复杂 debug 用 `long-chain-debugging`；复杂跨轮或易漂移任务用 `iteration-work-notes`，必要时加 `goal-progress-anchor`。
-- 第二步：实现前先判断能删什么、能合并什么、owner 是谁；若不是新增用户能力，默认目标是排除纯格式化噪音后的 `非测试语义代码净增 <= 0`，并优先通过删旧实现、重构收敛或相关链路减债达成；完成标准是系统确实变得更好，不能靠 hack、强行压行或牺牲可读性硬过线；若找不到无争议的正向改动，必须停止压缩并申请豁免。
+- 第二步：若任务涉及新能力、架构边界、交互结构、目录组织、跨模块 owner、持久化合同、运行链路或用户要求方案/设计文档，先使用 `nextclaw-solution-design` 完成方案设计阶段门；小型局部修复可跳过设计文档，但必须说清 owner 与验证标准。
+- 第三步：实现前先判断能删什么、能合并什么、owner 是谁；若不是新增用户能力，默认目标是排除纯格式化噪音后的 `非测试语义代码净增 <= 0`，并优先通过删旧实现、重构收敛或相关链路减债达成；完成标准是系统确实变得更好，不能靠 hack、强行压行或牺牲可读性硬过线；若找不到无争议的正向改动，必须停止压缩并申请豁免。
   默认联动：`nextclaw-clean-implementation`。
   条件联动：涉及 fallback / compatibility / rescue path 用 `predictable-behavior-first`；涉及命名、目录、文件组织时按场景用 `file-naming-convention`、`role-first-file-organization`、`collapsible-feature-root-architecture`、`file-organization-governance`。
-- 第三步：再进入实现，优先单一路径、清晰 owner、避免补丁式分支和重复实现。
+- 第四步：再进入实现，优先单一路径、清晰 owner、避免补丁式分支和重复实现。
   默认联动：继续遵守 `nextclaw-clean-implementation` 的 owner / 删减 / 单路径约束。
   条件联动：触达 NextClaw 自管理命令语义时，同步维护 `docs/USAGE.md`、`packages/nextclaw/resources/USAGE.md` 与 `nextclaw-self-manage` skill，并说明是否运行 `sync-usage-resource`。
-- 第四步：改完后做最小充分验证；触达 TypeScript 源码、类型边界或运行链路时 `tsc` 必跑；用户可见或可运行行为必须有冒烟或最贴近链路的定向验收。
+- 第五步：改完后做最小充分验证；触达 TypeScript 源码、类型边界或运行链路时 `tsc` 必跑；用户可见或可运行行为必须有冒烟或最贴近链路的定向验收。
   默认联动：`nextclaw-validation-workflow`。
   条件联动：代码改动收尾默认再跑 `post-edit-maintainability-guard` 与 `post-edit-maintainability-review`；发布闭环场景继续按发布原则执行 migration / deploy / smoke / NPM release 判断。
-- 第五步：收尾时必须主动披露可维护性结果，包括总代码增减、非测试代码增减、是否满足非功能改动行数门槛，以及本次正向减债动作。
+- 第六步：收尾时必须主动披露可维护性结果，包括总代码增减、非测试代码增减、是否满足非功能改动行数门槛，以及本次正向减债动作。
   默认联动：`post-edit-maintainability-review`。
   条件联动：若非功能改动排除纯格式化噪音后的非测试语义代码净增大于 `0`，不得收尾，必须继续简化或删除。
-- 第六步：最后做复盘，判断是否要改进规则、skill、命令、自动化或文档，并决定是否需要 `docs/logs` 留痕、发布闭环说明和最终汇报中的不适用项说明。
+- 第七步：最后做复盘，判断是否要改进规则、skill、命令、自动化或文档，并决定是否需要 `docs/logs` 留痕、发布闭环说明和最终汇报中的不适用项说明。
   默认联动：`nextclaw-iteration-log-governance`。
   条件联动：若复盘结论涉及 `AGENTS.md`、命令机制、Rulebook、skill 分层或治理脚本，必须用 `nextclaw-agent-instructions-governance` 落实；若是长期自治推进类任务，再考虑 `goal-mode`。
 

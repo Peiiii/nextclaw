@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Plus } from 'lucide-react';
-import { ChatSidebarCreateMenu } from "@/features/chat/features/session-type/components/chat-sidebar-create-menu";
+import { ChatSessionTypeMenu } from "@/features/chat/features/session-type/components/chat-session-type-menu";
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
@@ -77,8 +77,9 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                     align="end"
                     className="w-56 rounded-2xl border border-gray-200/80 bg-white p-1.5 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
                   >
-                    <ChatSidebarCreateMenu
+                    <ChatSessionTypeMenu
                       options={sessionTypeOptions}
+                      selectedSessionType={preferredSessionType}
                       onSelect={(sessionType) => {
                         onCreateSession(sessionType, group.projectRoot);
                         setOpenProjectRoot(null);
