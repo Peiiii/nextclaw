@@ -28,6 +28,7 @@ permissions:
 
 jobs:
   build-npm-runtime-update:
+    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'nextclaw@') || contains(github.event.release.tag_name, 'npm-beta')
     name: npm-runtime-${{ matrix.platform }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 35
@@ -103,7 +104,7 @@ jobs:
             packages/nextclaw/dist/npm-runtime-updates
 
   publish-npm-runtime-update-channel:
-    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'nextclaw@') || contains(github.event.release.tag_name, 'npm-beta')
     needs: [build-npm-runtime-update]
     runs-on: ubuntu-latest
     env:

@@ -194,6 +194,12 @@ async function verifyReleaseAssets(options) {
   if (missingAssets.length > 0) {
     throw new Error(`Missing release assets on ${tag}: ${missingAssets.join(", ")}`);
   }
+  const npmRuntimeAssets = [...assetNames].filter((assetName) => /^nextclaw-runtime-.*\.zip$/.test(assetName));
+  if (npmRuntimeAssets.length > 0) {
+    throw new Error(
+      `Desktop release contains NPM runtime assets on ${tag}: ${npmRuntimeAssets.join(", ")}`
+    );
+  }
   console.log(`[desktop:release] release assets OK: ${expectedAssets.join(", ")}`);
 }
 
