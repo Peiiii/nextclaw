@@ -1,5 +1,23 @@
 # @nextclaw/ui
 
+## 0.14.1-beta.1
+
+### Patch Changes
+
+- 6bb305f: Improve the chat welcome composer with prompt suggestions, searchable and pinned model choices, and a kernel-backed preference store for saved UI preferences.
+- dd91bfb: Upgrade the new chat welcome entry with a centered composer, project history picker, visible agent selector, and session type selector while reusing the existing chat input flow.
+- Updated dependencies
+- Updated dependencies [6bb305f]
+- Updated dependencies [dd91bfb]
+  - @nextclaw/agent-chat@0.2.14-beta.1
+  - @nextclaw/client-sdk@0.4.4-beta.1
+  - @nextclaw/ncp@0.6.4-beta.1
+  - @nextclaw/ncp-http-agent-client@0.3.46-beta.1
+  - @nextclaw/ncp-react@0.4.54-beta.1
+  - @nextclaw/ncp-toolkit@0.5.39-beta.1
+  - @nextclaw/shared@0.3.1-beta.1
+  - @nextclaw/agent-chat-ui@0.5.1-beta.1
+
 ## 0.14.1-beta.0
 
 ### Patch Changes

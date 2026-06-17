@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/client-sdk",
-  "version": "0.4.4-beta.0",
+  "version": "0.4.4-beta.1",
   "private": false,
   "description": "Shared client SDK for NextClaw session, agent, and realtime access.",
   "type": "module",

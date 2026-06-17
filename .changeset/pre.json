@@ -65,13 +65,20 @@
   },
   "changesets": [
     "auto-release-batch-20260615180356759",
+    "auto-release-batch-20260617013637378",
     "chat-context-window-indicator",
+    "chat-model-favorites-preferences",
     "chat-runtime-model-preference",
+    "chat-welcome-context-entry",
+    "codex-desktop-thread-index-sync",
+    "codex-desktop-workspace-visibility",
     "codex-narp-runtime-recovery",
+    "extension-process-lifecycle",
     "inline-panel-app-cards",
     "ncp-think-tags-default",
     "panel-app-empty-guide",
     "panel-card-experience-contract",
+    "qq-gateway-quota-cooldown",
     "runtime-default-thinking",
     "stdio-runtime-source-alias"
   ]

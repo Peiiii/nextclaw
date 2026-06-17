@@ -1,5 +1,13 @@
 # @nextclaw/nextclaw-ncp-runtime-codex-sdk
 
+## 0.1.55-beta.1
+
+### Patch Changes
+
+- 5dea74e: Sync and materialize Codex Desktop thread index metadata after app-server turns so NextClaw Codex sessions stay visible and current in Codex Desktop.
+- Updated dependencies
+  - @nextclaw/ncp@0.6.4-beta.1
+
 ## 0.1.55-beta.0
 
 ### Patch Changes

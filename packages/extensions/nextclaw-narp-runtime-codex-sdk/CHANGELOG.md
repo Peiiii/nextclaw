@@ -1,5 +1,16 @@
 # @nextclaw/nextclaw-narp-runtime-codex-sdk
 
+## 0.1.33-beta.1
+
+### Patch Changes
+
+- 68fdccc: Fix Codex Desktop workspace visibility registration for Codex runtime sessions.
+- Updated dependencies
+- Updated dependencies [5dea74e]
+  - @nextclaw/ncp@0.6.4-beta.1
+  - @nextclaw/nextclaw-narp-stdio-runtime-wrapper@0.2.14-beta.1
+  - @nextclaw/nextclaw-ncp-runtime-codex-sdk@0.1.55-beta.1
+
 ## 0.1.33-beta.0
 
 ### Patch Changes

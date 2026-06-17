@@ -1,5 +1,14 @@
 # @nextclaw/channel-extension-qq
 
+## 0.1.23-beta.1
+
+### Patch Changes
+
+- 9c02046: Stop extension processes from surviving their service runtime by passing the parent service PID to extension children, shutting down extensions during service signal cleanup, exiting SDK processes when their parent disappears, sweeping legacy orphan channel extension processes on startup, preflighting QQ gateway session quota, waiting for the quota reset before retrying, and surfacing QQ gateway close errors before the startup timeout.
+- 461f681: Treat QQ gateway session quota exhaustion as a startup cooldown instead of a generic startup failure, logging the reset-aligned retry without a stack trace.
+- Updated dependencies [9c02046]
+  - @nextclaw/extension-sdk@0.2.15-beta.1
+
 ## 0.1.23-beta.0
 
 ### Patch Changes

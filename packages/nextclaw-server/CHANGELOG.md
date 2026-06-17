@@ -1,5 +1,19 @@
 # nextclaw-server
 
+## 0.14.5-beta.1
+
+### Patch Changes
+
+- 6bb305f: Improve the chat welcome composer with prompt suggestions, searchable and pinned model choices, and a kernel-backed preference store for saved UI preferences.
+- Updated dependencies
+- Updated dependencies [6bb305f]
+- Updated dependencies [9c02046]
+  - @nextclaw/core@0.14.5-beta.1
+  - @nextclaw/mcp@0.2.15-beta.1
+  - @nextclaw/ncp@0.6.4-beta.1
+  - @nextclaw/runtime@0.3.15-beta.1
+  - @nextclaw/kernel@0.5.1-beta.1
+
 ## 0.14.5-beta.0
 
 ### Patch Changes
