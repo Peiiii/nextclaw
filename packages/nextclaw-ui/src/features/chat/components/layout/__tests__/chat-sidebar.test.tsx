@@ -293,7 +293,7 @@ describe("ChatSidebar create and list basics", () => {
 
     expect(
       screen.getByTestId("brand-header").parentElement?.className,
-    ).toContain("py-2.5");
+    ).toMatch(/(?:^|\s)py-2(?:\s|$)/);
   });
 
   it("shows setup required status for runtime session types that are not ready yet", () => {

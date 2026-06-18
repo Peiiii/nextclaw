@@ -12,6 +12,12 @@
 - 聊天侧栏、设置侧栏、桌面 Windows chrome、定时任务/技能/Agent 管理入口和底部设置菜单保持同一套 rail 展示规范。
 - 收起状态刷新后保持，持久化 key 为 `nextclaw.app.viewport-layout`，仅持久化 `isSidebarCollapsed`，不持久化运行时宽度和布局模式。
 
+后续紧凑修正：
+
+- 展开态折叠按钮不再复用收起 rail 的 36px 命中区，改回基础 icon button 的 28px 紧凑规格。
+- 展开态顶部 header 垂直 padding 从 `py-2.5` 收敛到 `py-2`，避免按钮尺寸把顶部区域从旧实现约 44px 撑高到约 56px。
+- 收起态继续保留 36px rail 命中区，确保窄 rail 下仍然有足够可点击面积。
+
 ## 测试/验证/验收方式
 
 定向测试：
@@ -42,6 +48,18 @@
 - 页面：`http://127.0.0.1:5177/chat`
 - 量测结果：rail 宽度 56px；收起、创建、会话类型、定时任务、技能、Agent 管理、底部设置入口均为 36x36；默认透明、无 shadow、无 border；同组间距 4px，主要分组间距 6-8px。
 - 持久化验证：刷新后仍保持收起，localStorage `nextclaw.app.viewport-layout` 中 `state.isSidebarCollapsed` 为 `true`。
+
+展开态紧凑修正验证：
+
+- `NODE_OPTIONS=--no-experimental-webstorage pnpm --filter @nextclaw/ui exec vitest run src/app/components/layout/__tests__/sidebar.layout.test.tsx src/features/chat/components/layout/__tests__/chat-sidebar.test.tsx src/features/chat/components/layout/__tests__/chat-sidebar-read-state.test.tsx src/platforms/desktop/components/__tests__/desktop-app-shell.test.tsx`
+- 结果：4 个 test files 通过，36 个 tests 通过。
+- `pnpm --filter @nextclaw/ui lint`
+- `pnpm --filter @nextclaw/ui tsc`
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/app/components/layout/sidebar.tsx packages/nextclaw-ui/src/app/components/layout/__tests__/sidebar.layout.test.tsx packages/nextclaw-ui/src/features/chat/components/layout/chat-sidebar-desktop-layout.tsx packages/nextclaw-ui/src/features/chat/components/layout/__tests__/chat-sidebar.test.tsx`
+- `pnpm lint:new-code:governance`
+- `pnpm check:governance-backlog-ratchet`
+- 结果：全部通过；maintainability guard 为 0 errors、2 warnings，警告均为既有文件接近预算，当前 diff 总净增 0、非测试净增 0。
+- 浏览器冒烟：`pnpm --filter @nextclaw/ui dev --host 127.0.0.1 --port 5187` 可启动，但当前工作区其它 WIP 触发 `useAppPresenter must be used inside AppPresenterProvider`，导致 `/chat` 空白，未作为本次 sidebar 视觉验收依据。
 
 ## 发布/部署方式
 

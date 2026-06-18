@@ -53,7 +53,7 @@ function ChatSidebarCollapseButton({ isCollapsed }: { isCollapsed: boolean }) {
     <IconActionButton
       icon={<Icon className={SIDEBAR_RAIL_ICON_CLASS} />}
       label={label}
-      className={cn(SIDEBAR_RAIL_CONTROL_CLASS, SIDEBAR_RAIL_SURFACE_CLASS)}
+      className={cn(SIDEBAR_RAIL_SURFACE_CLASS, isCollapsed && SIDEBAR_RAIL_CONTROL_CLASS)}
       onClick={viewportLayoutManager.toggleSidebarCollapsed}
     />
   );
@@ -78,8 +78,8 @@ export function ChatSidebarDesktopHeader({
         isCollapsed
           ? "justify-center px-2 py-1.5"
           : isWindowsHost
-            ? "justify-end px-3 py-2"
-            : "gap-2 px-5 py-2.5",
+            ? "justify-end px-3 py-1.5"
+            : "gap-2 px-5 py-2",
         isCollapsed && shouldReserveMacWindowControls ? "pt-8" : null,
       )}
     >
