@@ -371,10 +371,6 @@ export class ChatThreadManager {
     if (!normalizedSessionKey) {
       return;
     }
-    const { childSessionTabs } = useChatThreadStore.getState().snapshot;
-    if (!childSessionTabs.some((tab) => tab.sessionKey === normalizedSessionKey)) {
-      return;
-    }
     this.setWorkspaceSelection({
       activeChildSessionKey: normalizedSessionKey,
       activeWorkspaceFileKey: null,

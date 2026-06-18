@@ -58,7 +58,7 @@ export function ChatConversationHeaderSection({
     selectedSession?.projectName ?? getSessionProjectName(sessionProjectRoot);
   const canDeleteSession = Boolean(selectedSession);
   const { childSessionTabs, sessionCronJobs } =
-    useChatConversationWorkspaceState(snapshot);
+    useChatConversationWorkspaceState(snapshot, effectiveSessionKey);
   const shouldShowSessionHeader = Boolean(effectiveSessionKey || sessionTypeLabel);
   const sessionHeaderTitle =
     (selectedSession ? sessionDisplayName(selectedSession) : undefined) ||
