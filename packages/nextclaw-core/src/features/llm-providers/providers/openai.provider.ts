@@ -17,9 +17,8 @@ import {
   executeOpenAiResponsesStreamRequest,
 } from "@core/shared/lib/core-utils/index.js";
 import {
-  createOpenAiChatCompletionsStreamState,
-  consumeOpenAiChatCompletionsChunk,
-  finalizeOpenAiChatCompletionsStreamResponse,
+  consumeOpenAiChatCompletionsStream,
+  executeOpenAiChatCompletionsStreamRequest,
   mergeOpenAiUsageCounters,
 } from "@core/shared/lib/core-utils/index.js";
 import type { ThinkingLevel } from "@core/shared/lib/core-utils/index.js";
@@ -167,44 +166,38 @@ export class OpenAICompatibleProvider extends LLMProvider {
       let lastError: unknown = null;
 
       for (const apiBase of provider.apiBaseCandidates) {
+        const base = apiBase ?? "https://api.openai.com/v1";
+        const chatCompletionsUrl = new URL("chat/completions", base.endsWith("/") ? base : `${base}/`);
+
         try {
-          const stream = await provider.withRetry(async () =>
-            provider.getClient(apiBase).chat.completions.create({
-              model,
-              messages: params.messages as unknown as ChatCompletionMessageParam[],
-              tools: params.tools as ChatCompletionTool[] | undefined,
-              tool_choice: params.tools?.length ? "auto" : undefined,
-              ...(typeof params.maxTokens === "number" ? { max_tokens: params.maxTokens } : {}),
-              stream: true,
-              stream_options: {
-                include_usage: true
-              }
-            }, params.signal ? { signal: params.signal } : undefined)
+          const response = await provider.withRetry(() =>
+            executeOpenAiChatCompletionsStreamRequest({
+              fetchImpl: fetch,
+              chatCompletionsUrl: chatCompletionsUrl.toString(),
+              apiKey: provider.apiKey,
+              extraHeaders: provider.extraHeaders,
+              body: {
+                model,
+                messages: params.messages as unknown as ChatCompletionMessageParam[],
+                tools: params.tools as ChatCompletionTool[] | undefined,
+                tool_choice: params.tools?.length ? "auto" : undefined,
+                ...(typeof params.maxTokens === "number" ? { max_tokens: params.maxTokens } : {}),
+              },
+              signal: params.signal,
+            })
           );
-          const state = createOpenAiChatCompletionsStreamState();
 
-          for await (const chunk of stream) {
-            for (const event of consumeOpenAiChatCompletionsChunk({
-              chunk: chunk as unknown as Record<string, unknown>,
-              state,
-              mergeUsageCounters: provider.mergeUsageCounters,
-            })) {
-              yield event;
-            }
-          }
-
-          const response = finalizeOpenAiChatCompletionsStreamResponse({
-            state,
+          for await (const event of consumeOpenAiChatCompletionsStream({
+            response,
+            apiBase,
+            mergeUsageCounters: provider.mergeUsageCounters,
             parseToolCallArguments: provider.parseToolCallArguments,
-          });
-          if (isSemanticallyEmptyOpenAiResponse(response)) {
-            throw createEmptyChatCompletionsPayloadError(apiBase);
+          })) {
+            if (event.type === "done" && isSemanticallyEmptyOpenAiResponse(event.response)) {
+              throw createEmptyChatCompletionsPayloadError(apiBase);
+            }
+            yield event;
           }
-
-          yield {
-            type: "done",
-            response
-          };
           return;
         } catch (error) {
           lastError = error;

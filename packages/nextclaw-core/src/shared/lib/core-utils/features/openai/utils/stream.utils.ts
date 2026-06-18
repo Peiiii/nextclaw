@@ -1,5 +1,6 @@
 import type { LLMResponse, LLMStreamEvent, ToolCallRequest } from "@core/features/llm-providers/index.js";
 import { normalizeStructuredUsageCounters } from "@core/features/llm-providers/index.js";
+import { executeOpenAiStreamRequest, readOpenAiSsePayloads } from "./sse-stream.utils.js";
 
 type ToolCallBuffer = {
   id?: string;
@@ -22,6 +23,7 @@ export type OpenAiChatCompletionsStreamState = {
   reasoningParts: string[];
   toolCallBuffers: Map<number, ToolCallBuffer>;
   finishReason: string;
+  sawFinishReason: boolean;
   usage: Record<string, number>;
 };
 
@@ -31,6 +33,7 @@ export function createOpenAiChatCompletionsStreamState(): OpenAiChatCompletionsS
     reasoningParts: [],
     toolCallBuffers: new Map<number, ToolCallBuffer>(),
     finishReason: "stop",
+    sawFinishReason: false,
     usage: {
       prompt_tokens: 0,
       completion_tokens: 0,
@@ -167,24 +170,26 @@ export function consumeOpenAiChatCompletionsChunk(params: {
     incoming: Record<string, unknown>
   ) => Record<string, number>;
 }): LLMStreamEvent[] {
+  const { chunk, state, mergeUsageCounters } = params;
   const events: LLMStreamEvent[] = [];
-  updateUsage(params.state, params.chunk.usage, params.mergeUsageCounters);
+  updateUsage(state, chunk.usage, mergeUsageCounters);
 
-  const choice = readFirstChoice(params.chunk);
+  const choice = readFirstChoice(chunk);
   if (!choice) {
     return events;
   }
   if (typeof choice.finish_reason === "string" && choice.finish_reason.trim().length > 0) {
-    params.state.finishReason = choice.finish_reason;
+    state.finishReason = choice.finish_reason;
+    state.sawFinishReason = true;
   }
   if (!choice.delta) {
     return events;
   }
 
-  appendReasoningDelta(params.state, choice.delta, events);
-  appendTextDelta(params.state, choice.delta, events);
-  appendToolCallDeltas(params.state, choice.delta, events);
-  appendLegacyFunctionCall(params.state, choice.delta);
+  appendReasoningDelta(state, choice.delta, events);
+  appendTextDelta(state, choice.delta, events);
+  appendToolCallDeltas(state, choice.delta, events);
+  appendLegacyFunctionCall(state, choice.delta);
   return events;
 }
 
@@ -217,6 +222,65 @@ export function finalizeOpenAiChatCompletionsStreamResponse(params: {
     finishReason: params.state.finishReason,
     usage: params.state.usage,
     reasoningContent: params.state.reasoningParts.join("").trim() || null
+  };
+}
+
+export async function executeOpenAiChatCompletionsStreamRequest(params: {
+  fetchImpl: typeof fetch;
+  chatCompletionsUrl: string;
+  apiKey?: string | null;
+  extraHeaders?: Record<string, string> | null;
+  body: Record<string, unknown>;
+  signal?: AbortSignal;
+}): Promise<Response> {
+  const { fetchImpl, chatCompletionsUrl, apiKey, extraHeaders, body, signal } = params;
+  return executeOpenAiStreamRequest({
+    fetchImpl,
+    url: chatCompletionsUrl,
+    apiKey,
+    extraHeaders,
+    body,
+    errorLabel: "Chat Completions API",
+    signal,
+    streamOptions: {
+      include_usage: true,
+    },
+  });
+}
+
+export async function* consumeOpenAiChatCompletionsStream(params: {
+  response: Response;
+  apiBase: string | null;
+  mergeUsageCounters: (
+    current: Record<string, number>,
+    incoming: Record<string, unknown>
+  ) => Record<string, number>;
+  parseToolCallArguments: (raw: unknown) => Record<string, unknown>;
+}): AsyncGenerator<LLMStreamEvent> {
+  const { response, apiBase, mergeUsageCounters, parseToolCallArguments } = params;
+  const state = createOpenAiChatCompletionsStreamState();
+  for await (const payload of readOpenAiSsePayloads(response)) {
+    for (const event of consumeOpenAiChatCompletionsChunk({
+      chunk: payload,
+      state,
+      mergeUsageCounters,
+    })) {
+      yield event;
+    }
+  }
+
+  if (!state.sawFinishReason) {
+    throw new Error(
+      `Chat Completions stream ended without finish_reason${apiBase ? ` for base "${apiBase}"` : ""}.`,
+    );
+  }
+
+  yield {
+    type: "done",
+    response: finalizeOpenAiChatCompletionsStreamResponse({
+      state,
+      parseToolCallArguments,
+    }),
   };
 }
 

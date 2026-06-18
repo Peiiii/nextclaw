@@ -380,6 +380,61 @@ describe("OpenAICompatibleProvider responses fallback policy", () => {
 });
 
 describe("OpenAICompatibleProvider /v1 fallback", () => {
+  it("completes chat completions streams that end after finish_reason without DONE", async () => {
+    const requests: string[] = [];
+    const server = createServer((request, response) => {
+      requests.push(request.url ?? "");
+      response.writeHead(200, { "Content-Type": "text/event-stream" });
+      response.end([
+        'data: {"id":"resp_1","object":"chat.completion.chunk","created":0,"model":"gpt-test","choices":[{"index":0,"delta":{"content":"OK"},"finish_reason":null}]}',
+        'data: {"id":"resp_1","object":"chat.completion.chunk","created":0,"model":"gpt-test","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}',
+        'data: {"id":"resp_1","object":"chat.completion.chunk","created":0,"model":"gpt-test","choices":[],"usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2}}',
+        "",
+      ].join("\n\n"));
+    });
+
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
+    const address = server.address();
+    if (!address || typeof address === "string") {
+      throw new Error("Expected http server to bind an ephemeral port.");
+    }
+
+    const provider = new OpenAICompatibleProvider({
+      apiKey: "sk-test",
+      apiBase: `http://127.0.0.1:${address.port}`,
+      defaultModel: "gpt-test",
+      wireApi: "chat",
+    });
+
+    const events: LLMStreamEvent[] = [];
+    for await (const event of provider.chatStream({
+      messages: [{ role: "user", content: "hello" }],
+    })) {
+      events.push(event);
+    }
+
+    server.close();
+
+    expect(requests).toEqual(["/chat/completions"]);
+    expect(events).toEqual([
+      { type: "delta", delta: "OK" },
+      {
+        type: "done",
+        response: {
+          content: "OK",
+          toolCalls: [],
+          finishReason: "stop",
+          usage: {
+            prompt_tokens: 1,
+            completion_tokens: 1,
+            total_tokens: 2,
+          },
+          reasoningContent: null,
+        },
+      },
+    ]);
+  });
+
   it("retries chat completions stream against /v1 when the root base returns an empty stream", async () => {
     const requests: string[] = [];
     const server = createServer((request, response) => {
