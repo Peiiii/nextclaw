@@ -1,7 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { BrandHeader } from "@/shared/components/common/brand-header";
-import { StatusBadge } from "@/shared/components/common/status-badge";
-import { ChatSidebarListModeSwitch } from "@/features/chat/components/chat-sidebar-list-mode-switch";
 import {
   getSessionTitle,
   groupChildSessionsByParentKey,
@@ -25,37 +22,26 @@ import { THEME_OPTIONS } from "@/shared/lib/theme";
 import { useI18n } from "@/app/components/i18n-provider";
 import { useTheme } from "@/app/components/theme-provider";
 import { useDocBrowser } from "@/shared/components/doc-browser";
-import { SidebarNavLinkItem } from "@/app/components/layout/sidebar-items";
-import { AlarmClock, Bot, BrainCircuit } from "lucide-react";
 import { ChatSidebarSessionEntry } from "@/features/chat/features/session/components/chat-sidebar-session-entry";
-import { ChatSidebarSessionList } from "@/features/chat/features/session/components/chat-sidebar-session-list";
 import {
   ChatSidebarDesktopToolbar,
   ChatSidebarMobileToolbar,
 } from "@/features/chat/components/layout/chat-sidebar-toolbar";
-import { ChatSidebarUtilityMenu } from "@/features/chat/components/layout/chat-sidebar-utility-menu";
+import {
+  ChatSidebarDesktopFooter,
+  ChatSidebarDesktopHeader,
+  ChatSidebarDesktopNav,
+  ChatSidebarSessionArea,
+} from "@/features/chat/components/layout/chat-sidebar-desktop-layout";
 import { openApps } from "@/features/panel-apps";
-import { isWindowsDesktopHost } from "@/platforms/desktop";
 import {
   buildSessionTypeOptions,
   DEFAULT_SESSION_TYPE,
   normalizeSessionType,
 } from "@/features/chat/features/session-type/utils/chat-session-type.utils";
 import { useChatNewSessionTypePreference } from "@/features/chat/features/session-type/hooks/use-chat-new-session-type-preference";
-
-const navItems = [
-  {
-    target: "/cron",
-    label: () => t("chatSidebarScheduledTasks"),
-    icon: AlarmClock,
-  },
-  {
-    target: "/skills",
-    label: () => t("chatSidebarSkills"),
-    icon: BrainCircuit,
-  },
-  { target: "/agents", label: () => t("agentsPageTitle"), icon: Bot },
-];
+import { useViewportLayoutStore } from "@/app/stores/viewport-layout.store";
+import { SIDEBAR_RAIL_WIDTH_CLASS } from "@/app/components/layout/sidebar-rail.styles";
 
 type ChatSidebarVariant = "desktop" | "mobile";
 
@@ -104,6 +90,9 @@ export function ChatSidebar({
   const isMobileVariant = variant === "mobile";
   const presenter = usePresenter();
   const docBrowser = useDocBrowser();
+  const isSidebarCollapsed = useViewportLayoutStore(
+    (state) => state.isSidebarCollapsed,
+  );
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
   const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false);
   const listSnapshot = useChatSessionListStore((state) => state.snapshot);
@@ -179,6 +168,7 @@ export function ChatSidebar({
     sessionTypeOptions,
   });
   const isProjectFirstView = listSnapshot.listMode === "project-first";
+  const shouldCollapse = !isMobileVariant && isSidebarCollapsed;
   const optimisticReadAtBySessionKey = useChatSessionUnreadState(
     items,
     listSnapshot.selectedSessionKey,
@@ -237,19 +227,23 @@ export function ChatSidebar({
   return (
     <aside
       className={cn(
-        "flex h-full min-h-0 flex-col bg-secondary",
+        "flex h-full min-h-0 flex-col bg-secondary transition-[width] duration-200 ease-out",
         isMobileVariant
           ? "flex-1 overflow-hidden"
-          : "w-[280px] shrink-0 border-r border-gray-200/60",
+          : shouldCollapse
+            ? cn(
+                SIDEBAR_RAIL_WIDTH_CLASS,
+                "shrink-0 border-r border-gray-200/60",
+              )
+            : "w-[280px] shrink-0 border-r border-gray-200/60",
       )}
+      data-sidebar-collapsed={shouldCollapse ? "true" : "false"}
     >
-      {!isMobileVariant && !isWindowsDesktopHost() ? (
-        <div className="px-5 py-2.5">
-          <BrandHeader
-            className="flex min-w-0 items-center gap-2"
-            suffix={<StatusBadge status={systemStatus.connectionStatus} />}
-          />
-        </div>
+      {!isMobileVariant ? (
+        <ChatSidebarDesktopHeader
+          connectionStatus={systemStatus.connectionStatus}
+          isCollapsed={shouldCollapse}
+        />
       ) : null}
 
       {isMobileVariant ? (
@@ -287,75 +281,48 @@ export function ChatSidebar({
             newSessionTypePreference.setSelectedSessionType
           }
           onQueryChange={presenter.chatSessionListManager.setQuery}
+          collapsed={shouldCollapse}
         />
       )}
 
       {!isMobileVariant ? (
-        <div className="px-3 pb-2">
-          <ul className="space-y-0.5">
-            {navItems.map((item) => (
-              <li key={item.target}>
-                <SidebarNavLinkItem
-                  to={item.target}
-                  label={item.label()}
-                  icon={item.icon}
-                  density="compact"
-                />
-              </li>
-            ))}
-          </ul>
-        </div>
+        <ChatSidebarDesktopNav isCollapsed={shouldCollapse} />
       ) : null}
 
-      {!isMobileVariant ? (
-        <div className="mx-4 border-t border-gray-200/60" />
-      ) : null}
-
-      <div className="flex items-center justify-between px-5 pb-2 pt-3">
-        <div className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
-          {t("chatSidebarTaskRecords")}
-        </div>
-        <ChatSidebarListModeSwitch
-          isProjectFirstView={isProjectFirstView}
-          onSelectMode={presenter.chatSessionListManager.setListMode}
-        />
-      </div>
-
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 py-2">
-        <ChatSidebarSessionList
-          isLoading={isLoading}
-          isProjectFirstView={isProjectFirstView}
-          groups={groups}
-          projectGroups={projectGroups}
-          defaultSessionType={newSessionTypePreference.selectedSessionType}
-          sessionTypeOptions={sessionTypeOptions}
-          renderSessionItem={renderSessionItem}
-          onCreateSession={createSessionAndOpenIfNeeded}
-        />
-      </div>
+      <ChatSidebarSessionArea
+        defaultSessionType={newSessionTypePreference.selectedSessionType}
+        groups={groups}
+        isCollapsed={shouldCollapse}
+        isLoading={isLoading}
+        isProjectFirstView={isProjectFirstView}
+        onCreateSession={createSessionAndOpenIfNeeded}
+        onSelectMode={presenter.chatSessionListManager.setListMode}
+        projectGroups={projectGroups}
+        renderSessionItem={renderSessionItem}
+        sessionTypeOptions={sessionTypeOptions}
+      />
 
       {!isMobileVariant ? (
-        <div className="px-3 py-3 border-t border-gray-200/60">
-          <ChatSidebarUtilityMenu
-            isOpen={isUtilityMenuOpen}
-            onOpenChange={setIsUtilityMenuOpen}
-            currentTheme={theme}
-            currentThemeLabel={currentThemeLabel}
-            themeOptions={utilityThemeOptions}
-            onSelectTheme={setTheme}
-            currentLanguage={language}
-            currentLanguageLabel={currentLanguageLabel}
-            languageOptions={utilityLanguageOptions}
-            onSelectLanguage={handleLanguageSwitch}
-            onOpenDocs={() =>
-              docBrowser.open(undefined, {
-                kind: "docs",
-                title: t("docBrowserHelp"),
-              })
-            }
-            onOpenApps={() => openApps(docBrowser)}
-          />
-        </div>
+        <ChatSidebarDesktopFooter
+          currentLanguage={language}
+          currentLanguageLabel={currentLanguageLabel}
+          currentTheme={theme}
+          currentThemeLabel={currentThemeLabel}
+          isCollapsed={shouldCollapse}
+          isOpen={isUtilityMenuOpen}
+          languageOptions={utilityLanguageOptions}
+          onOpenApps={() => openApps(docBrowser)}
+          onOpenChange={setIsUtilityMenuOpen}
+          onOpenDocs={() =>
+            docBrowser.open(undefined, {
+              kind: "docs",
+              title: t("docBrowserHelp"),
+            })
+          }
+          onSelectLanguage={handleLanguageSwitch}
+          onSelectTheme={setTheme}
+          themeOptions={utilityThemeOptions}
+        />
       ) : null}
     </aside>
   );

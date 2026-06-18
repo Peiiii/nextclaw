@@ -47,6 +47,16 @@ export class ViewportLayoutManager {
 
   getSnapshot = (): ViewportLayoutSnapshot => useViewportLayoutStore.getState();
 
+  setSidebarCollapsed = (isSidebarCollapsed: boolean) => {
+    useViewportLayoutStore.setState({ isSidebarCollapsed });
+  };
+
+  toggleSidebarCollapsed = () => {
+    useViewportLayoutStore.setState((state) => ({
+      isSidebarCollapsed: !state.isSidebarCollapsed,
+    }));
+  };
+
   resetForTests = () => {
     this.consumerCount = 0;
     this.stop();

@@ -6,8 +6,9 @@ import { ChatSidebar } from "@/features/chat/components/layout/chat-sidebar";
 import type { NcpSessionListItemView } from "@/features/chat/features/ncp/hooks/use-ncp-session-list-view";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
-import { PREFERENCE_KEYS, type ChatSessionTypeOptionView } from "@/shared/lib/api";
-
+import { PREFERENCE_KEYS } from "@/shared/lib/api";
+import type { ChatSessionTypeOptionView } from "@/shared/lib/api";
+import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
 const mocks = vi.hoisted(() => ({
   createSession: vi.fn(() => "draft-session-key"),
   goToSession: vi.fn(),
@@ -30,7 +31,6 @@ const mocks = vi.hoisted(() => ({
   sessionItems: [] as NcpSessionListItemView[],
   isLoading: false,
 }));
-
 vi.mock("@/shared/lib/api", async (importOriginal) => {
   const actual = await importOriginal();
   return {
@@ -39,14 +39,12 @@ vi.mock("@/shared/lib/api", async (importOriginal) => {
     updatePreference: mocks.updatePreference,
   };
 });
-
 function createSessionItem(
   session: NcpSessionListItemView["session"],
   runStatus?: NcpSessionListItemView["runStatus"],
 ): NcpSessionListItemView {
   return { session, runStatus };
 }
-
 function setSessionTypes(
   options: ChatSessionTypeOptionView[],
   defaultType = "native",
@@ -63,7 +61,6 @@ function setSessionTypes(
     },
   });
 }
-
 function sidebarElement(variant?: "desktop" | "mobile") {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -79,14 +76,14 @@ function sidebarElement(variant?: "desktop" | "mobile") {
     </QueryClientProvider>
   );
 }
-
 function renderSidebar(variant?: "desktop" | "mobile") {
   return render(sidebarElement(variant));
 }
-
 function expectCodexSelectedInSessionTypeMenu() {
   fireEvent.click(screen.getByLabelText("Session Type"));
-  expect(screen.getByRole("button", { name: /Codex/i }).getAttribute("aria-pressed")).toBe("true");
+  expect(
+    screen.getByRole("button", { name: /Codex/i }).getAttribute("aria-pressed"),
+  ).toBe("true");
 }
 
 vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
@@ -191,6 +188,8 @@ vi.mock("@/features/system-status", () => ({
 }));
 
 function resetSidebarTestState() {
+  window.localStorage.clear();
+  viewportLayoutManager.resetForTests();
   mocks.createSession.mockReset();
   mocks.createSession.mockReturnValue("draft-session-key");
   mocks.goToSession.mockReset();
@@ -208,10 +207,13 @@ function resetSidebarTestState() {
     value: null,
   });
   mocks.updatePreference.mockReset();
-  mocks.updatePreference.mockImplementation(async (key: string, value: string) => ({
-    key, value,
-    updatedAt: "2026-06-17T00:00:00.000Z",
-  }));
+  mocks.updatePreference.mockImplementation(
+    async (key: string, value: string) => ({
+      key,
+      value,
+      updatedAt: "2026-06-17T00:00:00.000Z",
+    }),
+  );
   mocks.updateNcpSession.mockReset();
   mocks.updateNcpSession.mockResolvedValue({});
   mocks.agents = [];

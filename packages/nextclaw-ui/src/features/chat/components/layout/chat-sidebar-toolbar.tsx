@@ -8,12 +8,19 @@ import {
 } from "@/shared/components/ui/popover";
 import { SessionContextIconNode } from "@/features/chat/features/session/components/session-context-icon";
 import { ChatSessionTypeMenu } from "@/features/chat/features/session-type/components/chat-session-type-menu";
-import type { ChatInputSnapshot } from "@/features/chat/stores/chat-input.store";
+import type { ChatSessionTypeOption } from "@/features/chat/features/session-type/utils/chat-session-type.utils";
 import { cn } from "@/shared/lib/utils";
 import { t } from "@/shared/lib/i18n";
 import { Bot, ChevronDown, Plus, Search } from "lucide-react";
+import {
+  SIDEBAR_RAIL_CONTROL_CLASS,
+  SIDEBAR_RAIL_ICON_CLASS,
+  SIDEBAR_RAIL_ITEM_GAP_CLASS,
+  SIDEBAR_RAIL_PRIMARY_SURFACE_CLASS,
+  SIDEBAR_RAIL_SURFACE_CLASS,
+} from "@/app/components/layout/sidebar-rail.styles";
 
-type SessionTypeOption = ChatInputSnapshot["sessionTypeOptions"][number];
+type SessionTypeOption = ChatSessionTypeOption;
 type NewSessionActionStyleVariant =
   | "neutralSurface"
   | "brandSoft"
@@ -72,6 +79,7 @@ type ChatSidebarToolbarProps = {
   onCreateSession: (sessionType: string) => void;
   onSelectNewSessionType: (sessionType: string) => void;
   onQueryChange: (query: string) => void;
+  collapsed?: boolean;
 };
 
 function getMobileCreateOptions(params: {
@@ -122,10 +130,72 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
     onCreateSession,
     onSelectNewSessionType,
     onQueryChange,
+    collapsed = false,
   } = props;
   const supportsSessionTypeSwitch = sessionTypeOptions.length > 1;
   const actionStyle =
     NEW_SESSION_ACTION_STYLE_CLASSES[NEW_SESSION_ACTION_STYLE_VARIANT];
+
+  if (collapsed) {
+    return (
+      <div className="px-2 pb-2">
+        <div
+          className={cn(
+            "flex flex-col items-center",
+            SIDEBAR_RAIL_ITEM_GAP_CLASS,
+          )}
+        >
+          <IconActionButton
+            icon={<Plus className={SIDEBAR_RAIL_ICON_CLASS} />}
+            label={t("chatSidebarNewTask")}
+            className={cn(
+              SIDEBAR_RAIL_CONTROL_CLASS,
+              SIDEBAR_RAIL_PRIMARY_SURFACE_CLASS,
+            )}
+            onClick={() => {
+              onCreateMenuOpenChange(false);
+              onCreateSession(selectedNewSessionType);
+            }}
+          />
+          {supportsSessionTypeSwitch ? (
+            <Popover
+              open={isCreateMenuOpen}
+              onOpenChange={onCreateMenuOpenChange}
+            >
+              <PopoverTrigger asChild>
+                <IconActionButton
+                  icon={
+                    <SessionTypeTriggerIcon
+                      option={selectedNewSessionTypeOption}
+                    />
+                  }
+                  label={t("chatSessionTypeLabel")}
+                  className={cn(
+                    SIDEBAR_RAIL_CONTROL_CLASS,
+                    SIDEBAR_RAIL_SURFACE_CLASS,
+                  )}
+                />
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                side="right"
+                className="w-56 rounded-2xl border border-gray-200/80 bg-white p-1.5 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
+              >
+                <ChatSessionTypeMenu
+                  options={sessionTypeOptions}
+                  selectedSessionType={selectedNewSessionType}
+                  onSelect={(sessionType) => {
+                    onSelectNewSessionType(sessionType);
+                    onCreateMenuOpenChange(false);
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -136,9 +206,7 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
             className={cn(
               "min-w-0 rounded-xl",
               actionStyle.leftClassName,
-              supportsSessionTypeSwitch
-                ? "flex-1 rounded-r-md"
-                : "w-full",
+              supportsSessionTypeSwitch ? "flex-1 rounded-r-md" : "w-full",
             )}
             onClick={() => {
               onCreateMenuOpenChange(false);
@@ -157,7 +225,9 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
                 <IconActionButton
                   icon={
                     <span className="inline-flex items-center gap-0.5">
-                      <SessionTypeTriggerIcon option={selectedNewSessionTypeOption} />
+                      <SessionTypeTriggerIcon
+                        option={selectedNewSessionTypeOption}
+                      />
                       <ChevronDown className="h-3 w-3 opacity-60" />
                     </span>
                   }
@@ -234,7 +304,10 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps) {
         </div>
 
         {hasCreateMenu ? (
-          <Popover open={isCreateMenuOpen} onOpenChange={onCreateMenuOpenChange}>
+          <Popover
+            open={isCreateMenuOpen}
+            onOpenChange={onCreateMenuOpenChange}
+          >
             <PopoverTrigger asChild>
               <IconActionButton
                 icon={<Plus className="h-4 w-4" />}

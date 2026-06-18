@@ -1,10 +1,26 @@
-import type { ComponentType, ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
-import { Select, SelectContent, SelectTrigger } from '@/shared/components/ui/select';
-import { cn } from '@/shared/lib/utils';
+import type { ComponentType, ReactNode } from "react";
+import { Link, useLocation } from "react-router-dom";
+import {
+  Select,
+  SelectContent,
+  SelectTrigger,
+} from "@/shared/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/shared/components/ui/tooltip";
+import { cn } from "@/shared/lib/utils";
+import {
+  SIDEBAR_RAIL_ACTIVE_SURFACE_CLASS,
+  SIDEBAR_RAIL_CONTROL_CLASS,
+  SIDEBAR_RAIL_ICON_CLASS,
+  SIDEBAR_RAIL_SURFACE_CLASS,
+} from "@/app/components/layout/sidebar-rail.styles";
 
 type SidebarIcon = ComponentType<{ className?: string }>;
-type SidebarItemDensity = 'default' | 'compact';
+type SidebarItemDensity = "default" | "compact";
 
 type SidebarItemTone = {
   row: string;
@@ -15,72 +31,117 @@ type SidebarItemTone = {
 
 const SIDEBAR_ITEM_TONES: Record<SidebarItemDensity, SidebarItemTone> = {
   default: {
-    row: 'gap-3 px-3 py-2.5 text-[14px]',
-    icon: 'h-[17px] w-[17px]',
-    value: 'text-xs',
-    gap: 'gap-3'
+    row: "gap-3 px-3 py-2.5 text-[14px]",
+    icon: "h-[17px] w-[17px]",
+    value: "text-xs",
+    gap: "gap-3",
   },
   compact: {
-    row: 'gap-2.5 px-3 py-2 text-[13px]',
-    icon: 'h-4 w-4',
-    value: 'text-[11px]',
-    gap: 'gap-2.5'
-  }
+    row: "gap-2.5 px-3 py-2 text-[13px]",
+    icon: "h-4 w-4",
+    value: "text-[11px]",
+    gap: "gap-2.5",
+  },
 };
 
 function getSidebarItemTone(density: SidebarItemDensity): SidebarItemTone {
   return SIDEBAR_ITEM_TONES[density];
 }
 
+function isSidebarRouteActive(pathname: string, target: string): boolean {
+  const normalizedPathname = pathname.toLowerCase();
+  const normalizedTarget = target.toLowerCase();
+  return (
+    normalizedPathname === normalizedTarget ||
+    normalizedPathname.startsWith(`${normalizedTarget}/`)
+  );
+}
+
+function SidebarItemTooltip({
+  children,
+  label,
+  side = "right",
+}: {
+  children: ReactNode;
+  label: ReactNode;
+  side?: "right" | "bottom";
+}) {
+  return (
+    <TooltipProvider delayDuration={250}>
+      <Tooltip>
+        <TooltipTrigger asChild>{children}</TooltipTrigger>
+        <TooltipContent side={side} className="text-xs">
+          {label}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 type SidebarNavLinkItemProps = {
   to: string;
-  label: ReactNode;
+  label: string;
   icon: SidebarIcon;
   density?: SidebarItemDensity;
   className?: string;
+  collapsed?: boolean;
 };
 
 export function SidebarNavLinkItem({
   to,
   label,
   icon: Icon,
-  density = 'default',
-  className
+  density = "default",
+  className,
+  collapsed = false,
 }: SidebarNavLinkItemProps) {
   const tone = getSidebarItemTone(density);
-
-  return (
-    <NavLink
+  const { pathname } = useLocation();
+  const isActive = isSidebarRouteActive(pathname, to);
+  const link = (
+    <Link
       to={to}
-      className={({ isActive }) =>
-        cn(
-          'group flex w-full items-center rounded-xl font-medium transition-colors duration-base',
-          tone.row,
-          isActive
-            ? 'bg-gray-200 text-gray-900 shadow-sm'
-            : 'text-gray-600 hover:bg-gray-200/60 hover:text-gray-900',
-          className
-        )
-      }
-    >
-      {({ isActive }) => (
-        <>
-          <Icon
-            className={cn(
-              tone.icon,
-              'transition-colors',
-              isActive ? 'text-gray-900' : 'text-gray-500 group-hover:text-gray-800'
-            )}
-          />
-          <span className="min-w-0 flex-1 text-left">{label}</span>
-        </>
+      aria-label={label}
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        "group flex w-full items-center rounded-xl font-medium transition-colors duration-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+        collapsed
+          ? cn(SIDEBAR_RAIL_CONTROL_CLASS, "justify-center px-0 py-0")
+          : tone.row,
+        isActive
+          ? collapsed
+            ? SIDEBAR_RAIL_ACTIVE_SURFACE_CLASS
+            : "bg-gray-200 text-gray-900 shadow-sm"
+          : collapsed
+            ? SIDEBAR_RAIL_SURFACE_CLASS
+            : "text-gray-600 hover:bg-gray-200/60 hover:text-gray-900",
+        className,
       )}
-    </NavLink>
+    >
+      <Icon
+        className={cn(
+          collapsed ? SIDEBAR_RAIL_ICON_CLASS : tone.icon,
+          "shrink-0 transition-colors",
+          isActive
+            ? "text-gray-900"
+            : "text-gray-500 group-hover:text-gray-800",
+        )}
+      />
+      <span className={collapsed ? "sr-only" : "min-w-0 flex-1 text-left"}>
+        {label}
+      </span>
+    </Link>
+  );
+
+  return collapsed ? (
+    <SidebarItemTooltip label={label}>{link}</SidebarItemTooltip>
+  ) : (
+    link
   );
 }
 
 type SidebarActionItemProps = {
-  label: ReactNode;
+  label: string;
   icon: SidebarIcon;
   onClick: () => void;
   density?: SidebarItemDensity;
@@ -90,38 +151,62 @@ type SidebarActionItemProps = {
   trailingClassName?: string;
   testId?: string;
   trailingTestId?: string;
+  collapsed?: boolean;
 };
 
 export function SidebarActionItem({
   label,
   icon: Icon,
   onClick,
-  density = 'default',
+  density = "default",
   className,
   labelClassName,
   trailing,
   trailingClassName,
   testId,
-  trailingTestId
+  trailingTestId,
+  collapsed = false,
 }: SidebarActionItemProps) {
   const tone = getSidebarItemTone(density);
-
-  return (
+  const button = (
     <button
       type="button"
       onClick={onClick}
+      aria-label={label}
       className={cn(
-        'flex w-full items-center rounded-xl font-medium text-gray-600 transition-all duration-base hover:bg-gray-200/60 hover:text-gray-800',
-        tone.row,
-        className
+        "group flex w-full items-center rounded-xl font-medium text-gray-600 transition-all duration-base hover:bg-gray-200/60 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+        collapsed
+          ? cn(
+              SIDEBAR_RAIL_CONTROL_CLASS,
+              "justify-center px-0 py-0",
+              SIDEBAR_RAIL_SURFACE_CLASS,
+            )
+          : tone.row,
+        className,
       )}
       data-testid={testId}
     >
-      <Icon className={cn(tone.icon, 'shrink-0 text-gray-400')} />
-      <span className={cn('min-w-0 flex-1 text-left', labelClassName)}>{label}</span>
-      {trailing ? (
+      <Icon
+        className={cn(
+          collapsed ? SIDEBAR_RAIL_ICON_CLASS : tone.icon,
+          "shrink-0 text-gray-500 transition-colors group-hover:text-gray-800",
+        )}
+      />
+      <span
+        className={cn(
+          collapsed ? "sr-only" : "min-w-0 flex-1 text-left",
+          labelClassName,
+        )}
+      >
+        {label}
+      </span>
+      {!collapsed && trailing ? (
         <span
-          className={cn('shrink-0 text-gray-500', tone.value, trailingClassName)}
+          className={cn(
+            "shrink-0 text-gray-500",
+            tone.value,
+            trailingClassName,
+          )}
           data-testid={trailingTestId}
         >
           {trailing}
@@ -129,16 +214,23 @@ export function SidebarActionItem({
       ) : null}
     </button>
   );
+
+  return collapsed ? (
+    <SidebarItemTooltip label={label}>{button}</SidebarItemTooltip>
+  ) : (
+    button
+  );
 }
 
 type SidebarSelectItemProps = {
-  label: ReactNode;
+  label: string;
   icon: SidebarIcon;
   value: string;
-  valueLabel: ReactNode;
+  valueLabel: string;
   onValueChange: (value: string) => void;
   density?: SidebarItemDensity;
   children: ReactNode;
+  collapsed?: boolean;
 };
 
 export function SidebarSelectItem({
@@ -147,25 +239,56 @@ export function SidebarSelectItem({
   value,
   valueLabel,
   onValueChange,
-  density = 'default',
-  children
+  density = "default",
+  children,
+  collapsed = false,
 }: SidebarSelectItemProps) {
   const tone = getSidebarItemTone(density);
+  const trigger = (
+    <SelectTrigger
+      aria-label={label}
+      className={cn(
+        "group h-auto w-full rounded-xl border-0 bg-transparent font-medium text-gray-600 shadow-none hover:bg-gray-200/60 focus:ring-0 focus-visible:ring-2 focus-visible:ring-primary/35",
+        collapsed
+          ? cn(
+              SIDEBAR_RAIL_CONTROL_CLASS,
+              "justify-center px-0 py-0",
+              SIDEBAR_RAIL_SURFACE_CLASS,
+            )
+          : tone.row,
+      )}
+    >
+      <div
+        className={cn(
+          "flex min-w-0 items-center",
+          collapsed ? "justify-center" : tone.gap,
+        )}
+      >
+        <Icon
+          className={cn(
+            collapsed ? SIDEBAR_RAIL_ICON_CLASS : tone.icon,
+            "shrink-0 text-gray-500 transition-colors group-hover:text-gray-800",
+          )}
+        />
+        <span className={collapsed ? "sr-only" : "text-left"}>{label}</span>
+      </div>
+      {!collapsed ? (
+        <span className={cn("ml-auto text-gray-500", tone.value)}>
+          {valueLabel}
+        </span>
+      ) : null}
+    </SelectTrigger>
+  );
 
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger
-        className={cn(
-          'h-auto w-full rounded-xl border-0 bg-transparent font-medium text-gray-600 shadow-none hover:bg-gray-200/60 focus:ring-0',
-          tone.row
-        )}
-      >
-        <div className={cn('flex min-w-0 items-center', tone.gap)}>
-          <Icon className={cn(tone.icon, 'text-gray-400')} />
-          <span className="text-left">{label}</span>
-        </div>
-        <span className={cn('ml-auto text-gray-500', tone.value)}>{valueLabel}</span>
-      </SelectTrigger>
+      {collapsed ? (
+        <SidebarItemTooltip label={`${label}: ${valueLabel}`}>
+          {trigger}
+        </SidebarItemTooltip>
+      ) : (
+        trigger
+      )}
       <SelectContent>{children}</SelectContent>
     </Select>
   );

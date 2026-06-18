@@ -12,6 +12,8 @@
   "advanced": "高级",
   "settings": "设置",
   "settingsMenu": "设置菜单",
+  "sidebarCollapse": "收起侧边栏",
+  "sidebarExpand": "展开侧边栏",
   "security": "安全",
   "backToMain": "返回主界面",
   "enabled": "启用",

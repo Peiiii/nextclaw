@@ -1,8 +1,9 @@
 import { act, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DesktopAppShell } from "@/platforms/desktop/components/desktop-app-shell";
+import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
 
 vi.mock("@/app/components/layout/sidebar", () => ({
   Sidebar: () => <aside data-testid="settings-sidebar">Settings Sidebar</aside>,
@@ -16,7 +17,10 @@ type WindowStateListener = (snapshot: { isMaximized: boolean }) => void;
 
 let windowStateListener: WindowStateListener | null = null;
 
-function setDesktopPlatform(platform: string | null, isMaximized = false): void {
+function setDesktopPlatform(
+  platform: string | null,
+  isMaximized = false,
+): void {
   windowStateListener = null;
   window.nextclawDesktop = platform
     ? ({
@@ -59,6 +63,11 @@ function renderDesktopShell(platform: string | null, isMobileLayout = false) {
 }
 
 describe("DesktopAppShell", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    viewportLayoutManager.resetForTests();
+  });
+
   afterEach(() => {
     setDesktopPlatform(null);
   });
@@ -68,27 +77,56 @@ describe("DesktopAppShell", () => {
 
     const chrome = screen.getByTestId("desktop-window-chrome");
     const sidebarChrome = screen.getByTestId("desktop-window-chrome-sidebar");
-    const resizeStrip = screen.getByTestId("desktop-window-chrome-resize-strip");
+    const resizeStrip = screen.getByTestId(
+      "desktop-window-chrome-resize-strip",
+    );
     const controls = screen.getByTestId("desktop-window-controls");
 
     expect(chrome).toBeTruthy();
-    expect(chrome.parentElement?.style.getPropertyValue("--desktop-titlebar-height")).toBe("40px");
+    expect(
+      chrome.parentElement?.style.getPropertyValue("--desktop-titlebar-height"),
+    ).toBe("40px");
     expect(chrome.className).toContain("bg-secondary");
     expect(chrome.className).not.toContain(" shrink-0 border-b ");
-    expect(chrome.className).toContain("after:left-[var(--desktop-sidebar-width)]");
+    expect(chrome.className).toContain(
+      "after:left-[var(--desktop-sidebar-width)]",
+    );
     expect(chrome.className).toContain("after:border-b");
     expect(chrome.className).toContain("desktop-window-drag");
-    expect(sidebarChrome.className).toContain("w-[var(--desktop-sidebar-width)]");
+    expect(sidebarChrome.className).toContain(
+      "w-[var(--desktop-sidebar-width)]",
+    );
     expect(sidebarChrome.className).not.toContain("border-b");
     expect(sidebarChrome.className).toContain("desktop-window-drag");
     expect(resizeStrip.className).toContain("desktop-window-no-drag");
     expect(resizeStrip.className).toContain("top-0");
     expect(resizeStrip.className).toContain("h-1");
     expect(controls.className).toContain("desktop-window-no-drag");
-    expect(screen.getByLabelText("Minimize").className).toContain("desktop-window-no-drag");
-    expect(screen.getByLabelText("Maximize").className).toContain("desktop-window-no-drag");
-    expect(screen.getByLabelText("Close").className).toContain("desktop-window-no-drag");
+    expect(screen.getByLabelText("Minimize").className).toContain(
+      "desktop-window-no-drag",
+    );
+    expect(screen.getByLabelText("Maximize").className).toContain(
+      "desktop-window-no-drag",
+    );
+    expect(screen.getByLabelText("Close").className).toContain(
+      "desktop-window-no-drag",
+    );
     expect(screen.getByTestId("app-content")).toBeTruthy();
+  });
+
+  it("uses the collapsed sidebar width in Windows chrome from the shared layout store", () => {
+    viewportLayoutManager.setSidebarCollapsed(true);
+
+    renderDesktopShell("win32");
+
+    const chromeRoot = screen.getByTestId(
+      "desktop-window-chrome",
+    ).parentElement;
+
+    expect(chromeRoot?.style.getPropertyValue("--desktop-sidebar-width")).toBe(
+      "56px",
+    );
+    expect(screen.getByAltText("NextClaw")).toBeTruthy();
   });
 
   it("switches the Windows maximize button to restore while maximized", async () => {
@@ -100,7 +138,9 @@ describe("DesktopAppShell", () => {
       windowStateListener?.({ isMaximized: true });
     });
 
-    expect(screen.getByLabelText("Restore").className).toContain("desktop-window-no-drag");
+    expect(screen.getByLabelText("Restore").className).toContain(
+      "desktop-window-no-drag",
+    );
     expect(screen.queryByLabelText("Maximize")).toBeNull();
   });
 

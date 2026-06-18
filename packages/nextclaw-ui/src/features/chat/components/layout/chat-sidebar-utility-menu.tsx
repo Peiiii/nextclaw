@@ -1,8 +1,29 @@
-import { NavLink } from 'react-router-dom';
-import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@/shared/components/ui/select';
-import { t, type I18nLanguage } from '@/shared/lib/i18n';
-import type { UiTheme } from '@/shared/lib/theme';
+import { NavLink } from "react-router-dom";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/shared/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/shared/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/shared/components/ui/tooltip";
+import { t, type I18nLanguage } from "@/shared/lib/i18n";
+import type { UiTheme } from "@/shared/lib/theme";
+import { cn } from "@/shared/lib/utils";
+import {
+  SIDEBAR_RAIL_CONTROL_CLASS,
+  SIDEBAR_RAIL_ICON_CLASS,
+  SIDEBAR_RAIL_SURFACE_CLASS,
+} from "@/app/components/layout/sidebar-rail.styles";
 import {
   BookOpen,
   ChevronRight,
@@ -11,7 +32,7 @@ import {
   Palette,
   Settings,
   type LucideIcon,
-} from 'lucide-react';
+} from "lucide-react";
 
 type ChatSidebarUtilityOption<Value extends string> = {
   value: Value;
@@ -31,6 +52,7 @@ type ChatSidebarUtilityMenuProps = {
   onSelectLanguage: (language: I18nLanguage) => void;
   onOpenDocs: () => void;
   onOpenApps: () => void;
+  collapsed?: boolean;
 };
 
 export function ChatSidebarUtilityMenu({
@@ -46,6 +68,7 @@ export function ChatSidebarUtilityMenu({
   onSelectLanguage,
   onOpenDocs,
   onOpenApps,
+  collapsed = false,
 }: ChatSidebarUtilityMenuProps) {
   const handleOpenDocs = () => {
     onOpenDocs();
@@ -59,20 +82,54 @@ export function ChatSidebarUtilityMenu({
 
   return (
     <Popover open={isOpen} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label={t('settingsMenu')}
-          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium text-gray-600 transition-all duration-base hover:bg-gray-200/60 hover:text-gray-800"
-        >
-          <Settings className="h-4 w-4 shrink-0 text-gray-400" />
-          <span className="min-w-0 flex-1 text-left">{t('settings')}</span>
-          <span className="max-w-[112px] truncate text-[13px] text-gray-500">
-            {currentThemeLabel} / {currentLanguageLabel}
-          </span>
-        </button>
-      </PopoverTrigger>
-      <PopoverContent side="top" align="start" className="w-64 p-2">
+      {collapsed ? (
+        <TooltipProvider delayDuration={250}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={t("settingsMenu")}
+                  className={cn(
+                    "flex items-center justify-center",
+                    SIDEBAR_RAIL_CONTROL_CLASS,
+                    SIDEBAR_RAIL_SURFACE_CLASS,
+                  )}
+                >
+                  <Settings
+                    className={cn(
+                      SIDEBAR_RAIL_ICON_CLASS,
+                      "shrink-0 text-gray-500",
+                    )}
+                  />
+                </button>
+              </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-xs">
+              {t("settingsMenu")}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ) : (
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label={t("settingsMenu")}
+            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium text-gray-600 transition-all duration-base hover:bg-gray-200/60 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+          >
+            <Settings className="h-4 w-4 shrink-0 text-gray-400" />
+            <span className="min-w-0 flex-1 text-left">{t("settings")}</span>
+            <span className="max-w-[112px] truncate text-[13px] text-gray-500">
+              {currentThemeLabel} / {currentLanguageLabel}
+            </span>
+          </button>
+        </PopoverTrigger>
+      )}
+      <PopoverContent
+        side={collapsed ? "right" : "top"}
+        align={collapsed ? "end" : "start"}
+        className="w-64 p-2"
+      >
         <div className="space-y-1">
           <NavLink
             to="/settings"
@@ -80,7 +137,7 @@ export function ChatSidebarUtilityMenu({
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-gray-700 transition-colors hover:bg-gray-100"
           >
             <Settings className="h-4 w-4 text-gray-400" />
-            <span className="flex-1 text-left">{t('settings')}</span>
+            <span className="flex-1 text-left">{t("settings")}</span>
           </NavLink>
           <button
             type="button"
@@ -88,7 +145,7 @@ export function ChatSidebarUtilityMenu({
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-gray-700 transition-colors hover:bg-gray-100"
           >
             <BookOpen className="h-4 w-4 text-gray-400" />
-            <span className="flex-1 text-left">{t('docBrowserHelp')}</span>
+            <span className="flex-1 text-left">{t("docBrowserHelp")}</span>
           </button>
           <button
             type="button"
@@ -96,7 +153,7 @@ export function ChatSidebarUtilityMenu({
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-gray-700 transition-colors hover:bg-gray-100"
           >
             <Boxes className="h-4 w-4 text-gray-400" />
-            <span className="flex-1 text-left">{t('appsTitle')}</span>
+            <span className="flex-1 text-left">{t("appsTitle")}</span>
           </button>
         </div>
 
@@ -104,7 +161,7 @@ export function ChatSidebarUtilityMenu({
 
         <ChatSidebarUtilitySelect
           icon={Palette}
-          label={t('theme')}
+          label={t("theme")}
           options={themeOptions}
           value={currentTheme}
           valueLabel={currentThemeLabel}
@@ -114,7 +171,7 @@ export function ChatSidebarUtilityMenu({
 
         <ChatSidebarUtilitySelect
           icon={Languages}
-          label={t('language')}
+          label={t("language")}
           options={languageOptions}
           value={currentLanguage}
           valueLabel={currentLanguageLabel}

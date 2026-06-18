@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Copy, Minus, Square, X } from "lucide-react";
 import { BrandHeader } from "@/shared/components/common/brand-header";
+import { cn } from "@/shared/lib/utils";
 import type { DesktopWindowStateSnapshot } from "@/platforms/desktop/types/desktop-update.types";
 
 type DesktopWindowControlAction = "minimize" | "toggle-maximize" | "close";
@@ -17,7 +18,11 @@ const windowControls: WindowControlDefinition[] = [
   { action: "close", label: "Close", icon: X, variant: "danger" },
 ];
 
-export function DesktopWindowChrome() {
+export function DesktopWindowChrome({
+  sidebarCollapsed = false,
+}: {
+  sidebarCollapsed?: boolean;
+}) {
   const isMaximized = useDesktopWindowMaximizedState();
   const maximizeControl: WindowControlDefinition = isMaximized
     ? { action: "toggle-maximize", label: "Restore", icon: Copy }
@@ -33,21 +38,37 @@ export function DesktopWindowChrome() {
         data-testid="desktop-window-chrome-resize-strip"
       />
       <div
-        className="desktop-window-drag relative z-10 flex h-full w-[var(--desktop-sidebar-width)] shrink-0 items-center bg-secondary pl-4 pr-3 text-secondary-foreground"
+        className={cn(
+          "desktop-window-drag relative z-10 flex h-full w-[var(--desktop-sidebar-width)] shrink-0 items-center bg-secondary text-secondary-foreground",
+          sidebarCollapsed ? "justify-center px-0" : "pl-4 pr-3",
+        )}
         data-testid="desktop-window-chrome-sidebar"
       >
-        <BrandHeader
-          className="flex min-w-0 shrink-0 items-center gap-2.5"
-          density="chrome"
-        />
+        {sidebarCollapsed ? (
+          <img
+            src="/logo.svg"
+            alt="NextClaw"
+            className="h-6 w-6 shrink-0 object-contain"
+          />
+        ) : (
+          <BrandHeader
+            className="flex min-w-0 shrink-0 items-center gap-2.5"
+            density="chrome"
+          />
+        )}
       </div>
       <div
         className="desktop-window-no-drag absolute right-0 top-0 z-20 flex h-full w-[var(--desktop-caption-safe-right)] items-start justify-end"
         data-testid="desktop-window-controls"
       >
-        {[windowControls[0], maximizeControl, windowControls[1]].map((control) => (
-          <DesktopWindowControlButton key={control.action} control={control} />
-        ))}
+        {[windowControls[0], maximizeControl, windowControls[1]].map(
+          (control) => (
+            <DesktopWindowControlButton
+              key={control.action}
+              control={control}
+            />
+          ),
+        )}
       </div>
     </header>
   );
@@ -86,14 +107,18 @@ function useDesktopWindowMaximizedState(): boolean {
     let isSubscribed = true;
     const desktopApi = window.nextclawDesktop;
 
-    void desktopApi?.getWindowState?.().then((snapshot: DesktopWindowStateSnapshot) => {
-      if (isSubscribed) {
+    void desktopApi
+      ?.getWindowState?.()
+      .then((snapshot: DesktopWindowStateSnapshot) => {
+        if (isSubscribed) {
+          setIsMaximized(snapshot.isMaximized);
+        }
+      });
+    const unsubscribe = desktopApi?.onWindowStateChanged?.(
+      (snapshot: DesktopWindowStateSnapshot) => {
         setIsMaximized(snapshot.isMaximized);
-      }
-    });
-    const unsubscribe = desktopApi?.onWindowStateChanged?.((snapshot: DesktopWindowStateSnapshot) => {
-      setIsMaximized(snapshot.isMaximized);
-    });
+      },
+    );
 
     return () => {
       isSubscribed = false;

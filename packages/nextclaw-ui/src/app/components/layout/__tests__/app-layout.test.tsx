@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppLayout } from "@/app/components/layout/app-layout";
 import { I18nProvider } from "@/app/components/i18n-provider";
+import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
 
 const { useViewportLayoutMock } = vi.hoisted(() => ({
   useViewportLayoutMock: vi.fn(() => ({
@@ -44,6 +45,8 @@ vi.mock("@/platforms/mobile", () => ({
 
 describe("AppLayout", () => {
   beforeEach(() => {
+    window.localStorage.clear();
+    viewportLayoutManager.resetForTests();
     useViewportLayoutMock.mockReturnValue({
       mode: "desktop",
       isMobile: false,
@@ -171,7 +174,9 @@ describe("AppLayout", () => {
 
     expect(screen.getByTestId("chat-content")).toBeTruthy();
     expect(screen.getByTestId("desktop-window-chrome")).toBeTruthy();
-    expect(screen.getByTestId("desktop-window-chrome-sidebar").className).toContain("desktop-window-drag");
+    expect(
+      screen.getByTestId("desktop-window-chrome-sidebar").className,
+    ).toContain("desktop-window-drag");
     expect(screen.getByTestId("mobile-bottom-nav")).toBeTruthy();
   });
 
@@ -203,7 +208,11 @@ describe("AppLayout", () => {
     );
 
     expect(screen.getByTestId("chat-content")).toBeTruthy();
-    expect(screen.getByTestId("mobile-app-shell").getAttribute("data-topbar-leading-inset")).toBe("4.75rem");
+    expect(
+      screen
+        .getByTestId("mobile-app-shell")
+        .getAttribute("data-topbar-leading-inset"),
+    ).toBe("4.75rem");
     expect(screen.queryByTestId("desktop-window-chrome")).toBeNull();
   });
 });

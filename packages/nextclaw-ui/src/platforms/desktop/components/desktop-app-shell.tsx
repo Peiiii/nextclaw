@@ -11,9 +11,12 @@ import { MobileBottomNav } from "@/platforms/mobile";
 import type { DocBrowserCustomTabRenderers } from "@/shared/components/doc-browser/doc-browser-renderer.types";
 import type { DocBrowserDockControls } from "@/shared/components/doc-browser/doc-browser-context";
 import { cn } from "@/shared/lib/utils";
+import { useViewportLayoutStore } from "@/app/stores/viewport-layout.store";
+import { SIDEBAR_RAIL_WIDTH_PX } from "@/app/components/layout/sidebar-rail.styles";
 
 const DocBrowser = lazy(async () => ({
-  default: (await import("@/shared/components/doc-browser/doc-browser")).DocBrowser,
+  default: (await import("@/shared/components/doc-browser/doc-browser"))
+    .DocBrowser,
 }));
 
 type DesktopAppShellProps = {
@@ -38,8 +41,17 @@ export function DesktopAppShell({
   children,
 }: DesktopAppShellProps) {
   const isMainRoute = isMainWorkspaceRoute(pathname);
-  const showMobileBottomNav = isMobileLayout && !isChatSessionDetailRoute(pathname);
+  const isSidebarCollapsed = useViewportLayoutStore(
+    (state) => state.isSidebarCollapsed,
+  );
+  const showMobileBottomNav =
+    isMobileLayout && !isChatSessionDetailRoute(pathname);
   const shouldUseWindowsChrome = isWindowsDesktopHost();
+  const desktopSidebarWidth = isSidebarCollapsed
+    ? `${SIDEBAR_RAIL_WIDTH_PX}px`
+    : isMainRoute
+      ? "280px"
+      : "240px";
 
   return (
     <div
@@ -47,13 +59,19 @@ export function DesktopAppShell({
         "h-screen flex flex-col overflow-hidden bg-background font-sans text-foreground",
         shouldUseWindowsChrome ? "rounded-[10px]" : null,
       )}
-      style={shouldUseWindowsChrome ? ({
-        "--desktop-titlebar-height": "40px",
-        "--desktop-caption-safe-right": "140px",
-        "--desktop-sidebar-width": isMainRoute ? "280px" : "240px",
-      } as CSSProperties) : undefined}
+      style={
+        shouldUseWindowsChrome
+          ? ({
+              "--desktop-titlebar-height": "40px",
+              "--desktop-caption-safe-right": "140px",
+              "--desktop-sidebar-width": desktopSidebarWidth,
+            } as CSSProperties)
+          : undefined
+      }
     >
-      {shouldUseWindowsChrome ? <DesktopWindowChrome /> : null}
+      {shouldUseWindowsChrome ? (
+        <DesktopWindowChrome sidebarCollapsed={isSidebarCollapsed} />
+      ) : null}
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {!isMainRoute && <Sidebar mode="settings" />}
         <div className="flex-1 flex min-w-0 overflow-hidden relative">
@@ -70,7 +88,10 @@ export function DesktopAppShell({
           </div>
           {isDocBrowserOpen && docBrowserMode === "docked" ? (
             <Suspense fallback={null}>
-              <DocBrowser customTabRenderers={docBrowserRenderers} dockControls={docBrowserDockControls} />
+              <DocBrowser
+                customTabRenderers={docBrowserRenderers}
+                dockControls={docBrowserDockControls}
+              />
             </Suspense>
           ) : null}
           {sideDock}
@@ -79,7 +100,10 @@ export function DesktopAppShell({
       {showMobileBottomNav ? <MobileBottomNav /> : null}
       {isDocBrowserOpen && docBrowserMode === "floating" ? (
         <Suspense fallback={null}>
-          <DocBrowser customTabRenderers={docBrowserRenderers} dockControls={docBrowserDockControls} />
+          <DocBrowser
+            customTabRenderers={docBrowserRenderers}
+            dockControls={docBrowserDockControls}
+          />
         </Suspense>
       ) : null}
     </div>
