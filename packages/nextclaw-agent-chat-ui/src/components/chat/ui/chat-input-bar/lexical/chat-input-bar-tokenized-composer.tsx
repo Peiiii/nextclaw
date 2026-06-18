@@ -16,11 +16,17 @@ import { PlainTextPlugin } from '@lexical/react/LexicalPlainTextPlugin';
 import type {
   ChatComposerNode,
   ChatComposerSelection,
+  ChatInputSurfaceItem,
+  ChatInputSurfaceTrigger,
+  ChatInputSurfaceTriggerSpec,
   ChatInputBarActionsProps,
   ChatSkillPickerOption,
   ChatSlashItem,
 } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
-import { resolveChatComposerSlashTrigger } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
+import {
+  CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC,
+  resolveChatComposerActiveInputSurfaceTrigger,
+} from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 import {
   getChatComposerNodesSignature,
   readChatComposerSnapshotFromEditorState,
@@ -38,6 +44,7 @@ import { ChatComposerBindingsPlugin } from './chat-composer-plugins';
 import { ChatComposerTokenNode } from './chat-composer-token-node';
 
 export type ChatInputBarTokenizedComposerHandle = {
+  insertInputSurfaceItem: (item: ChatInputSurfaceItem) => void;
   insertSlashItem: (item: ChatSlashItem) => void;
   insertFileToken: (tokenKey: string, label: string) => void;
   insertFileTokens: (tokens: Array<{ tokenKey: string; label: string }>) => void;
@@ -51,11 +58,13 @@ type ChatInputBarTokenizedComposerProps = {
   placeholder: string;
   disabled: boolean;
   slashItems: ChatSlashItem[];
+  inputSurfaceTriggerSpecs?: readonly ChatInputSurfaceTriggerSpec[];
   onSlashItemSelect?: (item: ChatSlashItem) => void;
   actions: Pick<ChatInputBarActionsProps, 'onSend' | 'onStop' | 'isSending' | 'canStopGeneration'>;
   onNodesChange: (nodes: ChatComposerNode[]) => void;
   onFilesAdd?: (files: File[]) => Promise<void> | void;
   onSlashQueryChange?: (query: string | null) => void;
+  onInputSurfaceTriggerChange?: (trigger: ChatInputSurfaceTrigger | null) => void;
   onSlashTriggerChange?: (trigger: { query: string; start: number; end: number } | null) => void;
   onSlashOpenChange: (open: boolean) => void;
   onSlashActiveIndexChange: (index: number) => void;
@@ -74,8 +83,10 @@ export const ChatInputBarTokenizedComposer = forwardRef<
     actions,
     activeSlashIndex,
     disabled,
+    inputSurfaceTriggerSpecs = [CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC],
     nodes,
     onFilesAdd,
+    onInputSurfaceTriggerChange,
     onNodesChange,
     onSlashActiveIndexChange,
     onSlashItemSelect,
@@ -98,12 +109,23 @@ export const ChatInputBarTokenizedComposer = forwardRef<
 
   const syncSlashState = useCallback(
     (nodes: ChatComposerNode[], selection: ChatComposerSelection | null): void => {
-      const trigger = resolveChatComposerSlashTrigger(nodes, selection);
-      onSlashTriggerChange?.(trigger);
+      const trigger = resolveChatComposerActiveInputSurfaceTrigger(nodes, selection, inputSurfaceTriggerSpecs);
+      onInputSurfaceTriggerChange?.(trigger);
+      onSlashTriggerChange?.(
+        trigger
+          ? {
+              query: trigger.query,
+              start: trigger.start,
+              end: trigger.end,
+            }
+          : null,
+      );
       onSlashQueryChange?.(trigger?.query ?? null);
       onSlashOpenChange(trigger !== null);
     },
     [
+      inputSurfaceTriggerSpecs,
+      onInputSurfaceTriggerChange,
       onSlashOpenChange,
       onSlashQueryChange,
       onSlashTriggerChange,
@@ -205,6 +227,7 @@ export const ChatInputBarTokenizedComposer = forwardRef<
       createLexicalComposerHandle({
         focusComposer,
         focusComposerAtEnd,
+        inputSurfaceTriggerSpecs,
         onSlashItemSelect,
         optionsReader: readComposerSnapshot,
         publishSnapshot,
@@ -212,6 +235,7 @@ export const ChatInputBarTokenizedComposer = forwardRef<
     [
       focusComposer,
       focusComposerAtEnd,
+      inputSurfaceTriggerSpecs,
       onSlashItemSelect,
       publishSnapshot,
       readComposerSnapshot,
@@ -297,6 +321,7 @@ export const ChatInputBarTokenizedComposer = forwardRef<
         lastPublishedSignatureRef={lastPublishedSignatureRef}
 	        nodes={nodes}
 	        onBlur={() => {
+            onInputSurfaceTriggerChange?.(null);
 	          onSlashQueryChange?.(null);
 	          onSlashOpenChange(false);
 	        }}
@@ -312,14 +337,15 @@ export const ChatInputBarTokenizedComposer = forwardRef<
 	            actions,
 	            activeSlashIndex,
 	            nativeEvent: event,
-	            onSlashActiveIndexChange,
-	            onSlashItemSelect,
-	            onSlashOpenChange,
-	            onSlashQueryChange,
-	            publishSnapshot,
-	            slashItems,
-	            snapshot,
-	          });
+            onSlashActiveIndexChange,
+            onSlashItemSelect,
+            onSlashOpenChange,
+            onSlashQueryChange,
+            publishSnapshot,
+            slashItems,
+            inputSurfaceTriggerSpecs,
+            snapshot,
+          });
 	        }}
 	        onNodesChange={onNodesChange}
         pendingSelectionRef={pendingSelectionRef}

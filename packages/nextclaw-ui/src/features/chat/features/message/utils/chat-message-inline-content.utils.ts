@@ -1,4 +1,5 @@
 import {
+  resolveInlineTokensForText,
   splitTextByInlineTokens,
   type ChatInlineTokenSource,
 } from "@/features/chat/features/input/utils/chat-inline-token.utils";
@@ -27,7 +28,10 @@ function buildInlineContentSegments(
   text: string,
   inlineTokens: readonly ChatInlineTokenSource[],
 ): ChatInlineContentSegmentViewModel[] | null {
-  const fragments = splitTextByInlineTokens(text, inlineTokens);
+  const fragments = splitTextByInlineTokens(
+    text,
+    resolveInlineTokensForText(text, inlineTokens),
+  );
   if (fragments.length === 0) {
     return null;
   }

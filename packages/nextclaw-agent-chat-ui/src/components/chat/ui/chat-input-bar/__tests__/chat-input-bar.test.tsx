@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ChatInputBar, type ChatInputBarHandle } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-input-bar';
 import { createChatComposerTextNode, createChatComposerTokenNode, resolveChatComposerSlashTrigger } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
-import { insertFileTokenIntoChatComposer, insertSkillTokenIntoChatComposer } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-adapter';
+import { insertFileTokenIntoChatComposer, insertInputSurfaceItemIntoChatComposer, insertSkillTokenIntoChatComposer } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-adapter';
 import { handleLexicalComposerKeyboardCommand } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-controller';
 import type { ChatComposerNode, ChatInputBarProps, ChatToolbarSelect } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
@@ -271,6 +271,34 @@ it('replaces the current slash query with a skill token', () => {
       tokenKind: 'skill',
       tokenKey: 'web-search',
       label: 'Web Search',
+    }),
+  ]);
+  expect(snapshot.selection).toEqual({ start: 1, end: 1 });
+});
+
+it('replaces the current generic trigger query with a panel app token', () => {
+  const snapshot = insertInputSurfaceItemIntoChatComposer({
+    item: {
+      key: 'panel-app:task-board',
+      title: 'Task Board',
+      subtitle: 'Panel App',
+      description: 'Tasks',
+      detailLines: [],
+      tokenKind: 'panel_app',
+      tokenKey: 'task-board',
+      value: 'task-board',
+    },
+    nodes: [createChatComposerTextNode('@task')],
+    selection: { start: 5, end: 5 },
+    triggerSpecs: [{ key: 'panel-app-reference', marker: '@' }],
+  });
+
+  expect(snapshot.nodes).toEqual([
+    expect.objectContaining({
+      type: 'token',
+      tokenKind: 'panel_app',
+      tokenKey: 'task-board',
+      label: 'Task Board',
     }),
   ]);
   expect(snapshot.selection).toEqual({ start: 1, end: 1 });

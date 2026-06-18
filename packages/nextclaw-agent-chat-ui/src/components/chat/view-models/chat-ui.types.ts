@@ -1,3 +1,20 @@
+import type {
+  ChatInputSurfaceConfig,
+  ChatInputSurfaceItem,
+  ChatInputSurfaceMenuProps,
+  ChatInputSurfaceTrigger,
+  ChatInputSurfaceTriggerSpec,
+} from '@agent-chat-ui/lib/input-surface';
+
+export type {
+  ChatInputSurfaceConfig,
+  ChatInputSurfaceItem,
+  ChatInputSurfaceMenuProps,
+  ChatInputSurfaceMenuTexts,
+  ChatInputSurfaceTrigger,
+  ChatInputSurfaceTriggerSpec,
+} from '@agent-chat-ui/lib/input-surface';
+
 export type ChatTexts = {
   slashLoadingLabel: string;
   slashSectionLabel: string;
@@ -8,21 +25,14 @@ export type ChatTexts = {
   stopButtonLabel: string;
 };
 
-export type ChatSlashItem = {
-  key: string;
-  title: string;
-  subtitle: string;
-  description: string;
-  detailLines: string[];
-  value?: string;
-};
+export type ChatSlashItem = ChatInputSurfaceItem;
 
 export type ChatSelectedItem = {
   key: string;
   label: string;
 };
 
-export type ChatComposerTokenKind = "skill" | "file";
+export type ChatComposerTokenKind = "skill" | "file" | "panel_app" | (string & {});
 
 export type ChatComposerTextNode = {
   id: string;
@@ -165,12 +175,12 @@ export type ChatInlineHint = {
   onAction?: () => void;
 };
 
-export type ChatSlashMenuProps = {
-  isOpen: boolean;
-  isLoading: boolean;
-  items: ChatSlashItem[];
-  activeIndex: number;
+export type ChatSlashMenuProps = Omit<
+  ChatInputSurfaceMenuProps,
+  "activeItem" | "items" | "onSelectItem" | "texts"
+> & {
   activeItem: ChatSlashItem | null;
+  items: ChatSlashItem[];
   texts: Pick<
     ChatTexts,
     | "slashLoadingLabel"
@@ -180,9 +190,6 @@ export type ChatSlashMenuProps = {
     | "slashSkillHintLabel"
   >;
   onSelectItem: (item: ChatSlashItem) => void;
-  onOpenChange: (open: boolean) => void;
-  onDetailsPointerDown?: () => void;
-  onSetActiveIndex: (index: number) => void;
 };
 
 export type ChatInputBarProps = {
@@ -193,9 +200,12 @@ export type ChatInputBarProps = {
     disabled: boolean;
     onNodesChange: (nodes: ChatComposerNode[]) => void;
     onFilesAdd?: (files: File[]) => Promise<void> | void;
+    inputSurfaceTriggerSpecs?: ChatInputSurfaceTriggerSpec[];
+    onInputSurfaceTriggerChange?: (trigger: ChatInputSurfaceTrigger | null) => void;
     onSlashQueryChange?: (query: string | null) => void;
   };
-  slashMenu: Pick<ChatSlashMenuProps, "isLoading" | "items" | "texts"> & {
+  inputSurface?: ChatInputSurfaceConfig;
+  slashMenu?: Pick<ChatSlashMenuProps, "isLoading" | "items" | "texts"> & {
     onSelectItem?: (item: ChatSlashItem) => void;
   };
   hint?: ChatInlineHint | null;

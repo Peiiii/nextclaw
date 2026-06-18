@@ -2,15 +2,20 @@ import type { FormEvent } from 'react';
 import type {
   ChatComposerNode,
   ChatComposerSelection,
+  ChatInputSurfaceItem,
+  ChatInputSurfaceTriggerSpec,
   ChatInputBarActionsProps,
   ChatSkillPickerOption,
   ChatSlashItem,
 } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
-import { resolveChatComposerSlashTrigger } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
+import {
+  CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC,
+  resolveChatComposerActiveInputSurfaceTrigger,
+} from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 import {
   deleteChatComposerContent,
   insertFileTokenIntoChatComposer,
-  insertSkillTokenIntoChatComposer,
+  insertInputSurfaceItemIntoChatComposer,
   replaceChatComposerSelectionWithText,
   syncSelectedSkillsIntoChatComposer,
   type ChatComposerEditorSnapshot,
@@ -107,6 +112,7 @@ export function resolveLexicalComposerKeyboardAction(params: {
 type LexicalComposerHandleOwnerParams = {
   focusComposer: () => void;
   focusComposerAtEnd: (nodes?: ChatComposerNode[]) => void;
+  inputSurfaceTriggerSpecs: readonly ChatInputSurfaceTriggerSpec[];
   onSlashItemSelect?: (item: ChatSlashItem) => void;
   optionsReader: () => {
     nodes: ChatComposerNode[];
@@ -121,21 +127,25 @@ type LexicalComposerHandleOwnerParams = {
 class LexicalComposerHandleOwner implements ChatInputBarTokenizedComposerHandle {
   constructor(private readonly params: LexicalComposerHandleOwnerParams) {}
 
-  insertSlashItem = (item: ChatSlashItem): void => {
-    if (!item.value) {
+  insertInputSurfaceItem = (item: ChatInputSurfaceItem): void => {
+    if (!item.value && (!item.tokenKind || !item.tokenKey)) {
       return;
     }
 
     this.params.onSlashItemSelect?.(item);
     this.params.publishSnapshot(
-      insertSkillTokenIntoChatComposer({
-        label: item.title,
+      insertInputSurfaceItemIntoChatComposer({
+        item,
         nodes: this.params.optionsReader().nodes,
         selection: this.params.optionsReader().selection,
-        tokenKey: item.value,
+        triggerSpecs: this.params.inputSurfaceTriggerSpecs,
       }),
       { focusAfterSync: true },
     );
+  };
+
+  insertSlashItem = (item: ChatSlashItem): void => {
+    this.insertInputSurfaceItem(item);
   };
 
   insertFileToken = (tokenKey: string, label: string): void => {
@@ -285,6 +295,7 @@ export function handleLexicalComposerCompositionEnd(params: {
 export function handleLexicalComposerKeyboardCommand(params: {
   actions: ComposerActions;
   activeSlashIndex: number;
+  inputSurfaceTriggerSpecs?: readonly ChatInputSurfaceTriggerSpec[];
   onSlashActiveIndexChange: (index: number) => void;
   onSlashItemSelect?: (item: ChatSlashItem) => void;
   onSlashOpenChange: (open: boolean) => void;
@@ -300,6 +311,7 @@ export function handleLexicalComposerKeyboardCommand(params: {
   const {
     actions,
     activeSlashIndex,
+    inputSurfaceTriggerSpecs = [CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC],
     nativeEvent,
     onSlashActiveIndexChange,
     onSlashItemSelect,
@@ -314,7 +326,11 @@ export function handleLexicalComposerKeyboardCommand(params: {
     canStopGeneration: actions.canStopGeneration,
     isComposing: nativeEvent.isComposing,
     isSending: actions.isSending,
-    isSlashMenuOpen: resolveChatComposerSlashTrigger(snapshot.nodes, snapshot.selection) !== null,
+    isSlashMenuOpen: resolveChatComposerActiveInputSurfaceTrigger(
+      snapshot.nodes,
+      snapshot.selection,
+      inputSurfaceTriggerSpecs,
+    ) !== null,
     key: nativeEvent.key,
     shiftKey: nativeEvent.shiftKey,
     slashItemCount: slashItems.length,
@@ -335,11 +351,11 @@ export function handleLexicalComposerKeyboardCommand(params: {
       }
       onSlashItemSelect?.(activeSlashItem);
       publishSnapshot(
-        insertSkillTokenIntoChatComposer({
-          label: activeSlashItem.title,
+        insertInputSurfaceItemIntoChatComposer({
+          item: activeSlashItem,
           nodes: snapshot.nodes,
           selection: snapshot.selection,
-          tokenKey: activeSlashItem.value ?? activeSlashItem.key,
+          triggerSpecs: inputSurfaceTriggerSpecs,
         }),
         { focusAfterSync: true },
       );

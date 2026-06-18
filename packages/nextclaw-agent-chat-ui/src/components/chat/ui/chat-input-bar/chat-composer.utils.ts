@@ -1,6 +1,18 @@
-import type { ChatComposerNode, ChatComposerSelection, ChatComposerTextNode, ChatComposerTokenKind, ChatComposerTokenNode } from '../../view-models/chat-ui.types';
+import type {
+  ChatComposerNode,
+  ChatComposerSelection,
+  ChatComposerTextNode,
+  ChatComposerTokenKind,
+  ChatComposerTokenNode,
+  ChatInputSurfaceTrigger,
+  ChatInputSurfaceTriggerSpec,
+} from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
 export const CHAT_COMPOSER_TOKEN_PLACEHOLDER = '\uFFFC';
+export const CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC: ChatInputSurfaceTriggerSpec = {
+  key: 'slash',
+  marker: '/',
+};
 
 function createComposerNodeId(): string {
   return `composer-${Math.random().toString(36).slice(2, 10)}`;
@@ -235,10 +247,15 @@ export function removeChatComposerTokenNodes(
   );
 }
 
-export function resolveChatComposerSlashTrigger(
+function hasTriggerBoundary(prefix: string, markerStart: number): boolean {
+  return markerStart === 0 || /\s/.test(prefix[markerStart - 1] ?? '');
+}
+
+export function resolveChatComposerInputSurfaceTrigger(
   nodes: ChatComposerNode[],
-  selection: ChatComposerSelection | null
-): { query: string; start: number; end: number } | null {
+  selection: ChatComposerSelection | null,
+  triggerSpec: ChatInputSurfaceTriggerSpec
+): ChatInputSurfaceTrigger | null {
   if (!selection || selection.start !== selection.end) {
     return null;
   }
@@ -246,17 +263,59 @@ export function resolveChatComposerSlashTrigger(
   const documentText = serializeChatComposerDocument(nodes);
   const caret = selection.end;
   const prefix = documentText.slice(0, caret);
-  const match = /(?:^|\s)\/([^\s\uFFFC]*)$/.exec(prefix);
-  if (!match) {
+  const markerStart = prefix.lastIndexOf(triggerSpec.marker);
+  if (markerStart < 0 || !hasTriggerBoundary(prefix, markerStart)) {
     return null;
   }
 
-  const slashStart = caret - match[0].length + (match[0].startsWith('/') ? 0 : 1);
+  const rawQuery = prefix.slice(markerStart + triggerSpec.marker.length);
+  if (/[\s\uFFFC]/.test(rawQuery)) {
+    return null;
+  }
+
   return {
-    query: (match[1] ?? '').trim().toLowerCase(),
-    start: slashStart,
-    end: caret
+    key: triggerSpec.key,
+    marker: triggerSpec.marker,
+    query: rawQuery.trim().toLowerCase(),
+    start: markerStart,
+    end: caret,
   };
+}
+
+export function resolveChatComposerActiveInputSurfaceTrigger(
+  nodes: ChatComposerNode[],
+  selection: ChatComposerSelection | null,
+  triggerSpecs: readonly ChatInputSurfaceTriggerSpec[] = [CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC],
+): ChatInputSurfaceTrigger | null {
+  let activeTrigger: ChatInputSurfaceTrigger | null = null;
+  for (const triggerSpec of triggerSpecs) {
+    const trigger = resolveChatComposerInputSurfaceTrigger(nodes, selection, triggerSpec);
+    if (!trigger) {
+      continue;
+    }
+    if (!activeTrigger || trigger.start > activeTrigger.start) {
+      activeTrigger = trigger;
+    }
+  }
+  return activeTrigger;
+}
+
+export function resolveChatComposerSlashTrigger(
+  nodes: ChatComposerNode[],
+  selection: ChatComposerSelection | null
+): { query: string; start: number; end: number } | null {
+  const trigger = resolveChatComposerInputSurfaceTrigger(
+    nodes,
+    selection,
+    CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC,
+  );
+  return trigger
+    ? {
+        query: trigger.query,
+        start: trigger.start,
+        end: trigger.end,
+      }
+    : null;
 }
 
 export function isChatComposerSelectionInsideRange(

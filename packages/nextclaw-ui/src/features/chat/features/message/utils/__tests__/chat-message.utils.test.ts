@@ -469,6 +469,33 @@ it("renders inline skill tokens as structured inline content parts", () => {
   });
 });
 
+it("renders inline panel app text protocol without metadata", () => {
+  const adapted = adapt([
+    {
+      id: "user-inline-panel-app",
+      role: "user",
+      parts: [{ type: "text", text: "review @panel-app:task-board now" }],
+    },
+  ] as unknown as ChatMessageSource[]);
+
+  expect(adapted[0]?.parts[0]).toEqual({
+    type: "inline-content",
+    segments: [
+      { type: "markdown", text: "review " },
+      {
+        type: "token",
+        token: {
+          kind: "panel_app",
+          key: "task-board",
+          label: "task-board",
+          rawText: "@panel-app:task-board",
+        },
+      },
+      { type: "markdown", text: " now" },
+    ],
+  });
+});
+
 it("keeps named non-image files as downloadable attachments", () => {
   const adapted = adapt([
     {

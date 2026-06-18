@@ -3,5 +3,6 @@
   "protocol": "app-l1",
   "rootPolicy": "contract-only",
   "enforcement": "error",
+  "allowedRootDirectories": ["lib"],
   "importAliasPrefixes": ["@agent-chat-ui/"]
 }

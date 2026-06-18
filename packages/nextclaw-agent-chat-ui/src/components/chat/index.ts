@@ -24,11 +24,25 @@ export {
   extractChatComposerTokenKeys,
   replaceChatComposerRange,
   removeChatComposerTokenNodes,
+  CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC,
+  resolveChatComposerActiveInputSurfaceTrigger,
+  resolveChatComposerInputSurfaceTrigger,
   resolveChatComposerSlashTrigger
 } from './ui/chat-input-bar/chat-composer.utils';
+export {
+  createInputSurfaceReferenceTokenPlugin,
+  createInputSurfaceTriggeredPanelPlugin,
+  resolveChatInputSurfaceState,
+} from '@agent-chat-ui/lib/input-surface';
 
 export type {
   ChatTexts,
+  ChatInputSurfaceConfig,
+  ChatInputSurfaceItem,
+  ChatInputSurfaceMenuProps,
+  ChatInputSurfaceMenuTexts,
+  ChatInputSurfaceTrigger,
+  ChatInputSurfaceTriggerSpec,
   ChatSlashItem,
   ChatSelectedItem,
   ChatComposerTokenKind,
@@ -67,3 +81,9 @@ export type {
   ChatMessageViewModel,
   ChatMessageTexts
 } from './view-models/chat-ui.types';
+export type {
+  ChatInputSurfacePanel,
+  ChatInputSurfacePlugin,
+  ChatInputSurfacePluginContext,
+  ChatInputSurfaceResolvedState,
+} from '@agent-chat-ui/lib/input-surface';

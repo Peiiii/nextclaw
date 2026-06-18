@@ -178,6 +178,8 @@ export function buildChatSlashItems(
         `${texts.slashSkillSpecLabel}: ${record.key}`,
         ...(record.scopeLabel ? [`${texts.slashSkillScopeLabel}: ${record.scopeLabel}`] : [])
       ],
+      tokenKind: 'skill',
+      tokenKey: record.key,
       value: record.key
     }));
 }

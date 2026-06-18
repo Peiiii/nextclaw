@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createChatComposerTokenNode } from '@nextclaw/agent-chat-ui';
 import { RUNTIME_DEFAULT_MODEL_VALUE } from '@nextclaw/shared';
 import type { SessionEntryView, ThinkingLevel } from '@/shared/lib/api';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
@@ -184,6 +185,31 @@ describe('buildChatRunMetadata', () => {
     ).toMatchObject({
       requested_skill_refs: ['project:/tmp/project-alpha/.agents/skills/review'],
     });
+  });
+
+  it('serializes panel app references as text without run metadata', () => {
+    expect(
+      buildChatRunMetadata({
+        composerNodes: [
+          createChatComposerTokenNode({
+            tokenKind: 'panel_app',
+            tokenKey: 'task-board',
+            label: 'Task Board',
+          }),
+        ],
+      }),
+    ).not.toHaveProperty('referenced_panel_apps');
+    expect(
+      buildChatRunMetadata({
+        composerNodes: [
+          createChatComposerTokenNode({
+            tokenKind: 'panel_app',
+            tokenKey: 'task-board',
+            label: 'Task Board',
+          }),
+        ],
+      }),
+    ).not.toHaveProperty('ui_inline_tokens');
   });
 });
 

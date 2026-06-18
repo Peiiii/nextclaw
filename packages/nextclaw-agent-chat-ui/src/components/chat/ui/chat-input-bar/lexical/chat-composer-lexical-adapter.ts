@@ -8,7 +8,9 @@ export {
 export {
   deleteChatComposerContent,
   getChatComposerNodesSignature,
+  insertChatComposerTokenIntoChatComposer,
   insertFileTokenIntoChatComposer,
+  insertInputSurfaceItemIntoChatComposer,
   insertSkillTokenIntoChatComposer,
   replaceChatComposerSelectionWithText,
   syncSelectedSkillsIntoChatComposer,

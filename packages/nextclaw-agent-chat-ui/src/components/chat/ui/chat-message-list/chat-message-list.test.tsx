@@ -177,6 +177,45 @@ it("renders inline token content inside a user message bubble", () => {
   expect(screen.getByText("now", { exact: false })).toBeTruthy();
 });
 
+it("renders panel app inline tokens with a distinct visual tone", () => {
+  render(
+    <ChatMessageList
+      messages={[
+        {
+          id: "user-inline-panel-app",
+          role: "user",
+          roleLabel: "You",
+          timestampLabel: "10:06",
+          parts: [
+            {
+              type: "inline-content",
+              segments: [
+                { type: "markdown", text: "review " },
+                {
+                  type: "token",
+                  token: {
+                    kind: "panel_app",
+                    key: "task-board",
+                    label: "Task Board",
+                    rawText: "@panel-app:task-board",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  expect(screen.getByText("Task Board").parentElement?.className).toContain(
+    "bg-sky-400/18",
+  );
+});
+
 it("renders running tool cards with live status feedback", () => {
   render(
     <ChatMessageList

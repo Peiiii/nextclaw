@@ -2,6 +2,8 @@ import type { ChatComposerNode } from '@nextclaw/agent-chat-ui';
 
 export const CHAT_UI_INLINE_TOKENS_METADATA_KEY = 'ui_inline_tokens';
 const CHAT_SKILL_TOKEN_PREFIX = '$';
+const CHAT_PANEL_APP_TOKEN_PREFIX = '@panel-app:';
+const CHAT_PANEL_APP_TOKEN_PATTERN = /@panel-app:([A-Za-z0-9_-]+)/g;
 
 export type ChatInlineTokenSource = { kind: string; key: string; label: string; rawText: string };
 
@@ -49,6 +51,30 @@ export function buildInlineSkillTokensFromComposer(nodes: readonly ChatComposerN
     });
   }
   return dedupeInlineTokens(tokens);
+}
+
+export function buildInlineTokensFromTextProtocol(text: string): ChatInlineTokenSource[] {
+  const tokens: ChatInlineTokenSource[] = [];
+  for (const match of text.matchAll(CHAT_PANEL_APP_TOKEN_PATTERN)) {
+    const key = match[1];
+    if (!key) {
+      continue;
+    }
+    tokens.push({
+      kind: 'panel_app',
+      key,
+      label: key,
+      rawText: `${CHAT_PANEL_APP_TOKEN_PREFIX}${key}`
+    });
+  }
+  return dedupeInlineTokens(tokens);
+}
+
+export function resolveInlineTokensForText(
+  text: string,
+  tokens: readonly ChatInlineTokenSource[]
+): ChatInlineTokenSource[] {
+  return dedupeInlineTokens([...tokens, ...buildInlineTokensFromTextProtocol(text)]);
 }
 
 export function readInlineTokensFromMetadata(

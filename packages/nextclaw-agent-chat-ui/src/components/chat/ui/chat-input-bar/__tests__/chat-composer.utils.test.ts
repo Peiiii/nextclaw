@@ -3,6 +3,7 @@ import {
   createChatComposerTokenNode,
   extractChatComposerTokenKeys,
   replaceChatComposerRange,
+  resolveChatComposerActiveInputSurfaceTrigger,
   resolveChatComposerSlashTrigger,
   serializeChatComposerPlainText
 } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
@@ -52,6 +53,22 @@ describe('chat composer utils', () => {
       query: 'web',
       start: 11,
       end: 15
+    });
+  });
+
+  it('resolves a generic input-surface trigger by marker', () => {
+    expect(
+      resolveChatComposerActiveInputSurfaceTrigger(
+        [createChatComposerTextNode('compare @task')],
+        { start: 13, end: 13 },
+        [{ key: 'panel-app-reference', marker: '@' }],
+      ),
+    ).toEqual({
+      key: 'panel-app-reference',
+      marker: '@',
+      query: 'task',
+      start: 8,
+      end: 13,
     });
   });
 });

@@ -1,18 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type ChangeEvent, type RefObject } from 'react';
 import { ChatInputBar, type ChatInputBarHandle } from '@nextclaw/agent-chat-ui';
 import { DEFAULT_NCP_ATTACHMENT_MAX_BYTES, uploadFilesAsNcpDraftAttachments } from '@nextclaw/ncp-react';
 import { uploadNcpAssets } from '@/shared/lib/api';
 import type { SessionSkillEntryView } from '@/shared/lib/api';
-import { buildChatSlashItems, buildModelStateHint, buildModelToolbarSelect, buildSkillPickerModel, buildThinkingToolbarSelect, type ChatModelRecord, type ChatSkillRecord, type ChatThinkingLevel } from '@/features/chat/features/input/utils/chat-input-bar.utils';
+import { buildModelStateHint, buildModelToolbarSelect, buildSkillPickerModel, buildThinkingToolbarSelect, type ChatModelRecord, type ChatSkillRecord, type ChatThinkingLevel } from '@/features/chat/features/input/utils/chat-input-bar.utils';
 import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
 import { useI18n } from '@/app/components/i18n-provider';
 import { useViewportLayout } from '@/app/hooks/use-viewport-layout';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { chatRecentModelsManager, CHAT_RECENT_MODELS_MIN_OPTIONS } from '@/features/chat/managers/chat-recent-models.manager';
 import { chatRecentSkillsManager, CHAT_RECENT_SKILLS_MIN_OPTIONS } from '@/features/chat/managers/chat-recent-skills.manager';
-import { deriveSelectedSkillsFromComposer } from '@/features/chat/features/input/utils/chat-composer-state.utils';
 import { hasNcpChatModelOptions, isNcpChatComposerDisabled, isNcpChatModelOptionsEmpty, isNcpChatModelOptionsLoading, isNcpChatSendDisabled } from '@/features/chat/features/input/utils/ncp-chat-input-availability.utils';
 import { useChatInputBarQueryState } from '@/features/chat/features/input/hooks/use-chat-input-bar-query-state';
+import { useChatInputSurfaceState } from '@/features/chat/features/input/hooks/use-chat-input-surface-state';
 import { useChatModelFavorites } from '@/features/chat/features/input/hooks/use-chat-model-favorites';
 import { useSelectedSessionContextWindowIndicator } from '@/features/chat/features/session/hooks/use-selected-session-context-window-indicator';
 import { useSystemStatus } from '@/features/system-status';
@@ -278,7 +278,6 @@ export function ChatInputBarContainer({ surface = 'default' }: ChatInputBarConta
   const snapshot = useChatInputStore((state) => state.snapshot);
   const inputQueryState = useChatInputBarQueryState(snapshot);
   const isRuntimeBlocked = isNcpChatRuntimeBlocked(useSystemStatus());
-  const [slashQuery, setSlashQuery] = useState<string | null>(null);
   const inputBarRef = useRef<ChatInputBarHandle | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const labels = useChatInputBarLabels(language);
@@ -286,6 +285,16 @@ export function ChatInputBarContainer({ surface = 'default' }: ChatInputBarConta
     modelOptions: inputQueryState.modelOptions,
     skillRecords: inputQueryState.skillRecords,
     skillScopeLabels: labels.skillScopeLabels
+  });
+  const { inputSurfaceState, setInputSurfaceTrigger } = useChatInputSurfaceState({
+    isSkillsLoading: inputQueryState.isSkillsLoading,
+    itemTexts: {
+      slashTexts: labels.slashTexts
+    },
+    language,
+    onSelectSkill: presenter.chatInputManager.rememberSkillSelection,
+    recentSkillValues,
+    skillRecords
   });
   const modelRecordValues = useMemo(
     () => modelRecords.map((option) => option.value),
@@ -308,10 +317,6 @@ export function ChatInputBarContainer({ surface = 'default' }: ChatInputBarConta
   const textareaPlaceholder = isModelOptionsEmpty
     ? t('chatModelNoOptions')
     : t(isMobile ? 'chatInputPlaceholderCompact' : 'chatInputPlaceholder');
-  const slashItems = useMemo(
-    () => buildChatSlashItems(skillRecords, slashQuery ?? '', labels.slashTexts, recentSkillValues),
-    [labels.slashTexts, recentSkillValues, skillRecords, slashQuery]
-  );
   const contextWindowIndicator = useSelectedSessionContextWindowIndicator();
   const selectedModelOption = modelRecords.find((option) => option.value === snapshot.selectedModel);
   const thinkingSupportedLevels = selectedModelOption?.thinkingCapability?.supported ?? [];
@@ -404,7 +409,11 @@ export function ChatInputBarContainer({ surface = 'default' }: ChatInputBarConta
     skillRecords,
     snapshot
   });
-  const hasSendableDraft = snapshot.draft.trim().length > 0 || snapshot.attachments.length > 0 || deriveSelectedSkillsFromComposer(snapshot.composerNodes).length > 0;
+  const hasComposerReferenceToken = snapshot.composerNodes.some((node) => node.type === 'token' && node.tokenKind !== 'file');
+  const hasSendableDraft =
+    snapshot.draft.trim().length > 0 ||
+    snapshot.attachments.length > 0 ||
+    hasComposerReferenceToken;
 
   return (
     <>
@@ -417,24 +426,10 @@ export function ChatInputBarContainer({ surface = 'default' }: ChatInputBarConta
           disabled: inputDisabled,
           onNodesChange: presenter.chatInputManager.setComposerNodes,
           ...(attachmentSupported ? { onFilesAdd: handleFilesAdd } : {}),
-          onSlashQueryChange: setSlashQuery
+          inputSurfaceTriggerSpecs: inputSurfaceState.triggerSpecs,
+          onInputSurfaceTriggerChange: setInputSurfaceTrigger
         }}
-        slashMenu={{
-          isLoading: inputQueryState.isSkillsLoading,
-          items: slashItems,
-          onSelectItem: (item: { value?: string }) => {
-            if (item.value) {
-              presenter.chatInputManager.rememberSkillSelection(item.value);
-            }
-          },
-          texts: {
-            slashLoadingLabel: t('chatSlashLoading'),
-            slashSectionLabel: t('chatSlashSectionSkills'),
-            slashEmptyLabel: t('chatSlashNoResult'),
-            slashHintLabel: t('chatSlashHint'),
-            slashSkillHintLabel: t('chatSlashSkillHint')
-          }
-        }}
+        inputSurface={inputSurfaceState.panel ?? undefined}
         hint={buildModelStateHint({
           isModelOptionsLoading,
           isModelOptionsEmpty,

@@ -1,5 +1,5 @@
 import { createChatComposerTextNode, createChatComposerTokenNode } from '@nextclaw/agent-chat-ui';
-import { deriveNcpMessagePartsFromComposer } from '../chat-composer-state.utils';
+import { deriveNcpMessagePartsFromComposer } from '@/features/chat/features/input/utils/chat-composer-state.utils';
 
 describe('deriveNcpMessagePartsFromComposer', () => {
   it('preserves interleaved text and image token order while serializing skill tokens inline', () => {
@@ -64,6 +64,27 @@ describe('deriveNcpMessagePartsFromComposer', () => {
         mimeType: 'image/png',
         contentBase64: 'aW1hZ2UtMg==',
         sizeBytes: 12
+      }
+    ]);
+  });
+
+  it('serializes panel app tokens as inline panel app references', () => {
+    expect(
+      deriveNcpMessagePartsFromComposer(
+        [
+          createChatComposerTextNode('review '),
+          createChatComposerTokenNode({
+            tokenKind: 'panel_app',
+            tokenKey: 'task-board',
+            label: 'Task Board'
+          })
+        ],
+        []
+      )
+    ).toEqual([
+      {
+        type: 'text',
+        text: 'review @panel-app:task-board'
       }
     ]);
   });

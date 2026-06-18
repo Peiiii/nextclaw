@@ -8,6 +8,7 @@ import {
   type SerializedLexicalNode,
 } from 'lexical';
 import type { ReactElement } from 'react';
+import { AppWindow, ImageIcon, Puzzle } from 'lucide-react';
 import { CHAT_COMPOSER_TOKEN_PLACEHOLDER } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 import type { ChatComposerTokenKind } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
@@ -78,36 +79,11 @@ function ChatComposerTokenChip({
         }
       >
         {tokenKind === 'file' ? (
-          <svg
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.25"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            className="h-3 w-3"
-          >
-            <path d="M3.25 4.25A1.5 1.5 0 0 1 4.75 2.75h6.5a1.5 1.5 0 0 1 1.5 1.5v7.5a1.5 1.5 0 0 1-1.5 1.5h-6.5a1.5 1.5 0 0 1-1.5-1.5v-7.5Z" />
-            <path d="m4.75 10 2.25-2.5 1.75 1.75 1.25-1.25 2 2" />
-            <path d="M9.75 6.25h.01" />
-          </svg>
+          <ImageIcon aria-hidden="true" className="h-3 w-3" />
+        ) : tokenKind === 'panel_app' ? (
+          <AppWindow aria-hidden="true" className="h-3 w-3" />
         ) : (
-          <svg
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.25"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            className="h-3 w-3"
-          >
-            <path d="M8.5 2.75 2.75 6l5.75 3.25L14.25 6 8.5 2.75Z" />
-            <path d="M2.75 10 8.5 13.25 14.25 10" />
-            <path d="M2.75 6v4l5.75 3.25V9.25L2.75 6Z" />
-            <path d="M14.25 6v4L8.5 13.25V9.25L14.25 6Z" />
-          </svg>
+          <Puzzle aria-hidden="true" className="h-3 w-3" />
         )}
       </span>
       <span

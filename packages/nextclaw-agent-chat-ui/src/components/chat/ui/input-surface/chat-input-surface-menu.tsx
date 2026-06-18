@@ -1,0 +1,148 @@
+import { useMemo, useRef } from 'react';
+import { useActiveItemScroll } from '@agent-chat-ui/components/chat/hooks/use-active-item-scroll';
+import { useElementWidth } from '@agent-chat-ui/components/chat/hooks/use-element-width';
+import {
+  ChatUiPrimitives,
+  createChatPopoverAvailableHeightLimit,
+} from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
+import type { ChatInputSurfaceMenuProps } from '@agent-chat-ui/lib/input-surface';
+
+const INPUT_SURFACE_PANEL_MAX_WIDTH = 680;
+const INPUT_SURFACE_PANEL_DESKTOP_SHRINK_RATIO = 0.82;
+const INPUT_SURFACE_PANEL_DESKTOP_MIN_WIDTH = 560;
+const INPUT_SURFACE_PANEL_MAX_HEIGHT = createChatPopoverAvailableHeightLimit('24rem');
+const INPUT_SURFACE_PANEL_MIN_HEIGHT = createChatPopoverAvailableHeightLimit('240px');
+
+export function ChatInputSurfaceMenu(props: ChatInputSurfaceMenuProps) {
+  const { Popover, PopoverAnchor, PopoverContent } = ChatUiPrimitives;
+  const { elementRef: anchorRef, width: panelWidth } = useElementWidth<HTMLDivElement>();
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const {
+    isOpen,
+    isLoading,
+    items,
+    activeIndex,
+    activeItem,
+    texts,
+    onSelectItem,
+    onOpenChange,
+    onDetailsPointerDown,
+    onSetActiveIndex,
+  } = props;
+
+  const resolvedWidth = useMemo(() => {
+    if (!panelWidth) {
+      return undefined;
+    }
+    return Math.min(
+      panelWidth > INPUT_SURFACE_PANEL_DESKTOP_MIN_WIDTH
+        ? panelWidth * INPUT_SURFACE_PANEL_DESKTOP_SHRINK_RATIO
+        : panelWidth,
+      INPUT_SURFACE_PANEL_MAX_WIDTH,
+    );
+  }, [panelWidth]);
+
+  useActiveItemScroll({
+    containerRef: listRef,
+    activeIndex,
+    itemCount: items.length,
+    isEnabled: isOpen && !isLoading,
+    getItemSelector: (index) => `[data-input-surface-index="${index}"]`,
+  });
+
+  return (
+    <Popover open={isOpen} onOpenChange={onOpenChange}>
+      <PopoverAnchor asChild>
+        <div ref={anchorRef} className="pointer-events-none absolute bottom-full left-3 right-3 h-0" />
+      </PopoverAnchor>
+      <PopoverContent
+        side="top"
+        align="start"
+        sideOffset={10}
+        className="z-[70] flex max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white/95 p-0 shadow-2xl backdrop-blur-md"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+        style={{
+          maxHeight: INPUT_SURFACE_PANEL_MAX_HEIGHT,
+          width: resolvedWidth ? `${resolvedWidth}px` : undefined,
+        }}
+      >
+        <div
+          className="grid min-h-0 flex-1 grid-cols-[minmax(220px,300px)_minmax(0,1fr)]"
+          style={{ minHeight: INPUT_SURFACE_PANEL_MIN_HEIGHT }}
+        >
+          <div
+            ref={listRef}
+            role="listbox"
+            aria-label={texts.sectionLabel}
+            className="custom-scrollbar min-h-0 overflow-y-auto overscroll-contain border-r border-gray-200 p-2.5"
+          >
+            {isLoading ? (
+              <div className="p-2 text-xs text-gray-500">{texts.loadingLabel}</div>
+            ) : (
+              <>
+                <div className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                  {texts.sectionLabel}
+                </div>
+                {items.length === 0 ? (
+                  <div className="px-2 text-xs text-gray-400">{texts.emptyLabel}</div>
+                ) : (
+                  <div className="space-y-1">
+                    {items.map((item, index) => {
+                      const isActive = index === activeIndex;
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          role="option"
+                          aria-selected={isActive}
+                          data-input-surface-index={index}
+                          onMouseEnter={() => onSetActiveIndex(index)}
+                          onClick={() => onSelectItem(item)}
+                          className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition ${
+                            isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="truncate text-xs font-semibold">{item.title}</span>
+                          <span className="truncate text-xs text-gray-500">{item.subtitle}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          <div
+            className="custom-scrollbar min-h-0 min-w-0 overflow-y-auto overscroll-contain p-2.5"
+            onPointerDown={onDetailsPointerDown}
+          >
+            {activeItem ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                    {activeItem.subtitle}
+                  </span>
+                  <span className="text-sm font-semibold text-gray-900">{activeItem.title}</span>
+                </div>
+                <p className="text-xs leading-5 text-gray-600">{activeItem.description}</p>
+                <div className="space-y-1">
+                  {activeItem.detailLines.map((line) => (
+                    <div
+                      key={line}
+                      className="min-w-0 break-all rounded-md bg-gray-50 px-2 py-1 text-[11px] leading-5 text-gray-600"
+                    >
+                      {line}
+                    </div>
+                  ))}
+                </div>
+                <div className="pt-1 text-[11px] text-gray-500">{texts.itemHintLabel}</div>
+              </div>
+            ) : (
+              <div className="text-xs text-gray-500">{texts.hintLabel}</div>
+            )}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}

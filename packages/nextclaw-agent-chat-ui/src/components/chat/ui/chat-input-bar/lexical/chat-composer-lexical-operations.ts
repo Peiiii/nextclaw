@@ -2,9 +2,12 @@ import type {
   ChatComposerNode,
   ChatComposerSelection,
   ChatComposerTokenKind,
+  ChatInputSurfaceItem,
+  ChatInputSurfaceTriggerSpec,
   ChatSkillPickerOption,
-} from '../../../view-models/chat-ui.types';
+} from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import {
+  CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC,
   createChatComposerTextNode,
   createChatComposerTokenNode,
   extractChatComposerTokenKeys,
@@ -12,8 +15,9 @@ import {
   normalizeChatComposerNodes,
   removeChatComposerTokenNodes,
   replaceChatComposerRange,
+  resolveChatComposerActiveInputSurfaceTrigger,
   resolveChatComposerSlashTrigger,
-} from '../chat-composer.utils';
+} from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 import type { ChatComposerEditorSnapshot } from './chat-composer-lexical-editor-state';
 
 function getDocumentLength(nodes: ChatComposerNode[]): number {
@@ -52,6 +56,63 @@ function insertToken(params: {
       end: replaceStart + 1,
     },
   };
+}
+
+export function insertChatComposerTokenIntoChatComposer(params: {
+  label: string;
+  nodes: ChatComposerNode[];
+  selection: ChatComposerSelection | null;
+  tokenKey: string;
+  tokenKind: ChatComposerTokenKind;
+  triggerSpecs?: readonly ChatInputSurfaceTriggerSpec[];
+}): ChatComposerEditorSnapshot {
+  const { label, nodes, selection, tokenKey, tokenKind, triggerSpecs } = params;
+
+  if (extractChatComposerTokenKeys(nodes, tokenKind).includes(tokenKey)) {
+    return {
+      nodes: normalizeChatComposerNodes(nodes),
+      selection,
+    };
+  }
+
+  return insertToken({
+    label,
+    nodes,
+    selection,
+    tokenKey,
+    tokenKind,
+    trigger: resolveChatComposerActiveInputSurfaceTrigger(
+      nodes,
+      selection,
+      triggerSpecs ?? [CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC],
+    ),
+  });
+}
+
+export function insertInputSurfaceItemIntoChatComposer(params: {
+  item: ChatInputSurfaceItem;
+  nodes: ChatComposerNode[];
+  selection: ChatComposerSelection | null;
+  triggerSpecs?: readonly ChatInputSurfaceTriggerSpec[];
+}): ChatComposerEditorSnapshot {
+  const { item, nodes, selection, triggerSpecs } = params;
+  const tokenKind = item.tokenKind ?? (item.value ? 'skill' : undefined);
+  const tokenKey = item.tokenKey ?? item.value;
+  if (!tokenKind || !tokenKey) {
+    return {
+      nodes: normalizeChatComposerNodes(nodes),
+      selection,
+    };
+  }
+
+  return insertChatComposerTokenIntoChatComposer({
+    label: item.title,
+    nodes,
+    selection,
+    tokenKey,
+    tokenKind,
+    triggerSpecs,
+  });
 }
 
 export function getChatComposerNodesSignature(nodes: ChatComposerNode[]): string {

@@ -4,10 +4,11 @@ import type { PanelAppPreferencesUpdateView } from '@/shared/lib/api';
 
 const PANEL_APPS_QUERY_KEY = ['panel-apps'] as const;
 
-export function usePanelApps() {
+export function usePanelApps(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: PANEL_APPS_QUERY_KEY,
     queryFn: () => nextclawClient.panelApps.listPanelApps(),
+    enabled: options.enabled ?? true,
     staleTime: 0,
   });
 }
