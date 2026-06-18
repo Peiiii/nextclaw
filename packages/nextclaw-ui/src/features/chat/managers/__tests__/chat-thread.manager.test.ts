@@ -330,6 +330,52 @@ describe('ChatThreadManager workspace navigation', () => {
   });
 });
 
+describe('ChatThreadManager tool actions', () => {
+  it('opens child-session tool actions in the workspace panel before child tabs hydrate', async () => {
+    useChatThreadStore.getState().setSnapshot({
+      childSessionTabs: [],
+      activeChildSessionKey: null,
+      workspacePanelParentKey: null,
+    });
+    const uiManager = createUiManager({
+      goToSession: vi.fn(),
+    });
+    const manager = new ChatThreadManager(
+      uiManager,
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      {} as ConstructorParameters<typeof ChatThreadManager>[2],
+    );
+
+    await manager.handleToolAction({
+      kind: 'open-session',
+      sessionId: ' child-session-9 ',
+      sessionKind: 'child',
+      agentId: 'verifier-agent',
+      label: 'Verifier',
+      parentSessionId: ' parent-session-1 ',
+    });
+
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      workspacePanelParentKey: 'parent-session-1',
+      activeWorkspacePanelKind: 'child-session',
+      activeChildSessionKey: 'child-session-9',
+      activeWorkspaceFileKey: null,
+      childSessionTabs: [
+        {
+          sessionKey: 'child-session-9',
+          parentSessionKey: 'parent-session-1',
+          label: 'Verifier',
+          agentId: 'verifier-agent',
+        },
+      ],
+      workspaceNavigationHistory: [
+        { kind: 'child-session', key: 'child-session-9' },
+      ],
+    });
+    expect(uiManager.goToSession).not.toHaveBeenCalled();
+  });
+});
+
 describe('ChatThreadManager showContent', () => {
   it('routes tool actions through the thread manager owner', async () => {
     const uiManager = createUiManager({

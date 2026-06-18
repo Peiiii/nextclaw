@@ -14,6 +14,7 @@ import type { ChatRunManager } from '@/features/chat/managers/chat-run.manager';
 import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import type {
+  ChatChildSessionTab,
   ChatThreadSnapshot,
   ChatWorkspaceNavigationEntry,
   ChatWorkspaceFileTab,
@@ -149,6 +150,23 @@ export class ChatThreadManager {
     return nextTabs;
   };
 
+  private upsertChildSessionTab = (nextTab: ChatChildSessionTab): ChatChildSessionTab[] => {
+    const { childSessionTabs } = useChatThreadStore.getState().snapshot;
+    const existingIndex = childSessionTabs.findIndex((tab) => tab.sessionKey === nextTab.sessionKey);
+    if (existingIndex === -1) {
+      return [nextTab, ...childSessionTabs];
+    }
+    const existingTab = childSessionTabs[existingIndex];
+    const nextTabs = [...childSessionTabs];
+    nextTabs[existingIndex] = {
+      ...existingTab,
+      parentSessionKey: existingTab.parentSessionKey ?? nextTab.parentSessionKey,
+      label: existingTab.label?.trim() ? existingTab.label : nextTab.label,
+      agentId: existingTab.agentId?.trim() ? existingTab.agentId : nextTab.agentId,
+    };
+    return nextTabs;
+  };
+
   private ensureWorkspaceParentRoute = (parentSessionKey: string | null) => {
     if (!parentSessionKey) {
       return;
@@ -215,18 +233,32 @@ export class ChatThreadManager {
   openChildSessionPanel = (params: {
     parentSessionKey: string;
     activeChildSessionKey?: string | null;
+    childSessionTab?: Pick<ChatChildSessionTab, 'label' | 'agentId'> | null;
   }) => {
-    const parentSessionKey = params.parentSessionKey.trim();
+    const {
+      activeChildSessionKey: rawActiveChildSessionKey,
+      childSessionTab,
+      parentSessionKey: rawParentSessionKey,
+    } = params;
+    const parentSessionKey = rawParentSessionKey.trim();
     if (!parentSessionKey) {
       return;
     }
-    const activeChildSessionKey = params.activeChildSessionKey?.trim() || null;
+    const activeChildSessionKey = rawActiveChildSessionKey?.trim() || null;
     const patch: Partial<ChatThreadSnapshot> = {
       workspacePanelParentKey: parentSessionKey,
       activeWorkspacePanelKind: 'child-session',
       activeChildSessionKey,
       activeWorkspaceFileKey: null,
     };
+    if (activeChildSessionKey && childSessionTab) {
+      patch.childSessionTabs = this.upsertChildSessionTab({
+        sessionKey: activeChildSessionKey,
+        parentSessionKey,
+        label: childSessionTab.label?.trim() || null,
+        agentId: childSessionTab.agentId?.trim() || null,
+      });
+    }
     if (activeChildSessionKey) {
       this.setWorkspaceSelection(patch, {
         kind: 'child-session',
@@ -261,6 +293,10 @@ export class ChatThreadManager {
     if (action.kind !== 'open-session') {
       return;
     }
+    const sessionId = action.sessionId.trim();
+    if (!sessionId) {
+      return;
+    }
     if (action.sessionKind === 'child' && !this.uiManager.isCompactViewport()) {
       const parentSessionKey =
         action.parentSessionId?.trim() ||
@@ -269,13 +305,17 @@ export class ChatThreadManager {
       if (parentSessionKey) {
         this.openChildSessionPanel({
           parentSessionKey,
-          activeChildSessionKey: action.sessionId,
+          activeChildSessionKey: sessionId,
+          childSessionTab: {
+            label: action.label,
+            agentId: action.agentId,
+          },
         });
         return;
       }
     }
     this.closeWorkspacePanel();
-    this.uiManager.goToSession(action.sessionId);
+    this.uiManager.goToSession(sessionId);
   };
 
   handleToolAction = async (action: ChatToolActionViewModel): Promise<void> => {
@@ -459,10 +499,6 @@ export class ChatThreadManager {
       workspaceNavigationHistory: [...step.history.entries],
       workspaceNavigationHistoryIndex: step.history.index,
     });
-  };
-
-  closeChildSessionDetail = () => {
-    this.closeWorkspacePanel();
   };
 
   goToParentSession = () => {
