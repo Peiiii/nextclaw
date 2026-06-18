@@ -50,6 +50,7 @@ describe("ChatSessionTypeOptionItem", () => {
         option={{
           value: "native",
           label: "Native",
+          icon: null,
           ready: true,
         }}
         onSelect={vi.fn()}
@@ -70,6 +71,7 @@ describe("ChatSessionTypeOptionItem", () => {
         option={{
           value: "claude",
           label: "Claude",
+          icon: null,
           ready: false,
           reasonMessage: "Configure a provider API key first.",
         }}

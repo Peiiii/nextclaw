@@ -1,9 +1,8 @@
-import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
-
-type ChatInputAvailabilitySnapshot = Pick<
-  ChatInputSnapshot,
-  'isProviderStateResolved' | 'modelOptions' | 'sessionTypeUnavailable'
->;
+type ChatInputAvailabilitySnapshot = {
+  readonly isProviderStateResolved: boolean;
+  readonly modelOptions: readonly unknown[];
+  readonly sessionTypeUnavailable?: boolean;
+};
 
 export function hasNcpChatModelOptions(
   snapshot: ChatInputAvailabilitySnapshot

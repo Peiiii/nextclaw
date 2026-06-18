@@ -1,13 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
+import type * as ReactRouterDom from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentsPage } from "@/features/agents";
-import type * as ChatFeature from "@/features/chat";
 import {
-  ChatPresenter,
-  ChatPresenterProvider,
-  useChatInputStore,
   useChatSessionListStore,
   useChatThreadStore,
 } from "@/features/chat";
@@ -17,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   createAgent: vi.fn(),
   updateAgent: vi.fn(),
   deleteAgent: vi.fn(),
+  navigate: vi.fn(),
+  requestDraft: vi.fn(),
   sessionTypesQuery: {
     data: {
       defaultType: "native",
@@ -90,6 +89,35 @@ const mocks = vi.hoisted(() => ({
     },
   },
 }));
+const persistStorage = new Map<string, unknown>();
+
+function createPersistStorage() {
+  return {
+    getItem: (name: string) => persistStorage.get(name) ?? null,
+    setItem: (name: string, value: unknown) => {
+      persistStorage.set(name, value);
+    },
+    removeItem: (name: string) => {
+      persistStorage.delete(name);
+    },
+  };
+}
+
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal<typeof ReactRouterDom>();
+  return {
+    ...actual,
+    useNavigate: () => mocks.navigate,
+  };
+});
+
+vi.mock("@/app/components/app-presenter-provider", () => ({
+  useAppPresenter: () => ({
+    chatDraftIntentManager: {
+      requestDraft: mocks.requestDraft,
+    },
+  }),
+}));
 
 vi.mock("@/shared/hooks/use-agents", () => ({
   useAgents: () => mocks.agentsQuery,
@@ -147,35 +175,50 @@ vi.mock("@/shared/hooks/use-config", () => ({
   }),
 }));
 
-vi.mock("@/features/chat", async (importOriginal) => {
-  const actual = await importOriginal<typeof ChatFeature>();
+vi.mock("@/features/chat", async () => {
+  const sessionListStore = await import("@/features/chat/stores/chat-session-list.store");
+  const threadStore = await import("@/features/chat/stores/chat-thread.store");
+  const sessionTypeUtils = await import("@/features/chat/features/session-type/utils/chat-session-type.utils");
   return {
-    ...actual,
+    ...sessionTypeUtils,
+    usePresenter: () => ({
+      chatSessionListManager: {
+        startAgentDraftChat: (agentId: string) => {
+          sessionListStore.useChatSessionListStore.getState().setSnapshot({
+            selectedAgentId: agentId,
+            selectedSessionKey: null,
+          });
+          threadStore.useChatThreadStore.getState().setSnapshot({
+            sessionKey: null,
+          });
+        },
+      },
+    }),
+    useChatSessionListStore: sessionListStore.useChatSessionListStore,
+    useChatThreadStore: threadStore.useChatThreadStore,
     useNcpChatSessionTypes: () => mocks.sessionTypesQuery,
   };
 });
 
 function renderAgentsPage() {
-  const presenter = new ChatPresenter({
-    docBrowserManager: {
-      open: vi.fn(),
-    },
-  } as unknown as ConstructorParameters<typeof ChatPresenter>[0]);
   return render(
     <MemoryRouter>
-      <ChatPresenterProvider presenter={presenter}>
-        <AgentsPage />
-      </ChatPresenterProvider>
+      <AgentsPage />
     </MemoryRouter>,
   );
 }
 
 describe("AgentsPage", () => {
   beforeEach(() => {
+    persistStorage.clear();
+    useChatSessionListStore.persist.setOptions({ storage: createPersistStorage() as never });
+    useChatThreadStore.persist.setOptions({ storage: createPersistStorage() as never });
     setLanguage("zh");
     mocks.createAgent.mockReset();
     mocks.updateAgent.mockReset();
     mocks.deleteAgent.mockReset();
+    mocks.navigate.mockReset();
+    mocks.requestDraft.mockReset();
     if (!HTMLElement.prototype.hasPointerCapture) {
       HTMLElement.prototype.hasPointerCapture = () => false;
     }
@@ -185,15 +228,6 @@ describe("AgentsPage", () => {
     if (!HTMLElement.prototype.releasePointerCapture) {
       HTMLElement.prototype.releasePointerCapture = () => {};
     }
-    useChatInputStore.setState({
-      snapshot: {
-        ...useChatInputStore.getState().snapshot,
-        draft: "",
-        pendingSessionType: "native",
-        pendingProjectRoot: "/tmp/demo-project",
-        pendingProjectRootSessionKey: "draft-session",
-      },
-    });
     useChatSessionListStore.setState({
       snapshot: {
         ...useChatSessionListStore.getState().snapshot,
@@ -227,13 +261,9 @@ describe("AgentsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "新增 Agent" }));
 
-    expect(useChatSessionListStore.getState().snapshot.selectedAgentId).toBe(
-      "main",
-    );
-    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
-    expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
-    expect(useChatInputStore.getState().snapshot.draft).toContain(
-      "请直接创建一个默认示例 Agent，不要问我问题",
+    expect(mocks.navigate).toHaveBeenCalledWith("/chat");
+    expect(mocks.requestDraft).toHaveBeenCalledWith(
+      expect.stringContaining("请直接创建一个默认示例 Agent，不要问我问题"),
     );
     expect(mocks.createAgent).not.toHaveBeenCalled();
     expect(screen.queryByText("创建新的 Agent 身份")).toBeNull();
@@ -281,7 +311,7 @@ describe("AgentsPage", () => {
     });
   });
 
-  it("starts a draft chat with the agent runtime as the pending session type", async () => {
+  it("starts a draft chat with the agent selected through the session list owner", async () => {
     const user = userEvent.setup();
 
     renderAgentsPage();
@@ -294,12 +324,5 @@ describe("AgentsPage", () => {
     );
     expect(sessionListSnapshot.selectedSessionKey).toBeNull();
     expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
-    expect(useChatInputStore.getState().snapshot.pendingSessionType).toBe(
-      "codex",
-    );
-    expect(useChatInputStore.getState().snapshot.pendingProjectRoot).toBeNull();
-    expect(
-      useChatInputStore.getState().snapshot.pendingProjectRootSessionKey,
-    ).toBeNull();
   });
 });

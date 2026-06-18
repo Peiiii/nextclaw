@@ -6,39 +6,18 @@ import {
   isNcpChatModelOptionsLoading,
   isNcpChatSendDisabled,
 } from '@/features/chat/features/input/utils/ncp-chat-input-availability.utils';
-import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
 
-function createSnapshot(
-  overrides: Partial<ChatInputSnapshot> = {}
-): ChatInputSnapshot {
+type AvailabilitySnapshot = {
+  readonly isProviderStateResolved: boolean;
+  readonly modelOptions: readonly unknown[];
+  readonly sessionTypeUnavailable: boolean;
+};
+
+function createSnapshot(overrides: Partial<AvailabilitySnapshot> = {}): AvailabilitySnapshot {
   return {
     isProviderStateResolved: false,
-    composerNodes: [],
-    attachments: [],
-    draft: '',
-    pendingSessionType: 'native',
-    pendingProjectRoot: null,
-    pendingProjectRootSessionKey: null,
-    defaultProjectRoot: null,
-    defaultSessionType: 'native',
-    canStopGeneration: false,
-    stopDisabledReason: null,
-    sendError: null,
-    isSending: false,
     modelOptions: [],
-    selectedModel: '',
-    selectedThinkingLevel: null,
-    sessionTypeOptions: [],
-    selectedSessionType: 'native',
-    stopSupported: false,
-    stopReason: undefined,
-    canEditSessionType: true,
     sessionTypeUnavailable: false,
-    sessionTypeUnavailableMessage: null,
-    skillRecords: [],
-    isSkillsLoading: false,
-    selectedSkills: [],
-    composerFocusRequest: null,
     ...overrides,
   };
 }

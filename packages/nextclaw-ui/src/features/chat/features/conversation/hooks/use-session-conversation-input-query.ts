@@ -1,39 +1,54 @@
-import { useMemo } from 'react';
+import { useMemo, type SetStateAction } from 'react';
+
 import type { NcpSessionSummaryView, SessionSkillEntryView } from '@/shared/lib/api';
 import { t } from '@/shared/lib/i18n';
-import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
+import { normalizeSessionProjectRootValue } from '@/shared/lib/session-project';
+import {
+  useNcpSessionSkills,
+} from '@/features/chat/features/ncp/hooks/use-ncp-session-queries';
+import { useNcpChatProviderStateResolved } from '@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state';
 import {
   buildNcpChatProviderModelOptions,
   filterNcpChatModelOptionsBySessionType,
 } from '@/features/chat/features/ncp/utils/ncp-chat-query-derived.utils';
-import { useNcpChatProviderStateResolved } from '@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state';
-import { useChatSessionTypeState } from '@/features/chat/features/session-type/hooks/use-chat-session-type-state';
 import { adaptNcpSessionSummaries } from '@/features/chat/features/session/utils/ncp-session-adapter.utils';
 import { resolveRecentSessionPreferredValue } from '@/features/chat/features/session/utils/chat-session-preference-governance.utils';
+import { useChatSessionTypeState } from '@/features/chat/features/session-type/hooks/use-chat-session-type-state';
 import { chatRecentModelsManager } from '@/features/chat/managers/chat-recent-models.manager';
-import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
 import { useChatQueryStore } from '@/features/chat/stores/ncp-chat-query.store';
-import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
-import { normalizeSessionProjectRootValue } from '@/shared/lib/session-project';
+
+import type { SessionConversationInputSnapshot } from './use-session-conversation-input-state';
 
 const EMPTY_SESSION_SKILL_RECORDS: SessionSkillEntryView[] = [];
 const EMPTY_NCP_SESSION_SUMMARIES: NcpSessionSummaryView[] = [];
 
-export function useChatInputBarQueryState(snapshot: ChatInputSnapshot) {
-  const presenter = usePresenter();
-  const selectedSessionKey = useChatSessionListStore(
-    (state) => state.snapshot.selectedSessionKey,
-  );
+type UseSessionConversationInputQueryParams = {
+  readonly sessionKey: string | null;
+  readonly inputSnapshot: SessionConversationInputSnapshot;
+  readonly setPendingSessionType: (sessionType: SetStateAction<string>) => void;
+};
+
+export function useSessionConversationInputQuery(params: UseSessionConversationInputQueryParams) {
+  const {
+    sessionKey,
+    inputSnapshot,
+    setPendingSessionType,
+  } = params;
+  const selectedSessionKey = sessionKey ?? null;
   const isProviderStateResolved = useNcpChatProviderStateResolved();
   const querySnapshot = useChatQueryStore((state) => state.snapshot);
   const config = querySnapshot.configQuery?.data ?? null;
   const sessionSummaries =
     querySnapshot.sessionsQuery?.data?.sessions ?? EMPTY_NCP_SESSION_SUMMARIES;
+  const sessionSkillsQuery = useNcpSessionSkills({
+    sessionId: selectedSessionKey?.trim() || 'draft-session',
+    projectRoot: normalizeSessionProjectRootValue(inputSnapshot.pendingProjectRoot),
+  });
   const skillRecords =
-    querySnapshot.sessionSkillsQuery?.data?.records ?? EMPTY_SESSION_SKILL_RECORDS;
+    sessionSkillsQuery.data?.records ?? EMPTY_SESSION_SKILL_RECORDS;
   const isSkillsLoading = Boolean(
-    querySnapshot.sessionSkillsQuery?.isLoading ||
-      querySnapshot.sessionSkillsQuery?.isFetching,
+    sessionSkillsQuery.isLoading ||
+      sessionSkillsQuery.isFetching,
   );
   const sessions = useMemo(
     () => adaptNcpSessionSummaries(sessionSummaries),
@@ -45,8 +60,8 @@ export function useChatInputBarQueryState(snapshot: ChatInputSnapshot) {
   );
   const sessionTypeState = useChatSessionTypeState({
     selectedSession,
-    pendingSessionType: snapshot.pendingSessionType,
-    setPendingSessionType: presenter.chatInputManager.setPendingSessionType,
+    pendingSessionType: inputSnapshot.pendingSessionType,
+    setPendingSessionType,
     sessionTypesData: querySnapshot.sessionTypesQuery?.data ?? null,
   });
   const providerModelOptions = useMemo(

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { SetStateAction } from "react";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import {
   buildSessionTypeOptions,
@@ -11,7 +12,6 @@ import {
   resolveChatWelcomeSelectedSessionType,
 } from "@/features/chat/features/welcome/utils/chat-welcome-selection.utils";
 import { buildChatWelcomeProjectOptions } from "@/features/chat/features/welcome/utils/chat-welcome-project-options.utils";
-import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
@@ -23,13 +23,24 @@ const EMPTY_NCP_SESSION_SUMMARIES: NcpSessionSummaryView[] = [];
 
 type ChatConversationWelcomeProps = {
   inputSlot: ReactNode;
+  pendingProjectRoot: string | null;
+  pendingSessionType: string;
+  selectedSessionTypeValue: string | null;
+  onSelectProjectRoot: (projectRoot: string | null) => void;
+  onSelectPrompt: (prompt: string) => void;
+  onSelectSessionType: (sessionType: SetStateAction<string>) => void;
 };
 
 export function ChatConversationWelcome({
   inputSlot,
+  pendingProjectRoot,
+  pendingSessionType,
+  selectedSessionTypeValue,
+  onSelectProjectRoot,
+  onSelectPrompt,
+  onSelectSessionType,
 }: ChatConversationWelcomeProps) {
   const presenter = usePresenter();
-  const inputSnapshot = useChatInputStore((state) => state.snapshot);
   const selectedAgentId = useChatSessionListStore(
     (state) => state.snapshot.selectedAgentId,
   );
@@ -53,18 +64,18 @@ export function ChatConversationWelcome({
     config?.agents.defaults.workspace,
   );
   const selectedProjectRoot = normalizeSessionProjectRootValue(
-    inputSnapshot.pendingProjectRoot,
+    pendingProjectRoot,
   );
   const sessionTypeOptions = buildSessionTypeOptions(
     sessionTypesData?.options ?? [],
   );
   const defaultSessionType = normalizeSessionType(
-    sessionTypesData?.defaultType ?? inputSnapshot.defaultSessionType ?? DEFAULT_SESSION_TYPE,
+    sessionTypesData?.defaultType ?? DEFAULT_SESSION_TYPE,
   );
   const selectedSessionType = resolveChatWelcomeSelectedSessionType({
     defaultSessionType,
-    pendingSessionType: inputSnapshot.pendingSessionType,
-    selectedSessionType: inputSnapshot.selectedSessionType,
+    pendingSessionType,
+    selectedSessionType: selectedSessionTypeValue,
     sessionTypeOptions,
   });
   const projectOptions = buildChatWelcomeProjectOptions({
@@ -73,7 +84,7 @@ export function ChatConversationWelcome({
   });
   const selectDraftAgent = (agentId: string) => {
     presenter.chatSessionListManager.setSelectedAgentId(agentId);
-    presenter.chatInputManager.setPendingSessionType(
+    onSelectSessionType(
       resolveChatWelcomeSelectedSessionType({
         agents: availableAgents,
         agentId,
@@ -96,9 +107,9 @@ export function ChatConversationWelcome({
       selectedSessionType={selectedSessionType}
       sessionTypeOptions={sessionTypeOptions}
       onSelectAgent={selectDraftAgent}
-      onSelectPrompt={presenter.chatInputManager.applyPromptSuggestion}
-      onSelectProjectRoot={presenter.chatInputManager.setPendingProjectRoot}
-      onSelectSessionType={presenter.chatInputManager.setPendingSessionType}
+      onSelectPrompt={onSelectPrompt}
+      onSelectProjectRoot={onSelectProjectRoot}
+      onSelectSessionType={onSelectSessionType}
     />
   );
 }

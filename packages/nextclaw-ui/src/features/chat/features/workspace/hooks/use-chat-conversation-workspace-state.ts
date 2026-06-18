@@ -13,7 +13,7 @@ const EMPTY_SESSION_SUMMARIES: never[] = [];
 
 export function useChatConversationWorkspaceState(
   snapshot: ChatThreadSnapshot,
-  sessionKey = snapshot.sessionKey,
+  sessionKey: string | null,
 ) {
   const sessionSummaries = useChatQueryStore(
     (state) =>

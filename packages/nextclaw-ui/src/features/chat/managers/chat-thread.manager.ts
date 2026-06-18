@@ -10,7 +10,6 @@ import type {
 } from '@nextclaw/agent-chat-ui';
 import type { UiShowContentEventPayload } from '@nextclaw/shared';
 import type { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
-import type { ChatRunManager } from '@/features/chat/managers/chat-run.manager';
 import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import type {
@@ -49,7 +48,6 @@ export class ChatThreadManager {
   constructor(
     private uiManager: ChatUiManager,
     private sessionListManager: ChatSessionListManager,
-    private chatRunManager: ChatRunManager,
   ) {}
 
   private hasSnapshotChanges = (patch: Partial<ChatThreadSnapshot>): boolean => {
@@ -81,10 +79,6 @@ export class ChatThreadManager {
       sessionProjectRoot: null,
       sessionProjectName: null,
       canDeleteSession: false,
-      isHistoryLoading: false,
-      messages: [],
-      isSending: false,
-      isAwaitingAssistantOutput: false,
       parentSessionKey: null,
       parentSessionLabel: null,
       workspacePanelParentKey: null,
@@ -99,6 +93,10 @@ export class ChatThreadManager {
   };
 
   private resolveWorkspaceParentSessionKey = (): string | null => {
+    const selectedSessionKey = useChatSessionListStore.getState().snapshot.selectedSessionKey?.trim();
+    if (selectedSessionKey) {
+      return selectedSessionKey;
+    }
     const threadSessionKey = useChatThreadStore.getState().snapshot.sessionKey?.trim();
     if (threadSessionKey) {
       return threadSessionKey;
@@ -535,7 +533,6 @@ export class ChatThreadManager {
       await deleteNcpSessionApi(selectedSessionKey);
       deleteNcpSessionSummaryInQueryClient(appQueryClient, selectedSessionKey);
       appQueryClient.removeQueries({ queryKey: ['ncp-session-messages', selectedSessionKey] });
-      this.chatRunManager.clearRunState();
       this.clearDeletedSessionState(selectedSessionKey);
       this.uiManager.goToChatRoot({ replace: true });
     } finally {

@@ -1,16 +1,12 @@
-import { useRef } from "react";
-import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
-import { FolderGit2, Loader2 } from "lucide-react";
+import { FolderGit2 } from "lucide-react";
 import type { CronJobView } from "@/shared/lib/api";
-import { ChatMessageListContainer } from "@/features/chat/features/message/components/chat-message-list.container";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
+import { SessionConversationArea } from "@/features/chat/features/conversation/components/session-conversation-area";
 import { ChatSessionWorkspaceFilePreview } from "@/features/chat/features/workspace/components/chat-session-workspace-file-preview";
 import { SessionCronJobContent } from "@/features/chat/features/workspace/components/session-cron-job-content";
 import type { ResolvedChildSessionTab } from "@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view";
-import { useNcpSessionConversation } from "@/features/chat/features/ncp/hooks/use-ncp-session-conversation";
 import type { WorkspaceSelection } from "@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
-import { t } from "@/shared/lib/i18n";
 
 type ChatSessionWorkspacePanelContentProps = {
   activeSelection: WorkspaceSelection;
@@ -18,50 +14,6 @@ type ChatSessionWorkspacePanelContentProps = {
   sessionProjectRoot: string | null;
   sessionWorkingDir: string | null;
 };
-
-function ChildSessionContent({ sessionKey }: { sessionKey: string }) {
-  const agent = useNcpSessionConversation(sessionKey);
-  const messages = agent.visibleMessages;
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const { onScroll } = useStickyBottomScroll({
-    scrollRef,
-    resetKey: sessionKey,
-    isLoading: agent.isHydrating,
-    hasContent: messages.length > 0,
-    contentVersion: messages[messages.length - 1] ?? null,
-    stickyThresholdPx: 20,
-  });
-
-  return (
-    <div
-      ref={scrollRef}
-      onScroll={onScroll}
-      className="h-full overflow-y-auto custom-scrollbar"
-    >
-      {agent.isHydrating ? (
-        <div className="flex h-full items-center justify-center text-sm text-gray-500">
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          {t("chatChildSessionLoading")}
-        </div>
-      ) : agent.hydrateError ? (
-        <div className="px-4 py-5 text-sm text-rose-600">
-          {agent.hydrateError.message}
-        </div>
-      ) : messages.length === 0 && !agent.isRunning ? (
-        <div className="px-4 py-5 text-sm text-gray-500">
-          {t("chatChildSessionEmpty")}
-        </div>
-      ) : (
-        <div className="px-4 py-5">
-          <ChatMessageListContainer
-            messages={messages}
-            isSending={agent.isRunning}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
 
 function ChildSessionMetaChip({ value }: { value: string }) {
   return (
@@ -134,8 +86,8 @@ export function ChatSessionWorkspacePanelContent({
     return (
       <>
         <WorkspaceActiveChildHeader tab={activeSelection.tab} />
-        <div className="flex-1 min-h-0">
-          <ChildSessionContent sessionKey={activeSelection.tab.sessionKey} />
+        <div className="flex min-h-0 flex-1 flex-col">
+          <SessionConversationArea sessionKey={activeSelection.tab.sessionKey} />
         </div>
       </>
     );

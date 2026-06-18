@@ -7,11 +7,11 @@ import { ChatWelcomeCapabilityGrid } from '@/features/chat/features/welcome/comp
 import { ChatWelcomeProjectPicker } from '@/features/chat/features/welcome/components/chat-welcome-project-picker';
 import { ChatWelcomeSessionTypePicker } from '@/features/chat/features/welcome/components/chat-welcome-session-type-picker';
 import type { ChatWelcomeProjectOption } from '@/features/chat/features/welcome/utils/chat-welcome-project-options.utils';
-import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
+import type { ChatSessionTypeOption } from '@/features/chat/features/session-type/utils/chat-session-type.utils';
 import type { AgentProfileView } from '@/shared/lib/api';
 import { t } from '@/shared/lib/i18n';
 
-type SessionTypeOption = ChatInputSnapshot['sessionTypeOptions'][number];
+type SessionTypeOption = ChatSessionTypeOption;
 
 type ChatWelcomeProps = {
   agents: AgentProfileView[];

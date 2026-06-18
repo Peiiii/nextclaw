@@ -9,10 +9,10 @@ import { useNcpChatSelectedSession } from "@/features/chat/features/ncp/hooks/us
 import { sessionDisplayName } from "@/features/chat/features/session/utils/chat-session-display.utils";
 import {
   buildSessionTypeOptions,
+  DEFAULT_SESSION_TYPE,
   normalizeSessionType,
   resolveSessionTypeLabel,
 } from "@/features/chat/features/session-type/utils/chat-session-type.utils";
-import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
@@ -34,9 +34,8 @@ export function ChatConversationHeaderSection({
   const sessionKey = useChatSessionListStore(
     (state) => state.snapshot.selectedSessionKey,
   );
-  const effectiveSessionKey = sessionKey ?? snapshot.sessionKey;
-  const pendingSessionType = useChatInputStore(
-    (state) => state.snapshot.pendingSessionType,
+  const selectedAgentId = useChatSessionListStore(
+    (state) => state.snapshot.selectedAgentId,
   );
   const sessionTypesData = useChatQueryStore(
     (state) => state.snapshot.sessionTypesQuery?.data ?? null,
@@ -47,7 +46,7 @@ export function ChatConversationHeaderSection({
     [sessionTypesData?.options],
   );
   const sessionType = normalizeSessionType(
-    selectedSession?.sessionType ?? pendingSessionType,
+    selectedSession?.sessionType ?? sessionTypesData?.defaultType ?? DEFAULT_SESSION_TYPE,
   );
   const sessionTypeOption =
     sessionTypeOptions.find((option) => option.value === sessionType) ?? null;
@@ -58,8 +57,8 @@ export function ChatConversationHeaderSection({
     selectedSession?.projectName ?? getSessionProjectName(sessionProjectRoot);
   const canDeleteSession = Boolean(selectedSession);
   const { childSessionTabs, sessionCronJobs } =
-    useChatConversationWorkspaceState(snapshot, effectiveSessionKey);
-  const shouldShowSessionHeader = Boolean(effectiveSessionKey || sessionTypeLabel);
+    useChatConversationWorkspaceState(snapshot, sessionKey);
+  const shouldShowSessionHeader = Boolean(sessionKey || sessionTypeLabel);
   const sessionHeaderTitle =
     (selectedSession ? sessionDisplayName(selectedSession) : undefined) ||
     (canDeleteSession && sessionKey
@@ -67,23 +66,23 @@ export function ChatConversationHeaderSection({
       : null) ||
     t("chatSidebarNewTask");
   const normalizedAgentId =
-    selectedSession?.agentId?.trim() ?? snapshot.agentId?.trim() ?? "";
+    selectedSession?.agentId?.trim() ?? selectedAgentId?.trim() ?? "";
   const shouldShowHeaderAgentAvatar =
     normalizedAgentId.length > 0 && normalizedAgentId.toLowerCase() !== "main";
   const openChildSessions = () => {
-    if (!effectiveSessionKey) {
+    if (!sessionKey) {
       return;
     }
     presenter.chatThreadManager.openChildSessionPanel({
-      parentSessionKey: effectiveSessionKey,
+      parentSessionKey: sessionKey,
       activeChildSessionKey: childSessionTabs[0]?.sessionKey ?? null,
     });
   };
   const openSessionCronJobs = () => {
-    if (!effectiveSessionKey || sessionCronJobs.length === 0) {
+    if (!sessionKey || sessionCronJobs.length === 0) {
       return;
     }
-    presenter.chatThreadManager.openSessionCronPanel(effectiveSessionKey);
+    presenter.chatThreadManager.openSessionCronPanel(sessionKey);
   };
 
   return (
@@ -124,7 +123,7 @@ export function ChatConversationHeaderSection({
       projectBadge={
         sessionProjectName ? (
           <ChatSessionProjectBadge
-            sessionKey={effectiveSessionKey ?? "draft"}
+            sessionKey={sessionKey ?? "draft"}
             projectName={sessionProjectName}
             projectRoot={sessionProjectRoot}
             persistToServer={canDeleteSession}
@@ -132,9 +131,9 @@ export function ChatConversationHeaderSection({
         ) : null
       }
       actions={
-        effectiveSessionKey ? (
+        sessionKey ? (
           <ChatSessionHeaderActions
-            sessionKey={effectiveSessionKey}
+            sessionKey={sessionKey}
             canDeleteSession={canDeleteSession}
             isDeletePending={snapshot.isDeletePending}
             projectRoot={sessionProjectRoot}

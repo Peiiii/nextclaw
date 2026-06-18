@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   useDeleteAgent,
   useAgents,
@@ -18,6 +19,7 @@ import {
   usePresenter,
   useNcpChatSessionTypes,
 } from "@/features/chat";
+import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import { AgentAvatar } from "@/shared/components/common/agent-avatar";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
@@ -235,6 +237,8 @@ function AgentListCard(props: {
 
 export function AgentsPage() {
   const presenter = usePresenter();
+  const appPresenter = useAppPresenter();
+  const navigate = useNavigate();
   const agentsQuery = useAgents();
   const configQuery = useConfig();
   const providersQuery = useProviders();
@@ -309,14 +313,16 @@ export function AgentsPage() {
       resolveAgentRuntimeSessionType(agent, defaultRuntime),
     );
   };
+  const requestAgentCreationDraft = () => {
+    navigate("/chat");
+    appPresenter.chatDraftIntentManager.requestDraft(AGENT_CREATION_PROMPT);
+  };
 
   return (
     <PageLayout className="space-y-5">
       <AgentsHero
         agentCount={agents.length}
-        onCreate={() =>
-          presenter.startAgentCreationDraft(AGENT_CREATION_PROMPT)
-        }
+        onCreate={requestAgentCreationDraft}
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -342,9 +348,7 @@ export function AgentsPage() {
                 type="button"
                 variant="primary"
                 className="mt-5 rounded-2xl px-5"
-                onClick={() =>
-                  presenter.startAgentCreationDraft(AGENT_CREATION_PROMPT)
-                }
+                onClick={requestAgentCreationDraft}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 {t("agentsCreateButton")}

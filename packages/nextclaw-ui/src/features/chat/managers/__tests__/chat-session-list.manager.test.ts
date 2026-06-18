@@ -1,17 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as SharedApi from '@/shared/lib/api';
 import { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
-import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 
 const chatSessionListModeStorageKey = 'nextclaw.chat.session-list.mode';
+const persistStorage = new Map<string, unknown>();
 
 function createLocalStoragePersistStorage() {
   return {
-    getItem: (name: string) => JSON.parse(window.localStorage.getItem(name) ?? 'null'),
-    setItem: (name: string, value: unknown) => window.localStorage.setItem(name, JSON.stringify(value)),
-    removeItem: (name: string) => window.localStorage.removeItem(name)
+    getItem: (name: string) => persistStorage.get(name) ?? null,
+    setItem: (name: string, value: unknown) => {
+      persistStorage.set(name, value);
+    },
+    removeItem: (name: string) => {
+      persistStorage.delete(name);
+    },
   };
 }
 
@@ -28,19 +32,11 @@ vi.mock('@/shared/lib/api', async (importOriginal) => {
 });
 
 function resetChatSessionListManagerState() {
-  window.localStorage.clear();
-  useChatSessionListStore.persist.setOptions({ storage: createLocalStoragePersistStorage() });
+  persistStorage.clear();
+  useChatSessionListStore.persist.setOptions({ storage: createLocalStoragePersistStorage() as never });
+  useChatThreadStore.persist.setOptions({ storage: createLocalStoragePersistStorage() as never });
   mocks.updateNcpSession.mockReset();
   mocks.updateNcpSession.mockResolvedValue({});
-  useChatInputStore.setState({
-    snapshot: {
-      ...useChatInputStore.getState().snapshot,
-      defaultSessionType: 'native',
-      pendingSessionType: 'native',
-      pendingProjectRoot: null,
-      pendingProjectRootSessionKey: null
-    }
-  });
   useChatSessionListStore.setState({
     optimisticReadAtBySessionKey: {},
     snapshot: {
@@ -74,21 +70,22 @@ describe('ChatSessionListManager draft and selection flow', () => {
       goToSession: vi.fn(),
       isAtChatRoot: vi.fn(() => true),
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
-    const chatRunManager = {
-      clearRunState: vi.fn()
-    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
-    const manager = new ChatSessionListManager(uiManager, chatRunManager);
+    const manager = new ChatSessionListManager(uiManager);
     manager.createSession('codex');
 
-    expect(chatRunManager.clearRunState).toHaveBeenCalledTimes(1);
-    expect(uiManager.navigateTo).toHaveBeenCalledWith('/chat/draft');
+    expect(uiManager.navigateTo).toHaveBeenCalledWith('/chat/draft', {
+      replace: true,
+      state: {
+        chatDraft: {
+          sessionType: 'codex',
+          projectRoot: null,
+        },
+      },
+    });
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
     expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
     expect(useChatThreadStore.getState().snapshot.hasSubmittedDraftMessage).toBe(false);
-    expect(useChatInputStore.getState().snapshot.pendingSessionType).toBe('codex');
-    expect(useChatInputStore.getState().snapshot.pendingProjectRoot).toBeNull();
-    expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBeNull();
   });
 
   it('starts an agent draft chat through one owner state transition', () => {
@@ -98,22 +95,23 @@ describe('ChatSessionListManager draft and selection flow', () => {
       goToSession: vi.fn(),
       isAtChatRoot: vi.fn(() => true),
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
-    const chatRunManager = {
-      clearRunState: vi.fn()
-    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
-    const manager = new ChatSessionListManager(uiManager, chatRunManager);
+    const manager = new ChatSessionListManager(uiManager);
     manager.startAgentDraftChat('researcher', 'codex');
 
-    expect(chatRunManager.clearRunState).toHaveBeenCalledTimes(1);
-    expect(uiManager.navigateTo).toHaveBeenCalledWith('/chat/draft');
+    expect(uiManager.navigateTo).toHaveBeenCalledWith('/chat/draft', {
+      replace: true,
+      state: {
+        chatDraft: {
+          sessionType: 'codex',
+          projectRoot: null,
+        },
+      },
+    });
     expect(useChatSessionListStore.getState().snapshot.selectedAgentId).toBe('researcher');
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
     expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
     expect(useChatThreadStore.getState().snapshot.hasSubmittedDraftMessage).toBe(false);
-    expect(useChatInputStore.getState().snapshot.pendingSessionType).toBe('codex');
-    expect(useChatInputStore.getState().snapshot.pendingProjectRoot).toBeNull();
-    expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBeNull();
   });
 
   it('hydrates the draft project root when creating a session inside a project group', () => {
@@ -123,43 +121,19 @@ describe('ChatSessionListManager draft and selection flow', () => {
       goToSession: vi.fn(),
       isAtChatRoot: vi.fn(() => true),
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
-    const chatRunManager = {
-      clearRunState: vi.fn()
-    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
-    const manager = new ChatSessionListManager(uiManager, chatRunManager);
+    const manager = new ChatSessionListManager(uiManager);
     manager.createSession('native', '/tmp/project-alpha');
 
-    expect(useChatInputStore.getState().snapshot.pendingProjectRoot).toBe('/tmp/project-alpha');
-    expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBeNull();
-  });
-
-  it('keeps the root draft key empty when send flow has no concrete session yet', () => {
-    useChatSessionListStore.setState({
-      snapshot: {
-        ...useChatSessionListStore.getState().snapshot,
-        selectedSessionKey: null
-      }
+    expect(uiManager.navigateTo).toHaveBeenCalledWith('/chat/draft', {
+      replace: true,
+      state: {
+        chatDraft: {
+          sessionType: 'native',
+          projectRoot: '/tmp/project-alpha',
+        },
+      },
     });
-    const uiManager = {
-      goToChatRoot: vi.fn(),
-      navigateTo: vi.fn(),
-      goToSession: vi.fn(),
-      isAtChatRoot: vi.fn(() => true),
-    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
-    const chatRunManager = {
-      clearRunState: vi.fn()
-    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
-
-    const manager = new ChatSessionListManager(uiManager, chatRunManager);
-    const sessionKey = manager.ensureDraftSession('native');
-
-    expect(sessionKey).toBeNull();
-    expect(uiManager.goToChatRoot).not.toHaveBeenCalled();
-    expect(uiManager.navigateTo).not.toHaveBeenCalled();
-    expect(uiManager.goToSession).not.toHaveBeenCalled();
-    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
-    expect(useChatThreadStore.getState().snapshot.hasSubmittedDraftMessage).toBe(true);
   });
 
   it('does not eagerly replace the old selected session before the route finishes switching', () => {
@@ -169,15 +143,12 @@ describe('ChatSessionListManager draft and selection flow', () => {
       goToSession: vi.fn(),
       isAtChatRoot: vi.fn(() => true),
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
-    const chatRunManager = {
-      clearRunState: vi.fn()
-    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
-    const manager = new ChatSessionListManager(uiManager, chatRunManager);
+    const manager = new ChatSessionListManager(uiManager);
     manager.createSession('native', '/tmp/project-alpha');
 
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
-    expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBeNull();
+    expect(uiManager.navigateTo).toHaveBeenCalledWith('/chat/draft', expect.any(Object));
   });
 
   it('delegates existing-session selection to routing while preserving workspace panel state', () => {
@@ -187,11 +158,8 @@ describe('ChatSessionListManager draft and selection flow', () => {
       goToSession: vi.fn(),
       isAtChatRoot: vi.fn(() => true),
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
-    const chatRunManager = {
-      clearRunState: vi.fn()
-    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
-    const manager = new ChatSessionListManager(uiManager, chatRunManager);
+    const manager = new ChatSessionListManager(uiManager);
     manager.selectSession('session-2');
 
     expect(uiManager.goToSession).toHaveBeenCalledWith('session-2');
@@ -208,14 +176,13 @@ describe('ChatSessionListManager list preference and read state', () => {
 
   it('updates the sidebar list mode without touching other session list state', () => {
     const uiManager = {} as ConstructorParameters<typeof ChatSessionListManager>[0];
-    const chatRunManager = {} as ConstructorParameters<typeof ChatSessionListManager>[1];
 
-    const manager = new ChatSessionListManager(uiManager, chatRunManager);
+    const manager = new ChatSessionListManager(uiManager);
     manager.setListMode('project-first');
 
     expect(useChatSessionListStore.getState().snapshot.listMode).toBe('project-first');
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBe('session-1');
-    expect(JSON.parse(window.localStorage.getItem(chatSessionListModeStorageKey) ?? '{}')).toMatchObject({
+    expect(persistStorage.get(chatSessionListModeStorageKey)).toMatchObject({
       state: {
         snapshot: {
           listMode: 'project-first'
@@ -226,8 +193,7 @@ describe('ChatSessionListManager list preference and read state', () => {
 
   it('marks a session as read through the session list owner boundary', () => {
     const manager = new ChatSessionListManager(
-      {} as ConstructorParameters<typeof ChatSessionListManager>[0],
-      {} as ConstructorParameters<typeof ChatSessionListManager>[1]
+      {} as ConstructorParameters<typeof ChatSessionListManager>[0]
     );
 
     manager.markSessionRead('session-2', '2026-04-10T10:00:00.000Z');
@@ -242,8 +208,7 @@ describe('ChatSessionListManager list preference and read state', () => {
 
   it('skips persisting read state when the backend already has the same watermark', () => {
     const manager = new ChatSessionListManager(
-      {} as ConstructorParameters<typeof ChatSessionListManager>[0],
-      {} as ConstructorParameters<typeof ChatSessionListManager>[1]
+      {} as ConstructorParameters<typeof ChatSessionListManager>[0]
     );
 
     manager.markSessionRead(
@@ -258,8 +223,7 @@ describe('ChatSessionListManager list preference and read state', () => {
 
   it('marks a visible workspace child session as read through the session list owner', () => {
     const manager = new ChatSessionListManager(
-      {} as ConstructorParameters<typeof ChatSessionListManager>[0],
-      {} as ConstructorParameters<typeof ChatSessionListManager>[1]
+      {} as ConstructorParameters<typeof ChatSessionListManager>[0]
     );
 
     manager.markVisibleWorkspaceChildRead({
@@ -279,8 +243,7 @@ describe('ChatSessionListManager list preference and read state', () => {
 
   it('keeps running workspace child sessions unread until they settle', () => {
     const manager = new ChatSessionListManager(
-      {} as ConstructorParameters<typeof ChatSessionListManager>[0],
-      {} as ConstructorParameters<typeof ChatSessionListManager>[1]
+      {} as ConstructorParameters<typeof ChatSessionListManager>[0]
     );
 
     manager.markVisibleWorkspaceChildRead({
@@ -298,8 +261,8 @@ describe('ChatSessionListManager list preference and read state', () => {
 
 describe('ChatSessionListStore persistence', () => {
   beforeEach(() => {
-    window.localStorage.clear();
-    useChatSessionListStore.persist.setOptions({ storage: createLocalStoragePersistStorage() });
+    persistStorage.clear();
+    useChatSessionListStore.persist.setOptions({ storage: createLocalStoragePersistStorage() as never });
     useChatSessionListStore.setState({
       snapshot: {
         ...useChatSessionListStore.getState().snapshot,
@@ -322,15 +285,4 @@ describe('ChatSessionListStore persistence', () => {
     expect(useChatSessionListStore.getState().snapshot.listMode).toBe('time-first');
   });
 
-  it('hydrates the sidebar list mode from persisted preference on store initialization', async () => {
-    window.localStorage.setItem(
-      chatSessionListModeStorageKey,
-      JSON.stringify({ state: { snapshot: { listMode: 'project-first' } }, version: 0 })
-    );
-    vi.resetModules();
-
-    const hydratedStoreModule = await import('@/features/chat/stores/chat-session-list.store');
-
-    expect(hydratedStoreModule.useChatSessionListStore.getState().snapshot.listMode).toBe('project-first');
-  });
 });

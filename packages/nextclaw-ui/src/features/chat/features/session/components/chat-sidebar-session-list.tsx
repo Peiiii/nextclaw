@@ -6,10 +6,10 @@ import type {
   ChatSidebarProjectGroup,
 } from "@/features/chat/features/session/utils/chat-sidebar-session-groups.utils";
 import { ChatSidebarProjectGroups } from "@/features/chat/features/session/components/chat-sidebar-project-groups";
-import type { ChatInputSnapshot } from "@/features/chat/stores/chat-input.store";
+import type { ChatSessionTypeOption } from "@/features/chat/features/session-type/utils/chat-session-type.utils";
 import { t } from "@/shared/lib/i18n";
 
-type SessionTypeOption = ChatInputSnapshot["sessionTypeOptions"][number];
+type SessionTypeOption = ChatSessionTypeOption;
 
 type ChatSidebarSessionListProps = {
   isLoading: boolean;

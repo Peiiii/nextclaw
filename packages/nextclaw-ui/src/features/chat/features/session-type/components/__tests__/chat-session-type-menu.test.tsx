@@ -4,8 +4,8 @@ import { ChatSessionTypeMenu } from "@/features/chat/features/session-type/compo
 import { createPopoverAvailableHeightLimit } from "@/shared/components/ui/popover";
 
 const options = [
-  { value: "native", label: "Native", ready: true },
-  { value: "codex", label: "Codex", ready: true },
+  { value: "native", label: "Native", icon: null, ready: true },
+  { value: "codex", label: "Codex", icon: null, ready: true },
 ];
 
 describe("ChatSessionTypeMenu", () => {

@@ -1,7 +1,16 @@
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, type Context, type ReactNode } from 'react';
 import { getAppPresenter, type AppPresenter } from '@/app/presenters/app.presenter';
 
-const AppPresenterContext = createContext<AppPresenter | null>(null);
+type AppPresenterContextGlobal = typeof globalThis & {
+  __NEXTCLAW_APP_PRESENTER_CONTEXT__?: Context<AppPresenter | null>;
+};
+
+const appPresenterContextGlobal = globalThis as AppPresenterContextGlobal;
+const AppPresenterContext =
+  appPresenterContextGlobal.__NEXTCLAW_APP_PRESENTER_CONTEXT__ ??
+  createContext<AppPresenter | null>(null);
+
+appPresenterContextGlobal.__NEXTCLAW_APP_PRESENTER_CONTEXT__ = AppPresenterContext;
 
 type AppPresenterProviderProps = {
   children: ReactNode;

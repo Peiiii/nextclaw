@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
+import type { SetStateAction } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatConversationWelcome } from "@/features/chat/features/welcome/components/chat-conversation-welcome";
-import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
@@ -11,14 +11,24 @@ import type { ChatQuerySnapshot } from "@/features/chat/stores/ncp-chat-query.st
 
 const mocks = vi.hoisted(() => ({
   setSelectedAgentId: vi.fn(),
-  applyPromptSuggestion: vi.fn(),
-  setPendingProjectRoot: vi.fn(),
-  setPendingSessionType: vi.fn(),
   agents: [
     { id: "main", displayName: "Main", runtime: "native" },
     { id: "engineer", displayName: "Engineer", runtime: "codex" },
   ],
 }));
+const persistStorage = new Map<string, unknown>();
+
+function createPersistStorage() {
+  return {
+    getItem: (name: string) => persistStorage.get(name) ?? null,
+    setItem: (name: string, value: unknown) => {
+      persistStorage.set(name, value);
+    },
+    removeItem: (name: string) => {
+      persistStorage.delete(name);
+    },
+  };
+}
 
 vi.mock("@/features/chat/features/welcome/components/chat-welcome", () => ({
   ChatWelcome: ({
@@ -60,11 +70,6 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
     chatSessionListManager: {
       setSelectedAgentId: mocks.setSelectedAgentId,
     },
-    chatInputManager: {
-      applyPromptSuggestion: mocks.applyPromptSuggestion,
-      setPendingProjectRoot: mocks.setPendingProjectRoot,
-      setPendingSessionType: mocks.setPendingSessionType,
-    },
   }),
 }));
 
@@ -88,19 +93,10 @@ function createFetchedQuery<TData>(data: TData) {
 }
 
 function resetWelcomeTestState() {
+  persistStorage.clear();
+  useChatSessionListStore.persist.setOptions({ storage: createPersistStorage() as never });
+  useChatThreadStore.persist.setOptions({ storage: createPersistStorage() as never });
   mocks.setSelectedAgentId.mockReset();
-  mocks.applyPromptSuggestion.mockReset();
-  mocks.setPendingProjectRoot.mockReset();
-  mocks.setPendingSessionType.mockReset();
-  useChatInputStore.setState({
-    snapshot: {
-      ...useChatInputStore.getState().snapshot,
-      defaultSessionType: "native",
-      pendingSessionType: "native",
-      selectedSessionType: undefined,
-      pendingProjectRoot: null,
-    },
-  });
   useChatSessionListStore.setState({
     snapshot: {
       ...useChatSessionListStore.getState().snapshot,
@@ -138,56 +134,78 @@ function resetWelcomeTestState() {
   });
 }
 
+function renderWelcome(overrides: Partial<{
+  onSelectPrompt: (prompt: string) => void;
+  onSelectProjectRoot: (projectRoot: string | null) => void;
+  onSelectSessionType: (sessionType: SetStateAction<string>) => void;
+}> = {}) {
+  return render(
+    <ChatConversationWelcome
+      inputSlot={<div data-testid="input-slot" />}
+      pendingProjectRoot={null}
+      pendingSessionType="native"
+      selectedSessionTypeValue={null}
+      onSelectPrompt={overrides.onSelectPrompt ?? vi.fn()}
+      onSelectProjectRoot={overrides.onSelectProjectRoot ?? vi.fn()}
+      onSelectSessionType={overrides.onSelectSessionType ?? vi.fn()}
+    />,
+  );
+}
+
 describe("ChatConversationWelcome", () => {
   beforeEach(resetWelcomeTestState);
 
-  it("stores the selected welcome project through the input manager", async () => {
+  it("emits the selected welcome project through the local input callback", async () => {
     const user = userEvent.setup();
+    const onSelectProjectRoot = vi.fn();
 
-    render(<ChatConversationWelcome inputSlot={<div data-testid="input-slot" />} />);
+    renderWelcome({ onSelectProjectRoot });
 
     await user.click(
       screen.getByRole("button", { name: "select draft project" }),
     );
 
-    expect(mocks.setPendingProjectRoot).toHaveBeenCalledWith("/tmp/project-alpha");
+    expect(onSelectProjectRoot).toHaveBeenCalledWith("/tmp/project-alpha");
   });
 
-  it("applies a selected prompt suggestion through the input manager", async () => {
+  it("emits a selected prompt suggestion through the local input callback", async () => {
     const user = userEvent.setup();
+    const onSelectPrompt = vi.fn();
 
-    render(<ChatConversationWelcome inputSlot={<div data-testid="input-slot" />} />);
+    renderWelcome({ onSelectPrompt });
 
     await user.click(
       screen.getByRole("button", { name: "pick prompt" }),
     );
 
-    expect(mocks.applyPromptSuggestion).toHaveBeenCalledWith("example prompt");
+    expect(onSelectPrompt).toHaveBeenCalledWith("example prompt");
   });
 
 
   it("syncs the pending session type when switching the draft agent", async () => {
     const user = userEvent.setup();
+    const onSelectSessionType = vi.fn();
 
-    render(<ChatConversationWelcome inputSlot={<div data-testid="input-slot" />} />);
+    renderWelcome({ onSelectSessionType });
 
     await user.click(
       screen.getByRole("button", { name: "switch draft agent" }),
     );
 
     expect(mocks.setSelectedAgentId).toHaveBeenCalledWith("engineer");
-    expect(mocks.setPendingSessionType).toHaveBeenCalledWith("codex");
+    expect(onSelectSessionType).toHaveBeenCalledWith("codex");
   });
 
   it("stores an explicit welcome session type selection", async () => {
     const user = userEvent.setup();
+    const onSelectSessionType = vi.fn();
 
-    render(<ChatConversationWelcome inputSlot={<div data-testid="input-slot" />} />);
+    renderWelcome({ onSelectSessionType });
 
     await user.click(
       screen.getByRole("button", { name: "switch session type" }),
     );
 
-    expect(mocks.setPendingSessionType).toHaveBeenCalledWith("codex");
+    expect(onSelectSessionType).toHaveBeenCalledWith("codex");
   });
 });

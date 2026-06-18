@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Bot, ChevronDown } from 'lucide-react';
 import { SessionContextIconNode } from '@/features/chat/features/session/components/session-context-icon';
 import { ChatSessionTypeOptionItem } from '@/features/chat/features/session-type/components/chat-session-type-option-item';
-import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
+import type { ChatSessionTypeOption } from '@/features/chat/features/session-type/utils/chat-session-type.utils';
 import {
   Popover,
   PopoverContent,
@@ -11,7 +11,7 @@ import {
 } from '@/shared/components/ui/popover';
 import { t } from '@/shared/lib/i18n';
 
-type SessionTypeOption = ChatInputSnapshot['sessionTypeOptions'][number];
+type SessionTypeOption = ChatSessionTypeOption;
 
 type ChatWelcomeSessionTypePickerProps = {
   options: readonly SessionTypeOption[];

@@ -1,12 +1,11 @@
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
-import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import type { SetStateAction } from 'react';
-import type { ChatRunManager } from '@/features/chat/managers/chat-run.manager';
 import { normalizeSessionProjectRootValue } from '@/shared/lib/session-project';
 import { updateNcpSession } from '@/shared/lib/api';
 import { CHAT_DRAFT_SESSION_PATH } from '@/features/chat/features/session/utils/chat-session-route.utils';
+import { DEFAULT_SESSION_TYPE, normalizeSessionType } from '@/features/chat/features/session-type/utils/chat-session-type.utils';
 
 type WorkspaceChildReadState = {
   sessionKey: string | null | undefined;
@@ -15,21 +14,13 @@ type WorkspaceChildReadState = {
   runStatus?: string | null;
 };
 export class ChatSessionListManager {
-  constructor(
-    private uiManager: ChatUiManager,
-    private chatRunManager: ChatRunManager
-  ) {}
+  constructor(private uiManager: ChatUiManager) {}
 
-  private syncDraftThreadState = (hasSubmittedDraftMessage = false) => {
+  private syncDraftThreadState = () => {
     useChatThreadStore.getState().setSnapshot({
       sessionKey: null,
       sessionDisplayName: undefined,
       canDeleteSession: false,
-      isHistoryLoading: false,
-      messages: [],
-      isSending: false,
-      isAwaitingAssistantOutput: false,
-      hasSubmittedDraftMessage,
       parentSessionKey: null,
       parentSessionLabel: null,
       workspacePanelParentKey: null,
@@ -107,7 +98,6 @@ export class ChatSessionListManager {
     }
     if (selectedSessionKey !== null) {
       this.setSelectedSessionKey(null);
-      this.chatRunManager.clearRunState();
     }
   };
 
@@ -142,48 +132,27 @@ export class ChatSessionListManager {
   };
 
   createSession = (sessionType?: string, projectRoot?: string | null): void => {
-    const { snapshot } = useChatInputStore.getState();
-    const { defaultSessionType: configuredDefaultSessionType } = snapshot;
-    const defaultSessionType = configuredDefaultSessionType || 'native';
-    const nextSessionType =
-      typeof sessionType === 'string' && sessionType.trim().length > 0
-        ? sessionType.trim()
-        : defaultSessionType;
+    const nextSessionType = normalizeSessionType(sessionType ?? DEFAULT_SESSION_TYPE);
     const normalizedProjectRoot = normalizeSessionProjectRootValue(projectRoot);
-    this.chatRunManager.clearRunState();
     useChatSessionListStore.getState().setSnapshot({
       selectedSessionKey: null,
     });
     this.syncDraftThreadState();
-    useChatInputStore.getState().setSnapshot({
-      pendingSessionType: nextSessionType,
-      selectedSessionType: nextSessionType,
-      pendingProjectRoot: normalizedProjectRoot,
-      pendingProjectRootSessionKey: null
+    this.uiManager.navigateTo(CHAT_DRAFT_SESSION_PATH, {
+      replace: this.uiManager.isAtChatRoot(),
+      state: {
+        chatDraft: {
+          sessionType: nextSessionType,
+          projectRoot: normalizedProjectRoot,
+        },
+      },
     });
-    this.uiManager.navigateTo(CHAT_DRAFT_SESSION_PATH);
   };
 
   startAgentDraftChat = (agentId: string, sessionType: string): void => {
     const normalizedAgentId = agentId.trim() || 'main';
     this.createSession(sessionType);
     this.setSelectedAgentId(normalizedAgentId);
-  };
-
-  ensureDraftSession = (sessionType?: string): string | null => {
-    const { snapshot } = useChatSessionListStore.getState();
-    if (snapshot.selectedSessionKey) {
-      return snapshot.selectedSessionKey;
-    }
-    const normalizedSessionType =
-      typeof sessionType === 'string' && sessionType.trim().length > 0
-        ? sessionType.trim()
-        : null;
-    this.syncDraftThreadState(true);
-    if (normalizedSessionType) {
-      useChatInputStore.getState().setSnapshot({ pendingSessionType: normalizedSessionType });
-    }
-    return null;
   };
 
   selectSession = (sessionKey: string) => {

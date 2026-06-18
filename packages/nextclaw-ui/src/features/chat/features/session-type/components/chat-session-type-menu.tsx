@@ -1,10 +1,10 @@
 import { ChatSessionTypeOptionItem } from "@/features/chat/features/session-type/components/chat-session-type-option-item";
-import type { ChatInputSnapshot } from "@/features/chat/stores/chat-input.store";
+import type { ChatSessionTypeOption } from "@/features/chat/features/session-type/utils/chat-session-type.utils";
 import { createPopoverAvailableHeightLimit } from "@/shared/components/ui/popover";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
-type SessionTypeOption = ChatInputSnapshot["sessionTypeOptions"][number];
+type SessionTypeOption = ChatSessionTypeOption;
 const CHAT_SESSION_TYPE_MENU_MAX_HEIGHT =
   createPopoverAvailableHeightLimit("18rem");
 const CHAT_SESSION_TYPE_MENU_STYLE = {

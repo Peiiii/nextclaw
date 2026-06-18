@@ -1,34 +1,41 @@
 import { useRef, type ReactNode } from "react";
 import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
+import type { NcpMessage } from "@nextclaw/ncp";
 import { ChatMessageListContainer } from "@/features/chat/features/message/components/chat-message-list.container";
-import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 
 type ChatConversationContentProps = {
+  isAwaitingAssistantOutput: boolean;
+  isHistoryLoading: boolean;
+  isSending: boolean;
+  messages: readonly NcpMessage[];
+  sessionKey: string | null;
   showWelcome: boolean;
   welcomeSlot?: ReactNode;
 };
 
 export function ChatConversationContent({
+  isAwaitingAssistantOutput,
+  isHistoryLoading,
+  isSending,
+  messages,
+  sessionKey,
   showWelcome,
   welcomeSlot,
 }: ChatConversationContentProps) {
-  const snapshot = useChatThreadStore((state) => state.snapshot);
   const threadRef = useRef<HTMLDivElement | null>(null);
   const hideEmptyHint =
-    snapshot.isHistoryLoading &&
-    snapshot.messages.length === 0 &&
-    !snapshot.isSending &&
-    !snapshot.isAwaitingAssistantOutput;
+    isHistoryLoading &&
+    messages.length === 0 &&
+    !isSending &&
+    !isAwaitingAssistantOutput;
   const { onScroll } = useStickyBottomScroll({
     scrollRef: threadRef,
-    resetKey: snapshot.sessionKey,
-    isLoading: snapshot.isHistoryLoading,
-    hasContent: snapshot.messages.length > 0,
-    contentVersion: snapshot.messages[snapshot.messages.length - 1] ?? null,
+    resetKey: sessionKey,
+    isLoading: isHistoryLoading,
+    hasContent: messages.length > 0,
+    contentVersion: messages[messages.length - 1] ?? null,
   });
-  const hasMessages = snapshot.messages.length > 0;
-  const isAwaitingAssistantOutput =
-    hasMessages && snapshot.isSending && snapshot.isAwaitingAssistantOutput;
+  const hasMessages = messages.length > 0;
 
   return (
     <div
@@ -42,8 +49,8 @@ export function ChatConversationContent({
       ) : hideEmptyHint || !hasMessages ? null : (
         <div className="mx-auto w-full max-w-[min(1120px,100%)] px-4 py-4 sm:px-6 sm:py-5">
           <ChatMessageListContainer
-            messages={snapshot.messages}
-            isSending={isAwaitingAssistantOutput}
+            messages={messages}
+            isSending={hasMessages && isSending && isAwaitingAssistantOutput}
           />
         </div>
       )}

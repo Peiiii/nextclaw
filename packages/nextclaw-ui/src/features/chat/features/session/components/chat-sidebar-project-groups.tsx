@@ -3,14 +3,14 @@ import { Plus } from 'lucide-react';
 import { ChatSessionTypeMenu } from "@/features/chat/features/session-type/components/chat-session-type-menu";
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
-import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
+import type { ChatSessionTypeOption } from "@/features/chat/features/session-type/utils/chat-session-type.utils";
 import type { NcpSessionListItemView } from '@/features/chat/features/ncp/hooks/use-ncp-session-list-view';
 import type { ChatSidebarProjectGroup } from '@/features/chat/features/session/utils/chat-sidebar-session-groups.utils';
 import { t } from '@/shared/lib/i18n';
 
 export type { ChatSidebarProjectGroup };
 
-type SessionTypeOption = ChatInputSnapshot['sessionTypeOptions'][number];
+type SessionTypeOption = ChatSessionTypeOption;
 
 type ChatSidebarProjectGroupsProps = {
   groups: ChatSidebarProjectGroup[];

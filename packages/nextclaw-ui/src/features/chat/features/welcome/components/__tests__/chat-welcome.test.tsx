@@ -10,8 +10,8 @@ vi.mock(
 );
 
 const sessionTypeOptions = [
-  { value: 'native', label: 'Native', ready: true },
-  { value: 'codex', label: 'Codex', ready: true },
+  { value: 'native', label: 'Native', icon: null, ready: true },
+  { value: 'codex', label: 'Codex', icon: null, ready: true },
 ];
 
 function renderWelcome(

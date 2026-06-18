@@ -4,10 +4,12 @@ import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 
 type ChatConversationWorkspaceSectionProps = {
   layoutMode: "desktop" | "mobile";
+  sessionKey: string | null;
 };
 
 export function ChatConversationWorkspaceSection({
   layoutMode,
+  sessionKey,
 }: ChatConversationWorkspaceSectionProps) {
   const snapshot = useChatThreadStore((state) => state.snapshot);
   const {
@@ -15,7 +17,7 @@ export function ChatConversationWorkspaceSection({
     workspaceFileTabs,
     sessionCronJobs,
     showWorkspacePanel,
-  } = useChatConversationWorkspaceState(snapshot);
+  } = useChatConversationWorkspaceState(snapshot, sessionKey);
 
   if (!showWorkspacePanel) {
     return null;
@@ -23,7 +25,7 @@ export function ChatConversationWorkspaceSection({
 
   return (
     <ChatSessionWorkspacePanel
-      sessionKey={snapshot.sessionKey}
+      sessionKey={sessionKey}
       childSessionTabs={childSessionTabs}
       activeChildSessionKey={snapshot.activeChildSessionKey ?? null}
       workspaceFileTabs={workspaceFileTabs}

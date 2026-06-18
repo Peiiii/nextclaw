@@ -1,11 +1,11 @@
-import type { ChatInputSnapshot } from "@/features/chat/stores/chat-input.store";
 import { SessionContextIconNode } from "@/features/chat/features/session/components/session-context-icon";
+import type { ChatSessionTypeOption } from "@/features/chat/features/session-type/utils/chat-session-type.utils";
 import { StatusDot } from "@/shared/components/status/status-dot";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 import { Bot, Check } from "lucide-react";
 
-type SessionTypeOption = ChatInputSnapshot["sessionTypeOptions"][number];
+type SessionTypeOption = ChatSessionTypeOption;
 
 export function ChatSessionTypeOptionItem(props: {
   option: SessionTypeOption;

@@ -1,14 +1,12 @@
-import { ChatInputBarContainer } from "@/features/chat/features/input/components/chat-input-bar.container";
-import { ChatConversationAlerts } from "@/features/chat/components/conversation/chat-conversation-alerts";
-import { ChatConversationContent } from "@/features/chat/components/conversation/chat-conversation-content";
+import { useCallback } from "react";
 import { ChatConversationHeaderSection } from "@/features/chat/components/conversation/chat-conversation-header-section";
 import { ChatConversationParentBanner } from "@/features/chat/components/conversation/chat-conversation-parent-banner";
 import { ChatConversationSkeleton } from "@/features/chat/components/conversation/chat-conversation-skeleton";
 import { ChatConversationWorkspaceSection } from "@/features/chat/components/conversation/chat-conversation-workspace-section";
+import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
+import { SessionConversationArea } from "@/features/chat/features/conversation/components/session-conversation-area";
 import { useNcpChatProviderStateResolved } from "@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state";
-import { ChatConversationWelcome } from "@/features/chat/features/welcome/components/chat-conversation-welcome";
-import { shouldShowChatWelcome } from "@/features/chat/features/welcome/utils/chat-welcome-visibility.utils";
-import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
+import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 
 type ChatConversationLayoutMode = "desktop" | "mobile";
 
@@ -19,10 +17,17 @@ export function ChatConversationPanel({
   layoutMode?: ChatConversationLayoutMode;
   onBackToList?: () => void;
 }) {
+  const presenter = usePresenter();
   const isProviderStateResolved = useNcpChatProviderStateResolved();
-  const showWelcome = useChatThreadStore((state) =>
-    shouldShowChatWelcome(state.snapshot),
+  const sessionKey = useChatSessionListStore(
+    (state) => state.snapshot.selectedSessionKey,
   );
+  const handleSessionMaterialized = useCallback((materializedSessionKey: string) => {
+    if (!presenter.chatUiManager.isAtChatRoot()) {
+      return;
+    }
+    presenter.chatUiManager.goToSession(materializedSessionKey, { replace: true });
+  }, [presenter]);
 
   if (!isProviderStateResolved) {
     return <ChatConversationSkeleton />;
@@ -36,19 +41,14 @@ export function ChatConversationPanel({
           layoutMode={layoutMode}
           onBackToList={onBackToList}
         />
-        <ChatConversationAlerts />
-        <ChatConversationContent
-          showWelcome={showWelcome}
-          welcomeSlot={
-            <ChatConversationWelcome
-              inputSlot={<ChatInputBarContainer surface="embedded" />}
-            />
-          }
+        <SessionConversationArea
+          consumeDraftIntent
+          sessionKey={sessionKey}
+          onSessionMaterialized={handleSessionMaterialized}
         />
-        {showWelcome ? null : <ChatInputBarContainer />}
       </div>
 
-      <ChatConversationWorkspaceSection layoutMode={layoutMode} />
+      <ChatConversationWorkspaceSection layoutMode={layoutMode} sessionKey={sessionKey} />
     </section>
   );
 }
