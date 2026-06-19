@@ -1,5 +1,29 @@
 # @nextclaw/kernel
 
+## 0.5.2
+
+### Patch Changes
+
+- 993fbb8: Add opt-in parent context inheritance for child sessions spawned through `sessions_spawn`. Child sessions can now inherit parent messages up to the spawn anchor, and the chat timeline marks inherited context at the start of the message list.
+- 6586a69: Add a Side chat slash command before skill entries in the slash panel. The command opens a right-side draft child conversation, keeps backend session creation deferred until the first send, and materializes that first send into an inherited child session.
+- Updated dependencies
+- Updated dependencies [993fbb8]
+- Updated dependencies [d406755]
+- Updated dependencies [6586a69]
+  - @nextclaw/channel-extension-feishu@0.1.27
+  - @nextclaw/channel-extension-weixin@0.1.31
+  - @nextclaw/mcp@0.2.16
+  - @nextclaw/ncp@0.6.5
+  - @nextclaw/ncp-agent-runtime@0.3.46
+  - @nextclaw/ncp-agent-runtime-next@0.0.18
+  - @nextclaw/ncp-mcp@0.1.111
+  - @nextclaw/ncp-toolkit@0.5.40
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.2.15
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.2.15
+  - @nextclaw/runtime@0.3.16
+  - @nextclaw/core@0.14.6
+  - @nextclaw/shared@0.3.2
+
 ## 0.5.1
 
 ### Patch Changes

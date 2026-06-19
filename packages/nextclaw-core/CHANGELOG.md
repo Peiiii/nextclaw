@@ -1,5 +1,16 @@
 # nextclaw-core
 
+## 0.14.6
+
+### Patch Changes
+
+- 993fbb8: Add opt-in parent context inheritance for child sessions spawned through `sessions_spawn`. Child sessions can now inherit parent messages up to the spawn anchor, and the chat timeline marks inherited context at the start of the message list.
+- d406755: Normalize OpenAI-compatible chat streams so MiniMax responses that end after `finish_reason` complete cleanly instead of surfacing `Premature close` in Docker.
+- Updated dependencies
+- Updated dependencies [6586a69]
+  - @nextclaw/feishu-core@0.2.36
+  - @nextclaw/shared@0.3.2
+
 ## 0.14.5
 
 ### Patch Changes

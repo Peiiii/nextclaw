@@ -1,5 +1,14 @@
 # @nextclaw/agent-chat-ui
 
+## 0.5.2
+
+### Patch Changes
+
+- 3e3e9bf: Add a generic chat input surface plugin flow and Panel App references from the composer. Slash skill selection now uses the shared input surface path, `@` can insert Panel App references, and sent `@panel-app:<appId>` text renders as a distinct Panel App inline token.
+- 80ef499: Fix input surface session ownership so slash search, panel app references, Chinese IME input, Escape dismissal, deletion, pointer selection, default focus, and flipped input panels stay responsive after input panel pluginization.
+- 89899a7: Render chat inline tokens through markdown-aware parsing so Panel App references and skill tokens inside code remain literal.
+- 6586a69: Add a Side chat slash command before skill entries in the slash panel. The command opens a right-side draft child conversation, keeps backend session creation deferred until the first send, and materializes that first send into an inherited child session.
+
 ## 0.5.1
 
 ### Patch Changes

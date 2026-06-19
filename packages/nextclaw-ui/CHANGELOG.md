@@ -1,5 +1,34 @@
 # @nextclaw/ui
 
+## 0.14.2
+
+### Patch Changes
+
+- dd6c939: Show the current instance identifier in the browser tab title, using the port-only label for local loopback URLs.
+- f867220: Fix the chat conversation header so parent sessions with existing child sessions show the child-session entry automatically, even before a child session has been opened from a tool card.
+- 3e3e9bf: Add a generic chat input surface plugin flow and Panel App references from the composer. Slash skill selection now uses the shared input surface path, `@` can insert Panel App references, and sent `@panel-app:<appId>` text renders as a distinct Panel App inline token.
+- ec39c49: Fix chat workspace file previews so project-relative Markdown links use the selected session working directory as their base path.
+- 993fbb8: Add opt-in parent context inheritance for child sessions spawned through `sessions_spawn`. Child sessions can now inherit parent messages up to the spawn anchor, and the chat timeline marks inherited context at the start of the message list.
+- 7f20731: Fix workspace child-session tabs so clicking the tab icon selects the tab, and compact the child-session panel header by removing the duplicated title from the content area.
+- 80ef499: Fix input surface session ownership so slash search, panel app references, Chinese IME input, Escape dismissal, deletion, pointer selection, default focus, and flipped input panels stay responsive after input panel pluginization.
+- 89899a7: Render chat inline tokens through markdown-aware parsing so Panel App references and skill tokens inside code remain literal.
+- 1311916: Refactor the chat conversation area into a reusable self-contained surface. Root chat and workspace child sessions now share the same conversation input/send flow, child sessions can continue from the right panel, and the app presenter context stays stable across local hot reloads.
+- 6586a69: Add a Side chat slash command before skill entries in the slash panel. The command opens a right-side draft child conversation, keeps backend session creation deferred until the first send, and materializes that first send into an inherited child session.
+- de59b83: Add a persisted collapsible left sidebar with a compact rail presentation. The collapsed rail now uses the shared viewport layout store, keeps a minimal borderless visual style, and applies consistent sizing, spacing, tooltip, desktop chrome, and navigation behavior across chat, settings, scheduled tasks, skills, and agent entry points.
+- Updated dependencies
+- Updated dependencies [3e3e9bf]
+- Updated dependencies [80ef499]
+- Updated dependencies [89899a7]
+- Updated dependencies [6586a69]
+  - @nextclaw/agent-chat@0.2.15
+  - @nextclaw/client-sdk@0.4.5
+  - @nextclaw/ncp@0.6.5
+  - @nextclaw/ncp-http-agent-client@0.3.47
+  - @nextclaw/ncp-react@0.4.55
+  - @nextclaw/ncp-toolkit@0.5.40
+  - @nextclaw/agent-chat-ui@0.5.2
+  - @nextclaw/shared@0.3.2
+
 ## 0.14.1
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @nextclaw/shared
 
+## 0.3.2
+
+### Patch Changes
+
+- 6586a69: Add a Side chat slash command before skill entries in the slash panel. The command opens a right-side draft child conversation, keeps backend session creation deferred until the first send, and materializes that first send into an inherited child session.
+- Updated dependencies
+  - @nextclaw/ncp@0.6.5
+
 ## 0.3.1
 
 ### Patch Changes
