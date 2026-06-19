@@ -16,6 +16,7 @@ export function ChatConversationWorkspaceSection({
   const selectedSession = useNcpChatSelectedSession(sessionKey);
   const {
     childSessionTabs,
+    activeSideChatDraft,
     workspaceFileTabs,
     sessionCronJobs,
     showWorkspacePanel,
@@ -30,6 +31,7 @@ export function ChatConversationWorkspaceSection({
       sessionKey={sessionKey}
       childSessionTabs={childSessionTabs}
       activeChildSessionKey={snapshot.activeChildSessionKey ?? null}
+      activeSideChatDraft={activeSideChatDraft}
       workspaceFileTabs={workspaceFileTabs}
       activeWorkspaceFileKey={snapshot.activeWorkspaceFileKey ?? null}
       workspaceNavigationHistory={snapshot.workspaceNavigationHistory}

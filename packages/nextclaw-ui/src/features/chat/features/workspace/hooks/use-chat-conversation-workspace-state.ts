@@ -44,6 +44,10 @@ export function useChatConversationWorkspaceState(
       ),
     [sessionKey, snapshot.workspaceFileTabs],
   );
+  const activeSideChatDraft =
+    snapshot.activeSideChatDraft?.parentSessionKey === sessionKey
+      ? snapshot.activeSideChatDraft
+      : null;
   const cronQuery = useCronJobs({ all: true });
   const sessionCronJobs = useMemo(
     () =>
@@ -55,11 +59,13 @@ export function useChatConversationWorkspaceState(
 
   return {
     childSessionTabs,
+    activeSideChatDraft,
     workspaceFileTabs,
     sessionCronJobs,
     showWorkspacePanel:
       snapshot.workspacePanelParentKey === sessionKey &&
-      (childSessionTabs.length > 0 ||
+      (activeSideChatDraft !== null ||
+        childSessionTabs.length > 0 ||
         workspaceFileTabs.length > 0 ||
         sessionCronJobs.length > 0),
   };

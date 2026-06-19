@@ -16,15 +16,20 @@ import { useChatSessionListStore } from '@/features/chat/stores/chat-session-lis
 import { useSystemStatus } from '@/features/system-status';
 import { t } from '@/shared/lib/i18n';
 
-import { useSessionConversationController } from '@/features/chat/features/conversation/hooks/use-session-conversation-controller';
+import {
+  useSessionConversationController,
+  type SessionConversationMaterializationContext,
+} from '@/features/chat/features/conversation/hooks/use-session-conversation-controller';
 import { useSessionConversationInputQuery } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-query';
 import { useSessionConversationInputState } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-state';
 import { SessionConversationInput } from './session-conversation-input';
 
 type SessionConversationAreaProps = {
   readonly consumeDraftIntent?: boolean;
+  readonly materializationContext?: SessionConversationMaterializationContext | null;
   readonly onSessionMaterialized?: (sessionKey: string) => void;
   readonly sessionKey: string | null;
+  readonly showWelcomeForDraft?: boolean;
 };
 
 function useSessionConversationDraftIntent(params: {
@@ -161,8 +166,10 @@ function SessionConversationAlerts({
 export function SessionConversationArea(props: SessionConversationAreaProps) {
   const {
     consumeDraftIntent = false,
+    materializationContext = null,
     onSessionMaterialized,
     sessionKey,
+    showWelcomeForDraft = true,
   } = props;
   const systemStatus = useSystemStatus();
   const selectedAgentId = useChatSessionListStore(
@@ -211,6 +218,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     inputSnapshot,
     inputQuery,
     isRuntimeBlocked,
+    materializationContext,
     selectedAgentId,
     sessionKey,
     onSessionMaterialized,
@@ -247,6 +255,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     inputQuery,
   ]);
   const showWelcome =
+    showWelcomeForDraft &&
     !sessionKey &&
     agent.visibleMessages.length === 0 &&
     !agent.isHydrating &&

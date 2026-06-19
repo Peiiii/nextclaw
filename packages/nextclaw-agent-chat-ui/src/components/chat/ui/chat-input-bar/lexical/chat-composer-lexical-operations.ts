@@ -99,6 +99,22 @@ export function insertInputSurfaceItemIntoChatComposer(params: {
   const tokenKind = item.tokenKind ?? (item.value ? 'skill' : undefined);
   const tokenKey = item.tokenKey ?? item.value;
   if (!tokenKind || !tokenKey) {
+    const trigger = resolveChatComposerActiveInputSurfaceTrigger(
+      nodes,
+      selection,
+      triggerSpecs ?? [CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC],
+    );
+    if (trigger) {
+      return {
+        nodes: normalizeChatComposerNodes(
+          replaceChatComposerRange(nodes, trigger.start, trigger.end, []),
+        ),
+        selection: {
+          start: trigger.start,
+          end: trigger.start,
+        },
+      };
+    }
     return {
       nodes: normalizeChatComposerNodes(nodes),
       selection,

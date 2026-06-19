@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createChatComposerTokenNode } from '@nextclaw/agent-chat-ui';
-import { RUNTIME_DEFAULT_MODEL_VALUE } from '@nextclaw/shared';
+import {
+  CHAT_SESSION_MATERIALIZATION_METADATA_KEY,
+  RUNTIME_DEFAULT_MODEL_VALUE,
+} from '@nextclaw/shared';
 import type { SessionEntryView, ThinkingLevel } from '@/shared/lib/api';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import {
@@ -210,6 +213,24 @@ describe('buildChatRunMetadata', () => {
         ],
       }),
     ).not.toHaveProperty('ui_inline_tokens');
+  });
+
+  it('serializes child session materialization metadata for side chat drafts', () => {
+    expect(
+      buildChatRunMetadata({
+        sessionMaterialization: {
+          kind: 'child',
+          parentSessionId: 'parent-session-1',
+          inheritContext: true,
+        },
+      }),
+    ).toMatchObject({
+      [CHAT_SESSION_MATERIALIZATION_METADATA_KEY]: {
+        kind: 'child',
+        parentSessionId: 'parent-session-1',
+        inheritContext: true,
+      },
+    });
   });
 });
 

@@ -1,3 +1,4 @@
+import type { CreateSessionContextInheritanceInput } from "@nextclaw/core";
 import type { ThinkingEffort } from "@kernel/types/agent-run.types.js";
 
 export type AgentRunSession = {
@@ -19,7 +20,11 @@ export type CreateAgentRunSessionParams = {
   channel?: string;
   metadata?: Record<string, unknown>;
   model?: string;
+  parentSessionId?: string;
   projectRoot?: string;
+  sourceSessionId?: string;
+  sourceSessionMetadata?: Record<string, unknown>;
+  contextInheritance?: CreateSessionContextInheritanceInput;
   task?: string;
   thinkingEffort?: ThinkingEffort | null;
 };

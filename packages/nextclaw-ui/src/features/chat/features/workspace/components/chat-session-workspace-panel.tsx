@@ -4,6 +4,7 @@ import { useNcpChildSessionTabsView } from "@/features/chat/features/ncp/hooks/u
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import type {
   ChatChildSessionTab,
+  ChatWorkspaceSideChatDraft,
   ChatWorkspaceNavigationEntry,
   ChatWorkspaceFileTab,
 } from "@/features/chat/stores/chat-thread.store";
@@ -26,11 +27,12 @@ type ChatSessionWorkspacePanelProps = {
   sessionKey: string | null;
   childSessionTabs: readonly ChatChildSessionTab[];
   activeChildSessionKey: string | null;
+  activeSideChatDraft: ChatWorkspaceSideChatDraft | null;
   workspaceFileTabs: readonly ChatWorkspaceFileTab[];
   activeWorkspaceFileKey: string | null;
   workspaceNavigationHistory?: readonly ChatWorkspaceNavigationEntry[];
   workspaceNavigationHistoryIndex?: number;
-  activePanelKind?: "child-session" | "file" | "cron" | null;
+  activePanelKind?: "child-session" | "side-chat-draft" | "file" | "cron" | null;
   sessionCronJobs?: readonly CronJobView[];
   sessionProjectRoot: string | null;
   sessionWorkingDir: string | null;
@@ -41,6 +43,7 @@ export function ChatSessionWorkspacePanel({
   sessionKey,
   childSessionTabs,
   activeChildSessionKey,
+  activeSideChatDraft,
   workspaceFileTabs,
   activeWorkspaceFileKey,
   workspaceNavigationHistory = [],
@@ -58,6 +61,7 @@ export function ChatSessionWorkspacePanel({
   );
   const activeSelection = resolveWorkspaceSelection({
     activeChildSessionKey,
+    activeSideChatDraft,
     activeWorkspaceFileKey,
     activePanelKind,
     childSessionTabs: resolvedChildTabs,
@@ -77,6 +81,7 @@ export function ChatSessionWorkspacePanel({
     () =>
       buildWorkspaceTabsViewModel({
         resolvedChildTabs,
+        activeSideChatDraft,
         workspaceFileTabs,
         sessionCronJobCount: sessionCronJobs.length,
         activeSelection,
@@ -91,6 +96,7 @@ export function ChatSessionWorkspacePanel({
       }),
     [
       activeSelection,
+      activeSideChatDraft,
       optimisticReadAtBySessionKey,
       presenter.chatThreadManager,
       resolvedChildTabs,

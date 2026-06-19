@@ -14,6 +14,11 @@ export type ChatChildSessionTab = {
   agentId?: string | null;
 };
 
+export type ChatWorkspaceSideChatDraft = {
+  draftKey: string;
+  parentSessionKey: string;
+};
+
 export type ChatWorkspaceFileTab = {
   key: string;
   parentSessionKey: string | null;
@@ -32,17 +37,10 @@ export type ChatWorkspaceFileTab = {
 };
 
 export type ChatWorkspaceNavigationEntry =
-  | {
-      kind: 'child-session';
-      key: string;
-    }
-  | {
-      kind: 'file';
-      key: string;
-    }
-  | {
-      kind: 'cron';
-    };
+  | { kind: 'child-session'; key: string }
+  | { kind: 'side-chat-draft'; key: string }
+  | { kind: 'file'; key: string }
+  | { kind: 'cron' };
 
 export type ChatThreadSnapshot = {
   sessionTypeLabel?: string | null;
@@ -63,9 +61,10 @@ export type ChatThreadSnapshot = {
   parentSessionKey?: string | null;
   parentSessionLabel?: string | null;
   workspacePanelParentKey?: string | null;
-  activeWorkspacePanelKind?: "child-session" | "file" | "cron" | null;
+  activeWorkspacePanelKind?: "child-session" | "side-chat-draft" | "file" | "cron" | null;
   childSessionTabs: ChatChildSessionTab[];
   activeChildSessionKey?: string | null;
+  activeSideChatDraft?: ChatWorkspaceSideChatDraft | null;
   workspaceFileTabs: ChatWorkspaceFileTab[];
   activeWorkspaceFileKey?: string | null;
   workspaceNavigationHistory: ChatWorkspaceNavigationEntry[];
@@ -105,6 +104,8 @@ type PersistedChatWorkspaceSnapshot = Pick<
   | 'workspaceNavigationHistoryIndex'
 >;
 
+type PersistedWorkspacePanelKind = 'child-session' | 'file' | 'cron';
+
 const initialSnapshot: ChatThreadSnapshot = {
   sessionTypeLabel: null,
   sessionTypeIcon: null,
@@ -127,6 +128,7 @@ const initialSnapshot: ChatThreadSnapshot = {
   activeWorkspacePanelKind: null,
   childSessionTabs: [],
   activeChildSessionKey: null,
+  activeSideChatDraft: null,
   workspaceFileTabs: [],
   activeWorkspaceFileKey: null,
   workspaceNavigationHistory: [],
@@ -158,7 +160,7 @@ function normalizeHistoryIndex(value: unknown, maxIndex: number): number {
 
 function isWorkspacePanelKind(
   value: unknown,
-): value is NonNullable<ChatThreadSnapshot['activeWorkspacePanelKind']> {
+): value is PersistedWorkspacePanelKind {
   return value === 'child-session' || value === 'file' || value === 'cron';
 }
 
@@ -344,19 +346,33 @@ export const useChatThreadStore = create<ChatThreadStore>()(
       name: CHAT_THREAD_WORKSPACE_STORAGE_KEY,
       version: CHAT_THREAD_WORKSPACE_STORAGE_VERSION,
       storage: createJSONStorage(() => window.localStorage),
-      partialize: (state): PersistedChatThreadStore => ({
-        snapshot: {
-          workspacePanelParentKey: state.snapshot.workspacePanelParentKey,
-          activeWorkspacePanelKind: state.snapshot.activeWorkspacePanelKind,
-          activeChildSessionKey: state.snapshot.activeChildSessionKey,
-          workspaceFileTabs: state.snapshot.workspaceFileTabs
-            .slice(-CHAT_THREAD_MAX_PERSISTED_WORKSPACE_FILE_TABS)
-            .map(toPersistedWorkspaceFileTab),
-          activeWorkspaceFileKey: state.snapshot.activeWorkspaceFileKey,
-          workspaceNavigationHistory: state.snapshot.workspaceNavigationHistory,
-          workspaceNavigationHistoryIndex: state.snapshot.workspaceNavigationHistoryIndex,
-        }
-      }),
+      partialize: (state): PersistedChatThreadStore => {
+        const workspaceNavigationHistory = state.snapshot.workspaceNavigationHistory
+          .filter((entry) => entry.kind !== 'side-chat-draft');
+        const workspaceNavigationHistoryIndex =
+          workspaceNavigationHistory.length > 0
+            ? Math.min(
+              state.snapshot.workspaceNavigationHistoryIndex,
+              workspaceNavigationHistory.length - 1,
+            )
+            : 0;
+        return {
+          snapshot: {
+            workspacePanelParentKey: state.snapshot.workspacePanelParentKey,
+            activeWorkspacePanelKind:
+              state.snapshot.activeWorkspacePanelKind === 'side-chat-draft'
+                ? null
+                : state.snapshot.activeWorkspacePanelKind,
+            activeChildSessionKey: state.snapshot.activeChildSessionKey,
+            workspaceFileTabs: state.snapshot.workspaceFileTabs
+              .slice(-CHAT_THREAD_MAX_PERSISTED_WORKSPACE_FILE_TABS)
+              .map(toPersistedWorkspaceFileTab),
+            activeWorkspaceFileKey: state.snapshot.activeWorkspaceFileKey,
+            workspaceNavigationHistory,
+            workspaceNavigationHistoryIndex,
+          }
+        };
+      },
       merge: (persistedState, currentState) => {
         const persistedSnapshot = isRecord(persistedState)
           ? persistedState.snapshot

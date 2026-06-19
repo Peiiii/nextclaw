@@ -48,7 +48,10 @@ export {
   createEventKey,
   eventKeys,
 } from "./configs/event-keys.config.js";
-export { ingressKeys } from "./configs/ingress-keys.config.js";
+export {
+  CHAT_SESSION_MATERIALIZATION_METADATA_KEY,
+  ingressKeys,
+} from "./configs/ingress-keys.config.js";
 export {
   RUNTIME_DEFAULT_MODEL_VALUE,
   isRuntimeDefaultModelValue,
@@ -59,6 +62,7 @@ export type {
 } from "./configs/runtime-model.config.js";
 export type {
   AgentRunSendIngressPayload,
+  AgentRunSessionMaterializationMetadata,
   AgentRunSessionMessageRequestPayload,
   ExtensionChannelConfigGetIngressPayload,
   ExtensionChannelCommandExecuteIngressPayload,

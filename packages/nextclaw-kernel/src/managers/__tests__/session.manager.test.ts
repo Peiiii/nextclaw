@@ -607,6 +607,74 @@ describe("SessionManager", () => {
   });
 });
 
+describe("SessionManager agent run child materialization", () => {
+  it("creates inherited agent run child sessions from the source session metadata", async () => {
+    const projectRoot = createTempDir();
+    const fixture = await createFixture([
+      createRecord({
+        sessionId: "parent-session",
+        agentId: "reviewer",
+        metadata: {
+          runtime: "codex",
+          session_type: "codex",
+          preferred_model: "openai/gpt-5",
+          preferred_thinking: "high",
+          project_root: projectRoot,
+        },
+        messages: [
+          createMessage({
+            id: "parent-message-1",
+            sessionId: "parent-session",
+            text: "父会话上下文",
+          }),
+        ],
+      }),
+    ]);
+
+    const session = await fixture.manager.getOrCreateAgentRunSession({
+      contextInheritance: {},
+      parentSessionId: "parent-session",
+      sourceSessionId: "parent-session",
+      task: "继续讨论",
+    });
+    const record = await fixture.journalStore.getSession(session.sessionId);
+
+    expect(session).toMatchObject({
+      agentId: "reviewer",
+      agentRuntimeId: "codex",
+      model: "openai/gpt-5",
+      projectRoot,
+      thinkingEffort: "high",
+    });
+    expect(record).toMatchObject({
+      agentId: "reviewer",
+      metadata: {
+        parent_session_id: "parent-session",
+        runtime: "codex",
+        session_type: "codex",
+        preferred_model: "openai/gpt-5",
+        preferred_thinking: "high",
+        project_root: projectRoot,
+        context_inheritance: {
+          enabled: true,
+          sourceSessionId: "parent-session",
+          inheritedMessageCount: 1,
+        },
+      },
+    });
+    expect(record?.messages).toEqual([
+      expect.objectContaining({
+        id: `${session.sessionId}:inherited:1`,
+        sessionId: session.sessionId,
+        metadata: expect.objectContaining({
+          inherited_from_session_id: "parent-session",
+          inherited_from_message_id: "parent-message-1",
+        }),
+      }),
+    ]);
+  });
+});
+
 describe("SessionManager runtime metadata", () => {
   it("persists runtime session metadata patches from NCP events", async () => {
     const fixture = await createFixture([

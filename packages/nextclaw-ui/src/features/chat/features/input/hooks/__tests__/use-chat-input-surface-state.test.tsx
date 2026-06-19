@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
+import { expect, it, vi } from 'vitest';
 import { useChatInputSurfaceState } from '@/features/chat/features/input/hooks/use-chat-input-surface-state';
 
 vi.mock('@/features/panel-apps', () => ({
@@ -11,6 +12,7 @@ vi.mock('@/features/panel-apps', () => ({
 
 function createHookParams() {
   return {
+    commands: [],
     isSkillsLoading: false,
     itemTexts: {
       slashTexts: {

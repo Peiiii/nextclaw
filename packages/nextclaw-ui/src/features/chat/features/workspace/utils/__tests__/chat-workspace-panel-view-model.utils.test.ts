@@ -3,7 +3,7 @@ import type { ResolvedChildSessionTab } from "@/features/chat/features/ncp/hooks
 import {
   buildWorkspaceTabsViewModel,
   resolveWorkspaceSelection,
-} from "../chat-workspace-panel-view-model.utils";
+} from "@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils";
 
 function createChildTab(
   overrides: Partial<ResolvedChildSessionTab> = {},
@@ -39,6 +39,7 @@ describe("resolveWorkspaceSelection", () => {
       resolveWorkspaceSelection({
         activePanelKind: "file",
         activeChildSessionKey: childTab.sessionKey,
+        activeSideChatDraft: null,
         activeWorkspaceFileKey: fileTab.key,
         childSessionTabs: [childTab],
         workspaceFileTabs: [fileTab],
@@ -57,6 +58,7 @@ describe("resolveWorkspaceSelection", () => {
       resolveWorkspaceSelection({
         activePanelKind: null,
         activeChildSessionKey: null,
+        activeSideChatDraft: null,
         activeWorkspaceFileKey: null,
         childSessionTabs: [childTab],
         workspaceFileTabs: [],
@@ -65,6 +67,28 @@ describe("resolveWorkspaceSelection", () => {
     ).toMatchObject({
       kind: "child-session",
       tab: childTab,
+    });
+  });
+
+  it("honors the explicit side chat draft selection", () => {
+    const draft = {
+      draftKey: "draft-1",
+      parentSessionKey: "parent-1",
+    };
+
+    expect(
+      resolveWorkspaceSelection({
+        activePanelKind: "side-chat-draft",
+        activeChildSessionKey: null,
+        activeSideChatDraft: draft,
+        activeWorkspaceFileKey: null,
+        childSessionTabs: [createChildTab()],
+        workspaceFileTabs: [],
+        sessionCronJobCount: 0,
+      }),
+    ).toMatchObject({
+      kind: "side-chat-draft",
+      draft,
     });
   });
 });
@@ -79,6 +103,7 @@ describe("buildWorkspaceTabsViewModel", () => {
 
     const tabs = buildWorkspaceTabsViewModel({
       resolvedChildTabs: [childTab],
+      activeSideChatDraft: null,
       workspaceFileTabs: [],
       sessionCronJobCount: 0,
       activeSelection: null,
@@ -99,5 +124,38 @@ describe("buildWorkspaceTabsViewModel", () => {
 
     tabs[0]?.onSelect();
     expect(onSelectSession).toHaveBeenCalledWith("child-1");
+  });
+
+  it("places the side chat draft tab before child session tabs", () => {
+    const draft = {
+      draftKey: "draft-1",
+      parentSessionKey: "parent-1",
+    };
+    const childTab = createChildTab();
+
+    const tabs = buildWorkspaceTabsViewModel({
+      resolvedChildTabs: [childTab],
+      activeSideChatDraft: draft,
+      workspaceFileTabs: [],
+      sessionCronJobCount: 0,
+      activeSelection: {
+        kind: "side-chat-draft",
+        draft,
+      },
+      optimisticReadAtBySessionKey: {},
+      onSelectSession: vi.fn(),
+      onSelectFile: vi.fn(),
+      onCloseFile: vi.fn(),
+      onSelectCronJobs: vi.fn(),
+    });
+
+    expect(tabs.map((tab) => tab.key)).toEqual([
+      "side-chat-draft:draft-1",
+      "child:child-1",
+    ]);
+    expect(tabs[0]).toMatchObject({
+      kind: "side-chat-draft",
+      active: true,
+    });
   });
 });

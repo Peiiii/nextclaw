@@ -107,6 +107,14 @@ export type AgentRunSessionMessageRequestPayload = {
   sessionId: string;
 };
 
+export const CHAT_SESSION_MATERIALIZATION_METADATA_KEY = "session_materialization";
+
+export type AgentRunSessionMaterializationMetadata = {
+  kind: "child";
+  parentSessionId: string;
+  inheritContext: true;
+};
+
 export type AgentRunSendIngressMetadata = Record<string, unknown> & {
   agentRuntimeId?: string;
   agentId?: string;
@@ -120,6 +128,7 @@ export type AgentRunSendIngressMetadata = Record<string, unknown> & {
   senderId?: string;
   sessionKey?: string;
   label?: string;
+  [CHAT_SESSION_MATERIALIZATION_METADATA_KEY]?: AgentRunSessionMaterializationMetadata;
 };
 
 export type AgentRunSendIngressPayload =

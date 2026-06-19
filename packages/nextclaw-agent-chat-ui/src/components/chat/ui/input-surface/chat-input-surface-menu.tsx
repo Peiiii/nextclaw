@@ -41,6 +41,10 @@ function ChatInputSurfaceMenu(props, ref) {
     onDetailsPointerDown,
   } = props;
   const itemsSignature = useMemo(() => items.map((item) => item.key).join('\u001f'), [items]);
+  const hasItemSections = useMemo(
+    () => items.some((item) => Boolean(item.sectionLabel?.trim())),
+    [items],
+  );
   const activeIndex = activeState.itemsSignature === itemsSignature ? activeState.index : 0;
   const activeIndexInRange = items.length === 0 ? 0 : Math.min(activeIndex, items.length - 1);
   const activeItem = items[activeIndexInRange] ?? null;
@@ -145,9 +149,11 @@ function ChatInputSurfaceMenu(props, ref) {
               <div className="p-2 text-xs text-gray-500">{texts.loadingLabel}</div>
             ) : (
               <>
-                <div className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                  {texts.sectionLabel}
-                </div>
+                {!hasItemSections ? (
+                  <div className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                    {texts.sectionLabel}
+                  </div>
+                ) : null}
                 {items.length === 0 ? (
                   <div className="px-2 text-xs text-gray-400">{texts.emptyLabel}</div>
                 ) : (
@@ -155,41 +161,54 @@ function ChatInputSurfaceMenu(props, ref) {
                     {items.map((item, index) => {
                       const {
                         key,
+                        sectionKey,
+                        sectionLabel,
                         title,
                         subtitle,
                       } = item;
                       const isActive = index === activeIndexInRange;
+                      const previousItem = items[index - 1];
+                      const shouldShowSection =
+                        hasItemSections &&
+                        Boolean(sectionLabel?.trim()) &&
+                        previousItem?.sectionKey !== sectionKey;
                       return (
-                        <button
-                          key={key}
-                          type="button"
-                          role="option"
-                          aria-selected={isActive}
-                          data-input-surface-index={index}
-                          onPointerMove={(event) => {
-                            if (event.pointerType !== 'touch') {
-                              setActiveIndexForCurrentItems(index);
-                            }
-                          }}
-                          onPointerDown={(event) => {
-                            if (event.button > 0) {
-                              return;
-                            }
-                            event.preventDefault();
-                            onSelectItem(item);
-                          }}
-                          onClick={(event) => {
-                            if (event.detail === 0) {
+                        <div key={key} className="space-y-1">
+                          {shouldShowSection ? (
+                            <div className="px-2 pb-0.5 pt-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                              {sectionLabel}
+                            </div>
+                          ) : null}
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={isActive}
+                            data-input-surface-index={index}
+                            onPointerMove={(event) => {
+                              if (event.pointerType !== 'touch') {
+                                setActiveIndexForCurrentItems(index);
+                              }
+                            }}
+                            onPointerDown={(event) => {
+                              if (event.button > 0) {
+                                return;
+                              }
+                              event.preventDefault();
                               onSelectItem(item);
-                            }
-                          }}
-                          className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition ${
-                            isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'
-                          }`}
-                        >
-                          <span className="truncate text-xs font-semibold">{title}</span>
-                          <span className="truncate text-xs text-gray-500">{subtitle}</span>
-                        </button>
+                            }}
+                            onClick={(event) => {
+                              if (event.detail === 0) {
+                                onSelectItem(item);
+                              }
+                            }}
+                            className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition ${
+                              isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            <span className="truncate text-xs font-semibold">{title}</span>
+                            <span className="truncate text-xs text-gray-500">{subtitle}</span>
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -220,7 +239,9 @@ function ChatInputSurfaceMenu(props, ref) {
                     </div>
                   ))}
                 </div>
-                <div className="pt-1 text-[11px] text-gray-500">{texts.itemHintLabel}</div>
+                <div className="pt-1 text-[11px] text-gray-500">
+                  {activeItem.hintLabel ?? texts.itemHintLabel}
+                </div>
               </div>
             ) : (
               <div className="text-xs text-gray-500">{texts.hintLabel}</div>

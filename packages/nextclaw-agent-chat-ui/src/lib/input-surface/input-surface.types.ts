@@ -34,6 +34,9 @@ export type ChatInputSurfaceItem = {
   subtitle: string;
   description: string;
   detailLines: string[];
+  hintLabel?: string;
+  sectionKey?: string;
+  sectionLabel?: string;
   value?: string;
   tokenKind?: string;
   tokenKey?: string;

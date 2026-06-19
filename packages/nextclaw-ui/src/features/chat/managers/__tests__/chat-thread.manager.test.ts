@@ -57,6 +57,7 @@ beforeEach(() => {
         },
       ],
       activeChildSessionKey: null,
+      activeSideChatDraft: null,
       workspaceFileTabs: [],
       activeWorkspaceFileKey: null,
       workspaceNavigationHistory: [],
@@ -152,6 +153,79 @@ describe('ChatThreadManager', () => {
       activeWorkspaceFileKey: null,
     });
     expect(uiManager.goToSession).not.toHaveBeenCalled();
+  });
+
+  it('opens a side chat draft beside the selected parent session', () => {
+    const uiManager = createUiManager({
+      goToSession: vi.fn(),
+    });
+    const manager = new ChatThreadManager(
+      uiManager,
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+    );
+
+    manager.openSideChatDraft('parent-session-1');
+
+    const { snapshot } = useChatThreadStore.getState();
+    expect(snapshot).toMatchObject({
+      workspacePanelParentKey: 'parent-session-1',
+      activeWorkspacePanelKind: 'side-chat-draft',
+      activeChildSessionKey: null,
+      activeWorkspaceFileKey: null,
+      activeSideChatDraft: {
+        parentSessionKey: 'parent-session-1',
+      },
+      workspaceNavigationHistoryIndex: 0,
+    });
+    expect(snapshot.activeSideChatDraft?.draftKey).toEqual(expect.any(String));
+    expect(snapshot.workspaceNavigationHistory).toEqual([
+      {
+        kind: 'side-chat-draft',
+        key: snapshot.activeSideChatDraft?.draftKey,
+      },
+    ]);
+    expect(uiManager.goToSession).not.toHaveBeenCalled();
+  });
+
+  it('materializes an active side chat draft into a real child-session tab', () => {
+    const manager = new ChatThreadManager(
+      createUiManager(),
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+    );
+
+    manager.openSideChatDraft('parent-session-1');
+    const draftKey = useChatThreadStore.getState().snapshot.activeSideChatDraft?.draftKey;
+    expect(draftKey).toEqual(expect.any(String));
+
+    manager.materializeSideChatDraft({
+      draftKey: draftKey ?? '',
+      sessionKey: 'child-session-side',
+      label: 'Side chat',
+      agentId: 'main',
+    });
+
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      workspacePanelParentKey: 'parent-session-1',
+      activeWorkspacePanelKind: 'child-session',
+      activeChildSessionKey: 'child-session-side',
+      activeSideChatDraft: null,
+      activeWorkspaceFileKey: null,
+      childSessionTabs: [
+        {
+          sessionKey: 'child-session-side',
+          parentSessionKey: 'parent-session-1',
+          label: 'Side chat',
+          agentId: 'main',
+        },
+        {
+          sessionKey: 'child-session-1',
+        },
+      ],
+      workspaceNavigationHistory: [
+        { kind: 'child-session', key: 'child-session-side' },
+      ],
+      workspaceNavigationHistoryIndex: 0,
+    });
   });
 
   it('routes to the session before opening its cron panel when needed', () => {

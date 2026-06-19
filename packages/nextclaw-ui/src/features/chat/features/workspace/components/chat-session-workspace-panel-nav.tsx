@@ -1,4 +1,4 @@
-import { AlarmClock, ArrowLeft, ArrowRight, FileCode2, MessageSquareText, X } from "lucide-react";
+import { AlarmClock, ArrowLeft, ArrowRight, FileCode2, MessageSquarePlus, MessageSquareText, X } from "lucide-react";
 import type { WorkspaceTabViewModel } from "@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
 import {
@@ -15,6 +15,10 @@ function WorkspaceTabIcon({ agentId, kind }: Pick<WorkspaceTabViewModel, "agentI
 
   if (kind === "file") {
     return <FileCode2 className="h-3.5 w-3.5 shrink-0 text-gray-400" />;
+  }
+
+  if (kind === "side-chat-draft") {
+    return <MessageSquarePlus className="h-3.5 w-3.5 shrink-0 text-primary" />;
   }
 
   if (agentId) {

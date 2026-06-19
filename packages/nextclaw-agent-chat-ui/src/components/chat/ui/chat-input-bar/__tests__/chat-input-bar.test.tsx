@@ -304,6 +304,29 @@ it('replaces the current generic trigger query with a panel app token', () => {
   expect(snapshot.selection).toEqual({ start: 1, end: 1 });
 });
 
+it('clears the current trigger query for a command item without inserting a token', () => {
+  const snapshot = insertInputSurfaceItemIntoChatComposer({
+    item: {
+      key: 'command:side-chat',
+      title: 'Side chat',
+      subtitle: 'Command',
+      description: 'Open side chat',
+      detailLines: [],
+    },
+    nodes: [createChatComposerTextNode('/side')],
+    selection: { start: 5, end: 5 },
+    triggerSpecs: [{ key: 'slash', marker: '/' }],
+  });
+
+  expect(snapshot.nodes).toEqual([
+    expect.objectContaining({
+      type: 'text',
+      text: '',
+    }),
+  ]);
+  expect(snapshot.selection).toEqual({ start: 0, end: 0 });
+});
+
 it('renders inline skill tokens inside the composer surface', async () => {
   renderInputBar({
     composer: createComposer([

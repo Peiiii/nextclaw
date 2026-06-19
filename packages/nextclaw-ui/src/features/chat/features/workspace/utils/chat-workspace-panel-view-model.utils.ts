@@ -1,12 +1,19 @@
 import type { ResolvedChildSessionTab } from "@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view";
 import { shouldShowUnreadSessionIndicator } from "@/features/chat/stores/chat-session-list.store";
-import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.store";
+import type {
+  ChatWorkspaceFileTab,
+  ChatWorkspaceSideChatDraft,
+} from "@/features/chat/stores/chat-thread.store";
 import { t } from "@/shared/lib/i18n";
 
 export type WorkspaceSelection =
   | {
       kind: "child-session";
       tab: ResolvedChildSessionTab;
+    }
+  | {
+      kind: "side-chat-draft";
+      draft: ChatWorkspaceSideChatDraft;
     }
   | {
       kind: "file";
@@ -18,7 +25,7 @@ export type WorkspaceSelection =
 
 export type WorkspaceTabViewModel = {
   key: string;
-  kind: "child-session" | "file" | "cron";
+  kind: "child-session" | "side-chat-draft" | "file" | "cron";
   title: string;
   tooltip: string;
   active: boolean;
@@ -35,8 +42,9 @@ export function readWorkspaceFileTitle(file: ChatWorkspaceFileTab): string {
 }
 
 export function resolveWorkspaceSelection(params: {
-  activePanelKind?: "child-session" | "file" | "cron" | null;
+  activePanelKind?: "child-session" | "side-chat-draft" | "file" | "cron" | null;
   activeChildSessionKey: string | null;
+  activeSideChatDraft: ChatWorkspaceSideChatDraft | null;
   activeWorkspaceFileKey: string | null;
   childSessionTabs: ResolvedChildSessionTab[];
   workspaceFileTabs: readonly ChatWorkspaceFileTab[];
@@ -45,6 +53,7 @@ export function resolveWorkspaceSelection(params: {
   const {
     activePanelKind,
     activeChildSessionKey,
+    activeSideChatDraft,
     activeWorkspaceFileKey,
     childSessionTabs,
     workspaceFileTabs,
@@ -53,6 +62,13 @@ export function resolveWorkspaceSelection(params: {
 
   if (activePanelKind === "cron" && sessionCronJobCount > 0) {
     return { kind: "cron" };
+  }
+
+  if (activePanelKind === "side-chat-draft" && activeSideChatDraft) {
+    return {
+      kind: "side-chat-draft",
+      draft: activeSideChatDraft,
+    };
   }
 
   if (activePanelKind !== "child-session" && activeWorkspaceFileKey) {
@@ -86,6 +102,13 @@ export function resolveWorkspaceSelection(params: {
     };
   }
 
+  if (activeSideChatDraft) {
+    return {
+      kind: "side-chat-draft",
+      draft: activeSideChatDraft,
+    };
+  }
+
   if (workspaceFileTabs[0]) {
     return {
       kind: "file",
@@ -102,6 +125,7 @@ export function resolveWorkspaceSelection(params: {
 
 export function buildWorkspaceTabsViewModel(params: {
   resolvedChildTabs: ResolvedChildSessionTab[];
+  activeSideChatDraft: ChatWorkspaceSideChatDraft | null;
   workspaceFileTabs: readonly ChatWorkspaceFileTab[];
   sessionCronJobCount: number;
   activeSelection: WorkspaceSelection | null;
@@ -112,6 +136,7 @@ export function buildWorkspaceTabsViewModel(params: {
   onSelectCronJobs: () => void;
 }): WorkspaceTabViewModel[] {
   const {
+    activeSideChatDraft,
     resolvedChildTabs,
     workspaceFileTabs,
     sessionCronJobCount,
@@ -122,6 +147,21 @@ export function buildWorkspaceTabsViewModel(params: {
     onCloseFile,
     onSelectCronJobs,
   } = params;
+
+  const sideChatDraftTabs = activeSideChatDraft
+    ? [
+        {
+          key: `side-chat-draft:${activeSideChatDraft.draftKey}`,
+          kind: "side-chat-draft" as const,
+          title: t("chatWorkspaceSideChatDraftTitle"),
+          tooltip: t("chatWorkspaceSideChatDraftSubtitle"),
+          active:
+            activeSelection?.kind === "side-chat-draft" &&
+            activeSelection.draft.draftKey === activeSideChatDraft.draftKey,
+          onSelect: () => undefined,
+        },
+      ]
+    : [];
 
   const childTabs = resolvedChildTabs.map((tab) => {
     const optimisticReadAt = optimisticReadAtBySessionKey[tab.sessionKey];
@@ -179,5 +219,5 @@ export function buildWorkspaceTabsViewModel(params: {
         ]
       : [];
 
-  return [...childTabs, ...fileTabs, ...cronTab];
+  return [...sideChatDraftTabs, ...childTabs, ...fileTabs, ...cronTab];
 }

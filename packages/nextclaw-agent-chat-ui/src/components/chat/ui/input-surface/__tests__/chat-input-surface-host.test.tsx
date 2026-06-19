@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { createChatComposerTextNode } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 import { ChatInputSurfaceHost } from '@agent-chat-ui/components/chat/ui/input-surface/chat-input-surface-host';
 import type { ChatInputSurfaceTriggerChangeReason } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
@@ -62,6 +63,15 @@ function HostHarness({ marker = '/', triggerKey = 'slash' }: { marker?: string; 
             <button type="button" onClick={() => publish(`${marker}x`, { type: 'delete-content' })}>
               delete
             </button>
+            <button
+              type="button"
+              onClick={() => host.onInputSurfaceKeyDown(new KeyboardEvent('keydown', { key: 'ArrowDown' }))}
+            >
+              down
+            </button>
+            <button type="button" onClick={() => host.onInputSurfaceOpenChange(false)}>
+              close
+            </button>
           </>
         );
       }}
@@ -101,6 +111,31 @@ describe('ChatInputSurfaceHost', () => {
     fireEvent.click(screen.getByRole('button', { name: 'create' }));
 
     const options = await screen.findAllByRole('option');
+    expect(options[0]?.getAttribute('aria-selected')).toBe('true');
+    expect(options[1]?.getAttribute('aria-selected')).toBe('false');
+  });
+
+  it('resets the active item when a trigger menu is closed and recreated', async () => {
+    render(<HostHarness marker="@" triggerKey="panel-app-reference" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'create' }));
+    let options = await screen.findAllByRole('option');
+    expect(options[0]?.getAttribute('aria-selected')).toBe('true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'down' }));
+    await waitFor(() => {
+      options = screen.getAllByRole('option');
+      expect(options[0]?.getAttribute('aria-selected')).toBe('false');
+      expect(options[1]?.getAttribute('aria-selected')).toBe('true');
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'close' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('option', { name: /Web Search/i })).toBeNull();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'create' }));
+    options = await screen.findAllByRole('option');
     expect(options[0]?.getAttribute('aria-selected')).toBe('true');
     expect(options[1]?.getAttribute('aria-selected')).toBe('false');
   });

@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
 import {
+  CHAT_SESSION_MATERIALIZATION_METADATA_KEY,
   eventKeys,
   ingressKeys,
+  type AgentRunSessionMaterializationMetadata,
   type AgentRunSendIngressPayload,
   type AgentRunSessionMessageRequestPayload,
   type EventBus,
@@ -29,6 +31,7 @@ import type {
   AgentRunRequest,
   AgentRunSpec,
 } from "@kernel/types/agent-run.types.js";
+import type { AgentRunSession } from "@kernel/types/session.types.js";
 
 function toAgentRunRequest(
   envelope: AgentRunSendIngressPayload,
@@ -98,6 +101,31 @@ function readOptionalString(value: unknown): string | undefined {
   }
   const trimmed = value.trim();
   return trimmed || undefined;
+}
+
+function readSessionMaterialization(
+  metadata: Record<string, unknown>,
+): AgentRunSessionMaterializationMetadata | null {
+  const value = metadata[CHAT_SESSION_MATERIALIZATION_METADATA_KEY];
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const materialization = value as Partial<AgentRunSessionMaterializationMetadata>;
+  if (materialization.kind !== "child") {
+    throw new Error("session_materialization.kind must be \"child\".");
+  }
+  const parentSessionId = readOptionalString(materialization.parentSessionId);
+  if (!parentSessionId) {
+    throw new Error("session_materialization.parentSessionId is required.");
+  }
+  if (materialization.inheritContext !== true) {
+    throw new Error("session_materialization.inheritContext must be true.");
+  }
+  return {
+    kind: "child",
+    parentSessionId,
+    inheritContext: true,
+  };
 }
 
 function toRunHandle(accepted: AgentRunAccepted): NcpRunHandle {
@@ -222,18 +250,7 @@ export class AgentRunRequestManager {
   private send = async (
     request: AgentRunRequest,
   ): Promise<AgentRunAccepted> => {
-    const session = await this.sessionManager.getOrCreateAgentRunSession({
-      sessionId: request.sessionId,
-      peerId: request.peerId,
-      agentId: request.agentId,
-      agentRuntimeId: request.agentRuntimeId,
-      channel: request.channel,
-      metadata: request.metadata,
-      model: request.model,
-      projectRoot: request.projectRoot,
-      task: readMessageTask(request.message),
-      thinkingEffort: request.thinkingEffort,
-    });
+    const session = await this.getOrCreateSessionForRequest(request);
     const sessionRun =
       this.sessionRunManager.getSessionRun(session.sessionId) ??
       (await this.sessionRunManager.createSessionRun(session.sessionId));
@@ -380,6 +397,34 @@ export class AgentRunRequestManager {
       runId: spec.runId,
       correlationId: request.correlationId,
     };
+  };
+
+  private getOrCreateSessionForRequest = async (
+    request: AgentRunRequest,
+  ): Promise<AgentRunSession> => {
+    const sessionMaterialization = readSessionMaterialization(
+      request.metadata ?? {},
+    );
+    if (sessionMaterialization && (request.sessionId || request.peerId)) {
+      throw new Error("session_materialization requires a new session request.");
+    }
+    return await this.sessionManager.getOrCreateAgentRunSession({
+      sessionId: request.sessionId,
+      peerId: request.peerId,
+      agentId: request.agentId,
+      agentRuntimeId: request.agentRuntimeId,
+      channel: request.channel,
+      contextInheritance: sessionMaterialization
+        ? {}
+        : undefined,
+      metadata: request.metadata,
+      model: request.model,
+      parentSessionId: sessionMaterialization?.parentSessionId,
+      projectRoot: request.projectRoot,
+      sourceSessionId: sessionMaterialization?.parentSessionId,
+      task: readMessageTask(request.message),
+      thinkingEffort: request.thinkingEffort,
+    });
   };
 
   private abort = async (request: AgentRunAbortRequest): Promise<void> => {

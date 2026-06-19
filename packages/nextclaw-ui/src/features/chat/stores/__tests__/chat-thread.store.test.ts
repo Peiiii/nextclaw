@@ -22,6 +22,7 @@ function resetChatThreadStore() {
       activeWorkspacePanelKind: null,
       childSessionTabs: [],
       activeChildSessionKey: null,
+      activeSideChatDraft: null,
       workspaceFileTabs: [],
       activeWorkspaceFileKey: null,
       workspaceNavigationHistory: [],
@@ -83,6 +84,36 @@ describe('chat thread workspace panel persistence', () => {
     expect(persisted.state.snapshot.isSending).toBeUndefined();
     expect(persisted.state.snapshot.workspaceFileTabs[0].rawText).toBe('# Hello');
     expect(persisted.state.snapshot.workspaceFileTabs[0].fullLines).toBeUndefined();
+  });
+
+  it('does not persist an unmaterialized side chat draft', () => {
+    useChatThreadStore.getState().setSnapshot({
+      workspacePanelParentKey: 'session-1',
+      activeWorkspacePanelKind: 'side-chat-draft',
+      activeSideChatDraft: {
+        draftKey: 'draft-1',
+        parentSessionKey: 'session-1',
+      },
+      workspaceNavigationHistory: [
+        { kind: 'child-session', key: 'child-session-1' },
+        { kind: 'side-chat-draft', key: 'draft-1' },
+      ],
+      workspaceNavigationHistoryIndex: 1,
+    });
+
+    const persisted = JSON.parse(
+      window.localStorage.getItem(chatThreadWorkspaceStorageKey) ?? '{}',
+    );
+
+    expect(persisted.state.snapshot).toMatchObject({
+      workspacePanelParentKey: 'session-1',
+      activeWorkspacePanelKind: null,
+      workspaceNavigationHistory: [
+        { kind: 'child-session', key: 'child-session-1' },
+      ],
+      workspaceNavigationHistoryIndex: 0,
+    });
+    expect(persisted.state.snapshot.activeSideChatDraft).toBeUndefined();
   });
 
   it('hydrates the workspace panel state and repairs stale active file keys', async () => {

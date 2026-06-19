@@ -6,10 +6,14 @@ import {
 import { usePanelApps } from '@/features/panel-apps';
 import { t, type I18nLanguage } from '@/shared/lib/i18n';
 import { createPanelAppReferenceInputSurfacePlugin, PANEL_APP_REFERENCE_TRIGGER_SPEC } from '@/features/chat/features/input/input-surface-plugins/panel-app-reference-plugin.utils';
-import { createSkillReferenceInputSurfacePlugin } from '@/features/chat/features/input/input-surface-plugins/skill-reference-plugin.utils';
+import {
+  createSlashCommandInputSurfacePlugin,
+  type ChatSlashCommandDescriptor,
+} from '@/features/chat/features/input/input-surface-plugins/slash-command-plugin.utils';
 import type { ChatInputBarAdapterTexts, ChatSkillRecord } from '@/features/chat/types/chat-input-bar.types';
 
 export function useChatInputSurfaceState(params: {
+  commands: readonly ChatSlashCommandDescriptor[];
   isSkillsLoading: boolean;
   itemTexts: {
     slashTexts: Pick<
@@ -29,6 +33,7 @@ export function useChatInputSurfaceState(params: {
     onSelectSkill,
     recentSkillValues,
     skillRecords,
+    commands,
   } = params;
   const [inputSurfaceTrigger, setInputSurfaceTriggerState] = useState<ChatInputSurfaceTrigger | null>(null);
   const inputSurfaceTriggerSignatureRef = useRef('null');
@@ -42,14 +47,22 @@ export function useChatInputSurfaceState(params: {
 
   const inputSurfacePlugins = useMemo(
     () => [
-      createSkillReferenceInputSurfacePlugin({
+      createSlashCommandInputSurfacePlugin({
+        commands,
         itemTexts: itemTexts.slashTexts,
         menuTexts: {
           loadingLabel: t('chatSlashLoading', language),
-          sectionLabel: t('chatSlashSectionSkills', language),
+          sectionLabel: t('chatSlashSection', language),
           emptyLabel: t('chatSlashNoResult', language),
           hintLabel: t('chatSlashHint', language),
           itemHintLabel: t('chatSlashSkillHint', language)
+        },
+        labels: {
+          commandHintLabel: t('chatSlashCommandHint', language),
+          commandSectionLabel: t('chatSlashSectionCommands', language),
+          commandSubtitle: t('chatSlashTypeCommand', language),
+          skillHintLabel: t('chatSlashSkillHint', language),
+          skillSectionLabel: t('chatSlashSectionSkills', language)
         },
         onSelectSkill
       }),
@@ -70,6 +83,7 @@ export function useChatInputSurfaceState(params: {
       })
     ],
     [
+      commands,
       itemTexts.slashTexts,
       language,
       onSelectSkill

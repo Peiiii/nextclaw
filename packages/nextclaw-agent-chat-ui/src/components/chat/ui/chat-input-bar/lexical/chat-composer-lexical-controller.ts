@@ -104,10 +104,6 @@ class LexicalComposerHandleOwner implements ChatInputBarTokenizedComposerHandle 
     item: ChatInputSurfaceItem,
     triggerSpecs: readonly ChatInputSurfaceTriggerSpec[] = [CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC],
   ): void => {
-    if (!item.value && (!item.tokenKind || !item.tokenKey)) {
-      return;
-    }
-
     this.params.onInputSurfaceItemSelect?.(item);
     this.params.publishSnapshot(
       insertInputSurfaceItemIntoChatComposer({

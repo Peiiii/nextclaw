@@ -24,11 +24,18 @@ type SessionConversationAgent = {
   readonly abort: () => Promise<void>;
 };
 
+export type SessionConversationMaterializationContext = {
+  readonly kind: 'child';
+  readonly parentSessionKey: string;
+  readonly inheritContext: true;
+};
+
 type UseSessionConversationControllerParams = {
   readonly agent: SessionConversationAgent;
   readonly inputSnapshot: SessionConversationInputSnapshot;
   readonly inputQuery: SessionConversationInputQuery;
   readonly isRuntimeBlocked: boolean;
+  readonly materializationContext?: SessionConversationMaterializationContext | null;
   readonly selectedAgentId: string;
   readonly sessionKey: string | null;
   readonly onSessionMaterialized?: (sessionKey: string) => void;
@@ -66,6 +73,7 @@ export function useSessionConversationController(params: UseSessionConversationC
     inputSnapshot,
     inputQuery,
     isRuntimeBlocked,
+    materializationContext,
     selectedAgentId,
     sessionKey,
     onSessionMaterialized,
@@ -115,13 +123,28 @@ export function useSessionConversationController(params: UseSessionConversationC
       attachments: inputSnapshot.attachments,
     };
     const metadata = buildChatRunMetadata({
-      agentId: selectedAgentId,
-      model: resolveModelForSend(inputSnapshot.selectedModel ?? inputQuery.fallbackPreferredModel ?? inputQuery.defaultModel),
-      thinkingLevel: inputSnapshot.selectedThinkingLevel ?? inputQuery.fallbackPreferredThinking ?? undefined,
-      sessionType: inputQuery.sessionTypeState.selectedSessionType,
-      projectRoot: resolveProjectRootForSend({ inputSnapshot, inputQuery, sessionKey }),
+      agentId: materializationContext ? undefined : selectedAgentId,
+      model: materializationContext
+        ? resolveModelForSend(inputSnapshot.selectedModel)
+        : resolveModelForSend(inputSnapshot.selectedModel ?? inputQuery.fallbackPreferredModel ?? inputQuery.defaultModel),
+      thinkingLevel: materializationContext
+        ? inputSnapshot.selectedThinkingLevel ?? undefined
+        : inputSnapshot.selectedThinkingLevel ?? inputQuery.fallbackPreferredThinking ?? undefined,
+      sessionType: materializationContext
+        ? undefined
+        : inputQuery.sessionTypeState.selectedSessionType,
+      projectRoot: materializationContext
+        ? inputSnapshot.pendingProjectRoot
+        : resolveProjectRootForSend({ inputSnapshot, inputQuery, sessionKey }),
       requestedSkills: [...inputSnapshot.selectedSkills],
       composerNodes: [...inputSnapshot.nodes],
+      sessionMaterialization: materializationContext
+        ? {
+            kind: materializationContext.kind,
+            parentSessionId: materializationContext.parentSessionKey,
+            inheritContext: materializationContext.inheritContext,
+          }
+        : null,
     });
     const envelope = buildNcpRequestEnvelope({
       sessionId: sessionKey ?? undefined,
@@ -156,6 +179,7 @@ export function useSessionConversationController(params: UseSessionConversationC
     inputSnapshot,
     isRuntimeBlocked,
     isSending,
+    materializationContext,
     onSessionMaterialized,
     resetComposer,
     restoreComposer,

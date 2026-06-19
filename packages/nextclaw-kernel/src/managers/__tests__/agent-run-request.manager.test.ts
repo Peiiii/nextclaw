@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  CHAT_SESSION_MATERIALIZATION_METADATA_KEY,
   EventBus,
   eventKeys,
   Ingress,
@@ -106,6 +107,133 @@ describe("AgentRunRequestManager branch session creation", () => {
     });
     expect(getOrCreateAgentRunSessionCalls[0]?.task).toBe("用户的第一句话");
     expect(handle.sessionId).toBe("session-1");
+    manager.dispose();
+  });
+
+  it("materializes a child session from first-send metadata", async () => {
+    const ingress = new Ingress();
+    const getOrCreateAgentRunSessionCalls: Array<{
+      contextInheritance?: Record<string, unknown>;
+      parentSessionId?: string;
+      peerId?: string;
+      sessionId?: string;
+      sourceSessionId?: string;
+      task?: string;
+    }> = [];
+    const manager = new AgentRunRequestManager(
+      {
+        getOrCreate: () => ({
+          run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
+        }),
+      } as never,
+      { getDefaultAgentId: () => "main" } as never,
+      {
+        getDefaultModel: () => "test-model",
+        getModelMaxTokens: () => 12000,
+        loadConfig: () => ({}),
+      } as never,
+      { buildContext: async () => [] } as never,
+      new EventBus(),
+      ingress,
+      {
+        getOrCreateAgentRunSession: async (params: {
+          contextInheritance?: Record<string, unknown>;
+          parentSessionId?: string;
+          peerId?: string;
+          sessionId?: string;
+          sourceSessionId?: string;
+          task?: string;
+        }) => {
+          getOrCreateAgentRunSessionCalls.push(params);
+          return {
+            sessionId: "child-session-1",
+            agentId: "main",
+            agentRuntimeId: "native",
+            metadata: {},
+            model: "test-model",
+            thinkingEffort: null,
+          };
+        },
+      } as never,
+      {
+        getSessionRun: () => null,
+        createSessionRun: async () => ({
+          inbox: { enqueue: () => undefined },
+          beginRun: () => ({ runId: "run-1", signal: new AbortController().signal }),
+          onStatusChange: () => () => undefined,
+        }),
+      } as never,
+      { buildTools: async () => [] } as never,
+    );
+    manager.start();
+
+    const handle = await ingress.handle<AgentRunSendIngressPayload, NcpRunHandle>({
+      type: ingressKeys.agentRun.send,
+      payload: {
+        content: [{ type: "text", text: "继续讨论这个判断" }],
+        metadata: {
+          [CHAT_SESSION_MATERIALIZATION_METADATA_KEY]: {
+            kind: "child",
+            parentSessionId: "parent-session-1",
+            inheritContext: true,
+          },
+        },
+      },
+    }, { source: "test" });
+
+    expect(getOrCreateAgentRunSessionCalls[0]).toMatchObject({
+      contextInheritance: {},
+      parentSessionId: "parent-session-1",
+      peerId: undefined,
+      sessionId: undefined,
+      sourceSessionId: "parent-session-1",
+      task: "继续讨论这个判断",
+    });
+    expect(handle.sessionId).toBe("child-session-1");
+    manager.dispose();
+  });
+
+  it("rejects session materialization when an existing session id is supplied", async () => {
+    const ingress = new Ingress();
+    const manager = new AgentRunRequestManager(
+      {
+        getOrCreate: () => ({
+          run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
+        }),
+      } as never,
+      { getDefaultAgentId: () => "main" } as never,
+      {
+        getDefaultModel: () => "test-model",
+        getModelMaxTokens: () => 12000,
+        loadConfig: () => ({}),
+      } as never,
+      { buildContext: async () => [] } as never,
+      new EventBus(),
+      ingress,
+      {
+        getOrCreateAgentRunSession: async () => {
+          throw new Error("should not reach session owner");
+        },
+      } as never,
+      { getSessionRun: () => null } as never,
+      { buildTools: async () => [] } as never,
+    );
+    manager.start();
+
+    await expect(ingress.handle<AgentRunSendIngressPayload, NcpRunHandle>({
+      type: ingressKeys.agentRun.send,
+      payload: {
+        sessionId: "existing-session",
+        content: [{ type: "text", text: "ambiguous" }],
+        metadata: {
+          [CHAT_SESSION_MATERIALIZATION_METADATA_KEY]: {
+            kind: "child",
+            parentSessionId: "parent-session-1",
+            inheritContext: true,
+          },
+        },
+      },
+    }, { source: "test" })).rejects.toThrow("session_materialization requires a new session request");
     manager.dispose();
   });
 });

@@ -183,7 +183,28 @@ export function SessionConversationInput(props: SessionConversationInputProps) {
     skillRecords: inputQuery.skillRecords,
     skillScopeLabels: labels.skillScopeLabels,
   });
+  const slashCommands = useMemo(() => {
+    const parentSessionKey = inputQuery.selectedSessionKey?.trim();
+    if (!parentSessionKey) {
+      return [];
+    }
+    return [
+      {
+        key: 'side-chat',
+        title: t('chatSlashCommandSideChatTitle', language),
+        description: t('chatSlashCommandSideChatDescription', language),
+        detailLines: [t('chatSlashCommandSideChatDetail', language)],
+        keywords: ['side', 'chat', 'child', 'branch', 'new'],
+        onSelect: () => presenter.chatThreadManager.openSideChatDraft(parentSessionKey),
+      },
+    ];
+  }, [
+    inputQuery.selectedSessionKey,
+    language,
+    presenter.chatThreadManager,
+  ]);
   const { inputSurfaceState, setInputSurfaceTrigger } = useChatInputSurfaceState({
+    commands: slashCommands,
     isSkillsLoading: inputQuery.isSkillsLoading,
     itemTexts: {
       slashTexts: labels.slashTexts,

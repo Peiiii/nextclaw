@@ -22,7 +22,6 @@ import type {
   AgentRunSession,
   CreateAgentRunSessionParams,
 } from "@kernel/types/session.types.js";
-import type { ThinkingEffort } from "@kernel/types/agent-run.types.js";
 import {
   createNcpAgentSessionSummary,
   type NcpAgentSessionJournalReplayEvent,
@@ -34,6 +33,18 @@ import {
   readOptionalMetadataString,
   readOptionalString,
 } from "@kernel/utils/session-manager.utils.js";
+import {
+  applySessionOverrides,
+  cloneInheritedMetadata,
+  DEFAULT_SESSION_LIFECYCLE,
+  DEFAULT_SESSION_TYPE,
+  mergeMetadataOverrides,
+  readAgentRuntimeId,
+  readProjectRoot,
+  readThinkingEffort,
+  resolveSessionType,
+  summarizeTask,
+} from "@kernel/utils/session-creation.utils.js";
 import { createSessionContextInheritance } from "@kernel/utils/session-context-inheritance.utils.js";
 import {
   eventKeys,
@@ -48,13 +59,6 @@ type CreateNcpSessionInput = CreateSessionInput & {
   sessionId?: string;
 };
 
-const DEFAULT_SESSION_TYPE = "native";
-const DEFAULT_LIFECYCLE = "persistent";
-const SESSION_METADATA_LABEL_KEY = "label";
-const CHILD_SESSION_PARENT_METADATA_KEY = "parent_session_id";
-const CHILD_SESSION_REQUEST_METADATA_KEY = "spawned_by_request_id";
-const CHILD_SESSION_LIFECYCLE_METADATA_KEY = "session_lifecycle";
-
 export type SessionManagerOptions = {
   agentManager: AgentManager;
   configManager: ConfigManager;
@@ -63,114 +67,8 @@ export type SessionManagerOptions = {
   sessionSearch: SessionSearchService;
 };
 
-function readThinkingEffort(metadata: Record<string, unknown> | undefined): ThinkingEffort | null {
-  return readOptionalMetadataString(metadata?.thinkingEffort) ?? null;
-}
-
-function readProjectRoot(metadata: Record<string, unknown> | undefined): string | undefined {
-  return readOptionalMetadataString(metadata?.project_root) ?? readOptionalMetadataString(metadata?.projectRoot);
-}
-
-function summarizeTask(task: string): string {
-  const normalized = task.trim().replace(/\s+/g, " ");
-  if (!normalized) {
-    return "Session";
-  }
-  return normalized.length <= 72 ? normalized : `${normalized.slice(0, 69)}...`;
-}
-
 function buildSessionId(): string {
   return `ncp-${Date.now().toString(36)}-${randomUUID().replace(/-/g, "").slice(0, 8)}`;
-}
-
-function cloneInheritedMetadata(sourceMetadata: Record<string, unknown>): Record<string, unknown> {
-  const nextMetadata: Record<string, unknown> = {};
-  const inheritedKeys = [
-    "runtime",
-    "session_type",
-    "preferred_model",
-    "preferred_thinking",
-    "project_root",
-    "requested_skill_refs",
-    "codex_runtime_backend",
-    "reasoningNormalizationMode",
-    "reasoning_normalization_mode",
-  ];
-  for (const key of inheritedKeys) {
-    if (Object.prototype.hasOwnProperty.call(sourceMetadata, key)) {
-      nextMetadata[key] = structuredClone(sourceMetadata[key]);
-    }
-  }
-  return nextMetadata;
-}
-
-function mergeMetadataOverrides(
-  metadata: Record<string, unknown>,
-  overrides?: Record<string, unknown>,
-): Record<string, unknown> {
-  return overrides && Object.keys(overrides).length > 0
-    ? { ...metadata, ...structuredClone(overrides) }
-    : metadata;
-}
-
-function resolveSessionType(params: {
-  runtime?: string;
-  sessionType?: string;
-  metadata: Record<string, unknown>;
-}): string {
-  const { metadata, runtime, sessionType } = params;
-  return (
-    readOptionalString(runtime) ??
-    readOptionalString(metadata.runtime) ??
-    readOptionalString(sessionType) ??
-    readOptionalString(metadata.session_type) ??
-    DEFAULT_SESSION_TYPE
-  );
-}
-
-function applySessionOverrides(params: {
-  lifecycle: string;
-  metadata: Record<string, unknown>;
-  model?: string;
-  parentSessionId?: string;
-  projectRoot?: string | null;
-  requestId?: string;
-  sessionType: string;
-  thinkingLevel?: string;
-  title?: string;
-}): void {
-  const {
-    lifecycle,
-    metadata,
-    model,
-    parentSessionId,
-    projectRoot,
-    requestId,
-    sessionType,
-    thinkingLevel,
-    title,
-  } = params;
-  metadata.session_type = sessionType;
-  metadata.runtime = sessionType;
-  metadata[SESSION_METADATA_LABEL_KEY] = title;
-  metadata[CHILD_SESSION_LIFECYCLE_METADATA_KEY] = lifecycle;
-  if (parentSessionId) {
-    metadata[CHILD_SESSION_PARENT_METADATA_KEY] = parentSessionId;
-  }
-  if (requestId) {
-    metadata[CHILD_SESSION_REQUEST_METADATA_KEY] = requestId;
-  }
-  if (readOptionalString(model)) {
-    metadata.model = model?.trim();
-    metadata.preferred_model = model?.trim();
-  }
-  if (readOptionalString(thinkingLevel)) {
-    metadata.thinking = thinkingLevel?.trim();
-    metadata.preferred_thinking = thinkingLevel?.trim();
-  }
-  if (readOptionalString(projectRoot)) {
-    metadata.project_root = projectRoot?.trim();
-  }
 }
 
 function isSessionSummaryRefreshEvent(event: NcpAgentSessionJournalReplayEvent): boolean {
@@ -255,7 +153,7 @@ export class SessionManager implements NcpSessionApi {
       metadata,
     });
     applySessionOverrides({
-      lifecycle: DEFAULT_LIFECYCLE,
+      lifecycle: DEFAULT_SESSION_LIFECYCLE,
       metadata,
       model,
       parentSessionId: parentSessionId ?? undefined,
@@ -296,7 +194,7 @@ export class SessionManager implements NcpSessionApi {
       runtimeFamily: sessionType === DEFAULT_SESSION_TYPE ? "native" : "external",
       ...(parentSessionId ? { parentSessionId } : {}),
       ...(requestId ? { spawnedByRequestId: requestId } : {}),
-      lifecycle: DEFAULT_LIFECYCLE,
+      lifecycle: DEFAULT_SESSION_LIFECYCLE,
       title,
       metadata: inheritedContext.metadata,
       createdAt: now,
@@ -459,22 +357,39 @@ export class SessionManager implements NcpSessionApi {
       agentId,
       agentRuntimeId: requestedAgentRuntimeId,
       channel,
+      contextInheritance,
       metadata,
       model,
+      parentSessionId: rawParentSessionId,
       peerId: rawPeerId,
       projectRoot,
       sessionId,
+      sourceSessionId: rawSourceSessionId,
+      sourceSessionMetadata: requestedSourceSessionMetadata,
       task,
       thinkingEffort,
     } = params;
-    const agentRuntimeId = requestedAgentRuntimeId ?? DEFAULT_AGENT_RUNTIME_ENTRY_ID;
     const peerId = readOptionalString(rawPeerId);
+    const parentSessionId = readOptionalString(rawParentSessionId);
+    const sourceSessionId = readOptionalString(rawSourceSessionId);
+    const sourceRecord = sourceSessionId
+      ? await this.getSessionRecord(sourceSessionId)
+      : null;
+    const sourceSessionMetadata =
+      requestedSourceSessionMetadata ?? sourceRecord?.metadata ?? {};
+    const agentRuntimeId =
+      requestedAgentRuntimeId ??
+      readAgentRuntimeId(sourceSessionMetadata) ??
+      DEFAULT_AGENT_RUNTIME_ENTRY_ID;
     const peerIdentity = peerId
       ? createAgentPeerSessionIdentity({ agentId, channel, metadata, peerId })
       : undefined;
     const requestedSessionId = readOptionalString(sessionId);
     const created = await this.createSession({
-      sourceSessionMetadata: {},
+      contextInheritance,
+      parentSessionId: parentSessionId ?? undefined,
+      sourceSessionId: sourceSessionId ?? undefined,
+      sourceSessionMetadata,
       sessionId: requestedSessionId ?? peerIdentity?.sessionId,
       task: task ?? "Session",
       agentId,
@@ -490,16 +405,16 @@ export class SessionManager implements NcpSessionApi {
     });
     return {
       sessionId: created.sessionId,
-      agentId,
+      agentId: created.agentId,
       agentRuntimeId,
       metadata: structuredClone(created.metadata ?? {}),
-      model,
-      projectRoot,
+      model: model ?? readOptionalMetadataString(created.metadata?.model) ?? readOptionalMetadataString(created.metadata?.preferred_model),
+      projectRoot: projectRoot ?? readProjectRoot(created.metadata),
       workingDir: this.workingDirResolver.resolve({
-        agentId,
+        agentId: created.agentId,
         metadata: created.metadata,
       }),
-      thinkingEffort: thinkingEffort ?? null,
+      thinkingEffort: thinkingEffort ?? readThinkingEffort(created.metadata),
     };
   };
 
