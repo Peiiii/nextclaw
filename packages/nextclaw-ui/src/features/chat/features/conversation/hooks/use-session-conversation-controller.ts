@@ -55,18 +55,6 @@ const resolveModelForSend = (value: string | null | undefined): string | undefin
   return trimmed || undefined;
 };
 
-const resolveProjectRootForSend = (params: {
-  readonly inputSnapshot: SessionConversationInputSnapshot;
-  readonly inputQuery: SessionConversationInputQuery;
-  readonly sessionKey: string | null;
-}): string | null => {
-  const { inputSnapshot, inputQuery, sessionKey } = params;
-  if (!sessionKey) {
-    return inputSnapshot.pendingProjectRoot ?? inputQuery.defaultProjectRoot ?? null;
-  }
-  return inputQuery.selectedSession?.projectRoot ?? null;
-};
-
 export function useSessionConversationController(params: UseSessionConversationControllerParams) {
   const {
     agent,
@@ -135,7 +123,9 @@ export function useSessionConversationController(params: UseSessionConversationC
         : inputQuery.sessionTypeState.selectedSessionType,
       projectRoot: materializationContext
         ? inputSnapshot.pendingProjectRoot
-        : resolveProjectRootForSend({ inputSnapshot, inputQuery, sessionKey }),
+        : sessionKey
+          ? inputQuery.selectedSession?.projectRoot ?? null
+          : inputSnapshot.pendingProjectRoot,
       requestedSkills: [...inputSnapshot.selectedSkills],
       composerNodes: [...inputSnapshot.nodes],
       sessionMaterialization: materializationContext

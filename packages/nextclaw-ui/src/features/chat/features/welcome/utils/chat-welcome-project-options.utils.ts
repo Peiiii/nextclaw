@@ -6,7 +6,6 @@ export type ChatWelcomeProjectOption = {
   projectRoot: string;
   projectName: string;
   sessionCount: number;
-  isDefault: boolean;
 };
 
 function readSessionActivityAt(session: {
@@ -28,7 +27,7 @@ export function buildChatWelcomeProjectOptions(params: {
 
   for (const session of adaptNcpSessionSummaries([...sessionSummaries])) {
     const projectRoot = session.projectRoot?.trim();
-    if (!projectRoot) {
+    if (!projectRoot || projectRoot === defaultProjectRoot) {
       continue;
     }
     const existing = groups.get(projectRoot);
@@ -45,26 +44,12 @@ export function buildChatWelcomeProjectOptions(params: {
         getSessionProjectName(projectRoot) ||
         projectRoot,
       sessionCount: 1,
-      isDefault: projectRoot === defaultProjectRoot,
       latestUpdatedAt,
-    });
-  }
-
-  if (defaultProjectRoot && !groups.has(defaultProjectRoot)) {
-    groups.set(defaultProjectRoot, {
-      projectRoot: defaultProjectRoot,
-      projectName: getSessionProjectName(defaultProjectRoot) ?? defaultProjectRoot,
-      sessionCount: 0,
-      isDefault: true,
-      latestUpdatedAt: Number.POSITIVE_INFINITY,
     });
   }
 
   return [...groups.values()]
     .sort((left, right) => {
-      if (left.isDefault !== right.isDefault) {
-        return left.isDefault ? -1 : 1;
-      }
       return right.latestUpdatedAt - left.latestUpdatedAt;
     })
     .map(({ latestUpdatedAt: _latestUpdatedAt, ...option }) => option);

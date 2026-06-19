@@ -90,11 +90,6 @@ export function ChatWelcomeProjectPicker({
                     <span className="truncate text-[13px] font-semibold text-gray-800">
                       {option.projectName}
                     </span>
-                    {option.isDefault ? (
-                      <span className="shrink-0 text-[10px] font-medium text-gray-400">
-                        {t('chatWelcomeProjectDefaultBadge')}
-                      </span>
-                    ) : null}
                   </span>
                   <span className="block truncate text-[11px] leading-4 text-gray-500">
                     {option.projectRoot}

@@ -1,4 +1,5 @@
 import { join, resolve } from "node:path";
+import { DEFAULT_WORKSPACE_PATH } from "@core/features/config/index.js";
 import { expandHome, getWorkspacePath } from "@core/shared/lib/core-utils/index.js";
 
 export const DEFAULT_PROJECT_SKILLS_DIR_NAME = ".agents/skills";
@@ -43,7 +44,11 @@ export class SessionProjectContextResolver {
   }): SessionProjectContext => {
     const hostWorkspace = getWorkspacePath(params.workspace ?? params.defaultWorkspace);
     const rawProjectRoot = this.readProjectRoot(params.sessionMetadata);
-    const projectRoot = rawProjectRoot ? resolve(expandHome(rawProjectRoot)) : null;
+    const resolvedProjectRoot =
+      rawProjectRoot && rawProjectRoot !== DEFAULT_WORKSPACE_PATH
+        ? resolve(expandHome(rawProjectRoot))
+        : null;
+    const projectRoot = resolvedProjectRoot === hostWorkspace ? null : resolvedProjectRoot;
 
     return {
       hostWorkspace,

@@ -18,10 +18,15 @@ function createSummary(
 }
 
 describe("buildChatWelcomeProjectOptions", () => {
-  it("builds recent project options from session summaries", () => {
+  it("builds recent project options without treating the default workspace as a project", () => {
     const options = buildChatWelcomeProjectOptions({
       defaultProjectRoot: "/Users/demo/.nextclaw/workspace",
       sessionSummaries: [
+        createSummary({
+          sessionId: "session-default",
+          lastMessageAt: "2026-06-12T10:00:00.000Z",
+          metadata: { project_root: "/Users/demo/.nextclaw/workspace" },
+        }),
         createSummary({
           sessionId: "session-1",
           lastMessageAt: "2026-06-10T10:00:00.000Z",
@@ -37,16 +42,9 @@ describe("buildChatWelcomeProjectOptions", () => {
 
     expect(options).toEqual([
       {
-        projectRoot: "/Users/demo/.nextclaw/workspace",
-        projectName: "workspace",
-        sessionCount: 0,
-        isDefault: true,
-      },
-      {
         projectRoot: "/tmp/project-alpha",
         projectName: "project-alpha",
         sessionCount: 2,
-        isDefault: false,
       },
     ]);
   });

@@ -90,16 +90,9 @@ describe('ChatWelcome', () => {
       onSelectProjectRoot,
       projectOptions: [
         {
-          projectRoot: '/Users/demo/.nextclaw/workspace',
-          projectName: 'workspace',
-          sessionCount: 0,
-          isDefault: true,
-        },
-        {
           projectRoot: '/tmp/project-alpha',
           projectName: 'project-alpha',
           sessionCount: 3,
-          isDefault: false,
         },
       ],
     });
