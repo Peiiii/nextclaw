@@ -17,16 +17,12 @@ import type {
   ChatComposerNode,
   ChatComposerSelection,
   ChatInputSurfaceItem,
-  ChatInputSurfaceTrigger,
+  ChatInputSurfaceTriggerChangeReason,
   ChatInputSurfaceTriggerSpec,
   ChatInputBarActionsProps,
   ChatSkillPickerOption,
   ChatSlashItem,
 } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
-import {
-  CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC,
-  resolveChatComposerActiveInputSurfaceTrigger,
-} from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 import {
   getChatComposerNodesSignature,
   readChatComposerSnapshotFromEditorState,
@@ -44,7 +40,10 @@ import { ChatComposerBindingsPlugin } from './chat-composer-plugins';
 import { ChatComposerTokenNode } from './chat-composer-token-node';
 
 export type ChatInputBarTokenizedComposerHandle = {
-  insertInputSurfaceItem: (item: ChatInputSurfaceItem) => void;
+  insertInputSurfaceItem: (
+    item: ChatInputSurfaceItem,
+    triggerSpecs?: readonly ChatInputSurfaceTriggerSpec[],
+  ) => void;
   insertSlashItem: (item: ChatSlashItem) => void;
   insertFileToken: (tokenKey: string, label: string) => void;
   insertFileTokens: (tokens: Array<{ tokenKey: string; label: string }>) => void;
@@ -57,18 +56,17 @@ type ChatInputBarTokenizedComposerProps = {
   nodes: ChatComposerNode[];
   placeholder: string;
   disabled: boolean;
-  slashItems: ChatSlashItem[];
-  inputSurfaceTriggerSpecs?: readonly ChatInputSurfaceTriggerSpec[];
-  onSlashItemSelect?: (item: ChatSlashItem) => void;
+  onInputSurfaceItemSelect?: (item: ChatInputSurfaceItem) => void;
   actions: Pick<ChatInputBarActionsProps, 'onSend' | 'onStop' | 'isSending' | 'canStopGeneration'>;
   onNodesChange: (nodes: ChatComposerNode[]) => void;
   onFilesAdd?: (files: File[]) => Promise<void> | void;
-  onSlashQueryChange?: (query: string | null) => void;
-  onInputSurfaceTriggerChange?: (trigger: ChatInputSurfaceTrigger | null) => void;
-  onSlashTriggerChange?: (trigger: { query: string; start: number; end: number } | null) => void;
-  onSlashOpenChange: (open: boolean) => void;
-  onSlashActiveIndexChange: (index: number) => void;
-  activeSlashIndex: number;
+  onInputSurfaceSnapshotChange?: (
+    nodes: ChatComposerNode[],
+    selection: ChatComposerSelection | null,
+    reason: ChatInputSurfaceTriggerChangeReason,
+  ) => void;
+  onInputSurfaceOpenChange?: (open: boolean) => void;
+  onInputSurfaceKeyDown?: (event: KeyboardEvent) => boolean;
 };
 
 function getChatComposerDocumentLength(nodes: ChatComposerNode[]): number {
@@ -81,20 +79,15 @@ export const ChatInputBarTokenizedComposer = forwardRef<
 >(function ChatInputBarTokenizedComposer(
   {
     actions,
-    activeSlashIndex,
     disabled,
-    inputSurfaceTriggerSpecs = [CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC],
     nodes,
     onFilesAdd,
-    onInputSurfaceTriggerChange,
+    onInputSurfaceItemSelect,
+    onInputSurfaceKeyDown,
+    onInputSurfaceOpenChange,
+    onInputSurfaceSnapshotChange,
     onNodesChange,
-    onSlashActiveIndexChange,
-    onSlashItemSelect,
-    onSlashOpenChange,
-    onSlashQueryChange,
-    onSlashTriggerChange,
     placeholder,
-    slashItems,
   },
   ref,
 ) {
@@ -104,32 +97,19 @@ export const ChatInputBarTokenizedComposer = forwardRef<
   const shouldFocusAfterSyncRef = useRef(false);
   const isComposingRef = useRef(false);
   const isApplyingExternalUpdateRef = useRef(false);
+  const pendingInputSurfaceReasonRef = useRef<ChatInputSurfaceTriggerChangeReason | null>(null);
   const editorSignatureRef = useRef('');
   const lastPublishedSignatureRef = useRef('');
 
-  const syncSlashState = useCallback(
-    (nodes: ChatComposerNode[], selection: ChatComposerSelection | null): void => {
-      const trigger = resolveChatComposerActiveInputSurfaceTrigger(nodes, selection, inputSurfaceTriggerSpecs);
-      onInputSurfaceTriggerChange?.(trigger);
-      onSlashTriggerChange?.(
-        trigger
-          ? {
-              query: trigger.query,
-              start: trigger.start,
-              end: trigger.end,
-            }
-          : null,
-      );
-      onSlashQueryChange?.(trigger?.query ?? null);
-      onSlashOpenChange(trigger !== null);
+  const syncInputSurfaceSnapshot = useCallback(
+    (
+      nodes: ChatComposerNode[],
+      selection: ChatComposerSelection | null,
+      reason: ChatInputSurfaceTriggerChangeReason,
+    ): void => {
+      onInputSurfaceSnapshotChange?.(nodes, selection, reason);
     },
-    [
-      inputSurfaceTriggerSpecs,
-      onInputSurfaceTriggerChange,
-      onSlashOpenChange,
-      onSlashQueryChange,
-      onSlashTriggerChange,
-    ],
+    [onInputSurfaceSnapshotChange],
   );
 
   const readCurrentNodes = useCallback((): ChatComposerNode[] => {
@@ -153,7 +133,11 @@ export const ChatInputBarTokenizedComposer = forwardRef<
   const publishSnapshot = useCallback(
     (
       snapshot: { nodes: ChatComposerNode[]; selection: ChatComposerSelection | null },
-      options?: { focusAfterSync?: boolean; forcePublish?: boolean },
+      options?: {
+        focusAfterSync?: boolean;
+        forcePublish?: boolean;
+        inputSurfaceReason?: ChatInputSurfaceTriggerChangeReason;
+      },
     ): void => {
       selectionRef.current = snapshot.selection;
       pendingSelectionRef.current = snapshot.selection;
@@ -163,14 +147,14 @@ export const ChatInputBarTokenizedComposer = forwardRef<
       }
 
       const signature = getChatComposerNodesSignature(snapshot.nodes);
-      syncSlashState(snapshot.nodes, snapshot.selection);
+      syncInputSurfaceSnapshot(snapshot.nodes, snapshot.selection, options?.inputSurfaceReason ?? { type: 'programmatic' });
 
       if (options?.forcePublish || signature !== lastPublishedSignatureRef.current) {
         lastPublishedSignatureRef.current = signature;
         onNodesChange(snapshot.nodes);
       }
     },
-    [onNodesChange, syncSlashState],
+    [onNodesChange, syncInputSurfaceSnapshot],
   );
 
   const focusComposer = useCallback((): void => {
@@ -221,22 +205,26 @@ export const ChatInputBarTokenizedComposer = forwardRef<
     selection: readCurrentSelection(),
   }), [readCurrentNodes, readCurrentSelection]);
 
+  const consumeInputSurfaceReason = useCallback((): ChatInputSurfaceTriggerChangeReason | null => {
+    const reason = pendingInputSurfaceReasonRef.current;
+    pendingInputSurfaceReasonRef.current = null;
+    return reason;
+  }, []);
+
   useImperativeHandle(
     ref,
     () =>
       createLexicalComposerHandle({
         focusComposer,
         focusComposerAtEnd,
-        inputSurfaceTriggerSpecs,
-        onSlashItemSelect,
+        onInputSurfaceItemSelect,
         optionsReader: readComposerSnapshot,
         publishSnapshot,
       }),
     [
       focusComposer,
       focusComposerAtEnd,
-      inputSurfaceTriggerSpecs,
-      onSlashItemSelect,
+      onInputSurfaceItemSelect,
       publishSnapshot,
       readComposerSnapshot,
     ],
@@ -267,9 +255,9 @@ export const ChatInputBarTokenizedComposer = forwardRef<
               <ContentEditable
                 className="min-h-7 max-h-[188px] w-full overflow-y-auto whitespace-pre-wrap break-words bg-transparent py-0.5 text-sm leading-6 text-gray-800 outline-none"
                 onBeforeInput={(event: FormEvent<HTMLDivElement>) => {
-	                  handleLexicalComposerBeforeInput({
-	                    disabled,
-	                    event,
+                  handleLexicalComposerBeforeInput({
+                    disabled,
+                    event,
                     isComposing: isComposingRef.current,
                     publishSnapshot,
                     snapshotReader: readComposerSnapshot,
@@ -293,65 +281,69 @@ export const ChatInputBarTokenizedComposer = forwardRef<
                 onCompositionStart={() => {
                   isComposingRef.current = true;
                 }}
-	                onPaste={(event: ClipboardEvent<HTMLDivElement>) => {
-	                  const files = Array.from(event.clipboardData.files ?? []);
-	                  if (files.length > 0 && onFilesAdd) {
-	                    event.preventDefault();
-	                    void onFilesAdd(files);
-	                  }
-	                }}
+                onPaste={(event: ClipboardEvent<HTMLDivElement>) => {
+                  const files = Array.from(event.clipboardData.files ?? []);
+                  if (files.length > 0 && onFilesAdd) {
+                    event.preventDefault();
+                    void onFilesAdd(files);
+                  }
+                }}
               />
             }
-	            placeholder={
-	              <div className="pointer-events-none absolute left-3 top-2 select-none text-sm leading-6 text-gray-400 sm:left-4 sm:top-2.5">
-	                {placeholder}
-	              </div>
-	            }
+            placeholder={
+              <div className="pointer-events-none absolute left-3 top-2 select-none text-sm leading-6 text-gray-400 sm:left-4 sm:top-2.5">
+                {placeholder}
+              </div>
+            }
             ErrorBoundary={LexicalErrorBoundary}
           />
         </div>
       </div>
       <EditorRefPlugin editorRef={editorRef} />
-	      <ChatComposerBindingsPlugin
-	        disabled={disabled}
-	        editorRef={editorRef}
+      <ChatComposerBindingsPlugin
+        disabled={disabled}
+        editorRef={editorRef}
         editorSignatureRef={editorSignatureRef}
         isApplyingExternalUpdateRef={isApplyingExternalUpdateRef}
         isComposingRef={isComposingRef}
         lastPublishedSignatureRef={lastPublishedSignatureRef}
-	        nodes={nodes}
-	        onBlur={() => {
-            onInputSurfaceTriggerChange?.(null);
-	          onSlashQueryChange?.(null);
-	          onSlashOpenChange(false);
-	        }}
+        nodes={nodes}
+        onBlur={() => {
+          onInputSurfaceOpenChange?.(false);
+        }}
+        consumeInputSurfaceReason={consumeInputSurfaceReason}
         onKeyDown={(event) => {
+          if (
+            event.key.length === 1 &&
+            !event.isComposing &&
+            !event.altKey &&
+            !event.ctrlKey &&
+            !event.metaKey
+          ) {
+            pendingInputSurfaceReasonRef.current = { type: 'insert-text', text: event.key };
+          }
           const editor = editorRef.current;
           if (!editor) {
             return false;
           }
 
           const snapshot = readChatComposerSnapshotFromEditorState(editor.getEditorState());
-	          selectionRef.current = snapshot.selection;
-	          return handleLexicalComposerKeyboardCommand({
-	            actions,
-	            activeSlashIndex,
-	            nativeEvent: event,
-            onSlashActiveIndexChange,
-            onSlashItemSelect,
-            onSlashOpenChange,
-            onSlashQueryChange,
+          selectionRef.current = snapshot.selection;
+          if (onInputSurfaceKeyDown?.(event)) {
+            return true;
+          }
+          return handleLexicalComposerKeyboardCommand({
+            actions,
+            nativeEvent: event,
             publishSnapshot,
-            slashItems,
-            inputSurfaceTriggerSpecs,
             snapshot,
           });
-	        }}
-	        onNodesChange={onNodesChange}
+        }}
+        onNodesChange={onNodesChange}
         pendingSelectionRef={pendingSelectionRef}
         selectionRef={selectionRef}
         shouldFocusAfterSyncRef={shouldFocusAfterSyncRef}
-        syncSlashState={syncSlashState}
+        syncInputSurfaceSnapshot={syncInputSurfaceSnapshot}
       />
     </LexicalComposer>
   );

@@ -1,9 +1,9 @@
-import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
 import type {
   ChatInputBarProps,
   ChatInputSurfaceConfig,
 } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
-import { ChatInputSurfaceMenu } from '@agent-chat-ui/components/chat/ui/input-surface/chat-input-surface-menu';
+import { ChatInputSurfaceHost } from '@agent-chat-ui/components/chat/ui/input-surface/chat-input-surface-host';
 import { ChatInputBarToolbar } from './chat-input-bar-toolbar';
 import { ChatInputBarTokenizedComposer, type ChatInputBarTokenizedComposerHandle } from './chat-input-bar-tokenized-composer';
 
@@ -58,10 +58,6 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
   ref
 ) {
   const composerRef = useRef<ChatInputBarTokenizedComposerHandle | null>(null);
-  const isInputSurfaceMenuInteractionRef = useRef(false);
-  const [activeInputSurfaceIndex, setActiveInputSurfaceIndex] = useState(0);
-  const [activeInputSurfaceTriggerStart, setActiveInputSurfaceTriggerStart] = useState<number | null>(null);
-  const [dismissedInputSurfaceTriggerStart, setDismissedInputSurfaceTriggerStart] = useState<number | null>(null);
   const resolvedInputSurface: ChatInputSurfaceConfig | null = inputSurface ?? (slashMenu
     ? {
         isLoading: slashMenu.isLoading,
@@ -76,17 +72,6 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
         },
       }
     : null);
-  const inputSurfaceItems = resolvedInputSurface?.items ?? [];
-  const isInputSurfacePanelOpen =
-    Boolean(resolvedInputSurface) &&
-    activeInputSurfaceTriggerStart !== null &&
-    dismissedInputSurfaceTriggerStart !== activeInputSurfaceTriggerStart;
-  const activeInputSurfaceIndexInRange =
-    inputSurfaceItems.length === 0 ? 0 : Math.min(activeInputSurfaceIndex, inputSurfaceItems.length - 1);
-  const activeInputSurfaceItem = inputSurfaceItems[activeInputSurfaceIndexInRange] ?? null;
-  const dismissInputSurfaceTrigger = () => activeInputSurfaceTriggerStart !== null && !isInputSurfaceMenuInteractionRef.current
-    ? setDismissedInputSurfaceTriggerStart(activeInputSurfaceTriggerStart)
-    : undefined;
 
   const toolbar = useMemo(() => {
     if (!toolbarProps.skillPicker) {
@@ -120,58 +105,32 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
       <div className="nextclaw-chat-input-bar-shell mx-auto w-full max-w-[min(1120px,100%)] [container:nextclaw-chat-input-bar/inline-size]">
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card">
           <div className="relative">
-            <ChatInputBarTokenizedComposer
-              ref={composerRef}
-              nodes={composer.nodes}
-              placeholder={composer.placeholder}
-              disabled={composer.disabled}
-              slashItems={inputSurfaceItems}
-              inputSurfaceTriggerSpecs={composer.inputSurfaceTriggerSpecs}
-              onSlashItemSelect={resolvedInputSurface?.onSelectItem}
-              actions={toolbarProps.actions}
-              activeSlashIndex={activeInputSurfaceIndexInRange}
-              onNodesChange={composer.onNodesChange}
-              onFilesAdd={composer.onFilesAdd}
+            <ChatInputSurfaceHost
+              inputSurface={resolvedInputSurface}
               onInputSurfaceTriggerChange={composer.onInputSurfaceTriggerChange}
-              onSlashQueryChange={(query) => {
-                if (query === null && isInputSurfaceMenuInteractionRef.current) return;
-                if (query !== null) setActiveInputSurfaceIndex(0);
-                composer.onSlashQueryChange?.(query);
-              }}
-              onSlashTriggerChange={(trigger) => {
-                const nextTriggerStart = trigger?.start ?? null;
-                setActiveInputSurfaceTriggerStart(nextTriggerStart);
-                if (nextTriggerStart === null) {
-                  setDismissedInputSurfaceTriggerStart(null);
-                }
-              }}
-              onSlashOpenChange={(open) => {
-                if (!open) dismissInputSurfaceTrigger();
-              }}
-              onSlashActiveIndexChange={setActiveInputSurfaceIndex}
-            />
-            {resolvedInputSurface ? (
-              <ChatInputSurfaceMenu
-                isOpen={isInputSurfacePanelOpen}
-                isLoading={resolvedInputSurface.isLoading}
-                items={inputSurfaceItems}
-                activeIndex={activeInputSurfaceIndexInRange}
-                activeItem={activeInputSurfaceItem}
-                texts={resolvedInputSurface.texts}
-                onSelectItem={(item) => {
-                  setDismissedInputSurfaceTriggerStart(null);
-                  composerRef.current?.insertInputSurfaceItem(item);
-                }}
-                onOpenChange={(open) => {
-                  if (!open) dismissInputSurfaceTrigger();
-                }}
-                onDetailsPointerDown={() => {
-                  isInputSurfaceMenuInteractionRef.current = true;
-                  requestAnimationFrame(() => { isInputSurfaceMenuInteractionRef.current = false; });
-                }}
-                onSetActiveIndex={setActiveInputSurfaceIndex}
-              />
-            ) : null}
+              onSelectItem={(item) => composerRef.current?.insertInputSurfaceItem(item, composer.inputSurfaceTriggerSpecs)}
+              triggerSpecs={composer.inputSurfaceTriggerSpecs}
+            >
+              {({
+                onInputSurfaceKeyDown,
+                onInputSurfaceOpenChange,
+                onInputSurfaceSnapshotChange,
+              }) => (
+                <ChatInputBarTokenizedComposer
+                  ref={composerRef}
+                  nodes={composer.nodes}
+                  placeholder={composer.placeholder}
+                  disabled={composer.disabled}
+                  onInputSurfaceItemSelect={resolvedInputSurface?.onSelectItem}
+                  actions={toolbarProps.actions}
+                  onNodesChange={composer.onNodesChange}
+                  onFilesAdd={composer.onFilesAdd}
+                  onInputSurfaceSnapshotChange={onInputSurfaceSnapshotChange}
+                  onInputSurfaceOpenChange={onInputSurfaceOpenChange}
+                  onInputSurfaceKeyDown={onInputSurfaceKeyDown}
+                />
+              )}
+            </ChatInputSurfaceHost>
           </div>
 
           <InputBarHint hint={hint} />

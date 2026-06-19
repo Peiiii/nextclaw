@@ -13,5 +13,6 @@ export type {
   ChatInputSurfacePluginContext,
   ChatInputSurfaceResolvedState,
   ChatInputSurfaceTrigger,
+  ChatInputSurfaceTriggerChangeReason,
   ChatInputSurfaceTriggerSpec,
 } from './input-surface.types';

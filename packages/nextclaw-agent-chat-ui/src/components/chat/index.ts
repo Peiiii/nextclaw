@@ -42,6 +42,7 @@ export type {
   ChatInputSurfaceMenuProps,
   ChatInputSurfaceMenuTexts,
   ChatInputSurfaceTrigger,
+  ChatInputSurfaceTriggerChangeReason,
   ChatInputSurfaceTriggerSpec,
   ChatSlashItem,
   ChatSelectedItem,

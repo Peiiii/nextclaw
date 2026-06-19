@@ -1,9 +1,12 @@
 import { useRef, useState } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { ChatInputBar, type ChatInputBarHandle } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-input-bar';
+import {
+  ChatInputBar,
+  type ChatInputBarHandle,
+} from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-input-bar';
+import { resolveInputSurfaceTriggerIdentity } from '@agent-chat-ui/components/chat/ui/input-surface/chat-input-surface-host';
 import { createChatComposerTextNode, createChatComposerTokenNode, resolveChatComposerSlashTrigger } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 import { insertFileTokenIntoChatComposer, insertInputSurfaceItemIntoChatComposer, insertSkillTokenIntoChatComposer } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-adapter';
-import { handleLexicalComposerKeyboardCommand } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-controller';
 import type { ChatComposerNode, ChatInputBarProps, ChatToolbarSelect } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
 type ChatInputBarPropsOverrides = Omit<Partial<ChatInputBarProps>, 'composer' | 'toolbar'> & {
@@ -36,15 +39,12 @@ Object.defineProperty(Range.prototype, 'getBoundingClientRect', {
 async function insertText(textbox: HTMLElement, text: string) {
   await act(async () => {
     for (const character of text) {
-      const event = new Event('beforeinput', {
+      const event = new InputEvent('beforeinput', {
         bubbles: true,
         cancelable: true,
-      }) as Event & {
-        data?: string;
-        inputType?: string;
-      };
-      event.data = character;
-      event.inputType = 'insertText';
+        data: character,
+        inputType: 'insertText',
+      });
       textbox.dispatchEvent(event);
       await Promise.resolve();
     }
@@ -316,64 +316,6 @@ it('renders inline skill tokens inside the composer surface', async () => {
   await waitFor(() => expect(screen.getByText('Web Search')).toBeTruthy());
 });
 
-it('consumes enter when inserting a slash-selected skill and restores composer focus', () => {
-  const publishSnapshot = vi.fn();
-  const onSlashItemSelect = vi.fn();
-  const preventDefault = vi.fn();
-  const item = {
-    key: 'web-search',
-    title: 'Web Search',
-    subtitle: 'Skill',
-    description: 'Search the web',
-    detailLines: [],
-    value: 'web-search',
-  };
-
-  const handled = handleLexicalComposerKeyboardCommand({
-    actions: {
-      isSending: false,
-      canStopGeneration: false,
-      onSend: vi.fn(),
-      onStop: vi.fn(),
-    },
-    activeSlashIndex: 0,
-    nativeEvent: {
-      key: 'Enter',
-      shiftKey: false,
-      isComposing: false,
-      preventDefault,
-    } as unknown as KeyboardEvent,
-    onSlashActiveIndexChange: vi.fn(),
-    onSlashItemSelect,
-    onSlashOpenChange: vi.fn(),
-    onSlashQueryChange: vi.fn(),
-    publishSnapshot,
-    slashItems: [item],
-    snapshot: {
-      nodes: [createChatComposerTextNode('/')],
-      selection: { start: 1, end: 1 },
-    },
-  });
-
-  expect(handled).toBe(true);
-  expect(preventDefault).toHaveBeenCalled();
-  expect(onSlashItemSelect).toHaveBeenCalledWith(item);
-  expect(publishSnapshot).toHaveBeenCalledWith(
-    {
-      nodes: [
-        expect.objectContaining({
-          type: 'token',
-          tokenKind: 'skill',
-          tokenKey: 'web-search',
-          label: 'Web Search',
-        }),
-      ],
-      selection: { start: 1, end: 1 },
-    },
-    { focusAfterSync: true },
-  );
-});
-
 it('shows a selected skill inside the composer after choosing it from the skill picker', async () => {
   render(<SkillPickerInsertionHarness />);
 
@@ -420,6 +362,49 @@ it('keeps an existing skill token when typing plain text after it', async () => 
   await waitFor(() => expect(screen.getByText('Web Search')).toBeTruthy());
   expect(textbox.textContent).toContain('a');
   expect(textbox.querySelector('[data-composer-token-key="web-search"]')).toBeTruthy();
+});
+
+it('creates an input surface instance only from an inserted slash marker', () => {
+  const slashTrigger = {
+    key: 'slash',
+    marker: '/',
+    query: '',
+    start: 0,
+    end: 1,
+  };
+  const queriedTrigger = {
+    ...slashTrigger,
+    query: 'xx',
+    end: 3,
+  };
+  const activeIdentity = resolveInputSurfaceTriggerIdentity(null, slashTrigger, {
+    type: 'insert-text',
+    text: '/',
+  });
+
+  expect(activeIdentity).toBe('slash:/:0');
+  expect(
+    resolveInputSurfaceTriggerIdentity(activeIdentity, queriedTrigger, {
+      type: 'insert-text',
+      text: 'x',
+    }),
+  ).toBe(activeIdentity);
+  expect(
+    resolveInputSurfaceTriggerIdentity(activeIdentity, null, {
+      type: 'insert-text',
+      text: ' ',
+    }),
+  ).toBeNull();
+  expect(
+    resolveInputSurfaceTriggerIdentity(null, queriedTrigger, {
+      type: 'delete-content',
+    }),
+  ).toBeNull();
+  expect(
+    resolveInputSurfaceTriggerIdentity(null, queriedTrigger, {
+      type: 'sync',
+    }),
+  ).toBeNull();
 });
 
 it('forwards pasted files to the attachment handler', () => {

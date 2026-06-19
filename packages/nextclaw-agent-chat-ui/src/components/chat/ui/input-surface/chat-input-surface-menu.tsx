@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useActiveItemScroll } from '@agent-chat-ui/components/chat/hooks/use-active-item-scroll';
 import { useElementWidth } from '@agent-chat-ui/components/chat/hooks/use-element-width';
 import {
@@ -13,22 +13,49 @@ const INPUT_SURFACE_PANEL_DESKTOP_MIN_WIDTH = 560;
 const INPUT_SURFACE_PANEL_MAX_HEIGHT = createChatPopoverAvailableHeightLimit('24rem');
 const INPUT_SURFACE_PANEL_MIN_HEIGHT = createChatPopoverAvailableHeightLimit('240px');
 
-export function ChatInputSurfaceMenu(props: ChatInputSurfaceMenuProps) {
+export type ChatInputSurfaceMenuHandle = {
+  handleKeyDown: (event: KeyboardEvent) => boolean;
+};
+
+type ChatInputSurfaceActiveState = {
+  index: number;
+  itemsSignature: string;
+};
+
+export const ChatInputSurfaceMenu = forwardRef<ChatInputSurfaceMenuHandle, ChatInputSurfaceMenuProps>(
+function ChatInputSurfaceMenu(props, ref) {
   const { Popover, PopoverAnchor, PopoverContent } = ChatUiPrimitives;
   const { elementRef: anchorRef, width: panelWidth } = useElementWidth<HTMLDivElement>();
   const listRef = useRef<HTMLDivElement | null>(null);
+  const [activeState, setActiveState] = useState<ChatInputSurfaceActiveState>({
+    index: 0,
+    itemsSignature: '',
+  });
   const {
     isOpen,
     isLoading,
     items,
-    activeIndex,
-    activeItem,
     texts,
     onSelectItem,
     onOpenChange,
     onDetailsPointerDown,
-    onSetActiveIndex,
   } = props;
+  const itemsSignature = useMemo(() => items.map((item) => item.key).join('\u001f'), [items]);
+  const activeIndex = activeState.itemsSignature === itemsSignature ? activeState.index : 0;
+  const activeIndexInRange = items.length === 0 ? 0 : Math.min(activeIndex, items.length - 1);
+  const activeItem = items[activeIndexInRange] ?? null;
+  const setActiveIndexForCurrentItems = useCallback(
+    (nextIndex: number | ((currentIndex: number) => number)): void => {
+      setActiveState((currentState) => {
+        const currentIndex = currentState.itemsSignature === itemsSignature ? currentState.index : 0;
+        return {
+          index: typeof nextIndex === 'function' ? nextIndex(currentIndex) : nextIndex,
+          itemsSignature,
+        };
+      });
+    },
+    [itemsSignature],
+  );
 
   const resolvedWidth = useMemo(() => {
     if (!panelWidth) {
@@ -42,9 +69,47 @@ export function ChatInputSurfaceMenu(props: ChatInputSurfaceMenuProps) {
     );
   }, [panelWidth]);
 
+  useImperativeHandle(ref, () => ({
+    handleKeyDown: (event) => {
+      if (!isOpen) {
+        return false;
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onOpenChange(false);
+        return true;
+      }
+
+      if (items.length === 0) {
+        return false;
+      }
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setActiveIndexForCurrentItems((index) => (index + 1) % items.length);
+        return true;
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setActiveIndexForCurrentItems((index) => (index - 1 + items.length) % items.length);
+        return true;
+      }
+
+      if ((event.key === 'Enter' && !event.shiftKey) || event.key === 'Tab') {
+        event.preventDefault();
+        onSelectItem(items[activeIndexInRange]);
+        return true;
+      }
+
+      return false;
+    },
+  }), [activeIndexInRange, isOpen, items, onOpenChange, onSelectItem, setActiveIndexForCurrentItems]);
+
   useActiveItemScroll({
     containerRef: listRef,
-    activeIndex,
+    activeIndex: activeIndexInRange,
     itemCount: items.length,
     isEnabled: isOpen && !isLoading,
     getItemSelector: (index) => `[data-input-surface-index="${index}"]`,
@@ -53,7 +118,7 @@ export function ChatInputSurfaceMenu(props: ChatInputSurfaceMenuProps) {
   return (
     <Popover open={isOpen} onOpenChange={onOpenChange}>
       <PopoverAnchor asChild>
-        <div ref={anchorRef} className="pointer-events-none absolute bottom-full left-3 right-3 h-0" />
+        <div ref={anchorRef} className="pointer-events-none absolute bottom-0 left-3 right-3 top-0" />
       </PopoverAnchor>
       <PopoverContent
         side="top"
@@ -88,22 +153,42 @@ export function ChatInputSurfaceMenu(props: ChatInputSurfaceMenuProps) {
                 ) : (
                   <div className="space-y-1">
                     {items.map((item, index) => {
-                      const isActive = index === activeIndex;
+                      const {
+                        key,
+                        title,
+                        subtitle,
+                      } = item;
+                      const isActive = index === activeIndexInRange;
                       return (
                         <button
-                          key={item.key}
+                          key={key}
                           type="button"
                           role="option"
                           aria-selected={isActive}
                           data-input-surface-index={index}
-                          onMouseEnter={() => onSetActiveIndex(index)}
-                          onClick={() => onSelectItem(item)}
+                          onPointerMove={(event) => {
+                            if (event.pointerType !== 'touch') {
+                              setActiveIndexForCurrentItems(index);
+                            }
+                          }}
+                          onPointerDown={(event) => {
+                            if (event.button > 0) {
+                              return;
+                            }
+                            event.preventDefault();
+                            onSelectItem(item);
+                          }}
+                          onClick={(event) => {
+                            if (event.detail === 0) {
+                              onSelectItem(item);
+                            }
+                          }}
                           className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition ${
                             isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'
                           }`}
                         >
-                          <span className="truncate text-xs font-semibold">{item.title}</span>
-                          <span className="truncate text-xs text-gray-500">{item.subtitle}</span>
+                          <span className="truncate text-xs font-semibold">{title}</span>
+                          <span className="truncate text-xs text-gray-500">{subtitle}</span>
                         </button>
                       );
                     })}
@@ -145,4 +230,4 @@ export function ChatInputSurfaceMenu(props: ChatInputSurfaceMenuProps) {
       </PopoverContent>
     </Popover>
   );
-}
+});

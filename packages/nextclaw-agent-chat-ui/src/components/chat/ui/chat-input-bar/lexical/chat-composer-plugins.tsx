@@ -9,7 +9,11 @@ import {
   mergeRegister,
   type LexicalEditor,
 } from 'lexical';
-import type { ChatComposerNode, ChatComposerSelection } from '../../../view-models/chat-ui.types';
+import type {
+  ChatComposerNode,
+  ChatComposerSelection,
+  ChatInputSurfaceTriggerChangeReason,
+} from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import {
   getChatComposerNodesSignature,
   readChatComposerSnapshotFromEditorState,
@@ -26,12 +30,17 @@ type ChatComposerBindingsPluginProps = {
   lastPublishedSignatureRef: MutableRefObject<string>;
   nodes: ChatComposerNode[];
   onBlur: () => void;
+  consumeInputSurfaceReason: () => ChatInputSurfaceTriggerChangeReason | null;
   onKeyDown: (event: KeyboardEvent) => boolean;
   onNodesChange: (nodes: ChatComposerNode[]) => void;
   pendingSelectionRef: MutableRefObject<ChatComposerSelection | null>;
   selectionRef: MutableRefObject<ChatComposerSelection | null>;
   shouldFocusAfterSyncRef: MutableRefObject<boolean>;
-  syncSlashState: (nodes: ChatComposerNode[], selection: ChatComposerSelection | null) => void;
+  syncInputSurfaceSnapshot: (
+    nodes: ChatComposerNode[],
+    selection: ChatComposerSelection | null,
+    reason: ChatInputSurfaceTriggerChangeReason,
+  ) => void;
 };
 
 export function ChatComposerBindingsPlugin(
@@ -44,12 +53,13 @@ export function ChatComposerBindingsPlugin(
     lastPublishedSignatureRef,
     nodes,
     onBlur,
+    consumeInputSurfaceReason,
     onKeyDown,
     onNodesChange,
     pendingSelectionRef,
     selectionRef,
     shouldFocusAfterSyncRef,
-    syncSlashState,
+    syncInputSurfaceSnapshot,
   }: ChatComposerBindingsPluginProps,
 ): null {
   const [editor] = useLexicalComposerContext();
@@ -123,11 +133,12 @@ export function ChatComposerBindingsPlugin(
 
         selectionRef.current = snapshot.selection;
         editorSignatureRef.current = signature;
-        syncSlashState(snapshot.nodes, snapshot.selection);
 
         if (isApplyingExternalUpdateRef.current || isComposingRef.current) {
           return;
         }
+
+        syncInputSurfaceSnapshot(snapshot.nodes, snapshot.selection, consumeInputSurfaceReason() ?? { type: 'sync' });
 
         if (signature === lastPublishedSignatureRef.current) {
           return;
@@ -142,7 +153,7 @@ export function ChatComposerBindingsPlugin(
           const snapshot = readChatComposerSnapshotFromEditorState(editor.getEditorState());
           selectionRef.current = snapshot.selection;
           if (!isComposingRef.current) {
-            syncSlashState(snapshot.nodes, snapshot.selection);
+            syncInputSurfaceSnapshot(snapshot.nodes, snapshot.selection, { type: 'selection' });
           }
           return false;
         },
@@ -169,10 +180,11 @@ export function ChatComposerBindingsPlugin(
     isComposingRef,
     lastPublishedSignatureRef,
     onBlur,
+    consumeInputSurfaceReason,
     onKeyDown,
     onNodesChange,
     selectionRef,
-    syncSlashState,
+    syncInputSurfaceSnapshot,
   ]);
 
   return null;

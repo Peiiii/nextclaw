@@ -13,6 +13,13 @@ export type ChatInputSurfaceTrigger = {
   end: number;
 };
 
+export type ChatInputSurfaceTriggerChangeReason =
+  | { type: 'delete-content' }
+  | { type: 'insert-text'; text: string }
+  | { type: 'programmatic' }
+  | { type: 'selection' }
+  | { type: 'sync' };
+
 export type ChatInputSurfaceMenuTexts = {
   loadingLabel: string;
   sectionLabel: string;
@@ -36,13 +43,10 @@ export type ChatInputSurfaceMenuProps = {
   isOpen: boolean;
   isLoading: boolean;
   items: ChatInputSurfaceItem[];
-  activeIndex: number;
-  activeItem: ChatInputSurfaceItem | null;
   texts: ChatInputSurfaceMenuTexts;
   onSelectItem: (item: ChatInputSurfaceItem) => void;
   onOpenChange: (open: boolean) => void;
   onDetailsPointerDown?: (event: PointerEvent<HTMLDivElement>) => void;
-  onSetActiveIndex: (index: number) => void;
 };
 
 export type ChatInputSurfaceConfig = Pick<

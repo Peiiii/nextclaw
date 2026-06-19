@@ -12,6 +12,7 @@ export type {
   ChatInputSurfaceMenuProps,
   ChatInputSurfaceMenuTexts,
   ChatInputSurfaceTrigger,
+  ChatInputSurfaceTriggerChangeReason,
   ChatInputSurfaceTriggerSpec,
 } from '@agent-chat-ui/lib/input-surface';
 
@@ -177,9 +178,8 @@ export type ChatInlineHint = {
 
 export type ChatSlashMenuProps = Omit<
   ChatInputSurfaceMenuProps,
-  "activeItem" | "items" | "onSelectItem" | "texts"
+  "items" | "onSelectItem" | "texts"
 > & {
-  activeItem: ChatSlashItem | null;
   items: ChatSlashItem[];
   texts: Pick<
     ChatTexts,
@@ -202,7 +202,6 @@ export type ChatInputBarProps = {
     onFilesAdd?: (files: File[]) => Promise<void> | void;
     inputSurfaceTriggerSpecs?: ChatInputSurfaceTriggerSpec[];
     onInputSurfaceTriggerChange?: (trigger: ChatInputSurfaceTrigger | null) => void;
-    onSlashQueryChange?: (query: string | null) => void;
   };
   inputSurface?: ChatInputSurfaceConfig;
   slashMenu?: Pick<ChatSlashMenuProps, "isLoading" | "items" | "texts"> & {

@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   resolveChatInputSurfaceState,
   type ChatInputSurfaceTrigger,
 } from '@nextclaw/agent-chat-ui';
 import { usePanelApps } from '@/features/panel-apps';
-import { t } from '@/shared/lib/i18n';
+import { t, type I18nLanguage } from '@/shared/lib/i18n';
 import { createPanelAppReferenceInputSurfacePlugin, PANEL_APP_REFERENCE_TRIGGER_SPEC } from '@/features/chat/features/input/input-surface-plugins/panel-app-reference-plugin.utils';
 import { createSkillReferenceInputSurfacePlugin } from '@/features/chat/features/input/input-surface-plugins/skill-reference-plugin.utils';
 import type { ChatInputBarAdapterTexts, ChatSkillRecord } from '@/features/chat/types/chat-input-bar.types';
@@ -17,7 +17,7 @@ export function useChatInputSurfaceState(params: {
       'slashSkillSubtitle' | 'slashSkillSpecLabel' | 'slashSkillScopeLabel' | 'noSkillDescription'
     >;
   };
-  language: string;
+  language: I18nLanguage;
   onSelectSkill: (skillRef: string) => void;
   recentSkillValues: readonly string[];
   skillRecords: readonly ChatSkillRecord[];
@@ -30,43 +30,45 @@ export function useChatInputSurfaceState(params: {
     recentSkillValues,
     skillRecords,
   } = params;
-  const [inputSurfaceTrigger, setInputSurfaceTrigger] = useState<ChatInputSurfaceTrigger | null>(null);
-  const panelApps = usePanelApps({
-    enabled: inputSurfaceTrigger?.key === PANEL_APP_REFERENCE_TRIGGER_SPEC.key
-  });
+  const [inputSurfaceTrigger, setInputSurfaceTriggerState] = useState<ChatInputSurfaceTrigger | null>(null);
+  const inputSurfaceTriggerSignatureRef = useRef('null');
+  const setInputSurfaceTrigger = useCallback((nextTrigger: ChatInputSurfaceTrigger | null): void => {
+    const nextSignature = JSON.stringify(nextTrigger ? [nextTrigger.key, nextTrigger.marker, nextTrigger.query, nextTrigger.start, nextTrigger.end] : null);
+    if (inputSurfaceTriggerSignatureRef.current === nextSignature) return;
+    inputSurfaceTriggerSignatureRef.current = nextSignature;
+    setInputSurfaceTriggerState(nextTrigger);
+  }, []);
+  const panelApps = usePanelApps({ enabled: inputSurfaceTrigger?.key === PANEL_APP_REFERENCE_TRIGGER_SPEC.key });
 
   const inputSurfacePlugins = useMemo(
-    () => {
-      void language;
-      return [
-        createSkillReferenceInputSurfacePlugin({
-          itemTexts: itemTexts.slashTexts,
-          menuTexts: {
-            loadingLabel: t('chatSlashLoading'),
-            sectionLabel: t('chatSlashSectionSkills'),
-            emptyLabel: t('chatSlashNoResult'),
-            hintLabel: t('chatSlashHint'),
-            itemHintLabel: t('chatSlashSkillHint')
-          },
-          onSelectSkill
-        }),
-        createPanelAppReferenceInputSurfacePlugin({
-          itemTexts: {
-            appIdLabel: t('chatPanelAppReferenceAppId'),
-            fileLabel: t('chatPanelAppReferenceFile'),
-            noDescriptionLabel: t('chatPanelAppReferenceNoDescription'),
-            subtitle: t('chatPanelAppReferenceType')
-          },
-          menuTexts: {
-            loadingLabel: t('chatPanelAppReferenceLoading'),
-            sectionLabel: t('chatPanelAppReferenceSection'),
-            emptyLabel: t('chatPanelAppReferenceNoResult'),
-            hintLabel: t('chatPanelAppReferenceHint'),
-            itemHintLabel: t('chatPanelAppReferenceItemHint')
-          }
-        })
-      ];
-    },
+    () => [
+      createSkillReferenceInputSurfacePlugin({
+        itemTexts: itemTexts.slashTexts,
+        menuTexts: {
+          loadingLabel: t('chatSlashLoading', language),
+          sectionLabel: t('chatSlashSectionSkills', language),
+          emptyLabel: t('chatSlashNoResult', language),
+          hintLabel: t('chatSlashHint', language),
+          itemHintLabel: t('chatSlashSkillHint', language)
+        },
+        onSelectSkill
+      }),
+      createPanelAppReferenceInputSurfacePlugin({
+        itemTexts: {
+          appIdLabel: t('chatPanelAppReferenceAppId', language),
+          fileLabel: t('chatPanelAppReferenceFile', language),
+          noDescriptionLabel: t('chatPanelAppReferenceNoDescription', language),
+          subtitle: t('chatPanelAppReferenceType', language)
+        },
+        menuTexts: {
+          loadingLabel: t('chatPanelAppReferenceLoading', language),
+          sectionLabel: t('chatPanelAppReferenceSection', language),
+          emptyLabel: t('chatPanelAppReferenceNoResult', language),
+          hintLabel: t('chatPanelAppReferenceHint', language),
+          itemHintLabel: t('chatPanelAppReferenceItemHint', language)
+        }
+      })
+    ],
     [
       itemTexts.slashTexts,
       language,
@@ -97,8 +99,5 @@ export function useChatInputSurfaceState(params: {
     ]
   );
 
-  return {
-    inputSurfaceState,
-    setInputSurfaceTrigger,
-  };
+  return { inputSurfaceState, setInputSurfaceTrigger };
 }

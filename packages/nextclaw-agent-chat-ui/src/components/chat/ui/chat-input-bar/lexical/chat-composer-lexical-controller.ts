@@ -2,16 +2,14 @@ import type { FormEvent } from 'react';
 import type {
   ChatComposerNode,
   ChatComposerSelection,
-  ChatInputSurfaceItem,
-  ChatInputSurfaceTriggerSpec,
   ChatInputBarActionsProps,
+  ChatInputSurfaceItem,
+  ChatInputSurfaceTriggerChangeReason,
+  ChatInputSurfaceTriggerSpec,
   ChatSkillPickerOption,
   ChatSlashItem,
 } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
-import {
-  CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC,
-  resolveChatComposerActiveInputSurfaceTrigger,
-} from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
+import { CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 import {
   deleteChatComposerContent,
   insertFileTokenIntoChatComposer,
@@ -27,64 +25,40 @@ type ComposerActions = Pick<
   'onSend' | 'onStop' | 'isSending' | 'canStopGeneration'
 >;
 
+type ChatComposerPublishOptions = {
+  focusAfterSync?: boolean;
+  forcePublish?: boolean;
+  inputSurfaceReason?: ChatInputSurfaceTriggerChangeReason;
+};
+
 type ChatComposerKeyboardAction =
-  | { type: 'close-slash' }
   | { type: 'consume' }
   | { type: 'delete-content'; direction: 'backward' | 'forward' }
-  | { type: 'insert-active-slash-item' }
   | { type: 'insert-line-break' }
-  | { type: 'move-slash-index'; index: number }
   | { type: 'noop' }
   | { type: 'send-message' }
   | { type: 'stop-generation' };
 
 export function resolveLexicalComposerKeyboardAction(params: {
-  activeSlashIndex: number;
   canStopGeneration: boolean;
   isComposing: boolean;
   isSending: boolean;
-  isSlashMenuOpen: boolean;
   key: string;
   shiftKey: boolean;
-  slashItemCount: number;
 }): ChatComposerKeyboardAction {
   const {
-    activeSlashIndex,
     canStopGeneration,
     isComposing,
     isSending,
-    isSlashMenuOpen,
     key,
     shiftKey,
-    slashItemCount,
   } = params;
 
   if (key === 'Enter' && !shiftKey && isSending) {
     return { type: 'consume' };
   }
 
-  if (isSlashMenuOpen && slashItemCount > 0) {
-    if (key === 'ArrowDown') {
-      return {
-        type: 'move-slash-index',
-        index: (activeSlashIndex + 1) % slashItemCount,
-      };
-    }
-    if (key === 'ArrowUp') {
-      return {
-        type: 'move-slash-index',
-        index: (activeSlashIndex - 1 + slashItemCount) % slashItemCount,
-      };
-    }
-    if ((key === 'Enter' && !shiftKey) || key === 'Tab') {
-      return { type: 'insert-active-slash-item' };
-    }
-  }
-
   if (key === 'Escape') {
-    if (isSlashMenuOpen) {
-      return { type: 'close-slash' };
-    }
     if (isSending && canStopGeneration) {
       return { type: 'stop-generation' };
     }
@@ -112,33 +86,35 @@ export function resolveLexicalComposerKeyboardAction(params: {
 type LexicalComposerHandleOwnerParams = {
   focusComposer: () => void;
   focusComposerAtEnd: (nodes?: ChatComposerNode[]) => void;
-  inputSurfaceTriggerSpecs: readonly ChatInputSurfaceTriggerSpec[];
-  onSlashItemSelect?: (item: ChatSlashItem) => void;
+  onInputSurfaceItemSelect?: (item: ChatInputSurfaceItem) => void;
   optionsReader: () => {
     nodes: ChatComposerNode[];
     selection: ChatComposerSelection | null;
   };
   publishSnapshot: (
     snapshot: ChatComposerEditorSnapshot,
-    options?: { focusAfterSync?: boolean; forcePublish?: boolean },
+    options?: ChatComposerPublishOptions,
   ) => void;
 };
 
 class LexicalComposerHandleOwner implements ChatInputBarTokenizedComposerHandle {
   constructor(private readonly params: LexicalComposerHandleOwnerParams) {}
 
-  insertInputSurfaceItem = (item: ChatInputSurfaceItem): void => {
+  insertInputSurfaceItem = (
+    item: ChatInputSurfaceItem,
+    triggerSpecs: readonly ChatInputSurfaceTriggerSpec[] = [CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC],
+  ): void => {
     if (!item.value && (!item.tokenKind || !item.tokenKey)) {
       return;
     }
 
-    this.params.onSlashItemSelect?.(item);
+    this.params.onInputSurfaceItemSelect?.(item);
     this.params.publishSnapshot(
       insertInputSurfaceItemIntoChatComposer({
         item,
         nodes: this.params.optionsReader().nodes,
         selection: this.params.optionsReader().selection,
-        triggerSpecs: this.params.inputSurfaceTriggerSpecs,
+        triggerSpecs,
       }),
       { focusAfterSync: true },
     );
@@ -230,7 +206,7 @@ export function handleLexicalComposerBeforeInput(params: {
   disabled: boolean;
   event: FormEvent<HTMLDivElement>;
   isComposing: boolean;
-  publishSnapshot: (snapshot: ChatComposerEditorSnapshot) => void;
+  publishSnapshot: (snapshot: ChatComposerEditorSnapshot, options?: ChatComposerPublishOptions) => void;
   snapshotReader: () => {
     nodes: ChatComposerNode[];
     selection: ChatComposerSelection | null;
@@ -259,6 +235,7 @@ export function handleLexicalComposerBeforeInput(params: {
       selection: snapshotReader().selection,
       text: nativeEvent.data,
     }),
+    { inputSurfaceReason: { type: 'insert-text', text: nativeEvent.data } },
   );
 }
 
@@ -267,7 +244,7 @@ export function handleLexicalComposerCompositionEnd(params: {
   fallbackSnapshot: () => ChatComposerEditorSnapshot;
   publishSnapshot: (
     snapshot: ChatComposerEditorSnapshot,
-    options?: { focusAfterSync?: boolean; forcePublish?: boolean },
+    options?: ChatComposerPublishOptions,
   ) => void;
   snapshotReader: () => {
     nodes: ChatComposerNode[];
@@ -289,81 +266,40 @@ export function handleLexicalComposerCompositionEnd(params: {
           text: data,
         })
       : editorSnapshot;
-  publishSnapshot(snapshot, { forcePublish: true });
+  publishSnapshot(snapshot, {
+    forcePublish: true,
+    inputSurfaceReason: { type: 'insert-text', text: data },
+  });
 }
 
 export function handleLexicalComposerKeyboardCommand(params: {
   actions: ComposerActions;
-  activeSlashIndex: number;
-  inputSurfaceTriggerSpecs?: readonly ChatInputSurfaceTriggerSpec[];
-  onSlashActiveIndexChange: (index: number) => void;
-  onSlashItemSelect?: (item: ChatSlashItem) => void;
-  onSlashOpenChange: (open: boolean) => void;
-  onSlashQueryChange?: (query: string | null) => void;
   publishSnapshot: (
     snapshot: ChatComposerEditorSnapshot,
-    options?: { focusAfterSync?: boolean; forcePublish?: boolean },
+    options?: ChatComposerPublishOptions,
   ) => void;
-  slashItems: ChatSlashItem[];
   snapshot: ChatComposerEditorSnapshot;
   nativeEvent: KeyboardEvent;
 }): boolean {
   const {
     actions,
-    activeSlashIndex,
-    inputSurfaceTriggerSpecs = [CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC],
     nativeEvent,
-    onSlashActiveIndexChange,
-    onSlashItemSelect,
-    onSlashOpenChange,
-    onSlashQueryChange,
     publishSnapshot,
-    slashItems,
     snapshot,
   } = params;
   const action = resolveLexicalComposerKeyboardAction({
-    activeSlashIndex,
     canStopGeneration: actions.canStopGeneration,
     isComposing: nativeEvent.isComposing,
     isSending: actions.isSending,
-    isSlashMenuOpen: resolveChatComposerActiveInputSurfaceTrigger(
-      snapshot.nodes,
-      snapshot.selection,
-      inputSurfaceTriggerSpecs,
-    ) !== null,
     key: nativeEvent.key,
     shiftKey: nativeEvent.shiftKey,
-    slashItemCount: slashItems.length,
   });
-  const activeSlashItem = slashItems[activeSlashIndex] ?? null;
 
   if (action.type !== 'noop') {
     nativeEvent.preventDefault();
   }
 
   switch (action.type) {
-    case 'move-slash-index':
-      onSlashActiveIndexChange(action.index);
-      return true;
-    case 'insert-active-slash-item':
-      if (!activeSlashItem) {
-        return true;
-      }
-      onSlashItemSelect?.(activeSlashItem);
-      publishSnapshot(
-        insertInputSurfaceItemIntoChatComposer({
-          item: activeSlashItem,
-          nodes: snapshot.nodes,
-          selection: snapshot.selection,
-          triggerSpecs: inputSurfaceTriggerSpecs,
-        }),
-        { focusAfterSync: true },
-      );
-      return true;
-    case 'close-slash':
-      onSlashQueryChange?.(null);
-      onSlashOpenChange(false);
-      return true;
     case 'consume':
       return true;
     case 'stop-generation':
@@ -376,6 +312,7 @@ export function handleLexicalComposerKeyboardCommand(params: {
           selection: snapshot.selection,
           text: '\n',
         }),
+        { inputSurfaceReason: { type: 'insert-text', text: '\n' } },
       );
       return true;
     case 'send-message':
@@ -388,6 +325,7 @@ export function handleLexicalComposerKeyboardCommand(params: {
           nodes: snapshot.nodes,
           selection: snapshot.selection,
         }),
+        { inputSurfaceReason: { type: 'delete-content' } },
       );
       return true;
     case 'noop':
