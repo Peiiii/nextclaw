@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CompactTabStrip,
@@ -48,5 +48,28 @@ describe("CompactTabStrip", () => {
       block: "nearest",
       inline: "nearest",
     });
+  });
+
+  it("selects a tab when clicking its leading icon", () => {
+    const onSelect = vi.fn();
+
+    render(
+      <CompactTabStrip
+        tabs={[
+          {
+            key: "child-session",
+            label: "Child session",
+            active: false,
+            leadingIcon: <span data-testid="child-tab-icon" />,
+            onSelect,
+          },
+        ]}
+        actions={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("child-tab-icon"));
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
   });
 });

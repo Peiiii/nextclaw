@@ -65,6 +65,9 @@ function CompactTabLabelButton({
   labelClassName?: string;
   tab: CompactTabStripTab;
 }) {
+  const leadingIcon = tab.onClose && tab.closePlacement === "leading-hover"
+    ? null
+    : tab.leadingIcon;
   const button = (
     <button
       type="button"
@@ -72,6 +75,11 @@ function CompactTabLabelButton({
       aria-label={tab.label}
       className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
     >
+      {leadingIcon ? (
+        <span className="inline-flex shrink-0 items-center justify-center">
+          {leadingIcon}
+        </span>
+      ) : null}
       <span className={cn("min-w-0 truncate text-[12px] font-medium", labelClassName)}>
         {tab.label}
       </span>
@@ -136,10 +144,6 @@ function CompactTabItem({
           </span>
           <X className="hidden h-3.5 w-3.5 group-hover:block" />
         </button>
-      ) : tab.leadingIcon ? (
-        <span className="inline-flex shrink-0 items-center justify-center">
-          {tab.leadingIcon}
-        </span>
       ) : null}
       <CompactTabLabelButton tab={tab} labelClassName={labelClassName} />
       {tab.onClose && tab.closePlacement !== "leading-hover" ? (
