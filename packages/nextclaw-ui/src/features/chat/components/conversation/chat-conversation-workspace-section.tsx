@@ -1,4 +1,5 @@
 import { ChatSessionWorkspacePanel } from "@/features/chat/features/workspace/components/chat-session-workspace-panel";
+import { useNcpChatSelectedSession } from "@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state";
 import { useChatConversationWorkspaceState } from "@/features/chat/features/workspace/hooks/use-chat-conversation-workspace-state";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 
@@ -12,6 +13,7 @@ export function ChatConversationWorkspaceSection({
   sessionKey,
 }: ChatConversationWorkspaceSectionProps) {
   const snapshot = useChatThreadStore((state) => state.snapshot);
+  const selectedSession = useNcpChatSelectedSession(sessionKey);
   const {
     childSessionTabs,
     workspaceFileTabs,
@@ -34,9 +36,9 @@ export function ChatConversationWorkspaceSection({
       workspaceNavigationHistoryIndex={snapshot.workspaceNavigationHistoryIndex}
       activePanelKind={snapshot.activeWorkspacePanelKind ?? null}
       sessionCronJobs={sessionCronJobs}
-      sessionProjectRoot={snapshot.sessionProjectRoot ?? null}
+      sessionProjectRoot={selectedSession?.projectRoot ?? null}
       sessionWorkingDir={
-        snapshot.sessionWorkingDir ?? snapshot.sessionProjectRoot ?? null
+        selectedSession?.workingDir ?? selectedSession?.projectRoot ?? null
       }
       displayMode={layoutMode === "mobile" ? "overlay" : "docked"}
     />
