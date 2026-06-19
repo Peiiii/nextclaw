@@ -67,6 +67,10 @@ line-growth exemption：本次为用户可见 bugfix，但根因位于编辑器 
 
 保留债务：`chat-input-bar.test.tsx` 仍接近测试文件预算，当前 `862/900`；`session-conversation-input.tsx` 接近 UI 组件预算，后续可把 toolbar/collection 构建继续拆出。后续优化方向是继续减少 composer 生命周期逻辑在 React 组件/hook 内的占比，向 editor owner/controller 收敛。
 
+后续结构优化：已把 Lexical composer 的 runtime、editor listener、外部状态同步、IME composition、selection 和 imperative handle 生命周期收敛到 `lexical/owners/chat-composer-lexical-owner.ts`。React 组件现在只负责创建 owner、配置当前 runtime、转发 DOM 输入事件；Lexical bindings plugin 只负责绑定 editor、同步 editable/nodes，以及注册一次 editor listener。`KEY_DOWN_COMMAND` / update / selection / blur listener 不再随 `nodes/actions/callbacks` 高频重绑，message streaming 只更新 owner 的 runtime 快照。
+
+后续优化维护性结果：新增 `lexical/owners/` 子边界，避免继续扩张 `lexical` 平铺目录；删除旧组件/插件内的生命周期逻辑与重复 handle owner。定向维护性 guard 结果为非测试生产代码净减 `-1`，owner 文件 `466/500`，保留“接近预算” warning。该 warning 可接受，因为 owner 现在集中承载真实 editor 生命周期；后续若继续增长，应优先拆出纯 handle 命令或 selection 同步 owner，而不是把逻辑放回 React 组件/hook。
+
 ## NPM 包发布记录
 
 - 是否需要发布：需要，用户可见输入稳定性 bugfix。

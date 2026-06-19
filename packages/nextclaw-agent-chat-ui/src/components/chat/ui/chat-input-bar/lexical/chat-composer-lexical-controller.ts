@@ -3,22 +3,13 @@ import type {
   ChatComposerNode,
   ChatComposerSelection,
   ChatInputBarActionsProps,
-  ChatInputSurfaceItem,
   ChatInputSurfaceTriggerChangeReason,
-  ChatInputSurfaceTriggerSpec,
-  ChatSkillPickerOption,
-  ChatSlashItem,
 } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
-import { CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 import {
   deleteChatComposerContent,
-  insertFileTokenIntoChatComposer,
-  insertInputSurfaceItemIntoChatComposer,
   replaceChatComposerSelectionWithText,
-  syncSelectedSkillsIntoChatComposer,
   type ChatComposerEditorSnapshot,
 } from './chat-composer-lexical-adapter';
-import type { ChatInputBarTokenizedComposerHandle } from './chat-input-bar-tokenized-composer';
 
 type ComposerActions = Pick<
   ChatInputBarActionsProps,
@@ -81,106 +72,6 @@ export function resolveLexicalComposerKeyboardAction(params: {
   }
 
   return { type: 'noop' };
-}
-
-type LexicalComposerHandleOwnerParams = {
-  focusComposer: () => void;
-  focusComposerAtEnd: (nodes?: ChatComposerNode[]) => void;
-  onInputSurfaceItemSelect?: (item: ChatInputSurfaceItem) => void;
-  optionsReader: () => {
-    nodes: ChatComposerNode[];
-    selection: ChatComposerSelection | null;
-  };
-  publishSnapshot: (
-    snapshot: ChatComposerEditorSnapshot,
-    options?: ChatComposerPublishOptions,
-  ) => void;
-};
-
-class LexicalComposerHandleOwner implements ChatInputBarTokenizedComposerHandle {
-  constructor(private readonly params: LexicalComposerHandleOwnerParams) {}
-
-  insertInputSurfaceItem = (
-    item: ChatInputSurfaceItem,
-    triggerSpecs: readonly ChatInputSurfaceTriggerSpec[] = [CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC],
-  ): void => {
-    this.params.onInputSurfaceItemSelect?.(item);
-    this.params.publishSnapshot(
-      insertInputSurfaceItemIntoChatComposer({
-        item,
-        nodes: this.params.optionsReader().nodes,
-        selection: this.params.optionsReader().selection,
-        triggerSpecs,
-      }),
-      { focusAfterSync: true },
-    );
-  };
-
-  insertSlashItem = (item: ChatSlashItem): void => {
-    this.insertInputSurfaceItem(item);
-  };
-
-  insertFileToken = (tokenKey: string, label: string): void => {
-    this.params.publishSnapshot(
-      insertFileTokenIntoChatComposer({
-        label,
-        nodes: this.params.optionsReader().nodes,
-        selection: this.params.optionsReader().selection,
-        tokenKey,
-      }),
-      { focusAfterSync: true },
-    );
-  };
-
-  insertFileTokens = (tokens: Array<{ tokenKey: string; label: string }>): void => {
-    let nextNodes = this.params.optionsReader().nodes;
-    let nextSelection = this.params.optionsReader().selection;
-
-    for (const token of tokens) {
-      const snapshot = insertFileTokenIntoChatComposer({
-        label: token.label,
-        nodes: nextNodes,
-        selection: nextSelection,
-        tokenKey: token.tokenKey,
-      });
-      nextNodes = snapshot.nodes;
-      nextSelection = snapshot.selection;
-    }
-
-    this.params.publishSnapshot(
-      {
-        nodes: nextNodes,
-        selection: nextSelection,
-      },
-      { focusAfterSync: true },
-    );
-  };
-
-  focusComposer = (): void => {
-    this.params.focusComposer();
-  };
-
-  focusComposerAtEnd = (nodes?: ChatComposerNode[]): void => {
-    this.params.focusComposerAtEnd(nodes);
-  };
-
-  syncSelectedSkills = (nextKeys: string[], options: ChatSkillPickerOption[]): void => {
-    this.params.publishSnapshot(
-      syncSelectedSkillsIntoChatComposer({
-        nextKeys,
-        nodes: this.params.optionsReader().nodes,
-        options,
-        selection: this.params.optionsReader().selection,
-      }),
-      { focusAfterSync: true },
-    );
-  };
-}
-
-export function createLexicalComposerHandle(
-  params: LexicalComposerHandleOwnerParams,
-): ChatInputBarTokenizedComposerHandle {
-  return new LexicalComposerHandleOwner(params);
 }
 
 function getChatComposerContentSignature(nodes: ChatComposerNode[]): string {
