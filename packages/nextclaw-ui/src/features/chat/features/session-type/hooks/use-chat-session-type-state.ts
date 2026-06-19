@@ -128,7 +128,7 @@ export function useChatSessionTypeState(params: UseChatSessionTypeStateParams): 
     return null;
   }, [availableSessionTypeSet, selectedSession, selectedSessionType, selectedSessionTypeOption]);
 
-  return {
+  return useMemo(() => ({
     sessionTypeOptions,
     selectedSessionTypeOption,
     defaultSessionType,
@@ -136,5 +136,13 @@ export function useChatSessionTypeState(params: UseChatSessionTypeStateParams): 
     canEditSessionType,
     sessionTypeUnavailable,
     sessionTypeUnavailableMessage
-  };
+  }), [
+    canEditSessionType,
+    defaultSessionType,
+    selectedSessionType,
+    selectedSessionTypeOption,
+    sessionTypeOptions,
+    sessionTypeUnavailable,
+    sessionTypeUnavailableMessage
+  ]);
 }

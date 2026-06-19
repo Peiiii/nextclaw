@@ -22,7 +22,10 @@ import {
 } from '@/features/chat/features/conversation/hooks/use-session-conversation-controller';
 import { useSessionConversationInputQuery } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-query';
 import { useSessionConversationInputState } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-state';
-import { SessionConversationInput } from './session-conversation-input';
+import {
+  SessionConversationInput,
+  type SessionConversationInputController,
+} from './session-conversation-input';
 
 type SessionConversationAreaProps = {
   readonly consumeDraftIntent?: boolean;
@@ -226,14 +229,31 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     restoreComposer: inputActions.restoreComposer,
     setSendError: inputActions.setSendError,
   });
-  const displayInputSnapshot = useMemo(() => ({
-    ...inputSnapshot,
-    sendError: lastSendError ?? inputSnapshot.sendError,
-  }), [inputSnapshot, lastSendError]);
+  const controllerRef = useRef(controller);
+  useEffect(() => {
+    controllerRef.current = controller;
+  }, [controller]);
+  const inputController = useMemo<SessionConversationInputController>(() => ({
+    canStopGeneration: controller.canStopGeneration,
+    isSending: controller.isSending,
+    send: () => controllerRef.current.send(),
+    sendDisabled: controller.sendDisabled,
+    stop: () => controllerRef.current.stop(),
+    stopDisabled: controller.stopDisabled,
+  }), [
+    controller.canStopGeneration,
+    controller.isSending,
+    controller.sendDisabled,
+    controller.stopDisabled,
+  ]);
   const contextWindow = useMemo(
     () => buildChatContextWindowIndicator(readNcpContextWindowValue(agent.snapshot.contextWindow)),
     [agent.snapshot.contextWindow],
   );
+  const displayInputSnapshot = useMemo(() => ({
+    ...inputSnapshot,
+    sendError: lastSendError ?? inputSnapshot.sendError,
+  }), [inputSnapshot, lastSendError]);
   useSessionConversationDraftIntent({
     consumeDraftIntent,
     applyPromptSuggestion: inputActions.applyPromptSuggestion,
@@ -241,7 +261,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
   const renderInput = useCallback((surface: 'default' | 'embedded') => (
     <SessionConversationInput
       contextWindow={contextWindow}
-      controller={controller}
+      controller={inputController}
       inputActions={inputActions}
       inputQuery={inputQuery}
       inputSnapshot={displayInputSnapshot}
@@ -249,8 +269,8 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     />
   ), [
     contextWindow,
-    controller,
     displayInputSnapshot,
+    inputController,
     inputActions,
     inputQuery,
   ]);
@@ -258,8 +278,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     showWelcomeForDraft &&
     !sessionKey &&
     agent.visibleMessages.length === 0 &&
-    !agent.isHydrating &&
-    !controller.isSending;
+    !agent.isHydrating;
 
   return (
     <>

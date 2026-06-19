@@ -33,6 +33,7 @@ type ChatComposerBindingsPluginProps = {
   consumeInputSurfaceReason: () => ChatInputSurfaceTriggerChangeReason | null;
   onKeyDown: (event: KeyboardEvent) => boolean;
   onNodesChange: (nodes: ChatComposerNode[]) => void;
+  pendingOwnerSignatureRef: MutableRefObject<string | null>;
   pendingSelectionRef: MutableRefObject<ChatComposerSelection | null>;
   selectionRef: MutableRefObject<ChatComposerSelection | null>;
   shouldFocusAfterSyncRef: MutableRefObject<boolean>;
@@ -56,6 +57,7 @@ export function ChatComposerBindingsPlugin(
     consumeInputSurfaceReason,
     onKeyDown,
     onNodesChange,
+    pendingOwnerSignatureRef,
     pendingSelectionRef,
     selectionRef,
     shouldFocusAfterSyncRef,
@@ -78,8 +80,21 @@ export function ChatComposerBindingsPlugin(
   }, [disabled, editor]);
 
   useLayoutEffect(() => {
+    if (isComposingRef.current) {
+      return;
+    }
     const nextSignature = getChatComposerNodesSignature(nodes);
     const pendingSelection = pendingSelectionRef.current;
+    const pendingOwnerSignature = pendingOwnerSignatureRef.current;
+
+    if (pendingOwnerSignature) {
+      if (nextSignature === pendingOwnerSignature) {
+        pendingOwnerSignatureRef.current = null;
+      } else if (nextSignature !== editorSignatureRef.current) {
+        return;
+      }
+    }
+
     const shouldSyncDocument = nextSignature !== editorSignatureRef.current;
 
     if (!shouldSyncDocument && !pendingSelection) {
@@ -118,8 +133,10 @@ export function ChatComposerBindingsPlugin(
     editor,
     editorSignatureRef,
     isApplyingExternalUpdateRef,
+    isComposingRef,
     lastPublishedSignatureRef,
     nodes,
+    pendingOwnerSignatureRef,
     pendingSelectionRef,
     selectionRef,
     shouldFocusAfterSyncRef,
@@ -131,13 +148,13 @@ export function ChatComposerBindingsPlugin(
         const snapshot = readChatComposerSnapshotFromEditorState(editorState);
         const signature = getChatComposerNodesSignature(snapshot.nodes);
 
-        selectionRef.current = snapshot.selection;
         editorSignatureRef.current = signature;
 
         if (isApplyingExternalUpdateRef.current || isComposingRef.current) {
           return;
         }
 
+        selectionRef.current = snapshot.selection;
         syncInputSurfaceSnapshot(snapshot.nodes, snapshot.selection, consumeInputSurfaceReason() ?? { type: 'sync' });
 
         if (signature === lastPublishedSignatureRef.current) {
@@ -151,10 +168,11 @@ export function ChatComposerBindingsPlugin(
         SELECTION_CHANGE_COMMAND,
         () => {
           const snapshot = readChatComposerSnapshotFromEditorState(editor.getEditorState());
-          selectionRef.current = snapshot.selection;
-          if (!isComposingRef.current) {
-            syncInputSurfaceSnapshot(snapshot.nodes, snapshot.selection, { type: 'selection' });
+          if (isComposingRef.current) {
+            return false;
           }
+          selectionRef.current = snapshot.selection;
+          syncInputSurfaceSnapshot(snapshot.nodes, snapshot.selection, { type: 'selection' });
           return false;
         },
         COMMAND_PRIORITY_EDITOR,

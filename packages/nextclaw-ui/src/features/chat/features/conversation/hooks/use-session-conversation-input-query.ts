@@ -119,9 +119,13 @@ export function useSessionConversationInputQuery(params: UseSessionConversationI
     [selectedSessionKey, sessionTypeState.selectedSessionType, sessions],
   );
 
-  return {
+  const defaultProjectRoot = normalizeSessionProjectRootValue(
+    config?.agents.defaults.workspace,
+  );
+
+  return useMemo(() => ({
     defaultModel: config?.agents.defaults.model,
-    defaultProjectRoot: normalizeSessionProjectRootValue(config?.agents.defaults.workspace),
+    defaultProjectRoot,
     fallbackPreferredModel,
     fallbackPreferredThinking,
     isProviderStateResolved,
@@ -131,5 +135,17 @@ export function useSessionConversationInputQuery(params: UseSessionConversationI
     selectedSessionKey,
     sessionTypeState,
     skillRecords,
-  };
+  }), [
+    config?.agents.defaults.model,
+    defaultProjectRoot,
+    fallbackPreferredModel,
+    fallbackPreferredThinking,
+    isProviderStateResolved,
+    isSkillsLoading,
+    modelOptions,
+    selectedSession,
+    selectedSessionKey,
+    sessionTypeState,
+    skillRecords,
+  ]);
 }

@@ -1,10 +1,15 @@
 import {
+  memo,
   useCallback,
   useEffect,
   useMemo,
   useRef,
 } from 'react';
-import { ChatInputBar, type ChatInputBarHandle, type ChatContextWindowIndicator } from '@nextclaw/agent-chat-ui';
+import {
+  ChatInputBar,
+  type ChatContextWindowIndicator,
+  type ChatInputBarHandle,
+} from '@nextclaw/agent-chat-ui';
 import { isRuntimeDefaultModelValue } from '@nextclaw/shared';
 
 import { useI18n } from '@/app/components/i18n-provider';
@@ -43,7 +48,6 @@ import {
   CHAT_RECENT_SKILLS_MIN_OPTIONS,
 } from '@/features/chat/managers/chat-recent-skills.manager';
 
-import type { useSessionConversationController } from '@/features/chat/features/conversation/hooks/use-session-conversation-controller';
 import { useSessionConversationInputAttachments } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-attachments';
 import type { useSessionConversationInputQuery } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-query';
 import type {
@@ -57,7 +61,15 @@ import {
 } from '@/features/chat/features/conversation/utils/session-conversation-input-toolbar.utils';
 
 type SessionConversationInputQuery = ReturnType<typeof useSessionConversationInputQuery>;
-type SessionConversationController = ReturnType<typeof useSessionConversationController>;
+
+export type SessionConversationInputController = {
+  readonly canStopGeneration: boolean;
+  readonly isSending: boolean;
+  readonly sendDisabled: boolean;
+  readonly stopDisabled: boolean;
+  readonly send: () => Promise<void> | void;
+  readonly stop: () => Promise<void> | void;
+};
 
 function toSkillRecords(
   snapshotRecords: SessionSkillEntryView[],
@@ -150,14 +162,14 @@ function useSessionConversationInputCollections(params: {
 
 type SessionConversationInputProps = {
   readonly contextWindow: ChatContextWindowIndicator | null;
-  readonly controller: SessionConversationController;
+  readonly controller: SessionConversationInputController;
   readonly inputActions: SessionConversationInputActions;
   readonly inputQuery: SessionConversationInputQuery;
   readonly inputSnapshot: SessionConversationInputSnapshot;
   readonly surface?: 'default' | 'embedded';
 };
 
-export function SessionConversationInput(props: SessionConversationInputProps) {
+export const SessionConversationInput = memo(function SessionConversationInput(props: SessionConversationInputProps) {
   const {
     contextWindow,
     controller,
@@ -424,4 +436,4 @@ export function SessionConversationInput(props: SessionConversationInputProps) {
       />
     </>
   );
-}
+});

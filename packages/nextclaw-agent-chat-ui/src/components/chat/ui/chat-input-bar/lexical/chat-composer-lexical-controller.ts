@@ -236,6 +236,7 @@ export function handleLexicalComposerBeforeInput(params: {
 }
 
 export function handleLexicalComposerCompositionEnd(params: {
+  compositionStartSnapshot?: ChatComposerEditorSnapshot | null;
   data: string;
   fallbackSnapshot: () => ChatComposerEditorSnapshot;
   publishSnapshot: (
@@ -247,18 +248,19 @@ export function handleLexicalComposerCompositionEnd(params: {
     selection: ChatComposerSelection | null;
   };
 }): void {
-  const { data, fallbackSnapshot, publishSnapshot, snapshotReader } = params;
+  const { compositionStartSnapshot, data, fallbackSnapshot, publishSnapshot, snapshotReader } = params;
   const currentSnapshot = snapshotReader();
   const editorSnapshot = fallbackSnapshot();
+  const baseSnapshot = compositionStartSnapshot ?? currentSnapshot;
   const shouldUseEditorSnapshot =
     getChatComposerContentSignature(editorSnapshot.nodes) !==
-    getChatComposerContentSignature(currentSnapshot.nodes);
+    getChatComposerContentSignature(baseSnapshot.nodes);
   const snapshot = shouldUseEditorSnapshot
     ? editorSnapshot
     : data.length > 0
       ? replaceChatComposerSelectionWithText({
-          nodes: currentSnapshot.nodes,
-          selection: currentSnapshot.selection,
+          nodes: baseSnapshot.nodes,
+          selection: baseSnapshot.selection,
           text: data,
         })
       : editorSnapshot;

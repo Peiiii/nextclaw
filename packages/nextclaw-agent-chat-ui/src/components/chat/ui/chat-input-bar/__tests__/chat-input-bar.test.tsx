@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type MutableRefObject } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import {
   ChatInputBar,
@@ -6,8 +6,14 @@ import {
 } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-input-bar';
 import { resolveInputSurfaceTriggerIdentity } from '@agent-chat-ui/components/chat/ui/input-surface/chat-input-surface-host';
 import { createChatComposerTextNode, createChatComposerTokenNode, resolveChatComposerSlashTrigger } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
-import { insertFileTokenIntoChatComposer, insertInputSurfaceItemIntoChatComposer, insertSkillTokenIntoChatComposer } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-adapter';
+import { getChatComposerNodesSignature, insertFileTokenIntoChatComposer, insertInputSurfaceItemIntoChatComposer, insertSkillTokenIntoChatComposer } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-adapter';
+import { handleLexicalComposerCompositionEnd } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-controller';
 import type { ChatComposerNode, ChatInputBarProps, ChatToolbarSelect } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
+import {
+  DeferredComposerOwnerHarness,
+  StreamingComposerHarness,
+  type DeferredComposerOwnerHarnessControl,
+} from './chat-input-bar-streaming-harness.test-utils';
 
 type ChatInputBarPropsOverrides = Omit<Partial<ChatInputBarProps>, 'composer' | 'toolbar'> & {
   composer?: Partial<ChatInputBarProps['composer']>;
@@ -255,6 +261,14 @@ it('clears the slash trigger after the slash marker is deleted', () => {
       { start: 1, end: 1 },
     ),
   ).toBeNull();
+});
+
+it('treats text node ids as non-semantic for composer document signatures', () => {
+  expect(getChatComposerNodesSignature([
+    createChatComposerTextNode('你好'),
+  ])).toBe(getChatComposerNodesSignature([
+    createChatComposerTextNode('你好'),
+  ]));
 });
 
 it('replaces the current slash query with a skill token', () => {
@@ -514,6 +528,105 @@ it('focuses at the end of externally supplied composer nodes', async () => {
     expect(selection?.anchorOffset).toBe(12);
     expect(selection?.focusOffset).toBe(12);
   });
+});
+
+it('keeps local IME typing stable across stale owner rerenders before the owner flushes nodes', async () => {
+  const controlRef: MutableRefObject<DeferredComposerOwnerHarnessControl | null> = { current: null };
+  render(<DeferredComposerOwnerHarness controlRef={controlRef} />);
+
+  const textbox = screen.getByRole('textbox');
+  fireEvent.focus(textbox);
+  fireEvent.compositionStart(textbox);
+  fireEvent.compositionEnd(textbox, { data: '你' });
+
+  await waitFor(() => expect(textbox.textContent).toBe('你'));
+
+  act(() => {
+    controlRef.current?.bumpStream();
+  });
+  fireEvent.compositionStart(textbox);
+  fireEvent.compositionEnd(textbox, { data: '好' });
+
+  await waitFor(() => expect(textbox.textContent).toBe('你好'));
+
+  act(() => {
+    controlRef.current?.flushNodes();
+  });
+
+  await waitFor(() => expect(textbox.textContent).toBe('你好'));
+});
+
+it('keeps the caret at the end while stale owner rerenders during local typing', async () => {
+  const controlRef: MutableRefObject<DeferredComposerOwnerHarnessControl | null> = { current: null };
+  render(<DeferredComposerOwnerHarness controlRef={controlRef} />);
+
+  const textbox = screen.getByRole('textbox');
+  fireEvent.focus(textbox);
+  fireEvent.compositionStart(textbox);
+  fireEvent.compositionEnd(textbox, { data: '你' });
+
+  await waitFor(() => expect(textbox.textContent).toBe('你'));
+
+  act(() => {
+    controlRef.current?.bumpStream();
+  });
+
+  fireEvent.compositionStart(textbox);
+  fireEvent.compositionEnd(textbox, { data: '好' });
+
+  await waitFor(() => expect(textbox.textContent).toBe('你好'));
+  await waitFor(() => {
+    const selection = window.getSelection();
+    expect(selection?.anchorOffset).toBe(2);
+    expect(selection?.focusOffset).toBe(2);
+  });
+});
+
+it('does not duplicate IME text already committed by the browser before compositionend', () => {
+  const startSnapshot = {
+    nodes: [createChatComposerTextNode('')],
+    selection: { start: 0, end: 0 },
+  };
+  const committedSnapshot = {
+    nodes: [createChatComposerTextNode('你好')],
+    selection: { start: 2, end: 2 },
+  };
+  const publishSnapshot = vi.fn();
+
+  handleLexicalComposerCompositionEnd({
+    compositionStartSnapshot: startSnapshot,
+    data: '你好',
+    fallbackSnapshot: () => committedSnapshot,
+    publishSnapshot,
+    snapshotReader: () => committedSnapshot,
+  });
+
+  expect(publishSnapshot).toHaveBeenCalledWith(
+    expect.objectContaining({
+      nodes: [expect.objectContaining({ text: '你好', type: 'text' })],
+      selection: { start: 2, end: 2 },
+    }),
+    expect.any(Object),
+  );
+});
+
+it('keeps IME composition stable while streamed output rerenders the parent', async () => {
+  const controlRef: MutableRefObject<{ bumpStream: () => void } | null> = { current: null };
+  render(<StreamingComposerHarness controlRef={controlRef} />);
+
+  const textbox = screen.getByRole('textbox');
+  fireEvent.focus(textbox);
+  fireEvent.compositionStart(textbox);
+
+  act(() => {
+    controlRef.current?.bumpStream();
+    controlRef.current?.bumpStream();
+  });
+  expect(screen.getByTestId('stream-chunk').textContent).toBe('2');
+
+  fireEvent.compositionEnd(textbox, { data: '你' });
+
+  await waitFor(() => expect(textbox.textContent).toBe('你'));
 });
 
 it('does not commit intermediate IME composition text before composition ends', () => {

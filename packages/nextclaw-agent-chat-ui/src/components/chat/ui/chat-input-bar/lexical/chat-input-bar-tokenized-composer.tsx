@@ -24,6 +24,7 @@ import type {
   ChatSlashItem,
 } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import {
+  type ChatComposerEditorSnapshot,
   getChatComposerNodesSignature,
   readChatComposerSnapshotFromEditorState,
   syncLexicalEditorFromChatComposerState,
@@ -96,8 +97,10 @@ export const ChatInputBarTokenizedComposer = forwardRef<
   const pendingSelectionRef = useRef<ChatComposerSelection | null>(null);
   const shouldFocusAfterSyncRef = useRef(false);
   const isComposingRef = useRef(false);
+  const compositionStartSnapshotRef = useRef<ChatComposerEditorSnapshot | null>(null);
   const isApplyingExternalUpdateRef = useRef(false);
   const pendingInputSurfaceReasonRef = useRef<ChatInputSurfaceTriggerChangeReason | null>(null);
+  const pendingOwnerSignatureRef = useRef<string | null>(null);
   const editorSignatureRef = useRef('');
   const lastPublishedSignatureRef = useRef('');
 
@@ -111,24 +114,6 @@ export const ChatInputBarTokenizedComposer = forwardRef<
     },
     [onInputSurfaceSnapshotChange],
   );
-
-  const readCurrentNodes = useCallback((): ChatComposerNode[] => {
-    return nodes;
-  }, [nodes]);
-
-  const readCurrentSelection = useCallback((): ChatComposerSelection | null => {
-    if (selectionRef.current) {
-      return selectionRef.current;
-    }
-
-    if (!editorRef.current) {
-      return null;
-    }
-
-    const snapshot = readChatComposerSnapshotFromEditorState(editorRef.current.getEditorState());
-    selectionRef.current = snapshot.selection;
-    return snapshot.selection;
-  }, []);
 
   const publishSnapshot = useCallback(
     (
@@ -147,6 +132,16 @@ export const ChatInputBarTokenizedComposer = forwardRef<
       }
 
       const signature = getChatComposerNodesSignature(snapshot.nodes);
+      const editor = editorRef.current;
+      pendingOwnerSignatureRef.current = signature;
+      if (editor) {
+        isApplyingExternalUpdateRef.current = true;
+        syncLexicalEditorFromChatComposerState(editor, snapshot.nodes, snapshot.selection);
+        editorSignatureRef.current = signature;
+        requestAnimationFrame(() => {
+          isApplyingExternalUpdateRef.current = false;
+        });
+      }
       syncInputSurfaceSnapshot(snapshot.nodes, snapshot.selection, options?.inputSurfaceReason ?? { type: 'programmatic' });
 
       if (options?.forcePublish || signature !== lastPublishedSignatureRef.current) {
@@ -200,10 +195,18 @@ export const ChatInputBarTokenizedComposer = forwardRef<
     });
   }, []);
 
-  const readComposerSnapshot = useCallback((): { nodes: ChatComposerNode[]; selection: ChatComposerSelection | null } => ({
-    nodes: readCurrentNodes(),
-    selection: readCurrentSelection(),
-  }), [readCurrentNodes, readCurrentSelection]);
+  const readComposerSnapshot = useCallback((): { nodes: ChatComposerNode[]; selection: ChatComposerSelection | null } => {
+    const editor = editorRef.current;
+    if (!editor) {
+      return {
+        nodes,
+        selection: selectionRef.current,
+      };
+    }
+    const snapshot = readChatComposerSnapshotFromEditorState(editor.getEditorState());
+    selectionRef.current = snapshot.selection;
+    return snapshot;
+  }, [nodes]);
 
   const consumeInputSurfaceReason = useCallback((): ChatInputSurfaceTriggerChangeReason | null => {
     const reason = pendingInputSurfaceReasonRef.current;
@@ -267,6 +270,7 @@ export const ChatInputBarTokenizedComposer = forwardRef<
                   isComposingRef.current = false;
                   const nativeEvent = event.nativeEvent as CompositionEvent;
                   handleLexicalComposerCompositionEnd({
+                    compositionStartSnapshot: compositionStartSnapshotRef.current,
                     data: typeof nativeEvent.data === 'string' ? nativeEvent.data : '',
                     fallbackSnapshot: () => {
                       const editor = editorRef.current;
@@ -277,8 +281,10 @@ export const ChatInputBarTokenizedComposer = forwardRef<
                     publishSnapshot,
                     snapshotReader: readComposerSnapshot,
                   });
+                  compositionStartSnapshotRef.current = null;
                 }}
                 onCompositionStart={() => {
+                  compositionStartSnapshotRef.current = readComposerSnapshot();
                   isComposingRef.current = true;
                 }}
                 onPaste={(event: ClipboardEvent<HTMLDivElement>) => {
@@ -340,6 +346,7 @@ export const ChatInputBarTokenizedComposer = forwardRef<
           });
         }}
         onNodesChange={onNodesChange}
+        pendingOwnerSignatureRef={pendingOwnerSignatureRef}
         pendingSelectionRef={pendingSelectionRef}
         selectionRef={selectionRef}
         shouldFocusAfterSyncRef={shouldFocusAfterSyncRef}

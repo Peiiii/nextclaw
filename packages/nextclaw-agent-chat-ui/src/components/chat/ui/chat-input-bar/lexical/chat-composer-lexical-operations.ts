@@ -135,8 +135,8 @@ export function getChatComposerNodesSignature(nodes: ChatComposerNode[]): string
   return nodes
     .map((node) =>
       node.type === 'text'
-        ? `text:${node.id}:${node.text}`
-        : `token:${node.id}:${node.tokenKind}:${node.tokenKey}:${node.label}`,
+        ? `text:${node.text}`
+        : `token:${node.tokenKind}:${node.tokenKey}:${node.label}`,
     )
     .join('\u001f');
 }
