@@ -429,6 +429,103 @@ describe("SessionManager", () => {
     });
   });
 
+  it("creates child sessions with inherited parent context before the tool-call anchor", async () => {
+    const anchorMessage = {
+      id: "assistant-anchor",
+      sessionId: "parent-session",
+      role: "assistant",
+      status: "streaming",
+      timestamp: "2026-05-12T00:00:03.000Z",
+      parts: [
+        {
+          type: "tool-invocation",
+          toolName: "sessions_spawn",
+          toolCallId: "call-spawn-1",
+          state: "call",
+          args: { scope: "child", inheritContext: true },
+        },
+      ],
+    } satisfies NcpMessage;
+    const fixture = await createFixture([
+      createRecord({
+        sessionId: "parent-session",
+        agentId: "main",
+        messages: [
+          createMessage({
+            id: "user-before",
+            sessionId: "parent-session",
+            text: "父会话背景",
+          }),
+          createMessage({
+            id: "assistant-before",
+            role: "assistant",
+            sessionId: "parent-session",
+            text: "父会话回答",
+            timestamp: "2026-05-12T00:00:01.000Z",
+          }),
+          anchorMessage,
+          createMessage({
+            id: "user-after",
+            sessionId: "parent-session",
+            text: "锚点之后不应继承",
+            timestamp: "2026-05-12T00:00:04.000Z",
+          }),
+        ],
+      }),
+    ]);
+
+    const created = await fixture.manager.createSession({
+      sessionId: "child-session",
+      sourceSessionId: "parent-session",
+      sourceSessionMetadata: {},
+      contextInheritance: { anchorToolCallId: "call-spawn-1" },
+      parentSessionId: "parent-session",
+      task: "子任务",
+    });
+    const record = await fixture.journalStore.getSession(created.sessionId);
+
+    expect(created.parentSessionId).toBe("parent-session");
+    expect(created.metadata).toMatchObject({
+      parent_session_id: "parent-session",
+      context_inheritance: {
+        enabled: true,
+        sourceSessionId: "parent-session",
+        anchorKind: "tool_call",
+        anchorToolCallId: "call-spawn-1",
+        anchorMessageId: "assistant-anchor",
+        inheritedMessageCount: 2,
+      },
+    });
+    expect(record?.messages.map((message) => message.id)).toEqual([
+      "child-session:inherited:1",
+      "child-session:inherited:2",
+    ]);
+    expect(record?.messages.map((message) => message.sessionId)).toEqual([
+      "child-session",
+      "child-session",
+    ]);
+    expect(record?.messages[0]?.metadata).toMatchObject({
+      inherited_from_session_id: "parent-session",
+      inherited_from_message_id: "user-before",
+    });
+    expect(record?.messages.map((message) => message.parts)).not.toContainEqual(
+      [{ type: "text", text: "锚点之后不应继承" }],
+    );
+  });
+
+  it("rejects context inheritance without a child parent", async () => {
+    const fixture = await createFixture([
+      createRecord({ sessionId: "parent-session" }),
+    ]);
+
+    await expect(fixture.manager.createSession({
+      sourceSessionId: "parent-session",
+      sourceSessionMetadata: {},
+      contextInheritance: { anchorToolCallId: "call-spawn-1" },
+      task: "standalone",
+    })).rejects.toThrow("contextInheritance requires a child session parentSessionId.");
+  });
+
   it("internally derives stable agent run sessions from peerId", async () => {
     const fixture = await createFixture();
 

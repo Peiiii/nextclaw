@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import type { NcpMessage } from "@nextclaw/ncp";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ChatMessageListContainer } from "@/features/chat/features/message/components/chat-message-list.container";
@@ -172,6 +172,44 @@ it("adapts persisted inline token metadata into rich message parts", () => {
       },
     ],
   });
+});
+
+it("renders context inheritance as a divider without repeating inherited messages", () => {
+  const inheritedMessage = {
+    id: "child-session:inherited:1",
+    sessionId: "child-session",
+    role: "user",
+    status: "final",
+    timestamp: "2026-03-31T10:00:00.000Z",
+    metadata: {
+      inherited_from_session_id: "parent-session",
+      inherited_from_message_id: "parent-message-1",
+    },
+    parts: [{ type: "text", text: "parent context" }],
+  } satisfies NcpMessage;
+  const childMessage = {
+    id: "child-message-1",
+    sessionId: "child-session",
+    role: "user",
+    status: "final",
+    timestamp: "2026-03-31T10:00:01.000Z",
+    parts: [{ type: "text", text: "child visible request" }],
+  } satisfies NcpMessage;
+
+  const { container } = render(
+    <ChatMessageListContainer
+      messages={[inheritedMessage, childMessage]}
+      isSending={false}
+    />,
+  );
+  const renderedMessages = captures.renders.flatMap((rendered) => rendered.messages);
+  const renderedPayload = JSON.stringify(renderedMessages);
+
+  expect(screen.getByText("chatContextInheritanceInherited")).toBeTruthy();
+  expect(container.querySelector('[title*="parent-session"]')).toBeTruthy();
+  expect(container.querySelector('[title*="chatContextInheritanceMessages: 1"]')).toBeTruthy();
+  expect(renderedPayload).toContain("child visible request");
+  expect(renderedPayload).not.toContain("parent context");
 });
 
 it("keeps Hermes tool invocation parts as tool cards instead of flattening them into plain text", () => {

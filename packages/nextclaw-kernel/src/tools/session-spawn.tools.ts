@@ -46,6 +46,16 @@ function readSpawnNotify(value: unknown): SessionRequestNotifyMode | undefined {
   throw new Error('notify must be "none" or "final_reply".');
 }
 
+function readInheritContext(value: unknown): boolean {
+  if (typeof value === "undefined") {
+    return false;
+  }
+  if (typeof value === "boolean") {
+    return value;
+  }
+  throw new Error("inheritContext must be a boolean.");
+}
+
 export class SessionSpawnTool implements NcpTool {
   readonly name = "sessions_spawn";
   readonly description =
@@ -83,6 +93,10 @@ export class SessionSpawnTool implements NcpTool {
         enum: ["none", "final_reply"],
         description: "Optional. Starts the new session immediately. Use \"final_reply\" to continue this session after the new session reaches its final reply, or \"none\" to let it run independently.",
       },
+      inheritContext: {
+        type: "boolean",
+        description: "Child sessions only. When true, the child starts with parent context inherited up to this tool call.",
+      },
     },
     required: ["task"],
     additionalProperties: false,
@@ -115,12 +129,20 @@ export class SessionSpawnTool implements NcpTool {
       runtime: rawRuntime,
       scope: rawScope,
       task: rawTask,
-      title: rawTitle
+      title: rawTitle,
+      inheritContext: rawInheritContext,
     } = params;
     const task = readRequiredString(rawTask, "task");
     const scope = readSpawnScope(rawScope);
     const notify = readSpawnNotify(rawNotify);
+    const inheritContext = readInheritContext(rawInheritContext);
+    if (inheritContext && scope !== "child") {
+      throw new Error('inheritContext=true requires scope="child".');
+    }
     const parentSessionId = scope === "child" ? this.readParentSessionIdOrThrow() : undefined;
+    const contextInheritance = inheritContext
+      ? { anchorToolCallId: context?.toolCallId }
+      : undefined;
 
     if (notify) {
       return this.sessionRequestManager.spawnSessionAndRequest({
@@ -133,6 +155,7 @@ export class SessionSpawnTool implements NcpTool {
         agentId: readOptionalString(rawAgentId),
         model: readOptionalString(rawModel),
         runtime: readOptionalString(rawRuntime),
+        contextInheritance,
         handoffDepth: this.handoffDepth,
         parentSessionId,
         notify,
@@ -147,6 +170,7 @@ export class SessionSpawnTool implements NcpTool {
       agentId: readOptionalString(rawAgentId),
       model: readOptionalString(rawModel),
       runtime: readOptionalString(rawRuntime),
+      contextInheritance,
       parentSessionId,
     });
 

@@ -3,6 +3,9 @@ import type {
   SessionRequestRecord,
   SessionRequestToolResult,
 } from "./session-request.types.js";
+import type {
+  CreateSessionContextInheritanceInput as SessionContextInheritanceInput,
+} from "@core/features/session/index.js";
 
 export type UpdateSessionRequestToolCallResult = (
   result: SessionRequestToolResult,
@@ -14,6 +17,7 @@ export type SpawnSessionAndRequestParams = {
   updateToolCallResult?: UpdateSessionRequestToolCallResult;
   sourceSessionMetadata: Record<string, unknown>;
   metadataOverrides?: Record<string, unknown>;
+  contextInheritance?: SessionContextInheritanceInput;
   task: string;
   title?: string;
   model?: string;

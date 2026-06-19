@@ -27,10 +27,21 @@ type ChatMessageListContainerProps = {
   className?: string;
 };
 
+const INHERITED_FROM_SESSION_METADATA_KEY = "inherited_from_session_id";
+
 const messageViewModelCache = new WeakMap<
   NcpMessage,
   { language: string; viewModel: ChatMessageViewModel }
 >();
+
+type ContextInheritanceTimelineView = {
+  sourceSessionId: string;
+  inheritedMessageCount: number;
+};
+
+type ContextInheritanceTimelineBoundary = ContextInheritanceTimelineView & {
+  boundaryIndex: number;
+};
 
 type ChatTimelineItem =
   | {
@@ -42,6 +53,11 @@ type ChatTimelineItem =
       kind: "compaction";
       key: string;
       checkpoint: ContextCompactionTimelineView;
+    }
+  | {
+      kind: "context-inheritance";
+      key: string;
+      inheritance: ContextInheritanceTimelineView;
     };
 
 function buildChatMessageAdapterTexts(
@@ -129,35 +145,81 @@ function ChatContextCompactionDivider({
   );
 }
 
+function ChatContextInheritanceDivider({
+  inheritance,
+}: {
+  inheritance: ContextInheritanceTimelineView;
+}) {
+  const title = [
+    `${t("chatContextInheritanceSourceSession")}: ${inheritance.sourceSessionId}`,
+    `${t("chatContextInheritanceMessages")}: ${inheritance.inheritedMessageCount}`,
+  ].join("\n");
+  return (
+    <div className="my-4 flex items-center gap-3 text-[11px] text-emerald-700" title={title}>
+      <div className="h-px flex-1 bg-emerald-100" />
+      <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+        <span>{t("chatContextInheritanceInherited")}</span>
+      </div>
+      <div className="h-px flex-1 bg-emerald-100" />
+    </div>
+  );
+}
+
 function resolveCompactionBoundaryIndex(params: {
   rawMessages: readonly NcpMessage[];
-  normalRawMessages: readonly NcpMessage[];
+  visibleRawMessages: readonly NcpMessage[];
   rawMessageId: string;
 }): number {
   const {
-    normalRawMessages,
     rawMessageId,
     rawMessages,
+    visibleRawMessages,
   } = params;
   const physicalIndex = rawMessages.findIndex(
     (message) => message.id === rawMessageId,
   );
   if (physicalIndex < 0) {
-    return normalRawMessages.length - 1;
+    return visibleRawMessages.length - 1;
   }
-  const previousNormalCount = rawMessages
+  const previousVisibleCount = rawMessages
     .slice(0, physicalIndex)
-    .filter((message) => !readContextCompactionTimeline(message)).length;
-  return previousNormalCount - 1;
+    .filter(isVisibleChatMessage).length;
+  return previousVisibleCount - 1;
+}
+
+function readInheritedSourceSessionId(message: NcpMessage): string | null {
+  const value = message.metadata?.[INHERITED_FROM_SESSION_METADATA_KEY];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function isVisibleChatMessage(message: NcpMessage): boolean {
+  return !readContextCompactionTimeline(message) && !readInheritedSourceSessionId(message);
+}
+
+function resolveContextInheritanceBoundary(
+  messages: readonly NcpMessage[],
+): ContextInheritanceTimelineBoundary | null {
+  const boundaryIndex = messages.findIndex((message) => readInheritedSourceSessionId(message));
+  if (boundaryIndex < 0) {
+    return null;
+  }
+  const sourceSessionId = readInheritedSourceSessionId(messages[boundaryIndex]);
+  if (!sourceSessionId) {
+    return null;
+  }
+  return {
+    boundaryIndex: messages.slice(0, boundaryIndex).filter(isVisibleChatMessage).length,
+    sourceSessionId,
+    inheritedMessageCount: messages.filter((message) => readInheritedSourceSessionId(message) === sourceSessionId).length,
+  };
 }
 
 function buildTimelineItems(params: {
   rawMessages: readonly NcpMessage[];
   messages: ChatMessageViewModel[];
 }): ChatTimelineItem[] {
-  const normalRawMessages = params.rawMessages.filter(
-    (message) => !readContextCompactionTimeline(message),
-  );
+  const visibleRawMessages = params.rawMessages.filter(isVisibleChatMessage);
   const checkpoints = params.rawMessages
     .map((message) => ({
       rawMessageId: message.id,
@@ -172,11 +234,12 @@ function buildTimelineItems(params: {
       checkpoint: entry.checkpoint,
       boundaryIndex: resolveCompactionBoundaryIndex({
         rawMessages: params.rawMessages,
-        normalRawMessages,
+        visibleRawMessages,
         rawMessageId: entry.rawMessageId,
       }),
     }))
     .sort((left, right) => left.boundaryIndex - right.boundaryIndex);
+  const contextInheritance = resolveContextInheritanceBoundary(params.rawMessages);
 
   const items: ChatTimelineItem[] = [];
   let pendingMessages: ChatMessageViewModel[] = [];
@@ -193,7 +256,15 @@ function buildTimelineItems(params: {
     pendingMessages = [];
   };
 
-  normalRawMessages.forEach((rawMessage, index) => {
+  visibleRawMessages.forEach((rawMessage, index) => {
+    if (contextInheritance?.boundaryIndex === index) {
+      flushPendingMessages("messages-before-context-inheritance");
+      items.push({
+        kind: "context-inheritance",
+        key: "context-inheritance",
+        inheritance: contextInheritance,
+      });
+    }
     const message = params.messages[index];
     if (message) {
       pendingMessages.push(message);
@@ -209,6 +280,14 @@ function buildTimelineItems(params: {
       checkpointCursor += 1;
     }
   });
+  if (contextInheritance?.boundaryIndex === visibleRawMessages.length) {
+    flushPendingMessages("messages-before-context-inheritance");
+    items.push({
+      kind: "context-inheritance",
+      key: "context-inheritance",
+      inheritance: contextInheritance,
+    });
+  }
   while (checkpointCursor < checkpoints.length) {
     const currentCheckpoint = checkpoints[checkpointCursor];
     flushPendingMessages(`messages-before-${currentCheckpoint.key}`);
@@ -244,7 +323,7 @@ export function ChatMessageListContainer({
 
   const messages = useMemo(() => {
     return rawMessages.flatMap((message) => {
-      if (readContextCompactionTimeline(message)) {
+      if (!isVisibleChatMessage(message)) {
         return [];
       }
       const cached = messageViewModelCache.get(message);
@@ -295,6 +374,8 @@ export function ChatMessageListContainer({
       {timelineItems.map((item, index) =>
         item.kind === "compaction" ? (
           <ChatContextCompactionDivider key={item.key} checkpoint={item.checkpoint} />
+        ) : item.kind === "context-inheritance" ? (
+          <ChatContextInheritanceDivider key={item.key} inheritance={item.inheritance} />
         ) : (
           <ChatMessageList
             key={item.key}

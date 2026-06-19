@@ -14,11 +14,16 @@ export type CreatedSession = {
   updatedAt: string;
 };
 
+export type CreateSessionContextInheritanceInput = {
+  anchorToolCallId?: string;
+};
+
 export type CreateSessionInput = {
   sessionId?: string;
   sourceSessionId?: string;
   sourceSessionMetadata: Record<string, unknown>;
   metadataOverrides?: Record<string, unknown>;
+  contextInheritance?: CreateSessionContextInheritanceInput;
   task: string;
   title?: string;
   agentId?: string;

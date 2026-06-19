@@ -30,6 +30,14 @@ function createFixture() {
     }) as never,
   };
   const sessionManager = new SessionManager({
+    agentManager: {
+      resolveAgentProfile: () => ({ workspace: "" }),
+      resolveAgentProfileForRun: () => ({
+        contextTokens: 200000,
+        model: "",
+        reservedContextTokens: 0,
+      }),
+    } as never,
     configManager: configManager as never,
     eventBus: new EventBus(),
     journalStore: new NcpAgentSessionJournalStore(join(dir, "journal")),
@@ -75,6 +83,36 @@ describe("SessionRequestManager", () => {
       .join("\n");
     expect(journal).toContain("session.request.accepted");
     expect(journal).toContain("session.request.completed");
+  });
+
+  it("passes context inheritance through requested child session creation", async () => {
+    const fixture = createFixture();
+    await fixture.sessionManager.createSession({
+      sessionId: "source-session",
+      sourceSessionMetadata: {},
+      task: "Parent",
+    });
+
+    const result = await fixture.manager.spawnSessionAndRequest({
+      sourceSessionId: "source-session",
+      sourceSessionMetadata: {},
+      contextInheritance: { anchorToolCallId: "call-spawn-1" },
+      parentSessionId: "source-session",
+      task: "Review this",
+      notify: "final_reply",
+    });
+    const record = await fixture.sessionManager.getSessionRecord(result.sessionId);
+
+    expect(record?.metadata).toMatchObject({
+      parent_session_id: "source-session",
+      context_inheritance: {
+        enabled: true,
+        sourceSessionId: "source-session",
+        anchorKind: "latest_persisted",
+        anchorToolCallId: "call-spawn-1",
+        inheritedMessageCount: 0,
+      },
+    });
   });
 
   it("rejects self-targeting requests before dispatch", async () => {

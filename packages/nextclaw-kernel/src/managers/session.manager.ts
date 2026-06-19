@@ -34,6 +34,7 @@ import {
   readOptionalMetadataString,
   readOptionalString,
 } from "@kernel/utils/session-manager.utils.js";
+import { createSessionContextInheritance } from "@kernel/utils/session-context-inheritance.utils.js";
 import {
   eventKeys,
   type EventBus,
@@ -226,6 +227,7 @@ export class SessionManager implements NcpSessionApi {
   createSession = async (params: CreateNcpSessionInput): Promise<CreatedSession> => {
     const {
       agentId: requestedAgentId,
+      contextInheritance,
       metadataOverrides,
       model,
       parentSessionId: rawParentSessionId,
@@ -270,13 +272,20 @@ export class SessionManager implements NcpSessionApi {
       readOptionalString(sourceRecord?.agentId) ??
       BUILTIN_MAIN_AGENT_ID;
     const sessionId = readOptionalString(requestedSessionId) ?? buildSessionId();
+    const inheritedContext = createSessionContextInheritance({
+      childSessionId: sessionId,
+      contextInheritance,
+      metadata: nextMetadata,
+      parentSessionId,
+      sourceRecord,
+    });
     const record: AgentSessionRecord = {
       sessionId,
       ...(agentId ? { agentId } : {}),
-      messages: [],
+      messages: inheritedContext.messages,
       createdAt: now,
       updatedAt: now,
-      metadata: nextMetadata,
+      metadata: inheritedContext.metadata,
     };
     await this.options.journalStore.importSessionSnapshot(record);
     await this.publishSessionChange(sessionId);
@@ -289,7 +298,7 @@ export class SessionManager implements NcpSessionApi {
       ...(requestId ? { spawnedByRequestId: requestId } : {}),
       lifecycle: DEFAULT_LIFECYCLE,
       title,
-      metadata: nextMetadata,
+      metadata: inheritedContext.metadata,
       createdAt: now,
       updatedAt: now,
     };
