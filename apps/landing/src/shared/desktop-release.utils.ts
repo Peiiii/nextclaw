@@ -8,8 +8,8 @@ export type DesktopReleaseInfo = {
   windowsPortableZipUrl: string | null;
 };
 
-const STABLE_DESKTOP_RELEASE_TAG = 'v0.21.4-desktop.1';
-const STABLE_DESKTOP_VERSION = '0.0.207';
+const STABLE_DESKTOP_RELEASE_TAG = 'v0.21.10-desktop.1';
+const STABLE_DESKTOP_VERSION = '0.0.213';
 const STABLE_DESKTOP_RELEASE_URL = `https://github.com/Peiiii/nextclaw/releases/tag/${STABLE_DESKTOP_RELEASE_TAG}`;
 const STABLE_DESKTOP_ASSET_BASE_URL = `https://github.com/Peiiii/nextclaw/releases/download/${STABLE_DESKTOP_RELEASE_TAG}`;
 
@@ -23,7 +23,7 @@ export const DESKTOP_RELEASE_FALLBACK: DesktopReleaseInfo = {
     windowsX64Installer: `${STABLE_DESKTOP_ASSET_BASE_URL}/NextClaw.Desktop-Setup-${STABLE_DESKTOP_VERSION}-x64.exe`,
     linuxX64AppImage: `${STABLE_DESKTOP_ASSET_BASE_URL}/NextClaw.Desktop-${STABLE_DESKTOP_VERSION}-linux-x64.AppImage`
   },
-  windowsPortableZipUrl: `${STABLE_DESKTOP_ASSET_BASE_URL}/NextClaw.Desktop-${STABLE_DESKTOP_VERSION}-win32-x64-unpacked.zip`
+  windowsPortableZipUrl: `${STABLE_DESKTOP_ASSET_BASE_URL}/NextClaw-Portable-${STABLE_DESKTOP_VERSION}-win-x64.zip`
 };
 
 const GITHUB_RELEASES_API = 'https://api.github.com/repos/Peiiii/nextclaw/releases?per_page=20';
@@ -35,7 +35,7 @@ const DESKTOP_ASSET_PATTERNS: Record<DownloadAssetKey, RegExp> = {
   linuxX64AppImage: /NextClaw(?:\.Desktop| Desktop)-(\d+\.\d+\.\d+)(?:-linux-x64)?\.AppImage$/i
 };
 
-const WINDOWS_PORTABLE_ZIP_PATTERN = /NextClaw\.Desktop(?:-(\d+\.\d+\.\d+))?-win32-x64-unpacked\.zip$/;
+const WINDOWS_PORTABLE_ZIP_PATTERN = /NextClaw-Portable-(\d+\.\d+\.\d+)-win-x64\.zip$/;
 
 function inferDesktopVersionFromAssetName(assetName: string): string | null {
   const match = assetName.match(DESKTOP_ASSET_PATTERNS.macArm64Dmg) ?? assetName.match(DESKTOP_ASSET_PATTERNS.macX64Dmg);
