@@ -10,7 +10,11 @@ import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
 import { DesktopAppShell, getDesktopHostPlatform } from "@/platforms/desktop";
 import { MobileAppShell } from "@/platforms/mobile";
 import { PANEL_APPS_DOC_BROWSER_RENDERERS } from "@/features/panel-apps";
-import { SideDock, type SideDockManager, useSideDockStore } from "@/features/side-dock";
+import {
+  SideDock,
+  type SideDockManager,
+  useSideDockStore,
+} from "@/features/side-dock";
 import { getPresenter } from "@/app/presenters/app.presenter";
 import { resolveUiDocumentTitle } from "@/shared/lib/ui-document-title";
 import type { DocBrowserDockControls } from "@/shared/components/doc-browser/doc-browser-context";
@@ -37,12 +41,20 @@ function AppLayoutInner({
   };
 
   useEffect(() => {
-    document.title = resolveUiDocumentTitle(pathname);
+    document.title = resolveUiDocumentTitle(pathname, window.location);
   }, [pathname, language]);
 
   if (isMobile && desktopHostPlatform !== "win32") {
     return (
-      <MobileAppShell pathname={pathname} isDocBrowserOpen={isOpen} docBrowserDockControls={docBrowserDockControls} docBrowserRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} topbarLeadingInset={desktopHostPlatform === "darwin" ? "4.75rem" : undefined}>
+      <MobileAppShell
+        pathname={pathname}
+        isDocBrowserOpen={isOpen}
+        docBrowserDockControls={docBrowserDockControls}
+        docBrowserRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS}
+        topbarLeadingInset={
+          desktopHostPlatform === "darwin" ? "4.75rem" : undefined
+        }
+      >
         {children}
       </MobileAppShell>
     );
@@ -68,7 +80,9 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <DocBrowserProvider manager={presenter.docBrowserManager}>
-      <AppLayoutInner sideDockManager={presenter.sideDockManager}>{children}</AppLayoutInner>
+      <AppLayoutInner sideDockManager={presenter.sideDockManager}>
+        {children}
+      </AppLayoutInner>
     </DocBrowserProvider>
   );
 }
