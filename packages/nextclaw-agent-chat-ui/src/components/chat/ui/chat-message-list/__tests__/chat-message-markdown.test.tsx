@@ -159,3 +159,95 @@ it("keeps highlighted code content escaped", () => {
   expect(code?.textContent).toBe("<img src=x onerror=alert(1)>");
   expect(code?.querySelector("img")).toBeNull();
 });
+
+it("renders inline tokens from normal markdown text", () => {
+  render(
+    <ChatMessageMarkdown
+      text="review @panel-app:task-board now"
+      role="assistant"
+      texts={defaultTexts}
+      inlineTokens={[
+        {
+          kind: "panel_app",
+          key: "task-board",
+          label: "Task Board",
+          rawText: "@panel-app:task-board",
+        },
+      ]}
+    />,
+  );
+
+  expect(screen.getByTitle("Task Board")).toBeTruthy();
+  expect(screen.getByText("Task Board")).toBeTruthy();
+});
+
+it("leaves inline token protocols literal inside inline code", () => {
+  const { container } = render(
+    <ChatMessageMarkdown
+      text="review `@panel-app:task-board` now"
+      role="assistant"
+      texts={defaultTexts}
+      inlineTokens={[
+        {
+          kind: "panel_app",
+          key: "task-board",
+          label: "Task Board",
+          rawText: "@panel-app:task-board",
+        },
+      ]}
+    />,
+  );
+
+  expect(screen.queryByTitle("Task Board")).toBeNull();
+  expect(container.querySelector("code")?.textContent).toBe(
+    "@panel-app:task-board",
+  );
+});
+
+it("leaves inline token protocols literal inside fenced code blocks", () => {
+  const { container } = render(
+    <ChatMessageMarkdown
+      text={"```txt\n@panel-app:task-board\n```"}
+      role="assistant"
+      texts={defaultTexts}
+      inlineTokens={[
+        {
+          kind: "panel_app",
+          key: "task-board",
+          label: "Task Board",
+          rawText: "@panel-app:task-board",
+        },
+      ]}
+    />,
+  );
+
+  expect(screen.queryByTitle("Task Board")).toBeNull();
+  expect(container.querySelector(".chat-codeblock code")?.textContent).toBe(
+    "@panel-app:task-board",
+  );
+});
+
+it("renders tokens outside fenced code while preserving code literals", () => {
+  const { container } = render(
+    <ChatMessageMarkdown
+      text={
+        "review @panel-app:task-board\n\n```txt\n@panel-app:task-board\n```"
+      }
+      role="assistant"
+      texts={defaultTexts}
+      inlineTokens={[
+        {
+          kind: "panel_app",
+          key: "task-board",
+          label: "Task Board",
+          rawText: "@panel-app:task-board",
+        },
+      ]}
+    />,
+  );
+
+  expect(screen.getAllByTitle("Task Board")).toHaveLength(1);
+  expect(container.querySelector(".chat-codeblock code")?.textContent).toBe(
+    "@panel-app:task-board",
+  );
+});

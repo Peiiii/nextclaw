@@ -129,7 +129,7 @@ it("keeps historical adapted message references stable when only the streaming m
   expect(secondMessages[1]).not.toBe(firstMessages[1]);
 });
 
-it("adapts persisted inline token metadata into rich message parts", () => {
+it("adapts persisted inline token metadata into markdown token data", () => {
   const message = {
     id: "user-inline-token",
     sessionId: "session-1",
@@ -156,18 +156,15 @@ it("adapts persisted inline token metadata into rich message parts", () => {
   expect(renderedMessages[0]).toMatchObject({
     parts: [
       {
-        type: "inline-content",
-        segments: [
-          { type: "markdown", text: "please use " },
+        type: "markdown",
+        text: "please use $weather now",
+        inlineTokens: [
           {
-            type: "token",
-            token: {
-              kind: "skill",
-              key: "weather",
-              label: "Weather",
-            },
+            kind: "skill",
+            key: "weather",
+            label: "Weather",
+            rawText: "$weather",
           },
-          { type: "markdown", text: " now" },
         ],
       },
     ],

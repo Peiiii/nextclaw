@@ -8,7 +8,6 @@ import type {
 } from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
 import { cn } from "@agent-chat-ui/components/chat/internal/cn";
 import { ChatMessageMarkdown } from "./chat-message-markdown";
-import { ChatMessageInlineContent } from "./chat-message-inline-content";
 import { ChatMessageFile } from "./chat-message-file";
 import { ChatReasoningBlock } from "./chat-reasoning-block";
 import { ChatToolCard } from "./chat-tool-card";
@@ -58,25 +57,14 @@ export const ChatMessage = memo(function ChatMessage({
           const { type } = part;
 
           if (type === "markdown") {
-            const { text } = part;
+            const { inlineTokens, text } = part;
             return (
               <ChatMessageMarkdown
                 key={`markdown-${index}`}
                 text={text}
                 role={role}
                 texts={texts}
-                onFileOpen={onFileOpen}
-              />
-            );
-          }
-          if (type === "inline-content") {
-            const { segments } = part;
-            return (
-              <ChatMessageInlineContent
-                key={`inline-content-${index}`}
-                segments={segments}
-                role={role}
-                texts={texts}
+                inlineTokens={inlineTokens}
                 onFileOpen={onFileOpen}
               />
             );

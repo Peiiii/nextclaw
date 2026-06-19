@@ -3,15 +3,21 @@ import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@agent-chat-ui/components/chat/internal/cn";
+import { ChatInlineTokenBadge } from "./chat-inline-token-badge";
 import { ChatCodeBlock } from "./chat-code-block";
 import type {
   ChatFileOpenActionViewModel,
+  ChatInlineTokenViewModel,
   ChatMessageRole,
   ChatMessageTexts,
 } from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
 
 const MARKDOWN_MAX_CHARS = 140_000;
 const SAFE_LINK_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
+const INLINE_TOKEN_KIND_ATTR = "data-chat-inline-token-kind";
+const INLINE_TOKEN_KEY_ATTR = "data-chat-inline-token-key";
+const INLINE_TOKEN_LABEL_ATTR = "data-chat-inline-token-label";
+const INLINE_TOKEN_RAW_TEXT_ATTR = "data-chat-inline-token-raw-text";
 const PROJECT_RELATIVE_FILE_EXTENSIONS = [
   "cjs",
   "css",
@@ -105,20 +111,173 @@ type ChatMessageMarkdownProps = {
   role: ChatMessageRole;
   texts: Pick<ChatMessageTexts, "copyCodeLabel" | "copiedCodeLabel">;
   inline?: boolean;
+  inlineTokens?: readonly ChatInlineTokenViewModel[];
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
 };
+
+type MarkdownNode = {
+  type?: string;
+  value?: string;
+  children?: MarkdownNode[];
+  data?: {
+    hName?: string;
+    hProperties?: Record<string, string>;
+    hChildren?: Array<{ type: "text"; value: string }>;
+  };
+};
+
+function prepareInlineTokens(
+  inlineTokens: readonly ChatInlineTokenViewModel[] | undefined,
+): ChatInlineTokenViewModel[] {
+  if (!inlineTokens || inlineTokens.length === 0) {
+    return [];
+  }
+  const seenRawTexts = new Set<string>();
+  const tokens: ChatInlineTokenViewModel[] = [];
+  for (const token of inlineTokens) {
+    if (!token.rawText || seenRawTexts.has(token.rawText)) {
+      continue;
+    }
+    seenRawTexts.add(token.rawText);
+    tokens.push(token);
+  }
+  return tokens.sort((left, right) => right.rawText.length - left.rawText.length);
+}
+
+function createInlineTokenNode(token: ChatInlineTokenViewModel): MarkdownNode {
+  return {
+    type: "chatInlineToken",
+    data: {
+      hName: "span",
+      hProperties: {
+        [INLINE_TOKEN_KIND_ATTR]: token.kind,
+        [INLINE_TOKEN_KEY_ATTR]: token.key,
+        [INLINE_TOKEN_LABEL_ATTR]: token.label,
+        [INLINE_TOKEN_RAW_TEXT_ATTR]: token.rawText,
+      },
+      hChildren: [{ type: "text", value: token.label }],
+    },
+  };
+}
+
+function findNextInlineToken(
+  value: string,
+  cursor: number,
+  tokens: readonly ChatInlineTokenViewModel[],
+): { index: number; token: ChatInlineTokenViewModel } | null {
+  let next: { index: number; token: ChatInlineTokenViewModel } | null = null;
+  for (const token of tokens) {
+    const index = value.indexOf(token.rawText, cursor);
+    if (index < 0) {
+      continue;
+    }
+    if (
+      !next ||
+      index < next.index ||
+      (index === next.index && token.rawText.length > next.token.rawText.length)
+    ) {
+      next = { index, token };
+    }
+  }
+  return next;
+}
+
+function splitTextNodeByInlineTokens(
+  value: string,
+  tokens: readonly ChatInlineTokenViewModel[],
+): MarkdownNode[] {
+  const output: MarkdownNode[] = [];
+  let cursor = 0;
+
+  while (cursor < value.length) {
+    const next = findNextInlineToken(value, cursor, tokens);
+    if (!next) {
+      output.push({ type: "text", value: value.slice(cursor) });
+      break;
+    }
+    if (next.index > cursor) {
+      output.push({ type: "text", value: value.slice(cursor, next.index) });
+    }
+    output.push(createInlineTokenNode(next.token));
+    cursor = next.index + next.token.rawText.length;
+  }
+
+  return output.length > 0 ? output : [{ type: "text", value }];
+}
+
+function transformInlineTokenTextNodes(
+  node: MarkdownNode,
+  tokens: readonly ChatInlineTokenViewModel[],
+): void {
+  if (node.type === "code" || node.type === "inlineCode" || !node.children) {
+    return;
+  }
+
+  const nextChildren: MarkdownNode[] = [];
+  for (const child of node.children) {
+    if (child.type === "text" && typeof child.value === "string") {
+      nextChildren.push(...splitTextNodeByInlineTokens(child.value, tokens));
+      continue;
+    }
+    transformInlineTokenTextNodes(child, tokens);
+    nextChildren.push(child);
+  }
+  node.children = nextChildren;
+}
+
+function createRemarkInlineTokenPlugin(
+  inlineTokens: readonly ChatInlineTokenViewModel[],
+) {
+  const tokens = prepareInlineTokens(inlineTokens);
+  return () => (tree: MarkdownNode) => {
+    if (tokens.length === 0) {
+      return;
+    }
+    transformInlineTokenTextNodes(tree, tokens);
+  };
+}
+
+function readStringProp(props: Record<string, unknown>, key: string): string | null {
+  const value = props[key];
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
 
 export function ChatMessageMarkdown({
   text,
   role,
   texts,
   inline = false,
+  inlineTokens,
   onFileOpen,
 }: ChatMessageMarkdownProps) {
   const isUser = role === "user";
+  const remarkPlugins = useMemo(
+    () =>
+      inlineTokens && inlineTokens.length > 0
+        ? [remarkGfm, createRemarkInlineTokenPlugin(inlineTokens)]
+        : [remarkGfm],
+    [inlineTokens],
+  );
   const markdownComponents = useMemo<Components>(
     () => ({
       p: ({ children }) => (inline ? <>{children}</> : <p>{children}</p>),
+      span: ({ node: _node, children, ...rest }) => {
+        const restProps = rest as Record<string, unknown>;
+        const kind = readStringProp(restProps, INLINE_TOKEN_KIND_ATTR);
+        const key = readStringProp(restProps, INLINE_TOKEN_KEY_ATTR);
+        const label = readStringProp(restProps, INLINE_TOKEN_LABEL_ATTR);
+        const rawText = readStringProp(restProps, INLINE_TOKEN_RAW_TEXT_ATTR);
+        if (kind && key && label && rawText) {
+          return (
+            <ChatInlineTokenBadge
+              kind={kind}
+              label={label}
+              isUser={isUser}
+            />
+          );
+        }
+        return <span {...rest}>{children}</span>;
+      },
       a: ({ href, children, ...rest }) => {
         const safeHref = resolveSafeHref(href);
         if (!safeHref) {
@@ -209,7 +368,7 @@ export function ChatMessageMarkdown({
         );
       },
     }),
-    [inline, onFileOpen, texts],
+    [inline, isUser, onFileOpen, texts],
   );
 
   const WrapperTag = inline ? "span" : "div";
@@ -223,7 +382,7 @@ export function ChatMessageMarkdown({
     >
       <ReactMarkdown
         skipHtml
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={remarkPlugins}
         components={markdownComponents}
       >
         {trimMarkdown(text)}

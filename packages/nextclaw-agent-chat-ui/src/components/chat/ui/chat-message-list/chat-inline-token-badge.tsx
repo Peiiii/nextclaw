@@ -1,33 +1,5 @@
-import type {
-  ChatFileOpenActionViewModel,
-  ChatInlineContentSegmentViewModel,
-  ChatMessageRole,
-  ChatMessageTexts,
-} from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
 import { AppWindow, Puzzle } from "lucide-react";
 import { cn } from "@agent-chat-ui/components/chat/internal/cn";
-import { ChatMessageMarkdown } from "./chat-message-markdown";
-
-type ChatMessageInlineContentProps = {
-  segments: ChatInlineContentSegmentViewModel[];
-  role: ChatMessageRole;
-  texts: Pick<ChatMessageTexts, "copyCodeLabel" | "copiedCodeLabel">;
-  onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
-};
-
-function hasVisibleInlineText(value: string): boolean {
-  return value
-    .split("\u200B")
-    .join("")
-    .split("\u200C")
-    .join("")
-    .split("\u200D")
-    .join("")
-    .split("\u2060")
-    .join("")
-    .split("\uFEFF")
-    .join("").length > 0;
-}
 
 type ChatInlineTokenTone = "skill" | "panel_app" | "default";
 
@@ -81,7 +53,7 @@ function renderInlineTokenIcon(tone: ChatInlineTokenTone) {
   );
 }
 
-function ChatInlineTokenBadge({
+export function ChatInlineTokenBadge({
   kind,
   label,
   isUser,
@@ -109,48 +81,5 @@ function ChatInlineTokenBadge({
       </span>
       <span className="truncate">{label}</span>
     </span>
-  );
-}
-
-export function ChatMessageInlineContent({
-  segments,
-  role,
-  texts,
-  onFileOpen,
-}: ChatMessageInlineContentProps) {
-  const isUser = role === "user";
-
-  return (
-    <div className="whitespace-pre-wrap break-words leading-6">
-      {segments.map((segment, index) => {
-        if (segment.type === "token") {
-          return (
-            <ChatInlineTokenBadge
-              key={`token-${index}-${segment.token.kind}-${segment.token.key}`}
-              kind={segment.token.kind}
-              label={segment.token.label}
-              isUser={isUser}
-            />
-          );
-        }
-        if (!hasVisibleInlineText(segment.text)) {
-          return (
-            <span key={`space-${index}`} className="whitespace-pre-wrap">
-              {segment.text}
-            </span>
-          );
-        }
-        return (
-          <ChatMessageMarkdown
-            key={`markdown-${index}`}
-            text={segment.text}
-            role={role}
-            texts={texts}
-            inline
-            onFileOpen={onFileOpen}
-          />
-        );
-      })}
-    </div>
   );
 }

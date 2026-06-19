@@ -148,19 +148,15 @@ it("renders inline token content inside a user message bubble", () => {
           timestampLabel: "10:05",
           parts: [
             {
-              type: "inline-content",
-              segments: [
-                { type: "markdown", text: "please use " },
+              type: "markdown",
+              text: "please use $weather now",
+              inlineTokens: [
                 {
-                  type: "token",
-                  token: {
-                    kind: "skill",
-                    key: "weather",
-                    label: "Weather",
-                    rawText: "$weather",
-                  },
+                  kind: "skill",
+                  key: "weather",
+                  label: "Weather",
+                  rawText: "$weather",
                 },
-                { type: "markdown", text: " now" },
               ],
             },
           ],
@@ -188,17 +184,14 @@ it("renders panel app inline tokens with a distinct visual tone", () => {
           timestampLabel: "10:06",
           parts: [
             {
-              type: "inline-content",
-              segments: [
-                { type: "markdown", text: "review " },
+              type: "markdown",
+              text: "review @panel-app:task-board",
+              inlineTokens: [
                 {
-                  type: "token",
-                  token: {
-                    kind: "panel_app",
-                    key: "task-board",
-                    label: "Task Board",
-                    rawText: "@panel-app:task-board",
-                  },
+                  kind: "panel_app",
+                  key: "task-board",
+                  label: "Task Board",
+                  rawText: "@panel-app:task-board",
                 },
               ],
             },

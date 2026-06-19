@@ -4,7 +4,7 @@ import {
   buildInlineSkillTokensFromComposer,
   CHAT_UI_INLINE_TOKENS_METADATA_KEY,
   readInlineTokensFromMetadata,
-  splitTextByInlineTokens
+  resolveInlineTokensForText
 } from '@/features/chat/features/input/utils/chat-inline-token.utils';
 
 describe('chat-inline-token utils', () => {
@@ -61,9 +61,9 @@ describe('chat-inline-token utils', () => {
     ]);
   });
 
-  it('splits text into inline text and token fragments', () => {
+  it('merges metadata tokens with pure text protocol tokens', () => {
     expect(
-      splitTextByInlineTokens('please use $weather now', [
+      resolveInlineTokensForText('please use $weather and @panel-app:task-board', [
         {
           kind: 'skill',
           key: 'weather',
@@ -72,17 +72,18 @@ describe('chat-inline-token utils', () => {
         }
       ])
     ).toEqual([
-      { type: 'text', text: 'please use ' },
       {
-        type: 'token',
-        token: {
-          kind: 'skill',
-          key: 'weather',
-          label: 'Weather',
-          rawText: '$weather'
-        }
+        kind: 'skill',
+        key: 'weather',
+        label: 'Weather',
+        rawText: '$weather'
       },
-      { type: 'text', text: ' now' }
+      {
+        kind: 'panel_app',
+        key: 'task-board',
+        label: 'task-board',
+        rawText: '@panel-app:task-board'
+      }
     ]);
   });
 

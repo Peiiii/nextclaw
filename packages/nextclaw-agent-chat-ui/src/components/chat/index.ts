@@ -76,7 +76,6 @@ export type {
   ChatUiShowContentTarget,
   ChatToolActionViewModel,
   ChatInlineTokenViewModel,
-  ChatInlineContentSegmentViewModel,
   ChatToolPartViewModel,
   ChatMessagePartViewModel,
   ChatMessageViewModel,

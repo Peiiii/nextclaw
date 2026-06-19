@@ -6,7 +6,7 @@ import { type ChatInlineTokenSource } from "@/features/chat/features/input/utils
 import {
   buildRenderableText,
   buildTextPart,
-} from "./chat-message-inline-content.utils";
+} from "./chat-message-markdown-part.utils";
 import {
   buildToolCard,
   buildToolInvocationInput,

@@ -7,10 +7,6 @@ const CHAT_PANEL_APP_TOKEN_PATTERN = /@panel-app:([A-Za-z0-9_-]+)/g;
 
 export type ChatInlineTokenSource = { kind: string; key: string; label: string; rawText: string };
 
-export type ChatInlineTextFragment =
-  | { type: 'text'; text: string }
-  | { type: 'token'; token: ChatInlineTokenSource };
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -105,51 +101,4 @@ export function readInlineTokensFromMetadata(
   }
 
   return dedupeInlineTokens(tokens);
-}
-
-export function splitTextByInlineTokens(
-  text: string,
-  tokens: readonly ChatInlineTokenSource[]
-): ChatInlineTextFragment[] {
-  if (text.length === 0 || tokens.length === 0) {
-    return text.length === 0 ? [] : [{ type: 'text', text }];
-  }
-
-  const orderedTokens = [...tokens].sort((left, right) => right.rawText.length - left.rawText.length);
-  const fragments: ChatInlineTextFragment[] = [];
-  let cursor = 0;
-
-  while (cursor < text.length) {
-    let matchedToken: ChatInlineTokenSource | null = null;
-    for (const token of orderedTokens) {
-      if (text.startsWith(token.rawText, cursor)) {
-        matchedToken = token;
-        break;
-      }
-    }
-
-    if (!matchedToken) {
-      let nextCursor = cursor + 1;
-      while (nextCursor < text.length) {
-        if (orderedTokens.some((token) => text.startsWith(token.rawText, nextCursor))) {
-          break;
-        }
-        nextCursor += 1;
-      }
-      fragments.push({
-        type: 'text',
-        text: text.slice(cursor, nextCursor)
-      });
-      cursor = nextCursor;
-      continue;
-    }
-
-    fragments.push({
-      type: 'token',
-      token: matchedToken
-    });
-    cursor += matchedToken.rawText.length;
-  }
-
-  return fragments;
 }

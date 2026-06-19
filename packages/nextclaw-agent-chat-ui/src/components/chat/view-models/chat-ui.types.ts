@@ -338,24 +338,11 @@ export type ChatInlineTokenViewModel = {
   rawText: string;
 };
 
-export type ChatInlineContentSegmentViewModel =
-  | {
-      type: "markdown";
-      text: string;
-    }
-  | {
-      type: "token";
-      token: ChatInlineTokenViewModel;
-    };
-
 export type ChatMessagePartViewModel =
   | {
       type: "markdown";
       text: string;
-    }
-  | {
-      type: "inline-content";
-      segments: ChatInlineContentSegmentViewModel[];
+      inlineTokens?: ChatInlineTokenViewModel[];
     }
   | {
       type: "reasoning";

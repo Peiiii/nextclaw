@@ -432,7 +432,7 @@ it("maps file parts into previewable attachment view models", () => {
   });
 });
 
-it("renders inline skill tokens as structured inline content parts", () => {
+it("attaches inline skill tokens to markdown parts", () => {
   const adapted = adapt([
     {
       id: "user-inline-skill",
@@ -452,24 +452,20 @@ it("renders inline skill tokens as structured inline content parts", () => {
   ] as unknown as ChatMessageSource[]);
 
   expect(adapted[0]?.parts[0]).toEqual({
-    type: "inline-content",
-    segments: [
-      { type: "markdown", text: "please use " },
+    type: "markdown",
+    text: "please use $weather now",
+    inlineTokens: [
       {
-        type: "token",
-        token: {
-          kind: "skill",
-          key: "weather",
-          label: "Weather",
-          rawText: "$weather",
-        },
+        kind: "skill",
+        key: "weather",
+        label: "Weather",
+        rawText: "$weather",
       },
-      { type: "markdown", text: " now" },
     ],
   });
 });
 
-it("renders inline panel app text protocol without metadata", () => {
+it("attaches inline panel app text protocol tokens without metadata", () => {
   const adapted = adapt([
     {
       id: "user-inline-panel-app",
@@ -479,19 +475,15 @@ it("renders inline panel app text protocol without metadata", () => {
   ] as unknown as ChatMessageSource[]);
 
   expect(adapted[0]?.parts[0]).toEqual({
-    type: "inline-content",
-    segments: [
-      { type: "markdown", text: "review " },
+    type: "markdown",
+    text: "review @panel-app:task-board now",
+    inlineTokens: [
       {
-        type: "token",
-        token: {
-          kind: "panel_app",
-          key: "task-board",
-          label: "task-board",
-          rawText: "@panel-app:task-board",
-        },
+        kind: "panel_app",
+        key: "task-board",
+        label: "task-board",
+        rawText: "@panel-app:task-board",
       },
-      { type: "markdown", text: " now" },
     ],
   });
 });
