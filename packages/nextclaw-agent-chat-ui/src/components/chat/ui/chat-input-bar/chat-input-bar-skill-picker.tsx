@@ -109,7 +109,7 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
           type="button"
           aria-haspopup="listbox"
           aria-label={picker.title}
-          className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg px-0 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 sm:w-auto sm:gap-1.5 sm:px-3"
+          className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg px-0 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground sm:w-auto sm:gap-1.5 sm:px-3"
         >
           <BrainCircuit className="h-4 w-4" />
           <span className="nextclaw-chat-skill-picker-label hidden sm:inline [@container_nextclaw-chat-input-bar_(max-width:440px)]:hidden">{picker.title}</span>
@@ -126,10 +126,10 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
         className="flex w-[min(360px,calc(100vw-1rem))] flex-col overflow-hidden p-0"
         style={{ maxHeight: SKILL_PICKER_MAX_HEIGHT }}
       >
-        <div className="shrink-0 space-y-2 border-b border-gray-100 px-4 py-3">
-          <div className="text-sm font-semibold text-gray-900">{picker.title}</div>
+        <div className="shrink-0 space-y-2 border-b border-border px-4 py-3">
+          <div className="text-sm font-semibold text-foreground">{picker.title}</div>
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-2.5 h-3.5 w-3.5 text-gray-400" />
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground/70" />
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -153,9 +153,9 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
           className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain"
         >
           {picker.isLoading ? (
-            <div className="p-4 text-xs text-gray-500">{picker.loadingLabel}</div>
+            <div className="p-4 text-xs text-muted-foreground">{picker.loadingLabel}</div>
           ) : visibleOptions.length === 0 ? (
-            <div className="p-4 text-center text-xs text-gray-500">{picker.emptyLabel}</div>
+            <div className="p-4 text-center text-xs text-muted-foreground">{picker.emptyLabel}</div>
           ) : (
             <div className="py-1">
               {(() => {
@@ -164,7 +164,7 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
                 return groups.map((group) => (
                   <div key={group.key}>
                     {group.label ? (
-                      <div className="px-4 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                      <div className="px-4 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                         {group.label}
                       </div>
                     ) : null}
@@ -182,22 +182,22 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
                           data-skill-index={index}
                           onMouseEnter={() => setActiveIndex(index)}
                           className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                            isActive ? 'bg-gray-50' : 'hover:bg-gray-50'
+                            isActive ? 'bg-accent' : 'hover:bg-accent'
                           }`}
                         >
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                             <Puzzle className="h-4 w-4" />
                           </div>
                           <div className="min-w-0 flex-1 select-text">
                             <div className="flex items-center gap-1.5">
-                              <span className="truncate text-sm text-gray-900">{option.label}</span>
+                              <span className="truncate text-sm text-foreground">{option.label}</span>
                               {option.badgeLabel ? (
                                 <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
                                   {option.badgeLabel}
                                 </span>
                               ) : null}
                             </div>
-                            <div className="mt-0.5 truncate text-xs text-gray-500">{option.description || option.key}</div>
+                            <div className="mt-0.5 truncate text-xs text-muted-foreground">{option.description || option.key}</div>
                           </div>
                           <div className="ml-3 shrink-0">
                             <button
@@ -207,7 +207,7 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
                               className={
                                 isSelected
                                   ? 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white'
-                                  : 'inline-flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 bg-white'
+                                  : 'inline-flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card'
                               }
                             >
                               {isSelected ? <Check className="h-3 w-3" /> : null}
@@ -224,7 +224,7 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
         </div>
 
         {picker.manageHref && picker.manageLabel ? (
-          <div className="shrink-0 border-t border-gray-100 px-4 py-2.5">
+          <div className="shrink-0 border-t border-border px-4 py-2.5">
             <a
               href={picker.manageHref}
               className="inline-flex items-center gap-1.5 text-xs font-medium text-primary transition-colors hover:text-primary/80"

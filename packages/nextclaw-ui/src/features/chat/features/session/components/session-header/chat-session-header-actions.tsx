@@ -9,7 +9,7 @@ import { ChatSessionProjectDialog } from './chat-session-project-dialog';
 import { t } from '@/shared/lib/i18n';
 
 const SESSION_HEADER_ACTION_GROUP_CLASS = 'flex shrink-0 items-center gap-1.5';
-const SESSION_HEADER_ACTION_BUTTON_CLASS = 'h-7 w-7 rounded-lg shrink-0 text-gray-400 hover:text-gray-700';
+const SESSION_HEADER_ACTION_BUTTON_CLASS = 'h-7 w-7 shrink-0 rounded-lg text-muted-foreground/70 hover:bg-accent hover:text-accent-foreground';
 
 type ChatSessionHeaderActionsProps = {
   sessionKey: string;

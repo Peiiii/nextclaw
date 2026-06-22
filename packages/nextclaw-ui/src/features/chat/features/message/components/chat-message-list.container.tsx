@@ -126,13 +126,13 @@ function ChatContextCompactionDivider({
     `${t("chatContextCompactionProjectedTokens")}: ${checkpoint.projectedEstimatedTokens}`,
   ].join("\n");
   return (
-    <div className="my-4 flex items-center gap-3 text-[11px] text-gray-500" title={title}>
-      <div className="h-px flex-1 bg-gray-200" />
-      <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1">
+    <div className="my-4 flex items-center gap-3 text-[11px] text-muted-foreground" title={title}>
+      <div className="h-px flex-1 bg-border" />
+      <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1">
         {checkpoint.status === "compressing" ? (
-          <span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-pulse" />
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground" />
         ) : (
-          <span className="h-1.5 w-1.5 rounded-full bg-gray-300" />
+          <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/45" />
         )}
         <span>
           {checkpoint.status === "compressing"
@@ -140,7 +140,7 @@ function ChatContextCompactionDivider({
             : t("chatContextCompactionCompressed")}
         </span>
       </div>
-      <div className="h-px flex-1 bg-gray-200" />
+      <div className="h-px flex-1 bg-border" />
     </div>
   );
 }

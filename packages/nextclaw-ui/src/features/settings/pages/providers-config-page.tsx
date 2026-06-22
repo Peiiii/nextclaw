@@ -133,11 +133,11 @@ export function ProvidersConfigPage() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[42rem] max-w-[calc(100vw-2rem)] p-3" align="start">
-                <div className="mb-2 px-1 text-xs font-semibold text-gray-500">{t('providerTemplatePickerTitle')}</div>
+                <div className="mb-2 px-1 text-xs font-semibold text-muted-foreground">{t('providerTemplatePickerTitle')}</div>
                 <div className="grid max-h-[24rem] grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">
                   <button
                     type="button"
-                    className="flex min-h-20 w-full flex-col items-start gap-2 rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2 text-left hover:border-primary/40 hover:bg-gray-50"
+                    className="flex min-h-20 w-full flex-col items-start gap-2 rounded-lg border border-dashed border-border bg-card px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-accent/70"
                     onClick={async () => {
                       try {
                         const result = await createProvider.mutateAsync({ data: { providerType: null } });
@@ -150,8 +150,8 @@ export function ProvidersConfigPage() {
                       }
                     }}
                   >
-                    <LogoBadge name="custom" className="h-8 w-8 rounded-lg border border-gray-200 bg-white" />
-                    <span className="line-clamp-2 min-w-0 text-xs font-semibold leading-4 text-gray-800">
+                    <LogoBadge name="custom" className="h-8 w-8 rounded-lg border border-border bg-background" />
+                    <span className="line-clamp-2 min-w-0 text-xs font-semibold leading-4 text-foreground">
                       {t('providerAddCustom')}
                     </span>
                   </button>
@@ -159,7 +159,7 @@ export function ProvidersConfigPage() {
                     <button
                       key={template.providerType}
                       type="button"
-                      className="flex min-h-20 w-full flex-col items-start gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-left hover:border-primary/40 hover:bg-gray-50"
+                      className="flex min-h-20 w-full flex-col items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-accent/70"
                       onClick={async () => {
                         try {
                           const result = await createProvider.mutateAsync({ data: { providerType: template.providerType } });
@@ -175,10 +175,10 @@ export function ProvidersConfigPage() {
                       <LogoBadge
                         name={template.providerType}
                         src={template.logo ? `/logos/${template.logo}` : null}
-                        className="h-8 w-8 rounded-lg border border-gray-200 bg-white"
+                        className="h-8 w-8 rounded-lg border border-border bg-background"
                         imgClassName="h-4 w-4 object-contain"
                       />
-                      <span className="line-clamp-2 min-w-0 text-xs font-semibold leading-4 text-gray-800">
+                      <span className="line-clamp-2 min-w-0 text-xs font-semibold leading-4 text-foreground">
                         {template.displayName || template.providerType}
                       </span>
                     </button>
@@ -188,9 +188,9 @@ export function ProvidersConfigPage() {
             </Popover>
           </ConfigSplitPaneHeader>
 
-          <div className="border-b border-gray-100 px-4 py-3">
+          <div className="border-b border-border/70 px-4 py-3">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -223,8 +223,8 @@ export function ProvidersConfigPage() {
                   className={cn(
                     'w-full rounded-xl border p-2.5 text-left transition-all',
                     resolvedSelectedProvider === provider.providerId
-                      ? 'border-primary/30 bg-primary-50/40 shadow-sm'
-                      : 'border-gray-200/70 bg-white hover:border-gray-300 hover:bg-gray-50/70',
+                      ? 'border-primary/35 bg-primary-50/45 text-foreground shadow-sm'
+                      : 'border-border bg-card text-muted-foreground hover:border-primary/35 hover:bg-accent/70 hover:text-accent-foreground',
                   )}
                 >
                   <div className="relative min-h-10">
@@ -234,15 +234,15 @@ export function ProvidersConfigPage() {
                         src={template?.logo ? `/logos/${template.logo}` : null}
                         className={cn(
                           'h-10 w-10 rounded-lg border',
-                          isReady ? 'border-primary/30 bg-white' : 'border-gray-200/70 bg-white',
+                          isReady ? 'border-primary/35 bg-background' : 'border-border bg-background',
                         )}
                         imgClassName="h-5 w-5 object-contain"
-                        fallback={<span className="text-sm font-semibold uppercase text-gray-500">{provider.providerId[0]}</span>}
+                        fallback={<span className="text-sm font-semibold uppercase text-muted-foreground">{provider.providerId[0]}</span>}
                       />
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-gray-900">{providerLabel}</p>
-                        <p className="truncate font-mono text-[10px] text-gray-400">{provider.providerId}</p>
-                        <p className="line-clamp-1 text-[11px] text-gray-500">
+                        <p className="truncate text-sm font-semibold text-foreground">{providerLabel}</p>
+                        <p className="truncate font-mono text-[10px] text-muted-foreground/65">{provider.providerId}</p>
+                        <p className="line-clamp-1 text-[11px] text-muted-foreground">
                           {description} · {provider.models?.length ?? 0}
                         </p>
                       </div>
@@ -268,7 +268,7 @@ export function ProvidersConfigPage() {
                         <PopoverTrigger asChild>
                           <button
                             type="button"
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/70 hover:bg-accent hover:text-accent-foreground"
                             onClick={(event) => event.stopPropagation()}
                             title={t('more')}
                           >

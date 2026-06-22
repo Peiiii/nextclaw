@@ -38,15 +38,15 @@ export function DocBrowserDocsToolbar({
   }
 
   return (
-    <div className="flex items-center gap-2 px-3.5 py-2 bg-white border-b border-gray-100 shrink-0">
+    <div className="flex items-center gap-2 border-b border-border/70 bg-card px-3.5 py-2 shrink-0">
       <form onSubmit={onSubmit} className="flex-1 relative">
-        <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/70" />
         <input
           type="text"
           value={urlInput}
           onChange={(e) => onUrlInputChange(e.target.value)}
           placeholder={t('docBrowserSearchPlaceholder')}
-          className="w-full h-8 pl-8 pr-3 rounded-lg bg-gray-50 border border-gray-200 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 transition-colors placeholder:text-gray-400"
+          className="h-8 w-full rounded-lg border border-border bg-background pl-8 pr-3 text-xs text-foreground transition-colors placeholder:text-muted-foreground/55 focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/30"
         />
       </form>
     </div>
@@ -91,7 +91,7 @@ export function DocBrowserExternalLink({ currentUrl, isDocsTab }: { currentUrl: 
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-t border-gray-200 shrink-0">
+    <div className="flex items-center justify-between border-t border-border/70 bg-muted/55 px-4 py-2 shrink-0">
       <a
         href={currentUrl}
         target="_blank"

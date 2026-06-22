@@ -29,7 +29,7 @@ export function ChatSessionMetadataDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl gap-0 overflow-hidden p-0">
-        <DialogHeader className="border-b border-gray-200 px-5 py-4 pr-12">
+        <DialogHeader className="border-b border-border px-5 py-4 pr-12">
           <DialogTitle className="text-base">{t('chatSessionMetadataDialogTitle')}</DialogTitle>
           <DialogDescription className="sr-only">
             {t('chatSessionMetadataDialogDescription')}

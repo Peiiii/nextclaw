@@ -1,4 +1,4 @@
-import { cn } from "../../../internal/cn";
+import { cn } from "@agent-chat-ui/components/chat/internal/cn";
 import {
   File,
   FileArchive,
@@ -18,7 +18,7 @@ import {
   type FileCategory,
   type ChatMessageFileView,
 } from "./meta";
-import type { ChatMessageTexts } from "../../../view-models/chat-ui.types";
+import type { ChatMessageTexts } from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
 
 type ChatMessageFileProps = {
   file: ChatMessageFileView;
@@ -74,7 +74,7 @@ function renderMetaLine(
     <div
       className={cn(
         "mt-1 text-xs leading-5",
-        isUser ? "text-white/70" : "text-slate-500",
+        isUser ? "text-primary-foreground/70" : "text-muted-foreground",
       )}
     >
       {sizeLabel ? `${categoryLabel} · ${sizeLabel}` : categoryLabel}
@@ -93,11 +93,11 @@ function renderActionPill(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium",
         isInteractive
           ? isUser
-            ? "border-white/14 bg-white/12 text-white"
-            : "border-slate-200/80 bg-white text-slate-700"
+            ? "border-primary-foreground/14 bg-primary-foreground/12 text-primary-foreground"
+            : "border-border bg-card text-foreground"
           : isUser
-            ? "border-white/10 bg-white/6 text-white/62"
-            : "border-slate-200/70 bg-slate-100/80 text-slate-500",
+            ? "border-primary-foreground/10 bg-primary-foreground/6 text-primary-foreground/62"
+            : "border-border bg-muted text-muted-foreground",
       )}
     >
       {label}
@@ -118,8 +118,8 @@ function renderActionLink(
       className={cn(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium transition duration-200",
         isUser
-          ? "border-white/14 bg-white/12 text-white hover:border-white/20 hover:bg-white/16"
-          : "border-slate-200/80 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50",
+          ? "border-primary-foreground/14 bg-primary-foreground/12 text-primary-foreground hover:border-primary-foreground/20 hover:bg-primary-foreground/16"
+          : "border-border bg-card text-foreground hover:border-border-hover hover:bg-accent",
       )}
     >
       {label}
@@ -141,14 +141,14 @@ function FileCategoryGlyph({
       className={cn(
         "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] border",
         isUser
-          ? "border-white/12 bg-white/10 text-white"
+          ? "border-primary-foreground/12 bg-primary-foreground/10 text-primary-foreground"
           : FILE_CATEGORY_TILE_CLASSES[category],
       )}
     >
       <Icon
         className={cn(
           "h-7 w-7",
-          isUser ? "text-white/92" : "text-current",
+          isUser ? "text-primary-foreground/92" : "text-current",
         )}
         strokeWidth={2.2}
       />
@@ -177,8 +177,8 @@ function renderImagePreview(params: {
         className={cn(
           "relative overflow-hidden rounded-[1rem]",
           isUser
-            ? "ring-1 ring-white/10"
-            : "bg-slate-100/80 ring-1 ring-slate-200/80",
+            ? "ring-1 ring-primary-foreground/10"
+            : "bg-muted ring-1 ring-border",
         )}
       >
         <img
@@ -190,7 +190,7 @@ function renderImagePreview(params: {
           <span
             className={cn(
               "inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold tracking-[0.18em] text-white backdrop-blur-sm",
-              isUser ? "bg-slate-950/36" : "bg-slate-950/58",
+              isUser ? "bg-black/36" : "bg-black/58",
             )}
           >
             {categoryLabel}
@@ -199,7 +199,7 @@ function renderImagePreview(params: {
             <span
               className={cn(
                 "inline-flex items-center rounded-full px-2 py-1 text-[10px] font-medium text-white/92 backdrop-blur-sm",
-                isUser ? "bg-slate-950/28" : "bg-slate-950/46",
+                isUser ? "bg-black/28" : "bg-black/46",
               )}
             >
               {sizeLabel}
@@ -283,8 +283,8 @@ function renderInlineMediaCard(params: {
             className={cn(
               "overflow-hidden rounded-[1rem] border",
               isUser
-                ? "border-white/10 bg-slate-950/26"
-                : "border-slate-200/80 bg-slate-100/80",
+                ? "border-primary-foreground/10 bg-black/26"
+                : "border-border bg-muted",
             )}
           >
             <video
@@ -323,12 +323,12 @@ export function ChatMessageFile({
   const shellClasses = cn(
     "block overflow-hidden rounded-[1.25rem] border transition duration-200",
     isUser
-      ? "border-white/12 bg-white/10 text-white"
-      : "border-slate-200/80 bg-white/95 text-slate-900",
+      ? "border-primary-foreground/12 bg-primary-foreground/10 text-primary-foreground"
+      : "border-border bg-card text-card-foreground",
     isInteractive &&
       (isUser
-        ? "hover:border-white/18 hover:bg-white/13"
-        : "hover:border-slate-300 hover:bg-white"),
+        ? "hover:border-primary-foreground/18 hover:bg-primary-foreground/13"
+        : "hover:border-border-hover hover:bg-accent"),
   );
 
   if (renderAsImage) {

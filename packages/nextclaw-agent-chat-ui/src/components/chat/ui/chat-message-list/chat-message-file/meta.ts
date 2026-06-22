@@ -1,7 +1,7 @@
 import type {
   ChatAttachmentCategory,
   ChatMessagePartViewModel,
-} from "../../../view-models/chat-ui.types";
+} from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
 
 export type ChatMessageFileView = Extract<
   ChatMessagePartViewModel,
@@ -11,16 +11,16 @@ export type ChatMessageFileView = Extract<
 export type FileCategory = ChatAttachmentCategory;
 
 export const FILE_CATEGORY_TILE_CLASSES: Record<FileCategory, string> = {
-  archive: "border-amber-200/80 bg-amber-50 text-amber-700",
-  audio: "border-fuchsia-200/80 bg-fuchsia-50 text-fuchsia-700",
-  code: "border-cyan-200/80 bg-cyan-50 text-cyan-700",
-  data: "border-slate-200/80 bg-slate-50 text-slate-700",
-  document: "border-blue-200/80 bg-blue-50 text-blue-700",
-  generic: "border-slate-200/80 bg-slate-50 text-slate-700",
-  image: "border-emerald-200/80 bg-emerald-50 text-emerald-700",
-  pdf: "border-rose-200/80 bg-rose-50 text-rose-700",
-  sheet: "border-lime-200/80 bg-lime-50 text-lime-700",
-  video: "border-violet-200/80 bg-violet-50 text-violet-700",
+  archive: "border-border bg-muted text-muted-foreground",
+  audio: "border-border bg-muted text-muted-foreground",
+  code: "border-border bg-muted text-muted-foreground",
+  data: "border-border bg-muted text-muted-foreground",
+  document: "border-border bg-muted text-muted-foreground",
+  generic: "border-border bg-muted text-muted-foreground",
+  image: "border-border bg-muted text-muted-foreground",
+  pdf: "border-border bg-muted text-muted-foreground",
+  sheet: "border-border bg-muted text-muted-foreground",
+  video: "border-border bg-muted text-muted-foreground",
 };
 
 const CODE_EXTENSIONS = new Set([

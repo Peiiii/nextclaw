@@ -329,8 +329,8 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     return (
       <ConfigSplitEmptyPane>
         <div>
-          <h3 className='text-base font-semibold text-gray-900'>{t('providersSelectTitle')}</h3>
-          <p className='mt-2 text-sm text-gray-500'>{t('providersSelectDescription')}</p>
+          <h3 className='text-base font-semibold text-foreground'>{t('providersSelectTitle')}</h3>
+          <p className='mt-2 text-sm text-muted-foreground'>{t('providersSelectDescription')}</p>
         </div>
       </ConfigSplitEmptyPane>
     );
@@ -437,13 +437,13 @@ function ProviderFormDetailPane(props: ProviderFormDetailPaneProps) {
     <ConfigSplitDetailPane>
       <ConfigSplitPaneHeader className='px-6 py-4'>
         <div className='flex items-center justify-between'>
-          <h3 className='truncate text-lg font-semibold text-gray-900'>{providerTitle}</h3>
+          <h3 className='truncate text-lg font-semibold text-foreground'>{providerTitle}</h3>
           <div className='flex items-center gap-3'>
             <button
               type='button'
               onClick={onDeleteProvider}
               disabled={isDeletePending}
-              className='text-gray-400 transition-colors hover:text-red-500'
+              className='text-muted-foreground/70 transition-colors hover:text-red-500'
               title={t('providerDelete')}
             >
               <Trash2 className='h-4 w-4' />
@@ -456,7 +456,7 @@ function ProviderFormDetailPane(props: ProviderFormDetailPaneProps) {
       <form onSubmit={onSubmit} className='flex min-h-0 flex-1 flex-col'>
         <ConfigSplitPaneBody className='space-y-5 px-6 py-5'>
           <div className='space-y-2'>
-            <Label htmlFor='providerDisplayName' className='text-sm font-medium text-gray-900'>
+            <Label htmlFor='providerDisplayName' className='text-sm font-medium text-foreground'>
               {t('providerDisplayName')}
             </Label>
             <Input
@@ -467,11 +467,11 @@ function ProviderFormDetailPane(props: ProviderFormDetailPaneProps) {
               placeholder={context.defaultDisplayName || t('providerDisplayNamePlaceholder')}
               className='rounded-xl'
             />
-            <p className='text-xs text-gray-500'>{t('providerDisplayNameHelpShort')}</p>
+            <p className='text-xs text-muted-foreground'>{t('providerDisplayNameHelpShort')}</p>
           </div>
 
           <div className='space-y-2'>
-            <Label htmlFor='apiKey' className='text-sm font-medium text-gray-900'>
+            <Label htmlFor='apiKey' className='text-sm font-medium text-foreground'>
               {context.apiKeyHint?.label ?? t('apiKey')}
             </Label>
             <MaskedInput
@@ -482,7 +482,7 @@ function ProviderFormDetailPane(props: ProviderFormDetailPaneProps) {
               placeholder={context.apiKeyHint?.placeholder ?? t('enterApiKey')}
               className='rounded-xl'
             />
-            <p className='text-xs text-gray-500'>{t('leaveBlankToKeepUnchanged')}</p>
+            <p className='text-xs text-muted-foreground'>{t('leaveBlankToKeepUnchanged')}</p>
           </div>
 
           <ProviderAuthSection
@@ -503,7 +503,7 @@ function ProviderFormDetailPane(props: ProviderFormDetailPaneProps) {
           />
 
           <div className='space-y-2'>
-            <Label htmlFor='apiBase' className='text-sm font-medium text-gray-900'>
+            <Label htmlFor='apiBase' className='text-sm font-medium text-foreground'>
               {context.apiBaseHint?.label ?? t('apiBase')}
             </Label>
             <Input
@@ -514,7 +514,7 @@ function ProviderFormDetailPane(props: ProviderFormDetailPaneProps) {
               placeholder={context.defaultApiBase || context.apiBaseHint?.placeholder || 'https://api.example.com'}
               className='rounded-xl'
             />
-            <p className='text-xs text-gray-500'>{context.apiBaseHelpText}</p>
+            <p className='text-xs text-muted-foreground'>{context.apiBaseHelpText}</p>
           </div>
 
           <ProviderModelsSection

@@ -15,9 +15,9 @@ function InputBarHint({ hint }: { hint: ChatInputBarProps['hint'] }) {
   if (hint.loading) {
     return (
       <div className="px-4 pb-2">
-        <div className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-          <span className="h-3 w-28 animate-pulse rounded bg-gray-200" />
-          <span className="h-3 w-16 animate-pulse rounded bg-gray-200" />
+        <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted px-3 py-2">
+          <span className="h-3 w-28 animate-pulse rounded bg-muted-foreground/20" />
+          <span className="h-3 w-16 animate-pulse rounded bg-muted-foreground/20" />
         </div>
       </div>
     );
@@ -26,7 +26,7 @@ function InputBarHint({ hint }: { hint: ChatInputBarProps['hint'] }) {
   const toneClassName =
     hint.tone === 'warning'
       ? 'border-amber-200 bg-amber-50 text-amber-800'
-      : 'border-gray-200 bg-gray-50 text-gray-700';
+      : 'border-border bg-muted text-muted-foreground';
 
   return (
     <div className="px-4 pb-2">
@@ -98,12 +98,12 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
   const surfaceClassName =
     surface === 'embedded'
       ? 'bg-transparent px-0 py-0'
-      : 'border-t border-gray-200/80 bg-white px-3 py-3 sm:px-4 sm:py-4';
+      : 'bg-background px-3 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-2';
 
   return (
     <div className={surfaceClassName}>
       <div className="nextclaw-chat-input-bar-shell mx-auto w-full max-w-[min(1120px,100%)] [container:nextclaw-chat-input-bar/inline-size]">
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card">
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
           <div className="relative">
             <ChatInputSurfaceHost
               inputSurface={resolvedInputSurface}

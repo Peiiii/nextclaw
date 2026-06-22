@@ -37,10 +37,10 @@ export function ServiceActionAuthorizationDialog() {
           </DialogDescription>
         </DialogHeader>
         {pending ? (
-          <div className="space-y-3 rounded-md border border-gray-100 bg-gray-50 p-3 text-sm">
+          <div className="space-y-3 rounded-md border border-border bg-muted/60 p-3 text-sm">
             <AuthorizationField label={t('serviceActionAuthorizationSource')} value={pending.panelAppId} />
             <div className="space-y-2">
-              <div className="text-xs font-medium text-gray-500">
+              <div className="text-xs font-medium text-muted-foreground">
                 {t('serviceActionAuthorizationActions')}
               </div>
               <div className="max-h-64 space-y-2 overflow-auto">
@@ -78,18 +78,18 @@ function AuthorizationActionItem({
   };
 }) {
   return (
-    <div className="space-y-1 rounded border border-gray-200 bg-white px-3 py-2">
+    <div className="space-y-1 rounded border border-border bg-card px-3 py-2">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 break-words text-xs font-medium text-gray-900">
+        <div className="min-w-0 break-words text-xs font-medium text-foreground">
           {action.actionTitle ?? action.actionId}
         </div>
         <div className="shrink-0 rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700">
           {action.risk ?? 'dangerous'}
         </div>
       </div>
-      <div className="break-words text-[11px] text-gray-500">{action.actionId}</div>
+      <div className="break-words text-[11px] text-muted-foreground">{action.actionId}</div>
       {action.actionDescription ? (
-        <div className="break-words text-xs text-gray-600">{action.actionDescription}</div>
+        <div className="break-words text-xs text-muted-foreground">{action.actionDescription}</div>
       ) : null}
     </div>
   );
@@ -104,8 +104,8 @@ function AuthorizationField({
 }) {
   return (
     <div className="grid grid-cols-[5rem_minmax(0,1fr)] gap-3">
-      <div className="text-xs font-medium text-gray-500">{label}</div>
-      <div className="min-w-0 break-words text-xs text-gray-900">{value}</div>
+      <div className="text-xs font-medium text-muted-foreground">{label}</div>
+      <div className="min-w-0 break-words text-xs text-foreground">{value}</div>
     </div>
   );
 }

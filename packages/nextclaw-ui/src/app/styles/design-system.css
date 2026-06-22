@@ -1,13 +1,13 @@
 /**
  * NextClaw Design System
- * Warm minimalist palette inspired by YouWare + YouMind
- * Warm amber brand, warm neutral grays, refined details
+ * Quiet workbench palettes.
+ * Neutral surfaces carry the UI; accent colors only mark actions and focus.
  */
 
 @layer base {
    :root {
       /* ========================================
-       BRAND COLORS (Olive Green)
+       BRAND COLORS (Natural Olive)
        ======================================== */
       --brand-50: 94 20% 95%;
       --brand-100: 94 20% 90%;
@@ -140,7 +140,7 @@
       --radius-full: 9999px;
 
       /* ========================================
-       SHADOWS (Warmer tint)
+       SHADOWS (Natural warm tint)
        ======================================== */
       --shadow-xs: 0 1px 2px 0 rgb(30 20 10 / 0.04);
       --shadow-sm: 0 1px 3px 0 rgb(30 20 10 / 0.06), 0 1px 2px -1px rgb(30 20 10 / 0.04);
@@ -208,28 +208,174 @@
 }
 
 @layer base {
+   :root[data-theme="minimal"] {
+      /* ========================================
+       BRAND COLORS (Minimal Ink)
+       ======================================== */
+      --brand-50: 0 0% 98%;
+      --brand-100: 0 0% 96%;
+      --brand-200: 0 0% 90%;
+      --brand-300: 0 0% 80%;
+      --brand-400: 0 0% 64%;
+      --brand-500: 0 0% 9%;
+      --brand-600: 0 0% 5%;
+      --brand-700: 0 0% 0%;
+      --brand-800: 0 0% 4%;
+      --brand-900: 0 0% 2%;
+
+      /* ========================================
+       NEUTRAL COLORS (Clean Gray / Ink scale)
+       ======================================== */
+      --gray-50: 0 0% 100%;
+      --gray-100: 0 0% 98%;
+      --gray-200: 0 0% 96%;
+      --gray-300: 0 0% 90%;
+      --gray-400: 0 0% 74%;
+      --gray-500: 0 0% 45%;
+      --gray-600: 0 0% 32%;
+      --gray-700: 0 0% 20%;
+      --gray-800: 0 0% 9%;
+      --gray-900: 0 0% 4%;
+
+      /* Semantic Colors */
+      --background: var(--gray-50);
+      --background-secondary: var(--gray-100);
+      --background-tertiary: var(--gray-200);
+      --foreground: var(--gray-800);
+      --foreground-secondary: var(--gray-700);
+      --foreground-tertiary: var(--gray-500);
+      --foreground-muted: var(--gray-400);
+      --primary: var(--brand-500);
+      --primary-hover: var(--brand-600);
+      --primary-active: var(--brand-700);
+      --secondary: var(--gray-100);
+      --secondary-hover: var(--gray-200);
+      --secondary-foreground: var(--gray-800);
+      --accent: 0 0% 96%;
+      --accent-foreground: var(--brand-700);
+      --muted: var(--gray-100);
+      --muted-foreground: var(--gray-500);
+      --card: 0 0% 100%;
+      --card-foreground: var(--gray-800);
+      --card-border: 0 0% 90%;
+      --popover: 0 0% 100%;
+      --popover-foreground: var(--gray-800);
+      --border: 0 0% 90%;
+      --border-hover: 0 0% 81%;
+      --border-active: var(--brand-500);
+      --input: 0 0% 100%;
+      --input-border: 0 0% 90%;
+      --input-focus: var(--brand-500);
+      --ring: var(--brand-500);
+      --ring-offset: var(--gray-50);
+
+      /* Shadows (minimal neutral tint) */
+      --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+      --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.06), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+      --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
+      --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.14);
+      --shadow-card: 0 0 8px 0 rgba(0, 0, 0, 0.04);
+      --shadow-card-hover: 0 0 16px 0 rgba(0, 0, 0, 0.06);
+   }
+}
+
+@layer base {
+   :root[data-theme="warm"] {
+      /* ========================================
+       BRAND COLORS (Paper Taupe)
+       ======================================== */
+      --brand-50: 36 35% 94%;
+      --brand-100: 35 32% 90%;
+      --brand-200: 34 26% 82%;
+      --brand-300: 32 20% 70%;
+      --brand-400: 30 16% 56%;
+      --brand-500: 28 15% 42%;
+      --brand-600: 27 16% 34%;
+      --brand-700: 25 18% 28%;
+      --brand-800: 24 20% 20%;
+      --brand-900: 23 24% 13%;
+
+      /* ========================================
+       NEUTRAL COLORS (Warm Paper / Ink scale)
+       ======================================== */
+      --gray-50: 40 38% 97%;
+      --gray-100: 39 30% 94%;
+      --gray-200: 36 24% 87%;
+      --gray-300: 34 18% 78%;
+      --gray-400: 32 10% 60%;
+      --gray-500: 30 9% 46%;
+      --gray-600: 28 10% 36%;
+      --gray-700: 26 14% 27%;
+      --gray-800: 24 18% 18%;
+      --gray-900: 22 24% 11%;
+
+      /* Semantic Colors */
+      --background: var(--gray-50);
+      --background-secondary: var(--gray-100);
+      --background-tertiary: var(--gray-200);
+      --foreground: var(--gray-800);
+      --foreground-secondary: var(--gray-700);
+      --foreground-tertiary: var(--gray-500);
+      --foreground-muted: var(--gray-400);
+      --primary: var(--brand-500);
+      --primary-hover: var(--brand-600);
+      --primary-active: var(--brand-700);
+      --secondary: var(--gray-100);
+      --secondary-hover: var(--gray-200);
+      --secondary-foreground: var(--gray-800);
+      --accent: 38 30% 91%;
+      --accent-foreground: var(--brand-700);
+      --muted: var(--gray-100);
+      --muted-foreground: var(--gray-500);
+      --card: 40 48% 98%;
+      --card-foreground: var(--gray-800);
+      --card-border: 34 22% 84%;
+      --popover: 40 48% 98%;
+      --popover-foreground: var(--gray-800);
+      --border: 34 22% 84%;
+      --border-hover: 32 20% 73%;
+      --border-active: var(--brand-500);
+      --input: 40 48% 98%;
+      --input-border: 34 22% 84%;
+      --input-focus: var(--brand-500);
+      --ring: var(--brand-500);
+      --ring-offset: var(--gray-50);
+
+      /* Shadows (warmer tint) */
+      --shadow-xs: 0 1px 2px 0 rgb(30 20 10 / 0.04);
+      --shadow-sm: 0 1px 3px 0 rgb(30 20 10 / 0.06), 0 1px 2px -1px rgb(30 20 10 / 0.04);
+      --shadow-md: 0 4px 6px -1px rgb(30 20 10 / 0.06), 0 2px 4px -2px rgb(30 20 10 / 0.04);
+      --shadow-lg: 0 10px 15px -3px rgb(30 20 10 / 0.06), 0 4px 6px -4px rgb(30 20 10 / 0.04);
+      --shadow-xl: 0 20px 25px -5px rgb(30 20 10 / 0.08), 0 8px 10px -6px rgb(30 20 10 / 0.04);
+      --shadow-2xl: 0 25px 50px -12px rgb(30 20 10 / 0.15);
+   }
+}
+
+@layer base {
    :root[data-theme="cool"] {
       /* ========================================
-       BRAND COLORS (Cool Blue)
+       BRAND COLORS (Mist Blue)
        ======================================== */
-      --brand-50: 214 100% 97%;
-      --brand-100: 214 95% 93%;
-      --brand-200: 213 97% 87%;
-      --brand-300: 212 96% 78%;
-      --brand-400: 213 94% 68%;
-      --brand-500: 217 91% 60%;
-      --brand-600: 221 83% 53%;
-      --brand-700: 224 76% 48%;
-      --brand-800: 226 71% 40%;
-      --brand-900: 224 64% 33%;
+      --brand-50: 210 48% 96%;
+      --brand-100: 211 42% 92%;
+      --brand-200: 212 36% 84%;
+      --brand-300: 212 32% 72%;
+      --brand-400: 213 30% 60%;
+      --brand-500: 214 35% 48%;
+      --brand-600: 214 36% 42%;
+      --brand-700: 215 38% 34%;
+      --brand-800: 216 40% 26%;
+      --brand-900: 218 42% 18%;
 
       /* ========================================
        NEUTRAL COLORS (Cool Slate)
        ======================================== */
-      --gray-50: 210 20% 98%;
-      --gray-100: 220 14% 96%;
-      --gray-200: 220 13% 91%;
-      --gray-300: 216 12% 84%;
+      --gray-50: 210 32% 98%;
+      --gray-100: 210 24% 96%;
+      --gray-200: 214 18% 90%;
+      --gray-300: 216 14% 82%;
       --gray-400: 218 11% 65%;
       --gray-500: 220 9% 46%;
       --gray-600: 215 14% 34%;
@@ -255,16 +401,16 @@
       --accent-foreground: var(--brand-700);
       --muted: var(--gray-100);
       --muted-foreground: var(--gray-500);
-      --card: 0 0% 100%;
+      --card: 210 36% 99%;
       --card-foreground: var(--gray-800);
-      --card-border: var(--gray-200);
-      --popover: 0 0% 100%;
+      --card-border: 214 22% 87%;
+      --popover: 210 36% 99%;
       --popover-foreground: var(--gray-800);
-      --border: var(--gray-200);
-      --border-hover: var(--gray-300);
+      --border: 214 22% 87%;
+      --border-hover: 215 17% 76%;
       --border-active: var(--brand-500);
-      --input: 0 0% 100%;
-      --input-border: var(--gray-200);
+      --input: 210 36% 99%;
+      --input-border: 214 22% 87%;
       --input-focus: var(--brand-500);
       --ring: var(--brand-500);
       --ring-offset: var(--gray-50);
@@ -276,6 +422,222 @@
       --shadow-lg: 0 10px 15px -3px rgb(15 23 42 / 0.06), 0 4px 6px -4px rgb(15 23 42 / 0.04);
       --shadow-xl: 0 20px 25px -5px rgb(15 23 42 / 0.08), 0 8px 10px -6px rgb(15 23 42 / 0.04);
       --shadow-2xl: 0 25px 50px -12px rgb(15 23 42 / 0.14);
+   }
+}
+
+@layer base {
+   :root[data-theme="dawn"] {
+      /* ========================================
+       BRAND COLORS (Dawn Clay)
+       ======================================== */
+      --brand-50: 352 34% 96%;
+      --brand-100: 352 30% 92%;
+      --brand-200: 352 25% 84%;
+      --brand-300: 352 22% 72%;
+      --brand-400: 351 22% 58%;
+      --brand-500: 350 24% 46%;
+      --brand-600: 350 25% 39%;
+      --brand-700: 349 26% 32%;
+      --brand-800: 348 28% 24%;
+      --brand-900: 347 30% 16%;
+
+      /* ========================================
+       NEUTRAL COLORS (Blush Paper)
+       ======================================== */
+      --gray-50: 24 38% 97%;
+      --gray-100: 20 30% 94%;
+      --gray-200: 18 22% 87%;
+      --gray-300: 17 18% 78%;
+      --gray-400: 16 10% 60%;
+      --gray-500: 15 9% 46%;
+      --gray-600: 12 10% 36%;
+      --gray-700: 10 13% 27%;
+      --gray-800: 8 16% 18%;
+      --gray-900: 6 20% 11%;
+
+      /* Semantic Colors */
+      --background: var(--gray-50);
+      --background-secondary: var(--gray-100);
+      --background-tertiary: var(--gray-200);
+      --foreground: var(--gray-800);
+      --foreground-secondary: var(--gray-700);
+      --foreground-tertiary: var(--gray-500);
+      --foreground-muted: var(--gray-400);
+      --primary: var(--brand-500);
+      --primary-hover: var(--brand-600);
+      --primary-active: var(--brand-700);
+      --secondary: var(--gray-100);
+      --secondary-hover: var(--gray-200);
+      --secondary-foreground: var(--gray-800);
+      --accent: 352 34% 94%;
+      --accent-foreground: var(--brand-700);
+      --muted: var(--gray-100);
+      --muted-foreground: var(--gray-500);
+      --card: 24 48% 98%;
+      --card-foreground: var(--gray-800);
+      --card-border: 18 22% 84%;
+      --popover: 24 48% 98%;
+      --popover-foreground: var(--gray-800);
+      --border: 18 22% 84%;
+      --border-hover: 16 20% 74%;
+      --border-active: var(--brand-500);
+      --input: 24 48% 98%;
+      --input-border: 18 22% 84%;
+      --input-focus: var(--brand-500);
+      --ring: var(--brand-500);
+      --ring-offset: var(--gray-50);
+
+      /* Shadows (clay tint) */
+      --shadow-xs: 0 1px 2px 0 rgb(64 40 36 / 0.04);
+      --shadow-sm: 0 1px 3px 0 rgb(64 40 36 / 0.06), 0 1px 2px -1px rgb(64 40 36 / 0.04);
+      --shadow-md: 0 4px 6px -1px rgb(64 40 36 / 0.06), 0 2px 4px -2px rgb(64 40 36 / 0.04);
+      --shadow-lg: 0 10px 15px -3px rgb(64 40 36 / 0.06), 0 4px 6px -4px rgb(64 40 36 / 0.04);
+      --shadow-xl: 0 20px 25px -5px rgb(64 40 36 / 0.08), 0 8px 10px -6px rgb(64 40 36 / 0.04);
+      --shadow-2xl: 0 25px 50px -12px rgb(64 40 36 / 0.14);
+   }
+}
+
+@layer base {
+   :root[data-theme="graphite"] {
+      /* ========================================
+       BRAND COLORS (Quiet Graphite)
+       ======================================== */
+      --brand-50: 220 12% 95%;
+      --brand-100: 220 10% 91%;
+      --brand-200: 220 9% 84%;
+      --brand-300: 220 8% 72%;
+      --brand-400: 220 7% 58%;
+      --brand-500: 220 9% 39%;
+      --brand-600: 220 10% 32%;
+      --brand-700: 220 12% 25%;
+      --brand-800: 220 14% 18%;
+      --brand-900: 220 18% 11%;
+
+      /* ========================================
+       NEUTRAL COLORS (Soft Monochrome)
+       ======================================== */
+      --gray-50: 48 10% 97%;
+      --gray-100: 45 8% 94%;
+      --gray-200: 42 7% 87%;
+      --gray-300: 38 6% 78%;
+      --gray-400: 34 5% 60%;
+      --gray-500: 30 4% 46%;
+      --gray-600: 28 5% 36%;
+      --gray-700: 25 7% 27%;
+      --gray-800: 220 11% 18%;
+      --gray-900: 220 18% 11%;
+
+      /* Semantic Colors */
+      --background: var(--gray-50);
+      --background-secondary: var(--gray-100);
+      --background-tertiary: var(--gray-200);
+      --foreground: var(--gray-800);
+      --foreground-secondary: var(--gray-700);
+      --foreground-tertiary: var(--gray-500);
+      --foreground-muted: var(--gray-400);
+      --primary: var(--brand-500);
+      --primary-hover: var(--brand-600);
+      --primary-active: var(--brand-700);
+      --secondary: var(--gray-100);
+      --secondary-hover: var(--gray-200);
+      --secondary-foreground: var(--gray-800);
+      --accent: 220 12% 92%;
+      --accent-foreground: var(--brand-700);
+      --muted: var(--gray-100);
+      --muted-foreground: var(--gray-500);
+      --card: 48 13% 99%;
+      --card-foreground: var(--gray-800);
+      --card-border: 42 7% 84%;
+      --popover: 48 13% 99%;
+      --popover-foreground: var(--gray-800);
+      --border: 42 7% 84%;
+      --border-hover: 38 6% 74%;
+      --border-active: var(--brand-500);
+      --input: 48 13% 99%;
+      --input-border: 42 7% 84%;
+      --input-focus: var(--brand-500);
+      --ring: var(--brand-500);
+      --ring-offset: var(--gray-50);
+
+      /* Shadows (neutral tint) */
+      --shadow-xs: 0 1px 2px 0 rgb(24 26 31 / 0.04);
+      --shadow-sm: 0 1px 3px 0 rgb(24 26 31 / 0.06), 0 1px 2px -1px rgb(24 26 31 / 0.04);
+      --shadow-md: 0 4px 6px -1px rgb(24 26 31 / 0.06), 0 2px 4px -2px rgb(24 26 31 / 0.04);
+      --shadow-lg: 0 10px 15px -3px rgb(24 26 31 / 0.06), 0 4px 6px -4px rgb(24 26 31 / 0.04);
+      --shadow-xl: 0 20px 25px -5px rgb(24 26 31 / 0.08), 0 8px 10px -6px rgb(24 26 31 / 0.04);
+      --shadow-2xl: 0 25px 50px -12px rgb(24 26 31 / 0.14);
+   }
+}
+
+@layer base {
+   :root[data-theme="probe"] {
+      /* ========================================
+       BRAND COLORS (Reference Ink)
+       ======================================== */
+      --brand-50: 210 16% 95%;
+      --brand-100: 210 14% 90%;
+      --brand-200: 210 12% 82%;
+      --brand-300: 210 11% 70%;
+      --brand-400: 210 12% 52%;
+      --brand-500: 210 14% 22%;
+      --brand-600: 210 16% 18%;
+      --brand-700: 210 18% 15%;
+      --brand-800: 210 20% 12%;
+      --brand-900: 210 24% 9%;
+
+      /* ========================================
+       NEUTRAL COLORS (Cream Paper / Ink)
+       ======================================== */
+      --gray-50: 42 83% 98%;
+      --gray-100: 41 80% 96%;
+      --gray-200: 38 48% 92%;
+      --gray-300: 38 24% 78%;
+      --gray-400: 180 2% 52%;
+      --gray-500: 213 6% 45%;
+      --gray-600: 213 6% 36%;
+      --gray-700: 213 6% 30%;
+      --gray-800: 207 28% 19%;
+      --gray-900: 210 30% 12%;
+
+      /* Semantic Colors */
+      --background: var(--gray-50);
+      --background-secondary: var(--gray-100);
+      --background-tertiary: var(--gray-200);
+      --foreground: var(--gray-800);
+      --foreground-secondary: var(--gray-700);
+      --foreground-tertiary: var(--gray-500);
+      --foreground-muted: var(--gray-400);
+      --primary: var(--brand-500);
+      --primary-hover: var(--brand-600);
+      --primary-active: var(--brand-700);
+      --secondary: var(--gray-100);
+      --secondary-hover: var(--gray-200);
+      --secondary-foreground: var(--gray-800);
+      --accent: 210 16% 92%;
+      --accent-foreground: var(--brand-700);
+      --muted: var(--gray-100);
+      --muted-foreground: var(--gray-500);
+      --card: 41 80% 96%;
+      --card-foreground: var(--gray-800);
+      --card-border: 38 26% 82%;
+      --popover: 42 83% 98%;
+      --popover-foreground: var(--gray-800);
+      --border: 38 26% 82%;
+      --border-hover: 210 14% 72%;
+      --border-active: var(--brand-500);
+      --input: 42 83% 98%;
+      --input-border: 38 26% 82%;
+      --input-focus: var(--brand-500);
+      --ring: var(--brand-500);
+      --ring-offset: var(--gray-50);
+
+      /* Shadows (ink / paper tint) */
+      --shadow-xs: 0 1px 2px 0 rgb(34 49 61 / 0.04);
+      --shadow-sm: 0 1px 3px 0 rgb(34 49 61 / 0.06), 0 1px 2px -1px rgb(34 49 61 / 0.04);
+      --shadow-md: 0 4px 6px -1px rgb(34 49 61 / 0.06), 0 2px 4px -2px rgb(34 49 61 / 0.04);
+      --shadow-lg: 0 10px 15px -3px rgb(34 49 61 / 0.06), 0 4px 6px -4px rgb(34 49 61 / 0.04);
+      --shadow-xl: 0 20px 25px -5px rgb(34 49 61 / 0.08), 0 8px 10px -6px rgb(34 49 61 / 0.04);
+      --shadow-2xl: 0 25px 50px -12px rgb(34 49 61 / 0.14);
    }
 }
 

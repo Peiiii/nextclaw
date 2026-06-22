@@ -55,7 +55,7 @@ export function ChatSessionProjectBadge({
           <button
             type="button"
             title={projectRoot ?? undefined}
-            className="min-w-0 max-w-[320px] shrink rounded-full border border-gray-200 bg-gray-100/90 px-2 py-0.5 text-[11px] font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-w-0 max-w-[320px] shrink rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/35 hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-60"
             aria-label={t('chatSessionSetProject')}
             disabled={isProjectPending}
           >
@@ -72,11 +72,11 @@ export function ChatSessionProjectBadge({
           style={SESSION_PROJECT_MENU_STYLE}
         >
           <div className="px-3 pb-2 pt-1">
-            <div className="text-[11px] font-medium uppercase tracking-wider text-gray-500">
+            <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
               {projectName}
             </div>
             {projectRoot ? (
-              <div className="mt-1 break-all text-xs text-gray-500">
+              <div className="mt-1 break-all text-xs text-muted-foreground">
                 {projectRoot}
               </div>
             ) : null}

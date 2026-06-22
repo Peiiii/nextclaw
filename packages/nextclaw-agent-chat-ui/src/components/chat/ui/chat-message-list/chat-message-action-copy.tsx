@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { useCopyFeedback } from '../../hooks/use-copy-feedback';
+import { useCopyFeedback } from '@agent-chat-ui/components/chat/hooks/use-copy-feedback';
 import { Check, Copy } from 'lucide-react';
-import type { ChatMessageViewModel, ChatMessageTexts } from '../../view-models/chat-ui.types';
+import type { ChatMessageViewModel, ChatMessageTexts } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
 export function ChatMessageActionCopy({
   message,
@@ -29,7 +29,7 @@ export function ChatMessageActionCopy({
     <button
       type="button"
       onClick={() => void copy()}
-      className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-md hover:bg-gray-100 flex items-center justify-center"
+      className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-accent flex items-center justify-center"
       aria-label={copied ? texts.copiedMessageLabel : texts.copyMessageLabel}
       title={copied ? texts.copiedMessageLabel : texts.copyMessageLabel}
     >

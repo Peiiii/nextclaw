@@ -18,7 +18,7 @@ function ToolbarIcon({ icon }: { icon?: ChatToolbarIcon }) {
   return icon === 'sparkles'
     ? <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
     : icon === 'brain'
-      ? <Brain className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+      ? <Brain className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
       : null;
 }
 
@@ -58,13 +58,13 @@ function ToolbarSelectTriggerContent({ item }: { item: ChatToolbarSelect }) {
     return (
       <div className="flex min-w-0 items-center gap-2 text-left">
         <ToolbarIcon icon={item.icon} />
-        <span className="nextclaw-chat-toolbar-mobile-label truncate text-xs font-semibold text-gray-700 sm:hidden [@container_nextclaw-chat-input-bar_(max-width:440px)]:hidden">{mobileSelectedLabel}</span>
-        <span className="nextclaw-chat-toolbar-label hidden truncate text-xs font-semibold text-gray-700 sm:inline [@container_nextclaw-chat-input-bar_(max-width:440px)]:hidden">{item.selectedLabel}</span>
+        <span className="nextclaw-chat-toolbar-mobile-label truncate text-xs font-semibold text-foreground sm:hidden [@container_nextclaw-chat-input-bar_(max-width:440px)]:hidden">{mobileSelectedLabel}</span>
+        <span className="nextclaw-chat-toolbar-label hidden truncate text-xs font-semibold text-foreground sm:inline [@container_nextclaw-chat-input-bar_(max-width:440px)]:hidden">{item.selectedLabel}</span>
       </div>
     );
   }
   if (item.loading) {
-    return <div className="h-3 w-24 animate-pulse rounded bg-gray-200" />;
+    return <div className="h-3 w-24 animate-pulse rounded bg-muted" />;
   }
   return <span className="truncate">{item.placeholder}</span>;
 }
@@ -76,11 +76,11 @@ function ToolbarSelectOptionContent({
 }) {
   return option.description ? (
     <div className="flex min-w-0 flex-col gap-0.5">
-      <span className="truncate text-xs font-semibold text-gray-800">{option.label}</span>
-      <span className="truncate text-[11px] text-gray-500">{option.description}</span>
+      <span className="truncate text-xs font-semibold text-foreground">{option.label}</span>
+      <span className="truncate text-[11px] text-muted-foreground">{option.description}</span>
     </div>
   ) : (
-    <span className="truncate text-xs font-semibold text-gray-800">{option.label}</span>
+    <span className="truncate text-xs font-semibold text-foreground">{option.label}</span>
   );
 }
 
@@ -118,10 +118,10 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
           type="button"
           aria-label={item.selectedLabel ? `${item.placeholder}: ${item.selectedLabel}` : item.placeholder}
           disabled={item.disabled}
-          className={`nextclaw-chat-toolbar-select-trigger inline-flex h-8 w-auto items-center justify-between rounded-lg border-0 bg-transparent px-2 text-xs font-medium text-gray-600 shadow-none hover:bg-gray-100 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!basis-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!justify-center [@container_nextclaw-chat-input-bar_(max-width:440px)]:!max-w-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!min-w-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!px-0 ${TRIGGER_WIDTH_BY_KEY[item.key] ?? ''}`}
+          className={`nextclaw-chat-toolbar-select-trigger inline-flex h-8 w-auto items-center justify-between rounded-lg border-0 bg-transparent px-2 text-xs font-medium text-muted-foreground shadow-none hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!basis-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!justify-center [@container_nextclaw-chat-input-bar_(max-width:440px)]:!max-w-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!min-w-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!px-0 ${TRIGGER_WIDTH_BY_KEY[item.key] ?? ''}`}
         >
           <ToolbarSelectTriggerContent item={item} />
-          <ChevronDown className="ml-1 h-3.5 w-3.5 shrink-0 text-gray-400 [@container_nextclaw-chat-input-bar_(max-width:440px)]:hidden" />
+          <ChevronDown className="ml-1 h-3.5 w-3.5 shrink-0 text-muted-foreground/70 [@container_nextclaw-chat-input-bar_(max-width:440px)]:hidden" />
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -129,7 +129,7 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
         style={{ maxHeight: TOOLBAR_POPOVER_MAX_HEIGHT }}
       >
         <div className="relative mb-2 shrink-0">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/70" />
           <Input
             value={query}
             onChange={(event) => setQuery(event.currentTarget.value)}
@@ -140,29 +140,29 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
         {!hasOptions ? (
           item.loading ? (
             <div className="space-y-2 px-2 py-1">
-              <div className="h-3 w-36 animate-pulse rounded bg-gray-200" />
-              <div className="h-3 w-28 animate-pulse rounded bg-gray-200" />
-              <div className="h-3 w-32 animate-pulse rounded bg-gray-200" />
+              <div className="h-3 w-36 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-28 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-32 animate-pulse rounded bg-muted" />
             </div>
           ) : item.emptyLabel ? (
-            <div className="px-2 py-1 text-xs text-gray-500">{item.emptyLabel}</div>
+            <div className="px-2 py-1 text-xs text-muted-foreground">{item.emptyLabel}</div>
           ) : null
         ) : null}
         {hasOptions && !hasFilteredOptions ? (
-          <div className="px-2 py-1 text-xs text-gray-500">{item.search?.emptyLabel ?? item.emptyLabel}</div>
+          <div className="px-2 py-1 text-xs text-muted-foreground">{item.search?.emptyLabel ?? item.emptyLabel}</div>
         ) : null}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {filteredGroups.map((group, groupIndex) => (
-            <div key={group.key} className={groupIndex > 0 ? 'border-t border-gray-100 pt-1' : undefined}>
+            <div key={group.key} className={groupIndex > 0 ? 'border-t border-border pt-1' : undefined}>
               {group.label ? (
-                <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">{group.label}</div>
+                <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{group.label}</div>
               ) : null}
               {group.options.map((option) => {
                 const isSelected = item.value === option.value;
                 const isActive = activeValues.has(option.value);
                 const actionLabel = isActive ? action?.activeLabel : action?.inactiveLabel;
                 return (
-                  <div key={option.value} className="group flex items-center gap-1 rounded-md hover:bg-gray-100">
+                  <div key={option.value} className="group flex items-center gap-1 rounded-md hover:bg-accent">
                     <button
                       type="button"
                       className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-2 text-left"
@@ -185,7 +185,7 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
                               type="button"
                               aria-label={actionLabel}
                               aria-pressed={isActive}
-                              className="mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-white hover:text-amber-500 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                              className="mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-card hover:text-amber-500 focus:outline-none focus:ring-1 focus:ring-primary/40"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 action.onToggle(option.value, !isActive);
@@ -225,7 +225,7 @@ function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
       <SelectTrigger
         aria-label={item.selectedLabel ? `${item.placeholder}: ${item.selectedLabel}` : item.placeholder}
         title={item.selectedLabel}
-        className={`nextclaw-chat-toolbar-select-trigger h-8 w-auto rounded-lg border-0 bg-transparent px-2 text-xs font-medium text-gray-600 shadow-none hover:bg-gray-100 focus:ring-0 sm:px-3 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!basis-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!justify-center [@container_nextclaw-chat-input-bar_(max-width:440px)]:!max-w-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!min-w-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!px-0 ${TRIGGER_WIDTH_BY_KEY[item.key] ?? ''}`}
+        className={`nextclaw-chat-toolbar-select-trigger h-8 w-auto rounded-lg border-0 bg-transparent px-2 text-xs font-medium text-muted-foreground shadow-none hover:bg-accent hover:text-accent-foreground focus:ring-0 sm:px-3 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!basis-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!justify-center [@container_nextclaw-chat-input-bar_(max-width:440px)]:!max-w-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!min-w-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!px-0 ${TRIGGER_WIDTH_BY_KEY[item.key] ?? ''}`}
       >
         {item.selectedLabel || item.loading ? <ToolbarSelectTriggerContent item={item} /> : <SelectValue placeholder={item.placeholder} />}
       </SelectTrigger>
@@ -236,12 +236,12 @@ function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
         {!hasOptions ? (
           item.loading ? (
             <div className="space-y-2 px-3 py-2">
-              <div className="h-3 w-36 animate-pulse rounded bg-gray-200" />
-              <div className="h-3 w-28 animate-pulse rounded bg-gray-200" />
-              <div className="h-3 w-32 animate-pulse rounded bg-gray-200" />
+              <div className="h-3 w-36 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-28 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-32 animate-pulse rounded bg-muted" />
             </div>
           ) : item.emptyLabel ? (
-            <div className="px-3 py-2 text-xs text-gray-500">{item.emptyLabel}</div>
+            <div className="px-3 py-2 text-xs text-muted-foreground">{item.emptyLabel}</div>
           ) : null
         ) : null}
         {groups.map((group, groupIndex) => (
@@ -275,7 +275,7 @@ export function ChatInputBarToolbar({ actions, accessories, selects, skillPicker
           const button = (
             <button
               type="button"
-              className={`inline-flex items-center rounded-lg py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:text-gray-400 ${
+              className={`inline-flex items-center rounded-lg py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:text-muted-foreground/50 ${
                 item.iconOnly ? 'h-8 w-8 justify-center px-0' : 'gap-1.5 px-3'
               }`}
               onClick={item.onClick}

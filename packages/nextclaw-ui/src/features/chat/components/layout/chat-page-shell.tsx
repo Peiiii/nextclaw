@@ -50,7 +50,7 @@ export function ChatPageLayout({ view, confirmDialog }: ChatPageLayoutProps) {
       {view === "chat" ? (
         isMobile ? <ChatMobileShell /> : <ChatConversationPanel />
       ) : (
-        <section className="flex-1 min-h-0 overflow-hidden bg-gradient-to-b from-gray-50/60 to-white">
+        <section className="flex-1 min-h-0 overflow-hidden bg-background">
           {view === "cron" ? (
             <div className="h-full overflow-auto custom-scrollbar">
               <div className="mx-auto w-full max-w-[min(1120px,100%)] px-4 py-4 sm:px-6 sm:py-5">

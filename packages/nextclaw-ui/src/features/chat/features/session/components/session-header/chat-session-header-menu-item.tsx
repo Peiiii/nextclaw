@@ -23,7 +23,7 @@ export function ChatSessionHeaderMenuItem({
         'flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50',
         destructive
           ? 'text-destructive hover:bg-destructive/10'
-          : 'text-gray-700 hover:bg-gray-100'
+          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
       )}
       onClick={onClick}
       disabled={disabled}

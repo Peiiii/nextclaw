@@ -29,13 +29,13 @@ export function ProviderAuthSection(props: ProviderAuthSectionProps) {
 
   return (
     <div className="space-y-2 rounded-xl border border-primary/20 bg-primary-50/50 p-3">
-      <Label className="text-sm font-medium text-gray-900">
+      <Label className="text-sm font-medium text-foreground">
         {providerAuth.displayName || t('providerAuthSectionTitle')}
       </Label>
-      {providerAuthNote ? <p className="text-xs text-gray-600">{providerAuthNote}</p> : null}
+      {providerAuthNote ? <p className="text-xs text-muted-foreground">{providerAuthNote}</p> : null}
       {providerAuthMethodsCount > 1 ? (
         <div className="space-y-2">
-          <Label className="text-xs font-medium text-gray-700">{t('providerAuthMethodLabel')}</Label>
+          <Label className="text-xs font-medium text-foreground">{t('providerAuthMethodLabel')}</Label>
           {shouldUseAuthMethodPills ? (
             <ProviderPillSelector
               value={resolvedAuthMethodId}
@@ -44,7 +44,7 @@ export function ProviderAuthSection(props: ProviderAuthSectionProps) {
             />
           ) : (
             <Select value={resolvedAuthMethodId} onValueChange={onAuthMethodChange}>
-              <SelectTrigger className="h-8 rounded-lg bg-white">
+              <SelectTrigger className="h-8 rounded-lg">
                 <SelectValue placeholder={t('providerAuthMethodPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
@@ -56,7 +56,7 @@ export function ProviderAuthSection(props: ProviderAuthSectionProps) {
               </SelectContent>
             </Select>
           )}
-          {selectedAuthMethodHint ? <p className="text-xs text-gray-500">{selectedAuthMethodHint}</p> : null}
+          {selectedAuthMethodHint ? <p className="text-xs text-muted-foreground">{selectedAuthMethodHint}</p> : null}
         </div>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
@@ -85,12 +85,12 @@ export function ProviderAuthSection(props: ProviderAuthSectionProps) {
           </Button>
         ) : null}
         {authSessionId ? (
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-muted-foreground">
             {t('providerAuthSessionLabel')}: {authSessionId.slice(0, 8)}…
           </span>
         ) : null}
       </div>
-      {authStatusMessage ? <p className="text-xs text-gray-600">{authStatusMessage}</p> : null}
+      {authStatusMessage ? <p className="text-xs text-muted-foreground">{authStatusMessage}</p> : null}
     </div>
   );
 }

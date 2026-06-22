@@ -11,27 +11,77 @@
   <meta name="apple-mobile-web-app-title" content="NextClaw" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#F9F8F5" />
+  <meta name="theme-color" content="#FAF9F7" />
   <meta name="color-scheme" content="light" />
   <style>
     html,
     body,
     #root {
-      background: #f9f8f5;
+      background: #faf9f7;
+    }
+
+    html[data-theme="minimal"],
+    html[data-theme="minimal"] body,
+    html[data-theme="minimal"] #root {
+      background: #ffffff;
+    }
+
+    html[data-theme="warm"],
+    html[data-theme="warm"] body,
+    html[data-theme="warm"] #root {
+      background: #faf8f4;
     }
 
     html[data-theme="cool"],
     html[data-theme="cool"] body,
     html[data-theme="cool"] #root {
-      background: #f8fafb;
+      background: #f8fafc;
+    }
+
+    html[data-theme="dawn"],
+    html[data-theme="dawn"] body,
+    html[data-theme="dawn"] #root {
+      background: #faf7f4;
+    }
+
+    html[data-theme="graphite"],
+    html[data-theme="graphite"] body,
+    html[data-theme="graphite"] #root {
+      background: #f8f8f7;
+    }
+
+    html[data-theme="probe"],
+    html[data-theme="probe"] body,
+    html[data-theme="probe"] #root {
+      background: #fefcf6;
     }
   </style>
   <script>
     (() => {
       const storageKey = 'nextclaw.ui.theme';
       const storedTheme = window.localStorage.getItem(storageKey);
-      const nextTheme = storedTheme === 'cool' ? 'cool' : 'warm';
-      const themeColor = nextTheme === 'cool' ? '#F8FAFB' : '#F9F8F5';
+      const themeColors = {
+        natural: '#FAF9F7',
+        minimal: '#FFFFFF',
+        warm: '#FAF8F4',
+        cool: '#F8FAFC',
+        dawn: '#FAF7F4',
+        graphite: '#F8F8F7',
+        probe: '#FEFCF6'
+      };
+      const legacyThemeAliases = {
+        leaf: 'warm'
+      };
+      const normalizedStoredTheme = typeof storedTheme === 'string' && Object.prototype.hasOwnProperty.call(legacyThemeAliases, storedTheme)
+        ? legacyThemeAliases[storedTheme]
+        : storedTheme;
+      const nextTheme = Object.prototype.hasOwnProperty.call(themeColors, normalizedStoredTheme)
+        ? normalizedStoredTheme
+        : 'natural';
+      if (storedTheme !== nextTheme) {
+        window.localStorage.setItem(storageKey, nextTheme);
+      }
+      const themeColor = themeColors[nextTheme];
       document.documentElement.setAttribute('data-theme', nextTheme);
       document.documentElement.style.backgroundColor = themeColor;
       document.documentElement.style.colorScheme = 'light';

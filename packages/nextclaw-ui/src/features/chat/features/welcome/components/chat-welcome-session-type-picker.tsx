@@ -39,7 +39,7 @@ export function ChatWelcomeSessionTypePicker({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+          className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
           aria-label={t('chatWelcomeSessionTypePickerLabel')}
         >
           {selectedOption.icon?.src ? (
@@ -56,12 +56,12 @@ export function ChatWelcomeSessionTypePicker({
             <Bot className="h-4 w-4 shrink-0" />
           )}
           <span className="truncate">{selectedOption.label}</span>
-          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
         </button>
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="flex w-[min(16rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-2xl border border-gray-200/80 bg-white p-1.5 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
+        className="flex w-[min(16rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
         style={{ maxHeight: SESSION_TYPE_PICKER_MAX_HEIGHT }}
       >
         <div className="min-h-0 flex-1 overflow-y-auto">

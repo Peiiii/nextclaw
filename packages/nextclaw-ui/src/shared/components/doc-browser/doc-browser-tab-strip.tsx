@@ -111,16 +111,16 @@ export function DocBrowserTabStrip({
       tabs={compactTabs}
       actions={actions}
       className={cn(
-        "h-11 gap-2 px-2.5 bg-background border-[#f1e7d4] shrink-0 select-none",
+        "h-11 gap-2 border-border/70 bg-card px-2.5 shrink-0 select-none",
         isFullscreen && "h-[calc(env(safe-area-inset-top,0px)+2.75rem)] pt-[env(safe-area-inset-top,0px)]",
       )}
       scrollClassName="doc-browser-tab-scrollbar flex h-full items-center gap-1.5"
       tabsClassName="items-center gap-1.5"
       actionsClassName="h-full items-center gap-1"
-      actionButtonClassName="rounded-md p-1.5 hover:text-gray-700 disabled:opacity-60"
+      actionButtonClassName="rounded-md p-1.5 hover:text-foreground disabled:opacity-60"
       tabBaseClassName="group inline-flex min-w-0 items-center gap-1 h-7 px-1.5 rounded-lg text-xs border max-w-[220px] shrink-0 transition-colors"
-      activeTabClassName="bg-amber-50/80 border-amber-200 text-amber-900 shadow-[0_1px_2px_rgba(30,20,10,0.04)]"
-      inactiveTabClassName="bg-[#f9f8f5] border-[#eee3d1] text-[#78644d] hover:bg-[#fff7ea] hover:text-[#2f2212]"
+      activeTabClassName="border-primary/30 bg-primary-50/70 text-foreground shadow-[0_1px_2px_rgba(30,20,10,0.04)]"
+      inactiveTabClassName="border-border bg-muted/60 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
       labelClassName="px-1 text-xs font-normal"
       onPointerDown={!isDocked && !isFullscreen ? onDragStart : undefined}
       onScrollPointerDown={(event) => event.stopPropagation()}

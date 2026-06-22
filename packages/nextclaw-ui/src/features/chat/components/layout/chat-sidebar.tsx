@@ -105,7 +105,7 @@ export function ChatSidebar({
   const { language, setLanguage } = useI18n();
   const { theme, setTheme } = useTheme();
   const currentThemeLabel = t(
-    THEME_OPTIONS.find((o) => o.value === theme)?.labelKey ?? "themeWarm",
+    THEME_OPTIONS.find((o) => o.value === theme)?.labelKey ?? "themeNatural",
   );
   const currentLanguageLabel =
     LANGUAGE_OPTIONS.find((o) => o.value === language)?.label ?? language;
@@ -233,9 +233,9 @@ export function ChatSidebar({
           : shouldCollapse
             ? cn(
                 SIDEBAR_RAIL_WIDTH_CLASS,
-                "shrink-0 border-r border-gray-200/60",
+                "shrink-0 border-r border-border/70",
               )
-            : "w-[280px] shrink-0 border-r border-gray-200/60",
+            : "w-[280px] shrink-0 border-r border-border/70",
       )}
       data-sidebar-collapsed={shouldCollapse ? "true" : "false"}
     >

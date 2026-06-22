@@ -359,10 +359,10 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
     <div
       data-testid="doc-browser-panel"
       className={cn(
-        'flex flex-col bg-white overflow-hidden relative',
+        'relative flex flex-col overflow-hidden bg-card text-card-foreground',
         isFullscreen
           ? 'fixed inset-0 z-[9999] h-[100dvh] w-screen rounded-none border-0 shadow-2xl'
-          : 'rounded-2xl shadow-2xl border border-gray-200',
+          : 'rounded-2xl border border-border shadow-2xl',
       )}
       style={
         isFullscreen
@@ -398,7 +398,7 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
             onPointerDown={startFloatResize('bottom')}
           />
           <div
-            className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-30 flex items-center justify-center text-gray-300 hover:text-gray-500 transition-colors"
+            className="absolute bottom-0 right-0 z-30 flex h-4 w-4 cursor-se-resize items-center justify-center text-muted-foreground/45 transition-colors hover:text-muted-foreground"
             data-testid="doc-browser-resize-bottom-right"
             onPointerDown={startFloatResize('bottom-right')}
           >

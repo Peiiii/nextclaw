@@ -46,10 +46,10 @@ export const ChatMessage = memo(function ChatMessage({
       className={cn(
         "inline-block w-fit max-w-full rounded-2xl border px-4 shadow-sm",
         isUser
-          ? "border-primary bg-primary py-3 text-white"
+          ? "border-primary bg-primary py-3 text-primary-foreground"
           : role === "assistant"
-            ? "border-gray-200 bg-white pb-3 pt-4 text-gray-900"
-            : "border-orange-200/80 bg-orange-50/70 py-3 text-gray-900",
+            ? "border-border bg-card pb-3 pt-4 text-card-foreground"
+            : "border-border bg-muted/45 py-3 text-foreground",
       )}
     >
       <div className="space-y-2">
@@ -113,12 +113,12 @@ export const ChatMessage = memo(function ChatMessage({
             return (
               <div
                 key={`unknown-${index}`}
-                className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-2 text-xs text-gray-600"
+                className="rounded-lg border border-border bg-muted/60 px-2.5 py-2 text-xs text-muted-foreground"
               >
-                <div className="font-semibold text-gray-700">
+                <div className="font-semibold text-foreground">
                   {label}: {rawType}
                 </div>
-                {text ? <pre className="mt-1 whitespace-pre-wrap break-words text-[11px] text-gray-500">{text}</pre> : null}
+                {text ? <pre className="mt-1 whitespace-pre-wrap break-words text-[11px] text-muted-foreground">{text}</pre> : null}
               </div>
             );
           }

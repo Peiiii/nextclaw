@@ -1,7 +1,7 @@
 import { useRef } from "react";
-import { useReasoningBlockOpenState } from "../../hooks/use-reasoning-block-open-state";
-import { useStickyBottomScroll } from "../../hooks/use-sticky-bottom-scroll";
-import { cn } from "../../internal/cn";
+import { useReasoningBlockOpenState } from "@agent-chat-ui/components/chat/hooks/use-reasoning-block-open-state";
+import { useStickyBottomScroll } from "@agent-chat-ui/components/chat/hooks/use-sticky-bottom-scroll";
+import { cn } from "@agent-chat-ui/components/chat/internal/cn";
 
 type ChatReasoningBlockProps = {
   label: string;
@@ -43,7 +43,7 @@ export function ChatReasoningBlock({ label, text, isUser, isInProgress }: ChatRe
   return (
     <details className="mt-2" open={isOpen}>
       <summary
-        className={cn("cursor-pointer text-xs", isUser ? "text-primary-100" : "text-gray-500")}
+        className={cn("cursor-pointer text-xs", isUser ? "text-primary-100" : "text-muted-foreground")}
         onClick={onSummaryClick}
       >
         {displayLabel}
@@ -53,8 +53,8 @@ export function ChatReasoningBlock({ label, text, isUser, isInProgress }: ChatRe
         onScroll={onScroll}
         data-reasoning-scroll="true"
         className={cn(
-          "mt-2 w-fit max-w-[500px] max-h-56 overflow-y-auto rounded-lg custom-scrollbar-amber",
-          isUser ? "bg-primary-700/60" : "bg-gray-100",
+          "mt-2 w-fit max-w-[500px] max-h-56 overflow-y-auto rounded-lg custom-scrollbar",
+          isUser ? "bg-primary/70" : "bg-muted",
         )}
       >
         <pre className="min-w-0 whitespace-pre-wrap break-all p-2 text-[11px]">{text}</pre>

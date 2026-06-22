@@ -1,8 +1,13 @@
-import type { UiTheme } from '@/shared/lib/theme';
+import { normalizeTheme, type UiTheme } from '@/shared/lib/theme';
 
 const PWA_SHELL_THEME_COLORS: Record<UiTheme, string> = {
-  warm: '#F9F8F5',
-  cool: '#F8FAFB'
+  natural: '#FAF9F7',
+  minimal: '#FFFFFF',
+  warm: '#FAF8F4',
+  cool: '#F8FAFC',
+  dawn: '#FAF7F4',
+  graphite: '#F8F8F7',
+  probe: '#FEFCF6'
 };
 
 export class PwaShellThemeManager {
@@ -22,8 +27,8 @@ export class PwaShellThemeManager {
       return;
     }
 
-    const currentTheme = document.documentElement.getAttribute('data-theme') === 'cool' ? 'cool' : 'warm';
-    this.syncTheme(currentTheme);
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    this.syncTheme(normalizeTheme(currentTheme) ?? 'natural');
   };
 
   private updateThemeMeta = (themeColor: string) => {

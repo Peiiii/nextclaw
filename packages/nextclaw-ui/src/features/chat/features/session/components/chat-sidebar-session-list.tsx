@@ -25,8 +25,8 @@ type ChatSidebarSessionListProps = {
 function ChatSidebarEmptyState({ label }: { label: string }) {
   return (
     <div className="p-4 text-center">
-      <MessageSquareText className="mx-auto mb-2 h-6 w-6 text-gray-300" />
-      <div className="text-xs text-gray-500">{label}</div>
+      <MessageSquareText className="mx-auto mb-2 h-6 w-6 text-muted-foreground/45" />
+      <div className="text-xs text-muted-foreground">{label}</div>
     </div>
   );
 }
@@ -42,7 +42,7 @@ export function ChatSidebarSessionList({
   sessionTypeOptions,
 }: ChatSidebarSessionListProps) {
   if (isLoading) {
-    return <div className="p-3 text-xs text-gray-500">{t("sessionsLoading")}</div>;
+    return <div className="p-3 text-xs text-muted-foreground">{t("sessionsLoading")}</div>;
   }
 
   if (isProjectFirstView) {
@@ -67,7 +67,7 @@ export function ChatSidebarSessionList({
     <div className="space-y-3">
       {groups.map((group) => (
         <div key={group.label}>
-          <div className="px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-gray-400">
+          <div className="px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
             {group.label}
           </div>
           <div className="space-y-0.5">{group.items.map(renderSessionItem)}</div>

@@ -12,7 +12,7 @@ type RuntimeStatusTone = 'healthy' | 'attention' | 'inactive';
 const runtimeStatusToneStyles: Record<RuntimeStatusTone, string> = {
   healthy: 'bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.14)]',
   attention: 'bg-amber-400 shadow-[0_0_0_3px_rgba(251,191,36,0.16)]',
-  inactive: 'bg-gray-300 shadow-[0_0_0_3px_rgba(156,163,175,0.12)]'
+  inactive: 'bg-muted-foreground/45 shadow-[0_0_0_3px_rgba(156,163,175,0.12)]'
 };
 
 type RuntimeStatusSummary = {
@@ -66,11 +66,11 @@ export function RuntimeStatusEntry() {
       <PopoverContent
         align="start"
         sideOffset={10}
-        className="w-[290px] space-y-3 rounded-2xl border border-gray-200 bg-white p-4"
+        className="w-[290px] space-y-3 rounded-2xl border border-border bg-popover p-4 text-popover-foreground"
       >
         <div className="space-y-1">
-          <div className="text-sm font-semibold text-gray-900">{summary.title}</div>
-          <p className="text-xs leading-5 text-gray-600">{summary.description}</p>
+          <div className="text-sm font-semibold text-foreground">{summary.title}</div>
+          <p className="text-xs leading-5 text-muted-foreground">{summary.description}</p>
         </div>
         {summary.reasonLines.length > 0 ? (
           <div className="space-y-2">
@@ -85,13 +85,13 @@ export function RuntimeStatusEntry() {
           </div>
         ) : null}
         {summary.actionLabel ? (
-          <div className="flex items-center justify-between border-t border-gray-100 pt-1">
-            <span className="text-[11px] text-gray-500">{t('runtimeStatusActionHint')}</span>
+          <div className="flex items-center justify-between border-t border-border/70 pt-1">
+            <span className="text-[11px] text-muted-foreground">{t('runtimeStatusActionHint')}</span>
             <button
               type="button"
               onClick={() => void handleRestart()}
               disabled={summary.isBusy}
-              className="text-sm font-semibold text-sky-600 transition-colors hover:text-sky-700 disabled:text-gray-400"
+              className="text-sm font-semibold text-primary transition-colors hover:text-primary-hover disabled:text-muted-foreground/45"
             >
               {summary.isBusy ? t('runtimeStatusRestartingAction') : summary.actionLabel}
             </button>

@@ -1,6 +1,6 @@
-import { ChatButton } from '../../default-skin/button';
-import { ChatUiPrimitives } from '../primitives/chat-ui-primitives';
-import type { ChatContextWindowIndicator, ChatInputBarActionsProps } from '../../view-models/chat-ui.types';
+import { ChatButton } from '@agent-chat-ui/components/chat/default-skin/button';
+import { ChatUiPrimitives } from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
+import type { ChatContextWindowIndicator, ChatInputBarActionsProps } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import { ArrowUp } from 'lucide-react';
 
 const SEND_ERROR_PREVIEW_MAX_CHARS = 120;
@@ -18,7 +18,7 @@ function StopIcon() {
     <span
       aria-hidden="true"
       data-testid="chat-stop-icon"
-      className="block h-3 w-3 rounded-[2px] bg-gray-700 shadow-[inset_0_0_0_1px_rgba(17,24,39,0.06)]"
+      className="block h-3 w-3 rounded-[2px] bg-foreground shadow-[inset_0_0_0_1px_hsl(var(--border))]"
     />
   );
 }
@@ -27,7 +27,7 @@ function ContextWindowIndicator({ contextWindow }: { contextWindow: ChatContextW
   const { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } = ChatUiPrimitives;
   const clampedRatio = Math.max(0, Math.min(1, contextWindow.ratio));
   const angle = Math.round(clampedRatio * 360);
-  const ringColor = '#9ca3af';
+  const ringColor = 'hsl(var(--muted-foreground))';
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -35,28 +35,28 @@ function ContextWindowIndicator({ contextWindow }: { contextWindow: ChatContextW
         <TooltipTrigger asChild>
           <button
             type="button"
-            className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+            className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             aria-label={contextWindow.label}
             title={contextWindow.label}
           >
             <span
               aria-hidden="true"
               className="absolute inset-[7px] rounded-full"
-              style={{ background: `conic-gradient(${ringColor} ${angle}deg, #e5e7eb 0deg)` }}
+              style={{ background: `conic-gradient(${ringColor} ${angle}deg, hsl(var(--border)) 0deg)` }}
             />
-            <span aria-hidden="true" className="absolute inset-[10px] rounded-full bg-white" />
+            <span aria-hidden="true" className="absolute inset-[10px] rounded-full bg-card" />
           </button>
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-[18rem]">
           <div className="space-y-1.5 text-xs">
-            <div className="flex items-center justify-between gap-5 font-semibold text-gray-800">
+            <div className="flex items-center justify-between gap-5 font-semibold text-foreground">
               <span>{contextWindow.label}</span>
               <span>{contextWindow.percentLabel}</span>
             </div>
             {contextWindow.details.map((detail) => (
-              <div key={detail.label} className="flex items-center justify-between gap-5 text-gray-600">
+              <div key={detail.label} className="flex items-center justify-between gap-5 text-muted-foreground">
                 <span>{detail.label}</span>
-                <span className="font-medium text-gray-800">{detail.value}</span>
+                <span className="font-medium text-foreground">{detail.value}</span>
               </div>
             ))}
           </div>

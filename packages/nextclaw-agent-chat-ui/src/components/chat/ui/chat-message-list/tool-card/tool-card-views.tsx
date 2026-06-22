@@ -191,16 +191,16 @@ function GenericToolSection({
 }) {
   const tones = {
     input: {
-      shell: 'border-stone-200/80 bg-stone-50/90',
-      header: 'border-stone-200/80 bg-stone-100/85 text-stone-500',
-      dot: 'bg-stone-400/80',
-      body: 'text-stone-700',
+      shell: 'border-border bg-card',
+      header: 'border-border bg-muted/55 text-muted-foreground',
+      dot: 'bg-muted-foreground/60',
+      body: 'text-foreground',
     },
     output: {
-      shell: 'border-amber-200/70 bg-white/90',
-      header: 'border-amber-200/70 bg-amber-50/90 text-amber-700',
-      dot: 'bg-amber-500/80',
-      body: 'text-amber-950/80',
+      shell: 'border-border bg-card',
+      header: 'border-border bg-muted/55 text-muted-foreground',
+      dot: 'bg-primary/70',
+      body: 'text-foreground',
     },
     error: {
       shell: 'border-rose-200/80 bg-rose-50/85',
@@ -230,7 +230,7 @@ function GenericToolSection({
       <div className="w-full overflow-hidden">
         <pre
           className={cn(
-            'w-full max-w-full min-w-0 max-h-64 overflow-x-auto overflow-y-auto px-3 py-2.5 font-mono text-[12px] leading-relaxed whitespace-pre custom-scrollbar-amber',
+            'w-full max-w-full min-w-0 max-h-64 overflow-x-auto overflow-y-auto px-3 py-2.5 font-mono text-[12px] leading-relaxed whitespace-pre custom-scrollbar',
             style.body,
           )}
         >
@@ -269,28 +269,28 @@ export function TerminalExecutionView({ card }: { card: ChatToolPartViewModel })
       />
       {expanded && (
         <>
-          <div className="px-3 pb-2 font-mono w-full max-h-48 overflow-y-auto custom-scrollbar-amber min-h-0 text-[12px]">
+          <div className="px-3 pb-2 font-mono w-full max-h-48 overflow-y-auto custom-scrollbar min-h-0 text-[12px]">
             <div className="flex items-start gap-2 leading-relaxed">
-              <span className="text-amber-500/50 font-medium shrink-0 select-none mt-[1px]">$</span>
+              <span className="text-primary/55 font-medium shrink-0 select-none mt-[1px]">$</span>
               <div className="flex-1 min-w-0">
                 {commandPart ? (
-                  <div className="text-amber-950/80 break-words whitespace-pre-wrap tracking-tight font-medium inline-block">
+                  <div className="text-foreground break-words whitespace-pre-wrap tracking-tight font-medium inline-block">
                     {commandPart}
                     {isRunning && !output && (
-                      <span className="inline-block w-1.5 h-3 ml-1 bg-amber-500/60 animate-pulse align-middle" />
+                      <span className="inline-block w-1.5 h-3 ml-1 bg-primary/60 animate-pulse align-middle" />
                     )}
                   </div>
                 ) : (
-                  <div className="h-3 w-32 bg-amber-200/30 rounded animate-pulse mt-2" />
+                  <div className="h-3 w-32 bg-muted rounded animate-pulse mt-2" />
                 )}
               </div>
             </div>
           </div>
           {output && (
             <ToolCardContent>
-              <pre className="font-mono text-[12px] text-amber-950/70 whitespace-pre-wrap break-all w-full max-w-full max-h-64 overflow-y-auto overflow-x-hidden min-w-0 custom-scrollbar-amber leading-relaxed px-0">
+              <pre className="font-mono text-[12px] text-muted-foreground whitespace-pre-wrap break-all w-full max-w-full max-h-64 overflow-y-auto overflow-x-hidden min-w-0 custom-scrollbar leading-relaxed px-0">
                 {output}
-                {isRunning && <span className="inline-block w-1.5 h-3 ml-1 bg-amber-500/60 animate-pulse align-middle" />}
+                {isRunning && <span className="inline-block w-1.5 h-3 ml-1 bg-primary/60 animate-pulse align-middle" />}
               </pre>
             </ToolCardContent>
           )}
@@ -350,7 +350,7 @@ export function FileOperationView({
         onToggle={onToggle} 
       />
       {expanded && hasContent && (
-        <ToolCardContent className="border-t border-amber-200/20 bg-transparent px-0 pt-0 pb-0">
+        <ToolCardContent className="border-t border-border bg-transparent px-0 pt-0 pb-0">
           <ToolCardFileOperationContent card={card} onFileOpen={onFileOpen} />
         </ToolCardContent>
       )}
@@ -382,7 +382,7 @@ export function SearchSnippetView({ card }: { card: ChatToolPartViewModel }) {
       />
       {expanded && output && (
         <ToolCardContent>
-           <pre className="font-mono text-[12px] text-amber-950/70 whitespace-pre-wrap break-all w-full max-w-full max-h-64 overflow-y-auto overflow-x-hidden min-w-0 custom-scrollbar-amber leading-relaxed">
+           <pre className="font-mono text-[12px] text-muted-foreground whitespace-pre-wrap break-all w-full max-w-full max-h-64 overflow-y-auto overflow-x-hidden min-w-0 custom-scrollbar leading-relaxed">
              {output}
            </pre>
         </ToolCardContent>

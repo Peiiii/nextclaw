@@ -1,12 +1,12 @@
 import { Check, Loader2, AlertTriangle, Minus } from 'lucide-react';
-import { cn } from '../../../internal/cn';
-import type { ChatToolPartViewModel } from '../../../view-models/chat-ui.types';
+import { cn } from '@agent-chat-ui/components/chat/internal/cn';
+import type { ChatToolPartViewModel } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
 export const STATUS_STYLES = {
-  running: { text: 'text-amber-500/80', icon: Loader2, spin: true },
-  success: { text: 'text-amber-500/80', icon: Check, spin: false },
-  error: { text: 'text-amber-500/80', icon: AlertTriangle, spin: false },
-  cancelled: { text: 'text-amber-500/80', icon: Minus, spin: false }
+  running: { text: 'text-primary/70', icon: Loader2, spin: true },
+  success: { text: 'text-primary/70', icon: Check, spin: false },
+  error: { text: 'text-destructive', icon: AlertTriangle, spin: false },
+  cancelled: { text: 'text-muted-foreground', icon: Minus, spin: false }
 } as const;
 
 export function ToolStatusLabel({ card }: { card: ChatToolPartViewModel }) {

@@ -28,7 +28,7 @@ export function ChatWelcomeAgentPicker({
     <Select value={selectedAgentId} onValueChange={onSelectAgent}>
       <SelectTrigger
         aria-label={t('chatDraftAgentTitle')}
-        className="h-auto w-auto min-w-0 gap-1 rounded-lg border-0 bg-transparent px-2 py-1.5 text-gray-500 shadow-none hover:bg-gray-100 hover:text-gray-800 focus:ring-0"
+        className="h-auto w-auto min-w-0 gap-1 rounded-lg border-0 bg-transparent px-2 py-1.5 text-muted-foreground shadow-none hover:bg-accent hover:text-accent-foreground focus:ring-0"
       >
         <span className="sr-only">{t('chatDraftAgentTitle')}</span>
         <div className="flex min-w-0 items-center gap-1.5">
@@ -48,7 +48,7 @@ export function ChatWelcomeAgentPicker({
         </div>
       </SelectTrigger>
       <SelectContent
-        className="rounded-xl border-gray-200/80 shadow-lg"
+        className="rounded-xl border-border shadow-lg"
         style={{ maxHeight: AGENT_PICKER_MAX_HEIGHT }}
       >
         {agents.map((agent) => (
@@ -60,7 +60,7 @@ export function ChatWelcomeAgentPicker({
                 avatarUrl={agent.avatarUrl}
                 className="h-5 w-5 shrink-0"
               />
-              <span className="truncate text-sm font-medium text-gray-700">
+              <span className="truncate text-sm font-medium text-foreground">
                 {agent.displayName?.trim() || agent.id}
               </span>
             </div>

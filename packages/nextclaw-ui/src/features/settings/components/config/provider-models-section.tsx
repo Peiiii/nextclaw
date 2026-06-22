@@ -49,7 +49,7 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <Label className="text-sm font-medium text-gray-900">{t('providerModelsTitle')}</Label>
+        <Label className="text-sm font-medium text-foreground">{t('providerModelsTitle')}</Label>
         {!showModelInput ? (
           <button
             type="button"
@@ -99,8 +99,8 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
       ) : null}
 
       {models.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center">
-          <p className="text-sm text-gray-500">{t('providerModelsEmptyShort')}</p>
+        <div className="rounded-xl border border-dashed border-border bg-muted/60 px-4 py-6 text-center">
+          <p className="text-sm text-muted-foreground">{t('providerModelsEmptyShort')}</p>
           {!showModelInput ? (
             <button
               type="button"
@@ -123,14 +123,14 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
             return (
               <div
                 key={modelName}
-                className="group inline-flex max-w-full items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1.5"
+                className="group inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-card px-3 py-1.5"
               >
-                <span className="max-w-[140px] truncate text-sm text-gray-800 sm:max-w-[220px]">{modelName}</span>
+                <span className="max-w-[140px] truncate text-sm text-foreground sm:max-w-[220px]">{modelName}</span>
                 <Popover>
                   <PopoverTrigger asChild>
                     <button
                       type="button"
-                      className="inline-flex h-5 w-5 items-center justify-center rounded-full text-gray-400 opacity-100 transition-opacity hover:bg-gray-100 hover:text-gray-600 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/70 opacity-100 transition-opacity hover:bg-accent hover:text-accent-foreground md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
                       aria-label={t('providerModelThinkingTitle')}
                       title={t('providerModelThinkingTitle')}
                     >
@@ -138,16 +138,16 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
                     </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-80 space-y-3">
-                    <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/60 px-3 py-2">
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-gray-800">{t('providerModelVisionTitle')}</p>
-                        <p className="text-xs text-gray-500">{t('providerModelVisionHint')}</p>
+                        <p className="text-xs font-semibold text-foreground">{t('providerModelVisionTitle')}</p>
+                        <p className="text-xs text-muted-foreground">{t('providerModelVisionHint')}</p>
                       </div>
                       <Switch checked={visionEnabled} onCheckedChange={(checked) => onSetModelVision(modelName, checked)} />
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-gray-800">{t('providerModelThinkingTitle')}</p>
-                      <p className="text-xs text-gray-500">{t('providerModelThinkingHint')}</p>
+                      <p className="text-xs font-semibold text-foreground">{t('providerModelThinkingTitle')}</p>
+                      <p className="text-xs text-muted-foreground">{t('providerModelThinkingHint')}</p>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {thinkingLevels.map((level) => {
@@ -160,7 +160,7 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
                             className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
                               selected
                                 ? 'border-primary bg-primary text-white'
-                                : 'border-gray-200 bg-white text-gray-600 hover:border-primary/40 hover:text-primary'
+                                : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-accent/70 hover:text-accent-foreground'
                             }`}
                           >
                             {formatThinkingLevelLabel(level)}
@@ -169,7 +169,7 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
                       })}
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-gray-700">{t('providerModelThinkingDefault')}</Label>
+                      <Label className="text-xs font-medium text-foreground">{t('providerModelThinkingDefault')}</Label>
                       <Select
                         value={defaultThinkingLevel ?? '__none__'}
                         onValueChange={(value) =>
@@ -177,7 +177,7 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
                         }
                         disabled={supportedLevels.length === 0}
                       >
-                        <SelectTrigger className="h-8 rounded-lg bg-white text-xs">
+                        <SelectTrigger className="h-8 rounded-lg text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -190,7 +190,7 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
                         </SelectContent>
                       </Select>
                       {supportedLevels.length === 0 ? (
-                        <p className="text-xs text-gray-500">{t('providerModelThinkingNoSupported')}</p>
+                        <p className="text-xs text-muted-foreground">{t('providerModelThinkingNoSupported')}</p>
                       ) : null}
                     </div>
                   </PopoverContent>
@@ -198,7 +198,7 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
                 <button
                   type="button"
                   onClick={() => onRemoveModel(modelName)}
-                  className="inline-flex h-5 w-5 items-center justify-center rounded-full text-gray-400 opacity-100 transition-opacity hover:bg-gray-100 hover:text-gray-600 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+                  className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/70 opacity-100 transition-opacity hover:bg-accent hover:text-accent-foreground md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
                   aria-label={t('remove')}
                 >
                   <X className="h-3 w-3" />

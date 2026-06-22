@@ -103,7 +103,7 @@ export function ChatConversationHeaderSection({
       }
       sessionTypeBadge={
         sessionTypeLabel ? (
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
             {sessionTypeOption?.icon?.src ? (
               <span className="inline-flex h-[1.125rem] w-[1.125rem] items-center justify-center">
                 <SessionContextIconNode

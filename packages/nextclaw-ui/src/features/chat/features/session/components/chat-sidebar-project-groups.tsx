@@ -49,12 +49,12 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
             <div className="flex items-center justify-between gap-2 px-2 py-0.5">
               <div className="flex min-w-0 items-center gap-1.5">
                 <div
-                  className="truncate text-[11px] font-medium uppercase tracking-wider text-gray-500"
+                  className="truncate text-[11px] font-medium uppercase tracking-wider text-muted-foreground"
                   title={group.projectRoot}
                 >
                   {group.projectName}
                 </div>
-                <span className="shrink-0 text-[10px] text-gray-400">
+                <span className="shrink-0 text-[10px] text-muted-foreground/70">
                   {group.items.length}
                 </span>
               </div>
@@ -70,12 +70,12 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                       icon={<Plus className="h-3.5 w-3.5" />}
                       label={actionLabel}
                       tooltip={false}
-                      className="h-7 w-7 shrink-0 rounded-lg text-gray-400 hover:bg-white hover:text-gray-900"
+                      className="h-7 w-7 shrink-0 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     />
                   </PopoverTrigger>
                   <PopoverContent
                     align="end"
-                    className="w-56 rounded-2xl border border-gray-200/80 bg-white p-1.5 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
+                    className="w-56 rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
                   >
                     <ChatSessionTypeMenu
                       options={sessionTypeOptions}
@@ -91,7 +91,7 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                 <IconActionButton
                   icon={<Plus className="h-3.5 w-3.5" />}
                   label={actionLabel}
-                  className="h-7 w-7 shrink-0 rounded-lg text-gray-400 hover:bg-white hover:text-gray-900"
+                  className="h-7 w-7 shrink-0 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   onClick={() => onCreateSession(preferredSessionType, group.projectRoot)}
                 />
               )}

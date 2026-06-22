@@ -43,9 +43,9 @@ export function PageHeader({ title, description, actions, className }: PageHeade
     return (
         <div className={cn('flex items-center justify-between mb-6 shrink-0', className)}>
             <div>
-                <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+                <h2 className="text-xl font-semibold text-foreground">{title}</h2>
                 {description && (
-                    <p className="text-sm text-gray-500 mt-1">{description}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{description}</p>
                 )}
             </div>
             {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}

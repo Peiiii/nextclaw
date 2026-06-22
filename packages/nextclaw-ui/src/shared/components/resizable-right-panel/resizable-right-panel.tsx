@@ -36,7 +36,7 @@ export function ResizableRightPanel({ children, className, style, defaultWidth =
   return (
     <aside
       {...props}
-      className={cn("relative flex h-full min-h-0 shrink-0 overflow-hidden bg-white", overlay ? "fixed inset-0 z-40" : "border-l border-gray-200", className)}
+      className={cn("relative flex h-full min-h-0 shrink-0 overflow-hidden bg-card text-card-foreground", overlay ? "fixed inset-0 z-40" : "border-l border-border", className)}
       style={overlay ? style : { ...style, width }}
     >
       {!overlay ? (

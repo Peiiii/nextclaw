@@ -173,7 +173,7 @@ it("renders inline token content inside a user message bubble", () => {
   expect(screen.getByText("now", { exact: false })).toBeTruthy();
 });
 
-it("renders panel app inline tokens with a distinct visual tone", () => {
+it("renders user inline tokens with theme-owned contrast", () => {
   render(
     <ChatMessageList
       messages={[
@@ -205,7 +205,7 @@ it("renders panel app inline tokens with a distinct visual tone", () => {
   );
 
   expect(screen.getByText("Task Board").parentElement?.className).toContain(
-    "bg-sky-400/18",
+    "bg-primary-foreground/18",
   );
 });
 

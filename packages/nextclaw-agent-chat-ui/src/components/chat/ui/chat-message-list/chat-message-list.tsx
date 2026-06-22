@@ -25,13 +25,13 @@ const TYPING_TEXT_SHEEN_CSS = `
 .nextclaw-chat-typing-indicator__text {
   background-image: linear-gradient(
     100deg,
-    #6b7280 0%,
-    #6b7280 34%,
-    #a6adba 43%,
-    #f8fafc 50%,
-    #a6adba 57%,
-    #6b7280 66%,
-    #6b7280 100%
+    hsl(var(--muted-foreground)) 0%,
+    hsl(var(--muted-foreground)) 34%,
+    hsl(var(--foreground-tertiary)) 43%,
+    hsl(var(--foreground-muted)) 50%,
+    hsl(var(--foreground-tertiary)) 57%,
+    hsl(var(--muted-foreground)) 66%,
+    hsl(var(--muted-foreground)) 100%
   );
   background-size: 240% 100%;
   background-position: 160% 0;
@@ -46,7 +46,7 @@ const TYPING_TEXT_SHEEN_CSS = `
   .nextclaw-chat-typing-indicator__text {
     animation: none;
     background-image: none;
-    color: #6b7280;
+    color: hsl(var(--muted-foreground));
     -webkit-text-fill-color: currentColor;
   }
 }
@@ -83,11 +83,11 @@ function hasRenderableMessageContent(message: ChatMessageViewModel): boolean {
 
 function ChatMessageTypingFooter() {
   return (
-    <div className="flex items-center gap-2 px-1 py-0.5 text-[11px] text-gray-400">
+    <div className="flex items-center gap-2 px-1 py-0.5 text-[11px] text-muted-foreground">
       <div className="flex space-x-1 items-center h-full">
-        <div className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-pulse"></div>
-        <div className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-pulse [animation-delay:200ms]"></div>
-        <div className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-pulse [animation-delay:400ms]"></div>
+        <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-pulse"></div>
+        <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-pulse [animation-delay:200ms]"></div>
+        <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-pulse [animation-delay:400ms]"></div>
       </div>
     </div>
   );
@@ -95,7 +95,7 @@ function ChatMessageTypingFooter() {
 
 function ChatTypingIndicator({ label }: { label: string }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500 shadow-sm">
+    <div className="rounded-2xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground shadow-sm">
       <style>{TYPING_TEXT_SHEEN_CSS}</style>
       <span className="nextclaw-chat-typing-indicator__text">{label}</span>
     </div>
@@ -144,7 +144,7 @@ export function ChatMessageList({
                   <>
                     <div
                       className={cn(
-                        'px-1 text-[11px] leading-4 text-gray-400',
+                        'px-1 text-[11px] leading-4 text-muted-foreground',
                         isUser ? 'text-right' : 'text-left'
                       )}
                     >

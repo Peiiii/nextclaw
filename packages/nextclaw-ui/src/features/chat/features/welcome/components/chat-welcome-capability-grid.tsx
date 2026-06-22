@@ -35,15 +35,15 @@ export function ChatWelcomeCapabilityGrid({
           <button
             key={capability.titleKey}
             onClick={() => onSelectPrompt(t(capability.promptKey))}
-            className="min-w-0 rounded-2xl border border-gray-200 bg-white p-3 text-left shadow-card transition-shadow hover:shadow-card-hover sm:p-4"
+            className="min-w-0 rounded-2xl border border-border bg-card p-3 text-left text-card-foreground shadow-card transition-[border-color,box-shadow,transform] hover:border-primary/30 hover:shadow-card-hover sm:p-4"
           >
-            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-primary/8">
+            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-accent">
               <Icon className="h-4.5 w-4.5 text-primary" />
             </div>
-            <div className="mb-1 text-sm font-semibold text-gray-900">
+            <div className="mb-1 text-sm font-semibold text-foreground">
               {t(capability.titleKey)}
             </div>
-            <div className="text-[11px] leading-relaxed text-gray-500">
+            <div className="text-[11px] leading-relaxed text-muted-foreground">
               {t(capability.descKey)}
             </div>
           </button>

@@ -16,11 +16,11 @@ export function ChatParentSessionBanner({
   }
   const trimmedLabel = parentSessionLabel.trim();
   return (
-    <div className="border-b border-gray-200/60 bg-white/75 px-4 py-2 backdrop-blur-sm sm:px-5">
+    <div className="bg-background/75 px-4 py-2 backdrop-blur-sm sm:px-5">
       <button
         type="button"
         onClick={onGoToParentSession}
-        className="inline-flex items-center gap-2 text-xs font-medium text-gray-600 transition-colors hover:text-gray-900"
+        className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         <span>
@@ -55,10 +55,11 @@ export function ChatConversationHeader({
 
   return (
     <div
+      data-testid="chat-conversation-header"
       className={cn(
-        "border-b border-gray-200/60 bg-white/80 backdrop-blur-sm flex items-center justify-between shrink-0 overflow-hidden transition-colors duration-200",
+        "bg-background/80 backdrop-blur-sm flex items-center justify-between shrink-0 overflow-hidden transition-colors duration-200",
         isMobileLayout ? "px-3 sm:px-3" : "px-4 sm:px-5",
-        shouldShow ? "opacity-100" : "h-0 py-0 opacity-0 border-b-0",
+        shouldShow ? "opacity-100" : "h-0 py-0 opacity-0",
         shouldShow && (isMobileLayout ? "min-h-12 pb-2 pt-2" : "h-[52px]"),
       )}
       style={
@@ -73,11 +74,11 @@ export function ChatConversationHeader({
             icon={<ArrowLeft className="h-4 w-4" />}
             label={t("chat")}
             onClick={onBackToList}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           />
         ) : null}
         {leading}
-        <span className="text-sm font-medium text-gray-700 truncate">
+        <span className="text-sm font-medium text-foreground truncate">
           {title}
         </span>
         {sessionTypeBadge}

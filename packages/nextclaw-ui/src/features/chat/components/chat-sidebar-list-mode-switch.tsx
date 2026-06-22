@@ -10,16 +10,16 @@ export function ChatSidebarListModeSwitch({ isProjectFirstView, onSelectMode }: 
         type="button"
         aria-pressed={!isProjectFirstView}
         onClick={() => onSelectMode('time-first')}
-        className={cn('transition-colors', isProjectFirstView ? 'text-gray-400 hover:text-gray-600' : 'font-medium text-gray-600')}
+        className={cn('transition-colors', isProjectFirstView ? 'text-muted-foreground/65 hover:text-muted-foreground' : 'font-medium text-foreground')}
       >
         {t('chatSidebarViewTime')}
       </button>
-      <span className="text-gray-300">/</span>
+      <span className="text-muted-foreground/35">/</span>
       <button
         type="button"
         aria-pressed={isProjectFirstView}
         onClick={() => onSelectMode('project-first')}
-        className={cn('transition-colors', isProjectFirstView ? 'font-medium text-gray-600' : 'text-gray-400 hover:text-gray-600')}
+        className={cn('transition-colors', isProjectFirstView ? 'font-medium text-foreground' : 'text-muted-foreground/65 hover:text-muted-foreground')}
       >
         {t('chatSidebarViewProject')}
       </button>

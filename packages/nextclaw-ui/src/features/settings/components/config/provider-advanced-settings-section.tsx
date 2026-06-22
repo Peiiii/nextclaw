@@ -24,11 +24,11 @@ export function ProviderAdvancedSettingsSection(props: ProviderAdvancedSettingsS
   } = props;
 
   return (
-    <div className="border-t border-gray-100 pt-4">
+    <div className="border-t border-border/70 pt-4">
       <button
         type="button"
         onClick={() => onShowAdvancedChange(!showAdvanced)}
-        className="flex w-full items-center justify-between text-sm text-gray-600 transition-colors hover:text-gray-900"
+        className="flex w-full items-center justify-between text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <span className="flex items-center gap-1.5">
           <Settings2 className="h-3.5 w-3.5" />
@@ -41,7 +41,7 @@ export function ProviderAdvancedSettingsSection(props: ProviderAdvancedSettingsS
         <div className="mt-4 space-y-5">
           {supportsWireApi ? (
             <div className="space-y-2">
-              <Label htmlFor="wireApi" className="text-sm font-medium text-gray-900">
+              <Label htmlFor="wireApi" className="text-sm font-medium text-foreground">
                 {wireApiLabel}
               </Label>
               {shouldUseWireApiPills ? (
@@ -68,9 +68,9 @@ export function ProviderAdvancedSettingsSection(props: ProviderAdvancedSettingsS
           ) : null}
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-900">{extraHeadersLabel}</Label>
+            <Label className="text-sm font-medium text-foreground">{extraHeadersLabel}</Label>
             <KeyValueEditor value={extraHeaders} onChange={onExtraHeadersChange} />
-            <p className="text-xs text-gray-500">{t('providerExtraHeadersHelpShort')}</p>
+            <p className="text-xs text-muted-foreground">{t('providerExtraHeadersHelpShort')}</p>
           </div>
         </div>
       ) : null}

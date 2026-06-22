@@ -127,7 +127,7 @@ export const ChatInputBarTokenizedComposer = forwardRef<
           <PlainTextPlugin
             contentEditable={
               <ContentEditable
-                className="min-h-7 max-h-[188px] w-full overflow-y-auto whitespace-pre-wrap break-words bg-transparent py-0.5 text-sm leading-6 text-gray-800 outline-none"
+                className="min-h-7 max-h-[188px] w-full overflow-y-auto whitespace-pre-wrap break-words bg-transparent py-0.5 text-sm leading-6 text-foreground outline-none"
                 onBeforeInput={(event: FormEvent<HTMLDivElement>) => {
                   owner.handleBeforeInput({
                     disabled,
@@ -153,7 +153,7 @@ export const ChatInputBarTokenizedComposer = forwardRef<
               />
             }
             placeholder={
-              <div className="pointer-events-none absolute left-3 top-2 select-none text-sm leading-6 text-gray-400 sm:left-4 sm:top-2.5">
+              <div className="pointer-events-none absolute left-3 top-2 select-none text-sm leading-6 text-muted-foreground/60 sm:left-4 sm:top-2.5">
                 {placeholder}
               </div>
             }

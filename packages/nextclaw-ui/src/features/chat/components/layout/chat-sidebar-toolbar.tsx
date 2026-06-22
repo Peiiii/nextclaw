@@ -41,23 +41,23 @@ const NEW_SESSION_ACTION_STYLE_CLASSES: Record<
   neutralSurface: {
     leftVariant: "ghost",
     leftClassName:
-      "bg-white/90 text-gray-700 shadow-none transition-[background-color,color,box-shadow] hover:bg-white hover:text-gray-950 hover:shadow-sm active:bg-white/95",
+      "bg-card text-foreground shadow-none transition-[background-color,color,box-shadow] hover:bg-accent hover:text-accent-foreground hover:shadow-sm active:bg-accent",
     rightClassName:
-      "bg-white/90 text-gray-600 shadow-none transition-[background-color,color,box-shadow] hover:bg-white hover:text-gray-900 hover:shadow-sm active:bg-white/95",
+      "bg-card text-muted-foreground shadow-none transition-[background-color,color,box-shadow] hover:bg-accent hover:text-accent-foreground hover:shadow-sm active:bg-accent",
   },
   brandSoft: {
     leftVariant: "ghost",
     leftClassName:
-      "bg-primary/10 text-primary shadow-none transition-[background-color,color,box-shadow] hover:bg-primary/15 hover:text-primary-700 hover:shadow-sm active:bg-primary/20",
+      "bg-primary/10 text-primary shadow-none ring-1 ring-primary/10 transition-[background-color,color,box-shadow] hover:bg-primary/15 hover:text-primary-700 hover:shadow-sm active:bg-primary/20",
     rightClassName:
-      "bg-primary/10 text-primary shadow-none transition-[background-color,color,box-shadow] hover:bg-primary/15 hover:text-primary-700 hover:shadow-sm active:bg-primary/20",
+      "bg-primary/10 text-primary shadow-none ring-1 ring-primary/10 transition-[background-color,color,box-shadow] hover:bg-primary/15 hover:text-primary-700 hover:shadow-sm active:bg-primary/20",
   },
   brandTextSurface: {
     leftVariant: "ghost",
     leftClassName:
-      "bg-white/90 text-primary shadow-none transition-[background-color,color,box-shadow] hover:bg-primary/10 hover:text-primary-700 hover:shadow-sm active:bg-primary/15",
+      "bg-card text-primary shadow-none transition-[background-color,color,box-shadow] hover:bg-accent hover:text-primary-700 hover:shadow-sm active:bg-primary/15",
     rightClassName:
-      "bg-white/90 text-primary shadow-none transition-[background-color,color,box-shadow] hover:bg-primary/10 hover:text-primary-700 hover:shadow-sm active:bg-primary/15",
+      "bg-card text-primary shadow-none transition-[background-color,color,box-shadow] hover:bg-accent hover:text-primary-700 hover:shadow-sm active:bg-primary/15",
   },
   brandSolid: {
     leftVariant: "primary",
@@ -179,7 +179,7 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
               <PopoverContent
                 align="start"
                 side="right"
-                className="w-56 rounded-2xl border border-gray-200/80 bg-white p-1.5 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
+                className="w-56 rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
               >
                 <ChatSessionTypeMenu
                   options={sessionTypeOptions}
@@ -241,7 +241,7 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
               </PopoverTrigger>
               <PopoverContent
                 align="end"
-                className="w-56 rounded-2xl border border-gray-200/80 bg-white p-1.5 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
+                className="w-56 rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
               >
                 <ChatSessionTypeMenu
                   options={sessionTypeOptions}
@@ -259,7 +259,7 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
 
       <div className="px-4 pb-3">
         <div className="relative">
-          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-gray-400" />
+          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground/70" />
           <Input
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
@@ -294,12 +294,12 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps) {
     <div className="px-4 pb-2 pt-1">
       <div className="flex items-center gap-2">
         <div className="relative min-w-0 flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
           <Input
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder={t("chatSidebarSearchPlaceholder")}
-            className="h-9 rounded-full border-transparent bg-gray-100/80 pl-9 pr-3 text-[13px] shadow-none focus:border-gray-200/80 focus:bg-white"
+            className="h-9 rounded-full border-transparent bg-muted pl-9 pr-3 text-[13px] shadow-none focus:border-border focus:bg-card"
           />
         </div>
 
@@ -313,12 +313,12 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps) {
                 icon={<Plus className="h-4 w-4" />}
                 label={t("chatSidebarNewTask")}
                 tooltip={false}
-                className="h-9 w-9 shrink-0 rounded-full bg-gray-100/80 text-gray-700 shadow-none hover:bg-gray-200/80 hover:text-gray-900"
+                className="h-9 w-9 shrink-0 rounded-full bg-muted text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
               />
             </PopoverTrigger>
             <PopoverContent
               align="end"
-              className="w-60 rounded-3xl border border-gray-200/80 bg-white p-2 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.45)]"
+              className="w-60 rounded-3xl border border-border bg-popover p-2 text-popover-foreground shadow-[0_24px_70px_-30px_rgba(15,23,42,0.45)]"
             >
               <ChatSessionTypeMenu
                 options={createOptions}
@@ -336,7 +336,7 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps) {
           <IconActionButton
             icon={<Plus className="h-4 w-4" />}
             label={t("chatSidebarNewTask")}
-            className="h-9 w-9 shrink-0 rounded-full bg-gray-100/80 text-gray-700 shadow-none hover:bg-gray-200/80 hover:text-gray-900"
+            className="h-9 w-9 shrink-0 rounded-full bg-muted text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
             onClick={() => onCreateSession(defaultSessionType)}
           />
         )}

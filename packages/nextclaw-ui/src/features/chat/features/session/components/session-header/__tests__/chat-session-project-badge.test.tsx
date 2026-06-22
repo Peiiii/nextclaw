@@ -58,8 +58,8 @@ describe('ChatSessionProjectBadge', () => {
     renderProjectBadge();
 
     const trigger = screen.getByRole('button', { name: 'Set Project Directory' });
-    expect(trigger.className).toContain('border-gray-200');
-    expect(trigger.className).toContain('text-gray-600');
+    expect(trigger.className).toContain('border-border');
+    expect(trigger.className).toContain('text-muted-foreground');
     expect(trigger.className).not.toContain('emerald');
   });
 

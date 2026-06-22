@@ -366,9 +366,9 @@ describe("ChatSidebar create and list basics", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Settings menu" }));
     fireEvent.click(screen.getByRole("combobox", { name: "Theme" }));
-    fireEvent.click(screen.getByRole("option", { name: "Cool" }));
+    fireEvent.click(screen.getByRole("option", { name: "Probe" }));
 
-    expect(mocks.setTheme).toHaveBeenCalledWith("cool");
+    expect(mocks.setTheme).toHaveBeenCalledWith("probe");
   });
 
   it("creates the default session directly from the compact mobile add button when no menu is needed", () => {

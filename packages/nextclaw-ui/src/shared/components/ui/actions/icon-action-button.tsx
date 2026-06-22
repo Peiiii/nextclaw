@@ -27,7 +27,7 @@ const IconActionButton = React.forwardRef<HTMLButtonElement, IconActionButtonPro
         aria-label={label}
         className={cn(
           'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed',
-          'text-gray-500 hover:bg-gray-100 hover:text-gray-900 disabled:text-gray-300 disabled:hover:bg-transparent disabled:hover:text-gray-300',
+          'text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:text-muted-foreground/45 disabled:hover:bg-transparent disabled:hover:text-muted-foreground/45',
           className
         )}
       >

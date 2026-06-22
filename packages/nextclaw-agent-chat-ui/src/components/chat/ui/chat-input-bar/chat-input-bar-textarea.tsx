@@ -63,7 +63,7 @@ export function ChatInputBarTextarea({
             key={item.key}
             type="button"
             onClick={() => onRemoveSelectedItem(item.key)}
-            className="inline-flex h-7 max-w-full items-center gap-1.5 rounded-lg border border-primary/12 bg-primary/8 px-2 text-[11px] font-medium text-primary transition hover:bg-primary/12"
+            className="inline-flex h-7 max-w-full items-center gap-1.5 rounded-lg border border-primary/15 bg-primary/10 px-2 text-[11px] font-medium text-primary transition hover:bg-primary/15"
           >
             <Puzzle aria-hidden className="h-3.5 w-3.5 shrink-0 text-primary/70" />
             <span className="truncate">{item.label}</span>
@@ -78,7 +78,7 @@ export function ChatInputBarTextarea({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           rows={1}
-          className="min-h-7 max-h-[188px] min-w-[220px] flex-1 basis-[240px] resize-none self-stretch bg-transparent py-0.5 text-sm leading-6 text-gray-800 outline-none placeholder:text-gray-400 disabled:cursor-not-allowed"
+          className="min-h-7 max-h-[188px] min-w-[220px] flex-1 basis-[240px] resize-none self-stretch bg-transparent py-0.5 text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground/60 disabled:cursor-not-allowed"
         />
       </div>
     </div>

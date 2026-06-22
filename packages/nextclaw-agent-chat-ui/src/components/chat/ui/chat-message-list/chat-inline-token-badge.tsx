@@ -19,17 +19,17 @@ function resolveInlineTokenBadgeClassName(
 ): string {
   if (tone === "skill") {
     return isUser
-      ? "border-emerald-200/35 bg-emerald-400/18 text-emerald-50/95"
-      : "border-emerald-200/70 bg-emerald-50 text-emerald-700";
+      ? "border-primary-foreground/30 bg-primary-foreground/18 text-primary-foreground"
+      : "border-border bg-accent text-accent-foreground";
   }
   if (tone === "panel_app") {
     return isUser
-      ? "border-sky-200/35 bg-sky-400/18 text-sky-50/95"
-      : "border-sky-200/70 bg-sky-50 text-sky-700";
+      ? "border-primary-foreground/30 bg-primary-foreground/18 text-primary-foreground"
+      : "border-border bg-accent text-accent-foreground";
   }
   return isUser
-    ? "border-white/30 bg-white/18 text-white"
-    : "border-slate-200/80 bg-slate-100 text-slate-700";
+    ? "border-primary-foreground/30 bg-primary-foreground/18 text-primary-foreground"
+    : "border-border bg-muted text-muted-foreground";
 }
 
 function resolveInlineTokenIconClassName(
@@ -37,12 +37,12 @@ function resolveInlineTokenIconClassName(
   isUser: boolean,
 ): string {
   if (tone === "skill") {
-    return isUser ? "text-emerald-100/90" : "text-emerald-600";
+    return isUser ? "text-primary-foreground/70" : "text-muted-foreground";
   }
   if (tone === "panel_app") {
-    return isUser ? "text-sky-100/90" : "text-sky-600";
+    return isUser ? "text-primary-foreground/70" : "text-muted-foreground";
   }
-  return isUser ? "text-white/70" : "text-slate-500";
+  return isUser ? "text-primary-foreground/70" : "text-muted-foreground";
 }
 
 function renderInlineTokenIcon(tone: ChatInlineTokenTone) {

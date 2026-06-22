@@ -721,7 +721,7 @@ it('switches between send and stop controls', () => {
     })
   );
 
-  expect(screen.getByTestId('chat-stop-icon').className).toContain('bg-gray-700');
+  expect(screen.getByTestId('chat-stop-icon').className).toContain('bg-foreground');
   fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
   expect(onStop).toHaveBeenCalled();
 });
@@ -856,6 +856,6 @@ it('renders a subtle context window indicator without persistent percent text', 
   const indicator = screen.getByRole('button', { name: 'Context window' });
   expect(indicator).toBeTruthy();
   expect(indicator.className).toContain('rounded-lg');
-  expect(indicator.querySelector('span')?.getAttribute('style')).toContain('#9ca3af');
+  expect(indicator.querySelector('span')?.getAttribute('style')).toContain('hsl(var(--muted-foreground))');
   expect(screen.queryByText('38%')).toBeNull();
 });

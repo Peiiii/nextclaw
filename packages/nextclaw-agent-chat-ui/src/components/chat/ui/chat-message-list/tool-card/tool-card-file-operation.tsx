@@ -2,11 +2,11 @@ import type {
   ChatFileOpenActionViewModel,
   ChatFileOperationBlockViewModel,
   ChatToolPartViewModel,
-} from "../../../view-models/chat-ui.types";
-import { cn } from "../../../internal/cn";
-import { useStickyBottomScroll } from "../../../hooks/use-sticky-bottom-scroll";
+} from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
+import { cn } from "@agent-chat-ui/components/chat/internal/cn";
+import { useStickyBottomScroll } from "@agent-chat-ui/components/chat/hooks/use-sticky-bottom-scroll";
 import { Fragment, type ReactNode, useRef } from "react";
-import { ChatUiPrimitives } from "../../primitives/chat-ui-primitives";
+import { ChatUiPrimitives } from "@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives";
 import { FileOperationLinesGrid } from "./tool-card-file-operation-lines";
 
 function isPreviewBlock(block: ChatFileOperationBlockViewModel): boolean {
@@ -38,7 +38,7 @@ function getCaptionTone(part: string): string {
   if (/^-\d+$/.test(part)) {
     return "text-rose-700";
   }
-  return "text-stone-500";
+  return "text-muted-foreground";
 }
 
 function renderCaption(caption: string) {
@@ -53,7 +53,7 @@ function renderCaption(caption: string) {
     <div className="flex shrink-0 items-center gap-x-1 whitespace-nowrap text-[10px] font-medium uppercase tracking-[0.08em]">
       {parts.map((part, index) => (
         <Fragment key={`${part}-${index}`}>
-          {index > 0 ? <span className="text-stone-300">·</span> : null}
+          {index > 0 ? <span className="text-muted-foreground/45">·</span> : null}
           <span className={cn(getCaptionTone(part))}>{part}</span>
         </Fragment>
       ))}
@@ -111,7 +111,7 @@ function StickyFileOperationScrollArea({
       onScroll={onScroll}
       data-file-scroll-kind={scrollKind}
       className={cn(
-        "overflow-y-auto bg-white custom-scrollbar-amber",
+        "overflow-y-auto bg-card custom-scrollbar",
         className,
       )}
     >
@@ -146,14 +146,14 @@ function FileOperationBlock({
   return (
     <section
       className={cn(
-        "overflow-hidden bg-white",
-        !isFirst && "border-t border-stone-200/80",
+        "overflow-hidden bg-card",
+        !isFirst && "border-t border-border",
       )}
     >
       {showMetaRow ? (
         <div
           className={cn(
-            "flex items-center justify-between gap-4 border-b border-stone-200/80 px-4 text-stone-700",
+            "flex items-center justify-between gap-4 border-b border-border px-4 text-muted-foreground",
             showPathRow ? "py-2" : "py-1.5",
           )}
         >
@@ -166,9 +166,9 @@ function FileOperationBlock({
                       type="button"
                       onClick={handlePathClick}
                       className={cn(
-                        "w-full truncate whitespace-nowrap text-left font-mono text-[12px] font-medium text-stone-700",
+                        "w-full truncate whitespace-nowrap text-left font-mono text-[12px] font-medium text-foreground",
                         onFileOpen &&
-                          "transition-colors hover:text-amber-900 hover:underline",
+                          "transition-colors hover:text-primary hover:underline",
                       )}
                       title={block.path}
                     >
@@ -205,8 +205,8 @@ function FileOperationBlock({
           className="max-h-72"
           scrollKind="raw"
         >
-          <div className="overflow-x-auto custom-scrollbar-amber">
-            <pre className="min-w-max whitespace-pre bg-white px-4 py-2 font-mono text-[11px] leading-5 text-amber-950/80">
+          <div className="overflow-x-auto custom-scrollbar">
+            <pre className="min-w-max whitespace-pre bg-card px-4 py-2 font-mono text-[11px] leading-5 text-foreground">
               {block.rawText}
             </pre>
           </div>
@@ -214,7 +214,7 @@ function FileOperationBlock({
       ) : null}
 
       {block.truncated && !previewBlock ? (
-        <div className="border-t border-stone-200/85 bg-stone-50 px-4 py-2 text-[10px] text-stone-500">
+        <div className="border-t border-border bg-muted px-4 py-2 text-[10px] text-muted-foreground">
           Showing a shortened diff preview.
         </div>
       ) : null}
@@ -238,7 +238,7 @@ export function ToolCardFileOperationContent({
   }
 
   return (
-    <div className={cn("overflow-hidden bg-white", className)}>
+    <div className={cn("overflow-hidden bg-card", className)}>
       {blocks.map((block, index) => {
         return (
           <FileOperationBlock
@@ -257,12 +257,12 @@ export function ToolCardFileOperationContent({
           contentVersion={output}
           className={cn(
             "max-h-56",
-            blocks.length > 0 && "border-t border-stone-200/80",
+            blocks.length > 0 && "border-t border-border",
           )}
           scrollKind="output"
         >
-          <div className="overflow-x-auto custom-scrollbar-amber">
-            <pre className="min-w-max whitespace-pre bg-white px-4 py-2 font-mono text-[11px] leading-5 text-amber-950/80">
+          <div className="overflow-x-auto custom-scrollbar">
+            <pre className="min-w-max whitespace-pre bg-card px-4 py-2 font-mono text-[11px] leading-5 text-foreground">
               {output}
             </pre>
           </div>

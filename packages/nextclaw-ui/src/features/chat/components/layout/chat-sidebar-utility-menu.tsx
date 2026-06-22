@@ -99,7 +99,7 @@ export function ChatSidebarUtilityMenu({
                   <Settings
                     className={cn(
                       SIDEBAR_RAIL_ICON_CLASS,
-                      "shrink-0 text-gray-500",
+                      "shrink-0 text-muted-foreground",
                     )}
                   />
                 </button>
@@ -115,11 +115,11 @@ export function ChatSidebarUtilityMenu({
           <button
             type="button"
             aria-label={t("settingsMenu")}
-            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium text-gray-600 transition-all duration-base hover:bg-gray-200/60 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium text-muted-foreground transition-all duration-base hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
           >
-            <Settings className="h-4 w-4 shrink-0 text-gray-400" />
+            <Settings className="h-4 w-4 shrink-0 text-muted-foreground/70" />
             <span className="min-w-0 flex-1 text-left">{t("settings")}</span>
-            <span className="max-w-[112px] truncate text-[13px] text-gray-500">
+            <span className="max-w-[112px] truncate text-[13px] text-muted-foreground">
               {currentThemeLabel} / {currentLanguageLabel}
             </span>
           </button>
@@ -134,30 +134,30 @@ export function ChatSidebarUtilityMenu({
           <NavLink
             to="/settings"
             onClick={() => onOpenChange(false)}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-gray-700 transition-colors hover:bg-gray-100"
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           >
-            <Settings className="h-4 w-4 text-gray-400" />
+            <Settings className="h-4 w-4 text-muted-foreground/70" />
             <span className="flex-1 text-left">{t("settings")}</span>
           </NavLink>
           <button
             type="button"
             onClick={handleOpenDocs}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-gray-700 transition-colors hover:bg-gray-100"
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           >
-            <BookOpen className="h-4 w-4 text-gray-400" />
+            <BookOpen className="h-4 w-4 text-muted-foreground/70" />
             <span className="flex-1 text-left">{t("docBrowserHelp")}</span>
           </button>
           <button
             type="button"
             onClick={handleOpenApps}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-gray-700 transition-colors hover:bg-gray-100"
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           >
-            <Boxes className="h-4 w-4 text-gray-400" />
+            <Boxes className="h-4 w-4 text-muted-foreground/70" />
             <span className="flex-1 text-left">{t("appsTitle")}</span>
           </button>
         </div>
 
-        <div className="my-2 h-px bg-gray-200/70" />
+        <div className="my-2 h-px bg-border" />
 
         <ChatSidebarUtilitySelect
           icon={Palette}
@@ -212,14 +212,14 @@ function ChatSidebarUtilitySelect<Value extends string>({
     >
       <SelectTrigger
         aria-label={label}
-        className="h-auto w-full rounded-lg border-0 bg-transparent px-3 py-2 text-[13px] font-medium text-gray-700 shadow-none hover:bg-gray-100 focus:ring-0"
-        indicator={<ChevronRight className="h-4 w-4 text-gray-400" />}
+        className="h-auto w-full rounded-lg border-0 bg-transparent px-3 py-2 text-[13px] font-medium text-foreground shadow-none hover:bg-accent hover:text-accent-foreground focus:ring-0"
+        indicator={<ChevronRight className="h-4 w-4 text-muted-foreground/70" />}
       >
         <div className="flex min-w-0 items-center gap-2.5">
-          <Icon className="h-4 w-4 shrink-0 text-gray-400" />
+          <Icon className="h-4 w-4 shrink-0 text-muted-foreground/70" />
           <span className="text-left">{label}</span>
         </div>
-        <span className="ml-auto max-w-[96px] truncate text-[13px] text-gray-500">
+        <span className="ml-auto max-w-[96px] truncate text-[13px] text-muted-foreground">
           {valueLabel}
         </span>
       </SelectTrigger>

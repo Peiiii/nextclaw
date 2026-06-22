@@ -105,7 +105,7 @@ function SettingsSidebarHeader({
           to="/chat"
           aria-label={t("backToMain")}
           className={cn(
-            "group inline-flex min-w-0 items-center rounded-lg text-[12px] font-medium text-gray-500 transition-colors hover:bg-gray-200/60 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+            "group inline-flex min-w-0 items-center rounded-lg text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
             isCollapsed
               ? cn(
                   SIDEBAR_RAIL_CONTROL_CLASS,
@@ -118,7 +118,7 @@ function SettingsSidebarHeader({
           <ArrowLeft
             className={cn(
               isCollapsed ? SIDEBAR_RAIL_ICON_CLASS : "h-3.5 w-3.5",
-              "shrink-0 text-gray-500 group-hover:text-gray-800",
+              "shrink-0 text-muted-foreground/75 group-hover:text-accent-foreground",
             )}
           />
           <span className={isCollapsed ? "sr-only" : "truncate"}>
@@ -128,10 +128,10 @@ function SettingsSidebarHeader({
         {!isCollapsed ? (
           <>
             <span
-              className="h-4 w-px shrink-0 bg-[#dddfe6]"
+              className="h-4 w-px shrink-0 bg-border"
               aria-hidden="true"
             />
-            <h1 className="truncate text-[15px] font-semibold tracking-[-0.01em] text-gray-800">
+            <h1 className="truncate text-[15px] font-semibold tracking-[-0.01em] text-foreground">
               {t("settings")}
             </h1>
             <div className="ml-auto">
@@ -258,7 +258,7 @@ export function Sidebar({ mode }: SidebarProps) {
   const isSettingsMode = mode === "settings";
   const currentThemeLabel = t(
     THEME_OPTIONS.find((option) => option.value === theme)?.labelKey ??
-      "themeWarm",
+      "themeNatural",
   );
   const accountEmail = remoteStatus.data?.account.email?.trim();
   const accountConnected = Boolean(remoteStatus.data?.account.loggedIn);
@@ -326,7 +326,7 @@ export function Sidebar({ mode }: SidebarProps) {
         {/* Footer actions stay reachable while the nav scrolls independently. */}
         <div
           className={cn(
-            "shrink-0 border-t border-[#dde0ea] bg-secondary",
+            "shrink-0 border-t border-border/70 bg-secondary",
             isCollapsed
               ? "mt-2 pt-2"
               : isSettingsMode

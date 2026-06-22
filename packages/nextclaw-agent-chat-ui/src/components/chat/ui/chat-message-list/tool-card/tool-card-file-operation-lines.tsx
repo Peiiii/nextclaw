@@ -1,8 +1,8 @@
 import type {
   ChatFileOperationBlockViewModel,
   ChatFileOperationLineViewModel,
-} from "../../../view-models/chat-ui.types";
-import { cn } from "../../../internal/cn";
+} from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
+import { cn } from "@agent-chat-ui/components/chat/internal/cn";
 
 const FILE_TEXT_CLASS_NAME = "font-mono text-[11px] leading-5";
 const FILE_ROW_CLASS_NAME = `flex h-5 w-full ${FILE_TEXT_CLASS_NAME}`;
@@ -61,7 +61,7 @@ function getLineNumberTone(line: ChatFileOperationLineViewModel): string {
   if (line.kind === "add") {
     return "border-r border-emerald-200 bg-emerald-50 text-emerald-700";
   }
-  return "border-r border-stone-200 bg-stone-100 text-stone-500";
+  return "border-r border-border bg-muted text-muted-foreground";
 }
 
 function getCodeRowTone(line: ChatFileOperationLineViewModel): string {
@@ -71,7 +71,7 @@ function getCodeRowTone(line: ChatFileOperationLineViewModel): string {
   if (line.kind === "add") {
     return "bg-emerald-50 text-emerald-950";
   }
-  return "bg-white text-amber-950/80";
+  return "bg-card text-foreground";
 }
 
 function FileOperationLineNumberCell({
@@ -152,7 +152,7 @@ function FileOperationWorkspaceSurface({
     <div
       data-file-code-surface="true"
       data-file-code-surface-layout="workspace"
-      className="flex h-full min-h-full min-w-full bg-white"
+      className="flex h-full min-h-full min-w-full bg-card"
     >
       {showLineNumbers ? (
         <div
@@ -174,13 +174,13 @@ function FileOperationWorkspaceSurface({
               lineNumberColumnWidth={lineNumberColumnWidth}
             />
           ))}
-          <div className="min-h-0 flex-1 border-r border-stone-200 bg-stone-100" />
+          <div className="min-h-0 flex-1 border-r border-border bg-muted" />
         </div>
       ) : null}
 
       <div
         data-file-code-canvas="true"
-        className="flex h-full min-h-full min-w-0 flex-1 flex-col bg-white"
+        className="flex h-full min-h-full min-w-0 flex-1 flex-col bg-card"
       >
         <div
           data-file-code-stack="true"
@@ -197,7 +197,7 @@ function FileOperationWorkspaceSurface({
             </div>
           ))}
         </div>
-        <div className="min-h-0 flex-1 bg-white" />
+        <div className="min-h-0 flex-1 bg-card" />
       </div>
     </div>
   );
@@ -225,7 +225,7 @@ export function FileOperationCodeSurface({
     <div
       data-file-code-surface="true"
       data-file-code-surface-layout="compact"
-      className="overflow-x-auto custom-scrollbar-amber bg-white"
+      className="overflow-x-auto custom-scrollbar bg-card"
     >
       <div
         data-file-code-stack="true"

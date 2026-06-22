@@ -38,26 +38,26 @@ export function PanelAppListItem({
   };
 
   return (
-    <div className="group w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2.5 py-2.5 transition-colors hover:border-amber-200 hover:bg-amber-50/50">
+    <div className="group w-full min-w-0 rounded-lg border border-border bg-card px-2.5 py-2.5 transition-colors hover:border-primary/35 hover:bg-accent/60">
       <div className="flex min-w-0 items-start gap-2">
         <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
           <span className="flex min-w-0 items-center gap-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-amber-50 text-base text-amber-700">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent text-base text-accent-foreground">
               <PanelAppIcon icon={entry.icon} title={entry.title} />
             </span>
-            <span className="block min-w-0 flex-1 truncate text-sm font-medium text-gray-900">{entry.title}</span>
+            <span className="block min-w-0 flex-1 truncate text-sm font-medium text-foreground">{entry.title}</span>
           </span>
           {entry.description ? (
-            <span className="mt-1.5 block truncate text-xs leading-5 text-gray-600">{entry.description}</span>
+            <span className="mt-1.5 block truncate text-xs leading-5 text-muted-foreground">{entry.description}</span>
           ) : null}
-          <span className="mt-0.5 block truncate text-[11px] leading-4 text-gray-400">{secondary}</span>
+          <span className="mt-0.5 block truncate text-[11px] leading-4 text-muted-foreground/70">{secondary}</span>
         </button>
         <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
             onClick={handleFavorite}
             disabled={favoritePending}
-            className="rounded-md p-1.5 text-gray-400 transition-colors hover:bg-white hover:text-amber-500 disabled:opacity-50"
+            className="rounded-md p-1.5 text-muted-foreground/70 transition-colors hover:bg-background hover:text-amber-500 disabled:opacity-50"
             title={favoriteLabel}
             aria-label={favoriteLabel}
           >
@@ -67,7 +67,7 @@ export function PanelAppListItem({
             <PopoverTrigger asChild>
               <button
                 type="button"
-                className="rounded-md p-1.5 text-gray-400 transition-colors hover:bg-white hover:text-gray-700"
+                className="rounded-md p-1.5 text-muted-foreground/70 transition-colors hover:bg-background hover:text-foreground"
                 aria-label={t('panelAppsMoreActions')}
                 disabled={deletePending}
               >
@@ -118,7 +118,7 @@ function PanelAppMenuItem({
       type="button"
       className={cn(
         'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-        destructive ? 'text-destructive hover:bg-destructive/10' : 'text-gray-700 hover:bg-gray-100',
+        destructive ? 'text-destructive hover:bg-destructive/10' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
       )}
       disabled={disabled}
       onClick={onClick}

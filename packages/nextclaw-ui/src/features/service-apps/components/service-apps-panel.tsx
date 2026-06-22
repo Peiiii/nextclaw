@@ -62,7 +62,7 @@ export function ServiceAppsPanel({
 
   if (serviceApps.isLoading || serviceActions.isLoading || serviceActionGrants.isLoading) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-gray-500">
+      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
         {t('serviceAppsLoading')}
       </div>
     );
@@ -90,13 +90,13 @@ export function ServiceAppsPanel({
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white">
-      <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">
+    <div className="flex h-full min-h-0 flex-col bg-card text-card-foreground">
+      <div className="flex items-center justify-between gap-2 border-b border-border/70 px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
           {headerContent ?? (
             <>
               <Server className="h-4 w-4 text-primary" />
-              <div className="truncate text-sm font-semibold text-gray-900">{t('serviceAppsTitle')}</div>
+              <div className="truncate text-sm font-semibold text-foreground">{t('serviceAppsTitle')}</div>
             </>
           )}
         </div>
@@ -110,7 +110,7 @@ export function ServiceAppsPanel({
       </div>
 
       {apps.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-gray-500">
+        <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
           {t('serviceAppsEmpty')}
         </div>
       ) : (
@@ -172,15 +172,15 @@ function ServiceAppCard({
 
   return (
     <TooltipProvider delayDuration={250}>
-      <section className="rounded-lg border border-gray-200 bg-white p-3">
+      <section className="rounded-lg border border-border bg-card p-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <div className="truncate text-sm font-semibold text-gray-900">{app.title}</div>
+              <div className="truncate text-sm font-semibold text-foreground">{app.title}</div>
               <ServiceAppStatusBadge status={app.status} />
             </div>
             {app.description ? (
-              <div className="mt-1 line-clamp-2 text-xs text-gray-500">{app.description}</div>
+              <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{app.description}</div>
             ) : null}
             {app.lastError ? (
               <div className="mt-2 rounded bg-rose-50 px-2 py-1 text-xs text-rose-700">{app.lastError}</div>
@@ -207,7 +207,7 @@ function ServiceAppCard({
                   <PopoverTrigger asChild>
                     <button
                       type="button"
-                      className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50"
+                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
                       aria-label={t('serviceAppsMoreActions')}
                       disabled={deletePending}
                     >
@@ -309,7 +309,7 @@ function getServiceAppStatusView(status: ServiceAppStatus): {
       };
     case 'stopped':
       return {
-        className: 'bg-gray-100 text-gray-600',
+        className: 'bg-muted text-muted-foreground',
         icon: PauseCircle,
         label: t('serviceAppsStatus_stopped'),
         tooltip: t('serviceAppsStatusHint_stopped'),
@@ -317,7 +317,7 @@ function getServiceAppStatusView(status: ServiceAppStatus): {
     case 'idle':
     default:
       return {
-        className: 'bg-slate-100 text-slate-600',
+        className: 'bg-muted text-muted-foreground',
         icon: CircleDashed,
         label: t('serviceAppsStatus_idle'),
         tooltip: t('serviceAppsStatusHint_idle'),
@@ -345,7 +345,7 @@ function ServiceAppIconButton({
           type="button"
           onClick={onClick}
           disabled={disabled}
-          className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 disabled:cursor-not-allowed disabled:text-gray-300 disabled:opacity-60 disabled:hover:bg-transparent"
+          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:text-muted-foreground/40 disabled:opacity-60 disabled:hover:bg-transparent"
           aria-label={label}
         >
           <Icon className="h-3.5 w-3.5" />
@@ -374,7 +374,7 @@ function ServiceAppMenuItem({
       type="button"
       className={cn(
         'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-        destructive ? 'text-destructive hover:bg-destructive/10' : 'text-gray-700 hover:bg-gray-100',
+        destructive ? 'text-destructive hover:bg-destructive/10' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
       )}
       disabled={disabled}
       onClick={onClick}
@@ -403,7 +403,7 @@ function ServiceAppDiagnostics({ app }: { app: ServiceAppRecordView }) {
   }
 
   return (
-    <dl className="mt-3 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-2 gap-y-1 border-t border-gray-100 pt-2 text-[11px]">
+    <dl className="mt-3 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-2 gap-y-1 border-t border-border/70 pt-2 text-[11px]">
       {rows.map((row) => (
         <ServiceAppDiagnosticRow key={row.label} label={row.label} value={row.value} />
       ))}
@@ -420,8 +420,8 @@ function ServiceAppDiagnosticRow({
 }) {
   return (
     <>
-      <dt className="text-gray-400">{label}</dt>
-      <dd className="min-w-0 truncate font-mono text-gray-500" title={value}>
+      <dt className="text-muted-foreground/70">{label}</dt>
+      <dd className="min-w-0 truncate font-mono text-muted-foreground" title={value}>
         {value}
       </dd>
     </>
@@ -438,36 +438,36 @@ function ServiceActionRow({
   onRevoke: (grant: ServiceActionGrantView) => void;
 }) {
   return (
-    <div className="rounded bg-gray-50 px-2 py-1.5">
+    <div className="rounded bg-muted/60 px-2 py-1.5">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
-          <Wrench className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+          <Wrench className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
           <div className="min-w-0">
-            <div className="truncate text-xs font-medium text-gray-800">{action.title ?? action.name}</div>
+            <div className="truncate text-xs font-medium text-foreground">{action.title ?? action.name}</div>
             {action.description ? (
-              <div className="truncate text-[11px] text-gray-500">{action.description}</div>
+              <div className="truncate text-[11px] text-muted-foreground">{action.description}</div>
             ) : null}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
           {action.runtimeState ? (
-            <span className="rounded bg-white px-1.5 py-0.5 text-[11px] text-gray-600">
+            <span className="rounded bg-card px-1.5 py-0.5 text-[11px] text-muted-foreground">
               {t(`serviceAppsRuntimeState_${action.runtimeState}`)}
             </span>
           ) : null}
-          <span className="rounded bg-white px-1.5 py-0.5 text-[11px] text-gray-600">{action.risk}</span>
+          <span className="rounded bg-card px-1.5 py-0.5 text-[11px] text-muted-foreground">{action.risk}</span>
         </div>
       </div>
       {grants.map((grant) => (
         <div key={`${grant.caller.surface}:${grant.caller.appId}:${grant.actionId}`} className="mt-1 flex items-center justify-between gap-2 pl-5">
-          <div className="flex min-w-0 items-center gap-1.5 text-[11px] text-gray-500">
+          <div className="flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
             <ShieldCheck className="h-3 w-3 shrink-0 text-emerald-500" />
             <span className="truncate">{t('serviceAppsGrantedTo')} {grant.caller.appId}</span>
           </div>
           <button
             type="button"
             onClick={() => onRevoke(grant)}
-            className="rounded-md p-1 text-gray-400 transition-colors hover:bg-white hover:text-rose-600"
+            className="rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-background hover:text-rose-600"
             title={t('serviceAppsRevokeGrant')}
             aria-label={t('serviceAppsRevokeGrant')}
           >

@@ -64,22 +64,22 @@ export function ChatWelcome({
   return (
     <div className="flex min-h-full items-center justify-center px-4 py-8 sm:p-8">
       <div className="min-w-0 w-full max-w-[min(760px,100%)]">
-        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-accent shadow-card">
           <Bot className="h-8 w-8 text-primary" />
         </div>
 
         <div className="text-center">
-          <h2 className="text-2xl font-semibold text-gray-950 sm:text-3xl">
+          <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
             {t('chatWelcomeTitle')}
           </h2>
-          <p className="mt-3 text-sm font-medium text-gray-500 sm:text-base">
+          <p className="mt-3 text-sm font-medium text-muted-foreground sm:text-base">
             {t('chatWelcomeSubtitle')}
           </p>
         </div>
 
         {inputSlot ? <div className="mt-8">{inputSlot}</div> : null}
 
-        <div className="mt-3 flex flex-wrap items-center gap-2 px-1 text-sm text-gray-500">
+        <div className="mt-3 flex flex-wrap items-center gap-2 px-1 text-sm text-muted-foreground">
           {onSelectProjectRoot ? (
             <ChatWelcomeProjectPicker
               defaultProjectRoot={defaultProjectRoot}

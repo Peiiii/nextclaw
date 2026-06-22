@@ -36,9 +36,10 @@ describe("ChatConversationHeader", () => {
   it("uses a stable desktop height before and after session materialization", () => {
     renderHeader();
 
-    const header = screen.getByText("New Task").closest(".border-b");
+    const header = screen.getByTestId("chat-conversation-header");
 
     expect(header?.className).toContain("h-[52px]");
+    expect(header?.className).not.toContain("border-b");
     expect(header?.className).not.toContain("transition-all");
   });
 
@@ -58,9 +59,10 @@ describe("ChatConversationHeader", () => {
     });
 
     const moreActions = screen.getByRole("button", { name: "More actions" });
-    const header = screen.getByText("First message").closest(".border-b");
+    const header = screen.getByTestId("chat-conversation-header");
 
     expect(header?.className).toContain("h-[52px]");
+    expect(header?.className).not.toContain("border-b");
     expect(moreActions.className).toContain("h-7");
     expect(moreActions.className).toContain("w-7");
   });

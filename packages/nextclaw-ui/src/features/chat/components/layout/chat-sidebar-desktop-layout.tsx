@@ -121,7 +121,7 @@ export function ChatSidebarDesktopNav({
       </div>
       <div
         className={cn(
-          "border-t border-gray-200/60",
+          "border-t border-border/70",
           isCollapsed ? "mx-2 my-1.5" : "mx-4",
         )}
       />
@@ -161,7 +161,7 @@ export function ChatSidebarSessionArea({
   return (
     <>
       <div className="flex items-center justify-between px-5 pb-2 pt-3">
-        <div className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
+        <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/75">
           {t("chatSidebarTaskRecords")}
         </div>
         <ChatSidebarListModeSwitch
@@ -221,7 +221,7 @@ export function ChatSidebarDesktopFooter({
   return (
     <div
       className={cn(
-        "border-t border-gray-200/60 py-3",
+        "border-t border-border/70 py-3",
         isCollapsed
           ? cn("flex justify-center", SIDEBAR_RAIL_PADDING_X_CLASS)
           : "px-3",
