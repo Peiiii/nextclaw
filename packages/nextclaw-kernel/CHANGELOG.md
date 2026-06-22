@@ -1,5 +1,17 @@
 # @nextclaw/kernel
 
+## 0.5.3
+
+### Patch Changes
+
+- 901f770: Fix default workspace handling so Docker sessions no longer treat the default workspace symbol as a project override, and hide that default symbol from recent project choices.
+- Updated dependencies [901f770]
+  - @nextclaw/core@0.14.7
+  - @nextclaw/mcp@0.2.17
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.2.16
+  - @nextclaw/runtime@0.3.17
+  - @nextclaw/ncp-mcp@0.1.112
+
 ## 0.5.2
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # nextclaw-core
 
+## 0.14.7
+
+### Patch Changes
+
+- 901f770: Fix default workspace handling so Docker sessions no longer treat the default workspace symbol as a project override, and hide that default symbol from recent project choices.
+
 ## 0.14.6
 
 ### Patch Changes

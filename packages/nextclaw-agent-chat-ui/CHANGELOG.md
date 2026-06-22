@@ -1,5 +1,12 @@
 # @nextclaw/agent-chat-ui
 
+## 0.5.3
+
+### Patch Changes
+
+- 786bfb5: Fix chat composer stability while assistant messages are streaming, including IME input and caret preservation during stale parent rerenders.
+- 37a1748: Add the natural default theme, keep a minimal black-and-white theme option, and align chat, tool, provider, DocBrowser, and side dock surfaces with shared theme tokens.
+
 ## 0.5.2
 
 ### Patch Changes

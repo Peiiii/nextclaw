@@ -1,5 +1,17 @@
 # @nextclaw/ui
 
+## 0.14.3
+
+### Patch Changes
+
+- 786bfb5: Fix chat composer stability while assistant messages are streaming, including IME input and caret preservation during stale parent rerenders.
+- 37a1748: Add the natural default theme, keep a minimal black-and-white theme option, and align chat, tool, provider, DocBrowser, and side dock surfaces with shared theme tokens.
+- 901f770: Fix default workspace handling so Docker sessions no longer treat the default workspace symbol as a project override, and hide that default symbol from recent project choices.
+- Updated dependencies [786bfb5]
+- Updated dependencies [37a1748]
+  - @nextclaw/agent-chat-ui@0.5.3
+  - @nextclaw/client-sdk@0.4.6
+
 ## 0.14.2
 
 ### Patch Changes
