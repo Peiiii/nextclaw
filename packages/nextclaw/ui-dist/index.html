@@ -11,27 +11,77 @@
   <meta name="apple-mobile-web-app-title" content="NextClaw" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#F9F8F5" />
+  <meta name="theme-color" content="#FAF9F7" />
   <meta name="color-scheme" content="light" />
   <style>
     html,
     body,
     #root {
-      background: #f9f8f5;
+      background: #faf9f7;
+    }
+
+    html[data-theme="minimal"],
+    html[data-theme="minimal"] body,
+    html[data-theme="minimal"] #root {
+      background: #ffffff;
+    }
+
+    html[data-theme="warm"],
+    html[data-theme="warm"] body,
+    html[data-theme="warm"] #root {
+      background: #faf8f4;
     }
 
     html[data-theme="cool"],
     html[data-theme="cool"] body,
     html[data-theme="cool"] #root {
-      background: #f8fafb;
+      background: #f8fafc;
+    }
+
+    html[data-theme="dawn"],
+    html[data-theme="dawn"] body,
+    html[data-theme="dawn"] #root {
+      background: #faf7f4;
+    }
+
+    html[data-theme="graphite"],
+    html[data-theme="graphite"] body,
+    html[data-theme="graphite"] #root {
+      background: #f8f8f7;
+    }
+
+    html[data-theme="probe"],
+    html[data-theme="probe"] body,
+    html[data-theme="probe"] #root {
+      background: #fefcf6;
     }
   </style>
   <script>
     (() => {
       const storageKey = 'nextclaw.ui.theme';
       const storedTheme = window.localStorage.getItem(storageKey);
-      const nextTheme = storedTheme === 'cool' ? 'cool' : 'warm';
-      const themeColor = nextTheme === 'cool' ? '#F8FAFB' : '#F9F8F5';
+      const themeColors = {
+        natural: '#FAF9F7',
+        minimal: '#FFFFFF',
+        warm: '#FAF8F4',
+        cool: '#F8FAFC',
+        dawn: '#FAF7F4',
+        graphite: '#F8F8F7',
+        probe: '#FEFCF6'
+      };
+      const legacyThemeAliases = {
+        leaf: 'warm'
+      };
+      const normalizedStoredTheme = typeof storedTheme === 'string' && Object.prototype.hasOwnProperty.call(legacyThemeAliases, storedTheme)
+        ? legacyThemeAliases[storedTheme]
+        : storedTheme;
+      const nextTheme = Object.prototype.hasOwnProperty.call(themeColors, normalizedStoredTheme)
+        ? normalizedStoredTheme
+        : 'natural';
+      if (storedTheme !== nextTheme) {
+        window.localStorage.setItem(storageKey, nextTheme);
+      }
+      const themeColor = themeColors[nextTheme];
       document.documentElement.setAttribute('data-theme', nextTheme);
       document.documentElement.style.backgroundColor = themeColor;
       document.documentElement.style.colorScheme = 'light';
@@ -105,21 +155,21 @@
     })();
   </script>
   <title>NextClaw</title>
-  <script type="module" crossorigin src="/assets/index-BDN1zzMQ.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/react-C6cZgP44.js">
-  <link rel="modulepreload" crossorigin href="/assets/dist-CLGGLm8b.js">
-  <link rel="modulepreload" crossorigin href="/assets/select-CvTlDZTQ.js">
-  <link rel="modulepreload" crossorigin href="/assets/dist-BtCS2Ucq.js">
-  <link rel="modulepreload" crossorigin href="/assets/api-a14tR_z1.js">
-  <link rel="modulepreload" crossorigin href="/assets/x-BiSSpgqB.js">
-  <link rel="modulepreload" crossorigin href="/assets/confirm-dialog-ClH_Ec7n.js">
-  <link rel="modulepreload" crossorigin href="/assets/search-BNlcoj5c.js">
-  <link rel="modulepreload" crossorigin href="/assets/external-link-CdJiG13p.js">
-  <link rel="modulepreload" crossorigin href="/assets/plus-DPjb0piO.js">
+  <script type="module" crossorigin src="/assets/index-D9BAE_L_.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/react-VNqT5Zp7.js">
+  <link rel="modulepreload" crossorigin href="/assets/dist-PVA_xL1D.js">
+  <link rel="modulepreload" crossorigin href="/assets/select-hoj8dK4K.js">
+  <link rel="modulepreload" crossorigin href="/assets/dist-CikkhOlq.js">
+  <link rel="modulepreload" crossorigin href="/assets/api-BP_8IaxB.js">
+  <link rel="modulepreload" crossorigin href="/assets/x-D9PXs_xP.js">
+  <link rel="modulepreload" crossorigin href="/assets/confirm-dialog-DsivFJ4r.js">
+  <link rel="modulepreload" crossorigin href="/assets/search-BEti5beA.js">
+  <link rel="modulepreload" crossorigin href="/assets/external-link-DVJIQf_G.js">
+  <link rel="modulepreload" crossorigin href="/assets/plus-BbZqquJe.js">
   <link rel="modulepreload" crossorigin href="/assets/middleware-CkFT3R4v.js">
-  <link rel="modulepreload" crossorigin href="/assets/doc-browser-context-D4JwMMxK.js">
-  <link rel="modulepreload" crossorigin href="/assets/doc-browser-BJRLhztv.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-g3uSZXoc.css">
+  <link rel="modulepreload" crossorigin href="/assets/doc-browser-context-MTw4EvKd.js">
+  <link rel="modulepreload" crossorigin href="/assets/doc-browser-CdJ_d4ik.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-BiE-K8-q.css">
 </head>
 
 <body>

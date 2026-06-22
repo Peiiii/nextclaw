@@ -1,0 +1,1 @@
+import{t as e}from"./doc-browser-CdJ_d4ik.js";export{e as DocBrowser};
