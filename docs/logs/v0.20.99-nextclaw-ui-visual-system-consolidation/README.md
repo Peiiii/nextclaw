@@ -125,18 +125,59 @@ warning 均为既有预算或接近预算压力，本轮没有继续增加对应
 
 ## 发布/部署方式
 
-未执行 commit、push、PR 或发布；用户未要求提交或发布。
+已执行本地提交与正式 NPM 发布：
 
-本轮只完成本地源码与 dev server 预览，不涉及线上部署。
+- 功能提交：`37a174846` (`Polish NextClaw UI theme system`)
+- 版本提交：`3bfe2b58c` (`Version packages for stable release`)
+- 包内 UI 发布资产提交：`bf257c79c` (`Refresh packaged UI assets`)
+- 发布命令：`NPM_CONFIG_USERCONFIG=.npmrc pnpm release:publish`
+- registry 验证：`pnpm release:verify:published` 已确认 `published 22/22 package versions`
+- 正式安装验收：临时目录安装 `nextclaw@latest`，`nextclaw --version` 输出 `0.21.11`，独立 `NEXTCLAW_HOME` 下 `nextclaw update --check` 输出 runtime 已是最新。
+
+未执行 `git push`、创建 PR、GitHub Release 或桌面端发布。
 
 ## NPM 包发布记录
 
-已添加 `.changeset/minimal-theme-visual-system.md`：
+已添加并消费 `.changeset/minimal-theme-visual-system.md`：
 
 - `@nextclaw/ui`: patch
 - `@nextclaw/agent-chat-ui`: patch
 
-状态：待后续统一 NPM 发布。本轮未执行实际发布。
+本轮正式 NPM 发布同时消费了两个既有待发布 changeset：
+
+- `.changeset/chat-composer-streaming-stability.md`
+- `.changeset/quiet-workspaces-smile.md`
+
+已发布到 `latest` 的包：
+
+- `nextclaw@0.21.11`
+- `@nextclaw/ui@0.14.3`
+- `@nextclaw/agent-chat-ui@0.5.3`
+- `@nextclaw/core@0.14.7`
+- `@nextclaw/kernel@0.5.3`
+- `@nextclaw/service@0.2.17`
+- `@nextclaw/server@0.14.7`
+- `@nextclaw/runtime@0.3.17`
+- `@nextclaw/remote@0.2.17`
+- `@nextclaw/mcp@0.2.17`
+- `@nextclaw/client-sdk@0.4.6`
+- `@nextclaw/ncp-mcp@0.1.112`
+- `@nextclaw/nextclaw-ncp-runtime-stdio-client@0.2.16`
+- `@nextclaw/nextclaw-narp-runtime-opencode@0.1.15`
+- `@nextclaw/companion@0.1.34`
+- `@nextclaw/channel-extension-dingtalk@0.1.21`
+- `@nextclaw/channel-extension-discord@0.1.21`
+- `@nextclaw/channel-extension-email@0.1.21`
+- `@nextclaw/channel-extension-slack@0.1.21`
+- `@nextclaw/channel-extension-telegram@0.1.21`
+- `@nextclaw/channel-extension-wecom@0.1.21`
+- `@nextclaw/channel-extension-whatsapp@0.1.21`
+
+`npm view` 验证：
+
+- `nextclaw`: `latest = 0.21.11`
+- `@nextclaw/ui`: `latest = 0.14.3`
+- `@nextclaw/agent-chat-ui`: `latest = 0.5.3`
 
 ## 后续建议
 
