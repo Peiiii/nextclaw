@@ -60,9 +60,14 @@
 
 代码发布：
 
-- 本次尚未执行 git commit、push、PR。
+- 国内镜像客户端改造已提交为 `e99029167 Add domestic marketplace mirror fallback`。
+- NPM beta release commit 为 `944c27b91 chore: release beta batch`，已推送 `master` 和本批次 package tags。
+- GitHub Actions `npm-runtime-update-release` run `28606560937` 已成功，四个平台 runtime bundle asset 已上传到 `nextclaw@0.21.12-beta.0` release。
+- `gh-pages` 发布面曾因 Linux APT 历史包累积到约 `1.4GB`，超过 GitHub Pages 1GB artifact 限制，导致公网 beta manifest 未能即时更新；已先在 `gh-pages` 提交 `693b94abc chore: prune old linux apt packages` 尝试保留最近 4 个 Linux `.deb`。
+- 因 355MB Pages artifact 仍然在 GitHub Pages deploy queue 中超时，继续将 `gh-pages` APT 包池收敛为仅保留最新 Linux `.deb`。
+- 已在 `.github/workflows/desktop-release.yml` 增加 APT 包池保留策略，后续桌面发布默认只保留最新 1 个 Linux `.deb`，避免 Pages 再次被撑爆。
 - 不涉及数据库 migration。
-- 不涉及 NPM 包发布；需要后续跟随正常产品发布批次进入用户安装版本。
+- 不涉及远程数据库 migration。
 
 ## 用户/产品视角的验收步骤
 
@@ -94,4 +99,23 @@
 
 ## NPM 包发布记录
 
-不涉及 NPM 包发布。
+已执行 full public workspace beta batch：
+
+- `nextclaw@0.21.12-beta.0`
+- `@nextclaw/server@0.14.8-beta.0`
+- `@nextclaw/service@0.2.18-beta.0`
+- `@nextclaw/ui@0.14.4-beta.0`
+- 其余 public workspace 包同步进入对应 `beta` 版本。
+
+关键验证：
+
+- `npm view nextclaw@beta version` 返回 `0.21.12-beta.0`。
+- `npm view @nextclaw/server@beta version` 返回 `0.14.8-beta.0`。
+- `npm view @nextclaw/service@beta version` 返回 `0.2.18-beta.0`。
+- `npm-runtime-update-release` run `28606560937` 结论为 `success`。
+- runtime release `nextclaw@0.21.12-beta.0` 已包含 `darwin-arm64`、`darwin-x64`、`linux-x64`、`win32-x64` 四个平台 zip asset。
+
+待闭合：
+
+- 等 GitHub Pages 基于瘦身后的 `gh-pages` 完成部署后，继续验证公网 `npm-runtime-updates/beta/manifest-beta-*.json` 指向 `0.21.12-beta.0`。
+- 公网 manifest 更新后，继续执行真实安装态 `nextclaw@beta` 更新验证。
