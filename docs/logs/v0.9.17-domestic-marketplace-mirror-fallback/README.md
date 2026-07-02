@@ -115,7 +115,11 @@
 - `npm-runtime-update-release` run `28606560937` 结论为 `success`。
 - runtime release `nextclaw@0.21.12-beta.0` 已包含 `darwin-arm64`、`darwin-x64`、`linux-x64`、`win32-x64` 四个平台 zip asset。
 
-待闭合：
+桌面 beta preview：
 
-- 等 GitHub Pages 基于瘦身后的 `gh-pages` 完成部署后，继续验证公网 `npm-runtime-updates/beta/manifest-beta-*.json` 指向 `0.21.12-beta.0`。
-- 公网 manifest 更新后，继续执行真实安装态 `nextclaw@beta` 更新验证。
+- tag `v0.21.12-beta.0-desktop-beta.1` 已发布。
+- GitHub Actions `desktop-release` run `28610297907` 结论为 `success`。
+- 本地 isolated release worktree 已通过 `desktop:package:verify`：macOS arm64 DMG 打包、seed bundle、runtime shape、GUI smoke、health check 均通过。
+- GitHub release 已包含 macOS DMG/zip、Windows installer/portable、Linux AppImage/deb、五个平台 runtime update bundle、manifest 和 `update-bundle-public.pem`。
+- `desktop-beta-preview-closure.mjs` 已验证 release assets、`gh-pages` manifest 和公网 Pages manifest，public desktop beta manifest 指向 `0.21.12-beta.0`。
+- `publish-linux-apt-repo` 在 beta preview workflow 中为 skipped，不影响本次 beta preview 交付；Linux `.deb` 已作为 release asset 上传。
