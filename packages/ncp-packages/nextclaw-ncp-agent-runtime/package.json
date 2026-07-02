@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/ncp-agent-runtime",
-  "version": "0.3.46",
+  "version": "0.3.47-beta.0",
   "private": false,
   "description": "Default agent runtime implementation built on NCP interfaces.",
   "type": "module",

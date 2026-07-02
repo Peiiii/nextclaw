@@ -1,5 +1,38 @@
 # @nextclaw/service
 
+## 0.2.18-beta.0
+
+### Patch Changes
+
+- e990291: Use the nextclaw.net domestic marketplace mirror by default for marketplace reads, with automatic fallback to the official marketplace API when the mirror request fails or times out.
+- Updated dependencies
+- Updated dependencies [e990291]
+  - @nextclaw/channel-extension-dingtalk@0.1.22-beta.0
+  - @nextclaw/channel-extension-discord@0.1.22-beta.0
+  - @nextclaw/channel-extension-email@0.1.22-beta.0
+  - @nextclaw/channel-extension-feishu@0.1.28-beta.0
+  - @nextclaw/channel-extension-qq@0.1.25-beta.0
+  - @nextclaw/channel-extension-slack@0.1.22-beta.0
+  - @nextclaw/channel-extension-telegram@0.1.22-beta.0
+  - @nextclaw/channel-extension-wecom@0.1.22-beta.0
+  - @nextclaw/channel-extension-weixin@0.1.32-beta.0
+  - @nextclaw/channel-extension-whatsapp@0.1.22-beta.0
+  - @nextclaw/client-sdk@0.4.7-beta.0
+  - @nextclaw/core@0.14.8-beta.0
+  - @nextclaw/kernel@0.5.4-beta.0
+  - @nextclaw/mcp@0.2.18-beta.0
+  - @nextclaw/ncp@0.6.6-beta.0
+  - @nextclaw/ncp-agent-runtime@0.3.47-beta.0
+  - @nextclaw/ncp-mcp@0.1.113-beta.0
+  - @nextclaw/ncp-toolkit@0.5.41-beta.0
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.2.16-beta.0
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.2.16-beta.0
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.2.17-beta.0
+  - @nextclaw/remote@0.2.18-beta.0
+  - @nextclaw/runtime@0.3.18-beta.0
+  - @nextclaw/shared@0.3.3-beta.0
+  - @nextclaw/server@0.14.8-beta.0
+
 ## 0.2.17
 
 ### Patch Changes

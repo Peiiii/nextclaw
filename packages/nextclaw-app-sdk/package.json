@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/app-sdk",
-  "version": "0.2.15",
+  "version": "0.2.16-beta.0",
   "private": false,
   "description": "Lightweight bridge client for NextClaw Apps.",
   "type": "module",

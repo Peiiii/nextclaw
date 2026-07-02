@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/browser-connector",
-  "version": "0.2.5",
+  "version": "0.2.6-beta.0",
   "private": false,
   "description": "Local browser control connector CLI.",
   "type": "module",
