@@ -123,3 +123,20 @@
 - GitHub release 已包含 macOS DMG/zip、Windows installer/portable、Linux AppImage/deb、五个平台 runtime update bundle、manifest 和 `update-bundle-public.pem`。
 - `desktop-beta-preview-closure.mjs` 已验证 release assets、`gh-pages` manifest 和公网 Pages manifest，public desktop beta manifest 指向 `0.21.12-beta.0`。
 - `publish-linux-apt-repo` 在 beta preview workflow 中为 skipped，不影响本次 beta preview 交付；Linux `.deb` 已作为 release asset 上传。
+
+## 经验沉淀与流程改进
+
+本次发布暴露的主要问题不是代码构建失败，而是发布面判断容易漂移：
+
+- `gh-pages` branch 已有正确 manifest，不代表公网 GitHub Pages 已发布成功；Pages build/deploy 仍可能因 artifact 过大或 deployment queue 超时失败。
+- NPM runtime / desktop update 的 release identity 已经正确时，公网 Pages 卡住应优先修复发布面或重跑 Pages/closure gate，不应重新发 NPM 包、runtime bundle 或桌面 tag。
+- Linux APT 历史包池如果无限增长，会把 GitHub Pages artifact 撑爆；保留策略必须在 workflow owner 中固化，而不是靠人工临时清理。
+- 本地 release CLI 轮询 GitHub 时出现 EOF / TLS / timeout 等瞬时错误，不等于远端 workflow 或 release 失败；应先检查既有 tag、run、assets 和 closure script，再决定是否恢复。
+
+已落地的防复发动作：
+
+- `.github/workflows/desktop-release.yml` 已在 APT 发布步骤中固化 latest-only 保留策略，避免后续稳定版发布继续累积历史 `.deb`。
+- `.agents/skills/npm-release-contract-guard/SKILL.md` 已补充 Pages-only publish failure 的判断和恢复规则。
+- `.agents/skills/desktop-release-contract-guard/SKILL.md` 已补充 Pages artifact / deployment queue / APT 包池边界 / GitHub API EOF 恢复规则。
+
+后续如果再次遇到公网 manifest 不更新，先按 skill 走发布面诊断：查 `origin/gh-pages`、Pages build/deploy 状态、artifact size、public URL，再决定重跑 closure 或 workflow；只有 delivered bits 改变时才创建新的 release identity。

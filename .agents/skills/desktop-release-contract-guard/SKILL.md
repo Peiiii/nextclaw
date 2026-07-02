@@ -155,6 +155,7 @@ description: Use when building, verifying, or releasing NextClaw desktop install
   - `publish-desktop-update-channels` or `publish-linux-apt-repo` failed after assets were uploaded: fix the publishing workflow and rerun `desktop-release` with `workflow_dispatch release_tag=<existing-tag>`.
 - When rerunning an existing formal release tag, trigger the workflow from the branch containing the workflow fix, but keep `release_tag` pointing at the existing tag. The build jobs must still checkout the release tag, so the shipped desktop bits remain the original release identity.
 - A rerun is not complete until the rerun itself is green and the existing release assets, `gh-pages` update manifests, public Pages manifests, and stable-only APT repo all align with the same tag/version.
+- If a local release command exits while polling GitHub with transient EOF, TLS, DNS, timeout, or 5xx errors, first inspect the existing tag/run/release state. When the workflow and assets are still progressing, recover by rerunning the closure gate for the existing run/tag instead of creating a replacement release.
 
 ## Release Completion Gate
 - Treat tag creation or `gh release create` success as the start signal, not the finish line.
@@ -175,10 +176,13 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 
 ## GitHub Pages Publishing Pitfalls
 - `gh-pages` is a publishing surface with its own auth and large-push failure modes; do not assume a successful checkout or release asset upload proves `gh-pages` can be fetched and pushed.
+- A correct `origin/gh-pages` commit is not enough by itself. GitHub Pages can still fail or stall while building the public site, especially when the generated artifact is too large or the deployment remains queued until timeout.
 - In GitHub Actions jobs that fetch or push `gh-pages`, explicitly configure the remote/auth before `git ls-remote`, `git fetch`, `git worktree add`, or `git push`:
   - use the workflow `github.token` as an HTTP extraheader for both the checkout repo and the `.tmp/gh-pages` worktree;
   - keep the remote URL in normal `https://github.com/<owner>/<repo>.git` form rather than embedding the token in the URL;
   - for stable Linux APT publishing, configure the worktree for large HTTP pushes, for example `http.postBuffer` and `http.version HTTP/1.1`.
+- If public Pages stays stale after `gh-pages` has the expected manifest, inspect the latest Pages build/deploy status and the generated artifact size before creating a new release identity.
+- Historical package pools such as `apt/` must stay bounded at their publishing owner. If the Pages artifact approaches or exceeds the limit, prune the historical pool in `gh-pages`, encode the retention rule in the workflow, then retry Pages publication for the existing release.
 - The failure `fatal: could not read Username for 'https://github.com': No such device or address` means the `gh-pages` fetch/push path lacks usable credentials even if earlier public `ls-remote` checks looked fine.
 - The failure `unable to rewind rpc post data` with `HTTP 401` during APT push usually means the large push/auth transport path is unstable; fix the auth/header and large-push git config before rerunning, rather than changing package artifacts or creating another tag.
 
@@ -198,6 +202,7 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - `gh-pages` branch content is the publishing source of truth.
 - The public GitHub Pages URL may lag behind the branch due to CDN or Pages propagation.
 - If `gh-pages` already shows the new manifest but the public URL still shows the previous version, treat that as propagation delay, not a failed publish.
+- If propagation does not complete inside the normal closure budget, distinguish CDN lag from Pages build/deploy failure. Check the Pages build status, deployment queue, and artifact size before rerunning release automation.
 - Keep watching until the public manifest reflects the new `latestVersion` and `minimumLauncherVersion`.
 
 ## Non-Negotiable Checks

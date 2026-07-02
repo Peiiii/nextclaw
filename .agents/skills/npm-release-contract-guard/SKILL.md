@@ -140,6 +140,11 @@ Do not close a release attempt with only a narrative retrospective when the bloc
    - `npm-runtime-updates/update-bundle-public.pem`
 4. Verify the public GitHub Pages URL reflects the same manifest version.
 5. Confirm the manifest has the expected `latestVersion`, `minimumLauncherVersion`, and `hostKind`.
+6. If `origin/gh-pages` contains the correct manifest but the public URL stays stale, classify the publishing surface before rerunning release:
+   - inspect the latest Pages build/deploy status and logs;
+   - check whether the generated Pages artifact is near or above the GitHub Pages size limit;
+   - inspect large historical directories such as `apt/` before assuming the runtime workflow is wrong.
+7. For Pages-only publish failures, fix or retry the Pages publishing surface for the existing release identity. Do not recreate the NPM release, runtime bundle, or tag when the already-published artifacts and `gh-pages` content are correct.
 
 ## User-Facing Beta Validation
 - Validate the exact published package, not a workspace link or local source build. Install or reinstall the published version first:
