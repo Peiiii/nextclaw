@@ -20,7 +20,7 @@ import { NcpSessionRoutesController } from "@nextclaw-server/features/sessions/i
 import {
   McpMarketplaceController,
   mountMarketplaceRoutes,
-  normalizeMarketplaceBaseUrl,
+  resolveMarketplaceBaseUrls,
   SkillMarketplaceController
 } from "@nextclaw-server/features/marketplace/index.js";
 import { RemoteRoutesController } from "@nextclaw-server/features/remote-access/index.js";
@@ -40,7 +40,7 @@ const AGENT_RUNS_BASE_PATH = "/api/agent-runs";
 function createUiRouteControllers(
   options: UiRouterOptions,
   authService: UiAuthService,
-  marketplaceBaseUrl: string
+  marketplaceBaseUrls: readonly string[]
 ) {
   const {
     kernel,
@@ -69,8 +69,8 @@ function createUiRouteControllers(
     remote: remoteAccess ? new RemoteRoutesController(remoteAccess) : null,
     runtimeControl: runtimeControl ? new RuntimeControlRoutesController(runtimeControl) : null,
     runtimeUpdate: runtimeUpdate ? new RuntimeUpdateRoutesController(runtimeUpdate) : null,
-    skillMarketplace: new SkillMarketplaceController(options, marketplaceBaseUrl),
-    mcpMarketplace: new McpMarketplaceController(options, marketplaceBaseUrl)
+    skillMarketplace: new SkillMarketplaceController(options, marketplaceBaseUrls),
+    mcpMarketplace: new McpMarketplaceController(options, marketplaceBaseUrls)
   };
 }
 
@@ -364,11 +364,11 @@ class UiRouteRegistry {
 
 export function createUiRouter(options: UiRouterOptions, authServiceOverride?: UiAuthService): Hono {
   const app = new Hono();
-  const marketplaceBaseUrl = normalizeMarketplaceBaseUrl(options);
+  const marketplaceBaseUrls = resolveMarketplaceBaseUrls(options);
   const authService = authServiceOverride ?? options.authService ?? new UiAuthService(
     options.kernel.accessManager ?? new AccessManager({ configPath: options.configPath }),
   );
-  const controllers = createUiRouteControllers(options, authService, marketplaceBaseUrl);
+  const controllers = createUiRouteControllers(options, authService, marketplaceBaseUrls);
 
   app.notFound((c) => c.json(err("NOT_FOUND", "endpoint not found"), 404));
 

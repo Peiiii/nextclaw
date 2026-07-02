@@ -28,7 +28,7 @@ import {
 export class McpMarketplaceController {
   constructor(
     private readonly options: UiRouterOptions,
-    private readonly marketplaceBaseUrl: string
+    private readonly marketplaceBaseUrls: readonly string[]
   ) {}
 
   readonly getInstalled = (c: Context) => {
@@ -69,7 +69,7 @@ export class McpMarketplaceController {
   readonly listItems = async (c: Context) => {
     const query = c.req.query();
     const result = await fetchAllMcpMarketplaceItems({
-      baseUrl: this.marketplaceBaseUrl,
+      baseUrls: this.marketplaceBaseUrls,
       query: {
         q: query.q,
         tag: query.tag,
@@ -103,7 +103,7 @@ export class McpMarketplaceController {
   readonly getItem = async (c: Context) => {
     const slug = encodeURIComponent(c.req.param("slug"));
     const result = await fetchMarketplaceData<MarketplaceItemView>({
-      baseUrl: this.marketplaceBaseUrl,
+      baseUrls: this.marketplaceBaseUrls,
       path: `/api/v1/mcp/items/${slug}`
     });
     if (!result.ok) {
@@ -115,7 +115,7 @@ export class McpMarketplaceController {
   readonly getItemContent = async (c: Context) => {
     const slug = encodeURIComponent(c.req.param("slug"));
     const result = await fetchMarketplaceData<MarketplaceMcpContentView>({
-      baseUrl: this.marketplaceBaseUrl,
+      baseUrls: this.marketplaceBaseUrls,
       path: `/api/v1/mcp/items/${slug}/content`
     });
     if (!result.ok) {
@@ -144,7 +144,7 @@ export class McpMarketplaceController {
     }
 
     const itemResult = await fetchMarketplaceData<MarketplaceItemView>({
-      baseUrl: this.marketplaceBaseUrl,
+      baseUrls: this.marketplaceBaseUrls,
       path: `/api/v1/mcp/items/${encodeURIComponent(slug)}`
     });
     if (!itemResult.ok) {
@@ -254,7 +254,7 @@ export class McpMarketplaceController {
   readonly getRecommendations = async (c: Context) => {
     const query = c.req.query();
     const result = await fetchMarketplaceData<MarketplaceRecommendationView>({
-      baseUrl: this.marketplaceBaseUrl,
+      baseUrls: this.marketplaceBaseUrls,
       path: "/api/v1/mcp/recommendations",
       query: {
         scene: query.scene,

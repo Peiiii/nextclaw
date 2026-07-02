@@ -1,4 +1,10 @@
-export const DEFAULT_MARKETPLACE_API_BASE = "https://marketplace-api.nextclaw.io";
+export const DOMESTIC_MARKETPLACE_API_BASE = "https://api.nextclaw.net";
+export const OFFICIAL_MARKETPLACE_API_BASE = "https://marketplace-api.nextclaw.io";
+export const DEFAULT_MARKETPLACE_API_BASE = OFFICIAL_MARKETPLACE_API_BASE;
+export const DEFAULT_MARKETPLACE_READ_API_BASES = [
+  DOMESTIC_MARKETPLACE_API_BASE,
+  OFFICIAL_MARKETPLACE_API_BASE
+] as const;
 
 export const CLAWBAY_CHANNEL_PLUGIN_NPM_SPEC = "@clawbay/clawbay-channel";
 export const MARKETPLACE_REMOTE_PAGE_SIZE = 100;

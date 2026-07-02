@@ -4,3 +4,4 @@ export * from "@nextclaw-server/features/marketplace/controllers/skill-marketpla
 export * from "@nextclaw-server/features/marketplace/routes/marketplace.route.js";
 export type * from "@nextclaw-server/features/marketplace/types/marketplace.types.js";
 export * from "@nextclaw-server/features/marketplace/utils/marketplace-catalog.utils.js";
+export * from "@nextclaw-server/features/marketplace/utils/marketplace-read-source.utils.js";

@@ -1,0 +1,12 @@
+[Unit]
+Description=NextClaw marketplace domestic mirror snapshot sync
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=PYTHONUNBUFFERED=1
+Environment=NEXTCLAW_MARKETPLACE_SOURCE=https://marketplace-api.nextclaw.io
+Environment=NEXTCLAW_MARKETPLACE_MIRROR_DIR=/opt/nextclaw-marketplace-mirror
+ExecStart=/usr/bin/python3 /opt/nextclaw-marketplace-mirror/marketplace-mirror-server.py sync
+User=root

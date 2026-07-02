@@ -1,0 +1,17 @@
+[Unit]
+Description=NextClaw marketplace domestic mirror API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PYTHONUNBUFFERED=1
+Environment=NEXTCLAW_MARKETPLACE_SOURCE=https://marketplace-api.nextclaw.io
+Environment=NEXTCLAW_MARKETPLACE_MIRROR_DIR=/opt/nextclaw-marketplace-mirror
+ExecStart=/usr/bin/python3 /opt/nextclaw-marketplace-mirror/marketplace-mirror-server.py serve --host 127.0.0.1 --port 8787
+Restart=always
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target

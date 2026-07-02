@@ -1,0 +1,11 @@
+[Unit]
+Description=Run NextClaw marketplace domestic mirror sync every 10 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+AccuracySec=30s
+Unit=nextclaw-marketplace-mirror-sync.service
+
+[Install]
+WantedBy=timers.target

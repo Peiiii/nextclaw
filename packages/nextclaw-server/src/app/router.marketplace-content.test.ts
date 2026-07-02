@@ -216,6 +216,107 @@ describe("marketplace content routes", () => {
     expect(payload.error.message).toContain("git");
   });
 
+  it("uses the domestic marketplace mirror first and falls back to the official source without preflight", async () => {
+    const workspaceDir = createTempDir("nextclaw-ui-skill-list-fallback-");
+    const configPath = join(workspaceDir, "config.json");
+
+    saveConfig(
+      ConfigSchema.parse({
+        agents: {
+          defaults: {
+            workspace: workspaceDir
+          }
+        }
+      }),
+      configPath
+    );
+
+    const requestedUrls: string[] = [];
+    const fetchMock = vi.fn(async (target: Request | string) => {
+      const url = typeof target === "string" ? target : target.url;
+      requestedUrls.push(url);
+      if (url.startsWith("https://api.nextclaw.net/")) {
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error: {
+              message: "mirror temporarily unavailable"
+            }
+          }),
+          {
+            status: 502,
+            headers: {
+              "content-type": "application/json"
+            }
+          }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          data: {
+            total: 1,
+            page: 1,
+            pageSize: 10,
+            totalPages: 1,
+            sort: "relevance",
+            items: [
+              {
+                id: "skill-weather",
+                slug: "weather",
+                type: "skill",
+                name: "Weather",
+                summary: "Weather summary",
+                tags: ["skill"],
+                author: "NextClaw",
+                install: {
+                  kind: "marketplace",
+                  spec: "weather",
+                  command: "nextclaw skills install weather"
+                },
+                updatedAt: "2026-02-16T09:10:00.000Z",
+                publishedAt: "2025-07-10T10:00:00.000Z"
+              }
+            ]
+          }
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const app = createUiRouter({
+      kernel: createRouterTestKernel(),
+      configPath,
+      appEventBus: new EventBus()
+    });
+
+    const response = await app.request("http://localhost/api/marketplace/skills/items?page=1&pageSize=10");
+    expect(response.status).toBe(200);
+    expect(requestedUrls).toEqual([
+      "https://api.nextclaw.net/api/v1/skills/items?page=1&pageSize=10",
+      "https://marketplace-api.nextclaw.io/api/v1/skills/items?page=1&pageSize=10"
+    ]);
+    expect(requestedUrls.some((url) => url.endsWith("/health"))).toBe(false);
+
+    const payload = await response.json() as {
+      ok: boolean;
+      data: {
+        items: Array<{
+          slug: string;
+        }>;
+      };
+    };
+    expect(payload.ok).toBe(true);
+    expect(payload.data.items[0]?.slug).toBe("weather");
+  });
+
   it("retries transient marketplace fetch failures before returning skill catalog data", async () => {
     const workspaceDir = createTempDir("nextclaw-ui-skill-list-retry-");
     const configPath = join(workspaceDir, "config.json");

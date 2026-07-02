@@ -3,9 +3,9 @@ import { isAbsolute, join, relative, resolve } from "node:path";
 import { DEFAULT_SKILLS_DIR } from "@nextclaw/core";
 import { SkillManager } from "@nextclaw/kernel";
 import {
-  fetchMarketplaceSkillFiles,
-  fetchMarketplaceSkillItem,
-  resolveMarketplaceApiBase,
+  fetchMarketplaceSkillFilesFromSources,
+  fetchMarketplaceSkillItemFromSources,
+  resolveMarketplaceReadApiBases,
   type MarketplaceSkillFileManifestEntry,
   writeMarketplaceSkillFiles
 } from "@nextclaw-service/utils/marketplace/marketplace-client.utils.js";
@@ -43,8 +43,9 @@ export async function installMarketplaceSkill(options: MarketplaceSkillInstallOp
     throw new Error(`Workdir does not exist: ${workdir}`);
   }
 
-  const apiBase = resolveMarketplaceApiBase(apiBaseUrl);
-  const item = await fetchMarketplaceSkillItem(apiBase, selector);
+  const apiBases = resolveMarketplaceReadApiBases(apiBaseUrl);
+  const itemResult = await fetchMarketplaceSkillItemFromSources(apiBases, selector);
+  const item = itemResult.data;
   const installSlug = item.slug;
   const resolvedSlug = item.packageName || item.slug;
   const destinationDir = resolveMarketplaceSkillDestinationDir({
@@ -62,7 +63,8 @@ export async function installMarketplaceSkill(options: MarketplaceSkillInstallOp
     return builtinResult;
   }
 
-  const filesPayload = await fetchMarketplaceSkillFiles(apiBase, selector);
+  const filesResult = await fetchMarketplaceSkillFilesFromSources(apiBases, selector);
+  const filesPayload = filesResult.data;
   const existingInstall = prepareMarketplaceSkillDestinationDir({
     destinationDir,
     files: filesPayload.files,
@@ -76,7 +78,7 @@ export async function installMarketplaceSkill(options: MarketplaceSkillInstallOp
   const writtenFiles = await writeMarketplaceSkillFiles({
     destinationDir,
     files: filesPayload.files,
-    apiBase,
+    apiBase: filesResult.apiBase,
     slug: selector,
   });
   ensureInstalledMarketplaceSkill(destinationDir, installSlug);
@@ -84,7 +86,7 @@ export async function installMarketplaceSkill(options: MarketplaceSkillInstallOp
     destinationDir,
     state: buildMarketplaceSkillInstallState({
       item,
-      apiBase,
+      apiBase: filesResult.apiBase,
       files: writtenFiles,
     }),
   });
@@ -105,8 +107,9 @@ export async function updateInstalledMarketplaceSkill(options: MarketplaceSkillI
     throw new Error(`Workdir does not exist: ${workdir}`);
   }
 
-  const apiBase = resolveMarketplaceApiBase(apiBaseUrl);
-  const item = await fetchMarketplaceSkillItem(apiBase, selector);
+  const apiBases = resolveMarketplaceReadApiBases(apiBaseUrl);
+  const itemResult = await fetchMarketplaceSkillItemFromSources(apiBases, selector);
+  const item = itemResult.data;
   const destinationDir = resolveMarketplaceSkillDestinationDir({
     workdir,
     slug: item.slug,
@@ -147,13 +150,14 @@ export async function updateInstalledMarketplaceSkill(options: MarketplaceSkillI
     };
   }
 
-  const filesPayload = await fetchMarketplaceSkillFiles(apiBase, selector);
+  const filesResult = await fetchMarketplaceSkillFilesFromSources(apiBases, selector);
+  const filesPayload = filesResult.data;
   rmSync(destinationDir, { recursive: true, force: true });
   mkdirSync(destinationDir, { recursive: true });
   const writtenFiles = await writeMarketplaceSkillFiles({
     destinationDir,
     files: filesPayload.files,
-    apiBase,
+    apiBase: filesResult.apiBase,
     slug: selector,
   });
   ensureInstalledMarketplaceSkill(destinationDir, item.slug);
@@ -161,7 +165,7 @@ export async function updateInstalledMarketplaceSkill(options: MarketplaceSkillI
     destinationDir,
     state: buildMarketplaceSkillInstallState({
       item,
-      apiBase,
+      apiBase: filesResult.apiBase,
       files: writtenFiles,
     }),
   });

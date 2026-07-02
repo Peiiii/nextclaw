@@ -265,3 +265,78 @@ describe("installMarketplaceSkill", () => {
     expect(existsSync(join(workspace, "skills", "agent-browser", "SKILL.md"))).toBe(true);
   });
 });
+
+describe("installMarketplaceSkill source fallback", () => {
+  it("falls back to the official source when the default domestic read source fails", async () => {
+    const workspace = createTempWorkspace();
+    const requestedUrls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL | Request) => {
+        const url = String(input);
+        requestedUrls.push(url);
+        if (url.startsWith("https://api.nextclaw.net/")) {
+          return new Response(JSON.stringify({
+            ok: false,
+            error: { message: "mirror unavailable" }
+          }), {
+            status: 502,
+            headers: { "content-type": "application/json" }
+          });
+        }
+
+        if (url.endsWith("/api/v1/skills/items/agent-browser")) {
+          return new Response(JSON.stringify({
+            ok: true,
+            data: {
+              install: {
+                kind: "marketplace"
+              },
+              updatedAt: "2026-06-01T00:00:00.000Z"
+            }
+          }), {
+            status: 200,
+            headers: { "content-type": "application/json" }
+          });
+        }
+
+        if (url.endsWith("/api/v1/skills/items/agent-browser/files")) {
+          return new Response(JSON.stringify({
+            ok: true,
+            data: {
+              files: [{
+                path: "SKILL.md",
+                contentBase64: Buffer.from("# agent-browser\n").toString("base64")
+              }]
+            }
+          }), {
+            status: 200,
+            headers: { "content-type": "application/json" }
+          });
+        }
+
+        return new Response(JSON.stringify({
+          ok: false,
+          error: { message: `unexpected url: ${url}` }
+        }), {
+          status: 404,
+          headers: { "content-type": "application/json" }
+        });
+      })
+    );
+
+    const result = await installMarketplaceSkill({
+      slug: "agent-browser",
+      workdir: workspace
+    });
+
+    expect(result.slug).toBe("agent-browser");
+    expect(existsSync(join(workspace, "skills", "agent-browser", "SKILL.md"))).toBe(true);
+    expect(requestedUrls).toEqual([
+      "https://api.nextclaw.net/api/v1/skills/items/agent-browser",
+      "https://marketplace-api.nextclaw.io/api/v1/skills/items/agent-browser",
+      "https://api.nextclaw.net/api/v1/skills/items/agent-browser/files",
+      "https://marketplace-api.nextclaw.io/api/v1/skills/items/agent-browser/files"
+    ]);
+  });
+});

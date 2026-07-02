@@ -3,7 +3,12 @@ import {
   SkillManager,
   type LocalizedTextMap,
 } from "@nextclaw/kernel";
-import { readMarketplaceEnvelope, resolveMarketplaceApiBase } from "@nextclaw-service/utils/marketplace/marketplace-client.utils.js";
+import { readMarketplaceEnvelope, resolveMarketplaceReadApiBases } from "@nextclaw-service/utils/marketplace/marketplace-client.utils.js";
+import {
+  getMarketplaceReadFetchOptions,
+  MarketplaceRequestError,
+  shouldFallbackMarketplaceReadError
+} from "@nextclaw-service/utils/marketplace/marketplace-read-source.utils.js";
 import { runWithMarketplaceNetworkRetry } from "@nextclaw-service/utils/marketplace/marketplace-network-retry.utils.js";
 
 type MarketplaceSkillSort = "relevance" | "updated";
@@ -115,9 +120,8 @@ export class SkillsQueryService {
     pageSize?: string | number;
   }): Promise<MarketplaceSkillsSearchView> => {
     const { apiBaseUrl: rawApiBaseUrl, page, pageSize, query, sort, tag } = params;
-    const apiBaseUrl = resolveMarketplaceApiBase(rawApiBaseUrl);
     const result = await this.fetchMarketplaceView<MarketplaceSkillListView>({
-      apiBaseUrl,
+      apiBaseUrls: resolveMarketplaceReadApiBases(rawApiBaseUrl),
       path: "/api/v1/skills/items",
       query: {
         q: this.normalizeOptionalString(query) ?? undefined,
@@ -129,9 +133,9 @@ export class SkillsQueryService {
     });
 
     return {
-      apiBaseUrl,
-      ...result,
-      items: result.items.map((item) => this.normalizeMarketplaceSummary(item)),
+      apiBaseUrl: result.apiBaseUrl,
+      ...result.data,
+      items: result.data.items.map((item) => this.normalizeMarketplaceSummary(item)),
     };
   };
 
@@ -140,28 +144,29 @@ export class SkillsQueryService {
     slug: string;
   }): Promise<MarketplaceSkillInfoView> => {
     const slug = this.normalizeRequiredString(params.slug, "skill slug");
-    const apiBaseUrl = resolveMarketplaceApiBase(params.apiBaseUrl);
+    const apiBaseUrls = resolveMarketplaceReadApiBases(params.apiBaseUrl);
     const encodedSlug = encodeURIComponent(slug);
 
-    const item = await this.fetchMarketplaceView<MarketplaceSkillItemView>({
-        apiBaseUrl,
+    const itemResult = await this.fetchMarketplaceView<MarketplaceSkillItemView>({
+        apiBaseUrls,
         path: `/api/v1/skills/items/${encodedSlug}`,
       });
 
     let content: MarketplaceSkillContentView | null = null;
     let contentUnavailableReason: string | null = null;
     try {
-      content = this.normalizeMarketplaceContent(await this.fetchMarketplaceView<MarketplaceSkillContentView>({
-        apiBaseUrl,
+      const contentResult = await this.fetchMarketplaceView<MarketplaceSkillContentView>({
+        apiBaseUrls,
         path: `/api/v1/skills/items/${encodedSlug}/content`,
-      }));
+      });
+      content = this.normalizeMarketplaceContent(contentResult.data);
     } catch (error) {
       contentUnavailableReason = error instanceof Error ? error.message : String(error);
     }
 
     return {
-      apiBaseUrl,
-      item: this.normalizeMarketplaceItem(item),
+      apiBaseUrl: itemResult.apiBaseUrl,
+      item: this.normalizeMarketplaceItem(itemResult.data),
       content,
       contentUnavailableReason,
     };
@@ -172,9 +177,8 @@ export class SkillsQueryService {
     scene?: string;
     limit?: string | number;
   }): Promise<MarketplaceSkillsRecommendationResultView> => {
-    const apiBaseUrl = resolveMarketplaceApiBase(params.apiBaseUrl);
     const result = await this.fetchMarketplaceView<MarketplaceSkillRecommendationView>({
-      apiBaseUrl,
+      apiBaseUrls: resolveMarketplaceReadApiBases(params.apiBaseUrl),
       path: "/api/v1/skills/recommendations",
       query: {
         scene: this.normalizeOptionalString(params.scene) ?? undefined,
@@ -183,9 +187,9 @@ export class SkillsQueryService {
     });
 
     return {
-      apiBaseUrl,
-      ...result,
-      items: result.items.map((item) => this.normalizeMarketplaceSummary(item)),
+      apiBaseUrl: result.apiBaseUrl,
+      ...result.data,
+      items: result.data.items.map((item) => this.normalizeMarketplaceSummary(item)),
     };
   };
 
@@ -257,31 +261,60 @@ export class SkillsQueryService {
   };
 
   private fetchMarketplaceView = async <T>(params: {
+    apiBaseUrls: readonly string[];
+    path: string;
+    query?: Record<string, string | undefined>;
+  }): Promise<{ apiBaseUrl: string; data: T }> => {
+    let lastError: unknown;
+    for (const apiBaseUrl of params.apiBaseUrls) {
+      try {
+        const data = await this.fetchMarketplaceViewFromBase<T>({
+          apiBaseUrl,
+          path: params.path,
+          query: params.query,
+        });
+        return { apiBaseUrl, data };
+      } catch (error) {
+        lastError = error;
+        if (!shouldFallbackMarketplaceReadError(error)) {
+          throw error;
+        }
+      }
+    }
+    throw lastError;
+  };
+
+  private fetchMarketplaceViewFromBase = async <T>(params: {
     apiBaseUrl: string;
     path: string;
     query?: Record<string, string | undefined>;
   }): Promise<T> => {
-    const url = new URL(params.path, `${params.apiBaseUrl}/`);
-    for (const [key, value] of Object.entries(params.query ?? {})) {
+    const { apiBaseUrl, path, query } = params;
+    const url = new URL(path, `${apiBaseUrl}/`);
+    for (const [key, value] of Object.entries(query ?? {})) {
       if (typeof value === "string" && value.length > 0) {
         url.searchParams.set(key, value);
       }
     }
 
-    const response = await runWithMarketplaceNetworkRetry(async () =>
-      await fetch(url.toString(), {
-        headers: {
-          Accept: "application/json",
-        },
-      })
+    const fetchOptions = getMarketplaceReadFetchOptions(apiBaseUrl);
+    const response = await runWithMarketplaceNetworkRetry(
+      async () => await fetch(url.toString(), {
+          headers: {
+            Accept: "application/json",
+          },
+          signal: AbortSignal.timeout(fetchOptions.timeoutMs),
+        }),
+      { attempts: fetchOptions.retryAttempts }
     );
 
     const payload = await readMarketplaceEnvelope<T>(response);
     if (!payload.ok || !payload.data) {
       const message = payload.error?.message || `marketplace request failed: ${response.status}`;
-      throw new Error(message);
+      throw new MarketplaceRequestError(message, response.status);
     }
 
     return payload.data;
   };
+
 }

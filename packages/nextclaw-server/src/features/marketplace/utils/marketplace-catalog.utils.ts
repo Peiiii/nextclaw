@@ -7,9 +7,12 @@ import {
   MARKETPLACE_REMOTE_PAGE_SIZE,
   MARKETPLACE_ZH_COPY_BY_SLUG
 } from "@nextclaw-server/features/marketplace/index.js";
+import {
+  getMarketplaceFetchOptions,
+  normalizeMarketplaceBaseUrls,
+  shouldFallbackMarketplaceResult
+} from "@nextclaw-server/features/marketplace/utils/marketplace-read-source.utils.js";
 import { runWithMarketplaceNetworkRetry } from "./marketplace-network-retry.utils.js";
-
-const MARKETPLACE_FETCH_TIMEOUT_MS = 12_000;
 
 export function normalizeMarketplaceBaseUrl(options: UiRouterOptions): string {
   const configured = options.marketplace?.apiBaseUrl?.trim();
@@ -30,21 +33,51 @@ export function toMarketplaceUrl(baseUrl: string, path: string, query: Record<st
 }
 
 export async function fetchMarketplaceData<T>(params: {
+  baseUrl?: string;
+  baseUrls?: readonly string[];
+  path: string;
+  query?: Record<string, string | undefined>;
+}): Promise<{ ok: true; data: T } | { ok: false; status: number; message: string }> {
+  const { baseUrl, baseUrls: rawBaseUrls, path, query } = params;
+  const baseUrls = normalizeMarketplaceBaseUrls(rawBaseUrls, baseUrl);
+  let lastError: { ok: false; status: number; message: string } | null = null;
+  for (const sourceBaseUrl of baseUrls) {
+    const result = await fetchMarketplaceDataFromBase<T>({
+      baseUrl: sourceBaseUrl,
+      path,
+      query
+    });
+    if (result.ok || !shouldFallbackMarketplaceResult(result.status)) {
+      return result;
+    }
+    lastError = result;
+  }
+  return lastError ?? {
+    ok: false,
+    status: 503,
+    message: "marketplace source is not configured"
+  };
+}
+
+async function fetchMarketplaceDataFromBase<T>(params: {
   baseUrl: string;
   path: string;
   query?: Record<string, string | undefined>;
 }): Promise<{ ok: true; data: T } | { ok: false; status: number; message: string }> {
-  const endpoint = toMarketplaceUrl(params.baseUrl, params.path, params.query);
+  const { baseUrl, path, query } = params;
+  const endpoint = toMarketplaceUrl(baseUrl, path, query);
+  const fetchOptions = getMarketplaceFetchOptions(baseUrl);
   let response: Response;
   try {
-    response = await runWithMarketplaceNetworkRetry(() =>
-      fetch(endpoint, {
+    response = await runWithMarketplaceNetworkRetry(
+      () => fetch(endpoint, {
         method: "GET",
         headers: {
           Accept: "application/json"
         },
-        signal: AbortSignal.timeout(MARKETPLACE_FETCH_TIMEOUT_MS)
-      })
+        signal: AbortSignal.timeout(fetchOptions.timeoutMs)
+      }),
+      { attempts: fetchOptions.retryAttempts }
     );
   } catch (error) {
     return {
@@ -203,23 +236,26 @@ export function toPositiveInt(raw: string | undefined, fallback: number): number
 }
 
 export async function fetchAllMarketplaceItems(params: {
-  baseUrl: string;
+  baseUrl?: string;
+  baseUrls?: readonly string[];
   path: string;
   query?: Record<string, string | undefined>;
 }): Promise<
   | { ok: true; data: { sort: MarketplaceListView["sort"]; query?: string; items: MarketplaceListView["items"] } }
   | { ok: false; status: number; message: string }
 > {
+  const { baseUrl, baseUrls, path, query: rawQuery } = params;
   const items: MarketplaceListView["items"] = [];
   let sort: MarketplaceListView["sort"] = "relevance";
   let query: MarketplaceListView["query"];
 
   for (let page = 1; page <= MARKETPLACE_REMOTE_MAX_PAGES; page += 1) {
     const result = await fetchMarketplaceData<MarketplaceListView>({
-      baseUrl: params.baseUrl,
-      path: params.path,
+      baseUrl,
+      baseUrls,
+      path,
       query: {
-        ...params.query,
+        ...rawQuery,
         page: String(page),
         pageSize: String(MARKETPLACE_REMOTE_PAGE_SIZE)
       }
@@ -258,7 +294,8 @@ export async function fetchAllMarketplaceItems(params: {
 }
 
 export async function fetchAllSkillMarketplaceItems(params: {
-  baseUrl: string;
+  baseUrl?: string;
+  baseUrls?: readonly string[];
   query?: Record<string, string | undefined>;
 }): Promise<
   | { ok: true; data: { sort: MarketplaceListView["sort"]; query?: string; items: MarketplaceListView["items"] } }
@@ -266,13 +303,15 @@ export async function fetchAllSkillMarketplaceItems(params: {
 > {
   return fetchAllMarketplaceItems({
     baseUrl: params.baseUrl,
+    baseUrls: params.baseUrls,
     path: "/api/v1/skills/items",
     query: params.query
   });
 }
 
 export async function fetchAllMcpMarketplaceItems(params: {
-  baseUrl: string;
+  baseUrl?: string;
+  baseUrls?: readonly string[];
   query?: Record<string, string | undefined>;
 }): Promise<
   | { ok: true; data: { sort: MarketplaceListView["sort"]; query?: string; items: MarketplaceListView["items"] } }
@@ -280,6 +319,7 @@ export async function fetchAllMcpMarketplaceItems(params: {
 > {
   return fetchAllMarketplaceItems({
     baseUrl: params.baseUrl,
+    baseUrls: params.baseUrls,
     path: "/api/v1/mcp/items",
     query: params.query
   });

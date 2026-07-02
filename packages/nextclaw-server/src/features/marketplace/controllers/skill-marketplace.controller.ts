@@ -125,7 +125,7 @@ async function manageMarketplaceSkill(params: {
 export class SkillMarketplaceController {
   constructor(
     private readonly options: UiRouterOptions,
-    private readonly marketplaceBaseUrl: string
+    private readonly marketplaceBaseUrls: readonly string[]
   ) {}
 
   readonly getInstalled = (c: Context) => {
@@ -161,7 +161,7 @@ export class SkillMarketplaceController {
     query: Record<string, string | undefined>
   ): Promise<SupportedSkillMarketplaceListResult> => {
     const result = await fetchMarketplaceData<MarketplaceListView>({
-      baseUrl: this.marketplaceBaseUrl,
+      baseUrls: this.marketplaceBaseUrls,
       path: "/api/v1/skills/items",
       query
     });
@@ -176,7 +176,7 @@ export class SkillMarketplaceController {
 
   readonly listScenes = async (c: Context) => {
     const result = await fetchMarketplaceData<MarketplaceScenesView>({
-      baseUrl: this.marketplaceBaseUrl,
+      baseUrls: this.marketplaceBaseUrls,
       path: "/api/v1/skills/scenes"
     });
     if (!result.ok) {
@@ -207,7 +207,7 @@ export class SkillMarketplaceController {
   readonly getItem = async (c: Context) => {
     const slug = encodeURIComponent(c.req.param("slug"));
     const result = await fetchMarketplaceData<MarketplaceItemView>({
-      baseUrl: this.marketplaceBaseUrl,
+      baseUrls: this.marketplaceBaseUrls,
       path: `/api/v1/skills/items/${slug}`
     });
 
@@ -234,7 +234,7 @@ export class SkillMarketplaceController {
   readonly getItemContent = async (c: Context) => {
     const slug = encodeURIComponent(c.req.param("slug"));
     const result = await fetchMarketplaceData<MarketplaceItemView>({
-      baseUrl: this.marketplaceBaseUrl,
+      baseUrls: this.marketplaceBaseUrls,
       path: `/api/v1/skills/items/${slug}`
     });
 
@@ -256,7 +256,7 @@ export class SkillMarketplaceController {
     }
 
     const contentResult = await fetchMarketplaceData<MarketplaceSkillContentView>({
-      baseUrl: this.marketplaceBaseUrl,
+      baseUrls: this.marketplaceBaseUrls,
       path: `/api/v1/skills/items/${slug}/content`
     });
     if (!contentResult.ok) {
@@ -323,7 +323,7 @@ export class SkillMarketplaceController {
   readonly getRecommendations = async (c: Context) => {
     const query = c.req.query();
     const result = await fetchMarketplaceData<MarketplaceRecommendationView>({
-      baseUrl: this.marketplaceBaseUrl,
+      baseUrls: this.marketplaceBaseUrls,
       path: "/api/v1/skills/recommendations",
       query: {
         scene: query.scene,

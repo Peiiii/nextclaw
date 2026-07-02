@@ -238,7 +238,7 @@ describe("SkillsQueryService", () => {
     const info = await service.getMarketplaceSkillInfo({ slug: "weather" });
     const recommendations = await service.recommendMarketplaceSkills({ scene: "default", limit: 3 });
 
-    expect(search.apiBaseUrl).toBe("https://marketplace-api.nextclaw.io");
+    expect(search.apiBaseUrl).toBe("https://api.nextclaw.net");
     expect(search.items[0]?.slug).toBe("weather");
     expect(info.item.slug).toBe("weather");
     expect(info.content?.bodyRaw).toBe("Weather content");

@@ -6,8 +6,15 @@ import {
   isLocalMarketplaceInstallStateFile,
   type MarketplaceSkillInstallStateFileEntry
 } from "@nextclaw-service/stores/marketplace-install-state.store.js";
+import {
+  DEFAULT_MARKETPLACE_API_BASE,
+  getMarketplaceReadFetchOptions,
+  MarketplaceRequestError,
+  runMarketplaceReadSources,
+  type MarketplaceReadResult
+} from "@nextclaw-service/utils/marketplace/marketplace-read-source.utils.js";
 
-const DEFAULT_MARKETPLACE_API_BASE = "https://marketplace-api.nextclaw.io";
+export { resolveMarketplaceReadApiBases } from "@nextclaw-service/utils/marketplace/marketplace-read-source.utils.js";
 
 type MarketplaceEnvelope<T> = {
   ok: boolean;
@@ -49,11 +56,27 @@ export async function fetchMarketplaceSkillItem(
   apiBase: string,
   slug: string
 ): Promise<MarketplaceSkillItem> {
+  return fetchMarketplaceSkillItemFromBase(apiBase, slug);
+}
+
+export async function fetchMarketplaceSkillItemFromSources(
+  apiBases: readonly string[],
+  slug: string,
+): Promise<MarketplaceReadResult<MarketplaceSkillItem>> {
+  return runMarketplaceReadSources(apiBases, (apiBase) => fetchMarketplaceSkillItemFromBase(apiBase, slug));
+}
+
+async function fetchMarketplaceSkillItemFromBase(
+  apiBase: string,
+  slug: string,
+): Promise<MarketplaceSkillItem> {
+  const fetchOptions = getMarketplaceReadFetchOptions(apiBase);
   return runWithMarketplaceNetworkRetry(async () => {
     const response = await fetch(`${apiBase}/api/v1/skills/items/${encodeURIComponent(slug)}`, {
       headers: {
         Accept: "application/json"
-      }
+      },
+      signal: AbortSignal.timeout(fetchOptions.timeoutMs),
     });
     const payload = await readMarketplaceEnvelope<{
       slug?: string;
@@ -64,7 +87,7 @@ export async function fetchMarketplaceSkillItem(
 
     if (!payload.ok || !payload.data) {
       const message = payload.error?.message || `marketplace skill fetch failed: ${response.status}`;
-      throw new Error(message);
+      throw new MarketplaceRequestError(message, response.status);
     }
 
     const kind = payload.data.install?.kind;
@@ -86,24 +109,40 @@ export async function fetchMarketplaceSkillItem(
         kind
       }
     };
-  });
+  }, { attempts: fetchOptions.retryAttempts });
 }
 
 export async function fetchMarketplaceSkillFiles(
   apiBase: string,
   slug: string
 ): Promise<{ files: MarketplaceSkillFileManifestEntry[] }> {
+  return fetchMarketplaceSkillFilesFromBase(apiBase, slug);
+}
+
+export async function fetchMarketplaceSkillFilesFromSources(
+  apiBases: readonly string[],
+  slug: string,
+): Promise<MarketplaceReadResult<{ files: MarketplaceSkillFileManifestEntry[] }>> {
+  return runMarketplaceReadSources(apiBases, (apiBase) => fetchMarketplaceSkillFilesFromBase(apiBase, slug));
+}
+
+async function fetchMarketplaceSkillFilesFromBase(
+  apiBase: string,
+  slug: string,
+): Promise<{ files: MarketplaceSkillFileManifestEntry[] }> {
+  const fetchOptions = getMarketplaceReadFetchOptions(apiBase);
   return runWithMarketplaceNetworkRetry(async () => {
     const response = await fetch(`${apiBase}/api/v1/skills/items/${encodeURIComponent(slug)}/files`, {
       headers: {
         Accept: "application/json"
-      }
+      },
+      signal: AbortSignal.timeout(fetchOptions.timeoutMs),
     });
 
     const payload = await readMarketplaceEnvelope<{ files: unknown }>(response);
     if (!payload.ok || !payload.data) {
       const message = payload.error?.message || `marketplace skill file fetch failed: ${response.status}`;
-      throw new Error(message);
+      throw new MarketplaceRequestError(message, response.status);
     }
 
     if (!isRecord(payload.data) || !Array.isArray(payload.data.files)) {
@@ -127,7 +166,7 @@ export async function fetchMarketplaceSkillFiles(
     });
 
     return { files };
-  });
+  }, { attempts: fetchOptions.retryAttempts });
 }
 
 export async function fetchMarketplaceSkillFileBlob(
@@ -136,19 +175,21 @@ export async function fetchMarketplaceSkillFileBlob(
   file: MarketplaceSkillFileManifestEntry
 ): Promise<Buffer> {
   const downloadUrl = resolveSkillFileDownloadUrl(apiBase, slug, file);
+  const fetchOptions = getMarketplaceReadFetchOptions(apiBase);
   return runWithMarketplaceNetworkRetry(async () => {
     const response = await fetch(downloadUrl, {
       headers: {
         Accept: "application/octet-stream"
-      }
+      },
+      signal: AbortSignal.timeout(fetchOptions.timeoutMs),
     });
     if (!response.ok) {
       const message = extractMarketplaceErrorMessage(await response.text(), response.status)
         || `marketplace skill file download failed: ${response.status}`;
-      throw new Error(message);
+      throw new MarketplaceRequestError(message, response.status);
     }
     return Buffer.from(await response.arrayBuffer());
-  });
+  }, { attempts: fetchOptions.retryAttempts });
 }
 
 export function collectMarketplaceSkillFiles(rootDir: string): Array<{ path: string; contentBase64: string }> {
