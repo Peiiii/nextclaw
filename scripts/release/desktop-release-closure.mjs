@@ -15,7 +15,7 @@ function run(command, args) {
 function isRetryableCommandError(error) {
   const stderr = String(error?.stderr ?? "");
   const message = String(error?.message ?? "");
-  return /tls: failed to verify certificate|Client\.Timeout|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|502 Bad Gateway|503 Service Unavailable|504 Gateway Timeout/.test(
+  return /tls: failed to verify certificate|Client\.Timeout|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|\bEOF\b|502 Bad Gateway|503 Service Unavailable|504 Gateway Timeout/.test(
     `${stderr}\n${message}`
   );
 }

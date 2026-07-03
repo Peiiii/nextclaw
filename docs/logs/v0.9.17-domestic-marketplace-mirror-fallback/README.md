@@ -124,6 +124,27 @@
 - `desktop-beta-preview-closure.mjs` 已验证 release assets、`gh-pages` manifest 和公网 Pages manifest，public desktop beta manifest 指向 `0.21.12-beta.0`。
 - `publish-linux-apt-repo` 在 beta preview workflow 中为 skipped，不影响本次 beta preview 交付；Linux `.deb` 已作为 release asset 上传。
 
+已纠正并完成 full public workspace stable batch：
+
+- stable release commit `a01f91ca2 chore: release stable batch` 已推送到 `master`。
+- `nextclaw@latest` 已发布为 `0.21.12`，`@nextclaw/server@latest` 为 `0.14.8`，`@nextclaw/service@latest` 为 `0.2.18`。
+- `pnpm release:check` 通过，`pnpm release:publish` 已发布并验证 49/49 个 package versions。
+- 公开安装 smoke 已通过：临时目录安装 `nextclaw@latest` 后 `nextclaw --version` 返回 `0.21.12`。
+- stable runtime update check 已通过：`nextclaw update --channel stable --check --json` 返回 `status: "up-to-date"`，`currentVersion: "0.21.12"`。
+- `npm-runtime-update-release` stable run `28632687433` 结论为 `success`，四个平台 runtime bundle asset 已上传到 `nextclaw@0.21.12` release。
+- `nextclaw@0.21.12` GitHub release 已修正为正式 release，非 prerelease，并设为 latest。
+- NPM stable runtime public manifests 已指向 `0.21.12`，并包含 manifest / bundle signature。
+
+桌面 stable 正式版：
+
+- 桌面发布说明 commit `7ec1586a8 docs: add desktop stable release notes` 已推送到 `master`。
+- tag `v0.21.12-desktop.1` 已发布为正式 release，非 draft、非 prerelease。
+- GitHub Actions `desktop-release` run `28633408213` 结论为 `success`。
+- 本地 isolated release worktree 已通过 `desktop:package:verify`：macOS arm64 DMG 打包、seed bundle、runtime shape、`nextclaw init`、GUI smoke、health check 与 stable update check 均通过。
+- GitHub release 已包含 30 个资产：macOS arm64/x64 DMG/zip、Windows x64 installer、Windows x64/arm64 portable、Linux AppImage/deb、五个平台 runtime update bundle、manifest 和 `update-bundle-public.pem`。
+- public desktop stable manifests 已验证五个平台均指向 `latestVersion: "0.21.12"`、`minimumLauncherVersion: "0.0.141"`，且包含 `bundleSignature` 与 `manifestSignature`。
+- Linux APT repo 发布已通过 fresh install 与 upgrade smoke；公网 `Release` / `InRelease` 已可读取并带 PGP 签名。
+
 ## 经验沉淀与流程改进
 
 本次发布暴露的主要问题不是代码构建失败，而是发布面判断容易漂移：
@@ -138,5 +159,6 @@
 - `.github/workflows/desktop-release.yml` 已在 APT 发布步骤中固化 latest-only 保留策略，避免后续稳定版发布继续累积历史 `.deb`。
 - `.agents/skills/npm-release-contract-guard/SKILL.md` 已补充 Pages-only publish failure 的判断和恢复规则。
 - `.agents/skills/desktop-release-contract-guard/SKILL.md` 已补充 Pages artifact / deployment queue / APT 包池边界 / GitHub API EOF 恢复规则。
+- `scripts/release/desktop-release-closure.mjs` 已将 `EOF` 纳入 release closure 查询层的瞬时网络错误重试范围，避免远端 workflow 正常运行时因一次 GitHub API 断连误退出。
 
 后续如果再次遇到公网 manifest 不更新，先按 skill 走发布面诊断：查 `origin/gh-pages`、Pages build/deploy 状态、artifact size、public URL，再决定重跑 closure 或 workflow；只有 delivered bits 改变时才创建新的 release identity。
