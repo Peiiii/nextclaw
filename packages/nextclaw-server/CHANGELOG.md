@@ -1,5 +1,17 @@
 # nextclaw-server
 
+## 0.14.8
+
+### Patch Changes
+
+- e990291: Use the nextclaw.net domestic marketplace mirror by default for marketplace reads, with automatic fallback to the official marketplace API when the mirror request fails or times out.
+- Updated dependencies [944c27b]
+  - @nextclaw/core@0.14.8
+  - @nextclaw/kernel@0.5.4
+  - @nextclaw/mcp@0.2.18
+  - @nextclaw/ncp@0.6.6
+  - @nextclaw/runtime@0.3.18
+
 ## 0.14.8-beta.0
 
 ### Patch Changes
