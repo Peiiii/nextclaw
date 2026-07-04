@@ -54,12 +54,12 @@ export type ChatInputBarHandle = {
 };
 
 export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(function ChatInputBar(
-  { composer, hint, inputSurface, slashMenu, surface, toolbar: toolbarProps },
+  { composer, hint, inputSurface, slashMenu, surface, toolbar: toolbarProps, topSlot },
   ref
 ) {
   const composerRef = useRef<ChatInputBarTokenizedComposerHandle | null>(null);
   const resolvedInputSurface: ChatInputSurfaceConfig | null = inputSurface ?? (slashMenu
-    ? {
+      ? {
         isLoading: slashMenu.isLoading,
         filterOptions: slashMenu.filterOptions,
         items: slashMenu.items,
@@ -105,6 +105,11 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
     <div className={surfaceClassName}>
       <div className="nextclaw-chat-input-bar-shell mx-auto w-full max-w-[min(1120px,100%)] [container:nextclaw-chat-input-bar/inline-size]">
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+          {topSlot ? (
+            <div className="px-3 pb-0 pt-2 sm:px-4 sm:pt-2.5">
+              {topSlot}
+            </div>
+          ) : null}
           <div className="relative">
             <ChatInputSurfaceHost
               inputSurface={resolvedInputSurface}

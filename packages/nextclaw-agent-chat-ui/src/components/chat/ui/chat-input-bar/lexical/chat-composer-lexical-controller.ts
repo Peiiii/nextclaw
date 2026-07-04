@@ -23,7 +23,6 @@ type ChatComposerPublishOptions = {
 };
 
 type ChatComposerKeyboardAction =
-  | { type: 'consume' }
   | { type: 'delete-content'; direction: 'backward' | 'forward' }
   | { type: 'insert-line-break' }
   | { type: 'noop' }
@@ -44,10 +43,6 @@ export function resolveLexicalComposerKeyboardAction(params: {
     key,
     shiftKey,
   } = params;
-
-  if (key === 'Enter' && !shiftKey && isSending) {
-    return { type: 'consume' };
-  }
 
   if (key === 'Escape') {
     if (isSending && canStopGeneration) {
@@ -189,8 +184,6 @@ export function handleLexicalComposerKeyboardCommand(params: {
   }
 
   switch (action.type) {
-    case 'consume':
-      return true;
     case 'stop-generation':
       void actions.onStop();
       return true;

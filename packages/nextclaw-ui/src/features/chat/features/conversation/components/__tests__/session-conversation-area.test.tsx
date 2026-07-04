@@ -7,6 +7,7 @@ import { SessionConversationArea } from '@/features/chat/features/conversation/c
 
 const mocks = vi.hoisted(() => {
   const inputRenderSpy = vi.fn();
+  const controllerParamsSpy = vi.fn();
   const inputActions = {
     update: vi.fn(),
     syncComposer: vi.fn(),
@@ -62,8 +63,11 @@ const mocks = vi.hoisted(() => {
   };
   const controller = {
     canStopGeneration: true,
+    deleteQueuedInput: vi.fn(),
+    editQueuedInput: vi.fn(),
     hasSendableDraft: true,
     isSending: true,
+    queuedInputs: [],
     send: vi.fn(),
     sendDisabled: true,
     stop: vi.fn(),
@@ -87,6 +91,7 @@ const mocks = vi.hoisted(() => {
   return {
     agent,
     controller,
+    controllerParamsSpy,
     inputActions,
     inputQuery,
     inputRenderSpy,
@@ -162,7 +167,10 @@ vi.mock('@/features/chat/features/conversation/hooks/use-session-conversation-in
 }));
 
 vi.mock('@/features/chat/features/conversation/hooks/use-session-conversation-controller', () => ({
-  useSessionConversationController: () => mocks.controller,
+  useSessionConversationController: (params: unknown) => {
+    mocks.controllerParamsSpy(params);
+    return mocks.controller;
+  },
 }));
 
 vi.mock('@/features/chat/stores/chat-session-list.store', () => ({
@@ -197,6 +205,20 @@ describe('SessionConversationArea input boundary', () => {
     mocks.agent.isRunning = true;
     mocks.agent.isSending = true;
     mocks.agent.snapshot.contextWindow = null;
+  });
+
+  it('passes running state without treating an active run as a send request in flight', () => {
+    mocks.agent.isRunning = true;
+    mocks.agent.isSending = false;
+
+    renderArea('session-1');
+
+    expect(mocks.controllerParamsSpy).toHaveBeenCalled();
+    const params = mocks.controllerParamsSpy.mock.calls[0]?.[0] as {
+      agent: { isRunning: boolean; isSending: boolean };
+    };
+    expect(params.agent.isRunning).toBe(true);
+    expect(params.agent.isSending).toBe(false);
   });
 
   it('keeps the composer input subtree stable when only streamed messages change', () => {

@@ -67,7 +67,10 @@ const presenter = {
 
 const controller: SessionConversationInputController = {
   canStopGeneration: true,
+  deleteQueuedInput: vi.fn(),
+  editQueuedInput: vi.fn(),
   isSending: true,
+  queuedInputs: [],
   send: vi.fn(),
   sendDisabled: true,
   stop: vi.fn(),
@@ -96,8 +99,10 @@ function createStreamingInputSnapshot(
 }
 
 function StreamingSessionConversationInputHarness({
+  controllerOverride = controller,
   controlRef,
 }: {
+  controllerOverride?: SessionConversationInputController;
   controlRef: MutableRefObject<StreamingInputControl | null>;
 }) {
   const [nodes, setNodes] = useState<readonly ChatComposerNode[]>([
@@ -167,7 +172,7 @@ function StreamingSessionConversationInputHarness({
         <div data-testid="stream-chunk">{streamChunk}</div>
         <SessionConversationInput
           contextWindow={null}
-          controller={controller}
+          controller={controllerOverride}
           inputActions={inputActions}
           inputQuery={inputQuery}
           inputSnapshot={inputSnapshot}
@@ -195,5 +200,37 @@ describe('SessionConversationInput streaming stability', () => {
     fireEvent.compositionEnd(textbox, { data: '你' });
 
     await waitFor(() => expect(textbox.textContent).toBe('你'));
+  });
+
+  it('renders queued inputs above the composer with edit and delete actions', () => {
+    const controlRef: MutableRefObject<StreamingInputControl | null> = { current: null };
+    const deleteQueuedInput = vi.fn();
+    const editQueuedInput = vi.fn();
+    render(
+      <StreamingSessionConversationInputHarness
+        controlRef={controlRef}
+        controllerOverride={{
+          ...controller,
+          deleteQueuedInput,
+          editQueuedInput,
+          queuedInputs: [
+            { id: 'queued-1', preview: '先做 A' },
+            { id: 'queued-2', preview: '再做 B' },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByText('先做 A')).toBeTruthy();
+    expect(screen.getByText('再做 B')).toBeTruthy();
+    const inputShell = document.querySelector('.nextclaw-chat-input-bar-shell');
+    expect(inputShell?.contains(screen.getByText('先做 A'))).toBe(true);
+    expect(inputShell?.contains(screen.getByText('再做 B'))).toBe(true);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Edit queued input' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Delete queued input' })[1]);
+
+    expect(editQueuedInput).toHaveBeenCalledWith('queued-1');
+    expect(deleteQueuedInput).toHaveBeenCalledWith('queued-2');
   });
 });

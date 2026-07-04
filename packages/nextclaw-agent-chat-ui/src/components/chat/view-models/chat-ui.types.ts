@@ -5,6 +5,7 @@ import type {
   ChatInputSurfaceTrigger,
   ChatInputSurfaceTriggerSpec,
 } from '@agent-chat-ui/lib/input-surface';
+import type { ReactNode } from 'react';
 
 export type {
   ChatInputSurfaceConfig,
@@ -194,6 +195,7 @@ export type ChatSlashMenuProps = Omit<
 
 export type ChatInputBarProps = {
   surface?: 'default' | 'embedded';
+  topSlot?: ReactNode;
   composer: {
     nodes: ChatComposerNode[];
     placeholder: string;

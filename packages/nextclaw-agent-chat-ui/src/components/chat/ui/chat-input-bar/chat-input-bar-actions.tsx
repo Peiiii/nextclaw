@@ -94,6 +94,7 @@ export function ChatInputBarActions({
     ? buildSendErrorPreview(normalizedSendError)
     : '';
   const resolvedSendErrorDetailsLabel = sendErrorDetailsLabel?.trim() || 'Details';
+  const showSendButton = !isSending || !sendDisabled;
 
   return (
     <div className="flex shrink-0 flex-col items-end gap-1">
@@ -132,41 +133,7 @@ export function ChatInputBarActions({
       ) : null}
       <div className="flex items-center gap-2">
         {contextWindow ? <ContextWindowIndicator contextWindow={contextWindow} /> : null}
-        {isSending ? (
-          canStopGeneration ? (
-            <ChatButton
-              size="icon"
-              variant="outline"
-              className="h-8 w-8 rounded-full"
-              aria-label={stopButtonLabel}
-              onClick={() => void onStop()}
-              disabled={stopDisabled}
-            >
-              <StopIcon />
-            </ChatButton>
-          ) : (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span>
-                    <ChatButton
-                      size="icon"
-                      variant="outline"
-                      className="h-8 w-8 rounded-full"
-                      aria-label={stopButtonLabel}
-                      disabled
-                    >
-                      <StopIcon />
-                    </ChatButton>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p className="text-xs">{stopHint}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )
-        ) : (
+        {showSendButton ? (
           <ChatButton
             size="icon"
             className="h-8 w-8 rounded-full"
@@ -176,6 +143,38 @@ export function ChatInputBarActions({
           >
             <ArrowUp className="h-5 w-5" />
           </ChatButton>
+        ) : canStopGeneration ? (
+          <ChatButton
+            size="icon"
+            variant="outline"
+            className="h-8 w-8 rounded-full"
+            aria-label={stopButtonLabel}
+            onClick={() => void onStop()}
+            disabled={stopDisabled}
+          >
+            <StopIcon />
+          </ChatButton>
+        ) : (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <ChatButton
+                    size="icon"
+                    variant="outline"
+                    className="h-8 w-8 rounded-full"
+                    aria-label={stopButtonLabel}
+                    disabled
+                  >
+                    <StopIcon />
+                  </ChatButton>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p className="text-xs">{stopHint}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
     </div>

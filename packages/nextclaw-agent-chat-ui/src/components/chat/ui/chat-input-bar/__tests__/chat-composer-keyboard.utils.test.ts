@@ -33,7 +33,7 @@ describe('chat composer keyboard utils', () => {
     });
   });
 
-  it('consumes enter while a response is still running', () => {
+  it('routes enter to send while a response is still running', () => {
     expect(
       resolveLexicalComposerKeyboardAction({
         key: 'Enter',
@@ -43,7 +43,7 @@ describe('chat composer keyboard utils', () => {
         canStopGeneration: true
       }),
     ).toEqual({
-      type: 'consume'
+      type: 'send-message'
     });
   });
 

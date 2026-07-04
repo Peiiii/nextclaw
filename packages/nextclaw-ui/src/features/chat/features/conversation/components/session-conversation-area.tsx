@@ -214,7 +214,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
   const controllerAgent = useMemo(() => ({
     ...agent,
     isRunning: currentSessionRunning,
-    isSending: agent.isSending || currentSessionRunning,
+    isSending: agent.isSending,
   }), [agent, currentSessionRunning]);
   const controller = useSessionConversationController({
     agent: controllerAgent,
@@ -235,7 +235,10 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
   }, [controller]);
   const inputController = useMemo<SessionConversationInputController>(() => ({
     canStopGeneration: controller.canStopGeneration,
+    deleteQueuedInput: (id: string) => controllerRef.current.deleteQueuedInput(id),
+    editQueuedInput: (id: string) => controllerRef.current.editQueuedInput(id),
     isSending: controller.isSending,
+    queuedInputs: controller.queuedInputs,
     send: () => controllerRef.current.send(),
     sendDisabled: controller.sendDisabled,
     stop: () => controllerRef.current.stop(),
@@ -243,6 +246,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
   }), [
     controller.canStopGeneration,
     controller.isSending,
+    controller.queuedInputs,
     controller.sendDisabled,
     controller.stopDisabled,
   ]);

@@ -51,6 +51,9 @@ import {
 import { useSessionConversationInputAttachments } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-attachments';
 import type { useSessionConversationInputQuery } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-query';
 import type {
+  SessionConversationQueuedInput,
+} from '@/features/chat/features/conversation/hooks/use-session-conversation-controller';
+import type {
   SessionConversationInputActions,
   SessionConversationInputSnapshot,
 } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-state';
@@ -59,12 +62,16 @@ import {
   buildSessionConversationToolbarSelects,
   resolveThinkingForConversationModel,
 } from '@/features/chat/features/conversation/utils/session-conversation-input-toolbar.utils';
+import { SessionQueuedInputRows } from './session-queued-input-rows';
 
 type SessionConversationInputQuery = ReturnType<typeof useSessionConversationInputQuery>;
 
 export type SessionConversationInputController = {
   readonly canStopGeneration: boolean;
+  readonly deleteQueuedInput: (id: string) => void;
+  readonly editQueuedInput: (id: string) => void;
   readonly isSending: boolean;
+  readonly queuedInputs: readonly SessionConversationQueuedInput[];
   readonly sendDisabled: boolean;
   readonly stopDisabled: boolean;
   readonly send: () => Promise<void> | void;
@@ -388,6 +395,9 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
       <ChatInputBar
         ref={inputBarRef}
         surface={surface}
+        topSlot={controller.queuedInputs.length > 0
+          ? <SessionQueuedInputRows controller={controller} />
+          : null}
         composer={{
           nodes: [...inputSnapshot.nodes],
           placeholder: textareaPlaceholder,
@@ -415,7 +425,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
               label: t('chatInputAttach'),
               icon: 'paperclip' as const,
               iconOnly: true,
-              disabled: !attachmentSupported || inputDisabled || controller.isSending,
+              disabled: !attachmentSupported || inputDisabled,
               onClick: () => fileInputRef.current?.click(),
             },
           ],
@@ -427,7 +437,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
             sendDisabled: controller.sendDisabled,
             stopDisabled: controller.stopDisabled,
             stopHint: t('chatStopUnavailable'),
-            sendButtonLabel: t('chatSend'),
+            sendButtonLabel: controller.isSending ? t('chatQueueSend') : t('chatSend'),
             stopButtonLabel: t('chatStop'),
             contextWindow,
             onSend: controller.send,

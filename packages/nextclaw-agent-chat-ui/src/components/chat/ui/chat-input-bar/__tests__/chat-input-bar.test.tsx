@@ -120,6 +120,17 @@ function renderInputBar(overrides?: ChatInputBarPropsOverrides) {
   return render(createInputBarElement(overrides));
 }
 
+it('renders a top slot inside the input bar shell without replacing the composer', () => {
+  renderInputBar({
+    topSlot: <div data-testid="input-top-slot">Queued input</div>,
+  });
+
+  const shell = document.querySelector('.nextclaw-chat-input-bar-shell');
+  const topSlot = screen.getByTestId('input-top-slot');
+  expect(shell?.contains(topSlot)).toBe(true);
+  expect(screen.getByRole('textbox')).toBeTruthy();
+});
+
 function createComposer(nodes: ChatComposerNode[], overrides: Omit<Partial<ChatInputBarProps['composer']>, 'nodes'> = {}) {
   return { nodes, onNodesChange: vi.fn(), ...overrides };
 }
@@ -724,6 +735,30 @@ it('switches between send and stop controls', () => {
   expect(screen.getByTestId('chat-stop-icon').className).toContain('bg-foreground');
   fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
   expect(onStop).toHaveBeenCalled();
+});
+
+it('keeps the send control active during streaming when the draft can be queued', () => {
+  const onSend = vi.fn();
+  const onStop = vi.fn();
+  renderInputBar({
+    toolbar: {
+      actions: {
+        isSending: true,
+        canStopGeneration: true,
+        sendDisabled: false,
+        sendButtonLabel: 'Queue',
+        stopDisabled: false,
+        onSend,
+        onStop
+      }
+    }
+  });
+
+  fireEvent.click(screen.getByRole('button', { name: 'Queue' }));
+
+  expect(onSend).toHaveBeenCalled();
+  expect(onStop).not.toHaveBeenCalled();
+  expect(screen.queryByTestId('chat-stop-icon')).toBeNull();
 });
 
 it('keeps the model dropdown narrower on mobile while preserving desktop width', async () => {
