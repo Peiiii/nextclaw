@@ -7,6 +7,7 @@ import type {
 import type {
   ChatMessageAdapterTexts,
   ChatMessagePartSource,
+  ChatMessageProcessSummarySource,
 } from "@/features/chat/types/chat-message.types";
 
 export type {
@@ -21,6 +22,7 @@ export type ChatMessageSource = {
     timestamp?: string;
     status?: string;
     inlineTokens?: ChatInlineTokenSource[];
+    processSummary?: ChatMessageProcessSummarySource;
   };
   parts: ChatMessagePartSource[];
 };
@@ -79,6 +81,7 @@ export function adaptChatMessage(
     roleLabel: resolveRoleLabel(message.role, params.texts.roleLabels),
     timestampLabel: params.formatTimestamp(resolveMessageTimestamp(message)),
     status: message.meta?.status,
+    processSummary: message.meta?.processSummary,
     parts: message.parts
       .map((part) =>
         adaptChatMessagePart({

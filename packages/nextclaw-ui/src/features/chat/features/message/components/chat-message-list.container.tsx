@@ -7,9 +7,13 @@ import {
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import {
   adaptChatMessage,
-  type ChatMessageAdapterTexts,
   type ChatMessageSource,
 } from "@/features/chat/features/message/utils/chat-message.utils";
+import { buildChatMessageProcessSummary } from "@/features/chat/features/message/utils/chat-message-process-summary.utils";
+import {
+  buildChatMessageAdapterTexts,
+  buildChatMessageTexts,
+} from "@/features/chat/features/message/utils/chat-message-texts.utils";
 import { readInlineTokensFromMetadata } from "@/features/chat/features/input/utils/chat-inline-token.utils";
 import { adaptNcpMessageToUiMessage } from "@/features/chat/features/session/utils/ncp-session-adapter.utils";
 import {
@@ -31,7 +35,11 @@ const INHERITED_FROM_SESSION_METADATA_KEY = "inherited_from_session_id";
 
 const messageViewModelCache = new WeakMap<
   NcpMessage,
-  { language: string; viewModel: ChatMessageViewModel }
+  {
+    language: string;
+    processSummaryLabel: string | null;
+    viewModel: ChatMessageViewModel;
+  }
 >();
 
 type ContextInheritanceTimelineView = {
@@ -59,61 +67,6 @@ type ChatTimelineItem =
       key: string;
       inheritance: ContextInheritanceTimelineView;
     };
-
-function buildChatMessageAdapterTexts(
-  language: string,
-): ChatMessageAdapterTexts {
-  void language;
-  return {
-    roleLabels: {
-      user: t("chatRoleUser"),
-      assistant: t("chatRoleAssistant"),
-      tool: t("chatRoleTool"),
-      system: t("chatRoleSystem"),
-      fallback: t("chatRoleMessage"),
-    },
-    reasoningLabel: t("chatReasoning"),
-    toolCallLabel: t("chatToolCall"),
-    toolResultLabel: t("chatToolResult"),
-    toolInputLabel: t("chatToolInput"),
-    toolNoOutputLabel: t("chatToolNoOutput"),
-    toolOutputLabel: t("chatToolOutput"),
-    toolStatusPreparingLabel: t("chatToolStatusPreparing"),
-    toolStatusRunningLabel: t("chatToolStatusRunning"),
-    toolStatusCompletedLabel: t("chatToolStatusCompleted"),
-    toolStatusFailedLabel: t("chatToolStatusFailed"),
-    toolStatusCancelledLabel: t("chatToolStatusCancelled"),
-    showContentActionLabel: t("chatShowContentAction"),
-    imageAttachmentLabel: t("chatImageAttachment"),
-    fileAttachmentLabel: t("chatFileAttachment"),
-    unknownPartLabel: t("chatUnknownPart"),
-  };
-}
-
-function buildChatMessageTexts(language: string) {
-  void language;
-  return {
-    copyCodeLabel: t("chatCodeCopy"),
-    copiedCodeLabel: t("chatCodeCopied"),
-    copyMessageLabel: t("chatMessageCopy"),
-    copiedMessageLabel: t("chatMessageCopied"),
-    typingLabel: t("chatTyping"),
-    attachmentOpenLabel: t("chatAttachmentOpen"),
-    attachmentAttachedLabel: t("chatAttachmentAttached"),
-    attachmentCategoryLabels: {
-      archive: t("chatAttachmentCategoryArchive"),
-      audio: t("chatAttachmentCategoryAudio"),
-      code: t("chatAttachmentCategoryCode"),
-      data: t("chatAttachmentCategoryData"),
-      document: t("chatAttachmentCategoryDocument"),
-      generic: t("chatAttachmentCategoryGeneric"),
-      image: t("chatAttachmentCategoryImage"),
-      pdf: t("chatAttachmentCategoryPdf"),
-      sheet: t("chatAttachmentCategorySheet"),
-      video: t("chatAttachmentCategoryVideo"),
-    },
-  };
-}
 
 function ChatContextCompactionDivider({
   checkpoint,
@@ -316,18 +269,22 @@ export function ChatMessageListContainer({
 }: ChatMessageListContainerProps) {
   const presenter = usePresenter();
   const { language } = useI18n();
-  const texts = useMemo<ChatMessageAdapterTexts>(
+  const texts = useMemo(
     () => buildChatMessageAdapterTexts(language),
     [language],
   );
 
   const messages = useMemo(() => {
-    return rawMessages.flatMap((message) => {
-      if (!isVisibleChatMessage(message)) {
-        return [];
-      }
+    const visibleRawMessages = rawMessages.filter(isVisibleChatMessage);
+    const processedLabel = t("chatProcessSummaryProcessed");
+    return visibleRawMessages.flatMap((message) => {
+      const processSummary = buildChatMessageProcessSummary({
+        message,
+        processedLabel,
+      });
+      const processSummaryLabel = processSummary?.label ?? null;
       const cached = messageViewModelCache.get(message);
-      if (cached && cached.language === language) {
+      if (cached && cached.language === language && cached.processSummaryLabel === processSummaryLabel) {
         return [cached.viewModel];
       }
 
@@ -339,6 +296,7 @@ export function ChatMessageListContainer({
           timestamp: uiMessage.meta?.timestamp,
           status: uiMessage.meta?.status,
           inlineTokens: readInlineTokensFromMetadata(message.metadata),
+          processSummary,
         },
         parts: uiMessage.parts as unknown as ChatMessageSource["parts"],
       };
@@ -347,7 +305,7 @@ export function ChatMessageListContainer({
         texts,
       });
 
-      messageViewModelCache.set(message, { language, viewModel });
+      messageViewModelCache.set(message, { language, processSummaryLabel, viewModel });
       return [viewModel];
     });
   }, [language, rawMessages, texts]);

@@ -1,8 +1,10 @@
 import { memo, type ReactNode } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import type {
   ChatFileOpenActionViewModel,
   ChatPanelAppCardViewModel,
   ChatMessageTexts,
+  ChatMessagePartViewModel,
   ChatToolActionViewModel,
   ChatMessageViewModel,
 } from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
@@ -28,6 +30,139 @@ type ChatMessageProps = {
   renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
 };
 
+type ChatMessageProcessSplit = {
+  processParts: ChatMessagePartViewModel[];
+  finalParts: ChatMessagePartViewModel[];
+};
+
+type RenderChatMessagePartParams = {
+  part: ChatMessagePartViewModel;
+  index: number;
+  role: ChatMessageViewModel["role"];
+  isUser: boolean;
+  isInProgress: boolean;
+  isLastPart: boolean;
+  texts: ChatMessageProps["texts"];
+  onToolAction?: (action: ChatToolActionViewModel) => void;
+  onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  renderToolAgent?: (agentId: string) => ReactNode;
+  renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
+};
+
+function isMessageInProgress(status?: string): boolean {
+  return status === "pending" || status === "streaming";
+}
+
+function isProcessPart(part: ChatMessagePartViewModel): boolean {
+  return part.type === "reasoning" || part.type === "tool-card";
+}
+
+function splitAssistantProcess(message: ChatMessageViewModel): ChatMessageProcessSplit | null {
+  if (
+    message.role !== "assistant" ||
+    !message.processSummary ||
+    isMessageInProgress(message.status)
+  ) {
+    return null;
+  }
+  let lastProcessPartIndex = -1;
+  for (let index = message.parts.length - 1; index >= 0; index -= 1) {
+    if (isProcessPart(message.parts[index]!)) {
+      lastProcessPartIndex = index;
+      break;
+    }
+  }
+  if (lastProcessPartIndex < 0 || lastProcessPartIndex >= message.parts.length - 1) {
+    return null;
+  }
+  return {
+    processParts: message.parts.slice(0, lastProcessPartIndex + 1),
+    finalParts: message.parts.slice(lastProcessPartIndex + 1),
+  };
+}
+
+function renderChatMessagePart({
+  index,
+  isInProgress,
+  isLastPart,
+  isUser,
+  onFileOpen,
+  onToolAction,
+  part,
+  renderPanelAppCard,
+  renderToolAgent,
+  role,
+  texts,
+}: RenderChatMessagePartParams): ReactNode {
+  const { type } = part;
+
+  if (type === "markdown") {
+    const { inlineTokens, text } = part;
+    return (
+      <ChatMessageMarkdown
+        key={`markdown-${index}`}
+        text={text}
+        role={role}
+        texts={texts}
+        inlineTokens={inlineTokens}
+        onFileOpen={onFileOpen}
+      />
+    );
+  }
+  if (type === "reasoning") {
+    const { label, text } = part;
+    return (
+      <ChatReasoningBlock
+        key={`reasoning-${index}`}
+        label={label}
+        text={text}
+        isUser={isUser}
+        isInProgress={isInProgress && isLastPart}
+      />
+    );
+  }
+  if (type === "tool-card") {
+    const { card } = part;
+    return (
+      <div key={`tool-${index}`} className="mt-0.5">
+        <ChatToolCard
+          card={card}
+          onToolAction={onToolAction}
+          onFileOpen={onFileOpen}
+          renderToolAgent={renderToolAgent}
+          renderPanelAppCard={renderPanelAppCard}
+        />
+      </div>
+    );
+  }
+  if (type === "file") {
+    const { file } = part;
+    return (
+      <ChatMessageFile
+        key={`file-${index}`}
+        file={file}
+        isUser={isUser}
+        texts={texts}
+      />
+    );
+  }
+  if (type === "unknown") {
+    const { label, rawType, text } = part;
+    return (
+      <div
+        key={`unknown-${index}`}
+        className="rounded-lg border border-border bg-muted/60 px-2.5 py-2 text-xs text-muted-foreground"
+      >
+        <div className="font-semibold text-foreground">
+          {label}: {rawType}
+        </div>
+        {text ? <pre className="mt-1 whitespace-pre-wrap break-words text-[11px] text-muted-foreground">{text}</pre> : null}
+      </div>
+    );
+  }
+  return null;
+}
+
 export const ChatMessage = memo(function ChatMessage({
   message,
   texts,
@@ -38,8 +173,22 @@ export const ChatMessage = memo(function ChatMessage({
 }: ChatMessageProps) {
   const { role } = message;
   const isUser = role === "user";
-  const isMessageInProgress =
-    message.status === "pending" || message.status === "streaming";
+  const isInProgress = isMessageInProgress(message.status);
+  const processSplit = splitAssistantProcess(message);
+  const renderPart = (part: ChatMessagePartViewModel, index: number) =>
+    renderChatMessagePart({
+      part,
+      index,
+      role,
+      isUser,
+      isInProgress,
+      isLastPart: index === message.parts.length - 1,
+      texts,
+      onToolAction,
+      onFileOpen,
+      renderToolAgent,
+      renderPanelAppCard,
+    });
 
   return (
     <div
@@ -53,77 +202,25 @@ export const ChatMessage = memo(function ChatMessage({
       )}
     >
       <div className="space-y-2">
-        {message.parts.map((part, index) => {
-          const { type } = part;
-
-          if (type === "markdown") {
-            const { inlineTokens, text } = part;
-            return (
-              <ChatMessageMarkdown
-                key={`markdown-${index}`}
-                text={text}
-                role={role}
-                texts={texts}
-                inlineTokens={inlineTokens}
-                onFileOpen={onFileOpen}
-              />
-            );
-          }
-          if (type === "reasoning") {
-            const { label, text } = part;
-            return (
-              <ChatReasoningBlock
-                key={`reasoning-${index}`}
-                label={label}
-                text={text}
-                isUser={isUser}
-                isInProgress={
-                  isMessageInProgress && index === message.parts.length - 1
-                }
-              />
-            );
-          }
-          if (type === "tool-card") {
-            const { card } = part;
-            return (
-              <div key={`tool-${index}`} className="mt-0.5">
-                <ChatToolCard
-                  card={card}
-                  onToolAction={onToolAction}
-                  onFileOpen={onFileOpen}
-                  renderToolAgent={renderToolAgent}
-                  renderPanelAppCard={renderPanelAppCard}
-                />
+        {processSplit ? (
+          <>
+            <details className="group/process text-xs text-muted-foreground">
+              <summary className="flex cursor-pointer list-none items-center gap-1.5 border-b border-border/60 pb-2 font-medium transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 [&::-webkit-details-marker]:hidden">
+                <ChevronRight className="h-3.5 w-3.5 group-open/process:hidden" strokeWidth={2.5} />
+                <ChevronDown className="hidden h-3.5 w-3.5 group-open/process:block" strokeWidth={2.5} />
+                <span>{message.processSummary?.label}</span>
+              </summary>
+              <div className="space-y-2 pt-2">
+                {processSplit.processParts.map(renderPart)}
               </div>
-            );
-          }
-          if (type === "file") {
-            const { file } = part;
-            return (
-              <ChatMessageFile
-                key={`file-${index}`}
-                file={file}
-                isUser={isUser}
-                texts={texts}
-              />
-            );
-          }
-          if (type === "unknown") {
-            const { label, rawType, text } = part;
-            return (
-              <div
-                key={`unknown-${index}`}
-                className="rounded-lg border border-border bg-muted/60 px-2.5 py-2 text-xs text-muted-foreground"
-              >
-                <div className="font-semibold text-foreground">
-                  {label}: {rawType}
-                </div>
-                {text ? <pre className="mt-1 whitespace-pre-wrap break-words text-[11px] text-muted-foreground">{text}</pre> : null}
-              </div>
-            );
-          }
-          return null;
-        })}
+            </details>
+            {processSplit.finalParts.map((part, index) =>
+              renderPart(part, processSplit.processParts.length + index),
+            )}
+          </>
+        ) : (
+          message.parts.map(renderPart)
+        )}
       </div>
     </div>
   );

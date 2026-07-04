@@ -173,7 +173,7 @@ it("adapts persisted inline token metadata into markdown token data", () => {
   });
 });
 
-it("adds a completed assistant process summary from the surrounding conversation timestamps", () => {
+it("adds a completed assistant process summary without inventing a duration", () => {
   const userMessage = {
     id: "user-process-request",
     sessionId: "session-1",
@@ -219,7 +219,7 @@ it("adds a completed assistant process summary from the surrounding conversation
     captures.renders[captures.renders.length - 1]?.messages ?? [];
   expect(renderedMessages[1]).toMatchObject({
     processSummary: {
-      label: "chatProcessSummaryProcessed 1m 3s",
+      label: "chatProcessSummaryProcessed",
     },
   });
 });

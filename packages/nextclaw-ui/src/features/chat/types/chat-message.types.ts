@@ -23,6 +23,10 @@ export type ChatMessageAdapterTexts = {
   unknownPartLabel: string;
 };
 
+export type ChatMessageProcessSummarySource = {
+  label: string;
+};
+
 export type ChatMessagePartSource =
   | {
       type: "text";
