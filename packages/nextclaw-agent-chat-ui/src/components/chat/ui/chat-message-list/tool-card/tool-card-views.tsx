@@ -241,22 +241,19 @@ function GenericToolSection({
   );
 }
 
-// -------------------------------------------------------------
-// 1. Terminal View
-// -------------------------------------------------------------
 export function TerminalExecutionView({ card }: { card: ChatToolPartViewModel }) {
   const output = normalizeTerminalOutput(card.output, card.outputData);
   const isRunning = card.statusTone === 'running';
-  const hasContent = !!(card.summary?.trim() || output.trim().length > 0);
+  const commandPart = card.summary?.replace(/^(command|path|args|query|input):\s*/i, '');
+  const hasOutput = output.trim().length > 0;
+  const canExpand = isRunning || hasOutput || Boolean(commandPart?.trim());
   const { expanded, onToggle } = useToolCardExpandedState({
-    canExpand: output.trim().length > 0 || isRunning,
+    canExpand,
     isRunning,
     autoExpandWhileRunning: false,
-    expandOnError: hasContent,
+    expandOnError: canExpand,
     statusTone: card.statusTone,
   });
-
-  const commandPart = card.summary?.replace(/^(command|path|args|query|input):\s*/i, '');
 
   return (
     <ToolCardRoot>
@@ -264,7 +261,7 @@ export function TerminalExecutionView({ card }: { card: ChatToolPartViewModel })
         card={card} 
         icon={Terminal} 
         expanded={expanded} 
-        canExpand={output.trim().length > 0 || isRunning} 
+        canExpand={canExpand}
         onToggle={onToggle} 
       />
       {expanded && (
@@ -286,11 +283,14 @@ export function TerminalExecutionView({ card }: { card: ChatToolPartViewModel })
               </div>
             </div>
           </div>
-          {output && (
-            <ToolCardContent>
-              <pre className="font-mono text-[12px] text-muted-foreground whitespace-pre-wrap break-all w-full max-w-full max-h-64 overflow-y-auto overflow-x-hidden min-w-0 custom-scrollbar leading-relaxed px-0">
-                {output}
-                {isRunning && <span className="inline-block w-1.5 h-3 ml-1 bg-primary/60 animate-pulse align-middle" />}
+          {(hasOutput || !isRunning) && (
+            <ToolCardContent className={hasOutput ? undefined : 'bg-muted/20 py-2'}>
+              <pre className={cn(
+                'font-mono text-[12px] text-muted-foreground whitespace-pre-wrap break-all w-full max-w-full max-h-64 overflow-y-auto overflow-x-hidden min-w-0 custom-scrollbar leading-relaxed',
+                hasOutput ? 'px-0' : 'rounded-md border border-dashed border-border bg-card/70 px-3 py-2 italic',
+              )}>
+                {hasOutput ? output : card.emptyLabel}
+                {isRunning && hasOutput && <span className="inline-block w-1.5 h-3 ml-1 bg-primary/60 animate-pulse align-middle" />}
               </pre>
             </ToolCardContent>
           )}
@@ -300,9 +300,6 @@ export function TerminalExecutionView({ card }: { card: ChatToolPartViewModel })
   );
 }
 
-// -------------------------------------------------------------
-// 2. File Operation View
-// -------------------------------------------------------------
 export function FileOperationView({
   card,
   onFileOpen,
@@ -358,9 +355,6 @@ export function FileOperationView({
   );
 }
 
-// -------------------------------------------------------------
-// 3. Search View
-// -------------------------------------------------------------
 export function SearchSnippetView({ card }: { card: ChatToolPartViewModel }) {
   const isRunning = card.statusTone === 'running';
   const output = card.output?.trim() ?? '';
@@ -391,9 +385,6 @@ export function SearchSnippetView({ card }: { card: ChatToolPartViewModel }) {
   );
 }
 
-// -------------------------------------------------------------
-// 4. Generic View
-// -------------------------------------------------------------
 export function GenericToolCard({
   card,
   onToolAction,

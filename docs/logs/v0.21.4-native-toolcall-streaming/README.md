@@ -17,6 +17,8 @@
 - 保留原有 `MessageToolCallArgsDelta` 渐进输出合同：工具参数尚未完整、模型 round 尚未结束时，前端仍能收到 partial args delta，而不是等最终工具执行结果。
 - `stream-encoder.ts` 重命名为 `stream-encoder.service.ts`，满足 touched source 文件角色后缀治理。
 
+同批补充修复了 terminal/exec 工具卡片“命令成功但无 stdout/stderr 时无法展开”的前端体验问题。根因在 `TerminalExecutionView` 把 `canExpand` 绑定到 `output.trim().length > 0 || isRunning`，导致已完成且无输出的 `command_execution` 卡片没有展开入口；修复后只要有命令摘要即可展开，输出区用弱化的 dashed empty state 展示 `emptyLabel`，并继续避免结构化 terminal result 泄露为 JSON。
+
 ## 测试/验证/验收方式
 
 - `pnpm --filter @nextclaw/ncp-agent-runtime-next test`
@@ -32,6 +34,16 @@
 - `pnpm lint:new-code:governance`
 - `pnpm check:governance-backlog-ratchet`
 - `git diff --check`
+- `pnpm --filter @nextclaw/agent-chat-ui test -- src/components/chat/ui/chat-message-list/chat-message-list.test.tsx src/components/chat/ui/chat-message-list/__tests__/chat-message-list.terminal.test.tsx`
+- `pnpm --filter @nextclaw/agent-chat-ui tsc`
+- `pnpm --filter @nextclaw/agent-chat-ui lint`
+- `pnpm --filter @nextclaw/ui tsc`
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-agent-chat-ui/src/components/chat/ui/chat-message-list/tool-card/tool-card-views.tsx packages/nextclaw-agent-chat-ui/src/components/chat/ui/chat-message-list/chat-message-list.test.tsx packages/nextclaw-agent-chat-ui/src/components/chat/ui/chat-message-list/__tests__/chat-message-list.terminal.test.tsx`
+  - 结果：通过；warning 为 touched 测试文件和 `tool-card-views.tsx` 接近文件预算，非测试代码净变化为 -9。
+- `pnpm lint:new-code:governance`
+  - 结果：通过；保留一个已记录例外的 unrelated flat-directory warning。
+- `pnpm check:governance-backlog-ratchet`
+- `pnpm clean:generated`
 
 回归测试新增在 `packages/ncp-packages/nextclaw-ncp-agent-runtime-next/src/runtime/agent-runtime.service.test.ts`，覆盖：
 
@@ -39,9 +51,14 @@
 - 第一个 ready tool result 可早于后续 toolcall close 事件输出。
 - 多个 ready toolcall 按 stream order 串行执行，第二个工具不会在第一个工具结果 apply/yield 前启动。
 
+补充前端回归测试覆盖：
+
+- `command_execution` 结构化结果没有 terminal output 时，点击命令摘要后展示 `No output` empty state。
+- 空输出结构化结果不会回退泄露 `"stdout"`、`"workingDir"`、`"durationMs"` 等 JSON 字段。
+
 ## 发布/部署方式
 
-本轮未执行发布或部署。改动位于 NCP runtime 源码包，后续若进入统一 NPM 发版，需要纳入 `@nextclaw/ncp-agent-runtime` 与 `@nextclaw/ncp-agent-runtime-next`。
+本轮未执行发布或部署。改动位于 NCP runtime 源码包与 `@nextclaw/agent-chat-ui`，后续若进入统一 NPM 发版，需要纳入 `@nextclaw/ncp-agent-runtime`、`@nextclaw/ncp-agent-runtime-next` 与 `@nextclaw/agent-chat-ui`。
 
 ## 用户/产品视角的验收步骤
 
@@ -51,6 +68,7 @@
 2. 后续工具调用仍在模型流中继续输出时，前一个工具结果不应等待整批 toolcall 结束后才展示。
 3. 多个工具不应表现为最后统一批量执行或统一批量完成。
 4. 工具参数仍在生成中时，文件类工具卡片应继续收到渐进参数 delta，不能退化为只在最终结果时更新。
+5. 对没有 stdout/stderr 的 exec/terminal 工具卡片，完成后仍应能点击展开，并在输出区看到弱化样式的“无输出”空态，而不是完全不能展开。
 
 ## 可维护性总结汇总
 
@@ -60,6 +78,7 @@
 - 新增 `RuntimeToolCallExecutor` owner 承载工具执行队列和结果回流，避免 `DefaultNcpAgentRuntime` 文件越过 maintainability budget，也避免并发执行把多个工具完成状态压到同一帧。
 - 将 toolcall buffer mutation 收敛到 `ToolCallDeltaEmitter` owner，普通函数不再直接 mutation 参数。
 - 普通 maintainability guard 通过；仍有文件增长 warning，但无 error，且主 runtime service 未越过 600 行预算。
+- terminal empty output 补修保持在 `TerminalExecutionView` 展示 owner 内，没有新增 adapter 或 runtime 兜底；同时删除 `tool-card-views.tsx` 内与组件名重复的装饰性分段注释，非测试代码净减 9 行。
 
 ### 行数门槛豁免说明
 
@@ -75,5 +94,6 @@
 
 - `@nextclaw/ncp-agent-runtime`
 - `@nextclaw/ncp-agent-runtime-next`
+- `@nextclaw/agent-chat-ui`
 
 当前状态：待统一发布。

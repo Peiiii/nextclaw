@@ -544,6 +544,7 @@ it("suppresses structured terminal payload json when the command produced no ter
 
   fireEvent.click(screen.getByText("python3 -m http.server 8765"));
 
+  expect(screen.getByText("No output")).toBeTruthy();
   expect(screen.queryByText(/"durationMs": 60002/)).toBeNull();
   expect(screen.queryByText(/"workingDir":/)).toBeNull();
 });
