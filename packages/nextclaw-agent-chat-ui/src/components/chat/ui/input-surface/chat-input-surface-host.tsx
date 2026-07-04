@@ -147,6 +147,7 @@ export function ChatInputSurfaceHost(props: ChatInputSurfaceHostProps) {
           ref={menuRef}
           isOpen={isOpen}
           isLoading={inputSurface.isLoading}
+          filterOptions={inputSurface.filterOptions}
           items={inputSurface.items}
           texts={inputSurface.texts}
           onSelectItem={(item) => {

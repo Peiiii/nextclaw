@@ -60,6 +60,60 @@ describe('ChatSlashMenu', () => {
     expect(onSelectItem).toHaveBeenCalledWith(item);
   });
 
+  it('filters slash items by category tags with visible counts', () => {
+    const commandItem = {
+      key: 'command:side-chat',
+      title: 'Side chat',
+      subtitle: 'Command',
+      description: 'Open a side chat',
+      detailLines: [],
+      sectionKey: 'commands',
+      sectionLabel: 'Commands',
+    };
+    const skillItem = {
+      key: 'skill:web-search',
+      title: 'Web Search',
+      subtitle: 'Skill',
+      description: 'Search the web',
+      detailLines: [],
+      sectionKey: 'skills',
+      sectionLabel: 'Skills',
+    };
+    const panelAppItem = {
+      key: 'panel-app-action:task-board',
+      title: 'Task Board',
+      subtitle: 'Panel App',
+      description: 'Open task board',
+      detailLines: [],
+      sectionKey: 'panel-apps',
+      sectionLabel: 'Panel Apps',
+    };
+
+    render(
+      <ChatSlashMenu
+        {...createSlashMenuProps({
+          filterOptions: [
+            { key: 'all', label: 'All' },
+            { key: 'commands', label: 'Commands', sectionKeys: ['commands'] },
+            { key: 'skills', label: 'Skills', sectionKeys: ['skills'] },
+            { key: 'panel-apps', label: 'Panel Apps', sectionKeys: ['panel-apps'] },
+          ],
+          items: [commandItem, skillItem, panelAppItem],
+        })}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'All 3' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Panel Apps 1' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Panel Apps 1' }));
+
+    expect(screen.queryByRole('option', { name: /Side chat/i })).toBeNull();
+    expect(screen.queryByRole('option', { name: /Web Search/i })).toBeNull();
+    expect(screen.getByRole('option', { name: /Task Board/i }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByText('Open task board')).toBeTruthy();
+  });
+
   it('selects items before composer blur can close the menu', () => {
     const onSelectItem = vi.fn();
     const item = {

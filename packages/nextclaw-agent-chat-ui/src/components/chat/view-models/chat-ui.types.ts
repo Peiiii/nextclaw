@@ -204,7 +204,7 @@ export type ChatInputBarProps = {
     onInputSurfaceTriggerChange?: (trigger: ChatInputSurfaceTrigger | null) => void;
   };
   inputSurface?: ChatInputSurfaceConfig;
-  slashMenu?: Pick<ChatSlashMenuProps, "isLoading" | "items" | "texts"> & {
+  slashMenu?: Pick<ChatSlashMenuProps, "filterOptions" | "isLoading" | "items" | "texts"> & {
     onSelectItem?: (item: ChatSlashItem) => void;
   };
   hint?: ChatInlineHint | null;

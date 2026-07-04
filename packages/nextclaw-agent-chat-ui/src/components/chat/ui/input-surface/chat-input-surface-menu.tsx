@@ -5,7 +5,11 @@ import {
   ChatUiPrimitives,
   createChatPopoverAvailableHeightLimit,
 } from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
-import type { ChatInputSurfaceMenuProps } from '@agent-chat-ui/lib/input-surface';
+import type {
+  ChatInputSurfaceFilterOption,
+  ChatInputSurfaceItem,
+  ChatInputSurfaceMenuProps,
+} from '@agent-chat-ui/lib/input-surface';
 
 const INPUT_SURFACE_PANEL_MAX_WIDTH = 680;
 const INPUT_SURFACE_PANEL_DESKTOP_SHRINK_RATIO = 0.82;
@@ -22,6 +26,17 @@ type ChatInputSurfaceActiveState = {
   itemsSignature: string;
 };
 
+type ChatInputSurfaceFilterView = ChatInputSurfaceFilterOption & {
+  count: number;
+};
+
+function itemMatchesFilter(item: ChatInputSurfaceItem, filter: ChatInputSurfaceFilterOption): boolean {
+  if (!filter.sectionKeys || filter.sectionKeys.length === 0) {
+    return true;
+  }
+  return Boolean(item.sectionKey && filter.sectionKeys.includes(item.sectionKey));
+}
+
 export const ChatInputSurfaceMenu = forwardRef<ChatInputSurfaceMenuHandle, ChatInputSurfaceMenuProps>(
 function ChatInputSurfaceMenu(props, ref) {
   const { Popover, PopoverAnchor, PopoverContent } = ChatUiPrimitives;
@@ -34,20 +49,54 @@ function ChatInputSurfaceMenu(props, ref) {
   const {
     isOpen,
     isLoading,
+    filterOptions,
     items,
     texts,
     onSelectItem,
     onOpenChange,
     onDetailsPointerDown,
   } = props;
-  const itemsSignature = useMemo(() => items.map((item) => item.key).join('\u001f'), [items]);
+  const firstFilterKey = filterOptions?.[0]?.key ?? null;
+  const [activeFilterKey, setActiveFilterKey] = useState<string | null>(firstFilterKey);
+  const resolvedActiveFilterKey = useMemo(() => {
+    if (!filterOptions?.length) {
+      return null;
+    }
+    return filterOptions.some((filter) => filter.key === activeFilterKey)
+      ? activeFilterKey
+      : filterOptions[0].key;
+  }, [activeFilterKey, filterOptions]);
+  const activeFilter = useMemo(
+    () => filterOptions?.find((filter) => filter.key === resolvedActiveFilterKey) ?? null,
+    [filterOptions, resolvedActiveFilterKey],
+  );
+  const filterViews = useMemo<ChatInputSurfaceFilterView[]>(
+    () =>
+      filterOptions?.map((filter) => ({
+        ...filter,
+        count: items.filter((item) => itemMatchesFilter(item, filter)).length,
+      })) ?? [],
+    [filterOptions, items],
+  );
+  const visibleItems = useMemo(
+    () => (activeFilter ? items.filter((item) => itemMatchesFilter(item, activeFilter)) : items),
+    [activeFilter, items],
+  );
+  const itemsSignature = useMemo(
+    () => visibleItems.map((item) => item.key).join('\u001f'),
+    [visibleItems],
+  );
   const hasItemSections = useMemo(
-    () => items.some((item) => Boolean(item.sectionLabel?.trim())),
-    [items],
+    () => visibleItems.some((item) => Boolean(item.sectionLabel?.trim())),
+    [visibleItems],
   );
   const activeIndex = activeState.itemsSignature === itemsSignature ? activeState.index : 0;
-  const activeIndexInRange = items.length === 0 ? 0 : Math.min(activeIndex, items.length - 1);
-  const activeItem = items[activeIndexInRange] ?? null;
+  const activeIndexInRange = visibleItems.length === 0 ? 0 : Math.min(activeIndex, visibleItems.length - 1);
+  const activeItem = visibleItems[activeIndexInRange] ?? null;
+  const handleFilterSelect = useCallback((filterKey: string): void => {
+    setActiveFilterKey(filterKey);
+    setActiveState({ index: 0, itemsSignature: '' });
+  }, []);
   const setActiveIndexForCurrentItems = useCallback(
     (nextIndex: number | ((currentIndex: number) => number)): void => {
       setActiveState((currentState) => {
@@ -85,36 +134,36 @@ function ChatInputSurfaceMenu(props, ref) {
         return true;
       }
 
-      if (items.length === 0) {
+      if (visibleItems.length === 0) {
         return false;
       }
 
       if (event.key === 'ArrowDown') {
         event.preventDefault();
-        setActiveIndexForCurrentItems((index) => (index + 1) % items.length);
+        setActiveIndexForCurrentItems((index) => (index + 1) % visibleItems.length);
         return true;
       }
 
       if (event.key === 'ArrowUp') {
         event.preventDefault();
-        setActiveIndexForCurrentItems((index) => (index - 1 + items.length) % items.length);
+        setActiveIndexForCurrentItems((index) => (index - 1 + visibleItems.length) % visibleItems.length);
         return true;
       }
 
       if ((event.key === 'Enter' && !event.shiftKey) || event.key === 'Tab') {
         event.preventDefault();
-        onSelectItem(items[activeIndexInRange]);
+        onSelectItem(visibleItems[activeIndexInRange]);
         return true;
       }
 
       return false;
     },
-  }), [activeIndexInRange, isOpen, items, onOpenChange, onSelectItem, setActiveIndexForCurrentItems]);
+  }), [activeIndexInRange, isOpen, onOpenChange, onSelectItem, setActiveIndexForCurrentItems, visibleItems]);
 
   useActiveItemScroll({
     containerRef: listRef,
     activeIndex: activeIndexInRange,
-    itemCount: items.length,
+    itemCount: visibleItems.length,
     isEnabled: isOpen && !isLoading,
     getItemSelector: (index) => `[data-input-surface-index="${index}"]`,
   });
@@ -149,16 +198,40 @@ function ChatInputSurfaceMenu(props, ref) {
               <div className="p-2 text-xs text-gray-500">{texts.loadingLabel}</div>
             ) : (
               <>
+                {filterViews.length > 0 ? (
+                  <div className="sticky top-0 z-10 -mx-1 mb-2 flex gap-1 overflow-x-auto bg-white/95 px-1 pb-2 backdrop-blur-md">
+                    {filterViews.map(({ count, key, label }) => {
+                      const isActive = key === resolvedActiveFilterKey;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          aria-pressed={isActive}
+                          onPointerDown={(event) => event.preventDefault()}
+                          onClick={() => handleFilterSelect(key)}
+                          className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                            isActive
+                              ? 'border-primary/30 bg-primary/10 text-primary'
+                              : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span>{label}</span>
+                          <span className={isActive ? 'text-primary/70' : 'text-gray-400'}>{count}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
                 {!hasItemSections ? (
                   <div className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
                     {texts.sectionLabel}
                   </div>
                 ) : null}
-                {items.length === 0 ? (
+                {visibleItems.length === 0 ? (
                   <div className="px-2 text-xs text-gray-400">{texts.emptyLabel}</div>
                 ) : (
                   <div className="space-y-1">
-                    {items.map((item, index) => {
+                    {visibleItems.map((item, index) => {
                       const {
                         key,
                         sectionKey,

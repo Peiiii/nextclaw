@@ -21,16 +21,17 @@ function getPanelAppActivityTime(entry: PanelAppEntryView): number {
   return Date.parse(entry.lastOpenedAt ?? entry.updatedAt) || 0;
 }
 
-function buildPanelAppReferenceItems(params: {
+export type PanelAppInputSurfaceItemTexts = {
+  appIdLabel: string;
+  fileLabel: string;
+  noDescriptionLabel: string;
+  subtitle: string;
+};
+
+function resolvePanelAppInputSurfaceEntries(params: {
   entries: readonly PanelAppEntryView[];
   query: string;
-  texts: {
-    appIdLabel: string;
-    fileLabel: string;
-    noDescriptionLabel: string;
-    subtitle: string;
-  };
-}): ChatInputSurfaceItem[] {
+}): PanelAppEntryView[] {
   const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
   return params.entries
     .map((entry, order) => ({
@@ -67,8 +68,23 @@ function buildPanelAppReferenceItems(params: {
       const labelCompare = collator.compare(left.entry.title || left.entry.appId, right.entry.title || right.entry.appId);
       return labelCompare || left.order - right.order;
     })
-    .map(({ entry }) => ({
-      key: `panel-app:${entry.appId}`,
+    .map(({ entry }) => entry);
+}
+
+function buildPanelAppInputSurfaceItemEntries(params: {
+  entries: readonly PanelAppEntryView[];
+  keyPrefix?: string;
+  query: string;
+  texts: PanelAppInputSurfaceItemTexts;
+}): Array<{ entry: PanelAppEntryView; item: ChatInputSurfaceItem }> {
+  const keyPrefix = params.keyPrefix ?? 'panel-app';
+  return resolvePanelAppInputSurfaceEntries({
+    entries: params.entries,
+    query: params.query,
+  }).map((entry) => ({
+    entry,
+    item: {
+      key: `${keyPrefix}:${entry.appId}`,
       title: entry.title || entry.appId,
       subtitle: params.texts.subtitle,
       description: (entry.description ?? '').trim() || params.texts.noDescriptionLabel,
@@ -76,10 +92,30 @@ function buildPanelAppReferenceItems(params: {
         `${params.texts.appIdLabel}: ${entry.appId}`,
         `${params.texts.fileLabel}: ${entry.fileName}`,
       ],
-      tokenKind: 'panel_app',
-      tokenKey: entry.appId,
-      value: entry.appId,
-    }));
+    },
+  }));
+}
+
+export function buildPanelAppInputSurfaceItems(params: {
+  entries: readonly PanelAppEntryView[];
+  keyPrefix?: string;
+  query: string;
+  texts: PanelAppInputSurfaceItemTexts;
+}): ChatInputSurfaceItem[] {
+  return buildPanelAppInputSurfaceItemEntries(params).map(({ item }) => item);
+}
+
+function buildPanelAppReferenceItems(params: {
+  entries: readonly PanelAppEntryView[];
+  query: string;
+  texts: PanelAppInputSurfaceItemTexts;
+}): ChatInputSurfaceItem[] {
+  return buildPanelAppInputSurfaceItemEntries(params).map(({ entry, item }) => ({
+    ...item,
+    tokenKind: 'panel_app',
+    tokenKey: entry.appId,
+    value: entry.appId,
+  }));
 }
 
 export function createPanelAppReferenceInputSurfacePlugin(params: {

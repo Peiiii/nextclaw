@@ -1,11 +1,15 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
+  CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC,
   resolveChatInputSurfaceState,
   type ChatInputSurfaceTrigger,
 } from '@nextclaw/agent-chat-ui';
 import { usePanelApps } from '@/features/panel-apps';
 import { t, type I18nLanguage } from '@/shared/lib/i18n';
-import { createPanelAppReferenceInputSurfacePlugin, PANEL_APP_REFERENCE_TRIGGER_SPEC } from '@/features/chat/features/input/input-surface-plugins/panel-app-reference-plugin.utils';
+import {
+  createPanelAppReferenceInputSurfacePlugin,
+  PANEL_APP_REFERENCE_TRIGGER_SPEC,
+} from '@/features/chat/features/input/input-surface-plugins/panel-app-reference-plugin.utils';
 import {
   createSlashCommandInputSurfacePlugin,
   type ChatSlashCommandDescriptor,
@@ -22,6 +26,7 @@ export function useChatInputSurfaceState(params: {
     >;
   };
   language: I18nLanguage;
+  onSelectPanelApp: (appId: string) => void;
   onSelectSkill: (skillRef: string) => void;
   recentSkillValues: readonly string[];
   skillRecords: readonly ChatSkillRecord[];
@@ -30,6 +35,7 @@ export function useChatInputSurfaceState(params: {
     isSkillsLoading,
     itemTexts,
     language,
+    onSelectPanelApp,
     onSelectSkill,
     recentSkillValues,
     skillRecords,
@@ -43,13 +49,24 @@ export function useChatInputSurfaceState(params: {
     inputSurfaceTriggerSignatureRef.current = nextSignature;
     setInputSurfaceTriggerState(nextTrigger);
   }, []);
-  const panelApps = usePanelApps({ enabled: inputSurfaceTrigger?.key === PANEL_APP_REFERENCE_TRIGGER_SPEC.key });
+  const shouldLoadPanelApps =
+    inputSurfaceTrigger?.key === PANEL_APP_REFERENCE_TRIGGER_SPEC.key ||
+    inputSurfaceTrigger?.key === CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC.key;
+  const panelApps = usePanelApps({ enabled: shouldLoadPanelApps });
 
   const inputSurfacePlugins = useMemo(
     () => [
       createSlashCommandInputSurfacePlugin({
         commands,
-        itemTexts: itemTexts.slashTexts,
+        itemTexts: {
+          panelAppTexts: {
+            appIdLabel: t('chatPanelAppReferenceAppId', language),
+            fileLabel: t('chatPanelAppReferenceFile', language),
+            noDescriptionLabel: t('chatPanelAppReferenceNoDescription', language),
+            subtitle: t('chatPanelAppReferenceType', language),
+          },
+          skillTexts: itemTexts.slashTexts,
+        },
         menuTexts: {
           loadingLabel: t('chatSlashLoading', language),
           sectionLabel: t('chatSlashSection', language),
@@ -61,9 +78,16 @@ export function useChatInputSurfaceState(params: {
           commandHintLabel: t('chatSlashCommandHint', language),
           commandSectionLabel: t('chatSlashSectionCommands', language),
           commandSubtitle: t('chatSlashTypeCommand', language),
+          filterAllLabel: t('chatSlashFilterAll', language),
+          filterCommandsLabel: t('chatSlashFilterCommands', language),
+          filterPanelAppsLabel: t('chatSlashFilterPanelApps', language),
+          filterSkillsLabel: t('chatSlashFilterSkills', language),
+          panelAppHintLabel: t('chatSlashPanelAppHint', language),
+          panelAppSectionLabel: t('chatPanelAppReferenceSection', language),
           skillHintLabel: t('chatSlashSkillHint', language),
           skillSectionLabel: t('chatSlashSectionSkills', language)
         },
+        onSelectPanelApp,
         onSelectSkill
       }),
       createPanelAppReferenceInputSurfacePlugin({
@@ -86,6 +110,7 @@ export function useChatInputSurfaceState(params: {
       commands,
       itemTexts.slashTexts,
       language,
+      onSelectPanelApp,
       onSelectSkill
     ]
   );

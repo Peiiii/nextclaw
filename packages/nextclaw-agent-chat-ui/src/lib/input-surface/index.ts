@@ -5,6 +5,7 @@ export {
 } from './input-surface-plugin.utils';
 export type {
   ChatInputSurfaceConfig,
+  ChatInputSurfaceFilterOption,
   ChatInputSurfaceItem,
   ChatInputSurfaceMenuProps,
   ChatInputSurfaceMenuTexts,

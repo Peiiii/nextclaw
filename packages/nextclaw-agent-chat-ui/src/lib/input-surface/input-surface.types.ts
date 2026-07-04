@@ -42,7 +42,14 @@ export type ChatInputSurfaceItem = {
   tokenKey?: string;
 };
 
+export type ChatInputSurfaceFilterOption = {
+  key: string;
+  label: string;
+  sectionKeys?: readonly string[];
+};
+
 export type ChatInputSurfaceMenuProps = {
+  filterOptions?: readonly ChatInputSurfaceFilterOption[];
   isOpen: boolean;
   isLoading: boolean;
   items: ChatInputSurfaceItem[];
@@ -54,7 +61,7 @@ export type ChatInputSurfaceMenuProps = {
 
 export type ChatInputSurfaceConfig = Pick<
   ChatInputSurfaceMenuProps,
-  "isLoading" | "items" | "texts"
+  "filterOptions" | "isLoading" | "items" | "texts"
 > & {
   onSelectItem?: (item: ChatInputSurfaceItem) => void;
 };

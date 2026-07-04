@@ -61,6 +61,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
   const resolvedInputSurface: ChatInputSurfaceConfig | null = inputSurface ?? (slashMenu
     ? {
         isLoading: slashMenu.isLoading,
+        filterOptions: slashMenu.filterOptions,
         items: slashMenu.items,
         onSelectItem: slashMenu.onSelectItem,
         texts: {

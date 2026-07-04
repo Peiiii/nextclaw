@@ -9,11 +9,17 @@ import { buildChatSlashItems } from '@/features/chat/features/input/utils/chat-i
 import type { ChatInputProductPluginData } from './chat-input-product-plugin-adapters.types';
 import type { ChatInputBarAdapterTexts } from '@/features/chat/types/chat-input-bar.types';
 import {
+  buildPanelAppInputSurfaceItems,
+  type PanelAppInputSurfaceItemTexts,
+} from './panel-app-reference-plugin.utils';
+import {
   resolveInputSurfaceMatchTier,
   scoreInputSurfaceSearchCandidate,
 } from './input-surface-search.utils';
 
 const SLASH_COMMAND_SECTION_KEY = 'commands';
+const SLASH_PANEL_APP_KEY_PREFIX = 'panel-app-action';
+const SLASH_PANEL_APP_SECTION_KEY = 'panel-apps';
 const SLASH_SKILL_SECTION_KEY = 'skills';
 
 export type ChatSlashCommandDescriptor = {
@@ -103,20 +109,55 @@ function buildSlashSkillItems(params: {
   }));
 }
 
+function buildSlashPanelAppItems(params: {
+  data: ChatInputProductPluginData;
+  itemTexts: PanelAppInputSurfaceItemTexts;
+  panelAppHintLabel: string;
+  panelAppSectionLabel: string;
+  query: string;
+}): ChatInputSurfaceItem[] {
+  return buildPanelAppInputSurfaceItems({
+    entries: params.data.panelApps,
+    keyPrefix: SLASH_PANEL_APP_KEY_PREFIX,
+    query: params.query,
+    texts: params.itemTexts,
+  }).map((item) => ({
+    ...item,
+    hintLabel: params.panelAppHintLabel,
+    sectionKey: SLASH_PANEL_APP_SECTION_KEY,
+    sectionLabel: params.panelAppSectionLabel,
+  }));
+}
+
+function resolveSlashPanelAppId(item: ChatInputSurfaceItem): string | null {
+  const prefix = `${SLASH_PANEL_APP_KEY_PREFIX}:`;
+  return item.key.startsWith(prefix) ? item.key.slice(prefix.length) : null;
+}
+
 export function createSlashCommandInputSurfacePlugin(params: {
   commands: readonly ChatSlashCommandDescriptor[];
   menuTexts: ChatInputSurfaceMenuTexts;
-  itemTexts: Pick<
-    ChatInputBarAdapterTexts,
-    'slashSkillSubtitle' | 'slashSkillSpecLabel' | 'slashSkillScopeLabel' | 'noSkillDescription'
-  >;
+  itemTexts: {
+    panelAppTexts: PanelAppInputSurfaceItemTexts;
+    skillTexts: Pick<
+      ChatInputBarAdapterTexts,
+      'slashSkillSubtitle' | 'slashSkillSpecLabel' | 'slashSkillScopeLabel' | 'noSkillDescription'
+    >;
+  };
   labels: {
     commandHintLabel: string;
     commandSectionLabel: string;
     commandSubtitle: string;
+    filterAllLabel: string;
+    filterCommandsLabel: string;
+    filterPanelAppsLabel: string;
+    filterSkillsLabel: string;
+    panelAppHintLabel: string;
+    panelAppSectionLabel: string;
     skillHintLabel: string;
     skillSectionLabel: string;
   };
+  onSelectPanelApp: (appId: string) => void;
   onSelectSkill?: (skillRef: string) => void;
 }): ChatInputSurfacePlugin<ChatInputProductPluginData> {
   return createInputSurfaceTriggeredPanelPlugin({
@@ -125,7 +166,25 @@ export function createSlashCommandInputSurfacePlugin(params: {
     resolvePanel: (context) => {
       const { data, trigger } = context;
       return {
-        isLoading: data.isSkillsLoading,
+        filterOptions: [
+          { key: 'all', label: params.labels.filterAllLabel },
+          {
+            key: SLASH_COMMAND_SECTION_KEY,
+            label: params.labels.filterCommandsLabel,
+            sectionKeys: [SLASH_COMMAND_SECTION_KEY],
+          },
+          {
+            key: SLASH_SKILL_SECTION_KEY,
+            label: params.labels.filterSkillsLabel,
+            sectionKeys: [SLASH_SKILL_SECTION_KEY],
+          },
+          {
+            key: SLASH_PANEL_APP_SECTION_KEY,
+            label: params.labels.filterPanelAppsLabel,
+            sectionKeys: [SLASH_PANEL_APP_SECTION_KEY],
+          },
+        ],
+        isLoading: data.isPanelAppsLoading || data.isSkillsLoading,
         items: [
           ...buildSlashCommandItems({
             commands: params.commands,
@@ -138,15 +197,27 @@ export function createSlashCommandInputSurfacePlugin(params: {
           }),
           ...buildSlashSkillItems({
             data,
-            itemTexts: params.itemTexts,
+            itemTexts: params.itemTexts.skillTexts,
             query: trigger.query,
             skillHintLabel: params.labels.skillHintLabel,
             skillSectionLabel: params.labels.skillSectionLabel,
+          }),
+          ...buildSlashPanelAppItems({
+            data,
+            itemTexts: params.itemTexts.panelAppTexts,
+            panelAppHintLabel: params.labels.panelAppHintLabel,
+            panelAppSectionLabel: params.labels.panelAppSectionLabel,
+            query: trigger.query,
           }),
         ],
         onSelectItem: (item) => {
           if (item.key.startsWith('command:')) {
             params.commands.find((command) => item.key === `command:${command.key}`)?.onSelect();
+            return;
+          }
+          const panelAppId = resolveSlashPanelAppId(item);
+          if (panelAppId) {
+            params.onSelectPanelApp(panelAppId);
             return;
           }
           const skillRef = item.tokenKey ?? item.value;

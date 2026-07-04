@@ -215,6 +215,13 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     language,
     presenter.chatThreadManager,
   ]);
+  const handleSlashPanelAppSelect = useCallback(
+    (appId: string) =>
+      void presenter.chatUiManager.showContent({
+        target: { type: 'panel_app', payload: { appId } },
+      }),
+    [presenter.chatUiManager],
+  );
   const { inputSurfaceState, setInputSurfaceTrigger } = useChatInputSurfaceState({
     commands: slashCommands,
     isSkillsLoading: inputQuery.isSkillsLoading,
@@ -222,6 +229,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
       slashTexts: labels.slashTexts,
     },
     language,
+    onSelectPanelApp: handleSlashPanelAppSelect,
     onSelectSkill: chatRecentSkillsManager.remember,
     recentSkillValues,
     skillRecords,
