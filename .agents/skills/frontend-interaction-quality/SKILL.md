@@ -19,6 +19,8 @@ description: 当设计、修改或评估前端交互体验、操作按钮、hove
 ## 操作控件规范
 
 - 纯图标按钮必须同时具备可访问名称和可见解释：`aria-label` 或等价文本负责读屏/键盘，tooltip 或 popover 负责鼠标悬停可理解性；不要只依赖浏览器原生 `title`。
+- icon-only 操作的 tooltip / popover 必须在 docked、floating、fullscreen、portal 等承载状态下都可见；遇到浮窗、modal 或高 z-index 容器遮挡时，优先修 shared primitive / z-index token，不要在业务页面临时加局部层级 hack。
+- Dialog / modal 打开后，overlay 与 content 必须都高于触发它的 floating panel / side panel，且 content 必须高于 overlay；禁止出现“只有遮罩、弹窗内容被原面板盖住”的半打开状态。
 - 紧凑模式收起文字时，必须保留当前值或操作含义的解释入口；高频直接操作优先 tooltip，涉及当前值、选项集合或二级动作时优先 popover/menu/select。
 - 禁用按钮如果仍然可见，应尽量解释含义或不可用原因；实现 Tooltip 时注意 disabled 元素可能不能直接触发 hover。
 - hover、focus-visible、active、disabled 状态要表达同一语义层级；不要只给 hover，不给键盘焦点。

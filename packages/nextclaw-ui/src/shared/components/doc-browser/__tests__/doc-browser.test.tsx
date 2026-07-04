@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DocBrowser } from "@/shared/components/doc-browser/doc-browser";
+import { DocBrowserTabStrip } from "@/shared/components/doc-browser/doc-browser-tab-strip";
 import type {
   DocBrowserContextValue,
   DocBrowserTab,
@@ -66,6 +67,15 @@ const { docBrowserState } = vi.hoisted<{
   },
 }));
 
+class TestPointerEvent extends MouseEvent {
+  pointerId: number;
+
+  constructor(type: string, init: PointerEventInit = {}) {
+    super(type, init);
+    this.pointerId = init.pointerId ?? 1;
+  }
+}
+
 vi.mock("@/shared/components/doc-browser/doc-browser-context", async () => {
   const actual = await vi.importActual(
     "@/shared/components/doc-browser/doc-browser-context",
@@ -82,49 +92,61 @@ function firePointerEvent(
   type: string,
   point: { clientX: number; clientY?: number; pointerId?: number },
 ) {
-  const event = new Event(type, { bubbles: true });
-  Object.defineProperties(event, {
-    clientX: { value: point.clientX },
-    clientY: { value: point.clientY ?? 0 },
-    pointerId: { value: point.pointerId ?? 1 },
+  const event = new window.PointerEvent(type, {
+    bubbles: true,
+    clientX: point.clientX,
+    clientY: point.clientY ?? 0,
+    pointerId: point.pointerId ?? 1,
   });
   fireEvent(target, event);
 }
 
+function resetDocBrowserTestState() {
+  vi.clearAllMocks();
+  docBrowserState.mode = "docked";
+  docBrowserState.tabs = [
+    {
+      id: "docs",
+      kind: "docs" as const,
+      title: "Docs",
+      currentUrl: "https://docs.nextclaw.io/en/guide/getting-started",
+      history: ["https://docs.nextclaw.io/en/guide/getting-started"],
+      historyIndex: 0,
+      navVersion: 0,
+    },
+  ];
+  docBrowserState.activeTabId = "docs";
+  docBrowserState.activeHistory = [
+    {
+      kind: "docs" as const,
+      tabId: "docs",
+      url: "https://docs.nextclaw.io/en/guide/getting-started",
+    },
+  ];
+  docBrowserState.activeHistoryIndex = 0;
+  docBrowserState.currentTab = docBrowserState.tabs[0];
+}
+
+function installDocBrowserPointerTestEnvironment() {
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    value: 1200,
+  });
+  Object.defineProperty(window, "innerHeight", {
+    configurable: true,
+    value: 900,
+  });
+  Object.defineProperty(window, "PointerEvent", {
+    configurable: true,
+    value: TestPointerEvent,
+  });
+  HTMLElement.prototype.setPointerCapture = vi.fn();
+}
+
 describe("DocBrowser", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    docBrowserState.mode = "docked";
-    docBrowserState.tabs = [
-      {
-        id: "docs",
-        kind: "docs" as const,
-        title: "Docs",
-        currentUrl: "https://docs.nextclaw.io/en/guide/getting-started",
-        history: ["https://docs.nextclaw.io/en/guide/getting-started"],
-        historyIndex: 0,
-        navVersion: 0,
-      },
-    ];
-    docBrowserState.activeTabId = "docs";
-    docBrowserState.activeHistory = [
-      {
-        kind: "docs" as const,
-        tabId: "docs",
-        url: "https://docs.nextclaw.io/en/guide/getting-started",
-      },
-    ];
-    docBrowserState.activeHistoryIndex = 0;
-    docBrowserState.currentTab = docBrowserState.tabs[0];
-    Object.defineProperty(window, "innerWidth", {
-      configurable: true,
-      value: 1200,
-    });
-    Object.defineProperty(window, "innerHeight", {
-      configurable: true,
-      value: 900,
-    });
-    HTMLElement.prototype.setPointerCapture = vi.fn();
+    resetDocBrowserTestState();
+    installDocBrowserPointerTestEnvironment();
   });
 
   it("uses the shared right panel resize handle in docked mode", () => {
@@ -158,6 +180,7 @@ describe("DocBrowser", () => {
 
     const tabStrip = screen.getByTestId("doc-browser-tab-strip");
     const tabActions = screen.getByTestId("doc-browser-tab-actions");
+    const floatButton = screen.getByRole("button", { name: "Float Window" });
     const newTabButton = screen.getByRole("button", { name: "New Tab" });
 
     expect(
@@ -167,8 +190,10 @@ describe("DocBrowser", () => {
       tabActions.contains(screen.getByRole("button", { name: "Forward" })),
     ).toBe(true);
     expect(
-      tabStrip.contains(screen.getByRole("button", { name: "Float Window" })),
+      tabStrip.contains(floatButton),
     ).toBe(true);
+    expect(floatButton.querySelector(".lucide-picture-in-picture2")).toBeTruthy();
+    expect(floatButton.querySelector(".lucide-maximize2")).toBeNull();
     expect(
       tabStrip.contains(screen.getByRole("button", { name: "Close" })),
     ).toBe(true);
@@ -372,6 +397,50 @@ describe("DocBrowser", () => {
     expect(screen.getByText("Help Docs")).toBeTruthy();
   });
 
+});
+
+describe("DocBrowser floating interactions", () => {
+  beforeEach(() => {
+    resetDocBrowserTestState();
+    installDocBrowserPointerTestEnvironment();
+  });
+
+  it("starts floating drag from the header background without stealing tab actions", () => {
+    const onDragStart = vi.fn();
+
+    render(
+      <DocBrowserTabStrip
+        tabs={docBrowserState.tabs}
+        activeTabId="docs"
+        canGoBack={false}
+        canGoForward={false}
+        isDocked={false}
+        isFullscreen={false}
+        onGoBack={vi.fn()}
+        onGoForward={vi.fn()}
+        onOpenNewTab={vi.fn()}
+        onSetActiveTab={vi.fn()}
+        onCloseTab={vi.fn()}
+        onClose={vi.fn()}
+        onDragStart={onDragStart}
+        onToggleMode={vi.fn()}
+      />,
+    );
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Docs" }));
+    expect(onDragStart).not.toHaveBeenCalled();
+
+    const tabStrip = screen.getByTestId("doc-browser-tab-strip");
+    const headerDragSurface = tabStrip.querySelector(".doc-browser-tab-scrollbar");
+    expect(headerDragSurface).toBeInstanceOf(HTMLElement);
+    expect((headerDragSurface as HTMLElement).className).toContain("cursor-grab");
+    expect(screen.getByRole("button", { name: "Docs" }).parentElement?.className).toContain("cursor-pointer");
+
+    fireEvent.pointerDown(headerDragSurface as HTMLElement);
+
+    expect(onDragStart).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps the floating panel left edge stable when resizing from the right", () => {
     docBrowserState.mode = "floating";
 
@@ -436,12 +505,65 @@ describe("DocBrowser", () => {
     expect(panel.style.top).toBe("120px");
     expect(panel.style.height).toBe("560px");
   });
+
+  it("resizes the floating panel from the bottom-left corner", () => {
+    docBrowserState.mode = "floating";
+
+    render(<DocBrowser />);
+
+    firePointerEvent(
+      screen.getByTestId("doc-browser-resize-bottom-left"),
+      "pointerdown",
+      {
+        clientX: 680,
+        clientY: 680,
+        pointerId: 1,
+      },
+    );
+    firePointerEvent(window, "pointermove", {
+      clientX: 620,
+      clientY: 720,
+      pointerId: 1,
+    });
+
+    const panel = screen.getByTestId("doc-browser-panel");
+    expect(panel.style.left).toBe("620px");
+    expect(panel.style.top).toBe("80px");
+    expect(panel.style.width).toBe("540px");
+    expect(panel.style.height).toBe("640px");
+  });
+
+  it("resizes the floating panel from the top-right corner", () => {
+    docBrowserState.mode = "floating";
+
+    render(<DocBrowser />);
+
+    firePointerEvent(
+      screen.getByTestId("doc-browser-resize-top-right"),
+      "pointerdown",
+      {
+        clientX: 1160,
+        clientY: 80,
+        pointerId: 1,
+      },
+    );
+    firePointerEvent(window, "pointermove", {
+      clientX: 1120,
+      clientY: 120,
+      pointerId: 1,
+    });
+
+    const panel = screen.getByTestId("doc-browser-panel");
+    expect(panel.style.left).toBe("680px");
+    expect(panel.style.top).toBe("120px");
+    expect(panel.style.width).toBe("440px");
+    expect(panel.style.height).toBe("560px");
+  });
 });
 
 describe("DocBrowser content tabs", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    docBrowserState.mode = "docked";
+    resetDocBrowserTestState();
   });
 
   it("shows browser controls for content iframe tabs", () => {

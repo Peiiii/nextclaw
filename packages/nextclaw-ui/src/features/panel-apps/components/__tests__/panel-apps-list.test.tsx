@@ -20,8 +20,10 @@ const mocks = vi.hoisted(() => ({
     title: string;
     updatedAt: string;
   }>,
+  grantPanelAppClient: vi.fn(),
   navigate: vi.fn(),
   refetchPanelApps: vi.fn(),
+  requestAuthorization: vi.fn(async () => true),
   requestDraft: vi.fn(),
 }));
 
@@ -31,7 +33,7 @@ vi.mock('@/app/components/app-presenter-provider', () => ({
       requestDraft: mocks.requestDraft,
     },
     serviceActionAuthorizationManager: {
-      requestAuthorization: vi.fn(async () => true),
+      requestAuthorization: mocks.requestAuthorization,
     },
   }),
 }));
@@ -47,7 +49,7 @@ vi.mock('@/features/panel-apps/hooks/use-panel-apps', () => ({
     mutate: vi.fn(),
   }),
   useGrantPanelAppClient: () => ({
-    mutateAsync: vi.fn(),
+    mutateAsync: mocks.grantPanelAppClient,
   }),
   usePanelApps: () => ({
     data: {
@@ -91,8 +93,11 @@ function createPanelAppEntry(overrides: Partial<(typeof mocks.entries)[number]> 
 describe('PanelAppsList', () => {
   beforeEach(() => {
     mocks.entries = [];
+    mocks.grantPanelAppClient.mockReset();
     mocks.navigate.mockReset();
     mocks.refetchPanelApps.mockReset();
+    mocks.requestAuthorization.mockReset();
+    mocks.requestAuthorization.mockResolvedValue(true);
     mocks.requestDraft.mockReset();
   });
 
@@ -133,5 +138,30 @@ describe('PanelAppsList', () => {
 
     expect(screen.getByText('No panel apps in this view')).toBeTruthy();
     expect(screen.queryByText('Create your first panel app')).toBeNull();
+  });
+
+  it('continues opening a client panel app after authorization', async () => {
+    const user = userEvent.setup();
+    const onOpenPanelApp = vi.fn();
+    const entry = createPanelAppEntry({
+      appId: 'demo-app',
+      clientDeclared: true,
+      clientGranted: false,
+    });
+    mocks.entries = [entry];
+
+    render(<PanelAppsList onOpenPanelApp={onOpenPanelApp} />);
+
+    await user.click(screen.getByRole('button', { name: /Demo Panel/ }));
+
+    expect(mocks.requestAuthorization).toHaveBeenCalledWith(expect.objectContaining({
+      panelAppId: 'demo-app',
+      actions: [expect.objectContaining({
+        actionId: 'nextclaw.client',
+        risk: 'dangerous',
+      })],
+    }));
+    expect(mocks.grantPanelAppClient).toHaveBeenCalledWith('demo-app');
+    expect(onOpenPanelApp).toHaveBeenCalledWith(entry);
   });
 });

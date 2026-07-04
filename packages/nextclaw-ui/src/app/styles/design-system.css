@@ -200,10 +200,11 @@
       --z-dropdown: 100;
       --z-sticky: 200;
       --z-fixed: 300;
-      --z-modal-backdrop: 400;
-      --z-modal: 500;
-      --z-popover: 600;
-      --z-tooltip: 700;
+      --z-floating-panel: 9999;
+      --z-modal-backdrop: 10000;
+      --z-modal: 10050;
+      --z-popover: 10100;
+      --z-tooltip: 10150;
    }
 }
 

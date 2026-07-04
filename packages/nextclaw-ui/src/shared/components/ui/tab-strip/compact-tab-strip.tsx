@@ -120,6 +120,7 @@ function CompactTabItem({
   return (
     <div
       ref={itemRef}
+      data-compact-tab-item=""
       onClick={(event) => event.target === event.currentTarget && tab.onSelect()}
       className={cn(
         tabBaseClassName ??

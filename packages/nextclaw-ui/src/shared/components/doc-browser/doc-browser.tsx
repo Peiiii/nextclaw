@@ -16,6 +16,13 @@ import {
   DocBrowserFrameContent,
 } from './doc-browser-panel-parts';
 import { DocBrowserTabStrip } from './doc-browser-tab-strip';
+import {
+  createInitialFloatingPanelRect,
+  moveFloatingPanelRect,
+  resizeFloatingPanelRect,
+  type FloatingPanelRect,
+  type FloatingPanelResizeEdge,
+} from './utils/doc-browser-floating-panel.utils';
 import { ResizableRightPanel } from '@/shared/components/resizable-right-panel/resizable-right-panel';
 import { cn } from '@/shared/lib/utils';
 import { t } from '@/shared/lib/i18n';
@@ -27,19 +34,15 @@ type DocBrowserProps = {
   dockControls?: DocBrowserDockControls;
 };
 
-type FloatingPanelRect = { x: number; y: number; w: number; h: number };
-type FloatingPanelResizeEdge = 'left' | 'right' | 'top' | 'bottom' | 'bottom-right';
 type FloatingPanelInteraction = {
-  kind: 'drag' | 'resize';
-  edge?: FloatingPanelResizeEdge;
   startX: number;
   startY: number;
   startRect: FloatingPanelRect;
-};
+} & (
+  | { kind: 'drag' }
+  | { kind: 'resize'; edge: FloatingPanelResizeEdge }
+);
 
-const FLOATING_PANEL_MARGIN = 40;
-const FLOATING_PANEL_MIN_WIDTH = 360;
-const FLOATING_PANEL_MIN_HEIGHT = 400;
 const DEFAULT_DOCS_IFRAME_SANDBOX = 'allow-same-origin allow-scripts allow-popups allow-forms';
 
 function resolveContentUrlInput(input: string, currentUrl: string): string {
@@ -148,19 +151,6 @@ function useDocBrowserAddressBar({
     handleUrlSubmit,
     setUrlInput,
     urlInput,
-  };
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-function createInitialFloatingPanelRect(): FloatingPanelRect {
-  return {
-    x: Math.max(FLOATING_PANEL_MARGIN, window.innerWidth - 520),
-    y: 80,
-    w: 480,
-    h: 600,
   };
 }
 
@@ -301,31 +291,11 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
       const dy = event.clientY - startY;
 
       if (floatInteraction.kind === 'drag') {
-        setFloatRect({
-          ...startRect,
-          x: clamp(startRect.x + dx, FLOATING_PANEL_MARGIN, window.innerWidth - FLOATING_PANEL_MARGIN - startRect.w),
-          y: clamp(startRect.y + dy, FLOATING_PANEL_MARGIN, window.innerHeight - FLOATING_PANEL_MARGIN - startRect.h),
-        });
+        setFloatRect(moveFloatingPanelRect(startRect, dx, dy));
         return;
       }
 
-      if (floatInteraction.edge === 'left' || floatInteraction.edge === 'top') {
-        const isLeftEdge = floatInteraction.edge === 'left';
-        const fixedEdge = isLeftEdge ? startRect.x + startRect.w : startRect.y + startRect.h;
-        const movingEdge = isLeftEdge ? startRect.x + dx : startRect.y + dy;
-        const minSize = isLeftEdge ? FLOATING_PANEL_MIN_WIDTH : FLOATING_PANEL_MIN_HEIGHT;
-        const nextEdge = clamp(movingEdge, FLOATING_PANEL_MARGIN, fixedEdge - minSize);
-        setFloatRect(isLeftEdge ? { ...startRect, x: nextEdge, w: fixedEdge - nextEdge } : { ...startRect, y: nextEdge, h: fixedEdge - nextEdge });
-        return;
-      }
-
-      const right = clamp(startRect.x + startRect.w + dx, startRect.x + FLOATING_PANEL_MIN_WIDTH, window.innerWidth - FLOATING_PANEL_MARGIN);
-      const bottom = clamp(startRect.y + startRect.h + dy, startRect.y + FLOATING_PANEL_MIN_HEIGHT, window.innerHeight - FLOATING_PANEL_MARGIN);
-      setFloatRect({
-        ...startRect,
-        w: floatInteraction.edge === 'bottom' ? startRect.w : right - startRect.x,
-        h: floatInteraction.edge === 'right' ? startRect.h : bottom - startRect.y,
-      });
+      setFloatRect(resizeFloatingPanelRect(floatInteraction.edge, startRect, dx, dy));
     };
 
     const onEnd = () => setFloatInteraction(null);
@@ -429,7 +399,7 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
       className={cn(
         'relative flex flex-col overflow-hidden bg-card text-card-foreground',
         isFullscreen
-          ? 'fixed inset-0 z-[9999] h-[100dvh] w-screen rounded-none border-0 shadow-2xl'
+          ? 'fixed inset-0 z-[var(--z-floating-panel)] h-[100dvh] w-screen rounded-none border-0 shadow-2xl'
           : 'rounded-2xl border border-border shadow-2xl',
       )}
       style={
@@ -441,7 +411,7 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
               top: floatRect.y,
               width: floatRect.w,
               height: floatRect.h,
-              zIndex: 9999,
+              zIndex: 'var(--z-floating-panel)',
             }
       }
     >
@@ -464,6 +434,21 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
             className="absolute bottom-0 left-0 h-3 w-full cursor-ns-resize z-20 hover:bg-primary/10 transition-colors"
             data-testid="doc-browser-resize-bottom"
             onPointerDown={startFloatResize('bottom')}
+          />
+          <div
+            className="absolute top-0 left-0 z-30 h-4 w-4 cursor-nw-resize hover:bg-primary/10 transition-colors"
+            data-testid="doc-browser-resize-top-left"
+            onPointerDown={startFloatResize('top-left')}
+          />
+          <div
+            className="absolute top-0 right-0 z-30 h-4 w-4 cursor-ne-resize hover:bg-primary/10 transition-colors"
+            data-testid="doc-browser-resize-top-right"
+            onPointerDown={startFloatResize('top-right')}
+          />
+          <div
+            className="absolute bottom-0 left-0 z-30 h-4 w-4 cursor-sw-resize hover:bg-primary/10 transition-colors"
+            data-testid="doc-browser-resize-bottom-left"
+            onPointerDown={startFloatResize('bottom-left')}
           />
           <div
             className="absolute bottom-0 right-0 z-30 flex h-4 w-4 cursor-se-resize items-center justify-center text-muted-foreground/45 transition-colors hover:text-muted-foreground"
