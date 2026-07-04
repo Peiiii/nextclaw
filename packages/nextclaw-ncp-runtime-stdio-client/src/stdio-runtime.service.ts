@@ -3,6 +3,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { Readable, Writable } from "node:stream";
 import * as acp from "@agentclientprotocol/sdk";
 import {
+  createNcpEndpointEvent,
   NcpEventType,
   type NcpAgentConversationStateManager,
   type NcpAgentRunInput,
@@ -26,6 +27,7 @@ import {
 } from "./stdio-runtime-error.utils.js";
 import {
   createPromptTimeoutRecoveryEvents,
+  readSessionMetadataPatch,
   SESSION_METADATA_PATCH_KIND,
 } from "./utils/stdio-runtime-recovery.utils.js";
 import { extractPromptText, resolveModelId } from "./utils/stdio-runtime-input.utils.js";
@@ -334,6 +336,7 @@ class StdioRuntimeRunController {
   private readonly resolvedTools: ReadonlyArray<OpenAITool>;
   private readonly resolvedProviderRoute: NcpProviderRuntimeRoute | undefined;
   private readonly runId: string;
+  private runStartedAt: string | undefined;
 
   constructor(
     private readonly session: StdioRuntimeSession,
@@ -424,14 +427,16 @@ class StdioRuntimeRunController {
         ...(this.input.correlationId ? { correlationId: this.input.correlationId } : {}),
       },
     });
+    this.runStartedAt = new Date().toISOString();
     yield* this.emitEvent({
       type: NcpEventType.RunStarted,
       payload: {
         sessionId: this.input.sessionId,
         messageId: assistantMessageId,
         runId: this.runId,
+        startedAt: this.runStartedAt,
       },
-    });
+    }, this.runStartedAt);
   };
   private drainPromptUpdates = async function* (
     this: StdioRuntimeRunController,
@@ -476,14 +481,17 @@ class StdioRuntimeRunController {
         message: completedMessage,
       },
     });
+    const endedAt = new Date().toISOString();
     yield* this.emitEvent({
       type: NcpEventType.RunFinished,
       payload: {
         sessionId: this.input.sessionId,
         messageId: assistantMessageId,
         runId: this.runId,
+        startedAt: this.runStartedAt,
+        endedAt,
       },
-    });
+    }, endedAt);
   };
   private emitFailureEvents = async function* (
     this: StdioRuntimeRunController,
@@ -510,6 +518,7 @@ class StdioRuntimeRunController {
         error: ncpError,
       },
     });
+    const endedAt = new Date().toISOString();
     yield* this.emitEvent({
       type: NcpEventType.RunError,
       payload: {
@@ -517,15 +526,19 @@ class StdioRuntimeRunController {
         messageId: assistantMessageId,
         runId: this.runId,
         error: ncpError.message,
+        startedAt: this.runStartedAt,
+        endedAt,
       },
-    });
+    }, endedAt);
   };
   private emitEvent = async function* (
     this: StdioRuntimeRunController,
     event: NcpEndpointEvent,
+    occurredAt?: string,
   ): AsyncGenerator<NcpEndpointEvent> {
-    await this.conversationStateManager.dispatch(event);
-    yield event;
+    const stampedEvent = createNcpEndpointEvent(event, occurredAt);
+    await this.conversationStateManager.dispatch(stampedEvent);
+    yield stampedEvent;
   };
   private buildCompletedAssistantMessage = (assistantMessageId: string): NcpMessage => {
     const snapshot = this.conversationStateManager.getSnapshot();
@@ -654,7 +667,7 @@ class StdioRuntimeRunController {
     update: Extract<AcpClientUpdate, { sessionUpdate: "tool_call" }>,
     messageId: string,
   ): NcpEndpointEvent[] => {
-    const toolName = resolveToolName(update);
+    const toolName = resolveToolNameFromAcpUpdate(update);
     const args = serializeToolArgs(update.rawInput);
     this.toolStates.set(update.toolCallId, {
       toolName,
@@ -798,28 +811,6 @@ export class StdioRuntimeNcpAgentRuntime implements NcpAgentRuntime {
   dispose = async (): Promise<void> => {
     await this.session.dispose();
   };
-}
-
-function readSessionMetadataPatch(meta: unknown): Record<string, unknown> | null {
-  const narpMeta = isRecord(meta)
-    ? meta[NARP_STDIO_PROMPT_META_KEY]
-    : undefined;
-  const patch = isRecord(narpMeta)
-    ? narpMeta.sessionMetadataPatch
-    : undefined;
-  return isRecord(patch) && Object.keys(patch).length > 0
-    ? structuredClone(patch)
-    : null;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function resolveToolName(
-  update: Extract<AcpClientUpdate, { sessionUpdate: "tool_call" }>,
-): string {
-  return resolveToolNameFromAcpUpdate(update);
 }
 
 function createAssistantMessageId(requestMessageId: string): string {

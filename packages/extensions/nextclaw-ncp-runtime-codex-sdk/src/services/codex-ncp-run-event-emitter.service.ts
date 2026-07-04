@@ -1,4 +1,5 @@
 import {
+  createNcpEndpointEvent,
   type NcpAgentConversationStateManager,
   type NcpEndpointEvent,
   NcpEventType,
@@ -6,6 +7,8 @@ import {
 import { buildCompletedAssistantMessage } from "@/completed-assistant-message.utils.js";
 
 export class CodexNcpRunEventEmitter {
+  private readonly runStartedAtByRunId = new Map<string, string>();
+
   constructor(private readonly stateManager?: NcpAgentConversationStateManager) {}
 
   emitEvent = async function* (
@@ -22,10 +25,12 @@ export class CodexNcpRunEventEmitter {
     messageId: string,
     runId: string,
   ): AsyncGenerator<NcpEndpointEvent> {
-    yield* this.emitEvent({
+    const startedAt = new Date().toISOString();
+    this.runStartedAtByRunId.set(runId, startedAt);
+    yield* this.emitEvent(createNcpEndpointEvent({
       type: NcpEventType.RunStarted,
-      payload: { sessionId, messageId, runId },
-    });
+      payload: { sessionId, messageId, runId, startedAt },
+    }, startedAt));
   };
 
   emitReadyMetadata = async function* (
@@ -34,7 +39,7 @@ export class CodexNcpRunEventEmitter {
     messageId: string,
     runId: string,
   ): AsyncGenerator<NcpEndpointEvent> {
-    yield* this.emitEvent({
+    yield* this.emitEvent(createNcpEndpointEvent({
       type: NcpEventType.RunMetadata,
       payload: {
         sessionId,
@@ -42,7 +47,7 @@ export class CodexNcpRunEventEmitter {
         runId,
         metadata: { kind: "ready", runId, sessionId, supportsAbort: true },
       },
-    });
+    }));
   };
 
   emitRunError = async function* (
@@ -52,10 +57,13 @@ export class CodexNcpRunEventEmitter {
     runId: string,
     error: string,
   ): AsyncGenerator<NcpEndpointEvent> {
-    yield* this.emitEvent({
+    const endedAt = new Date().toISOString();
+    const startedAt = this.runStartedAtByRunId.get(runId);
+    this.runStartedAtByRunId.delete(runId);
+    yield* this.emitEvent(createNcpEndpointEvent({
       type: NcpEventType.RunError,
-      payload: { sessionId, messageId, runId, error },
-    });
+      payload: { sessionId, messageId, runId, error, startedAt, endedAt },
+    }, endedAt));
   };
 
   emitRunCompleted = async function* (
@@ -64,7 +72,7 @@ export class CodexNcpRunEventEmitter {
     messageId: string,
     runId: string,
   ): AsyncGenerator<NcpEndpointEvent> {
-    yield* this.emitEvent({
+    yield* this.emitEvent(createNcpEndpointEvent({
       type: NcpEventType.RunMetadata,
       payload: {
         sessionId,
@@ -72,8 +80,8 @@ export class CodexNcpRunEventEmitter {
         runId,
         metadata: { kind: "final", sessionId },
       },
-    });
-    yield* this.emitEvent({
+    }));
+    yield* this.emitEvent(createNcpEndpointEvent({
       type: NcpEventType.MessageCompleted,
       payload: {
         sessionId,
@@ -83,10 +91,13 @@ export class CodexNcpRunEventEmitter {
           messageId,
         }),
       },
-    });
-    yield* this.emitEvent({
+    }));
+    const endedAt = new Date().toISOString();
+    const startedAt = this.runStartedAtByRunId.get(runId);
+    this.runStartedAtByRunId.delete(runId);
+    yield* this.emitEvent(createNcpEndpointEvent({
       type: NcpEventType.RunFinished,
-      payload: { sessionId, messageId, runId },
-    });
+      payload: { sessionId, messageId, runId, startedAt, endedAt },
+    }, endedAt));
   };
 }

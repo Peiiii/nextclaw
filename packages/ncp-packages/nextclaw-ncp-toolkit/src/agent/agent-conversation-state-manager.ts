@@ -30,7 +30,7 @@ import {
   NcpEventType,
 } from "@nextclaw/ncp";
 import { cloneConversationMessage, normalizeConversationMessage } from "./agent-conversation-message-normalizer.js";
-import { ABORTED_TOOL_CALL_SENTINEL, buildRuntimeError, cancelInFlightToolInvocations, clearToolCallTrackingByMessageId, findToolInvocationPart, findToolNameByCallId, remapTrackedToolCallsToMessageId, shouldPromoteStreamingMessageId, upsertToolInvocationPart } from "./agent-conversation-state-manager.utils.js";
+import { ABORTED_TOOL_CALL_SENTINEL, buildRuntimeError, cancelInFlightToolInvocations, clearToolCallTrackingByMessageId, findToolInvocationPart, findToolNameByCallId, insertMessageByTimeline, readMessageLifecycleFromRunPayload, remapTrackedToolCallsToMessageId, settleMessageWithLifecycle, shouldPromoteStreamingMessageId, upsertToolInvocationPart } from "./agent-conversation-state-manager.utils.js";
 
 const DEFAULT_ASSISTANT_ROLE: NcpMessageRole = "assistant";
 
@@ -388,14 +388,14 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
 
   handleRunFinished = (payload: NcpRunFinishedPayload): void => {
     this.markRunAsSettled(payload.runId ?? this.activeRun?.runId ?? null);
-    this.settleStreamingMessage("final");
+    this.settleStreamingMessage("final", readMessageLifecycleFromRunPayload(payload));
     this.setError(null);
     this.clearActiveRun();
   };
 
   handleRunError = (payload: NcpRunErrorPayload): void => {
     this.markRunAsSettled(payload.runId ?? this.activeRun?.runId ?? null);
-    this.settleStreamingMessage("error");
+    this.settleStreamingMessage("error", readMessageLifecycleFromRunPayload(payload));
     this.setError(buildRuntimeError(payload));
     this.clearActiveRun();
   };
@@ -595,7 +595,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     if (this.streamingMessage?.id === normalizedMessage.id) this.streamingMessage = null;
     const messageIndex = this.messages.findIndex((item) => item.id === normalizedMessage.id);
     if (messageIndex < 0) {
-      this.messages = [...this.messages, normalizedMessage];
+      this.messages = insertMessageByTimeline(this.messages, normalizedMessage);
       this.stateVersion += 1;
       return;
     }
@@ -649,11 +649,10 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
 
   private settleStreamingMessage = (
     status: Extract<NcpMessageStatus, "final" | "error">,
+    lifecycle?: NcpMessage["lifecycle"],
   ): void => {
-    if (!this.streamingMessage) {
-      return;
-    }
-    const settledMessage: NcpMessage = { ...this.streamingMessage, status };
+    if (!this.streamingMessage) return;
+    const settledMessage = settleMessageWithLifecycle(this.streamingMessage, status, lifecycle);
     this.upsertMessage(settledMessage);
     this.replaceStreamingMessage(null);
     clearToolCallTrackingByMessageId(

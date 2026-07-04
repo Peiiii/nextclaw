@@ -65,6 +65,7 @@ export class NcpHttpAgentController implements NcpHttpAgentHandler {
     return createForwardResponse({
       endpoint: agentClientEndpoint,
       requestEvent: {
+        occurredAt: new Date().toISOString(),
         type: NcpEventType.MessageStreamRequest,
         payload: streamPayload,
       },

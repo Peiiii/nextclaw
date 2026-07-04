@@ -1,4 +1,4 @@
-import { type NcpEndpointEvent, NcpEventType } from "@nextclaw/ncp";
+import { createNcpEndpointEvent, type NcpEndpointEvent, NcpEventType } from "@nextclaw/ncp";
 
 const TEXT_DELTA_CHUNK_SIZE = 32;
 
@@ -29,13 +29,13 @@ export class ClaudeSdkEventMapperState {
     }
     this.textStarted = true;
     return [
-      {
+      createNcpEndpointEvent({
         type: NcpEventType.MessageTextStart,
         payload: {
           sessionId,
           messageId,
         },
-      },
+      }),
     ];
   };
 
@@ -47,14 +47,14 @@ export class ClaudeSdkEventMapperState {
     this.emittedText += delta;
     const events = this.emitTextStartIfNeeded(sessionId, messageId);
     for (const chunk of splitTextDelta(delta)) {
-      events.push({
+      events.push(createNcpEndpointEvent({
         type: NcpEventType.MessageTextDelta,
         payload: {
           sessionId,
           messageId,
           delta: chunk,
         },
-      });
+      }));
     }
     return events;
   };
@@ -65,13 +65,13 @@ export class ClaudeSdkEventMapperState {
     }
     this.textStarted = false;
     return [
-      {
+      createNcpEndpointEvent({
         type: NcpEventType.MessageTextEnd,
         payload: {
           sessionId,
           messageId,
         },
-      },
+      }),
     ];
   };
 
@@ -108,7 +108,7 @@ export class ClaudeSdkEventMapperState {
     toolState.started = true;
     toolState.toolName = toolName || toolState.toolName || "unknown";
     return [
-      {
+      createNcpEndpointEvent({
         type: NcpEventType.MessageToolCallStart,
         payload: {
           sessionId,
@@ -116,7 +116,7 @@ export class ClaudeSdkEventMapperState {
           toolCallId,
           toolName: toolState.toolName,
         },
-      },
+      }),
     ];
   };
 
@@ -131,14 +131,14 @@ export class ClaudeSdkEventMapperState {
     }
     toolState.args = args;
     return [
-      {
+      createNcpEndpointEvent({
         type: NcpEventType.MessageToolCallArgs,
         payload: {
           sessionId,
           toolCallId,
           args,
         },
-      },
+      }),
     ];
   };
 
@@ -154,7 +154,7 @@ export class ClaudeSdkEventMapperState {
     const toolState = this.ensureToolCallState(toolCallId);
     toolState.args = `${toolState.args}${delta}`;
     return [
-      {
+      createNcpEndpointEvent({
         type: NcpEventType.MessageToolCallArgsDelta,
         payload: {
           sessionId,
@@ -162,7 +162,7 @@ export class ClaudeSdkEventMapperState {
           toolCallId,
           delta,
         },
-      },
+      }),
     ];
   };
 
@@ -173,13 +173,13 @@ export class ClaudeSdkEventMapperState {
     }
     toolState.ended = true;
     return [
-      {
+      createNcpEndpointEvent({
         type: NcpEventType.MessageToolCallEnd,
         payload: {
           sessionId,
           toolCallId,
         },
-      },
+      }),
     ];
   };
 
@@ -194,14 +194,14 @@ export class ClaudeSdkEventMapperState {
     }
     toolState.resultEmitted = true;
     return [
-      {
+      createNcpEndpointEvent({
         type: NcpEventType.MessageToolCallResult,
         payload: {
           sessionId,
           toolCallId,
           content,
         },
-      },
+      }),
     ];
   };
 }

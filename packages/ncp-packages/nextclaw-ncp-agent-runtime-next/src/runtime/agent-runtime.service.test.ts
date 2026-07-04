@@ -134,6 +134,35 @@ async function collectRuntimeEvents(runtime: DefaultNcpAgentRuntime): Promise<Nc
 }
 
 describe("DefaultNcpAgentRuntime reasoning normalization", () => {
+  it("emits event and run lifecycle timestamps without persisting duration", async () => {
+    const runtime = new DefaultNcpAgentRuntime({
+      llmApi: createLlmApi(thinkTagChunks),
+      modelInputBuilder,
+    });
+
+    const events = await collectRuntimeEvents(runtime);
+    const runStarted = events.find((event) => event.type === NcpEventType.RunStarted);
+    const runFinished = events.find((event) => event.type === NcpEventType.RunFinished);
+
+    expect(events.every((event) => Number.isFinite(Date.parse(event.occurredAt ?? "")))).toBe(true);
+    expect(runStarted).toMatchObject({
+      occurredAt: expect.any(String),
+      payload: {
+        startedAt: expect.any(String),
+      },
+      type: NcpEventType.RunStarted,
+    });
+    expect(runFinished).toMatchObject({
+      occurredAt: expect.any(String),
+      payload: {
+        startedAt: expect.any(String),
+        endedAt: expect.any(String),
+      },
+      type: NcpEventType.RunFinished,
+    });
+    expect(runFinished?.payload).not.toHaveProperty("durationMs");
+  });
+
   it("normalizes think tags into reasoning when no mode is provided", async () => {
     const runtime = new DefaultNcpAgentRuntime({
       llmApi: createLlmApi(thinkTagChunks),

@@ -103,6 +103,51 @@ function readOptionalString(value: unknown): string | undefined {
   return trimmed || undefined;
 }
 
+function readRunStartedAt(event: NcpEndpointEvent, fallback: string): string {
+  if (event.type !== NcpEventType.RunStarted) {
+    return fallback;
+  }
+  return event.payload.startedAt ?? event.occurredAt ?? fallback;
+}
+
+function createCompletedAssistantMessageEvent(params: {
+  sessionId: string;
+  message: NcpMessage;
+  correlationId?: string;
+}): NcpEndpointEvent {
+  return {
+    occurredAt: new Date().toISOString(),
+    type: NcpEventType.MessageCompleted,
+    payload: {
+      sessionId: params.sessionId,
+      message: params.message,
+      correlationId: params.correlationId,
+    },
+  };
+}
+
+function createSyntheticRunErrorEvent(params: {
+  error: unknown;
+  runId: string;
+  sessionId: string;
+  correlationId?: string;
+  startedAt: string;
+}): NcpEndpointEvent {
+  const endedAt = new Date().toISOString();
+  return {
+    occurredAt: endedAt,
+    type: NcpEventType.RunError,
+    payload: {
+      error: params.error instanceof Error ? params.error.message : String(params.error),
+      runId: params.runId,
+      sessionId: params.sessionId,
+      correlationId: params.correlationId,
+      startedAt: params.startedAt,
+      endedAt,
+    },
+  };
+}
+
 function readSessionMaterialization(
   metadata: Record<string, unknown>,
 ): AgentRunSessionMaterializationMetadata | null {
@@ -278,6 +323,7 @@ export class AgentRunRequestManager {
       }
     });
     this.cleanups.push(stopPublishingRunStatus);
+    const requestRunStartedAt = new Date().toISOString();
     const activeRun = (() => {
       try {
         return sessionRun.beginRun();
@@ -312,6 +358,7 @@ export class AgentRunRequestManager {
     const tools = await this.toolProviderManager.buildTools(providerRequest);
     let messageCompletedSeen = false;
     let runtimeFailed = false;
+    let runStartedAt = requestRunStartedAt;
     void lastValueFrom(
       from(
         runtime.run(spec, {
@@ -327,6 +374,7 @@ export class AgentRunRequestManager {
           if (event.type === NcpEventType.RunError) {
             runtimeFailed = true;
           }
+          runStartedAt = readRunStartedAt(event, runStartedAt);
           if (event.type === NcpEventType.MessageCompleted) {
             messageCompletedSeen = true;
           }
@@ -343,14 +391,11 @@ export class AgentRunRequestManager {
                 `Run finished without a final assistant message for session "${session.sessionId}".`,
               );
             }
-            eventsToPublish.push({
-              type: NcpEventType.MessageCompleted,
-              payload: {
-                sessionId: event.payload.sessionId ?? session.sessionId,
-                message,
-                correlationId: event.payload.correlationId,
-              },
-            });
+            eventsToPublish.push(createCompletedAssistantMessageEvent({
+              sessionId: event.payload.sessionId ?? session.sessionId,
+              message,
+              correlationId: event.payload.correlationId,
+            }));
             messageCompletedSeen = true;
           }
           eventsToPublish.push(event);
@@ -363,15 +408,13 @@ export class AgentRunRequestManager {
         }),
         catchError(async (error) => {
           runtimeFailed = true;
-          const event: NcpEndpointEvent = {
-            type: NcpEventType.RunError,
-            payload: {
-              error: error instanceof Error ? error.message : String(error),
-              runId: spec.runId,
-              sessionId: session.sessionId,
-              correlationId: spec.correlationId,
-            },
-          };
+          const event = createSyntheticRunErrorEvent({
+            error,
+            runId: spec.runId,
+            sessionId: session.sessionId,
+            correlationId: spec.correlationId,
+            startedAt: runStartedAt,
+          });
           await sessionRun.applyEvents([event]);
           this.eventBus.emit(eventKeys.ncpEvent, event, {
             emittedAt: new Date().toISOString(),

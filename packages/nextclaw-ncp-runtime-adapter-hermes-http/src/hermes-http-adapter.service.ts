@@ -2,7 +2,6 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { randomUUID } from "node:crypto";
 import { DefaultNcpStreamEncoder } from "@nextclaw/ncp-agent-runtime";
 import {
-  NcpEventType,
   type NcpEndpointEvent,
   type NcpRequestEnvelope,
   type OpenAITool,
@@ -25,6 +24,15 @@ import {
 } from "./hermes-http-adapter-message.utils.js";
 import { parseHermesOpenAIChatStream } from "./hermes-openai-stream-parser.utils.js";
 import { HermesHttpAdapterSessionStore } from "./hermes-http-adapter-session-store.service.js";
+import {
+  createHermesMessageAcceptedEvent,
+  createHermesMessageCompletedEvent,
+  createHermesMessageFailedEvent,
+  createHermesRunErrorEvent,
+  createHermesRunFinishedEvent,
+  createHermesRunHandle,
+  createHermesRunStartedEvent,
+} from "./hermes-http-adapter-events.utils.js";
 import type {
   HermesAdapterAssistantMessageFactory,
   HermesHttpAdapterResolvedConfig,
@@ -162,7 +170,7 @@ class HermesHttpAdapterRouteService {
         runId: randomUUID(),
       };
       this.sessions.setPendingRun(run);
-      this.writeJson(response, 200, { ok: true });
+      this.writeJson(response, 200, { ok: true, data: createHermesRunHandle(run) });
     } catch (error) {
       this.writeJson(response, 409, {
         ok: false,
@@ -334,22 +342,10 @@ class HermesHttpAdapterRouteService {
     const messageCollector = new HermesAssistantEventCollector();
     const inlineToolTraceTranslator = new HermesInlineToolTraceTranslator();
     const reasoningDeltaTranslator = new HermesReasoningDeltaTranslator();
+    const startedAt = new Date().toISOString();
 
-    yield {
-      type: NcpEventType.MessageAccepted,
-      payload: {
-        messageId: run.messageId,
-        correlationId: run.envelope.correlationId,
-      },
-    };
-    yield {
-      type: NcpEventType.RunStarted,
-      payload: {
-        sessionId,
-        messageId: run.messageId,
-        runId: run.runId,
-      },
-    };
+    yield createHermesMessageAcceptedEvent(run);
+    yield createHermesRunStartedEvent({ run, startedAt });
 
     try {
       for await (const event of reasoningDeltaTranslator.translate(
@@ -385,67 +381,33 @@ class HermesHttpAdapterRouteService {
         timestamp: new Date().toISOString(),
         metadata,
       });
-      yield {
-        type: NcpEventType.MessageCompleted,
-        payload: {
-          sessionId,
-          message,
-          correlationId: run.envelope.correlationId,
-          metadata,
-        },
-      };
-      yield {
-        type: NcpEventType.RunFinished,
-        payload: {
-          sessionId,
-          messageId: run.messageId,
-          runId: run.runId,
-        },
-      };
+      yield createHermesMessageCompletedEvent({ message, metadata, run });
+      const endedAt = new Date().toISOString();
+      yield createHermesRunFinishedEvent({ endedAt, run, startedAt });
     } catch (error) {
-      if (signal.aborted) {
-        const abortError = toNcpError(error, "abort-error");
-        yield {
-          type: NcpEventType.MessageFailed,
-          payload: {
-            sessionId,
-            messageId: run.messageId,
-            correlationId: run.envelope.correlationId,
-            error: abortError,
-          },
-        };
-        yield {
-          type: NcpEventType.RunError,
-          payload: {
-            sessionId,
-            messageId: run.messageId,
-            runId: run.runId,
-            error: abortError.message,
-          },
-        };
-        return;
-      }
-
-      const runtimeError = toNcpError(error, "runtime-error");
-      yield {
-        type: NcpEventType.MessageFailed,
-        payload: {
-          sessionId,
-          messageId: run.messageId,
-          correlationId: run.envelope.correlationId,
-          error: runtimeError,
-        },
-      };
-      yield {
-        type: NcpEventType.RunError,
-        payload: {
-          sessionId,
-          messageId: run.messageId,
-          runId: run.runId,
-          error: runtimeError.message,
-        },
-      };
+      yield* this.createRunErrorEvents({
+        error,
+        run,
+        startedAt,
+        fallbackCode: signal.aborted ? "abort-error" : "runtime-error",
+      });
     }
+  };
+
+  private createRunErrorEvents = function* (
+    this: HermesHttpAdapterRouteService,
+    params: {
+      error: unknown;
+      fallbackCode: "abort-error" | "runtime-error";
+      run: HermesHttpAdapterRun;
+      startedAt: string;
+    },
+  ): Generator<NcpEndpointEvent> {
+    const { error, fallbackCode, run, startedAt } = params;
+    const ncpError = toNcpError(error, fallbackCode);
+    yield createHermesMessageFailedEvent({ error: ncpError, run });
+    const endedAt = new Date().toISOString();
+    yield createHermesRunErrorEvent({ endedAt, error: ncpError, run, startedAt });
   };
 
   private ensureHermesSessionModel = async (params: {

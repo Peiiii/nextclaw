@@ -121,6 +121,7 @@ export class ContextWindowContribution implements KernelContribution {
     }
     this.lastPublishedSignatureBySession.set(sessionId, signature);
     this.kernel.eventBus.emit(eventKeys.ncpEvent, {
+      occurredAt: new Date().toISOString(),
       type: NcpEventType.ContextWindowUpdated,
       payload: {
         contextWindow,

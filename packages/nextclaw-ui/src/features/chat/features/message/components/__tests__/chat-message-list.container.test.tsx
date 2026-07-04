@@ -224,6 +224,53 @@ it("adds a completed assistant process summary without inventing a duration", ()
   });
 });
 
+it("derives completed assistant process duration from message lifecycle", () => {
+  const assistantMessage = {
+    id: "assistant-process-result",
+    sessionId: "session-1",
+    role: "assistant",
+    status: "final",
+    timestamp: "2026-03-31T10:01:03.000Z",
+    lifecycle: {
+      startedAt: "2026-03-31T10:00:00.000Z",
+      endedAt: "2026-03-31T10:03:51.000Z",
+    },
+    parts: [
+      {
+        type: "reasoning",
+        text: "Inspecting current state.",
+      },
+      {
+        type: "tool-invocation",
+        toolCallId: "tool-1",
+        toolName: "exec_command",
+        state: "result",
+        args: "{\"cmd\":\"git status\"}",
+        result: "clean",
+      },
+      {
+        type: "text",
+        text: "Done.",
+      },
+    ],
+  } satisfies NcpMessage;
+
+  render(
+    <ChatMessageListContainer
+      messages={[assistantMessage]}
+      isSending={false}
+    />,
+  );
+
+  const renderedMessages =
+    captures.renders[captures.renders.length - 1]?.messages ?? [];
+  expect(renderedMessages[0]).toMatchObject({
+    processSummary: {
+      label: "chatProcessSummaryProcessed 3m 51s",
+    },
+  });
+});
+
 it("wires markdown file link actions to the workspace file preview manager", () => {
   const message = {
     id: "assistant-file-link",

@@ -82,6 +82,7 @@ export class NcpAgentRuntimeWrapper implements AgentRuntime {
     sessionId: string,
   ): NcpEndpointEvent[] =>
     messages.map((message) => ({
+      occurredAt: new Date().toISOString(),
       type: NcpEventType.MessageSent,
       payload: {
         sessionId,

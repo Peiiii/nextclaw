@@ -7,6 +7,7 @@ import {
   type ToolResultContentManager,
 } from "@nextclaw/ncp-agent-runtime";
 import {
+  createNcpEndpointEvent as createRuntimeEvent,
   NcpEventType,
   type NcpAssistantReasoningNormalizationMode,
   type NcpEndpointEvent,
@@ -157,6 +158,7 @@ export class DefaultNcpAgentRuntime {
     } = options;
     const sessionId = sessionRun.sessionId;
     const messageId = `assistant-message-${randomUUID()}`;
+    let runStartedAt: string | undefined;
 
     try {
       for (const event of this.drainInbox(sessionRun, spec).events) {
@@ -174,15 +176,17 @@ export class DefaultNcpAgentRuntime {
         }
         yield await this.applyEvent(sessionRun, event);
       }
-      yield await this.applyEvent(sessionRun, {
+      runStartedAt = new Date().toISOString();
+      yield await this.applyEvent(sessionRun, createRuntimeEvent({
         type: NcpEventType.RunStarted,
         payload: {
           messageId,
           runId: spec.runId,
           sessionId,
           correlationId: spec.correlationId,
+          startedAt: runStartedAt,
         },
-      });
+      }, runStartedAt));
       if (this.isAbortRequested(signal)) {
         yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId, spec));
         return;
@@ -212,7 +216,7 @@ export class DefaultNcpAgentRuntime {
         const toolExecutor = new RuntimeToolCallExecutor({
           executeToolCall: (toolCall, publishToolResult) =>
             this.executeToolCall(tools, sessionId, spec, toolCall, publishToolResult),
-          toRunErrorEvent: (error) => this.toRunErrorEvent(sessionId, spec, error),
+          toRunErrorEvent: (error) => this.toRunErrorEvent(sessionId, spec, error, runStartedAt),
         });
         yield* this.drainRuntimeEvents(sessionRun, encoded, toolExecutor, signal);
         if (this.isAbortRequested(signal)) {
@@ -233,15 +237,18 @@ export class DefaultNcpAgentRuntime {
           continue;
         }
 
-        yield await this.applyEvent(sessionRun, {
+        const endedAt = new Date().toISOString();
+        yield await this.applyEvent(sessionRun, createRuntimeEvent({
           type: NcpEventType.RunFinished,
           payload: {
             messageId,
             runId: spec.runId,
             sessionId,
             correlationId: spec.correlationId,
+            startedAt: runStartedAt,
+            endedAt,
           },
-        });
+        }, endedAt));
         return;
       }
 
@@ -251,15 +258,18 @@ export class DefaultNcpAgentRuntime {
         yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId, spec));
         return;
       }
-      yield await this.applyEvent(sessionRun, {
+      const endedAt = new Date().toISOString();
+      yield await this.applyEvent(sessionRun, createRuntimeEvent({
         type: NcpEventType.RunError,
         payload: {
           sessionId,
           runId: spec.runId,
           correlationId: spec.correlationId,
           error: error instanceof Error ? error.message : String(error),
+          startedAt: runStartedAt,
+          endedAt,
         },
-      });
+      }, endedAt));
     }
   }
 
@@ -364,6 +374,7 @@ export class DefaultNcpAgentRuntime {
     return {
       drained: messages.length > 0,
       events: messages.map((message) => ({
+        occurredAt: new Date().toISOString(),
         type: NcpEventType.MessageSent,
         payload: {
           sessionId: sessionRun.sessionId,
@@ -380,7 +391,7 @@ export class DefaultNcpAgentRuntime {
     sessionId: string,
     messageId: string,
     spec: DefaultNcpAgentRunSpec,
-  ): NcpEndpointEvent => ({
+  ): NcpEndpointEvent => createRuntimeEvent({
     type: NcpEventType.MessageAbort,
     payload: {
       messageId,
@@ -393,15 +404,21 @@ export class DefaultNcpAgentRuntime {
     sessionId: string,
     spec: DefaultNcpAgentRunSpec,
     error: unknown,
-  ): NcpEndpointEvent => ({
-    type: NcpEventType.RunError,
-    payload: {
-      sessionId,
-      runId: spec.runId,
-      correlationId: spec.correlationId,
-      error: error instanceof Error ? error.message : String(error),
-    },
-  });
+    startedAt?: string,
+  ): NcpEndpointEvent => {
+    const endedAt = new Date().toISOString();
+    return createRuntimeEvent({
+      type: NcpEventType.RunError,
+      payload: {
+        sessionId,
+        runId: spec.runId,
+        correlationId: spec.correlationId,
+        error: error instanceof Error ? error.message : String(error),
+        startedAt,
+        endedAt,
+      },
+    }, endedAt);
+  };
 
   private applyEvent = async (
     sessionRun: AgentRuntimeSessionState,
@@ -437,7 +454,7 @@ export class DefaultNcpAgentRuntime {
               rawArgsText: toolCall.args,
               result: updatedResult,
             });
-            const event: NcpEndpointEvent = {
+            const event = createRuntimeEvent({
               type: NcpEventType.MessageToolCallResult,
               payload: {
                 sessionId,
@@ -446,7 +463,7 @@ export class DefaultNcpAgentRuntime {
                 content: normalized.result,
                 contentItems: normalized.contentItems,
               },
-            };
+            });
             await publishToolResult(event);
           };
           return availableTool.execute(args, {
@@ -456,7 +473,7 @@ export class DefaultNcpAgentRuntime {
         },
       }),
     );
-    return {
+    return createRuntimeEvent({
       type: NcpEventType.MessageToolCallResult,
       payload: {
         sessionId,
@@ -465,6 +482,6 @@ export class DefaultNcpAgentRuntime {
         content: result.result,
         contentItems: result.contentItems,
       },
-    };
+    });
   };
 }

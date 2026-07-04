@@ -1,4 +1,5 @@
 import {
+  createNcpEndpointEvent as createRuntimeEvent,
   type NcpAssistantReasoningNormalizationMode,
   type NcpAgentConversationStateManager,
   type NcpAgentRunInput,
@@ -30,6 +31,10 @@ import {
   defaultToolResultContentManager,
   type ToolResultContentManager,
 } from "../tool-result/tool-result-content.manager.js";
+
+type RuntimeEncodeContext = NcpEncodeContext & {
+  startedAt: string;
+};
 
 export type DefaultNcpAgentRuntimeConfig = {
   contextBuilder: NcpContextBuilder;
@@ -70,7 +75,7 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
     input: NcpAgentRunInput,
     options?: NcpAgentRunOptions,
   ): AsyncGenerator<NcpEndpointEvent> {
-    const ctx: NcpEncodeContext = {
+    const ctxBase: NcpEncodeContext = {
       messageId: genId(),
       runId: (input as NcpAgentRunInput & { runId?: string }).runId ?? genId(),
       sessionId: input.sessionId,
@@ -86,17 +91,24 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
       if (isHiddenNcpMessage(msg)) {
         continue;
       }
-      const messageSent: NcpEndpointEvent = {
+      const messageSent = createRuntimeEvent({
         type: NcpEventType.MessageSent,
         payload: { sessionId: input.sessionId, message: msg },
-      };
+      });
       await this.stateManager.dispatch(messageSent);
     }
 
-    const runStarted: NcpEndpointEvent = {
+    const startedAt = new Date().toISOString();
+    const ctx: RuntimeEncodeContext = { ...ctxBase, startedAt };
+    const runStarted = createRuntimeEvent({
       type: NcpEventType.RunStarted,
-      payload: { sessionId: ctx.sessionId, messageId: ctx.messageId, runId: ctx.runId },
-    };
+      payload: {
+        sessionId: ctx.sessionId,
+        messageId: ctx.messageId,
+        runId: ctx.runId,
+        startedAt: ctx.startedAt,
+      },
+    }, ctx.startedAt);
     await this.stateManager.dispatch(runStarted);
     yield runStarted;
 
@@ -114,7 +126,7 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
   private runLoop = async function* (
     this: DefaultNcpAgentRuntime,
     llmInput: NcpLLMApiInput,
-    ctx: NcpEncodeContext,
+    ctx: RuntimeEncodeContext,
     options?: NcpAgentRunOptions,
   ): AsyncGenerator<NcpEndpointEvent> {
     const roundCollector = new DefaultNcpRoundCollector(this.reasoningNormalizationMode);
@@ -137,7 +149,7 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
           await this.executeToolCall(toolCall, ctx),
         );
         toolResults.push(toolResult);
-        yield {
+        yield createRuntimeEvent({
           type: NcpEventType.MessageToolCallResult,
           payload: {
             sessionId: ctx.sessionId,
@@ -145,14 +157,21 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
             content: toolResult.result,
             contentItems: toolResult.contentItems,
           },
-        };
+        });
       }
 
       if (toolResults.length === 0) {
-        yield {
+        const endedAt = new Date().toISOString();
+        yield createRuntimeEvent({
           type: NcpEventType.RunFinished,
-          payload: { sessionId: ctx.sessionId, messageId: ctx.messageId, runId: ctx.runId },
-        };
+          payload: {
+            sessionId: ctx.sessionId,
+            messageId: ctx.messageId,
+            runId: ctx.runId,
+            startedAt: ctx.startedAt,
+            endedAt,
+          },
+        }, endedAt);
         done = true;
         break;
       }
@@ -170,7 +189,7 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
   private executeToolCall = async function (
     this: DefaultNcpAgentRuntime,
     toolCall: CollectedToolCall,
-    ctx: NcpEncodeContext,
+    ctx: RuntimeEncodeContext,
   ): Promise<NcpToolCallResult> {
     return executeCollectedToolCall({
       toolCall,
@@ -186,7 +205,7 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
             rawArgsText: toolCall.args,
             result: updatedResult,
           });
-          await this.stateManager.dispatch({
+          await this.stateManager.dispatch(createRuntimeEvent({
             type: NcpEventType.MessageToolCallResult,
             payload: {
               sessionId: ctx.sessionId,
@@ -195,7 +214,7 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
               contentItems: normalized.contentItems,
               correlationId: ctx.correlationId,
             },
-          });
+          }));
         };
         return tool
           ? await tool.execute(args, {

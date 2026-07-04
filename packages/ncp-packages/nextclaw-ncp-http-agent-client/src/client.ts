@@ -1,4 +1,5 @@
 import {
+  createNcpEndpointEvent as createClientEvent,
   type NcpAgentClientEndpoint,
   type NcpAgentSendEnvelope,
   type NcpEndpointEvent,
@@ -85,7 +86,7 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
       return;
     }
     this.started = true;
-    this.publish({ type: NcpEventType.EndpointReady });
+    this.publish(createClientEvent({ type: NcpEventType.EndpointReady }));
   }
 
   async stop(): Promise<void> {
@@ -156,7 +157,7 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
         throw error;
       }
       const ncpError = toNcpError(error);
-      this.publish({ type: NcpEventType.EndpointError, payload: ncpError });
+      this.publish(createClientEvent({ type: NcpEventType.EndpointError, payload: ncpError }));
       throw ncpErrorToError(ncpError);
     } finally {
       this.activeControllers.delete(controller);
@@ -199,7 +200,7 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
         return;
       }
       const ncpError = toNcpError(error);
-      this.publish({ type: NcpEventType.EndpointError, payload: ncpError });
+      this.publish(createClientEvent({ type: NcpEventType.EndpointError, payload: ncpError }));
       throw ncpErrorToError(ncpError);
     } finally {
       this.activeControllers.delete(controller);
@@ -265,7 +266,7 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
         throw error;
       }
       const ncpError = toNcpError(error);
-      this.publish({ type: NcpEventType.EndpointError, payload: ncpError });
+      this.publish(createClientEvent({ type: NcpEventType.EndpointError, payload: ncpError }));
       throw ncpErrorToError(ncpError);
     } finally {
       this.activeControllers.delete(controller);
@@ -276,13 +277,13 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
     if (frame.event === "ncp-event") {
       const event = parseNcpEvent(frame.data);
       if (!event) {
-        this.publish({
+        this.publish(createClientEvent({
           type: NcpEventType.EndpointError,
           payload: {
             code: "runtime-error",
             message: "Received malformed ncp-event frame.",
           },
-        });
+        }));
         return;
       }
       this.publish(event);
@@ -291,7 +292,7 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
 
     if (frame.event === "error") {
       const ncpError = parseNcpError(frame.data);
-      this.publish({ type: NcpEventType.EndpointError, payload: ncpError });
+      this.publish(createClientEvent({ type: NcpEventType.EndpointError, payload: ncpError }));
       throw ncpErrorToError(ncpError, { alreadyPublished: true });
     }
   }

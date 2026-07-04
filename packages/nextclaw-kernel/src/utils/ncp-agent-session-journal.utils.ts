@@ -195,6 +195,7 @@ function createReplayEvent(
   toolResultsByCallId: ReadonlyMap<string, NcpToolCallResultReplayPayload>,
 ): NcpEndpointEvent {
   const replayEvent = structuredClone(event);
+  const occurredAt = readReplayEventOccurredAt(replayEvent);
   const replayMessage = readMessageFromSummaryEvent(replayEvent);
   const legacyCompactionMessageId = readLegacyContextCompactionMessageId(replayMessage);
   if (replayMessage && legacyCompactionMessageId) {
@@ -214,9 +215,20 @@ function createReplayEvent(
       replayEvent.payload.message,
       toolResultsByCallId,
     );
-    return { type: NcpEventType.MessageSent, payload: replayEvent.payload };
+    return {
+      occurredAt,
+      type: NcpEventType.MessageSent,
+      payload: replayEvent.payload,
+    };
   }
   return replayEvent;
+}
+
+function readReplayEventOccurredAt(event: NcpAgentSessionReplayableEvent): string | undefined {
+  if (!("occurredAt" in event) || typeof event.occurredAt !== "string") {
+    return undefined;
+  }
+  return event.occurredAt;
 }
 
 function mergeReplayCompletedToolResults(
@@ -261,6 +273,7 @@ function createReplayStreamingBootstrapEvent(
   }
   knownMessageIds.add(messageId);
   return {
+    occurredAt: event.occurredAt,
     type: NcpEventType.MessageSent,
     payload: {
       sessionId: readEventSessionId(event),

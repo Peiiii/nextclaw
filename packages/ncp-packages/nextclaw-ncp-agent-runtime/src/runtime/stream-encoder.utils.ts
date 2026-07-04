@@ -1,4 +1,5 @@
 import {
+  createNcpEndpointEvent as createStreamEvent,
   NcpAssistantTextStreamNormalizer,
   type NcpAssistantReasoningNormalizationMode,
   type NcpEncodeContext,
@@ -70,21 +71,21 @@ export function* emitTextDeltas(
     let textStarted = state.textStarted;
     for (const segment of state.normalizer.push(content)) {
       if (segment.type === "reasoning") {
-        yield {
+        yield createStreamEvent({
           type: NcpEventType.MessageReasoningDelta,
           payload: { ...ctx, delta: segment.text },
-        };
+        });
         continue;
       }
 
       if (!textStarted) {
-        yield { type: NcpEventType.MessageTextStart, payload: ctx };
+        yield createStreamEvent({ type: NcpEventType.MessageTextStart, payload: ctx });
         textStarted = true;
       }
-      yield {
+      yield createStreamEvent({
         type: NcpEventType.MessageTextDelta,
         payload: { ...ctx, delta: segment.text },
-      };
+      });
     }
 
     return {
@@ -94,14 +95,20 @@ export function* emitTextDeltas(
   }
 
   if (!state.textStarted) {
-    yield { type: NcpEventType.MessageTextStart, payload: ctx };
-    yield { type: NcpEventType.MessageTextDelta, payload: { ...ctx, delta: content } };
+    yield createStreamEvent({ type: NcpEventType.MessageTextStart, payload: ctx });
+    yield createStreamEvent({
+      type: NcpEventType.MessageTextDelta,
+      payload: { ...ctx, delta: content },
+    });
     return {
       ...state,
       textStarted: true,
     };
   }
-  yield { type: NcpEventType.MessageTextDelta, payload: { ...ctx, delta: content } };
+  yield createStreamEvent({
+    type: NcpEventType.MessageTextDelta,
+    payload: { ...ctx, delta: content },
+  });
   return state;
 }
 
@@ -116,21 +123,21 @@ export function* flushTextDeltas(
   let textStarted = state.textStarted;
   for (const segment of state.normalizer.finish()) {
     if (segment.type === "reasoning") {
-      yield {
+      yield createStreamEvent({
         type: NcpEventType.MessageReasoningDelta,
         payload: { ...ctx, delta: segment.text },
-      };
+      });
       continue;
     }
 
     if (!textStarted) {
-      yield { type: NcpEventType.MessageTextStart, payload: ctx };
+      yield createStreamEvent({ type: NcpEventType.MessageTextStart, payload: ctx });
       textStarted = true;
     }
-    yield {
+    yield createStreamEvent({
       type: NcpEventType.MessageTextDelta,
       payload: { ...ctx, delta: segment.text },
-    };
+    });
   }
 
   return {
@@ -156,10 +163,10 @@ export function* closeTextPartBeforeToolCalls(
     return nextState;
   }
 
-  yield {
+  yield createStreamEvent({
     type: NcpEventType.MessageTextEnd,
     payload: ctx,
-  };
+  });
 
   return {
     ...nextState,
@@ -174,7 +181,10 @@ export function* emitReasoningDelta(
   const reasoning = delta.reasoning_content ?? delta.reasoning;
   if (typeof reasoning !== "string" || !reasoning) return;
 
-  yield { type: NcpEventType.MessageReasoningDelta, payload: { ...ctx, delta: reasoning } };
+  yield createStreamEvent({
+    type: NcpEventType.MessageReasoningDelta,
+    payload: { ...ctx, delta: reasoning },
+  });
 }
 
 class ToolCallDeltaEmitter {
@@ -209,23 +219,23 @@ class ToolCallDeltaEmitter {
       const toolCallId = current.id;
       const toolName = current.name;
       if (toolCallId && toolName && !current.emittedStart) {
-        yield {
+        yield createStreamEvent({
           type: NcpEventType.MessageToolCallStart,
           payload: { ...this.ctx, toolCallId, toolName },
-        };
+        });
         current.emittedStart = true;
       }
 
       if (argsDelta) {
         if (current.emittedStart && current.id) {
-          yield {
+          yield createStreamEvent({
             type: NcpEventType.MessageToolCallArgsDelta,
             payload: {
               ...this.ctx,
               toolCallId: current.id,
               delta: argsDelta,
             },
-          };
+          });
           current.emittedArgsDelta = true;
         } else {
           current.pendingArgumentDeltas = [
@@ -237,14 +247,14 @@ class ToolCallDeltaEmitter {
 
       if (current.emittedStart && current.id && (current.pendingArgumentDeltas?.length ?? 0) > 0) {
         for (const pendingDelta of current.pendingArgumentDeltas ?? []) {
-          yield {
+          yield createStreamEvent({
             type: NcpEventType.MessageToolCallArgsDelta,
             payload: {
               ...this.ctx,
               toolCallId: current.id,
               delta: pendingDelta,
             },
-          };
+          });
         }
         current.emittedArgsDelta = true;
         current.pendingArgumentDeltas = [];
@@ -285,15 +295,15 @@ function* flushReadyToolCallsBeforeIndex(
     if (index >= beforeIndex || buf.emittedEnd || !buf.id || !buf.name) continue;
     if (!isCompleteToolCallArgs(buf.argumentsText)) continue;
     if (!buf.emittedArgsDelta) {
-      yield {
+      yield createStreamEvent({
         type: NcpEventType.MessageToolCallArgs,
         payload: { ...ctx, toolCallId: buf.id, args: buf.argumentsText },
-      };
+      });
     }
-    yield {
+    yield createStreamEvent({
       type: NcpEventType.MessageToolCallEnd,
       payload: { ...ctx, toolCallId: buf.id },
-    };
+    });
     buf.emittedEnd = true;
   }
 }
@@ -306,15 +316,15 @@ export function* flushToolCalls(
   for (const [, buf] of ordered) {
     if (!buf.id || !buf.name || buf.emittedEnd) continue;
     if (!buf.emittedArgsDelta) {
-      yield {
+      yield createStreamEvent({
         type: NcpEventType.MessageToolCallArgs,
         payload: { ...ctx, toolCallId: buf.id, args: buf.argumentsText },
-      };
+      });
     }
-    yield {
+    yield createStreamEvent({
       type: NcpEventType.MessageToolCallEnd,
       payload: { ...ctx, toolCallId: buf.id },
-    };
+    });
     buf.emittedEnd = true;
   }
 }

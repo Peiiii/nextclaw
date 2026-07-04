@@ -1,4 +1,4 @@
-import { type NcpEndpointEvent, NcpEventType } from "@nextclaw/ncp";
+import { createNcpEndpointEvent, type NcpEndpointEvent, NcpEventType } from "@nextclaw/ncp";
 import type { ClaudeCodeMessage } from "@claude-code-sdk/types/claude-code-sdk.types.js";
 import {
   emitTextDelta,
@@ -17,23 +17,23 @@ import {
 } from "./claude-sdk-event-mapper-shared.utils.js";
 
 function emitReasoningStart(sessionId: string, messageId: string): NcpEndpointEvent {
-  return {
+  return createNcpEndpointEvent({
     type: NcpEventType.MessageReasoningStart,
     payload: {
       sessionId,
       messageId,
     },
-  };
+  });
 }
 
 function emitReasoningEnd(sessionId: string, messageId: string): NcpEndpointEvent {
-  return {
+  return createNcpEndpointEvent({
     type: NcpEventType.MessageReasoningEnd,
     payload: {
       sessionId,
       messageId,
     },
-  };
+  });
 }
 
 function handleStreamEventContentBlockStart(params: {
@@ -102,14 +102,14 @@ function handleStreamEventContentBlockDelta(params: {
       events.push(emitReasoningStart(sessionId, messageId));
     }
     if (thinkingText) {
-      events.push({
+      events.push(createNcpEndpointEvent({
         type: NcpEventType.MessageReasoningDelta,
         payload: {
           sessionId,
           messageId,
           delta: thinkingText,
         },
-      });
+      }));
     }
     return events;
   }

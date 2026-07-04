@@ -1,6 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
+import { describe, expect, it, vi } from "vitest";
 import { CodexSdkNcpAgentRuntime } from "@/index.js";
 import { CodexAppServerNcpAgentRuntime } from "./codex-app-server-ncp-agent-runtime.service.js";
+
+async function waitForCondition(condition: () => boolean): Promise<void> {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    if (condition()) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+  throw new Error("Condition was not met.");
+}
 
 describe("CodexSdkNcpAgentRuntime thread metadata", () => {
   it("awaits the session metadata writer before continuing after thread.started", async () => {
@@ -121,5 +132,79 @@ describe("CodexAppServerNcpAgentRuntime thread metadata", () => {
 
     expect(result.value).toBe(true);
     expect(syncedThreadIds).toEqual(["thread-1"]);
+  });
+
+  it("emits message.abort without waiting for the next app-server notification", async () => {
+    const controller = new AbortController();
+    let closeNotificationStream = (next: IteratorResult<never>): void => {
+      throw new Error(`Unexpected notification close: ${String(next.done)}`);
+    };
+    const request = vi.fn(async (method: string) => {
+      if (method === "thread/resume") {
+        return { thread: { id: "thread-1" } };
+      }
+      if (method === "turn/start") {
+        return { turn: { id: "turn-1" } };
+      }
+      if (method === "turn/interrupt") {
+        return {};
+      }
+      throw new Error(`Unexpected request: ${method}`);
+    });
+    const client = {
+      request,
+      nextNotification: vi.fn(
+        () => new Promise<IteratorResult<never>>((resolve) => {
+          closeNotificationStream = resolve;
+        }),
+      ),
+      dispose: vi.fn(() => closeNotificationStream({ done: true, value: undefined })),
+    };
+    const runtime = new CodexAppServerNcpAgentRuntime({
+      sessionId: "session-1",
+      apiKey: "sk-test",
+      threadId: "thread-1",
+      desktopThreadIndexSync: false,
+      inputBuilder: () => "hello",
+    });
+    (runtime as unknown as {
+      resolveClient: () => Promise<typeof client>;
+    }).resolveClient = async () => client;
+
+    const iterator = runtime.run({
+      sessionId: "session-1",
+      correlationId: "corr-1",
+      messages: [],
+    }, { signal: controller.signal })[Symbol.asyncIterator]();
+
+    expect((await iterator.next()).value).toMatchObject({
+      type: NcpEventType.RunStarted,
+      payload: { sessionId: "session-1" },
+    });
+    expect((await iterator.next()).value).toMatchObject({
+      type: NcpEventType.RunMetadata,
+      payload: { sessionId: "session-1" },
+    });
+
+    const pendingAbortEvent = iterator.next();
+    await waitForCondition(() => request.mock.calls.some(([method]) => method === "turn/start"));
+    await waitForCondition(() => client.nextNotification.mock.calls.length > 0);
+    controller.abort("stop");
+
+    const result = await pendingAbortEvent;
+    expect(result.done).toBe(false);
+    expect(result.value as NcpEndpointEvent).toMatchObject({
+      type: NcpEventType.MessageAbort,
+      payload: {
+        sessionId: "session-1",
+        correlationId: "corr-1",
+      },
+    });
+    expect(request).toHaveBeenCalledWith(
+      "turn/interrupt",
+      { threadId: "thread-1", turnId: "turn-1" },
+      5000,
+    );
+    expect(await iterator.next()).toEqual({ done: true, value: undefined });
   });
 });

@@ -159,6 +159,7 @@ export type NcpRunStartedPayload = {
   messageId?: string;
   threadId?: string;
   runId?: string;
+  startedAt?: string;
 } & NcpCorrelationPayload;
 
 export type NcpRunFinishedPayload = {
@@ -166,6 +167,8 @@ export type NcpRunFinishedPayload = {
   messageId?: string;
   threadId?: string;
   runId?: string;
+  startedAt?: string;
+  endedAt?: string;
 } & NcpCorrelationPayload;
 
 export type NcpRunErrorPayload = {
@@ -174,6 +177,8 @@ export type NcpRunErrorPayload = {
   error?: string;
   threadId?: string;
   runId?: string;
+  startedAt?: string;
+  endedAt?: string;
 } & NcpCorrelationPayload;
 
 export type NcpRunMetadataPayload = {
@@ -311,7 +316,12 @@ export enum NcpEventType {
 // Event union (aligned with agent-chat EventType + endpoint lifecycle)
 // ---------------------------------------------------------------------------
 
-export type NcpEndpointEvent =
+export type NcpEventTiming = {
+  /** ISO 8601 timestamp for when the event happened in the producer's domain. */
+  occurredAt?: string;
+};
+
+export type NcpEndpointEvent = NcpEventTiming & (
   | { type: NcpEventType.EndpointReady }
   | { type: NcpEventType.MessageRequest; payload: NcpAgentSendEnvelope }
   | { type: NcpEventType.MessageStreamRequest; payload: NcpStreamRequestPayload }
@@ -344,6 +354,23 @@ export type NcpEndpointEvent =
   | { type: NcpEventType.MessageRead; payload: NcpMessageReadPayload }
   | { type: NcpEventType.MessageDelivered; payload: NcpMessageDeliveredPayload }
   | { type: NcpEventType.MessageRecalled; payload: NcpMessageRecalledPayload }
-  | { type: NcpEventType.MessageReaction; payload: NcpMessageReactionPayload };
+  | { type: NcpEventType.MessageReaction; payload: NcpMessageReactionPayload }
+);
+
+export type NcpEndpointEventDraft = NcpEndpointEvent extends infer Event
+  ? Event extends NcpEndpointEvent
+    ? Omit<Event, "occurredAt">
+    : never
+  : never;
+
+export function createNcpEndpointEvent<T extends NcpEndpointEventDraft>(
+  event: T & { occurredAt?: string },
+  occurredAt = event.occurredAt ?? new Date().toISOString(),
+): T & { occurredAt: string } {
+  return {
+    ...event,
+    occurredAt,
+  };
+}
 
 export type NcpEndpointSubscriber = (event: NcpEndpointEvent) => void;

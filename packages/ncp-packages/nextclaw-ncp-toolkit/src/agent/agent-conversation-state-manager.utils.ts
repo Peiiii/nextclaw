@@ -1,4 +1,10 @@
-import type { NcpError, NcpMessage, NcpRunErrorPayload } from "@nextclaw/ncp";
+import type {
+  NcpError,
+  NcpMessage,
+  NcpMessageStatus,
+  NcpRunErrorPayload,
+  NcpRunFinishedPayload,
+} from "@nextclaw/ncp";
 
 export const ABORTED_TOOL_CALL_SENTINEL = "__nextclaw_aborted_tool_call__";
 
@@ -14,6 +20,59 @@ export function buildRuntimeError(payload: NcpRunErrorPayload): NcpError {
       runId: payload.runId,
     },
   };
+}
+
+export function readMessageLifecycleFromRunPayload(
+  payload: Pick<NcpRunFinishedPayload | NcpRunErrorPayload, "startedAt" | "endedAt">,
+): NcpMessage["lifecycle"] | undefined {
+  if (!payload.startedAt && !payload.endedAt) {
+    return undefined;
+  }
+  return {
+    startedAt: payload.startedAt,
+    endedAt: payload.endedAt,
+  };
+}
+
+export function settleMessageWithLifecycle(
+  message: NcpMessage,
+  status: Extract<NcpMessageStatus, "final" | "error">,
+  lifecycle?: NcpMessage["lifecycle"],
+): NcpMessage {
+  return lifecycle
+    ? {
+        ...message,
+        status,
+        lifecycle,
+      }
+    : {
+        ...message,
+        status,
+      };
+}
+
+function resolveTimelineInsertIndex(
+  messages: readonly NcpMessage[],
+  message: NcpMessage,
+): number {
+  const targetTimestamp = Date.parse(message.timestamp);
+  if (!Number.isFinite(targetTimestamp)) {
+    return messages.length;
+  }
+  const laterMessageIndex = messages.findIndex((item) => {
+    const timestamp = Date.parse(item.timestamp);
+    return Number.isFinite(timestamp) && timestamp > targetTimestamp;
+  });
+  return laterMessageIndex < 0 ? messages.length : laterMessageIndex;
+}
+
+export function insertMessageByTimeline(
+  messages: readonly NcpMessage[],
+  message: NcpMessage,
+): NcpMessage[] {
+  const nextMessages = [...messages];
+  nextMessages.splice(resolveTimelineInsertIndex(messages, message), 0, message);
+  return nextMessages;
 }
 
 export function shouldPromoteStreamingMessageId(

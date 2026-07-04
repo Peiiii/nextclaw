@@ -264,6 +264,7 @@ export function useNcpAgentRuntime({
     setIsSending(true);
     if (sessionId) {
       await manager.dispatch({
+        occurredAt: new Date().toISOString(),
         type: NcpEventType.MessageSent,
         payload: {
           sessionId,

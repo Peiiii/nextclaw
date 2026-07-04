@@ -38,10 +38,12 @@ describe("mapCodexItemEvent", () => {
 
     expect(events).toEqual([
       {
+        occurredAt: expect.any(String),
         type: NcpEventType.MessageReasoningStart,
         payload: { sessionId: "session-1", messageId: "message-1" },
       },
       {
+        occurredAt: expect.any(String),
         type: NcpEventType.MessageReasoningDelta,
         payload: {
           sessionId: "session-1",
@@ -64,10 +66,12 @@ describe("mapCodexItemEvent", () => {
 
     expect(events).toEqual([
       {
+        occurredAt: expect.any(String),
         type: NcpEventType.MessageReasoningStart,
         payload: { sessionId: "session-1", messageId: "message-1" },
       },
       {
+        occurredAt: expect.any(String),
         type: NcpEventType.MessageReasoningDelta,
         payload: {
           sessionId: "session-1",
@@ -90,10 +94,12 @@ describe("mapCodexItemEvent", () => {
 
     expect(events).toEqual([
       {
+        occurredAt: expect.any(String),
         type: NcpEventType.MessageTextStart,
         payload: { sessionId: "session-1", messageId: "message-1" },
       },
       {
+        occurredAt: expect.any(String),
         type: NcpEventType.MessageTextDelta,
         payload: { sessionId: "session-1", messageId: "message-1", delta: "done" },
       },

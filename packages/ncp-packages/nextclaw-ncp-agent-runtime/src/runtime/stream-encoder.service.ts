@@ -1,4 +1,5 @@
 import {
+  createNcpEndpointEvent as createStreamEvent,
   type NcpAssistantReasoningNormalizationMode,
   type NcpEncodeContext,
   type NcpEndpointEvent,
@@ -73,7 +74,10 @@ export class DefaultNcpStreamEncoder implements NcpStreamEncoder {
         state = yield* flushTextDeltas(streamContext, state);
         yield* flushToolCalls(toolCallBuffers, streamContext);
         if (state.textStarted) {
-          yield { type: NcpEventType.MessageTextEnd, payload: streamContext };
+          yield createStreamEvent({
+            type: NcpEventType.MessageTextEnd,
+            payload: streamContext,
+          });
         }
       }
     }

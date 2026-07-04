@@ -44,6 +44,30 @@ function hasCollapsibleAssistantProcess(message: NcpMessage): boolean {
   );
 }
 
+function formatLifecycleDuration(message: NcpMessage): string | null {
+  const startedAt = message.lifecycle?.startedAt;
+  const endedAt = message.lifecycle?.endedAt;
+  if (!startedAt || !endedAt) {
+    return null;
+  }
+  const started = Date.parse(startedAt);
+  const ended = Date.parse(endedAt);
+  if (!Number.isFinite(started) || !Number.isFinite(ended) || ended < started) {
+    return null;
+  }
+  const totalSeconds = Math.round((ended - started) / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+  return `${seconds}s`;
+}
+
 export function buildChatMessageProcessSummary({
   message,
   processedLabel,
@@ -51,5 +75,6 @@ export function buildChatMessageProcessSummary({
   if (!hasCollapsibleAssistantProcess(message)) {
     return undefined;
   }
-  return { label: processedLabel };
+  const duration = formatLifecycleDuration(message);
+  return { label: duration ? `${processedLabel} ${duration}` : processedLabel };
 }

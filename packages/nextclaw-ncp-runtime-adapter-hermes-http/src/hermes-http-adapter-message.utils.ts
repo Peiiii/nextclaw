@@ -1,4 +1,5 @@
 import {
+  createNcpEndpointEvent,
   NcpAssistantTextStreamNormalizer,
   type NcpEndpointEvent,
   type NcpError,
@@ -9,28 +10,7 @@ import {
   NcpEventType,
 } from "@nextclaw/ncp";
 import type { HermesOpenAIMessage } from "./hermes-http-adapter.types.js";
-
-type HermesInlineToolTrace = {
-  toolName: string;
-  args: string;
-};
-
-const HERMES_INLINE_TOOL_TRACE_PATTERNS: Array<{
-  icon: string;
-  toolName: string;
-  buildArgs: (rawArgs: string) => string;
-}> = [
-  {
-    icon: "🔎",
-    toolName: "search_files",
-    buildArgs: (rawArgs) => JSON.stringify({ pattern: rawArgs }),
-  },
-  {
-    icon: "💻",
-    toolName: "terminal",
-    buildArgs: (rawArgs) => JSON.stringify({ command: rawArgs }),
-  },
-];
+import { matchHermesInlineToolTrace } from "./hermes-inline-tool-trace.utils.js";
 
 function readMetadataString(
   metadata: Record<string, unknown> | undefined,
@@ -380,9 +360,10 @@ export class HermesInlineToolTraceTranslator {
       return;
     }
 
+    const { flush, messageId, sessionId } = params;
     const lastNewlineIndex = this.pendingTextBuffer.lastIndexOf("\n");
     const flushableText =
-      params.flush
+      flush
         ? this.pendingTextBuffer
         : lastNewlineIndex >= 0
           ? this.pendingTextBuffer.slice(0, lastNewlineIndex + 1)
@@ -396,46 +377,46 @@ export class HermesInlineToolTraceTranslator {
     this.pendingTextBuffer = this.pendingTextBuffer.slice(flushableText.length);
     for (const segment of splitIntoLineSegments(flushableText)) {
       const inlineToolTrace = matchHermesInlineToolTrace(segment);
-      if (inlineToolTrace && params.sessionId) {
+      if (inlineToolTrace && sessionId) {
         const toolCallId = `hermes-inline-tool-${++this.toolCallCount}`;
-        yield {
+        yield createNcpEndpointEvent({
           type: NcpEventType.MessageToolCallStart,
           payload: {
-            sessionId: params.sessionId,
-            ...(params.messageId ? { messageId: params.messageId } : {}),
+            sessionId,
+            messageId,
             toolCallId,
             toolName: inlineToolTrace.toolName,
           },
-        };
-        yield {
+        });
+        yield createNcpEndpointEvent({
           type: NcpEventType.MessageToolCallArgs,
           payload: {
-            sessionId: params.sessionId,
+            sessionId,
             toolCallId,
             args: inlineToolTrace.args,
           },
-        };
-        yield {
+        });
+        yield createNcpEndpointEvent({
           type: NcpEventType.MessageToolCallEnd,
           payload: {
-            sessionId: params.sessionId,
+            sessionId,
             toolCallId,
           },
-        };
+        });
         continue;
       }
 
-      if (!segment || !params.sessionId || !params.messageId) {
+      if (!segment || !sessionId || !messageId) {
         continue;
       }
-      yield {
+      yield createNcpEndpointEvent({
         type: NcpEventType.MessageTextDelta,
         payload: {
-          sessionId: params.sessionId,
-          messageId: params.messageId,
+          sessionId,
+          messageId,
           delta: segment,
         },
-      };
+      });
     }
   };
 
@@ -505,24 +486,24 @@ export class HermesReasoningDeltaTranslator {
         continue;
       }
       if (segment.type === "reasoning") {
-        yield {
+        yield createNcpEndpointEvent({
           type: NcpEventType.MessageReasoningDelta,
           payload: {
             sessionId: event.payload.sessionId,
             messageId: event.payload.messageId,
             delta: segment.text,
           },
-        };
+        });
         continue;
       }
-      yield {
+      yield createNcpEndpointEvent({
         type: NcpEventType.MessageTextDelta,
         payload: {
           sessionId: event.payload.sessionId,
           messageId: event.payload.messageId,
           delta: segment.text,
         },
-      };
+      });
     }
   };
 
@@ -543,24 +524,24 @@ export class HermesReasoningDeltaTranslator {
         continue;
       }
       if (segment.type === "reasoning") {
-        yield {
+        yield createNcpEndpointEvent({
           type: NcpEventType.MessageReasoningDelta,
           payload: {
             sessionId,
             messageId,
             delta: segment.text,
           },
-        };
+        });
         continue;
       }
-      yield {
+      yield createNcpEndpointEvent({
         type: NcpEventType.MessageTextDelta,
         payload: {
           sessionId,
           messageId,
           delta: segment.text,
         },
-      };
+      });
     }
   };
 
@@ -712,30 +693,6 @@ function extractMessageText(message: NcpMessage): string {
 
 function splitIntoLineSegments(text: string): string[] {
   return text.match(/[^\n]*\n|[^\n]+$/gu) ?? [];
-}
-
-function matchHermesInlineToolTrace(segment: string): HermesInlineToolTrace | null {
-  const trimmed = segment.trim();
-  if (!trimmed.startsWith("`") || !trimmed.endsWith("`")) {
-    return null;
-  }
-
-  const body = trimmed.slice(1, -1).trim();
-  for (const candidate of HERMES_INLINE_TOOL_TRACE_PATTERNS) {
-    if (!body.startsWith(candidate.icon)) {
-      continue;
-    }
-    const rawArgs = body.slice(candidate.icon.length).trim();
-    if (!rawArgs) {
-      return null;
-    }
-    return {
-      toolName: candidate.toolName,
-      args: candidate.buildArgs(rawArgs),
-    };
-  }
-
-  return null;
 }
 
 function normalizeRole(role: NcpMessage["role"]): HermesOpenAIMessage["role"] {

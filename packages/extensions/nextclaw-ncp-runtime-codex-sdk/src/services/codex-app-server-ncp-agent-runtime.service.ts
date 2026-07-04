@@ -1,4 +1,5 @@
 import {
+  createNcpEndpointEvent,
   type NcpAgentRunInput,
   type NcpAgentRunOptions,
   type NcpAgentRuntime,
@@ -80,20 +81,22 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
     const turnId = readString(turn.turn?.id);
     const abortListener = (): void => {
       if (turnId && this.threadId) {
-        void client.request("turn/interrupt", { threadId: this.threadId, turnId }, 5000).catch(() => {
-          client.dispose();
-        });
-      } else {
-        client.dispose();
+        void client.request("turn/interrupt", { threadId: this.threadId, turnId }, 5000).catch(() => undefined);
       }
+      client.dispose();
+      this.clientPromise = null;
     };
     signal?.addEventListener("abort", abortListener, { once: true });
     try {
       while (true) {
-        if (signal?.aborted) {
-          throw toAbortError(signal.reason);
-        }
         const next = await client.nextNotification();
+        if (signal?.aborted) {
+          yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
+            type: NcpEventType.MessageAbort,
+            payload: { sessionId: input.sessionId, messageId, correlationId: input.correlationId },
+          }));
+          return;
+        }
         if (next.done) {
           return;
         }
@@ -284,16 +287,16 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
     const itemId = readString(params.params.itemId) ?? "agent-message";
     if (!textState.has(itemId)) {
       textState.add(itemId);
-      yield* this.eventEmitter.emitEvent({
+      yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
         type: NcpEventType.MessageTextStart,
         payload: { sessionId, messageId },
-      });
+      }));
     }
     textDeltaState.add(itemId);
-    yield* this.eventEmitter.emitEvent({
+    yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
       type: NcpEventType.MessageTextDelta,
       payload: { sessionId, messageId, delta: readRawString(params.params.delta) ?? "" },
-    });
+    }));
   };
 
   private emitReasoningDelta = async function* (
@@ -310,16 +313,16 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
     const itemId = readString(params.params.itemId) ?? "reasoning";
     if (!reasoningState.has(itemId)) {
       reasoningState.add(itemId);
-      yield* this.eventEmitter.emitEvent({
+      yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
         type: NcpEventType.MessageReasoningStart,
         payload: { sessionId, messageId },
-      });
+      }));
     }
     reasoningDeltaState.add(itemId);
-    yield* this.eventEmitter.emitEvent({
+    yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
       type: NcpEventType.MessageReasoningDelta,
       payload: { sessionId, messageId, delta: readRawString(params.params.delta) ?? "" },
-    });
+    }));
   };
 
   private handleItemLifecycle = async function* (
@@ -393,23 +396,23 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
     const { eventType, item, itemId, messageId, sessionId, textDeltaState, textState } = params;
     if (!textState.has(itemId)) {
       textState.add(itemId);
-      yield* this.eventEmitter.emitEvent({
+      yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
         type: NcpEventType.MessageTextStart,
         payload: { sessionId, messageId },
-      });
+      }));
     }
     const text = readRawString(item.text);
     if (text && !textDeltaState.has(itemId)) {
-      yield* this.eventEmitter.emitEvent({
+      yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
         type: NcpEventType.MessageTextDelta,
         payload: { sessionId, messageId, delta: text },
-      });
+      }));
     }
     if (eventType === "item/completed") {
-      yield* this.eventEmitter.emitEvent({
+      yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
         type: NcpEventType.MessageTextEnd,
         payload: { sessionId, messageId },
-      });
+      }));
     }
   };
 
@@ -431,22 +434,22 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
     const alreadyStarted = reasoningState.has(itemId);
     if (!alreadyStarted && (eventType === "item/started" || reasoningText)) {
       reasoningState.add(itemId);
-      yield* this.eventEmitter.emitEvent({
+      yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
         type: NcpEventType.MessageReasoningStart,
         payload: { sessionId, messageId },
-      });
+      }));
     }
     if (!reasoningDeltaState.has(itemId) && reasoningText) {
-      yield* this.eventEmitter.emitEvent({
+      yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
         type: NcpEventType.MessageReasoningDelta,
         payload: { sessionId, messageId, delta: reasoningText },
-      });
+      }));
     }
     if (eventType === "item/completed" && reasoningState.has(itemId)) {
-      yield* this.eventEmitter.emitEvent({
+      yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
         type: NcpEventType.MessageReasoningEnd,
         payload: { sessionId, messageId },
-      });
+      }));
     }
   };
 
@@ -464,28 +467,28 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
     const { eventType, item, itemId, messageId, sessionId, toolState } = params;
     if (!toolState.has(itemId)) {
       toolState.add(itemId);
-      yield* this.eventEmitter.emitEvent({
+      yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
         type: NcpEventType.MessageToolCallStart,
         payload: { sessionId, messageId, toolCallId: itemId, toolName: readAppServerToolName(item) },
-      });
-      yield* this.eventEmitter.emitEvent({
+      }));
+      yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
         type: NcpEventType.MessageToolCallArgs,
         payload: {
           sessionId,
           toolCallId: itemId,
           args: stringifyAppServerToolArgs(readAppServerToolArgs(item)),
         },
-      });
-      yield* this.eventEmitter.emitEvent({
+      }));
+      yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
         type: NcpEventType.MessageToolCallEnd,
         payload: { sessionId, toolCallId: itemId },
-      });
+      }));
     }
     if (eventType === "item/completed") {
-      yield* this.eventEmitter.emitEvent({
+      yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
         type: NcpEventType.MessageToolCallResult,
         payload: { sessionId, toolCallId: itemId, content: readAppServerToolResult(item) },
-      });
+      }));
     }
   };
 
@@ -549,16 +552,6 @@ function buildThreadModelScope(config: CodexAppServerNcpAgentRuntimeConfig): str
   return readString(config.threadOptions?.model) ??
     readString(config.model) ??
     "__nextclaw_runtime_default__";
-}
-
-function toAbortError(reason: unknown): Error {
-  if (reason instanceof Error) {
-    return reason;
-  }
-  const message = typeof reason === "string" && reason.trim() ? reason.trim() : "operation aborted";
-  const error = new Error(message);
-  error.name = "AbortError";
-  return error;
 }
 
 function formatError(error: unknown): string {

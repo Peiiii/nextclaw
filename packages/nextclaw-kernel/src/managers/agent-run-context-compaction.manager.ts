@@ -63,6 +63,7 @@ export class AgentRunContextCompactionManager {
     }
     return [
       {
+        occurredAt: new Date().toISOString(),
         type: NcpEventType.MessageSent,
         payload: {
           sessionId,

@@ -1,5 +1,5 @@
 import type { ThreadEvent, ThreadItem } from "@openai/codex-sdk";
-import { type NcpEndpointEvent, NcpEventType } from "@nextclaw/ncp";
+import { createNcpEndpointEvent, type NcpEndpointEvent, NcpEventType } from "@nextclaw/ncp";
 
 type ToolLikeItem = Extract<
   ThreadItem,
@@ -106,26 +106,26 @@ function* mapTextSnapshotDelta(params: {
   const { currentText, itemId, itemTextById, messageId, sessionId } = params;
   const previous = itemTextById.get(itemId) ?? { text: "", started: false };
   if (!previous.started) {
-    yield {
+    yield createNcpEndpointEvent({
       type: params.startType,
       payload: { sessionId, messageId },
-    };
+    });
   }
   if (currentText.length > previous.text.length) {
     const delta = currentText.slice(previous.text.length);
     for (const chunk of splitTextDelta(delta)) {
-      yield {
+      yield createNcpEndpointEvent({
         type: params.deltaType,
         payload: { sessionId, messageId, delta: chunk },
-      };
+      });
     }
   }
   itemTextById.set(itemId, { text: currentText, started: true });
   if (params.eventType === "item.completed") {
-    yield {
+    yield createNcpEndpointEvent({
       type: params.endType,
       payload: { sessionId, messageId },
-    };
+    });
   }
 }
 
@@ -171,7 +171,7 @@ export async function* mapCodexItemEvent(params: {
   const descriptor = buildToolDescriptor(item);
 
   if (!previous.started) {
-    yield {
+    yield createNcpEndpointEvent({
       type: NcpEventType.MessageToolCallStart,
       payload: {
         sessionId,
@@ -179,42 +179,42 @@ export async function* mapCodexItemEvent(params: {
         toolCallId: item.id,
         toolName: descriptor.toolName,
       },
-    };
+    });
     previous.started = true;
   }
 
   if (!previous.argsEmitted) {
-    yield {
+    yield createNcpEndpointEvent({
       type: NcpEventType.MessageToolCallArgs,
       payload: {
         sessionId,
         toolCallId: item.id,
         args: stringifyToolArgs(descriptor.args),
       },
-    };
+    });
     previous.argsEmitted = true;
   }
 
   if (!previous.ended) {
-    yield {
+    yield createNcpEndpointEvent({
       type: NcpEventType.MessageToolCallEnd,
       payload: {
         sessionId,
         toolCallId: item.id,
       },
-    };
+    });
     previous.ended = true;
   }
 
   if (event.type === "item.updated" || event.type === "item.completed") {
-    yield {
+    yield createNcpEndpointEvent({
       type: NcpEventType.MessageToolCallResult,
       payload: {
         sessionId,
         toolCallId: item.id,
         content: buildToolResult(item),
       },
-    };
+    });
   }
 
   toolStateById.set(item.id, previous);

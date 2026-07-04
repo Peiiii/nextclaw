@@ -1,5 +1,6 @@
 import { createRequire } from "node:module";
 import {
+  createNcpEndpointEvent,
   type NcpAgentRunInput,
   type NcpAgentRunOptions,
   type NcpAgentRuntime,
@@ -56,6 +57,7 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
   private readonly sessionMetadata: Record<string, unknown>;
   private readonly bundledCliPath = resolveBundledClaudeAgentSdkCliPath();
   private readonly currentProcessExecutable = resolveCurrentProcessExecutable();
+  private readonly runStartedAtByRunId = new Map<string, string>();
 
   constructor(private readonly config: ClaudeCodeSdkNcpAgentRuntimeConfig) {
     this.sessionRuntimeId = config.sessionRuntimeId?.trim() || null;
@@ -207,15 +209,18 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
     messageId: string,
     runId: string,
   ): AsyncGenerator<NcpEndpointEvent> {
-    yield* this.emitEvent({
+    const startedAt = new Date().toISOString();
+    this.runStartedAtByRunId.set(runId, startedAt);
+    yield* this.emitEvent(createNcpEndpointEvent({
       type: NcpEventType.RunStarted,
       payload: {
         sessionId,
         messageId,
         runId,
+        startedAt,
       },
-    });
-    yield* this.emitEvent({
+    }, startedAt));
+    yield* this.emitEvent(createNcpEndpointEvent({
       type: NcpEventType.RunMetadata,
       payload: {
         sessionId,
@@ -228,7 +233,7 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
           supportsAbort: true,
         },
       },
-    });
+    }));
   }
 
   private async *emitRunError(
@@ -237,15 +242,20 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
     runId: string,
     error: string,
   ): AsyncGenerator<NcpEndpointEvent> {
-    yield* this.emitEvent({
+    const endedAt = new Date().toISOString();
+    const startedAt = this.runStartedAtByRunId.get(runId);
+    this.runStartedAtByRunId.delete(runId);
+    yield* this.emitEvent(createNcpEndpointEvent({
       type: NcpEventType.RunError,
       payload: {
         sessionId,
         messageId,
         runId,
         error,
+        startedAt,
+        endedAt,
       },
-    });
+    }, endedAt));
   }
 
   private async *emitTextDelta(
@@ -259,25 +269,25 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
     }
 
     if (!state.textStarted) {
-      yield* this.emitEvent({
+      yield* this.emitEvent(createNcpEndpointEvent({
         type: NcpEventType.MessageTextStart,
         payload: {
           sessionId,
           messageId,
         },
-      });
+      }));
       state.textStarted = true;
     }
 
     state.emittedText += delta;
-    yield* this.emitEvent({
+    yield* this.emitEvent(createNcpEndpointEvent({
       type: NcpEventType.MessageTextDelta,
       payload: {
         sessionId,
         messageId,
         delta,
       },
-    });
+    }));
   }
 
   private async *emitTextEnd(
@@ -289,13 +299,13 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
       return;
     }
 
-    yield* this.emitEvent({
+    yield* this.emitEvent(createNcpEndpointEvent({
       type: NcpEventType.MessageTextEnd,
       payload: {
         sessionId,
         messageId,
       },
-    });
+    }));
     state.textStarted = false;
   }
 
@@ -320,7 +330,7 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
     messageId: string,
     runId: string,
   ): AsyncGenerator<NcpEndpointEvent> {
-    yield* this.emitEvent({
+    yield* this.emitEvent(createNcpEndpointEvent({
       type: NcpEventType.RunMetadata,
       payload: {
         sessionId,
@@ -331,8 +341,8 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
           sessionId,
         },
       },
-    });
-    yield* this.emitEvent({
+    }));
+    yield* this.emitEvent(createNcpEndpointEvent({
       type: NcpEventType.MessageCompleted,
       payload: {
         sessionId,
@@ -342,15 +352,20 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
           messageId,
         }),
       },
-    });
-    yield* this.emitEvent({
+    }));
+    const endedAt = new Date().toISOString();
+    const startedAt = this.runStartedAtByRunId.get(runId);
+    this.runStartedAtByRunId.delete(runId);
+    yield* this.emitEvent(createNcpEndpointEvent({
       type: NcpEventType.RunFinished,
       payload: {
         sessionId,
         messageId,
         runId,
+        startedAt,
+        endedAt,
       },
-    });
+    }, endedAt));
   }
 
   private updateSessionRuntimeId(nextSessionId: string): void {

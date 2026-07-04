@@ -4,6 +4,7 @@ export function cloneConversationMessage(message: NcpMessage): NcpMessage {
   return {
     ...message,
     parts: [...message.parts],
+    lifecycle: message.lifecycle ? { ...message.lifecycle } : undefined,
     metadata: message.metadata ? { ...message.metadata } : undefined,
   };
 }

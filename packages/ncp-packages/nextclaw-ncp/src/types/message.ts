@@ -27,6 +27,18 @@ export function isHiddenNcpMessage(message: Pick<NcpMessage, "metadata"> | null 
  */
 export type NcpMessageStatus = "pending" | "streaming" | "final" | "error";
 
+/**
+ * Message lifecycle timing.
+ *
+ * For assistant messages, these fields describe when the response started and
+ * stopped being produced. They are intentionally message-level and not tied to
+ * a specific runtime implementation such as an NCP run.
+ */
+export type NcpMessageLifecycle = {
+  startedAt?: string;
+  endedAt?: string;
+};
+
 // ---------------------------------------------------------------------------
 // Core portable parts
 // ---------------------------------------------------------------------------
@@ -212,6 +224,8 @@ export type NcpMessage = {
   parts: NcpMessagePart[];
   /** ISO 8601 timestamp (e.g. `"2024-01-15T10:30:00.000Z"`). */
   timestamp: string;
+  /** Optional lifecycle timing for this message. */
+  lifecycle?: NcpMessageLifecycle;
   /** Arbitrary transport- or application-level metadata. */
   metadata?: Record<string, unknown>;
 };
