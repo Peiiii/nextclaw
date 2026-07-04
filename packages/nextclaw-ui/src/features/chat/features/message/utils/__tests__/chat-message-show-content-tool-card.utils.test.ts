@@ -29,6 +29,59 @@ const TEXTS: ChatMessageAdapterTexts = {
 };
 
 describe("buildShowContentToolCard", () => {
+  it("builds a show-content action from a normalized show_file result", () => {
+    const card = buildShowContentToolCard({
+      invocation: {
+        status: "result",
+        toolCallId: "call-show-file",
+        toolName: "show_file",
+        result: {
+          ok: true,
+          action: "showContent",
+          request: {
+            target: {
+              type: "file",
+              payload: {
+                path: "docs/example.md",
+                line: 2,
+                viewer: "rendered",
+              },
+            },
+            title: "Example",
+            purpose: "read",
+          },
+        },
+      },
+      actionLabel: "Show content",
+      statusLabel: "Completed",
+    });
+
+    expect(card).toMatchObject({
+      kind: "result",
+      name: "show_file",
+      detail: "Example",
+      statusTone: "success",
+      statusLabel: "Completed",
+      action: {
+        kind: "show-content",
+        label: "Show content",
+        request: {
+          target: {
+            type: "file",
+            payload: {
+              path: "docs/example.md",
+              line: 2,
+              viewer: "rendered",
+            },
+          },
+          title: "Example",
+          purpose: "read",
+          placement: "side_panel",
+        },
+      },
+    });
+  });
+
   it("builds a show-content action from a normalized show_content result", () => {
     const card = buildShowContentToolCard({
       invocation: {
@@ -87,7 +140,7 @@ describe("buildShowContentToolCard", () => {
       invocation: {
         status: "result",
         toolCallId: "call-show-content",
-        toolName: "show_content",
+        toolName: "show_panel_app",
         result: {
           ok: true,
           action: "showContent",

@@ -68,6 +68,8 @@ describe('ChatUiManager content display', () => {
     });
 
     expect(docBrowserManager.open).toHaveBeenCalledWith('https://example.com/read', {
+      dedupeKey: 'browser:https://example.com/read',
+      kind: 'content',
       title: 'Example URL',
     });
   });

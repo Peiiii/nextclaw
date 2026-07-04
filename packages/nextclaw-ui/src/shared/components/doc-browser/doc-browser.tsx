@@ -11,13 +11,14 @@ import { normalizeDocUrl } from './utils/doc-browser-url.utils';
 import { DocBrowserHomePage } from './doc-browser-home-page';
 import type { DocBrowserCustomTabRenderers } from './doc-browser-renderer.types';
 import {
-  DocBrowserDocsToolbar,
+  DocBrowserAddressToolbar,
   DocBrowserExternalLink,
   DocBrowserFrameContent,
 } from './doc-browser-panel-parts';
 import { DocBrowserTabStrip } from './doc-browser-tab-strip';
 import { ResizableRightPanel } from '@/shared/components/resizable-right-panel/resizable-right-panel';
 import { cn } from '@/shared/lib/utils';
+import { t } from '@/shared/lib/i18n';
 import { GripVertical } from 'lucide-react';
 
 type DocBrowserProps = {
@@ -40,6 +41,23 @@ const FLOATING_PANEL_MARGIN = 40;
 const FLOATING_PANEL_MIN_WIDTH = 360;
 const FLOATING_PANEL_MIN_HEIGHT = 400;
 const DEFAULT_IFRAME_SANDBOX = 'allow-same-origin allow-scripts allow-popups allow-forms';
+
+function resolveContentUrlInput(input: string, currentUrl: string): string {
+  if (input.startsWith('/')) {
+    try {
+      return new URL(input, currentUrl).toString();
+    } catch {
+      return input;
+    }
+  }
+  if (/^[a-z][a-z\d+.-]*:\/\//i.test(input) || input === 'about:blank') {
+    return input;
+  }
+  if (/^(localhost|127\.|0\.0\.0\.0|\[::1\])(?::|\/|$)/i.test(input)) {
+    return `http://${input}`;
+  }
+  return `https://${input}`;
+}
 
 function resolveIframeSandbox(
   customRenderer: DocBrowserCustomTabRenderers[string] | undefined,
@@ -65,6 +83,65 @@ function useDocBrowserDockAction(
     }
     dockControls?.pinTab(currentTab);
   }, [currentTab, dockControls, dockState]);
+}
+
+function useDocBrowserAddressBar({
+  activeTabId,
+  currentUrl,
+  isAddressToolbarTab,
+  isContentTab,
+  isDocsTab,
+  navigate,
+}: {
+  activeTabId: string;
+  currentUrl: string;
+  isAddressToolbarTab: boolean;
+  isContentTab: boolean;
+  isDocsTab: boolean;
+  navigate: (url: string) => void;
+}) {
+  const addressInputKey = `${activeTabId}:${currentUrl}:${isContentTab ? 'content' : 'docs'}`;
+  const [draftInput, setDraftInput] = useState<{ key: string; value: string } | null>(null);
+  const currentInput = (() => {
+    if (!isAddressToolbarTab) {
+      return '';
+    }
+    if (isContentTab) {
+      return currentUrl;
+    }
+    try {
+      return new URL(currentUrl).pathname;
+    } catch {
+      return currentUrl;
+    }
+  })();
+  const urlInput = draftInput?.key === addressInputKey ? draftInput.value : currentInput;
+  const setUrlInput = useCallback(
+    (value: string) => setDraftInput({ key: addressInputKey, value }),
+    [addressInputKey],
+  );
+
+  const handleUrlSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isAddressToolbarTab) return;
+    const input = urlInput.trim();
+    if (!input) return;
+    if (isDocsTab && input.startsWith('/')) {
+      navigate(`${DOCS_DEFAULT_BASE_URL}${input}`);
+    } else if (isDocsTab && input.startsWith('http')) {
+      navigate(input);
+    } else if (isDocsTab) {
+      navigate(`${DOCS_DEFAULT_BASE_URL}/${input}`);
+    } else {
+      navigate(resolveContentUrlInput(input, currentUrl));
+    }
+  }, [currentUrl, isAddressToolbarTab, isDocsTab, navigate, urlInput]);
+
+  return {
+    handleUrlSubmit,
+    setUrlInput,
+    urlInput,
+  };
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -102,7 +179,6 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
     closeTab,
   } = useDocBrowser();
 
-  const [urlInput, setUrlInput] = useState('');
   const [iframeReloadVersion, setIframeReloadVersion] = useState(0);
   const [floatRect, setFloatRect] = useState<FloatingPanelRect>(createInitialFloatingPanelRect);
   const [floatInteraction, setFloatInteraction] = useState<FloatingPanelInteraction | null>(null);
@@ -118,19 +194,16 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
   const canGoForward = activeHistoryIndex < activeHistory.length - 1;
   const customRenderer = currentTab ? customTabRenderers[currentTab.kind] : undefined;
   const dockState = dockControls?.getDockState(currentTab);
-
-  useEffect(() => {
-    if (!isDocsTab) {
-      setUrlInput('');
-      return;
-    }
-    try {
-      const parsed = new URL(currentUrl);
-      setUrlInput(parsed.pathname);
-    } catch {
-      setUrlInput(currentUrl);
-    }
-  }, [currentUrl, activeTabId, isDocsTab]);
+  const isContentTab = currentTab?.kind === 'content';
+  const isAddressToolbarTab = isDocsTab || isContentTab;
+  const { handleUrlSubmit, setUrlInput, urlInput } = useDocBrowserAddressBar({
+    activeTabId,
+    currentUrl,
+    isAddressToolbarTab,
+    isContentTab,
+    isDocsTab,
+    navigate,
+  });
 
   // When currentUrl changes without navVersion bump (goBack/goForward),
   // use postMessage to SPA-navigate inside the iframe instead of remounting.
@@ -260,20 +333,6 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
     };
   }, [floatInteraction]);
 
-  const handleUrlSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isDocsTab) return;
-    const input = urlInput.trim();
-    if (!input) return;
-    if (input.startsWith('/')) {
-      navigate(`${DOCS_DEFAULT_BASE_URL}${input}`);
-    } else if (input.startsWith('http')) {
-      navigate(input);
-    } else {
-      navigate(`${DOCS_DEFAULT_BASE_URL}/${input}`);
-    }
-  }, [urlInput, navigate, isDocsTab]);
-
   const refreshIframe = useCallback(() => {
     setIframeReloadVersion((version) => version + 1);
   }, []);
@@ -318,10 +377,12 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
         onToggleMode={toggleMode}
       />
 
-      <DocBrowserDocsToolbar
-        isDocsTab={isDocsTab}
+      <DocBrowserAddressToolbar
+        isVisible={isAddressToolbarTab}
+        onRefresh={refreshIframe}
         onSubmit={handleUrlSubmit}
         onUrlInputChange={setUrlInput}
+        placeholder={isDocsTab ? t('docBrowserSearchPlaceholder') : t('docBrowserAddressPlaceholder')}
         urlInput={urlInput}
       />
 
@@ -338,7 +399,7 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
         isResizing={floatInteraction?.kind === 'resize'}
       />
 
-      <DocBrowserExternalLink currentUrl={currentUrl} isDocsTab={isDocsTab} />
+      <DocBrowserExternalLink currentUrl={currentUrl} isVisible={isDocsTab || isContentTab} />
     </>
   );
 

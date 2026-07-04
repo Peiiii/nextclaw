@@ -1,18 +1,22 @@
 import type { ReactNode, Ref } from 'react';
 import {
   ExternalLink,
+  RefreshCw,
   Search,
 } from 'lucide-react';
 import {
   isDocsUrl,
   type DocBrowserTab,
 } from './doc-browser-context';
+import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import { t } from '@/shared/lib/i18n';
 
-type DocBrowserDocsToolbarProps = {
-  isDocsTab: boolean;
+type DocBrowserAddressToolbarProps = {
+  isVisible: boolean;
+  onRefresh: () => void;
   onSubmit: (e: React.FormEvent) => void;
   onUrlInputChange: (value: string) => void;
+  placeholder: string;
   urlInput: string;
 };
 
@@ -27,13 +31,15 @@ type DocBrowserFrameContentProps = {
   isResizing: boolean;
 };
 
-export function DocBrowserDocsToolbar({
-  isDocsTab,
+export function DocBrowserAddressToolbar({
+  isVisible,
+  onRefresh,
   onSubmit,
   onUrlInputChange,
+  placeholder,
   urlInput,
-}: DocBrowserDocsToolbarProps) {
-  if (!isDocsTab) {
+}: DocBrowserAddressToolbarProps) {
+  if (!isVisible) {
     return null;
   }
 
@@ -45,10 +51,16 @@ export function DocBrowserDocsToolbar({
           type="text"
           value={urlInput}
           onChange={(e) => onUrlInputChange(e.target.value)}
-          placeholder={t('docBrowserSearchPlaceholder')}
+          aria-label={t('docBrowserAddressLabel')}
+          placeholder={placeholder}
           className="h-8 w-full rounded-lg border border-border bg-background pl-8 pr-3 text-xs text-foreground transition-colors placeholder:text-muted-foreground/55 focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/30"
         />
       </form>
+      <IconActionButton
+        icon={<RefreshCw className="h-3.5 w-3.5" />}
+        label={t('docBrowserRefresh')}
+        onClick={onRefresh}
+      />
     </div>
   );
 }
@@ -85,10 +97,20 @@ export function DocBrowserFrameContent({
   );
 }
 
-export function DocBrowserExternalLink({ currentUrl, isDocsTab }: { currentUrl: string; isDocsTab: boolean }) {
-  if (!isDocsTab || !isDocsUrl(currentUrl)) {
+function canOpenExternalUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url, window.location.origin);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+export function DocBrowserExternalLink({ currentUrl, isVisible }: { currentUrl: string; isVisible: boolean }) {
+  if (!isVisible || !canOpenExternalUrl(currentUrl)) {
     return null;
   }
+  const label = isDocsUrl(currentUrl) ? t('docBrowserOpenExternal') : t('docBrowserOpenInBrowser');
 
   return (
     <div className="flex items-center justify-between border-t border-border/70 bg-muted/55 px-4 py-2 shrink-0">
@@ -99,7 +121,7 @@ export function DocBrowserExternalLink({ currentUrl, isDocsTab }: { currentUrl: 
         data-doc-external
         className="flex items-center gap-1.5 text-xs text-primary hover:text-primary-hover font-medium transition-colors"
       >
-        {t('docBrowserOpenExternal')}
+        {label}
         <ExternalLink className="w-3 h-3" />
       </a>
     </div>

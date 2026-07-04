@@ -8,7 +8,7 @@ import type {
   ToolCardViewSource,
 } from "./chat-message-tool-card.utils";
 
-const SHOW_CONTENT_TOOL_NAME = "show_content";
+const SHOW_CONTENT_TOOL_NAMES = ["show_content", "show_file", "show_url", "show_panel_app"];
 
 type ShowContentTargetType = ChatUiShowContentRequest["target"]["type"];
 
@@ -159,7 +159,7 @@ export function buildShowContentToolCard(params: {
     invocation,
     statusLabel,
   } = params;
-  if (invocation.toolName !== SHOW_CONTENT_TOOL_NAME) {
+  if (!SHOW_CONTENT_TOOL_NAMES.includes(invocation.toolName)) {
     return null;
   }
   const request = readShowContentResult(invocation.result);
@@ -184,7 +184,7 @@ export function buildShowContentToolCard(params: {
     : undefined;
   return {
     kind: "result",
-    name: SHOW_CONTENT_TOOL_NAME,
+    name: invocation.toolName,
     detail: summarizeShowContentRequest(request),
     text: undefined,
     outputData: invocation.result,

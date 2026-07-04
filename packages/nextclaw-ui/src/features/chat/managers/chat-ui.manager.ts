@@ -89,7 +89,11 @@ export class ChatUiManager {
   showContent = async (params: { target: ChatUiDisplayContentTarget; title?: string }) => {
     const { target, title } = params;
     if (target.type === 'url') {
-      this.docBrowserManager.open(target.payload.url, { title });
+      this.docBrowserManager.open(target.payload.url, {
+        dedupeKey: `browser:${target.payload.url}`,
+        kind: 'content',
+        title,
+      });
       return;
     }
     const { appId } = target.payload;

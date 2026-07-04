@@ -73,7 +73,7 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("宽度大于高度");
     expect(skill).toContain("设计上不要依赖 document 级内部滚动");
     expect(skill).toContain("nextclawDisplayMode=card");
-    expect(skill).toContain('show_content(type="panel_app", placement="inline")');
+    expect(skill).toContain('show_panel_app(appId, placement="inline")');
     expect(skill).toContain("新建或重写 Panel App 时只使用目录式 Panel App");
     expect(skill).toContain("panel-app-react-vite-creator");
     expect(skill).toContain("前端工程形态判断");
@@ -117,9 +117,9 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("交付说明不要让用户 restart");
     expect(skill).toContain("只有当交付形态已判断为 Panel Card");
     expect(skill).toContain("普通 Panel App、编辑器、管理页、大表格和多页工作流应使用 side panel");
-    expect(skill).toContain('show_content(type="panel_app", placement="inline")');
-    expect(skill).toContain('show_content(type="file", payload.viewer="rendered", placement="side_panel")');
-    expect(skill).toContain('payload.viewer="source"');
+    expect(skill).toContain('show_panel_app(appId, placement="inline")');
+    expect(skill).toContain('show_file(path, viewer="rendered", placement="side_panel")');
+    expect(skill).toContain('viewer="source"');
   });
 
   it("loads the React/Vite Panel App creator builtin skill", () => {

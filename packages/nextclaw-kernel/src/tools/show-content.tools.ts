@@ -13,8 +13,6 @@ import {
   type UiShowContentTarget,
 } from "@nextclaw/shared";
 
-export const SHOW_CONTENT_TOOL_NAME = "show_content";
-
 type ShowContentRequest = {
   target: UiShowContentTarget;
   title: string | undefined;
@@ -23,10 +21,19 @@ type ShowContentRequest = {
 };
 
 type ShowContentEventBus = Pick<EventBus, "emit">;
+type ShowContentToolSpec = {
+  name: string;
+  description: string;
+  parameters: NcpTool["parameters"];
+  normalize: (args: unknown) => ShowContentRequest;
+};
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
+const FILE_PURPOSES: readonly UiShowContentPurpose[] = ["read", "preview", "edit"];
+const URL_PURPOSES: readonly UiShowContentPurpose[] = ["read", "preview"];
+const PANEL_APP_PURPOSES: readonly UiShowContentPurpose[] = ["preview", "interact"];
+const SIDE_PANEL_PLACEMENTS: readonly UiShowContentPlacement[] = ["side_panel"];
+const PANEL_APP_PLACEMENTS: readonly UiShowContentPlacement[] = ["inline", "side_panel"];
+const FILE_VIEWERS: readonly UiShowContentFileViewer[] = ["auto", "source", "rendered"];
 
 function readRequiredString(value: unknown, key: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -39,8 +46,7 @@ function readOptionalString(value: unknown): string | undefined {
   if (typeof value !== "string") {
     return undefined;
   }
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
+  return value.trim() || undefined;
 }
 
 function readOptionalPositiveInteger(value: unknown, key: string): number | undefined {
@@ -53,119 +59,88 @@ function readOptionalPositiveInteger(value: unknown, key: string): number | unde
   return value;
 }
 
-function readPurpose(value: unknown): UiShowContentPurpose | undefined {
+function readOptionalEnum<T extends string>(
+  value: unknown,
+  key: string,
+  allowed: readonly T[],
+): T | undefined {
   const normalized = readOptionalString(value);
   if (!normalized) {
     return undefined;
   }
-  if (
-    normalized === "read" ||
-    normalized === "preview" ||
-    normalized === "edit" ||
-    normalized === "interact"
-  ) {
-    return normalized;
+  if ((allowed as readonly string[]).includes(normalized)) {
+    return normalized as T;
   }
-  throw new Error('purpose must be "read", "preview", "edit", or "interact".');
-}
-
-function readPlacement(value: unknown): UiShowContentPlacement | undefined {
-  const normalized = readOptionalString(value);
-  if (!normalized) {
-    return undefined;
-  }
-  if (normalized === "inline" || normalized === "side_panel") {
-    return normalized;
-  }
-  throw new Error('placement must be "inline" or "side_panel".');
-}
-
-function readFileViewer(value: unknown): UiShowContentFileViewer | undefined {
-  const normalized = readOptionalString(value);
-  if (!normalized) {
-    return undefined;
-  }
-  if (normalized === "auto" || normalized === "source" || normalized === "rendered") {
-    return normalized;
-  }
-  throw new Error('payload.viewer must be "auto", "source", or "rendered".');
-}
-
-function readPayload(params: Record<string, unknown>): Record<string, unknown> {
-  if (!isRecord(params.payload)) {
-    throw new Error("payload must be an object.");
-  }
-  return params.payload;
+  const expected = allowed.map((item) => `"${item}"`).join(", ");
+  throw new Error(`${key} must be ${expected}.`);
 }
 
 function readUrl(value: unknown): string {
-  const url = readRequiredString(value, "payload.url");
+  const url = readRequiredString(value, "url");
   let parsed: URL;
   try {
     parsed = new URL(url);
   } catch {
-    throw new Error("payload.url must be a valid URL.");
+    throw new Error("url must be a valid URL.");
   }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error("payload.url must use http or https.");
+    throw new Error("url must use http or https.");
   }
   return parsed.toString();
 }
 
-function normalizeShowContentArgs(args: unknown): ShowContentRequest {
+function readCommonRequestFields(
+  params: Record<string, unknown>,
+  allowedPurposes: readonly UiShowContentPurpose[],
+  allowedPlacements: readonly UiShowContentPlacement[],
+): Pick<ShowContentRequest, "title" | "purpose" | "placement"> {
+  return {
+    title: readOptionalString(params.title),
+    purpose: readOptionalEnum(params.purpose, "purpose", allowedPurposes),
+    placement: readOptionalEnum(params.placement, "placement", allowedPlacements),
+  };
+}
+
+function normalizeShowFileArgs(args: unknown): ShowContentRequest {
   const params = normalizeToolParams(args);
-  const type = readRequiredString(params.type, "type");
-  const payload = readPayload(params);
-  const title = readOptionalString(params.title);
-  const purpose = readPurpose(params.purpose);
-  const placement = readPlacement(params.placement);
-
-  if (type === "file") {
-    return {
-      target: {
-        type,
-        payload: {
-          path: readRequiredString(payload.path, "payload.path"),
-          line: readOptionalPositiveInteger(payload.line, "payload.line"),
-          column: readOptionalPositiveInteger(payload.column, "payload.column"),
-          viewer: readFileViewer(payload.viewer),
-        },
+  return {
+    target: {
+      type: "file",
+      payload: {
+        path: readRequiredString(params.path, "path"),
+        line: readOptionalPositiveInteger(params.line, "line"),
+        column: readOptionalPositiveInteger(params.column, "column"),
+        viewer: readOptionalEnum(params.viewer, "viewer", FILE_VIEWERS),
       },
-      title,
-      purpose,
-      placement,
-    };
-  }
+    },
+    ...readCommonRequestFields(params, FILE_PURPOSES, SIDE_PANEL_PLACEMENTS),
+  };
+}
 
-  if (type === "url") {
-    return {
-      target: {
-        type,
-        payload: {
-          url: readUrl(payload.url),
-        },
+function normalizeShowUrlArgs(args: unknown): ShowContentRequest {
+  const params = normalizeToolParams(args);
+  return {
+    target: {
+      type: "url",
+      payload: {
+        url: readUrl(params.url),
       },
-      title,
-      purpose,
-      placement,
-    };
-  }
+    },
+    ...readCommonRequestFields(params, URL_PURPOSES, SIDE_PANEL_PLACEMENTS),
+  };
+}
 
-  if (type === "panel_app") {
-    return {
-      target: {
-        type,
-        payload: {
-          appId: readRequiredString(payload.appId, "payload.appId"),
-        },
+function normalizeShowPanelAppArgs(args: unknown): ShowContentRequest {
+  const params = normalizeToolParams(args);
+  return {
+    target: {
+      type: "panel_app",
+      payload: {
+        appId: readRequiredString(params.appId, "appId"),
       },
-      title,
-      purpose,
-      placement,
-    };
-  }
-
-  throw new Error('type must be "file", "url", or "panel_app".');
+    },
+    ...readCommonRequestFields(params, PANEL_APP_PURPOSES, PANEL_APP_PLACEMENTS),
+  };
 }
 
 function summarizeTarget(target: UiShowContentTarget): string {
@@ -195,61 +170,85 @@ function createShowContentEventPayload(
   };
 }
 
-export class ShowContentTool implements NcpTool {
-  readonly name = SHOW_CONTENT_TOOL_NAME;
-  readonly description = [
-    "Show file, URL, or panel app content in the current chat UI.",
-    'placement="inline" embeds a lightweight panel_app as an interactive chat card so the user can try it directly in the conversation.',
-    'placement="side_panel" opens content in the right side panel for larger reading, editing, or sustained workflows.',
-    'For file targets, use payload.viewer="rendered" when the user should see a rendered local HTML/page preview, payload.viewer="source" when the user should inspect source text, and omit it or use "auto" for the default source-style preview.',
-    'Choose the placement yourself: after creating a lightweight Panel App such as a weather card, calculator, timer, checklist, picker, form, preview, or small dashboard, call this tool with placement="inline" without waiting for the user to ask to see it.',
-    "Omit placement only when preserving the existing default side panel behavior is intentional.",
-  ].join(" ");
-  readonly parameters = {
-    type: "object",
-    properties: {
-      type: {
-        type: "string",
-        enum: ["file", "url", "panel_app"],
-        description: "Content target type.",
-      },
-      title: {
-        type: "string",
-        description: "Optional title for the shown content.",
-      },
-      purpose: {
-        type: "string",
-        enum: ["read", "preview", "edit", "interact"],
-        description: "Optional user intent for the content.",
-      },
-      placement: {
-        type: "string",
-        enum: ["inline", "side_panel"],
-        description: 'Optional display placement. "inline" embeds a lightweight panel app as an interactive chat card; "side_panel" opens it in the right panel for larger workflows. Choose the appropriate placement yourself; defaults to the existing side panel behavior when omitted.',
-      },
-      payload: {
-        type: "object",
-        description: "Type-specific fields: file={path,line,column,viewer}; url={url}; panel_app={appId}. File viewer may be auto, source, or rendered.",
-        additionalProperties: true,
-      },
-    },
-    required: ["type", "payload"],
-    additionalProperties: false,
-  };
+class ShowContentDisplayTool implements NcpTool {
+  constructor(
+    private readonly eventBus: ShowContentEventBus,
+    private readonly spec: ShowContentToolSpec,
+  ) {}
 
-  constructor(private readonly eventBus: ShowContentEventBus) {}
+  get name(): string { return this.spec.name; }
+  get description(): string { return this.spec.description; }
+  get parameters(): NcpTool["parameters"] { return this.spec.parameters; }
 
   execute = async (args: unknown, context?: ToolExecutionContext): Promise<unknown> => {
-    const request = normalizeShowContentArgs(args);
+    const request = this.spec.normalize(args);
     this.eventBus.emit(
       eventKeys.uiShowContent,
       createShowContentEventPayload(request, context),
       { source: "kernel" },
     );
-    return {
-      ok: true,
-      action: "showContent",
-      request,
-    };
+    return { ok: true, action: "showContent", request };
   };
+}
+
+const SHOW_CONTENT_TOOL_SPECS: readonly ShowContentToolSpec[] = [
+  {
+    name: "show_file",
+    description: 'Show a local file in the current chat UI. Use viewer="rendered" for rendered HTML/page previews and viewer="source" for source text.',
+    parameters: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "Local file path to show." },
+        title: { type: "string", description: "Optional title for the shown content." },
+        purpose: { type: "string", enum: FILE_PURPOSES, description: "Optional user intent." },
+        placement: { type: "string", enum: SIDE_PANEL_PLACEMENTS, description: 'Optional display placement. Use "side_panel".' },
+        line: { type: "integer", minimum: 1, description: "Optional 1-based line number." },
+        column: { type: "integer", minimum: 1, description: "Optional 1-based column number." },
+        viewer: { type: "string", enum: FILE_VIEWERS, description: "Optional file viewer mode." },
+      },
+      required: ["path"],
+      additionalProperties: false,
+    },
+    normalize: normalizeShowFileArgs,
+  },
+  {
+    name: "show_url",
+    description: "Show an http or https URL in the current chat UI browser. Use this for local development servers such as Vite, Next.js, Storybook, or any running web app URL.",
+    parameters: {
+      type: "object",
+      properties: {
+        url: { type: "string", description: "HTTP or HTTPS URL to show." },
+        title: { type: "string", description: "Optional title for the shown content." },
+        purpose: { type: "string", enum: URL_PURPOSES, description: "Optional user intent." },
+        placement: { type: "string", enum: SIDE_PANEL_PLACEMENTS, description: 'Optional display placement. Use "side_panel".' },
+      },
+      required: ["url"],
+      additionalProperties: false,
+    },
+    normalize: normalizeShowUrlArgs,
+  },
+  {
+    name: "show_panel_app",
+    description: 'Show a Panel App in the current chat UI. Use placement="inline" only for compact cards and placement="side_panel" for normal Panel Apps.',
+    parameters: {
+      type: "object",
+      properties: {
+        appId: { type: "string", description: "Installed Panel App id to show." },
+        title: { type: "string", description: "Optional title for the shown content." },
+        purpose: { type: "string", enum: PANEL_APP_PURPOSES, description: "Optional user intent." },
+        placement: {
+          type: "string",
+          enum: PANEL_APP_PLACEMENTS,
+          description: 'Optional display placement. "inline" embeds a compact card; "side_panel" opens the Panel App in the right panel.',
+        },
+      },
+      required: ["appId"],
+      additionalProperties: false,
+    },
+    normalize: normalizeShowPanelAppArgs,
+  },
+];
+
+export function createShowContentTools(eventBus: ShowContentEventBus): readonly NcpTool[] {
+  return SHOW_CONTENT_TOOL_SPECS.map((spec) => new ShowContentDisplayTool(eventBus, spec));
 }

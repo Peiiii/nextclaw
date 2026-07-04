@@ -437,3 +437,48 @@ describe("DocBrowser", () => {
     expect(panel.style.height).toBe("560px");
   });
 });
+
+describe("DocBrowser content tabs", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    docBrowserState.mode = "docked";
+  });
+
+  it("shows browser controls for content iframe tabs", () => {
+    const contentTab: DocBrowserTab = {
+      id: "local-app",
+      kind: "content",
+      title: "Local App",
+      currentUrl: "http://127.0.0.1:5173/dashboard",
+      history: ["http://127.0.0.1:5173/dashboard"],
+      historyIndex: 0,
+      navVersion: 0,
+    };
+    docBrowserState.tabs = [contentTab];
+    docBrowserState.activeTabId = contentTab.id;
+    docBrowserState.currentTab = contentTab;
+    docBrowserState.activeHistory = [
+      {
+        kind: "content",
+        tabId: contentTab.id,
+        url: contentTab.currentUrl,
+      },
+    ];
+
+    render(<DocBrowser />);
+
+    const addressInput = screen.getByRole("textbox", { name: "Address" }) as HTMLInputElement;
+    const iframe = screen.getByTitle("Local App") as HTMLIFrameElement;
+    const externalLink = screen.getByRole("link", { name: /Open in Browser/i }) as HTMLAnchorElement;
+
+    expect(addressInput.value).toBe("http://127.0.0.1:5173/dashboard");
+    expect(iframe.getAttribute("src")).toBe(contentTab.currentUrl);
+    expect(screen.getByRole("button", { name: "Refresh" })).toBeTruthy();
+    expect(externalLink.getAttribute("href")).toBe(contentTab.currentUrl);
+
+    fireEvent.change(addressInput, { target: { value: "localhost:5173/settings" } });
+    fireEvent.submit(addressInput.closest("form")!);
+
+    expect(docBrowserState.navigate).toHaveBeenCalledWith("http://localhost:5173/settings");
+  });
+});

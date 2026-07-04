@@ -1,20 +1,63 @@
 import { describe, expect, it } from "vitest";
 import { EventBus, eventKeys } from "@nextclaw/shared";
-import { ShowContentTool } from "./show-content.tools.js";
+import type { NcpTool } from "@nextclaw/ncp";
+import { createShowContentTools } from "./show-content.tools.js";
+import { ShowContentToolProvider } from "@kernel/contributions/tool-provider/index.js";
 
-describe("ShowContentTool", () => {
-  it("advertises when panel apps should be shown inline", () => {
-    const tool = new ShowContentTool(new EventBus());
+type TestToolParameters = {
+  required?: unknown;
+  properties: Record<string, unknown>;
+  additionalProperties?: unknown;
+};
 
-    expect(tool.description).toContain('placement="inline"');
-    expect(tool.description).toContain("interactive chat card");
-    expect(tool.description).toContain('placement="side_panel"');
-    expect(tool.description).toContain('payload.viewer="rendered"');
-    expect(tool.description).toContain('payload.viewer="source"');
-    expect(tool.description).toContain("Choose the placement yourself");
-    expect(tool.description).toContain("without waiting for the user");
-    expect(tool.parameters.properties.placement.description).toContain("chat card");
-    expect(tool.parameters.properties.payload.description).toContain("viewer");
+function getTool(name: string, eventBus = new EventBus()): NcpTool {
+  const tool = createShowContentTools(eventBus).find((candidate) => candidate.name === name);
+  if (!tool) {
+    throw new Error(`Missing test tool: ${name}`);
+  }
+  return tool;
+}
+
+function readParameters(tool: NcpTool): TestToolParameters {
+  return tool.parameters as TestToolParameters;
+}
+
+describe("show content tools", () => {
+  it("exposes narrow tools instead of the legacy show_content tool", () => {
+    const tools = new ShowContentToolProvider(new EventBus()).provide().map((tool) => tool.name);
+
+    expect(tools).toEqual(["show_file", "show_url", "show_panel_app"]);
+    expect(tools).not.toContain("show_content");
+  });
+
+  it("advertises concrete top-level fields instead of an open payload object", () => {
+    const fileTool = getTool("show_file");
+    const urlTool = getTool("show_url");
+    const panelAppTool = getTool("show_panel_app");
+    const fileParameters = readParameters(fileTool);
+    const urlParameters = readParameters(urlTool);
+    const panelAppParameters = readParameters(panelAppTool);
+
+    expect(fileTool.name).toBe("show_file");
+    expect(fileParameters.required).toEqual(["path"]);
+    expect(fileParameters.properties).toHaveProperty("path");
+    expect(fileParameters.properties).toHaveProperty("viewer");
+    expect(fileParameters.properties).not.toHaveProperty("payload");
+    expect(fileParameters.additionalProperties).toBe(false);
+
+    expect(urlTool.name).toBe("show_url");
+    expect(urlParameters.required).toEqual(["url"]);
+    expect(urlParameters.properties).toHaveProperty("url");
+    expect(urlParameters.properties).not.toHaveProperty("payload");
+    expect(urlParameters.additionalProperties).toBe(false);
+
+    expect(panelAppTool.name).toBe("show_panel_app");
+    expect(panelAppTool.description).toContain('placement="inline"');
+    expect(panelAppTool.description).toContain('placement="side_panel"');
+    expect(panelAppParameters.required).toEqual(["appId"]);
+    expect(panelAppParameters.properties).toHaveProperty("appId");
+    expect(panelAppParameters.properties).not.toHaveProperty("payload");
+    expect(panelAppParameters.additionalProperties).toBe(false);
   });
 
   it("returns a normalized showContent request for a file target", async () => {
@@ -23,14 +66,11 @@ describe("ShowContentTool", () => {
     eventBus.on(eventKeys.uiShowContent, (payload) => {
       events.push(payload);
     });
-    const result = await new ShowContentTool(eventBus).execute({
-      type: "file",
+    const result = await getTool("show_file", eventBus).execute({
+      path: "README.md",
       title: "README",
       purpose: "read",
-      payload: {
-        path: "README.md",
-        line: 3,
-      },
+      line: 3,
     }, {
       toolCallId: "call-show-content-1",
     });
@@ -80,14 +120,11 @@ describe("ShowContentTool", () => {
       events.push(payload);
     });
 
-    const result = await new ShowContentTool(eventBus).execute({
-      type: "file",
+    const result = await getTool("show_file", eventBus).execute({
+      path: "preview.html",
+      viewer: "rendered",
       title: "HTML Preview",
       placement: "side_panel",
-      payload: {
-        path: "preview.html",
-        viewer: "rendered",
-      },
     });
 
     expect(result).toMatchObject({
@@ -125,14 +162,11 @@ describe("ShowContentTool", () => {
       events.push(payload);
     });
 
-    const result = await new ShowContentTool(eventBus).execute({
-      type: "panel_app",
+    const result = await getTool("show_panel_app", eventBus).execute({
+      appId: "reader",
       title: "Reader",
       purpose: "interact",
       placement: "inline",
-      payload: {
-        appId: "reader",
-      },
     });
 
     expect(result).toEqual({
@@ -170,38 +204,39 @@ describe("ShowContentTool", () => {
   it("rejects a URL target outside http and https", async () => {
     const eventBus = new EventBus();
     await expect(
-      new ShowContentTool(eventBus).execute({
-        type: "url",
-        payload: {
-          url: "file:///tmp/example.md",
-        },
+      getTool("show_url", eventBus).execute({
+        url: "file:///tmp/example.md",
       }),
-    ).rejects.toThrow("payload.url must use http or https.");
+    ).rejects.toThrow("url must use http or https.");
   });
 
   it("rejects unsupported placement values", async () => {
     const eventBus = new EventBus();
     await expect(
-      new ShowContentTool(eventBus).execute({
-        type: "panel_app",
+      getTool("show_panel_app", eventBus).execute({
+        appId: "weather-card",
         placement: "auto",
-        payload: {
-          appId: "weather-card",
-        },
       }),
-    ).rejects.toThrow('placement must be "inline" or "side_panel".');
+    ).rejects.toThrow('placement must be "inline", "side_panel".');
+  });
+
+  it("rejects inline placement for file targets", async () => {
+    const eventBus = new EventBus();
+    await expect(
+      getTool("show_file", eventBus).execute({
+        path: "preview.html",
+        placement: "inline",
+      }),
+    ).rejects.toThrow('placement must be "side_panel".');
   });
 
   it("rejects unsupported file viewer values", async () => {
     const eventBus = new EventBus();
     await expect(
-      new ShowContentTool(eventBus).execute({
-        type: "file",
-        payload: {
-          path: "preview.html",
-          viewer: "iframe",
-        },
+      getTool("show_file", eventBus).execute({
+        path: "preview.html",
+        viewer: "iframe",
       }),
-    ).rejects.toThrow('payload.viewer must be "auto", "source", or "rendered".');
+    ).rejects.toThrow('viewer must be "auto", "source", "rendered".');
   });
 });

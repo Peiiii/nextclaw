@@ -96,7 +96,7 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 
 ## 设计约束
 
-- **先创建再优化，禁止长时间思考后才动手**：读完必要 SKILL.md 后，必须在 2 次工具调用内开始写文件（`write_file` 或 `show_content`）。不要在 thinking 中反复推演架构、对比方案或预写代码——这些工作应该边做边展示。用户的"做一个 XX"请求期望在 1-2 分钟内看到可见产物，不是 6 分钟的架构分析。如果需要选择技术方案（轻量 vs 工程化、Panel-only vs Panel+Service），选第一个合理的方案直接动手，用户不满意再迭代。
+- **先创建再优化，禁止长时间思考后才动手**：读完必要 SKILL.md 后，必须在 2 次工具调用内开始写文件（`write_file`、`show_file` 或 `show_panel_app`）。不要在 thinking 中反复推演架构、对比方案或预写代码——这些工作应该边做边展示。用户的"做一个 XX"请求期望在 1-2 分钟内看到可见产物，不是 6 分钟的架构分析。如果需要选择技术方案（轻量 vs 工程化、Panel-only vs Panel+Service），选第一个合理的方案直接动手，用户不满意再迭代。
 - 先做能被用户立即使用的小闭环，不做重型工程脚手架。
 - 一个小应用的 UI、后端 actions、Agent 调用和授权声明必须互相一致。
 - `panel-app.json` 是 Panel App 标题、入口、图标、Agent capabilities 和 Service action allowlist 的唯一事实源；不要在 HTML meta 中重复声明 NextClaw manifest 字段。
@@ -116,4 +116,4 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 - Client SDK：只有实际使用 `window.nextclaw.client` 时才声明 `client: true`；首次打开会触发整体授权，授权后 App Client projection 同步可用，接口形状以 `@nextclaw/client-sdk` 导出的 `NextClawAppClient` 为准。
 - 错误提示：区分 bridge 不存在、未授权、Service Action 调用失败、返回结构不符合预期、Agent capability 未声明。
 - 交付说明不要让用户 restart；只有当验证证据明确指向宿主进程自身异常、版本切换或进程崩溃时，才把重启作为异常恢复手段，并说明这是例外不是常规生效步骤。
-- **主动展示结果**：验收通过后，立即用 Service Action 带默认输入跑一次，把真实数据展示给用户看。只有当交付形态已判断为 Panel Card（如天气卡片、计算器、checklist、picker、小 dashboard 等轻量交互）时，才用 `show_content(type="panel_app", placement="inline")` 打开预览；普通 Panel App、编辑器、管理页、大表格和多页工作流应使用 side panel；普通本地 HTML 文件或页面原型用 `show_content(type="file", payload.viewer="rendered", placement="side_panel")`，需要看源码时用 `payload.viewer="source"`，不要为了预览普通 HTML 文件强行做成 Panel App。不要等用户问"看看效果"——交付的第一印象是看到跑起来的产物，不是一段文字描述。
+- **主动展示结果**：验收通过后，立即用 Service Action 带默认输入跑一次，把真实数据展示给用户看。只有当交付形态已判断为 Panel Card（如天气卡片、计算器、checklist、picker、小 dashboard 等轻量交互）时，才用 `show_panel_app(appId, placement="inline")` 打开预览；普通 Panel App、编辑器、管理页、大表格和多页工作流应使用 side panel；普通本地 HTML 文件或页面原型用 `show_file(path, viewer="rendered", placement="side_panel")`，需要看源码时用 `viewer="source"`；如果启动了 Vite、Next.js、Storybook 或其它本地 HTTP dev server，用 `show_url(url, placement="side_panel")` 打开运行中的页面，不要把 dev server 页面导出成静态 HTML 再预览。不要为了预览普通 HTML 文件强行做成 Panel App。不要等用户问"看看效果"——交付的第一印象是看到跑起来的产物，不是一段文字描述。

@@ -1,8 +1,12 @@
 {
   "docBrowserTitle": "内嵌浏览器",
   "docBrowserSearchPlaceholder": "搜索，也可以输入文档地址直接打开",
+  "docBrowserAddressLabel": "地址",
+  "docBrowserAddressPlaceholder": "输入地址，例如 http://localhost:5173",
   "docBrowserUrlPlaceholder": "输入文档路径，如 /guide/channels",
   "docBrowserOpenExternal": "文档中心打开",
+  "docBrowserOpenInBrowser": "系统浏览器打开",
+  "docBrowserRefresh": "刷新",
   "docBrowserFloatMode": "悬浮窗口",
   "docBrowserDockMode": "固定到侧栏",
   "docBrowserClose": "关闭",

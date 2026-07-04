@@ -1,8 +1,12 @@
 {
   "docBrowserTitle": "Embedded Browser",
   "docBrowserSearchPlaceholder": "Search, or enter a doc URL to open",
+  "docBrowserAddressLabel": "Address",
+  "docBrowserAddressPlaceholder": "Enter a URL, e.g. http://localhost:5173",
   "docBrowserUrlPlaceholder": "Enter a doc path, e.g. /guide/channels",
   "docBrowserOpenExternal": "Open in Docs",
+  "docBrowserOpenInBrowser": "Open in Browser",
+  "docBrowserRefresh": "Refresh",
   "docBrowserFloatMode": "Float Window",
   "docBrowserDockMode": "Dock to Sidebar",
   "docBrowserClose": "Close",

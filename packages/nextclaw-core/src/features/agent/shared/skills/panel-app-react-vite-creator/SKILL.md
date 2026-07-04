@@ -13,7 +13,7 @@ description_zh: 使用 pnpm、Vite、React、TypeScript、Tailwind CSS 创建或
 - 工程化 Panel App 推荐栈是 `React + Vite + TypeScript + Tailwind CSS + pnpm` 一整套，缺一不可；除非用户明确指定其它技术栈或有清楚环境约束，不要只选其中一部分。
 - 使用 `pnpm`，不要使用 Bun、npm 或 yarn，除非用户明确指定。
 - 本 skill 是复杂或可维护 Panel App 的工程化默认路径；极小、一次性、无明显构建收益的静态面板仍交给 `panel-app-creator` 轻量目录式实现。
-- 开发期可以使用 Vite dev server；交付给 NextClaw 的必须是 build 后的静态 `.panel` 目录。
+- 开发期可以使用 Vite dev server；需要给用户看运行中的开发页面时，用 `show_url(url, placement="side_panel")` 打开本地 dev server。交付给 NextClaw 的必须是 build 后的静态 `.panel` 目录。
 - 不要让 NextClaw 宿主运行 `vite dev`、Node server 或 Bun server。
 - 源码工程可以放在用户指定位置；最终产物必须复制或构建到 `~/.nextclaw/workspace/panels/<app-id>.panel/`。
 - 运行期目录里可以包含构建产物和 `panel-app.json`，不要依赖运行期 `node_modules`。

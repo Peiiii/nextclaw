@@ -10,6 +10,8 @@ import { ShowContentToolProvider } from "./providers/show-content-tool.provider.
 import { StructuredResultToolProvider } from "./providers/structured-result-tool.provider.js";
 import { ToolProviderRunContextService } from "./services/tool-provider-run-context.service.js";
 
+export { ShowContentToolProvider };
+
 export class ToolProviderContribution implements KernelContribution {
   private readonly cleanups: Array<() => void> = [];
 
