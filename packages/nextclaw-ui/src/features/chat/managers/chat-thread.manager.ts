@@ -110,10 +110,9 @@ export class ChatThreadManager {
       return null;
     }
     const normalizedParentSessionKey = parentSessionKey?.trim() || null;
-    const key =
-      `${normalizedParentSessionKey ?? 'draft'}::${action.viewMode}::${normalizedPath}`;
+    const tabViewIdentity = action.viewMode === 'preview' && action.previewViewer === 'rendered' ? 'preview:rendered' : action.viewMode;
     return {
-      key,
+      key: `${normalizedParentSessionKey ?? 'draft'}::${tabViewIdentity}::${normalizedPath}`,
       parentSessionKey: normalizedParentSessionKey,
       path: normalizedPath,
       label: action.label?.trim() || null,

@@ -8,6 +8,10 @@
 
 同时更新 native prompt context 与 `nextclaw-app-creator` skill，明确普通本地 HTML 文件或页面原型应使用 `show_content(type="file", payload.viewer="rendered", placement="side_panel")`，需要看源码时使用 `payload.viewer="source"`；不要为了预览普通 HTML 文件强行创建 Panel App。
 
+后续修正：同一个文件的 source preview 和 rendered preview 原先共用 `parentSession::preview::path` tab key，导致打开 rendered 预览会覆盖源码 tab。已将 `previewViewer="rendered"` 纳入 workspace file tab identity，使同一路径的源码和渲染预览可以像 VS Code 的资源变体一样同时保留；source/auto 仍沿用旧 key，兼容已有持久化 tab。
+
+交互 follow-up：workspace/browser 共用的 `CompactTabStrip` 原先只有标题 button 区域能触发 tab select，标题下方到 tab 边界之间的视觉区域点击无效。已将整块 tab item 作为鼠标点击命中区，同时保留标题 button 的键盘/读屏语义，并确保 close button 继续阻止冒泡，不会误触发切换。
+
 ## 测试/验证/验收方式
 
 - `packages/nextclaw-kernel`: `./node_modules/.bin/vitest run src/tools/show-content.tools.test.ts src/contributions/context-provider/providers/context-provider-contract.provider.test.ts`
@@ -23,6 +27,8 @@
 - `node scripts/governance/checks/lint-new-code-governance.mjs -- <本轮 show_content 触达文件>`
 - `node scripts/governance/backlog/check-governance-backlog-ratchet.mjs`
 - `git diff --check -- <本轮 show_content 触达文件>`
+- follow-up：`packages/nextclaw-ui`: `./node_modules/.bin/vitest run src/features/chat/managers/__tests__/chat-thread.manager.test.ts`
+- follow-up：`packages/nextclaw-ui`: `./node_modules/.bin/vitest run src/shared/components/ui/tab-strip/__tests__/compact-tab-strip.test.tsx`
 
 说明：全量 `pnpm lint:new-code:governance` 被工作区已有的 terminal 工具卡片 WIP 阻塞，阻塞点是 `packages/nextclaw-agent-chat-ui/src/components/chat/ui/chat-message-list/__tests__/chat-message-list.terminal.test.tsx` 的 unrelated module-structure import 违规；本轮 show_content 文件的 path-scoped governance 已通过。
 
@@ -41,8 +47,10 @@
 1. Agent 创建或定位一个本地 `.html` 文件后，调用 `show_content`，参数包含 `type="file"`、`payload.path` 和 `payload.viewer="rendered"`。
 2. Chat 右侧 workspace file tab 打开该 HTML 文件，并展示 rendered 页面，而不是只显示源码。
 3. 同一路径若改用 `payload.viewer="source"` 或省略 viewer，仍展示原来的源文本/code preview。
-4. 对非 HTML 文件传入 `viewer="rendered"` 不会误渲染，仍回退到 source preview。
-5. Tool card 的“Show content”展开动作保留 viewer 字段，不丢失 rendered/source 意图。
+4. 同一路径先打开 `viewer="source"`，再打开 `viewer="rendered"`，右侧 workspace 保留两个独立 file tabs，不互相覆盖。
+5. 点击 tab 标题下方到 tab 边界之间的视觉区域，也能切换到对应 tab；点击 close button 只关闭，不切换。
+6. 对非 HTML 文件传入 `viewer="rendered"` 不会误渲染，仍回退到 source preview。
+7. Tool card 的“Show content”展开动作保留 viewer 字段，不丢失 rendered/source 意图。
 
 ## 可维护性总结汇总
 
@@ -53,4 +61,4 @@
 
 ## NPM 包发布记录
 
-本轮未发布 NPM 包。当前状态：待统一发布。
+本轮未发布 NPM 包。follow-up 已追加 `@nextclaw/ui` patch changeset，用于记录 source/rendered 同路径 tab identity 修复和 compact tab hit area 修复。当前状态：待统一发布。

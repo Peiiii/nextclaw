@@ -72,4 +72,58 @@ describe("CompactTabStrip", () => {
 
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
+
+  it("selects a tab when clicking the tab item outside the label button", () => {
+    const onSelect = vi.fn();
+
+    render(
+      <CompactTabStrip
+        tabs={[
+          {
+            key: "preview-tab",
+            label: "Preview",
+            active: false,
+            onSelect,
+          },
+        ]}
+        actions={[]}
+      />,
+    );
+
+    const labelButton = screen.getByRole("button", { name: "Preview" });
+    const tabItem = labelButton.parentElement;
+
+    expect(tabItem).not.toBeNull();
+    fireEvent.click(tabItem!);
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not select a tab when clicking its close button", () => {
+    const onClose = vi.fn();
+    const onSelect = vi.fn();
+
+    render(
+      <CompactTabStrip
+        tabs={[
+          {
+            key: "preview-tab",
+            label: "Preview",
+            active: false,
+            closeLabel: "Close preview",
+            closePlacement: "leading-hover",
+            leadingIcon: <span />,
+            onClose,
+            onSelect,
+          },
+        ]}
+        actions={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Close preview" }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
 });

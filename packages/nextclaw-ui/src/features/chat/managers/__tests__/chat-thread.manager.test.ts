@@ -293,6 +293,47 @@ describe('ChatThreadManager', () => {
       ]),
     );
   });
+
+});
+
+describe('ChatThreadManager workspace file tabs', () => {
+  it('keeps source and rendered previews for the same file as separate workspace tabs', () => {
+    const manager = new ChatThreadManager(
+      createUiManager(),
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+    );
+
+    manager.openFilePreview({
+      path: 'demo.html',
+      label: 'demo.html',
+      viewMode: 'preview',
+      previewViewer: 'source',
+    });
+    manager.openFilePreview({
+      path: 'demo.html',
+      label: 'demo.html',
+      viewMode: 'preview',
+      previewViewer: 'rendered',
+    });
+
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      activeWorkspaceFileKey: 'parent-session-1::preview:rendered::demo.html',
+      workspaceFileTabs: [
+        {
+          key: 'parent-session-1::preview:rendered::demo.html',
+          path: 'demo.html',
+          viewMode: 'preview',
+          previewViewer: 'rendered',
+        },
+        {
+          key: 'parent-session-1::preview::demo.html',
+          path: 'demo.html',
+          viewMode: 'preview',
+          previewViewer: 'source',
+        },
+      ],
+    });
+  });
 });
 
 describe('ChatThreadManager workspace navigation', () => {
@@ -523,9 +564,10 @@ describe('ChatThreadManager showContent', () => {
 
     expect(useChatThreadStore.getState().snapshot).toMatchObject({
       activeWorkspacePanelKind: 'file',
-      activeWorkspaceFileKey: 'parent-session-1::preview::docs/example.md',
+      activeWorkspaceFileKey: 'parent-session-1::preview:rendered::docs/example.md',
       workspaceFileTabs: [
         expect.objectContaining({
+          key: 'parent-session-1::preview:rendered::docs/example.md',
           path: 'docs/example.md',
           label: 'Example',
           line: 5,

@@ -50,10 +50,7 @@ type CompactTabStripProps = {
   onScrollPointerDown?: (event: React.PointerEvent<HTMLDivElement>) => void;
 };
 
-function closeCompactTab(
-  event: React.MouseEvent<HTMLButtonElement>,
-  onClose: () => void,
-) {
+function closeCompactTab(event: React.MouseEvent<HTMLButtonElement>, onClose: () => void) {
   event.stopPropagation();
   onClose();
 }
@@ -123,9 +120,10 @@ function CompactTabItem({
   return (
     <div
       ref={itemRef}
+      onClick={(event) => event.target === event.currentTarget && tab.onSelect()}
       className={cn(
         tabBaseClassName ??
-          "group flex max-w-[180px] min-w-0 items-center gap-1.5 border-r border-gray-200/70 border-b-2 px-2.5 py-2 transition-colors",
+          "group flex max-w-[180px] min-w-0 cursor-pointer items-center gap-1.5 border-r border-gray-200/70 border-b-2 px-2.5 py-2 transition-colors",
         tab.active
           ? (activeTabClassName ?? "border-b-primary bg-white text-gray-900")
           : (inactiveTabClassName ??
