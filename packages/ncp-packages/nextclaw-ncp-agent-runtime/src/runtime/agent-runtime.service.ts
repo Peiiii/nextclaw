@@ -16,7 +16,7 @@ import {
   isHiddenNcpMessage,
   NcpEventType,
 } from "@nextclaw/ncp";
-import { DefaultNcpStreamEncoder } from "./stream-encoder.js";
+import { DefaultNcpStreamEncoder } from "./stream-encoder.service.js";
 import {
   appendToolRoundToInput,
   genId,

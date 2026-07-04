@@ -14,6 +14,7 @@ export type ToolCallBuffer = {
   argumentsText: string;
   emittedStart?: boolean;
   emittedArgsDelta?: boolean;
+  emittedEnd?: boolean;
   pendingArgumentDeltas?: string[];
 };
 
@@ -176,81 +177,113 @@ export function* emitReasoningDelta(
   yield { type: NcpEventType.MessageReasoningDelta, payload: { ...ctx, delta: reasoning } };
 }
 
+class ToolCallDeltaEmitter {
+  constructor(
+    private readonly buffers: Map<number, ToolCallBuffer>,
+    private readonly ctx: StreamEventContext,
+  ) {}
+
+  emit = function* (
+    this: ToolCallDeltaEmitter,
+    delta: DeltaLike,
+    options: { flushReadyBeforeNextIndex?: boolean },
+  ): Generator<NcpEndpointEvent> {
+    const toolDeltas = delta.tool_calls;
+    if (!Array.isArray(toolDeltas)) return;
+
+    for (const toolDelta of toolDeltas) {
+      const index = getToolCallIndex(toolDelta, this.buffers.size);
+      if (options.flushReadyBeforeNextIndex) {
+        yield* flushReadyToolCallsBeforeIndex(this.buffers, index, this.ctx);
+      }
+      const prev = this.buffers.get(index) ?? {
+        argumentsText: "",
+        pendingArgumentDeltas: [],
+      };
+      const current = applyToolDelta(prev, toolDelta);
+      const argsDelta =
+        typeof toolDelta.function?.arguments === "string" &&
+        toolDelta.function.arguments.length > 0
+          ? toolDelta.function.arguments
+          : null;
+      const toolCallId = current.id;
+      const toolName = current.name;
+      if (toolCallId && toolName && !current.emittedStart) {
+        yield {
+          type: NcpEventType.MessageToolCallStart,
+          payload: { ...this.ctx, toolCallId, toolName },
+        };
+        current.emittedStart = true;
+      }
+
+      if (argsDelta) {
+        if (current.emittedStart && current.id) {
+          yield {
+            type: NcpEventType.MessageToolCallArgsDelta,
+            payload: {
+              ...this.ctx,
+              toolCallId: current.id,
+              delta: argsDelta,
+            },
+          };
+          current.emittedArgsDelta = true;
+        } else {
+          current.pendingArgumentDeltas = [
+            ...(current.pendingArgumentDeltas ?? []),
+            argsDelta,
+          ];
+        }
+      }
+
+      if (current.emittedStart && current.id && (current.pendingArgumentDeltas?.length ?? 0) > 0) {
+        for (const pendingDelta of current.pendingArgumentDeltas ?? []) {
+          yield {
+            type: NcpEventType.MessageToolCallArgsDelta,
+            payload: {
+              ...this.ctx,
+              toolCallId: current.id,
+              delta: pendingDelta,
+            },
+          };
+        }
+        current.emittedArgsDelta = true;
+        current.pendingArgumentDeltas = [];
+      }
+
+      this.buffers.set(index, current);
+    }
+  };
+}
+
 export function* emitToolCallDeltas(
   delta: DeltaLike,
   buffers: Map<number, ToolCallBuffer>,
   ctx: StreamEventContext,
+  options: { flushReadyBeforeNextIndex?: boolean } = {},
 ): Generator<NcpEndpointEvent> {
-  const toolDeltas = delta.tool_calls;
-  if (!Array.isArray(toolDeltas)) return;
+  yield* new ToolCallDeltaEmitter(buffers, ctx).emit(delta, options);
+}
 
-  for (const toolDelta of toolDeltas) {
-    const index = getToolCallIndex(toolDelta, buffers.size);
-    const prev = buffers.get(index) ?? {
-      argumentsText: "",
-      pendingArgumentDeltas: [],
-    };
-    const current = applyToolDelta(prev, toolDelta);
-    const argsDelta =
-      typeof toolDelta.function?.arguments === "string" &&
-      toolDelta.function.arguments.length > 0
-        ? toolDelta.function.arguments
-        : null;
-    const toolCallId = current.id;
-    const toolName = current.name;
-    if (toolCallId && toolName && !current.emittedStart) {
-      yield {
-        type: NcpEventType.MessageToolCallStart,
-        payload: { ...ctx, toolCallId, toolName },
-      };
-      current.emittedStart = true;
-    }
-
-    if (argsDelta) {
-      if (current.emittedStart && current.id) {
-        yield {
-          type: NcpEventType.MessageToolCallArgsDelta,
-          payload: {
-            ...ctx,
-            toolCallId: current.id,
-            delta: argsDelta,
-          },
-        };
-        current.emittedArgsDelta = true;
-      } else {
-        current.pendingArgumentDeltas = [
-          ...(current.pendingArgumentDeltas ?? []),
-          argsDelta,
-        ];
-      }
-    }
-
-    if (current.emittedStart && current.id && (current.pendingArgumentDeltas?.length ?? 0) > 0) {
-      for (const pendingDelta of current.pendingArgumentDeltas ?? []) {
-        yield {
-          type: NcpEventType.MessageToolCallArgsDelta,
-          payload: {
-            ...ctx,
-            toolCallId: current.id,
-            delta: pendingDelta,
-          },
-        };
-      }
-      current.emittedArgsDelta = true;
-      current.pendingArgumentDeltas = [];
-    }
-
-    buffers.set(index, current);
+function isCompleteToolCallArgs(argumentsText: string): boolean {
+  const trimmed = argumentsText.trim();
+  if (!trimmed) return false;
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    return Boolean(parsed) && typeof parsed === "object" && !Array.isArray(parsed);
+  } catch {
+    return false;
   }
 }
 
-export function* flushToolCalls(
+function* flushReadyToolCallsBeforeIndex(
   buffers: Map<number, ToolCallBuffer>,
+  beforeIndex: number,
   ctx: StreamEventContext,
 ): Generator<NcpEndpointEvent> {
   const ordered = Array.from(buffers.entries()).sort(([a], [b]) => a - b);
-  for (const [, buf] of ordered) {
-    if (!buf.id || !buf.name) continue;
+  for (const [index, buf] of ordered) {
+    if (index >= beforeIndex || buf.emittedEnd || !buf.id || !buf.name) continue;
+    if (!isCompleteToolCallArgs(buf.argumentsText)) continue;
     if (!buf.emittedArgsDelta) {
       yield {
         type: NcpEventType.MessageToolCallArgs,
@@ -261,6 +294,28 @@ export function* flushToolCalls(
       type: NcpEventType.MessageToolCallEnd,
       payload: { ...ctx, toolCallId: buf.id },
     };
+    buf.emittedEnd = true;
+  }
+}
+
+export function* flushToolCalls(
+  buffers: Map<number, ToolCallBuffer>,
+  ctx: StreamEventContext,
+): Generator<NcpEndpointEvent> {
+  const ordered = Array.from(buffers.entries()).sort(([a], [b]) => a - b);
+  for (const [, buf] of ordered) {
+    if (!buf.id || !buf.name || buf.emittedEnd) continue;
+    if (!buf.emittedArgsDelta) {
+      yield {
+        type: NcpEventType.MessageToolCallArgs,
+        payload: { ...ctx, toolCallId: buf.id, args: buf.argumentsText },
+      };
+    }
+    yield {
+      type: NcpEventType.MessageToolCallEnd,
+      payload: { ...ctx, toolCallId: buf.id },
+    };
+    buf.emittedEnd = true;
   }
 }
 

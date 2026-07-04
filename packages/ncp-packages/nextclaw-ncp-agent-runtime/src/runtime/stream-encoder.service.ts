@@ -20,6 +20,7 @@ import {
 
 export type DefaultNcpStreamEncoderConfig = {
   reasoningNormalizationMode?: NcpAssistantReasoningNormalizationMode;
+  toolCallEndMode?: "finish-only" | "sequential-index";
 };
 
 /**
@@ -28,9 +29,11 @@ export type DefaultNcpStreamEncoderConfig = {
  */
 export class DefaultNcpStreamEncoder implements NcpStreamEncoder {
   private readonly reasoningNormalizationMode: NcpAssistantReasoningNormalizationMode;
+  private readonly toolCallEndMode: "finish-only" | "sequential-index";
 
   constructor(config: DefaultNcpStreamEncoderConfig = {}) {
     this.reasoningNormalizationMode = config.reasoningNormalizationMode ?? "off";
+    this.toolCallEndMode = config.toolCallEndMode ?? "finish-only";
   }
 
   async *encode(
@@ -60,7 +63,9 @@ export class DefaultNcpStreamEncoder implements NcpStreamEncoder {
           streamContext,
           state,
         );
-        yield* emitToolCallDeltas(delta, toolCallBuffers, streamContext);
+        yield* emitToolCallDeltas(delta, toolCallBuffers, streamContext, {
+          flushReadyBeforeNextIndex: this.toolCallEndMode === "sequential-index",
+        });
       }
 
       const finishReason = choice.finish_reason;
