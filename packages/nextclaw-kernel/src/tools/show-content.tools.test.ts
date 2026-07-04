@@ -43,20 +43,25 @@ describe("show content tools", () => {
     expect(fileParameters.properties).toHaveProperty("path");
     expect(fileParameters.properties).toHaveProperty("viewer");
     expect(fileParameters.properties).not.toHaveProperty("payload");
+    expect(fileParameters.properties).not.toHaveProperty("placement");
     expect(fileParameters.additionalProperties).toBe(false);
 
     expect(urlTool.name).toBe("show_url");
     expect(urlParameters.required).toEqual(["url"]);
     expect(urlParameters.properties).toHaveProperty("url");
     expect(urlParameters.properties).not.toHaveProperty("payload");
+    expect(urlParameters.properties).not.toHaveProperty("placement");
     expect(urlParameters.additionalProperties).toBe(false);
 
     expect(panelAppTool.name).toBe("show_panel_app");
-    expect(panelAppTool.description).toContain('placement="inline"');
-    expect(panelAppTool.description).toContain('placement="side_panel"');
+    expect(panelAppTool.description).toContain("tool-driven preview");
+    expect(panelAppTool.description).toContain("side-panel only");
+    expect(panelAppTool.description).toContain("do not call this tool");
+    expect(panelAppTool.description).toContain("nextclaw-inline");
     expect(panelAppParameters.required).toEqual(["appId"]);
     expect(panelAppParameters.properties).toHaveProperty("appId");
     expect(panelAppParameters.properties).not.toHaveProperty("payload");
+    expect(panelAppParameters.properties).not.toHaveProperty("placement");
     expect(panelAppParameters.additionalProperties).toBe(false);
   });
 
@@ -90,7 +95,6 @@ describe("show content tools", () => {
         },
         title: "README",
         purpose: "read",
-        placement: undefined,
       },
     });
     expect(events).toEqual([
@@ -108,7 +112,7 @@ describe("show content tools", () => {
         },
         title: "README",
         purpose: "read",
-        placement: undefined,
+        placement: "side_panel",
       },
     ]);
   });
@@ -124,7 +128,6 @@ describe("show content tools", () => {
       path: "preview.html",
       viewer: "rendered",
       title: "HTML Preview",
-      placement: "side_panel",
     });
 
     expect(result).toMatchObject({
@@ -136,7 +139,6 @@ describe("show content tools", () => {
             viewer: "rendered",
           },
         },
-        placement: "side_panel",
       },
     });
     expect(events).toEqual([
@@ -155,7 +157,7 @@ describe("show content tools", () => {
     ]);
   });
 
-  it("keeps inline placement on panel app showContent requests", async () => {
+  it("opens panel app showContent requests in the side panel", async () => {
     const eventBus = new EventBus();
     const events: unknown[] = [];
     eventBus.on(eventKeys.uiShowContent, (payload) => {
@@ -166,7 +168,6 @@ describe("show content tools", () => {
       appId: "reader",
       title: "Reader",
       purpose: "interact",
-      placement: "inline",
     });
 
     expect(result).toEqual({
@@ -181,7 +182,6 @@ describe("show content tools", () => {
         },
         title: "Reader",
         purpose: "interact",
-        placement: "inline",
       },
     });
     expect(events).toEqual([
@@ -196,7 +196,7 @@ describe("show content tools", () => {
         },
         title: "Reader",
         purpose: "interact",
-        placement: "inline",
+        placement: "side_panel",
       },
     ]);
   });
@@ -208,26 +208,6 @@ describe("show content tools", () => {
         url: "file:///tmp/example.md",
       }),
     ).rejects.toThrow("url must use http or https.");
-  });
-
-  it("rejects unsupported placement values", async () => {
-    const eventBus = new EventBus();
-    await expect(
-      getTool("show_panel_app", eventBus).execute({
-        appId: "weather-card",
-        placement: "auto",
-      }),
-    ).rejects.toThrow('placement must be "inline", "side_panel".');
-  });
-
-  it("rejects inline placement for file targets", async () => {
-    const eventBus = new EventBus();
-    await expect(
-      getTool("show_file", eventBus).execute({
-        path: "preview.html",
-        placement: "inline",
-      }),
-    ).rejects.toThrow('placement must be "side_panel".');
   });
 
   it("rejects unsupported file viewer values", async () => {

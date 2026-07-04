@@ -70,6 +70,8 @@ export type {
   ChatFileOperationBlockViewModel,
   ChatFilePreviewViewer,
   ChatFileOpenActionViewModel,
+  ChatInlineDisplayTarget,
+  ChatInlineDisplayViewModel,
   ChatPanelAppCardViewModel,
   ChatUiShowContentPlacement,
   ChatUiShowContentPurpose,

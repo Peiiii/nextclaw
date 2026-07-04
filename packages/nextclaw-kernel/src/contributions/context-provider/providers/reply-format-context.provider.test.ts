@@ -19,8 +19,8 @@ describe("ReplyFormatContextProvider", () => {
 
     expect(context).toContain("## Reply Formatting Contract");
     expect(context).toContain("Goal:");
-    expect(context).toContain("Allowed form:");
-    expect(context).toContain("Path choice:");
+    expect(context).toContain("File links:");
+    expect(context).toContain("Inline display:");
     expect(context).toContain("Forbidden forms:");
     expect(context).toContain("Examples:");
     expect(context).toContain("Self-check before sending:");
@@ -32,8 +32,21 @@ describe("ReplyFormatContextProvider", () => {
     expect(context).toContain("[notes.md](/Users/example/Documents/notes.md)");
     expect(context).toContain("project-relative hrefs");
     expect(context).toContain("absolute hrefs");
+    expect(context).toContain("nextclaw-inline");
+    expect(context).toContain('"target":{"type":"panel_app"');
+    expect(context).toContain("Supported targets are `panel_app`, `json`, `file`, and `url`");
+    expect(context).toContain("Prefer `panel_app` for inline Panel App display");
+    expect(context).toContain("use `file` and `url` only as non-clickable placeholders");
+    expect(context).toContain("use `json` for inert JSON snapshots");
+    expect(context).toContain("display-only");
+    expect(context).toContain("Never call `show_panel_app` for inline display");
+    expect(context).toContain("side panel");
+    expect(context).toContain("Use Markdown links for clickable resources");
+    expect(context).toContain("show_file/show_url/show_panel_app tools only");
     expect(context).toContain("inline-code file names");
     expect(context).toContain("code-styled link labels");
+    expect(context).toContain("action semantics inside `nextclaw-inline`");
+    expect(context).toContain("tool calls for inline display");
     expect(context).toContain("unlinked comma-separated file lists");
     expect(context).toContain("bad `MEMORY.md` -> good [MEMORY.md](MEMORY.md)");
     expect(context).toContain("bad `memory/` -> good [memory/](memory/)");
@@ -42,6 +55,7 @@ describe("ReplyFormatContextProvider", () => {
     );
     expect(context).toContain("[2026-03-07.md](memory/2026-03-07.md)");
     expect(context).toContain("[feishu-notes.md](memory/feishu-notes.md)");
+    expect(context).toContain("intentionally represented by `nextclaw-inline`");
     expect(context).toContain("remove the exact names and summarize instead");
   });
 });

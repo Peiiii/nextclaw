@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type {
   ChatFileOpenActionViewModel,
+  ChatInlineDisplayViewModel,
   ChatMessageTexts,
   ChatMessageViewModel,
   ChatPanelAppCardViewModel,
@@ -68,6 +69,9 @@ export type ChatMessageListProps = {
   className?: string;
   onToolAction?: (action: ChatToolActionViewModel) => void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  renderInlineDisplay?: (
+    display: ChatInlineDisplayViewModel,
+  ) => ReactNode | undefined;
   renderToolAgent?: (agentId: string) => ReactNode;
   renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
 };
@@ -108,6 +112,7 @@ export function ChatMessageList({
   messages,
   onFileOpen,
   onToolAction,
+  renderInlineDisplay,
   renderPanelAppCard,
   renderToolAgent,
   texts,
@@ -134,6 +139,7 @@ export function ChatMessageList({
                 texts={texts}
                 onToolAction={onToolAction}
                 onFileOpen={onFileOpen}
+                renderInlineDisplay={renderInlineDisplay}
                 renderToolAgent={renderToolAgent}
                 renderPanelAppCard={renderPanelAppCard}
               />

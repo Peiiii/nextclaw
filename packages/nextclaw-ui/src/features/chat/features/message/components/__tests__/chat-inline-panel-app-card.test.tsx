@@ -56,18 +56,6 @@ beforeEach(() => {
 
 it('renders inline panel apps as bounded card-mode iframes with an expand action', () => {
   render(<ChatInlinePanelAppCard panelApp={{
-    action: {
-      kind: 'show-content',
-      label: 'Show content',
-      request: {
-        placement: 'side_panel',
-        target: {
-          payload: { appId: 'weather-card' },
-          type: 'panel_app',
-        },
-        title: 'Weather',
-      },
-    },
     appId: 'weather-card',
     title: 'Weather',
   }} />);
@@ -86,4 +74,21 @@ it('renders inline panel apps as bounded card-mode iframes with an expand action
     title: 'Weather',
     url: '/api/panel-apps/weather-card/content',
   }));
+});
+
+it('can render inline panel apps without a side-panel expand action', () => {
+  render(
+    <ChatInlinePanelAppCard
+      panelApp={{
+        appId: 'weather-card',
+        title: 'Weather',
+      }}
+      showExpandAction={false}
+    />,
+  );
+
+  expect(screen.getByTitle('Weather')).toBeTruthy();
+  expect(screen.queryByLabelText('chatPanelCardExpand')).toBeNull();
+  expect(mocks.open).not.toHaveBeenCalled();
+  expect(mocks.openTarget).not.toHaveBeenCalled();
 });

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { NcpMessage } from "@nextclaw/ncp";
 import {
+  type ChatInlineDisplayViewModel,
   type ChatMessageViewModel,
   ChatMessageList,
 } from "@nextclaw/agent-chat-ui";
@@ -41,6 +42,21 @@ const messageViewModelCache = new WeakMap<
     viewModel: ChatMessageViewModel;
   }
 >();
+
+function renderChatInlineDisplay(display: ChatInlineDisplayViewModel) {
+  if (display.target.type !== "panel_app") {
+    return undefined;
+  }
+  return (
+    <ChatInlinePanelAppCard
+      panelApp={{
+        appId: display.target.payload.appId,
+        title: display.title,
+      }}
+      showExpandAction={false}
+    />
+  );
+}
 
 type ContextInheritanceTimelineView = {
   sourceSessionId: string;
@@ -343,6 +359,7 @@ export function ChatMessageListContainer({
             texts={messageTexts}
             onToolAction={presenter.chatThreadManager.handleToolAction}
             onFileOpen={presenter.chatThreadManager.openFilePreview}
+            renderInlineDisplay={renderChatInlineDisplay}
             renderToolAgent={(agentId) => (
               <AgentIdentityAvatar
                 agentId={agentId}

@@ -8,6 +8,7 @@ const captures = vi.hoisted(() => ({
     messages: unknown[];
     onToolAction?: (action: unknown) => void;
     onFileOpen?: (action: unknown) => void;
+    renderInlineDisplay?: (display: unknown) => unknown;
     renderPanelAppCard?: (panelApp: unknown) => unknown;
     texts?: Record<string, unknown>;
   }>,
@@ -24,6 +25,7 @@ vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
       messages: unknown[];
       onToolAction?: (action: unknown) => void;
       onFileOpen?: (action: unknown) => void;
+      renderInlineDisplay?: (display: unknown) => unknown;
       renderPanelAppCard?: (panelApp: unknown) => unknown;
       texts?: Record<string, unknown>;
     }) => {
@@ -418,6 +420,24 @@ it("passes the inline panel app renderer to the shared chat UI", () => {
   render(<ChatMessageListContainer messages={[]} isSending={false} />);
 
   expect(captures.renders[captures.renders.length - 1]?.renderPanelAppCard).toEqual(expect.any(Function));
+});
+
+it("passes the inline display renderer to the shared chat UI", () => {
+  render(<ChatMessageListContainer messages={[]} isSending={false} />);
+
+  const renderInlineDisplay =
+    captures.renders[captures.renders.length - 1]?.renderInlineDisplay;
+
+  expect(renderInlineDisplay).toEqual(expect.any(Function));
+  expect(
+    renderInlineDisplay?.({
+      target: {
+        type: "file",
+        payload: { path: "README.md" },
+      },
+      title: "README",
+    }),
+  ).toBeUndefined();
 });
 
 it("renders context compaction as an in-flow divider instead of a chat message", () => {

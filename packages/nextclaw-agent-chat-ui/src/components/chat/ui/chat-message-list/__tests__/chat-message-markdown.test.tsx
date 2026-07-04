@@ -172,6 +172,76 @@ it("renders fenced code blocks with syntax highlighting", () => {
   expect(container.querySelector(".hljs-number")?.textContent).toBe("1");
 });
 
+it("renders nextclaw inline display directives as inert display surfaces", () => {
+  const onFileOpen = vi.fn();
+  const { container } = render(
+    <ChatMessageMarkdown
+      text={
+        '```nextclaw-inline\n{"target":{"type":"file","payload":{"path":"docs/demo.md","viewer":"rendered"}},"title":"Demo","description":"Rendered preview"}\n```'
+      }
+      role="assistant"
+      texts={defaultTexts}
+      onFileOpen={onFileOpen}
+    />,
+  );
+
+  const display = container.querySelector(
+    '[data-nextclaw-inline-display="true"]',
+  );
+
+  expect(display).toBeTruthy();
+  expect(display?.getAttribute("data-nextclaw-inline-display-type")).toBe(
+    "file",
+  );
+  expect(screen.getByText("Demo")).toBeTruthy();
+  expect(screen.getByText("Rendered preview")).toBeTruthy();
+  expect(screen.getByText("docs/demo.md")).toBeTruthy();
+  expect(container.querySelector(".chat-codeblock")).toBeNull();
+  expect(screen.queryByRole("button")).toBeNull();
+  expect(screen.queryByRole("link")).toBeNull();
+  expect(onFileOpen).not.toHaveBeenCalled();
+});
+
+it("delegates nextclaw inline display rendering to the host renderer", () => {
+  render(
+    <ChatMessageMarkdown
+      text={
+        '```nextclaw-inline\n{"target":{"type":"panel_app","payload":{"appId":"weather-card"}},"title":"Weather"}\n```'
+      }
+      role="assistant"
+      texts={defaultTexts}
+      renderInlineDisplay={(display) =>
+        display.target.type === "panel_app" ? (
+          <div data-testid="inline-panel-app">
+            {display.target.payload.appId}:{display.title}
+          </div>
+        ) : undefined
+      }
+    />,
+  );
+
+  expect(screen.getByTestId("inline-panel-app").textContent).toBe(
+    "weather-card:Weather",
+  );
+  expect(screen.queryByText("nextclaw-inline")).toBeNull();
+});
+
+it("falls back to a normal code block for invalid inline display directives", () => {
+  const { container } = render(
+    <ChatMessageMarkdown
+      text={"```nextclaw-inline\nnot json\n```"}
+      role="assistant"
+      texts={defaultTexts}
+    />,
+  );
+
+  const code = container.querySelector(".chat-codeblock code");
+
+  expect(code?.textContent).toBe("not json");
+  expect(code?.className).toContain("language-nextclaw-inline");
+  expect(container.querySelector("[data-nextclaw-inline-display]")).toBeNull();
+});
+
 it("keeps highlighted code content escaped", () => {
   const { container } = render(
     <ChatMessageMarkdown

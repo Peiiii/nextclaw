@@ -5,12 +5,18 @@ import remarkGfm from "remark-gfm";
 import { cn } from "@agent-chat-ui/components/chat/internal/cn";
 import { ChatInlineTokenBadge } from "./chat-inline-token-badge";
 import { ChatCodeBlock } from "./chat-code-block";
+import { ChatInlineDisplay } from "./chat-inline-display";
 import type {
   ChatFileOpenActionViewModel,
+  ChatInlineDisplayViewModel,
   ChatInlineTokenViewModel,
   ChatMessageRole,
   ChatMessageTexts,
 } from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
+import {
+  isChatInlineDisplayLanguage,
+  parseChatInlineDisplayDirective,
+} from "./utils/chat-inline-display.utils";
 
 const MARKDOWN_MAX_CHARS = 140_000;
 const SAFE_LINK_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
@@ -113,6 +119,9 @@ type ChatMessageMarkdownProps = {
   inline?: boolean;
   inlineTokens?: readonly ChatInlineTokenViewModel[];
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  renderInlineDisplay?: (
+    display: ChatInlineDisplayViewModel,
+  ) => ReactNode | undefined;
 };
 
 type MarkdownNode = {
@@ -249,6 +258,7 @@ export function ChatMessageMarkdown({
   inline = false,
   inlineTokens,
   onFileOpen,
+  renderInlineDisplay,
 }: ChatMessageMarkdownProps) {
   const isUser = role === "user";
   const remarkPlugins = useMemo(
@@ -361,6 +371,17 @@ export function ChatMessageMarkdown({
             </code>
           );
         }
+        const inlineDisplay = isChatInlineDisplayLanguage(className)
+          ? parseChatInlineDisplayDirective(plainText)
+          : null;
+        if (inlineDisplay) {
+          return (
+            <ChatInlineDisplay
+              display={inlineDisplay}
+              renderInlineDisplay={renderInlineDisplay}
+            />
+          );
+        }
         return (
           <ChatCodeBlock className={className} texts={texts}>
             {children as ReactNode}
@@ -368,7 +389,7 @@ export function ChatMessageMarkdown({
         );
       },
     }),
-    [inline, isUser, onFileOpen, texts],
+    [inline, isUser, onFileOpen, renderInlineDisplay, texts],
   );
 
   const WrapperTag = inline ? "span" : "div";

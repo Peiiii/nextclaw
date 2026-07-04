@@ -15,10 +15,14 @@ import { useDocBrowser } from '@/shared/components/doc-browser';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import { t } from '@/shared/lib/i18n';
 
+type ChatInlinePanelAppDescriptor = Pick<ChatPanelAppCardViewModel, 'appId' | 'title'>;
+
 export function ChatInlinePanelAppCard({
   panelApp,
+  showExpandAction = true,
 }: {
-  panelApp: ChatPanelAppCardViewModel;
+  panelApp: ChatInlinePanelAppDescriptor;
+  showExpandAction?: boolean;
 }) {
   const docBrowser = useDocBrowser();
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -90,12 +94,14 @@ export function ChatInlinePanelAppCard({
           <AppWindow className="h-3.5 w-3.5 shrink-0 text-primary" />
           <span className="truncate">{title}</span>
         </div>
-        <IconActionButton
-          className="h-7 w-7 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          icon={<Maximize2 className="h-3.5 w-3.5" />}
-          label={t('chatPanelCardExpand')}
-          onClick={openExpanded}
-        />
+        {showExpandAction ? (
+          <IconActionButton
+            className="h-7 w-7 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            icon={<Maximize2 className="h-3.5 w-3.5" />}
+            label={t('chatPanelCardExpand')}
+            onClick={openExpanded}
+          />
+        ) : null}
       </div>
       <div
         className="relative h-[420px] min-h-[220px] max-h-[min(60vh,420px)] overflow-hidden bg-card"

@@ -3,8 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { NcpTool } from "@nextclaw/ncp";
+import { EventBus } from "@nextclaw/shared";
 import { ContextProviderContribution } from "@kernel/contributions/context-provider/index.js";
 import { ContextProviderManager } from "@kernel/managers/context-provider.manager.js";
+import { createShowContentTools } from "@kernel/tools/show-content.tools.js";
 import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
 
 const tempWorkspaces: string[] = [];
@@ -141,6 +143,7 @@ describe("ContextProviderContribution native prompt contract", () => {
             description: "Read file contents",
             parameters: { type: "object", properties: {} },
           },
+          ...createShowContentTools(new EventBus()),
         ],
       },
     } as never);
@@ -154,33 +157,52 @@ describe("ContextProviderContribution native prompt contract", () => {
       .filter(Boolean)
       .join("\n\n");
 
-    expect(context).toContain(
+    for (const expected of [
       "You are a personal assistant running inside nextclaw.",
-    );
-    expect(context).toContain("- read_file: Read file contents");
-    expect(context).toContain("## Inline Interactive Surfaces");
-    expect(context).toContain("weather card");
-    expect(context).toContain("Do not make every UI an inline card");
-    expect(context).toContain("card-first");
-    expect(context).toContain("landscape composition");
-    expect(context).toContain("wider than it is tall");
-    expect(context).toContain("no reliance on document-level internal scrolling");
-    expect(context).toContain("nextclawDisplayMode=card");
-    expect(context).toContain('placement="inline"');
-    expect(context).toContain("show_panel_app");
-    expect(context).toContain("show_file");
-    expect(context).toContain('viewer="rendered"');
-    expect(context).toContain('viewer="source"');
-    expect(context).toContain("# Project Context");
-    expect(context).toContain("# Agent Bootstrap Context");
-    expect(context).toContain("Agent bootstrap files loaded:");
-    expect(context).toContain("## AGENTS.md\n\nProject rules.");
-    expect(context).toContain("<name>demo-skill</name>");
-    expect(context).toContain("## Session Orchestration");
-    expect(context).toContain("## Tool Use Enforcement");
-    expect(context).toContain("## OpenAI/Codex Execution Discipline");
-    expect(context).toContain("## Current Session");
-    expect(context).toContain("## Reply Formatting");
+      "- read_file: Read file contents",
+      "- show_panel_app:",
+      "side-panel only",
+      "## Inline Interactive Surfaces",
+      "weather card",
+      "Do not make every UI an inline card",
+      "card-first",
+      "landscape composition",
+      "wider than it is tall",
+      "no reliance on document-level internal scrolling",
+      "nextclawDisplayMode=card",
+      "show_panel_app",
+      "Markdown-only",
+      "Supported targets are `panel_app`, `json`, `file`, and `url`",
+      "non-clickable placeholders",
+      "inert JSON snapshots",
+      "Never call `show_panel_app` for inline display",
+      "nextclaw-inline",
+      "show_file",
+      'viewer="rendered"',
+      'viewer="source"',
+      "# Project Context",
+      "# Agent Bootstrap Context",
+      "Agent bootstrap files loaded:",
+      "## AGENTS.md\n\nProject rules.",
+      "<name>demo-skill</name>",
+      "## Session Orchestration",
+      "## Tool Use Enforcement",
+      "## OpenAI/Codex Execution Discipline",
+      "## Current Session",
+      "## Reply Formatting",
+      "Inline display:",
+      "display-only",
+    ]) {
+      expect(context).toContain(expected);
+    }
+    for (const forbidden of [
+      'placement="inline"',
+      'placement="side_panel"',
+      "Optional display placement",
+      '"inline" embeds a compact card',
+    ]) {
+      expect(context).not.toContain(forbidden);
+    }
     assertOrder(context, [
       "You are a personal assistant running inside nextclaw.",
       "## Tooling",

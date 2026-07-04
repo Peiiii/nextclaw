@@ -2,6 +2,7 @@ import { memo, type ReactNode } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type {
   ChatFileOpenActionViewModel,
+  ChatInlineDisplayViewModel,
   ChatPanelAppCardViewModel,
   ChatMessageTexts,
   ChatMessagePartViewModel,
@@ -26,6 +27,9 @@ type ChatMessageProps = {
   >;
   onToolAction?: (action: ChatToolActionViewModel) => void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  renderInlineDisplay?: (
+    display: ChatInlineDisplayViewModel,
+  ) => ReactNode | undefined;
   renderToolAgent?: (agentId: string) => ReactNode;
   renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
 };
@@ -45,6 +49,9 @@ type RenderChatMessagePartParams = {
   texts: ChatMessageProps["texts"];
   onToolAction?: (action: ChatToolActionViewModel) => void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  renderInlineDisplay?: (
+    display: ChatInlineDisplayViewModel,
+  ) => ReactNode | undefined;
   renderToolAgent?: (agentId: string) => ReactNode;
   renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
 };
@@ -89,6 +96,7 @@ function renderChatMessagePart({
   onFileOpen,
   onToolAction,
   part,
+  renderInlineDisplay,
   renderPanelAppCard,
   renderToolAgent,
   role,
@@ -106,6 +114,7 @@ function renderChatMessagePart({
         texts={texts}
         inlineTokens={inlineTokens}
         onFileOpen={onFileOpen}
+        renderInlineDisplay={renderInlineDisplay}
       />
     );
   }
@@ -168,6 +177,7 @@ export const ChatMessage = memo(function ChatMessage({
   texts,
   onToolAction,
   onFileOpen,
+  renderInlineDisplay,
   renderToolAgent,
   renderPanelAppCard,
 }: ChatMessageProps) {
@@ -186,6 +196,7 @@ export const ChatMessage = memo(function ChatMessage({
       texts,
       onToolAction,
       onFileOpen,
+      renderInlineDisplay,
       renderToolAgent,
       renderPanelAppCard,
     });

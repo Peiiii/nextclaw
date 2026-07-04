@@ -73,7 +73,10 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("宽度大于高度");
     expect(skill).toContain("设计上不要依赖 document 级内部滚动");
     expect(skill).toContain("nextclawDisplayMode=card");
-    expect(skill).toContain('show_panel_app(appId, placement="inline")');
+    expect(skill).toContain("必须输出 `nextclaw-inline` fenced JSON block");
+    expect(skill).toContain("不要调用 `show_panel_app` 做 inline 展示");
+    expect(skill).toContain("side panel 即时预览");
+    expect(skill).toContain("nextclaw-inline");
     expect(skill).toContain("新建或重写 Panel App 时只使用目录式 Panel App");
     expect(skill).toContain("panel-app-react-vite-creator");
     expect(skill).toContain("前端工程形态判断");
@@ -115,10 +118,14 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("Service App 零依赖优先");
     expect(skill).toContain("创建或修改 Panel App / Service App 后，默认不需要重启 NextClaw 宿主");
     expect(skill).toContain("交付说明不要让用户 restart");
-    expect(skill).toContain("只有当交付形态已判断为 Panel Card");
-    expect(skill).toContain("普通 Panel App、编辑器、管理页、大表格和多页工作流应使用 side panel");
-    expect(skill).toContain('show_panel_app(appId, placement="inline")');
-    expect(skill).toContain('show_file(path, viewer="rendered", placement="side_panel")');
+    expect(skill).toContain("Panel App、编辑器、管理页、大表格和多页工作流应使用 side panel");
+    expect(skill).toContain("普通 inline Panel App 展示必须输出 `nextclaw-inline`");
+    expect(skill).toContain("不要调用 `show_panel_app` 做 inline 展示");
+    expect(skill).toContain("只用于 side panel 即时预览");
+    expect(skill).toContain("nextclaw-inline");
+    expect(skill).toContain('show_file(path, viewer="rendered")');
+    expect(skill).toContain("show_url(url)");
+    expect(skill).not.toContain('placement="side_panel"');
     expect(skill).toContain('viewer="source"');
   });
 
@@ -134,6 +141,8 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("base: \"./\"");
     expect(skill).toContain("静态 `.panel` 目录");
     expect(skill).toContain("不要让 NextClaw 宿主运行 `vite dev`");
+    expect(skill).toContain("show_url(url)");
+    expect(skill).not.toContain('placement="side_panel"');
     expect(skill).toContain("pnpm add -D @nextclaw/client-sdk");
     expect(skill).toContain("import type { NextClawAppClient } from \"@nextclaw/client-sdk\"");
     expect(skill).toContain("真实 client 必须来自宿主同步注入的 `window.nextclaw.client`");

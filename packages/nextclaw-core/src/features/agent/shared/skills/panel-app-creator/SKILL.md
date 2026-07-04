@@ -153,7 +153,7 @@ Panel App 默认打开在 NextClaw 右侧栏里，初始宽度通常较窄；用
 - 必须有 loading、empty、error 状态；错误要可读，不要只在 console 里报错。
 - 视觉要像精美卡片：清晰层级、克制色彩、足够留白、稳定高度、数字/状态突出、按钮和输入控件可点击。
 - inline 宿主会在 URL 上追加 `nextclawDisplayMode=card` 和 `nextclawPlacement=inline`；检测到这些参数时，优先渲染 card-first 布局，不要继续使用完整页面布局。
-- 完成后用 `show_panel_app(appId, placement="inline")` 展示；如果实现过程中发现卡片空间不足，改用 `placement="side_panel"`，不要勉强塞进 inline。
+- 普通 inline Panel App 展示必须输出 `nextclaw-inline` fenced JSON block；不要调用 `show_panel_app` 做 inline 展示。`show_panel_app` 只用于 side panel 即时预览；如果实现过程中发现卡片空间不足，改用 side panel，不要勉强塞进 inline。
 
 ## Service Actions
 

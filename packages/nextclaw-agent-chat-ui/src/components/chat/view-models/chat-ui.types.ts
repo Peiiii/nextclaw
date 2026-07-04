@@ -313,6 +313,41 @@ export type ChatPanelAppCardViewModel = {
   action: Extract<ChatToolActionViewModel, { kind: "show-content" }>;
 };
 
+export type ChatInlineDisplayTarget =
+  | {
+      type: "file";
+      payload: {
+        path: string;
+        line?: number;
+        column?: number;
+        viewer?: ChatFilePreviewViewer;
+      };
+    }
+  | {
+      type: "url";
+      payload: {
+        url: string;
+      };
+    }
+  | {
+      type: "panel_app";
+      payload: {
+        appId: string;
+      };
+    }
+  | {
+      type: "json";
+      payload: {
+        value: unknown;
+      };
+    };
+
+export type ChatInlineDisplayViewModel = {
+  target: ChatInlineDisplayTarget;
+  title?: string;
+  description?: string;
+};
+
 export type ChatToolPartViewModel = {
   kind: "call" | "result";
   toolName: string;
