@@ -1,6 +1,12 @@
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
+import type { ChatFileOpenActionViewModel } from "@nextclaw/agent-chat-ui";
 import { ChevronRight, FileCode2, FolderTree } from "lucide-react";
-import type { WorkspaceFileBreadcrumbViewModel } from "@/shared/lib/session-project";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
+import { WorkspaceBreadcrumbBrowser } from "./chat-session-workspace-file-breadcrumb-browser";
+import type {
+  WorkspaceFileBreadcrumbSegmentViewModel,
+  WorkspaceFileBreadcrumbViewModel,
+} from "@/shared/lib/session-project";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
@@ -19,7 +25,69 @@ function WorkspaceBreadcrumbMetaChip({ tone = "neutral", value }: { tone?: "neut
   );
 }
 
-export function ChatSessionWorkspaceFileBreadcrumbs({ breadcrumb }: { breadcrumb: WorkspaceFileBreadcrumbViewModel }) {
+function WorkspaceBreadcrumbSegmentButton({
+  onFileOpen,
+  segment,
+}: {
+  onFileOpen: (action: ChatFileOpenActionViewModel) => void;
+  segment: WorkspaceFileBreadcrumbSegmentViewModel;
+}) {
+  const [open, setOpen] = useState(false);
+  const [browsePath, setBrowsePath] = useState<string | null>(segment.browsePath);
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      setBrowsePath(segment.browsePath);
+    }
+    setOpen(nextOpen);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-current={segment.isCurrent ? "page" : undefined}
+          className={cn(
+            "inline-flex h-5 items-center gap-1 rounded-sm px-1 text-[11px] leading-none transition-colors hover:bg-gray-200/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+            segment.kind === "workspace"
+              ? "bg-primary/8 text-primary hover:bg-primary/12"
+              : segment.isCurrent
+                ? "bg-gray-200/70 text-gray-900"
+                : "text-gray-500",
+          )}
+          disabled={!segment.browsePath}
+        >
+          {segment.kind === "workspace" ? (
+            <FolderTree className="h-3 w-3 shrink-0" />
+          ) : segment.isCurrent ? (
+            <FileCode2 className="h-3 w-3 shrink-0" />
+          ) : null}
+          <span>{segment.label}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        data-testid="workspace-breadcrumb-popover"
+        className="w-[22rem] rounded-md p-0"
+        align="start"
+      >
+        <WorkspaceBreadcrumbBrowser
+          browsePath={browsePath}
+          onBrowsePathChange={setBrowsePath}
+          onClose={() => setOpen(false)}
+          onFileOpen={onFileOpen}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export function ChatSessionWorkspaceFileBreadcrumbs({
+  breadcrumb,
+  onFileOpen,
+}: {
+  breadcrumb: WorkspaceFileBreadcrumbViewModel;
+  onFileOpen: (action: ChatFileOpenActionViewModel) => void;
+}) {
   return (
     <div
       data-testid="workspace-file-breadcrumbs"
@@ -33,23 +101,10 @@ export function ChatSessionWorkspaceFileBreadcrumbs({ breadcrumb }: { breadcrumb
         <div className="flex min-w-0 flex-1 items-center gap-1 pr-1">
           {breadcrumb.segments.map((segment, index) => (
             <Fragment key={segment.key}>
-              <span
-                className={cn(
-                  "inline-flex h-5 items-center gap-1 rounded-sm px-1 text-[11px] leading-none",
-                  segment.kind === "workspace"
-                    ? "bg-primary/8 text-primary"
-                    : segment.isCurrent
-                      ? "bg-gray-200/70 text-gray-900"
-                      : "text-gray-500",
-                )}
-              >
-                {segment.kind === "workspace" ? (
-                  <FolderTree className="h-3 w-3 shrink-0" />
-                ) : segment.isCurrent ? (
-                  <FileCode2 className="h-3 w-3 shrink-0" />
-                ) : null}
-                <span>{segment.label}</span>
-              </span>
+              <WorkspaceBreadcrumbSegmentButton
+                segment={segment}
+                onFileOpen={onFileOpen}
+              />
               {index < breadcrumb.segments.length - 1 ? (
                 <ChevronRight className="h-3 w-3 shrink-0 text-gray-300" />
               ) : null}

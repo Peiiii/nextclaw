@@ -1,14 +1,36 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ChatFileOperationBlockViewModel } from "@nextclaw/agent-chat-ui";
+import type {
+  ChatFileOpenActionViewModel,
+  ChatFileOperationBlockViewModel,
+} from "@nextclaw/agent-chat-ui";
 import { ChatSessionWorkspaceFilePreview } from "@/features/chat/features/workspace/components/chat-session-workspace-file-preview";
 import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.store";
 import { t } from "@/shared/lib/i18n";
 
 const serverPathReadMock = vi.fn();
+const serverPathBrowseMock = vi.fn();
+
+type RenderWorkspaceFilePreviewOptions = {
+  file?: Partial<ChatWorkspaceFileTab>;
+  onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  sessionProjectRoot?: string | null;
+  sessionWorkingDir?: string | null;
+};
+
+type TextReadDataOverrides = {
+  languageHint?: string;
+  resolvedPath?: string;
+  text?: string;
+  truncated?: boolean;
+};
 
 vi.mock("@/shared/hooks/use-server-path-read", () => ({
   useServerPathRead: (...args: unknown[]) => serverPathReadMock(...args),
+}));
+
+vi.mock("@/shared/hooks/use-server-path-browse", () => ({
+  useServerPathBrowse: (...args: unknown[]) => serverPathBrowseMock(...args),
 }));
 
 vi.mock("@nextclaw/agent-chat-ui", () => ({
@@ -43,31 +65,109 @@ function buildWorkspaceFile(
   };
 }
 
-describe("ChatSessionWorkspaceFilePreview", () => {
-  beforeEach(() => {
-    serverPathReadMock.mockReset();
+function mockTextRead(overrides: TextReadDataOverrides = {}) {
+  serverPathReadMock.mockReturnValue({
+    isLoading: false,
+    error: null,
+    data: {
+      kind: "text",
+      resolvedPath: "/tmp/example.ts",
+      text: "const answer = 42;\n",
+      truncated: false,
+      ...overrides,
+    },
   });
+}
 
-  it("renders preview files inside a full-height workspace code surface", () => {
-    serverPathReadMock.mockReturnValue({
+function renderWorkspaceFilePreview({
+  file,
+  onFileOpen = vi.fn(),
+  sessionProjectRoot = "/tmp",
+  sessionWorkingDir = "/tmp",
+}: RenderWorkspaceFilePreviewOptions = {}) {
+  render(
+    <ChatSessionWorkspaceFilePreview
+      file={buildWorkspaceFile(file ?? {})}
+      sessionProjectRoot={sessionProjectRoot}
+      sessionWorkingDir={sessionWorkingDir}
+      onFileOpen={onFileOpen}
+    />,
+  );
+  return { onFileOpen };
+}
+
+function mockWorkspaceBreadcrumbBrowseTree() {
+  serverPathBrowseMock.mockImplementation(
+    ({ path }: { path?: string | null }) => ({
       isLoading: false,
       error: null,
-      data: {
-        kind: "text",
-        resolvedPath: "/tmp/example.ts",
-        text: "const answer = 42;\n",
-        truncated: false,
-      },
-    });
+      data:
+        path === "/tmp/workspace/src/components"
+          ? {
+              currentPath: "/tmp/workspace/src/components",
+              parentPath: "/tmp/workspace/src",
+              homePath: "/Users/demo",
+              breadcrumbs: [
+                { label: "workspace", path: "/tmp/workspace" },
+                { label: "src", path: "/tmp/workspace/src" },
+                { label: "components", path: "/tmp/workspace/src/components" },
+              ],
+              entries: [
+                {
+                  name: "button.tsx",
+                  path: "/tmp/workspace/src/components/button.tsx",
+                  kind: "file",
+                  hidden: false,
+                },
+              ],
+            }
+          : {
+              currentPath: "/tmp/workspace/src",
+              parentPath: "/tmp/workspace",
+              homePath: "/Users/demo",
+              breadcrumbs: [
+                { label: "workspace", path: "/tmp/workspace" },
+                { label: "src", path: "/tmp/workspace/src" },
+              ],
+              entries: [
+                {
+                  name: "components",
+                  path: "/tmp/workspace/src/components",
+                  kind: "directory",
+                  hidden: false,
+                },
+                {
+                  name: "index.ts",
+                  path: "/tmp/workspace/src/index.ts",
+                  kind: "file",
+                  hidden: false,
+                },
+              ],
+            },
+    }),
+  );
+}
 
-    render(
-      <ChatSessionWorkspaceFilePreview
-        file={buildWorkspaceFile({ viewMode: "preview" })}
-        sessionProjectRoot="/tmp"
-        sessionWorkingDir="/tmp"
-        onFileOpen={vi.fn()}
-      />,
-    );
+beforeEach(() => {
+  serverPathReadMock.mockReset();
+  serverPathBrowseMock.mockReset();
+  serverPathBrowseMock.mockReturnValue({
+    isLoading: false,
+    error: null,
+    data: {
+      currentPath: "/tmp",
+      parentPath: null,
+      homePath: "/Users/demo",
+      breadcrumbs: [],
+      entries: [],
+    },
+  });
+});
+
+describe("ChatSessionWorkspaceFilePreview rendering", () => {
+  it("renders preview files inside a full-height workspace code surface", () => {
+    mockTextRead();
+    renderWorkspaceFilePreview();
 
     expect(screen.getByTestId("file-code-surface").getAttribute("data-layout")).toBe(
       "workspace",
@@ -75,30 +175,14 @@ describe("ChatSessionWorkspaceFilePreview", () => {
   });
 
   it("passes server language hints to the workspace code surface", () => {
-    serverPathReadMock.mockReturnValue({
-      isLoading: false,
-      error: null,
-      data: {
-        kind: "text",
-        languageHint: "js",
-        resolvedPath: "/tmp/example.js",
-        text: "const answer = 42;\n",
-        truncated: false,
+    mockTextRead({ languageHint: "js", resolvedPath: "/tmp/example.js" });
+    renderWorkspaceFilePreview({
+      file: {
+        label: "example.js",
+        path: "/tmp/example.js",
+        viewMode: "preview",
       },
     });
-
-    render(
-      <ChatSessionWorkspaceFilePreview
-        file={buildWorkspaceFile({
-          label: "example.js",
-          path: "/tmp/example.js",
-          viewMode: "preview",
-        })}
-        sessionProjectRoot="/tmp"
-        sessionWorkingDir="/tmp"
-        onFileOpen={vi.fn()}
-      />,
-    );
 
     expect(
       screen.getByTestId("file-code-surface").getAttribute("data-language-hint"),
@@ -106,30 +190,18 @@ describe("ChatSessionWorkspaceFilePreview", () => {
   });
 
   it("renders HTML files through an unrestricted server content iframe when rendered preview is requested", () => {
-    serverPathReadMock.mockReturnValue({
-      isLoading: false,
-      error: null,
-      data: {
-        kind: "text",
-        resolvedPath: "/tmp/example.html",
-        text: "<!doctype html><h1>Hello</h1>",
-        truncated: false,
+    mockTextRead({
+      resolvedPath: "/tmp/example.html",
+      text: "<!doctype html><h1>Hello</h1>",
+    });
+    renderWorkspaceFilePreview({
+      file: {
+        label: "example.html",
+        path: "/tmp/example.html",
+        previewViewer: "rendered",
+        viewMode: "preview",
       },
     });
-
-    render(
-      <ChatSessionWorkspaceFilePreview
-        file={buildWorkspaceFile({
-          label: "example.html",
-          path: "/tmp/example.html",
-          previewViewer: "rendered",
-          viewMode: "preview",
-        })}
-        sessionProjectRoot="/tmp"
-        sessionWorkingDir="/tmp"
-        onFileOpen={vi.fn()}
-      />,
-    );
 
     const frame = screen.getByTestId("workspace-html-preview");
     expect(frame.getAttribute("sandbox")).toBeNull();
@@ -141,29 +213,14 @@ describe("ChatSessionWorkspaceFilePreview", () => {
   });
 
   it("falls back to the source preview when rendered is requested for a non-HTML file", () => {
-    serverPathReadMock.mockReturnValue({
-      isLoading: false,
-      error: null,
-      data: {
-        kind: "text",
-        resolvedPath: "/tmp/example.txt",
-        text: "plain text",
-        truncated: false,
+    mockTextRead({ resolvedPath: "/tmp/example.txt", text: "plain text" });
+    renderWorkspaceFilePreview({
+      file: {
+        path: "/tmp/example.txt",
+        previewViewer: "rendered",
+        viewMode: "preview",
       },
     });
-
-    render(
-      <ChatSessionWorkspaceFilePreview
-        file={buildWorkspaceFile({
-          path: "/tmp/example.txt",
-          previewViewer: "rendered",
-          viewMode: "preview",
-        })}
-        sessionProjectRoot="/tmp"
-        sessionWorkingDir="/tmp"
-        onFileOpen={vi.fn()}
-      />,
-    );
 
     expect(screen.queryByTestId("workspace-html-preview")).toBeNull();
     expect(screen.getByTestId("file-code-surface")).toBeTruthy();
@@ -176,20 +233,15 @@ describe("ChatSessionWorkspaceFilePreview", () => {
       data: null,
     });
 
-    render(
-      <ChatSessionWorkspaceFilePreview
-        file={buildWorkspaceFile({
-          viewMode: "diff",
-          beforeText: "const answer = 41;\n",
-          afterText: "const answer = 42;\n",
-          oldStartLine: 1,
-          newStartLine: 1,
-        })}
-        sessionProjectRoot="/tmp"
-        sessionWorkingDir="/tmp"
-        onFileOpen={vi.fn()}
-      />,
-    );
+    renderWorkspaceFilePreview({
+      file: {
+        viewMode: "diff",
+        beforeText: "const answer = 41;\n",
+        afterText: "const answer = 42;\n",
+        oldStartLine: 1,
+        newStartLine: 1,
+      },
+    });
 
     expect(screen.getByTestId("file-code-surface").getAttribute("data-layout")).toBe(
       "workspace",
@@ -197,52 +249,23 @@ describe("ChatSessionWorkspaceFilePreview", () => {
   });
 
   it("does not repeat the preview badge inside the workspace header", () => {
-    serverPathReadMock.mockReturnValue({
-      isLoading: false,
-      error: null,
-      data: {
-        kind: "text",
-        resolvedPath: "/tmp/example.ts",
-        text: "const answer = 42;\n",
-        truncated: false,
-      },
-    });
-
-    render(
-      <ChatSessionWorkspaceFilePreview
-        file={buildWorkspaceFile({ viewMode: "preview" })}
-        sessionProjectRoot="/tmp"
-        sessionWorkingDir="/tmp"
-        onFileOpen={vi.fn()}
-      />,
-    );
+    mockTextRead();
+    renderWorkspaceFilePreview();
 
     expect(screen.queryByText(t("chatWorkspacePreview"))).toBeNull();
     expect(screen.getByTitle("/tmp/example.ts")).toBeTruthy();
     expect(screen.getByText("tmp")).toBeTruthy();
     expect(screen.getByText("example.ts")).toBeTruthy();
   });
+});
 
+describe("ChatSessionWorkspaceFilePreview breadcrumbs", () => {
   it("renders project-relative breadcrumbs when the file is inside the workspace", () => {
-    serverPathReadMock.mockReturnValue({
-      isLoading: false,
-      error: null,
-      data: {
-        kind: "text",
-        resolvedPath: "/tmp/workspace/src/example.ts",
-        text: "const answer = 42;\n",
-        truncated: false,
-      },
+    mockTextRead({ resolvedPath: "/tmp/workspace/src/example.ts" });
+    renderWorkspaceFilePreview({
+      sessionProjectRoot: "/tmp/workspace",
+      sessionWorkingDir: "/tmp/workspace",
     });
-
-    render(
-      <ChatSessionWorkspaceFilePreview
-        file={buildWorkspaceFile({ viewMode: "preview" })}
-        sessionProjectRoot="/tmp/workspace"
-        sessionWorkingDir="/tmp/workspace"
-        onFileOpen={vi.fn()}
-      />,
-    );
 
     expect(screen.getByText("workspace")).toBeTruthy();
     expect(screen.getByText("src")).toBeTruthy();
@@ -255,30 +278,68 @@ describe("ChatSessionWorkspaceFilePreview", () => {
     );
   });
 
-  it("keeps line and truncation metadata without the duplicated type badge", () => {
-    serverPathReadMock.mockReturnValue({
-      isLoading: false,
-      error: null,
-      data: {
-        kind: "text",
-        resolvedPath: "/tmp/example.ts",
-        text: "const answer = 42;\n",
-        truncated: true,
-      },
+  it("browses from a breadcrumb segment and opens selected files", () => {
+    mockTextRead({ resolvedPath: "/tmp/workspace/src/example.ts" });
+    mockWorkspaceBreadcrumbBrowseTree();
+    const onFileOpen = vi.fn();
+
+    renderWorkspaceFilePreview({
+      onFileOpen,
+      sessionProjectRoot: "/tmp/workspace",
+      sessionWorkingDir: "/tmp/workspace",
     });
 
-    render(
-      <ChatSessionWorkspaceFilePreview
-        file={buildWorkspaceFile({
-          viewMode: "preview",
-          line: 12,
-          column: 4,
-        })}
-        sessionProjectRoot="/tmp"
-        sessionWorkingDir="/tmp"
-        onFileOpen={vi.fn()}
-      />,
+    fireEvent.click(screen.getByRole("button", { name: "src" }));
+
+    expect(serverPathBrowseMock).toHaveBeenCalledWith({
+      path: "/tmp/workspace/src",
+      includeFiles: true,
+      enabled: true,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "components" }));
+    fireEvent.click(screen.getByRole("button", { name: "button.tsx" }));
+
+    expect(onFileOpen).toHaveBeenCalledWith({
+      path: "/tmp/workspace/src/components/button.tsx",
+      label: "button.tsx",
+      viewMode: "preview",
+    });
+  });
+
+  it("keeps the breadcrumb browser compact", () => {
+    mockTextRead({ resolvedPath: "/tmp/workspace/src/example.ts" });
+    mockWorkspaceBreadcrumbBrowseTree();
+
+    renderWorkspaceFilePreview({
+      sessionProjectRoot: "/tmp/workspace",
+      sessionWorkingDir: "/tmp/workspace",
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "src" }));
+
+    expect(screen.getByTestId("workspace-breadcrumb-popover").className).toContain(
+      "w-[22rem]",
     );
+    expect(screen.getByTestId("workspace-breadcrumb-browser").className).toContain(
+      "max-h-72",
+    );
+    expect(screen.getAllByRole("button", { name: "workspace" }).at(-1)?.className).toContain(
+      "h-5",
+    );
+    expect(screen.getByRole("button", { name: "components" }).className).toContain(
+      "h-6",
+    );
+  });
+
+  it("keeps line and truncation metadata without the duplicated type badge", () => {
+    mockTextRead({ truncated: true });
+    renderWorkspaceFilePreview({
+      file: {
+        viewMode: "preview",
+        line: 12,
+        column: 4,
+      },
+    });
 
     expect(screen.getByText("L12:4")).toBeTruthy();
     expect(screen.getByText(t("chatWorkspacePreviewTruncated"))).toBeTruthy();
@@ -286,29 +347,19 @@ describe("ChatSessionWorkspaceFilePreview", () => {
   });
 
   it("uses the session working directory as the base path when no project root is set", () => {
-    serverPathReadMock.mockReturnValue({
-      isLoading: false,
-      error: null,
-      data: {
-        kind: "text",
-        resolvedPath: "/tmp/agent-workspace/AGENTS.md",
-        text: "# Agent rules\n",
-        truncated: false,
-      },
+    mockTextRead({
+      resolvedPath: "/tmp/agent-workspace/AGENTS.md",
+      text: "# Agent rules\n",
     });
-
-    render(
-      <ChatSessionWorkspaceFilePreview
-        file={buildWorkspaceFile({
-          path: "AGENTS.md",
-          label: "AGENTS.md",
-          viewMode: "preview",
-        })}
-        sessionProjectRoot={null}
-        sessionWorkingDir="/tmp/agent-workspace"
-        onFileOpen={vi.fn()}
-      />,
-    );
+    renderWorkspaceFilePreview({
+      file: {
+        path: "AGENTS.md",
+        label: "AGENTS.md",
+        viewMode: "preview",
+      },
+      sessionProjectRoot: null,
+      sessionWorkingDir: "/tmp/agent-workspace",
+    });
 
     expect(serverPathReadMock).toHaveBeenCalledWith({
       path: "AGENTS.md",

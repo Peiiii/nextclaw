@@ -1,2 +1,2 @@
 export * from './session-project.utils';
-export * from './workspace-file-breadcrumb';
+export * from './workspace-file-breadcrumb.utils';

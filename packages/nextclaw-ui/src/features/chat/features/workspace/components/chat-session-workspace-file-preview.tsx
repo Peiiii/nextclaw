@@ -305,7 +305,10 @@ export function ChatSessionWorkspaceFilePreview({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
-      <ChatSessionWorkspaceFileBreadcrumbs breadcrumb={breadcrumb} />
+      <ChatSessionWorkspaceFileBreadcrumbs
+        breadcrumb={breadcrumb}
+        onFileOpen={onFileOpen}
+      />
 
       <div className="flex-1 min-h-0 overflow-hidden">
         {file.viewMode === "diff" ? (

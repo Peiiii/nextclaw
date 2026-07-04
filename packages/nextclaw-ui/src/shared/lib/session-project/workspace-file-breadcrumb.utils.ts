@@ -4,6 +4,8 @@ export type WorkspaceFileBreadcrumbSegmentViewModel = {
   key: string;
   label: string;
   kind: "workspace" | "root" | "directory" | "file";
+  path: string;
+  browsePath: string | null;
   isCurrent: boolean;
 };
 
@@ -26,6 +28,41 @@ function normalizeComparablePath(value: string): string {
   return /^[A-Za-z]:/.test(trimmed)
     ? `${trimmed.slice(0, 1).toLowerCase()}${trimmed.slice(1)}`
     : trimmed;
+}
+
+function joinPathSegments(basePath: string | null, segments: string[]): string {
+  if (!basePath) {
+    return segments.join("/");
+  }
+
+  const normalizedBase = trimPathSeparators(basePath.trim().replace(/\\/g, "/"));
+  if (segments.length === 0) {
+    return normalizedBase;
+  }
+
+  if (normalizedBase === "/") {
+    return `/${segments.join("/")}`;
+  }
+
+  return `${normalizedBase}/${segments.join("/")}`;
+}
+
+function readParentPath(path: string): string | null {
+  const normalizedPath = trimPathSeparators(path.trim().replace(/\\/g, "/"));
+  if (!normalizedPath || normalizedPath === "/" || /^[A-Za-z]:[\\/]?$/.test(normalizedPath)) {
+    return null;
+  }
+
+  const separatorIndex = normalizedPath.lastIndexOf("/");
+  if (separatorIndex < 0) {
+    return null;
+  }
+  if (separatorIndex === 0) {
+    return "/";
+  }
+
+  const parentPath = normalizedPath.slice(0, separatorIndex);
+  return /^[A-Za-z]:$/.test(parentPath) ? `${parentPath}/` : parentPath;
 }
 
 function readDisplaySegments(value: string): {
@@ -93,16 +130,23 @@ function readRelativeSegments(params: {
 
 function buildSegmentsFromLabels(params: {
   labels: string[];
+  basePath?: string | null;
   leading?: WorkspaceFileBreadcrumbSegmentViewModel | null;
 }): WorkspaceFileBreadcrumbSegmentViewModel[] {
-  const { labels, leading = null } = params;
+  const { basePath = null, labels, leading = null } = params;
   const items = labels.map<WorkspaceFileBreadcrumbSegmentViewModel>(
-    (label, index) => ({
-      key: `${index}:${label}`,
-      label,
-      kind: index === labels.length - 1 ? "file" : "directory",
-      isCurrent: index === labels.length - 1,
-    }),
+    (label, index) => {
+      const kind = index === labels.length - 1 ? "file" : "directory";
+      const path = joinPathSegments(basePath, labels.slice(0, index + 1));
+      return {
+        key: `${index}:${label}`,
+        label,
+        kind,
+        path,
+        browsePath: kind === "file" ? readParentPath(path) : path,
+        isCurrent: index === labels.length - 1,
+      };
+    },
   );
 
   return leading ? [leading, ...items] : items;
@@ -141,27 +185,35 @@ export function buildWorkspaceFileBreadcrumb(params: {
   let segments: WorkspaceFileBreadcrumbSegmentViewModel[];
 
   if (sessionProjectRoot?.trim() && relativeSegments) {
+    const workspacePath = sessionProjectRoot.trim();
     const workspaceLabel =
-      getSessionProjectName(sessionProjectRoot) ?? sessionProjectRoot.trim();
+      getSessionProjectName(workspacePath) ?? workspacePath;
 
     segments = buildSegmentsFromLabels({
       labels: relativeSegments,
+      basePath: workspacePath,
       leading: {
         key: `workspace:${workspaceLabel}`,
         label: workspaceLabel,
         kind: "workspace",
+        path: workspacePath,
+        browsePath: workspacePath,
         isCurrent: relativeSegments.length === 0,
       },
     });
   } else {
     const { prefix, segments: labels } = readDisplaySegments(fullPath);
+    const rootPath = prefix === "/" ? "/" : prefix ? `${prefix}/` : null;
     segments = buildSegmentsFromLabels({
       labels,
+      basePath: rootPath,
       leading: prefix
         ? {
             key: `root:${prefix}`,
             label: prefix,
             kind: "root",
+            path: rootPath ?? prefix,
+            browsePath: rootPath ?? prefix,
             isCurrent: labels.length === 0,
           }
         : null,
@@ -174,6 +226,8 @@ export function buildWorkspaceFileBreadcrumb(params: {
         key: "file:unknown",
         label: fullPath || "file",
         kind: "file",
+        path: fullPath,
+        browsePath: readParentPath(fullPath),
         isCurrent: true,
       },
     ];
