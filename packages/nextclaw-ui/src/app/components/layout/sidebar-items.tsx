@@ -111,10 +111,10 @@ export function SidebarNavLinkItem({
         isActive
           ? collapsed
             ? SIDEBAR_RAIL_ACTIVE_SURFACE_CLASS
-            : "bg-accent text-accent-foreground shadow-sm"
+            : "bg-gray-200/80 text-gray-900 shadow-sm"
           : collapsed
             ? SIDEBAR_RAIL_SURFACE_CLASS
-            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+            : "text-muted-foreground hover:bg-gray-200/60 hover:text-gray-900",
         className,
       )}
     >
@@ -123,8 +123,8 @@ export function SidebarNavLinkItem({
           collapsed ? SIDEBAR_RAIL_ICON_CLASS : tone.icon,
           "shrink-0 transition-colors",
           isActive
-            ? "text-accent-foreground"
-            : "text-muted-foreground/75 group-hover:text-accent-foreground",
+            ? "text-gray-700"
+            : "text-muted-foreground/75 group-hover:text-gray-700",
         )}
       />
       <span className={collapsed ? "sr-only" : "min-w-0 flex-1 text-left"}>
@@ -174,7 +174,7 @@ export function SidebarActionItem({
       onClick={onClick}
       aria-label={label}
       className={cn(
-        "group flex w-full items-center rounded-xl font-medium text-muted-foreground transition-all duration-base hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+        "group flex w-full items-center rounded-xl font-medium text-muted-foreground transition-colors duration-base hover:bg-gray-200/60 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
         collapsed
           ? cn(
               SIDEBAR_RAIL_CONTROL_CLASS,
@@ -189,7 +189,7 @@ export function SidebarActionItem({
       <Icon
         className={cn(
           collapsed ? SIDEBAR_RAIL_ICON_CLASS : tone.icon,
-          "shrink-0 text-muted-foreground/75 transition-colors group-hover:text-accent-foreground",
+          "shrink-0 text-muted-foreground/75 transition-colors group-hover:text-gray-700",
         )}
       />
       <span
@@ -248,7 +248,7 @@ export function SidebarSelectItem({
     <SelectTrigger
       aria-label={label}
       className={cn(
-        "group h-auto w-full rounded-xl border-0 bg-transparent font-medium text-muted-foreground shadow-none hover:bg-accent hover:text-accent-foreground focus:ring-0 focus-visible:ring-2 focus-visible:ring-primary/35",
+        "group h-auto w-full rounded-xl border-0 bg-transparent font-medium text-muted-foreground shadow-none hover:bg-gray-200/60 hover:text-gray-900 focus:ring-0 focus-visible:ring-2 focus-visible:ring-primary/35",
         collapsed
           ? cn(
               SIDEBAR_RAIL_CONTROL_CLASS,
@@ -267,7 +267,7 @@ export function SidebarSelectItem({
         <Icon
           className={cn(
             collapsed ? SIDEBAR_RAIL_ICON_CLASS : tone.icon,
-            "shrink-0 text-muted-foreground/75 transition-colors group-hover:text-accent-foreground",
+            "shrink-0 text-muted-foreground/75 transition-colors group-hover:text-gray-700",
           )}
         />
         <span className={collapsed ? "sr-only" : "text-left"}>{label}</span>

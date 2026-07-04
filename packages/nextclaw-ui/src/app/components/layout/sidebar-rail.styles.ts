@@ -7,9 +7,9 @@ export const SIDEBAR_RAIL_STACK_CLASS = "space-y-1";
 export const SIDEBAR_RAIL_ITEM_GAP_CLASS = "gap-1";
 
 export const SIDEBAR_RAIL_SURFACE_CLASS =
-  "text-muted-foreground transition-colors duration-base hover:bg-accent hover:text-accent-foreground active:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35";
+  "text-muted-foreground transition-colors duration-base hover:bg-gray-200/60 hover:text-gray-900 active:bg-gray-200/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35";
 
-export const SIDEBAR_RAIL_ACTIVE_SURFACE_CLASS = "bg-accent text-accent-foreground";
+export const SIDEBAR_RAIL_ACTIVE_SURFACE_CLASS = "bg-gray-200/80 text-gray-900";
 
 export const SIDEBAR_RAIL_PRIMARY_SURFACE_CLASS =
   "bg-primary/10 text-primary transition-colors duration-base hover:bg-primary/15 hover:text-primary-700 active:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35";

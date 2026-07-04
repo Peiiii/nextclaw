@@ -115,7 +115,7 @@ export function ChatSidebarUtilityMenu({
           <button
             type="button"
             aria-label={t("settingsMenu")}
-            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium text-muted-foreground transition-all duration-base hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors duration-base hover:bg-gray-200/60 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
           >
             <Settings className="h-4 w-4 shrink-0 text-muted-foreground/70" />
             <span className="min-w-0 flex-1 text-left">{t("settings")}</span>
@@ -134,7 +134,7 @@ export function ChatSidebarUtilityMenu({
           <NavLink
             to="/settings"
             onClick={() => onOpenChange(false)}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900"
           >
             <Settings className="h-4 w-4 text-muted-foreground/70" />
             <span className="flex-1 text-left">{t("settings")}</span>
@@ -142,7 +142,7 @@ export function ChatSidebarUtilityMenu({
           <button
             type="button"
             onClick={handleOpenDocs}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900"
           >
             <BookOpen className="h-4 w-4 text-muted-foreground/70" />
             <span className="flex-1 text-left">{t("docBrowserHelp")}</span>
@@ -150,7 +150,7 @@ export function ChatSidebarUtilityMenu({
           <button
             type="button"
             onClick={handleOpenApps}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900"
           >
             <Boxes className="h-4 w-4 text-muted-foreground/70" />
             <span className="flex-1 text-left">{t("appsTitle")}</span>
@@ -212,7 +212,7 @@ function ChatSidebarUtilitySelect<Value extends string>({
     >
       <SelectTrigger
         aria-label={label}
-        className="h-auto w-full rounded-lg border-0 bg-transparent px-3 py-2 text-[13px] font-medium text-foreground shadow-none hover:bg-accent hover:text-accent-foreground focus:ring-0"
+        className="h-auto w-full rounded-lg border-0 bg-transparent px-3 py-2 text-[13px] font-medium text-foreground shadow-none hover:bg-gray-200/60 hover:text-gray-900 focus:ring-0"
         indicator={<ChevronRight className="h-4 w-4 text-muted-foreground/70" />}
       >
         <div className="flex min-w-0 items-center gap-2.5">

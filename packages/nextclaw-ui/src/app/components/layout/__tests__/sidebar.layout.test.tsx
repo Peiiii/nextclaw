@@ -101,7 +101,7 @@ describe("Sidebar", () => {
     expect(backLink).toBeTruthy();
     expect(header.className).not.toContain("bg-white");
     expect(header.className).not.toContain("rounded-2xl");
-    expect(backLink.className).toContain("hover:bg-accent");
+    expect(backLink.className).toContain("hover:bg-gray-200/60");
   });
 
   it("keeps the settings navigation in the expected product order", () => {
@@ -149,7 +149,7 @@ describe("Sidebar", () => {
     expect(screen.getByText("user@example.com")).toBeTruthy();
     expect(accountEntry.className).toContain("py-2");
     expect(accountEntry.className).toContain("text-muted-foreground");
-    expect(accountEntry.className).toContain("hover:bg-accent");
+    expect(accountEntry.className).toContain("hover:bg-gray-200/60");
     expect(accountStatus.className).toContain("text-[11px]");
   });
 

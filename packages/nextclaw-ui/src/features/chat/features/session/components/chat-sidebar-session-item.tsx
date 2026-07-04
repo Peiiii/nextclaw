@@ -230,7 +230,7 @@ export function ChatSidebarSessionItem({
       className={cn(
         'w-full rounded-xl px-3 py-2.5 text-left transition-all text-[13px]',
         active
-          ? 'bg-gray-200 text-gray-900 font-semibold shadow-sm'
+          ? 'bg-gray-200/80 text-gray-900 font-semibold shadow-sm'
           : 'text-gray-700 hover:bg-gray-200/60 hover:text-gray-900'
       )}
     >

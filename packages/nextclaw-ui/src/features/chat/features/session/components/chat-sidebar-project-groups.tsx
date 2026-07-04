@@ -70,7 +70,7 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                       icon={<Plus className="h-3.5 w-3.5" />}
                       label={actionLabel}
                       tooltip={false}
-                      className="h-7 w-7 shrink-0 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      className="h-7 w-7 shrink-0 rounded-lg text-muted-foreground hover:bg-gray-200/60 hover:text-gray-900"
                     />
                   </PopoverTrigger>
                   <PopoverContent
@@ -91,7 +91,7 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                 <IconActionButton
                   icon={<Plus className="h-3.5 w-3.5" />}
                   label={actionLabel}
-                  className="h-7 w-7 shrink-0 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  className="h-7 w-7 shrink-0 rounded-lg text-muted-foreground hover:bg-gray-200/60 hover:text-gray-900"
                   onClick={() => onCreateSession(preferredSessionType, group.projectRoot)}
                 />
               )}
