@@ -56,6 +56,7 @@
   "chatWorkspaceCronJobEmpty": "This session has no cron jobs.",
   "chatSessionUnread": "Session has unread updates",
   "chatTyping": "Agent is thinking...",
+  "chatScrollToBottom": "Scroll to bottom",
   "chatProcessSummaryProcessed": "Processed",
   "chatRuntimeInitializing": "Chat is still initializing. You can keep typing and send once startup finishes.",
   "chatRuntimeInitializationFailed": "Chat startup failed. Please retry in a moment or inspect the service logs.",

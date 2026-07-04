@@ -3,6 +3,7 @@ import {
   useEffect,
   useLayoutEffect,
   useRef,
+  useState,
   type RefObject,
 } from "react";
 
@@ -16,7 +17,9 @@ type UseStickyBottomScrollParams = {
 };
 
 type UseStickyBottomScrollResult = {
+  isAtBottom: boolean;
   onScroll: () => void;
+  scrollToBottom: () => void;
 };
 
 const DEFAULT_STICKY_THRESHOLD_PX = 10;
@@ -29,13 +32,31 @@ export function useStickyBottomScroll({
   scrollRef,
   stickyThresholdPx,
 }: UseStickyBottomScrollParams): UseStickyBottomScrollResult {
+  const [isAtBottom, setIsAtBottom] = useState(true);
   const isStickyRef = useRef(true);
   const isProgrammaticScrollRef = useRef(false);
   const previousResetKeyRef = useRef<string | null>(null);
   const pendingInitialScrollRef = useRef(false);
   const scheduledScrollFrameRef = useRef<number | null>(null);
 
-  const queueScrollToBottom = useCallback(() => {
+  const updateStickyState = useCallback((nextIsAtBottom: boolean) => {
+    isStickyRef.current = nextIsAtBottom;
+    setIsAtBottom(nextIsAtBottom);
+  }, []);
+
+  const resolveIsAtBottom = useCallback(
+    (element: HTMLElement): boolean => {
+      const distanceFromBottom =
+        element.scrollHeight - element.scrollTop - element.clientHeight;
+      return (
+        distanceFromBottom <=
+        (stickyThresholdPx ?? DEFAULT_STICKY_THRESHOLD_PX)
+      );
+    },
+    [stickyThresholdPx],
+  );
+
+  const queueScrollToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
     const element = scrollRef.current;
     if (!element) {
       return;
@@ -53,11 +74,23 @@ export function useStickyBottomScroll({
       }
 
       isProgrammaticScrollRef.current = true;
-      currentElement.scrollTop = currentElement.scrollHeight;
+      if (typeof currentElement.scrollTo === "function") {
+        currentElement.scrollTo({
+          top: currentElement.scrollHeight,
+          behavior,
+        });
+      } else {
+        currentElement.scrollTop = currentElement.scrollHeight;
+      }
     });
   }, [scrollRef]);
 
-  const onScroll = () => {
+  const scrollToBottom = useCallback(() => {
+    updateStickyState(true);
+    queueScrollToBottom();
+  }, [queueScrollToBottom, updateStickyState]);
+
+  const onScroll = useCallback(() => {
     if (isProgrammaticScrollRef.current) {
       isProgrammaticScrollRef.current = false;
       return;
@@ -68,12 +101,8 @@ export function useStickyBottomScroll({
       return;
     }
 
-    const distanceFromBottom =
-      element.scrollHeight - element.scrollTop - element.clientHeight;
-    isStickyRef.current =
-      distanceFromBottom <=
-      (stickyThresholdPx ?? DEFAULT_STICKY_THRESHOLD_PX);
-  };
+    updateStickyState(resolveIsAtBottom(element));
+  }, [resolveIsAtBottom, scrollRef, updateStickyState]);
 
   useEffect(() => {
     if (previousResetKeyRef.current === resetKey) {
@@ -81,9 +110,9 @@ export function useStickyBottomScroll({
     }
 
     previousResetKeyRef.current = resetKey;
-    isStickyRef.current = true;
+    updateStickyState(true);
     pendingInitialScrollRef.current = true;
-  }, [resetKey]);
+  }, [resetKey, updateStickyState]);
 
   useEffect(() => {
     return () => {
@@ -126,5 +155,5 @@ export function useStickyBottomScroll({
     queueScrollToBottom();
   }, [contentVersion, hasContent, queueScrollToBottom, scrollRef]);
 
-  return { onScroll };
+  return { isAtBottom, onScroll, scrollToBottom };
 }

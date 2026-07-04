@@ -14,10 +14,22 @@ type IconActionButtonProps = Omit<
   icon: React.ReactNode;
   label: string;
   tooltip?: string | false | null;
+  tooltipSide?: 'top' | 'right' | 'bottom' | 'left';
 };
 
 const IconActionButton = React.forwardRef<HTMLButtonElement, IconActionButtonProps>(
-  ({ className, disabled = false, icon, label, tooltip, ...buttonProps }, ref) => {
+  (
+    {
+      className,
+      disabled = false,
+      icon,
+      label,
+      tooltip,
+      tooltipSide = 'bottom',
+      ...buttonProps
+    },
+    ref
+  ) => {
     const button = (
       <button
         {...buttonProps}
@@ -42,7 +54,7 @@ const IconActionButton = React.forwardRef<HTMLButtonElement, IconActionButtonPro
           <TooltipTrigger asChild>
             {disabled ? <span className="inline-flex">{button}</span> : button}
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">{content}</TooltipContent>
+          <TooltipContent side={tooltipSide} className="text-xs">{content}</TooltipContent>
         </Tooltip>
       </TooltipProvider>
     );

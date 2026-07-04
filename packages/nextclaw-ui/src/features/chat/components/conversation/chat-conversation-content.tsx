@@ -1,7 +1,10 @@
 import { useRef, type ReactNode } from "react";
 import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
 import type { NcpMessage } from "@nextclaw/ncp";
+import { ArrowDown } from "lucide-react";
 import { ChatMessageListContainer } from "@/features/chat/features/message/components/chat-message-list.container";
+import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
+import { t } from "@/shared/lib/i18n";
 
 type ChatConversationContentProps = {
   isAwaitingAssistantOutput: boolean;
@@ -28,7 +31,11 @@ export function ChatConversationContent({
     messages.length === 0 &&
     !isSending &&
     !isAwaitingAssistantOutput;
-  const { onScroll } = useStickyBottomScroll({
+  const {
+    isAtBottom,
+    onScroll,
+    scrollToBottom,
+  } = useStickyBottomScroll({
     scrollRef: threadRef,
     resetKey: sessionKey,
     isLoading: isHistoryLoading,
@@ -36,24 +43,36 @@ export function ChatConversationContent({
     contentVersion: messages[messages.length - 1] ?? null,
   });
   const hasMessages = messages.length > 0;
+  const showScrollToBottom = hasMessages && !showWelcome && !isAtBottom;
 
   return (
-    <div
-      ref={threadRef}
-      onScroll={onScroll}
-      data-chat-scroll-container="true"
-      className="flex-1 min-h-0 overflow-y-auto custom-scrollbar"
-    >
-      {showWelcome ? (
-        welcomeSlot ?? null
-      ) : hideEmptyHint || !hasMessages ? null : (
-        <div className="mx-auto w-full max-w-[min(1120px,100%)] px-4 py-4 sm:px-6 sm:py-5">
-          <ChatMessageListContainer
-            messages={messages}
-            isSending={hasMessages && isSending && isAwaitingAssistantOutput}
-          />
-        </div>
-      )}
+    <div className="relative min-h-0 flex-1">
+      <div
+        ref={threadRef}
+        onScroll={onScroll}
+        data-chat-scroll-container="true"
+        className="h-full overflow-y-auto custom-scrollbar"
+      >
+        {showWelcome ? (
+          welcomeSlot ?? null
+        ) : hideEmptyHint || !hasMessages ? null : (
+          <div className="mx-auto w-full max-w-[min(1120px,100%)] px-4 py-4 sm:px-6 sm:py-5">
+            <ChatMessageListContainer
+              messages={messages}
+              isSending={hasMessages && isSending && isAwaitingAssistantOutput}
+            />
+          </div>
+        )}
+      </div>
+      {showScrollToBottom ? (
+        <IconActionButton
+          icon={<ArrowDown className="h-4 w-4" />}
+          label={t("chatScrollToBottom")}
+          onClick={scrollToBottom}
+          tooltipSide="top"
+          className="absolute bottom-4 left-1/2 z-10 h-9 w-9 -translate-x-1/2 rounded-full border border-border bg-background/90 text-foreground shadow-lg backdrop-blur hover:bg-accent hover:text-accent-foreground"
+        />
+      ) : null}
     </div>
   );
 }
