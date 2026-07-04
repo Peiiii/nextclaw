@@ -1,8 +1,10 @@
+import { useMemo } from "react";
 import type {
   ChatFileOperationBlockViewModel,
   ChatFileOperationLineViewModel,
 } from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
 import { cn } from "@agent-chat-ui/components/chat/internal/cn";
+import { chatCodeSyntaxHighlighter } from "@agent-chat-ui/components/chat/ui/chat-message-list/code-block/chat-code-syntax-highlighter";
 
 const FILE_TEXT_CLASS_NAME = "font-mono text-[11px] leading-5";
 const FILE_ROW_CLASS_NAME = `flex h-5 w-full ${FILE_TEXT_CLASS_NAME}`;
@@ -54,6 +56,26 @@ function readCodeColumnWidth(block: ChatFileOperationBlockViewModel): string {
   return `calc(${maxColumns}ch + 1.25rem)`;
 }
 
+function readPathExtension(path: string): string | null {
+  const fileName = path.split(/[\\/]/).filter(Boolean).pop() ?? path;
+  const cleanName = fileName.split(/[?#]/)[0] ?? fileName;
+  const extensionStart = cleanName.lastIndexOf(".");
+  if (extensionStart <= 0 || extensionStart === cleanName.length - 1) {
+    return null;
+  }
+  return cleanName.slice(extensionStart + 1).toLowerCase();
+}
+
+function readBlockLanguage(block: ChatFileOperationBlockViewModel): string {
+  const hint = block.languageHint?.trim();
+  return hint || readPathExtension(block.path) || "text";
+}
+
+function readLanguageClassName(language: string): string {
+  const normalized = language.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+  return normalized ? `language-${normalized}` : "language-text";
+}
+
 function getLineNumberTone(line: ChatFileOperationLineViewModel): string {
   if (line.kind === "remove") {
     return "border-r border-rose-200 bg-rose-50 text-rose-700";
@@ -99,28 +121,39 @@ function FileOperationLineNumberCell({
 }
 
 function FileOperationCodeCell({
+  language,
   line,
 }: {
+  language: string;
   line: ChatFileOperationLineViewModel;
 }) {
+  const highlightedCode = useMemo(
+    () => chatCodeSyntaxHighlighter.highlight(line.text || " ", language),
+    [language, line.text],
+  );
+
   return (
     <span
       data-file-code-row="true"
+      data-file-code-language={highlightedCode.language}
+      data-highlighted={highlightedCode.highlighted ? "true" : "false"}
       className={cn(
-        "block min-w-0 flex-1 whitespace-pre px-2.5",
+        "chat-file-code-syntax hljs block min-w-0 flex-1 whitespace-pre px-2.5",
+        readLanguageClassName(highlightedCode.language),
         getCodeRowTone(line),
       )}
-    >
-      {line.text || " "}
-    </span>
+      dangerouslySetInnerHTML={{ __html: highlightedCode.html }}
+    />
   );
 }
 
 function FileOperationLineRow({
+  language,
   line,
   showLineNumbers,
   lineNumberColumnWidth,
 }: {
+  language: string;
   line: ChatFileOperationLineViewModel;
   showLineNumbers: boolean;
   lineNumberColumnWidth: string;
@@ -134,7 +167,7 @@ function FileOperationLineRow({
           lineNumberColumnWidth={lineNumberColumnWidth}
         />
       ) : null}
-      <FileOperationCodeCell line={line} />
+      <FileOperationCodeCell language={language} line={line} />
     </div>
   );
 }
@@ -147,6 +180,7 @@ function FileOperationWorkspaceSurface({
   const showLineNumbers = readHasBlockLineNumbers(block);
   const lineNumberColumnWidth = readLineNumberColumnWidth(block);
   const codeColumnWidth = readCodeColumnWidth(block);
+  const language = readBlockLanguage(block);
 
   return (
     <div
@@ -193,7 +227,7 @@ function FileOperationWorkspaceSurface({
               data-file-code-canvas-row="true"
               className={FILE_ROW_CLASS_NAME}
             >
-              <FileOperationCodeCell line={line} />
+              <FileOperationCodeCell language={language} line={line} />
             </div>
           ))}
         </div>
@@ -220,6 +254,7 @@ export function FileOperationCodeSurface({
   const surfaceMinWidth = showLineNumbers
     ? `calc(${lineNumberColumnWidth} + ${codeColumnWidth})`
     : codeColumnWidth;
+  const language = readBlockLanguage(block);
 
   return (
     <div
@@ -235,6 +270,7 @@ export function FileOperationCodeSurface({
         {block.lines.map((line, index) => (
           <FileOperationLineRow
             key={readLineKey("row", line, index)}
+            language={language}
             line={line}
             showLineNumbers={showLineNumbers}
             lineNumberColumnWidth={lineNumberColumnWidth}

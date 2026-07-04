@@ -22,9 +22,10 @@ function inferPreviewKind(params: {
 function buildPreviewBlock(params: {
   path: string;
   text: string;
+  languageHint?: string | null;
   line?: number | null;
 }): ChatFileOperationBlockViewModel {
-  const { line, path, text } = params;
+  const { languageHint, line, path, text } = params;
   const startLine = line ?? 1;
   return {
     key: `preview:${path}`,
@@ -37,6 +38,7 @@ function buildPreviewBlock(params: {
       newStartLine: startLine,
     }),
     rawText: text,
+    languageHint: languageHint ?? null,
     oldStartLine: startLine,
     newStartLine: startLine,
   };
@@ -225,9 +227,17 @@ export function ChatSessionWorkspaceFilePreview({
     return buildPreviewBlock({
       path: previewQuery.data?.resolvedPath ?? file.path,
       text: previewText,
+      languageHint: previewQuery.data?.languageHint ?? null,
       line: file.line,
     });
-  }, [file.line, file.path, isPreviewMode, previewQuery.data?.resolvedPath, previewText]);
+  }, [
+    file.line,
+    file.path,
+    isPreviewMode,
+    previewQuery.data?.languageHint,
+    previewQuery.data?.resolvedPath,
+    previewText,
+  ]);
   const resolvedPath = previewQuery.data?.resolvedPath ?? file.path;
   const isTruncated = Boolean(previewQuery.data?.truncated);
   const breadcrumbBasePath = sessionProjectRoot ?? sessionWorkingDir;

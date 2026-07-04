@@ -511,67 +511,117 @@
   tab-size: 2;
 }
 
+.chat-file-code-syntax {
+  --md-code-text: #111827;
+  --md-code-muted: #64748b;
+  --md-code-keyword: #7c3aed;
+  --md-code-title: #2563eb;
+  --md-code-string: #047857;
+  --md-code-number: #b45309;
+  --md-code-comment: #64748b;
+  --md-code-attr: #0891b2;
+  --md-code-meta: #a21caf;
+  --md-code-deletion: #be123c;
+  --md-code-addition: #047857;
+  color: var(--md-code-text);
+  font-variant-ligatures: none;
+  tab-size: 2;
+}
+
 .chat-codeblock .hljs-keyword,
+.chat-file-code-syntax .hljs-keyword,
 .chat-codeblock .hljs-built_in,
+.chat-file-code-syntax .hljs-built_in,
 .chat-codeblock .hljs-type,
+.chat-file-code-syntax .hljs-type,
 .chat-codeblock .hljs-literal,
-.chat-codeblock .hljs-selector-tag {
+.chat-file-code-syntax .hljs-literal,
+.chat-codeblock .hljs-selector-tag,
+.chat-file-code-syntax .hljs-selector-tag {
   color: var(--md-code-keyword);
 }
 
 .chat-codeblock .hljs-title,
+.chat-file-code-syntax .hljs-title,
 .chat-codeblock .hljs-title.function_,
+.chat-file-code-syntax .hljs-title.function_,
 .chat-codeblock .hljs-title.class_,
+.chat-file-code-syntax .hljs-title.class_,
 .chat-codeblock .hljs-section,
-.chat-codeblock .hljs-selector-id {
+.chat-file-code-syntax .hljs-section,
+.chat-codeblock .hljs-selector-id,
+.chat-file-code-syntax .hljs-selector-id {
   color: var(--md-code-title);
 }
 
 .chat-codeblock .hljs-string,
+.chat-file-code-syntax .hljs-string,
 .chat-codeblock .hljs-regexp,
+.chat-file-code-syntax .hljs-regexp,
 .chat-codeblock .hljs-symbol,
-.chat-codeblock .hljs-bullet {
+.chat-file-code-syntax .hljs-symbol,
+.chat-codeblock .hljs-bullet,
+.chat-file-code-syntax .hljs-bullet {
   color: var(--md-code-string);
 }
 
 .chat-codeblock .hljs-number,
+.chat-file-code-syntax .hljs-number,
 .chat-codeblock .hljs-variable,
+.chat-file-code-syntax .hljs-variable,
 .chat-codeblock .hljs-template-variable,
-.chat-codeblock .hljs-params {
+.chat-file-code-syntax .hljs-template-variable,
+.chat-codeblock .hljs-params,
+.chat-file-code-syntax .hljs-params {
   color: var(--md-code-number);
 }
 
 .chat-codeblock .hljs-comment,
-.chat-codeblock .hljs-quote {
+.chat-file-code-syntax .hljs-comment,
+.chat-codeblock .hljs-quote,
+.chat-file-code-syntax .hljs-quote {
   color: var(--md-code-comment);
   font-style: italic;
 }
 
 .chat-codeblock .hljs-attr,
+.chat-file-code-syntax .hljs-attr,
 .chat-codeblock .hljs-attribute,
+.chat-file-code-syntax .hljs-attribute,
 .chat-codeblock .hljs-property,
+.chat-file-code-syntax .hljs-property,
 .chat-codeblock .hljs-name,
-.chat-codeblock .hljs-selector-class {
+.chat-file-code-syntax .hljs-name,
+.chat-codeblock .hljs-selector-class,
+.chat-file-code-syntax .hljs-selector-class {
   color: var(--md-code-attr);
 }
 
 .chat-codeblock .hljs-meta,
+.chat-file-code-syntax .hljs-meta,
 .chat-codeblock .hljs-doctag,
-.chat-codeblock .hljs-tag {
+.chat-file-code-syntax .hljs-doctag,
+.chat-codeblock .hljs-tag,
+.chat-file-code-syntax .hljs-tag {
   color: var(--md-code-meta);
 }
 
 .chat-codeblock .hljs-subst,
+.chat-file-code-syntax .hljs-subst,
 .chat-codeblock .hljs-punctuation,
-.chat-codeblock .hljs-operator {
+.chat-file-code-syntax .hljs-punctuation,
+.chat-codeblock .hljs-operator,
+.chat-file-code-syntax .hljs-operator {
   color: var(--md-code-muted);
 }
 
-.chat-codeblock .hljs-deletion {
+.chat-codeblock .hljs-deletion,
+.chat-file-code-syntax .hljs-deletion {
   color: var(--md-code-deletion);
 }
 
-.chat-codeblock .hljs-addition {
+.chat-codeblock .hljs-addition,
+.chat-file-code-syntax .hljs-addition {
   color: var(--md-code-addition);
 }
 

@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ChatFileOperationBlockViewModel } from "@nextclaw/agent-chat-ui";
 import { ChatSessionWorkspaceFilePreview } from "@/features/chat/features/workspace/components/chat-session-workspace-file-preview";
 import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.store";
 import { t } from "@/shared/lib/i18n";
@@ -15,10 +16,18 @@ vi.mock("@nextclaw/agent-chat-ui", () => ({
     <div data-testid="markdown-preview">{text}</div>
   ),
   FileOperationCodeSurface: ({
+    block,
     layout,
   }: {
+    block: ChatFileOperationBlockViewModel;
     layout?: "compact" | "workspace";
-  }) => <div data-testid="file-code-surface" data-layout={layout ?? "compact"} />,
+  }) => (
+    <div
+      data-testid="file-code-surface"
+      data-language-hint={block.languageHint ?? ""}
+      data-layout={layout ?? "compact"}
+    />
+  ),
 }));
 
 function buildWorkspaceFile(
@@ -63,6 +72,37 @@ describe("ChatSessionWorkspaceFilePreview", () => {
     expect(screen.getByTestId("file-code-surface").getAttribute("data-layout")).toBe(
       "workspace",
     );
+  });
+
+  it("passes server language hints to the workspace code surface", () => {
+    serverPathReadMock.mockReturnValue({
+      isLoading: false,
+      error: null,
+      data: {
+        kind: "text",
+        languageHint: "js",
+        resolvedPath: "/tmp/example.js",
+        text: "const answer = 42;\n",
+        truncated: false,
+      },
+    });
+
+    render(
+      <ChatSessionWorkspaceFilePreview
+        file={buildWorkspaceFile({
+          label: "example.js",
+          path: "/tmp/example.js",
+          viewMode: "preview",
+        })}
+        sessionProjectRoot="/tmp"
+        sessionWorkingDir="/tmp"
+        onFileOpen={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("file-code-surface").getAttribute("data-language-hint"),
+    ).toBe("js");
   });
 
   it("renders diff files inside a full-height workspace code surface", () => {

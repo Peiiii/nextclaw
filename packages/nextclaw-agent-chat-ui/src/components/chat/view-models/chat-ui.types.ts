@@ -233,6 +233,7 @@ export type ChatFileOperationBlockViewModel = {
   lines: ChatFileOperationLineViewModel[];
   fullLines?: ChatFileOperationLineViewModel[];
   rawText?: string;
+  languageHint?: string | null;
   beforeText?: string;
   afterText?: string;
   patchText?: string;

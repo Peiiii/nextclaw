@@ -1,5 +1,5 @@
 import { render } from "@testing-library/react";
-import { FileOperationCodeSurface } from "../tool-card/tool-card-file-operation-lines";
+import { FileOperationCodeSurface } from "@agent-chat-ui/components/chat/ui/chat-message-list/tool-card/tool-card-file-operation-lines";
 
 const block = {
   key: "preview:hello.txt",
@@ -20,6 +20,37 @@ const block = {
 };
 
 describe("FileOperationCodeSurface", () => {
+  it("syntax-highlights code rows with the block language hint", () => {
+    const view = render(
+      <FileOperationCodeSurface
+        block={{
+          ...block,
+          key: "preview:example.js",
+          path: "/tmp/example.js",
+          languageHint: "js",
+          lines: [
+            {
+              kind: "context" as const,
+              text: "const answer = 42;",
+              newLineNumber: 1,
+            },
+          ],
+        }}
+      />,
+    );
+    const codeCell = view.container.querySelector(
+      '[data-file-code-row="true"]',
+    ) as HTMLSpanElement | null;
+
+    expect(codeCell?.getAttribute("data-highlighted")).toBe("true");
+    expect(codeCell?.getAttribute("data-file-code-language")).toBe("js");
+    expect(codeCell?.className).toContain("chat-file-code-syntax");
+    expect(codeCell?.querySelector(".hljs-keyword")?.textContent).toBe(
+      "const",
+    );
+    expect(codeCell?.querySelector(".hljs-number")?.textContent).toBe("42");
+  });
+
   it("renders compact layout for tool cards", () => {
     const view = render(<FileOperationCodeSurface block={block} />);
     const surface = view.container.querySelector(
