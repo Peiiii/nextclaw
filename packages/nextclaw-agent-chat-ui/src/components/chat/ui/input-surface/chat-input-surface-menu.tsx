@@ -188,106 +188,104 @@ function ChatInputSurfaceMenu(props, ref) {
           className="grid min-h-0 flex-1 grid-cols-[minmax(220px,300px)_minmax(0,1fr)]"
           style={{ minHeight: INPUT_SURFACE_PANEL_MIN_HEIGHT }}
         >
-          <div
-            ref={listRef}
-            role="listbox"
-            aria-label={texts.sectionLabel}
-            className="custom-scrollbar min-h-0 overflow-y-auto overscroll-contain border-r border-gray-200 p-2.5"
-          >
-            {isLoading ? (
-              <div className="p-2 text-xs text-gray-500">{texts.loadingLabel}</div>
-            ) : (
-              <>
-                {filterViews.length > 0 ? (
-                  <div className="sticky top-0 z-10 -mx-1 mb-2 flex gap-1 overflow-x-auto bg-white/95 px-1 pb-2 backdrop-blur-md">
-                    {filterViews.map(({ count, key, label }) => {
-                      const isActive = key === resolvedActiveFilterKey;
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          aria-pressed={isActive}
-                          onPointerDown={(event) => event.preventDefault()}
-                          onClick={() => handleFilterSelect(key)}
-                          className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
-                            isActive
-                              ? 'border-primary/30 bg-primary/10 text-primary'
-                              : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                          }`}
-                        >
-                          <span>{label}</span>
-                          <span className={isActive ? 'text-primary/70' : 'text-gray-400'}>{count}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : null}
-                {!hasItemSections ? (
-                  <div className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                    {texts.sectionLabel}
-                  </div>
-                ) : null}
-                {visibleItems.length === 0 ? (
-                  <div className="px-2 text-xs text-gray-400">{texts.emptyLabel}</div>
-                ) : (
-                  <div className="space-y-1">
-                    {visibleItems.map((item, index) => {
-                      const {
-                        key,
-                        sectionKey,
-                        sectionLabel,
-                        title,
-                        subtitle,
-                      } = item;
-                      const isActive = index === activeIndexInRange;
-                      const previousItem = items[index - 1];
-                      const shouldShowSection =
-                        hasItemSections &&
-                        Boolean(sectionLabel?.trim()) &&
-                        previousItem?.sectionKey !== sectionKey;
-                      return (
-                        <div key={key} className="space-y-1">
-                          {shouldShowSection ? (
-                            <div className="px-2 pb-0.5 pt-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                              {sectionLabel}
-                            </div>
-                          ) : null}
-                          <button
-                            type="button"
-                            role="option"
-                            aria-selected={isActive}
-                            data-input-surface-index={index}
-                            onPointerMove={(event) => {
-                              if (event.pointerType !== 'touch') {
-                                setActiveIndexForCurrentItems(index);
-                              }
-                            }}
-                            onPointerDown={(event) => {
-                              if (event.button > 0) {
-                                return;
-                              }
-                              event.preventDefault();
-                              onSelectItem(item);
-                            }}
-                            onClick={(event) => {
-                              if (event.detail === 0) {
+          <div className="flex min-h-0 flex-col border-r border-gray-200">
+            {!isLoading && filterViews.length > 0 ? (
+              <div className="flex shrink-0 gap-1 overflow-x-auto px-2.5 pb-2 pt-2.5">
+                {filterViews.map(({ count, key, label }) => {
+                  const isActive = key === resolvedActiveFilterKey;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-pressed={isActive}
+                      onPointerDown={(event) => event.preventDefault()}
+                      onClick={() => handleFilterSelect(key)}
+                      className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                        isActive
+                          ? 'border-primary/30 bg-primary/10 text-primary'
+                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span>{label}</span>
+                      <span className={isActive ? 'text-primary/70' : 'text-gray-400'}>{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+            <div
+              ref={listRef}
+              role="listbox"
+              aria-label={texts.sectionLabel}
+              className={`custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain ${
+                !isLoading && filterViews.length > 0 ? 'px-2.5 pb-2.5' : 'p-2.5'
+              }`}
+            >
+              {isLoading ? (
+                <div className="p-2 text-xs text-gray-500">{texts.loadingLabel}</div>
+              ) : (
+                <>
+                  {!hasItemSections ? (
+                    <div className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                      {texts.sectionLabel}
+                    </div>
+                  ) : null}
+                  {visibleItems.length === 0 ? (
+                    <div className="px-2 text-xs text-gray-400">{texts.emptyLabel}</div>
+                  ) : (
+                    <div className="space-y-1">
+                      {visibleItems.map((item, index) => {
+                        const { key, sectionKey, sectionLabel, title, subtitle } = item;
+                        const isActive = index === activeIndexInRange;
+                        const previousItem = visibleItems[index - 1];
+                        const shouldShowSection =
+                          hasItemSections &&
+                          Boolean(sectionLabel?.trim()) &&
+                          previousItem?.sectionKey !== sectionKey;
+                        return (
+                          <div key={key} className="space-y-1">
+                            {shouldShowSection ? (
+                              <div className="px-2 pb-0.5 pt-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                                {sectionLabel}
+                              </div>
+                            ) : null}
+                            <button
+                              type="button"
+                              role="option"
+                              aria-selected={isActive}
+                              data-input-surface-index={index}
+                              onPointerMove={(event) => {
+                                if (event.pointerType !== 'touch') {
+                                  setActiveIndexForCurrentItems(index);
+                                }
+                              }}
+                              onPointerDown={(event) => {
+                                if (event.button > 0) {
+                                  return;
+                                }
+                                event.preventDefault();
                                 onSelectItem(item);
-                              }
-                            }}
-                            className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition ${
-                              isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'
-                            }`}
-                          >
-                            <span className="truncate text-xs font-semibold">{title}</span>
-                            <span className="truncate text-xs text-gray-500">{subtitle}</span>
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </>
-            )}
+                              }}
+                              onClick={(event) => {
+                                if (event.detail === 0) {
+                                  onSelectItem(item);
+                                }
+                              }}
+                              className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition ${
+                                isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'
+                              }`}
+                            >
+                              <span className="truncate text-xs font-semibold">{title}</span>
+                              <span className="truncate text-xs text-gray-500">{subtitle}</span>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
           <div
             className="custom-scrollbar min-h-0 min-w-0 overflow-y-auto overscroll-contain p-2.5"

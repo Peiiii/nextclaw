@@ -114,6 +114,54 @@ describe('ChatSlashMenu', () => {
     expect(screen.getByText('Open task board')).toBeTruthy();
   });
 
+  it('shows a filtered section heading only once for consecutive visible items', () => {
+    const commandItem = {
+      key: 'command:side-chat',
+      title: 'Side chat',
+      subtitle: 'Command',
+      description: 'Open a side chat',
+      detailLines: [],
+      sectionKey: 'commands',
+      sectionLabel: 'Commands',
+    };
+    const firstPanelAppItem = {
+      key: 'panel-app-action:task-board',
+      title: 'Task Board',
+      subtitle: 'Panel App',
+      description: 'Open task board',
+      detailLines: [],
+      sectionKey: 'panel-apps',
+      sectionLabel: 'Panel Apps',
+    };
+    const secondPanelAppItem = {
+      ...firstPanelAppItem,
+      key: 'panel-app-action:notes',
+      title: 'Notes',
+      description: 'Open notes',
+    };
+
+    render(
+      <ChatSlashMenu
+        {...createSlashMenuProps({
+          filterOptions: [
+            { key: 'all', label: 'All' },
+            { key: 'commands', label: 'Commands', sectionKeys: ['commands'] },
+            { key: 'panel-apps', label: 'Panel Apps', sectionKeys: ['panel-apps'] },
+          ],
+          items: [commandItem, firstPanelAppItem, secondPanelAppItem],
+        })}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Panel Apps 2' }));
+
+    const listbox = screen.getByRole('listbox', { name: 'Skills' });
+    const sectionHeadings = Array.from(listbox.querySelectorAll('div')).filter(
+      (element) => element.textContent === 'Panel Apps' && element.className.includes('uppercase'),
+    );
+    expect(sectionHeadings).toHaveLength(1);
+  });
+
   it('selects items before composer blur can close the menu', () => {
     const onSelectItem = vi.fn();
     const item = {
