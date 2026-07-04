@@ -1,5 +1,6 @@
 export type UiShowContentPurpose = "read" | "preview" | "edit" | "interact";
 export type UiShowContentPlacement = "inline" | "side_panel";
+export type UiShowContentFileViewer = "auto" | "source" | "rendered";
 
 export type UiShowContentTarget =
   | {
@@ -8,6 +9,7 @@ export type UiShowContentTarget =
         path: string;
         line: number | undefined;
         column: number | undefined;
+        viewer: UiShowContentFileViewer | undefined;
       };
     }
   | {

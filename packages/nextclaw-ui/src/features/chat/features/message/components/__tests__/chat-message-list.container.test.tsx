@@ -7,6 +7,7 @@ const captures = vi.hoisted(() => ({
   renders: [] as Array<{
     messages: unknown[];
     onToolAction?: (action: unknown) => void;
+    onFileOpen?: (action: unknown) => void;
     renderPanelAppCard?: (panelApp: unknown) => unknown;
     texts?: Record<string, unknown>;
   }>,
@@ -22,6 +23,7 @@ vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
     ChatMessageList: (props: {
       messages: unknown[];
       onToolAction?: (action: unknown) => void;
+      onFileOpen?: (action: unknown) => void;
       renderPanelAppCard?: (panelApp: unknown) => unknown;
       texts?: Record<string, unknown>;
     }) => {
@@ -169,6 +171,83 @@ it("adapts persisted inline token metadata into markdown token data", () => {
       },
     ],
   });
+});
+
+it("adds a completed assistant process summary from the surrounding conversation timestamps", () => {
+  const userMessage = {
+    id: "user-process-request",
+    sessionId: "session-1",
+    role: "user",
+    status: "final",
+    timestamp: "2026-03-31T10:00:00.000Z",
+    parts: [{ type: "text", text: "please inspect the repo" }],
+  } satisfies NcpMessage;
+  const assistantMessage = {
+    id: "assistant-process-result",
+    sessionId: "session-1",
+    role: "assistant",
+    status: "final",
+    timestamp: "2026-03-31T10:01:03.000Z",
+    parts: [
+      {
+        type: "reasoning",
+        text: "Inspecting current state.",
+      },
+      {
+        type: "tool-invocation",
+        toolCallId: "tool-1",
+        toolName: "exec_command",
+        state: "result",
+        args: "{\"cmd\":\"git status\"}",
+        result: "clean",
+      },
+      {
+        type: "text",
+        text: "Done.",
+      },
+    ],
+  } satisfies NcpMessage;
+
+  render(
+    <ChatMessageListContainer
+      messages={[userMessage, assistantMessage]}
+      isSending={false}
+    />,
+  );
+
+  const renderedMessages =
+    captures.renders[captures.renders.length - 1]?.messages ?? [];
+  expect(renderedMessages[1]).toMatchObject({
+    processSummary: {
+      label: "chatProcessSummaryProcessed 1m 3s",
+    },
+  });
+});
+
+it("wires markdown file link actions to the workspace file preview manager", () => {
+  const message = {
+    id: "assistant-file-link",
+    sessionId: "session-1",
+    role: "assistant",
+    status: "final",
+    timestamp: "2026-03-31T10:00:00.000Z",
+    parts: [
+      {
+        type: "text",
+        text: "[particle-cosmos.html](/Users/peiwang/Downloads/particle-cosmos.html)",
+      },
+    ],
+  } satisfies NcpMessage;
+  const action = {
+    path: "/Users/peiwang/Downloads/particle-cosmos.html",
+    label: "particle-cosmos.html",
+    viewMode: "preview",
+  };
+
+  render(<ChatMessageListContainer messages={[message]} isSending={false} />);
+  captures.renders[captures.renders.length - 1]?.onFileOpen?.(action);
+
+  expect(captures.openFilePreview).toHaveBeenCalledWith(action);
 });
 
 it("renders context inheritance as a divider without repeating inherited messages", () => {

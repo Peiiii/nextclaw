@@ -9,9 +9,12 @@ describe("ShowContentTool", () => {
     expect(tool.description).toContain('placement="inline"');
     expect(tool.description).toContain("interactive chat card");
     expect(tool.description).toContain('placement="side_panel"');
+    expect(tool.description).toContain('payload.viewer="rendered"');
+    expect(tool.description).toContain('payload.viewer="source"');
     expect(tool.description).toContain("Choose the placement yourself");
     expect(tool.description).toContain("without waiting for the user");
     expect(tool.parameters.properties.placement.description).toContain("chat card");
+    expect(tool.parameters.properties.payload.description).toContain("viewer");
   });
 
   it("returns a normalized showContent request for a file target", async () => {
@@ -42,6 +45,7 @@ describe("ShowContentTool", () => {
             path: "README.md",
             line: 3,
             column: undefined,
+            viewer: undefined,
           },
         },
         title: "README",
@@ -59,12 +63,58 @@ describe("ShowContentTool", () => {
             path: "README.md",
             line: 3,
             column: undefined,
+            viewer: undefined,
           },
         },
         title: "README",
         purpose: "read",
         placement: undefined,
       },
+    ]);
+  });
+
+  it("keeps a rendered file viewer request in the emitted event", async () => {
+    const eventBus = new EventBus();
+    const events: unknown[] = [];
+    eventBus.on(eventKeys.uiShowContent, (payload) => {
+      events.push(payload);
+    });
+
+    const result = await new ShowContentTool(eventBus).execute({
+      type: "file",
+      title: "HTML Preview",
+      placement: "side_panel",
+      payload: {
+        path: "preview.html",
+        viewer: "rendered",
+      },
+    });
+
+    expect(result).toMatchObject({
+      request: {
+        target: {
+          type: "file",
+          payload: {
+            path: "preview.html",
+            viewer: "rendered",
+          },
+        },
+        placement: "side_panel",
+      },
+    });
+    expect(events).toEqual([
+      expect.objectContaining({
+        target: {
+          type: "file",
+          payload: {
+            path: "preview.html",
+            line: undefined,
+            column: undefined,
+            viewer: "rendered",
+          },
+        },
+        placement: "side_panel",
+      }),
     ]);
   });
 
@@ -140,5 +190,18 @@ describe("ShowContentTool", () => {
         },
       }),
     ).rejects.toThrow('placement must be "inline" or "side_panel".');
+  });
+
+  it("rejects unsupported file viewer values", async () => {
+    const eventBus = new EventBus();
+    await expect(
+      new ShowContentTool(eventBus).execute({
+        type: "file",
+        payload: {
+          path: "preview.html",
+          viewer: "iframe",
+        },
+      }),
+    ).rejects.toThrow('payload.viewer must be "auto", "source", or "rendered".');
   });
 });

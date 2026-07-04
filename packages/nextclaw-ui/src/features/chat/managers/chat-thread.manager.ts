@@ -118,6 +118,7 @@ export class ChatThreadManager {
       path: normalizedPath,
       label: action.label?.trim() || null,
       viewMode: action.viewMode,
+      previewViewer: action.previewViewer ?? null,
       line: action.line ?? null,
       column: action.column ?? null,
       rawText: action.rawText ?? null,
@@ -384,6 +385,7 @@ export class ChatThreadManager {
         path: request.target.payload.path,
         label: request.title,
         viewMode: 'preview',
+        previewViewer: request.target.payload.viewer,
         line: request.target.payload.line,
         column: request.target.payload.column,
       });

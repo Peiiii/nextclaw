@@ -54,6 +54,7 @@ describe('chat thread workspace panel persistence', () => {
           path: 'README.md',
           label: 'README.md',
           viewMode: 'preview',
+          previewViewer: 'rendered',
           rawText: '# Hello',
           fullLines: [],
         },
@@ -83,6 +84,7 @@ describe('chat thread workspace panel persistence', () => {
     expect(persisted.state.snapshot.sessionKey).toBeUndefined();
     expect(persisted.state.snapshot.isSending).toBeUndefined();
     expect(persisted.state.snapshot.workspaceFileTabs[0].rawText).toBe('# Hello');
+    expect(persisted.state.snapshot.workspaceFileTabs[0].previewViewer).toBe('rendered');
     expect(persisted.state.snapshot.workspaceFileTabs[0].fullLines).toBeUndefined();
   });
 
@@ -138,6 +140,7 @@ describe('chat thread workspace panel persistence', () => {
                 path: 'README.md',
                 label: 'README.md',
                 viewMode: 'preview',
+                previewViewer: 'rendered',
                 rawText: '# Hello',
               },
               {
@@ -171,6 +174,7 @@ describe('chat thread workspace panel persistence', () => {
           path: 'README.md',
           label: 'README.md',
           viewMode: 'preview',
+          previewViewer: 'rendered',
           rawText: '# Hello',
         },
       ],

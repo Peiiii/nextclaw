@@ -44,6 +44,7 @@ describe("buildShowContentToolCard", () => {
               payload: {
                 path: "docs/example.md",
                 line: 2,
+                viewer: "rendered",
               },
             },
             title: "Example",
@@ -70,6 +71,7 @@ describe("buildShowContentToolCard", () => {
             payload: {
               path: "docs/example.md",
               line: 2,
+              viewer: "rendered",
             },
           },
           title: "Example",

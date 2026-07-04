@@ -68,6 +68,7 @@ export type {
   ChatMessageRole,
   ChatFileOperationLineViewModel,
   ChatFileOperationBlockViewModel,
+  ChatFilePreviewViewer,
   ChatFileOpenActionViewModel,
   ChatPanelAppCardViewModel,
   ChatUiShowContentPlacement,
@@ -78,6 +79,7 @@ export type {
   ChatInlineTokenViewModel,
   ChatToolPartViewModel,
   ChatMessagePartViewModel,
+  ChatMessageProcessSummaryViewModel,
   ChatMessageViewModel,
   ChatMessageTexts
 } from './view-models/chat-ui.types';

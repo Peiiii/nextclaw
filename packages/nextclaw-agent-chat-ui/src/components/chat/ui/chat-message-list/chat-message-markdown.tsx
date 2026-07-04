@@ -278,7 +278,7 @@ export function ChatMessageMarkdown({
         }
         return <span {...rest}>{children}</span>;
       },
-      a: ({ href, children, ...rest }) => {
+      a: ({ node: _node, href, children, ...rest }) => {
         const safeHref = resolveSafeHref(href);
         if (!safeHref) {
           return <span className="chat-link-invalid">{children}</span>;
@@ -316,12 +316,12 @@ export function ChatMessageMarkdown({
           </a>
         );
       },
-      table: ({ children, ...rest }) => (
+      table: ({ node: _node, children, ...rest }) => (
         <div className="chat-table-wrap">
           <table {...rest}>{children}</table>
         </div>
       ),
-      input: ({ type, checked, ...rest }) => {
+      input: ({ node: _node, type, checked, ...rest }) => {
         if (type !== "checkbox") {
           return <input {...rest} type={type} />;
         }
@@ -336,7 +336,7 @@ export function ChatMessageMarkdown({
           />
         );
       },
-      img: ({ src, alt, ...rest }) => {
+      img: ({ node: _node, src, alt, ...rest }) => {
         const safeSrc = resolveSafeHref(src);
         if (!safeSrc) {
           return null;
@@ -351,7 +351,7 @@ export function ChatMessageMarkdown({
           />
         );
       },
-      code: ({ className, children, ...rest }) => {
+      code: ({ node: _node, className, children, ...rest }) => {
         const plainText = String(children ?? "");
         const isInlineCode = !className && !plainText.includes("\n");
         if (isInlineCode) {

@@ -48,6 +48,14 @@ function readPlacement(value: unknown): ChatUiShowContentRequest["placement"] {
     : undefined;
 }
 
+function readFileViewer(value: unknown): NonNullable<
+  Extract<ChatUiShowContentRequest["target"], { type: "file" }>["payload"]["viewer"]
+> | undefined {
+  return value === "auto" || value === "source" || value === "rendered"
+    ? value
+    : undefined;
+}
+
 function readShowContentRequest(value: unknown): ChatUiShowContentRequest | null {
   if (!isRecord(value) || !isRecord(value.target)) {
     return null;
@@ -77,6 +85,7 @@ function readShowContentRequest(value: unknown): ChatUiShowContentRequest | null
           path,
           line: readOptionalPositiveInteger(payload.line),
           column: readOptionalPositiveInteger(payload.column),
+          viewer: readFileViewer(payload.viewer),
         },
       },
       title,

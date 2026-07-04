@@ -513,6 +513,7 @@ describe('ChatThreadManager showContent', () => {
           payload: {
             path: 'docs/example.md',
             line: 5,
+            viewer: 'rendered',
           },
         },
         title: 'Example',
@@ -528,6 +529,7 @@ describe('ChatThreadManager showContent', () => {
           path: 'docs/example.md',
           label: 'Example',
           line: 5,
+          previewViewer: 'rendered',
           viewMode: 'preview',
         }),
       ],

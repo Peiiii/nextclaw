@@ -105,6 +105,67 @@ describe("ChatSessionWorkspaceFilePreview", () => {
     ).toBe("js");
   });
 
+  it("renders HTML files as sandboxed srcdoc when rendered preview is requested", () => {
+    serverPathReadMock.mockReturnValue({
+      isLoading: false,
+      error: null,
+      data: {
+        kind: "text",
+        resolvedPath: "/tmp/example.html",
+        text: "<!doctype html><h1>Hello</h1>",
+        truncated: false,
+      },
+    });
+
+    render(
+      <ChatSessionWorkspaceFilePreview
+        file={buildWorkspaceFile({
+          label: "example.html",
+          path: "/tmp/example.html",
+          previewViewer: "rendered",
+          viewMode: "preview",
+        })}
+        sessionProjectRoot="/tmp"
+        sessionWorkingDir="/tmp"
+        onFileOpen={vi.fn()}
+      />,
+    );
+
+    const frame = screen.getByTestId("workspace-html-preview");
+    expect(frame.getAttribute("sandbox")).toBe("");
+    expect(frame.getAttribute("srcdoc")).toContain("<h1>Hello</h1>");
+    expect(screen.queryByTestId("file-code-surface")).toBeNull();
+  });
+
+  it("falls back to the source preview when rendered is requested for a non-HTML file", () => {
+    serverPathReadMock.mockReturnValue({
+      isLoading: false,
+      error: null,
+      data: {
+        kind: "text",
+        resolvedPath: "/tmp/example.txt",
+        text: "plain text",
+        truncated: false,
+      },
+    });
+
+    render(
+      <ChatSessionWorkspaceFilePreview
+        file={buildWorkspaceFile({
+          path: "/tmp/example.txt",
+          previewViewer: "rendered",
+          viewMode: "preview",
+        })}
+        sessionProjectRoot="/tmp"
+        sessionWorkingDir="/tmp"
+        onFileOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByTestId("workspace-html-preview")).toBeNull();
+    expect(screen.getByTestId("file-code-surface")).toBeTruthy();
+  });
+
   it("renders diff files inside a full-height workspace code surface", () => {
     serverPathReadMock.mockReturnValue({
       isLoading: false,

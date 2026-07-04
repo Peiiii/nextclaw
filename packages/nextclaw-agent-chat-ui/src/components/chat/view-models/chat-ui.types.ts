@@ -244,6 +244,7 @@ export type ChatFileOperationBlockViewModel = {
 
 export type ChatUiShowContentPurpose = "read" | "preview" | "edit" | "interact";
 export type ChatUiShowContentPlacement = "inline" | "side_panel";
+export type ChatFilePreviewViewer = "auto" | "source" | "rendered";
 
 export type ChatUiShowContentTarget =
   | {
@@ -252,6 +253,7 @@ export type ChatUiShowContentTarget =
         path: string;
         line?: number;
         column?: number;
+        viewer?: ChatFilePreviewViewer;
       };
     }
   | {
@@ -293,6 +295,7 @@ export type ChatFileOpenActionViewModel = {
   path: string;
   label?: string;
   viewMode: "preview" | "diff";
+  previewViewer?: ChatFilePreviewViewer;
   line?: number;
   column?: number;
   rawText?: string;
@@ -371,6 +374,10 @@ export type ChatMessagePartViewModel =
       text?: string;
     };
 
+export type ChatMessageProcessSummaryViewModel = {
+  label: string;
+};
+
 export type ChatMessageViewModel = {
   id: string;
   role: ChatMessageRole;
@@ -378,6 +385,7 @@ export type ChatMessageViewModel = {
   timestampLabel: string;
   parts: ChatMessagePartViewModel[];
   status?: string;
+  processSummary?: ChatMessageProcessSummaryViewModel;
 };
 
 export type ChatAttachmentCategory =

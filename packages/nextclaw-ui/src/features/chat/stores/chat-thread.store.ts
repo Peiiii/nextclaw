@@ -1,11 +1,15 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { NcpMessage } from '@nextclaw/ncp';
-import type { ChatFileOperationLineViewModel } from '@nextclaw/agent-chat-ui';
+import type { ChatFileOperationLineViewModel, ChatFilePreviewViewer } from '@nextclaw/agent-chat-ui';
 import type {
   SessionContextWindowView,
   SessionTypeIconView
 } from '@/shared/lib/api';
+import {
+  normalizePersistedWorkspaceFileTab,
+  toPersistedWorkspaceFileTab,
+} from '@/features/chat/features/workspace/utils/chat-workspace-file-tab-persistence.utils';
 
 export type ChatChildSessionTab = {
   sessionKey: string;
@@ -25,6 +29,7 @@ export type ChatWorkspaceFileTab = {
   path: string;
   label?: string | null;
   viewMode: 'preview' | 'diff';
+  previewViewer?: ChatFilePreviewViewer | null;
   line?: number | null;
   column?: number | null;
   rawText?: string | null;
@@ -146,12 +151,6 @@ function normalizeOptionalString(value: unknown): string | null {
     : null;
 }
 
-function normalizeOptionalNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value)
-    ? value
-    : null;
-}
-
 function normalizeHistoryIndex(value: unknown, maxIndex: number): number {
   return typeof value === 'number' && Number.isInteger(value)
     ? Math.min(Math.max(0, value), maxIndex)
@@ -208,63 +207,6 @@ function createWorkspaceNavigationEntryFromSnapshot({
     };
   }
   return null;
-}
-
-function normalizeOptionalText(value: unknown): string | null {
-  return typeof value === 'string' ? value : null;
-}
-
-function normalizePersistedWorkspaceFileTab(
-  value: unknown,
-): ChatWorkspaceFileTab | null {
-  if (
-    !isRecord(value)
-    || typeof value.key !== 'string'
-    || typeof value.path !== 'string'
-    || (value.viewMode !== 'preview' && value.viewMode !== 'diff')
-  ) {
-    return null;
-  }
-  const key = value.key.trim();
-  const path = value.path.trim();
-  if (!key || !path) {
-    return null;
-  }
-  return {
-    key,
-    parentSessionKey: normalizeOptionalString(value.parentSessionKey),
-    path,
-    label: normalizeOptionalString(value.label),
-    viewMode: value.viewMode,
-    line: normalizeOptionalNumber(value.line),
-    column: normalizeOptionalNumber(value.column),
-    rawText: normalizeOptionalText(value.rawText),
-    beforeText: normalizeOptionalText(value.beforeText),
-    afterText: normalizeOptionalText(value.afterText),
-    patchText: normalizeOptionalText(value.patchText),
-    oldStartLine: normalizeOptionalNumber(value.oldStartLine),
-    newStartLine: normalizeOptionalNumber(value.newStartLine),
-  };
-}
-
-function toPersistedWorkspaceFileTab(
-  tab: ChatWorkspaceFileTab,
-): ChatWorkspaceFileTab {
-  return {
-    key: tab.key,
-    parentSessionKey: tab.parentSessionKey,
-    path: tab.path,
-    label: tab.label,
-    viewMode: tab.viewMode,
-    line: tab.line,
-    column: tab.column,
-    rawText: tab.rawText,
-    beforeText: tab.beforeText,
-    afterText: tab.afterText,
-    patchText: tab.patchText,
-    oldStartLine: tab.oldStartLine,
-    newStartLine: tab.newStartLine,
-  };
 }
 
 function normalizePersistedWorkspaceSnapshot(

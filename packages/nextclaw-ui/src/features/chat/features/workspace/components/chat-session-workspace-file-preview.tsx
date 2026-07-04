@@ -1,5 +1,9 @@
 import { useMemo } from "react";
-import type { ChatFileOpenActionViewModel, ChatFileOperationBlockViewModel } from "@nextclaw/agent-chat-ui";
+import type {
+  ChatFileOpenActionViewModel,
+  ChatFileOperationBlockViewModel,
+  ChatFilePreviewViewer,
+} from "@nextclaw/agent-chat-ui";
 import { ChatMessageMarkdown, FileOperationCodeSurface } from "@nextclaw/agent-chat-ui";
 import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.store";
 import { ChatSessionWorkspaceFileBreadcrumbs } from "./chat-session-workspace-file-breadcrumbs";
@@ -17,6 +21,19 @@ function inferPreviewKind(params: {
     return params.serverKind;
   }
   return /\.mdx?$/i.test(params.path) ? "markdown" : "text";
+}
+
+function isHtmlFilePath(path: string): boolean {
+  return /\.html?$/i.test(path);
+}
+
+function resolveFilePreviewViewer(params: {
+  path: string;
+  viewer?: ChatFilePreviewViewer | null;
+}): "source" | "rendered" {
+  return params.viewer === "rendered" && isHtmlFilePath(params.path)
+    ? "rendered"
+    : "source";
 }
 
 function buildPreviewBlock(params: {
@@ -132,18 +149,37 @@ function WorkspaceCodeSurface({
   return <div className="h-full overflow-auto custom-scrollbar bg-white"><FileOperationCodeSurface block={block} layout="workspace" /></div>;
 }
 
+function WorkspaceHtmlRenderedPreview({
+  html,
+}: {
+  html: string;
+}) {
+  return (
+    <iframe
+      className="h-full w-full border-0 bg-white"
+      data-testid="workspace-html-preview"
+      referrerPolicy="no-referrer"
+      sandbox=""
+      srcDoc={html}
+      title={t("chatWorkspaceHtmlPreviewTitle")}
+    />
+  );
+}
+
 function WorkspacePreviewBody({
   onFileOpen,
   previewBlock,
   previewKind,
   previewQuery,
   previewText,
+  previewViewer,
 }: {
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
   previewBlock: ChatFileOperationBlockViewModel | null;
   previewKind: "text" | "markdown" | "binary";
   previewQuery: ReturnType<typeof useServerPathRead>;
   previewText: string | null;
+  previewViewer: "source" | "rendered";
 }) {
   if (previewQuery.isLoading && !previewBlock) {
     return <WorkspaceFilePreviewStatus text={t("chatWorkspaceLoadingFile")} />;
@@ -166,6 +202,10 @@ function WorkspacePreviewBody({
         }
       />
     );
+  }
+
+  if (previewViewer === "rendered" && previewText) {
+    return <WorkspaceHtmlRenderedPreview html={previewText} />;
   }
 
   if (previewKind === "markdown" && previewText) {
@@ -220,6 +260,11 @@ export function ChatSessionWorkspaceFilePreview({
     path: previewQuery.data?.resolvedPath ?? file.path,
     serverKind: previewQuery.data?.kind,
   });
+  const resolvedPath = previewQuery.data?.resolvedPath ?? file.path;
+  const previewViewer = resolveFilePreviewViewer({
+    path: resolvedPath,
+    viewer: file.previewViewer,
+  });
   const previewBlock = useMemo(() => {
     if (!isPreviewMode || !previewText) {
       return null;
@@ -238,7 +283,6 @@ export function ChatSessionWorkspaceFilePreview({
     previewQuery.data?.resolvedPath,
     previewText,
   ]);
-  const resolvedPath = previewQuery.data?.resolvedPath ?? file.path;
   const isTruncated = Boolean(previewQuery.data?.truncated);
   const breadcrumbBasePath = sessionProjectRoot ?? sessionWorkingDir;
   const breadcrumb = useMemo(
@@ -267,6 +311,7 @@ export function ChatSessionWorkspaceFilePreview({
             previewKind={previewKind}
             previewQuery={previewQuery}
             previewText={previewText}
+            previewViewer={previewViewer}
           />
         )}
       </div>

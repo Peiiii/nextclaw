@@ -118,6 +118,8 @@ describe("SkillsLoader builtin skills", () => {
     expect(skill).toContain("只有当交付形态已判断为 Panel Card");
     expect(skill).toContain("普通 Panel App、编辑器、管理页、大表格和多页工作流应使用 side panel");
     expect(skill).toContain('show_content(type="panel_app", placement="inline")');
+    expect(skill).toContain('show_content(type="file", payload.viewer="rendered", placement="side_panel")');
+    expect(skill).toContain('payload.viewer="source"');
   });
 
   it("loads the React/Vite Panel App creator builtin skill", () => {

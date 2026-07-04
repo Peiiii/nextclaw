@@ -7,6 +7,7 @@ import {
   eventKeys,
   type EventBus,
   type UiShowContentEventPayload,
+  type UiShowContentFileViewer,
   type UiShowContentPlacement,
   type UiShowContentPurpose,
   type UiShowContentTarget,
@@ -79,6 +80,17 @@ function readPlacement(value: unknown): UiShowContentPlacement | undefined {
   throw new Error('placement must be "inline" or "side_panel".');
 }
 
+function readFileViewer(value: unknown): UiShowContentFileViewer | undefined {
+  const normalized = readOptionalString(value);
+  if (!normalized) {
+    return undefined;
+  }
+  if (normalized === "auto" || normalized === "source" || normalized === "rendered") {
+    return normalized;
+  }
+  throw new Error('payload.viewer must be "auto", "source", or "rendered".');
+}
+
 function readPayload(params: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(params.payload)) {
     throw new Error("payload must be an object.");
@@ -116,6 +128,7 @@ function normalizeShowContentArgs(args: unknown): ShowContentRequest {
           path: readRequiredString(payload.path, "payload.path"),
           line: readOptionalPositiveInteger(payload.line, "payload.line"),
           column: readOptionalPositiveInteger(payload.column, "payload.column"),
+          viewer: readFileViewer(payload.viewer),
         },
       },
       title,
@@ -188,6 +201,7 @@ export class ShowContentTool implements NcpTool {
     "Show file, URL, or panel app content in the current chat UI.",
     'placement="inline" embeds a lightweight panel_app as an interactive chat card so the user can try it directly in the conversation.',
     'placement="side_panel" opens content in the right side panel for larger reading, editing, or sustained workflows.',
+    'For file targets, use payload.viewer="rendered" when the user should see a rendered local HTML/page preview, payload.viewer="source" when the user should inspect source text, and omit it or use "auto" for the default source-style preview.',
     'Choose the placement yourself: after creating a lightweight Panel App such as a weather card, calculator, timer, checklist, picker, form, preview, or small dashboard, call this tool with placement="inline" without waiting for the user to ask to see it.',
     "Omit placement only when preserving the existing default side panel behavior is intentional.",
   ].join(" ");
@@ -215,7 +229,7 @@ export class ShowContentTool implements NcpTool {
       },
       payload: {
         type: "object",
-        description: "Type-specific fields: file={path,line,column}; url={url}; panel_app={appId}.",
+        description: "Type-specific fields: file={path,line,column,viewer}; url={url}; panel_app={appId}. File viewer may be auto, source, or rendered.",
         additionalProperties: true,
       },
     },

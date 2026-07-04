@@ -167,6 +167,8 @@ describe("ContextProviderContribution native prompt contract", () => {
     expect(context).toContain("no reliance on document-level internal scrolling");
     expect(context).toContain("nextclawDisplayMode=card");
     expect(context).toContain('placement="inline"');
+    expect(context).toContain('payload.viewer="rendered"');
+    expect(context).toContain('payload.viewer="source"');
     expect(context).toContain("# Project Context");
     expect(context).toContain("# Agent Bootstrap Context");
     expect(context).toContain("Agent bootstrap files loaded:");

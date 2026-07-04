@@ -29,6 +29,33 @@ it("opens local file links through the file preview action", () => {
   });
 });
 
+it("opens absolute html file links through the existing file preview action", () => {
+  const onFileOpen = vi.fn();
+
+  render(
+    <ChatMessageMarkdown
+      text="[particle-cosmos.html](/Users/peiwang/Downloads/particle-cosmos.html)"
+      role="assistant"
+      texts={defaultTexts}
+      onFileOpen={onFileOpen}
+    />,
+  );
+
+  const link = screen.getByRole("link", { name: "particle-cosmos.html" });
+  expect(link.getAttribute("href")).toBe(
+    "/Users/peiwang/Downloads/particle-cosmos.html",
+  );
+  expect(link.getAttribute("node")).toBeNull();
+
+  fireEvent.click(link);
+
+  expect(onFileOpen).toHaveBeenCalledWith({
+    path: "/Users/peiwang/Downloads/particle-cosmos.html",
+    label: "particle-cosmos.html",
+    viewMode: "preview",
+  });
+});
+
 it("opens project-relative file links through the file preview action", () => {
   const onFileOpen = vi.fn();
 
