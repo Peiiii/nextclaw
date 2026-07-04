@@ -258,6 +258,23 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     ...inputSnapshot,
     sendError: lastSendError ?? inputSnapshot.sendError,
   }), [inputSnapshot, lastSendError]);
+  const sessionFailurePreview = inputQuery.selectedSession?.activityPreview;
+  const sessionFailureMessage =
+    sessionFailurePreview?.state === 'failed'
+      ? sessionFailurePreview.statusText?.trim() ||
+        sessionFailurePreview.replyText?.trim() ||
+        null
+      : null;
+  const sessionFailureSlot = sessionFailureMessage ? (
+    <div className="rounded-lg border border-red-200/80 bg-red-50/80 px-3 py-2.5 shadow-sm">
+      <div className="text-xs font-semibold text-red-800">
+        {t('chatSessionErrorTitle')}
+      </div>
+      <div className="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-red-700">
+        {sessionFailureMessage}
+      </div>
+    </div>
+  ) : null;
   useSessionConversationDraftIntent({
     consumeDraftIntent,
     applyPromptSuggestion: inputActions.applyPromptSuggestion,
@@ -291,6 +308,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
         isAwaitingAssistantOutput={controller.isSending && currentSessionRunning}
         isHistoryLoading={agent.isHydrating}
         isSending={controller.isSending}
+        bottomSlot={sessionFailureSlot}
         messages={agent.visibleMessages}
         sessionKey={sessionKey}
         showWelcome={showWelcome}

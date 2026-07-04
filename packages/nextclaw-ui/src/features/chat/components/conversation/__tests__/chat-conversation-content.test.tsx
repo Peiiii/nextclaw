@@ -37,9 +37,10 @@ const messages = [
   },
 ] as unknown as readonly NcpMessage[];
 
-function renderContent() {
+function renderContent(options: { bottomSlot?: React.ReactNode } = {}) {
   return render(
     <ChatConversationContent
+      bottomSlot={options.bottomSlot}
       isAwaitingAssistantOutput={false}
       isHistoryLoading={false}
       isSending={false}
@@ -70,4 +71,16 @@ it("scrolls to the latest message when the user clicks the floating action", asy
   await user.click(screen.getByRole("button", { name: "chatScrollToBottom" }));
 
   expect(captures.scrollToBottom).toHaveBeenCalledOnce();
+});
+
+it("renders bottom slot after the message list", () => {
+  renderContent({
+    bottomSlot: <div data-testid="conversation-bottom-slot">Run failed</div>,
+  });
+
+  const messageList = screen.getByTestId("chat-message-list");
+  const bottomSlot = screen.getByTestId("conversation-bottom-slot");
+  expect(
+    messageList.compareDocumentPosition(bottomSlot) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
 });

@@ -48,7 +48,14 @@ const mocks = vi.hoisted(() => {
     isProviderStateResolved: true,
     isSkillsLoading: false,
     modelOptions: [],
-    selectedSession: null,
+    selectedSession: null as null | {
+      activityPreview?: {
+        state: 'running' | 'completed' | 'failed' | 'idle';
+        statusText?: string;
+        replyText?: string;
+      };
+      status?: string;
+    },
     selectedSessionKey: null,
     sessionTypeState: {
       sessionTypeOptions: [],
@@ -125,16 +132,19 @@ vi.mock('@/features/chat/components/providers/chat-presenter.provider', () => ({
 
 vi.mock('@/features/chat/components/conversation/chat-conversation-content', () => ({
   ChatConversationContent: ({
+    bottomSlot,
     messages,
     showWelcome,
     welcomeSlot,
   }: {
+    bottomSlot?: ReactNode;
     messages: readonly unknown[];
     showWelcome: boolean;
     welcomeSlot?: ReactNode;
   }) => (
     <div data-testid="conversation-content" data-show-welcome={String(showWelcome)}>
       {showWelcome ? welcomeSlot : <div data-testid="message-count">{messages.length}</div>}
+      {bottomSlot ? <div data-testid="conversation-bottom-slot">{bottomSlot}</div> : null}
     </div>
   ),
 }));
@@ -205,6 +215,7 @@ describe('SessionConversationArea input boundary', () => {
     mocks.agent.isRunning = true;
     mocks.agent.isSending = true;
     mocks.agent.snapshot.contextWindow = null;
+    mocks.inputQuery.selectedSession = null;
   });
 
   it('passes running state without treating an active run as a send request in flight', () => {
@@ -243,5 +254,21 @@ describe('SessionConversationArea input boundary', () => {
     expect(screen.getByTestId('conversation-content').dataset.showWelcome).toBe('true');
     expect(screen.getByTestId('welcome')).toBeTruthy();
     expect(screen.getByTestId('conversation-input')).toBeTruthy();
+  });
+
+  it('surfaces selected-session failure previews at the conversation bottom', () => {
+    mocks.inputQuery.selectedSession = {
+      activityPreview: {
+        state: 'failed',
+        statusText: '运行出错：Invalid API Key',
+      },
+      status: 'idle',
+    };
+
+    renderArea('session-1');
+
+    expect(screen.getByTestId('conversation-bottom-slot')).toBeTruthy();
+    expect(screen.getByText(/出错了|Something went wrong/)).toBeTruthy();
+    expect(screen.getByText('运行出错：Invalid API Key')).toBeTruthy();
   });
 });

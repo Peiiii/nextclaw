@@ -144,6 +144,7 @@
   "chatSessionProjectUpdateHint": "The browser lists directories from the server machine. Changing the project directory only affects future messages and tool runs. History stays unchanged.",
   "chatSessionProjectUpdated": "Project directory updated",
   "chatSessionProjectCleared": "Project directory cleared",
+  "chatSessionErrorTitle": "Something went wrong",
   "chatSendFailed": "Failed to send message",
   "chatRoleUser": "You",
   "chatRoleAssistant": "Assistant",

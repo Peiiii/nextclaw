@@ -144,6 +144,7 @@
   "chatSessionProjectUpdateHint": "这里浏览和选择的是服务端机器上的目录。修改项目目录只影响后续消息和后续工具执行，不会改写历史会话。",
   "chatSessionProjectUpdated": "项目目录已更新",
   "chatSessionProjectCleared": "项目目录已清除",
+  "chatSessionErrorTitle": "出错了",
   "chatSendFailed": "发送消息失败",
   "chatRoleUser": "你",
   "chatRoleAssistant": "助手",

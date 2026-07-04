@@ -7,6 +7,7 @@ import { IconActionButton } from "@/shared/components/ui/actions/icon-action-but
 import { t } from "@/shared/lib/i18n";
 
 type ChatConversationContentProps = {
+  bottomSlot?: ReactNode;
   isAwaitingAssistantOutput: boolean;
   isHistoryLoading: boolean;
   isSending: boolean;
@@ -17,6 +18,7 @@ type ChatConversationContentProps = {
 };
 
 export function ChatConversationContent({
+  bottomSlot,
   isAwaitingAssistantOutput,
   isHistoryLoading,
   isSending,
@@ -55,13 +57,22 @@ export function ChatConversationContent({
       >
         {showWelcome ? (
           welcomeSlot ?? null
-        ) : hideEmptyHint || !hasMessages ? null : (
-          <div className="mx-auto w-full max-w-[min(1120px,100%)] px-4 py-4 sm:px-6 sm:py-5">
-            <ChatMessageListContainer
-              messages={messages}
-              isSending={hasMessages && isSending && isAwaitingAssistantOutput}
-            />
-          </div>
+        ) : (
+          <>
+            {hideEmptyHint || !hasMessages ? null : (
+              <div className="mx-auto w-full max-w-[min(1120px,100%)] px-4 py-4 sm:px-6 sm:py-5">
+                <ChatMessageListContainer
+                  messages={messages}
+                  isSending={hasMessages && isSending && isAwaitingAssistantOutput}
+                />
+              </div>
+            )}
+            {bottomSlot ? (
+              <div className="mx-auto w-full max-w-[min(1120px,100%)] px-4 pb-4 sm:px-6 sm:pb-5">
+                {bottomSlot}
+              </div>
+            ) : null}
+          </>
         )}
       </div>
       {showScrollToBottom ? (
