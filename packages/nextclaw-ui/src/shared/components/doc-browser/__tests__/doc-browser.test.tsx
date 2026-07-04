@@ -473,6 +473,7 @@ describe("DocBrowser content tabs", () => {
 
     expect(addressInput.value).toBe("http://127.0.0.1:5173/dashboard");
     expect(iframe.getAttribute("src")).toBe(contentTab.currentUrl);
+    expect(iframe.getAttribute("sandbox")).toBeNull();
     expect(screen.getByRole("button", { name: "Refresh" })).toBeTruthy();
     expect(externalLink.getAttribute("href")).toBe(contentTab.currentUrl);
 

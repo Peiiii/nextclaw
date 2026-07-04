@@ -8,6 +8,7 @@ import { ChatMessageMarkdown, FileOperationCodeSurface } from "@nextclaw/agent-c
 import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.store";
 import { ChatSessionWorkspaceFileBreadcrumbs } from "./chat-session-workspace-file-breadcrumbs";
 import { useServerPathRead } from "@/shared/hooks/use-server-path-read";
+import { buildServerPathContentUrl } from "@/shared/lib/api";
 import { buildLineDiff, buildPreviewLines } from "@/features/chat/features/message/utils/file-operation/line-builder.utils";
 import { t } from "@/shared/lib/i18n";
 import { buildWorkspaceFileBreadcrumb } from "@/shared/lib/session-project";
@@ -150,17 +151,16 @@ function WorkspaceCodeSurface({
 }
 
 function WorkspaceHtmlRenderedPreview({
-  html,
+  src,
 }: {
-  html: string;
+  src: string;
 }) {
   return (
     <iframe
+      allowFullScreen
       className="h-full w-full border-0 bg-white"
       data-testid="workspace-html-preview"
-      referrerPolicy="no-referrer"
-      sandbox=""
-      srcDoc={html}
+      src={src}
       title={t("chatWorkspaceHtmlPreviewTitle")}
     />
   );
@@ -172,6 +172,7 @@ function WorkspacePreviewBody({
   previewKind,
   previewQuery,
   previewText,
+  previewUrl,
   previewViewer,
 }: {
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
@@ -179,6 +180,7 @@ function WorkspacePreviewBody({
   previewKind: "text" | "markdown" | "binary";
   previewQuery: ReturnType<typeof useServerPathRead>;
   previewText: string | null;
+  previewUrl: string | null;
   previewViewer: "source" | "rendered";
 }) {
   if (previewQuery.isLoading && !previewBlock) {
@@ -204,8 +206,8 @@ function WorkspacePreviewBody({
     );
   }
 
-  if (previewViewer === "rendered" && previewText) {
-    return <WorkspaceHtmlRenderedPreview html={previewText} />;
+  if (previewViewer === "rendered" && previewUrl) {
+    return <WorkspaceHtmlRenderedPreview src={previewUrl} />;
   }
 
   if (previewKind === "markdown" && previewText) {
@@ -265,6 +267,10 @@ export function ChatSessionWorkspaceFilePreview({
     path: resolvedPath,
     viewer: file.previewViewer,
   });
+  const previewUrl =
+    previewViewer === "rendered" && previewQuery.data?.resolvedPath
+      ? buildServerPathContentUrl(previewQuery.data.resolvedPath)
+      : null;
   const previewBlock = useMemo(() => {
     if (!isPreviewMode || !previewText) {
       return null;
@@ -311,6 +317,7 @@ export function ChatSessionWorkspaceFilePreview({
             previewKind={previewKind}
             previewQuery={previewQuery}
             previewText={previewText}
+            previewUrl={previewUrl}
             previewViewer={previewViewer}
           />
         )}

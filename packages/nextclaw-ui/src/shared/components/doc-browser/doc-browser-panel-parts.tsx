@@ -26,7 +26,7 @@ type DocBrowserFrameContentProps = {
   customContent: ReactNode;
   iframeRef: Ref<HTMLIFrameElement>;
   iframeInstanceId: string;
-  iframeSandbox: string;
+  iframeSandbox?: string;
   isDragging: boolean;
   isResizing: boolean;
 };
@@ -88,6 +88,7 @@ export function DocBrowserFrameContent({
           title={currentTab?.title || 'NextClaw Docs'}
           sandbox={iframeSandbox}
           allow="clipboard-read; clipboard-write"
+          allowFullScreen
         />
       )}
       {(isResizing || isDragging) && (

@@ -17,7 +17,7 @@ export type DocBrowserIframeMessageParams = {
 };
 
 export type DocBrowserCustomTabRenderer = {
-  getIframeSandbox?: (tab: DocBrowserTab) => string;
+  getIframeSandbox?: (tab: DocBrowserTab) => string | undefined;
   getTitle?: (tab: DocBrowserTab) => string;
   onIframeMessage?: (params: DocBrowserIframeMessageParams) => void;
   renderContent?: (params: DocBrowserCustomTabRenderParams) => ReactNode;

@@ -10,6 +10,8 @@
 
 后续扩展：`show_url` 不再只是“把 URL 塞进 iframe”的弱展示入口，而是明确打开右侧 DocBrowser 的 browser/content tab。普通 HTTP/HTTPS URL 会带地址栏、刷新、后退/前进、外部打开等轻量浏览器控制；Vite、Next.js、Storybook 等本地 dev server 应使用 `show_url(url, placement="side_panel")` 展示运行中的页面，静态 HTML 文件才使用 `show_file(path, viewer="rendered")`。
 
+HTML rendered preview follow-up：`show_file(..., viewer="rendered")` 不再把 HTML 文本塞进 `srcDoc` 且附加 `sandbox=""`。根因是该 sandbox 明确禁止脚本执行，且 `srcDoc` 会让相对 CSS/JS/图片资源偏离文件所在目录。新的实现由 `server-path` owner 暴露 `/api/server-paths/content/...` 内容路由，iframe 直接加载真实 URL，并且普通 HTML preview / `show_url` content tab 都不再附加默认 sandbox；Panel App 仍保留自身专用 sandbox contract。
+
 ## 测试/验证/验收方式
 
 - `packages/nextclaw-kernel`: `./node_modules/.bin/vitest run src/tools/show-content.tools.test.ts src/contributions/context-provider/providers/context-provider-contract.provider.test.ts`
@@ -19,6 +21,10 @@
 - `packages/nextclaw-kernel`: `./node_modules/.bin/tsc -p tsconfig.json`
 - `packages/nextclaw-core`: `./node_modules/.bin/tsc -p tsconfig.json`
 - `packages/nextclaw-ui`: `./node_modules/.bin/tsc --noEmit`
+- `packages/nextclaw-server`: `./node_modules/.bin/vitest run src/features/server-path/controllers/server-path.controller.test.ts`
+- `packages/nextclaw-ui`: `NODE_OPTIONS=--no-experimental-webstorage ./node_modules/.bin/vitest run src/features/chat/features/workspace/components/__tests__/chat-session-workspace-file-preview.test.tsx src/shared/components/doc-browser/__tests__/doc-browser.test.tsx`
+- `packages/nextclaw-server`: `./node_modules/.bin/tsc -p tsconfig.json`
+- Browser smoke：临时 Hono server 通过 `/api/server-paths/content/__abs__/.../index.html` 服务 HTML，Chromium 在无 sandbox iframe 中加载页面，`./app.js` 相对资源成功执行并把页面文本更新为 `script executed`。
 - touched-file ESLint: `./node_modules/.bin/eslint <本轮触达 TS 文件>`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths <本轮触达文件>`
 - `node scripts/governance/checks/lint-new-code-governance.mjs -- <本轮触达文件>`
@@ -32,6 +38,7 @@
 
 本轮未执行发布、部署或 NPM publish。已添加独立 changeset，后续统一 NPM 发版需要纳入：
 
+- `@nextclaw/server`
 - `@nextclaw/kernel`
 - `@nextclaw/core`
 - `@nextclaw/ui`
@@ -44,6 +51,7 @@
 4. provider 暴露工具列表中不再出现 `show_content`。
 5. 历史消息中已有 `show_content` tool result 仍能解析成 chat tool card。
 6. 本地开发时，agent 启动 dev server 后调用 `show_url` 打开 `http://localhost:<port>` 或 `http://127.0.0.1:<port>`，右侧显示 browser/content tab，可使用地址栏、刷新、后退/前进和系统浏览器打开。
+7. 静态 HTML 文件使用 `show_file(path, viewer="rendered")` 打开时，右侧 preview iframe 加载 server-path content URL；HTML 内联脚本与相对 `./app.js` / `./style.css` / 图片资源应按文件所在目录解析并执行/加载。
 
 ## 可维护性总结汇总
 
@@ -51,6 +59,7 @@
 - kernel provider 从单个宽工具改为 spec 驱动的三个窄工具，避免三套重复 class，同时保留每个工具独立 schema。
 - browser/content tab 复用既有 `DocBrowserManager`、`DocBrowser` iframe 和全局 active-history owner，没有在 chat workspace file preview 内新增平行浏览器状态。
 - browser/content follow-up 维护性守卫通过：总增减 `+320 / -187 / net +133`，非测试 `+273 / -187 / net +86`。这是新增用户能力导致的必要增长；保留 warning 为 `doc-browser.tsx` 已接近 500 行预算，下一步继续扩展浏览器能力时应优先拆出 address/iframe chrome。
+- unrestricted HTML preview follow-up 维护性守卫通过：总增减 `+311 / -15 / net +296`，非测试 `+263 / -12 / net +251`。这是新增用户可运行能力导致的必要增长，主要来自 server-path content route、MIME 推断和测试；保留 warning 为 `packages/nextclaw-server/src/app` 已有目录预算例外，以及 `doc-browser.tsx` 接近 500 行预算。
 - `post-edit-maintainability-guard --non-feature` 通过：非测试代码净增为 `-1`；保留 warning 是既有 `context-provider/providers` 目录预算例外，本轮未增加该目录文件数。
 - `post-edit-maintainability-review` 判断：这是合同修复和可预测行为改造，不是新功能堆叠；核心取舍是牺牲一个万能工具的表面简洁，换取模型执行的结构确定性。
 

@@ -30,6 +30,15 @@ function createTestApp() {
   });
 }
 
+function buildContentUrl(path: string): string {
+  const encodedPath = path
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return `http://localhost/api/server-paths/content/__abs__/${encodedPath}`;
+}
+
 afterEach(() => {
   while (tempDirs.length > 0) {
     const dir = tempDirs.pop();
@@ -164,5 +173,37 @@ describe("ServerPathRoutesController", () => {
       code: "SERVER_PATH_BASE_REQUIRED",
       message: "relative server path requires a base path",
     });
+  });
+
+  it("serves a local HTML file as browser content without wrapping it as JSON", async () => {
+    const app = createTestApp();
+    const root = realpathSync(createTempDir("nextclaw-ui-server-path-content-"));
+    const htmlPath = join(root, "index.html");
+    writeFileSync(htmlPath, "<!doctype html><script>window.loaded = true;</script>");
+
+    const response = await app.request(buildContentUrl(htmlPath));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
+    expect(response.headers.get("content-disposition")).toContain(
+      "inline; filename*=UTF-8''index.html",
+    );
+    expect(await response.text()).toContain("window.loaded = true");
+  });
+
+  it("serves relative JavaScript assets through the same content route", async () => {
+    const app = createTestApp();
+    const root = realpathSync(createTempDir("nextclaw-ui-server-path-content-assets-"));
+    const scriptPath = join(root, "scripts", "app.js");
+    mkdirSync(join(root, "scripts"), { recursive: true });
+    writeFileSync(scriptPath, "window.answer = 42;");
+
+    const response = await app.request(buildContentUrl(scriptPath));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe(
+      "application/javascript; charset=utf-8",
+    );
+    expect(await response.text()).toBe("window.answer = 42;");
   });
 });

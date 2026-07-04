@@ -105,7 +105,7 @@ describe("ChatSessionWorkspaceFilePreview", () => {
     ).toBe("js");
   });
 
-  it("renders HTML files as sandboxed srcdoc when rendered preview is requested", () => {
+  it("renders HTML files through an unrestricted server content iframe when rendered preview is requested", () => {
     serverPathReadMock.mockReturnValue({
       isLoading: false,
       error: null,
@@ -132,8 +132,11 @@ describe("ChatSessionWorkspaceFilePreview", () => {
     );
 
     const frame = screen.getByTestId("workspace-html-preview");
-    expect(frame.getAttribute("sandbox")).toBe("");
-    expect(frame.getAttribute("srcdoc")).toContain("<h1>Hello</h1>");
+    expect(frame.getAttribute("sandbox")).toBeNull();
+    expect(frame.getAttribute("srcdoc")).toBeNull();
+    expect(frame.getAttribute("src")).toContain(
+      "/api/server-paths/content/__abs__/tmp/example.html",
+    );
     expect(screen.queryByTestId("file-code-surface")).toBeNull();
   });
 

@@ -40,7 +40,7 @@ type FloatingPanelInteraction = {
 const FLOATING_PANEL_MARGIN = 40;
 const FLOATING_PANEL_MIN_WIDTH = 360;
 const FLOATING_PANEL_MIN_HEIGHT = 400;
-const DEFAULT_IFRAME_SANDBOX = 'allow-same-origin allow-scripts allow-popups allow-forms';
+const DEFAULT_DOCS_IFRAME_SANDBOX = 'allow-same-origin allow-scripts allow-popups allow-forms';
 
 function resolveContentUrlInput(input: string, currentUrl: string): string {
   if (input.startsWith('/')) {
@@ -62,8 +62,15 @@ function resolveContentUrlInput(input: string, currentUrl: string): string {
 function resolveIframeSandbox(
   customRenderer: DocBrowserCustomTabRenderers[string] | undefined,
   currentTab: DocBrowserTab | undefined,
-): string {
-  return currentTab ? customRenderer?.getIframeSandbox?.(currentTab) ?? DEFAULT_IFRAME_SANDBOX : DEFAULT_IFRAME_SANDBOX;
+): string | undefined {
+  if (!currentTab) {
+    return DEFAULT_DOCS_IFRAME_SANDBOX;
+  }
+  const customSandbox = customRenderer?.getIframeSandbox?.(currentTab);
+  if (customSandbox !== undefined) {
+    return customSandbox;
+  }
+  return currentTab.kind === 'content' ? undefined : DEFAULT_DOCS_IFRAME_SANDBOX;
 }
 
 function useDocBrowserDockAction(
