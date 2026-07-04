@@ -275,7 +275,7 @@ export const ContextConfigSchema = z.object({
 });
 
 export const AgentsLearningLoopSchema = z.object({
-  enabled: z.boolean().default(true),
+  enabled: z.boolean().default(false),
   toolCallThreshold: z.number().int().min(1).default(15)
 });
 

@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { ConfigSchema } from "./config-schema.config.js";
 
 describe("learning loop config schema", () => {
-  it("provides enabled learning loop defaults", () => {
+  it("provides disabled learning loop defaults", () => {
     const config = ConfigSchema.parse({});
 
     expect(config.agents.learningLoop).toEqual({
-      enabled: true,
+      enabled: false,
       toolCallThreshold: 15,
     });
   });
