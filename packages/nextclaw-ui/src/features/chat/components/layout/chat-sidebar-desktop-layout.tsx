@@ -29,6 +29,7 @@ import {
   SIDEBAR_RAIL_PADDING_X_CLASS,
   SIDEBAR_RAIL_STACK_CLASS,
   SIDEBAR_RAIL_SURFACE_CLASS,
+  SIDEBAR_SCROLL_EDGE_FADE_CLASS,
 } from "@/app/components/layout/sidebar-rail.styles";
 
 const navItems = [
@@ -67,9 +68,7 @@ export function ChatSidebarDesktopHeader({
   isCollapsed: boolean;
 }) {
   const isWindowsHost = isWindowsDesktopHost();
-  const shouldReserveMacWindowControls =
-    typeof window !== "undefined" &&
-    window.nextclawDesktop?.platform === "darwin";
+  const shouldReserveMacWindowControls = typeof window !== "undefined" && window.nextclawDesktop?.platform === "darwin";
 
   return (
     <div
@@ -170,7 +169,12 @@ export function ChatSidebarSessionArea({
         />
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 py-2">
+      <div
+        className={cn(
+          "custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 pb-7 pt-2",
+          SIDEBAR_SCROLL_EDGE_FADE_CLASS,
+        )}
+      >
         <ChatSidebarSessionList
           isLoading={isLoading}
           isProjectFirstView={isProjectFirstView}
@@ -221,7 +225,7 @@ export function ChatSidebarDesktopFooter({
   return (
     <div
       className={cn(
-        "border-t border-border/70 py-3",
+        "py-3",
         isCollapsed
           ? cn("flex justify-center", SIDEBAR_RAIL_PADDING_X_CLASS)
           : "px-3",

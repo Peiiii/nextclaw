@@ -81,6 +81,7 @@ describe("Sidebar", () => {
     expect(nav?.className).toContain("flex-1");
     expect(nav?.className).toContain("min-h-0");
     expect(nav?.className).toContain("overflow-y-auto");
+    expect(nav?.className).toContain("[mask-image:linear-gradient");
     expect(
       screen.getByRole("link", { current: "page" }).className,
     ).not.toContain("font-semibold");
@@ -150,6 +151,7 @@ describe("Sidebar", () => {
     expect(accountEntry.className).toContain("py-2");
     expect(accountEntry.className).toContain("text-muted-foreground");
     expect(accountEntry.className).toContain("hover:bg-gray-200/60");
+    expect(accountEntry.parentElement?.className).not.toContain("border-t");
     expect(accountStatus.className).toContain("text-[11px]");
   });
 

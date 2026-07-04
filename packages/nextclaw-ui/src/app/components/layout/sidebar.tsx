@@ -41,6 +41,7 @@ import {
   SIDEBAR_RAIL_STACK_CLASS,
   SIDEBAR_RAIL_SURFACE_CLASS,
   SIDEBAR_RAIL_WIDTH_CLASS,
+  SIDEBAR_SCROLL_EDGE_FADE_CLASS,
 } from "@/app/components/layout/sidebar-rail.styles";
 
 type SidebarMode = "main" | "settings";
@@ -208,6 +209,7 @@ function SidebarNavigation({
       className={cn(
         "custom-scrollbar min-h-0 flex-1 overflow-y-auto",
         isCollapsed ? "pr-0" : "pr-1",
+        SIDEBAR_SCROLL_EDGE_FADE_CLASS,
       )}
     >
       <ul
@@ -219,22 +221,20 @@ function SidebarNavigation({
               : "space-y-1 pb-4",
         )}
       >
-        {items.map((item) => {
-          return (
-            <li
-              key={item.target}
-              className={isCollapsed ? "flex justify-center" : undefined}
-            >
-              <SidebarNavLinkItem
-                to={item.target}
-                label={item.label}
-                icon={item.icon}
-                density={density}
-                collapsed={isCollapsed}
-              />
-            </li>
-          );
-        })}
+        {items.map((item) => (
+          <li
+            key={item.target}
+            className={isCollapsed ? "flex justify-center" : undefined}
+          >
+            <SidebarNavLinkItem
+              to={item.target}
+              label={item.label}
+              icon={item.icon}
+              density={density}
+              collapsed={isCollapsed}
+            />
+          </li>
+        ))}
       </ul>
     </nav>
   );
@@ -264,13 +264,9 @@ export function Sidebar({ mode }: SidebarProps) {
   const accountConnected = Boolean(remoteStatus.data?.account.loggedIn);
 
   const handleThemeSwitch = (nextTheme: UiTheme) => {
-    if (theme === nextTheme) {
-      return;
-    }
-    setTheme(nextTheme);
+    if (theme !== nextTheme) setTheme(nextTheme);
   };
 
-  // Core navigation items - primary features
   const mainNavItems: SidebarNavItem[] = [
     {
       target: "/chat",
@@ -294,8 +290,7 @@ export function Sidebar({ mode }: SidebarProps) {
     },
   ];
 
-  const settingsNavItems = getSettingsNavItems(t);
-  const navItems = isSettingsMode ? settingsNavItems : mainNavItems;
+  const navItems = isSettingsMode ? getSettingsNavItems(t) : mainNavItems;
   const sidebarDensity = isSettingsMode ? "compact" : "default";
 
   return (
@@ -315,7 +310,6 @@ export function Sidebar({ mode }: SidebarProps) {
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
-        {/* Navigation */}
         <SidebarNavigation
           isSettingsMode={isSettingsMode}
           isCollapsed={isCollapsed}
@@ -323,10 +317,9 @@ export function Sidebar({ mode }: SidebarProps) {
           density={sidebarDensity}
         />
 
-        {/* Footer actions stay reachable while the nav scrolls independently. */}
         <div
           className={cn(
-            "shrink-0 border-t border-border/70 bg-secondary",
+            "shrink-0 bg-secondary",
             isCollapsed
               ? "mt-2 pt-2"
               : isSettingsMode

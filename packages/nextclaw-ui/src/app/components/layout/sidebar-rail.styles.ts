@@ -5,6 +5,8 @@ export const SIDEBAR_RAIL_CONTROL_CLASS = "h-9 w-9 rounded-xl";
 export const SIDEBAR_RAIL_ICON_CLASS = "h-4 w-4";
 export const SIDEBAR_RAIL_STACK_CLASS = "space-y-1";
 export const SIDEBAR_RAIL_ITEM_GAP_CLASS = "gap-1";
+export const SIDEBAR_SCROLL_EDGE_FADE_CLASS =
+  "[mask-image:linear-gradient(to_bottom,black_calc(100%_-_28px),transparent)] [-webkit-mask-image:linear-gradient(to_bottom,black_calc(100%_-_28px),transparent)]";
 
 export const SIDEBAR_RAIL_SURFACE_CLASS =
   "text-muted-foreground transition-colors duration-base hover:bg-gray-200/60 hover:text-gray-900 active:bg-gray-200/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35";

@@ -188,6 +188,13 @@ describe("ChatSidebar read state sync", () => {
   it("collapses the desktop sidebar into accessible icon actions", () => {
     const { container } = renderReadStateSidebar(createTestQueryClient());
 
+    expect(
+      screen.getByText("Sessions").parentElement?.nextElementSibling?.className,
+    ).toContain("[mask-image:linear-gradient");
+    expect(
+      screen.getByRole("button", { name: "Settings menu" }).parentElement
+        ?.className,
+    ).not.toContain("border-t");
     fireEvent.click(screen.getByRole("button", { name: "Collapse sidebar" }));
 
     const persistedState = JSON.parse(
