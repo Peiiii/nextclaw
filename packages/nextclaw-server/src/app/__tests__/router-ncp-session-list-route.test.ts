@@ -76,7 +76,7 @@ it("passes peerId filters through the ncp session list route", async () => {
   expect(listSessionCalls).toEqual([{ limit: 10, peerId: "peer-1" }]);
 });
 
-it("does not expose stale running previews for idle sessions", async () => {
+it("completes idle running previews that already have a final reply", async () => {
   const app = createUiRouter({
     configPath: createConfigPath(),
     appEventBus: new EventBus(),
@@ -106,9 +106,43 @@ it("does not expose stale running previews for idle sessions", async () => {
   };
 
   expect(payload.data.metadata?.last_activity_preview).toMatchObject({
+    state: "completed",
+    statusText: "正在思考",
+    replyText: "上一条回复",
+  });
+});
+
+it("marks idle running previews without a final reply as interrupted", async () => {
+  const app = createUiRouter({
+    configPath: createConfigPath(),
+    appEventBus: new EventBus(),
+    kernel: createRouterTestKernel({
+      sessionManager: {
+        getSession: async () => ({
+          sessionId: "session-1",
+          messageCount: 1,
+          updatedAt: "2026-03-17T00:00:00.000Z",
+          status: "idle",
+          metadata: {
+            last_activity_preview: {
+              state: "running",
+              timestamp: "2026-03-17T00:00:01.000Z",
+              statusText: "正在思考",
+            },
+          },
+        }),
+      } as never,
+    }),
+  });
+
+  const response = await app.request("http://localhost/api/ncp/sessions/session-1");
+  const payload = await response.json() as {
+    data: { metadata?: { last_activity_preview?: { state?: string; statusText?: string; replyText?: string } } };
+  };
+
+  expect(payload.data.metadata?.last_activity_preview).toMatchObject({
     state: "failed",
     statusText: "运行中断：上一轮请求没有完成，请重新发送。",
-    replyText: "上一条回复",
   });
 });
 

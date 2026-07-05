@@ -44,14 +44,15 @@ function normalizeIdleSessionActivityPreview(session: NcpSessionSummary): NcpSes
   if (!isRecord(preview) || preview.state !== "running") {
     return session;
   }
+  const hasReplyText = typeof preview.replyText === "string" && preview.replyText.trim().length > 0;
   return {
     ...session,
     metadata: {
       ...metadata,
       last_activity_preview: {
         ...preview,
-        state: "failed",
-        statusText: "运行中断：上一轮请求没有完成，请重新发送。",
+        state: hasReplyText ? "completed" : "failed",
+        statusText: hasReplyText ? preview.statusText : "运行中断：上一轮请求没有完成，请重新发送。",
       },
     },
   };
@@ -67,7 +68,6 @@ function applySessionTypePatch(
   const sessionType = typeof patch.sessionType === "string" ? patch.sessionType.trim() : "";
   if (sessionType) {
     const { sessionType: _removed, ...nextMetadata } = metadata;
-    void _removed;
     return {
       ...nextMetadata,
       session_type: sessionType,
@@ -80,9 +80,6 @@ function applySessionTypePatch(
     sessionType: _camelSessionType,
     ...nextMetadata
   } = metadata;
-  void _runtime;
-  void _sessionType;
-  void _camelSessionType;
   return nextMetadata;
 }
 
@@ -101,7 +98,6 @@ function applyUiReadAtPatch(
     };
   }
   const { ui_last_read_at: _removed, ...nextMetadata } = metadata;
-  void _removed;
   return nextMetadata;
 }
 
@@ -114,15 +110,12 @@ function applyProjectRootPatch(
   }
   if (projectRoot) {
     const { projectRoot: _removed, ...nextMetadata } = metadata;
-    void _removed;
     return {
       ...nextMetadata,
       project_root: projectRoot,
     };
   }
   const { project_root: _projectRoot, projectRoot: _camelProjectRoot, ...nextMetadata } = metadata;
-  void _projectRoot;
-  void _camelProjectRoot;
   return nextMetadata;
 }
 

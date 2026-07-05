@@ -43,7 +43,7 @@ describe("createSessionActivityPreviewFromNcpEvent", () => {
     });
   });
 
-  it("projects assistant completion into the final reply preview", () => {
+  it("projects assistant completion with the completion event timestamp", () => {
     expect(
       createSessionActivityPreviewFromNcpEvent({
         type: NcpEventType.MessageCompleted,
@@ -64,7 +64,7 @@ describe("createSessionActivityPreviewFromNcpEvent", () => {
       preview: {
         state: "completed",
         replyText: "已经整理好方案 下一步可以实现",
-        timestamp: "2026-05-16T01:01:00.000Z",
+        timestamp: TIMESTAMP,
       },
     });
   });

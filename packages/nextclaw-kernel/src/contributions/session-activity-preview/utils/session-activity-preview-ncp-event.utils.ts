@@ -118,7 +118,7 @@ export function createSessionActivityPreviewFromNcpEvent(
       return createProjection(readSessionId(event.payload.sessionId), {
         state: "completed",
         replyText: text,
-        timestamp: event.payload.message.timestamp || timestamp,
+        timestamp,
       });
     }
     case NcpEventType.MessageFailed:
