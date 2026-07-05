@@ -146,6 +146,40 @@ it("marks idle running previews without a final reply as interrupted", async () 
   });
 });
 
+it("normalizes legacy user-cancelled failed previews as cancelled", async () => {
+  const app = createUiRouter({
+    configPath: createConfigPath(),
+    appEventBus: new EventBus(),
+    kernel: createRouterTestKernel({
+      sessionManager: {
+        getSession: async () => ({
+          sessionId: "session-1",
+          messageCount: 1,
+          updatedAt: "2026-03-17T00:00:00.000Z",
+          status: "idle",
+          metadata: {
+            last_activity_preview: {
+              state: "failed",
+              timestamp: "2026-03-17T00:00:01.000Z",
+              statusText: "Run interrupted: User stopped the current run.",
+            },
+          },
+        }),
+      } as never,
+    }),
+  });
+
+  const response = await app.request("http://localhost/api/ncp/sessions/session-1");
+  const payload = await response.json() as {
+    data: { metadata?: { last_activity_preview?: { state?: string; statusText?: string } } };
+  };
+
+  expect(payload.data.metadata?.last_activity_preview).toMatchObject({
+    state: "cancelled",
+    statusText: "Run interrupted: User stopped the current run.",
+  });
+});
+
 it("keeps running previews for sessions that are still active", async () => {
   const app = createUiRouter({
     configPath: createConfigPath(),

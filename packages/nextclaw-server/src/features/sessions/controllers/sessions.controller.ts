@@ -40,21 +40,30 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function normalizeIdleSessionActivityPreview(session: NcpSessionSummary): NcpSessionSummary {
+function normalizeSessionActivityPreview(session: NcpSessionSummary): NcpSessionSummary {
   const metadata = readSessionMetadata(session.metadata);
   const preview = metadata.last_activity_preview;
-  if (!isRecord(preview) || preview.state !== "running") {
+  if (!isRecord(preview)) {
     return session;
   }
+  const isUserCancelled = preview.state === "failed" &&
+    typeof preview.statusText === "string" &&
+    preview.statusText.trim() === "Run interrupted: User stopped the current run.";
   const hasReplyText = typeof preview.replyText === "string" && preview.replyText.trim().length > 0;
+  const state = preview.state === "running"
+    ? hasReplyText ? "completed" : "failed"
+    : isUserCancelled ? "cancelled" : null;
+  if (!state) {
+    return session;
+  }
   return {
     ...session,
     metadata: {
       ...metadata,
       last_activity_preview: {
         ...preview,
-        state: hasReplyText ? "completed" : "failed",
-        statusText: hasReplyText ? preview.statusText : INTERRUPTED_SESSION_STATUS_TEXT,
+        state,
+        statusText: state === "failed" ? INTERRUPTED_SESSION_STATUS_TEXT : preview.statusText,
       },
     },
   };
@@ -146,7 +155,7 @@ export class NcpSessionRoutesController {
   private readonly withRuntimeStatus = (session: NcpSessionSummary): NcpSessionSummary =>
     this.options.kernel.isSessionRunning(session.sessionId)
       ? { ...session, status: "running" }
-      : normalizeIdleSessionActivityPreview(session);
+      : normalizeSessionActivityPreview(session);
 
   readonly getSessionTypes = async (c: Context) => {
     const payload: ChatSessionTypesView = await this.options.kernel.listSessionTypes({

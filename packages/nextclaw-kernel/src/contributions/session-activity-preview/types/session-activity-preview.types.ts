@@ -1,4 +1,4 @@
-export type SessionActivityPreviewState = "running" | "completed" | "failed" | "idle";
+export type SessionActivityPreviewState = "running" | "completed" | "failed" | "cancelled" | "idle";
 
 export type SessionActivityPreviewMetadata = {
   state: SessionActivityPreviewState;

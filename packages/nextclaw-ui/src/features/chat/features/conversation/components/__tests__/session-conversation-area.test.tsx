@@ -50,7 +50,7 @@ const mocks = vi.hoisted(() => {
     modelOptions: [],
     selectedSession: null as null | {
       activityPreview?: {
-        state: 'running' | 'completed' | 'failed' | 'idle';
+        state: 'running' | 'completed' | 'failed' | 'cancelled' | 'idle';
         statusText?: string;
         replyText?: string;
       };
@@ -270,5 +270,20 @@ describe('SessionConversationArea input boundary', () => {
     expect(screen.getByTestId('conversation-bottom-slot')).toBeTruthy();
     expect(screen.getByText(/出错了|Something went wrong/)).toBeTruthy();
     expect(screen.getByText('Run failed: Invalid API Key')).toBeTruthy();
+  });
+
+  it('does not surface user-cancelled previews as conversation errors', () => {
+    mocks.inputQuery.selectedSession = {
+      activityPreview: {
+        state: 'cancelled',
+        statusText: 'Run interrupted: User stopped the current run.',
+      },
+      status: 'idle',
+    };
+
+    renderArea('session-1');
+
+    expect(screen.queryByTestId('conversation-bottom-slot')).toBeNull();
+    expect(screen.queryByText(/出错了|Something went wrong/)).toBeNull();
   });
 });

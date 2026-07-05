@@ -5,7 +5,7 @@ import {
   sessionActivityPreviewText,
   sessionDisplayName,
   sessionMatchesQuery
-} from '../chat-session-display.utils';
+} from '@/features/chat/features/session/utils/chat-session-display.utils';
 
 function createSession(overrides: Partial<SessionEntryView> = {}): SessionEntryView {
   return {
@@ -86,6 +86,20 @@ describe('chat-session-display', () => {
         })
       )
     ).toBe('最终回复内容');
+  });
+
+  it('does not show cancelled activity as ordinary session preview text', () => {
+    expect(
+      sessionActivityPreviewText(
+        createSession({
+          activityPreview: {
+            state: 'cancelled',
+            statusText: 'Run interrupted: User stopped the current run.',
+            timestamp: '2026-05-16T01:00:00.000Z'
+          }
+        })
+      )
+    ).toBeNull();
   });
 
   it('formats today activity as time like WeChat session lists', () => {

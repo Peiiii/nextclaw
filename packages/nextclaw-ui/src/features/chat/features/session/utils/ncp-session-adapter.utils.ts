@@ -18,6 +18,7 @@ const SESSION_ACTIVITY_PREVIEW_STATE_SET = new Set<SessionActivityPreviewView['s
   'running',
   'completed',
   'failed',
+  'cancelled',
   'idle'
 ]);
 

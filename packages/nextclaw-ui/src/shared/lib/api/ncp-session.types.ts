@@ -32,7 +32,7 @@ export type SessionContextWindowView = {
 };
 
 export type SessionActivityPreviewView = {
-  state: "running" | "completed" | "failed" | "idle";
+  state: "running" | "completed" | "failed" | "cancelled" | "idle";
   timestamp: string;
   statusText?: string;
   replyText?: string;

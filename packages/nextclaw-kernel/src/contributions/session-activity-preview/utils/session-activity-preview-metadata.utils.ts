@@ -10,6 +10,7 @@ const SESSION_ACTIVITY_PREVIEW_STATES = new Set<SessionActivityPreviewState>([
   "running",
   "completed",
   "failed",
+  "cancelled",
   "idle",
 ]);
 

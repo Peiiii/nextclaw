@@ -80,6 +80,23 @@ describe("writeSessionActivityPreviewMetadata", () => {
     });
   });
 
+  it("accepts cancelled previews without treating them as invalid metadata", () => {
+    expect(
+      writeSessionActivityPreviewMetadata(undefined, {
+        sessionId: "session-1",
+        preview: {
+          state: "cancelled",
+          timestamp: "2026-05-16T01:02:00.000Z",
+        },
+      }),
+    ).toEqual({
+      [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: {
+        state: "cancelled",
+        timestamp: "2026-05-16T01:02:00.000Z",
+      },
+    });
+  });
+
   it("ignores older activity previews", () => {
     expect(
       writeSessionActivityPreviewMetadata({

@@ -6,6 +6,8 @@
 
 同批次把 abort 的 `messageId` / `runId` / `correlationId` / `reason` 从 UI hook、HTTP agent server、NCP event、kernel run manager 到 session activity preview 串成一条可观察链路，避免前端只看到通用 network/abort 错误却无法定位是哪次运行、哪条消息、哪个原因。
 
+后续补充修正：用户主动终止运行不是错误。`message.abort` 现在写入 `cancelled` activity preview，只作为元状态记录，不默认生成可见错误文案；旧的 `failed + Run interrupted: User stopped the current run.` 记录会在 session API 读取边界规范化为 `cancelled`。聊天页面底部错误槽只展示真正的 `failed`，不会再把用户主动停止显示为“出错了”。
+
 本次不引入重型后端国际化系统，采用轻量统一策略：协议/API/session metadata 中由系统生成的默认状态和错误 fallback 改为英文；真正需要本地化的 UI 展示继续由前端 i18n key、code、kind 或 metadata 映射。用户原文、测试输入、中文文档、中文 locale 和明确的中文 fallback 资源不属于本次清理范围。
 
 同时把规则沉淀进 `.agents/skills/nextclaw-clean-implementation/SKILL.md`：后端、kernel、runtime、server、协议事件、API 响应、session metadata 和持久化消息不得生成中文用户可见默认文案；暂未 i18n 的协议字符串默认英文。
@@ -17,9 +19,11 @@
 - `pnpm --filter @nextclaw/ncp-http-agent-server exec vitest run src/__tests__/index.test.ts`
 - `pnpm -C packages/nextclaw-server exec vitest run src/app/__tests__/router-ncp-session-list-route.test.ts`
 - `pnpm -C packages/nextclaw-ui exec vitest run src/features/chat/features/ncp/hooks/__tests__/use-ncp-agent-runtime.test.tsx src/features/chat/features/session/utils/__tests__/ncp-session-adapter.utils.test.ts src/features/chat/features/conversation/components/__tests__/session-conversation-area.test.tsx src/features/chat/features/message/components/__tests__/chat-message-list.container.test.tsx`
+- 取消语义补充验证：`pnpm -C packages/nextclaw-ui exec vitest run src/features/chat/features/session/utils/__tests__/ncp-session-adapter.utils.test.ts src/features/chat/features/session/utils/__tests__/chat-session-display.utils.test.ts src/features/chat/features/conversation/components/__tests__/session-conversation-area.test.tsx`
 - `pnpm -C packages/nextclaw-kernel tsc`
 - `pnpm -C packages/nextclaw-server tsc`
 - `pnpm -C packages/nextclaw-ui tsc`
+- 取消语义补充验证：`pnpm -C packages/nextclaw-kernel tsc`、`pnpm -C packages/nextclaw-ui tsc` 通过；`pnpm -C packages/nextclaw-server tsc` 当前被无关 dirty WIP 阻塞：`packages/nextclaw-kernel/src/contributions/agent-run-runtime/index.ts` 访问了当前类型中不存在的 `contextBlocks`。
 - `pnpm --filter @nextclaw/ncp-agent-runtime-next tsc`
 - `pnpm --filter @nextclaw/ncp tsc`
 - `pnpm --filter @nextclaw/ncp-http-agent-server tsc`
@@ -35,6 +39,7 @@
 - `pnpm clean:generated`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs`：通过，保留 5 个热点 warning。
 - `pnpm check:governance-backlog-ratchet`：通过。
+- 取消语义补充验证：`pnpm lint:new-code:governance -- <本次取消语义改动路径>`、`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths <本次取消语义改动路径>`、`pnpm clean:generated` 均通过。
 - 全量 `pnpm lint:new-code:governance`：未通过。文件命名/角色边界已通过；提交前顺手把本批次触达的 `router.ts`、`parsers.ts`、`agent-client-endpoint.ts`、`agent-server-endpoint.ts`、`agent-conversation-state-manager.ts`、`conversation-state.ts`、`endpoint.ts`、`events.ts` 和 `run.ts` 收敛为点分角色后缀。剩余阻塞是 NCP / NCP HTTP agent server 的 legacy module-structure debt：`controller.ts`、`agent-backend/`、`endpoint/`、`toolkit/agent/` 等旧结构一旦被触碰就会被全量治理要求独立迁移。
 - `rg` 检查确认 session/abort/context 这类生产链路中的目标中文状态短语已清理；剩余命中为中文文档、`zh` 本地化字段、中文测试输入或明确中文 fallback 资源。
 
@@ -47,7 +52,8 @@
 1. 触发会话运行、工具调用、运行失败、手动停止或 idle running preview 兜底。
 2. API / NCP event / session metadata 中系统生成的默认状态文案应为英文，例如 `Thinking`、`Calling tool: ...`、`Run failed: ...`、`Run interrupted: ...`。
 3. 中文界面需要展示本地语言时，应由前端 i18n owner 根据 code/kind/metadata 或现有 UI 文案映射完成，而不是依赖后端中文字符串。
-4. 用户消息、assistant 回复原文、中文 locale、中文文档和明确中文资源不受影响。
+4. 用户主动停止当前运行时，会话 activity preview 应为 `cancelled`，聊天页面底部不展示“出错了”错误槽；旧的用户停止失败记录在 API 读取时也应规范化为 `cancelled`。
+5. 用户消息、assistant 回复原文、中文 locale、中文文档和明确中文资源不受影响。
 
 ## 可维护性总结汇总
 
@@ -57,8 +63,10 @@
 
 已做的局部减债：`SessionManager` 测试从一个超长 `describe` 拆成更明确的三个职责块，消除了本次触达导致的函数预算阻塞。剩余 warning 是相关文件仍接近预算，应在后续测试治理中继续拆 fixture/builder。
 
+取消语义补充修正的正向减债动作是简化：删除了 abort preview 的默认可见文案生成，把“是否展示错误”重新收敛到 activity state 语义；本次取消语义改动的非测试代码净增为 `0`。
+
 ## NPM 包发布记录
 
-- 涉及包：`@nextclaw/kernel`、`@nextclaw/server`、`@nextclaw/ncp`、`@nextclaw/ncp-http-agent-server`、`@nextclaw/ncp-agent-runtime-next`、`@nextclaw/ncp-react`
+- 涉及包：`@nextclaw/kernel`、`@nextclaw/server`、`@nextclaw/ui`、`@nextclaw/ncp`、`@nextclaw/ncp-http-agent-server`、`@nextclaw/ncp-agent-runtime-next`、`@nextclaw/ncp-react`
 - 发布状态：待下一次统一 NPM/桌面发布带出
-- Changeset：`.changeset/backend-copy-defaults.md`
+- Changeset：`.changeset/backend-copy-defaults.md`、`.changeset/session-cancelled-preview.md`

@@ -64,19 +64,6 @@ function formatErrorStatus(error: unknown): string {
   return "Run failed";
 }
 
-function formatAbortStatus(reason: unknown): string {
-  if (typeof reason === "string" && reason.trim()) {
-    return `Run interrupted: ${truncatePreviewText(reason)}`;
-  }
-  if (reason && typeof reason === "object" && "message" in reason) {
-    const message = (reason as { message?: unknown }).message;
-    if (typeof message === "string" && message.trim()) {
-      return `Run interrupted: ${truncatePreviewText(message)}`;
-    }
-  }
-  return "Run interrupted: The run was cancelled before a complete response was produced.";
-}
-
 function readToolCallId(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
@@ -142,8 +129,7 @@ export function createSessionActivityPreviewFromNcpEvent(
       });
     case NcpEventType.MessageAbort:
       return createProjection(readSessionId(event.payload.sessionId), {
-        state: "failed",
-        statusText: formatAbortStatus(event.payload.reason),
+        state: "cancelled",
         timestamp,
       });
     case NcpEventType.MessageToolCallStart:

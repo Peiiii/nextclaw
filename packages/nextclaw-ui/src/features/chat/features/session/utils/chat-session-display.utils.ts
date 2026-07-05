@@ -15,6 +15,9 @@ export function sessionActivityPreviewText(session: SessionEntryView): string | 
   if (!preview) {
     return null;
   }
+  if (preview.state === 'cancelled') {
+    return null;
+  }
   if (preview.state === 'failed' || preview.state === 'running') {
     return preview.statusText ?? preview.replyText ?? null;
   }

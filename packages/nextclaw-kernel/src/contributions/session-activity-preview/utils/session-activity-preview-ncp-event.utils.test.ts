@@ -69,7 +69,7 @@ describe("createSessionActivityPreviewFromNcpEvent", () => {
     });
   });
 
-  it("projects message aborts into failed previews with the abort reason", () => {
+  it("projects user message aborts into metadata-only cancelled previews", () => {
     expect(
       createSessionActivityPreviewFromNcpEvent({
         type: NcpEventType.MessageAbort,
@@ -86,8 +86,7 @@ describe("createSessionActivityPreviewFromNcpEvent", () => {
     ).toEqual({
       sessionId: "session-1",
       preview: {
-        state: "failed",
-        statusText: "Run interrupted: User stopped the current run.",
+        state: "cancelled",
         timestamp: TIMESTAMP,
       },
     });
