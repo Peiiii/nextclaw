@@ -48,7 +48,8 @@ describe("McpNcpToolRegistryAdapter", () => {
       toolName: "echo",
       args: {
         text: "adapter"
-      }
+      },
+      signal: undefined,
     });
     expect(result).toMatchObject({
       content: [
@@ -56,6 +57,35 @@ describe("McpNcpToolRegistryAdapter", () => {
           text: "echo:adapter"
         }
       ]
+    });
+  });
+
+  it("passes tool abort signals to MCP calls", async () => {
+    const callTool = vi.fn(async () => ({ content: [] }));
+    const registryService = {
+      listAccessibleTools: vi.fn(() => [
+        {
+          qualifiedName: "mcp_demo__slow",
+          serverName: "demo",
+          toolName: "slow"
+        }
+      ]),
+      callTool
+    } as unknown as ConstructorParameters<typeof McpNcpToolRegistryAdapter>[0];
+    const controller = new AbortController();
+    const adapter = new McpNcpToolRegistryAdapter(registryService);
+    const [tool] = adapter.listToolsForRun({ agentId: "main" });
+
+    await tool?.execute({}, {
+      abortSignal: controller.signal,
+      toolCallId: "call-1",
+    });
+
+    expect(callTool).toHaveBeenCalledWith({
+      serverName: "demo",
+      toolName: "slow",
+      args: {},
+      signal: controller.signal,
     });
   });
 });

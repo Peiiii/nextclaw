@@ -427,3 +427,69 @@ describe("DefaultNcpAgentRuntime tool call scheduling", () => {
     );
   });
 });
+
+
+describe("DefaultNcpAgentRuntime aborting tool calls", () => {
+  it("emits abort promptly while a tool call is still running", async () => {
+    const toolStarted = deferred<string | undefined>();
+    const controller = new AbortController();
+    let toolAbortSignal: AbortSignal | undefined;
+    let generateRound = 0;
+    const llmApi: NcpLLMApi = {
+      generate: async function* () {
+        generateRound += 1;
+        if (generateRound === 1) {
+          yield toolCallChunk(0, "call-slow", "slow_command", "{}");
+          yield finishChunk("tool_calls");
+          return;
+        }
+
+        yield finishChunk("stop");
+      },
+    };
+    const tool: NcpTool = {
+      execute: async (_args, context) => {
+        toolAbortSignal = context?.abortSignal;
+        toolStarted.resolve(context?.toolCallId);
+        return new Promise<never>(() => {});
+      },
+      name: "slow_command",
+    };
+    const runtime = new DefaultNcpAgentRuntime({ llmApi, modelInputBuilder });
+    const { sessionRun } = createSessionRun();
+    const collectEvents = (async () => {
+      const events: NcpEndpointEvent[] = [];
+      for await (const event of runtime.run(spec, {
+        contextBlocks: [],
+        sessionRun,
+        signal: controller.signal,
+        tools: [tool],
+      })) {
+        events.push(event);
+      }
+      return events;
+    })();
+
+    await Promise.race([
+      toolStarted.promise,
+      rejectAfter(1_000, "timed out waiting for slow tool call to start"),
+    ]);
+
+    controller.abort();
+    const events = await Promise.race([
+      collectEvents,
+      rejectAfter<NcpEndpointEvent[]>(500, "timed out waiting for runtime abort"),
+    ]);
+
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          payload: expect.objectContaining({ sessionId: "session-1" }),
+          type: NcpEventType.MessageAbort,
+        }),
+      ]),
+    );
+    expect(events.some((event) => event.type === NcpEventType.RunFinished)).toBe(false);
+    expect(toolAbortSignal).toBe(controller.signal);
+  });
+});

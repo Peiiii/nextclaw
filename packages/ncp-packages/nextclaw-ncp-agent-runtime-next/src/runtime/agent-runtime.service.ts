@@ -215,7 +215,7 @@ export class DefaultNcpAgentRuntime {
         );
         const toolExecutor = new RuntimeToolCallExecutor({
           executeToolCall: (toolCall, publishToolResult) =>
-            this.executeToolCall(tools, sessionId, spec, toolCall, publishToolResult),
+            this.executeToolCall(tools, sessionId, spec, toolCall, publishToolResult, signal),
           toRunErrorEvent: (error) => this.toRunErrorEvent(sessionId, spec, error, runStartedAt),
         });
         yield* this.drainRuntimeEvents(sessionRun, encoded, toolExecutor, signal);
@@ -297,7 +297,10 @@ export class DefaultNcpAgentRuntime {
           break;
         }
 
-        const ready = await Promise.race(candidates);
+        const ready = await this.waitForDrainReady(candidates, signal);
+        if (!ready) {
+          break;
+        }
         if (ready.kind === "source") {
           cursor.clearSource();
           const result = await this.applySourceRuntimeEvent(
@@ -320,6 +323,29 @@ export class DefaultNcpAgentRuntime {
       }
     }
   }
+
+  private waitForDrainReady = async (
+    candidates: Promise<RuntimeDrainReady>[],
+    signal?: AbortSignal,
+  ): Promise<RuntimeDrainReady | null> => {
+    if (!signal) {
+      return await Promise.race(candidates);
+    }
+    if (signal.aborted) {
+      return null;
+    }
+    let cleanup = (): void => {};
+    const abortReady = new Promise<null>((resolve) => {
+      const onAbort = (): void => resolve(null);
+      cleanup = (): void => signal.removeEventListener("abort", onAbort);
+      signal.addEventListener("abort", onAbort, { once: true });
+    });
+    try {
+      return await Promise.race([...candidates, abortReady]);
+    } finally {
+      cleanup();
+    }
+  };
 
   private applySourceRuntimeEvent = async (
     sessionRun: AgentRuntimeSessionState,
@@ -434,6 +460,7 @@ export class DefaultNcpAgentRuntime {
     spec: DefaultNcpAgentRunSpec,
     toolCall: CollectedToolCall,
     publishToolResult: (event: NcpEndpointEvent) => Promise<void>,
+    signal?: AbortSignal,
   ): Promise<NcpEndpointEvent> => {
     const tool = tools.find((candidate) => candidate.name === toolCall.toolName);
     const result = this.toolResultContentManager.normalizeToolCallResult(
@@ -467,6 +494,7 @@ export class DefaultNcpAgentRuntime {
             await publishToolResult(event);
           };
           return availableTool.execute(args, {
+            abortSignal: signal,
             toolCallId: toolCall.toolCallId,
             updateToolCallResult,
           });

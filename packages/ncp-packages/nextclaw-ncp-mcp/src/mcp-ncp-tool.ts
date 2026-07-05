@@ -1,4 +1,4 @@
-import type { NcpTool } from "@nextclaw/ncp";
+import type { NcpTool, NcpToolExecutionContext } from "@nextclaw/ncp";
 import type { McpToolCatalogEntry } from "@nextclaw/mcp";
 
 export class McpNcpTool implements NcpTool {
@@ -8,15 +8,21 @@ export class McpNcpTool implements NcpTool {
 
   constructor(
     private readonly entry: McpToolCatalogEntry,
-    private readonly executeImpl: (entry: McpToolCatalogEntry, args: Record<string, unknown>) => Promise<unknown>
+    private readonly executeImpl: (
+      entry: McpToolCatalogEntry,
+      args: Record<string, unknown>,
+      options: { signal?: AbortSignal },
+    ) => Promise<unknown>,
   ) {
     this.name = entry.qualifiedName;
     this.description = entry.description;
     this.parameters = entry.parameters;
   }
 
-  async execute(args: unknown): Promise<unknown> {
-    return this.executeImpl(this.entry, isRecord(args) ? args : {});
+  async execute(args: unknown, context?: NcpToolExecutionContext): Promise<unknown> {
+    return this.executeImpl(this.entry, isRecord(args) ? args : {}, {
+      signal: context?.abortSignal,
+    });
   }
 }
 

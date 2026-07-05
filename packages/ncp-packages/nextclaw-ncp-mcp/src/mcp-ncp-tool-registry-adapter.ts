@@ -8,11 +8,12 @@ export class McpNcpToolRegistryAdapter {
     return this.registryService.listAccessibleTools({
       agentId: context.agentId
     }).map((entry) =>
-      new McpNcpTool(entry, async (toolEntry, args) =>
+      new McpNcpTool(entry, async (toolEntry, args, options) =>
         this.registryService.callTool({
           serverName: toolEntry.serverName,
           toolName: toolEntry.toolName,
-          args
+          args,
+          signal: options.signal,
         })
       )
     );

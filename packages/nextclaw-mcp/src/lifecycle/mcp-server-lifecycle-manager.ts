@@ -44,12 +44,17 @@ export class McpServerLifecycleManager {
     return this.stripConnection(ready);
   }
 
-  async callTool(record: McpServerRecord, toolName: string, args: Record<string, unknown>): Promise<unknown> {
+  async callTool(
+    record: McpServerRecord,
+    toolName: string,
+    args: Record<string, unknown>,
+    options: { signal?: AbortSignal } = {},
+  ): Promise<unknown> {
     const connection = await this.ensureConnection(record);
     const result = await connection.client.callTool({
       name: toolName,
       arguments: args
-    });
+    }, undefined, { signal: options.signal });
     return this.normalizeToolResult(result);
   }
 

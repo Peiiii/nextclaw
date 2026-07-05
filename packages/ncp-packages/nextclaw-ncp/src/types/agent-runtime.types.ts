@@ -134,6 +134,7 @@ export interface NcpTool {
 }
 
 export type NcpToolExecutionContext = {
+  abortSignal?: AbortSignal;
   toolCallId: string;
   updateToolCallResult?: (result: unknown) => Promise<void>;
 };

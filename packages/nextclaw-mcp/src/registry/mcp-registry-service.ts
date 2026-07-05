@@ -164,12 +164,15 @@ export class McpRegistryService {
     serverName: string;
     toolName: string;
     args: Record<string, unknown>;
+    signal?: AbortSignal;
   }): Promise<unknown> {
     const server = this.getServer(params.serverName);
     if (!server) {
       throw new Error(`Unknown MCP server: ${params.serverName}`);
     }
-    return this.lifecycleManager.callTool(server, params.toolName, params.args);
+    return this.lifecycleManager.callTool(server, params.toolName, params.args, {
+      signal: params.signal,
+    });
   }
 
   async close(): Promise<void> {

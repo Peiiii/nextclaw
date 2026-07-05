@@ -220,6 +220,45 @@ describe("useNcpAgentRuntime", () => {
     expect(client.abort).toHaveBeenCalledWith({ sessionId: "session-running" });
   });
 
+  it("clears the local running state when the live stream publishes message.abort", async () => {
+    const client = new DeferredSendClient();
+    const manager = new DefaultNcpAgentConversationStateManager();
+    const { result } = renderHook(() =>
+      useNcpAgentRuntime({ sessionId: "session-running", client, manager: manager as never }),
+    );
+
+    await act(async () => {
+      await client.emit({
+        type: NcpEventType.RunStarted,
+        payload: {
+          sessionId: "session-running",
+          messageId: "assistant-1",
+          runId: "run-1",
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.isRunning).toBe(true);
+      expect(result.current.activeRunId).toBe("run-1");
+    });
+
+    await act(async () => {
+      await client.emit({
+        type: NcpEventType.MessageAbort,
+        payload: {
+          sessionId: "session-running",
+          messageId: "assistant-1",
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.isRunning).toBe(false);
+      expect(result.current.activeRunId).toBeNull();
+    });
+  });
+
   it("uses the hydrated live stream as the only event source while sending to an existing session", async () => {
     const client = new ExistingSessionLiveClient();
     const manager = new DefaultNcpAgentConversationStateManager();
