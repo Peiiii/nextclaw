@@ -10,7 +10,7 @@ import {
   type ContextWindowBudgetEvaluation,
   type ContextWindowSnapshot,
 } from "@nextclaw/core";
-import type { NcpMessage } from "@nextclaw/ncp";
+import { normalizeAssistantText, type NcpMessage } from "@nextclaw/ncp";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
 import { toLegacyMessages } from "@kernel/utils/ncp-message-bridge.utils.js";
@@ -52,6 +52,18 @@ type ResolvedCompactionProfile = {
 
 const SUMMARY_MAX_TOKENS = 4000;
 const SUMMARY_SOURCE_MAX_CHARS = 120_000;
+const SUMMARY_SOURCE_HEAD_MESSAGES = 2;
+const SUMMARY_SOURCE_TAIL_MESSAGES = 8;
+const SUMMARY_SOURCE_STRING_HEAD_CHARS = 6_000;
+const SUMMARY_SOURCE_STRING_TAIL_CHARS = 6_000;
+
+function buildContextBlockMessage(contextBlocks: readonly string[] = []): Record<string, unknown>[] {
+  const contextContent = contextBlocks
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .join("\n\n");
+  return contextContent ? [{ role: "system", content: contextContent }] : [];
+}
 
 function mergeInputMessages(params: {
   inputMessages: readonly NcpMessage[];
@@ -68,12 +80,65 @@ function mergeInputMessages(params: {
   return messages;
 }
 
+function toCompactionSourceMessage(message: Record<string, unknown>): Record<string, unknown> {
+  return {
+    role: message.role,
+    content: message.content,
+    timestamp: message.timestamp,
+    ncp_message_id: message.ncp_message_id,
+  };
+}
+
 function stringifyCompactionSource(messages: readonly Record<string, unknown>[]): string {
-  const json = JSON.stringify(messages, null, 2);
+  const sourceMessages = messages.map(toCompactionSourceMessage);
+  const json = JSON.stringify(sourceMessages, null, 2);
   if (json.length <= SUMMARY_SOURCE_MAX_CHARS) {
     return json;
   }
-  return `${json.slice(0, SUMMARY_SOURCE_MAX_CHARS).trimEnd()}\n[truncated_source]`;
+  const tailStart = Math.max(
+    SUMMARY_SOURCE_HEAD_MESSAGES,
+    sourceMessages.length - SUMMARY_SOURCE_TAIL_MESSAGES,
+  );
+  const compactedMessages = [
+    ...sourceMessages.slice(0, SUMMARY_SOURCE_HEAD_MESSAGES),
+    ...(tailStart > SUMMARY_SOURCE_HEAD_MESSAGES
+      ? [{
+          role: "system",
+          content: `[${tailStart - SUMMARY_SOURCE_HEAD_MESSAGES} middle messages omitted from compaction source]`,
+        }]
+      : []),
+    ...sourceMessages.slice(tailStart),
+  ];
+  const compactedJson = JSON.stringify(
+    compactedMessages,
+    (_key, value) => truncateSummarySourceString(value),
+    2,
+  );
+  if (compactedJson.length <= SUMMARY_SOURCE_MAX_CHARS) {
+    return compactedJson;
+  }
+  const marker = "\n[truncated_compaction_source_middle]\n";
+  const headChars = Math.floor((SUMMARY_SOURCE_MAX_CHARS - marker.length) / 2);
+  const tailChars = SUMMARY_SOURCE_MAX_CHARS - marker.length - headChars;
+  return `${compactedJson.slice(0, headChars).trimEnd()}${marker}${compactedJson.slice(-tailChars).trimStart()}`;
+}
+
+function truncateSummarySourceString(value: unknown): unknown {
+  if (typeof value === "string") {
+    if (value.length <= SUMMARY_SOURCE_STRING_HEAD_CHARS + SUMMARY_SOURCE_STRING_TAIL_CHARS) {
+      return value;
+    }
+    return [
+      value.slice(0, SUMMARY_SOURCE_STRING_HEAD_CHARS).trimEnd(),
+      `[${value.length - SUMMARY_SOURCE_STRING_HEAD_CHARS - SUMMARY_SOURCE_STRING_TAIL_CHARS} chars omitted]`,
+      value.slice(-SUMMARY_SOURCE_STRING_TAIL_CHARS).trimStart(),
+    ].join("\n");
+  }
+  return value;
+}
+
+function normalizeCompactionSummary(content: string): string {
+  return normalizeAssistantText(content, "think-tags").text.trim();
 }
 
 function buildContextWindowSnapshotFromBudget(params: {
@@ -105,6 +170,7 @@ export class ContextCompactionPreflightService {
   ) {}
 
   preview = (params: {
+    contextBlocks?: readonly string[];
     requestMetadata: Record<string, unknown>;
     sessionId: string;
     sessionMessages: readonly NcpMessage[];
@@ -112,6 +178,7 @@ export class ContextCompactionPreflightService {
     storedMetadata: Record<string, unknown>;
   }): ContextWindowSnapshot | null => {
     const {
+      contextBlocks = [],
       requestMetadata,
       sessionId,
       sessionMessages,
@@ -131,8 +198,12 @@ export class ContextCompactionPreflightService {
           sessionMessages,
         })
       : sessionMessages.filter((message) => !isContextCompactionTimelineMessage(message));
+    const messages = [
+      ...buildContextBlockMessage(contextBlocks),
+      ...toLegacyMessages(projectedMessages) as Record<string, unknown>[],
+    ];
     const budget = this.contextWindowBudgetService.evaluate({
-      messages: toLegacyMessages(projectedMessages) as Record<string, unknown>[],
+      messages,
       contextTokens: profile.contextTokens,
       reservedContextTokens: profile.reservedContextTokens,
     });
@@ -144,6 +215,7 @@ export class ContextCompactionPreflightService {
   };
 
   begin = (params: {
+    contextBlocks?: readonly string[];
     inputMessages: readonly NcpMessage[];
     requestMetadata: Record<string, unknown>;
     sessionId: string;
@@ -152,6 +224,7 @@ export class ContextCompactionPreflightService {
     storedMetadata: Record<string, unknown>;
   }): ContextCompactionPreflightBeginResult => {
     const {
+      contextBlocks = [],
       inputMessages,
       requestMetadata,
       sessionId,
@@ -177,7 +250,10 @@ export class ContextCompactionPreflightService {
           sessionMessages: ncpMessages,
         })
       : ncpMessages.filter((message) => !isContextCompactionTimelineMessage(message));
-    const messages = toLegacyMessages(projectedMessages) as Record<string, unknown>[];
+    const messages = [
+      ...buildContextBlockMessage(contextBlocks),
+      ...toLegacyMessages(projectedMessages) as Record<string, unknown>[],
+    ];
     const budget = this.contextWindowBudgetService.evaluate({
       messages,
       contextTokens,
@@ -304,7 +380,10 @@ export class ContextCompactionPreflightService {
           content: [
             "You are NextClaw's context compactor for a coding agent session.",
             "Create a complete compressed working context that will replace all prior conversation messages in a future model request.",
-            "The model will not receive a raw recent-message tail, so preserve the latest user intent and recent turns with high fidelity inside the summary.",
+            "Only the latest current input may remain raw, so preserve the active task, latest user intent, latest assistant response, and recent turns with high fidelity inside the summary.",
+            "Always include a 'Continuation Contract' section that states what the next assistant response should remember and how it should continue the session.",
+            "Do not turn missing user profile, assistant nickname, or onboarding fields into blockers unless onboarding is the active user task in the latest turns.",
+            "If the latest user message is a short greeting, preserve the prior active task and last assistant stance so the next response does not restart as a fresh session.",
             "Preserve user goals, explicit instructions, decisions, files touched or inspected, code changes, commands run, test results, failures, blockers, current task state, and exact next steps.",
             "Do not invent facts. If something is uncertain, mark it as uncertain.",
             "Return Markdown only. Start with '# Compressed Working Context'.",
@@ -315,6 +394,7 @@ export class ContextCompactionPreflightService {
           content: [
             "Compress these runtime messages into a reusable working context.",
             "Include a 'Recent High-Fidelity Context' section for the latest important user/assistant turns.",
+            "Include a 'Continuation Contract' section after the recent context.",
             "",
             "Messages JSON:",
             stringifyCompactionSource(messages),
@@ -322,7 +402,7 @@ export class ContextCompactionPreflightService {
         },
       ],
     });
-    const summary = response.content?.trim();
+    const summary = response.content ? normalizeCompactionSummary(response.content) : "";
     if (!summary) {
       throw new Error("context compaction summary is empty");
     }

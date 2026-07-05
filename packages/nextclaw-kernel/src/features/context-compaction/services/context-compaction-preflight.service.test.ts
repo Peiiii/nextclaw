@@ -171,10 +171,159 @@ describe("ContextCompactionPreflightService", () => {
       ],
     });
 
-    expect(projectedMessages[0]?.parts[0]).toMatchObject({ type: "text", text: checkpoint.summary });
+    expect(projectedMessages[0]).toMatchObject({ role: "service" });
+    expect(projectedMessages[0]?.parts[0]).toMatchObject({
+      type: "text",
+      text: expect.stringContaining("Authoritative compressed prior conversation context"),
+    });
+    expect(projectedMessages[0]?.parts[0]).toMatchObject({
+      type: "text",
+      text: expect.stringContaining(checkpoint.summary),
+    });
     expect(projectedMessages.map((message) => message.id)).not.toContain("current-user");
     expect(projectedMessages.map((message) => message.id)).not.toContain("covered-old-0");
     expect(projectedMessages.map((message) => message.id)).toContain("assistant-after");
+  });
+
+  it("uses coveredUntil as the compressed boundary so retained current messages stay raw", () => {
+    const checkpoint = {
+      ...createCheckpoint(),
+      coveredUntil: "2026-06-05T17:12:30.000Z",
+      updatedAt: "2026-06-05T17:13:00.000Z",
+    };
+
+    const projectedMessages = buildContextCompactionModelInput({
+      sessionId: SESSION_ID,
+      sessionMessages: [
+        createAssistantMessage({
+          id: "covered-old",
+          text: "covered old",
+          timestamp: "2026-06-05T17:12:00.000Z",
+        }),
+        {
+          id: "current-user",
+          sessionId: SESSION_ID,
+          role: "user",
+          status: "final",
+          timestamp: "2026-06-05T17:12:59.000Z",
+          parts: [{ type: "text", text: "please keep this raw" }],
+        },
+        createTimelineMessage(checkpoint),
+      ],
+    });
+
+    expect(projectedMessages.map((message) => message.id)).not.toContain("covered-old");
+    expect(projectedMessages.map((message) => message.id)).toContain("current-user");
+  });
+
+  it("compacts short sessions when context blocks push the run over budget", () => {
+    const service = new ContextCompactionPreflightService(createAgentManager());
+    const beginResult = service.begin({
+      contextBlocks: ["context ".repeat(4_000)],
+      inputMessages: [],
+      requestMetadata: {},
+      sessionId: SESSION_ID,
+      sessionMessages: [
+        createAssistantMessage({
+          id: "intro",
+          text: "intro",
+          timestamp: "2026-06-05T17:12:00.000Z",
+        }),
+        createAssistantMessage({
+          id: "large-previous-reply",
+          text: "chapter ".repeat(3_000),
+          timestamp: "2026-06-05T17:13:00.000Z",
+        }),
+        createAssistantMessage({
+          id: "current-message",
+          text: "hello again",
+          timestamp: "2026-06-05T17:14:00.000Z",
+        }),
+      ],
+      storedAgentId: "main",
+      storedMetadata: {},
+    });
+
+    expect(beginResult.pendingCompaction).not.toBeNull();
+    expect(beginResult.pendingCompaction?.plan.retainedMessages.map((message) => message.ncp_message_id)).toEqual([
+      "current-message",
+    ]);
+    expect(beginResult.pendingCompaction?.plan.coveredMessages.map((message) => message.ncp_message_id)).toContain(
+      "large-previous-reply",
+    );
+  });
+});
+
+describe("ContextCompactionPreflightService rolling source", () => {
+  it("strips reasoning tags before storing generated summaries", async () => {
+    const providerManager = {
+      chat: vi.fn(async () => ({
+        content: "<think>hidden compaction reasoning</think>\n\n# Compressed Working Context\n\n## Continuation Contract\nKeep continuing 《天脊书》.",
+      })),
+    };
+    const service = new ContextCompactionPreflightService(createAgentManager(), providerManager as never);
+    const beginResult = service.begin({
+      contextBlocks: ["context ".repeat(4_000)],
+      inputMessages: [],
+      requestMetadata: {},
+      sessionId: SESSION_ID,
+      sessionMessages: [
+        createAssistantMessage({
+          id: "large-previous-reply",
+          text: "chapter ".repeat(3_000),
+          timestamp: "2026-06-05T17:13:00.000Z",
+        }),
+        createAssistantMessage({
+          id: "current-message",
+          text: "hello again",
+          timestamp: "2026-06-05T17:14:00.000Z",
+        }),
+      ],
+      storedAgentId: "main",
+      storedMetadata: {},
+    });
+
+    const finishResult = await service.finish(beginResult.pendingCompaction!);
+    const checkpoint = finishResult.metadataPatch[CONTEXT_COMPACTION_METADATA_KEY] as ContextCompactionCheckpoint;
+    expect(checkpoint.summary).toBe("# Compressed Working Context\n\n## Continuation Contract\nKeep continuing 《天脊书》.");
+    expect(checkpoint.summary).not.toContain("<think>");
+  });
+
+  it("keeps recent covered message heads when summary source is truncated", async () => {
+    const providerManager = {
+      chat: vi.fn(async () => ({ content: "# Compressed Working Context\n\nKept source canaries." })),
+    };
+    const service = new ContextCompactionPreflightService(createAgentManager(), providerManager as never);
+    const sessionMessages = Array.from({ length: 12 }, (_, index) =>
+      createAssistantMessage({
+        id: `large-history-${index}`,
+        text: [
+          index === 0 ? "CANARY_ALPHA_731" : `large ${index}`,
+          index === 8 ? "CANARY_RECENT_842" : "",
+          "x".repeat(30_000),
+        ].join("\n"),
+        timestamp: `2026-06-05T17:${String(12 + index).padStart(2, "0")}:00.000Z`,
+      }),
+    );
+
+    const beginResult = service.begin({
+      inputMessages: [],
+      requestMetadata: {},
+      sessionId: SESSION_ID,
+      sessionMessages,
+      storedAgentId: "main",
+      storedMetadata: {},
+    });
+
+    await service.finish(beginResult.pendingCompaction!);
+
+    const summaryRequest = providerManager.chat.mock.calls[0]?.[0].messages[1]?.content ?? "";
+    const summarySystemPrompt = providerManager.chat.mock.calls[0]?.[0].messages[0]?.content ?? "";
+    expect(summarySystemPrompt).toContain("Continuation Contract");
+    expect(summarySystemPrompt).toContain("does not restart as a fresh session");
+    expect(summaryRequest).toContain("Continuation Contract");
+    expect(summaryRequest).toContain("CANARY_ALPHA_731");
+    expect(summaryRequest).toContain("CANARY_RECENT_842");
   });
 
   it("creates a new compaction plan when a compressed session exceeds the context window again", async () => {
@@ -215,15 +364,26 @@ describe("ContextCompactionPreflightService", () => {
     expect(providerManager.chat).toHaveBeenCalledOnce();
     const summaryRequest = providerManager.chat.mock.calls[0]?.[0].messages[1]?.content ?? "";
     expect(summaryRequest).toContain("Previously compressed context.");
-    expect(summaryRequest).toContain("after checkpoint 15");
+    expect(summaryRequest).toContain("after checkpoint 14");
+    expect(summaryRequest).not.toContain("after checkpoint 15");
     expect(finishResult.timelineMessage?.id).toBe(beginResult.timelineMessage?.id);
     expect(finishResult.metadataPatch[CONTEXT_COMPACTION_METADATA_KEY]).toMatchObject({
       coveredMessageCount: compressingCheckpoint.coveredMessageCount,
       coveredSessionMessageCount: compressingCheckpoint.coveredSessionMessageCount,
+      coveredUntil: "2026-06-05T17:34:00.000Z",
       id: existingCheckpoint.id,
       status: "compressed",
       summary: "# Compressed Earlier Context\n\nRolled forward.",
     });
+    const projectedAfterFinish = buildContextCompactionModelInput({
+      sessionId: SESSION_ID,
+      sessionMessages: [
+        ...sessionMessages,
+        finishResult.timelineMessage!,
+      ],
+    });
+    expect(projectedAfterFinish.map((message) => message.id)).toContain("message-after-15");
+    expect(projectedAfterFinish.map((message) => message.id)).not.toContain("message-after-14");
     expect(finishResult.contextWindow.usedContextTokens).toBeLessThan(beginResult.contextWindow.usedContextTokens);
   });
 });

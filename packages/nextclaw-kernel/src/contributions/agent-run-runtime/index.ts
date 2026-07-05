@@ -64,10 +64,11 @@ export class AgentRunRuntimeContribution implements KernelContribution {
         new DefaultNcpAgentRuntime({
           llmApi: new ProviderManagerNcpLLMApi(this.kernel.llmProviders),
           modelInputBuilder: this.modelInputBuilder,
-          runPreflight: async ({ spec, sessionRun }) => {
+          runPreflight: async ({ contextBlocks, spec, sessionRun }) => {
             const session = await this.kernel.sessionManager.getAgentRunSession(sessionRun.sessionId);
             return await this.kernel.contextCompactionManager.runPreflight({
               agentId: spec.agentId,
+              contextBlocks,
               messages: sessionRun.getSnapshot().messages,
               metadata: session.metadata,
               sessionId: sessionRun.sessionId,

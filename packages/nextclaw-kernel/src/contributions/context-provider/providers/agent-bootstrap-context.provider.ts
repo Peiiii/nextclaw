@@ -7,7 +7,12 @@ import type {
   ContextBlock,
   ContextProvider,
 } from "@kernel/types/agent-run.types.js";
-import type { Config } from "@nextclaw/core";
+import { shouldSkipCompactedSessionBootstrapFile } from "@kernel/utils/agent-onboarding-context.utils.js";
+import {
+  CONTEXT_COMPACTION_METADATA_KEY,
+  readCompressedContextCompactionCheckpoint,
+  type Config,
+} from "@nextclaw/core";
 
 type BootstrapContextConfig = Config["agents"]["context"]["bootstrap"];
 type BootstrapReadBudget = {
@@ -23,12 +28,14 @@ export class AgentBootstrapContextProvider implements ContextProvider {
     const { contextConfig, projectContext, runContext } =
       await this.context.resolve(request);
     const budget = this.createReadBudget(contextConfig.bootstrap);
+    const compactedSession = this.hasCompressedContext(runContext.sessionMetadata);
     const agentBootstrapRoot =
       projectContext.projectBootstrapRoot ?? projectContext.effectiveWorkspace;
     const projectBootstrap = this.loadBootstrapFiles({
       root: agentBootstrapRoot,
       config: contextConfig.bootstrap,
       sessionKey: runContext.sessionKey,
+      compactedSession,
       budget,
     });
     const hasDistinctHostWorkspace =
@@ -38,6 +45,7 @@ export class AgentBootstrapContextProvider implements ContextProvider {
           root: projectContext.hostWorkspace,
           config: contextConfig.bootstrap,
           sessionKey: runContext.sessionKey,
+          compactedSession,
           budget,
         })
       : "";
@@ -108,11 +116,12 @@ export class AgentBootstrapContextProvider implements ContextProvider {
     root: string;
     config: BootstrapContextConfig;
     sessionKey?: string;
+    compactedSession: boolean;
     budget: BootstrapReadBudget;
   }): string => {
-    const { budget, config, root, sessionKey } = params;
+    const { budget, compactedSession, config, root, sessionKey } = params;
     const parts: string[] = [];
-    const fileList = this.selectBootstrapFiles(config, sessionKey);
+    const fileList = this.selectBootstrapFiles(config, sessionKey, compactedSession);
 
     for (const filename of fileList) {
       const filePath = join(root, filename);
@@ -122,6 +131,9 @@ export class AgentBootstrapContextProvider implements ContextProvider {
 
       const raw = readFileSync(filePath, "utf-8").trim();
       if (!raw) {
+        continue;
+      }
+      if (compactedSession && shouldSkipCompactedSessionBootstrapFile(filename, raw)) {
         continue;
       }
 
@@ -153,13 +165,27 @@ export class AgentBootstrapContextProvider implements ContextProvider {
   private selectBootstrapFiles = (
     config: BootstrapContextConfig,
     sessionKey?: string,
+    compactedSession = false,
   ): string[] => {
     if (!sessionKey) {
-      return config.files;
+      return this.filterCompactedSessionFiles(config.files, compactedSession);
     }
     if (sessionKey.startsWith("cron:") || sessionKey.startsWith("subagent:")) {
       return config.minimalFiles;
     }
-    return config.files;
+    return this.filterCompactedSessionFiles(config.files, compactedSession);
   };
+
+  private filterCompactedSessionFiles = (
+    files: readonly string[],
+    compactedSession: boolean,
+  ): string[] =>
+    compactedSession
+      ? files.filter((filename) => !shouldSkipCompactedSessionBootstrapFile(filename, ""))
+      : [...files];
+
+  private hasCompressedContext = (
+    metadata: Record<string, unknown> | undefined,
+  ): boolean =>
+    Boolean(readCompressedContextCompactionCheckpoint(metadata?.[CONTEXT_COMPACTION_METADATA_KEY]));
 }

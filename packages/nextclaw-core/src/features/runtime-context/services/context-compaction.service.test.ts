@@ -9,8 +9,16 @@ function userMessage(id: string, content: string): Record<string, unknown> {
   };
 }
 
+function assistantMessage(id: string, content: string): Record<string, unknown> {
+  return {
+    role: "assistant",
+    content,
+    ncp_message_id: id,
+  };
+}
+
 describe("ContextCompactionService", () => {
-  it("uses the whole non-system model input as the compression source", () => {
+  it("keeps the latest raw tail out of the compression source", () => {
     const service = new ContextCompactionService();
     const messages = [
       { role: "system", content: "system prompt" },
@@ -24,12 +32,35 @@ describe("ContextCompactionService", () => {
       compactionThresholdTokens: 20,
     });
 
-    expect(plan?.coveredMessages.map((message) => message.ncp_message_id)).toContain("current-user");
+    expect(plan?.coveredMessages.map((message) => message.ncp_message_id)).not.toContain("current-user");
+    expect(plan?.retainedMessages.map((message) => message.ncp_message_id)).toContain("current-user");
     expect(plan?.coveredMessages.map((message) => message.role)).not.toContain("system");
     expect(plan?.messages).toBe(messages);
   });
 
-  it("returns only system plus compressed summary after compaction", async () => {
+  it("compacts a short overloaded conversation and covers the previous large reply", () => {
+    const service = new ContextCompactionService();
+    const messages = [
+      { role: "system", content: "context ".repeat(4_000) },
+      userMessage("hello", "hello"),
+      assistantMessage("intro", "intro"),
+      userMessage("write-novel", "write a novel"),
+      assistantMessage("large-previous-reply", "chapter ".repeat(3_000)),
+      userMessage("current-user", "hello again"),
+    ];
+
+    const plan = service.prepareForModelInput({
+      messages,
+      contextTokens: 10_000,
+      compactionThresholdTokens: 8_000,
+    });
+
+    expect(plan).not.toBeNull();
+    expect(plan?.retainedMessages.map((message) => message.ncp_message_id)).toEqual(["current-user"]);
+    expect(plan?.coveredMessages.map((message) => message.ncp_message_id)).toContain("large-previous-reply");
+  });
+
+  it("returns system plus compressed summary and retained tail after compaction", async () => {
     const service = new ContextCompactionService();
     const messages = [
       { role: "system", content: "system prompt" },
@@ -47,7 +78,7 @@ describe("ContextCompactionService", () => {
       now: new Date("2026-06-07T00:00:00.000Z"),
       plan: plan!,
       generateSummary: async ({ messages: sourceMessages }) => {
-        expect(sourceMessages.map((message) => message.ncp_message_id)).toContain("current-user");
+        expect(sourceMessages.map((message) => message.ncp_message_id)).not.toContain("current-user");
         return "# Compressed Working Context\n\nRecent intent: please continue from here.";
       },
     });
@@ -58,13 +89,15 @@ describe("ContextCompactionService", () => {
         role: "user",
         content: "# Compressed Working Context\n\nRecent intent: please continue from here.",
       },
+      userMessage("current-user", "please continue from here"),
     ]);
     expect(compacted.checkpoint).toMatchObject({
       version: 1,
       status: "compressed",
+      coveredUntil: "2026-06-07T00:00:00.000Z",
       summary: "# Compressed Working Context\n\nRecent intent: please continue from here.",
-      coveredMessageCount: 13,
-      coveredSessionMessageCount: 13,
+      coveredMessageCount: 12,
+      coveredSessionMessageCount: 12,
     });
   });
 });

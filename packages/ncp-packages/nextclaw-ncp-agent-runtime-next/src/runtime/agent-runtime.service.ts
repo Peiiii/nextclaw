@@ -48,6 +48,7 @@ export type DefaultNcpAgentRuntimeRunOptions = {
 };
 
 export type AgentRunPreflight = (input: {
+  contextBlocks: readonly string[];
   spec: DefaultNcpAgentRunSpec;
   sessionRun: AgentRuntimeSessionState;
 }) => Promise<readonly NcpEndpointEvent[]>;
@@ -206,7 +207,7 @@ export class DefaultNcpAgentRuntime {
         yield await this.applyEvent(sessionRun, event);
       }
       const preflightEvents = this.runPreflight
-        ? await this.runPreflight({ spec, sessionRun })
+        ? await this.runPreflight({ contextBlocks, spec, sessionRun })
         : [];
       for (const event of preflightEvents) {
         if (this.isAbortRequested(signal)) {

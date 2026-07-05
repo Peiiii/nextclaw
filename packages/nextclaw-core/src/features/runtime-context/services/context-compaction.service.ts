@@ -12,6 +12,7 @@ export type ContextCompactionCheckpoint = {
   id: string;
   status: "compressing" | "compressed";
   summary: string;
+  coveredUntil?: string;
   coveredMessageCount: number;
   coveredSessionMessageCount: number;
   originalEstimatedTokens: number;
@@ -28,10 +29,11 @@ export type ContextCompactionResult = {
 export type ContextCompactionPlan = {
   messages: RuntimeMessage[];
   coveredMessages: RuntimeMessage[];
+  retainedMessages: RuntimeMessage[];
   originalEstimatedTokens: number;
 };
 
-const MIN_MESSAGES_TO_COMPACT = 8;
+const RETAINED_CURRENT_MESSAGE_COUNT = 1;
 
 function createCheckpointId(createdAt: string, coveredMessageCount: number): string {
   return `ctx-${createdAt.replace(/[^0-9]/g, "").slice(0, 14)}-${coveredMessageCount}`;
@@ -39,6 +41,17 @@ function createCheckpointId(createdAt: string, coveredMessageCount: number): str
 
 function isSystemMessage(message: RuntimeMessage | undefined): boolean {
   return message?.role === "system";
+}
+
+function readCoveredUntil(messages: RuntimeMessage[], fallback: string): string {
+  const latestTimestamp = Math.max(
+    ...messages
+      .map((message) => typeof message.timestamp === "string" ? Date.parse(message.timestamp) : Number.NaN)
+      .filter((millis): millis is number => Number.isFinite(millis)),
+  );
+  return Number.isFinite(latestTimestamp)
+    ? new Date(latestTimestamp).toISOString()
+    : fallback;
 }
 
 export class ContextCompactionService {
@@ -60,14 +73,17 @@ export class ContextCompactionService {
     }
 
     const leadingSystemMessage = isSystemMessage(messages[0]) ? messages[0] : null;
-    const coveredMessages = leadingSystemMessage ? messages.slice(1) : messages;
-    if (coveredMessages.length < MIN_MESSAGES_TO_COMPACT) {
+    const conversationMessages = leadingSystemMessage ? messages.slice(1) : messages;
+    const retainedMessages = conversationMessages.slice(-RETAINED_CURRENT_MESSAGE_COUNT);
+    const coveredMessages = conversationMessages.slice(0, -retainedMessages.length);
+    if (coveredMessages.length === 0) {
       return null;
     }
 
     return {
       messages,
       coveredMessages,
+      retainedMessages,
       originalEstimatedTokens: originalEstimate.estimatedTokens,
     };
   };
@@ -83,6 +99,7 @@ export class ContextCompactionService {
       coveredMessages,
       messages,
       originalEstimatedTokens,
+      retainedMessages,
     } = plan;
     const createdAt = (now ?? new Date()).toISOString();
     const summary = await generateSummary({
@@ -96,6 +113,7 @@ export class ContextCompactionService {
     const projectedMessages = [
       leadingSystemMessage,
       checkpointMessage,
+      ...retainedMessages,
     ].filter((message): message is RuntimeMessage => Boolean(message));
     const projectedEstimate = this.inputBudgetPruner.estimate({
       messages: projectedMessages,
@@ -106,6 +124,7 @@ export class ContextCompactionService {
       id: createCheckpointId(createdAt, coveredMessages.length),
       status: "compressed",
       summary,
+      coveredUntil: readCoveredUntil(coveredMessages, createdAt),
       coveredMessageCount: coveredMessages.length,
       coveredSessionMessageCount: coveredMessages.length,
       originalEstimatedTokens,

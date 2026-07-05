@@ -14,6 +14,7 @@ import {
 export type AgentRunContextCompactionInput = {
   sessionId: string;
   agentId: string;
+  contextBlocks: readonly string[];
   messages: readonly NcpMessage[];
   metadata: Record<string, unknown>;
 };
@@ -33,6 +34,7 @@ export class AgentRunContextCompactionManager {
     input: AgentRunContextCompactionInput,
   ): Promise<readonly NcpEndpointEvent[]> => {
     const beginResult = this.preflightService.begin({
+      contextBlocks: input.contextBlocks,
       inputMessages: [],
       requestMetadata: input.metadata,
       sessionId: input.sessionId,

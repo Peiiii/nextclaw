@@ -8,6 +8,8 @@ import { readCompressedContextCompactionCheckpoint, type ContextCompactionCheckp
 
 export const NEXTCLAW_TIMELINE_KIND_METADATA_KEY = "nextclaw_timeline_kind";
 export const CONTEXT_COMPACTION_TIMELINE_KIND = "context_compaction";
+export const CONTEXT_COMPACTION_PROJECTION_METADATA_KEY = "nextclaw_context_projection";
+export const CONTEXT_COMPACTION_PROJECTION_KIND = "compressed_context";
 
 export type ContextCompactionTimelineCheckpoint = ContextCompactionCheckpoint;
 
@@ -15,6 +17,15 @@ function readCheckpointTimelineText(checkpoint: ContextCompactionTimelineCheckpo
   return checkpoint.status === "compressing"
     ? "Compressing earlier context"
     : "Earlier context was auto-compacted";
+}
+
+function buildCompressedContextSystemText(checkpoint: ContextCompactionCheckpoint): string {
+  return [
+    "Authoritative compressed prior conversation context for this session.",
+    "Continue from this context and the latest user message. Do not restart onboarding or treat missing profile fields as a new-session trigger unless the compressed context says onboarding is the active user task.",
+    "",
+    checkpoint.summary,
+  ].join("\n");
 }
 
 function readContextCompactionCheckpoint(message: NcpMessage): ContextCompactionCheckpoint | null {
@@ -41,11 +52,18 @@ function buildContextCompactionSummaryMessage(params: {
   return {
     id: `${sessionId}:context-compaction-summary:${checkpoint.id}:${checkpoint.updatedAt}`,
     sessionId,
-    role: "user",
+    role: "service",
     status: "final",
     timestamp: checkpoint.updatedAt,
-    parts: [{ type: "text", text: checkpoint.summary }],
+    parts: [{ type: "text", text: buildCompressedContextSystemText(checkpoint) }],
+    metadata: {
+      [CONTEXT_COMPACTION_PROJECTION_METADATA_KEY]: CONTEXT_COMPACTION_PROJECTION_KIND,
+    },
   };
+}
+
+function readCheckpointCoveredUntil(checkpoint: ContextCompactionCheckpoint): string {
+  return checkpoint.coveredUntil ?? checkpoint.updatedAt;
 }
 
 export function createContextCompactionMessageId(): string {
@@ -77,6 +95,10 @@ export function isContextCompactionTimelineMessage(message: { metadata?: Record<
   return message?.metadata?.[NEXTCLAW_TIMELINE_KIND_METADATA_KEY] === CONTEXT_COMPACTION_TIMELINE_KIND;
 }
 
+export function isContextCompactionProjectionMessage(message: { metadata?: Record<string, unknown> | undefined } | null | undefined): boolean {
+  return message?.metadata?.[CONTEXT_COMPACTION_PROJECTION_METADATA_KEY] === CONTEXT_COMPACTION_PROJECTION_KIND;
+}
+
 export function readLatestContextCompactionCheckpoint(sessionMessages: readonly NcpMessage[]): ContextCompactionCheckpoint | null {
   return readLatestContextCompactionMarker(sessionMessages)?.checkpoint ?? null;
 }
@@ -92,10 +114,11 @@ export function buildContextCompactionModelInput(params: {
     return regularMessages.map((message) => structuredClone(message));
   }
   const { checkpoint } = marker;
+  const coveredUntil = readCheckpointCoveredUntil(checkpoint);
   return [
     buildContextCompactionSummaryMessage({ checkpoint, sessionId }),
     ...regularMessages
-      .filter((message) => Date.parse(message.timestamp) > Date.parse(checkpoint.updatedAt))
+      .filter((message) => Date.parse(message.timestamp) > Date.parse(coveredUntil))
       .sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp)),
   ].map((message) => structuredClone(message));
 }
