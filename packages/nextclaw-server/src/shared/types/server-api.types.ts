@@ -1,12 +1,16 @@
-import type { ThinkingLevel } from "@nextclaw/core";
+import type { Config, ThinkingLevel } from "@nextclaw/core";
+import type { AgentProfileView } from "./server-api-agent.types.js";
 import type { AppEvent } from "@nextclaw/shared";
 import type { NcpMessage, NcpSessionApi, NcpSessionStatus, NcpSessionSummary } from "@nextclaw/ncp";
 import type { UiNcpStoredAssetRecord } from "@nextclaw-server/features/attachments/index.js";
+export type { AgentCreateRequest, AgentDeleteResult, AgentProfileView, AgentUpdateRequest } from "./server-api-agent.types.js";
 export type * from "@nextclaw-server/features/marketplace/types/marketplace.types.js";
 export type * from "@nextclaw-server/features/attachments/index.js";
 export type * from "@nextclaw-server/features/panel-apps/index.js";
 export type * from "@nextclaw-server/features/preferences/index.js";
 export type * from "@nextclaw-server/features/service-apps/index.js";
+
+type AgentDefaultModelsView = Config["agents"]["defaults"]["models"];
 export type ApiError = {
   code: string;
   message: string;
@@ -390,49 +394,6 @@ export type RemoteServiceActionResult = {
   message: string;
 };
 
-export type AgentProfileView = {
-  id: string;
-  default?: boolean;
-  displayName?: string;
-  description?: string;
-  avatar?: string;
-  avatarUrl?: string;
-  workspace?: string;
-  model?: string;
-  runtime?: string;
-  runtimeConfig?: Record<string, unknown>;
-  engine?: string;
-  engineConfig?: Record<string, unknown>;
-  contextTokens?: number;
-  maxToolIterations?: number;
-  builtIn?: boolean;
-};
-
-export type AgentCreateRequest = {
-  id: string;
-  displayName?: string;
-  description?: string;
-  avatar?: string;
-  home?: string;
-  model?: string;
-  runtime?: string;
-  runtimeConfig?: Record<string, unknown>;
-};
-
-export type AgentUpdateRequest = {
-  displayName?: string;
-  description?: string;
-  avatar?: string;
-  model?: string;
-  runtime?: string;
-  runtimeConfig?: Record<string, unknown>;
-};
-
-export type AgentDeleteResult = {
-  deleted: boolean;
-  agentId: string;
-};
-
 export type BindingPeerView = {
   kind: "direct" | "group" | "channel";
   id: string;
@@ -717,7 +678,10 @@ export type ConfigView = {
       workspace?: string;
       engine?: string;
       engineConfig?: Record<string, unknown>;
+      thinkingDefault?: ThinkingLevel;
+      models?: AgentDefaultModelsView;
       contextTokens?: number;
+      reservedContextTokens?: number;
       maxToolIterations?: number;
     };
     runtimes?: {

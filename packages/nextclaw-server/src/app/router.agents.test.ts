@@ -104,7 +104,9 @@ describe("agents routes", () => {
 
     expect(response.status).toBe(400);
   });
+});
 
+describe("agent update and list routes", () => {
   it("updates an existing custom agent profile", async () => {
     const configPath = createTempConfigPath();
     const homeDir = join(dirname(configPath), "workspace");
@@ -144,21 +146,39 @@ describe("agents routes", () => {
         description: "Handles deep research briefs.",
         avatar: "",
         model: "anthropic/claude-sonnet-4.5",
-        runtime: "codex"
+        runtime: "codex",
+        runtimeConfig: {
+          profile: "workspace-write"
+        },
+        contextTokens: 128000
       })
     });
 
     expect(response.status).toBe(200);
     const payload = await response.json() as {
       ok: true;
-      data: { id: string; displayName?: string; description?: string; avatar?: string; avatarUrl?: string; model?: string; runtime?: string };
+      data: {
+        id: string;
+        displayName?: string;
+        description?: string;
+        avatar?: string;
+        avatarUrl?: string;
+        model?: string;
+        runtime?: string;
+        runtimeConfig?: Record<string, unknown>;
+        contextTokens?: number;
+      };
     };
     expect(payload.data).toMatchObject({
       id: "researcher",
       displayName: "Deep Researcher",
       description: "Handles deep research briefs.",
       model: "anthropic/claude-sonnet-4.5",
-      runtime: "codex"
+      runtime: "codex",
+      runtimeConfig: {
+        profile: "workspace-write"
+      },
+      contextTokens: 128000
     });
     expect(payload.data.avatar).toBeUndefined();
     expect(payload.data.avatarUrl).toBeUndefined();
@@ -175,6 +195,8 @@ describe("agents routes", () => {
     expect(researcher?.avatar).toBeUndefined();
     expect(researcher?.model).toBe("anthropic/claude-sonnet-4.5");
     expect(researcher?.engine).toBe("codex");
+    expect(researcher?.engineConfig).toEqual({ profile: "workspace-write" });
+    expect(researcher?.contextTokens).toBe(128000);
   });
 
   it("updates the built-in main agent through a config override", async () => {

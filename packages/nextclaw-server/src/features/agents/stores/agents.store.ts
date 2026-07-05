@@ -29,7 +29,8 @@ export function createAgent(
       home: input.home,
       model: input.model,
       runtime: input.runtime,
-      runtimeConfig: input.runtimeConfig
+      runtimeConfig: input.runtimeConfig,
+      contextTokens: input.contextTokens
     },
     {
       configPath,
@@ -60,7 +61,8 @@ export function updateAgent(configPath: string, agentId: string, input: AgentUpd
       avatar: input.avatar,
       model: input.model,
       runtime: input.runtime,
-      runtimeConfig: input.runtimeConfig
+      runtimeConfig: input.runtimeConfig,
+      contextTokens: input.contextTokens
     },
     { configPath }
   );
@@ -94,7 +96,10 @@ export function toAgentProfileView(config: Config, agentId: string): AgentProfil
     runtimeConfig: profile.runtimeConfig,
     engine: profile.engine,
     engineConfig: profile.engineConfig,
+    thinkingDefault: profile.thinkingDefault,
+    models: profile.models,
     contextTokens: profile.contextTokens,
+    reservedContextTokens: profile.reservedContextTokens,
     maxToolIterations: profile.maxToolIterations,
     builtIn: profile.builtIn === true
   };

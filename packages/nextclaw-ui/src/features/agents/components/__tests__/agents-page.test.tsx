@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import type * as ReactRouterDom from "react-router-dom";
@@ -50,6 +50,13 @@ const mocks = vi.hoisted(() => ({
           builtIn: false,
           model: "openai/gpt-5.2",
           runtime: "codex",
+          runtimeConfig: {
+            profile: "workspace-write",
+          },
+          thinkingDefault: "high",
+          contextTokens: 128000,
+          reservedContextTokens: 4096,
+          maxToolIterations: 64,
           workspace: "~/.nextclaw/workspace/agents/researcher",
           avatarUrl: null,
         },
@@ -63,6 +70,13 @@ const mocks = vi.hoisted(() => ({
         defaults: {
           model: "openai/gpt-5.1",
           workspace: "~/.nextclaw/workspace",
+          engine: "native",
+          engineConfig: {},
+          thinkingDefault: "off",
+          models: {},
+          contextTokens: 200000,
+          reservedContextTokens: 10000,
+          maxToolIterations: 1000,
         },
       },
       providers: {
@@ -252,6 +266,7 @@ describe("AgentsPage", () => {
     expect(screen.getByText("~/.nextclaw/workspace")).toBeTruthy();
     expect(screen.getAllByRole("button", { name: "开始对话" })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "更多操作" })).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: "查看详情" })).toBeNull();
     expect(screen.queryByRole("button", { name: "编辑" })).toBeNull();
     expect(screen.getByText("负责调研、信息筛选与结论提炼。")).toBeTruthy();
     expect(
@@ -269,7 +284,8 @@ describe("AgentsPage", () => {
     expect(screen.queryByText("创建新的 Agent 身份")).toBeNull();
 
     await user.click(screen.getAllByRole("button", { name: "更多操作" })[1]);
-    await user.click(screen.getByRole("button", { name: "编辑" }));
+    const detailsEditButtons = screen.getAllByRole("button", { name: "编辑" });
+    await user.click(detailsEditButtons[detailsEditButtons.length - 1]);
 
     expect(screen.getByText("编辑 Agent 身份")).toBeTruthy();
     expect(screen.getByText("主目录保持不变")).toBeTruthy();
@@ -278,6 +294,122 @@ describe("AgentsPage", () => {
       screen.getByDisplayValue("负责调研、信息筛选与结论提炼。").tagName,
     ).toBe("TEXTAREA");
     expect(screen.getByDisplayValue("gpt-5.2")).toBeTruthy();
+  });
+
+  it("separates read-only details from editing and keeps advanced config collapsed until requested", async () => {
+    const user = userEvent.setup();
+
+    renderAgentsPage();
+
+    await user.click(screen.getAllByRole("button", { name: "更多操作" })[1]);
+    await user.click(screen.getByRole("button", { name: "查看详情" }));
+
+    expect(screen.getByText("身份")).toBeTruthy();
+    expect(screen.getByText("上下文窗口大小")).toBeTruthy();
+    expect(screen.getByText("128,000")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "保存编辑" })).toBeNull();
+    const detailsDialog = screen.getByText("身份").closest("[role='dialog']");
+    expect(detailsDialog?.className).toContain("sm:max-w-2xl");
+    const detailLists = Array.from(detailsDialog?.querySelectorAll("dl") ?? []);
+    expect(detailLists.length).toBeGreaterThan(0);
+    expect(
+      detailLists.every(
+        (list) =>
+          !list.className.includes("divide-y") &&
+          !list.className.includes("border-t"),
+      ),
+    ).toBe(true);
+    expect(
+      Array.from(detailsDialog?.querySelectorAll("section") ?? []).every(
+        (section) =>
+          section.className.includes("space-y-2") &&
+          section.className.includes("border-t") &&
+          !section.className.includes("sm:grid-cols"),
+      ),
+    ).toBe(true);
+    expect(
+      detailLists.every((list) => list.className.includes("pl-5")),
+    ).toBe(true);
+    expect(
+      Array.from(detailsDialog?.querySelectorAll("dt") ?? []).every(
+        (term) => {
+          const item = term.parentElement;
+          return Boolean(
+            item?.className.includes("grid-cols-[10rem_minmax(0,1fr)]") &&
+              !item.className.includes("space-y"),
+          );
+        },
+      ),
+    ).toBe(true);
+    expect(
+      Array.from(detailsDialog?.querySelectorAll("dt span") ?? []).every(
+        (label) => !label.className.includes("truncate"),
+      ),
+    ).toBe(true);
+    expect(
+      Array.from(detailsDialog?.querySelectorAll("dt") ?? []).every(
+        (term) =>
+          !term.textContent?.includes("继承默认") &&
+          !term.textContent?.includes("Agent 覆盖"),
+      ),
+    ).toBe(true);
+    expect(
+      Array.from(detailsDialog?.querySelectorAll("dd") ?? []).some((value) =>
+        value.textContent?.includes("128,000（Agent 覆盖）"),
+      ),
+    ).toBe(true);
+    expect(
+      Array.from(detailsDialog?.querySelectorAll("dd") ?? []).some((value) =>
+        value.textContent?.includes("未设置（继承默认）"),
+      ),
+    ).toBe(true);
+    expect(
+      Array.from(detailsDialog?.querySelectorAll("dt span, dd") ?? []).every(
+        (node) => node.className.includes("text-xs"),
+      ),
+    ).toBe(true);
+    expect(detailsDialog?.querySelector(".rounded-xl.bg-white.p-3")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "编辑" }));
+
+    expect(screen.getByText("编辑 Agent 身份")).toBeTruthy();
+    const advancedDetails = screen.getByText("高级配置").closest("details");
+    expect(advancedDetails?.hasAttribute("open")).toBe(false);
+
+    await user.click(screen.getByText("高级配置"));
+    expect(advancedDetails?.hasAttribute("open")).toBe(true);
+    expect(screen.queryByLabelText("预留上下文大小")).toBeNull();
+    expect(screen.queryByLabelText("最大工具迭代次数")).toBeNull();
+    expect(screen.queryByLabelText("默认思考强度")).toBeNull();
+    expect(screen.queryByLabelText("Runtime 配置 JSON")).toBeNull();
+    expect(screen.queryByLabelText("模型覆盖 JSON")).toBeNull();
+
+    fireEvent.change(screen.getByLabelText("上下文窗口大小"), {
+      target: { value: "64000" },
+    });
+    await user.click(screen.getByRole("button", { name: "保存编辑" }));
+
+    expect(mocks.updateAgent).toHaveBeenCalledWith({
+      agentId: "researcher",
+      data: expect.objectContaining({
+        contextTokens: 64000,
+      }),
+    });
+    expect(mocks.updateAgent.mock.calls[0][0].data).not.toHaveProperty(
+      "reservedContextTokens",
+    );
+    expect(mocks.updateAgent.mock.calls[0][0].data).not.toHaveProperty(
+      "maxToolIterations",
+    );
+    expect(mocks.updateAgent.mock.calls[0][0].data).not.toHaveProperty(
+      "thinkingDefault",
+    );
+    expect(mocks.updateAgent.mock.calls[0][0].data).not.toHaveProperty(
+      "runtimeConfig",
+    );
+    expect(mocks.updateAgent.mock.calls[0][0].data).not.toHaveProperty(
+      "models",
+    );
   });
 
   it("uses a runtime dropdown instead of manual text input when editing an agent", async () => {
@@ -307,6 +439,7 @@ describe("AgentsPage", () => {
         avatar: "",
         model: "openai/gpt-5.2",
         runtime: "codex",
+        contextTokens: 128000,
       },
     });
   });

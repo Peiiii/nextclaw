@@ -8,10 +8,13 @@ import {
 import {
   applyAgentProfileModelUpdate,
   applyAgentProfileRuntimeUpdate,
+  buildAgentAdvancedPatch,
   buildAgentModelPatch,
   buildAgentRuntimePatch,
+  hasAgentProfileAdvancedInput,
   normalizeOptionalString,
-  toRecord
+  toRecord,
+  type AgentProfileAdvancedInput
 } from "./agent-profile-runtime-fields.utils.js";
 import { loadConfig, saveConfig } from "./config-loader.utils.js";
 import type { Config } from "@core/features/config/configs/config-schema.config.js";
@@ -42,15 +45,12 @@ export type CreateAgentProfileInput = {
   home?: string;
   model?: string;
   runtime?: string;
-  runtimeConfig?: Record<string, unknown>;
+  runtimeConfig?: Record<string, unknown> | null;
   engine?: string;
-  engineConfig?: Record<string, unknown>;
-};
+  engineConfig?: Record<string, unknown> | null;
+} & AgentProfileAdvancedInput;
 
-export type CreateAgentProfileOptions = {
-  configPath?: string;
-  initializeHomeDirectory?: (homeDirectory: string) => void;
-};
+type CreateAgentProfileOptions = { configPath?: string; initializeHomeDirectory?: (homeDirectory: string) => void };
 
 export type UpdateAgentProfileInput = {
   id: string;
@@ -59,14 +59,12 @@ export type UpdateAgentProfileInput = {
   avatar?: string;
   model?: string;
   runtime?: string;
-  runtimeConfig?: Record<string, unknown>;
+  runtimeConfig?: Record<string, unknown> | null;
   engine?: string;
-  engineConfig?: Record<string, unknown>;
-};
+  engineConfig?: Record<string, unknown> | null;
+} & AgentProfileAdvancedInput;
 
-export type UpdateAgentProfileOptions = {
-  configPath?: string;
-};
+type UpdateAgentProfileOptions = { configPath?: string };
 
 export function normalizeAgentProfileId(value: unknown): string {
   if (typeof value !== "string") {
@@ -192,7 +190,8 @@ export function createAgentProfile(
     ...(description ? { description } : {}),
     avatar,
     ...buildAgentModelPatch(input.model),
-    ...buildAgentRuntimePatch(input)
+    ...buildAgentRuntimePatch(input),
+    ...buildAgentAdvancedPatch(input)
   };
 
   config.agents.list = [...config.agents.list, profile];
@@ -217,6 +216,10 @@ export function updateAgentProfile(
   applyAgentProfileAvatarUpdate(profile, input.avatar, existingEffective, agentId);
   applyAgentProfileModelUpdate(profile, input.model);
   applyAgentProfileRuntimeUpdate(profile, input);
+  if (input.contextTokens === null) {
+    delete profile.contextTokens;
+  }
+  Object.assign(profile, buildAgentAdvancedPatch(input));
   persistUpdatedAgentProfile(config, profileIndex, profile, options.configPath);
   return findEffectiveAgentProfile(config, agentId) as EffectiveAgentProfile;
 }
@@ -341,7 +344,8 @@ function ensureAgentProfileUpdateInput(input: UpdateAgentProfileInput): void {
     input.runtime !== undefined ||
     input.runtimeConfig !== undefined ||
     input.engine !== undefined ||
-    input.engineConfig !== undefined
+    input.engineConfig !== undefined ||
+    hasAgentProfileAdvancedInput(input)
   ) {
     return;
   }

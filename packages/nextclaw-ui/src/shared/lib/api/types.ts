@@ -56,6 +56,9 @@ export type BootstrapStatusView = {
 };
 
 export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "adaptive" | "xhigh";
+export type AgentModelsView = Record<string, {
+  params: Record<string, unknown>;
+} & Record<string, unknown>>;
 
 export type ProviderInstanceView = {
   providerId: string;
@@ -253,11 +256,13 @@ export type AgentProfileView = {
   workspace?: string;
   model?: string;
   runtime?: string;
-  runtimeConfig?: Record<string, unknown>;
+  runtimeConfig?: Record<string, unknown> | null;
   engine?: string;
   engineConfig?: Record<string, unknown>;
   thinkingDefault?: ThinkingLevel;
+  models?: AgentModelsView;
   contextTokens?: number;
+  reservedContextTokens?: number;
   maxToolIterations?: number;
   builtIn?: boolean;
 };
@@ -270,7 +275,8 @@ export type AgentCreateRequest = {
   home?: string;
   model?: string;
   runtime?: string;
-  runtimeConfig?: Record<string, unknown>;
+  runtimeConfig?: Record<string, unknown> | null;
+  contextTokens?: number | null;
 };
 
 export type AgentUpdateRequest = {
@@ -279,7 +285,8 @@ export type AgentUpdateRequest = {
   avatar?: string;
   model?: string;
   runtime?: string;
-  runtimeConfig?: Record<string, unknown>;
+  runtimeConfig?: Record<string, unknown> | null;
+  contextTokens?: number | null;
 };
 
 export type AgentDeleteResult = {
@@ -523,7 +530,9 @@ export type ConfigView = {
       engine?: string;
       engineConfig?: Record<string, unknown>;
       thinkingDefault?: ThinkingLevel;
+      models?: AgentModelsView;
       contextTokens?: number;
+      reservedContextTokens?: number;
       maxToolIterations?: number;
     };
     runtimes?: {

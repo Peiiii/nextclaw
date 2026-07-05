@@ -5,6 +5,15 @@ import {
   resolveSessionTypeLabel,
   type ChatSessionTypeOption,
 } from "@/features/chat";
+import { AgentAdvancedConfigFields } from "@/features/agents/components/agent-advanced-config-fields";
+import type {
+  AgentCreateFormState,
+  AgentEditFormState,
+} from "@/features/agents/types/agent-form.types";
+import {
+  EMPTY_AGENT_CREATE_FORM,
+  toAgentEditFormState,
+} from "@/features/agents/utils/agent-form.utils";
 import { ProviderScopedModelInput } from "@/shared/components/common/provider-scoped-model-input";
 import { Button } from "@/shared/components/ui/button";
 import { NoticeCard } from "@/shared/components/feedback/notice-card";
@@ -29,53 +38,7 @@ import { t } from "@/shared/lib/i18n";
 import type { ProviderModelCatalogItem } from "@/shared/lib/provider-models";
 import { Pencil, Plus } from "lucide-react";
 
-export type AgentCreateFormState = {
-  id: string;
-  displayName: string;
-  description: string;
-  avatar: string;
-  home: string;
-  model: string;
-  runtime: string;
-};
-
-export type AgentEditFormState = {
-  displayName: string;
-  description: string;
-  avatar: string;
-  model: string;
-  runtime: string;
-};
-
-export const EMPTY_AGENT_CREATE_FORM: AgentCreateFormState = {
-  id: "",
-  displayName: "",
-  description: "",
-  avatar: "",
-  model: "",
-  home: "",
-  runtime: "",
-};
-
-export const EMPTY_AGENT_EDIT_FORM: AgentEditFormState = {
-  displayName: "",
-  description: "",
-  avatar: "",
-  model: "",
-  runtime: "",
-};
-
-export function toAgentEditFormState(
-  agent: AgentProfileView,
-): AgentEditFormState {
-  return {
-    displayName: agent.displayName ?? "",
-    description: agent.description ?? "",
-    avatar: agent.avatar ?? "",
-    model: agent.model ?? "",
-    runtime: agent.runtime ?? agent.engine ?? "",
-  };
-}
+export type { AgentCreateFormState, AgentEditFormState };
 
 function buildRuntimeSelectOptions(params: {
   runtimeOptions: ChatSessionTypeOption[];
@@ -472,6 +435,16 @@ function AgentEditDialogContent(props: {
               disabled={pending}
             />
           </div>
+          <AgentAdvancedConfigFields
+            form={form}
+            disabled={pending}
+            onChange={(patch) =>
+              setForm((prev) => ({
+                ...prev,
+                ...patch,
+              }))
+            }
+          />
         </div>
       </div>
       <DialogFooter className="shrink-0 border-t border-[#f1e7d4] px-6 py-5">

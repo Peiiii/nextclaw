@@ -4,9 +4,13 @@ type AgentProfile = Config["agents"]["list"][number];
 
 type AgentRuntimeInput = {
   runtime?: string;
-  runtimeConfig?: Record<string, unknown>;
+  runtimeConfig?: Record<string, unknown> | null;
   engine?: string;
-  engineConfig?: Record<string, unknown>;
+  engineConfig?: Record<string, unknown> | null;
+};
+
+export type AgentProfileAdvancedInput = {
+  contextTokens?: number | null;
 };
 
 function normalizeOptionalString(value: unknown): string | null {
@@ -48,6 +52,25 @@ export function buildAgentRuntimePatch(input: AgentRuntimeInput): Pick<AgentProf
   };
 }
 
+function normalizeOptionalInteger(value: number | null | undefined, minimum: number): number | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null || !Number.isFinite(value)) {
+    return null;
+  }
+  return Math.max(minimum, Math.trunc(value));
+}
+
+export function buildAgentAdvancedPatch(input: AgentProfileAdvancedInput): Partial<AgentProfile> {
+  const patch: Partial<AgentProfile> = {};
+  const contextTokens = normalizeOptionalInteger(input.contextTokens, 1000);
+  if (typeof contextTokens === "number") {
+    patch.contextTokens = contextTokens;
+  }
+  return patch;
+}
+
 export function applyAgentProfileModelUpdate(profile: AgentProfile, value?: string): void {
   if (value === undefined) {
     return;
@@ -78,4 +101,8 @@ export function applyAgentProfileRuntimeUpdate(profile: AgentProfile, input: Age
       delete profile.engineConfig;
     }
   }
+}
+
+export function hasAgentProfileAdvancedInput(input: AgentProfileAdvancedInput): boolean {
+  return input.contextTokens !== undefined;
 }

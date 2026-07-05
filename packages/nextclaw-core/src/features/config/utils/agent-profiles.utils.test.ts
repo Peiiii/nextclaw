@@ -173,6 +173,33 @@ describe("createAgentProfile", () => {
     });
   });
 
+  it("persists per-agent context window override", () => {
+    const configPath = createTempConfigPath();
+    const workspace = join(dirname(configPath), "workspace");
+    saveConfig(
+      ConfigSchema.parse({
+        agents: {
+          defaults: {
+            workspace
+          }
+        }
+      }),
+      configPath
+    );
+
+    const created = createAgentProfile(
+      {
+        id: "researcher",
+        contextTokens: 64000
+      },
+      {
+        configPath
+      }
+    );
+
+    expect(created.contextTokens).toBe(64000);
+  });
+
   it("infers nested agent home when an extra agent has no explicit workspace", () => {
     const configPath = createTempConfigPath();
     const workspace = join(dirname(configPath), "workspace");
@@ -373,6 +400,52 @@ describe("updateAgentProfile", () => {
     const researcher = resolveEffectiveAgentProfiles(saved).find((agent) => agent.id === "researcher");
     expect(researcher?.runtime).toBe("codex");
     expect(researcher?.engine).toBe("codex");
+  });
+
+  it("updates and clears per-agent context window override", () => {
+    const configPath = createTempConfigPath();
+    const workspace = join(dirname(configPath), "workspace");
+    saveConfig(
+      ConfigSchema.parse({
+        agents: {
+          defaults: {
+            workspace
+          },
+          list: [
+            {
+              id: "researcher",
+              workspace: `${workspace}-researcher`,
+              contextTokens: 32000
+            }
+          ]
+        }
+      }),
+      configPath
+    );
+
+    const updated = updateAgentProfile(
+      {
+        id: "researcher",
+        contextTokens: 128000
+      },
+      {
+        configPath
+      }
+    );
+
+    expect(updated.contextTokens).toBe(128000);
+
+    const cleared = updateAgentProfile(
+      {
+        id: "researcher",
+        contextTokens: null
+      },
+      {
+        configPath
+      }
+    );
+
+    expect(cleared.contextTokens).toBeUndefined();
   });
 
   it("creates a main override when updating the built-in main agent", () => {

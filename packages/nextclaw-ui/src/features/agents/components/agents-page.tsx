@@ -6,7 +6,8 @@ import {
   useUpdateAgent,
 } from "@/shared/hooks/use-agents";
 import { useConfig, useProviderTemplates, useProviders } from "@/shared/hooks/use-config";
-import type { AgentProfileView } from "@/shared/lib/api";
+import type { AgentProfileView, AgentUpdateRequest } from "@/shared/lib/api";
+import { AgentDetailsDialog } from "@/features/agents/components/agent-details-dialog";
 import {
   AgentEditDialog,
   type AgentEditFormState,
@@ -35,6 +36,7 @@ import { buildProviderModelCatalog } from "@/shared/lib/provider-models";
 import { cn } from "@/shared/lib/utils";
 import {
   Bot,
+  Eye,
   House,
   MessageCircle,
   MoreHorizontal,
@@ -44,9 +46,37 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const AGENT_CREATION_PROMPT =
   "请直接创建一个默认示例 Agent，不要问我问题。创建完成后，简单告诉我它能做什么。";
+
+function parseOptionalIntegerField(value: string, min: number): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(t("agentsAdvancedInvalidNumberError"));
+  }
+  return Math.max(min, Math.trunc(parsed));
+}
+
+function buildAgentUpdateRequest(
+  form: AgentEditFormState,
+): AgentUpdateRequest {
+  return {
+    displayName: form.displayName,
+    description: form.description,
+    avatar: form.avatar,
+    model: form.model,
+    ...(form.runtime.trim()
+      ? { runtime: form.runtime.trim() }
+      : { runtime: "" }),
+    contextTokens: parseOptionalIntegerField(form.contextTokens, 1000),
+  };
+}
 
 function AgentsHero(props: { agentCount: number; onCreate: () => void }) {
   const { agentCount, onCreate } = props;
@@ -119,6 +149,7 @@ function AgentListCard(props: {
   updatePending: boolean;
   deletePending: boolean;
   onStartChat: () => void;
+  onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -129,6 +160,7 @@ function AgentListCard(props: {
     updatePending,
     deletePending,
     onStartChat,
+    onView,
     onEdit,
     onDelete,
   } = props;
@@ -195,6 +227,11 @@ function AgentListCard(props: {
             </PopoverTrigger>
             <PopoverContent align="end" className="w-44 p-1.5">
               <AgentActionMenuItem
+                icon={Eye}
+                label={t("agentsViewDetailsAction")}
+                onClick={onView}
+              />
+              <AgentActionMenuItem
                 icon={Pencil}
                 label={t("agentsEditAction")}
                 onClick={onEdit}
@@ -246,6 +283,9 @@ export function AgentsPage() {
   const sessionTypesQuery = useNcpChatSessionTypes();
   const updateAgent = useUpdateAgent();
   const deleteAgent = useDeleteAgent();
+  const [viewingAgent, setViewingAgent] = useState<AgentProfileView | null>(
+    null,
+  );
   const [editingAgent, setEditingAgent] = useState<AgentProfileView | null>(
     null,
   );
@@ -286,23 +326,31 @@ export function AgentsPage() {
       resolveSessionTypeLabel(defaultRuntime),
     [defaultRuntime, runtimeOptions],
   );
+  const agentDefaults = configQuery.data?.agents.defaults;
+
+  const handleStartView = (agent: AgentProfileView) => {
+    setViewingAgent(agent);
+  };
 
   const handleStartEdit = (agent: AgentProfileView) => {
     setEditingAgent(agent);
   };
 
   const handleUpdate = async (agentId: string, form: AgentEditFormState) => {
+    let data: AgentUpdateRequest;
+    try {
+      data = buildAgentUpdateRequest(form);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t("agentsAdvancedParseFailed"),
+      );
+      return;
+    }
     await updateAgent.mutateAsync({
       agentId,
-      data: {
-        displayName: form.displayName,
-        description: form.description,
-        avatar: form.avatar,
-        model: form.model,
-        ...(form.runtime.trim()
-          ? { runtime: form.runtime.trim() }
-          : { runtime: "" }),
-      },
+      data,
     });
     setEditingAgent(null);
   };
@@ -365,12 +413,30 @@ export function AgentsPage() {
               updatePending={updateAgent.isPending}
               deletePending={deleteAgent.isPending}
               onStartChat={() => startChatWithAgent(agent)}
+              onView={() => handleStartView(agent)}
               onEdit={() => handleStartEdit(agent)}
               onDelete={() => deleteAgent.mutate({ agentId: agent.id })}
             />
           ))
         )}
       </div>
+
+      <AgentDetailsDialog
+        agent={viewingAgent}
+        defaults={agentDefaults}
+        runtimeOptions={runtimeOptions}
+        defaultRuntime={defaultRuntime}
+        defaultRuntimeLabel={defaultRuntimeLabel}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingAgent(null);
+          }
+        }}
+        onEdit={(agent) => {
+          setViewingAgent(null);
+          setEditingAgent(agent);
+        }}
+      />
 
       <AgentEditDialog
         agent={editingAgent}
