@@ -92,7 +92,9 @@ describe('ChatSessionHeaderActions', () => {
     await user.click(screen.getByRole('button', { name: 'View Metadata' }));
 
     expect(screen.getByRole('dialog', { name: 'Session Metadata' })).toBeTruthy();
-    expect(screen.getByText(/codex_thread_id/)).toBeTruthy();
+    const metadataBlock = screen.getByText(/codex_thread_id/);
+    expect(metadataBlock.className).toContain('bg-muted/60');
+    expect(metadataBlock.className).toContain('text-foreground');
     expect(screen.getByText(/thread-123/)).toBeTruthy();
   });
 

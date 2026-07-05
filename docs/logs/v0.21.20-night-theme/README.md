@@ -14,6 +14,7 @@
 - 输入框附件 chip 偏亮：`@nextclaw/agent-chat-ui` 的 file token 使用 `bg-slate-50`、`text-slate-700` 和内部 `bg-white`，上传图片后在 night 下仍按亮色 token 渲染。
 - 右侧 Skill/MCP 详情文档仍是亮色：Marketplace 详情误用 `data:text/html` 生成独立 HTML 并放进 DocBrowser iframe，内部 CSS 固定浅色，导致它脱离主 React 树、主题变量和应用级 `data-theme-appearance`。
 - 暗夜主题不够好找：主题列表仍按历史亮色主题顺序展示，唯一暗色主题排在靠后位置。
+- 会话元数据弹窗 JSON 看不清：`ChatSessionMetadataDialog` 的 JSON 容器使用固定 `gray/slate` 亮暗色 utility，而不是主题语义色，night 下文本与容器对比不足。
 
 修复方式：
 
@@ -26,6 +27,7 @@
 - `@nextclaw/agent-chat-ui` 的 `ChatComposerTokenNode` 将 file token 从固定 slate/white 颜色改为 `border-border`、`bg-muted`、`text-foreground`、`bg-card` 和 `text-muted-foreground` 等语义色。
 - Skill 与 MCP Marketplace 详情从 `data:text/html` 改为内部 `marketplace-detail` DocBrowser tab，由 React renderer 直接渲染 Metadata、Content、Markdown、代码块、标签和链接，天然继承当前主题变量。
 - 主题列表将 `night` 前移到第一位，但 `DEFAULT_THEME` 仍保持 `natural`，提高暗色主题可发现性而不改变默认体验。
+- 会话元数据弹窗的 JSON 容器改用 `border-border`、`bg-muted/60` 和 `text-foreground` 等主题语义色，并保留独立滚动区域。
 
 ## 测试/验证/验收方式
 
@@ -37,6 +39,7 @@
 - `pnpm -C packages/nextclaw-ui build`：通过；保留既有 Browserslist、动态 import 和大 chunk warning。
 - `pnpm -C packages/nextclaw-agent-chat-ui exec vitest run src/components/chat/ui/chat-input-bar/__tests__/chat-input-bar.test.tsx src/components/chat/ui/chat-input-bar/__tests__/chat-composer-token-node.test.tsx`：2 个测试文件、34 个测试通过。
 - `pnpm -C packages/nextclaw-ui exec vitest run src/features/marketplace/components/detail-doc/__tests__/marketplace-detail-doc.test.tsx src/features/marketplace/components/__tests__/marketplace-page-detail.test.tsx src/features/marketplace/components/mcp/__tests__/mcp-marketplace-page.test.tsx`：3 个测试文件、8 个测试通过。
+- `pnpm -C packages/nextclaw-ui exec vitest run src/features/chat/features/session/components/session-header/__tests__/chat-session-header-actions.test.tsx`：1 个测试文件、5 个测试通过。
 - `pnpm clean:generated`：通过，generated artifacts clean。
 - `pnpm lint:new-code:governance -- <本次触达文件>`：通过。
 - `pnpm check:governance-backlog-ratchet`：通过。
@@ -56,6 +59,7 @@
 - 追加桌面验收：使用 `1600x1000` 视口打开右侧 `420px` dock，`/skills` 与 `/marketplace/mcp` 的详情面板均为 `iframeCount=0`；Metadata 与 Content 按实际容器宽度堆叠为单列，未被桌面断点挤成窄双列，截图 `/tmp/nextclaw-desktop-night-skill-detail-2.png`、`/tmp/nextclaw-desktop-night-mcp-detail-3.png`。
 - 追加 MCP 详情可读性验收：`Chrome DevTools MCP` 详情的 Metadata 不再展示 `summaryI18n` / `contentI18n` 这类嵌套调试对象；DOM 验证 `hasSummaryI18n=false`、`hasContentI18n=false`。
 - 主题顺序验收：桌面视口打开侧栏主题菜单，选项顺序为 `Night, Natural, Minimal, Paper, Mist, Dawn, Graphite, Probe`，截图 `/tmp/nextclaw-desktop-night-theme-menu.png`；源码确认 `DEFAULT_THEME` 仍为 `natural`。
+- 追加验收会话元数据弹窗：在 `http://127.0.0.1:5174/chat/sid_bmNwLW1yN2pwOGlwLWEwOGYyYjE1` 的 night 主题下打开 `Session Metadata`，JSON 文本颜色为 `rgb(238, 233, 221)`，背景为 `rgba(24, 27, 33, 0.6)`，边框为 `rgb(44, 49, 58)`，截图 `/tmp/nextclaw-night-session-metadata-dialog.png`。
 
 ## 发布/部署方式
 
@@ -74,6 +78,7 @@
 7. 在聊天输入框上传或粘贴图片，确认 `image.png` 文件 token 是暗色胶囊，而不是白底浅字。
 8. 在技能市场或 MCP 市场打开详情文档，确认右侧面板地址不再是 `data:text/html`，内容区、Metadata、Content、代码块和标签均为内置暗色可读样式。
 9. 打开主题菜单，确认 `暗夜` 排在主题列表前面，但首次默认主题仍不是暗夜。
+10. 打开会话头部菜单里的“查看元数据”，确认 JSON 内容在暗夜主题下清晰可读。
 
 ## 可维护性总结汇总
 
@@ -84,6 +89,8 @@
 附件 chip 追加修正统计：本轮 follow-up 总计 `+64 / -8`，其中生产代码 `+5 / -5`、测试 `+48 / -0`、changeset 与迭代记录 `+11 / -3`。生产代码是等量语义色替换，没有引入新的业务路径；新增测试单独落在 focused test 文件，避免继续膨胀既有大型输入框测试文件。
 
 右侧详情 React 化与主题排序追加修正统计：本轮 follow-up 总计 `+775 / -536`，净增 `+239`；其中生产/源码约 `+607 / -466`，测试 `+153 / -69`。正向减债动作是删除两套 `data:text/html` HTML 字符串生成器和旧 HTML renderer，统一收敛为一个内部 `marketplace-detail` React DocBrowser renderer 与小型详情 store，并让 Metadata 视图跳过嵌套调试对象。`post-edit-maintainability-guard --paths` 通过，提示新 `marketplace-detail-doc.tsx` 为 `442` 行、接近 `500` 行组件预算；后续若继续扩展 Markdown 能力，应优先拆出 Markdown parser，而不是继续堆大组件。
+
+会话元数据弹窗追加修正统计：本轮 follow-up 总计 `+4 / -2`，净增 `+2`；非测试生产代码 `+1 / -1`，净增 `0`。正向减债动作是把固定 gray/slate utility 等量替换为主题语义色，没有新增分支、状态或业务路径。`post-edit-maintainability-guard --non-feature --paths` 通过，无可维护性警告。
 
 目录和命名治理通过；没有新增业务 owner、wrapper、parallel implementation 或跨包 deep import。
 

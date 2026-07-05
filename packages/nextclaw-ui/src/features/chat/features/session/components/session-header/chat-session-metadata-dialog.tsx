@@ -36,7 +36,7 @@ export function ChatSessionMetadataDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="px-5 pb-5 pt-4">
-          <pre className="max-h-[60vh] overflow-auto rounded-lg border border-gray-200 bg-gray-950 p-4 text-xs leading-relaxed text-gray-100">
+          <pre className="max-h-[60vh] overflow-auto rounded-lg border border-border bg-muted/60 p-4 font-mono text-xs leading-6 text-foreground shadow-inner custom-scrollbar">
             {formatSessionMetadata(metadata)}
           </pre>
         </div>
