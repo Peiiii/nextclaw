@@ -1,5 +1,11 @@
 # @nextclaw/agent-chat
 
+## 0.3.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
 ## 0.2.16
 
 ### Patch Changes

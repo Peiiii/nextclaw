@@ -1,5 +1,20 @@
 # @nextclaw/nextclaw-narp-runtime-claude-code-sdk
 
+## 0.2.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [61e7a7a]
+- Updated dependencies [33a931f]
+  - @nextclaw/ncp@0.7.0
+  - @nextclaw/nextclaw-narp-stdio-runtime-wrapper@0.3.0
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk@0.2.0
+
 ## 0.1.34
 
 ### Patch Changes

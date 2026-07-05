@@ -1,5 +1,23 @@
 # @nextclaw/channel-extension-telegram
 
+## 0.2.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
+### Patch Changes
+
+- Updated dependencies [bf1917a]
+- Updated dependencies
+- Updated dependencies [6600b99]
+- Updated dependencies [7bcc180]
+- Updated dependencies [2d9d1b7]
+- Updated dependencies [7bcc180]
+- Updated dependencies [b0cb8c2]
+  - @nextclaw/core@0.15.0
+  - @nextclaw/extension-sdk@0.3.0
+
 ## 0.1.22
 
 ### Patch Changes

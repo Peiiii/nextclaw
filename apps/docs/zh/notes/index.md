@@ -14,6 +14,7 @@ description: 介于 changelog 与博客之间的短更新。
 
 ## 最新更新
 
+- [2026-07-05 · NextClaw v0.22.0](./2026-07-05-nextclaw-v0-22-0)
 - [2026-05-06 · 自动更新与长会话上下文管理上线](./2026-05-06-auto-update-and-context-awareness)
 - [2026-04-26 · 手机端访问更顺手了](./2026-04-26-mobile-experience-update)
 - [2026-04-03 · 会话现在会真正带着项目一起工作](./2026-04-03-project-aware-sessions-and-unified-patch-release)

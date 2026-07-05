@@ -1,5 +1,18 @@
 # @nextclaw/nextclaw-narp-stdio-runtime-wrapper
 
+## 0.3.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [61e7a7a]
+- Updated dependencies [33a931f]
+  - @nextclaw/ncp@0.7.0
+
 ## 0.2.16
 
 ### Patch Changes

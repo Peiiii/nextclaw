@@ -1,5 +1,11 @@
 # @nextclaw/aigen
 
+## 0.2.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
 ## 0.1.8
 
 ### Patch Changes

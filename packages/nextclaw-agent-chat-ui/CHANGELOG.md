@@ -1,5 +1,24 @@
 # @nextclaw/agent-chat-ui
 
+## 0.6.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
+### Patch Changes
+
+- 9df29a4: Collapse completed assistant reasoning and tool-process content behind a processed summary while keeping the final answer visible.
+- bf1917a: Add inert `nextclaw-inline` Markdown code blocks for inline display declarations, keep model-visible show-content tools side-panel only without a `placement` parameter, and render inline Panel App declarations without a side-panel expand action.
+- b2032cf: Add chat input queuing while an agent run is active, with editable queued drafts that send in order after the current run completes.
+- ad67894: Add a floating scroll-to-bottom action in chat conversations when the message list is away from the latest message.
+- 2d9d1b7: Fix Markdown absolute file links so local file anchors keep clean DOM output and continue opening through the chat workspace file preview action.
+- fee6faa: Add a Night theme with dark appearance persistence and improve dark-mode readability for Markdown, status surfaces, error notices, switches, composer file tokens, native right-side marketplace detail views, and the session metadata dialog.
+- 2d9d1b7: Add a rendered file-preview viewer for `show_content` so agents can open local HTML/page prototypes in the chat workspace side panel.
+- 2d8a871: Add Slash menu category filters with counts and let Slash panel app actions open panel apps in the right sidebar without inserting input tokens.
+- 7a77c87: Allow terminal tool cards with no command output to expand and show a distinct empty-output state.
+- eb0d40a: Highlight code syntax in workspace file previews by reusing the existing chat code highlighter and server language hints.
+
 ## 0.5.4
 
 ### Patch Changes

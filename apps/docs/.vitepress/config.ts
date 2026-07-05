@@ -154,6 +154,7 @@ const enNotesSidebar = [
     text: 'Product Notes',
     items: [
       { text: 'Overview', link: '/en/notes/' },
+      { text: '2026-07-05: NextClaw v0.22.0', link: '/en/notes/2026-07-05-nextclaw-v0-22-0' },
       { text: '2026-05-06: Auto Updates and Long-Context Awareness', link: '/en/notes/2026-05-06-auto-update-and-context-awareness' },
       { text: '2026-04-26: NextClaw Feels Better on Mobile', link: '/en/notes/2026-04-26-mobile-experience-update' },
       { text: '2026-04-03: Sessions Now Actually Stay Project-Aware', link: '/en/notes/2026-04-03-project-aware-sessions-and-unified-patch-release' },
@@ -257,6 +258,7 @@ const zhNotesSidebar = [
     text: '产品更新笔记',
     items: [
       { text: '总览', link: '/zh/notes/' },
+      { text: '2026-07-05：NextClaw v0.22.0', link: '/zh/notes/2026-07-05-nextclaw-v0-22-0' },
       { text: '2026-05-06：自动更新与长会话上下文管理上线', link: '/zh/notes/2026-05-06-auto-update-and-context-awareness' },
       { text: '2026-04-26：手机端访问更顺手了', link: '/zh/notes/2026-04-26-mobile-experience-update' },
       { text: '2026-04-03：会话现在会真正带着项目一起工作', link: '/zh/notes/2026-04-03-project-aware-sessions-and-unified-patch-release' },

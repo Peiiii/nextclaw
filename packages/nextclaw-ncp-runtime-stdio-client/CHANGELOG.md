@@ -1,5 +1,29 @@
 # @nextclaw/nextclaw-ncp-runtime-stdio-client
 
+## 0.3.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
+### Patch Changes
+
+- 33a931f: Add standard NCP event timing and message lifecycle fields so completed assistant process summaries can show real elapsed time derived from started and ended timestamps.
+  Stamp first-party runtime, transport, and extension-produced NCP events at their producer boundary instead of estimating duration in UI or journal consumers.
+  Make Codex app-server aborts emit the standard NCP abort event promptly so the conversation leaves the running state without waiting for another app-server notification.
+- Updated dependencies [bf1917a]
+- Updated dependencies
+- Updated dependencies [6600b99]
+- Updated dependencies [61e7a7a]
+- Updated dependencies [33a931f]
+- Updated dependencies [7bcc180]
+- Updated dependencies [2d9d1b7]
+- Updated dependencies [7bcc180]
+- Updated dependencies [b0cb8c2]
+  - @nextclaw/core@0.15.0
+  - @nextclaw/ncp@0.7.0
+  - @nextclaw/ncp-toolkit@0.6.0
+
 ## 0.2.17
 
 ### Patch Changes

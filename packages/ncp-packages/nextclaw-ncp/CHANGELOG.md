@@ -1,5 +1,18 @@
 # @nextclaw/ncp
 
+## 0.7.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+- 33a931f: Add standard NCP event timing and message lifecycle fields so completed assistant process summaries can show real elapsed time derived from started and ended timestamps.
+  Stamp first-party runtime, transport, and extension-produced NCP events at their producer boundary instead of estimating duration in UI or journal consumers.
+  Make Codex app-server aborts emit the standard NCP abort event promptly so the conversation leaves the running state without waiting for another app-server notification.
+
+### Patch Changes
+
+- 61e7a7a: Fix native agent runtime cancellation while a tool call is still running and propagate abort signals to NCP/MCP tool execution.
+
 ## 0.6.6
 
 ### Patch Changes

@@ -1,5 +1,59 @@
 # @nextclaw/ui
 
+## 0.15.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
+### Patch Changes
+
+- 3cf5890: Fix chat attachments being dropped after upload or paste, and stop sending a default image detail value that some OpenAI-compatible providers reject.
+- 9df29a4: Collapse completed assistant reasoning and tool-process content behind a processed summary while keeping the final answer visible.
+- bf1917a: Add inert `nextclaw-inline` Markdown code blocks for inline display declarations, keep model-visible show-content tools side-panel only without a `placement` parameter, and render inline Panel App declarations without a side-panel expand action.
+- b2032cf: Add chat input queuing while an agent run is active, with editable queued drafts that send in order after the current run completes.
+- ad67894: Add a floating scroll-to-bottom action in chat conversations when the message list is away from the latest message.
+- fd95ade: Show failed session previews inside the chat detail view near the composer so conversation-level errors are visible beyond the session list.
+- 854f3db: Expand compact workspace/browser tab hit areas so clicking the full visible tab selects it while close buttons remain isolated.
+- 2e15783: Auto-collapse the left sidebar on narrower desktop layouts when docked DocBrowser and the chat workspace right panel are both opened, keeping the central chat workspace usable without turning the behavior into a continuous layout state calculation.
+- d9b60a7: Improve floating DocBrowser interactions: drag from the header, resize from all four corners, use a semantic float icon, and keep tooltips, popovers, and dialogs above floating panels.
+- 191c011: Serve rendered local HTML previews through unrestricted iframe URLs so scripts and relative assets can run closer to normal browser behavior.
+- 2d9d1b7: Fix Markdown absolute file links so local file anchors keep clean DOM output and continue opening through the chat workspace file preview action.
+- 33a931f: Add standard NCP event timing and message lifecycle fields so completed assistant process summaries can show real elapsed time derived from started and ended timestamps.
+  Stamp first-party runtime, transport, and extension-produced NCP events at their producer boundary instead of estimating duration in UI or journal consumers.
+  Make Codex app-server aborts emit the standard NCP abort event promptly so the conversation leaves the running state without waiting for another app-server notification.
+- fee6faa: Add a Night theme with dark appearance persistence and improve dark-mode readability for Markdown, status surfaces, error notices, switches, composer file tokens, native right-side marketplace detail views, and the session metadata dialog.
+- 7bcc180: Split the model-facing `show_content` display tool into `show_file`, `show_url`, and `show_panel_app` so required display parameters are explicit JSON Schema properties instead of nested description-only payload fields.
+- 854f3db: Allow source and rendered previews for the same file to stay open as separate chat workspace tabs.
+- 2d9d1b7: Add a rendered file-preview viewer for `show_content` so agents can open local HTML/page prototypes in the chat workspace side panel.
+- 7bcc180: Open `show_url` targets as browser-like content tabs with address, refresh, external-open controls, and local development server guidance.
+- be1759e: Add bottom SideDock utilities for opening the NextClaw GitHub project, hiding the dock with confirmation, and restoring it from Appearance settings.
+- c6ca436: Align left sidebar hover and selected-state feedback across navigation, utility, and session-adjacent rows so scheduled tasks, skills, agent management, and session list items share the same understated gray interaction treatment. The fixed sidebar footer now drops the divider line and uses a subtle scroll-edge fade above the bottom controls to make the list-to-footer handoff feel lighter.
+- 2d8a871: Add Slash menu category filters with counts and let Slash panel app actions open panel apps in the right sidebar without inserting input tokens.
+- 9338c97: Make workspace file preview breadcrumbs clickable so users can browse nearby folders and open files directly from the breadcrumb menu.
+- eb0d40a: Highlight code syntax in workspace file previews by reusing the existing chat code highlighter and server language hints.
+- Updated dependencies [9df29a4]
+- Updated dependencies [bf1917a]
+- Updated dependencies [b2032cf]
+- Updated dependencies [ad67894]
+- Updated dependencies
+- Updated dependencies [2d9d1b7]
+- Updated dependencies [61e7a7a]
+- Updated dependencies [33a931f]
+- Updated dependencies [fee6faa]
+- Updated dependencies [2d9d1b7]
+- Updated dependencies [2d8a871]
+- Updated dependencies [7a77c87]
+- Updated dependencies [eb0d40a]
+  - @nextclaw/agent-chat-ui@0.6.0
+  - @nextclaw/agent-chat@0.3.0
+  - @nextclaw/client-sdk@0.5.0
+  - @nextclaw/ncp@0.7.0
+  - @nextclaw/ncp-http-agent-client@0.4.0
+  - @nextclaw/ncp-react@0.5.0
+  - @nextclaw/ncp-toolkit@0.6.0
+  - @nextclaw/shared@0.4.0
+
 ## 0.14.4
 
 ### Patch Changes

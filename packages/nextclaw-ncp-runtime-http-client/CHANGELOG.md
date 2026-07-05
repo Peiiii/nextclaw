@@ -1,5 +1,19 @@
 # @nextclaw/nextclaw-ncp-runtime-http-client
 
+## 0.3.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [61e7a7a]
+- Updated dependencies [33a931f]
+  - @nextclaw/ncp@0.7.0
+  - @nextclaw/ncp-http-agent-client@0.4.0
+
 ## 0.2.16
 
 ### Patch Changes

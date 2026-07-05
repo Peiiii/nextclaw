@@ -1,5 +1,20 @@
 # @nextclaw/extension-sdk
 
+## 0.3.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [61e7a7a]
+- Updated dependencies [33a931f]
+- Updated dependencies [2d9d1b7]
+  - @nextclaw/ncp@0.7.0
+  - @nextclaw/shared@0.4.0
+
 ## 0.2.17
 
 ### Patch Changes

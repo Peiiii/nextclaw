@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#FAF9F7" />
-  <meta name="color-scheme" content="light" />
+  <meta name="color-scheme" content="light dark" />
   <style>
     html,
     body,
@@ -50,6 +50,12 @@
       background: #f8f8f7;
     }
 
+    html[data-theme="night"],
+    html[data-theme="night"] body,
+    html[data-theme="night"] #root {
+      background: #101318;
+    }
+
     html[data-theme="probe"],
     html[data-theme="probe"] body,
     html[data-theme="probe"] #root {
@@ -67,7 +73,18 @@
         cool: '#F8FAFC',
         dawn: '#FAF7F4',
         graphite: '#F8F8F7',
+        night: '#101318',
         probe: '#FEFCF6'
+      };
+      const themeAppearances = {
+        natural: 'light',
+        minimal: 'light',
+        warm: 'light',
+        cool: 'light',
+        dawn: 'light',
+        graphite: 'light',
+        night: 'dark',
+        probe: 'light'
       };
       const legacyThemeAliases = {
         leaf: 'warm'
@@ -82,12 +99,18 @@
         window.localStorage.setItem(storageKey, nextTheme);
       }
       const themeColor = themeColors[nextTheme];
+      const themeAppearance = themeAppearances[nextTheme];
       document.documentElement.setAttribute('data-theme', nextTheme);
+      document.documentElement.setAttribute('data-theme-appearance', themeAppearance);
       document.documentElement.style.backgroundColor = themeColor;
-      document.documentElement.style.colorScheme = 'light';
+      document.documentElement.style.colorScheme = themeAppearance;
       const themeMeta = document.querySelector('meta[name="theme-color"]');
       if (themeMeta) {
         themeMeta.setAttribute('content', themeColor);
+      }
+      const colorSchemeMeta = document.querySelector('meta[name="color-scheme"]');
+      if (colorSchemeMeta) {
+        colorSchemeMeta.setAttribute('content', themeAppearance);
       }
     })();
   </script>
@@ -155,21 +178,34 @@
     })();
   </script>
   <title>NextClaw</title>
-  <script type="module" crossorigin src="/assets/index-D9BAE_L_.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/react-VNqT5Zp7.js">
-  <link rel="modulepreload" crossorigin href="/assets/dist-PVA_xL1D.js">
-  <link rel="modulepreload" crossorigin href="/assets/select-hoj8dK4K.js">
-  <link rel="modulepreload" crossorigin href="/assets/dist-CikkhOlq.js">
-  <link rel="modulepreload" crossorigin href="/assets/api-BP_8IaxB.js">
-  <link rel="modulepreload" crossorigin href="/assets/x-D9PXs_xP.js">
-  <link rel="modulepreload" crossorigin href="/assets/confirm-dialog-DsivFJ4r.js">
-  <link rel="modulepreload" crossorigin href="/assets/search-BEti5beA.js">
-  <link rel="modulepreload" crossorigin href="/assets/external-link-DVJIQf_G.js">
-  <link rel="modulepreload" crossorigin href="/assets/plus-BbZqquJe.js">
-  <link rel="modulepreload" crossorigin href="/assets/middleware-CkFT3R4v.js">
-  <link rel="modulepreload" crossorigin href="/assets/doc-browser-context-MTw4EvKd.js">
-  <link rel="modulepreload" crossorigin href="/assets/doc-browser-CdJ_d4ik.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-BiE-K8-q.css">
+  <script type="module" crossorigin src="/assets/index-Z1fYpbNd.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/react-DjpzoZXB.js">
+  <link rel="modulepreload" crossorigin href="/assets/dist-D2eZC3OR.js">
+  <link rel="modulepreload" crossorigin href="/assets/dist-CBxWOazz.js">
+  <link rel="modulepreload" crossorigin href="/assets/tooltip-DfAHHA76.js">
+  <link rel="modulepreload" crossorigin href="/assets/book-open-BQwWBDKb.js">
+  <link rel="modulepreload" crossorigin href="/assets/plus-3ztRZD_l.js">
+  <link rel="modulepreload" crossorigin href="/assets/x-DqL1mYLC.js">
+  <link rel="modulepreload" crossorigin href="/assets/middleware-BILWbJE4.js">
+  <link rel="modulepreload" crossorigin href="/assets/doc-browser-context-Sv-044Cl.js">
+  <link rel="modulepreload" crossorigin href="/assets/es2015-DhQo_oS6.js">
+  <link rel="modulepreload" crossorigin href="/assets/switch-C1BWMU5c.js">
+  <link rel="modulepreload" crossorigin href="/assets/confirm-dialog-iIJFFp2T.js">
+  <link rel="modulepreload" crossorigin href="/assets/use-confirm-dialog-eWcJ6V-s.js">
+  <link rel="modulepreload" crossorigin href="/assets/host-capabilities-9bB_998Z.js">
+  <link rel="modulepreload" crossorigin href="/assets/side-dock-BcLau5S_.js">
+  <link rel="modulepreload" crossorigin href="/assets/select-D7GcNP0z.js">
+  <link rel="modulepreload" crossorigin href="/assets/api-DLtsiBKm.js">
+  <link rel="modulepreload" crossorigin href="/assets/search-MxAarS_g.js">
+  <link rel="modulepreload" crossorigin href="/assets/external-link-CM5dnUI6.js">
+  <link rel="modulepreload" crossorigin href="/assets/refresh-cw-DaTv3zxE.js">
+  <link rel="modulepreload" crossorigin href="/assets/doc-browser-B76XOXmW.js">
+  <link rel="modulepreload" crossorigin href="/assets/i18n-provider-di1waTGX.js">
+  <link rel="modulepreload" crossorigin href="/assets/loader-circle-BjmN5DeJ.js">
+  <link rel="modulepreload" crossorigin href="/assets/skeleton-shfmXuYp.js">
+  <link rel="modulepreload" crossorigin href="/assets/tag-chip-DCUrQUCP.js">
+  <link rel="modulepreload" crossorigin href="/assets/mcp-marketplace-page-C_MVQUbT.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-CBRP-7-a.css">
 </head>
 
 <body>

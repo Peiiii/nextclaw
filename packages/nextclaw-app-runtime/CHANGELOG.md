@@ -1,5 +1,11 @@
 # @nextclaw/app-runtime
 
+## 0.9.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
 ## 0.8.16
 
 ### Patch Changes

@@ -1,5 +1,24 @@
 # @nextclaw/ncp-agent-runtime
 
+## 0.4.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
+### Patch Changes
+
+- 3cf5890: Fix chat attachments being dropped after upload or paste, and stop sending a default image detail value that some OpenAI-compatible providers reject.
+- 549fb8a: Fix native agent runtime tool-call streaming so ready tool calls can publish results before the model round finishes while preserving incremental argument deltas and serial tool execution.
+- 33a931f: Add standard NCP event timing and message lifecycle fields so completed assistant process summaries can show real elapsed time derived from started and ended timestamps.
+  Stamp first-party runtime, transport, and extension-produced NCP events at their producer boundary instead of estimating duration in UI or journal consumers.
+  Make Codex app-server aborts emit the standard NCP abort event promptly so the conversation leaves the running state without waiting for another app-server notification.
+- b0cb8c2: Add a `view_image` core agent tool that lets models read local PNG, JPEG, WebP, and GIF files as visual input while preserving the existing workspace restriction policy when enabled.
+- Updated dependencies
+- Updated dependencies [61e7a7a]
+- Updated dependencies [33a931f]
+  - @nextclaw/ncp@0.7.0
+
 ## 0.3.47
 
 ### Patch Changes

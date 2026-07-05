@@ -1,5 +1,27 @@
 # @nextclaw/ncp-agent-runtime-next
 
+## 0.1.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
+### Patch Changes
+
+- 61e7a7a: Fix native agent runtime cancellation while a tool call is still running and propagate abort signals to NCP/MCP tool execution.
+- 549fb8a: Fix native agent runtime tool-call streaming so ready tool calls can publish results before the model round finishes while preserving incremental argument deltas and serial tool execution.
+- 33a931f: Add standard NCP event timing and message lifecycle fields so completed assistant process summaries can show real elapsed time derived from started and ended timestamps.
+  Stamp first-party runtime, transport, and extension-produced NCP events at their producer boundary instead of estimating duration in UI or journal consumers.
+  Make Codex app-server aborts emit the standard NCP abort event promptly so the conversation leaves the running state without waiting for another app-server notification.
+- Updated dependencies [3cf5890]
+- Updated dependencies
+- Updated dependencies [61e7a7a]
+- Updated dependencies [549fb8a]
+- Updated dependencies [33a931f]
+- Updated dependencies [b0cb8c2]
+  - @nextclaw/ncp-agent-runtime@0.4.0
+  - @nextclaw/ncp@0.7.0
+
 ## 0.0.19
 
 ### Patch Changes

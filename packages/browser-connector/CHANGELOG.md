@@ -1,5 +1,11 @@
 # @nextclaw/browser-connector
 
+## 0.3.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
 ## 0.2.6
 
 ### Patch Changes

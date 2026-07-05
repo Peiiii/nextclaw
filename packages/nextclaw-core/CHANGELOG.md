@@ -1,5 +1,24 @@
 # nextclaw-core
 
+## 0.15.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
+### Patch Changes
+
+- bf1917a: Add inert `nextclaw-inline` Markdown code blocks for inline display declarations, keep model-visible show-content tools side-panel only without a `placement` parameter, and render inline Panel App declarations without a side-panel expand action.
+- 6600b99: Disable automatic learning-loop reviews by default for new or unset NextClaw configs while keeping explicit user settings and the existing enable command intact.
+- 7bcc180: Split the model-facing `show_content` display tool into `show_file`, `show_url`, and `show_panel_app` so required display parameters are explicit JSON Schema properties instead of nested description-only payload fields.
+- 2d9d1b7: Add a rendered file-preview viewer for `show_content` so agents can open local HTML/page prototypes in the chat workspace side panel.
+- 7bcc180: Open `show_url` targets as browser-like content tabs with address, refresh, external-open controls, and local development server guidance.
+- b0cb8c2: Add a `view_image` core agent tool that lets models read local PNG, JPEG, WebP, and GIF files as visual input while preserving the existing workspace restriction policy when enabled.
+- Updated dependencies
+- Updated dependencies [2d9d1b7]
+  - @nextclaw/feishu-core@0.3.0
+  - @nextclaw/shared@0.4.0
+
 ## 0.14.8
 
 ### Patch Changes

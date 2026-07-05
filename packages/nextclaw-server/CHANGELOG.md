@@ -1,5 +1,32 @@
 # nextclaw-server
 
+## 0.15.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
+### Patch Changes
+
+- 191c011: Serve rendered local HTML previews through unrestricted iframe URLs so scripts and relative assets can run closer to normal browser behavior.
+- 0c06d9d: Fix false error previews for completed chat sessions whose activity preview was left in a running state.
+- Updated dependencies [34f4048]
+- Updated dependencies [bf1917a]
+- Updated dependencies
+- Updated dependencies [6600b99]
+- Updated dependencies [61e7a7a]
+- Updated dependencies [33a931f]
+- Updated dependencies [0c06d9d]
+- Updated dependencies [7bcc180]
+- Updated dependencies [2d9d1b7]
+- Updated dependencies [7bcc180]
+- Updated dependencies [b0cb8c2]
+  - @nextclaw/kernel@0.6.0
+  - @nextclaw/core@0.15.0
+  - @nextclaw/mcp@0.3.0
+  - @nextclaw/ncp@0.7.0
+  - @nextclaw/runtime@0.4.0
+
 ## 0.14.8
 
 ### Patch Changes

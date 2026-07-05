@@ -1,5 +1,42 @@
 # nextclaw
 
+## 0.22.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
+### Patch Changes
+
+- Updated dependencies [34f4048]
+- Updated dependencies [3cf5890]
+- Updated dependencies [bf1917a]
+- Updated dependencies
+- Updated dependencies [6600b99]
+- Updated dependencies [191c011]
+- Updated dependencies [61e7a7a]
+- Updated dependencies [549fb8a]
+- Updated dependencies [33a931f]
+- Updated dependencies [0c06d9d]
+- Updated dependencies [7bcc180]
+- Updated dependencies [2d9d1b7]
+- Updated dependencies [7bcc180]
+- Updated dependencies [b0cb8c2]
+  - @nextclaw/kernel@0.6.0
+  - @nextclaw/ncp-agent-runtime@0.4.0
+  - @nextclaw/core@0.15.0
+  - @nextclaw/mcp@0.3.0
+  - @nextclaw/ncp@0.7.0
+  - @nextclaw/ncp-mcp@0.2.0
+  - @nextclaw/ncp-toolkit@0.6.0
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.0
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.0
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.0
+  - @nextclaw/remote@0.3.0
+  - @nextclaw/runtime@0.4.0
+  - @nextclaw/server@0.15.0
+  - @nextclaw/service@0.3.0
+
 ## 0.21.12
 
 ### Patch Changes

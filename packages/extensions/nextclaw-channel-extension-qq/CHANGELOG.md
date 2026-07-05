@@ -1,5 +1,16 @@
 # @nextclaw/channel-extension-qq
 
+## 0.2.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/extension-sdk@0.3.0
+
 ## 0.1.25
 
 ### Patch Changes

@@ -1,5 +1,20 @@
 # @nextclaw/ncp-mcp
 
+## 0.2.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
+### Patch Changes
+
+- 61e7a7a: Fix native agent runtime cancellation while a tool call is still running and propagate abort signals to NCP/MCP tool execution.
+- Updated dependencies
+- Updated dependencies [61e7a7a]
+- Updated dependencies [33a931f]
+  - @nextclaw/mcp@0.3.0
+  - @nextclaw/ncp@0.7.0
+
 ## 0.1.113
 
 ### Patch Changes

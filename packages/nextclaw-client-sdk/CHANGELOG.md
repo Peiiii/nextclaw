@@ -1,5 +1,23 @@
 # @nextclaw/client-sdk
 
+## 0.5.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [191c011]
+- Updated dependencies [61e7a7a]
+- Updated dependencies [33a931f]
+- Updated dependencies [0c06d9d]
+- Updated dependencies [2d9d1b7]
+  - @nextclaw/ncp@0.7.0
+  - @nextclaw/server@0.15.0
+  - @nextclaw/shared@0.4.0
+
 ## 0.4.7
 
 ### Patch Changes

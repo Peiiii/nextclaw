@@ -1,5 +1,16 @@
 # @nextclaw/companion
 
+## 0.2.0
+
+### Minor Changes
+
+- Publish the full public NextClaw workspace as a stable minor release.
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/client-sdk@0.5.0
+
 ## 0.1.35
 
 ### Patch Changes

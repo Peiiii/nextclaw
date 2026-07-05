@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-07-05T06:14:32.988Z",
+  "generatedAt": "2026-07-05T09:31:24.935Z",
   "hero": {
     "currentLoc": 194185,
     "testLoc": 61244,
     "trackedFiles": 2095,
-    "recentCommitCount": 197,
+    "recentCommitCount": 210,
     "activeDays30": 30,
-    "recentReleaseCount": 45,
-    "latestReleaseDate": "2026-07-03",
-    "latestNoteDate": "2026-05-06",
+    "recentReleaseCount": 47,
+    "latestReleaseDate": "2026-07-05",
+    "latestNoteDate": "2026-07-05",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 1770162,
     "basePercentOfBenchmark": 10.97,
@@ -1048,7 +1048,7 @@ export default {
       {
         "key": "2026-07-05",
         "label": "07-05",
-        "value": 9
+        "value": 22
       }
     ],
     "commitWeekly": [
@@ -1110,7 +1110,7 @@ export default {
       {
         "key": "2026-06-29",
         "label": "06-29",
-        "value": 38
+        "value": 51
       }
     ],
     "releaseMonthly": [
@@ -1167,12 +1167,12 @@ export default {
       {
         "key": "2026-06",
         "label": "06/26",
-        "value": 13
+        "value": 14
       },
       {
         "key": "2026-07",
         "label": "07/26",
-        "value": 1
+        "value": 2
       }
     ]
   },
@@ -1243,6 +1243,15 @@ export default {
     },
     "recentReleaseBatches": [
       {
+        "date": "2026-07-05",
+        "tagCount": 49,
+        "sampleTags": [
+          "@nextclaw/agent-chat-ui@0.6.0",
+          "@nextclaw/agent-chat@0.3.0",
+          "@nextclaw/aigen@0.2.0"
+        ]
+      },
+      {
         "date": "2026-07-03",
         "tagCount": 100,
         "sampleTags": [
@@ -1262,10 +1271,11 @@ export default {
       },
       {
         "date": "2026-06-19",
-        "tagCount": 2,
+        "tagCount": 51,
         "sampleTags": [
           "v0.21.9-desktop-beta.2",
-          "v0.21.10-desktop.1"
+          "@nextclaw/agent-chat-ui@0.5.2",
+          "@nextclaw/agent-chat@0.2.15"
         ]
       },
       {
@@ -1285,20 +1295,32 @@ export default {
           "@nextclaw/agent-chat@0.2.14-beta.1",
           "@nextclaw/aigen@0.1.6-beta.1"
         ]
-      },
-      {
-        "date": "2026-06-16",
-        "tagCount": 49,
-        "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.5.1-beta.0",
-          "@nextclaw/agent-chat@0.2.14-beta.0",
-          "@nextclaw/aigen@0.1.6-beta.0"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-07-05-nextclaw-v0-22-0",
+        "date": "2026-07-05",
+        "tags": [
+          "release",
+          "chat",
+          "preview",
+          "theme",
+          "runtime"
+        ],
+        "en": {
+          "title": "2026-07-05 · NextClaw v0.22.0",
+          "description": "NextClaw v0.22.0 improves chat task flow, content previews, Night theme, attachment delivery, and runtime diagnostics.",
+          "href": "/en/notes/2026-07-05-nextclaw-v0-22-0"
+        },
+        "zh": {
+          "title": "2026-07-05 · NextClaw v0.22.0",
+          "description": "NextClaw v0.22.0 改进了聊天任务流、内容预览、夜间主题、附件发送和运行时诊断。",
+          "href": "/zh/notes/2026-07-05-nextclaw-v0-22-0"
+        }
+      },
       {
         "slug": "2026-05-06-auto-update-and-context-awareness",
         "date": "2026-05-06",
@@ -1479,7 +1501,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-07-05T06:14:31.577Z",
     "sourceCount": {
-      "notes": 5,
+      "notes": 6,
       "scopes": 8
     }
   }
