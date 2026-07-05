@@ -6,6 +6,7 @@ import {
   type NcpToolInvocationPart,
   sanitizeAssistantReplyTags,
 } from "@nextclaw/ncp";
+import { AGENT_RUN_MESSAGE_RUN_SPEC_METADATA_KEY } from "./agent-run-metadata.utils.js";
 
 export function normalizeString(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -98,6 +99,10 @@ export function extractMessageMetadata(messages: NcpMessage[]): Record<string, u
     }
     const metadata = cloneMetadata(message.metadata);
     if (metadata) {
+      delete metadata[AGENT_RUN_MESSAGE_RUN_SPEC_METADATA_KEY];
+      if (Object.keys(metadata).length === 0) {
+        continue;
+      }
       return metadata;
     }
   }

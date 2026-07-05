@@ -30,8 +30,29 @@ import type {
   AgentRunAccepted,
   AgentRunRequest,
   AgentRunSpec,
+  ThinkingEffort,
 } from "@kernel/types/agent-run.types.js";
 import type { AgentRunSession } from "@kernel/types/session.types.js";
+import { AGENT_RUN_MESSAGE_RUN_SPEC_METADATA_KEY } from "@kernel/utils/agent-run-metadata.utils.js";
+
+type AgentRunModelSource = "request" | "session" | "default";
+
+type AgentRunMessageRunSpecMetadata = {
+  version: 1;
+  runId: string;
+  startedAt: string;
+  sessionId: string;
+  agentRuntimeId: string;
+  agentId: string;
+  model: string;
+  modelSource: AgentRunModelSource;
+  requestedModel: string | null;
+  maxTokens: number | undefined;
+  thinkingEffort: ThinkingEffort | null | undefined;
+  projectRoot: string | null;
+  workingDir: string | null;
+  correlationId: string | null;
+};
 
 function toAgentRunRequest(
   envelope: AgentRunSendIngressPayload,
@@ -133,16 +154,23 @@ function createSyntheticRunErrorEvent(params: {
   correlationId?: string;
   startedAt: string;
 }): NcpEndpointEvent {
+  const {
+    correlationId,
+    error,
+    runId,
+    sessionId,
+    startedAt,
+  } = params;
   const endedAt = new Date().toISOString();
   return {
     occurredAt: endedAt,
     type: NcpEventType.RunError,
     payload: {
-      error: params.error instanceof Error ? params.error.message : String(params.error),
-      runId: params.runId,
-      sessionId: params.sessionId,
-      correlationId: params.correlationId,
-      startedAt: params.startedAt,
+      error: error instanceof Error ? error.message : String(error),
+      runId,
+      sessionId,
+      correlationId,
+      startedAt,
       endedAt,
     },
   };
@@ -210,6 +238,71 @@ function readMessageTask(message: NcpMessage): string {
         : [],
     )[0] ?? "Session"
   );
+}
+
+function resolveRunSpec(params: {
+  agentManager: AgentManager;
+  configManager: ConfigManager;
+  request: AgentRunRequest;
+  runId: string;
+  session: AgentRunSession;
+}): { modelSource: AgentRunModelSource; spec: AgentRunSpec } {
+  const { agentManager, configManager, request, runId, session } = params;
+  const modelSource =
+    request.model !== undefined
+      ? "request"
+      : session.model !== undefined
+        ? "session"
+        : "default";
+  const model = request.model ?? session.model ?? configManager.getDefaultModel();
+  const agentId =
+    request.agentId ??
+    session.agentId ??
+    agentManager.getDefaultAgentId();
+  return {
+    modelSource,
+    spec: {
+      runId,
+      agentId,
+      model,
+      maxTokens: request.maxTokens ?? configManager.getModelMaxTokens(model),
+      thinkingEffort: request.thinkingEffort ?? session.thinkingEffort ?? null,
+      correlationId: request.correlationId,
+    },
+  };
+}
+
+function attachRunSpecMetadata(params: {
+  message: NcpMessage;
+  modelSource: AgentRunModelSource;
+  request: AgentRunRequest;
+  session: AgentRunSession;
+  spec: AgentRunSpec;
+  startedAt: string;
+}): NcpMessage {
+  const { message, modelSource, request, session, spec, startedAt } = params;
+  const metadata = structuredClone(message.metadata ?? {});
+  const runSpec: AgentRunMessageRunSpecMetadata = {
+    version: 1,
+    runId: spec.runId,
+    startedAt,
+    sessionId: session.sessionId,
+    agentRuntimeId: session.agentRuntimeId,
+    agentId: spec.agentId,
+    model: spec.model,
+    modelSource,
+    requestedModel: request.model ?? null,
+    maxTokens: spec.maxTokens,
+    thinkingEffort: spec.thinkingEffort,
+    projectRoot: request.projectRoot ?? session.projectRoot ?? null,
+    workingDir: session.workingDir ?? null,
+    correlationId: spec.correlationId ?? null,
+  };
+  metadata[AGENT_RUN_MESSAGE_RUN_SPEC_METADATA_KEY] = runSpec;
+  return {
+    ...message,
+    metadata,
+  };
 }
 
 export class AgentRunRequestManager {
@@ -299,16 +392,10 @@ export class AgentRunRequestManager {
     const sessionRun =
       this.sessionRunManager.getSessionRun(session.sessionId) ??
       (await this.sessionRunManager.createSessionRun(session.sessionId));
-    const message: NcpMessage = {
+    const baseMessage: NcpMessage = {
       ...request.message,
       sessionId: session.sessionId,
     };
-    const providerRequest: AgentRunRequest = {
-      ...request,
-      sessionId: session.sessionId,
-      message,
-    };
-    sessionRun.inbox.enqueue(message);
     let stopPublishingRunStatus = (): void => undefined;
     stopPublishingRunStatus = sessionRun.onStatusChange((status) => {
       this.eventBus.emit(eventKeys.sessionRunStatus, {
@@ -333,20 +420,27 @@ export class AgentRunRequestManager {
       }
     })();
 
-    const model =
-      request.model ?? session.model ?? this.configManager.getDefaultModel();
-    const agentId =
-      request.agentId ??
-      session.agentId ??
-      this.agentManager.getDefaultAgentId();
-    const spec: AgentRunSpec = {
+    const { modelSource, spec } = resolveRunSpec({
+      agentManager: this.agentManager,
+      configManager: this.configManager,
+      request,
       runId: activeRun.runId,
-      agentId,
-      model,
-      maxTokens: request.maxTokens ?? this.configManager.getModelMaxTokens(model),
-      thinkingEffort: request.thinkingEffort ?? session.thinkingEffort ?? null,
-      correlationId: request.correlationId,
+      session,
+    });
+    const message = attachRunSpecMetadata({
+      message: baseMessage,
+      modelSource,
+      request,
+      session,
+      spec,
+      startedAt: requestRunStartedAt,
+    });
+    const providerRequest: AgentRunRequest = {
+      ...request,
+      sessionId: session.sessionId,
+      message,
     };
+    sessionRun.inbox.enqueue(message);
 
     const runtime = this.agentRuntimeManager.getOrCreate({
       agentRuntimeId: session.agentRuntimeId,

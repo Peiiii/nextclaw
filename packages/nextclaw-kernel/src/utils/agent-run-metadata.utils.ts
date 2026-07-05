@@ -1,5 +1,7 @@
 import type { AgentRouteResolver, InboundMessage } from "@nextclaw/core";
 
+export const AGENT_RUN_MESSAGE_RUN_SPEC_METADATA_KEY = "run_spec";
+
 const LEGACY_RUN_METADATA_KEYS = [
   "account_id",
   "agent_id",
