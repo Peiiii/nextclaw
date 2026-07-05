@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useRuntimeUpdateStore } from '@/features/system-status';
 import { DesktopUpdateConfig } from '@/features/system-status/components/desktop-update-config';
 import { setLanguage } from '@/shared/lib/i18n';
@@ -25,6 +26,22 @@ vi.mock('@/features/system-status', async () => {
     runtimeUpdateManager: mocks,
   };
 });
+
+function renderDesktopUpdateConfig() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        gcTime: 0,
+        retry: false
+      }
+    }
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <DesktopUpdateConfig />
+    </QueryClientProvider>
+  );
+}
 
 describe('DesktopUpdateConfig', () => {
   beforeEach(() => {
@@ -60,7 +77,7 @@ describe('DesktopUpdateConfig', () => {
         availableVersion: '0.18.2-beta.1',
         downloadedVersion: null,
         minimumHostVersion: null,
-        releaseNotesUrl: 'https://example.com/release-notes',
+        releaseNotesUrl: null,
         lastCheckedAt: '2026-04-13T12:00:00.000Z',
         progress: null,
         canAutoDownload: false,
@@ -77,8 +94,12 @@ describe('DesktopUpdateConfig', () => {
     });
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('renders current channel information and beta guidance', () => {
-    render(<DesktopUpdateConfig />);
+    renderDesktopUpdateConfig();
 
     expect(mocks.start).not.toHaveBeenCalled();
     expect(mocks.stop).not.toHaveBeenCalled();
@@ -93,7 +114,7 @@ describe('DesktopUpdateConfig', () => {
   it('sends the newly selected release channel to the desktop update manager', async () => {
     const user = userEvent.setup();
 
-    render(<DesktopUpdateConfig />);
+    renderDesktopUpdateConfig();
 
     await user.click(screen.getByRole('combobox'));
     await user.click(screen.getByRole('option', { name: 'Stable' }));
@@ -118,9 +139,80 @@ describe('DesktopUpdateConfig', () => {
         : null
     }));
 
-    render(<DesktopUpdateConfig />);
+    renderDesktopUpdateConfig();
 
     expect(screen.getByText('正在下载 50%')).toBeTruthy();
     expect(screen.getByText('50 B / 100 B')).toBeTruthy();
+  });
+
+  it('loads structured release notes from the docs JSON endpoint', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      schemaVersion: 1,
+      product: 'NextClaw',
+      version: '0.22.0',
+      sections: [
+        {
+          kind: 'feature',
+          title: {
+            'zh-CN': '功能',
+            'en-US': 'Features'
+          },
+          items: [
+            {
+              title: {
+                'zh-CN': '更新前查看内容',
+                'en-US': 'Review before updating'
+              },
+              body: {
+                'zh-CN': '更新提示可以直接展示本版本的结构化说明。',
+                'en-US': 'The update prompt can show structured notes for this version.'
+              }
+            }
+          ]
+        },
+        {
+          kind: 'fix',
+          title: {
+            'zh-CN': '修复',
+            'en-US': 'Fixes'
+          },
+          items: [
+            {
+              title: {
+                'zh-CN': '附件发送修复',
+                'en-US': 'Attachment delivery fix'
+              }
+            }
+          ]
+        }
+      ]
+    }), {
+      headers: { 'content-type': 'application/json' },
+      status: 200
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    useRuntimeUpdateStore.setState((state) => ({
+      ...state,
+      snapshot: state.snapshot
+        ? {
+            ...state.snapshot,
+            status: 'update-available',
+            availableVersion: '0.22.0',
+            releaseNotesUrl: 'https://docs.nextclaw.io/zh/notes/2026-07-05-nextclaw-v0-22-0'
+          }
+        : null
+    }));
+
+    renderDesktopUpdateConfig();
+
+    expect(await screen.findByText('更新前查看内容')).toBeTruthy();
+    expect(screen.getByText('修复')).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://docs.nextclaw.io/release-notes/nextclaw-v0.22.0.json',
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: { accept: 'application/json' }
+      })
+    );
   });
 });

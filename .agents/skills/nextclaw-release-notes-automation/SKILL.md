@@ -1,6 +1,6 @@
 ---
 name: nextclaw-release-notes-automation
-description: 当用户要求提交、收尾、统一 NPM 发布、GitHub release、changelog、release notes、版本更新说明、产品更新笔记、变更汇总，或担心并行会话导致发布内容靠记忆整理时使用。适用于需要进入用户可见发布说明的 NextClaw workspace 包变更、Changesets 聚合、AI 撰写版本更新笔记，以及 update manifest releaseNotesUrl 闭环。
+description: 当用户要求提交、收尾、统一 NPM 发布、GitHub release、changelog、release notes、版本更新说明、产品更新笔记、变更汇总，或担心并行会话导致发布内容靠记忆整理时使用。适用于需要进入用户可见发布说明的 NextClaw workspace 包变更、Changesets 聚合、AI 撰写版本更新笔记、可拉取结构化 release notes JSON，以及 update manifest releaseNotesUrl 闭环。
 ---
 
 # NextClaw Release Notes Automation
@@ -14,6 +14,7 @@ description: 当用户要求提交、收尾、统一 NPM 发布、GitHub release
 - 需要进入最终 changelog 的用户可见变更：添加 `.changeset/*.md`
 - 不需要进入最终 changelog 的内部变更：不添加任何发布说明片段
 - 面向最终用户的版本更新说明：发布时由 AI 基于 `.changeset`、commit 区间和必要 `docs/logs` 证据手写产品更新笔记，不能只机械拼接 changeset
+- 面向产品更新提示的结构化版本说明：发布时同步生成可拉取 JSON，供更新 UI 在用户更新前展示本版本内容
 
 ## 提交/收尾时
 
@@ -53,8 +54,9 @@ description: 当用户要求提交、收尾、统一 NPM 发布、GitHub release
    - 中文：`apps/docs/zh/notes/YYYY-MM-DD-nextclaw-v<version>.md`
    - 英文：`apps/docs/en/notes/YYYY-MM-DD-nextclaw-v<version>.md`
    - 同步更新对应 `apps/docs/<locale>/notes/index.md`
+   - 结构化 JSON：`apps/docs/public/release-notes/nextclaw-v<version>.json`
    - 如果本次只面向中文用户或发布窗口不足，可以先写中文，并在发布报告中明确英文缺口。
-6. 对 runtime / desktop update channel，必须让 update manifest 的 `releaseNotesUrl` 指向本次用户可读版本更新笔记；如果发布系统暂时只能指向 GitHub release，则 GitHub release notes 必须包含该笔记链接或等价正文。
+6. 对 runtime / desktop update channel，必须让 update manifest 的 `releaseNotesUrl` 指向本次用户可读版本更新笔记；更新 UI 可通过同源 `/release-notes/nextclaw-v<version>.json` 拉取结构化内容。不要为了 JSON URL 轻易新增签名 manifest 字段，除非已经审计旧客户端验签兼容性。
 7. 用聚合结果生成 NPM changelog / GitHub release notes。
 8. 再进入 `npm-beta-release` / `npm-release-contract-guard` / `desktop-release-contract-guard` 的发布闭环。
 
@@ -62,6 +64,8 @@ description: 当用户要求提交、收尾、统一 NPM 发布、GitHub release
 
 - 最终正文面向用户，不面向内部协作者。
 - 允许按真实变化聚类，但不要在正文解释“为什么这样分组”或写模板说明。
+- 必须能区分变更类型：`功能` / `增强` / `修复` / `默认行为与兼容性`，英文对应 `Features` / `Enhancements` / `Fixes` / `Defaults and Compatibility`。
+- 每类默认保留 3 到 6 条。真实变化不足时不凑数；超过 6 条时先合并相近项，避免流水账。
 - 内容优先覆盖：
   - 本版本用户会感受到什么；
   - 哪些体验、能力或稳定性变好了；
@@ -73,9 +77,23 @@ description: 当用户要求提交、收尾、统一 NPM 发布、GitHub release
   - 包级 changeset 的机械重复列表。
 - 发布前必须确认：
   - 笔记覆盖本批用户可见 changeset；
+  - 人类页面和结构化 JSON 的分类、条目和主结论一致；
   - 笔记没有包含不应公开的内部治理内容；
   - docs index 已更新；
+  - `apps/docs/public/_headers` 允许 `/release-notes/*.json` 被产品跨域拉取；
   - update manifest / GitHub release 的 release notes URL 能指向它或等价页面。
+
+## 结构化 JSON 要求
+
+结构化 JSON 面向产品读取，不是内部聚合底稿。字段保持稳定、克制：
+
+- `schemaVersion`: 当前为 `1`
+- `product`, `version`, `channel`, `releaseType`, `publishedAt`
+- `title` / `summary`: 至少包含 `zh-CN` 和 `en-US`
+- `links.html`: 指向中英文人类页面
+- `sections[]`: 每个 section 包含 `kind`、本地化 `title`、`items[]`
+- `kind` 只使用 `feature`、`enhancement`、`fix`、`compatibility`
+- `items[]` 只写用户可见标题和简短说明，不写内部讨论、测试、治理或分类依据
 
 ## 自动化边界
 

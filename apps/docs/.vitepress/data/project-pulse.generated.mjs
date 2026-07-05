@@ -1,5 +1,5 @@
 export default {
-  "generatedAt": "2026-07-05T09:31:24.935Z",
+  "generatedAt": "2026-07-05T10:43:17.934Z",
   "hero": {
     "currentLoc": 194185,
     "testLoc": 61244,
@@ -1305,19 +1305,18 @@ export default {
         "date": "2026-07-05",
         "tags": [
           "release",
-          "chat",
-          "preview",
-          "theme",
-          "runtime"
+          "feature",
+          "enhancement",
+          "fix"
         ],
         "en": {
           "title": "2026-07-05 · NextClaw v0.22.0",
-          "description": "NextClaw v0.22.0 improves chat task flow, content previews, Night theme, attachment delivery, and runtime diagnostics.",
+          "description": "NextClaw v0.22.0 adds queued chat input, richer content previews, image reading, Night theme, and stability fixes.",
           "href": "/en/notes/2026-07-05-nextclaw-v0-22-0"
         },
         "zh": {
           "title": "2026-07-05 · NextClaw v0.22.0",
-          "description": "NextClaw v0.22.0 改进了聊天任务流、内容预览、夜间主题、附件发送和运行时诊断。",
+          "description": "NextClaw v0.22.0 带来聊天任务排队、内容预览、图片读取、夜间主题和多项稳定性修复。",
           "href": "/zh/notes/2026-07-05-nextclaw-v0-22-0"
         }
       },

@@ -1,4 +1,5 @@
 import type { UpdateSnapshot } from '@nextclaw/shared';
+import { useQuery } from '@tanstack/react-query';
 import { runtimeUpdateManager, useRuntimeUpdateStore } from '@/features/system-status';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
@@ -6,9 +7,16 @@ import { Label } from '@/shared/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Switch } from '@/shared/components/ui/switch';
 import { PageHeader, PageLayout } from '@/app/components/layout/page-layout';
-import { formatDateTime, t } from '@/shared/lib/i18n';
+import { formatDateTime, getLanguage, t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
 import { hostCapabilityManager } from '@/shared/lib/host-capabilities';
+import {
+  fetchReleaseNotesData,
+  readReleaseNotesText,
+  resolveReleaseNotesDataUrl,
+  type ReleaseNotesLocale,
+  type ReleaseNotesSection
+} from '@/features/system-status/utils/update-release-notes.utils';
 import { Download, ExternalLink, RefreshCw, RotateCw } from 'lucide-react';
 
 const STATUS_LABEL_KEYS: Record<string, string> = {
@@ -19,6 +27,13 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
   'up-to-date': 'desktopUpdatesStatusUpToDate',
   blocked: 'desktopUpdatesStatusBlocked',
   failed: 'desktopUpdatesStatusFailed',
+};
+
+const RELEASE_NOTES_KIND_LABEL_KEYS: Record<string, string> = {
+  feature: 'desktopUpdatesReleaseNotesFeature',
+  enhancement: 'desktopUpdatesReleaseNotesEnhancement',
+  fix: 'desktopUpdatesReleaseNotesFix',
+  compatibility: 'desktopUpdatesReleaseNotesCompatibility'
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -117,6 +132,80 @@ function getStatusTone(status: string): string {
   return 'bg-gray-100 text-gray-700 ring-gray-200';
 }
 
+function getReleaseNotesLocale(): ReleaseNotesLocale {
+  return getLanguage() === 'zh' ? 'zh-CN' : 'en-US';
+}
+
+function getReleaseNotesSectionTitle(section: ReleaseNotesSection, locale: ReleaseNotesLocale): string {
+  const title = readReleaseNotesText(section.title, locale);
+  return title ?? t(RELEASE_NOTES_KIND_LABEL_KEYS[section.kind] ?? 'desktopUpdatesReleaseNotesEnhancement');
+}
+
+function ReleaseNotesPreview({ snapshot }: { snapshot: UpdateSnapshot }) {
+  const dataUrl = resolveReleaseNotesDataUrl(snapshot);
+  const locale = getReleaseNotesLocale();
+  const releaseNotesQuery = useQuery({
+    queryKey: ['runtime-release-notes', dataUrl],
+    queryFn: async () => await fetchReleaseNotesData(dataUrl ?? ''),
+    enabled: Boolean(dataUrl),
+    retry: false,
+    staleTime: 5 * 60 * 1000
+  });
+  const payload = releaseNotesQuery.data;
+  const title = readReleaseNotesText(payload?.title, locale) ?? t('desktopUpdatesReleaseNotesPreviewTitle');
+  const summary = readReleaseNotesText(payload?.summary, locale) ?? t('desktopUpdatesReleaseNotesPreviewDescription');
+
+  if (!snapshot.releaseNotesUrl) {
+    return null;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>{summary}</CardDescription>
+          </div>
+          <Button variant="ghost" onClick={() => void hostCapabilityManager.openExternalUrl(snapshot.releaseNotesUrl ?? '')}>
+            <ExternalLink className="mr-2 h-4 w-4" />
+            {t('desktopUpdatesReleaseNotes')}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {releaseNotesQuery.isLoading ? (
+          <p className="text-sm text-gray-500">{t('desktopUpdatesReleaseNotesPreviewLoading')}</p>
+        ) : null}
+        {!dataUrl || releaseNotesQuery.isError ? (
+          <p className="text-sm text-gray-500">{t('desktopUpdatesReleaseNotesPreviewUnavailable')}</p>
+        ) : null}
+        {payload ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            {payload.sections.map((section) => (
+              <div key={section.kind} className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+                <p className="text-sm font-semibold text-gray-900">{getReleaseNotesSectionTitle(section, locale)}</p>
+                <ul className="mt-3 space-y-3">
+                  {section.items.map((item, index) => {
+                    const itemTitle = readReleaseNotesText(item.title, locale);
+                    const itemBody = readReleaseNotesText(item.body, locale);
+                    return (
+                      <li key={`${itemTitle ?? section.kind}-${index}`} className="space-y-1">
+                        {itemTitle ? <p className="text-sm font-medium text-gray-800">{itemTitle}</p> : null}
+                        {itemBody ? <p className="text-sm leading-5 text-gray-600">{itemBody}</p> : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 function RuntimeUpdateUnavailableState() {
   return (
     <PageLayout className="space-y-6">
@@ -192,6 +281,7 @@ export function DesktopUpdateConfig() {
           {snapshot.errorMessage && snapshot.status !== 'blocked' ? <div className="rounded-2xl border border-red-200 bg-red-50/70 p-4 text-sm text-red-700">{snapshot.errorMessage}</div> : null}
         </CardContent>
       </Card>
+      <ReleaseNotesPreview snapshot={snapshot} />
       <Card>
         <CardHeader>
           <CardTitle>{t('desktopUpdatesPreferencesTitle')}</CardTitle>
@@ -250,7 +340,6 @@ export function DesktopUpdateConfig() {
             <RotateCw className={cn('mr-2 h-4 w-4', isApplying && 'animate-spin')} />
             {t('runtimeUpdatesApplyNow')}
           </Button>
-          {snapshot.releaseNotesUrl ? <Button variant="ghost" onClick={() => void hostCapabilityManager.openExternalUrl(snapshot.releaseNotesUrl ?? '')}><ExternalLink className="mr-2 h-4 w-4" />{t('desktopUpdatesReleaseNotes')}</Button> : null}
         </CardContent>
       </Card>
     </PageLayout>

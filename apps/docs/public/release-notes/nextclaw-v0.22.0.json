@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.22.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-07-05",
+  "title": {
+    "zh-CN": "NextClaw v0.22.0",
+    "en-US": "NextClaw v0.22.0"
+  },
+  "summary": {
+    "zh-CN": "本版本新增聊天任务排队、内容预览和图片读取能力，并改进夜间主题、工作区浏览和多项稳定性问题。",
+    "en-US": "This release adds queued chat input, richer content previews, and image reading, with improvements to Night theme, workspace browsing, and stability."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-05-nextclaw-v0-22-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-05-nextclaw-v0-22-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "功能",
+        "en-US": "Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "聊天输入排队",
+            "en-US": "Queued chat input"
+          },
+          "body": {
+            "zh-CN": "Agent 运行中可以继续输入，当前任务结束后会按顺序发送。",
+            "en-US": "You can queue another message while an agent run is active; queued drafts are sent in order after the current run completes."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "内容展示入口",
+            "en-US": "Content display entry points"
+          },
+          "body": {
+            "zh-CN": "`show_file`、`show_url` 和 `show_panel_app` 现在有更明确的展示入口。",
+            "en-US": "`show_file`, `show_url`, and `show_panel_app` now provide clearer display entry points."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "HTML 渲染预览",
+            "en-US": "Rendered HTML previews"
+          },
+          "body": {
+            "zh-CN": "本地 HTML 可以在右侧工作区里以渲染预览打开，脚本和相对资源更接近真实浏览器行为。",
+            "en-US": "Local HTML can open as a rendered preview in the right workspace panel, with scripts and relative assets behaving closer to a normal browser."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "图片读取工具",
+            "en-US": "Image reading tool"
+          },
+          "body": {
+            "zh-CN": "新增 `view_image` agent 工具，模型可以读取本地 PNG、JPEG、WebP 和 GIF 图片。",
+            "en-US": "The new `view_image` agent tool lets models read local PNG, JPEG, WebP, and GIF files."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "长会话任务流",
+            "en-US": "Long conversation flow"
+          },
+          "body": {
+            "zh-CN": "长会话可以快速回到最新消息，已完成的推理和工具过程会折叠成摘要。",
+            "en-US": "Long conversations can jump back to the latest message, and completed reasoning or tool-process content collapses behind a summary."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "浏览器式 URL 预览",
+            "en-US": "Browser-like URL previews"
+          },
+          "body": {
+            "zh-CN": "`show_url` 会以浏览器式标签页打开，带地址、刷新和外部打开入口；同一个文件的源码预览和渲染预览也可以同时保留。",
+            "en-US": "`show_url` opens in browser-like tabs with address, refresh, and external-open controls; source and rendered previews for the same file can stay open separately."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "文件浏览体验",
+            "en-US": "File browsing experience"
+          },
+          "body": {
+            "zh-CN": "文件预览支持语法高亮，面包屑可以直接浏览附近目录。",
+            "en-US": "File previews now support syntax highlighting, and breadcrumbs can browse nearby folders directly."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "Night theme",
+            "en-US": "Night theme"
+          },
+          "body": {
+            "zh-CN": "新增 Night theme，并改进 Markdown、状态区、错误提示、开关、附件 token、marketplace 详情和 session metadata 的深色可读性。",
+            "en-US": "Night theme is now available, with readability improvements for Markdown, status surfaces, error notices, switches, attachment tokens, marketplace details, and session metadata."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "工作区与导航",
+            "en-US": "Workspace and navigation"
+          },
+          "body": {
+            "zh-CN": "SideDock、DocBrowser、自动收起 sidebar、compact tab 和 Slash 面板的交互细节更稳定一致。",
+            "en-US": "SideDock, DocBrowser, auto-collapsing sidebar behavior, compact tabs, and Slash panel interactions are more stable and consistent."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "附件发送",
+            "en-US": "Attachment delivery"
+          },
+          "body": {
+            "zh-CN": "修复上传文件、上传图片或粘贴图片后，发送时附件丢失的问题。",
+            "en-US": "Uploaded files, uploaded images, and pasted images are no longer dropped when sending a message."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "图片 detail 参数",
+            "en-US": "Image detail parameter"
+          },
+          "body": {
+            "zh-CN": "图片附件不再默认带 `detail: \"auto\"`，避免部分 OpenAI-compatible provider 拒绝请求。",
+            "en-US": "Image attachments no longer send a default `detail: \"auto\"` value that some OpenAI-compatible providers reject."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "失败会话可见性",
+            "en-US": "Failed session visibility"
+          },
+          "body": {
+            "zh-CN": "失败会话的错误信息会显示在聊天详情页，不只停留在会话列表。",
+            "en-US": "Failed session previews now appear in the chat detail view, not only in the session list."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "工具取消链路",
+            "en-US": "Tool cancellation path"
+          },
+          "body": {
+            "zh-CN": "工具调用中的取消信号会继续传递到 NCP/MCP 工具执行层。",
+            "en-US": "Abort signals during tool calls now propagate to NCP/MCP tool execution."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "会话活动误报",
+            "en-US": "Session activity false failures"
+          },
+          "body": {
+            "zh-CN": "修正 session activity 预览中的误报失败状态，减少不必要的错误提示。",
+            "en-US": "Session activity previews no longer show false failure states as easily."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "Learning loop 默认关闭",
+            "en-US": "Learning loop disabled by default"
+          },
+          "body": {
+            "zh-CN": "新配置下 learning loop 默认关闭；已经显式配置过的用户不受影响。",
+            "en-US": "The learning loop is disabled by default for new configs. Existing explicit user settings are preserved."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "NCP 事件字段",
+            "en-US": "NCP event fields"
+          },
+          "body": {
+            "zh-CN": "NCP 事件增加标准 timing 和 message lifecycle 字段，过程耗时和完成状态更可追踪。",
+            "en-US": "NCP events now include standard timing and message lifecycle fields, making process duration and completion state easier to track."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "NPM stable minor",
+            "en-US": "NPM stable minor"
+          },
+          "body": {
+            "zh-CN": "这是 NPM stable minor 版本，可通过正常的 NextClaw NPM 安装或更新流程使用。",
+            "en-US": "This is an NPM stable minor release available through the normal NextClaw NPM install or update flow."
+          }
+        }
+      ]
+    }
+  ]
+}
