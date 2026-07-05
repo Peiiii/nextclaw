@@ -24,17 +24,11 @@ function inferPreviewKind(params: {
   return /\.mdx?$/i.test(params.path) ? "markdown" : "text";
 }
 
-function isHtmlFilePath(path: string): boolean {
-  return /\.html?$/i.test(path);
-}
-
 function resolveFilePreviewViewer(params: {
   path: string;
   viewer?: ChatFilePreviewViewer | null;
 }): "source" | "rendered" {
-  return params.viewer === "rendered" && isHtmlFilePath(params.path)
-    ? "rendered"
-    : "source";
+  return params.viewer === "rendered" && /\.html?$/i.test(params.path) ? "rendered" : "source";
 }
 
 function buildPreviewBlock(params: {

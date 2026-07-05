@@ -111,14 +111,20 @@ export class ChatThreadManager {
       return null;
     }
     const normalizedParentSessionKey = parentSessionKey?.trim() || null;
-    const tabViewIdentity = action.viewMode === 'preview' && action.previewViewer === 'rendered' ? 'preview:rendered' : action.viewMode;
+    const previewViewer =
+      action.viewMode === 'preview' &&
+      action.previewViewer !== 'rendered' &&
+      (action.previewViewer === 'auto' || action.previewViewer === 'source' || /\.html?$/i.test(normalizedPath))
+        ? 'source'
+        : action.previewViewer ?? null;
+    const tabViewIdentity = action.viewMode === 'preview' && previewViewer === 'rendered' ? 'preview:rendered' : action.viewMode;
     return {
       key: `${normalizedParentSessionKey ?? 'draft'}::${tabViewIdentity}::${normalizedPath}`,
       parentSessionKey: normalizedParentSessionKey,
       path: normalizedPath,
       label: action.label?.trim() || null,
       viewMode: action.viewMode,
-      previewViewer: action.previewViewer ?? null,
+      previewViewer,
       line: action.line ?? null,
       column: action.column ?? null,
       rawText: action.rawText ?? null,

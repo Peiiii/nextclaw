@@ -331,6 +331,53 @@ describe('ChatThreadManager', () => {
 });
 
 describe('ChatThreadManager workspace file tabs', () => {
+  it('opens HTML previews in source mode when the viewer is omitted or auto', () => {
+    const manager = new ChatThreadManager(
+      createUiManager(),
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+    );
+
+    manager.openFilePreview({
+      path: 'demo.html',
+      label: 'demo.html',
+      viewMode: 'preview',
+    });
+
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      activeWorkspaceFileKey: 'parent-session-1::preview::demo.html',
+      workspaceFileTabs: [
+        {
+          key: 'parent-session-1::preview::demo.html',
+          path: 'demo.html',
+          viewMode: 'preview',
+          previewViewer: 'source',
+        },
+      ],
+    });
+
+    manager.openFilePreview({
+      path: 'auto.html',
+      label: 'auto.html',
+      viewMode: 'preview',
+      previewViewer: 'auto',
+    });
+
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      activeWorkspaceFileKey: 'parent-session-1::preview::auto.html',
+      workspaceFileTabs: [
+        {
+          key: 'parent-session-1::preview::auto.html',
+          path: 'auto.html',
+          viewMode: 'preview',
+          previewViewer: 'source',
+        },
+        expect.objectContaining({
+          key: 'parent-session-1::preview::demo.html',
+        }),
+      ],
+    });
+  });
+
   it('keeps source and rendered previews for the same file as separate workspace tabs', () => {
     const manager = new ChatThreadManager(
       createUiManager(),

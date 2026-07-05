@@ -104,7 +104,7 @@ function normalizeShowFileArgs(args: unknown): ShowContentRequest {
         path: readRequiredString(params.path, "path"),
         line: readOptionalPositiveInteger(params.line, "line"),
         column: readOptionalPositiveInteger(params.column, "column"),
-        viewer: readOptionalEnum(params.viewer, "viewer", FILE_VIEWERS),
+        viewer: readOptionalEnum(params.viewer, "viewer", FILE_VIEWERS) ?? "source",
       },
     },
     ...readCommonRequestFields(params, FILE_PURPOSES),
@@ -188,7 +188,7 @@ class ShowContentDisplayTool implements NcpTool {
 const SHOW_CONTENT_TOOL_SPECS: readonly ShowContentToolSpec[] = [
   {
     name: "show_file",
-    description: 'Show a local file in the current chat UI. Use viewer="rendered" for rendered HTML/page previews and viewer="source" for source text.',
+    description: 'Show a local file in the current chat UI. Defaults to source text. Use viewer="rendered" for rendered HTML/page previews and viewer="source" for source text.',
     parameters: {
       type: "object",
       properties: {

@@ -56,6 +56,55 @@ it("opens absolute html file links through the existing file preview action", ()
   });
 });
 
+it("opens html file links in rendered mode only when the viewer query asks for it", () => {
+  const onFileOpen = vi.fn();
+
+  render(
+    <ChatMessageMarkdown
+      text="[particle-cosmos.html](/Users/peiwang/Downloads/particle-cosmos.html?viewer=rendered)"
+      role="assistant"
+      texts={defaultTexts}
+      onFileOpen={onFileOpen}
+    />,
+  );
+
+  const link = screen.getByRole("link", { name: "particle-cosmos.html" });
+  expect(link.getAttribute("href")).toBe(
+    "/Users/peiwang/Downloads/particle-cosmos.html?viewer=rendered",
+  );
+
+  fireEvent.click(link);
+
+  expect(onFileOpen).toHaveBeenCalledWith({
+    path: "/Users/peiwang/Downloads/particle-cosmos.html",
+    label: "particle-cosmos.html",
+    viewMode: "preview",
+    previewViewer: "rendered",
+  });
+});
+
+it("opens project-root html links in rendered mode when the viewer query asks for it", () => {
+  const onFileOpen = vi.fn();
+
+  render(
+    <ChatMessageMarkdown
+      text="[preview](preview.html?viewer=rendered)"
+      role="assistant"
+      texts={defaultTexts}
+      onFileOpen={onFileOpen}
+    />,
+  );
+
+  fireEvent.click(screen.getByRole("link", { name: "preview" }));
+
+  expect(onFileOpen).toHaveBeenCalledWith({
+    path: "preview.html",
+    label: "preview.html",
+    viewMode: "preview",
+    previewViewer: "rendered",
+  });
+});
+
 it("opens project-relative file links through the file preview action", () => {
   const onFileOpen = vi.fn();
 

@@ -24,25 +24,10 @@ const INLINE_TOKEN_KIND_ATTR = "data-chat-inline-token-kind";
 const INLINE_TOKEN_KEY_ATTR = "data-chat-inline-token-key";
 const INLINE_TOKEN_LABEL_ATTR = "data-chat-inline-token-label";
 const INLINE_TOKEN_RAW_TEXT_ATTR = "data-chat-inline-token-raw-text";
-const PROJECT_RELATIVE_FILE_EXTENSIONS = [
-  "cjs",
-  "css",
-  "cts",
-  "js",
-  "json",
-  "jsx",
-  "md",
-  "mdx",
-  "mjs",
-  "mts",
-  "tsx",
-  "ts",
-  "txt",
-  "yaml",
-  "yml",
-].join("|");
+const PROJECT_RELATIVE_FILE_EXTENSION_PATTERN =
+  "cjs|css|cts|html?|js|json|jsx|mdx?|mjs|mts|tsx?|txt|ya?ml";
 const PROJECT_RELATIVE_FILE_HREF_PATTERN = new RegExp(
-  `^(?![a-zA-Z][a-zA-Z\\d+.-]*:)(?!//)(?:(?:[^/\\s?#]+/)+[^?#\\s]+\\.[A-Za-z0-9_-]+|[^/\\s?#]+\\.(?:${PROJECT_RELATIVE_FILE_EXTENSIONS}))(?::\\d+(?::\\d+)?)?(?:[?#].*)?$`,
+  `^(?![a-zA-Z][a-zA-Z\\d+.-]*:)(?!//)(?:(?:[^/\\s?#]+/)+[^?#\\s]+\\.[A-Za-z0-9_-]+|[^/\\s?#]+\\.(?:${PROJECT_RELATIVE_FILE_EXTENSION_PATTERN}))(?::\\d+(?::\\d+)?)?(?:[?#].*)?$`,
   "i",
 );
 
@@ -94,6 +79,7 @@ function looksLikeLocalFileHref(href: string): boolean {
 function parseLocalFileAction(
   href: string,
 ): ChatFileOpenActionViewModel | null {
+  const viewer = new URLSearchParams(href.split("#")[0]?.split("?")[1] ?? "").get("viewer");
   const normalizedHref = href.split("#")[0]?.split("?")[0] ?? href;
   const decodedHref = decodeURIComponent(normalizedHref);
   if (!looksLikeLocalFileHref(decodedHref)) {
@@ -107,6 +93,7 @@ function parseLocalFileAction(
     path: rawPath,
     label: rawPath.split("/").filter(Boolean).pop() ?? rawPath,
     viewMode: "preview",
+    ...(viewer === "source" || viewer === "rendered" ? { previewViewer: viewer } : {}),
     ...(typeof line === "number" ? { line } : {}),
     ...(typeof column === "number" ? { column } : {}),
   };

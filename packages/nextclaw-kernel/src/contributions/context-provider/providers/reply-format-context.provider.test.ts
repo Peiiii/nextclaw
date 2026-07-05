@@ -32,6 +32,8 @@ describe("ReplyFormatContextProvider", () => {
     expect(context).toContain("[notes.md](/Users/example/Documents/notes.md)");
     expect(context).toContain("project-relative hrefs");
     expect(context).toContain("absolute hrefs");
+    expect(context).toContain("File links open source by default");
+    expect(context).toContain("[preview.html](preview.html?viewer=rendered)");
     expect(context).toContain("nextclaw-inline");
     expect(context).toContain('"target":{"type":"panel_app"');
     expect(context).toContain("Supported targets are `panel_app`, `json`, `file`, and `url`");

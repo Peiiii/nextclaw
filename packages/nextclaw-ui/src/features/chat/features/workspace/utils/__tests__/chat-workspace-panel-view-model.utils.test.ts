@@ -158,4 +158,50 @@ describe("buildWorkspaceTabsViewModel", () => {
       active: true,
     });
   });
+
+  it("keeps distinct source and rendered file tabs without collapsing by path", () => {
+    const renderedTab = {
+      key: "parent::preview:rendered::demo.html",
+      parentSessionKey: "parent-1",
+      path: "demo.html",
+      label: "demo.html",
+      viewMode: "preview" as const,
+      previewViewer: "rendered" as const,
+    };
+    const sourceTab = {
+      key: "parent::preview::demo.html",
+      parentSessionKey: "parent-1",
+      path: "demo.html",
+      label: "demo.html",
+      viewMode: "preview" as const,
+      previewViewer: "source" as const,
+    };
+
+    const tabs = buildWorkspaceTabsViewModel({
+      resolvedChildTabs: [],
+      activeSideChatDraft: null,
+      workspaceFileTabs: [sourceTab, renderedTab],
+      sessionCronJobCount: 0,
+      activeSelection: {
+        kind: "file",
+        file: sourceTab,
+      },
+      optimisticReadAtBySessionKey: {},
+      onSelectSession: vi.fn(),
+      onSelectFile: vi.fn(),
+      onCloseFile: vi.fn(),
+      onSelectCronJobs: vi.fn(),
+    });
+
+    expect(tabs).toEqual([
+      expect.objectContaining({
+        key: "file:parent::preview::demo.html",
+        active: true,
+      }),
+      expect.objectContaining({
+        key: "file:parent::preview:rendered::demo.html",
+        active: false,
+      }),
+    ]);
+  });
 });

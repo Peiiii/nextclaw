@@ -189,6 +189,23 @@ describe("ChatSessionWorkspaceFilePreview rendering", () => {
     ).toBe("js");
   });
 
+  it("keeps HTML files in the source preview when preview viewer is automatic", () => {
+    mockTextRead({
+      resolvedPath: "/tmp/example.html",
+      text: "<!doctype html><h1>Hello</h1>",
+    });
+    renderWorkspaceFilePreview({
+      file: {
+        label: "example.html",
+        path: "/tmp/example.html",
+        viewMode: "preview",
+      },
+    });
+
+    expect(screen.queryByTestId("workspace-html-preview")).toBeNull();
+    expect(screen.getByTestId("file-code-surface")).toBeTruthy();
+  });
+
   it("renders HTML files through an unrestricted server content iframe when rendered preview is requested", () => {
     mockTextRead({
       resolvedPath: "/tmp/example.html",
@@ -210,6 +227,23 @@ describe("ChatSessionWorkspaceFilePreview rendering", () => {
       "/api/server-paths/content/__abs__/tmp/example.html",
     );
     expect(screen.queryByTestId("file-code-surface")).toBeNull();
+  });
+
+  it("keeps HTML files in the source preview when source is requested", () => {
+    mockTextRead({
+      resolvedPath: "/tmp/example.html",
+      text: "<!doctype html><h1>Hello</h1>",
+    });
+    renderWorkspaceFilePreview({
+      file: {
+        path: "/tmp/example.html",
+        previewViewer: "source",
+        viewMode: "preview",
+      },
+    });
+
+    expect(screen.queryByTestId("workspace-html-preview")).toBeNull();
+    expect(screen.getByTestId("file-code-surface")).toBeTruthy();
   });
 
   it("falls back to the source preview when rendered is requested for a non-HTML file", () => {
