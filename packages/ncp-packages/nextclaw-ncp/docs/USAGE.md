@@ -5,7 +5,7 @@
 约定：
 
 - **后端**：提供 `POST /api/chat`（body 为本次请求）+ `GET /api/chat/stream?sessionId=...`（SSE，同一次对话的 accepted/text-delta/completed/failed 等事件）。
-- **协议**：请求/响应都走 NCP 事件；SSE 里每行一个 JSON，对应一个 `NcpEndpointEvent`。事件类型与 payload 定义在 `src/types/events.ts`，与 agent-chat 对齐（含 `message.text-*` / `message.reasoning-*` / `message.tool-call-*` / `run.*`）。
+- **协议**：请求/响应都走 NCP 事件；SSE 里每行一个 JSON，对应一个 `NcpEndpointEvent`。事件类型与 payload 定义在 `src/types/events.types.ts`，与 agent-chat 对齐（含 `message.text-*` / `message.reasoning-*` / `message.tool-call-*` / `run.*`）。
 - **后端**：持有一个 `NcpAgentServerEndpoint`，收到 HTTP 请求时通过 `send/stream/abort` 进入服务端能力；`emit` 仅用于向前端订阅侧下行发布事件（如 accepted/delta/completed）。
 
 ---

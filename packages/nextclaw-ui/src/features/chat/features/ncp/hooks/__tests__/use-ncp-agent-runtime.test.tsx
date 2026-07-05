@@ -217,7 +217,15 @@ describe("useNcpAgentRuntime", () => {
       await result.current.abort();
     });
 
-    expect(client.abort).toHaveBeenCalledWith({ sessionId: "session-running" });
+    expect(client.abort).toHaveBeenCalledWith({
+      sessionId: "session-running",
+      runId: undefined,
+      reason: {
+        code: "abort-error",
+        message: "User stopped the current run.",
+        details: { source: "chat-ui" },
+      },
+    });
   });
 
   it("clears the local running state when the live stream publishes message.abort", async () => {
@@ -241,6 +249,20 @@ describe("useNcpAgentRuntime", () => {
     await waitFor(() => {
       expect(result.current.isRunning).toBe(true);
       expect(result.current.activeRunId).toBe("run-1");
+    });
+
+    await act(async () => {
+      await result.current.abort();
+    });
+
+    expect(client.abort).toHaveBeenCalledWith({
+      sessionId: "session-running",
+      runId: "run-1",
+      reason: {
+        code: "abort-error",
+        message: "User stopped the current run.",
+        details: { source: "chat-ui" },
+      },
     });
 
     await act(async () => {

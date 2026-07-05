@@ -497,7 +497,7 @@ it("renders context compaction as an in-flow divider instead of a chat message",
         updatedAt: "2026-05-05T12:00:00.000Z",
       },
     },
-    parts: [{ type: "text", text: "较早上下文已自动压缩" }],
+    parts: [{ type: "text", text: "Earlier context was auto-compacted" }],
   } satisfies NcpMessage;
 
   const { getByText } = render(

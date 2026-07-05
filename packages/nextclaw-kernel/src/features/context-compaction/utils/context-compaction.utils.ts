@@ -13,8 +13,8 @@ export type ContextCompactionTimelineCheckpoint = ContextCompactionCheckpoint;
 
 function readCheckpointTimelineText(checkpoint: ContextCompactionTimelineCheckpoint): string {
   return checkpoint.status === "compressing"
-    ? "正在压缩较早上下文"
-    : "较早上下文已自动压缩";
+    ? "Compressing earlier context"
+    : "Earlier context was auto-compacted";
 }
 
 function readContextCompactionCheckpoint(message: NcpMessage): ContextCompactionCheckpoint | null {

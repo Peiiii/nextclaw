@@ -2,7 +2,7 @@ export { NcpHttpAgentController } from "./controller.js";
 export {
   createNcpHttpAgentRouter,
   mountNcpHttpAgentRoutes,
-} from "./router.js";
+} from "./http-agent.route.js";
 export type {
   NcpHttpAgentHandler,
   NcpHttpAgentHandlerOptions,

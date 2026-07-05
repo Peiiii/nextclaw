@@ -11,6 +11,7 @@ import {
   NcpEventType,
   type NcpAssistantReasoningNormalizationMode,
   type NcpEndpointEvent,
+  type NcpError,
   type NcpLLMApi,
   type NcpMessage,
   type NcpStreamEncoder,
@@ -73,6 +74,43 @@ type RuntimeSourceApplyResult = {
   event?: NcpEndpointEvent;
   sourceDone: boolean;
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function createDefaultAbortReason(): NcpError {
+  return {
+    code: "abort-error",
+    message: "The run was cancelled before a complete response was produced.",
+    details: { source: "runtime" },
+  };
+}
+
+function readAbortSignalReason(signal?: AbortSignal): NcpError {
+  const reason = (signal as (AbortSignal & { reason?: unknown }) | undefined)?.reason;
+  if (isRecord(reason) && reason.code === "abort-error" && typeof reason.message === "string") {
+    return reason as NcpError;
+  }
+  if (reason instanceof Error && reason.name === "AbortError") {
+    return createDefaultAbortReason();
+  }
+  if (reason instanceof Error && reason.message.trim()) {
+    return {
+      code: "abort-error",
+      message: reason.message,
+      details: { source: "runtime" },
+    };
+  }
+  if (typeof reason === "string" && reason.trim()) {
+    return {
+      code: "abort-error",
+      message: reason.trim(),
+      details: { source: "runtime" },
+    };
+  }
+  return createDefaultAbortReason();
+}
 
 class RuntimeDrainCursor {
   private sourceNext: Promise<IteratorResult<NcpEndpointEvent>> | null = null;
@@ -188,7 +226,7 @@ export class DefaultNcpAgentRuntime {
         },
       }, runStartedAt));
       if (this.isAbortRequested(signal)) {
-        yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId, spec));
+        yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId, spec, signal));
         return;
       }
 
@@ -252,10 +290,10 @@ export class DefaultNcpAgentRuntime {
         return;
       }
 
-      yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId, spec));
+      yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId, spec, signal));
     } catch (error) {
       if (this.isAbortRequested(signal)) {
-        yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId, spec));
+        yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId, spec, signal));
         return;
       }
       const endedAt = new Date().toISOString();
@@ -417,12 +455,15 @@ export class DefaultNcpAgentRuntime {
     sessionId: string,
     messageId: string,
     spec: DefaultNcpAgentRunSpec,
+    signal?: AbortSignal,
   ): NcpEndpointEvent => createRuntimeEvent({
     type: NcpEventType.MessageAbort,
     payload: {
       messageId,
+      runId: spec.runId,
       sessionId,
       correlationId: spec.correlationId,
+      reason: readAbortSignalReason(signal),
     },
   });
 

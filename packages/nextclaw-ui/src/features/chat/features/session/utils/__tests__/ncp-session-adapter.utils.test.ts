@@ -105,8 +105,8 @@ describe('adaptNcpSessionSummary', () => {
         metadata: {
           last_activity_preview: {
             state: 'completed',
-            replyText: '已经整理好方案',
-            statusText: '工具调用完成',
+            replyText: 'Plan is ready',
+            statusText: 'Tool call completed',
             timestamp: '2026-05-16T01:00:00.000Z',
           },
         },
@@ -115,8 +115,8 @@ describe('adaptNcpSessionSummary', () => {
 
     expect(adapted.activityPreview).toEqual({
       state: 'completed',
-      replyText: '已经整理好方案',
-      statusText: '工具调用完成',
+      replyText: 'Plan is ready',
+      statusText: 'Tool call completed',
       timestamp: '2026-05-16T01:00:00.000Z',
     });
   });

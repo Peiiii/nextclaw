@@ -10,8 +10,8 @@ describe("writeSessionActivityPreviewMetadata", () => {
       writeSessionActivityPreviewMetadata({
         [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: {
           state: "running",
-          statusText: "工具调用完成",
-          replyText: "最终回复",
+          statusText: "Tool call completed",
+          replyText: "Final reply",
           timestamp: "2026-05-16T01:00:00.000Z",
         },
       }, {
@@ -24,8 +24,8 @@ describe("writeSessionActivityPreviewMetadata", () => {
     ).toEqual({
       [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: {
         state: "completed",
-        statusText: "工具调用完成",
-        replyText: "最终回复",
+        statusText: "Tool call completed",
+        replyText: "Final reply",
         timestamp: "2026-05-16T01:01:00.000Z",
       },
     });
@@ -42,14 +42,14 @@ describe("writeSessionActivityPreviewMetadata", () => {
         sessionId: "session-1",
         preview: {
           state: "completed",
-          replyText: "最终回复",
+            replyText: "Final reply",
           timestamp: "2026-05-16T01:00:00.000Z",
         },
       }),
     ).toEqual({
       [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: {
         state: "completed",
-        replyText: "最终回复",
+          replyText: "Final reply",
         timestamp: "2026-05-16T01:01:00.000Z",
       },
     });
@@ -61,20 +61,20 @@ describe("writeSessionActivityPreviewMetadata", () => {
         [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: {
           state: "completed",
           timestamp: "2026-05-16T01:01:00.000Z",
-          replyText: "上一轮回复",
+          replyText: "Previous reply",
         },
       }, {
         sessionId: "session-1",
         preview: {
           state: "running",
-          statusText: "正在思考",
+          statusText: "Thinking",
           timestamp: "2026-05-16T01:02:00.000Z",
         },
       }),
     ).toEqual({
       [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: {
         state: "running",
-        statusText: "正在思考",
+        statusText: "Thinking",
         timestamp: "2026-05-16T01:02:00.000Z",
       },
     });
@@ -85,14 +85,14 @@ describe("writeSessionActivityPreviewMetadata", () => {
       writeSessionActivityPreviewMetadata({
         [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: {
           state: "completed",
-          replyText: "新的回复",
+          replyText: "New reply",
           timestamp: "2026-05-16T01:01:00.000Z",
         },
       }, {
         sessionId: "session-1",
         preview: {
           state: "running",
-          statusText: "旧的工具状态",
+          statusText: "Old tool status",
           timestamp: "2026-05-16T01:00:00.000Z",
         },
       }),

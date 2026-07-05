@@ -260,7 +260,7 @@ describe('SessionConversationArea input boundary', () => {
     mocks.inputQuery.selectedSession = {
       activityPreview: {
         state: 'failed',
-        statusText: '运行出错：Invalid API Key',
+        statusText: 'Run failed: Invalid API Key',
       },
       status: 'idle',
     };
@@ -269,6 +269,6 @@ describe('SessionConversationArea input boundary', () => {
 
     expect(screen.getByTestId('conversation-bottom-slot')).toBeTruthy();
     expect(screen.getByText(/出错了|Something went wrong/)).toBeTruthy();
-    expect(screen.getByText('运行出错：Invalid API Key')).toBeTruthy();
+    expect(screen.getByText('Run failed: Invalid API Key')).toBeTruthy();
   });
 });

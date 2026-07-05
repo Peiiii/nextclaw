@@ -68,10 +68,12 @@ export type NcpMessageAcceptedPayload = {
   transportId?: string;
 } & NcpCorrelationPayload;
 
-/** Payload for message.abort: identifies which session's active execution to cancel. */
+/** Payload for message.abort: identifies and explains a cancelled active execution. */
 export type NcpMessageAbortPayload = {
   sessionId: string;
   messageId?: string;
+  runId?: string | undefined;
+  reason?: NcpError | undefined;
 } & NcpCorrelationPayload;
 
 /**

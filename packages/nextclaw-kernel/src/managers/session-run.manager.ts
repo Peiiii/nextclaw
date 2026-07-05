@@ -85,7 +85,7 @@ export class SessionRun {
     };
   };
 
-  abortRun = (runId?: string): boolean => {
+  abortRun = (runId?: string, reason?: unknown): boolean => {
     if (!this.activeRunId || !this.activeRunController) {
       return false;
     }
@@ -93,7 +93,7 @@ export class SessionRun {
       return false;
     }
     const wasRunning = this.isRunning();
-    this.activeRunController.abort();
+    this.activeRunController.abort(reason);
     this.activeRunController = null;
     this.activeRunId = null;
     this.emitStatusChangeIfNeeded(wasRunning);
@@ -104,7 +104,11 @@ export class SessionRun {
 
   dispose = (): void => {
     const wasRunning = this.isRunning();
-    this.activeRunController?.abort();
+    this.activeRunController?.abort({
+      code: "abort-error",
+      message: "Session run owner was disposed; the current run was cancelled.",
+      details: { source: "session-run-manager" },
+    });
     this.activeRunController = null;
     this.activeRunId = null;
     this.emitStatusChangeIfNeeded(wasRunning);

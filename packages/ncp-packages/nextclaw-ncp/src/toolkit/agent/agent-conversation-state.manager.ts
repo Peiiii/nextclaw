@@ -17,14 +17,14 @@ import type {
   NcpTextDeltaPayload,
   NcpTextEndPayload,
   NcpTextStartPayload,
-} from "../../types/events.js";
+} from "../../types/events.types.js";
 import type { NcpError } from "../../types/errors.js";
 import type { NcpMessage } from "../../types/message.js";
-import type { NcpRunContext } from "../../types/run.js";
+import type { NcpRunContext } from "../../types/run.types.js";
 import type {
   NcpAgentConversationSnapshot,
   NcpConversationStateManager,
-} from "../conversation-state.js";
+} from "../conversation-state.types.js";
 
 export type NcpAgentConversationHydrationParams = {
   sessionId: string;

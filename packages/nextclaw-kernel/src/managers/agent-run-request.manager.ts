@@ -364,7 +364,12 @@ export class AgentRunRequestManager {
     if (!envelope.payload?.sessionId) {
       throw new Error("Invalid agent run abort request.");
     }
-    await this.abort({ sessionId: envelope.payload.sessionId });
+    await this.abort({
+      sessionId: envelope.payload.sessionId,
+      runId: envelope.payload.runId,
+      correlationId: envelope.payload.correlationId,
+      reason: envelope.payload.reason,
+    });
   };
 
   private handleSessionMessageRequest = async (
@@ -566,6 +571,6 @@ export class AgentRunRequestManager {
 
   private abort = async (request: AgentRunAbortRequest): Promise<void> => {
     const sessionRun = this.sessionRunManager.getSessionRun(request.sessionId);
-    sessionRun?.abortRun(request.runId);
+    sessionRun?.abortRun(request.runId, request.reason);
   };
 }

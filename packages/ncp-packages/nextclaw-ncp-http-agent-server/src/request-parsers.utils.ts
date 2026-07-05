@@ -68,10 +68,16 @@ export async function parseAbortPayload(request: Request): Promise<NcpMessageAbo
       return null;
     }
     const messageId = readTrimmedString(payload.messageId);
+    const runId = readTrimmedString(payload.runId);
+    const correlationId = readTrimmedString(payload.correlationId);
+    const reason = readAbortReason(payload.reason);
 
     return {
       sessionId,
       ...(messageId ? { messageId } : {}),
+      ...(runId ? { runId } : {}),
+      ...(correlationId ? { correlationId } : {}),
+      ...(reason ? { reason } : {}),
     };
   } catch {
     return null;
@@ -84,4 +90,19 @@ function readTrimmedString(value: unknown): string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function readAbortReason(value: unknown): NcpMessageAbortPayload["reason"] {
+  if (!isRecord(value) || value.code !== "abort-error") {
+    return undefined;
+  }
+  const message = readTrimmedString(value.message);
+  if (!message) {
+    return undefined;
+  }
+  return {
+    code: "abort-error",
+    message,
+    ...(isRecord(value.details) ? { details: value.details } : {}),
+  };
 }

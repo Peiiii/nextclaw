@@ -2,7 +2,7 @@ export type {
   NcpAgentConversationSnapshot,
   NcpConversationSnapshot,
   NcpConversationStateManager,
-} from "./conversation-state.js";
+} from "./conversation-state.types.js";
 export type {
   NcpAgentConversationHydrationParams,
   NcpAgentConversationStateManager,

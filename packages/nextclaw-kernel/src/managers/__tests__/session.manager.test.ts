@@ -276,6 +276,9 @@ describe("SessionManager", () => {
     });
   });
 
+});
+
+describe("SessionManager activity previews", () => {
   it("updates activity preview from appended run events", async () => {
     const fixture = await createFixture([
       createRecord({
@@ -283,7 +286,7 @@ describe("SessionManager", () => {
         metadata: {
           last_activity_preview: {
             state: "running",
-            statusText: "正在处理...",
+            statusText: "Processing...",
             timestamp: "2026-05-21T00:00:00.000Z",
           },
         },
@@ -341,7 +344,7 @@ describe("SessionManager", () => {
         metadata: {
           last_activity_preview: {
             state: "running",
-            statusText: "正在思考",
+            statusText: "Thinking",
             timestamp: "2026-05-21T00:00:00.000Z",
           },
         },
@@ -400,7 +403,7 @@ describe("SessionManager", () => {
         metadata: {
           last_activity_preview: {
             state: "running",
-            statusText: "工具调用完成：read_file",
+            statusText: "Tool call completed: read_file",
           },
         },
       });
@@ -408,6 +411,9 @@ describe("SessionManager", () => {
     fixture.manager.dispose();
   });
 
+});
+
+describe("SessionManager journal-backed session creation", () => {
   it("creates new sessions in the journal instead of legacy SessionManager", async () => {
     const fixture = await createFixture();
 

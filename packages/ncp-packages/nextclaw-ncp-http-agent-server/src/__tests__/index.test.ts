@@ -10,8 +10,8 @@ import {
   type NcpStreamRequestPayload,
   NcpEventType,
 } from "@nextclaw/ncp";
-import { createNcpHttpAgentRouter } from "./index.js";
-import { sanitizeTimeout } from "./parsers.js";
+import { createNcpHttpAgentRouter } from "../index.js";
+import { sanitizeTimeout } from "../request-parsers.utils.js";
 
 const now = "2026-03-12T00:00:00.000Z";
 
@@ -119,10 +119,10 @@ describe("createNcpHttpAgentRouter", () => {
     expect(response.status).toBe(200);
     expect(await response.text()).toBe("");
     expect(endpoint.emitted).toEqual([
-      {
+      expect.objectContaining({
         type: NcpEventType.MessageStreamRequest,
         payload: { sessionId: "session-1" },
-      },
+      }),
     ]);
   });
 
@@ -167,7 +167,17 @@ describe("createNcpHttpAgentRouter", () => {
     const response = await app.request("http://localhost/ncp/agent/abort", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ sessionId: "session-1" }),
+      body: JSON.stringify({
+        sessionId: "session-1",
+        messageId: "assistant-1",
+        runId: "run-1",
+        correlationId: "correlation-1",
+        reason: {
+          code: "abort-error",
+          message: "用户停止了当前运行。",
+          details: { source: "chat-ui" },
+        },
+      }),
     });
 
     expect(response.status).toBe(200);
@@ -176,7 +186,17 @@ describe("createNcpHttpAgentRouter", () => {
     );
     expect(abortEvent).toEqual({
       type: NcpEventType.MessageAbort,
-      payload: { sessionId: "session-1" },
+      payload: {
+        sessionId: "session-1",
+        messageId: "assistant-1",
+        runId: "run-1",
+        correlationId: "correlation-1",
+        reason: {
+          code: "abort-error",
+          message: "用户停止了当前运行。",
+          details: { source: "chat-ui" },
+        },
+      },
     });
   });
 });

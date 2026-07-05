@@ -5,6 +5,7 @@ import {
   type NcpAgentSendEnvelope,
   type NcpAgentConversationSnapshot,
   type NcpEndpointEvent,
+  type NcpError,
   type NcpMessage,
   type NcpOutboundMessageDraft,
   type NcpRunHandle,
@@ -36,6 +37,11 @@ type ScopedManagerRef = {
 };
 
 const EVENT_BATCH_DELAY_MS = 16;
+const USER_ABORT_REASON: NcpError = {
+  code: "abort-error",
+  message: "User stopped the current run.",
+  details: { source: "chat-ui" },
+};
 
 class NcpEventDispatchBatcher {
   private readonly queue: NcpEndpointEvent[] = [];
@@ -288,7 +294,11 @@ export function useNcpAgentRuntime({
       return;
     }
 
-    await client.abort({ sessionId });
+    await client.abort({
+      sessionId,
+      runId: activeRunId ?? undefined,
+      reason: USER_ABORT_REASON,
+    });
   };
 
   const streamRun = async () => {

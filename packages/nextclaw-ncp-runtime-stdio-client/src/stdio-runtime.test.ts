@@ -43,6 +43,49 @@ const FAILING_FIXTURE_PATH = join(
 const TEST_EXECUTION_CONTEXT = {
   cwd: dirname(FIXTURE_PATH),
 };
+const ACTIVE_SLOW_AGENT_SCRIPT = String.raw`
+import { randomUUID } from "node:crypto";
+import { Readable, Writable } from "node:stream";
+import * as acp from "@agentclientprotocol/sdk";
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+class ActiveSlowAgent {
+  constructor(connection) {
+    this.connection = connection;
+    this.sessions = new Set();
+  }
+
+  initialize = async () => ({
+    protocolVersion: acp.PROTOCOL_VERSION,
+    agentCapabilities: { loadSession: false },
+  });
+  newSession = async () => {
+    const sessionId = randomUUID();
+    this.sessions.add(sessionId);
+    return { sessionId };
+  };
+  authenticate = async () => ({});
+  setSessionMode = async () => ({});
+  prompt = async (params) => {
+    if (!this.sessions.has(params.sessionId)) {
+      throw new Error("Session " + params.sessionId + " not found");
+    }
+    for (const text of ["active", " slow", " prompt", " done"]) {
+      await sleep(30);
+      await this.connection.sessionUpdate({
+        sessionId: params.sessionId,
+        update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text } },
+      });
+    }
+    return { stopReason: "end_turn" };
+  };
+  cancel = async () => ({});
+}
+
+const stream = acp.ndJsonStream(Writable.toWeb(process.stdout), Readable.toWeb(process.stdin));
+new acp.AgentSideConnection((connection) => new ActiveSlowAgent(connection), stream);
+`;
 
 async function waitUntilProcessStops(pid: number): Promise<void> {
   const deadline = Date.now() + 5_000;
@@ -533,6 +576,44 @@ describe("StdioRuntimeNcpAgentRuntime session metadata bridging", () => {
       },
     });
     expect(events.map((event) => event.type)).toContain(NcpEventType.RunError);
+  });
+
+  it("does not time out an active prompt just because total runtime exceeds request timeout", async () => {
+    const runtime = new StdioRuntimeNcpAgentRuntime({
+      wireDialect: "acp",
+      processScope: "per-session",
+      command: process.execPath,
+      args: ["--input-type=module", "-e", ACTIVE_SLOW_AGENT_SCRIPT],
+      startupTimeoutMs: 10_000,
+      probeTimeoutMs: 3_000,
+      requestTimeoutMs: 60,
+    });
+
+    const events: NcpEndpointEvent[] = [];
+    try {
+      for await (const event of runtime.run({
+        sessionId: "session-stdio-runtime-active-timeout",
+        messages: [
+          {
+            id: "user-active-timeout",
+            sessionId: "session-stdio-runtime-active-timeout",
+            role: "user",
+            status: "final",
+            timestamp: "2026-07-05T00:00:00.000Z",
+            parts: [{ type: "text", text: "stay active" }],
+          },
+        ],
+        executionContext: TEST_EXECUTION_CONTEXT,
+      })) {
+        events.push(event);
+      }
+    } finally {
+      await runtime.dispose();
+    }
+
+    expect(events.map((event) => event.type)).toContain(NcpEventType.MessageCompleted);
+    expect(events.map((event) => event.type)).toContain(NcpEventType.RunFinished);
+    expect(events.map((event) => event.type)).not.toContain(NcpEventType.RunError);
   });
 });
 

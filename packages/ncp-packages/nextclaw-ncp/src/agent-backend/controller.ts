@@ -3,7 +3,7 @@ import type {
   NcpMessageAbortPayload,
   NcpRequestEnvelope,
   NcpStreamRequestPayload,
-} from "../types/events.js";
+} from "../types/events.types.js";
 
 export type NcpAgentRunSendOptions = {
   signal?: AbortSignal;

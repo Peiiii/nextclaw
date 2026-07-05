@@ -291,7 +291,7 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
               role: "service",
               status: "final",
               timestamp: `2026-05-14T00:00:0${index + 1}.000Z`,
-              parts: [{ type: "text", text: "较早上下文已自动压缩" }],
+              parts: [{ type: "text", text: "Earlier context was auto-compacted" }],
               metadata: {
                 nextclaw_timeline_kind: "context_compaction",
                 checkpoint: {

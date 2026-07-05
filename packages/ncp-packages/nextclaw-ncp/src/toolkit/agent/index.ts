@@ -1,4 +1,4 @@
 export type {
   NcpAgentConversationHydrationParams,
   NcpAgentConversationStateManager,
-} from "./agent-conversation-state-manager.js";
+} from "./agent-conversation-state.manager.js";

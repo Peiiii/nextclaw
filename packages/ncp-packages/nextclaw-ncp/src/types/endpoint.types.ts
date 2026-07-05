@@ -1,4 +1,4 @@
-import type { NcpEndpointEvent, NcpEndpointSubscriber } from "./events.js";
+import type { NcpEndpointEvent, NcpEndpointSubscriber } from "./events.types.js";
 import type { NcpEndpointManifest } from "./manifest.js";
 
 // ---------------------------------------------------------------------------
@@ -10,7 +10,7 @@ import type { NcpEndpointManifest } from "./manifest.js";
  *
  * An endpoint is a named, lifecycle-managed communication channel.
  * Single primitive: emit(event) to send, subscribe(listener) to receive.
- * Event types and payloads are defined in events.ts (aligned with agent-chat).
+ * Event types and payloads are defined in events.types.ts (aligned with agent-chat).
  *
  * @example
  * const endpoint: NcpEndpoint = new MyAgentEndpoint(options);

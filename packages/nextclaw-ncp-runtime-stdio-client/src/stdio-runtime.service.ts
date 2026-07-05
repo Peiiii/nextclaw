@@ -49,11 +49,11 @@ type PromptExecutionState = { settled: boolean; error: unknown };
 
 class UpdateBuffer {
   private readonly updates: AcpClientUpdate[] = [];
-  private waiters = new Set<() => void>();
+  private waiter: (() => void) | null = null;
 
   push = (update: AcpClientUpdate): void => {
     this.updates.push(update);
-    this.flush();
+    this.notify();
   };
 
   shift = (): AcpClientUpdate | undefined => this.updates.shift();
@@ -61,27 +61,15 @@ class UpdateBuffer {
   hasItems = (): boolean => this.updates.length > 0;
 
   waitForChange = async (): Promise<void> => {
-    if (this.updates.length > 0) {
-      return;
+    if (this.updates.length === 0) {
+      await new Promise<void>((resolve) => { this.waiter = resolve; });
     }
-    await new Promise<void>((resolve) => {
-      this.waiters.add(resolve);
-    });
   };
 
   notify = (): void => {
-    this.flush();
-  };
-
-  private flush = (): void => {
-    if (this.waiters.size === 0) {
-      return;
-    }
-    const waiters = [...this.waiters];
-    this.waiters.clear();
-    for (const waiter of waiters) {
-      waiter();
-    }
+    const waiter = this.waiter;
+    this.waiter = null;
+    waiter?.();
   };
 }
 
@@ -111,11 +99,7 @@ class StdioRuntimeClientBridge {
     this.updateHandler?.(params.update);
   };
 
-  requestPermission = async (): Promise<{
-    outcome: { outcome: "cancelled" };
-  }> => ({
-    outcome: { outcome: "cancelled" },
-  });
+  requestPermission = async () => ({ outcome: { outcome: "cancelled" as const } });
 
   readTextFile = async (): Promise<{ content: string }> => ({ content: "" });
 
@@ -130,7 +114,6 @@ class StdioRuntimeSession {
   private remoteSessionCwd: string | null = null;
   private readonly clientBridge = new StdioRuntimeClientBridge();
   private stderr = "";
-  private pendingProviderRoute: NcpProviderRuntimeRoute | undefined;
 
   constructor(private readonly config: StdioRuntimeNcpAgentRuntimeConfig) {}
 
@@ -139,7 +122,6 @@ class StdioRuntimeSession {
     providerRoute?: NcpProviderRuntimeRoute;
   }): Promise<void> => {
     const { cwd, providerRoute } = params;
-    this.pendingProviderRoute = providerRoute;
     if (this.connection && this.remoteSessionId) {
       if (this.remoteSessionCwd === cwd) {
         return;
@@ -152,7 +134,7 @@ class StdioRuntimeSession {
 
     const env = buildStdioRuntimeLaunchEnv({
       configEnv: this.config.env,
-      providerRoute: this.pendingProviderRoute,
+      providerRoute,
     });
 
     this.child = spawn(this.config.command, this.config.args, {
@@ -162,15 +144,12 @@ class StdioRuntimeSession {
     });
     const spawnErrorPromise = new Promise<never>((_, reject) => {
       this.child?.once("error", (error) => {
-        reject(
-          new Error(
-            buildSpawnFailureMessage({
-              command: this.config.command,
-              cwd: this.config.cwd,
-              error,
-            }),
-          ),
-        );
+        const message = buildSpawnFailureMessage({
+          command: this.config.command,
+          cwd: this.config.cwd,
+          error,
+        });
+        reject(new Error(message));
       });
     });
     this.child.stderr.setEncoding("utf8");
@@ -182,24 +161,25 @@ class StdioRuntimeSession {
       Writable.toWeb(this.child.stdin),
       Readable.toWeb(this.child.stdout),
     );
-    this.connection = new acp.ClientSideConnection(() => this.clientBridge, stream);
+    const connection = new acp.ClientSideConnection(() => this.clientBridge, stream);
+    this.connection = connection;
 
     const session = await Promise.race([
       (async () => {
         await withTimeout(
-          this.connection?.initialize({
+          connection.initialize({
             protocolVersion: acp.PROTOCOL_VERSION,
             clientCapabilities: {},
-          }) ?? Promise.reject(new Error("[narp-stdio] stdio runtime connection not started")),
+          }),
           this.config.startupTimeoutMs,
           "[narp-stdio] timed out initializing stdio runtime",
         );
 
         return withTimeout(
-          this.connection?.newSession({
+          connection.newSession({
             cwd,
             mcpServers: [],
-          }) ?? Promise.reject(new Error("[narp-stdio] stdio runtime connection not started")),
+          }),
           this.config.startupTimeoutMs,
           "[narp-stdio] timed out creating remote stdio session",
         );
@@ -219,7 +199,9 @@ class StdioRuntimeSession {
     onUpdate: (update: AcpClientUpdate) => void;
   }): Promise<acp.PromptResponse> => {
     const { meta, modelId, onUpdate, sessionId, signal, text } = params;
-    if (!this.connection || !this.remoteSessionId) {
+    const connection = this.connection;
+    const remoteSessionId = this.remoteSessionId;
+    if (!connection || !remoteSessionId) {
       throw new Error("[narp-stdio] stdio runtime connection not started");
     }
     if (this.promptInFlight) {
@@ -227,9 +209,13 @@ class StdioRuntimeSession {
     }
 
     this.promptInFlight = true;
+    let markPromptActivity: (() => void) | null = null;
     const detach = this.clientBridge.attach({
-      sessionId: this.remoteSessionId,
-      onUpdate,
+      sessionId: remoteSessionId,
+      onUpdate: (update) => {
+        markPromptActivity?.();
+        onUpdate(update);
+      },
     });
     const releaseAbort = this.bindAbortSignal(signal);
 
@@ -237,8 +223,8 @@ class StdioRuntimeSession {
       if (modelId && this.config.env?.[HERMES_ACP_ROUTE_BRIDGE_ENV] !== "1") {
         try {
           // Hermes ACP must switch on prompt-scoped providerRoute, not modelId alone.
-          await this.connection.unstable_setSessionModel({
-            sessionId: this.remoteSessionId,
+          await connection.unstable_setSessionModel({
+            sessionId: remoteSessionId,
             modelId,
           });
         } catch {
@@ -247,15 +233,21 @@ class StdioRuntimeSession {
       }
 
       return await withTimeout(
-        this.connection.prompt({
-          sessionId: this.remoteSessionId,
+        connection.prompt({
+          sessionId: remoteSessionId,
           prompt: [{ type: "text", text }],
           _meta: {
             [NARP_STDIO_PROMPT_META_KEY]: meta,
           },
         }),
         this.config.requestTimeoutMs,
-        `[narp-stdio] prompt timed out for session ${sessionId}`,
+        `[narp-stdio] prompt timed out after ${this.config.requestTimeoutMs}ms without activity for session ${sessionId}`,
+        (markActivity) => {
+          markPromptActivity = markActivity;
+          return () => {
+            markPromptActivity = null;
+          };
+        },
       );
     } finally {
       releaseAbort();
@@ -832,18 +824,26 @@ async function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,
   message: string,
+  onActivityTrackerReady: (markActivity: () => void) => () => void = () => () => undefined,
 ): Promise<T> {
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  let rejectTimeout: ((error: Error) => void) | null = null;
+  const markActivity = (): void => {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
+    timeoutHandle = setTimeout(() => rejectTimeout?.(new Error(message)), timeoutMs);
+  };
+
+  const releaseActivityTracker = onActivityTrackerReady(markActivity);
   try {
-    return await Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        timeoutHandle = setTimeout(() => {
-          reject(new Error(message));
-        }, timeoutMs);
-      }),
-    ]);
+    const timeoutPromise = new Promise<T>((_, reject) => {
+      rejectTimeout = reject;
+      markActivity();
+    });
+    return await Promise.race([promise, timeoutPromise]);
   } finally {
+    releaseActivityTracker();
     if (timeoutHandle) {
       clearTimeout(timeoutHandle);
     }

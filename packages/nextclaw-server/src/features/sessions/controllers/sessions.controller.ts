@@ -14,6 +14,8 @@ import { SessionSkillsViewBuilder } from "@nextclaw-server/features/sessions/ser
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 
+const INTERRUPTED_SESSION_STATUS_TEXT = "Run interrupted: no completion or error event was recorded. Please send the message again.";
+
 function readPositiveInt(value: string | undefined): number | undefined {
   if (typeof value !== "string") {
     return undefined;
@@ -52,7 +54,7 @@ function normalizeIdleSessionActivityPreview(session: NcpSessionSummary): NcpSes
       last_activity_preview: {
         ...preview,
         state: hasReplyText ? "completed" : "failed",
-        statusText: hasReplyText ? preview.statusText : "运行中断：上一轮请求没有完成，请重新发送。",
+        statusText: hasReplyText ? preview.statusText : INTERRUPTED_SESSION_STATUS_TEXT,
       },
     },
   };

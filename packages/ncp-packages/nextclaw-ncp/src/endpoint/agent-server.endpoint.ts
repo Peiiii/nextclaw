@@ -3,8 +3,8 @@ import type {
   NcpMessageAbortPayload,
   NcpRequestEnvelope,
   NcpStreamRequestPayload,
-} from "../types/events.js";
-import type { NcpEndpoint } from "../types/endpoint.js";
+} from "../types/events.types.js";
+import type { NcpEndpoint } from "../types/endpoint.types.js";
 import type { NcpEndpointManifest } from "../types/manifest.js";
 
 /**

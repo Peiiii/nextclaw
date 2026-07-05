@@ -1,4 +1,5 @@
 import type {
+  NcpError,
   NcpMessage,
   NcpTool,
 } from "@nextclaw/ncp";
@@ -26,6 +27,7 @@ export type AgentRunAbortRequest = {
   sessionId: string;
   runId?: string;
   correlationId?: string;
+  reason?: NcpError;
 };
 
 export type AgentRunAccepted = {

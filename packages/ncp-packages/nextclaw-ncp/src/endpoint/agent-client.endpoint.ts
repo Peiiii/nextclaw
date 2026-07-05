@@ -2,9 +2,9 @@ import type {
   NcpMessageAbortPayload,
   NcpAgentSendEnvelope,
   NcpStreamRequestPayload,
-} from "../types/events.js";
-import type { NcpEndpoint } from "../types/endpoint.js";
-import type { NcpRunHandle } from "../types/run.js";
+} from "../types/events.types.js";
+import type { NcpEndpoint } from "../types/endpoint.types.js";
+import type { NcpRunHandle } from "../types/run.types.js";
 
 /**
  * Client-side endpoint for agent chat: initiates requests and can cancel in-flight runs.

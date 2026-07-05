@@ -1,4 +1,4 @@
-import type { NcpEndpointEvent } from "./events.js";
+import type { NcpEndpointEvent } from "./events.types.js";
 import type {
   NcpMessage,
   NcpToolOutputContentItem,

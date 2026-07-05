@@ -1,6 +1,6 @@
 /**
  * Run-related types: snapshot state and run.metadata schema conventions.
- * Not event payloads — event payloads live in events.ts.
+ * Not event payloads — event payloads live in events.types.ts.
  */
 
 /** Current run state for agent snapshot. Used by UI for run status and abort. */

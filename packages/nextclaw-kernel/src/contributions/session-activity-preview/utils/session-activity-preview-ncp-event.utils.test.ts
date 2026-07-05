@@ -15,7 +15,7 @@ describe("createSessionActivityPreviewFromNcpEvent", () => {
       sessionId: "session-1",
       preview: {
         state: "running",
-        statusText: "正在思考",
+        statusText: "Thinking",
         timestamp: TIMESTAMP,
       },
     });
@@ -37,7 +37,7 @@ describe("createSessionActivityPreviewFromNcpEvent", () => {
       sessionId: "session-1",
       preview: {
         state: "running",
-        statusText: "工具调用完成：read_file",
+        statusText: "Tool call completed: read_file",
         timestamp: TIMESTAMP,
       },
     });
@@ -64,6 +64,30 @@ describe("createSessionActivityPreviewFromNcpEvent", () => {
       preview: {
         state: "completed",
         replyText: "已经整理好方案 下一步可以实现",
+        timestamp: TIMESTAMP,
+      },
+    });
+  });
+
+  it("projects message aborts into failed previews with the abort reason", () => {
+    expect(
+      createSessionActivityPreviewFromNcpEvent({
+        type: NcpEventType.MessageAbort,
+        payload: {
+          sessionId: "session-1",
+          messageId: "assistant-1",
+          runId: "run-1",
+          reason: {
+            code: "abort-error",
+            message: "User stopped the current run.",
+          },
+        },
+      }, TIMESTAMP),
+    ).toEqual({
+      sessionId: "session-1",
+      preview: {
+        state: "failed",
+        statusText: "Run interrupted: User stopped the current run.",
         timestamp: TIMESTAMP,
       },
     });

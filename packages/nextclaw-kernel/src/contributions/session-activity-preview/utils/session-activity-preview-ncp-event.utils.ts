@@ -53,15 +53,28 @@ function createProjection(
 
 function formatErrorStatus(error: unknown): string {
   if (typeof error === "string" && error.trim()) {
-    return `运行出错：${truncatePreviewText(error)}`;
+    return `Run failed: ${truncatePreviewText(error)}`;
   }
   if (error && typeof error === "object" && "message" in error) {
     const message = (error as { message?: unknown }).message;
     if (typeof message === "string" && message.trim()) {
-      return `运行出错：${truncatePreviewText(message)}`;
+      return `Run failed: ${truncatePreviewText(message)}`;
     }
   }
-  return "运行出错";
+  return "Run failed";
+}
+
+function formatAbortStatus(reason: unknown): string {
+  if (typeof reason === "string" && reason.trim()) {
+    return `Run interrupted: ${truncatePreviewText(reason)}`;
+  }
+  if (reason && typeof reason === "object" && "message" in reason) {
+    const message = (reason as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) {
+      return `Run interrupted: ${truncatePreviewText(message)}`;
+    }
+  }
+  return "Run interrupted: The run was cancelled before a complete response was produced.";
 }
 
 function readToolCallId(value: unknown): string | null {
@@ -73,7 +86,7 @@ function readToolCallId(value: unknown): string | null {
 }
 
 function formatToolDoneStatus(toolName: string | null): string {
-  return toolName ? `工具调用完成：${toolName}` : "工具调用完成";
+  return toolName ? `Tool call completed: ${toolName}` : "Tool call completed";
 }
 
 export function createSessionActivityPreviewFromNcpEvent(
@@ -85,7 +98,7 @@ export function createSessionActivityPreviewFromNcpEvent(
     case NcpEventType.RunStarted:
       return createProjection(readSessionId(event.payload.sessionId), {
         state: "running",
-        statusText: "正在思考",
+        statusText: "Thinking",
         timestamp,
       });
     case NcpEventType.RunFinished:
@@ -127,10 +140,16 @@ export function createSessionActivityPreviewFromNcpEvent(
         statusText: formatErrorStatus(event.payload.error),
         timestamp,
       });
+    case NcpEventType.MessageAbort:
+      return createProjection(readSessionId(event.payload.sessionId), {
+        state: "failed",
+        statusText: formatAbortStatus(event.payload.reason),
+        timestamp,
+      });
     case NcpEventType.MessageToolCallStart:
       return createProjection(readSessionId(event.payload.sessionId), {
         state: "running",
-        statusText: `正在调用工具：${event.payload.toolName}`,
+        statusText: `Calling tool: ${event.payload.toolName}`,
         timestamp,
       });
     case NcpEventType.MessageToolCallEnd:

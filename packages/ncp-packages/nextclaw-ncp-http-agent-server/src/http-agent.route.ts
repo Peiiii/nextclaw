@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { NcpHttpAgentController } from "./controller.js";
-import { normalizeBasePath, sanitizeTimeout } from "./parsers.js";
+import { normalizeBasePath, sanitizeTimeout } from "./request-parsers.utils.js";
 import type { NcpHttpAgentServerOptions } from "./types.js";
 
 export function createNcpHttpAgentRouter(options: NcpHttpAgentServerOptions): Hono {

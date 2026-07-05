@@ -71,7 +71,11 @@ export class SessionActivityPreviewEventService {
     this.toolNames.get(this.createToolNameKey(sessionId, toolCallId)) ?? null;
 
   private clearFinishedRunToolNames = (event: NcpEndpointEvent): void => {
-    if (event.type !== NcpEventType.RunFinished && event.type !== NcpEventType.RunError) {
+    if (
+      event.type !== NcpEventType.RunFinished &&
+      event.type !== NcpEventType.RunError &&
+      event.type !== NcpEventType.MessageAbort
+    ) {
       return;
     }
     const sessionId = event.payload.sessionId;

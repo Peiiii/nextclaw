@@ -483,7 +483,14 @@ describe("DefaultNcpAgentRuntime aborting tool calls", () => {
     expect(events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          payload: expect.objectContaining({ sessionId: "session-1" }),
+          payload: expect.objectContaining({
+            reason: expect.objectContaining({
+              code: "abort-error",
+              message: "The run was cancelled before a complete response was produced.",
+            }),
+            runId: spec.runId,
+            sessionId: "session-1",
+          }),
           type: NcpEventType.MessageAbort,
         }),
       ]),

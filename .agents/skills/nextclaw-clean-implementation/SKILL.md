@@ -1,6 +1,6 @@
 ---
 name: nextclaw-clean-implementation
-description: Use when implementing, refactoring, or designing source-level contracts in this repository, especially if a task touches frontend i18n/user-facing copy, frontend base/display components, tool schemas, API/protocol parameters, shared contracts, compatibility paths, fallback-heavy logic, duplicate branches, weak abstractions, unclear file placement, ad-hoc helpers, or patch-style fixes that would turn into garbage code.
+description: Use when implementing, refactoring, or designing source-level contracts in this repository, especially if a task touches frontend/backend i18n or user-facing copy, frontend base/display components, tool schemas, API/protocol parameters, shared contracts, compatibility paths, fallback-heavy logic, duplicate branches, weak abstractions, unclear file placement, ad-hoc helpers, or patch-style fixes that would turn into garbage code.
 ---
 
 # NextClaw Clean Implementation
@@ -175,6 +175,7 @@ description: Use when implementing, refactoring, or designing source-level contr
 - 修复浏览器依赖错误时，禁止通过给前端补 Node polyfill、继续加 alias、或改成 kernel 子路径来绕过；应把契约移回真正共享层，或让前端使用已有 shared/client SDK
 - 调整导航、侧边栏、菜单或入口时，默认保留既有可用入口和用户已接受的命名；除非用户明确要求删除或改名，否则只能新增/合并入口，不能顺手移除顶栏入口或擅自换标签；改完必须核对同一组既有入口，避免只恢复一个入口却漏掉相邻入口。
 - 前端用户可见文案必须放进所属 i18n 文案 owner，并由组件通过 `t(...)` 或现有 translator 消费；禁止用 `language.startsWith(...)`、`isZh ? ... : ...`、内联 `{ zh, en }` 对象、组件局部文案表等方式临时处理国际化。只有纯协议字段、品牌名、外部专有名词或明确不翻译的技术标识可以直接写字面量。
+- 后端、kernel、runtime、server、协议事件、API 响应、session metadata 和持久化消息不得生成中文用户可见默认文案；若展示需要本地化，优先返回稳定 code / kind / metadata 给前端 i18n owner 映射。轻量状态、错误 fallback 或暂未 i18n 的协议字符串必须默认英文；只有明确的 locale 字段、用户原文、测试输入、中文文档或中文资源文件可以保留中文。
 - 前端基础组件必须保持纯展示、业务无关，并优先放在 shared UI owner；如果组件需要业务 store/query、业务 manager、业务 i18n key、路由或领域状态机，它应留在 feature 层并组合基础组件，不应伪装成通用组件。
 - 新增或改造 UI surface 时，先按文件角色拆开再验证：组件文件主要承载渲染、hook 连接和事件绑定；无状态构造、匹配、URL/target/tab 构造、协议字段映射应放进同 feature 的 `utils/*.utils.ts`；共享 UI package 的专用 view 应独立成语义组件文件，不要把新 surface 塞进已有大 view 集合文件里。
 
