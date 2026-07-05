@@ -1,18 +1,43 @@
-export type UiTheme = 'natural' | 'minimal' | 'warm' | 'cool' | 'dawn' | 'graphite' | 'probe';
+export type UiTheme =
+  | 'natural'
+  | 'minimal'
+  | 'warm'
+  | 'cool'
+  | 'dawn'
+  | 'graphite'
+  | 'night'
+  | 'probe';
+export type UiThemeAppearance = 'light' | 'dark';
+
+type UiThemeDefinition = {
+  value: UiTheme;
+  labelKey: string;
+  appearance: UiThemeAppearance;
+};
 
 const THEME_STORAGE_KEY = 'nextclaw.ui.theme';
 const DEFAULT_THEME: UiTheme = 'natural';
-const THEME_VALUES: readonly UiTheme[] = ['natural', 'minimal', 'warm', 'cool', 'dawn', 'graphite', 'probe'];
 
-export const THEME_OPTIONS: Array<{ value: UiTheme; labelKey: string }> = [
-  { value: 'natural', labelKey: 'themeNatural' },
-  { value: 'minimal', labelKey: 'themeMinimal' },
-  { value: 'warm', labelKey: 'themeWarm' },
-  { value: 'cool', labelKey: 'themeCool' },
-  { value: 'dawn', labelKey: 'themeDawn' },
-  { value: 'graphite', labelKey: 'themeGraphite' },
-  { value: 'probe', labelKey: 'themeProbe' }
+const THEME_DEFINITIONS: readonly UiThemeDefinition[] = [
+  { value: 'natural', labelKey: 'themeNatural', appearance: 'light' },
+  { value: 'minimal', labelKey: 'themeMinimal', appearance: 'light' },
+  { value: 'warm', labelKey: 'themeWarm', appearance: 'light' },
+  { value: 'cool', labelKey: 'themeCool', appearance: 'light' },
+  { value: 'dawn', labelKey: 'themeDawn', appearance: 'light' },
+  { value: 'graphite', labelKey: 'themeGraphite', appearance: 'light' },
+  { value: 'night', labelKey: 'themeNight', appearance: 'dark' },
+  { value: 'probe', labelKey: 'themeProbe', appearance: 'light' },
 ];
+
+const THEME_VALUES: readonly UiTheme[] = THEME_DEFINITIONS.map(
+  ({ value }) => value,
+);
+
+export const THEME_OPTIONS: Array<{ value: UiTheme; labelKey: string }> =
+  THEME_DEFINITIONS.map(({ value, labelKey }) => ({
+    value,
+    labelKey,
+  }));
 
 export function normalizeTheme(value: unknown): UiTheme | null {
   if (typeof value !== 'string') {
@@ -24,6 +49,13 @@ export function normalizeTheme(value: unknown): UiTheme | null {
   }
 
   return value === 'leaf' ? 'warm' : null;
+}
+
+export function getThemeAppearance(theme: UiTheme): UiThemeAppearance {
+  return (
+    THEME_DEFINITIONS.find((definition) => definition.value === theme)
+      ?.appearance ?? 'light'
+  );
 }
 
 class UiThemeOwner {
@@ -58,7 +90,8 @@ class UiThemeOwner {
     return this.activeTheme;
   };
 
-  getTheme = (): UiTheme => this.initialized ? this.activeTheme : this.initializeTheme();
+  getTheme = (): UiTheme =>
+    this.initialized ? this.activeTheme : this.initializeTheme();
 
   setTheme = (theme: UiTheme): void => {
     this.initializeTheme();
@@ -83,7 +116,10 @@ class UiThemeOwner {
     if (typeof document === 'undefined') {
       return;
     }
+    const appearance = getThemeAppearance(theme);
     document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-theme-appearance', appearance);
+    document.documentElement.style.colorScheme = appearance;
   };
 
   private saveTheme = (theme: UiTheme): void => {
@@ -117,6 +153,8 @@ export function setTheme(theme: UiTheme): void {
   uiThemeOwner.setTheme(theme);
 }
 
-export function subscribeThemeChange(listener: (theme: UiTheme) => void): () => void {
+export function subscribeThemeChange(
+  listener: (theme: UiTheme) => void,
+): () => void {
   return uiThemeOwner.subscribeThemeChange(listener);
 }

@@ -30,7 +30,7 @@ export function DesktopWindowChrome({
 
   return (
     <header
-      className="desktop-window-drag relative flex h-[var(--desktop-titlebar-height)] shrink-0 bg-secondary after:absolute after:bottom-0 after:left-[var(--desktop-sidebar-width)] after:right-0 after:border-b after:border-[#ebe7dc]/80"
+      className="desktop-window-drag relative flex h-[var(--desktop-titlebar-height)] shrink-0 bg-secondary after:absolute after:bottom-0 after:left-[var(--desktop-sidebar-width)] after:right-0 after:border-b after:border-border/80"
       data-testid="desktop-window-chrome"
     >
       <div

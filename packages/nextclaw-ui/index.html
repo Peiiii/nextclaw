@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#FAF9F7" />
-  <meta name="color-scheme" content="light" />
+  <meta name="color-scheme" content="light dark" />
   <style>
     html,
     body,
@@ -50,6 +50,12 @@
       background: #f8f8f7;
     }
 
+    html[data-theme="night"],
+    html[data-theme="night"] body,
+    html[data-theme="night"] #root {
+      background: #101318;
+    }
+
     html[data-theme="probe"],
     html[data-theme="probe"] body,
     html[data-theme="probe"] #root {
@@ -67,7 +73,18 @@
         cool: '#F8FAFC',
         dawn: '#FAF7F4',
         graphite: '#F8F8F7',
+        night: '#101318',
         probe: '#FEFCF6'
+      };
+      const themeAppearances = {
+        natural: 'light',
+        minimal: 'light',
+        warm: 'light',
+        cool: 'light',
+        dawn: 'light',
+        graphite: 'light',
+        night: 'dark',
+        probe: 'light'
       };
       const legacyThemeAliases = {
         leaf: 'warm'
@@ -82,12 +99,18 @@
         window.localStorage.setItem(storageKey, nextTheme);
       }
       const themeColor = themeColors[nextTheme];
+      const themeAppearance = themeAppearances[nextTheme];
       document.documentElement.setAttribute('data-theme', nextTheme);
+      document.documentElement.setAttribute('data-theme-appearance', themeAppearance);
       document.documentElement.style.backgroundColor = themeColor;
-      document.documentElement.style.colorScheme = 'light';
+      document.documentElement.style.colorScheme = themeAppearance;
       const themeMeta = document.querySelector('meta[name="theme-color"]');
       if (themeMeta) {
         themeMeta.setAttribute('content', themeColor);
+      }
+      const colorSchemeMeta = document.querySelector('meta[name="color-scheme"]');
+      if (colorSchemeMeta) {
+        colorSchemeMeta.setAttribute('content', themeAppearance);
       }
     })();
   </script>

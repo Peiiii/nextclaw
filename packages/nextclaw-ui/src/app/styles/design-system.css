@@ -6,6 +6,8 @@
 
 @layer base {
    :root {
+      color-scheme: light;
+
       /* ========================================
        BRAND COLORS (Natural Olive)
        ======================================== */
@@ -567,6 +569,90 @@
       --shadow-lg: 0 10px 15px -3px rgb(24 26 31 / 0.06), 0 4px 6px -4px rgb(24 26 31 / 0.04);
       --shadow-xl: 0 20px 25px -5px rgb(24 26 31 / 0.08), 0 8px 10px -6px rgb(24 26 31 / 0.04);
       --shadow-2xl: 0 25px 50px -12px rgb(24 26 31 / 0.14);
+   }
+}
+
+
+@layer base {
+   :root[data-theme="night"] {
+      color-scheme: dark;
+
+      /* ========================================
+       BRAND COLORS (Night Moss)
+       ======================================== */
+      --brand-50: 148 36% 91%;
+      --brand-100: 148 34% 84%;
+      --brand-200: 149 32% 72%;
+      --brand-300: 149 33% 60%;
+      --brand-400: 150 36% 52%;
+      --brand-500: 150 42% 46%;
+      --brand-600: 150 46% 38%;
+      --brand-700: 151 48% 30%;
+      --brand-800: 152 48% 22%;
+      --brand-900: 153 46% 15%;
+
+      /* ========================================
+       NEUTRAL COLORS (Deep Workbench)
+       ======================================== */
+      --gray-50: 220 18% 8%;
+      --gray-100: 220 16% 11%;
+      --gray-200: 219 14% 16%;
+      --gray-300: 218 12% 24%;
+      --gray-400: 215 10% 46%;
+      --gray-500: 213 12% 62%;
+      --gray-600: 212 16% 74%;
+      --gray-700: 43 22% 82%;
+      --gray-800: 44 32% 90%;
+      --gray-900: 44 40% 96%;
+
+      /* Semantic Colors */
+      --background: var(--gray-50);
+      --background-secondary: var(--gray-100);
+      --background-tertiary: var(--gray-200);
+      --foreground: var(--gray-800);
+      --foreground-secondary: var(--gray-700);
+      --foreground-tertiary: var(--gray-500);
+      --foreground-muted: var(--gray-400);
+      --primary: var(--brand-400);
+      --primary-hover: var(--brand-300);
+      --primary-active: var(--brand-200);
+      --primary-foreground: 220 18% 8%;
+      --secondary: var(--gray-100);
+      --secondary-hover: var(--gray-200);
+      --secondary-foreground: var(--gray-800);
+      --accent: 151 32% 18%;
+      --accent-foreground: 148 34% 84%;
+      --muted: var(--gray-100);
+      --muted-foreground: var(--gray-500);
+      --destructive: 0 70% 52%;
+      --destructive-foreground: 0 0% 100%;
+      --success: 150 46% 44%;
+      --success-foreground: 220 18% 8%;
+      --warning: 42 82% 58%;
+      --warning-foreground: 220 18% 8%;
+      --card: 220 16% 10%;
+      --card-foreground: var(--gray-800);
+      --card-border: 218 13% 20%;
+      --popover: 220 16% 10%;
+      --popover-foreground: var(--gray-800);
+      --border: 218 13% 20%;
+      --border-hover: 218 12% 30%;
+      --border-active: var(--brand-400);
+      --input: 220 16% 12%;
+      --input-border: 218 13% 24%;
+      --input-focus: var(--brand-400);
+      --ring: var(--brand-400);
+      --ring-offset: var(--gray-50);
+
+      /* Shadows (deep neutral tint) */
+      --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.28);
+      --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.34), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+      --shadow-md: 0 8px 18px -10px rgb(0 0 0 / 0.42), 0 4px 8px -6px rgb(0 0 0 / 0.34);
+      --shadow-lg: 0 16px 28px -16px rgb(0 0 0 / 0.48), 0 8px 14px -10px rgb(0 0 0 / 0.38);
+      --shadow-xl: 0 24px 40px -20px rgb(0 0 0 / 0.56), 0 10px 18px -12px rgb(0 0 0 / 0.42);
+      --shadow-2xl: 0 32px 60px -24px rgb(0 0 0 / 0.65);
+      --shadow-card: 0 0 0 1px hsl(var(--border) / 0.82), 0 18px 48px -34px rgb(0 0 0 / 0.72);
+      --shadow-card-hover: 0 0 0 1px hsl(var(--border-hover) / 0.88), 0 24px 60px -36px rgb(0 0 0 / 0.82);
    }
 }
 

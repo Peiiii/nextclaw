@@ -6,7 +6,9 @@ describe('PwaShellThemeManager', () => {
     document.head.innerHTML = '<meta name="theme-color" content="#FFFFFF" />';
     document.body.innerHTML = '<div id="root"></div>';
     document.documentElement.removeAttribute('data-theme');
+    document.documentElement.removeAttribute('data-theme-appearance');
     document.documentElement.style.backgroundColor = '';
+    document.documentElement.style.colorScheme = '';
     document.body.style.backgroundColor = '';
   });
 
@@ -70,6 +72,15 @@ describe('PwaShellThemeManager', () => {
     const meta = document.querySelector('meta[name="theme-color"]');
     expect(meta?.getAttribute('content')).toBe('#F8F8F7');
     expect(document.body.style.backgroundColor).toBe('rgb(248, 248, 247)');
+  });
+
+  it('applies night shell colors and dark color scheme', () => {
+    pwaShellThemeManager.syncTheme('night');
+
+    const meta = document.querySelector('meta[name="theme-color"]');
+    expect(meta?.getAttribute('content')).toBe('#101318');
+    expect(document.body.style.backgroundColor).toBe('rgb(16, 19, 24)');
+    expect(document.documentElement.style.colorScheme).toBe('dark');
   });
 
   it('maps the legacy leaf theme to warm shell colors', () => {
