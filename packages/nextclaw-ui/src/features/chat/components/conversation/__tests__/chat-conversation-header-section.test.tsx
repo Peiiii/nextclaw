@@ -7,12 +7,17 @@ import { ChatConversationHeaderSection } from "@/features/chat/components/conver
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
-import type { NcpSessionSummaryView } from "@/shared/lib/api";
+import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
+import type { NcpSessionListItemView } from "@/features/chat/features/ncp/hooks/use-ncp-session-list-view";
+import type { NcpSessionSummaryView, SessionEntryView } from "@/shared/lib/api";
 
 const mocks = vi.hoisted(() => ({
   deleteSession: vi.fn(),
   openChildSessionPanel: vi.fn(),
   openSessionCronPanel: vi.fn(),
+  selectSession: vi.fn(),
+  sessionItems: [] as NcpSessionListItemView[],
+  isSessionListLoading: false,
 }));
 
 vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
@@ -22,7 +27,33 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
       openChildSessionPanel: mocks.openChildSessionPanel,
       openSessionCronPanel: mocks.openSessionCronPanel,
     },
+    chatSessionListManager: {
+      selectSession: mocks.selectSession,
+    },
   }),
+}));
+
+vi.mock("@/features/chat/features/ncp/hooks/use-ncp-session-list-view", () => ({
+  useNcpSessionListView: (params?: { query?: string | null }) => {
+    const query = params?.query?.trim().toLowerCase() ?? "";
+    const items = query
+      ? mocks.sessionItems.filter(({ session }) =>
+          [
+            session.key,
+            session.label ?? "",
+            session.projectRoot ?? "",
+            session.projectName ?? "",
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(query),
+        )
+      : mocks.sessionItems;
+    return {
+      isLoading: mocks.isSessionListLoading,
+      items,
+    };
+  },
 }));
 
 vi.mock("@/features/cron", () => ({
@@ -54,6 +85,24 @@ function createSummary(
   };
 }
 
+function createSessionListItem(
+  overrides: Partial<SessionEntryView> & Pick<SessionEntryView, "key">,
+): NcpSessionListItemView {
+  return {
+    session: {
+      createdAt: "2026-06-18T00:00:00.000Z",
+      updatedAt: "2026-06-18T00:00:00.000Z",
+      lastMessageAt: "2026-06-18T00:00:00.000Z",
+      readAt: "2026-06-18T00:00:00.000Z",
+      sessionType: "native",
+      sessionTypeMutable: false,
+      messageCount: 1,
+      ...overrides,
+    },
+    runStatus: overrides.status === "running" ? "running" : undefined,
+  };
+}
+
 function renderHeaderSection() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -73,6 +122,9 @@ describe("ChatConversationHeaderSection", () => {
     mocks.deleteSession.mockReset();
     mocks.openChildSessionPanel.mockReset();
     mocks.openSessionCronPanel.mockReset();
+    mocks.selectSession.mockReset();
+    mocks.isSessionListLoading = false;
+    viewportLayoutManager.resetForTests();
     useChatSessionListStore.persist.setOptions({
       storage: new MemoryPersistStorage(),
     });
@@ -129,6 +181,18 @@ describe("ChatConversationHeaderSection", () => {
         } as never,
       },
     });
+    mocks.sessionItems = [
+      createSessionListItem({
+        key: "parent-session-1",
+        label: "Parent Task",
+      }),
+      createSessionListItem({
+        key: "session:ncp-2",
+        label: "Background Task",
+        lastMessageAt: "2026-06-18T01:00:00.000Z",
+        readAt: "2026-06-18T01:00:00.000Z",
+      }),
+    ];
   });
 
   it("shows the child-session entry from session query state before a tool card opens it", async () => {
@@ -141,5 +205,72 @@ describe("ChatConversationHeaderSection", () => {
       parentSessionKey: "parent-session-1",
       activeChildSessionKey: "child-session-1",
     });
+  });
+
+  it("uses the collapsed desktop title as a session switcher", async () => {
+    const user = userEvent.setup();
+    viewportLayoutManager.setSidebarCollapsed(true);
+
+    renderHeaderSection();
+
+    await user.click(screen.getByRole("button", { name: /Switch session/ }));
+    await user.click(screen.getByRole("button", { name: /Background Task/ }));
+
+    expect(mocks.selectSession).toHaveBeenCalledWith("session:ncp-2");
+  });
+
+  it("keeps the desktop title plain while the sidebar is expanded", () => {
+    renderHeaderSection();
+
+    expect(screen.queryByRole("button", { name: /Switch session/ })).toBeNull();
+    expect(screen.getByText("Parent Task")).toBeTruthy();
+  });
+
+  it("keeps session switching available from a collapsed new-session header", async () => {
+    const user = userEvent.setup();
+    viewportLayoutManager.setSidebarCollapsed(true);
+    useChatSessionListStore.setState({
+      snapshot: {
+        ...useChatSessionListStore.getState().snapshot,
+        selectedSessionKey: null,
+      },
+    });
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        sessionKey: null,
+      },
+    });
+
+    renderHeaderSection();
+
+    await user.click(screen.getByRole("button", { name: /Switch session/ }));
+    await user.click(screen.getByRole("button", { name: /Background Task/ }));
+
+    expect(mocks.selectSession).toHaveBeenCalledWith("session:ncp-2");
+  });
+
+  it("filters the collapsed title switcher with a local search query", async () => {
+    const user = userEvent.setup();
+    viewportLayoutManager.setSidebarCollapsed(true);
+
+    renderHeaderSection();
+
+    await user.click(screen.getByRole("button", { name: /Switch session/ }));
+    const searchInput = screen.getByRole("textbox", {
+      name: "Search session key / label",
+    });
+    await user.type(searchInput, "Background");
+    await user.click(screen.getByRole("button", { name: /Background Task/ }));
+
+    expect(mocks.selectSession).toHaveBeenCalledWith("session:ncp-2");
+
+    await user.click(screen.getByRole("button", { name: /Switch session/ }));
+    await user.type(
+      screen.getByRole("textbox", { name: "Search session key / label" }),
+      "missing",
+    );
+
+    expect(screen.getByText("No matching sessions")).toBeTruthy();
   });
 });

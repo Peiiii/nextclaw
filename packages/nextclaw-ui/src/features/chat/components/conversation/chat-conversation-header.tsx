@@ -41,6 +41,7 @@ export function ChatConversationHeader({
   sessionTypeBadge,
   shouldShow,
   title,
+  titleContent,
 }: {
   layoutMode: "desktop" | "mobile";
   actions?: ReactNode;
@@ -50,6 +51,7 @@ export function ChatConversationHeader({
   sessionTypeBadge?: ReactNode;
   shouldShow: boolean;
   title: string;
+  titleContent?: ReactNode;
 }) {
   const isMobileLayout = layoutMode === "mobile";
 
@@ -78,9 +80,11 @@ export function ChatConversationHeader({
           />
         ) : null}
         {leading}
-        <span className="text-sm font-medium text-foreground truncate">
-          {title}
-        </span>
+        {titleContent ?? (
+          <span className="text-sm font-medium text-foreground truncate">
+            {title}
+          </span>
+        )}
         {sessionTypeBadge}
         {projectBadge}
       </div>

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { ChatConversationHeader } from "@/features/chat/components/conversation/chat-conversation-header";
 import { ChatSessionHeaderActions } from "@/features/chat/features/session/components/session-header/chat-session-header-actions";
 import { ChatSessionProjectBadge } from "@/features/chat/features/session/components/session-header/chat-session-project-badge";
+import { ChatSessionTitleSwitcher } from "@/features/chat/features/session/components/session-header/chat-session-title-switcher";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import { SessionContextIconNode } from "@/features/chat/features/session/components/session-context-icon";
 import { useChatConversationWorkspaceState } from "@/features/chat/features/workspace/hooks/use-chat-conversation-workspace-state";
@@ -89,6 +90,13 @@ export function ChatConversationHeaderSection({
     <ChatConversationHeader
       layoutMode={layoutMode}
       title={sessionHeaderTitle}
+      titleContent={
+        <ChatSessionTitleSwitcher
+          layoutMode={layoutMode}
+          selectedSessionKey={sessionKey}
+          title={sessionHeaderTitle}
+        />
+      }
       shouldShow={shouldShowSessionHeader}
       onBackToList={onBackToList}
       leading={

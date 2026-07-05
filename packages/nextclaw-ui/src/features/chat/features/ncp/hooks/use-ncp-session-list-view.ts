@@ -22,8 +22,9 @@ function shouldShowSessionInSidebar(session: SessionEntryView): boolean {
   return session.isPromotedChildSession === true;
 }
 
-export function useNcpSessionListView(params: { limit?: number } = {}) {
-  const query = useChatSessionListStore((state) => state.snapshot.query);
+export function useNcpSessionListView(params: { limit?: number; query?: string | null } = {}) {
+  const storedQuery = useChatSessionListStore((state) => state.snapshot.query);
+  const query = params.query ?? storedQuery;
   const sessionsQuery = useNcpSessions({ limit: params.limit ?? 200 });
 
   const items = useMemo<NcpSessionListItemView[]>(() => {
