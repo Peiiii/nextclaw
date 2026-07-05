@@ -16,7 +16,8 @@ export class ChatPresenter {
     this.chatQueryManager = new ChatQueryManager();
     this.chatThreadManager = new ChatThreadManager(
       this.chatUiManager,
-      this.chatSessionListManager
+      this.chatSessionListManager,
+      appPresenter.notifyRightPanelOpened,
     );
   }
 }

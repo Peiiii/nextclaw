@@ -5,6 +5,14 @@ import {
   type ViewportLayoutSnapshot,
 } from "@/app/stores/viewport-layout.store";
 
+export const DENSE_RIGHT_PANELS_AUTO_COLLAPSE_MAX_WIDTH = 1800;
+
+type DenseRightPanelsLayout = {
+  isDocBrowserDocked: boolean;
+  isDocBrowserOpen: boolean;
+  isWorkspacePanelOpen: boolean;
+};
+
 export class ViewportLayoutManager {
   private consumerCount = 0;
 
@@ -49,6 +57,37 @@ export class ViewportLayoutManager {
 
   setSidebarCollapsed = (isSidebarCollapsed: boolean) => {
     useViewportLayoutStore.setState({ isSidebarCollapsed });
+  };
+
+  collapseSidebarForDenseRightPanels = (layout: DenseRightPanelsLayout) => {
+    if (
+      !layout.isDocBrowserOpen ||
+      !layout.isDocBrowserDocked ||
+      !layout.isWorkspacePanelOpen
+    ) {
+      return;
+    }
+
+    const snapshot = this.getSnapshot();
+    if (snapshot.mode !== "desktop" || snapshot.isSidebarCollapsed) {
+      return;
+    }
+
+    const width =
+      typeof snapshot.width === "number"
+        ? snapshot.width
+        : typeof window === "undefined"
+          ? null
+          : window.innerWidth;
+    if (
+      typeof width !== "number" ||
+      !Number.isFinite(width) ||
+      width > DENSE_RIGHT_PANELS_AUTO_COLLAPSE_MAX_WIDTH
+    ) {
+      return;
+    }
+
+    this.setSidebarCollapsed(true);
   };
 
   toggleSidebarCollapsed = () => {

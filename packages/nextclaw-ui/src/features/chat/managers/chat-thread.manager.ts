@@ -44,6 +44,7 @@ export class ChatThreadManager {
   constructor(
     private uiManager: ChatUiManager,
     private sessionListManager: ChatSessionListManager,
+    private readonly onWorkspacePanelOpened?: () => void,
   ) {}
 
   private hasSnapshotChanges = (patch: Partial<ChatThreadSnapshot>): boolean => {
@@ -265,6 +266,7 @@ export class ChatThreadManager {
       useChatThreadStore.getState().setSnapshot(patch);
     }
     this.ensureWorkspaceParentRoute(parentSessionKey);
+    this.onWorkspacePanelOpened?.();
   };
 
   openSideChatDraft = (parentSessionKey?: string | null) => {
@@ -285,6 +287,7 @@ export class ChatThreadManager {
       key: activeSideChatDraft.draftKey,
     });
     this.ensureWorkspaceParentRoute(resolvedParentSessionKey);
+    this.onWorkspacePanelOpened?.();
   };
 
   materializeSideChatDraft = (params: {
@@ -322,6 +325,7 @@ export class ChatThreadManager {
       key: nextTab.key,
     });
     this.ensureWorkspaceParentRoute(parentSessionKey);
+    this.onWorkspacePanelOpened?.();
   };
 
   private openSessionFromToolAction = (action: ChatToolActionViewModel) => {
@@ -505,6 +509,7 @@ export class ChatThreadManager {
       kind: 'cron',
     });
     this.ensureWorkspaceParentRoute(parentSessionKey);
+    this.onWorkspacePanelOpened?.();
   };
 
   goBackWorkspacePanel = () => {

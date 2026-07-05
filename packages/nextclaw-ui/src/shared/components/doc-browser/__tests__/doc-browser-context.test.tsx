@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { DocBrowserProvider, useDocBrowser } from '../doc-browser-context';
+import { DocBrowserProvider, useDocBrowser } from '@/shared/components/doc-browser/doc-browser-context';
 import { RightPanelResourceRouteResolver } from '@/features/right-panel-resources';
 import { DocBrowserManager } from '@/shared/components/doc-browser/managers/doc-browser.manager';
 import { createDefaultDocBrowserState } from '@/shared/components/doc-browser/utils/doc-browser-state.utils';
@@ -52,6 +52,35 @@ async function resetMemoryThenRehydrate(savedState: string | null) {
   }
   await rehydrateDocBrowserFromStorage();
 }
+
+describe('DocBrowserManager layout notifications', () => {
+  it('notifies the app layout coordinator after opening the docked browser', () => {
+    const onRightPanelOpened = vi.fn();
+    const manager = new DocBrowserManager(
+      new RightPanelResourceRouteResolver(),
+      onRightPanelOpened,
+    );
+
+    manager.open('https://example.com/read', {
+      kind: 'content',
+      title: 'Example',
+    });
+
+    expect(onRightPanelOpened).toHaveBeenCalledTimes(1);
+  });
+
+  it('notifies the app layout coordinator after changing dock mode', () => {
+    const onRightPanelOpened = vi.fn();
+    const manager = new DocBrowserManager(
+      new RightPanelResourceRouteResolver(),
+      onRightPanelOpened,
+    );
+
+    manager.toggleMode();
+
+    expect(onRightPanelOpened).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe('DocBrowserProvider dedupe keys', () => {
   it('opens different dedupe keys as separate content tabs', () => {

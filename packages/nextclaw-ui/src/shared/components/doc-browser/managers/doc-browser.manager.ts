@@ -27,6 +27,8 @@ import {
 
 const defaultDocBrowserRouteResolver = new DefaultDocBrowserRouteResolver();
 
+type RightPanelOpenedHandler = () => void;
+
 function updateTab(
   state: DocBrowserState,
   tabId: string,
@@ -258,7 +260,10 @@ function openDocBrowserState(
 }
 
 export class DocBrowserManager {
-  constructor(private readonly routeResolver: DocBrowserRouteResolver = defaultDocBrowserRouteResolver) {}
+  constructor(
+    private readonly routeResolver: DocBrowserRouteResolver = defaultDocBrowserRouteResolver,
+    private readonly onRightPanelOpened?: RightPanelOpenedHandler,
+  ) {}
 
   private readonly setSnapshot = (next: DocBrowserStateUpdate): void => {
     useDocBrowserStore.getState().setSnapshot(next);
@@ -266,6 +271,7 @@ export class DocBrowserManager {
 
   readonly open = (url?: string, options?: DocBrowserOpenOptions): void => {
     this.setSnapshot((prev) => openDocBrowserState(this.routeResolver, prev, url, options));
+    this.onRightPanelOpened?.();
   };
 
   readonly openTarget = (target: DocBrowserRouteTarget, options?: DocBrowserOpenOptions): void => {
@@ -275,6 +281,7 @@ export class DocBrowserManager {
       kind: options?.kind ?? target.kind,
       title: options?.title ?? target.title,
     }));
+    this.onRightPanelOpened?.();
   };
 
   readonly openNewTab = (): void => {
@@ -287,6 +294,7 @@ export class DocBrowserManager {
 
   readonly toggleMode = (): void => {
     this.setSnapshot((prev) => ({ ...prev, mode: prev.mode === 'floating' ? 'docked' : 'floating' }));
+    this.onRightPanelOpened?.();
   };
 
   readonly navigate = (url: string): void => {

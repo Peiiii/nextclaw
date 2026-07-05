@@ -155,6 +155,40 @@ describe('ChatThreadManager', () => {
     expect(uiManager.goToSession).not.toHaveBeenCalled();
   });
 
+  it('notifies the app layout coordinator after opening the workspace panel', () => {
+    const onWorkspacePanelOpened = vi.fn();
+    const manager = new ChatThreadManager(
+      createUiManager(),
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      onWorkspacePanelOpened,
+    );
+
+    manager.openFilePreview({
+      path: 'README.md',
+      label: 'README.md',
+      viewMode: 'preview',
+    });
+
+    expect(onWorkspacePanelOpened).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not notify the app layout coordinator when no workspace panel opens', () => {
+    const onWorkspacePanelOpened = vi.fn();
+    const manager = new ChatThreadManager(
+      createUiManager(),
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      onWorkspacePanelOpened,
+    );
+
+    manager.openFilePreview({
+      path: ' ',
+      label: 'README.md',
+      viewMode: 'preview',
+    });
+
+    expect(onWorkspacePanelOpened).not.toHaveBeenCalled();
+  });
+
   it('opens a side chat draft beside the selected parent session', () => {
     const uiManager = createUiManager({
       goToSession: vi.fn(),
