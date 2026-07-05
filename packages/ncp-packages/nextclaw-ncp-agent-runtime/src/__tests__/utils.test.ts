@@ -105,6 +105,39 @@ describe("tool result budget handling", () => {
     );
   });
 
+  it("redacts small image payloads while preserving visual content items", () => {
+    const contentManager = new ToolResultContentManager({ maxModelVisibleChars: 5_000 });
+    const imageData = "ZmFrZS1zbWFsbC1pbWFnZQ==";
+    const normalized = contentManager.normalizeToolCallResult({
+      toolCallId: "call-view-image",
+      toolName: "view_image",
+      args: { path: "sample.png" },
+      rawArgsText: '{"path":"sample.png"}',
+      result: {
+        ok: true,
+        image: {
+          type: "image",
+          mimeType: "image/png",
+          detail: "original",
+          data: imageData,
+        },
+      },
+    });
+
+    const serialized = JSON.stringify(normalized.result);
+    expect(serialized).not.toContain(imageData);
+    expect(serialized).toContain('"dataOmitted":true');
+    expect(normalized.contentItems).toContainEqual(
+      expect.objectContaining({
+        detail: "original",
+        imageUrl: `data:image/png;base64,${imageData}`,
+        mimeType: "image/png",
+        originalDataChars: imageData.length,
+        type: "input_image",
+      }),
+    );
+  });
+
   it("compacts older tool messages when active tool context keeps growing", () => {
     const contentManager = new ToolResultContentManager({
       maxModelVisibleChars: 500,

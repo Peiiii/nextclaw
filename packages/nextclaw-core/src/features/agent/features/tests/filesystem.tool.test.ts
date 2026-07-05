@@ -1,10 +1,34 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
-import { EditFileTool, ReadFileTool } from "@core/features/agent/index.js";
+import { EditFileTool, ReadFileTool, ViewImageTool } from "@core/features/agent/index.js";
 
 const tempWorkspaces: string[] = [];
+const PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+const PNG_BYTES = Buffer.from(PNG_BASE64, "base64");
+
+type ViewImageResult = {
+  detail: "high" | "original";
+  image: {
+    data: string;
+    detail: "high" | "original";
+    mimeType: string;
+    type: "image";
+  };
+  mimeType: string;
+  ok: true;
+  path: string;
+  sizeBytes: number;
+};
 
 function createWorkspace(): string {
   const workspace = mkdtempSync(join(tmpdir(), "nextclaw-filesystem-tool-test-"));
@@ -102,3 +126,93 @@ describe("ReadFileTool", () => {
     expect(cappedResult).toContain("Use offset=");
   });
 });
+
+describe("ViewImageTool", () => {
+  it("reads a PNG relative to the configured working directory", async () => {
+    const workspace = createWorkspace();
+    writePng(workspace, "sample.png");
+    const tool = new ViewImageTool({ workingDir: workspace });
+
+    const result = readViewImageResult(
+      await tool.execute({ detail: "original", path: "sample.png" })
+    );
+
+    expect(result).toEqual(expect.objectContaining({
+      detail: "original",
+      mimeType: "image/png",
+      ok: true,
+      sizeBytes: PNG_BYTES.byteLength
+    }));
+    expect(result.image).toEqual({
+      data: PNG_BASE64,
+      detail: "original",
+      mimeType: "image/png",
+      type: "image"
+    });
+  });
+
+  it("allows absolute readable paths when no allowed directory is configured", async () => {
+    const imagePath = writePng(createWorkspace(), "outside.png");
+    const tool = new ViewImageTool();
+
+    const result = readViewImageResult(await tool.execute({ path: imagePath }));
+
+    expect(result.ok).toBe(true);
+    expect(result.mimeType).toBe("image/png");
+    expect(result.path).toBe(imagePath);
+  });
+
+  it("rejects paths outside the configured allowed directory", async () => {
+    const workspace = createWorkspace();
+    const outsideImagePath = writePng(createWorkspace(), "outside.png");
+    const tool = new ViewImageTool({ allowedDir: workspace, workingDir: workspace });
+
+    await expect(tool.execute({ path: outsideImagePath })).rejects.toThrow(
+      "Access denied: image path outside allowed directory."
+    );
+  });
+
+  it("rejects symlinks that escape the configured allowed directory", async () => {
+    const workspace = createWorkspace();
+    const outsideImagePath = writePng(createWorkspace(), "outside.png");
+    const linkPath = join(workspace, "linked.png");
+    symlinkSync(outsideImagePath, linkPath);
+    const tool = new ViewImageTool({ allowedDir: workspace, workingDir: workspace });
+
+    await expect(tool.execute({ path: "linked.png" })).rejects.toThrow(
+      "Access denied: image path outside allowed directory."
+    );
+  });
+
+  it("rejects directories, missing files, unsupported formats, oversized files, and invalid detail", async () => {
+    const workspace = createWorkspace();
+    mkdirSync(join(workspace, "folder"));
+    writeFileSync(join(workspace, "note.txt"), "not an image");
+    writeFileSync(join(workspace, "large.png"), Buffer.concat([PNG_BYTES, Buffer.alloc(8)]));
+    const tool = new ViewImageTool({
+      allowedDir: workspace,
+      maxBytes: PNG_BYTES.byteLength,
+      workingDir: workspace
+    });
+
+    await expect(tool.execute({ path: "folder" })).rejects.toThrow(
+      `Image path "${join(workspace, "folder")}" is not a file.`
+    );
+    await expect(tool.execute({ path: "missing.png" })).rejects.toThrow("Unable to locate image");
+    await expect(tool.execute({ path: "note.txt" })).rejects.toThrow("Unsupported image format");
+    await expect(tool.execute({ path: "large.png" })).rejects.toThrow("is too large");
+    expect(tool.validateArgs({ detail: "low", path: "sample.png" })).toContain(
+      'detail must be one of ["high","original"]'
+    );
+  });
+});
+
+function writePng(dir: string, name: string): string {
+  const imagePath = join(dir, name);
+  writeFileSync(imagePath, PNG_BYTES);
+  return imagePath;
+}
+
+function readViewImageResult(value: unknown): ViewImageResult {
+  return value as ViewImageResult;
+}

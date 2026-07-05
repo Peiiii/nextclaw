@@ -9,6 +9,7 @@ import {
   MemoryGetTool,
   MemorySearchTool,
   ReadFileTool,
+  ViewImageTool,
   WebFetchTool,
   WebSearchTool,
   WriteFileTool,
@@ -46,6 +47,10 @@ export class CoreToolProvider implements ToolProvider {
       new WriteFileTool(allowedDir),
       new EditFileTool(allowedDir),
       new ListDirTool(allowedDir),
+      new ViewImageTool({
+        allowedDir,
+        workingDir: workspace,
+      }),
       execTool,
       new WebSearchTool(searchConfig),
       new WebFetchTool(),

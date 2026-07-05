@@ -19,5 +19,6 @@ export * from "./tools/spawn.tools.js";
 export * from "./tools/subagents.tools.js";
 export * from "./tools/web.tools.js";
 export * from "./tools/gateway.tools.js";
+export * from "./tools/image.tools.js";
 export * from "./tools/memory.tools.js";
 export * from "./services/input-budget-pruner.service.js";

@@ -428,7 +428,6 @@ describe("DefaultNcpAgentRuntime tool call scheduling", () => {
   });
 });
 
-
 describe("DefaultNcpAgentRuntime aborting tool calls", () => {
   it("emits abort promptly while a tool call is still running", async () => {
     const toolStarted = deferred<string | undefined>();

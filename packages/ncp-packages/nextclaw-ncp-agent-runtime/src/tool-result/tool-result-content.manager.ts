@@ -10,7 +10,6 @@ import {
   getBinaryByteLength,
   isBinaryLike,
   isLargeBase64LikeString,
-  isLargeDataUrl,
   readDataUrlMime,
   sanitizePositiveInt,
   serializeValue,
@@ -149,7 +148,12 @@ export class ToolResultContentManager {
     }
 
     const serialized = serializeValue(result);
-    if (serialized.ok && serialized.text.length <= this.maxModelVisibleChars) {
+    const containsImageContent = this.imageService.extractImageItems(result).length > 0;
+    if (
+      serialized.ok &&
+      serialized.text.length <= this.maxModelVisibleChars &&
+      !containsImageContent
+    ) {
       return { value: result, changed: false };
     }
 
@@ -340,7 +344,7 @@ export class ToolResultContentManager {
   };
 
   private readonly redactString = (value: string): string => {
-    if (isLargeDataUrl(value)) {
+    if (/^data:[^,]+;base64,/i.test(value)) {
       return `[omitted data URL payload: mime=${readDataUrlMime(value)}, originalChars=${value.length}]`;
     }
     if (isLargeBase64LikeString(value)) {
