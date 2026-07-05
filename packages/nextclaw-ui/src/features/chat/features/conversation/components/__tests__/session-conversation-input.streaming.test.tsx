@@ -11,6 +11,7 @@ import {
   createChatComposerTextNode,
   type ChatComposerNode,
 } from '@nextclaw/agent-chat-ui';
+import type { NcpAgentSendEnvelope, NcpRunHandle } from '@nextclaw/ncp';
 
 import { I18nProvider } from '@/app/components/i18n-provider';
 import { ChatPresenterProvider, type ChatPresenterLike } from '@/features/chat/components/providers/chat-presenter.provider';
@@ -18,11 +19,15 @@ import {
   SessionConversationInput,
   type SessionConversationInputController,
 } from '@/features/chat/features/conversation/components/session-conversation-input';
+import { useSessionConversationController } from '@/features/chat/features/conversation/hooks/use-session-conversation-controller';
 import type {
   SessionConversationInputActions,
   SessionConversationInputPatch,
   SessionConversationInputSnapshot,
 } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-state';
+import { useSessionConversationInputState } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-state';
+
+const uploadNcpAssetsMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@/app/hooks/use-viewport-layout', () => ({
   useViewportLayout: () => ({ isDesktop: true, isMobile: false }),
@@ -49,6 +54,7 @@ vi.mock('@/shared/lib/api', async (importOriginal) => {
   return {
     ...(actual as object),
     updateNcpSession: vi.fn(),
+    uploadNcpAssets: uploadNcpAssetsMock,
   };
 });
 
@@ -62,6 +68,7 @@ const presenter = {
   },
   chatUiManager: {
     goToProviders: vi.fn(),
+    showContent: vi.fn(),
   },
 } as unknown as ChatPresenterLike;
 
@@ -232,5 +239,130 @@ describe('SessionConversationInput streaming stability', () => {
 
     expect(editQueuedInput).toHaveBeenCalledWith('queued-1');
     expect(deleteQueuedInput).toHaveBeenCalledWith('queued-2');
+  });
+});
+
+type AttachmentSubmitAgentSend = (envelope: NcpAgentSendEnvelope) => Promise<NcpRunHandle | null>;
+
+function createAttachmentRunHandle(): NcpRunHandle {
+  return {
+    assistantMessageId: null,
+    correlationId: undefined,
+    runId: 'run-attachment',
+    sessionId: 'session-attachment',
+    userMessageId: 'user-message-attachment',
+  };
+}
+
+function AttachmentSubmitHarness({ send }: { readonly send: AttachmentSubmitAgentSend }) {
+  const { inputActions, inputSnapshot } = useSessionConversationInputState();
+  const inputQuery = useMemo(() => ({
+    defaultModel: 'test-model',
+    defaultProjectRoot: null,
+    fallbackPreferredModel: undefined,
+    fallbackPreferredThinking: undefined,
+    isProviderStateResolved: true,
+    isSkillsLoading: false,
+    modelOptions: [
+      {
+        value: 'test-model',
+        modelLabel: 'Test Model',
+        providerLabel: 'Test',
+        thinkingCapability: null,
+      },
+    ],
+    selectedSession: null,
+    selectedSessionKey: 'session-attachment',
+    sessionTypeState: {
+      canEditSessionType: true,
+      defaultSessionType: 'default',
+      selectedSessionType: 'default',
+      selectedSessionTypeOption: null,
+      sessionTypeOptions: [],
+      sessionTypeUnavailable: false,
+      sessionTypeUnavailableMessage: null,
+    },
+    skillRecords: [],
+  }), []);
+  const agent = useMemo(() => ({
+    abort: vi.fn(),
+    isHydrating: false,
+    isRunning: false,
+    isSending: false,
+    send,
+    snapshot: {
+      activeRun: null,
+    },
+    visibleMessages: [],
+  }), [send]);
+  const controller = useSessionConversationController({
+    agent,
+    inputSnapshot,
+    inputQuery,
+    isRuntimeBlocked: false,
+    selectedAgentId: 'main',
+    sessionKey: 'session-attachment',
+    resetComposer: inputActions.resetComposer,
+    restoreComposer: inputActions.restoreComposer,
+    setSendError: inputActions.setSendError,
+  });
+
+  return (
+    <I18nProvider>
+      <ChatPresenterProvider presenter={presenter}>
+        <SessionConversationInput
+          contextWindow={null}
+          controller={controller}
+          inputActions={inputActions}
+          inputQuery={inputQuery}
+          inputSnapshot={inputSnapshot}
+        />
+      </ChatPresenterProvider>
+    </I18nProvider>
+  );
+}
+
+describe('SessionConversationInput attachment submit', () => {
+  it('keeps uploaded file attachments in the outgoing send envelope after token insertion', async () => {
+    uploadNcpAssetsMock.mockResolvedValueOnce([
+      {
+        id: 'uploaded-image',
+        name: 'sample.png',
+        mimeType: 'image/png',
+        sizeBytes: 11,
+        assetUri: 'asset://store/sample.png',
+        url: '/api/ncp/assets/content?uri=asset%3A%2F%2Fstore%2Fsample.png',
+      },
+    ]);
+    const send = vi.fn<AttachmentSubmitAgentSend>(async () => createAttachmentRunHandle());
+
+    render(<AttachmentSubmitHarness send={send} />);
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+    expect(fileInput).toBeTruthy();
+    await act(async () => {
+      fireEvent.change(fileInput!, {
+        target: {
+          files: [new File(['image-bytes'], 'sample.png', { type: 'image/png' })],
+        },
+      });
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(screen.getByText('sample.png')).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: /Send|发送/ }));
+
+    await waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+    expect(send.mock.calls[0]?.[0].message.parts).toEqual([
+      {
+        type: 'file',
+        name: 'sample.png',
+        mimeType: 'image/png',
+        assetUri: 'asset://store/sample.png',
+        url: '/api/ncp/assets/content?uri=asset%3A%2F%2Fstore%2Fsample.png',
+        sizeBytes: 11,
+      },
+    ]);
   });
 });

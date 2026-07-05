@@ -56,7 +56,6 @@ describe("DefaultNcpContextBuilder", () => {
             type: "image_url",
             image_url: {
               url: "data:image/png;base64,ZmFrZS1pbWFnZQ==",
-              detail: "auto",
             },
           },
           {
@@ -116,7 +115,6 @@ describe("DefaultNcpContextBuilder", () => {
             type: "image_url",
             image_url: {
               url: "data:image/png;base64,ZmFrZS1pbWFnZQ==",
-              detail: "auto",
             },
           },
           {

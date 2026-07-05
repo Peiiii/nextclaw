@@ -126,7 +126,6 @@ function resolveImageContentPart(
       type: "image_url",
       image_url: {
         url: `data:${resolved.mimeType};base64,${resolved.contentBase64}`,
-        detail: "auto",
       },
     };
   }
@@ -136,7 +135,6 @@ function resolveImageContentPart(
       type: "image_url",
       image_url: {
         url: buildImageDataUrl(resolved.mimeType, readFileSync(resolved.contentPath)),
-        detail: "auto",
       },
     };
   }
@@ -147,7 +145,6 @@ function resolveImageContentPart(
       type: "image_url",
       image_url: {
         url: reachableImageUrl,
-        detail: "auto",
       },
     };
   }

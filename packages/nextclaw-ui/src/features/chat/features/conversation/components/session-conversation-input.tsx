@@ -290,15 +290,14 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
   }, [inputQuery.selectedSession, inputQuery.selectedSessionKey]);
   const handleNodesChange = useCallback((nodes: SessionConversationInputSnapshot['nodes']) => {
     const nextNodes = [...nodes];
-    const attachments = pruneComposerAttachments(nextNodes, inputSnapshot.attachments);
-    inputActions.update({
+    inputActions.update((current) => ({
       nodes: nextNodes,
-      attachments,
+      attachments: pruneComposerAttachments(nextNodes, current.attachments),
       text: deriveChatComposerDraft(nextNodes),
       selectedSkills: deriveSelectedSkillsFromComposer(nextNodes),
       sendError: null,
-    });
-  }, [inputActions, inputSnapshot.attachments]);
+    }));
+  }, [inputActions]);
   const handleModelChange = useCallback((value: string) => {
     const nextThinkingLevel = resolveThinkingForConversationModel(
       modelRecords.find((option) => option.value === value),
