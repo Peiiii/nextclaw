@@ -32,11 +32,11 @@ function buildTokenClassName(tokenKind: ChatComposerTokenKind): string {
       'gap-1.5',
       'rounded-lg',
       'border',
-      'border-slate-200/80',
-      'bg-slate-50',
+      'border-border',
+      'bg-muted',
       'px-2',
       'align-baseline',
-      'text-slate-700',
+      'text-foreground',
       'transition-[border-color,background-color,box-shadow,color]',
       'duration-150',
     ].join(' ');
@@ -74,7 +74,7 @@ function ChatComposerTokenChip({
       <span
         className={
           tokenKind === 'file'
-            ? 'inline-flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-md bg-white text-slate-500 ring-1 ring-black/5'
+            ? 'inline-flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-md bg-card text-muted-foreground ring-1 ring-border'
             : 'inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center text-primary/70'
         }
       >
@@ -89,7 +89,7 @@ function ChatComposerTokenChip({
       <span
         className={
           tokenKind === 'file'
-            ? 'min-w-0 flex-1 truncate text-[12px] font-medium text-slate-700'
+            ? 'min-w-0 flex-1 truncate text-[12px] font-medium text-foreground'
             : 'truncate'
         }
       >

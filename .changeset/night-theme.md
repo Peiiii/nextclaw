@@ -1,5 +1,6 @@
 ---
 "@nextclaw/ui": patch
+"@nextclaw/agent-chat-ui": patch
 ---
 
-Add a Night theme with dark appearance persistence and improve dark-mode readability for Markdown, status surfaces, error notices, and switches.
+Add a Night theme with dark appearance persistence and improve dark-mode readability for Markdown, status surfaces, error notices, switches, and composer file tokens.
