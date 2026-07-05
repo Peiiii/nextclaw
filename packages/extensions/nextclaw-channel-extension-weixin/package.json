@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-extension-weixin",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": false,
   "description": "NextClaw Weixin channel extension process.",
   "type": "module",

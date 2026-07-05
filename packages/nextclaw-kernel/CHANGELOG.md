@@ -1,5 +1,32 @@
 # @nextclaw/kernel
 
+## 0.6.1
+
+### Patch Changes
+
+- 1cc5d4e: Use English defaults for backend, runtime, and protocol-generated session status and abort messages, and carry abort details through NCP events so localized UI can own translation instead of receiving hard-coded Chinese copy.
+- 09b7406: Preserve the current user turn during context compaction, fold compressed context into the leading system prompt, and suppress fresh-session onboarding templates after rollover so compressed NCP/native conversations continue coherently.
+- e6a3443: Keep local HTML file links on source preview by default, and open rendered HTML only when show_file or the link viewer query explicitly requests it.
+- a006bb7: Treat user-cancelled chat runs as cancelled session activity instead of failed errors, and keep cancelled runs out of the conversation error surface.
+- Updated dependencies [7e94f21]
+- Updated dependencies [1cc5d4e]
+- Updated dependencies [09b7406]
+- Updated dependencies [e6a3443]
+- Updated dependencies [1cc5d4e]
+  - @nextclaw/core@0.15.1
+  - @nextclaw/ncp@0.7.1
+  - @nextclaw/ncp-agent-runtime-next@0.1.1
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.1
+  - @nextclaw/mcp@0.3.1
+  - @nextclaw/runtime@0.4.1
+  - @nextclaw/channel-extension-feishu@0.2.1
+  - @nextclaw/channel-extension-weixin@0.2.1
+  - @nextclaw/ncp-agent-runtime@0.4.1
+  - @nextclaw/ncp-mcp@0.2.1
+  - @nextclaw/ncp-toolkit@0.6.1
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.1
+  - @nextclaw/shared@0.4.1
+
 ## 0.6.0
 
 ### Minor Changes

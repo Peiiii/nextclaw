@@ -1,5 +1,24 @@
 # @nextclaw/ui
 
+## 0.15.1
+
+### Patch Changes
+
+- 7e94f21: Separate Agent details from editing in the Agent management UI, show per-Agent configuration facts in a read-only details dialog, and limit editable advanced Agent configuration to the context window override.
+- 2c9cf0a: Add a searchable collapsed-sidebar chat header session switcher so users can jump between recent sessions without reopening the left sidebar.
+- e6a3443: Keep local HTML file links on source preview by default, and open rendered HTML only when show_file or the link viewer query explicitly requests it.
+- a006bb7: Treat user-cancelled chat runs as cancelled session activity instead of failed errors, and keep cancelled runs out of the conversation error surface.
+- a6c3c4d: Show structured release notes in the update screen before users download or apply a new version.
+- Updated dependencies [1cc5d4e]
+- Updated dependencies [e6a3443]
+  - @nextclaw/ncp@0.7.1
+  - @nextclaw/ncp-react@0.5.1
+  - @nextclaw/agent-chat-ui@0.6.1
+  - @nextclaw/client-sdk@0.5.1
+  - @nextclaw/ncp-http-agent-client@0.4.1
+  - @nextclaw/ncp-toolkit@0.6.1
+  - @nextclaw/shared@0.4.1
+
 ## 0.15.0
 
 ### Minor Changes

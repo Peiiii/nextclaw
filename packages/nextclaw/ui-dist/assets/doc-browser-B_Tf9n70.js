@@ -1,0 +1,1 @@
+import{t as e}from"./doc-browser-BdZPFOVa.js";export{e as DocBrowser};

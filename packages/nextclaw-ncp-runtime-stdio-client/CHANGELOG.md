@@ -1,5 +1,18 @@
 # @nextclaw/nextclaw-ncp-runtime-stdio-client
 
+## 0.3.1
+
+### Patch Changes
+
+- 1cc5d4e: Treat NARP stdio prompt timeouts as idle timeouts so actively streaming agent runs are not failed just because total runtime exceeds the configured request timeout.
+- Updated dependencies [7e94f21]
+- Updated dependencies [1cc5d4e]
+- Updated dependencies [09b7406]
+- Updated dependencies [e6a3443]
+  - @nextclaw/core@0.15.1
+  - @nextclaw/ncp@0.7.1
+  - @nextclaw/ncp-toolkit@0.6.1
+
 ## 0.3.0
 
 ### Minor Changes

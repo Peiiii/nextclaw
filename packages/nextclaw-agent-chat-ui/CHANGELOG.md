@@ -1,5 +1,11 @@
 # @nextclaw/agent-chat-ui
 
+## 0.6.1
+
+### Patch Changes
+
+- e6a3443: Keep local HTML file links on source preview by default, and open rendered HTML only when show_file or the link viewer query explicitly requests it.
+
 ## 0.6.0
 
 ### Minor Changes

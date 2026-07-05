@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-extension-feishu",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": false,
   "description": "NextClaw Feishu/Lark lightweight channel extension process.",
   "type": "module",

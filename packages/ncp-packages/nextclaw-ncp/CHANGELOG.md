@@ -1,5 +1,11 @@
 # @nextclaw/ncp
 
+## 0.7.1
+
+### Patch Changes
+
+- 1cc5d4e: Use English defaults for backend, runtime, and protocol-generated session status and abort messages, and carry abort details through NCP events so localized UI can own translation instead of receiving hard-coded Chinese copy.
+
 ## 0.7.0
 
 ### Minor Changes

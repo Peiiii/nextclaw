@@ -1,5 +1,15 @@
 # @nextclaw/ncp-agent-runtime-next
 
+## 0.1.1
+
+### Patch Changes
+
+- 1cc5d4e: Use English defaults for backend, runtime, and protocol-generated session status and abort messages, and carry abort details through NCP events so localized UI can own translation instead of receiving hard-coded Chinese copy.
+- 09b7406: Preserve the current user turn during context compaction, fold compressed context into the leading system prompt, and suppress fresh-session onboarding templates after rollover so compressed NCP/native conversations continue coherently.
+- Updated dependencies [1cc5d4e]
+  - @nextclaw/ncp@0.7.1
+  - @nextclaw/ncp-agent-runtime@0.4.1
+
 ## 0.1.0
 
 ### Minor Changes

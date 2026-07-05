@@ -1,5 +1,14 @@
 # nextclaw-core
 
+## 0.15.1
+
+### Patch Changes
+
+- 7e94f21: Separate Agent details from editing in the Agent management UI, show per-Agent configuration facts in a read-only details dialog, and limit editable advanced Agent configuration to the context window override.
+- 09b7406: Preserve the current user turn during context compaction, fold compressed context into the leading system prompt, and suppress fresh-session onboarding templates after rollover so compressed NCP/native conversations continue coherently.
+- e6a3443: Keep local HTML file links on source preview by default, and open rendered HTML only when show_file or the link viewer query explicitly requests it.
+  - @nextclaw/shared@0.4.1
+
 ## 0.15.0
 
 ### Minor Changes

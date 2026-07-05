@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.22.1",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-07-06",
+  "title": {
+    "zh-CN": "NextClaw v0.22.1",
+    "en-US": "NextClaw v0.22.1"
+  },
+  "summary": {
+    "zh-CN": "本版本改进 Agent 设置、会话连续性、取消状态、文件预览和更新前说明。",
+    "en-US": "This release improves Agent settings, session continuity, cancellation state, file previews, and update notes."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-06-nextclaw-v0-22-1",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-06-nextclaw-v0-22-1"
+    }
+  },
+  "sections": [
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "Agent 设置更清楚",
+            "en-US": "Clearer Agent settings"
+          },
+          "body": {
+            "zh-CN": "Agent 管理页把查看详情和编辑配置分开，只读详情可以展示常用配置事实。",
+            "en-US": "Agent management separates details from editing, with common configuration facts shown in a read-only view."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "收起侧栏后也能切换会话",
+            "en-US": "Session switching in the collapsed sidebar"
+          },
+          "body": {
+            "zh-CN": "聊天顶部可以搜索并切换最近会话，不需要先展开左侧栏。",
+            "en-US": "The chat header can search and switch between recent sessions without reopening the left sidebar."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "更新前说明",
+            "en-US": "Release notes before updates"
+          },
+          "body": {
+            "zh-CN": "更新界面可以展示结构化版本说明，让用户在下载或应用前先看到变化。",
+            "en-US": "The update screen can show structured release notes before users download or apply a new version."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "HTML 预览更可控",
+            "en-US": "More predictable HTML previews"
+          },
+          "body": {
+            "zh-CN": "本地 HTML 链接默认保留源码预览，只在明确请求渲染视图时打开页面渲染。",
+            "en-US": "Local HTML links stay in source preview by default and render only when explicitly requested."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "取消状态不再误报错误",
+            "en-US": "Cancelled runs no longer look like errors"
+          },
+          "body": {
+            "zh-CN": "用户主动取消的运行会显示为已取消，不再作为失败错误出现在会话里。",
+            "en-US": "User-cancelled runs are shown as cancelled instead of failed conversation errors."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "上下文压缩连续性",
+            "en-US": "Context compaction continuity"
+          },
+          "body": {
+            "zh-CN": "上下文压缩会保留当前用户输入，并把压缩后的上下文放入前置系统提示。",
+            "en-US": "Context compaction preserves the current user turn and places compressed context in the leading system prompt."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "压缩后不重复插入引导",
+            "en-US": "No repeated onboarding after compaction"
+          },
+          "body": {
+            "zh-CN": "新会话引导内容不会在压缩后的会话里重复插入。",
+            "en-US": "Fresh-session onboarding content is no longer reinserted after context compaction."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "运行中超时处理",
+            "en-US": "Timeout handling during active runs"
+          },
+          "body": {
+            "zh-CN": "NARP stdio prompt timeout 会按空闲超时处理，正在流式输出的任务不再仅因总耗时超限而失败。",
+            "en-US": "NARP stdio prompt timeouts are treated as idle timeouts, so actively streaming runs are not failed only because total request time was exceeded."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需手动迁移",
+            "en-US": "No manual migration"
+          },
+          "body": {
+            "zh-CN": "本版本不需要手动迁移。",
+            "en-US": "No manual migration is required."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "NPM stable patch",
+            "en-US": "NPM stable patch"
+          },
+          "body": {
+            "zh-CN": "这是 NPM stable patch 版本，可通过正常的 NextClaw NPM 安装或更新流程使用。",
+            "en-US": "This is an NPM stable patch release available through the normal NextClaw NPM install or update flow."
+          }
+        }
+      ]
+    }
+  ]
+}

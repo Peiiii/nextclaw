@@ -1,5 +1,23 @@
 # nextclaw-server
 
+## 0.15.1
+
+### Patch Changes
+
+- 7e94f21: Separate Agent details from editing in the Agent management UI, show per-Agent configuration facts in a read-only details dialog, and limit editable advanced Agent configuration to the context window override.
+- 1cc5d4e: Use English defaults for backend, runtime, and protocol-generated session status and abort messages, and carry abort details through NCP events so localized UI can own translation instead of receiving hard-coded Chinese copy.
+- a006bb7: Treat user-cancelled chat runs as cancelled session activity instead of failed errors, and keep cancelled runs out of the conversation error surface.
+- Updated dependencies [7e94f21]
+- Updated dependencies [1cc5d4e]
+- Updated dependencies [09b7406]
+- Updated dependencies [e6a3443]
+- Updated dependencies [a006bb7]
+  - @nextclaw/core@0.15.1
+  - @nextclaw/kernel@0.6.1
+  - @nextclaw/ncp@0.7.1
+  - @nextclaw/mcp@0.3.1
+  - @nextclaw/runtime@0.4.1
+
 ## 0.15.0
 
 ### Minor Changes
