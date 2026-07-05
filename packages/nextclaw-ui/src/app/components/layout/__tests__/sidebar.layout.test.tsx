@@ -126,10 +126,11 @@ describe("Sidebar", () => {
       "Providers",
       "Channels",
       "Search Channels",
+      "Appearance",
+      "Security",
       "Routing & Runtime",
       "Updates",
       "Remote Access",
-      "Security",
       "Secrets",
       "MCP",
     ]);

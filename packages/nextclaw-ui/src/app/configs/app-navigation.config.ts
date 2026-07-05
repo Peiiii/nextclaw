@@ -8,6 +8,7 @@ import {
   Languages,
   MessageCircle,
   MessageSquare,
+  Palette,
   Search,
   Settings,
   Shield,
@@ -104,6 +105,16 @@ export function getSettingsNavItems(
       icon: Search,
     },
     {
+      target: "/appearance",
+      label: translate("appearance"),
+      icon: Palette,
+    },
+    {
+      target: "/security",
+      label: translate("security"),
+      icon: Shield,
+    },
+    {
       target: "/runtime",
       label: translate("runtime"),
       icon: Cpu,
@@ -117,11 +128,6 @@ export function getSettingsNavItems(
       target: "/remote",
       label: translate("remote"),
       icon: Wifi,
-    },
-    {
-      target: "/security",
-      label: translate("security"),
-      icon: Shield,
     },
     {
       target: "/secrets",

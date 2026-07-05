@@ -23,7 +23,7 @@ vi.mock("@/platforms/mobile", async () => ({
 }));
 
 describe("SettingsEntryPage", () => {
-  it("redirects desktop users to the model settings page", () => {
+  it("redirects desktop users to the primary model settings page", () => {
     render(
       <I18nProvider>
         <MemoryRouter initialEntries={["/settings"]}>
@@ -61,6 +61,14 @@ describe("SettingsEntryPage", () => {
     expect(screen.getByTestId("mobile-settings-shell")).toBeTruthy();
     const links = screen.getAllByRole("link");
     expect(links[0]?.textContent?.trim()).toBe("Language");
+    expect(links.slice(1, 7).map((link) => link.textContent?.trim())).toEqual([
+      "Model",
+      "Providers",
+      "Channels",
+      "Search Channels",
+      "Appearance",
+      "Security",
+    ]);
     expect(links.some((link) => link.getAttribute("href") === "/cron")).toBe(
       false,
     );

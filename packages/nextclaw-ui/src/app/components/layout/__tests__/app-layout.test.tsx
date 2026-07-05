@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppLayout } from "@/app/components/layout/app-layout";
 import { I18nProvider } from "@/app/components/i18n-provider";
 import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
+import { useSideDockStore } from "@/features/side-dock";
 
 const { useViewportLayoutMock } = vi.hoisted(() => ({
   useViewportLayoutMock: vi.fn(() => ({
@@ -53,6 +54,8 @@ describe("AppLayout", () => {
       isDesktop: true,
     });
     window.nextclawDesktop = undefined;
+    useSideDockStore.getState().setVisible(true);
+    useSideDockStore.getState().setPinnedItems([]);
   });
 
   it("treats /agents as a main workspace route instead of the settings shell", () => {
@@ -77,6 +80,30 @@ describe("AppLayout", () => {
     expect(screen.queryByTestId("settings-sidebar-header")).toBeNull();
     expect(container.querySelector("main")).toBeNull();
     expect(screen.getByTestId("side-dock")).toBeTruthy();
+  });
+
+  it("hides the side dock when the persisted visibility preference is off", () => {
+    useSideDockStore.getState().setVisible(false);
+
+    render(
+      <I18nProvider>
+        <MemoryRouter initialEntries={["/chat"]}>
+          <Routes>
+            <Route
+              path="*"
+              element={
+                <AppLayout>
+                  <div data-testid="chat-content">Chat Content</div>
+                </AppLayout>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    expect(screen.getByTestId("chat-content")).toBeTruthy();
+    expect(screen.queryByTestId("side-dock")).toBeNull();
   });
 
   it("keeps settings routes on the shared shell without channel-specific scroll locking", () => {

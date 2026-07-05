@@ -1,8 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  getSideDockBuiltInItems,
+  SIDE_DOCK_GITHUB_PROJECT_ITEM_ID,
+  SIDE_DOCK_GITHUB_PROJECT_URL,
+} from '@/features/side-dock/configs/side-dock-built-in-items.config';
 import { SideDockManager } from '@/features/side-dock/managers/side-dock.manager';
 import { useSideDockStore } from '@/features/side-dock/stores/side-dock.store';
 import type { SideDockItem } from '@/features/side-dock/types/side-dock.types';
 import type { DocBrowserManager } from '@/shared/components/doc-browser/managers/doc-browser.manager';
+
+const mocks = vi.hoisted(() => ({
+  openExternalUrl: vi.fn(),
+}));
+
+vi.mock('@/shared/lib/host-capabilities', () => ({
+  hostCapabilityManager: {
+    openExternalUrl: mocks.openExternalUrl,
+  },
+}));
 
 const customItem: SideDockItem = {
   builtIn: false,
@@ -16,19 +31,34 @@ const customItem: SideDockItem = {
 describe('SideDockManager', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    mocks.openExternalUrl.mockReset();
+    mocks.openExternalUrl.mockResolvedValue({ opened: true });
+    useSideDockStore.getState().setVisible(true);
     useSideDockStore.getState().setPinnedItems([]);
   });
 
-  it('opens right panel resource items through DocBrowserManager', () => {
+  it('opens right panel resource items through DocBrowserManager', async () => {
     const open = vi.fn();
     const manager = new SideDockManager({ open } as unknown as DocBrowserManager);
 
-    manager.openItem(customItem);
+    await manager.openItem(customItem);
 
     expect(open).toHaveBeenCalledWith('nextclaw://docs/custom', {
       dockIcon: { type: 'builtin', name: 'docs' },
       title: 'Help Docs',
     });
+  });
+
+  it('opens the GitHub project shortcut through host capabilities', async () => {
+    const open = vi.fn();
+    const manager = new SideDockManager({ open } as unknown as DocBrowserManager);
+    const githubItem = getSideDockBuiltInItems().find((item) => item.id === SIDE_DOCK_GITHUB_PROJECT_ITEM_ID);
+
+    expect(githubItem).toBeTruthy();
+    await manager.openItem(githubItem as SideDockItem);
+
+    expect(open).not.toHaveBeenCalled();
+    expect(mocks.openExternalUrl).toHaveBeenCalledWith(SIDE_DOCK_GITHUB_PROJECT_URL);
   });
 
   it('pins removable items and keeps built-in items immutable', () => {

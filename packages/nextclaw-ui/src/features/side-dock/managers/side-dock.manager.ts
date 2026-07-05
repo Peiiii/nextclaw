@@ -10,6 +10,7 @@ import {
   createPinnedSideDockItem,
   mergeSideDockItems,
 } from '@/features/side-dock/utils/side-dock-item.utils';
+import { hostCapabilityManager } from '@/shared/lib/host-capabilities';
 import type { DocBrowserManager } from '@/shared/components/doc-browser/managers/doc-browser.manager';
 import type {
   DocBrowserDockIcon,
@@ -20,6 +21,7 @@ const SIDE_DOCK_PINNED_ITEM_ID_PREFIX = 'pinned';
 const SIDE_DOCK_ICON_NAMES = new Set<SideDockIconName>([
   'apps',
   'docs',
+  'github',
   'new-tab',
   'panel-app',
   'service-apps',
@@ -78,12 +80,16 @@ export class SideDockManager {
     useSideDockStore.getState().pinnedItems,
   );
 
-  openItem = (item: Pick<SideDockItem, 'icon' | 'label' | 'target'>): void => {
+  openItem = async (item: Pick<SideDockItem, 'icon' | 'label' | 'target'>): Promise<void> => {
     if (item.target.type === 'right-panel-resource') {
       this.docBrowserManager.open(item.target.uri, {
         dockIcon: item.icon,
         title: item.label,
       });
+      return;
+    }
+    if (item.target.type === 'external-url') {
+      await hostCapabilityManager.openExternalUrl(item.target.url);
     }
   };
 
@@ -130,18 +136,19 @@ export class SideDockManager {
   };
 
   pinItem = (item: SideDockItem, createdAt: string = new Date().toISOString()): void => {
-    if (!item.removable) {
+    if (!item.removable || item.target.type !== 'right-panel-resource') {
       return;
     }
     const uri = normalizeSideDockResourceUri(item.target.uri);
+    const resourceItem = {
+      ...item,
+      target: { type: 'right-panel-resource' as const, uri },
+    };
     this.setPinnedItems((items) => {
       if (items.some((pinnedItem) => pinnedItem.id === item.id || normalizeSideDockResourceUri(pinnedItem.target.uri) === uri)) {
         return items;
       }
-      return [...items, createPinnedSideDockItem({
-        ...item,
-        target: { ...item.target, uri },
-      }, createdAt)];
+      return [...items, createPinnedSideDockItem(resourceItem, createdAt)];
     });
   };
 
@@ -176,6 +183,9 @@ export class SideDockManager {
 
   private findItemByUri = (uri: string): SideDockItem | undefined => {
     const normalized = normalizeSideDockResourceUri(uri);
-    return this.getItems().find((item) => normalizeSideDockResourceUri(item.target.uri) === normalized);
+    return this.getItems().find((item) => (
+      item.target.type === 'right-panel-resource'
+      && normalizeSideDockResourceUri(item.target.uri) === normalized
+    ));
   };
 }

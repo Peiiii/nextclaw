@@ -26,6 +26,10 @@ const ModelConfigPage = lazy(async () => ({
   default: (await import("@/features/settings/pages/model-config-page"))
     .ModelConfigPage,
 }));
+const AppearanceSettingsPage = lazy(async () => ({
+  default: (await import("@/features/settings/pages/appearance-settings-page"))
+    .AppearanceSettingsPage,
+}));
 const ChatPage = lazy(async () => ({
   default: (await import("@/components/chat/chat-page")).ChatPage,
 }));
@@ -113,6 +117,10 @@ const protectedRouteDefinitions: ProtectedRouteDefinition[] = [
   {
     path: "/cron",
     element: createLazyElement(<ChatPage view="cron" />),
+  },
+  {
+    path: "/appearance",
+    element: createLazyElement(<AppearanceSettingsPage />),
   },
   {
     path: "/model",

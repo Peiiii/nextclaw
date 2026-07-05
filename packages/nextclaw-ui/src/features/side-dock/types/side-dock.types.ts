@@ -1,11 +1,18 @@
 export type SideDockItemId = string;
 
-export type SideDockItemTarget = {
+export type SideDockResourceItemTarget = {
   type: 'right-panel-resource';
   uri: string;
 };
 
-export type SideDockIconName = 'apps' | 'docs' | 'new-tab' | 'panel-app' | 'service-apps';
+export type SideDockExternalUrlTarget = {
+  type: 'external-url';
+  url: string;
+};
+
+export type SideDockItemTarget = SideDockResourceItemTarget | SideDockExternalUrlTarget;
+
+export type SideDockIconName = 'apps' | 'docs' | 'github' | 'new-tab' | 'panel-app' | 'service-apps';
 
 export type SideDockItemIcon =
   | { type: 'builtin'; name: SideDockIconName }
@@ -26,7 +33,7 @@ export type SideDockPinnedItem = {
   icon: SideDockItemIcon;
   id: SideDockItemId;
   label: string;
-  target: SideDockItemTarget;
+  target: SideDockResourceItemTarget;
 };
 
 export type SideDockResourceDockState = {

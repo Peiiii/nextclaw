@@ -1,6 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getSideDockBuiltInItems } from '@/features/side-dock/configs/side-dock-built-in-items.config';
+import {
+  getSideDockBuiltInItems,
+  SIDE_DOCK_GITHUB_PROJECT_ITEM_ID,
+} from '@/features/side-dock/configs/side-dock-built-in-items.config';
 import { SideDock } from '@/features/side-dock/components/side-dock';
 import { useSideDockStore } from '@/features/side-dock/stores/side-dock.store';
 import type { SideDockManager } from '@/features/side-dock/managers/side-dock.manager';
@@ -12,6 +15,7 @@ import { createDefaultDocBrowserState } from '@/shared/components/doc-browser/ut
 describe('SideDock', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    useSideDockStore.getState().setVisible(true);
     useSideDockStore.getState().setPinnedItems([]);
     useDocBrowserStore.getState().setSnapshot(createDefaultDocBrowserState());
   });
@@ -38,6 +42,44 @@ describe('SideDock', () => {
     fireEvent.click(appsButton as Element);
 
     expect(openItem).toHaveBeenCalledWith(builtInItems[0]);
+  });
+
+  it('places the GitHub project shortcut in the utility section', () => {
+    const manager = { openItem: vi.fn() } as unknown as SideDockManager;
+    const docBrowserManager = new DocBrowserManager();
+
+    render(
+      <DocBrowserProvider manager={docBrowserManager}>
+        <SideDock manager={manager} />
+      </DocBrowserProvider>,
+    );
+
+    const utilitySection = screen.getByTestId('side-dock-utility');
+    expect(utilitySection.className).toContain('mt-auto');
+    expect(utilitySection.querySelector(`[data-side-dock-item-id="${SIDE_DOCK_GITHUB_PROJECT_ITEM_ID}"]`)).toBeTruthy();
+  });
+
+  it('confirms before hiding the dock and persists the visibility preference', async () => {
+    const manager = { openItem: vi.fn() } as unknown as SideDockManager;
+    const docBrowserManager = new DocBrowserManager();
+
+    render(
+      <DocBrowserProvider manager={docBrowserManager}>
+        <SideDock manager={manager} />
+      </DocBrowserProvider>,
+    );
+
+    const hideButton = document.querySelector('[data-side-dock-action="hide"]');
+    expect(hideButton).toBeTruthy();
+
+    fireEvent.click(hideButton as Element);
+
+    expect(await screen.findByText('You can turn it back on from Settings > Appearance.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide' }));
+
+    await waitFor(() => {
+      expect(useSideDockStore.getState().isVisible).toBe(false);
+    });
   });
 
   it('does not highlight the default docs tab while DocBrowser is closed', () => {

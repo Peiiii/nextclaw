@@ -7,6 +7,8 @@ import type { SideDockItem } from '@/features/side-dock/types/side-dock.types';
 import { t } from '@/shared/lib/i18n';
 
 export const SIDE_DOCK_DOCS_URL = 'nextclaw://docs';
+export const SIDE_DOCK_GITHUB_PROJECT_ITEM_ID = 'github-project';
+export const SIDE_DOCK_GITHUB_PROJECT_URL = 'https://github.com/Peiiii/nextclaw';
 
 export function getSideDockBuiltInItems(): SideDockItem[] {
   return [
@@ -41,6 +43,14 @@ export function getSideDockBuiltInItems(): SideDockItem[] {
       label: t('docBrowserHomeTitle'),
       removable: false,
       target: { type: 'right-panel-resource', uri: RIGHT_PANEL_HOME_URL },
+    },
+    {
+      builtIn: true,
+      icon: { type: 'builtin', name: 'github' },
+      id: SIDE_DOCK_GITHUB_PROJECT_ITEM_ID,
+      label: t('sideDockGitHubProject'),
+      removable: false,
+      target: { type: 'external-url', url: SIDE_DOCK_GITHUB_PROJECT_URL },
     },
   ];
 }

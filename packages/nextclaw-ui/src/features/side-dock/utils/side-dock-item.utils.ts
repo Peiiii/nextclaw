@@ -3,11 +3,13 @@ import type {
   SideDockItem,
   SideDockItemIcon,
   SideDockPinnedItem,
+  SideDockResourceItemTarget,
 } from '@/features/side-dock/types/side-dock.types';
 
 const SIDE_DOCK_BUILTIN_ICON_NAMES: SideDockIconName[] = [
   'apps',
   'docs',
+  'github',
   'new-tab',
   'panel-app',
   'service-apps',
@@ -99,7 +101,10 @@ export function normalizeSideDockPinnedItems(value: unknown): SideDockPinnedItem
   return Array.from(itemsById.values());
 }
 
-export function createPinnedSideDockItem(item: SideDockItem, createdAt: string): SideDockPinnedItem {
+export function createPinnedSideDockItem(
+  item: SideDockItem & { target: SideDockResourceItemTarget },
+  createdAt: string,
+): SideDockPinnedItem {
   return {
     createdAt,
     icon: item.icon,
@@ -107,6 +112,10 @@ export function createPinnedSideDockItem(item: SideDockItem, createdAt: string):
     label: item.label,
     target: item.target,
   };
+}
+
+function getSideDockResourceUri(item: SideDockItem | SideDockPinnedItem): string | null {
+  return item.target.type === 'right-panel-resource' ? item.target.uri : null;
 }
 
 export function createSideDockItemFromPinnedItem(item: SideDockPinnedItem): SideDockItem {
@@ -125,7 +134,11 @@ export function mergeSideDockItems(
   pinnedItems: SideDockPinnedItem[],
 ): SideDockItem[] {
   const seenIds = new Set(builtInItems.map((item) => item.id));
-  const seenUris = new Set(builtInItems.map((item) => item.target.uri));
+  const seenUris = new Set(
+    builtInItems
+      .map(getSideDockResourceUri)
+      .filter((uri): uri is string => uri !== null),
+  );
   const customItems = pinnedItems
     .filter((item) => !seenIds.has(item.id) && !seenUris.has(item.target.uri))
     .map(createSideDockItemFromPinnedItem);

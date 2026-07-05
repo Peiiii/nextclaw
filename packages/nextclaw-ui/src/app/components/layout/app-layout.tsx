@@ -33,6 +33,7 @@ function AppLayoutInner({
   const { language } = useI18n();
   const { isMobile } = useViewportLayout();
   const desktopHostPlatform = getDesktopHostPlatform();
+  const isSideDockVisible = useSideDockStore((state) => state.isVisible);
   useSideDockStore((state) => state.pinnedItems);
   const docBrowserDockControls: DocBrowserDockControls = {
     getDockState: sideDockManager.getDockState,
@@ -68,7 +69,7 @@ function AppLayoutInner({
       docBrowserMode={mode}
       docBrowserDockControls={docBrowserDockControls}
       docBrowserRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS}
-      sideDock={<SideDock manager={sideDockManager} />}
+      sideDock={isSideDockVisible ? <SideDock manager={sideDockManager} /> : null}
     >
       {children}
     </DesktopAppShell>
