@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { isValidElement } from "react";
 import type { NcpMessage } from "@nextclaw/ncp";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ChatMessageListContainer } from "@/features/chat/features/message/components/chat-message-list.container";
@@ -438,6 +439,25 @@ it("passes the inline display renderer to the shared chat UI", () => {
       title: "README",
     }),
   ).toBeUndefined();
+});
+
+it("keeps inline panel app displays expandable from the card header", () => {
+  render(<ChatMessageListContainer messages={[]} isSending={false} />);
+
+  const renderInlineDisplay =
+    captures.renders[captures.renders.length - 1]?.renderInlineDisplay;
+  const rendered = renderInlineDisplay?.({
+    target: {
+      type: "panel_app",
+      payload: { appId: "weather-card" },
+    },
+    title: "Weather",
+  });
+
+  if (!isValidElement<{ showExpandAction?: boolean }>(rendered)) {
+    throw new Error("Expected inline panel app renderer to return a React element");
+  }
+  expect(rendered.props.showExpandAction).toBeUndefined();
 });
 
 it("renders context compaction as an in-flow divider instead of a chat message", () => {

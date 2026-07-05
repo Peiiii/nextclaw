@@ -204,7 +204,7 @@ export const ChatMessage = memo(function ChatMessage({
   return (
     <div
       className={cn(
-        "inline-block w-fit max-w-full rounded-2xl border px-4 shadow-sm",
+        "inline-block w-fit max-w-full rounded-2xl border px-4 shadow-sm has-[[data-chat-message-wide-content=true]]:w-full",
         isUser
           ? "border-primary bg-primary py-3 text-primary-foreground"
           : role === "assistant"

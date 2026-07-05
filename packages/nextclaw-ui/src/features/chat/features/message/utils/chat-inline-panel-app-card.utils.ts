@@ -15,8 +15,6 @@ export const PANEL_APP_INLINE_IFRAME_SANDBOX = [
   'allow-presentation',
 ].join(' ');
 
-export const PANEL_APP_INLINE_CARD_MAX_HEIGHT_PX = 420;
-
 const PANEL_APP_INLINE_CARD_SEARCH_PARAMS = {
   nextclawDisplayMode: 'card',
   nextclawPlacement: 'inline',

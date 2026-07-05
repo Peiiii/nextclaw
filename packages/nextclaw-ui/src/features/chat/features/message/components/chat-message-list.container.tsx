@@ -53,7 +53,6 @@ function renderChatInlineDisplay(display: ChatInlineDisplayViewModel) {
         appId: display.target.payload.appId,
         title: display.title,
       }}
-      showExpandAction={false}
     />
   );
 }

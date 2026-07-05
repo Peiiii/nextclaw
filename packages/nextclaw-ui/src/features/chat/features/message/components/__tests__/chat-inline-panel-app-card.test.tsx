@@ -52,6 +52,7 @@ beforeEach(() => {
   mocks.handleIframeMessage.mockReset();
   mocks.open.mockReset();
   mocks.openTarget.mockReset();
+  mocks.panelApps.isLoading = false;
 });
 
 it('renders inline panel apps as bounded card-mode iframes with an expand action', () => {
@@ -61,6 +62,9 @@ it('renders inline panel apps as bounded card-mode iframes with an expand action
   }} />);
 
   const iframe = screen.getByTitle('Weather');
+  const card = iframe.closest('[data-chat-message-wide-content="true"]');
+  expect(card?.className).toContain('w-full');
+  expect(card?.className).toContain('max-w-[48rem]');
   expect(iframe.getAttribute('src')).toBe(
     '/api/panel-apps/weather-card/content?nextclawDisplayMode=card&nextclawPlacement=inline',
   );

@@ -8,7 +8,6 @@ import {
   createInlinePanelAppCardUrl,
   createFallbackPanelAppContentPath,
   createInlinePanelAppTab,
-  PANEL_APP_INLINE_CARD_MAX_HEIGHT_PX,
   PANEL_APP_INLINE_IFRAME_SANDBOX,
 } from '@/features/chat/features/message/utils/chat-inline-panel-app-card.utils';
 import { useDocBrowser } from '@/shared/components/doc-browser';
@@ -81,14 +80,17 @@ export function ChatInlinePanelAppCard({
   if (!url) {
     return (
       <div
-        className="h-[320px] min-h-[220px] w-full animate-pulse rounded-lg border border-border bg-muted/45"
-        style={{ maxHeight: PANEL_APP_INLINE_CARD_MAX_HEIGHT_PX }}
+        className="h-[320px] min-h-[220px] w-full max-w-[48rem] animate-pulse rounded-lg border border-border bg-muted/45"
+        data-chat-message-wide-content="true"
       />
     );
   }
 
   return (
-    <div className="w-full max-w-[42rem] overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+    <div
+      className="w-full max-w-[48rem] overflow-hidden rounded-lg border border-border bg-card shadow-sm"
+      data-chat-message-wide-content="true"
+    >
       <div className="flex h-9 items-center justify-between gap-2 border-b border-border bg-muted/45 px-2.5">
         <div className="flex min-w-0 items-center gap-2 text-xs font-medium text-foreground">
           <AppWindow className="h-3.5 w-3.5 shrink-0 text-primary" />

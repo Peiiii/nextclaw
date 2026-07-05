@@ -133,7 +133,7 @@ export function ChatMessageList({
         return (
           <div key={message.id} className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
             {!isUser ? <ChatMessageAvatar role={message.role} /> : null}
-            <div className={cn('w-fit max-w-[92%] space-y-2', isUser && 'flex flex-col items-end')}>
+            <div className={cn('w-fit max-w-[92%] space-y-2 has-[[data-chat-message-wide-content=true]]:w-full', isUser && 'flex flex-col items-end')}>
               <ChatMessage
                 message={message}
                 texts={texts}
