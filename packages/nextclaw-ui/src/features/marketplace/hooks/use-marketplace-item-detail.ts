@@ -4,7 +4,10 @@ import type {
 } from "@/shared/lib/api";
 import { fetchMarketplaceSkillContent } from "@/shared/lib/api";
 import { useDocBrowser } from "@/shared/components/doc-browser";
-import { buildGenericDetailDataUrl } from "@/features/marketplace/components/marketplace-detail-doc";
+import {
+  createMarketplaceDetailDocId,
+  openMarketplaceDetailDoc,
+} from "@/features/marketplace/components/marketplace-detail-doc";
 import { pickLocalizedText } from "@/features/marketplace/components/marketplace-localization";
 import { t } from "@/shared/lib/i18n";
 import { useRef } from "react";
@@ -23,25 +26,26 @@ export function useMarketplaceItemDetail(localeFallbacks: string[]) {
       record?.id ??
       record?.spec ??
       t("marketplaceUnknownItem");
+    const detailId = createMarketplaceDetailDocId(
+      item ? "skill" : "skill-local",
+      item?.slug ?? record?.id ?? record?.spec ?? title,
+    );
     const dedupeKey = item
       ? `marketplace:${item.type}:${item.slug}`
       : `marketplace:${record?.type ?? "unknown"}:${record?.id ?? record?.spec ?? title}`;
-    const openOptions = { title, kind: "content" as const, dedupeKey };
-    const updateOptions = { ...openOptions, activate: false };
     const typeLabel = t("marketplaceTypeSkill");
 
     if (!item) {
-      docBrowser.open(
-        buildGenericDetailDataUrl({
-          title,
-          typeLabel,
-          spec: record?.spec ?? "-",
-          summary: t("marketplaceInstalledLocalSummary"),
-          metadataRaw: JSON.stringify(record ?? {}, null, 2),
-          contentRaw: "-",
-        }),
-        openOptions,
-      );
+      openMarketplaceDetailDoc(docBrowser, {
+        id: detailId,
+        title,
+        typeLabel,
+        spec: record?.spec ?? "-",
+        status: "ready",
+        summary: t("marketplaceInstalledLocalSummary"),
+        metadataRaw: JSON.stringify(record ?? {}, null, 2),
+        contentRaw: "-",
+      });
       return;
     }
 
@@ -53,26 +57,30 @@ export function useMarketplaceItemDetail(localeFallbacks: string[]) {
       item.summary,
       localeFallbacks,
     );
-    docBrowser.open(
-      buildGenericDetailDataUrl({
-        title,
-        typeLabel,
-        spec: item.install.spec,
-        loading: true,
-      }),
-      openOptions,
-    );
+    openMarketplaceDetailDoc(docBrowser, {
+      id: detailId,
+      title,
+      typeLabel,
+      spec: item.install.spec,
+      status: "loading",
+      summary,
+      tags: item.tags,
+      author: item.author,
+    });
 
     try {
       const content = await fetchMarketplaceSkillContent(item.slug);
       if (detailRequestRef.current.byKey.get(dedupeKey) !== requestId) {
         return;
       }
-      docBrowser.open(
-        buildGenericDetailDataUrl({
+      openMarketplaceDetailDoc(
+        docBrowser,
+        {
+          id: detailId,
           title,
           typeLabel,
           spec: item.install.spec,
+          status: "ready",
           summary,
           metadataRaw: content.metadataRaw,
           contentRaw: content.bodyRaw || content.raw,
@@ -80,18 +88,21 @@ export function useMarketplaceItemDetail(localeFallbacks: string[]) {
           sourceLabel: `Source (${content.source})`,
           tags: item.tags,
           author: item.author,
-        }),
-        updateOptions,
+        },
+        { activate: false },
       );
     } catch (error) {
       if (detailRequestRef.current.byKey.get(dedupeKey) !== requestId) {
         return;
       }
-      docBrowser.open(
-        buildGenericDetailDataUrl({
+      openMarketplaceDetailDoc(
+        docBrowser,
+        {
+          id: detailId,
           title,
           typeLabel,
           spec: item.install.spec,
+          status: "error",
           summary,
           metadataRaw: JSON.stringify(
             { error: error instanceof Error ? error.message : String(error) },
@@ -99,8 +110,8 @@ export function useMarketplaceItemDetail(localeFallbacks: string[]) {
             2,
           ),
           contentRaw: t("marketplaceOperationFailed"),
-        }),
-        updateOptions,
+        },
+        { activate: false },
       );
     }
   };

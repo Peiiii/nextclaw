@@ -10,6 +10,7 @@ import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
 import { DesktopAppShell, getDesktopHostPlatform } from "@/platforms/desktop";
 import { MobileAppShell } from "@/platforms/mobile";
 import { PANEL_APPS_DOC_BROWSER_RENDERERS } from "@/features/panel-apps";
+import { MARKETPLACE_DETAIL_DOC_BROWSER_RENDERERS } from "@/features/marketplace";
 import {
   SideDock,
   type SideDockManager,
@@ -22,6 +23,11 @@ import type { DocBrowserDockControls } from "@/shared/components/doc-browser/doc
 interface AppLayoutProps {
   children: React.ReactNode;
 }
+
+const DOC_BROWSER_RENDERERS = {
+  ...PANEL_APPS_DOC_BROWSER_RENDERERS,
+  ...MARKETPLACE_DETAIL_DOC_BROWSER_RENDERERS,
+};
 
 function AppLayoutInner({
   children,
@@ -51,7 +57,7 @@ function AppLayoutInner({
         pathname={pathname}
         isDocBrowserOpen={isOpen}
         docBrowserDockControls={docBrowserDockControls}
-        docBrowserRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS}
+        docBrowserRenderers={DOC_BROWSER_RENDERERS}
         topbarLeadingInset={
           desktopHostPlatform === "darwin" ? "4.75rem" : undefined
         }
@@ -68,7 +74,7 @@ function AppLayoutInner({
       isDocBrowserOpen={isOpen}
       docBrowserMode={mode}
       docBrowserDockControls={docBrowserDockControls}
-      docBrowserRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS}
+      docBrowserRenderers={DOC_BROWSER_RENDERERS}
       sideDock={isSideDockVisible ? <SideDock manager={sideDockManager} /> : null}
     >
       {children}

@@ -39,7 +39,7 @@ const mocks = vi.hoisted(() => ({
     isPending: false,
   },
   confirm: vi.fn(),
-  docOpen: vi.fn(),
+  docOpenTarget: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-query", async (importOriginal) => {
@@ -61,7 +61,7 @@ vi.mock("@/app/components/i18n-provider", () => ({
 
 vi.mock("@/shared/components/doc-browser", () => ({
   useDocBrowser: () => ({
-    open: mocks.docOpen,
+    openTarget: mocks.docOpenTarget,
   }),
 }));
 
@@ -116,7 +116,7 @@ describe("McpMarketplacePage", () => {
     mocks.manageMutation.mutateAsync.mockReset();
     mocks.doctorMutation.mutateAsync.mockReset();
     mocks.confirm.mockReset();
-    mocks.docOpen.mockReset();
+    mocks.docOpenTarget.mockReset();
     mocks.itemsQuery = createItemsQuery();
     mocks.installedQuery = createInstalledQuery();
   });

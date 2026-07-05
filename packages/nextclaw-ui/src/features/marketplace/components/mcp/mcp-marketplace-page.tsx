@@ -20,11 +20,14 @@ import {
 import { buildLocaleFallbacks } from "@/features/marketplace/components/marketplace-localization";
 import { McpMarketplaceCard } from "@/features/marketplace/components/mcp/mcp-marketplace-card";
 import {
-  buildDocDataUrl,
   buildInstalledRecordLookup,
   findInstalledRecordForItem,
   readSummary,
 } from "@/features/marketplace/components/mcp/mcp-marketplace-doc";
+import {
+  createMarketplaceDetailDocId,
+  openMarketplaceDetailDoc,
+} from "@/features/marketplace/components/marketplace-detail-doc";
 import {
   DoctorDialog,
   InstallDialog,
@@ -133,45 +136,77 @@ export function McpMarketplacePage() {
     record?: MarketplaceInstalledRecord,
   ) => {
     const title = item?.name ?? record?.label ?? record?.id ?? "MCP";
-    const dedupeKey = item
-      ? `marketplace:mcp:${item.slug}`
-      : `marketplace:mcp:${record?.id ?? record?.spec ?? title}`;
-    const openOptions = { title, kind: "content" as const, dedupeKey };
+    const detailId = createMarketplaceDetailDocId(
+      item ? "mcp" : "mcp-local",
+      item?.slug ?? record?.id ?? record?.spec ?? title,
+    );
     const summary = readSummary(localeFallbacks, item, record);
     if (!item) {
-      const url = buildDocDataUrl(
+      openMarketplaceDetailDoc(docBrowser, {
+        id: detailId,
         title,
-        JSON.stringify(record ?? {}, null, 2),
-        t("marketplaceInstalledLocalSummary"),
-        record?.docsUrl,
+        typeLabel: t("marketplaceTypeMcp"),
+        spec: record?.spec ?? "-",
+        status: "ready",
         summary,
-      );
-      docBrowser.open(url, openOptions);
+        metadataRaw: JSON.stringify(record ?? {}, null, 2),
+        contentRaw: t("marketplaceInstalledLocalSummary"),
+        sourceUrl: record?.docsUrl,
+        sourceLabel: t("marketplaceDetailSource"),
+      });
       return;
     }
+
+    openMarketplaceDetailDoc(docBrowser, {
+      id: detailId,
+      title,
+      typeLabel: t("marketplaceTypeMcp"),
+      spec: item.install.spec,
+      status: "loading",
+      summary,
+      tags: item.tags,
+      author: item.author,
+    });
+
     try {
       const content = await fetchMcpMarketplaceContent(item.slug);
-      const url = buildDocDataUrl(
-        title,
-        content.metadataRaw || JSON.stringify(item, null, 2),
-        content.bodyRaw || content.raw,
-        content.sourceUrl,
-        summary,
+      openMarketplaceDetailDoc(
+        docBrowser,
+        {
+          id: detailId,
+          title,
+          typeLabel: t("marketplaceTypeMcp"),
+          spec: item.install.spec,
+          status: "ready",
+          summary,
+          metadataRaw: content.metadataRaw || JSON.stringify(item, null, 2),
+          contentRaw: content.bodyRaw || content.raw,
+          sourceUrl: content.sourceUrl,
+          sourceLabel: t("marketplaceDetailSource"),
+          tags: item.tags,
+          author: item.author,
+        },
+        { activate: false },
       );
-      docBrowser.open(url, openOptions);
     } catch (error) {
-      const url = buildDocDataUrl(
-        title,
-        JSON.stringify(
-          { error: error instanceof Error ? error.message : String(error) },
-          null,
-          2,
-        ),
-        summary,
-        undefined,
-        summary,
+      openMarketplaceDetailDoc(
+        docBrowser,
+        {
+          id: detailId,
+          title,
+          typeLabel: t("marketplaceTypeMcp"),
+          spec: item.install.spec,
+          status: "error",
+          summary,
+          metadataRaw: JSON.stringify(
+            { error: error instanceof Error ? error.message : String(error) },
+            null,
+            2,
+          ),
+          contentRaw: summary,
+        },
+        { activate: false },
       );
-      docBrowser.open(url, openOptions);
     }
   };
 

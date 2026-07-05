@@ -1,6 +1,9 @@
 export { MarketplacePage } from './components/marketplace-page';
 export { McpMarketplacePage } from './components/mcp/mcp-marketplace-page';
 export {
+  MARKETPLACE_DETAIL_DOC_BROWSER_RENDERERS,
+} from './components/marketplace-detail-doc';
+export {
   useInstallMarketplaceItem,
   useManageMarketplaceItem,
   useMarketplaceItem,

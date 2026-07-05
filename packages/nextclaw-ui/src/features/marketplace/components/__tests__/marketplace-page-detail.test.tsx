@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MarketplacePage } from "@/features/marketplace";
+import { useMarketplaceDetailDocStore } from "@/features/marketplace/stores/marketplace-detail-doc.store";
 import type { MarketplaceInstalledView, MarketplaceItemSummary, MarketplaceListView } from "@/shared/lib/api";
 
 type ItemsQueryState = {
@@ -21,7 +22,7 @@ type InstalledQueryState = {
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
-  docOpen: vi.fn(),
+  docOpenTarget: vi.fn(),
   itemsQuery: null as unknown as ItemsQueryState,
   installedQuery: null as unknown as InstalledQueryState,
   fetchMarketplaceSkillContent: vi.fn(),
@@ -38,7 +39,7 @@ vi.mock("react-router-dom", async () => {
 
 vi.mock("@/shared/components/doc-browser", () => ({
   useDocBrowser: () => ({
-    open: mocks.docOpen,
+    openTarget: mocks.docOpenTarget,
   }),
 }));
 
@@ -137,7 +138,7 @@ function createInstalledQuery(): InstalledQueryState {
 describe("MarketplacePage detail loading", () => {
   beforeEach(() => {
     mocks.navigate.mockReset();
-    mocks.docOpen.mockReset();
+    mocks.docOpenTarget.mockReset();
     mocks.fetchMarketplaceSkillContent.mockReset();
     mocks.itemsQuery = createItemsQuery([createMarketplaceItem()]);
     mocks.installedQuery = createInstalledQuery();
@@ -165,13 +166,15 @@ describe("MarketplacePage detail loading", () => {
 
     await user.click(screen.getByText("Web Search"));
 
-    expect(mocks.docOpen).toHaveBeenCalledTimes(1);
-    const loadingDetailHtml = decodeURIComponent(String(mocks.docOpen.mock.calls[0]?.[0]));
-    expect(loadingDetailHtml).toContain('aria-busy="true"');
-    expect(loadingDetailHtml).not.toContain("Loading");
-    expect(mocks.docOpen.mock.calls[0]?.[1]).toMatchObject({
-      dedupeKey: "marketplace:skill:web-search",
-      kind: "content",
+    expect(mocks.docOpenTarget).toHaveBeenCalledTimes(1);
+    expect(mocks.docOpenTarget.mock.calls[0]?.[0]).toMatchObject({
+      dedupeKey: "marketplace-detail:skill:web-search",
+      kind: "marketplace-detail",
+      title: "Web Search",
+      url: "nextclaw://marketplace-detail/skill%3Aweb-search",
+    });
+    expect(useMarketplaceDetailDocStore.getState().entries["skill:web-search"]).toMatchObject({
+      status: "loading",
       title: "Web Search",
     });
 
@@ -184,11 +187,15 @@ describe("MarketplacePage detail loading", () => {
     });
 
     await waitFor(() => {
-      expect(mocks.docOpen).toHaveBeenCalledTimes(2);
+      expect(mocks.docOpenTarget).toHaveBeenCalledTimes(2);
     });
-    expect(mocks.docOpen.mock.calls[1]?.[1]).toMatchObject({
+    expect(mocks.docOpenTarget.mock.calls[1]?.[1]).toMatchObject({
       activate: false,
-      dedupeKey: "marketplace:skill:web-search",
+      dedupeKey: "marketplace-detail:skill:web-search",
+    });
+    expect(useMarketplaceDetailDocStore.getState().entries["skill:web-search"]).toMatchObject({
+      contentRaw: "Use this skill to search the web.",
+      status: "ready",
     });
   });
 
@@ -259,20 +266,20 @@ describe("MarketplacePage detail loading", () => {
     });
 
     await waitFor(() => {
-      expect(mocks.docOpen).toHaveBeenCalledTimes(4);
+      expect(mocks.docOpenTarget).toHaveBeenCalledTimes(4);
     });
 
-    const webSearchCalls = mocks.docOpen.mock.calls.filter(
-      (call) => call[1]?.dedupeKey === "marketplace:skill:web-search",
+    const webSearchCalls = mocks.docOpenTarget.mock.calls.filter(
+      (call) => call[0]?.dedupeKey === "marketplace-detail:skill:web-search",
     );
-    const browserCalls = mocks.docOpen.mock.calls.filter(
-      (call) => call[1]?.dedupeKey === "marketplace:skill:bb-browser",
+    const browserCalls = mocks.docOpenTarget.mock.calls.filter(
+      (call) => call[0]?.dedupeKey === "marketplace-detail:skill:bb-browser",
     );
 
     expect(webSearchCalls).toHaveLength(2);
     expect(browserCalls).toHaveLength(2);
-    expect(String(webSearchCalls[1]?.[0])).toContain("Web%20Search");
-    expect(String(browserCalls[1]?.[0])).toContain("BB%20Browser");
+    expect(useMarketplaceDetailDocStore.getState().entries["skill:web-search"]?.contentRaw).toContain("search the web");
+    expect(useMarketplaceDetailDocStore.getState().entries["skill:bb-browser"]?.contentRaw).toContain("browser workflow");
   });
 
   it("ignores stale responses for the same skill detail key", async () => {
@@ -327,16 +334,16 @@ describe("MarketplacePage detail loading", () => {
     });
 
     await waitFor(() => {
-      expect(mocks.docOpen).toHaveBeenCalledTimes(3);
+      expect(mocks.docOpenTarget).toHaveBeenCalledTimes(3);
     });
 
-    expect(String(mocks.docOpen.mock.calls[2]?.[0])).toContain(
-      "Latest%20content",
+    expect(useMarketplaceDetailDocStore.getState().entries["skill:web-search"]?.contentRaw).toContain(
+      "Latest content",
     );
-    expect(mocks.docOpen.mock.calls[2]?.[1]).toMatchObject({
+    expect(mocks.docOpenTarget.mock.calls[2]?.[1]).toMatchObject({
       activate: false,
-      dedupeKey: "marketplace:skill:web-search",
+      dedupeKey: "marketplace-detail:skill:web-search",
     });
-    expect(String(mocks.docOpen.mock.calls[2]?.[0])).not.toContain("Stale");
+    expect(useMarketplaceDetailDocStore.getState().entries["skill:web-search"]?.contentRaw).not.toContain("Stale");
   });
 });

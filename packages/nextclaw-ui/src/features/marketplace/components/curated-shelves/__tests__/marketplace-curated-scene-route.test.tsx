@@ -53,6 +53,7 @@ vi.mock("react-router-dom", async () => {
 vi.mock("@/shared/components/doc-browser", () => ({
   useDocBrowser: () => ({
     open: mocks.docOpen,
+    openTarget: mocks.docOpen,
   }),
 }));
 
