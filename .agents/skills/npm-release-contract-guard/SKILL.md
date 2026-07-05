@@ -32,6 +32,7 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 - Do not treat `nextclaw` as a standalone CLI package. Its real installed behavior comes from the published dependency closure, especially runtime packages such as kernel, service, server, NCP packages, runtime adapters, and UI assets when applicable.
 - If `nextclaw` depends on a workspace package whose local source changed meaningfully, or whose local version has not been published, that package must be versioned and published in the same batch before `nextclaw`.
 - NPM runtime update manifests must use `hostKind: "npm-runtime-bundle"`.
+- NPM runtime update manifests must carry a meaningful `releaseNotesUrl` for user-visible release batches, following `nextclaw-release-notes-automation`; if no user-facing version note is required, the release report must state why.
 - `minimumLauncherVersion` for NPM runtime bundles comes from `packages/nextclaw/npm-runtime-compatibility.json`.
 - Do not raise `minimumLauncherVersion` unless the launcher-side contract really broke.
 
@@ -63,16 +64,17 @@ Never justify a single-package `nextclaw` release only because `packages/nextcla
    - for a narrow release: create or inspect the changeset and document why the excluded dependency closure is safe
 3. Prepare versions with the repo release flow:
    - `pnpm release:version`
-4. For a release batch that includes `nextclaw`, make sure the packaged update public key exists before publish:
+4. Before publishing a user-visible batch, use `nextclaw-release-notes-automation` to create or verify the AI-authored product update note and the URL that runtime manifests / GitHub release notes will expose.
+5. For a release batch that includes `nextclaw`, make sure the packaged update public key exists before publish:
    - `NEXTCLAW_UPDATE_BUNDLE_PRIVATE_KEY=... pnpm -C packages/nextclaw runtime-update:build -- --channel beta --skip-build --output-dir tmp/npm-runtime-update-key-check`
    - Use `--channel stable` for stable releases.
-5. Publish through the repo release flow:
+6. Publish through the repo release flow:
    - `pnpm release:publish`
-6. Verify the registry state:
+7. Verify the registry state:
    - `pnpm release:verify:published`
    - `npm view nextclaw dist-tags --json`
    - For a first publish of a scoped standalone package, an immediate `npm view` or `npm install` may briefly return 404 after a successful publish. Retry with the same npm config used for publish before declaring failure; do not rerun publish unless registry verification proves the version is absent after propagation.
-7. Close generated artifacts:
+8. Close generated artifacts:
    - Run `git status --short` in every worktree used for release or verification.
    - If release commands refreshed tracked publish assets such as `packages/nextclaw/ui-dist`, decide explicitly whether they are part of the release record.
    - Commit intended release artifacts before final response; restore tracked drift and remove untracked generated files when they are only local build hash churn.
@@ -179,6 +181,7 @@ For split download/apply smoke tests, do not run plain `nextclaw update --channe
 - The published `nextclaw` dependency closure contains the runtime APIs used by the `nextclaw` package.
 - The runtime update workflow finished successfully.
 - The public manifest URL shows the expected version and compatibility floor.
+- For user-visible batches, the public manifest or GitHub release exposes a release notes URL backed by the current product update note.
 - A real `nextclaw@beta` or stable install can check, download, and apply without custom manifest URL or public key env vars.
 - Every release/target worktree used in the task is clean, or the final response explicitly names a user-owned WIP that was intentionally preserved. Generated artifacts from the release itself are never left dirty: they are either committed or cleaned.
 - Final release notes must include:
@@ -186,6 +189,7 @@ For split download/apply smoke tests, do not run plain `nextclaw update --channe
   - dist-tag
   - workflow URL
   - public manifest URL
+  - product update note path / URL, or why no user-facing note was required
   - exact user-facing validation commands and result
 
 ## Forbidden Shortcuts

@@ -75,20 +75,22 @@ description: Use when building, verifying, or releasing NextClaw desktop install
    - Require overall `success`
    - Require the matrix jobs plus publish jobs
    - Prefer the compact closure script below over repeatedly streaming `gh run watch` output into the model context.
-5. Verify GitHub release assets are actually present.
+5. For user-visible releases, use `nextclaw-release-notes-automation` to create or verify the product update note that the GitHub release and update manifest will expose.
+6. Verify GitHub release assets are actually present.
    - Expect platform installers, bundles, manifests, mac metadata, and `update-bundle-public.pem`
-6. Verify update-channel source of truth.
+7. Verify update-channel source of truth.
    - Check `gh-pages` branch contents first
    - Then check the public Pages URL
-7. For stable releases, update and deploy official website/download links only after the release is complete.
+8. For stable releases, update and deploy official website/download links only after the release is complete.
    - Do not push or deploy website stable-download links to a tag/release that is not yet fully published.
    - If the website source is auto-deployed from `master`, commit the website link update after assets, manifests, update channels, and stable-only publish jobs are verified.
    - If the website change is prepared earlier, keep it local/unpushed or behind a non-public preview until the stable release gate passes.
-8. Only announce "发布完成" after all are true:
+9. Only announce "发布完成" after all are true:
    - workflow is fully green
    - public update-channel content reflects the new version
+   - update manifest `releaseNotesUrl` points at the product update note, or the release report explains why no user-facing note is required
    - official website/download links, when changed, are deployed and verified against the completed release
-9. When the desktop release is executed from an isolated worktree, the isolation protects active WIP but does not make release side effects disposable.
+10. When the desktop release is executed from an isolated worktree, the isolation protects active WIP but does not make release side effects disposable.
    - After closure, merge or otherwise safely return release metadata, tags, logs, notes, version files, and workflow fixes back to the local target branch, normally `master`.
    - If the local target branch has WIP, only fast-forward or apply non-overlapping release files; do not stash, reset, or overwrite user work.
    - The final report must state whether the local target branch contains the released commit and any release metadata, and whether active WIP was preserved.
@@ -197,6 +199,7 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - Cover user-facing and functional changes, especially desktop startup, installer/update behavior, visible UI/chrome changes, channel/runtime behavior, and website/download alignment when applicable.
 - Call out desktop installer/update validation explicitly, including platform workflow coverage and the governed `minimumLauncherVersion` floor.
 - Keep the changelog link once per language block and point it at the previous official stable desktop tag.
+- For any release with update-channel manifests, close the user-facing note chain required by `nextclaw-release-notes-automation`: product update note in docs or equivalent GitHub release body, plus manifest `releaseNotesUrl`.
 
 ## Public Update Channel Gate
 - `gh-pages` branch content is the publishing source of truth.

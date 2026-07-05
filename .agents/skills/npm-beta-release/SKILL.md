@@ -114,6 +114,7 @@ pnpm release:beta:runtime -- --minimum-launcher-version-override 0.18.12-beta.3
 - 先汇总未发布 `.changeset`，生成本次用户可读变更摘要。
 - 若明确有用户可见产品变更但缺少 `.changeset`，先补齐再发布。
 - 不能只用 full public beta batch changeset 代替具体变更说明。
+- 若发布结果会进入用户安装或 beta runtime update channel，必须生成或更新本版本的产品更新笔记，并在 runtime update manifest / GitHub release 中闭合 `releaseNotesUrl`；只有本批无用户可见变化时才可说明不适用。
 
 ## 本地安装验证契约
 
@@ -154,6 +155,7 @@ nextclaw restart --ui-port <port> --start-timeout 45000
 - 是否触发 runtime channel
 - workflow URL
 - public manifest 校验结果
+- 产品更新笔记路径和公开 URL，或明确不适用原因
 - 真实 npm 安装验证结果，包含安装路径是否为全局 npm 包而非 workspace link
 
 ## 关系说明
