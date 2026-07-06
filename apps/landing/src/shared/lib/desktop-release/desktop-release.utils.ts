@@ -8,8 +8,8 @@ export type DesktopReleaseInfo = {
   windowsPortableZipUrl: string | null;
 };
 
-const STABLE_DESKTOP_RELEASE_TAG = 'v0.22.0-desktop.1';
-const STABLE_DESKTOP_VERSION = '0.0.216';
+const STABLE_DESKTOP_RELEASE_TAG = 'v0.22.1-desktop.1';
+const STABLE_DESKTOP_VERSION = '0.0.217';
 const STABLE_DESKTOP_RELEASE_URL = `https://github.com/Peiiii/nextclaw/releases/tag/${STABLE_DESKTOP_RELEASE_TAG}`;
 const STABLE_DESKTOP_ASSET_BASE_URL = `https://github.com/Peiiii/nextclaw/releases/download/${STABLE_DESKTOP_RELEASE_TAG}`;
 
