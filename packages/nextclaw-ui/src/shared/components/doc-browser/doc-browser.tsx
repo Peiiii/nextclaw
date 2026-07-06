@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import {
-  DOCS_DEFAULT_BASE_URL,
   DOC_BROWSER_HOME_TAB_KIND,
+  getDefaultDocsUrl,
+  getDocsUrl,
   type DocBrowserDockControls,
   type DocBrowserDockState,
   type DocBrowserTab,
@@ -137,11 +138,11 @@ function useDocBrowserAddressBar({
     const input = urlInput.trim();
     if (!input) return;
     if (isDocsTab && input.startsWith('/')) {
-      navigate(`${DOCS_DEFAULT_BASE_URL}${input}`);
+      navigate(getDocsUrl(input));
     } else if (isDocsTab && input.startsWith('http')) {
       navigate(input);
     } else if (isDocsTab) {
-      navigate(`${DOCS_DEFAULT_BASE_URL}/${input}`);
+      navigate(getDocsUrl(`/${input}`));
     } else {
       navigate(resolveContentUrlInput(input, currentUrl));
     }
@@ -180,7 +181,7 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
   const [floatRect, setFloatRect] = useState<FloatingPanelRect>(createInitialFloatingPanelRect);
   const [floatInteraction, setFloatInteraction] = useState<FloatingPanelInteraction | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const currentUrl = currentTab?.currentUrl ?? DOCS_DEFAULT_BASE_URL;
+  const currentUrl = currentTab?.currentUrl ?? getDefaultDocsUrl();
   const navVersion = currentTab?.navVersion ?? 0;
   const iframeInstanceId = `${activeTabId}:${navVersion}:${iframeReloadVersion}`;
   const pendingParentDocsUrlRef = useRef<string | null>(null);

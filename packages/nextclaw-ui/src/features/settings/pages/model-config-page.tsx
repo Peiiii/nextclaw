@@ -9,7 +9,7 @@ import { hintForPath } from '@/shared/lib/config-hints';
 import { t } from '@/shared/lib/i18n';
 import { buildProviderModelCatalog } from '@/shared/lib/provider-models';
 import { PageLayout, PageHeader } from '@/app/components/layout/page-layout';
-import { DOCS_DEFAULT_BASE_URL } from '@/shared/components/doc-browser/doc-browser-context';
+import { getDocsUrl } from '@/shared/components/doc-browser/doc-browser-context';
 import { BookOpen, Folder, Loader2, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -53,7 +53,7 @@ function ModelConfigForm(props: {
             </Label>
             <ProviderScopedModelInput id="model" value={model} onChange={setModel} providerCatalog={providerCatalog} modelPlaceholder={modelPlaceholder} />
             <p className="text-xs text-gray-400">{modelHelpText}</p>
-            <a href={`${DOCS_DEFAULT_BASE_URL}/guide/model-selection`} className="inline-flex items-center gap-1.5 text-xs text-primary transition-colors hover:text-primary-hover">
+            <a href={getDocsUrl('/guide/model-selection')} className="inline-flex items-center gap-1.5 text-xs text-primary transition-colors hover:text-primary-hover">
               <BookOpen className="h-3.5 w-3.5" />
               {t('channelsGuideTitle')}
             </a>

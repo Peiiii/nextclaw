@@ -22,6 +22,10 @@ export {
   DOC_BROWSER_HOME_TAB_KIND,
   DOC_BROWSER_HOME_URL,
   DOCS_DEFAULT_BASE_URL,
+  DOCS_MAINLAND_BASE_URL,
+  getDocsBaseUrl,
+  getDocsUrl,
+  getDefaultDocsUrl,
   isDocsUrl,
 } from '@/shared/components/doc-browser/utils/doc-browser-url.utils';
 
