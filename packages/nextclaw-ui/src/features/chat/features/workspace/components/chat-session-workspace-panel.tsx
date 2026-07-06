@@ -58,6 +58,7 @@ export function ChatSessionWorkspacePanel({
 }: ChatSessionWorkspacePanelProps) {
   const presenter = usePresenter();
   const queryClient = useQueryClient();
+  const [isMaximized, setIsMaximized] = useState(false);
   const [filePreviewRefreshVersion, setFilePreviewRefreshVersion] = useState(0);
   const resolvedChildTabs = useNcpChildSessionTabsView(childSessionTabs);
   const optimisticReadAtBySessionKey = useChatSessionListStore(
@@ -114,6 +115,8 @@ export function ChatSessionWorkspacePanel({
     return null;
   }
 
+  const isContainerMaximized = displayMode === "docked" && isMaximized;
+  const isOverlayPanel = displayMode === "overlay" || isContainerMaximized;
   const activeFile =
     activeSelection.kind === "file" && activeSelection.file.viewMode === "preview"
       ? activeSelection.file
@@ -132,23 +135,32 @@ export function ChatSessionWorkspacePanel({
 
   return (
     <ResizableRightPanel
+      data-testid="chat-session-workspace-panel"
       className={cn(
-        displayMode === "overlay"
+        isOverlayPanel
           ? "bg-white"
           : "hidden border-gray-200/70 bg-white/95 backdrop-blur-sm md:flex",
+        isContainerMaximized ? "shadow-xl" : null,
       )}
       defaultWidth={480}
       minWidth={360}
       maxWidth={860}
-      overlay={displayMode === "overlay"}
+      overlay={isOverlayPanel}
+      overlayScope={isContainerMaximized ? "container" : "viewport"}
     >
       <WorkspaceTabsBar
         tabs={workspaceTabs}
         canGoBack={canGoBackInNavigationHistory(workspaceHistory)}
         canGoForward={canGoForwardInNavigationHistory(workspaceHistory)}
+        isMaximized={isContainerMaximized}
         onGoBack={presenter.chatThreadManager.goBackWorkspacePanel}
         onGoForward={presenter.chatThreadManager.goForwardWorkspacePanel}
         onRefreshFile={refreshActiveFile}
+        onToggleMaximize={
+          displayMode === "docked"
+            ? () => setIsMaximized((value) => !value)
+            : undefined
+        }
         onClose={presenter.chatThreadManager.closeWorkspacePanel}
       />
 

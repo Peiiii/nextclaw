@@ -1,4 +1,15 @@
-import { AlarmClock, ArrowLeft, ArrowRight, FileCode2, MessageSquarePlus, MessageSquareText, RefreshCw, X } from "lucide-react";
+import {
+  AlarmClock,
+  ArrowLeft,
+  ArrowRight,
+  FileCode2,
+  Maximize2,
+  MessageSquarePlus,
+  MessageSquareText,
+  Minimize2,
+  RefreshCw,
+  X,
+} from "lucide-react";
 import type { WorkspaceTabViewModel } from "@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
 import {
@@ -56,18 +67,22 @@ function buildCompactWorkspaceTabs(
 export function WorkspaceTabsBar({
   canGoBack,
   canGoForward,
+  isMaximized = false,
   onClose,
   onGoBack,
   onGoForward,
   onRefreshFile,
+  onToggleMaximize,
   tabs,
 }: {
   canGoBack: boolean;
   canGoForward: boolean;
+  isMaximized?: boolean;
   onClose: () => void;
   onGoBack: () => void;
   onGoForward: () => void;
   onRefreshFile?: () => void;
+  onToggleMaximize?: () => void;
   tabs: readonly WorkspaceTabViewModel[];
 }) {
   const compactTabs = buildCompactWorkspaceTabs(tabs);
@@ -81,6 +96,22 @@ export function WorkspaceTabsBar({
             icon: <RefreshCw className="h-4 w-4" />,
             label: t("chatWorkspaceRefreshFile"),
             onClick: onRefreshFile,
+          },
+        ]
+      : []),
+    ...(onToggleMaximize
+      ? [
+          {
+            key: "maximize",
+            icon: isMaximized ? (
+              <Minimize2 className="h-4 w-4" />
+            ) : (
+              <Maximize2 className="h-4 w-4" />
+            ),
+            label: isMaximized
+              ? t("chatWorkspaceRestorePanel")
+              : t("chatWorkspaceMaximizePanel"),
+            onClick: onToggleMaximize,
           },
         ]
       : []),

@@ -1,12 +1,33 @@
 import { useRef, useState, type ComponentPropsWithoutRef } from "react";
 import { cn } from "@/shared/lib/utils";
 
-type ResizableRightPanelProps = ComponentPropsWithoutRef<"aside"> & { defaultWidth?: number; minWidth?: number; maxWidth?: number; overlay?: boolean };
+type ResizableRightPanelProps = ComponentPropsWithoutRef<"aside"> & {
+  defaultWidth?: number;
+  minWidth?: number;
+  maxWidth?: number;
+  overlay?: boolean;
+  overlayScope?: "viewport" | "container";
+};
 
-export function ResizableRightPanel({ children, className, style, defaultWidth = 420, minWidth = 320, maxWidth = 860, overlay = false, ...props }: ResizableRightPanelProps) {
+export function ResizableRightPanel({
+  children,
+  className,
+  style,
+  defaultWidth = 420,
+  minWidth = 320,
+  maxWidth = 860,
+  overlay = false,
+  overlayScope = "viewport",
+  ...props
+}: ResizableRightPanelProps) {
   const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const [isResizing, setIsResizing] = useState(false);
   const [width, setWidth] = useState(defaultWidth);
+  const overlayClassName = overlay
+    ? overlayScope === "container"
+      ? "absolute inset-0 z-30"
+      : "fixed inset-0 z-40"
+    : "border-l border-border";
 
   const onResizeStart = (event: React.PointerEvent<HTMLDivElement>) => {
     if (overlay) return;
@@ -36,7 +57,11 @@ export function ResizableRightPanel({ children, className, style, defaultWidth =
   return (
     <aside
       {...props}
-      className={cn("relative flex h-full min-h-0 shrink-0 overflow-hidden bg-card text-card-foreground", overlay ? "fixed inset-0 z-40" : "border-l border-border", className)}
+      className={cn(
+        "relative flex h-full min-h-0 shrink-0 overflow-hidden bg-card text-card-foreground",
+        overlayClassName,
+        className,
+      )}
       style={overlay ? style : { ...style, width }}
     >
       {!overlay ? (

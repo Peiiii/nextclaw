@@ -60,7 +60,7 @@ function createWorkspaceFileTab(): ChatWorkspaceFileTab {
   };
 }
 
-function renderPanel() {
+function renderPanel(displayMode: "docked" | "overlay" = "docked") {
   const fileTab = createWorkspaceFileTab();
 
   return render(
@@ -77,6 +77,7 @@ function renderPanel() {
       sessionCronJobs={[]}
       sessionProjectRoot={null}
       sessionWorkingDir={null}
+      displayMode={displayMode}
     />,
   );
 }
@@ -100,5 +101,41 @@ describe("ChatSessionWorkspacePanel", () => {
         .getByTestId("workspace-panel-content")
         .getAttribute("data-file-refresh-version"),
     ).toBe("1");
+  });
+
+  it("maximizes and restores the docked workspace panel within its container", async () => {
+    const user = userEvent.setup();
+    renderPanel();
+
+    const panel = screen.getByTestId("chat-session-workspace-panel");
+    expect(panel.className).not.toContain("absolute");
+
+    await user.click(
+      screen.getByRole("button", { name: "Maximize workspace panel" }),
+    );
+
+    expect(panel.className).toContain("absolute");
+    expect(panel.className).not.toContain("fixed");
+    expect(
+      screen.queryByTestId("resizable-right-panel-handle"),
+    ).toBeNull();
+
+    await user.click(
+      screen.getByRole("button", { name: "Restore workspace panel" }),
+    );
+
+    expect(panel.className).not.toContain("absolute");
+    expect(screen.getByTestId("resizable-right-panel-handle")).toBeTruthy();
+  });
+
+  it("does not show a redundant maximize action in viewport overlay mode", () => {
+    renderPanel("overlay");
+
+    expect(
+      screen.queryByRole("button", { name: "Maximize workspace panel" }),
+    ).toBeNull();
+    expect(screen.getByTestId("chat-session-workspace-panel").className).toContain(
+      "fixed",
+    );
   });
 });

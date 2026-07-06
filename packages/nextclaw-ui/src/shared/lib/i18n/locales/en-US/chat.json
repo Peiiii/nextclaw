@@ -42,6 +42,8 @@
   "chatWorkspaceBack": "Back in workspace",
   "chatWorkspaceForward": "Forward in workspace",
   "chatWorkspaceRefreshFile": "Refresh file",
+  "chatWorkspaceMaximizePanel": "Maximize workspace panel",
+  "chatWorkspaceRestorePanel": "Restore workspace panel",
   "chatWorkspaceClosePanel": "Close workspace panel",
   "chatWorkspaceSideChatDraftTitle": "Side chat",
   "chatWorkspaceSideChatDraftSubtitle": "This draft will inherit the parent session context when you send the first message.",

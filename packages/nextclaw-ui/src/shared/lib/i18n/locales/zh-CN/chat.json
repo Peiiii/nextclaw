@@ -42,6 +42,8 @@
   "chatWorkspaceBack": "工作区后退",
   "chatWorkspaceForward": "工作区前进",
   "chatWorkspaceRefreshFile": "刷新文件",
+  "chatWorkspaceMaximizePanel": "最大化工作区侧栏",
+  "chatWorkspaceRestorePanel": "还原工作区侧栏",
   "chatWorkspaceClosePanel": "关闭工作区侧栏",
   "chatWorkspaceSideChatDraftTitle": "Side chat",
   "chatWorkspaceSideChatDraftSubtitle": "发送第一条消息后，会继承父会话上下文并创建真实 child 会话。",

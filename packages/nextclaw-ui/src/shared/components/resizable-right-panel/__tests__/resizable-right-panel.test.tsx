@@ -63,4 +63,22 @@ describe("ResizableRightPanel", () => {
     ).toBeNull();
     expect(screen.getByTestId("right-panel").className).toContain("fixed");
   });
+
+  it("can scope overlay positioning to its container", () => {
+    render(
+      <ResizableRightPanel
+        data-testid="right-panel"
+        overlay
+        overlayScope="container"
+      >
+        Content
+      </ResizableRightPanel>,
+    );
+
+    expect(
+      screen.queryByTestId("resizable-right-panel-handle"),
+    ).toBeNull();
+    expect(screen.getByTestId("right-panel").className).toContain("absolute");
+    expect(screen.getByTestId("right-panel").className).not.toContain("fixed");
+  });
 });
