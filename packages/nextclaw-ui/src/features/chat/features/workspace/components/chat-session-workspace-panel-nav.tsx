@@ -1,4 +1,4 @@
-import { AlarmClock, ArrowLeft, ArrowRight, FileCode2, MessageSquarePlus, MessageSquareText, X } from "lucide-react";
+import { AlarmClock, ArrowLeft, ArrowRight, FileCode2, MessageSquarePlus, MessageSquareText, RefreshCw, X } from "lucide-react";
 import type { WorkspaceTabViewModel } from "@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
 import {
@@ -59,6 +59,7 @@ export function WorkspaceTabsBar({
   onClose,
   onGoBack,
   onGoForward,
+  onRefreshFile,
   tabs,
 }: {
   canGoBack: boolean;
@@ -66,12 +67,23 @@ export function WorkspaceTabsBar({
   onClose: () => void;
   onGoBack: () => void;
   onGoForward: () => void;
+  onRefreshFile?: () => void;
   tabs: readonly WorkspaceTabViewModel[];
 }) {
   const compactTabs = buildCompactWorkspaceTabs(tabs);
   const actions: CompactTabStripAction[] = [
     { key: "back", icon: <ArrowLeft className="h-4 w-4" />, label: t("chatWorkspaceBack"), disabled: !canGoBack, onClick: onGoBack },
     { key: "forward", icon: <ArrowRight className="h-4 w-4" />, label: t("chatWorkspaceForward"), disabled: !canGoForward, onClick: onGoForward },
+    ...(onRefreshFile
+      ? [
+          {
+            key: "refresh-file",
+            icon: <RefreshCw className="h-4 w-4" />,
+            label: t("chatWorkspaceRefreshFile"),
+            onClick: onRefreshFile,
+          },
+        ]
+      : []),
     { key: "close", icon: <X className="h-4 w-4" />, label: t("chatWorkspaceClosePanel"), onClick: onClose },
   ];
 

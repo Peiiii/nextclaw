@@ -1,4 +1,5 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { CronJobView } from "@/shared/lib/api";
 import { useNcpChildSessionTabsView } from "@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
@@ -22,6 +23,7 @@ import {
   canGoBackInNavigationHistory,
   canGoForwardInNavigationHistory,
 } from "@/shared/lib/navigation-history";
+import { buildServerPathReadQueryKey } from "@/shared/hooks/use-server-path-read";
 
 type ChatSessionWorkspacePanelProps = {
   sessionKey: string | null;
@@ -55,6 +57,8 @@ export function ChatSessionWorkspacePanel({
   displayMode = "docked",
 }: ChatSessionWorkspacePanelProps) {
   const presenter = usePresenter();
+  const queryClient = useQueryClient();
+  const [filePreviewRefreshVersion, setFilePreviewRefreshVersion] = useState(0);
   const resolvedChildTabs = useNcpChildSessionTabsView(childSessionTabs);
   const optimisticReadAtBySessionKey = useChatSessionListStore(
     (state) => state.optimisticReadAtBySessionKey,
@@ -110,6 +114,22 @@ export function ChatSessionWorkspacePanel({
     return null;
   }
 
+  const activeFile =
+    activeSelection.kind === "file" && activeSelection.file.viewMode === "preview"
+      ? activeSelection.file
+      : null;
+  const refreshActiveFile = activeFile
+    ? () => {
+        void queryClient.invalidateQueries({
+          queryKey: buildServerPathReadQueryKey({
+            path: activeFile.path,
+            basePath: sessionWorkingDir,
+          }),
+        });
+        setFilePreviewRefreshVersion((value) => value + 1);
+      }
+    : undefined;
+
   return (
     <ResizableRightPanel
       className={cn(
@@ -128,12 +148,14 @@ export function ChatSessionWorkspacePanel({
         canGoForward={canGoForwardInNavigationHistory(workspaceHistory)}
         onGoBack={presenter.chatThreadManager.goBackWorkspacePanel}
         onGoForward={presenter.chatThreadManager.goForwardWorkspacePanel}
+        onRefreshFile={refreshActiveFile}
         onClose={presenter.chatThreadManager.closeWorkspacePanel}
       />
 
       <div className="flex min-h-0 flex-1 flex-col bg-white">
         <ChatSessionWorkspacePanelContent
           activeSelection={activeSelection}
+          filePreviewRefreshVersion={filePreviewRefreshVersion}
           sessionCronJobs={sessionCronJobs}
           sessionProjectRoot={sessionProjectRoot}
           sessionWorkingDir={sessionWorkingDir}

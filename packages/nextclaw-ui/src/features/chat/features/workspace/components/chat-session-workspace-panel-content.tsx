@@ -10,6 +10,7 @@ import { t } from "@/shared/lib/i18n";
 
 type ChatSessionWorkspacePanelContentProps = {
   activeSelection: WorkspaceSelection;
+  filePreviewRefreshVersion: number;
   sessionCronJobs: readonly CronJobView[];
   sessionProjectRoot: string | null;
   sessionWorkingDir: string | null;
@@ -67,6 +68,7 @@ function WorkspaceSideChatDraftHeader() {
 
 export function ChatSessionWorkspacePanelContent({
   activeSelection,
+  filePreviewRefreshVersion,
   sessionCronJobs,
   sessionProjectRoot,
   sessionWorkingDir,
@@ -113,6 +115,7 @@ export function ChatSessionWorkspacePanelContent({
     return (
       <ChatSessionWorkspaceFilePreview
         file={activeSelection.file}
+        refreshVersion={filePreviewRefreshVersion}
         sessionProjectRoot={sessionProjectRoot}
         sessionWorkingDir={sessionWorkingDir}
         onFileOpen={presenter.chatThreadManager.openFilePreview}

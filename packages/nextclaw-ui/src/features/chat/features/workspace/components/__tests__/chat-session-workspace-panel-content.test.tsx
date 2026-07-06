@@ -40,6 +40,7 @@ it("shows compact child session metadata without repeating the tab title", () =>
         kind: "child-session",
         tab: createChildTab(),
       }}
+      filePreviewRefreshVersion={0}
       sessionCronJobs={[]}
       sessionProjectRoot={null}
       sessionWorkingDir={null}

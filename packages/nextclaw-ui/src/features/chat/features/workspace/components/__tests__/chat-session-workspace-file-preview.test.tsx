@@ -14,6 +14,7 @@ const serverPathBrowseMock = vi.fn();
 type RenderWorkspaceFilePreviewOptions = {
   file?: Partial<ChatWorkspaceFileTab>;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  refreshVersion?: number;
   sessionProjectRoot?: string | null;
   sessionWorkingDir?: string | null;
 };
@@ -82,6 +83,7 @@ function mockTextRead(overrides: TextReadDataOverrides = {}) {
 function renderWorkspaceFilePreview({
   file,
   onFileOpen = vi.fn(),
+  refreshVersion,
   sessionProjectRoot = "/tmp",
   sessionWorkingDir = "/tmp",
 }: RenderWorkspaceFilePreviewOptions = {}) {
@@ -90,6 +92,7 @@ function renderWorkspaceFilePreview({
       file={buildWorkspaceFile(file ?? {})}
       sessionProjectRoot={sessionProjectRoot}
       sessionWorkingDir={sessionWorkingDir}
+      refreshVersion={refreshVersion}
       onFileOpen={onFileOpen}
     />,
   );
@@ -227,6 +230,26 @@ describe("ChatSessionWorkspaceFilePreview rendering", () => {
       "/api/server-paths/content/__abs__/tmp/example.html",
     );
     expect(screen.queryByTestId("file-code-surface")).toBeNull();
+  });
+
+  it("adds the refresh version to rendered HTML iframe URLs", () => {
+    mockTextRead({
+      resolvedPath: "/tmp/example.html",
+      text: "<!doctype html><h1>Hello</h1>",
+    });
+    renderWorkspaceFilePreview({
+      file: {
+        label: "example.html",
+        path: "/tmp/example.html",
+        previewViewer: "rendered",
+        viewMode: "preview",
+      },
+      refreshVersion: 3,
+    });
+
+    expect(screen.getByTestId("workspace-html-preview").getAttribute("src")).toContain(
+      "refresh=3",
+    );
   });
 
   it("keeps HTML files in the source preview when source is requested", () => {

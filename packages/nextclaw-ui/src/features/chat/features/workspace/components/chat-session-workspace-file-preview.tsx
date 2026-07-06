@@ -31,6 +31,13 @@ function resolveFilePreviewViewer(params: {
   return params.viewer === "rendered" && /\.html?$/i.test(params.path) ? "rendered" : "source";
 }
 
+function appendPreviewRefreshVersion(url: string, refreshVersion: number): string {
+  if (refreshVersion <= 0) {
+    return url;
+  }
+  return `${url}${url.includes("?") ? "&" : "?"}refresh=${refreshVersion}`;
+}
+
 function buildPreviewBlock(params: {
   path: string;
   text: string;
@@ -229,6 +236,7 @@ function WorkspacePreviewBody({
 
 type ChatSessionWorkspaceFilePreviewProps = {
   file: ChatWorkspaceFileTab;
+  refreshVersion?: number;
   sessionProjectRoot: string | null;
   sessionWorkingDir: string | null;
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
@@ -236,6 +244,7 @@ type ChatSessionWorkspaceFilePreviewProps = {
 
 export function ChatSessionWorkspaceFilePreview({
   file,
+  refreshVersion = 0,
   sessionProjectRoot,
   sessionWorkingDir,
   onFileOpen,
@@ -263,7 +272,10 @@ export function ChatSessionWorkspaceFilePreview({
   });
   const previewUrl =
     previewViewer === "rendered" && previewQuery.data?.resolvedPath
-      ? buildServerPathContentUrl(previewQuery.data.resolvedPath)
+      ? appendPreviewRefreshVersion(
+          buildServerPathContentUrl(previewQuery.data.resolvedPath),
+          refreshVersion,
+        )
       : null;
   const previewBlock = useMemo(() => {
     if (!isPreviewMode || !previewText) {
