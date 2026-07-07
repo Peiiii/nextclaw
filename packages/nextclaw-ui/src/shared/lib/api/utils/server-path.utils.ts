@@ -17,6 +17,7 @@ function encodeServerPathSegments(path: string): string {
 
 export async function fetchServerPathBrowse(params?: {
   path?: string | null;
+  basePath?: string | null;
   includeFiles?: boolean;
 }): Promise<ServerPathBrowseView> {
   return await nextclawClient.serverPaths.browse(params);

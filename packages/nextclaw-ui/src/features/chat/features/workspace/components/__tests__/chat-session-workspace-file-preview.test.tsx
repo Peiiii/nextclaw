@@ -100,55 +100,68 @@ function renderWorkspaceFilePreview({
 }
 
 function mockWorkspaceBreadcrumbBrowseTree() {
-  serverPathBrowseMock.mockImplementation(
-    ({ path }: { path?: string | null }) => ({
-      isLoading: false,
-      error: null,
-      data:
-        path === "/tmp/workspace/src/components"
-          ? {
-              currentPath: "/tmp/workspace/src/components",
-              parentPath: "/tmp/workspace/src",
-              homePath: "/Users/demo",
-              breadcrumbs: [
-                { label: "workspace", path: "/tmp/workspace" },
-                { label: "src", path: "/tmp/workspace/src" },
-                { label: "components", path: "/tmp/workspace/src/components" },
-              ],
-              entries: [
-                {
-                  name: "button.tsx",
-                  path: "/tmp/workspace/src/components/button.tsx",
-                  kind: "file",
-                  hidden: false,
-                },
-              ],
-            }
-          : {
-              currentPath: "/tmp/workspace/src",
-              parentPath: "/tmp/workspace",
-              homePath: "/Users/demo",
-              breadcrumbs: [
-                { label: "workspace", path: "/tmp/workspace" },
-                { label: "src", path: "/tmp/workspace/src" },
-              ],
-              entries: [
-                {
-                  name: "components",
-                  path: "/tmp/workspace/src/components",
-                  kind: "directory",
-                  hidden: false,
-                },
-                {
-                  name: "index.ts",
-                  path: "/tmp/workspace/src/index.ts",
-                  kind: "file",
-                  hidden: false,
-                },
-              ],
+  serverPathBrowseMock.mockImplementation(({ path }: { path?: string | null }) => {
+    if (path === "/tmp/workspace/src/components") {
+      return {
+        isLoading: false,
+        error: null,
+        data: {
+          currentPath: "/tmp/workspace/src/components",
+          parentPath: "/tmp/workspace/src",
+          homePath: "/Users/demo",
+          breadcrumbs: [
+            { label: "workspace", path: "/tmp/workspace" },
+            { label: "src", path: "/tmp/workspace/src" },
+            { label: "components", path: "/tmp/workspace/src/components" },
+          ],
+          entries: [
+            {
+              name: "button.tsx",
+              path: "/tmp/workspace/src/components/button.tsx",
+              kind: "file",
+              hidden: false,
             },
-    }),
-  );
+          ],
+        },
+      };
+    }
+
+    if (path === "/tmp/workspace/src") {
+      return {
+        isLoading: false,
+        error: null,
+        data: {
+          currentPath: "/tmp/workspace/src",
+          parentPath: "/tmp/workspace",
+          homePath: "/Users/demo",
+          breadcrumbs: [
+            { label: "workspace", path: "/tmp/workspace" },
+            { label: "src", path: "/tmp/workspace/src" },
+          ],
+          entries: [
+            {
+              name: "components",
+              path: "/tmp/workspace/src/components",
+              kind: "directory",
+              hidden: false,
+            },
+            {
+              name: "index.ts",
+              path: "/tmp/workspace/src/index.ts",
+              kind: "file",
+              hidden: false,
+            },
+          ],
+        },
+      };
+    }
+
+    return {
+      isLoading: false,
+      error: new Error("server path must point to a directory"),
+      data: null,
+    };
+  });
 }
 
 beforeEach(() => {
@@ -156,14 +169,8 @@ beforeEach(() => {
   serverPathBrowseMock.mockReset();
   serverPathBrowseMock.mockReturnValue({
     isLoading: false,
-    error: null,
-    data: {
-      currentPath: "/tmp",
-      parentPath: null,
-      homePath: "/Users/demo",
-      breadcrumbs: [],
-      entries: [],
-    },
+    error: new Error("server path must point to a directory"),
+    data: null,
   });
 });
 
@@ -313,6 +320,79 @@ describe("ChatSessionWorkspaceFilePreview rendering", () => {
     expect(screen.getByTitle("/tmp/example.ts")).toBeTruthy();
     expect(screen.getByText("tmp")).toBeTruthy();
     expect(screen.getByText("example.ts")).toBeTruthy();
+  });
+
+  it("renders directory entries and opens child directories or files", () => {
+    serverPathReadMock.mockReturnValue({
+      isLoading: false,
+      error: new Error("server path must point to a file"),
+      data: null,
+    });
+    serverPathBrowseMock.mockReturnValue({
+      isLoading: false,
+      error: null,
+      data: {
+        currentPath: "/tmp/workspace/src",
+        parentPath: "/tmp/workspace",
+        homePath: "/Users/demo",
+        breadcrumbs: [
+          { label: "workspace", path: "/tmp/workspace" },
+          { label: "src", path: "/tmp/workspace/src" },
+        ],
+        entries: [
+          {
+            name: "components",
+            path: "/tmp/workspace/src/components",
+            kind: "directory",
+            hidden: false,
+          },
+          {
+            name: "index.ts",
+            path: "/tmp/workspace/src/index.ts",
+            kind: "file",
+            hidden: false,
+          },
+        ],
+      },
+    });
+    const onFileOpen = vi.fn();
+
+    renderWorkspaceFilePreview({
+      file: {
+        path: "src",
+        label: "src",
+        viewMode: "preview",
+      },
+      onFileOpen,
+      sessionProjectRoot: "/tmp/workspace",
+      sessionWorkingDir: "/tmp/workspace",
+    });
+
+    expect(serverPathBrowseMock).toHaveBeenCalledWith({
+      path: "src",
+      basePath: "/tmp/workspace",
+      includeFiles: true,
+      enabled: true,
+    });
+    expect(screen.getByTestId("workspace-directory-browser")).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open directory: components" }),
+    );
+    expect(onFileOpen).toHaveBeenCalledWith({
+      path: "/tmp/workspace/src/components",
+      label: "components",
+      viewMode: "preview",
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open file: index.ts" }),
+    );
+    expect(onFileOpen).toHaveBeenCalledWith({
+      path: "/tmp/workspace/src/index.ts",
+      label: "index.ts",
+      viewMode: "preview",
+    });
   });
 });
 

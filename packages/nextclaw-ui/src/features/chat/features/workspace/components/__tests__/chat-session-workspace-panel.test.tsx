@@ -91,10 +91,13 @@ describe("ChatSessionWorkspacePanel", () => {
     const user = userEvent.setup();
     renderPanel();
 
-    await user.click(screen.getByRole("button", { name: "Refresh file" }));
+    await user.click(screen.getByRole("button", { name: "Refresh preview" }));
 
     expect(mocks.invalidateQueries).toHaveBeenCalledWith({
       queryKey: ["server-path-read", "README.md", null],
+    });
+    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["server-path-browse", "README.md", "", true],
     });
     expect(
       screen

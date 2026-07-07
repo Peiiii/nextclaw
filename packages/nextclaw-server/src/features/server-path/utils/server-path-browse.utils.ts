@@ -10,10 +10,12 @@ import type {
 
 type BrowseServerPathOptions = {
   path?: string | null;
+  basePath?: string | null;
   includeFiles?: boolean;
 };
 
 type ServerPathBrowseErrorCode =
+  | "SERVER_PATH_BASE_REQUIRED"
   | "SERVER_PATH_NOT_FOUND"
   | "SERVER_PATH_NOT_DIRECTORY"
   | "SERVER_PATH_NOT_READABLE";
@@ -28,9 +30,26 @@ export class ServerPathBrowseError extends Error {
   }
 }
 
-function normalizeBrowsePath(path?: string | null): string {
-  const trimmed = typeof path === "string" ? path.trim() : "";
-  return resolve(expandHome(trimmed || homedir()));
+function normalizeBrowsePath(options: BrowseServerPathOptions): string {
+  const { basePath, path } = options;
+  const rawPath = typeof path === "string" ? path.trim() : "";
+  const normalizedBasePath =
+    typeof basePath === "string" ? basePath.trim() : "";
+  if (!rawPath) {
+    return resolve(expandHome(normalizedBasePath || homedir()));
+  }
+
+  const expandedPath = expandHome(rawPath);
+  if (expandedPath.startsWith("/")) {
+    return resolve(expandedPath);
+  }
+  if (!normalizedBasePath) {
+    throw new ServerPathBrowseError(
+      "SERVER_PATH_BASE_REQUIRED",
+      "relative server path requires a base path",
+    );
+  }
+  return resolve(expandHome(normalizedBasePath), expandedPath);
 }
 
 function readRootLabel(rootPath: string): string {
@@ -99,7 +118,7 @@ function sortEntryViews(left: ServerPathEntryView, right: ServerPathEntryView): 
 export async function browseServerPath(
   options: BrowseServerPathOptions = {},
 ): Promise<ServerPathBrowseView> {
-  const currentPath = normalizeBrowsePath(options.path);
+  const currentPath = normalizeBrowsePath(options);
 
   let currentPathStats;
   try {

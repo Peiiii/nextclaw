@@ -1,19 +1,41 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchServerPathBrowse } from '@/shared/lib/api';
 
+export function buildServerPathBrowseQueryKey(params: {
+  path?: string | null;
+  basePath?: string | null;
+  includeFiles?: boolean;
+}) {
+  return [
+    'server-path-browse',
+    params.path?.trim() ?? '',
+    params.basePath?.trim() ?? '',
+    params.includeFiles ?? false,
+  ] as const;
+}
+
 export function useServerPathBrowse(params: {
   path?: string | null;
+  basePath?: string | null;
   includeFiles?: boolean;
   enabled?: boolean;
 }) {
+  const { basePath, enabled, includeFiles, path } = params;
+  const normalizedPath = path?.trim() ?? '';
+  const normalizedBasePath = basePath?.trim() ?? '';
   return useQuery({
-    queryKey: ['server-path-browse', params.path ?? null, params.includeFiles ?? false],
+    queryKey: buildServerPathBrowseQueryKey({
+      path: normalizedPath,
+      basePath: normalizedBasePath,
+      includeFiles,
+    }),
     queryFn: () =>
       fetchServerPathBrowse({
-        path: params.path,
-        includeFiles: params.includeFiles,
+        path: normalizedPath,
+        basePath: normalizedBasePath,
+        includeFiles,
       }),
-    enabled: params.enabled ?? true,
+    enabled: enabled ?? true,
     staleTime: 0,
   });
 }

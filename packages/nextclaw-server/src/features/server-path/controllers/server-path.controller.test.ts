@@ -101,6 +101,36 @@ describe("ServerPathRoutesController", () => {
     });
   });
 
+  it("browses server directories relative to a base path", async () => {
+    const app = createTestApp();
+    const root = realpathSync(createTempDir("nextclaw-ui-server-path-browse-base-"));
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "index.ts"), "export const ok = true;");
+
+    const response = await app.request(
+      `http://localhost/api/server-paths/browse?path=${encodeURIComponent("./src")}&basePath=${encodeURIComponent(root)}&includeFiles=1`,
+    );
+
+    expect(response.status).toBe(200);
+    const payload = await response.json() as {
+      ok: boolean;
+      data: {
+        currentPath: string;
+        entries: Array<{ name: string; kind: string }>;
+      };
+    };
+    expect(payload.ok).toBe(true);
+    expect(payload.data.currentPath).toBe(join(root, "src"));
+    expect(payload.data.entries).toEqual([
+      {
+        name: "index.ts",
+        path: join(root, "src", "index.ts"),
+        kind: "file",
+        hidden: false,
+      },
+    ]);
+  });
+
   it("reads a text file preview relative to a base path", async () => {
     const app = createTestApp();
     const root = realpathSync(createTempDir("nextclaw-ui-server-path-read-root-"));

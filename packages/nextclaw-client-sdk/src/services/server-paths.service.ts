@@ -6,13 +6,17 @@ export class ServerPathsService {
 
   readonly browse = async (params?: {
     path?: string | null;
+    basePath?: string | null;
     includeFiles?: boolean;
   }): Promise<ServerPathBrowseView> => {
-    const path = typeof params?.path === "string" ? params.path.trim() : "";
+    const { basePath: rawBasePath, includeFiles, path: rawPath } = params ?? {};
+    const path = typeof rawPath === "string" ? rawPath.trim() : "";
+    const basePath = typeof rawBasePath === "string" ? rawBasePath.trim() : "";
     return await this.requestService.get<ServerPathBrowseView>("/api/server-paths/browse", {
       query: {
         ...(path ? { path } : {}),
-        ...(params?.includeFiles ? { includeFiles: "1" } : {})
+        ...(basePath ? { basePath } : {}),
+        ...(includeFiles ? { includeFiles: "1" } : {})
       }
     });
   };

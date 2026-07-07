@@ -1,6 +1,6 @@
 import { Fragment, useState } from "react";
 import type { ChatFileOpenActionViewModel } from "@nextclaw/agent-chat-ui";
-import { ChevronRight, FileCode2, FolderTree } from "lucide-react";
+import { ChevronRight, FileCode2, Folder, FolderTree } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
 import { WorkspaceBreadcrumbBrowser } from "./chat-session-workspace-file-breadcrumb-browser";
 import type {
@@ -59,6 +59,8 @@ function WorkspaceBreadcrumbSegmentButton({
         >
           {segment.kind === "workspace" ? (
             <FolderTree className="h-3 w-3 shrink-0" />
+          ) : segment.kind === "directory" && segment.isCurrent ? (
+            <Folder className="h-3 w-3 shrink-0" />
           ) : segment.isCurrent ? (
             <FileCode2 className="h-3 w-3 shrink-0" />
           ) : null}

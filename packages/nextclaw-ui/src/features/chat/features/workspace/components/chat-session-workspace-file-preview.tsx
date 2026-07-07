@@ -4,12 +4,20 @@ import type {
   ChatFileOperationBlockViewModel,
   ChatFilePreviewViewer,
 } from "@nextclaw/agent-chat-ui";
-import { ChatMessageMarkdown, FileOperationCodeSurface } from "@nextclaw/agent-chat-ui";
+import {
+  ChatMessageMarkdown,
+  FileOperationCodeSurface,
+} from "@nextclaw/agent-chat-ui";
 import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.store";
+import { ChatSessionWorkspaceDirectoryBrowser } from "./chat-session-workspace-directory-browser";
 import { ChatSessionWorkspaceFileBreadcrumbs } from "./chat-session-workspace-file-breadcrumbs";
+import { useServerPathBrowse } from "@/shared/hooks/use-server-path-browse";
 import { useServerPathRead } from "@/shared/hooks/use-server-path-read";
 import { buildServerPathContentUrl } from "@/shared/lib/api";
-import { buildLineDiff, buildPreviewLines } from "@/features/chat/features/message/utils/file-operation/line-builder.utils";
+import {
+  buildLineDiff,
+  buildPreviewLines,
+} from "@/features/chat/features/message/utils/file-operation/line-builder.utils";
 import { t } from "@/shared/lib/i18n";
 import { buildWorkspaceFileBreadcrumb } from "@/shared/lib/session-project";
 import { cn } from "@/shared/lib/utils";
@@ -168,6 +176,7 @@ function WorkspaceHtmlRenderedPreview({
 }
 
 function WorkspacePreviewBody({
+  directoryQuery,
   onFileOpen,
   previewBlock,
   previewKind,
@@ -176,6 +185,7 @@ function WorkspacePreviewBody({
   previewUrl,
   previewViewer,
 }: {
+  directoryQuery: ReturnType<typeof useServerPathBrowse>;
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
   previewBlock: ChatFileOperationBlockViewModel | null;
   previewKind: "text" | "markdown" | "binary";
@@ -184,8 +194,26 @@ function WorkspacePreviewBody({
   previewUrl: string | null;
   previewViewer: "source" | "rendered";
 }) {
-  if (previewQuery.isLoading && !previewBlock) {
-    return <WorkspaceFilePreviewStatus text={t("chatWorkspaceLoadingFile")} />;
+  if (directoryQuery.data) {
+    return (
+      <ChatSessionWorkspaceDirectoryBrowser
+        browseQuery={directoryQuery}
+        onFileOpen={onFileOpen}
+        renderStatus={(params) => <WorkspaceFilePreviewStatus {...params} />}
+      />
+    );
+  }
+
+  if (directoryQuery.isLoading && previewQuery.error && !previewBlock) {
+    return (
+      <WorkspaceFilePreviewStatus text={t("chatWorkspaceLoadingDirectory")} />
+    );
+  }
+
+  if ((directoryQuery.isLoading || previewQuery.isLoading) && !previewBlock) {
+    return (
+      <WorkspaceFilePreviewStatus text={t("chatWorkspaceLoadingPreview")} />
+    );
   }
 
   if (previewQuery.data?.kind === "binary") {
@@ -255,6 +283,12 @@ export function ChatSessionWorkspaceFilePreview({
     basePath: sessionWorkingDir,
     enabled: isPreviewMode,
   });
+  const directoryQuery = useServerPathBrowse({
+    path: file.path,
+    basePath: sessionWorkingDir,
+    includeFiles: true,
+    enabled: isPreviewMode,
+  });
   const diffBlock = useMemo(
     () => (file.viewMode === "diff" ? buildDiffBlock(file) : null),
     [file],
@@ -265,7 +299,11 @@ export function ChatSessionWorkspaceFilePreview({
     path: previewQuery.data?.resolvedPath ?? file.path,
     serverKind: previewQuery.data?.kind,
   });
-  const resolvedPath = previewQuery.data?.resolvedPath ?? file.path;
+  const resolvedPath =
+    directoryQuery.data?.currentPath ??
+    previewQuery.data?.resolvedPath ??
+    file.path;
+  const previewPathKind = directoryQuery.data ? "directory" : "file";
   const previewViewer = resolveFilePreviewViewer({
     path: resolvedPath,
     viewer: file.previewViewer,
@@ -301,12 +339,20 @@ export function ChatSessionWorkspaceFilePreview({
     () =>
       buildWorkspaceFileBreadcrumb({
         path: resolvedPath,
+        kind: previewPathKind,
         sessionProjectRoot: breadcrumbBasePath,
         line: file.line,
         column: file.column,
         truncated: isTruncated,
       }),
-    [breadcrumbBasePath, file.column, file.line, isTruncated, resolvedPath],
+    [
+      breadcrumbBasePath,
+      file.column,
+      file.line,
+      isTruncated,
+      previewPathKind,
+      resolvedPath,
+    ],
   );
 
   return (
@@ -321,6 +367,7 @@ export function ChatSessionWorkspaceFilePreview({
           <WorkspaceDiffBody diffBlock={diffBlock} />
         ) : (
           <WorkspacePreviewBody
+            directoryQuery={directoryQuery}
             onFileOpen={onFileOpen}
             previewBlock={previewBlock}
             previewKind={previewKind}

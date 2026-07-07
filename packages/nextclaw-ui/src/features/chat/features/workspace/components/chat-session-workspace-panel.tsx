@@ -23,6 +23,7 @@ import {
   canGoBackInNavigationHistory,
   canGoForwardInNavigationHistory,
 } from "@/shared/lib/navigation-history";
+import { buildServerPathBrowseQueryKey } from "@/shared/hooks/use-server-path-browse";
 import { buildServerPathReadQueryKey } from "@/shared/hooks/use-server-path-read";
 
 type ChatSessionWorkspacePanelProps = {
@@ -127,6 +128,13 @@ export function ChatSessionWorkspacePanel({
           queryKey: buildServerPathReadQueryKey({
             path: activeFile.path,
             basePath: sessionWorkingDir,
+          }),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: buildServerPathBrowseQueryKey({
+            path: activeFile.path,
+            basePath: sessionWorkingDir,
+            includeFiles: true,
           }),
         });
         setFilePreviewRefreshVersion((value) => value + 1);

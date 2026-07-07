@@ -31,6 +31,7 @@ export class ServerPathRoutesController {
     try {
       const payload: ServerPathBrowseView = await browseServerPath({
         path: c.req.query("path"),
+        basePath: c.req.query("basePath"),
         includeFiles: readIncludeFilesFlag(c.req.query("includeFiles")),
       });
       return c.json(ok(payload));

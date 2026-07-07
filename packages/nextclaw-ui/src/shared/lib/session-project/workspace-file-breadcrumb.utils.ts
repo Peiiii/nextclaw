@@ -131,12 +131,13 @@ function readRelativeSegments(params: {
 function buildSegmentsFromLabels(params: {
   labels: string[];
   basePath?: string | null;
+  currentKind?: "file" | "directory";
   leading?: WorkspaceFileBreadcrumbSegmentViewModel | null;
 }): WorkspaceFileBreadcrumbSegmentViewModel[] {
-  const { basePath = null, labels, leading = null } = params;
+  const { basePath = null, currentKind = "file", labels, leading = null } = params;
   const items = labels.map<WorkspaceFileBreadcrumbSegmentViewModel>(
     (label, index) => {
-      const kind = index === labels.length - 1 ? "file" : "directory";
+      const kind = index === labels.length - 1 ? currentKind : "directory";
       const path = joinPathSegments(basePath, labels.slice(0, index + 1));
       return {
         key: `${index}:${label}`,
@@ -167,12 +168,13 @@ function buildLocationLabel(params: {
 
 export function buildWorkspaceFileBreadcrumb(params: {
   path: string;
+  kind?: "file" | "directory";
   sessionProjectRoot: string | null;
   line?: number | null;
   column?: number | null;
   truncated: boolean;
 }): WorkspaceFileBreadcrumbViewModel {
-  const { column, line, path, sessionProjectRoot, truncated } = params;
+  const { column, kind = "file", line, path, sessionProjectRoot, truncated } = params;
   const fullPath = path.trim();
   const relativeSegments =
     sessionProjectRoot?.trim() && fullPath
@@ -192,6 +194,7 @@ export function buildWorkspaceFileBreadcrumb(params: {
     segments = buildSegmentsFromLabels({
       labels: relativeSegments,
       basePath: workspacePath,
+      currentKind: kind,
       leading: {
         key: `workspace:${workspaceLabel}`,
         label: workspaceLabel,
@@ -207,6 +210,7 @@ export function buildWorkspaceFileBreadcrumb(params: {
     segments = buildSegmentsFromLabels({
       labels,
       basePath: rootPath,
+      currentKind: kind,
       leading: prefix
         ? {
             key: `root:${prefix}`,
@@ -225,9 +229,9 @@ export function buildWorkspaceFileBreadcrumb(params: {
       {
         key: "file:unknown",
         label: fullPath || "file",
-        kind: "file",
+        kind,
         path: fullPath,
-        browsePath: readParentPath(fullPath),
+        browsePath: kind === "directory" ? fullPath : readParentPath(fullPath),
         isCurrent: true,
       },
     ];
