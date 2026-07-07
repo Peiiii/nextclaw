@@ -2,13 +2,17 @@ import { useEffect, useId, useMemo, useRef } from 'react';
 import type { ChatPanelAppCardViewModel } from '@nextclaw/agent-chat-ui';
 import { AppWindow, Maximize2 } from 'lucide-react';
 import { getPresenter } from '@/app/presenters/app.presenter';
-import { findPanelAppEntryByDisplayId, usePanelApps } from '@/features/panel-apps';
+import {
+  PANEL_APP_IFRAME_SANDBOX,
+  findPanelAppEntryByDisplayId,
+  focusPanelAppIframe,
+  usePanelApps,
+} from '@/features/panel-apps';
 import { createPanelAppRightPanelResourceTarget } from '@/features/right-panel-resources';
 import {
   createInlinePanelAppCardUrl,
   createFallbackPanelAppContentPath,
   createInlinePanelAppTab,
-  PANEL_APP_INLINE_IFRAME_SANDBOX,
 } from '@/features/chat/features/message/utils/chat-inline-panel-app-card.utils';
 import { useDocBrowser } from '@/shared/components/doc-browser';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
@@ -113,8 +117,9 @@ export function ChatInlinePanelAppCard({
           key={iframeInstanceId}
           src={cardUrl}
           title={title}
-          sandbox={PANEL_APP_INLINE_IFRAME_SANDBOX}
-          scrolling="auto"
+          sandbox={PANEL_APP_IFRAME_SANDBOX}
+          tabIndex={0}
+          onPointerOver={() => focusPanelAppIframe(iframeRef.current)}
           className="h-full w-full border-0 bg-card"
         />
       </div>

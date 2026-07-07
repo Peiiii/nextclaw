@@ -4,17 +4,6 @@ import {
 } from '@/features/right-panel-resources';
 import type { DocBrowserTab } from '@/shared/components/doc-browser/doc-browser-context';
 
-export const PANEL_APP_INLINE_IFRAME_SANDBOX = [
-  'allow-scripts',
-  'allow-forms',
-  'allow-modals',
-  'allow-popups',
-  'allow-popups-to-escape-sandbox',
-  'allow-downloads',
-  'allow-pointer-lock',
-  'allow-presentation',
-].join(' ');
-
 const PANEL_APP_INLINE_CARD_SEARCH_PARAMS = {
   nextclawDisplayMode: 'card',
   nextclawPlacement: 'inline',

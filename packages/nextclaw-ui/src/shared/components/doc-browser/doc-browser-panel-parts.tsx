@@ -1,4 +1,4 @@
-import type { ReactNode, Ref } from 'react';
+import type { PointerEventHandler, ReactNode, Ref } from 'react';
 import {
   ExternalLink,
   RefreshCw,
@@ -29,6 +29,7 @@ type DocBrowserFrameContentProps = {
   iframeSandbox?: string;
   isDragging: boolean;
   isResizing: boolean;
+  onIframePointerOver?: PointerEventHandler<HTMLIFrameElement>;
 };
 
 export function DocBrowserAddressToolbar({
@@ -74,6 +75,7 @@ export function DocBrowserFrameContent({
   iframeSandbox,
   isDragging,
   isResizing,
+  onIframePointerOver,
 }: DocBrowserFrameContentProps) {
   return (
     <div className="flex-1 relative overflow-hidden">
@@ -87,6 +89,8 @@ export function DocBrowserFrameContent({
           className="absolute inset-0 w-full h-full border-0"
           title={currentTab?.title || 'NextClaw Docs'}
           sandbox={iframeSandbox}
+          tabIndex={onIframePointerOver ? 0 : undefined}
+          onPointerOver={onIframePointerOver}
           allow="clipboard-read; clipboard-write"
           allowFullScreen
         />

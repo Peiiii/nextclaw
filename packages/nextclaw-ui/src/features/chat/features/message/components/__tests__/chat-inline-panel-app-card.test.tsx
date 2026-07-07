@@ -32,8 +32,13 @@ vi.mock('@/app/presenters/app.presenter', () => ({
 }));
 
 vi.mock('@/features/panel-apps', () => ({
+  PANEL_APP_IFRAME_SANDBOX: 'allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads allow-pointer-lock allow-presentation',
   findPanelAppEntryByDisplayId: (entries: Array<{ appId: string; id: string; title: string }>, value: string) =>
     entries.find((entry) => [entry.appId, entry.id, entry.title].includes(value)) ?? null,
+  focusPanelAppIframe: (iframe: HTMLIFrameElement | null) => {
+    iframe?.focus({ preventScroll: true });
+    iframe?.contentWindow?.focus();
+  },
   usePanelApps: () => mocks.panelApps,
 }));
 
@@ -68,7 +73,6 @@ it('renders inline panel apps as bounded card-mode iframes with an expand action
   expect(iframe.getAttribute('src')).toBe(
     '/api/panel-apps/weather-card/content?nextclawDisplayMode=card&nextclawPlacement=inline',
   );
-  expect(iframe.getAttribute('scrolling')).toBe('auto');
 
   fireEvent.click(screen.getByLabelText('chatPanelCardExpand'));
 
@@ -78,6 +82,23 @@ it('renders inline panel apps as bounded card-mode iframes with an expand action
     title: 'Weather',
     url: '/api/panel-apps/weather-card/content',
   }));
+});
+
+it('focuses the inline panel app iframe when the pointer enters it', () => {
+  render(<ChatInlinePanelAppCard panelApp={{
+    appId: 'weather-card',
+    title: 'Weather',
+  }} />);
+
+  const iframe = screen.getByTitle('Weather') as HTMLIFrameElement;
+  const iframeFocus = vi.spyOn(iframe, 'focus');
+  const contentWindowFocus = vi.spyOn(iframe.contentWindow!, 'focus').mockImplementation(() => undefined);
+
+  fireEvent.pointerOver(iframe);
+
+  expect(iframe.getAttribute('tabindex')).toBe('0');
+  expect(iframeFocus).toHaveBeenCalledWith({ preventScroll: true });
+  expect(contentWindowFocus).toHaveBeenCalled();
 });
 
 it('can render inline panel apps without a side-panel expand action', () => {

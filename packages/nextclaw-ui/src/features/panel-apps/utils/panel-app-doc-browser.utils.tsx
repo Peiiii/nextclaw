@@ -14,20 +14,11 @@ import {
   RightPanelResourceHomePage,
 } from '@/features/right-panel-resources';
 import { t } from '@/shared/lib/i18n';
+import { PANEL_APP_IFRAME_SANDBOX, focusPanelAppIframe } from './panel-app-iframe.utils';
 
 export const APPS_TAB_KIND = RIGHT_PANEL_APPS_TAB_KIND;
 export const PANEL_APP_TAB_KIND = RIGHT_PANEL_PANEL_APP_TAB_KIND;
 const DEFAULT_APPS_PANEL_TAB: AppsPanelTab = 'panel-apps';
-const PANEL_APP_IFRAME_SANDBOX = [
-  'allow-scripts',
-  'allow-forms',
-  'allow-modals',
-  'allow-popups',
-  'allow-popups-to-escape-sandbox',
-  'allow-downloads',
-  'allow-pointer-lock',
-  'allow-presentation',
-].join(' ');
 
 function isAppsPanelTab(value: unknown): value is AppsPanelTab {
   return value === 'panel-apps' || value === 'service-apps';
@@ -79,6 +70,7 @@ export const PANEL_APPS_DOC_BROWSER_RENDERERS: DocBrowserCustomTabRenderers = {
     getIframeSandbox: () => PANEL_APP_IFRAME_SANDBOX,
     getTitle: (tab) => tab.title || t('panelAppsTitle'),
     onIframeMessage: (params) => getPresenter().panelAppBridgeManager.handleIframeMessage(params),
+    onIframePointerOver: (event) => focusPanelAppIframe(event.currentTarget),
     renderIcon: () => <AppWindow className="w-4 h-4 text-primary shrink-0" />,
     renderToolbar: ({ open, refreshIframe, tab }) => (
       <PanelAppToolbar

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { PointerEvent, ReactNode } from 'react';
 import type { DocBrowserContextValue, DocBrowserTab } from './doc-browser-context';
 
 export type DocBrowserCustomTabRenderParams = {
@@ -20,6 +20,7 @@ export type DocBrowserCustomTabRenderer = {
   getIframeSandbox?: (tab: DocBrowserTab) => string | undefined;
   getTitle?: (tab: DocBrowserTab) => string;
   onIframeMessage?: (params: DocBrowserIframeMessageParams) => void;
+  onIframePointerOver?: (event: PointerEvent<HTMLIFrameElement>) => void;
   renderContent?: (params: DocBrowserCustomTabRenderParams) => ReactNode;
   renderIcon?: (tab: DocBrowserTab) => ReactNode;
   renderToolbar?: (params: DocBrowserCustomTabRenderParams) => ReactNode;

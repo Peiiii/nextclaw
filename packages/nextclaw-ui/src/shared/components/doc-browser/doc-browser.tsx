@@ -375,6 +375,7 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
         iframeSandbox={iframeSandbox}
         isDragging={floatInteraction?.kind === 'drag'}
         isResizing={floatInteraction?.kind === 'resize'}
+        onIframePointerOver={customRenderer?.onIframePointerOver}
       />
 
       <DocBrowserExternalLink currentUrl={currentUrl} isVisible={isDocsTab || isContentTab} />

@@ -397,6 +397,54 @@ describe("DocBrowser", () => {
     expect(screen.getByText("Help Docs")).toBeTruthy();
   });
 
+  it("focuses panel app iframes on pointer entry without applying the behavior to generic content iframes", () => {
+    const panelAppTab: DocBrowserTab = {
+      id: "piano",
+      kind: "panel-app" as const,
+      title: "Piano",
+      currentUrl: "/api/panel-apps/piano/content",
+      history: ["/api/panel-apps/piano/content"],
+      historyIndex: 0,
+      navVersion: 0,
+    };
+    docBrowserState.tabs = [panelAppTab];
+    docBrowserState.activeTabId = panelAppTab.id;
+    docBrowserState.currentTab = panelAppTab;
+
+    const { container, unmount } = render(
+      <DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />,
+    );
+
+    const panelAppIframe = container.querySelector('iframe[title="Piano"]') as HTMLIFrameElement;
+    const panelAppIframeFocus = vi.spyOn(panelAppIframe, "focus");
+    const panelAppContentFocus = vi.spyOn(panelAppIframe.contentWindow!, "focus").mockImplementation(() => undefined);
+
+    fireEvent.pointerOver(panelAppIframe);
+
+    expect(panelAppIframe.getAttribute("tabindex")).toBe("0");
+    expect(panelAppIframeFocus).toHaveBeenCalledWith({ preventScroll: true });
+    expect(panelAppContentFocus).toHaveBeenCalled();
+
+    unmount();
+    resetDocBrowserTestState();
+    const contentTab: DocBrowserTab = {
+      id: "local-app",
+      kind: "content",
+      title: "Local App",
+      currentUrl: "http://127.0.0.1:5173/dashboard",
+      history: ["http://127.0.0.1:5173/dashboard"],
+      historyIndex: 0,
+      navVersion: 0,
+    };
+    docBrowserState.tabs = [contentTab];
+    docBrowserState.activeTabId = contentTab.id;
+    docBrowserState.currentTab = contentTab;
+
+    render(<DocBrowser />);
+
+    expect(screen.getByTitle("Local App").getAttribute("tabindex")).toBeNull();
+  });
+
 });
 
 describe("DocBrowser floating interactions", () => {
