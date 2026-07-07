@@ -34,10 +34,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-type ChatSidebarUtilityOption<Value extends string> = {
-  value: Value;
-  label: string;
-};
+type ChatSidebarUtilityOption<Value extends string> = { value: Value; label: string };
 
 type ChatSidebarUtilityMenuProps = {
   isOpen: boolean;
@@ -55,6 +52,12 @@ type ChatSidebarUtilityMenuProps = {
   collapsed?: boolean;
 };
 
+function isChatComposerFocusTarget(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && Boolean(
+    target.closest('.nextclaw-chat-input-bar-shell [role="textbox"][contenteditable="true"]'),
+  );
+}
+
 export function ChatSidebarUtilityMenu({
   isOpen,
   onOpenChange,
@@ -70,16 +73,6 @@ export function ChatSidebarUtilityMenu({
   onOpenApps,
   collapsed = false,
 }: ChatSidebarUtilityMenuProps) {
-  const handleOpenDocs = () => {
-    onOpenDocs();
-    onOpenChange(false);
-  };
-
-  const handleOpenApps = () => {
-    onOpenApps();
-    onOpenChange(false);
-  };
-
   return (
     <Popover open={isOpen} onOpenChange={onOpenChange}>
       {collapsed ? (
@@ -129,6 +122,11 @@ export function ChatSidebarUtilityMenu({
         side={collapsed ? "right" : "top"}
         align={collapsed ? "end" : "start"}
         className="w-64 p-2"
+        onFocusOutside={(event) => {
+          if (isChatComposerFocusTarget(event.detail.originalEvent.target)) {
+            event.preventDefault();
+          }
+        }}
       >
         <div className="space-y-1">
           <NavLink
@@ -139,22 +137,23 @@ export function ChatSidebarUtilityMenu({
             <Settings className="h-4 w-4 text-muted-foreground/70" />
             <span className="flex-1 text-left">{t("settings")}</span>
           </NavLink>
-          <button
-            type="button"
-            onClick={handleOpenDocs}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900"
-          >
-            <BookOpen className="h-4 w-4 text-muted-foreground/70" />
-            <span className="flex-1 text-left">{t("docBrowserHelp")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleOpenApps}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900"
-          >
-            <Boxes className="h-4 w-4 text-muted-foreground/70" />
-            <span className="flex-1 text-left">{t("appsTitle")}</span>
-          </button>
+          {[
+            { key: "docs", icon: BookOpen, label: t("docBrowserHelp"), action: onOpenDocs },
+            { key: "apps", icon: Boxes, label: t("appsTitle"), action: onOpenApps },
+          ].map(({ key, icon: Icon, label, action }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => {
+                action();
+                onOpenChange(false);
+              }}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900"
+            >
+              <Icon className="h-4 w-4 text-muted-foreground/70" />
+              <span className="flex-1 text-left">{label}</span>
+            </button>
+          ))}
         </div>
 
         <div className="my-2 h-px bg-border" />
