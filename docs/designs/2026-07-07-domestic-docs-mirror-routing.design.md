@@ -121,6 +121,29 @@ NEXTCLAW_DOCS_ECS_FORCE_NGINX_CONFIG=1 pnpm deploy:docs:cn
 pnpm deploy:docs:all
 ```
 
+## 仓库化运维入口
+
+国内文档镜像的服务器侧状态必须能从仓库脚本恢复，而不是依赖一次性手工操作。
+
+脚本职责拆分如下：
+
+- `docs-mirror-config.mjs`：集中维护域名、ECS 主机、远端目录、Nginx 配置路径和证书路径等稳定配置。
+- `docs-mirror-runner.mjs`：集中维护 `ssh`、`scp` 和本地命令执行方式。
+- `bootstrap-ecs-docs-mirror.mjs`：负责新机器或重建场景的幂等初始化，包括 Nginx、certbot、站点目录、基础 Nginx 配置和 HTTPS 证书。
+- `deploy-docs-to-ecs.mjs`：负责日常静态产物发布，默认不覆盖远端已有 Nginx/HTTPS 配置。
+- `verify-docs-mirror.mjs`：负责发布后验收，检查 DNS、`/health`、真实中文文档页面和与全球站的参考耗时。
+
+对应 npm scripts：
+
+```text
+pnpm deploy:docs:cn:bootstrap
+pnpm deploy:docs:cn
+pnpm deploy:docs:cn:verify
+pnpm deploy:docs:cn:full
+```
+
+这个拆分的原则是：配置只有一个 owner，命令执行只有一个 owner，初始化和日常发布分离，验收脚本只读线上状态。这样后续即使迁移 ECS、重建证书或调整目录，也不会把部署逻辑复制到多个脚本里。
+
 ## 产品内路由策略
 
 文档 URL 选择顺序：
@@ -163,6 +186,7 @@ pnpm deploy:docs:all
 - [x] 增加文档 URL 策略单元测试。
 - [x] 增加 ECS Nginx 静态镜像配置。
 - [x] 增加国内文档镜像部署脚本与 npm script。
+- [x] 增加国内文档镜像 bootstrap 和 verify 脚本，把服务器侧初始化与线上验收纳入仓库管理。
 - [x] 在阿里云 DNS 添加 `docs.nextclaw.net -> 8.154.43.167`。
 - [x] 首次部署后申请 HTTPS 证书。
 - [x] 线上 smoke：`https://docs.nextclaw.net/zh/guide/getting-started`。
