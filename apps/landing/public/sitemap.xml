@@ -5,26 +5,93 @@
 >
   <url>
     <loc>https://nextclaw.io/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
+    <lastmod>2026-07-09</lastmod>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://nextclaw.io/" />
     <xhtml:link rel="alternate" hreflang="en" href="https://nextclaw.io/en/" />
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://nextclaw.io/zh/" />
   </url>
   <url>
     <loc>https://nextclaw.io/en/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
+    <lastmod>2026-07-09</lastmod>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://nextclaw.io/" />
     <xhtml:link rel="alternate" hreflang="en" href="https://nextclaw.io/en/" />
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://nextclaw.io/zh/" />
   </url>
   <url>
     <loc>https://nextclaw.io/zh/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
+    <lastmod>2026-07-09</lastmod>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://nextclaw.io/" />
     <xhtml:link rel="alternate" hreflang="en" href="https://nextclaw.io/en/" />
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://nextclaw.io/zh/" />
+  </url>
+  <url>
+    <loc>https://nextclaw.io/en/download/</loc>
+    <lastmod>2026-07-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nextclaw.io/en/download/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nextclaw.io/en/download/" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://nextclaw.io/zh/download/" />
+  </url>
+  <url>
+    <loc>https://nextclaw.io/zh/download/</loc>
+    <lastmod>2026-07-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nextclaw.io/en/download/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nextclaw.io/en/download/" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://nextclaw.io/zh/download/" />
+  </url>
+  <url>
+    <loc>https://nextclaw.io/en/install/</loc>
+    <lastmod>2026-07-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nextclaw.io/en/install/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nextclaw.io/en/install/" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://nextclaw.io/zh/install/" />
+  </url>
+  <url>
+    <loc>https://nextclaw.io/zh/install/</loc>
+    <lastmod>2026-07-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nextclaw.io/en/install/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nextclaw.io/en/install/" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://nextclaw.io/zh/install/" />
+  </url>
+  <url>
+    <loc>https://nextclaw.io/en/use-cases/</loc>
+    <lastmod>2026-07-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nextclaw.io/en/use-cases/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nextclaw.io/en/use-cases/" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://nextclaw.io/zh/use-cases/" />
+  </url>
+  <url>
+    <loc>https://nextclaw.io/zh/use-cases/</loc>
+    <lastmod>2026-07-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nextclaw.io/en/use-cases/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nextclaw.io/en/use-cases/" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://nextclaw.io/zh/use-cases/" />
+  </url>
+  <url>
+    <loc>https://nextclaw.io/en/integrations/</loc>
+    <lastmod>2026-07-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nextclaw.io/en/integrations/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nextclaw.io/en/integrations/" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://nextclaw.io/zh/integrations/" />
+  </url>
+  <url>
+    <loc>https://nextclaw.io/zh/integrations/</loc>
+    <lastmod>2026-07-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nextclaw.io/en/integrations/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nextclaw.io/en/integrations/" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://nextclaw.io/zh/integrations/" />
+  </url>
+  <url>
+    <loc>https://nextclaw.io/en/releases/</loc>
+    <lastmod>2026-07-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nextclaw.io/en/releases/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nextclaw.io/en/releases/" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://nextclaw.io/zh/releases/" />
+  </url>
+  <url>
+    <loc>https://nextclaw.io/zh/releases/</loc>
+    <lastmod>2026-07-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nextclaw.io/en/releases/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nextclaw.io/en/releases/" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://nextclaw.io/zh/releases/" />
   </url>
 </urlset>

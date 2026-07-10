@@ -11,6 +11,12 @@
         "skipLibCheck": true,
         /* Bundler mode */
         "moduleResolution": "bundler",
+        "baseUrl": ".",
+        "paths": {
+            "@/*": [
+                "src/*"
+            ]
+        },
         "allowImportingTsExtensions": true,
         "resolveJsonModule": true,
         "isolatedModules": true,

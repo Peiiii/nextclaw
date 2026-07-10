@@ -1,0 +1,33 @@
+# NextClaw
+
+Homepage: https://nextclaw.io/
+Documentation: https://docs.nextclaw.io/
+Repository: https://github.com/Peiiii/nextclaw
+NPM Package: https://www.npmjs.com/package/nextclaw
+
+Summary:
+NextClaw is a local AI workbench and personal operating layer for agents, model providers, message channels, skills, files, automations, and desktop tools.
+It helps users start from a task, bring in the right capabilities, and keep work moving inside one workspace.
+
+Primary pages:
+- English homepage: https://nextclaw.io/en/
+- Chinese homepage: https://nextclaw.io/zh/
+- English use cases: https://nextclaw.io/en/use-cases/
+- Chinese use cases: https://nextclaw.io/zh/use-cases/
+- English integrations: https://nextclaw.io/en/integrations/
+- Chinese integrations: https://nextclaw.io/zh/integrations/
+- English product updates: https://nextclaw.io/en/releases/
+- Chinese product updates: https://nextclaw.io/zh/releases/
+- English desktop downloads: https://nextclaw.io/en/download/
+- Chinese desktop downloads: https://nextclaw.io/zh/download/
+- English install options: https://nextclaw.io/en/install/
+- Chinese install options: https://nextclaw.io/zh/install/
+
+Key capabilities:
+- Local AI workbench for continuing tasks across conversations, files, panels, and tools.
+- Agents with separate roles, memory, skills, and workspaces.
+- Model providers and custom OpenAI-compatible endpoints.
+- Message channels including Weixin, Feishu/Lark, QQ, DingTalk, WeCom, Telegram, Discord, Slack, email, and WhatsApp.
+- Skills, MCP, CLI tools, scheduled work, local files, panel apps, file previews, HTML previews, and image generation.
+
+Last updated: 2026-07-09

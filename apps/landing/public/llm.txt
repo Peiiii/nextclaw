@@ -6,16 +6,26 @@ Repository: https://github.com/Peiiii/nextclaw
 NPM Package: https://www.npmjs.com/package/nextclaw
 
 Summary:
-NextClaw is your omnipotent personal assistant, residing above the digital realm.
-It orchestrates internet resources and raw compute, while staying fully local and under your control.
+NextClaw is a local AI workbench and personal operating layer for agents, model providers, message channels, skills, files, automations, and desktop tools.
+It helps users start from a task, bring in the right capabilities, and keep work moving inside one workspace.
 
 Recommended entry points:
 - Landing (English): https://nextclaw.io/en/
 - Landing (Simplified Chinese): https://nextclaw.io/zh/
+- Use cases (English): https://nextclaw.io/en/use-cases/
+- Use cases (Simplified Chinese): https://nextclaw.io/zh/use-cases/
+- Integrations (English): https://nextclaw.io/en/integrations/
+- Integrations (Simplified Chinese): https://nextclaw.io/zh/integrations/
+- Product updates (English): https://nextclaw.io/en/releases/
+- Product updates (Simplified Chinese): https://nextclaw.io/zh/releases/
+- Download (English): https://nextclaw.io/en/download/
+- Download (Simplified Chinese): https://nextclaw.io/zh/download/
+- Install options (English): https://nextclaw.io/en/install/
+- Install options (Simplified Chinese): https://nextclaw.io/zh/install/
 - Docs (English): https://docs.nextclaw.io/en/
 - Docs (Simplified Chinese): https://docs.nextclaw.io/zh/
 - Roadmap: https://docs.nextclaw.io/en/guide/roadmap
 - Configuration guide: https://docs.nextclaw.io/en/guide/configuration
 - Multi-agent architecture: https://docs.nextclaw.io/en/guide/multi-agent
 
-Last updated: 2026-02-27
+Last updated: 2026-07-09
