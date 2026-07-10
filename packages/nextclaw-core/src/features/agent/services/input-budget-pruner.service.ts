@@ -1,3 +1,5 @@
+import { estimateImageBudgetTokens } from "@core/features/agent/utils/image-preparation.utils.js";
+
 const DEFAULT_CONTEXT_TOKENS = 200_000;
 const DEFAULT_RESERVE_TOKENS_FLOOR = 20_000;
 const DEFAULT_SOFT_THRESHOLD_TOKENS = 4_000;
@@ -317,6 +319,10 @@ function estimateTokens(messages: RuntimeMessage[]): number {
 }
 
 function estimateChars(value: unknown): number {
+  const imageTokens = estimateImageContentTokens(value);
+  if (imageTokens !== null) {
+    return imageTokens * DEFAULT_CHARS_PER_TOKEN;
+  }
   if (typeof value === "string") {
     return value.length;
   }
@@ -336,6 +342,69 @@ function estimateChars(value: unknown): number {
     return Object.entries(value).reduce((sum, [key, nested]) => sum + key.length + estimateChars(nested), 0);
   }
   return 0;
+}
+
+function estimateImageContentTokens(value: unknown): number | null {
+  if (typeof value === "string") {
+    return isImageDataUrl(value) ? estimateImageBudgetTokens() : null;
+  }
+  if (!isRecord(value)) {
+    return null;
+  }
+  const metadataSources = readImageMetadataSources(value);
+  if (!metadataSources) {
+    return null;
+  }
+  return estimateImageBudgetTokens({
+    detail: readFirstValue(metadataSources, "detail"),
+    height: readFirstValue(metadataSources, "height"),
+    width: readFirstValue(metadataSources, "width")
+  });
+}
+
+function readImageMetadataSources(value: Record<string, unknown>): Record<string, unknown>[] | null {
+  const imageUrl = value.image_url ?? value.imageUrl;
+  if (typeof imageUrl === "string" && isImageDataUrl(imageUrl)) {
+    return [value];
+  }
+  if (isRecord(imageUrl) && typeof imageUrl.url === "string" && isImageDataUrl(imageUrl.url)) {
+    return [imageUrl, value];
+  }
+  if (typeof value.url === "string" && isImageDataUrl(value.url)) {
+    return [value];
+  }
+  if (isRawImageContent(value)) {
+    return [value];
+  }
+  return null;
+}
+
+function isRawImageContent(value: Record<string, unknown>): boolean {
+  return (
+    value.type === "image" &&
+    typeof value.data === "string" &&
+    value.data.length > 0 &&
+    typeof value.mimeType === "string" &&
+    value.mimeType.startsWith("image/")
+  );
+}
+
+function readFirstValue(sources: Record<string, unknown>[], key: string): unknown {
+  for (const source of sources) {
+    const value = source[key];
+    if (value !== undefined && value !== null) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isImageDataUrl(value: string): boolean {
+  return /^data:image\/[^,]+;base64,/i.test(value);
 }
 
 function truncateText(text: string, maxChars: number, suffix = CONTEXT_TRUNCATION_SUFFIX): string {

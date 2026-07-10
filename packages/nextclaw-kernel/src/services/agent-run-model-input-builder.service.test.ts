@@ -65,6 +65,37 @@ function createSessionMessage(params: {
   };
 }
 
+function createFinalImageToolMessage(): NcpMessage {
+  return {
+    id: "assistant-image-tool",
+    sessionId: SESSION_ID,
+    role: "assistant",
+    status: "final",
+    timestamp: "2026-06-05T17:12:02.000Z",
+    parts: [
+      {
+        type: "tool-invocation",
+        toolName: "view_image",
+        toolCallId: "call-image",
+        state: "result",
+        args: { path: "/tmp/screen.png" },
+        result: {
+          ok: true,
+          path: "/tmp/screen.png",
+          image: { type: "image", dataOmitted: true },
+        },
+        resultContentItems: [
+          {
+            type: "input_image",
+            imageUrl: `data:image/png;base64,${"a".repeat(2_500_000)}`,
+            mimeType: "image/png",
+          },
+        ],
+      },
+    ],
+  };
+}
+
 function createAgentManager(contextTokens: number): AgentManager {
   return {
     resolveAgentProfile: () => ({
@@ -221,6 +252,66 @@ describe("AgentRunModelInputBuilder", () => {
         }),
       ]),
     );
+  });
+
+  it("keeps session history when a final historical visual tool result is oversized", async () => {
+    const sourceMessages = [
+      createSessionMessage({
+        id: "matrix-user-1",
+        role: "user",
+        text: "给我搞下一部《黑客帝国》。然后放给我",
+        timestamp: "2026-06-05T17:12:00.000Z",
+      }),
+      createSessionMessage({
+        id: "matrix-user-2",
+        role: "user",
+        text: "第一步，不要再问我了，全部完成。",
+        timestamp: "2026-06-05T17:12:01.000Z",
+      }),
+      createFinalImageToolMessage(),
+      createSessionMessage({
+        id: "matrix-user-3",
+        role: "user",
+        text: "注意，我说的是下载到本地。",
+        timestamp: "2026-06-05T17:12:03.000Z",
+      }),
+    ];
+    const messageProjector = {
+      project: vi.fn(() => sourceMessages),
+    } as unknown as AgentRunMessageProjector;
+
+    const input = await new AgentRunModelInputBuilder(
+      messageProjector,
+      new AgentRunModelInputBudgeter(createAgentManager(200_000)),
+    ).build({
+      spec: {
+        runId: "run-1",
+        agentId: "researcher",
+        model: "test-model",
+      },
+      sessionId: SESSION_ID,
+      messages: sourceMessages,
+      contextBlocks: ["BOOTSTRAP CONTEXT"],
+      tools: [],
+    });
+
+    expect(input.messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: "user",
+          content: "给我搞下一部《黑客帝国》。然后放给我",
+        }),
+        expect.objectContaining({
+          role: "user",
+          content: "第一步，不要再问我了，全部完成。",
+        }),
+        expect.objectContaining({
+          role: "user",
+          content: "注意，我说的是下载到本地。",
+        }),
+      ]),
+    );
+    expect(JSON.stringify(input.messages)).not.toContain("data:image/png;base64");
   });
 });
 

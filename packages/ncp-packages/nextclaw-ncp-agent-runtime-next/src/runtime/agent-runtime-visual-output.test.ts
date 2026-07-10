@@ -145,7 +145,7 @@ function createRecordingSessionRun() {
               ],
               role: "assistant",
               sessionId: "session-1",
-              status: "final",
+              status: "streaming",
               timestamp: event.occurredAt ?? "2026-07-05T00:00:00.000Z",
             });
           }

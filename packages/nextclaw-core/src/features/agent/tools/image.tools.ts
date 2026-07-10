@@ -1,5 +1,6 @@
 import { realpath, readFile, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
+import { prepareImageForModel } from "@core/features/agent/utils/image-preparation.utils.js";
 import { Tool, normalizeToolParams } from "./base.tools.js";
 
 const DEFAULT_MAX_IMAGE_BYTES = 20 * 1024 * 1024;
@@ -82,18 +83,29 @@ export class ViewImageTool extends Tool {
         `Unsupported image format for "${readablePath}". Supported formats: ${SUPPORTED_IMAGE_FORMATS}.`
       );
     }
+    const prepared = await prepareImageForModel(bytes, mimeType, detail, readablePath);
 
     return {
       ok: true,
       path: readablePath,
-      mimeType,
+      mimeType: prepared.mimeType,
+      sourceMimeType: mimeType,
       sizeBytes: bytes.byteLength,
+      processedSizeBytes: prepared.bytes.byteLength,
+      estimatedBudgetTokens: prepared.estimatedBudgetTokens,
+      patchCount: prepared.patchCount,
+      sourceWidth: prepared.sourceWidth,
+      sourceHeight: prepared.sourceHeight,
+      width: prepared.width,
+      height: prepared.height,
+      resized: prepared.resized,
+      reencoded: prepared.reencoded,
       detail,
       image: {
         type: "image",
-        mimeType,
+        mimeType: prepared.mimeType,
         detail,
-        data: bytes.toString("base64")
+        data: prepared.bytes.toString("base64")
       }
     };
   };

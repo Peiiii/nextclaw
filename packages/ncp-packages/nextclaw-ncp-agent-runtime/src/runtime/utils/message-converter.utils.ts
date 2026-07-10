@@ -17,17 +17,15 @@ export type NcpMessageToOpenAiMessagesOptions = {
   toolResultContentManager?: ToolResultContentManager;
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
 function isTextLikePart(part: NcpMessagePart): part is Extract<NcpMessagePart, { type: "text" | "rich-text" }> {
   return part.type === "text" || part.type === "rich-text";
 }
 
-function readText(parts: readonly NcpMessagePart[]): string {
-  return parts.filter(isTextLikePart).map((part) => part.text).join("");
-}
+const readText = (parts: readonly NcpMessagePart[]): string =>
+  parts.filter(isTextLikePart).map((part) => part.text).join("");
 
 export function ncpMessageToOpenAiMessages(
   rawMessage: NcpMessage,
@@ -134,20 +132,22 @@ export function ncpMessageToOpenAiMessages(
       }),
       tool_call_id: toolInvocation.toolCallId,
     })),
-    ...toolResultContentManager.toVisualObservationMessages(
-      toolInvocations.map((toolInvocation) => ({
-        toolCallId: toolInvocation.toolCallId,
-        toolName: toolInvocation.toolName,
-        args: isRecord(toolInvocation.args)
-          ? (toolInvocation.args as Record<string, unknown>)
-          : null,
-        rawArgsText:
-          typeof toolInvocation.args === "string"
-            ? toolInvocation.args
-            : JSON.stringify(toolInvocation.args ?? {}),
-        result: toolInvocation.result,
-        contentItems: toolInvocation.resultContentItems,
-      })),
-    ),
+    ...(message.status !== "final"
+      ? toolResultContentManager.toVisualObservationMessages(
+          toolInvocations.map((toolInvocation) => ({
+            toolCallId: toolInvocation.toolCallId,
+            toolName: toolInvocation.toolName,
+            args: isRecord(toolInvocation.args)
+              ? (toolInvocation.args as Record<string, unknown>)
+              : null,
+            rawArgsText:
+              typeof toolInvocation.args === "string"
+                ? toolInvocation.args
+                : JSON.stringify(toolInvocation.args ?? {}),
+            result: toolInvocation.result,
+            contentItems: toolInvocation.resultContentItems,
+          })),
+        )
+      : []),
   ];
 }

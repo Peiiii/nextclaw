@@ -8,6 +8,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import sharp from "sharp";
 import { afterEach, describe, expect, it } from "vitest";
 import { EditFileTool, ReadFileTool, ViewImageTool } from "@core/features/agent/index.js";
 
@@ -18,6 +19,8 @@ const PNG_BYTES = Buffer.from(PNG_BASE64, "base64");
 
 type ViewImageResult = {
   detail: "high" | "original";
+  estimatedBudgetTokens: number;
+  height: number | null;
   image: {
     data: string;
     detail: "high" | "original";
@@ -27,7 +30,15 @@ type ViewImageResult = {
   mimeType: string;
   ok: true;
   path: string;
+  patchCount: number | null;
+  processedSizeBytes: number;
+  reencoded: boolean;
+  resized: boolean;
   sizeBytes: number;
+  sourceHeight: number | null;
+  sourceMimeType: string;
+  sourceWidth: number | null;
+  width: number | null;
 };
 
 function createWorkspace(): string {
@@ -149,6 +160,48 @@ describe("ViewImageTool", () => {
       mimeType: "image/png",
       type: "image"
     });
+  });
+
+  it("resizes high-detail images before returning model payload", async () => {
+    const workspace = createWorkspace();
+    const imagePath = join(workspace, "wide.png");
+    const sourceBytes = await sharp({
+      create: {
+        background: { b: 96, g: 64, r: 32 },
+        channels: 3,
+        height: 1024,
+        width: 4096
+      }
+    })
+      .png()
+      .toBuffer();
+    writeFileSync(imagePath, sourceBytes);
+    const tool = new ViewImageTool({ workingDir: workspace });
+
+    const result = readViewImageResult(await tool.execute({ path: "wide.png" }));
+    const outputBytes = Buffer.from(result.image.data, "base64");
+    const outputMetadata = await sharp(outputBytes).metadata();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        detail: "high",
+        ok: true,
+        resized: true,
+        sizeBytes: sourceBytes.byteLength,
+        sourceHeight: 1024,
+        sourceMimeType: "image/png",
+        sourceWidth: 4096
+      })
+    );
+    expect(outputMetadata.width).toBeLessThanOrEqual(2048);
+    expect(outputMetadata.height).toBeLessThanOrEqual(2048);
+    expect(result.patchCount).toBeGreaterThan(0);
+    expect(result.patchCount).toBeLessThanOrEqual(2500);
+    expect(result.estimatedBudgetTokens).toBeLessThanOrEqual(2500);
+    expect(result.width).toBe(outputMetadata.width);
+    expect(result.height).toBe(outputMetadata.height);
+    expect(result.processedSizeBytes).toBe(outputBytes.byteLength);
+    expect(result.image.data).not.toBe(sourceBytes.toString("base64"));
   });
 
   it("allows absolute readable paths when no allowed directory is configured", async () => {

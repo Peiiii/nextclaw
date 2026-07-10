@@ -37,6 +37,7 @@
     "dotenv": "^16.4.5",
     "openai": "^4.74.0",
     "pino": "^9.4.0",
+    "sharp": "0.34.5",
     "socket.io-msgpack-parser": "^3.0.2",
     "undici": "^6.21.0",
     "zod": "^3.23.8",

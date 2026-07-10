@@ -170,3 +170,104 @@ describe("InputBudgetPruner", () => {
     expect(String(result.messages[1].content)).toContain("interrupted");
   });
 });
+
+describe("InputBudgetPruner visual inputs", () => {
+  it("counts image data URLs as bounded visual inputs instead of raw base64 text", () => {
+    const pruner = new InputBudgetPruner();
+    const imageUrl = `data:image/png;base64,${"a".repeat(2_500_000)}`;
+    const messages = [
+      { role: "system", content: "system prompt" },
+      { role: "user", content: "previous context that must survive" },
+      { role: "assistant", content: "I will remember the previous context." },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "please inspect this image" },
+          { type: "image_url", image_url: { url: imageUrl } },
+        ],
+      },
+      { role: "user", content: "continue from the previous context" },
+    ];
+
+    const result = pruner.prune({
+      contextTokens: 20_000,
+      reserveTokensFloor: 0,
+      softThresholdTokens: 0,
+      messages,
+    });
+
+    expect(result.droppedHistoryCount).toBe(0);
+    expect(result.estimatedTokens).toBeLessThan(result.budgetTokens);
+    expect(result.messages).toHaveLength(messages.length);
+    expect(result.messages[1]).toMatchObject({
+      content: "previous context that must survive",
+      role: "user",
+    });
+  });
+
+  it("uses image dimensions when estimating visual input budget", () => {
+    const pruner = new InputBudgetPruner();
+    const imageUrl = `data:image/png;base64,${"a".repeat(2_500_000)}`;
+    const withoutDimensions = pruner.estimate({
+      contextTokens: 20_000,
+      reserveTokensFloor: 0,
+      softThresholdTokens: 0,
+      messages: [
+        {
+          role: "user",
+          content: [{ type: "image_url", image_url: { url: imageUrl } }],
+        },
+      ],
+    });
+    const withDimensions = pruner.estimate({
+      contextTokens: 20_000,
+      reserveTokensFloor: 0,
+      softThresholdTokens: 0,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: { height: 64, url: imageUrl, width: 64 },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(withDimensions.estimatedTokens).toBeLessThan(withoutDimensions.estimatedTokens);
+  });
+
+  it("counts raw image tool payload objects as visual inputs", () => {
+    const pruner = new InputBudgetPruner();
+    const result = pruner.prune({
+      contextTokens: 20_000,
+      reserveTokensFloor: 0,
+      softThresholdTokens: 0,
+      messages: [
+        { role: "system", content: "system prompt" },
+        { role: "user", content: "previous context that must survive" },
+        {
+          role: "user",
+          content: [
+            {
+              data: "a".repeat(2_500_000),
+              height: 64,
+              mimeType: "image/png",
+              type: "image",
+              width: 64,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.droppedHistoryCount).toBe(0);
+    expect(result.estimatedTokens).toBeLessThan(result.budgetTokens);
+    expect(result.messages[1]).toMatchObject({
+      content: "previous context that must survive",
+      role: "user",
+    });
+  });
+});
