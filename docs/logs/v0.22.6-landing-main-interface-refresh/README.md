@@ -154,6 +154,8 @@
 
 本轮产品站扩展新增 6 个静态路由和 landing shared lib，但同步拆出了路由工具、内容类型和页面渲染工具；`apps/landing/src/main.ts` 相比 HEAD 净减少 93 行，`render` 方法从 403 行降到 323 行。剩余债务是 `main.ts` 与 `render` 仍超过历史预算，后续更合理的拆分点是把中英文 copy 数据拆出主文件，并把首页大段 render 拆为页面区块 owner。
 
+收尾补齐截图源图与截图生成链路：将本轮官网使用的真实截图源图提交到 `images/screenshots/`，同步保留 docs Project Pulse 派生图库；同时补齐 `scripts/docs/product-screenshot-*` helper，使 Agent、定时任务、面板应用、右侧工作区等截图可以通过截图脚本继续刷新，并在流程文档中区分脚本生成图与人工精选的真实任务截图。
+
 ## NPM 包发布记录
 
 不涉及 NPM 包发布。

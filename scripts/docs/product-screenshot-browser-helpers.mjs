@@ -1,13 +1,28 @@
 export async function openFirstSkillDetail(page) {
-  const firstSkillCard = page.locator('article').first();
-  await firstSkillCard.waitFor({ timeout: 20_000 });
+  await page.waitForFunction(() => {
+    return Array.from(document.querySelectorAll('article')).some((article) => {
+      const rect = article.getBoundingClientRect();
+      return rect.x > 280 && rect.width >= 240 && rect.height >= 140 && rect.top >= 0 && rect.top < window.innerHeight;
+    });
+  }, { timeout: 20_000 });
   await page.waitForTimeout(2_000);
-  let opened = false;
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    await firstSkillCard.click();
+    const cardIndex = await page.locator('article').evaluateAll((articles) => {
+      return articles.findIndex((article) => {
+        const rect = article.getBoundingClientRect();
+        return rect.x > 280 && rect.width >= 240 && rect.height >= 140 && rect.top >= 0 && rect.top < window.innerHeight;
+      });
+    });
+    if (cardIndex < 0) {
+      throw new Error('failed to locate a visible skill card');
+    }
+    await page.locator('article').nth(cardIndex).click();
     try {
-      await page.locator('iframe[src^="data:text/html"]').first().waitFor({ state: 'attached', timeout: 4_000 });
-      opened = true;
+      await page.waitForFunction(() => {
+        const bodyText = document.body?.innerText || '';
+        return (bodyText.includes('Metadata') && bodyText.includes('Content')) ||
+          (bodyText.includes('元数据') && bodyText.includes('内容'));
+      }, { timeout: 4_000 });
       break;
     } catch (error) {
       if (attempt === 2) {
@@ -16,16 +31,9 @@ export async function openFirstSkillDetail(page) {
       await page.waitForTimeout(1_500);
     }
   }
-  if (!opened) {
-    throw new Error('failed to open skill detail browser');
-  }
   await page.waitForFunction(() => {
-    const iframe = document.querySelector('iframe[src^="data:text/html"]');
-    if (!(iframe instanceof HTMLIFrameElement)) {
-      return false;
-    }
-    const rect = iframe.getBoundingClientRect();
-    return rect.width >= 320 && rect.height >= 400;
+    const bodyText = document.body?.innerText || '';
+    return bodyText.includes('Metadata') || bodyText.includes('元数据');
   }, { timeout: 20_000 });
   await page.waitForTimeout(1_000);
 }
@@ -41,13 +49,25 @@ export async function waitForChatReady(page) {
     const hasSkeleton = document.querySelectorAll('[class*="animate-pulse"], [class*="skeleton"]').length > 0;
     return hasInput && !stillLoadingSessions && !hasSkeleton;
   }, { timeout: 20_000 });
+  const sessionButtonIndex = await page.locator('button').evaluateAll((buttons) => {
+    return buttons.findIndex((button) => {
+      const rect = button.getBoundingClientRect();
+      const text = button.textContent?.replace(/\s+/g, ' ').trim() || '';
+      return rect.x < 280 && rect.y > 280 && rect.width > 120 && text.length > 20;
+    });
+  });
+  if (sessionButtonIndex >= 0) {
+    await page.locator('button').nth(sessionButtonIndex).click();
+  }
   await page.waitForTimeout(1_000);
 }
 
 export function initializeScreenshotDocument({ key, value, useMockRealtime }) {
   try {
     window.localStorage.setItem(key, value);
-  } catch {}
+  } catch {
+    // Screenshot init should continue even when storage is unavailable.
+  }
   if (!useMockRealtime) {
     return;
   }

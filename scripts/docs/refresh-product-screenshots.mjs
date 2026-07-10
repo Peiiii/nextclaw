@@ -4,7 +4,23 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { chmod, mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { resolveRepoPath } from '../shared/repo-paths.mjs';
-import { authStatusPayload, remoteStatusPayload } from './product-screenshot-status-mocks.mjs';
+import {
+  agentsPayload,
+  channelSpecs,
+  configPayload,
+  providerSpecs,
+  providerTemplatesPayload,
+  providersPayload,
+  schemaPayload
+} from './product-screenshot-config-mocks.mjs';
+import {
+  authStatusPayload,
+  bootstrapStatusPayload,
+  remoteStatusPayload,
+  runtimeControlPayload,
+  runtimeUpdatePayload
+} from './product-screenshot-status-mocks.mjs';
+import { createScreenshotRouteMockResolver } from './product-screenshot-route-mocks.utils.mjs';
 import {
   initializeScreenshotDocument,
   installMockApiRoutes,
@@ -13,18 +29,23 @@ import {
   waitForSceneText,
   writeSceneOutputs
 } from './product-screenshot-browser-helpers.mjs';
+import { createLocalPanelScreenshotData } from './product-screenshot-local-panels.utils.mjs';
 
 const repoRoot = resolveRepoPath(import.meta.url);
+const localPanels = createLocalPanelScreenshotData({ repoRoot });
 
 const DEFAULT_UI_PORT = Number(process.env.SCREENSHOT_UI_PORT || 5194);
 const shouldStartUi = !process.env.SCREENSHOT_UI_ORIGIN;
 const useRealAppData = parseBooleanEnv(process.env.SCREENSHOT_USE_REAL_APP_DATA || process.env.SCREENSHOT_REAL_APP_DATA);
 const useRealMarketplace = parseBooleanEnv(process.env.REAL_MARKETPLACE || process.env.SCREENSHOT_REAL_MARKETPLACE);
+const sceneFilter = parseSceneFilter(process.env.SCREENSHOT_SCENES || process.env.SCREENSHOT_SCENE);
 const realMarketplaceBase = normalizeBaseUrl(
   process.env.REAL_MARKETPLACE_BASE || process.env.SCREENSHOT_REAL_MARKETPLACE_BASE || 'https://marketplace-api.nextclaw.io'
 );
 
 const languageStorageKey = 'nextclaw.ui.language';
+const themeStorageKey = 'nextclaw.ui.theme';
+const screenshotTheme = process.env.SCREENSHOT_UI_THEME || 'cool';
 const viewport = { width: 1512, height: 828 };
 const deviceScaleFactor = 2;
 
@@ -44,22 +65,63 @@ function normalizeBaseUrl(raw) {
   return value.replace(/\/+$/, '');
 }
 
+function parseSceneFilter(raw) {
+  const value = String(raw || '').trim();
+  if (!value) {
+    return null;
+  }
+  return new Set(
+    value
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+  );
+}
+
+function matchesSceneFilter(scene) {
+  if (!sceneFilter) {
+    return true;
+  }
+  return sceneFilter.has(scene.id);
+}
+
 const uiText = {
   en: {
     providers: 'AI Providers',
     channels: 'Message Channels',
-    skillMarketplace: 'Skill Marketplace',
+    agents: 'Agent Gallery',
+    apps: 'Panel Apps',
+    skillMarketplace: 'Skill Market',
     cron: 'Cron Jobs',
     chatWelcome: 'Hello, how can I help you?'
   },
   zh: {
     providers: 'AI 提供商',
     channels: '消息渠道',
+    agents: 'Agent 管理台',
+    apps: '面板应用',
     skillMarketplace: '技能市场',
     cron: '定时任务',
     chatWelcome: '你好，有什么可以帮你的吗？'
   }
 };
+
+async function waitForDocBrowserPanel(page) {
+  await page.waitForSelector('[data-testid="doc-browser-panel"]', { timeout: 20_000 });
+  await page.waitForTimeout(1_000);
+}
+
+async function waitForPanelAppFrame(page) {
+  await waitForDocBrowserPanel(page);
+  await page.waitForSelector('iframe[src*="/api/panel-apps/"]', { timeout: 20_000 });
+  await page.waitForTimeout(1_000);
+}
+
+async function waitForWorkspacePreview(page) {
+  await page.waitForSelector('[data-testid="chat-session-workspace-panel"]', { timeout: 20_000 });
+  await page.waitForSelector('[data-testid="workspace-html-preview"]', { timeout: 20_000 });
+  await page.waitForTimeout(1_000);
+}
 
 const scenes = [
   {
@@ -105,24 +167,71 @@ const scenes = [
     ]
   },
   {
+    id: 'agents-en',
+    route: '/agents',
+    language: 'en',
+    waitText: uiText.en.agents,
+    outputs: [
+      'images/screenshots/nextclaw-agents-page-en.png',
+      'images/screenshots/nextclaw-agents-page.png',
+      'apps/landing/public/nextclaw-agents-page-en.png'
+    ]
+  },
+  {
+    id: 'agents-zh',
+    route: '/agents',
+    language: 'zh',
+    waitText: uiText.zh.agents,
+    outputs: [
+      'images/screenshots/nextclaw-agents-page-cn.png',
+      'apps/landing/public/nextclaw-agents-page-cn.png'
+    ]
+  },
+  {
     id: 'marketplace-skills',
     route: '/marketplace/skills',
     language: 'en',
     waitText: uiText.en.skillMarketplace,
-    outputs: ['images/screenshots/nextclaw-skills-page.png']
+    outputs: [
+      'images/screenshots/nextclaw-skills-page.png',
+      'apps/landing/public/nextclaw-skills-page-en.png'
+    ]
+  },
+  {
+    id: 'marketplace-skills-zh',
+    route: '/marketplace/skills',
+    language: 'zh',
+    waitText: uiText.zh.skillMarketplace,
+    outputs: [
+      'images/screenshots/nextclaw-skills-page-cn.png',
+      'apps/landing/public/nextclaw-skills-page-cn.png'
+    ]
   },
   {
     id: 'cron-jobs',
     route: '/cron',
     language: 'en',
     waitText: uiText.en.cron,
-    outputs: ['images/screenshots/nextclaw-cron-job-page.png']
+    outputs: [
+      'images/screenshots/nextclaw-cron-job-page-en.png',
+      'images/screenshots/nextclaw-cron-job-page.png',
+      'apps/landing/public/nextclaw-cron-job-page-en.png'
+    ]
+  },
+  {
+    id: 'cron-jobs-zh',
+    route: '/cron',
+    language: 'zh',
+    waitText: uiText.zh.cron,
+    outputs: [
+      'images/screenshots/nextclaw-cron-job-page-cn.png',
+      'apps/landing/public/nextclaw-cron-job-page-cn.png'
+    ]
   },
   {
     id: 'chat-home-en',
-    route: '/chat',
+    route: `/chat/${localPanels.workspaceSessionId}`,
     language: 'en',
-    waitText: [uiText.en.chatWelcome, 'New Task'],
     afterLoad: async ({ page }) => waitForChatReady(page),
     outputs: [
       'images/screenshots/nextclaw-chat-page-en.png',
@@ -132,13 +241,78 @@ const scenes = [
   },
   {
     id: 'chat-home-zh',
-    route: '/chat',
+    route: `/chat/${localPanels.workspaceSessionId}`,
     language: 'zh',
-    waitText: [uiText.zh.chatWelcome, '新任务'],
     afterLoad: async ({ page }) => waitForChatReady(page),
     outputs: [
       'images/screenshots/nextclaw-chat-page-cn.png',
       'apps/landing/public/nextclaw-chat-page-cn.png'
+    ]
+  },
+  {
+    id: 'apps-panel-en',
+    route: `/chat/${localPanels.workspaceSessionId}`,
+    language: 'en',
+    storageItems: localPanels.createAppsPanelStorage('en'),
+    afterLoad: async ({ page }) => waitForDocBrowserPanel(page),
+    outputs: [
+      'images/screenshots/nextclaw-panel-apps-page-en.png',
+      'apps/landing/public/nextclaw-panel-apps-page-en.png'
+    ]
+  },
+  {
+    id: 'apps-panel-zh',
+    route: `/chat/${localPanels.workspaceSessionId}`,
+    language: 'zh',
+    storageItems: localPanels.createAppsPanelStorage('zh'),
+    afterLoad: async ({ page }) => waitForDocBrowserPanel(page),
+    outputs: [
+      'images/screenshots/nextclaw-panel-apps-page-cn.png',
+      'apps/landing/public/nextclaw-panel-apps-page-cn.png'
+    ]
+  },
+  {
+    id: 'panel-app-running-en',
+    route: `/chat/${localPanels.workspaceSessionId}`,
+    language: 'en',
+    storageItems: localPanels.createPanelAppStorage('en'),
+    afterLoad: async ({ page }) => waitForPanelAppFrame(page),
+    outputs: [
+      'images/screenshots/nextclaw-panel-app-running-en.png',
+      'apps/landing/public/nextclaw-panel-app-running-en.png'
+    ]
+  },
+  {
+    id: 'panel-app-running-zh',
+    route: `/chat/${localPanels.workspaceSessionId}`,
+    language: 'zh',
+    storageItems: localPanels.createPanelAppStorage('zh'),
+    afterLoad: async ({ page }) => waitForPanelAppFrame(page),
+    outputs: [
+      'images/screenshots/nextclaw-panel-app-running-cn.png',
+      'apps/landing/public/nextclaw-panel-app-running-cn.png'
+    ]
+  },
+  {
+    id: 'workspace-preview-en',
+    route: `/chat/${localPanels.workspaceSessionId}`,
+    language: 'en',
+    storageItems: localPanels.createWorkspacePreviewStorage(),
+    afterLoad: async ({ page }) => waitForWorkspacePreview(page),
+    outputs: [
+      'images/screenshots/nextclaw-workspace-preview-en.png',
+      'apps/landing/public/nextclaw-workspace-preview-en.png'
+    ]
+  },
+  {
+    id: 'workspace-preview-zh',
+    route: `/chat/${localPanels.workspaceSessionId}`,
+    language: 'zh',
+    storageItems: localPanels.createWorkspacePreviewStorage(),
+    afterLoad: async ({ page }) => waitForWorkspacePreview(page),
+    outputs: [
+      'images/screenshots/nextclaw-workspace-preview-cn.png',
+      'apps/landing/public/nextclaw-workspace-preview-cn.png'
     ]
   },
   {
@@ -164,213 +338,6 @@ const scenes = [
     ]
   }
 ];
-
-const providerSpecs = [
-  {
-    name: 'openai',
-    displayName: 'OpenAI',
-    modelPrefix: 'openai',
-    keywords: ['openai', 'gpt'],
-    envKey: 'OPENAI_API_KEY',
-    defaultApiBase: 'https://api.openai.com/v1',
-    defaultModels: ['openai/gpt-5.1', 'openai/gpt-4.1'],
-    supportsWireApi: true,
-    wireApiOptions: ['auto', 'chat', 'responses'],
-    defaultWireApi: 'auto'
-  },
-  {
-    name: 'anthropic',
-    displayName: 'Anthropic',
-    modelPrefix: 'anthropic',
-    keywords: ['anthropic', 'claude'],
-    envKey: 'ANTHROPIC_API_KEY',
-    defaultApiBase: 'https://api.anthropic.com/v1',
-    defaultModels: ['anthropic/claude-opus-4-1'],
-    supportsWireApi: true,
-    wireApiOptions: ['auto', 'chat', 'responses'],
-    defaultWireApi: 'auto'
-  },
-  {
-    name: 'deepseek',
-    displayName: 'DeepSeek',
-    modelPrefix: 'deepseek',
-    keywords: ['deepseek'],
-    envKey: 'DEEPSEEK_API_KEY',
-    defaultApiBase: 'https://api.deepseek.com/v1',
-    defaultModels: ['deepseek/deepseek-chat'],
-    supportsWireApi: true,
-    wireApiOptions: ['auto', 'chat', 'responses'],
-    defaultWireApi: 'auto'
-  },
-  {
-    name: 'openrouter',
-    displayName: 'OpenRouter',
-    modelPrefix: 'openrouter',
-    keywords: ['openrouter'],
-    envKey: 'OPENROUTER_API_KEY',
-    defaultApiBase: 'https://openrouter.ai/api/v1',
-    defaultModels: ['openrouter/openai/gpt-5.3-codex'],
-    supportsWireApi: true,
-    wireApiOptions: ['auto', 'chat', 'responses'],
-    defaultWireApi: 'auto'
-  }
-];
-
-const channelSpecs = [
-  {
-    name: 'discord',
-    displayName: 'Discord',
-    enabled: true,
-    tutorialUrls: {
-      en: 'https://docs.nextclaw.io/en/guide/tutorials/feishu',
-      zh: 'https://docs.nextclaw.io/zh/guide/tutorials/feishu'
-    }
-  },
-  {
-    name: 'telegram',
-    displayName: 'Telegram',
-    enabled: true
-  },
-  {
-    name: 'feishu',
-    displayName: 'Feishu',
-    enabled: true
-  },
-  {
-    name: 'qq',
-    displayName: 'QQ',
-    enabled: true
-  },
-  {
-    name: 'email',
-    displayName: 'Email',
-    enabled: false
-  },
-  {
-    name: 'wecom',
-    displayName: 'WeCom',
-    enabled: false
-  }
-];
-
-const configPayload = {
-  agents: {
-    defaults: {
-      model: 'openai/gpt-5.1',
-      workspace: '~/workspace-nextclaw',
-      contextTokens: 64000,
-      maxToolIterations: 1000
-    },
-    list: [
-      {
-        id: 'default',
-        default: true,
-        model: 'openai/gpt-5.1'
-      }
-    ]
-  },
-  providers: {
-    openai: {
-      apiKeySet: true,
-      apiKeyMasked: 'sk-****',
-      apiBase: 'https://api.openai.com/v1',
-      wireApi: 'auto',
-      models: ['openai/gpt-5.1', 'openai/gpt-4.1']
-    },
-    anthropic: {
-      apiKeySet: true,
-      apiKeyMasked: 'sk-ant-****',
-      apiBase: 'https://api.anthropic.com/v1',
-      wireApi: 'auto',
-      models: ['anthropic/claude-opus-4-1']
-    },
-    deepseek: {
-      apiKeySet: false,
-      apiBase: 'https://api.deepseek.com/v1',
-      wireApi: 'auto',
-      models: ['deepseek/deepseek-chat']
-    },
-    openrouter: {
-      apiKeySet: true,
-      apiKeyMasked: 'sk-or-****',
-      apiBase: 'https://openrouter.ai/api/v1',
-      wireApi: 'responses',
-      models: ['openrouter/openai/gpt-5.3-codex']
-    }
-  },
-  channels: {
-    discord: {
-      enabled: true,
-      token: '',
-      allowBots: false,
-      dmPolicy: 'pairing',
-      groupPolicy: 'allowlist'
-    },
-    telegram: {
-      enabled: true,
-      token: '',
-      dmPolicy: 'open',
-      groupPolicy: 'allowlist'
-    },
-    feishu: {
-      enabled: true,
-      appId: '',
-      appSecret: ''
-    },
-    qq: {
-      enabled: true,
-      appId: '',
-      markdownSupport: true
-    },
-    email: {
-      enabled: false,
-      consentGranted: false
-    },
-    wecom: {
-      enabled: false,
-      corpId: '',
-      agentId: ''
-    }
-  },
-  session: {
-    dmScope: 'per-channel-peer'
-  },
-  bindings: [],
-  secrets: {
-    enabled: true,
-    defaults: {
-      env: 'global'
-    },
-    providers: {
-      global: {
-        source: 'env',
-        prefix: 'NEXTCLAW_'
-      }
-    },
-    refs: {}
-  }
-};
-
-const schemaPayload = {
-  schema: {
-    type: 'object',
-    properties: {}
-  },
-  uiHints: {
-    'providers.openai': {
-      help: 'OpenAI official endpoint with Responses API support.'
-    },
-    'channels.discord': {
-      help: 'Connect Discord bot and forward mentions to your agent.'
-    },
-    'channels.telegram': {
-      help: 'Connect Telegram bot token and manage DM/group policy.'
-    }
-  },
-  actions: [],
-  version: 'screenshot-mock-v1',
-  generatedAt: new Date().toISOString()
-};
 
 const marketplaceSkills = [
   {
@@ -474,46 +441,18 @@ const cronJobs = [
   }
 ];
 
-function ok(data) {
-  return {
-    status: 200,
-    contentType: 'application/json; charset=utf-8',
-    body: JSON.stringify({ ok: true, data })
-  };
-}
-
-function fail(status, message) {
-  return {
-    status,
-    contentType: 'application/json; charset=utf-8',
-    body: JSON.stringify({ ok: false, error: { code: `E${status}`, message } })
-  };
-}
-
-function listPayload(items, searchParams) {
-  const page = Number(searchParams.get('page') || 1);
-  const pageSize = Number(searchParams.get('pageSize') || 10);
-  return {
-    total: items.length,
-    page,
-    pageSize,
-    totalPages: Math.max(1, Math.ceil(items.length / Math.max(1, pageSize))),
-    sort: searchParams.get('sort') || 'relevance',
-    query: searchParams.get('q') || undefined,
-    items
-  };
-}
-
-function matchItemBySlug(items, slug) {
-  return items.find((item) => item.slug === slug) || null;
-}
-
 const staticGetMocks = new Map([
   ['/api/auth/status', authStatusPayload],
   ['/api/remote/status', remoteStatusPayload],
+  ['/api/runtime/bootstrap-status', bootstrapStatusPayload],
+  ['/api/runtime/control', runtimeControlPayload],
+  ['/api/runtime/update', runtimeUpdatePayload],
   ['/api/config', configPayload],
   ['/api/config/meta', { providers: providerSpecs, channels: channelSpecs }],
+  ['/api/providers', providersPayload],
+  ['/api/provider-templates', providerTemplatesPayload],
   ['/api/config/schema', schemaPayload],
+  ['/api/agents', agentsPayload],
   ['/api/sessions', { sessions: [], total: 0 }],
   ['/api/chat/capabilities', { stopSupported: true }],
   ['/api/chat/runs', { runs: [], total: 0 }],
@@ -526,99 +465,7 @@ const staticGetMocks = new Map([
   }]
 ]);
 
-function resolveMock(pathname, searchParams, method) {
-  if (method === 'GET') {
-    const staticPayload = staticGetMocks.get(pathname);
-    if (staticPayload) {
-      return ok(staticPayload);
-    }
-  }
-
-  if (method === 'GET' && /^\/api\/sessions\/[^/]+\/history$/.test(pathname)) {
-    const sessionKey = decodeURIComponent(pathname.split('/')[3] || 'demo');
-    return ok({
-      key: sessionKey,
-      totalMessages: 0,
-      totalEvents: 0,
-      metadata: {},
-      messages: [],
-      events: []
-    });
-  }
-
-  if (method === 'GET' && pathname.startsWith('/api/chat/runs/')) {
-    const runId = decodeURIComponent(pathname.slice('/api/chat/runs/'.length));
-    return ok({
-      runId,
-      sessionKey: 'demo',
-      state: 'completed',
-      requestedAt: '2026-03-05T01:00:00.000Z',
-      completedAt: '2026-03-05T01:00:01.000Z',
-      stopSupported: true,
-      eventCount: 0,
-      reply: ''
-    });
-  }
-
-  if (method === 'GET' && pathname === '/api/marketplace/skills/items') {
-    return ok(listPayload(marketplaceSkills, searchParams));
-  }
-
-  if (method === 'GET' && pathname === '/api/marketplace/skills/recommendations') {
-    return ok({
-      type: 'skill',
-      sceneId: searchParams.get('scene') || 'default',
-      title: 'Recommended Skills',
-      description: 'Curated skill list',
-      total: marketplaceSkills.length,
-      items: marketplaceSkills
-    });
-  }
-
-  const skillItemMatch = pathname.match(/^\/api\/marketplace\/skills\/items\/([^/]+)$/);
-  if (method === 'GET' && skillItemMatch) {
-    const slug = decodeURIComponent(skillItemMatch[1]);
-    const item = matchItemBySlug(marketplaceSkills, slug);
-    if (!item) {
-      return fail(404, `Skill not found: ${slug}`);
-    }
-    return ok({
-      ...item,
-      description: item.summary,
-      descriptionI18n: item.summaryI18n,
-      sourceRepo: 'https://github.com/nextclaw/skills'
-    });
-  }
-
-  const skillContentMatch = pathname.match(/^\/api\/marketplace\/skills\/items\/([^/]+)\/content$/);
-  if (method === 'GET' && skillContentMatch) {
-    const slug = decodeURIComponent(skillContentMatch[1]);
-    const item = matchItemBySlug(marketplaceSkills, slug);
-    if (!item) {
-      return fail(404, `Skill not found: ${slug}`);
-    }
-    return ok({
-      type: 'skill',
-      slug,
-      name: item.name,
-      install: item.install,
-      source: 'workspace',
-      raw: `# ${item.name}\n\n${item.summary}`,
-      bodyRaw: item.summary,
-      sourceUrl: 'https://github.com/nextclaw/skills'
-    });
-  }
-
-  if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
-    return ok({ saved: true });
-  }
-
-  if (method === 'GET') {
-    return ok({});
-  }
-
-  return fail(405, `Unsupported mock endpoint: ${method} ${pathname}`);
-}
+const resolveMock = createScreenshotRouteMockResolver({ localPanels, marketplaceSkills, staticGetMocks });
 
 function asObject(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -859,10 +706,35 @@ async function captureScene(browser, scene, uiOrigin) {
       value: scene.language,
       useMockRealtime: !useRealAppData
     });
+    await context.addInitScript(({ key, value }) => {
+      try {
+        window.localStorage.setItem(key, value);
+      } catch {
+        // Screenshot init should continue even when storage is unavailable.
+      }
+    }, { key: themeStorageKey, value: screenshotTheme });
+    if (scene.storageItems) {
+      await context.addInitScript((items) => {
+        for (const [key, value] of Object.entries(items)) {
+          try {
+            window.localStorage.setItem(key, value);
+          } catch {
+            // Screenshot init should continue even when storage is unavailable.
+          }
+        }
+      }, scene.storageItems);
+    }
 
     const page = await context.newPage();
     page.on('pageerror', (error) => {
-      pageErrors.push(error instanceof Error ? error.stack || error.message : String(error));
+      const message = error instanceof Error ? error.stack || error.message : String(error);
+      pageErrors.push(message);
+      console.error(`[screenshot] page error on ${scene.id}: ${message}`);
+    });
+    page.on('console', (message) => {
+      if (message.type() === 'error') {
+        console.warn(`[screenshot] console error on ${scene.id}: ${message.text()}`);
+      }
     });
 
     if (!useRealAppData) {
@@ -906,6 +778,7 @@ async function main() {
   let uiProcess = null;
   const uiPort = DEFAULT_UI_PORT;
   const resolvedUiOrigin = process.env.SCREENSHOT_UI_ORIGIN || `http://127.0.0.1:${uiPort}`;
+  const scenesToCapture = scenes.filter(matchesSceneFilter);
 
   try {
     if (useRealAppData) {
@@ -925,7 +798,10 @@ async function main() {
 
     const browser = await chromium.launch({ headless: true });
     try {
-      for (const scene of scenes) {
+      if (scenesToCapture.length === 0) {
+        throw new Error(`[screenshot] no scenes matched filter: ${Array.from(sceneFilter || []).join(', ')}`);
+      }
+      for (const scene of scenesToCapture) {
         console.log(`[screenshot] capturing ${scene.id}`);
         await captureScene(browser, scene, resolvedUiOrigin);
       }
@@ -933,7 +809,7 @@ async function main() {
       await browser.close();
     }
 
-    console.log(`[screenshot] done. generated ${scenes.length} scenes.`);
+    console.log(`[screenshot] done. generated ${scenesToCapture.length} scenes.`);
   } catch (error) {
     console.error('[screenshot] failed:', error);
     process.exitCode = 1;
