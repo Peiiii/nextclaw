@@ -169,6 +169,7 @@ function readStreamErrorMessage(payload: Record<string, unknown>): string | null
   if (
     payload.type !== "error" &&
     payload.type !== "response.failed" &&
+    payload.type !== "response.incomplete" &&
     !(payloadError && typeof payloadError.message === "string" && payloadError.message.trim())
   ) {
     return null;
@@ -179,6 +180,9 @@ function readStreamErrorMessage(payload: Record<string, unknown>): string | null
   }
   if (typeof payload.message === "string" && payload.message.trim()) {
     return payload.message;
+  }
+  if (payload.type === "response.incomplete") {
+    return "Responses stream ended with response.incomplete.";
   }
   return "Responses stream failed.";
 }

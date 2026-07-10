@@ -13,6 +13,15 @@ import {
   readOpenAiSseFrames,
 } from "./sse-stream.utils.js";
 
+export class OpenAiResponsesStreamTerminatedError extends Error {
+  readonly code = "OPENAI_RESPONSES_STREAM_MISSING_COMPLETED";
+
+  constructor(apiBase: string | null) {
+    super(`Responses API stream ended before response.completed${apiBase ? ` for base "${apiBase}"` : ""}.`);
+    this.name = "OpenAiResponsesStreamTerminatedError";
+  }
+}
+
 export async function executeOpenAiResponsesStreamRequest(params: {
   fetchImpl: typeof fetch;
   responseUrl: string;
@@ -39,15 +48,16 @@ export async function* consumeOpenAiResponsesStream(params: {
   normalizeUsageCounters: (raw: Record<string, unknown> | undefined) => Record<string, number>;
   parseToolCallArguments: (raw: unknown) => Record<string, unknown>;
 }): AsyncGenerator<LLMStreamEvent> {
-  const contentType = params.response.headers.get("content-type")?.toLowerCase() ?? "";
-  if (!params.response.body || !contentType.includes("text/event-stream")) {
-    const rawText = await params.response.text();
+  const { response: sourceResponse, apiBase, normalizeUsageCounters, parseToolCallArguments } = params;
+  const contentType = sourceResponse.headers.get("content-type")?.toLowerCase() ?? "";
+  if (!sourceResponse.body || !contentType.includes("text/event-stream")) {
+    const rawText = await sourceResponse.text();
     if (looksLikeSseText(rawText)) {
       yield* consumeSseTextResponse({
         rawText,
-        apiBase: params.apiBase,
-        normalizeUsageCounters: params.normalizeUsageCounters,
-        parseToolCallArguments: params.parseToolCallArguments,
+        apiBase,
+        normalizeUsageCounters,
+        parseToolCallArguments,
       });
       return;
     }
@@ -55,34 +65,37 @@ export async function* consumeOpenAiResponsesStream(params: {
       type: "done",
       response: normalizeNonStreamingResponse({
         rawText,
-        apiBase: params.apiBase,
-        normalizeUsageCounters: params.normalizeUsageCounters,
+        apiBase,
+        normalizeUsageCounters,
       }),
     };
     return;
   }
 
   const state = createOpenAiResponsesStreamState();
-  for await (const payload of readOpenAiResponsesPayloads(params.response.body)) {
+  let completed = false;
+  for await (const payload of readOpenAiResponsesPayloads(sourceResponse.body)) {
     for (const event of consumeOpenAiResponsesEvent({
       payload,
       state,
     })) {
       yield event;
     }
-    if (isCompletedResponsesPayload(payload, state.responsePayload)) {
+    if (isCompletedResponsesPayload(payload)) {
+      completed = true;
       break;
     }
   }
+  assertCompletedResponsesStream(completed, apiBase);
 
-  const response = finalizeStreamingResponse({
+  const llmResponse = finalizeStreamingResponse({
     state,
-    normalizeUsageCounters: params.normalizeUsageCounters,
-    parseToolCallArguments: params.parseToolCallArguments,
+    normalizeUsageCounters,
+    parseToolCallArguments,
   });
   yield {
     type: "done",
-    response: assertNonEmptyOpenAiResponse(response, params.apiBase),
+    response: assertNonEmptyOpenAiResponse(llmResponse, apiBase),
   };
 }
 
@@ -155,11 +168,14 @@ function finalizeStreamingResponse(params: {
   };
 }
 
-function isCompletedResponsesPayload(
-  payload: Record<string, unknown>,
-  responsePayload: Record<string, unknown> | null,
-): boolean {
-  return payload.type === "response.completed" && responsePayload !== null;
+function assertCompletedResponsesStream(completed: boolean, apiBase: string | null): void {
+  if (!completed) {
+    throw new OpenAiResponsesStreamTerminatedError(apiBase);
+  }
+}
+
+function isCompletedResponsesPayload(payload: Record<string, unknown>): boolean {
+  return payload.type === "response.completed";
 }
 
 function looksLikeSseText(rawText: string): boolean {
@@ -174,6 +190,7 @@ async function* consumeSseTextResponse(params: {
 }): AsyncGenerator<LLMStreamEvent> {
   const { rawText, apiBase, normalizeUsageCounters, parseToolCallArguments } = params;
   const state = createOpenAiResponsesStreamState();
+  let completed = false;
   for (const payload of parseOpenAiSsePayloadsFromText(rawText)) {
     for (const event of consumeOpenAiResponsesEvent({
       payload,
@@ -181,10 +198,12 @@ async function* consumeSseTextResponse(params: {
     })) {
       yield event;
     }
-    if (isCompletedResponsesPayload(payload, state.responsePayload)) {
+    if (isCompletedResponsesPayload(payload)) {
+      completed = true;
       break;
     }
   }
+  assertCompletedResponsesStream(completed, apiBase);
 
   yield {
     type: "done",

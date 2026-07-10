@@ -39,31 +39,38 @@ export class NcpAgentRuntimeWrapper implements AgentRuntime {
     const { sessionRun, tools } = options;
     this.currentTools = tools.map(this.toOpenAiTool);
     const messages = sessionRun.inbox.drain();
-    for (const event of this.toMessageSentEvents(messages, spec, sessionRun.sessionId)) {
-      yield await this.applyEvent(sessionRun, event);
+    try {
+      for (const event of this.toMessageSentEvents(messages, spec, sessionRun.sessionId)) {
+        yield await this.applyEvent(sessionRun, event);
+      }
+      const input: NcpAgentRunInput & { runId?: string } = {
+        sessionId: sessionRun.sessionId,
+        runId: spec.runId,
+        messages,
+        correlationId: spec.correlationId,
+        metadata: this.buildMetadata(options.session, spec),
+        executionContext: {
+          cwd: options.session.workingDir,
+        },
+      };
+      for await (const event of this.getRuntime().run(input, { signal: options.signal })) {
+        yield await this.applyEvent(sessionRun, event);
+      }
+    } finally {
+      this.currentTools = [];
     }
-    const input: NcpAgentRunInput & { runId?: string } = {
-      sessionId: sessionRun.sessionId,
-      runId: spec.runId,
-      messages,
-      correlationId: spec.correlationId,
-      metadata: this.buildMetadata(options.session, spec),
-      executionContext: {
-        cwd: options.session.workingDir,
-      },
-    };
-    for await (const event of this.getRuntime().run(input, { signal: options.signal })) {
-      yield await this.applyEvent(sessionRun, event);
-    }
-    this.currentTools = [];
   };
 
   dispose = async (): Promise<void> => {
+    await this.disposeRuntimeInstance();
+    this.currentTools = [];
+  };
+
+  private disposeRuntimeInstance = async (): Promise<void> => {
     if (this.runtime && "dispose" in this.runtime && typeof this.runtime.dispose === "function") {
       await this.runtime.dispose();
     }
     this.runtime = null;
-    this.currentTools = [];
   };
 
   private getRuntime = (): NcpAgentRuntime => {
@@ -115,4 +122,5 @@ export class NcpAgentRuntimeWrapper implements AgentRuntime {
     await sessionRun.applyEvents([event]);
     return event;
   };
+
 }

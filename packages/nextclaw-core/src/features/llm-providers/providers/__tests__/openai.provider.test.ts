@@ -134,7 +134,9 @@ describe("OpenAICompatibleProvider responses payload parser", () => {
       input_tokens_details_cached_tokens: 1024
     });
   });
+});
 
+describe("OpenAICompatibleProvider responses streaming", () => {
   it("sends stream=true on the first responses request and aggregates SSE for chat", async () => {
     const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body ?? "{}")) as { stream?: boolean };
@@ -222,7 +224,129 @@ describe("OpenAICompatibleProvider responses payload parser", () => {
       }
     ]);
   });
+});
 
+describe("OpenAICompatibleProvider responses stream terminal contract", () => {
+  it("rejects responses streams that end after partial output without response.completed", async () => {
+    const fetchMock = vi.fn(async () => new Response(
+      [
+        'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"partial"}',
+        "data: [DONE]",
+        ""
+      ].join("\n\n"),
+      { status: 200, headers: { "Content-Type": "text/event-stream" } },
+    ));
+    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
+
+    const responseProvider = new OpenAICompatibleProvider({
+      apiKey: "sk-test",
+      apiBase: "http://127.0.0.1:9/v1",
+      defaultModel: "gpt-test",
+      wireApi: "responses"
+    });
+    const events: LLMStreamEvent[] = [];
+
+    await expect((async () => {
+      for await (const event of responseProvider.chatStream({
+        messages: [{ role: "user", content: "hello" }]
+      })) {
+        events.push(event);
+      }
+    })()).rejects.toThrow("Responses API stream ended before response.completed");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(events).toEqual([{ type: "delta", delta: "partial" }]);
+  });
+
+  it("retries responses streams that end before response.completed without visible output", async () => {
+    let callCount = 0;
+    const fetchMock = vi.fn(async () => {
+      callCount += 1;
+      if (callCount === 1) {
+        return new Response("data: [DONE]\n\n", {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" },
+        });
+      }
+      return new Response(
+        [
+          'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"recovered"}',
+          'event: response.completed\ndata: {"type":"response.completed","response":{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"recovered"}]}],"usage":{"input_tokens":1,"output_tokens":1,"total_tokens":2}}}',
+          "data: [DONE]",
+          "",
+        ].join("\n\n"),
+        { status: 200, headers: { "Content-Type": "text/event-stream" } },
+      );
+    });
+    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
+
+    const responseProvider = new OpenAICompatibleProvider({
+      apiKey: "sk-test",
+      apiBase: "http://127.0.0.1:9/v1",
+      defaultModel: "gpt-test",
+      wireApi: "responses"
+    });
+    const events: LLMStreamEvent[] = [];
+
+    for await (const event of responseProvider.chatStream({
+      messages: [{ role: "user", content: "hello" }]
+    })) {
+      events.push(event);
+    }
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(events).toEqual([
+      { type: "delta", delta: "recovered" },
+      {
+        type: "done",
+        response: {
+          content: "recovered",
+          toolCalls: [],
+          finishReason: "completed",
+          usage: {
+            input_tokens: 1,
+            output_tokens: 1,
+            prompt_tokens: 1,
+            completion_tokens: 1,
+            total_tokens: 2
+          },
+          reasoningContent: null
+        }
+      }
+    ]);
+  });
+
+  it("does not retry responses streams after visible output has started", async () => {
+    const fetchMock = vi.fn(async () => new Response(
+      [
+        'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"already visible"}',
+        ""
+      ].join("\n\n"),
+      { status: 200, headers: { "Content-Type": "text/event-stream" } },
+    ));
+    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
+
+    const responseProvider = new OpenAICompatibleProvider({
+      apiKey: "sk-test",
+      apiBase: "http://127.0.0.1:9/v1",
+      defaultModel: "gpt-test",
+      wireApi: "responses"
+    });
+    const events: LLMStreamEvent[] = [];
+
+    await expect((async () => {
+      for await (const event of responseProvider.chatStream({
+        messages: [{ role: "user", content: "hello" }]
+      })) {
+        events.push(event);
+      }
+    })()).rejects.toThrow("Responses API stream ended before response.completed");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(events).toEqual([{ type: "delta", delta: "already visible" }]);
+  });
+});
+
+describe("OpenAICompatibleProvider responses stream fallbacks", () => {
   it("ignores transport noise after response.completed from responses API", async () => {
     globalThis.fetch = vi.fn(async () => new Response(
       [

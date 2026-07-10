@@ -30,7 +30,8 @@ import {
   NcpEventType,
 } from "@nextclaw/ncp";
 import { cloneConversationMessage, normalizeConversationMessage } from "./agent-conversation-message-normalizer.js";
-import { ABORTED_TOOL_CALL_SENTINEL, buildRuntimeError, cancelInFlightToolInvocations, clearToolCallTrackingByMessageId, findToolInvocationPart, findToolNameByCallId, insertMessageByTimeline, readMessageLifecycleFromRunPayload, remapTrackedToolCallsToMessageId, settleMessageWithLifecycle, shouldPromoteStreamingMessageId, upsertToolInvocationPart } from "./agent-conversation-state-manager.utils.js";
+import { AgentConversationToolCallManager } from "./agent-conversation-tool-call.manager.js";
+import { buildRuntimeError, cancelInFlightToolInvocations, findToolInvocationPart, insertMessageByTimeline, readMessageLifecycleFromRunPayload, settleMessageWithLifecycle, shouldPromoteStreamingMessageId } from "./agent-conversation-state-manager.utils.js";
 
 const DEFAULT_ASSISTANT_ROLE: NcpMessageRole = "assistant";
 
@@ -41,12 +42,20 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
   private activeRun: NcpRunContext | null = null;
   private contextWindow: Record<string, unknown> | null = null;
   private readonly listeners = new Set<(snapshot: NcpAgentConversationSnapshot) => void>();
-  private readonly toolCallMessageIdByCallId = new Map<string, string>();
-  private readonly toolCallArgsRawByCallId = new Map<string, string>();
+  private readonly toolCalls: AgentConversationToolCallManager;
   private lastSettledRunId: string | null = null;
   private snapshotCache: NcpAgentConversationSnapshot | null = null;
   private snapshotVersion = -1;
   private stateVersion = 0;
+
+  constructor() {
+    this.toolCalls = new AgentConversationToolCallManager({
+      ensureStreamingMessage: this.ensureStreamingMessage,
+      readStreamingMessageId: () => this.streamingMessage?.id ?? null,
+      replaceStreamingMessage: this.replaceStreamingMessage,
+      updateMessageContainingToolCall: this.updateMessageContainingToolCall,
+    });
+  }
 
   getSnapshot = (): NcpAgentConversationSnapshot => {
     if (this.snapshotCache && this.snapshotVersion === this.stateVersion) {
@@ -81,8 +90,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       !this.error &&
       !this.activeRun &&
       !this.contextWindow &&
-      this.toolCallMessageIdByCallId.size === 0 &&
-      this.toolCallArgsRawByCallId.size === 0
+      this.toolCalls.isEmpty()
     ) {
       return;
     }
@@ -91,8 +99,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     this.error = null;
     this.activeRun = null;
     this.contextWindow = null;
-    this.toolCallMessageIdByCallId.clear();
-    this.toolCallArgsRawByCallId.clear();
+    this.toolCalls.clear();
     this.lastSettledRunId = null;
     this.stateVersion += 1;
     this.notifyListeners();
@@ -110,8 +117,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
           abortDisabledReason: payload.activeRun.abortDisabledReason ?? null,
         }
       : null;
-    this.toolCallMessageIdByCallId.clear();
-    this.toolCallArgsRawByCallId.clear();
+    this.toolCalls.clear();
     this.lastSettledRunId = null;
     this.stateVersion += 1;
     this.notifyListeners();
@@ -213,16 +219,25 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       });
       this.replaceStreamingMessage(null);
       if (targetMessageId) {
-        clearToolCallTrackingByMessageId(this.toolCallMessageIdByCallId, this.toolCallArgsRawByCallId, targetMessageId);
+        this.toolCalls.clearByMessageId(targetMessageId);
       } else {
-        clearToolCallTrackingByMessageId(this.toolCallMessageIdByCallId, this.toolCallArgsRawByCallId, streamingMessageId);
+        this.toolCalls.clearByMessageId(streamingMessageId);
       }
-      toolCallIds.forEach((toolCallId) => this.toolCallArgsRawByCallId.set(toolCallId, ABORTED_TOOL_CALL_SENTINEL));
+      this.toolCalls.markAborted(toolCallIds);
     }
   };
 
   handleMessageTextStart = (payload: NcpTextStartPayload): void => {
-    this.ensureStreamingMessage(payload.sessionId, payload.messageId, "streaming");
+    const wasActiveStreamingMessage = this.streamingMessage?.id === payload.messageId;
+    const targetMessage = this.ensureStreamingMessage(payload.sessionId, payload.messageId, "streaming");
+    const lastPart = targetMessage.parts[targetMessage.parts.length - 1];
+    if (wasActiveStreamingMessage && lastPart?.type === "text" && lastPart.text.length > 0) {
+      this.replaceStreamingMessage({
+        ...targetMessage,
+        parts: [...targetMessage.parts, { type: "text", text: "" }],
+        status: "streaming",
+      });
+    }
     this.setError(null);
   };
 
@@ -289,96 +304,26 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
   };
 
   handleMessageToolCallStart = (payload: NcpToolCallStartPayload): void => {
-    if (this.toolCallArgsRawByCallId.get(payload.toolCallId) === ABORTED_TOOL_CALL_SENTINEL) return;
-    const targetMessage = this.resolveToolCallTargetMessage(payload.sessionId, payload.toolCallId, payload.messageId);
-    this.toolCallArgsRawByCallId.set(payload.toolCallId, "");
-
-    const nextParts = upsertToolInvocationPart(targetMessage.parts, {
-      type: "tool-invocation",
-      toolCallId: payload.toolCallId,
-      toolName: payload.toolName,
-      state: "partial-call",
-      args: "",
-    });
-
-    this.replaceStreamingMessage({
-      ...targetMessage,
-      parts: nextParts,
-      status: "streaming",
-    });
+    this.toolCalls.handleToolCallStart(payload);
     this.setError(null);
   };
 
   handleMessageToolCallArgs = (payload: NcpToolCallArgsPayload): void => {
-    if (this.toolCallArgsRawByCallId.get(payload.toolCallId) === ABORTED_TOOL_CALL_SENTINEL) return;
-    this.toolCallArgsRawByCallId.set(payload.toolCallId, payload.args);
-    this.applyToolCallArgs(payload.sessionId, payload.toolCallId, payload.args);
+    this.toolCalls.handleToolCallArgs(payload);
   };
 
   handleMessageToolCallArgsDelta = (payload: NcpToolCallArgsDeltaPayload): void => {
-    if (this.toolCallArgsRawByCallId.get(payload.toolCallId) === ABORTED_TOOL_CALL_SENTINEL) return;
-    const currentArgs = this.toolCallArgsRawByCallId.get(payload.toolCallId) ?? "";
-    const nextArgs = `${currentArgs}${payload.delta}`;
-    this.toolCallArgsRawByCallId.set(payload.toolCallId, nextArgs);
-    this.applyToolCallArgs(payload.sessionId, payload.toolCallId, nextArgs, payload.messageId);
+    this.toolCalls.handleToolCallArgsDelta(payload);
   };
 
   handleMessageToolCallEnd = (payload: NcpToolCallEndPayload): void => {
-    if (this.toolCallArgsRawByCallId.get(payload.toolCallId) === ABORTED_TOOL_CALL_SENTINEL) return;
-    const targetMessage = this.resolveToolCallTargetMessage(payload.sessionId, payload.toolCallId);
-    const args = this.toolCallArgsRawByCallId.get(payload.toolCallId) ?? "";
-    const nextParts = upsertToolInvocationPart(targetMessage.parts, {
-      type: "tool-invocation",
-      toolCallId: payload.toolCallId,
-      toolName: findToolNameByCallId(targetMessage.parts, payload.toolCallId) ?? "unknown",
-      state: "call",
-      args,
-    });
-
-    this.replaceStreamingMessage({
-      ...targetMessage,
-      parts: nextParts,
-      status: "streaming",
-    });
+    this.toolCalls.handleToolCallEnd(payload);
   };
 
   handleMessageToolCallResult = (payload: NcpToolCallResultPayload): void => {
-    if (this.toolCallArgsRawByCallId.get(payload.toolCallId) === ABORTED_TOOL_CALL_SENTINEL) return;
-    const updated = this.updateMessageContainingToolCall(
-      payload.toolCallId,
-      (targetMessage, existingPart) => {
-        const mergedPart = {
-          type: "tool-invocation" as const,
-          toolCallId: payload.toolCallId,
-          toolName: existingPart.toolName,
-          state: "result" as const,
-          args: existingPart.args,
-          result: payload.content,
-          resultContentItems: payload.contentItems,
-        };
-        return upsertToolInvocationPart(targetMessage.parts, mergedPart);
-      },
-    );
-    if (!updated) {
-      const fallbackMessage = this.resolveToolCallTargetMessage(
-        payload.sessionId,
-        payload.toolCallId,
-      );
-      const nextParts = upsertToolInvocationPart(fallbackMessage.parts, {
-        type: "tool-invocation",
-        toolCallId: payload.toolCallId,
-        toolName: "unknown",
-        state: "result",
-        result: payload.content,
-        resultContentItems: payload.contentItems,
-      });
-      this.replaceStreamingMessage({
-        ...fallbackMessage,
-        parts: nextParts,
-        status: "streaming",
-      });
-    }
+    this.toolCalls.handleToolCallResult(payload);
   };
+
   handleRunStarted = (payload: NcpRunStartedPayload): void => {
     if (this.isSettledRunId(payload.runId)) return;
     this.setError(null);
@@ -435,34 +380,6 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     this.setError(payload);
   };
 
-  private applyToolCallArgs = (
-    sessionId: string,
-    toolCallId: string,
-    args: string,
-    messageId?: string,
-  ): void => {
-    const targetMessage = this.resolveToolCallTargetMessage(
-      sessionId,
-      toolCallId,
-      messageId,
-    );
-    const toolName =
-      findToolNameByCallId(targetMessage.parts, toolCallId) ?? "unknown";
-    const nextParts = upsertToolInvocationPart(targetMessage.parts, {
-      type: "tool-invocation",
-      toolCallId,
-      toolName,
-      state: "partial-call",
-      args,
-    });
-
-    this.replaceStreamingMessage({
-      ...targetMessage,
-      parts: nextParts,
-      status: "streaming",
-    });
-  };
-
   private ensureStreamingMessage = (
     sessionId: string,
     messageId: string,
@@ -513,11 +430,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
         sessionId,
         status,
       };
-      remapTrackedToolCallsToMessageId(
-        this.toolCallMessageIdByCallId,
-        existingStreamingMessage.id,
-        messageId,
-      );
+      this.toolCalls.remapMessageId(existingStreamingMessage.id, messageId);
       this.replaceStreamingMessage(nextStreamingMessage);
       return nextStreamingMessage;
     }
@@ -532,21 +445,6 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     };
     this.replaceStreamingMessage(nextStreamingMessage);
     return nextStreamingMessage;
-  };
-
-  private resolveToolCallTargetMessage = (
-    sessionId: string,
-    toolCallId: string,
-    messageId?: string,
-  ): NcpMessage => {
-    const preferredMessageId =
-      messageId?.trim() ||
-      this.toolCallMessageIdByCallId.get(toolCallId) ||
-      this.streamingMessage?.id ||
-      `tool-${toolCallId}`;
-
-    this.toolCallMessageIdByCallId.set(toolCallId, preferredMessageId);
-    return this.ensureStreamingMessage(sessionId, preferredMessageId, "streaming");
   };
 
   private updateMessageContainingToolCall = (
@@ -655,11 +553,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     const settledMessage = settleMessageWithLifecycle(this.streamingMessage, status, lifecycle);
     this.upsertMessage(settledMessage);
     this.replaceStreamingMessage(null);
-    clearToolCallTrackingByMessageId(
-      this.toolCallMessageIdByCallId,
-      this.toolCallArgsRawByCallId,
-      settledMessage.id,
-    );
+    this.toolCalls.clearByMessageId(settledMessage.id);
   };
 
   private notifyListeners = (): void => {

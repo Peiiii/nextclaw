@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { NcpEventType } from "@nextclaw/ncp";
-import { DefaultNcpAgentConversationStateManager } from "../agent-conversation-state-manager.js";
+import { DefaultNcpAgentConversationStateManager } from "../agent-conversation-state.manager.js";
 
 describe("DefaultNcpAgentConversationStateManager batching", () => {
   it("coalesces batched events into a single subscriber notification", async () => {

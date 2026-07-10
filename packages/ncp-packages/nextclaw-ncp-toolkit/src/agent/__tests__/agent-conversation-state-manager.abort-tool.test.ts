@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NcpEventType } from "@nextclaw/ncp";
-import { DefaultNcpAgentConversationStateManager } from "../agent-conversation-state-manager.js";
+import { DefaultNcpAgentConversationStateManager } from "../agent-conversation-state.manager.js";
 
 describe("DefaultNcpAgentConversationStateManager aborting in-flight tools", () => {
   it("marks the active tool call as cancelled and ignores late tail events", () => {

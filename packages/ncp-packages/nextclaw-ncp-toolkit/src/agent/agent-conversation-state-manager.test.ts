@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type NcpMessage, NcpEventType } from "@nextclaw/ncp";
-import { DefaultNcpAgentConversationStateManager } from "./agent-conversation-state-manager.js";
+import { DefaultNcpAgentConversationStateManager } from "./agent-conversation-state.manager.js";
 
 const now = "2026-03-12T00:00:00.000Z";
 

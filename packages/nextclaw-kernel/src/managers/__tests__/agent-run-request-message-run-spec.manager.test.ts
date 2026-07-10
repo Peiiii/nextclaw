@@ -121,6 +121,30 @@ describe("AgentRunRequestManager message run spec metadata", () => {
       projectRoot: "/session/project",
       workingDir: "/session/workdir",
       correlationId: "corr-1",
+      execution: {
+        contractVersion: 1,
+        modelProtocol: "ncp-agent-run",
+        terminalContracts: [
+          "chat.finish_reason",
+          "responses.response.completed",
+          "ncp.run.finished-or-error-or-abort",
+        ],
+        retryPolicy: {
+          requestMaxAttempts: 3,
+          streamMaxAttemptsBeforeVisibleOutput: 3,
+          scope: "transport-or-missing-terminal-before-visible-output",
+          runtimeStreamRetry: {
+            attemptLimit: null,
+            backoffFactor: 2,
+            initialDelayMs: 2000,
+            maxDelayMsWithoutHeaders: 30000,
+            partialAttemptDisposition: "retain-visible-parts",
+            scope: "retryable-model-stream-failure",
+            statusFields: ["attempt", "message", "action", "next"],
+            statusMetadataType: "retry",
+          },
+        },
+      },
     });
     expect(runtimeSpecs[0]).toMatchObject({
       runId: "run-1",

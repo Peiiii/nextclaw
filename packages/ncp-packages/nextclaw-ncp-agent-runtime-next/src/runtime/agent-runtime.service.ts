@@ -16,16 +16,16 @@ import {
   type NcpMessage,
   type NcpStreamEncoder,
   type NcpTool,
-  type OpenAIChatChunk,
 } from "@nextclaw/ncp";
 import type {
   AgentModelInputBuilder,
   DefaultNcpAgentRunSpec,
 } from "./types/agent-model-input.types.js";
-import {
+import type {
   RuntimeToolCallExecutor,
-  type RuntimeQueuedEvent,
+  RuntimeQueuedEvent,
 } from "./runtime-tool-call-executor.service.js";
+import { runModelRoundWithRecovery } from "./runtime-model-round-recovery.manager.js";
 
 export type AgentRuntimeSessionStateSnapshot = {
   messages: readonly NcpMessage[];
@@ -243,21 +243,23 @@ export class DefaultNcpAgentRuntime {
           break;
         }
 
-        const encoded = this.streamEncoder.encode(
-          this.abortableRuntimeStream(this.llmApi.generate(modelInput, { signal }), signal),
-          {
-            sessionId,
-            messageId,
-            runId: spec.runId,
-            correlationId: spec.correlationId,
-          },
-        );
-        const toolExecutor = new RuntimeToolCallExecutor({
+        const toolExecutor = yield* runModelRoundWithRecovery({
+          applyEvent: this.applyEvent,
+          drainRuntimeEvents: (encoded, toolExecutor) =>
+            this.drainRuntimeEvents(sessionRun, encoded, toolExecutor, signal),
           executeToolCall: (toolCall, publishToolResult) =>
             this.executeToolCall(tools, sessionId, spec, toolCall, publishToolResult, signal),
-          toRunErrorEvent: (error) => this.toRunErrorEvent(sessionId, spec, error, runStartedAt),
+          llmApi: this.llmApi,
+          messageId,
+          modelInput,
+          runStartedAt,
+          sessionId,
+          sessionRun,
+          signal,
+          spec,
+          streamEncoder: this.streamEncoder,
+          toRunErrorEvent: (error, startedAt) => this.toRunErrorEvent(sessionId, spec, error, startedAt),
         });
-        yield* this.drainRuntimeEvents(sessionRun, encoded, toolExecutor, signal);
         if (this.isAbortRequested(signal)) {
           break;
         }
@@ -415,21 +417,6 @@ export class DefaultNcpAgentRuntime {
       throw error;
     }
   };
-
-  private async *abortableRuntimeStream(
-    stream: AsyncIterable<OpenAIChatChunk>,
-    signal?: AbortSignal,
-  ): AsyncIterable<OpenAIChatChunk> {
-    for await (const chunk of stream) {
-      if (signal?.aborted) {
-        break;
-      }
-      yield chunk;
-      if (signal?.aborted) {
-        break;
-      }
-    }
-  }
 
   private drainInbox = (
     sessionRun: AgentRuntimeSessionState,

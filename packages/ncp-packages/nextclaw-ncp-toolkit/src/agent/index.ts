@@ -1,4 +1,4 @@
-export { DefaultNcpAgentConversationStateManager } from "./agent-conversation-state-manager.js";
+export { DefaultNcpAgentConversationStateManager } from "./agent-conversation-state.manager.js";
 export { createAgentClientFromServer } from "./agent-client-from-server.js";
 export {
   EventPublisher,

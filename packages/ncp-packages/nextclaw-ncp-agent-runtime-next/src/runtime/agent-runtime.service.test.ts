@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   NcpEventType,
   type NcpEndpointEvent,
@@ -34,6 +34,10 @@ const spec: DefaultNcpAgentRunSpec = {
 const modelInputBuilder: AgentModelInputBuilder = {
   build: async () => ({ messages: [], model: "model" }),
 };
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 function createLlmApi(chunks: OpenAIChatChunk[]): NcpLLMApi {
   return {
@@ -117,6 +121,19 @@ function finishChunk(finishReason: "stop" | "tool_calls"): OpenAIChatChunk {
       },
     ],
     id: `chunk-finish-${finishReason}`,
+  };
+}
+
+function textChunk(text: string): OpenAIChatChunk {
+  return {
+    choices: [
+      {
+        delta: { content: text },
+        finish_reason: null,
+        index: 0,
+      },
+    ],
+    id: `chunk-text-${text}`,
   };
 }
 
@@ -211,6 +228,75 @@ describe("DefaultNcpAgentRuntime reasoning normalization", () => {
       }),
     );
     expect(events.some((event) => event.type === NcpEventType.MessageReasoningDelta)).toBe(false);
+  });
+});
+
+describe("DefaultNcpAgentRuntime stream recovery", () => {
+  it("publishes retry metadata and retries transient stream failures", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const firstAttemptFailed = deferred();
+    let attempts = 0;
+    const llmApi: NcpLLMApi = {
+      generate: async function* () {
+        attempts += 1;
+        if (attempts === 1) {
+          yield textChunk("partial");
+          firstAttemptFailed.resolve();
+          throw new Error("Network stream closed before response.completed");
+        }
+        yield textChunk("recovered");
+        yield finishChunk("stop");
+      },
+    };
+    const runtime = new DefaultNcpAgentRuntime({ llmApi, modelInputBuilder });
+
+    const { sessionRun } = createSessionRun();
+    const events: NcpEndpointEvent[] = [];
+    const retryMetadataSeen = deferred();
+    const collectEvents = (async () => {
+      for await (const event of runtime.run(spec, {
+        contextBlocks: [],
+        sessionRun,
+        tools: [],
+      })) {
+        events.push(event);
+        if (
+          event.type === NcpEventType.RunMetadata &&
+          event.payload.metadata &&
+          typeof event.payload.metadata === "object" &&
+          "type" in event.payload.metadata &&
+          event.payload.metadata.type === "retry"
+        ) {
+          retryMetadataSeen.resolve();
+        }
+      }
+    })();
+    await firstAttemptFailed.promise;
+    await retryMetadataSeen.promise;
+    await vi.advanceTimersByTimeAsync(2_000);
+    await collectEvents;
+
+    expect(attempts).toBe(2);
+    expect(events.map((event) => event.type)).toContain(NcpEventType.RunFinished);
+    expect(events.map((event) => event.type)).toContain(NcpEventType.RunMetadata);
+    expect(events.map((event) => event.type)).not.toContain(NcpEventType.MessageRecalled);
+    expect(events.map((event) => event.type)).not.toContain(NcpEventType.RunError);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          metadata: expect.objectContaining({
+            attempt: 1,
+            next: 2_000,
+            type: "retry",
+          }),
+        }),
+        type: NcpEventType.RunMetadata,
+      }),
+    );
+    expect(
+      events.filter((event) => event.type === NcpEventType.MessageTextDelta).map((event) => event.payload.delta),
+    ).toEqual(["partial", "recovered"]);
   });
 });
 

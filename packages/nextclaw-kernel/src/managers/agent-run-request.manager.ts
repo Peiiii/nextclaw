@@ -30,29 +30,14 @@ import type {
   AgentRunAccepted,
   AgentRunRequest,
   AgentRunSpec,
-  ThinkingEffort,
 } from "@kernel/types/agent-run.types.js";
 import type { AgentRunSession } from "@kernel/types/session.types.js";
+import {
+  AGENT_RUN_EXECUTION_METADATA,
+  type AgentRunMessageRunSpecMetadata,
+  type AgentRunModelSource,
+} from "@kernel/utils/agent-run-execution-metadata.utils.js";
 import { AGENT_RUN_MESSAGE_RUN_SPEC_METADATA_KEY } from "@kernel/utils/agent-run-metadata.utils.js";
-
-type AgentRunModelSource = "request" | "session" | "default";
-
-type AgentRunMessageRunSpecMetadata = {
-  version: 1;
-  runId: string;
-  startedAt: string;
-  sessionId: string;
-  agentRuntimeId: string;
-  agentId: string;
-  model: string;
-  modelSource: AgentRunModelSource;
-  requestedModel: string | null;
-  maxTokens: number | undefined;
-  thinkingEffort: ThinkingEffort | null | undefined;
-  projectRoot: string | null;
-  workingDir: string | null;
-  correlationId: string | null;
-};
 
 function toAgentRunRequest(
   envelope: AgentRunSendIngressPayload,
@@ -297,6 +282,7 @@ function attachRunSpecMetadata(params: {
     projectRoot: request.projectRoot ?? session.projectRoot ?? null,
     workingDir: session.workingDir ?? null,
     correlationId: spec.correlationId ?? null,
+    execution: structuredClone(AGENT_RUN_EXECUTION_METADATA),
   };
   metadata[AGENT_RUN_MESSAGE_RUN_SPEC_METADATA_KEY] = runSpec;
   return {

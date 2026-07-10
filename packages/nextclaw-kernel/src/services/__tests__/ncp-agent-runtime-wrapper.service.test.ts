@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { NcpAgentRunInput, NcpEndpointEvent, NcpMessage } from "@nextclaw/ncp";
+import { NcpEventType, type NcpAgentRunInput, type NcpEndpointEvent, type NcpMessage } from "@nextclaw/ncp";
 import { NcpAgentRuntimeWrapper } from "@kernel/services/ncp-agent-runtime-wrapper.service";
 import type { AgentRunSpec } from "@kernel/types/agent-run.types";
-import type { SessionRun } from "@kernel/managers/session-run.manager";
+import { SessionRun } from "@kernel/managers/session-run.manager";
 
 function createMessage(id: string): NcpMessage {
   return {
@@ -39,6 +39,57 @@ function emptyEvents(): AsyncIterable<NcpEndpointEvent> {
       yield event;
     }
   })();
+}
+
+async function collectWrapperEvents(
+  wrapper: NcpAgentRuntimeWrapper,
+  sessionRun: SessionRun,
+): Promise<NcpEndpointEvent[]> {
+  const events: NcpEndpointEvent[] = [];
+  for await (const event of wrapper.run(SPEC, {
+    contextBlocks: [],
+    session: {
+      sessionId: "session-1",
+      agentRuntimeId: "codex",
+      workingDir: "/session/workspace",
+      metadata: {},
+    },
+    sessionRun,
+    tools: [],
+  })) {
+    events.push(event);
+  }
+  return events;
+}
+
+function iterableEvents(events: readonly NcpEndpointEvent[]): AsyncIterable<NcpEndpointEvent> {
+  return (async function* () {
+    for (const event of events) {
+      yield event;
+    }
+  })();
+}
+
+function createRuntimeFailureEvents(messageId: string, message: string): NcpEndpointEvent[] {
+  return [
+    {
+      type: NcpEventType.MessageFailed,
+      payload: {
+        sessionId: "session-1",
+        messageId,
+        error: { code: "runtime-error", message },
+      },
+    },
+    {
+      type: NcpEventType.RunError,
+      payload: {
+        sessionId: "session-1",
+        messageId,
+        runId: "run-1",
+        error: message,
+      },
+    },
+  ];
 }
 
 describe("NcpAgentRuntimeWrapper", () => {
@@ -89,5 +140,43 @@ describe("NcpAgentRuntimeWrapper", () => {
     expect(inputs[1]?.metadata?.codex_thread_id).toBe("thread-new");
     expect(inputs[0]?.executionContext?.cwd).toBe("/session/workspace");
     expect(inputs[1]?.executionContext?.cwd).toBe("/session/workspace");
+  });
+
+  it("forwards external runtime stream failures without adding a wrapper retry layer", async () => {
+    const sessionRun = new SessionRun({ sessionId: "session-1", messages: [] });
+    sessionRun.inbox.enqueue(createMessage("user-1"));
+    let runtimeCreations = 0;
+    const wrapper = new NcpAgentRuntimeWrapper({
+      createRuntime: () => {
+        runtimeCreations += 1;
+        return {
+          run: (): AsyncIterable<NcpEndpointEvent> => iterableEvents([
+            {
+              type: NcpEventType.RunStarted,
+              payload: { sessionId: "session-1", messageId: "assistant-1", runId: "run-1" },
+            },
+            {
+              type: NcpEventType.MessageTextStart,
+              payload: { sessionId: "session-1", messageId: "assistant-1" },
+            },
+            {
+              type: NcpEventType.MessageTextDelta,
+              payload: { sessionId: "session-1", messageId: "assistant-1", delta: "partial" },
+            },
+            ...createRuntimeFailureEvents(
+              "assistant-1",
+              "Network stream closed before response.completed",
+            ),
+          ]),
+          dispose: async () => undefined,
+        };
+      },
+    });
+
+    const events = await collectWrapperEvents(wrapper, sessionRun);
+
+    expect(runtimeCreations).toBe(1);
+    expect(events.map((event) => event.type)).toContain(NcpEventType.MessageFailed);
+    expect(events.map((event) => event.type)).toContain(NcpEventType.RunError);
   });
 });

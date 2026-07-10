@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
-import { DefaultNcpAgentConversationStateManager } from "../agent-conversation-state-manager.js";
+import { DefaultNcpAgentConversationStateManager } from "../agent-conversation-state.manager.js";
 
 const createFinalAssistantMessage = (): NcpMessage => ({
   id: "assistant-1",

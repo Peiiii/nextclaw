@@ -64,6 +64,7 @@
 - 涉及命名、目录、文件组织时，按场景使用 `file-naming-convention`、`role-first-file-organization`、`collapsible-feature-root-architecture`、`file-organization-governance`。
 - 涉及桌面端 installer、DMG、desktop beta preview、`desktop-release` workflow、update manifest 或检查更新发布时，必须使用 `desktop-release-contract-guard`。
 - 涉及提交、收尾、统一 NPM 发布、GitHub release、changelog、release notes 或发布前变更汇总时，必须使用 `nextclaw-release-notes-automation`；只有需要进入用户 changelog 的变更才添加 `.changeset`。
+- 写或改官网、UI 文案、用户文档、更新提示、release notes、changelog、README 对外说明、产品介绍、截图说明或社交分享元信息等用户可见内容时，必须使用 `user-facing-content-boundary`，把内部讨论/方案/原则转成用户结果表达。
 - 用户要求主动干活/继续推进/不要停，或指出任务未完成却停止时，必须使用 `proactive-work-continuation`，吸收最新约束后继续推进到真实完成、真实阻塞或用户明确暂停。
 - 用户指出同类错误反复发生、要求反思/总结教训/避免再次发生时，必须使用 `learning-from-failures`，把教训落到可自动触发的规则、skill、命令、治理脚本或验证流程。
 - 复杂 debug 用 `long-chain-debugging`；复杂跨轮任务、上下文压缩或交接风险用 `iteration-work-notes`，必要时用 `goal-progress-anchor`。
@@ -97,6 +98,7 @@
 - 可维护性主观复核：使用 [post-edit-maintainability-review](.agents/skills/post-edit-maintainability-review/SKILL.md)，复核抽象、owner、文件边界和长期维护成本是否真的改善。
 
 知识与元规则：负责把想法、设计、计划、迭代记录、发布记录和规则改动放到正确长期层级。
+- 用户可见内容边界：使用 [user-facing-content-boundary](.agents/skills/user-facing-content-boundary/SKILL.md)，在官网、UI 文案、用户文档、更新提示、发布说明和社交元信息中隔离内部讨论过程与最终用户结果表达。
 - 项目知识分流：使用 [project-knowledge-governance](.agents/skills/project-knowledge-governance/SKILL.md)，分流想法、设计、计划、PRD 和路线图到 `docs/TODO.md`、`docs/thoughts`、`docs/designs`、`docs/plans`、`docs/prd`、`docs/ROADMAP.md`。
 - 迭代留痕治理：使用 [nextclaw-iteration-log-governance](.agents/skills/nextclaw-iteration-log-governance/SKILL.md)，管理 `docs/logs`、收尾留痕、NPM 发布记录、工作笔记和目标锚点。
 - 元规则与 skill 分层治理：使用 [nextclaw-agent-instructions-governance](.agents/skills/nextclaw-agent-instructions-governance/SKILL.md)，管理 `AGENTS.md`、命令、Rulebook、Project Rulebook 和 skill 分层。

@@ -8,21 +8,27 @@ import {
 } from "@core/features/llm-providers/index.js";
 import {
   buildOpenAiApiBaseCandidates,
-  createEmptyChatCompletionsPayloadError,
-  isSemanticallyEmptyOpenAiResponse,
-} from "@core/shared/lib/core-utils/index.js";
-import { extractLeadingJson } from "@core/shared/lib/core-utils/index.js";
-import {
-  consumeOpenAiResponsesStream,
-  executeOpenAiResponsesStreamRequest,
-} from "@core/shared/lib/core-utils/index.js";
-import {
   consumeOpenAiChatCompletionsStream,
+  consumeOpenAiResponsesStream,
+  createEmptyChatCompletionsPayloadError,
   executeOpenAiChatCompletionsStreamRequest,
+  executeOpenAiResponsesStreamRequest,
+  extractLeadingJson,
+  isSemanticallyEmptyOpenAiResponse,
+  mapThinkingLevelToOpenAIReasoningEffort,
   mergeOpenAiUsageCounters,
+  OpenAiResponsesStreamTerminatedError,
+  type ThinkingLevel,
 } from "@core/shared/lib/core-utils/index.js";
-import type { ThinkingLevel } from "@core/shared/lib/core-utils/index.js";
-import { mapThinkingLevelToOpenAIReasoningEffort } from "@core/shared/lib/core-utils/index.js";
+
+const STREAM_MAX_ATTEMPTS_BEFORE_OUTPUT = 3;
+
+type ResponsesApiBaseStreamParams = {
+  apiBase: string | null;
+  body: Record<string, unknown>;
+  responseUrl: string;
+  signal?: AbortSignal;
+};
 
 export type OpenAIProviderOptions = {
   apiKey?: string | null;
@@ -262,33 +268,65 @@ export class OpenAICompatibleProvider extends LLMProvider {
       for (const apiBase of provider.apiBaseCandidates) {
         const base = apiBase ?? "https://api.openai.com/v1";
         const responseUrl = new URL("responses", base.endsWith("/") ? base : `${base}/`);
-
-        try {
-          const response = await provider.withRetry(() => executeOpenAiResponsesStreamRequest({
-            fetchImpl: fetch,
-            responseUrl: responseUrl.toString(),
-            apiKey: provider.apiKey,
-            extraHeaders: provider.extraHeaders,
-            body,
-            signal: params.signal,
-          }));
-          for await (const event of consumeOpenAiResponsesStream({
-            response,
-            apiBase,
-            normalizeUsageCounters: provider.normalizeUsageCounters,
-            parseToolCallArguments: provider.parseToolCallArguments,
-          })) {
-            yield event;
-          }
+        const result = yield* provider.streamResponsesFromApiBase({
+          apiBase,
+          body,
+          responseUrl: responseUrl.toString(),
+          signal: params.signal,
+        });
+        if (result.kind === "completed") {
           return;
-        } catch (error) {
-          lastError = error;
         }
+        lastError = result.error;
       }
 
       throw lastError ?? new Error("Responses API returned an empty assistant response.");
     })(this);
   };
+
+  private async *streamResponsesFromApiBase(
+    { apiBase, body, responseUrl, signal }: ResponsesApiBaseStreamParams,
+  ): AsyncGenerator<LLMStreamEvent, { kind: "completed" } | { kind: "failed"; error: unknown }> {
+    for (let attempt = 1; attempt <= STREAM_MAX_ATTEMPTS_BEFORE_OUTPUT; attempt += 1) {
+      let responseStarted = false;
+      let visibleOutputStarted = false;
+      try {
+        const response = await this.withRetry(() => executeOpenAiResponsesStreamRequest({
+          fetchImpl: fetch,
+          responseUrl,
+          apiKey: this.apiKey,
+          extraHeaders: this.extraHeaders,
+          body,
+          signal,
+        }));
+        responseStarted = true;
+        for await (const event of consumeOpenAiResponsesStream({
+          response,
+          apiBase,
+          normalizeUsageCounters: this.normalizeUsageCounters,
+          parseToolCallArguments: this.parseToolCallArguments,
+        })) {
+          visibleOutputStarted = visibleOutputStarted || event.type !== "done";
+          yield event;
+        }
+        return { kind: "completed" };
+      } catch (error) {
+        if (visibleOutputStarted) {
+          throw error;
+        }
+        if (
+          !responseStarted ||
+          attempt >= STREAM_MAX_ATTEMPTS_BEFORE_OUTPUT ||
+          !this.isTransientError(error)
+        ) {
+          return { kind: "failed", error };
+        }
+        await this.sleep(250 * attempt);
+      }
+    }
+
+    return { kind: "failed", error: new Error("Retry attempts exhausted") };
+  }
 
   private buildResponsesRequestBody = (params: {
     model: string;
@@ -417,15 +455,29 @@ export class OpenAICompatibleProvider extends LLMProvider {
     }
 
     const code = `${err?.code ?? err?.cause?.code ?? ""}`.toUpperCase();
-    if (code && ["ECONNRESET", "ETIMEDOUT", "EAI_AGAIN", "ENOTFOUND", "UND_ERR_SOCKET"].includes(code)) {
+    if (
+      code &&
+      [
+        "ECONNRESET",
+        "ETIMEDOUT",
+        "EAI_AGAIN",
+        "ENOTFOUND",
+        "UND_ERR_SOCKET",
+        "OPENAI_RESPONSES_STREAM_MISSING_COMPLETED",
+      ].includes(code)
+    ) {
       return true;
     }
 
     const message = `${err?.message ?? err?.cause?.message ?? ""}`.toLowerCase();
     return (
+      error instanceof OpenAiResponsesStreamTerminatedError ||
       message.includes("fetch failed") ||
+      message.includes("overloaded") ||
+      message.includes("rate limit") ||
       message.includes("socket hang up") ||
       message.includes("timed out") ||
+      message.includes("too many requests") ||
       message.includes("temporarily unavailable")
     );
   };
