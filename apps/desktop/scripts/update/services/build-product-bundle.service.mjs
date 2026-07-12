@@ -95,10 +95,6 @@ function resolveSharpRuntimePackageNames(options) {
   return [...SHARP_RUNTIME_BASE_PACKAGE_NAMES, ...nativePackageNames];
 }
 
-function packageNameToPathSegments(packageName) {
-  return packageName.split("/");
-}
-
 function resolveSharpInstallNodeModulesRoot() {
   const sharpPackageJsonPath = requireFromCore.resolve("sharp/package.json");
   return dirname(dirname(sharpPackageJsonPath));
@@ -122,7 +118,7 @@ function readRuntimeNodeModulePackageNames(nodeModulesRoot) {
 }
 
 async function copyRuntimeNodeModulePackage(packageName, sourceNodeModulesRoot, targetNodeModulesRoot) {
-  const pathSegments = packageNameToPathSegments(packageName);
+  const pathSegments = packageName.split("/");
   const sourceRoot = join(sourceNodeModulesRoot, ...pathSegments);
   if (!existsSync(sourceRoot)) {
     throw new Error(
@@ -143,10 +139,9 @@ async function copyRuntimeNodeModulePackage(packageName, sourceNodeModulesRoot, 
 async function copySharpRuntimeDependencies(workspace, options) {
   const packageNames = resolveSharpRuntimePackageNames(options);
   const sourceNodeModulesRoot = resolveSharpInstallNodeModulesRoot();
-  const targetNodeModulesRoot = join(workspace.runtimeRoot, "node_modules");
-  await mkdir(targetNodeModulesRoot, { recursive: true });
+  await mkdir(workspace.nativeDependenciesRoot, { recursive: true });
   for (const packageName of packageNames) {
-    await copyRuntimeNodeModulePackage(packageName, sourceNodeModulesRoot, targetNodeModulesRoot);
+    await copyRuntimeNodeModulePackage(packageName, sourceNodeModulesRoot, workspace.nativeDependenciesRoot);
   }
   return packageNames;
 }
@@ -224,6 +219,7 @@ function createBundleWorkspace(tempRoot) {
     bundleRoot,
     runtimeRoot,
     runtimeEntrypointDir,
+    nativeDependenciesRoot: join(bundleRoot, "node_modules"),
     uiRoot,
     pluginsRoot
   };
@@ -304,6 +300,8 @@ function bundlePackagedExtensionEntrypoint(sourcePackageRoot, targetRoot) {
       "node",
       "--target",
       "es2022",
+      "--deps.never-bundle",
+      "sharp",
       "--out-dir",
       join(targetRoot, "dist"),
       "--shims",
@@ -366,7 +364,7 @@ async function prepareBundleWorkspace(workspace, options) {
   const nativeRuntimeDependencies = await copySharpRuntimeDependencies(workspace, options);
   await copySessionSearchWorkerAssets(workspace);
   await writeFile(join(workspace.runtimeEntrypointDir, "index.js"), 'import "./index.mjs";\n', "utf8");
-  assertRuntimeBundleContract(workspace.runtimeRoot, nativeRuntimeDependencies);
+  assertRuntimeBundleContract(workspace.runtimeRoot, workspace.nativeDependenciesRoot, nativeRuntimeDependencies);
   await copyPackagedChannelExtensions(workspace);
   assertPackagedExtensionBundleContract(workspace.pluginsRoot);
   const runtimeFileCount = await countFiles(workspace.runtimeRoot);
@@ -382,7 +380,7 @@ async function prepareBundleWorkspace(workspace, options) {
   };
 }
 
-function assertRuntimeBundleContract(runtimeRoot, allowedRuntimeNodeModulePackageNames) {
+function assertRuntimeBundleContract(runtimeRoot, nativeDependenciesRoot, allowedRuntimeNodeModulePackageNames) {
   const requiredFiles = [
     "dist/cli/app/index.js",
     "dist/cli/app/index.mjs",
@@ -395,7 +393,8 @@ function assertRuntimeBundleContract(runtimeRoot, allowedRuntimeNodeModulePackag
   if (missingFiles.length > 0) {
     throw new Error(`Runtime bundle is missing required packaged files: ${missingFiles.join(", ")}`);
   }
-  const nodeModulePackageNames = readRuntimeNodeModulePackageNames(join(runtimeRoot, "node_modules"));
+  if (existsSync(join(runtimeRoot, "node_modules"))) throw new Error("Runtime bundle must not contain runtime/node_modules.");
+  const nodeModulePackageNames = readRuntimeNodeModulePackageNames(nativeDependenciesRoot);
   const allowedPackageNames = new Set(allowedRuntimeNodeModulePackageNames);
   const missingNodeModulePackageNames = allowedRuntimeNodeModulePackageNames.filter(
     (packageName) => !nodeModulePackageNames.includes(packageName)
