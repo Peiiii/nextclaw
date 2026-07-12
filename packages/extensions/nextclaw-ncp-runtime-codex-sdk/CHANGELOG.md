@@ -1,5 +1,13 @@
 # @nextclaw/nextclaw-ncp-runtime-codex-sdk
 
+## 0.2.3
+
+### Patch Changes
+
+- eb485ca: 修复 Codex 会话使用新的运行时默认模型时可能空响应的问题，并更新 Codex NARP 运行时的模型兼容性。
+- Updated dependencies
+  - @nextclaw/ncp@0.7.3
+
 ## 0.2.2
 
 ### Patch Changes

@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.22.3",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-07-13",
+  "title": {
+    "zh-CN": "NextClaw v0.22.3",
+    "en-US": "NextClaw v0.22.3"
+  },
+  "summary": {
+    "zh-CN": "本版本改进聊天附件预览、工具活动展示、Claude/Codex runtime 模型兼容和 marketplace 详情恢复。",
+    "en-US": "This release improves chat attachment previews, tool activity display, Claude/Codex runtime model compatibility, and marketplace detail recovery."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-13-nextclaw-v0-22-3",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-13-nextclaw-v0-22-3"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "功能",
+        "en-US": "Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "聊天附件进入工作区预览",
+            "en-US": "Chat attachments open in the workspace"
+          },
+          "body": {
+            "zh-CN": "文件附件可以直接打开到右侧工作区预览，不必跳出到新的浏览器窗口。",
+            "en-US": "File attachments can open directly in the workspace side preview instead of a new browser window."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "消息图片可全屏查看",
+            "en-US": "Message images can open fullscreen"
+          },
+          "body": {
+            "zh-CN": "图片附件支持全屏灯箱查看，适合放大检查截图、设计稿和生成图片。",
+            "en-US": "Image attachments can open in a fullscreen lightbox for inspecting screenshots, designs, and generated images."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "Claude Code 支持 Runtime default",
+            "en-US": "Claude Code supports Runtime default"
+          },
+          "body": {
+            "zh-CN": "Claude Code 会话可以让 Claude Code 使用自己的配置、鉴权和默认模型。",
+            "en-US": "Claude Code sessions can let Claude Code use its own configuration, authentication, and default model."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "工具活动更清楚",
+            "en-US": "Clearer tool activity"
+          },
+          "body": {
+            "zh-CN": "推理、工具调用、文件和目录操作会用更紧凑的状态行呈现。",
+            "en-US": "Reasoning, tool calls, file work, and directory work use more compact status rows."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "附件预览操作更顺手",
+            "en-US": "Smoother attachment preview controls"
+          },
+          "body": {
+            "zh-CN": "图片预览按钮、关闭按钮和焦点状态更清楚，键盘操作时不会出现过重的焦点样式。",
+            "en-US": "Image preview controls, close controls, and focus states are easier to read without heavy focus rings."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "更多界面表面统一",
+            "en-US": "More consistent UI surfaces"
+          },
+          "body": {
+            "zh-CN": "cron 卡片、marketplace 搜索、文档浏览器控件和共享表单字段在不同主题下更统一。",
+            "en-US": "Cron cards, marketplace search, document browser controls, and shared form fields are more consistent across themes."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "Codex runtime 默认模型兼容性",
+            "en-US": "Codex runtime default model compatibility"
+          },
+          "body": {
+            "zh-CN": "Codex runtime 在新的默认模型配置下不再容易出现空响应。",
+            "en-US": "Codex runtime no longer tends to return empty responses with the newer runtime default model setup."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "Marketplace 详情刷新恢复",
+            "en-US": "Marketplace detail recovery after refresh"
+          },
+          "body": {
+            "zh-CN": "Marketplace skill 详情页刷新后会恢复文档内容，不再只留下不可用的详情 tab。",
+            "en-US": "Marketplace skill detail pages restore document content after browser refreshes instead of leaving the detail tab unavailable."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "Claude Code 配置来源更明确",
+            "en-US": "Clearer Claude Code configuration ownership"
+          },
+          "body": {
+            "zh-CN": "显式 NextClaw 模型继续使用隔离配置，Runtime default 不再覆盖 Claude Code 自己的配置。",
+            "en-US": "Explicit NextClaw model choices keep isolated configuration, while Runtime default no longer overwrites Claude Code's own configuration."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需手动迁移",
+            "en-US": "No manual migration"
+          },
+          "body": {
+            "zh-CN": "本版本不需要手动迁移。",
+            "en-US": "No manual migration is required."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "NPM stable patch",
+            "en-US": "NPM stable patch"
+          },
+          "body": {
+            "zh-CN": "这是 NPM stable patch 版本，可通过正常的 NextClaw NPM 安装或更新流程使用。",
+            "en-US": "This is an NPM stable patch release available through the normal NextClaw NPM install or update flow."
+          }
+        }
+      ]
+    }
+  ]
+}

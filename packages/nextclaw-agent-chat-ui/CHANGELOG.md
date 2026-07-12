@@ -1,5 +1,12 @@
 # @nextclaw/agent-chat-ui
 
+## 0.6.3
+
+### Patch Changes
+
+- 404acd9: Open chat file attachments in the workspace sidebar preview, add a fullscreen lightbox for message images, simplify image chrome, and lighten global keyboard focus rings.
+- b727239: Refine chat process presentation with compact, aligned reasoning and tool rows; localized state-aware labels for built-in tools; reasoning character counts; workflow grouping across intervening reasoning; distinct file and directory activity counts; clearer terminal and file previews; edit line statistics; and clickable skill references.
+
 ## 0.6.2
 
 ### Patch Changes

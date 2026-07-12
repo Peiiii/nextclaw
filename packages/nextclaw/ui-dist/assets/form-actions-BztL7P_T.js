@@ -1,1 +1,0 @@
-import{p as e,u as t}from"./react-UirzUuST.js";var n=e();function r({align:e=`end`,className:r,...i}){return(0,n.jsx)(`div`,{className:t(`flex flex-wrap items-center gap-2`,e===`start`&&`justify-start`,e===`end`&&`justify-end`,e===`between`&&`justify-between`,r),...i})}export{r as t};

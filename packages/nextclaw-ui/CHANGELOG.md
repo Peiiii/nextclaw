@@ -1,5 +1,25 @@
 # @nextclaw/ui
 
+## 0.15.3
+
+### Patch Changes
+
+- 404acd9: Open chat file attachments in the workspace sidebar preview, add a fullscreen lightbox for message images, simplify image chrome, and lighten global keyboard focus rings.
+- b727239: Refine chat process presentation with compact, aligned reasoning and tool rows; localized state-aware labels for built-in tools; reasoning character counts; workflow grouping across intervening reasoning; distinct file and directory activity counts; clearer terminal and file previews; edit line statistics; and clickable skill references.
+- cb7e089: Restore marketplace skill detail documents after a browser refresh instead of leaving the detail tab unavailable.
+- cb7e089: Polish cron cards, marketplace search, document browser controls, and shared form fields with more consistent theme-aware surfaces and focus styling.
+- Updated dependencies
+- Updated dependencies [404acd9]
+- Updated dependencies [b727239]
+  - @nextclaw/agent-chat@0.3.2
+  - @nextclaw/client-sdk@0.5.3
+  - @nextclaw/ncp@0.7.3
+  - @nextclaw/ncp-http-agent-client@0.4.3
+  - @nextclaw/ncp-react@0.5.3
+  - @nextclaw/ncp-toolkit@0.6.3
+  - @nextclaw/shared@0.4.3
+  - @nextclaw/agent-chat-ui@0.6.3
+
 ## 0.15.2
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @nextclaw/nextclaw-narp-runtime-claude-code-sdk
 
+## 0.2.3
+
+### Patch Changes
+
+- 4aadfe7: Allow Claude Code sessions to use Runtime default model selection while preserving isolated NextClaw provider routes for explicit model choices.
+- Updated dependencies
+- Updated dependencies [4aadfe7]
+  - @nextclaw/ncp@0.7.3
+  - @nextclaw/nextclaw-narp-stdio-runtime-wrapper@0.3.3
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk@0.2.3
+
 ## 0.2.2
 
 ### Patch Changes
