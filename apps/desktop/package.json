@@ -97,6 +97,15 @@
       "files": [
         "!node_modules/@img/sharp-!(darwin-${arch})/**",
         "!node_modules/@img/sharp-libvips-!(darwin-${arch})/**"
+      ],
+      "extraResources": [
+        {
+          "from": "../../node_modules/.pnpm/sharp@0.34.5/node_modules/@img",
+          "to": "app.asar.unpacked/node_modules/@img",
+          "filter": [
+            "sharp-libvips-darwin-${arch}/**"
+          ]
+        }
       ]
     },
     "win": {
@@ -149,6 +158,15 @@
       "files": [
         "!node_modules/@img/sharp-!(linux-${arch})/**",
         "!node_modules/@img/sharp-libvips-!(linux-${arch})/**"
+      ],
+      "extraResources": [
+        {
+          "from": "../../node_modules/.pnpm/sharp@0.34.5/node_modules/@img",
+          "to": "app.asar.unpacked/node_modules/@img",
+          "filter": [
+            "sharp-libvips-linux-${arch}/**"
+          ]
+        }
       ]
     },
     "deb": {
