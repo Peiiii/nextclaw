@@ -7,31 +7,43 @@ import { ChatCollapsibleMetaSummary } from "./chat-collapsible-meta-summary";
 type ChatReasoningBlockProps = {
   label: string;
   text: string;
+  characterCountTemplates?: {
+    inProgress: string;
+    completed: string;
+  };
   isUser: boolean;
   isInProgress: boolean;
 };
 
-function normalizeReasoningLabel(label: string): string {
-  const normalizedLabel = label.trim().toLowerCase();
-  if (
-    normalizedLabel === "reasoning" ||
-    normalizedLabel === "thinking" ||
-    normalizedLabel === "推理" ||
-    normalizedLabel === "推理过程" ||
-    normalizedLabel === "思考过程" ||
-    normalizedLabel === "思考"
-  ) {
-    return "思考";
-  }
-  return label;
+function formatReasoningLabel(
+  label: string,
+  text: string,
+  characterCountTemplate?: string,
+): string {
+  const characterCount = Array.from(text).length;
+  return (characterCountTemplate ?? `${label} · {count}`)
+    .split("{count}")
+    .join(String(characterCount));
 }
 
-export function ChatReasoningBlock({ label, text, isUser, isInProgress }: ChatReasoningBlockProps) {
+export function ChatReasoningBlock({
+  label,
+  text,
+  characterCountTemplates,
+  isUser,
+  isInProgress,
+}: ChatReasoningBlockProps) {
   const { isOpen, onSummaryClick } = useReasoningBlockOpenState({
     isInProgress,
   });
   const scrollRef = useRef<HTMLDivElement>(null);
-  const displayLabel = normalizeReasoningLabel(label);
+  const displayLabel = formatReasoningLabel(
+    label,
+    text,
+    isInProgress
+      ? characterCountTemplates?.inProgress
+      : characterCountTemplates?.completed,
+  );
   const { onScroll } = useStickyBottomScroll({
     scrollRef,
     resetKey: `${displayLabel}:${isInProgress ? "streaming" : "idle"}`,
@@ -42,24 +54,27 @@ export function ChatReasoningBlock({ label, text, isUser, isInProgress }: ChatRe
   });
 
   return (
-    <details className="group/reasoning" open={isOpen}>
+    <div className="group/reasoning">
       <ChatCollapsibleMetaSummary
         openGroup="reasoning"
+        open={isOpen}
         label={displayLabel}
         labelClassName={isUser ? "text-primary-100" : undefined}
         onClick={onSummaryClick}
       />
-      <div
-        ref={scrollRef}
-        onScroll={onScroll}
-        data-reasoning-scroll="true"
-        className={cn(
-          "mt-2 w-fit max-w-[500px] max-h-56 overflow-y-auto rounded-lg custom-scrollbar",
-          isUser ? "bg-primary/70" : "bg-muted",
-        )}
-      >
-        <pre className="min-w-0 whitespace-pre-wrap break-all p-2 text-[11px]">{text}</pre>
-      </div>
-    </details>
+      {isOpen ? (
+        <div
+          ref={scrollRef}
+          onScroll={onScroll}
+          data-reasoning-scroll="true"
+          className={cn(
+            "mt-1 w-fit max-w-[500px] max-h-56 overflow-y-auto rounded-lg custom-scrollbar",
+            isUser ? "bg-primary/70" : "bg-muted",
+          )}
+        >
+          <pre className="min-w-0 whitespace-pre-wrap break-all p-2 text-[11px]">{text}</pre>
+        </div>
+      ) : null}
+    </div>
   );
 }

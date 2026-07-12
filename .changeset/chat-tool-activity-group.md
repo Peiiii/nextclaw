@@ -3,4 +3,4 @@
 "@nextclaw/ui": patch
 ---
 
-Group consecutive chat tool calls into natural category summaries, keep the outer process summary as Processed only, and align process/tool/reasoning collapsible meta rows.
+Refine chat process presentation with compact, aligned reasoning and tool rows; localized state-aware labels; reasoning character counts; workflow grouping across intervening reasoning; clearer terminal and file previews; edit line statistics; and clickable skill references.

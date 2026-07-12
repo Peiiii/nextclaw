@@ -972,99 +972,325 @@
 
 .chat-codeblock .hljs-keyword,
 .chat-file-code-syntax .hljs-keyword,
+.chat-terminal-pane .hljs-keyword,
 .chat-codeblock .hljs-built_in,
 .chat-file-code-syntax .hljs-built_in,
+.chat-terminal-pane .hljs-built_in,
 .chat-codeblock .hljs-type,
 .chat-file-code-syntax .hljs-type,
+.chat-terminal-pane .hljs-type,
 .chat-codeblock .hljs-literal,
 .chat-file-code-syntax .hljs-literal,
+.chat-terminal-pane .hljs-literal,
 .chat-codeblock .hljs-selector-tag,
-.chat-file-code-syntax .hljs-selector-tag {
+.chat-file-code-syntax .hljs-selector-tag,
+.chat-terminal-pane .hljs-selector-tag {
   color: var(--md-code-keyword);
 }
 
 .chat-codeblock .hljs-title,
 .chat-file-code-syntax .hljs-title,
+.chat-terminal-pane .hljs-title,
 .chat-codeblock .hljs-title.function_,
 .chat-file-code-syntax .hljs-title.function_,
+.chat-terminal-pane .hljs-title.function_,
 .chat-codeblock .hljs-title.class_,
 .chat-file-code-syntax .hljs-title.class_,
+.chat-terminal-pane .hljs-title.class_,
 .chat-codeblock .hljs-section,
 .chat-file-code-syntax .hljs-section,
+.chat-terminal-pane .hljs-section,
 .chat-codeblock .hljs-selector-id,
-.chat-file-code-syntax .hljs-selector-id {
+.chat-file-code-syntax .hljs-selector-id,
+.chat-terminal-pane .hljs-selector-id {
   color: var(--md-code-title);
 }
 
 .chat-codeblock .hljs-string,
 .chat-file-code-syntax .hljs-string,
+.chat-terminal-pane .hljs-string,
 .chat-codeblock .hljs-regexp,
 .chat-file-code-syntax .hljs-regexp,
+.chat-terminal-pane .hljs-regexp,
 .chat-codeblock .hljs-symbol,
 .chat-file-code-syntax .hljs-symbol,
+.chat-terminal-pane .hljs-symbol,
 .chat-codeblock .hljs-bullet,
-.chat-file-code-syntax .hljs-bullet {
+.chat-file-code-syntax .hljs-bullet,
+.chat-terminal-pane .hljs-bullet {
   color: var(--md-code-string);
 }
 
 .chat-codeblock .hljs-number,
 .chat-file-code-syntax .hljs-number,
+.chat-terminal-pane .hljs-number,
 .chat-codeblock .hljs-variable,
 .chat-file-code-syntax .hljs-variable,
+.chat-terminal-pane .hljs-variable,
 .chat-codeblock .hljs-template-variable,
 .chat-file-code-syntax .hljs-template-variable,
+.chat-terminal-pane .hljs-template-variable,
 .chat-codeblock .hljs-params,
-.chat-file-code-syntax .hljs-params {
+.chat-file-code-syntax .hljs-params,
+.chat-terminal-pane .hljs-params {
   color: var(--md-code-number);
 }
 
 .chat-codeblock .hljs-comment,
 .chat-file-code-syntax .hljs-comment,
+.chat-terminal-pane .hljs-comment,
 .chat-codeblock .hljs-quote,
-.chat-file-code-syntax .hljs-quote {
+.chat-file-code-syntax .hljs-quote,
+.chat-terminal-pane .hljs-quote {
   color: var(--md-code-comment);
   font-style: italic;
 }
 
 .chat-codeblock .hljs-attr,
 .chat-file-code-syntax .hljs-attr,
+.chat-terminal-pane .hljs-attr,
 .chat-codeblock .hljs-attribute,
 .chat-file-code-syntax .hljs-attribute,
+.chat-terminal-pane .hljs-attribute,
 .chat-codeblock .hljs-property,
 .chat-file-code-syntax .hljs-property,
+.chat-terminal-pane .hljs-property,
 .chat-codeblock .hljs-name,
 .chat-file-code-syntax .hljs-name,
+.chat-terminal-pane .hljs-name,
 .chat-codeblock .hljs-selector-class,
-.chat-file-code-syntax .hljs-selector-class {
+.chat-file-code-syntax .hljs-selector-class,
+.chat-terminal-pane .hljs-selector-class {
   color: var(--md-code-attr);
 }
 
 .chat-codeblock .hljs-meta,
 .chat-file-code-syntax .hljs-meta,
+.chat-terminal-pane .hljs-meta,
 .chat-codeblock .hljs-doctag,
 .chat-file-code-syntax .hljs-doctag,
+.chat-terminal-pane .hljs-doctag,
 .chat-codeblock .hljs-tag,
-.chat-file-code-syntax .hljs-tag {
+.chat-file-code-syntax .hljs-tag,
+.chat-terminal-pane .hljs-tag {
   color: var(--md-code-meta);
 }
 
 .chat-codeblock .hljs-subst,
 .chat-file-code-syntax .hljs-subst,
+.chat-terminal-pane .hljs-subst,
 .chat-codeblock .hljs-punctuation,
 .chat-file-code-syntax .hljs-punctuation,
+.chat-terminal-pane .hljs-punctuation,
 .chat-codeblock .hljs-operator,
-.chat-file-code-syntax .hljs-operator {
+.chat-file-code-syntax .hljs-operator,
+.chat-terminal-pane .hljs-operator {
   color: var(--md-code-muted);
 }
 
 .chat-codeblock .hljs-deletion,
-.chat-file-code-syntax .hljs-deletion {
+.chat-file-code-syntax .hljs-deletion,
+.chat-terminal-pane .hljs-deletion {
   color: var(--md-code-deletion);
 }
 
 .chat-codeblock .hljs-addition,
-.chat-file-code-syntax .hljs-addition {
+.chat-file-code-syntax .hljs-addition,
+.chat-terminal-pane .hljs-addition {
   color: var(--md-code-addition);
+}
+
+/* Terminal tool surface: terminal style without decorative chrome */
+.chat-terminal-surface {
+  --terminal-surface: #0b1220;
+  --terminal-border: rgba(148, 163, 184, 0.28);
+  --terminal-text: #e5e7eb;
+  --terminal-muted: #94a3b8;
+  --terminal-prompt: #34d399;
+  --terminal-caret: rgba(52, 211, 153, 0.92);
+  --terminal-error-border: rgba(251, 113, 133, 0.42);
+  --terminal-error-bg: rgba(127, 29, 29, 0.16);
+  --terminal-error-text: #fecdd3;
+  --md-code-text: #e5e7eb;
+  --md-code-muted: #94a3b8;
+  --md-code-keyword: #c084fc;
+  --md-code-title: #93c5fd;
+  --md-code-string: #86efac;
+  --md-code-number: #fbbf24;
+  --md-code-comment: #94a3b8;
+  --md-code-attr: #67e8f9;
+  --md-code-meta: #f0abfc;
+  --md-code-deletion: #fca5a5;
+  --md-code-addition: #86efac;
+
+  overflow: hidden;
+  border: 1px solid var(--terminal-border);
+  border-radius: 0.55rem;
+  background: var(--terminal-surface);
+}
+
+.chat-terminal-surface-error {
+  border-color: var(--terminal-error-border);
+  background:
+    linear-gradient(180deg, var(--terminal-error-bg), transparent 48%),
+    var(--terminal-surface);
+}
+
+.chat-terminal-body {
+  max-height: 22rem;
+  overflow: auto;
+  padding: 0.7rem 0.75rem 0.78rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+}
+
+.chat-terminal-line {
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
+  column-gap: 0.55rem;
+  align-items: start;
+}
+
+.chat-terminal-gutter {
+  width: 1rem;
+  color: var(--terminal-prompt);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.58;
+  text-align: right;
+  user-select: none;
+}
+
+.chat-terminal-line-content {
+  min-width: 0;
+}
+
+.chat-terminal-output-block {
+  margin-top: 0.55rem;
+}
+
+.chat-terminal-pre {
+  margin: 0;
+  background: transparent;
+}
+
+.chat-terminal-pre code,
+.chat-terminal-code {
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.8rem;
+  line-height: 1.58;
+  color: var(--terminal-text);
+  font-variant-ligatures: none;
+  tab-size: 2;
+}
+
+.chat-terminal-pre-error,
+.chat-terminal-code-error {
+  color: var(--terminal-error-text);
+}
+
+.chat-terminal-empty {
+  color: var(--terminal-muted);
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+.chat-terminal-caret {
+  display: inline-block;
+  width: 0.42rem;
+  height: 0.95em;
+  margin-left: 0.12rem;
+  vertical-align: text-bottom;
+  background: var(--terminal-caret);
+  animation: chat-terminal-caret-blink 1s steps(1, end) infinite;
+}
+
+.chat-terminal-skeleton {
+  height: 0.78rem;
+  width: 9rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.28);
+  animation: chat-terminal-skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+.chat-terminal-surface .ansi-bold { font-weight: 700; }
+.chat-terminal-surface .ansi-dim { opacity: 0.72; }
+.chat-terminal-surface .ansi-italic { font-style: italic; }
+.chat-terminal-surface .ansi-underline { text-decoration: underline; }
+.chat-terminal-surface .ansi-inverse {
+  color: var(--terminal-surface);
+  background: var(--terminal-text);
+}
+
+.chat-terminal-surface .ansi-fg-black { color: #0f172a; }
+.chat-terminal-surface .ansi-fg-red { color: #f87171; }
+.chat-terminal-surface .ansi-fg-green { color: #4ade80; }
+.chat-terminal-surface .ansi-fg-yellow { color: #fbbf24; }
+.chat-terminal-surface .ansi-fg-blue { color: #60a5fa; }
+.chat-terminal-surface .ansi-fg-magenta { color: #e879f9; }
+.chat-terminal-surface .ansi-fg-cyan { color: #22d3ee; }
+.chat-terminal-surface .ansi-fg-white { color: #e5e7eb; }
+.chat-terminal-surface .ansi-fg-bright-black { color: #94a3b8; }
+.chat-terminal-surface .ansi-fg-bright-red { color: #fca5a5; }
+.chat-terminal-surface .ansi-fg-bright-green { color: #86efac; }
+.chat-terminal-surface .ansi-fg-bright-yellow { color: #fde68a; }
+.chat-terminal-surface .ansi-fg-bright-blue { color: #93c5fd; }
+.chat-terminal-surface .ansi-fg-bright-magenta { color: #f0abfc; }
+.chat-terminal-surface .ansi-fg-bright-cyan { color: #67e8f9; }
+.chat-terminal-surface .ansi-fg-bright-white { color: #f8fafc; }
+
+.chat-terminal-surface .ansi-bg-black { background: #0f172a; }
+.chat-terminal-surface .ansi-bg-red { background: rgba(248, 113, 113, 0.28); }
+.chat-terminal-surface .ansi-bg-green { background: rgba(74, 222, 128, 0.22); }
+.chat-terminal-surface .ansi-bg-yellow { background: rgba(251, 191, 36, 0.22); }
+.chat-terminal-surface .ansi-bg-blue { background: rgba(96, 165, 250, 0.22); }
+.chat-terminal-surface .ansi-bg-magenta { background: rgba(232, 121, 249, 0.22); }
+.chat-terminal-surface .ansi-bg-cyan { background: rgba(34, 211, 238, 0.2); }
+.chat-terminal-surface .ansi-bg-white { background: rgba(229, 231, 235, 0.18); }
+
+@keyframes chat-terminal-caret-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes chat-terminal-skeleton-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-terminal-caret,
+  .chat-terminal-skeleton {
+    animation: none;
+  }
+}
+
+:root[data-theme="work"] .chat-terminal-surface {
+  --terminal-surface: #111827;
+  --terminal-border: rgba(148, 163, 184, 0.24);
+}
+
+:root[data-theme-appearance="dark"] .chat-terminal-surface {
+  --terminal-surface: #070b14;
+  --terminal-border: rgba(148, 163, 184, 0.22);
+}
+
+/* Prevent browser default "详情/Details" fallback on chat process summaries. */
+.nextclaw-chat-message-user details > summary,
+.border-border.bg-card details > summary,
+.chat-markdown details > summary {
+  list-style: none;
+}
+
+.nextclaw-chat-message-user details > summary::-webkit-details-marker,
+.border-border.bg-card details > summary::-webkit-details-marker,
+.chat-markdown details > summary::-webkit-details-marker {
+  display: none;
 }
 
 .chat-table-wrap {

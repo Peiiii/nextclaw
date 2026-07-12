@@ -1,7 +1,8 @@
-import { memo, type ReactNode } from "react";
+import { memo, useState, type ReactNode } from "react";
 import type {
   ChatFileOpenActionViewModel,
   ChatInlineDisplayViewModel,
+  ChatInlineTokenViewModel,
   ChatPanelAppCardViewModel,
   ChatMessageTexts,
   ChatMessagePartViewModel,
@@ -32,9 +33,12 @@ type ChatMessageProps = {
     | "toolActivitySegmentTemplates"
     | "toolActivityFailedLabel"
     | "toolActivityCancelledLabel"
+    | "reasoningCharacterCountTemplates"
+    | "toolStatusLabels"
   >;
   onToolAction?: (action: ChatToolActionViewModel) => void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  onInlineTokenClick?: (token: ChatInlineTokenViewModel) => void;
   renderInlineDisplay?: (
     display: ChatInlineDisplayViewModel,
   ) => ReactNode | undefined;
@@ -57,6 +61,7 @@ type RenderChatMessagePartParams = {
   texts: ChatMessageProps["texts"];
   onToolAction?: (action: ChatToolActionViewModel) => void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  onInlineTokenClick?: (token: ChatInlineTokenViewModel) => void;
   renderInlineDisplay?: (
     display: ChatInlineDisplayViewModel,
   ) => ReactNode | undefined;
@@ -133,6 +138,7 @@ function renderChatMessagePart({
   isLastPart,
   isUser,
   onFileOpen,
+  onInlineTokenClick,
   onToolAction,
   part,
   renderInlineDisplay,
@@ -153,6 +159,7 @@ function renderChatMessagePart({
         texts={texts}
         inlineTokens={inlineTokens}
         onFileOpen={onFileOpen}
+        onInlineTokenClick={onInlineTokenClick}
         renderInlineDisplay={renderInlineDisplay}
       />
     );
@@ -164,6 +171,7 @@ function renderChatMessagePart({
         key={`reasoning-${index}`}
         label={label}
         text={text}
+        characterCountTemplates={texts.reasoningCharacterCountTemplates}
         isUser={isUser}
         isInProgress={isInProgress && isLastPart}
       />
@@ -172,9 +180,10 @@ function renderChatMessagePart({
   if (type === "tool-card") {
     const { card } = part;
     return (
-      <div key={`tool-${index}`} className="mt-0.5">
+      <div key={`tool-${index}`}>
         <ChatToolCard
           card={card}
+          toolStatusLabels={texts.toolStatusLabels}
           onToolAction={onToolAction}
           onFileOpen={onFileOpen}
           renderToolAgent={renderToolAgent}
@@ -219,6 +228,7 @@ function renderMessageParts(params: {
   texts: ChatMessageProps["texts"];
   onToolAction?: (action: ChatToolActionViewModel) => void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  onInlineTokenClick?: (token: ChatInlineTokenViewModel) => void;
   renderInlineDisplay?: (
     display: ChatInlineDisplayViewModel,
   ) => ReactNode | undefined;
@@ -230,6 +240,7 @@ function renderMessageParts(params: {
     isInProgress,
     isUser,
     onFileOpen,
+    onInlineTokenClick,
     onToolAction,
     parts,
     renderInlineDisplay,
@@ -248,6 +259,9 @@ function renderMessageParts(params: {
         <ChatToolActivityGroup
           key={block.key}
           group={block.group}
+          isUser={isUser}
+          reasoningCharacterCountTemplates={texts.reasoningCharacterCountTemplates}
+          toolStatusLabels={texts.toolStatusLabels}
           onToolAction={onToolAction}
           onFileOpen={onFileOpen}
           renderToolAgent={renderToolAgent}
@@ -266,6 +280,7 @@ function renderMessageParts(params: {
       texts,
       onToolAction,
       onFileOpen,
+      onInlineTokenClick,
       renderInlineDisplay,
       renderToolAgent,
       renderPanelAppCard,
@@ -278,6 +293,7 @@ export const ChatMessage = memo(function ChatMessage({
   texts,
   onToolAction,
   onFileOpen,
+  onInlineTokenClick,
   renderInlineDisplay,
   renderToolAgent,
   renderPanelAppCard,
@@ -286,6 +302,8 @@ export const ChatMessage = memo(function ChatMessage({
   const isUser = role === "user";
   const isInProgress = isMessageInProgress(message.status);
   const processSplit = splitAssistantProcess(message);
+  // Controlled collapse avoids native <details>/<summary> UA labels like "详情".
+  const [processOpen, setProcessOpen] = useState(false);
 
   return (
     <div
@@ -298,30 +316,36 @@ export const ChatMessage = memo(function ChatMessage({
             : "border-border bg-muted/45 py-3 text-foreground",
       )}
     >
-      <div className="space-y-2">
+      <div className="space-y-0">
         {processSplit ? (
           <>
-            <details className="group/process">
-              <ChatCollapsibleMetaSummary
-                openGroup="process"
-                label={message.processSummary?.label}
-                className="border-b border-border/60 pb-2"
-              />
-              <div className="space-y-2 pt-2">
-                {renderMessageParts({
-                  parts: processSplit.processParts,
-                  role,
-                  isUser,
-                  isInProgress,
-                  texts,
-                  onToolAction,
-                  onFileOpen,
-                  renderInlineDisplay,
-                  renderToolAgent,
-                  renderPanelAppCard,
-                })}
+            <div className="group/process">
+              <div className="mb-2 border-b border-border/60 pb-2">
+                <ChatCollapsibleMetaSummary
+                  openGroup="process"
+                  open={processOpen}
+                  label={message.processSummary?.label}
+                  onClick={() => setProcessOpen((current) => !current)}
+                />
               </div>
-            </details>
+              {processOpen ? (
+                <div className="space-y-0">
+                  {renderMessageParts({
+                    parts: processSplit.processParts,
+                    role,
+                    isUser,
+                    isInProgress,
+                    texts,
+                    onToolAction,
+                    onFileOpen,
+                    onInlineTokenClick,
+                    renderInlineDisplay,
+                    renderToolAgent,
+                    renderPanelAppCard,
+                  })}
+                </div>
+              ) : null}
+            </div>
             {renderMessageParts({
               parts: processSplit.finalParts,
               role,
@@ -330,6 +354,7 @@ export const ChatMessage = memo(function ChatMessage({
               texts,
               onToolAction,
               onFileOpen,
+              onInlineTokenClick,
               renderInlineDisplay,
               renderToolAgent,
               renderPanelAppCard,
@@ -345,6 +370,7 @@ export const ChatMessage = memo(function ChatMessage({
             texts,
             onToolAction,
             onFileOpen,
+            onInlineTokenClick,
             renderInlineDisplay,
             renderToolAgent,
             renderPanelAppCard,

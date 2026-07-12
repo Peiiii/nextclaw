@@ -42,6 +42,36 @@ export function buildChatMessageTexts(
     copyMessageLabel: t("chatMessageCopy"),
     copiedMessageLabel: t("chatMessageCopied"),
     typingLabel: t("chatTyping"),
+    reasoningCharacterCountTemplates: {
+      inProgress: t("chatReasoningInProgressCharacterCount"),
+      completed: t("chatReasoningCompletedCharacterCount"),
+    },
+    toolStatusLabels: {
+      terminal: {
+        running: t("chatToolTerminalRunning"),
+        success: t("chatToolTerminalSuccess"),
+        error: t("chatToolTerminalError"),
+        cancelled: t("chatToolTerminalCancelled"),
+      },
+      fileRead: {
+        running: t("chatToolFileReadRunning"),
+        success: t("chatToolFileReadSuccess"),
+        error: t("chatToolFileReadError"),
+        cancelled: t("chatToolFileReadCancelled"),
+      },
+      fileEdit: {
+        running: t("chatToolFileEditRunning"),
+        success: t("chatToolFileEditSuccess"),
+        error: t("chatToolFileEditError"),
+        cancelled: t("chatToolFileEditCancelled"),
+      },
+      search: {
+        running: t("chatToolSearchRunning"),
+        success: t("chatToolSearchSuccess"),
+        error: t("chatToolSearchError"),
+        cancelled: t("chatToolSearchCancelled"),
+      },
+    },
     attachmentOpenLabel: t("chatAttachmentOpen"),
     attachmentAttachedLabel: t("chatAttachmentAttached"),
     attachmentCategoryLabels: {

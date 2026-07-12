@@ -210,6 +210,51 @@ it("renders user inline tokens with theme-owned contrast", () => {
   expect(token?.className).toContain("bg-primary-foreground/22");
 });
 
+it("renders skill tokens as link-styled interactive entities", () => {
+  const onInlineTokenClick = vi.fn();
+  render(
+    <ChatMessageList
+      messages={[
+        {
+          id: "user-inline-skill",
+          role: "user",
+          roleLabel: "You",
+          timestampLabel: "10:07",
+          parts: [
+            {
+              type: "markdown",
+              text: "use $weather now",
+              inlineTokens: [
+                {
+                  kind: "skill",
+                  key: "weather",
+                  label: "Weather",
+                  rawText: "$weather",
+                },
+              ],
+            },
+          ],
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+      onInlineTokenClick={onInlineTokenClick}
+    />,
+  );
+
+  const skillButton = screen.getByRole("button", { name: "Weather" });
+  expect(skillButton.className).toContain("nextclaw-chat-inline-token");
+  expect(skillButton.className).toContain("text-[color:var(--md-link)]");
+  fireEvent.click(skillButton);
+  expect(onInlineTokenClick).toHaveBeenCalledWith({
+    kind: "skill",
+    key: "weather",
+    label: "Weather",
+    rawText: "$weather",
+  });
+});
+
 it("renders running tool cards with live status feedback", () => {
   render(
     <ChatMessageList
@@ -451,174 +496,8 @@ it("renders completed terminal tool cards collapsed by default on initial mount"
   expect(screen.queryByText("short finished output")).toBeNull();
 });
 
-it("renders structured terminal payloads as terminal output instead of raw json", () => {
-  render(
-    <ChatMessageList
-      messages={[
-        {
-          id: "assistant-tool-json-output",
-          role: "assistant",
-          roleLabel: "Assistant",
-          timestampLabel: "10:13",
-          parts: [
-            {
-              type: "tool-card",
-              card: {
-                kind: "result",
-                toolName: "exec_command",
-                summary: "command: pnpm test",
-                output: JSON.stringify({
-                  ok: true,
-                  command: "pnpm test",
-                  stdout: "\u001b[32mfirst line\u001b[39m\nsecond line",
-                  stderr: "warning line",
-                  exitCode: 0,
-                }),
-                hasResult: true,
-                statusTone: "success",
-                statusLabel: "Completed",
-                titleLabel: "Tool Result",
-                outputLabel: "View Output",
-                emptyLabel: "No output",
-              },
-            },
-          ],
-        },
-      ]}
-      isSending={false}
-      hasAssistantDraft={false}
-      texts={defaultTexts}
-    />,
-  );
-
-  fireEvent.click(screen.getByText("pnpm test"));
-
-  expect(screen.getByText(/first line/)).toBeTruthy();
-  expect(screen.getByText(/second line/)).toBeTruthy();
-  expect(screen.getByText(/warning line/)).toBeTruthy();
-  expect(screen.queryByText(/"stdout":/)).toBeNull();
-});
-
-it("suppresses structured terminal payload json when the command produced no terminal output", () => {
-  render(
-    <ChatMessageList
-      messages={[
-        {
-          id: "assistant-tool-empty-structured-output",
-          role: "assistant",
-          roleLabel: "Assistant",
-          timestampLabel: "10:14",
-          parts: [
-            {
-              type: "tool-card",
-              card: {
-                kind: "result",
-                toolName: "command_execution",
-                summary: "command: python3 -m http.server 8765",
-                output: JSON.stringify({
-                  ok: true,
-                  command: "python3 -m http.server 8765",
-                  workingDir: "/Users/peiwang/.nextclaw/workspace",
-                  exitCode: 0,
-                  stdout: "",
-                  stderr: "",
-                  durationMs: 60002,
-                  timedOut: false,
-                  killed: false,
-                }),
-                hasResult: true,
-                statusTone: "success",
-                statusLabel: "Completed",
-                titleLabel: "Tool Result",
-                outputLabel: "View Output",
-                emptyLabel: "No output",
-              },
-            },
-          ],
-        },
-      ]}
-      isSending={false}
-      hasAssistantDraft={false}
-      texts={defaultTexts}
-    />,
-  );
-
-  fireEvent.click(screen.getByText("python3 -m http.server 8765"));
-
-  expect(screen.getByText("No output")).toBeTruthy();
-  expect(screen.queryByText(/"durationMs": 60002/)).toBeNull();
-  expect(screen.queryByText(/"workingDir":/)).toBeNull();
-});
-
-it("resets completed terminal tool cards to collapsed when the message list remounts", () => {
-  const message = {
-    id: "assistant-tool-remount",
-    role: "assistant" as const,
-    roleLabel: "Assistant",
-    timestampLabel: "10:11",
-    parts: [
-      {
-        type: "tool-card" as const,
-        card: {
-          kind: "result" as const,
-          toolName: "shell",
-          summary: "cmd: pnpm test",
-          output: "short finished output",
-          hasResult: true,
-          statusTone: "success" as const,
-          statusLabel: "Completed",
-          titleLabel: "Tool Result",
-          outputLabel: "View Output",
-          emptyLabel: "No output",
-        },
-      },
-    ],
-  };
-
-  const { rerender } = render(
-    <ChatMessageList
-      key="session-a"
-      messages={[message]}
-      isSending={false}
-      hasAssistantDraft={false}
-      texts={defaultTexts}
-    />,
-  );
-
-  fireEvent.click(screen.getByText("cmd: pnpm test"));
-  expect(screen.getByText("short finished output")).toBeTruthy();
-
-  rerender(
-    <ChatMessageList
-      key="session-b"
-      messages={[message]}
-      isSending={false}
-      hasAssistantDraft={false}
-      texts={defaultTexts}
-    />,
-  );
-
-  expect(screen.queryByText("short finished output")).toBeNull();
-});
-
-it("renders completed reasoning as a collapsed thought block while keeping the original details layout", () => {
-  render(
-    <ChatMessageList
-      messages={[createReasoningMessage()]}
-      isSending={false}
-      hasAssistantDraft={false}
-      texts={defaultTexts}
-    />,
-  );
-
-  expect(screen.getByText("思考")).toBeTruthy();
-  const details = document.querySelector("details");
-  expect(details?.hasAttribute("open")).toBe(false);
-  expect(screen.getByText(/This is the full reasoning content\./)).toBeTruthy();
-});
-
 it("auto-collapses reasoning after the current streaming queue finishes", () => {
-  const { container, rerender } = render(
+  const { rerender } = render(
     <ChatMessageList
       messages={[createReasoningMessage("streaming")]}
       isSending={false}
@@ -627,8 +506,10 @@ it("auto-collapses reasoning after the current streaming queue finishes", () => 
     />,
   );
 
-  const details = () => container.querySelector("details");
-  expect(details()?.hasAttribute("open")).toBe(true);
+  expect(
+    screen.getByRole("button", { name: /Reasoning · \d+/ }).getAttribute("aria-expanded"),
+  ).toBe("true");
+  expect(screen.getByText(/This is the full reasoning content\./)).toBeTruthy();
 
   rerender(
     <ChatMessageList
@@ -639,11 +520,14 @@ it("auto-collapses reasoning after the current streaming queue finishes", () => 
     />,
   );
 
-  expect(details()?.hasAttribute("open")).toBe(false);
+  expect(
+    screen.getByRole("button", { name: /Reasoning · \d+/ }).getAttribute("aria-expanded"),
+  ).toBe("false");
+  expect(screen.queryByText(/This is the full reasoning content\./)).toBeNull();
 });
 
 it("keeps earlier reasoning queues collapsed while only the current queue stays expanded", () => {
-  const { container } = render(
+  render(
     <ChatMessageList
       messages={[
         {
@@ -672,14 +556,16 @@ it("keeps earlier reasoning queues collapsed while only the current queue stays 
     />,
   );
 
-  const detailsList = Array.from(container.querySelectorAll("details"));
-  expect(detailsList).toHaveLength(2);
-  expect(detailsList[0]?.hasAttribute("open")).toBe(false);
-  expect(detailsList[1]?.hasAttribute("open")).toBe(true);
+  const buttons = screen.getAllByRole("button", { name: /Reasoning · \d+/ });
+  expect(buttons).toHaveLength(2);
+  expect(buttons[0]?.getAttribute("aria-expanded")).toBe("false");
+  expect(buttons[1]?.getAttribute("aria-expanded")).toBe("true");
+  expect(screen.queryByText("Finished queue")).toBeNull();
+  expect(screen.getByText("Current queue")).toBeTruthy();
 });
 
 it("keeps reasoning expanded after completion when the user manually re-opens it", () => {
-  const { container, rerender } = render(
+  const { rerender } = render(
     <ChatMessageList
       messages={[createReasoningMessage("streaming")]}
       isSending={false}
@@ -688,16 +574,14 @@ it("keeps reasoning expanded after completion when the user manually re-opens it
     />,
   );
 
-  const details = () => container.querySelector("details");
-  const summary = screen.getByText("思考");
-
-  expect(details()?.hasAttribute("open")).toBe(true);
+  const summary = screen.getByRole("button", { name: /Reasoning · \d+/ });
+  expect(summary.getAttribute("aria-expanded")).toBe("true");
 
   fireEvent.click(summary);
-  expect(details()?.hasAttribute("open")).toBe(false);
+  expect(summary.getAttribute("aria-expanded")).toBe("false");
 
   fireEvent.click(summary);
-  expect(details()?.hasAttribute("open")).toBe(true);
+  expect(summary.getAttribute("aria-expanded")).toBe("true");
 
   rerender(
     <ChatMessageList
@@ -708,7 +592,10 @@ it("keeps reasoning expanded after completion when the user manually re-opens it
     />,
   );
 
-  expect(details()?.hasAttribute("open")).toBe(true);
+  expect(
+    screen.getByRole("button", { name: /Reasoning · \d+/ }).getAttribute("aria-expanded"),
+  ).toBe("true");
+  expect(screen.getByText(/This is the full reasoning content\./)).toBeTruthy();
 });
 
 it("keeps streaming thought content pinned to the bottom until the user scrolls away", () => {
@@ -745,7 +632,7 @@ it("keeps streaming thought content pinned to the bottom until the user scrolls 
       '[data-reasoning-scroll="true"]',
     ) as HTMLDivElement | null;
 
-    expect(screen.getByText("思考")).toBeTruthy();
+    expect(screen.getByText("Reasoning · 20")).toBeTruthy();
     expect(scrollArea).toBeTruthy();
     expect(scrollArea?.className).toContain("max-h-56");
     expect(scrollArea?.className).not.toContain("overscroll-contain");

@@ -15,6 +15,12 @@ export type ChatToolActivityFamily =
 
 export type ChatToolActivityTone = "success" | "error" | "cancelled" | "running";
 
+type ChatToolCardPart = Extract<ChatMessagePartViewModel, { type: "tool-card" }>;
+type ChatToolGroupPart = Extract<
+  ChatMessagePartViewModel,
+  { type: "tool-card" | "reasoning" }
+>;
+
 export type ChatToolActivitySegment = {
   family: ChatToolActivityFamily;
   count: number;
@@ -25,7 +31,7 @@ export type ChatToolActivityGroupViewModel = {
   key: string;
   startIndex: number;
   endIndex: number;
-  parts: Array<Extract<ChatMessagePartViewModel, { type: "tool-card" }>>;
+  parts: ChatToolGroupPart[];
   segments: ChatToolActivitySegment[];
   label: string;
 };
@@ -57,6 +63,10 @@ export type ChatMessageRenderBlock =
     };
 
 const MAX_SUMMARY_SEGMENTS = 3;
+
+function isToolCardPart(part: ChatToolGroupPart): part is ChatToolCardPart {
+  return part.type === "tool-card";
+}
 
 export function resolveToolActivityFamily(toolName: string): ChatToolActivityFamily {
   const lowered = toolName.toLowerCase();
@@ -156,7 +166,7 @@ function formatSegment(
   const body =
     segment.count === 1
       ? template.one
-      : template.other.replaceAll("{count}", String(segment.count));
+      : template.other.split("{count}").join(String(segment.count));
 
   if (segment.tone === "error") {
     return `${body} ${labels.failedLabel}`;
@@ -236,8 +246,8 @@ export function formatToolActivityGroupLabel(params: {
 }
 
 /**
- * Group only consecutive tool-cards.
- * Any non-tool part (markdown/text/reasoning/file/unknown) breaks the run.
+ * Group tool cards separated only by reasoning into one visible workflow.
+ * Markdown, files and unknown parts still break the run.
  * Single tool-cards stay ungrouped so they keep their native card UI.
  */
 export function groupConsecutiveToolParts(
@@ -261,22 +271,34 @@ export function groupConsecutiveToolParts(
     }
 
     const startIndex = index;
-    const toolParts: Array<Extract<ChatMessagePartViewModel, { type: "tool-card" }>> = [];
-    while (index < parts.length && parts[index]?.type === "tool-card") {
-      toolParts.push(parts[index] as Extract<ChatMessagePartViewModel, { type: "tool-card" }>);
+    const candidateParts: ChatToolGroupPart[] = [];
+    let lastToolOffset = -1;
+    while (
+      index < parts.length &&
+      (parts[index]?.type === "tool-card" || parts[index]?.type === "reasoning")
+    ) {
+      const candidate = parts[index] as ChatToolGroupPart;
+      candidateParts.push(candidate);
+      if (candidate.type === "tool-card") {
+        lastToolOffset = candidateParts.length - 1;
+      }
       index += 1;
     }
 
+    const toolParts = candidateParts.filter(isToolCardPart);
     if (toolParts.length === 1) {
       blocks.push({
         kind: "part",
         key: `part-${startIndex}`,
         index: startIndex,
-        part: toolParts[0]!,
+        part,
       });
+      index = startIndex + 1;
       continue;
     }
 
+    const groupedParts = candidateParts.slice(0, lastToolOffset + 1);
+    index = startIndex + groupedParts.length;
     const cards = toolParts.map((toolPart) => toolPart.card);
     const segments = buildToolActivitySegments(cards);
     const label = formatToolActivityGroupLabel({ segments, labels });
@@ -287,7 +309,7 @@ export function groupConsecutiveToolParts(
         key: `tool-group-${startIndex}-${index - 1}`,
         startIndex,
         endIndex: index - 1,
-        parts: toolParts,
+        parts: groupedParts,
         segments,
         label,
       },

@@ -1,7 +1,11 @@
-import { ArrowUpRight, ChevronDown, ChevronRight, Eye, type LucideIcon } from 'lucide-react';
-import type { MouseEvent, ReactNode } from 'react';
+import { ArrowUpRight, ChevronRight, Eye, type LucideIcon } from 'lucide-react';
+import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { cn } from '@agent-chat-ui/components/chat/internal/cn';
 import { ChatUiPrimitives } from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
+import {
+  ChatProcessLeadingIcon,
+  ChatProcessMetaRow,
+} from '@agent-chat-ui/components/chat/ui/chat-message-list/chat-process-meta-row';
 import { ToolStatusLabel } from './tool-card-status';
 import type {
   ChatToolActionViewModel,
@@ -17,14 +21,16 @@ function resolveToolCardActionView(action: ChatToolActionViewModel): {
     return {
       icon: Eye,
       label: action.label,
-      toneClassName: 'border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-primary/35',
+      toneClassName:
+        'border-border/70 bg-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground focus-visible:ring-primary/35',
     };
   }
 
   return {
     icon: ArrowUpRight,
     label: action.label ?? (action.sessionKind === 'child' ? 'Open child session' : 'Open session'),
-    toneClassName: 'border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-primary/35',
+    toneClassName:
+      'border-border/70 bg-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground focus-visible:ring-primary/35',
   };
 }
 
@@ -52,14 +58,14 @@ function ToolCardActionButton({
             type="button"
             onClick={handleClick}
             className={cn(
-              'inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors',
+              'inline-flex h-6 w-6 items-center justify-center rounded-md border transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
               view.toneClassName,
             )}
             aria-label={view.label}
             title={view.label}
           >
-            <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />
+            <Icon className="h-3.5 w-3.5" strokeWidth={2.25} />
           </button>
         </TooltipTrigger>
         <TooltipContent side="top" className="text-xs">
@@ -70,62 +76,159 @@ function ToolCardActionButton({
   );
 }
 
-export function ToolCardHeader({ 
-  card, 
-  icon: Icon, 
-  expanded, 
+function humanizeToolName(toolName: string): string {
+  return toolName
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function handleToolHeaderKeyDown(
+  event: KeyboardEvent<HTMLElement>,
+  onToggle: () => void,
+) {
+  if (event.key !== 'Enter' && event.key !== ' ') {
+    return;
+  }
+  event.preventDefault();
+  onToggle();
+}
+
+function ToolHeaderSummary({
+  label,
+  summary,
+}: {
+  label: string;
+  summary: string;
+}) {
+  return (
+    <span className="min-w-0 shrink truncate">
+      {label}
+      {summary ? (
+        <>
+          <span className="mx-1.5 select-none text-muted-foreground/45">·</span>
+          <span title={summary}>{summary}</span>
+        </>
+      ) : null}
+    </span>
+  );
+}
+
+function ToolHeaderChevron({ expanded }: { expanded: boolean }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex h-[1.15em] w-[1.15em] shrink-0 items-center justify-center text-muted-foreground/80 transition-opacity',
+        expanded
+          ? 'opacity-100'
+          : 'opacity-0 group-hover/process-row:opacity-100 group-focus-within/process-row:opacity-100',
+      )}
+    >
+      <ChevronRight
+        className={cn(
+          'h-[1.05em] w-[1.05em] transition-transform',
+          expanded && 'rotate-90',
+        )}
+        strokeWidth={2.25}
+      />
+    </span>
+  );
+}
+
+function ToolHeaderChangeSummary({
+  additions,
+  deletions,
+}: {
+  additions: number;
+  deletions: number;
+}) {
+  if (additions === 0 && deletions === 0) {
+    return null;
+  }
+  const accessibleLabel = [
+    additions > 0 ? `+${additions}` : null,
+    deletions > 0 ? `-${deletions}` : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <span
+      className="inline-flex shrink-0 items-center gap-1.5 tabular-nums text-muted-foreground/75"
+      aria-label={accessibleLabel}
+    >
+      {additions > 0 ? (
+        <span className="transition-colors group-hover/process-row:text-emerald-600">
+          +{additions}
+        </span>
+      ) : null}
+      {deletions > 0 ? (
+        <span className="transition-colors group-hover/process-row:text-rose-600">
+          -{deletions}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+export function ToolCardHeader({
+  card,
+  toolLabel,
+  changeSummary,
+  icon: Icon,
+  expanded,
   canExpand,
   hideSummary = false,
   actionSlot,
-  onToggle 
-}: { 
-  card: ChatToolPartViewModel; 
-  icon: LucideIcon; 
-  expanded: boolean; 
+  onToggle,
+}: {
+  card: ChatToolPartViewModel;
+  toolLabel?: string;
+  changeSummary?: { additions: number; deletions: number };
+  icon: LucideIcon;
+  expanded: boolean;
   canExpand: boolean;
   hideSummary?: boolean;
   actionSlot?: ReactNode;
-  onToggle: () => void; 
+  onToggle: () => void;
 }) {
   const summaryPart = hideSummary
     ? ''
     : card.summary?.replace(/^(command|path|args|query|input):\s*/i, '') ?? '';
+  const displayLabel = toolLabel ?? humanizeToolName(card.toolName);
 
   return (
-    <div 
-      className={cn(
-        "flex items-center gap-3 px-3 py-2.5 transition-colors bg-transparent", 
-        canExpand ? "cursor-pointer hover:bg-accent/70" : ""
-      )}
-      onClick={onToggle}
+    <ChatProcessMetaRow
+      interactive={canExpand}
+      onClick={canExpand ? () => onToggle() : undefined}
+      role={canExpand ? 'button' : undefined}
+      tabIndex={canExpand ? 0 : undefined}
+      onKeyDown={
+        canExpand
+          ? (event: KeyboardEvent<HTMLElement>) =>
+              handleToolHeaderKeyDown(event, onToggle)
+          : undefined
+      }
     >
-      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden font-mono text-foreground">
-        <Icon className="h-4 w-4 text-primary/70 shrink-0" strokeWidth={3} />
-        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
-          <span className="font-bold shrink-0 tracking-tight">{card.toolName}</span>
-          {summaryPart && (
-            <>
-              <span className="text-muted-foreground/45 font-bold select-none shrink-0">›</span>
-              <span className="block min-w-0 flex-1 truncate font-normal text-muted-foreground" title={summaryPart}>
-                {summaryPart}
-              </span>
-            </>
-          )}
-        </div>
-      </div>
+      <ChatProcessLeadingIcon className="relative z-[1] rounded-sm bg-card">
+        <Icon className="h-[1.05em] w-[1.05em]" strokeWidth={2.25} />
+      </ChatProcessLeadingIcon>
 
-      <div className="flex items-center gap-3 shrink-0">
-        {actionSlot}
-        <ToolStatusLabel card={card} />
-        {canExpand && (
-          expanded ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" strokeWidth={3} />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground" strokeWidth={3} />
-          )
-        )}
-      </div>
-    </div>
+      {/*
+        One flowing cluster: text → status → expand chevron.
+        No flex-1 spacer, so chevron stays tight against the overview text
+        instead of jumping to the far right edge.
+      */}
+      <ToolHeaderSummary label={displayLabel} summary={summaryPart} />
+      {changeSummary ? <ToolHeaderChangeSummary {...changeSummary} /> : null}
+      <ToolStatusLabel card={card} iconOnly={Boolean(toolLabel)} />
+      {canExpand ? <ToolHeaderChevron expanded={expanded} /> : null}
+      {actionSlot ? (
+        <span className="inline-flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover/process-row:opacity-100 group-focus-within/process-row:opacity-100">
+          {actionSlot}
+        </span>
+      ) : null}
+    </ChatProcessMetaRow>
   );
 }
 

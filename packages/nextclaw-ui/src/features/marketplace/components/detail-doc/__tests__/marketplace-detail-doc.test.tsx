@@ -1,11 +1,32 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type * as MarketplaceApi from "@/shared/lib/api";
 import {
   createMarketplaceDetailDocId,
   createMarketplaceDetailDocUrl,
   MARKETPLACE_DETAIL_DOC_BROWSER_RENDERERS,
   MARKETPLACE_DETAIL_TAB_KIND,
 } from "@/features/marketplace/components/marketplace-detail-doc";
-import { setMarketplaceDetailDocEntry } from "@/features/marketplace/stores/marketplace-detail-doc.store";
+import {
+  setMarketplaceDetailDocEntry,
+  useMarketplaceDetailDocStore,
+} from "@/features/marketplace/stores/marketplace-detail-doc.store";
+
+const mocks = vi.hoisted(() => ({
+  fetchMarketplaceSkillContent: vi.fn(),
+}));
+
+vi.mock("@/shared/lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof MarketplaceApi>();
+  return {
+    ...actual,
+    fetchMarketplaceSkillContent: mocks.fetchMarketplaceSkillContent,
+  };
+});
+
+vi.mock("@/shared/lib/i18n", () => ({
+  t: (key: string) => key,
+}));
 
 function renderDetail(detailId: string) {
   const renderer = MARKETPLACE_DETAIL_DOC_BROWSER_RENDERERS[MARKETPLACE_DETAIL_TAB_KIND];
@@ -31,6 +52,11 @@ function renderDetail(detailId: string) {
 }
 
 describe("Marketplace detail doc renderer", () => {
+  beforeEach(() => {
+    mocks.fetchMarketplaceSkillContent.mockReset();
+    useMarketplaceDetailDocStore.setState({ entries: {} });
+  });
+
   it("renders metadata and markdown content as React content", () => {
     const detailId = createMarketplaceDetailDocId("skill", "weather");
     setMarketplaceDetailDocEntry({
@@ -75,7 +101,7 @@ describe("Marketplace detail doc renderer", () => {
     expect(screen.getAllByText(/<script>alert\(1\)<\/script>/)).toHaveLength(1);
   });
 
-  it("renders loading and missing states inside the React panel", () => {
+  it("renders loading state and rehydrates missing skill details after refresh", async () => {
     const loadingId = createMarketplaceDetailDocId("skill", "loading");
     setMarketplaceDetailDocEntry({
       id: loadingId,
@@ -88,7 +114,15 @@ describe("Marketplace detail doc renderer", () => {
     const { rerender } = renderDetail(loadingId);
     expect(document.querySelector(".animate-pulse")).toBeTruthy();
 
-    const missingId = createMarketplaceDetailDocId("skill", "missing");
+    mocks.fetchMarketplaceSkillContent.mockResolvedValue({
+      metadataRaw: "name: weather",
+      bodyRaw: "# Weather Skill\n\nLocal forecast",
+      raw: "# Weather Skill\n\nLocal forecast",
+      source: "catalog",
+      sourceUrl: "https://example.com/weather",
+    });
+
+    const missingId = createMarketplaceDetailDocId("skill-preview", "weather");
     const renderer = MARKETPLACE_DETAIL_DOC_BROWSER_RENDERERS[MARKETPLACE_DETAIL_TAB_KIND];
     rerender(
       <>
@@ -100,7 +134,7 @@ describe("Marketplace detail doc renderer", () => {
           tab: {
             id: "tab-1",
             kind: MARKETPLACE_DETAIL_TAB_KIND,
-            title: "Missing",
+            title: "weather",
             currentUrl: createMarketplaceDetailDocUrl(missingId),
             history: [createMarketplaceDetailDocUrl(missingId)],
             historyIndex: 0,
@@ -110,6 +144,10 @@ describe("Marketplace detail doc renderer", () => {
       </>,
     );
 
-    expect(screen.getByText("Detail unavailable")).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "weather", level: 1 })).toBeTruthy();
+    });
+    expect(mocks.fetchMarketplaceSkillContent).toHaveBeenCalledWith("weather");
+    expect(screen.getByText("Local forecast")).toBeTruthy();
   });
 });

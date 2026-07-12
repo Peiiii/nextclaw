@@ -9,6 +9,70 @@ const defaultTexts = {
   typingLabel: "Typing...",
 };
 
+function createReasoningMessage(status?: "streaming" | "completed") {
+  return {
+    id: "assistant-reasoning-count",
+    role: "assistant" as const,
+    roleLabel: "Assistant",
+    timestampLabel: "10:04",
+    status,
+    parts: [
+      {
+        type: "reasoning" as const,
+        label: "Reasoning",
+        text: "This is the full reasoning content.",
+      },
+    ],
+  };
+}
+
+it("renders completed reasoning collapsed with its character count", () => {
+  render(
+    <ChatMessageList
+      messages={[createReasoningMessage()]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  const summary = screen.getByRole("button", { name: /Reasoning · \d+/ });
+  expect(summary.getAttribute("aria-expanded")).toBe("false");
+  expect(screen.queryByText("This is the full reasoning content.")).toBeNull();
+});
+
+it("localizes reasoning progress and completion around the live character count", () => {
+  const texts = {
+    ...defaultTexts,
+    reasoningCharacterCountTemplates: {
+      inProgress: "思考中 · 已思考 {count} 个字符",
+      completed: "已思考 {count} 个字符",
+    },
+  };
+  const { rerender } = render(
+    <ChatMessageList
+      messages={[createReasoningMessage("streaming")]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={texts}
+    />,
+  );
+
+  expect(screen.getByText(/思考中 · 已思考 \d+ 个字符/)).toBeTruthy();
+
+  rerender(
+    <ChatMessageList
+      messages={[createReasoningMessage("completed")]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={texts}
+    />,
+  );
+
+  expect(screen.getByText(/已思考 \d+ 个字符/)).toBeTruthy();
+  expect(screen.queryByText(/思考中/)).toBeNull();
+});
+
 it("collapses completed assistant process content without adding a nested card", () => {
   const { container } = render(
     <ChatMessageList
@@ -56,16 +120,21 @@ it("collapses completed assistant process content without adding a nested card",
     />,
   );
 
-  const processDetails = container.querySelector("details");
   expect(screen.getByText("Processed")).toBeTruthy();
+  const processDivider = screen.getByText("Processed").closest("button")?.parentElement;
+  expect(processDivider?.className).toContain("mb-2");
+  expect(processDivider?.className).toContain("pb-2");
+  expect(processDivider?.className).toContain("border-b");
   expect(screen.getByText("Final answer stays visible.")).toBeTruthy();
-  expect(processDetails?.className).not.toContain("border");
-  expect(processDetails?.className).not.toContain("rounded");
-  expect(processDetails?.className).not.toContain("bg-");
-  expect(processDetails?.hasAttribute("open")).toBe(false);
+  expect(screen.queryByText("详情")).toBeNull();
+  expect(screen.queryByText("Details")).toBeNull();
+  // Controlled collapse no longer relies on native <details>.
+  expect(container.querySelector("details")).toBeNull();
+  expect(screen.queryByText("I will inspect the project first.")).toBeNull();
 
   fireEvent.click(screen.getByText("Processed"));
-  expect(processDetails?.hasAttribute("open")).toBe(true);
+  expect(screen.getByText(/Reasoning · \d+/)).toBeTruthy();
+  expect(screen.queryByText("I will inspect the project first.")).toBeNull();
 });
 
 it("does not collapse in-progress assistant process content", () => {
@@ -101,6 +170,7 @@ it("does not collapse in-progress assistant process content", () => {
   );
 
   expect(screen.queryByText("Processed")).toBeNull();
-  expect(screen.getByText("Still working.")).toBeTruthy();
+  expect(screen.getByText(/Reasoning · \d+/)).toBeTruthy();
+  expect(screen.queryByText("Still working.")).toBeNull();
   expect(screen.getByText("Partial answer.")).toBeTruthy();
 });

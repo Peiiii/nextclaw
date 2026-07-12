@@ -19,3 +19,4 @@ apps/desktop/.local/
 **/__pycache__/
 *.pyc
 *.pyo
+/website

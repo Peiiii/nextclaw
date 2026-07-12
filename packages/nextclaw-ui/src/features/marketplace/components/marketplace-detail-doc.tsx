@@ -8,9 +8,9 @@ import type {
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
+import { useMarketplaceDetailDocEntry } from '@/features/marketplace/hooks/use-marketplace-detail-doc-entry';
 import {
   setMarketplaceDetailDocEntry,
-  useMarketplaceDetailDocStore,
   type MarketplaceDetailDocEntry,
 } from '@/features/marketplace/stores/marketplace-detail-doc.store';
 
@@ -422,12 +422,16 @@ function MarketplaceDetailDocContent({ entry }: { entry: MarketplaceDetailDocEnt
 
 function MarketplaceDetailDoc({ currentUrl }: { currentUrl: string }) {
   const detailId = readMarketplaceDetailDocId(currentUrl);
-  const entry = useMarketplaceDetailDocStore((state) => (detailId ? state.entries[detailId] : undefined));
-  if (!detailId || !entry) {
+  const entry = useMarketplaceDetailDocEntry(detailId);
+
+  if (!detailId) {
     return <MarketplaceDetailUnavailable />;
   }
-  if (entry.status === 'loading') {
+  if (!entry || entry.status === 'loading') {
     return <MarketplaceDetailSkeleton />;
+  }
+  if (entry.status === 'error' && !entry.contentRaw) {
+    return <MarketplaceDetailUnavailable />;
   }
   return <MarketplaceDetailDocContent entry={entry} />;
 }

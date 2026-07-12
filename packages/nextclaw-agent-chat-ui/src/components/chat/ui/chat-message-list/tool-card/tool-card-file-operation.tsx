@@ -153,7 +153,7 @@ function FileOperationBlock({
       {showMetaRow ? (
         <div
           className={cn(
-            "flex items-center justify-between gap-4 border-b border-border px-4 text-muted-foreground",
+            "flex min-h-9 items-center justify-between gap-4 border-b border-border px-3 text-muted-foreground",
             showPathRow ? "py-2" : "py-1.5",
           )}
         >
@@ -166,7 +166,7 @@ function FileOperationBlock({
                       type="button"
                       onClick={handlePathClick}
                       className={cn(
-                        "w-full truncate whitespace-nowrap text-left font-mono text-[12px] font-medium text-foreground",
+                        "w-full truncate whitespace-nowrap text-left font-mono text-[12px] font-medium leading-5 text-foreground",
                         onFileOpen &&
                           "transition-colors hover:text-primary hover:underline",
                       )}
@@ -206,7 +206,7 @@ function FileOperationBlock({
           scrollKind="raw"
         >
           <div className="overflow-x-auto custom-scrollbar">
-            <pre className="min-w-max whitespace-pre bg-card px-4 py-2 font-mono text-[11px] leading-5 text-foreground">
+            <pre className="min-w-max whitespace-pre bg-card px-3 py-2 font-mono text-[11px] leading-5 text-foreground">
               {block.rawText}
             </pre>
           </div>
@@ -214,7 +214,7 @@ function FileOperationBlock({
       ) : null}
 
       {block.truncated && !previewBlock ? (
-        <div className="border-t border-border bg-muted px-4 py-2 text-[10px] text-muted-foreground">
+        <div className="border-t border-border bg-muted px-3 py-2 text-[10px] text-muted-foreground">
           Showing a shortened diff preview.
         </div>
       ) : null}
@@ -226,10 +226,15 @@ export function ToolCardFileOperationContent({
   card,
   className,
   onFileOpen,
+  showPathRow = true,
 }: {
   card: ChatToolPartViewModel;
   className?: string;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  /**
+   * Keep the path header by default so file open + +N/-N captions stay visible.
+   */
+  showPathRow?: boolean;
 }) {
   const blocks = card.fileOperation?.blocks ?? [];
   const output = card.output?.trim() ?? "";
@@ -238,13 +243,13 @@ export function ToolCardFileOperationContent({
   }
 
   return (
-    <div className={cn("overflow-hidden bg-card", className)}>
+    <div className={cn("overflow-hidden rounded-md border border-border/70 bg-card", className)}>
       {blocks.map((block, index) => {
         return (
           <FileOperationBlock
             key={block.key}
             block={block}
-            showPathRow={true}
+            showPathRow={showPathRow}
             isFirst={index === 0}
             onFileOpen={onFileOpen}
           />
@@ -262,7 +267,7 @@ export function ToolCardFileOperationContent({
           scrollKind="output"
         >
           <div className="overflow-x-auto custom-scrollbar">
-            <pre className="min-w-max whitespace-pre bg-card px-4 py-2 font-mono text-[11px] leading-5 text-foreground">
+            <pre className="min-w-max whitespace-pre bg-card px-3 py-2 font-mono text-[11px] leading-5 text-foreground">
               {output}
             </pre>
           </div>

@@ -1,62 +1,61 @@
 import type { MouseEvent, ReactNode } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@agent-chat-ui/components/chat/internal/cn";
+import { CHAT_PROCESS_META_ROW_CLASS } from "./chat-process-meta-row";
 
 type MetaOpenGroup = "process" | "tool-activity" | "reasoning";
 
-const OPEN_ICON_CLASS: Record<MetaOpenGroup, { closed: string; open: string }> = {
-  process: {
-    closed: "group-open/process:hidden",
-    open: "group-open/process:block",
-  },
-  "tool-activity": {
-    closed: "group-open/tool-activity:hidden",
-    open: "group-open/tool-activity:block",
-  },
-  reasoning: {
-    closed: "group-open/reasoning:hidden",
-    open: "group-open/reasoning:block",
-  },
-};
-
 /**
  * Shared collapsible meta-row for process / tool-group / reasoning summaries.
- * Keeps chevron size, gap, and baseline alignment consistent across chat process UI.
+ * Rendered as a plain button-like row (not <summary>) so browsers never inject
+ * a default disclosure label such as "详情" / "Details".
  */
 export function ChatCollapsibleMetaSummary({
   label,
   openGroup,
+  open = false,
   className,
   labelClassName,
   onClick,
 }: {
   label: ReactNode;
   openGroup: MetaOpenGroup;
+  open?: boolean;
   className?: string;
   labelClassName?: string;
   onClick?: (event: MouseEvent<HTMLElement>) => void;
 }) {
-  const iconClass = OPEN_ICON_CLASS[openGroup];
+  void openGroup;
 
   return (
-    <summary
+    <button
+      type="button"
       className={cn(
-        "flex cursor-pointer list-none items-center gap-1.5 py-0.5 text-xs font-medium leading-4 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 [&::-webkit-details-marker]:hidden",
+        CHAT_PROCESS_META_ROW_CLASS,
+        "m-0 w-full border-0 bg-transparent p-0 text-left shadow-none transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
         className,
       )}
+      aria-expanded={open}
       onClick={onClick}
     >
-      <span className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center text-muted-foreground">
+      <span className={cn("min-w-0 shrink truncate", labelClassName)}>{label}</span>
+      <span
+        className={cn(
+          "inline-flex h-[1.15em] w-[1.15em] shrink-0 items-center justify-center text-muted-foreground/80 transition-opacity",
+          // Collapsed: hover/focus only. Expanded: always visible.
+          open
+            ? "opacity-100"
+            : "opacity-0 group-hover/process-row:opacity-100 focus-visible:opacity-100",
+        )}
+      >
         <ChevronRight
-          className={cn("h-3.5 w-3.5", iconClass.closed)}
-          strokeWidth={2.5}
-        />
-        <ChevronDown
-          className={cn("hidden h-3.5 w-3.5", iconClass.open)}
-          strokeWidth={2.5}
+          className={cn(
+            "h-[1.05em] w-[1.05em] transition-transform",
+            open && "rotate-90",
+          )}
+          strokeWidth={2.25}
         />
       </span>
-      <span className={cn("min-w-0 truncate leading-4", labelClassName)}>{label}</span>
-    </summary>
+    </button>
   );
 }

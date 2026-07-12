@@ -459,4 +459,14 @@ export type ChatMessageTexts = {
   };
   toolActivityFailedLabel?: string;
   toolActivityCancelledLabel?: string;
+  reasoningCharacterCountTemplates?: {
+    inProgress: string;
+    completed: string;
+  };
+  toolStatusLabels?: {
+    terminal: Record<ChatToolPartViewModel["statusTone"], string>;
+    fileRead: Record<ChatToolPartViewModel["statusTone"], string>;
+    fileEdit: Record<ChatToolPartViewModel["statusTone"], string>;
+    search: Record<ChatToolPartViewModel["statusTone"], string>;
+  };
 };

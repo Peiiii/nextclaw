@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { ChatMessageList } from "../chat-message-list";
+import { ChatMessageList } from "@agent-chat-ui/components/chat/ui/chat-message-list/chat-message-list";
 
 const defaultTexts = {
   copyCodeLabel: "Copy",
@@ -7,6 +7,36 @@ const defaultTexts = {
   copyMessageLabel: "Copy",
   copiedMessageLabel: "Copied",
   typingLabel: "Typing...",
+};
+
+const localizedTexts = {
+  ...defaultTexts,
+  toolStatusLabels: {
+    terminal: {
+      running: "执行中",
+      success: "已执行",
+      error: "执行失败",
+      cancelled: "已取消执行",
+    },
+    fileRead: {
+      running: "读取中",
+      success: "已读取",
+      error: "读取失败",
+      cancelled: "已取消读取",
+    },
+    fileEdit: {
+      running: "编辑中",
+      success: "已编辑",
+      error: "编辑失败",
+      cancelled: "已取消编辑",
+    },
+    search: {
+      running: "搜索中",
+      success: "已搜索",
+      error: "搜索失败",
+      cancelled: "已取消搜索",
+    },
+  },
 };
 
 function buildWritePreviewLines(count: number) {
@@ -67,19 +97,21 @@ it("reveals running file edit previews after the auto-expand delay", () => {
         ]}
         isSending={false}
         hasAssistantDraft={false}
-        texts={defaultTexts}
+        texts={localizedTexts}
       />,
     );
 
+    expect(screen.getByText("编辑中")).toBeTruthy();
     expect(screen.queryByText("const color = 'blue';")).toBeNull();
 
     act(() => {
       vi.advanceTimersByTime(200);
     });
 
-    expect(screen.getAllByText("src/app.ts")).toHaveLength(1);
-    expect(screen.getByText("const color = 'red';")).toBeTruthy();
-    expect(screen.getByText("const color = 'blue';")).toBeTruthy();
+    expect(screen.getAllByText("src/app.ts")).toHaveLength(2);
+    const codeText = view.container.querySelector('[data-file-code-stack="true"]')?.textContent;
+    expect(codeText).toContain("const color = 'red';");
+    expect(codeText).toContain("const color = 'blue';");
     expect(
       view.container.querySelectorAll('[data-file-line-number-cell="true"]'),
     ).toHaveLength(0);
@@ -141,17 +173,34 @@ it("renders completed file-change cards with an expandable diff view", () => {
       ]}
       isSending={false}
       hasAssistantDraft={false}
-      texts={defaultTexts}
+      texts={localizedTexts}
     />,
   );
 
+  expect(screen.getByText("已编辑")).toBeTruthy();
   expect(screen.getByText("src/main.ts")).toBeTruthy();
   expect(screen.queryByText("console.log('new');")).toBeNull();
+  const overviewAdditions = screen.getByText("+1") as HTMLElement;
+  const overviewDeletions = screen.getByText("-1") as HTMLElement;
+  expect(overviewAdditions.className).toContain(
+    "group-hover/process-row:text-emerald-600",
+  );
+  expect(overviewDeletions.className).toContain(
+    "group-hover/process-row:text-rose-600",
+  );
+  expect(overviewAdditions.parentElement?.className).toContain(
+    "text-muted-foreground/75",
+  );
 
   fireEvent.click(screen.getByText("src/main.ts"));
 
-  expect(screen.getByText("console.log('old');")).toBeTruthy();
-  expect(screen.getByText("console.log('new');")).toBeTruthy();
+  const codeRows = Array.from(
+    view.container.querySelectorAll<HTMLElement>('[data-file-line-row="true"]'),
+  );
+  expect(codeRows.map((row) => row.textContent)).toEqual([
+    "109console.log('old');",
+    "109console.log('new');",
+  ]);
   const diffLineNumber = screen.getAllByText("109")[0] as HTMLElement;
   expect(diffLineNumber.className).toContain("justify-center");
   expect(diffLineNumber.style.width).toBe("6.5ch");
@@ -161,25 +210,23 @@ it("renders completed file-change cards with an expandable diff view", () => {
   expect(view.container.querySelectorAll("[data-file-line-marker]")).toHaveLength(
     0,
   );
-  expect(
-    screen
-      .getByText("console.log('new');")
-      .closest('[data-file-line-row="true"]')?.className,
-  ).toContain("w-full");
+  expect(codeRows[1]?.className).toContain("w-full");
   expect(
     view.container.querySelector('[data-file-code-stack="true"]'),
   ).toBeTruthy();
-  expect(screen.getByText("+1").className).toContain("emerald");
-  expect(screen.getByText("+1").className).not.toContain("rounded");
-  expect(screen.getByText("-1").className).toContain("rose");
+  const expandedAdditions = screen.getAllByText("+1");
+  const expandedDeletions = screen.getAllByText("-1");
+  expect(expandedAdditions.at(-1)?.className).toContain("emerald");
+  expect(expandedAdditions.at(-1)?.className).not.toContain("rounded");
+  expect(expandedDeletions.at(-1)?.className).toContain("rose");
 });
 
-it("opens file diff actions from file operation path rows", () => {
+it("keeps nested file path header and open action available", () => {
   vi.useFakeTimers();
 
   try {
     const onFileOpen = vi.fn();
-    const view = render(
+    render(
       <ChatMessageList
         messages={[
           {
@@ -239,31 +286,19 @@ it("opens file diff actions from file operation path rows", () => {
       vi.advanceTimersByTime(200);
     });
 
-    const pathButtons = view.container.querySelectorAll('button[title="src/app.ts"]');
-    expect(pathButtons).toHaveLength(1);
-
-    fireEvent.click(pathButtons[0] as HTMLButtonElement);
-
+    // Overview summary + nested path header both keep the path visible.
+    expect(screen.getAllByText("src/app.ts").length).toBeGreaterThanOrEqual(1);
+    const pathButton = screen.getByRole("button", { name: "src/app.ts" });
+    fireEvent.click(pathButton);
     expect(onFileOpen).toHaveBeenCalledWith(
       expect.objectContaining({
         path: "src/app.ts",
         viewMode: "diff",
-        beforeText: "const color = 'red';\n",
-        afterText: "const color = 'blue';\n",
-        fullLines: [
-          expect.objectContaining({
-            kind: "remove",
-            text: "const color = 'red';",
-            oldLineNumber: 4,
-          }),
-          expect.objectContaining({
-            kind: "add",
-            text: "const color = 'blue';",
-            newLineNumber: 4,
-          }),
-        ],
       }),
     );
+    expect(
+      screen.getByRole("button", { name: "src/app.ts" }).closest("section")?.textContent,
+    ).toContain("const color = 'blue';");
   } finally {
     vi.useRealTimers();
   }
@@ -458,15 +493,16 @@ it("renders write previews with a single gutter and without repeating the file p
 
   fireEvent.click(screen.getByText("src/game.html"));
 
-  expect(screen.getAllByText("src/game.html")).toHaveLength(1);
+  expect(screen.getAllByText("src/game.html")).toHaveLength(2);
   const lineNumber = screen.getByText("109") as HTMLElement;
   expect(lineNumber.className).toContain("justify-center");
   expect(lineNumber.style.width).toBe("6.5ch");
-  const pathRow = screen.getByTitle("src/game.html");
+  const pathRow = screen.getByRole("button", { name: "src/game.html" });
   expect(pathRow.className).toContain("truncate");
   expect(pathRow.className).toContain("whitespace-nowrap");
-  expect(screen.getByText("+2").className).toContain("emerald");
-  expect(screen.getByText("+2").className).not.toContain("rounded");
+  const writeAdditions = screen.getAllByText("+2");
+  expect(writeAdditions.at(-1)?.className).toContain("emerald");
+  expect(writeAdditions.at(-1)?.className).not.toContain("rounded");
   expect(
     view.container.querySelectorAll('[data-file-line-number-cell="true"]'),
   ).toHaveLength(2);

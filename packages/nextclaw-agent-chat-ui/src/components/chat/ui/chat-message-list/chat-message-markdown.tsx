@@ -106,6 +106,7 @@ type ChatMessageMarkdownProps = {
   inline?: boolean;
   inlineTokens?: readonly ChatInlineTokenViewModel[];
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  onInlineTokenClick?: (token: ChatInlineTokenViewModel) => void;
   renderInlineDisplay?: (
     display: ChatInlineDisplayViewModel,
   ) => ReactNode | undefined;
@@ -245,6 +246,7 @@ export function ChatMessageMarkdown({
   inline = false,
   inlineTokens,
   onFileOpen,
+  onInlineTokenClick,
   renderInlineDisplay,
 }: ChatMessageMarkdownProps) {
   const isUser = role === "user";
@@ -270,6 +272,11 @@ export function ChatMessageMarkdown({
               kind={kind}
               label={label}
               isUser={isUser}
+              onClick={
+                onInlineTokenClick
+                  ? () => onInlineTokenClick({ kind, key, label, rawText })
+                  : undefined
+              }
             />
           );
         }
@@ -376,7 +383,7 @@ export function ChatMessageMarkdown({
         );
       },
     }),
-    [inline, isUser, onFileOpen, renderInlineDisplay, texts],
+    [inline, isUser, onFileOpen, onInlineTokenClick, renderInlineDisplay, texts],
   );
 
   const WrapperTag = inline ? "span" : "div";

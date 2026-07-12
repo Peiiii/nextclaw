@@ -1,6 +1,7 @@
 import { Terminal, FileText, Code2, Search, Globe } from 'lucide-react';
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import type {
+  ChatFileOperationBlockViewModel,
   ChatFileOpenActionViewModel,
   ChatToolActionViewModel,
   ChatToolPartViewModel,
@@ -8,11 +9,10 @@ import type {
 import { ToolCardRoot, ToolCardContent } from './tool-card-root';
 import { ToolCardHeader, ToolCardHeaderAction } from './tool-card-header';
 import { ToolCardFileOperationContent } from './tool-card-file-operation';
+import { ChatTerminalSurface } from './terminal/terminal-panes';
 import { cn } from '@agent-chat-ui/components/chat/internal/cn';
 
 const TOOL_CARD_AUTO_EXPAND_DELAY_MS = 200;
-const ANSI_ESCAPE_PREFIX = String.fromCharCode(27);
-const ANSI_ESCAPE_PATTERN = new RegExp(`${ANSI_ESCAPE_PREFIX}\\[[0-?]*[ -/]*[@-~]`, 'g');
 
 function readNonEmptyString(value: unknown): string | null {
   if (typeof value !== 'string') {
@@ -23,10 +23,6 @@ function readNonEmptyString(value: unknown): string | null {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function stripAnsi(value: string): string {
-  return value.replace(ANSI_ESCAPE_PATTERN, '');
 }
 
 function isStructuredTerminalRecord(record: Record<string, unknown>): boolean {
@@ -63,7 +59,7 @@ function normalizeTerminalOutput(rawOutput?: string, structuredOutput?: unknown)
   if (isRecord(structuredOutput)) {
     const terminalOutput = extractTerminalOutputFromRecord(structuredOutput);
     if (terminalOutput) {
-      return stripAnsi(terminalOutput);
+      return terminalOutput;
     }
     if (isStructuredTerminalRecord(structuredOutput)) {
       return '';
@@ -74,28 +70,43 @@ function normalizeTerminalOutput(rawOutput?: string, structuredOutput?: unknown)
   }
   const trimmed = rawOutput.trim();
   if (!trimmed.startsWith('{')) {
-    return stripAnsi(rawOutput);
+    return rawOutput;
   }
   try {
     const parsed = JSON.parse(trimmed) as unknown;
     if (!isRecord(parsed)) {
-      return stripAnsi(rawOutput);
+      return rawOutput;
     }
     const terminalOutput = extractTerminalOutputFromRecord(parsed);
     if (terminalOutput) {
-      return stripAnsi(terminalOutput);
+      return terminalOutput;
     }
     if (isStructuredTerminalRecord(parsed)) {
       return '';
     }
-    return stripAnsi(rawOutput);
+    return rawOutput;
   } catch {
-    return stripAnsi(rawOutput);
+    return rawOutput;
   }
 }
 
 function shouldAutoExpandRunningFileOperation(toolName: string): boolean {
   return toolName === 'write_file' || toolName === 'edit_file';
+}
+
+function countFileOperationChanges(blocks: ChatFileOperationBlockViewModel[]): {
+  additions: number;
+  deletions: number;
+} {
+  return blocks.reduce(
+    (totals, block) => ({
+      additions:
+        totals.additions + block.lines.filter((line) => line.kind === 'add').length,
+      deletions:
+        totals.deletions + block.lines.filter((line) => line.kind === 'remove').length,
+    }),
+    { additions: 0, deletions: 0 },
+  );
 }
 
 function useToolCardExpandedState({
@@ -212,25 +223,15 @@ function GenericToolSection({
   const style = tones[tone];
 
   return (
-    <section
-      className={cn(
-        'overflow-hidden rounded-md border shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]',
-        style.shell,
-      )}
-    >
-      <div
-        className={cn(
-          'flex items-center gap-2 border-b px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em]',
-          style.header,
-        )}
-      >
+    <section className="overflow-hidden rounded-md border border-border/70 bg-muted/20">
+      <div className="flex items-center gap-2 border-b border-border/60 px-2.5 py-1.5 text-[10px] font-medium tracking-wide text-muted-foreground">
         <span className={cn('h-1.5 w-1.5 rounded-full', style.dot)} />
-        <span>{label}</span>
+        <span className="normal-case tracking-normal">{label}</span>
       </div>
       <div className="w-full overflow-hidden">
         <pre
           className={cn(
-            'w-full max-w-full min-w-0 max-h-64 overflow-x-auto overflow-y-auto px-3 py-2.5 font-mono text-[12px] leading-relaxed whitespace-pre custom-scrollbar',
+            'w-full max-w-full min-w-0 max-h-64 overflow-x-auto overflow-y-auto px-2.5 py-2 font-mono text-[12px] leading-relaxed whitespace-pre custom-scrollbar',
             style.body,
           )}
         >
@@ -241,12 +242,33 @@ function GenericToolSection({
   );
 }
 
-export function TerminalExecutionView({ card }: { card: ChatToolPartViewModel }) {
+function extractTerminalMeta(structuredOutput?: unknown): {
+  exitCode?: number | null;
+  workingDir?: string | null;
+} {
+  if (!isRecord(structuredOutput)) {
+    return {};
+  }
+  const exitCode =
+    typeof structuredOutput.exitCode === 'number'
+      ? structuredOutput.exitCode
+      : typeof structuredOutput.exit_code === 'number'
+        ? structuredOutput.exit_code
+        : null;
+  const workingDir =
+    readNonEmptyString(structuredOutput.workingDir) ??
+    readNonEmptyString(structuredOutput.cwd) ??
+    readNonEmptyString(structuredOutput.working_directory);
+  return { exitCode, workingDir };
+}
+
+export function TerminalExecutionView({ card, toolLabel }: { card: ChatToolPartViewModel; toolLabel?: string }) {
   const output = normalizeTerminalOutput(card.output, card.outputData);
   const isRunning = card.statusTone === 'running';
   const commandPart = card.summary?.replace(/^(command|path|args|query|input):\s*/i, '');
   const hasOutput = output.trim().length > 0;
   const canExpand = isRunning || hasOutput || Boolean(commandPart?.trim());
+  const meta = extractTerminalMeta(card.outputData);
   const { expanded, onToggle } = useToolCardExpandedState({
     canExpand,
     isRunning,
@@ -257,44 +279,27 @@ export function TerminalExecutionView({ card }: { card: ChatToolPartViewModel })
 
   return (
     <ToolCardRoot>
-      <ToolCardHeader 
-        card={card} 
-        icon={Terminal} 
-        expanded={expanded} 
+      <ToolCardHeader
+        card={card}
+        toolLabel={toolLabel}
+        icon={Terminal}
+        expanded={expanded}
         canExpand={canExpand}
-        onToggle={onToggle} 
+        onToggle={onToggle}
       />
       {expanded && (
-        <>
-          <div className="px-3 pb-2 font-mono w-full max-h-48 overflow-y-auto custom-scrollbar min-h-0 text-[12px]">
-            <div className="flex items-start gap-2 leading-relaxed">
-              <span className="text-primary/55 font-medium shrink-0 select-none mt-[1px]">$</span>
-              <div className="flex-1 min-w-0">
-                {commandPart ? (
-                  <div className="text-foreground break-words whitespace-pre-wrap tracking-tight font-medium inline-block">
-                    {commandPart}
-                    {isRunning && !output && (
-                      <span className="inline-block w-1.5 h-3 ml-1 bg-primary/60 animate-pulse align-middle" />
-                    )}
-                  </div>
-                ) : (
-                  <div className="h-3 w-32 bg-muted rounded animate-pulse mt-2" />
-                )}
-              </div>
-            </div>
-          </div>
-          {(hasOutput || !isRunning) && (
-            <ToolCardContent className={hasOutput ? undefined : 'bg-muted/20 py-2'}>
-              <pre className={cn(
-                'font-mono text-[12px] text-muted-foreground whitespace-pre-wrap break-all w-full max-w-full max-h-64 overflow-y-auto overflow-x-hidden min-w-0 custom-scrollbar leading-relaxed',
-                hasOutput ? 'px-0' : 'rounded-md border border-dashed border-border bg-card/70 px-3 py-2 italic',
-              )}>
-                {hasOutput ? output : card.emptyLabel}
-                {isRunning && hasOutput && <span className="inline-block w-1.5 h-3 ml-1 bg-primary/60 animate-pulse align-middle" />}
-              </pre>
-            </ToolCardContent>
-          )}
-        </>
+        <ToolCardContent className="bg-transparent py-0">
+          <ChatTerminalSurface
+            command={commandPart}
+            output={output}
+            emptyLabel={card.emptyLabel}
+            isRunning={isRunning}
+            hasOutput={hasOutput}
+            isError={card.statusTone === 'error'}
+            exitCode={meta.exitCode}
+            workingDir={meta.workingDir}
+          />
+        </ToolCardContent>
       )}
     </ToolCardRoot>
   );
@@ -302,9 +307,11 @@ export function TerminalExecutionView({ card }: { card: ChatToolPartViewModel })
 
 export function FileOperationView({
   card,
+  toolLabel,
   onFileOpen,
 }: {
   card: ChatToolPartViewModel;
+  toolLabel?: string;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
 }) {
   const output = card.output?.trim() ?? '';
@@ -334,28 +341,44 @@ export function FileOperationView({
     statusTone: card.statusTone,
   });
 
-  const isEdit = card.toolName === 'edit_file' || card.toolName === 'write_file' || card.toolName === 'apply_patch' || card.toolName === 'file_change';
+  const isEdit =
+    card.toolName === 'edit_file' ||
+    card.toolName === 'write_file' ||
+    card.toolName === 'apply_patch' ||
+    card.toolName === 'file_change';
+  const changeSummary = isEdit
+    ? countFileOperationChanges(previewBlocks)
+    : undefined;
 
   return (
     <ToolCardRoot>
-      <ToolCardHeader 
-        card={card} 
-        icon={isEdit ? Code2 : FileText} 
-        expanded={expanded} 
-        canExpand={hasContent || isRunning} 
-        hideSummary={expanded && hasStructuredPreview}
-        onToggle={onToggle} 
+      <ToolCardHeader
+        card={card}
+        toolLabel={toolLabel}
+        changeSummary={changeSummary}
+        icon={isEdit ? Code2 : FileText}
+        expanded={expanded}
+        canExpand={hasContent || isRunning}
+        // Keep overview summary for collapsed scanning.
+        hideSummary={false}
+        onToggle={onToggle}
       />
-      {expanded && hasContent && (
-        <ToolCardContent className="border-t border-border bg-transparent px-0 pt-0 pb-0">
-          <ToolCardFileOperationContent card={card} onFileOpen={onFileOpen} />
+      {expanded && hasContent ? (
+        <ToolCardContent className="bg-transparent py-0">
+          <ToolCardFileOperationContent
+            card={card}
+            onFileOpen={onFileOpen}
+            // Always show the path header in the content panel so users can
+            // open the file and still see +N/-N captions (matches prior UX).
+            showPathRow
+          />
         </ToolCardContent>
-      )}
+      ) : null}
     </ToolCardRoot>
   );
 }
 
-export function SearchSnippetView({ card }: { card: ChatToolPartViewModel }) {
+export function SearchSnippetView({ card, toolLabel }: { card: ChatToolPartViewModel; toolLabel?: string }) {
   const isRunning = card.statusTone === 'running';
   const output = card.output?.trim() ?? '';
   const { expanded, onToggle } = useToolCardExpandedState({
@@ -369,13 +392,14 @@ export function SearchSnippetView({ card }: { card: ChatToolPartViewModel }) {
     <ToolCardRoot>
       <ToolCardHeader 
         card={card} 
+        toolLabel={toolLabel}
         icon={Search} 
         expanded={expanded} 
         canExpand={!!output || isRunning} 
         onToggle={onToggle} 
       />
       {expanded && output && (
-        <ToolCardContent>
+        <ToolCardContent className="py-0">
            <pre className="font-mono text-[12px] text-muted-foreground whitespace-pre-wrap break-all w-full max-w-full max-h-64 overflow-y-auto overflow-x-hidden min-w-0 custom-scrollbar leading-relaxed">
              {output}
            </pre>
@@ -432,7 +456,7 @@ export function GenericToolCard({
         onToggle={onToggle} 
       />
       {expanded && hasContent && (
-        <ToolCardContent className="bg-transparent px-2.5 py-2.5">
+        <ToolCardContent className="bg-transparent py-0">
           {hasInputSection && (
             <GenericToolSection label={inputLabel} tone="input">
               {input}

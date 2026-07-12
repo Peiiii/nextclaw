@@ -9,6 +9,7 @@ const captures = vi.hoisted(() => ({
     messages: unknown[];
     onToolAction?: (action: unknown) => void;
     onFileOpen?: (action: unknown) => void;
+    onInlineTokenClick?: (token: unknown) => void;
     renderInlineDisplay?: (display: unknown) => unknown;
     renderPanelAppCard?: (panelApp: unknown) => unknown;
     texts?: Record<string, unknown>;
@@ -41,6 +42,8 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
     chatThreadManager: {
       openFilePreview: captures.openFilePreview,
       handleToolAction: captures.handleToolAction,
+    },
+    chatUiManager: {
     },
   }),
 }));
@@ -387,7 +390,7 @@ it("keeps Hermes tool invocation parts as tool cards instead of flattening them 
   });
 });
 
-it("passes localized attachment card texts to the shared chat UI", () => {
+it("passes localized message presentation texts to the shared chat UI", () => {
   captures.language = "zh";
 
   render(<ChatMessageListContainer messages={[]} isSending={false} />);
@@ -399,6 +402,24 @@ it("passes localized attachment card texts to the shared chat UI", () => {
       archive: "chatAttachmentCategoryArchive",
       pdf: "chatAttachmentCategoryPdf",
       generic: "chatAttachmentCategoryGeneric",
+    },
+    reasoningCharacterCountTemplates: {
+      inProgress: "chatReasoningInProgressCharacterCount",
+      completed: "chatReasoningCompletedCharacterCount",
+    },
+    toolStatusLabels: {
+      terminal: {
+        running: "chatToolTerminalRunning",
+        success: "chatToolTerminalSuccess",
+        error: "chatToolTerminalError",
+        cancelled: "chatToolTerminalCancelled",
+      },
+      fileEdit: {
+        running: "chatToolFileEditRunning",
+        success: "chatToolFileEditSuccess",
+        error: "chatToolFileEditError",
+        cancelled: "chatToolFileEditCancelled",
+      },
     },
   });
 });

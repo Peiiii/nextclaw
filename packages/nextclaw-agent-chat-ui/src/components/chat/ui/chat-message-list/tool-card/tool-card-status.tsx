@@ -3,20 +3,34 @@ import { cn } from '@agent-chat-ui/components/chat/internal/cn';
 import type { ChatToolPartViewModel } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
 export const STATUS_STYLES = {
-  running: { text: 'text-primary/70', icon: Loader2, spin: true },
-  success: { text: 'text-primary/70', icon: Check, spin: false },
+  running: { text: 'text-muted-foreground', icon: Loader2, spin: true },
+  success: { text: 'text-muted-foreground/75', icon: Check, spin: false },
   error: { text: 'text-destructive', icon: AlertTriangle, spin: false },
-  cancelled: { text: 'text-muted-foreground', icon: Minus, spin: false }
+  cancelled: { text: 'text-muted-foreground/70', icon: Minus, spin: false }
 } as const;
 
-export function ToolStatusLabel({ card }: { card: ChatToolPartViewModel }) {
+export function ToolStatusLabel({
+  card,
+  iconOnly = false,
+}: {
+  card: ChatToolPartViewModel;
+  iconOnly?: boolean;
+}) {
   const style = STATUS_STYLES[card.statusTone] || STATUS_STYLES.cancelled;
   const Icon = style.icon;
+  const showLabel = !iconOnly && (card.statusTone === 'running' || card.statusTone === 'error');
 
   return (
-    <span className={cn('inline-flex items-center gap-1.5 text-[11px] font-medium leading-none shrink-0', style.text)}>
-      <Icon className={cn("h-3.5 w-3.5", style.spin && "animate-spin")} strokeWidth={3} />
-      {card.statusTone === 'running' ? card.statusLabel : null}
+    <span
+      className={cn('inline-flex shrink-0 items-center gap-1 text-[0.925rem] font-normal leading-[1.72]', style.text)}
+      aria-label={iconOnly ? card.statusLabel : undefined}
+    >
+      <Icon
+        aria-hidden="true"
+        className={cn('h-[1.05em] w-[1.05em]', style.spin && 'animate-spin')}
+        strokeWidth={2.25}
+      />
+      {showLabel ? card.statusLabel : null}
     </span>
   );
 }

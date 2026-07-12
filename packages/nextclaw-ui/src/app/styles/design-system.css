@@ -364,6 +364,19 @@
       color: hsl(var(--gray-800));
    }
 
+   /* User bubble is light in work theme; keep clickable skill tokens as link-colored text. */
+   :root[data-theme="work"] .nextclaw-chat-message-user .nextclaw-chat-inline-token {
+      border-color: transparent;
+      background-color: transparent;
+      color: var(--md-link, #1f73c9);
+      box-shadow: none;
+   }
+
+   :root[data-theme="work"] .nextclaw-chat-message-user .nextclaw-chat-inline-token > span:first-child {
+      color: currentColor;
+      opacity: 0.8;
+   }
+
 }
 
 @layer base {

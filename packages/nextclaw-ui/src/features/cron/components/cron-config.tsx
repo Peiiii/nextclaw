@@ -38,7 +38,7 @@ import { cn } from "@/shared/lib/utils";
 import { t } from "@/shared/lib/i18n";
 import { PageLayout, PageHeader } from "@/app/components/layout/page-layout";
 import {
-  AlarmClock,
+  Search,
   RefreshCw,
   Trash2,
   Play,
@@ -77,16 +77,16 @@ function StatusBadge({ job }: { job: CronJobView }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
         job.enabled
           ? "bg-emerald-50 text-emerald-700"
-          : "bg-gray-100 text-gray-500",
+          : "bg-muted text-muted-foreground",
       )}
     >
       <span
         className={cn(
           "h-1.5 w-1.5 rounded-full",
-          job.enabled ? "bg-emerald-400" : "bg-gray-400",
+          job.enabled ? "bg-emerald-500" : "bg-muted-foreground/50",
         )}
       />
       {job.enabled ? t("enabled") : t("disabled")}
@@ -104,10 +104,7 @@ function CronJobCard(props: {
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const barColor = job.enabled ? "bg-emerald-400" : "bg-gray-300";
-
   const handleCardClick = (e: React.MouseEvent) => {
-    // Don't expand when clicking switch or menu
     const target = e.target as HTMLElement;
     if (target.closest("[data-no-expand]")) return;
     setExpanded(!expanded);
@@ -116,44 +113,33 @@ function CronJobCard(props: {
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-xl border bg-white transition-all duration-150 cursor-pointer",
-        expanded
-          ? "border-gray-300 shadow-sm"
-          : "border-gray-200 hover:border-gray-300 hover:shadow-sm",
+        "group overflow-hidden rounded-xl border border-border/70 bg-card transition-colors cursor-pointer",
+        expanded ? "bg-muted/20" : "hover:bg-muted/30",
       )}
       onClick={handleCardClick}
     >
-      {/* Left color bar */}
-      <div
-        className={cn(
-          "absolute left-0 top-0 bottom-0 w-1 rounded-l-xl",
-          barColor,
-        )}
-      />
-
-      <div className="pl-4 pr-3 py-3">        {/* Row 1: name + badges + actions */}
-        <div className="flex items-center gap-3">
+      <div className="px-3 py-2.5">
+        <div className="flex items-center gap-2.5">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               {expanded ? (
-                <ChevronDown className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               ) : (
-                <ChevronRight className="h-3.5 w-3.5 text-gray-300 shrink-0 group-hover:text-gray-500 transition-colors" />
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0 group-hover:text-muted-foreground transition-colors" />
               )}
-              <span className="text-sm font-semibold text-gray-900 truncate">
+              <span className="text-sm font-medium text-foreground truncate">
                 {job.name || job.id}
               </span>
               <StatusBadge job={job} />
-              {job.deleteAfterRun && (
-                <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-600">
+              {job.deleteAfterRun ? (
+                <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                   {t("cronOneShot")}
                 </span>
-              )}
+              ) : null}
             </div>
           </div>
 
-          {/* Actions - stop propagation so they don't toggle expand */}
-          <div className="flex items-center gap-1.5 shrink-0" data-no-expand>
+          <div className="flex items-center gap-1 shrink-0" data-no-expand>
             <Switch
               checked={job.enabled}
               onCheckedChange={(checked) => onToggle(job, checked)}
@@ -163,7 +149,7 @@ function CronJobCard(props: {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-gray-400 hover:text-gray-600"
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
                   aria-label={t("cronMoreActions")}
                 >
                   <MoreVertical className="h-4 w-4" />
@@ -176,9 +162,9 @@ function CronJobCard(props: {
                     setMenuOpen(false);
                     onRun(job);
                   }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
                 >
-                  <Play className="h-3.5 w-3.5 text-gray-500" />
+                  <Play className="h-3.5 w-3.5 text-muted-foreground" />
                   {t("cronRunNow")}
                 </button>
                 <button
@@ -197,28 +183,27 @@ function CronJobCard(props: {
           </div>
         </div>
 
-        {/* Row 2: schedule + next run + last run (always visible) */}
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 pl-6">
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground pl-6">
           <span className="flex items-center gap-1">
-            <CalendarClock className="h-3 w-3 text-gray-400" />
-            <span className="font-mono text-gray-600">
+            <CalendarClock className="h-3 w-3 text-muted-foreground/70" />
+            <span className="font-mono text-foreground/80">
               {describeCronSchedule(job)}
             </span>
           </span>
-          {job.state.nextRunAt && (
+          {job.state.nextRunAt ? (
             <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3 text-gray-400" />
+              <Clock className="h-3 w-3 text-muted-foreground/70" />
               <span>{formatRelativeTime(job.state.nextRunAt)}</span>
             </span>
-          )}
-          {job.state.lastRunAt && (
+          ) : null}
+          {job.state.lastRunAt ? (
             <span className="flex items-center gap-1" data-no-expand>
-              <span className="text-gray-300">•</span>
+              <span className="text-border">•</span>
               {job.state.lastStatus === "error" && job.state.lastError ? (
                 <TooltipProvider delayDuration={200}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="inline-flex items-center gap-0.5 text-orange-400 cursor-help">
+                      <span className="inline-flex items-center gap-0.5 text-orange-500 cursor-help">
                         <AlertCircle className="h-3 w-3" />
                       </span>
                     </TooltipTrigger>
@@ -235,8 +220,8 @@ function CronJobCard(props: {
                 <span
                   className={cn(
                     job.state.lastStatus === "ok"
-                      ? "text-emerald-400"
-                      : "text-gray-400",
+                      ? "text-emerald-500"
+                      : "text-muted-foreground/70",
                   )}
                 >
                   {job.state.lastStatus === "ok" ? "✓" : ""}
@@ -244,14 +229,13 @@ function CronJobCard(props: {
               )}
               <span>{formatRelativeTime(job.state.lastRunAt)}</span>
             </span>
-          )}
+          ) : null}
         </div>
 
-        {/* Row 3: message preview (always visible, 2 lines) */}
         <div className="mt-2 pl-6">
           <div
             className={cn(
-              "text-sm text-gray-600 break-words",
+              "text-sm text-muted-foreground break-words",
               !expanded && "line-clamp-2",
             )}
           >
@@ -259,40 +243,38 @@ function CronJobCard(props: {
           </div>
         </div>
 
-        {/* Expanded details */}
-        {expanded && (
-          <div className="mt-3 ml-6 space-y-3 animate-in fade-in-0 slide-in-from-top-1 duration-150">
-            {/* Metadata grid */}
+        {expanded ? (
+          <div className="mt-3 ml-6 space-y-3 border-t border-border/60 pt-3">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
               <div>
-                <div className="text-[11px] text-gray-400 mb-0.5">
+                <div className="text-[11px] text-muted-foreground/70 mb-0.5">
                   {t("cronSessionLabel")}
                 </div>
                 <div
-                  className="text-gray-700 font-mono text-[11px] truncate"
+                  className="text-foreground/80 font-mono text-[11px] truncate"
                   title={describeCronSession(job)}
                 >
                   {describeCronSession(job)}
                 </div>
               </div>
               <div>
-                <div className="text-[11px] text-gray-400 mb-0.5">
+                <div className="text-[11px] text-muted-foreground/70 mb-0.5">
                   {t("cronNextRun")}
                 </div>
-                <div className="text-gray-700">
+                <div className="text-foreground/80">
                   {formatCronDate(job.state.nextRunAt)}
                 </div>
               </div>
               <div>
-                <div className="text-[11px] text-gray-400 mb-0.5">
+                <div className="text-[11px] text-muted-foreground/70 mb-0.5">
                   {t("cronLastRun")}
                 </div>
-                <div className="text-gray-700">
+                <div className="text-foreground/80">
                   {formatCronDate(job.state.lastRunAt)}
                 </div>
               </div>
               <div>
-                <div className="text-[11px] text-gray-400 mb-0.5">
+                <div className="text-[11px] text-muted-foreground/70 mb-0.5">
                   {t("cronLastStatus")}
                 </div>
                 <div
@@ -304,26 +286,26 @@ function CronJobCard(props: {
                         ? "text-red-600"
                         : job.state.lastStatus === "skipped"
                           ? "text-amber-600"
-                          : "text-gray-500",
+                          : "text-muted-foreground",
                   )}
                 >
                   {job.state.lastStatus ?? "-"}
                 </div>
               </div>
               <div>
-                <div className="text-[11px] text-gray-400 mb-0.5">
+                <div className="text-[11px] text-muted-foreground/70 mb-0.5">
                   {t("cronCreatedAt")}
                 </div>
-                <div className="text-gray-700">
+                <div className="text-foreground/80">
                   {formatCronDate(job.createdAt)}
                 </div>
               </div>
               <div>
-                <div className="text-[11px] text-gray-400 mb-0.5">
+                <div className="text-[11px] text-muted-foreground/70 mb-0.5">
                   {t("cronId")}
                 </div>
                 <div
-                  className="text-gray-700 font-mono text-[11px] truncate"
+                  className="text-foreground/80 font-mono text-[11px] truncate"
                   title={job.id}
                 >
                   {job.id}
@@ -331,14 +313,13 @@ function CronJobCard(props: {
               </div>
             </div>
 
-            {/* Error */}
-            {job.state.lastError && (
-              <div className="rounded-lg bg-red-50 border border-red-100 px-3 py-2 text-xs text-red-600 break-words">
+            {job.state.lastError ? (
+              <div className="rounded-lg bg-red-50/80 border border-red-100 px-3 py-2 text-xs text-red-600 break-words">
                 {job.state.lastError}
               </div>
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -397,7 +378,7 @@ export function CronConfig() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+            className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
             onClick={() => cronQuery.refetch()}
           >
             <RefreshCw
@@ -407,16 +388,16 @@ export function CronConfig() {
         }
       />
 
-      <div className="mb-5">
-        <div className="flex flex-wrap gap-3 items-center">
+      <div className="mb-4">
+        <div className="flex flex-wrap gap-2.5 items-center">
           <div className="relative flex-1 min-w-[240px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/70" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t("cronSearchPlaceholder")}
               className="pl-9"
             />
-            <AlarmClock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           </div>
           <div className="min-w-[140px]">
             <Select
@@ -437,7 +418,7 @@ export function CronConfig() {
               </SelectContent>
             </Select>
           </div>
-          <div className="text-xs text-gray-400 ml-auto tabular-nums">
+          <div className="text-xs text-muted-foreground ml-auto tabular-nums">
             {jobs.length} / {cronQuery.data?.total ?? 0}
           </div>
         </div>
@@ -445,22 +426,24 @@ export function CronConfig() {
 
       <div className="flex-1 overflow-auto custom-scrollbar">
         {cronQuery.isLoading ? (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-            <RefreshCw className="h-6 w-6 animate-spin mb-3" />
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <RefreshCw className="h-5 w-5 animate-spin mb-3" />
             <span className="text-sm">{t("cronLoading")}</span>
           </div>
         ) : jobs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-            <ListTodo className="h-10 w-10 mb-3 text-gray-300" />
-            <span className="text-sm font-medium text-gray-500">
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
+              <ListTodo className="h-5 w-5 text-muted-foreground/70" />
+            </div>
+            <span className="text-sm font-medium text-foreground">
               {t("cronEmpty")}
             </span>
-            <span className="text-xs text-gray-400 mt-1">
+            <span className="text-xs text-muted-foreground mt-1">
               {t("cronEmptyGuide")}
             </span>
           </div>
         ) : (
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {jobs.map((job) => (
               <CronJobCard
                 key={job.id}

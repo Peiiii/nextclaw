@@ -58,7 +58,7 @@ it('falls back to the generic tool card when no panel app renderer is available'
     />,
   );
 
-  expect(screen.getByText('show_content')).toBeTruthy();
+  expect(screen.getByText('show content')).toBeTruthy();
   expect(screen.getByText('Reader')).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Show content' })).toBeNull();
 });

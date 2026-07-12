@@ -132,7 +132,7 @@ describe("groupConsecutiveToolParts", () => {
     expect(blocks[0]?.kind).toBe("part");
   });
 
-  it("breaks grouping on reasoning or markdown between tools", () => {
+  it("keeps reasoning inside one tool group without including it in the summary", () => {
     const parts: ChatMessagePartViewModel[] = [
       toolCard("read_file"),
       toolCard("read_file"),
@@ -141,16 +141,18 @@ describe("groupConsecutiveToolParts", () => {
       toolCard("exec_command"),
     ];
     const blocks = groupConsecutiveToolParts(parts, labels);
-    expect(blocks.map((block) => block.kind)).toEqual([
-      "tool-group",
-      "part",
-      "tool-group",
-    ]);
+    expect(blocks.map((block) => block.kind)).toEqual(["tool-group"]);
     expect(blocks[0]).toMatchObject({
-      group: { label: "Read 2 files" },
-    });
-    expect(blocks[2]).toMatchObject({
-      group: { label: "Run 2 commands" },
+      group: {
+        label: "Read 2 files · Run 2 commands",
+        parts: [
+          { type: "tool-card" },
+          { type: "tool-card" },
+          { type: "reasoning", text: "pause" },
+          { type: "tool-card" },
+          { type: "tool-card" },
+        ],
+      },
     });
   });
 });

@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { NcpMessage } from "@nextclaw/ncp";
 import {
   type ChatInlineDisplayViewModel,
+  type ChatInlineTokenViewModel,
   type ChatMessageViewModel,
   ChatMessageList,
 } from "@nextclaw/agent-chat-ui";
@@ -23,6 +24,7 @@ import {
 } from "@/features/chat/features/session/utils/ncp-session-context-metadata.utils";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
 import { ChatInlinePanelAppCard } from "@/features/chat/features/message/components/chat-inline-panel-app-card";
+import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useI18n } from "@/app/components/i18n-provider";
 import { formatDateTime, t } from "@/shared/lib/i18n";
 
@@ -342,6 +344,31 @@ export function ChatMessageListContainer({
     () => buildTimelineItems({ rawMessages, messages }),
     [messages, rawMessages],
   );
+  const sessionSkillsQuery = useChatQueryStore((state) => state.snapshot.sessionSkillsQuery);
+  const handleInlineTokenClick = useCallback(
+    (token: ChatInlineTokenViewModel) => {
+      if (token.kind !== "skill") {
+        return;
+      }
+      const skillKey = token.key.trim();
+      if (!skillKey) {
+        return;
+      }
+      const records = sessionSkillsQuery?.data?.records ?? [];
+      const matched = records.find((record) => record.ref === skillKey || record.name === skillKey);
+      const skillPath = matched?.path?.trim();
+      if (!skillPath) {
+        return;
+      }
+      presenter.chatThreadManager.openFilePreview({
+        path: skillPath,
+        label: token.label || matched?.name || skillKey,
+        viewMode: "preview",
+        previewViewer: "rendered",
+      });
+    },
+    [presenter.chatThreadManager, sessionSkillsQuery],
+  );
   return (
     <div className={className}>
       {timelineItems.map((item, index) =>
@@ -358,6 +385,7 @@ export function ChatMessageListContainer({
             texts={messageTexts}
             onToolAction={presenter.chatThreadManager.handleToolAction}
             onFileOpen={presenter.chatThreadManager.openFilePreview}
+            onInlineTokenClick={handleInlineTokenClick}
             renderInlineDisplay={renderChatInlineDisplay}
             renderToolAgent={(agentId) => (
               <AgentIdentityAvatar
