@@ -1,6 +1,6 @@
 ---
 name: long-chain-debugging
-description: Use when a bug spans multiple hops, layers, runtimes, transports, or async boundaries and naive end-to-end debugging is slow. Applies to 长链路排查、根因定位、复现不稳、链路切片、观察点设计、证据收敛与修后同链路验收。
+description: Use when a bug spans multiple hops, layers, runtimes, transports, or async boundaries and naive end-to-end debugging is slow. Applies to 长链路排查、根因定位、复现不稳、复现收益与成本权衡、链路切片、观察点设计、证据收敛与修后同链路验收。
 ---
 
 # Long Chain Debugging
@@ -105,6 +105,24 @@ description: Use when a bug spans multiple hops, layers, runtimes, transports, o
 - 是否是隔离环境
 
 如果仓库里已有相关 smoke、诊断或回放脚本，优先复用它们做黄金复现，而不是重新手工点击。
+
+### 2.1 按信息收益选择复现层级
+
+复现的目标是建立可信修前基线并排除空想，不是无条件重跑最贵的端到端链路。选择层级前同时评估：
+
+- 复现价值：根因不确定性、改动回归风险、影响面、失败 artifact 的完整度。
+- 复现成本：搭建与等待时间、外部 API/算力费用、环境破坏性、数据污染、偶发性和可观察性。
+
+默认按以下顺序选择最便宜但足够区分假设的证据：
+
+1. 同入口、同配置的真实失败复现。
+2. 固定失败输入后的边界回放或单变量 A/B。
+3. 能命中第一个错误 hop 的最小失败测试。
+4. 已存在且完整的真实失败日志、事件 journal、trace 或持久化 artifact。
+
+完整复现太贵时，不要直接跳到猜测修复；先切链，把复现缩到第一个错误 hop。只有现有 artifact 已经直接证明违约边界、主动重跑不会显著增加信息，或复现具有不可接受风险时，才允许不新增修前运行；必须写清成本判断、替代基线和修后复验方式。
+
+修后优先复用同一输入、入口、配置和观察指标。A/B 只改变被验证的单一变量，避免把环境漂移误当成修复效果。
 
 ### 3. 画链路地图
 
@@ -241,6 +259,7 @@ description: Use when a bug spans multiple hops, layers, runtimes, transports, o
 只有同时满足以下条件，才算真正完成：
 
 1. 症状被压成了可验证的失败定义
-2. 已找到第一个错误 hop，而不是最后一个报错点
-3. 修复位点属于正确 owner，而不是下游表面
-4. 已用同链路完成验收，或明确写出剩余验证缺口
+2. 已留下修前复现基线，或记录了跳过主动复现的成本判断与替代证据
+3. 已找到第一个错误 hop，而不是最后一个报错点
+4. 修复位点属于正确 owner，而不是下游表面
+5. 已用同链路完成验收，或明确写出剩余验证缺口

@@ -75,8 +75,10 @@ HTTP/API/transport contract changes:
 
 Bugfix or abnormal behavior fix:
 
+- record the pre-fix failure baseline from a real reproduction, boundary replay, minimal failing test, or existing real failure artifact,
+- if active pre-fix reproduction was skipped, record why its cost or risk exceeded the expected information gain and what substitute evidence was used,
 - define the observable success condition before closing,
-- verify with the most realistic available path.
+- verify the fix with the same entrypoint, input class, configuration, and observation metric whenever safe.
 - When the real path fails, treat that failure as the current reproduction result and continue fixing the chain until the same path passes or a concrete external blocker is identified.
 
 ## Maintainability Closure
@@ -126,6 +128,7 @@ Before code edits, use `nextclaw-clean-implementation` and explicitly check:
 
 For fixes, record:
 
+- `修前基线 / 复现成本判断`,
 - `验证场景`,
 - `观察指标`,
 - `结果`,
