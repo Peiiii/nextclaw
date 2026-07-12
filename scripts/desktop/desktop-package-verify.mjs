@@ -166,6 +166,16 @@ function runCommonBuildSteps() {
   run(binName("pnpm"), ["-C", "apps/desktop", "build:main"], {
     env: { CSC_IDENTITY_AUTO_DISCOVERY: "false" }
   });
+  run(binName("pnpm"), [
+    "-C",
+    "apps/desktop",
+    "native-resources",
+    "--",
+    "--platform",
+    process.platform,
+    "--arch",
+    process.arch
+  ]);
 }
 
 function parsePublicKey(publicKeyPem, context) {

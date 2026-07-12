@@ -78,6 +78,7 @@ jobs:
           pnpm -r --filter @nextclaw/desktop... build
           pnpm -C apps/desktop bundle:seed -- --channel "$DESKTOP_UPDATE_CHANNEL" --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
           CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop build:main
+          pnpm -C apps/desktop native-resources -- --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
           CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop exec electron-builder --mac dmg zip --${{ matrix.arch }} --publish never
 
       - name: Normalize latest-mac metadata filename
@@ -137,6 +138,7 @@ jobs:
           pnpm -r --filter @nextclaw/desktop... build
           pnpm -C apps/desktop bundle:seed -- --channel $env:DESKTOP_UPDATE_CHANNEL --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
           pnpm -C apps/desktop build:main
+          pnpm -C apps/desktop native-resources -- --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
           pnpm -C apps/desktop exec electron-builder --win dir --${{ matrix.arch }} --publish never
 
       - name: Build Desktop (Linux)
@@ -148,6 +150,7 @@ jobs:
           pnpm -r --filter @nextclaw/desktop... build
           pnpm -C apps/desktop bundle:seed -- --channel "$DESKTOP_UPDATE_CHANNEL" --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
           pnpm -C apps/desktop build:main
+          pnpm -C apps/desktop native-resources -- --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
           pnpm -C apps/desktop exec electron-builder --linux AppImage deb --x64 --publish never
 
       - name: Normalize Linux artifact filenames
