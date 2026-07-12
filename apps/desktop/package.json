@@ -94,15 +94,9 @@
         "zip"
       ],
       "category": "public.app-category.productivity",
-      "extraResources": [
-        {
-          "from": "../../node_modules/.pnpm/sharp@0.34.5/node_modules/@img",
-          "to": "app.asar.unpacked/node_modules/@img",
-          "filter": [
-            "sharp-darwin-${arch}/**",
-            "sharp-libvips-darwin-${arch}/**"
-          ]
-        }
+      "files": [
+        "!node_modules/@img/sharp-!(darwin-${arch})/**",
+        "!node_modules/@img/sharp-libvips-!(darwin-${arch})/**"
       ]
     },
     "win": {
@@ -117,14 +111,9 @@
           ]
         }
       ],
-      "extraResources": [
-        {
-          "from": "../../node_modules/.pnpm/sharp@0.34.5/node_modules/@img",
-          "to": "app.asar.unpacked/node_modules/@img",
-          "filter": [
-            "sharp-win32-${arch}/**"
-          ]
-        }
+      "files": [
+        "!node_modules/@img/sharp-!(win32-${arch})/**",
+        "!node_modules/@img/sharp-libvips-*/**"
       ]
     },
     "nsis": {
@@ -157,15 +146,9 @@
         }
       ],
       "category": "Utility",
-      "extraResources": [
-        {
-          "from": "../../node_modules/.pnpm/sharp@0.34.5/node_modules/@img",
-          "to": "app.asar.unpacked/node_modules/@img",
-          "filter": [
-            "sharp-linux-${arch}/**",
-            "sharp-libvips-linux-${arch}/**"
-          ]
-        }
+      "files": [
+        "!node_modules/@img/sharp-!(linux-${arch})/**",
+        "!node_modules/@img/sharp-libvips-!(linux-${arch})/**"
       ]
     },
     "deb": {
