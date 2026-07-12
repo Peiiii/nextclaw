@@ -2,34 +2,35 @@ import { cn } from "@/shared/lib/utils";
 import { t } from "@/shared/lib/i18n";
 import { THEME_OPTIONS, type UiTheme } from "@/shared/lib/theme";
 import {
-  MessageCircle,
   BookOpen,
-  BrainCircuit,
-  AlarmClock,
   Languages,
   Palette,
   KeyRound,
   Settings,
   ArrowLeft,
-  Bot,
   PanelLeftClose,
   PanelLeftOpen,
-  type LucideIcon,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useDocBrowser } from "@/shared/components/doc-browser";
 import { BrandHeader } from "@/shared/components/common/brand-header";
 import {
   SidebarActionItem,
+  SidebarNavigationList,
   SidebarNavLinkItem,
   SidebarSelectItem,
+  type SidebarItemDensity,
+  type SidebarNavListItem,
 } from "@/app/components/layout/sidebar-items";
 import { useTheme } from "@/app/components/theme-provider";
 import { SelectItem } from "@/shared/components/ui/select";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import { useRemoteStatus } from "@/features/remote";
-import { getSettingsNavItems } from "@/app/configs/app-navigation.config";
+import {
+  getMainSidebarNavItems,
+  getSettingsNavSections,
+} from "@/app/configs/app-navigation.config";
 import { useLanguagePreference } from "@/features/settings";
 import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
 import { useViewportLayoutStore } from "@/app/stores/viewport-layout.store";
@@ -50,11 +51,37 @@ type SidebarProps = {
   mode: SidebarMode;
 };
 
-type SidebarNavItem = {
-  target: string;
+type SidebarNavSection = {
   label: string;
-  icon: LucideIcon;
+  items: SidebarNavListItem[];
 };
+
+type SidebarNavigationModel = {
+  items: SidebarNavListItem[];
+  sections?: SidebarNavSection[];
+  density: SidebarItemDensity;
+};
+
+type SidebarTranslate = (key: string) => string;
+
+function resolveSidebarNavigation(
+  isSettingsMode: boolean,
+  translate: SidebarTranslate,
+): SidebarNavigationModel {
+  if (!isSettingsMode) {
+    return {
+      items: getMainSidebarNavItems(translate),
+      density: "default",
+    };
+  }
+
+  const sections = getSettingsNavSections(translate);
+  return {
+    items: sections.flatMap((section) => section.items),
+    sections,
+    density: "compact",
+  };
+}
 
 function SidebarCollapseToggle({
   isCollapsed,
@@ -197,13 +224,23 @@ function SidebarNavigation({
   isSettingsMode,
   isCollapsed,
   items,
+  sections,
   density,
 }: {
   isSettingsMode: boolean;
   isCollapsed: boolean;
-  items: SidebarNavItem[];
-  density: "default" | "compact";
+  items: SidebarNavListItem[];
+  sections?: SidebarNavSection[];
+  density: SidebarItemDensity;
 }) {
+  const listClassName = cn(
+    isCollapsed
+      ? cn(SIDEBAR_RAIL_STACK_CLASS, "pb-3")
+      : isSettingsMode
+        ? "space-y-0.5 pb-3"
+        : "space-y-1 pb-4",
+  );
+
   return (
     <nav
       className={cn(
@@ -212,30 +249,34 @@ function SidebarNavigation({
         SIDEBAR_SCROLL_EDGE_FADE_CLASS,
       )}
     >
-      <ul
-        className={cn(
-          isCollapsed
-            ? cn(SIDEBAR_RAIL_STACK_CLASS, "pb-3")
-            : isSettingsMode
-              ? "space-y-0.5 pb-3"
-              : "space-y-1 pb-4",
-        )}
-      >
-        {items.map((item) => (
-          <li
-            key={item.target}
-            className={isCollapsed ? "flex justify-center" : undefined}
-          >
-            <SidebarNavLinkItem
-              to={item.target}
-              label={item.label}
-              icon={item.icon}
-              density={density}
-              collapsed={isCollapsed}
-            />
-          </li>
-        ))}
-      </ul>
+      {sections && !isCollapsed ? (
+        <div className="space-y-3 pb-3">
+          {sections.map((section) => (
+            <section
+              key={section.label}
+              aria-label={section.label}
+              className="space-y-1"
+            >
+              <h2 className="px-3 text-[11px] font-semibold text-muted-foreground/70">
+                {section.label}
+              </h2>
+              <SidebarNavigationList
+                isCollapsed={isCollapsed}
+                items={section.items}
+                density={density}
+                className="space-y-0.5"
+              />
+            </section>
+          ))}
+        </div>
+      ) : (
+        <SidebarNavigationList
+          isCollapsed={isCollapsed}
+          items={items}
+          density={density}
+          className={listClassName}
+        />
+      )}
     </nav>
   );
 }
@@ -267,31 +308,11 @@ export function Sidebar({ mode }: SidebarProps) {
     if (theme !== nextTheme) setTheme(nextTheme);
   };
 
-  const mainNavItems: SidebarNavItem[] = [
-    {
-      target: "/chat",
-      label: t("chat"),
-      icon: MessageCircle,
-    },
-    {
-      target: "/chat/cron",
-      label: t("cron"),
-      icon: AlarmClock,
-    },
-    {
-      target: "/chat/skills",
-      label: t("marketplaceFilterSkills"),
-      icon: BrainCircuit,
-    },
-    {
-      target: "/agents",
-      label: t("agentsPageTitle"),
-      icon: Bot,
-    },
-  ];
-
-  const navItems = isSettingsMode ? getSettingsNavItems(t) : mainNavItems;
-  const sidebarDensity = isSettingsMode ? "compact" : "default";
+  const {
+    items: navItems,
+    sections: settingsNavSections,
+    density: sidebarDensity,
+  } = resolveSidebarNavigation(isSettingsMode, t);
 
   return (
     <aside
@@ -314,6 +335,7 @@ export function Sidebar({ mode }: SidebarProps) {
           isSettingsMode={isSettingsMode}
           isCollapsed={isCollapsed}
           items={navItems}
+          sections={settingsNavSections}
           density={sidebarDensity}
         />
 

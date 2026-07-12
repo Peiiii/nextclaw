@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Bot,
   BrainCircuit,
+  AlarmClock,
   Cpu,
   Download,
   KeyRound,
@@ -23,6 +24,11 @@ export type AppNavigationItem = {
   target: string;
   label: string;
   icon: LucideIcon;
+};
+
+export type AppNavigationSection = {
+  label: string;
+  items: AppNavigationItem[];
 };
 
 function matchesRouteTarget(pathname: string, target: string): boolean {
@@ -76,6 +82,33 @@ export function getMobileBottomNavItems(
       target: "/settings",
       label: translate("settings"),
       icon: Settings,
+    },
+  ];
+}
+
+export function getMainSidebarNavItems(
+  translate: Translate,
+): AppNavigationItem[] {
+  return [
+    {
+      target: "/chat",
+      label: translate("chat"),
+      icon: MessageCircle,
+    },
+    {
+      target: "/chat/cron",
+      label: translate("cron"),
+      icon: AlarmClock,
+    },
+    {
+      target: "/chat/skills",
+      label: translate("marketplaceFilterSkills"),
+      icon: BrainCircuit,
+    },
+    {
+      target: "/agents",
+      label: translate("agentsPageTitle"),
+      icon: Bot,
     },
   ];
 }
@@ -138,6 +171,22 @@ export function getSettingsNavItems(
       target: "/marketplace/mcp",
       label: translate("marketplaceFilterMcp"),
       icon: Wrench,
+    },
+  ];
+}
+
+export function getSettingsNavSections(
+  translate: Translate,
+): AppNavigationSection[] {
+  const items = getSettingsNavItems(translate);
+  return [
+    {
+      label: translate("settingsGroupBasic"),
+      items: items.slice(0, 3),
+    },
+    {
+      label: translate("settingsGroupAdvanced"),
+      items: items.slice(3),
     },
   ];
 }

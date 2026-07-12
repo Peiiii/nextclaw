@@ -11,6 +11,8 @@
   "marketplace": "Marketplace",
   "advanced": "Advanced",
   "settings": "Settings",
+  "settingsGroupBasic": "Basic Configuration",
+  "settingsGroupAdvanced": "Advanced Configuration",
   "appearance": "Appearance",
   "settingsMenu": "Settings menu",
   "sidebarCollapse": "Collapse sidebar",

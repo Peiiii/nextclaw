@@ -11,6 +11,8 @@
   "marketplace": "市场",
   "advanced": "高级",
   "settings": "设置",
+  "settingsGroupBasic": "基础配置",
+  "settingsGroupAdvanced": "高级配置",
   "appearance": "外观",
   "settingsMenu": "设置菜单",
   "sidebarCollapse": "收起侧边栏",

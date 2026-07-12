@@ -19,8 +19,14 @@ import {
   SIDEBAR_RAIL_SURFACE_CLASS,
 } from "@/app/components/layout/sidebar-rail.styles";
 
-type SidebarIcon = ComponentType<{ className?: string }>;
-type SidebarItemDensity = "default" | "compact";
+export type SidebarIcon = ComponentType<{ className?: string }>;
+export type SidebarItemDensity = "default" | "compact";
+
+export type SidebarNavListItem = {
+  target: string;
+  label: string;
+  icon: SidebarIcon;
+};
 
 type SidebarItemTone = {
   row: string;
@@ -137,6 +143,39 @@ export function SidebarNavLinkItem({
     <SidebarItemTooltip label={label}>{link}</SidebarItemTooltip>
   ) : (
     link
+  );
+}
+
+type SidebarNavigationListProps = {
+  isCollapsed: boolean;
+  items: SidebarNavListItem[];
+  density: SidebarItemDensity;
+  className: string;
+};
+
+export function SidebarNavigationList({
+  isCollapsed,
+  items,
+  density,
+  className,
+}: SidebarNavigationListProps) {
+  return (
+    <ul className={className}>
+      {items.map((item) => (
+        <li
+          key={item.target}
+          className={isCollapsed ? "flex justify-center" : undefined}
+        >
+          <SidebarNavLinkItem
+            to={item.target}
+            label={item.label}
+            icon={item.icon}
+            density={density}
+            collapsed={isCollapsed}
+          />
+        </li>
+      ))}
+    </ul>
   );
 }
 

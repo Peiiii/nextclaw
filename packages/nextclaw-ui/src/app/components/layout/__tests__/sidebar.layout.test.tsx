@@ -120,7 +120,35 @@ describe("Sidebar", () => {
     const linkTexts = within(nav)
       .getAllByRole("link")
       .map((link) => link.textContent?.trim() || "");
+    const groupHeadings = within(nav)
+      .getAllByRole("heading", { level: 2 })
+      .map((heading) => heading.textContent?.trim() || "");
+    const groups = Array.from(nav.querySelectorAll("section"));
 
+    expect(groupHeadings).toEqual([
+      "Basic Configuration",
+      "Advanced Configuration",
+    ]);
+    expect(groups).toHaveLength(2);
+    expect(
+      within(groups[0] as HTMLElement)
+        .getAllByRole("link")
+        .map((link) => link.textContent?.trim() || ""),
+    ).toEqual(["Model", "Providers", "Channels"]);
+    expect(
+      within(groups[1] as HTMLElement)
+        .getAllByRole("link")
+        .map((link) => link.textContent?.trim() || ""),
+    ).toEqual([
+      "Search Channels",
+      "Appearance",
+      "Security",
+      "Routing & Runtime",
+      "Updates",
+      "Remote Access",
+      "Secrets",
+      "MCP",
+    ]);
     expect(linkTexts).toEqual([
       "Model",
       "Providers",
