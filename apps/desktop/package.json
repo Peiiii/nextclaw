@@ -90,6 +90,11 @@
     ],
     "npmRebuild": false,
     "asar": true,
+    "electronLanguages": [
+      "en-US",
+      "zh-CN",
+      "zh-TW"
+    ],
     "afterSign": "./scripts/electron-after-sign.cjs",
     "mac": {
       "icon": "build/icons/icon.icns",
