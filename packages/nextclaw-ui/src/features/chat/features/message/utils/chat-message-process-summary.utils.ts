@@ -68,6 +68,11 @@ function formatLifecycleDuration(message: NcpMessage): string | null {
   return `${seconds}s`;
 }
 
+/**
+ * Outer process collapse only.
+ * Tool activity grouping is a separate layer over consecutive tool-cards
+ * and must not be mixed into this summary.
+ */
 export function buildChatMessageProcessSummary({
   message,
   processedLabel,

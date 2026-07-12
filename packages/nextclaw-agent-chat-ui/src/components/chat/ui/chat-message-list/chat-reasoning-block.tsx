@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { useReasoningBlockOpenState } from "@agent-chat-ui/components/chat/hooks/use-reasoning-block-open-state";
 import { useStickyBottomScroll } from "@agent-chat-ui/components/chat/hooks/use-sticky-bottom-scroll";
 import { cn } from "@agent-chat-ui/components/chat/internal/cn";
+import { ChatCollapsibleMetaSummary } from "./chat-collapsible-meta-summary";
 
 type ChatReasoningBlockProps = {
   label: string;
@@ -41,13 +42,13 @@ export function ChatReasoningBlock({ label, text, isUser, isInProgress }: ChatRe
   });
 
   return (
-    <details className="mt-2" open={isOpen}>
-      <summary
-        className={cn("cursor-pointer text-xs", isUser ? "text-primary-100" : "text-muted-foreground")}
+    <details className="group/reasoning" open={isOpen}>
+      <ChatCollapsibleMetaSummary
+        openGroup="reasoning"
+        label={displayLabel}
+        labelClassName={isUser ? "text-primary-100" : undefined}
         onClick={onSummaryClick}
-      >
-        {displayLabel}
-      </summary>
+      />
       <div
         ref={scrollRef}
         onScroll={onScroll}

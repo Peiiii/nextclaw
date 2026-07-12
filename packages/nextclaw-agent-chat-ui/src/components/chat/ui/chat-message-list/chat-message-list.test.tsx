@@ -205,9 +205,9 @@ it("renders user inline tokens with theme-owned contrast", () => {
     />,
   );
 
-  expect(screen.getByText("Task Board").parentElement?.className).toContain(
-    "bg-primary-foreground/18",
-  );
+  const token = screen.getByText("Task Board").parentElement;
+  expect(token?.className).toContain("nextclaw-chat-inline-token");
+  expect(token?.className).toContain("bg-primary-foreground/22");
 });
 
 it("renders running tool cards with live status feedback", () => {

@@ -1,5 +1,4 @@
 import { memo, type ReactNode } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
 import type {
   ChatFileOpenActionViewModel,
   ChatInlineDisplayViewModel,
@@ -14,6 +13,12 @@ import { ChatMessageMarkdown } from "./chat-message-markdown";
 import { ChatMessageFile } from "./chat-message-file";
 import { ChatReasoningBlock } from "./chat-reasoning-block";
 import { ChatToolCard } from "./chat-tool-card";
+import { ChatToolActivityGroup } from "./chat-tool-activity-group";
+import { ChatCollapsibleMetaSummary } from "./chat-collapsible-meta-summary";
+import {
+  groupConsecutiveToolParts,
+  type ChatToolActivityGroupLabels,
+} from "./chat-tool-activity-group.utils";
 
 type ChatMessageProps = {
   message: ChatMessageViewModel;
@@ -24,6 +29,9 @@ type ChatMessageProps = {
     | "attachmentOpenLabel"
     | "attachmentAttachedLabel"
     | "attachmentCategoryLabels"
+    | "toolActivitySegmentTemplates"
+    | "toolActivityFailedLabel"
+    | "toolActivityCancelledLabel"
   >;
   onToolAction?: (action: ChatToolActionViewModel) => void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
@@ -55,6 +63,37 @@ type RenderChatMessagePartParams = {
   renderToolAgent?: (agentId: string) => ReactNode;
   renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
 };
+
+const DEFAULT_TOOL_ACTIVITY_LABELS: ChatToolActivityGroupLabels = {
+  segmentTemplates: {
+    read: { one: "Read 1 file", other: "Read {count} files" },
+    edit: { one: "Edit 1 file", other: "Edit {count} files" },
+    search: { one: "Search 1 time", other: "Search {count} times" },
+    bash: { one: "Run 1 command", other: "Run {count} commands" },
+    web: { one: "Open 1 page", other: "Open {count} pages" },
+    agent: { one: "Start 1 subtask", other: "Start {count} subtasks" },
+    panel: { one: "Show 1 result", other: "Show {count} results" },
+    other: { one: "Use 1 tool", other: "Use {count} tools" },
+  },
+  failedLabel: "failed",
+  cancelledLabel: "cancelled",
+};
+
+function resolveToolActivityLabels(
+  texts: ChatMessageProps["texts"],
+): ChatToolActivityGroupLabels {
+  return {
+    segmentTemplates: {
+      ...DEFAULT_TOOL_ACTIVITY_LABELS.segmentTemplates,
+      ...(texts.toolActivitySegmentTemplates ?? {}),
+    },
+    failedLabel:
+      texts.toolActivityFailedLabel ?? DEFAULT_TOOL_ACTIVITY_LABELS.failedLabel,
+    cancelledLabel:
+      texts.toolActivityCancelledLabel ??
+      DEFAULT_TOOL_ACTIVITY_LABELS.cancelledLabel,
+  };
+}
 
 function isMessageInProgress(status?: string): boolean {
   return status === "pending" || status === "streaming";
@@ -172,6 +211,68 @@ function renderChatMessagePart({
   return null;
 }
 
+function renderMessageParts(params: {
+  parts: ChatMessagePartViewModel[];
+  role: ChatMessageViewModel["role"];
+  isUser: boolean;
+  isInProgress: boolean;
+  texts: ChatMessageProps["texts"];
+  onToolAction?: (action: ChatToolActionViewModel) => void;
+  onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  renderInlineDisplay?: (
+    display: ChatInlineDisplayViewModel,
+  ) => ReactNode | undefined;
+  renderToolAgent?: (agentId: string) => ReactNode;
+  renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
+  indexOffset?: number;
+}): ReactNode[] {
+  const {
+    isInProgress,
+    isUser,
+    onFileOpen,
+    onToolAction,
+    parts,
+    renderInlineDisplay,
+    renderPanelAppCard,
+    renderToolAgent,
+    role,
+    texts,
+    indexOffset = 0,
+  } = params;
+  const labels = resolveToolActivityLabels(texts);
+  const blocks = groupConsecutiveToolParts(parts, labels);
+
+  return blocks.map((block) => {
+    if (block.kind === "tool-group") {
+      return (
+        <ChatToolActivityGroup
+          key={block.key}
+          group={block.group}
+          onToolAction={onToolAction}
+          onFileOpen={onFileOpen}
+          renderToolAgent={renderToolAgent}
+          renderPanelAppCard={renderPanelAppCard}
+        />
+      );
+    }
+
+    return renderChatMessagePart({
+      part: block.part,
+      index: indexOffset + block.index,
+      role,
+      isUser,
+      isInProgress,
+      isLastPart: indexOffset + block.index === indexOffset + parts.length - 1,
+      texts,
+      onToolAction,
+      onFileOpen,
+      renderInlineDisplay,
+      renderToolAgent,
+      renderPanelAppCard,
+    });
+  });
+}
+
 export const ChatMessage = memo(function ChatMessage({
   message,
   texts,
@@ -185,21 +286,6 @@ export const ChatMessage = memo(function ChatMessage({
   const isUser = role === "user";
   const isInProgress = isMessageInProgress(message.status);
   const processSplit = splitAssistantProcess(message);
-  const renderPart = (part: ChatMessagePartViewModel, index: number) =>
-    renderChatMessagePart({
-      part,
-      index,
-      role,
-      isUser,
-      isInProgress,
-      isLastPart: index === message.parts.length - 1,
-      texts,
-      onToolAction,
-      onFileOpen,
-      renderInlineDisplay,
-      renderToolAgent,
-      renderPanelAppCard,
-    });
 
   return (
     <div
@@ -215,22 +301,54 @@ export const ChatMessage = memo(function ChatMessage({
       <div className="space-y-2">
         {processSplit ? (
           <>
-            <details className="group/process text-xs text-muted-foreground">
-              <summary className="flex cursor-pointer list-none items-center gap-1.5 border-b border-border/60 pb-2 font-medium transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 [&::-webkit-details-marker]:hidden">
-                <ChevronRight className="h-3.5 w-3.5 group-open/process:hidden" strokeWidth={2.5} />
-                <ChevronDown className="hidden h-3.5 w-3.5 group-open/process:block" strokeWidth={2.5} />
-                <span>{message.processSummary?.label}</span>
-              </summary>
+            <details className="group/process">
+              <ChatCollapsibleMetaSummary
+                openGroup="process"
+                label={message.processSummary?.label}
+                className="border-b border-border/60 pb-2"
+              />
               <div className="space-y-2 pt-2">
-                {processSplit.processParts.map(renderPart)}
+                {renderMessageParts({
+                  parts: processSplit.processParts,
+                  role,
+                  isUser,
+                  isInProgress,
+                  texts,
+                  onToolAction,
+                  onFileOpen,
+                  renderInlineDisplay,
+                  renderToolAgent,
+                  renderPanelAppCard,
+                })}
               </div>
             </details>
-            {processSplit.finalParts.map((part, index) =>
-              renderPart(part, processSplit.processParts.length + index),
-            )}
+            {renderMessageParts({
+              parts: processSplit.finalParts,
+              role,
+              isUser,
+              isInProgress,
+              texts,
+              onToolAction,
+              onFileOpen,
+              renderInlineDisplay,
+              renderToolAgent,
+              renderPanelAppCard,
+              indexOffset: processSplit.processParts.length,
+            })}
           </>
         ) : (
-          message.parts.map(renderPart)
+          renderMessageParts({
+            parts: message.parts,
+            role,
+            isUser,
+            isInProgress,
+            texts,
+            onToolAction,
+            onFileOpen,
+            renderInlineDisplay,
+            renderToolAgent,
+            renderPanelAppCard,
+          })
         )}
       </div>
     </div>

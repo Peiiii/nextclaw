@@ -18,7 +18,7 @@ const baseAssistantMessage = {
       toolCallId: "tool-1",
       toolName: "exec_command",
       state: "result",
-      args: "{\"cmd\":\"git status\"}",
+      args: '{"cmd":"git status"}',
       result: "clean",
     },
     {
@@ -55,5 +55,15 @@ describe("buildChatMessageProcessSummary", () => {
     ).toEqual({
       label: "Processed 3m 51s",
     });
+  });
+
+  it("stays free of tool-activity semantics", () => {
+    const summary = buildChatMessageProcessSummary({
+      message: baseAssistantMessage,
+      processedLabel: "Processed",
+    });
+    expect(summary?.label).toBe("Processed");
+    expect(summary?.label.toLowerCase()).not.toContain("bash");
+    expect(summary?.label.toLowerCase()).not.toContain("read");
   });
 });

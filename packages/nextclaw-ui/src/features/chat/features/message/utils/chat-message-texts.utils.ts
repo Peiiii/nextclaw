@@ -56,5 +56,41 @@ export function buildChatMessageTexts(
       sheet: t("chatAttachmentCategorySheet"),
       video: t("chatAttachmentCategoryVideo"),
     },
+    toolActivitySegmentTemplates: {
+      read: {
+        one: t("chatToolActivityReadOne"),
+        other: t("chatToolActivityReadOther"),
+      },
+      edit: {
+        one: t("chatToolActivityEditOne"),
+        other: t("chatToolActivityEditOther"),
+      },
+      search: {
+        one: t("chatToolActivitySearchOne"),
+        other: t("chatToolActivitySearchOther"),
+      },
+      bash: {
+        one: t("chatToolActivityBashOne"),
+        other: t("chatToolActivityBashOther"),
+      },
+      web: {
+        one: t("chatToolActivityWebOne"),
+        other: t("chatToolActivityWebOther"),
+      },
+      agent: {
+        one: t("chatToolActivityAgentOne"),
+        other: t("chatToolActivityAgentOther"),
+      },
+      panel: {
+        one: t("chatToolActivityPanelOne"),
+        other: t("chatToolActivityPanelOther"),
+      },
+      other: {
+        one: t("chatToolActivityOtherOne"),
+        other: t("chatToolActivityOtherOther"),
+      },
+    },
+    toolActivityFailedLabel: t("chatProcessSummaryFailed"),
+    toolActivityCancelledLabel: t("chatProcessSummaryCancelled"),
   };
 }

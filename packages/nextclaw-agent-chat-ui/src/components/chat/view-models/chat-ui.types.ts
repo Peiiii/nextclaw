@@ -447,4 +447,16 @@ export type ChatMessageTexts = {
   attachmentOpenLabel?: string;
   attachmentAttachedLabel?: string;
   attachmentCategoryLabels?: Partial<Record<ChatAttachmentCategory, string>>;
+  toolActivitySegmentTemplates?: {
+    read: { one: string; other: string };
+    edit: { one: string; other: string };
+    search: { one: string; other: string };
+    bash: { one: string; other: string };
+    web: { one: string; other: string };
+    agent: { one: string; other: string };
+    panel: { one: string; other: string };
+    other: { one: string; other: string };
+  };
+  toolActivityFailedLabel?: string;
+  toolActivityCancelledLabel?: string;
 };
