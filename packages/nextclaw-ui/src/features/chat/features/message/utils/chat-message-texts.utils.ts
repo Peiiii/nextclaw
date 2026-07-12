@@ -140,6 +140,8 @@ export function buildChatMessageTexts(
     },
     attachmentOpenLabel: t("chatAttachmentOpen"),
     attachmentAttachedLabel: t("chatAttachmentAttached"),
+    attachmentExpandLabel: t("chatAttachmentExpand"),
+    attachmentCloseLabel: t("chatAttachmentClosePreview"),
     attachmentCategoryLabels: {
       archive: t("chatAttachmentCategoryArchive"),
       audio: t("chatAttachmentCategoryAudio"),

@@ -263,6 +263,8 @@
   "chatFileAttachment": "File attachment",
   "chatAttachmentOpen": "Open",
   "chatAttachmentAttached": "Attached",
+  "chatAttachmentExpand": "Expand image",
+  "chatAttachmentClosePreview": "Close preview",
   "chatAttachmentCategoryArchive": "Archive",
   "chatAttachmentCategoryAudio": "Audio",
   "chatAttachmentCategoryCode": "Code file",

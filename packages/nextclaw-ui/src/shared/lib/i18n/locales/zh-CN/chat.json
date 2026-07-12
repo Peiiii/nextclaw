@@ -263,6 +263,8 @@
   "chatFileAttachment": "文件附件",
   "chatAttachmentOpen": "打开",
   "chatAttachmentAttached": "已附加",
+  "chatAttachmentExpand": "放大查看",
+  "chatAttachmentClosePreview": "关闭预览",
   "chatAttachmentCategoryArchive": "压缩包",
   "chatAttachmentCategoryAudio": "音频",
   "chatAttachmentCategoryCode": "代码文件",

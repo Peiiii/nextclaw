@@ -461,6 +461,8 @@ export type ChatMessageTexts = {
   typingLabel: string;
   attachmentOpenLabel?: string;
   attachmentAttachedLabel?: string;
+  attachmentExpandLabel?: string;
+  attachmentCloseLabel?: string;
   attachmentCategoryLabels?: Partial<Record<ChatAttachmentCategory, string>>;
   toolActivitySegmentTemplates?: {
     read: { one: string; other: string };

@@ -8,6 +8,8 @@ const defaultTexts = {
   copyMessageLabel: "Copy",
   copiedMessageLabel: "Copied",
   typingLabel: "Typing...",
+  attachmentExpandLabel: "Expand image",
+  attachmentCloseLabel: "Close preview",
 };
 
 it("renders image attachments as lightweight image-first previews", () => {
@@ -46,7 +48,45 @@ it("renders image attachments as lightweight image-first previews", () => {
   expect(container.querySelector("figcaption")).toBeNull();
   expect(screen.queryByText("Image")).toBeNull();
   expect(screen.getByText("4 KB")).toBeTruthy();
+  expect(screen.getAllByLabelText("Expand image").length).toBeGreaterThan(0);
   expect(screen.queryByText("image/png")).toBeNull();
+});
+
+it("opens a fullscreen lightbox when expanding a message image", () => {
+  render(
+    <ChatMessageList
+      messages={[
+        {
+          id: "assistant-image-lightbox",
+          role: "assistant",
+          roleLabel: "Assistant",
+          timestampLabel: "10:07",
+          parts: [
+            {
+              type: "file",
+              file: {
+                label: "hero.png",
+                mimeType: "image/png",
+                dataUrl: "data:image/png;base64,ZmFrZS1pbWFnZQ==",
+                sizeBytes: 2048,
+                isImage: true,
+              },
+            },
+          ],
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  fireEvent.click(screen.getAllByLabelText("Expand image")[0]!);
+  expect(screen.getByTestId("chat-message-image-lightbox")).toBeTruthy();
+  expect(screen.getAllByRole("img", { name: "hero.png" }).length).toBeGreaterThan(1);
+
+  fireEvent.click(screen.getByLabelText("Close preview"));
+  expect(screen.queryByTestId("chat-message-image-lightbox")).toBeNull();
 });
 
 it("renders image-looking files as images even when the image flag is missing", () => {
