@@ -13,6 +13,9 @@
 - 用户消息气泡的紧凑形态收敛到 `@nextclaw/agent-chat-ui` 消息组件本身，所有主题保持一致布局。
 - `work` 主题只覆盖用户消息气泡颜色为浅灰底、深色文字，不改变 padding、圆角或阴影等布局/形态属性。
 - `work` 主题下侧栏可点击导航文字和图标加深，避免看起来像 disabled 状态。
+- 聊天左侧栏移除右侧描边，统一用侧栏底色与主画布底色形成连续的无边框分区；不再让一条 1px 竖线与已存在的背景层次重复表达结构。
+- 新会话欢迎区删除标题上方装饰性 Bot 图标，欢迎语直接以标题/副标题开场，减少无信息噪音。
+- 输入面板底部 toolbar 选中文案去掉 `text-foreground font-semibold` 覆盖，与左侧技能选择一致继承 `text-muted-foreground font-medium`，左右操作区文字层级统一。
 - 侧栏折叠状态的新任务入口改为普通 rail 图标样式，与定时任务、技能、Agent 管理保持同一视觉层级。
 - `work` 主题下 assistant Markdown 链接使用蓝色，匹配参考图中的文档链接。
 - PWA shell theme color 新增 `work`。
@@ -51,6 +54,7 @@
 - `/tmp/nextclaw-work-user-bubble-component-layout.png`：用户消息气泡为浅灰紧凑胶囊；紧凑尺寸来自消息组件，浅灰配色来自 `work` 主题。
 - `/tmp/nextclaw-work-sidebar-contrast.png`：展开侧栏导航文字和图标加深到可点击状态。
 - `/tmp/nextclaw-work-sidebar-collapsed-icons.png`：折叠侧栏新任务入口与其它 rail 图标统一为简约透明底。
+- 本地 `http://127.0.0.1:5174/chat`：默认主题实测聊天侧栏背景为 `rgb(242, 242, 242)`、主画布为白色、侧栏宽度为 `280px`，右侧边框计算值从 `1px` 归零为 `0px`；已人工查看截图确认分区清晰且没有横向挤压。
 
 ## 发布/部署方式
 
@@ -61,7 +65,7 @@
 1. 打开 NextClaw UI。
 2. 在左下角设置菜单中进入主题选择。
 3. 确认主题列表首项为 `默认`；在无已保存主题偏好时，应用自动选中该主题。
-4. 确认聊天首页、外观设置页、MCP 市场页呈现白色主画布、柔灰导航面、深灰导航状态；用户消息为浅灰紧凑气泡，发送、新建会话和保存等主操作保持统一的深色中性样式，assistant 文档链接为蓝色。
+4. 确认聊天首页、外观设置页、MCP 市场页呈现白色主画布、柔灰导航面、深灰导航状态；聊天左侧栏无额外竖向描边，依靠灰白背景分区；用户消息为浅灰紧凑气泡，发送、新建会话和保存等主操作保持统一的深色中性样式，assistant 文档链接为蓝色。
 5. 折叠侧边栏，确认新任务入口和定时任务、技能、Agent 管理图标一样简约，不再显示单独强调背景。
 6. 选择任意其他主题后刷新页面，确认选择仍保持；清除主题偏好后刷新，确认回到 `默认`。
 
@@ -71,10 +75,15 @@
 
 正向减债动作：简化。MCP 市场 header 删除硬编码紫色渐变、装饰层和固定文字色，改为复用主题 token，减少与主题系统并行的视觉路径。
 
+后续同批微调继续删除聊天侧栏重复的 `border-r` 视觉路径，使用现有背景色承担分区；并收敛欢迎区装饰图标与输入 toolbar 文字样式；非测试源码净减（欢迎图标与重复字色覆盖删除），没有新增主题判断、全局覆盖或额外组件状态。
+
 `post-edit-maintainability-guard` 与 `post-edit-maintainability-review` 已用于收口判断。当前没有保留已知主题适配债务；守卫提示均为既有测试文件/目录预算边界。
 
 ## NPM 包发布记录
 
-本次涉及 `@nextclaw/ui` 与 `@nextclaw/agent-chat-ui` 用户可见变化，已新增 `.changeset/work-white-theme.md`，类型均为 patch。
+本次涉及 `@nextclaw/ui` 与 `@nextclaw/agent-chat-ui` 用户可见变化，已新增：
 
-当前未执行 NPM 发布；状态为待后续统一发布。
+- `.changeset/work-white-theme.md`（默认主题主体）
+- `.changeset/chat-ui-surface-polish.md`（欢迎区/侧栏边框/输入 toolbar 文字统一）
+
+类型均为 patch。当前未执行 NPM 发布；状态为待后续统一发布。

@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Bot } from 'lucide-react';
 import { ChatSessionProjectDialog } from '@/features/chat/features/session/components/session-header/chat-session-project-dialog';
 import { ChatWelcomeAgentPicker } from '@/features/chat/features/welcome/components/chat-welcome-agent-picker';
 import { ChatWelcomeCapabilityGrid } from '@/features/chat/features/welcome/components/chat-welcome-capability-grid';
@@ -64,10 +63,6 @@ export function ChatWelcome({
   return (
     <div className="flex min-h-full items-center justify-center px-4 py-8 sm:p-8">
       <div className="min-w-0 w-full max-w-[min(760px,100%)]">
-        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-accent shadow-card">
-          <Bot className="h-8 w-8 text-primary" />
-        </div>
-
         <div className="text-center">
           <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
             {t('chatWelcomeTitle')}

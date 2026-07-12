@@ -248,9 +248,9 @@ export function ChatSidebar({
           : shouldCollapse
             ? cn(
                 SIDEBAR_RAIL_WIDTH_CLASS,
-                "shrink-0 border-r border-border/70",
+                "shrink-0",
               )
-            : "w-[280px] shrink-0 border-r border-border/70",
+            : "w-[280px] shrink-0",
       )}
       data-sidebar-collapsed={shouldCollapse ? "true" : "false"}
     >

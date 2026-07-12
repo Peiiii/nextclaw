@@ -58,8 +58,8 @@ function ToolbarSelectTriggerContent({ item }: { item: ChatToolbarSelect }) {
     return (
       <div className="flex min-w-0 items-center gap-2 text-left">
         <ToolbarIcon icon={item.icon} />
-        <span className="nextclaw-chat-toolbar-mobile-label truncate text-xs font-semibold text-foreground sm:hidden [@container_nextclaw-chat-input-bar_(max-width:440px)]:hidden">{mobileSelectedLabel}</span>
-        <span className="nextclaw-chat-toolbar-label hidden truncate text-xs font-semibold text-foreground sm:inline [@container_nextclaw-chat-input-bar_(max-width:440px)]:hidden">{item.selectedLabel}</span>
+        <span className="nextclaw-chat-toolbar-mobile-label truncate sm:hidden [@container_nextclaw-chat-input-bar_(max-width:440px)]:hidden">{mobileSelectedLabel}</span>
+        <span className="nextclaw-chat-toolbar-label hidden truncate sm:inline [@container_nextclaw-chat-input-bar_(max-width:440px)]:hidden">{item.selectedLabel}</span>
       </div>
     );
   }

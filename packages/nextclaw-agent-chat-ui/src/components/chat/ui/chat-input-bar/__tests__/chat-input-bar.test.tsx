@@ -499,7 +499,6 @@ it('inserts a file token at the saved caret position', () => {
 
 it('renders a file token inside the composer after an imperative insert', async () => {
   render(<FileTokenInsertionHarness />);
-
   fireEvent.click(screen.getByRole('button', { name: 'Insert image' }));
 
   await waitFor(() => expect(screen.getByText('sample.png')).toBeTruthy());
