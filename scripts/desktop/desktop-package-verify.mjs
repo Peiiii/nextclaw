@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createPublicKey, verify } from "node:crypto";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -23,6 +23,15 @@ const channelExtensionPackages = [
 const nextclawPackageJsonPath = resolve(rootDir, "packages/nextclaw/package.json");
 const isHandoffVerify = process.argv.includes("--handoff");
 const RUNTIME_BUNDLE_FILE_BUDGET = 400;
+const SHARP_RUNTIME_BASE_PACKAGE_NAMES = ["sharp", "detect-libc", "semver", "@img/colour"];
+const SHARP_NATIVE_PACKAGE_NAMES_BY_TARGET = {
+  "darwin-arm64": ["@img/sharp-darwin-arm64", "@img/sharp-libvips-darwin-arm64"],
+  "darwin-x64": ["@img/sharp-darwin-x64", "@img/sharp-libvips-darwin-x64"],
+  "linux-arm64": ["@img/sharp-linux-arm64", "@img/sharp-libvips-linux-arm64"],
+  "linux-x64": ["@img/sharp-linux-x64", "@img/sharp-libvips-linux-x64"],
+  "win32-arm64": ["@img/sharp-win32-arm64"],
+  "win32-x64": ["@img/sharp-win32-x64"]
+};
 
 function binName(name) {
   return process.platform === "win32" ? `${name}.cmd` : name;
@@ -49,6 +58,47 @@ function commandExists(command, args = ["--version"]) {
     return false;
   }
   return result.status === 0;
+}
+
+function readUsablePython3Path() {
+  const candidates = process.platform === "darwin" ? ["/usr/bin/python3", "python3"] : ["python3"];
+  for (const candidate of candidates) {
+    const result = spawnSync(candidate, ["-c", "import sys, plistlib; print(sys.executable)"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    });
+    if (result.status === 0 && !result.error) {
+      return result.stdout.trim();
+    }
+  }
+  return "";
+}
+
+function resolveSharpRuntimePackageNames(platform, arch) {
+  const target = `${platform}-${arch}`;
+  const nativePackageNames = SHARP_NATIVE_PACKAGE_NAMES_BY_TARGET[target];
+  if (!nativePackageNames) {
+    throw new Error(`Unsupported sharp native dependency target for desktop runtime bundle: ${target}`);
+  }
+  return [...SHARP_RUNTIME_BASE_PACKAGE_NAMES, ...nativePackageNames];
+}
+
+function ensureMacPythonCommand() {
+  if (process.platform !== "darwin" || commandExists("python")) {
+    return;
+  }
+
+  const python3Path = readUsablePython3Path();
+  if (!python3Path) {
+    return;
+  }
+
+  const shimDir = mkdtempSync(join(tmpdir(), "nextclaw-desktop-python-"));
+  const pythonShimPath = join(shimDir, "python");
+  symlinkSync(python3Path, pythonShimPath);
+  process.env.PATH = `${shimDir}:${process.env.PATH ?? ""}`;
+  process.on("exit", () => rmSync(shimDir, { recursive: true, force: true }));
+  console.log(`[desktop-verify] using python shim: ${pythonShimPath} -> ${python3Path}`);
 }
 
 function findLatestReleaseFile(matcher) {
@@ -177,20 +227,41 @@ function assertSeedBundleVersion(seedBundlePath) {
   console.log(`[desktop-verify] seed bundle version verified: ${actualVersion}`);
 }
 
-function assertSeedBundleRuntimeShape(seedBundlePath) {
+function assertSeedBundleRuntimeShape(seedBundlePath, platform, arch) {
   const expectedChannelExtensionPackages = JSON.stringify(channelExtensionPackages);
+  const allowedRuntimeNodeModulePackageNames = JSON.stringify(resolveSharpRuntimePackageNames(platform, arch));
   const script = [
     "const JSZip=require('jszip');",
     "const fs=require('fs');",
     "const zipPath=process.argv[1];",
     `const runtimeFileBudget=${RUNTIME_BUNDLE_FILE_BUDGET};`,
     `const expectedChannelExtensionPackages=${expectedChannelExtensionPackages};`,
+    `const allowedRuntimeNodeModulePackageNames=${allowedRuntimeNodeModulePackageNames};`,
+    "function packageNameToZipPath(packageName) {",
+    "  return `bundle/runtime/node_modules/${packageName}/package.json`;",
+    "}",
+    "function readRuntimeNodeModulePackageNames(entries) {",
+    "  const packageNames = new Set();",
+    "  const prefix = 'bundle/runtime/node_modules/';",
+    "  for (const entry of entries) {",
+    "    if (!entry.startsWith(prefix)) continue;",
+    "    const segments = entry.slice(prefix.length).split('/').filter(Boolean);",
+    "    if (segments.length === 0) continue;",
+    "    packageNames.add(segments[0].startsWith('@') ? `${segments[0]}/${segments[1] ?? ''}` : segments[0]);",
+    "  }",
+    "  return Array.from(packageNames).filter((packageName) => !packageName.endsWith('/')).sort();",
+    "}",
     "JSZip.loadAsync(fs.readFileSync(zipPath))",
     "  .then((zip) => {",
     "    const entries = Object.keys(zip.files);",
-    "    const forbidden = entries.filter((name) => name.startsWith('bundle/runtime/node_modules/'));",
-    "    if (forbidden.length > 0) {",
-    "      throw new Error(`seed bundle contains runtime node_modules (${forbidden.length} entries): ${zipPath}`);",
+    "    const runtimeNodeModulePackageNames = readRuntimeNodeModulePackageNames(entries);",
+    "    const unexpectedRuntimeNodeModulePackageNames = runtimeNodeModulePackageNames.filter((packageName) => !allowedRuntimeNodeModulePackageNames.includes(packageName));",
+    "    if (unexpectedRuntimeNodeModulePackageNames.length > 0) {",
+    "      throw new Error(`seed bundle contains unexpected runtime node_modules packages: ${unexpectedRuntimeNodeModulePackageNames.join(', ')}`);",
+    "    }",
+    "    const missingRuntimeNodeModulePackageNames = allowedRuntimeNodeModulePackageNames.filter((packageName) => !zip.file(packageNameToZipPath(packageName)));",
+    "    if (missingRuntimeNodeModulePackageNames.length > 0) {",
+    "      throw new Error(`seed bundle is missing native runtime dependencies: ${missingRuntimeNodeModulePackageNames.join(', ')}`);",
     "    }",
     "    const runtimeFiles = entries.filter((name) => name.startsWith('bundle/runtime/') && !zip.files[name].dir);",
     "    if (runtimeFiles.length > runtimeFileBudget) {",
@@ -204,7 +275,7 @@ function assertSeedBundleRuntimeShape(seedBundlePath) {
     "      throw new Error(`seed bundle missing packaged channel extension files: ${missingExtensionFiles.join(', ')}`);",
     "    }",
     "    const pluginFiles = entries.filter((name) => name.startsWith('bundle/plugins/') && !zip.files[name].dir);",
-    "    console.log(`runtimeFiles=${runtimeFiles.length} pluginFiles=${pluginFiles.length}`);",
+    "    console.log(`runtimeFiles=${runtimeFiles.length} pluginFiles=${pluginFiles.length} nativeRuntimeDependencies=${runtimeNodeModulePackageNames.join(',')}`);",
     "  })",
     "  .catch((error) => { console.error(error instanceof Error ? error.message : String(error)); process.exit(1); });"
   ].join(" ");
@@ -317,7 +388,7 @@ function verifyMacDesktopPackage() {
   );
   assertDesktopPackageExcludesNestedElectron(mountedAppRoot);
   assertSeedBundleVersion(seedBundlePath);
-  assertSeedBundleRuntimeShape(seedBundlePath);
+  assertSeedBundleRuntimeShape(seedBundlePath, process.platform, arch);
   verifySeedBundleRuntimeInit(seedBundlePath);
   run("bash", ["apps/desktop/scripts/smoke-macos-dmg.sh", dmgPath, "120"]);
   if (isHandoffVerify) {
@@ -465,6 +536,7 @@ function verifyLinuxDesktopPackage() {
 function main() {
   console.log(`[desktop-verify] platform=${process.platform} arch=${process.arch}`);
   console.log(`[desktop-verify] mode=${isHandoffVerify ? "handoff" : "package"}`);
+  ensureMacPythonCommand();
   runCommonBuildSteps();
 
   if (process.platform === "darwin") {

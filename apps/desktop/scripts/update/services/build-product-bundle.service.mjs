@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { cp, mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import JSZip from "jszip";
@@ -18,6 +19,16 @@ const nextclawPackageJsonPath = resolve(nextclawPackageRoot, "package.json");
 const RUNTIME_BUNDLE_FILE_BUDGET = 400;
 const RUNTIME_ENTRYPOINT = "runtime/dist/cli/app/index.js";
 const SESSION_SEARCH_WORKER_RELATIVE_PATH = "features/session-search/worker/session-search-worker-host.utils.js";
+const requireFromCore = createRequire(join(nextclawCorePackageRoot, "package.json"));
+const SHARP_RUNTIME_BASE_PACKAGE_NAMES = ["sharp", "detect-libc", "semver", "@img/colour"];
+const SHARP_NATIVE_PACKAGE_NAMES_BY_TARGET = {
+  "darwin-arm64": ["@img/sharp-darwin-arm64", "@img/sharp-libvips-darwin-arm64"],
+  "darwin-x64": ["@img/sharp-darwin-x64", "@img/sharp-libvips-darwin-x64"],
+  "linux-arm64": ["@img/sharp-linux-arm64", "@img/sharp-libvips-linux-arm64"],
+  "linux-x64": ["@img/sharp-linux-x64", "@img/sharp-libvips-linux-x64"],
+  "win32-arm64": ["@img/sharp-win32-arm64"],
+  "win32-x64": ["@img/sharp-win32-x64"]
+};
 const CHANNEL_EXTENSION_PACKAGE_DIRS = [
   "nextclaw-channel-extension-dingtalk",
   "nextclaw-channel-extension-discord",
@@ -73,6 +84,71 @@ function runCommand(command, args, cwd) {
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(" ")} failed with exit code ${result.status ?? 1}`);
   }
+}
+
+function resolveSharpRuntimePackageNames(options) {
+  const target = `${options.platform}-${options.arch}`;
+  const nativePackageNames = SHARP_NATIVE_PACKAGE_NAMES_BY_TARGET[target];
+  if (!nativePackageNames) {
+    throw new Error(`Unsupported sharp native dependency target for desktop runtime bundle: ${target}`);
+  }
+  return [...SHARP_RUNTIME_BASE_PACKAGE_NAMES, ...nativePackageNames];
+}
+
+function packageNameToPathSegments(packageName) {
+  return packageName.split("/");
+}
+
+function resolveSharpInstallNodeModulesRoot() {
+  const sharpPackageJsonPath = requireFromCore.resolve("sharp/package.json");
+  return dirname(dirname(sharpPackageJsonPath));
+}
+
+function readRuntimeNodeModulePackageNames(nodeModulesRoot) {
+  if (!existsSync(nodeModulesRoot)) {
+    return [];
+  }
+  return readdirSync(nodeModulesRoot, { withFileTypes: true }).flatMap((entry) => {
+    if (!entry.isDirectory()) {
+      return [];
+    }
+    if (!entry.name.startsWith("@")) {
+      return [entry.name];
+    }
+    return readdirSync(join(nodeModulesRoot, entry.name), { withFileTypes: true })
+      .filter((scopedEntry) => scopedEntry.isDirectory())
+      .map((scopedEntry) => `${entry.name}/${scopedEntry.name}`);
+  });
+}
+
+async function copyRuntimeNodeModulePackage(packageName, sourceNodeModulesRoot, targetNodeModulesRoot) {
+  const pathSegments = packageNameToPathSegments(packageName);
+  const sourceRoot = join(sourceNodeModulesRoot, ...pathSegments);
+  if (!existsSync(sourceRoot)) {
+    throw new Error(
+      [
+        `Missing installed package required by desktop runtime bundle: ${packageName}`,
+        "Run pnpm install with supportedArchitectures for the target platform and CPU before building the bundle."
+      ].join(" ")
+    );
+  }
+
+  const targetRoot = join(targetNodeModulesRoot, ...pathSegments);
+  rmSync(targetRoot, { recursive: true, force: true });
+  await mkdir(dirname(targetRoot), { recursive: true });
+  await cp(sourceRoot, targetRoot, { recursive: true, dereference: true });
+  rmSync(join(targetRoot, "node_modules"), { recursive: true, force: true });
+}
+
+async function copySharpRuntimeDependencies(workspace, options) {
+  const packageNames = resolveSharpRuntimePackageNames(options);
+  const sourceNodeModulesRoot = resolveSharpInstallNodeModulesRoot();
+  const targetNodeModulesRoot = join(workspace.runtimeRoot, "node_modules");
+  await mkdir(targetNodeModulesRoot, { recursive: true });
+  for (const packageName of packageNames) {
+    await copyRuntimeNodeModulePackage(packageName, sourceNodeModulesRoot, targetNodeModulesRoot);
+  }
+  return packageNames;
 }
 
 function writePackagedExtensionManifest(sourcePackageRoot, targetRoot) {
@@ -167,6 +243,8 @@ function bundleRuntimeEntrypoint(workspace) {
       "node",
       "--target",
       "es2022",
+      "--deps.never-bundle",
+      "sharp",
       "--out-dir",
       workspace.runtimeEntrypointDir,
       "--shims",
@@ -279,15 +357,16 @@ async function countFiles(targetDir) {
   return fileCount;
 }
 
-async function prepareBundleWorkspace(workspace) {
+async function prepareBundleWorkspace(workspace, options) {
   ensureFreshRuntimeArtifacts();
   runCommand("node", [resolve(desktopDir, "scripts", "ensure-runtime.mjs")], workspaceRoot);
   await mkdir(workspace.bundleRoot, { recursive: true });
   bundleRuntimeEntrypoint(workspace);
   await copyRuntimeAssets(workspace);
+  const nativeRuntimeDependencies = await copySharpRuntimeDependencies(workspace, options);
   await copySessionSearchWorkerAssets(workspace);
   await writeFile(join(workspace.runtimeEntrypointDir, "index.js"), 'import "./index.mjs";\n', "utf8");
-  assertRuntimeBundleContract(workspace.runtimeRoot);
+  assertRuntimeBundleContract(workspace.runtimeRoot, nativeRuntimeDependencies);
   await copyPackagedChannelExtensions(workspace);
   assertPackagedExtensionBundleContract(workspace.pluginsRoot);
   const runtimeFileCount = await countFiles(workspace.runtimeRoot);
@@ -298,11 +377,12 @@ async function prepareBundleWorkspace(workspace) {
   return {
     runtimeFileCount,
     pluginFileCount,
+    nativeRuntimeDependencies,
     packagedExtensionCount: CHANNEL_EXTENSION_PACKAGE_DIRS.length
   };
 }
 
-function assertRuntimeBundleContract(runtimeRoot) {
+function assertRuntimeBundleContract(runtimeRoot, allowedRuntimeNodeModulePackageNames) {
   const requiredFiles = [
     "dist/cli/app/index.js",
     "dist/cli/app/index.mjs",
@@ -315,8 +395,17 @@ function assertRuntimeBundleContract(runtimeRoot) {
   if (missingFiles.length > 0) {
     throw new Error(`Runtime bundle is missing required packaged files: ${missingFiles.join(", ")}`);
   }
-  if (existsSync(join(runtimeRoot, "node_modules"))) {
-    throw new Error("Runtime bundle must not include node_modules.");
+  const nodeModulePackageNames = readRuntimeNodeModulePackageNames(join(runtimeRoot, "node_modules"));
+  const allowedPackageNames = new Set(allowedRuntimeNodeModulePackageNames);
+  const missingNodeModulePackageNames = allowedRuntimeNodeModulePackageNames.filter(
+    (packageName) => !nodeModulePackageNames.includes(packageName)
+  );
+  if (missingNodeModulePackageNames.length > 0) {
+    throw new Error(`Runtime bundle is missing native runtime dependencies: ${missingNodeModulePackageNames.join(", ")}`);
+  }
+  const unexpectedNodeModulePackageNames = nodeModulePackageNames.filter((packageName) => !allowedPackageNames.has(packageName));
+  if (unexpectedNodeModulePackageNames.length > 0) {
+    throw new Error(`Runtime bundle contains unexpected node_modules packages: ${unexpectedNodeModulePackageNames.join(", ")}`);
   }
 }
 
@@ -373,6 +462,7 @@ function reportBundleBuildResult(archivePath, options, workspace, buildResult) {
         arch: options.arch,
         runtimeFileCount: buildResult.runtimeFileCount,
         runtimeFileBudget: RUNTIME_BUNDLE_FILE_BUDGET,
+        nativeRuntimeDependencies: buildResult.nativeRuntimeDependencies,
         packagedExtensionCount: buildResult.packagedExtensionCount,
         pluginFileCount: buildResult.pluginFileCount,
         runtimeRoot: relative(workspaceRoot, workspace.runtimeRoot),
@@ -391,7 +481,7 @@ async function buildBundleArchive(args) {
   const workspace = createBundleWorkspace(tempRoot);
 
   try {
-    const buildResult = await prepareBundleWorkspace(workspace);
+    const buildResult = await prepareBundleWorkspace(workspace, options);
     await writeBundleManifest(workspace.bundleRoot, options);
     const archivePath = await writeBundleArchive(workspace.bundleRoot, options);
     reportBundleBuildResult(archivePath, options, workspace, buildResult);

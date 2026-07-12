@@ -59,7 +59,12 @@ jobs:
           version: 9.15.1
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        shell: bash
+        run: |
+          pnpm install --frozen-lockfile \
+            "--config.supportedArchitectures.os[]=${{ matrix.platform }}" \
+            "--config.supportedArchitectures.cpu[]=x64" \
+            "--config.supportedArchitectures.cpu[]=arm64"
 
       - name: Write bundled update public key
         env:
