@@ -99,7 +99,7 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
       ) : null}
 
       {models.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-muted/60 px-4 py-6 text-center">
+        <div className="rounded-xl border border-dashed border-border/65 bg-muted/30 px-4 py-6 text-center">
           <p className="text-sm text-muted-foreground">{t('providerModelsEmptyShort')}</p>
           {!showModelInput ? (
             <button
@@ -123,14 +123,14 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
             return (
               <div
                 key={modelName}
-                className="group inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-card px-3 py-1.5"
+                className="group inline-flex max-w-full items-center gap-1 rounded-full border border-border/55 bg-muted/45 px-3 py-1.5"
               >
                 <span className="max-w-[140px] truncate text-sm text-foreground sm:max-w-[220px]">{modelName}</span>
                 <Popover>
                   <PopoverTrigger asChild>
                     <button
                       type="button"
-                      className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/70 opacity-100 transition-opacity hover:bg-accent hover:text-accent-foreground md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/70 opacity-100 transition-opacity hover:bg-muted hover:text-foreground md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
                       aria-label={t('providerModelThinkingTitle')}
                       title={t('providerModelThinkingTitle')}
                     >
@@ -138,7 +138,7 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
                     </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-80 space-y-3">
-                    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/60 px-3 py-2">
+                    <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/50 px-3 py-2">
                       <div className="min-w-0">
                         <p className="text-xs font-semibold text-foreground">{t('providerModelVisionTitle')}</p>
                         <p className="text-xs text-muted-foreground">{t('providerModelVisionHint')}</p>
@@ -159,8 +159,8 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
                             onClick={() => onToggleModelThinkingLevel(modelName, level)}
                             className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
                               selected
-                                ? 'border-primary bg-primary text-white'
-                                : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-accent/70 hover:text-accent-foreground'
+                                ? 'border-foreground/15 bg-foreground text-background'
+                                : 'border-border/55 bg-muted/50 text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground'
                             }`}
                           >
                             {formatThinkingLevelLabel(level)}
@@ -198,7 +198,7 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
                 <button
                   type="button"
                   onClick={() => onRemoveModel(modelName)}
-                  className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/70 opacity-100 transition-opacity hover:bg-accent hover:text-accent-foreground md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+                  className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/70 opacity-100 transition-opacity hover:bg-muted hover:text-foreground md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
                   aria-label={t('remove')}
                 >
                   <X className="h-3 w-3" />

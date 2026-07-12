@@ -16,7 +16,7 @@ export function ProviderPillSelector(props: ProviderPillSelectorProps) {
             type="button"
             onClick={() => onChange(option.value)}
             aria-pressed={selected}
-            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${selected ? 'border-primary bg-primary text-primary-foreground shadow-sm' : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-accent/70 hover:text-accent-foreground'}`}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${selected ? 'border-foreground/15 bg-foreground text-background' : 'border-border/55 bg-muted/50 text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground'}`}
           >
             {option.label}
           </button>

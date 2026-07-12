@@ -5,6 +5,7 @@ import { BookOpen, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { LogoBadge } from '@/shared/components/common/logo-badge';
 import { Button } from '@/shared/components/ui/button';
+import { FormActions } from '@/shared/components/ui/actions/form-actions';
 import { StatusDot } from '@/shared/components/status/status-dot';
 import { nextclawClient } from '@/shared/lib/api';
 import { useConfig, useConfigMeta, useConfigSchema, useExecuteConfigAction, useUpdateChannel } from '@/shared/hooks/use-config';
@@ -363,17 +364,19 @@ function ChannelFormEditor({
           />
         </ConfigSplitPaneBody>
 
-        <ConfigSplitPaneFooter className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
-          <div className="flex flex-wrap items-center gap-2">
-            {actions.filter((action) => action.trigger === 'manual').map((action) => (
-              <Button key={action.id} type="button" onClick={() => void handleManualAction(action)} disabled={disabled} variant="secondary">
-                {runningActionId === action.id ? t('connecting') : action.title}
-              </Button>
-            ))}
-          </div>
-          <Button type="submit" disabled={disabled}>
-            {updateChannel.isPending ? t('saving') : t('save')}
-          </Button>
+        <ConfigSplitPaneFooter>
+          <FormActions align="between">
+            <div className="flex flex-wrap items-center gap-2">
+              {actions.filter((action) => action.trigger === 'manual').map((action) => (
+                <Button key={action.id} type="button" size="sm" onClick={() => void handleManualAction(action)} disabled={disabled} variant="secondary">
+                  {runningActionId === action.id ? t('connecting') : action.title}
+                </Button>
+              ))}
+            </div>
+            <Button type="submit" size="sm" disabled={disabled}>
+              {updateChannel.isPending ? t('saving') : t('save')}
+            </Button>
+          </FormActions>
         </ConfigSplitPaneFooter>
       </form>
     </ConfigSplitDetailPane>

@@ -3,6 +3,7 @@ import { Card } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Skeleton } from '@/shared/components/ui/skeleton';
+import { FormActions } from '@/shared/components/ui/actions/form-actions';
 import { ProviderScopedModelInput } from '@/shared/components/common/provider-scoped-model-input';
 import { useConfig, useConfigSchema, useProviderTemplates, useProviders, useUpdateModel } from '@/shared/hooks/use-config';
 import { hintForPath } from '@/shared/lib/config-hints';
@@ -37,48 +38,48 @@ function ModelConfigForm(props: {
         event.preventDefault();
         onSubmit({ model, workspace });
       }}
-      className="space-y-8"
+      className="space-y-5"
     >
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-        <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-card">
-          <div className="mb-8 flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
-              <Sparkles className="h-5 w-5" />
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div className="rounded-2xl border border-border/75 bg-card p-6">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <Sparkles className="h-4 w-4" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900">{t('defaultModel')}</h3>
+            <h3 className="text-base font-semibold text-foreground">{t('defaultModel')}</h3>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="model" className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <Label htmlFor="model" className="text-xs font-medium text-muted-foreground">
               {modelLabel}
             </Label>
             <ProviderScopedModelInput id="model" value={model} onChange={setModel} providerCatalog={providerCatalog} modelPlaceholder={modelPlaceholder} />
-            <p className="text-xs text-gray-400">{modelHelpText}</p>
+            <p className="text-xs text-muted-foreground/80">{modelHelpText}</p>
             <a href={getDocsUrl('/guide/model-selection')} className="inline-flex items-center gap-1.5 text-xs text-primary transition-colors hover:text-primary-hover">
               <BookOpen className="h-3.5 w-3.5" />
               {t('channelsGuideTitle')}
             </a>
           </div>
         </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-card">
-          <div className="mb-8 flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
-              <Folder className="h-5 w-5" />
+        <div className="rounded-2xl border border-border/75 bg-card p-6">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <Folder className="h-4 w-4" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900">{t('workspace')}</h3>
+            <h3 className="text-base font-semibold text-foreground">{t('workspace')}</h3>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="workspace" className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <Label htmlFor="workspace" className="text-xs font-medium text-muted-foreground">
               {workspaceLabel}
             </Label>
             <Input id="workspace" value={workspace} onChange={(event) => setWorkspace(event.target.value)} placeholder={workspacePlaceholder} className="rounded-xl" />
           </div>
         </div>
       </div>
-      <div className="flex justify-end pt-4">
-        <Button type="submit" disabled={isPending} size="lg">
-          {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : t('saveChanges')}
+      <FormActions>
+        <Button type="submit" disabled={isPending} size="sm">
+          {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t('saveChanges')}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }
@@ -108,9 +109,9 @@ export function ModelConfigPage() {
           <Skeleton className="h-8 w-32" />
           <Skeleton className="h-4 w-48" />
         </div>
-        <Card className="rounded-2xl border-gray-200 p-6">
-          <div className="mb-6 flex items-center gap-4">
-            <Skeleton className="h-12 w-12 rounded-xl" />
+        <Card hover={false} className="rounded-2xl border-border/75 p-6 shadow-none">
+          <div className="mb-6 flex items-center gap-3">
+            <Skeleton className="h-9 w-9 rounded-lg" />
             <div className="space-y-2">
               <Skeleton className="h-5 w-24" />
               <Skeleton className="h-3 w-32" />
@@ -119,7 +120,7 @@ export function ModelConfigPage() {
           <Skeleton className="mb-2 h-4 w-20" />
           <Skeleton className="h-10 w-full rounded-xl" />
         </Card>
-        <Card className="rounded-2xl border-gray-200 p-6">
+        <Card hover={false} className="rounded-2xl border-border/75 p-6 shadow-none">
           <Skeleton className="mb-2 h-5 w-24" />
           <Skeleton className="h-10 w-full rounded-xl" />
         </Card>

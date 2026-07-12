@@ -102,7 +102,7 @@ export function ChatInlinePanelAppCard({
         </div>
         {showExpandAction ? (
           <IconActionButton
-            className="h-7 w-7 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            size="md"
             icon={<Maximize2 className="h-3.5 w-3.5" />}
             label={t('chatPanelCardExpand')}
             onClick={openExpanded}

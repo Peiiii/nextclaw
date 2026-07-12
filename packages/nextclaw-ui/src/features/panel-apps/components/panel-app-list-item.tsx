@@ -57,11 +57,11 @@ export function PanelAppListItem({
             type="button"
             onClick={handleFavorite}
             disabled={favoritePending}
-            className="rounded-md p-1.5 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-amber-500 disabled:opacity-50"
+            className="rounded-md p-1.5 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
             title={favoriteLabel}
             aria-label={favoriteLabel}
           >
-            <Star className={entry.favorite ? 'h-4 w-4 fill-amber-400 text-amber-500' : 'h-4 w-4'} />
+            <Star className={entry.favorite ? 'h-4 w-4 fill-current text-foreground' : 'h-4 w-4'} />
           </button>
           <Popover open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <PopoverTrigger asChild>

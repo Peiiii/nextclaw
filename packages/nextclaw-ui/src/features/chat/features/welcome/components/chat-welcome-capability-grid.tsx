@@ -1,4 +1,5 @@
 import { AlarmClock, BrainCircuit, MessageCircle } from 'lucide-react';
+import { cn } from '@/shared/lib/utils';
 import { t } from '@/shared/lib/i18n';
 
 const WELCOME_CAPABILITIES = [
@@ -34,13 +35,17 @@ export function ChatWelcomeCapabilityGrid({
         return (
           <button
             key={capability.titleKey}
+            type="button"
             onClick={() => onSelectPrompt(t(capability.promptKey))}
-            className="min-w-0 rounded-2xl border border-border bg-card p-3 text-left text-card-foreground shadow-card transition-[border-color,box-shadow,transform] hover:border-primary/30 hover:shadow-card-hover sm:p-4"
+            className={cn(
+              'min-w-0 rounded-xl border border-border/75 bg-card p-3 text-left text-card-foreground shadow-none transition-colors sm:p-3.5',
+              'hover:bg-muted/40',
+            )}
           >
-            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-accent">
-              <Icon className="h-4.5 w-4.5 text-primary" />
+            <div className="mb-2.5 flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <Icon className="h-4 w-4" />
             </div>
-            <div className="mb-1 text-sm font-semibold text-foreground">
+            <div className="mb-1 text-sm font-medium text-foreground">
               {t(capability.titleKey)}
             </div>
             <div className="text-[11px] leading-relaxed text-muted-foreground">

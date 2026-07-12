@@ -105,7 +105,6 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                       <IconActionButton
                         icon={<Plus className="h-3.5 w-3.5" />}
                         label={actionLabel}
-                        className="h-7 w-7 shrink-0 rounded-lg text-muted-foreground hover:bg-gray-200/60 hover:text-gray-900"
                       />
                     </PopoverTrigger>
                     <PopoverContent
@@ -129,7 +128,6 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                   <IconActionButton
                     icon={<Plus className="h-3.5 w-3.5" />}
                     label={actionLabel}
-                    className="h-7 w-7 shrink-0 rounded-lg text-muted-foreground hover:bg-gray-200/60 hover:text-gray-900"
                     onClick={() =>
                       presenter.chatSessionListManager.createSession(
                         preferredSessionType,
@@ -143,14 +141,13 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                     <Pin
                       className={
                         group.isPinned
-                          ? 'h-3.5 w-3.5 fill-primary text-primary'
+                          ? 'h-3.5 w-3.5 fill-current text-foreground'
                           : 'h-3.5 w-3.5'
                       }
                     />
                   }
                   label={pinLabel}
                   tooltipSide="right"
-                  className="h-7 w-7 shrink-0 rounded-lg text-muted-foreground hover:bg-gray-200/60 hover:text-gray-900"
                   onClick={() =>
                     presenter.chatSessionListManager.toggleProjectPinned(
                       group.projectRoot,

@@ -137,7 +137,7 @@ export function ProvidersConfigPage() {
                 <div className="grid max-h-[24rem] grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">
                   <button
                     type="button"
-                    className="flex min-h-20 w-full flex-col items-start gap-2 rounded-lg border border-dashed border-border bg-card px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-accent/70"
+                    className="flex min-h-20 w-full flex-col items-start gap-2 rounded-lg border border-dashed border-border/70 bg-muted/20 px-3 py-2 text-left transition-colors hover:border-border hover:bg-muted/45"
                     onClick={async () => {
                       try {
                         const result = await createProvider.mutateAsync({ data: { providerType: null } });
@@ -150,7 +150,7 @@ export function ProvidersConfigPage() {
                       }
                     }}
                   >
-                    <LogoBadge name="custom" className="h-8 w-8 rounded-lg border border-border bg-background" />
+                    <LogoBadge name="custom" className="h-8 w-8 rounded-lg border border-border/60 bg-muted/50" />
                     <span className="line-clamp-2 min-w-0 text-xs font-semibold leading-4 text-foreground">
                       {t('providerAddCustom')}
                     </span>
@@ -159,7 +159,7 @@ export function ProvidersConfigPage() {
                     <button
                       key={template.providerType}
                       type="button"
-                      className="flex min-h-20 w-full flex-col items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-accent/70"
+                      className="flex min-h-20 w-full flex-col items-start gap-2 rounded-lg border border-border/55 bg-muted/15 px-3 py-2 text-left transition-colors hover:border-border/80 hover:bg-muted/40"
                       onClick={async () => {
                         try {
                           const result = await createProvider.mutateAsync({ data: { providerType: template.providerType } });
@@ -175,7 +175,7 @@ export function ProvidersConfigPage() {
                       <LogoBadge
                         name={template.providerType}
                         src={template.logo ? `/logos/${template.logo}` : null}
-                        className="h-8 w-8 rounded-lg border border-border bg-background"
+                        className="h-8 w-8 rounded-lg border border-border/55 bg-background"
                         imgClassName="h-4 w-4 object-contain"
                       />
                       <span className="line-clamp-2 min-w-0 text-xs font-semibold leading-4 text-foreground">
@@ -221,10 +221,10 @@ export function ProvidersConfigPage() {
                   role="button"
                   tabIndex={0}
                   className={cn(
-                    'w-full rounded-xl border p-2.5 text-left transition-all',
+                    'group w-full rounded-xl border p-2.5 text-left transition-colors',
                     resolvedSelectedProvider === provider.providerId
-                      ? 'border-primary/35 bg-primary-50/45 text-foreground shadow-sm'
-                      : 'border-border bg-card text-muted-foreground hover:border-primary/35 hover:bg-accent/70 hover:text-accent-foreground',
+                      ? 'border-border/70 bg-muted/65 text-foreground'
+                      : 'border-transparent bg-transparent text-muted-foreground hover:border-border/50 hover:bg-muted/40 hover:text-foreground',
                   )}
                 >
                   <div className="relative min-h-10">
@@ -232,10 +232,7 @@ export function ProvidersConfigPage() {
                       <LogoBadge
                         name={provider.providerType ?? provider.providerId}
                         src={template?.logo ? `/logos/${template.logo}` : null}
-                        className={cn(
-                          'h-10 w-10 rounded-lg border',
-                          isReady ? 'border-primary/35 bg-background' : 'border-border bg-background',
-                        )}
+                        className="h-10 w-10 rounded-lg border border-border/55 bg-muted/40"
                         imgClassName="h-5 w-5 object-contain"
                         fallback={<span className="text-sm font-semibold uppercase text-muted-foreground">{provider.providerId[0]}</span>}
                       />
@@ -247,7 +244,7 @@ export function ProvidersConfigPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="absolute right-0 top-0 flex items-center gap-1.5">
+                    <div className="absolute right-0 top-0 flex items-center gap-1.5 opacity-70 transition-opacity group-hover:opacity-100">
                       <div onClick={(event) => event.stopPropagation()}>
                         <Switch
                           checked={isEnabled}
@@ -268,7 +265,7 @@ export function ProvidersConfigPage() {
                         <PopoverTrigger asChild>
                           <button
                             type="button"
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/70 hover:bg-accent hover:text-accent-foreground"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/70 hover:bg-muted hover:text-foreground"
                             onClick={(event) => event.stopPropagation()}
                             title={t('more')}
                           >

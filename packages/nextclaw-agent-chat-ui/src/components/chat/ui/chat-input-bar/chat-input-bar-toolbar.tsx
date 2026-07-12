@@ -185,13 +185,13 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
                               type="button"
                               aria-label={actionLabel}
                               aria-pressed={isActive}
-                              className="mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-card hover:text-amber-500 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                              className="mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-card hover:text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 action.onToggle(option.value, !isActive);
                               }}
                             >
-                              <Star className={`h-3.5 w-3.5 ${isActive ? 'fill-amber-400 text-amber-500' : ''}`} />
+                              <Star className={`h-3.5 w-3.5 ${isActive ? 'fill-current text-foreground' : ''}`} />
                             </button>
                           </TooltipTrigger>
                           <TooltipContent side="left">

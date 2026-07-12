@@ -74,7 +74,6 @@ function ChatSidebarSessionEditingView({
             icon={<Check className="h-3.5 w-3.5" />}
             label={t('save')}
             tooltip={false}
-            className="h-7 w-7 rounded-lg text-gray-500 hover:bg-white hover:text-gray-900"
             onClick={() => void onSave()}
             disabled={isSaving}
           />
@@ -82,7 +81,6 @@ function ChatSidebarSessionEditingView({
             icon={<X className="h-3.5 w-3.5" />}
             label={t('cancel')}
             tooltip={false}
-            className="h-7 w-7 rounded-lg text-gray-500 hover:bg-white hover:text-gray-900"
             onClick={onCancel}
             disabled={isSaving}
           />
@@ -120,7 +118,7 @@ function ChatSidebarSessionDisplayView({
   return (
     <div className="group/session relative">
       <button type="button" onClick={onSelect} className="w-full text-left">
-        <div className={cn('flex min-w-0 items-start', trailingControlsClassName)}>
+        <div className={cn('flex min-h-6 min-w-0 items-center', trailingControlsClassName)}>
           <span className="flex min-w-0 items-center gap-1.5">
             {agentId?.trim() && agentId.trim().toLowerCase() !== 'main' ? (
               <AgentAvatar
@@ -130,7 +128,7 @@ function ChatSidebarSessionDisplayView({
                 className="h-5 w-5 shrink-0"
               />
             ) : null}
-            <span className="truncate font-medium">{title}</span>
+            <span className="truncate leading-6 font-medium">{title}</span>
             {context.label ? (
               <span
                 className={cn(
@@ -144,7 +142,7 @@ function ChatSidebarSessionDisplayView({
               </span>
             ) : null}
             {context.icon ? (
-              <span className="inline-flex h-[1.125rem] w-[1.125rem] shrink-0 items-center justify-center">
+              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
                 <SessionContextIconNode icon={context.icon} className={active ? 'text-gray-700' : 'text-gray-500'} />
               </span>
             ) : null}
@@ -172,7 +170,7 @@ function ChatSidebarSessionDisplayView({
             onOpenChildSessions();
           }}
           className={cn(
-            'absolute right-11 top-0 inline-flex h-5 items-center gap-1 rounded-md px-1.5 text-[10px] font-medium text-gray-400 transition-all hover:bg-white hover:text-gray-900',
+            'absolute right-12 top-0 inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-black/10 hover:text-foreground',
             active
               ? 'opacity-100'
               : 'opacity-0 group-hover/session:opacity-100 group-focus-within/session:opacity-100'
@@ -185,17 +183,19 @@ function ChatSidebarSessionDisplayView({
         </button>
       ) : null}
       {runStatus ? (
-        <span className="absolute right-0 top-0 inline-flex h-5 w-5 items-center justify-center transition-opacity group-hover/session:opacity-0 group-focus-within/session:opacity-0">
+        <span className="absolute right-0 top-0 inline-flex h-6 w-6 items-center justify-center transition-opacity group-hover/session:opacity-0 group-focus-within/session:opacity-0">
           <SessionRunBadge status={runStatus} />
         </span>
       ) : null}
-      <div className="absolute right-0 top-0 flex items-center opacity-0 transition-opacity group-hover/session:opacity-100 group-focus-within/session:opacity-100">
+      <div className="absolute right-0 top-0 flex h-6 items-center gap-0.5 opacity-0 transition-opacity group-hover/session:opacity-100 group-focus-within/session:opacity-100">
         <IconActionButton
+          size="sm"
+          tone="strong"
           icon={
             <Pin
               className={cn(
-                'h-3 w-3',
-                isPinned && 'fill-primary text-primary',
+                'h-3.5 w-3.5',
+                isPinned && 'fill-current text-foreground',
               )}
             />
           }
@@ -205,17 +205,17 @@ function ChatSidebarSessionDisplayView({
             event.stopPropagation();
             onTogglePinned();
           }}
-          className="h-5 w-5 rounded-md text-gray-400 hover:bg-white hover:text-gray-900"
         />
         <IconActionButton
-          icon={<Pencil className="h-3 w-3" />}
+          size="sm"
+          tone="strong"
+          icon={<Pencil className="h-3.5 w-3.5" />}
           label={t('edit')}
           tooltipSide="right"
           onClick={(event) => {
             event.stopPropagation();
             onStartEditing();
           }}
-          className="h-5 w-5 rounded-md text-gray-400 hover:bg-white hover:text-gray-900"
         />
       </div>
     </div>

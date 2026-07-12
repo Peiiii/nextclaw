@@ -147,11 +147,12 @@ function CompactTabItem({
       <CompactTabLabelButton tab={tab} labelClassName={labelClassName} />
       {tab.onClose && tab.closePlacement !== "leading-hover" ? (
         <IconActionButton
+          size="sm"
+          tone="strong"
           icon={<X className="h-3 w-3" />}
           label={tab.closeLabel ?? ""}
           tooltip={tab.closeLabel ?? null}
           onClick={(event) => closeCompactTab(event, tab.onClose!)}
-          className="h-5 w-5 rounded p-0.5 hover:bg-black/10"
         />
       ) : null}
     </div>

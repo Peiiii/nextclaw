@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ExternalLink, KeyRound, Search as SearchIcon } from "lucide-react";
 import { PageHeader, PageLayout } from "@/app/components/layout/page-layout";
 import { Button } from "@/shared/components/ui/button";
+import { FormActions } from "@/shared/components/ui/actions/form-actions";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
@@ -456,11 +457,13 @@ function SearchConfigForm(props: {
               />
             </ConfigSplitPaneBody>
 
-            <ConfigSplitPaneFooter className="flex justify-end px-6 py-4">
-              <Button type="submit" disabled={isPending}>
-                <KeyRound className="mr-2 h-4 w-4" />
-                {isPending ? t("saving") : t("saveChanges")}
-              </Button>
+            <ConfigSplitPaneFooter>
+              <FormActions>
+                <Button type="submit" size="sm" disabled={isPending}>
+                  <KeyRound className="mr-1.5 h-3.5 w-3.5" />
+                  {isPending ? t("saving") : t("saveChanges")}
+                </Button>
+              </FormActions>
             </ConfigSplitPaneFooter>
           </form>
         </ConfigSplitDetailPane>

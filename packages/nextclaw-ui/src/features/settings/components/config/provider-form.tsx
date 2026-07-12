@@ -13,6 +13,7 @@ import { MaskedInput } from '@/shared/components/common/masked-input';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
+import { FormActions } from '@/shared/components/ui/actions/form-actions';
 import { getLanguage, t } from '@/shared/lib/i18n';
 import type { ThinkingLevel } from '@/shared/lib/api';
 import {
@@ -548,14 +549,16 @@ function ProviderFormDetailPane(props: ProviderFormDetailPaneProps) {
           />
         </ConfigSplitPaneBody>
 
-        <ConfigSplitPaneFooter className='flex items-center justify-between px-6 py-4'>
-          <Button type='button' variant='outline' size='sm' onClick={onTestConnection} disabled={isTestPending}>
-            <CircleDotDashed className='mr-1.5 h-4 w-4' />
-            {isTestPending ? t('providerTestingConnection') : t('providerTestConnection')}
-          </Button>
-          <Button type='submit' disabled={isUpdatePending || !hasChanges}>
-            {isUpdatePending ? t('saving') : hasChanges ? t('save') : t('unchanged')}
-          </Button>
+        <ConfigSplitPaneFooter>
+          <FormActions align="between">
+            <Button type='button' variant='outline' size='sm' onClick={onTestConnection} disabled={isTestPending}>
+              <CircleDotDashed className='mr-1.5 h-3.5 w-3.5' />
+              {isTestPending ? t('providerTestingConnection') : t('providerTestConnection')}
+            </Button>
+            <Button type='submit' size='sm' disabled={isUpdatePending || !hasChanges}>
+              {isUpdatePending ? t('saving') : hasChanges ? t('save') : t('unchanged')}
+            </Button>
+          </FormActions>
         </ConfigSplitPaneFooter>
       </form>
     </ConfigSplitDetailPane>

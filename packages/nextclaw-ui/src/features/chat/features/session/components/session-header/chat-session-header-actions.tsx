@@ -9,7 +9,6 @@ import { ChatSessionProjectDialog } from './chat-session-project-dialog';
 import { t } from '@/shared/lib/i18n';
 
 const SESSION_HEADER_ACTION_GROUP_CLASS = 'flex shrink-0 items-center gap-1.5';
-const SESSION_HEADER_ACTION_BUTTON_CLASS = 'h-7 w-7 shrink-0 rounded-lg text-muted-foreground/70 hover:bg-accent hover:text-accent-foreground';
 
 type ChatSessionHeaderActionsProps = {
   sessionKey: string;
@@ -65,7 +64,6 @@ export function ChatSessionHeaderActions({
         <IconActionButton
           icon={<GitBranch className="h-4 w-4" />}
           label={t('chatSessionOpenChildSessions')}
-          className={SESSION_HEADER_ACTION_BUTTON_CLASS}
           onClick={onOpenChildSessions}
           disabled={isBusy}
         />
@@ -74,7 +72,6 @@ export function ChatSessionHeaderActions({
         <IconActionButton
           icon={<AlarmClock className="h-4 w-4" />}
           label={t('chatSessionOpenCronJobs')}
-          className={SESSION_HEADER_ACTION_BUTTON_CLASS}
           onClick={onOpenSessionCronJobs}
           disabled={isBusy}
         />
@@ -85,7 +82,6 @@ export function ChatSessionHeaderActions({
             icon={<MoreVertical className="h-4 w-4" />}
             label={t('chatSessionMoreActions')}
             tooltip={false}
-            className={SESSION_HEADER_ACTION_BUTTON_CLASS}
             disabled={isBusy}
           />
         </PopoverTrigger>

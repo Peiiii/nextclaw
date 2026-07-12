@@ -28,7 +28,7 @@ export function ProviderAuthSection(props: ProviderAuthSectionProps) {
   if (providerAuth?.kind !== 'device_code') return null;
 
   return (
-    <div className="space-y-2 rounded-xl border border-primary/20 bg-primary-50/50 p-3">
+    <div className="space-y-2 rounded-xl border border-border/60 bg-muted/35 p-3">
       <Label className="text-sm font-medium text-foreground">
         {providerAuth.displayName || t('providerAuthSectionTitle')}
       </Label>

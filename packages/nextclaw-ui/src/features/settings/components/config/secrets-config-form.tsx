@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Plus, Save, Trash2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
+import { FormActions } from '@/shared/components/ui/actions/form-actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
@@ -272,12 +273,12 @@ export function SecretsConfigForm(props: {
         onRemove={(index) => setState((prev) => ({ ...prev, refs: prev.refs.filter((_, cursor) => cursor !== index) }))}
         onAdd={() => setState((prev) => ({ ...prev, refs: [...prev.refs, createRefRow()] }))}
       />
-      <div className="flex justify-end">
-        <Button type="button" onClick={handleSave} disabled={isPending}>
-          <Save className="mr-2 h-4 w-4" />
+      <FormActions>
+        <Button type="button" size="sm" onClick={handleSave} disabled={isPending}>
+          <Save className="mr-1.5 h-3.5 w-3.5" />
           {isPending ? t('saving') : t('save')}
         </Button>
-      </div>
+      </FormActions>
     </PageLayout>
   );
 }

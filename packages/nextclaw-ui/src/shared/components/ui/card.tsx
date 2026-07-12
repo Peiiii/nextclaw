@@ -3,13 +3,21 @@ import { cn } from '@/shared/lib/utils';
 
 const Card = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & { hover?: boolean }
->(({ className, hover = true, ...props }, ref) => (
+  React.HTMLAttributes<HTMLDivElement> & {
+    hover?: boolean;
+    /** Flat settings-style surface: light border, no shadow. */
+    surface?: 'raised' | 'flat';
+  }
+>(({ className, hover = true, surface = 'raised', ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      'rounded-2xl border border-border bg-card text-card-foreground shadow-card transition-all duration-base',
-      hover && 'hover:border-primary/25 hover:shadow-card-hover',
+      'rounded-2xl border bg-card text-card-foreground transition-colors duration-base',
+      surface === 'raised'
+        ? 'border-border shadow-card'
+        : 'border-border/75 shadow-none',
+      hover && surface === 'raised' && 'hover:border-primary/25 hover:shadow-card-hover',
+      hover && surface === 'flat' && 'hover:bg-muted/40',
       className
     )}
     {...props}

@@ -103,8 +103,9 @@ describe("ChatSidebarProjectGroups", () => {
     const unpinButton = screen.getByLabelText("Unpin project");
     const pinIcon = unpinButton.querySelector("svg");
 
-    expect(pinIcon?.getAttribute("class")).toContain("fill-primary");
-    expect(document.querySelectorAll("svg.fill-primary")).toHaveLength(1);
+    expect(pinIcon?.getAttribute("class")).toContain("fill-current");
+    expect(pinIcon?.getAttribute("class")).toContain("text-foreground");
+    expect(document.querySelectorAll("svg.fill-current")).toHaveLength(1);
 
     fireEvent.click(unpinButton);
 

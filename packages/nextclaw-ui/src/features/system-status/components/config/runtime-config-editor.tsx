@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Save } from 'lucide-react';
 import type { ConfigView, RuntimeConfigUpdate } from '@/shared/lib/api';
 import { Button } from '@/shared/components/ui/button';
+import { FormActions } from '@/shared/components/ui/actions/form-actions';
 import { PageLayout } from '@/app/components/layout/page-layout';
 import { t } from '@/shared/lib/i18n';
 import { RuntimeConfigOverview } from '@/features/system-status/components/config/runtime-config-overview';
@@ -111,12 +112,12 @@ export function RuntimeConfigEditor({
         onRemoveBinding={(index) => setBindings((previous) => previous.filter((_, cursor) => cursor !== index))}
         onAddBinding={() => setBindings((previous) => [...previous, createEmptyRuntimeBinding()])}
       />
-      <div className="flex justify-end">
-        <Button type="button" onClick={handleSave} disabled={updateRuntime.isPending}>
-          <Save className="h-4 w-4 mr-2" />
+      <FormActions>
+        <Button type="button" size="sm" onClick={handleSave} disabled={updateRuntime.isPending}>
+          <Save className="mr-1.5 h-3.5 w-3.5" />
           {updateRuntime.isPending ? t('saving') : t('saveRuntimeSettings')}
         </Button>
-      </div>
+      </FormActions>
     </PageLayout>
   );
 }

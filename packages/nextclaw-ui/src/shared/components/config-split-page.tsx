@@ -3,7 +3,7 @@ import { ArrowLeft, type LucideIcon } from "lucide-react";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
-const CARD_CLASS = "min-w-0 overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-card xl:h-[calc(100vh-180px)] xl:max-h-[860px]";
+const CARD_CLASS = "min-w-0 overflow-hidden rounded-2xl border border-border/75 bg-card text-card-foreground xl:h-[calc(100vh-180px)] xl:max-h-[860px]";
 type DivProps = HTMLAttributes<HTMLDivElement>; type SectionProps = HTMLAttributes<HTMLElement>;
 
 function ConfigSplitPane({ className, ...props }: SectionProps) {
@@ -102,7 +102,7 @@ export function ConfigSplitPaneBody({
 }
 
 export function ConfigSplitPaneFooter({ className, ...props }: DivProps) {
-  return <div className={cn("shrink-0 border-t border-border/70", className)} {...props} />;
+  return <div className={cn("shrink-0 border-t border-border/70 px-4 py-2.5", className)} {...props} />;
 }
 
 export function ConfigSelectionCard({
@@ -115,10 +115,10 @@ export function ConfigSelectionCard({
     <button
       type={type}
       className={cn(
-        "w-full rounded-xl border p-2.5 text-left transition-all",
+        "w-full rounded-xl border p-2.5 text-left transition-colors",
         active
-          ? "border-primary/35 bg-primary-50/45 text-foreground shadow-sm"
-          : "border-border bg-card text-muted-foreground hover:border-primary/35 hover:bg-accent/70 hover:text-accent-foreground",
+          ? "border-border/70 bg-muted/65 text-foreground"
+          : "border-transparent bg-transparent text-muted-foreground hover:border-border/50 hover:bg-muted/40 hover:text-foreground",
         className,
       )}
       {...props}
@@ -140,7 +140,7 @@ export function ConfigSplitEmptyState({
   return (
     <div
       className={cn(
-        "flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/60 px-4 py-10 text-center",
+        "flex min-h-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/35 px-4 py-10 text-center",
         className,
       )}
       {...props}
