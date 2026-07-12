@@ -1,10 +1,10 @@
 {
   "slug": "claude-code-narp-runtime",
   "name": "Claude Code NARP Runtime",
-  "summary": "Set up Claude Code as a formal NextClaw runtime entry through narp-stdio(acp), with launcher install, stable shim, config repair, readiness checks, and real smoke.",
+  "summary": "Set up Claude Code as a formal NextClaw runtime entry through narp-stdio(acp), with Runtime default and NextClaw model selection, launcher repair, readiness checks, and real smoke.",
   "summaryI18n": {
-    "en": "Set up Claude Code as a formal NextClaw runtime entry through narp-stdio(acp), with launcher install, stable shim, config repair, readiness checks, and real smoke.",
-    "zh": "把 Claude Code 通过 narp-stdio(acp) 接成正式 NextClaw runtime，覆盖 launcher 安装、稳定 shim、配置修复、就绪检查与真实冒烟。"
+    "en": "Set up Claude Code as a formal NextClaw runtime entry through narp-stdio(acp), with Runtime default and NextClaw model selection, launcher repair, readiness checks, and real smoke.",
+    "zh": "把 Claude Code 通过 narp-stdio(acp) 接成正式 NextClaw runtime，支持 Runtime default 与 NextClaw 模型选择，并覆盖 launcher 修复、就绪检查和真实冒烟。"
   },
   "description": "Use this skill when Claude Code should become a pluggable NextClaw session type instead of a PATH prerequisite, command-line switch, or core hardcoded provider branch. The skill owns cold-start setup, runtime entry repair, diagnostics, and first real reply validation.",
   "descriptionI18n": {

@@ -320,7 +320,7 @@ it("opens message attachments in the workspace file preview", () => {
         type: "file",
         name: "spec.pdf",
         mimeType: "application/pdf",
-        data: "cGRm",
+        contentBase64: "cGRm",
       },
     ],
   } satisfies NcpMessage;

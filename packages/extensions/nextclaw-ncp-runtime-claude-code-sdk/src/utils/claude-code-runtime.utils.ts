@@ -81,25 +81,28 @@ export function buildQueryEnv(
     ...process.env,
     ...(config.env ?? {}),
   };
-  env.CLAUDE_CONFIG_DIR = resolveClaudeConfigDir(env);
 
-  if (config.apiKey.trim()) {
-    env.ANTHROPIC_API_KEY = config.apiKey;
-  }
-  if (config.authToken?.trim()) {
-    env.ANTHROPIC_AUTH_TOKEN = config.authToken.trim();
-  }
-  if (config.apiBase?.trim()) {
-    env.ANTHROPIC_BASE_URL = config.apiBase.trim();
-    env.ANTHROPIC_API_URL = config.apiBase.trim();
-  }
-  if (config.model?.trim()) {
-    const model = config.model.trim();
-    env.ANTHROPIC_MODEL = env.ANTHROPIC_MODEL?.trim() || model;
-    env.ANTHROPIC_DEFAULT_OPUS_MODEL = env.ANTHROPIC_DEFAULT_OPUS_MODEL?.trim() || model;
-    env.ANTHROPIC_DEFAULT_SONNET_MODEL = env.ANTHROPIC_DEFAULT_SONNET_MODEL?.trim() || model;
-    env.ANTHROPIC_DEFAULT_HAIKU_MODEL = env.ANTHROPIC_DEFAULT_HAIKU_MODEL?.trim() || model;
-    env.ANTHROPIC_SMALL_FAST_MODEL = env.ANTHROPIC_SMALL_FAST_MODEL?.trim() || model;
+  if (!config.useClaudeRuntimeDefaults) {
+    env.CLAUDE_CONFIG_DIR = resolveClaudeConfigDir(env);
+
+    if (config.apiKey.trim()) {
+      env.ANTHROPIC_API_KEY = config.apiKey;
+    }
+    if (config.authToken?.trim()) {
+      env.ANTHROPIC_AUTH_TOKEN = config.authToken.trim();
+    }
+    if (config.apiBase?.trim()) {
+      env.ANTHROPIC_BASE_URL = config.apiBase.trim();
+      env.ANTHROPIC_API_URL = config.apiBase.trim();
+    }
+    if (config.model?.trim()) {
+      const model = config.model.trim();
+      env.ANTHROPIC_MODEL = env.ANTHROPIC_MODEL?.trim() || model;
+      env.ANTHROPIC_DEFAULT_OPUS_MODEL = env.ANTHROPIC_DEFAULT_OPUS_MODEL?.trim() || model;
+      env.ANTHROPIC_DEFAULT_SONNET_MODEL = env.ANTHROPIC_DEFAULT_SONNET_MODEL?.trim() || model;
+      env.ANTHROPIC_DEFAULT_HAIKU_MODEL = env.ANTHROPIC_DEFAULT_HAIKU_MODEL?.trim() || model;
+      env.ANTHROPIC_SMALL_FAST_MODEL = env.ANTHROPIC_SMALL_FAST_MODEL?.trim() || model;
+    }
   }
 
   return env;

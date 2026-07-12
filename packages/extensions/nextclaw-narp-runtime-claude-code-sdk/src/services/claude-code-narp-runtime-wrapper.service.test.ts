@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NcpAgentRunInput, NcpAgentRuntime } from "@nextclaw/ncp";
+import type { ClaudeCodeSdkNcpAgentRuntimeConfig } from "@nextclaw/nextclaw-ncp-runtime-claude-code-sdk";
 import { ClaudeCodeNarpRuntimeWrapper } from "./claude-code-narp-runtime-wrapper.service.js";
 
 class FakeRuntime implements NcpAgentRuntime {
@@ -189,5 +190,40 @@ describe("ClaudeCodeNarpRuntimeWrapper", () => {
     });
 
     expect(capturedConfigs[0]?.workingDirectory).toBeUndefined();
+  });
+
+  it("delegates model and configuration ownership to Claude Code for runtime-default requests", () => {
+    vi.stubEnv("NEXTCLAW_API_KEY", "nextclaw-key");
+    vi.stubEnv("NEXTCLAW_API_BASE", "https://nextclaw.example");
+    vi.stubEnv("NEXTCLAW_MODEL", "nextclaw-model");
+
+    const capturedConfigs: ClaudeCodeSdkNcpAgentRuntimeConfig[] = [];
+    const wrapper = new ClaudeCodeNarpRuntimeWrapper((config) => {
+      capturedConfigs.push(config);
+      return new FakeRuntime();
+    });
+
+    wrapper.createClaudeCodeRuntime({
+      sessionId: "session-runtime-default",
+      cwd: "/tmp/workspace",
+      promptMeta: {
+        sessionMetadata: {},
+      },
+    });
+
+    expect(capturedConfigs).toMatchObject([
+      {
+        sessionId: "session-runtime-default",
+        apiKey: "",
+        useClaudeRuntimeDefaults: true,
+        authToken: undefined,
+        apiBase: undefined,
+        model: undefined,
+        workingDirectory: "/tmp/workspace",
+        baseQueryOptions: {
+          settingSources: ["user", "project", "local"],
+        },
+      },
+    ]);
   });
 });

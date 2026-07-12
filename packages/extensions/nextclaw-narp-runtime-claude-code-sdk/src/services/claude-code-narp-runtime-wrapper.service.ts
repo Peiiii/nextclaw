@@ -38,31 +38,38 @@ export class ClaudeCodeNarpRuntimeWrapper {
     const { cwd, modelId, promptMeta, sessionId } = context;
     const providerRoute = promptMeta.providerRoute;
     const sessionMetadata = promptMeta.sessionMetadata ?? {};
-    const apiKey =
-      readString(providerRoute?.apiKey) ??
-      readString(process.env.NEXTCLAW_API_KEY) ??
-      readString(process.env.ANTHROPIC_API_KEY) ??
-      "";
-    const apiBase = resolveClaudeCompatibleApiBase(
-      readString(providerRoute?.apiBase) ??
-        readString(process.env.NEXTCLAW_API_BASE) ??
-        readString(process.env.ANTHROPIC_BASE_URL) ??
-        readString(process.env.ANTHROPIC_API_URL),
-      shouldUseAnthropicGateway(providerRoute?.headers),
-    );
-    const authToken =
-      readString(process.env.ANTHROPIC_AUTH_TOKEN) ??
-      readString(process.env.CLAUDE_CODE_OAUTH_TOKEN) ??
-      resolveClaudeCompatibleAuthToken({ apiBase, apiKey });
-    const model =
-      readString(providerRoute?.model) ??
-      readString(modelId) ??
-      readString(process.env.NEXTCLAW_MODEL) ??
-      readString(process.env.ANTHROPIC_MODEL);
+    const useClaudeRuntimeDefaults = !providerRoute && !readString(modelId);
+    const apiKey = useClaudeRuntimeDefaults
+      ? ""
+      : readString(providerRoute?.apiKey) ??
+        readString(process.env.NEXTCLAW_API_KEY) ??
+        readString(process.env.ANTHROPIC_API_KEY) ??
+        "";
+    const apiBase = useClaudeRuntimeDefaults
+      ? undefined
+      : resolveClaudeCompatibleApiBase(
+          readString(providerRoute?.apiBase) ??
+            readString(process.env.NEXTCLAW_API_BASE) ??
+            readString(process.env.ANTHROPIC_BASE_URL) ??
+            readString(process.env.ANTHROPIC_API_URL),
+          shouldUseAnthropicGateway(providerRoute?.headers),
+        );
+    const authToken = useClaudeRuntimeDefaults
+      ? undefined
+      : readString(process.env.ANTHROPIC_AUTH_TOKEN) ??
+        readString(process.env.CLAUDE_CODE_OAUTH_TOKEN) ??
+        resolveClaudeCompatibleAuthToken({ apiBase, apiKey });
+    const model = useClaudeRuntimeDefaults
+      ? undefined
+      : readString(providerRoute?.model) ??
+        readString(modelId) ??
+        readString(process.env.NEXTCLAW_MODEL) ??
+        readString(process.env.ANTHROPIC_MODEL);
 
     return {
       sessionId,
       apiKey,
+      ...(useClaudeRuntimeDefaults ? { useClaudeRuntimeDefaults: true } : {}),
       authToken,
       apiBase,
       model,
@@ -72,6 +79,9 @@ export class ClaudeCodeNarpRuntimeWrapper {
       baseQueryOptions: {
         permissionMode: "bypassPermissions",
         includePartialMessages: true,
+        ...(useClaudeRuntimeDefaults
+          ? { settingSources: ["user", "project", "local"] }
+          : {}),
       },
       ...(apiBase && shouldUseAnthropicGateway(providerRoute?.headers)
         ? {

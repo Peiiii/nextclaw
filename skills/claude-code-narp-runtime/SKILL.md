@@ -1,6 +1,6 @@
 ---
 name: claude-code-narp-runtime
-description: 当用户希望把 Claude Code 作为 NextClaw 正式会话类型接入，尤其是通过 narp-stdio 配置、安装、修复、doctor 或真实冒烟时使用。
+description: 当用户希望把 Claude Code 作为 NextClaw 正式会话类型接入，尤其是通过 narp-stdio 配置、安装、修复、doctor、补齐 Runtime default 模型选项或真实冒烟时使用。
 metadata: {"nextclaw":{"emoji":"C"}}
 ---
 
@@ -14,6 +14,7 @@ metadata: {"nextclaw":{"emoji":"C"}}
 - runtime entry label: `Claude Code`
 - runtime type: `narp-stdio`
 - wire dialect: `acp`
+- model selection: `optional`（Claude Code 的 Runtime default + NextClaw 模型）
 - runtime launcher: `nextclaw-claude-code-narp`
 - route ownership: `NextClaw -> RuntimeRoute(model/apiBase/apiKey/headers) -> Claude Code NARP wrapper -> Claude Code SDK/CLI`
 
@@ -132,6 +133,7 @@ chmod +x "$NEXTCLAW_HOME/bin/nextclaw-claude-code-narp"
   "config": {
     "wireDialect": "acp",
     "processScope": "per-session",
+    "modelSelectionMode": "optional",
     "command": "/absolute/NEXTCLAW_HOME/bin/nextclaw-claude-code-narp",
     "args": [],
     "env": {},
@@ -144,15 +146,18 @@ chmod +x "$NEXTCLAW_HOME/bin/nextclaw-claude-code-narp"
 
 不要把 provider route、api key、model 写进 runtime entry。模型和 provider 仍由 NextClaw 的 provider/route 配置决定。
 
+`Runtime default` 是明确的用户选择：选中后不传 NextClaw provider route 或 model，并启用 Claude Code 的 user/project/local settings，让 Claude Code 使用自己的配置、鉴权和默认模型；选择其它模型时继续走 NextClaw provider route，不得用失败重试在两条路径之间自动切换。
+
 ### 5. Probe 和真实冒烟
 
 接入完成必须同时满足：
 
 1. `agents.runtimes.entries.claude.type` 是 `narp-stdio`。
 2. `wireDialect` 是 `acp`。
-3. `command` 是可执行的绝对 shim 路径。
-4. NextClaw runtime probe 能看到 `Claude Code` ready。
-5. 真实模型首条消息能通过 Claude Code NARP 链路返回。
+3. `modelSelectionMode` 是 `optional`。
+4. `command` 是可执行的绝对 shim 路径。
+5. NextClaw runtime probe 能看到 `Claude Code` ready。
+6. `Runtime default` 和至少一个显式 NextClaw 模型都能通过 Claude Code NARP 链路返回真实回复。
 
 开发仓库里优先使用已有 smoke 脚本或 NCP chat smoke；不在源码仓库时，使用当前 NextClaw 实例或 CLI 能提供的最近真实会话路径。验证不是看配置文件长得对，而是看真实会话返回。
 
@@ -170,7 +175,7 @@ chmod +x "$NEXTCLAW_HOME/bin/nextclaw-claude-code-narp"
 
 1. `$NEXTCLAW_HOME/config.json` 是否存在且 JSON 可解析。
 2. `agents.runtimes.entries.claude` 是否存在、enabled 是否为 true。
-3. `type`、`wireDialect`、`processScope` 是否符合合同。
+3. `type`、`wireDialect`、`processScope`、`modelSelectionMode` 是否符合合同。
 4. `command` 是否是绝对路径、文件是否存在且可执行。
 5. shim 指向的真实 launcher 是否存在，`--help` 是否能启动。
 6. NextClaw runtime list/probe 是否显示 Claude Code ready。
@@ -198,6 +203,7 @@ chmod +x "$NEXTCLAW_HOME/bin/nextclaw-claude-code-narp"
 
 - `Claude Code` 是统一 runtime registry 里的正式 session type。
 - runtime entry 只通过 `narp-stdio(acp)` 接入。
+- 模型选择同时提供 `Runtime default` 和 NextClaw 已配置模型。
 - launcher 不依赖用户手动 PATH，而是 NextClaw 管理的绝对 shim。
 - 真实模型回复通过。
 - 如本次目标包含工具或思考，则对应真实冒烟也通过。

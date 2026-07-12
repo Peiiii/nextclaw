@@ -83,6 +83,7 @@ export type ClaudeCodeSdkAnthropicGatewayConfig = {
 export type ClaudeCodeSdkNcpAgentRuntimeConfig = {
   sessionId: string;
   apiKey: string;
+  useClaudeRuntimeDefaults?: boolean;
   authToken?: string;
   apiBase?: string;
   model?: string;
