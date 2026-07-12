@@ -1,5 +1,27 @@
 # @nextclaw/kernel
 
+## 0.6.2
+
+### Patch Changes
+
+- 94c5ab6: Treat incomplete OpenAI Responses streams as failed runs instead of successful partial answers, retry transient native model stream failures with OpenCode-style retry metadata and backoff, and record lightweight execution contracts in message run specs for debugging.
+- Updated dependencies
+- Updated dependencies [51cf740]
+- Updated dependencies [94c5ab6]
+  - @nextclaw/channel-extension-feishu@0.2.2
+  - @nextclaw/channel-extension-weixin@0.2.2
+  - @nextclaw/mcp@0.3.2
+  - @nextclaw/ncp@0.7.2
+  - @nextclaw/ncp-mcp@0.2.2
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.2
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.2
+  - @nextclaw/runtime@0.4.2
+  - @nextclaw/shared@0.4.2
+  - @nextclaw/ncp-agent-runtime@0.4.2
+  - @nextclaw/core@0.15.2
+  - @nextclaw/ncp-agent-runtime-next@0.1.2
+  - @nextclaw/ncp-toolkit@0.6.2
+
 ## 0.6.1
 
 ### Patch Changes

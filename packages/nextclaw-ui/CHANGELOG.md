@@ -1,5 +1,36 @@
 # @nextclaw/ui
 
+## 0.15.2
+
+### Patch Changes
+
+- 7aeae7a: Move model and thinking controls beside the context window and send action, with a compact content-sized model trigger instead of a stretched fixed-width control.
+- 9b172b8: Keep the chat settings menu open when streaming output restores focus to the composer, while preserving normal outside-click dismissal.
+- 7aeae7a: 支持置顶会话和项目，并将项目列表改为可展开的文件夹行；原生会话不再在对话标题中显示运行时标签。
+- b8250d1: Keep the chat sidebar search box focusable when users click the search icon area.
+- ad85a7a: Polish the chat surface: remove the decorative bot icon above the new-session welcome title, drop the chat sidebar right border so background color alone separates the rail from the canvas, and unify input-bar toolbar labels with the skill control's muted text weight.
+- 44e1a4b: Keep keyboard input inside focused Panel App iframes so interactive apps such as piano panels can respond to key presses instead of the chat composer.
+- e24a333: Route Chinese and mainland-timezone documentation links to the domestic docs mirror, with environment overrides for global fallback.
+- ced8f04: 设置侧边栏现在按“基础配置”和“高级配置”分组展示，模型、提供商和渠道保持在基础配置中。
+- bae3516: Add the Default theme with a white workspace, soft gray navigation surfaces, monochrome navigation controls, light gray user messages, blue assistant links, theme-owned marketplace surfaces, and consistent compact user message bubbles. It is listed first and used when no saved theme preference exists.
+- 3fdb755: Support browsing directory paths in the chat workspace preview panel, including relative directory paths resolved against the session working directory.
+- 771a296: Add a refresh action to workspace file previews so users can reload updated file contents from the right-side workspace panel.
+- 0c714ca: Add a container-scoped maximize control for the chat workspace panel so users can expand it across the current conversation area and restore it without covering global side panels.
+- Updated dependencies
+- Updated dependencies [7aeae7a]
+- Updated dependencies [ad85a7a]
+- Updated dependencies [94c5ab6]
+- Updated dependencies [bae3516]
+- Updated dependencies [3fdb755]
+  - @nextclaw/agent-chat@0.3.1
+  - @nextclaw/ncp@0.7.2
+  - @nextclaw/ncp-http-agent-client@0.4.2
+  - @nextclaw/ncp-react@0.5.2
+  - @nextclaw/shared@0.4.2
+  - @nextclaw/agent-chat-ui@0.6.2
+  - @nextclaw/ncp-toolkit@0.6.2
+  - @nextclaw/client-sdk@0.5.2
+
 ## 0.15.1
 
 ### Patch Changes

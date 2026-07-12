@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.22.2",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-07-12",
+  "title": {
+    "zh-CN": "NextClaw v0.22.2",
+    "en-US": "NextClaw v0.22.2"
+  },
+  "summary": {
+    "zh-CN": "本版本改进默认主题、聊天操作区、工作区预览、文档路由和模型流稳定性。",
+    "en-US": "This release improves the default theme, chat controls, workspace previews, docs routing, and model stream reliability."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-12-nextclaw-v0-22-2",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-12-nextclaw-v0-22-2"
+    }
+  },
+  "sections": [
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "更清爽的默认主题",
+            "en-US": "Cleaner default theme"
+          },
+          "body": {
+            "zh-CN": "默认主题使用更明亮的工作台样式，侧栏、导航、消息气泡和 marketplace 区域更统一。",
+            "en-US": "The default theme now uses a brighter workspace style with more consistent sidebar, navigation, message bubble, and marketplace surfaces."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "聊天操作更集中",
+            "en-US": "More compact chat controls"
+          },
+          "body": {
+            "zh-CN": "模型、thinking、上下文窗口和发送操作收在同一排，模型选择控件不再占用过宽空间。",
+            "en-US": "Model selection, thinking, context window, and send actions now sit together with a compact model trigger."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "项目和会话更好找",
+            "en-US": "Easier session and project navigation"
+          },
+          "body": {
+            "zh-CN": "侧边栏支持置顶会话和项目，项目列表可以展开为文件夹行。",
+            "en-US": "The sidebar supports pinned sessions and projects, with expandable project folder rows."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "工作区预览更灵活",
+            "en-US": "More flexible workspace previews"
+          },
+          "body": {
+            "zh-CN": "右侧工作区面板可以浏览目录、刷新文件，并在当前会话区域内最大化。",
+            "en-US": "The workspace side panel can browse directories, refresh files, and maximize inside the conversation area."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "模型流异常更可靠",
+            "en-US": "More reliable model stream handling"
+          },
+          "body": {
+            "zh-CN": "不完整的 Responses 流会按失败运行处理，瞬时失败会带重试信息和退避策略。",
+            "en-US": "Incomplete Responses streams are treated as failed runs, and transient failures retry with metadata and backoff."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "图片上下文更可控",
+            "en-US": "More predictable visual context"
+          },
+          "body": {
+            "zh-CN": "历史图片工具结果不会继续挤占后续模型上下文，高细节图片也会受尺寸和预算控制。",
+            "en-US": "Historical visual tool results no longer crowd out later model context, and high-detail images are bounded by size and budget."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "焦点状态更稳定",
+            "en-US": "More stable focus behavior"
+          },
+          "body": {
+            "zh-CN": "聊天设置菜单、侧栏搜索和 Panel App 键盘输入在常见交互中更稳定。",
+            "en-US": "Chat settings, sidebar search, and Panel App keyboard input now behave more consistently."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需手动迁移",
+            "en-US": "No manual migration"
+          },
+          "body": {
+            "zh-CN": "本版本不需要手动迁移。",
+            "en-US": "No manual migration is required."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "NPM stable patch",
+            "en-US": "NPM stable patch"
+          },
+          "body": {
+            "zh-CN": "这是 NPM stable patch 版本，可通过正常的 NextClaw NPM 安装或更新流程使用。",
+            "en-US": "This is an NPM stable patch release available through the normal NextClaw NPM install or update flow."
+          }
+        }
+      ]
+    }
+  ]
+}

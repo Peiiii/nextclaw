@@ -1,5 +1,13 @@
 # @nextclaw/agent-chat-ui
 
+## 0.6.2
+
+### Patch Changes
+
+- 7aeae7a: Move model and thinking controls beside the context window and send action, with a compact content-sized model trigger instead of a stretched fixed-width control.
+- ad85a7a: Polish the chat surface: remove the decorative bot icon above the new-session welcome title, drop the chat sidebar right border so background color alone separates the rail from the canvas, and unify input-bar toolbar labels with the skill control's muted text weight.
+- bae3516: Add the Default theme with a white workspace, soft gray navigation surfaces, monochrome navigation controls, light gray user messages, blue assistant links, theme-owned marketplace surfaces, and consistent compact user message bubbles. It is listed first and used when no saved theme preference exists.
+
 ## 0.6.1
 
 ### Patch Changes

@@ -65,7 +65,7 @@ const header = releaseEntries
   .map(({ entry }) => `"${entry.pkg.name}": patch`)
   .join("\n");
 const packageList = releaseEntries.map(({ entry }) => `- ${entry.pkg.name}`).join("\n");
-const summary = "Auto-generated full public beta release batch.";
+const summary = "Auto-generated full public release batch.";
 const body = `---\n${header}\n---\n\n${summary}\n\nPackages:\n${packageList}\n`;
 
 writeFileSync(filePath, body, "utf8");

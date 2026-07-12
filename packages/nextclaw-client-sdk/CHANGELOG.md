@@ -1,5 +1,16 @@
 # @nextclaw/client-sdk
 
+## 0.5.2
+
+### Patch Changes
+
+- 3fdb755: Support browsing directory paths in the chat workspace preview panel, including relative directory paths resolved against the session working directory.
+- Updated dependencies
+- Updated dependencies [3fdb755]
+  - @nextclaw/ncp@0.7.2
+  - @nextclaw/shared@0.4.2
+  - @nextclaw/server@0.15.2
+
 ## 0.5.1
 
 ### Patch Changes

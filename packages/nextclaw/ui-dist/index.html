@@ -11,18 +11,24 @@
   <meta name="apple-mobile-web-app-title" content="NextClaw" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#FAF9F7" />
-  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#FFFFFF" />
+  <meta name="color-scheme" content="light" />
   <style>
     html,
     body,
     #root {
-      background: #faf9f7;
+      background: #ffffff;
     }
 
     html[data-theme="minimal"],
     html[data-theme="minimal"] body,
     html[data-theme="minimal"] #root {
+      background: #ffffff;
+    }
+
+    html[data-theme="work"],
+    html[data-theme="work"] body,
+    html[data-theme="work"] #root {
       background: #ffffff;
     }
 
@@ -68,6 +74,7 @@
       const storedTheme = window.localStorage.getItem(storageKey);
       const themeColors = {
         natural: '#FAF9F7',
+        work: '#FFFFFF',
         minimal: '#FFFFFF',
         warm: '#FAF8F4',
         cool: '#F8FAFC',
@@ -78,6 +85,7 @@
       };
       const themeAppearances = {
         natural: 'light',
+        work: 'light',
         minimal: 'light',
         warm: 'light',
         cool: 'light',
@@ -94,7 +102,7 @@
         : storedTheme;
       const nextTheme = Object.prototype.hasOwnProperty.call(themeColors, normalizedStoredTheme)
         ? normalizedStoredTheme
-        : 'natural';
+        : 'work';
       if (storedTheme !== nextTheme) {
         window.localStorage.setItem(storageKey, nextTheme);
       }
@@ -178,34 +186,34 @@
     })();
   </script>
   <title>NextClaw</title>
-  <script type="module" crossorigin src="/assets/index-BIcEw90u.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/react-BN8uzPnp.js">
-  <link rel="modulepreload" crossorigin href="/assets/dist-jdGmbb6w.js">
-  <link rel="modulepreload" crossorigin href="/assets/dist-YtoqU-AT.js">
-  <link rel="modulepreload" crossorigin href="/assets/tooltip-CdcrBjrC.js">
-  <link rel="modulepreload" crossorigin href="/assets/book-open-B77lQ2Tg.js">
-  <link rel="modulepreload" crossorigin href="/assets/plus-vDqW5Kxp.js">
-  <link rel="modulepreload" crossorigin href="/assets/x-BF2KQ--V.js">
+  <script type="module" crossorigin src="/assets/index-Obd4JYU2.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/react-UirzUuST.js">
+  <link rel="modulepreload" crossorigin href="/assets/dist-7JTjycxE.js">
+  <link rel="modulepreload" crossorigin href="/assets/dist-wXLhk4hl.js">
+  <link rel="modulepreload" crossorigin href="/assets/tooltip-CjkOaHW7.js">
+  <link rel="modulepreload" crossorigin href="/assets/book-open-Ba2f7YiG.js">
+  <link rel="modulepreload" crossorigin href="/assets/plus-Bx7wQbhG.js">
+  <link rel="modulepreload" crossorigin href="/assets/x-DT5x45JU.js">
   <link rel="modulepreload" crossorigin href="/assets/middleware-BILWbJE4.js">
-  <link rel="modulepreload" crossorigin href="/assets/doc-browser-context-DwokemUn.js">
-  <link rel="modulepreload" crossorigin href="/assets/es2015-bNpL2LKy.js">
-  <link rel="modulepreload" crossorigin href="/assets/switch-CFLJFNSd.js">
-  <link rel="modulepreload" crossorigin href="/assets/confirm-dialog-C-NXSioX.js">
-  <link rel="modulepreload" crossorigin href="/assets/use-confirm-dialog-CSeBk9SF.js">
+  <link rel="modulepreload" crossorigin href="/assets/doc-browser-context-CYAGm5d5.js">
+  <link rel="modulepreload" crossorigin href="/assets/es2015-j1SRCIX5.js">
+  <link rel="modulepreload" crossorigin href="/assets/switch-BU_UEULb.js">
+  <link rel="modulepreload" crossorigin href="/assets/confirm-dialog-D2EG3nqE.js">
+  <link rel="modulepreload" crossorigin href="/assets/use-confirm-dialog-CD9a_SK1.js">
   <link rel="modulepreload" crossorigin href="/assets/host-capabilities-9bB_998Z.js">
-  <link rel="modulepreload" crossorigin href="/assets/side-dock-ZdaSrQVB.js">
-  <link rel="modulepreload" crossorigin href="/assets/select-Bh-CrA4p.js">
-  <link rel="modulepreload" crossorigin href="/assets/api-b1R9VdeH.js">
-  <link rel="modulepreload" crossorigin href="/assets/search-D0uO7enf.js">
-  <link rel="modulepreload" crossorigin href="/assets/external-link-BM6fk8q-.js">
-  <link rel="modulepreload" crossorigin href="/assets/refresh-cw-BpVcFPmJ.js">
-  <link rel="modulepreload" crossorigin href="/assets/doc-browser-BdZPFOVa.js">
-  <link rel="modulepreload" crossorigin href="/assets/i18n-provider-CntWolRA.js">
-  <link rel="modulepreload" crossorigin href="/assets/loader-circle-MBgNSVIH.js">
-  <link rel="modulepreload" crossorigin href="/assets/skeleton-BLlEzebZ.js">
-  <link rel="modulepreload" crossorigin href="/assets/tag-chip-CzGihiQx.js">
-  <link rel="modulepreload" crossorigin href="/assets/mcp-marketplace-page-CLmUstLN.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-BiNSTKTU.css">
+  <link rel="modulepreload" crossorigin href="/assets/side-dock-DPvakJ0a.js">
+  <link rel="modulepreload" crossorigin href="/assets/select-CdSEOwVM.js">
+  <link rel="modulepreload" crossorigin href="/assets/api-B7Qigvtm.js">
+  <link rel="modulepreload" crossorigin href="/assets/search-BcHjwdsb.js">
+  <link rel="modulepreload" crossorigin href="/assets/external-link-DxuPaDoK.js">
+  <link rel="modulepreload" crossorigin href="/assets/refresh-cw-eT8BF-8B.js">
+  <link rel="modulepreload" crossorigin href="/assets/doc-browser-bHyXnxlj.js">
+  <link rel="modulepreload" crossorigin href="/assets/i18n-provider-B4oMxOFx.js">
+  <link rel="modulepreload" crossorigin href="/assets/loader-circle-CdzgK4eH.js">
+  <link rel="modulepreload" crossorigin href="/assets/skeleton-P5oM14E1.js">
+  <link rel="modulepreload" crossorigin href="/assets/tag-chip-D-WsKoT1.js">
+  <link rel="modulepreload" crossorigin href="/assets/mcp-marketplace-page-Bt7CuOoq.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-CvrvblgX.css">
 </head>
 
 <body>

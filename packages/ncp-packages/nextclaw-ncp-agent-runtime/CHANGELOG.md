@@ -1,5 +1,15 @@
 # @nextclaw/ncp-agent-runtime
 
+## 0.4.2
+
+### Patch Changes
+
+- 51cf740: Avoid replaying final historical visual tool payloads into later model input so short native sessions do not lose prior conversation context after image-heavy tool results.
+  Bound high-detail `view_image` payloads by size, dimensions, and visual patch budget, and estimate image payloads as visual inputs instead of raw base64 text so active image observations do not evict normal conversation history.
+- 94c5ab6: Treat incomplete OpenAI Responses streams as failed runs instead of successful partial answers, retry transient native model stream failures with OpenCode-style retry metadata and backoff, and record lightweight execution contracts in message run specs for debugging.
+- Updated dependencies
+  - @nextclaw/ncp@0.7.2
+
 ## 0.4.1
 
 ### Patch Changes
