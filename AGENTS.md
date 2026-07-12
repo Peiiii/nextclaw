@@ -1,5 +1,7 @@
 ## NextClaw AI 常驻内核
 
+> Claude Code 提醒：`CLAUDE.md` 是指向 `AGENTS.md` 的软链接，仅用于自动加载本文件。**永远只改 `AGENTS.md`**，禁止把 `CLAUDE.md` 当独立文件编辑、覆盖成普通文件，或再维护一份平行规则。
+
 本文件只放“每一轮都必须知道”的规则。场景细则必须进入 `.agents/skills`，靠 skill 的 `description` 触发加载；不要把不常驻的长流程继续塞回 `AGENTS.md`。
 
 ## 产品愿景
