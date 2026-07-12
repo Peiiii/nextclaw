@@ -78,6 +78,14 @@
       {
         "from": "build/update/seed-product-bundle.zip",
         "to": "update/seed-product-bundle.zip"
+      },
+      {
+        "from": "../../node_modules/.pnpm/sharp@0.34.5/node_modules/@img",
+        "to": "app.asar.unpacked/node_modules/@img",
+        "filter": [
+          "sharp-*/**",
+          "sharp-libvips-*/**"
+        ]
       }
     ],
     "npmRebuild": false,

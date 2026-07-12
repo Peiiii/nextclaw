@@ -60,11 +60,7 @@ jobs:
 
       - name: Install dependencies
         shell: bash
-        run: |
-          pnpm install --frozen-lockfile \
-            "--config.supportedArchitectures.os[]=${{ matrix.platform }}" \
-            "--config.supportedArchitectures.cpu[]=x64" \
-            "--config.supportedArchitectures.cpu[]=arm64"
+        run: pnpm install --frozen-lockfile --force
 
       - name: Write bundled update public key
         env:
