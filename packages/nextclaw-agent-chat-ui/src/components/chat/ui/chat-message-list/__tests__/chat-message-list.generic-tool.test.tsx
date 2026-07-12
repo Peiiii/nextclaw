@@ -9,7 +9,7 @@ const defaultTexts = {
   typingLabel: "Typing...",
 };
 
-function toolCard(toolName: string, summary: string) {
+function toolCard(toolName: string, summary: string, filePaths: string[] = []) {
   return {
     type: "tool-card" as const,
     card: {
@@ -22,9 +22,42 @@ function toolCard(toolName: string, summary: string) {
       titleLabel: "Tool Result",
       outputLabel: "View Output",
       emptyLabel: "No output",
+      fileOperation: filePaths.length
+        ? {
+            blocks: filePaths.map((path) => ({ key: path, path, lines: [] })),
+          }
+        : undefined,
     },
   };
 }
+
+it("summarizes repeated edits by distinct file path", () => {
+  render(
+    <ChatMessageList
+      messages={[
+        {
+          id: "assistant-repeated-file-edits",
+          role: "assistant",
+          roleLabel: "Assistant",
+          timestampLabel: "10:11",
+          parts: [
+            toolCard("edit_file", "src/app.ts", ["src/app.ts"]),
+            toolCard("edit_file", "src/app.ts", ["src/app.ts"]),
+            toolCard("apply_patch", "src/app.ts · src/theme.ts", [
+              "src/app.ts",
+              "src/theme.ts",
+            ]),
+          ],
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  expect(screen.getByText("Edit 2 files")).toBeTruthy();
+});
 
 it("connects tool rows across intervening reasoning from icon center to icon center", () => {
   const { container } = render(

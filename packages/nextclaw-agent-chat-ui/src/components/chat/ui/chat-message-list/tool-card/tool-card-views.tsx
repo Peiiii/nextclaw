@@ -1,16 +1,14 @@
-import { Terminal, FileText, Code2, Search, Globe } from 'lucide-react';
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { Terminal, FileText, Code2, Search, type LucideIcon } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import type {
   ChatFileOperationBlockViewModel,
   ChatFileOpenActionViewModel,
-  ChatToolActionViewModel,
   ChatToolPartViewModel,
 } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import { ToolCardRoot, ToolCardContent } from './tool-card-root';
-import { ToolCardHeader, ToolCardHeaderAction } from './tool-card-header';
+import { ToolCardHeader } from './tool-card-header';
 import { ToolCardFileOperationContent } from './tool-card-file-operation';
 import { ChatTerminalSurface } from './terminal/terminal-panes';
-import { cn } from '@agent-chat-ui/components/chat/internal/cn';
 
 const TOOL_CARD_AUTO_EXPAND_DELAY_MS = 200;
 
@@ -109,7 +107,7 @@ function countFileOperationChanges(blocks: ChatFileOperationBlockViewModel[]): {
   );
 }
 
-function useToolCardExpandedState({
+export function useToolCardExpandedState({
   canExpand,
   isRunning,
   autoExpandWhileRunning = true,
@@ -189,57 +187,6 @@ function useToolCardExpandedState({
   };
 
   return { expanded, onToggle };
-}
-
-function GenericToolSection({
-  label,
-  tone,
-  children,
-}: {
-  label: string;
-  tone: 'input' | 'output' | 'error';
-  children: ReactNode;
-}) {
-  const tones = {
-    input: {
-      shell: 'border-border bg-card',
-      header: 'border-border bg-muted/55 text-muted-foreground',
-      dot: 'bg-muted-foreground/60',
-      body: 'text-foreground',
-    },
-    output: {
-      shell: 'border-border bg-card',
-      header: 'border-border bg-muted/55 text-muted-foreground',
-      dot: 'bg-primary/70',
-      body: 'text-foreground',
-    },
-    error: {
-      shell: 'border-rose-200/80 bg-rose-50/85',
-      header: 'border-rose-200/80 bg-rose-100/80 text-rose-700',
-      dot: 'bg-rose-500/80',
-      body: 'text-rose-950/85',
-    },
-  } as const;
-  const style = tones[tone];
-
-  return (
-    <section className="overflow-hidden rounded-md border border-border/70 bg-muted/20">
-      <div className="flex items-center gap-2 border-b border-border/60 px-2.5 py-1.5 text-[10px] font-medium tracking-wide text-muted-foreground">
-        <span className={cn('h-1.5 w-1.5 rounded-full', style.dot)} />
-        <span className="normal-case tracking-normal">{label}</span>
-      </div>
-      <div className="w-full overflow-hidden">
-        <pre
-          className={cn(
-            'w-full max-w-full min-w-0 max-h-64 overflow-x-auto overflow-y-auto px-2.5 py-2 font-mono text-[12px] leading-relaxed whitespace-pre custom-scrollbar',
-            style.body,
-          )}
-        >
-          {children}
-        </pre>
-      </div>
-    </section>
-  );
 }
 
 function extractTerminalMeta(structuredOutput?: unknown): {
@@ -378,7 +325,15 @@ export function FileOperationView({
   );
 }
 
-export function SearchSnippetView({ card, toolLabel }: { card: ChatToolPartViewModel; toolLabel?: string }) {
+export function SearchSnippetView({
+  card,
+  toolLabel,
+  icon: Icon = Search,
+}: {
+  card: ChatToolPartViewModel;
+  toolLabel?: string;
+  icon?: LucideIcon;
+}) {
   const isRunning = card.statusTone === 'running';
   const output = card.output?.trim() ?? '';
   const { expanded, onToggle } = useToolCardExpandedState({
@@ -393,7 +348,7 @@ export function SearchSnippetView({ card, toolLabel }: { card: ChatToolPartViewM
       <ToolCardHeader 
         card={card} 
         toolLabel={toolLabel}
-        icon={Search} 
+        icon={Icon}
         expanded={expanded} 
         canExpand={!!output || isRunning} 
         onToggle={onToggle} 
@@ -403,76 +358,6 @@ export function SearchSnippetView({ card, toolLabel }: { card: ChatToolPartViewM
            <pre className="font-mono text-[12px] text-muted-foreground whitespace-pre-wrap break-all w-full max-w-full max-h-64 overflow-y-auto overflow-x-hidden min-w-0 custom-scrollbar leading-relaxed">
              {output}
            </pre>
-        </ToolCardContent>
-      )}
-    </ToolCardRoot>
-  );
-}
-
-export function GenericToolCard({
-  card,
-  onToolAction,
-  renderToolAgent,
-}: {
-  card: ChatToolPartViewModel;
-  onToolAction?: (action: ChatToolActionViewModel) => void;
-  renderToolAgent?: (agentId: string) => ReactNode;
-}) {
-  const input = card.input?.trim() ?? '';
-  const output = card.output?.trim() ?? '';
-  const isRunning = card.statusTone === 'running';
-  const hasInputSection = input.length > 0;
-  const hasOutputSection = output.length > 0;
-  const hasContent = hasInputSection || hasOutputSection;
-  const inputLabel = card.inputLabel?.trim() || 'Input';
-  const outputLabel = card.outputLabel?.trim() || 'Output';
-  const { expanded, onToggle } = useToolCardExpandedState({
-    canExpand: hasContent || isRunning,
-    isRunning,
-    autoExpandWhileRunning: false,
-    statusTone: card.statusTone,
-  });
-
-  return (
-    <ToolCardRoot>
-      <ToolCardHeader 
-        card={card} 
-        icon={Globe} 
-        expanded={expanded} 
-        canExpand={hasContent || isRunning} 
-        actionSlot={
-          card.agentId || (card.action && onToolAction) ? (
-            <>
-              {card.agentId && renderToolAgent ? renderToolAgent(card.agentId) : null}
-              {card.action && onToolAction ? (
-                <ToolCardHeaderAction
-                  action={card.action}
-                  onAction={onToolAction}
-                />
-              ) : null}
-            </>
-          ) : undefined
-        }
-        onToggle={onToggle} 
-      />
-      {expanded && hasContent && (
-        <ToolCardContent className="bg-transparent py-0">
-          {hasInputSection && (
-            <GenericToolSection label={inputLabel} tone="input">
-              {input}
-            </GenericToolSection>
-          )}
-          {hasInputSection && hasOutputSection && (
-            <div className="h-2" />
-          )}
-          {hasOutputSection && (
-            <GenericToolSection
-              label={outputLabel}
-              tone={card.statusTone === 'error' ? 'error' : 'output'}
-            >
-              {output}
-            </GenericToolSection>
-          )}
         </ToolCardContent>
       )}
     </ToolCardRoot>

@@ -4,7 +4,7 @@ import type {
   ChatToolActionViewModel,
   ChatToolPartViewModel,
 } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
-import { GenericToolCard } from './tool-card-views';
+import { GenericToolCard } from './tool-card-generic';
 
 export function PanelAppInlineToolCard({
   card,

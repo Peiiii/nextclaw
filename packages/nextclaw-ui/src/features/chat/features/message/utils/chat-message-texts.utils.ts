@@ -32,6 +32,71 @@ export function buildChatMessageAdapterTexts(
   };
 }
 
+function buildBuiltInToolStatusLabels() {
+  return {
+    directory: {
+      running: t("chatToolDirectoryRunning"),
+      success: t("chatToolDirectorySuccess"),
+      error: t("chatToolDirectoryError"),
+      cancelled: t("chatToolDirectoryCancelled"),
+    },
+    web: {
+      running: t("chatToolWebRunning"),
+      success: t("chatToolWebSuccess"),
+      error: t("chatToolWebError"),
+      cancelled: t("chatToolWebCancelled"),
+    },
+    message: {
+      running: t("chatToolMessageRunning"),
+      success: t("chatToolMessageSuccess"),
+      error: t("chatToolMessageError"),
+      cancelled: t("chatToolMessageCancelled"),
+    },
+    session: {
+      running: t("chatToolSessionRunning"),
+      success: t("chatToolSessionSuccess"),
+      error: t("chatToolSessionError"),
+      cancelled: t("chatToolSessionCancelled"),
+    },
+    agent: {
+      running: t("chatToolAgentRunning"),
+      success: t("chatToolAgentSuccess"),
+      error: t("chatToolAgentError"),
+      cancelled: t("chatToolAgentCancelled"),
+    },
+    memory: {
+      running: t("chatToolMemoryRunning"),
+      success: t("chatToolMemorySuccess"),
+      error: t("chatToolMemoryError"),
+      cancelled: t("chatToolMemoryCancelled"),
+    },
+    schedule: {
+      running: t("chatToolScheduleRunning"),
+      success: t("chatToolScheduleSuccess"),
+      error: t("chatToolScheduleError"),
+      cancelled: t("chatToolScheduleCancelled"),
+    },
+    system: {
+      running: t("chatToolSystemRunning"),
+      success: t("chatToolSystemSuccess"),
+      error: t("chatToolSystemError"),
+      cancelled: t("chatToolSystemCancelled"),
+    },
+    image: {
+      running: t("chatToolImageRunning"),
+      success: t("chatToolImageSuccess"),
+      error: t("chatToolImageError"),
+      cancelled: t("chatToolImageCancelled"),
+    },
+    display: {
+      running: t("chatToolDisplayRunning"),
+      success: t("chatToolDisplaySuccess"),
+      error: t("chatToolDisplayError"),
+      cancelled: t("chatToolDisplayCancelled"),
+    },
+  };
+}
+
 export function buildChatMessageTexts(
   language: string,
 ): ChatMessageTexts {
@@ -71,6 +136,7 @@ export function buildChatMessageTexts(
         error: t("chatToolSearchError"),
         cancelled: t("chatToolSearchCancelled"),
       },
+      builtIn: buildBuiltInToolStatusLabels(),
     },
     attachmentOpenLabel: t("chatAttachmentOpen"),
     attachmentAttachedLabel: t("chatAttachmentAttached"),
@@ -94,6 +160,10 @@ export function buildChatMessageTexts(
       edit: {
         one: t("chatToolActivityEditOne"),
         other: t("chatToolActivityEditOther"),
+      },
+      directory: {
+        one: t("chatToolActivityDirectoryOne"),
+        other: t("chatToolActivityDirectoryOther"),
       },
       search: {
         one: t("chatToolActivitySearchOne"),

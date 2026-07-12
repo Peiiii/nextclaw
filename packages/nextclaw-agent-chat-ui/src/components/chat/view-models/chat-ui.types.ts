@@ -438,6 +438,18 @@ export type ChatAttachmentCategory =
   | "sheet"
   | "video";
 
+export type ChatBuiltInToolStatusKind =
+  | "directory"
+  | "web"
+  | "message"
+  | "session"
+  | "agent"
+  | "memory"
+  | "schedule"
+  | "system"
+  | "image"
+  | "display";
+
 export type ChatMessageTexts = {
   copyCodeLabel: string;
   copiedCodeLabel: string;
@@ -450,6 +462,7 @@ export type ChatMessageTexts = {
   toolActivitySegmentTemplates?: {
     read: { one: string; other: string };
     edit: { one: string; other: string };
+    directory: { one: string; other: string };
     search: { one: string; other: string };
     bash: { one: string; other: string };
     web: { one: string; other: string };
@@ -468,5 +481,8 @@ export type ChatMessageTexts = {
     fileRead: Record<ChatToolPartViewModel["statusTone"], string>;
     fileEdit: Record<ChatToolPartViewModel["statusTone"], string>;
     search: Record<ChatToolPartViewModel["statusTone"], string>;
+    builtIn?: Partial<
+      Record<ChatBuiltInToolStatusKind, Record<ChatToolPartViewModel["statusTone"], string>>
+    >;
   };
 };

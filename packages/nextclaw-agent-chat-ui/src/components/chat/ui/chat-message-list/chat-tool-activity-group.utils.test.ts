@@ -11,6 +11,7 @@ const labels: ChatToolActivityGroupLabels = {
   segmentTemplates: {
     read: { one: "Read 1 file", other: "Read {count} files" },
     edit: { one: "Edit 1 file", other: "Edit {count} files" },
+    directory: { one: "View 1 directory", other: "View {count} directories" },
     search: { one: "Search 1 time", other: "Search {count} times" },
     bash: { one: "Run 1 command", other: "Run {count} commands" },
     web: { one: "Open 1 page", other: "Open {count} pages" },
@@ -26,6 +27,7 @@ const zhLabels: ChatToolActivityGroupLabels = {
   segmentTemplates: {
     read: { one: "读取 1 个文件", other: "读取 {count} 个文件" },
     edit: { one: "编辑 1 个文件", other: "编辑 {count} 个文件" },
+    directory: { one: "查看 1 个目录", other: "查看 {count} 个目录" },
     search: { one: "搜索 1 次", other: "搜索 {count} 次" },
     bash: { one: "运行 1 条命令", other: "运行 {count} 条命令" },
     web: { one: "访问 1 个网页", other: "访问 {count} 个网页" },
@@ -41,6 +43,7 @@ function toolCard(
   toolName: string,
   summary?: string,
   statusTone: "success" | "error" | "cancelled" | "running" = "success",
+  filePaths: string[] = [],
 ): Extract<ChatMessagePartViewModel, { type: "tool-card" }> {
   return {
     type: "tool-card",
@@ -54,6 +57,16 @@ function toolCard(
       titleLabel: "Tool",
       outputLabel: "Output",
       emptyLabel: "Empty",
+      fileOperation:
+        filePaths.length > 0
+          ? {
+              blocks: filePaths.map((path, index) => ({
+                key: `${path}-${index}`,
+                path,
+                lines: [],
+              })),
+            }
+          : undefined,
     },
   };
 }
@@ -62,6 +75,7 @@ describe("resolveToolActivityFamily", () => {
   it("maps common tool names into semantic families", () => {
     expect(resolveToolActivityFamily("read_file")).toBe("read");
     expect(resolveToolActivityFamily("edit_file")).toBe("edit");
+    expect(resolveToolActivityFamily("list_dir")).toBe("directory");
     expect(resolveToolActivityFamily("grep_search")).toBe("search");
     expect(resolveToolActivityFamily("exec_command")).toBe("bash");
     expect(resolveToolActivityFamily("read_url_content")).toBe("web");
@@ -153,6 +167,39 @@ describe("groupConsecutiveToolParts", () => {
           { type: "tool-card" },
         ],
       },
+    });
+  });
+
+  it("counts distinct edited files instead of edit tool calls", () => {
+    const parts: ChatMessagePartViewModel[] = [
+      toolCard("edit_file", "src/app.ts", "success", ["src/app.ts"]),
+      toolCard("edit_file", "src/app.ts", "success", ["src/app.ts"]),
+      toolCard("apply_patch", "src/app.ts · src/theme.ts", "success", [
+        "src/app.ts",
+        "src/theme.ts",
+      ]),
+    ];
+
+    const blocks = groupConsecutiveToolParts(parts, zhLabels);
+    expect(blocks[0]).toMatchObject({
+      kind: "tool-group",
+      group: { label: "编辑 2 个文件" },
+    });
+  });
+
+  it("counts distinct directories for list_dir calls", () => {
+    const blocks = groupConsecutiveToolParts(
+      [
+        toolCard("list_dir", "path: src"),
+        toolCard("list_dir", "path: src"),
+        toolCard("list_dir", "path: packages"),
+      ],
+      zhLabels,
+    );
+
+    expect(blocks[0]).toMatchObject({
+      kind: "tool-group",
+      group: { label: "查看 2 个目录" },
     });
   });
 });

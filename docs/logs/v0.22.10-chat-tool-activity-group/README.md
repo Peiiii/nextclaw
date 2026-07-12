@@ -11,6 +11,8 @@
 - 用户明确要求：`已处理` 只做总收起；连续 tool-card 单独汇总；中间出现文本/reasoning 必须打断合并。
 - 汇总文案不能写 `命令 2 条命令` 这类叠词，也不能塞命令路径或 `+1` 代表对象。
 - 思考块与工具汇总左侧图标未共用同一 meta 行规范，导致不对齐。
+- 文件型工具汇总沿用了通用调用计数器，因此同一路径被编辑多次时会被误报为多个文件；通过结构化 `fileOperation.blocks[].path` 确认每次调用已有可靠的文件身份。
+- 内置工具展示只识别了命令、文件和搜索三个局部集合，没有覆盖 `DEFAULT_TOOL_CATALOG` 中的目录、网页、消息、会话、记忆、定时任务等工具，导致已知工具继续显示原始英文名和通用图标。
 
 修复方式：
 
@@ -30,6 +32,9 @@
 - 已识别的命令、读文件、编辑和搜索工具使用 i18n 状态文案，例如 `编辑中`、`已编辑`、`编辑失败`。
 - 工具工作流连线固定在图标列，内容统一右移；折叠态首尾连线延长，展开内容不再与连线重叠。
 - reasoning 不再阻断工具汇总；汇总只计算工具，展开后仍按原顺序保留 reasoning 与工具明细。
+- 读文件和编辑文件按结构化文件路径去重统计；同一文件被多次调用时，概览显示实际不同文件数，展开明细仍保留全部调用。
+- `list_dir` 使用目录图标与“正在查看目录 / 已查看目录 / 查看目录失败”等状态文案，并按不同路径汇总为“查看 N 个目录”。
+- 内置网页、消息、会话、子任务、记忆、定时任务、服务管理、图片和结果展示工具统一使用语义图标与 i18n 状态；未知扩展工具才保留通用扳手卡。
 - 编辑工具概览直接从结构化 diff 行汇总 `+N -N`，默认使用弱化文本色，整行 hover 后分别切换为绿色和红色。
 - 终端输出保留 ANSI 语义并提供更清晰的命令、输出、工作目录和退出码展示；文件 diff/预览保持单一 gutter 与可滚动代码区。
 - 聊天中的 skill 引用支持点击后在文件预览中打开对应 skill 内容。
@@ -38,8 +43,13 @@
 
 - 新增/更新测试：
   - `packages/nextclaw-agent-chat-ui/.../chat-tool-activity-group.utils.test.ts`
+  - `packages/nextclaw-agent-chat-ui/.../chat-message-list.generic-tool.test.tsx`
   - `packages/nextclaw-ui/.../chat-message-process-summary.utils.test.ts`
   - container / message-list 相关期望同步
+- 文件计数回归验收：重复编辑 `src/app.ts` 两次，再由一次补丁同时触达 `src/app.ts` 与 `src/theme.ts`，概览显示 `Edit 2 files`；相关 2 个测试文件 10 项通过。
+- 内置工具展示回归：默认内置工具目录及 NextClaw 会话/展示工具均验证了本地化完成态与对应图标；共享聊天 UI 定向 3 个测试文件 35 项通过。
+- 本轮补充回归最终合并为共享聊天 UI 4 个测试文件 37 项、宿主 i18n 1 个测试文件 1 项，全部通过；`@nextclaw/agent-chat-ui` 的 `tsc` 与完整 lint 通过。
+- 当前并行附件预览 WIP 使 `@nextclaw/ui` 的 `tsc` 阻塞在未纳入本提交的 `chat-message-list.container.test.tsx` 类型错误，并使 `lint:new-code:governance` 阻塞在未纳入本提交的附件测试跨层导入；`@nextclaw/ui` 完整 lint 无 error、保留 2 个既有 warning，backlog ratchet 通过。
 - 定向测试：`@nextclaw/agent-chat-ui` 9 个文件 46 项通过；`@nextclaw/ui` 聊天宿主容器 14 项通过。
 - 类型检查：`pnpm --filter @nextclaw/agent-chat-ui tsc`、`pnpm --filter @nextclaw/ui tsc` 通过。
 - 两个相关 package 的完整 ESLint 均无 error；`@nextclaw/ui` 保留两个 warning：HEAD 既有的 803 行测试文件，以及本批定时任务组件的既有复杂度热点。
@@ -67,6 +77,8 @@
 6. 思考与工具汇总左侧折叠图标尺寸、间距、基线一致。
 7. 编辑工具概览展示 `+N -N`；默认颜色克制，hover 整行时新增变绿、删除变红。
 8. 展开汇总后，工具与思考按原始顺序保留，连线位于图标列且不覆盖内容。
+9. 同一个文件连续编辑多次时，汇总里的文件数量只计一次；展开后仍能看到每次编辑调用。
+10. `list_dir` 不再显示原始英文工具名；完成态显示“已查看目录”，连续调用按不同目录路径汇总。
 
 ## 可维护性总结汇总
 
@@ -78,8 +90,13 @@
 - 正向动作：把行高、图标列和内容缩进收敛到共享 process row 合同，避免 reasoning/tool 各自维护漂移样式。
 - 正向动作：状态文案由宿主 i18n owner 提供，组件不再内联按语言分支。
 - 正向动作：编辑增删统计直接消费结构化 diff 事实，避免解析展示 caption。
+- 正向动作：文件型活动由调用次数改为结构化路径集合，概览语义回到真实资源数量；其它工具继续按调用次数统计，未引入平行汇总路径。
+- 正向动作：把内置工具名称到语义状态/图标的映射集中到现有 `ChatToolCard` 路由，通用卡只承担未知扩展工具，避免继续散落工具名特判。
+- 正向动作：把通用可展开工具卡从接近 500 行预算的 `tool-card-views.tsx` 拆到同目录独立组件，并删除未使用的样式字段；`tool-card/` 直属文件为 11 个，仍在目录预算内。
+- 流程改进：`code-investigation-workflow` 增加 catalog/registry 投影覆盖审计要求；以后用户点名某个目录项缺失时，必须先对照 canonical 事实源检查完整覆盖，而不是继续单项补漏。
 - 正向动作：终端相关的 pane、ANSI utils 与测试折叠到 `tool-card/terminal/` 稳定子目录，`tool-card/` 根目录重新回到预算内；未增加 barrel。
-- 治理结果：maintainability guard 无 error，`lint:new-code:governance` 与 backlog ratchet 通过。
+- 治理结果：maintainability guard 无 error；原聊天展示批次的 `lint:new-code:governance` 已通过，本轮复跑受未纳入提交的并行附件测试导入阻塞；backlog ratchet 继续通过。
+- 保留观察点：message-list 根目录仍有已登记的文件数预算 warning（17 个文件，增量为 0），本次未新增直属文件或结构债务。
 - 保留观察点：`tool-card-views.tsx`、聊天宿主 container 和 Markdown renderer 已接近文件预算，后续新增职责应优先沿现有 seam 拆分。
 
 ## NPM 包发布记录

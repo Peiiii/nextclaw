@@ -6,6 +6,7 @@ import type {
 export type ChatToolActivityFamily =
   | "read"
   | "edit"
+  | "directory"
   | "search"
   | "bash"
   | "web"
@@ -26,6 +27,8 @@ export type ChatToolActivitySegment = {
   count: number;
   tone: ChatToolActivityTone;
 };
+
+type ActivityAccumulator = { units: Set<string>; tone: ChatToolActivityTone };
 
 export type ChatToolActivityGroupViewModel = {
   key: string;
@@ -70,6 +73,9 @@ function isToolCardPart(part: ChatToolGroupPart): part is ChatToolCardPart {
 
 export function resolveToolActivityFamily(toolName: string): ChatToolActivityFamily {
   const lowered = toolName.toLowerCase();
+  if (lowered === "list_dir") {
+    return "directory";
+  }
   if (
     lowered.includes("show_content") ||
     lowered.includes("panel_app") ||
@@ -146,11 +152,17 @@ function toneRank(tone: ChatToolActivityTone): number {
   return 3;
 }
 
-function mergeTone(
-  current: ChatToolActivityTone,
-  next: ChatToolActivityTone,
-): ChatToolActivityTone {
-  return toneRank(next) < toneRank(current) ? next : current;
+function resolveActivityUnitKeys(
+  card: ChatToolPartViewModel,
+  family: ChatToolActivityFamily,
+  callIndex: number,
+): string[] {
+  if (family !== "read" && family !== "edit" && family !== "directory") {
+    return [`call:${callIndex}`];
+  }
+  const paths = card.fileOperation?.blocks.map(({ path }) => path.trim()).filter(Boolean);
+  const summary = card.summary?.replace(/^(path|file):\s*/i, "").trim();
+  return paths?.length ? paths : [summary || `call:${callIndex}`];
 }
 
 /**
@@ -180,39 +192,32 @@ function formatSegment(
 export function buildToolActivitySegments(
   cards: ChatToolPartViewModel[],
 ): ChatToolActivitySegment[] {
-  if (cards.length === 0) {
-    return [];
-  }
-
   const order: ChatToolActivityFamily[] = [];
-  const byFamily = new Map<
-    ChatToolActivityFamily,
-    {
-      count: number;
-      tone: ChatToolActivityTone;
-    }
-  >();
+  const byFamily = new Map<ChatToolActivityFamily, ActivityAccumulator>();
 
-  for (const card of cards) {
+  for (const [callIndex, card] of cards.entries()) {
     const family = resolveToolActivityFamily(card.toolName);
+    const unitKeys = resolveActivityUnitKeys(card, family, callIndex);
     const existing = byFamily.get(family);
     if (!existing) {
       order.push(family);
       byFamily.set(family, {
-        count: 1,
+        units: new Set(unitKeys),
         tone: card.statusTone,
       });
       continue;
     }
-    existing.count += 1;
-    existing.tone = mergeTone(existing.tone, card.statusTone);
+    unitKeys.forEach((unitKey) => existing.units.add(unitKey));
+    if (toneRank(card.statusTone) < toneRank(existing.tone)) {
+      existing.tone = card.statusTone;
+    }
   }
 
   const segments = order.map((family) => {
     const entry = byFamily.get(family)!;
     return {
       family,
-      count: entry.count,
+      count: entry.units.size,
       tone: entry.tone,
     } satisfies ChatToolActivitySegment;
   });

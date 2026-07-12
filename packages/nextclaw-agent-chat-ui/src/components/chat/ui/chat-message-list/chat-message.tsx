@@ -73,6 +73,7 @@ const DEFAULT_TOOL_ACTIVITY_LABELS: ChatToolActivityGroupLabels = {
   segmentTemplates: {
     read: { one: "Read 1 file", other: "Read {count} files" },
     edit: { one: "Edit 1 file", other: "Edit {count} files" },
+    directory: { one: "View 1 directory", other: "View {count} directories" },
     search: { one: "Search 1 time", other: "Search {count} times" },
     bash: { one: "Run 1 command", other: "Run {count} commands" },
     web: { one: "Open 1 page", other: "Open {count} pages" },
