@@ -299,7 +299,7 @@ export function Sidebar({ mode }: SidebarProps) {
   const isSettingsMode = mode === "settings";
   const currentThemeLabel = t(
     THEME_OPTIONS.find((option) => option.value === theme)?.labelKey ??
-      "themeNatural",
+      "themeWork",
   );
   const accountEmail = remoteStatus.data?.account.email?.trim();
   const accountConnected = Boolean(remoteStatus.data?.account.loggedIn);

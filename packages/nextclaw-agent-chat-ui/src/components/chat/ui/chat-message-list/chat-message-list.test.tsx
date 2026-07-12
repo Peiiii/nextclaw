@@ -88,6 +88,7 @@ it("renders user, assistant, and tool content and supports code copy", async () 
   expect(screen.queryByText("Call ID")).toBeNull();
   expect(screen.getByText("Typing...")).toBeTruthy();
   expect(screen.getByTestId("chat-message-avatar-user")).toBeTruthy();
+  expect(container.querySelector(".nextclaw-chat-message-user")).toBeTruthy();
   expect(
     screen.getAllByTestId("chat-message-avatar-assistant").length,
   ).toBeGreaterThan(0);

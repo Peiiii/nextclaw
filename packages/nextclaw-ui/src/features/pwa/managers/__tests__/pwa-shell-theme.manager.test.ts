@@ -12,12 +12,12 @@ describe('PwaShellThemeManager', () => {
     document.body.style.backgroundColor = '';
   });
 
-  it('applies natural shell colors by default', () => {
+  it('applies default work shell colors when no theme is selected', () => {
     pwaShellThemeManager.syncCurrentTheme();
 
     const meta = document.querySelector('meta[name="theme-color"]');
-    expect(meta?.getAttribute('content')).toBe('#FAF9F7');
-    expect(document.body.style.backgroundColor).toBe('rgb(250, 249, 247)');
+    expect(meta?.getAttribute('content')).toBe('#FFFFFF');
+    expect(document.body.style.backgroundColor).toBe('rgb(255, 255, 255)');
   });
 
   it('applies natural shell colors explicitly', () => {
@@ -30,6 +30,14 @@ describe('PwaShellThemeManager', () => {
 
   it('applies minimal shell colors explicitly', () => {
     pwaShellThemeManager.syncTheme('minimal');
+
+    const meta = document.querySelector('meta[name="theme-color"]');
+    expect(meta?.getAttribute('content')).toBe('#FFFFFF');
+    expect(document.body.style.backgroundColor).toBe('rgb(255, 255, 255)');
+  });
+
+  it('applies work shell colors explicitly', () => {
+    pwaShellThemeManager.syncTheme('work');
 
     const meta = document.querySelector('meta[name="theme-color"]');
     expect(meta?.getAttribute('content')).toBe('#FFFFFF');

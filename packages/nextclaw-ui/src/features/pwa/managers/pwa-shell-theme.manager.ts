@@ -1,4 +1,5 @@
 import {
+  DEFAULT_UI_THEME,
   getThemeAppearance,
   normalizeTheme,
   type UiTheme,
@@ -6,6 +7,7 @@ import {
 
 const PWA_SHELL_THEME_COLORS: Record<UiTheme, string> = {
   natural: '#FAF9F7',
+  work: '#FFFFFF',
   minimal: '#FFFFFF',
   warm: '#FAF8F4',
   cool: '#F8FAFC',
@@ -33,7 +35,7 @@ export class PwaShellThemeManager {
     }
 
     const currentTheme = document.documentElement.getAttribute('data-theme');
-    this.syncTheme(normalizeTheme(currentTheme) ?? 'natural');
+    this.syncTheme(normalizeTheme(currentTheme) ?? DEFAULT_UI_THEME);
   };
 
   private updateThemeMeta = (themeColor: string) => {

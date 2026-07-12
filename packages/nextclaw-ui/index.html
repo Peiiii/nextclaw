@@ -11,18 +11,24 @@
   <meta name="apple-mobile-web-app-title" content="NextClaw" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#FAF9F7" />
-  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#FFFFFF" />
+  <meta name="color-scheme" content="light" />
   <style>
     html,
     body,
     #root {
-      background: #faf9f7;
+      background: #ffffff;
     }
 
     html[data-theme="minimal"],
     html[data-theme="minimal"] body,
     html[data-theme="minimal"] #root {
+      background: #ffffff;
+    }
+
+    html[data-theme="work"],
+    html[data-theme="work"] body,
+    html[data-theme="work"] #root {
       background: #ffffff;
     }
 
@@ -68,6 +74,7 @@
       const storedTheme = window.localStorage.getItem(storageKey);
       const themeColors = {
         natural: '#FAF9F7',
+        work: '#FFFFFF',
         minimal: '#FFFFFF',
         warm: '#FAF8F4',
         cool: '#F8FAFC',
@@ -78,6 +85,7 @@
       };
       const themeAppearances = {
         natural: 'light',
+        work: 'light',
         minimal: 'light',
         warm: 'light',
         cool: 'light',
@@ -94,7 +102,7 @@
         : storedTheme;
       const nextTheme = Object.prototype.hasOwnProperty.call(themeColors, normalizedStoredTheme)
         ? normalizedStoredTheme
-        : 'natural';
+        : 'work';
       if (storedTheme !== nextTheme) {
         window.localStorage.setItem(storageKey, nextTheme);
       }

@@ -675,6 +675,24 @@
   --md-table-head-bg: rgba(191, 219, 254, 0.16);
 }
 
+:root[data-theme="work"] .chat-markdown-assistant {
+  --md-link: #1f73c9;
+  --md-border: rgba(0, 0, 0, 0.11);
+  --md-table-head-bg: rgba(0, 0, 0, 0.045);
+}
+
+:root[data-theme="work"] .chat-markdown-user {
+  --md-text: #212121;
+  --md-muted: #737373;
+  --md-border: rgba(0, 0, 0, 0.12);
+  --md-link: #1f73c9;
+  --md-inline-code-bg: rgba(0, 0, 0, 0.06);
+  --md-inline-code-color: #212121;
+  --md-blockquote-border: rgba(0, 0, 0, 0.2);
+  --md-blockquote-bg: rgba(0, 0, 0, 0.04);
+  --md-table-head-bg: rgba(0, 0, 0, 0.045);
+}
+
 :root[data-theme-appearance="dark"] .chat-markdown-assistant {
   --md-text: hsl(var(--foreground));
   --md-muted: hsl(var(--foreground-tertiary));

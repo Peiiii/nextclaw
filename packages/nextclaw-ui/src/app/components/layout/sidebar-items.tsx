@@ -130,7 +130,7 @@ export function SidebarNavLinkItem({
           "shrink-0 transition-colors",
           isActive
             ? "text-gray-700"
-            : "text-muted-foreground/75 group-hover:text-gray-700",
+            : "text-muted-foreground group-hover:text-gray-700",
         )}
       />
       <span className={collapsed ? "sr-only" : "min-w-0 flex-1 text-left"}>
@@ -228,7 +228,7 @@ export function SidebarActionItem({
       <Icon
         className={cn(
           collapsed ? SIDEBAR_RAIL_ICON_CLASS : tone.icon,
-          "shrink-0 text-muted-foreground/75 transition-colors group-hover:text-gray-700",
+          "shrink-0 text-muted-foreground transition-colors group-hover:text-gray-700",
         )}
       />
       <span

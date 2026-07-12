@@ -16,7 +16,6 @@ import {
   SIDEBAR_RAIL_CONTROL_CLASS,
   SIDEBAR_RAIL_ICON_CLASS,
   SIDEBAR_RAIL_ITEM_GAP_CLASS,
-  SIDEBAR_RAIL_PRIMARY_SURFACE_CLASS,
   SIDEBAR_RAIL_SURFACE_CLASS,
 } from "@/app/components/layout/sidebar-rail.styles";
 
@@ -150,7 +149,7 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
             label={t("chatSidebarNewTask")}
             className={cn(
               SIDEBAR_RAIL_CONTROL_CLASS,
-              SIDEBAR_RAIL_PRIMARY_SURFACE_CLASS,
+              SIDEBAR_RAIL_SURFACE_CLASS,
             )}
             onClick={() => {
               onCreateMenuOpenChange(false);

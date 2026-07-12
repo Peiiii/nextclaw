@@ -1,5 +1,6 @@
 export type UiTheme =
   | 'natural'
+  | 'work'
   | 'minimal'
   | 'warm'
   | 'cool'
@@ -16,9 +17,10 @@ type UiThemeDefinition = {
 };
 
 const THEME_STORAGE_KEY = 'nextclaw.ui.theme';
-const DEFAULT_THEME: UiTheme = 'natural';
+export const DEFAULT_UI_THEME: UiTheme = 'work';
 
 const THEME_DEFINITIONS: readonly UiThemeDefinition[] = [
+  { value: 'work', labelKey: 'themeWork', appearance: 'light' },
   { value: 'night', labelKey: 'themeNight', appearance: 'dark' },
   { value: 'natural', labelKey: 'themeNatural', appearance: 'light' },
   { value: 'minimal', labelKey: 'themeMinimal', appearance: 'light' },
@@ -59,13 +61,13 @@ export function getThemeAppearance(theme: UiTheme): UiThemeAppearance {
 }
 
 class UiThemeOwner {
-  private activeTheme: UiTheme = DEFAULT_THEME;
+  private activeTheme: UiTheme = DEFAULT_UI_THEME;
   private initialized = false;
   private readonly listeners = new Set<(theme: UiTheme) => void>();
 
   resolveInitialTheme = (): UiTheme => {
     if (typeof window === 'undefined') {
-      return DEFAULT_THEME;
+      return DEFAULT_UI_THEME;
     }
 
     try {
@@ -78,7 +80,7 @@ class UiThemeOwner {
       // ignore storage failures
     }
 
-    return DEFAULT_THEME;
+    return DEFAULT_UI_THEME;
   };
 
   initializeTheme = (): UiTheme => {

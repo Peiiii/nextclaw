@@ -285,6 +285,88 @@
 }
 
 @layer base {
+   :root[data-theme="work"] {
+      /* ========================================
+       BRAND COLORS (Work White Ink)
+       ======================================== */
+      --brand-50: 0 0% 97%;
+      --brand-100: 0 0% 94%;
+      --brand-200: 0 0% 88%;
+      --brand-300: 0 0% 78%;
+      --brand-400: 0 0% 58%;
+      --brand-500: 0 0% 23%;
+      --brand-600: 0 0% 18%;
+      --brand-700: 0 0% 12%;
+      --brand-800: 0 0% 7%;
+      --brand-900: 0 0% 4%;
+
+      /* ========================================
+       NEUTRAL COLORS (White Canvas / Soft Gray Rail)
+       ======================================== */
+      --gray-50: 0 0% 100%;
+      --gray-100: 0 0% 95%;
+      --gray-200: 0 0% 90%;
+      --gray-300: 0 0% 84%;
+      --gray-400: 0 0% 70%;
+      --gray-500: 0 0% 46%;
+      --gray-600: 0 0% 34%;
+      --gray-700: 0 0% 28%;
+      --gray-800: 0 0% 13%;
+      --gray-900: 0 0% 7%;
+
+      /* Semantic Colors */
+      --background: var(--gray-50);
+      --background-secondary: var(--gray-100);
+      --background-tertiary: var(--gray-200);
+      --foreground: var(--gray-800);
+      --foreground-secondary: var(--gray-700);
+      --foreground-tertiary: var(--gray-500);
+      --foreground-muted: var(--gray-400);
+      --primary: var(--brand-500);
+      --primary-hover: var(--brand-600);
+      --primary-active: var(--brand-700);
+      --primary-foreground: 0 0% 100%;
+      --secondary: var(--gray-100);
+      --secondary-hover: var(--gray-200);
+      --secondary-foreground: var(--gray-800);
+      --accent: var(--gray-200);
+      --accent-foreground: var(--gray-800);
+      --muted: var(--gray-100);
+      --muted-foreground: var(--gray-500);
+      --card: 0 0% 100%;
+      --card-foreground: var(--gray-800);
+      --card-border: var(--gray-200);
+      --popover: 0 0% 100%;
+      --popover-foreground: var(--gray-800);
+      --border: var(--gray-200);
+      --border-hover: var(--gray-300);
+      --border-active: var(--gray-600);
+      --input: 0 0% 100%;
+      --input-border: var(--gray-200);
+      --input-focus: var(--gray-600);
+      --ring: var(--gray-600);
+      --ring-offset: var(--gray-50);
+
+      /* Shadows (bright neutral tint) */
+      --shadow-xs: 0 1px 2px 0 rgb(20 24 28 / 0.03);
+      --shadow-sm: 0 1px 3px 0 rgb(20 24 28 / 0.05), 0 1px 2px -1px rgb(20 24 28 / 0.04);
+      --shadow-md: 0 4px 6px -1px rgb(20 24 28 / 0.05), 0 2px 4px -2px rgb(20 24 28 / 0.04);
+      --shadow-lg: 0 10px 15px -3px rgb(20 24 28 / 0.06), 0 4px 6px -4px rgb(20 24 28 / 0.04);
+      --shadow-xl: 0 20px 25px -5px rgb(20 24 28 / 0.08), 0 8px 10px -6px rgb(20 24 28 / 0.04);
+      --shadow-2xl: 0 25px 50px -12px rgb(20 24 28 / 0.14);
+      --shadow-card: 0 0 8px 0 rgba(20, 24, 28, 0.04);
+      --shadow-card-hover: 0 0 16px 0 rgba(20, 24, 28, 0.06);
+   }
+
+   :root[data-theme="work"] .nextclaw-chat-message-user {
+      background-color: hsl(var(--gray-100));
+      border-color: transparent;
+      color: hsl(var(--gray-800));
+   }
+
+}
+
+@layer base {
    :root[data-theme="warm"] {
       /* ========================================
        BRAND COLORS (Paper Taupe)

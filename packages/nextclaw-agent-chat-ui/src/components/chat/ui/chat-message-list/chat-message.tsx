@@ -206,7 +206,7 @@ export const ChatMessage = memo(function ChatMessage({
       className={cn(
         "inline-block w-fit max-w-full rounded-2xl border px-4 shadow-sm has-[[data-chat-message-wide-content=true]]:w-full",
         isUser
-          ? "border-primary bg-primary py-3 text-primary-foreground"
+          ? "nextclaw-chat-message-user rounded-[1.45rem] border-primary bg-primary py-2.5 text-primary-foreground shadow-none"
           : role === "assistant"
             ? "border-border bg-card pb-3 pt-4 text-card-foreground"
             : "border-border bg-muted/45 py-3 text-foreground",

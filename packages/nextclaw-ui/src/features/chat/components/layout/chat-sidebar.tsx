@@ -105,7 +105,7 @@ export function ChatSidebar({
   const { language, setLanguage } = useI18n();
   const { theme, setTheme } = useTheme();
   const currentThemeLabel = t(
-    THEME_OPTIONS.find((o) => o.value === theme)?.labelKey ?? "themeNatural",
+    THEME_OPTIONS.find((o) => o.value === theme)?.labelKey ?? "themeWork",
   );
   const currentLanguageLabel =
     LANGUAGE_OPTIONS.find((o) => o.value === language)?.label ?? language;

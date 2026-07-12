@@ -266,21 +266,14 @@ export function McpMarketplacePage() {
   return (
     <PageLayout className="flex h-full min-h-0 flex-col pb-0 px-0">
       <div className="flex flex-col gap-6 w-full max-w-[1400px] h-full min-h-0 mx-auto">
-        
-        {/* Modern App Store Hero for MCP */}
-        <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-[#0F172A] via-[#1E1B4B] to-[#312E81] px-10 py-14 text-white shadow-xl isolate">
-          <div className="absolute top-0 right-0 -m-32 opacity-30 pointer-events-none mix-blend-screen scale-150 transform-gpu">
-            <div className="w-[500px] h-[500px] rounded-full bg-gradient-to-tl from-fuchsia-500/40 via-purple-500/30 to-indigo-500/20 blur-[80px]"></div>
-          </div>
-          <div className="absolute bottom-0 left-0 -m-32 opacity-20 pointer-events-none mix-blend-screen transform-gpu">
-            <div className="w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-blue-500/40 to-cyan-500/20 blur-[80px]"></div>
-          </div>
-          
+        <div className="relative isolate overflow-hidden rounded-[28px] border border-border bg-card px-10 py-12 text-card-foreground shadow-card">
+          <div className="absolute inset-y-0 left-0 w-1 bg-primary/80" />
+
           <div className="relative z-10 flex flex-col gap-3">
-            <h1 className="text-[38px] font-extrabold tracking-[-0.02em] leading-tight drop-shadow-sm text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/70">
+            <h1 className="text-[38px] font-extrabold leading-tight text-foreground">
               {t("marketplaceMcpPageTitle")}
             </h1>
-            <p className="text-[17px] font-medium text-purple-100/70 max-w-2xl leading-relaxed tracking-wide">
+            <p className="max-w-2xl text-[17px] font-medium leading-relaxed text-muted-foreground">
               {t("marketplaceMcpPageDescription")}
             </p>
           </div>
