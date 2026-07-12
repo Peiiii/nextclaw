@@ -78,14 +78,6 @@
       {
         "from": "build/update/seed-product-bundle.zip",
         "to": "update/seed-product-bundle.zip"
-      },
-      {
-        "from": "../../node_modules/.pnpm/sharp@0.34.5/node_modules/@img",
-        "to": "app.asar.unpacked/node_modules/@img",
-        "filter": [
-          "sharp-*/**",
-          "sharp-libvips-*/**"
-        ]
       }
     ],
     "npmRebuild": false,
@@ -101,7 +93,17 @@
         "dmg",
         "zip"
       ],
-      "category": "public.app-category.productivity"
+      "category": "public.app-category.productivity",
+      "extraResources": [
+        {
+          "from": "../../node_modules/.pnpm/sharp@0.34.5/node_modules/@img",
+          "to": "app.asar.unpacked/node_modules/@img",
+          "filter": [
+            "sharp-darwin-${arch}/**",
+            "sharp-libvips-darwin-${arch}/**"
+          ]
+        }
+      ]
     },
     "win": {
       "icon": "build/icons/icon.ico",
@@ -112,6 +114,15 @@
           "arch": [
             "x64",
             "arm64"
+          ]
+        }
+      ],
+      "extraResources": [
+        {
+          "from": "../../node_modules/.pnpm/sharp@0.34.5/node_modules/@img",
+          "to": "app.asar.unpacked/node_modules/@img",
+          "filter": [
+            "sharp-win32-${arch}/**"
           ]
         }
       ]
@@ -145,7 +156,17 @@
           ]
         }
       ],
-      "category": "Utility"
+      "category": "Utility",
+      "extraResources": [
+        {
+          "from": "../../node_modules/.pnpm/sharp@0.34.5/node_modules/@img",
+          "to": "app.asar.unpacked/node_modules/@img",
+          "filter": [
+            "sharp-linux-${arch}/**",
+            "sharp-libvips-linux-${arch}/**"
+          ]
+        }
+      ]
     },
     "deb": {
       "packageName": "nextclaw-desktop",
