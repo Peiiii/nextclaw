@@ -39,6 +39,32 @@ function resolveFilePreviewViewer(params: {
   return params.viewer === "rendered" && /\.html?$/i.test(params.path) ? "rendered" : "source";
 }
 
+type ContentUrlPreviewKind = "image" | "audio" | "video" | "pdf" | "html" | "other";
+
+function resolveContentUrlPreviewKind(params: {
+  path: string;
+  mimeType?: string | null;
+}): ContentUrlPreviewKind {
+  const mime = params.mimeType?.trim().toLowerCase() ?? "";
+  const path = params.path.trim().toLowerCase();
+  if (mime.startsWith("image/") || /\.(avif|bmp|gif|heic|heif|ico|jpe?g|png|svg|tiff?|webp)$/i.test(path)) {
+    return "image";
+  }
+  if (mime.startsWith("audio/") || /\.(aac|flac|m4a|mp3|ogg|opus|wav|weba)$/i.test(path)) {
+    return "audio";
+  }
+  if (mime.startsWith("video/") || /\.(avi|m4v|mkv|mov|mp4|webm|wmv)$/i.test(path)) {
+    return "video";
+  }
+  if (mime.includes("pdf") || path.endsWith(".pdf")) {
+    return "pdf";
+  }
+  if (mime.includes("html") || /\.html?$/i.test(path)) {
+    return "html";
+  }
+  return "other";
+}
+
 function appendPreviewRefreshVersion(url: string, refreshVersion: number): string {
   if (refreshVersion <= 0) {
     return url;
@@ -175,7 +201,108 @@ function WorkspaceHtmlRenderedPreview({
   );
 }
 
+function WorkspaceContentUrlPreview({
+  contentUrl,
+  kind,
+  label,
+}: {
+  contentUrl: string;
+  kind: ContentUrlPreviewKind;
+  label: string;
+}) {
+  if (kind === "image") {
+    return (
+      <div className="flex h-full items-center justify-center overflow-auto custom-scrollbar bg-white p-4">
+        <img
+          src={contentUrl}
+          alt={label}
+          className="max-h-full max-w-full object-contain"
+          data-testid="workspace-content-image"
+        />
+      </div>
+    );
+  }
+  if (kind === "audio") {
+    return (
+      <div className="flex h-full items-center justify-center bg-white px-6">
+        <audio
+          controls
+          preload="metadata"
+          aria-label={label}
+          className="w-full max-w-xl"
+          data-testid="workspace-content-audio"
+          src={contentUrl}
+        />
+      </div>
+    );
+  }
+  if (kind === "video") {
+    return (
+      <div className="flex h-full items-center justify-center bg-black">
+        <video
+          controls
+          playsInline
+          preload="metadata"
+          aria-label={label}
+          className="max-h-full max-w-full"
+          data-testid="workspace-content-video"
+          src={contentUrl}
+        />
+      </div>
+    );
+  }
+  if (kind === "pdf" || kind === "html") {
+    return (
+      <iframe
+        allowFullScreen
+        className="h-full w-full border-0 bg-white"
+        data-testid={kind === "pdf" ? "workspace-content-pdf" : "workspace-html-preview"}
+        src={contentUrl}
+        title={label}
+      />
+    );
+  }
+  return (
+    <div
+      className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center"
+      data-testid="workspace-content-unsupported"
+    >
+      <div className="max-w-sm space-y-1.5">
+        <p className="truncate text-sm font-medium text-foreground" title={label}>
+          {label}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {t("chatWorkspacePreviewUnsupported")}
+        </p>
+        <p className="text-xs leading-5 text-muted-foreground/80">
+          {t("chatWorkspacePreviewUnsupportedHint")}
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <a
+          href={contentUrl}
+          download={label}
+          className="inline-flex h-8 items-center rounded-lg border border-border bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+        >
+          {t("chatWorkspacePreviewDownload")}
+        </a>
+        <a
+          href={contentUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex h-8 items-center rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          {t("chatWorkspacePreviewOpenExternally")}
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function WorkspacePreviewBody({
+  contentUrl,
+  contentUrlKind,
+  contentLabel,
   directoryQuery,
   onFileOpen,
   previewBlock,
@@ -185,16 +312,29 @@ function WorkspacePreviewBody({
   previewUrl,
   previewViewer,
 }: {
-  directoryQuery: ReturnType<typeof useServerPathBrowse>;
+  contentUrl: string | null;
+  contentUrlKind: ContentUrlPreviewKind | null;
+  contentLabel: string;
+  directoryQuery: ReturnType<typeof useServerPathBrowse> | null | undefined;
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
   previewBlock: ChatFileOperationBlockViewModel | null;
   previewKind: "text" | "markdown" | "binary";
-  previewQuery: ReturnType<typeof useServerPathRead>;
+  previewQuery: ReturnType<typeof useServerPathRead> | null | undefined;
   previewText: string | null;
   previewUrl: string | null;
   previewViewer: "source" | "rendered";
 }) {
-  if (directoryQuery.data) {
+  if (contentUrl && contentUrlKind) {
+    return (
+      <WorkspaceContentUrlPreview
+        contentUrl={contentUrl}
+        kind={contentUrlKind}
+        label={contentLabel}
+      />
+    );
+  }
+
+  if (directoryQuery?.data) {
     return (
       <ChatSessionWorkspaceDirectoryBrowser
         browseQuery={directoryQuery}
@@ -204,25 +344,25 @@ function WorkspacePreviewBody({
     );
   }
 
-  if (directoryQuery.isLoading && previewQuery.error && !previewBlock) {
+  if (directoryQuery?.isLoading && previewQuery?.error && !previewBlock) {
     return (
       <WorkspaceFilePreviewStatus text={t("chatWorkspaceLoadingDirectory")} />
     );
   }
 
-  if ((directoryQuery.isLoading || previewQuery.isLoading) && !previewBlock) {
+  if ((directoryQuery?.isLoading || previewQuery?.isLoading) && !previewBlock) {
     return (
       <WorkspaceFilePreviewStatus text={t("chatWorkspaceLoadingPreview")} />
     );
   }
 
-  if (previewQuery.data?.kind === "binary") {
+  if (previewQuery?.data?.kind === "binary") {
     return (
       <WorkspaceFilePreviewStatus text={t("chatWorkspacePreviewUnsupported")} />
     );
   }
 
-  if (previewQuery.error && !previewBlock) {
+  if (previewQuery?.error && !previewBlock) {
     return (
       <WorkspaceFilePreviewStatus
         tone="error"
@@ -278,62 +418,71 @@ export function ChatSessionWorkspaceFilePreview({
   onFileOpen,
 }: ChatSessionWorkspaceFilePreviewProps) {
   const isPreviewMode = file.viewMode === "preview";
+  const contentUrl = file.contentUrl?.trim() || null;
+  const usesServerPath = isPreviewMode && !contentUrl;
   const previewQuery = useServerPathRead({
     path: file.path,
     basePath: sessionWorkingDir,
-    enabled: isPreviewMode,
+    enabled: usesServerPath,
   });
   const directoryQuery = useServerPathBrowse({
     path: file.path,
     basePath: sessionWorkingDir,
     includeFiles: true,
-    enabled: isPreviewMode,
+    enabled: usesServerPath,
   });
   const diffBlock = useMemo(
     () => (file.viewMode === "diff" ? buildDiffBlock(file) : null),
     [file],
   );
   const previewText =
-    isPreviewMode ? previewQuery.data?.text ?? file.rawText ?? null : null;
+    isPreviewMode ? previewQuery?.data?.text ?? file.rawText ?? null : null;
   const previewKind = inferPreviewKind({
-    path: previewQuery.data?.resolvedPath ?? file.path,
-    serverKind: previewQuery.data?.kind,
+    path: previewQuery?.data?.resolvedPath ?? file.path,
+    serverKind: previewQuery?.data?.kind,
   });
+  const contentUrlKind = contentUrl
+    ? resolveContentUrlPreviewKind({
+        path: file.path,
+        mimeType: file.mimeType,
+      })
+    : null;
   const resolvedPath =
-    directoryQuery.data?.currentPath ??
-    previewQuery.data?.resolvedPath ??
+    directoryQuery?.data?.currentPath ??
+    previewQuery?.data?.resolvedPath ??
     file.path;
-  const previewPathKind = directoryQuery.data ? "directory" : "file";
+  const previewPathKind = directoryQuery?.data ? "directory" : "file";
   const previewViewer = resolveFilePreviewViewer({
     path: resolvedPath,
     viewer: file.previewViewer,
   });
   const previewUrl =
-    previewViewer === "rendered" && previewQuery.data?.resolvedPath
+    previewViewer === "rendered" && previewQuery?.data?.resolvedPath
       ? appendPreviewRefreshVersion(
           buildServerPathContentUrl(previewQuery.data.resolvedPath),
           refreshVersion,
         )
       : null;
   const previewBlock = useMemo(() => {
-    if (!isPreviewMode || !previewText) {
+    if (!isPreviewMode || !previewText || contentUrl) {
       return null;
     }
     return buildPreviewBlock({
-      path: previewQuery.data?.resolvedPath ?? file.path,
+      path: previewQuery?.data?.resolvedPath ?? file.path,
       text: previewText,
-      languageHint: previewQuery.data?.languageHint ?? null,
+      languageHint: previewQuery?.data?.languageHint ?? null,
       line: file.line,
     });
   }, [
+    contentUrl,
     file.line,
     file.path,
     isPreviewMode,
-    previewQuery.data?.languageHint,
-    previewQuery.data?.resolvedPath,
+    previewQuery?.data?.languageHint,
+    previewQuery?.data?.resolvedPath,
     previewText,
   ]);
-  const isTruncated = Boolean(previewQuery.data?.truncated);
+  const isTruncated = Boolean(previewQuery?.data?.truncated);
   const breadcrumbBasePath = sessionProjectRoot ?? sessionWorkingDir;
   const breadcrumb = useMemo(
     () =>
@@ -367,6 +516,9 @@ export function ChatSessionWorkspaceFilePreview({
           <WorkspaceDiffBody diffBlock={diffBlock} />
         ) : (
           <WorkspacePreviewBody
+            contentUrl={contentUrl}
+            contentUrlKind={contentUrlKind}
+            contentLabel={file.label?.trim() || resolvedPath}
             directoryQuery={directoryQuery}
             onFileOpen={onFileOpen}
             previewBlock={previewBlock}

@@ -128,6 +128,8 @@ export class ChatThreadManager {
       line: action.line ?? null,
       column: action.column ?? null,
       rawText: action.rawText ?? null,
+      contentUrl: action.contentUrl?.trim() || null,
+      mimeType: action.mimeType?.trim() || null,
       beforeText: action.beforeText ?? null,
       afterText: action.afterText ?? null,
       patchText: action.patchText ?? null,

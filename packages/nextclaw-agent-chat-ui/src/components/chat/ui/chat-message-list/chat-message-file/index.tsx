@@ -27,6 +27,7 @@ type ChatMessageFileProps = {
     ChatMessageTexts,
     "attachmentOpenLabel" | "attachmentAttachedLabel" | "attachmentCategoryLabels"
   >;
+  onOpen?: (file: ChatMessageFileView) => void;
 };
 
 const DEFAULT_FILE_CATEGORY_LABELS: Record<FileCategory, string> = {
@@ -73,8 +74,8 @@ function renderMetaLine(
   return (
     <div
       className={cn(
-        "mt-1 text-xs leading-5",
-        isUser ? "text-primary-foreground/70" : "text-muted-foreground",
+        "mt-0.5 text-[11px] leading-4",
+        isUser ? "text-foreground/55" : "text-muted-foreground",
       )}
     >
       {sizeLabel ? `${categoryLabel} · ${sizeLabel}` : categoryLabel}
@@ -90,14 +91,14 @@ function renderActionPill(
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium",
+        "inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium",
         isInteractive
           ? isUser
-            ? "border-primary-foreground/14 bg-primary-foreground/12 text-primary-foreground"
-            : "border-border bg-card text-foreground"
+            ? "bg-black/5 text-foreground/75"
+            : "bg-muted text-muted-foreground"
           : isUser
-            ? "border-primary-foreground/10 bg-primary-foreground/6 text-primary-foreground/62"
-            : "border-border bg-muted text-muted-foreground",
+            ? "bg-black/[0.03] text-foreground/45"
+            : "bg-muted/70 text-muted-foreground/70",
       )}
     >
       {label}
@@ -105,22 +106,46 @@ function renderActionPill(
   );
 }
 
-function renderActionLink(
-  label: string,
-  href: string,
-  isUser: boolean,
-) {
+function renderActionControl(params: {
+  label: string;
+  href?: string;
+  isUser: boolean;
+  onOpen?: () => void;
+}) {
+  const { label, href, isUser, onOpen } = params;
+  const className = cn(
+    "inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium transition-colors",
+    isUser
+      ? "bg-black/5 text-foreground/75 hover:bg-black/10 hover:text-foreground"
+      : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground",
+  );
+
+  if (onOpen) {
+    return (
+      <button
+        type="button"
+        className={className}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onOpen();
+        }}
+      >
+        {label}
+      </button>
+    );
+  }
+
+  if (!href) {
+    return renderActionPill(label, isUser, false);
+  }
+
   return (
     <a
       href={href}
       target="_blank"
       rel="noreferrer"
-      className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium transition duration-200",
-        isUser
-          ? "border-primary-foreground/14 bg-primary-foreground/12 text-primary-foreground hover:border-primary-foreground/20 hover:bg-primary-foreground/16"
-          : "border-border bg-card text-foreground hover:border-border-hover hover:bg-accent",
-      )}
+      className={className}
     >
       {label}
     </a>
@@ -139,18 +164,18 @@ function FileCategoryGlyph({
   return (
     <div
       className={cn(
-        "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] border",
+        "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
         isUser
-          ? "border-primary-foreground/12 bg-primary-foreground/10 text-primary-foreground"
+          ? "bg-black/5 text-foreground/70"
           : FILE_CATEGORY_TILE_CLASSES[category],
       )}
     >
       <Icon
         className={cn(
-          "h-7 w-7",
-          isUser ? "text-primary-foreground/92" : "text-current",
+          "h-4 w-4",
+          isUser ? "text-foreground/70" : "text-current",
         )}
-        strokeWidth={2.2}
+        strokeWidth={2}
       />
     </div>
   );
@@ -161,11 +186,52 @@ function renderImagePreview(params: {
   categoryLabel: string;
   sizeLabel: string | null;
   isUser: boolean;
+  onOpen?: (file: ChatMessageFileView) => void;
+  openLabel: string;
 }) {
-  const { file, categoryLabel, sizeLabel, isUser } = params;
+  const { file, sizeLabel, onOpen, openLabel } = params;
   if (!file.dataUrl) {
     return null;
   }
+
+  const content = (
+    <div className="group/image relative overflow-hidden rounded-xl">
+      <img
+        src={file.dataUrl}
+        alt={file.label}
+        className="block h-auto max-h-[26rem] w-full rounded-xl bg-transparent object-contain"
+      />
+      {(sizeLabel || onOpen) ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-black/55 via-black/20 to-transparent px-2.5 pb-2 pt-8 opacity-0 transition-opacity duration-150 group-hover/image:opacity-100 group-focus-within/image:opacity-100">
+          {sizeLabel ? (
+            <span className="inline-flex items-center rounded-md bg-black/40 px-1.5 py-0.5 text-[10px] font-medium text-white/95 backdrop-blur-sm">
+              {sizeLabel}
+            </span>
+          ) : (
+            <span />
+          )}
+          {onOpen ? (
+            <span className="inline-flex items-center rounded-md bg-white/90 px-2 py-0.5 text-[11px] font-medium text-foreground shadow-sm">
+              {openLabel}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+
+  if (onOpen) {
+    return (
+      <button
+        type="button"
+        className="group block w-full text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+        onClick={() => onOpen(file)}
+      >
+        {content}
+      </button>
+    );
+  }
+
   return (
     <a
       href={file.dataUrl}
@@ -173,40 +239,7 @@ function renderImagePreview(params: {
       rel="noreferrer"
       className="group block"
     >
-      <div
-        className={cn(
-          "relative overflow-hidden rounded-[1rem]",
-          isUser
-            ? "ring-1 ring-primary-foreground/10"
-            : "bg-muted ring-1 ring-border",
-        )}
-      >
-        <img
-          src={file.dataUrl}
-          alt={file.label}
-          className="block h-auto max-h-[26rem] w-full rounded-[1rem] bg-transparent object-contain transition duration-300 group-hover:scale-[1.01]"
-        />
-        <div className="pointer-events-none absolute right-3 top-3 flex items-center gap-2">
-          <span
-            className={cn(
-              "inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold tracking-[0.18em] text-white backdrop-blur-sm",
-              isUser ? "bg-black/36" : "bg-black/58",
-            )}
-          >
-            {categoryLabel}
-          </span>
-          {sizeLabel ? (
-            <span
-              className={cn(
-                "inline-flex items-center rounded-full px-2 py-1 text-[10px] font-medium text-white/92 backdrop-blur-sm",
-                isUser ? "bg-black/28" : "bg-black/46",
-              )}
-            >
-              {sizeLabel}
-            </span>
-          ) : null}
-        </div>
-      </div>
+      {content}
     </a>
   );
 }
@@ -221,15 +254,15 @@ function renderFileCardHeader(params: {
 }) {
   const { category, file, categoryLabel, sizeLabel, isUser, action } = params;
   return (
-    <div className="flex items-center gap-3 p-3.5">
+    <div className="flex items-center gap-2.5 px-2.5 py-2">
       <FileCategoryGlyph
         category={category}
         isUser={isUser}
       />
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[15px] font-semibold leading-5">
+            <div className="truncate text-[13px] font-medium leading-5">
               {file.label}
             </div>
             {renderMetaLine(categoryLabel, sizeLabel, isUser)}
@@ -249,8 +282,18 @@ function renderInlineMediaCard(params: {
   isUser: boolean;
   shellClasses: string;
   actionLabel: string;
+  onOpen?: (file: ChatMessageFileView) => void;
 }) {
-  const { category, file, categoryLabel, sizeLabel, isUser, shellClasses, actionLabel } = params;
+  const {
+    category,
+    file,
+    categoryLabel,
+    sizeLabel,
+    isUser,
+    shellClasses,
+    actionLabel,
+    onOpen,
+  } = params;
   if (!file.dataUrl || (category !== "audio" && category !== "video")) {
     return null;
   }
@@ -263,9 +306,14 @@ function renderInlineMediaCard(params: {
         categoryLabel,
         sizeLabel,
         isUser,
-        action: renderActionLink(actionLabel, file.dataUrl, isUser),
+        action: renderActionControl({
+          label: actionLabel,
+          href: file.dataUrl,
+          isUser,
+          onOpen: onOpen ? () => onOpen(file) : undefined,
+        }),
       })}
-      <div className="px-3.5 pb-3.5">
+      <div className="px-2.5 pb-2.5">
         {category === "audio" ? (
           <audio
             controls
@@ -281,10 +329,10 @@ function renderInlineMediaCard(params: {
         ) : (
           <div
             className={cn(
-              "overflow-hidden rounded-[1rem] border",
+              "overflow-hidden rounded-lg",
               isUser
-                ? "border-primary-foreground/10 bg-black/26"
-                : "border-border bg-muted",
+                ? "bg-black/10"
+                : "bg-muted ring-1 ring-border/70",
             )}
           >
             <video
@@ -310,6 +358,7 @@ export function ChatMessageFile({
   file,
   isUser = false,
   texts,
+  onOpen,
 }: ChatMessageFileProps) {
   const { category, sizeLabel } = buildChatMessageFileMeta(file);
   const renderAsImage = isImageFileLike(file) && Boolean(file.dataUrl);
@@ -321,18 +370,25 @@ export function ChatMessageFile({
     : texts?.attachmentAttachedLabel ?? "Attached";
   const categoryLabel = readFileCategoryLabel(category, texts);
   const shellClasses = cn(
-    "block overflow-hidden rounded-[1.25rem] border transition duration-200",
+    "block overflow-hidden rounded-xl border transition-colors",
     isUser
-      ? "border-primary-foreground/12 bg-primary-foreground/10 text-primary-foreground"
-      : "border-border bg-card text-card-foreground",
+      ? "border-black/8 bg-black/[0.03] text-foreground"
+      : "border-border/70 bg-card text-card-foreground",
     isInteractive &&
       (isUser
-        ? "hover:border-primary-foreground/18 hover:bg-primary-foreground/13"
-        : "hover:border-border-hover hover:bg-accent"),
+        ? "hover:bg-black/[0.05]"
+        : "hover:bg-muted/50"),
   );
 
   if (renderAsImage) {
-    return renderImagePreview({ file, categoryLabel, sizeLabel, isUser });
+    return renderImagePreview({
+      file,
+      categoryLabel,
+      sizeLabel,
+      isUser,
+      onOpen,
+      openLabel: actionLabel,
+    });
   }
 
   if (renderAsAudio || renderAsVideo) {
@@ -344,6 +400,7 @@ export function ChatMessageFile({
       isUser,
       shellClasses,
       actionLabel,
+      onOpen,
     });
   }
 
@@ -358,6 +415,18 @@ export function ChatMessageFile({
 
   if (!isInteractive || !file.dataUrl) {
     return <div className={shellClasses}>{content}</div>;
+  }
+
+  if (onOpen) {
+    return (
+      <button
+        type="button"
+        className={cn(shellClasses, "group w-full text-left")}
+        onClick={() => onOpen(file)}
+      >
+        {content}
+      </button>
+    );
   }
 
   return (

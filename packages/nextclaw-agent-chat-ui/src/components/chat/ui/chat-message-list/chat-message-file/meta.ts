@@ -11,16 +11,16 @@ export type ChatMessageFileView = Extract<
 export type FileCategory = ChatAttachmentCategory;
 
 export const FILE_CATEGORY_TILE_CLASSES: Record<FileCategory, string> = {
-  archive: "border-border bg-muted text-muted-foreground",
-  audio: "border-border bg-muted text-muted-foreground",
-  code: "border-border bg-muted text-muted-foreground",
-  data: "border-border bg-muted text-muted-foreground",
-  document: "border-border bg-muted text-muted-foreground",
-  generic: "border-border bg-muted text-muted-foreground",
-  image: "border-border bg-muted text-muted-foreground",
-  pdf: "border-border bg-muted text-muted-foreground",
-  sheet: "border-border bg-muted text-muted-foreground",
-  video: "border-border bg-muted text-muted-foreground",
+  archive: "bg-muted text-muted-foreground",
+  audio: "bg-muted text-muted-foreground",
+  code: "bg-muted text-muted-foreground",
+  data: "bg-muted text-muted-foreground",
+  document: "bg-muted text-muted-foreground",
+  generic: "bg-muted text-muted-foreground",
+  image: "bg-muted text-muted-foreground",
+  pdf: "bg-muted text-muted-foreground",
+  sheet: "bg-muted text-muted-foreground",
+  video: "bg-muted text-muted-foreground",
 };
 
 const CODE_EXTENSIONS = new Set([

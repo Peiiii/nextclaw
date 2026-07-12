@@ -95,7 +95,7 @@ function SideDockButton({
             onClick={() => onOpen(item)}
             className={cn(
               'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors',
-              'hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              'hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border',
               active
                 ? 'bg-primary/10 text-primary'
                 : 'bg-transparent',
@@ -113,7 +113,7 @@ function SideDockButton({
               event.stopPropagation();
               onUnpin(item);
             }}
-            className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-background text-muted-foreground shadow-sm ring-1 ring-border/70 transition-colors hover:bg-muted hover:text-foreground group-hover:flex focus-visible:flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-background text-muted-foreground shadow-sm ring-1 ring-border/70 transition-colors hover:bg-muted hover:text-foreground group-hover:flex focus-visible:flex focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
           >
             <X className="h-3 w-3" aria-hidden="true" />
           </button>
@@ -144,7 +144,7 @@ function SideDockActionButton({
           onClick={onClick}
           className={cn(
             'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors',
-            'hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            'hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border',
           )}
         >
           <Icon className="h-5 w-5" aria-hidden="true" />

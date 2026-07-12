@@ -302,6 +302,9 @@ export type ChatFileOpenActionViewModel = {
   line?: number;
   column?: number;
   rawText?: string;
+  /** Content URL for attachment/binary preview (asset API, data URL, etc.). */
+  contentUrl?: string;
+  mimeType?: string;
   beforeText?: string;
   afterText?: string;
   patchText?: string;

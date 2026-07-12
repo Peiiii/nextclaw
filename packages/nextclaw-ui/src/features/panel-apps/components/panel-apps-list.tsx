@@ -204,7 +204,7 @@ function PanelAppsEmptyGuide({
         <button
           type="button"
           onClick={onRefresh}
-          className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
         >
           <RefreshCw className="h-3.5 w-3.5" />
           {t('panelAppsRefresh')}
@@ -245,7 +245,7 @@ function PanelAppsEmptyGuideStep({
       <button
         type="button"
         onClick={onAction}
-        className="flex w-full gap-2 rounded-md bg-muted/60 px-3 py-2.5 text-left transition-colors hover:bg-accent/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        className="flex w-full gap-2 rounded-md bg-muted/60 px-3 py-2.5 text-left transition-colors hover:bg-accent/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
       >
         {content}
       </button>

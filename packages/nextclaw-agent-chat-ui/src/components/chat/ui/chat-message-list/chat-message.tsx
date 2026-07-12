@@ -38,6 +38,7 @@ type ChatMessageProps = {
   >;
   onToolAction?: (action: ChatToolActionViewModel) => void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  onAttachmentOpen?: (file: Extract<ChatMessagePartViewModel, { type: "file" }>["file"]) => void;
   onInlineTokenClick?: (token: ChatInlineTokenViewModel) => void;
   renderInlineDisplay?: (
     display: ChatInlineDisplayViewModel,
@@ -61,6 +62,7 @@ type RenderChatMessagePartParams = {
   texts: ChatMessageProps["texts"];
   onToolAction?: (action: ChatToolActionViewModel) => void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  onAttachmentOpen?: (file: Extract<ChatMessagePartViewModel, { type: "file" }>["file"]) => void;
   onInlineTokenClick?: (token: ChatInlineTokenViewModel) => void;
   renderInlineDisplay?: (
     display: ChatInlineDisplayViewModel,
@@ -138,6 +140,7 @@ function renderChatMessagePart({
   isInProgress,
   isLastPart,
   isUser,
+  onAttachmentOpen,
   onFileOpen,
   onInlineTokenClick,
   onToolAction,
@@ -201,6 +204,7 @@ function renderChatMessagePart({
         file={file}
         isUser={isUser}
         texts={texts}
+        onOpen={onAttachmentOpen}
       />
     );
   }
@@ -229,6 +233,7 @@ function renderMessageParts(params: {
   texts: ChatMessageProps["texts"];
   onToolAction?: (action: ChatToolActionViewModel) => void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  onAttachmentOpen?: (file: Extract<ChatMessagePartViewModel, { type: "file" }>["file"]) => void;
   onInlineTokenClick?: (token: ChatInlineTokenViewModel) => void;
   renderInlineDisplay?: (
     display: ChatInlineDisplayViewModel,
@@ -240,6 +245,7 @@ function renderMessageParts(params: {
   const {
     isInProgress,
     isUser,
+    onAttachmentOpen,
     onFileOpen,
     onInlineTokenClick,
     onToolAction,
@@ -281,6 +287,7 @@ function renderMessageParts(params: {
       texts,
       onToolAction,
       onFileOpen,
+      onAttachmentOpen,
       onInlineTokenClick,
       renderInlineDisplay,
       renderToolAgent,
@@ -294,6 +301,7 @@ export const ChatMessage = memo(function ChatMessage({
   texts,
   onToolAction,
   onFileOpen,
+  onAttachmentOpen,
   onInlineTokenClick,
   renderInlineDisplay,
   renderToolAgent,
@@ -339,6 +347,7 @@ export const ChatMessage = memo(function ChatMessage({
                     texts,
                     onToolAction,
                     onFileOpen,
+                    onAttachmentOpen,
                     onInlineTokenClick,
                     renderInlineDisplay,
                     renderToolAgent,
@@ -355,6 +364,7 @@ export const ChatMessage = memo(function ChatMessage({
               texts,
               onToolAction,
               onFileOpen,
+              onAttachmentOpen,
               onInlineTokenClick,
               renderInlineDisplay,
               renderToolAgent,
@@ -371,6 +381,7 @@ export const ChatMessage = memo(function ChatMessage({
             texts,
             onToolAction,
             onFileOpen,
+            onAttachmentOpen,
             onInlineTokenClick,
             renderInlineDisplay,
             renderToolAgent,

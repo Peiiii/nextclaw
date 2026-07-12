@@ -80,7 +80,7 @@ export function RightPanelResourceHomePage({ open }: RightPanelResourceHomePageP
                 key={item.id}
                 type="button"
                 onClick={() => openTarget(item.target)}
-                className="group flex min-h-[68px] flex-col items-center gap-1.5 rounded-md px-1.5 py-1.5 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="group flex min-h-[68px] flex-col items-center gap-1.5 rounded-md px-1.5 py-1.5 text-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
               >
                 <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-md transition-colors', view.accentClassName, view.hoverAccentClassName)}>
                   {view.icon}

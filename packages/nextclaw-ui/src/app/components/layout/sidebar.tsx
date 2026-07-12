@@ -133,7 +133,7 @@ function SettingsSidebarHeader({
           to="/chat"
           aria-label={t("backToMain")}
           className={cn(
-            "group inline-flex min-w-0 items-center rounded-lg text-[12px] font-medium text-muted-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+            "group inline-flex min-w-0 items-center rounded-lg text-[12px] font-medium text-muted-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
             isCollapsed
               ? cn(
                   SIDEBAR_RAIL_CONTROL_CLASS,

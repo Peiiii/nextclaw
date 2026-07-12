@@ -48,7 +48,7 @@ function WorkspaceBreadcrumbSegmentButton({
           type="button"
           aria-current={segment.isCurrent ? "page" : undefined}
           className={cn(
-            "inline-flex h-5 items-center gap-1 rounded-sm px-1 text-[11px] leading-none transition-colors hover:bg-gray-200/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+            "inline-flex h-5 items-center gap-1 rounded-sm px-1 text-[11px] leading-none transition-colors hover:bg-gray-200/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
             segment.kind === "workspace"
               ? "bg-primary/8 text-primary hover:bg-primary/12"
               : segment.isCurrent

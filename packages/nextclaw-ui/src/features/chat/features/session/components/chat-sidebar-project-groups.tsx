@@ -64,7 +64,7 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                     ? 'chatSidebarExpandProject'
                     : 'chatSidebarCollapseProject',
                 )}
-                className="flex h-full w-full min-w-0 items-center gap-1.5 pr-14 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                className="flex h-full w-full min-w-0 items-center gap-1.5 pr-14 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
                 onClick={() =>
                   presenter.chatSessionListManager.toggleProjectCollapsed(
                     group.projectRoot,

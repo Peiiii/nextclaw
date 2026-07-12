@@ -40,7 +40,7 @@ import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
 const SWITCHER_TRIGGER_CLASS =
-  "group inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
+  "group inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border";
 
 function ChatSessionTitle({ title }: { title: string }) {
   return (
@@ -111,7 +111,7 @@ function ChatSessionSwitchItem({
       type="button"
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex w-full min-w-0 items-start gap-2 rounded-lg px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        "flex w-full min-w-0 items-start gap-2 rounded-lg px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
         active
           ? "bg-accent text-accent-foreground"
           : "text-popover-foreground hover:bg-accent/70",

@@ -67,7 +67,7 @@ export function WorkspaceBreadcrumbBrowser({
             <Fragment key={breadcrumb.path}>
               <button
                 type="button"
-                className="h-5 rounded-sm px-1 text-left hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                className="h-5 rounded-sm px-1 text-left hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
                 onClick={() => onBrowsePathChange(breadcrumb.path)}
               >
                 {breadcrumb.label}
@@ -97,7 +97,7 @@ export function WorkspaceBreadcrumbBrowser({
                 key={entry.path}
                 type="button"
                 className={cn(
-                  "flex h-6 w-full items-center gap-1.5 rounded-sm px-1.5 text-left text-[11px] text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                  "flex h-6 w-full items-center gap-1.5 rounded-sm px-1.5 text-left text-[11px] text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
                   entry.hidden ? "opacity-65" : null,
                 )}
                 onClick={() => openEntry(entry)}

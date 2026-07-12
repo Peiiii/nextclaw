@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { ChatMessageList } from "../chat-message-list";
+import { vi } from "vitest";
 
 const defaultTexts = {
   copyCodeLabel: "Copy",
@@ -40,10 +41,10 @@ it("renders image attachments as lightweight image-first previews", () => {
 
   expect(
     screen.getByRole("img", { name: "Image attachment" }).className,
-  ).toContain("rounded-[1rem]");
+  ).toContain("rounded-xl");
   expect(container.querySelector("figure")).toBeNull();
   expect(container.querySelector("figcaption")).toBeNull();
-  expect(screen.getByText("Image")).toBeTruthy();
+  expect(screen.queryByText("Image")).toBeNull();
   expect(screen.getByText("4 KB")).toBeTruthy();
   expect(screen.queryByText("image/png")).toBeNull();
 });
@@ -79,7 +80,7 @@ it("renders image-looking files as images even when the image flag is missing", 
 
   expect(screen.getByRole("img", { name: "draft.webp" })).toBeTruthy();
   expect(screen.queryByText("application/octet-stream")).toBeNull();
-  expect(screen.getByText("Image")).toBeTruthy();
+  expect(screen.queryByText("Image")).toBeNull();
 });
 
 it("renders non-image attachments as simplified file cards", () => {
@@ -118,6 +119,49 @@ it("renders non-image attachments as simplified file cards", () => {
   expect(container.querySelector(".lucide-file-text")).toBeTruthy();
   expect(screen.queryByText("application/pdf")).toBeNull();
   expect(screen.queryByText("PDF attachment")).toBeNull();
+});
+
+it("routes attachment open through onAttachmentOpen instead of a blank window", () => {
+  const onAttachmentOpen = vi.fn();
+
+  render(
+    <ChatMessageList
+      messages={[
+        {
+          id: "assistant-file-open",
+          role: "assistant",
+          roleLabel: "Assistant",
+          timestampLabel: "10:14",
+          parts: [
+            {
+              type: "file",
+              file: {
+                label: "notes.md",
+                mimeType: "text/markdown",
+                dataUrl: "/api/ncp/assets/content?uri=asset_notes",
+                sizeBytes: 128,
+                isImage: false,
+              },
+            },
+          ],
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+      onAttachmentOpen={onAttachmentOpen}
+    />,
+  );
+
+  expect(screen.queryByRole("link", { name: /notes\.md/i })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: /notes\.md/i }));
+  expect(onAttachmentOpen).toHaveBeenCalledWith({
+    label: "notes.md",
+    mimeType: "text/markdown",
+    dataUrl: "/api/ncp/assets/content?uri=asset_notes",
+    sizeBytes: 128,
+    isImage: false,
+  });
 });
 
 it("renders archive files with a dedicated archive icon treatment", () => {

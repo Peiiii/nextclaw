@@ -110,7 +110,7 @@ export function SidebarNavLinkItem({
       aria-label={label}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        "group flex w-full items-center rounded-xl font-medium transition-colors duration-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+        "group flex w-full items-center rounded-xl font-medium transition-colors duration-base focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
         collapsed
           ? cn(SIDEBAR_RAIL_CONTROL_CLASS, "justify-center px-0 py-0")
           : tone.row,
@@ -213,7 +213,7 @@ export function SidebarActionItem({
       onClick={onClick}
       aria-label={label}
       className={cn(
-        "group flex w-full items-center rounded-xl font-medium text-muted-foreground transition-colors duration-base hover:bg-gray-200/60 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+        "group flex w-full items-center rounded-xl font-medium text-muted-foreground transition-colors duration-base hover:bg-gray-200/60 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
         collapsed
           ? cn(
               SIDEBAR_RAIL_CONTROL_CLASS,
@@ -287,7 +287,7 @@ export function SidebarSelectItem({
     <SelectTrigger
       aria-label={label}
       className={cn(
-        "group h-auto w-full rounded-xl border-0 bg-transparent font-medium text-muted-foreground shadow-none hover:bg-gray-200/60 hover:text-gray-900 focus:ring-0 focus-visible:ring-2 focus-visible:ring-primary/35",
+        "group h-auto w-full rounded-xl border-0 bg-transparent font-medium text-muted-foreground shadow-none hover:bg-gray-200/60 hover:text-gray-900 focus:ring-0 focus-visible:ring-1 focus-visible:ring-border",
         collapsed
           ? cn(
               SIDEBAR_RAIL_CONTROL_CLASS,

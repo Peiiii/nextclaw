@@ -81,7 +81,7 @@ export function ChatSessionWorkspaceDirectoryBrowser({
             type="button"
             aria-label={buildDirectoryEntryLabel(entry)}
             className={cn(
-              "flex h-8 w-full min-w-0 items-center gap-2 rounded-sm px-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              "flex h-8 w-full min-w-0 items-center gap-2 rounded-sm px-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
               entry.hidden ? "opacity-65" : null,
             )}
             onClick={() => openEntry(entry)}

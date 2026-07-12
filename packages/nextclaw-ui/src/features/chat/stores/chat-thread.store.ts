@@ -33,6 +33,9 @@ export type ChatWorkspaceFileTab = {
   line?: number | null;
   column?: number | null;
   rawText?: string | null;
+  /** Attachment/binary content URL for workspace-native media preview. */
+  contentUrl?: string | null;
+  mimeType?: string | null;
   beforeText?: string | null;
   afterText?: string | null;
   patchText?: string | null;

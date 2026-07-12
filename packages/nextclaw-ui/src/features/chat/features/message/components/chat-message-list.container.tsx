@@ -369,6 +369,23 @@ export function ChatMessageListContainer({
     },
     [presenter.chatThreadManager, sessionSkillsQuery],
   );
+  const handleAttachmentOpen = useCallback(
+    (file: { label: string; mimeType: string; dataUrl?: string; sizeBytes?: number; isImage: boolean }) => {
+      const contentUrl = file.dataUrl?.trim();
+      if (!contentUrl) {
+        return;
+      }
+      const label = file.label.trim() || "attachment";
+      presenter.chatThreadManager.openFilePreview({
+        path: label,
+        label,
+        viewMode: "preview",
+        contentUrl,
+        mimeType: file.mimeType,
+      });
+    },
+    [presenter.chatThreadManager],
+  );
   return (
     <div className={className}>
       {timelineItems.map((item, index) =>
@@ -385,6 +402,7 @@ export function ChatMessageListContainer({
             texts={messageTexts}
             onToolAction={presenter.chatThreadManager.handleToolAction}
             onFileOpen={presenter.chatThreadManager.openFilePreview}
+            onAttachmentOpen={handleAttachmentOpen}
             onInlineTokenClick={handleInlineTokenClick}
             renderInlineDisplay={renderChatInlineDisplay}
             renderToolAgent={(agentId) => (

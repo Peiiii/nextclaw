@@ -907,10 +907,10 @@
       -webkit-backdrop-filter: blur(12px);
    }
 
-   /* Focus Ring */
+   /* Focus Ring — light inset-style ring, no offset box */
    .focus-ring {
-      @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
-      --tw-ring-color: hsl(var(--ring));
-      --tw-ring-offset-color: hsl(var(--ring-offset));
+      @apply focus:outline-none focus-visible:ring-1 focus-visible:ring-offset-0;
+      --tw-ring-color: hsl(var(--border));
+      --tw-ring-offset-color: transparent;
    }
 }

@@ -167,6 +167,11 @@ function mockWorkspaceBreadcrumbBrowseTree() {
 beforeEach(() => {
   serverPathReadMock.mockReset();
   serverPathBrowseMock.mockReset();
+  serverPathReadMock.mockReturnValue({
+    isLoading: false,
+    error: null,
+    data: null,
+  });
   serverPathBrowseMock.mockReturnValue({
     isLoading: false,
     error: new Error("server path must point to a directory"),
@@ -175,6 +180,68 @@ beforeEach(() => {
 });
 
 describe("ChatSessionWorkspaceFilePreview rendering", () => {
+  it("renders attachment content URLs as workspace-native media previews", () => {
+    renderWorkspaceFilePreview({
+      file: {
+        key: "attachment-image",
+        path: "photo.png",
+        label: "photo.png",
+        viewMode: "preview",
+        contentUrl: "/api/ncp/assets/content?uri=asset%3A%2F%2Fstore%2Fphoto",
+        mimeType: "image/png",
+      },
+    });
+
+    expect(serverPathReadMock).toHaveBeenCalledWith(
+      expect.objectContaining({ enabled: false }),
+    );
+    expect(serverPathBrowseMock).toHaveBeenCalledWith(
+      expect.objectContaining({ enabled: false }),
+    );
+    const image = screen.getByTestId("workspace-content-image");
+    expect(image.getAttribute("src")).toBe(
+      "/api/ncp/assets/content?uri=asset%3A%2F%2Fstore%2Fphoto",
+    );
+    expect(image.getAttribute("alt")).toBe("photo.png");
+  });
+
+  it("offers download and system open actions for unsupported office attachments", () => {
+    renderWorkspaceFilePreview({
+      file: {
+        key: "attachment-docx",
+        path: "overview.zh-CN.docx",
+        label: "overview.zh-CN.docx",
+        viewMode: "preview",
+        contentUrl: "/api/ncp/assets/content?uri=asset%3A%2F%2Fstore%2Foverview",
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      },
+    });
+
+    expect(screen.getByTestId("workspace-content-unsupported")).toBeTruthy();
+    expect(
+      screen.getByTestId("workspace-content-unsupported").textContent,
+    ).toContain("overview.zh-CN.docx");
+    expect(screen.getByText(t("chatWorkspacePreviewUnsupported"))).toBeTruthy();
+    expect(screen.getByText(t("chatWorkspacePreviewUnsupportedHint"))).toBeTruthy();
+
+    const download = screen.getByRole("link", {
+      name: t("chatWorkspacePreviewDownload"),
+    });
+    expect(download.getAttribute("href")).toBe(
+      "/api/ncp/assets/content?uri=asset%3A%2F%2Fstore%2Foverview",
+    );
+    expect(download.getAttribute("download")).toBe("overview.zh-CN.docx");
+
+    const openExternally = screen.getByRole("link", {
+      name: t("chatWorkspacePreviewOpenExternally"),
+    });
+    expect(openExternally.getAttribute("href")).toBe(
+      "/api/ncp/assets/content?uri=asset%3A%2F%2Fstore%2Foverview",
+    );
+    expect(openExternally.getAttribute("target")).toBe("_blank");
+  });
+
   it("renders preview files inside a full-height workspace code surface", () => {
     mockTextRead();
     renderWorkspaceFilePreview();

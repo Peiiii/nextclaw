@@ -9,6 +9,7 @@ const captures = vi.hoisted(() => ({
     messages: unknown[];
     onToolAction?: (action: unknown) => void;
     onFileOpen?: (action: unknown) => void;
+    onAttachmentOpen?: (file: unknown) => void;
     onInlineTokenClick?: (token: unknown) => void;
     renderInlineDisplay?: (display: unknown) => unknown;
     renderPanelAppCard?: (panelApp: unknown) => unknown;
@@ -17,6 +18,7 @@ const captures = vi.hoisted(() => ({
   language: "en",
   openFilePreview: vi.fn(),
   handleToolAction: vi.fn(),
+  showContent: vi.fn(),
 }));
 
 vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
@@ -27,6 +29,7 @@ vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
       messages: unknown[];
       onToolAction?: (action: unknown) => void;
       onFileOpen?: (action: unknown) => void;
+      onAttachmentOpen?: (file: unknown) => void;
       renderInlineDisplay?: (display: unknown) => unknown;
       renderPanelAppCard?: (panelApp: unknown) => unknown;
       texts?: Record<string, unknown>;
@@ -44,6 +47,7 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
       handleToolAction: captures.handleToolAction,
     },
     chatUiManager: {
+      showContent: captures.showContent,
     },
   }),
 }));
@@ -62,6 +66,7 @@ beforeEach(() => {
   captures.language = "en";
   captures.openFilePreview.mockReset();
   captures.handleToolAction.mockReset();
+  captures.showContent.mockReset();
 });
 
 it("reuses adapted message references when the source message object is unchanged", () => {
@@ -301,6 +306,41 @@ it("wires markdown file link actions to the workspace file preview manager", () 
   captures.renders[captures.renders.length - 1]?.onFileOpen?.(action);
 
   expect(captures.openFilePreview).toHaveBeenCalledWith(action);
+});
+
+it("opens message attachments in the workspace file preview", () => {
+  const message = {
+    id: "assistant-attachment",
+    sessionId: "session-1",
+    role: "assistant",
+    status: "final",
+    timestamp: "2026-03-31T10:05:00.000Z",
+    parts: [
+      {
+        type: "file",
+        name: "spec.pdf",
+        mimeType: "application/pdf",
+        data: "cGRm",
+      },
+    ],
+  } satisfies NcpMessage;
+
+  render(<ChatMessageListContainer messages={[message]} isSending={false} />);
+  captures.renders[captures.renders.length - 1]?.onAttachmentOpen?.({
+    label: "spec.pdf",
+    mimeType: "application/pdf",
+    dataUrl: "data:application/pdf;base64,cGRm",
+    isImage: false,
+  });
+
+  expect(captures.openFilePreview).toHaveBeenCalledWith({
+    path: "spec.pdf",
+    label: "spec.pdf",
+    viewMode: "preview",
+    contentUrl: "data:application/pdf;base64,cGRm",
+    mimeType: "application/pdf",
+  });
+  expect(captures.showContent).not.toHaveBeenCalled();
 });
 
 it("renders context inheritance as a divider without repeating inherited messages", () => {

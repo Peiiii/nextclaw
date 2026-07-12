@@ -70,6 +70,9 @@ export type ChatMessageListProps = {
   className?: string;
   onToolAction?: (action: ChatToolActionViewModel) => void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  onAttachmentOpen?: (
+    file: Extract<ChatMessageViewModel["parts"][number], { type: "file" }>["file"],
+  ) => void;
   onInlineTokenClick?: (token: ChatInlineTokenViewModel) => void;
   renderInlineDisplay?: (
     display: ChatInlineDisplayViewModel,
@@ -112,6 +115,7 @@ export function ChatMessageList({
   className,
   isSending,
   messages,
+  onAttachmentOpen,
   onFileOpen,
   onInlineTokenClick,
   onToolAction,
@@ -142,6 +146,7 @@ export function ChatMessageList({
                 texts={texts}
                 onToolAction={onToolAction}
                 onFileOpen={onFileOpen}
+                onAttachmentOpen={onAttachmentOpen}
                 onInlineTokenClick={onInlineTokenClick}
                 renderInlineDisplay={renderInlineDisplay}
                 renderToolAgent={renderToolAgent}

@@ -23,7 +23,7 @@ function resolveInlineTokenBadgeClassName(
     return cn(
       "border-transparent bg-transparent text-[color:var(--md-link)]",
       interactive &&
-        "cursor-pointer underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--md-link)]/30",
+        "cursor-pointer underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color:var(--md-link)]/30",
       !interactive && "cursor-default",
     );
   }

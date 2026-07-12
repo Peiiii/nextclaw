@@ -9,9 +9,9 @@ export const SIDEBAR_SCROLL_EDGE_FADE_CLASS =
   "[mask-image:linear-gradient(to_bottom,black_calc(100%_-_28px),transparent)] [-webkit-mask-image:linear-gradient(to_bottom,black_calc(100%_-_28px),transparent)]";
 
 export const SIDEBAR_RAIL_SURFACE_CLASS =
-  "text-muted-foreground transition-colors duration-base hover:bg-gray-200/60 hover:text-gray-900 active:bg-gray-200/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35";
+  "text-muted-foreground transition-colors duration-base hover:bg-gray-200/60 hover:text-gray-900 active:bg-gray-200/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border";
 
 export const SIDEBAR_RAIL_ACTIVE_SURFACE_CLASS = "bg-gray-200/80 text-gray-900";
 
 export const SIDEBAR_RAIL_PRIMARY_SURFACE_CLASS =
-  "bg-primary/10 text-primary transition-colors duration-base hover:bg-primary/15 hover:text-primary-700 active:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35";
+  "bg-primary/10 text-primary transition-colors duration-base hover:bg-primary/15 hover:text-primary-700 active:bg-primary/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border";

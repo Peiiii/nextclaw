@@ -59,7 +59,7 @@ const IconActionButton = React.forwardRef<HTMLButtonElement, IconActionButtonPro
         disabled={disabled}
         aria-label={label}
         className={cn(
-          'inline-flex shrink-0 items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed',
+          'inline-flex shrink-0 items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:cursor-not-allowed',
           SIZE_CLASS[size],
           TONE_CLASS[tone],
           className
