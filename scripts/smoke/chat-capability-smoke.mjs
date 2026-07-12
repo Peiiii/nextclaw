@@ -129,19 +129,30 @@ function createId(prefix) {
 }
 
 function buildEnvelope(options) {
-  const sessionId = options.sessionId.trim() || createId(`smoke-${options.sessionType.trim()}`);
+  const {
+    model: rawModel,
+    prompt,
+    sessionId: rawSessionId,
+    sessionType: rawSessionType,
+    thinking: rawThinking,
+  } = options;
+  const sessionType = rawSessionType.trim();
+  const model = rawModel.trim();
+  const thinking = rawThinking.trim();
+  const sessionId = rawSessionId.trim() || createId(`smoke-${sessionType}`);
   const metadata = {
-    session_type: options.sessionType.trim(),
-    sessionType: options.sessionType.trim(),
+    agentRuntimeId: sessionType,
+    session_type: sessionType,
+    sessionType,
   };
 
-  if (options.model.trim()) {
-    metadata.preferred_model = options.model.trim();
-    metadata.model = options.model.trim();
+  if (model) {
+    metadata.preferred_model = model;
+    metadata.model = model;
   }
-  if (options.thinking.trim()) {
-    metadata.preferred_thinking = options.thinking.trim();
-    metadata.thinking = options.thinking.trim();
+  if (thinking) {
+    metadata.preferred_thinking = thinking;
+    metadata.thinking = thinking;
   }
 
   return {
@@ -154,7 +165,7 @@ function buildEnvelope(options) {
       role: "user",
       status: "final",
       timestamp: new Date().toISOString(),
-      parts: [{ type: "text", text: options.prompt.trim() }],
+      parts: [{ type: "text", text: prompt.trim() }],
     },
   };
 }
