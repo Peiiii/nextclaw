@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeAll } from 'vitest';
+import { beforeAll, expect, it, vi } from 'vitest';
 import {
   createChatPopoverAvailableHeightLimit,
   createChatSelectAvailableHeightLimit,
@@ -176,4 +176,34 @@ it('keeps non-search toolbar select menus constrained with an internal scroll re
   expect(panel?.className).toContain('flex-col');
   expect(scrollRegion?.className).toContain('flex-1');
   expect(scrollRegion?.className).toContain('overscroll-contain');
+});
+
+it('keeps compact configuration selects before the context and send actions', () => {
+  render(
+    <ChatInputBarToolbar
+      selects={[]}
+      trailingSelects={[createModelSelect(), createThinkingSelect()]}
+      actions={{
+        ...createActions(),
+        contextWindow: {
+          label: 'Context window',
+          percentLabel: '38%',
+          ratio: 0.38,
+          tone: 'neutral',
+          details: [],
+        },
+      }}
+    />,
+  );
+
+  const model = screen.getByRole('button', { name: 'Select model: OpenAI/gpt-5' });
+  const thinking = screen.getByRole('combobox', { name: 'Thinking: High' });
+  const contextWindow = screen.getByRole('button', { name: 'Context window' });
+  const send = screen.getByRole('button', { name: 'Send' });
+
+  expect(model.className).not.toContain('flex-1');
+  expect(model.className).toContain('max-w-[18rem]');
+  expect(model.compareDocumentPosition(thinking) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(thinking.compareDocumentPosition(contextWindow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(contextWindow.compareDocumentPosition(send) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });

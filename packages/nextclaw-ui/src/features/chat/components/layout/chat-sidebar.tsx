@@ -132,6 +132,14 @@ export function ChatSidebar({
       ),
     [agentsQuery.data?.agents],
   );
+  const pinnedSessionKeys = useMemo(
+    () => new Set(listSnapshot.pinnedSessionKeys),
+    [listSnapshot.pinnedSessionKeys],
+  );
+  const pinnedProjectRoots = useMemo(
+    () => new Set(listSnapshot.pinnedProjectRoots),
+    [listSnapshot.pinnedProjectRoots],
+  );
   const sortedItems = useMemo(
     () => sortSessionItemsByActivityAtDesc(items),
     [items],
@@ -140,10 +148,13 @@ export function ChatSidebar({
     () => groupChildSessionsByParentKey(items),
     [items],
   );
-  const groups = useMemo(() => groupSessionsByDate(sortedItems), [sortedItems]);
+  const groups = useMemo(
+    () => groupSessionsByDate(sortedItems, pinnedSessionKeys),
+    [pinnedSessionKeys, sortedItems],
+  );
   const projectGroups = useMemo(
-    () => groupSessionsByProject(sortedItems),
-    [sortedItems],
+    () => groupSessionsByProject(sortedItems, pinnedSessionKeys, pinnedProjectRoots),
+    [pinnedProjectRoots, pinnedSessionKeys, sortedItems],
   );
   const sessionTypeOptions = useMemo(
     () => buildSessionTypeOptions(sessionTypesData?.options ?? []),
@@ -200,6 +211,7 @@ export function ChatSidebar({
       draftLabel={draftLabel}
       savingSessionKey={savingSessionKey}
       sessionTypeOptions={sessionTypeOptions}
+      isPinned={pinnedSessionKeys.has(item.session.key)}
       sessionTitle={getSessionTitle}
       onSelectSession={presenter.chatSessionListManager.selectSession}
       onOpenChildSessions={(parentSessionKey, activeChildSessionKey) =>
@@ -212,6 +224,9 @@ export function ChatSidebar({
       onDraftLabelChange={setDraftLabel}
       onSaveSessionLabel={saveSessionLabel}
       onCancelEditingSessionLabel={cancelEditingSessionLabel}
+      onTogglePinned={() =>
+        presenter.chatSessionListManager.toggleSessionPinned(item.session.key)
+      }
     />
   );
   const createSessionAndOpenIfNeeded = (
@@ -295,7 +310,6 @@ export function ChatSidebar({
         isCollapsed={shouldCollapse}
         isLoading={isLoading}
         isProjectFirstView={isProjectFirstView}
-        onCreateSession={createSessionAndOpenIfNeeded}
         onSelectMode={presenter.chatSessionListManager.setListMode}
         projectGroups={projectGroups}
         renderSessionItem={renderSessionItem}

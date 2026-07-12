@@ -22,6 +22,7 @@ export function ChatSidebarSessionEntry(props: {
   draftLabel: string;
   savingSessionKey: string | null;
   sessionTypeOptions: ChatSessionTypeOption[];
+  isPinned: boolean;
   sessionTitle: (session: SessionEntryView) => string;
   onSelectSession: (sessionKey: string) => void;
   onOpenChildSessions: (
@@ -32,6 +33,7 @@ export function ChatSidebarSessionEntry(props: {
   onDraftLabelChange: (value: string) => void;
   onSaveSessionLabel: (session: SessionEntryView) => void;
   onCancelEditingSessionLabel: () => void;
+  onTogglePinned: () => void;
 }) {
   const {
     item,
@@ -43,6 +45,7 @@ export function ChatSidebarSessionEntry(props: {
     draftLabel,
     savingSessionKey,
     sessionTypeOptions,
+    isPinned,
     sessionTitle,
     onSelectSession,
     onOpenChildSessions,
@@ -50,6 +53,7 @@ export function ChatSidebarSessionEntry(props: {
     onDraftLabelChange,
     onSaveSessionLabel,
     onCancelEditingSessionLabel,
+    onTogglePinned,
   } = props;
   const { session, runStatus } = item;
   const active = selectedSessionKey === session.key;
@@ -80,6 +84,7 @@ export function ChatSidebarSessionEntry(props: {
       })}
       runStatus={runStatus}
       context={resolveSessionContextView(session, sessionTypeOptions)}
+      isPinned={isPinned}
       title={sessionTitle(session)}
       previewText={previewText}
       trailingText={formatSessionListTime(
@@ -104,6 +109,7 @@ export function ChatSidebarSessionEntry(props: {
       onDraftLabelChange={onDraftLabelChange}
       onSave={() => onSaveSessionLabel(session)}
       onCancel={onCancelEditingSessionLabel}
+      onTogglePinned={onTogglePinned}
     />
   );
 }

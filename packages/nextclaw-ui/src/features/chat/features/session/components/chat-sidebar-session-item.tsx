@@ -7,7 +7,7 @@ import { type SessionContextView } from '@/features/chat/features/session/utils/
 import type { SessionRunStatus } from '@/features/chat/types/session-run-status.types';
 import { cn } from '@/shared/lib/utils';
 import { t } from '@/shared/lib/i18n';
-import { Check, GitBranch, Pencil, X } from 'lucide-react';
+import { Check, GitBranch, Pencil, Pin, X } from 'lucide-react';
 
 type ChatSidebarSessionItemProps = {
   sessionKey: string;
@@ -15,6 +15,7 @@ type ChatSidebarSessionItemProps = {
   showUnreadDot: boolean;
   runStatus?: SessionRunStatus;
   context: SessionContextView;
+  isPinned: boolean;
   title: string;
   previewText: string;
   trailingText: string;
@@ -31,6 +32,7 @@ type ChatSidebarSessionItemProps = {
   onDraftLabelChange: (value: string) => void;
   onSave: () => void | Promise<void>;
   onCancel: () => void;
+  onTogglePinned: () => void;
 };
 
 type ChatSidebarSessionEditingViewProps = Pick<
@@ -100,6 +102,7 @@ function ChatSidebarSessionDisplayView({
   showUnreadDot,
   runStatus,
   context,
+  isPinned,
   title,
   previewText,
   trailingText,
@@ -109,9 +112,10 @@ function ChatSidebarSessionDisplayView({
   childSessionCount = 0,
   onSelect,
   onOpenChildSessions,
-  onStartEditing
+  onStartEditing,
+  onTogglePinned
 }: ChatSidebarSessionDisplayViewProps) {
-  const trailingControlsClassName = childSessionCount > 0 && onOpenChildSessions ? 'pr-14' : 'pr-6';
+  const trailingControlsClassName = childSessionCount > 0 && onOpenChildSessions ? 'pr-20' : 'pr-12';
 
   return (
     <div className="group/session relative">
@@ -168,7 +172,7 @@ function ChatSidebarSessionDisplayView({
             onOpenChildSessions();
           }}
           className={cn(
-            'absolute right-6 top-0 inline-flex h-5 items-center gap-1 rounded-md px-1.5 text-[10px] font-medium text-gray-400 transition-all hover:bg-white hover:text-gray-900',
+            'absolute right-11 top-0 inline-flex h-5 items-center gap-1 rounded-md px-1.5 text-[10px] font-medium text-gray-400 transition-all hover:bg-white hover:text-gray-900',
             active
               ? 'opacity-100'
               : 'opacity-0 group-hover/session:opacity-100 group-focus-within/session:opacity-100'
@@ -185,19 +189,35 @@ function ChatSidebarSessionDisplayView({
           <SessionRunBadge status={runStatus} />
         </span>
       ) : null}
-      <IconActionButton
-        icon={<Pencil className="h-3 w-3" />}
-        label={t('edit')}
-        tooltip={false}
-        onClick={(event) => {
-          event.stopPropagation();
-          onStartEditing();
-        }}
-        className={cn(
-          'absolute right-0 top-0 inline-flex h-5 w-5 items-center justify-center rounded-md text-gray-400 transition-all hover:bg-white hover:text-gray-900',
-          'opacity-0 group-hover/session:opacity-100 group-focus-within/session:opacity-100'
-        )}
-      />
+      <div className="absolute right-0 top-0 flex items-center opacity-0 transition-opacity group-hover/session:opacity-100 group-focus-within/session:opacity-100">
+        <IconActionButton
+          icon={
+            <Pin
+              className={cn(
+                'h-3 w-3',
+                isPinned && 'fill-primary text-primary',
+              )}
+            />
+          }
+          label={t(isPinned ? 'chatSidebarUnpinSession' : 'chatSidebarPinSession')}
+          tooltipSide="right"
+          onClick={(event) => {
+            event.stopPropagation();
+            onTogglePinned();
+          }}
+          className="h-5 w-5 rounded-md text-gray-400 hover:bg-white hover:text-gray-900"
+        />
+        <IconActionButton
+          icon={<Pencil className="h-3 w-3" />}
+          label={t('edit')}
+          tooltipSide="right"
+          onClick={(event) => {
+            event.stopPropagation();
+            onStartEditing();
+          }}
+          className="h-5 w-5 rounded-md text-gray-400 hover:bg-white hover:text-gray-900"
+        />
+      </div>
     </div>
   );
 }
@@ -208,6 +228,7 @@ export function ChatSidebarSessionItem({
   showUnreadDot,
   runStatus,
   context,
+  isPinned,
   title,
   previewText,
   trailingText,
@@ -223,7 +244,8 @@ export function ChatSidebarSessionItem({
   onStartEditing,
   onDraftLabelChange,
   onSave,
-  onCancel
+  onCancel,
+  onTogglePinned
 }: ChatSidebarSessionItemProps) {
   return (
     <div
@@ -249,6 +271,7 @@ export function ChatSidebarSessionItem({
           showUnreadDot={showUnreadDot}
           runStatus={runStatus}
           context={context}
+          isPinned={isPinned}
           title={title}
           previewText={previewText}
           trailingText={trailingText}
@@ -259,6 +282,7 @@ export function ChatSidebarSessionItem({
           childSessionCount={childSessionCount}
           onOpenChildSessions={onOpenChildSessions}
           onStartEditing={onStartEditing}
+          onTogglePinned={onTogglePinned}
         />
       )}
     </div>

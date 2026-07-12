@@ -13,6 +13,17 @@ type WorkspaceChildReadState = {
   readAt?: string | null;
   runStatus?: string | null;
 };
+
+function toggleListValue(values: string[], value: string): string[] {
+  const normalizedValue = value.trim();
+  if (!normalizedValue) {
+    return values;
+  }
+  return values.includes(normalizedValue)
+    ? values.filter((item) => item !== normalizedValue)
+    : [normalizedValue, ...values];
+}
+
 export class ChatSessionListManager {
   constructor(private uiManager: ChatUiManager) {}
 
@@ -108,6 +119,27 @@ export class ChatSessionListManager {
       return;
     }
     useChatSessionListStore.getState().setSnapshot({ listMode: value });
+  };
+
+  toggleSessionPinned = (sessionKey: string) => {
+    const { pinnedSessionKeys } = useChatSessionListStore.getState().snapshot;
+    useChatSessionListStore.getState().setSnapshot({
+      pinnedSessionKeys: toggleListValue(pinnedSessionKeys, sessionKey),
+    });
+  };
+
+  toggleProjectPinned = (projectRoot: string) => {
+    const { pinnedProjectRoots } = useChatSessionListStore.getState().snapshot;
+    useChatSessionListStore.getState().setSnapshot({
+      pinnedProjectRoots: toggleListValue(pinnedProjectRoots, projectRoot),
+    });
+  };
+
+  toggleProjectCollapsed = (projectRoot: string) => {
+    const { collapsedProjectRoots } = useChatSessionListStore.getState().snapshot;
+    useChatSessionListStore.getState().setSnapshot({
+      collapsedProjectRoots: toggleListValue(collapsedProjectRoots, projectRoot),
+    });
   };
 
   markSessionRead = (

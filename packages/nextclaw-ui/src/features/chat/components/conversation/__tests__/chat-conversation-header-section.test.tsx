@@ -224,6 +224,46 @@ describe("ChatConversationHeaderSection", () => {
 
     expect(screen.queryByRole("button", { name: /Switch session/ })).toBeNull();
     expect(screen.getByText("Parent Task")).toBeTruthy();
+    expect(screen.queryByText("Native")).toBeNull();
+  });
+
+  it("keeps the runtime badge for a non-native session", () => {
+    useChatQueryStore.setState({
+      snapshot: {
+        ...useChatQueryStore.getState().snapshot,
+        sessionsQuery: {
+          data: {
+            sessions: [
+              createSummary({
+                sessionId: "parent-session-1",
+                metadata: {
+                  label: "Parent Task",
+                  session_type: "codex",
+                },
+              }),
+            ],
+            total: 1,
+          },
+        } as never,
+        sessionTypesQuery: {
+          data: {
+            defaultType: "native",
+            options: [{ value: "codex", label: "Codex", ready: true }],
+          },
+        } as never,
+      },
+    });
+    mocks.sessionItems = [
+      createSessionListItem({
+        key: "parent-session-1",
+        label: "Parent Task",
+        sessionType: "codex",
+      }),
+    ];
+
+    renderHeaderSection();
+
+    expect(screen.getByText("Codex")).toBeTruthy();
   });
 
   it("keeps session switching available from a collapsed new-session header", async () => {

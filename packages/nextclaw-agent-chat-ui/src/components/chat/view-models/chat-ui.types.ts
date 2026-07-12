@@ -164,6 +164,7 @@ export type ChatContextWindowIndicator = {
 
 export type ChatInputBarToolbarProps = {
   selects: ChatToolbarSelect[];
+  trailingSelects?: ChatToolbarSelect[];
   accessories?: ChatToolbarAccessory[];
   skillPicker?: ChatSkillPickerProps | null;
   actions: ChatInputBarActionsProps;

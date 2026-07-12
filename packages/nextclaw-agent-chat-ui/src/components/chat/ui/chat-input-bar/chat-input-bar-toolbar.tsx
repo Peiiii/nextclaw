@@ -27,7 +27,7 @@ function AccessoryIcon({ icon }: { icon?: ChatToolbarAccessoryIcon }) {
 }
 
 const TRIGGER_WIDTH_BY_KEY: Record<string, string> = {
-  model: 'min-w-0 max-w-full flex-1 basis-[12rem] sm:max-w-[320px]',
+  model: 'min-w-0 max-w-[18rem]',
   'session-type': 'shrink-0',
   thinking: 'shrink-0'
 };
@@ -262,7 +262,13 @@ function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
   );
 }
 
-export function ChatInputBarToolbar({ actions, accessories, selects, skillPicker }: ChatInputBarToolbarProps) {
+export function ChatInputBarToolbar({
+  actions,
+  accessories,
+  selects,
+  skillPicker,
+  trailingSelects = [],
+}: ChatInputBarToolbarProps) {
   const { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } = ChatUiPrimitives;
   return (
     <div className="flex flex-wrap items-end justify-between gap-2 px-3 pb-3">
@@ -302,7 +308,16 @@ export function ChatInputBarToolbar({ actions, accessories, selects, skillPicker
           );
         })}
       </div>
-      <ChatInputBarActions {...actions} />
+      <div className="flex shrink-0 items-end gap-1">
+        {trailingSelects.length > 0 ? (
+          <div className="nextclaw-chat-toolbar-trailing-selects flex min-w-0 items-center gap-1">
+            {trailingSelects.map((item) => (
+              <ToolbarSelect key={item.key} item={item} />
+            ))}
+          </div>
+        ) : null}
+        <ChatInputBarActions {...actions} />
+      </div>
     </div>
   );
 }

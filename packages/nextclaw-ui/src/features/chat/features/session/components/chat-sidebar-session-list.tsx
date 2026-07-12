@@ -19,7 +19,6 @@ type ChatSidebarSessionListProps = {
   defaultSessionType: string;
   sessionTypeOptions: SessionTypeOption[];
   renderSessionItem: (item: NcpSessionListItemView) => ReactNode;
-  onCreateSession: (sessionType: string, projectRoot?: string | null) => void;
 };
 
 function ChatSidebarEmptyState({ label }: { label: string }) {
@@ -36,7 +35,6 @@ export function ChatSidebarSessionList({
   groups,
   isLoading,
   isProjectFirstView,
-  onCreateSession,
   projectGroups,
   renderSessionItem,
   sessionTypeOptions,
@@ -54,7 +52,6 @@ export function ChatSidebarSessionList({
         defaultSessionType={defaultSessionType}
         sessionTypeOptions={sessionTypeOptions}
         renderSessionItem={renderSessionItem}
-        onCreateSession={onCreateSession}
       />
     );
   }

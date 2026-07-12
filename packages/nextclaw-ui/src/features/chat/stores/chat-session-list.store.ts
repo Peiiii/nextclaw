@@ -7,6 +7,9 @@ export type ChatSessionListSnapshot = {
   selectedAgentId: string;
   query: string;
   listMode: ChatSessionListMode;
+  pinnedSessionKeys: string[];
+  pinnedProjectRoots: string[];
+  collapsedProjectRoots: string[];
 };
 
 const CHAT_SESSION_LIST_MODE_STORAGE_KEY = 'nextclaw.chat.session-list.mode';
@@ -15,11 +18,21 @@ const CHAT_SESSION_LIST_DEFAULT_MODE: ChatSessionListMode = 'time-first';
 type PersistedChatSessionListStore = {
   snapshot?: {
     listMode?: unknown;
+    pinnedSessionKeys?: unknown;
+    pinnedProjectRoots?: unknown;
+    collapsedProjectRoots?: unknown;
   };
 };
 
 function isChatSessionListMode(value: unknown): value is ChatSessionListMode {
   return value === 'time-first' || value === 'project-first';
+}
+
+function normalizePersistedStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return [...new Set(value.filter((item): item is string => typeof item === 'string').map((item) => item.trim()).filter(Boolean))];
 }
 
 function resolvePersistedChatSessionListMode(persistedState: unknown): ChatSessionListMode | null {
@@ -75,7 +88,10 @@ const initialSnapshot: ChatSessionListSnapshot = {
   selectedSessionKey: null,
   selectedAgentId: 'main',
   query: '',
-  listMode: CHAT_SESSION_LIST_DEFAULT_MODE
+  listMode: CHAT_SESSION_LIST_DEFAULT_MODE,
+  pinnedSessionKeys: [],
+  pinnedProjectRoots: [],
+  collapsedProjectRoots: [],
 };
 
 function createSetSnapshotAction(set: ChatSessionListStoreSet) {
@@ -123,19 +139,26 @@ export const useChatSessionListStore = create<ChatSessionListStore>()(
       storage: createJSONStorage(() => window.localStorage),
       partialize: (state): PersistedChatSessionListStore => ({
         snapshot: {
-          listMode: state.snapshot.listMode
+          listMode: state.snapshot.listMode,
+          pinnedSessionKeys: state.snapshot.pinnedSessionKeys,
+          pinnedProjectRoots: state.snapshot.pinnedProjectRoots,
+          collapsedProjectRoots: state.snapshot.collapsedProjectRoots,
         }
       }),
       merge: (persistedState, currentState) => {
-        const listMode = resolvePersistedChatSessionListMode(persistedState);
-        if (!listMode) {
+        if (!persistedState || typeof persistedState !== 'object') {
           return currentState;
         }
+        const { snapshot } = persistedState as PersistedChatSessionListStore;
+        const listMode = resolvePersistedChatSessionListMode(persistedState);
         return {
           ...currentState,
           snapshot: {
             ...currentState.snapshot,
-            listMode
+            ...(listMode ? { listMode } : {}),
+            pinnedSessionKeys: normalizePersistedStringList(snapshot?.pinnedSessionKeys),
+            pinnedProjectRoots: normalizePersistedStringList(snapshot?.pinnedProjectRoots),
+            collapsedProjectRoots: normalizePersistedStringList(snapshot?.collapsedProjectRoots),
           }
         };
       }

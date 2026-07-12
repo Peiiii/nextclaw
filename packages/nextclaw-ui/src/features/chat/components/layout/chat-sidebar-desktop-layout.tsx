@@ -134,7 +134,6 @@ export function ChatSidebarSessionArea({
   isCollapsed,
   isLoading,
   isProjectFirstView,
-  onCreateSession,
   onSelectMode,
   projectGroups,
   renderSessionItem,
@@ -145,7 +144,6 @@ export function ChatSidebarSessionArea({
   isCollapsed: boolean;
   isLoading: boolean;
   isProjectFirstView: boolean;
-  onCreateSession: (sessionType: string, projectRoot?: string | null) => void;
   onSelectMode: (mode: "time-first" | "project-first") => void;
   projectGroups: ReturnType<typeof groupSessionsByProject>;
   renderSessionItem: (item: NcpSessionListItemView) => JSX.Element;
@@ -183,7 +181,6 @@ export function ChatSidebarSessionArea({
           defaultSessionType={defaultSessionType}
           sessionTypeOptions={sessionTypeOptions}
           renderSessionItem={renderSessionItem}
-          onCreateSession={onCreateSession}
         />
       </div>
     </>

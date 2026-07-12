@@ -13,6 +13,7 @@ export type ChatSidebarProjectGroup = {
   projectName: string;
   items: NcpSessionListItemView[];
   latestUpdatedAt: number;
+  isPinned: boolean;
 };
 
 export function getSessionActivityAtTimestamp(
@@ -33,8 +34,19 @@ export function sortSessionItemsByActivityAtDesc(
   );
 }
 
+function sortSessionItemsByPinnedActivityAtDesc(
+  items: NcpSessionListItemView[],
+  pinnedSessionKeys: ReadonlySet<string>,
+): NcpSessionListItemView[] {
+  return [...items].sort((left, right) => {
+    const pinnedDifference = Number(pinnedSessionKeys.has(right.session.key)) - Number(pinnedSessionKeys.has(left.session.key));
+    return pinnedDifference || getSessionActivityAtTimestamp(right) - getSessionActivityAtTimestamp(left);
+  });
+}
+
 export function groupSessionsByDate(
   items: NcpSessionListItemView[],
+  pinnedSessionKeys: ReadonlySet<string> = new Set(),
 ): ChatSidebarDateGroup[] {
   const now = new Date();
   const todayStart = new Date(
@@ -50,7 +62,13 @@ export function groupSessionsByDate(
   const previous7: NcpSessionListItemView[] = [];
   const older: NcpSessionListItemView[] = [];
 
-  for (const item of items) {
+  const unpinnedItems = items.filter((item) => !pinnedSessionKeys.has(item.session.key));
+  const pinnedItems = sortSessionItemsByPinnedActivityAtDesc(
+    items.filter((item) => pinnedSessionKeys.has(item.session.key)),
+    pinnedSessionKeys,
+  );
+
+  for (const item of unpinnedItems) {
     const ts = getSessionActivityAtTimestamp(item);
     if (ts >= todayStart) {
       today.push(item);
@@ -64,6 +82,7 @@ export function groupSessionsByDate(
   }
 
   const groups: ChatSidebarDateGroup[] = [];
+  if (pinnedItems.length > 0) groups.push({ label: t("chatSidebarPinned"), items: pinnedItems });
   if (today.length > 0) groups.push({ label: t("chatSidebarToday"), items: today });
   if (yesterday.length > 0)
     groups.push({ label: t("chatSidebarYesterday"), items: yesterday });
@@ -75,6 +94,8 @@ export function groupSessionsByDate(
 
 export function groupSessionsByProject(
   items: NcpSessionListItemView[],
+  pinnedSessionKeys: ReadonlySet<string> = new Set(),
+  pinnedProjectRoots: ReadonlySet<string> = new Set(),
 ): ChatSidebarProjectGroup[] {
   const grouped = new Map<string, ChatSidebarProjectGroup>();
 
@@ -101,15 +122,16 @@ export function groupSessionsByProject(
         projectRoot,
       items: [item],
       latestUpdatedAt: updatedAt,
+      isPinned: pinnedProjectRoots.has(projectRoot),
     });
   }
 
   return [...grouped.values()]
     .map((group) => ({
       ...group,
-      items: sortSessionItemsByActivityAtDesc(group.items),
+      items: sortSessionItemsByPinnedActivityAtDesc(group.items, pinnedSessionKeys),
     }))
-    .sort((left, right) => right.latestUpdatedAt - left.latestUpdatedAt);
+    .sort((left, right) => Number(right.isPinned) - Number(left.isPinned) || right.latestUpdatedAt - left.latestUpdatedAt);
 }
 
 export function groupChildSessionsByParentKey(

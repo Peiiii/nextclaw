@@ -42,7 +42,10 @@ function resetChatSessionListManagerState() {
     snapshot: {
       ...useChatSessionListStore.getState().snapshot,
       selectedSessionKey: 'session-1',
-      listMode: 'time-first'
+      listMode: 'time-first',
+      pinnedSessionKeys: [],
+      pinnedProjectRoots: [],
+      collapsedProjectRoots: [],
     }
   });
   useChatThreadStore.setState({
@@ -191,6 +194,31 @@ describe('ChatSessionListManager list preference and read state', () => {
     });
   });
 
+  it('persists session and project list preferences through the list owner', () => {
+    const manager = new ChatSessionListManager(
+      {} as ConstructorParameters<typeof ChatSessionListManager>[0]
+    );
+
+    manager.toggleSessionPinned('session-2');
+    manager.toggleProjectPinned('/tmp/project-alpha');
+    manager.toggleProjectCollapsed('/tmp/project-alpha');
+
+    expect(useChatSessionListStore.getState().snapshot).toMatchObject({
+      pinnedSessionKeys: ['session-2'],
+      pinnedProjectRoots: ['/tmp/project-alpha'],
+      collapsedProjectRoots: ['/tmp/project-alpha'],
+    });
+    expect(persistStorage.get(chatSessionListModeStorageKey)).toMatchObject({
+      state: {
+        snapshot: {
+          pinnedSessionKeys: ['session-2'],
+          pinnedProjectRoots: ['/tmp/project-alpha'],
+          collapsedProjectRoots: ['/tmp/project-alpha'],
+        },
+      },
+    });
+  });
+
   it('marks a session as read through the session list owner boundary', () => {
     const manager = new ChatSessionListManager(
       {} as ConstructorParameters<typeof ChatSessionListManager>[0]
@@ -266,7 +294,10 @@ describe('ChatSessionListStore persistence', () => {
     useChatSessionListStore.setState({
       snapshot: {
         ...useChatSessionListStore.getState().snapshot,
-        listMode: 'time-first'
+        listMode: 'time-first',
+        pinnedSessionKeys: [],
+        pinnedProjectRoots: [],
+        collapsedProjectRoots: [],
       }
     });
   });

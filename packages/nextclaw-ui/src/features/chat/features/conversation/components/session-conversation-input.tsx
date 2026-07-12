@@ -417,7 +417,8 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
           },
         })}
         toolbar={{
-          selects: toolbarSelects,
+          selects: [],
+          trailingSelects: toolbarSelects,
           accessories: [
             {
               key: 'attach',
