@@ -38,11 +38,11 @@ export function PanelAppListItem({
   };
 
   return (
-    <div className="group w-full min-w-0 rounded-lg border border-border bg-card px-2.5 py-2.5 transition-colors hover:border-primary/35 hover:bg-accent/60">
+    <div className="group w-full min-w-0 rounded-lg border border-border/60 bg-card px-2.5 py-2.5 transition-colors hover:bg-muted/40">
       <div className="flex min-w-0 items-start gap-2">
         <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
           <span className="flex min-w-0 items-center gap-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent text-base text-accent-foreground">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-base text-muted-foreground">
               <PanelAppIcon icon={entry.icon} title={entry.title} />
             </span>
             <span className="block min-w-0 flex-1 truncate text-sm font-medium text-foreground">{entry.title}</span>
@@ -52,12 +52,12 @@ export function PanelAppListItem({
           ) : null}
           <span className="mt-0.5 block truncate text-[11px] leading-4 text-muted-foreground/70">{secondary}</span>
         </button>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
           <button
             type="button"
             onClick={handleFavorite}
             disabled={favoritePending}
-            className="rounded-md p-1.5 text-muted-foreground/70 transition-colors hover:bg-background hover:text-amber-500 disabled:opacity-50"
+            className="rounded-md p-1.5 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-amber-500 disabled:opacity-50"
             title={favoriteLabel}
             aria-label={favoriteLabel}
           >
@@ -67,7 +67,7 @@ export function PanelAppListItem({
             <PopoverTrigger asChild>
               <button
                 type="button"
-                className="rounded-md p-1.5 text-muted-foreground/70 transition-colors hover:bg-background hover:text-foreground"
+                className="rounded-md p-1.5 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
                 aria-label={t('panelAppsMoreActions')}
                 disabled={deletePending}
               >

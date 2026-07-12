@@ -117,20 +117,20 @@ export function DocBrowserTabStrip({
       tabs={compactTabs}
       actions={actions}
       className={cn(
-        "h-11 gap-2 border-border/70 bg-card px-2.5 shrink-0 select-none",
-        isFullscreen && "h-[calc(env(safe-area-inset-top,0px)+2.75rem)] pt-[env(safe-area-inset-top,0px)]",
+        "h-10 gap-1.5 border-border/50 bg-card/80 px-2 shrink-0 select-none",
+        isFullscreen && "h-[calc(env(safe-area-inset-top,0px)+2.5rem)] pt-[env(safe-area-inset-top,0px)]",
       )}
       scrollClassName={cn(
-        "doc-browser-tab-scrollbar flex h-full items-center gap-1.5",
+        "doc-browser-tab-scrollbar flex h-full items-center gap-0.5",
         !isDocked && !isFullscreen && "cursor-grab active:cursor-grabbing",
       )}
-      tabsClassName="items-center gap-1.5"
-      actionsClassName="h-full items-center gap-1"
-      actionButtonClassName="rounded-md p-1.5 hover:text-foreground disabled:opacity-60"
-      tabBaseClassName="group inline-flex min-w-0 cursor-pointer items-center gap-1 h-7 px-1.5 rounded-lg text-xs border max-w-[220px] shrink-0 transition-colors"
-      activeTabClassName="border-primary/30 bg-primary-50/70 text-foreground shadow-[0_1px_2px_rgba(30,20,10,0.04)]"
-      inactiveTabClassName="border-border bg-muted/60 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-      labelClassName="px-1 text-xs font-normal"
+      tabsClassName="items-center gap-0.5"
+      actionsClassName="h-full items-center gap-0.5"
+      actionButtonClassName="rounded-md p-1.5 text-muted-foreground hover:bg-muted/60 hover:text-foreground disabled:opacity-50"
+      tabBaseClassName="group inline-flex min-w-0 cursor-pointer items-center gap-0.5 h-7 px-2 rounded-md text-xs max-w-[220px] shrink-0 transition-colors"
+      activeTabClassName="bg-muted/80 text-foreground"
+      inactiveTabClassName="text-muted-foreground hover:bg-muted/45 hover:text-foreground"
+      labelClassName="px-0.5 text-xs font-normal"
       onPointerDown={!isDocked && !isFullscreen ? onDragStart : undefined}
       onScrollPointerDown={(event) => {
         if (shouldBlockHeaderDrag(event.target)) {

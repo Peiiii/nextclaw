@@ -7,6 +7,7 @@ import type {
 import {
   AlertTriangle,
   CheckCircle2,
+  ChevronDown,
   CircleDashed,
   LoaderCircle,
   MoreVertical,
@@ -53,6 +54,7 @@ export function ServiceAppsPanel({
   const [discoveredActionsByApp, setDiscoveredActionsByApp] = useState<
     Record<string, ServiceActionView[]>
   >({});
+  const [expandedActionsByApp, setExpandedActionsByApp] = useState<Record<string, boolean>>({});
 
   const refetch = () => {
     void serviceApps.refetch();
@@ -86,12 +88,16 @@ export function ServiceAppsPanel({
         ...current,
         [appId]: result.actions,
       }));
+      setExpandedActionsByApp((current) => ({
+        ...current,
+        [appId]: true,
+      }));
     });
   };
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-card text-card-foreground">
-      <div className="flex items-center justify-between gap-2 border-b border-border/70 px-4 py-3">
+      <div className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
           {headerContent ?? (
             <>
@@ -110,20 +116,31 @@ export function ServiceAppsPanel({
       </div>
 
       {apps.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
-          {t('serviceAppsEmpty')}
+        <div className="flex flex-1 items-center justify-center px-6 py-8 text-center">
+          <div className="w-full max-w-xs">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+              <Server className="h-5 w-5" />
+            </div>
+            <h2 className="mt-3 text-sm font-semibold text-foreground">{t('serviceAppsEmptyTitle')}</h2>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">{t('serviceAppsEmptyDescription')}</p>
+          </div>
         </div>
       ) : (
-        <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
-          <div className="space-y-3">
+        <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto bg-muted/25 p-3">
+          <div className="space-y-2.5">
             {apps.map((app) => (
               <ServiceAppCard
                 key={app.id}
                 app={app}
                 actions={discoveredActionsByApp[app.id] ?? actions.filter((action) => action.appId === app.id)}
+                actionsOpen={Boolean(expandedActionsByApp[app.id])}
                 grants={grants}
                 deletePending={deleteServiceApp.isPending}
                 isDiscovering={discoverServiceAppActions.isPending}
+                onActionsOpenChange={(open) => setExpandedActionsByApp((current) => ({
+                  ...current,
+                  [app.id]: open,
+                }))}
                 onDiscover={discover}
                 onDelete={(appId) => void deleteServiceApp.mutate(appId)}
                 onRestart={(appId) => void restartServiceApp.mutate(appId)}
@@ -143,9 +160,11 @@ export function ServiceAppsPanel({
 function ServiceAppCard({
   app,
   actions,
+  actionsOpen,
   grants,
   deletePending,
   isDiscovering,
+  onActionsOpenChange,
   onDiscover,
   onDelete,
   onRestart,
@@ -153,9 +172,11 @@ function ServiceAppCard({
 }: {
   app: ServiceAppRecordView;
   actions: ServiceActionView[];
+  actionsOpen: boolean;
   grants: ServiceActionGrantView[];
   deletePending: boolean;
   isDiscovering: boolean;
+  onActionsOpenChange: (open: boolean) => void;
   onDiscover: (appId: string) => void;
   onDelete: (appId: string) => void;
   onRestart: (appId: string) => void;
@@ -172,21 +193,21 @@ function ServiceAppCard({
 
   return (
     <TooltipProvider delayDuration={250}>
-      <section className="rounded-lg border border-border bg-card p-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+      <section className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-[0_1px_2px_rgba(30,20,10,0.03)]">
+        <div className="flex items-start gap-3 px-3 pt-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Server className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <div className="truncate text-sm font-semibold text-foreground">{app.title}</div>
               <ServiceAppStatusBadge status={app.status} />
             </div>
             {app.description ? (
-              <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{app.description}</div>
-            ) : null}
-            {app.lastError ? (
-              <div className="mt-2 rounded bg-rose-50 px-2 py-1 text-xs text-rose-700">{app.lastError}</div>
+              <div className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{app.description}</div>
             ) : null}
           </div>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 items-center gap-0.5">
             <ServiceAppIconButton
               disabled={isDiscovering || !canConnectAndDiscover}
               icon={Radar}
@@ -207,7 +228,7 @@ function ServiceAppCard({
                   <PopoverTrigger asChild>
                     <button
                       type="button"
-                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
                       aria-label={t('serviceAppsMoreActions')}
                       disabled={deletePending}
                     >
@@ -229,17 +250,85 @@ function ServiceAppCard({
             </Popover>
           </div>
         </div>
+
+        {app.lastError ? (
+          <div className="mx-3 mt-3 rounded-lg border border-rose-200/70 bg-rose-50 px-2.5 py-1.5 text-xs text-rose-700">
+            {app.lastError}
+          </div>
+        ) : null}
+
         <ServiceAppDiagnostics app={app} />
-        <div className="mt-3 space-y-1">
-          {actions.map((action) => (
-            <ServiceActionRow
-              key={action.id}
-              action={action}
-              grants={grants.filter((grant) => grant.actionId === action.id)}
-              onRevoke={onRevoke}
+
+        <div className="mt-3 border-t border-border/50 bg-muted/30">
+          <button
+            type="button"
+            onClick={() => onActionsOpenChange(!actionsOpen)}
+            className="flex w-full items-start justify-between gap-2 px-3 py-2 text-left transition-colors hover:bg-muted/40"
+            aria-expanded={actionsOpen}
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                  {t('serviceAppsActionsSection')}
+                </span>
+                <span className="rounded-full bg-card px-1.5 py-0.5 text-[11px] tabular-nums text-muted-foreground/70">
+                  {actions.length}
+                </span>
+              </div>
+              {!actionsOpen ? (
+                actions.length === 0 ? (
+                  <div className="mt-1 text-[11px] text-muted-foreground">
+                    {t('serviceAppsActionsEmpty')}
+                  </div>
+                ) : (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {actions.slice(0, 4).map((action) => (
+                      <span
+                        key={action.id}
+                        className="max-w-[9.5rem] truncate rounded-md border border-border/50 bg-card px-1.5 py-0.5 text-[11px] text-muted-foreground"
+                        title={action.title ?? action.name}
+                      >
+                        {action.title ?? action.name}
+                      </span>
+                    ))}
+                    {actions.length > 4 ? (
+                      <span className="rounded-md bg-card px-1.5 py-0.5 text-[11px] text-muted-foreground/70">
+                        +{actions.length - 4}
+                      </span>
+                    ) : null}
+                  </div>
+                )
+              ) : null}
+            </div>
+            <ChevronDown
+              className={cn(
+                'mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/70 transition-transform',
+                actionsOpen && 'rotate-180',
+              )}
             />
-          ))}
+          </button>
+          {actionsOpen ? (
+            <div className="px-3 pb-2.5">
+              {actions.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border/70 bg-card/70 px-2.5 py-2 text-[11px] text-muted-foreground">
+                  {t('serviceAppsActionsEmpty')}
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {actions.map((action) => (
+                    <ServiceActionRow
+                      key={action.id}
+                      action={action}
+                      grants={grants.filter((grant) => grant.actionId === action.id)}
+                      onRevoke={onRevoke}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null}
         </div>
+
         <ConfirmDialog
           open={isDeleteDialogOpen}
           onOpenChange={setIsDeleteDialogOpen}
@@ -263,7 +352,7 @@ function ServiceAppStatusBadge({ status }: { status: ServiceAppStatus }) {
       <TooltipTrigger asChild>
         <span
           className={cn(
-            'inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium',
+            'inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-medium',
             view.className,
           )}
           aria-label={view.label}
@@ -345,7 +434,7 @@ function ServiceAppIconButton({
           type="button"
           onClick={onClick}
           disabled={disabled}
-          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:text-muted-foreground/40 disabled:opacity-60 disabled:hover:bg-transparent"
+          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:text-muted-foreground/40 disabled:opacity-60 disabled:hover:bg-transparent"
           aria-label={label}
         >
           <Icon className="h-3.5 w-3.5" />
@@ -386,6 +475,7 @@ function ServiceAppMenuItem({
 }
 
 function ServiceAppDiagnostics({ app }: { app: ServiceAppRecordView }) {
+  const [open, setOpen] = useState(false);
   const command = [app.command, ...(app.args ?? [])]
     .filter((value): value is string => Boolean(value?.trim()))
     .join(' ');
@@ -403,11 +493,29 @@ function ServiceAppDiagnostics({ app }: { app: ServiceAppRecordView }) {
   }
 
   return (
-    <dl className="mt-3 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-2 gap-y-1 border-t border-border/70 pt-2 text-[11px]">
-      {rows.map((row) => (
-        <ServiceAppDiagnosticRow key={row.label} label={row.label} value={row.value} />
-      ))}
-    </dl>
+    <div className="mx-3 mt-3 overflow-hidden rounded-lg border border-border/50 bg-muted/35">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left transition-colors hover:bg-muted/50"
+        aria-expanded={open}
+      >
+        <span className="text-[11px] font-medium text-muted-foreground">{t('serviceAppsDetails')}</span>
+        <ChevronDown
+          className={cn(
+            'h-3.5 w-3.5 shrink-0 text-muted-foreground/70 transition-transform',
+            open && 'rotate-180',
+          )}
+        />
+      </button>
+      {open ? (
+        <dl className="grid grid-cols-[4.75rem_minmax(0,1fr)] gap-x-2 gap-y-1 border-t border-border/50 px-2.5 py-2 text-[11px]">
+          {rows.map((row) => (
+            <ServiceAppDiagnosticRow key={row.label} label={row.label} value={row.value} />
+          ))}
+        </dl>
+      ) : null}
+    </div>
   );
 }
 
@@ -438,10 +546,12 @@ function ServiceActionRow({
   onRevoke: (grant: ServiceActionGrantView) => void;
 }) {
   return (
-    <div className="rounded bg-muted/60 px-2 py-1.5">
+    <div className="rounded-lg border border-border/50 bg-card px-2.5 py-2">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
-          <Wrench className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+            <Wrench className="h-3.5 w-3.5" />
+          </span>
           <div className="min-w-0">
             <div className="truncate text-xs font-medium text-foreground">{action.title ?? action.name}</div>
             {action.description ? (
@@ -451,15 +561,15 @@ function ServiceActionRow({
         </div>
         <div className="flex shrink-0 items-center gap-1">
           {action.runtimeState ? (
-            <span className="rounded bg-card px-1.5 py-0.5 text-[11px] text-muted-foreground">
+            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
               {t(`serviceAppsRuntimeState_${action.runtimeState}`)}
             </span>
           ) : null}
-          <span className="rounded bg-card px-1.5 py-0.5 text-[11px] text-muted-foreground">{action.risk}</span>
+          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">{action.risk}</span>
         </div>
       </div>
       {grants.map((grant) => (
-        <div key={`${grant.caller.surface}:${grant.caller.appId}:${grant.actionId}`} className="mt-1 flex items-center justify-between gap-2 pl-5">
+        <div key={`${grant.caller.surface}:${grant.caller.appId}:${grant.actionId}`} className="mt-1.5 flex items-center justify-between gap-2 pl-8">
           <div className="flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
             <ShieldCheck className="h-3 w-3 shrink-0 text-emerald-500" />
             <span className="truncate">{t('serviceAppsGrantedTo')} {grant.caller.appId}</span>
@@ -467,7 +577,7 @@ function ServiceActionRow({
           <button
             type="button"
             onClick={() => onRevoke(grant)}
-            className="rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-background hover:text-rose-600"
+            className="rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-rose-600"
             title={t('serviceAppsRevokeGrant')}
             aria-label={t('serviceAppsRevokeGrant')}
           >
