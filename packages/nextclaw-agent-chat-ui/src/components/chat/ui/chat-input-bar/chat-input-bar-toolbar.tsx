@@ -125,16 +125,16 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
         </button>
       </PopoverTrigger>
       <PopoverContent
-        className={`flex flex-col overflow-hidden p-2 ${CONTENT_WIDTH_BY_KEY[item.key] ?? ''}`}
+        className={`flex flex-col overflow-hidden p-1.5 ${CONTENT_WIDTH_BY_KEY[item.key] ?? ''}`}
         style={{ maxHeight: TOOLBAR_POPOVER_MAX_HEIGHT }}
       >
-        <div className="relative mb-2 shrink-0">
+        <div className="relative mb-1.5 shrink-0">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/70" />
           <Input
             value={query}
             onChange={(event) => setQuery(event.currentTarget.value)}
             placeholder={item.search?.placeholder ?? item.placeholder}
-            className="h-8 rounded-lg pl-8 text-xs"
+            className="h-7 rounded-md pl-8 text-xs"
           />
         </div>
         {!hasOptions ? (
@@ -153,9 +153,9 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
         ) : null}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {filteredGroups.map((group, groupIndex) => (
-            <div key={group.key} className={groupIndex > 0 ? 'border-t border-border pt-1' : undefined}>
+            <div key={group.key} className={groupIndex > 0 ? 'border-t border-border pt-0.5' : undefined}>
               {group.label ? (
-                <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{group.label}</div>
+                <div className="px-2 pb-0.5 pt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{group.label}</div>
               ) : null}
               {group.options.map((option) => {
                 const isSelected = item.value === option.value;
@@ -165,7 +165,7 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
                   <div key={option.value} className="group flex items-center gap-1 rounded-md hover:bg-accent">
                     <button
                       type="button"
-                      className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-2 text-left"
+                      className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-2 py-1.5 text-left leading-4"
                       onClick={() => {
                         item.onValueChange(option.value);
                         setOpen(false);
@@ -250,7 +250,7 @@ function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
             <SelectGroup>
               {group.label ? <SelectLabel>{group.label}</SelectLabel> : null}
               {group.options.map((option) => (
-                <SelectItem key={option.value} value={option.value} className="py-2">
+                <SelectItem key={option.value} value={option.value} className="py-1.5">
                   <ToolbarSelectOptionContent option={option} />
                 </SelectItem>
               ))}

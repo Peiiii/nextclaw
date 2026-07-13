@@ -93,7 +93,12 @@ it('searches toolbar model options and toggles option favorites', async () => {
     target: { value: 'claude' },
   });
 
-  expect(await screen.findByText('Anthropic/claude-sonnet-4')).toBeTruthy();
+  const modelLabel = await screen.findByText('Anthropic/claude-sonnet-4');
+  const modelOption = modelLabel.closest('button');
+  expect(modelOption?.className).toContain('py-1.5');
+  expect(modelOption?.className).not.toContain('py-2');
+  expect(modelOption?.className).toContain('leading-4');
+  expect(screen.getByPlaceholderText('Search models').className).toContain('h-7');
   expect(screen.queryByText('MiniMax/minimax-m2.7')).toBeNull();
 
   const favoriteButton = screen.getByRole('button', { name: 'Add favorite' });

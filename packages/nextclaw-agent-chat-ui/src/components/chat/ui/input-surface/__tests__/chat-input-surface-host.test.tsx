@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { createChatComposerTextNode } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 import { ChatInputSurfaceHost } from '@agent-chat-ui/components/chat/ui/input-surface/chat-input-surface-host';
@@ -138,5 +138,37 @@ describe('ChatInputSurfaceHost', () => {
     options = await screen.findAllByRole('option');
     expect(options[0]?.getAttribute('aria-selected')).toBe('true');
     expect(options[1]?.getAttribute('aria-selected')).toBe('false');
+  });
+
+  it('keeps the menu open while detail text starts a native selection', async () => {
+    const animationFrames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      animationFrames.push(callback);
+      return animationFrames.length;
+    });
+
+    try {
+      render(<HostHarness />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'create' }));
+      expect(await screen.findByRole('option', { name: /Web Search/i })).toBeTruthy();
+
+      const description = screen.getByText('Search the web');
+      expect(description.closest('.select-text')).toBeTruthy();
+      expect(fireEvent.pointerDown(description, { pointerType: 'mouse' })).toBe(true);
+
+      fireEvent.click(screen.getByRole('button', { name: 'close' }));
+      expect(screen.getByRole('option', { name: /Web Search/i })).toBeTruthy();
+
+      act(() => {
+        animationFrames.splice(0).forEach((callback) => callback(0));
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'close' }));
+      await waitFor(() => {
+        expect(screen.queryByRole('option', { name: /Web Search/i })).toBeNull();
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

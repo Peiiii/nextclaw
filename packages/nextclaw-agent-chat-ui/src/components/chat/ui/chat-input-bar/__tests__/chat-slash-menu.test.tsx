@@ -103,8 +103,20 @@ describe('ChatSlashMenu', () => {
       />
     );
 
-    expect(screen.getByRole('button', { name: 'All 3' }).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByRole('button', { name: 'Panel Apps 1' })).toBeTruthy();
+    const allFilter = screen.getByRole('button', { name: 'All 3' });
+    expect(allFilter.getAttribute('aria-pressed')).toBe('true');
+    expect(allFilter.className).toContain('bg-gray-100');
+    expect(allFilter.className).not.toContain('border-primary');
+    expect(screen.getByRole('button', { name: 'Panel Apps 1' }).className).toContain('hover:bg-gray-100');
+
+    const firstOption = screen.getByRole('option', { name: /Side chat/i });
+    expect(firstOption.className).toContain('py-1');
+    expect(firstOption.className).not.toContain('py-1.5');
+
+    fireEvent.pointerMove(screen.getByRole('option', { name: /Web Search/i }), {
+      pointerType: 'mouse',
+    });
+    expect(screen.getByRole('option', { name: /Side chat/i }).className).toContain('hover:bg-gray-100');
 
     fireEvent.click(screen.getByRole('button', { name: 'Panel Apps 1' }));
 

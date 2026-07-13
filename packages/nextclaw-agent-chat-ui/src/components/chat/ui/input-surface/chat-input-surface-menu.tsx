@@ -190,7 +190,7 @@ function ChatInputSurfaceMenu(props, ref) {
         >
           <div className="flex min-h-0 flex-col border-r border-gray-200">
             {!isLoading && filterViews.length > 0 ? (
-              <div className="flex shrink-0 gap-1 overflow-x-auto px-2.5 pb-2 pt-2.5">
+              <div className="flex shrink-0 gap-0.5 overflow-x-auto px-2 pb-1.5 pt-2">
                 {filterViews.map(({ count, key, label }) => {
                   const isActive = key === resolvedActiveFilterKey;
                   return (
@@ -200,14 +200,14 @@ function ChatInputSurfaceMenu(props, ref) {
                       aria-pressed={isActive}
                       onPointerDown={(event) => event.preventDefault()}
                       onClick={() => handleFilterSelect(key)}
-                      className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                      className={`inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
                         isActive
-                          ? 'border-primary/30 bg-primary/10 text-primary'
-                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                          ? 'bg-gray-100 text-gray-900'
+                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                       }`}
                     >
                       <span>{label}</span>
-                      <span className={isActive ? 'text-primary/70' : 'text-gray-400'}>{count}</span>
+                      <span className={isActive ? 'text-gray-500' : 'text-gray-400'}>{count}</span>
                     </button>
                   );
                 })}
@@ -218,7 +218,7 @@ function ChatInputSurfaceMenu(props, ref) {
               role="listbox"
               aria-label={texts.sectionLabel}
               className={`custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain ${
-                !isLoading && filterViews.length > 0 ? 'px-2.5 pb-2.5' : 'p-2.5'
+                !isLoading && filterViews.length > 0 ? 'px-2 pb-2' : 'p-2'
               }`}
             >
               {isLoading ? (
@@ -226,14 +226,14 @@ function ChatInputSurfaceMenu(props, ref) {
               ) : (
                 <>
                   {!hasItemSections ? (
-                    <div className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                    <div className="mb-1 px-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
                       {texts.sectionLabel}
                     </div>
                   ) : null}
                   {visibleItems.length === 0 ? (
-                    <div className="px-2 text-xs text-gray-400">{texts.emptyLabel}</div>
+                    <div className="px-1.5 text-xs text-gray-400">{texts.emptyLabel}</div>
                   ) : (
-                    <div className="space-y-1">
+                    <div>
                       {visibleItems.map((item, index) => {
                         const { key, sectionKey, sectionLabel, title, subtitle } = item;
                         const isActive = index === activeIndexInRange;
@@ -243,9 +243,9 @@ function ChatInputSurfaceMenu(props, ref) {
                           Boolean(sectionLabel?.trim()) &&
                           previousItem?.sectionKey !== sectionKey;
                         return (
-                          <div key={key} className="space-y-1">
+                          <div key={key}>
                             {shouldShowSection ? (
-                              <div className="px-2 pb-0.5 pt-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                              <div className="px-1.5 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
                                 {sectionLabel}
                               </div>
                             ) : null}
@@ -271,11 +271,11 @@ function ChatInputSurfaceMenu(props, ref) {
                                   onSelectItem(item);
                                 }
                               }}
-                              className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition ${
-                                isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'
+                              className={`flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-left leading-4 transition-colors ${
+                                isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-100'
                               }`}
                             >
-                              <span className="truncate text-xs font-semibold">{title}</span>
+                              <span className="truncate text-xs font-medium">{title}</span>
                               <span className="truncate text-xs text-gray-500">{subtitle}</span>
                             </button>
                           </div>
@@ -288,7 +288,7 @@ function ChatInputSurfaceMenu(props, ref) {
             </div>
           </div>
           <div
-            className="custom-scrollbar min-h-0 min-w-0 overflow-y-auto overscroll-contain p-2.5"
+            className="custom-scrollbar min-h-0 min-w-0 select-text overflow-y-auto overscroll-contain p-2.5"
             onPointerDown={onDetailsPointerDown}
           >
             {activeItem ? (

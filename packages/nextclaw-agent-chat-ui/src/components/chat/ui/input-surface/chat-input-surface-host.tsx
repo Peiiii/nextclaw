@@ -76,6 +76,7 @@ export function ChatInputSurfaceHost(props: ChatInputSurfaceHostProps) {
     triggerSpecs = [CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC],
   } = props;
   const menuRef = useRef<ChatInputSurfaceMenuHandle | null>(null);
+  const isDetailsInteractionRef = useRef(false);
   const [activeTriggerIdentity, setActiveTriggerIdentity] = useState<string | null>(null);
   const isOpen = Boolean(inputSurface) && activeTriggerIdentity !== null;
 
@@ -85,13 +86,6 @@ export function ChatInputSurfaceHost(props: ChatInputSurfaceHostProps) {
       onInputSurfaceTriggerChange?.(identity ? trigger : null);
     },
     [onInputSurfaceTriggerChange],
-  );
-
-  const closeInputSurface = useCallback(
-    (): void => {
-      setActiveTrigger(null, null);
-    },
-    [setActiveTrigger],
   );
 
   const handleInputSurfaceSnapshotChange = useCallback(
@@ -117,11 +111,11 @@ export function ChatInputSurfaceHost(props: ChatInputSurfaceHostProps) {
 
   const handleInputSurfaceOpenChange = useCallback(
     (open: boolean): void => {
-      if (!open) {
-        closeInputSurface();
+      if (!open && !isDetailsInteractionRef.current) {
+        setActiveTrigger(null, null);
       }
     },
-    [closeInputSurface],
+    [setActiveTrigger],
   );
 
   const bindings = useMemo(
@@ -151,11 +145,16 @@ export function ChatInputSurfaceHost(props: ChatInputSurfaceHostProps) {
           items={inputSurface.items}
           texts={inputSurface.texts}
           onSelectItem={(item) => {
-            closeInputSurface();
+            setActiveTrigger(null, null);
             onSelectItem(item);
           }}
           onOpenChange={handleInputSurfaceOpenChange}
-          onDetailsPointerDown={(event) => event.preventDefault()}
+          onDetailsPointerDown={() => {
+            isDetailsInteractionRef.current = true;
+            requestAnimationFrame(() => {
+              isDetailsInteractionRef.current = false;
+            });
+          }}
         />
       ) : null}
     </>
