@@ -1,5 +1,13 @@
 # nextclaw-server
 
+## 0.15.4
+
+### Patch Changes
+
+- 91f7bef: Keep valid Markdown resources clickable independently of target availability, render local Markdown images and SVG files correctly, add responsive Word, Excel, and PowerPoint workspace previews, preserve automatic viewers outside HTML source mode, and keep chat popovers open when the streaming composer restores focus.
+- Updated dependencies [91f7bef]
+  - @nextclaw/kernel@0.6.4
+
 ## 0.15.3
 
 ### Patch Changes
