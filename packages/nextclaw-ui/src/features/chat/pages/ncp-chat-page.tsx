@@ -1,7 +1,6 @@
 import {
   useEffect,
   useMemo,
-  useState,
 } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
@@ -51,7 +50,7 @@ function useNcpChatUiBindings() {
 
 export function NcpChatPage({ view }: ChatPageProps) {
   const appPresenter = useAppPresenter();
-  const [presenter] = useState(() => new ChatPresenter(appPresenter));
+  const presenter = useMemo(() => new ChatPresenter(appPresenter), [appPresenter]);
   return (
     <ChatPresenterProvider presenter={presenter}>
       <NcpChatPageContent view={view} />

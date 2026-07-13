@@ -1,0 +1,4 @@
+interface:
+  display_name: "刷新产品视觉素材"
+  short_description: "按真实产品状态刷新官网与 GitHub 的截图和社区二维码。"
+  default_prompt: "刷新本次产品更新影响到的对外截图与视觉资产，并完成镜像和质量检查。"

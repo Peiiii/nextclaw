@@ -4,85 +4,116 @@
 
 <div align="center">
 
-<img src="images/marketing/nextclaw-omni-assistant-cn.jpg" alt="NextClaw — 让你的电脑成为强大的 AI 助手" width="720" />
-
-<br /><br />
-
 # NextClaw
 
-**把你的电脑变成一个强大的 AI 助手，协调 Agent、技能、CLI 工具、自动化和消息应用。**
+**让 AI 在你自己的电脑上，真正把事情做完。**
+
+说出你要做什么。NextClaw 会把资料、模型、Agent、技能、浏览器、本机应用、自动化和聊天入口放进同一个任务里，一路推进到可用结果。
 
 [![npm](https://img.shields.io/npm/v/nextclaw)](https://www.npmjs.com/package/nextclaw)
+[![GitHub Release](https://img.shields.io/github/v/release/Peiiii/nextclaw?display_name=tag)](https://github.com/Peiiii/nextclaw/releases)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
+[![Node.js LTS](https://img.shields.io/badge/Node.js-LTS-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Discord](https://img.shields.io/badge/Discord-NextClaw-5865F2?logo=discord&logoColor=white)](https://discord.gg/j4Skbgye)
 
-[文档](https://docs.nextclaw.io/zh/) · [规划](docs/ROADMAP.md) · [Discord](https://discord.gg/j4Skbgye) · [微信群](images/contact/nextclaw-contact-wechat-group.png) · [Issues](https://github.com/Peiiii/nextclaw/issues) · [路线图](https://docs.nextclaw.io/zh/guide/roadmap)
+[官网](https://nextclaw.io/zh/) · [下载](https://nextclaw.io/zh/download/) · [安装方式](https://nextclaw.io/zh/install/) · [文档](https://docs.nextclaw.io/zh/) · [版本发布](https://github.com/Peiiii/nextclaw/releases)
 
 <p>
   <img src="https://img.shields.io/badge/Windows-0078D6?style=flat-square&logo=windows&logoColor=white" alt="Windows" />
   <img src="https://img.shields.io/badge/macOS-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS" />
   <img src="https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black" alt="Linux" />
   <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker" />
-  <img src="https://img.shields.io/badge/云服务器-4285F4?style=flat-square&logo=googlecloud&logoColor=white" alt="Cloud VMs" />
+  <img src="https://img.shields.io/badge/云服务器-4285F4?style=flat-square&logo=googlecloud&logoColor=white" alt="云服务器" />
 </p>
 
 </div>
 
----
+![NextClaw 在真实会话中运行电子钢琴面板应用](images/screenshots/nextclaw-hero-workbench-cn.png)
 
-NextClaw 在你的机器上运行，把 Agent、技能、CLI 工具、定时自动化与消息应用集成收敛到一个可控制的 AI 助手工作台。
+NextClaw 是一个本地优先的 AI 工作台，适合处理那些不只是“问一句、答一句”的任务。对话、资料、工具、生成结果和后续操作可以留在一起，不用每换一个软件就重新开始。
 
-- **一条命令启动** — `nextclaw start`，浏览器内配置一切
-- **12+ AI 提供商** — OpenRouter、OpenAI、Anthropic、Gemini、DeepSeek、Groq、MiniMax 等
-  <br /><img src="https://img.shields.io/badge/OpenRouter-6366F1?style=flat-square" alt="OpenRouter" /> <img src="https://img.shields.io/badge/OpenAI-412991?style=flat-square&logo=openai&logoColor=white" alt="OpenAI" /> <img src="https://img.shields.io/badge/Anthropic-D4A27F?style=flat-square&logo=anthropic&logoColor=white" alt="Anthropic" /> <img src="https://img.shields.io/badge/Gemini-8E75B2?style=flat-square&logo=googlegemini&logoColor=white" alt="Gemini" /> <img src="https://img.shields.io/badge/DeepSeek-0066FF?style=flat-square" alt="DeepSeek" /> <img src="https://img.shields.io/badge/Groq-F55036?style=flat-square" alt="Groq" /> <img src="https://img.shields.io/badge/MiniMax-FF6B35?style=flat-square" alt="MiniMax" /> <img src="https://img.shields.io/badge/Moonshot-1A1A2E?style=flat-square" alt="Moonshot" /> <img src="https://img.shields.io/badge/通义千问-FF6A00?style=flat-square" alt="DashScope" /> <img src="https://img.shields.io/badge/智谱-0052CC?style=flat-square" alt="Zhipu" /> <img src="https://img.shields.io/badge/AiHubMix-00B4D8?style=flat-square" alt="AiHubMix" /> <img src="https://img.shields.io/badge/vLLM-FF4500?style=flat-square" alt="vLLM" />
-- **10+ 消息渠道** — Discord、Telegram、Slack、WhatsApp、飞书、钉钉、企业微信、QQ、微信、Email
-  <br /><img src="https://img.shields.io/badge/Discord-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /> <img src="https://img.shields.io/badge/Telegram-26A5E4?style=flat-square&logo=telegram&logoColor=white" alt="Telegram" /> <img src="https://img.shields.io/badge/Slack-4A154B?style=flat-square&logo=slack&logoColor=white" alt="Slack" /> <img src="https://img.shields.io/badge/WhatsApp-25D366?style=flat-square&logo=whatsapp&logoColor=white" alt="WhatsApp" /> <img src="https://img.shields.io/badge/飞书-00D6B9?style=flat-square" alt="Feishu" /> <img src="https://img.shields.io/badge/钉钉-0089FF?style=flat-square" alt="DingTalk" /> <img src="https://img.shields.io/badge/企业微信-07C160?style=flat-square" alt="WeCom" /> <img src="https://img.shields.io/badge/QQ-EB1923?style=flat-square&logo=tencentqq&logoColor=white" alt="QQ" /> <img src="https://img.shields.io/badge/微信-07C160?style=flat-square" alt="Weixin" /> <img src="https://img.shields.io/badge/Email-EA4335?style=flat-square&logo=gmail&logoColor=white" alt="Email" />
-- **内置自动化** — Cron 让 AI 按计划执行后台任务
-- **本地可控** — 完全本机运行，配置、会话与密钥保留在你自己的环境中
-- **极致轻量** — 代码量约为 OpenClaw 的 1/20，更易维护与扩展
+## 可以用它做什么
 
-## 社群
+- **调研和对比** — 收集网页、笔记和参考资料，整理成简报、来源列表或对比表。
+- **数据分析和可视化** — 从网页、CSV 或表格里整理数据，清洗、统计、画图，再写出结论。
+- **写文章和报告** — 把资料、旧文档和零散想法组织成周报、文章、提案、发布说明或可继续修改的初稿。
+- **处理本地文件** — 查看、重命名、抽取、归类和总结文档，处理过程和结果仍留在当前任务里。
+- **给自己做小工具** — 把重复工作做成脚本、本地应用、仪表盘或可复用的工作流。
+- **让日常任务持续运行** — 从聊天工具接收请求，定时生成简报或巡检结果，再发回指定渠道。
 
-- **微信群** — 扫码加群：
+[查看更多使用场景](https://nextclaw.io/zh/use-cases/)
 
-  <img src="images/contact/nextclaw-contact-wechat-group.png" width="180" alt="微信群二维码" />
+## 安装 NextClaw
 
-- **Discord** — [NextClaw / OpenClaw](https://discord.gg/j4Skbgye)
+### 桌面版
 
-## 快速开始
+普通用户建议直接下载桌面版，支持 macOS、Windows 和 Linux。
 
-### 0. 前置准备
+[下载最新稳定版](https://nextclaw.io/zh/download/)
 
-- 安装 Node.js（推荐 LTS）：[nodejs.org](https://nodejs.org/)
-- 打开终端：
-  - Windows：`Win + R` 输入 `cmd`（或打开 PowerShell）
-  - macOS：`Command + 空格` 搜索 `Terminal`
-  - Linux：`Ctrl + Alt + T`（或应用菜单中的 Terminal）
+### npm
 
-先验证环境：
+先安装 Node.js LTS，然后执行：
 
 ```bash
-node -v
-npm -v
-```
-
-```bash
-npm i -g nextclaw
+npm install -g nextclaw
 nextclaw start
 ```
 
-浏览器打开 **http://127.0.0.1:55667** → 设置 Provider 与模型 → 开始对话。
+打开 [http://127.0.0.1:55667](http://127.0.0.1:55667)，选择模型提供商后即可开始任务。
 
-如果部署在云服务器上，NextClaw 对外提供的是 `55667` 端口的纯 HTTP 服务。你可以先用 `http://<服务器IP>:55667` 直连验证；如果要走 `80/443` 或 `https://`，请用 Nginx/Caddy 做反向代理和 TLS 终止，不要让 NextClaw 直接承担 HTTPS。
+如果系统找不到 `npm`，请安装或重新安装 Node.js LTS，再重开终端。远程主机的 `55667` 端口提供纯 HTTP 服务，只适合临时验证；日常访问请用 Nginx 或 Caddy 终止 HTTPS。
 
 ```bash
-nextclaw stop    # 停止服务
+nextclaw stop
 ```
 
-如遇 `npm` 命令不存在，请先安装/重装 Node.js，并重开终端。
+### Docker
 
-### 运行开发环境
+需要在服务器或云主机上长期运行时，可以使用：
+
+```bash
+curl -fsSL https://nextclaw.io/install-docker.sh | bash
+```
+
+反向代理、域名和远程访问设置请查看 [Docker 部署文档](https://docs.nextclaw.io/zh/guide/tutorials/docker-one-click)。所有支持的方式都可以在[安装方式页面](https://nextclaw.io/zh/install/)中对比。
+
+## 界面与能力
+
+### 文件、源码和 HTML 可以放在任务旁边
+
+本地 HTML、代码、Markdown 和项目文件可以在右侧工作区打开，对话仍然留在当前页面。
+
+![NextClaw 会话右侧打开本地 HTML 数据分析仪表盘](images/screenshots/nextclaw-workspace-preview-cn.png)
+
+### 不同 Agent 可以有自己的工作上下文
+
+为不同 Agent 设置角色、记忆、技能、运行时和主目录，再从同一个界面启动适合当前任务的协作者。
+
+![NextClaw Agent 管理界面中的多个专业 Agent](images/screenshots/nextclaw-agents-page-cn.png)
+
+### 生成图片后直接得到本地文件
+
+生成文章配图、产品草稿或视觉素材后，可以在同一个任务里继续整理和使用结果。
+
+![NextClaw 生成图片并返回本地文件](images/screenshots/nextclaw-image-generation-result-cn.png)
+
+### 安装技能时，资料也可以一直放在旁边
+
+从工作台浏览和安装技能。技能详情、文档和参考资料可以留在全局右侧浏览器里，边看边继续操作。
+
+![NextClaw 技能市场与右侧 Browser Control 详情](images/screenshots/nextclaw-skills-doc-browser-cn.png)
+
+## 模型、渠道与工具
+
+- **模型** — OpenRouter、OpenAI、Anthropic、Gemini、DeepSeek、MiniMax、Moonshot、通义千问、智谱、AiHubMix、vLLM，以及自定义 OpenAI 兼容接口。
+- **聊天渠道** — 微信、飞书/Lark、QQ、钉钉、企业微信、Telegram、Discord、Slack、WhatsApp 和邮箱。
+- **可扩展能力** — 技能、MCP、CLI 工具、浏览器操作、本地文件、面板应用和定时任务。
+- **本地可控** — 配置、会话和密钥保存在你控制的环境中。接入的模型和渠道会收到你通过它们发送的数据。
+
+[查看完整集成能力](https://nextclaw.io/zh/integrations/)
+
+## 从源码运行
 
 在仓库根目录执行：
 
@@ -91,55 +122,52 @@ pnpm install
 pnpm dev start
 ```
 
-这会启动 NextClaw 的开发态前后端，并在终端打印本地访问地址。
-开发态默认直接使用 `~/.nextclaw`，也就是和你平时本地使用同一套数据目录；如果需要切换到其他目录，可设置 `NEXTCLAW_HOME=/path/to/home`。
+开发环境会在终端打印本地地址，默认使用 `~/.nextclaw`。如需使用隔离的数据目录，可设置 `NEXTCLAW_HOME=/path/to/home`。
 
-`pnpm dev start` 会主动禁用 runtime update host，避免开发态在发布 manifest 尚不存在时误显示“更新异常”。
-
-> 完整配置指南：[docs.nextclaw.io](https://docs.nextclaw.io/zh/guide/configuration)
->
-> 新手分步教程（含常见问题）：[快速开始文档](https://docs.nextclaw.io/zh/guide/getting-started)
-
-## 截图
-
-一键刷新全部产品截图（官网 + GitHub 资源图）：
+只启动其中一端：
 
 ```bash
-pnpm screenshots:refresh
+pnpm dev:backend
+pnpm dev:frontend
 ```
 
-**Agent 对话** — 在一个页面中发起任务并查看多轮对话：
+刷新 GitHub 与官网使用的产品截图：
 
-![Agent 对话](images/screenshots/nextclaw-chat-page-cn.png)
-
-**AI 提供商** — 在 UI 中配置与切换提供商：
-
-![AI 提供商](images/screenshots/nextclaw-providers-page-cn.png)
-
-**消息渠道** — 启用 Discord、Telegram、飞书、QQ 等：
-
-![消息渠道](images/screenshots/nextclaw-channels-page-cn.png)
+```bash
+pnpm run screenshots:refresh
+```
 
 ## 文档
 
-访问 **[docs.nextclaw.io](https://docs.nextclaw.io/zh/)** 查看完整文档，包括：
-
+- [快速开始](https://docs.nextclaw.io/zh/guide/getting-started)
+- [配置说明](https://docs.nextclaw.io/zh/guide/configuration)
 - [模型选择](https://docs.nextclaw.io/zh/guide/model-selection)
 - [命令参考](https://docs.nextclaw.io/zh/guide/commands)
-- [愿景与路线图](https://docs.nextclaw.io/zh/guide/vision)
-- [飞书接入教程](https://docs.nextclaw.io/zh/guide/tutorials/feishu)
-- GitHub 规划文档：[Roadmap](docs/ROADMAP.md) · [TODO 待办池](docs/TODO.md)
+- [飞书接入](https://docs.nextclaw.io/zh/guide/tutorials/feishu)
+- [产品愿景](https://docs.nextclaw.io/zh/guide/vision)
+- [路线图](https://docs.nextclaw.io/zh/guide/roadmap)
+- [版本更新](https://nextclaw.io/zh/releases/)
+
+仓库内规划：[Roadmap](docs/ROADMAP.md) · [TODO](docs/TODO.md)
+
+## 社群
+
+- **微信群** — 扫描下方二维码。
+- **Discord** — [NextClaw / OpenClaw](https://discord.gg/j4Skbgye)
+- **问题反馈** — [GitHub Issues](https://github.com/Peiiii/nextclaw/issues)
+
+<img src="images/contact/nextclaw-contact-wechat-group.png" width="180" alt="NextClaw 微信群二维码" />
 
 ## 参与贡献
 
-欢迎贡献！请提交 Issue 或 Pull Request。
+欢迎参与贡献。你可以先通过 Issue 讨论问题或提案，也可以提交范围清晰、包含相关验证的 Pull Request。
 
 ## 致谢
 
-NextClaw 的诞生离不开以下优秀项目的启发：
+NextClaw 的早期探索受到这些项目启发：
 
-- [OpenClaw](https://github.com/openclaw/openclaw) — 全栈 AI 助手平台，启发了 NextClaw 的早期探索。
-- [NanoBot](https://github.com/nicepkg/gpt-runner) — 轻量 Python Agent 框架，展示了简洁与强大可以兼得。
+- [OpenClaw](https://github.com/openclaw/openclaw) — 启发了 NextClaw 对全栈 AI 助手的早期探索。
+- [NanoBot](https://github.com/nicepkg/gpt-runner) — 展示了小型 Agent 框架也可以保持实用和可扩展。
 
 ## 许可证
 

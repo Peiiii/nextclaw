@@ -169,7 +169,9 @@
     "deploy:platform": "pnpm deploy:platform:backend && pnpm deploy:platform:console && pnpm deploy:platform:admin",
     "deploy:llm-api-worker": "node scripts/deploy/deploy-llm-api-worker.mjs",
     "deploy:workers": "pnpm -r --filter \"./workers/*\" run deploy",
-    "screenshots:refresh": "node scripts/docs/refresh-product-screenshots.mjs"
+    "screenshots:refresh": "node scripts/docs/refresh-product-screenshots.mjs",
+    "screenshots:capture-curated": "node scripts/docs/refresh-product-screenshots.mjs --mode=curated",
+    "assets:update-wechat-qr": "node scripts/docs/visual-assets/update-wechat-group-qr.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",

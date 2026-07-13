@@ -22,6 +22,10 @@ import {
 } from './product-screenshot-status-mocks.mjs';
 import { createScreenshotRouteMockResolver } from './product-screenshot-route-mocks.utils.mjs';
 import {
+  createScreenshotModeState,
+  parseBooleanEnv
+} from './product-screenshots/curated-scenes.utils.mjs';
+import {
   initializeScreenshotDocument,
   installMockApiRoutes,
   openFirstSkillDetail,
@@ -36,7 +40,6 @@ const localPanels = createLocalPanelScreenshotData({ repoRoot });
 
 const DEFAULT_UI_PORT = Number(process.env.SCREENSHOT_UI_PORT || 5194);
 const shouldStartUi = !process.env.SCREENSHOT_UI_ORIGIN;
-const useRealAppData = parseBooleanEnv(process.env.SCREENSHOT_USE_REAL_APP_DATA || process.env.SCREENSHOT_REAL_APP_DATA);
 const useRealMarketplace = parseBooleanEnv(process.env.REAL_MARKETPLACE || process.env.SCREENSHOT_REAL_MARKETPLACE);
 const sceneFilter = parseSceneFilter(process.env.SCREENSHOT_SCENES || process.env.SCREENSHOT_SCENE);
 const realMarketplaceBase = normalizeBaseUrl(
@@ -48,14 +51,6 @@ const themeStorageKey = 'nextclaw.ui.theme';
 const screenshotTheme = process.env.SCREENSHOT_UI_THEME || 'cool';
 const viewport = { width: 1512, height: 828 };
 const deviceScaleFactor = 2;
-
-function parseBooleanEnv(raw) {
-  if (!raw) {
-    return false;
-  }
-  const value = String(raw).trim().toLowerCase();
-  return value === '1' || value === 'true' || value === 'yes' || value === 'on';
-}
 
 function normalizeBaseUrl(raw) {
   const value = String(raw || '').trim();
@@ -76,13 +71,6 @@ function parseSceneFilter(raw) {
       .map((entry) => entry.trim())
       .filter(Boolean)
   );
-}
-
-function matchesSceneFilter(scene) {
-  if (!sceneFilter) {
-    return true;
-  }
-  return sceneFilter.has(scene.id);
 }
 
 const uiText = {
@@ -123,7 +111,7 @@ async function waitForWorkspacePreview(page) {
   await page.waitForTimeout(1_000);
 }
 
-const scenes = [
+const stableScenes = [
   {
     id: 'providers-en',
     route: '/providers',
@@ -338,6 +326,10 @@ const scenes = [
     ]
   }
 ];
+
+const { assertCanRun, resolveScenesToCapture, screenshotMode, useRealAppData } = createScreenshotModeState({
+  argv: process.argv, env: process.env, sceneFilter, stableScenes
+});
 
 const marketplaceSkills = [
   {
@@ -778,15 +770,18 @@ async function main() {
   let uiProcess = null;
   const uiPort = DEFAULT_UI_PORT;
   const resolvedUiOrigin = process.env.SCREENSHOT_UI_ORIGIN || `http://127.0.0.1:${uiPort}`;
-  const scenesToCapture = scenes.filter(matchesSceneFilter);
 
   try {
+    assertCanRun();
+    console.log(`[screenshot] mode=${screenshotMode} theme=${screenshotTheme}`);
     if (useRealAppData) {
       console.log(`[screenshot] real app mode enabled. origin=${resolvedUiOrigin}`);
     }
     if (useRealMarketplace) {
       console.log(`[screenshot] REAL_MARKETPLACE enabled. source=${realMarketplaceBase}`);
     }
+
+    const scenesToCapture = resolveScenesToCapture();
 
     if (shouldStartUi) {
       console.log('[screenshot] starting @nextclaw/ui dev server...');

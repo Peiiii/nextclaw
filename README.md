@@ -4,20 +4,19 @@
 
 <div align="center">
 
-<img src="images/marketing/nextclaw-omni-assistant-en.jpg" alt="NextClaw — Powerful AI Assistant for Your Computer" width="720" />
-
-<br /><br />
-
 # NextClaw
 
-**Turn your computer into a powerful AI assistant that coordinates agents, skills, CLI tools, automations, and messaging apps.**
+**Get real work done with AI on the computer you control.**
+
+Tell NextClaw what you want done. It brings files, models, agents, skills, browser tools, local apps, automations, and messaging channels into one task, then keeps working toward a usable result.
 
 [![npm](https://img.shields.io/npm/v/nextclaw)](https://www.npmjs.com/package/nextclaw)
+[![GitHub Release](https://img.shields.io/github/v/release/Peiiii/nextclaw?display_name=tag)](https://github.com/Peiiii/nextclaw/releases)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
+[![Node.js LTS](https://img.shields.io/badge/Node.js-LTS-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Discord](https://img.shields.io/badge/Discord-NextClaw-5865F2?logo=discord&logoColor=white)](https://discord.gg/j4Skbgye)
 
-[Documentation](https://docs.nextclaw.io/en/) · [Planning](docs/ROADMAP.md) · [Discord](https://discord.gg/j4Skbgye) · [Issues](https://github.com/Peiiii/nextclaw/issues) · [Roadmap](https://docs.nextclaw.io/en/guide/roadmap)
+[Website](https://nextclaw.io/en/) · [Download](https://nextclaw.io/en/download/) · [Install](https://nextclaw.io/en/install/) · [Documentation](https://docs.nextclaw.io/en/) · [Releases](https://github.com/Peiiii/nextclaw/releases)
 
 <p>
   <img src="https://img.shields.io/badge/Windows-0078D6?style=flat-square&logo=windows&logoColor=white" alt="Windows" />
@@ -29,123 +28,146 @@
 
 </div>
 
----
+![NextClaw running an interactive piano Panel App inside a real conversation](images/screenshots/nextclaw-hero-workbench-en.png)
 
-NextClaw runs on your machine and brings agents, skills, CLI tools, scheduled automations, and messaging app integrations into one controllable assistant workspace.
+NextClaw is a local-first AI workspace for tasks that need more than a single answer. A conversation can keep its files, references, tools, generated results, and follow-up work together instead of making you restart in separate apps.
 
-- **One-command startup** — `nextclaw start`, then configure everything in the browser UI
-- **12+ AI providers** — OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, Groq, MiniMax, and more
-  <br /><img src="https://img.shields.io/badge/OpenRouter-6366F1?style=flat-square" alt="OpenRouter" /> <img src="https://img.shields.io/badge/OpenAI-412991?style=flat-square&logo=openai&logoColor=white" alt="OpenAI" /> <img src="https://img.shields.io/badge/Anthropic-D4A27F?style=flat-square&logo=anthropic&logoColor=white" alt="Anthropic" /> <img src="https://img.shields.io/badge/Gemini-8E75B2?style=flat-square&logo=googlegemini&logoColor=white" alt="Gemini" /> <img src="https://img.shields.io/badge/DeepSeek-0066FF?style=flat-square" alt="DeepSeek" /> <img src="https://img.shields.io/badge/Groq-F55036?style=flat-square" alt="Groq" /> <img src="https://img.shields.io/badge/MiniMax-FF6B35?style=flat-square" alt="MiniMax" /> <img src="https://img.shields.io/badge/Moonshot-1A1A2E?style=flat-square" alt="Moonshot" /> <img src="https://img.shields.io/badge/DashScope-FF6A00?style=flat-square" alt="DashScope" /> <img src="https://img.shields.io/badge/Zhipu-0052CC?style=flat-square" alt="Zhipu" /> <img src="https://img.shields.io/badge/AiHubMix-00B4D8?style=flat-square" alt="AiHubMix" /> <img src="https://img.shields.io/badge/vLLM-FF4500?style=flat-square" alt="vLLM" />
-- **10+ message channels** — Discord, Telegram, Slack, WhatsApp, Feishu, DingTalk, WeCom, QQ, Weixin, Email
-  <br /><img src="https://img.shields.io/badge/Discord-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /> <img src="https://img.shields.io/badge/Telegram-26A5E4?style=flat-square&logo=telegram&logoColor=white" alt="Telegram" /> <img src="https://img.shields.io/badge/Slack-4A154B?style=flat-square&logo=slack&logoColor=white" alt="Slack" /> <img src="https://img.shields.io/badge/WhatsApp-25D366?style=flat-square&logo=whatsapp&logoColor=white" alt="WhatsApp" /> <img src="https://img.shields.io/badge/Feishu-00D6B9?style=flat-square" alt="Feishu" /> <img src="https://img.shields.io/badge/DingTalk-0089FF?style=flat-square" alt="DingTalk" /> <img src="https://img.shields.io/badge/WeCom-07C160?style=flat-square" alt="WeCom" /> <img src="https://img.shields.io/badge/QQ-EB1923?style=flat-square&logo=tencentqq&logoColor=white" alt="QQ" /> <img src="https://img.shields.io/badge/Weixin-07C160?style=flat-square" alt="Weixin" /> <img src="https://img.shields.io/badge/Email-EA4335?style=flat-square&logo=gmail&logoColor=white" alt="Email" />
-- **Built-in automation** — Cron for scheduled autonomous tasks
-- **Local & private** — Runs entirely on your machine; configs, history, and tokens stay with you
-- **Ultra-lightweight** — ~1/20 the codebase of OpenClaw, easier to maintain and extend
+## What You Can Do
 
-## Community
+- **Research and compare** — collect pages, notes, and references, then turn them into a brief, source list, or comparison table.
+- **Analyze and visualize data** — gather data from websites, CSV files, or spreadsheets, clean it, draw charts, and write the conclusion.
+- **Draft useful documents** — shape source material and rough notes into reports, articles, proposals, release notes, or weekly updates.
+- **Process local files** — inspect, rename, extract, classify, and summarize documents without losing the task context.
+- **Build small tools for yourself** — turn a repeated job into a script, local app, dashboard, or reusable workflow.
+- **Keep recurring work moving** — receive requests from chat apps, run scheduled briefs or checks, and send results back to the right channel.
 
-- **Discord** — [NextClaw / OpenClaw](https://discord.gg/j4Skbgye)
-- **WeChat Group** — Scan to join:
+[Explore more use cases](https://nextclaw.io/en/use-cases/)
 
-  <img src="images/contact/nextclaw-contact-wechat-group.png" width="180" alt="WeChat Group QR" />
+## Install NextClaw
 
-## Quick Start
+### Desktop App
 
-### 0. Prerequisites
+The desktop app is the easiest way to start on macOS, Windows, or Linux.
 
-- Install Node.js (LTS recommended): [nodejs.org](https://nodejs.org/)
-- Open a terminal:
-  - Windows: `Win + R`, type `cmd` (or open PowerShell)
-  - macOS: `Command + Space`, search `Terminal`
-  - Linux: `Ctrl + Alt + T` (or Terminal from app menu)
+[Download the latest stable desktop release](https://nextclaw.io/en/download/)
 
-Verify your environment first:
+### npm
+
+Install Node.js LTS first, then run:
 
 ```bash
-node -v
-npm -v
-```
-
-```bash
-npm i -g nextclaw
+npm install -g nextclaw
 nextclaw start
 ```
 
-Open **http://127.0.0.1:55667** → set your provider and model → start chatting.
+Open [http://127.0.0.1:55667](http://127.0.0.1:55667), choose a model provider, and start a task.
 
-On a VPS, NextClaw serves plain HTTP on `55667`. Use `http://<server-ip>:55667` directly for a quick check, or put Nginx/Caddy in front for `80/443`. `https://` must be terminated by the reverse proxy, not by NextClaw itself.
+If `npm` is unavailable, install or reinstall Node.js LTS and reopen the terminal. On a remote host, port `55667` serves plain HTTP. Use it directly only for a quick check; terminate HTTPS with Nginx or Caddy for regular access.
 
 ```bash
-nextclaw stop    # stop the service
+nextclaw stop
 ```
 
-If `npm` is not found, install/reinstall Node.js and reopen your terminal.
+### Docker
 
-### Run The Development Server
+For a long-running server or cloud VM deployment:
 
-For local development in this repository, use the built-in dev runner from the repo root:
+```bash
+curl -fsSL https://nextclaw.io/install-docker.sh | bash
+```
+
+See the [Docker deployment guide](https://docs.nextclaw.io/en/guide/tutorials/docker-one-click) for reverse proxy, domain, and remote access setup. You can compare every supported path on the [install options page](https://nextclaw.io/en/install/).
+
+## Product Tour
+
+### Keep files, source, and HTML beside the task
+
+Open local HTML, code, Markdown, and project files in the right-side workspace while the conversation remains available.
+
+![NextClaw conversation with a local HTML analytics dashboard open in the side workspace](images/screenshots/nextclaw-workspace-preview-en.png)
+
+### Give different agents their own working context
+
+Create agents with separate roles, memory, skills, runtimes, and workspaces, then start the right one from the same interface.
+
+![NextClaw agent management page with multiple specialized agents](images/screenshots/nextclaw-agents-page-en.png)
+
+### Generate an image and keep the local file
+
+Create visuals for articles, product drafts, or source material, then continue using the result in the same task.
+
+![A local image-generation result produced through NextClaw](images/screenshots/nextclaw-image-generation-result-en.png)
+
+### Add skills and keep references open
+
+Browse and install skills from the workspace. Skill details, docs, and other references can stay open in the global side browser while you work.
+
+![NextClaw skill market with Browser Control open in the right-side Doc Browser](images/screenshots/nextclaw-skills-doc-browser-en.png)
+
+## Models, Channels, and Tools
+
+- **Models** — OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, MiniMax, Moonshot, DashScope, Zhipu, AiHubMix, vLLM, and custom OpenAI-compatible endpoints.
+- **Messaging channels** — Weixin, Feishu/Lark, QQ, DingTalk, WeCom, Telegram, Discord, Slack, WhatsApp, and email.
+- **Capabilities** — skills, MCP servers, CLI tools, browser control, local files, Panel Apps, and scheduled tasks.
+- **Local control** — configuration, conversations, and credentials stay in the environment you control. Connected providers and channels receive the data you send through them.
+
+[See all integrations](https://nextclaw.io/en/integrations/)
+
+## Develop From Source
+
+From the repository root:
 
 ```bash
 pnpm install
-pnpm dev
+pnpm dev start
 ```
 
-This starts the NextClaw development stack and prints the local URLs in the terminal.
-By default it uses `~/.nextclaw`, the same data directory as the normal local app. Set `NEXTCLAW_HOME=/path/to/home` if you want development to run against a different data directory.
+The development stack prints its local URLs in the terminal and uses `~/.nextclaw` by default. Set `NEXTCLAW_HOME=/path/to/home` to use an isolated data directory.
 
-`pnpm dev start` intentionally disables the runtime update host so development builds do not show a false "Update Issue" state before a release manifest exists.
-
-If you only need one side, you can run them separately:
+To run only one side:
 
 ```bash
-pnpm dev:backend   # backend on 127.0.0.1:18792
-pnpm dev:frontend  # frontend on 127.0.0.1:5174
+pnpm dev:backend
+pnpm dev:frontend
 ```
 
-> Full configuration guide: [docs.nextclaw.io](https://docs.nextclaw.io/en/guide/configuration)
->
-> Beginner step-by-step guide (with troubleshooting): [Getting Started](https://docs.nextclaw.io/en/guide/getting-started)
-
-## Screenshots
-
-Refresh all product screenshots (website + GitHub assets):
+To refresh the repository and website screenshot set:
 
 ```bash
-pnpm screenshots:refresh
+pnpm run screenshots:refresh
 ```
-
-**Agent Chat** — send tasks and review multi-turn conversations in one place:
-
-![Agent Chat](images/screenshots/nextclaw-chat-page-en.png)
-
-**AI Providers** — configure and switch between providers in the UI:
-
-![AI Providers](images/screenshots/nextclaw-providers-page-en.png)
-
-**Message Channels** — enable Discord, Telegram, Feishu, QQ, and more:
-
-![Message Channels](images/screenshots/nextclaw-channels-page-en.png)
 
 ## Documentation
 
-Visit **[docs.nextclaw.io](https://docs.nextclaw.io/en/)** for the full documentation, including:
-
+- [Getting Started](https://docs.nextclaw.io/en/guide/getting-started)
+- [Configuration](https://docs.nextclaw.io/en/guide/configuration)
 - [Model Selection](https://docs.nextclaw.io/en/guide/model-selection)
 - [Commands](https://docs.nextclaw.io/en/guide/commands)
-- [Vision & Roadmap](https://docs.nextclaw.io/en/guide/vision)
-- [Feishu Setup Tutorial](https://docs.nextclaw.io/en/guide/tutorials/feishu)
-- GitHub planning docs: [Roadmap](docs/ROADMAP.md) · [TODO Backlog](docs/TODO.md) · [File Naming Convention](docs/workflows/file-naming-convention.md)
+- [Feishu Setup](https://docs.nextclaw.io/en/guide/tutorials/feishu)
+- [Vision](https://docs.nextclaw.io/en/guide/vision)
+- [Roadmap](https://docs.nextclaw.io/en/guide/roadmap)
+- [Product Updates](https://nextclaw.io/en/releases/)
+
+Repository planning: [Roadmap](docs/ROADMAP.md) · [TODO](docs/TODO.md)
+
+## Community
+
+- [Discord](https://discord.gg/j4Skbgye)
+- [GitHub Issues](https://github.com/Peiiii/nextclaw/issues)
+- WeChat group: scan the QR code below.
+
+<img src="images/contact/nextclaw-contact-wechat-group.png" width="180" alt="NextClaw WeChat group QR code" />
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request.
+Contributions are welcome. Open an issue to discuss a bug or proposal, or submit a pull request with a focused change and its relevant verification.
 
 ## Acknowledgements
 
-NextClaw is inspired by and built upon the shoulders of these great projects:
+NextClaw was inspired by these projects:
 
-- [OpenClaw](https://github.com/openclaw/openclaw) — The full-stack AI assistant platform that inspired NextClaw's early exploration.
-- [NanoBot](https://github.com/nicepkg/gpt-runner) — A lightweight Python agent framework that demonstrated how simplicity and power can coexist.
+- [OpenClaw](https://github.com/openclaw/openclaw) — inspired NextClaw's early exploration of a full-stack AI assistant.
+- [NanoBot](https://github.com/nicepkg/gpt-runner) — demonstrated how a small agent framework can remain useful and extensible.
 
 ## License
 

@@ -10,6 +10,7 @@
 - HTML 与 Markdown 的源码/预览现已建模为独立 workspace tab：HTML 默认源码、Markdown 默认预览；“打开预览/打开源码”会在来源旁新增或聚焦对应 tab，不在同一个 tab 内改写 viewer。
 - 此前刷新后活跃文件视图可能丢失，根因是 workspace 文件 tab 以最新在前保存，却用尾部裁剪保留最旧 tab，并且 hydrate 时未把活跃 tab 与当前 workspace parent 一起校验。现在持久化裁剪始终保留活跃 tab，恢复时只从当前会话的文件 tab 解析选中项。
 - 文件操作入口不再占用默认标题宽度：槽位在 hover/focus 时才进入布局；源码标题保持普通样式，预览标题使用“预览: 文件名”斜体表达。执行菜单动作后不再把焦点还给旧触发器，避免操作图标与 Tooltip 常驻。
+- 开发态热更新后会话工作台偶发“点击无反应、刷新后才生效”，根因是 `NcpChatPage` 用 `useState` 长期保留旧 `ChatPresenter`，而 Fast Refresh 已替换 manager/store 模块，导致旧 manager 写入旧 store（持久化仍成功），刷新后的视图却订阅新 store。现在页面与全局 `AppPresenterProvider` 一致，通过 `useMemo` 随组合依赖重建 presenter，不新增 HMR 特判、effect 或平行状态链路。
 
 ## 测试/验证/验收方式
 
@@ -22,7 +23,9 @@
 - `@nextclaw/ui` 全量测试 163 个测试文件、707 项测试通过；最终 owner 拆分后，workspace renderer、panel、view model、manager、store、文件类型图标和 Tab primitive 共 7 个定向测试文件、78 项测试再次通过。
 - `@nextclaw/ui` TSC 通过；本次触达的 21 个 TypeScript/TSX 源码与测试文件 ESLint 通过。包级 ESLint 为 0 错误，仅保留无关 `cron-config.tsx` 的 1 条历史认知复杂度 warning。
 - 真实浏览器从消息中的 `index.html` 打开源码 tab，通过“打开预览”新增相邻预览 tab；刷新同一会话后工作台、源码/预览双 tab 与活跃 HTML iframe 均恢复。菜单动作完成后两个操作槽位均回到 `width: 0px; opacity: 0`，无残留 Tooltip。
-- `CI=true pnpm lint:new-code:governance` 与 `CI=true pnpm check:governance-backlog-ratchet` 通过；`git diff --check` 通过。
+- 在工作台已打开时人为触发 `chat-thread.store.ts` 的真实 Vite HMR，不刷新页面点击收起，`aside` 立即从 1 个变为 0 个；再次触发 HMR 后点击打开，`aside` 立即恢复为 1 个，证明热更新后的 manager 写入与当前视图订阅已回到同一 store 实例。
+- 热更新一致性补丁的 `ncp-chat-page` 定向测试 1/1 通过，`@nextclaw/ui` TSC 与触达文件 ESLint 通过；包级 ESLint 0 错误，仅保留无关 `cron-config.tsx` 的 1 条历史认知复杂度 warning。`check:governance-backlog-ratchet` 与定向 maintainability guard 通过；全仓 `lint:new-code:governance` 被另一批未提交的产品截图脚本 `scripts/docs/product-screenshot-curated.utils.mjs` 阻断，本补丁触达文件不在失败项中。
+- 本轮统一预览主改动验收时，`CI=true pnpm lint:new-code:governance` 与 `CI=true pnpm check:governance-backlog-ratchet` 通过；`git diff --check` 通过。
 - maintainability guard 按本次 21 个源码/测试文件定向检查：0 错误、5 个接近预算 warning；总代码新增 931 行、删除 142 行，非测试代码新增 689 行、删除 124 行。本次是新增用户能力，因此不套用非功能改动净增门槛。
 - 源码构建产生的 `packages/nextclaw/ui-dist` 漂移已通过 `pnpm clean:generated` 恢复，源码 API 18888 与 Vite UI 5174 健康检查均为 200。
 
@@ -49,6 +52,7 @@
 - 文件打开入口、tab owner、内容平面与 renderer 边界在设计文档中得到显式约束，后续新增富内容类型会自动遵守同一状态规则。
 - maintainability guard 无阻塞项；manager 为 599/600 行、store 为 398/400 行，两个文件都已通过职责拆分回到预算内。预览测试、manager 测试与预览组件仍接近预算，后续扩展前应先拆 fixtures/builders 或 renderer 分支。
 - 主观复核无阻塞 finding：双视图仍只有一个 viewer 事实源和一条激活链路，没有新增 effect、平行 store、兼容 fallback 或重复 renderer；结构拆分用于明确纯值逻辑与状态编排边界，不是压行规避门槛。
+- 热更新一致性修复删除了一个不必要的 `useState` 导入和固定实例写法，生产源码净减少 1 行；复用既有 `useMemo` 组合模式，没有新增抽象、分支、helper 或兼容层。
 
 ## NPM 包发布记录
 
