@@ -76,6 +76,7 @@ export type DocBrowserOpenOptions = {
 export type DocBrowserState = {
   isOpen: boolean;
   mode: DocBrowserMode;
+  dockedWidth: number;
   tabs: DocBrowserTab[];
   activeTabId: string;
   activeHistory: DocBrowserActiveHistoryEntry[];
@@ -90,6 +91,7 @@ export type DocBrowserActions = {
   openNewTab: () => void;
   close: () => void;
   toggleMode: () => void;
+  setDockedWidth: (width: number) => void;
   navigate: (url: string) => void;
   syncUrl: (url: string) => void;
   goBack: () => void;

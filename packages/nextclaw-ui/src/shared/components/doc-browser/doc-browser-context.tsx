@@ -57,6 +57,7 @@ export function DocBrowserProvider({
     openNewTab: manager.openNewTab,
     close: manager.close,
     toggleMode: manager.toggleMode,
+    setDockedWidth: manager.setDockedWidth,
     navigate: manager.navigate,
     syncUrl: manager.syncUrl,
     goBack: manager.goBack,

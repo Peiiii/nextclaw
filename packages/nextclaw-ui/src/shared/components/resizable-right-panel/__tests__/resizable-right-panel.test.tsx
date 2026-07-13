@@ -21,12 +21,14 @@ describe("ResizableRightPanel", () => {
   });
 
   it("resizes horizontally from the left handle and clamps to max width", () => {
+    const onWidthCommit = vi.fn();
     render(
       <ResizableRightPanel
         data-testid="right-panel"
         defaultWidth={420}
         minWidth={320}
         maxWidth={500}
+        onWidthCommit={onWidthCommit}
       >
         Content
       </ResizableRightPanel>,
@@ -46,6 +48,8 @@ describe("ResizableRightPanel", () => {
 
     firePointerEvent(window, "pointerup", { clientX: 600, pointerId: 1 });
 
+    expect(onWidthCommit).toHaveBeenCalledWith(500);
+
     expect(
       screen.queryByTestId("resizable-right-panel-resize-shield"),
     ).toBeNull();
@@ -62,6 +66,24 @@ describe("ResizableRightPanel", () => {
       screen.queryByTestId("resizable-right-panel-handle"),
     ).toBeNull();
     expect(screen.getByTestId("right-panel").className).toContain("fixed");
+  });
+
+  it("applies a persisted controlled width after store rehydration", () => {
+    const view = render(
+      <ResizableRightPanel data-testid="right-panel" width={480}>
+        Content
+      </ResizableRightPanel>,
+    );
+
+    expect(screen.getByTestId("right-panel").style.width).toBe("480px");
+
+    view.rerender(
+      <ResizableRightPanel data-testid="right-panel" width={620}>
+        Content
+      </ResizableRightPanel>,
+    );
+
+    expect(screen.getByTestId("right-panel").style.width).toBe("620px");
   });
 
   it("can scope overlay positioning to its container", () => {

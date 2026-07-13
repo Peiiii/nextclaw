@@ -3,8 +3,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { CronJobView } from "@/shared/lib/api";
 import { useNcpChildSessionTabsView } from "@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
+import {
+  CHAT_WORKSPACE_PANEL_DEFAULT_WIDTH,
+  CHAT_WORKSPACE_PANEL_MAX_WIDTH,
+  CHAT_WORKSPACE_PANEL_MIN_WIDTH,
+} from "@/features/chat/features/workspace/utils/chat-workspace-panel-layout.utils";
 import type {
   ChatChildSessionTab,
+  ChatWorkspacePanelKind,
   ChatWorkspaceSideChatDraft,
   ChatWorkspaceNavigationEntry,
   ChatWorkspaceFileTab,
@@ -35,10 +41,11 @@ type ChatSessionWorkspacePanelProps = {
   activeWorkspaceFileKey: string | null;
   workspaceNavigationHistory?: readonly ChatWorkspaceNavigationEntry[];
   workspaceNavigationHistoryIndex?: number;
-  activePanelKind?: "child-session" | "side-chat-draft" | "file" | "cron" | null;
+  activePanelKind?: ChatWorkspacePanelKind | null;
   sessionCronJobs?: readonly CronJobView[];
   sessionProjectRoot: string | null;
   sessionWorkingDir: string | null;
+  workspacePanelWidth?: number;
   displayMode?: "docked" | "overlay";
 };
 
@@ -55,6 +62,7 @@ export function ChatSessionWorkspacePanel({
   sessionCronJobs = [],
   sessionProjectRoot,
   sessionWorkingDir,
+  workspacePanelWidth = CHAT_WORKSPACE_PANEL_DEFAULT_WIDTH,
   displayMode = "docked",
 }: ChatSessionWorkspacePanelProps) {
   const presenter = usePresenter();
@@ -72,7 +80,6 @@ export function ChatSessionWorkspacePanel({
     activePanelKind,
     childSessionTabs: resolvedChildTabs,
     workspaceFileTabs,
-    sessionCronJobCount: sessionCronJobs.length,
   });
   const workspaceHistory = {
     entries: workspaceNavigationHistory,
@@ -89,12 +96,23 @@ export function ChatSessionWorkspacePanel({
         resolvedChildTabs,
         activeSideChatDraft,
         workspaceFileTabs,
-        sessionCronJobCount: sessionCronJobs.length,
         activeSelection,
         optimisticReadAtBySessionKey,
         onSelectSession: presenter.chatThreadManager.selectChildSessionDetail,
         onSelectFile: presenter.chatThreadManager.selectWorkspaceFile,
         onCloseFile: presenter.chatThreadManager.closeWorkspaceFile,
+        onSelectOverview: () => {
+          if (sessionKey)
+            presenter.chatThreadManager.openWorkspaceOverview(sessionKey);
+        },
+        onSelectChildSessions: () => {
+          if (sessionKey)
+            presenter.chatThreadManager.openChildSessions(sessionKey);
+        },
+        onSelectProjectFiles: () => {
+          if (sessionKey)
+            presenter.chatThreadManager.openProjectFiles(sessionKey);
+        },
         onSelectCronJobs: () => {
           if (sessionKey)
             presenter.chatThreadManager.openSessionCronPanel(sessionKey);
@@ -108,7 +126,6 @@ export function ChatSessionWorkspacePanel({
       resolvedChildTabs,
       sessionKey,
       workspaceFileTabs,
-      sessionCronJobs.length,
     ],
   );
 
@@ -150,9 +167,11 @@ export function ChatSessionWorkspacePanel({
           : "hidden border-gray-200/70 bg-white/95 backdrop-blur-sm md:flex",
         isContainerMaximized ? "shadow-xl" : null,
       )}
-      defaultWidth={480}
-      minWidth={360}
-      maxWidth={860}
+      defaultWidth={workspacePanelWidth}
+      width={workspacePanelWidth}
+      minWidth={CHAT_WORKSPACE_PANEL_MIN_WIDTH}
+      maxWidth={CHAT_WORKSPACE_PANEL_MAX_WIDTH}
+      onWidthCommit={presenter.chatThreadManager.setWorkspacePanelWidth}
       overlay={isOverlayPanel}
       overlayScope={isContainerMaximized ? "container" : "viewport"}
     >
@@ -175,7 +194,9 @@ export function ChatSessionWorkspacePanel({
       <div className="flex min-h-0 flex-1 flex-col bg-white">
         <ChatSessionWorkspacePanelContent
           activeSelection={activeSelection}
+          childSessionTabs={resolvedChildTabs}
           filePreviewRefreshVersion={filePreviewRefreshVersion}
+          sessionKey={sessionKey}
           sessionCronJobs={sessionCronJobs}
           sessionProjectRoot={sessionProjectRoot}
           sessionWorkingDir={sessionWorkingDir}

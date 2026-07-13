@@ -5,7 +5,6 @@ import { ChatSessionProjectBadge } from "@/features/chat/features/session/compon
 import { ChatSessionTitleSwitcher } from "@/features/chat/features/session/components/session-header/chat-session-title-switcher";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import { SessionContextIconNode } from "@/features/chat/features/session/components/session-context-icon";
-import { useChatConversationWorkspaceState } from "@/features/chat/features/workspace/hooks/use-chat-conversation-workspace-state";
 import { useNcpChatSelectedSession } from "@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state";
 import { sessionDisplayName } from "@/features/chat/features/session/utils/chat-session-display.utils";
 import {
@@ -59,8 +58,6 @@ export function ChatConversationHeaderSection({
   const sessionProjectName =
     selectedSession?.projectName ?? getSessionProjectName(sessionProjectRoot);
   const canDeleteSession = Boolean(selectedSession);
-  const { childSessionTabs, sessionCronJobs } =
-    useChatConversationWorkspaceState(snapshot, sessionKey);
   const shouldShowSessionHeader = Boolean(sessionKey || sessionTypeLabel);
   const sessionHeaderTitle =
     (selectedSession ? sessionDisplayName(selectedSession) : undefined) ||
@@ -72,20 +69,16 @@ export function ChatConversationHeaderSection({
     selectedSession?.agentId?.trim() ?? selectedAgentId?.trim() ?? "";
   const shouldShowHeaderAgentAvatar =
     normalizedAgentId.length > 0 && normalizedAgentId.toLowerCase() !== "main";
-  const openChildSessions = () => {
+  const isWorkspaceOpen = Boolean(
+    sessionKey &&
+      snapshot.workspacePanelParentKey === sessionKey &&
+      snapshot.activeWorkspacePanelKind,
+  );
+  const toggleWorkspace = () => {
     if (!sessionKey) {
       return;
     }
-    presenter.chatThreadManager.openChildSessionPanel({
-      parentSessionKey: sessionKey,
-      activeChildSessionKey: childSessionTabs[0]?.sessionKey ?? null,
-    });
-  };
-  const openSessionCronJobs = () => {
-    if (!sessionKey || sessionCronJobs.length === 0) {
-      return;
-    }
-    presenter.chatThreadManager.openSessionCronPanel(sessionKey);
+    presenter.chatThreadManager.toggleWorkspacePanel(sessionKey);
   };
 
   return (
@@ -148,10 +141,8 @@ export function ChatConversationHeaderSection({
             isDeletePending={snapshot.isDeletePending}
             projectRoot={sessionProjectRoot}
             metadata={selectedSession?.metadata ?? null}
-            childSessionCount={childSessionTabs.length}
-            sessionCronJobCount={sessionCronJobs.length}
-            onOpenChildSessions={openChildSessions}
-            onOpenSessionCronJobs={openSessionCronJobs}
+            isWorkspaceOpen={isWorkspaceOpen}
+            onToggleWorkspace={toggleWorkspace}
             onDeleteSession={presenter.chatThreadManager.deleteSession}
           />
         ) : null

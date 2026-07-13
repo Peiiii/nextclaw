@@ -24,6 +24,7 @@ const { docBrowserState } = vi.hoisted<{
   docBrowserState: {
     isOpen: true,
     mode: "docked" as "docked" | "floating",
+    dockedWidth: 420,
     tabs: [
       {
         id: "docs",
@@ -58,6 +59,7 @@ const { docBrowserState } = vi.hoisted<{
     openNewTab: vi.fn(),
     close: vi.fn(),
     toggleMode: vi.fn(),
+    setDockedWidth: vi.fn(),
     goBack: vi.fn(),
     goForward: vi.fn(),
     navigate: vi.fn(),
@@ -154,6 +156,20 @@ describe("DocBrowser", () => {
 
     expect(screen.getByTestId("doc-browser-panel").style.width).toBe("420px");
     expect(screen.getByTestId("resizable-right-panel-handle")).toBeTruthy();
+  });
+
+  it("commits the resized docked width to the global browser state owner", () => {
+    render(<DocBrowser />);
+
+    firePointerEvent(
+      screen.getByTestId("resizable-right-panel-handle"),
+      "pointerdown",
+      { clientX: 800, pointerId: 1 },
+    );
+    firePointerEvent(window, "pointermove", { clientX: 620, pointerId: 1 });
+    firePointerEvent(window, "pointerup", { clientX: 620, pointerId: 1 });
+
+    expect(docBrowserState.setDockedWidth).toHaveBeenCalledWith(600);
   });
 
   it("uses a full viewport panel without desktop resize controls in fullscreen mode", () => {

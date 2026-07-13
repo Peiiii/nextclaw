@@ -3,6 +3,9 @@ import {
   ArrowLeft,
   ArrowRight,
   FileCode2,
+  FolderTree,
+  GitBranch,
+  LayoutDashboard,
   Maximize2,
   MessageSquarePlus,
   MessageSquareText,
@@ -20,6 +23,18 @@ import {
 import { t } from "@/shared/lib/i18n";
 
 function WorkspaceTabIcon({ agentId, kind }: Pick<WorkspaceTabViewModel, "agentId" | "kind">) {
+  if (kind === "overview") {
+    return <LayoutDashboard className="h-3.5 w-3.5 shrink-0 text-gray-400" />;
+  }
+
+  if (kind === "child-sessions") {
+    return <GitBranch className="h-3.5 w-3.5 shrink-0 text-gray-400" />;
+  }
+
+  if (kind === "project-files") {
+    return <FolderTree className="h-3.5 w-3.5 shrink-0 text-gray-400" />;
+  }
+
   if (kind === "cron") {
     return <AlarmClock className="h-3.5 w-3.5 shrink-0 text-gray-400" />;
   }

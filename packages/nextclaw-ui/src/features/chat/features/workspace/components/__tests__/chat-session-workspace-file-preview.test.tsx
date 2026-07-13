@@ -641,7 +641,7 @@ describe("ChatSessionWorkspaceFilePreview text rendering", () => {
     expect(screen.getByText("example.ts")).toBeTruthy();
   });
 
-  it("renders directory entries and opens child directories or files", () => {
+  it("renders directory entries, expands child directories, and opens files", () => {
     serverPathReadMock.mockReturnValue({
       isLoading: false,
       error: new Error("server path must point to a file"),
@@ -695,18 +695,17 @@ describe("ChatSessionWorkspaceFilePreview text rendering", () => {
     });
     expect(screen.getByTestId("workspace-directory-browser")).toBeTruthy();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Open directory: components" }),
-    );
-    expect(onFileOpen).toHaveBeenCalledWith({
-      path: "/tmp/workspace/src/components",
-      label: "components",
-      viewMode: "preview",
+    const componentsTreeItem = screen.getByRole("treeitem", {
+      name: "Open directory: components",
     });
+    const indexButton = screen.getByRole("button", { name: "index.ts" });
+    fireEvent.click(componentsTreeItem.querySelector("button")!);
+    expect(
+      componentsTreeItem.getAttribute("aria-expanded"),
+    ).toBe("true");
+    expect(onFileOpen).not.toHaveBeenCalled();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Open file: index.ts" }),
-    );
+    fireEvent.click(indexButton);
     expect(onFileOpen).toHaveBeenCalledWith({
       path: "/tmp/workspace/src/index.ts",
       label: "index.ts",

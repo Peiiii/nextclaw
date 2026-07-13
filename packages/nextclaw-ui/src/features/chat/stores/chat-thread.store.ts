@@ -10,6 +10,10 @@ import {
   normalizePersistedWorkspaceFileTab,
   toPersistedWorkspaceFileTab,
 } from '@/features/chat/features/workspace/utils/chat-workspace-file-tab-persistence.utils';
+import {
+  CHAT_WORKSPACE_PANEL_DEFAULT_WIDTH,
+  normalizeChatWorkspacePanelWidth,
+} from '@/features/chat/features/workspace/utils/chat-workspace-panel-layout.utils';
 
 export type ChatChildSessionTab = {
   sessionKey: string;
@@ -44,9 +48,21 @@ export type ChatWorkspaceFileTab = {
   fullLines?: ChatFileOperationLineViewModel[];
 };
 
+export type ChatWorkspacePanelKind =
+  | 'overview'
+  | 'child-sessions'
+  | 'child-session'
+  | 'side-chat-draft'
+  | 'project-files'
+  | 'file'
+  | 'cron';
+
 export type ChatWorkspaceNavigationEntry =
+  | { kind: 'overview' }
+  | { kind: 'child-sessions' }
   | { kind: 'child-session'; key: string }
   | { kind: 'side-chat-draft'; key: string }
+  | { kind: 'project-files' }
   | { kind: 'file'; key: string }
   | { kind: 'cron' };
 
@@ -69,7 +85,7 @@ export type ChatThreadSnapshot = {
   parentSessionKey?: string | null;
   parentSessionLabel?: string | null;
   workspacePanelParentKey?: string | null;
-  activeWorkspacePanelKind?: "child-session" | "side-chat-draft" | "file" | "cron" | null;
+  activeWorkspacePanelKind?: ChatWorkspacePanelKind | null;
   childSessionTabs: ChatChildSessionTab[];
   activeChildSessionKey?: string | null;
   activeSideChatDraft?: ChatWorkspaceSideChatDraft | null;
@@ -77,6 +93,7 @@ export type ChatThreadSnapshot = {
   activeWorkspaceFileKey?: string | null;
   workspaceNavigationHistory: ChatWorkspaceNavigationEntry[];
   workspaceNavigationHistoryIndex: number;
+  workspacePanelWidth: number;
   contextWindow?: SessionContextWindowView | null;
 };
 
@@ -98,6 +115,7 @@ type PersistedChatThreadStore = {
     activeWorkspaceFileKey?: unknown;
     workspaceNavigationHistory?: unknown;
     workspaceNavigationHistoryIndex?: unknown;
+    workspacePanelWidth?: unknown;
   };
 };
 
@@ -110,9 +128,13 @@ type PersistedChatWorkspaceSnapshot = Pick<
   | 'activeWorkspaceFileKey'
   | 'workspaceNavigationHistory'
   | 'workspaceNavigationHistoryIndex'
+  | 'workspacePanelWidth'
 >;
 
-type PersistedWorkspacePanelKind = 'child-session' | 'file' | 'cron';
+type PersistedWorkspacePanelKind = Exclude<
+  ChatWorkspacePanelKind,
+  'side-chat-draft'
+>;
 
 const initialSnapshot: ChatThreadSnapshot = {
   sessionTypeLabel: null,
@@ -141,6 +163,7 @@ const initialSnapshot: ChatThreadSnapshot = {
   activeWorkspaceFileKey: null,
   workspaceNavigationHistory: [],
   workspaceNavigationHistoryIndex: 0,
+  workspacePanelWidth: CHAT_WORKSPACE_PANEL_DEFAULT_WIDTH,
   contextWindow: null
 };
 
@@ -163,7 +186,14 @@ function normalizeHistoryIndex(value: unknown, maxIndex: number): number {
 function isWorkspacePanelKind(
   value: unknown,
 ): value is PersistedWorkspacePanelKind {
-  return value === 'child-session' || value === 'file' || value === 'cron';
+  return (
+    value === 'overview' ||
+    value === 'child-sessions' ||
+    value === 'child-session' ||
+    value === 'project-files' ||
+    value === 'file' ||
+    value === 'cron'
+  );
 }
 
 function normalizePersistedWorkspaceNavigationEntry(
@@ -172,8 +202,13 @@ function normalizePersistedWorkspaceNavigationEntry(
   if (!isRecord(value)) {
     return null;
   }
-  if (value.kind === 'cron') {
-    return { kind: 'cron' };
+  if (
+    value.kind === 'overview' ||
+    value.kind === 'child-sessions' ||
+    value.kind === 'project-files' ||
+    value.kind === 'cron'
+  ) {
+    return { kind: value.kind };
   }
   const key = normalizeOptionalString(value.key);
   if (!key || (value.kind !== 'child-session' && value.kind !== 'file')) {
@@ -194,6 +229,15 @@ function createWorkspaceNavigationEntryFromSnapshot({
   activeChildSessionKey: string | null;
   activeWorkspaceFileKey: string | null;
 }): ChatWorkspaceNavigationEntry | null {
+  if (activeWorkspacePanelKind === 'overview') {
+    return { kind: 'overview' };
+  }
+  if (activeWorkspacePanelKind === 'child-sessions') {
+    return { kind: 'child-sessions' };
+  }
+  if (activeWorkspacePanelKind === 'project-files') {
+    return { kind: 'project-files' };
+  }
   if (activeWorkspacePanelKind === 'cron') {
     return { kind: 'cron' };
   }
@@ -272,6 +316,9 @@ function normalizePersistedWorkspaceSnapshot(
     activeWorkspaceFileKey: resolvedActiveWorkspaceFileKey,
     workspaceNavigationHistory,
     workspaceNavigationHistoryIndex,
+    workspacePanelWidth: normalizeChatWorkspacePanelWidth(
+      value.workspacePanelWidth,
+    ),
   };
 }
 
@@ -315,6 +362,7 @@ export const useChatThreadStore = create<ChatThreadStore>()(
             activeWorkspaceFileKey: state.snapshot.activeWorkspaceFileKey,
             workspaceNavigationHistory,
             workspaceNavigationHistoryIndex,
+            workspacePanelWidth: state.snapshot.workspacePanelWidth,
           }
         };
       },

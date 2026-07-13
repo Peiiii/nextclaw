@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   goBackWorkspacePanel: vi.fn(),
   goForwardWorkspacePanel: vi.fn(),
   closeWorkspacePanel: vi.fn(),
+  setWorkspacePanelWidth: vi.fn(),
   invalidateQueries: vi.fn(),
 }));
 

@@ -80,6 +80,25 @@ describe('DocBrowserManager layout notifications', () => {
 
     expect(onRightPanelOpened).toHaveBeenCalledTimes(1);
   });
+
+  it('persists the docked global right panel width across rehydration', async () => {
+    const { result } = renderHook(() => useDocBrowser(), { wrapper });
+
+    act(() => {
+      result.current.setDockedWidth(610);
+    });
+
+    await waitFor(() => {
+      expect(readPersistedDocBrowserSnapshot()).toMatchObject({
+        state: { snapshot: { dockedWidth: 610 } },
+      });
+    });
+
+    const savedState = window.localStorage.getItem(docBrowserStorageKey);
+    await resetMemoryThenRehydrate(savedState);
+
+    expect(useDocBrowserStore.getState().snapshot.dockedWidth).toBe(610);
+  });
 });
 
 describe('DocBrowserProvider dedupe keys', () => {

@@ -16,10 +16,76 @@ export function areWorkspaceNavigationEntriesEqual(
   if (current.kind !== next.kind) {
     return false;
   }
-  if (current.kind === 'cron') {
+  if (
+    current.kind === 'overview' ||
+    current.kind === 'child-sessions' ||
+    current.kind === 'project-files' ||
+    current.kind === 'cron'
+  ) {
     return true;
   }
-  return next.kind !== 'cron' && current.key === next.key;
+  return (
+    next.kind !== 'overview' &&
+    next.kind !== 'child-sessions' &&
+    next.kind !== 'project-files' &&
+    next.kind !== 'cron' &&
+    current.key === next.key
+  );
+}
+
+export function createWorkspaceSelectionPatch(
+  entry: ChatWorkspaceNavigationEntry,
+  snapshot: ChatThreadSnapshot,
+): Partial<ChatThreadSnapshot> | null {
+  if (
+    entry.kind === 'overview' ||
+    entry.kind === 'child-sessions' ||
+    entry.kind === 'project-files'
+  ) {
+    return {
+      activeWorkspacePanelKind: entry.kind,
+      activeChildSessionKey: null,
+      activeSideChatDraft: null,
+      activeWorkspaceFileKey: null,
+    };
+  }
+  if (entry.kind === 'cron') {
+    return {
+      activeWorkspacePanelKind: 'cron',
+      activeChildSessionKey: null,
+      activeSideChatDraft: null,
+      activeWorkspaceFileKey: null,
+    };
+  }
+  if (entry.kind === 'file') {
+    if (!snapshot.workspaceFileTabs.some((tab) => tab.key === entry.key)) {
+      return null;
+    }
+    return {
+      activeWorkspacePanelKind: 'file',
+      activeChildSessionKey: null,
+      activeSideChatDraft: null,
+      activeWorkspaceFileKey: entry.key,
+    };
+  }
+  if (entry.kind === 'side-chat-draft') {
+    const { activeSideChatDraft } = snapshot;
+    if (activeSideChatDraft?.draftKey !== entry.key) {
+      return null;
+    }
+    return {
+      activeWorkspacePanelKind: 'side-chat-draft',
+      activeChildSessionKey: null,
+      activeSideChatDraft,
+      activeWorkspaceFileKey: null,
+    };
+  }
+  return {
+    activeWorkspacePanelKind: 'child-session',
+    activeChildSessionKey: entry.key,
+    activeSideChatDraft: null,
+    activeWorkspaceFileKey: null,
+  };
 }
 
 export function createSideChatDraft(parentSessionKey: string): ChatWorkspaceSideChatDraft {

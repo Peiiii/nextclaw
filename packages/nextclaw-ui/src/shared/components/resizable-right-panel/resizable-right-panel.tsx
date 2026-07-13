@@ -5,8 +5,10 @@ type ResizableRightPanelProps = ComponentPropsWithoutRef<"aside"> & {
   defaultWidth?: number;
   minWidth?: number;
   maxWidth?: number;
+  onWidthCommit?: (width: number) => void;
   overlay?: boolean;
   overlayScope?: "viewport" | "container";
+  width?: number;
 };
 
 export function ResizableRightPanel({
@@ -16,13 +18,18 @@ export function ResizableRightPanel({
   defaultWidth = 420,
   minWidth = 320,
   maxWidth = 860,
+  onWidthCommit,
   overlay = false,
   overlayScope = "viewport",
+  width: controlledWidth,
   ...props
 }: ResizableRightPanelProps) {
   const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const widthRef = useRef(controlledWidth ?? defaultWidth);
   const [isResizing, setIsResizing] = useState(false);
-  const [width, setWidth] = useState(defaultWidth);
+  const [dragWidth, setDragWidth] = useState<number | null>(null);
+  const [uncontrolledWidth, setUncontrolledWidth] = useState(defaultWidth);
+  const width = dragWidth ?? controlledWidth ?? uncontrolledWidth;
   const overlayClassName = overlay
     ? overlayScope === "container"
       ? "absolute inset-0 z-30"
@@ -35,14 +42,22 @@ export function ResizableRightPanel({
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     setIsResizing(true);
+    widthRef.current = width;
     resizeRef.current = { startX: event.clientX, startWidth: width };
     const onMove = (moveEvent: PointerEvent) => {
       const resizing = resizeRef.current;
       if (!resizing) return;
       const nextWidth = resizing.startWidth + resizing.startX - moveEvent.clientX;
-      setWidth(Math.max(minWidth, Math.min(maxWidth, nextWidth)));
+      const clampedWidth = Math.max(minWidth, Math.min(maxWidth, nextWidth));
+      widthRef.current = clampedWidth;
+      setDragWidth(clampedWidth);
     };
     const onUp = () => {
+      if (controlledWidth === undefined) {
+        setUncontrolledWidth(widthRef.current);
+      }
+      onWidthCommit?.(widthRef.current);
+      setDragWidth(null);
       setIsResizing(false);
       resizeRef.current = null;
       window.removeEventListener("pointermove", onMove);

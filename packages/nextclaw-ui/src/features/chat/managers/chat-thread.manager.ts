@@ -16,12 +16,15 @@ import type {
   ChatChildSessionTab,
   ChatThreadSnapshot,
   ChatWorkspaceNavigationEntry,
+  ChatWorkspacePanelKind,
   ChatWorkspaceFileTab,
 } from '@/features/chat/stores/chat-thread.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
+import { normalizeChatWorkspacePanelWidth } from '@/features/chat/features/workspace/utils/chat-workspace-panel-layout.utils';
 import { t } from '@/shared/lib/i18n';
 import {
   areWorkspaceNavigationEntriesEqual,
+  createWorkspaceSelectionPatch,
   createSideChatDraft,
   materializeSideChatDraftSnapshot,
   upsertChildSessionTab,
@@ -35,7 +38,7 @@ import {
 type WorkspaceChildReadState = Parameters<ChatSessionListManager['markVisibleWorkspaceChildRead']>[0];
 export type ChatVisibleWorkspaceSelection =
   | { kind: 'child-session'; tab: WorkspaceChildReadState }
-  | { kind: 'file' | 'side-chat-draft' | 'cron' }
+  | { kind: Exclude<ChatWorkspacePanelKind, 'child-session'> }
   | null;
 
 export class ChatThreadManager {
@@ -166,52 +169,6 @@ export class ChatThreadManager {
     }
   };
 
-  private createWorkspaceSelectionPatch = (
-    entry: ChatWorkspaceNavigationEntry,
-    snapshot: ChatThreadSnapshot,
-  ): Partial<ChatThreadSnapshot> | null => {
-    if (entry.kind === 'cron') {
-      return {
-        activeWorkspacePanelKind: 'cron',
-        activeChildSessionKey: null,
-        activeSideChatDraft: null,
-        activeWorkspaceFileKey: null,
-      };
-    }
-    if (entry.kind === 'file') {
-      if (!snapshot.workspaceFileTabs.some((tab) => tab.key === entry.key)) {
-        return null;
-      }
-      return {
-        activeWorkspacePanelKind: 'file',
-        activeChildSessionKey: null,
-        activeSideChatDraft: null,
-        activeWorkspaceFileKey: entry.key,
-      };
-    }
-    if (entry.kind === 'side-chat-draft') {
-      const { activeSideChatDraft } = snapshot;
-      if (activeSideChatDraft?.draftKey !== entry.key) {
-        return null;
-      }
-      return {
-        activeWorkspacePanelKind: 'side-chat-draft',
-        activeChildSessionKey: null,
-        activeSideChatDraft,
-        activeWorkspaceFileKey: null,
-      };
-    }
-    if (!entry.key) {
-      return null;
-    }
-    return {
-      activeWorkspacePanelKind: 'child-session',
-      activeChildSessionKey: entry.key,
-      activeSideChatDraft: null,
-      activeWorkspaceFileKey: null,
-    };
-  };
-
   private setWorkspaceSelection = (
     patch: Partial<ChatThreadSnapshot>,
     entry: ChatWorkspaceNavigationEntry,
@@ -230,6 +187,59 @@ export class ChatThreadManager {
       workspaceNavigationHistory: [...history.entries],
       workspaceNavigationHistoryIndex: history.index,
     });
+  };
+
+  private openWorkspacePage = (
+    rawParentSessionKey: string,
+    kind: 'overview' | 'child-sessions' | 'project-files' | 'cron',
+  ) => {
+    const parentSessionKey = rawParentSessionKey.trim();
+    if (!parentSessionKey) {
+      return;
+    }
+    this.setWorkspaceSelection({
+      workspacePanelParentKey: parentSessionKey,
+      activeWorkspacePanelKind: kind,
+      activeChildSessionKey: null,
+      activeSideChatDraft: null,
+      activeWorkspaceFileKey: null,
+    }, { kind });
+    this.ensureWorkspaceParentRoute(parentSessionKey);
+    this.onWorkspacePanelOpened?.();
+  };
+
+  openWorkspaceOverview = (sessionKey: string) => {
+    this.openWorkspacePage(sessionKey, 'overview');
+  };
+
+  toggleWorkspacePanel = (sessionKey: string) => {
+    const normalizedSessionKey = sessionKey.trim();
+    if (!normalizedSessionKey) {
+      return;
+    }
+    const { snapshot } = useChatThreadStore.getState();
+    if (
+      snapshot.workspacePanelParentKey === normalizedSessionKey &&
+      snapshot.activeWorkspacePanelKind
+    ) {
+      this.closeWorkspacePanel();
+      return;
+    }
+    this.openWorkspaceOverview(normalizedSessionKey);
+  };
+
+  setWorkspacePanelWidth = (width: number) => {
+    this.syncSnapshot({
+      workspacePanelWidth: normalizeChatWorkspacePanelWidth(width),
+    });
+  };
+
+  openChildSessions = (sessionKey: string) => {
+    this.openWorkspacePage(sessionKey, 'child-sessions');
+  };
+
+  openProjectFiles = (sessionKey: string) => {
+    this.openWorkspacePage(sessionKey, 'project-files');
   };
 
   openChildSessionPanel = (params: {
@@ -479,7 +489,7 @@ export class ChatThreadManager {
       };
       const restoreEntry = history.entries[history.index];
       const restorePatch = restoreEntry
-        ? this.createWorkspaceSelectionPatch(restoreEntry, nextSnapshot)
+        ? createWorkspaceSelectionPatch(restoreEntry, nextSnapshot)
         : null;
       Object.assign(nextPatch, restorePatch ?? {
         activeWorkspacePanelKind: null,
@@ -503,21 +513,7 @@ export class ChatThreadManager {
   };
 
   openSessionCronPanel = (sessionKey: string) => {
-    const parentSessionKey = sessionKey.trim();
-    if (!parentSessionKey) {
-      return;
-    }
-    this.setWorkspaceSelection({
-      workspacePanelParentKey: parentSessionKey,
-      activeWorkspacePanelKind: 'cron',
-      activeChildSessionKey: null,
-      activeSideChatDraft: null,
-      activeWorkspaceFileKey: null,
-    }, {
-      kind: 'cron',
-    });
-    this.ensureWorkspaceParentRoute(parentSessionKey);
-    this.onWorkspacePanelOpened?.();
+    this.openWorkspacePage(sessionKey, 'cron');
   };
 
   goBackWorkspacePanel = () => {
@@ -540,7 +536,7 @@ export class ChatThreadManager {
     if (!step) {
       return;
     }
-    const selectionPatch = this.createWorkspaceSelectionPatch(step.entry, snapshot);
+    const selectionPatch = createWorkspaceSelectionPatch(step.entry, snapshot);
     if (!selectionPatch) {
       return;
     }

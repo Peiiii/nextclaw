@@ -42,6 +42,7 @@ export function ChatConversationWorkspaceSection({
       sessionWorkingDir={
         selectedSession?.workingDir ?? selectedSession?.projectRoot ?? null
       }
+      workspacePanelWidth={snapshot.workspacePanelWidth}
       displayMode={layoutMode === "mobile" ? "overlay" : "docked"}
     />
   );

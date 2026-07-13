@@ -6,8 +6,7 @@ import { ChatSessionHeaderActions } from '@/features/chat/features/session/compo
 const mocks = vi.hoisted(() => ({
   updateSessionProject: vi.fn(),
   onDeleteSession: vi.fn(),
-  onOpenChildSessions: vi.fn(),
-  onOpenSessionCronJobs: vi.fn(),
+  onToggleWorkspace: vi.fn(),
 }));
 
 vi.mock('@/features/chat/features/session/hooks/use-chat-session-project', () => ({
@@ -22,8 +21,7 @@ describe('ChatSessionHeaderActions', () => {
   beforeEach(() => {
     mocks.updateSessionProject.mockReset();
     mocks.onDeleteSession.mockReset();
-    mocks.onOpenChildSessions.mockReset();
-    mocks.onOpenSessionCronJobs.mockReset();
+    mocks.onToggleWorkspace.mockReset();
   });
 
   it('keeps only the set-project action in the more-actions menu when a project is already attached', async () => {
@@ -35,8 +33,8 @@ describe('ChatSessionHeaderActions', () => {
         canDeleteSession
         isDeletePending={false}
         projectRoot="/tmp/project-alpha"
-        childSessionCount={0}
-        onOpenChildSessions={mocks.onOpenChildSessions}
+        isWorkspaceOpen={false}
+        onToggleWorkspace={mocks.onToggleWorkspace}
         onDeleteSession={mocks.onDeleteSession}
       />
     );
@@ -58,8 +56,8 @@ describe('ChatSessionHeaderActions', () => {
         canDeleteSession={false}
         isDeletePending={false}
         projectRoot={null}
-        childSessionCount={0}
-        onOpenChildSessions={mocks.onOpenChildSessions}
+        isWorkspaceOpen={false}
+        onToggleWorkspace={mocks.onToggleWorkspace}
         onDeleteSession={mocks.onDeleteSession}
       />
     );
@@ -84,6 +82,8 @@ describe('ChatSessionHeaderActions', () => {
           codex_thread_id: 'thread-123',
           runtime: 'codex',
         }}
+        isWorkspaceOpen={false}
+        onToggleWorkspace={mocks.onToggleWorkspace}
         onDeleteSession={mocks.onDeleteSession}
       />
     );
@@ -98,7 +98,7 @@ describe('ChatSessionHeaderActions', () => {
     expect(screen.getByText(/thread-123/)).toBeTruthy();
   });
 
-  it('shows a dedicated child-session entry button when the current session has child sessions', async () => {
+  it('opens the session workspace from one stable header action', async () => {
     const user = userEvent.setup();
 
     render(
@@ -107,28 +107,28 @@ describe('ChatSessionHeaderActions', () => {
         canDeleteSession
         isDeletePending={false}
         projectRoot={null}
-        childSessionCount={2}
-        onOpenChildSessions={mocks.onOpenChildSessions}
+        isWorkspaceOpen={false}
+        onToggleWorkspace={mocks.onToggleWorkspace}
         onDeleteSession={mocks.onDeleteSession}
       />
     );
 
-    await user.click(screen.getByRole('button', { name: 'View child sessions' }));
+    await user.click(screen.getByRole('button', { name: 'Open session workspace' }));
 
-    expect(mocks.onOpenChildSessions).toHaveBeenCalledTimes(1);
+    expect(mocks.onToggleWorkspace).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: 'View child sessions' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'View session cron jobs' })).toBeNull();
   });
 
-  it('uses a shared spaced action group for child, cron, and menu buttons', () => {
+  it('uses the shared compact action density for workspace and menu buttons', () => {
     render(
       <ChatSessionHeaderActions
         sessionKey="session-actions"
         canDeleteSession
         isDeletePending={false}
         projectRoot={null}
-        childSessionCount={1}
-        sessionCronJobCount={1}
-        onOpenChildSessions={mocks.onOpenChildSessions}
-        onOpenSessionCronJobs={mocks.onOpenSessionCronJobs}
+        isWorkspaceOpen={false}
+        onToggleWorkspace={mocks.onToggleWorkspace}
         onDeleteSession={mocks.onDeleteSession}
       />
     );
@@ -136,7 +136,52 @@ describe('ChatSessionHeaderActions', () => {
     const actionGroup = screen.getByRole('button', { name: 'More actions' }).parentElement;
 
     expect(actionGroup?.className).toContain('gap-1.5');
-    expect(screen.getByRole('button', { name: 'View child sessions' }).className).toContain('h-7');
-    expect(screen.getByRole('button', { name: 'View session cron jobs' }).className).toContain('w-7');
+    expect(screen.getByRole('button', { name: 'Open session workspace' }).className).toContain('h-7');
+    expect(screen.getByRole('button', { name: 'Open session workspace' }).className).toContain('w-7');
+  });
+
+  it('places the workspace toggle at the far right of the visible header actions', () => {
+    render(
+      <ChatSessionHeaderActions
+        sessionKey="session-actions"
+        canDeleteSession
+        isDeletePending={false}
+        projectRoot={null}
+        isWorkspaceOpen={false}
+        onToggleWorkspace={mocks.onToggleWorkspace}
+        onDeleteSession={mocks.onDeleteSession}
+      />
+    );
+
+    const menuButton = screen.getByRole('button', { name: 'More actions' });
+    const workspaceButton = screen.getByRole('button', { name: 'Open session workspace' });
+
+    expect(menuButton.compareDocumentPosition(workspaceButton)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  it('changes to a pressed close action while the workspace is open', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ChatSessionHeaderActions
+        sessionKey="session-actions"
+        canDeleteSession
+        isDeletePending={false}
+        projectRoot={null}
+        isWorkspaceOpen
+        onToggleWorkspace={mocks.onToggleWorkspace}
+        onDeleteSession={mocks.onDeleteSession}
+      />
+    );
+
+    const closeButton = screen.getByRole('button', {
+      name: 'Close session workspace',
+    });
+
+    expect(closeButton.getAttribute('aria-pressed')).toBe('true');
+    await user.click(closeButton);
+    expect(mocks.onToggleWorkspace).toHaveBeenCalledTimes(1);
   });
 });

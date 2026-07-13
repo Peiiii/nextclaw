@@ -13,8 +13,7 @@ import type { NcpSessionSummaryView, SessionEntryView } from "@/shared/lib/api";
 
 const mocks = vi.hoisted(() => ({
   deleteSession: vi.fn(),
-  openChildSessionPanel: vi.fn(),
-  openSessionCronPanel: vi.fn(),
+  toggleWorkspacePanel: vi.fn(),
   selectSession: vi.fn(),
   sessionItems: [] as NcpSessionListItemView[],
   isSessionListLoading: false,
@@ -24,8 +23,7 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
   usePresenter: () => ({
     chatThreadManager: {
       deleteSession: mocks.deleteSession,
-      openChildSessionPanel: mocks.openChildSessionPanel,
-      openSessionCronPanel: mocks.openSessionCronPanel,
+      toggleWorkspacePanel: mocks.toggleWorkspacePanel,
     },
     chatSessionListManager: {
       selectSession: mocks.selectSession,
@@ -120,8 +118,7 @@ function renderHeaderSection() {
 describe("ChatConversationHeaderSection", () => {
   beforeEach(() => {
     mocks.deleteSession.mockReset();
-    mocks.openChildSessionPanel.mockReset();
-    mocks.openSessionCronPanel.mockReset();
+    mocks.toggleWorkspacePanel.mockReset();
     mocks.selectSession.mockReset();
     mocks.isSessionListLoading = false;
     viewportLayoutManager.resetForTests();
@@ -195,16 +192,29 @@ describe("ChatConversationHeaderSection", () => {
     ];
   });
 
-  it("shows the child-session entry from session query state before a tool card opens it", async () => {
+  it("opens the current session workspace overview from the header", async () => {
     const user = userEvent.setup();
 
     renderHeaderSection();
-    await user.click(screen.getByRole("button", { name: "View child sessions" }));
+    await user.click(screen.getByRole("button", { name: "Open session workspace" }));
 
-    expect(mocks.openChildSessionPanel).toHaveBeenCalledWith({
-      parentSessionKey: "parent-session-1",
-      activeChildSessionKey: "child-session-1",
+    expect(mocks.toggleWorkspacePanel).toHaveBeenCalledWith("parent-session-1");
+  });
+
+  it("shows the close workspace action while the current session panel is open", () => {
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        workspacePanelParentKey: "parent-session-1",
+        activeWorkspacePanelKind: "overview",
+      },
     });
+
+    renderHeaderSection();
+
+    expect(
+      screen.getByRole("button", { name: "Close session workspace" }),
+    ).toBeTruthy();
   });
 
   it("uses the collapsed desktop title as a session switcher", async () => {

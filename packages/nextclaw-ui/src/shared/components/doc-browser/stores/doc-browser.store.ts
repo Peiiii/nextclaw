@@ -8,7 +8,10 @@ import type {
   DocBrowserStateUpdate,
   DocBrowserTab,
 } from '@/shared/components/doc-browser/types/doc-browser.types';
-import { createDefaultDocBrowserState } from '@/shared/components/doc-browser/utils/doc-browser-state.utils';
+import {
+  createDefaultDocBrowserState,
+  normalizeDocBrowserDockedWidth,
+} from '@/shared/components/doc-browser/utils/doc-browser-state.utils';
 
 const DOC_BROWSER_STORAGE_KEY = 'nextclaw.doc-browser.state';
 const DOC_BROWSER_STORAGE_VERSION = 1;
@@ -168,6 +171,7 @@ function normalizePersistedDocBrowserState(value: unknown): DocBrowserState | nu
   return {
     isOpen: value.isOpen === true,
     mode: isDocBrowserMode(value.mode) ? value.mode : 'docked',
+    dockedWidth: normalizeDocBrowserDockedWidth(value.dockedWidth),
     tabs,
     activeTabId: resolvedActiveTabId,
     activeHistory: resolvedActiveHistory,
@@ -198,6 +202,7 @@ export const useDocBrowserStore = create<DocBrowserStore>()(
         snapshot: {
           isOpen: state.snapshot.isOpen,
           mode: state.snapshot.mode,
+          dockedWidth: state.snapshot.dockedWidth,
           tabs: state.snapshot.tabs.slice(-DOC_BROWSER_MAX_PERSISTED_TABS),
           activeTabId: state.snapshot.activeTabId,
           activeHistory: state.snapshot.activeHistory,

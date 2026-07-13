@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
+import {
+  useChatThreadStore,
+} from '@/features/chat/stores/chat-thread.store';
+import { CHAT_WORKSPACE_PANEL_DEFAULT_WIDTH } from '@/features/chat/features/workspace/utils/chat-workspace-panel-layout.utils';
 
 const chatThreadWorkspaceStorageKey = 'nextclaw.chat.workspace-panel.state';
 
@@ -27,6 +30,7 @@ function resetChatThreadStore() {
       activeWorkspaceFileKey: null,
       workspaceNavigationHistory: [],
       workspaceNavigationHistoryIndex: 0,
+      workspacePanelWidth: CHAT_WORKSPACE_PANEL_DEFAULT_WIDTH,
     },
   });
 }
@@ -116,6 +120,39 @@ describe('chat thread workspace panel persistence', () => {
       workspaceNavigationHistoryIndex: 0,
     });
     expect(persisted.state.snapshot.activeSideChatDraft).toBeUndefined();
+  });
+
+  it('persists the stable workspace pages', async () => {
+    useChatThreadStore.getState().setSnapshot({
+      workspacePanelParentKey: 'session-1',
+      activeWorkspacePanelKind: 'project-files',
+      workspaceNavigationHistory: [
+        { kind: 'overview' },
+        { kind: 'child-sessions' },
+        { kind: 'project-files' },
+      ],
+      workspaceNavigationHistoryIndex: 2,
+      workspacePanelWidth: 620,
+    });
+
+    const persisted = window.localStorage.getItem(chatThreadWorkspaceStorageKey);
+    resetChatThreadStore();
+    if (persisted) {
+      window.localStorage.setItem(chatThreadWorkspaceStorageKey, persisted);
+    }
+    await useChatThreadStore.persist.rehydrate();
+
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      workspacePanelParentKey: 'session-1',
+      activeWorkspacePanelKind: 'project-files',
+      workspaceNavigationHistory: [
+        { kind: 'overview' },
+        { kind: 'child-sessions' },
+        { kind: 'project-files' },
+      ],
+      workspaceNavigationHistoryIndex: 2,
+      workspacePanelWidth: 620,
+    });
   });
 
   it('hydrates the workspace panel state and repairs stale active file keys', async () => {

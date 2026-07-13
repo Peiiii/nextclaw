@@ -1,6 +1,7 @@
 import type { ResolvedChildSessionTab } from "@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view";
 import { shouldShowUnreadSessionIndicator } from "@/features/chat/stores/chat-session-list.store";
 import type {
+  ChatWorkspacePanelKind,
   ChatWorkspaceFileTab,
   ChatWorkspaceSideChatDraft,
 } from "@/features/chat/stores/chat-thread.store";
@@ -8,12 +9,21 @@ import { t } from "@/shared/lib/i18n";
 
 export type WorkspaceSelection =
   | {
+      kind: "overview";
+    }
+  | {
+      kind: "child-sessions";
+    }
+  | {
       kind: "child-session";
       tab: ResolvedChildSessionTab;
     }
   | {
       kind: "side-chat-draft";
       draft: ChatWorkspaceSideChatDraft;
+    }
+  | {
+      kind: "project-files";
     }
   | {
       kind: "file";
@@ -25,7 +35,7 @@ export type WorkspaceSelection =
 
 export type WorkspaceTabViewModel = {
   key: string;
-  kind: "child-session" | "side-chat-draft" | "file" | "cron";
+  kind: ChatWorkspacePanelKind;
   title: string;
   tooltip: string;
   active: boolean;
@@ -42,13 +52,12 @@ export function readWorkspaceFileTitle(file: ChatWorkspaceFileTab): string {
 }
 
 export function resolveWorkspaceSelection(params: {
-  activePanelKind?: "child-session" | "side-chat-draft" | "file" | "cron" | null;
+  activePanelKind?: ChatWorkspacePanelKind | null;
   activeChildSessionKey: string | null;
   activeSideChatDraft: ChatWorkspaceSideChatDraft | null;
   activeWorkspaceFileKey: string | null;
   childSessionTabs: ResolvedChildSessionTab[];
   workspaceFileTabs: readonly ChatWorkspaceFileTab[];
-  sessionCronJobCount: number;
 }): WorkspaceSelection | null {
   const {
     activePanelKind,
@@ -57,10 +66,21 @@ export function resolveWorkspaceSelection(params: {
     activeWorkspaceFileKey,
     childSessionTabs,
     workspaceFileTabs,
-    sessionCronJobCount,
   } = params;
 
-  if (activePanelKind === "cron" && sessionCronJobCount > 0) {
+  if (activePanelKind === "overview") {
+    return { kind: "overview" };
+  }
+
+  if (activePanelKind === "child-sessions") {
+    return { kind: "child-sessions" };
+  }
+
+  if (activePanelKind === "project-files") {
+    return { kind: "project-files" };
+  }
+
+  if (activePanelKind === "cron") {
     return { kind: "cron" };
   }
 
@@ -116,10 +136,6 @@ export function resolveWorkspaceSelection(params: {
     };
   }
 
-  if (sessionCronJobCount > 0) {
-    return { kind: "cron" };
-  }
-
   return null;
 }
 
@@ -127,26 +143,65 @@ export function buildWorkspaceTabsViewModel(params: {
   resolvedChildTabs: ResolvedChildSessionTab[];
   activeSideChatDraft: ChatWorkspaceSideChatDraft | null;
   workspaceFileTabs: readonly ChatWorkspaceFileTab[];
-  sessionCronJobCount: number;
   activeSelection: WorkspaceSelection | null;
   optimisticReadAtBySessionKey: Record<string, string>;
   onSelectSession: (sessionKey: string) => void;
   onSelectFile: (fileKey: string) => void;
   onCloseFile: (fileKey: string) => void;
+  onSelectOverview: () => void;
+  onSelectChildSessions: () => void;
+  onSelectProjectFiles: () => void;
   onSelectCronJobs: () => void;
 }): WorkspaceTabViewModel[] {
   const {
     activeSideChatDraft,
     resolvedChildTabs,
     workspaceFileTabs,
-    sessionCronJobCount,
     activeSelection,
     optimisticReadAtBySessionKey,
     onSelectSession,
     onSelectFile,
     onCloseFile,
+    onSelectOverview,
+    onSelectChildSessions,
+    onSelectProjectFiles,
     onSelectCronJobs,
   } = params;
+
+  const workspacePages = [
+    {
+      key: "overview",
+      kind: "overview" as const,
+      title: t("chatWorkspaceOverview"),
+      tooltip: t("chatWorkspaceOverview"),
+      active: activeSelection?.kind === "overview",
+      onSelect: onSelectOverview,
+    },
+    {
+      key: "child-sessions",
+      kind: "child-sessions" as const,
+      title: t("chatWorkspaceChildSessions"),
+      tooltip: t("chatWorkspaceChildSessions"),
+      active: activeSelection?.kind === "child-sessions",
+      onSelect: onSelectChildSessions,
+    },
+    {
+      key: "cron:session",
+      kind: "cron" as const,
+      title: t("chatWorkspaceSessionCronJobs"),
+      tooltip: t("chatWorkspaceSessionCronJobs"),
+      active: activeSelection?.kind === "cron",
+      onSelect: onSelectCronJobs,
+    },
+    {
+      key: "project-files",
+      kind: "project-files" as const,
+      title: t("chatWorkspaceProjectFiles"),
+      tooltip: t("chatWorkspaceProjectFiles"),
+      active: activeSelection?.kind === "project-files",
+      onSelect: onSelectProjectFiles,
+    },
+  ];
 
   const sideChatDraftTabs = activeSideChatDraft
     ? [
@@ -205,19 +260,10 @@ export function buildWorkspaceTabsViewModel(params: {
     onClose: () => onCloseFile(file.key),
   }));
 
-  const cronTab =
-    sessionCronJobCount > 0
-      ? [
-          {
-            key: "cron:session",
-            kind: "cron" as const,
-            title: t("chatWorkspaceSessionCronJobs"),
-            tooltip: t("chatWorkspaceSessionCronJobs"),
-            active: activeSelection?.kind === "cron",
-            onSelect: onSelectCronJobs,
-          },
-        ]
-      : [];
-
-  return [...sideChatDraftTabs, ...childTabs, ...fileTabs, ...cronTab];
+  return [
+    ...workspacePages,
+    ...sideChatDraftTabs,
+    ...childTabs,
+    ...fileTabs,
+  ];
 }

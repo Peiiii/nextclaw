@@ -64,9 +64,6 @@ export function useChatConversationWorkspaceState(
     sessionCronJobs,
     showWorkspacePanel:
       snapshot.workspacePanelParentKey === sessionKey &&
-      (activeSideChatDraft !== null ||
-        childSessionTabs.length > 0 ||
-        workspaceFileTabs.length > 0 ||
-        sessionCronJobs.length > 0),
+      snapshot.activeWorkspacePanelKind != null,
   };
 }

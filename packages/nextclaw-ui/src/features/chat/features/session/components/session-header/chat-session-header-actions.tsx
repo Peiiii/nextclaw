@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlarmClock, Braces, FolderOpen, GitBranch, MoreVertical, Trash2 } from 'lucide-react';
+import { Braces, FolderOpen, MoreVertical, PanelRightClose, PanelRightOpen, Trash2 } from 'lucide-react';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import { Popover, PopoverTrigger } from '@/shared/components/ui/popover';
 import { ChatPopoverContent } from '@/features/chat/components/chat-popover-content';
@@ -17,10 +17,8 @@ type ChatSessionHeaderActionsProps = {
   isDeletePending: boolean;
   projectRoot?: string | null;
   metadata?: Record<string, unknown> | null;
-  childSessionCount?: number;
-  sessionCronJobCount?: number;
-  onOpenChildSessions?: () => void;
-  onOpenSessionCronJobs?: () => void;
+  isWorkspaceOpen: boolean;
+  onToggleWorkspace: () => void;
   onDeleteSession: () => void;
 };
 
@@ -30,10 +28,8 @@ export function ChatSessionHeaderActions({
   isDeletePending,
   projectRoot,
   metadata,
-  childSessionCount = 0,
-  sessionCronJobCount = 0,
-  onOpenChildSessions,
-  onOpenSessionCronJobs,
+  isWorkspaceOpen,
+  onToggleWorkspace,
   onDeleteSession,
 }: ChatSessionHeaderActionsProps) {
   const updateSessionProject = useChatSessionProject();
@@ -61,22 +57,6 @@ export function ChatSessionHeaderActions({
 
   return (
     <div className={SESSION_HEADER_ACTION_GROUP_CLASS}>
-      {childSessionCount > 0 && onOpenChildSessions ? (
-        <IconActionButton
-          icon={<GitBranch className="h-4 w-4" />}
-          label={t('chatSessionOpenChildSessions')}
-          onClick={onOpenChildSessions}
-          disabled={isBusy}
-        />
-      ) : null}
-      {sessionCronJobCount > 0 && onOpenSessionCronJobs ? (
-        <IconActionButton
-          icon={<AlarmClock className="h-4 w-4" />}
-          label={t('chatSessionOpenCronJobs')}
-          onClick={onOpenSessionCronJobs}
-          disabled={isBusy}
-        />
-      ) : null}
       <Popover open={isMenuOpen} onOpenChange={setIsMenuOpen}>
         <PopoverTrigger asChild>
           <IconActionButton
@@ -119,6 +99,23 @@ export function ChatSessionHeaderActions({
           </div>
         </ChatPopoverContent>
       </Popover>
+      <IconActionButton
+        icon={
+          isWorkspaceOpen ? (
+            <PanelRightClose className="h-4 w-4" />
+          ) : (
+            <PanelRightOpen className="h-4 w-4" />
+          )
+        }
+        label={t(
+          isWorkspaceOpen
+            ? 'chatSessionCloseWorkspace'
+            : 'chatSessionOpenWorkspace',
+        )}
+        aria-pressed={isWorkspaceOpen}
+        onClick={onToggleWorkspace}
+        disabled={isBusy}
+      />
 
       <ChatSessionProjectDialog
         open={isDialogOpen}

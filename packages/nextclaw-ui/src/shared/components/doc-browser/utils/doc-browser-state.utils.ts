@@ -12,7 +12,17 @@ import {
 } from './doc-browser-url.utils';
 import { t } from '@/shared/lib/i18n';
 
+export const DOC_BROWSER_DOCKED_DEFAULT_WIDTH = 420;
+export const DOC_BROWSER_DOCKED_MIN_WIDTH = 320;
+export const DOC_BROWSER_DOCKED_MAX_WIDTH = 860;
+
 let tabCounter = 0;
+
+export function normalizeDocBrowserDockedWidth(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.min(DOC_BROWSER_DOCKED_MAX_WIDTH, Math.max(DOC_BROWSER_DOCKED_MIN_WIDTH, value))
+    : DOC_BROWSER_DOCKED_DEFAULT_WIDTH;
+}
 
 function nextTabId(): string {
   tabCounter += 1;
@@ -58,6 +68,7 @@ export function createDefaultDocBrowserState(): DocBrowserState {
   return {
     isOpen: false,
     mode: 'docked',
+    dockedWidth: DOC_BROWSER_DOCKED_DEFAULT_WIDTH,
     tabs: [initialTab],
     activeTabId: initialTab.id,
     activeHistory: [createDocBrowserActiveHistoryEntry(initialTab)],

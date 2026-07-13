@@ -14,16 +14,23 @@ vi.mock("@/features/chat/features/workspace/components/chat-session-workspace-pa
   ChatSessionWorkspacePanel: ({
     sessionProjectRoot,
     sessionWorkingDir,
+    workspacePanelWidth,
   }: {
     sessionProjectRoot: string | null;
     sessionWorkingDir: string | null;
+    workspacePanelWidth: number;
   }) => {
-    mocks.panelProps({ sessionProjectRoot, sessionWorkingDir });
+    mocks.panelProps({
+      sessionProjectRoot,
+      sessionWorkingDir,
+      workspacePanelWidth,
+    });
     return (
       <div
         data-testid="workspace-panel"
         data-project-root={sessionProjectRoot ?? ""}
         data-working-dir={sessionWorkingDir ?? ""}
+        data-width={workspacePanelWidth}
       />
     );
   },
@@ -85,6 +92,7 @@ describe("ChatConversationWorkspaceSection", () => {
         workspaceNavigationHistoryIndex: 0,
         sessionProjectRoot: null,
         sessionWorkingDir: null,
+        workspacePanelWidth: 620,
       },
     });
     useChatQueryStore.setState({
@@ -122,11 +130,30 @@ describe("ChatConversationWorkspaceSection", () => {
     expect(panel.getAttribute("data-working-dir")).toBe(
       "/Users/peiwang/Projects/nextbot",
     );
+    expect(panel.getAttribute("data-width")).toBe("620");
     expect(mocks.panelProps).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionProjectRoot: "/Users/peiwang/Projects/nextbot",
         sessionWorkingDir: "/Users/peiwang/Projects/nextbot",
+        workspacePanelWidth: 620,
       }),
     );
+  });
+
+  it("renders an explicitly opened overview without requiring existing workspace resources", () => {
+    useChatThreadStore.getState().setSnapshot({
+      activeWorkspacePanelKind: "overview",
+      workspaceFileTabs: [],
+      activeWorkspaceFileKey: null,
+    });
+
+    render(
+      <ChatConversationWorkspaceSection
+        layoutMode="desktop"
+        sessionKey="session-1"
+      />,
+    );
+
+    expect(screen.getByTestId("workspace-panel")).toBeTruthy();
   });
 });

@@ -51,8 +51,8 @@ describe("ChatConversationHeader", () => {
           sessionKey="session-1"
           canDeleteSession
           isDeletePending={false}
-          childSessionCount={0}
-          sessionCronJobCount={0}
+          isWorkspaceOpen={false}
+          onToggleWorkspace={vi.fn()}
           onDeleteSession={vi.fn()}
         />
       ),

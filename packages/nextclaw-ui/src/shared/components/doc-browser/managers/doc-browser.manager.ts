@@ -11,6 +11,7 @@ import {
   createDocBrowserActiveHistoryEntry,
   createDefaultDocBrowserState,
   createDocBrowserTab,
+  normalizeDocBrowserDockedWidth,
 } from '@/shared/components/doc-browser/utils/doc-browser-state.utils';
 import {
   DOC_BROWSER_HOME_TAB_KIND,
@@ -295,6 +296,10 @@ export class DocBrowserManager {
   readonly toggleMode = (): void => {
     this.setSnapshot((prev) => ({ ...prev, mode: prev.mode === 'floating' ? 'docked' : 'floating' }));
     this.onRightPanelOpened?.();
+  };
+
+  readonly setDockedWidth = (width: number): void => {
+    this.setSnapshot((prev) => ({ ...prev, dockedWidth: normalizeDocBrowserDockedWidth(width) }));
   };
 
   readonly navigate = (url: string): void => {

@@ -28,6 +28,10 @@ import { ResizableRightPanel } from '@/shared/components/resizable-right-panel/r
 import { cn } from '@/shared/lib/utils';
 import { t } from '@/shared/lib/i18n';
 import { GripVertical } from 'lucide-react';
+import {
+  DOC_BROWSER_DOCKED_MAX_WIDTH,
+  DOC_BROWSER_DOCKED_MIN_WIDTH,
+} from '@/shared/components/doc-browser/utils/doc-browser-state.utils';
 
 type DocBrowserProps = {
   customTabRenderers?: DocBrowserCustomTabRenderers;
@@ -159,6 +163,7 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
   const {
     isOpen,
     mode,
+    dockedWidth,
     tabs,
     activeTabId,
     activeHistory,
@@ -169,6 +174,7 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
     openNewTab,
     close,
     toggleMode,
+    setDockedWidth,
     goBack,
     goForward,
     navigate,
@@ -386,9 +392,11 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
     return (
       <ResizableRightPanel
         data-testid="doc-browser-panel"
-        defaultWidth={420}
-        minWidth={320}
-        maxWidth={860}
+        defaultWidth={dockedWidth}
+        width={dockedWidth}
+        minWidth={DOC_BROWSER_DOCKED_MIN_WIDTH}
+        maxWidth={DOC_BROWSER_DOCKED_MAX_WIDTH}
+        onWidthCommit={setDockedWidth}
       >
         {panelContent}
       </ResizableRightPanel>

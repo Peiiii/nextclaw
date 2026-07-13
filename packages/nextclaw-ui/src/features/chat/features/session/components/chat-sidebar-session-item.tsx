@@ -169,12 +169,7 @@ function ChatSidebarSessionDisplayView({
             event.stopPropagation();
             onOpenChildSessions();
           }}
-          className={cn(
-            'absolute right-12 top-0 inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-black/10 hover:text-foreground',
-            active
-              ? 'opacity-100'
-              : 'opacity-0 group-hover/session:opacity-100 group-focus-within/session:opacity-100'
-          )}
+          className="pointer-events-none absolute right-12 top-0 inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[10px] font-medium text-muted-foreground opacity-0 transition-colors hover:bg-black/10 hover:text-foreground group-hover/session:pointer-events-auto group-hover/session:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
           aria-label={t('chatSessionOpenChildSessions')}
           title={t('chatSessionOpenChildSessions')}
         >
@@ -183,11 +178,11 @@ function ChatSidebarSessionDisplayView({
         </button>
       ) : null}
       {runStatus ? (
-        <span className="absolute right-0 top-0 inline-flex h-6 w-6 items-center justify-center transition-opacity group-hover/session:opacity-0 group-focus-within/session:opacity-0">
+        <span className="absolute right-0 top-0 inline-flex h-6 w-6 items-center justify-center transition-opacity group-hover/session:opacity-0">
           <SessionRunBadge status={runStatus} />
         </span>
       ) : null}
-      <div className="absolute right-0 top-0 flex h-6 items-center gap-0.5 opacity-0 transition-opacity group-hover/session:opacity-100 group-focus-within/session:opacity-100">
+      <div className="pointer-events-none absolute right-0 top-0 flex h-6 items-center gap-0.5 opacity-0 transition-opacity group-hover/session:pointer-events-auto group-hover/session:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100">
         <IconActionButton
           size="sm"
           tone="strong"

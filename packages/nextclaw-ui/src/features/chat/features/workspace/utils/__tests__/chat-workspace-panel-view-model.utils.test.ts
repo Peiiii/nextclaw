@@ -26,6 +26,19 @@ function createChildTab(
 }
 
 describe("resolveWorkspaceSelection", () => {
+  it("keeps the explicit workspace overview even when no resources exist", () => {
+    expect(
+      resolveWorkspaceSelection({
+        activePanelKind: "overview",
+        activeChildSessionKey: null,
+        activeSideChatDraft: null,
+        activeWorkspaceFileKey: null,
+        childSessionTabs: [],
+        workspaceFileTabs: [],
+      }),
+    ).toEqual({ kind: "overview" });
+  });
+
   it("honors the explicit active panel kind before fallback order", () => {
     const childTab = createChildTab();
     const fileTab = {
@@ -43,7 +56,6 @@ describe("resolveWorkspaceSelection", () => {
         activeWorkspaceFileKey: fileTab.key,
         childSessionTabs: [childTab],
         workspaceFileTabs: [fileTab],
-        sessionCronJobCount: 1,
       }),
     ).toMatchObject({
       kind: "file",
@@ -62,7 +74,6 @@ describe("resolveWorkspaceSelection", () => {
         activeWorkspaceFileKey: null,
         childSessionTabs: [childTab],
         workspaceFileTabs: [],
-        sessionCronJobCount: 1,
       }),
     ).toMatchObject({
       kind: "child-session",
@@ -84,7 +95,6 @@ describe("resolveWorkspaceSelection", () => {
         activeWorkspaceFileKey: null,
         childSessionTabs: [createChildTab()],
         workspaceFileTabs: [],
-        sessionCronJobCount: 0,
       }),
     ).toMatchObject({
       kind: "side-chat-draft",
@@ -105,16 +115,18 @@ describe("buildWorkspaceTabsViewModel", () => {
       resolvedChildTabs: [childTab],
       activeSideChatDraft: null,
       workspaceFileTabs: [],
-      sessionCronJobCount: 0,
       activeSelection: null,
       optimisticReadAtBySessionKey: {},
       onSelectSession,
       onSelectFile: vi.fn(),
       onCloseFile: vi.fn(),
+      onSelectOverview: vi.fn(),
+      onSelectChildSessions: vi.fn(),
+      onSelectProjectFiles: vi.fn(),
       onSelectCronJobs: vi.fn(),
     });
 
-    expect(tabs[0]).toMatchObject({
+    expect(tabs[4]).toMatchObject({
       key: "child:child-1",
       kind: "child-session",
       title: "Child session",
@@ -122,7 +134,7 @@ describe("buildWorkspaceTabsViewModel", () => {
       showUnreadDot: true,
     });
 
-    tabs[0]?.onSelect();
+    tabs[4]?.onSelect();
     expect(onSelectSession).toHaveBeenCalledWith("child-1");
   });
 
@@ -137,7 +149,6 @@ describe("buildWorkspaceTabsViewModel", () => {
       resolvedChildTabs: [childTab],
       activeSideChatDraft: draft,
       workspaceFileTabs: [],
-      sessionCronJobCount: 0,
       activeSelection: {
         kind: "side-chat-draft",
         draft,
@@ -146,14 +157,21 @@ describe("buildWorkspaceTabsViewModel", () => {
       onSelectSession: vi.fn(),
       onSelectFile: vi.fn(),
       onCloseFile: vi.fn(),
+      onSelectOverview: vi.fn(),
+      onSelectChildSessions: vi.fn(),
+      onSelectProjectFiles: vi.fn(),
       onSelectCronJobs: vi.fn(),
     });
 
     expect(tabs.map((tab) => tab.key)).toEqual([
+      "overview",
+      "child-sessions",
+      "cron:session",
+      "project-files",
       "side-chat-draft:draft-1",
       "child:child-1",
     ]);
-    expect(tabs[0]).toMatchObject({
+    expect(tabs[4]).toMatchObject({
       kind: "side-chat-draft",
       active: true,
     });
@@ -181,7 +199,6 @@ describe("buildWorkspaceTabsViewModel", () => {
       resolvedChildTabs: [],
       activeSideChatDraft: null,
       workspaceFileTabs: [sourceTab, renderedTab],
-      sessionCronJobCount: 0,
       activeSelection: {
         kind: "file",
         file: sourceTab,
@@ -190,10 +207,13 @@ describe("buildWorkspaceTabsViewModel", () => {
       onSelectSession: vi.fn(),
       onSelectFile: vi.fn(),
       onCloseFile: vi.fn(),
+      onSelectOverview: vi.fn(),
+      onSelectChildSessions: vi.fn(),
+      onSelectProjectFiles: vi.fn(),
       onSelectCronJobs: vi.fn(),
     });
 
-    expect(tabs).toEqual([
+    expect(tabs.slice(4)).toEqual([
       expect.objectContaining({
         key: "file:parent::preview::demo.html",
         active: true,
