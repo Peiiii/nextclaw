@@ -696,3 +696,44 @@ it("keeps growing write previews pinned to the bottom until the user scrolls awa
     vi.useRealTimers();
   }
 });
+
+it("keeps incomplete streamed edit arguments expandable before a structured preview exists", () => {
+  render(
+    <ChatMessageList
+      messages={[
+        {
+          id: "assistant-partial-edit-input",
+          role: "assistant",
+          roleLabel: "Assistant",
+          timestampLabel: "10:30",
+          status: "streaming",
+          parts: [
+            {
+              type: "tool-card",
+              card: {
+                kind: "call",
+                toolName: "edit_file",
+                summary: "src/live.ts",
+                input: '{"path":"src/live.ts","oldText":',
+                inputLabel: "Input",
+                hasResult: false,
+                statusTone: "running",
+                statusLabel: "Running",
+                titleLabel: "Tool Call",
+                outputLabel: "View Output",
+                emptyLabel: "No output",
+              },
+            },
+          ],
+        },
+      ]}
+      isSending
+      hasAssistantDraft
+      texts={defaultTexts}
+    />,
+  );
+
+  fireEvent.click(screen.getByText("edit file"));
+
+  expect(screen.getByText('{"path":"src/live.ts","oldText":')).toBeTruthy();
+});

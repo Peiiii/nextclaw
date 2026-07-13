@@ -25,6 +25,27 @@ export function ChatProcessLeadingIcon({
   );
 }
 
+export function ChatProcessWorkflowRail({
+  position,
+}: {
+  position: "single" | "first" | "middle" | "last";
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      data-tool-workflow-rail="true"
+      className={cn(
+        "pointer-events-none absolute left-[0.575em] w-px -translate-x-1/2 bg-border/70",
+        position === "first"
+          ? "bottom-0 top-[0.86em]"
+          : position === "last"
+            ? "top-0 h-[0.86em]"
+            : "inset-y-0",
+      )}
+    />
+  );
+}
+
 export function ChatProcessMetaRow({
   children,
   className,

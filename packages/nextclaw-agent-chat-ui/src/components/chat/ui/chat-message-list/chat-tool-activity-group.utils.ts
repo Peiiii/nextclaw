@@ -309,9 +309,9 @@ export function groupConsecutiveToolParts(
     const label = formatToolActivityGroupLabel({ segments, labels });
     blocks.push({
       kind: "tool-group",
-      key: `tool-group-${startIndex}-${index - 1}`,
+      key: `tool-group-${startIndex}`,
       group: {
-        key: `tool-group-${startIndex}-${index - 1}`,
+        key: `tool-group-${startIndex}`,
         startIndex,
         endIndex: index - 1,
         parts: groupedParts,

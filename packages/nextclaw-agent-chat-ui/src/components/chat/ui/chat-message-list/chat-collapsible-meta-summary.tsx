@@ -1,7 +1,10 @@
 import type { MouseEvent, ReactNode } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, type LucideIcon } from "lucide-react";
 import { cn } from "@agent-chat-ui/components/chat/internal/cn";
-import { CHAT_PROCESS_META_ROW_CLASS } from "./chat-process-meta-row";
+import {
+  CHAT_PROCESS_META_ROW_CLASS,
+  ChatProcessLeadingIcon,
+} from "./chat-process-meta-row";
 
 type MetaOpenGroup = "process" | "tool-activity" | "reasoning";
 
@@ -14,14 +17,18 @@ export function ChatCollapsibleMetaSummary({
   label,
   openGroup,
   open = false,
+  icon: Icon,
   className,
+  leadingIconClassName,
   labelClassName,
   onClick,
 }: {
   label: ReactNode;
   openGroup: MetaOpenGroup;
   open?: boolean;
+  icon?: LucideIcon;
   className?: string;
+  leadingIconClassName?: string;
   labelClassName?: string;
   onClick?: (event: MouseEvent<HTMLElement>) => void;
 }) {
@@ -38,6 +45,13 @@ export function ChatCollapsibleMetaSummary({
       aria-expanded={open}
       onClick={onClick}
     >
+      {Icon ? (
+        <ChatProcessLeadingIcon
+          className={cn("relative z-[1] rounded-sm", leadingIconClassName)}
+        >
+          <Icon className="h-[1.05em] w-[1.05em]" strokeWidth={2.25} />
+        </ChatProcessLeadingIcon>
+      ) : null}
       <span className={cn("min-w-0 shrink truncate", labelClassName)}>{label}</span>
       <span
         className={cn(

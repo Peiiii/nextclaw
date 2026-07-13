@@ -5,7 +5,7 @@ import type {
   ChatFileOpenActionViewModel,
   ChatToolPartViewModel,
 } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
-import { ToolCardRoot, ToolCardContent } from './tool-card-root';
+import { ToolCardRoot, ToolCardContent, ToolCardDetailSection } from './tool-card-root';
 import { ToolCardHeader } from './tool-card-header';
 import { ToolCardFileOperationContent } from './tool-card-file-operation';
 import { ChatTerminalSurface } from './terminal/terminal-panes';
@@ -261,10 +261,12 @@ export function FileOperationView({
   toolLabel?: string;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
 }) {
+  const input = card.input?.trim() ?? '';
   const output = card.output?.trim() ?? '';
   const isRunning = card.statusTone === 'running';
   const hasStructuredPreview = Boolean(card.fileOperation?.blocks.length);
-  const hasContent = hasStructuredPreview || Boolean(output);
+  const showRawInput = Boolean(input) && !hasStructuredPreview;
+  const hasContent = hasStructuredPreview || Boolean(input) || Boolean(output);
   const previewBlocks = card.fileOperation?.blocks ?? [];
   const previewLineCount = previewBlocks.reduce((count, block) => count + block.lines.length, 0);
   const previewCharCount = previewBlocks.reduce((count, block) => {
@@ -312,13 +314,21 @@ export function FileOperationView({
       />
       {expanded && hasContent ? (
         <ToolCardContent className="bg-transparent py-0">
-          <ToolCardFileOperationContent
-            card={card}
-            onFileOpen={onFileOpen}
-            // Always show the path header in the content panel so users can
-            // open the file and still see +N/-N captions (matches prior UX).
-            showPathRow
-          />
+          {showRawInput ? (
+            <ToolCardDetailSection label={card.inputLabel?.trim() || 'Input'} tone="input">
+              {input}
+            </ToolCardDetailSection>
+          ) : null}
+          {showRawInput && output ? <div className="h-2" /> : null}
+          {hasStructuredPreview || output ? (
+            <ToolCardFileOperationContent
+              card={card}
+              onFileOpen={onFileOpen}
+              // Always show the path header in the content panel so users can
+              // open the file and still see +N/-N captions (matches prior UX).
+              showPathRow
+            />
+          ) : null}
         </ToolCardContent>
       ) : null}
     </ToolCardRoot>

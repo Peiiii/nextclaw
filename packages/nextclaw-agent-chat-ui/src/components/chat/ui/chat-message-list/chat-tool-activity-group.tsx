@@ -4,15 +4,17 @@ import type {
   ChatToolActionViewModel,
   ChatMessageTexts,
 } from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
-import { useState, type ReactNode } from "react";
-import { cn } from "@agent-chat-ui/components/chat/internal/cn";
+import { type ReactNode } from "react";
+import { Workflow } from "lucide-react";
 import { ChatToolCard } from "./chat-tool-card";
 import { ChatCollapsibleMetaSummary } from "./chat-collapsible-meta-summary";
 import { ChatReasoningBlock } from "./chat-reasoning-block";
+import { ChatProcessWorkflowRail } from "./chat-process-meta-row";
 import type { ChatToolActivityGroupViewModel } from "./chat-tool-activity-group.utils";
 
 export function ChatToolActivityGroup({
   group,
+  open,
   isUser,
   reasoningCharacterCountTemplates,
   toolStatusLabels,
@@ -20,8 +22,10 @@ export function ChatToolActivityGroup({
   onFileOpen,
   renderToolAgent,
   renderPanelAppCard,
+  onOpenChange,
 }: {
   group: ChatToolActivityGroupViewModel;
+  open: boolean;
   isUser: boolean;
   reasoningCharacterCountTemplates?: ChatMessageTexts["reasoningCharacterCountTemplates"];
   toolStatusLabels?: ChatMessageTexts["toolStatusLabels"];
@@ -29,8 +33,8 @@ export function ChatToolActivityGroup({
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
   renderToolAgent?: (agentId: string) => ReactNode;
   renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
+  onOpenChange: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const toolCount = group.parts.filter((part) => part.type === "tool-card").length;
   const showWorkflowRail = open && toolCount > 1;
 
@@ -39,8 +43,10 @@ export function ChatToolActivityGroup({
       <ChatCollapsibleMetaSummary
         openGroup="tool-activity"
         open={open}
+        icon={Workflow}
+        leadingIconClassName="bg-card"
         label={group.label}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => onOpenChange(!open)}
       />
       {open ? (
         <div className="text-[0.925rem] leading-[1.72]">
@@ -52,17 +58,8 @@ export function ChatToolActivityGroup({
                 className="relative min-w-0"
               >
                 {showWorkflowRail ? (
-                  <div
-                    aria-hidden="true"
-                    data-tool-workflow-rail="true"
-                    className={cn(
-                      "pointer-events-none absolute left-[0.575em] w-px -translate-x-1/2 bg-border/70",
-                      index === 0
-                        ? "bottom-0 top-[0.86em]"
-                        : isLast
-                          ? "top-0 h-[0.86em]"
-                          : "inset-y-0",
-                    )}
+                  <ChatProcessWorkflowRail
+                    position={index === 0 ? "first" : isLast ? "last" : "middle"}
                   />
                 ) : null}
                 {part.type === "tool-card" ? (
@@ -75,15 +72,13 @@ export function ChatToolActivityGroup({
                     renderPanelAppCard={renderPanelAppCard}
                   />
                 ) : (
-                  <div className="pl-[calc(1.15em+0.375rem)]">
-                    <ChatReasoningBlock
-                      label={part.label}
-                      text={part.text}
-                      characterCountTemplates={reasoningCharacterCountTemplates}
-                      isUser={isUser}
-                      isInProgress={false}
-                    />
-                  </div>
+                  <ChatReasoningBlock
+                    label={part.label}
+                    text={part.text}
+                    characterCountTemplates={reasoningCharacterCountTemplates}
+                    isUser={isUser}
+                    isInProgress={false}
+                  />
                 )}
               </div>
             );

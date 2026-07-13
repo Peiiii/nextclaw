@@ -1,4 +1,5 @@
 import { memo, useState, type ReactNode } from "react";
+import { ListChecks } from "lucide-react";
 import type {
   ChatFileOpenActionViewModel,
   ChatInlineDisplayViewModel,
@@ -16,6 +17,7 @@ import { ChatReasoningBlock } from "./chat-reasoning-block";
 import { ChatToolCard } from "./chat-tool-card";
 import { ChatToolActivityGroup } from "./chat-tool-activity-group";
 import { ChatCollapsibleMetaSummary } from "./chat-collapsible-meta-summary";
+import { ChatProcessWorkflowRail } from "./chat-process-meta-row";
 import {
   groupConsecutiveToolParts,
   type ChatToolActivityGroupLabels,
@@ -51,6 +53,8 @@ type ChatMessageProcessSplit = {
   processParts: ChatMessagePartViewModel[];
   finalParts: ChatMessagePartViewModel[];
 };
+
+type ToolActivityOpenChange = (groupKey: string, open: boolean) => void;
 
 type RenderChatMessagePartParams = {
   part: ChatMessagePartViewModel;
@@ -184,7 +188,8 @@ function renderChatMessagePart({
   if (type === "tool-card") {
     const { card } = part;
     return (
-      <div key={`tool-${index}`}>
+      <div key={`tool-${index}`} className="relative min-w-0">
+        <ChatProcessWorkflowRail position="single" />
         <ChatToolCard
           card={card}
           toolStatusLabels={texts.toolStatusLabels}
@@ -241,6 +246,8 @@ function renderMessageParts(params: {
   renderToolAgent?: (agentId: string) => ReactNode;
   renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
   indexOffset?: number;
+  openToolGroupKeys: ReadonlySet<string>;
+  onToolActivityOpenChange: ToolActivityOpenChange;
 }): ReactNode[] {
   const {
     isInProgress,
@@ -248,7 +255,9 @@ function renderMessageParts(params: {
     onAttachmentOpen,
     onFileOpen,
     onInlineTokenClick,
+    onToolActivityOpenChange,
     onToolAction,
+    openToolGroupKeys,
     parts,
     renderInlineDisplay,
     renderPanelAppCard,
@@ -266,6 +275,7 @@ function renderMessageParts(params: {
         <ChatToolActivityGroup
           key={block.key}
           group={block.group}
+          open={openToolGroupKeys.has(block.group.key)}
           isUser={isUser}
           reasoningCharacterCountTemplates={texts.reasoningCharacterCountTemplates}
           toolStatusLabels={texts.toolStatusLabels}
@@ -273,6 +283,7 @@ function renderMessageParts(params: {
           onFileOpen={onFileOpen}
           renderToolAgent={renderToolAgent}
           renderPanelAppCard={renderPanelAppCard}
+          onOpenChange={(open) => onToolActivityOpenChange(block.group.key, open)}
         />
       );
     }
@@ -313,6 +324,24 @@ export const ChatMessage = memo(function ChatMessage({
   const processSplit = splitAssistantProcess(message);
   // Controlled collapse avoids native <details>/<summary> UA labels like "详情".
   const [processOpen, setProcessOpen] = useState(false);
+  const [openToolGroupKeys, setOpenToolGroupKeys] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+
+  const handleToolActivityOpenChange: ToolActivityOpenChange = (groupKey, open) => {
+    setOpenToolGroupKeys((current) => {
+      const next = new Set(current);
+      if (open) {
+        next.add(groupKey);
+      } else {
+        next.delete(groupKey);
+      }
+      return next;
+    });
+    if (open) {
+      setProcessOpen(true);
+    }
+  };
 
   return (
     <div
@@ -333,6 +362,8 @@ export const ChatMessage = memo(function ChatMessage({
                 <ChatCollapsibleMetaSummary
                   openGroup="process"
                   open={processOpen}
+                  icon={ListChecks}
+                  leadingIconClassName="bg-card"
                   label={message.processSummary?.label}
                   onClick={() => setProcessOpen((current) => !current)}
                 />
@@ -349,6 +380,8 @@ export const ChatMessage = memo(function ChatMessage({
                     onFileOpen,
                     onAttachmentOpen,
                     onInlineTokenClick,
+                    openToolGroupKeys,
+                    onToolActivityOpenChange: handleToolActivityOpenChange,
                     renderInlineDisplay,
                     renderToolAgent,
                     renderPanelAppCard,
@@ -366,6 +399,8 @@ export const ChatMessage = memo(function ChatMessage({
               onFileOpen,
               onAttachmentOpen,
               onInlineTokenClick,
+              openToolGroupKeys,
+              onToolActivityOpenChange: handleToolActivityOpenChange,
               renderInlineDisplay,
               renderToolAgent,
               renderPanelAppCard,
@@ -383,6 +418,8 @@ export const ChatMessage = memo(function ChatMessage({
             onFileOpen,
             onAttachmentOpen,
             onInlineTokenClick,
+            openToolGroupKeys,
+            onToolActivityOpenChange: handleToolActivityOpenChange,
             renderInlineDisplay,
             renderToolAgent,
             renderPanelAppCard,

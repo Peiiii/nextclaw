@@ -47,6 +47,27 @@ export class AgentConversationToolCallManager {
     this.argsRawByCallId.clear();
   };
 
+  hydrate = (messages: readonly NcpMessage[]): void => {
+    this.clear();
+    messages.forEach((message) => {
+      message.parts.forEach((part) => {
+        if (
+          part.type !== "tool-invocation" ||
+          !part.toolCallId ||
+          part.state === "result" ||
+          part.state === "cancelled"
+        ) {
+          return;
+        }
+        const args = typeof part.args === "string"
+          ? part.args
+          : JSON.stringify(part.args ?? {});
+        this.messageIdByCallId.set(part.toolCallId, message.id);
+        this.argsRawByCallId.set(part.toolCallId, args);
+      });
+    });
+  };
+
   clearByMessageId = (messageId: string): void => {
     clearToolCallTrackingByMessageId(
       this.messageIdByCallId,

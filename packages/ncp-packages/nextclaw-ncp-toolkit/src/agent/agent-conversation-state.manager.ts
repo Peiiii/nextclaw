@@ -117,7 +117,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
           abortDisabledReason: payload.activeRun.abortDisabledReason ?? null,
         }
       : null;
-    this.toolCalls.clear();
+    this.toolCalls.hydrate(this.messages);
     this.lastSettledRunId = null;
     this.stateVersion += 1;
     this.notifyListeners();

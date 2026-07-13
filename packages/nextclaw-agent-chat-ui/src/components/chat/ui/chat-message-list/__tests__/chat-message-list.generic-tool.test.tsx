@@ -59,6 +59,101 @@ it("summarizes repeated edits by distinct file path", () => {
   expect(screen.getByText("Edit 2 files")).toBeTruthy();
 });
 
+it("keeps a manually expanded tool group open while more tools arrive", () => {
+  const renderMessage = (toolCount: number) => (
+    <ChatMessageList
+      messages={[
+        {
+          id: "assistant-growing-tool-group",
+          role: "assistant",
+          roleLabel: "Assistant",
+          timestampLabel: "10:11",
+          status: "streaming",
+          parts: Array.from({ length: toolCount }, (_, index) =>
+            toolCard("exec_command", `command: command-${index + 1}`),
+          ),
+        },
+      ]}
+      isSending
+      hasAssistantDraft
+      texts={defaultTexts}
+    />
+  );
+  const view = render(renderMessage(2));
+
+  fireEvent.click(screen.getByRole("button", { name: "Run 2 commands" }));
+  expect(
+    screen.getByRole("button", { name: "Run 2 commands" }).getAttribute("aria-expanded"),
+  ).toBe("true");
+
+  view.rerender(renderMessage(3));
+
+  expect(
+    screen.getByRole("button", { name: "Run 3 commands" }).getAttribute("aria-expanded"),
+  ).toBe("true");
+});
+
+it("keeps a manually expanded tool group visible when the message completes", () => {
+  const renderMessage = (completed: boolean) => (
+    <ChatMessageList
+      messages={[
+        {
+          id: "assistant-completing-tool-group",
+          role: "assistant",
+          roleLabel: "Assistant",
+          timestampLabel: "10:11",
+          status: completed ? "final" : "streaming",
+          processSummary: completed ? { label: "Processed" } : undefined,
+          parts: [
+            toolCard("exec_command", "command: pnpm lint"),
+            toolCard("exec_command", "command: pnpm test"),
+            ...(completed
+              ? [{ type: "markdown" as const, text: "Finished." }]
+              : []),
+          ],
+        },
+      ]}
+      isSending={!completed}
+      hasAssistantDraft={!completed}
+      texts={defaultTexts}
+    />
+  );
+  const view = render(renderMessage(false));
+
+  fireEvent.click(screen.getByRole("button", { name: "Run 2 commands" }));
+  view.rerender(renderMessage(true));
+
+  expect(
+    screen.getByRole("button", { name: "Processed" }).getAttribute("aria-expanded"),
+  ).toBe("true");
+  expect(
+    screen.getByRole("button", { name: "Run 2 commands" }).getAttribute("aria-expanded"),
+  ).toBe("true");
+});
+
+it("renders the workflow rail for a single tool row", () => {
+  const { container } = render(
+    <ChatMessageList
+      messages={[
+        {
+          id: "assistant-single-tool-rail",
+          role: "assistant",
+          roleLabel: "Assistant",
+          timestampLabel: "10:11",
+          parts: [toolCard("exec_command", "command: pnpm test")],
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  expect(
+    container.querySelectorAll('[data-tool-workflow-rail="true"]'),
+  ).toHaveLength(1);
+});
+
 it("connects tool rows across intervening reasoning from icon center to icon center", () => {
   const { container } = render(
     <ChatMessageList
@@ -91,6 +186,12 @@ it("connects tool rows across intervening reasoning from icon center to icon cen
     container.querySelectorAll<HTMLElement>('[data-tool-workflow-rail="true"]'),
   );
   expect(screen.getByText(/Reasoning · \d+/)).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: /Reasoning · \d+/ }).querySelector(".lucide-brain"),
+  ).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: "Run 2 commands" }).querySelector(".lucide-workflow"),
+  ).toBeTruthy();
   expect(rails).toHaveLength(3);
   expect(rails[0]?.className).toContain("top-[0.86em]");
   expect(rails[0]?.className).toContain("bottom-0");

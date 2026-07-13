@@ -4,46 +4,9 @@ import type {
   ChatToolActionViewModel,
   ChatToolPartViewModel,
 } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
-import { cn } from '@agent-chat-ui/components/chat/internal/cn';
-import { ToolCardRoot, ToolCardContent } from './tool-card-root';
+import { ToolCardRoot, ToolCardContent, ToolCardDetailSection } from './tool-card-root';
 import { ToolCardHeader, ToolCardHeaderAction } from './tool-card-header';
 import { useToolCardExpandedState } from './tool-card-views';
-
-function GenericToolSection({
-  label,
-  tone,
-  children,
-}: {
-  label: string;
-  tone: 'input' | 'output' | 'error';
-  children: ReactNode;
-}) {
-  const tones = {
-    input: { dot: 'bg-muted-foreground/60', body: 'text-foreground' },
-    output: { dot: 'bg-primary/70', body: 'text-foreground' },
-    error: { dot: 'bg-rose-500/80', body: 'text-rose-950/85' },
-  } as const;
-  const style = tones[tone];
-
-  return (
-    <section className="overflow-hidden rounded-md border border-border/70 bg-muted/20">
-      <div className="flex items-center gap-2 border-b border-border/60 px-2.5 py-1.5 text-[10px] font-medium tracking-wide text-muted-foreground">
-        <span className={cn('h-1.5 w-1.5 rounded-full', style.dot)} />
-        <span className="normal-case tracking-normal">{label}</span>
-      </div>
-      <div className="w-full overflow-hidden">
-        <pre
-          className={cn(
-            'w-full max-w-full min-w-0 max-h-64 overflow-x-auto overflow-y-auto px-2.5 py-2 font-mono text-[12px] leading-relaxed whitespace-pre custom-scrollbar',
-            style.body,
-          )}
-        >
-          {children}
-        </pre>
-      </div>
-    </section>
-  );
-}
 
 function buildToolActionSlot(
   card: ChatToolPartViewModel,
@@ -100,18 +63,18 @@ export function GenericToolCard({
       {expanded && hasContent ? (
         <ToolCardContent className="bg-transparent py-0">
           {hasInputSection ? (
-            <GenericToolSection label={card.inputLabel?.trim() || 'Input'} tone="input">
+            <ToolCardDetailSection label={card.inputLabel?.trim() || 'Input'} tone="input">
               {input}
-            </GenericToolSection>
+            </ToolCardDetailSection>
           ) : null}
           {hasInputSection && hasOutputSection ? <div className="h-2" /> : null}
           {hasOutputSection ? (
-            <GenericToolSection
+            <ToolCardDetailSection
               label={card.outputLabel?.trim() || 'Output'}
               tone={card.statusTone === 'error' ? 'error' : 'output'}
             >
               {output}
-            </GenericToolSection>
+            </ToolCardDetailSection>
           ) : null}
         </ToolCardContent>
       ) : null}

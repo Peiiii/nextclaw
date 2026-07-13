@@ -3,6 +3,7 @@ import { useReasoningBlockOpenState } from "@agent-chat-ui/components/chat/hooks
 import { useStickyBottomScroll } from "@agent-chat-ui/components/chat/hooks/use-sticky-bottom-scroll";
 import { cn } from "@agent-chat-ui/components/chat/internal/cn";
 import { ChatCollapsibleMetaSummary } from "./chat-collapsible-meta-summary";
+import { Brain } from "lucide-react";
 
 type ChatReasoningBlockProps = {
   label: string;
@@ -46,7 +47,7 @@ export function ChatReasoningBlock({
   );
   const { onScroll } = useStickyBottomScroll({
     scrollRef,
-    resetKey: `${displayLabel}:${isInProgress ? "streaming" : "idle"}`,
+    resetKey: "reasoning",
     isLoading: false,
     hasContent: text.length > 0,
     contentVersion: text,
@@ -58,6 +59,8 @@ export function ChatReasoningBlock({
       <ChatCollapsibleMetaSummary
         openGroup="reasoning"
         open={isOpen}
+        icon={Brain}
+        leadingIconClassName={isUser ? "bg-primary" : "bg-card"}
         label={displayLabel}
         labelClassName={isUser ? "text-primary-100" : undefined}
         onClick={onSummaryClick}

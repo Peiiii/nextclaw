@@ -73,6 +73,65 @@ it("localizes reasoning progress and completion around the live character count"
   expect(screen.queryByText(/思考中/)).toBeNull();
 });
 
+it("lets a user escape reasoning auto-scroll after moving 20px from the bottom", () => {
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    callback(0);
+    return 1;
+  });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+  try {
+    const view = render(
+      <ChatMessageList
+        messages={[createReasoningMessage("streaming")]}
+        isSending
+        hasAssistantDraft
+        texts={defaultTexts}
+      />,
+    );
+    const scrollArea = view.container.querySelector(
+      '[data-reasoning-scroll="true"]',
+    ) as HTMLDivElement | null;
+    expect(scrollArea).toBeTruthy();
+    if (!scrollArea) {
+      return;
+    }
+
+    let scrollHeight = 200;
+    Object.defineProperties(scrollArea, {
+      clientHeight: { configurable: true, value: 100 },
+      scrollHeight: { configurable: true, get: () => scrollHeight },
+      scrollTop: { configurable: true, value: 79, writable: true },
+    });
+    fireEvent.scroll(scrollArea);
+
+    scrollHeight = 260;
+    view.rerender(
+      <ChatMessageList
+        messages={[
+          {
+            ...createReasoningMessage("streaming"),
+            parts: [
+              {
+                type: "reasoning",
+                label: "Reasoning",
+                text: "This is the full reasoning content with more streamed text.",
+              },
+            ],
+          },
+        ]}
+        isSending
+        hasAssistantDraft
+        texts={defaultTexts}
+      />,
+    );
+
+    expect(scrollArea.scrollTop).toBe(79);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
 it("collapses completed assistant process content without adding a nested card", () => {
   const { container } = render(
     <ChatMessageList

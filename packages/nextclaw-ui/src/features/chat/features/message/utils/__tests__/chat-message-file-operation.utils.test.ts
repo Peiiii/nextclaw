@@ -63,6 +63,36 @@ it("builds edit-file previews from structured args before the tool finishes", ()
   expect(editLines[1]).not.toHaveProperty("newLineNumber");
 });
 
+it("keeps incomplete edit-file arguments available before preview fields arrive", () => {
+  const partialArgs = '{"path":"src/app.ts","oldText":';
+  const adapted = adapt([
+    {
+      id: "assistant-partial-edit-input",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-invocation",
+          toolInvocation: {
+            status: ToolInvocationStatus.PARTIAL_CALL,
+            toolCallId: "edit-partial-1",
+            toolName: "edit_file",
+            args: partialArgs,
+          },
+        },
+      ],
+    },
+  ] as unknown as ChatMessageSource[]);
+
+  expect(adapted[0]?.parts[0]).toMatchObject({
+    type: "tool-card",
+    card: {
+      toolName: "edit_file",
+      input: partialArgs,
+      statusTone: "running",
+    },
+  });
+});
+
 it("uses structured edit-file result line numbers after the tool finishes", () => {
   const adapted = adapt([
     {

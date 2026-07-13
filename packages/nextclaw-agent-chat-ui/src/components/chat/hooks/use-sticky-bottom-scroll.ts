@@ -34,7 +34,6 @@ export function useStickyBottomScroll({
 }: UseStickyBottomScrollParams): UseStickyBottomScrollResult {
   const [isAtBottom, setIsAtBottom] = useState(true);
   const isStickyRef = useRef(true);
-  const isProgrammaticScrollRef = useRef(false);
   const previousResetKeyRef = useRef<string | null>(null);
   const pendingInitialScrollRef = useRef(false);
   const scheduledScrollFrameRef = useRef<number | null>(null);
@@ -73,7 +72,6 @@ export function useStickyBottomScroll({
         return;
       }
 
-      isProgrammaticScrollRef.current = true;
       if (typeof currentElement.scrollTo === "function") {
         currentElement.scrollTo({
           top: currentElement.scrollHeight,
@@ -91,11 +89,6 @@ export function useStickyBottomScroll({
   }, [queueScrollToBottom, updateStickyState]);
 
   const onScroll = useCallback(() => {
-    if (isProgrammaticScrollRef.current) {
-      isProgrammaticScrollRef.current = false;
-      return;
-    }
-
     const element = scrollRef.current;
     if (!element) {
       return;
