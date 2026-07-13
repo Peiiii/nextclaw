@@ -3,6 +3,7 @@ import type {
   ChatFileOpenActionViewModel,
   ChatInlineDisplayViewModel,
   ChatInlineTokenViewModel,
+  ChatMessageLayout,
   ChatMessageTexts,
   ChatMessageViewModel,
   ChatPanelAppCardViewModel,
@@ -23,7 +24,6 @@ const TYPING_TEXT_SHEEN_CSS = `
     background-position: -60% 0;
   }
 }
-
 .nextclaw-chat-typing-indicator__text {
   background-image: linear-gradient(
     100deg,
@@ -63,6 +63,7 @@ function hasRenderableText(value: string): boolean {
 }
 
 export type ChatMessageListProps = {
+  layout?: ChatMessageLayout;
   messages: ChatMessageViewModel[];
   isSending: boolean;
   hasAssistantDraft: boolean;
@@ -103,9 +104,23 @@ function ChatMessageTypingFooter() {
   );
 }
 
-function ChatTypingIndicator({ label }: { label: string }) {
+function ChatTypingIndicator({
+  label,
+  layout,
+}: {
+  label: string;
+  layout: ChatMessageLayout;
+}) {
   return (
-    <div className="rounded-2xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground shadow-sm">
+    <div
+      data-chat-message-surface={layout === "flat" ? "flat" : "card"}
+      className={cn(
+        "text-sm text-muted-foreground",
+        layout === "flat"
+          ? "py-1"
+          : "rounded-2xl border border-border bg-card px-4 py-3 shadow-sm",
+      )}
+    >
       <style>{TYPING_TEXT_SHEEN_CSS}</style>
       <span className="nextclaw-chat-typing-indicator__text">{label}</span>
     </div>
@@ -115,6 +130,7 @@ function ChatTypingIndicator({ label }: { label: string }) {
 export function ChatMessageList({
   className,
   isSending,
+  layout = "card",
   messages,
   onAttachmentOpen,
   onFileOpen,
@@ -138,23 +154,59 @@ export function ChatMessageList({
       {visibleMessages.map((message) => {
         const isUser = message.role === 'user';
         const isGenerating = !isUser && (message.status === 'streaming' || message.status === 'pending');
+        const content = (
+          <ChatMessage
+            layout={layout}
+            message={message}
+            texts={texts}
+            onToolAction={onToolAction}
+            onFileOpen={onFileOpen}
+            onAttachmentOpen={onAttachmentOpen}
+            onInlineTokenClick={onInlineTokenClick}
+            resolveFileContentUrl={resolveFileContentUrl}
+            renderInlineDisplay={renderInlineDisplay}
+            renderToolAgent={renderToolAgent}
+            renderPanelAppCard={renderPanelAppCard}
+          />
+        );
+
+        if (layout === "flat" && !isUser) {
+          return (
+            <article key={message.id} data-chat-message-layout="flat" className="w-full min-w-0 space-y-2">
+              <div data-chat-message-header="flat" className="flex min-w-0 items-center gap-2.5">
+                <ChatMessageAvatar role={message.role} size="compact" />
+                <span className="truncate text-sm font-semibold text-foreground">
+                  {message.roleLabel}
+                </span>
+              </div>
+              <div data-chat-message-body="flat" className="min-w-0 w-full">
+                {content}
+              </div>
+              {isGenerating ? (
+                <div className="w-full">
+                  <ChatMessageTypingFooter />
+                </div>
+              ) : (
+                <div data-chat-message-footer="flat" className="flex items-center gap-2">
+                  <span className="px-1 text-[11px] leading-4 text-muted-foreground">
+                    {message.timestampLabel}
+                  </span>
+                  <ChatMessageActionCopy message={message} texts={texts} />
+                </div>
+              )}
+            </article>
+          );
+        }
 
         return (
-          <div key={message.id} className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
+          <div
+            key={message.id}
+            data-chat-message-layout="card"
+            className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}
+          >
             {!isUser ? <ChatMessageAvatar role={message.role} /> : null}
             <div className={cn('w-fit max-w-[92%] space-y-2 has-[[data-chat-message-wide-content=true]]:w-full', isUser && 'flex flex-col items-end')}>
-              <ChatMessage
-                message={message}
-                texts={texts}
-                onToolAction={onToolAction}
-                onFileOpen={onFileOpen}
-                onAttachmentOpen={onAttachmentOpen}
-                onInlineTokenClick={onInlineTokenClick}
-                resolveFileContentUrl={resolveFileContentUrl}
-                renderInlineDisplay={renderInlineDisplay}
-                renderToolAgent={renderToolAgent}
-                renderPanelAppCard={renderPanelAppCard}
-              />
+              {content}
               <div className={cn('flex items-center gap-2', isUser && 'justify-end')}>
                 {isGenerating ? (
                   <ChatMessageTypingFooter />
@@ -179,9 +231,12 @@ export function ChatMessageList({
       })}
 
       {isSending && !hasRenderableAssistantDraft ? (
-        <div className="flex justify-start gap-3">
-          <ChatMessageAvatar role="assistant" />
-          <ChatTypingIndicator label={texts.typingLabel} />
+        <div data-chat-message-layout={layout} className="flex justify-start gap-3">
+          <ChatMessageAvatar
+            role="assistant"
+            size={layout === "flat" ? "compact" : "default"}
+          />
+          <ChatTypingIndicator label={texts.typingLabel} layout={layout} />
         </div>
       ) : null}
     </div>

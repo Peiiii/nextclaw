@@ -49,6 +49,8 @@ import {
 } from '@/features/chat/managers/chat-recent-skills.manager';
 
 import { useSessionConversationInputAttachments } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-attachments';
+import { ChatConversationTrack } from '@/features/chat/components/conversation/chat-conversation-track';
+import { useChatMessageLayoutStore } from '@/features/chat/stores/chat-message-layout.store';
 import type { useSessionConversationInputQuery } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-query';
 import type {
   SessionConversationQueuedInput,
@@ -187,6 +189,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
   } = props;
   const presenter = usePresenter();
   const { language } = useI18n();
+  const messageLayout = useChatMessageLayoutStore((state) => state.layout);
   const { isMobile } = useViewportLayout();
   const inputBarRef = useRef<ChatInputBarHandle | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -389,63 +392,74 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     selectedSkills: inputSnapshot.selectedSkills,
   });
 
+  const useReadingTrack = surface === 'default' && messageLayout === 'flat';
+  const inputBar = (
+    <ChatInputBar
+      ref={inputBarRef}
+      surface={useReadingTrack ? 'embedded' : surface}
+      sendError={inputSnapshot.sendError}
+      sendErrorDetailsLabel={t('chatErrorDetails', language)}
+      topSlot={controller.queuedInputs.length > 0
+        ? <SessionQueuedInputRows controller={controller} />
+        : null}
+      composer={{
+        nodes: [...inputSnapshot.nodes],
+        placeholder: textareaPlaceholder,
+        disabled: inputDisabled,
+        onNodesChange: handleNodesChange,
+        onFilesAdd: handleFilesAdd,
+        inputSurfaceTriggerSpecs: inputSurfaceState.triggerSpecs,
+        onInputSurfaceTriggerChange: setInputSurfaceTrigger,
+      }}
+      inputSurface={inputSurfaceState.panel ?? undefined}
+      hint={buildModelStateHint({
+        isModelOptionsLoading,
+        isModelOptionsEmpty,
+        onGoToProviders: presenter.chatUiManager.goToProviders,
+        texts: {
+          noModelOptionsLabel: t('chatModelNoOptions'),
+          configureProviderLabel: t('chatGoConfigureProvider'),
+        },
+      })}
+      toolbar={{
+        selects: [],
+        trailingSelects: toolbarSelects,
+        accessories: [
+          {
+            key: 'attach',
+            label: t('chatInputAttach'),
+            icon: 'paperclip' as const,
+            iconOnly: true,
+            disabled: !attachmentSupported || inputDisabled,
+            onClick: () => fileInputRef.current?.click(),
+          },
+        ],
+        skillPicker,
+        actions: {
+          isSending: controller.isSending,
+          canStopGeneration: controller.canStopGeneration,
+          sendDisabled: controller.sendDisabled,
+          stopDisabled: controller.stopDisabled,
+          stopHint: t('chatStopUnavailable'),
+          sendButtonLabel: controller.isSending ? t('chatQueueSend') : t('chatSend'),
+          stopButtonLabel: t('chatStop'),
+          contextWindow,
+          onSend: controller.send,
+          onStop: controller.stop,
+        },
+      }}
+    />
+  );
+
   return (
     <>
-      <ChatInputBar
-        ref={inputBarRef}
-        surface={surface}
-        sendError={inputSnapshot.sendError}
-        sendErrorDetailsLabel={t('chatErrorDetails', language)}
-        topSlot={controller.queuedInputs.length > 0
-          ? <SessionQueuedInputRows controller={controller} />
-          : null}
-        composer={{
-          nodes: [...inputSnapshot.nodes],
-          placeholder: textareaPlaceholder,
-          disabled: inputDisabled,
-          onNodesChange: handleNodesChange,
-          onFilesAdd: handleFilesAdd,
-          inputSurfaceTriggerSpecs: inputSurfaceState.triggerSpecs,
-          onInputSurfaceTriggerChange: setInputSurfaceTrigger,
-        }}
-        inputSurface={inputSurfaceState.panel ?? undefined}
-        hint={buildModelStateHint({
-          isModelOptionsLoading,
-          isModelOptionsEmpty,
-          onGoToProviders: presenter.chatUiManager.goToProviders,
-          texts: {
-            noModelOptionsLabel: t('chatModelNoOptions'),
-            configureProviderLabel: t('chatGoConfigureProvider'),
-          },
-        })}
-        toolbar={{
-          selects: [],
-          trailingSelects: toolbarSelects,
-          accessories: [
-            {
-              key: 'attach',
-              label: t('chatInputAttach'),
-              icon: 'paperclip' as const,
-              iconOnly: true,
-              disabled: !attachmentSupported || inputDisabled,
-              onClick: () => fileInputRef.current?.click(),
-            },
-          ],
-          skillPicker,
-          actions: {
-            isSending: controller.isSending,
-            canStopGeneration: controller.canStopGeneration,
-            sendDisabled: controller.sendDisabled,
-            stopDisabled: controller.stopDisabled,
-            stopHint: t('chatStopUnavailable'),
-            sendButtonLabel: controller.isSending ? t('chatQueueSend') : t('chatSend'),
-            stopButtonLabel: t('chatStop'),
-            contextWindow,
-            onSend: controller.send,
-            onStop: controller.stop,
-          },
-        }}
-      />
+      {useReadingTrack ? (
+        <ChatConversationTrack className="pb-4 pt-2" width="composer">
+          {inputBar}
+        </ChatConversationTrack>
+      ) : (
+        inputBar
+      )}
       <input
         ref={fileInputRef}
         type="file"

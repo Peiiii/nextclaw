@@ -6,7 +6,7 @@ import {
   type MutableRefObject,
 } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createChatComposerTextNode,
   type ChatComposerNode,
@@ -26,8 +26,13 @@ import type {
   SessionConversationInputSnapshot,
 } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-state';
 import { useSessionConversationInputState } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-state';
+import { useChatMessageLayoutStore } from '@/features/chat/stores/chat-message-layout.store';
 
 const uploadNcpAssetsMock = vi.hoisted(() => vi.fn());
+
+afterEach(() => {
+  useChatMessageLayoutStore.getState().setLayout('card');
+});
 
 vi.mock('@/app/hooks/use-viewport-layout', () => ({
   useViewportLayout: () => ({ isDesktop: true, isMobile: false }),
@@ -190,6 +195,20 @@ function StreamingSessionConversationInputHarness({
 }
 
 describe('SessionConversationInput streaming stability', () => {
+  it('aligns the default input with the flat message reading track', () => {
+    useChatMessageLayoutStore.getState().setLayout('flat');
+    const controlRef: MutableRefObject<StreamingInputControl | null> = { current: null };
+
+    render(<StreamingSessionConversationInputHarness controlRef={controlRef} />);
+
+    const track = document.querySelector(
+      '[data-chat-conversation-track="flat"][data-chat-conversation-track-width="composer"]',
+    );
+    expect(track?.className).toContain('max-w-[min(54rem,100%)]');
+    expect(track?.querySelector('.nextclaw-chat-input-bar-shell')).toBeTruthy();
+    expect(track?.firstElementChild?.className).toContain('px-0');
+  });
+
   it('keeps IME composition stable while simulated streamed output rerenders the owner', async () => {
     const controlRef: MutableRefObject<StreamingInputControl | null> = { current: null };
     render(<StreamingSessionConversationInputHarness controlRef={controlRef} />);

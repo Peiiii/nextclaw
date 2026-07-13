@@ -6,6 +6,7 @@ import { cn } from "@agent-chat-ui/components/chat/internal/cn";
 import { ChatInlineTokenBadge } from "./chat-inline-token-badge";
 import { ChatCodeBlock } from "./chat-code-block";
 import { ChatInlineDisplay } from "./chat-inline-display";
+import { ChatMessageImagePreview } from "./chat-message-file/chat-message-image-preview";
 import type {
   ChatFileOpenActionViewModel,
   ChatInlineDisplayViewModel,
@@ -39,7 +40,13 @@ function trimMarkdown(value: string): string {
 type ChatMessageMarkdownProps = {
   text: string;
   role: ChatMessageRole;
-  texts: Pick<ChatMessageTexts, "copyCodeLabel" | "copiedCodeLabel">;
+  texts: Pick<
+    ChatMessageTexts,
+    | "copyCodeLabel"
+    | "copiedCodeLabel"
+    | "attachmentExpandLabel"
+    | "attachmentCloseLabel"
+  >;
   inline?: boolean;
   inlineTokens?: readonly ChatInlineTokenViewModel[];
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
@@ -54,6 +61,7 @@ type ChatMessageMarkdownProps = {
 
 type MarkdownNode = {
   type?: string;
+  tagName?: string;
   value?: string;
   children?: MarkdownNode[];
   data?: {
@@ -62,6 +70,24 @@ type MarkdownNode = {
     hChildren?: Array<{ type: "text"; value: string }>;
   };
 };
+
+function isSingleLineImageParagraph(node: MarkdownNode | undefined): boolean {
+  let imageCount = 0;
+  for (const child of node?.children ?? []) {
+    if (child.type === "text") {
+      const text = child.value ?? "";
+      if (text.trim().length > 0 || text.includes("\n") || text.includes("\r")) {
+        return false;
+      }
+      continue;
+    }
+    if (child.tagName !== "img") {
+      return false;
+    }
+    imageCount += 1;
+  }
+  return imageCount >= 3;
+}
 
 function prepareInlineTokens(
   inlineTokens: readonly ChatInlineTokenViewModel[] | undefined,
@@ -205,7 +231,20 @@ export function ChatMessageMarkdown({
   );
   const markdownComponents = useMemo<Components>(
     () => ({
-      p: ({ children }) => (inline ? <>{children}</> : <p>{children}</p>),
+      p: ({ node, children }) =>
+        inline ? (
+          <>{children}</>
+        ) : (
+          <p
+            data-chat-image-row={
+              isSingleLineImageParagraph(node as MarkdownNode)
+                ? "three-column"
+                : undefined
+            }
+          >
+            {children}
+          </p>
+        ),
       span: ({ node: _node, children, ...rest }) => {
         const restProps = rest as Record<string, unknown>;
         const kind = readStringProp(restProps, INLINE_TOKEN_KIND_ATTR);
@@ -293,7 +332,7 @@ export function ChatMessageMarkdown({
           />
         );
       },
-      img: ({ node: _node, src, alt, ...rest }) => {
+      img: ({ node: _node, src, alt }) => {
         const safeSrc = resolveSafeChatResourceHref(src);
         if (!safeSrc) {
           return null;
@@ -307,12 +346,12 @@ export function ChatMessageMarkdown({
           return null;
         }
         return (
-          <img
-            {...rest}
-            src={resolvedSrc}
+          <ChatMessageImagePreview
             alt={alt || ""}
-            loading="lazy"
-            decoding="async"
+            closeLabel={texts.attachmentCloseLabel ?? "Close preview"}
+            expandLabel={texts.attachmentExpandLabel ?? "Expand image"}
+            sizeLabel={null}
+            src={resolvedSrc}
           />
         );
       },

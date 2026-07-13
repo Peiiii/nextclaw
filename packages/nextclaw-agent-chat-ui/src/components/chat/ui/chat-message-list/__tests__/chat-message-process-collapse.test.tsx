@@ -38,6 +38,10 @@ it("renders completed reasoning collapsed with its character count", () => {
 
   const summary = screen.getByRole("button", { name: /Reasoning · \d+/ });
   expect(summary.getAttribute("aria-expanded")).toBe("false");
+  expect(summary.getAttribute("data-chat-process-meta-row")).toBe("true");
+  expect(summary.className).toContain("text-[0.925rem]");
+  expect(summary.className).toContain("leading-[1.72]");
+  expect(summary.className).toContain("text-muted-foreground/80");
   expect(screen.queryByText("This is the full reasoning content.")).toBeNull();
 });
 

@@ -26,6 +26,7 @@ import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
 import { ChatInlinePanelAppCard } from "@/features/chat/features/message/components/chat-inline-panel-app-card";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
+import { useChatMessageLayoutStore } from "@/features/chat/stores/chat-message-layout.store";
 import { useNcpChatSelectedSession } from "@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state";
 import { useI18n } from "@/app/components/i18n-provider";
 import { buildServerPathContentUrl } from "@/shared/lib/api";
@@ -61,7 +62,6 @@ function renderChatInlineDisplay(display: ChatInlineDisplayViewModel) {
     />
   );
 }
-
 type ContextInheritanceTimelineView = {
   sourceSessionId: string;
   inheritedMessageCount: number;
@@ -289,6 +289,7 @@ export function ChatMessageListContainer({
 }: ChatMessageListContainerProps) {
   const presenter = usePresenter();
   const { language } = useI18n();
+  const messageLayout = useChatMessageLayoutStore((state) => state.layout);
   const selectedSessionKey = useChatSessionListStore(
     (state) => state.snapshot.selectedSessionKey,
   );
@@ -408,6 +409,7 @@ export function ChatMessageListContainer({
         ) : (
           <ChatMessageList
             key={item.key}
+            layout={messageLayout}
             messages={item.messages}
             isSending={index === timelineItems.length - 1 ? isSending : false}
             hasAssistantDraft={hasAssistantDraft}

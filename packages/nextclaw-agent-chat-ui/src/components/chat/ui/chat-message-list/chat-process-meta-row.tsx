@@ -9,7 +9,7 @@ export const CHAT_PROCESS_LEADING_COL_CLASS =
   "inline-flex h-[1.15em] w-[1.15em] shrink-0 items-center justify-center text-current";
 
 export const CHAT_PROCESS_META_ROW_CLASS =
-  "group/process-row flex w-full min-w-0 items-center gap-1.5 py-0 text-[0.925rem] font-normal leading-[1.72] text-muted-foreground";
+  "group/process-row flex w-full min-w-0 items-center gap-1.5 py-0 text-[0.925rem] font-normal leading-[1.72] text-muted-foreground/80";
 
 export function ChatProcessLeadingIcon({
   children,
@@ -65,6 +65,7 @@ export function ChatProcessMetaRow({
 }) {
   return (
     <div
+      data-chat-process-meta-row="true"
       className={cn(
         CHAT_PROCESS_META_ROW_CLASS,
         interactive

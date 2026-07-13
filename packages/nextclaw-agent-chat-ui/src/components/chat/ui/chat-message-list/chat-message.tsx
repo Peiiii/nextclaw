@@ -4,6 +4,7 @@ import type {
   ChatFileOpenActionViewModel,
   ChatInlineDisplayViewModel,
   ChatInlineTokenViewModel,
+  ChatMessageLayout,
   ChatPanelAppCardViewModel,
   ChatMessageTexts,
   ChatMessagePartViewModel,
@@ -13,6 +14,8 @@ import type {
 import { cn } from "@agent-chat-ui/components/chat/internal/cn";
 import { ChatMessageMarkdown } from "./chat-message-markdown";
 import { ChatMessageFile } from "./chat-message-file";
+import { ChatMessageImageRow } from "./chat-message-file/chat-message-image-row";
+import { groupConsecutiveImageFileBlocks } from "./chat-message-file/chat-message-image-group.utils";
 import { ChatReasoningBlock } from "./chat-reasoning-block";
 import { ChatToolCard } from "./chat-tool-card";
 import { ChatToolActivityGroup } from "./chat-tool-activity-group";
@@ -24,6 +27,7 @@ import {
 } from "./chat-tool-activity-group.utils";
 
 type ChatMessageProps = {
+  layout: ChatMessageLayout;
   message: ChatMessageViewModel;
   texts: Pick<
     ChatMessageTexts,
@@ -31,6 +35,8 @@ type ChatMessageProps = {
     | "copiedCodeLabel"
     | "attachmentOpenLabel"
     | "attachmentAttachedLabel"
+    | "attachmentExpandLabel"
+    | "attachmentCloseLabel"
     | "attachmentCategoryLabels"
     | "toolActivitySegmentTemplates"
     | "toolActivityFailedLabel"
@@ -273,9 +279,23 @@ function renderMessageParts(params: {
     indexOffset = 0,
   } = params;
   const labels = resolveToolActivityLabels(texts);
-  const blocks = groupConsecutiveToolParts(parts, labels);
+  const blocks = groupConsecutiveImageFileBlocks(
+    groupConsecutiveToolParts(parts, labels),
+  );
 
   return blocks.map((block) => {
+    if (block.kind === "image-group") {
+      return (
+        <ChatMessageImageRow
+          key={`${block.key}-${indexOffset}`}
+          group={block}
+          indexOffset={indexOffset}
+          isUser={isUser}
+          texts={texts}
+          onOpen={onAttachmentOpen}
+        />
+      );
+    }
     if (block.kind === "tool-group") {
       return (
         <ChatToolActivityGroup
@@ -315,6 +335,7 @@ function renderMessageParts(params: {
 }
 
 export const ChatMessage = memo(function ChatMessage({
+  layout,
   message,
   texts,
   onToolAction,
@@ -328,6 +349,7 @@ export const ChatMessage = memo(function ChatMessage({
 }: ChatMessageProps) {
   const { role } = message;
   const isUser = role === "user";
+  const isFlat = layout === "flat" && !isUser;
   const isInProgress = isMessageInProgress(message.status);
   const processSplit = splitAssistantProcess(message);
   // Controlled collapse avoids native <details>/<summary> UA labels like "详情".
@@ -353,13 +375,18 @@ export const ChatMessage = memo(function ChatMessage({
 
   return (
     <div
+      data-chat-message-surface={isFlat ? "flat" : "card"}
       className={cn(
-        "inline-block w-fit max-w-full rounded-2xl border px-4 shadow-sm has-[[data-chat-message-wide-content=true]]:w-full",
-        isUser
-          ? "nextclaw-chat-message-user rounded-[1.45rem] border-primary bg-primary py-2.5 text-primary-foreground shadow-none"
-          : role === "assistant"
-            ? "border-border bg-card pb-3 pt-4 text-card-foreground"
-            : "border-border bg-muted/45 py-3 text-foreground",
+        "max-w-full has-[[data-chat-message-wide-content=true]]:w-full",
+        isFlat
+          ? "block w-full text-foreground"
+          : "inline-block w-fit rounded-2xl border px-4 shadow-sm",
+        !isFlat &&
+          (isUser
+            ? "nextclaw-chat-message-user rounded-[1.45rem] border-primary bg-primary py-2.5 text-primary-foreground shadow-none"
+            : role === "assistant"
+              ? "border-border bg-card pb-3 pt-4 text-card-foreground"
+              : "border-border bg-muted/45 py-3 text-foreground"),
       )}
     >
       <div className="space-y-0">

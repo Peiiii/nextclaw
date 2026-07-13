@@ -6,6 +6,7 @@ export { ChatPresenter } from "./presenters/chat.presenter";
 export { ChatDraftIntentManager } from "./managers/chat-draft-intent.manager";
 export { useChatSessionListStore } from "./stores/chat-session-list.store";
 export { useChatThreadStore } from "./stores/chat-thread.store";
+export { useChatMessageLayoutStore } from "./stores/chat-message-layout.store";
 export { useNcpChatSessionTypes } from "./features/session-type/hooks/use-ncp-chat-session-types";
 export {
   buildSessionTypeOptions,

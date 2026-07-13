@@ -3,6 +3,7 @@ import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
 import type { NcpMessage } from "@nextclaw/ncp";
 import { ArrowDown } from "lucide-react";
 import { ChatMessageListContainer } from "@/features/chat/features/message/components/chat-message-list.container";
+import { ChatConversationTrack } from "@/features/chat/components/conversation/chat-conversation-track";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 import { t } from "@/shared/lib/i18n";
 
@@ -60,17 +61,17 @@ export function ChatConversationContent({
         ) : (
           <>
             {hideEmptyHint || !hasMessages ? null : (
-              <div className="mx-auto w-full max-w-[min(1120px,100%)] px-4 py-4 sm:px-6 sm:py-5">
+              <ChatConversationTrack className="py-4 sm:py-5">
                 <ChatMessageListContainer
                   messages={messages}
                   isSending={hasMessages && isSending && isAwaitingAssistantOutput}
                 />
-              </div>
+              </ChatConversationTrack>
             )}
             {bottomSlot ? (
-              <div className="mx-auto w-full max-w-[min(1120px,100%)] px-4 pb-4 sm:px-6 sm:pb-5">
+              <ChatConversationTrack className="pb-4 sm:pb-5">
                 {bottomSlot}
-              </div>
+              </ChatConversationTrack>
             ) : null}
           </>
         )}

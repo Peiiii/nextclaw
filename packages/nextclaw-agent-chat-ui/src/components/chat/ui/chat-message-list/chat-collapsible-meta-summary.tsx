@@ -37,6 +37,7 @@ export function ChatCollapsibleMetaSummary({
   return (
     <button
       type="button"
+      data-chat-process-meta-row="true"
       className={cn(
         CHAT_PROCESS_META_ROW_CLASS,
         "m-0 w-full border-0 bg-transparent p-0 text-left shadow-none transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",

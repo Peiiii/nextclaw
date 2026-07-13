@@ -213,6 +213,29 @@ it("resolves local Markdown image paths through the host file-content contract",
   expect(screen.getByRole("img", { name: "diagram" }).getAttribute("src")).toBe(
     "/api/server-paths/content?path=%2FUsers%2Fdemo%2Fproject%2Fdiagram.svg",
   );
+  expect(
+    screen
+      .getByRole("img", { name: "diagram" })
+      .closest("[data-chat-message-image-preview]")?.className,
+  ).toContain("max-w-[min(100%,32rem)]");
+  expect(
+    screen
+      .getByRole("img", { name: "diagram" })
+      .closest("[data-chat-message-image-preview]")?.className,
+  ).toContain("overflow-hidden");
+  expect(
+    screen
+      .getByRole("img", { name: "diagram" })
+      .closest("[data-chat-message-image-preview]")?.className,
+  ).not.toContain("border");
+  expect(
+    screen
+      .getByRole("img", { name: "diagram" })
+      .closest("[data-chat-message-image-preview]")?.className,
+  ).not.toContain("shadow");
+  expect(screen.getByRole("img", { name: "diagram" }).className).toContain(
+    "rounded-lg",
+  );
 });
 
 it("resolves project-relative Markdown image paths", () => {
@@ -239,6 +262,43 @@ it("resolves project-relative Markdown image paths", () => {
   );
 });
 
+it("groups three same-line Markdown images into one compact row", () => {
+  render(
+    <ChatMessageMarkdown
+      text="![one](https://example.com/one.png) ![two](https://example.com/two.png) ![three](https://example.com/three.png)"
+      role="assistant"
+      texts={defaultTexts}
+    />,
+  );
+
+  const imageRow = document.querySelector(
+    '[data-chat-image-row="three-column"]',
+  );
+  expect(imageRow).toBeTruthy();
+  expect(
+    imageRow?.querySelectorAll(":scope > [data-chat-message-image-preview]")
+      .length,
+  ).toBe(3);
+});
+
+it("keeps explicitly line-broken Markdown images in the vertical flow", () => {
+  render(
+    <ChatMessageMarkdown
+      text={[
+        "![one](https://example.com/one.png)",
+        "![two](https://example.com/two.png)",
+        "![three](https://example.com/three.png)",
+      ].join("\n")}
+      role="assistant"
+      texts={defaultTexts}
+    />,
+  );
+
+  expect(
+    document.querySelector('[data-chat-image-row="three-column"]'),
+  ).toBeNull();
+});
+
 it("keeps external Markdown image URLs unchanged", () => {
   const resolveFileContentUrl = vi.fn();
 
@@ -255,6 +315,28 @@ it("keeps external Markdown image URLs unchanged", () => {
     "https://example.com/logo.png",
   );
   expect(resolveFileContentUrl).not.toHaveBeenCalled();
+});
+
+it("uses the shared expandable preview for consecutive Markdown images", () => {
+  const { container } = render(
+    <ChatMessageMarkdown
+      text={"![one](https://example.com/one.png)\n![two](https://example.com/two.png)"}
+      role="assistant"
+      texts={defaultTexts}
+    />,
+  );
+
+  const previews = container.querySelectorAll(
+    "[data-chat-message-image-preview]",
+  );
+  expect(previews).toHaveLength(2);
+  expect(previews[0]?.tagName).toBe("SPAN");
+  expect(previews[0]?.nextElementSibling).toBe(previews[1]);
+
+  fireEvent.click(screen.getAllByLabelText("Expand image")[0]!);
+  expect(screen.getByTestId("chat-message-image-lightbox")).toBeTruthy();
+  fireEvent.keyDown(window, { key: "Escape" });
+  expect(screen.queryByTestId("chat-message-image-lightbox")).toBeNull();
 });
 
 it("keeps every scheme-less Markdown href clickable as a local resource", () => {

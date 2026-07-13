@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { ChatMessageList } from "../chat-message-list";
+import { ChatMessageList } from "@agent-chat-ui/components/chat/ui/chat-message-list/chat-message-list";
 import { vi } from "vitest";
 
 const defaultTexts = {
@@ -11,6 +11,19 @@ const defaultTexts = {
   attachmentExpandLabel: "Expand image",
   attachmentCloseLabel: "Close preview",
 };
+
+function createImagePart(label: string) {
+  return {
+    type: "file" as const,
+    file: {
+      label,
+      mimeType: "image/png",
+      dataUrl: `data:image/png;base64,${label}`,
+      sizeBytes: 4096,
+      isImage: true,
+    },
+  };
+}
 
 it("renders image attachments as lightweight image-first previews", () => {
   const { container } = render(
@@ -43,7 +56,22 @@ it("renders image attachments as lightweight image-first previews", () => {
 
   expect(
     screen.getByRole("img", { name: "Image attachment" }).className,
-  ).toContain("rounded-xl");
+  ).toContain("rounded-lg");
+  expect(
+    screen
+      .getByRole("img", { name: "Image attachment" })
+      .closest(".group\\/image")?.className,
+  ).toContain("max-w-[min(100%,32rem)]");
+  expect(
+    screen
+      .getByRole("img", { name: "Image attachment" })
+      .closest("[data-chat-message-image-preview]")?.className,
+  ).not.toContain("border");
+  expect(
+    screen
+      .getByRole("img", { name: "Image attachment" })
+      .closest("[data-chat-message-image-preview]")?.className,
+  ).not.toContain("shadow");
   expect(container.querySelector("figure")).toBeNull();
   expect(container.querySelector("figcaption")).toBeNull();
   expect(screen.queryByText("Image")).toBeNull();
@@ -52,6 +80,70 @@ it("renders image attachments as lightweight image-first previews", () => {
   expect(screen.queryByText("image/png")).toBeNull();
 });
 
+it("groups three consecutive image attachments into one borderless row", () => {
+  const { container } = render(
+    <ChatMessageList
+      messages={[
+        {
+          id: "user-image-row",
+          role: "user",
+          roleLabel: "You",
+          timestampLabel: "10:06",
+          parts: [
+            { type: "markdown", text: "Reference images" },
+            createImagePart("one"),
+            createImagePart("two"),
+            createImagePart("three"),
+            { type: "markdown", text: "Please compare them" },
+          ],
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  const row = container.querySelector(
+    '[data-chat-message-image-row="three-column"]',
+  );
+  expect(row?.className).toContain("grid-cols-3");
+  expect(row?.className).toContain("gap-3");
+  expect(row?.getAttribute("data-chat-message-wide-content")).toBe("true");
+  expect(
+    row?.querySelectorAll(":scope > [data-chat-message-image-preview]").length,
+  ).toBe(3);
+  expect(row?.className).not.toContain("border");
+  expect(row?.className).not.toContain("shadow");
+});
+
+it("does not group image attachments across a content boundary", () => {
+  const { container } = render(
+    <ChatMessageList
+      messages={[
+        {
+          id: "user-separated-images",
+          role: "user",
+          roleLabel: "You",
+          timestampLabel: "10:06",
+          parts: [
+            createImagePart("one"),
+            createImagePart("two"),
+            { type: "markdown", text: "Separate section" },
+            createImagePart("three"),
+          ],
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  expect(
+    container.querySelector('[data-chat-message-image-row="three-column"]'),
+  ).toBeNull();
+});
 it("opens a fullscreen lightbox when expanding a message image", () => {
   render(
     <ChatMessageList

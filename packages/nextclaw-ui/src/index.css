@@ -736,9 +736,14 @@
 .chat-markdown h5,
 .chat-markdown h6 {
   margin: 0.2rem 0 0;
+  padding-bottom: 0.5em;
   font-weight: 700;
   line-height: 1.35;
   letter-spacing: -0.01em;
+}
+
+.chat-markdown :is(h1, h2, h3, h4, h5, h6) + * {
+  margin-top: 0;
 }
 
 .chat-markdown h1 {
@@ -1338,9 +1343,38 @@
 }
 
 .chat-markdown img {
+  display: block;
+  width: auto;
+  max-width: min(100%, 32rem);
+  height: auto;
+}
+
+.chat-markdown [data-chat-message-image-preview] {
+  margin-block: 0.72rem;
+}
+
+.chat-markdown [data-chat-message-image-preview]:first-child,
+.chat-markdown [data-chat-message-image-preview]
+  + [data-chat-message-image-preview] {
+  margin-top: 0;
+}
+
+.chat-markdown [data-chat-message-image-preview]:last-child {
+  margin-bottom: 0;
+}
+
+.chat-markdown [data-chat-image-row="three-column"] {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 0.72rem;
+}
+
+.chat-markdown
+  [data-chat-image-row="three-column"]
+  > [data-chat-message-image-preview] {
   max-width: 100%;
-  border-radius: 0.75rem;
-  border: 1px solid var(--md-border);
+  margin: 0;
 }
 
 .chat-markdown blockquote {

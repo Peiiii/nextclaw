@@ -26,7 +26,6 @@ export type ChatTexts = {
   sendButtonLabel: string;
   stopButtonLabel: string;
 };
-
 export type ChatSlashItem = ChatInputSurfaceItem;
 
 export type ChatSelectedItem = {
@@ -220,6 +219,8 @@ export type ChatMessageRole =
   | "tool"
   | "system"
   | "message";
+
+export type ChatMessageLayout = "card" | "flat";
 
 export type ChatFileOperationLineViewModel = {
   kind: "context" | "add" | "remove";

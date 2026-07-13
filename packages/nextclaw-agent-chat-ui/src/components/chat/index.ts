@@ -65,6 +65,7 @@ export type {
   ChatSlashMenuProps,
   ChatInputBarProps,
   ChatContextWindowIndicator,
+  ChatMessageLayout,
   ChatMessageRole,
   ChatFileOperationLineViewModel,
   ChatFileOperationBlockViewModel,

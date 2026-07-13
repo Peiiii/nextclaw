@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import type { NcpMessage } from "@nextclaw/ncp";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ChatConversationContent } from "@/features/chat/components/conversation/chat-conversation-content";
+import { useChatMessageLayoutStore } from "@/features/chat/stores/chat-message-layout.store";
 
 const captures = vi.hoisted(() => ({
   isAtBottom: true,
@@ -52,9 +53,21 @@ function renderContent(options: { bottomSlot?: React.ReactNode } = {}) {
 }
 
 beforeEach(() => {
+  useChatMessageLayoutStore.getState().setLayout("card");
   captures.isAtBottom = true;
   captures.onScroll.mockReset();
   captures.scrollToBottom.mockReset();
+});
+
+it("uses the centered reading track in flat message layout", () => {
+  useChatMessageLayoutStore.getState().setLayout("flat");
+
+  renderContent();
+
+  const track = screen
+    .getByTestId("chat-message-list")
+    .closest('[data-chat-conversation-track="flat"]');
+  expect(track?.className).toContain("max-w-[min(52rem,100%)]");
 });
 
 it("hides the scroll-to-bottom action while the conversation is already at the bottom", () => {
