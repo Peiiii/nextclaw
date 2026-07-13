@@ -1,5 +1,26 @@
 # @nextclaw/ui
 
+## 0.15.4
+
+### Patch Changes
+
+- 7f7eed8: Move chat input send errors into a full-width status row above the input toolbar, with localized details text in the app.
+- 91f7bef: Keep valid Markdown resources clickable independently of target availability, render local Markdown images and SVG files correctly, add responsive Word, Excel, and PowerPoint workspace previews, preserve automatic viewers outside HTML source mode, and keep chat popovers open when the streaming composer restores focus.
+- 2afdba2: 新增可持久化的卡片式与平铺式消息布局切换，并默认使用平铺式；已保存的布局选择继续保留。同步优化平铺会话和输入面板的阅读宽度，统一约束消息图片尺寸、间距、圆角、Markdown 与连续附件的三列排列和放大预览，同时增强正文与过程提示的灰阶层级并修正 Markdown 标题节奏。
+- 13dbd99: 新增可从会话 Header 展开和收起的右侧工作台，统一查看子会话、会话定时任务与项目文件树，并分别持久化会话工作台和全局右侧面板的宽度；同时让会话列表的置顶和编辑操作仅在 hover 或操作获得焦点时展示。
+- 7853b3b: 修复重新进入会话后流式文件工具展示不完整、手动展开的工具过程会在完成时自动收起的问题；同时为工具汇总与思考补充图标，让单个工具也保留工作流连线，并允许在结构化预览尚未形成时展开查看已接收的参数。
+- 8152b63: 会话工作台的项目文件树、文件 Tab 和面包屑现在会按文件类型展示统一的 VS Code 风格图标，常见代码、配置、文档、图片、音视频与 Office 文件更容易快速辨认。
+- 8152b63: 会话工作台现在统一支持图片、音频、视频和 Office 文档预览状态，并为 Markdown、HTML 提供独立的源码与预览 Tab；打开的文件视图和当前选中项会在刷新后准确恢复。
+- Updated dependencies [7f7eed8]
+- Updated dependencies [91f7bef]
+- Updated dependencies [2afdba2]
+- Updated dependencies [a43cffd]
+- Updated dependencies [7853b3b]
+  - @nextclaw/agent-chat-ui@0.6.4
+  - @nextclaw/ncp-toolkit@0.6.4
+  - @nextclaw/client-sdk@0.5.4
+  - @nextclaw/ncp-react@0.5.4
+
 ## 0.15.3
 
 ### Patch Changes

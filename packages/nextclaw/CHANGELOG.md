@@ -1,5 +1,19 @@
 # nextclaw
 
+## 0.22.4
+
+### Patch Changes
+
+- 9772d05: Refresh the npm README, product screenshots, and community contact assets so the published package points users to the current desktop, install, documentation, and product tour surfaces.
+- Updated dependencies [91f7bef]
+- Updated dependencies [7853b3b]
+  - @nextclaw/kernel@0.6.4
+  - @nextclaw/server@0.15.4
+  - @nextclaw/ncp-toolkit@0.6.4
+  - @nextclaw/remote@0.3.4
+  - @nextclaw/service@0.3.4
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.4
+
 ## 0.22.3
 
 ### Patch Changes

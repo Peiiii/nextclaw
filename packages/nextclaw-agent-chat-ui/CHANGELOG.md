@@ -1,5 +1,15 @@
 # @nextclaw/agent-chat-ui
 
+## 0.6.4
+
+### Patch Changes
+
+- 7f7eed8: Move chat input send errors into a full-width status row above the input toolbar, with localized details text in the app.
+- 91f7bef: Keep valid Markdown resources clickable independently of target availability, render local Markdown images and SVG files correctly, add responsive Word, Excel, and PowerPoint workspace previews, preserve automatic viewers outside HTML source mode, and keep chat popovers open when the streaming composer restores focus.
+- 2afdba2: 新增可持久化的卡片式与平铺式消息布局切换，并默认使用平铺式；已保存的布局选择继续保留。同步优化平铺会话和输入面板的阅读宽度，统一约束消息图片尺寸、间距、圆角、Markdown 与连续附件的三列排列和放大预览，同时增强正文与过程提示的灰阶层级并修正 Markdown 标题节奏。
+- a43cffd: Make slash-command filters and model-selection menus lighter and more compact, restore selectable skill details, and preserve clear hover, keyboard, and favorite feedback.
+- 7853b3b: 修复重新进入会话后流式文件工具展示不完整、手动展开的工具过程会在完成时自动收起的问题；同时为工具汇总与思考补充图标，让单个工具也保留工作流连线，并允许在结构化预览尚未形成时展开查看已接收的参数。
+
 ## 0.6.3
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @nextclaw/kernel
 
+## 0.6.4
+
+### Patch Changes
+
+- 91f7bef: Keep valid Markdown resources clickable independently of target availability, render local Markdown images and SVG files correctly, add responsive Word, Excel, and PowerPoint workspace previews, preserve automatic viewers outside HTML source mode, and keep chat popovers open when the streaming composer restores focus.
+- Updated dependencies [7853b3b]
+  - @nextclaw/ncp-toolkit@0.6.4
+  - @nextclaw/channel-extension-feishu@0.2.4
+  - @nextclaw/channel-extension-weixin@0.2.4
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.4
+
 ## 0.6.3
 
 ### Patch Changes
