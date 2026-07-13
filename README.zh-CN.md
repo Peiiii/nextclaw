@@ -177,6 +177,6 @@ NextClaw 的早期探索受到这些项目启发：
 
 <div align="center">
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Peiiii/nextclaw&type=Date)](https://star-history.com/#Peiiii/nextclaw&Date)
+[![NextClaw GitHub Star 增长趋势](images/metrics/nextclaw-star-history.svg)](https://github.com/Peiiii/nextclaw/stargazers)
 
 </div>

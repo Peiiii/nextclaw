@@ -59,6 +59,14 @@ pnpm run assets:update-wechat-qr -- --source <image-path> --date YYYY-MM-DD
 
 不要手工只覆盖其中一处。日期应使用收到并启用该二维码的当天日期。
 
+GitHub Star 趋势图不再引用第三方实时 SVG。使用仓库脚本通过当前仓库的 GitHub Token 生成本地静态资产：
+
+```bash
+GITHUB_TOKEN=$(gh auth token) pnpm run assets:refresh-star-history
+```
+
+定时 workflow 使用 `github.token` 自动刷新该图；README 只引用 `images/metrics/nextclaw-star-history.svg`，避免第三方接口限流或权限变化导致图片失效。
+
 ## 固定展示合同
 
 - 对外产品截图只使用默认主题或雾蓝主题；同一批次不混用主题，默认 `cool`。
@@ -67,6 +75,7 @@ pnpm run assets:update-wechat-qr -- --source <image-path> --date YYYY-MM-DD
 - 不得出现密钥、token、私人标识、无关会话、失败提示、加载态、调试工具或被裁断的关键结果。
 - 产品截图必须来自真实运行界面；概念图、重排卡片或拼接图不能冒充产品截图。
 - `images/screenshots/` 是 GitHub/文档源资产；landing 使用的同名镜像必须与源资产哈希一致。
+- README 中的动态指标图使用仓库自有静态资产，并由 workflow 定期刷新；不得直接依赖需要公开 token 的第三方图片 URL。
 - 定时 CI 只刷新稳定场景。精选真实任务和外部时效资产需要明确输入，不加入无输入的定时任务。
 
 ## 验收

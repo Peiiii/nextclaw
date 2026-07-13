@@ -177,6 +177,6 @@ NextClaw was inspired by these projects:
 
 <div align="center">
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Peiiii/nextclaw&type=Date)](https://star-history.com/#Peiiii/nextclaw&Date)
+[![NextClaw GitHub star history](images/metrics/nextclaw-star-history.svg)](https://github.com/Peiiii/nextclaw/stargazers)
 
 </div>

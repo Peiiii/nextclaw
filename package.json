@@ -171,7 +171,8 @@
     "deploy:workers": "pnpm -r --filter \"./workers/*\" run deploy",
     "screenshots:refresh": "node scripts/docs/refresh-product-screenshots.mjs",
     "screenshots:capture-curated": "node scripts/docs/refresh-product-screenshots.mjs --mode=curated",
-    "assets:update-wechat-qr": "node scripts/docs/visual-assets/update-wechat-group-qr.mjs"
+    "assets:update-wechat-qr": "node scripts/docs/visual-assets/update-wechat-group-qr.mjs",
+    "assets:refresh-star-history": "node scripts/docs/visual-assets/refresh-star-history-chart.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",

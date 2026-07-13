@@ -8,6 +8,7 @@
 - 在既有产品截图脚本中增加 `stable` 与 `curated` 两种模式。精选模式使用标准 `sid_` 会话路由，只接受真实本地实例，并要求目标元素出现在主内容区，避免把侧边栏标题误判为截图结果。
 - 新增微信群二维码同步脚本，一次更新 GitHub 稳定路径、landing 稳定路径、日期防缓存路径和源码引用；本轮已同步 2026-07-14 收到的新二维码。
 - 补全每周截图 workflow 可提交的 landing 镜像路径，稳定场景继续由 CI 自动刷新，精选任务和外部时效资产保留明确输入。
+- 修复 README Star 趋势图失效：移除受第三方权限和限流影响的实时图片地址，改为仓库内静态 SVG，并由每周视觉资产 workflow 使用 `github.token` 自动刷新。
 
 ## 测试/验证/验收方式
 
@@ -17,6 +18,7 @@
 - `pnpm --filter @nextclaw/landing tsc` 与 `pnpm --filter @nextclaw/landing build` 通过；本地生产预览中的首屏、Agent、工作区、图片生成、Doc Browser 和二维码图片均以有效自然尺寸加载。
 - `CI=true pnpm lint:new-code:governance` 与 `CI=true pnpm check:governance-backlog-ratchet` 通过。
 - 定向 maintainability guard 为 0 错误、1 个历史超预算 warning；既有主截图脚本由 824 行降到 819 行，新增职责已进入独立子目录，没有继续扩大该文件的混杂程度。
+- Star 趋势图脚本读取 217 条带时间戳的 stargazer 数据并成功生成 `1000 x 440` SVG；XML、定向 ESLint、无 token 失败路径和实际浏览器渲染均通过，生成资产不包含访问令牌。
 
 ## 发布/部署方式
 
@@ -25,6 +27,8 @@
 - 正式域名上的新二维码与图片生成代表图均返回 200，下载哈希与仓库对应资产一致。
 - GitHub README、官网视觉资产和截图自动化通过范围化提交进入 `master`。
 - 本轮同时补入 `nextclaw` patch changeset；README 与视觉资产刷新会随下一次 NPM 正式版一起进入发布包。
+- 补充 GitHub Star 趋势图本地静态资产生成能力，README 不再依赖第三方实时 SVG；每周截图 workflow 会一并刷新 `images/metrics/nextclaw-star-history.svg`。
+- 本次 Star 趋势图修复只调整 README、仓库资产和维护自动化，不新增独立 NPM changeset，也不需要重新部署官网。
 
 ## 用户/产品视角的验收步骤
 
@@ -42,4 +46,7 @@
 
 ## NPM 包发布记录
 
-本轮新增 `nextclaw` patch changeset，用于确保正式发布后的 npm 包 README、安装入口、产品截图和社区二维码与 GitHub/官网保持一致。实际 NPM 发布版本、registry 验证和安装冒烟记录在本次正式发布完成后补入对应发布记录。
+- 已发布：`nextclaw@0.22.4`、`@nextclaw/ui@0.15.4`、`@nextclaw/agent-chat-ui@0.6.4`、`@nextclaw/kernel@0.6.4`、`@nextclaw/server@0.15.4`、`@nextclaw/service@0.3.4`、`@nextclaw/ncp-toolkit@0.6.4`、`@nextclaw/remote@0.3.4`、`@nextclaw/client-sdk@0.5.4`、`@nextclaw/ncp-react@0.5.4`、`@nextclaw/companion@0.2.4`、`@nextclaw/channel-extension-feishu@0.2.4`、`@nextclaw/channel-extension-weixin@0.2.4`、`@nextclaw/nextclaw-narp-runtime-claude-code-sdk@0.2.4`、`@nextclaw/nextclaw-narp-runtime-codex-sdk@0.2.4`、`@nextclaw/nextclaw-narp-runtime-opencode@0.2.4`、`@nextclaw/nextclaw-narp-stdio-runtime-wrapper@0.3.4`、`@nextclaw/nextclaw-ncp-runtime-claude-code-sdk@0.2.4`、`@nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.4`。
+- `npm view nextclaw version dist-tags dependencies --json` 验证 `latest=0.22.4`，核心依赖指向同批次 runtime 包版本。
+- `npm pack nextclaw@0.22.4 --json` 验证发布包包含 CLI、launcher、`update-bundle-public.pem` 与 `ui-dist` 静态产物。
+- 临时前缀全局安装冒烟通过：`nextclaw --version` 输出 `0.22.4`，`nextclaw update --check --json` 返回 `up-to-date`。

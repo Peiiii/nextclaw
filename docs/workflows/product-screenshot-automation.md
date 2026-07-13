@@ -104,6 +104,14 @@ pnpm run assets:update-wechat-qr -- \
 
 历史日期资产继续保留，因为迭代记录和短期缓存页面可能仍引用旧 URL。
 
+GitHub Star 趋势图使用仓库自有静态 SVG，避免第三方实时图片接口的权限、限流或可用性变化影响 README：
+
+```bash
+GITHUB_TOKEN=$(gh auth token) pnpm run assets:refresh-star-history
+```
+
+脚本从 GitHub API 读取当前仓库的带时间戳 stargazer 数据，写入 `images/metrics/nextclaw-star-history.svg`。每周 workflow 使用 `github.token` 一并刷新并创建 PR；token 只作为 API 请求头使用，不写入图片或日志。
+
 ## 资产 owner
 
 脚本稳定产出：
