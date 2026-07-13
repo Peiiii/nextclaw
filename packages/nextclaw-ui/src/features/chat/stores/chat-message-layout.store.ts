@@ -4,7 +4,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 const CHAT_MESSAGE_LAYOUT_STORAGE_KEY = "nextclaw.chat.message-layout";
 const CHAT_MESSAGE_LAYOUT_STORAGE_VERSION = 1;
-export const DEFAULT_CHAT_MESSAGE_LAYOUT: ChatMessageLayout = "card";
+export const DEFAULT_CHAT_MESSAGE_LAYOUT: ChatMessageLayout = "flat";
 
 type ChatMessageLayoutStore = {
   layout: ChatMessageLayout;

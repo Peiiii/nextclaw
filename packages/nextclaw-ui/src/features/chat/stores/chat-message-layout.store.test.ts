@@ -14,16 +14,17 @@ describe("chat message layout store", () => {
     });
   });
 
-  it("persists the selected layout", () => {
-    useChatMessageLayoutStore.getState().setLayout("flat");
-
-    expect(useChatMessageLayoutStore.getState().layout).toBe("flat");
-    expect(window.localStorage.getItem(STORAGE_KEY)).toContain(
-      '"layout":"flat"',
+  it("preserves an existing card layout preference", async () => {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ state: { layout: "card" }, version: 1 }),
     );
+
+    await useChatMessageLayoutStore.persist.rehydrate();
+    expect(useChatMessageLayoutStore.getState().layout).toBe("card");
   });
 
-  it("falls back to cards for an invalid persisted layout", async () => {
+  it("falls back to the flat layout for an invalid persisted layout", async () => {
     window.localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({ state: { layout: "unknown" }, version: 1 }),
@@ -31,6 +32,6 @@ describe("chat message layout store", () => {
 
     await useChatMessageLayoutStore.persist.rehydrate();
 
-    expect(useChatMessageLayoutStore.getState().layout).toBe("card");
+    expect(useChatMessageLayoutStore.getState().layout).toBe("flat");
   });
 });
