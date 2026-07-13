@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { buildQueryEnv } from "./claude-code-runtime.utils.js";
+import type { ClaudeCodeMessage } from "@claude-code-sdk/types/claude-code-sdk.types.js";
+import {
+  buildQueryEnv,
+  extractFailureMessage,
+  isRetryableClaudeFailure,
+} from "./claude-code-runtime.utils.js";
 
 describe("buildQueryEnv", () => {
   let tempDir: string | null = null;
@@ -50,5 +55,26 @@ describe("buildQueryEnv", () => {
     expect(env.ANTHROPIC_API_KEY).toBe("native-key");
     expect(env.ANTHROPIC_BASE_URL).toBe("https://native.example");
     expect(env.ANTHROPIC_MODEL).toBe("native-model");
+  });
+});
+
+describe("extractFailureMessage", () => {
+  it("recognizes Claude Code synthetic API errors", () => {
+    const message = {
+      type: "assistant",
+      error: "unknown",
+      message: {
+        model: "<synthetic>",
+        content: [{
+          type: "text",
+          text: "API Error: API returned an empty or malformed response (HTTP 200)",
+        }],
+      },
+    } as ClaudeCodeMessage;
+
+    expect(extractFailureMessage(message)).toBe(
+      "API Error: API returned an empty or malformed response (HTTP 200)",
+    );
+    expect(isRetryableClaudeFailure(message)).toBe(true);
   });
 });

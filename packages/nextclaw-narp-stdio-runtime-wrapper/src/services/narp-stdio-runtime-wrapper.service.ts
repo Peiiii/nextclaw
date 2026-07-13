@@ -252,6 +252,12 @@ export class NarpStdioRuntimeWrapperAgent implements acp.Agent {
     for await (const event of runtime.run(input, {
       signal: abortController.signal,
     })) {
+      if (event.type === NcpEventType.RunError) {
+        throw new Error(event.payload.error ?? "NCP runtime failed.");
+      }
+      if (event.type === NcpEventType.MessageFailed) {
+        throw new Error(event.payload.error.message);
+      }
       for (const update of translator.translate(event)) {
         await this.connection.sessionUpdate({
           sessionId: input.sessionId,

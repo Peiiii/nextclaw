@@ -23,6 +23,9 @@ export class ClaudeSdkEventMapperState {
   contentBlocks = new Map<number, ClaudeContentBlockState>();
   toolCalls = new Map<string, ClaudeToolCallState>();
 
+  hasVisibleOutput = (): boolean =>
+    this.emittedText.length > 0 || this.contentBlocks.size > 0 || this.toolCalls.size > 0;
+
   emitTextStartIfNeeded = (sessionId: string, messageId: string): NcpEndpointEvent[] => {
     if (this.textStarted) {
       return [];

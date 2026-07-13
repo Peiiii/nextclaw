@@ -230,3 +230,36 @@ describe("ClaudeCodeNarpRuntimeWrapper", () => {
     ]);
   });
 });
+
+describe("ClaudeCodeNarpRuntimeWrapper session continuity", () => {
+  it("keeps the bound Claude session when the model route changes", () => {
+    const capturedConfigs: unknown[] = [];
+    const wrapper = new ClaudeCodeNarpRuntimeWrapper((config) => {
+      capturedConfigs.push(config);
+      return new FakeRuntime();
+    });
+
+    wrapper.createClaudeCodeRuntime({
+      sessionId: "session-1",
+      cwd: "/tmp/workspace",
+      modelId: "MiniMax-M2.7",
+      promptMeta: {
+        providerRoute: {
+          model: "MiniMax-M2.7",
+          apiKey: "minimax-key",
+          apiBase: "https://api.minimaxi.com/v1",
+          headers: {},
+        },
+        sessionMetadata: {
+          claude_session_id: "runtime-default-session",
+          claude_session_model: "__nextclaw_runtime_default__",
+          preferred_model: "minimax/MiniMax-M2.7",
+        },
+      },
+    });
+
+    expect(capturedConfigs).toMatchObject([{
+      sessionRuntimeId: "runtime-default-session",
+    }]);
+  });
+});

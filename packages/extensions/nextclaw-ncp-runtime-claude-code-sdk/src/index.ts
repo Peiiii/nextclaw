@@ -1,4 +1,6 @@
 import { createRequire } from "node:module";
+import { setTimeout as sleep } from "node:timers/promises";
+import type { SessionStore } from "@anthropic-ai/claude-agent-sdk";
 import {
   createNcpEndpointEvent,
   type NcpAgentRunInput,
@@ -28,15 +30,19 @@ import {
 } from "@claude-code-sdk/utils/claude-code-runtime.utils.js";
 import {
   buildClaudeQueryOptions,
+  MAX_CLAUDE_QUERY_ATTEMPTS,
   createAbortBridge,
   createRequestTimeout,
+  disposeClaudeQueryRun,
   prepareClaudeGatewayAccess,
+  shouldRetryClaudeQuery,
   type ClaudePreparedGatewayAccess,
 } from "@claude-code-sdk/utils/claude-code-query-runtime.utils.js";
 import {
   resolveBundledClaudeAgentSdkCliPath,
   resolveCurrentProcessExecutable,
 } from "./claude-code-process-resolution.js";
+import { createClaudeCodeSessionStore } from "./stores/claude-code-session.store.js";
 
 const require = createRequire(import.meta.url);
 const claudeCodeLoader = require("../claude-code-loader.cjs") as ClaudeCodeLoader;
@@ -54,6 +60,7 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
   private sdkModulePromise: Promise<ClaudeCodeSdkModule> | null = null;
   private preparedAccessPromise: Promise<ClaudePreparedGatewayAccess> | null = null;
   private sessionRuntimeId: string | null;
+  private readonly sessionStore: SessionStore;
   private readonly sessionMetadata: Record<string, unknown>;
   private readonly bundledCliPath = resolveBundledClaudeAgentSdkCliPath();
   private readonly currentProcessExecutable = resolveCurrentProcessExecutable();
@@ -61,6 +68,7 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
 
   constructor(private readonly config: ClaudeCodeSdkNcpAgentRuntimeConfig) {
     this.sessionRuntimeId = config.sessionRuntimeId?.trim() || null;
+    this.sessionStore = config.sessionStore ?? createClaudeCodeSessionStore(config);
     this.sessionMetadata = {
       ...(config.sessionMetadata ? structuredClone(config.sessionMetadata) : {}),
     };
@@ -72,50 +80,53 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
   ): AsyncGenerator<NcpEndpointEvent> {
     const messageId = createId("claude-message");
     const runId = (input as NcpAgentRunInput & { runId?: string }).runId ?? createId("claude-run");
-    const eventState = createClaudeSdkEventMapperState();
-    let finished = false;
-
     yield* this.emitReadyEvents(input.sessionId, messageId, runId);
+    for (let attempt = 1; attempt <= MAX_CLAUDE_QUERY_ATTEMPTS; attempt += 1) {
+      const eventState = createClaudeSdkEventMapperState();
+      let finished = false;
+      let retry = false;
+      const { query, abortBridge, abortController, timeout } = await this.createQueryRun(input, options);
 
-    const { query, abortBridge, abortController, timeout } = await this.createQueryRun(input, options);
-
-    try {
-      for await (const message of query) {
-        if (abortController.signal.aborted) {
-          throw toAbortError(abortController.signal.reason);
+      try {
+        for await (const message of query) {
+          if (abortController.signal.aborted) {
+            throw toAbortError(abortController.signal.reason);
+          }
+          if (shouldRetryClaudeQuery(attempt, message, eventState.hasVisibleOutput())) {
+            retry = true;
+            break;
+          }
+          const shouldStop = yield* this.processMessage({
+            sessionId: input.sessionId,
+            messageId,
+            runId,
+            message,
+            eventState,
+          });
+          if (shouldStop) {
+            finished = true;
+            return;
+          }
         }
-        const shouldStop = yield* this.processMessage({
-          sessionId: input.sessionId,
-          messageId,
-          runId,
-          message,
-          eventState,
-        });
-        if (shouldStop) {
+
+        if (!retry) {
+          yield* this.emitFinalEvents(input.sessionId, messageId, runId, eventState);
           finished = true;
           return;
         }
+      } catch (error) {
+        if (abortController.signal.aborted) {
+          throw toAbortError(abortController.signal.reason);
+        }
+        throw error;
+      } finally {
+        disposeClaudeQueryRun({ abortBridge, query, timeout });
+        if (!finished) {
+          yield* this.emitClaudeFlushEvents(input.sessionId, messageId, eventState);
+        }
       }
 
-      yield* this.emitTextEnd(input.sessionId, messageId, eventState);
-      yield* this.emitFinalEvents(input.sessionId, messageId, runId);
-      finished = true;
-    } catch (error) {
-      if (abortController.signal.aborted) {
-        throw toAbortError(abortController.signal.reason);
-      }
-      throw error;
-    } finally {
-      abortBridge.dispose();
-      if (timeout !== null) {
-        clearTimeout(timeout);
-      }
-      query.close?.();
-
-      if (!finished) {
-        yield* this.emitClaudeFlushEvents(input.sessionId, messageId, eventState);
-        yield* this.emitTextEnd(input.sessionId, messageId, eventState);
-      }
+      await sleep(500 * attempt);
     }
   }
 
@@ -153,6 +164,7 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
           bundledCliPath: this.bundledCliPath,
           currentProcessExecutable: this.currentProcessExecutable,
           sessionRuntimeId: this.sessionRuntimeId,
+          sessionStore: this.sessionStore,
         }),
       }),
       abortBridge,
@@ -323,13 +335,16 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
     for (const event of events) {
       yield* this.emitEvent(event);
     }
+    yield* this.emitTextEnd(sessionId, messageId, state);
   }
 
   private async *emitFinalEvents(
     sessionId: string,
     messageId: string,
     runId: string,
+    state: ClaudeSdkEventMapperState,
   ): AsyncGenerator<NcpEndpointEvent> {
+    yield* this.emitTextEnd(sessionId, messageId, state);
     yield* this.emitEvent(createNcpEndpointEvent({
       type: NcpEventType.RunMetadata,
       payload: {

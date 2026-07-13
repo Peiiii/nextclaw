@@ -244,4 +244,33 @@ describe("NarpStdioRuntimeWrapperAgent", () => {
       undefined,
     ]);
   });
+
+  it("rejects the ACP prompt when the wrapped runtime reports a run error", async () => {
+    const runtime: NcpAgentRuntime = {
+      run: async function* (input) {
+        yield {
+          type: NcpEventType.RunError,
+          payload: {
+            sessionId: input.sessionId,
+            runId: "run-1",
+            error: "upstream failed",
+          },
+        };
+      },
+    };
+    const agent = new NarpStdioRuntimeWrapperAgent(
+      { sessionUpdate: async () => undefined },
+      {
+        agentName: "test-narp-wrapper",
+        createRuntime: async () => runtime,
+      },
+    );
+    const session = await agent.newSession({ cwd: "/tmp/project", mcpServers: [] });
+
+    await expect(agent.prompt({
+      sessionId: session.sessionId,
+      messageId: "user-1",
+      prompt: [{ type: "text", text: "hello" }],
+    })).rejects.toThrow("upstream failed");
+  });
 });

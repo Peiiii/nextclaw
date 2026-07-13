@@ -1,6 +1,17 @@
 import type { NcpAgentRunOptions } from "@nextclaw/ncp";
-import type { ClaudeCodeQueryOptions, ClaudeCodeSdkNcpAgentRuntimeConfig } from "@claude-code-sdk/types/claude-code-sdk.types.js";
-import { buildQueryEnv, resolveClaudeGatewayAccess } from "./claude-code-runtime.utils.js";
+import type { SessionStore } from "@anthropic-ai/claude-agent-sdk";
+import type {
+  ClaudeCodeMessage,
+  ClaudeCodeQueryOptions,
+  ClaudeCodeSdkNcpAgentRuntimeConfig,
+} from "@claude-code-sdk/types/claude-code-sdk.types.js";
+import {
+  buildQueryEnv,
+  isRetryableClaudeFailure,
+  resolveClaudeGatewayAccess,
+} from "./claude-code-runtime.utils.js";
+
+export const MAX_CLAUDE_QUERY_ATTEMPTS = 3;
 
 export type ClaudePreparedGatewayAccess = {
   apiKey: string;
@@ -19,6 +30,16 @@ export async function prepareClaudeGatewayAccess(
   });
 }
 
+export function shouldRetryClaudeQuery(
+  attempt: number,
+  message: ClaudeCodeMessage,
+  hasVisibleOutput: boolean,
+): boolean {
+  return attempt < MAX_CLAUDE_QUERY_ATTEMPTS &&
+    !hasVisibleOutput &&
+    isRetryableClaudeFailure(message);
+}
+
 export function buildClaudeQueryOptions(params: {
   config: ClaudeCodeSdkNcpAgentRuntimeConfig;
   abortController: AbortController;
@@ -26,6 +47,7 @@ export function buildClaudeQueryOptions(params: {
   bundledCliPath?: string;
   currentProcessExecutable?: string;
   sessionRuntimeId?: string | null;
+  sessionStore: SessionStore;
 }): ClaudeCodeQueryOptions {
   const {
     abortController,
@@ -34,6 +56,7 @@ export function buildClaudeQueryOptions(params: {
     currentProcessExecutable,
     preparedAccess,
     sessionRuntimeId,
+    sessionStore,
   } = params;
   const baseQueryOptions = config.baseQueryOptions ?? {};
   const resolvedCliPath =
@@ -54,6 +77,7 @@ export function buildClaudeQueryOptions(params: {
     abortController,
     cwd: workingDirectory,
     model: config.model,
+    sessionStore,
     env: buildQueryEnv({
       ...config,
       apiKey: preparedAccess.apiKey,
@@ -105,4 +129,17 @@ export function createRequestTimeout(
   }, timeoutMs);
   timeout.unref?.();
   return timeout;
+}
+
+export function disposeClaudeQueryRun(params: {
+  abortBridge: { dispose: () => void };
+  query: { close?: () => void };
+  timeout: ReturnType<typeof setTimeout> | null;
+}): void {
+  const { abortBridge, query, timeout } = params;
+  abortBridge.dispose();
+  if (timeout !== null) {
+    clearTimeout(timeout);
+  }
+  query.close?.();
 }

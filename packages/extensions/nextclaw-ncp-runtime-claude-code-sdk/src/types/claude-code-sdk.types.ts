@@ -2,17 +2,20 @@ import type {
   NcpAgentConversationStateManager,
   NcpAgentRunInput,
 } from "@nextclaw/ncp";
+import type { SessionStore } from "@anthropic-ai/claude-agent-sdk";
 
 export type ClaudeCodeMessage = {
   type?: string;
   subtype?: string;
   is_error?: boolean;
+  isApiErrorMessage?: boolean;
   session_id?: string;
   parent_tool_use_id?: string | null;
   tool_use_id?: string;
   tool_name?: string;
   tool_use_result?: unknown;
   message?: {
+    model?: unknown;
     role?: unknown;
     content?: unknown;
   };
@@ -45,6 +48,7 @@ export type ClaudeCodeQueryOptions = {
   model?: string;
   env?: Record<string, string | undefined>;
   resume?: string;
+  sessionStore?: SessionStore;
   [key: string]: unknown;
 };
 
@@ -89,6 +93,7 @@ export type ClaudeCodeSdkNcpAgentRuntimeConfig = {
   model?: string;
   workingDirectory?: string;
   sessionRuntimeId?: string | null;
+  sessionStore?: SessionStore;
   env?: Record<string, string>;
   baseQueryOptions?: Record<string, unknown>;
   requestTimeoutMs?: number;

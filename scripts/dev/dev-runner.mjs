@@ -1,10 +1,12 @@
 #!/usr/bin/env node
-import { existsSync, realpathSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { spawn } from "node:child_process";
-import { dirname, join, relative, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { createServer as createNetServer } from "node:net";
 import { homedir } from "node:os";
 import { resolveRepoPath } from "../shared/repo-paths.mjs";
+import { createDevNarpCommandOverrides } from "./utils/dev-narp-command-overrides.utils.mjs";
+import { buildTsxWatchExcludeGlobs, normalizeWatchPath } from "./utils/dev-watch-paths.utils.mjs";
 
 const command = process.argv[2] ?? "start";
 const commandArgs = process.argv.slice(3);
@@ -20,42 +22,6 @@ const frontendDir = resolve(rootDir, "packages/nextclaw-ui");
 const companionDir = resolve(rootDir, "apps/companion");
 const explicitNextclawHome = typeof process.env.NEXTCLAW_HOME === "string" && process.env.NEXTCLAW_HOME.trim().length > 0 ? process.env.NEXTCLAW_HOME : null;
 const nextclawHome = resolve(explicitNextclawHome ?? join(homedir(), ".nextclaw"));
-const normalizeWatchPath = (filePath) => filePath.replaceAll("\\", "/");
-const toRelativeWatchPath = (baseDir, targetPath) => {
-  const normalizedRelative = normalizeWatchPath(relative(baseDir, targetPath));
-  if (!normalizedRelative || normalizedRelative === ".") {
-    return null;
-  }
-  if (normalizedRelative.startsWith("./")) {
-    return normalizedRelative;
-  }
-  return `./${normalizedRelative}`;
-};
-const addWatchPathCandidates = (candidates, targetPath) => {
-  candidates.add(normalizeWatchPath(targetPath));
-  try {
-    candidates.add(normalizeWatchPath(realpathSync(targetPath)));
-  } catch {
-    // Ignore realpath failures for non-existent or inaccessible paths.
-  }
-};
-const buildTsxWatchExcludeGlobs = (baseDir, targetPaths) => {
-  const candidates = new Set();
-  for (const targetPath of targetPaths) {
-    addWatchPathCandidates(candidates, targetPath);
-  }
-  const allPatterns = new Set();
-  for (const candidate of candidates) {
-    allPatterns.add(candidate);
-    allPatterns.add(`${candidate}/**`);
-    const relativeCandidate = toRelativeWatchPath(baseDir, candidate);
-    if (relativeCandidate) {
-      allPatterns.add(relativeCandidate);
-      allPatterns.add(`${relativeCandidate}/**`);
-    }
-  }
-  return [...allPatterns];
-};
 const firstPartyExtensionDir = resolve(rootDir, "packages/extensions");
 const tsxWatchExcludeGlobs = buildTsxWatchExcludeGlobs(backendDir, [
   nextclawHome,
@@ -75,6 +41,10 @@ const codexNarpControllerPath = resolve(
   rootDir,
   "packages/extensions/nextclaw-narp-runtime-codex-sdk/src/controllers/codex-narp.controller.ts"
 );
+const claudeNarpControllerPath = resolve(
+  rootDir,
+  "packages/extensions/nextclaw-narp-runtime-claude-code-sdk/src/controllers/claude-code-narp.controller.ts"
+);
 const pnpmCliPath =
   typeof process.env.npm_execpath === "string" && process.env.npm_execpath.trim().length > 0
     ? process.env.npm_execpath
@@ -87,6 +57,7 @@ if (!existsSync(backendBin) || !existsSync(frontendBin) || !pnpmCliPath) {
 
 function parseDevStartOptions(argv) {
   let backendWatchEnabled = process.env.NEXTCLAW_DEV_BACKEND_WATCH !== "0";
+  let claudeRuntimeSourceEnabled = false;
   let companionEnabled = process.env.NEXTCLAW_DEV_ENABLE_COMPANION === "1";
   let packageWatchEnabled = process.env.NEXTCLAW_DEV_PACKAGE_WATCH === "1";
 
@@ -98,6 +69,10 @@ function parseDevStartOptions(argv) {
     }
     if (arg === "--no-backend-watch") {
       backendWatchEnabled = false;
+      continue;
+    }
+    if (arg === "--claude-runtime-source") {
+      claudeRuntimeSourceEnabled = true;
       continue;
     }
     if (arg === "--companion") {
@@ -115,7 +90,7 @@ function parseDevStartOptions(argv) {
     throw new Error(`Unsupported dev option: ${arg}`);
   }
 
-  return { backendWatchEnabled, companionEnabled, packageWatchEnabled };
+  return { backendWatchEnabled, claudeRuntimeSourceEnabled, companionEnabled, packageWatchEnabled };
 }
 
 let devStartOptions;
@@ -180,6 +155,9 @@ console.log(
 console.log(
   `[dev] Package dist watch: ${devStartOptions.packageWatchEnabled ? "enabled" : "disabled (pass --package-watch or set NEXTCLAW_DEV_PACKAGE_WATCH=1 to enable)"}`
 );
+if (devStartOptions.claudeRuntimeSourceEnabled) {
+  console.log("[dev] Claude runtime source: enabled (backend reloads after Claude runtime source changes)");
+}
 console.log(`[dev] NEXTCLAW_HOME: ${nextclawHome}`);
 
 const children = [];
@@ -189,39 +167,6 @@ let exitCode = 0;
 const developmentNodeOptions = [process.env.NODE_OPTIONS, "--conditions=development"]
   .filter((value) => typeof value === "string" && value.trim().length > 0)
   .join(" ");
-
-function parseJsonObject(value) {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    return {};
-  }
-  try {
-    const parsed = JSON.parse(value);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function createDevNarpCommandOverrides() {
-  const overrides = parseJsonObject(process.env.NEXTCLAW_NARP_STDIO_COMMAND_OVERRIDES);
-  const codexOverride = {
-    command: backendBin,
-    args: [
-      "--tsconfig",
-      devRuntimeTsconfigPath,
-      codexNarpControllerPath,
-    ],
-    cwd: rootDir,
-  };
-  for (const command of [
-    resolve(nextclawHome, "bin", "nextclaw-codex-narp"),
-    resolve(dirname(process.execPath), "nextclaw-codex-narp"),
-    "nextclaw-codex-narp",
-  ]) {
-    overrides[command] = codexOverride;
-  }
-  return JSON.stringify(overrides);
-}
 
 function shouldUseShell(command) {
   return process.platform === "win32" && command.toLowerCase().endsWith(".cmd");
@@ -330,7 +275,17 @@ const backendProcess = spawnProcess(
   backendBin,
   [
     ...(devStartOptions.backendWatchEnabled
-      ? ["watch", ...tsxWatchExcludeGlobs.flatMap((glob) => ["--exclude", glob])]
+      ? [
+          "watch",
+          ...tsxWatchExcludeGlobs.flatMap((glob) => ["--exclude", glob]),
+          ...(devStartOptions.claudeRuntimeSourceEnabled
+            ? [
+                resolve(firstPartyExtensionDir, "nextclaw-ncp-runtime-claude-code-sdk/src/**/*.ts"),
+                resolve(firstPartyExtensionDir, "nextclaw-narp-runtime-claude-code-sdk/src/**/*.ts"),
+                resolve(rootDir, "packages/nextclaw-narp-stdio-runtime-wrapper/src/**/*.ts"),
+              ].flatMap((glob) => ["--include", normalizeWatchPath(glob)])
+            : []),
+        ]
       : []),
     "--tsconfig",
     resolve(rootDir, "scripts/dev/dev-runtime.tsconfig.json"),
@@ -343,7 +298,17 @@ const backendProcess = spawnProcess(
   {
     NODE_OPTIONS: developmentNodeOptions,
     NEXTCLAW_DEV_FIRST_PARTY_EXTENSION_DIR: firstPartyExtensionDir,
-    NEXTCLAW_NARP_STDIO_COMMAND_OVERRIDES: createDevNarpCommandOverrides(),
+    NEXTCLAW_NARP_STDIO_COMMAND_OVERRIDES: createDevNarpCommandOverrides({
+      backendBin,
+      claudeNarpControllerPath,
+      claudeRuntimeSourceEnabled: devStartOptions.claudeRuntimeSourceEnabled,
+      codexNarpControllerPath,
+      devRuntimeTsconfigPath,
+      nextclawHome,
+      nodeExecutable: process.execPath,
+      rootDir,
+      serializedOverrides: process.env.NEXTCLAW_NARP_STDIO_COMMAND_OVERRIDES,
+    }),
     NEXTCLAW_DISABLE_STATIC_UI: "1",
     NEXTCLAW_DISABLE_RUNTIME_UPDATE_HOST: "1",
     NEXTCLAW_REMOTE_LOCAL_ORIGIN: `http://127.0.0.1:${frontendPort}`,

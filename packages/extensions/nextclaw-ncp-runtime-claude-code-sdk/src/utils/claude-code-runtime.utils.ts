@@ -181,6 +181,14 @@ export function extractAssistantSnapshot(message: ClaudeCodeMessage): string {
 }
 
 export function extractFailureMessage(message: ClaudeCodeMessage): string | null {
+  const assistantSnapshot = message.type === "assistant" ? extractAssistantSnapshot(message) : "";
+  if (isSyntheticClaudeApiError(message, assistantSnapshot)) {
+    return assistantSnapshot ||
+      (typeof message.error === "string" && message.error.trim()
+        ? message.error.trim()
+        : "claude API request failed");
+  }
+
   if (message.type === "result") {
     if (message.is_error === true) {
       if (typeof message.result === "string" && message.result.trim()) {
@@ -212,4 +220,18 @@ export function extractFailureMessage(message: ClaudeCodeMessage): string | null
   }
 
   return "claude execution failed";
+}
+
+export function isRetryableClaudeFailure(message: ClaudeCodeMessage): boolean {
+  return isSyntheticClaudeApiError(message, extractAssistantSnapshot(message)) &&
+    (extractFailureMessage(message)?.toLowerCase().includes("empty or malformed response") ?? false);
+}
+
+function isSyntheticClaudeApiError(message: ClaudeCodeMessage, assistantSnapshot: string): boolean {
+  return message.type === "assistant" && (
+    message.isApiErrorMessage === true ||
+    (message.message?.model === "<synthetic>" &&
+      typeof message.error === "string" &&
+      assistantSnapshot.startsWith("API Error:"))
+  );
 }

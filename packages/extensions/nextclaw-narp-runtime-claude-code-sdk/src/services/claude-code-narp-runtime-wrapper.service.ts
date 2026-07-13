@@ -9,6 +9,7 @@ import {
 } from "@nextclaw/nextclaw-ncp-runtime-claude-code-sdk";
 
 const NARP_API_MODE_HEADER = "x-nextclaw-narp-api-mode";
+const RUNTIME_DEFAULT_MODEL_VALUE = "__nextclaw_runtime_default__";
 
 export type ClaudeCodeNarpRuntimeFactory = (
   config: ClaudeCodeSdkNcpAgentRuntimeConfig,
@@ -38,7 +39,13 @@ export class ClaudeCodeNarpRuntimeWrapper {
     const { cwd, modelId, promptMeta, sessionId, setSessionMetadata } = context;
     const providerRoute = promptMeta.providerRoute;
     const sessionMetadata = promptMeta.sessionMetadata ?? {};
-    const useClaudeRuntimeDefaults = !providerRoute && !readString(modelId);
+    const requestedModelRoute =
+      readString(sessionMetadata.preferred_model) ??
+      readString(sessionMetadata.preferredModel) ??
+      readString(sessionMetadata.model) ??
+      readString(modelId);
+    const useClaudeRuntimeDefaults =
+      !providerRoute && (!requestedModelRoute || requestedModelRoute === RUNTIME_DEFAULT_MODEL_VALUE);
     const apiKey = useClaudeRuntimeDefaults
       ? ""
       : readString(providerRoute?.apiKey) ??
@@ -65,7 +72,6 @@ export class ClaudeCodeNarpRuntimeWrapper {
         readString(modelId) ??
         readString(process.env.NEXTCLAW_MODEL) ??
         readString(process.env.ANTHROPIC_MODEL);
-
     return {
       sessionId,
       apiKey,
