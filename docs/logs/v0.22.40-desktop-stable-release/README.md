@@ -2,22 +2,25 @@
 
 ## 迭代完成说明
 
-本轮在 `nextclaw@0.22.4` NPM 正式版发布后，准备桌面端 stable 发布闭环。桌面壳版本为 `0.0.220`，runtime bundle 版本为 `0.22.4`，最低 launcher 版本为 `0.0.141`。
+本轮在 `nextclaw@0.22.4` NPM 正式版发布后，完成桌面端 stable 发布闭环。桌面壳版本为 `0.0.220`，runtime bundle 版本为 `0.22.4`，最低 launcher 版本为 `0.0.141`。
 
-计划发布的桌面端正式版 tag 为 `v0.22.4-desktop.1`。本轮同时刷新桌面内置 seed bundle，使安装包自带 runtime 与 npm registry 上的 `nextclaw@0.22.4` 对齐。
+最终成功的桌面端正式版 tag 为 `v0.22.4-desktop.1`，GitHub Actions run 为 `29273593157`，GitHub Release 地址为 `https://github.com/Peiiii/nextclaw/releases/tag/v0.22.4-desktop.1`。本轮同时刷新桌面内置 seed bundle，使安装包自带 runtime 与 npm registry 上的 `nextclaw@0.22.4` 对齐。
 
 ## 测试/验证/验收方式
 
 - 本地执行 `pnpm desktop:package:verify`，覆盖 macOS arm64 DMG 构建、seed runtime `0.22.4` 校验、native runtime dependencies 校验、runtime init、GUI smoke、health check 和 stable update check。
 - macOS 本地 GUI smoke 成功启动 runtime，health check 通过，窗口完成 `ready-to-show` 与 `did-finish-load`，update snapshot 返回 `up-to-date`。
 - `GITHUB_TOKEN=$(gh auth token) pnpm run assets:refresh-star-history` 和 `node --check scripts/docs/visual-assets/refresh-star-history-chart.mjs` 通过，README 星标图静态资产可重复生成。
-- 桌面端 GitHub Actions、公开 stable manifest、APT stable 仓库和官网 fallback 链接将在正式发布命令完成后补入最终验收结果。
+- GitHub Actions run `29273593157` 的 `desktop-darwin-arm64`、`desktop-darwin-x64`、`desktop-win32-x64`、`desktop-win32-arm64`、`desktop-linux-x64`、`publish-release-assets`、`publish-desktop-update-channels`、`publish-linux-apt-repo` 全部成功。
+- 公开 Pages stable manifest 验证 `latestVersion=0.22.4`、`minimumLauncherVersion=0.0.141`，release notes 指向 `v0.22.4-desktop.1`。
+- 公开 APT stable 仓库验证 `nextclaw-desktop` 版本为 `0.0.220`。
+- 官网执行 `pnpm --filter @nextclaw/landing tsc`、`pnpm --filter @nextclaw/landing build` 与 `pnpm deploy:landing`，部署后验证生产 bundle 包含 `v0.22.4-desktop.1` 和 `0.0.220`，不再包含旧 fallback `v0.22.3-desktop.8`。
 
 ## 发布/部署方式
 
 - NPM 正式版：`nextclaw@0.22.4` 已发布到 npm registry。
-- 桌面端正式版：计划执行 `pnpm release:desktop:stable -- --branch master --tag v0.22.4-desktop.1 --notes-file docs/logs/v0.22.40-desktop-stable-release/github-release.md --skip-local-verify`。
-- 官网：桌面 release 成功后更新 landing fallback 版本和 tag，并执行 `pnpm deploy:landing`。
+- 桌面端正式版：执行 `pnpm release:desktop:stable -- --branch master --tag v0.22.4-desktop.1 --notes-file docs/logs/v0.22.40-desktop-stable-release/github-release.md --skip-local-verify`。
+- 官网：执行 `pnpm deploy:landing`，Cloudflare Pages 部署地址为 `https://8c990c23.nextclaw-landing.pages.dev`，生产域名为 `https://nextclaw.io`。
 
 ## 用户/产品视角的验收步骤
 
