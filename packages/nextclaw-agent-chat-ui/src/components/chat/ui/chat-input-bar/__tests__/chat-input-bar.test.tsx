@@ -639,6 +639,33 @@ it('keeps IME composition stable while streamed output rerenders the parent', as
   await waitFor(() => expect(textbox.textContent).toBe('你'));
 });
 
+it('does not reclaim focus after the user leaves the composer during streaming', async () => {
+  const controlRef: MutableRefObject<DeferredComposerOwnerHarnessControl | null> = { current: null };
+  render(
+    <>
+      <input aria-label="Session search" />
+      <DeferredComposerOwnerHarness controlRef={controlRef} />
+    </>,
+  );
+
+  const textbox = screen.getAllByRole('textbox').find(
+    (element) => element.getAttribute('contenteditable') === 'true',
+  );
+  const search = screen.getByRole('textbox', { name: 'Session search' });
+  expect(textbox).toBeTruthy();
+  if (!textbox) {
+    return;
+  }
+  textbox.focus();
+  await insertText(textbox, 'draft');
+  search.focus();
+  expect(document.activeElement).toBe(search);
+
+  act(() => controlRef.current?.flushNodes());
+
+  expect(document.activeElement).toBe(search);
+});
+
 it('does not commit intermediate IME composition text before composition ends', () => {
   const onNodesChange = vi.fn();
 

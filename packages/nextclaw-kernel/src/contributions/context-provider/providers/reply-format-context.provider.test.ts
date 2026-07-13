@@ -34,11 +34,33 @@ describe("ReplyFormatContextProvider", () => {
     expect(context).toContain("absolute hrefs");
     expect(context).toContain("File links open source by default");
     expect(context).toContain("[preview.html](preview.html?viewer=rendered)");
+    for (const expected of [
+      "[report.docx](report.docx)",
+      "Markdown syntax and resource availability are separate",
+      "never downgrade a valid link to bare text",
+      "![chart](assets/chart.png)",
+      "![diagram](/Users/example/Pictures/diagram.svg)",
+      "Local image hrefs follow the same",
+      "Use show_file only when",
+      "use view_image only to give the model visual input",
+      "file:// URLs",
+      "internal API URLs",
+      "bad `report.docx` -> good [report.docx](report.docx)",
+      "good ![chart](/Users/example/chart.png)",
+    ]) {
+      expect(context).toContain(expected);
+    }
     expect(context).toContain("nextclaw-inline");
     expect(context).toContain('"target":{"type":"panel_app"');
-    expect(context).toContain("Supported targets are `panel_app`, `json`, `file`, and `url`");
-    expect(context).toContain("Prefer `panel_app` for inline Panel App display");
-    expect(context).toContain("use `file` and `url` only as non-clickable placeholders");
+    expect(context).toContain(
+      "Supported targets are `panel_app`, `json`, `file`, and `url`",
+    );
+    expect(context).toContain(
+      "Prefer `panel_app` for inline Panel App display",
+    );
+    expect(context).toContain(
+      "use `file` and `url` only as non-clickable placeholders",
+    );
     expect(context).toContain("use `json` for inert JSON snapshots");
     expect(context).toContain("display-only");
     expect(context).toContain("Never call `show_panel_app` for inline display");
@@ -52,9 +74,7 @@ describe("ReplyFormatContextProvider", () => {
     expect(context).toContain("unlinked comma-separated file lists");
     expect(context).toContain("bad `MEMORY.md` -> good [MEMORY.md](MEMORY.md)");
     expect(context).toContain("bad `memory/` -> good [memory/](memory/)");
-    expect(context).toContain(
-      "bad `2026-03-07.md` / `feishu-notes.md`",
-    );
+    expect(context).toContain("bad `2026-03-07.md` / `feishu-notes.md`");
     expect(context).toContain("[2026-03-07.md](memory/2026-03-07.md)");
     expect(context).toContain("[feishu-notes.md](memory/feishu-notes.md)");
     expect(context).toContain("intentionally represented by `nextclaw-inline`");

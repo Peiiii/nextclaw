@@ -1,7 +1,8 @@
 import { Fragment, useState } from "react";
 import type { ChatFileOpenActionViewModel } from "@nextclaw/agent-chat-ui";
 import { ChevronRight, FileCode2, Folder, FolderTree } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
+import { Popover, PopoverTrigger } from "@/shared/components/ui/popover";
+import { ChatPopoverContent } from "@/features/chat/components/chat-popover-content";
 import { WorkspaceBreadcrumbBrowser } from "./chat-session-workspace-file-breadcrumb-browser";
 import type {
   WorkspaceFileBreadcrumbSegmentViewModel,
@@ -67,7 +68,7 @@ function WorkspaceBreadcrumbSegmentButton({
           <span>{segment.label}</span>
         </button>
       </PopoverTrigger>
-      <PopoverContent
+      <ChatPopoverContent
         data-testid="workspace-breadcrumb-popover"
         className="w-[22rem] rounded-md p-0"
         align="start"
@@ -78,7 +79,7 @@ function WorkspaceBreadcrumbSegmentButton({
           onClose={() => setOpen(false)}
           onFileOpen={onFileOpen}
         />
-      </PopoverContent>
+      </ChatPopoverContent>
     </Popover>
   );
 }

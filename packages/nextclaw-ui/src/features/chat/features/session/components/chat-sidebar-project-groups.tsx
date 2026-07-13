@@ -2,7 +2,8 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { ChevronDown, ChevronRight, Folder, Pin, Plus } from 'lucide-react';
 import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
 import { ChatSessionTypeMenu } from "@/features/chat/features/session-type/components/chat-session-type-menu";
-import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
+import { Popover, PopoverTrigger } from '@/shared/components/ui/popover';
+import { ChatPopoverContent } from '@/features/chat/components/chat-popover-content';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import type { ChatSessionTypeOption } from "@/features/chat/features/session-type/utils/chat-session-type.utils";
 import type { NcpSessionListItemView } from '@/features/chat/features/ncp/hooks/use-ncp-session-list-view';
@@ -107,7 +108,7 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                         label={actionLabel}
                       />
                     </PopoverTrigger>
-                    <PopoverContent
+                    <ChatPopoverContent
                       align="end"
                       className="w-56 rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
                     >
@@ -122,7 +123,7 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                           setOpenProjectRoot(null);
                         }}
                       />
-                    </PopoverContent>
+                    </ChatPopoverContent>
                   </Popover>
                 ) : (
                   <IconActionButton

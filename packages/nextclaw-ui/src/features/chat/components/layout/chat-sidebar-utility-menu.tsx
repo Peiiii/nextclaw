@@ -1,9 +1,9 @@
 import { NavLink } from "react-router-dom";
 import {
   Popover,
-  PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover";
+import { ChatPopoverContent } from "@/features/chat/components/chat-popover-content";
 import {
   Select,
   SelectContent,
@@ -51,12 +51,6 @@ type ChatSidebarUtilityMenuProps = {
   onOpenApps: () => void;
   collapsed?: boolean;
 };
-
-function isChatComposerFocusTarget(target: EventTarget | null): boolean {
-  return target instanceof HTMLElement && Boolean(
-    target.closest('.nextclaw-chat-input-bar-shell [role="textbox"][contenteditable="true"]'),
-  );
-}
 
 export function ChatSidebarUtilityMenu({
   isOpen,
@@ -118,15 +112,10 @@ export function ChatSidebarUtilityMenu({
           </button>
         </PopoverTrigger>
       )}
-      <PopoverContent
+      <ChatPopoverContent
         side={collapsed ? "right" : "top"}
         align={collapsed ? "end" : "start"}
         className="w-64 p-2"
-        onFocusOutside={(event) => {
-          if (isChatComposerFocusTarget(event.detail.originalEvent.target)) {
-            event.preventDefault();
-          }
-        }}
       >
         <div className="space-y-1">
           <NavLink
@@ -177,7 +166,7 @@ export function ChatSidebarUtilityMenu({
           onSelect={onSelectLanguage}
           onCloseMenu={() => onOpenChange(false)}
         />
-      </PopoverContent>
+      </ChatPopoverContent>
     </Popover>
   );
 }

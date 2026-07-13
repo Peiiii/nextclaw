@@ -178,6 +178,7 @@ describe("ContextProviderContribution native prompt contract", () => {
       "Never call `show_panel_app` for inline display",
       "nextclaw-inline",
       "show_file",
+      "`view_image` is only for giving the model visual input",
       'viewer="rendered"',
       'viewer="source"',
       "# Project Context",

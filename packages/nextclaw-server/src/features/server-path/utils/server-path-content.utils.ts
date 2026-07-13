@@ -1,5 +1,9 @@
 import { readFile, stat } from "node:fs/promises";
 import { basename, extname, resolve } from "node:path";
+import {
+  resolveServerPath,
+  ServerPathResolutionError,
+} from "@nextclaw-server/features/server-path/utils/server-path-resolution.utils.js";
 
 const SERVER_PATH_CONTENT_ROUTE_PREFIX = "/api/server-paths/content/";
 const SERVER_PATH_CONTENT_ABSOLUTE_SCOPE = "__abs__";
@@ -112,6 +116,22 @@ function inferContentType(path: string): string {
       return "image/avif";
     case ".ico":
       return "image/x-icon";
+    case ".pdf":
+      return "application/pdf";
+    case ".docx":
+      return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    case ".xlsx":
+      return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    case ".xlsm":
+      return "application/vnd.ms-excel.sheet.macroEnabled.12";
+    case ".xlsb":
+      return "application/vnd.ms-excel.sheet.binary.macroEnabled.12";
+    case ".xls":
+      return "application/vnd.ms-excel";
+    case ".ods":
+      return "application/vnd.oasis.opendocument.spreadsheet";
+    case ".pptx":
+      return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
     case ".wasm":
       return "application/wasm";
     case ".woff":
@@ -133,10 +153,25 @@ function inferContentType(path: string): string {
   }
 }
 
-export async function readServerPathContent(
-  url: string,
-): Promise<ServerPathContentView> {
-  const resolvedPath = readServerPathContentRoutePath(url);
+export async function readServerPathContent(options: {
+  url?: string;
+  path?: string | null;
+  basePath?: string | null;
+}): Promise<ServerPathContentView> {
+  let resolvedPath: string;
+  try {
+    resolvedPath = options.url
+      ? readServerPathContentRoutePath(options.url)
+      : resolveServerPath(options);
+  } catch (error) {
+    if (error instanceof ServerPathResolutionError) {
+      throw new ServerPathContentError(
+        "SERVER_PATH_CONTENT_INVALID",
+        error.message,
+      );
+    }
+    throw error;
+  }
 
   let resolvedStats;
   try {

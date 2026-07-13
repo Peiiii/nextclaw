@@ -3,9 +3,9 @@ import { IconActionButton } from "@/shared/components/ui/actions/icon-action-but
 import { Input } from "@/shared/components/ui/input";
 import {
   Popover,
-  PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover";
+import { ChatPopoverContent } from "@/features/chat/components/chat-popover-content";
 import { SessionContextIconNode } from "@/features/chat/features/session/components/session-context-icon";
 import { ChatSessionTypeMenu } from "@/features/chat/features/session-type/components/chat-session-type-menu";
 import type { ChatSessionTypeOption } from "@/features/chat/features/session-type/utils/chat-session-type.utils";
@@ -175,7 +175,7 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
                   )}
                 />
               </PopoverTrigger>
-              <PopoverContent
+              <ChatPopoverContent
                 align="start"
                 side="right"
                 className="w-56 rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
@@ -188,7 +188,7 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
                     onCreateMenuOpenChange(false);
                   }}
                 />
-              </PopoverContent>
+              </ChatPopoverContent>
             </Popover>
           ) : null}
         </div>
@@ -238,7 +238,7 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
                   )}
                 />
               </PopoverTrigger>
-              <PopoverContent
+              <ChatPopoverContent
                 align="end"
                 className="w-56 rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
               >
@@ -250,7 +250,7 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
                     onCreateMenuOpenChange(false);
                   }}
                 />
-              </PopoverContent>
+              </ChatPopoverContent>
             </Popover>
           ) : null}
         </div>
@@ -315,7 +315,7 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps) {
                 className="h-9 w-9 shrink-0 rounded-full bg-muted text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
               />
             </PopoverTrigger>
-            <PopoverContent
+            <ChatPopoverContent
               align="end"
               className="w-60 rounded-3xl border border-border bg-popover p-2 text-popover-foreground shadow-[0_24px_70px_-30px_rgba(15,23,42,0.45)]"
             >
@@ -329,7 +329,7 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps) {
                   onCreateMenuOpenChange(false);
                 }}
               />
-            </PopoverContent>
+            </ChatPopoverContent>
           </Popover>
         ) : (
           <IconActionButton

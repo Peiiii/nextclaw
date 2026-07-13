@@ -5,10 +5,10 @@ import { ChatSessionHeaderMenuItem } from './chat-session-header-menu-item';
 import { ChatSessionProjectDialog } from './chat-session-project-dialog';
 import {
   Popover,
-  PopoverContent,
   PopoverTrigger,
   createPopoverAvailableHeightLimit,
 } from '@/shared/components/ui/popover';
+import { ChatPopoverContent } from '@/features/chat/components/chat-popover-content';
 import { t } from '@/shared/lib/i18n';
 
 type ChatSessionProjectBadgeProps = {
@@ -66,7 +66,7 @@ export function ChatSessionProjectBadge({
             </span>
           </button>
         </PopoverTrigger>
-        <PopoverContent
+        <ChatPopoverContent
           align="start"
           className="w-72 p-2"
           style={SESSION_PROJECT_MENU_STYLE}
@@ -100,7 +100,7 @@ export function ChatSessionProjectBadge({
               disabled={isProjectPending}
             />
           </div>
-        </PopoverContent>
+        </ChatPopoverContent>
       </Popover>
 
       <ChatSessionProjectDialog

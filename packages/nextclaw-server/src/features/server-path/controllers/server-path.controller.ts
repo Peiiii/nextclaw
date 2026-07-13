@@ -58,9 +58,12 @@ export class ServerPathRoutesController {
     }
   };
 
-  readonly content = async (c: Context): Promise<Response> => {
+  private readonly sendContent = async (
+    c: Context,
+    options: Parameters<typeof readServerPathContent>[0],
+  ): Promise<Response> => {
     try {
-      const payload = await readServerPathContent(c.req.raw.url);
+      const payload = await readServerPathContent(options);
       return new Response(payload.content, {
         headers: {
           "content-type": payload.contentType,
@@ -78,4 +81,13 @@ export class ServerPathRoutesController {
       throw error;
     }
   };
+
+  readonly content = async (c: Context): Promise<Response> =>
+    this.sendContent(c, { url: c.req.raw.url });
+
+  readonly contentByPath = async (c: Context): Promise<Response> =>
+    this.sendContent(c, {
+      path: c.req.query("path"),
+      basePath: c.req.query("basePath"),
+    });
 }

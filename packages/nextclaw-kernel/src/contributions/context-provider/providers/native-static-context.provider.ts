@@ -29,16 +29,18 @@ export const createToolCallStyleContextProvider = (): ContextProvider =>
     "Use plain human language for narration unless in a technical context.",
   ]);
 
-export const createInlineInteractiveSurfaceContextProvider = (): ContextProvider =>
-  staticBlock([
-    "## Inline Interactive Surfaces",
-    "Do not make every UI an inline card. Choose inline only when the intended result is a compact, immediately usable card or short interaction; use the side panel for normal Panel Apps, long reading, rich editing, file browsing, large tables, multi-page workflows, or sustained workspaces.",
-    "Inline Panel App display is Markdown-only: in the final reply, output a `nextclaw-inline` fenced JSON block so the display remains message content.",
-    '`show_panel_app` is side-panel only. Never call `show_panel_app` for inline display, including when the user asks which Panel Apps are suitable for inline display or says "show/display them inline".',
-    'For ordinary local HTML files or page prototypes, call `show_file` with `path` and `viewer="rendered"`; use `viewer="source"` when the user needs to inspect source text. Markdown file links open source by default; append `?viewer=rendered` only when the link itself should open the rendered HTML view. Do not convert a plain HTML file into a Panel App just to preview it.',
-    "A Panel Card must be designed card-first: prefer a landscape composition where width carries the main information and the card is wider than it is tall; collapse to one column only in narrow containers. Core value must be visible in the first 220-420px, with no horizontal scrolling, no reliance on document-level internal scrolling, compact controls, at most one primary action, clear loading/empty/error states, and an obvious expand path for details.",
-    'Typical Panel Card fits: weather cards, calculators, timers, checklists, pickers, compact forms, previews, and small dashboards. If the UI needs more space than a card, use the side panel instead. Inline hosts may pass `nextclawDisplayMode=card` and `nextclawPlacement=inline`; use those hints to render a compact card layout instead of a full page.',
-  ]);
+export const createInlineInteractiveSurfaceContextProvider =
+  (): ContextProvider =>
+    staticBlock([
+      "## Inline Interactive Surfaces",
+      "Do not make every UI an inline card. Choose inline only when the intended result is a compact, immediately usable card or short interaction; use the side panel for normal Panel Apps, long reading, rich editing, file browsing, large tables, multi-page workflows, or sustained workspaces.",
+      "Inline Panel App display is Markdown-only: in the final reply, output a `nextclaw-inline` fenced JSON block so the display remains message content.",
+      '`show_panel_app` is side-panel only. Never call `show_panel_app` for inline display, including when the user asks which Panel Apps are suitable for inline display or says "show/display them inline".',
+      "To open a local image or document in the side panel, call `show_file`; its automatic viewer handles supported visual formats, including SVG. When an image should appear in the final reply, prefer standard Markdown image syntax under the Reply Formatting Contract. `view_image` is only for giving the model visual input and is not a user-display action.",
+      'For ordinary local HTML files or page prototypes, call `show_file` with `path` and `viewer="rendered"`; use `viewer="source"` when the user needs to inspect source text. Markdown file links open source by default; append `?viewer=rendered` only when the link itself should open the rendered HTML view. Do not convert a plain HTML file into a Panel App just to preview it.',
+      "A Panel Card must be designed card-first: prefer a landscape composition where width carries the main information and the card is wider than it is tall; collapse to one column only in narrow containers. Core value must be visible in the first 220-420px, with no horizontal scrolling, no reliance on document-level internal scrolling, compact controls, at most one primary action, clear loading/empty/error states, and an obvious expand path for details.",
+      "Typical Panel Card fits: weather cards, calculators, timers, checklists, pickers, compact forms, previews, and small dashboards. If the UI needs more space than a card, use the side panel instead. Inline hosts may pass `nextclawDisplayMode=card` and `nextclawPlacement=inline`; use those hints to render a compact card layout instead of a full page.",
+    ]);
 
 export const createChatComposerTokensContextProvider = (): ContextProvider =>
   staticBlock([

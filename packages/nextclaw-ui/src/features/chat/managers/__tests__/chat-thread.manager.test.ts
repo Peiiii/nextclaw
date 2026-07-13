@@ -331,51 +331,27 @@ describe('ChatThreadManager', () => {
 });
 
 describe('ChatThreadManager workspace file tabs', () => {
-  it('opens HTML previews in source mode when the viewer is omitted or auto', () => {
-    const manager = new ChatThreadManager(
-      createUiManager(),
-      {} as ConstructorParameters<typeof ChatThreadManager>[1],
-    );
+  it.each([
+    { path: 'demo.html', previewViewer: undefined, expectedViewer: 'source' },
+    { path: 'auto.html', previewViewer: 'auto' as const, expectedViewer: 'source' },
+    { path: 'report.docx', previewViewer: 'auto' as const, expectedViewer: 'auto' },
+  ])('normalizes the viewer for $path', ({ path, previewViewer, expectedViewer }) => {
+      const manager = new ChatThreadManager(
+        createUiManager(),
+        {} as ConstructorParameters<typeof ChatThreadManager>[1],
+      );
 
-    manager.openFilePreview({
-      path: 'demo.html',
-      label: 'demo.html',
-      viewMode: 'preview',
-    });
+      manager.openFilePreview({
+        path,
+        label: path,
+        viewMode: 'preview',
+        previewViewer,
+      });
 
-    expect(useChatThreadStore.getState().snapshot).toMatchObject({
-      activeWorkspaceFileKey: 'parent-session-1::preview::demo.html',
-      workspaceFileTabs: [
-        {
-          key: 'parent-session-1::preview::demo.html',
-          path: 'demo.html',
-          viewMode: 'preview',
-          previewViewer: 'source',
-        },
-      ],
-    });
-
-    manager.openFilePreview({
-      path: 'auto.html',
-      label: 'auto.html',
-      viewMode: 'preview',
-      previewViewer: 'auto',
-    });
-
-    expect(useChatThreadStore.getState().snapshot).toMatchObject({
-      activeWorkspaceFileKey: 'parent-session-1::preview::auto.html',
-      workspaceFileTabs: [
-        {
-          key: 'parent-session-1::preview::auto.html',
-          path: 'auto.html',
-          viewMode: 'preview',
-          previewViewer: 'source',
-        },
-        expect.objectContaining({
-          key: 'parent-session-1::preview::demo.html',
-        }),
-      ],
-    });
+      expect(useChatThreadStore.getState().snapshot.workspaceFileTabs[0]).toMatchObject({
+        path,
+        previewViewer: expectedViewer,
+      });
   });
 
   it('keeps source and rendered previews for the same file as separate workspace tabs', () => {

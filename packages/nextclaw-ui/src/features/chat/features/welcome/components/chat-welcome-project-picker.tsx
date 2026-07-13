@@ -3,10 +3,10 @@ import { ChevronDown, FolderOpen } from 'lucide-react';
 import type { ChatWelcomeProjectOption } from '@/features/chat/features/welcome/utils/chat-welcome-project-options.utils';
 import {
   Popover,
-  PopoverContent,
   PopoverTrigger,
   createPopoverAvailableHeightLimit,
 } from '@/shared/components/ui/popover';
+import { ChatPopoverContent } from '@/features/chat/components/chat-popover-content';
 import { t } from '@/shared/lib/i18n';
 import { getSessionProjectName } from '@/shared/lib/session-project';
 
@@ -64,7 +64,7 @@ export function ChatWelcomeProjectPicker({
           <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
         </button>
       </PopoverTrigger>
-      <PopoverContent
+      <ChatPopoverContent
         align="start"
         className="flex w-[min(20rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-2xl border border-border bg-popover p-0 text-popover-foreground shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
         style={{ maxHeight: PROJECT_PICKER_MAX_HEIGHT }}
@@ -121,7 +121,7 @@ export function ChatWelcomeProjectPicker({
             <span>{t('chatWelcomeProjectOpenFolder')}</span>
           </button>
         </div>
-      </PopoverContent>
+      </ChatPopoverContent>
     </Popover>
   );
 }

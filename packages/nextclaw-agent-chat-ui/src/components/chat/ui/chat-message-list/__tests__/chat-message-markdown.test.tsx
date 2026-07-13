@@ -166,10 +166,101 @@ it("leaves external links alone when file preview interception is enabled", () =
   expect(onFileOpen).not.toHaveBeenCalled();
 });
 
-it("does not treat bare domains as project-root file links", () => {
+it.each(["report.docx", "workbook.xlsx", "slides.pptx"])(
+  "opens bare Office file link %s through the local resource contract",
+  (path) => {
+    const onFileOpen = vi.fn();
+
+    render(
+      <ChatMessageMarkdown
+        text={`[office file](${path})`}
+        role="assistant"
+        texts={defaultTexts}
+        onFileOpen={onFileOpen}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: "office file" }));
+
+    expect(onFileOpen).toHaveBeenCalledWith({
+      path,
+      label: path,
+      viewMode: "preview",
+    });
+  },
+);
+
+it("resolves local Markdown image paths through the host file-content contract", () => {
+  const resolveFileContentUrl = vi.fn(
+    (action: { path: string }) =>
+      `/api/server-paths/content?path=${encodeURIComponent(action.path)}`,
+  );
+
+  render(
+    <ChatMessageMarkdown
+      text="![diagram](/Users/demo/project/diagram.svg)"
+      role="assistant"
+      texts={defaultTexts}
+      resolveFileContentUrl={resolveFileContentUrl}
+    />,
+  );
+
+  expect(resolveFileContentUrl).toHaveBeenCalledWith({
+    path: "/Users/demo/project/diagram.svg",
+    label: "diagram.svg",
+    viewMode: "preview",
+  });
+  expect(screen.getByRole("img", { name: "diagram" }).getAttribute("src")).toBe(
+    "/api/server-paths/content?path=%2FUsers%2Fdemo%2Fproject%2Fdiagram.svg",
+  );
+});
+
+it("resolves project-relative Markdown image paths", () => {
+  const resolveFileContentUrl = vi.fn(
+    () => "/api/server-paths/content?path=assets%2Fdiagram.png",
+  );
+
+  render(
+    <ChatMessageMarkdown
+      text="![diagram](assets/diagram.png)"
+      role="assistant"
+      texts={defaultTexts}
+      resolveFileContentUrl={resolveFileContentUrl}
+    />,
+  );
+
+  expect(resolveFileContentUrl).toHaveBeenCalledWith({
+    path: "assets/diagram.png",
+    label: "diagram.png",
+    viewMode: "preview",
+  });
+  expect(screen.getByRole("img", { name: "diagram" }).getAttribute("src")).toBe(
+    "/api/server-paths/content?path=assets%2Fdiagram.png",
+  );
+});
+
+it("keeps external Markdown image URLs unchanged", () => {
+  const resolveFileContentUrl = vi.fn();
+
+  render(
+    <ChatMessageMarkdown
+      text="![logo](https://example.com/logo.png)"
+      role="assistant"
+      texts={defaultTexts}
+      resolveFileContentUrl={resolveFileContentUrl}
+    />,
+  );
+
+  expect(screen.getByRole("img", { name: "logo" }).getAttribute("src")).toBe(
+    "https://example.com/logo.png",
+  );
+  expect(resolveFileContentUrl).not.toHaveBeenCalled();
+});
+
+it("keeps every scheme-less Markdown href clickable as a local resource", () => {
   const onFileOpen = vi.fn();
 
-  const { container } = render(
+  render(
     <ChatMessageMarkdown
       text="[site](example.com)"
       role="assistant"
@@ -178,17 +269,20 @@ it("does not treat bare domains as project-root file links", () => {
     />,
   );
 
-  expect(screen.queryByRole("link", { name: "site" })).toBeNull();
-  expect(container.querySelector(".chat-link-invalid")?.textContent).toBe(
-    "site",
-  );
-  expect(onFileOpen).not.toHaveBeenCalled();
+  const link = screen.getByRole("link", { name: "site" });
+  expect(link.getAttribute("href")).toBe("example.com");
+  fireEvent.click(link);
+  expect(onFileOpen).toHaveBeenCalledWith({
+    path: "example.com",
+    label: "example.com",
+    viewMode: "preview",
+  });
 });
 
-it("does not render unsafe links as anchors", () => {
+it("preserves link semantics while blocking unsafe protocols", () => {
   const onFileOpen = vi.fn();
 
-  const { container } = render(
+  render(
     <ChatMessageMarkdown
       text="[bad](javascript:alert(1))"
       role="assistant"
@@ -197,10 +291,11 @@ it("does not render unsafe links as anchors", () => {
     />,
   );
 
-  expect(screen.queryByRole("link", { name: "bad" })).toBeNull();
-  expect(container.querySelector(".chat-link-invalid")?.textContent).toBe(
-    "bad",
-  );
+  const link = screen.getByRole("link", { name: "bad" });
+  expect(link.getAttribute("href")).toBe("#");
+  expect(link.getAttribute("aria-disabled")).toBe("true");
+  expect(link.className).toContain("chat-link-invalid");
+  fireEvent.click(link);
   expect(onFileOpen).not.toHaveBeenCalled();
 });
 

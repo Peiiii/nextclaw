@@ -114,7 +114,7 @@ export class ChatThreadManager {
     const previewViewer =
       action.viewMode === 'preview' &&
       action.previewViewer !== 'rendered' &&
-      (action.previewViewer === 'auto' || action.previewViewer === 'source' || /\.html?$/i.test(normalizedPath))
+      /\.html?$/i.test(normalizedPath)
         ? 'source'
         : action.previewViewer ?? null;
     const tabViewIdentity = action.viewMode === 'preview' && previewViewer === 'rendered' ? 'preview:rendered' : action.viewMode;

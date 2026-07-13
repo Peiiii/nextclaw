@@ -11,6 +11,11 @@ import {
 import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.store";
 import { ChatSessionWorkspaceDirectoryBrowser } from "./chat-session-workspace-directory-browser";
 import { ChatSessionWorkspaceFileBreadcrumbs } from "./chat-session-workspace-file-breadcrumbs";
+import {
+  resolveWorkspaceFileContentKind,
+  WorkspaceFileContentPreview,
+  type WorkspaceFileContentKind,
+} from "./workspace-file-content-preview";
 import { useServerPathBrowse } from "@/shared/hooks/use-server-path-browse";
 import { useServerPathRead } from "@/shared/hooks/use-server-path-read";
 import { buildServerPathContentUrl } from "@/shared/lib/api";
@@ -36,36 +41,15 @@ function resolveFilePreviewViewer(params: {
   path: string;
   viewer?: ChatFilePreviewViewer | null;
 }): "source" | "rendered" {
-  return params.viewer === "rendered" && /\.html?$/i.test(params.path) ? "rendered" : "source";
+  return params.viewer === "rendered" && /\.html?$/i.test(params.path)
+    ? "rendered"
+    : "source";
 }
 
-type ContentUrlPreviewKind = "image" | "audio" | "video" | "pdf" | "html" | "other";
-
-function resolveContentUrlPreviewKind(params: {
-  path: string;
-  mimeType?: string | null;
-}): ContentUrlPreviewKind {
-  const mime = params.mimeType?.trim().toLowerCase() ?? "";
-  const path = params.path.trim().toLowerCase();
-  if (mime.startsWith("image/") || /\.(avif|bmp|gif|heic|heif|ico|jpe?g|png|svg|tiff?|webp)$/i.test(path)) {
-    return "image";
-  }
-  if (mime.startsWith("audio/") || /\.(aac|flac|m4a|mp3|ogg|opus|wav|weba)$/i.test(path)) {
-    return "audio";
-  }
-  if (mime.startsWith("video/") || /\.(avi|m4v|mkv|mov|mp4|webm|wmv)$/i.test(path)) {
-    return "video";
-  }
-  if (mime.includes("pdf") || path.endsWith(".pdf")) {
-    return "pdf";
-  }
-  if (mime.includes("html") || /\.html?$/i.test(path)) {
-    return "html";
-  }
-  return "other";
-}
-
-function appendPreviewRefreshVersion(url: string, refreshVersion: number): string {
+function appendPreviewRefreshVersion(
+  url: string,
+  refreshVersion: number,
+): string {
   if (refreshVersion <= 0) {
     return url;
   }
@@ -182,119 +166,9 @@ function WorkspaceCodeSurface({
 }: {
   block: ChatFileOperationBlockViewModel;
 }) {
-  return <div className="h-full overflow-auto custom-scrollbar bg-white"><FileOperationCodeSurface block={block} layout="workspace" /></div>;
-}
-
-function WorkspaceHtmlRenderedPreview({
-  src,
-}: {
-  src: string;
-}) {
   return (
-    <iframe
-      allowFullScreen
-      className="h-full w-full border-0 bg-white"
-      data-testid="workspace-html-preview"
-      src={src}
-      title={t("chatWorkspaceHtmlPreviewTitle")}
-    />
-  );
-}
-
-function WorkspaceContentUrlPreview({
-  contentUrl,
-  kind,
-  label,
-}: {
-  contentUrl: string;
-  kind: ContentUrlPreviewKind;
-  label: string;
-}) {
-  if (kind === "image") {
-    return (
-      <div className="flex h-full items-center justify-center overflow-auto custom-scrollbar bg-white p-4">
-        <img
-          src={contentUrl}
-          alt={label}
-          className="max-h-full max-w-full object-contain"
-          data-testid="workspace-content-image"
-        />
-      </div>
-    );
-  }
-  if (kind === "audio") {
-    return (
-      <div className="flex h-full items-center justify-center bg-white px-6">
-        <audio
-          controls
-          preload="metadata"
-          aria-label={label}
-          className="w-full max-w-xl"
-          data-testid="workspace-content-audio"
-          src={contentUrl}
-        />
-      </div>
-    );
-  }
-  if (kind === "video") {
-    return (
-      <div className="flex h-full items-center justify-center bg-black">
-        <video
-          controls
-          playsInline
-          preload="metadata"
-          aria-label={label}
-          className="max-h-full max-w-full"
-          data-testid="workspace-content-video"
-          src={contentUrl}
-        />
-      </div>
-    );
-  }
-  if (kind === "pdf" || kind === "html") {
-    return (
-      <iframe
-        allowFullScreen
-        className="h-full w-full border-0 bg-white"
-        data-testid={kind === "pdf" ? "workspace-content-pdf" : "workspace-html-preview"}
-        src={contentUrl}
-        title={label}
-      />
-    );
-  }
-  return (
-    <div
-      className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center"
-      data-testid="workspace-content-unsupported"
-    >
-      <div className="max-w-sm space-y-1.5">
-        <p className="truncate text-sm font-medium text-foreground" title={label}>
-          {label}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          {t("chatWorkspacePreviewUnsupported")}
-        </p>
-        <p className="text-xs leading-5 text-muted-foreground/80">
-          {t("chatWorkspacePreviewUnsupportedHint")}
-        </p>
-      </div>
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <a
-          href={contentUrl}
-          download={label}
-          className="inline-flex h-8 items-center rounded-lg border border-border bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-        >
-          {t("chatWorkspacePreviewDownload")}
-        </a>
-        <a
-          href={contentUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex h-8 items-center rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          {t("chatWorkspacePreviewOpenExternally")}
-        </a>
-      </div>
+    <div className="h-full overflow-auto custom-scrollbar bg-white">
+      <FileOperationCodeSurface block={block} layout="workspace" />
     </div>
   );
 }
@@ -304,29 +178,27 @@ function WorkspacePreviewBody({
   contentUrlKind,
   contentLabel,
   directoryQuery,
+  fileBasePath,
   onFileOpen,
   previewBlock,
   previewKind,
   previewQuery,
   previewText,
-  previewUrl,
-  previewViewer,
 }: {
   contentUrl: string | null;
-  contentUrlKind: ContentUrlPreviewKind | null;
+  contentUrlKind: WorkspaceFileContentKind | null;
   contentLabel: string;
   directoryQuery: ReturnType<typeof useServerPathBrowse> | null | undefined;
+  fileBasePath: string | null;
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
   previewBlock: ChatFileOperationBlockViewModel | null;
   previewKind: "text" | "markdown" | "binary";
   previewQuery: ReturnType<typeof useServerPathRead> | null | undefined;
   previewText: string | null;
-  previewUrl: string | null;
-  previewViewer: "source" | "rendered";
 }) {
   if (contentUrl && contentUrlKind) {
     return (
-      <WorkspaceContentUrlPreview
+      <WorkspaceFileContentPreview
         contentUrl={contentUrl}
         kind={contentUrlKind}
         label={contentLabel}
@@ -375,10 +247,6 @@ function WorkspacePreviewBody({
     );
   }
 
-  if (previewViewer === "rendered" && previewUrl) {
-    return <WorkspaceHtmlRenderedPreview src={previewUrl} />;
-  }
-
   if (previewKind === "markdown" && previewText) {
     return (
       <div className="h-full overflow-auto custom-scrollbar px-5 py-4">
@@ -390,6 +258,9 @@ function WorkspacePreviewBody({
             copiedCodeLabel: t("chatCodeCopied"),
           }}
           onFileOpen={onFileOpen}
+          resolveFileContentUrl={(action) =>
+            buildServerPathContentUrl(action.path, fileBasePath)
+          }
         />
       </div>
     );
@@ -418,8 +289,8 @@ export function ChatSessionWorkspaceFilePreview({
   onFileOpen,
 }: ChatSessionWorkspaceFilePreviewProps) {
   const isPreviewMode = file.viewMode === "preview";
-  const contentUrl = file.contentUrl?.trim() || null;
-  const usesServerPath = isPreviewMode && !contentUrl;
+  const suppliedContentUrl = file.contentUrl?.trim() || null;
+  const usesServerPath = isPreviewMode && !suppliedContentUrl;
   const previewQuery = useServerPathRead({
     path: file.path,
     basePath: sessionWorkingDir,
@@ -435,14 +306,15 @@ export function ChatSessionWorkspaceFilePreview({
     () => (file.viewMode === "diff" ? buildDiffBlock(file) : null),
     [file],
   );
-  const previewText =
-    isPreviewMode ? previewQuery?.data?.text ?? file.rawText ?? null : null;
+  const previewText = isPreviewMode
+    ? (previewQuery?.data?.text ?? file.rawText ?? null)
+    : null;
   const previewKind = inferPreviewKind({
     path: previewQuery?.data?.resolvedPath ?? file.path,
     serverKind: previewQuery?.data?.kind,
   });
-  const contentUrlKind = contentUrl
-    ? resolveContentUrlPreviewKind({
+  const suppliedContentKind = suppliedContentUrl
+    ? resolveWorkspaceFileContentKind({
         path: file.path,
         mimeType: file.mimeType,
       })
@@ -456,13 +328,28 @@ export function ChatSessionWorkspaceFilePreview({
     path: resolvedPath,
     viewer: file.previewViewer,
   });
-  const previewUrl =
-    previewViewer === "rendered" && previewQuery?.data?.resolvedPath
-      ? appendPreviewRefreshVersion(
-          buildServerPathContentUrl(previewQuery.data.resolvedPath),
-          refreshVersion,
-        )
+  const localContentKind = resolveWorkspaceFileContentKind({
+    path: resolvedPath,
+  });
+  const localContentUrlCandidate = buildServerPathContentUrl(
+    file.path,
+    sessionWorkingDir,
+  );
+  const shouldRenderLocalContent = Boolean(
+    !suppliedContentUrl &&
+    isPreviewMode &&
+    localContentUrlCandidate &&
+    file.previewViewer !== "source" &&
+    localContentKind !== "other" &&
+    (localContentKind !== "html" || previewViewer === "rendered"),
+  );
+  const localContentUrl =
+    shouldRenderLocalContent && localContentUrlCandidate
+      ? appendPreviewRefreshVersion(localContentUrlCandidate, refreshVersion)
       : null;
+  const contentUrl = suppliedContentUrl ?? localContentUrl;
+  const contentUrlKind =
+    suppliedContentKind ?? (localContentUrl ? localContentKind : null);
   const previewBlock = useMemo(() => {
     if (!isPreviewMode || !previewText || contentUrl) {
       return null;
@@ -520,13 +407,12 @@ export function ChatSessionWorkspaceFilePreview({
             contentUrlKind={contentUrlKind}
             contentLabel={file.label?.trim() || resolvedPath}
             directoryQuery={directoryQuery}
+            fileBasePath={sessionWorkingDir}
             onFileOpen={onFileOpen}
             previewBlock={previewBlock}
             previewKind={previewKind}
             previewQuery={previewQuery}
             previewText={previewText}
-            previewUrl={previewUrl}
-            previewViewer={previewViewer}
           />
         )}
       </div>

@@ -102,7 +102,7 @@ export function StreamingComposerHarness({
       <div data-testid="stream-chunk">{streamChunk}</div>
       <ChatInputBar
         {...createStreamingInputBarProps({
-          nodes,
+          nodes: [...nodes],
           onNodesChange: setNodes,
         })}
       />

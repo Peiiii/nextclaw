@@ -32,9 +32,9 @@ import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useViewportLayoutStore } from "@/app/stores/viewport-layout.store";
 import {
   Popover,
-  PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover";
+import { ChatPopoverContent } from "@/features/chat/components/chat-popover-content";
 import { Input } from "@/shared/components/ui/input";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
@@ -217,7 +217,7 @@ function ChatSessionTitleSwitcherPopover({
           />
         </button>
       </PopoverTrigger>
-      <PopoverContent
+      <ChatPopoverContent
         align="start"
         className="w-[22rem] max-w-[calc(100vw-2rem)] p-0"
       >
@@ -263,7 +263,7 @@ function ChatSessionTitleSwitcherPopover({
             />
           )}
         </div>
-      </PopoverContent>
+      </ChatPopoverContent>
     </Popover>
   );
 }

@@ -1,8 +1,10 @@
 import { open, stat } from "node:fs/promises";
-import { homedir } from "node:os";
-import { extname, resolve } from "node:path";
-import { expandHome } from "@nextclaw/core";
+import { extname } from "node:path";
 import type { ServerPathReadView } from "@nextclaw-server/shared/types/server-api.types.js";
+import {
+  resolveServerPath,
+  ServerPathResolutionError,
+} from "@nextclaw-server/features/server-path/utils/server-path-resolution.utils.js";
 
 type ReadServerPathOptions = {
   path?: string | null;
@@ -63,31 +65,6 @@ export class ServerPathReadError extends Error {
   }
 }
 
-function normalizeReadPath(params: {
-  path?: string | null;
-  basePath?: string | null;
-}): string {
-  const { basePath, path } = params;
-  const rawPath = typeof path === "string" ? path.trim() : "";
-  const normalizedBasePath =
-    typeof basePath === "string" ? basePath.trim() : "";
-  if (!rawPath) {
-    return resolve(expandHome(normalizedBasePath || homedir()));
-  }
-  const expandedPath = expandHome(rawPath);
-  if (expandedPath.startsWith("/")) {
-    return resolve(expandedPath);
-  }
-  if (!normalizedBasePath) {
-    throw new ServerPathReadError(
-      "SERVER_PATH_BASE_REQUIRED",
-      "relative server path requires a base path",
-    );
-  }
-  const resolvedBasePath = expandHome(normalizedBasePath);
-  return resolve(resolvedBasePath, expandedPath);
-}
-
 function inferPreviewKind(path: string): "markdown" | "text" | "binary" {
   const extension = extname(path).toLowerCase();
   if (MARKDOWN_EXTENSIONS.has(extension)) {
@@ -143,7 +120,15 @@ export async function readServerPath(
   options: ReadServerPathOptions = {},
 ): Promise<ServerPathReadView> {
   const requestedPath = typeof options.path === "string" ? options.path.trim() : "";
-  const resolvedPath = normalizeReadPath(options);
+  let resolvedPath: string;
+  try {
+    resolvedPath = resolveServerPath({ ...options, defaultToHome: true });
+  } catch (error) {
+    if (error instanceof ServerPathResolutionError) {
+      throw new ServerPathReadError("SERVER_PATH_BASE_REQUIRED", error.message);
+    }
+    throw error;
+  }
 
   let resolvedStats;
   try {

@@ -5,10 +5,10 @@ import { ChatSessionTypeOptionItem } from '@/features/chat/features/session-type
 import type { ChatSessionTypeOption } from '@/features/chat/features/session-type/utils/chat-session-type.utils';
 import {
   Popover,
-  PopoverContent,
   PopoverTrigger,
   createPopoverAvailableHeightLimit,
 } from '@/shared/components/ui/popover';
+import { ChatPopoverContent } from '@/features/chat/components/chat-popover-content';
 import { t } from '@/shared/lib/i18n';
 
 type SessionTypeOption = ChatSessionTypeOption;
@@ -59,7 +59,7 @@ export function ChatWelcomeSessionTypePicker({
           <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
         </button>
       </PopoverTrigger>
-      <PopoverContent
+      <ChatPopoverContent
         align="start"
         className="flex w-[min(16rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
         style={{ maxHeight: SESSION_TYPE_PICKER_MAX_HEIGHT }}
@@ -76,7 +76,7 @@ export function ChatWelcomeSessionTypePicker({
             />
           ))}
         </div>
-      </PopoverContent>
+      </ChatPopoverContent>
     </Popover>
   );
 }

@@ -70,6 +70,7 @@ export type ChatMessageListProps = {
   className?: string;
   onToolAction?: (action: ChatToolActionViewModel) => void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  resolveFileContentUrl?: (action: ChatFileOpenActionViewModel) => string | null;
   onAttachmentOpen?: (
     file: Extract<ChatMessageViewModel["parts"][number], { type: "file" }>["file"],
   ) => void;
@@ -122,6 +123,7 @@ export function ChatMessageList({
   renderInlineDisplay,
   renderPanelAppCard,
   renderToolAgent,
+  resolveFileContentUrl,
   texts,
 }: ChatMessageListProps) {
   const visibleMessages = messages.filter(hasRenderableMessageContent);
@@ -148,6 +150,7 @@ export function ChatMessageList({
                 onFileOpen={onFileOpen}
                 onAttachmentOpen={onAttachmentOpen}
                 onInlineTokenClick={onInlineTokenClick}
+                resolveFileContentUrl={resolveFileContentUrl}
                 renderInlineDisplay={renderInlineDisplay}
                 renderToolAgent={renderToolAgent}
                 renderPanelAppCard={renderPanelAppCard}

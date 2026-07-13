@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
@@ -60,7 +66,7 @@ describe("ServerPathRoutesController", () => {
     );
 
     expect(response.status).toBe(200);
-    const payload = await response.json() as {
+    const payload = (await response.json()) as {
       ok: boolean;
       data: {
         currentPath: string;
@@ -87,7 +93,7 @@ describe("ServerPathRoutesController", () => {
     );
 
     expect(response.status).toBe(400);
-    const payload = await response.json() as {
+    const payload = (await response.json()) as {
       ok: boolean;
       error: {
         code: string;
@@ -103,7 +109,9 @@ describe("ServerPathRoutesController", () => {
 
   it("browses server directories relative to a base path", async () => {
     const app = createTestApp();
-    const root = realpathSync(createTempDir("nextclaw-ui-server-path-browse-base-"));
+    const root = realpathSync(
+      createTempDir("nextclaw-ui-server-path-browse-base-"),
+    );
     mkdirSync(join(root, "src"), { recursive: true });
     writeFileSync(join(root, "src", "index.ts"), "export const ok = true;");
 
@@ -112,7 +120,7 @@ describe("ServerPathRoutesController", () => {
     );
 
     expect(response.status).toBe(200);
-    const payload = await response.json() as {
+    const payload = (await response.json()) as {
       ok: boolean;
       data: {
         currentPath: string;
@@ -133,7 +141,9 @@ describe("ServerPathRoutesController", () => {
 
   it("reads a text file preview relative to a base path", async () => {
     const app = createTestApp();
-    const root = realpathSync(createTempDir("nextclaw-ui-server-path-read-root-"));
+    const root = realpathSync(
+      createTempDir("nextclaw-ui-server-path-read-root-"),
+    );
     mkdirSync(join(root, "notes"), { recursive: true });
     writeFileSync(join(root, "notes", "todo.md"), "# Todo\n\n- Ship it");
 
@@ -142,7 +152,7 @@ describe("ServerPathRoutesController", () => {
     );
 
     expect(response.status).toBe(200);
-    const payload = await response.json() as {
+    const payload = (await response.json()) as {
       ok: boolean;
       data: {
         kind: string;
@@ -160,7 +170,9 @@ describe("ServerPathRoutesController", () => {
 
   it("returns binary metadata for non-text files instead of forcing a text preview", async () => {
     const app = createTestApp();
-    const root = realpathSync(createTempDir("nextclaw-ui-server-path-read-binary-"));
+    const root = realpathSync(
+      createTempDir("nextclaw-ui-server-path-read-binary-"),
+    );
     const binaryPath = join(root, "asset.bin");
     writeFileSync(binaryPath, Buffer.from([0, 1, 2, 3, 4]));
 
@@ -169,7 +181,7 @@ describe("ServerPathRoutesController", () => {
     );
 
     expect(response.status).toBe(200);
-    const payload = await response.json() as {
+    const payload = (await response.json()) as {
       ok: boolean;
       data: {
         kind: string;
@@ -191,7 +203,7 @@ describe("ServerPathRoutesController", () => {
     );
 
     expect(response.status).toBe(400);
-    const payload = await response.json() as {
+    const payload = (await response.json()) as {
       ok: boolean;
       error: {
         code: string;
@@ -207,14 +219,21 @@ describe("ServerPathRoutesController", () => {
 
   it("serves a local HTML file as browser content without wrapping it as JSON", async () => {
     const app = createTestApp();
-    const root = realpathSync(createTempDir("nextclaw-ui-server-path-content-"));
+    const root = realpathSync(
+      createTempDir("nextclaw-ui-server-path-content-"),
+    );
     const htmlPath = join(root, "index.html");
-    writeFileSync(htmlPath, "<!doctype html><script>window.loaded = true;</script>");
+    writeFileSync(
+      htmlPath,
+      "<!doctype html><script>window.loaded = true;</script>",
+    );
 
     const response = await app.request(buildContentUrl(htmlPath));
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
+    expect(response.headers.get("content-type")).toBe(
+      "text/html; charset=utf-8",
+    );
     expect(response.headers.get("content-disposition")).toContain(
       "inline; filename*=UTF-8''index.html",
     );
@@ -223,7 +242,9 @@ describe("ServerPathRoutesController", () => {
 
   it("serves relative JavaScript assets through the same content route", async () => {
     const app = createTestApp();
-    const root = realpathSync(createTempDir("nextclaw-ui-server-path-content-assets-"));
+    const root = realpathSync(
+      createTempDir("nextclaw-ui-server-path-content-assets-"),
+    );
     const scriptPath = join(root, "scripts", "app.js");
     mkdirSync(join(root, "scripts"), { recursive: true });
     writeFileSync(scriptPath, "window.answer = 42;");
@@ -236,4 +257,67 @@ describe("ServerPathRoutesController", () => {
     );
     expect(await response.text()).toBe("window.answer = 42;");
   });
+
+  it("serves relative file content against an explicit base path", async () => {
+    const app = createTestApp();
+    const root = realpathSync(
+      createTempDir("nextclaw-ui-server-path-relative-content-"),
+    );
+    const imagePath = join(root, "assets", "logo.svg");
+    mkdirSync(join(root, "assets"), { recursive: true });
+    writeFileSync(
+      imagePath,
+      '<svg xmlns="http://www.w3.org/2000/svg"><circle r="4" /></svg>',
+    );
+    const query = new URLSearchParams({
+      path: "assets/logo.svg",
+      basePath: root,
+    });
+
+    const response = await app.request(
+      `http://localhost/api/server-paths/content?${query.toString()}`,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe(
+      "image/svg+xml; charset=utf-8",
+    );
+    expect(await response.text()).toContain("<circle");
+  });
+});
+
+describe("ServerPathRoutesController Office content", () => {
+  it.each([
+    [
+      "report.docx",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ],
+    [
+      "workbook.xlsx",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ],
+    ["workbook.xlsm", "application/vnd.ms-excel.sheet.macroEnabled.12"],
+    [
+      "slides.pptx",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ],
+  ])(
+    "serves %s with its Office content type",
+    async (fileName, contentType) => {
+      const app = createTestApp();
+      const root = realpathSync(
+        createTempDir("nextclaw-ui-server-path-office-"),
+      );
+      const filePath = join(root, fileName);
+      writeFileSync(filePath, Buffer.from([0x50, 0x4b, 0x03, 0x04]));
+
+      const response = await app.request(buildContentUrl(filePath));
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe(contentType);
+      expect(Buffer.from(await response.arrayBuffer())).toEqual(
+        Buffer.from([0x50, 0x4b, 0x03, 0x04]),
+      );
+    },
+  );
 });

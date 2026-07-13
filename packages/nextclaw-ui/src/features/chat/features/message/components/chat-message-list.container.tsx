@@ -25,7 +25,10 @@ import {
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
 import { ChatInlinePanelAppCard } from "@/features/chat/features/message/components/chat-inline-panel-app-card";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
+import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
+import { useNcpChatSelectedSession } from "@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state";
 import { useI18n } from "@/app/components/i18n-provider";
+import { buildServerPathContentUrl } from "@/shared/lib/api";
 import { formatDateTime, t } from "@/shared/lib/i18n";
 
 type ChatMessageListContainerProps = {
@@ -286,6 +289,15 @@ export function ChatMessageListContainer({
 }: ChatMessageListContainerProps) {
   const presenter = usePresenter();
   const { language } = useI18n();
+  const selectedSessionKey = useChatSessionListStore(
+    (state) => state.snapshot.selectedSessionKey,
+  );
+  const selectedSession = useNcpChatSelectedSession(selectedSessionKey);
+  const localFileBasePath = selectedSession?.workingDir ?? selectedSession?.projectRoot ?? null;
+  const resolveFileContentUrl = useCallback(
+    (action: { path: string }) => buildServerPathContentUrl(action.path, localFileBasePath),
+    [localFileBasePath],
+  );
   const texts = useMemo(
     () => buildChatMessageAdapterTexts(language),
     [language],
@@ -404,6 +416,7 @@ export function ChatMessageListContainer({
             onFileOpen={presenter.chatThreadManager.openFilePreview}
             onAttachmentOpen={handleAttachmentOpen}
             onInlineTokenClick={handleInlineTokenClick}
+            resolveFileContentUrl={resolveFileContentUrl}
             renderInlineDisplay={renderChatInlineDisplay}
             renderToolAgent={(agentId) => (
               <AgentIdentityAvatar

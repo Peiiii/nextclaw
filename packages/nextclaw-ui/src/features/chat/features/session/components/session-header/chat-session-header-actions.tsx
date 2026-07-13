@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { AlarmClock, Braces, FolderOpen, GitBranch, MoreVertical, Trash2 } from 'lucide-react';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
+import { Popover, PopoverTrigger } from '@/shared/components/ui/popover';
+import { ChatPopoverContent } from '@/features/chat/components/chat-popover-content';
 import { useChatSessionProject } from '@/features/chat/features/session/hooks/use-chat-session-project';
 import { ChatSessionHeaderMenuItem } from './chat-session-header-menu-item';
 import { ChatSessionMetadataDialog } from './chat-session-metadata-dialog';
@@ -85,7 +86,7 @@ export function ChatSessionHeaderActions({
             disabled={isBusy}
           />
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-56 p-2">
+        <ChatPopoverContent align="end" className="w-56 p-2">
           <div className="space-y-1">
             <ChatSessionHeaderMenuItem
               icon={FolderOpen}
@@ -116,7 +117,7 @@ export function ChatSessionHeaderActions({
               destructive
             />
           </div>
-        </PopoverContent>
+        </ChatPopoverContent>
       </Popover>
 
       <ChatSessionProjectDialog

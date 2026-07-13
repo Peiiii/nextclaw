@@ -1,0 +1,89 @@
+.workspace-docx-preview {
+  container-type: inline-size;
+}
+
+.workspace-docx-preview .docx-wrapper {
+  gap: 1rem;
+  padding: 0 !important;
+  padding-bottom: 0 !important;
+  background: transparent !important;
+}
+
+.workspace-docx-preview .docx-wrapper > section.docx {
+  margin: 0 auto 1rem !important;
+  border: 1px solid rgb(0 0 0 / 8%);
+  border-radius: 4px;
+  box-shadow: 0 4px 18px rgb(0 0 0 / 12%) !important;
+}
+
+.workspace-docx-preview--reflow .docx-wrapper > section.docx {
+  width: 100% !important;
+  min-height: auto !important;
+  padding: clamp(1.5rem, 6cqw, 3.5rem) !important;
+  overflow: visible !important;
+}
+
+.workspace-docx-preview--reflow .docx-wrapper > section.docx > article {
+  min-width: 0;
+}
+
+.workspace-docx-preview--reflow .docx p {
+  line-height: 1.6 !important;
+}
+
+.workspace-docx-preview--reflow .docx p.docx_heading1 span {
+  min-height: 0 !important;
+  font-size: clamp(1.5rem, 6cqw, 2rem) !important;
+  line-height: 1.25 !important;
+}
+
+.workspace-docx-preview--reflow .docx p.docx_heading2 span {
+  min-height: 0 !important;
+  font-size: clamp(1.125rem, 4.5cqw, 1.375rem) !important;
+  line-height: 1.35 !important;
+}
+
+.workspace-docx-preview--reflow .docx table {
+  width: 100% !important;
+  margin: 0.75rem 0 1.25rem;
+  table-layout: auto !important;
+}
+
+.workspace-docx-preview--reflow .docx col {
+  width: auto !important;
+}
+
+.workspace-docx-preview--reflow .docx table td,
+.workspace-docx-preview--reflow .docx table th {
+  padding: 0.45rem 0.55rem !important;
+  border-bottom: 1px solid rgb(0 0 0 / 9%);
+}
+
+.workspace-docx-preview--reflow .docx table tr:first-child > td,
+.workspace-docx-preview--reflow .docx table tr:first-child > th {
+  background: rgb(0 0 0 / 4%);
+  font-weight: 600;
+}
+
+.workspace-docx-preview--reflow .docx table p {
+  min-height: 0;
+  margin: 0 !important;
+}
+
+.workspace-docx-preview--reflow .workspace-docx-wide-table {
+  max-width: 100%;
+  margin: 0.75rem 0 1.25rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.workspace-docx-preview--reflow .workspace-docx-wide-table table {
+  min-width: 36rem;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.workspace-docx-preview--reflow .workspace-docx-wide-table td,
+.workspace-docx-preview--reflow .workspace-docx-wide-table th {
+  white-space: nowrap;
+}

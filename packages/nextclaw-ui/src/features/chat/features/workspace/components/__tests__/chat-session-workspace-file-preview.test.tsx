@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   ChatFileOpenActionViewModel,
   ChatFileOperationBlockViewModel,
@@ -10,6 +10,11 @@ import { t } from "@/shared/lib/i18n";
 
 const serverPathReadMock = vi.fn();
 const serverPathBrowseMock = vi.fn();
+const renderDocxMock = vi.fn();
+const readSpreadsheetMock = vi.fn();
+const sheetToJsonMock = vi.fn();
+const openPresentationMock = vi.fn();
+const destroyPresentationMock = vi.fn();
 
 type RenderWorkspaceFilePreviewOptions = {
   file?: Partial<ChatWorkspaceFileTab>;
@@ -20,6 +25,7 @@ type RenderWorkspaceFilePreviewOptions = {
 };
 
 type TextReadDataOverrides = {
+  kind?: "text" | "markdown" | "binary";
   languageHint?: string;
   resolvedPath?: string;
   text?: string;
@@ -51,6 +57,24 @@ vi.mock("@nextclaw/agent-chat-ui", () => ({
       data-layout={layout ?? "compact"}
     />
   ),
+}));
+
+vi.mock("docx-preview", () => ({
+  renderAsync: (...args: unknown[]) => renderDocxMock(...args),
+}));
+
+vi.mock("xlsx", () => ({
+  read: (...args: unknown[]) => readSpreadsheetMock(...args),
+  utils: {
+    sheet_to_json: (...args: unknown[]) => sheetToJsonMock(...args),
+  },
+}));
+
+vi.mock("@aiden0z/pptx-renderer", () => ({
+  PptxViewer: {
+    open: (...args: unknown[]) => openPresentationMock(...args),
+  },
+  RECOMMENDED_ZIP_LIMITS: { maxEntries: 4_000 },
 }));
 
 function buildWorkspaceFile(
@@ -100,73 +124,102 @@ function renderWorkspaceFilePreview({
 }
 
 function mockWorkspaceBreadcrumbBrowseTree() {
-  serverPathBrowseMock.mockImplementation(({ path }: { path?: string | null }) => {
-    if (path === "/tmp/workspace/src/components") {
+  serverPathBrowseMock.mockImplementation(
+    ({ path }: { path?: string | null }) => {
+      if (path === "/tmp/workspace/src/components") {
+        return {
+          isLoading: false,
+          error: null,
+          data: {
+            currentPath: "/tmp/workspace/src/components",
+            parentPath: "/tmp/workspace/src",
+            homePath: "/Users/demo",
+            breadcrumbs: [
+              { label: "workspace", path: "/tmp/workspace" },
+              { label: "src", path: "/tmp/workspace/src" },
+              { label: "components", path: "/tmp/workspace/src/components" },
+            ],
+            entries: [
+              {
+                name: "button.tsx",
+                path: "/tmp/workspace/src/components/button.tsx",
+                kind: "file",
+                hidden: false,
+              },
+            ],
+          },
+        };
+      }
+
+      if (path === "/tmp/workspace/src") {
+        return {
+          isLoading: false,
+          error: null,
+          data: {
+            currentPath: "/tmp/workspace/src",
+            parentPath: "/tmp/workspace",
+            homePath: "/Users/demo",
+            breadcrumbs: [
+              { label: "workspace", path: "/tmp/workspace" },
+              { label: "src", path: "/tmp/workspace/src" },
+            ],
+            entries: [
+              {
+                name: "components",
+                path: "/tmp/workspace/src/components",
+                kind: "directory",
+                hidden: false,
+              },
+              {
+                name: "index.ts",
+                path: "/tmp/workspace/src/index.ts",
+                kind: "file",
+                hidden: false,
+              },
+            ],
+          },
+        };
+      }
+
       return {
         isLoading: false,
-        error: null,
-        data: {
-          currentPath: "/tmp/workspace/src/components",
-          parentPath: "/tmp/workspace/src",
-          homePath: "/Users/demo",
-          breadcrumbs: [
-            { label: "workspace", path: "/tmp/workspace" },
-            { label: "src", path: "/tmp/workspace/src" },
-            { label: "components", path: "/tmp/workspace/src/components" },
-          ],
-          entries: [
-            {
-              name: "button.tsx",
-              path: "/tmp/workspace/src/components/button.tsx",
-              kind: "file",
-              hidden: false,
-            },
-          ],
-        },
+        error: new Error("server path must point to a directory"),
+        data: null,
       };
-    }
-
-    if (path === "/tmp/workspace/src") {
-      return {
-        isLoading: false,
-        error: null,
-        data: {
-          currentPath: "/tmp/workspace/src",
-          parentPath: "/tmp/workspace",
-          homePath: "/Users/demo",
-          breadcrumbs: [
-            { label: "workspace", path: "/tmp/workspace" },
-            { label: "src", path: "/tmp/workspace/src" },
-          ],
-          entries: [
-            {
-              name: "components",
-              path: "/tmp/workspace/src/components",
-              kind: "directory",
-              hidden: false,
-            },
-            {
-              name: "index.ts",
-              path: "/tmp/workspace/src/index.ts",
-              kind: "file",
-              hidden: false,
-            },
-          ],
-        },
-      };
-    }
-
-    return {
-      isLoading: false,
-      error: new Error("server path must point to a directory"),
-      data: null,
-    };
-  });
+    },
+  );
 }
 
 beforeEach(() => {
   serverPathReadMock.mockReset();
   serverPathBrowseMock.mockReset();
+  renderDocxMock.mockReset();
+  renderDocxMock.mockResolvedValue(undefined);
+  readSpreadsheetMock.mockReset();
+  readSpreadsheetMock.mockReturnValue({
+    SheetNames: ["Summary", "Details"],
+    Sheets: { Summary: { name: "Summary" }, Details: { name: "Details" } },
+  });
+  sheetToJsonMock.mockReset();
+  sheetToJsonMock.mockImplementation((sheet: { name: string }) =>
+    sheet.name === "Summary"
+      ? [
+          ["City", "Temperature"],
+          ["Hangzhou", "32 C"],
+        ]
+      : [["Status"], ["Sunny"]],
+  );
+  openPresentationMock.mockReset();
+  destroyPresentationMock.mockReset();
+  openPresentationMock.mockResolvedValue({ destroy: destroyPresentationMock });
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValue(
+        new Response(new Uint8Array([1, 2, 3]), { status: 200 }),
+      ),
+  );
   serverPathReadMock.mockReturnValue({
     isLoading: false,
     error: null,
@@ -177,6 +230,10 @@ beforeEach(() => {
     error: new Error("server path must point to a directory"),
     data: null,
   });
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe("ChatSessionWorkspaceFilePreview rendering", () => {
@@ -205,25 +262,216 @@ describe("ChatSessionWorkspaceFilePreview rendering", () => {
     expect(image.getAttribute("alt")).toBe("photo.png");
   });
 
-  it("offers download and system open actions for unsupported office attachments", () => {
+  it("renders local SVG files through the automatic server-content viewer", () => {
+    mockTextRead({
+      resolvedPath: "/tmp/project/diagram.svg",
+      text: '<svg xmlns="http://www.w3.org/2000/svg" />',
+    });
+    renderWorkspaceFilePreview({
+      file: {
+        path: "/tmp/project/diagram.svg",
+        label: "diagram.svg",
+        previewViewer: "auto",
+      },
+    });
+
+    const image = screen.getByTestId("workspace-content-image");
+    expect(image.getAttribute("src")).toContain(
+      "/api/server-paths/content?path=%2Ftmp%2Fproject%2Fdiagram.svg",
+    );
+    expect(screen.queryByTestId("file-code-surface")).toBeNull();
+  });
+
+  it("renders SVG source when source viewer is explicitly requested", () => {
+    mockTextRead({
+      resolvedPath: "/tmp/project/diagram.svg",
+      text: '<svg xmlns="http://www.w3.org/2000/svg" />',
+    });
+    renderWorkspaceFilePreview({
+      file: {
+        path: "/tmp/project/diagram.svg",
+        label: "diagram.svg",
+        previewViewer: "source",
+      },
+    });
+
+    expect(screen.queryByTestId("workspace-content-image")).toBeNull();
+    expect(screen.getByTestId("file-code-surface")).toBeTruthy();
+  });
+});
+
+describe("ChatSessionWorkspaceFilePreview Office rendering", () => {
+  it("renders DOCX attachments inside the workspace preview", async () => {
+    renderDocxMock.mockImplementationOnce(
+      async (_data: ArrayBuffer, bodyContainer: HTMLDivElement) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "docx-wrapper";
+        const page = document.createElement("section");
+        page.className = "docx";
+        const table = document.createElement("table");
+        const colgroup = document.createElement("colgroup");
+        for (let index = 0; index < 6; index += 1) {
+          colgroup.append(document.createElement("col"));
+        }
+        table.append(colgroup);
+        page.append(table);
+        wrapper.append(page);
+        bodyContainer.append(wrapper);
+      },
+    );
     renderWorkspaceFilePreview({
       file: {
         key: "attachment-docx",
         path: "overview.zh-CN.docx",
         label: "overview.zh-CN.docx",
         viewMode: "preview",
-        contentUrl: "/api/ncp/assets/content?uri=asset%3A%2F%2Fstore%2Foverview",
+        contentUrl:
+          "/api/ncp/assets/content?uri=asset%3A%2F%2Fstore%2Foverview",
         mimeType:
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       },
     });
 
-    expect(screen.getByTestId("workspace-content-unsupported")).toBeTruthy();
+    expect(screen.getByTestId("workspace-content-docx")).toBeTruthy();
+    await waitFor(() => expect(renderDocxMock).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getByTestId("workspace-content-docx").className).toContain(
+        "workspace-docx-preview--reflow",
+      ),
+    );
     expect(
-      screen.getByTestId("workspace-content-unsupported").textContent,
-    ).toContain("overview.zh-CN.docx");
+      screen
+        .getByTestId("workspace-content-docx")
+        .querySelector(".workspace-docx-wide-table > table"),
+    ).toBeTruthy();
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/ncp/assets/content?uri=asset%3A%2F%2Fstore%2Foverview",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+    expect(screen.queryByTestId("workspace-content-unsupported")).toBeNull();
+  });
+
+  it("renders a relative local DOCX before binary metadata finishes loading", async () => {
+    mockTextRead({
+      kind: "binary",
+      resolvedPath: "/tmp/report.docx",
+      text: undefined,
+    });
+    renderWorkspaceFilePreview({
+      file: {
+        path: "report.docx",
+        label: "report.docx",
+        previewViewer: "auto",
+      },
+      sessionWorkingDir: "/tmp",
+    });
+
+    expect(screen.getByTestId("workspace-content-docx")).toBeTruthy();
+    await waitFor(() => expect(renderDocxMock).toHaveBeenCalled());
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("path=report.docx&basePath=%2Ftmp"),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+    expect(screen.queryByText(t("chatWorkspacePreviewUnsupported"))).toBeNull();
+  });
+
+  it("preserves DOCX page geometry when the document defines it", async () => {
+    renderDocxMock.mockImplementationOnce(
+      async (_data: ArrayBuffer, bodyContainer: HTMLDivElement) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "docx-wrapper";
+        const page = document.createElement("section");
+        page.className = "docx";
+        page.style.width = "612pt";
+        page.style.padding = "72pt";
+        wrapper.append(page);
+        bodyContainer.append(wrapper);
+      },
+    );
+    renderWorkspaceFilePreview({
+      file: {
+        key: "attachment-docx-with-page-layout",
+        path: "page-layout.docx",
+        label: "page-layout.docx",
+        viewMode: "preview",
+        contentUrl:
+          "/api/ncp/assets/content?uri=asset%3A%2F%2Fstore%2Fpage-layout",
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      },
+    });
+
+    await waitFor(() => expect(renderDocxMock).toHaveBeenCalled());
+    expect(
+      screen.getByTestId("workspace-content-docx").className,
+    ).not.toContain("workspace-docx-preview--reflow");
+  });
+
+  it("renders Excel workbooks with sheet navigation", async () => {
+    renderWorkspaceFilePreview({
+      file: {
+        key: "attachment-xlsx",
+        path: "overview.xlsx",
+        label: "overview.xlsx",
+        viewMode: "preview",
+        contentUrl:
+          "/api/ncp/assets/content?uri=asset%3A%2F%2Fstore%2Foverview",
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      },
+    });
+
+    expect(screen.getByTestId("workspace-content-spreadsheet")).toBeTruthy();
+    await waitFor(() => expect(readSpreadsheetMock).toHaveBeenCalled());
+    expect(screen.getByText("Summary")).toBeTruthy();
+    expect(screen.getByText("Details")).toBeTruthy();
+    expect(screen.getByText("Hangzhou")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Details" }));
+    expect(screen.getByText("Sunny")).toBeTruthy();
+  });
+
+  it("renders PowerPoint presentations in the workspace", async () => {
+    renderWorkspaceFilePreview({
+      file: {
+        key: "attachment-pptx",
+        path: "overview.pptx",
+        label: "overview.pptx",
+        viewMode: "preview",
+        contentUrl: "/api/ncp/assets/content?uri=asset%3A%2F%2Fstore%2Fslides",
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      },
+    });
+
+    expect(screen.getByTestId("workspace-content-presentation")).toBeTruthy();
+    await waitFor(() => expect(openPresentationMock).toHaveBeenCalled());
+    expect(openPresentationMock).toHaveBeenCalledWith(
+      expect.any(ArrayBuffer),
+      expect.any(HTMLElement),
+      expect.objectContaining({
+        lazySlides: true,
+        lazyMedia: true,
+        pdfjs: false,
+        zipLimits: { maxEntries: 4_000 },
+      }),
+    );
+  });
+
+  it("offers download and system open actions for legacy PowerPoint attachments", () => {
+    renderWorkspaceFilePreview({
+      file: {
+        key: "attachment-ppt",
+        path: "overview.ppt",
+        label: "overview.ppt",
+        viewMode: "preview",
+        contentUrl:
+          "/api/ncp/assets/content?uri=asset%3A%2F%2Fstore%2Foverview",
+        mimeType: "application/vnd.ms-powerpoint",
+      },
+    });
+
+    expect(screen.getByTestId("workspace-content-unsupported")).toBeTruthy();
     expect(screen.getByText(t("chatWorkspacePreviewUnsupported"))).toBeTruthy();
-    expect(screen.getByText(t("chatWorkspacePreviewUnsupportedHint"))).toBeTruthy();
 
     const download = screen.getByRole("link", {
       name: t("chatWorkspacePreviewDownload"),
@@ -231,7 +479,7 @@ describe("ChatSessionWorkspaceFilePreview rendering", () => {
     expect(download.getAttribute("href")).toBe(
       "/api/ncp/assets/content?uri=asset%3A%2F%2Fstore%2Foverview",
     );
-    expect(download.getAttribute("download")).toBe("overview.zh-CN.docx");
+    expect(download.getAttribute("download")).toBe("overview.ppt");
 
     const openExternally = screen.getByRole("link", {
       name: t("chatWorkspacePreviewOpenExternally"),
@@ -241,14 +489,16 @@ describe("ChatSessionWorkspaceFilePreview rendering", () => {
     );
     expect(openExternally.getAttribute("target")).toBe("_blank");
   });
+});
 
+describe("ChatSessionWorkspaceFilePreview text rendering", () => {
   it("renders preview files inside a full-height workspace code surface", () => {
     mockTextRead();
     renderWorkspaceFilePreview();
 
-    expect(screen.getByTestId("file-code-surface").getAttribute("data-layout")).toBe(
-      "workspace",
-    );
+    expect(
+      screen.getByTestId("file-code-surface").getAttribute("data-layout"),
+    ).toBe("workspace");
   });
 
   it("passes server language hints to the workspace code surface", () => {
@@ -262,7 +512,9 @@ describe("ChatSessionWorkspaceFilePreview rendering", () => {
     });
 
     expect(
-      screen.getByTestId("file-code-surface").getAttribute("data-language-hint"),
+      screen
+        .getByTestId("file-code-surface")
+        .getAttribute("data-language-hint"),
     ).toBe("js");
   });
 
@@ -301,7 +553,7 @@ describe("ChatSessionWorkspaceFilePreview rendering", () => {
     expect(frame.getAttribute("sandbox")).toBeNull();
     expect(frame.getAttribute("srcdoc")).toBeNull();
     expect(frame.getAttribute("src")).toContain(
-      "/api/server-paths/content/__abs__/tmp/example.html",
+      "/api/server-paths/content?path=%2Ftmp%2Fexample.html",
     );
     expect(screen.queryByTestId("file-code-surface")).toBeNull();
   });
@@ -321,9 +573,9 @@ describe("ChatSessionWorkspaceFilePreview rendering", () => {
       refreshVersion: 3,
     });
 
-    expect(screen.getByTestId("workspace-html-preview").getAttribute("src")).toContain(
-      "refresh=3",
-    );
+    expect(
+      screen.getByTestId("workspace-html-preview").getAttribute("src"),
+    ).toContain("refresh=3");
   });
 
   it("keeps HTML files in the source preview when source is requested", () => {
@@ -374,9 +626,9 @@ describe("ChatSessionWorkspaceFilePreview rendering", () => {
       },
     });
 
-    expect(screen.getByTestId("file-code-surface").getAttribute("data-layout")).toBe(
-      "workspace",
-    );
+    expect(
+      screen.getByTestId("file-code-surface").getAttribute("data-layout"),
+    ).toBe("workspace");
   });
 
   it("does not repeat the preview badge inside the workspace header", () => {
@@ -477,9 +729,9 @@ describe("ChatSessionWorkspaceFilePreview breadcrumbs", () => {
     expect(
       screen.getByTestId("workspace-file-breadcrumb-scroll").className,
     ).toContain("py-1.5");
-    expect(screen.getByTestId("workspace-file-breadcrumbs").className).toContain(
-      "workspace-horizontal-scrollbar",
-    );
+    expect(
+      screen.getByTestId("workspace-file-breadcrumbs").className,
+    ).toContain("workspace-horizontal-scrollbar");
   });
 
   it("browses from a breadcrumb segment and opens selected files", () => {
@@ -521,18 +773,18 @@ describe("ChatSessionWorkspaceFilePreview breadcrumbs", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "src" }));
 
-    expect(screen.getByTestId("workspace-breadcrumb-popover").className).toContain(
-      "w-[22rem]",
-    );
-    expect(screen.getByTestId("workspace-breadcrumb-browser").className).toContain(
-      "max-h-72",
-    );
-    expect(screen.getAllByRole("button", { name: "workspace" }).at(-1)?.className).toContain(
-      "h-5",
-    );
-    expect(screen.getByRole("button", { name: "components" }).className).toContain(
-      "h-6",
-    );
+    expect(
+      screen.getByTestId("workspace-breadcrumb-popover").className,
+    ).toContain("w-[22rem]");
+    expect(
+      screen.getByTestId("workspace-breadcrumb-browser").className,
+    ).toContain("max-h-72");
+    expect(
+      screen.getAllByRole("button", { name: "workspace" }).at(-1)?.className,
+    ).toContain("h-5");
+    expect(
+      screen.getByRole("button", { name: "components" }).className,
+    ).toContain("h-6");
   });
 
   it("keeps line and truncation metadata without the duplicated type badge", () => {

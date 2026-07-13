@@ -17,86 +17,23 @@ import {
   isChatInlineDisplayLanguage,
   parseChatInlineDisplayDirective,
 } from "./utils/chat-inline-display.utils";
+import {
+  isExternalChatResourceHref,
+  parseChatLocalFileAction,
+  resolveSafeChatResourceHref,
+} from "./utils/chat-local-resource.utils";
 
 const MARKDOWN_MAX_CHARS = 140_000;
-const SAFE_LINK_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
 const INLINE_TOKEN_KIND_ATTR = "data-chat-inline-token-kind";
 const INLINE_TOKEN_KEY_ATTR = "data-chat-inline-token-key";
 const INLINE_TOKEN_LABEL_ATTR = "data-chat-inline-token-label";
 const INLINE_TOKEN_RAW_TEXT_ATTR = "data-chat-inline-token-raw-text";
-const PROJECT_RELATIVE_FILE_EXTENSION_PATTERN =
-  "cjs|css|cts|html?|js|json|jsx|mdx?|mjs|mts|tsx?|txt|ya?ml";
-const PROJECT_RELATIVE_FILE_HREF_PATTERN = new RegExp(
-  `^(?![a-zA-Z][a-zA-Z\\d+.-]*:)(?!//)(?:(?:[^/\\s?#]+/)+[^?#\\s]+\\.[A-Za-z0-9_-]+|[^/\\s?#]+\\.(?:${PROJECT_RELATIVE_FILE_EXTENSION_PATTERN}))(?::\\d+(?::\\d+)?)?(?:[?#].*)?$`,
-  "i",
-);
 
 function trimMarkdown(value: string): string {
   if (value.length <= MARKDOWN_MAX_CHARS) {
     return value;
   }
   return `${value.slice(0, MARKDOWN_MAX_CHARS)}\n\n...`;
-}
-
-function resolveSafeHref(href?: string): string | null {
-  if (!href) {
-    return null;
-  }
-  if (
-    href.startsWith("#") ||
-    href.startsWith("/") ||
-    href.startsWith("./") ||
-    href.startsWith("../") ||
-    PROJECT_RELATIVE_FILE_HREF_PATTERN.test(href)
-  ) {
-    return href;
-  }
-  try {
-    const url = new URL(href);
-    return SAFE_LINK_PROTOCOLS.has(url.protocol) ? href : null;
-  } catch {
-    return null;
-  }
-}
-
-function isExternalHref(href: string): boolean {
-  return /^https?:\/\//i.test(href);
-}
-
-function looksLikeLocalFileHref(href: string): boolean {
-  return (
-    href.startsWith("./") ||
-    href.startsWith("../") ||
-    href.startsWith("/Users/") ||
-    href.startsWith("/home/") ||
-    href.startsWith("/tmp/") ||
-    href.startsWith("/var/") ||
-    PROJECT_RELATIVE_FILE_HREF_PATTERN.test(href) ||
-    /^\/.+\.[A-Za-z0-9_-]+(?::\d+(?::\d+)?)?$/.test(href)
-  );
-}
-
-function parseLocalFileAction(
-  href: string,
-): ChatFileOpenActionViewModel | null {
-  const viewer = new URLSearchParams(href.split("#")[0]?.split("?")[1] ?? "").get("viewer");
-  const normalizedHref = href.split("#")[0]?.split("?")[0] ?? href;
-  const decodedHref = decodeURIComponent(normalizedHref);
-  if (!looksLikeLocalFileHref(decodedHref)) {
-    return null;
-  }
-  const lineMatch = /^(.*?)(?::(\d+)(?::(\d+))?)$/.exec(decodedHref);
-  const rawPath = lineMatch?.[1] ?? decodedHref;
-  const line = lineMatch?.[2] ? Number(lineMatch[2]) : undefined;
-  const column = lineMatch?.[3] ? Number(lineMatch[3]) : undefined;
-  return {
-    path: rawPath,
-    label: rawPath.split("/").filter(Boolean).pop() ?? rawPath,
-    viewMode: "preview",
-    ...(viewer === "source" || viewer === "rendered" ? { previewViewer: viewer } : {}),
-    ...(typeof line === "number" ? { line } : {}),
-    ...(typeof column === "number" ? { column } : {}),
-  };
 }
 
 type ChatMessageMarkdownProps = {
@@ -106,6 +43,9 @@ type ChatMessageMarkdownProps = {
   inline?: boolean;
   inlineTokens?: readonly ChatInlineTokenViewModel[];
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  resolveFileContentUrl?: (
+    action: ChatFileOpenActionViewModel,
+  ) => string | null;
   onInlineTokenClick?: (token: ChatInlineTokenViewModel) => void;
   renderInlineDisplay?: (
     display: ChatInlineDisplayViewModel,
@@ -138,7 +78,9 @@ function prepareInlineTokens(
     seenRawTexts.add(token.rawText);
     tokens.push(token);
   }
-  return tokens.sort((left, right) => right.rawText.length - left.rawText.length);
+  return tokens.sort(
+    (left, right) => right.rawText.length - left.rawText.length,
+  );
 }
 
 function createInlineTokenNode(token: ChatInlineTokenViewModel): MarkdownNode {
@@ -234,7 +176,10 @@ function createRemarkInlineTokenPlugin(
   };
 }
 
-function readStringProp(props: Record<string, unknown>, key: string): string | null {
+function readStringProp(
+  props: Record<string, unknown>,
+  key: string,
+): string | null {
   const value = props[key];
   return typeof value === "string" && value.length > 0 ? value : null;
 }
@@ -247,6 +192,7 @@ export function ChatMessageMarkdown({
   inlineTokens,
   onFileOpen,
   onInlineTokenClick,
+  resolveFileContentUrl,
   renderInlineDisplay,
 }: ChatMessageMarkdownProps) {
   const isUser = role === "user";
@@ -283,15 +229,20 @@ export function ChatMessageMarkdown({
         return <span {...rest}>{children}</span>;
       },
       a: ({ node: _node, href, children, ...rest }) => {
-        const safeHref = resolveSafeHref(href);
-        if (!safeHref) {
-          return <span className="chat-link-invalid">{children}</span>;
-        }
-        const external = isExternalHref(safeHref);
+        const safeHref = resolveSafeChatResourceHref(href);
+        const external = safeHref
+          ? isExternalChatResourceHref(safeHref)
+          : false;
         const localFileAction = external
           ? null
-          : parseLocalFileAction(safeHref);
+          : safeHref
+            ? parseChatLocalFileAction(safeHref)
+            : null;
         const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+          if (!safeHref) {
+            event.preventDefault();
+            return;
+          }
           if (!onFileOpen || !localFileAction) {
             return;
           }
@@ -311,7 +262,9 @@ export function ChatMessageMarkdown({
         return (
           <a
             {...rest}
-            href={safeHref}
+            className={cn(rest.className, !safeHref && "chat-link-invalid")}
+            href={safeHref ?? "#"}
+            aria-disabled={!safeHref || undefined}
             onClick={handleClick}
             target={external ? "_blank" : undefined}
             rel={external ? "noreferrer noopener" : undefined}
@@ -341,14 +294,22 @@ export function ChatMessageMarkdown({
         );
       },
       img: ({ node: _node, src, alt, ...rest }) => {
-        const safeSrc = resolveSafeHref(src);
+        const safeSrc = resolveSafeChatResourceHref(src);
         if (!safeSrc) {
+          return null;
+        }
+        const localFileAction = parseChatLocalFileAction(safeSrc);
+        const resolvedSrc =
+          localFileAction && resolveFileContentUrl
+            ? resolveFileContentUrl(localFileAction)
+            : safeSrc;
+        if (!resolvedSrc) {
           return null;
         }
         return (
           <img
             {...rest}
-            src={safeSrc}
+            src={resolvedSrc}
             alt={alt || ""}
             loading="lazy"
             decoding="async"
@@ -383,7 +344,15 @@ export function ChatMessageMarkdown({
         );
       },
     }),
-    [inline, isUser, onFileOpen, onInlineTokenClick, renderInlineDisplay, texts],
+    [
+      inline,
+      isUser,
+      onFileOpen,
+      onInlineTokenClick,
+      renderInlineDisplay,
+      resolveFileContentUrl,
+      texts,
+    ],
   );
 
   const WrapperTag = inline ? "span" : "div";
