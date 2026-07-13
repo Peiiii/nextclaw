@@ -140,8 +140,6 @@ export type ChatSkillPickerProps = {
 };
 
 export type ChatInputBarActionsProps = {
-  sendError?: string | null;
-  sendErrorDetailsLabel?: string;
   isSending: boolean;
   canStopGeneration: boolean;
   sendDisabled: boolean;
@@ -197,6 +195,8 @@ export type ChatSlashMenuProps = Omit<
 export type ChatInputBarProps = {
   surface?: 'default' | 'embedded';
   topSlot?: ReactNode;
+  sendError?: string | null;
+  sendErrorDetailsLabel?: string;
   composer: {
     nodes: ChatComposerNode[];
     placeholder: string;

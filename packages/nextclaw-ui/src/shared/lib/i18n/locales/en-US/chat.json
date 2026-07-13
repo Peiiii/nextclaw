@@ -239,6 +239,7 @@
   "chatSessionProjectCleared": "Project directory cleared",
   "chatSessionErrorTitle": "Something went wrong",
   "chatSendFailed": "Failed to send message",
+  "chatErrorDetails": "Details",
   "chatRoleUser": "You",
   "chatRoleAssistant": "Assistant",
   "chatRoleTool": "Tool",

@@ -790,8 +790,8 @@ it('lets the toolbar wrap instead of forcing the model select to squeeze the sen
 
   const modelTrigger = screen.getByRole('combobox');
   expect(document.querySelector('.nextclaw-chat-input-bar-shell')).toBeTruthy();
-  expect(modelTrigger.className).toContain('basis-[12rem]');
-  expect(modelTrigger.className).toContain('max-w-full');
+  expect(modelTrigger.className).toContain('min-w-0');
+  expect(modelTrigger.className).toContain('max-w-[18rem]');
   expect(modelTrigger.className).toContain('nextclaw-chat-toolbar-select-trigger');
   expect(screen.getByText('DeepSeek/deepseek-v3.2-super-long-model-name').className).toContain(
     'nextclaw-chat-toolbar-label',
@@ -829,14 +829,13 @@ it('collapses long send errors and reveals the full text in a details popover', 
     'NotFoundError [HTTP 404]\nProvider: custom Model: MiniMax-M2.7\nEndpoint: https://dashscope.aliyuncs.com/compatible-mode/v1\nThis model does not exist or you do not have access to it.';
 
   renderInputBar({
-    toolbar: {
-      actions: {
-        sendError: longError,
-        sendErrorDetailsLabel: 'View details',
-      }
-    }
+    sendError: longError,
+    sendErrorDetailsLabel: 'View details',
   });
 
+  const sendErrorStatus = screen.getByRole('status');
+  const sendButton = screen.getByRole('button', { name: 'Send' });
+  expect(sendErrorStatus.compareDocumentPosition(sendButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(screen.getByText(/NotFoundError \[HTTP 404\]/)).toBeTruthy();
   expect(
     screen.queryByText(/Endpoint: https:\/\/dashscope\.aliyuncs\.com\/compatible-mode\/v1/)
@@ -856,16 +855,14 @@ it('reveals the original send error on hover even when the summary stays on one 
     'timeout while contacting upstream\nrequest_id=req-123\nprovider=narp-stdio';
 
   renderInputBar({
-    toolbar: {
-      actions: {
-        sendError: hoverError,
-        sendErrorDetailsLabel: 'View details',
-      }
-    }
+    sendError: hoverError,
+    sendErrorDetailsLabel: 'View details',
   });
 
   expect(screen.getByRole('button', { name: 'View details' })).toBeTruthy();
-  expect((document.querySelector('span[title]') as HTMLElement | null)?.getAttribute('title')).toBe(hoverError);
+  expect(
+    screen.getByRole('status').querySelector('span[title]')?.getAttribute('title')
+  ).toBe(hoverError);
 });
 
 it('renders a subtle context window indicator without persistent percent text', () => {

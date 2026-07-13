@@ -394,6 +394,8 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
       <ChatInputBar
         ref={inputBarRef}
         surface={surface}
+        sendError={inputSnapshot.sendError}
+        sendErrorDetailsLabel={t('chatErrorDetails', language)}
         topSlot={controller.queuedInputs.length > 0
           ? <SessionQueuedInputRows controller={controller} />
           : null}
@@ -431,7 +433,6 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
           ],
           skillPicker,
           actions: {
-            sendError: inputSnapshot.sendError,
             isSending: controller.isSending,
             canStopGeneration: controller.canStopGeneration,
             sendDisabled: controller.sendDisabled,

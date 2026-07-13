@@ -239,6 +239,7 @@
   "chatSessionProjectCleared": "项目目录已清除",
   "chatSessionErrorTitle": "出错了",
   "chatSendFailed": "发送消息失败",
+  "chatErrorDetails": "查看详情",
   "chatRoleUser": "你",
   "chatRoleAssistant": "助手",
   "chatRoleTool": "工具",
