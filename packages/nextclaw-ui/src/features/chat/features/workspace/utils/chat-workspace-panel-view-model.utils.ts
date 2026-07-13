@@ -6,6 +6,11 @@ import type {
   ChatWorkspaceSideChatDraft,
 } from "@/features/chat/stores/chat-thread.store";
 import { t } from "@/shared/lib/i18n";
+import {
+  resolveAlternateWorkspaceFileViewer,
+  resolveWorkspaceFileViewer,
+  type ChatWorkspaceFileViewer,
+} from "@/features/chat/features/workspace/utils/chat-workspace-file-viewer.utils";
 
 export type WorkspaceSelection =
   | {
@@ -40,8 +45,15 @@ export type WorkspaceTabViewModel = {
   tooltip: string;
   active: boolean;
   agentId?: string | null;
+  fileName?: string | null;
   showUnreadDot?: boolean;
   viewMode?: "preview" | "diff";
+  isRenderedPreview?: boolean;
+  alternateViewerAction?: {
+    label: string;
+    viewer: ChatWorkspaceFileViewer;
+    onSelect: () => void;
+  } | null;
   onSelect: () => void;
   onClose?: () => void;
 };
@@ -147,6 +159,7 @@ export function buildWorkspaceTabsViewModel(params: {
   optimisticReadAtBySessionKey: Record<string, string>;
   onSelectSession: (sessionKey: string) => void;
   onSelectFile: (fileKey: string) => void;
+  onOpenFileViewer: (fileKey: string, viewer: ChatWorkspaceFileViewer) => void;
   onCloseFile: (fileKey: string) => void;
   onSelectOverview: () => void;
   onSelectChildSessions: () => void;
@@ -161,6 +174,7 @@ export function buildWorkspaceTabsViewModel(params: {
     optimisticReadAtBySessionKey,
     onSelectSession,
     onSelectFile,
+    onOpenFileViewer,
     onCloseFile,
     onSelectOverview,
     onSelectChildSessions,
@@ -248,17 +262,39 @@ export function buildWorkspaceTabsViewModel(params: {
     };
   });
 
-  const fileTabs = workspaceFileTabs.map((file) => ({
-    key: `file:${file.key}`,
-    kind: "file" as const,
-    title: readWorkspaceFileTitle(file),
-    tooltip: file.path,
-    viewMode: file.viewMode,
-    active:
-      activeSelection?.kind === "file" && activeSelection.file.key === file.key,
-    onSelect: () => onSelectFile(file.key),
-    onClose: () => onCloseFile(file.key),
-  }));
+  const fileTabs = workspaceFileTabs.map((file) => {
+    const viewer = file.viewMode === "preview"
+      ? resolveWorkspaceFileViewer(file.path, file.previewViewer)
+      : null;
+    const alternateViewer = file.viewMode === "preview"
+      ? resolveAlternateWorkspaceFileViewer(file.path, file.previewViewer)
+      : null;
+    const fileTitle = readWorkspaceFileTitle(file);
+    return {
+      key: `file:${file.key}`,
+      kind: "file" as const,
+      title: viewer === "rendered"
+        ? `${t("chatWorkspacePreview")}: ${fileTitle}`
+        : fileTitle,
+      tooltip: file.path,
+      fileName: file.path,
+      viewMode: file.viewMode,
+      isRenderedPreview: viewer === "rendered",
+      alternateViewerAction: alternateViewer
+        ? {
+            label: alternateViewer === "rendered"
+              ? t("chatWorkspaceOpenPreview")
+              : t("chatWorkspaceOpenSource"),
+            viewer: alternateViewer,
+            onSelect: () => onOpenFileViewer(file.key, alternateViewer),
+          }
+        : null,
+      active:
+        activeSelection?.kind === "file" && activeSelection.file.key === file.key,
+      onSelect: () => onSelectFile(file.key),
+      onClose: () => onCloseFile(file.key),
+    };
+  });
 
   return [
     ...workspacePages,

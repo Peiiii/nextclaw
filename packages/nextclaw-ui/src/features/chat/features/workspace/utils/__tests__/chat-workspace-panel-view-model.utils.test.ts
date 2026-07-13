@@ -4,6 +4,7 @@ import {
   buildWorkspaceTabsViewModel,
   resolveWorkspaceSelection,
 } from "@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils";
+import { t } from "@/shared/lib/i18n";
 
 function createChildTab(
   overrides: Partial<ResolvedChildSessionTab> = {},
@@ -119,6 +120,7 @@ describe("buildWorkspaceTabsViewModel", () => {
       optimisticReadAtBySessionKey: {},
       onSelectSession,
       onSelectFile: vi.fn(),
+      onOpenFileViewer: vi.fn(),
       onCloseFile: vi.fn(),
       onSelectOverview: vi.fn(),
       onSelectChildSessions: vi.fn(),
@@ -156,6 +158,7 @@ describe("buildWorkspaceTabsViewModel", () => {
       optimisticReadAtBySessionKey: {},
       onSelectSession: vi.fn(),
       onSelectFile: vi.fn(),
+      onOpenFileViewer: vi.fn(),
       onCloseFile: vi.fn(),
       onSelectOverview: vi.fn(),
       onSelectChildSessions: vi.fn(),
@@ -195,6 +198,7 @@ describe("buildWorkspaceTabsViewModel", () => {
       previewViewer: "source" as const,
     };
 
+    const onOpenFileViewer = vi.fn();
     const tabs = buildWorkspaceTabsViewModel({
       resolvedChildTabs: [],
       activeSideChatDraft: null,
@@ -206,6 +210,7 @@ describe("buildWorkspaceTabsViewModel", () => {
       optimisticReadAtBySessionKey: {},
       onSelectSession: vi.fn(),
       onSelectFile: vi.fn(),
+      onOpenFileViewer,
       onCloseFile: vi.fn(),
       onSelectOverview: vi.fn(),
       onSelectChildSessions: vi.fn(),
@@ -217,11 +222,29 @@ describe("buildWorkspaceTabsViewModel", () => {
       expect.objectContaining({
         key: "file:parent::preview::demo.html",
         active: true,
+        fileName: "demo.html",
+        title: "demo.html",
+        isRenderedPreview: false,
+        alternateViewerAction: expect.objectContaining({
+          label: t("chatWorkspaceOpenPreview"),
+          viewer: "rendered",
+        }),
       }),
       expect.objectContaining({
         key: "file:parent::preview:rendered::demo.html",
         active: false,
+        title: `${t("chatWorkspacePreview")}: demo.html`,
+        isRenderedPreview: true,
+        alternateViewerAction: expect.objectContaining({
+          label: t("chatWorkspaceOpenSource"),
+          viewer: "source",
+        }),
       }),
     ]);
+    tabs[4]?.alternateViewerAction?.onSelect();
+    expect(onOpenFileViewer).toHaveBeenCalledWith(
+      "parent::preview::demo.html",
+      "rendered",
+    );
   });
 });

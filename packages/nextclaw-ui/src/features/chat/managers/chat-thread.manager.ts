@@ -34,6 +34,14 @@ import {
   pushNavigationHistoryEntry,
   stepNavigationHistory,
 } from '@/shared/lib/navigation-history';
+import {
+  resolveAlternateWorkspaceFileViewer,
+  type ChatWorkspaceFileViewer,
+} from '@/features/chat/features/workspace/utils/chat-workspace-file-viewer.utils';
+import {
+  createWorkspaceFileTab,
+  upsertWorkspaceFileTab,
+} from '@/features/chat/features/workspace/utils/chat-workspace-file-tab.utils';
 
 type WorkspaceChildReadState = Parameters<ChatSessionListManager['markVisibleWorkspaceChildRead']>[0];
 export type ChatVisibleWorkspaceSelection =
@@ -105,56 +113,29 @@ export class ChatThreadManager {
     return useChatSessionListStore.getState().snapshot.selectedSessionKey ?? null;
   };
 
-  private buildWorkspaceFileTab = (
-    action: ChatFileOpenActionViewModel,
-    parentSessionKey: string | null,
-  ): ChatWorkspaceFileTab | null => {
-    const normalizedPath = action.path.trim();
-    if (!normalizedPath) {
-      return null;
-    }
-    const normalizedParentSessionKey = parentSessionKey?.trim() || null;
-    const previewViewer =
-      action.viewMode === 'preview' &&
-      action.previewViewer !== 'rendered' &&
-      /\.html?$/i.test(normalizedPath)
-        ? 'source'
-        : action.previewViewer ?? null;
-    const tabViewIdentity = action.viewMode === 'preview' && previewViewer === 'rendered' ? 'preview:rendered' : action.viewMode;
-    return {
-      key: `${normalizedParentSessionKey ?? 'draft'}::${tabViewIdentity}::${normalizedPath}`,
-      parentSessionKey: normalizedParentSessionKey,
-      path: normalizedPath,
-      label: action.label?.trim() || null,
-      viewMode: action.viewMode,
-      previewViewer,
-      line: action.line ?? null,
-      column: action.column ?? null,
-      rawText: action.rawText ?? null,
-      contentUrl: action.contentUrl?.trim() || null,
-      mimeType: action.mimeType?.trim() || null,
-      beforeText: action.beforeText ?? null,
-      afterText: action.afterText ?? null,
-      patchText: action.patchText ?? null,
-      oldStartLine: action.oldStartLine ?? null,
-      newStartLine: action.newStartLine ?? null,
-      fullLines: action.fullLines,
-    };
-  };
-
-  private upsertWorkspaceFileTab = (nextTab: ChatWorkspaceFileTab): ChatWorkspaceFileTab[] => {
+  private activateWorkspaceFileTab = (
+    nextTab: ChatWorkspaceFileTab,
+    adjacentToKey?: string,
+  ) => {
+    const { parentSessionKey } = nextTab;
     const { workspaceFileTabs } = useChatThreadStore.getState().snapshot;
-    const existingIndex = workspaceFileTabs.findIndex((tab) => tab.key === nextTab.key);
-    if (existingIndex === -1) {
-      return [nextTab, ...workspaceFileTabs];
-    }
-    const nextTabs = [...workspaceFileTabs];
-    nextTabs.splice(existingIndex, 1);
-    nextTabs.unshift({
-      ...workspaceFileTabs[existingIndex],
-      ...nextTab,
+    this.setWorkspaceSelection({
+      workspacePanelParentKey: parentSessionKey,
+      activeWorkspacePanelKind: 'file',
+      workspaceFileTabs: upsertWorkspaceFileTab(
+        workspaceFileTabs,
+        nextTab,
+        adjacentToKey,
+      ),
+      activeWorkspaceFileKey: nextTab.key,
+      activeChildSessionKey: null,
+      activeSideChatDraft: null,
+    }, {
+      kind: 'file',
+      key: nextTab.key,
     });
-    return nextTabs;
+    this.ensureWorkspaceParentRoute(parentSessionKey);
+    this.onWorkspacePanelOpened?.();
   };
 
   private ensureWorkspaceParentRoute = (parentSessionKey: string | null) => {
@@ -327,23 +308,43 @@ export class ChatThreadManager {
 
   openFilePreview = (action: ChatFileOpenActionViewModel) => {
     const parentSessionKey = this.resolveWorkspaceParentSessionKey();
-    const nextTab = this.buildWorkspaceFileTab(action, parentSessionKey);
+    const nextTab = createWorkspaceFileTab(action, parentSessionKey);
     if (!nextTab) {
       return;
     }
-    this.setWorkspaceSelection({
-      workspacePanelParentKey: parentSessionKey,
-      activeWorkspacePanelKind: 'file',
-      workspaceFileTabs: this.upsertWorkspaceFileTab(nextTab),
-      activeWorkspaceFileKey: nextTab.key,
-      activeChildSessionKey: null,
-      activeSideChatDraft: null,
-    }, {
-      kind: 'file',
-      key: nextTab.key,
-    });
-    this.ensureWorkspaceParentRoute(parentSessionKey);
-    this.onWorkspacePanelOpened?.();
+    this.activateWorkspaceFileTab(nextTab);
+  };
+
+  openWorkspaceFileViewer = (
+    fileKey: string,
+    viewer?: ChatWorkspaceFileViewer,
+  ) => {
+    const sourceTab = useChatThreadStore.getState().snapshot.workspaceFileTabs
+      .find((tab) => tab.key === fileKey.trim());
+    if (!sourceTab || sourceTab.viewMode !== 'preview') {
+      return;
+    }
+    const nextViewer = viewer ?? resolveAlternateWorkspaceFileViewer(
+      sourceTab.path,
+      sourceTab.previewViewer,
+    );
+    if (!nextViewer) {
+      return;
+    }
+    const nextTab = createWorkspaceFileTab({
+      path: sourceTab.path,
+      label: sourceTab.label ?? undefined,
+      viewMode: 'preview',
+      previewViewer: nextViewer,
+      line: sourceTab.line ?? undefined,
+      column: sourceTab.column ?? undefined,
+      rawText: sourceTab.rawText ?? undefined,
+      contentUrl: sourceTab.contentUrl ?? undefined,
+      mimeType: sourceTab.mimeType ?? undefined,
+    }, sourceTab.parentSessionKey);
+    if (nextTab) {
+      this.activateWorkspaceFileTab(nextTab, sourceTab.key);
+    }
   };
 
   private openSessionFromToolAction = (action: ChatToolActionViewModel) => {

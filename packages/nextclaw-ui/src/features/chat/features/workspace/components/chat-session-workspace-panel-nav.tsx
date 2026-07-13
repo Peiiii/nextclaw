@@ -2,7 +2,8 @@ import {
   AlarmClock,
   ArrowLeft,
   ArrowRight,
-  FileCode2,
+  Code2,
+  Eye,
   FolderTree,
   GitBranch,
   LayoutDashboard,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import type { WorkspaceTabViewModel } from "@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
+import { FileTypeIcon } from "@/shared/components/file-type-icon";
 import {
   CompactTabStrip,
   type CompactTabStripAction,
@@ -22,7 +24,11 @@ import {
 } from "@/shared/components/ui/tab-strip/compact-tab-strip";
 import { t } from "@/shared/lib/i18n";
 
-function WorkspaceTabIcon({ agentId, kind }: Pick<WorkspaceTabViewModel, "agentId" | "kind">) {
+function WorkspaceTabIcon({
+  agentId,
+  fileName,
+  kind,
+}: Pick<WorkspaceTabViewModel, "agentId" | "fileName" | "kind">) {
   if (kind === "overview") {
     return <LayoutDashboard className="h-3.5 w-3.5 shrink-0 text-gray-400" />;
   }
@@ -40,7 +46,7 @@ function WorkspaceTabIcon({ agentId, kind }: Pick<WorkspaceTabViewModel, "agentI
   }
 
   if (kind === "file") {
-    return <FileCode2 className="h-3.5 w-3.5 shrink-0 text-gray-400" />;
+    return <FileTypeIcon fileName={fileName ?? ""} size="compact" />;
   }
 
   if (kind === "side-chat-draft") {
@@ -62,11 +68,17 @@ function buildCompactWorkspaceTabs(
   return tabs.map((tab) => ({
     key: tab.key,
     label: tab.title,
+    labelClassName: tab.isRenderedPreview ? "italic font-normal" : undefined,
     active: tab.active,
     tooltip: tab.tooltip,
-    leadingIcon: <WorkspaceTabIcon kind={tab.kind} agentId={tab.agentId} />,
-    badge:
-      tab.kind === "file" && tab.viewMode === "diff" ? (
+    leadingIcon: (
+      <WorkspaceTabIcon
+        kind={tab.kind}
+        agentId={tab.agentId}
+        fileName={tab.fileName}
+      />
+    ),
+    badge: tab.kind === "file" && tab.viewMode === "diff" ? (
         <span className="shrink-0 rounded border border-amber-200 bg-amber-50 px-1 py-0 text-[9px] font-medium uppercase tracking-[0.08em] text-amber-700">
           {t("chatWorkspaceDiff")}
         </span>
@@ -76,6 +88,29 @@ function buildCompactWorkspaceTabs(
     closePlacement: "leading-hover",
     onSelect: tab.onSelect,
     onClose: tab.onClose,
+    menuLabel: t("chatWorkspaceFileMoreActions"),
+    menuActions: tab.kind === "file"
+      ? [
+          ...(tab.alternateViewerAction
+            ? [{
+                key: `viewer:${tab.alternateViewerAction.viewer}`,
+                icon: tab.alternateViewerAction.viewer === "rendered"
+                  ? <Eye className="h-3.5 w-3.5" />
+                  : <Code2 className="h-3.5 w-3.5" />,
+                label: tab.alternateViewerAction.label,
+                onClick: tab.alternateViewerAction.onSelect,
+              }]
+            : []),
+          ...(tab.onClose
+            ? [{
+                key: "close",
+                icon: <X className="h-3.5 w-3.5" />,
+                label: t("chatWorkspaceCloseFile"),
+                onClick: tab.onClose,
+              }]
+            : []),
+        ]
+      : undefined,
   }));
 }
 

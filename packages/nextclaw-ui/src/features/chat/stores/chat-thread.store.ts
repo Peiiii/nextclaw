@@ -8,6 +8,7 @@ import type {
 } from '@/shared/lib/api';
 import {
   normalizePersistedWorkspaceFileTab,
+  retainWorkspaceFileTabs,
   toPersistedWorkspaceFileTab,
 } from '@/features/chat/features/workspace/utils/chat-workspace-file-tab-persistence.utils';
 import {
@@ -131,10 +132,7 @@ type PersistedChatWorkspaceSnapshot = Pick<
   | 'workspacePanelWidth'
 >;
 
-type PersistedWorkspacePanelKind = Exclude<
-  ChatWorkspacePanelKind,
-  'side-chat-draft'
->;
+type PersistedWorkspacePanelKind = Exclude<ChatWorkspacePanelKind, 'side-chat-draft'>;
 
 const initialSnapshot: ChatThreadSnapshot = {
   sessionTypeLabel: null,
@@ -262,17 +260,25 @@ function normalizePersistedWorkspaceSnapshot(
   if (!isRecord(value)) {
     return null;
   }
-  const workspaceFileTabs = Array.isArray(value.workspaceFileTabs)
+  const workspacePanelParentKey = normalizeOptionalString(value.workspacePanelParentKey);
+  const activeWorkspaceFileKey = normalizeOptionalString(value.activeWorkspaceFileKey);
+  const normalizedWorkspaceFileTabs = Array.isArray(value.workspaceFileTabs)
     ? value.workspaceFileTabs
       .map(normalizePersistedWorkspaceFileTab)
       .filter((tab): tab is ChatWorkspaceFileTab => tab !== null)
-      .slice(-CHAT_THREAD_MAX_PERSISTED_WORKSPACE_FILE_TABS)
     : [];
-  const activeWorkspaceFileKey = normalizeOptionalString(value.activeWorkspaceFileKey);
+  const workspaceFileTabs = retainWorkspaceFileTabs(
+    normalizedWorkspaceFileTabs,
+    activeWorkspaceFileKey,
+    CHAT_THREAD_MAX_PERSISTED_WORKSPACE_FILE_TABS,
+  );
+  const sessionWorkspaceFileTabs = workspaceFileTabs.filter(
+    (tab) => tab.parentSessionKey === workspacePanelParentKey,
+  );
   const resolvedActiveWorkspaceFileKey =
-    activeWorkspaceFileKey && workspaceFileTabs.some((tab) => tab.key === activeWorkspaceFileKey)
+    activeWorkspaceFileKey && sessionWorkspaceFileTabs.some((tab) => tab.key === activeWorkspaceFileKey)
       ? activeWorkspaceFileKey
-      : workspaceFileTabs[0]?.key ?? null;
+      : sessionWorkspaceFileTabs[0]?.key ?? null;
   const activeWorkspacePanelKind = isWorkspacePanelKind(value.activeWorkspacePanelKind)
     ? value.activeWorkspacePanelKind
     : null;
@@ -309,7 +315,7 @@ function normalizePersistedWorkspaceSnapshot(
       : 0;
 
   return {
-    workspacePanelParentKey: normalizeOptionalString(value.workspacePanelParentKey),
+    workspacePanelParentKey,
     activeWorkspacePanelKind: resolvedActiveWorkspacePanelKind,
     activeChildSessionKey,
     workspaceFileTabs,
@@ -356,8 +362,11 @@ export const useChatThreadStore = create<ChatThreadStore>()(
                 ? null
                 : state.snapshot.activeWorkspacePanelKind,
             activeChildSessionKey: state.snapshot.activeChildSessionKey,
-            workspaceFileTabs: state.snapshot.workspaceFileTabs
-              .slice(-CHAT_THREAD_MAX_PERSISTED_WORKSPACE_FILE_TABS)
+            workspaceFileTabs: retainWorkspaceFileTabs(
+              state.snapshot.workspaceFileTabs,
+              state.snapshot.activeWorkspaceFileKey,
+              CHAT_THREAD_MAX_PERSISTED_WORKSPACE_FILE_TABS,
+            )
               .map(toPersistedWorkspaceFileTab),
             activeWorkspaceFileKey: state.snapshot.activeWorkspaceFileKey,
             workspaceNavigationHistory,

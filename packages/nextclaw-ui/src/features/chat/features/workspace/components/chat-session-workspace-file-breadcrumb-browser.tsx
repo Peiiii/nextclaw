@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import type { ChatFileOpenActionViewModel } from "@nextclaw/agent-chat-ui";
-import { ChevronRight, File, Folder, Loader2 } from "lucide-react";
+import { ChevronRight, Folder, Loader2 } from "lucide-react";
+import { FileTypeIcon } from "@/shared/components/file-type-icon";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import { useServerPathBrowse } from "@/shared/hooks/use-server-path-browse";
 import type { ServerPathEntryView } from "@/shared/lib/api";
@@ -8,14 +9,16 @@ import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
 function WorkspaceBreadcrumbEntryIcon({
+  name,
   kind,
 }: {
+  name: string;
   kind: ServerPathEntryView["kind"];
 }) {
   return kind === "directory" ? (
     <Folder className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
   ) : (
-    <File className="h-3.5 w-3.5 shrink-0 text-sky-600" />
+    <FileTypeIcon fileName={name} size="compact" />
   );
 }
 
@@ -102,7 +105,10 @@ export function WorkspaceBreadcrumbBrowser({
                 )}
                 onClick={() => openEntry(entry)}
               >
-                <WorkspaceBreadcrumbEntryIcon kind={entry.kind} />
+                <WorkspaceBreadcrumbEntryIcon
+                  kind={entry.kind}
+                  name={entry.name}
+                />
                 <span className="min-w-0 flex-1 truncate">{entry.name}</span>
                 {entry.kind === "directory" ? (
                   <ChevronRight className="h-3 w-3 shrink-0 text-gray-300" />

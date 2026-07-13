@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import type {
   ChatFileOpenActionViewModel,
   ChatFileOperationBlockViewModel,
-  ChatFilePreviewViewer,
 } from "@nextclaw/agent-chat-ui";
 import {
   ChatMessageMarkdown,
@@ -26,6 +25,7 @@ import {
 import { t } from "@/shared/lib/i18n";
 import { buildWorkspaceFileBreadcrumb } from "@/shared/lib/session-project";
 import { cn } from "@/shared/lib/utils";
+import { resolveWorkspaceFileViewer } from "@/features/chat/features/workspace/utils/chat-workspace-file-viewer.utils";
 
 function inferPreviewKind(params: {
   path: string;
@@ -35,15 +35,6 @@ function inferPreviewKind(params: {
     return params.serverKind;
   }
   return /\.mdx?$/i.test(params.path) ? "markdown" : "text";
-}
-
-function resolveFilePreviewViewer(params: {
-  path: string;
-  viewer?: ChatFilePreviewViewer | null;
-}): "source" | "rendered" {
-  return params.viewer === "rendered" && /\.html?$/i.test(params.path)
-    ? "rendered"
-    : "source";
 }
 
 function appendPreviewRefreshVersion(
@@ -182,6 +173,7 @@ function WorkspacePreviewBody({
   onFileOpen,
   previewBlock,
   previewKind,
+  previewViewer,
   previewQuery,
   previewText,
 }: {
@@ -193,6 +185,7 @@ function WorkspacePreviewBody({
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
   previewBlock: ChatFileOperationBlockViewModel | null;
   previewKind: "text" | "markdown" | "binary";
+  previewViewer: "source" | "rendered" | null;
   previewQuery: ReturnType<typeof useServerPathRead> | null | undefined;
   previewText: string | null;
 }) {
@@ -247,7 +240,7 @@ function WorkspacePreviewBody({
     );
   }
 
-  if (previewKind === "markdown" && previewText) {
+  if (previewKind === "markdown" && previewViewer !== "source" && previewText) {
     return (
       <div className="h-full overflow-auto custom-scrollbar px-5 py-4">
         <ChatMessageMarkdown
@@ -324,10 +317,10 @@ export function ChatSessionWorkspaceFilePreview({
     previewQuery?.data?.resolvedPath ??
     file.path;
   const previewPathKind = directoryQuery?.data ? "directory" : "file";
-  const previewViewer = resolveFilePreviewViewer({
-    path: resolvedPath,
-    viewer: file.previewViewer,
-  });
+  const previewViewer = resolveWorkspaceFileViewer(
+    resolvedPath,
+    file.previewViewer,
+  );
   const localContentKind = resolveWorkspaceFileContentKind({
     path: resolvedPath,
   });
@@ -369,7 +362,7 @@ export function ChatSessionWorkspaceFilePreview({
     previewQuery?.data?.resolvedPath,
     previewText,
   ]);
-  const isTruncated = Boolean(previewQuery?.data?.truncated);
+  const isTextPreviewTruncated = !contentUrl && Boolean(previewQuery?.data?.truncated);
   const breadcrumbBasePath = sessionProjectRoot ?? sessionWorkingDir;
   const breadcrumb = useMemo(
     () =>
@@ -379,13 +372,13 @@ export function ChatSessionWorkspaceFilePreview({
         sessionProjectRoot: breadcrumbBasePath,
         line: file.line,
         column: file.column,
-        truncated: isTruncated,
+        truncated: isTextPreviewTruncated,
       }),
     [
       breadcrumbBasePath,
       file.column,
       file.line,
-      isTruncated,
+      isTextPreviewTruncated,
       previewPathKind,
       resolvedPath,
     ],
@@ -411,6 +404,7 @@ export function ChatSessionWorkspaceFilePreview({
             onFileOpen={onFileOpen}
             previewBlock={previewBlock}
             previewKind={previewKind}
+            previewViewer={previewViewer}
             previewQuery={previewQuery}
             previewText={previewText}
           />

@@ -16,6 +16,8 @@
   },
   "dependencies": {
     "@aiden0z/pptx-renderer": "1.2.4",
+    "@iconify/icons-vscode-icons": "^1.2.29",
+    "@iconify/react": "^6.0.2",
     "@nextclaw/agent-chat": "workspace:*",
     "@nextclaw/agent-chat-ui": "workspace:*",
     "@nextclaw/client-sdk": "workspace:*",

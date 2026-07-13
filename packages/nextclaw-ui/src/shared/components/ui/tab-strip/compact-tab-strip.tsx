@@ -1,6 +1,11 @@
 import * as React from "react";
-import { X } from "lucide-react";
+import { MoreVertical, X } from "lucide-react";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/shared/components/ui/popover";
 import {
   Tooltip,
   TooltipContent,
@@ -15,10 +20,13 @@ export type CompactTabStripTab = {
   active: boolean;
   tooltip?: string | null;
   leadingIcon?: React.ReactNode;
+  labelClassName?: string;
   badge?: React.ReactNode;
   unreadIndicator?: React.ReactNode;
   closeLabel?: string;
   closePlacement?: "leading-hover" | "trailing";
+  menuLabel?: string;
+  menuActions?: readonly CompactTabStripAction[];
   onSelect: () => void;
   onClose?: () => void;
 };
@@ -55,6 +63,77 @@ function closeCompactTab(event: React.MouseEvent<HTMLButtonElement>, onClose: ()
   onClose();
 }
 
+function CompactTabMenu({ tab }: { tab: CompactTabStripTab }) {
+  const [open, setOpen] = React.useState(false);
+  const restoreTriggerFocus = React.useRef(true);
+  if (!tab.menuActions?.length) {
+    return null;
+  }
+
+  const menuLabel = tab.menuLabel ?? tab.label;
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) {
+          restoreTriggerFocus.current = true;
+        }
+        setOpen(nextOpen);
+      }}
+    >
+      <div
+        className={cn(
+          "-ml-1.5 flex w-0 shrink-0 overflow-hidden opacity-0 transition-[width,margin,opacity] group-hover:ml-0 group-hover:w-5 group-hover:opacity-100 group-focus-within:ml-0 group-focus-within:w-5 group-focus-within:opacity-100",
+          open ? "ml-0 w-5 opacity-100" : null,
+        )}
+      >
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label={menuLabel}
+            onClick={(event) => event.stopPropagation()}
+            className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 focus-visible:bg-gray-200 focus-visible:text-gray-700 focus-visible:outline-none"
+          >
+            <MoreVertical className="h-3.5 w-3.5" />
+          </button>
+        </PopoverTrigger>
+      </div>
+      <PopoverContent
+        align="end"
+        className="w-40 rounded-xl p-1.5"
+        onClick={(event) => event.stopPropagation()}
+        onCloseAutoFocus={(event) => {
+          if (!restoreTriggerFocus.current) {
+            event.preventDefault();
+          }
+        }}
+      >
+        <div role="menu" aria-label={menuLabel}>
+          {tab.menuActions.map((action) => (
+            <button
+              key={action.key}
+              type="button"
+              role="menuitem"
+              disabled={action.disabled}
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:cursor-not-allowed disabled:opacity-45"
+              onClick={() => {
+                restoreTriggerFocus.current = false;
+                setOpen(false);
+                action.onClick();
+              }}
+            >
+              <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
+                {action.icon}
+              </span>
+              <span>{action.label}</span>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function CompactTabLabelButton({
   labelClassName,
   tab,
@@ -77,7 +156,7 @@ function CompactTabLabelButton({
           {leadingIcon}
         </span>
       ) : null}
-      <span className={cn("min-w-0 truncate text-[12px] font-medium", labelClassName)}>
+      <span className={cn("min-w-0 truncate text-[12px] font-medium", labelClassName, tab.labelClassName)}>
         {tab.label}
       </span>
       {tab.badge}
@@ -145,6 +224,7 @@ function CompactTabItem({
         </button>
       ) : null}
       <CompactTabLabelButton tab={tab} labelClassName={labelClassName} />
+      <CompactTabMenu tab={tab} />
       {tab.onClose && tab.closePlacement !== "leading-hover" ? (
         <IconActionButton
           size="sm"

@@ -100,6 +100,7 @@ export function ChatSessionWorkspacePanel({
         optimisticReadAtBySessionKey,
         onSelectSession: presenter.chatThreadManager.selectChildSessionDetail,
         onSelectFile: presenter.chatThreadManager.selectWorkspaceFile,
+        onOpenFileViewer: presenter.chatThreadManager.openWorkspaceFileViewer,
         onCloseFile: presenter.chatThreadManager.closeWorkspaceFile,
         onSelectOverview: () => {
           if (sessionKey)

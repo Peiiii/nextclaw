@@ -1,12 +1,7 @@
 import { useState, type ReactNode } from "react";
 import type { ChatFileOpenActionViewModel } from "@nextclaw/agent-chat-ui";
-import {
-  ChevronDown,
-  ChevronRight,
-  FileCode2,
-  Folder,
-  FolderOpen,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Folder, FolderOpen } from "lucide-react";
+import { FileTypeIcon } from "@/shared/components/file-type-icon";
 import { useServerPathBrowse } from "@/shared/hooks/use-server-path-browse";
 import type { ServerPathEntryView } from "@/shared/lib/api";
 import { t } from "@/shared/lib/i18n";
@@ -46,14 +41,16 @@ function readBrowseError(
 }
 
 function WorkspaceDirectoryEntryIcon({
+  fileName,
   isDirectory,
   isExpanded,
 }: {
+  fileName: string;
   isDirectory: boolean;
   isExpanded: boolean;
 }) {
   if (!isDirectory) {
-    return <FileCode2 className="h-4 w-4 shrink-0 text-sky-600" />;
+    return <FileTypeIcon fileName={fileName} />;
   }
   return isExpanded ? (
     <FolderOpen className="h-4 w-4 shrink-0 text-amber-500" />
@@ -169,6 +166,7 @@ function WorkspaceDirectoryTreeEntry({
           ) : null}
         </span>
         <WorkspaceDirectoryEntryIcon
+          fileName={entry.name}
           isDirectory={isDirectory}
           isExpanded={isExpanded}
         />

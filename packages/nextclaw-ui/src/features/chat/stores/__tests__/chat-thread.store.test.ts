@@ -155,6 +155,46 @@ describe('chat thread workspace panel persistence', () => {
     });
   });
 
+  it('keeps the active file tab when persistence trims older workspace tabs', async () => {
+    const workspaceFileTabs = Array.from({ length: 9 }, (_, index) => ({
+      key: `session-1::preview::file-${index}.txt`,
+      parentSessionKey: 'session-1',
+      path: `file-${index}.txt`,
+      viewMode: 'preview' as const,
+      previewViewer: 'source' as const,
+    }));
+    const activeWorkspaceFileKey = workspaceFileTabs[8]!.key;
+    useChatThreadStore.getState().setSnapshot({
+      workspacePanelParentKey: 'session-1',
+      activeWorkspacePanelKind: 'file',
+      workspaceFileTabs,
+      activeWorkspaceFileKey,
+      workspaceNavigationHistory: [
+        { kind: 'file', key: activeWorkspaceFileKey },
+      ],
+      workspaceNavigationHistoryIndex: 0,
+    });
+
+    const persisted = window.localStorage.getItem(chatThreadWorkspaceStorageKey);
+    resetChatThreadStore();
+    if (persisted) {
+      window.localStorage.setItem(chatThreadWorkspaceStorageKey, persisted);
+    }
+    await useChatThreadStore.persist.rehydrate();
+
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      workspacePanelParentKey: 'session-1',
+      activeWorkspacePanelKind: 'file',
+      activeWorkspaceFileKey,
+    });
+    expect(useChatThreadStore.getState().snapshot.workspaceFileTabs).toHaveLength(8);
+    expect(
+      useChatThreadStore.getState().snapshot.workspaceFileTabs.some(
+        (tab) => tab.key === activeWorkspaceFileKey,
+      ),
+    ).toBe(true);
+  });
+
   it('hydrates the workspace panel state and repairs stale active file keys', async () => {
     window.localStorage.setItem(
       chatThreadWorkspaceStorageKey,

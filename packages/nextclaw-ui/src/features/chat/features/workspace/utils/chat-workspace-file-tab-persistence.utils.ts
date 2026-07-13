@@ -85,3 +85,20 @@ export function toPersistedWorkspaceFileTab(
     newStartLine: tab.newStartLine,
   };
 }
+
+export function retainWorkspaceFileTabs(
+  tabs: readonly ChatWorkspaceFileTab[],
+  activeWorkspaceFileKey: string | null | undefined,
+  maxTabs: number,
+): ChatWorkspaceFileTab[] {
+  const retained = tabs.slice(0, maxTabs);
+  const activeTab = activeWorkspaceFileKey
+    ? tabs.find((tab) => tab.key === activeWorkspaceFileKey)
+    : null;
+  if (!activeTab || retained.some((tab) => tab.key === activeTab.key)) {
+    return retained;
+  }
+  return retained.length < maxTabs
+    ? [...retained, activeTab]
+    : [...retained.slice(0, -1), activeTab];
+}

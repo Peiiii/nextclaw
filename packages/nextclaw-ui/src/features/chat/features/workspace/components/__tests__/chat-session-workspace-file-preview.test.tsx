@@ -111,7 +111,7 @@ function renderWorkspaceFilePreview({
   sessionProjectRoot = "/tmp",
   sessionWorkingDir = "/tmp",
 }: RenderWorkspaceFilePreviewOptions = {}) {
-  render(
+  const view = render(
     <ChatSessionWorkspaceFilePreview
       file={buildWorkspaceFile(file ?? {})}
       sessionProjectRoot={sessionProjectRoot}
@@ -120,7 +120,7 @@ function renderWorkspaceFilePreview({
       onFileOpen={onFileOpen}
     />,
   );
-  return { onFileOpen };
+  return { ...view, onFileOpen };
 }
 
 function mockWorkspaceBreadcrumbBrowseTree() {
@@ -298,6 +298,30 @@ describe("ChatSessionWorkspaceFilePreview rendering", () => {
     expect(screen.queryByTestId("workspace-content-image")).toBeNull();
     expect(screen.getByTestId("file-code-surface")).toBeTruthy();
   });
+
+  it.each([
+    ["image", "sample.png", "workspace-content-image"],
+    ["audio", "sample.mp3", "workspace-content-audio"],
+    ["video", "sample.mp4", "workspace-content-video"],
+  ])(
+    "does not report truncated metadata for local %s content",
+    (_kind, path, testId) => {
+      mockTextRead({
+        kind: "binary",
+        resolvedPath: `/tmp/${path}`,
+        text: undefined,
+        truncated: true,
+      });
+      renderWorkspaceFilePreview({
+        file: { path, label: path, previewViewer: "auto" },
+      });
+
+      expect(screen.getByTestId(testId)).toBeTruthy();
+      expect(
+        screen.queryByText(t("chatWorkspacePreviewTruncated")),
+      ).toBeNull();
+    },
+  );
 });
 
 describe("ChatSessionWorkspaceFilePreview Office rendering", () => {
@@ -516,6 +540,28 @@ describe("ChatSessionWorkspaceFilePreview text rendering", () => {
         .getByTestId("file-code-surface")
         .getAttribute("data-language-hint"),
     ).toBe("js");
+  });
+
+  it("renders Markdown by default and keeps source view explicit", () => {
+    mockTextRead({
+      kind: "markdown",
+      resolvedPath: "/tmp/README.md",
+      text: "# Hello",
+    });
+    const { unmount } = renderWorkspaceFilePreview({
+      file: { path: "/tmp/README.md" },
+    });
+
+    expect(screen.getByTestId("markdown-preview")).toBeTruthy();
+    expect(screen.queryByTestId("file-code-surface")).toBeNull();
+
+    unmount();
+    renderWorkspaceFilePreview({
+      file: { path: "/tmp/README.md", previewViewer: "source" },
+    });
+
+    expect(screen.queryByTestId("markdown-preview")).toBeNull();
+    expect(screen.getByTestId("file-code-surface")).toBeTruthy();
   });
 
   it("keeps HTML files in the source preview when preview viewer is automatic", () => {

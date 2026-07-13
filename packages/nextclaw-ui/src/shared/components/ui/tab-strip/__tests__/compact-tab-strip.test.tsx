@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CompactTabStrip,
@@ -125,5 +126,42 @@ describe("CompactTabStrip", () => {
 
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("opens a tab action menu without selecting the tab or restoring stale focus after an action", async () => {
+    const user = userEvent.setup();
+    const onAction = vi.fn();
+    const onSelect = vi.fn();
+
+    render(
+      <CompactTabStrip
+        tabs={[
+          {
+            key: "source-tab",
+            label: "index.html",
+            active: true,
+            menuLabel: "File actions",
+            menuActions: [
+              {
+                key: "preview",
+                icon: <span />,
+                label: "Open preview",
+                onClick: onAction,
+              },
+            ],
+            onSelect,
+          },
+        ]}
+        actions={[]}
+      />,
+    );
+
+    const menuTrigger = screen.getByRole("button", { name: "File actions" });
+    await user.click(menuTrigger);
+    await user.click(screen.getByRole("menuitem", { name: "Open preview" }));
+
+    expect(onAction).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(document.activeElement).not.toBe(menuTrigger);
   });
 });

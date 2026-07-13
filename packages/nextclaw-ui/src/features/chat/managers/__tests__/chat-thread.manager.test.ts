@@ -315,7 +315,7 @@ describe('ChatThreadManager', () => {
     expect(useChatThreadStore.getState().snapshot.workspaceFileTabs).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          key: 'parent-session-1::preview::README.md',
+          key: 'parent-session-1::preview:rendered::README.md',
           path: 'README.md',
           viewMode: 'preview',
         }),
@@ -334,6 +334,7 @@ describe('ChatThreadManager workspace file tabs', () => {
   it.each([
     { path: 'demo.html', previewViewer: undefined, expectedViewer: 'source' },
     { path: 'auto.html', previewViewer: 'auto' as const, expectedViewer: 'source' },
+    { path: 'README.md', previewViewer: undefined, expectedViewer: 'rendered' },
     { path: 'report.docx', previewViewer: 'auto' as const, expectedViewer: 'auto' },
   ])('normalizes the viewer for $path', ({ path, previewViewer, expectedViewer }) => {
       const manager = new ChatThreadManager(
@@ -354,7 +355,7 @@ describe('ChatThreadManager workspace file tabs', () => {
       });
   });
 
-  it('keeps source and rendered previews for the same file as separate workspace tabs', () => {
+  it('opens source and rendered previews for the same file as adjacent workspace tabs', () => {
     const manager = new ChatThreadManager(
       createUiManager(),
       {} as ConstructorParameters<typeof ChatThreadManager>[1],
@@ -366,29 +367,36 @@ describe('ChatThreadManager workspace file tabs', () => {
       viewMode: 'preview',
       previewViewer: 'source',
     });
-    manager.openFilePreview({
-      path: 'demo.html',
-      label: 'demo.html',
-      viewMode: 'preview',
-      previewViewer: 'rendered',
-    });
+    manager.openWorkspaceFileViewer('parent-session-1::preview::demo.html');
 
     expect(useChatThreadStore.getState().snapshot).toMatchObject({
       activeWorkspaceFileKey: 'parent-session-1::preview:rendered::demo.html',
       workspaceFileTabs: [
-        {
-          key: 'parent-session-1::preview:rendered::demo.html',
-          path: 'demo.html',
-          viewMode: 'preview',
-          previewViewer: 'rendered',
-        },
         {
           key: 'parent-session-1::preview::demo.html',
           path: 'demo.html',
           viewMode: 'preview',
           previewViewer: 'source',
         },
+        {
+          key: 'parent-session-1::preview:rendered::demo.html',
+          path: 'demo.html',
+          viewMode: 'preview',
+          previewViewer: 'rendered',
+        },
       ],
+    });
+
+    manager.openWorkspaceFileViewer('parent-session-1::preview::demo.html');
+    expect(useChatThreadStore.getState().snapshot.workspaceFileTabs).toHaveLength(2);
+
+    manager.openWorkspaceFileViewer('parent-session-1::preview:rendered::demo.html');
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      activeWorkspaceFileKey: 'parent-session-1::preview::demo.html',
+      workspaceFileTabs: expect.arrayContaining([
+        expect.objectContaining({ previewViewer: 'source' }),
+        expect.objectContaining({ previewViewer: 'rendered' }),
+      ]),
     });
   });
 });
@@ -419,14 +427,14 @@ describe('ChatThreadManager workspace navigation', () => {
 
     expect(useChatThreadStore.getState().snapshot.workspaceNavigationHistory).toEqual([
       { kind: 'child-session', key: 'child-session-1' },
-      { kind: 'file', key: 'parent-session-1::preview::README.md' },
+      { kind: 'file', key: 'parent-session-1::preview:rendered::README.md' },
       { kind: 'cron' },
     ]);
 
     manager.goBackWorkspacePanel();
     expect(useChatThreadStore.getState().snapshot).toMatchObject({
       activeWorkspacePanelKind: 'file',
-      activeWorkspaceFileKey: 'parent-session-1::preview::README.md',
+      activeWorkspaceFileKey: 'parent-session-1::preview:rendered::README.md',
       workspaceNavigationHistoryIndex: 1,
     });
 
@@ -440,7 +448,7 @@ describe('ChatThreadManager workspace navigation', () => {
     manager.goForwardWorkspacePanel();
     expect(useChatThreadStore.getState().snapshot).toMatchObject({
       activeWorkspacePanelKind: 'file',
-      activeWorkspaceFileKey: 'parent-session-1::preview::README.md',
+      activeWorkspaceFileKey: 'parent-session-1::preview:rendered::README.md',
       workspaceNavigationHistoryIndex: 1,
     });
   });
@@ -496,7 +504,7 @@ describe('ChatThreadManager workspace navigation', () => {
       label: 'README.md',
       viewMode: 'preview',
     });
-    manager.closeWorkspaceFile('parent-session-1::preview::README.md');
+    manager.closeWorkspaceFile('parent-session-1::preview:rendered::README.md');
 
     expect(useChatThreadStore.getState().snapshot).toMatchObject({
       activeWorkspacePanelKind: 'child-session',

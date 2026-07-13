@@ -41,6 +41,12 @@ vi.mock("@/shared/hooks/use-server-path-browse", () => ({
           kind: "directory",
           hidden: false,
         },
+        {
+          name: "package.json",
+          path: "/Users/peiwang/Projects/nextbot/package.json",
+          kind: "file",
+          hidden: false,
+        },
       ],
     },
   }),
@@ -156,4 +162,5 @@ it("shows the selected session project as a hierarchical file tree", () => {
   expect(
     screen.getByRole("treeitem", { name: "Open directory: src" }),
   ).toBeTruthy();
+  expect(document.querySelector('[data-file-type-icon="npm"]')).toBeTruthy();
 });
