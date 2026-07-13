@@ -35,7 +35,7 @@ export class ClaudeCodeNarpRuntimeWrapper {
   buildRuntimeConfig = (
     context: NarpStdioRuntimeWrapperContext,
   ): ClaudeCodeSdkNcpAgentRuntimeConfig => {
-    const { cwd, modelId, promptMeta, sessionId } = context;
+    const { cwd, modelId, promptMeta, sessionId, setSessionMetadata } = context;
     const providerRoute = promptMeta.providerRoute;
     const sessionMetadata = promptMeta.sessionMetadata ?? {};
     const useClaudeRuntimeDefaults = !providerRoute && !readString(modelId);
@@ -76,6 +76,7 @@ export class ClaudeCodeNarpRuntimeWrapper {
       workingDirectory: cwd,
       sessionRuntimeId: readString(sessionMetadata.claude_session_id) ?? null,
       sessionMetadata,
+      setSessionMetadata,
       baseQueryOptions: {
         permissionMode: "bypassPermissions",
         includePartialMessages: true,

@@ -119,26 +119,26 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
     }
   }
 
-  private async getSdkModule(): Promise<ClaudeCodeSdkModule> {
+  private getSdkModule = async (): Promise<ClaudeCodeSdkModule> => {
     if (!this.sdkModulePromise) {
       this.sdkModulePromise = claudeCodeLoader.loadClaudeCodeSdkModule();
     }
     return this.sdkModulePromise;
-  }
+  };
 
-  private async getPreparedAccess(): Promise<ClaudePreparedGatewayAccess> {
+  private getPreparedAccess = async (): Promise<ClaudePreparedGatewayAccess> => {
     if (!this.preparedAccessPromise) {
       this.preparedAccessPromise = prepareClaudeGatewayAccess(this.config);
     }
     return await this.preparedAccessPromise;
-  }
+  };
 
-  private async createQueryRun(input: NcpAgentRunInput, options?: NcpAgentRunOptions): Promise<{
+  private createQueryRun = async (input: NcpAgentRunInput, options?: NcpAgentRunOptions): Promise<{
     query: ReturnType<ClaudeCodeSdkModule["query"]>;
     abortBridge: ReturnType<typeof createAbortBridge>;
     abortController: AbortController;
     timeout: ReturnType<typeof setTimeout> | null;
-  }> {
+  }> => {
     const sdk = await this.getSdkModule();
     const preparedAccess = await this.getPreparedAccess();
     const abortBridge = createAbortBridge(options);
@@ -159,14 +159,14 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
       abortController: abortBridge.abortController,
       timeout: createRequestTimeout(this.config.requestTimeoutMs, abortBridge.abortController),
     };
-  }
+  };
 
-  private async buildTurnInput(input: NcpAgentRunInput): Promise<string> {
+  private buildTurnInput = async (input: NcpAgentRunInput): Promise<string> => {
     if (this.config.inputBuilder) {
       return await this.config.inputBuilder(input);
     }
     return readUserText(input);
-  }
+  };
 
   private async *emitEvent(event: NcpEndpointEvent): AsyncGenerator<NcpEndpointEvent> {
     await this.config.stateManager?.dispatch(event);
@@ -183,7 +183,7 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
     const { sessionId, messageId, runId, message, eventState } = params;
 
     if (typeof message.session_id === "string" && message.session_id.trim()) {
-      this.updateSessionRuntimeId(message.session_id);
+      await this.updateSessionRuntimeId(message.session_id);
     }
 
     const failure = extractFailureMessage(message);
@@ -368,20 +368,15 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
     }, endedAt));
   }
 
-  private updateSessionRuntimeId(nextSessionId: string): void {
+  private updateSessionRuntimeId = async (nextSessionId: string): Promise<void> => {
     const normalizedSessionId = nextSessionId.trim();
     if (!normalizedSessionId || normalizedSessionId === this.sessionRuntimeId) {
       return;
     }
 
     this.sessionRuntimeId = normalizedSessionId;
-    const nextMetadata = {
-      ...this.sessionMetadata,
-      session_type: "claude",
-      claude_session_id: normalizedSessionId,
-    };
     this.sessionMetadata.session_type = "claude";
     this.sessionMetadata.claude_session_id = normalizedSessionId;
-    this.config.setSessionMetadata?.(nextMetadata);
-  }
+    await this.config.setSessionMetadata?.({ ...this.sessionMetadata });
+  };
 }

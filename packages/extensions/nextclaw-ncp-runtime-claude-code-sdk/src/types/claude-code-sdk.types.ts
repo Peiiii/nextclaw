@@ -93,7 +93,7 @@ export type ClaudeCodeSdkNcpAgentRuntimeConfig = {
   baseQueryOptions?: Record<string, unknown>;
   requestTimeoutMs?: number;
   sessionMetadata?: Record<string, unknown>;
-  setSessionMetadata?: (nextMetadata: Record<string, unknown>) => void;
+  setSessionMetadata?: (nextMetadata: Record<string, unknown>) => void | Promise<void>;
   inputBuilder?: (input: NcpAgentRunInput) => Promise<string> | string;
   stateManager?: NcpAgentConversationStateManager;
   anthropicGateway?: ClaudeCodeSdkAnthropicGatewayConfig;

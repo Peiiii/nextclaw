@@ -21,6 +21,7 @@ describe("ClaudeCodeNarpRuntimeWrapper", () => {
       capturedConfigs.push(config);
       return new FakeRuntime();
     });
+    const setSessionMetadata = vi.fn();
 
     const runtime = wrapper.createClaudeCodeRuntime({
       sessionId: "session-1",
@@ -38,6 +39,7 @@ describe("ClaudeCodeNarpRuntimeWrapper", () => {
           project_root: "/tmp/workspace",
         },
       },
+      setSessionMetadata,
     });
 
     expect(runtime).toBeInstanceOf(FakeRuntime);
@@ -54,6 +56,7 @@ describe("ClaudeCodeNarpRuntimeWrapper", () => {
           claude_session_id: "claude-session-1",
           project_root: "/tmp/workspace",
         },
+        setSessionMetadata,
         baseQueryOptions: {
           permissionMode: "bypassPermissions",
           includePartialMessages: true,
