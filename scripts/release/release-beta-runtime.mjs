@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { verifyPublicRuntimeManifests } from "./release-runtime-manifest-verify.mjs";
 
 const ROOT_DIR = process.cwd();
@@ -126,6 +128,25 @@ function readCurrentBranch() {
 function readPublishedVersion(channel) {
   const packageSpec = channel === "beta" ? "nextclaw@beta" : "nextclaw@latest";
   return run("npm", ["view", packageSpec, "version"], { capture: true }).trim();
+}
+
+function readStableReleaseNotesUrl(nextclawVersion) {
+  const metadataPath = resolve(ROOT_DIR, `apps/docs/public/release-notes/nextclaw-v${nextclawVersion}.json`);
+  let metadata;
+  try {
+    metadata = JSON.parse(readFileSync(metadataPath, "utf8"));
+  } catch (error) {
+    throw new Error(
+      `Stable NPM runtime release requires structured release notes at ${metadataPath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+  const releaseNotesUrl = metadata?.links?.html?.["en-US"] || metadata?.links?.html?.["zh-CN"] || "";
+  if (!releaseNotesUrl) {
+    throw new Error(`Stable NPM runtime release notes URL is missing in ${metadataPath}.`);
+  }
+  return releaseNotesUrl;
 }
 
 function sleep(ms) {
@@ -259,6 +280,7 @@ async function main() {
     throw new Error(`Could not resolve the published nextclaw ${channel} version.`);
   }
   const releaseTag = options.releaseTag?.trim() || `nextclaw@${nextclawVersion}`;
+  const expectedReleaseNotesUrl = channel === "stable" ? readStableReleaseNotesUrl(nextclawVersion) : null;
 
   if (options.dryRun) {
     console.log(`release:${channel}:runtime dry run`);
@@ -286,6 +308,7 @@ async function main() {
   const runtimeReleaseSummary = verifyRuntimeReleaseAssets(releaseTag, nextclawVersion);
   const publicManifestSummary = await verifyPublicRuntimeManifests({
     channel,
+    expectedReleaseNotesUrl,
     expectedVersion: nextclawVersion,
     readJsonCommand,
     repo: REPO,

@@ -78,6 +78,21 @@ jobs:
         env:
           NEXTCLAW_UPDATE_BUNDLE_PRIVATE_KEY: ${{ secrets.NEXTCLAW_UPDATE_BUNDLE_PRIVATE_KEY || secrets.NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY }}
         run: |
+          release_notes_url="https://github.com/${{ github.repository }}/releases/tag/${NPM_RUNTIME_RELEASE_TAG}"
+          if [ "$NPM_RUNTIME_UPDATE_CHANNEL" = "stable" ]; then
+            runtime_version="$(node -p "require('./packages/nextclaw/package.json').version")"
+            release_notes_json="apps/docs/public/release-notes/nextclaw-v${runtime_version}.json"
+            if [ ! -f "$release_notes_json" ]; then
+              echo "::error::Stable NPM runtime update requires $release_notes_json."
+              exit 1
+            fi
+            release_notes_url="$(node -e "const data=require('./${release_notes_json}'); process.stdout.write(data.links?.html?.['en-US'] || data.links?.html?.['zh-CN'] || '')")"
+            if [ -z "$release_notes_url" ]; then
+              echo "::error::Stable NPM runtime update release notes URL is missing in $release_notes_json."
+              exit 1
+            fi
+          fi
+
           extra_args=()
           if [ -n "$NPM_RUNTIME_MINIMUM_LAUNCHER_VERSION_OVERRIDE" ]; then
             extra_args+=(
@@ -91,7 +106,7 @@ jobs:
             --platform ${{ matrix.platform }} \
             --arch ${{ matrix.arch }} \
             --bundle-base-url "$NPM_RUNTIME_UPDATE_BASE_URL" \
-            --release-notes-url "https://github.com/${{ github.repository }}/releases/tag/${NPM_RUNTIME_RELEASE_TAG}" \
+            --release-notes-url "$release_notes_url" \
             --output-dir dist/npm-runtime-updates \
             "${extra_args[@]}"
 

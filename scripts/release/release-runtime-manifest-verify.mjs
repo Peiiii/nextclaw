@@ -9,7 +9,23 @@ function readGhPagesManifest({ channel, repo, run, target }) {
   return JSON.parse(Buffer.from(encodedContent, "base64").toString("utf8"));
 }
 
-function verifyGhPagesRuntimeManifests({ channel, expectedVersion, repo, run, targets }) {
+function assertRuntimeManifest({ expectedReleaseNotesUrl, expectedVersion, label, manifest, target }) {
+  if (manifest.latestVersion !== expectedVersion) {
+    throw new Error(
+      `${label} version mismatch for ${target.platform}-${target.arch}: expected ${expectedVersion}, got ${manifest.latestVersion}`
+    );
+  }
+  if (manifest.hostKind !== "npm-runtime-bundle") {
+    throw new Error(`${label} hostKind mismatch for ${target.platform}-${target.arch}: ${manifest.hostKind}`);
+  }
+  if (expectedReleaseNotesUrl && manifest.releaseNotesUrl !== expectedReleaseNotesUrl) {
+    throw new Error(
+      `${label} releaseNotesUrl mismatch for ${target.platform}-${target.arch}: expected ${expectedReleaseNotesUrl}, got ${manifest.releaseNotesUrl ?? "null"}`
+    );
+  }
+}
+
+function verifyGhPagesRuntimeManifests({ channel, expectedReleaseNotesUrl, expectedVersion, repo, run, targets }) {
   for (const target of targets) {
     const manifest = readGhPagesManifest({
       channel,
@@ -17,16 +33,13 @@ function verifyGhPagesRuntimeManifests({ channel, expectedVersion, repo, run, ta
       run,
       target
     });
-    if (manifest.latestVersion !== expectedVersion) {
-      throw new Error(
-        `gh-pages manifest version mismatch for ${target.platform}-${target.arch}: expected ${expectedVersion}, got ${manifest.latestVersion}`
-      );
-    }
-    if (manifest.hostKind !== "npm-runtime-bundle") {
-      throw new Error(
-        `gh-pages manifest hostKind mismatch for ${target.platform}-${target.arch}: ${manifest.hostKind}`
-      );
-    }
+    assertRuntimeManifest({
+      expectedReleaseNotesUrl,
+      expectedVersion,
+      label: "gh-pages manifest",
+      manifest,
+      target
+    });
   }
 }
 
@@ -54,6 +67,7 @@ function readGitHubPagesStatus({ readJsonCommand, repo }) {
 
 export async function verifyPublicRuntimeManifests({
   channel,
+  expectedReleaseNotesUrl,
   expectedVersion,
   readJsonCommand,
   repo,
@@ -63,6 +77,7 @@ export async function verifyPublicRuntimeManifests({
 }) {
   verifyGhPagesRuntimeManifests({
     channel,
+    expectedReleaseNotesUrl,
     expectedVersion,
     repo,
     run,
@@ -95,18 +110,22 @@ export async function verifyPublicRuntimeManifests({
         break;
       }
       const manifest = publicManifestResult.manifest;
-      if (manifest.latestVersion !== expectedVersion) {
+      try {
+        assertRuntimeManifest({
+          expectedReleaseNotesUrl,
+          expectedVersion,
+          label: "Public manifest",
+          manifest,
+          target
+        });
+      } catch (error) {
         lastMismatch = {
+          error: error instanceof Error ? error.message : String(error),
           expectedVersion,
           latestVersion: manifest.latestVersion,
           target
         };
         break;
-      }
-      if (manifest.hostKind !== "npm-runtime-bundle") {
-        throw new Error(
-          `Public manifest hostKind mismatch for ${target.platform}-${target.arch}: ${manifest.hostKind}`
-        );
       }
     }
 
