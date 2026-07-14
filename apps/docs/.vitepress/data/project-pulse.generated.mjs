@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-07-13T05:48:09.342Z",
+  "generatedAt": "2026-07-14T01:45:18.698Z",
   "hero": {
     "currentLoc": 199874,
     "testLoc": 65952,
     "trackedFiles": 2145,
-    "recentCommitCount": 180,
+    "recentCommitCount": 200,
     "activeDays30": 30,
-    "recentReleaseCount": 42,
-    "latestReleaseDate": "2026-07-13",
-    "latestNoteDate": "2026-07-13",
+    "recentReleaseCount": 44,
+    "latestReleaseDate": "2026-07-14",
+    "latestNoteDate": "2026-07-14",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 1970965,
     "basePercentOfBenchmark": 10.14,
@@ -16,11 +16,6 @@ export default {
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-03-16",
-        "label": "03-16",
-        "value": 74884
-      },
       {
         "key": "2026-03-17",
         "label": "03-17",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-07-13",
         "label": "07-13",
         "value": 199874
+      },
+      {
+        "key": "2026-07-14",
+        "label": "07-14",
+        "value": 199874
       }
     ],
     "testLocDaily": [
@@ -941,11 +941,6 @@ export default {
     ],
     "commitDaily": [
       {
-        "key": "2026-06-14",
-        "label": "06-14",
-        "value": 2
-      },
-      {
         "key": "2026-06-15",
         "label": "06-15",
         "value": 1
@@ -1088,7 +1083,12 @@ export default {
       {
         "key": "2026-07-13",
         "label": "07-13",
-        "value": 20
+        "value": 29
+      },
+      {
+        "key": "2026-07-14",
+        "label": "07-14",
+        "value": 13
       }
     ],
     "commitWeekly": [
@@ -1150,7 +1150,7 @@ export default {
       {
         "key": "2026-07-13",
         "label": "07-13",
-        "value": 20
+        "value": 42
       }
     ],
     "releaseMonthly": [
@@ -1207,12 +1207,12 @@ export default {
       {
         "key": "2026-06",
         "label": "06/26",
-        "value": 13
+        "value": 14
       },
       {
         "key": "2026-07",
         "label": "07/26",
-        "value": 5
+        "value": 6
       }
     ]
   },
@@ -1283,8 +1283,17 @@ export default {
     },
     "recentReleaseBatches": [
       {
+        "date": "2026-07-14",
+        "tagCount": 19,
+        "sampleTags": [
+          "@nextclaw/agent-chat-ui@0.6.4",
+          "@nextclaw/channel-extension-feishu@0.2.4",
+          "@nextclaw/channel-extension-weixin@0.2.4"
+        ]
+      },
+      {
         "date": "2026-07-13",
-        "tagCount": 57,
+        "tagCount": 49,
         "sampleTags": [
           "@nextclaw/agent-chat-ui@0.6.3",
           "@nextclaw/agent-chat@0.3.2",
@@ -1302,17 +1311,20 @@ export default {
       },
       {
         "date": "2026-07-06",
-        "tagCount": 2,
+        "tagCount": 45,
         "sampleTags": [
-          "v0.22.1-desktop-beta.1",
-          "v0.22.1-desktop.1"
+          "@nextclaw/agent-chat-ui@0.6.1",
+          "@nextclaw/channel-extension-dingtalk@0.2.1",
+          "@nextclaw/channel-extension-discord@0.2.1"
         ]
       },
       {
         "date": "2026-07-05",
-        "tagCount": 1,
+        "tagCount": 50,
         "sampleTags": [
-          "v0.22.0-desktop.1"
+          "@nextclaw/agent-chat-ui@0.6.0",
+          "@nextclaw/agent-chat@0.3.0",
+          "@nextclaw/aigen@0.2.0"
         ]
       },
       {
@@ -1323,20 +1335,30 @@ export default {
           "@nextclaw/agent-chat@0.2.16-beta.0",
           "@nextclaw/aigen@0.1.8-beta.0"
         ]
-      },
-      {
-        "date": "2026-06-22",
-        "tagCount": 23,
-        "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.5.3",
-          "@nextclaw/channel-extension-dingtalk@0.1.21",
-          "@nextclaw/channel-extension-discord@0.1.21"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-07-14-nextclaw-v0-22-4",
+        "date": "2026-07-14",
+        "tags": [
+          "release",
+          "desktop",
+          "enhancement"
+        ],
+        "en": {
+          "title": "2026-07-14 · NextClaw v0.22.4",
+          "description": "NextClaw v0.22.4 improves the chat workspace, default message layout, file previews, and public product assets.",
+          "href": "/en/notes/2026-07-14-nextclaw-v0-22-4"
+        },
+        "zh": {
+          "title": "2026-07-14 · NextClaw v0.22.4",
+          "description": "NextClaw v0.22.4 改进聊天工作区、默认消息布局、本地文件预览和对外产品资产。",
+          "href": "/zh/notes/2026-07-14-nextclaw-v0-22-4"
+        }
+      },
       {
         "slug": "2026-07-13-nextclaw-v0-22-3",
         "date": "2026-07-13",
@@ -1594,7 +1616,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-07-13T05:48:07.773Z",
     "sourceCount": {
-      "notes": 9,
+      "notes": 10,
       "scopes": 8
     }
   }

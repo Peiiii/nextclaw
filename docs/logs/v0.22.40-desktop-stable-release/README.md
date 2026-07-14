@@ -15,6 +15,7 @@
 - 公开 Pages stable manifest 验证 `latestVersion=0.22.4`、`minimumLauncherVersion=0.0.141`，release notes 指向 `v0.22.4-desktop.1`。
 - 公开 APT stable 仓库验证 `nextclaw-desktop` 版本为 `0.0.220`。
 - 官网执行 `pnpm --filter @nextclaw/landing tsc`、`pnpm --filter @nextclaw/landing build` 与 `pnpm deploy:landing`，部署后验证生产 bundle 包含 `v0.22.4-desktop.1` 和 `0.0.220`，不再包含旧 fallback `v0.22.3-desktop.8`。
+- 发布后复查发现 `nextclaw-v0.22.4` 的 docs 结构化 release notes 缺失，且 desktop update manifest 的 `releaseNotesUrl` 由 workflow 固定写成 GitHub Release。已补齐中英文产品更新笔记与 JSON，并将 workflow 改为优先使用 docs release notes URL；当前正式 tag 使用显式 docs URL 重跑 update channel 发布。
 
 ## 发布/部署方式
 

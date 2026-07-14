@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.22.4",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-07-14",
+  "title": {
+    "zh-CN": "NextClaw v0.22.4",
+    "en-US": "NextClaw v0.22.4"
+  },
+  "summary": {
+    "zh-CN": "本版本改进聊天工作区、默认消息布局、本地文件预览，并同步桌面端 stable 更新与对外产品资产。",
+    "en-US": "This release improves the chat workspace, default message layout, local file previews, and aligns the desktop stable update with refreshed public product assets."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-14-nextclaw-v0-22-4",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-14-nextclaw-v0-22-4"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "功能",
+        "en-US": "Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "会话工作区侧栏",
+            "en-US": "Session workspace sidebar"
+          },
+          "body": {
+            "zh-CN": "文件和任务材料可以更自然地留在当前对话旁边。",
+            "en-US": "Files and task materials can stay closer to the active conversation."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "更扁平的消息布局",
+            "en-US": "Flatter message layout"
+          },
+          "body": {
+            "zh-CN": "聊天消息默认更适合扫读，长任务线程更清楚。",
+            "en-US": "Chat messages are easier to scan by default, especially in longer task threads."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "统一本地文件预览",
+            "en-US": "Unified local file previews"
+          },
+          "body": {
+            "zh-CN": "工作区、附件和消息表面的文件预览使用更一致的展示方式。",
+            "en-US": "Workspace, attachment, and message file previews now use a more consistent presentation."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "桌面端 stable 更新",
+            "en-US": "Desktop stable update"
+          },
+          "body": {
+            "zh-CN": "桌面端 stable 通道已发布 runtime bundle 0.22.4，桌面壳版本为 0.0.220。",
+            "en-US": "The desktop stable channel now ships runtime bundle 0.22.4 with desktop shell 0.0.220."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "对外产品资产刷新",
+            "en-US": "Refreshed public product assets"
+          },
+          "body": {
+            "zh-CN": "GitHub README、产品截图和社群入口已同步到当前产品体验。",
+            "en-US": "GitHub README, product screenshots, and community entry points now match the current product experience."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "npm 包 UI 资产补齐",
+            "en-US": "npm UI assets included"
+          },
+          "body": {
+            "zh-CN": "已发布的 nextclaw npm 包包含最新 CLI launcher UI 资产。",
+            "en-US": "The published nextclaw npm package includes the refreshed CLI launcher UI assets."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "下载入口与 stable manifest 对齐",
+            "en-US": "Download fallback and stable manifest aligned"
+          },
+          "body": {
+            "zh-CN": "桌面端 stable manifest 与官网下载 fallback 已指向同一个正式桌面版本。",
+            "en-US": "Desktop stable manifests and website download fallbacks point to the same stable desktop release."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需手动迁移",
+            "en-US": "No manual migration"
+          },
+          "body": {
+            "zh-CN": "本版本不需要手动迁移。",
+            "en-US": "No manual migration is required."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "Launcher 兼容性保持不变",
+            "en-US": "Launcher compatibility is unchanged"
+          },
+          "body": {
+            "zh-CN": "桌面端 stable 更新继续兼容 0.0.141 及以上 launcher。",
+            "en-US": "Stable desktop updates remain compatible with launcher 0.0.141 and newer."
+          }
+        }
+      ]
+    }
+  ]
+}
