@@ -190,6 +190,7 @@
 - `/release-beta`：执行 NextClaw NPM beta 一键发布闭环，使用 `npm-beta-release`。
 - `/release-beta-npm`：只发布 NPM beta 包，不触发 runtime update channel。
 - `/release-beta-runtime`：只发布 beta runtime update channel，不重复发 NPM 包。
+- `/release-stable-runtime`：只发布 stable runtime update channel，不重复发 NPM 包。
 - `/release-desktop-beta`：发布桌面端 beta preview，使用 `desktop-release-contract-guard` 闭合 installer、portable、update bundle、manifest 与 `desktop-release` workflow。
 - `/release-desktop-stable`：发布桌面端正式版，使用 `desktop-release-contract-guard` 闭合 release assets、stable manifest 与 stable APT repo。
 - `/release-frontend`：前端一键发布，仅 UI 变更场景。

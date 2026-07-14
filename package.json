@@ -149,6 +149,7 @@
     "release:beta": "node scripts/release/release-beta.mjs",
     "release:beta:npm": "node scripts/release/release-beta-npm.mjs",
     "release:beta:runtime": "node scripts/release/release-beta-runtime.mjs",
+    "release:stable:runtime": "node scripts/release/release-beta-runtime.mjs --channel stable",
     "release:desktop:beta": "node scripts/release/release-desktop.mjs --channel beta",
     "release:desktop:stable": "node scripts/release/release-desktop.mjs --channel stable",
     "release:frontend": "node scripts/release/release-frontend.mjs && pnpm release:version && pnpm release:publish:frontend",

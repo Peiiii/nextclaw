@@ -5,7 +5,8 @@ import { verifyPublicRuntimeManifests } from "./release-runtime-manifest-verify.
 
 const ROOT_DIR = process.cwd();
 const REPO = "Peiiii/nextclaw";
-const BETA_CHANNEL = "beta";
+const DEFAULT_CHANNEL = "beta";
+const CHANNELS = new Set(["beta", "stable"]);
 const RUNTIME_WORKFLOW = "npm-runtime-update-release.yml";
 const RUNTIME_MANIFEST_TARGETS = [
   { platform: "darwin", arch: "arm64" },
@@ -20,27 +21,29 @@ Usage:
   pnpm release:beta:runtime -- [options]
 
 Options:
+  --channel <channel>                   Runtime update channel (beta or stable; default: beta)
   --dry-run                             Print the intended runtime-channel closure without mutating anything
   --branch <branch>                     Override the git branch used for workflow dispatch
-  --version <version>                   Override the nextclaw beta version to publish to the runtime channel
+  --version <version>                   Override the nextclaw version to publish to the runtime channel
   --release-tag <tag>                   Override the GitHub release tag used for runtime bundle assets
   --minimum-launcher-version-override <version>
                                         Recovery-only runtime manifest floor override
   --help                                Show this help
 
 Default behavior:
-  1. resolve the target nextclaw beta version (default: npm view nextclaw@beta version)
-  2. trigger npm-runtime-update-release for the beta channel
+  1. resolve the target nextclaw version (beta: nextclaw@beta, stable: nextclaw@latest)
+  2. trigger npm-runtime-update-release for the selected channel
   3. wait for workflow success
   4. verify GitHub release assets
-  5. verify gh-pages manifests and public beta manifests
+  5. verify gh-pages manifests and public channel manifests
 `.trim());
 }
 
 function parseArgs(argv) {
-  const normalizedArgv = argv[0] === "--" ? argv.slice(1) : argv;
+  const normalizedArgv = argv.filter((arg) => arg !== "--");
   const options = {
     branch: null,
+    channel: null,
     dryRun: false,
     help: false,
     minimumLauncherVersionOverride: null,
@@ -62,6 +65,10 @@ function parseArgs(argv) {
         options.branch = normalizedArgv[index + 1] ?? null;
         index += 1;
         break;
+      case "--channel":
+        options.channel = normalizedArgv[index + 1] ?? null;
+        index += 1;
+        break;
       case "--version":
         options.version = normalizedArgv[index + 1] ?? null;
         index += 1;
@@ -80,6 +87,14 @@ function parseArgs(argv) {
   }
 
   return options;
+}
+
+function normalizeChannel(channel) {
+  const normalized = (channel ?? DEFAULT_CHANNEL).trim().toLowerCase();
+  if (!CHANNELS.has(normalized)) {
+    throw new Error(`Unsupported runtime update channel: ${channel}`);
+  }
+  return normalized;
 }
 
 function run(command, args, options = {}) {
@@ -108,8 +123,9 @@ function readCurrentBranch() {
   return run("git", ["rev-parse", "--abbrev-ref", "HEAD"], { capture: true }).trim();
 }
 
-function readPublishedBetaVersion() {
-  return run("npm", ["view", "nextclaw@beta", "version"], { capture: true }).trim();
+function readPublishedVersion(channel) {
+  const packageSpec = channel === "beta" ? "nextclaw@beta" : "nextclaw@latest";
+  return run("npm", ["view", packageSpec, "version"], { capture: true }).trim();
 }
 
 function sleep(ms) {
@@ -152,7 +168,7 @@ async function waitForWorkflowRun(branch, startedAtMs) {
   throw new Error(`Timed out waiting for ${RUNTIME_WORKFLOW} to appear on branch ${branch}.`);
 }
 
-function triggerRuntimeWorkflow({ branch, minimumLauncherVersionOverride, releaseTag }) {
+function triggerRuntimeWorkflow({ branch, channel, minimumLauncherVersionOverride, releaseTag }) {
   const args = [
     "workflow",
     "run",
@@ -162,7 +178,7 @@ function triggerRuntimeWorkflow({ branch, minimumLauncherVersionOverride, releas
     "--ref",
     branch,
     "-f",
-    `channel=${BETA_CHANNEL}`,
+    `channel=${channel}`,
     "-f",
     `release_tag=${releaseTag}`
   ];
@@ -209,9 +225,9 @@ function verifyRuntimeReleaseAssets(releaseTag, nextclawVersion) {
   return releaseSummary;
 }
 
-function buildDryRunPlan({ branch, nextclawVersion, releaseTag, minimumLauncherVersionOverride }) {
+function buildDryRunPlan({ branch, channel, nextclawVersion, releaseTag, minimumLauncherVersionOverride }) {
   return [
-    `- channel: ${BETA_CHANNEL}`,
+    `- channel: ${channel}`,
     `- branch: ${branch}`,
     `- nextclaw version: ${nextclawVersion}`,
     `- release tag: ${releaseTag}`,
@@ -221,7 +237,7 @@ function buildDryRunPlan({ branch, nextclawVersion, releaseTag, minimumLauncherV
     "- trigger npm-runtime-update-release workflow only",
     "- wait for workflow success",
     "- verify GitHub release assets",
-    "- verify gh-pages manifests and public beta manifests"
+    `- verify gh-pages manifests and public ${channel} manifests`
   ];
 }
 
@@ -236,18 +252,20 @@ async function main() {
   ensureCommandAvailable("curl", ["--version"]);
   ensureCommandAvailable("npm", ["--version"]);
 
+  const channel = normalizeChannel(options.channel);
   const branch = options.branch ?? readCurrentBranch();
-  const nextclawVersion = options.version?.trim() || readPublishedBetaVersion();
+  const nextclawVersion = options.version?.trim() || readPublishedVersion(channel);
   if (!nextclawVersion) {
-    throw new Error("Could not resolve the published nextclaw@beta version.");
+    throw new Error(`Could not resolve the published nextclaw ${channel} version.`);
   }
   const releaseTag = options.releaseTag?.trim() || `nextclaw@${nextclawVersion}`;
 
   if (options.dryRun) {
-    console.log("release:beta:runtime dry run");
+    console.log(`release:${channel}:runtime dry run`);
     console.log(
       buildDryRunPlan({
         branch,
+        channel,
         nextclawVersion,
         releaseTag,
         minimumLauncherVersionOverride: options.minimumLauncherVersionOverride
@@ -259,6 +277,7 @@ async function main() {
   const dispatchStartedAtMs = Date.now();
   triggerRuntimeWorkflow({
     branch,
+    channel,
     minimumLauncherVersionOverride: options.minimumLauncherVersionOverride,
     releaseTag
   });
@@ -266,7 +285,7 @@ async function main() {
   const runtimeRunSummary = watchWorkflowRun(workflowRun.databaseId);
   const runtimeReleaseSummary = verifyRuntimeReleaseAssets(releaseTag, nextclawVersion);
   const publicManifestSummary = await verifyPublicRuntimeManifests({
-    channel: BETA_CHANNEL,
+    channel,
     expectedVersion: nextclawVersion,
     readJsonCommand,
     repo: REPO,
@@ -275,7 +294,7 @@ async function main() {
     targets: RUNTIME_MANIFEST_TARGETS
   });
 
-  console.log("release:beta:runtime completed");
+  console.log(`release:${channel}:runtime completed`);
   console.log(`- branch: ${branch}`);
   console.log(`- nextclaw version: ${nextclawVersion}`);
   console.log(`- runtime workflow: ${runtimeRunSummary.url}`);

@@ -56,6 +56,7 @@ Never justify a single-package `nextclaw` release only because `packages/nextcla
    - `pnpm release:beta`
    - `pnpm release:beta:npm`
    - `pnpm release:beta:runtime`
+   For stable NPM runtime-channel-only closure, use `pnpm release:stable:runtime`.
 1. Sync and check package README content:
    - `pnpm release:sync-readmes`
    - `pnpm release:check-readmes`
@@ -74,7 +75,11 @@ Never justify a single-package `nextclaw` release only because `packages/nextcla
    - `pnpm release:verify:published`
    - `npm view nextclaw dist-tags --json`
    - For a first publish of a scoped standalone package, an immediate `npm view` or `npm install` may briefly return 404 after a successful publish. Retry with the same npm config used for publish before declaring failure; do not rerun publish unless registry verification proves the version is absent after propagation.
-8. Close generated artifacts:
+8. If the stable release batch includes `nextclaw`, publish and verify the stable NPM runtime update channel before closing:
+   - `pnpm release:stable:runtime -- --version <published-nextclaw-version> --release-tag nextclaw@<published-nextclaw-version>`
+   - Then verify a real old NPM-installed instance or isolated `nextclaw update --check` sees the new `availableVersion`.
+   - Skipping this step means NPM-installed users may see "up to date" even after `nextclaw@latest` is published; only skip with an explicit user-approved reason.
+9. Close generated artifacts:
    - Run `git status --short` in every worktree used for release or verification.
    - If release commands refreshed tracked publish assets such as `packages/nextclaw/ui-dist`, decide explicitly whether they are part of the release record.
    - Commit intended release artifacts before final response; restore tracked drift and remove untracked generated files when they are only local build hash churn.
@@ -134,7 +139,7 @@ Do not close a release attempt with only a narrative retrospective when the bloc
 
 ## Runtime Update Channel Flow
 1. Trigger `.github/workflows/npm-runtime-update-release.yml` for the target channel.
-   - Or use the reusable owner command: `pnpm release:beta:runtime`
+   - Prefer reusable owner commands: `pnpm release:beta:runtime` for beta, `pnpm release:stable:runtime` for stable.
 2. Wait for the workflow conclusion to be `success`; dispatch alone is not a release.
 3. Verify `gh-pages` contains the channel files:
    - `npm-runtime-updates/<channel>/manifest-<channel>-<platform>-<arch>.json`

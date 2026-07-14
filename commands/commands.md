@@ -88,6 +88,12 @@
 - 输入格式：`/release-beta-runtime`，可附 `--version <nextclaw-version>`、`--release-tag <tag>`、`--minimum-launcher-version-override <version>` 或 dry-run 说明。
 - 输出/期望行为：使用 `npm-beta-release` 与 `npm-release-contract-guard`；执行 `pnpm release:beta:runtime`。默认读取已发布的 `nextclaw@beta` 版本并闭合 runtime workflow / release assets / gh-pages manifest / 公网 manifest。
 
+## `/release-stable-runtime`
+
+- 用途：只发布 NextClaw stable runtime update channel，不重复发 npm 包。
+- 输入格式：`/release-stable-runtime`，可附 `--version <nextclaw-version>`、`--release-tag <tag>`、`--minimum-launcher-version-override <version>` 或 dry-run 说明。
+- 输出/期望行为：使用 `npm-release-contract-guard`；执行 `pnpm release:stable:runtime`。默认读取已发布的 `nextclaw@latest` 版本，并闭合 workflow / release assets / `gh-pages` manifest / 公网 manifest / 旧 NPM 安装态检查更新验收。
+
 ## `/release-desktop-beta`
 
 - 用途：发布桌面端 beta preview，包括 installer / portable / update bundle / update manifest 的完整闭环。
