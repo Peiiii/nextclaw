@@ -6,6 +6,7 @@ import { cn } from "@agent-chat-ui/components/chat/internal/cn";
 import { ChatInlineTokenBadge } from "./chat-inline-token-badge";
 import { ChatCodeBlock } from "./chat-code-block";
 import { ChatInlineDisplay } from "./chat-inline-display";
+import { ChatMermaidDiagram } from "./mermaid/chat-mermaid-diagram";
 import { ChatMessageImagePreview } from "./chat-message-file/chat-message-image-preview";
 import type {
   ChatFileOpenActionViewModel,
@@ -47,8 +48,11 @@ type ChatMessageMarkdownProps = {
     | "copiedCodeLabel"
     | "attachmentExpandLabel"
     | "attachmentCloseLabel"
+    | "mermaidDiagramLabel"
+    | "mermaidRenderErrorLabel"
   >;
   inline?: boolean;
+  isStreaming?: boolean;
   inlineTokens?: readonly ChatInlineTokenViewModel[];
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
   resolveFileContentUrl?: (
@@ -205,8 +209,12 @@ function readStringProp(
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-type ChatMessageMarkdownRuntime = Omit<ChatMessageMarkdownProps, "text" | "role" | "inlineTokens"> & {
+type ChatMessageMarkdownRuntime = Omit<
+  ChatMessageMarkdownProps,
+  "text" | "role" | "inlineTokens" | "isStreaming"
+> & {
   inline: boolean;
+  isStreaming: boolean;
   isUser: boolean;
 };
 
@@ -363,7 +371,8 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
     children,
     ...rest
   }) {
-    const { renderInlineDisplay, texts } = useChatMessageMarkdownRuntime();
+    const { isStreaming, renderInlineDisplay, texts } =
+      useChatMessageMarkdownRuntime();
     const plainText = String(children ?? "");
     const isInlineCode = !className && !plainText.includes("\n");
     if (isInlineCode) {
@@ -384,6 +393,15 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
         />
       );
     }
+    if (className?.split(" ").includes("language-mermaid")) {
+      return (
+        <ChatMermaidDiagram
+          isStreaming={isStreaming}
+          source={plainText}
+          texts={texts}
+        />
+      );
+    }
     return (
       <ChatCodeBlock className={className} texts={texts}>
         {children as ReactNode}
@@ -397,6 +415,7 @@ export function ChatMessageMarkdown({
   role,
   texts,
   inline = false,
+  isStreaming = false,
   inlineTokens,
   onFileOpen,
   onInlineTokenClick,
@@ -413,6 +432,7 @@ export function ChatMessageMarkdown({
     <ChatMessageMarkdownRuntimeContext.Provider
       value={{
         inline,
+        isStreaming,
         isUser,
         onFileOpen,
         onInlineTokenClick,

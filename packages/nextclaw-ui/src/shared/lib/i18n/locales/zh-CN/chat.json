@@ -302,6 +302,8 @@
   "chatCodeCopied": "已复制",
   "chatMessageCopy": "复制",
   "chatMessageCopied": "已复制",
+  "chatMermaidDiagram": "图表",
+  "chatMermaidRenderError": "图表无法渲染，已显示源代码",
   "chatSidebarNewTask": "新任务",
   "chatSidebarSearchPlaceholder": "搜索对话...",
   "chatSidebarScheduledTasks": "定时任务",

@@ -220,7 +220,7 @@ export function ChatMessageList({
                     >
                       {message.roleLabel} · {message.timestampLabel}
                     </div>
-                    {!isUser ? <ChatMessageActionCopy message={message} texts={texts} /> : null}
+                    <ChatMessageActionCopy message={message} texts={texts} />
                   </>
                 )}
               </div>

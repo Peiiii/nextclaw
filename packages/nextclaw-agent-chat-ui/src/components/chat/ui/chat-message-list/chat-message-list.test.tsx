@@ -92,7 +92,7 @@ it("renders user, assistant, and tool content and supports code copy", async () 
   expect(
     screen.getAllByTestId("chat-message-avatar-assistant").length,
   ).toBeGreaterThan(0);
-  expect(screen.getAllByRole("button", { name: "Copy" }).length).toBe(2);
+  expect(screen.getAllByRole("button", { name: "Copy" }).length).toBe(3);
   expect(screen.getByText("Typing...").className).toContain(
     "nextclaw-chat-typing-indicator__text",
   );
@@ -107,6 +107,16 @@ it("renders user, assistant, and tool content and supports code copy", async () 
   fireEvent.click(codeCopyButton as HTMLButtonElement);
   await waitFor(() => {
     expect(writeText).toHaveBeenCalledWith("const x = 1;");
+  });
+
+  const userFooter = screen.getByText("You · 10:00").parentElement;
+  const userCopyButton = userFooter?.querySelector<HTMLButtonElement>(
+    'button[aria-label="Copy"]',
+  );
+  expect(userCopyButton).toBeTruthy();
+  fireEvent.click(userCopyButton!);
+  await waitFor(() => {
+    expect(writeText).toHaveBeenCalledWith("Hello");
   });
 });
 

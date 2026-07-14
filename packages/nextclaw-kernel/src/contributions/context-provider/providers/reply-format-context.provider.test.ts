@@ -17,16 +17,27 @@ describe("ReplyFormatContextProvider", () => {
 
     const context = provider.provide(request).join("\n");
 
-    expect(context).toContain("## Reply Formatting Contract");
-    expect(context).toContain("Goal:");
-    expect(context).toContain("File links:");
-    expect(context).toContain("Inline display:");
-    expect(context).toContain("Forbidden forms:");
-    expect(context).toContain("Examples:");
-    expect(context).toContain("Self-check before sending:");
-    expect(context).toContain("must be clickable");
-    expect(context).toContain("Markdown links only");
-    expect(context).toContain("plain text label");
+    for (const expected of [
+      "## Agent Output & Reply Formatting Contract",
+      "Goal:",
+      "Content after the last tool call remains directly visible",
+      "after the final tool call, always write a self-contained final response",
+      "when all earlier narration and tool activity are collapsed",
+      "Markdown structure:",
+      "Mermaid diagrams:",
+      "fenced `mermaid` block",
+      "File links:",
+      "Display choice:",
+      "Inline display:",
+      "Forbidden forms:",
+      "Examples:",
+      "Self-check before sending:",
+      "must be clickable",
+      "Markdown links only",
+      "plain text label",
+    ]) {
+      expect(context).toContain(expected);
+    }
     expect(context).toContain("[MEMORY.md](MEMORY.md)");
     expect(context).toContain("[file](packages/example/file.ts)");
     expect(context).toContain("[notes.md](/Users/example/Documents/notes.md)");
@@ -41,8 +52,8 @@ describe("ReplyFormatContextProvider", () => {
       "![chart](assets/chart.png)",
       "![diagram](/Users/example/Pictures/diagram.svg)",
       "Local image hrefs follow the same",
-      "Use show_file only when",
-      "use view_image only to give the model visual input",
+      "Use `show_file` only when",
+      "`view_image` is only for giving the model visual input",
       "file:// URLs",
       "internal API URLs",
       "bad `report.docx` -> good [report.docx](report.docx)",
@@ -66,7 +77,10 @@ describe("ReplyFormatContextProvider", () => {
     expect(context).toContain("Never call `show_panel_app` for inline display");
     expect(context).toContain("side panel");
     expect(context).toContain("Use Markdown links for clickable resources");
-    expect(context).toContain("show_file/show_url/show_panel_app tools only");
+    expect(context).toContain("`show_file` / `show_url` / `show_panel_app`");
+    expect(context).toContain("Do not make every UI an inline card");
+    expect(context).toContain("A Panel Card must be card-first");
+    expect(context).toContain("nextclawDisplayMode=card");
     expect(context).toContain("inline-code file names");
     expect(context).toContain("code-styled link labels");
     expect(context).toContain("action semantics inside `nextclaw-inline`");

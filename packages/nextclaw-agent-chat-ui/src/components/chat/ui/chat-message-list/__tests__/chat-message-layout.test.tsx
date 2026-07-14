@@ -75,6 +75,12 @@ describe("ChatMessageList layout", () => {
     expect(
       within(flatFooter).getByRole("button", { name: "Copy message" }),
     ).toBeTruthy();
+    expect(
+      within(screen.getByText("You · 10:00").parentElement!).getByRole(
+        "button",
+        { name: "Copy message" },
+      ),
+    ).toBeTruthy();
     expect(screen.queryByText("Assistant · 10:01")).toBeNull();
   });
 

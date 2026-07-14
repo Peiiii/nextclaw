@@ -183,7 +183,6 @@ describe("ContextProviderContribution native prompt contract", () => {
       "- read_file: Read file contents",
       "- show_panel_app:",
       "side-panel only",
-      "## Inline Interactive Surfaces",
       "weather card",
       "Do not make every UI an inline card",
       "card-first",
@@ -219,7 +218,9 @@ describe("ContextProviderContribution native prompt contract", () => {
       "## Tool Use Enforcement",
       "## OpenAI/Codex Execution Discipline",
       "## Current Session",
-      "## Reply Formatting",
+      "## Agent Output & Reply Formatting Contract",
+      "Content after the last tool call remains directly visible",
+      "fenced `mermaid` block",
       "Inline display:",
       "display-only",
     ]) {
@@ -242,7 +243,6 @@ describe("ContextProviderContribution native prompt contract", () => {
       "You are a personal assistant running inside nextclaw.",
       "## Tooling",
       "## Tool Call Style",
-      "## Inline Interactive Surfaces",
       "## Chat Composer Tokens",
       "## Safety",
       "## nextclaw CLI Quick Reference",
@@ -261,7 +261,7 @@ describe("ContextProviderContribution native prompt contract", () => {
       "## Session Orchestration",
       "## Tool Use Enforcement",
       "## Current Session",
-      "## Reply Formatting",
+      "## Agent Output & Reply Formatting Contract",
     ]);
 
     contribution.dispose();

@@ -33,6 +33,8 @@ type ChatMessageProps = {
     ChatMessageTexts,
     | "copyCodeLabel"
     | "copiedCodeLabel"
+    | "mermaidDiagramLabel"
+    | "mermaidRenderErrorLabel"
     | "attachmentOpenLabel"
     | "attachmentAttachedLabel"
     | "attachmentExpandLabel"
@@ -174,6 +176,7 @@ function renderChatMessagePart({
         text={text}
         role={role}
         texts={texts}
+        isStreaming={isInProgress && isLastPart}
         inlineTokens={inlineTokens}
         onFileOpen={onFileOpen}
         onInlineTokenClick={onInlineTokenClick}

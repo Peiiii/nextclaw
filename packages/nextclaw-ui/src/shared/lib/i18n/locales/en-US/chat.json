@@ -302,6 +302,8 @@
   "chatCodeCopied": "Copied",
   "chatMessageCopy": "Copy",
   "chatMessageCopied": "Copied",
+  "chatMermaidDiagram": "Diagram",
+  "chatMermaidRenderError": "Diagram could not be rendered; showing source instead",
   "chatSidebarNewTask": "New Task",
   "chatSidebarSearchPlaceholder": "Search conversations...",
   "chatSidebarScheduledTasks": "Scheduled Tasks",

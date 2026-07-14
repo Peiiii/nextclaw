@@ -106,6 +106,8 @@ export function buildChatMessageTexts(
     copiedCodeLabel: t("chatCodeCopied"),
     copyMessageLabel: t("chatMessageCopy"),
     copiedMessageLabel: t("chatMessageCopied"),
+    mermaidDiagramLabel: t("chatMermaidDiagram"),
+    mermaidRenderErrorLabel: t("chatMermaidRenderError"),
     typingLabel: t("chatTyping"),
     reasoningCharacterCountTemplates: {
       inProgress: t("chatReasoningInProgressCharacterCount"),
