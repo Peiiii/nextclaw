@@ -60,6 +60,7 @@ beforeEach(() => {
       activeSideChatDraft: null,
       workspaceFileTabs: [],
       activeWorkspaceFileKey: null,
+      closedWorkspaceTabEntries: [],
       workspaceNavigationHistory: [],
       workspaceNavigationHistoryIndex: 0,
     },
@@ -504,7 +505,10 @@ describe('ChatThreadManager workspace navigation', () => {
       label: 'README.md',
       viewMode: 'preview',
     });
-    manager.closeWorkspaceFile('parent-session-1::preview:rendered::README.md');
+    manager.closeWorkspaceTab({
+      kind: 'file',
+      key: 'parent-session-1::preview:rendered::README.md',
+    });
 
     expect(useChatThreadStore.getState().snapshot).toMatchObject({
       activeWorkspacePanelKind: 'child-session',

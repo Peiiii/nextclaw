@@ -39,6 +39,7 @@ type ChatSessionWorkspacePanelProps = {
   activeSideChatDraft: ChatWorkspaceSideChatDraft | null;
   workspaceFileTabs: readonly ChatWorkspaceFileTab[];
   activeWorkspaceFileKey: string | null;
+  closedWorkspaceTabEntries: readonly ChatWorkspaceNavigationEntry[];
   workspaceNavigationHistory?: readonly ChatWorkspaceNavigationEntry[];
   workspaceNavigationHistoryIndex?: number;
   activePanelKind?: ChatWorkspacePanelKind | null;
@@ -56,6 +57,7 @@ export function ChatSessionWorkspacePanel({
   activeSideChatDraft,
   workspaceFileTabs,
   activeWorkspaceFileKey,
+  closedWorkspaceTabEntries,
   workspaceNavigationHistory = [],
   workspaceNavigationHistoryIndex = 0,
   activePanelKind,
@@ -95,13 +97,14 @@ export function ChatSessionWorkspacePanel({
       buildWorkspaceTabsViewModel({
         resolvedChildTabs,
         activeSideChatDraft,
+        closedWorkspaceTabEntries,
         workspaceFileTabs,
         activeSelection,
         optimisticReadAtBySessionKey,
         onSelectSession: presenter.chatThreadManager.selectChildSessionDetail,
         onSelectFile: presenter.chatThreadManager.selectWorkspaceFile,
         onOpenFileViewer: presenter.chatThreadManager.openWorkspaceFileViewer,
-        onCloseFile: presenter.chatThreadManager.closeWorkspaceFile,
+        onCloseTab: presenter.chatThreadManager.closeWorkspaceTab,
         onSelectOverview: () => {
           if (sessionKey)
             presenter.chatThreadManager.openWorkspaceOverview(sessionKey);
@@ -122,6 +125,7 @@ export function ChatSessionWorkspacePanel({
     [
       activeSelection,
       activeSideChatDraft,
+      closedWorkspaceTabEntries,
       optimisticReadAtBySessionKey,
       presenter.chatThreadManager,
       resolvedChildTabs,

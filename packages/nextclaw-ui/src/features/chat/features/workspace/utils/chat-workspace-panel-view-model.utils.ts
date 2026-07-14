@@ -1,6 +1,7 @@
 import type { ResolvedChildSessionTab } from "@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view";
 import { shouldShowUnreadSessionIndicator } from "@/features/chat/stores/chat-session-list.store";
 import type {
+  ChatWorkspaceNavigationEntry,
   ChatWorkspacePanelKind,
   ChatWorkspaceFileTab,
   ChatWorkspaceSideChatDraft,
@@ -11,6 +12,7 @@ import {
   resolveWorkspaceFileViewer,
   type ChatWorkspaceFileViewer,
 } from "@/features/chat/features/workspace/utils/chat-workspace-file-viewer.utils";
+import { areWorkspaceNavigationEntriesEqual } from "@/features/chat/features/workspace/utils/chat-thread-workspace-session.utils";
 
 export type WorkspaceSelection =
   | {
@@ -151,41 +153,54 @@ export function resolveWorkspaceSelection(params: {
   return null;
 }
 
-export function buildWorkspaceTabsViewModel(params: {
+type WorkspaceTabsViewModelParams = {
   resolvedChildTabs: ResolvedChildSessionTab[];
   activeSideChatDraft: ChatWorkspaceSideChatDraft | null;
+  closedWorkspaceTabEntries: readonly ChatWorkspaceNavigationEntry[];
   workspaceFileTabs: readonly ChatWorkspaceFileTab[];
   activeSelection: WorkspaceSelection | null;
   optimisticReadAtBySessionKey: Record<string, string>;
   onSelectSession: (sessionKey: string) => void;
   onSelectFile: (fileKey: string) => void;
   onOpenFileViewer: (fileKey: string, viewer: ChatWorkspaceFileViewer) => void;
-  onCloseFile: (fileKey: string) => void;
+  onCloseTab: (entry: ChatWorkspaceNavigationEntry) => void;
   onSelectOverview: () => void;
   onSelectChildSessions: () => void;
   onSelectProjectFiles: () => void;
   onSelectCronJobs: () => void;
-}): WorkspaceTabViewModel[] {
-  const {
-    activeSideChatDraft,
-    resolvedChildTabs,
-    workspaceFileTabs,
-    activeSelection,
-    optimisticReadAtBySessionKey,
-    onSelectSession,
-    onSelectFile,
-    onOpenFileViewer,
-    onCloseFile,
-    onSelectOverview,
-    onSelectChildSessions,
-    onSelectProjectFiles,
-    onSelectCronJobs,
-  } = params;
+};
 
-  const workspacePages = [
+function createWorkspacePageTabEntry(
+  kind: ChatWorkspacePanelKind,
+): ChatWorkspaceNavigationEntry | null {
+  if (kind === "child-sessions" || kind === "cron" || kind === "project-files") {
+    return { kind };
+  }
+  return null;
+}
+
+function buildWorkspacePageTabs({
+  activeSelection,
+  closedWorkspaceTabEntries,
+  onCloseTab,
+  onSelectChildSessions,
+  onSelectCronJobs,
+  onSelectOverview,
+  onSelectProjectFiles,
+}: Pick<
+  WorkspaceTabsViewModelParams,
+  | "activeSelection"
+  | "closedWorkspaceTabEntries"
+  | "onCloseTab"
+  | "onSelectChildSessions"
+  | "onSelectCronJobs"
+  | "onSelectOverview"
+  | "onSelectProjectFiles"
+>): WorkspaceTabViewModel[] {
+  const tabs: WorkspaceTabViewModel[] = [
     {
       key: "overview",
-      kind: "overview" as const,
+      kind: "overview",
       title: t("chatWorkspaceOverview"),
       tooltip: t("chatWorkspaceOverview"),
       active: activeSelection?.kind === "overview",
@@ -193,29 +208,69 @@ export function buildWorkspaceTabsViewModel(params: {
     },
     {
       key: "child-sessions",
-      kind: "child-sessions" as const,
+      kind: "child-sessions",
       title: t("chatWorkspaceChildSessions"),
       tooltip: t("chatWorkspaceChildSessions"),
       active: activeSelection?.kind === "child-sessions",
       onSelect: onSelectChildSessions,
+      onClose: () => onCloseTab({ kind: "child-sessions" }),
     },
     {
       key: "cron:session",
-      kind: "cron" as const,
+      kind: "cron",
       title: t("chatWorkspaceSessionCronJobs"),
       tooltip: t("chatWorkspaceSessionCronJobs"),
       active: activeSelection?.kind === "cron",
       onSelect: onSelectCronJobs,
+      onClose: () => onCloseTab({ kind: "cron" }),
     },
     {
       key: "project-files",
-      kind: "project-files" as const,
+      kind: "project-files",
       title: t("chatWorkspaceProjectFiles"),
       tooltip: t("chatWorkspaceProjectFiles"),
       active: activeSelection?.kind === "project-files",
       onSelect: onSelectProjectFiles,
+      onClose: () => onCloseTab({ kind: "project-files" }),
     },
   ];
+  return tabs.filter((tab) => {
+    const entry = createWorkspacePageTabEntry(tab.kind);
+    return !entry || !closedWorkspaceTabEntries.some((candidate) =>
+      areWorkspaceNavigationEntriesEqual(candidate, entry),
+    );
+  });
+}
+
+export function buildWorkspaceTabsViewModel(
+  params: WorkspaceTabsViewModelParams,
+): WorkspaceTabViewModel[] {
+  const {
+    activeSideChatDraft,
+    closedWorkspaceTabEntries,
+    resolvedChildTabs,
+    workspaceFileTabs,
+    activeSelection,
+    optimisticReadAtBySessionKey,
+    onSelectSession,
+    onSelectFile,
+    onOpenFileViewer,
+    onCloseTab,
+    onSelectOverview,
+    onSelectChildSessions,
+    onSelectProjectFiles,
+    onSelectCronJobs,
+  } = params;
+
+  const workspacePages = buildWorkspacePageTabs({
+    activeSelection,
+    closedWorkspaceTabEntries,
+    onCloseTab,
+    onSelectChildSessions,
+    onSelectCronJobs,
+    onSelectOverview,
+    onSelectProjectFiles,
+  });
 
   const sideChatDraftTabs = activeSideChatDraft
     ? [
@@ -228,11 +283,23 @@ export function buildWorkspaceTabsViewModel(params: {
             activeSelection?.kind === "side-chat-draft" &&
             activeSelection.draft.draftKey === activeSideChatDraft.draftKey,
           onSelect: () => undefined,
+          onClose: () => onCloseTab({
+            kind: "side-chat-draft",
+            key: activeSideChatDraft.draftKey,
+          }),
         },
       ]
     : [];
 
-  const childTabs = resolvedChildTabs.map((tab) => {
+  const childTabs = resolvedChildTabs.filter(
+    (tab) =>
+      !closedWorkspaceTabEntries.some((entry) =>
+        areWorkspaceNavigationEntriesEqual(entry, {
+          kind: "child-session",
+          key: tab.sessionKey,
+        }),
+      ),
+  ).map((tab) => {
     const optimisticReadAt = optimisticReadAtBySessionKey[tab.sessionKey];
     const effectiveReadAt =
       optimisticReadAt && tab.readAt
@@ -259,6 +326,10 @@ export function buildWorkspaceTabsViewModel(params: {
         runStatus: tab.runStatus,
       }),
       onSelect: () => onSelectSession(tab.sessionKey),
+      onClose: () => onCloseTab({
+        kind: "child-session",
+        key: tab.sessionKey,
+      }),
     };
   });
 
@@ -292,7 +363,7 @@ export function buildWorkspaceTabsViewModel(params: {
       active:
         activeSelection?.kind === "file" && activeSelection.file.key === file.key,
       onSelect: () => onSelectFile(file.key),
-      onClose: () => onCloseFile(file.key),
+      onClose: () => onCloseTab({ kind: "file", key: file.key }),
     };
   });
 

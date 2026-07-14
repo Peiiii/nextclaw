@@ -34,6 +34,7 @@ export function ChatConversationWorkspaceSection({
       activeSideChatDraft={activeSideChatDraft}
       workspaceFileTabs={workspaceFileTabs}
       activeWorkspaceFileKey={snapshot.activeWorkspaceFileKey ?? null}
+      closedWorkspaceTabEntries={snapshot.closedWorkspaceTabEntries}
       workspaceNavigationHistory={snapshot.workspaceNavigationHistory}
       workspaceNavigationHistoryIndex={snapshot.workspaceNavigationHistoryIndex}
       activePanelKind={snapshot.activeWorkspacePanelKind ?? null}

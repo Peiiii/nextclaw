@@ -15,6 +15,7 @@ import {
   CHAT_WORKSPACE_PANEL_DEFAULT_WIDTH,
   normalizeChatWorkspacePanelWidth,
 } from '@/features/chat/features/workspace/utils/chat-workspace-panel-layout.utils';
+import { createWorkspaceNavigationEntryFromSnapshot } from '@/features/chat/features/workspace/utils/chat-thread-workspace-session.utils';
 
 export type ChatChildSessionTab = {
   sessionKey: string;
@@ -92,6 +93,7 @@ export type ChatThreadSnapshot = {
   activeSideChatDraft?: ChatWorkspaceSideChatDraft | null;
   workspaceFileTabs: ChatWorkspaceFileTab[];
   activeWorkspaceFileKey?: string | null;
+  closedWorkspaceTabEntries: ChatWorkspaceNavigationEntry[];
   workspaceNavigationHistory: ChatWorkspaceNavigationEntry[];
   workspaceNavigationHistoryIndex: number;
   workspacePanelWidth: number;
@@ -114,6 +116,7 @@ type PersistedChatThreadStore = {
     activeChildSessionKey?: unknown;
     workspaceFileTabs?: unknown;
     activeWorkspaceFileKey?: unknown;
+    closedWorkspaceTabEntries?: unknown;
     workspaceNavigationHistory?: unknown;
     workspaceNavigationHistoryIndex?: unknown;
     workspacePanelWidth?: unknown;
@@ -127,6 +130,7 @@ type PersistedChatWorkspaceSnapshot = Pick<
   | 'activeChildSessionKey'
   | 'workspaceFileTabs'
   | 'activeWorkspaceFileKey'
+  | 'closedWorkspaceTabEntries'
   | 'workspaceNavigationHistory'
   | 'workspaceNavigationHistoryIndex'
   | 'workspacePanelWidth'
@@ -159,6 +163,7 @@ const initialSnapshot: ChatThreadSnapshot = {
   activeSideChatDraft: null,
   workspaceFileTabs: [],
   activeWorkspaceFileKey: null,
+  closedWorkspaceTabEntries: [],
   workspaceNavigationHistory: [],
   workspaceNavigationHistoryIndex: 0,
   workspacePanelWidth: CHAT_WORKSPACE_PANEL_DEFAULT_WIDTH,
@@ -218,42 +223,6 @@ function normalizePersistedWorkspaceNavigationEntry(
   };
 }
 
-function createWorkspaceNavigationEntryFromSnapshot({
-  activeChildSessionKey,
-  activeWorkspaceFileKey,
-  activeWorkspacePanelKind,
-}: {
-  activeWorkspacePanelKind: ChatThreadSnapshot['activeWorkspacePanelKind'];
-  activeChildSessionKey: string | null;
-  activeWorkspaceFileKey: string | null;
-}): ChatWorkspaceNavigationEntry | null {
-  if (activeWorkspacePanelKind === 'overview') {
-    return { kind: 'overview' };
-  }
-  if (activeWorkspacePanelKind === 'child-sessions') {
-    return { kind: 'child-sessions' };
-  }
-  if (activeWorkspacePanelKind === 'project-files') {
-    return { kind: 'project-files' };
-  }
-  if (activeWorkspacePanelKind === 'cron') {
-    return { kind: 'cron' };
-  }
-  if (activeWorkspacePanelKind === 'child-session' && activeChildSessionKey) {
-    return {
-      kind: 'child-session',
-      key: activeChildSessionKey,
-    };
-  }
-  if (activeWorkspacePanelKind === 'file' && activeWorkspaceFileKey) {
-    return {
-      kind: 'file',
-      key: activeWorkspaceFileKey,
-    };
-  }
-  return null;
-}
-
 function normalizePersistedWorkspaceSnapshot(
   value: unknown,
 ): PersistedChatWorkspaceSnapshot | null {
@@ -287,9 +256,17 @@ function normalizePersistedWorkspaceSnapshot(
       ? null
       : activeWorkspacePanelKind;
   const activeChildSessionKey = normalizeOptionalString(value.activeChildSessionKey);
+  const closedWorkspaceTabEntries = Array.isArray(value.closedWorkspaceTabEntries)
+    ? value.closedWorkspaceTabEntries
+      .map(normalizePersistedWorkspaceNavigationEntry)
+      .filter((entry): entry is ChatWorkspaceNavigationEntry =>
+        entry !== null && entry.kind !== 'overview',
+      )
+    : [];
   const fallbackHistoryEntry = createWorkspaceNavigationEntryFromSnapshot({
     activeWorkspacePanelKind: resolvedActiveWorkspacePanelKind,
     activeChildSessionKey,
+    activeSideChatDraft: null,
     activeWorkspaceFileKey: resolvedActiveWorkspaceFileKey,
   });
   const normalizedNavigationHistory = Array.isArray(value.workspaceNavigationHistory)
@@ -320,6 +297,7 @@ function normalizePersistedWorkspaceSnapshot(
     activeChildSessionKey,
     workspaceFileTabs,
     activeWorkspaceFileKey: resolvedActiveWorkspaceFileKey,
+    closedWorkspaceTabEntries,
     workspaceNavigationHistory,
     workspaceNavigationHistoryIndex,
     workspacePanelWidth: normalizeChatWorkspacePanelWidth(
@@ -369,6 +347,8 @@ export const useChatThreadStore = create<ChatThreadStore>()(
             )
               .map(toPersistedWorkspaceFileTab),
             activeWorkspaceFileKey: state.snapshot.activeWorkspaceFileKey,
+            closedWorkspaceTabEntries: state.snapshot.closedWorkspaceTabEntries
+              .filter((entry) => entry.kind !== 'overview' && entry.kind !== 'side-chat-draft'),
             workspaceNavigationHistory,
             workspaceNavigationHistoryIndex,
             workspacePanelWidth: state.snapshot.workspacePanelWidth,

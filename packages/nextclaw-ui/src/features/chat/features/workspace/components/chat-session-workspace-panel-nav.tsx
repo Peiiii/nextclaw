@@ -84,7 +84,11 @@ function buildCompactWorkspaceTabs(
         </span>
       ) : null,
     unreadIndicator: tab.showUnreadDot ? <span aria-label={t("chatSessionUnread")} className="h-2 w-2 shrink-0 rounded-full bg-primary" /> : null,
-    closeLabel: t("chatWorkspaceCloseFile"),
+    closeLabel: `${
+      tab.kind === "file"
+        ? t("chatWorkspaceCloseFile")
+        : t("chatWorkspaceCloseTab")
+    }: ${tab.title}`,
     closePlacement: "leading-hover",
     onSelect: tab.onSelect,
     onClose: tab.onClose,

@@ -65,6 +65,7 @@
   "chatWorkspaceFileMoreActions": "文件操作",
   "chatWorkspaceDiff": "Diff",
   "chatWorkspaceCloseFile": "关闭文件",
+  "chatWorkspaceCloseTab": "关闭标签页",
   "chatWorkspaceLoadingPreview": "正在加载预览…",
   "chatWorkspaceLoadingFile": "正在加载文件…",
   "chatWorkspaceLoadingDirectory": "正在加载目录…",

@@ -39,6 +39,7 @@ export class ChatSessionListManager {
       childSessionTabs: [],
       activeChildSessionKey: null,
       activeWorkspaceFileKey: null,
+      closedWorkspaceTabEntries: [],
       workspaceNavigationHistory: [],
       workspaceNavigationHistoryIndex: 0,
     });

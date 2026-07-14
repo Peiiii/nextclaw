@@ -24,6 +24,7 @@ describe('ChatThreadManager workspace pages', () => {
         activeWorkspacePanelKind: null,
         activeChildSessionKey: null,
         activeWorkspaceFileKey: null,
+        closedWorkspaceTabEntries: [],
         workspaceNavigationHistory: [],
         workspaceNavigationHistoryIndex: 0,
       },
@@ -71,6 +72,30 @@ describe('ChatThreadManager workspace pages', () => {
     expect(useChatThreadStore.getState().snapshot).toMatchObject({
       workspacePanelParentKey: null,
       activeWorkspacePanelKind: null,
+    });
+  });
+
+  it('closes a workspace page, restores overview, and reopens the page on demand', () => {
+    const manager = new ChatThreadManager(
+      createUiManager(),
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+    );
+
+    manager.openWorkspaceOverview('parent-session-1');
+    manager.openProjectFiles('parent-session-1');
+    manager.closeWorkspaceTab({ kind: 'project-files' });
+
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      activeWorkspacePanelKind: 'overview',
+      closedWorkspaceTabEntries: [{ kind: 'project-files' }],
+      workspaceNavigationHistory: [{ kind: 'overview' }],
+      workspaceNavigationHistoryIndex: 0,
+    });
+
+    manager.openProjectFiles('parent-session-1');
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      activeWorkspacePanelKind: 'project-files',
+      closedWorkspaceTabEntries: [],
     });
   });
 });

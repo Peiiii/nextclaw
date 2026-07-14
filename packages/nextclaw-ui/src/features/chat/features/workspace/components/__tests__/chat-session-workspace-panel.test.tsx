@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   syncVisibleWorkspaceSelection: vi.fn(),
   selectChildSessionDetail: vi.fn(),
   selectWorkspaceFile: vi.fn(),
-  closeWorkspaceFile: vi.fn(),
+  closeWorkspaceTab: vi.fn(),
   openSessionCronPanel: vi.fn(),
   goBackWorkspacePanel: vi.fn(),
   goForwardWorkspacePanel: vi.fn(),
@@ -72,6 +72,7 @@ function renderPanel(displayMode: "docked" | "overlay" = "docked") {
       activeSideChatDraft={null}
       workspaceFileTabs={[fileTab]}
       activeWorkspaceFileKey={fileTab.key}
+      closedWorkspaceTabEntries={[]}
       workspaceNavigationHistory={[{ kind: "file", key: fileTab.key }]}
       workspaceNavigationHistoryIndex={0}
       activePanelKind="file"

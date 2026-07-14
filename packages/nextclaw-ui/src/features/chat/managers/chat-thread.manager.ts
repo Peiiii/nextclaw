@@ -24,13 +24,13 @@ import { normalizeChatWorkspacePanelWidth } from '@/features/chat/features/works
 import { t } from '@/shared/lib/i18n';
 import {
   areWorkspaceNavigationEntriesEqual,
+  closeWorkspaceTabSnapshot,
   createWorkspaceSelectionPatch,
   createSideChatDraft,
   materializeSideChatDraftSnapshot,
   upsertChildSessionTab,
 } from '@/features/chat/features/workspace/utils/chat-thread-workspace-session.utils';
 import {
-  filterNavigationHistoryEntries,
   pushNavigationHistoryEntry,
   stepNavigationHistory,
 } from '@/shared/lib/navigation-history';
@@ -96,6 +96,7 @@ export class ChatThreadManager {
       activeSideChatDraft: null,
       workspaceFileTabs: [],
       activeWorkspaceFileKey: null,
+      closedWorkspaceTabEntries: [],
       workspaceNavigationHistory: [],
       workspaceNavigationHistoryIndex: 0,
     });
@@ -163,8 +164,16 @@ export class ChatThreadManager {
       entry,
       areWorkspaceNavigationEntriesEqual,
     );
+    const closedWorkspaceTabEntries =
+      patch.workspacePanelParentKey &&
+      patch.workspacePanelParentKey !== snapshot.workspacePanelParentKey
+        ? []
+        : snapshot.closedWorkspaceTabEntries.filter(
+            (candidate) => !areWorkspaceNavigationEntriesEqual(candidate, entry),
+          );
     useChatThreadStore.getState().setSnapshot({
       ...patch,
+      closedWorkspaceTabEntries,
       workspaceNavigationHistory: [...history.entries],
       workspaceNavigationHistoryIndex: history.index,
     });
@@ -461,44 +470,12 @@ export class ChatThreadManager {
     });
   };
 
-  closeWorkspaceFile = (fileKey: string) => {
-    const normalizedFileKey = fileKey.trim();
-    if (!normalizedFileKey) {
-      return;
-    }
+  closeWorkspaceTab = (entry: ChatWorkspaceNavigationEntry) => {
     const { snapshot } = useChatThreadStore.getState();
-    const { activeWorkspaceFileKey, workspaceFileTabs } = snapshot;
-    const nextTabs = workspaceFileTabs.filter(
-      (tab) => tab.key !== normalizedFileKey,
-    );
-    const history = filterNavigationHistoryEntries(
-      {
-        entries: snapshot.workspaceNavigationHistory,
-        index: snapshot.workspaceNavigationHistoryIndex,
-      },
-      (entry) => entry.kind !== 'file' || entry.key !== normalizedFileKey,
-    );
-    const nextPatch: Partial<ChatThreadSnapshot> = {
-      workspaceFileTabs: nextTabs,
-      workspaceNavigationHistory: [...history.entries],
-      workspaceNavigationHistoryIndex: history.index,
-    };
-    if (activeWorkspaceFileKey === normalizedFileKey) {
-      const nextSnapshot = {
-        ...snapshot,
-        workspaceFileTabs: nextTabs,
-      };
-      const restoreEntry = history.entries[history.index];
-      const restorePatch = restoreEntry
-        ? createWorkspaceSelectionPatch(restoreEntry, nextSnapshot)
-        : null;
-      Object.assign(nextPatch, restorePatch ?? {
-        activeWorkspacePanelKind: null,
-        activeSideChatDraft: null,
-        activeWorkspaceFileKey: null,
-      });
+    const patch = closeWorkspaceTabSnapshot(snapshot, entry);
+    if (patch) {
+      useChatThreadStore.getState().setSnapshot(patch);
     }
-    useChatThreadStore.getState().setSnapshot(nextPatch);
   };
 
   closeWorkspacePanel = () => {
@@ -508,6 +485,7 @@ export class ChatThreadManager {
       activeChildSessionKey: null,
       activeSideChatDraft: null,
       activeWorkspaceFileKey: null,
+      closedWorkspaceTabEntries: [],
       workspaceNavigationHistory: [],
       workspaceNavigationHistoryIndex: 0,
     });

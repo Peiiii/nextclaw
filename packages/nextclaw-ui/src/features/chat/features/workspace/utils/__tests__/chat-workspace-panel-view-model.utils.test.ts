@@ -105,6 +105,72 @@ describe("resolveWorkspaceSelection", () => {
 });
 
 describe("buildWorkspaceTabsViewModel", () => {
+  it("keeps overview fixed while every other visible workspace tab is closable", () => {
+    const childTab = createChildTab();
+    const draft = {
+      draftKey: "draft-1",
+      parentSessionKey: "parent-1",
+    };
+    const fileTab = {
+      key: "file-1",
+      parentSessionKey: "parent-1",
+      path: "README.md",
+      viewMode: "preview" as const,
+    };
+    const onCloseTab = vi.fn();
+    const tabs = buildWorkspaceTabsViewModel({
+      resolvedChildTabs: [childTab],
+      activeSideChatDraft: draft,
+      closedWorkspaceTabEntries: [],
+      workspaceFileTabs: [fileTab],
+      activeSelection: { kind: "overview" },
+      optimisticReadAtBySessionKey: {},
+      onSelectSession: vi.fn(),
+      onSelectFile: vi.fn(),
+      onOpenFileViewer: vi.fn(),
+      onCloseTab,
+      onSelectOverview: vi.fn(),
+      onSelectChildSessions: vi.fn(),
+      onSelectProjectFiles: vi.fn(),
+      onSelectCronJobs: vi.fn(),
+    });
+
+    expect(tabs.find((tab) => tab.kind === "overview")?.onClose).toBeUndefined();
+    expect(
+      tabs.filter((tab) => tab.kind !== "overview").every((tab) => tab.onClose),
+    ).toBe(true);
+    tabs.find((tab) => tab.kind === "cron")?.onClose?.();
+    expect(onCloseTab).toHaveBeenCalledWith({ kind: "cron" });
+  });
+
+  it("does not project workspace tabs that the user closed", () => {
+    const tabs = buildWorkspaceTabsViewModel({
+      resolvedChildTabs: [createChildTab()],
+      activeSideChatDraft: null,
+      closedWorkspaceTabEntries: [
+        { kind: "project-files" },
+        { kind: "child-session", key: "child-1" },
+      ],
+      workspaceFileTabs: [],
+      activeSelection: { kind: "overview" },
+      optimisticReadAtBySessionKey: {},
+      onSelectSession: vi.fn(),
+      onSelectFile: vi.fn(),
+      onOpenFileViewer: vi.fn(),
+      onCloseTab: vi.fn(),
+      onSelectOverview: vi.fn(),
+      onSelectChildSessions: vi.fn(),
+      onSelectProjectFiles: vi.fn(),
+      onSelectCronJobs: vi.fn(),
+    });
+
+    expect(tabs.map((tab) => tab.key)).toEqual([
+      "overview",
+      "child-sessions",
+      "cron:session",
+    ]);
+  });
+
   it("builds active and unread state from resolved tabs", () => {
     const childTab = createChildTab({
       lastMessageAt: "2026-06-09T10:00:00.000Z",
@@ -115,13 +181,14 @@ describe("buildWorkspaceTabsViewModel", () => {
     const tabs = buildWorkspaceTabsViewModel({
       resolvedChildTabs: [childTab],
       activeSideChatDraft: null,
+      closedWorkspaceTabEntries: [],
       workspaceFileTabs: [],
       activeSelection: null,
       optimisticReadAtBySessionKey: {},
       onSelectSession,
       onSelectFile: vi.fn(),
       onOpenFileViewer: vi.fn(),
-      onCloseFile: vi.fn(),
+      onCloseTab: vi.fn(),
       onSelectOverview: vi.fn(),
       onSelectChildSessions: vi.fn(),
       onSelectProjectFiles: vi.fn(),
@@ -150,6 +217,7 @@ describe("buildWorkspaceTabsViewModel", () => {
     const tabs = buildWorkspaceTabsViewModel({
       resolvedChildTabs: [childTab],
       activeSideChatDraft: draft,
+      closedWorkspaceTabEntries: [],
       workspaceFileTabs: [],
       activeSelection: {
         kind: "side-chat-draft",
@@ -159,7 +227,7 @@ describe("buildWorkspaceTabsViewModel", () => {
       onSelectSession: vi.fn(),
       onSelectFile: vi.fn(),
       onOpenFileViewer: vi.fn(),
-      onCloseFile: vi.fn(),
+      onCloseTab: vi.fn(),
       onSelectOverview: vi.fn(),
       onSelectChildSessions: vi.fn(),
       onSelectProjectFiles: vi.fn(),
@@ -202,6 +270,7 @@ describe("buildWorkspaceTabsViewModel", () => {
     const tabs = buildWorkspaceTabsViewModel({
       resolvedChildTabs: [],
       activeSideChatDraft: null,
+      closedWorkspaceTabEntries: [],
       workspaceFileTabs: [sourceTab, renderedTab],
       activeSelection: {
         kind: "file",
@@ -211,7 +280,7 @@ describe("buildWorkspaceTabsViewModel", () => {
       onSelectSession: vi.fn(),
       onSelectFile: vi.fn(),
       onOpenFileViewer,
-      onCloseFile: vi.fn(),
+      onCloseTab: vi.fn(),
       onSelectOverview: vi.fn(),
       onSelectChildSessions: vi.fn(),
       onSelectProjectFiles: vi.fn(),

@@ -28,6 +28,7 @@ function resetChatThreadStore() {
       activeSideChatDraft: null,
       workspaceFileTabs: [],
       activeWorkspaceFileKey: null,
+      closedWorkspaceTabEntries: [],
       workspaceNavigationHistory: [],
       workspaceNavigationHistoryIndex: 0,
       workspacePanelWidth: CHAT_WORKSPACE_PANEL_DEFAULT_WIDTH,
@@ -64,6 +65,10 @@ describe('chat thread workspace panel persistence', () => {
         },
       ],
       activeWorkspaceFileKey: 'session-1::preview::README.md',
+      closedWorkspaceTabEntries: [
+        { kind: 'project-files' },
+        { kind: 'child-session', key: 'child-session-2' },
+      ],
       workspaceNavigationHistory: [
         { kind: 'child-session', key: 'child-session-1' },
         { kind: 'file', key: 'session-1::preview::README.md' },
@@ -79,6 +84,10 @@ describe('chat thread workspace panel persistence', () => {
       workspacePanelParentKey: 'session-1',
       activeWorkspacePanelKind: 'file',
       activeWorkspaceFileKey: 'session-1::preview::README.md',
+      closedWorkspaceTabEntries: [
+        { kind: 'project-files' },
+        { kind: 'child-session', key: 'child-session-2' },
+      ],
       workspaceNavigationHistory: [
         { kind: 'child-session', key: 'child-session-1' },
         { kind: 'file', key: 'session-1::preview::README.md' },

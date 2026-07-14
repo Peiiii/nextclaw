@@ -65,6 +65,7 @@
   "chatWorkspaceFileMoreActions": "File actions",
   "chatWorkspaceDiff": "Diff",
   "chatWorkspaceCloseFile": "Close file",
+  "chatWorkspaceCloseTab": "Close tab",
   "chatWorkspaceLoadingPreview": "Loading preview…",
   "chatWorkspaceLoadingFile": "Loading file…",
   "chatWorkspaceLoadingDirectory": "Loading directory…",
