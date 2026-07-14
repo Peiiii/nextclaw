@@ -16,6 +16,7 @@
 
 - `nextclaw-release-notes-automation` 明确稳定 NPM minor 发布前必须补齐文档站版本更新笔记。
 - `npm-release-contract-guard` 明确稳定 `nextclaw` minor 发布必须先有文档站产品更新笔记，runtime manifest 继续要求 `releaseNotesUrl`。
+- `npm-runtime-update-release` stable channel 现在从文档站结构化 release note JSON 读取 `releaseNotesUrl`，本地 stable runtime 发布脚本会同步校验公开 manifest 的 `releaseNotesUrl`。
 
 ## 测试/验证/验收方式
 
@@ -28,12 +29,16 @@
 - `PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH COREPACK_ENABLE_DOWNLOAD_PROMPT=0 CI=true pnpm release:check`：通过本批发布包 build / tsc；release check 未启用 lint，输出仅有既有第三方依赖与 bundle size warning。
 - `COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm docs:i18n:check`：通过，确认中英文 notes 镜像完整。
 - `COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @nextclaw/docs build`：通过，确认文档站可构建并生成包含 v0.23.0 note 的 project pulse 数据。
-
-待发布闭环继续执行：
-
-- release check / npm publish / registry verify。
-- stable runtime manifest 更新与公开 URL 验证。
-- docs site 部署与公开页面验证。
+- `PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH COREPACK_ENABLE_DOWNLOAD_PROMPT=0 CI=true pnpm release:publish`：通过，`release:verify:published` 确认 `22/22` 个 public package version 已发布。
+- `git push origin tag <tag>`：已推送本批 `22` 个 npm package tags。
+- `npm view nextclaw version dist-tags --json`：确认发布后 `latest` 为 `0.23.0`。
+- `npm --prefix <temp> install nextclaw@0.23.0 --ignore-scripts --no-audit --no-fund`：通过，临时安装包为 `nextclaw@0.23.0`。
+- `PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH COREPACK_ENABLE_DOWNLOAD_PROMPT=0 CI=true pnpm release:stable:runtime -- --version 0.23.0 --release-tag nextclaw@0.23.0`：通过，workflow `29355385854` 完成，公开 stable manifests 为 `latestVersion=0.23.0`。
+- `curl https://peiiii.github.io/nextclaw/npm-runtime-updates/stable/manifest-stable-darwin-arm64.json`：确认 `releaseNotesUrl=https://docs.nextclaw.io/en/notes/2026-07-15-nextclaw-v0-23-0`。
+- `PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH COREPACK_ENABLE_DOWNLOAD_PROMPT=0 CI=true pnpm deploy:docs:global`：在临时干净 worktree 中通过，Cloudflare Pages deployment 为 `https://57c72713.nextclaw-docs.pages.dev`。
+- `curl https://docs.nextclaw.io/zh/notes/2026-07-15-nextclaw-v0-23-0` 与英文页面：确认文档站更新笔记公开可访问。
+- `curl https://docs.nextclaw.io/release-notes/nextclaw-v0.23.0.json`：确认结构化 release notes 在文档站公开可访问，`version=0.23.0`、`releaseType=minor`。
+- `curl https://docs.nextclaw.io/release-notes/nextclaw-v0.23.0-mermaid-preview.png`：确认截图资产公开可访问，`content-type=image/png`。
 
 验证环境说明：
 
@@ -76,31 +81,31 @@
 
 目标主包：
 
-- `nextclaw@0.23.0`：minor，待发布。
+- `nextclaw@0.23.0`：minor，已发布。
 
 本批 public workspace packages：
 
-- `@nextclaw/companion@0.2.5`：待发布。
-- `@nextclaw/channel-extension-dingtalk@0.2.4`：待发布。
-- `@nextclaw/channel-extension-discord@0.2.4`：待发布。
-- `@nextclaw/channel-extension-email@0.2.4`：待发布。
-- `@nextclaw/channel-extension-slack@0.2.4`：待发布。
-- `@nextclaw/channel-extension-telegram@0.2.4`：待发布。
-- `@nextclaw/channel-extension-wecom@0.2.4`：待发布。
-- `@nextclaw/channel-extension-whatsapp@0.2.4`：待发布。
-- `@nextclaw/nextclaw-narp-runtime-opencode@0.2.5`：待发布。
-- `@nextclaw/ncp-mcp@0.2.4`：待发布。
-- `@nextclaw/agent-chat-ui@0.6.5`：待发布。
-- `@nextclaw/client-sdk@0.5.5`：待发布。
-- `@nextclaw/core@0.15.4`：待发布。
-- `@nextclaw/kernel@0.6.5`：待发布。
-- `@nextclaw/mcp@0.3.4`：待发布。
-- `@nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.5`：待发布。
-- `@nextclaw/remote@0.3.5`：待发布。
-- `@nextclaw/runtime@0.4.4`：待发布。
-- `@nextclaw/server@0.15.5`：待发布。
-- `@nextclaw/service@0.3.5`：待发布。
-- `@nextclaw/ui@0.15.5`：待发布。
+- `@nextclaw/companion@0.2.5`：已发布。
+- `@nextclaw/channel-extension-dingtalk@0.2.4`：已发布。
+- `@nextclaw/channel-extension-discord@0.2.4`：已发布。
+- `@nextclaw/channel-extension-email@0.2.4`：已发布。
+- `@nextclaw/channel-extension-slack@0.2.4`：已发布。
+- `@nextclaw/channel-extension-telegram@0.2.4`：已发布。
+- `@nextclaw/channel-extension-wecom@0.2.4`：已发布。
+- `@nextclaw/channel-extension-whatsapp@0.2.4`：已发布。
+- `@nextclaw/nextclaw-narp-runtime-opencode@0.2.5`：已发布。
+- `@nextclaw/ncp-mcp@0.2.4`：已发布。
+- `@nextclaw/agent-chat-ui@0.6.5`：已发布。
+- `@nextclaw/client-sdk@0.5.5`：已发布。
+- `@nextclaw/core@0.15.4`：已发布。
+- `@nextclaw/kernel@0.6.5`：已发布。
+- `@nextclaw/mcp@0.3.4`：已发布。
+- `@nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.5`：已发布。
+- `@nextclaw/remote@0.3.5`：已发布。
+- `@nextclaw/runtime@0.4.4`：已发布。
+- `@nextclaw/server@0.15.5`：已发布。
+- `@nextclaw/service@0.3.5`：已发布。
+- `@nextclaw/ui@0.15.5`：已发布。
 
 私有版本元数据：
 
