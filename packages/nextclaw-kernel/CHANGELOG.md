@@ -1,5 +1,18 @@
 # @nextclaw/kernel
 
+## 0.6.5
+
+### Patch Changes
+
+- 378c8b9: 优化 Agent 最终回复的展示组织，统一 Markdown、内联展示与侧栏展示提示；聊天消息现在支持稳定的流式 Mermaid 图表，并允许复制用户消息。
+- 401854e: 聊天框斜杠选择器、底部技能选择器和 Agent 上下文现在会区分项目、NextClaw、全局与内建技能来源；项目技能从项目 `.agents/skills` 加载，项目 `AGENTS.md` 也会随会话上下文生效。
+- Updated dependencies [401854e]
+  - @nextclaw/core@0.15.4
+  - @nextclaw/mcp@0.3.4
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.5
+  - @nextclaw/runtime@0.4.4
+  - @nextclaw/ncp-mcp@0.2.4
+
 ## 0.6.4
 
 ### Patch Changes

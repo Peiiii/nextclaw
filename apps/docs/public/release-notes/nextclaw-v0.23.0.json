@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.23.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-07-15",
+  "title": {
+    "zh-CN": "NextClaw v0.23.0",
+    "en-US": "NextClaw v0.23.0"
+  },
+  "summary": {
+    "zh-CN": "本版本改进 Agent 输出展示、项目技能上下文、会话工作区标签页、本地资源预览和更新异常说明。",
+    "en-US": "This release improves Agent output rendering, project skill context, workspace tabs, local resource previews, and update diagnostics."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-15-nextclaw-v0-23-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-15-nextclaw-v0-23-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "功能",
+        "en-US": "Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "更稳定的 Mermaid 图表",
+            "en-US": "More stable Mermaid diagrams"
+          },
+          "body": {
+            "zh-CN": "聊天消息支持更稳定的流式 Mermaid 图表，Agent 输出中的 Markdown、内联展示和侧栏展示提示也更统一。",
+            "en-US": "Chat messages support more stable streaming Mermaid diagrams, with more consistent Markdown, inline content, and sidebar presentation hints."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "项目技能来源进入上下文",
+            "en-US": "Project skill sources in context"
+          },
+          "body": {
+            "zh-CN": "斜杠选择器、底部技能选择器和 Agent 上下文会区分项目、NextClaw、全局与内建技能来源。",
+            "en-US": "The slash selector, bottom skill selector, and Agent context distinguish project, NextClaw, global, and built-in skill sources."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "可关闭的会话工作区标签页",
+            "en-US": "Closable session workspace tabs"
+          },
+          "body": {
+            "zh-CN": "会话工作区支持关闭概览之外的页面、子会话、草稿和文件标签页，并可从概览重新打开。",
+            "en-US": "The session workspace can close pages, child sessions, drafts, and file tabs beyond the overview, then reopen them from the overview."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "本地资源预览更完整",
+            "en-US": "More complete local resource previews"
+          },
+          "body": {
+            "zh-CN": "Markdown 文件链接和 nextclaw-inline 文件目标会复用工作台预览能力，覆盖代码、图片、媒体、PDF 与 Office 文件。",
+            "en-US": "Markdown file links and nextclaw-inline file targets reuse the workspace preview surface for code, images, media, PDF, and Office files."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "更易扫读的 Agent 回复",
+            "en-US": "More scannable Agent responses"
+          },
+          "body": {
+            "zh-CN": "用户消息可以复制，最终回复的正文、内联内容和侧栏提示更容易扫读。",
+            "en-US": "User messages can be copied, and final Agent responses are easier to scan across body text, inline content, and sidebar hints."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "流式输出期间的状态保持",
+            "en-US": "State preservation during streaming"
+          },
+          "body": {
+            "zh-CN": "输入框同步、连续删除、历史 Markdown 和内联 Panel App 在流式输出或动态 renderer 变化时更少打断当前交互。",
+            "en-US": "Composer synchronization, repeated deletion, historical Markdown, and inline Panel Apps interrupt current interaction less during streaming or dynamic renderer changes."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "更新异常说明可见",
+            "en-US": "Visible update diagnostics"
+          },
+          "body": {
+            "zh-CN": "版本号旁的更新异常图标会在悬停或键盘聚焦时展示完整原因、诊断信息和恢复命令。",
+            "en-US": "The update warning icon next to the version number exposes the full reason, diagnostics, and recovery command on hover or keyboard focus."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需手动迁移",
+            "en-US": "No manual migration"
+          },
+          "body": {
+            "zh-CN": "本版本不需要手动迁移。",
+            "en-US": "No manual migration is required."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "NPM stable 更新",
+            "en-US": "NPM stable update"
+          },
+          "body": {
+            "zh-CN": "NPM 安装用户可以继续通过 stable 更新链路，或重新安装 nextclaw@latest 获取本版本。",
+            "en-US": "NPM users can continue through the stable update path or reinstall nextclaw@latest to get this release."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -48,6 +48,7 @@ description: 当用户要求提交、收尾、统一 NPM 发布、GitHub release
 2. 聚合受影响 packages、semver bump 和用户可读摘要，作为写作底稿。
 3. 判断是否需要用户可见版本更新笔记：
    - 只要本批包含用户会感知的产品变化，并且发布结果会进入用户安装、自动更新、GitHub release、官网/docs 或 update manifest，就必须生成或更新版本更新笔记。
+   - 稳定 NPM minor 发布是强制项：只要 `nextclaw` 的稳定版本从 `0.x.y` 升到下一个 minor（例如 `0.22.x -> 0.23.0`），发布前必须补齐文档站版本更新笔记，不能用 changeset、GitHub release 或 npm changelog 代替。
    - 如果本批只有内部治理、测试、纯发布元数据或无用户可见变化，可以不生成，但发布报告必须写明“不适用”的原因。
 4. 需要版本更新笔记时，联动 `product-blog-storytelling`，由 AI 基于证据手写短文，不把写作讨论、分类依据、模板解释或内部治理内容写进正文。
 5. 默认落点：
@@ -80,6 +81,7 @@ description: 当用户要求提交、收尾、统一 NPM 发布、GitHub release
   - 人类页面和结构化 JSON 的分类、条目和主结论一致；
   - 笔记没有包含不应公开的内部治理内容；
   - docs index 已更新；
+  - 稳定 NPM minor 发布已补齐中英文文档站笔记和结构化 JSON；若任一项缺失，发布不得继续，除非用户明确接受延期并把缺口写入发布报告；
   - `apps/docs/public/_headers` 允许 `/release-notes/*.json` 被产品跨域拉取；
   - update manifest / GitHub release 的 release notes URL 能指向它或等价页面。
 

@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-extension-discord",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": false,
   "description": "NextClaw Discord channel extension process.",
   "type": "module",

@@ -1,5 +1,26 @@
 # nextclaw
 
+## 0.23.0
+
+### Minor Changes
+
+- 401854e: 聊天框斜杠选择器、底部技能选择器和 Agent 上下文现在会区分项目、NextClaw、全局与内建技能来源；项目技能从项目 `.agents/skills` 加载，项目 `AGENTS.md` 也会随会话上下文生效。
+
+### Patch Changes
+
+- Updated dependencies [378c8b9]
+- Updated dependencies [c01ca0a]
+- Updated dependencies [401854e]
+  - @nextclaw/kernel@0.6.5
+  - @nextclaw/server@0.15.5
+  - @nextclaw/core@0.15.4
+  - @nextclaw/remote@0.3.5
+  - @nextclaw/service@0.3.5
+  - @nextclaw/mcp@0.3.4
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.5
+  - @nextclaw/runtime@0.4.4
+  - @nextclaw/ncp-mcp@0.2.4
+
 ## 0.22.4
 
 ### Patch Changes

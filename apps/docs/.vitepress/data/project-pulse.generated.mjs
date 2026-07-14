@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-07-14T05:09:08.533Z",
+  "generatedAt": "2026-07-14T17:39:19.382Z",
   "hero": {
     "currentLoc": 202430,
     "testLoc": 67816,
     "trackedFiles": 2174,
-    "recentCommitCount": 202,
+    "recentCommitCount": 206,
     "activeDays30": 30,
-    "recentReleaseCount": 43,
+    "recentReleaseCount": 44,
     "latestReleaseDate": "2026-07-14",
-    "latestNoteDate": "2026-07-14",
+    "latestNoteDate": "2026-07-15",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2062958,
     "basePercentOfBenchmark": 9.81,
@@ -1093,7 +1093,7 @@ export default {
       {
         "key": "2026-07-14",
         "label": "07-14",
-        "value": 15
+        "value": 19
       }
     ],
     "commitWeekly": [
@@ -1155,7 +1155,7 @@ export default {
       {
         "key": "2026-07-13",
         "label": "07-13",
-        "value": 44
+        "value": 54
       }
     ],
     "releaseMonthly": [
@@ -1212,7 +1212,7 @@ export default {
       {
         "key": "2026-06",
         "label": "06/26",
-        "value": 13
+        "value": 14
       },
       {
         "key": "2026-07",
@@ -1289,7 +1289,7 @@ export default {
     "recentReleaseBatches": [
       {
         "date": "2026-07-14",
-        "tagCount": 20,
+        "tagCount": 19,
         "sampleTags": [
           "@nextclaw/agent-chat-ui@0.6.4",
           "@nextclaw/channel-extension-feishu@0.2.4",
@@ -1298,7 +1298,7 @@ export default {
       },
       {
         "date": "2026-07-13",
-        "tagCount": 57,
+        "tagCount": 49,
         "sampleTags": [
           "@nextclaw/agent-chat-ui@0.6.3",
           "@nextclaw/agent-chat@0.3.2",
@@ -1316,17 +1316,20 @@ export default {
       },
       {
         "date": "2026-07-06",
-        "tagCount": 2,
+        "tagCount": 45,
         "sampleTags": [
-          "v0.22.1-desktop-beta.1",
-          "v0.22.1-desktop.1"
+          "@nextclaw/agent-chat-ui@0.6.1",
+          "@nextclaw/channel-extension-dingtalk@0.2.1",
+          "@nextclaw/channel-extension-discord@0.2.1"
         ]
       },
       {
         "date": "2026-07-05",
-        "tagCount": 1,
+        "tagCount": 50,
         "sampleTags": [
-          "v0.22.0-desktop.1"
+          "@nextclaw/agent-chat-ui@0.6.0",
+          "@nextclaw/agent-chat@0.3.0",
+          "@nextclaw/aigen@0.2.0"
         ]
       },
       {
@@ -1342,6 +1345,25 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-07-15-nextclaw-v0-23-0",
+        "date": "2026-07-15",
+        "tags": [
+          "release",
+          "npm",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-07-15 · NextClaw v0.23.0",
+          "description": "NextClaw v0.23.0 improves Agent output rendering, project skill context, workspace tabs, and local resource previews.",
+          "href": "/en/notes/2026-07-15-nextclaw-v0-23-0"
+        },
+        "zh": {
+          "title": "2026-07-15 · NextClaw v0.23.0",
+          "description": "NextClaw v0.23.0 改进 Agent 输出展示、项目技能上下文、会话工作区标签页和本地资源预览。",
+          "href": "/zh/notes/2026-07-15-nextclaw-v0-23-0"
+        }
+      },
       {
         "slug": "2026-07-14-nextclaw-v0-22-4",
         "date": "2026-07-14",
@@ -1618,7 +1640,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-07-14T05:09:06.930Z",
     "sourceCount": {
-      "notes": 10,
+      "notes": 11,
       "scopes": 8
     }
   }

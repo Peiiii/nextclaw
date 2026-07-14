@@ -32,7 +32,7 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 - Do not treat `nextclaw` as a standalone CLI package. Its real installed behavior comes from the published dependency closure, especially runtime packages such as kernel, service, server, NCP packages, runtime adapters, and UI assets when applicable.
 - If `nextclaw` depends on a workspace package whose local source changed meaningfully, or whose local version has not been published, that package must be versioned and published in the same batch before `nextclaw`.
 - NPM runtime update manifests must use `hostKind: "npm-runtime-bundle"`.
-- NPM runtime update manifests must carry a meaningful `releaseNotesUrl` for user-visible release batches, following `nextclaw-release-notes-automation`; if no user-facing version note is required, the release report must state why.
+- NPM runtime update manifests must carry a meaningful `releaseNotesUrl` for user-visible release batches, following `nextclaw-release-notes-automation`; stable `nextclaw` minor releases must have docs-site product update notes before publishing, and if no user-facing version note is required for another batch, the release report must state why.
 - `minimumLauncherVersion` for NPM runtime bundles comes from `packages/nextclaw/npm-runtime-compatibility.json`.
 - Do not raise `minimumLauncherVersion` unless the launcher-side contract really broke.
 

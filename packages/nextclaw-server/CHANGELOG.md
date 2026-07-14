@@ -1,5 +1,18 @@
 # nextclaw-server
 
+## 0.15.5
+
+### Patch Changes
+
+- c01ca0a: 修复 Markdown `file:` 链接的渲染与行列定位：文件保持真实行号，大文件会读取目标行附近的内容，并在源码预览中滚动到目标位置；同时让 `nextclaw-inline` 文件目标在消息中复用现有工作台预览能力展示 HTML、Markdown、代码、图片、媒体、PDF 与 Office 文件。
+- 401854e: 聊天框斜杠选择器、底部技能选择器和 Agent 上下文现在会区分项目、NextClaw、全局与内建技能来源；项目技能从项目 `.agents/skills` 加载，项目 `AGENTS.md` 也会随会话上下文生效。
+- Updated dependencies [378c8b9]
+- Updated dependencies [401854e]
+  - @nextclaw/kernel@0.6.5
+  - @nextclaw/core@0.15.4
+  - @nextclaw/mcp@0.3.4
+  - @nextclaw/runtime@0.4.4
+
 ## 0.15.4
 
 ### Patch Changes

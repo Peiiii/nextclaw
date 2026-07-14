@@ -1,5 +1,12 @@
 # @nextclaw/channel-extension-dingtalk
 
+## 0.2.4
+
+### Patch Changes
+
+- Updated dependencies [401854e]
+  - @nextclaw/core@0.15.4
+
 ## 0.2.3
 
 ### Patch Changes
