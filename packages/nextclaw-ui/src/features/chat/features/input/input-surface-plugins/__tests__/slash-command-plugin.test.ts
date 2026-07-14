@@ -141,6 +141,49 @@ describe('createSlashCommandInputSurfacePlugin', () => {
     });
   });
 
+  it('preserves source groups while the skills filter includes every skill section', () => {
+    const state = resolveChatInputSurfaceState({
+      data: {
+        isPanelAppsLoading: false,
+        isSkillsLoading: false,
+        panelApps: [],
+        recentSkillValues: [],
+        skillRecords: [
+          {
+            key: 'project:review',
+            label: 'Review',
+            groupKey: 'project',
+            groupLabel: 'Project skills',
+          },
+          {
+            key: 'global:browser',
+            label: 'Browser',
+            groupKey: 'global',
+            groupLabel: 'Global skills',
+          },
+        ],
+      },
+      plugins: [createPlugin()],
+      trigger: {
+        key: 'slash',
+        marker: '/',
+        query: '',
+        start: 0,
+        end: 1,
+      },
+    });
+
+    expect(state.panel?.filterOptions?.find((filter) => filter.key === 'skills')).toEqual({
+      key: 'skills',
+      label: 'Skills',
+      sectionKeys: ['skills:project', 'skills:global'],
+    });
+    expect(state.panel?.items.filter((item) => item.key.startsWith('skill:'))).toMatchObject([
+      { sectionKey: 'skills:project', sectionLabel: 'Project skills' },
+      { sectionKey: 'skills:global', sectionLabel: 'Global skills' },
+    ]);
+  });
+
   it('runs a command item through the panel selection handler', () => {
     const onSelectCommand = vi.fn();
     const state = resolveChatInputSurfaceState({

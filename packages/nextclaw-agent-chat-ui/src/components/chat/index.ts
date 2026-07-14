@@ -58,6 +58,7 @@ export type {
   ChatToolbarSelect,
   ChatToolbarAccessory,
   ChatSkillPickerOption,
+  ChatSkillPickerOptionGroup,
   ChatSkillPickerProps,
   ChatInputBarActionsProps,
   ChatInputBarToolbarProps,

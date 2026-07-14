@@ -20,7 +20,7 @@ function renderActiveSkillsSection(
   }
   return [
     "# Active Skills",
-    "These always-on skills are already active for this session context.",
+    "These user-selected or always-on skills are active for this request.",
     "If an active skill covers the user's intent, follow it before considering unrelated available skills.",
     "For NextClaw self-management intents, read the built-in NextClaw self-management guide before loading any unrelated generic skill.",
     "Skill refs are unique identities; names may repeat.",
@@ -30,6 +30,24 @@ function renderActiveSkillsSection(
   ].join("\n\n");
 }
 
+function renderSkillSourcesSection(params: {
+  hostWorkspace: string;
+  projectSkillsRoot: string | null;
+}): string {
+  const projectRule = params.projectSkillsRoot
+    ? `- project: project-only skills. When creating or updating a skill specifically for this active project, use \`${params.projectSkillsRoot}/<skill-name>/SKILL.md\`.`
+    : "- project: no session-bound project is active, so do not invent a project skill location.";
+  return [
+    "## Skill Sources",
+    "Skills in <available_skills> are grouped by source.",
+    projectRule,
+    `- workspace: skills installed for NextClaw in \`${params.hostWorkspace}/skills\`.`,
+    "- global: user-wide Agent Skills loaded from ~/.agents/skills.",
+    "- builtin: skills packaged with NextClaw.",
+    "A project's AGENTS.md is loaded separately in Agent Bootstrap Context; it is not a skill.",
+  ].join("\n");
+}
+
 function renderAvailableSkillsSection(skills: SkillsLoader): string {
   const summary = skills.buildSkillsSummary();
   if (!summary) {
@@ -37,7 +55,7 @@ function renderAvailableSkillsSection(skills: SkillsLoader): string {
   }
   return [
     "## Skills (mandatory)",
-    "Always-on skills in <active_skills> take precedence over this list.",
+    "User-selected and always-on skills in <active_skills> take precedence over this list.",
     "Before replying: first check whether any entry in <available_skills> may be relevant to the user's intent, task type, or requested output. Do not skip this check just because the task seems familiar.",
     "- If one skill looks like the best relevant match, read its SKILL.md at <location> with `read_file`, then decide whether following it is actually helpful.",
     "- If a SKILL.md read says `Use offset=... to continue`, continue reading until the relevant trigger, required workflow, constraints, and output requirements are covered.",
@@ -71,15 +89,24 @@ export class SkillsContextProvider implements ContextProvider {
   provide = async (
     request: AgentRunRequest,
   ): Promise<readonly ContextBlock[]> => {
-    const { projectContext } = await this.context.resolve(request);
+    const { projectContext, runContext } = await this.context.resolve(request);
     const skills = new SkillsLoader({
       workspace: projectContext.hostWorkspace,
       projectRoot: projectContext.projectRoot,
+      includeGlobal: true,
     });
-    const blocks: ContextBlock[] = [];
-    const alwaysSkills = skills.getAlwaysSkills();
-    if (alwaysSkills.length) {
-      const activeSection = renderActiveSkillsSection(skills, alwaysSkills);
+    const blocks: ContextBlock[] = [
+      renderSkillSourcesSection({
+        hostWorkspace: projectContext.hostWorkspace,
+        projectSkillsRoot: projectContext.projectSkillsRoot,
+      }),
+    ];
+    const activeSkills = [
+      ...runContext.requestedSkills.selectors,
+      ...skills.getAlwaysSkills(),
+    ];
+    if (activeSkills.length) {
+      const activeSection = renderActiveSkillsSection(skills, activeSkills);
       if (activeSection) {
         blocks.push(activeSection);
       }

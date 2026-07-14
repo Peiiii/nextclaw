@@ -201,6 +201,17 @@ the agent reads REDLINING.md or OOXML.md only when the user needs those features
 
 ## Skill Creation Process
 
+### Choose the Target Scope First
+
+Use the user's intended ownership scope instead of placing every new skill in the same directory:
+
+- Project-specific skill: `<active-project>/.agents/skills/<skill-name>/SKILL.md`
+- NextClaw workspace skill: `<nextclaw-workspace>/skills/<skill-name>/SKILL.md`
+- User-wide global Agent Skill: `~/.agents/skills/<skill-name>/SKILL.md`
+- Built-in NextClaw skill: only modify the packaged built-in source when developing NextClaw itself
+
+When a session is bound to a project and the user asks for a project skill, use that project's `.agents/skills` directory. Keep project `AGENTS.md` as always-on project instructions; do not turn it into a skill or place skill bodies inside it.
+
 Skill creation involves these steps:
 
 1. Understand the skill with concrete examples

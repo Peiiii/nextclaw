@@ -18,6 +18,8 @@ export function buildAgentRunRequestMetadata(params: {
 
   return {
     ...structuredClone(session?.metadata ?? {}),
+    ...structuredClone(request.message.metadata ?? {}),
+    ...structuredClone(request.metadata ?? {}),
     agentId,
     projectRoot,
     project_root: projectRoot,

@@ -151,8 +151,8 @@ export type SkillInfo = {
   ref: string;
   name: string;
   path: string;
-  source: "builtin" | "project" | "workspace";
-  scope: "builtin" | "project" | "workspace";
+  source: "builtin" | "global" | "project" | "workspace";
+  scope: "builtin" | "global" | "project" | "workspace";
 };
 
 export type SkillsLoaderInstance = {
@@ -167,5 +167,7 @@ export type SkillsLoaderConstructor = new (
         workspace: string;
         projectRoot?: string | null;
         includeBuiltin?: boolean;
+        includeGlobal?: boolean;
+        globalSkillsRoot?: string;
       }
 ) => SkillsLoaderInstance;

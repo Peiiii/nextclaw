@@ -15,6 +15,15 @@ Skills 用于给 AI 增加特定任务规则或工作方式。它适合在你已
 3. 在相关任务中选择它。
 4. 对比启用前后的输出差异。
 
+## Skill 来源
+
+- 项目技能：`<project>/.agents/skills/`
+- NextClaw 技能：`<workspace>/skills/`
+- 全局 Agent Skill：`~/.agents/skills/`
+- 内建技能：随 NextClaw 提供
+
+技能选择器会按来源分组展示。会话绑定项目后，项目自己的 `AGENTS.md` 也会作为项目指令加载。
+
 ## 注意
 
 Skill 不是第一次跑通的必要条件。  

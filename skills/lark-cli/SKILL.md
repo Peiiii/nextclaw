@@ -32,10 +32,12 @@ Always distinguish these three things before taking action:
   `npm install -g @larksuite/cli`
 - NextClaw runtime skill install:
   the selectable skill must exist at `<workspace>/skills/lark-cli/SKILL.md`
+- Global Agent Skill install:
+  a user-wide skill may exist at `~/.agents/skills/<skill-name>/SKILL.md`
 - This repo's source skill:
   `skills/lark-cli/SKILL.md` inside the NextClaw repository
 
-NextClaw loads skills from the workspace `skills/` directory, not from npm global Agent Skill locations.
+NextClaw loads both workspace skills and global Agent Skills. They appear as separate sources in the skill picker and keep separate installation/update lifecycles.
 
 Default NextClaw workspace:
 
@@ -55,13 +57,13 @@ If the user wants the skill installed into a specific project or workspace, inst
 nextclaw skills install lark-cli --workdir <workspace>
 ```
 
-Do not treat this upstream command as a NextClaw skill install:
+Do not treat this upstream command as a NextClaw marketplace or workspace install:
 
 ```bash
 npx skills add larksuite/cli -y -g
 ```
 
-That upstream command installs upstream Agent Skill assets globally. It does not put the skill into NextClaw's `<workspace>/skills/` directory, so it does not make the skill selectable inside NextClaw by itself.
+That upstream command installs upstream Agent Skill assets globally. When it writes to `~/.agents/skills/`, NextClaw can show the result under `Global skills`, but it does not install the NextClaw-packaged `lark-cli` skill or join the NextClaw marketplace lifecycle.
 
 ## Deterministic Integration Recipe
 
@@ -234,7 +236,7 @@ Use this checklist literally:
 ## Do Not Do These Things
 
 - Do not confuse "skill installed into NextClaw workspace" with "`lark-cli` binary installed globally".
-- Do not use `npx skills add larksuite/cli -y -g` as a NextClaw skill install step.
+- Do not use `npx skills add larksuite/cli -y -g` as a substitute for the NextClaw-packaged `lark-cli` skill.
 - Do not start a second `config init --new` while the first one is still waiting.
 - Do not start repeated `auth login` commands when one `--device-code` polling process is already active.
 - Do not declare success from browser completion alone.
@@ -308,8 +310,8 @@ Upstream documents installing additional Agent Skill files globally:
 npx skills add larksuite/cli -y -g
 ```
 
-Treat this as optional unless the user is following upstream tutorials that assume those files exist, or the CLI reports missing skill assets. Do not present it as a NextClaw marketplace replacement; it is an upstream packaging choice.
-If the user's goal is "make `lark-cli` selectable in NextClaw", use `nextclaw skills install lark-cli` and verify `<workspace>/skills/lark-cli/SKILL.md` exists.
+Treat this as optional unless the user is following upstream tutorials that assume those files exist, or the CLI reports missing skill assets. It can appear in NextClaw as a global skill, but it is not a NextClaw marketplace replacement.
+If the user's goal is the NextClaw-supported `lark-cli` workflow, use `nextclaw skills install lark-cli` and verify `<workspace>/skills/lark-cli/SKILL.md` exists.
 
 ### 4. Configure app credentials
 
@@ -443,17 +445,17 @@ When the user is unsure, default to smaller scope, fewer recipients, and read-on
 - Explain that Node/npm global install may be missing or not on `PATH`.
 - Re-check with `command -v lark-cli` after install.
 
-### Skill installed to the wrong place
+### Skill source is not the expected one
 
-- If the user installed an upstream skill globally but NextClaw still cannot select it, verify the real NextClaw workspace path first.
-- The success check is the file `<workspace>/skills/lark-cli/SKILL.md`.
+- For the NextClaw-packaged workflow, the success check is `<workspace>/skills/lark-cli/SKILL.md` and the `NextClaw skills` picker group.
+- For an upstream global install, verify `~/.agents/skills/<skill-name>/SKILL.md` and the `Global skills` picker group.
 - If the user is working in a project-specific workspace, reinstall with:
 
 ```bash
 nextclaw skills install lark-cli --workdir <workspace>
 ```
 
-- Do not claim success just because `npx skills add larksuite/cli -y -g` finished.
+- Do not claim success just because an install command finished; verify the expected source group and then run the CLI readiness checks.
 
 ### Config or auth errors
 

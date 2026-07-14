@@ -104,8 +104,10 @@ function buildSlashSkillItems(params: {
   ).map((item) => ({
     ...item,
     hintLabel: skillHintLabel,
-    sectionKey: SLASH_SKILL_SECTION_KEY,
-    sectionLabel: skillSectionLabel,
+    sectionKey: item.sectionKey
+      ? `${SLASH_SKILL_SECTION_KEY}:${item.sectionKey}`
+      : SLASH_SKILL_SECTION_KEY,
+    sectionLabel: item.sectionLabel || skillSectionLabel,
   }));
 }
 
@@ -165,6 +167,14 @@ export function createSlashCommandInputSurfacePlugin(params: {
     trigger: CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC,
     resolvePanel: (context) => {
       const { data, trigger } = context;
+      const skillItems = buildSlashSkillItems({
+        data,
+        itemTexts: params.itemTexts.skillTexts,
+        query: trigger.query,
+        skillHintLabel: params.labels.skillHintLabel,
+        skillSectionLabel: params.labels.skillSectionLabel,
+      });
+      const skillSectionKeys = [...new Set(skillItems.flatMap((item) => item.sectionKey ? [item.sectionKey] : []))];
       return {
         filterOptions: [
           { key: 'all', label: params.labels.filterAllLabel },
@@ -176,7 +186,7 @@ export function createSlashCommandInputSurfacePlugin(params: {
           {
             key: SLASH_SKILL_SECTION_KEY,
             label: params.labels.filterSkillsLabel,
-            sectionKeys: [SLASH_SKILL_SECTION_KEY],
+            sectionKeys: skillSectionKeys.length > 0 ? skillSectionKeys : [SLASH_SKILL_SECTION_KEY],
           },
           {
             key: SLASH_PANEL_APP_SECTION_KEY,
@@ -195,13 +205,7 @@ export function createSlashCommandInputSurfacePlugin(params: {
               commandSubtitle: params.labels.commandSubtitle,
             },
           }),
-          ...buildSlashSkillItems({
-            data,
-            itemTexts: params.itemTexts.skillTexts,
-            query: trigger.query,
-            skillHintLabel: params.labels.skillHintLabel,
-            skillSectionLabel: params.labels.skillSectionLabel,
-          }),
+          ...skillItems,
           ...buildSlashPanelAppItems({
             data,
             itemTexts: params.itemTexts.panelAppTexts,

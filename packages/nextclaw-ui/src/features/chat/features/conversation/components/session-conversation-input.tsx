@@ -67,6 +67,7 @@ import {
 import { SessionQueuedInputRows } from './session-queued-input-rows';
 
 type SessionConversationInputQuery = ReturnType<typeof useSessionConversationInputQuery>;
+type SkillSource = SessionSkillEntryView['source'];
 
 export type SessionConversationInputController = {
   readonly canStopGeneration: boolean;
@@ -82,15 +83,18 @@ export type SessionConversationInputController = {
 
 function toSkillRecords(
   snapshotRecords: SessionSkillEntryView[],
-  scopeLabels: Record<SessionSkillEntryView['scope'], string>,
+  scopeLabels: Record<SkillSource, string>,
+  groupLabels: Record<SkillSource, string>,
 ): ChatSkillRecord[] {
   return snapshotRecords.map((record) => ({
     key: record.ref,
     label: record.name,
-    scopeLabel: scopeLabels[record.scope],
+    scopeLabel: scopeLabels[record.source],
+    groupKey: record.source,
+    groupLabel: groupLabels[record.source],
     description: record.description,
     descriptionZh: record.descriptionZh,
-    badgeLabel: scopeLabels[record.scope],
+    badgeLabel: scopeLabels[record.source],
   }));
 }
 
@@ -109,12 +113,21 @@ function toModelRecords(snapshotModels: SessionConversationInputQuery['modelOpti
 }
 
 function useSessionConversationInputLabels(language: string) {
-  const skillScopeLabels = useMemo<Record<'builtin' | 'project' | 'workspace', string>>(() => {
+  const { skillGroupLabels, skillScopeLabels } = useMemo(() => {
     void language;
     return {
-      builtin: t('chatSkillScopeBuiltin'),
-      project: t('chatSkillScopeProject'),
-      workspace: t('chatSkillScopeWorkspace'),
+      skillScopeLabels: {
+        builtin: t('chatSkillScopeBuiltin'),
+        global: t('chatSkillScopeGlobal'),
+        project: t('chatSkillScopeProject'),
+        workspace: t('chatSkillScopeWorkspace'),
+      } satisfies Record<SkillSource, string>,
+      skillGroupLabels: {
+        builtin: t('chatSkillGroupBuiltin'),
+        global: t('chatSkillGroupGlobal'),
+        project: t('chatSkillGroupProject'),
+        workspace: t('chatSkillGroupWorkspace'),
+      } satisfies Record<SkillSource, string>,
     };
   }, [language]);
   const slashTexts = useMemo(() => {
@@ -128,6 +141,7 @@ function useSessionConversationInputLabels(language: string) {
   }, [language]);
   return {
     skillScopeLabels,
+    skillGroupLabels,
     slashTexts,
     recentModelsLabel: t('chatPickerRecentModels'),
     allModelsLabel: t('chatPickerAllModels'),
@@ -144,13 +158,15 @@ function useSessionConversationInputLabels(language: string) {
 function useSessionConversationInputCollections(params: {
   modelOptions: SessionConversationInputQuery['modelOptions'];
   skillRecords: SessionSkillEntryView[];
-  skillScopeLabels: Record<'builtin' | 'project' | 'workspace', string>;
+  skillScopeLabels: Record<SkillSource, string>;
+  skillGroupLabels: Record<SkillSource, string>;
 }) {
+  const { modelOptions, skillGroupLabels, skillRecords: sourceSkillRecords, skillScopeLabels } = params;
   const skillRecords = useMemo(
-    () => toSkillRecords(params.skillRecords, params.skillScopeLabels),
-    [params.skillRecords, params.skillScopeLabels],
+    () => toSkillRecords(sourceSkillRecords, skillScopeLabels, skillGroupLabels),
+    [skillGroupLabels, skillScopeLabels, sourceSkillRecords],
   );
-  const modelRecords = useMemo(() => toModelRecords(params.modelOptions), [params.modelOptions]);
+  const modelRecords = useMemo(() => toModelRecords(modelOptions), [modelOptions]);
   return {
     skillRecords,
     modelRecords,
@@ -203,6 +219,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
   } = useSessionConversationInputCollections({
     modelOptions: inputQuery.modelOptions,
     skillRecords: inputQuery.skillRecords,
+    skillGroupLabels: labels.skillGroupLabels,
     skillScopeLabels: labels.skillScopeLabels,
   });
   const slashCommands = useMemo(() => {

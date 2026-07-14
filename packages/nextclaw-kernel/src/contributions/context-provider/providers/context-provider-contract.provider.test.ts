@@ -61,7 +61,10 @@ function createConfig(workspace: string) {
   } as never;
 }
 
-function createRequest(workspace: string): AgentRunRequest {
+function createRequest(
+  workspace: string,
+  metadata?: Record<string, unknown>,
+): AgentRunRequest {
   return {
     sessionId: "session-1",
     message: {
@@ -72,6 +75,7 @@ function createRequest(workspace: string): AgentRunRequest {
       parts: [{ type: "text", text: "hello" }],
       timestamp: "2026-06-06T00:00:00.000Z",
     },
+    metadata: metadata ?? {},
     projectRoot: workspace,
   };
 }
@@ -93,11 +97,14 @@ afterEach(() => {
 
 describe("ContextProviderContribution native prompt contract", () => {
   it("assembles the native context through kernel providers in the legacy prompt order", async () => {
-    const workspace = createWorkspace();
-    writeFileSync(join(workspace, "AGENTS.md"), "Project rules.\n");
-    mkdirSync(join(workspace, "skills", "demo-skill"), { recursive: true });
+    const hostWorkspace = createWorkspace();
+    const projectRoot = createWorkspace();
+    const projectSkillDir = join(projectRoot, ".agents", "skills", "project-review");
+    writeFileSync(join(hostWorkspace, "AGENTS.md"), "NextClaw workspace rules.\n");
+    writeFileSync(join(projectRoot, "AGENTS.md"), "Project rules.\n");
+    mkdirSync(join(hostWorkspace, "skills", "demo-skill"), { recursive: true });
     writeFileSync(
-      join(workspace, "skills", "demo-skill", "SKILL.md"),
+      join(hostWorkspace, "skills", "demo-skill", "SKILL.md"),
       [
         "---",
         "name: demo-skill",
@@ -107,10 +114,22 @@ describe("ContextProviderContribution native prompt contract", () => {
         "Use the demo skill instructions.",
       ].join("\n"),
     );
+    mkdirSync(projectSkillDir, { recursive: true });
+    writeFileSync(
+      join(projectSkillDir, "SKILL.md"),
+      [
+        "---",
+        "name: project-review",
+        "description: Project review instructions",
+        "---",
+        "",
+        "Review this project.",
+      ].join("\n"),
+    );
     const contextProviderManager = new ContextProviderManager();
     const contribution = new ContextProviderContribution({
       contextProviderManager,
-      configManager: { loadConfig: () => createConfig(workspace) },
+      configManager: { loadConfig: () => createConfig(hostWorkspace) },
       agents: {
         resolveAgentProfileForRun: () => ({
           builtIn: true,
@@ -120,7 +139,7 @@ describe("ContextProviderContribution native prompt contract", () => {
           id: "main",
           model: "openai/gpt-5",
           reservedContextTokens: 0,
-          workspace,
+          workspace: hostWorkspace,
         }),
       },
       sessionManager: {
@@ -128,7 +147,7 @@ describe("ContextProviderContribution native prompt contract", () => {
           sessionId: "session-1",
           agentId: "main",
           metadata: {
-            project_root: workspace,
+            project_root: projectRoot,
             last_channel: "ui",
             last_to: "web-ui",
           },
@@ -150,7 +169,9 @@ describe("ContextProviderContribution native prompt contract", () => {
     contribution.start();
 
     const blocks = await contextProviderManager.buildContext(
-      createRequest(workspace),
+      createRequest(projectRoot, {
+        requested_skill_refs: [`project:${projectSkillDir}`],
+      }),
     );
     const context = blocks
       .map((block) => block.trim())
@@ -185,6 +206,14 @@ describe("ContextProviderContribution native prompt contract", () => {
       "# Agent Bootstrap Context",
       "Agent bootstrap files loaded:",
       "## AGENTS.md\n\nProject rules.",
+      "# NextClaw Workspace Bootstrap Context",
+      "## AGENTS.md\n\nNextClaw workspace rules.",
+      "## Skill Sources",
+      `${join(projectRoot, ".agents", "skills")}/<skill-name>/SKILL.md`,
+      '<skill_group scope="project" source="project">',
+      '<skill_group scope="workspace" source="workspace">',
+      "# Active Skills",
+      `<ref>project:${projectSkillDir}</ref>`,
       "<name>demo-skill</name>",
       "## Session Orchestration",
       "## Tool Use Enforcement",
@@ -196,6 +225,11 @@ describe("ContextProviderContribution native prompt contract", () => {
     ]) {
       expect(context).toContain(expected);
     }
+    const activeSkillsContext = context.slice(
+      context.indexOf("# Active Skills"),
+      context.indexOf("## Skills (mandatory)"),
+    );
+    expect(activeSkillsContext).toContain(`<ref>project:${projectSkillDir}</ref>`);
     for (const forbidden of [
       'placement="inline"',
       'placement="side_panel"',

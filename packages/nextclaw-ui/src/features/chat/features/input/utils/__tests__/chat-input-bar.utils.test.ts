@@ -83,6 +83,25 @@ describe('buildChatSlashItems', () => {
 
     expect(items.map((item) => item.value)).toEqual(['weather', 'web-search', 'docs']);
   });
+
+  it('keeps skill source groups contiguous in their catalog order', () => {
+    const items = buildChatSlashItems(
+      [
+        createSkillRecord({ key: 'project:zeta', label: 'Zeta', groupKey: 'project', groupLabel: 'Project skills' }),
+        createSkillRecord({ key: 'global:alpha', label: 'Alpha', groupKey: 'global', groupLabel: 'Global skills' }),
+        createSkillRecord({ key: 'project:alpha', label: 'Alpha', groupKey: 'project', groupLabel: 'Project skills' }),
+      ],
+      '',
+      texts,
+    );
+
+    expect(items.map((item) => item.value)).toEqual(['project:alpha', 'project:zeta', 'global:alpha']);
+    expect(items.map((item) => [item.sectionKey, item.sectionLabel])).toEqual([
+      ['project', 'Project skills'],
+      ['project', 'Project skills'],
+      ['global', 'Global skills'],
+    ]);
+  });
 });
 
 describe('buildSkillPickerModel', () => {
@@ -155,6 +174,38 @@ describe('buildSkillPickerModel', () => {
         label: 'All skills',
         options: [expect.objectContaining({ key: 'web-search', label: 'Web Search' })]
       }
+    ]);
+  });
+
+  it('groups the skill catalog by source when no recent group is visible', () => {
+    const model = buildSkillPickerModel({
+      skillRecords: [
+        createSkillRecord({ key: 'project:review', label: 'Review', groupKey: 'project', groupLabel: 'Project skills' }),
+        createSkillRecord({ key: 'workspace:docs', label: 'Docs', groupKey: 'workspace', groupLabel: 'NextClaw skills' }),
+        createSkillRecord({ key: 'global:browser', label: 'Browser', groupKey: 'global', groupLabel: 'Global skills' }),
+        createSkillRecord({ key: 'builtin:weather', label: 'Weather', groupKey: 'builtin', groupLabel: 'Built-in skills' })
+      ],
+      recentSkillValues: [],
+      groupedRecentSkillValues: [],
+      selectedSkills: [],
+      isLoading: false,
+      onSelectedKeysChange: vi.fn(),
+      texts: {
+        title: 'Skills',
+        searchPlaceholder: 'Search skills',
+        emptyLabel: 'No skills',
+        loadingLabel: 'Loading',
+        manageLabel: 'Manage',
+        recentSkillsLabel: 'Recent',
+        allSkillsLabel: 'All skills'
+      }
+    });
+
+    expect(model.groups?.map((group) => [group.key, group.label])).toEqual([
+      ['project', 'Project skills'],
+      ['workspace', 'NextClaw skills'],
+      ['global', 'Global skills'],
+      ['builtin', 'Built-in skills']
     ]);
   });
 

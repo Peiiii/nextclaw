@@ -1,10 +1,11 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DEFAULT_SKILLS_DIR, SKILL_METADATA_KEY } from "@core/features/config/index.js";
 import { DEFAULT_PROJECT_SKILLS_DIR_NAME } from "@core/features/session/index.js";
 
-export type SkillScope = "builtin" | "project" | "workspace";
+export type SkillScope = "builtin" | "global" | "project" | "workspace";
 
 export type SkillInfo = {
   ref: string;
@@ -20,6 +21,8 @@ export type SkillsLoaderOptions = {
   supportingWorkspaces?: string[];
   projectSkillsDirName?: string;
   includeBuiltin?: boolean;
+  includeGlobal?: boolean;
+  globalSkillsRoot?: string;
 };
 
 type SkillDirectoryDescriptor = {
@@ -31,6 +34,13 @@ type ResolvedSkillMatch = {
   skill: SkillInfo;
   resolution: "ref" | "name";
 };
+
+const SKILL_SCOPE_SUMMARY_ORDER: readonly SkillScope[] = [
+  "project",
+  "workspace",
+  "global",
+  "builtin",
+];
 
 function normalizeOptionalString(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -80,6 +90,8 @@ export class SkillsLoader {
   private readonly supportingWorkspaces: string[];
   private readonly projectSkillsDirName: string;
   private readonly includeBuiltin: boolean;
+  private readonly includeGlobal: boolean;
+  private readonly globalSkillsRoot: string;
 
   constructor(workspace: string);
   constructor(options: SkillsLoaderOptions);
@@ -92,6 +104,8 @@ export class SkillsLoader {
       this.supportingWorkspaces = [];
       this.projectSkillsDirName = DEFAULT_PROJECT_SKILLS_DIR_NAME;
       this.includeBuiltin = true;
+      this.includeGlobal = false;
+      this.globalSkillsRoot = resolve(homedir(), DEFAULT_PROJECT_SKILLS_DIR_NAME);
       return;
     }
 
@@ -102,6 +116,11 @@ export class SkillsLoader {
       normalizeOptionalString(workspaceOrOptions.projectSkillsDirName) ??
       DEFAULT_PROJECT_SKILLS_DIR_NAME;
     this.includeBuiltin = workspaceOrOptions.includeBuiltin ?? true;
+    this.includeGlobal = workspaceOrOptions.includeGlobal ?? false;
+    this.globalSkillsRoot = resolve(
+      normalizeOptionalString(workspaceOrOptions.globalSkillsRoot) ??
+        join(homedir(), DEFAULT_PROJECT_SKILLS_DIR_NAME),
+    );
   }
 
   listSkills = (filterUnavailable = true): SkillInfo[] => {
@@ -177,8 +196,16 @@ export class SkillsLoader {
     }
 
     const lines: string[] = ["<skills>"];
-    for (const skill of allSkills) {
-      lines.push(...this.buildSkillXmlLines(skill, "  "));
+    for (const scope of SKILL_SCOPE_SUMMARY_ORDER) {
+      const scopedSkills = allSkills.filter((skill) => skill.scope === scope);
+      if (scopedSkills.length === 0) {
+        continue;
+      }
+      lines.push(`  <skill_group scope="${scope}" source="${scope}">`);
+      for (const skill of scopedSkills) {
+        lines.push(...this.buildSkillXmlLines(skill, "    "));
+      }
+      lines.push("  </skill_group>");
     }
     lines.push("</skills>");
     return lines.join("\n");
@@ -204,6 +231,7 @@ export class SkillsLoader {
       ...builtinSkills,
       ...this.collectProjectSkills().filter((skill) => !builtinNames.has(skill.name)),
       ...this.collectWorkspaceSkills().filter((skill) => !builtinNames.has(skill.name)),
+      ...this.collectGlobalSkills().filter((skill) => !builtinNames.has(skill.name)),
     ];
   };
 
@@ -238,6 +266,16 @@ export class SkillsLoader {
     }));
 
     return descriptors.flatMap((descriptor) => this.collectDirectorySkills(descriptor));
+  };
+
+  private collectGlobalSkills = (): SkillInfo[] => {
+    if (!this.includeGlobal) {
+      return [];
+    }
+    return this.collectDirectorySkills({
+      scope: "global",
+      skillsRoot: this.globalSkillsRoot,
+    });
   };
 
   private collectDirectorySkills = (

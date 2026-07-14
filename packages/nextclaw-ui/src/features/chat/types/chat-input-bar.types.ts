@@ -11,6 +11,8 @@ export type ChatSkillRecord = {
   key: string;
   label: string;
   scopeLabel?: string;
+  groupKey?: string;
+  groupLabel?: string;
   description?: string;
   descriptionZh?: string;
   badgeLabel?: string;

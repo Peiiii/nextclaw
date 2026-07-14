@@ -11,7 +11,8 @@ type SkillsLoaderInstance = InstanceType<typeof NextclawCore.SkillsLoader>;
 const SCOPE_SORT_ORDER: Record<SessionSkillEntryView["scope"], number> = {
   project: 0,
   workspace: 1,
-  builtin: 2,
+  global: 2,
+  builtin: 3,
 };
 
 export class SessionSkillsViewBuilder {
@@ -29,6 +30,7 @@ export class SessionSkillsViewBuilder {
     const skillsLoader = new NextclawCore.SkillsLoader({
       workspace: projectContext.hostWorkspace,
       projectRoot: projectContext.projectRoot,
+      includeGlobal: true,
     });
     const availableRefs = new Set(
       skillsLoader.listSkills(true).map((skill) => skill.ref),

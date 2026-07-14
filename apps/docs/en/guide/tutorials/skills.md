@@ -15,6 +15,15 @@ Skills add task-specific rules or working styles to the AI. Use them after basic
 3. Select it for the relevant task.
 4. Compare the output before and after enabling it.
 
+## Skill sources
+
+- Project skills: `<project>/.agents/skills/`
+- NextClaw skills: `<workspace>/skills/`
+- Global Agent Skills: `~/.agents/skills/`
+- Built-in skills: packaged with NextClaw
+
+The skill picker groups these sources separately. A session bound to a project also loads that project's `AGENTS.md` as project instructions.
+
 ## Note
 
 Skills are not required for first setup.  

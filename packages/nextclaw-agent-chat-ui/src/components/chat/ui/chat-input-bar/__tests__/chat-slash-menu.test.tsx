@@ -174,6 +174,50 @@ describe('ChatSlashMenu', () => {
     expect(sectionHeadings).toHaveLength(1);
   });
 
+  it('renders every source group inside the unified skills filter', () => {
+    const projectSkill = {
+      key: 'skill:project:review',
+      title: 'Review',
+      subtitle: 'Skill',
+      description: 'Review project code',
+      detailLines: [],
+      sectionKey: 'skills:project',
+      sectionLabel: 'Project skills',
+    };
+    const globalSkill = {
+      key: 'skill:global:browser',
+      title: 'Browser',
+      subtitle: 'Skill',
+      description: 'Control a browser',
+      detailLines: [],
+      sectionKey: 'skills:global',
+      sectionLabel: 'Global skills',
+    };
+
+    render(
+      <ChatSlashMenu
+        {...createSlashMenuProps({
+          filterOptions: [
+            { key: 'all', label: 'All' },
+            {
+              key: 'skills',
+              label: 'Skills',
+              sectionKeys: ['skills:project', 'skills:global'],
+            },
+          ],
+          items: [projectSkill, globalSkill],
+        })}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Skills 2' }));
+
+    expect(screen.getByRole('option', { name: /Review/i })).toBeTruthy();
+    expect(screen.getByRole('option', { name: /Browser/i })).toBeTruthy();
+    expect(screen.getByText('Project skills')).toBeTruthy();
+    expect(screen.getByText('Global skills')).toBeTruthy();
+  });
+
   it('selects items before composer blur can close the menu', () => {
     const onSelectItem = vi.fn();
     const item = {

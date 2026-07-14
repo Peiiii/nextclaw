@@ -496,15 +496,18 @@ Skill loading contract:
 - NextClaw ships with built-in skills and auto-loads them directly from the app package.
 - `<workspace>/skills/` is for custom skills and marketplace-installed skills.
 - With the default workspace, the default skill directory is `~/.nextclaw/workspace/skills/`.
+- When a session is bound to a project, project-only skills load from `<project>/.agents/skills/`.
+- User-wide Agent Skills load from `~/.agents/skills/` and appear in the skill picker under the global source.
+- The skill picker and AI context group project, NextClaw workspace, global, and built-in skills by source.
 - Use `nextclaw skills installed` / `nextclaw skills info <selector>` for the **installed/local domain**.
 - Use `nextclaw marketplace skills search|info|recommend|install|update` for the **marketplace/catalog and installed marketplace lifecycle domain**.
 - `nextclaw skills install <slug>` remains available as a compatibility shortcut for marketplace installation into that directory.
 - Marketplace-installed skills write a local `.nextclaw-install.json` state file so `update` can compare the installed copy with the marketplace source.
 - Built-in marketplace skills are already available by default; marketplace install does not copy them into the workspace when the target skill is built-in.
 - Historical copied built-in skills under `<workspace>/skills/` are deprecated artifacts.
-- If a built-in skill and a workspace skill share the same name, NextClaw ignores the workspace copy and uses the built-in definition as the source of truth.
+- If a built-in skill and another source share the same name, NextClaw uses the built-in definition as the source of truth.
 - If you want to install into a specific project workspace, pass `--workdir <workspace>`.
-- Upstream commands such as `npx skills add ... -g` do not install a skill into NextClaw's workspace and do not make it selectable in NextClaw by themselves.
+- Upstream commands such as `npx skills add ... -g` remain separate from the NextClaw marketplace lifecycle. If they materialize a skill under `~/.agents/skills/`, NextClaw can select it as a global skill, but it is not installed or managed as a NextClaw workspace skill.
 
 
 ---

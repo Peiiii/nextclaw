@@ -2,7 +2,11 @@ export * from "./services/route-resolver.service.js";
 export * from "./utils/tool-catalog.utils.js";
 export * from "./utils/skill-context.utils.js";
 export { SkillsLoader } from "./services/skills-loader.service.js";
-export type { SkillInfo, SkillScope } from "./services/skills-loader.service.js";
+export type {
+  SkillInfo,
+  SkillScope,
+  SkillsLoaderOptions,
+} from "./services/skills-loader.service.js";
 export { MemoryStore } from "./features/memory/memory.store.js";
 export { resolveNextclawSelfManageGuidePaths } from "./features/self-manage/guide-path.js";
 export { SILENT_REPLY_TOKEN } from "./types/tokens.js";

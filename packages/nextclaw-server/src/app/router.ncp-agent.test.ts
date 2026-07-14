@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "nod
 import http from "node:http";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { serve } from "@hono/node-server";
 import { ConfigSchema, getSkillsPath, getWorkspacePath, saveConfig } from "@nextclaw/core";
 import {
@@ -36,7 +36,14 @@ function createTempConfigPath(): string {
 }
 
 function useIsolatedHome(): void {
-  process.env.NEXTCLAW_HOME = createTempDir("nextclaw-ui-ncp-home-");
+  const isolatedHome = createTempDir("nextclaw-ui-ncp-home-");
+  process.env.NEXTCLAW_HOME = isolatedHome;
+  vi.stubEnv("HOME", isolatedHome);
+}
+
+function writeSkill(skillDir: string, description: string): void {
+  mkdirSync(skillDir, { recursive: true });
+  writeFileSync(join(skillDir, "SKILL.md"), `---\ndescription: ${description}\n---`);
 }
 
 afterEach(() => {
@@ -51,6 +58,7 @@ afterEach(() => {
   } else {
     delete process.env.NEXTCLAW_HOME;
   }
+  vi.unstubAllEnvs();
 });
 
 class StubNcpAgent implements NcpSessionApi {
@@ -685,16 +693,10 @@ it("exposes session-scoped skills for persisted and draft sessions", async () =>
   const configPath = createTempConfigPath();
   const hostWorkspace = createTempDir("nextclaw-ui-host-workspace-");
   const projectRoot = realpathSync(createTempDir("nextclaw-ui-session-project-"));
-  mkdirSync(join(hostWorkspace, "skills", "shared-review"), { recursive: true });
-  writeFileSync(
-    join(hostWorkspace, "skills", "shared-review", "SKILL.md"),
-    ["---", "name: shared-review", "description: Workspace review", "---"].join("\n"),
-  );
-  mkdirSync(join(projectRoot, ".agents", "skills", "shared-review"), { recursive: true });
-  writeFileSync(
-    join(projectRoot, ".agents", "skills", "shared-review", "SKILL.md"),
-    ["---", "name: shared-review", "description: Project review", "---"].join("\n"),
-  );
+  const globalSkillsRoot = join(process.env.HOME!, ".agents", "skills");
+  writeSkill(join(hostWorkspace, "skills", "shared-review"), "Workspace review");
+  writeSkill(join(projectRoot, ".agents", "skills", "shared-review"), "Project review");
+  writeSkill(join(globalSkillsRoot, "global-review"), "Global review");
   saveConfig(ConfigSchema.parse({
     agents: {
       defaults: {
@@ -736,6 +738,10 @@ it("exposes session-scoped skills for persisted and draft sessions", async () =>
       name: "shared-review",
       scope: "workspace",
       ref: `workspace:${join(hostWorkspace, "skills", "shared-review")}`,
+    }),
+    expect.objectContaining({
+      name: "global-review",
+      scope: "global",
     }),
   ]));
 

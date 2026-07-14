@@ -316,8 +316,8 @@ export type SessionSkillEntryView = {
   ref: string;
   name: string;
   path: string;
-  scope: 'builtin' | 'project' | 'workspace';
-  source: 'builtin' | 'project' | 'workspace';
+  scope: 'builtin' | 'global' | 'project' | 'workspace';
+  source: 'builtin' | 'global' | 'project' | 'workspace';
   available: boolean;
   description?: string;
   descriptionZh?: string;

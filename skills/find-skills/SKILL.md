@@ -169,7 +169,7 @@ Treat these as separate paths:
 - Open skills ecosystem install:
   `npx skills add <package-or-source>`
 
-If the user wants the capability specifically inside NextClaw and there is no NextClaw-native packaging path yet, say that clearly.
+An open-ecosystem global install can appear in NextClaw under the `Global skills` group when it materializes at `~/.agents/skills/`. It remains separate from the NextClaw marketplace and workspace-managed lifecycle, so say which source and update path the user is choosing.
 
 ## Search Tips
 

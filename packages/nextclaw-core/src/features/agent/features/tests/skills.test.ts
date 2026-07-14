@@ -22,7 +22,47 @@ afterEach(() => {
   }
 });
 
-describe("SkillsLoader builtin skills", () => {
+describe("SkillsLoader skill sources", () => {
+  it("loads and groups project, NextClaw workspace, and global Agent Skills", () => {
+    const workspace = createWorkspace();
+    const projectRoot = join(workspace, "project");
+    const globalSkillsRoot = join(workspace, "global-agent-skills");
+    const skillRoots = [
+      [join(projectRoot, ".agents", "skills"), "project-review"],
+      [join(workspace, "skills"), "workspace-review"],
+      [globalSkillsRoot, "global-review"],
+    ] as const;
+    for (const [skillsRoot, name] of skillRoots) {
+      const skillDir = join(skillsRoot, name);
+      mkdirSync(skillDir, { recursive: true });
+      writeFileSync(
+        join(skillDir, "SKILL.md"),
+        ["---", `name: ${name}`, `description: ${name} instructions`, "---"].join("\n"),
+      );
+    }
+
+    const loader = new SkillsLoader({
+      workspace,
+      projectRoot,
+      includeBuiltin: false,
+      includeGlobal: true,
+      globalSkillsRoot,
+    });
+
+    expect(loader.listSkills(false)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: "project-review", scope: "project" }),
+      expect.objectContaining({ name: "workspace-review", scope: "workspace" }),
+      expect.objectContaining({ name: "global-review", scope: "global" }),
+    ]));
+    const summary = loader.buildSkillsSummary();
+    const projectGroupIndex = summary.indexOf('<skill_group scope="project" source="project">');
+    const workspaceGroupIndex = summary.indexOf('<skill_group scope="workspace" source="workspace">');
+    const globalGroupIndex = summary.indexOf('<skill_group scope="global" source="global">');
+    expect(projectGroupIndex).toBeGreaterThan(-1);
+    expect(workspaceGroupIndex).toBeGreaterThan(projectGroupIndex);
+    expect(globalGroupIndex).toBeGreaterThan(workspaceGroupIndex);
+  });
+
   it("loads builtin skills even when the workspace has no copied skill directories", () => {
     const workspace = createWorkspace();
     const loader = new SkillsLoader(workspace);

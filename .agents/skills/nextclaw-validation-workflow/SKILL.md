@@ -63,6 +63,8 @@ User-visible or runnable behavior:
 - use a non-repo isolated location for smoke data when possible.
 - If a workspace UI/runtime package is consumed from source by another local app, package-level `tsc`/tests are not enough. Verify the consuming app path too, either by loading the app in the dev server or by directly requesting the transformed Vite `@fs` module for the touched source file. This catches alias/import-resolution failures that the edited package can miss.
 - If the user reported a specific local command, URL, endpoint, port, or desktop/dev entrypoint, run that exact path after the fix whenever it is safe; package tests or route-level substitutes are not enough to claim the user-visible issue is fixed.
+- 对可见 UI 源码改动，必须先让当前运行实例消费最新产物，再从用户报告的入口实际打开并操作目标控件；组件测试、静态源码检查或旧实例截图不能证明当前面板已修复。若实例依赖预构建静态资源，先核对运行进程与资源新鲜度，必要时完整构建并重启，然后在同一路径重新验收。
+- 可见 UI 验收证据必须同时记录精确 URL/端口、触发手势和目标控件身份；同一数据出现在多个 consumer 时，必须列出用户点名的 consumer 并只在该表面验收，附近页面、相邻弹层或另一入口的同名列表不能替代。例如“聊天框输入 `/` 打开的统一选择器”不能用“点击底部技能按钮打开的技能选择器”代验。
 - If local dev falls back to a different port because the user's reported port is occupied, do not treat the fallback port as proof for the reported issue. Verify the reported port directly, or restart the stale local dev process and re-run the same user-facing path on the original port.
 - For runtime startup or status-log fixes, assert the visible log/status wording matches the intended state. Cooldown, disabled, degraded, or externally rate-limited states must not be reported as generic startup failure when the system is intentionally waiting or skipping work.
 

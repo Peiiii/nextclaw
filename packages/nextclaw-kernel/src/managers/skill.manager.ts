@@ -13,7 +13,7 @@ import {
 export type { SkillInfo, SkillScope } from "@nextclaw/core";
 
 type WorkspaceParams = { workspace: string };
-type InstalledSkillScopeFilter = CoreSkillInfo["scope"] | "all";
+type InstalledSkillScopeFilter = Exclude<CoreSkillInfo["scope"], "global"> | "all";
 
 export type InstalledSkillSummary = {
   ref: string;
