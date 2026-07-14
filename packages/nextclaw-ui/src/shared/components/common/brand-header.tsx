@@ -1,8 +1,9 @@
 import type { UpdateSnapshot } from '@nextclaw/shared';
 import { runtimeUpdateManager, useRuntimeUpdateStore } from '@/features/system-status';
 import { useAppMeta } from '@/shared/hooks/use-app-meta';
-import { type ReactNode, useState } from 'react';
+import type { ReactNode } from 'react';
 import { RuntimeStatusEntry } from '@/app/components/layout/runtime-status-entry';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
 
@@ -57,33 +58,26 @@ function BrandVersionLabel({
   versionLabel: string;
   density: BrandHeaderProps['density'];
 }) {
-  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
   const isChromeDensity = density === 'chrome';
 
   return (
-    <span
-      className="relative min-w-0 flex-1"
-      onMouseEnter={() => setIsTooltipOpen(true)}
-      onMouseLeave={() => setIsTooltipOpen(false)}
-      onFocus={() => setIsTooltipOpen(true)}
-      onBlur={() => setIsTooltipOpen(false)}
-    >
-      <span
-        tabIndex={0}
-        aria-label={versionLabel}
-        className={cn(
-          'block min-w-0 truncate font-medium text-gray-500 outline-none',
-          isChromeDensity ? 'text-[12px]' : 'text-[12px]',
-        )}
-      >
-        {versionLabel}
-      </span>
-      {isTooltipOpen ? (
-        <span className="pointer-events-none absolute left-0 top-full z-[var(--z-tooltip)] mt-1 w-max max-w-none whitespace-nowrap rounded-md border bg-popover px-3 py-1.5 text-xs font-medium text-popover-foreground shadow-md">
-          {versionLabel}
-        </span>
-      ) : null}
-    </span>
+    <TooltipProvider delayDuration={250}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            tabIndex={0}
+            aria-label={versionLabel}
+            className={cn(
+              'block min-w-0 flex-1 truncate font-medium text-gray-500 outline-none',
+              isChromeDensity ? 'text-[12px]' : 'text-[12px]',
+            )}
+          >
+            {versionLabel}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-xs">{versionLabel}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -149,15 +143,21 @@ function RuntimeUpdateIssueIcon({ snapshot }: { snapshot: UpdateSnapshot }) {
     : null;
   const tooltip = [title, rootCause, diagnostic, recoveryCommand].filter(Boolean).join('\n');
   return (
-    <span
-      role="img"
-      aria-label={title}
-      title={tooltip}
-      tabIndex={0}
-      className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-50 text-[13px] font-bold leading-none text-amber-700 ring-1 ring-amber-100"
-    >
-      !
-    </span>
+    <TooltipProvider delayDuration={250}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            role="img"
+            aria-label={title}
+            tabIndex={0}
+            className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-50 text-[13px] font-bold leading-none text-amber-700 ring-1 ring-amber-100 outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+          >
+            !
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="max-w-80 whitespace-pre-line break-words text-xs leading-relaxed">{tooltip}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 

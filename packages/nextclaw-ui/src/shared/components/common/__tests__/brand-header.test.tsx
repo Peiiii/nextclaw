@@ -100,7 +100,7 @@ describe('BrandHeader', () => {
     expect(version).toBeTruthy();
     expect(screen.getAllByText('v0.18.11')).toHaveLength(1);
     await user.hover(version);
-    expect(await screen.findAllByText('v0.18.11')).toHaveLength(2);
+    expect((await screen.findByRole('tooltip')).textContent).toBe('v0.18.11');
     expect(screen.getByText('下载 50%')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '更新' })).toBeNull();
   });
@@ -145,6 +145,7 @@ describe('BrandHeader', () => {
   });
 
   it('shows a warning icon with the blocked update reason instead of a visible failure label', async () => {
+    const user = userEvent.setup();
     useRuntimeUpdateStore.setState({
       supported: true,
       initialized: true,
@@ -180,13 +181,19 @@ describe('BrandHeader', () => {
     const issueIcon = screen.getByLabelText('更新被阻塞');
 
     expect(issueIcon.textContent).toBe('!');
-    expect(issueIcon.getAttribute('title')).toContain('更新被阻塞');
-    expect(issueIcon.getAttribute('title')).toContain('根因：缺少更新签名公钥，无法验证更新包来源');
-    expect(issueIcon.getAttribute('title')).toContain('Runtime bundle updates require a configured update public key.');
-    expect(issueIcon.getAttribute('title')).toContain('Set NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY');
+    expect(issueIcon.hasAttribute('title')).toBe(false);
+
+    await user.hover(issueIcon);
+
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip.textContent).toContain('更新被阻塞');
+    expect(tooltip.textContent).toContain('根因：缺少更新签名公钥，无法验证更新包来源');
+    expect(tooltip.textContent).toContain('Runtime bundle updates require a configured update public key.');
+    expect(tooltip.textContent).toContain('Set NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY');
   });
 
   it('uses the failed update wording only for failed snapshots', async () => {
+    const user = userEvent.setup();
     useRuntimeUpdateStore.setState({
       supported: true,
       initialized: true,
@@ -221,8 +228,11 @@ describe('BrandHeader', () => {
     const issueIcon = screen.getByLabelText('更新失败');
 
     expect(issueIcon.textContent).toBe('!');
-    expect(issueIcon.getAttribute('title')).toContain('更新失败');
-    expect(issueIcon.getAttribute('title')).toContain('runtime bundle sha256 mismatch');
+    await user.hover(issueIcon);
+
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip.textContent).toContain('更新失败');
+    expect(tooltip.textContent).toContain('runtime bundle sha256 mismatch');
     expect(screen.queryByText('更新被阻塞')).toBeNull();
   });
 });
