@@ -5,8 +5,8 @@
   "latestVersion": "0.22.4",
   "minimumLauncherVersion": "0.0.141",
   "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/v0.22.4-desktop.1/nextclaw-bundle-darwin-x64-0.22.4.zip",
-  "bundleSha256": "ce9e35f54bfba12db8cbd71391afe29a5cf42c43c6a50cf1e674b9c0f2ae109c",
-  "bundleSignature": "lw0GlxolF8f+rK2ndMQk3kkMnZy4kTV5MLWIkWnh4AfgUfzED4GYdnWLBlwGTpyO16RDyt/xPgBuiG7kUD+eBQ==",
+  "bundleSha256": "563304b9d54f5004f01850424db1aacddf3c0e086a71b8f11233ced7279d6b88",
+  "bundleSignature": "lypEHtzAoEzZ1qu1pnxM5tcqf+GQTyZqjPLFYg57XvNAsPD9wL4dzdawrP103Wf4CA+q7V6EHLva3/voj6UeAg==",
   "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-07-14-nextclaw-v0-22-4",
-  "manifestSignature": "VAUnobKnkHUK6C7H0x4VU2jwJtRfZ08EjDIO1GQrVKgL1b7yzDcUJXy9sqyYgfGLEz4n2nTfodZZjE7ndp6nAw=="
+  "manifestSignature": "6y1asDuE8KF3SNPgcFBhL9ro8d2ARrCjxGiT4yGytYKWNrMlcv/mbVpOTs+VIxq2LjhwNAY5TvJTIOyblHdHAw=="
 }
