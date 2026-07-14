@@ -8,10 +8,7 @@ import {
   ChatMessageList,
 } from "@nextclaw/agent-chat-ui";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
-import {
-  adaptChatMessage,
-  type ChatMessageSource,
-} from "@/features/chat/features/message/utils/chat-message.utils";
+import { adaptChatMessage, type ChatMessageSource } from "@/features/chat/features/message/utils/chat-message.utils";
 import { buildChatMessageProcessSummary } from "@/features/chat/features/message/utils/chat-message-process-summary.utils";
 import {
   buildChatMessageAdapterTexts,
@@ -24,6 +21,7 @@ import {
   type ContextCompactionTimelineView,
 } from "@/features/chat/features/session/utils/ncp-session-context-metadata.utils";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
+import { ChatInlineFilePreview } from "@/features/chat/features/message/components/chat-inline-file-preview";
 import { ChatInlinePanelAppCard } from "@/features/chat/features/message/components/chat-inline-panel-app-card";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
@@ -93,11 +91,7 @@ type ChatTimelineItem =
       inheritance: ContextInheritanceTimelineView;
     };
 
-function ChatContextCompactionDivider({
-  checkpoint,
-}: {
-  checkpoint: ContextCompactionTimelineView;
-}) {
+function ChatContextCompactionDivider({ checkpoint }: { checkpoint: ContextCompactionTimelineView }) {
   const title = [
     `${t("chatContextCompactionCoveredMessages")}: ${checkpoint.coveredSessionMessageCount}`,
     `${t("chatContextCompactionOriginalTokens")}: ${checkpoint.originalEstimatedTokens}`,
@@ -123,11 +117,7 @@ function ChatContextCompactionDivider({
   );
 }
 
-function ChatContextInheritanceDivider({
-  inheritance,
-}: {
-  inheritance: ContextInheritanceTimelineView;
-}) {
+function ChatContextInheritanceDivider({ inheritance }: { inheritance: ContextInheritanceTimelineView }) {
   const title = [
     `${t("chatContextInheritanceSourceSession")}: ${inheritance.sourceSessionId}`,
     `${t("chatContextInheritanceMessages")}: ${inheritance.inheritedMessageCount}`,
@@ -149,20 +139,12 @@ function resolveCompactionBoundaryIndex(params: {
   visibleRawMessages: readonly NcpMessage[];
   rawMessageId: string;
 }): number {
-  const {
-    rawMessageId,
-    rawMessages,
-    visibleRawMessages,
-  } = params;
-  const physicalIndex = rawMessages.findIndex(
-    (message) => message.id === rawMessageId,
-  );
+  const { rawMessageId, rawMessages, visibleRawMessages } = params;
+  const physicalIndex = rawMessages.findIndex((message) => message.id === rawMessageId);
   if (physicalIndex < 0) {
     return visibleRawMessages.length - 1;
   }
-  const previousVisibleCount = rawMessages
-    .slice(0, physicalIndex)
-    .filter(isVisibleChatMessage).length;
+  const previousVisibleCount = rawMessages.slice(0, physicalIndex).filter(isVisibleChatMessage).length;
   return previousVisibleCount - 1;
 }
 
@@ -175,9 +157,7 @@ function isVisibleChatMessage(message: NcpMessage): boolean {
   return !readContextCompactionTimeline(message) && !readInheritedSourceSessionId(message);
 }
 
-function resolveContextInheritanceBoundary(
-  messages: readonly NcpMessage[],
-): ContextInheritanceTimelineBoundary | null {
+function resolveContextInheritanceBoundary(messages: readonly NcpMessage[]): ContextInheritanceTimelineBoundary | null {
   const boundaryIndex = messages.findIndex((message) => readInheritedSourceSessionId(message));
   if (boundaryIndex < 0) {
     return null;
@@ -189,7 +169,8 @@ function resolveContextInheritanceBoundary(
   return {
     boundaryIndex: messages.slice(0, boundaryIndex).filter(isVisibleChatMessage).length,
     sourceSessionId,
-    inheritedMessageCount: messages.filter((message) => readInheritedSourceSessionId(message) === sourceSessionId).length,
+    inheritedMessageCount: messages.filter((message) => readInheritedSourceSessionId(message) === sourceSessionId)
+      .length,
   };
 }
 
@@ -204,8 +185,12 @@ function buildTimelineItems(params: {
       checkpoint: readContextCompactionTimeline(message),
     }))
     .filter(
-      (entry): entry is { rawMessageId: string; checkpoint: ContextCompactionTimelineView } =>
-        Boolean(entry.checkpoint),
+      (
+        entry,
+      ): entry is {
+        rawMessageId: string;
+        checkpoint: ContextCompactionTimelineView;
+      } => Boolean(entry.checkpoint),
     )
     .map((entry) => ({
       key: entry.rawMessageId,
@@ -295,19 +280,35 @@ export function ChatMessageListContainer({
   const presenter = usePresenter();
   const { language } = useI18n();
   const messageLayout = useChatMessageLayoutStore((state) => state.layout);
-  const selectedSessionKey = useChatSessionListStore(
-    (state) => state.snapshot.selectedSessionKey,
-  );
+  const selectedSessionKey = useChatSessionListStore((state) => state.snapshot.selectedSessionKey);
   const selectedSession = useNcpChatSelectedSession(selectedSessionKey);
   const localFileBasePath = selectedSession?.workingDir ?? selectedSession?.projectRoot ?? null;
+  const renderInlineDisplayWithFiles = useCallback(
+    (display: ChatInlineDisplayViewModel) => {
+      const panelAppDisplay = renderChatInlineDisplay(display);
+      if (panelAppDisplay) {
+        return panelAppDisplay;
+      }
+      if (display.target.type === "file") {
+        return (
+          <ChatInlineFilePreview
+            display={display}
+            parentSessionKey={selectedSessionKey}
+            sessionProjectRoot={selectedSession?.projectRoot ?? null}
+            sessionWorkingDir={localFileBasePath}
+            onFileOpen={presenter.chatThreadManager.openFilePreview}
+          />
+        );
+      }
+      return undefined;
+    },
+    [localFileBasePath, presenter.chatThreadManager, selectedSession?.projectRoot, selectedSessionKey],
+  );
   const resolveFileContentUrl = useCallback(
     (action: { path: string }) => buildServerPathContentUrl(action.path, localFileBasePath),
     [localFileBasePath],
   );
-  const texts = useMemo(
-    () => buildChatMessageAdapterTexts(language),
-    [language],
-  );
+  const texts = useMemo(() => buildChatMessageAdapterTexts(language), [language]);
 
   const messages = useMemo(() => {
     const visibleRawMessages = rawMessages.filter(isVisibleChatMessage);
@@ -340,7 +341,11 @@ export function ChatMessageListContainer({
         texts,
       });
 
-      messageViewModelCache.set(message, { language, processSummaryLabel, viewModel });
+      messageViewModelCache.set(message, {
+        language,
+        processSummaryLabel,
+        viewModel,
+      });
       return [viewModel];
     });
   }, [language, rawMessages, texts]);
@@ -348,20 +353,12 @@ export function ChatMessageListContainer({
   const hasAssistantDraft = useMemo(
     () =>
       messages.some(
-        (message) =>
-          message.role === "assistant" &&
-          (message.status === "streaming" || message.status === "pending"),
+        (message) => message.role === "assistant" && (message.status === "streaming" || message.status === "pending"),
       ),
     [messages],
   );
-  const messageTexts = useMemo(
-    () => buildChatMessageTexts(language),
-    [language],
-  );
-  const timelineItems = useMemo(
-    () => buildTimelineItems({ rawMessages, messages }),
-    [messages, rawMessages],
-  );
+  const messageTexts = useMemo(() => buildChatMessageTexts(language), [language]);
+  const timelineItems = useMemo(() => buildTimelineItems({ rawMessages, messages }), [messages, rawMessages]);
   const sessionSkillsQuery = useChatQueryStore((state) => state.snapshot.sessionSkillsQuery);
   const handleInlineTokenClick = useCallback(
     (token: ChatInlineTokenViewModel) => {
@@ -424,7 +421,7 @@ export function ChatMessageListContainer({
             onAttachmentOpen={handleAttachmentOpen}
             onInlineTokenClick={handleInlineTokenClick}
             resolveFileContentUrl={resolveFileContentUrl}
-            renderInlineDisplay={renderChatInlineDisplay}
+            renderInlineDisplay={renderInlineDisplayWithFiles}
             renderToolAgent={renderChatToolAgent}
             renderPanelAppCard={renderChatPanelAppCard}
           />

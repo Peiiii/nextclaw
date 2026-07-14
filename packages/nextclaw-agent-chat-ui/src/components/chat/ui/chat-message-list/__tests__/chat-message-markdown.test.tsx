@@ -97,6 +97,89 @@ it("opens local file links through the file preview action", () => {
   });
 });
 
+it("opens file URI links with GitHub-style line fragments", () => {
+  const onFileOpen = vi.fn();
+  const href = "file:///Users/czmac/.nvm/versions/node/v22.17.0/lib/node_modules/@nextclaw/core/dist/index.js#L5713";
+
+  render(
+    <ChatMessageMarkdown text={`[index.js](${href})`} role="assistant" texts={defaultTexts} onFileOpen={onFileOpen} />,
+  );
+
+  const link = screen.getByRole("link", { name: "index.js" });
+  expect(link.getAttribute("href")).toBe(href);
+  fireEvent.click(link);
+
+  expect(onFileOpen).toHaveBeenCalledWith({
+    path: "/Users/czmac/.nvm/versions/node/v22.17.0/lib/node_modules/@nextclaw/core/dist/index.js",
+    label: "index.js",
+    viewMode: "preview",
+    line: 5713,
+  });
+});
+
+it("normalizes Windows file URI links into local file actions", () => {
+  const onFileOpen = vi.fn();
+
+  render(
+    <ChatMessageMarkdown
+      text="[index.ts](file:///C:/workspace/src/index.ts#L12C4)"
+      role="assistant"
+      texts={defaultTexts}
+      onFileOpen={onFileOpen}
+    />,
+  );
+
+  fireEvent.click(screen.getByRole("link", { name: "index.ts" }));
+
+  expect(onFileOpen).toHaveBeenCalledWith({
+    path: "C:/workspace/src/index.ts",
+    label: "index.ts",
+    viewMode: "preview",
+    line: 12,
+    column: 4,
+  });
+});
+
+it("ignores non-positive file locations", () => {
+  const onFileOpen = vi.fn();
+
+  render(
+    <ChatMessageMarkdown
+      text="[index.ts](file:///tmp/index.ts#L0C4)"
+      role="assistant"
+      texts={defaultTexts}
+      onFileOpen={onFileOpen}
+    />,
+  );
+
+  fireEvent.click(screen.getByRole("link", { name: "index.ts" }));
+
+  expect(onFileOpen).toHaveBeenCalledWith({
+    path: "/tmp/index.ts",
+    label: "index.ts",
+    viewMode: "preview",
+  });
+});
+
+it("rejects remote-host file URI links instead of treating them as local paths", () => {
+  const onFileOpen = vi.fn();
+
+  render(
+    <ChatMessageMarkdown
+      text="[remote](file://files.example.com/shared/index.ts)"
+      role="assistant"
+      texts={defaultTexts}
+      onFileOpen={onFileOpen}
+    />,
+  );
+
+  const link = screen.getByRole("link", { name: "remote" });
+  expect(link.getAttribute("href")).toBe("#");
+  expect(link.getAttribute("aria-disabled")).toBe("true");
+  fireEvent.click(link);
+  expect(onFileOpen).not.toHaveBeenCalled();
+});
+
 it("opens absolute html file links through the existing file preview action", () => {
   const onFileOpen = vi.fn();
 
@@ -110,9 +193,7 @@ it("opens absolute html file links through the existing file preview action", ()
   );
 
   const link = screen.getByRole("link", { name: "particle-cosmos.html" });
-  expect(link.getAttribute("href")).toBe(
-    "/Users/peiwang/Downloads/particle-cosmos.html",
-  );
+  expect(link.getAttribute("href")).toBe("/Users/peiwang/Downloads/particle-cosmos.html");
   expect(link.getAttribute("node")).toBeNull();
 
   fireEvent.click(link);
@@ -137,9 +218,7 @@ it("opens html file links in rendered mode only when the viewer query asks for i
   );
 
   const link = screen.getByRole("link", { name: "particle-cosmos.html" });
-  expect(link.getAttribute("href")).toBe(
-    "/Users/peiwang/Downloads/particle-cosmos.html?viewer=rendered",
-  );
+  expect(link.getAttribute("href")).toBe("/Users/peiwang/Downloads/particle-cosmos.html?viewer=rendered");
 
   fireEvent.click(link);
 
@@ -198,12 +277,7 @@ it("opens project-root file links through the file preview action", () => {
   const onFileOpen = vi.fn();
 
   render(
-    <ChatMessageMarkdown
-      text="[rules](AGENTS.md)"
-      role="assistant"
-      texts={defaultTexts}
-      onFileOpen={onFileOpen}
-    />,
+    <ChatMessageMarkdown text="[rules](AGENTS.md)" role="assistant" texts={defaultTexts} onFileOpen={onFileOpen} />,
   );
 
   fireEvent.click(screen.getByRole("link", { name: "rules" }));
@@ -260,8 +334,7 @@ it.each(["report.docx", "workbook.xlsx", "slides.pptx"])(
 
 it("resolves local Markdown image paths through the host file-content contract", () => {
   const resolveFileContentUrl = vi.fn(
-    (action: { path: string }) =>
-      `/api/server-paths/content?path=${encodeURIComponent(action.path)}`,
+    (action: { path: string }) => `/api/server-paths/content?path=${encodeURIComponent(action.path)}`,
   );
 
   render(
@@ -282,34 +355,22 @@ it("resolves local Markdown image paths through the host file-content contract",
     "/api/server-paths/content?path=%2FUsers%2Fdemo%2Fproject%2Fdiagram.svg",
   );
   expect(
-    screen
-      .getByRole("img", { name: "diagram" })
-      .closest("[data-chat-message-image-preview]")?.className,
+    screen.getByRole("img", { name: "diagram" }).closest("[data-chat-message-image-preview]")?.className,
   ).toContain("max-w-[min(100%,32rem)]");
   expect(
-    screen
-      .getByRole("img", { name: "diagram" })
-      .closest("[data-chat-message-image-preview]")?.className,
+    screen.getByRole("img", { name: "diagram" }).closest("[data-chat-message-image-preview]")?.className,
   ).toContain("overflow-hidden");
   expect(
-    screen
-      .getByRole("img", { name: "diagram" })
-      .closest("[data-chat-message-image-preview]")?.className,
+    screen.getByRole("img", { name: "diagram" }).closest("[data-chat-message-image-preview]")?.className,
   ).not.toContain("border");
   expect(
-    screen
-      .getByRole("img", { name: "diagram" })
-      .closest("[data-chat-message-image-preview]")?.className,
+    screen.getByRole("img", { name: "diagram" }).closest("[data-chat-message-image-preview]")?.className,
   ).not.toContain("shadow");
-  expect(screen.getByRole("img", { name: "diagram" }).className).toContain(
-    "rounded-lg",
-  );
+  expect(screen.getByRole("img", { name: "diagram" }).className).toContain("rounded-lg");
 });
 
 it("resolves project-relative Markdown image paths", () => {
-  const resolveFileContentUrl = vi.fn(
-    () => "/api/server-paths/content?path=assets%2Fdiagram.png",
-  );
+  const resolveFileContentUrl = vi.fn(() => "/api/server-paths/content?path=assets%2Fdiagram.png");
 
   render(
     <ChatMessageMarkdown
@@ -339,14 +400,9 @@ it("groups three same-line Markdown images into one compact row", () => {
     />,
   );
 
-  const imageRow = document.querySelector(
-    '[data-chat-image-row="three-column"]',
-  );
+  const imageRow = document.querySelector('[data-chat-image-row="three-column"]');
   expect(imageRow).toBeTruthy();
-  expect(
-    imageRow?.querySelectorAll(":scope > [data-chat-message-image-preview]")
-      .length,
-  ).toBe(3);
+  expect(imageRow?.querySelectorAll(":scope > [data-chat-message-image-preview]").length).toBe(3);
 });
 
 it("keeps explicitly line-broken Markdown images in the vertical flow", () => {
@@ -362,9 +418,7 @@ it("keeps explicitly line-broken Markdown images in the vertical flow", () => {
     />,
   );
 
-  expect(
-    document.querySelector('[data-chat-image-row="three-column"]'),
-  ).toBeNull();
+  expect(document.querySelector('[data-chat-image-row="three-column"]')).toBeNull();
 });
 
 it("keeps external Markdown image URLs unchanged", () => {
@@ -379,9 +433,7 @@ it("keeps external Markdown image URLs unchanged", () => {
     />,
   );
 
-  expect(screen.getByRole("img", { name: "logo" }).getAttribute("src")).toBe(
-    "https://example.com/logo.png",
-  );
+  expect(screen.getByRole("img", { name: "logo" }).getAttribute("src")).toBe("https://example.com/logo.png");
   expect(resolveFileContentUrl).not.toHaveBeenCalled();
 });
 
@@ -394,9 +446,7 @@ it("uses the shared expandable preview for consecutive Markdown images", () => {
     />,
   );
 
-  const previews = container.querySelectorAll(
-    "[data-chat-message-image-preview]",
-  );
+  const previews = container.querySelectorAll("[data-chat-message-image-preview]");
   expect(previews).toHaveLength(2);
   expect(previews[0]?.tagName).toBe("SPAN");
   expect(previews[0]?.nextElementSibling).toBe(previews[1]);
@@ -411,12 +461,7 @@ it("keeps every scheme-less Markdown href clickable as a local resource", () => 
   const onFileOpen = vi.fn();
 
   render(
-    <ChatMessageMarkdown
-      text="[site](example.com)"
-      role="assistant"
-      texts={defaultTexts}
-      onFileOpen={onFileOpen}
-    />,
+    <ChatMessageMarkdown text="[site](example.com)" role="assistant" texts={defaultTexts} onFileOpen={onFileOpen} />,
   );
 
   const link = screen.getByRole("link", { name: "site" });
@@ -451,11 +496,7 @@ it("preserves link semantics while blocking unsafe protocols", () => {
 
 it("renders fenced code blocks with syntax highlighting", () => {
   const { container } = render(
-    <ChatMessageMarkdown
-      text={"```ts\nconst value: number = 1;\n```"}
-      role="assistant"
-      texts={defaultTexts}
-    />,
+    <ChatMessageMarkdown text={"```ts\nconst value: number = 1;\n```"} role="assistant" texts={defaultTexts} />,
   );
 
   const code = container.querySelector(".chat-codeblock code");
@@ -479,14 +520,10 @@ it("renders nextclaw inline display directives as inert display surfaces", () =>
     />,
   );
 
-  const display = container.querySelector(
-    '[data-nextclaw-inline-display="true"]',
-  );
+  const display = container.querySelector('[data-nextclaw-inline-display="true"]');
 
   expect(display).toBeTruthy();
-  expect(display?.getAttribute("data-nextclaw-inline-display-type")).toBe(
-    "file",
-  );
+  expect(display?.getAttribute("data-nextclaw-inline-display-type")).toBe("file");
   expect(screen.getByText("Demo")).toBeTruthy();
   expect(screen.getByText("Rendered preview")).toBeTruthy();
   expect(screen.getByText("docs/demo.md")).toBeTruthy();
@@ -514,19 +551,13 @@ it("delegates nextclaw inline display rendering to the host renderer", () => {
     />,
   );
 
-  expect(screen.getByTestId("inline-panel-app").textContent).toBe(
-    "weather-card:Weather",
-  );
+  expect(screen.getByTestId("inline-panel-app").textContent).toBe("weather-card:Weather");
   expect(screen.queryByText("nextclaw-inline")).toBeNull();
 });
 
 it("falls back to a normal code block for invalid inline display directives", () => {
   const { container } = render(
-    <ChatMessageMarkdown
-      text={"```nextclaw-inline\nnot json\n```"}
-      role="assistant"
-      texts={defaultTexts}
-    />,
+    <ChatMessageMarkdown text={"```nextclaw-inline\nnot json\n```"} role="assistant" texts={defaultTexts} />,
   );
 
   const code = container.querySelector(".chat-codeblock code");
@@ -538,11 +569,7 @@ it("falls back to a normal code block for invalid inline display directives", ()
 
 it("keeps highlighted code content escaped", () => {
   const { container } = render(
-    <ChatMessageMarkdown
-      text={"```html\n<img src=x onerror=alert(1)>\n```"}
-      role="assistant"
-      texts={defaultTexts}
-    />,
+    <ChatMessageMarkdown text={"```html\n<img src=x onerror=alert(1)>\n```"} role="assistant" texts={defaultTexts} />,
   );
 
   const code = container.querySelector(".chat-codeblock code");
@@ -590,9 +617,7 @@ it("leaves inline token protocols literal inside inline code", () => {
   );
 
   expect(screen.queryByTitle("Task Board")).toBeNull();
-  expect(container.querySelector("code")?.textContent).toBe(
-    "@panel-app:task-board",
-  );
+  expect(container.querySelector("code")?.textContent).toBe("@panel-app:task-board");
 });
 
 it("leaves inline token protocols literal inside fenced code blocks", () => {
@@ -613,17 +638,13 @@ it("leaves inline token protocols literal inside fenced code blocks", () => {
   );
 
   expect(screen.queryByTitle("Task Board")).toBeNull();
-  expect(container.querySelector(".chat-codeblock code")?.textContent).toBe(
-    "@panel-app:task-board",
-  );
+  expect(container.querySelector(".chat-codeblock code")?.textContent).toBe("@panel-app:task-board");
 });
 
 it("renders tokens outside fenced code while preserving code literals", () => {
   const { container } = render(
     <ChatMessageMarkdown
-      text={
-        "review @panel-app:task-board\n\n```txt\n@panel-app:task-board\n```"
-      }
+      text={"review @panel-app:task-board\n\n```txt\n@panel-app:task-board\n```"}
       role="assistant"
       texts={defaultTexts}
       inlineTokens={[
@@ -638,7 +659,5 @@ it("renders tokens outside fenced code while preserving code literals", () => {
   );
 
   expect(screen.getAllByTitle("Task Board")).toHaveLength(1);
-  expect(container.querySelector(".chat-codeblock code")?.textContent).toBe(
-    "@panel-app:task-board",
-  );
+  expect(container.querySelector(".chat-codeblock code")?.textContent).toBe("@panel-app:task-board");
 });

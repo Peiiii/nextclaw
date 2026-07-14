@@ -12,15 +12,10 @@ import type {
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
-function WorkspaceBreadcrumbMetaChip({ tone = "neutral", value }: { tone?: "neutral" | "warning"; value: string }) {
+function WorkspaceBreadcrumbWarningChip({ value }: { value: string }) {
   return (
     <span
-      className={cn(
-        "inline-flex h-5 items-center rounded-sm border px-1.5 text-[10px] font-medium leading-none",
-        tone === "warning"
-          ? "border-amber-200 bg-amber-50 text-amber-700"
-          : "border-gray-200 bg-gray-50 text-gray-500",
-      )}
+      className="inline-flex h-5 items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 text-[10px] font-medium leading-none text-amber-700"
     >
       {value}
     </span>
@@ -116,17 +111,11 @@ export function ChatSessionWorkspaceFileBreadcrumbs({
           ))}
         </div>
 
-        {breadcrumb.locationLabel || breadcrumb.truncated ? (
+        {breadcrumb.truncated ? (
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
-            {breadcrumb.locationLabel ? (
-              <WorkspaceBreadcrumbMetaChip value={breadcrumb.locationLabel} />
-            ) : null}
-            {breadcrumb.truncated ? (
-              <WorkspaceBreadcrumbMetaChip
-                tone="warning"
-                value={t("chatWorkspacePreviewTruncated")}
-              />
-            ) : null}
+            <WorkspaceBreadcrumbWarningChip
+              value={t("chatWorkspacePreviewTruncated")}
+            />
           </div>
         ) : null}
       </div>

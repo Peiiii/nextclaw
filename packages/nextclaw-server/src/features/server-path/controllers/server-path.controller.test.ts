@@ -321,3 +321,31 @@ describe("ServerPathRoutesController Office content", () => {
     },
   );
 });
+
+describe("ServerPathRoutesController location reads", () => {
+  it("returns a target-centered window with real file line numbers", async () => {
+    const app = createTestApp();
+    const root = realpathSync(createTempDir("nextclaw-ui-read-location-"));
+    const filePath = join(root, "large.txt");
+    writeFileSync(
+      filePath,
+      Array.from({ length: 100 }, (_, index) => `line ${index + 1}`).join("\n"),
+    );
+    const response = await app.request(
+      `http://localhost/api/server-paths/read?path=${encodeURIComponent(filePath)}&line=80`,
+    );
+    const payload = (await response.json()) as {
+      ok: boolean;
+      data: { startLine: number; text: string; truncated: boolean };
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      ok: true,
+      data: { startLine: 60, truncated: true },
+    });
+    expect(payload.data.text.startsWith("line 60\n")).toBe(true);
+    expect(payload.data.text).toContain("line 80\n");
+    expect(payload.data.text).not.toContain("line 59\n");
+  });
+});

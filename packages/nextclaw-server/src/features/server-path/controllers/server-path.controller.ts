@@ -18,6 +18,11 @@ function readIncludeFilesFlag(value: string | undefined): boolean {
   return value === "1" || value === "true";
 }
 
+function readPositiveInteger(value: string | undefined): number | undefined {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 function encodeContentDispositionFileName(fileName: string): string {
   return encodeURIComponent(fileName).replace(/\*/g, "%2A");
 }
@@ -48,6 +53,7 @@ export class ServerPathRoutesController {
       const payload: ServerPathReadView = await readServerPath({
         path: c.req.query("path"),
         basePath: c.req.query("basePath"),
+        line: readPositiveInteger(c.req.query("line")),
       });
       return c.json(ok(payload));
     } catch (error) {

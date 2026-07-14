@@ -367,7 +367,7 @@ export type ServerPathBrowseView = {
   entries: ServerPathEntryView[];
 };
 
-export type ServerPathReadView = { requestedPath: string; resolvedPath: string; kind: "text" | "markdown" | "binary"; sizeBytes: number; truncated: boolean; text?: string; languageHint?: string | null };
+export type ServerPathReadView = { requestedPath: string; resolvedPath: string; kind: "text" | "markdown" | "binary"; sizeBytes: number; startLine?: number; truncated: boolean; text?: string; languageHint?: string | null };
 
 export type PanelAppEntryView = {
   id: string;

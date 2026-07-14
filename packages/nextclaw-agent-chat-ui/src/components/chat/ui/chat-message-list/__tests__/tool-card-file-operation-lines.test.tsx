@@ -122,4 +122,50 @@ describe("FileOperationCodeSurface", () => {
     expect(firstCodeCell?.className).toContain("flex-1");
     expect(firstCodeCell?.className).toContain("min-w-0");
   });
+
+  it("scrolls to the target location and marks it inside the code surface", () => {
+    const originalScrollIntoView = Element.prototype.scrollIntoView;
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+
+    try {
+      const view = render(
+        <FileOperationCodeSurface
+          block={{
+            ...block,
+            lines: Array.from({ length: 20 }, (_, index) => ({
+              kind: "context" as const,
+              text: `line ${index + 1}`,
+              newLineNumber: index + 1,
+            })),
+          }}
+          layout="workspace"
+          targetLine={12}
+          targetColumn={4}
+        />,
+      );
+      const targetRow = view.container.querySelector(
+        '[data-file-target-line="true"]',
+      );
+      const targetCaret = view.container.querySelector(
+        '[data-file-target-caret="true"]',
+      );
+
+      expect(targetRow?.getAttribute("aria-current")).toBe("location");
+      expect(targetRow?.textContent).toContain("line 12");
+      expect(targetCaret).toBeTruthy();
+      expect(scrollIntoView.mock.instances[0]).toBe(targetCaret);
+      expect(
+        targetRow
+          ?.querySelector('[data-file-code-row="true"]')
+          ?.getAttribute("data-file-target-column"),
+      ).toBe("4");
+      expect(scrollIntoView).toHaveBeenCalledWith({
+        block: "center",
+        inline: "center",
+      });
+    } finally {
+      Element.prototype.scrollIntoView = originalScrollIntoView;
+    }
+  });
 });

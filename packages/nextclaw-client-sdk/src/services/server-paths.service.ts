@@ -21,13 +21,16 @@ export class ServerPathsService {
     });
   };
 
-  readonly read = async (params: { path: string; basePath?: string | null }): Promise<ServerPathReadView> => {
-    const path = params.path.trim();
-    const basePath = typeof params.basePath === "string" ? params.basePath.trim() : "";
+  readonly read = async (params: { path: string; basePath?: string | null; line?: number | null }): Promise<ServerPathReadView> => {
+    const { basePath: rawBasePath, line: rawLine, path: rawPath } = params;
+    const path = rawPath.trim();
+    const basePath = typeof rawBasePath === "string" ? rawBasePath.trim() : "";
+    const line = Number.isSafeInteger(rawLine) && (rawLine ?? 0) > 0 ? rawLine : null;
     return await this.requestService.get<ServerPathReadView>("/api/server-paths/read", {
       query: {
         path,
-        ...(basePath ? { basePath } : {})
+        ...(basePath ? { basePath } : {}),
+        ...(line ? { line: String(line) } : {})
       }
     });
   };

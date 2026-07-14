@@ -11,7 +11,6 @@ export type WorkspaceFileBreadcrumbSegmentViewModel = {
 
 export type WorkspaceFileBreadcrumbViewModel = {
   fullPath: string;
-  locationLabel: string | null;
   truncated: boolean;
   segments: WorkspaceFileBreadcrumbSegmentViewModel[];
 };
@@ -153,28 +152,13 @@ function buildSegmentsFromLabels(params: {
   return leading ? [leading, ...items] : items;
 }
 
-function buildLocationLabel(params: {
-  line?: number | null;
-  column?: number | null;
-}): string | null {
-  const { column, line } = params;
-
-  if (typeof line !== "number") {
-    return null;
-  }
-
-  return `L${line}${typeof column === "number" ? `:${column}` : ""}`;
-}
-
 export function buildWorkspaceFileBreadcrumb(params: {
   path: string;
   kind?: "file" | "directory";
   sessionProjectRoot: string | null;
-  line?: number | null;
-  column?: number | null;
   truncated: boolean;
 }): WorkspaceFileBreadcrumbViewModel {
-  const { column, kind = "file", line, path, sessionProjectRoot, truncated } = params;
+  const { kind = "file", path, sessionProjectRoot, truncated } = params;
   const fullPath = path.trim();
   const relativeSegments =
     sessionProjectRoot?.trim() && fullPath
@@ -239,7 +223,6 @@ export function buildWorkspaceFileBreadcrumb(params: {
 
   return {
     fullPath,
-    locationLabel: buildLocationLabel({ line, column }),
     truncated,
     segments,
   };

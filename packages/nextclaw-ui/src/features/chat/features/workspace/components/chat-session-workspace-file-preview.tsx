@@ -51,10 +51,10 @@ function buildPreviewBlock(params: {
   path: string;
   text: string;
   languageHint?: string | null;
-  line?: number | null;
+  startLine?: number | null;
 }): ChatFileOperationBlockViewModel {
-  const { languageHint, line, path, text } = params;
-  const startLine = line ?? 1;
+  const { languageHint, path, startLine, text } = params;
+  const normalizedStartLine = startLine ?? 1;
   return {
     key: `preview:${path}`,
     path,
@@ -62,13 +62,13 @@ function buildPreviewBlock(params: {
     lines: buildPreviewLines({
       text,
       kind: "context",
-      oldStartLine: startLine,
-      newStartLine: startLine,
+      oldStartLine: normalizedStartLine,
+      newStartLine: normalizedStartLine,
     }),
     rawText: text,
     languageHint: languageHint ?? null,
-    oldStartLine: startLine,
-    newStartLine: startLine,
+    oldStartLine: normalizedStartLine,
+    newStartLine: normalizedStartLine,
   };
 }
 
@@ -154,12 +154,21 @@ function WorkspaceDiffBody({
 
 function WorkspaceCodeSurface({
   block,
+  targetColumn,
+  targetLine,
 }: {
   block: ChatFileOperationBlockViewModel;
+  targetColumn?: number | null;
+  targetLine?: number | null;
 }) {
   return (
     <div className="h-full overflow-auto custom-scrollbar bg-white">
-      <FileOperationCodeSurface block={block} layout="workspace" />
+      <FileOperationCodeSurface
+        block={block}
+        layout="workspace"
+        targetColumn={targetColumn}
+        targetLine={targetLine}
+      />
     </div>
   );
 }
@@ -176,6 +185,8 @@ function WorkspacePreviewBody({
   previewViewer,
   previewQuery,
   previewText,
+  targetColumn,
+  targetLine,
 }: {
   contentUrl: string | null;
   contentUrlKind: WorkspaceFileContentKind | null;
@@ -188,6 +199,8 @@ function WorkspacePreviewBody({
   previewViewer: "source" | "rendered" | null;
   previewQuery: ReturnType<typeof useServerPathRead> | null | undefined;
   previewText: string | null;
+  targetColumn?: number | null;
+  targetLine?: number | null;
 }) {
   if (contentUrl && contentUrlKind) {
     return (
@@ -260,7 +273,13 @@ function WorkspacePreviewBody({
   }
 
   if (previewBlock) {
-    return <WorkspaceCodeSurface block={previewBlock} />;
+    return (
+      <WorkspaceCodeSurface
+        block={previewBlock}
+        targetColumn={targetColumn}
+        targetLine={targetLine}
+      />
+    );
   }
 
   return <WorkspaceFilePreviewStatus text={t("chatWorkspacePreviewEmpty")} />;
@@ -271,6 +290,7 @@ type ChatSessionWorkspaceFilePreviewProps = {
   refreshVersion?: number;
   sessionProjectRoot: string | null;
   sessionWorkingDir: string | null;
+  showBreadcrumbs?: boolean;
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
 };
 
@@ -279,6 +299,7 @@ export function ChatSessionWorkspaceFilePreview({
   refreshVersion = 0,
   sessionProjectRoot,
   sessionWorkingDir,
+  showBreadcrumbs = true,
   onFileOpen,
 }: ChatSessionWorkspaceFilePreviewProps) {
   const isPreviewMode = file.viewMode === "preview";
@@ -287,6 +308,7 @@ export function ChatSessionWorkspaceFilePreview({
   const previewQuery = useServerPathRead({
     path: file.path,
     basePath: sessionWorkingDir,
+    line: file.line,
     enabled: usesServerPath,
   });
   const directoryQuery = useServerPathBrowse({
@@ -351,15 +373,15 @@ export function ChatSessionWorkspaceFilePreview({
       path: previewQuery?.data?.resolvedPath ?? file.path,
       text: previewText,
       languageHint: previewQuery?.data?.languageHint ?? null,
-      line: file.line,
+      startLine: previewQuery?.data?.startLine ?? 1,
     });
   }, [
     contentUrl,
-    file.line,
     file.path,
     isPreviewMode,
     previewQuery?.data?.languageHint,
     previewQuery?.data?.resolvedPath,
+    previewQuery?.data?.startLine,
     previewText,
   ]);
   const isTextPreviewTruncated = !contentUrl && Boolean(previewQuery?.data?.truncated);
@@ -370,14 +392,10 @@ export function ChatSessionWorkspaceFilePreview({
         path: resolvedPath,
         kind: previewPathKind,
         sessionProjectRoot: breadcrumbBasePath,
-        line: file.line,
-        column: file.column,
         truncated: isTextPreviewTruncated,
       }),
     [
       breadcrumbBasePath,
-      file.column,
-      file.line,
       isTextPreviewTruncated,
       previewPathKind,
       resolvedPath,
@@ -386,10 +404,12 @@ export function ChatSessionWorkspaceFilePreview({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
-      <ChatSessionWorkspaceFileBreadcrumbs
-        breadcrumb={breadcrumb}
-        onFileOpen={onFileOpen}
-      />
+      {showBreadcrumbs ? (
+        <ChatSessionWorkspaceFileBreadcrumbs
+          breadcrumb={breadcrumb}
+          onFileOpen={onFileOpen}
+        />
+      ) : null}
 
       <div className="flex-1 min-h-0 overflow-hidden">
         {file.viewMode === "diff" ? (
@@ -407,6 +427,8 @@ export function ChatSessionWorkspaceFilePreview({
             previewViewer={previewViewer}
             previewQuery={previewQuery}
             previewText={previewText}
+            targetColumn={file.column}
+            targetLine={file.line}
           />
         )}
       </div>

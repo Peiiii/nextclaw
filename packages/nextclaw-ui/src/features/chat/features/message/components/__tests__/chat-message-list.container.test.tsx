@@ -19,6 +19,7 @@ const captures = vi.hoisted(() => ({
   openFilePreview: vi.fn(),
   handleToolAction: vi.fn(),
   showContent: vi.fn(),
+  filePreviewProps: [] as Array<{ showBreadcrumbs?: boolean }>,
 }));
 
 vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
@@ -61,12 +62,25 @@ vi.mock("@/shared/lib/i18n", () => ({
   t: (key: string) => key,
 }));
 
+vi.mock(
+  "@/features/chat/features/workspace/components/chat-session-workspace-file-preview",
+  () => ({
+    ChatSessionWorkspaceFilePreview: (props: {
+      showBreadcrumbs?: boolean;
+    }) => {
+      captures.filePreviewProps.push(props);
+      return <div data-testid="inline-workspace-file-preview" />;
+    },
+  }),
+);
+
 beforeEach(() => {
   captures.renders = [];
   captures.language = "en";
   captures.openFilePreview.mockReset();
   captures.handleToolAction.mockReset();
   captures.showContent.mockReset();
+  captures.filePreviewProps = [];
 });
 
 it("reuses adapted message references when the source message object is unchanged", () => {
@@ -484,22 +498,40 @@ it("passes the inline panel app renderer to the shared chat UI", () => {
   expect(captures.renders[captures.renders.length - 1]?.renderPanelAppCard).toEqual(expect.any(Function));
 });
 
-it("passes the inline display renderer to the shared chat UI", () => {
+it("renders inline file displays through the workspace file preview", () => {
   render(<ChatMessageListContainer messages={[]} isSending={false} />);
 
   const renderInlineDisplay =
     captures.renders[captures.renders.length - 1]?.renderInlineDisplay;
 
   expect(renderInlineDisplay).toEqual(expect.any(Function));
-  expect(
-    renderInlineDisplay?.({
-      target: {
-        type: "file",
-        payload: { path: "README.md" },
-      },
-      title: "README",
-    }),
-  ).toBeUndefined();
+  const rendered = renderInlineDisplay?.({
+    target: {
+      type: "file",
+      payload: { path: "preview.html", viewer: "rendered" },
+    },
+    title: "Preview",
+    description: "Rendered HTML",
+  });
+
+  if (!isValidElement<{ display?: unknown }>(rendered)) {
+    throw new Error("Expected inline file renderer to return a React element");
+  }
+  expect(rendered.props.display).toEqual({
+    target: {
+      type: "file",
+      payload: { path: "preview.html", viewer: "rendered" },
+    },
+    title: "Preview",
+    description: "Rendered HTML",
+  });
+
+  render(rendered);
+
+  expect(screen.getByText("Preview")).toBeTruthy();
+  expect(screen.getByText("preview.html")).toBeTruthy();
+  expect(screen.queryByText("Rendered HTML")).toBeNull();
+  expect(captures.filePreviewProps.at(-1)?.showBreadcrumbs).toBe(false);
 });
 
 it("keeps inline panel app displays expandable from the card header", () => {

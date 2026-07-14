@@ -12,7 +12,10 @@ export function createWorkspaceFileTab(
   }
   const normalizedParentSessionKey = parentSessionKey?.trim() || null;
   const previewViewer = action.viewMode === 'preview'
-    ? normalizeWorkspaceFilePreviewViewer(path, action.previewViewer)
+    ? normalizeWorkspaceFilePreviewViewer(
+        path,
+        action.previewViewer ?? (action.line ? 'source' : undefined),
+      )
     : action.previewViewer ?? null;
   const viewIdentity = action.viewMode === 'preview' && previewViewer === 'rendered'
     ? 'preview:rendered'

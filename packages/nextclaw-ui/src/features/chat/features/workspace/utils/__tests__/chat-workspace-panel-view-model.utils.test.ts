@@ -4,6 +4,7 @@ import {
   buildWorkspaceTabsViewModel,
   resolveWorkspaceSelection,
 } from "@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils";
+import { createWorkspaceFileTab } from "@/features/chat/features/workspace/utils/chat-workspace-file-tab.utils";
 import { t } from "@/shared/lib/i18n";
 
 function createChildTab(
@@ -100,6 +101,37 @@ describe("resolveWorkspaceSelection", () => {
     ).toMatchObject({
       kind: "side-chat-draft",
       draft,
+    });
+  });
+});
+
+describe("createWorkspaceFileTab", () => {
+  it("uses source view for located Markdown unless rendered view is explicit", () => {
+    const locatedSource = createWorkspaceFileTab(
+      {
+        path: "README.md",
+        viewMode: "preview",
+        line: 12,
+      },
+      "parent-1",
+    );
+    const explicitRendered = createWorkspaceFileTab(
+      {
+        path: "README.md",
+        viewMode: "preview",
+        previewViewer: "rendered",
+        line: 12,
+      },
+      "parent-1",
+    );
+
+    expect(locatedSource).toMatchObject({
+      previewViewer: "source",
+      line: 12,
+    });
+    expect(explicitRendered).toMatchObject({
+      previewViewer: "rendered",
+      line: 12,
     });
   });
 });

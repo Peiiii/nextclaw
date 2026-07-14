@@ -6,6 +6,7 @@ import type {
 } from "@nextclaw/agent-chat-ui";
 import { ChatSessionWorkspaceFilePreview } from "@/features/chat/features/workspace/components/chat-session-workspace-file-preview";
 import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.store";
+import type { ServerPathReadView } from "@/shared/lib/api";
 import { t } from "@/shared/lib/i18n";
 
 const serverPathReadMock = vi.fn();
@@ -22,15 +23,10 @@ type RenderWorkspaceFilePreviewOptions = {
   refreshVersion?: number;
   sessionProjectRoot?: string | null;
   sessionWorkingDir?: string | null;
+  showBreadcrumbs?: boolean;
 };
 
-type TextReadDataOverrides = {
-  kind?: "text" | "markdown" | "binary";
-  languageHint?: string;
-  resolvedPath?: string;
-  text?: string;
-  truncated?: boolean;
-};
+type TextReadDataOverrides = Partial<ServerPathReadView>;
 
 vi.mock("@/shared/hooks/use-server-path-read", () => ({
   useServerPathRead: (...args: unknown[]) => serverPathReadMock(...args),
@@ -97,6 +93,7 @@ function mockTextRead(overrides: TextReadDataOverrides = {}) {
     data: {
       kind: "text",
       resolvedPath: "/tmp/example.ts",
+      startLine: 1,
       text: "const answer = 42;\n",
       truncated: false,
       ...overrides,
@@ -110,6 +107,7 @@ function renderWorkspaceFilePreview({
   refreshVersion,
   sessionProjectRoot = "/tmp",
   sessionWorkingDir = "/tmp",
+  showBreadcrumbs,
 }: RenderWorkspaceFilePreviewOptions = {}) {
   const view = render(
     <ChatSessionWorkspaceFilePreview
@@ -117,6 +115,7 @@ function renderWorkspaceFilePreview({
       sessionProjectRoot={sessionProjectRoot}
       sessionWorkingDir={sessionWorkingDir}
       refreshVersion={refreshVersion}
+      showBreadcrumbs={showBreadcrumbs}
       onFileOpen={onFileOpen}
     />,
   );
@@ -525,11 +524,16 @@ describe("ChatSessionWorkspaceFilePreview text rendering", () => {
     ).toBe("workspace");
   });
 
-  it("passes server language hints to the workspace code surface", () => {
-    mockTextRead({ languageHint: "js", resolvedPath: "/tmp/example.js" });
+  it("passes server language hints and keeps location out of breadcrumbs", () => {
+    mockTextRead({
+      languageHint: "js",
+      resolvedPath: "/tmp/example.js",
+    });
     renderWorkspaceFilePreview({
       file: {
+        column: 4,
         label: "example.js",
+        line: 12,
         path: "/tmp/example.js",
         viewMode: "preview",
       },
@@ -540,6 +544,7 @@ describe("ChatSessionWorkspaceFilePreview text rendering", () => {
         .getByTestId("file-code-surface")
         .getAttribute("data-language-hint"),
     ).toBe("js");
+    expect(screen.queryByText("L12:4")).toBeNull();
   });
 
   it("renders Markdown by default and keeps source view explicit", () => {
@@ -761,6 +766,14 @@ describe("ChatSessionWorkspaceFilePreview text rendering", () => {
 });
 
 describe("ChatSessionWorkspaceFilePreview breadcrumbs", () => {
+  it("can hide workspace breadcrumbs for inline placements", () => {
+    mockTextRead();
+    renderWorkspaceFilePreview({ showBreadcrumbs: false });
+
+    expect(screen.queryByTestId("workspace-file-breadcrumbs")).toBeNull();
+    expect(screen.getByTestId("file-code-surface")).toBeTruthy();
+  });
+
   it("renders project-relative breadcrumbs when the file is inside the workspace", () => {
     mockTextRead({ resolvedPath: "/tmp/workspace/src/example.ts" });
     renderWorkspaceFilePreview({
@@ -830,21 +843,6 @@ describe("ChatSessionWorkspaceFilePreview breadcrumbs", () => {
     expect(
       screen.getByRole("button", { name: "components" }).className,
     ).toContain("h-6");
-  });
-
-  it("keeps line and truncation metadata without the duplicated type badge", () => {
-    mockTextRead({ truncated: true });
-    renderWorkspaceFilePreview({
-      file: {
-        viewMode: "preview",
-        line: 12,
-        column: 4,
-      },
-    });
-
-    expect(screen.getByText("L12:4")).toBeTruthy();
-    expect(screen.getByText(t("chatWorkspacePreviewTruncated"))).toBeTruthy();
-    expect(screen.queryByText(t("chatWorkspacePreview"))).toBeNull();
   });
 
   it("uses the session working directory as the base path when no project root is set", () => {

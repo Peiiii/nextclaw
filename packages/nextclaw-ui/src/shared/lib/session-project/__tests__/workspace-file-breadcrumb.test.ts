@@ -80,16 +80,13 @@ describe("buildWorkspaceFileBreadcrumb", () => {
     ]);
   });
 
-  it("attaches line metadata for the workspace breadcrumb bar", () => {
+  it("keeps truncation status separate from path segments", () => {
     const breadcrumb = buildWorkspaceFileBreadcrumb({
       path: "README.md",
       sessionProjectRoot: "/Users/demo/project-alpha",
-      line: 12,
-      column: 4,
       truncated: true,
     });
 
-    expect(breadcrumb.locationLabel).toBe("L12:4");
     expect(breadcrumb.truncated).toBe(true);
     expect(breadcrumb.segments[0]?.label).toBe("project-alpha");
     expect(breadcrumb.segments[1]?.label).toBe("README.md");

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useLayoutEffect, useMemo, useRef, type Ref } from "react";
 import type {
   ChatFileOperationBlockViewModel,
   ChatFileOperationLineViewModel,
@@ -14,6 +14,16 @@ const FILE_LINE_NUMBER_CELL_CLASS_NAME =
 function readVisibleLineNumber(line: ChatFileOperationLineViewModel): string {
   const value = line.newLineNumber ?? line.oldLineNumber;
   return typeof value === "number" ? String(value) : "";
+}
+
+function isTargetLine(
+  line: ChatFileOperationLineViewModel,
+  targetLine?: number | null,
+): boolean {
+  return (
+    typeof targetLine === "number" &&
+    (line.newLineNumber ?? line.oldLineNumber) === targetLine
+  );
 }
 
 function readLineKey(
@@ -100,10 +110,12 @@ function FileOperationLineNumberCell({
   layout,
   line,
   lineNumberColumnWidth,
+  target,
 }: {
   layout: "compact" | "workspace";
   line: ChatFileOperationLineViewModel;
   lineNumberColumnWidth: string;
+  target?: boolean;
 }) {
   return (
     <span
@@ -113,6 +125,7 @@ function FileOperationLineNumberCell({
         FILE_LINE_NUMBER_CELL_CLASS_NAME,
         layout === "compact" ? "sticky left-0 z-[1]" : "w-full shrink-0",
         getLineNumberTone(line),
+        target ? "bg-gray-200 font-medium text-gray-950" : null,
       )}
     >
       {readVisibleLineNumber(line)}
@@ -123,27 +136,52 @@ function FileOperationLineNumberCell({
 function FileOperationCodeCell({
   language,
   line,
+  target,
+  targetColumn,
+  targetRef,
 }: {
   language: string;
   line: ChatFileOperationLineViewModel;
+  target?: boolean;
+  targetColumn?: number | null;
+  targetRef?: Ref<HTMLSpanElement>;
 }) {
   const highlightedCode = useMemo(
     () => chatCodeSyntaxHighlighter.highlight(line.text || " ", language),
     [language, line.text],
   );
+  const visibleTargetColumn =
+    typeof targetColumn === "number" &&
+    Number.isSafeInteger(targetColumn) &&
+    targetColumn > 0
+      ? Math.min(targetColumn, line.text.length + 1)
+      : null;
 
   return (
     <span
+      ref={visibleTargetColumn ? undefined : targetRef}
       data-file-code-row="true"
       data-file-code-language={highlightedCode.language}
       data-highlighted={highlightedCode.highlighted ? "true" : "false"}
+      data-file-target-column={visibleTargetColumn ?? undefined}
       className={cn(
-        "chat-file-code-syntax hljs block min-w-0 flex-1 whitespace-pre px-2.5",
+        "chat-file-code-syntax hljs relative block min-w-0 flex-1 whitespace-pre px-2.5",
         readLanguageClassName(highlightedCode.language),
         getCodeRowTone(line),
+        target ? "bg-gray-100/90" : null,
       )}
-      dangerouslySetInnerHTML={{ __html: highlightedCode.html }}
-    />
+    >
+      <span dangerouslySetInnerHTML={{ __html: highlightedCode.html }} />
+      {visibleTargetColumn ? (
+        <span
+          ref={targetRef}
+          aria-hidden="true"
+          data-file-target-caret="true"
+          className="pointer-events-none absolute inset-y-0 w-px bg-primary"
+          style={{ left: `calc(0.625rem + ${visibleTargetColumn - 1}ch)` }}
+        />
+      ) : null}
+    </span>
   );
 }
 
@@ -174,13 +212,25 @@ function FileOperationLineRow({
 
 function FileOperationWorkspaceSurface({
   block,
+  targetColumn,
+  targetLine,
 }: {
   block: ChatFileOperationBlockViewModel;
+  targetColumn?: number | null;
+  targetLine?: number | null;
 }) {
   const showLineNumbers = readHasBlockLineNumbers(block);
   const lineNumberColumnWidth = readLineNumberColumnWidth(block);
   const codeColumnWidth = readCodeColumnWidth(block);
   const language = readBlockLanguage(block);
+  const targetRef = useRef<HTMLSpanElement>(null);
+
+  useLayoutEffect(() => {
+    targetRef.current?.scrollIntoView({
+      block: "center",
+      inline: targetColumn ? "center" : "nearest",
+    });
+  }, [block, targetColumn, targetLine]);
 
   return (
     <div
@@ -206,6 +256,7 @@ function FileOperationWorkspaceSurface({
               layout="workspace"
               line={line}
               lineNumberColumnWidth={lineNumberColumnWidth}
+              target={isTargetLine(line, targetLine)}
             />
           ))}
           <div className="min-h-0 flex-1 border-r border-border bg-muted" />
@@ -221,15 +272,26 @@ function FileOperationWorkspaceSurface({
           className="min-w-full"
           style={{ minWidth: codeColumnWidth }}
         >
-          {block.lines.map((line, index) => (
-            <div
-              key={readLineKey("code", line, index)}
-              data-file-code-canvas-row="true"
-              className={FILE_ROW_CLASS_NAME}
-            >
-              <FileOperationCodeCell language={language} line={line} />
-            </div>
-          ))}
+          {block.lines.map((line, index) => {
+            const target = isTargetLine(line, targetLine);
+            return (
+              <div
+                key={readLineKey("code", line, index)}
+                data-file-code-canvas-row="true"
+                data-file-target-line={target ? "true" : undefined}
+                aria-current={target ? "location" : undefined}
+                className={FILE_ROW_CLASS_NAME}
+              >
+                <FileOperationCodeCell
+                  language={language}
+                  line={line}
+                  target={target}
+                  targetColumn={target ? targetColumn : null}
+                  targetRef={target ? targetRef : undefined}
+                />
+              </div>
+            );
+          })}
         </div>
         <div className="min-h-0 flex-1 bg-card" />
       </div>
@@ -240,12 +302,22 @@ function FileOperationWorkspaceSurface({
 export function FileOperationCodeSurface({
   block,
   layout = "compact",
+  targetColumn,
+  targetLine,
 }: {
   block: ChatFileOperationBlockViewModel;
   layout?: "compact" | "workspace";
+  targetColumn?: number | null;
+  targetLine?: number | null;
 }) {
   if (layout === "workspace") {
-    return <FileOperationWorkspaceSurface block={block} />;
+    return (
+      <FileOperationWorkspaceSurface
+        block={block}
+        targetColumn={targetColumn}
+        targetLine={targetLine}
+      />
+    );
   }
 
   const showLineNumbers = readHasBlockLineNumbers(block);

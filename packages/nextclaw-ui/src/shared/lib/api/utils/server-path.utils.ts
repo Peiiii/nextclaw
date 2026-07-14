@@ -15,6 +15,7 @@ export async function fetchServerPathBrowse(params?: {
 export async function fetchServerPathRead(params: {
   path: string;
   basePath?: string | null;
+  line?: number | null;
 }): Promise<ServerPathReadView> {
   return await nextclawClient.serverPaths.read(params);
 }

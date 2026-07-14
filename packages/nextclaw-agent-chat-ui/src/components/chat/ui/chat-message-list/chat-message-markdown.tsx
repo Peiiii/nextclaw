@@ -22,6 +22,7 @@ import {
   isExternalChatResourceHref,
   parseChatLocalFileAction,
   resolveSafeChatResourceHref,
+  transformChatResourceHref,
 } from "./utils/chat-local-resource.utils";
 
 const MARKDOWN_MAX_CHARS = 140_000;
@@ -430,6 +431,7 @@ export function ChatMessageMarkdown({
           skipHtml
           remarkPlugins={remarkPlugins}
           components={CHAT_MESSAGE_MARKDOWN_COMPONENTS}
+          urlTransform={transformChatResourceHref}
         >
           {trimMarkdown(text)}
         </ReactMarkdown>
