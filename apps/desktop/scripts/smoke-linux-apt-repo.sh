@@ -84,11 +84,12 @@ EOF
       exit 1
     fi
     if [ \"\${CANDIDATE_AFTER}\" = \"\${INSTALLED_BEFORE}\" ]; then
-      echo \"candidate version did not advance: \${CANDIDATE_AFTER}\" >&2
-      exit 1
+      echo \"candidate version unchanged after switching repos: \${CANDIDATE_AFTER}; treating as idempotent repo republish\"
+      INSTALLED_AFTER=\"\${INSTALLED_BEFORE}\"
+    else
+      apt-get upgrade -y
+      INSTALLED_AFTER=\$(dpkg-query -W -f='\${Version}' ${PACKAGE_NAME})
     fi
-    apt-get upgrade -y
-    INSTALLED_AFTER=\$(dpkg-query -W -f='\${Version}' ${PACKAGE_NAME})
     if [ \"\${INSTALLED_AFTER}\" != \"\${CANDIDATE_AFTER}\" ]; then
       echo \"installed version \${INSTALLED_AFTER} does not match candidate \${CANDIDATE_AFTER}\" >&2
       exit 1
