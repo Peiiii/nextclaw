@@ -6,6 +6,74 @@ const defaultTexts = {
   copiedCodeLabel: "Copied",
 };
 
+function selectText(node: Node): Selection {
+  const range = document.createRange();
+  range.selectNodeContents(node);
+  const selection = window.getSelection();
+  if (!selection) {
+    throw new Error("Selection API unavailable");
+  }
+  selection.removeAllRanges();
+  selection.addRange(range);
+  return selection;
+}
+
+it("preserves rendered text identity when host callbacks change", () => {
+  const firstInlineTokenClick = vi.fn();
+  const secondInlineTokenClick = vi.fn();
+  const view = render(
+    <ChatMessageMarkdown
+      text="Keep this selected"
+      role="user"
+      texts={defaultTexts}
+      onInlineTokenClick={firstInlineTokenClick}
+    />,
+  );
+  const selectedText = screen.getByText("Keep this selected").firstChild;
+  if (!selectedText) {
+    throw new Error("Expected rendered text node");
+  }
+  const selection = selectText(selectedText);
+
+  view.rerender(
+    <ChatMessageMarkdown
+      text="Keep this selected"
+      role="user"
+      texts={defaultTexts}
+      onInlineTokenClick={secondInlineTokenClick}
+    />,
+  );
+
+  expect(screen.getByText("Keep this selected").firstChild).toBe(selectedText);
+  expect(selection.toString()).toBe("Keep this selected");
+});
+
+it("uses the latest host callback without replacing rendered links", () => {
+  const firstFileOpen = vi.fn();
+  const secondFileOpen = vi.fn();
+  const view = render(
+    <ChatMessageMarkdown text="[README](README.md)" role="assistant" texts={defaultTexts} onFileOpen={firstFileOpen} />,
+  );
+  const link = screen.getByRole("link", { name: "README" });
+
+  view.rerender(
+    <ChatMessageMarkdown
+      text="[README](README.md)"
+      role="assistant"
+      texts={defaultTexts}
+      onFileOpen={secondFileOpen}
+    />,
+  );
+  fireEvent.click(link);
+
+  expect(firstFileOpen).not.toHaveBeenCalled();
+  expect(secondFileOpen).toHaveBeenCalledWith({
+    path: "README.md",
+    label: "README.md",
+    viewMode: "preview",
+  });
+});
+
 it("opens local file links through the file preview action", () => {
   const onFileOpen = vi.fn();
 

@@ -60,6 +60,7 @@
 - 写代码、给技术方案，或讨论/审查/重构代码审美、代码是否干净/优雅/美丽、是否过度防卫或过度抽象前，必须先使用 `writing-beautiful-code`；项目专属规则仍归对应项目 skill。
 - 涉及前端样式、响应式布局、紧凑模式、组件视觉状态或样式 owner / 可移植性判断时，使用 `frontend-style-encapsulation`。
 - 涉及前端交互体验、操作含义、tooltip/popover、键盘可达性、状态反馈或紧凑模式下的操作可理解性时，使用 `frontend-interaction-quality`。
+- 涉及 React 组件类型、key、动态 renderer、streaming 重渲染、DOM 身份连续性，或焦点/选区/iframe/editor 等实例状态保持时，使用 `react-rendering-lifecycle-safety`。
 - 涉及 kernel 主干/分支、manager/service/store/presenter owner 依赖、稳定业务 owner 是否直连、factory/create/registry 是否过度抽象、prop 透传或链路过长时，必须使用 `kernel-branch-owner-architecture`。
 - 改完源码、脚本、测试或运行链路配置后，默认使用 `post-edit-maintainability-guard`，再使用 `post-edit-maintainability-review`。
 - 创建、拆分、移动文件/模块/目录前，必须先判断并读取命名、角色、目录组织相关 skill，再按其规则实现。
@@ -88,6 +89,7 @@
 
 前端工程：负责前端样式合同、组件视觉状态和交互可理解性。
 - 前端代码优化入口：使用 [frontend-code-optimization](.agents/skills/frontend-code-optimization/SKILL.md)，管理前端可维护性治理、MVP 视图逻辑解耦、组件拆分、逻辑拆分、prop 透传改造和前端重构优先级。
+- React 渲染生命周期：使用 [react-rendering-lifecycle-safety](.agents/skills/react-rendering-lifecycle-safety/SKILL.md)，管理组件类型、key、父级结构、streaming DOM 连续性和状态型表面的实例保持。
 - 样式合同与可移植性：使用 [frontend-style-encapsulation](.agents/skills/frontend-style-encapsulation/SKILL.md)，管理样式 owner、响应式布局、紧凑模式、视觉状态和 shared/reusable 组件可移植性。
 - 交互质量与可理解性：使用 [frontend-interaction-quality](.agents/skills/frontend-interaction-quality/SKILL.md)，管理操作含义、tooltip/popover/menu、键盘可达性、hover/focus/disabled 状态和 icon-only 控件可理解性。
 
@@ -145,6 +147,7 @@
 - 对象构造默认保持稳定、直接的合同形状；禁止用条件 spread 拼可选字段来隐藏对象形态变化。字段值本身可以用清晰的三元表达式表达 `undefined` / `null`。
 - 前端复杂业务逻辑、状态流或数据流默认收敛到 manager / store / presenter，优先由 manager 承载；组件和 hook 主要做连接、订阅、调用与轻量本地状态，合适时评估 RxJS 等显式数据流工具。
 - React `useEffect` / `useLayoutEffect` 是高优先级克制项，默认先避免、尽量减少；新增或保留 effect 必须能说明它是在同步外部系统，业务编排、状态迁移、query/store 镜像应回到 query/view hook、store、manager 或 presenter。
+- React 组件类型必须保持模块级稳定，动态数据通过 props / Context 传递；禁止在 render 或带动态依赖的 memo/factory 中创建组件类型，也不得用不稳定 key 或父级结构变化让流式更新重挂载历史内容、编辑器、iframe 或其他状态型 DOM。
 - 生命周期 owner 的订阅、临时 stream、watcher、runtime dispose 等清理职责默认收敛到 `cleanups` / `disposables` collection，`dispose/stop` 统一 drain；避免多个平行 nullable cleanup 字段或按资源类型散落清理逻辑。
 - 不允许同一功能、职责链路、数据变换、组件表面或交互结构出现平行重复实现；新增前先查找可复用实现。
 - 前端用户可见文案必须走 i18n 文案 owner；禁止在组件、hook、manager 或配置里用 `language.startsWith(...)`、`isZh ? ... : ...`、内联双语对象等方式临时拼国际化文案。

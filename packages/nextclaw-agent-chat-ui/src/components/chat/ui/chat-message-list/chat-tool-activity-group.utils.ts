@@ -17,10 +17,7 @@ export type ChatToolActivityFamily =
 export type ChatToolActivityTone = "success" | "error" | "cancelled" | "running";
 
 type ChatToolCardPart = Extract<ChatMessagePartViewModel, { type: "tool-card" }>;
-type ChatToolGroupPart = Extract<
-  ChatMessagePartViewModel,
-  { type: "tool-card" | "reasoning" }
->;
+type ChatToolGroupPart = Extract<ChatMessagePartViewModel, { type: "tool-card" | "reasoning" }>;
 
 export type ChatToolActivitySegment = {
   family: ChatToolActivityFamily;
@@ -71,16 +68,16 @@ function isToolCardPart(part: ChatToolGroupPart): part is ChatToolCardPart {
   return part.type === "tool-card";
 }
 
+function isGroupableToolPart(part: ChatMessagePartViewModel | undefined): part is ChatToolGroupPart {
+  return part?.type === "reasoning" || (part?.type === "tool-card" && !part.card.panelApp);
+}
+
 export function resolveToolActivityFamily(toolName: string): ChatToolActivityFamily {
   const lowered = toolName.toLowerCase();
   if (lowered === "list_dir") {
     return "directory";
   }
-  if (
-    lowered.includes("show_content") ||
-    lowered.includes("panel_app") ||
-    lowered.includes("panel")
-  ) {
+  if (lowered.includes("show_content") || lowered.includes("panel_app") || lowered.includes("panel")) {
     return "panel";
   }
   if (
@@ -170,15 +167,9 @@ function resolveActivityUnitKeys(
  * Examples: `Read 3 files`, `运行 2 条命令`, `搜索 2 次`.
  * No command/path payload.
  */
-function formatSegment(
-  segment: ChatToolActivitySegment,
-  labels: ChatToolActivityGroupLabels,
-): string {
+function formatSegment(segment: ChatToolActivitySegment, labels: ChatToolActivityGroupLabels): string {
   const template = labels.segmentTemplates[segment.family];
-  const body =
-    segment.count === 1
-      ? template.one
-      : template.other.split("{count}").join(String(segment.count));
+  const body = segment.count === 1 ? template.one : template.other.split("{count}").join(String(segment.count));
 
   if (segment.tone === "error") {
     return `${body} ${labels.failedLabel}`;
@@ -189,9 +180,7 @@ function formatSegment(
   return body;
 }
 
-export function buildToolActivitySegments(
-  cards: ChatToolPartViewModel[],
-): ChatToolActivitySegment[] {
+export function buildToolActivitySegments(cards: ChatToolPartViewModel[]): ChatToolActivitySegment[] {
   const order: ChatToolActivityFamily[] = [];
   const byFamily = new Map<ChatToolActivityFamily, ActivityAccumulator>();
 
@@ -250,11 +239,31 @@ export function formatToolActivityGroupLabel(params: {
   return parts.join(" · ");
 }
 
-/**
- * Group tool cards separated only by reasoning into one visible workflow.
- * Markdown, files and unknown parts still break the run.
- * Single tool-cards stay ungrouped so they keep their native card UI.
- */
+function collectToolGroupParts(
+  parts: ChatMessagePartViewModel[],
+  startIndex: number,
+): {
+  candidateParts: ChatToolGroupPart[];
+  lastToolOffset: number;
+} {
+  const candidateParts: ChatToolGroupPart[] = [];
+  let index = startIndex;
+  let lastToolOffset = -1;
+  while (true) {
+    const candidate = parts[index];
+    if (!isGroupableToolPart(candidate)) {
+      break;
+    }
+    candidateParts.push(candidate);
+    if (candidate.type === "tool-card") {
+      lastToolOffset = candidateParts.length - 1;
+    }
+    index += 1;
+  }
+  return { candidateParts, lastToolOffset };
+}
+
+/** Groups tool cards across reasoning; content and interactive panel apps remain stable boundaries. */
 export function groupConsecutiveToolParts(
   parts: ChatMessagePartViewModel[],
   labels: ChatToolActivityGroupLabels,
@@ -264,7 +273,7 @@ export function groupConsecutiveToolParts(
 
   while (index < parts.length) {
     const part = parts[index]!;
-    if (part.type !== "tool-card") {
+    if (part.type !== "tool-card" || part.card.panelApp) {
       blocks.push({
         kind: "part",
         key: `part-${index}`,
@@ -276,19 +285,7 @@ export function groupConsecutiveToolParts(
     }
 
     const startIndex = index;
-    const candidateParts: ChatToolGroupPart[] = [];
-    let lastToolOffset = -1;
-    while (
-      index < parts.length &&
-      (parts[index]?.type === "tool-card" || parts[index]?.type === "reasoning")
-    ) {
-      const candidate = parts[index] as ChatToolGroupPart;
-      candidateParts.push(candidate);
-      if (candidate.type === "tool-card") {
-        lastToolOffset = candidateParts.length - 1;
-      }
-      index += 1;
-    }
+    const { candidateParts, lastToolOffset } = collectToolGroupParts(parts, startIndex);
 
     const toolParts = candidateParts.filter(isToolCardPart);
     if (toolParts.length === 1) {

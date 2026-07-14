@@ -9,6 +9,7 @@ import {
   $isRangeSelection,
   $isTextNode,
   $setSelection,
+  SKIP_DOM_SELECTION_TAG,
   type EditorState,
   type ElementPoint,
   type LexicalEditor,
@@ -16,8 +17,8 @@ import {
   type NodeKey,
   type PointType,
 } from 'lexical';
-import type { ChatComposerNode, ChatComposerSelection } from '../../../view-models/chat-ui.types';
-import { normalizeChatComposerNodes } from '../chat-composer.utils';
+import type { ChatComposerNode, ChatComposerSelection } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
+import { normalizeChatComposerNodes } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 import {
   $createChatComposerTokenNode,
   $isChatComposerTokenNode,
@@ -339,15 +340,17 @@ export function syncLexicalEditorFromChatComposerState(
   editor: LexicalEditor,
   nodes: ChatComposerNode[],
   selection: ChatComposerSelection | null,
+  preserveDomSelection = false,
 ): void {
   editor.update(() => {
     writeChatComposerStateToLexicalRoot(nodes, selection);
-  });
+  }, preserveDomSelection ? { tag: SKIP_DOM_SELECTION_TAG } : undefined);
 }
 
 export function syncLexicalSelectionFromChatComposerSelection(
   editor: LexicalEditor,
   selection: ChatComposerSelection,
+  preserveDomSelection = false,
 ): void {
   editor.update(() => {
     const nextSelection = $createRangeSelection();
@@ -356,5 +359,5 @@ export function syncLexicalSelectionFromChatComposerSelection(
     nextSelection.anchor.set(anchor.key, anchor.offset, anchor.type);
     nextSelection.focus.set(focus.key, focus.offset, focus.type);
     $setSelection(nextSelection);
-  });
+  }, preserveDomSelection ? { tag: SKIP_DOM_SELECTION_TAG } : undefined);
 }

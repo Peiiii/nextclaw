@@ -4,6 +4,7 @@ import {
   type ChatInlineDisplayViewModel,
   type ChatInlineTokenViewModel,
   type ChatMessageViewModel,
+  type ChatPanelAppCardViewModel,
   ChatMessageList,
 } from "@nextclaw/agent-chat-ui";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
@@ -62,6 +63,10 @@ function renderChatInlineDisplay(display: ChatInlineDisplayViewModel) {
     />
   );
 }
+
+const renderChatToolAgent = (agentId: string) => <AgentIdentityAvatar agentId={agentId} className="h-4 w-4 shrink-0" />;
+const renderChatPanelAppCard = (panelApp: ChatPanelAppCardViewModel) => <ChatInlinePanelAppCard panelApp={panelApp} />;
+
 type ContextInheritanceTimelineView = {
   sourceSessionId: string;
   inheritedMessageCount: number;
@@ -420,15 +425,8 @@ export function ChatMessageListContainer({
             onInlineTokenClick={handleInlineTokenClick}
             resolveFileContentUrl={resolveFileContentUrl}
             renderInlineDisplay={renderChatInlineDisplay}
-            renderToolAgent={(agentId) => (
-              <AgentIdentityAvatar
-                agentId={agentId}
-                className="h-4 w-4 shrink-0"
-              />
-            )}
-            renderPanelAppCard={(panelApp) => (
-              <ChatInlinePanelAppCard panelApp={panelApp} />
-            )}
+            renderToolAgent={renderChatToolAgent}
+            renderPanelAppCard={renderChatPanelAppCard}
           />
         ),
       )}

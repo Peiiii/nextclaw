@@ -162,13 +162,14 @@ export class ChatComposerLexicalOwner {
     }
 
     this.startApplyingExternalUpdate();
+    const preserveDomSelection = editor.getRootElement() !== document.activeElement;
 
     if (shouldSyncDocument) {
-      syncLexicalEditorFromChatComposerState(editor, nodes, pendingSelection);
+      syncLexicalEditorFromChatComposerState(editor, nodes, pendingSelection, preserveDomSelection);
       this.editorSignatureRef.current = nextSignature;
       this.lastPublishedSignatureRef.current = nextSignature;
     } else if (pendingSelection) {
-      syncLexicalSelectionFromChatComposerSelection(editor, pendingSelection);
+      syncLexicalSelectionFromChatComposerSelection(editor, pendingSelection, preserveDomSelection);
     }
 
     if (pendingSelection) {

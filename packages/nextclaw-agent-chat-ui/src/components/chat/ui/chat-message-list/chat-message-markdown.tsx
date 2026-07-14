@@ -1,4 +1,4 @@
-import { useMemo, type MouseEvent, type ReactNode } from "react";
+import { createContext, useContext, type MouseEvent, type ReactNode } from "react";
 import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -173,33 +173,27 @@ function splitTextNodeByInlineTokens(
 function transformInlineTokenTextNodes(
   node: MarkdownNode,
   tokens: readonly ChatInlineTokenViewModel[],
-): void {
+): MarkdownNode {
   if (node.type === "code" || node.type === "inlineCode" || !node.children) {
-    return;
+    return node;
   }
 
-  const nextChildren: MarkdownNode[] = [];
-  for (const child of node.children) {
-    if (child.type === "text" && typeof child.value === "string") {
-      nextChildren.push(...splitTextNodeByInlineTokens(child.value, tokens));
-      continue;
-    }
-    transformInlineTokenTextNodes(child, tokens);
-    nextChildren.push(child);
-  }
-  node.children = nextChildren;
+  return {
+    ...node,
+    children: node.children.flatMap((child) =>
+      child.type === "text" && typeof child.value === "string"
+        ? splitTextNodeByInlineTokens(child.value, tokens)
+        : [transformInlineTokenTextNodes(child, tokens)],
+    ),
+  };
 }
 
 function createRemarkInlineTokenPlugin(
   inlineTokens: readonly ChatInlineTokenViewModel[],
 ) {
   const tokens = prepareInlineTokens(inlineTokens);
-  return () => (tree: MarkdownNode) => {
-    if (tokens.length === 0) {
-      return;
-    }
-    transformInlineTokenTextNodes(tree, tokens);
-  };
+  return () => (tree: MarkdownNode) =>
+    tokens.length > 0 ? transformInlineTokenTextNodes(tree, tokens) : tree;
 }
 
 function readStringProp(
@@ -209,6 +203,193 @@ function readStringProp(
   const value = props[key];
   return typeof value === "string" && value.length > 0 ? value : null;
 }
+
+type ChatMessageMarkdownRuntime = Omit<ChatMessageMarkdownProps, "text" | "role" | "inlineTokens"> & {
+  inline: boolean;
+  isUser: boolean;
+};
+
+const ChatMessageMarkdownRuntimeContext =
+  createContext<ChatMessageMarkdownRuntime | null>(null);
+
+function useChatMessageMarkdownRuntime(): ChatMessageMarkdownRuntime {
+  const runtime = useContext(ChatMessageMarkdownRuntimeContext);
+  if (!runtime) {
+    throw new Error("Chat message Markdown renderer requires its runtime context");
+  }
+  return runtime;
+}
+
+const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
+  p: function ChatMarkdownParagraph({ node, children }) {
+    const { inline } = useChatMessageMarkdownRuntime();
+    return inline ? (
+      <>{children}</>
+    ) : (
+      <p
+        data-chat-image-row={
+          isSingleLineImageParagraph(node as MarkdownNode)
+            ? "three-column"
+            : undefined
+        }
+      >
+        {children}
+      </p>
+    );
+  },
+
+  span: function ChatMarkdownSpan({ node: _node, children, ...rest }) {
+    const { isUser, onInlineTokenClick } = useChatMessageMarkdownRuntime();
+    const restProps = rest as Record<string, unknown>;
+    const kind = readStringProp(restProps, INLINE_TOKEN_KIND_ATTR);
+    const key = readStringProp(restProps, INLINE_TOKEN_KEY_ATTR);
+    const label = readStringProp(restProps, INLINE_TOKEN_LABEL_ATTR);
+    const rawText = readStringProp(restProps, INLINE_TOKEN_RAW_TEXT_ATTR);
+    if (kind && key && label && rawText) {
+      return (
+        <ChatInlineTokenBadge
+          kind={kind}
+          label={label}
+          isUser={isUser}
+          onClick={
+            onInlineTokenClick
+              ? () => onInlineTokenClick({ kind, key, label, rawText })
+              : undefined
+          }
+        />
+      );
+    }
+    return <span {...rest}>{children}</span>;
+  },
+
+  a: function ChatMarkdownLink({ node: _node, href, children, ...rest }) {
+    const { onFileOpen } = useChatMessageMarkdownRuntime();
+    const safeHref = resolveSafeChatResourceHref(href);
+    const external = safeHref ? isExternalChatResourceHref(safeHref) : false;
+    const localFileAction = external
+      ? null
+      : safeHref
+        ? parseChatLocalFileAction(safeHref)
+        : null;
+    const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+      if (!safeHref) {
+        event.preventDefault();
+        return;
+      }
+      if (!onFileOpen || !localFileAction) {
+        return;
+      }
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+      event.preventDefault();
+      onFileOpen(localFileAction);
+    };
+    return (
+      <a
+        {...rest}
+        className={cn(rest.className, !safeHref && "chat-link-invalid")}
+        href={safeHref ?? "#"}
+        aria-disabled={!safeHref || undefined}
+        onClick={handleClick}
+        target={external ? "_blank" : undefined}
+        rel={external ? "noreferrer noopener" : undefined}
+      >
+        {children}
+      </a>
+    );
+  },
+
+  table: function ChatMarkdownTable({ node: _node, children, ...rest }) {
+    return (
+      <div className="chat-table-wrap">
+        <table {...rest}>{children}</table>
+      </div>
+    );
+  },
+
+  input: function ChatMarkdownInput({ node: _node, type, checked, ...rest }) {
+    if (type !== "checkbox") {
+      return <input {...rest} type={type} />;
+    }
+    return (
+      <input
+        {...rest}
+        type="checkbox"
+        checked={checked}
+        readOnly
+        disabled
+        className="chat-task-checkbox"
+      />
+    );
+  },
+
+  img: function ChatMarkdownImage({ node: _node, src, alt }) {
+    const { resolveFileContentUrl, texts } = useChatMessageMarkdownRuntime();
+    const safeSrc = resolveSafeChatResourceHref(src);
+    if (!safeSrc) {
+      return null;
+    }
+    const localFileAction = parseChatLocalFileAction(safeSrc);
+    const resolvedSrc =
+      localFileAction && resolveFileContentUrl
+        ? resolveFileContentUrl(localFileAction)
+        : safeSrc;
+    if (!resolvedSrc) {
+      return null;
+    }
+    return (
+      <ChatMessageImagePreview
+        alt={alt || ""}
+        closeLabel={texts.attachmentCloseLabel ?? "Close preview"}
+        expandLabel={texts.attachmentExpandLabel ?? "Expand image"}
+        sizeLabel={null}
+        src={resolvedSrc}
+      />
+    );
+  },
+
+  code: function ChatMarkdownCode({
+    node: _node,
+    className,
+    children,
+    ...rest
+  }) {
+    const { renderInlineDisplay, texts } = useChatMessageMarkdownRuntime();
+    const plainText = String(children ?? "");
+    const isInlineCode = !className && !plainText.includes("\n");
+    if (isInlineCode) {
+      return (
+        <code {...rest} className={cn("chat-inline-code", className)}>
+          {children}
+        </code>
+      );
+    }
+    const inlineDisplay = isChatInlineDisplayLanguage(className)
+      ? parseChatInlineDisplayDirective(plainText)
+      : null;
+    if (inlineDisplay) {
+      return (
+        <ChatInlineDisplay
+          display={inlineDisplay}
+          renderInlineDisplay={renderInlineDisplay}
+        />
+      );
+    }
+    return (
+      <ChatCodeBlock className={className} texts={texts}>
+        {children as ReactNode}
+      </ChatCodeBlock>
+    );
+  },
+};
 
 export function ChatMessageMarkdown({
   text,
@@ -222,194 +403,37 @@ export function ChatMessageMarkdown({
   renderInlineDisplay,
 }: ChatMessageMarkdownProps) {
   const isUser = role === "user";
-  const remarkPlugins = useMemo(
-    () =>
-      inlineTokens && inlineTokens.length > 0
-        ? [remarkGfm, createRemarkInlineTokenPlugin(inlineTokens)]
-        : [remarkGfm],
-    [inlineTokens],
-  );
-  const markdownComponents = useMemo<Components>(
-    () => ({
-      p: ({ node, children }) =>
-        inline ? (
-          <>{children}</>
-        ) : (
-          <p
-            data-chat-image-row={
-              isSingleLineImageParagraph(node as MarkdownNode)
-                ? "three-column"
-                : undefined
-            }
-          >
-            {children}
-          </p>
-        ),
-      span: ({ node: _node, children, ...rest }) => {
-        const restProps = rest as Record<string, unknown>;
-        const kind = readStringProp(restProps, INLINE_TOKEN_KIND_ATTR);
-        const key = readStringProp(restProps, INLINE_TOKEN_KEY_ATTR);
-        const label = readStringProp(restProps, INLINE_TOKEN_LABEL_ATTR);
-        const rawText = readStringProp(restProps, INLINE_TOKEN_RAW_TEXT_ATTR);
-        if (kind && key && label && rawText) {
-          return (
-            <ChatInlineTokenBadge
-              kind={kind}
-              label={label}
-              isUser={isUser}
-              onClick={
-                onInlineTokenClick
-                  ? () => onInlineTokenClick({ kind, key, label, rawText })
-                  : undefined
-              }
-            />
-          );
-        }
-        return <span {...rest}>{children}</span>;
-      },
-      a: ({ node: _node, href, children, ...rest }) => {
-        const safeHref = resolveSafeChatResourceHref(href);
-        const external = safeHref
-          ? isExternalChatResourceHref(safeHref)
-          : false;
-        const localFileAction = external
-          ? null
-          : safeHref
-            ? parseChatLocalFileAction(safeHref)
-            : null;
-        const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
-          if (!safeHref) {
-            event.preventDefault();
-            return;
-          }
-          if (!onFileOpen || !localFileAction) {
-            return;
-          }
-          if (
-            event.defaultPrevented ||
-            event.button !== 0 ||
-            event.metaKey ||
-            event.ctrlKey ||
-            event.shiftKey ||
-            event.altKey
-          ) {
-            return;
-          }
-          event.preventDefault();
-          onFileOpen(localFileAction);
-        };
-        return (
-          <a
-            {...rest}
-            className={cn(rest.className, !safeHref && "chat-link-invalid")}
-            href={safeHref ?? "#"}
-            aria-disabled={!safeHref || undefined}
-            onClick={handleClick}
-            target={external ? "_blank" : undefined}
-            rel={external ? "noreferrer noopener" : undefined}
-          >
-            {children}
-          </a>
-        );
-      },
-      table: ({ node: _node, children, ...rest }) => (
-        <div className="chat-table-wrap">
-          <table {...rest}>{children}</table>
-        </div>
-      ),
-      input: ({ node: _node, type, checked, ...rest }) => {
-        if (type !== "checkbox") {
-          return <input {...rest} type={type} />;
-        }
-        return (
-          <input
-            {...rest}
-            type="checkbox"
-            checked={checked}
-            readOnly
-            disabled
-            className="chat-task-checkbox"
-          />
-        );
-      },
-      img: ({ node: _node, src, alt }) => {
-        const safeSrc = resolveSafeChatResourceHref(src);
-        if (!safeSrc) {
-          return null;
-        }
-        const localFileAction = parseChatLocalFileAction(safeSrc);
-        const resolvedSrc =
-          localFileAction && resolveFileContentUrl
-            ? resolveFileContentUrl(localFileAction)
-            : safeSrc;
-        if (!resolvedSrc) {
-          return null;
-        }
-        return (
-          <ChatMessageImagePreview
-            alt={alt || ""}
-            closeLabel={texts.attachmentCloseLabel ?? "Close preview"}
-            expandLabel={texts.attachmentExpandLabel ?? "Expand image"}
-            sizeLabel={null}
-            src={resolvedSrc}
-          />
-        );
-      },
-      code: ({ node: _node, className, children, ...rest }) => {
-        const plainText = String(children ?? "");
-        const isInlineCode = !className && !plainText.includes("\n");
-        if (isInlineCode) {
-          return (
-            <code {...rest} className={cn("chat-inline-code", className)}>
-              {children}
-            </code>
-          );
-        }
-        const inlineDisplay = isChatInlineDisplayLanguage(className)
-          ? parseChatInlineDisplayDirective(plainText)
-          : null;
-        if (inlineDisplay) {
-          return (
-            <ChatInlineDisplay
-              display={inlineDisplay}
-              renderInlineDisplay={renderInlineDisplay}
-            />
-          );
-        }
-        return (
-          <ChatCodeBlock className={className} texts={texts}>
-            {children as ReactNode}
-          </ChatCodeBlock>
-        );
-      },
-    }),
-    [
-      inline,
-      isUser,
-      onFileOpen,
-      onInlineTokenClick,
-      renderInlineDisplay,
-      resolveFileContentUrl,
-      texts,
-    ],
-  );
-
+  const remarkPlugins = inlineTokens?.length
+    ? [remarkGfm, createRemarkInlineTokenPlugin(inlineTokens)]
+    : [remarkGfm];
   const WrapperTag = inline ? "span" : "div";
 
   return (
-    <WrapperTag
-      className={cn(
-        "chat-markdown",
-        isUser ? "chat-markdown-user" : "chat-markdown-assistant",
-      )}
+    <ChatMessageMarkdownRuntimeContext.Provider
+      value={{
+        inline,
+        isUser,
+        onFileOpen,
+        onInlineTokenClick,
+        renderInlineDisplay,
+        resolveFileContentUrl,
+        texts,
+      }}
     >
-      <ReactMarkdown
-        skipHtml
-        remarkPlugins={remarkPlugins}
-        components={markdownComponents}
+      <WrapperTag
+        className={cn(
+          "chat-markdown",
+          isUser ? "chat-markdown-user" : "chat-markdown-assistant",
+        )}
       >
-        {trimMarkdown(text)}
-      </ReactMarkdown>
-    </WrapperTag>
+        <ReactMarkdown
+          skipHtml
+          remarkPlugins={remarkPlugins}
+          components={CHAT_MESSAGE_MARKDOWN_COMPONENTS}
+        >
+          {trimMarkdown(text)}
+        </ReactMarkdown>
+      </WrapperTag>
+    </ChatMessageMarkdownRuntimeContext.Provider>
   );
 }
