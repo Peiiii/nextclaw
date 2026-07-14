@@ -135,6 +135,7 @@ description: Use when building, verifying, or releasing NextClaw desktop install
   - `desktop-release` workflow success;
   - release assets, `gh-pages` stable manifest, public stable manifest, and stable APT repo verification.
 - For stable releases, use `--notes-file <path>` when curated bilingual release notes already exist. The generated fallback notes are acceptable for mechanical dry-runs and low-context recovery, but a user-facing formal release should still prefer reviewed notes.
+- Stable release automation must fail closed when the target commit lacks `apps/docs/public/release-notes/nextclaw-v<runtimeVersion>.json` and no explicit recovery `release_notes_url` / `--release-notes-url` is provided. Do not silently fall back to the GitHub release URL for stable update manifests.
 - Website / landing stable fallback updates are downstream publication surfaces. They are not part of `pnpm release:desktop:stable` because they must happen only after the GitHub release assets and public stable update channel are already verified.
 
 ## Cost-Control Release Discipline
@@ -167,6 +168,7 @@ description: Use when building, verifying, or releasing NextClaw desktop install
   - verify the release asset names and the public update manifest reflect those bumped versions.
 - A new GitHub prerelease tag is not enough if the installer version, bundle version, or update manifest `latestVersion` still point at the previous shipped identity.
 - A desktop release is only complete when the release-triggered `desktop-release` workflow finishes with overall `success`.
+- The closure gate must verify not only `latestVersion` and `minimumLauncherVersion`, but also that the published manifest `releaseNotesUrl` equals the expected user-facing product update note URL.
 - Confirm the matrix jobs and the follow-on publish jobs all finished:
   - `publish-release-assets`
   - `publish-desktop-update-channels`

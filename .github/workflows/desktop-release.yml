@@ -254,6 +254,10 @@ jobs:
             RELEASE_NOTES_URL="$(node -e "const data=require('./apps/docs/public/release-notes/nextclaw-v${BUNDLE_VERSION}.json'); process.stdout.write(data.links?.html?.['en-US'] || data.links?.html?.['zh-CN'] || '')")"
           fi
           if [ -z "$RELEASE_NOTES_URL" ]; then
+            if [ "$DESKTOP_UPDATE_CHANNEL" = "stable" ]; then
+              echo "::error::Stable desktop releases require apps/docs/public/release-notes/nextclaw-v${BUNDLE_VERSION}.json or workflow release_notes_url input."
+              exit 1
+            fi
             RELEASE_NOTES_URL="https://github.com/${{ github.repository }}/releases/tag/${DESKTOP_RELEASE_TAG}"
           fi
 
@@ -298,6 +302,9 @@ jobs:
             $releaseNotesUrl = node -e "const data=require('./$releaseNotesJsonPath'); process.stdout.write(data.links?.html?.['en-US'] || data.links?.html?.['zh-CN'] || '')"
           }
           if (-not $releaseNotesUrl) {
+            if ($env:DESKTOP_UPDATE_CHANNEL -eq "stable") {
+              throw "Stable desktop releases require apps/docs/public/release-notes/nextclaw-v$bundleVersion.json or workflow release_notes_url input."
+            }
             $releaseNotesUrl = "https://github.com/${{ github.repository }}/releases/tag/$env:DESKTOP_RELEASE_TAG"
           }
 

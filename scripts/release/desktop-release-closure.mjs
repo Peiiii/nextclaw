@@ -215,13 +215,18 @@ async function readGhPagesManifest(options) {
 }
 
 function assertManifest(manifest, options, label) {
-  const { minimumLauncherVersion, runtimeVersion } = options;
+  const { minimumLauncherVersion, releaseNotesUrl, runtimeVersion } = options;
   if (manifest.latestVersion !== runtimeVersion) {
     throw new Error(`${label} latestVersion mismatch: expected ${runtimeVersion}, got ${manifest.latestVersion}`);
   }
   if (manifest.minimumLauncherVersion !== minimumLauncherVersion) {
     throw new Error(
       `${label} minimumLauncherVersion mismatch: expected ${minimumLauncherVersion}, got ${manifest.minimumLauncherVersion}`
+    );
+  }
+  if (releaseNotesUrl && manifest.releaseNotesUrl !== releaseNotesUrl) {
+    throw new Error(
+      `${label} releaseNotesUrl mismatch: expected ${releaseNotesUrl}, got ${manifest.releaseNotesUrl ?? "null"}`
     );
   }
 }

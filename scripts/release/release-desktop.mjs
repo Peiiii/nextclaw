@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { waitForDesktopReleaseClosure } from "./desktop-release-closure.mjs";
+import { resolveDesktopReleaseNotesUrl } from "./desktop-release-notes.mjs";
 import { runRemotePreflight } from "./desktop-release-preflight.mjs";
 import {
   createReleaseWorktree,
@@ -50,6 +51,7 @@ Options:
   --workflow <file>               Desktop release workflow. Defaults to ${DEFAULT_WORKFLOW}
   --target <git-ref>              Release target. Defaults to the current HEAD SHA
   --notes-file <path>             Release notes body file
+  --release-notes-url <url>       User-facing release notes URL expected in update manifests
   --run-id <id>                   Reuse a known desktop-release run
   --reuse-existing-release        Do not create the GitHub release; verify/close an existing tag
   --skip-local-verify             Skip pnpm desktop:package:verify
@@ -76,6 +78,7 @@ function parseArgs(argv) {
     publicAttempts: DEFAULT_PUBLIC_ATTEMPTS,
     publicDelayMs: DEFAULT_PUBLIC_DELAY_MS,
     repo: DEFAULT_REPO,
+    releaseNotesUrl: null,
     releaseWorktree: true,
     reuseExistingRelease: false,
     runAttempts: DEFAULT_RUN_ATTEMPTS,
@@ -100,6 +103,7 @@ function parseArgs(argv) {
       case "--notes-file":
       case "--preflight-workflow":
       case "--repo":
+      case "--release-notes-url":
       case "--run-id":
       case "--runtime-version":
       case "--tag":
@@ -165,6 +169,14 @@ function run(command, args, options = {}) {
 
 function readJsonFile(path) {
   return JSON.parse(readFileSync(resolve(ROOT_DIR, path), "utf8"));
+}
+
+function readTargetFile(target, path) {
+  try {
+    return run("git", ["show", `${target}:${path}`]);
+  } catch {
+    return null;
+  }
 }
 
 function readPackageVersion(path) {
@@ -407,7 +419,17 @@ function createRelease(options) {
 }
 
 function printPlan(options, aheadCount) {
-  const { branch, channel, desktopVersion, minimumLauncherVersion, releaseWorktree, runtimeVersion, tag, target } = options;
+  const {
+    branch,
+    channel,
+    desktopVersion,
+    minimumLauncherVersion,
+    releaseNotesUrl,
+    releaseWorktree,
+    runtimeVersion,
+    tag,
+    target
+  } = options;
   console.log(
     [
       `[desktop:release] channel=${channel}`,
@@ -415,6 +437,7 @@ function printPlan(options, aheadCount) {
       `desktopVersion=${desktopVersion}`,
       `runtimeVersion=${runtimeVersion}`,
       `minimumLauncherVersion=${minimumLauncherVersion}`,
+      `releaseNotesUrl=${releaseNotesUrl}`,
       `branch=${branch}`,
       `target=${target}`,
       `ahead=${aheadCount}`,
@@ -439,6 +462,11 @@ async function main() {
   options.runtimeVersion ??= readPackageVersion("packages/nextclaw/package.json");
   options.minimumLauncherVersion ??= readMinimumLauncherVersion(options.channel);
   options.tag ??= readNextTag(options.channel, options.runtimeVersion);
+  options.releaseNotesUrl = resolveDesktopReleaseNotesUrl({
+    ...options,
+    explicitReleaseNotesUrl: options.releaseNotesUrl,
+    readTargetFile
+  });
 
   fetchReleaseRefs(options.branch);
   const aheadCount = assertBranchIsNotBehind(options.branch);
