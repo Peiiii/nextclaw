@@ -43,6 +43,7 @@ export type NcpAgentConversationHydrationParams = {
 export interface NcpAgentConversationStateManager extends NcpConversationStateManager {
   getSnapshot(): NcpAgentConversationSnapshot;
   reset(): void;
+  clearError(): void;
   hydrate(payload: NcpAgentConversationHydrationParams): void;
   /** Local peer sent a message (outbound); typically non-streaming. Add to messages. */
   handleMessageSent(payload: NcpMessageSentPayload): void;

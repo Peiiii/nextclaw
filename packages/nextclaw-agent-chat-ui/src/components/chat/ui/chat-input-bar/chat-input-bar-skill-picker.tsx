@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEventHandler } from 'react';
+import { useId, useMemo, useRef, useState, type KeyboardEventHandler } from 'react';
 import { BrainCircuit, Check, ExternalLink, Puzzle, Search } from 'lucide-react';
 import { useActiveItemScroll } from '@agent-chat-ui/components/chat/hooks/use-active-item-scroll';
 import {
@@ -21,7 +21,7 @@ function filterOptions(options: ChatSkillPickerOption[], query: string): ChatSki
   });
 }
 
-const SKILL_PICKER_MAX_HEIGHT = createChatPopoverAvailableHeightLimit('24rem');
+const SKILL_PICKER_HEIGHT = createChatPopoverAvailableHeightLimit('20rem');
 
 export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps }) {
   const { Input, Popover, PopoverContent, PopoverTrigger } = ChatUiPrimitives;
@@ -29,40 +29,44 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
   const listRef = useRef<HTMLDivElement | null>(null);
   const listId = useId();
   const [query, setQuery] = useState('');
+  const [activeGroupKey, setActiveGroupKey] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const selectedSet = useMemo(() => new Set(picker.selectedKeys), [picker.selectedKeys]);
   const selectedCount = picker.selectedKeys.length;
-  const isSearchActive = query.trim().length > 0;
+  const availableGroups = useMemo(
+    () => picker.groups?.filter((group) => group.options.length > 0) ?? [],
+    [picker.groups],
+  );
+  const resolvedActiveGroupKey = availableGroups.some((group) => group.key === activeGroupKey)
+    ? activeGroupKey
+    : null;
   const groupedOptions = useMemo<ChatSkillPickerOptionGroup[] | null>(() => {
-    if (isSearchActive) {
+    if (availableGroups.length === 0) {
       return null;
     }
-    const groups = picker.groups?.filter((group) => group.options.length > 0) ?? [];
-    return groups.length > 0 ? groups : null;
-  }, [isSearchActive, picker.groups]);
+    const groups = resolvedActiveGroupKey
+      ? availableGroups.filter((group) => group.key === resolvedActiveGroupKey)
+      : availableGroups;
+    return groups
+      .map((group) => ({
+        ...group,
+        options: filterOptions(group.options, query),
+      }))
+      .filter((group) => group.options.length > 0);
+  }, [availableGroups, query, resolvedActiveGroupKey]);
   const visibleOptions = useMemo(() => {
-    if (groupedOptions) {
+    if (groupedOptions !== null) {
       return groupedOptions.flatMap((group) => group.options);
     }
     return filterOptions(picker.options, query);
   }, [groupedOptions, picker.options, query]);
-
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
-
-  useEffect(() => {
-    setActiveIndex((current) => {
-      if (visibleOptions.length === 0) {
-        return 0;
-      }
-      return Math.min(current, visibleOptions.length - 1);
-    });
-  }, [visibleOptions.length]);
+  const resolvedActiveIndex = visibleOptions.length === 0
+    ? 0
+    : Math.min(activeIndex, visibleOptions.length - 1);
 
   useActiveItemScroll({
     containerRef: listRef,
-    activeIndex,
+    activeIndex: resolvedActiveIndex,
     itemCount: visibleOptions.length,
     isEnabled: visibleOptions.length > 0,
     getItemSelector: (index) => `[data-skill-index="${index}"]`
@@ -83,19 +87,19 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      setActiveIndex((current) => Math.min(current + 1, visibleOptions.length - 1));
+      setActiveIndex(Math.min(resolvedActiveIndex + 1, visibleOptions.length - 1));
       return;
     }
 
     if (event.key === 'ArrowUp') {
       event.preventDefault();
-      setActiveIndex((current) => Math.max(current - 1, 0));
+      setActiveIndex(Math.max(resolvedActiveIndex - 1, 0));
       return;
     }
 
     if (event.key === 'Enter') {
       event.preventDefault();
-      const activeOption = visibleOptions[activeIndex];
+      const activeOption = visibleOptions[resolvedActiveIndex];
       if (activeOption) {
         onToggleOption(activeOption.key);
       }
@@ -126,7 +130,7 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
         side="top"
         align="start"
         className="flex w-[min(360px,calc(100vw-1rem))] flex-col overflow-hidden p-0"
-        style={{ maxHeight: SKILL_PICKER_MAX_HEIGHT }}
+        style={{ height: SKILL_PICKER_HEIGHT }}
       >
         <div className="shrink-0 space-y-2 border-b border-border px-4 py-3">
           <div className="text-sm font-semibold text-foreground">{picker.title}</div>
@@ -134,17 +138,56 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
             <Search className="pointer-events-none absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground/70" />
             <Input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setActiveIndex(0);
+              }}
               onKeyDown={onSearchKeyDown}
               placeholder={picker.searchPlaceholder}
               role="combobox"
               aria-controls={listId}
               aria-expanded="true"
               aria-autocomplete="list"
-              aria-activedescendant={visibleOptions[activeIndex] ? `${listId}-option-${activeIndex}` : undefined}
+              aria-activedescendant={visibleOptions[resolvedActiveIndex]
+                ? `${listId}-option-${resolvedActiveIndex}`
+                : undefined}
               className="h-8 rounded-lg pl-8 text-xs"
             />
           </div>
+          {availableGroups.length > 0 ? (
+            <div className="flex flex-wrap gap-1" aria-label={picker.allGroupsLabel}>
+              {[
+                { key: null, label: picker.allGroupsLabel, count: picker.options.length },
+                ...availableGroups.map((group) => ({
+                  key: group.key,
+                  label: group.label || group.key,
+                  count: group.options.length,
+                })),
+              ].map((group) => {
+                const isActive = group.key === resolvedActiveGroupKey;
+                return (
+                  <button
+                    key={group.key ?? 'all-skills'}
+                    type="button"
+                    aria-pressed={isActive}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => {
+                      setActiveGroupKey(group.key);
+                      setActiveIndex(0);
+                    }}
+                    className={`inline-flex h-6 items-center gap-1 rounded-md px-2 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                      isActive
+                        ? 'bg-primary/10 text-primary'
+                        : 'bg-muted text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <span>{group.label}</span>
+                    <span className="opacity-70">{group.count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
         </div>
 
         <div
@@ -174,7 +217,7 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
                       const index = visibleIndex;
                       visibleIndex += 1;
                       const isSelected = selectedSet.has(option.key);
-                      const isActive = index === activeIndex;
+                      const isActive = index === resolvedActiveIndex;
                       return (
                         <div
                           key={option.key}

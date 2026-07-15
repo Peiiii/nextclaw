@@ -36,6 +36,7 @@
 ## 协作与 Git
 
 - 除非用户明确要求，禁止擅自 `git commit`、`git push`、创建 PR 或执行破坏性 git 操作。
+- 除非用户明确要求重启，或已提前告知重启影响并获得用户知情同意，禁止擅自重启 NextClaw 宿主、服务、桌面应用或当前运行实例；优先使用热更新、页面刷新或隔离进程验证。
 - 工作区可能已有用户改动。不得 revert、覆盖或格式化无关改动；若改动文件已被用户触达，先读懂现状再小心合并。
 - 用户要求提交或等价表达时，提交前必须先使用 `nextclaw-release-notes-automation` 与 `nextclaw-iteration-log-governance` 完成 `.changeset`、`docs/logs`、NPM 发布记录适用性判断和必要更新，再 stage/commit。
 - 执行提交/推送/建分支/建 PR 成功后，最终回复必须按 Codex app 要求输出对应 git directive。

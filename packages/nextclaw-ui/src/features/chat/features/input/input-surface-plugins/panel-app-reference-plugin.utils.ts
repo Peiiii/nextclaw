@@ -85,6 +85,7 @@ function buildPanelAppInputSurfaceItemEntries(params: {
     entry,
     item: {
       key: `${keyPrefix}:${entry.appId}`,
+      icon: 'panel-app',
       title: entry.title || entry.appId,
       subtitle: params.texts.subtitle,
       description: (entry.description ?? '').trim() || params.texts.noDescriptionLabel,

@@ -108,7 +108,6 @@ describe('ChatSlashMenu', () => {
     expect(allFilter.className).toContain('bg-gray-100');
     expect(allFilter.className).not.toContain('border-primary');
     expect(screen.getByRole('button', { name: 'Panel Apps 1' }).className).toContain('hover:bg-gray-100');
-
     const firstOption = screen.getByRole('option', { name: /Side chat/i });
     expect(firstOption.className).toContain('py-1');
     expect(firstOption.className).not.toContain('py-1.5');

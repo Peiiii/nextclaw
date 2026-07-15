@@ -188,6 +188,28 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     inputSnapshot,
     setPendingSessionType: inputActions.setPendingSessionType,
   });
+  useEffect(() => {
+    inputActions.syncSessionPreferences({
+      defaultModel: inputQuery.defaultModel,
+      fallbackPreferredModel: inputQuery.fallbackPreferredModel,
+      fallbackPreferredThinking: inputQuery.fallbackPreferredThinking,
+      modelOptions: inputQuery.modelOptions,
+      selectedSessionExists: Boolean(inputQuery.selectedSession),
+      selectedSessionKey: inputQuery.selectedSessionKey,
+      selectedSessionPreferredModel:
+        inputQuery.selectedSession?.preferredModel ?? undefined,
+      selectedSessionPreferredThinking:
+        inputQuery.selectedSession?.preferredThinking ?? null,
+    });
+  }, [
+    inputActions,
+    inputQuery.defaultModel,
+    inputQuery.fallbackPreferredModel,
+    inputQuery.fallbackPreferredThinking,
+    inputQuery.modelOptions,
+    inputQuery.selectedSession,
+    inputQuery.selectedSessionKey,
+  ]);
   useSessionConversationDraftRouteState({
     sessionKey,
     setPendingProjectRoot: inputActions.setPendingProjectRoot,

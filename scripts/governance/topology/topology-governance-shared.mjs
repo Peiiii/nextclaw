@@ -60,7 +60,7 @@ export function readJson(filePath) {
     return JSON.parse(sourceText);
   } catch {
     const normalizedText = sourceText
-      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\*.*?\*\/\s*$/gm, "")
       .replace(/^\s*\/\/.*$/gm, "")
       .replace(/,\s*([}\]])/g, "$1");
     return JSON.parse(normalizedText);
