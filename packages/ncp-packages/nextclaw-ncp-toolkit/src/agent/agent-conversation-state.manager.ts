@@ -105,6 +105,14 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     this.notifyListeners();
   };
 
+  clearError = (): void => {
+    const versionBeforeClear = this.stateVersion;
+    this.setError(null);
+    if (this.stateVersion !== versionBeforeClear) {
+      this.notifyListeners();
+    }
+  };
+
   hydrate = (payload: NcpAgentConversationHydrationParams): void => {
     this.messages = payload.messages.map((message: NcpMessage) => normalizeConversationMessage(message));
     this.streamingMessage = null;

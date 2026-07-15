@@ -267,6 +267,7 @@ export function useNcpAgentRuntime({
       return null;
     }
 
+    manager.clearError();
     setIsSending(true);
     if (sessionId) {
       await manager.dispatch({

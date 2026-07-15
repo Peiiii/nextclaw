@@ -125,16 +125,19 @@ describe('createSlashCommandInputSurfacePlugin', () => {
       { key: 'panel-apps', label: 'Panel Apps', sectionKeys: ['panel-apps'] },
     ]);
     expect(state.panel?.items[0]).toMatchObject({
+      icon: 'command',
       sectionKey: 'commands',
       sectionLabel: 'Commands',
       hintLabel: 'Run command',
     });
     expect(state.panel?.items[1]).toMatchObject({
+      icon: 'skill',
       sectionKey: 'skills',
       sectionLabel: 'Skills',
       hintLabel: 'Add skill',
     });
     expect(state.panel?.items[2]).toMatchObject({
+      icon: 'panel-app',
       sectionKey: 'panel-apps',
       sectionLabel: 'Panel Apps',
       hintLabel: 'Open panel app',

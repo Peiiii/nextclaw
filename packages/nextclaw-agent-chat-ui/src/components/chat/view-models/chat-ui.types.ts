@@ -126,6 +126,7 @@ export type ChatSkillPickerOptionGroup = {
 
 export type ChatSkillPickerProps = {
   title: string;
+  allGroupsLabel: string;
   searchPlaceholder: string;
   emptyLabel: string;
   loadingLabel: string;

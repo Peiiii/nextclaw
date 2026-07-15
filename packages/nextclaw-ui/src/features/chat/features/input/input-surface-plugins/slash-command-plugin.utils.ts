@@ -69,6 +69,7 @@ function buildSlashCommandItems(params: {
     })
     .map(({ command }) => ({
       key: `command:${command.key}`,
+      icon: 'command',
       title: command.title,
       subtitle: params.texts.commandSubtitle,
       description: command.description,
@@ -103,6 +104,7 @@ function buildSlashSkillItems(params: {
     [...data.recentSkillValues],
   ).map((item) => ({
     ...item,
+    icon: 'skill',
     hintLabel: skillHintLabel,
     sectionKey: item.sectionKey
       ? `${SLASH_SKILL_SECTION_KEY}:${item.sectionKey}`
@@ -125,6 +127,7 @@ function buildSlashPanelAppItems(params: {
     texts: params.itemTexts,
   }).map((item) => ({
     ...item,
+    icon: 'panel-app',
     hintLabel: params.panelAppHintLabel,
     sectionKey: SLASH_PANEL_APP_SECTION_KEY,
     sectionLabel: params.panelAppSectionLabel,

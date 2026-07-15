@@ -1,4 +1,5 @@
 import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { Command, PanelsTopLeft, Puzzle } from 'lucide-react';
 import { useActiveItemScroll } from '@agent-chat-ui/components/chat/hooks/use-active-item-scroll';
 import { useElementWidth } from '@agent-chat-ui/components/chat/hooks/use-element-width';
 import {
@@ -8,6 +9,7 @@ import {
 import type {
   ChatInputSurfaceFilterOption,
   ChatInputSurfaceItem,
+  ChatInputSurfaceItemIcon,
   ChatInputSurfaceMenuProps,
 } from '@agent-chat-ui/lib/input-surface';
 
@@ -35,6 +37,19 @@ function itemMatchesFilter(item: ChatInputSurfaceItem, filter: ChatInputSurfaceF
     return true;
   }
   return Boolean(item.sectionKey && filter.sectionKeys.includes(item.sectionKey));
+}
+
+function InputSurfaceItemIcon({ icon }: { icon: ChatInputSurfaceItemIcon }) {
+  const Icon = icon === 'command' ? Command : icon === 'panel-app' ? PanelsTopLeft : Puzzle;
+  return (
+    <span
+      aria-hidden="true"
+      data-input-surface-icon={icon}
+      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-500"
+    >
+      <Icon className="h-3.5 w-3.5" />
+    </span>
+  );
 }
 
 export const ChatInputSurfaceMenu = forwardRef<ChatInputSurfaceMenuHandle, ChatInputSurfaceMenuProps>(
@@ -235,7 +250,7 @@ function ChatInputSurfaceMenu(props, ref) {
                   ) : (
                     <div>
                       {visibleItems.map((item, index) => {
-                        const { key, sectionKey, sectionLabel, title, subtitle } = item;
+                        const { icon, key, sectionKey, sectionLabel, title, subtitle } = item;
                         const isActive = index === activeIndexInRange;
                         const previousItem = visibleItems[index - 1];
                         const shouldShowSection =
@@ -275,6 +290,7 @@ function ChatInputSurfaceMenu(props, ref) {
                                 isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-100'
                               }`}
                             >
+                              {icon ? <InputSurfaceItemIcon icon={icon} /> : null}
                               <span className="truncate text-xs font-medium">{title}</span>
                               <span className="truncate text-xs text-gray-500">{subtitle}</span>
                             </button>

@@ -269,15 +269,9 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     favoriteModelValues,
     setModelFavorite,
   } = useChatModelFavorites(modelRecordValues);
-  const selectedModel =
-    inputSnapshot.selectedModel ??
-    inputQuery.fallbackPreferredModel ??
-    inputQuery.defaultModel ??
-    '';
+  const selectedModel = inputSnapshot.selectedModel ?? '';
   const selectedThinkingLevel = (
-    inputSnapshot.selectedThinkingLevel ??
-    inputQuery.fallbackPreferredThinking ??
-    null
+    inputSnapshot.selectedThinkingLevel
   ) as ChatThinkingLevel | null;
   const availabilitySnapshot = {
     isProviderStateResolved: inputQuery.isProviderStateResolved,

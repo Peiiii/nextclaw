@@ -7,6 +7,7 @@ export type {
   ChatInputSurfaceConfig,
   ChatInputSurfaceFilterOption,
   ChatInputSurfaceItem,
+  ChatInputSurfaceItemIcon,
   ChatInputSurfaceMenuProps,
   ChatInputSurfaceMenuTexts,
   ChatInputSurfacePanel,
