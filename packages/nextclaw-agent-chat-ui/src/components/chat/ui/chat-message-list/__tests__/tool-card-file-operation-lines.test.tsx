@@ -168,4 +168,38 @@ describe("FileOperationCodeSurface", () => {
       Element.prototype.scrollIntoView = originalScrollIntoView;
     }
   });
+
+  it("keeps line-only locations anchored to the start of the code surface", () => {
+    const originalScrollIntoView = Element.prototype.scrollIntoView;
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+
+    try {
+      const view = render(
+        <FileOperationCodeSurface
+          block={{
+            ...block,
+            lines: Array.from({ length: 20 }, (_, index) => ({
+              kind: "context" as const,
+              text: `line ${index + 1}`,
+              newLineNumber: index + 1,
+            })),
+          }}
+          layout="workspace"
+          targetLine={12}
+        />,
+      );
+      const targetLineNumber = Array.from(
+        view.container.querySelectorAll('[data-file-line-number-cell="true"]'),
+      ).find((element) => element.textContent === "12");
+
+      expect(scrollIntoView.mock.instances[0]).toBe(targetLineNumber);
+      expect(scrollIntoView).toHaveBeenCalledWith({
+        block: "center",
+        inline: "nearest",
+      });
+    } finally {
+      Element.prototype.scrollIntoView = originalScrollIntoView;
+    }
+  });
 });

@@ -116,7 +116,7 @@ file URI / local path
 - tab identity 只由 session、viewer 与 path 决定；同一文件跳到不同位置复用同一 tab，并更新 target location。
 - 普通文本窗口从真实 `startLine` 编号；目标行绝不参与内容重编号。
 - server-path read 的 line 参数只用于选择读取窗口，不改变资源身份；默认保留目标前若干上下文行，且保证目标行在 200KB 窗口内。目标行不存在时回到文件首段，不伪造命中。
-- code surface 在目标内容出现后执行一次视口定位：行居中、整行轻量强调；带 column 时显示列光标并横向带入视口。用户后续手动滚动不会被持续拉回。
+- code surface 在目标内容出现后执行一次视口定位：行居中、整行轻量强调；不带 column 时保持横向起点，带 column 时才显示列光标并横向带入视口。用户后续手动滚动不会被持续拉回。
 - breadcrumb 继续只负责路径浏览；截断状态仍可作为读取状态显示，但 line/column 不再进入 breadcrumb view model。
 - 对 Markdown/HTML 等双视图文件，未显式指定 viewer 的行列深链接优先进入 source；显式 `viewer=rendered` 仍按调用者选择执行，不把 rendered 文档伪装成源码定位成功。
 

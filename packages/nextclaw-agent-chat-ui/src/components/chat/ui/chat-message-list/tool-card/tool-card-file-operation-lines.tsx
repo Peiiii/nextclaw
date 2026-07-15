@@ -12,18 +12,14 @@ const FILE_LINE_NUMBER_CELL_CLASS_NAME =
   "flex h-5 items-center justify-center px-2.5 tabular-nums select-none";
 
 function readVisibleLineNumber(line: ChatFileOperationLineViewModel): string {
-  const value = line.newLineNumber ?? line.oldLineNumber;
-  return typeof value === "number" ? String(value) : "";
+  return String(line.newLineNumber ?? line.oldLineNumber ?? "");
 }
 
 function isTargetLine(
   line: ChatFileOperationLineViewModel,
   targetLine?: number | null,
 ): boolean {
-  return (
-    typeof targetLine === "number" &&
-    (line.newLineNumber ?? line.oldLineNumber) === targetLine
-  );
+  return typeof targetLine === "number" && (line.newLineNumber ?? line.oldLineNumber) === targetLine;
 }
 
 function readLineKey(
@@ -111,14 +107,17 @@ function FileOperationLineNumberCell({
   line,
   lineNumberColumnWidth,
   target,
+  targetRef,
 }: {
   layout: "compact" | "workspace";
   line: ChatFileOperationLineViewModel;
   lineNumberColumnWidth: string;
   target?: boolean;
+  targetRef?: Ref<HTMLSpanElement>;
 }) {
   return (
     <span
+      ref={targetRef}
       data-file-line-number-cell="true"
       style={layout === "compact" ? { width: lineNumberColumnWidth, minWidth: lineNumberColumnWidth } : undefined}
       className={cn(
@@ -257,6 +256,7 @@ function FileOperationWorkspaceSurface({
               line={line}
               lineNumberColumnWidth={lineNumberColumnWidth}
               target={isTargetLine(line, targetLine)}
+              targetRef={!targetColumn && isTargetLine(line, targetLine) ? targetRef : undefined}
             />
           ))}
           <div className="min-h-0 flex-1 border-r border-border bg-muted" />
@@ -287,7 +287,7 @@ function FileOperationWorkspaceSurface({
                   line={line}
                   target={target}
                   targetColumn={target ? targetColumn : null}
-                  targetRef={target ? targetRef : undefined}
+                  targetRef={target && (targetColumn || !showLineNumbers) ? targetRef : undefined}
                 />
               </div>
             );
