@@ -145,6 +145,7 @@ function StreamingSessionConversationInputHarness({
     setSelectedModel: vi.fn(),
     setSelectedSkills: vi.fn(),
     setSelectedThinkingLevel: vi.fn(),
+    syncSessionPreferences: vi.fn(),
     setSendError: vi.fn(),
     syncComposer: vi.fn(),
     update: (patch: SessionConversationInputPatch) => {

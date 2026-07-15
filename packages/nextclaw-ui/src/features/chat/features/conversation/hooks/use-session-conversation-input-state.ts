@@ -5,6 +5,10 @@ import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
 import type { ThinkingLevel } from '@/shared/lib/api';
 import { DEFAULT_SESSION_TYPE } from '@/features/chat/features/session-type/utils/chat-session-type.utils';
 import { createChatComposerNodesFromDraft } from '@/features/chat/features/input/utils/chat-composer-state.utils';
+import {
+  useSessionConversationPreferenceActions,
+  type SessionConversationPreferenceSyncParams,
+} from '@/features/chat/features/conversation/hooks/use-session-conversation-preference-actions';
 
 type SessionConversationInputStateValue = string | null | undefined;
 type SessionConversationSkillSelection = {
@@ -51,6 +55,7 @@ export type SessionConversationInputActions = {
   readonly removeAttachment: (attachmentId: string) => void;
   readonly setSelectedModel: (model: SessionConversationInputStateValue) => void;
   readonly setSelectedThinkingLevel: (level: ThinkingLevel | null) => void;
+  readonly syncSessionPreferences: (params: SessionConversationPreferenceSyncParams) => void;
   readonly setPendingSessionType: (sessionType: SetStateAction<string>) => void;
   readonly setPendingProjectRoot: (projectRoot: string | null) => void;
   readonly setSelectedSkills: (
@@ -198,13 +203,11 @@ export const useSessionConversationInputState = () => {
     }));
   }, [update]);
 
-  const setSelectedModel = useCallback((model: SessionConversationInputStateValue) => {
-    update({ selectedModel: model });
-  }, [update]);
-
-  const setSelectedThinkingLevel = useCallback((level: ThinkingLevel | null) => {
-    update({ selectedThinkingLevel: level });
-  }, [update]);
+  const preferenceActions = useSessionConversationPreferenceActions({
+    selectedModel: snapshot.selectedModel,
+    selectedThinkingLevel: snapshot.selectedThinkingLevel,
+    updatePreferences: update,
+  });
 
   const setPendingSessionType = useCallback((sessionType: SetStateAction<string>) => {
     update((current) => {
@@ -249,8 +252,7 @@ export const useSessionConversationInputState = () => {
     setAttachments,
     addAttachments,
     removeAttachment,
-    setSelectedModel,
-    setSelectedThinkingLevel,
+    ...preferenceActions,
     setPendingSessionType,
     setPendingProjectRoot,
     setSelectedSkills,
@@ -266,8 +268,7 @@ export const useSessionConversationInputState = () => {
     setAttachments,
     addAttachments,
     removeAttachment,
-    setSelectedModel,
-    setSelectedThinkingLevel,
+    preferenceActions,
     setPendingSessionType,
     setPendingProjectRoot,
     setSelectedSkills,

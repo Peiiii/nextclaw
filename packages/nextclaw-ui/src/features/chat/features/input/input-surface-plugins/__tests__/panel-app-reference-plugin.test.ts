@@ -67,6 +67,7 @@ describe('panel app reference input surface plugin', () => {
     expect(state.panel?.items).toEqual([
       expect.objectContaining({
         key: 'panel-app:task-board',
+        icon: 'panel-app',
         title: 'Task Board',
         tokenKind: 'panel_app',
         tokenKey: 'task-board',

@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => {
     removeAttachment: vi.fn(),
     setSelectedModel: vi.fn(),
     setSelectedThinkingLevel: vi.fn(),
+    syncSessionPreferences: vi.fn(),
     setPendingSessionType: vi.fn(),
     setPendingProjectRoot: vi.fn(),
     setSelectedSkills: vi.fn(),

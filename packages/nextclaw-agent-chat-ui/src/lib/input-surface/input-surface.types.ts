@@ -28,8 +28,11 @@ export type ChatInputSurfaceMenuTexts = {
   itemHintLabel: string;
 };
 
+export type ChatInputSurfaceItemIcon = 'command' | 'panel-app' | 'skill';
+
 export type ChatInputSurfaceItem = {
   key: string;
+  icon?: ChatInputSurfaceItemIcon;
   title: string;
   subtitle: string;
   description: string;

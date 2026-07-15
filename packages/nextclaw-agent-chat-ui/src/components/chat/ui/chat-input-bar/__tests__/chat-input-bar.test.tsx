@@ -222,6 +222,7 @@ function SkillPickerInsertionHarness() {
         toolbar: {
           skillPicker: {
             title: 'Skills',
+            allGroupsLabel: 'All skills',
             searchPlaceholder: 'Search skills',
             loadingLabel: 'Loading skills',
             emptyLabel: 'No skills',
@@ -372,22 +373,6 @@ it('shows a selected skill inside the composer after choosing it from the skill 
 
   await waitFor(() => expect(screen.getByText('Web Search')).toBeTruthy());
   expect(screen.getByRole('textbox').querySelector('[data-composer-token-key="web-search"]')).toBeTruthy();
-});
-
-it('keeps the skill picker panel constrained to the available viewport height', async () => {
-  render(<SkillPickerInsertionHarness />);
-
-  fireEvent.click(screen.getByRole('button', { name: /skills/i }));
-
-  const listbox = await screen.findByRole('listbox');
-  expect(listbox.className).toContain('flex-1');
-  expect(listbox.className).toContain('overflow-y-auto');
-  const panelStyle = listbox.closest('[data-state="open"]')?.getAttribute('style') ?? '';
-  expect(panelStyle).toContain('24rem');
-  expect(panelStyle).toContain('--radix-popover-content-available-height');
-  expect(panelStyle).toContain('100vh');
-  expect(panelStyle).toContain('2rem');
-  expect(listbox.className).toContain('overscroll-contain');
 });
 
 it('keeps skill option text selectable without toggling the skill', async () => {

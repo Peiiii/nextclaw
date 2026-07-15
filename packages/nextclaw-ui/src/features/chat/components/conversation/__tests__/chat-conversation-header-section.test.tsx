@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { PersistStorage, StorageValue } from "zustand/middleware";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,6 +15,8 @@ const mocks = vi.hoisted(() => ({
   deleteSession: vi.fn(),
   toggleWorkspacePanel: vi.fn(),
   selectSession: vi.fn(),
+  setListMode: vi.fn(),
+  toggleProjectCollapsed: vi.fn(),
   sessionItems: [] as NcpSessionListItemView[],
   isSessionListLoading: false,
 }));
@@ -27,6 +29,8 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
     },
     chatSessionListManager: {
       selectSession: mocks.selectSession,
+      setListMode: mocks.setListMode,
+      toggleProjectCollapsed: mocks.toggleProjectCollapsed,
     },
   }),
 }));
@@ -120,6 +124,8 @@ describe("ChatConversationHeaderSection", () => {
     mocks.deleteSession.mockReset();
     mocks.toggleWorkspacePanel.mockReset();
     mocks.selectSession.mockReset();
+    mocks.setListMode.mockReset();
+    mocks.toggleProjectCollapsed.mockReset();
     mocks.isSessionListLoading = false;
     viewportLayoutManager.resetForTests();
     useChatSessionListStore.persist.setOptions({
@@ -131,9 +137,24 @@ describe("ChatConversationHeaderSection", () => {
     useChatSessionListStore.setState({
       snapshot: {
         ...useChatSessionListStore.getState().snapshot,
+        collapsedProjectRoots: [],
+        listMode: "time-first",
+        pinnedProjectRoots: [],
+        pinnedSessionKeys: [],
         selectedAgentId: "main",
         selectedSessionKey: "parent-session-1",
       },
+    });
+    mocks.setListMode.mockImplementation((listMode) => {
+      useChatSessionListStore.getState().setSnapshot({ listMode });
+    });
+    mocks.toggleProjectCollapsed.mockImplementation((projectRoot) => {
+      const { collapsedProjectRoots } = useChatSessionListStore.getState().snapshot;
+      useChatSessionListStore.getState().setSnapshot({
+        collapsedProjectRoots: collapsedProjectRoots.includes(projectRoot)
+          ? collapsedProjectRoots.filter((root) => root !== projectRoot)
+          : [...collapsedProjectRoots, projectRoot],
+      });
     });
     useChatThreadStore.setState({
       snapshot: {
@@ -227,6 +248,68 @@ describe("ChatConversationHeaderSection", () => {
     await user.click(screen.getByRole("button", { name: /Background Task/ }));
 
     expect(mocks.selectSession).toHaveBeenCalledWith("session:ncp-2");
+  });
+
+  it("uses lightweight static groups for pinned and activity dates", async () => {
+    const user = userEvent.setup();
+    viewportLayoutManager.setSidebarCollapsed(true);
+    useChatSessionListStore.setState({
+      snapshot: {
+        ...useChatSessionListStore.getState().snapshot,
+        pinnedSessionKeys: ["session:ncp-2"],
+      },
+    });
+
+    renderHeaderSection();
+    await user.click(screen.getByRole("button", { name: /Switch session/ }));
+
+    const pinnedGroup = screen.getByRole("region", { name: "Pinned" });
+    const pinnedTitle = within(pinnedGroup).getByText("Pinned");
+    expect(pinnedTitle.className).toContain("uppercase");
+    expect(pinnedTitle.className).not.toContain("bg-muted");
+    expect(within(pinnedGroup).queryByRole("button", { name: "Pinned" })).toBeNull();
+    expect(within(pinnedGroup).getByText("Background Task")).toBeTruthy();
+    expect(
+      within(screen.getByRole("region", { name: "Older" })).getByText("Parent Task"),
+    ).toBeTruthy();
+  });
+
+  it("switches to collapsible project groups inside the header popover", async () => {
+    const user = userEvent.setup();
+    viewportLayoutManager.setSidebarCollapsed(true);
+    mocks.sessionItems = [
+      createSessionListItem({
+        key: "parent-session-1",
+        label: "Parent Task",
+        projectName: "Alpha",
+        projectRoot: "/workspace/alpha",
+      }),
+      createSessionListItem({
+        key: "session:ncp-2",
+        label: "Background Task",
+        projectName: "Beta",
+        projectRoot: "/workspace/beta",
+      }),
+    ];
+
+    renderHeaderSection();
+    await user.click(screen.getByRole("button", { name: /Switch session/ }));
+    await user.click(screen.getByRole("button", { name: "Project" }));
+
+    expect(mocks.setListMode).toHaveBeenCalledWith("project-first");
+    const alphaGroup = screen.getByRole("region", { name: "Alpha" });
+    const alphaToggle = within(alphaGroup).getByRole("button", {
+      name: "Collapse project · Alpha",
+    });
+    expect(alphaToggle.getAttribute("aria-expanded")).toBe("true");
+    expect(alphaToggle.className).not.toContain("bg-muted");
+    expect(within(alphaGroup).getByText("Parent Task")).toBeTruthy();
+
+    await user.click(alphaToggle);
+    expect(mocks.toggleProjectCollapsed).toHaveBeenCalledWith("/workspace/alpha");
+    expect(
+      within(screen.getByRole("region", { name: "Alpha" })).queryByText("Parent Task"),
+    ).toBeNull();
   });
 
   it("keeps the desktop title plain while the sidebar is expanded", () => {
