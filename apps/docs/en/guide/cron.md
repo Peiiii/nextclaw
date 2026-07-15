@@ -1,46 +1,28 @@
-# Run Automations
+# Scheduled tasks
 
-Automations let NextClaw act on a schedule, not only when you send a message.
+Scheduled tasks rerun proven work at a chosen time: a daily brief, weekly project summary, reminder, or recurring website check.
 
-For the first automation, start with a low-risk reminder. Do not begin with a high-impact task.
+![The NextClaw scheduled task list](/product-screenshots/nextclaw-cron-job-page-en.png)
 
-## Good first automation tasks
+## Run it manually first
 
-- remind you to choose the most important task each morning
-- draft a daily status update
-- summarize a project on a schedule
-- continue a session at a later time
-
-## Recommended first step
-
-Create a simple reminder:
+Complete the task in a normal session before scheduling it. Confirm the sources, working directory, output format, and destination, then ask the agent to create a schedule from the working prompt.
 
 ```text
-Every weekday at 9:30, remind me to choose the most important task for the day.
+Run the brief we just completed every weekday at 08:30. Read daily-sources.md, produce a Markdown brief, and send it to the configured Feishu group. If there is no new item, still report the check time and sources.
 ```
 
-After that triggers correctly, add more complex jobs.
+## What a schedule contains
 
-## Automations and sessions
+- the prompt to execute;
+- timing and timezone;
+- working directory or session;
+- enabled state;
+- previous and next run times;
+- a destination channel when results should be sent.
 
-If a job should continue existing context, bind it to a session.  
-If it should be independent, let it use its own automation session.
+Use the schedule page to enable, disable, run now, and inspect timing. Run it manually again after changing a model, directory, channel, or credential.
 
-## Command entry points
+Scheduled work should be low-risk, stable, reviewable, and retryable. Keep explicit confirmation around public publishing, destructive changes, sensitive messages, production data, and paid actions.
 
-Common operations include:
-
-```bash
-nextclaw cron list
-nextclaw cron add
-nextclaw cron run <jobId>
-nextclaw cron disable <jobId>
-```
-
-For all options, see [Command Index](/en/guide/commands).
-
-## Related docs
-
-- [First Useful Workflow](/en/guide/after-setup)
-- [Chat & Sessions](/en/guide/chat)
-- [Runtime & Hosting](/en/guide/runtime-hosting)
+See [Generate and send a scheduled brief](/en/tasks/scheduled-brief) for a complete example.

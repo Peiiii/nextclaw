@@ -1,49 +1,24 @@
-# Set Up Providers
+# Models and providers
 
-A provider tells NextClaw which model service to call. For the first setup, do not try to design the perfect stack. Choose the path most likely to work quickly.
+NextClaw connects to hosted models, local models, and custom OpenAI-compatible endpoints. A model handles understanding and generation; the agent's files, browser, terminal, skills, and MCP connections determine how it can act.
 
-## Recommended order
+![Model provider settings in NextClaw](/product-screenshots/nextclaw-providers-page-en.png)
 
-1. If you want the fastest path, start with [Pick a Provider Path](/en/guide/tutorials/provider-options).
-2. If you already have an API key, configure that provider.
-3. If you want a local model, use [Local Ollama + Qwen3](/en/guide/tutorials/local-ollama-qwen3).
+## Pick the easiest path to verify
 
-## Minimum setup
+- Configure a hosted provider when you already have an API key.
+- Enter a compatible base URL, credential, and model name for a model gateway.
+- Use Ollama or vLLM when the model should run locally.
+- Select the appropriate runtime for agents backed by Codex, Claude Code, or another supported path.
 
-- provider name
-- API base or platform entry point
-- authentication method
-- default model
+The interface includes OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, MiniMax, Moonshot, Qwen, Zhipu, AiHubMix, vLLM, and custom compatible providers. Actual model availability depends on the account, region, and service configuration.
 
-After saving, return to the UI and send one real message.
+## Verify more than a greeting
 
-## When to add multiple models
+Run a short task that reads material and creates a file. Confirm authentication, streaming, tool calls, file previews, and visible errors all work.
 
-Do not start by configuring every model you can find. Multiple models make sense when:
+Use multiple models only when cost, speed, privacy, or task type truly differs. A stable default agent plus a few dedicated agents is usually clearer than switching models before every message.
 
-- one model is for fast drafts
-- one model is for harder reasoning
-- one model is local or offline
-- different sessions need different bindings
+Content sent to a hosted model follows that provider's data policy. Local inference reduces model-data egress, but MCP, channels, and web tools can still send data elsewhere.
 
-## Common issue
-
-### The model is configured but no reply arrives
-
-Run:
-
-```bash
-nextclaw doctor
-```
-
-Then check:
-
-- whether the API key is valid
-- whether the model name exists for that provider
-- whether the default model was saved
-
-## Related docs
-
-- [Configuration Manual](/en/guide/configuration)
-- [Secrets Management](/en/guide/secrets)
-- [Troubleshooting](/en/guide/troubleshooting)
+See [Choose a provider path](/en/guide/tutorials/provider-options) for setup details.

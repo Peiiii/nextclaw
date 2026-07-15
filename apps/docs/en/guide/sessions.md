@@ -1,8 +1,9 @@
-# Session Management
+# Session management
 
-Session management is now covered by the [Chat & Sessions](/en/guide/chat) manual.
+Sessions keep a task's goal, messages, tool activity, working directory, and results. The full guide now lives at [Tasks and sessions](/en/guide/chat).
 
-If you want to understand what a session is, when to split sessions, or how automation continues context, read:
+You may also need:
 
-- [Chat & Sessions](/en/guide/chat)
-- [Run Automations](/en/guide/cron)
+- [Create your first task](/en/guide/create-task)
+- [Session workspace](/en/guide/workspace)
+- [Inspect task results](/en/guide/results)

@@ -1,42 +1,28 @@
-# Connect Channels
+# Messaging channels
 
-Channels let you use NextClaw from the messaging surfaces you already use, not only from the local UI.
+Messaging channels let you send tasks, add material, and receive results from familiar apps without opening the local workspace first.
 
-For the first channel, choose one place you actually open every day. Do not connect many channels at once.
+![Messaging channel configuration in NextClaw](/product-screenshots/nextclaw-channels-page-en.png)
 
-## Before connecting a channel
+## Available entry points
 
-You should already have:
+The current interface covers Weixin, Feishu/Lark, QQ, DingTalk, WeCom, Telegram, Discord, Slack, WhatsApp, email, and webhooks. Login, permissions, and message support differ by channel.
 
-- completed the [Quickstart](/en/guide/getting-started)
-- one working model provider
-- `nextclaw status` showing the service is running
+## Useful patterns
 
-## Connection flow
+- Send a clear request from a phone while the local agent handles project files.
+- Turn a field photo, document, or message into a task and report.
+- Receive scheduled briefs, health checks, and failure alerts.
+- Trigger a stable workflow from a team conversation and return the result there.
 
-1. Choose the channel type in the UI or configuration.
-2. Add the required account, token, or login details.
-3. Save the configuration.
-4. Run `nextclaw channels status`.
-5. Send one test message from the target channel.
+## Connect one channel
 
-## Which channel should I choose?
+1. Complete a real task in the local workspace first.
+2. Choose one channel and enter its login or credentials.
+3. Review the connection state and permission scope.
+4. Send a low-risk test task from that app.
+5. Verify the reply, file, and recipient before daily use.
 
-Start with the place where you already work:
+Messages may be sent to the models and tools configured for the task. In group conversations, decide who can trigger the agent, which directories it may access, and where results can be returned. Never expose a high-privilege local workspace through an unrestricted public entry point.
 
-- team collaboration: Slack, Feishu, enterprise chat
-- personal messaging: Telegram, Discord
-- custom or experimental flows: webhook, MCP, or another extension entry
-
-## Common failure points
-
-- token is wrong or expired
-- the platform permissions are incomplete
-- the local machine cannot reach the platform
-- the service is not staying online
-
-## Related docs
-
-- [Feishu Setup](/en/guide/tutorials/feishu)
-- [Secrets Management](/en/guide/secrets)
-- [Troubleshooting](/en/guide/troubleshooting)
+See the [Feishu setup guide](/en/guide/tutorials/feishu) or the [chat channel task guide](/en/tasks/chat-channel-work).

@@ -1,29 +1,26 @@
-# Chat & Sessions
+# Tasks and sessions
 
-Chat is the interaction surface between you and NextClaw. A session keeps context so multi-step work does not need to be re-explained every turn.
+A session is not merely chat history. It is the container where a task keeps its goal, messages, tool activity, working directory, file results, and follow-up changes.
 
-## Concepts users need
+## Start a new task when
 
-- Chat: one or more message turns.
-- Session: the work unit that holds context, model binding, and history.
-- Model binding: a session can use a specific model.
-- Automation session: a scheduled job can continue an existing session or use its own context.
+- you move to another project or working directory;
+- the new outcome is unrelated to the current material;
+- you need another agent or runtime;
+- an experiment should stay separate from long-running work.
 
-## First use
+Continue the current session when you are refining its files, asking more questions about the same sources, adding the next step, or relying on decisions already confirmed there.
 
-1. Open or create a session in the UI.
-2. Ask for a real task.
-3. Continue for two or three turns to confirm context is preserved.
-4. If the task should continue over time, consider automation or channels.
+## Session types
 
-## When to use multiple sessions
+NextClaw can host Native, Codex, Claude Code, Weixin, Feishu, and scheduled-task entry points. Their tools and interaction details differ, but each should begin with a clear outcome, working directory, and inspectable result.
 
-- keep different projects separate
-- separate different model strategies
-- keep temporary testing away from long-running work
+## Session list
 
-## Related docs
+Name work so it is recognizable later. Prefer names such as “July sales analysis” or “Release verification” over a list of sessions called “Hello” or “Test.”
 
-- [First Useful Workflow](/en/guide/after-setup)
-- [Run Automations](/en/guide/cron)
-- [Multi-Agent Routing](/en/guide/multi-agent)
+## Long context
+
+Sessions keep multi-turn context and can compact long histories. Keep critical paths, final criteria, and non-editable boundaries explicit near the work that depends on them.
+
+Inside a session you can open the [workspace](/en/guide/workspace), create subtasks, add a scheduled job, or reference a Panel App or skill.

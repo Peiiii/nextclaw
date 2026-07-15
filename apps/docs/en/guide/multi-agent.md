@@ -1,28 +1,28 @@
-# Multi-Agent Routing
+# Agents and subtasks
 
-Multi-agent routing is an advanced capability. Use it after NextClaw is already working and you want different tasks to use different agents or runtimes.
+An agent is a collaborator that can keep its own identity, home directory, memory, skills, and runtime. Use dedicated agents for stable categories of work, and subtasks when a larger job needs separate deliverables.
 
-## When it helps
+![The NextClaw agent management page](/product-screenshots/nextclaw-agents-page-en.png)
 
-- different tasks need different models or runtimes
-- a session should bind to a specific agent
-- you are testing Claude Code, Codex, Hermes, or other runtime paths
-- you want to keep experiments separate from the daily main entry point
+## What an agent can keep
 
-## When it is unnecessary
+- **Identity and role:** what it owns and how its output should be judged.
+- **Home directory:** where it normally reads and writes files.
+- **Memory:** durable information related to that agent's work.
+- **Skills:** reusable instructions and tool methods.
+- **Runtime and context:** Native, Codex, Claude Code, or another supported execution path.
 
-First setup does not need multi-agent routing.  
-Most daily single-user workflows do not need many agents at the beginning.
+## Create a dedicated agent when
 
-## Usage principles
+- the same work repeats with stable directories and standards;
+- projects need separate files, memory, or skills;
+- coding, writing, or research requires another runtime;
+- experiments should stay isolated from the default agent.
 
-- Keep one reliable main entry point.
-- Add agents only for clear scenarios.
-- Each agent should have a clear responsibility.
-- Do not use routing as a workaround for messy configuration.
+Do not create a large agent roster before the default agent completes a real task. Preserve only differences that have proven useful.
 
-## Related docs
+## Subtasks
 
-- [Chat & Sessions](/en/guide/chat)
-- [Command Index](/en/guide/commands)
-- [Claude Code / Codex / Hermes Integration](/en/guide/tutorials/claude-codex-hermes)
+A complex report can use one subtask to verify sources and another to prepare charts. Each subtask needs an input, deliverable, completion condition, and destination. The parent session still owns integration and final review.
+
+Related: [Tasks and sessions](/en/guide/chat) and [Skills and MCP](/en/guide/skills-and-mcp).

@@ -1,0 +1,350 @@
+:root {
+  --vp-c-brand-1: #246b58;
+  --vp-c-brand-2: #1f5d4d;
+  --vp-c-brand-3: #17483c;
+  --vp-c-brand-soft: rgba(36, 107, 88, 0.12);
+  --vp-c-bg-soft: #f5f7f6;
+  --vp-c-bg-alt: #f8f9f8;
+  --vp-c-divider: #dfe5e2;
+  --vp-button-brand-border: #246b58;
+  --vp-button-brand-bg: #246b58;
+  --vp-button-brand-hover-border: #1f5d4d;
+  --vp-button-brand-hover-bg: #1f5d4d;
+  --vp-button-alt-border: #d8dedb;
+  --vp-button-alt-bg: #f3f5f4;
+  --vp-home-hero-name-color: #246b58;
+  --vp-home-hero-name-background: none;
+}
+
+.dark {
+  --vp-c-brand-1: #78c5aa;
+  --vp-c-brand-2: #8fd2bb;
+  --vp-c-brand-3: #a6dec9;
+  --vp-c-brand-soft: rgba(120, 197, 170, 0.14);
+  --vp-c-bg-soft: #202523;
+  --vp-c-bg-alt: #191d1c;
+  --vp-c-divider: #343b38;
+  --vp-home-hero-name-color: #8fd2bb;
+}
+
+.VPNavBarTitle .title {
+  letter-spacing: 0;
+}
+
+.VPNavBarMenuLink,
+.VPNavBarMenuGroup .button {
+  font-size: 14px;
+}
+
+.VPSidebarItem.level-0 > .item > .text {
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.VPHome {
+  padding-bottom: 24px;
+}
+
+.VPHome .VPHero {
+  padding-top: 96px;
+  padding-bottom: 40px;
+}
+
+.VPHome .VPHero .container {
+  max-width: 1160px;
+}
+
+.VPHome .VPHero .main {
+  max-width: 790px;
+}
+
+.VPHome .VPHero .name,
+.VPHome .VPHero .text {
+  letter-spacing: 0;
+}
+
+.VPHome .VPHero .name {
+  font-size: 20px;
+  line-height: 1.4;
+  font-weight: 650;
+}
+
+.VPHome .VPHero .text {
+  max-width: 760px;
+  padding-top: 10px;
+  font-size: 48px;
+  line-height: 1.15;
+}
+
+.VPHome .VPHero .tagline {
+  max-width: 720px;
+  font-size: 19px;
+  line-height: 1.75;
+}
+
+.VPHome .VPHero .actions {
+  gap: 10px;
+  padding-top: 28px;
+}
+
+.VPHome .VPButton {
+  border-radius: 6px;
+}
+
+.VPHome .vp-doc.container {
+  max-width: 1160px;
+  padding-top: 64px;
+}
+
+.VPHome .vp-doc h2 {
+  margin-top: 72px;
+  border-top: 0;
+  padding-top: 0;
+  font-size: 28px;
+  letter-spacing: 0;
+}
+
+.VPHome .vp-doc h2:first-child {
+  margin-top: 0;
+}
+
+.VPHome .vp-doc > p {
+  max-width: 760px;
+  color: var(--vp-c-text-2);
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.nc-docs-path-grid,
+.nc-docs-task-grid,
+.nc-docs-link-grid,
+.nc-docs-showcase-grid,
+.nc-docs-lifecycle {
+  display: grid;
+  gap: 14px;
+  margin: 24px 0 0;
+}
+
+.nc-docs-path-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.nc-docs-task-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.nc-docs-link-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.nc-docs-showcase-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.nc-docs-lifecycle {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.nc-docs-lifecycle > div {
+  min-width: 0;
+  border-top: 2px solid var(--vp-c-brand-1);
+  padding: 18px 2px 0;
+}
+
+.nc-docs-lifecycle span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.nc-docs-lifecycle strong {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.nc-docs-lifecycle p {
+  margin: 0;
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.nc-docs-card,
+.nc-docs-link {
+  display: block;
+  min-width: 0;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  color: var(--vp-c-text-1) !important;
+  text-decoration: none !important;
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.nc-docs-card {
+  min-height: 148px;
+  padding: 22px;
+}
+
+.nc-docs-link {
+  min-height: 84px;
+  padding: 18px;
+}
+
+.nc-docs-card:hover,
+.nc-docs-link:hover {
+  border-color: var(--vp-c-brand-1);
+  background: var(--vp-c-bg-soft);
+  transform: translateY(-2px);
+}
+
+.nc-docs-card:focus-visible,
+.nc-docs-link:focus-visible {
+  outline: 3px solid var(--vp-c-brand-soft);
+  outline-offset: 2px;
+}
+
+.nc-docs-card strong,
+.nc-docs-link strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.nc-docs-card span,
+.nc-docs-link span {
+  display: block;
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.nc-docs-card .nc-docs-step {
+  margin-bottom: 12px;
+  color: #b35c20;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.nc-docs-product-shot {
+  margin: 30px 0 0;
+}
+
+.nc-docs-showcase-grid .nc-docs-product-shot {
+  margin: 0;
+}
+
+.nc-docs-product-shot img {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  background: var(--vp-c-bg-soft);
+}
+
+.nc-docs-product-shot figcaption {
+  margin-top: 10px;
+  color: var(--vp-c-text-3);
+  font-size: 13px;
+  text-align: center;
+}
+
+.nc-docs-showcase-grid .nc-docs-product-shot img {
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: top;
+}
+
+.vp-doc .nc-task-prompt {
+  margin: 20px 0;
+  border-left: 3px solid var(--vp-c-brand-1);
+  border-radius: 0 6px 6px 0;
+  padding: 16px 18px;
+  background: var(--vp-c-bg-soft);
+}
+
+.vp-doc .nc-task-prompt p {
+  margin: 0;
+  color: var(--vp-c-text-1);
+}
+
+@media (max-width: 959px) {
+  .VPHome .VPHero {
+    padding-top: 88px;
+  }
+
+  .VPHome .VPHero .text {
+    font-size: 40px;
+  }
+
+  .nc-docs-task-grid,
+  .nc-docs-link-grid,
+  .nc-docs-lifecycle {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .VPHome .VPHero {
+    padding-top: 88px;
+    padding-bottom: 28px;
+  }
+
+  .VPHome .VPHero .name {
+    font-size: 17px;
+  }
+
+  .VPHome .VPHero .text {
+    font-size: 34px;
+    line-height: 1.18;
+  }
+
+  .VPHome .VPHero .tagline {
+    font-size: 16px;
+    line-height: 1.7;
+  }
+
+  .VPHome .VPHero .actions {
+    align-items: stretch;
+  }
+
+  .VPHome .VPHero .action,
+  .VPHome .VPHero .VPButton {
+    width: 100%;
+  }
+
+  .VPHome .vp-doc.container {
+    padding-top: 42px;
+  }
+
+  .VPHome .vp-doc h2 {
+    margin-top: 54px;
+    font-size: 24px;
+  }
+
+  .nc-docs-path-grid,
+  .nc-docs-task-grid,
+  .nc-docs-link-grid,
+  .nc-docs-showcase-grid,
+  .nc-docs-lifecycle {
+    grid-template-columns: 1fr;
+  }
+
+  .nc-docs-card,
+  .nc-docs-link {
+    min-height: auto;
+  }
+}

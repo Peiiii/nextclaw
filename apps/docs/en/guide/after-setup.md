@@ -1,52 +1,27 @@
-# First Useful Workflow
+# After your first task
 
-The quickstart proves that NextClaw runs. This page proves that it is worth continuing with.
+You do not need to configure every feature after the first successful task. Choose the next step that removes the most repeated work.
 
-The goal is a small but real workflow: configure a model, complete one useful conversation, then create one low-risk automation.
+## The result still needs work
 
-## 1. Check health first
+Stay in the original session and name the exact object and acceptance criteria. The files, sources, and action history are still available.
 
-```bash
-nextclaw status
-nextclaw doctor
-```
+## You repeat this kind of work
 
-If this already reports a problem, go to [Troubleshooting](/en/guide/troubleshooting).
+- Create a dedicated [agent](/en/guide/multi-agent) with a stable home directory, role, and skills.
+- Turn the proven steps into a [skill](/en/guide/skills-and-mcp).
+- If the result is an interactive page or tool, keep it as a [Panel App](/en/guide/panel-apps).
 
-## 2. Do one real conversation
+## It should run on a schedule
 
-Open the UI and ask for something you would actually use today, for example:
+Run it manually once, verify the output, then create a [scheduled task](/en/guide/cron). Briefs, checks, reminders, and recurring summaries should begin with a prompt that already works.
 
-```text
-Turn these rough notes into an execution checklist I can send to a teammate.
-```
+## You want to start work away from the computer
 
-Avoid toy prompts. The first useful workflow should be connected to real work.
+Connect a [messaging channel](/en/guide/channels) such as Weixin, Feishu, Telegram, or Slack. Configure [remote access](/en/guide/remote-access) when you also need to open the workspace itself from another device.
 
-## 3. Create one reminder or scheduled job
+## The task needs another tool
 
-Now let NextClaw do one small thing proactively, for example:
+Search the Skill or MCP marketplace. Review what the integration can access, then validate it with a low-risk task.
 
-```text
-Every weekday at 9:30, remind me to choose the most important task for the day.
-```
-
-To understand automation more formally, see [Run Automations](/en/guide/cron).
-
-## 4. Decide whether to connect a channel
-
-If you already live in a messaging app every day, connect a channel next:
-
-- [Connect Channels](/en/guide/channels)
-
-If you only need the local UI for now, skip channels.
-
-## 5. Decide whether it should stay running
-
-When you want NextClaw to become part of your daily setup, continue with:
-
-- [Background & Autostart](/en/guide/background-autostart)
-- [Remote Access](/en/guide/remote-access)
-- [Docker Deployment](/en/guide/tutorials/docker-one-click)
-
-At this point, you have moved from "it runs" to "it is useful."
+Need an idea? Pick something close to your daily work from the [task guides](/en/tasks/).
