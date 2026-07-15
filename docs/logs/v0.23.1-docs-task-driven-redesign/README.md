@@ -37,9 +37,11 @@
 
 本轮按用户确认执行提交、推送和文档站双站部署：
 
-- 全球站：`pnpm deploy:docs:global`，发布到 `https://docs.nextclaw.io`。
-- 国内镜像：`pnpm deploy:docs:cn`，发布到 `https://docs.nextclaw.net`。
-- 部署后分别检查中文首页、快速开始、任务案例、更新笔记和新增核心页面。
+- 全球站已通过 Cloudflare Pages 发布，部署产物地址为 `https://e60d7ddb.nextclaw-docs.pages.dev`，正式域名为 `https://docs.nextclaw.io`。
+- 国内镜像使用同一构建产物，通过临时私有 OSS 对象和 ECS 云助手完成校验、解包、Nginx 配置检查与重载；临时对象在部署成功后已删除，正式域名为 `https://docs.nextclaw.net`。
+- `node scripts/deploy/nextclaw-net-docs-mirror/verify-docs-mirror.mjs` 通过：DNS、`/health` 和中文快速开始页均正常。
+- 全球站与国内镜像的中文首页、快速开始、任务案例、更新笔记和 Panel Apps 页面均返回 200，首页均存在 `/zh/notes/` 顶栏入口。
+- 两个正式域名返回的中文首页 SHA-256 一致，确认国内镜像与全球站使用同一版内容。
 
 本轮不涉及数据库 migration、后端 API、NPM 包或产品运行时发布。
 
