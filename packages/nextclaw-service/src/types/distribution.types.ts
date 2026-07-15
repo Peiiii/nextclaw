@@ -1,7 +1,7 @@
 export type NextclawDistribution = {
   version: string;
-  packageRoot: string;
   appEntrypoint: string;
+  launcherEntrypoint: string;
   uiDistDir: string;
   runtimeUpdatePublicKeyPath: string;
 };

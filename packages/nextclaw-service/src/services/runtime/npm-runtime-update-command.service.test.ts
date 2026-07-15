@@ -6,8 +6,8 @@ describe("NpmRuntimeUpdateCommandService", () => {
   it("blocks npm runtime updates from the desktop command surface", async () => {
     NextclawDistributionService.configure({
       version: "0.19.26",
-      packageRoot: "/runtime",
       appEntrypoint: "/runtime/dist/cli/app/index.js",
+      launcherEntrypoint: "/runtime/dist/cli/launcher/index.js",
       uiDistDir: "/runtime/ui-dist",
       runtimeUpdatePublicKeyPath: "/runtime/resources/update-bundle-public.pem"
     });

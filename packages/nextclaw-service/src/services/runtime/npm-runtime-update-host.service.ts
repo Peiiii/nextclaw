@@ -156,52 +156,50 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
   };
 
   private startCheck = async (options: { autoDownload: boolean }): Promise<UpdateSnapshot> => {
-    if (this.activeTask) {
-      return this.snapshot;
-    }
-
-    this.setSnapshot({
-      ...this.createManager().getSnapshot(),
-      status: "checking",
-      progress: null,
-      errorMessage: null
-    });
-    this.activeTask = (async () => {
-      try {
-        const checkedSnapshot = await this.createManager().checkForUpdate();
-        this.setSnapshot(checkedSnapshot);
-        if (options.autoDownload && checkedSnapshot.status === "update-available") {
-          await this.runDownloadTask();
+    if (!this.activeTask) {
+      this.setSnapshot({
+        ...this.createManager().getSnapshot(),
+        status: "checking",
+        progress: null,
+        errorMessage: null
+      });
+      this.activeTask = (async () => {
+        try {
+          const checkedSnapshot = await this.createManager().checkForUpdate();
+          this.setSnapshot(checkedSnapshot);
+          if (options.autoDownload && checkedSnapshot.status === "update-available") {
+            await this.runDownloadTask();
+          }
+        } catch (error) {
+          this.setSnapshot(this.toFailedSnapshot(error));
+        } finally {
+          this.activeTask = null;
         }
-      } catch (error) {
-        this.setSnapshot(this.toFailedSnapshot(error));
-      } finally {
-        this.activeTask = null;
-      }
-    })();
+      })();
+    }
+    await this.activeTask;
     return this.snapshot;
   };
 
   private startDownload = async (): Promise<UpdateSnapshot> => {
-    if (this.activeTask) {
-      return this.snapshot;
+    if (!this.activeTask) {
+      this.setSnapshot({
+        ...this.createManager().getSnapshot(),
+        status: "downloading",
+        progress: INITIAL_DOWNLOAD_PROGRESS,
+        errorMessage: null
+      });
+      this.activeTask = (async () => {
+        try {
+          await this.runDownloadTask();
+        } catch (error) {
+          this.setSnapshot(this.toFailedSnapshot(error));
+        } finally {
+          this.activeTask = null;
+        }
+      })();
     }
-
-    this.setSnapshot({
-      ...this.createManager().getSnapshot(),
-      status: "downloading",
-      progress: INITIAL_DOWNLOAD_PROGRESS,
-      errorMessage: null
-    });
-    this.activeTask = (async () => {
-      try {
-        await this.runDownloadTask();
-      } catch (error) {
-        this.setSnapshot(this.toFailedSnapshot(error));
-      } finally {
-        this.activeTask = null;
-      }
-    })();
+    await this.activeTask;
     return this.snapshot;
   };
 

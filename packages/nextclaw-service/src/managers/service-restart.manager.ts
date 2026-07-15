@@ -1,6 +1,7 @@
 import { APP_NAME } from "@nextclaw/core";
 import { spawn } from "node:child_process";
 import type { ManagedServiceManager } from "@nextclaw-service/managers/managed-service.manager.js";
+import { NextclawDistributionService } from "@nextclaw-service/services/runtime/nextclaw-distribution.service.js";
 import { RestartCoordinator } from "@nextclaw-service/services/restart/restart-coordinator.service.js";
 import { managedServiceStateStore } from "@nextclaw-service/stores/managed-service-state.store.js";
 import { pendingRestartStore } from "@nextclaw-service/stores/pending-restart.store.js";
@@ -151,8 +152,7 @@ export class ServiceRestartManager {
     strategy?: RequestRestartParams["strategy"];
     delayMs?: number;
   }): void => {
-    const { delayMs: requestedDelayMs, reason, strategy: requestedStrategy } = params;
-    const strategy = requestedStrategy ?? "background-service-or-manual";
+    const { delayMs: requestedDelayMs, reason, strategy = "background-service-or-manual" } = params;
     if (
       strategy !== "background-service-or-exit" &&
       strategy !== "exit-process"
@@ -177,10 +177,9 @@ export class ServiceRestartManager {
         ? Math.max(0, Math.floor(requestedDelayMs))
         : 100;
     const launch = resolveCliSubcommandLaunch({
-      argvEntry: process.argv[1],
+      argvEntry: NextclawDistributionService.get().launcherEntrypoint,
       importMetaUrl: import.meta.url,
-      cliArgs: ["start", "--ui-port", String(uiPort)],
-      nodePath: process.execPath
+      cliArgs: ["start", "--ui-port", String(uiPort)]
     });
     const serviceStatePath = managedServiceStateStore.path;
     const helperScript = `

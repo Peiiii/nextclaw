@@ -5,6 +5,7 @@ import type * as ChildProcess from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ManagedServiceManager } from "@nextclaw-service/managers/managed-service.manager.js";
 import { ServiceRestartManager } from "@nextclaw-service/managers/service-restart.manager.js";
+import { NextclawDistributionService } from "@nextclaw-service/services/runtime/nextclaw-distribution.service.js";
 import { managedServiceStateStore } from "@nextclaw-service/stores/managed-service-state.store.js";
 
 const mocks = vi.hoisted(() => ({
@@ -40,6 +41,13 @@ describe("ServiceRestartManager self relaunch", () => {
     restartManager = new ServiceRestartManager({
       managedService: {} as ManagedServiceManager
     });
+    NextclawDistributionService.configure({
+      version: "0.23.0",
+      appEntrypoint: "/pkg/runtime/dist/cli/app/index.js",
+      launcherEntrypoint: "/pkg/runtime/dist/cli/launcher/index.js",
+      uiDistDir: "/pkg/runtime/ui-dist",
+      runtimeUpdatePublicKeyPath: "/pkg/runtime/resources/update-bundle-public.pem"
+    });
     managedServiceStateStore.write({
       pid: process.pid,
       startedAt: "2026-05-19T00:00:00.000Z",
@@ -62,8 +70,8 @@ describe("ServiceRestartManager self relaunch", () => {
     rmSync(tempHome, { recursive: true, force: true });
   });
 
-  it("relaunches through the current CLI app entry instead of the service package index", async () => {
-    process.argv[1] = "/pkg/runtime/dist/cli/app/index.js";
+  it("re-enters the runtime launcher so an activated bundle can replace the current app", async () => {
+    process.argv[1] = "/pkg/runtime-bundles/versions/0.22.4/runtime/dist/cli/app/index.js";
     await restartManager.requestRestart({
       reason: "runtime update apply",
       manualMessage: "Restart the gateway to apply changes.",
@@ -72,12 +80,17 @@ describe("ServiceRestartManager self relaunch", () => {
     });
 
     const helperScript = readHelperScript();
-    expect(helperScript).toContain("/pkg/runtime/dist/cli/app/index.js");
+    expect(helperScript).toContain("/pkg/runtime/dist/cli/launcher/index.js");
+    expect(helperScript).not.toContain("/pkg/runtime-bundles/versions/0.22.4/runtime/dist/cli/app/index.js");
     expect(helperScript).toContain('"start","--ui-port","19199"');
     expect(helperScript).not.toContain("@nextclaw/service/dist/index.js");
   });
 
   it("preserves tsx launch arguments for source CLI entries", async () => {
+    NextclawDistributionService.configure({
+      ...NextclawDistributionService.get(),
+      launcherEntrypoint: "/repo/packages/nextclaw/src/cli/launcher/index.ts"
+    });
     process.argv[1] = "/repo/packages/nextclaw/src/cli/app/index.ts";
     await restartManager.requestRestart({
       reason: "runtime update apply",
@@ -88,7 +101,8 @@ describe("ServiceRestartManager self relaunch", () => {
 
     const helperScript = readHelperScript();
     expect(helperScript).toContain("tsx");
-    expect(helperScript).toContain("/repo/packages/nextclaw/src/cli/app/index.ts");
+    expect(helperScript).toContain("/repo/packages/nextclaw/src/cli/launcher/index.ts");
+    expect(helperScript).not.toContain("/repo/packages/nextclaw/src/cli/app/index.ts");
     expect(helperScript).toContain('"start","--ui-port","19199"');
   });
 });

@@ -17,6 +17,29 @@ const mocks = vi.hoisted(() => {
       autoDownload: true
     }
   };
+  const getSnapshot = vi.fn(() => ({
+    installationKind: "npm-runtime-bundle" as const,
+    channel: "stable" as const,
+    hostVersion: "0.18.12-beta.4",
+    currentVersion: null,
+    availableVersion: null,
+    downloadedVersion: "0.18.12-beta.4",
+    minimumHostVersion: null,
+    releaseNotesUrl: null,
+    lastCheckedAt: null,
+    progress: null,
+    canAutoDownload: true,
+    canApplyInApp: true,
+    requiresRestart: false,
+    blockReason: null,
+    recoveryCommand: null,
+    errorMessage: null,
+    preferences: {
+      automaticChecks: false,
+      autoDownload: true
+    },
+    status: "downloaded" as const
+  }));
 
   return {
     getPackageVersion: vi.fn(() => "0.18.12-beta.4"),
@@ -30,29 +53,15 @@ const mocks = vi.hoisted(() => {
       })
     },
     manager: {
-      getSnapshot: vi.fn(() => ({
-        installationKind: "npm-runtime-bundle",
-        channel: "stable" as const,
-        hostVersion: "0.18.12-beta.4",
-        currentVersion: null,
-        availableVersion: null,
-        downloadedVersion: "0.18.12-beta.4",
-        minimumHostVersion: null,
-        releaseNotesUrl: null,
-        lastCheckedAt: null,
-        progress: null,
-        canAutoDownload: true,
-        canApplyInApp: true,
-        requiresRestart: false,
-        blockReason: null,
-        recoveryCommand: null,
-        errorMessage: null,
-        preferences: {
-          automaticChecks: false,
-          autoDownload: true
-        },
-        status: "downloaded" as const
+      getSnapshot,
+      checkForUpdate: vi.fn(async () => ({
+        ...getSnapshot(),
+        availableVersion: "0.18.13",
+        downloadedVersion: null,
+        canApplyInApp: false,
+        status: "update-available" as const
       })),
+      downloadUpdate: vi.fn(async () => getSnapshot()),
       applyDownloadedUpdate: vi.fn(() => ({
         installationKind: "npm-runtime-bundle",
         channel: "stable" as const,
@@ -124,14 +133,16 @@ vi.mock("@nextclaw-service/services/runtime/npm-runtime-update-source.service.js
 vi.mock("@nextclaw-service/managers/runtime-update.manager.js", () => ({
   RuntimeUpdateManager: class {
     getSnapshot = () => mocks.manager.getSnapshot();
+    checkForUpdate = () => mocks.manager.checkForUpdate();
+    downloadUpdate = () => mocks.manager.downloadUpdate();
     applyDownloadedUpdate = () => mocks.manager.applyDownloadedUpdate();
   }
 }));
 
 const TEST_DISTRIBUTION = {
   version: "0.18.12-beta.4",
-  packageRoot: "/pkg",
   appEntrypoint: "/pkg/dist/cli/app/index.js",
+  launcherEntrypoint: "/pkg/dist/cli/launcher/index.js",
   uiDistDir: "/pkg/ui-dist",
   runtimeUpdatePublicKeyPath: "/pkg/resources/update-bundle-public.pem"
 };
@@ -156,6 +167,24 @@ describe("NpmRuntimeUpdateHost", () => {
       { packagedPublicKeyPath: "/pkg/resources/update-bundle-public.pem" }
     ]);
     expect(mocks.getPackageVersion).not.toHaveBeenCalled();
+  });
+
+  it("returns completed check and download snapshots without requiring realtime events", async () => {
+    const host = new NpmRuntimeUpdateHost({
+      eventBus: new NextclawKernel().eventBus,
+      applyRestartMode: "manual-process-restart",
+      requestRestart: vi.fn(),
+      uiConfig: { port: 55667 }
+    });
+
+    await expect(host.checkForUpdates()).resolves.toMatchObject({
+      status: "update-available",
+      availableVersion: "0.18.13"
+    });
+    await expect(host.downloadUpdate()).resolves.toMatchObject({
+      status: "downloaded",
+      downloadedVersion: "0.18.12-beta.4"
+    });
   });
 
   it("keeps a foreground serve process alive after applying a downloaded runtime update", async () => {

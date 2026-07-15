@@ -18,10 +18,15 @@ describe("createNextclawDistribution", () => {
 
       expect(distribution).toMatchObject({
         version: "0.19.4",
-        packageRoot,
         appEntrypoint: resolve(packageRoot, "dist/cli/app/index.js"),
+        launcherEntrypoint: resolve(packageRoot, "dist/cli/launcher/index.js"),
         uiDistDir: resolve(packageRoot, "ui-dist"),
         runtimeUpdatePublicKeyPath: resolve(packageRoot, "resources/update-bundle-public.pem")
+      });
+      expect(
+        createNextclawDistribution(pathToFileURL(resolve(packageRoot, "src/cli/app/index.ts")).href)
+      ).toMatchObject({
+        launcherEntrypoint: resolve(packageRoot, "src/cli/launcher/index.ts")
       });
     } finally {
       rmSync(packageRoot, { force: true, recursive: true });
