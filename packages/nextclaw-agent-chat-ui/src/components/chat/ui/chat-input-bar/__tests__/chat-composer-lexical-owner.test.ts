@@ -4,9 +4,23 @@ import { createChatComposerTextNode } from "@agent-chat-ui/components/chat/ui/ch
 import { ChatComposerLexicalOwner } from "@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/owners/chat-composer-lexical-owner";
 
 describe("ChatComposerLexicalOwner", () => {
+  it("does not rewrite the editor while Lexical owns an active composition", () => {
+    const update = vi.fn();
+    const editor = {
+      getRootElement: () => null,
+      isComposing: () => true,
+      update,
+    } as unknown as LexicalEditor;
+    const owner = new ChatComposerLexicalOwner();
+
+    owner.syncExternalState(editor, [createChatComposerTextNode("draft")]);
+
+    expect(update).not.toHaveBeenCalled();
+  });
+
   it("keeps background document sync from replacing the page DOM selection", () => {
     const update = vi.fn();
-    const editor = { getRootElement: () => null, update } as unknown as LexicalEditor;
+    const editor = { getRootElement: () => null, isComposing: () => false, update } as unknown as LexicalEditor;
     const owner = new ChatComposerLexicalOwner();
 
     owner.syncExternalState(editor, [createChatComposerTextNode("draft")]);
@@ -18,7 +32,7 @@ describe("ChatComposerLexicalOwner", () => {
 
   it("keeps background caret sync from replacing the page DOM selection", () => {
     const update = vi.fn();
-    const editor = { getRootElement: () => null, update } as unknown as LexicalEditor;
+    const editor = { getRootElement: () => null, isComposing: () => false, update } as unknown as LexicalEditor;
     const owner = new ChatComposerLexicalOwner();
     const nodes = [createChatComposerTextNode("draft")];
     owner.syncExternalState(editor, nodes);
@@ -40,6 +54,7 @@ describe("ChatComposerLexicalOwner", () => {
     const update = vi.fn();
     const editor = {
       getRootElement: () => rootElement,
+      isComposing: () => false,
       update,
     } as unknown as LexicalEditor;
     const owner = new ChatComposerLexicalOwner();

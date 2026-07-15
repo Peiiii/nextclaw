@@ -134,15 +134,6 @@ export const ChatInputBarTokenizedComposer = forwardRef<
                     event,
                   });
                 }}
-                onCompositionEnd={(event) => {
-                  const nativeEvent = event.nativeEvent as CompositionEvent;
-                  owner.handleCompositionEnd({
-                    data: typeof nativeEvent.data === 'string' ? nativeEvent.data : '',
-                  });
-                }}
-                onCompositionStart={() => {
-                  owner.handleCompositionStart();
-                }}
                 onPaste={(event: ClipboardEvent<HTMLDivElement>) => {
                   const files = Array.from(event.clipboardData.files ?? []);
                   if (files.length > 0 && onFilesAdd) {

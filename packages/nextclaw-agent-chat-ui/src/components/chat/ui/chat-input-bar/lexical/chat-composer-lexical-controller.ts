@@ -18,7 +18,6 @@ type ComposerActions = Pick<
 
 type ChatComposerPublishOptions = {
   focusAfterSync?: boolean;
-  forcePublish?: boolean;
   inputSurfaceReason?: ChatInputSurfaceTriggerChangeReason;
 };
 
@@ -69,21 +68,6 @@ export function resolveLexicalComposerKeyboardAction(params: {
   return { type: 'noop' };
 }
 
-function getChatComposerContentSignature(nodes: ChatComposerNode[]): string {
-  return JSON.stringify(
-    nodes.map((node) =>
-      node.type === 'text'
-        ? { text: node.text, type: node.type }
-        : {
-            label: node.label,
-            tokenKey: node.tokenKey,
-            tokenKind: node.tokenKind,
-            type: node.type,
-          },
-    ),
-  );
-}
-
 export function handleLexicalComposerBeforeInput(params: {
   disabled: boolean;
   event: FormEvent<HTMLDivElement>;
@@ -119,41 +103,6 @@ export function handleLexicalComposerBeforeInput(params: {
     }),
     { inputSurfaceReason: { type: 'insert-text', text: nativeEvent.data } },
   );
-}
-
-export function handleLexicalComposerCompositionEnd(params: {
-  compositionStartSnapshot?: ChatComposerEditorSnapshot | null;
-  data: string;
-  fallbackSnapshot: () => ChatComposerEditorSnapshot;
-  publishSnapshot: (
-    snapshot: ChatComposerEditorSnapshot,
-    options?: ChatComposerPublishOptions,
-  ) => void;
-  snapshotReader: () => {
-    nodes: ChatComposerNode[];
-    selection: ChatComposerSelection | null;
-  };
-}): void {
-  const { compositionStartSnapshot, data, fallbackSnapshot, publishSnapshot, snapshotReader } = params;
-  const currentSnapshot = snapshotReader();
-  const editorSnapshot = fallbackSnapshot();
-  const baseSnapshot = compositionStartSnapshot ?? currentSnapshot;
-  const shouldUseEditorSnapshot =
-    getChatComposerContentSignature(editorSnapshot.nodes) !==
-    getChatComposerContentSignature(baseSnapshot.nodes);
-  const snapshot = shouldUseEditorSnapshot
-    ? editorSnapshot
-    : data.length > 0
-      ? replaceChatComposerSelectionWithText({
-          nodes: baseSnapshot.nodes,
-          selection: baseSnapshot.selection,
-          text: data,
-        })
-      : editorSnapshot;
-  publishSnapshot(snapshot, {
-    forcePublish: true,
-    inputSurfaceReason: { type: 'insert-text', text: data },
-  });
 }
 
 export function handleLexicalComposerKeyboardCommand(params: {

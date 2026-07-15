@@ -33,7 +33,6 @@ import {
 } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-adapter';
 import {
   handleLexicalComposerBeforeInput,
-  handleLexicalComposerCompositionEnd,
   handleLexicalComposerKeyboardCommand,
 } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-controller';
 
@@ -59,7 +58,6 @@ type ComposerRuntime = {
 
 type PublishOptions = {
   focusAfterSync?: boolean;
-  forcePublish?: boolean;
   inputSurfaceReason?: ChatInputSurfaceTriggerChangeReason;
 };
 
@@ -73,13 +71,11 @@ function getChatComposerDocumentLength(nodes: ChatComposerNode[]): number {
 
 export class ChatComposerLexicalOwner {
   readonly isApplyingExternalUpdateRef = createMutableRef(false);
-  readonly isComposingRef = createMutableRef(false);
   readonly pendingOwnerSignatureRef = createMutableRef<string | null>(null);
   readonly pendingSelectionRef = createMutableRef<ChatComposerSelection | null>(null);
   readonly selectionRef = createMutableRef<ChatComposerSelection | null>(null);
   readonly shouldFocusAfterSyncRef = createMutableRef(false);
 
-  private readonly compositionStartSnapshotRef = createMutableRef<ChatComposerEditorSnapshot | null>(null);
   private readonly editorSignatureRef = createMutableRef('');
   private readonly lastPublishedSignatureRef = createMutableRef('');
   private readonly pendingInputSurfaceReasonRef = createMutableRef<ChatInputSurfaceTriggerChangeReason | null>(null);
@@ -140,7 +136,7 @@ export class ChatComposerLexicalOwner {
   };
 
   syncExternalState = (editor: LexicalEditor, nodes: ChatComposerNode[]): void => {
-    if (this.isComposingRef.current) {
+    if (editor.isComposing()) {
       return;
     }
     const nextSignature = getChatComposerNodesSignature(nodes);
@@ -214,7 +210,7 @@ export class ChatComposerLexicalOwner {
       options?.inputSurfaceReason ?? { type: 'programmatic' },
     );
 
-    if (options?.forcePublish || signature !== this.lastPublishedSignatureRef.current) {
+    if (signature !== this.lastPublishedSignatureRef.current) {
       this.lastPublishedSignatureRef.current = signature;
       callbacks.onNodesChange(snapshot.nodes);
     }
@@ -347,30 +343,10 @@ export class ChatComposerLexicalOwner {
     handleLexicalComposerBeforeInput({
       disabled,
       event,
-      isComposing: this.isComposingRef.current,
+      isComposing: this.editor?.isComposing() ?? false,
       publishSnapshot: (snapshot, options) => this.publishSnapshot(snapshot, callbacks, options),
       snapshotReader: () => this.readComposerSnapshot(fallbackNodes),
     });
-  };
-
-  handleCompositionStart = (): void => {
-    const { fallbackNodes } = this.getRuntime();
-    this.compositionStartSnapshotRef.current = this.readComposerSnapshot(fallbackNodes);
-    this.isComposingRef.current = true;
-  };
-
-  handleCompositionEnd = (params: { data: string }): void => {
-    const { data } = params;
-    const { callbacks, fallbackNodes } = this.getRuntime();
-    this.isComposingRef.current = false;
-    handleLexicalComposerCompositionEnd({
-      compositionStartSnapshot: this.compositionStartSnapshotRef.current,
-      data,
-      fallbackSnapshot: () => this.readComposerSnapshot(fallbackNodes),
-      publishSnapshot: (snapshot, options) => this.publishSnapshot(snapshot, callbacks, options),
-      snapshotReader: () => this.readComposerSnapshot(fallbackNodes),
-    });
-    this.compositionStartSnapshotRef.current = null;
   };
 
   handleKeyDown = (params: {
@@ -383,6 +359,7 @@ export class ChatComposerLexicalOwner {
     if (
       event.key.length === 1 &&
       !event.isComposing &&
+      !this.editor?.isComposing() &&
       !event.altKey &&
       !event.ctrlKey &&
       !event.metaKey
@@ -408,7 +385,7 @@ export class ChatComposerLexicalOwner {
 
     this.editorSignatureRef.current = signature;
 
-    if (this.isApplyingExternalUpdateRef.current || this.isComposingRef.current) {
+    if (this.isApplyingExternalUpdateRef.current || this.editor?.isComposing()) {
       return;
     }
 
@@ -429,7 +406,7 @@ export class ChatComposerLexicalOwner {
 
   handleSelectionChange = (editor: LexicalEditor, callbacks: ChatComposerLexicalOwnerCallbacks): void => {
     const snapshot = readChatComposerSnapshotFromEditorState(editor.getEditorState());
-    if (this.isComposingRef.current) {
+    if (editor.isComposing()) {
       return;
     }
     this.selectionRef.current = snapshot.selection;

@@ -7,7 +7,6 @@ import {
 import { resolveInputSurfaceTriggerIdentity } from '@agent-chat-ui/components/chat/ui/input-surface/chat-input-surface-host';
 import { createChatComposerTextNode, createChatComposerTokenNode, resolveChatComposerSlashTrigger } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 import { getChatComposerNodesSignature, insertFileTokenIntoChatComposer, insertInputSurfaceItemIntoChatComposer, insertSkillTokenIntoChatComposer } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-adapter';
-import { handleLexicalComposerCompositionEnd } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-controller';
 import type { ChatComposerNode, ChatInputBarProps, ChatToolbarSelect } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import {
   DeferredComposerOwnerHarness,
@@ -55,6 +54,21 @@ async function insertText(textbox: HTMLElement, text: string) {
       await Promise.resolve();
     }
   });
+}
+
+function startImeText(textbox: HTMLElement, text: string) {
+  fireEvent.compositionStart(textbox);
+  const paragraph = textbox.querySelector('p');
+  if (!paragraph) {
+    throw new Error('Expected the Lexical composer paragraph to exist.');
+  }
+  paragraph.textContent = text;
+  const range = document.createRange();
+  range.selectNodeContents(paragraph);
+  range.collapse(false);
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
 }
 
 function createInputBarProps(overrides: ChatInputBarPropsOverrides = {}): ChatInputBarProps {
@@ -540,103 +554,51 @@ it('focuses at the end of externally supplied composer nodes', async () => {
   });
 });
 
-it('keeps local IME typing stable across stale owner rerenders before the owner flushes nodes', async () => {
+it('keeps active IME DOM stable across stale owner rerenders', () => {
   const controlRef: MutableRefObject<DeferredComposerOwnerHarnessControl | null> = { current: null };
   render(<DeferredComposerOwnerHarness controlRef={controlRef} />);
 
   const textbox = screen.getByRole('textbox');
   fireEvent.focus(textbox);
-  fireEvent.compositionStart(textbox);
-  fireEvent.compositionEnd(textbox, { data: '你' });
-
-  await waitFor(() => expect(textbox.textContent).toBe('你'));
+  startImeText(textbox, 'ni');
 
   act(() => {
     controlRef.current?.bumpStream();
   });
-  fireEvent.compositionStart(textbox);
-  fireEvent.compositionEnd(textbox, { data: '好' });
-
-  await waitFor(() => expect(textbox.textContent).toBe('你好'));
-
-  act(() => {
-    controlRef.current?.flushNodes();
-  });
-
-  await waitFor(() => expect(textbox.textContent).toBe('你好'));
+  expect(textbox.textContent).toBe('ni');
 });
 
-it('keeps the caret at the end while stale owner rerenders during local typing', async () => {
+it('keeps the IME caret at the end while stale owner rerenders', () => {
   const controlRef: MutableRefObject<DeferredComposerOwnerHarnessControl | null> = { current: null };
   render(<DeferredComposerOwnerHarness controlRef={controlRef} />);
 
   const textbox = screen.getByRole('textbox');
   fireEvent.focus(textbox);
-  fireEvent.compositionStart(textbox);
-  fireEvent.compositionEnd(textbox, { data: '你' });
-
-  await waitFor(() => expect(textbox.textContent).toBe('你'));
+  startImeText(textbox, 'ni');
 
   act(() => {
     controlRef.current?.bumpStream();
   });
 
-  fireEvent.compositionStart(textbox);
-  fireEvent.compositionEnd(textbox, { data: '好' });
-
-  await waitFor(() => expect(textbox.textContent).toBe('你好'));
-  await waitFor(() => {
-    const selection = window.getSelection();
-    expect(selection?.anchorOffset).toBe(2);
-    expect(selection?.focusOffset).toBe(2);
-  });
+  const selection = window.getSelection();
+  expect(selection?.anchorOffset).toBe(1);
+  expect(selection?.focusOffset).toBe(1);
 });
 
-it('does not duplicate IME text already committed by the browser before compositionend', () => {
-  const startSnapshot = {
-    nodes: [createChatComposerTextNode('')],
-    selection: { start: 0, end: 0 },
-  };
-  const committedSnapshot = {
-    nodes: [createChatComposerTextNode('你好')],
-    selection: { start: 2, end: 2 },
-  };
-  const publishSnapshot = vi.fn();
-
-  handleLexicalComposerCompositionEnd({
-    compositionStartSnapshot: startSnapshot,
-    data: '你好',
-    fallbackSnapshot: () => committedSnapshot,
-    publishSnapshot,
-    snapshotReader: () => committedSnapshot,
-  });
-
-  expect(publishSnapshot).toHaveBeenCalledWith(
-    expect.objectContaining({
-      nodes: [expect.objectContaining({ text: '你好', type: 'text' })],
-      selection: { start: 2, end: 2 },
-    }),
-    expect.any(Object),
-  );
-});
-
-it('keeps IME composition stable while streamed output rerenders the parent', async () => {
+it('keeps active IME DOM stable while streamed output rerenders the parent', () => {
   const controlRef: MutableRefObject<{ bumpStream: () => void } | null> = { current: null };
   render(<StreamingComposerHarness controlRef={controlRef} />);
 
   const textbox = screen.getByRole('textbox');
   fireEvent.focus(textbox);
-  fireEvent.compositionStart(textbox);
+  startImeText(textbox, 'ni');
 
   act(() => {
     controlRef.current?.bumpStream();
     controlRef.current?.bumpStream();
   });
   expect(screen.getByTestId('stream-chunk').textContent).toBe('2');
-
-  fireEvent.compositionEnd(textbox, { data: '你' });
-
-  await waitFor(() => expect(textbox.textContent).toBe('你'));
+  expect(textbox.textContent).toBe('ni');
 });
 
 it('does not reclaim focus after the user leaves the composer during streaming', async () => {
@@ -666,7 +628,7 @@ it('does not reclaim focus after the user leaves the composer during streaming',
   expect(document.activeElement).toBe(search);
 });
 
-it('does not commit intermediate IME composition text before composition ends', () => {
+it('does not synthesize IME text from composition event data', () => {
   const onNodesChange = vi.fn();
 
   renderInputBar({
@@ -681,10 +643,26 @@ it('does not commit intermediate IME composition text before composition ends', 
 
   fireEvent.compositionEnd(textbox, { data: '你' });
 
-  expect(onNodesChange).toHaveBeenCalled();
-  expect(onNodesChange.mock.calls[onNodesChange.mock.calls.length - 1]?.[0]).toEqual([
-    expect.objectContaining({ type: 'text', text: '你' })
-  ]);
+  expect(onNodesChange).not.toHaveBeenCalled();
+});
+
+it('does not restore IME text canceled by backspace', async () => {
+  const onNodesChange = vi.fn();
+
+  renderInputBar({
+    composer: createComposer([createChatComposerTextNode('')], { onNodesChange })
+  });
+
+  const textbox = screen.getByRole('textbox');
+  fireEvent.focus(textbox);
+  fireEvent.compositionStart(textbox);
+  fireEvent.keyDown(textbox, { key: 'Backspace', isComposing: true });
+  fireEvent.compositionEnd(textbox, { data: 'n' });
+
+  await waitFor(() => expect(textbox.textContent).toBe(''));
+  expect(onNodesChange).not.toHaveBeenCalled();
+  expect(window.getSelection()?.anchorOffset).toBe(0);
+  expect(window.getSelection()?.focusOffset).toBe(0);
 });
 
 it('ignores Windows IME precomposition key events without crashing', () => {
