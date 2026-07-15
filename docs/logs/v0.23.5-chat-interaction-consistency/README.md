@@ -21,6 +21,7 @@
 - 五个相关包 package lint 均无 error；本次触达文件无 warning。未触达的历史 warning 包括 `cron-config.tsx` 复杂度、NCP reasoning flush、toolkit 既有测试文件长度与 reply consumer 参数读取。
 - `pnpm -C packages/nextclaw-ui build`：通过；构建后的生成物已用 `pnpm clean:generated` 清理，`pnpm check:generated-clean` 通过。
 - `pnpm lint:new-code:governance`：通过，保留一条 NCP toolkit 历史目录 warning；`pnpm check:governance-backlog-ratchet`：通过。
+- 合并阻塞修复：拓扑 JSONC reader 不再把路径别名字符串 `"@/*"` 误判为块注释；回归测试与 `pnpm report:topology -- --top 50` 均通过。
 - 隔离浏览器验收使用 `http://127.0.0.1:5176`，代理现有 `127.0.0.1:18792` 后端，未重启 5174/18792 或其它现有进程。
 - 模型恢复：同一 UI 内从 `DeepSeek/deepseek-v4-flash` 会话切到 `MiniMax/MiniMax-M3` 会话，模型按钮正确恢复为目标偏好。
 - 技能选择器：有结果和无结果时面板高度均为 `309.0625px`；来源按钮显示全部 87、NextClaw 35、全局 34、内建 18，并可筛到内建技能。
@@ -48,8 +49,10 @@
 - 折叠与展开侧栏继续复用同一个 session grouping owner、列表模式与项目折叠状态；时间分组不引入无必要的展开状态。
 - 技能来源筛选复用既有 groups，不复制技能 registry。
 - 已把技能面板专项验证从历史超限综合测试移到独立角色测试，避免继续扩大热点文件并消除重复用例。
+- 拓扑治理修复只收紧整行块注释的匹配边界，并用独立回归测试锁定字符串内注释标记语义，没有引入新的解析 owner 或运行时依赖。
 - `post-edit-maintainability-guard`：通过，检查 28 个文件，0 error、3 个历史热点 warning。
 - 代码增减报告：新增 825 行、删除 197 行、净增 628 行；非测试代码新增 553 行、删除 176 行、净增 377 行。本轮包含新的用户可见时间/项目分组、项目折叠、来源筛选和公共输入图标 contract，正增长属于功能交付；实现已复用现有 resolver、manager、group 和 plugin owner，没有引入平行链路。
+- 合并阻塞补丁另检查 2 个文件，新增 37 行、删除 1 行；非测试代码新增 1 行、删除 1 行、净增 0，0 error、0 warning。
 - 主观复核结论：通过，no maintainability findings。本次顺手减债包括删除输入组件的并行 fallback、移除技能选择器的 effect 状态修补、把重复面板测试移出历史热点并让该文件净减 15 行；Header 分组展示已拆到独立展示组件，使标题切换 owner 退出 500 行热点预警。
 
 ## NPM 包发布记录
