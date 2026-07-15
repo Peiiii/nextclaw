@@ -97,6 +97,7 @@
 - 干净实现前置判断：使用 [nextclaw-clean-implementation](.agents/skills/nextclaw-clean-implementation/SKILL.md)，在动手前拦住补丁式复杂度、重复路径、假 owner、helper/adapter/wrapper 膨胀和不必要兼容。
 - 可预测行为约束：使用 [predictable-behavior-first](.agents/skills/predictable-behavior-first/SKILL.md)，处理 fallback、兼容、救援路径、环境探测和错误恢复，保证行为可预测、错误可观察。
 - 标准开发流程编排：使用 [nextclaw-delivery-workflow](.agents/skills/nextclaw-delivery-workflow/SKILL.md)，把方案、实现、修复、重构或验证串成目标对齐、方案阶段门、实现前删减、验证闭环、可维护性披露、复盘和最终汇报流程。
+- Linear 委派交付：使用 [delivering-delegated-linear-issues](.agents/skills/delivering-delegated-linear-issues/SKILL.md)，处理人工触发或定时扫描的 `Delegated to Agent` issue，并约束持久 Agent 状态标签、隔离开发、PR / 本地 `master` 交付与评论回写。
 - 验证闭环判断：使用 [nextclaw-validation-workflow](.agents/skills/nextclaw-validation-workflow/SKILL.md)，证明改动行为正确、类型安全、治理通过，并覆盖 tsc、定向测试、冒烟和运行链路验收。
 - 可维护性自动守卫：使用 [post-edit-maintainability-guard](.agents/skills/post-edit-maintainability-guard/SKILL.md)，检查代码增减、热点、目录膨胀和非功能改动净增长约束。
 - 可维护性主观复核：使用 [post-edit-maintainability-review](.agents/skills/post-edit-maintainability-review/SKILL.md)，复核抽象、owner、文件边界和长期维护成本是否真的改善。

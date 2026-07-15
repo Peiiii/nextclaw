@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linear 委派交付"
+  short_description: "领取 Linear 委派事项并交付 PR 或本地 master"
+  default_prompt: "使用 $delivering-delegated-linear-issues 领取并处理 Linear 中已委派给 Agent 的事项，保留用户委派标签并持久迁移 Agent 状态标签，完成隔离开发、验证、指定路径交付和结果回写。"
