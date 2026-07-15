@@ -4,7 +4,6 @@ import {
   useMemo,
   useState,
   type ClipboardEvent,
-  type FormEvent,
 } from 'react';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
@@ -128,12 +127,6 @@ export const ChatInputBarTokenizedComposer = forwardRef<
             contentEditable={
               <ContentEditable
                 className="min-h-7 max-h-[188px] w-full overflow-y-auto whitespace-pre-wrap break-words bg-transparent py-0.5 text-sm leading-6 text-foreground outline-none"
-                onBeforeInput={(event: FormEvent<HTMLDivElement>) => {
-                  owner.handleBeforeInput({
-                    disabled,
-                    event,
-                  });
-                }}
                 onPaste={(event: ClipboardEvent<HTMLDivElement>) => {
                   const files = Array.from(event.clipboardData.files ?? []);
                   if (files.length > 0 && onFilesAdd) {

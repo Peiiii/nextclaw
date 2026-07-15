@@ -110,6 +110,42 @@ function createStreamingInputSnapshot(
   };
 }
 
+function setImeDomText(textbox: HTMLElement, text: string): HTMLParagraphElement {
+  const paragraph = textbox.querySelector('p');
+  if (!paragraph) {
+    throw new Error('Expected the Lexical composer paragraph to exist.');
+  }
+  const range = document.createRange();
+  const lexicalText = paragraph.querySelector('[data-lexical-text="true"]')?.firstChild;
+  if (lexicalText?.nodeType === Node.TEXT_NODE) {
+    lexicalText.nodeValue = text;
+    range.setStart(lexicalText, text.length);
+    range.collapse(true);
+  } else {
+    paragraph.textContent = text;
+    range.selectNodeContents(paragraph);
+    range.collapse(false);
+  }
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+  return paragraph;
+}
+
+async function insertText(textbox: HTMLElement, text: string): Promise<void> {
+  await act(async () => {
+    for (const character of text) {
+      textbox.dispatchEvent(new InputEvent('beforeinput', {
+        bubbles: true,
+        cancelable: true,
+        data: character,
+        inputType: 'insertText',
+      }));
+      await Promise.resolve();
+    }
+  });
+}
+
 function StreamingSessionConversationInputHarness({
   controllerOverride = controller,
   controlRef,
@@ -210,23 +246,36 @@ describe('SessionConversationInput streaming stability', () => {
     expect(track?.firstElementChild?.className).toContain('px-0');
   });
 
-  it('keeps IME composition stable while simulated streamed output rerenders the owner', async () => {
+  it('keeps a numbered IME candidate commit stable while streamed output rerenders the owner', async () => {
     const controlRef: MutableRefObject<StreamingInputControl | null> = { current: null };
     render(<StreamingSessionConversationInputHarness controlRef={controlRef} />);
 
     const textbox = screen.getByRole('textbox');
     fireEvent.focus(textbox);
+    await insertText(textbox, 'n');
     fireEvent.compositionStart(textbox);
+    const paragraph = setImeDomText(textbox, 'ni');
 
     act(() => {
       controlRef.current?.bumpStream();
       controlRef.current?.bumpStream();
     });
     expect(screen.getByTestId('stream-chunk').textContent).toBe('2');
+    expect(textbox.querySelector('p')).toBe(paragraph);
+    expect(textbox.textContent).toBe('ni');
 
+    fireEvent.keyDown(textbox, { key: '1', isComposing: true });
+    setImeDomText(textbox, '你');
+    fireEvent.input(textbox, {
+      data: '你',
+      inputType: 'insertCompositionText',
+      isComposing: true,
+    });
     fireEvent.compositionEnd(textbox, { data: '你' });
 
     await waitFor(() => expect(textbox.textContent).toBe('你'));
+    expect(textbox.querySelector('p')).toBe(paragraph);
+    await waitFor(() => expect(window.getSelection()?.anchorOffset).toBe(1));
   });
 
   it('renders queued inputs above the composer with edit and delete actions', () => {

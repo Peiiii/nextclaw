@@ -1,32 +1,64 @@
-import type { FormEvent } from 'react';
-import type {
-  ChatComposerNode,
-  ChatComposerSelection,
-  ChatInputBarActionsProps,
-  ChatInputSurfaceTriggerChangeReason,
-} from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import {
-  deleteChatComposerContent,
-  replaceChatComposerSelectionWithText,
-  type ChatComposerEditorSnapshot,
-} from './chat-composer-lexical-adapter';
+  $getRoot,
+  $getSelection,
+  $isElementNode,
+  $isRangeSelection,
+  $isTextNode,
+  type LexicalNode,
+} from 'lexical';
+import type { ChatInputBarActionsProps } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
+import { $isChatComposerTokenNode } from './chat-composer-token-node';
 
 type ComposerActions = Pick<
   ChatInputBarActionsProps,
   'onSend' | 'onStop' | 'isSending' | 'canStopGeneration'
 >;
 
-type ChatComposerPublishOptions = {
-  focusAfterSync?: boolean;
-  inputSurfaceReason?: ChatInputSurfaceTriggerChangeReason;
-};
-
 type ChatComposerKeyboardAction =
-  | { type: 'delete-content'; direction: 'backward' | 'forward' }
-  | { type: 'insert-line-break' }
   | { type: 'noop' }
   | { type: 'send-message' }
   | { type: 'stop-generation' };
+
+export function deleteAdjacentChatComposerToken(event: KeyboardEvent): boolean {
+  if (event.key !== 'Backspace' && event.key !== 'Delete') {
+    return false;
+  }
+  const selection = $getSelection();
+  if ($isRangeSelection(selection) && !selection.isCollapsed()) {
+    return false;
+  }
+
+  let candidate: LexicalNode | null = null;
+  if ($isRangeSelection(selection)) {
+    const { anchor } = selection;
+    const anchorNode = anchor.getNode();
+    if (anchor.type === 'element' && $isElementNode(anchorNode)) {
+      const candidateIndex = event.key === 'Backspace' ? anchor.offset - 1 : anchor.offset;
+      candidate = anchorNode.getChildAtIndex(candidateIndex);
+    } else if (event.key === 'Backspace' && anchor.offset === 0) {
+      candidate = anchorNode.getPreviousSibling();
+    } else if (event.key === 'Delete' && anchor.offset === anchorNode.getTextContentSize()) {
+      candidate = anchorNode.getNextSibling();
+    }
+  } else if (event.key === 'Backspace') {
+    const paragraph = $getRoot().getFirstChild();
+    candidate = $isElementNode(paragraph) ? paragraph.getLastChild() : null;
+  }
+
+  if ($isTextNode(candidate) && candidate.getTextContentSize() === 0) {
+    candidate = event.key === 'Backspace'
+      ? candidate.getPreviousSibling()
+      : candidate.getNextSibling();
+  }
+
+  if (!$isChatComposerTokenNode(candidate)) {
+    return false;
+  }
+
+  event.preventDefault();
+  candidate.remove();
+  return true;
+}
 
 export function resolveLexicalComposerKeyboardAction(params: {
   canStopGeneration: boolean;
@@ -43,86 +75,32 @@ export function resolveLexicalComposerKeyboardAction(params: {
     shiftKey,
   } = params;
 
-  if (key === 'Escape') {
-    if (isSending && canStopGeneration) {
-      return { type: 'stop-generation' };
-    }
+  if (isComposing) {
     return { type: 'noop' };
   }
 
-  if (key === 'Enter' && shiftKey) {
-    return { type: 'insert-line-break' };
+  if (key === 'Escape') {
+    return isSending && canStopGeneration
+      ? { type: 'stop-generation' }
+      : { type: 'noop' };
   }
 
-  if (key === 'Enter') {
+  if (key === 'Enter' && !shiftKey) {
     return { type: 'send-message' };
-  }
-
-  if (!isComposing && (key === 'Backspace' || key === 'Delete')) {
-    return {
-      type: 'delete-content',
-      direction: key === 'Backspace' ? 'backward' : 'forward',
-    };
   }
 
   return { type: 'noop' };
 }
 
-export function handleLexicalComposerBeforeInput(params: {
-  disabled: boolean;
-  event: FormEvent<HTMLDivElement>;
-  isComposing: boolean;
-  publishSnapshot: (snapshot: ChatComposerEditorSnapshot, options?: ChatComposerPublishOptions) => void;
-  snapshotReader: () => {
-    nodes: ChatComposerNode[];
-    selection: ChatComposerSelection | null;
-  };
-}): void {
-  const { disabled, event, isComposing, publishSnapshot, snapshotReader } = params;
-  const nativeEvent = event.nativeEvent as InputEvent;
-  const shouldInsertText =
-    nativeEvent.inputType === 'insertText' ||
-    nativeEvent.inputType === 'insertReplacementText';
-
-  if (
-    disabled ||
-    isComposing ||
-    nativeEvent.isComposing ||
-    !shouldInsertText ||
-    !nativeEvent.data
-  ) {
-    return;
-  }
-
-  event.preventDefault();
-  publishSnapshot(
-    replaceChatComposerSelectionWithText({
-      nodes: snapshotReader().nodes,
-      selection: snapshotReader().selection,
-      text: nativeEvent.data,
-    }),
-    { inputSurfaceReason: { type: 'insert-text', text: nativeEvent.data } },
-  );
-}
-
 export function handleLexicalComposerKeyboardCommand(params: {
   actions: ComposerActions;
-  publishSnapshot: (
-    snapshot: ChatComposerEditorSnapshot,
-    options?: ChatComposerPublishOptions,
-  ) => void;
-  snapshot: ChatComposerEditorSnapshot;
+  isComposing: boolean;
   nativeEvent: KeyboardEvent;
 }): boolean {
-  const {
-    actions,
-    nativeEvent,
-    publishSnapshot,
-    snapshot,
-  } = params;
+  const { actions, isComposing, nativeEvent } = params;
   const action = resolveLexicalComposerKeyboardAction({
     canStopGeneration: actions.canStopGeneration,
-    isComposing: nativeEvent.isComposing,
+    isComposing,
     isSending: actions.isSending,
     key: nativeEvent.key,
     shiftKey: nativeEvent.shiftKey,
@@ -136,28 +114,8 @@ export function handleLexicalComposerKeyboardCommand(params: {
     case 'stop-generation':
       void actions.onStop();
       return true;
-    case 'insert-line-break':
-      publishSnapshot(
-        replaceChatComposerSelectionWithText({
-          nodes: snapshot.nodes,
-          selection: snapshot.selection,
-          text: '\n',
-        }),
-        { inputSurfaceReason: { type: 'insert-text', text: '\n' } },
-      );
-      return true;
     case 'send-message':
       void actions.onSend();
-      return true;
-    case 'delete-content':
-      publishSnapshot(
-        deleteChatComposerContent({
-          direction: action.direction,
-          nodes: snapshot.nodes,
-          selection: snapshot.selection,
-        }),
-        { inputSurfaceReason: { type: 'delete-content' } },
-      );
       return true;
     case 'noop':
       return false;

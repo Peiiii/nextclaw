@@ -2,7 +2,6 @@ import {
   handleLexicalComposerKeyboardCommand,
   resolveLexicalComposerKeyboardAction,
 } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-controller';
-import { createChatComposerTextNode } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 
 describe('chat composer keyboard utils', () => {
   it('leaves popup navigation keys to the input surface host', () => {
@@ -17,7 +16,7 @@ describe('chat composer keyboard utils', () => {
     ).toEqual({ type: 'noop' });
   });
 
-  it('deletes composer content when backspace is pressed outside IME composition', () => {
+  it('leaves backspace deletion to Lexical outside IME composition', () => {
     expect(
       resolveLexicalComposerKeyboardAction({
         key: 'Backspace',
@@ -26,10 +25,19 @@ describe('chat composer keyboard utils', () => {
         isSending: false,
         canStopGeneration: false
       }),
-    ).toEqual({
-      type: 'delete-content',
-      direction: 'backward'
-    });
+    ).toEqual({ type: 'noop' });
+  });
+
+  it('leaves candidate confirmation keys to the active IME composition', () => {
+    expect(
+      resolveLexicalComposerKeyboardAction({
+        key: 'Enter',
+        shiftKey: false,
+        isComposing: true,
+        isSending: false,
+        canStopGeneration: false,
+      }),
+    ).toEqual({ type: 'noop' });
   });
 
   it('routes enter to send while a response is still running', () => {
@@ -47,7 +55,6 @@ describe('chat composer keyboard utils', () => {
   });
 
   it('does not handle Escape when no response stop action is available', () => {
-    const publishSnapshot = vi.fn();
     const nativeEvent = new KeyboardEvent('keydown', { key: 'Escape' });
     const preventDefault = vi.spyOn(nativeEvent, 'preventDefault');
 
@@ -58,17 +65,12 @@ describe('chat composer keyboard utils', () => {
         onSend: vi.fn(),
         onStop: vi.fn(),
       },
+      isComposing: false,
       nativeEvent,
-      publishSnapshot,
-      snapshot: {
-        nodes: [createChatComposerTextNode('/')],
-        selection: { start: 1, end: 1 },
-      },
     });
 
     expect(handled).toBe(false);
     expect(preventDefault).not.toHaveBeenCalled();
-    expect(publishSnapshot).not.toHaveBeenCalled();
   });
 
 });

@@ -55,6 +55,8 @@ export type ChatComposerEditorSnapshot = {
   selection: ChatComposerSelection | null;
 };
 
+export const CHAT_COMPOSER_EXTERNAL_UPDATE_TAG = 'nextclaw-chat-composer-external-update';
+
 function getComposerLeafDescriptors(): {
   descriptors: LeafDescriptor[];
   paragraphKey: NodeKey;
@@ -344,7 +346,11 @@ export function syncLexicalEditorFromChatComposerState(
 ): void {
   editor.update(() => {
     writeChatComposerStateToLexicalRoot(nodes, selection);
-  }, preserveDomSelection ? { tag: SKIP_DOM_SELECTION_TAG } : undefined);
+  }, {
+    tag: preserveDomSelection
+      ? [CHAT_COMPOSER_EXTERNAL_UPDATE_TAG, SKIP_DOM_SELECTION_TAG]
+      : CHAT_COMPOSER_EXTERNAL_UPDATE_TAG,
+  });
 }
 
 export function syncLexicalSelectionFromChatComposerSelection(
@@ -359,5 +365,9 @@ export function syncLexicalSelectionFromChatComposerSelection(
     nextSelection.anchor.set(anchor.key, anchor.offset, anchor.type);
     nextSelection.focus.set(focus.key, focus.offset, focus.type);
     $setSelection(nextSelection);
-  }, preserveDomSelection ? { tag: SKIP_DOM_SELECTION_TAG } : undefined);
+  }, {
+    tag: preserveDomSelection
+      ? [CHAT_COMPOSER_EXTERNAL_UPDATE_TAG, SKIP_DOM_SELECTION_TAG]
+      : CHAT_COMPOSER_EXTERNAL_UPDATE_TAG,
+  });
 }

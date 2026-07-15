@@ -1,9 +1,9 @@
-import type { FormEvent } from 'react';
 import type { EditorState, LexicalEditor } from 'lexical';
 import {
   BLUR_COMMAND,
   COMMAND_PRIORITY_EDITOR,
   COMMAND_PRIORITY_HIGH,
+  COMPOSITION_END_TAG,
   KEY_DOWN_COMMAND,
   SELECTION_CHANGE_COMMAND,
   mergeRegister,
@@ -22,6 +22,7 @@ import {
   CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC,
 } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 import {
+  CHAT_COMPOSER_EXTERNAL_UPDATE_TAG,
   type ChatComposerEditorSnapshot,
   getChatComposerNodesSignature,
   insertFileTokenIntoChatComposer,
@@ -32,7 +33,7 @@ import {
   syncSelectedSkillsIntoChatComposer,
 } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-adapter';
 import {
-  handleLexicalComposerBeforeInput,
+  deleteAdjacentChatComposerToken,
   handleLexicalComposerKeyboardCommand,
 } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-controller';
 
@@ -70,7 +71,6 @@ function getChatComposerDocumentLength(nodes: ChatComposerNode[]): number {
 }
 
 export class ChatComposerLexicalOwner {
-  readonly isApplyingExternalUpdateRef = createMutableRef(false);
   readonly pendingOwnerSignatureRef = createMutableRef<string | null>(null);
   readonly pendingSelectionRef = createMutableRef<ChatComposerSelection | null>(null);
   readonly selectionRef = createMutableRef<ChatComposerSelection | null>(null);
@@ -88,6 +88,11 @@ export class ChatComposerLexicalOwner {
 
   bindEditor = (editor: LexicalEditor): (() => void) => {
     this.editor = editor;
+    const signature = getChatComposerNodesSignature(
+      readChatComposerSnapshotFromEditorState(editor.getEditorState()).nodes,
+    );
+    this.editorSignatureRef.current = signature;
+    this.lastPublishedSignatureRef.current = signature;
     return () => {
       if (this.editor === editor) {
         this.editor = null;
@@ -97,9 +102,9 @@ export class ChatComposerLexicalOwner {
 
   registerEditorListeners = (editor: LexicalEditor): (() => void) => {
     return mergeRegister(
-      editor.registerUpdateListener(({ editorState }) => {
+      editor.registerUpdateListener(({ editorState, tags }) => {
         const runtime = this.getRuntime();
-        this.handleEditorUpdate(editorState, runtime.callbacks);
+        this.handleEditorUpdate(editorState, runtime.callbacks, tags);
       }),
       editor.registerCommand(
         SELECTION_CHANGE_COMMAND,
@@ -127,7 +132,6 @@ export class ChatComposerLexicalOwner {
             actions: runtime.actions,
             callbacks: runtime.callbacks,
             event,
-            fallbackNodes: runtime.fallbackNodes,
           });
         },
         COMMAND_PRIORITY_HIGH,
@@ -157,13 +161,12 @@ export class ChatComposerLexicalOwner {
       return;
     }
 
-    this.startApplyingExternalUpdate();
     const preserveDomSelection = editor.getRootElement() !== document.activeElement;
 
     if (shouldSyncDocument) {
-      syncLexicalEditorFromChatComposerState(editor, nodes, pendingSelection, preserveDomSelection);
       this.editorSignatureRef.current = nextSignature;
       this.lastPublishedSignatureRef.current = nextSignature;
+      syncLexicalEditorFromChatComposerState(editor, nodes, pendingSelection, preserveDomSelection);
     } else if (pendingSelection) {
       syncLexicalSelectionFromChatComposerSelection(editor, pendingSelection, preserveDomSelection);
     }
@@ -200,9 +203,8 @@ export class ChatComposerLexicalOwner {
     const { editor } = this;
     this.pendingOwnerSignatureRef.current = signature;
     if (editor) {
-      this.startApplyingExternalUpdate();
-      syncLexicalEditorFromChatComposerState(editor, snapshot.nodes, snapshot.selection);
       this.editorSignatureRef.current = signature;
+      syncLexicalEditorFromChatComposerState(editor, snapshot.nodes, snapshot.selection);
     }
     callbacks.onInputSurfaceSnapshotChange?.(
       snapshot.nodes,
@@ -242,11 +244,10 @@ export class ChatComposerLexicalOwner {
     this.pendingSelectionRef.current = targetSelection;
     editor.getRootElement()?.focus({ preventScroll: true });
     if (nodes) {
-      this.startApplyingExternalUpdate();
       const signature = getChatComposerNodesSignature(nodes);
-      syncLexicalEditorFromChatComposerState(editor, nodes, targetSelection);
       this.editorSignatureRef.current = signature;
       this.lastPublishedSignatureRef.current = signature;
+      syncLexicalEditorFromChatComposerState(editor, nodes, targetSelection);
     } else {
       syncLexicalSelectionFromChatComposerSelection(editor, targetSelection);
     }
@@ -334,58 +335,56 @@ export class ChatComposerLexicalOwner {
     };
   };
 
-  handleBeforeInput = (params: {
-    disabled: boolean;
-    event: FormEvent<HTMLDivElement>;
-  }): void => {
-    const { disabled, event } = params;
-    const { callbacks, fallbackNodes } = this.getRuntime();
-    handleLexicalComposerBeforeInput({
-      disabled,
-      event,
-      isComposing: this.editor?.isComposing() ?? false,
-      publishSnapshot: (snapshot, options) => this.publishSnapshot(snapshot, callbacks, options),
-      snapshotReader: () => this.readComposerSnapshot(fallbackNodes),
-    });
-  };
-
   handleKeyDown = (params: {
     actions: ComposerActions;
     callbacks: ChatComposerLexicalOwnerCallbacks;
     event: KeyboardEvent;
-    fallbackNodes: ChatComposerNode[];
   }): boolean => {
-    const { actions, callbacks, event, fallbackNodes } = params;
+    const { actions, callbacks, event } = params;
+    const isComposing = event.isComposing || (this.editor?.isComposing() ?? false);
     if (
       event.key.length === 1 &&
-      !event.isComposing &&
-      !this.editor?.isComposing() &&
+      !isComposing &&
       !event.altKey &&
       !event.ctrlKey &&
       !event.metaKey
     ) {
       this.pendingInputSurfaceReasonRef.current = { type: 'insert-text', text: event.key };
+    } else if (!isComposing && (event.key === 'Backspace' || event.key === 'Delete')) {
+      this.pendingInputSurfaceReasonRef.current = { type: 'delete-content' };
+    } else if (!isComposing && event.key === 'Enter' && event.shiftKey) {
+      this.pendingInputSurfaceReasonRef.current = { type: 'insert-text', text: '\n' };
     }
 
-    const snapshot = this.readComposerSnapshot(fallbackNodes);
     if (callbacks.onInputSurfaceKeyDown?.(event)) {
+      this.pendingInputSurfaceReasonRef.current = null;
+      return true;
+    }
+    if (!isComposing && deleteAdjacentChatComposerToken(event)) {
       return true;
     }
     return handleLexicalComposerKeyboardCommand({
       actions,
+      isComposing,
       nativeEvent: event,
-      publishSnapshot: (nextSnapshot, options) => this.publishSnapshot(nextSnapshot, callbacks, options),
-      snapshot,
     });
   };
 
-  handleEditorUpdate = (editorState: EditorState, callbacks: ChatComposerLexicalOwnerCallbacks): void => {
+  handleEditorUpdate = (
+    editorState: EditorState,
+    callbacks: ChatComposerLexicalOwnerCallbacks,
+    tags: ReadonlySet<string>,
+  ): void => {
     const snapshot = readChatComposerSnapshotFromEditorState(editorState);
     const signature = getChatComposerNodesSignature(snapshot.nodes);
+    const expectedExternalSignature = this.editorSignatureRef.current;
 
     this.editorSignatureRef.current = signature;
 
-    if (this.isApplyingExternalUpdateRef.current || this.editor?.isComposing()) {
+    if (
+      (tags.has(CHAT_COMPOSER_EXTERNAL_UPDATE_TAG) && signature === expectedExternalSignature) ||
+      (this.editor?.isComposing() && !tags.has(COMPOSITION_END_TAG))
+    ) {
       return;
     }
 
@@ -425,13 +424,6 @@ export class ChatComposerLexicalOwner {
   ): void => {
     const { callbacks, fallbackNodes } = this.getRuntime();
     this.publishSnapshot(createSnapshot(this.readComposerSnapshot(fallbackNodes)), callbacks, options);
-  };
-
-  private startApplyingExternalUpdate = (): void => {
-    this.isApplyingExternalUpdateRef.current = true;
-    requestAnimationFrame(() => {
-      this.isApplyingExternalUpdateRef.current = false;
-    });
   };
 
   private getRuntime = (): ComposerRuntime => {

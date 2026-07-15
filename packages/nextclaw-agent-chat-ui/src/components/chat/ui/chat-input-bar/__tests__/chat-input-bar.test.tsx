@@ -665,7 +665,7 @@ it('ignores Windows IME precomposition key events without crashing', () => {
   expect(screen.getByRole('textbox')).toBeTruthy();
 });
 
-it('removes the last selected chip when backspace is pressed on an empty draft', () => {
+it('removes the last selected chip when backspace is pressed on an empty draft', async () => {
   const onNodesChange = vi.fn();
 
   renderInputBar({
@@ -683,7 +683,7 @@ it('removes the last selected chip when backspace is pressed on an empty draft',
   fireEvent.focus(textbox);
   fireEvent.keyDown(textbox, { key: 'Backspace' });
 
-  expect(onNodesChange).toHaveBeenCalled();
+  await waitFor(() => expect(onNodesChange).toHaveBeenCalled());
   const lastCall = onNodesChange.mock.calls[onNodesChange.mock.calls.length - 1]?.[0];
   expect(lastCall).toEqual([
     expect.objectContaining({ type: 'token', tokenKey: 'web-search' })

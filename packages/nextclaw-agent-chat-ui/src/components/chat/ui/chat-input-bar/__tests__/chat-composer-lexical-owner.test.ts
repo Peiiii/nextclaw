@@ -1,6 +1,7 @@
 import { SKIP_DOM_SELECTION_TAG, type LexicalEditor } from "lexical";
 import { describe, expect, it, vi } from "vitest";
 import { createChatComposerTextNode } from "@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils";
+import { CHAT_COMPOSER_EXTERNAL_UPDATE_TAG } from "@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-adapter";
 import { ChatComposerLexicalOwner } from "@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/owners/chat-composer-lexical-owner";
 
 describe("ChatComposerLexicalOwner", () => {
@@ -26,7 +27,7 @@ describe("ChatComposerLexicalOwner", () => {
     owner.syncExternalState(editor, [createChatComposerTextNode("draft")]);
 
     expect(update).toHaveBeenCalledWith(expect.any(Function), {
-      tag: SKIP_DOM_SELECTION_TAG,
+      tag: [CHAT_COMPOSER_EXTERNAL_UPDATE_TAG, SKIP_DOM_SELECTION_TAG],
     });
   });
 
@@ -42,7 +43,7 @@ describe("ChatComposerLexicalOwner", () => {
     owner.syncExternalState(editor, nodes);
 
     expect(update).toHaveBeenCalledWith(expect.any(Function), {
-      tag: SKIP_DOM_SELECTION_TAG,
+      tag: [CHAT_COMPOSER_EXTERNAL_UPDATE_TAG, SKIP_DOM_SELECTION_TAG],
     });
   });
 
@@ -61,7 +62,9 @@ describe("ChatComposerLexicalOwner", () => {
 
     owner.syncExternalState(editor, [createChatComposerTextNode("draft")]);
 
-    expect(update).toHaveBeenCalledWith(expect.any(Function), undefined);
+    expect(update).toHaveBeenCalledWith(expect.any(Function), {
+      tag: CHAT_COMPOSER_EXTERNAL_UPDATE_TAG,
+    });
     rootElement.remove();
   });
 });

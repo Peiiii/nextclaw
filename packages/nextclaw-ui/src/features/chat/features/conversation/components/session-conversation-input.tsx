@@ -402,6 +402,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     skillRecords,
     selectedSkills: inputSnapshot.selectedSkills,
   });
+  const composerNodes = useMemo(() => [...inputSnapshot.nodes], [inputSnapshot.nodes]);
 
   const useReadingTrack = surface === 'default' && messageLayout === 'flat';
   const inputBar = (
@@ -414,7 +415,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
         ? <SessionQueuedInputRows controller={controller} />
         : null}
       composer={{
-        nodes: [...inputSnapshot.nodes],
+        nodes: composerNodes,
         placeholder: textareaPlaceholder,
         disabled: inputDisabled,
         onNodesChange: handleNodesChange,
