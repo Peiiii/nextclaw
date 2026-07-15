@@ -10,7 +10,9 @@ import { setLanguage } from '@/shared/lib/i18n';
 
 const mocks = vi.hoisted(() => ({
   applyDownloadedUpdate: vi.fn(),
-  downloadUpdate: vi.fn()
+  downloadUpdate: vi.fn(),
+  fetchReleaseNotes: vi.fn(),
+  openExternalUrl: vi.fn()
 }));
 
 vi.mock('@/features/system-status', async () => {
@@ -25,7 +27,30 @@ vi.mock('@/features/system-status', async () => {
   };
 });
 
-function renderBrandHeader() {
+vi.mock('@/shared/lib/host-capabilities', () => ({
+  hostCapabilityManager: {
+    openExternalUrl: mocks.openExternalUrl,
+  },
+}));
+
+function createReleaseNotesResponse(urls?: { zh?: string; en?: string }): Response {
+  return new Response(JSON.stringify({
+    links: urls
+      ? {
+          html: {
+            ...(urls.zh ? { 'zh-CN': urls.zh } : {}),
+            ...(urls.en ? { 'en-US': urls.en } : {})
+          }
+        }
+      : undefined,
+    sections: []
+  }), {
+    headers: { 'content-type': 'application/json' },
+    status: 200
+  });
+}
+
+function renderBrandHeader(options: { productVersion?: string } = {}) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -35,7 +60,7 @@ function renderBrandHeader() {
   });
   queryClient.setQueryData(['app-meta'], {
     name: 'NextClaw',
-    productVersion: '0.18.11'
+    productVersion: options.productVersion ?? '0.18.11'
   });
   return render(
     <QueryClientProvider client={queryClient}>
@@ -57,6 +82,10 @@ describe('BrandHeader', () => {
     });
     mocks.applyDownloadedUpdate.mockReset();
     mocks.downloadUpdate.mockReset();
+    mocks.fetchReleaseNotes.mockReset();
+    mocks.fetchReleaseNotes.mockResolvedValue(createReleaseNotesResponse());
+    mocks.openExternalUrl.mockReset();
+    vi.stubGlobal('fetch', mocks.fetchReleaseNotes);
   });
 
   it('shows update progress next to the product version', async () => {
@@ -103,6 +132,84 @@ describe('BrandHeader', () => {
     expect((await screen.findByRole('tooltip')).textContent).toBe('v0.18.11');
     expect(screen.getByText('下载 50%')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '更新' })).toBeNull();
+  });
+
+  it('opens release notes from the current version tooltip when that version has docs notes', async () => {
+    const user = userEvent.setup();
+    mocks.fetchReleaseNotes.mockResolvedValueOnce(createReleaseNotesResponse({
+      zh: 'https://docs.nextclaw.io/zh/notes/2026-07-15-nextclaw-v0-23-0',
+      en: 'https://docs.nextclaw.io/en/notes/2026-07-15-nextclaw-v0-23-0'
+    }));
+
+    renderBrandHeader({ productVersion: '0.23.0' });
+
+    const version = await screen.findByRole('button', {
+      name: '当前版本 v0.23.0，查看 v0.23.0 更新说明'
+    });
+
+    await user.hover(version);
+    expect((await screen.findByRole('tooltip')).textContent).toContain('点击查看 v0.23.0 更新说明');
+
+    await user.click(version);
+
+    expect(mocks.fetchReleaseNotes).toHaveBeenCalledWith(
+      'https://docs.nextclaw.io/release-notes/nextclaw-v0.23.0.json',
+      expect.objectContaining({ cache: 'no-store' })
+    );
+    expect(mocks.openExternalUrl).toHaveBeenCalledWith('https://docs.nextclaw.io/zh/notes/2026-07-15-nextclaw-v0-23-0');
+  });
+
+  it('keeps update target release notes available without replacing the current version link', async () => {
+    const user = userEvent.setup();
+    mocks.fetchReleaseNotes.mockResolvedValueOnce(createReleaseNotesResponse({
+      zh: 'https://docs.nextclaw.io/zh/notes/2026-07-14-nextclaw-v0-18-11'
+    }));
+    useRuntimeUpdateStore.setState({
+      supported: true,
+      initialized: true,
+      busyAction: null,
+      snapshot: {
+        status: 'update-available',
+        installationKind: 'npm-runtime-bundle',
+        channel: 'stable',
+        hostVersion: '0.18.11',
+        currentVersion: '0.18.11',
+        availableVersion: '0.18.12',
+        downloadedVersion: null,
+        minimumHostVersion: null,
+        releaseNotesUrl: 'https://docs.nextclaw.io/zh/notes/2026-07-15-nextclaw-v0-18-12',
+        lastCheckedAt: null,
+        progress: null,
+        canAutoDownload: true,
+        canApplyInApp: false,
+        requiresRestart: false,
+        blockReason: null,
+        recoveryCommand: null,
+        errorMessage: null,
+        preferences: {
+          automaticChecks: true,
+          autoDownload: true
+        }
+      }
+    });
+
+    renderBrandHeader();
+
+    const currentVersion = await screen.findByRole('button', {
+      name: '当前版本 v0.18.11，查看 v0.18.11 更新说明'
+    });
+    await user.click(currentVersion);
+    expect(mocks.openExternalUrl).toHaveBeenCalledWith('https://docs.nextclaw.io/zh/notes/2026-07-14-nextclaw-v0-18-11');
+
+    await user.click(screen.getByRole('button', { name: '下载' }));
+    expect(mocks.downloadUpdate).toHaveBeenCalledTimes(1);
+
+    const updateReleaseNotes = screen.getByRole('button', { name: '查看 v0.18.12 更新说明' });
+    await user.hover(updateReleaseNotes);
+    expect((await screen.findByRole('tooltip')).textContent).toBe('查看 v0.18.12 更新说明');
+
+    await user.click(updateReleaseNotes);
+    expect(mocks.openExternalUrl).toHaveBeenCalledWith('https://docs.nextclaw.io/zh/notes/2026-07-15-nextclaw-v0-18-12');
   });
 
   it('applies the downloaded update from the version-adjacent update button', async () => {
