@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -7,6 +7,7 @@ import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import { EventBus, eventKeys } from "@nextclaw/shared";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import { SessionManager } from "@kernel/managers/session.manager.js";
+import { ProjectManager } from "@kernel/managers/project.manager.js";
 
 vi.mock("@kernel/features/context-compaction/index.js", () => ({
   ContextWindowPreviewManager: class {
@@ -113,6 +114,11 @@ async function createFixture(
     configManager: { loadConfig: () => config } as never,
     eventBus,
     journalStore,
+    projectManager: new ProjectManager({
+      storePath: join(sessionsDir, "projects.json"),
+      getDefaultWorkspacePath: () =>
+        (config as { agents: { defaults: { workspace: string } } }).agents.defaults.workspace,
+    }),
     sessionSearch: sessionSearch as never,
   });
   return {
@@ -243,6 +249,43 @@ describe("SessionManager", () => {
       "session.updated",
       "session.summary.delete",
     ]);
+  });
+
+  it("owns session renaming and canonical project binding", async () => {
+    const workspace = createTempDir();
+    const projectRoot = createTempDir();
+    const fixture = await createFixture([
+      createRecord({ sessionId: "session-1", metadata: { label: "Before" } }),
+    ], createConfig(workspace));
+
+    const updated = await fixture.manager.patchSessionSettings("session-1", {
+      label: "Research",
+      projectRoot: realpathSync(projectRoot),
+    });
+
+    expect(updated?.metadata).toMatchObject({
+      label: "Research",
+      project_root: realpathSync(projectRoot),
+    });
+  });
+
+  it("does not persist the default workspace as an explicit project", async () => {
+    const workspace = createTempDir();
+    const fixture = await createFixture([
+      createRecord({
+        sessionId: "session-1",
+        metadata: { project_root: createTempDir() },
+      }),
+    ], createConfig(workspace));
+
+    const updated = await fixture.manager.patchSessionSettings("session-1", {
+      projectRoot: workspace,
+    });
+
+    expect(updated?.metadata ?? {}).not.toHaveProperty("project_root");
+    await expect(fixture.manager.getSession("session-1")).resolves.toMatchObject({
+      workingDir: workspace,
+    });
   });
 
   it("merges session metadata updates without dropping child-session identity", async () => {
@@ -649,7 +692,7 @@ describe("SessionManager agent run child materialization", () => {
       agentId: "reviewer",
       agentRuntimeId: "codex",
       model: "openai/gpt-5",
-      projectRoot,
+      projectRoot: realpathSync(projectRoot),
       thinkingEffort: "high",
     });
     expect(record).toMatchObject({
@@ -660,7 +703,7 @@ describe("SessionManager agent run child materialization", () => {
         session_type: "codex",
         preferred_model: "openai/gpt-5",
         preferred_thinking: "high",
-        project_root: projectRoot,
+        project_root: realpathSync(projectRoot),
         context_inheritance: {
           enabled: true,
           sourceSessionId: "parent-session",

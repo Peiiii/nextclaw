@@ -429,6 +429,12 @@ export type {
   ChatSessionTypeOptionView,
   ChatSessionTypesView,
 } from "@nextclaw-server/features/sessions/index.js";
+export type {
+  ProjectCreateRequest,
+  ProjectListView,
+  ProjectTemplateView,
+  ProjectView,
+} from "@nextclaw-server/features/projects/index.js";
 
 export type SessionEntryView = {
   key: string;
@@ -509,13 +515,23 @@ export type ServerPathEntryView = { name: string; path: string; kind: "directory
 
 export type ServerPathBreadcrumbView = { label: string; path: string };
 
+export type ServerPathLocationView = {
+  kind: "desktop" | "documents" | "downloads" | "icloud-drive" | "applications" | "volumes";
+  path: string;
+};
+
 export type ServerPathBrowseView = {
   currentPath: string;
   parentPath: string | null;
   homePath: string;
   breadcrumbs: ServerPathBreadcrumbView[];
   entries: ServerPathEntryView[];
+  locations: ServerPathLocationView[];
 };
+
+export type ServerPathDirectoryCreateRequest = { parentPath: string; name: string };
+
+export type ServerPathDirectoryCreateView = { path: string };
 
 export type ServerPathReadView = { requestedPath: string; resolvedPath: string; kind: "text" | "markdown" | "binary"; sizeBytes: number; startLine?: number; truncated: boolean; text?: string; languageHint?: string | null };
 

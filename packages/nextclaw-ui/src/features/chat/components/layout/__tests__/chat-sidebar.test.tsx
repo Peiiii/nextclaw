@@ -3,11 +3,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatSidebar } from "@/features/chat/components/layout/chat-sidebar";
+import {
+  createSidebarSessionItem as createSessionItem,
+  setSidebarSessionTypes as setSessionTypes,
+} from "@/features/chat/components/layout/__tests__/chat-sidebar-test.utils";
 import type { NcpSessionListItemView } from "@/features/chat/features/ncp/hooks/use-ncp-session-list-view";
-import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { PREFERENCE_KEYS } from "@/shared/lib/api";
-import type { ChatSessionTypeOptionView } from "@/shared/lib/api";
 import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
 const mocks = vi.hoisted(() => ({
   createSession: vi.fn(() => "draft-session-key"),
@@ -39,28 +41,15 @@ vi.mock("@/shared/lib/api", async (importOriginal) => {
     updatePreference: mocks.updatePreference,
   };
 });
-function createSessionItem(
-  session: NcpSessionListItemView["session"],
-  runStatus?: NcpSessionListItemView["runStatus"],
-): NcpSessionListItemView {
-  return { session, runStatus };
-}
-function setSessionTypes(
-  options: ChatSessionTypeOptionView[],
-  defaultType = "native",
-) {
-  useChatQueryStore.setState({
-    snapshot: {
-      ...useChatQueryStore.getState().snapshot,
-      sessionTypesQuery: {
-        data: {
-          defaultType,
-          options,
-        },
-      } as never,
-    },
-  });
-}
+vi.mock("@/shared/hooks/use-projects", () => ({
+  useProjects: () => ({ data: { projects: [], templates: [] } }),
+  useCreateProject: () => ({
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+    isPending: false,
+    error: null,
+  }),
+}));
 function sidebarElement(variant?: "desktop" | "mobile") {
   const queryClient = new QueryClient({
     defaultOptions: {

@@ -26,6 +26,7 @@ import { ChatPopoverContent } from "@/features/chat/components/chat-popover-cont
 import { Input } from "@/shared/components/ui/input";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
+import { useProjects } from "@/shared/hooks/use-projects";
 
 const SWITCHER_TRIGGER_CLASS =
   "group inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border";
@@ -85,6 +86,18 @@ function ChatSessionTitleSwitcherPopover({
     (state) => state.snapshot.sessionTypesQuery?.data ?? null,
   );
   const { isLoading, items } = useNcpSessionListView({ query: searchQuery });
+  const projectsQuery = useProjects();
+  const visibleProjects = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const projects = projectsQuery.data?.projects ?? [];
+    if (!query) {
+      return projects;
+    }
+    return projects.filter((project) =>
+      project.name.toLowerCase().includes(query) ||
+      project.rootPath.toLowerCase().includes(query)
+    );
+  }, [projectsQuery.data?.projects, searchQuery]);
   const sortedItems = useMemo(
     () => sortSessionItemsByActivityAtDesc(items),
     [items],
@@ -98,8 +111,9 @@ function ChatSessionTitleSwitcherPopover({
       sortedItems,
       new Set(pinnedSessionKeys),
       new Set(pinnedProjectRoots),
+      visibleProjects,
     ),
-    [pinnedProjectRoots, pinnedSessionKeys, sortedItems],
+    [pinnedProjectRoots, pinnedSessionKeys, sortedItems, visibleProjects],
   );
   const sessionTypeOptions = useMemo(
     () => buildSessionTypeOptions(sessionTypesData?.options ?? []),

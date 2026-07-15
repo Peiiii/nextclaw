@@ -12,6 +12,7 @@ import { MarketplaceService } from "./services/marketplace.service.js";
 import { McpMarketplaceService } from "./services/mcp-marketplace.service.js";
 import { PanelAppsClientService } from "./services/panel-apps.service.js";
 import { ProviderService } from "./services/providers.service.js";
+import { ProjectsService } from "./services/projects.service.js";
 import { RealtimeService } from "./services/realtime.service.js";
 import { RemoteService } from "./services/remote.service.js";
 import { RequestService } from "./services/request.service.js";
@@ -34,6 +35,7 @@ export class NextClawClient {
   readonly mcpMarketplace: McpMarketplaceService;
   readonly panelApps: PanelAppsClientService;
   readonly providers: ProviderService;
+  readonly projects: ProjectsService;
   readonly realtime: RealtimeService;
   readonly remote: RemoteService;
   readonly runtimeControl: RuntimeControlService;
@@ -77,6 +79,7 @@ export class NextClawClient {
     this.mcpMarketplace = new McpMarketplaceService(requestService);
     this.panelApps = new PanelAppsClientService(requestService);
     this.providers = new ProviderService(requestService);
+    this.projects = new ProjectsService(requestService);
     this.remote = new RemoteService(requestService);
     this.runtimeControl = new RuntimeControlService(requestService);
     this.runtimeUpdate = new RuntimeUpdateService(requestService);

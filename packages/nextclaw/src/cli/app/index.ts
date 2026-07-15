@@ -9,6 +9,8 @@ import { registerSkillsCommands } from "./register-skills-commands.js";
 import { registerHostServiceControls } from "./service-command-registration.utils.js";
 import { createNextclawDistribution } from "@nextclaw-cli/cli/shared/lib/distribution/index.js";
 import { registerAppCommands } from "./register-app-commands.js";
+import { registerProjectCommands } from "./register-project-commands.js";
+import { registerSessionCommands } from "./register-session-commands.js";
 
 const LOGO = "🤖";
 
@@ -139,6 +141,10 @@ program
 registerSkillsCommands(program, runtime);
 
 registerAgentsCommands(program, runtime);
+
+registerProjectCommands(program, runtime);
+
+registerSessionCommands(program, runtime);
 
 registerAppCommands(program);
 

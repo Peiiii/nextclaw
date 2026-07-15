@@ -1,5 +1,5 @@
 import { homedir } from "node:os";
-import { resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 import { expandHome } from "@nextclaw/core";
 
 export class ServerPathResolutionError extends Error {
@@ -24,7 +24,7 @@ export function resolveServerPath(params: {
     throw new ServerPathResolutionError("server path is required");
   }
   const expandedPath = expandHome(rawPath);
-  if (expandedPath.startsWith("/") || /^[a-z]:[\\/]/i.test(expandedPath)) {
+  if (isAbsolute(expandedPath)) {
     return resolve(expandedPath);
   }
   if (!basePath) {

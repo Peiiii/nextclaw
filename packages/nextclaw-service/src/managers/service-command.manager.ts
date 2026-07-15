@@ -1,5 +1,5 @@
-import { APP_NAME } from "@nextclaw/core";
-import { AgentManager } from "@nextclaw/kernel";
+import { APP_NAME, getConfigPath, getDataDir } from "@nextclaw/core";
+import { AgentManager, NextclawKernel } from "@nextclaw/kernel";
 import { RemoteRuntimeActions } from "@nextclaw/remote";
 import { AgentCommands, runCliAgentCommand } from "@nextclaw-service/controllers/commands/agent-command.controller.js";
 import { ChannelCommands } from "@nextclaw-service/controllers/commands/channel-command.controller.js";
@@ -20,6 +20,8 @@ import { StartCommands } from "@nextclaw-service/controllers/commands/start-comm
 import { StopCommands } from "@nextclaw-service/controllers/commands/stop-command.controller.js";
 import { UiCommands } from "@nextclaw-service/controllers/commands/ui-command.controller.js";
 import { LlmUsageCommandService } from "@nextclaw-service/controllers/commands/usage-command.controller.js";
+import { ProjectCommands } from "@nextclaw-service/controllers/commands/project/project-command.controller.js";
+import { SessionCommands } from "@nextclaw-service/controllers/commands/session/session-command.controller.js";
 import type { ManagedServiceManager } from "@nextclaw-service/managers/managed-service.manager.js";
 import type { ServiceRestartManager } from "@nextclaw-service/managers/service-restart.manager.js";
 import type { ServiceWorkspaceManager } from "@nextclaw-service/managers/service-workspace.manager.js";
@@ -47,6 +49,8 @@ export type NextclawServiceCommands = {
   serve: ServeCommands;
   stop: StopCommands;
   usage: LlmUsageCommandService;
+  projects: ProjectCommands;
+  sessions: SessionCommands;
 };
 
 type ServiceCommandManagerDeps = {
@@ -63,6 +67,10 @@ export class ServiceCommandManager {
   readonly remote: RemoteCommands;
 
   constructor(private readonly deps: ServiceCommandManagerDeps) {
+    const createKernel = () => new NextclawKernel({
+      homeDir: getDataDir(),
+      configPath: getConfigPath(),
+    });
     const start = new StartCommands({
       runtimeCommandService: this.deps.managedService,
       forcedPublicHost: FORCED_PUBLIC_UI_HOST,
@@ -120,6 +128,8 @@ export class ServiceCommandManager {
         runtimeCommandService: this.deps.managedService
       }),
       usage: new LlmUsageCommandService(),
+      projects: new ProjectCommands(createKernel),
+      sessions: new SessionCommands(createKernel),
     };
   }
 }

@@ -1,6 +1,11 @@
 import { API_BASE } from '@/shared/lib/api/api-base';
 import { nextclawClient } from '@/shared/lib/api/managers/client.manager';
-import type { ServerPathBrowseView, ServerPathReadView } from '@/shared/lib/api/types';
+import type {
+  ServerPathBrowseView,
+  ServerPathDirectoryCreateRequest,
+  ServerPathDirectoryCreateView,
+  ServerPathReadView,
+} from '@/shared/lib/api/types';
 
 const SERVER_PATH_CONTENT_BASE_PATH = '/api/server-paths/content';
 
@@ -10,6 +15,12 @@ export async function fetchServerPathBrowse(params?: {
   includeFiles?: boolean;
 }): Promise<ServerPathBrowseView> {
   return await nextclawClient.serverPaths.browse(params);
+}
+
+export async function createServerPathDirectory(
+  input: ServerPathDirectoryCreateRequest,
+): Promise<ServerPathDirectoryCreateView> {
+  return await nextclawClient.serverPaths.createDirectory(input);
 }
 
 export async function fetchServerPathRead(params: {

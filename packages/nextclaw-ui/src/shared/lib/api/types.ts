@@ -1,5 +1,6 @@
 import type { NcpSessionStatus } from '@nextclaw/ncp';
 import type { RuntimeEntryView, NcpSessionSummaryView } from './ncp-session.types';
+export type { ProjectCreateRequest, ProjectListView, ProjectTemplateView, ProjectView } from '@nextclaw/client-sdk';
 export type { SessionEntryView, RuntimeEntryView, SessionTypeIconView, SessionMessageView, SessionEventView, NcpSessionSummaryView, NcpSessionsListView, NcpMessageView, NcpSessionMessagesView, SessionContextWindowView } from './ncp-session.types';
 
 // API Types - matching backend response format
@@ -359,13 +360,23 @@ export type ServerPathEntryView = { name: string; path: string; kind: "directory
 
 export type ServerPathBreadcrumbView = { label: string; path: string };
 
+export type ServerPathLocationView = {
+  kind: "desktop" | "documents" | "downloads" | "icloud-drive" | "applications" | "volumes";
+  path: string;
+};
+
 export type ServerPathBrowseView = {
   currentPath: string;
   parentPath: string | null;
   homePath: string;
   breadcrumbs: ServerPathBreadcrumbView[];
   entries: ServerPathEntryView[];
+  locations: ServerPathLocationView[];
 };
+
+export type ServerPathDirectoryCreateRequest = { parentPath: string; name: string };
+
+export type ServerPathDirectoryCreateView = { path: string };
 
 export type ServerPathReadView = { requestedPath: string; resolvedPath: string; kind: "text" | "markdown" | "binary"; sizeBytes: number; startLine?: number; truncated: boolean; text?: string; languageHint?: string | null };
 

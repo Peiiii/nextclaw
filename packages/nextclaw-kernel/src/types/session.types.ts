@@ -28,3 +28,26 @@ export type CreateAgentRunSessionParams = {
   task?: string;
   thinkingEffort?: ThinkingEffort | null;
 };
+
+export type SessionSettingsPatch = {
+  label?: string | null;
+  preferredModel?: string | null;
+  preferredThinking?: string | null;
+  sessionType?: string | null;
+  projectRoot?: string | null;
+  uiReadAt?: string | null;
+};
+
+export class SessionSettingsError extends Error {
+  constructor(
+    readonly code: "PREFERRED_THINKING_INVALID",
+    message: string,
+  ) {
+    super(message);
+    this.name = "SessionSettingsError";
+  }
+}
+
+export function isSessionSettingsError(error: unknown): error is SessionSettingsError {
+  return error instanceof SessionSettingsError;
+}

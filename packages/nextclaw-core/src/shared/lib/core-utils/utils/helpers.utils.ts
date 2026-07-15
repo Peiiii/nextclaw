@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { resolve } from "node:path";
+import { resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DEFAULT_HOME_DIR, DEFAULT_SKILLS_DIR, DEFAULT_WORKSPACE_DIR, DEFAULT_WORKSPACE_PATH, ENV_HOME_KEY } from "../../../../features/config/configs/brand.config.js";
+import { DEFAULT_HOME_DIR, DEFAULT_SKILLS_DIR, DEFAULT_WORKSPACE_DIR, DEFAULT_WORKSPACE_PATH, ENV_HOME_KEY } from "@core/features/config/index.js";
 
 export function ensureDir(path: string): string {
   if (!existsSync(path)) {
@@ -82,7 +82,10 @@ export function parseSessionKey(key: string): { channel: string; chatId: string 
 }
 
 export function expandHome(value: string): string {
-  if (value.startsWith("~/")) {
+  if (value === "~") {
+    return homedir();
+  }
+  if (value.startsWith("~/") || value.startsWith(`~${sep}`)) {
     return resolve(homedir(), value.slice(2));
   }
   return value;

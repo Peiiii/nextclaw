@@ -20,6 +20,11 @@ import {
   type IngressEnvelope,
 } from "@nextclaw/shared";
 import type { UiKernelHost } from "./types/router-options.types.js";
+import {
+  createRouterNcpProjectManager,
+  RouterNcpSessionSettingsStub,
+  writeRouterNcpSkill,
+} from "./tests/router-ncp-test-fixtures.js";
 
 const tempDirs: string[] = [];
 const originalHome = process.env.NEXTCLAW_HOME;
@@ -30,20 +35,11 @@ function createTempDir(prefix: string): string {
   return dir;
 }
 
-function createTempConfigPath(): string {
-  const dir = createTempDir("nextclaw-ui-ncp-config-");
-  return join(dir, "config.json");
-}
-
+const createTempConfigPath = (): string => join(createTempDir("nextclaw-ui-ncp-config-"), "config.json");
 function useIsolatedHome(): void {
   const isolatedHome = createTempDir("nextclaw-ui-ncp-home-");
   process.env.NEXTCLAW_HOME = isolatedHome;
   vi.stubEnv("HOME", isolatedHome);
-}
-
-function writeSkill(skillDir: string, description: string): void {
-  mkdirSync(skillDir, { recursive: true });
-  writeFileSync(join(skillDir, "SKILL.md"), `---\ndescription: ${description}\n---`);
 }
 
 afterEach(() => {
@@ -82,6 +78,10 @@ class StubNcpAgent implements NcpSessionApi {
   readonly runningSessionIds = new Set<string>();
   readonly sessionTypeListCalls: Array<{ describeMode?: "observation" | "probe" } | undefined> = [];
   readonly sessionMetadata = new Map<string, Record<string, unknown>>();
+  readonly patchSessionSettings = new RouterNcpSessionSettingsStub(
+    this.sessionMetadata,
+    (sessionId) => this.getSession(sessionId),
+  ).patchSessionSettings;
   readonly updateSessionCalls: Array<{ sessionId: string; metadata?: Record<string, unknown> | null }> = [];
   readonly contextWindowBySession = new Map<string, Record<string, unknown>>();
   readonly assetApi = {
@@ -291,13 +291,14 @@ function createTestKernel(agent: StubNcpAgent): UiKernelHost {
     },
     eventBus: new EventBus(),
     sessionManager: agent,
+    projectManager: createRouterNcpProjectManager(createTempDir("nextclaw-ui-project-store-")),
     llmProviders: {},
   } as unknown as UiKernelHost;
 }
 
 function createTestApp(): { app: ReturnType<typeof createUiRouter>; agent: StubNcpAgent } {
   useIsolatedHome();
-  const configPath = createTempConfigPath();
+  const configPath = join(createTempDir("nextclaw-ui-ncp-config-"), "config.json");
   saveConfig(ConfigSchema.parse({}), configPath);
   const agent = new StubNcpAgent();
   return {
@@ -694,9 +695,9 @@ it("exposes session-scoped skills for persisted and draft sessions", async () =>
   const hostWorkspace = createTempDir("nextclaw-ui-host-workspace-");
   const projectRoot = realpathSync(createTempDir("nextclaw-ui-session-project-"));
   const globalSkillsRoot = join(process.env.HOME!, ".agents", "skills");
-  writeSkill(join(hostWorkspace, "skills", "shared-review"), "Workspace review");
-  writeSkill(join(projectRoot, ".agents", "skills", "shared-review"), "Project review");
-  writeSkill(join(globalSkillsRoot, "global-review"), "Global review");
+  writeRouterNcpSkill(join(hostWorkspace, "skills", "shared-review"), "Workspace review");
+  writeRouterNcpSkill(join(projectRoot, ".agents", "skills", "shared-review"), "Project review");
+  writeRouterNcpSkill(join(globalSkillsRoot, "global-review"), "Global review");
   saveConfig(ConfigSchema.parse({
     agents: {
       defaults: {

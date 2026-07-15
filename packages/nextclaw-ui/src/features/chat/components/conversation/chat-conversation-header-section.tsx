@@ -17,7 +17,10 @@ import { useChatSessionListStore } from "@/features/chat/stores/chat-session-lis
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
-import { getSessionProjectName } from "@/shared/lib/session-project";
+import {
+  getSessionProjectName,
+  normalizeSessionProjectRootValue,
+} from "@/shared/lib/session-project";
 import { t } from "@/shared/lib/i18n";
 
 type ChatConversationHeaderSectionProps = {
@@ -40,6 +43,9 @@ export function ChatConversationHeaderSection({
   const sessionTypesData = useChatQueryStore(
     (state) => state.snapshot.sessionTypesQuery?.data ?? null,
   );
+  const config = useChatQueryStore(
+    (state) => state.snapshot.configQuery?.data ?? null,
+  );
   const selectedSession = useNcpChatSelectedSession(sessionKey);
   const sessionTypeOptions = useMemo(
     () => buildSessionTypeOptions(sessionTypesData?.options ?? []),
@@ -55,6 +61,9 @@ export function ChatConversationHeaderSection({
   const shouldShowSessionTypeBadge =
     sessionType !== DEFAULT_SESSION_TYPE && Boolean(sessionTypeLabel);
   const sessionProjectRoot = selectedSession?.projectRoot ?? null;
+  const defaultWorkspacePath = normalizeSessionProjectRootValue(
+    config?.agents.defaults.workspace,
+  );
   const sessionProjectName =
     selectedSession?.projectName ?? getSessionProjectName(sessionProjectRoot);
   const canDeleteSession = Boolean(selectedSession);
@@ -129,6 +138,7 @@ export function ChatConversationHeaderSection({
             sessionKey={sessionKey ?? "draft"}
             projectName={sessionProjectName}
             projectRoot={sessionProjectRoot}
+            defaultWorkspacePath={defaultWorkspacePath}
             persistToServer={canDeleteSession}
           />
         ) : null
@@ -139,7 +149,8 @@ export function ChatConversationHeaderSection({
             sessionKey={sessionKey}
             canDeleteSession={canDeleteSession}
             isDeletePending={snapshot.isDeletePending}
-            projectRoot={sessionProjectRoot}
+            currentPath={sessionProjectRoot ?? selectedSession?.workingDir ?? null}
+            defaultWorkspacePath={defaultWorkspacePath}
             metadata={selectedSession?.metadata ?? null}
             isWorkspaceOpen={isWorkspaceOpen}
             onToggleWorkspace={toggleWorkspace}

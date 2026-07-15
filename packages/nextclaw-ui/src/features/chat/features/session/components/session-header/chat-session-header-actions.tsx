@@ -15,7 +15,8 @@ type ChatSessionHeaderActionsProps = {
   sessionKey: string;
   canDeleteSession: boolean;
   isDeletePending: boolean;
-  projectRoot?: string | null;
+  currentPath?: string | null;
+  defaultWorkspacePath?: string | null;
   metadata?: Record<string, unknown> | null;
   isWorkspaceOpen: boolean;
   onToggleWorkspace: () => void;
@@ -26,7 +27,8 @@ export function ChatSessionHeaderActions({
   sessionKey,
   canDeleteSession,
   isDeletePending,
-  projectRoot,
+  currentPath,
+  defaultWorkspacePath,
   metadata,
   isWorkspaceOpen,
   onToggleWorkspace,
@@ -119,7 +121,8 @@ export function ChatSessionHeaderActions({
 
       <ChatSessionProjectDialog
         open={isDialogOpen}
-        currentProjectRoot={projectRoot}
+        currentProjectRoot={currentPath}
+        defaultWorkspacePath={defaultWorkspacePath}
         isSaving={isProjectPending}
         onOpenChange={setIsDialogOpen}
         onSave={runProjectUpdate}

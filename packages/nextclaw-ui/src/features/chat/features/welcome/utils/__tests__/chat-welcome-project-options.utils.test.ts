@@ -48,4 +48,24 @@ describe("buildChatWelcomeProjectOptions", () => {
       },
     ]);
   });
+
+  it("includes a registered project before it has any sessions", () => {
+    const options = buildChatWelcomeProjectOptions({
+      defaultProjectRoot: "/Users/demo/.nextclaw/workspace",
+      projects: [{
+        name: "Knowledge",
+        rootPath: "/tmp/knowledge",
+        template: "knowledge-base",
+        createdAt: "2026-07-15T00:00:00.000Z",
+        updatedAt: "2026-07-15T00:00:00.000Z",
+      }],
+      sessionSummaries: [],
+    });
+
+    expect(options).toEqual([{
+      projectRoot: "/tmp/knowledge",
+      projectName: "Knowledge",
+      sessionCount: 0,
+    }]);
+  });
 });

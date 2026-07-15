@@ -15,6 +15,7 @@ type ChatSessionProjectBadgeProps = {
   sessionKey: string;
   projectName: string;
   projectRoot?: string | null;
+  defaultWorkspacePath?: string | null;
   persistToServer: boolean;
 };
 
@@ -26,6 +27,7 @@ export function ChatSessionProjectBadge({
   sessionKey,
   projectName,
   projectRoot,
+  defaultWorkspacePath,
   persistToServer,
 }: ChatSessionProjectBadgeProps) {
   const updateSessionProject = useChatSessionProject();
@@ -106,6 +108,7 @@ export function ChatSessionProjectBadge({
       <ChatSessionProjectDialog
         open={isDialogOpen}
         currentProjectRoot={projectRoot}
+        defaultWorkspacePath={defaultWorkspacePath}
         isSaving={isProjectPending}
         onOpenChange={setIsDialogOpen}
         onSave={runProjectUpdate}

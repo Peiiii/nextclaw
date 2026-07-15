@@ -16,6 +16,7 @@ import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 import { useAgents } from "@/shared/hooks/use-agents";
+import { useProjects } from "@/shared/hooks/use-projects";
 import type { NcpSessionSummaryView } from "@/shared/lib/api";
 import { normalizeSessionProjectRootValue } from "@/shared/lib/session-project";
 
@@ -55,6 +56,7 @@ export function ChatConversationWelcome({
     (state) => state.snapshot.sessionTypesQuery?.data ?? null,
   );
   const agentsQuery = useAgents();
+  const projectsQuery = useProjects();
   const draftAgentId = threadSnapshot.agentId ?? selectedAgentId;
   const availableAgents = resolveChatWelcomeAgents({
     agents: agentsQuery.data?.agents,
@@ -80,6 +82,7 @@ export function ChatConversationWelcome({
   });
   const projectOptions = buildChatWelcomeProjectOptions({
     defaultProjectRoot,
+    projects: projectsQuery.data?.projects ?? [],
     sessionSummaries,
   });
   const selectDraftAgent = (agentId: string) => {

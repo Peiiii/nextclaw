@@ -6,6 +6,7 @@ import { SessionsHistoryTool, SessionsListTool } from "@kernel/tools/session-his
 import { SessionRequestTool } from "@kernel/tools/session-request.tools.js";
 import { SessionSearchTool } from "@kernel/tools/session-search.tools.js";
 import { SessionSpawnTool } from "@kernel/tools/session-spawn.tools.js";
+import { SessionsUpdateTool } from "@kernel/tools/session-update.tools.js";
 import type { SessionSearchService } from "@nextclaw/core";
 import type { NcpTool } from "@nextclaw/ncp";
 
@@ -40,6 +41,7 @@ export class SessionToolProvider implements ToolProvider {
       sessionsRequestTool,
       new SessionsListTool(this.sessionManager),
       new SessionsHistoryTool(this.sessionManager),
+      new SessionsUpdateTool(this.sessionManager),
     ];
     if (!this.sessionSearch.isReady()) {
       return tools;

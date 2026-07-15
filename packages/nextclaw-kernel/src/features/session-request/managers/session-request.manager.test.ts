@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { EventBus } from "@nextclaw/shared";
 import { SessionManager } from "@kernel/managers/session.manager.js";
+import { ProjectManager } from "@kernel/managers/project.manager.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import { SessionRequestManager } from "./session-request.manager.js";
 
@@ -41,6 +42,10 @@ function createFixture() {
     configManager: configManager as never,
     eventBus: new EventBus(),
     journalStore: new NcpAgentSessionJournalStore(join(dir, "journal")),
+    projectManager: new ProjectManager({
+      storePath: join(dir, "projects.json"),
+      getDefaultWorkspacePath: () => dir,
+    }),
     sessionSearch: { handleSessionUpdated: async () => undefined } as never,
   });
   const manager = new SessionRequestManager({

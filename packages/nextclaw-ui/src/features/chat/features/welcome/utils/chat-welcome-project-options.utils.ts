@@ -1,4 +1,4 @@
-import type { NcpSessionSummaryView } from "@/shared/lib/api";
+import type { NcpSessionSummaryView, ProjectView } from "@/shared/lib/api";
 import { adaptNcpSessionSummaries } from "@/features/chat/features/session/utils/ncp-session-adapter.utils";
 import { getSessionProjectName } from "@/shared/lib/session-project";
 
@@ -17,13 +17,26 @@ function readSessionActivityAt(session: {
 
 export function buildChatWelcomeProjectOptions(params: {
   defaultProjectRoot: string | null;
+  projects?: readonly ProjectView[];
   sessionSummaries: readonly NcpSessionSummaryView[];
 }): ChatWelcomeProjectOption[] {
-  const { defaultProjectRoot, sessionSummaries } = params;
+  const { defaultProjectRoot, projects = [], sessionSummaries } = params;
   const groups = new Map<
     string,
     ChatWelcomeProjectOption & { latestUpdatedAt: number }
   >();
+
+  for (const project of projects) {
+    if (project.rootPath === defaultProjectRoot) {
+      continue;
+    }
+    groups.set(project.rootPath, {
+      projectRoot: project.rootPath,
+      projectName: project.name,
+      sessionCount: 0,
+      latestUpdatedAt: new Date(project.updatedAt).getTime(),
+    });
+  }
 
   for (const session of adaptNcpSessionSummaries([...sessionSummaries])) {
     const projectRoot = session.projectRoot?.trim();

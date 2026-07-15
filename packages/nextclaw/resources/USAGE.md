@@ -432,6 +432,31 @@ NextClaw UI now provides an OpenClaw-aligned session operations panel (**Session
 - delete one session
 - localized Sessions UI copy (i18n labels for the panel)
 
+### Project and session management (UI, CLI, and AI)
+
+Projects are maintained independently from sessions, so a project can exist before its first conversation. The default workspace remains the fallback working directory and is not registered as an explicit project.
+
+In the Chat sidebar, switch to the project view and choose **New Project**. The dialog supports empty and knowledge-base templates plus an optional target directory. Its server-side directory picker provides address navigation, back/forward, breadcrumbs, search, refresh, and **New Folder**; leaving the target blank creates a same-named folder under the default workspace.
+
+```bash
+# List projects and templates
+nextclaw projects list --json
+nextclaw projects templates --json
+
+# Create an empty project under the default workspace
+nextclaw projects create research --template empty --json
+
+# Create a knowledge-base project at an explicit path
+nextclaw projects create knowledge --path ~/Projects/knowledge --template knowledge-base --json
+
+# Rename a session and manage its project binding
+nextclaw sessions rename <session-id> "Research session" --json
+nextclaw sessions set-project <session-id> ~/Projects/research --json
+nextclaw sessions clear-project <session-id> --json
+```
+
+The UI, CLI, and built-in AI tools all use the same kernel-owned operations. AI exposes them through `projects_list`, `projects_create`, and `sessions_update`. Project creation never overwrites a non-empty directory. Binding an existing directory registers it as a project; binding the default workspace clears the explicit project binding instead.
+
 This is useful when running multi-agent routing and channel operations long term, because you can clean or retarget problematic sessions without hand-editing files.
 
 ## Agent chat in UI
@@ -546,6 +571,12 @@ Skill loading contract:
 | `nextclaw agents new <agent-id>` | Create a new agent with default home/template/avatar |
 | `nextclaw agents update <agent-id>` | Update an existing agent's display metadata |
 | `nextclaw agents remove <agent-id>` | Remove an extra agent (built-in `main` cannot be removed) |
+| `nextclaw projects list` | List registered projects, including projects without sessions |
+| `nextclaw projects templates` | List built-in project templates |
+| `nextclaw projects create <name>` | Create an empty or knowledge-base project |
+| `nextclaw sessions rename <session-id> <label>` | Rename a session |
+| `nextclaw sessions set-project <session-id> <directory>` | Bind a session to an existing project directory |
+| `nextclaw sessions clear-project <session-id>` | Clear a session project binding |
 | `nextclaw login --api-base <url>` | Start browser sign-in for NextClaw Platform and save the platform token locally (`--no-open` for headless servers, `--email/--password` for direct fallback) |
 | `nextclaw remote enable` | Enable service-managed remote access |
 | `nextclaw remote disable` | Disable service-managed remote access |

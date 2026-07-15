@@ -1,7 +1,11 @@
 import { readdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, parse, resolve } from "node:path";
-import { expandHome } from "@nextclaw/core";
+import { resolveServerPathLocations } from "@nextclaw-server/features/server-path/utils/server-path-locations.utils.js";
+import {
+  resolveServerPath,
+  ServerPathResolutionError,
+} from "@nextclaw-server/features/server-path/utils/server-path-resolution.utils.js";
 import type {
   ServerPathBreadcrumbView,
   ServerPathBrowseView,
@@ -30,26 +34,15 @@ export class ServerPathBrowseError extends Error {
   }
 }
 
-function normalizeBrowsePath(options: BrowseServerPathOptions): string {
-  const { basePath, path } = options;
-  const rawPath = typeof path === "string" ? path.trim() : "";
-  const normalizedBasePath =
-    typeof basePath === "string" ? basePath.trim() : "";
-  if (!rawPath) {
-    return resolve(expandHome(normalizedBasePath || homedir()));
+function resolveBrowsePath(options: BrowseServerPathOptions): string {
+  try {
+    return resolveServerPath({ ...options, defaultToHome: true });
+  } catch (error) {
+    if (error instanceof ServerPathResolutionError) {
+      throw new ServerPathBrowseError("SERVER_PATH_BASE_REQUIRED", error.message);
+    }
+    throw error;
   }
-
-  const expandedPath = expandHome(rawPath);
-  if (expandedPath.startsWith("/")) {
-    return resolve(expandedPath);
-  }
-  if (!normalizedBasePath) {
-    throw new ServerPathBrowseError(
-      "SERVER_PATH_BASE_REQUIRED",
-      "relative server path requires a base path",
-    );
-  }
-  return resolve(expandHome(normalizedBasePath), expandedPath);
 }
 
 function readRootLabel(rootPath: string): string {
@@ -118,7 +111,7 @@ function sortEntryViews(left: ServerPathEntryView, right: ServerPathEntryView): 
 export async function browseServerPath(
   options: BrowseServerPathOptions = {},
 ): Promise<ServerPathBrowseView> {
-  const currentPath = normalizeBrowsePath(options);
+  const currentPath = resolveBrowsePath(options);
 
   let currentPathStats;
   try {
@@ -161,13 +154,15 @@ export async function browseServerPath(
     .sort(sortEntryViews);
 
   const parentPath = dirname(currentPath);
+  const homePath = resolve(homedir());
 
   return {
     currentPath,
     parentPath: parentPath === currentPath ? null : parentPath,
-    homePath: resolve(homedir()),
+    homePath,
     breadcrumbs: buildBreadcrumbs(currentPath),
     entries,
+    locations: await resolveServerPathLocations(homePath),
   };
 }
 

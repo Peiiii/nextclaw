@@ -64,6 +64,12 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
         unavailable("preferenceManager.setPreference"),
       deletePreference: async () => false,
     } as never,
+    projectManager: {
+      listProjects: async () => [],
+      listTemplates: () => [],
+      createProject: async () => unavailable("projectManager.createProject"),
+      resolveExistingProjectRoot: async () => null,
+    } as never,
     serviceAppManager: {
       listServiceApps: async () => ({
         workspacePath: "",

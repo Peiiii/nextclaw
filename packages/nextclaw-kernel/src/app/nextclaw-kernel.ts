@@ -14,6 +14,7 @@ import { McpManager } from "@kernel/managers/mcp.manager.js";
 import { SessionManager } from "@kernel/managers/session.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
 import { PreferenceManager } from "@kernel/managers/preference.manager.js";
+import { ProjectManager } from "@kernel/managers/project.manager.js";
 import { ServiceAppManager } from "@kernel/managers/service-app.manager.js";
 import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
@@ -43,6 +44,7 @@ import {
 } from "@nextclaw/core";
 import { EventBus, Ingress } from "@nextclaw/shared";
 import { resolve } from "node:path";
+import { readProjectRoot } from "@kernel/utils/session-creation.utils.js";
 
 export type NextclawKernelOptions = {
   homeDir?: string;
@@ -75,6 +77,14 @@ function resolveKernelPreferenceStorePath(
     return resolve(expandHome(homeDir), "preferences", "preferences.json");
   }
   return resolve(getDataDir(), "preferences", "preferences.json");
+}
+
+function resolveKernelProjectStorePath(options: NextclawKernelOptions): string {
+  const homeDir = options.homeDir?.trim();
+  if (homeDir) {
+    return resolve(expandHome(homeDir), "projects", "projects.json");
+  }
+  return resolve(getDataDir(), "projects", "projects.json");
 }
 
 type NextclawKernelRuntimeControl<TGatewayInput, TUiInput, TStartInput> = {
@@ -131,6 +141,7 @@ export class NextclawKernel {
   readonly sessionManager: SessionManager;
   readonly panelAppManager: PanelAppManager;
   readonly preferenceManager: PreferenceManager;
+  readonly projectManager: ProjectManager;
   readonly serviceAppManager: ServiceAppManager;
   readonly extensions: ExtensionManager;
   readonly agentRuntimeManager = new AgentRuntimeManager();
@@ -176,11 +187,18 @@ export class NextclawKernel {
       configManager: this.configManager,
       homeDir: options.homeDir,
     });
+    this.projectManager = new ProjectManager({
+      storePath: resolveKernelProjectStorePath(options),
+      getDefaultWorkspacePath: () => getWorkspacePath(
+        this.configManager.config.agents.defaults.workspace,
+      ),
+    });
     this.sessionManager = new SessionManager({
       agentManager: this.agents,
       configManager: this.configManager,
       eventBus: this.eventBus,
       journalStore: this.ncpAgentSessionJournalStore,
+      projectManager: this.projectManager,
       sessionSearch: this.sessionSearch,
     });
     this.panelAppManager = new PanelAppManager({
@@ -263,6 +281,11 @@ export class NextclawKernel {
   start = async (): Promise<void> => {
     void this.sessionSearch.start();
     this.mcpManager.start();
+    await this.projectManager.importSessionProjects(
+      (await this.sessionManager.listSessions()).map((session) =>
+        readProjectRoot(session.metadata)
+      ),
+    );
     this.sessionManager.start();
     for (const contribution of this.contributions) {
       contribution.start();

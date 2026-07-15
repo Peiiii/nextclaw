@@ -5,6 +5,7 @@ import { AssetToolProvider } from "./providers/asset-tool.provider.js";
 import { CoreToolProvider } from "./providers/core-tool.provider.js";
 import { McpToolProvider } from "./providers/mcp-tool.provider.js";
 import { MessagingToolProvider } from "./providers/messaging-tool.provider.js";
+import { ProjectToolProvider } from "./providers/project-tool.provider.js";
 import { SessionToolProvider } from "./providers/session-tool.provider.js";
 import { ShowContentToolProvider } from "./providers/show-content-tool.provider.js";
 import { StructuredResultToolProvider } from "./providers/structured-result-tool.provider.js";
@@ -49,6 +50,7 @@ export class ToolProviderContribution implements KernelContribution {
         this.kernel.automation,
         this.kernel.extensions,
       ),
+      new ProjectToolProvider(this.kernel.projectManager),
       new SessionToolProvider(
         runContextService,
         this.kernel.sessionManager,

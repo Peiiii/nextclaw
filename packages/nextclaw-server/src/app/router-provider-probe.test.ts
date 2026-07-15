@@ -42,6 +42,10 @@ function createProviderProbeApp(configPath: string) {
         },
         deletePreference: async () => false,
       } as never,
+      projectManager: {
+        listProjects: async () => [],
+        listTemplates: () => [],
+      } as never,
       serviceAppManager: {} as never,
       llmProviders: { testConnection: testConnectionMock } as unknown as LlmProviderManager,
     } satisfies UiKernelHost,

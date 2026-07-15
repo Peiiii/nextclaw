@@ -70,6 +70,7 @@ jobs:
       - name: Lint / Typecheck / Runtime Smoke
         run: |
           pnpm -r --filter @nextclaw/desktop... build
+          pnpm --filter @nextclaw/server exec vitest run src/features/server-path/controllers/server-path.controller.test.ts
           pnpm -C apps/desktop lint
           pnpm -C apps/desktop tsc
           pnpm -C apps/desktop smoke
@@ -184,6 +185,7 @@ jobs:
           set -euo pipefail
           export CSC_IDENTITY_AUTO_DISCOVERY=false
           pnpm -r --filter @nextclaw/desktop... build
+          pnpm --filter @nextclaw/server exec vitest run src/features/server-path/controllers/server-path.controller.test.ts
           pnpm -C apps/desktop bundle:seed -- --channel stable --platform darwin --arch arm64
           pnpm -C apps/desktop lint
           pnpm -C apps/desktop tsc
@@ -249,6 +251,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           pnpm -r --filter @nextclaw/desktop... build
+          pnpm --filter @nextclaw/server exec vitest run src/features/server-path/controllers/server-path.controller.test.ts
 
       - name: Minimal Electron app-region smoke
         shell: pwsh

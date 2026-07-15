@@ -28,6 +28,7 @@ import { RuntimeControlRoutesController } from "@nextclaw-server/features/runtim
 import { RuntimeUpdateRoutesController } from "@nextclaw-server/features/runtime-update/index.js";
 import { PanelAppsRoutesController } from "@nextclaw-server/features/panel-apps/index.js";
 import { PreferencesRoutesController } from "@nextclaw-server/features/preferences/index.js";
+import { ProjectsRoutesController } from "@nextclaw-server/features/projects/index.js";
 import { ServiceAppsRoutesController } from "@nextclaw-server/features/service-apps/index.js";
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import { createNcpSessionEventStreamResponse } from "@nextclaw-server/app/utils/ncp-session-event-stream.utils.js";
@@ -61,6 +62,7 @@ function createUiRouteControllers(
       panelAppClientSdkScript,
     }),
     preferences: new PreferencesRoutesController(kernel.preferenceManager),
+    projects: new ProjectsRoutesController(kernel.projectManager),
     serviceApps: new ServiceAppsRoutesController({
       panelAppManager: kernel.panelAppManager,
       serviceAppManager: kernel.serviceAppManager,
@@ -197,6 +199,7 @@ class UiRouteRegistry {
       ncpSession,
       panelApps,
       preferences,
+      projects,
       serviceApps,
       serverPath,
     } = this.controllers;
@@ -222,6 +225,8 @@ class UiRouteRegistry {
       ["get", "/api/preferences/:key", preferences.get],
       ["put", "/api/preferences/:key", preferences.update],
       ["delete", "/api/preferences/:key", preferences.delete],
+      ["get", "/api/projects", projects.list],
+      ["post", "/api/projects", projects.create],
       ["delete", "/api/panel-apps/:id", panelApps.deletePanelApp],
       ["post", "/api/panel-apps/:id/open", panelApps.recordPanelAppOpened],
       ["get", "/api/panel-apps/:id/content", panelApps.getPanelAppContent],
@@ -240,6 +245,7 @@ class UiRouteRegistry {
       ["post", "/api/service-action-grants", serviceApps.grantServiceActions],
       ["delete", "/api/service-action-grants/:actionId", serviceApps.revokeServiceActionGrant],
       ["get", "/api/server-paths/browse", serverPath.browse],
+      ["post", "/api/server-paths/directory", serverPath.createDirectory],
       ["get", "/api/server-paths/read", serverPath.read],
       ["get", "/api/server-paths/content", serverPath.contentByPath],
       ["get", "/api/server-paths/content/*", serverPath.content],

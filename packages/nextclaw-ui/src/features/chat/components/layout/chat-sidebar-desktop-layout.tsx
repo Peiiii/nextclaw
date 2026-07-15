@@ -18,6 +18,7 @@ import {
   BrainCircuit,
   PanelLeftClose,
   PanelLeftOpen,
+  Plus,
 } from "lucide-react";
 import { ChatSidebarSessionList } from "@/features/chat/features/session/components/chat-sidebar-session-list";
 import { ChatSidebarUtilityMenu } from "@/features/chat/components/layout/chat-sidebar-utility-menu";
@@ -134,6 +135,7 @@ export function ChatSidebarSessionArea({
   isCollapsed,
   isLoading,
   isProjectFirstView,
+  onCreateProject,
   onSelectMode,
   projectGroups,
   renderSessionItem,
@@ -144,6 +146,7 @@ export function ChatSidebarSessionArea({
   isCollapsed: boolean;
   isLoading: boolean;
   isProjectFirstView: boolean;
+  onCreateProject: () => void;
   onSelectMode: (mode: "time-first" | "project-first") => void;
   projectGroups: ReturnType<typeof groupSessionsByProject>;
   renderSessionItem: (item: NcpSessionListItemView) => JSX.Element;
@@ -161,10 +164,19 @@ export function ChatSidebarSessionArea({
         <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/75">
           {t("chatSidebarTaskRecords")}
         </div>
-        <ChatSidebarListModeSwitch
-          isProjectFirstView={isProjectFirstView}
-          onSelectMode={onSelectMode}
-        />
+        <div className="flex items-center gap-1">
+          {isProjectFirstView ? (
+            <IconActionButton
+              icon={<Plus className="h-3.5 w-3.5" />}
+              label={t("chatProjectCreate")}
+              onClick={onCreateProject}
+            />
+          ) : null}
+          <ChatSidebarListModeSwitch
+            isProjectFirstView={isProjectFirstView}
+            onSelectMode={onSelectMode}
+          />
+        </div>
       </div>
 
       <div

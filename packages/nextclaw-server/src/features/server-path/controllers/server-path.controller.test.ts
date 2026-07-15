@@ -3,14 +3,17 @@ import {
   mkdtempSync,
   realpathSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
+import { isAbsolute, join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { ConfigSchema, saveConfig } from "@nextclaw/core";
+import { ConfigSchema, expandHome, saveConfig } from "@nextclaw/core";
 import { createUiRouter } from "@nextclaw-server/app/router.js";
 import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
+import { resolveServerPathLocations } from "@nextclaw-server/features/server-path/utils/server-path-locations.utils.js";
+import { resolveServerPath } from "@nextclaw-server/features/server-path/utils/server-path-resolution.utils.js";
 import { EventBus } from "@nextclaw/shared";
 
 const tempDirs: string[] = [];
@@ -54,6 +57,87 @@ afterEach(() => {
   }
 });
 
+describe("Server path platform resolution", () => {
+  it("discovers standard home locations from existing server directories", async () => {
+    const homePath = createTempDir("nextclaw-ui-server-path-home-");
+    mkdirSync(join(homePath, "Desktop"));
+    mkdirSync(join(homePath, "Documents"));
+    mkdirSync(join(homePath, "Downloads"));
+
+    await expect(resolveServerPathLocations(homePath)).resolves.toEqual(
+      expect.arrayContaining([
+        { kind: "desktop", path: join(homePath, "Desktop") },
+        { kind: "documents", path: join(homePath, "Documents") },
+        { kind: "downloads", path: join(homePath, "Downloads") },
+      ]),
+    );
+  });
+
+  it.runIf(process.platform === "linux")(
+    "uses Linux XDG user directories before English home defaults",
+    async () => {
+      const homePath = createTempDir("nextclaw-ui-server-path-xdg-home-");
+      const configPath = createTempDir("nextclaw-ui-server-path-xdg-config-");
+      mkdirSync(join(homePath, "Schreibtisch"));
+      mkdirSync(join(homePath, "Dokumente"));
+      mkdirSync(join(homePath, "Downloads"));
+      writeFileSync(
+        join(configPath, "user-dirs.dirs"),
+        [
+          'XDG_DESKTOP_DIR="$HOME/Schreibtisch"',
+          'XDG_DOCUMENTS_DIR="$HOME/Dokumente"',
+          'XDG_DOWNLOAD_DIR="$HOME/Downloads"',
+        ].join("\n"),
+      );
+      const previousConfigPath = process.env.XDG_CONFIG_HOME;
+      process.env.XDG_CONFIG_HOME = configPath;
+      try {
+        await expect(resolveServerPathLocations(homePath)).resolves.toEqual([
+          { kind: "desktop", path: join(homePath, "Schreibtisch") },
+          { kind: "documents", path: join(homePath, "Dokumente") },
+          { kind: "downloads", path: join(homePath, "Downloads") },
+        ]);
+      } finally {
+        if (previousConfigPath === undefined) {
+          delete process.env.XDG_CONFIG_HOME;
+        } else {
+          process.env.XDG_CONFIG_HOME = previousConfigPath;
+        }
+      }
+    },
+  );
+
+  it.runIf(process.platform === "win32")(
+    "accepts Windows drive, UNC, home, and OneDrive paths",
+    async () => {
+      expect(resolveServerPath({ path: "C:\\Windows" })).toBe(resolve("C:\\Windows"));
+      expect(resolveServerPath({ path: "\\\\server\\share\\folder" })).toBe(
+        resolve("\\\\server\\share\\folder"),
+      );
+      expect(expandHome("~\\workspace")).toBe(resolve(homedir(), "workspace"));
+
+      const homePath = createTempDir("nextclaw-ui-server-path-windows-home-");
+      const oneDrivePath = createTempDir("nextclaw-ui-server-path-onedrive-");
+      mkdirSync(join(oneDrivePath, "Desktop"));
+      mkdirSync(join(oneDrivePath, "Documents"));
+      const previousOneDrivePath = process.env.OneDrive;
+      process.env.OneDrive = oneDrivePath;
+      try {
+        await expect(resolveServerPathLocations(homePath)).resolves.toEqual([
+          { kind: "desktop", path: join(oneDrivePath, "Desktop") },
+          { kind: "documents", path: join(oneDrivePath, "Documents") },
+        ]);
+      } finally {
+        if (previousOneDrivePath === undefined) {
+          delete process.env.OneDrive;
+        } else {
+          process.env.OneDrive = previousOneDrivePath;
+        }
+      }
+    },
+  );
+});
+
 describe("ServerPathRoutesController", () => {
   it("browses server directories and filters out files by default", async () => {
     const app = createTestApp();
@@ -72,6 +156,7 @@ describe("ServerPathRoutesController", () => {
         currentPath: string;
         parentPath: string | null;
         entries: Array<{ name: string; kind: string }>;
+        locations: Array<{ kind: string; path: string }>;
       };
     };
     expect(payload.ok).toBe(true);
@@ -83,6 +168,7 @@ describe("ServerPathRoutesController", () => {
       kind: "directory",
       hidden: false,
     });
+    expect(payload.data.locations.every((location) => isAbsolute(location.path))).toBe(true);
   });
 
   it("returns a validation error when the server path does not exist", async () => {
@@ -283,6 +369,83 @@ describe("ServerPathRoutesController", () => {
       "image/svg+xml; charset=utf-8",
     );
     expect(await response.text()).toContain("<circle");
+  });
+});
+
+describe("server path directory creation", () => {
+  it("creates a directory inside the current server path", async () => {
+    const app = createTestApp();
+    const root = realpathSync(createTempDir("nextclaw-ui-server-path-create-"));
+
+    const response = await app.request(
+      "http://localhost/api/server-paths/directory",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ parentPath: root, name: "new-folder" }),
+      },
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      data: { path: join(root, "new-folder") },
+    });
+    expect(realpathSync(join(root, "new-folder"))).toBe(join(root, "new-folder"));
+  });
+
+  it("rejects directory names that can escape the selected parent", async () => {
+    const app = createTestApp();
+    const root = realpathSync(createTempDir("nextclaw-ui-server-path-invalid-name-"));
+
+    const response = await app.request(
+      "http://localhost/api/server-paths/directory",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ parentPath: root, name: "../escape" }),
+      },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      error: { code: "SERVER_PATH_DIRECTORY_NAME_INVALID" },
+    });
+  });
+
+  it("preserves the browsed parent path spelling for the created directory", async () => {
+    const app = createTestApp();
+    const root = createTempDir("nextclaw-ui-server-path-alias-");
+    const actualParent = join(root, "actual");
+    const aliasParent = join(root, "alias");
+    mkdirSync(actualParent);
+    symlinkSync(actualParent, aliasParent, process.platform === "win32" ? "junction" : "dir");
+
+    const response = await app.request(
+      "http://localhost/api/server-paths/directory",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ parentPath: aliasParent, name: "new-folder" }),
+      },
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      data: { path: join(aliasParent, "new-folder") },
+    });
+
+    const browseResponse = await app.request(
+      `http://localhost/api/server-paths/browse?path=${encodeURIComponent(aliasParent)}`,
+    );
+    await expect(browseResponse.json()).resolves.toMatchObject({
+      ok: true,
+      data: {
+        entries: [{ name: "new-folder", path: join(aliasParent, "new-folder") }],
+      },
+    });
   });
 });
 

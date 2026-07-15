@@ -5,16 +5,28 @@ import type {
   UiNcpSessionListView
 } from "@nextclaw-server/shared/types/server-api.types.js";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
-import { applySessionPreferencePatch } from "@nextclaw-server/features/sessions/utils/session-preference-patch.utils.js";
-import {
-  isSessionProjectRootValidationError,
-  normalizeSessionProjectRoot,
-} from "@nextclaw-server/features/sessions/utils/session-project-root.utils.js";
+import { isProjectError, isSessionSettingsError } from "@nextclaw/kernel";
 import { SessionSkillsViewBuilder } from "@nextclaw-server/features/sessions/services/session-skills-view.service.js";
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 
 const INTERRUPTED_SESSION_STATUS_TEXT = "Run interrupted: no completion or error event was recorded. Please send the message again.";
+
+function sessionProjectError(error: {
+  code: string;
+  message: string;
+}): { code: string; message: string } {
+  switch (error.code) {
+    case "PROJECT_PATH_INVALID_TYPE":
+      return { code: "PROJECT_ROOT_INVALID_TYPE", message: "projectRoot must be a string or null" };
+    case "PROJECT_PATH_NOT_FOUND":
+      return { code: "PROJECT_ROOT_NOT_FOUND", message: "projectRoot directory does not exist" };
+    case "PROJECT_PATH_NOT_DIRECTORY":
+      return { code: "PROJECT_ROOT_NOT_DIRECTORY", message: "projectRoot must point to a directory" };
+    default:
+      return error;
+  }
+}
 
 function readPositiveInt(value: string | undefined): number | undefined {
   if (typeof value !== "string") {
@@ -67,82 +79,6 @@ function normalizeSessionActivityPreview(session: NcpSessionSummary): NcpSession
       },
     },
   };
-}
-
-function applySessionTypePatch(
-  metadata: Record<string, unknown>,
-  patch: SessionPatchUpdate,
-): Record<string, unknown> {
-  if (!Object.prototype.hasOwnProperty.call(patch, "sessionType")) {
-    return metadata;
-  }
-  const sessionType = typeof patch.sessionType === "string" ? patch.sessionType.trim() : "";
-  if (sessionType) {
-    const { sessionType: _removed, ...nextMetadata } = metadata;
-    return {
-      ...nextMetadata,
-      session_type: sessionType,
-      runtime: sessionType,
-    };
-  }
-  const {
-    runtime: _runtime,
-    session_type: _sessionType,
-    sessionType: _camelSessionType,
-    ...nextMetadata
-  } = metadata;
-  return nextMetadata;
-}
-
-function applyUiReadAtPatch(
-  metadata: Record<string, unknown>,
-  patch: SessionPatchUpdate,
-): Record<string, unknown> {
-  if (!Object.prototype.hasOwnProperty.call(patch, "uiReadAt")) {
-    return metadata;
-  }
-  const uiReadAt = typeof patch.uiReadAt === "string" ? patch.uiReadAt.trim() : "";
-  if (uiReadAt) {
-    return {
-      ...metadata,
-      ui_last_read_at: uiReadAt,
-    };
-  }
-  const { ui_last_read_at: _removed, ...nextMetadata } = metadata;
-  return nextMetadata;
-}
-
-function applyProjectRootPatch(
-  metadata: Record<string, unknown>,
-  projectRoot: string | null | undefined,
-): Record<string, unknown> {
-  if (projectRoot === undefined) {
-    return metadata;
-  }
-  if (projectRoot) {
-    const { projectRoot: _removed, ...nextMetadata } = metadata;
-    return {
-      ...nextMetadata,
-      project_root: projectRoot,
-    };
-  }
-  const { project_root: _projectRoot, projectRoot: _camelProjectRoot, ...nextMetadata } = metadata;
-  return nextMetadata;
-}
-
-function buildPatchedSessionMetadata(
-  metadata: Record<string, unknown>,
-  patch: SessionPatchUpdate,
-  projectRootPatch: string | null | undefined,
-): Record<string, unknown> {
-  const nextMetadata = applySessionPreferencePatch({
-    metadata: structuredClone(metadata),
-    patch,
-    createInvalidThinkingError: () => new Error("PREFERRED_THINKING_INVALID")
-  });
-  const nextMetadataWithSessionType = applySessionTypePatch(nextMetadata, patch);
-  const nextMetadataWithReadAt = applyUiReadAtPatch(nextMetadataWithSessionType, patch);
-  return applyProjectRootPatch(nextMetadataWithReadAt, projectRootPatch);
 }
 
 export class NcpSessionRoutesController {
@@ -219,7 +155,9 @@ export class NcpSessionRoutesController {
 
     if (hasProjectRootOverride) {
       try {
-        const projectRoot = await normalizeSessionProjectRoot(query.projectRoot);
+        const projectRoot = await this.options.kernel.projectManager.resolveExistingProjectRoot(
+          query.projectRoot,
+        );
         if (projectRoot) {
           metadata.project_root = projectRoot;
         } else {
@@ -227,8 +165,9 @@ export class NcpSessionRoutesController {
           delete metadata.projectRoot;
         }
       } catch (error) {
-        if (isSessionProjectRootValidationError(error)) {
-          return c.json(err(error.code, error.message), 400);
+        if (isProjectError(error)) {
+          const mapped = sessionProjectError(error);
+          return c.json(err(mapped.code, mapped.message), 400);
         }
         throw error;
       }
@@ -253,33 +192,22 @@ export class NcpSessionRoutesController {
       return c.json(err("UNSUPPORTED_PATCH", "clearHistory is not supported for ncp sessions"), 400);
     }
 
-    let patched;
+    let updated;
     try {
-      const projectRootPatch = Object.prototype.hasOwnProperty.call(patch, "projectRoot")
-        ? await normalizeSessionProjectRoot(patch.projectRoot)
-        : undefined;
-      const existing = await sessionManager.getSessionRecord(sessionId);
-      const metadata = buildPatchedSessionMetadata(
-        readSessionMetadata(existing?.metadata),
-        patch,
-        projectRootPatch,
-      );
-      patched = existing
-        ? await sessionManager.setSessionMetadata(sessionId, metadata)
-        : Boolean(await sessionManager.updateSession(sessionId, { metadata }));
+      updated = await sessionManager.patchSessionSettings(sessionId, patch, {
+        createIfMissing: true,
+      });
     } catch (error) {
-      if (error instanceof Error && error.message === "PREFERRED_THINKING_INVALID") {
-        return c.json(err("PREFERRED_THINKING_INVALID", "preferredThinking must be a supported thinking level"), 400);
-      }
-      if (isSessionProjectRootValidationError(error)) {
+      if (isSessionSettingsError(error)) {
         return c.json(err(error.code, error.message), 400);
+      }
+      if (isProjectError(error)) {
+        const mapped = sessionProjectError(error);
+        return c.json(err(mapped.code, mapped.message), 400);
       }
       throw error;
     }
 
-    if (!patched) return c.json(err("NOT_FOUND", `ncp session not found: ${sessionId}`), 404);
-
-    const updated = await sessionManager.getSession(sessionId);
     if (!updated) {
       return c.json(err("NOT_FOUND", `ncp session not found: ${sessionId}`), 404);
     }

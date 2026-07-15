@@ -5,6 +5,10 @@ import {
   isServerPathBrowseError,
 } from "@nextclaw-server/features/server-path/utils/server-path-browse.utils.js";
 import {
+  createServerPathDirectory,
+  isServerPathDirectoryCreateError,
+} from "@nextclaw-server/features/server-path/utils/server-path-directory.utils.js";
+import {
   isServerPathReadError,
   readServerPath,
 } from "@nextclaw-server/features/server-path/utils/server-path-read.utils.js";
@@ -12,7 +16,12 @@ import {
   isServerPathContentError,
   readServerPathContent,
 } from "@nextclaw-server/features/server-path/utils/server-path-content.utils.js";
-import { err, ok } from "@nextclaw-server/shared/utils/http-response.utils.js";
+import {
+  err,
+  isRecord,
+  ok,
+  readJson,
+} from "@nextclaw-server/shared/utils/http-response.utils.js";
 
 function readIncludeFilesFlag(value: string | undefined): boolean {
   return value === "1" || value === "true";
@@ -42,6 +51,24 @@ export class ServerPathRoutesController {
       return c.json(ok(payload));
     } catch (error) {
       if (isServerPathBrowseError(error)) {
+        return c.json(err(error.code, error.message), 400);
+      }
+      throw error;
+    }
+  };
+
+  readonly createDirectory = async (c: Context) => {
+    const body = await readJson<unknown>(c.req.raw);
+    if (!body.ok || !isRecord(body.data)) {
+      return c.json(err("INVALID_SERVER_PATH_DIRECTORY", "directory input is required"), 400);
+    }
+    try {
+      return c.json(ok(await createServerPathDirectory({
+        parentPath: body.data.parentPath,
+        name: body.data.name,
+      })), 201);
+    } catch (error) {
+      if (isServerPathDirectoryCreateError(error)) {
         return c.json(err(error.code, error.message), 400);
       }
       throw error;

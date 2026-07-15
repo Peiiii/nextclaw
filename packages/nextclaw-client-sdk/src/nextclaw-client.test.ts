@@ -6,6 +6,55 @@ import {
   NextClawClientError
 } from "./index.js";
 
+  it("lists registered projects from the project registry api", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      ok: true,
+      data: {
+        projects: [{
+          name: "Knowledge",
+          rootPath: "/tmp/knowledge",
+          createdAt: "2026-07-15T00:00:00.000Z",
+          updatedAt: "2026-07-15T00:00:00.000Z",
+        }],
+        templates: [],
+        total: 1,
+      },
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const client = new NextClawClient({
+      baseUrl: "http://127.0.0.1:55667",
+      fetchImpl,
+    });
+
+    await expect(client.projects.list()).resolves.toMatchObject({ total: 1 });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "http://127.0.0.1:55667/api/projects",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("creates a server directory through the shared path service", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      ok: true,
+      data: { path: "/workspace/new-folder" },
+    }), { status: 201, headers: { "Content-Type": "application/json" } }));
+    const client = new NextClawClient({
+      baseUrl: "http://127.0.0.1:55667",
+      fetchImpl,
+    });
+
+    await expect(client.serverPaths.createDirectory({
+      parentPath: "/workspace",
+      name: "new-folder",
+    })).resolves.toEqual({ path: "/workspace/new-folder" });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "http://127.0.0.1:55667/api/server-paths/directory",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ parentPath: "/workspace", name: "new-folder" }),
+      }),
+    );
+  });
+
   it("lists sessions from the existing ncp api", async () => {
     const fetchImpl = vi.fn(async () => {
       return new Response(

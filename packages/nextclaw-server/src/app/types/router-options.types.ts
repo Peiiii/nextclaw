@@ -50,6 +50,7 @@ export type UiKernelHost = Pick<
   | "sessionManager"
   | "panelAppManager"
   | "preferenceManager"
+  | "projectManager"
   | "serviceAppManager"
 > & {
   accessManager?: NextclawKernel["accessManager"];

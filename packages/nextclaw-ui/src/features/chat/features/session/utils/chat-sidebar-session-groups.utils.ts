@@ -1,4 +1,4 @@
-import type { SessionEntryView } from "@/shared/lib/api";
+import type { ProjectView, SessionEntryView } from "@/shared/lib/api";
 import type { NcpSessionListItemView } from "@/features/chat/features/ncp/hooks/use-ncp-session-list-view";
 import { getSessionProjectName } from "@/shared/lib/session-project";
 import { t } from "@/shared/lib/i18n";
@@ -96,8 +96,19 @@ export function groupSessionsByProject(
   items: NcpSessionListItemView[],
   pinnedSessionKeys: ReadonlySet<string> = new Set(),
   pinnedProjectRoots: ReadonlySet<string> = new Set(),
+  projects: readonly ProjectView[] = [],
 ): ChatSidebarProjectGroup[] {
   const grouped = new Map<string, ChatSidebarProjectGroup>();
+
+  for (const project of projects) {
+    grouped.set(project.rootPath, {
+      projectRoot: project.rootPath,
+      projectName: project.name,
+      items: [],
+      latestUpdatedAt: new Date(project.updatedAt).getTime(),
+      isPinned: pinnedProjectRoots.has(project.rootPath),
+    });
+  }
 
   for (const item of items) {
     const projectRoot = item.session.projectRoot?.trim();

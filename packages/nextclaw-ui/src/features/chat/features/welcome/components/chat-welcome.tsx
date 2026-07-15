@@ -106,6 +106,7 @@ export function ChatWelcome({
         <ChatSessionProjectDialog
           open={isProjectDialogOpen}
           currentProjectRoot={resolvedProjectRoot}
+          defaultWorkspacePath={defaultProjectRoot}
           isSaving={isProjectSaving}
           onOpenChange={setIsProjectDialogOpen}
           onSave={saveProjectRoot}

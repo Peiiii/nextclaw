@@ -16,6 +16,9 @@ import { useChatSessionListStore } from "@/features/chat/stores/chat-session-lis
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useSystemStatus } from "@/features/system-status";
 import { useAgents } from "@/shared/hooks/use-agents";
+import { useCreateProject, useProjects } from "@/shared/hooks/use-projects";
+import type { ProjectCreateRequest } from "@/shared/lib/api";
+import { normalizeSessionProjectRootValue } from "@/shared/lib/session-project";
 import { cn } from "@/shared/lib/utils";
 import { LANGUAGE_OPTIONS, t, type I18nLanguage } from "@/shared/lib/i18n";
 import { THEME_OPTIONS } from "@/shared/lib/theme";
@@ -42,6 +45,7 @@ import {
 import { useChatNewSessionTypePreference } from "@/features/chat/features/session-type/hooks/use-chat-new-session-type-preference";
 import { useViewportLayoutStore } from "@/app/stores/viewport-layout.store";
 import { SIDEBAR_RAIL_WIDTH_CLASS } from "@/app/components/layout/sidebar-rail.styles";
+import { ChatProjectCreateDialog } from "@/features/chat/features/project/components/chat-project-create-dialog";
 
 type ChatSidebarVariant = "desktop" | "mobile";
 
@@ -94,13 +98,19 @@ export function ChatSidebar({
     (state) => state.isSidebarCollapsed,
   );
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
+  const [isProjectCreateOpen, setIsProjectCreateOpen] = useState(false);
   const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false);
   const listSnapshot = useChatSessionListStore((state) => state.snapshot);
   const sessionTypesData = useChatQueryStore(
     (state) => state.snapshot.sessionTypesQuery?.data ?? null,
   );
+  const config = useChatQueryStore(
+    (state) => state.snapshot.configQuery?.data ?? null,
+  );
   const systemStatus = useSystemStatus();
   const agentsQuery = useAgents();
+  const projectsQuery = useProjects();
+  const projectCreateMutation = useCreateProject();
   const { isLoading, items } = useNcpSessionListView();
   const { language, setLanguage } = useI18n();
   const { theme, setTheme } = useTheme();
@@ -153,8 +163,13 @@ export function ChatSidebar({
     [pinnedSessionKeys, sortedItems],
   );
   const projectGroups = useMemo(
-    () => groupSessionsByProject(sortedItems, pinnedSessionKeys, pinnedProjectRoots),
-    [pinnedProjectRoots, pinnedSessionKeys, sortedItems],
+    () => groupSessionsByProject(
+      sortedItems,
+      pinnedSessionKeys,
+      pinnedProjectRoots,
+      projectsQuery.data?.projects ?? [],
+    ),
+    [pinnedProjectRoots, pinnedSessionKeys, projectsQuery.data?.projects, sortedItems],
   );
   const sessionTypeOptions = useMemo(
     () => buildSessionTypeOptions(sessionTypesData?.options ?? []),
@@ -238,6 +253,14 @@ export function ChatSidebar({
       typeof projectRoot === "string" ? projectRoot : undefined,
     );
   };
+  const openProjectCreate = () => {
+    projectCreateMutation.reset();
+    setIsProjectCreateOpen(true);
+  };
+  const createProjectFromSidebar = async (input: ProjectCreateRequest): Promise<void> => {
+    await projectCreateMutation.mutateAsync(input);
+    setIsProjectCreateOpen(false);
+  };
 
   return (
     <aside
@@ -310,6 +333,7 @@ export function ChatSidebar({
         isCollapsed={shouldCollapse}
         isLoading={isLoading}
         isProjectFirstView={isProjectFirstView}
+        onCreateProject={openProjectCreate}
         onSelectMode={presenter.chatSessionListManager.setListMode}
         projectGroups={projectGroups}
         renderSessionItem={renderSessionItem}
@@ -338,6 +362,18 @@ export function ChatSidebar({
           themeOptions={utilityThemeOptions}
         />
       ) : null}
+
+      <ChatProjectCreateDialog
+        open={isProjectCreateOpen}
+        defaultWorkspacePath={normalizeSessionProjectRootValue(
+          config?.agents.defaults.workspace,
+        )}
+        templates={projectsQuery.data?.templates ?? []}
+        isCreating={projectCreateMutation.isPending}
+        errorMessage={projectCreateMutation.error?.message}
+        onOpenChange={setIsProjectCreateOpen}
+        onCreate={createProjectFromSidebar}
+      />
     </aside>
   );
 }

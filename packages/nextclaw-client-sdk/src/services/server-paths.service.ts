@@ -1,4 +1,9 @@
-import type { ServerPathBrowseView, ServerPathReadView } from "@nextclaw/server";
+import type {
+  ServerPathBrowseView,
+  ServerPathDirectoryCreateRequest,
+  ServerPathDirectoryCreateView,
+  ServerPathReadView,
+} from "@nextclaw/server";
 import type { RequestService } from "./request.service.js";
 
 export class ServerPathsService {
@@ -20,6 +25,14 @@ export class ServerPathsService {
       }
     });
   };
+
+  readonly createDirectory = async (
+    input: ServerPathDirectoryCreateRequest,
+  ): Promise<ServerPathDirectoryCreateView> =>
+    await this.requestService.post<ServerPathDirectoryCreateView>(
+      "/api/server-paths/directory",
+      input,
+    );
 
   readonly read = async (params: { path: string; basePath?: string | null; line?: number | null }): Promise<ServerPathReadView> => {
     const { basePath: rawBasePath, line: rawLine, path: rawPath } = params;

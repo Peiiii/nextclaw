@@ -32,7 +32,7 @@ describe('ChatSessionHeaderActions', () => {
         sessionKey="session-1"
         canDeleteSession
         isDeletePending={false}
-        projectRoot="/tmp/project-alpha"
+        currentPath="/tmp/project-alpha"
         isWorkspaceOpen={false}
         onToggleWorkspace={mocks.onToggleWorkspace}
         onDeleteSession={mocks.onDeleteSession}
@@ -55,7 +55,7 @@ describe('ChatSessionHeaderActions', () => {
         sessionKey="draft-session"
         canDeleteSession={false}
         isDeletePending={false}
-        projectRoot={null}
+        currentPath={null}
         isWorkspaceOpen={false}
         onToggleWorkspace={mocks.onToggleWorkspace}
         onDeleteSession={mocks.onDeleteSession}
@@ -77,7 +77,7 @@ describe('ChatSessionHeaderActions', () => {
         sessionKey="session-codex"
         canDeleteSession
         isDeletePending={false}
-        projectRoot={null}
+        currentPath={null}
         metadata={{
           codex_thread_id: 'thread-123',
           runtime: 'codex',
@@ -106,7 +106,7 @@ describe('ChatSessionHeaderActions', () => {
         sessionKey="session-children"
         canDeleteSession
         isDeletePending={false}
-        projectRoot={null}
+        currentPath={null}
         isWorkspaceOpen={false}
         onToggleWorkspace={mocks.onToggleWorkspace}
         onDeleteSession={mocks.onDeleteSession}
@@ -126,7 +126,7 @@ describe('ChatSessionHeaderActions', () => {
         sessionKey="session-actions"
         canDeleteSession
         isDeletePending={false}
-        projectRoot={null}
+        currentPath={null}
         isWorkspaceOpen={false}
         onToggleWorkspace={mocks.onToggleWorkspace}
         onDeleteSession={mocks.onDeleteSession}
@@ -146,7 +146,7 @@ describe('ChatSessionHeaderActions', () => {
         sessionKey="session-actions"
         canDeleteSession
         isDeletePending={false}
-        projectRoot={null}
+        currentPath={null}
         isWorkspaceOpen={false}
         onToggleWorkspace={mocks.onToggleWorkspace}
         onDeleteSession={mocks.onDeleteSession}
@@ -169,7 +169,7 @@ describe('ChatSessionHeaderActions', () => {
         sessionKey="session-actions"
         canDeleteSession
         isDeletePending={false}
-        projectRoot={null}
+        currentPath={null}
         isWorkspaceOpen
         onToggleWorkspace={mocks.onToggleWorkspace}
         onDeleteSession={mocks.onDeleteSession}
