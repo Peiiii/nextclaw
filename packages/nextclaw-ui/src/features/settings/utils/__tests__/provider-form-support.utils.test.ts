@@ -22,10 +22,9 @@ describe('provider form model defaults', () => {
   });
 
   it('serializes local model ids with the providerId prefix', () => {
-    expect(serializeModelsForSave(['gpt-5.5', 'openai-work/gpt-5.4'], 'openai-work')).toEqual([
-      'openai-work/gpt-5.5',
-      'openai-work/gpt-5.4'
-    ]);
+    expect(
+      serializeModelsForSave(['gpt-5.5', 'openai-work/gpt-5.4', 'bedrock/claude-fable-5'], 'openai-work')
+    ).toEqual(['openai-work/gpt-5.5', 'openai-work/gpt-5.4', 'openai-work/bedrock/claude-fable-5']);
   });
 
   it('builds a minimal save payload from changed provider fields', () => {
@@ -57,15 +56,14 @@ describe('provider form model defaults', () => {
     });
   });
 
-  it('adds local model drafts without accepting provider prefixes', () => {
+  it('adds provider-local model ids with nested namespace segments', () => {
     expect(addProviderLocalModel([], ' gpt-5.5 ', ['openai-work'])).toEqual({
       models: ['gpt-5.5'],
       draft: ''
     });
-    expect(addProviderLocalModel([], ' other/gpt-5.5 ', ['openai-work'])).toEqual({
-      models: [],
-      draft: ' other/gpt-5.5 ',
-      errorKey: 'providerModelInvalidProviderPrefix'
+    expect(addProviderLocalModel([], ' bedrock/claude-fable-5 ', ['openrouter'])).toEqual({
+      models: ['bedrock/claude-fable-5'],
+      draft: ''
     });
   });
 

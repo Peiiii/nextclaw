@@ -128,8 +128,9 @@ export class LiteLLMProvider extends LLMProvider {
   private resolveModel = (model: string): string => {
     if (this.gatewaySpec) {
       let resolved = model;
-      if (this.gatewaySpec.stripModelPrefix && resolved.includes("/")) {
-        resolved = resolved.split("/").slice(-1)[0];
+      const modelPrefix = `${this.gatewaySpec.modelPrefix ?? this.gatewaySpec.name}/`;
+      if (this.gatewaySpec.stripModelPrefix && resolved.startsWith(modelPrefix)) {
+        resolved = resolved.slice(modelPrefix.length);
       }
       const prefix = this.gatewaySpec.litellmPrefix ?? "";
       if (prefix && !resolved.startsWith(`${prefix}/`)) {

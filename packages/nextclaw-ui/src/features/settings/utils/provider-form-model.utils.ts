@@ -8,16 +8,12 @@ import {
 type AddProviderModelResult = {
   models: string[];
   draft: string;
-  errorKey?: 'providerModelInvalidProviderPrefix';
 };
 
 export function addProviderLocalModel(models: string[], draft: string, aliases: string[]): AddProviderModelResult {
   const next = toProviderLocalModelId(draft, aliases);
   if (!next) {
     return { models, draft };
-  }
-  if (next.includes('/')) {
-    return { models, draft, errorKey: 'providerModelInvalidProviderPrefix' };
   }
   if (models.includes(next)) {
     return { models, draft: '' };

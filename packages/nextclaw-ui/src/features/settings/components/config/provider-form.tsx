@@ -230,10 +230,6 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
 
   const handleAddModel = () => {
     const result = addProviderLocalModel(models, modelDraft, providerModelAliases);
-    if (result.errorKey) {
-      toast.error(t('providerModelInvalidProviderPrefix'));
-      return;
-    }
     setModels(result.models);
     setModelDraft(result.draft);
   };

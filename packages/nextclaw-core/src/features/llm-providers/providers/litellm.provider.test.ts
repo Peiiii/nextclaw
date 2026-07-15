@@ -9,6 +9,16 @@ beforeEach(() => {
       id: "test-providers",
       providers: [
         {
+          name: "aihubmix",
+          keywords: ["aihubmix"],
+          envKey: "OPENAI_API_KEY",
+          modelPrefix: "aihubmix",
+          litellmPrefix: "openai",
+          isGateway: true,
+          isLocal: false,
+          stripModelPrefix: true
+        },
+        {
           name: "kimi-coding",
           keywords: ["kimi-coding", "kimi-for-coding"],
           envKey: "KIMI_CODING_API_KEY",
@@ -63,6 +73,26 @@ describe("LiteLLMProvider custom provider routing prefix", () => {
 
     const firstCall = chat.mock.calls[0]?.[0] as { model?: string };
     expect(firstCall.model).toBe("minimax/MiniMax-M2.5");
+  });
+
+  it("preserves nested provider-local model ids for gateways", async () => {
+    const provider = new LiteLLMProvider({
+      apiKey: "sk-test",
+      apiBase: "https://aihubmix.com/v1",
+      defaultModel: "aihubmix/bedrock/claude-fable-5",
+      providerName: "aihubmix"
+    });
+
+    const chat = vi.fn().mockResolvedValue(mockResponse());
+    (provider as unknown as { client: { chat: typeof chat } }).client = { chat };
+
+    await provider.chat({
+      model: "aihubmix/bedrock/claude-fable-5",
+      messages: [{ role: "user", content: "ping" }]
+    });
+
+    const firstCall = chat.mock.calls[0]?.[0] as { model?: string };
+    expect(firstCall.model).toBe("bedrock/claude-fable-5");
   });
 
   it("routes kimi-coding through AnthropicMessagesProvider and merges default headers", () => {

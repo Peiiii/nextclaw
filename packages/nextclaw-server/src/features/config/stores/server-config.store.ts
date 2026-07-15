@@ -870,13 +870,13 @@ function buildScopedProviderModel(
   return `${prefix}/${trimmed}`;
 }
 
-function stripProviderIdPrefix(providerId: string, model: string): string {
+function rewriteProviderRoutePrefix(providerId: string, targetPrefix: string | null, model: string): string {
   const prefix = `${providerId}/`;
   if (!model.startsWith(prefix)) {
     return model;
   }
   const stripped = model.slice(prefix.length).trim();
-  return stripped || model;
+  return stripped ? (targetPrefix ? `${targetPrefix}/${stripped}` : stripped) : model;
 }
 
 function resolveTestModel(
@@ -887,12 +887,12 @@ function resolveTestModel(
   spec?: ProviderSpec
 ): string | null {
   if (requestedModel) {
-    return spec ? requestedModel.replace(`${providerId}/`, `${spec.name}/`) : stripProviderIdPrefix(providerId, requestedModel);
+    return rewriteProviderRoutePrefix(providerId, spec?.name ?? null, requestedModel);
   }
 
   const providerModels = normalizeModelList(provider.models ?? [])
     .map((modelId) => {
-      const providerModel = stripProviderIdPrefix(providerId, modelId);
+      const providerModel = rewriteProviderRoutePrefix(providerId, null, modelId);
       return spec ? buildScopedProviderModel(spec.name, providerModel, spec) : providerModel;
     })
     .filter((modelId) => modelId.length > 0);
@@ -904,7 +904,7 @@ function resolveTestModel(
   if (defaultModel) {
     const routedProvider = getProviderName(config, defaultModel);
     if (!routedProvider || routedProvider === providerId) {
-      return spec ? defaultModel.replace(`${providerId}/`, `${spec.name}/`) : stripProviderIdPrefix(providerId, defaultModel);
+      return rewriteProviderRoutePrefix(providerId, spec?.name ?? null, defaultModel);
     }
   }
 
