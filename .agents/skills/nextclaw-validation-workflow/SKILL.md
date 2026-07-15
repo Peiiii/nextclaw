@@ -68,6 +68,14 @@ User-visible or runnable behavior:
 - If local dev falls back to a different port because the user's reported port is occupied, do not treat the fallback port as proof for the reported issue. Verify the reported port directly, or restart the stale local dev process and re-run the same user-facing path on the original port.
 - For runtime startup or status-log fixes, assert the visible log/status wording matches the intended state. Cooldown, disabled, degraded, or externally rate-limited states must not be reported as generic startup failure when the system is intentionally waiting or skipping work.
 
+Runtime update 本地人工验收：
+
+- 触达 runtime update builder/source/host、download/apply、launcher 选包、managed service relaunch、restart 或更新后版本展示时，默认运行 `pnpm dev:verify-update`，不能只用单测或等待下一次真实发版。
+- `dev:verify-update` 默认按源码指纹复用已签名 fixture；触达 builder、打包输入、fixture 指纹或缓存机制时，至少有一轮必须使用 `pnpm dev:verify-update -- --rebuild`，并同时记录冷启动与缓存命中的准备耗时。
+- 该命令必须使用当前工作树构造隔离 baseline/candidate；不得命中全局 `nextclaw`，不得读写真实 `~/.nextclaw`。
+- 验收至少观察 baseline `/api/app/meta`、check、download、apply、旧/新 PID、candidate `/api/app/meta`、`current.json` 和 `Ctrl+C` 清理；人工验收时从 `/updates` 页面执行相同动作。
+- 若因平台、依赖或构建条件无法运行，最终回复必须明确列出本地更新功能未验证及剩余缺口，不能用类型检查或 updater 单测代替。
+
 HTTP/API/transport contract changes:
 
 - isolated client/controller unit tests are not enough,

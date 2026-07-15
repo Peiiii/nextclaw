@@ -60,6 +60,7 @@
     "tsc:desktop": "pnpm -C apps/desktop tsc",
     "tsc:companion": "pnpm -C apps/companion tsc",
     "dev": "node scripts/dev/dev-runner.mjs",
+    "dev:verify-update": "node scripts/dev/verify-update.mjs",
     "dev:claude": "node scripts/dev/dev-runner.mjs start --claude-runtime-source",
     "dev:status": "node scripts/dev/dev-process-status.mjs",
     "dev:kill": "node scripts/dev/dev-process-status.mjs --kill",

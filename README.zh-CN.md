@@ -131,6 +131,8 @@ pnpm dev:backend
 pnpm dev:frontend
 ```
 
+本地源码运行态检查、运行时更新人工验证、Platform、Docker 与质量检查命令见[开发命令参考](docs/workflows/developer-commands.md)。
+
 刷新 GitHub 与官网使用的产品截图：
 
 ```bash

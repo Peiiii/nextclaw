@@ -2,43 +2,19 @@
 
 import { createHash, createPrivateKey, createPublicKey, sign } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { lstat, mkdir, readdir, realpath, rm, stat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readdir, realpath, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import JSZip from "jszip";
+import { NpmRuntimeDeploymentCacheManager } from "./managers/npm-runtime-deployment-cache.manager.mjs";
 
 const packageRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const workspaceRoot = resolve(packageRoot, "../..");
+const workspacePackagesRoot = resolve(workspaceRoot, "packages");
 const packageJsonPath = resolve(packageRoot, "package.json");
 const compatibilityPath = resolve(packageRoot, "npm-runtime-compatibility.json");
 const DEFAULT_BASE_URL = "https://Peiiii.github.io/nextclaw/npm-runtime-updates";
-
-const PRUNE_SUFFIXES = [".d.ts", ".d.mts", ".d.cts", ".map", ".md", ".markdown", ".mdx", ".mkd", ".tsbuildinfo"];
-const PRUNE_BASENAMES = new Set([
-  ".editorconfig",
-  ".eslintignore",
-  ".eslintrc",
-  ".eslintrc.cjs",
-  ".eslintrc.js",
-  ".eslintrc.json",
-  ".gitattributes",
-  ".gitignore",
-  ".npmignore",
-  ".nycrc",
-  ".prettierignore",
-  ".prettierrc",
-  ".prettierrc.cjs",
-  ".prettierrc.js",
-  ".prettierrc.json",
-  "changes.md",
-  "changelog.md",
-  "contributing.md",
-  "history.md",
-  "readme.md"
-]);
-const PRUNE_DIR_NAMES = new Set(["__tests__", "__mocks__", "benchmark", "benchmarks", "coverage", "docs", "doc", "example", "examples", "test", "tests", "website"]);
-const PRUNE_PACKAGE_NAMES = new Set(["electron"]);
 
 function parseArgs(argv) {
   const args = {};
@@ -171,62 +147,6 @@ async function addDirectoryToZip(zip, sourceDir, zipRoot) {
   }));
 }
 
-function shouldPruneRuntimeNodeModulesEntry(relativePath, entry) {
-  const normalizedRelativePath = relativePath.replaceAll("\\", "/").toLowerCase();
-  const pathSegments = normalizedRelativePath.split("/").filter(Boolean);
-  const entryName = entry.name.toLowerCase();
-  if (entry.isDirectory()) {
-    if (pathSegments.length === 1 && PRUNE_PACKAGE_NAMES.has(entryName)) {
-      return true;
-    }
-    if (!PRUNE_DIR_NAMES.has(entryName)) {
-      return false;
-    }
-    if (pathSegments[0]?.startsWith("@")) {
-      return pathSegments.length === 3;
-    }
-    return pathSegments.length === 2;
-  }
-  if (PRUNE_BASENAMES.has(entryName)) {
-    return true;
-  }
-  if (pathSegments[0] === ".bin" && entryName.startsWith("electron")) {
-    return true;
-  }
-  return PRUNE_SUFFIXES.some((suffix) => entryName.endsWith(suffix));
-}
-
-async function pruneRuntimeNodeModules(runtimeRoot) {
-  const nodeModulesRoot = join(runtimeRoot, "node_modules");
-  try {
-    const nodeModulesStat = await stat(nodeModulesRoot);
-    if (!nodeModulesStat.isDirectory()) {
-      return { removedEntries: 0 };
-    }
-  } catch {
-    return { removedEntries: 0 };
-  }
-
-  let removedEntries = 0;
-  async function walk(currentDir) {
-    const entries = await readdir(currentDir, { withFileTypes: true });
-    for (const entry of entries) {
-      const entryPath = join(currentDir, entry.name);
-      const relativePath = relative(nodeModulesRoot, entryPath);
-      if (shouldPruneRuntimeNodeModulesEntry(relativePath, entry)) {
-        await rm(entryPath, { recursive: true, force: true });
-        removedEntries += 1;
-        continue;
-      }
-      if (entry.isDirectory()) {
-        await walk(entryPath);
-      }
-    }
-  }
-  await walk(nodeModulesRoot);
-  return { removedEntries };
-}
-
 class NpmRuntimeUpdateChannelBuilder {
   constructor(args) {
     this.args = args;
@@ -243,6 +163,13 @@ class NpmRuntimeUpdateChannelBuilder {
     this.outputRoot = resolve(args["output-dir"]?.trim() || resolve(packageRoot, "dist-npm-runtime-updates"));
     this.baseUrl = args["bundle-base-url"]?.trim() || args["base-url"]?.trim() || DEFAULT_BASE_URL;
     this.releaseNotesUrl = args["release-notes-url"]?.trim() || null;
+    const requestedCompressionLevel = args["compression-level"]?.trim();
+    this.compressionLevel = requestedCompressionLevel ? Number(requestedCompressionLevel) : null;
+    if (this.compressionLevel !== null && (!Number.isInteger(this.compressionLevel) || this.compressionLevel < 1 || this.compressionLevel > 9)) {
+      throw new Error("--compression-level must be an integer from 1 to 9.");
+    }
+    this.runtimeCacheDir = args["runtime-cache-dir"]?.trim() ? resolve(args["runtime-cache-dir"]) : null;
+    this.runtimeCacheStatus = this.runtimeCacheDir ? "miss" : "disabled";
   }
 
   run = async () => {
@@ -295,12 +222,32 @@ class NpmRuntimeUpdateChannelBuilder {
 
   prepareBundleWorkspace = async (workspace) => {
     await mkdir(workspace.bundleRoot, { recursive: true });
+    const deploymentCache = new NpmRuntimeDeploymentCacheManager({
+      arch: this.arch,
+      cacheDir: this.runtimeCacheDir,
+      platform: this.platform,
+      runtimeRoot: workspace.runtimeRoot,
+      workspacePackagesRoot
+    });
+    const cachedDeployment = await deploymentCache.restore();
+    if (cachedDeployment) {
+      this.runtimeCacheStatus = "hit";
+      return cachedDeployment;
+    }
+
+    const deployArgs = ["--config.node-linker=hoisted"];
+    if (this.args.offline === "true") {
+      deployArgs.push("--offline");
+    }
+    deployArgs.push("--filter", "nextclaw", "--prod", "deploy", workspace.runtimeDeployPath);
     runCommand(
       "pnpm",
-      ["--config.node-linker=hoisted", "--filter", "nextclaw", "--prod", "deploy", workspace.runtimeDeployPath],
+      deployArgs,
       { cwd: workspaceRoot }
     );
-    return await pruneRuntimeNodeModules(workspace.runtimeRoot);
+    const pruneResult = await deploymentCache.pruneRuntimeNodeModules();
+    await deploymentCache.store();
+    return { ...pruneResult, refreshedPackages: 0 };
   };
 
   writeBundleManifest = async (bundleRoot) => {
@@ -328,7 +275,11 @@ class NpmRuntimeUpdateChannelBuilder {
     const channelDir = join(this.outputRoot, this.channel);
     const archivePath = resolve(channelDir, `nextclaw-runtime-${this.platform}-${this.arch}-${this.version}.zip`);
     await mkdir(dirname(archivePath), { recursive: true });
-    await writeFile(archivePath, await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" }));
+    const zipOptions = { type: "nodebuffer", compression: "DEFLATE" };
+    if (this.compressionLevel !== null) {
+      zipOptions.compressionOptions = { level: this.compressionLevel };
+    }
+    await writeFile(archivePath, await zip.generateAsync(zipOptions));
     return archivePath;
   };
 
@@ -365,7 +316,9 @@ class NpmRuntimeUpdateChannelBuilder {
       platform: this.platform,
       arch: this.arch,
       minimumLauncherVersion: this.minimumLauncherVersion,
-      prunedNodeModulesEntries: pruneResult.removedEntries
+      prunedNodeModulesEntries: pruneResult.removedEntries,
+      refreshedWorkspacePackages: pruneResult.refreshedPackages,
+      runtimeCache: this.runtimeCacheStatus
     }, null, 2)}\n`);
   };
 }

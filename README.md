@@ -131,6 +131,8 @@ pnpm dev:backend
 pnpm dev:frontend
 ```
 
+See the [developer command reference](docs/workflows/developer-commands.md) for local source-runtime checks, the manual runtime-update harness, platform stacks, Docker, and validation commands.
+
 To refresh the repository and website screenshot set:
 
 ```bash
