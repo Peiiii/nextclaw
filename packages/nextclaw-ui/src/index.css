@@ -729,17 +729,16 @@
   color: var(--md-text);
 }
 
-.chat-markdown h1,
-.chat-markdown h2,
-.chat-markdown h3,
-.chat-markdown h4,
-.chat-markdown h5,
-.chat-markdown h6 {
-  margin: 0.2rem 0 0;
+.chat-markdown :is(h1, h2, h3, h4, h5, h6) {
+  margin: 1.2rem 0 0;
   padding-bottom: 0.5em;
   font-weight: 700;
   line-height: 1.35;
   letter-spacing: -0.01em;
+}
+
+.chat-markdown > :is(h1, h2, h3, h4, h5, h6):first-child {
+  margin-top: 0;
 }
 
 .chat-markdown :is(h1, h2, h3, h4, h5, h6) + * {
