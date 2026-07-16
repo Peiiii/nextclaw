@@ -595,7 +595,6 @@ it("renders inline tokens from normal markdown text", () => {
     />,
   );
 
-  expect(screen.getByTitle("Task Board")).toBeTruthy();
   expect(screen.getByText("Task Board")).toBeTruthy();
 });
 
@@ -616,7 +615,7 @@ it("leaves inline token protocols literal inside inline code", () => {
     />,
   );
 
-  expect(screen.queryByTitle("Task Board")).toBeNull();
+  expect(screen.queryByText("Task Board")).toBeNull();
   expect(container.querySelector("code")?.textContent).toBe("@panel-app:task-board");
 });
 
@@ -637,7 +636,7 @@ it("leaves inline token protocols literal inside fenced code blocks", () => {
     />,
   );
 
-  expect(screen.queryByTitle("Task Board")).toBeNull();
+  expect(screen.queryByText("Task Board")).toBeNull();
   expect(container.querySelector(".chat-codeblock code")?.textContent).toBe("@panel-app:task-board");
 });
 
@@ -658,6 +657,6 @@ it("renders tokens outside fenced code while preserving code literals", () => {
     />,
   );
 
-  expect(screen.getAllByTitle("Task Board")).toHaveLength(1);
+  expect(screen.getAllByText("Task Board")).toHaveLength(1);
   expect(container.querySelector(".chat-codeblock code")?.textContent).toBe("@panel-app:task-board");
 });

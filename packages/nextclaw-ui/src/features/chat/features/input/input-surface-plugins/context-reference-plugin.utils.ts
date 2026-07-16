@@ -10,10 +10,7 @@ import {
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
 } from '@nextclaw/shared';
 import type { PanelAppEntryView, ServerPathSearchEntryView } from '@/shared/lib/api';
-import type {
-  ChatInputProductPluginData,
-  ContextReferenceMode,
-} from './chat-input-product-plugin-adapters.types';
+import type { ChatInputProductPluginData } from './chat-input-product-plugin-adapters.types';
 import {
   scoreInputSurfaceSearchCandidate,
   resolveInputSurfaceMatchTier,
@@ -40,6 +37,7 @@ export type ContextReferenceInputSurfaceTexts = {
   backLabel: string;
   backDescription: string;
   backHintLabel: string;
+  currentDirectoryLabel: string;
   directoryDescription: string;
   fileDescription: string;
   filesDescription: string;
@@ -47,6 +45,9 @@ export type ContextReferenceInputSurfaceTexts = {
   filesLabel: string;
   filesSubtitle: string;
   panelAppSectionLabel: string;
+  parentLabel: string;
+  parentDescription: string;
+  parentHintLabel: string;
   projectRootLabel: string;
   searchFailedLabel: string;
   workspaceSectionLabel: string;
@@ -154,14 +155,31 @@ function buildPanelAppReferenceItems(params: {
   }));
 }
 
+function buildPathPreview(params: {
+  kind: 'directory' | 'file';
+  projectRoot: string;
+  relativePath: string;
+}) {
+  const { kind, projectRoot, relativePath } = params;
+  const pathSegments = relativePath.split('/').filter(Boolean);
+  return {
+    rootLabel: resolveProjectLabel(projectRoot),
+    segments: pathSegments.map((label, index) => ({
+      label,
+      kind: index === pathSegments.length - 1 ? kind : 'directory' as const,
+    })),
+  };
+}
+
 function buildWorkspaceReferenceItems(params: {
   entries: readonly ServerPathSearchEntryView[];
+  navigateDirectories: boolean;
   projectRoot: string;
   texts: ContextReferenceInputSurfaceTexts;
 }): ChatInputSurfaceItem[] {
   const projectLabel = resolveProjectLabel(params.projectRoot);
   return params.entries.map((entry) => {
-    const pathSegments = entry.relativePath.split('/').filter(Boolean);
+    const navigates = params.navigateDirectories && entry.kind === 'directory';
     return {
       key: `workspace:${entry.kind}:${entry.relativePath}`,
       icon: entry.kind === 'directory' ? 'folder' : 'file',
@@ -176,19 +194,59 @@ function buildWorkspaceReferenceItems(params: {
       ],
       sectionKey: WORKSPACE_SECTION_KEY,
       sectionLabel: params.texts.workspaceSectionLabel,
-      tokenKind: entry.kind === 'directory'
-        ? CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND
-        : CHAT_WORKSPACE_FILE_TOKEN_KIND,
-      tokenKey: entry.relativePath,
-      pathPreview: {
-        rootLabel: projectLabel,
-        segments: pathSegments.map((label, index) => ({
-          label,
-          kind: index === pathSegments.length - 1 ? entry.kind : 'directory',
-        })),
-      },
+      value: entry.relativePath,
+      tokenKind: navigates
+        ? undefined
+        : entry.kind === 'directory'
+          ? CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND
+          : CHAT_WORKSPACE_FILE_TOKEN_KIND,
+      tokenKey: navigates ? undefined : entry.relativePath,
+      selectionBehavior: navigates ? 'navigate' : undefined,
+      pathPreview: buildPathPreview({
+        kind: entry.kind,
+        projectRoot: params.projectRoot,
+        relativePath: entry.relativePath,
+      }),
     } satisfies ChatInputSurfaceItem;
   });
+}
+
+function resolveParentReferencePath(referencePath: string): string | null {
+  const segments = referencePath.split('/').filter(Boolean);
+  if (segments.length === 0) {
+    return null;
+  }
+  return segments.slice(0, -1).join('/');
+}
+
+function buildCurrentDirectoryReferenceItem(params: {
+  projectRoot: string;
+  referencePath: string;
+  texts: ContextReferenceInputSurfaceTexts;
+}): ChatInputSurfaceItem {
+  const { projectRoot, referencePath, texts } = params;
+  const title = referencePath.split('/').filter(Boolean).at(-1) ?? referencePath;
+  return {
+    key: `context-reference:current-directory:${referencePath}`,
+    icon: 'folder',
+    title,
+    subtitle: texts.currentDirectoryLabel,
+    description: texts.directoryDescription,
+    detailLines: [
+      `${texts.projectRootLabel}: ${projectRoot}`,
+      referencePath,
+    ],
+    sectionKey: WORKSPACE_SECTION_KEY,
+    sectionLabel: texts.workspaceSectionLabel,
+    value: referencePath,
+    tokenKind: CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
+    tokenKey: referencePath,
+    pathPreview: buildPathPreview({
+      kind: 'directory',
+      projectRoot,
+      relativePath: referencePath,
+    }),
+  };
 }
 
 function buildFilesNavigationItem(texts: ContextReferenceInputSurfaceTexts): ChatInputSurfaceItem {
@@ -204,15 +262,21 @@ function buildFilesNavigationItem(texts: ContextReferenceInputSurfaceTexts): Cha
   };
 }
 
-function buildRootNavigationItem(texts: ContextReferenceInputSurfaceTexts): ChatInputSurfaceItem {
+function buildBackNavigationItem(params: {
+  referencePath: string;
+  texts: ContextReferenceInputSurfaceTexts;
+}): ChatInputSurfaceItem {
+  const { referencePath, texts } = params;
+  const isProjectRoot = !referencePath;
   return {
     key: ROOT_NAVIGATION_ITEM_KEY,
     icon: 'back',
-    title: texts.backLabel,
+    title: isProjectRoot ? texts.backLabel : texts.parentLabel,
     subtitle: '',
-    description: texts.backDescription,
+    description: isProjectRoot ? texts.backDescription : texts.parentDescription,
     detailLines: [],
-    hintLabel: texts.backHintLabel,
+    hintLabel: isProjectRoot ? texts.backHintLabel : texts.parentHintLabel,
+    value: resolveParentReferencePath(referencePath) ?? '',
     selectionBehavior: 'navigate',
   };
 }
@@ -223,19 +287,36 @@ export function createContextReferenceInputSurfacePlugin(params: {
     panelApp: PanelAppInputSurfaceItemTexts;
   };
   menuTexts: ChatInputSurfaceMenuTexts;
-  onNavigate: (mode: ContextReferenceMode) => void;
+  onNavigate: (path: string | null) => void;
 }): ChatInputSurfacePlugin<ChatInputProductPluginData> {
   return createInputSurfaceTriggeredPanelPlugin({
     key: 'context-reference',
     trigger: CONTEXT_REFERENCE_TRIGGER_SPEC,
     resolvePanel: ({ data, trigger }) => {
+      const isFilesMode = data.referencePath !== null;
+      const isBrowsing = isFilesMode && !trigger.query.trim();
       const workspaceItems = buildWorkspaceReferenceItems({
         entries: data.serverPathEntries,
+        navigateDirectories: isBrowsing,
         projectRoot: data.projectRoot,
         texts: params.itemTexts.context,
       });
-      const items = data.referenceMode === 'files'
-        ? [buildRootNavigationItem(params.itemTexts.context), ...workspaceItems]
+      const currentDirectoryItem = isBrowsing && data.referencePath
+        ? buildCurrentDirectoryReferenceItem({
+            projectRoot: data.projectRoot,
+            referencePath: data.referencePath,
+            texts: params.itemTexts.context,
+          })
+        : null;
+      const items = isFilesMode
+        ? [
+            buildBackNavigationItem({
+              referencePath: data.referencePath ?? '',
+              texts: params.itemTexts.context,
+            }),
+            ...(currentDirectoryItem ? [currentDirectoryItem] : []),
+            ...workspaceItems,
+          ]
         : [
             buildFilesNavigationItem(params.itemTexts.context),
             ...(trigger.query ? workspaceItems : []),
@@ -246,11 +327,11 @@ export function createContextReferenceInputSurfacePlugin(params: {
               texts: params.itemTexts.panelApp,
             }),
           ];
-      const relevantLoading = data.referenceMode === 'files'
+      const relevantLoading = isFilesMode
         ? data.isServerPathSearchLoading
         : data.isPanelAppsLoading || (Boolean(trigger.query) && data.isServerPathSearchLoading);
       return {
-        isLoading: data.referenceMode === 'files'
+        isLoading: isFilesMode
           ? relevantLoading
           : relevantLoading && items.length === 0,
         items,
@@ -262,9 +343,11 @@ export function createContextReferenceInputSurfacePlugin(params: {
           : undefined,
         onSelectItem: (item) => {
           if (item.key === FILES_NAVIGATION_ITEM_KEY) {
-            params.onNavigate('files');
+            params.onNavigate('');
           } else if (item.key === ROOT_NAVIGATION_ITEM_KEY) {
-            params.onNavigate('root');
+            params.onNavigate(data.referencePath ? item.value ?? '' : null);
+          } else if (item.selectionBehavior === 'navigate' && item.value) {
+            params.onNavigate(item.value);
           }
         },
         texts: params.menuTexts,

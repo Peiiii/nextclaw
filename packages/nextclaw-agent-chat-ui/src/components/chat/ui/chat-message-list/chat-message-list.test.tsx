@@ -184,7 +184,7 @@ it("renders inline token content inside a user message bubble", () => {
   expect(screen.getByText("now", { exact: false })).toBeTruthy();
 });
 
-it("renders user inline tokens with theme-owned contrast", () => {
+it("renders user inline tokens with markdown link metrics", () => {
   render(
     <ChatMessageList
       messages={[
@@ -217,10 +217,12 @@ it("renders user inline tokens with theme-owned contrast", () => {
 
   const token = screen.getByText("Task Board").parentElement;
   expect(token?.className).toContain("nextclaw-chat-inline-token");
-  expect(token?.className).toContain("bg-primary-foreground/22");
+  expect(token?.className).toContain("text-[1em]");
+  expect(token?.className).toContain("leading-[inherit]");
+  expect(token?.className).not.toContain("h-7");
 });
 
-it("renders skill tokens as link-styled interactive entities", () => {
+it("renders skill tokens as link-styled interactive entities with a tooltip", async () => {
   const onInlineTokenClick = vi.fn();
   render(
     <ChatMessageList
@@ -256,6 +258,8 @@ it("renders skill tokens as link-styled interactive entities", () => {
   const skillButton = screen.getByRole("button", { name: "Weather" });
   expect(skillButton.className).toContain("nextclaw-chat-inline-token");
   expect(skillButton.className).toContain("text-[color:var(--md-link)]");
+  fireEvent.pointerMove(skillButton, { pointerType: "mouse" });
+  expect((await screen.findByRole("tooltip")).textContent).toBe("weather");
   fireEvent.click(skillButton);
   expect(onInlineTokenClick).toHaveBeenCalledWith({
     kind: "skill",

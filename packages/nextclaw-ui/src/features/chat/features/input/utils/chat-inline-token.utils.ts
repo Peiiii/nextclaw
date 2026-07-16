@@ -15,6 +15,23 @@ const CHAT_WORKSPACE_DIRECTORY_TOKEN_PATTERN = /@folder:([^\s]+)/g;
 
 export type ChatInlineTokenSource = ChatInlineTokenMetadata;
 
+export function resolveWorkspaceReferencePath(params: {
+  projectRoot: string | null | undefined;
+  relativePath: string;
+}): string | null {
+  const projectRoot = params.projectRoot?.trim().replace(/[\\/]+$/, '') ?? '';
+  const relativeSegments = params.relativePath.trim().replace(/\\/g, '/').split('/');
+  if (
+    !projectRoot ||
+    relativeSegments.length === 0 ||
+    relativeSegments.some((segment) => !segment || segment === '.' || segment === '..')
+  ) {
+    return null;
+  }
+  const separator = projectRoot.includes('\\') ? '\\' : '/';
+  return `${projectRoot}${separator}${relativeSegments.join(separator)}`;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

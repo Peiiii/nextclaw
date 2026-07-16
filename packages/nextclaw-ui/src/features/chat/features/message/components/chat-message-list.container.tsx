@@ -14,7 +14,10 @@ import {
   buildChatMessageAdapterTexts,
   buildChatMessageTexts,
 } from "@/features/chat/features/message/utils/chat-message-texts.utils";
-import { readInlineTokensFromMetadata } from "@/features/chat/features/input/utils/chat-inline-token.utils";
+import {
+  readInlineTokensFromMetadata,
+  resolveWorkspaceReferencePath,
+} from "@/features/chat/features/input/utils/chat-inline-token.utils";
 import { adaptNcpMessageToUiMessage } from "@/features/chat/features/session/utils/ncp-session-adapter.utils";
 import {
   readContextCompactionTimeline,
@@ -362,9 +365,27 @@ export function ChatMessageListContainer({
   const sessionSkillsQuery = useChatQueryStore((state) => state.snapshot.sessionSkillsQuery);
   const handleInlineTokenClick = useCallback(
     (token: ChatInlineTokenViewModel) => {
-      if (token.kind !== "skill") {
+      if (token.kind === "panel_app") {
+        void presenter.chatUiManager.showContent({
+          target: { type: "panel_app", payload: { appId: token.key } },
+        });
         return;
       }
+      if (token.kind === "workspace_file" || token.kind === "workspace_directory") {
+        const path = resolveWorkspaceReferencePath({
+          projectRoot: selectedSession?.projectRoot,
+          relativePath: token.key,
+        });
+        if (path) {
+          presenter.chatThreadManager.openFilePreview({
+            path,
+            label: token.label,
+            viewMode: "preview",
+          });
+        }
+        return;
+      }
+      if (token.kind !== "skill") return;
       const skillKey = token.key.trim();
       if (!skillKey) {
         return;
@@ -382,7 +403,7 @@ export function ChatMessageListContainer({
         previewViewer: "rendered",
       });
     },
-    [presenter.chatThreadManager, sessionSkillsQuery],
+    [presenter.chatThreadManager, presenter.chatUiManager, selectedSession?.projectRoot, sessionSkillsQuery],
   );
   const handleAttachmentOpen = useCallback(
     (file: { label: string; mimeType: string; dataUrl?: string; sizeBytes?: number; isImage: boolean }) => {

@@ -17,12 +17,32 @@ const useServerPathSearchMock = vi.hoisted(() =>
     isLoading: false,
   })),
 );
+const useServerPathBrowseMock = vi.hoisted(() =>
+  vi.fn(() => ({
+    data: {
+      entries: [
+        {
+          name: 'src',
+          path: '/tmp/project/src',
+          kind: 'directory' as const,
+          hidden: false,
+        },
+      ],
+    },
+    error: null,
+    isFetching: false,
+    isLoading: false,
+  })),
+);
 
 vi.mock('@/features/panel-apps', () => ({
   usePanelApps: usePanelAppsMock,
 }));
 vi.mock('@/shared/hooks/use-server-path-search', () => ({
   useServerPathSearch: useServerPathSearchMock,
+}));
+vi.mock('@/shared/hooks/use-server-path-browse', () => ({
+  useServerPathBrowse: useServerPathBrowseMock,
 }));
 
 function createHookParams() {
@@ -48,10 +68,11 @@ function createHookParams() {
 
 beforeEach(() => {
   usePanelAppsMock.mockClear();
+  useServerPathBrowseMock.mockClear();
   useServerPathSearchMock.mockClear();
 });
 
-it('enables project path search after navigating into files and folders', () => {
+it('browses nested folders while reserving search for project-wide queries', () => {
   const { result } = renderHook(() => useChatInputSurfaceState(createHookParams()));
 
   act(() =>
@@ -68,9 +89,33 @@ it('enables project path search after navigating into files and folders', () => 
   );
   act(() => result.current.inputSurfaceState.panel?.onSelectItem?.(filesItem!));
 
+  expect(useServerPathBrowseMock).toHaveBeenLastCalledWith({
+    path: '.',
+    basePath: '/tmp/project',
+    includeFiles: true,
+    enabled: true,
+  });
+  const directoryItem = result.current.inputSurfaceState.panel?.items.find(
+    (item) => item.title === 'src',
+  );
+  act(() => result.current.inputSurfaceState.panel?.onSelectItem?.(directoryItem!));
+  expect(useServerPathBrowseMock).toHaveBeenLastCalledWith({
+    path: 'src',
+    basePath: '/tmp/project',
+    includeFiles: true,
+    enabled: true,
+  });
+
+  act(() => result.current.setInputSurfaceTrigger({
+    end: 7,
+    key: 'context-reference',
+    marker: '@',
+    query: 'needle',
+    start: 0,
+  }));
   expect(useServerPathSearchMock).toHaveBeenLastCalledWith({
     basePath: '/tmp/project',
-    query: '',
+    query: 'needle',
     enabled: true,
   });
 });

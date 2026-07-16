@@ -33,9 +33,20 @@
 - 查询非空时的文件/目录匹配结果；
 - 现有面板应用结果。
 
-选择“文件与文件夹”后，菜单保持打开并切换为专用视图：空查询展示项目根目录的直接子项，输入查询后展示服务端搜索结果。列表左侧显示名称与项目相对父路径，右侧显示路径层级预览；鼠标和键盘共用同一 active item。
+选择“文件与文件夹”后，菜单保持打开并切换为专用视图：空查询通过现有目录浏览 API 展示当前位置的直接子项，选择目录继续进入，返回项逐级回到父目录；进入子目录后提供“引用当前文件夹”，避免“进入目录”和“选择目录”争用同一个点击语义。输入查询后切换到项目根目录范围的服务端搜索，不把搜索范围错误收窄到当前浏览目录。列表左侧显示名称与项目相对父路径，右侧显示路径层级预览；鼠标和键盘共用同一 active item。
 
 为支持菜单内导航，shared chat UI 给 item 增加通用的 `selectionBehavior: "navigate"` 语义。导航项不修改 composer、不关闭菜单；真正的引用项仍走现有 token 插入链路。该合同只表达交互行为，不包含 NextClaw 文件业务。
+
+### 消息内引用交互
+
+发送后的 skill、panel app、workspace file 和 workspace directory token 统一使用接近 Markdown 链接的单行行内样式，不使用固定高度 pill，避免撑高普通文本行。共享 inline token badge 拥有图标、字号、行高、focus 与 tooltip 合同；业务容器只负责点击后的意图路由。
+
+- skill 引用继续打开技能文件预览；
+- panel app 引用通过既有 content owner 打开面板应用；
+- workspace file 引用通过既有 workspace preview 打开文件；
+- workspace directory 引用把项目相对路径解析为项目内目标后，通过同一 workspace preview 打开目录浏览。
+
+tooltip 展示稳定 key 或完整项目相对路径，使截断标签在 hover/focus 后仍可理解；不只依赖浏览器原生 `title`。
 
 ### Token 与消息协议
 
@@ -117,7 +128,9 @@ Lexical composer
 - 输入 `@` 能看到“文件与文件夹”和现有面板应用；选择导航项后菜单不关闭。
 - 在 macOS、Windows、Linux 路径语义下，相对路径 token 能正确插入、删除、序列化和恢复。
 - 输入文件名能返回项目内文件和目录，空查询展示根目录直接子项；搜索不进入典型依赖/构建目录。
+- 文件视图可以逐层进入子目录、逐级返回，并能引用当前文件夹；输入查询时仍覆盖整个项目范围。
 - 选中文件或目录后，发送消息的 metadata 含结构化引用，消息气泡显示 token 而不是编码协议文本。
+- 消息内已知 token 使用单行链接指标、具有 tooltip；文件、目录、skill 与 panel app 点击后进入各自既有内容 owner。
 - kernel 对文本文件注入有界内容，对目录注入有界结构；截断、二进制、失效和越界状态均可观察。
 - 定向单测覆盖搜索边界、token 序列化、菜单导航、上下文物化；相关 TypeScript package 执行 `tsc`；前端执行 lint；真实页面完成一次 `@` 文件与目录交互冒烟。
 - 运行 maintainability guard、new-code governance 与 backlog ratchet，并披露新增用户能力的行数增长豁免。
