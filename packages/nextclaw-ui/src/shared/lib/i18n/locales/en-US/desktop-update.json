@@ -70,7 +70,7 @@
   "desktopUpdatesBetaBadgeTitle": "Following the Beta Channel",
   "desktopUpdatesBetaBadgeDescription": "You will receive new versions earlier, but you may also encounter more change and regression risk.",
   "desktopUpdatesAutomaticChecks": "Automatic Update Checks",
-  "desktopUpdatesAutomaticChecksHelp": "Check for new versions automatically after the app starts.",
+  "desktopUpdatesAutomaticChecksHelp": "Check for new versions periodically while the app is running.",
   "desktopUpdatesAutoDownload": "Auto Download in Background",
   "desktopUpdatesAutoDownloadHelp": "Download new versions automatically after detection, while still letting you decide when to apply them.",
   "desktopUpdatesActionsTitle": "Update Actions",

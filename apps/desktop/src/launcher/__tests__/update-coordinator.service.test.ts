@@ -27,6 +27,7 @@ type TestCoordinatorOptions = {
   bundleLifecycle?: DesktopBundleLifecycleService;
   updateCapability?: ConstructorParameters<typeof DesktopUpdateCoordinatorService>[0]["updateCapability"];
   resolveManifestUrl?: () => Promise<string | null>;
+  now?: () => number;
   publishSnapshot?: ConstructorParameters<typeof DesktopUpdateCoordinatorService>[0]["publishSnapshot"];
   onAutoDownloadedUpdateReady?: ConstructorParameters<typeof DesktopUpdateCoordinatorService>[0]["onAutoDownloadedUpdateReady"];
 };
@@ -39,6 +40,7 @@ function createTestUpdateCoordinator(options: TestCoordinatorOptions): DesktopUp
     bundleService,
     updateCapability,
     resolveManifestUrl,
+    now,
     publishSnapshot,
     onAutoDownloadedUpdateReady
   } = options;
@@ -58,6 +60,7 @@ function createTestUpdateCoordinator(options: TestCoordinatorOptions): DesktopUp
     updateCapability,
     bundleManager,
     updateSourceService,
+    now,
     publishSnapshot,
     onAutoDownloadedUpdateReady
   });
@@ -187,11 +190,49 @@ test("coordinator blocks updates for unsupported installation kinds", async () =
     assert.equal(coordinator.getSnapshot().status, "blocked");
     assert.equal(coordinator.getSnapshot().blockReason, "unsupported-installation");
     assert.equal(coordinator.getSnapshot().errorMessage, "Portable Edition updates are manual.");
-    assert.equal((await coordinator.runStartupCheck()).status, "blocked");
+    assert.equal((await coordinator.runAutomaticCheck()).status, "blocked");
     assert.equal((await coordinator.checkForUpdates({ manual: true })).status, "blocked");
     assert.equal((await coordinator.downloadUpdate()).status, "blocked");
     assert.equal((await coordinator.applyDownloadedUpdate()).status, "blocked");
     assert.equal(checkInvocations, 0);
+  }));
+
+test("coordinator runs automatic checks only when enabled and due", async () =>
+  await withTempDir("nextclaw-update-coordinator-automatic-check-", async (rootDir) => {
+    const layout = new DesktopBundleLayoutStore(rootDir);
+    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+    let now = Date.parse("2026-07-16T12:00:00.000Z");
+    await stateStore.write(
+      createLauncherState({
+        currentVersion: "0.18.0",
+        lastKnownGoodVersion: "0.18.0",
+        lastUpdateCheckAt: "2026-07-16T08:00:00.000Z"
+      })
+    );
+    let checkInvocations = 0;
+    const coordinator = createTestUpdateCoordinator({
+      stateStore,
+      updateService: {
+        checkForUpdate: async () => {
+          checkInvocations += 1;
+          return null;
+        }
+      } as unknown as DesktopUpdateService,
+      now: () => now
+    });
+
+    assert.equal((await coordinator.runAutomaticCheck()).status, "idle");
+    assert.equal(checkInvocations, 0);
+
+    now += 2 * 60 * 60 * 1000;
+    assert.equal((await coordinator.runAutomaticCheck()).status, "up-to-date");
+    assert.equal(checkInvocations, 1);
+    assert.equal(stateStore.read().lastUpdateCheckAt, "2026-07-16T14:00:00.000Z");
+
+    await coordinator.updatePreferences({ automaticChecks: false });
+    now += 6 * 60 * 60 * 1000;
+    await coordinator.runAutomaticCheck();
+    assert.equal(checkInvocations, 1);
   }));
 
 test("coordinator reports an available update without downloading by default", async () =>
