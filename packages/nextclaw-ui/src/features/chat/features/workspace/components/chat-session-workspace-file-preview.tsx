@@ -180,6 +180,7 @@ function WorkspacePreviewBody({
   directoryQuery,
   fileBasePath,
   onFileOpen,
+  onHtmlContentHeightChange,
   previewBlock,
   previewKind,
   previewViewer,
@@ -194,6 +195,7 @@ function WorkspacePreviewBody({
   directoryQuery: ReturnType<typeof useServerPathBrowse> | null | undefined;
   fileBasePath: string | null;
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
+  onHtmlContentHeightChange?: (height: number) => void;
   previewBlock: ChatFileOperationBlockViewModel | null;
   previewKind: "text" | "markdown" | "binary";
   previewViewer: "source" | "rendered" | null;
@@ -208,6 +210,7 @@ function WorkspacePreviewBody({
         contentUrl={contentUrl}
         kind={contentUrlKind}
         label={contentLabel}
+        onHtmlContentHeightChange={onHtmlContentHeightChange}
       />
     );
   }
@@ -291,6 +294,7 @@ type ChatSessionWorkspaceFilePreviewProps = {
   sessionProjectRoot: string | null;
   sessionWorkingDir: string | null;
   showBreadcrumbs?: boolean;
+  onHtmlContentHeightChange?: (height: number) => void;
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
 };
 
@@ -300,6 +304,7 @@ export function ChatSessionWorkspaceFilePreview({
   sessionProjectRoot,
   sessionWorkingDir,
   showBreadcrumbs = true,
+  onHtmlContentHeightChange,
   onFileOpen,
 }: ChatSessionWorkspaceFilePreviewProps) {
   const isPreviewMode = file.viewMode === "preview";
@@ -384,7 +389,8 @@ export function ChatSessionWorkspaceFilePreview({
     previewQuery?.data?.startLine,
     previewText,
   ]);
-  const isTextPreviewTruncated = !contentUrl && Boolean(previewQuery?.data?.truncated);
+  const isTextPreviewTruncated =
+    !contentUrl && Boolean(previewQuery?.data?.truncated);
   const breadcrumbBasePath = sessionProjectRoot ?? sessionWorkingDir;
   const breadcrumb = useMemo(
     () =>
@@ -394,12 +400,7 @@ export function ChatSessionWorkspaceFilePreview({
         sessionProjectRoot: breadcrumbBasePath,
         truncated: isTextPreviewTruncated,
       }),
-    [
-      breadcrumbBasePath,
-      isTextPreviewTruncated,
-      previewPathKind,
-      resolvedPath,
-    ],
+    [breadcrumbBasePath, isTextPreviewTruncated, previewPathKind, resolvedPath],
   );
 
   return (
@@ -422,6 +423,7 @@ export function ChatSessionWorkspaceFilePreview({
             directoryQuery={directoryQuery}
             fileBasePath={sessionWorkingDir}
             onFileOpen={onFileOpen}
+            onHtmlContentHeightChange={onHtmlContentHeightChange}
             previewBlock={previewBlock}
             previewKind={previewKind}
             previewViewer={previewViewer}

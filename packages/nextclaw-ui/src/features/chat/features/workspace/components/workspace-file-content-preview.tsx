@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { WorkspaceDocxPreview } from "./file-content-preview/workspace-docx-preview";
 import { WorkspacePresentationPreview } from "./file-content-preview/workspace-presentation-preview";
 import { WorkspaceSpreadsheetPreview } from "./file-content-preview/workspace-spreadsheet-preview";
@@ -115,14 +116,97 @@ function WorkspaceUnsupportedContent({
   );
 }
 
+function readHtmlDocumentHeight(document: Document): number {
+  const { body, documentElement } = document;
+  return Math.ceil(
+    Math.max(
+      body?.clientHeight ?? 0,
+      body?.offsetHeight ?? 0,
+      body?.scrollHeight ?? 0,
+      documentElement.clientHeight,
+      documentElement.offsetHeight,
+      documentElement.scrollHeight,
+    ),
+  );
+}
+
+function WorkspaceHtmlPreview({
+  contentUrl,
+  label,
+  onContentHeightChange,
+}: {
+  contentUrl: string;
+  label: string;
+  onContentHeightChange?: (height: number) => void;
+}) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const observerCleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(
+    () => () => {
+      observerCleanupRef.current?.();
+    },
+    [],
+  );
+
+  const observeContentHeight = () => {
+    observerCleanupRef.current?.();
+    observerCleanupRef.current = null;
+    const iframe = iframeRef.current;
+    if (
+      !iframe ||
+      !onContentHeightChange ||
+      typeof ResizeObserver === "undefined"
+    ) {
+      return;
+    }
+
+    try {
+      const document = iframe.contentDocument;
+      if (!document) {
+        return;
+      }
+      const reportHeight = () => {
+        const height = readHtmlDocumentHeight(document);
+        if (height > 0) {
+          onContentHeightChange(height);
+        }
+      };
+      const observer = new ResizeObserver(reportHeight);
+      observer.observe(document.documentElement);
+      if (document.body) {
+        observer.observe(document.body);
+      }
+      reportHeight();
+      observerCleanupRef.current = () => observer.disconnect();
+    } catch {
+      // Cross-origin documents keep the caller's bounded fallback height.
+    }
+  };
+
+  return (
+    <iframe
+      ref={iframeRef}
+      allowFullScreen
+      className="h-full w-full border-0 bg-white"
+      data-testid="workspace-html-preview"
+      src={contentUrl}
+      title={label}
+      onLoad={observeContentHeight}
+    />
+  );
+}
+
 export function WorkspaceFileContentPreview({
   contentUrl,
   kind,
   label,
+  onHtmlContentHeightChange,
 }: {
   contentUrl: string;
   kind: WorkspaceFileContentKind;
   label: string;
+  onHtmlContentHeightChange?: (height: number) => void;
 }) {
   if (kind === "image") {
     return (
@@ -165,14 +249,21 @@ export function WorkspaceFileContentPreview({
       </div>
     );
   }
-  if (kind === "pdf" || kind === "html") {
+  if (kind === "html") {
+    return (
+      <WorkspaceHtmlPreview
+        contentUrl={contentUrl}
+        label={label}
+        onContentHeightChange={onHtmlContentHeightChange}
+      />
+    );
+  }
+  if (kind === "pdf") {
     return (
       <iframe
         allowFullScreen
         className="h-full w-full border-0 bg-white"
-        data-testid={
-          kind === "pdf" ? "workspace-content-pdf" : "workspace-html-preview"
-        }
+        data-testid="workspace-content-pdf"
         src={contentUrl}
         title={label}
       />
