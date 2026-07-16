@@ -85,6 +85,11 @@ async function waitForCuratedSession(page, options) {
     target = await findRepresentativeImage(page);
   }
 
+  const collapseSidebar = page.getByRole('button', { name: /^(收起侧边栏|Collapse sidebar)$/ }).first();
+  if (await collapseSidebar.isVisible()) {
+    await collapseSidebar.click();
+  }
+
   await target.evaluate((element) => {
     const message = element.closest('[data-message-id], article') || element;
     message.scrollIntoView({ block: 'start', inline: 'nearest' });
@@ -102,28 +107,16 @@ export function createCuratedScreenshotScenes(options) {
   }
   const route = buildSessionRoute(sessionId);
   const afterLoad = async ({ page }) => waitForCuratedSession(page, { targetSelector, targetText });
-  return [
-    {
-      id: `${assetName}-en`,
-      route,
-      language: 'en',
-      afterLoad,
-      outputs: [
-        `images/screenshots/${assetName}-en.png`,
-        `apps/landing/public/${assetName}-en.png`
-      ]
-    },
-    {
-      id: `${assetName}-zh`,
-      route,
-      language: 'zh',
-      afterLoad,
-      outputs: [
-        `images/screenshots/${assetName}-cn.png`,
-        `apps/landing/public/${assetName}-cn.png`
-      ]
-    }
-  ];
+  return Object.entries({ en: 'en', zh: 'cn' }).map(([language, assetSuffix]) => ({
+    id: `${assetName}-${language}`,
+    route,
+    language,
+    afterLoad,
+    outputs: [
+      `images/screenshots/${assetName}-${assetSuffix}.png`,
+      `apps/landing/public/${assetName}-${assetSuffix}.png`
+    ]
+  }));
 }
 
 export function createScreenshotModeState({ argv, env, sceneFilter, stableScenes }) {

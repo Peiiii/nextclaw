@@ -14,6 +14,7 @@ If you want the broader public project layer first, start here:
 
 ## Latest
 
+- [2026-07-16 · A Self-Hostable Codex / WorkBuddy with Built-In Mini Apps](./2026-07-16-self-hosted-codex-workbuddy-panel-apps)
 - [2026-06-03 · Real-Time Agent Progress: Current State and Next Steps](./2026-06-03-real-time-agent-progress)
 - [2026-04-03 · Why Project-Aware Sessions Matter More Than One More AI Feature](./2026-04-03-why-project-aware-sessions-matter)
 

@@ -10,6 +10,7 @@ const workspaceSessionId = process.env.SCREENSHOT_WORKSPACE_SESSION_ID || 'scree
 const workspaceStateKey = 'nextclaw.chat.workspace-panel.state';
 const docBrowserStateKey = 'nextclaw.doc-browser.state';
 const sideDockStateKey = 'nextclaw.side-dock.state';
+const viewportLayoutStateKey = 'nextclaw.app.viewport-layout';
 
 const preferredPanelOrder = [
   'piano',
@@ -355,10 +356,7 @@ function createWorkspacePanelStorage({ htmlPath, htmlText, repoRoot }) {
 }
 
 class LocalPanelScreenshotData {
-  docBrowserStateKey = docBrowserStateKey;
-  sideDockStateKey = sideDockStateKey;
   workspaceSessionId = workspaceSessionId;
-  workspaceStateKey = workspaceStateKey;
 
   constructor({ repoRoot }) {
     this.repoRoot = repoRoot;
@@ -397,7 +395,8 @@ class LocalPanelScreenshotData {
 
   createPanelAppStorage = (language = 'en') => ({
       [docBrowserStateKey]: createDocBrowserStorage(this.selectedPanel?.entry || null, language),
-      [sideDockStateKey]: JSON.stringify({ state: { isVisible: true, pinnedItems: [] }, version: 1 })
+      [sideDockStateKey]: JSON.stringify({ state: { isVisible: true, pinnedItems: [] }, version: 1 }),
+      [viewportLayoutStateKey]: JSON.stringify({ state: { isSidebarCollapsed: true }, version: 1 })
     });
 
   createWorkspacePreviewStorage = () => ({

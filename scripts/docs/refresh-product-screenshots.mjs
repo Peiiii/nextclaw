@@ -50,7 +50,6 @@ const languageStorageKey = 'nextclaw.ui.language';
 const themeStorageKey = 'nextclaw.ui.theme';
 const screenshotTheme = process.env.SCREENSHOT_UI_THEME || 'cool';
 const viewport = { width: 1512, height: 828 };
-const deviceScaleFactor = 2;
 
 function normalizeBaseUrl(raw) {
   const value = String(raw || '').trim();
@@ -687,7 +686,7 @@ function screenshotOptionsFor(outputPath) {
 async function captureScene(browser, scene, uiOrigin) {
   const context = await browser.newContext({
     viewport,
-    deviceScaleFactor,
+    deviceScaleFactor: 2,
     colorScheme: 'light'
   });
 
@@ -718,6 +717,7 @@ async function captureScene(browser, scene, uiOrigin) {
     }
 
     const page = await context.newPage();
+    await page.route('**/api/ui-inject.js', (route) => route.fulfill({ status: 204 }));
     page.on('pageerror', (error) => {
       const message = error instanceof Error ? error.stack || error.message : String(error);
       pageErrors.push(message);

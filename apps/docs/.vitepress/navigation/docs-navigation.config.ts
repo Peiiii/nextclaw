@@ -333,6 +333,7 @@ const enBlogSidebar: DefaultTheme.SidebarItem[] = [
     text: 'Blog',
     items: [
       { text: 'Overview', link: '/en/blog/' },
+      { text: 'Self-hosting and mini apps', link: '/en/blog/2026-07-16-self-hosted-codex-workbuddy-panel-apps' },
       { text: 'Real-time agent progress', link: '/en/blog/2026-06-03-real-time-agent-progress' },
       { text: 'Why project-aware sessions matter', link: '/en/blog/2026-04-03-why-project-aware-sessions-matter' }
     ]
@@ -344,6 +345,7 @@ const zhBlogSidebar: DefaultTheme.SidebarItem[] = [
     text: '博客',
     items: [
       { text: '总览', link: '/zh/blog/' },
+      { text: '自部署与小程序系统', link: '/zh/blog/2026-07-16-self-hosted-codex-workbuddy-panel-apps' },
       { text: '实时 Agent 进展', link: '/zh/blog/2026-06-03-real-time-agent-progress' },
       { text: '为什么项目感知会话更重要', link: '/zh/blog/2026-04-03-why-project-aware-sessions-matter' }
     ]
