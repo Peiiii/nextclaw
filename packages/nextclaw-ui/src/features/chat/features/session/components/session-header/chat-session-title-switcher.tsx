@@ -235,7 +235,7 @@ export function ChatSessionTitleSwitcher({
     (state) => state.isSidebarCollapsed,
   );
 
-  if (layoutMode !== "desktop" || !isSidebarCollapsed) {
+  if (layoutMode === "desktop" && !isSidebarCollapsed) {
     return <ChatSessionTitle title={title} />;
   }
 

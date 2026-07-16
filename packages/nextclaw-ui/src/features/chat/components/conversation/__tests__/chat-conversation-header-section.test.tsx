@@ -105,7 +105,7 @@ function createSessionListItem(
   };
 }
 
-function renderHeaderSection() {
+function renderHeaderSection(layoutMode: "desktop" | "mobile" = "desktop") {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -114,7 +114,7 @@ function renderHeaderSection() {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <ChatConversationHeaderSection layoutMode="desktop" />
+      <ChatConversationHeaderSection layoutMode={layoutMode} />
     </QueryClientProvider>,
   );
 }
@@ -243,6 +243,17 @@ describe("ChatConversationHeaderSection", () => {
     viewportLayoutManager.setSidebarCollapsed(true);
 
     renderHeaderSection();
+
+    await user.click(screen.getByRole("button", { name: /Switch session/ }));
+    await user.click(screen.getByRole("button", { name: /Background Task/ }));
+
+    expect(mocks.selectSession).toHaveBeenCalledWith("session:ncp-2");
+  });
+
+  it("uses the mobile title as a session switcher", async () => {
+    const user = userEvent.setup();
+
+    renderHeaderSection("mobile");
 
     await user.click(screen.getByRole("button", { name: /Switch session/ }));
     await user.click(screen.getByRole("button", { name: /Background Task/ }));

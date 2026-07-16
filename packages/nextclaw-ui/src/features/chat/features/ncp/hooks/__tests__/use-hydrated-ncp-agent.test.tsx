@@ -92,4 +92,59 @@ describe("useHydratedNcpAgent", () => {
     expect(mocks.stream).toHaveBeenCalledWith({ sessionId: "session-b" });
     expect(mocks.stream).toHaveBeenCalledTimes(2);
   });
+
+  it("keeps a selected session hydrated when an earlier empty-session reset finishes late", async () => {
+    const stopResolvers: Array<() => void> = [];
+    const client = {
+      stop: mocks.stop.mockImplementation(
+        () => new Promise<void>((resolve) => stopResolvers.push(resolve)),
+      ),
+      stream: mocks.stream.mockResolvedValue(undefined),
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as NcpAgentClientEndpoint;
+    const historyMessage = {
+      id: "message-1",
+      sessionId: "session-mobile",
+      role: "user",
+      status: "final",
+      parts: [{ type: "text", text: "Existing history" }],
+      timestamp: "2026-07-16T00:00:00.000Z",
+    } as const;
+    const loadSeed = vi.fn().mockResolvedValue({
+      messages: [historyMessage],
+      status: "idle",
+    });
+
+    const { result, rerender } = renderHook(
+      ({ sessionId }: { sessionId: string | undefined }) =>
+        useHydratedNcpAgent({
+          sessionId,
+          client: client as never,
+          loadSeed,
+        }),
+      {
+        initialProps: {
+          sessionId: undefined as string | undefined,
+        },
+      },
+    );
+
+    await waitFor(() => expect(stopResolvers).toHaveLength(1));
+    rerender({ sessionId: "session-mobile" });
+    await waitFor(() => expect(stopResolvers).toHaveLength(2));
+
+    await act(async () => {
+      stopResolvers[1]?.();
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(result.current.visibleMessages).toEqual([historyMessage]);
+    });
+
+    await act(async () => {
+      stopResolvers[0]?.();
+      await Promise.resolve();
+    });
+    expect(result.current.visibleMessages).toEqual([historyMessage]);
+  });
 });
