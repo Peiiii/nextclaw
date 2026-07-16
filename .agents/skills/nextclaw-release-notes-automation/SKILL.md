@@ -1,6 +1,6 @@
 ---
 name: nextclaw-release-notes-automation
-description: 当用户要求提交、收尾、统一 NPM 发布、GitHub release、changelog、release notes、版本更新说明、产品更新笔记、变更汇总，或担心并行会话导致发布内容靠记忆整理时使用。适用于需要进入用户可见发布说明的 NextClaw workspace 包变更、Changesets 聚合、AI 撰写版本更新笔记、可拉取结构化 release notes JSON，以及 update manifest releaseNotesUrl 闭环。
+description: 当用户要求提交、收尾、统一 NPM 发布、GitHub release、changelog、release notes、版本更新说明、产品更新笔记、X/社交媒体发布帖、变更汇总，或担心并行会话导致发布内容靠记忆整理时使用。适用于需要进入用户可见发布说明的 NextClaw workspace 包变更、Changesets 聚合、AI 撰写版本更新笔记、可拉取结构化 release notes JSON、minor 及以上版本宣发帖，以及 update manifest releaseNotesUrl 闭环。
 ---
 
 # NextClaw Release Notes Automation
@@ -59,7 +59,20 @@ description: 当用户要求提交、收尾、统一 NPM 发布、GitHub release
    - 如果本次只面向中文用户或发布窗口不足，可以先写中文，并在发布报告中明确英文缺口。
 6. 对 runtime / desktop update channel，必须让 update manifest 的 `releaseNotesUrl` 指向本次用户可读版本更新笔记；更新 UI 可通过同源 `/release-notes/nextclaw-v<version>.json` 拉取结构化内容。不要为了 JSON URL 轻易新增签名 manifest 字段，除非已经审计旧客户端验签兼容性。
 7. 用聚合结果生成 NPM changelog / GitHub release notes。
-8. 再进入 `npm-beta-release` / `npm-release-contract-guard` / `desktop-release-contract-guard` 的发布闭环。
+8. 若本次 release type 是 `minor` 或 `major`，发布完成且文档站 release note URL 已公开可访问后，必须补齐 X 发布帖闭环；`patch` 默认不发 X 帖，除非用户明确要求或发布报告说明本次 patch 有明确宣传价值。
+9. 再进入 `npm-beta-release` / `npm-release-contract-guard` / `desktop-release-contract-guard` 的发布闭环。
+
+## X 发布帖要求
+
+X 帖是文档站版本更新笔记的下游产物，只服务 minor / major 版本宣发，不替代 release note、changelog、runtime manifest 或 docs 部署。
+
+- 触发条件：只有 `releaseType` 为 `minor` 或 `major` 时默认执行；`patch`、纯 beta 修正、内部治理、测试、发布元数据和无用户可见变化的版本默认不发。
+- 发布时间：必须在 npm / runtime / desktop / docs 等对应发布闭环完成之后，并确认公开 release note URL 返回 200，再发布或准备 X 帖。
+- 内容形态：默认 1 条短帖，不默认开 thread；包含版本号、1 个最主要用户价值、1 到 2 个可感知亮点和 release note 链接。
+- 配图规则：只有本次版本更新笔记已经通过配图门槛并有真实、可公开、能支撑主结论的图片时，才给 X 帖带图；不要为了社交媒体强行配弱图。
+- 文案边界：联动 `user-facing-content-boundary`，只写用户能感知的产品结果，不写内部治理、发布流程、测试结果或“我们为什么这样分组”。
+- 发布能力：如果当前环境有已授权的 X 发布工具，直接发布并把帖子 URL 写入发布报告 / `docs/logs`；如果没有发布工具或授权，必须生成可直接发布的帖文和图片路径，并在发布报告中明确“X 发布未完成”的阻塞原因，不能假装已经发布。
+- 验证：发布后记录 X 帖 URL；若只生成草稿，记录草稿内容、目标图片和缺失的发布能力。
 
 ## 版本更新笔记要求
 
