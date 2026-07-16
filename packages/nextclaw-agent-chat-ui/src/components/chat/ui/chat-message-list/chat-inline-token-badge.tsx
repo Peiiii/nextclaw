@@ -1,122 +1,72 @@
 import { AppWindow, FileText, Folder, Puzzle } from "lucide-react";
 import { cn } from "@agent-chat-ui/components/chat/internal/cn";
+import { ChatUiPrimitives } from "@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives";
 
-type ChatInlineTokenTone = "skill" | "panel_app" | "workspace" | "default";
-
-function resolveInlineTokenTone(kind: string): ChatInlineTokenTone {
-  if (kind === "skill") {
-    return "skill";
-  }
-  if (kind === "panel_app") {
-    return "panel_app";
-  }
-  if (kind === "workspace_file" || kind === "workspace_directory") {
-    return "workspace";
-  }
-  return "default";
-}
-
-function resolveInlineTokenBadgeClassName(
-  tone: ChatInlineTokenTone,
-  isUser: boolean,
-  interactive: boolean,
-): string {
-  if (tone === "skill") {
-    // Skill tokens use the markdown link semantic color, not primary brand fill.
-    return cn(
-      "border-transparent bg-transparent text-[color:var(--md-link)]",
-      interactive &&
-        "cursor-pointer underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color:var(--md-link)]/30",
-      !interactive && "cursor-default",
-    );
-  }
-  if (tone === "panel_app") {
-    return isUser
-      ? "border-primary-foreground/40 bg-primary-foreground/22 text-primary-foreground"
-      : "border-border bg-muted text-foreground";
-  }
-  return isUser
-    ? "border-primary-foreground/40 bg-primary-foreground/22 text-primary-foreground"
-    : "border-border bg-muted text-muted-foreground";
-}
-
-function resolveInlineTokenIconClassName(
-  tone: ChatInlineTokenTone,
-  isUser: boolean,
-): string {
-  if (tone === "skill") {
-    return "text-current opacity-80";
-  }
-  if (tone === "panel_app") {
-    return isUser ? "text-primary-foreground/80" : "text-muted-foreground";
-  }
-  return isUser ? "text-primary-foreground/80" : "text-muted-foreground";
-}
-
-function renderInlineTokenIcon(tone: ChatInlineTokenTone, kind: string) {
-  return tone === "panel_app" ? (
-    <AppWindow aria-hidden="true" className="h-3 w-3" />
+function renderInlineTokenIcon(kind: string) {
+  return kind === "panel_app" ? (
+    <AppWindow aria-hidden="true" className="h-[0.9em] w-[0.9em]" />
   ) : kind === "workspace_file" ? (
-    <FileText aria-hidden="true" className="h-3 w-3" />
+    <FileText aria-hidden="true" className="h-[0.9em] w-[0.9em]" />
   ) : kind === "workspace_directory" ? (
-    <Folder aria-hidden="true" className="h-3 w-3" />
+    <Folder aria-hidden="true" className="h-[0.9em] w-[0.9em]" />
   ) : (
-    <Puzzle aria-hidden="true" className="h-3 w-3" />
+    <Puzzle aria-hidden="true" className="h-[0.9em] w-[0.9em]" />
   );
 }
 
 export function ChatInlineTokenBadge({
   kind,
   label,
-  isUser,
+  tooltip,
   onClick,
 }: {
   kind: string;
   label: string;
-  isUser: boolean;
+  tooltip: string;
   onClick?: () => void;
 }) {
-  const tone = resolveInlineTokenTone(kind);
+  const { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } = ChatUiPrimitives;
   const interactive = Boolean(onClick);
   const className = cn(
-    "nextclaw-chat-inline-token mx-[2px] inline-flex max-w-full items-center gap-1 align-baseline text-[11px] font-medium",
-    tone === "skill" ? "h-auto rounded-none px-0 py-0" : "h-7 rounded-xl border px-2.5",
-    resolveInlineTokenBadgeClassName(tone, isUser, interactive),
+    "nextclaw-chat-inline-token mx-[0.08em] inline-flex max-w-full items-baseline gap-[0.22em] align-baseline text-[1em] font-normal leading-[inherit] text-[color:var(--md-link)] underline decoration-[1.2px] underline-offset-2",
+    interactive
+      ? "cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color:var(--md-link)]/30"
+      : "cursor-default decoration-dotted",
   );
   const content = (
     <>
       <span
-        className={cn(
-          "inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center",
-          resolveInlineTokenIconClassName(tone, isUser),
-        )}
+        className="inline-flex h-[1em] w-[1em] shrink-0 translate-y-[0.08em] items-center justify-center text-current opacity-80"
       >
-        {renderInlineTokenIcon(tone, kind)}
+        {renderInlineTokenIcon(kind)}
       </span>
       <span className="truncate">{label}</span>
     </>
   );
-
-  if (interactive) {
-    return (
-      <button
-        type="button"
-        className={className}
-        title={label}
-        onClick={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          onClick?.();
-        }}
-      >
-        {content}
-      </button>
-    );
-  }
+  const trigger = interactive ? (
+    <button
+      type="button"
+      className={className}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onClick?.();
+      }}
+    >
+      {content}
+    </button>
+  ) : (
+    <span className={className}>{content}</span>
+  );
 
   return (
-    <span className={className} title={label}>
-      {content}
-    </span>
+    <TooltipProvider delayDuration={250}>
+      <Tooltip>
+        <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+        <TooltipContent side="top" className="max-w-[24rem] break-all text-xs">
+          {tooltip}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
