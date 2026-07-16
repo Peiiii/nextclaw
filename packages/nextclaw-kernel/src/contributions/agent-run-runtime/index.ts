@@ -71,6 +71,7 @@ export class AgentRunRuntimeContribution implements KernelContribution {
               contextBlocks,
               messages: sessionRun.getSnapshot().messages,
               metadata: session.metadata,
+              model: spec.model,
               sessionId: sessionRun.sessionId,
             });
           },

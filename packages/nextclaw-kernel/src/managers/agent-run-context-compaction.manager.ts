@@ -17,6 +17,7 @@ export type AgentRunContextCompactionInput = {
   contextBlocks: readonly string[];
   messages: readonly NcpMessage[];
   metadata: Record<string, unknown>;
+  model: string;
 };
 
 export class AgentRunContextCompactionManager {
@@ -36,21 +37,18 @@ export class AgentRunContextCompactionManager {
     const beginResult = this.preflightService.begin({
       contextBlocks: input.contextBlocks,
       inputMessages: [],
+      model: input.model,
       requestMetadata: input.metadata,
       sessionId: input.sessionId,
       sessionMessages: input.messages,
       storedAgentId: input.agentId,
       storedMetadata: input.metadata,
     });
-    const events = await this.toEvents(input.sessionId, beginResult);
     if (!beginResult.pendingCompaction) {
-      return events;
+      return [];
     }
     const finishResult = await this.preflightService.finish(beginResult.pendingCompaction);
-    return [
-      ...events,
-      ...(await this.toEvents(input.sessionId, finishResult)),
-    ];
+    return await this.toEvents(input.sessionId, finishResult);
   };
 
   private toEvents = async (

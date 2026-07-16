@@ -221,6 +221,7 @@ describe("ContextCompactionPreflightService", () => {
     const beginResult = service.begin({
       contextBlocks: ["context ".repeat(4_000)],
       inputMessages: [],
+      model: "run-selected-model",
       requestMetadata: {},
       sessionId: SESSION_ID,
       sessionMessages: [
@@ -265,6 +266,7 @@ describe("ContextCompactionPreflightService rolling source", () => {
     const beginResult = service.begin({
       contextBlocks: ["context ".repeat(4_000)],
       inputMessages: [],
+      model: "run-selected-model",
       requestMetadata: {},
       sessionId: SESSION_ID,
       sessionMessages: [
@@ -308,6 +310,7 @@ describe("ContextCompactionPreflightService rolling source", () => {
 
     const beginResult = service.begin({
       inputMessages: [],
+      model: "run-selected-model",
       requestMetadata: {},
       sessionId: SESSION_ID,
       sessionMessages,
@@ -339,6 +342,7 @@ describe("ContextCompactionPreflightService rolling source", () => {
 
     const beginResult = service.begin({
       inputMessages: [],
+      model: "run-selected-model",
       requestMetadata: {},
       sessionId: SESSION_ID,
       sessionMessages,
@@ -349,9 +353,10 @@ describe("ContextCompactionPreflightService rolling source", () => {
     });
 
     expect(beginResult.pendingCompaction).not.toBeNull();
-    expect(beginResult.timelineMessage?.id).toMatch(/^context-compaction-message-/);
-    expect(beginResult.timelineMessage?.id).not.toBe(`${SESSION_ID}:service:context-compaction:${existingCheckpoint.id}:17`);
-    const compressingCheckpoint = beginResult.timelineMessage?.metadata?.checkpoint as ContextCompactionCheckpoint;
+    const pendingCompaction = beginResult.pendingCompaction!;
+    expect(pendingCompaction.serviceMessageId).toMatch(/^context-compaction-message-/);
+    expect(pendingCompaction.serviceMessageId).not.toBe(`${SESSION_ID}:service:context-compaction:${existingCheckpoint.id}:17`);
+    const compressingCheckpoint = pendingCompaction.checkpoint;
     expect(compressingCheckpoint.coveredMessageCount).toBeGreaterThan(existingCheckpoint.coveredMessageCount);
     expect(compressingCheckpoint.coveredSessionMessageCount).toBe(compressingCheckpoint.coveredMessageCount);
     expect(compressingCheckpoint).toMatchObject({
@@ -366,7 +371,7 @@ describe("ContextCompactionPreflightService rolling source", () => {
     expect(summaryRequest).toContain("Previously compressed context.");
     expect(summaryRequest).toContain("after checkpoint 14");
     expect(summaryRequest).not.toContain("after checkpoint 15");
-    expect(finishResult.timelineMessage?.id).toBe(beginResult.timelineMessage?.id);
+    expect(finishResult.timelineMessage?.id).toBe(pendingCompaction.serviceMessageId);
     expect(finishResult.metadataPatch[CONTEXT_COMPACTION_METADATA_KEY]).toMatchObject({
       coveredMessageCount: compressingCheckpoint.coveredMessageCount,
       coveredSessionMessageCount: compressingCheckpoint.coveredSessionMessageCount,
