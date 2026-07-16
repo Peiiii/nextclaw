@@ -1,5 +1,29 @@
 # @nextclaw/ui
 
+## 0.15.6
+
+### Patch Changes
+
+- 36b3702: 修复中文输入法取消拼音或按数字选择候选词后，字符异常恢复、光标跳到输入框开头的问题。
+- 2eceb16: 聊天输入框现在支持通过 `@` 搜索并引用当前项目中的文件或目录：可从统一引用菜单进入文件浏览、查看路径层级并插入引用标签，发送时由 NextClaw 在项目边界内安全、限量地补充对应文件内容或目录结构上下文。
+- b815813: Make the header expose release notes for both the currently running NextClaw version and the available update target when docs notes are available.
+- 9ae8d96: 统一聊天 Markdown 的内容块间距：标题、表格、代码块、引用、列表与分隔线现在遵循一致的垂直节奏，章节标题也会更清晰地归属于后续内容。
+- 25f8bb0: 修复聊天中的会话模型恢复、重试错误提示、技能选择和折叠会话列表交互，并为 `/`、`@` 选择项补充类型图标。
+- 59a4723: 新增独立项目注册表与项目模板：项目可以在没有会话时通过界面、CLI 或 AI 创建并展示；界面提供支持导航、搜索和新建文件夹的跨平台服务端目录选择器，并按 macOS、Windows 与 Linux 展示实际可用的常用位置；CLI 与 AI 还可列出项目、修改会话名称及项目目录。
+- 8be3173: Allow provider model entries and runtime routing to preserve nested IDs such as `bedrock/claude-fable-5`, including OpenRouter-style vendor/model routes.
+- Updated dependencies [36b3702]
+- Updated dependencies [2eceb16]
+- Updated dependencies [611e7aa]
+- Updated dependencies [25f8bb0]
+- Updated dependencies [59a4723]
+  - @nextclaw/agent-chat-ui@0.6.6
+  - @nextclaw/client-sdk@0.5.6
+  - @nextclaw/shared@0.4.4
+  - @nextclaw/ncp@0.7.4
+  - @nextclaw/ncp-toolkit@0.6.5
+  - @nextclaw/ncp-react@0.5.5
+  - @nextclaw/ncp-http-agent-client@0.4.4
+
 ## 0.15.5
 
 ### Patch Changes

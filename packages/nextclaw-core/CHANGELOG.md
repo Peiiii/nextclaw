@@ -1,5 +1,14 @@
 # nextclaw-core
 
+## 0.15.5
+
+### Patch Changes
+
+- 59a4723: 新增独立项目注册表与项目模板：项目可以在没有会话时通过界面、CLI 或 AI 创建并展示；界面提供支持导航、搜索和新建文件夹的跨平台服务端目录选择器，并按 macOS、Windows 与 Linux 展示实际可用的常用位置；CLI 与 AI 还可列出项目、修改会话名称及项目目录。
+- 8be3173: Allow provider model entries and runtime routing to preserve nested IDs such as `bedrock/claude-fable-5`, including OpenRouter-style vendor/model routes.
+- Updated dependencies [2eceb16]
+  - @nextclaw/shared@0.4.4
+
 ## 0.15.4
 
 ### Patch Changes

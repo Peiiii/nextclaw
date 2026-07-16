@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.24.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-07-16",
+  "title": {
+    "zh-CN": "NextClaw v0.24.0",
+    "en-US": "NextClaw v0.24.0"
+  },
+  "summary": {
+    "zh-CN": "本版本带来独立项目、项目文件引用、服务端目录选择器和更顺畅的运行时更新体验。",
+    "en-US": "This release adds independent projects, project file references, a server-side directory picker, and smoother runtime updates."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-16-nextclaw-v0-24-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-16-nextclaw-v0-24-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "功能",
+        "en-US": "Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "独立项目与模板",
+            "en-US": "Independent projects and templates"
+          },
+          "body": {
+            "zh-CN": "项目即使还没有会话，也会保留在项目列表中；新建项目时可以选择空项目或知识库模板。",
+            "en-US": "Projects remain visible before they have sessions, and new projects can start from empty or knowledge base templates."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "服务端目录选择器",
+            "en-US": "Server-side directory picker"
+          },
+          "body": {
+            "zh-CN": "新建项目时可以浏览运行 NextClaw 服务的机器上的目录，并使用常用位置、搜索、新建文件夹和单击选择。",
+            "en-US": "Project creation can browse directories on the service machine, with quick locations, search, new folders, and single-click selection."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "项目文件与目录引用",
+            "en-US": "Project file and directory references"
+          },
+          "body": {
+            "zh-CN": "聊天输入框支持通过 @ 引用当前项目中的文件或目录，发送时会在项目边界内补充受限上下文。",
+            "en-US": "The chat composer supports @ references for files and directories in the current project, adding bounded project context on send."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "项目优先工作流",
+            "en-US": "Project-first workflow"
+          },
+          "body": {
+            "zh-CN": "项目视图能展示没有会话的项目，并从项目分组直接开启新任务。",
+            "en-US": "Project view can show projects without sessions and start new tasks directly from project groups."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "更新状态更连贯",
+            "en-US": "More continuous update states"
+          },
+          "body": {
+            "zh-CN": "运行时更新检查、下载和切换状态更连贯，完成更新后会自动切换到新的运行包。",
+            "en-US": "Runtime update check, download, and switch states are more continuous, and completed updates switch to the new runtime bundle automatically."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "聊天输入与会话交互一致性",
+            "en-US": "Composer and session interaction consistency"
+          },
+          "body": {
+            "zh-CN": "中文输入法候选词、会话模型恢复、重试错误提示、技能选择和会话列表图标在多种状态下更稳定。",
+            "en-US": "Chinese IME candidate input, session model restoration, retry error hints, skill selection, and session-list icons are steadier across states."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "更新完成后不再停在旧状态",
+            "en-US": "Updates no longer stay on stale state"
+          },
+          "body": {
+            "zh-CN": "更新流程不再因为页面状态停滞而让用户误以为仍停在旧版本。",
+            "en-US": "The update flow no longer leaves the page looking stuck on the old version after the update has completed."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需手动迁移",
+            "en-US": "No manual migration"
+          },
+          "body": {
+            "zh-CN": "本版本不需要手动迁移。",
+            "en-US": "No manual migration is required."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "NPM stable 更新",
+            "en-US": "NPM stable update"
+          },
+          "body": {
+            "zh-CN": "NPM 安装用户可以继续通过 stable 更新链路，或重新安装 nextclaw@latest 获取本版本。",
+            "en-US": "NPM users can continue through the stable update path or reinstall nextclaw@latest to get this release."
+          }
+        }
+      ]
+    }
+  ]
+}

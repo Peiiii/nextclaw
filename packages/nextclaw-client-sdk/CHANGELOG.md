@@ -1,5 +1,19 @@
 # @nextclaw/client-sdk
 
+## 0.5.6
+
+### Patch Changes
+
+- 2eceb16: 聊天输入框现在支持通过 `@` 搜索并引用当前项目中的文件或目录：可从统一引用菜单进入文件浏览、查看路径层级并插入引用标签，发送时由 NextClaw 在项目边界内安全、限量地补充对应文件内容或目录结构上下文。
+- 59a4723: 新增独立项目注册表与项目模板：项目可以在没有会话时通过界面、CLI 或 AI 创建并展示；界面提供支持导航、搜索和新建文件夹的跨平台服务端目录选择器，并按 macOS、Windows 与 Linux 展示实际可用的常用位置；CLI 与 AI 还可列出项目、修改会话名称及项目目录。
+- Updated dependencies [2eceb16]
+- Updated dependencies [25f8bb0]
+- Updated dependencies [59a4723]
+- Updated dependencies [8be3173]
+  - @nextclaw/server@0.15.6
+  - @nextclaw/shared@0.4.4
+  - @nextclaw/ncp@0.7.4
+
 ## 0.5.5
 
 ### Patch Changes
