@@ -8,7 +8,7 @@ import {
   type SerializedLexicalNode,
 } from 'lexical';
 import type { ReactElement } from 'react';
-import { AppWindow, ImageIcon, Puzzle } from 'lucide-react';
+import { AppWindow, FileText, Folder, ImageIcon, Puzzle } from 'lucide-react';
 import { CHAT_COMPOSER_TOKEN_PLACEHOLDER } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 import type { ChatComposerTokenKind } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
@@ -69,6 +69,7 @@ function ChatComposerTokenChip({
   label: string;
   tokenKind: ChatComposerTokenKind;
 }): ReactElement {
+  const isWorkspaceReference = tokenKind === 'workspace_file' || tokenKind === 'workspace_directory';
   return (
     <>
       <span
@@ -80,6 +81,10 @@ function ChatComposerTokenChip({
       >
         {tokenKind === 'file' ? (
           <ImageIcon aria-hidden="true" className="h-3 w-3" />
+        ) : tokenKind === 'workspace_file' ? (
+          <FileText aria-hidden="true" className="h-3 w-3" />
+        ) : tokenKind === 'workspace_directory' ? (
+          <Folder aria-hidden="true" className="h-3 w-3" />
         ) : tokenKind === 'panel_app' ? (
           <AppWindow aria-hidden="true" className="h-3 w-3" />
         ) : (
@@ -90,7 +95,9 @@ function ChatComposerTokenChip({
         className={
           tokenKind === 'file'
             ? 'min-w-0 flex-1 truncate text-[12px] font-medium text-foreground'
-            : 'truncate'
+            : isWorkspaceReference
+              ? 'max-w-[16rem] truncate'
+              : 'truncate'
         }
       >
         {label}

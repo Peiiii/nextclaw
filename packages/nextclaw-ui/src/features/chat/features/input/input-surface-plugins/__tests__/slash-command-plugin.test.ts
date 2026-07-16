@@ -86,6 +86,7 @@ describe('createSlashCommandInputSurfacePlugin', () => {
     const state = resolveChatInputSurfaceState({
       data: {
         isPanelAppsLoading: false,
+        isServerPathSearchLoading: false,
         isSkillsLoading: false,
         panelApps: [
           createPanelApp({
@@ -94,7 +95,11 @@ describe('createSlashCommandInputSurfacePlugin', () => {
             description: 'Track tasks',
           }),
         ],
+        projectRoot: '/tmp/project',
         recentSkillValues: [],
+        referenceMode: 'root',
+        serverPathEntries: [],
+        serverPathSearchError: null,
         skillRecords: [
           {
             key: 'web-search',
@@ -148,9 +153,14 @@ describe('createSlashCommandInputSurfacePlugin', () => {
     const state = resolveChatInputSurfaceState({
       data: {
         isPanelAppsLoading: false,
+        isServerPathSearchLoading: false,
         isSkillsLoading: false,
         panelApps: [],
+        projectRoot: '/tmp/project',
         recentSkillValues: [],
+        referenceMode: 'root',
+        serverPathEntries: [],
+        serverPathSearchError: null,
         skillRecords: [
           {
             key: 'project:review',
@@ -192,9 +202,14 @@ describe('createSlashCommandInputSurfacePlugin', () => {
     const state = resolveChatInputSurfaceState({
       data: {
         isPanelAppsLoading: false,
+        isServerPathSearchLoading: false,
         isSkillsLoading: false,
         panelApps: [],
+        projectRoot: '/tmp/project',
         recentSkillValues: [],
+        referenceMode: 'root',
+        serverPathEntries: [],
+        serverPathSearchError: null,
         skillRecords: [],
       },
       plugins: [createPlugin({ onSelectCommand })],
@@ -218,6 +233,7 @@ describe('createSlashCommandInputSurfacePlugin', () => {
     const state = resolveChatInputSurfaceState({
       data: {
         isPanelAppsLoading: false,
+        isServerPathSearchLoading: false,
         isSkillsLoading: false,
         panelApps: [
           createPanelApp({
@@ -226,7 +242,11 @@ describe('createSlashCommandInputSurfacePlugin', () => {
             description: 'Track tasks',
           }),
         ],
+        projectRoot: '/tmp/project',
         recentSkillValues: [],
+        referenceMode: 'root',
+        serverPathEntries: [],
+        serverPathSearchError: null,
         skillRecords: [],
       },
       plugins: [createPlugin({ onSelectPanelApp })],

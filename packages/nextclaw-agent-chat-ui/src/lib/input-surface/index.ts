@@ -10,6 +10,7 @@ export type {
   ChatInputSurfaceItemIcon,
   ChatInputSurfaceMenuProps,
   ChatInputSurfaceMenuTexts,
+  ChatInputSurfacePathPreview,
   ChatInputSurfacePanel,
   ChatInputSurfacePlugin,
   ChatInputSurfacePluginContext,

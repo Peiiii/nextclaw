@@ -215,6 +215,29 @@ describe('buildChatRunMetadata', () => {
     ).not.toHaveProperty('ui_inline_tokens');
   });
 
+  it('adds structured workspace references to run metadata', () => {
+    expect(
+      buildChatRunMetadata({
+        composerNodes: [
+          createChatComposerTokenNode({
+            tokenKind: 'workspace_file',
+            tokenKey: 'src/file name.ts',
+            label: 'file name.ts',
+          }),
+        ],
+      }),
+    ).toMatchObject({
+      ui_inline_tokens: [
+        {
+          kind: 'workspace_file',
+          key: 'src/file name.ts',
+          label: 'file name.ts',
+          rawText: '@file:src%2Ffile%20name.ts',
+        },
+      ],
+    });
+  });
+
   it('serializes child session materialization metadata for side chat drafts', () => {
     expect(
       buildChatRunMetadata({

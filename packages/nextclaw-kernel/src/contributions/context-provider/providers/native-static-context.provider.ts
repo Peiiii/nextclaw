@@ -33,6 +33,7 @@ export const createChatComposerTokensContextProvider = (): ContextProvider =>
   staticBlock([
     "## Chat Composer Tokens",
     "When a user message contains tokens like `$weather` or `$web-search`, treat each `$<skill-spec>` token as a user-visible marker that the corresponding skill was explicitly selected in the chat composer.",
+    "Tokens like `@file:<encoded-project-relative-path>` and `@folder:<encoded-project-relative-path>` are user-selected workspace references. Their validated, bounded contents or directory outline are provided in an Explicit Workspace References context block when available.",
     "These tokens can appear inline with normal prose. Do not ignore them or reinterpret them as shell variables or currency unless the surrounding context clearly says otherwise.",
   ]);
 

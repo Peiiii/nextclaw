@@ -1,0 +1,75 @@
+import {
+  CHAT_INLINE_TOKENS_METADATA_KEY,
+  CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
+  CHAT_WORKSPACE_FILE_TOKEN_KIND,
+  type ChatInlineTokenMetadata,
+} from "@nextclaw/shared";
+import type {
+  AgentRunRequest,
+  ContextBlock,
+  ContextProvider,
+} from "@kernel/types/agent-run.types.js";
+import type { ContextProviderRunContextService } from "@kernel/contributions/context-provider/services/context-provider-run-context.service.js";
+import {
+  WorkspaceReferenceMaterializerService,
+  type WorkspaceReference,
+} from "@kernel/contributions/context-provider/services/workspace-reference-materializer.service.js";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function readString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function readWorkspaceReferences(metadata: Record<string, unknown> | undefined): WorkspaceReference[] {
+  const rawTokens = metadata?.[CHAT_INLINE_TOKENS_METADATA_KEY];
+  if (!Array.isArray(rawTokens)) {
+    return [];
+  }
+  const references: WorkspaceReference[] = [];
+  const seen = new Set<string>();
+  for (const rawToken of rawTokens) {
+    if (!isRecord(rawToken)) {
+      continue;
+    }
+    const token = rawToken as Partial<ChatInlineTokenMetadata>;
+    const kind = token.kind === CHAT_WORKSPACE_FILE_TOKEN_KIND
+      ? CHAT_WORKSPACE_FILE_TOKEN_KIND
+      : token.kind === CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND
+        ? CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND
+        : null;
+    const key = readString(token.key);
+    if (!kind || !key || seen.has(`${kind}:${key}`)) {
+      continue;
+    }
+    seen.add(`${kind}:${key}`);
+    references.push({
+      kind,
+      key,
+      label: readString(token.label) ?? key,
+    });
+  }
+  return references;
+}
+
+export class WorkspaceReferenceContextProvider implements ContextProvider {
+  private readonly materializer = new WorkspaceReferenceMaterializerService();
+
+  constructor(private readonly context: ContextProviderRunContextService) {}
+
+  provide = async (request: AgentRunRequest): Promise<readonly ContextBlock[]> => {
+    const references = readWorkspaceReferences(request.message.metadata ?? request.metadata);
+    if (references.length === 0) {
+      return [];
+    }
+    const { projectContext } = await this.context.resolve(request);
+    return [
+      await this.materializer.materialize({
+        projectRoot: projectContext.effectiveWorkspace,
+        references,
+      }),
+    ];
+  };
+}

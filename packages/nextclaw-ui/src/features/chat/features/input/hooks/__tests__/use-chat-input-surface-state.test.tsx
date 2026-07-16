@@ -9,9 +9,20 @@ const usePanelAppsMock = vi.hoisted(() =>
     isLoading: false,
   })),
 );
+const useServerPathSearchMock = vi.hoisted(() =>
+  vi.fn(() => ({
+    data: { entries: [] },
+    error: null,
+    isFetching: false,
+    isLoading: false,
+  })),
+);
 
 vi.mock('@/features/panel-apps', () => ({
   usePanelApps: usePanelAppsMock,
+}));
+vi.mock('@/shared/hooks/use-server-path-search', () => ({
+  useServerPathSearch: useServerPathSearchMock,
 }));
 
 function createHookParams() {
@@ -29,6 +40,7 @@ function createHookParams() {
     language: 'zh' as const,
     onSelectPanelApp: vi.fn(),
     onSelectSkill: vi.fn(),
+    projectRoot: '/tmp/project',
     recentSkillValues: [],
     skillRecords: [],
   };
@@ -36,6 +48,31 @@ function createHookParams() {
 
 beforeEach(() => {
   usePanelAppsMock.mockClear();
+  useServerPathSearchMock.mockClear();
+});
+
+it('enables project path search after navigating into files and folders', () => {
+  const { result } = renderHook(() => useChatInputSurfaceState(createHookParams()));
+
+  act(() =>
+    result.current.setInputSurfaceTrigger({
+      end: 1,
+      key: 'context-reference',
+      marker: '@',
+      query: '',
+      start: 0,
+    }),
+  );
+  const filesItem = result.current.inputSurfaceState.panel?.items.find(
+    (item) => item.selectionBehavior === 'navigate',
+  );
+  act(() => result.current.inputSurfaceState.panel?.onSelectItem?.(filesItem!));
+
+  expect(useServerPathSearchMock).toHaveBeenLastCalledWith({
+    basePath: '/tmp/project',
+    query: '',
+    enabled: true,
+  });
 });
 
 it('keeps equivalent input surface trigger updates from rerendering the composer owner', () => {

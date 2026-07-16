@@ -11,7 +11,7 @@ import type { ChatInputBarAdapterTexts } from '@/features/chat/types/chat-input-
 import {
   buildPanelAppInputSurfaceItems,
   type PanelAppInputSurfaceItemTexts,
-} from './panel-app-reference-plugin.utils';
+} from './context-reference-plugin.utils';
 import {
   resolveInputSurfaceMatchTier,
   scoreInputSurfaceSearchCandidate,

@@ -28,7 +28,22 @@ export type ChatInputSurfaceMenuTexts = {
   itemHintLabel: string;
 };
 
-export type ChatInputSurfaceItemIcon = 'command' | 'panel-app' | 'skill';
+export type ChatInputSurfaceItemIcon =
+  | 'back'
+  | 'command'
+  | 'file'
+  | 'files'
+  | 'folder'
+  | 'panel-app'
+  | 'skill';
+
+export type ChatInputSurfacePathPreview = {
+  rootLabel: string;
+  segments: Array<{
+    label: string;
+    kind: 'directory' | 'file';
+  }>;
+};
 
 export type ChatInputSurfaceItem = {
   key: string;
@@ -43,6 +58,8 @@ export type ChatInputSurfaceItem = {
   value?: string;
   tokenKind?: string;
   tokenKey?: string;
+  selectionBehavior?: 'insert' | 'navigate';
+  pathPreview?: ChatInputSurfacePathPreview;
 };
 
 export type ChatInputSurfaceFilterOption = {
@@ -51,11 +68,17 @@ export type ChatInputSurfaceFilterOption = {
   sectionKeys?: readonly string[];
 };
 
+export type ChatInputSurfaceNotice = {
+  message: string;
+  tone: 'error';
+};
+
 export type ChatInputSurfaceMenuProps = {
   filterOptions?: readonly ChatInputSurfaceFilterOption[];
   isOpen: boolean;
   isLoading: boolean;
   items: ChatInputSurfaceItem[];
+  notice?: ChatInputSurfaceNotice;
   texts: ChatInputSurfaceMenuTexts;
   onSelectItem: (item: ChatInputSurfaceItem) => void;
   onOpenChange: (open: boolean) => void;
@@ -64,7 +87,7 @@ export type ChatInputSurfaceMenuProps = {
 
 export type ChatInputSurfaceConfig = Pick<
   ChatInputSurfaceMenuProps,
-  "filterOptions" | "isLoading" | "items" | "texts"
+  "filterOptions" | "isLoading" | "items" | "notice" | "texts"
 > & {
   onSelectItem?: (item: ChatInputSurfaceItem) => void;
 };

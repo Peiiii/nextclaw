@@ -148,6 +148,8 @@ export type {
   ServerPathDirectoryCreateRequest,
   ServerPathDirectoryCreateView,
   ServerPathReadView,
+  ServerPathSearchEntryView,
+  ServerPathSearchView,
   SessionPatchUpdate,
   UiNcpAssetPutView as NcpAssetPutView,
   UiNcpSessionListView,

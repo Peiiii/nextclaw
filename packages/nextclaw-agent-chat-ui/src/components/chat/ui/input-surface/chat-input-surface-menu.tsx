@@ -1,5 +1,6 @@
 import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { Command, PanelsTopLeft, Puzzle } from 'lucide-react';
+import { ArrowLeft, CircleAlert, Command, File, Files, Folder, PanelsTopLeft, Puzzle } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useActiveItemScroll } from '@agent-chat-ui/components/chat/hooks/use-active-item-scroll';
 import { useElementWidth } from '@agent-chat-ui/components/chat/hooks/use-element-width';
 import {
@@ -10,8 +11,10 @@ import type {
   ChatInputSurfaceFilterOption,
   ChatInputSurfaceItem,
   ChatInputSurfaceItemIcon,
+  ChatInputSurfaceMenuTexts,
   ChatInputSurfaceMenuProps,
 } from '@agent-chat-ui/lib/input-surface';
+import { ChatInputSurfacePathPreview } from './chat-input-surface-path-preview';
 
 const INPUT_SURFACE_PANEL_MAX_WIDTH = 680;
 const INPUT_SURFACE_PANEL_DESKTOP_SHRINK_RATIO = 0.82;
@@ -32,6 +35,16 @@ type ChatInputSurfaceFilterView = ChatInputSurfaceFilterOption & {
   count: number;
 };
 
+const INPUT_SURFACE_ITEM_ICONS: Record<ChatInputSurfaceItemIcon, LucideIcon> = {
+  back: ArrowLeft,
+  command: Command,
+  file: File,
+  files: Files,
+  folder: Folder,
+  'panel-app': PanelsTopLeft,
+  skill: Puzzle,
+};
+
 function itemMatchesFilter(item: ChatInputSurfaceItem, filter: ChatInputSurfaceFilterOption): boolean {
   if (!filter.sectionKeys || filter.sectionKeys.length === 0) {
     return true;
@@ -39,8 +52,20 @@ function itemMatchesFilter(item: ChatInputSurfaceItem, filter: ChatInputSurfaceF
   return Boolean(item.sectionKey && filter.sectionKeys.includes(item.sectionKey));
 }
 
+function resolveActiveFilterKey(
+  filters: readonly ChatInputSurfaceFilterOption[] | undefined,
+  activeFilterKey: string | null,
+): string | null {
+  if (!filters?.length) {
+    return null;
+  }
+  return filters.some((filter) => filter.key === activeFilterKey)
+    ? activeFilterKey
+    : filters[0].key;
+}
+
 function InputSurfaceItemIcon({ icon }: { icon: ChatInputSurfaceItemIcon }) {
-  const Icon = icon === 'command' ? Command : icon === 'panel-app' ? PanelsTopLeft : Puzzle;
+  const Icon = INPUT_SURFACE_ITEM_ICONS[icon];
   return (
     <span
       aria-hidden="true"
@@ -50,6 +75,94 @@ function InputSurfaceItemIcon({ icon }: { icon: ChatInputSurfaceItemIcon }) {
       <Icon className="h-3.5 w-3.5" />
     </span>
   );
+}
+
+function InputSurfaceItemDetails({
+  item,
+  texts,
+}: {
+  item: ChatInputSurfaceItem | null;
+  texts: ChatInputSurfaceMenuTexts;
+}) {
+  if (!item) {
+    return <div className="text-xs text-gray-500">{texts.hintLabel}</div>;
+  }
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        {item.subtitle ? (
+          <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+            {item.subtitle}
+          </span>
+        ) : null}
+        <span className="text-sm font-semibold text-gray-900">{item.title}</span>
+      </div>
+      <p className="text-xs leading-5 text-gray-600">{item.description}</p>
+      {item.pathPreview ? (
+        <ChatInputSurfacePathPreview pathPreview={item.pathPreview} />
+      ) : null}
+      <div className="space-y-1">
+        {item.detailLines.map((line) => (
+          <div
+            key={line}
+            className="min-w-0 break-all rounded-md bg-gray-50 px-2 py-1 text-[11px] leading-5 text-gray-600"
+          >
+            {line}
+          </div>
+        ))}
+      </div>
+      <div className="pt-1 text-[11px] text-gray-500">
+        {item.hintLabel ?? texts.itemHintLabel}
+      </div>
+    </div>
+  );
+}
+
+function handleInputSurfaceMenuKeyDown(params: {
+  activeIndex: number;
+  event: KeyboardEvent;
+  isOpen: boolean;
+  items: ChatInputSurfaceItem[];
+  onOpenChange: (open: boolean) => void;
+  onSelectItem: (item: ChatInputSurfaceItem) => void;
+  setActiveIndex: (nextIndex: number | ((currentIndex: number) => number)) => void;
+}): boolean {
+  const {
+    activeIndex,
+    event,
+    isOpen,
+    items,
+    onOpenChange,
+    onSelectItem,
+    setActiveIndex,
+  } = params;
+  if (!isOpen) {
+    return false;
+  }
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    onOpenChange(false);
+    return true;
+  }
+  if (items.length === 0) {
+    return false;
+  }
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    setActiveIndex((index) => (index + 1) % items.length);
+    return true;
+  }
+  if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    setActiveIndex((index) => (index - 1 + items.length) % items.length);
+    return true;
+  }
+  if ((event.key === 'Enter' && !event.shiftKey) || event.key === 'Tab') {
+    event.preventDefault();
+    onSelectItem(items[activeIndex]);
+    return true;
+  }
+  return false;
 }
 
 export const ChatInputSurfaceMenu = forwardRef<ChatInputSurfaceMenuHandle, ChatInputSurfaceMenuProps>(
@@ -66,6 +179,7 @@ function ChatInputSurfaceMenu(props, ref) {
     isLoading,
     filterOptions,
     items,
+    notice,
     texts,
     onSelectItem,
     onOpenChange,
@@ -73,14 +187,10 @@ function ChatInputSurfaceMenu(props, ref) {
   } = props;
   const firstFilterKey = filterOptions?.[0]?.key ?? null;
   const [activeFilterKey, setActiveFilterKey] = useState<string | null>(firstFilterKey);
-  const resolvedActiveFilterKey = useMemo(() => {
-    if (!filterOptions?.length) {
-      return null;
-    }
-    return filterOptions.some((filter) => filter.key === activeFilterKey)
-      ? activeFilterKey
-      : filterOptions[0].key;
-  }, [activeFilterKey, filterOptions]);
+  const resolvedActiveFilterKey = useMemo(
+    () => resolveActiveFilterKey(filterOptions, activeFilterKey),
+    [activeFilterKey, filterOptions],
+  );
   const activeFilter = useMemo(
     () => filterOptions?.find((filter) => filter.key === resolvedActiveFilterKey) ?? null,
     [filterOptions, resolvedActiveFilterKey],
@@ -138,41 +248,15 @@ function ChatInputSurfaceMenu(props, ref) {
   }, [panelWidth]);
 
   useImperativeHandle(ref, () => ({
-    handleKeyDown: (event) => {
-      if (!isOpen) {
-        return false;
-      }
-
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onOpenChange(false);
-        return true;
-      }
-
-      if (visibleItems.length === 0) {
-        return false;
-      }
-
-      if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        setActiveIndexForCurrentItems((index) => (index + 1) % visibleItems.length);
-        return true;
-      }
-
-      if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        setActiveIndexForCurrentItems((index) => (index - 1 + visibleItems.length) % visibleItems.length);
-        return true;
-      }
-
-      if ((event.key === 'Enter' && !event.shiftKey) || event.key === 'Tab') {
-        event.preventDefault();
-        onSelectItem(visibleItems[activeIndexInRange]);
-        return true;
-      }
-
-      return false;
-    },
+    handleKeyDown: (event) => handleInputSurfaceMenuKeyDown({
+      activeIndex: activeIndexInRange,
+      event,
+      isOpen,
+      items: visibleItems,
+      onOpenChange,
+      onSelectItem,
+      setActiveIndex: setActiveIndexForCurrentItems,
+    }),
   }), [activeIndexInRange, isOpen, onOpenChange, onSelectItem, setActiveIndexForCurrentItems, visibleItems]);
 
   useActiveItemScroll({
@@ -226,6 +310,12 @@ function ChatInputSurfaceMenu(props, ref) {
                     </button>
                   );
                 })}
+              </div>
+            ) : null}
+            {!isLoading && notice ? (
+              <div className="mx-2 mb-1.5 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-2.5 py-2 text-xs leading-4 text-red-700">
+                <CircleAlert aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{notice.message}</span>
               </div>
             ) : null}
             <div
@@ -307,32 +397,7 @@ function ChatInputSurfaceMenu(props, ref) {
             className="custom-scrollbar min-h-0 min-w-0 select-text overflow-y-auto overscroll-contain p-2.5"
             onPointerDown={onDetailsPointerDown}
           >
-            {activeItem ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-                    {activeItem.subtitle}
-                  </span>
-                  <span className="text-sm font-semibold text-gray-900">{activeItem.title}</span>
-                </div>
-                <p className="text-xs leading-5 text-gray-600">{activeItem.description}</p>
-                <div className="space-y-1">
-                  {activeItem.detailLines.map((line) => (
-                    <div
-                      key={line}
-                      className="min-w-0 break-all rounded-md bg-gray-50 px-2 py-1 text-[11px] leading-5 text-gray-600"
-                    >
-                      {line}
-                    </div>
-                  ))}
-                </div>
-                <div className="pt-1 text-[11px] text-gray-500">
-                  {activeItem.hintLabel ?? texts.itemHintLabel}
-                </div>
-              </div>
-            ) : (
-              <div className="text-xs text-gray-500">{texts.hintLabel}</div>
-            )}
+            <InputSurfaceItemDetails item={activeItem} texts={texts} />
           </div>
         </div>
       </PopoverContent>

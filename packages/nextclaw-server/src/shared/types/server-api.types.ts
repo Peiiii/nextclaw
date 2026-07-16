@@ -529,6 +529,22 @@ export type ServerPathBrowseView = {
   locations: ServerPathLocationView[];
 };
 
+export type ServerPathSearchEntryView = {
+  name: string;
+  path: string;
+  relativePath: string;
+  parentRelativePath: string;
+  kind: "directory" | "file";
+  hidden: boolean;
+};
+
+export type ServerPathSearchView = {
+  basePath: string;
+  query: string;
+  entries: ServerPathSearchEntryView[];
+  truncated: boolean;
+};
+
 export type ServerPathDirectoryCreateRequest = { parentPath: string; name: string };
 
 export type ServerPathDirectoryCreateView = { path: string };

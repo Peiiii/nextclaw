@@ -3,7 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { NcpTool } from "@nextclaw/ncp";
-import { EventBus } from "@nextclaw/shared";
+import {
+  CHAT_INLINE_TOKENS_METADATA_KEY,
+  CHAT_WORKSPACE_FILE_TOKEN_KIND,
+  EventBus,
+} from "@nextclaw/shared";
 import { ContextProviderContribution } from "@kernel/contributions/context-provider/index.js";
 import { ContextProviderManager } from "@kernel/managers/context-provider.manager.js";
 import { createShowContentTools } from "@kernel/tools/show-content.tools.js";
@@ -102,6 +106,7 @@ describe("ContextProviderContribution native prompt contract", () => {
     const projectSkillDir = join(projectRoot, ".agents", "skills", "project-review");
     writeFileSync(join(hostWorkspace, "AGENTS.md"), "NextClaw workspace rules.\n");
     writeFileSync(join(projectRoot, "AGENTS.md"), "Project rules.\n");
+    writeFileSync(join(projectRoot, "reference.ts"), "export const referenced = true;\n");
     mkdirSync(join(hostWorkspace, "skills", "demo-skill"), { recursive: true });
     writeFileSync(
       join(hostWorkspace, "skills", "demo-skill", "SKILL.md"),
@@ -171,6 +176,14 @@ describe("ContextProviderContribution native prompt contract", () => {
     const blocks = await contextProviderManager.buildContext(
       createRequest(projectRoot, {
         requested_skill_refs: [`project:${projectSkillDir}`],
+        [CHAT_INLINE_TOKENS_METADATA_KEY]: [
+          {
+            kind: CHAT_WORKSPACE_FILE_TOKEN_KIND,
+            key: "reference.ts",
+            label: "reference.ts",
+            rawText: "@file:reference.ts",
+          },
+        ],
       }),
     );
     const context = blocks
@@ -202,6 +215,8 @@ describe("ContextProviderContribution native prompt contract", () => {
       'viewer="rendered"',
       'viewer="source"',
       "# Project Context",
+      "## Explicit Workspace References",
+      "export const referenced = true;",
       "# Agent Bootstrap Context",
       "Agent bootstrap files loaded:",
       "## AGENTS.md\n\nProject rules.",

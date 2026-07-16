@@ -3,6 +3,7 @@ import type {
   ServerPathDirectoryCreateRequest,
   ServerPathDirectoryCreateView,
   ServerPathReadView,
+  ServerPathSearchView,
 } from "@nextclaw/server";
 import type { RequestService } from "./request.service.js";
 
@@ -45,6 +46,26 @@ export class ServerPathsService {
         ...(basePath ? { basePath } : {}),
         ...(line ? { line: String(line) } : {})
       }
+    });
+  };
+
+  readonly search = async (params: {
+    basePath: string;
+    query?: string | null;
+    limit?: number | null;
+  }): Promise<ServerPathSearchView> => {
+    const { basePath: rawBasePath, limit: rawLimit, query: rawQuery } = params;
+    const basePath = rawBasePath.trim();
+    const query = rawQuery?.trim() ?? "";
+    const limit = Number.isSafeInteger(rawLimit) && (rawLimit ?? 0) > 0
+      ? rawLimit
+      : null;
+    return await this.requestService.get<ServerPathSearchView>("/api/server-paths/search", {
+      query: {
+        basePath,
+        ...(query ? { query } : {}),
+        ...(limit ? { limit: String(limit) } : {}),
+      },
     });
   };
 }

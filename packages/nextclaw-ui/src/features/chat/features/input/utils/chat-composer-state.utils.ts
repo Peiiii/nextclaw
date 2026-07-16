@@ -10,9 +10,7 @@ import {
 import type { ChatComposerNode } from '@nextclaw/agent-chat-ui';
 import type { NcpMessagePart } from '@nextclaw/ncp';
 import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
-
-const CHAT_SKILL_TOKEN_PREFIX = '$';
-const CHAT_PANEL_APP_TOKEN_PREFIX = '@panel-app:';
+import { serializeChatComposerTokenText } from './chat-composer-token-protocol.utils';
 
 function appendTextPart(parts: NcpMessagePart[], text: string): NcpMessagePart[] {
   if (text.length === 0) {
@@ -110,13 +108,9 @@ export function deriveNcpMessagePartsFromComposer(
       continue;
     }
 
-    if (node.tokenKind === 'skill') {
-      parts = appendTextPart(parts, `${CHAT_SKILL_TOKEN_PREFIX}${node.tokenKey}`);
-      continue;
-    }
-
-    if (node.tokenKind === 'panel_app') {
-      parts = appendTextPart(parts, `${CHAT_PANEL_APP_TOKEN_PREFIX}${node.tokenKey}`);
+    const tokenText = serializeChatComposerTokenText(node);
+    if (tokenText) {
+      parts = appendTextPart(parts, tokenText);
       continue;
     }
 

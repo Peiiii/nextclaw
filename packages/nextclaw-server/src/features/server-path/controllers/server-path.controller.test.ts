@@ -372,6 +372,92 @@ describe("ServerPathRoutesController", () => {
   });
 });
 
+describe("server path project search", () => {
+  it("searches project files and directories without traversing dependency folders", async () => {
+    const app = createTestApp();
+    const root = realpathSync(createTempDir("nextclaw-ui-server-path-search-"));
+    mkdirSync(join(root, "src", "shared"), { recursive: true });
+    mkdirSync(join(root, "node_modules", "hidden-package"), { recursive: true });
+    writeFileSync(join(root, "src", "server-path-search.ts"), "export {};");
+    writeFileSync(join(root, "src", "shared", "path-search.test.ts"), "test('ok', () => {});");
+    writeFileSync(join(root, "node_modules", "hidden-package", "path-search.js"), "");
+
+    const query = new URLSearchParams({ basePath: root, query: "path-search" });
+    const response = await app.request(
+      `http://localhost/api/server-paths/search?${query.toString()}`,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      data: {
+        basePath: root,
+        query: "path-search",
+        entries: [
+          {
+            name: "path-search.test.ts",
+            relativePath: "src/shared/path-search.test.ts",
+            parentRelativePath: "src/shared",
+            kind: "file",
+          },
+          {
+            name: "server-path-search.ts",
+            relativePath: "src/server-path-search.ts",
+            parentRelativePath: "src",
+            kind: "file",
+          },
+        ],
+      },
+    });
+  });
+
+  it("returns only project-root children for an empty path search", async () => {
+    const app = createTestApp();
+    const root = realpathSync(createTempDir("nextclaw-ui-server-path-search-root-"));
+    mkdirSync(join(root, "src", "nested"), { recursive: true });
+    writeFileSync(join(root, "README.md"), "read me");
+    writeFileSync(join(root, "src", "nested", "hidden.ts"), "");
+
+    const query = new URLSearchParams({ basePath: root });
+    const response = await app.request(
+      `http://localhost/api/server-paths/search?${query.toString()}`,
+    );
+
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      data: {
+        entries: [
+          { relativePath: "src", kind: "directory" },
+          { relativePath: "README.md", kind: "file" },
+        ],
+        truncated: false,
+      },
+    });
+  });
+
+  it("excludes symlink search results that resolve outside the project root", async () => {
+    const app = createTestApp();
+    const root = realpathSync(createTempDir("nextclaw-ui-server-path-search-boundary-"));
+    const external = realpathSync(createTempDir("nextclaw-ui-server-path-search-external-"));
+    writeFileSync(join(external, "secret-reference.txt"), "secret");
+    symlinkSync(
+      external,
+      join(root, "external-link"),
+      process.platform === "win32" ? "junction" : "dir",
+    );
+
+    const query = new URLSearchParams({ basePath: root, query: "secret-reference" });
+    const response = await app.request(
+      `http://localhost/api/server-paths/search?${query.toString()}`,
+    );
+
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      data: { entries: [] },
+    });
+  });
+});
+
 describe("server path directory creation", () => {
   it("creates a directory inside the current server path", async () => {
     const app = createTestApp();

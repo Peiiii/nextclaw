@@ -330,7 +330,7 @@ it('replaces the current generic trigger query with a panel app token', () => {
     },
     nodes: [createChatComposerTextNode('@task')],
     selection: { start: 5, end: 5 },
-    triggerSpecs: [{ key: 'panel-app-reference', marker: '@' }],
+    triggerSpecs: [{ key: 'context-reference', marker: '@' }],
   });
 
   expect(snapshot.nodes).toEqual([

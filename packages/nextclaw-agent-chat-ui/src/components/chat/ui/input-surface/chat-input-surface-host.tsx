@@ -45,7 +45,6 @@ export function isInputSurfaceCreateEvent(
 ): boolean {
   return (
     reason.type === 'insert-text' &&
-    reason.text === trigger.marker &&
     trigger.query === '' &&
     trigger.end === trigger.start + trigger.marker.length
   );
@@ -77,11 +76,13 @@ export function ChatInputSurfaceHost(props: ChatInputSurfaceHostProps) {
   } = props;
   const menuRef = useRef<ChatInputSurfaceMenuHandle | null>(null);
   const isDetailsInteractionRef = useRef(false);
+  const activeTriggerIdentityRef = useRef<string | null>(null);
   const [activeTriggerIdentity, setActiveTriggerIdentity] = useState<string | null>(null);
   const isOpen = Boolean(inputSurface) && activeTriggerIdentity !== null;
 
   const setActiveTrigger = useCallback(
     (identity: string | null, trigger: ChatInputSurfaceTrigger | null): void => {
+      activeTriggerIdentityRef.current = identity;
       setActiveTriggerIdentity(identity);
       onInputSurfaceTriggerChange?.(identity ? trigger : null);
     },
@@ -96,13 +97,13 @@ export function ChatInputSurfaceHost(props: ChatInputSurfaceHostProps) {
     ): void => {
       const trigger = resolveChatComposerActiveInputSurfaceTrigger(nodes, selection, triggerSpecs);
       const nextIdentity = resolveInputSurfaceTriggerIdentity(
-        activeTriggerIdentity,
+        activeTriggerIdentityRef.current,
         trigger,
         reason,
       );
       setActiveTrigger(nextIdentity, nextIdentity ? trigger : null);
     },
-    [activeTriggerIdentity, setActiveTrigger, triggerSpecs],
+    [setActiveTrigger, triggerSpecs],
   );
 
   const handleInputSurfaceKeyDown = useCallback((event: KeyboardEvent): boolean => {
@@ -143,9 +144,12 @@ export function ChatInputSurfaceHost(props: ChatInputSurfaceHostProps) {
           isLoading={inputSurface.isLoading}
           filterOptions={inputSurface.filterOptions}
           items={inputSurface.items}
+          notice={inputSurface.notice}
           texts={inputSurface.texts}
           onSelectItem={(item) => {
-            setActiveTrigger(null, null);
+            if (item.selectionBehavior !== 'navigate') {
+              setActiveTrigger(null, null);
+            }
             onSelectItem(item);
           }}
           onOpenChange={handleInputSurfaceOpenChange}

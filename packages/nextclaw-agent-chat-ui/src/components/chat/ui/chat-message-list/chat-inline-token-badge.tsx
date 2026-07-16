@@ -1,7 +1,7 @@
-import { AppWindow, Puzzle } from "lucide-react";
+import { AppWindow, FileText, Folder, Puzzle } from "lucide-react";
 import { cn } from "@agent-chat-ui/components/chat/internal/cn";
 
-type ChatInlineTokenTone = "skill" | "panel_app" | "default";
+type ChatInlineTokenTone = "skill" | "panel_app" | "workspace" | "default";
 
 function resolveInlineTokenTone(kind: string): ChatInlineTokenTone {
   if (kind === "skill") {
@@ -9,6 +9,9 @@ function resolveInlineTokenTone(kind: string): ChatInlineTokenTone {
   }
   if (kind === "panel_app") {
     return "panel_app";
+  }
+  if (kind === "workspace_file" || kind === "workspace_directory") {
+    return "workspace";
   }
   return "default";
 }
@@ -50,9 +53,13 @@ function resolveInlineTokenIconClassName(
   return isUser ? "text-primary-foreground/80" : "text-muted-foreground";
 }
 
-function renderInlineTokenIcon(tone: ChatInlineTokenTone) {
+function renderInlineTokenIcon(tone: ChatInlineTokenTone, kind: string) {
   return tone === "panel_app" ? (
     <AppWindow aria-hidden="true" className="h-3 w-3" />
+  ) : kind === "workspace_file" ? (
+    <FileText aria-hidden="true" className="h-3 w-3" />
+  ) : kind === "workspace_directory" ? (
+    <Folder aria-hidden="true" className="h-3 w-3" />
   ) : (
     <Puzzle aria-hidden="true" className="h-3 w-3" />
   );
@@ -84,7 +91,7 @@ export function ChatInlineTokenBadge({
           resolveInlineTokenIconClassName(tone, isUser),
         )}
       >
-        {renderInlineTokenIcon(tone)}
+        {renderInlineTokenIcon(tone, kind)}
       </span>
       <span className="truncate">{label}</span>
     </>

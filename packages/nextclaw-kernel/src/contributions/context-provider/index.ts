@@ -24,6 +24,7 @@ import { SkillsContextProvider } from "./providers/skills-context.provider.js";
 import { ToolingContextProvider } from "./providers/tooling-context.provider.js";
 import { WorkspaceContextProvider } from "./providers/workspace-context.provider.js";
 import { WorkspaceMemoryContextProvider } from "./providers/workspace-memory-context.provider.js";
+import { WorkspaceReferenceContextProvider } from "./providers/workspace-reference-context.provider.js";
 import { ContextProviderRunContextService } from "./services/context-provider-run-context.service.js";
 
 export { ReplyFormatContextProvider } from "./providers/reply-format-context.provider.js";
@@ -55,6 +56,7 @@ export class ContextProviderContribution implements KernelContribution {
       createRuntimeContextProvider(),
       createSelfManagementContextProvider(),
       new ProjectContextProvider(context),
+      new WorkspaceReferenceContextProvider(context),
       new AgentBootstrapContextProvider(context),
       new WorkspaceMemoryContextProvider(context),
       new SkillsContextProvider(context),

@@ -5,6 +5,7 @@ import type {
   ServerPathDirectoryCreateRequest,
   ServerPathDirectoryCreateView,
   ServerPathReadView,
+  ServerPathSearchView,
 } from '@/shared/lib/api/types';
 
 const SERVER_PATH_CONTENT_BASE_PATH = '/api/server-paths/content';
@@ -29,6 +30,14 @@ export async function fetchServerPathRead(params: {
   line?: number | null;
 }): Promise<ServerPathReadView> {
   return await nextclawClient.serverPaths.read(params);
+}
+
+export async function fetchServerPathSearch(params: {
+  basePath: string;
+  query?: string | null;
+  limit?: number | null;
+}): Promise<ServerPathSearchView> {
+  return await nextclawClient.serverPaths.search(params);
 }
 
 export function buildServerPathContentUrl(path: string): string;

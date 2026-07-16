@@ -1,8 +1,8 @@
 import { createChatComposerTextNode, createChatComposerTokenNode } from '@nextclaw/agent-chat-ui';
 import {
   buildInlineTokensFromTextProtocol,
-  buildInlineSkillTokensFromComposer,
-  CHAT_UI_INLINE_TOKENS_METADATA_KEY,
+  buildInlineTokensFromComposer,
+  CHAT_INLINE_TOKENS_METADATA_KEY,
   readInlineTokensFromMetadata,
   resolveInlineTokensForText
 } from '@/features/chat/features/input/utils/chat-inline-token.utils';
@@ -10,7 +10,7 @@ import {
 describe('chat-inline-token utils', () => {
   it('builds ordered inline skill tokens from composer nodes', () => {
     expect(
-      buildInlineSkillTokensFromComposer([
+      buildInlineTokensFromComposer([
         createChatComposerTextNode('before '),
         createChatComposerTokenNode({
           tokenKind: 'skill',
@@ -42,7 +42,7 @@ describe('chat-inline-token utils', () => {
   it('reads generic inline token metadata safely', () => {
     expect(
       readInlineTokensFromMetadata({
-        [CHAT_UI_INLINE_TOKENS_METADATA_KEY]: [
+        [CHAT_INLINE_TOKENS_METADATA_KEY]: [
           {
             kind: 'skill',
             key: 'weather',
@@ -95,6 +95,52 @@ describe('chat-inline-token utils', () => {
         label: 'task-board',
         rawText: '@panel-app:task-board'
       }
+    ]);
+  });
+
+  it('serializes and parses workspace file and directory references', () => {
+    expect(
+      buildInlineTokensFromComposer([
+        createChatComposerTokenNode({
+          tokenKind: 'workspace_file',
+          tokenKey: 'src/file name.ts',
+          label: 'file name.ts',
+        }),
+        createChatComposerTokenNode({
+          tokenKind: 'workspace_directory',
+          tokenKey: 'docs/设计',
+          label: '设计',
+        }),
+      ]),
+    ).toEqual([
+      {
+        kind: 'workspace_file',
+        key: 'src/file name.ts',
+        label: 'file name.ts',
+        rawText: '@file:src%2Ffile%20name.ts',
+      },
+      {
+        kind: 'workspace_directory',
+        key: 'docs/设计',
+        label: '设计',
+        rawText: '@folder:docs%2F%E8%AE%BE%E8%AE%A1',
+      },
+    ]);
+    expect(
+      buildInlineTokensFromTextProtocol('review @file:src%2Ffile%20name.ts and @folder:docs%2F%E8%AE%BE%E8%AE%A1'),
+    ).toEqual([
+      {
+        kind: 'workspace_file',
+        key: 'src/file name.ts',
+        label: 'file name.ts',
+        rawText: '@file:src%2Ffile%20name.ts',
+      },
+      {
+        kind: 'workspace_directory',
+        key: 'docs/设计',
+        label: '设计',
+        rawText: '@folder:docs%2F%E8%AE%BE%E8%AE%A1',
+      },
     ]);
   });
 });

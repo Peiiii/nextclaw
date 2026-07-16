@@ -1,5 +1,9 @@
 import type { Context } from "hono";
-import type { ServerPathBrowseView, ServerPathReadView } from "@nextclaw-server/shared/types/server-api.types.js";
+import type {
+  ServerPathBrowseView,
+  ServerPathReadView,
+  ServerPathSearchView,
+} from "@nextclaw-server/shared/types/server-api.types.js";
 import {
   browseServerPath,
   isServerPathBrowseError,
@@ -16,6 +20,10 @@ import {
   isServerPathContentError,
   readServerPathContent,
 } from "@nextclaw-server/features/server-path/utils/server-path-content.utils.js";
+import {
+  isServerPathSearchError,
+  ServerPathSearchService,
+} from "@nextclaw-server/features/server-path/services/server-path-search.service.js";
 import {
   err,
   isRecord,
@@ -41,6 +49,8 @@ function statusForServerPathContentError(code: string): 400 | 404 {
 }
 
 export class ServerPathRoutesController {
+  private readonly searchService = new ServerPathSearchService();
+
   readonly browse = async (c: Context) => {
     try {
       const payload: ServerPathBrowseView = await browseServerPath({
@@ -51,6 +61,22 @@ export class ServerPathRoutesController {
       return c.json(ok(payload));
     } catch (error) {
       if (isServerPathBrowseError(error)) {
+        return c.json(err(error.code, error.message), 400);
+      }
+      throw error;
+    }
+  };
+
+  readonly search = async (c: Context) => {
+    try {
+      const payload: ServerPathSearchView = await this.searchService.search({
+        basePath: c.req.query("basePath"),
+        query: c.req.query("query"),
+        limit: readPositiveInteger(c.req.query("limit")),
+      });
+      return c.json(ok(payload));
+    } catch (error) {
+      if (isServerPathSearchError(error)) {
         return c.json(err(error.code, error.message), 400);
       }
       throw error;

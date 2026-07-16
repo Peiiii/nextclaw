@@ -1,11 +1,19 @@
 import type { ChatComposerNode } from '@nextclaw/agent-chat-ui';
+import {
+  CHAT_INLINE_TOKENS_METADATA_KEY,
+  CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
+  CHAT_WORKSPACE_FILE_TOKEN_KIND,
+  type ChatInlineTokenMetadata,
+} from '@nextclaw/shared';
+import { serializeChatComposerTokenText } from './chat-composer-token-protocol.utils';
 
-export const CHAT_UI_INLINE_TOKENS_METADATA_KEY = 'ui_inline_tokens';
-const CHAT_SKILL_TOKEN_PREFIX = '$';
+export { CHAT_INLINE_TOKENS_METADATA_KEY };
 const CHAT_PANEL_APP_TOKEN_PREFIX = '@panel-app:';
 const CHAT_PANEL_APP_TOKEN_PATTERN = /@panel-app:([A-Za-z0-9_-]+)/g;
+const CHAT_WORKSPACE_FILE_TOKEN_PATTERN = /@file:([^\s]+)/g;
+const CHAT_WORKSPACE_DIRECTORY_TOKEN_PATTERN = /@folder:([^\s]+)/g;
 
-export type ChatInlineTokenSource = { kind: string; key: string; label: string; rawText: string };
+export type ChatInlineTokenSource = ChatInlineTokenMetadata;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -33,20 +41,58 @@ function dedupeInlineTokens(tokens: readonly ChatInlineTokenSource[]): ChatInlin
   return output;
 }
 
-export function buildInlineSkillTokensFromComposer(nodes: readonly ChatComposerNode[]): ChatInlineTokenSource[] {
+export function buildInlineTokensFromComposer(nodes: readonly ChatComposerNode[]): ChatInlineTokenSource[] {
   const tokens: ChatInlineTokenSource[] = [];
   for (const node of nodes) {
-    if (node.type !== 'token' || node.tokenKind !== 'skill') {
+    if (node.type !== 'token') {
+      continue;
+    }
+    if (
+      node.tokenKind !== 'skill' &&
+      node.tokenKind !== CHAT_WORKSPACE_FILE_TOKEN_KIND &&
+      node.tokenKind !== CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND
+    ) {
+      continue;
+    }
+    const rawText = serializeChatComposerTokenText(node);
+    if (!rawText) {
       continue;
     }
     tokens.push({
-      kind: 'skill',
+      kind: node.tokenKind,
       key: node.tokenKey,
       label: node.label,
-      rawText: `${CHAT_SKILL_TOKEN_PREFIX}${node.tokenKey}`
+      rawText,
     });
   }
   return dedupeInlineTokens(tokens);
+}
+
+function appendWorkspaceTokens(params: {
+  kind: typeof CHAT_WORKSPACE_FILE_TOKEN_KIND | typeof CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND;
+  pattern: RegExp;
+  text: string;
+  tokens: ChatInlineTokenSource[];
+}): void {
+  const { kind, pattern, text, tokens } = params;
+  for (const match of text.matchAll(pattern)) {
+    const encodedKey = match[1];
+    if (!encodedKey) {
+      continue;
+    }
+    let key: string;
+    try {
+      key = decodeURIComponent(encodedKey);
+    } catch {
+      continue;
+    }
+    tokens.push({
+      kind,
+      key,
+      label: key.split('/').filter(Boolean).at(-1) ?? key,
+      rawText: match[0],
+    });
+  }
 }
 
 export function buildInlineTokensFromTextProtocol(text: string): ChatInlineTokenSource[] {
@@ -63,6 +109,18 @@ export function buildInlineTokensFromTextProtocol(text: string): ChatInlineToken
       rawText: `${CHAT_PANEL_APP_TOKEN_PREFIX}${key}`
     });
   }
+  appendWorkspaceTokens({
+    kind: CHAT_WORKSPACE_FILE_TOKEN_KIND,
+    pattern: CHAT_WORKSPACE_FILE_TOKEN_PATTERN,
+    text,
+    tokens,
+  });
+  appendWorkspaceTokens({
+    kind: CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
+    pattern: CHAT_WORKSPACE_DIRECTORY_TOKEN_PATTERN,
+    text,
+    tokens,
+  });
   return dedupeInlineTokens(tokens);
 }
 
@@ -76,7 +134,7 @@ export function resolveInlineTokensForText(
 export function readInlineTokensFromMetadata(
   metadata: Record<string, unknown> | undefined
 ): ChatInlineTokenSource[] {
-  const raw = metadata?.[CHAT_UI_INLINE_TOKENS_METADATA_KEY];
+  const raw = metadata?.[CHAT_INLINE_TOKENS_METADATA_KEY];
   if (!Array.isArray(raw)) {
     return [];
   }

@@ -249,6 +249,9 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
       }),
     [presenter.chatUiManager],
   );
+  const contextReferenceProjectRoot = inputQuery.selectedSessionKey
+    ? inputQuery.selectedSession?.projectRoot ?? inputQuery.defaultProjectRoot ?? ''
+    : inputSnapshot.pendingProjectRoot ?? inputQuery.defaultProjectRoot ?? '';
   const { inputSurfaceState, setInputSurfaceTrigger } = useChatInputSurfaceState({
     commands: slashCommands,
     isSkillsLoading: inputQuery.isSkillsLoading,
@@ -258,6 +261,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     language,
     onSelectPanelApp: handleSlashPanelAppSelect,
     onSelectSkill: chatRecentSkillsManager.remember,
+    projectRoot: contextReferenceProjectRoot,
     recentSkillValues,
     skillRecords,
   });

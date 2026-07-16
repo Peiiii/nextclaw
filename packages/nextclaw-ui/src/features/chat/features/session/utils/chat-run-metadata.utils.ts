@@ -2,7 +2,7 @@ import {
   CHAT_SESSION_MATERIALIZATION_METADATA_KEY,
   type AgentRunSessionMaterializationMetadata,
 } from "@nextclaw/shared";
-import { buildInlineSkillTokensFromComposer, CHAT_UI_INLINE_TOKENS_METADATA_KEY } from "@/features/chat/features/input/utils/chat-inline-token.utils";
+import { buildInlineTokensFromComposer, CHAT_INLINE_TOKENS_METADATA_KEY } from "@/features/chat/features/input/utils/chat-inline-token.utils";
 import { normalizeRequestedSkills } from "@/features/chat/features/runtime/utils/chat-runtime.utils";
 import { normalizeSessionProjectRootValue } from "@/shared/lib/session-project";
 
@@ -20,7 +20,7 @@ export function buildChatRunMetadata(payload: {
   sessionType?: string;
   projectRoot?: string | null;
   requestedSkills?: string[];
-  composerNodes?: Parameters<typeof buildInlineSkillTokensFromComposer>[0];
+  composerNodes?: Parameters<typeof buildInlineTokensFromComposer>[0];
   sessionMaterialization?: AgentRunSessionMaterializationMetadata | null;
 }): Record<string, unknown> {
   const projectRoot = normalizeSessionProjectRootValue(payload.projectRoot);
@@ -35,11 +35,11 @@ export function buildChatRunMetadata(payload: {
   if (requestedSkills.length > 0) {
     metadata.requested_skill_refs = requestedSkills;
   }
-  const inlineSkillTokens = payload.composerNodes
-    ? buildInlineSkillTokensFromComposer(payload.composerNodes)
+  const inlineTokens = payload.composerNodes
+    ? buildInlineTokensFromComposer(payload.composerNodes)
     : [];
-  if (inlineSkillTokens.length > 0) {
-    metadata[CHAT_UI_INLINE_TOKENS_METADATA_KEY] = inlineSkillTokens;
+  if (inlineTokens.length > 0) {
+    metadata[CHAT_INLINE_TOKENS_METADATA_KEY] = inlineTokens;
   }
   if (payload.sessionMaterialization) {
     metadata[CHAT_SESSION_MATERIALIZATION_METADATA_KEY] = payload.sessionMaterialization;

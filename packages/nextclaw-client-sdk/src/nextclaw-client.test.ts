@@ -55,6 +55,32 @@ import {
     );
   });
 
+  it("searches server paths within an explicit project root", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      ok: true,
+      data: {
+        basePath: "/workspace/project",
+        query: "server",
+        entries: [],
+        truncated: false,
+      },
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const client = new NextClawClient({
+      baseUrl: "http://127.0.0.1:55667",
+      fetchImpl,
+    });
+
+    await expect(client.serverPaths.search({
+      basePath: "/workspace/project",
+      query: "server",
+      limit: 25,
+    })).resolves.toMatchObject({ query: "server" });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "http://127.0.0.1:55667/api/server-paths/search?basePath=%2Fworkspace%2Fproject&query=server&limit=25",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
   it("lists sessions from the existing ncp api", async () => {
     const fetchImpl = vi.fn(async () => {
       return new Response(

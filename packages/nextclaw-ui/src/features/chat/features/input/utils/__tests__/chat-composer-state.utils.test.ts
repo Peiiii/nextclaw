@@ -89,6 +89,32 @@ describe('deriveNcpMessagePartsFromComposer', () => {
     ]);
   });
 
+  it('serializes workspace references without turning them into uploaded file parts', () => {
+    expect(
+      deriveNcpMessagePartsFromComposer(
+        [
+          createChatComposerTokenNode({
+            tokenKind: 'workspace_file',
+            tokenKey: 'src/file name.ts',
+            label: 'file name.ts',
+          }),
+          createChatComposerTextNode(' and '),
+          createChatComposerTokenNode({
+            tokenKind: 'workspace_directory',
+            tokenKey: 'docs/设计',
+            label: '设计',
+          }),
+        ],
+        [],
+      ),
+    ).toEqual([
+      {
+        type: 'text',
+        text: '@file:src%2Ffile%20name.ts and @folder:docs%2F%E8%AE%BE%E8%AE%A1',
+      },
+    ]);
+  });
+
   it('preserves uploaded attachment references when the attachment has a server uri', () => {
     const parts = deriveNcpMessagePartsFromComposer(
       [

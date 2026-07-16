@@ -165,7 +165,13 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
             <ChatInputSurfaceHost
               inputSurface={resolvedInputSurface}
               onInputSurfaceTriggerChange={composer.onInputSurfaceTriggerChange}
-              onSelectItem={(item) => composerRef.current?.insertInputSurfaceItem(item, composer.inputSurfaceTriggerSpecs)}
+              onSelectItem={(item) => {
+                if (item.selectionBehavior === 'navigate') {
+                  resolvedInputSurface?.onSelectItem?.(item);
+                  return;
+                }
+                composerRef.current?.insertInputSurfaceItem(item, composer.inputSurfaceTriggerSpecs);
+              }}
               triggerSpecs={composer.inputSurfaceTriggerSpecs}
             >
               {({
