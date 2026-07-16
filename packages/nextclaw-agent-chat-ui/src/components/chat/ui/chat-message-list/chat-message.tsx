@@ -34,6 +34,7 @@ type ChatMessageProps = {
     | "copyCodeLabel"
     | "copiedCodeLabel"
     | "mermaidDiagramLabel"
+    | "mermaidLoadingLabel"
     | "mermaidRenderErrorLabel"
     | "attachmentOpenLabel"
     | "attachmentAttachedLabel"

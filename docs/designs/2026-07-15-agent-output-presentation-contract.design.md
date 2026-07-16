@@ -12,7 +12,8 @@
 - `visible-main-flow`：最后一个工具调用之后必须有一段自包含的最终回复；工具前 narration 只承担简短进度，不承担最终结论。
 - `protected-variations`：Markdown 链接、图片、Mermaid、inline display 和 side panel 是不同展示形态，但共享同一输出选择合同。
 - `simple-structure-first`：Mermaid 只是共享 Markdown renderer 的一个 fenced-code 变体，不新增业务 manager、registry 或第二套 Markdown 解析链。
-- `stable-last-frame`：流式 Markdown 更新期间保留最后一张有效图，昂贵的 Mermaid 解析与 SVG 渲染只在输入短暂停顿或消息完成时执行。
+- `progressive-valid-frame`：流式 Markdown 更新期间只提交通过 Mermaid 校验的图形帧；连续 token 不能无限推迟首帧，昂贵渲染必须串行且只追赶最新源码。
+- `stable-last-frame`：首次渲染使用稳定图形占位，已经存在有效图时继续保留上一帧，源码只作为最终无效语法的明确失败回退。
 - `interaction-owner`：复制是消息级通用动作，用户与 Agent 消息都复用 `ChatMessageActionCopy`。
 
 ## 推荐方案
@@ -49,9 +50,13 @@ flowchart LR
 
 Mermaid 渲染属于外部库/DOM 同步，因此允许组件内使用 effect；它不承担业务状态、消息状态或工具行为。组件 identity、消息 key 与父级结构保持不变，流式文本更新只改变 `source` props。
 
-`ChatMessage` 只把“当前消息仍在进行且 Mermaid 所在 Markdown 是最后一个 part”传为 `isStreaming`。流式阶段采用 300ms trailing debounce 合并 token 更新；新源码进入解析或渲染时，上一张成功 SVG 继续留在原 DOM 位置，不切回骨架屏。若还没有成功图，则展示正在生成的可复制源码。半截 Mermaid 语法导致的解析失败不进入错误态；消息完成后取消 debounce、立即渲染最终源码，此时最终语法无效才显示错误说明和源码回退。
+`ChatMessage` 只把“当前消息仍在进行且 Mermaid 所在 Markdown 是最后一个 part”传为 `isStreaming`。首次进入历史会话或首次收到 Mermaid fenced block 时，组件直接建立稳定的 `figure` 图形表面，以紧凑的“正在渲染图表”状态明确反馈等待，不用假节点骨架伪装成半成品图，也不把源码当作加载态。历史消息立即请求最终渲染；流式消息使用 200ms latest-only throttle：节流截止时间不会被后续 token 重置，因此连续输出期间也会周期性尝试最新源码。
 
-这条合同解决的是流式外部 renderer 的生命周期：输入可以频繁变化，已提交的展示帧必须稳定，只有新的完整结果成功后才原子替换。Mermaid 已开始的异步工作无法强制中止，因此 effect cleanup 同时取消尚未开始的 timer，并忽略已经失效的异步结果。
+Mermaid 调度器同一时间只允许一个 parse/render 在途；渲染期间到达的新 token 只覆盖 pending request，当前任务结束后直接追赶最新源码，不为每个 token 排队。流式语法暂时无效时继续保留占位或上一张有效 SVG，只有新快照通过校验后才原子替换；消息完成时绕过节流立即收敛最终帧，最终语法仍无效才显示错误说明和可复制源码。
+
+正常 Mermaid SVG 是 Markdown 正文内容，使用透明、无边框画布直接参与文档排版，不包装成卡片；边框只属于最终语法无效时的错误提示，用来区分异常状态。这样避免连续图表产生多余容器层级，也不让图表与可操作附件、面板卡片混淆。
+
+这条合同解决的是流式外部 renderer 的生命周期：输入可以频繁变化，但用户只看到稳定图形状态，不看到内部 Markdown/Mermaid 生成过程。组件类型、消息 key、父级位置与 `figure` DOM 在 pending -> rendered 之间保持稳定；effect 只负责同步 Mermaid、timer 与宿主主题这些外部系统，不接管消息业务状态。
 
 ## 消息复制交互
 
@@ -74,11 +79,12 @@ Mermaid 渲染属于外部库/DOM 同步，因此允许组件内使用 effect；
 
 1. Context provider 合同测试证明只剩一个输出提示 provider，并包含最后工具调用后的可见区规则、Markdown、Mermaid、inline 与 side panel 边界。
 2. `mermaid` fenced block 渲染为 SVG，使用严格安全配置；无效语法回退到可复制源码。
-3. 主题 appearance 改变后图表重新渲染；多个图表复用 Mermaid `render` 自带的串行队列，不新增平行调度器。
-4. 流式 Mermaid 更新被合并；上一张有效 SVG 在新图完成前保持同一 DOM 实例，瞬时语法错误不闪出错误态，最终内容立即收敛。
-5. 用户消息出现复制按钮，点击后 clipboard 收到用户消息正文；Agent 消息行为保持不变。
-6. 受影响 package 的定向 Vitest、`tsc`、ESLint 与 UI production build 通过。
-7. React renderer 组件类型保持模块级稳定，不因 callback、流式更新或主题切换替换消息 subtree。
+3. 主题 appearance 改变后图表重新渲染；单张图同一时间最多一个 Mermaid render 在途，慢渲染结束后只追赶最新源码。
+4. 历史消息首次渲染和流式首帧都不显示源码；连续 token 不能无限重置渲染窗口，流未结束前可以提交有效快照。
+5. pending -> rendered 复用同一个 `figure`；上一张有效 SVG 在新图完成前保持可见，瞬时语法错误不闪出错误态，最终内容立即收敛。
+6. 用户消息出现复制按钮，点击后 clipboard 收到用户消息正文；Agent 消息行为保持不变。
+7. 受影响 package 的定向 Vitest、`tsc`、ESLint 与 UI production build 通过。
+8. React renderer 组件类型保持模块级稳定，不因 callback、流式更新或主题切换替换消息 subtree。
 
 ## 非目标
 
@@ -89,6 +95,8 @@ Mermaid 渲染属于外部库/DOM 同步，因此允许组件内使用 effect；
 
 ## 落地与验证状态
 
-截至 2026-07-15，方案已按上述边界实现：输出提示收敛到单一 `ReplyFormatContextProvider`；Markdown renderer 支持严格模式 Mermaid、流式稳定帧、主题变化和失败源码回退；用户消息复用既有消息复制动作。实现没有修改 `showContent` 内部事件、消息协议或“已处理”切分算法。
+截至 2026-07-16，方案已按上述边界实现：输出提示收敛到单一 `ReplyFormatContextProvider`；Markdown renderer 支持严格模式 Mermaid、无源码闪现的稳定首屏、连续流式有效帧、主题变化和失败源码回退；用户消息复用既有消息复制动作。实现没有修改 `showContent` 内部事件、消息协议或“已处理”切分算法。
 
 定向组件测试共 60 项通过，覆盖流式更新合并、稳定上一帧、瞬时错误抑制与最终立即收敛；上下文合同测试 2 项通过。`@nextclaw/agent-chat-ui`、`@nextclaw/kernel`、`@nextclaw/ui` 的 TypeScript 检查通过，三个包的 ESLint 为 0 error，UI production build 通过。另用真实 Chromium 执行 Mermaid `parse` / `render` 冒烟，确认严格模式下生成 1 个 SVG 与 2 个节点。可维护性 guard 为 0 error；预算 warning 均为未增长的既有目录或接近预算文件。
+
+2026-07-16 的首屏与渐进渲染补充新增 Mermaid 定向测试后共 9 项通过，相关 Markdown / message streaming 测试 4 个文件 61 项通过；`@nextclaw/agent-chat-ui` 与消费端 `@nextclaw/ui` 的 TypeScript 检查和 production build 通过，agent chat UI 整包 ESLint 通过。隔离真实浏览器记录到历史图首次 SVG 约 240ms、流式图首次有效 SVG 约 244ms，而流式源码约 540ms 才结束；两个场景全过程都未出现源码块。后续视觉验收确认等待态为紧凑本地化进度提示，成功 SVG 外层无边框和底色。maintainability guard 为 0 error、4 warning；生产组件 255 行，保持在 UI 组件预算内。
