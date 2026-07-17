@@ -1,5 +1,13 @@
 # @nextclaw/shared
 
+## 0.4.4
+
+### Patch Changes
+
+- 2eceb16: 聊天输入框现在支持通过 `@` 搜索并引用当前项目中的文件或目录：可从统一引用菜单进入文件浏览、查看路径层级并插入引用标签，发送时由 NextClaw 在项目边界内安全、限量地补充对应文件内容或目录结构上下文。
+- Updated dependencies [25f8bb0]
+  - @nextclaw/ncp@0.7.4
+
 ## 0.4.3
 
 ### Patch Changes

@@ -1,5 +1,35 @@
 # @nextclaw/kernel
 
+## 0.6.7
+
+### Patch Changes
+
+- 00c0d23: 上下文压缩现在始终沿用当前会话所选模型；压缩请求失败时不会留下半完成状态，切换到可用模型后可以直接继续会话。
+
+## 0.6.6
+
+### Patch Changes
+
+- 2eceb16: 聊天输入框现在支持通过 `@` 搜索并引用当前项目中的文件或目录：可从统一引用菜单进入文件浏览、查看路径层级并插入引用标签，发送时由 NextClaw 在项目边界内安全、限量地补充对应文件内容或目录结构上下文。
+- 59a4723: 新增独立项目注册表与项目模板：项目可以在没有会话时通过界面、CLI 或 AI 创建并展示；界面提供支持导航、搜索和新建文件夹的跨平台服务端目录选择器，并按 macOS、Windows 与 Linux 展示实际可用的常用位置；CLI 与 AI 还可列出项目、修改会话名称及项目目录。
+- Updated dependencies [2eceb16]
+- Updated dependencies [25f8bb0]
+- Updated dependencies [59a4723]
+- Updated dependencies [8be3173]
+  - @nextclaw/shared@0.4.4
+  - @nextclaw/ncp@0.7.4
+  - @nextclaw/ncp-toolkit@0.6.5
+  - @nextclaw/core@0.15.5
+  - @nextclaw/channel-extension-feishu@0.2.5
+  - @nextclaw/channel-extension-weixin@0.2.5
+  - @nextclaw/ncp-agent-runtime@0.4.4
+  - @nextclaw/ncp-agent-runtime-next@0.1.4
+  - @nextclaw/ncp-mcp@0.2.5
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.4
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.6
+  - @nextclaw/mcp@0.3.5
+  - @nextclaw/runtime@0.4.5
+
 ## 0.6.5
 
 ### Patch Changes
