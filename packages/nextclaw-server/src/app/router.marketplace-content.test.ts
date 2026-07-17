@@ -216,6 +216,79 @@ describe("marketplace content routes", () => {
     expect(payload.error.message).toContain("git");
   });
 
+  it("preserves legacy builtin records without corrupting upstream pagination", async () => {
+    const workspaceDir = createTempDir("nextclaw-ui-skill-list-builtin-");
+    const configPath = join(workspaceDir, "config.json");
+
+    saveConfig(
+      ConfigSchema.parse({
+        agents: {
+          defaults: {
+            workspace: workspaceDir
+          }
+        }
+      }),
+      configPath
+    );
+
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+      JSON.stringify({
+        ok: true,
+        data: {
+          total: 1,
+          page: 1,
+          pageSize: 20,
+          totalPages: 1,
+          sort: "relevance",
+          items: [
+            {
+              id: "legacy-builtin-weather",
+              slug: "weather",
+              type: "skill",
+              name: "Weather",
+              summary: "Legacy builtin record",
+              tags: ["skill"],
+              author: "NextClaw",
+              install: {
+                kind: "builtin",
+                spec: "weather",
+                command: ""
+              },
+              updatedAt: "2026-02-16T09:10:00.000Z"
+            }
+          ]
+        }
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    )));
+
+    const app = createUiRouter({
+      kernel: createRouterTestKernel(),
+      configPath,
+      appEventBus: new EventBus(),
+      marketplace: {
+        apiBaseUrl: "http://marketplace.example"
+      }
+    });
+
+    const response = await app.request("http://localhost/api/marketplace/skills/items?page=1&pageSize=20");
+
+    expect(response.status).toBe(200);
+    const payload = await response.json() as {
+      ok: boolean;
+      data: {
+        total: number;
+        items: Array<{ install: { kind: string } }>;
+      };
+    };
+    expect(payload.data.total).toBe(1);
+    expect(payload.data.items).toHaveLength(1);
+    expect(payload.data.items[0]?.install.kind).toBe("builtin");
+  });
+
   it("uses the domestic marketplace mirror first and falls back to the official source without preflight", async () => {
     const workspaceDir = createTempDir("nextclaw-ui-skill-list-fallback-");
     const configPath = join(workspaceDir, "config.json");
@@ -315,6 +388,85 @@ describe("marketplace content routes", () => {
     };
     expect(payload.ok).toBe(true);
     expect(payload.data.items[0]?.slug).toBe("weather");
+  });
+
+  it("falls back when the domestic marketplace mirror returns an expired snapshot", async () => {
+    const workspaceDir = createTempDir("nextclaw-ui-skill-list-stale-mirror-");
+    const configPath = join(workspaceDir, "config.json");
+
+    saveConfig(
+      ConfigSchema.parse({
+        agents: {
+          defaults: {
+            workspace: workspaceDir
+          }
+        }
+      }),
+      configPath
+    );
+
+    const requestedUrls: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (target: Request | string) => {
+      const url = typeof target === "string" ? target : target.url;
+      requestedUrls.push(url);
+      const isDomestic = url.startsWith("https://api.nextclaw.net/");
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          data: {
+            total: 1,
+            page: 1,
+            pageSize: 10,
+            totalPages: 1,
+            sort: "relevance",
+            items: [
+              {
+                id: isDomestic ? "legacy-builtin-weather" : "skill-skin-studio",
+                slug: isDomestic ? "weather" : "nextclaw-skin-studio",
+                type: "skill",
+                name: isDomestic ? "Weather" : "NextClaw Skin Studio",
+                summary: isDomestic ? "Expired mirror record" : "Current official record",
+                tags: ["skill"],
+                author: "NextClaw",
+                install: {
+                  kind: isDomestic ? "builtin" : "marketplace",
+                  spec: isDomestic ? "weather" : "@nextclaw/nextclaw-skin-studio",
+                  command: ""
+                },
+                updatedAt: "2026-07-16T18:30:00.000Z"
+              }
+            ]
+          }
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+            ...(isDomestic ? { "x-nextclaw-mirror-cached-at": "2026-07-02T14:42:36.377666Z" } : {})
+          }
+        }
+      );
+    }));
+
+    const app = createUiRouter({
+      kernel: createRouterTestKernel(),
+      configPath,
+      appEventBus: new EventBus()
+    });
+
+    const response = await app.request("http://localhost/api/marketplace/skills/items?page=1&pageSize=10");
+    const payload = await response.json() as {
+      ok: boolean;
+      data: { items: Array<{ slug: string }> };
+    };
+
+    expect(response.status).toBe(200);
+    expect(requestedUrls).toEqual([
+      "https://api.nextclaw.net/api/v1/skills/items?page=1&pageSize=10",
+      "https://marketplace-api.nextclaw.io/api/v1/skills/items?page=1&pageSize=10"
+    ]);
+    expect(payload.ok).toBe(true);
+    expect(payload.data.items.map((item) => item.slug)).toEqual(["nextclaw-skin-studio"]);
   });
 
   it("retries transient marketplace fetch failures before returning skill catalog data", async () => {

@@ -31,6 +31,7 @@ const mocks = vi.hoisted(() => ({
   openExternalUrl: vi.fn(),
   routeParams: {} as { scene?: string },
   itemsQuery: null as unknown as ItemsQueryState,
+  recentItemsQuery: null as unknown as ItemsQueryState,
   installedQuery: null as unknown as InstalledQueryState,
   installMutation: {
     mutateAsync: vi.fn(),
@@ -82,6 +83,7 @@ vi.mock("@/shared/lib/host-capabilities", () => ({
 
 vi.mock("@/features/marketplace/hooks/use-marketplace", () => ({
   useMarketplaceItems: () => mocks.itemsQuery,
+  useMarketplaceRecentItems: () => mocks.recentItemsQuery,
   useMarketplaceSkillScenes: () => ({
     data: {
       scenes: [
@@ -135,6 +137,7 @@ function createItemsQuery(overrides: Partial<Record<string, unknown>> = {}) {
     isError: false,
     error: null,
     hasNextPage: false,
+    fetchNextPage: vi.fn(),
     ...overrides,
   };
 }
@@ -172,6 +175,7 @@ describe("MarketplacePage", () => {
     mocks.manageMutation.isPending = false;
     mocks.manageMutation.variables = undefined;
     mocks.itemsQuery = createItemsQuery();
+    mocks.recentItemsQuery = createItemsQuery();
     mocks.installedQuery = createInstalledQuery();
   });
 
@@ -214,6 +218,64 @@ describe("MarketplacePage", () => {
     expect(screen.getByTestId("marketplace-list-refreshing")).toBeTruthy();
     expect(screen.getAllByText("Updating...").length).toBeGreaterThan(0);
     expect(screen.getByText("Web Search")).toBeTruthy();
+  });
+
+  it("shows the stable catalog total instead of a loaded-page fraction", () => {
+    mocks.itemsQuery = createItemsQuery({
+      data: {
+        total: 36,
+        page: 1,
+        pageSize: 20,
+        totalPages: 2,
+        sort: "relevance",
+        items: [createMarketplaceItem()],
+      } satisfies MarketplaceListView,
+      hasNextPage: true,
+    });
+
+    render(<MarketplacePage forcedType="skills" />);
+
+    expect(screen.getByText("36 skills")).toBeTruthy();
+    expect(screen.queryByText("1 / 36")).toBeNull();
+  });
+
+  it("renders recently updated skills from the dedicated updated query", () => {
+    mocks.itemsQuery = createItemsQuery({
+      data: {
+        total: 4,
+        page: 1,
+        pageSize: 20,
+        totalPages: 1,
+        sort: "relevance",
+        items: [
+          createMarketplaceItem({ name: "Relevant One" }),
+          createMarketplaceItem({ id: "2", slug: "2", name: "Relevant Two" }),
+          createMarketplaceItem({ id: "3", slug: "3", name: "Relevant Three" }),
+          createMarketplaceItem({ id: "4", slug: "4", name: "Relevant Four" }),
+        ],
+      } satisfies MarketplaceListView,
+    });
+    mocks.recentItemsQuery = createItemsQuery({
+      data: {
+        total: 1,
+        page: 1,
+        pageSize: 6,
+        totalPages: 1,
+        sort: "updated",
+        items: [
+          createMarketplaceItem({
+            id: "recent",
+            slug: "recent",
+            name: "Actually Recent",
+            updatedAt: "2026-07-17T00:00:00.000Z",
+          }),
+        ],
+      } satisfies MarketplaceListView,
+    });
+
+    render(<MarketplacePage forcedType="skills" />);
+
+    expect(screen.getByText("Actually Recent")).toBeTruthy();
   });
 
   it("does not render a redundant type label in skill cards", () => {

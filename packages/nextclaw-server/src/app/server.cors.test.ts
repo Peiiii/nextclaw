@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "node:net";
@@ -330,6 +330,39 @@ describe("ui server api cors", () => {
 
     const pageResponse = await fetch(`${baseUrl}/settings`);
     expect(pageResponse.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("serves the optional UI injection script from the active runtime home", async () => {
+    const port = await reservePort();
+    const rootDir = mkdtempSync(join(tmpdir(), "nextclaw-server-ui-injection-"));
+    const staticDir = join(rootDir, "ui-dist");
+    mkdirSync(staticDir, { recursive: true });
+    writeFileSync(join(staticDir, "index.html"), "<!doctype html><html><body>ui shell</body></html>");
+    const configPath = join(rootDir, "config.json");
+    const injectionPath = join(rootDir, "ui-inject.js");
+    const handle = await startUiServer(createTestGateway({
+      configPath,
+      port,
+      uiStaticDir: staticDir,
+    }));
+    handles.push(handle);
+
+    const injectionUrl = `http://127.0.0.1:${port}/api/ui-inject.js`;
+    await waitForServer(`http://127.0.0.1:${port}`);
+
+    const emptyResponse = await fetch(injectionUrl);
+    expect(emptyResponse.status).toBe(200);
+    expect(emptyResponse.headers.get("content-type")).toContain("application/javascript");
+    expect(emptyResponse.headers.get("cache-control")).toBe("no-store");
+    expect(await emptyResponse.text()).toBe("");
+
+    writeFileSync(injectionPath, "globalThis.__nextclawUiInjection = 'active';");
+    const activeResponse = await fetch(injectionUrl);
+    expect(await activeResponse.text()).toContain("__nextclawUiInjection = 'active'");
+
+    rmSync(injectionPath);
+    const removedResponse = await fetch(injectionUrl);
+    expect(await removedResponse.text()).toBe("");
   });
 
   it("rejects startup when the target port is already in use", async () => {

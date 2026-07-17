@@ -53,6 +53,7 @@
   "marketplaceMcpManageSuccess": "MCP 操作成功",
   "marketplaceInstallFailed": "安装失败",
   "marketplaceOperationFailed": "操作失败",
+  "marketplaceSkillsCountSuffix": "个技能",
   "marketplaceInstalledSkillsCountSuffix": "个已安装技能",
   "marketplaceDetailPanelTitle": "详情预览",
   "marketplaceDetailPanelEmpty": "点击左侧任意插件/技能，在这里查看详情。",

@@ -103,7 +103,7 @@ export function useMarketplaceListModel(params: MarketplaceListModelParams) {
         ? t("loading")
         : `${installedEntries.length} ${t("marketplaceInstalledSkillsCountSuffix")}`
       : catalogView
-        ? `${allItems.length} / ${catalogView.total}`
+        ? `${catalogView.total} ${t("marketplaceSkillsCountSuffix")}`
         : t("loading");
   const error =
     scope === "all" && catalogError

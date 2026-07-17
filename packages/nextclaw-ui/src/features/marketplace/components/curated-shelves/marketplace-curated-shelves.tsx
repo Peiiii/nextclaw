@@ -33,7 +33,7 @@ export type MarketplaceShelfEntry = {
 };
 
 export function MarketplaceCuratedShelves(props: {
-  entries: MarketplaceShelfEntry[];
+  recentEntries: MarketplaceShelfEntry[];
   scenes: MarketplaceSceneView[];
   isScenesLoading: boolean;
   isItemsLoading: boolean;
@@ -44,7 +44,7 @@ export function MarketplaceCuratedShelves(props: {
   onOpenScene: (scene: string) => void;
 }) {
   const {
-    entries,
+    recentEntries,
     scenes,
     isScenesLoading,
     isItemsLoading,
@@ -55,10 +55,6 @@ export function MarketplaceCuratedShelves(props: {
     onOpenScene,
   } = props;
   const localeFallbacks = buildLocaleFallbacks(language);
-  const recentEntries = [...entries]
-    .sort((left, right) => compareUpdatedAt(left.item, right.item))
-    .slice(0, 6);
-
   return (
     <div className="mb-4 space-y-5">
       <section className="space-y-2.5">
@@ -343,15 +339,6 @@ function ShelfHeader({
       </div>
     </div>
   );
-}
-
-function compareUpdatedAt(left: MarketplaceItemSummary, right: MarketplaceItemSummary) {
-  const leftTs = Date.parse(left.updatedAt);
-  const rightTs = Date.parse(right.updatedAt);
-  if (Number.isNaN(leftTs) || Number.isNaN(rightTs)) {
-    return right.updatedAt.localeCompare(left.updatedAt);
-  }
-  return rightTs - leftTs;
 }
 
 function readLocalized(text: MarketplaceShelfLocalizedText, language: string) {

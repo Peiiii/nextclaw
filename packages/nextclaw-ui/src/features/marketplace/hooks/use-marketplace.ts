@@ -25,6 +25,8 @@ import type {
 import { collapseMarketplaceListPages } from '@/features/marketplace/utils/marketplace-list-pages.utils';
 import { useMemo } from 'react';
 
+const MARKETPLACE_BACKGROUND_REFRESH_MS = 30_000;
+
 export function useMarketplaceItems(params: MarketplaceListParams) {
   const query = useInfiniteQuery({
     queryKey: ['marketplace-items', params],
@@ -45,7 +47,11 @@ export function useMarketplaceItems(params: MarketplaceListParams) {
         ? previousData
         : undefined;
     },
-    staleTime: 15_000
+    staleTime: 15_000,
+    refetchInterval: params.q ? false : MARKETPLACE_BACKGROUND_REFRESH_MS,
+    refetchOnMount: 'always',
+    refetchOnReconnect: 'always',
+    refetchOnWindowFocus: 'always'
   });
 
   const data = useMemo(() => collapseMarketplaceListPages(query.data), [query.data]);
@@ -54,6 +60,27 @@ export function useMarketplaceItems(params: MarketplaceListParams) {
     ...query,
     data
   };
+}
+
+export function useMarketplaceRecentItems(
+  type: MarketplaceItemType,
+  enabled = true
+) {
+  return useQuery({
+    queryKey: ['marketplace-recent-items', type],
+    queryFn: () => fetchMarketplaceItems({
+      type,
+      sort: 'updated',
+      page: 1,
+      pageSize: 6
+    }),
+    enabled,
+    staleTime: 15_000,
+    refetchInterval: MARKETPLACE_BACKGROUND_REFRESH_MS,
+    refetchOnMount: 'always',
+    refetchOnReconnect: 'always',
+    refetchOnWindowFocus: 'always'
+  });
 }
 
 function hasSameMarketplaceListSurface(

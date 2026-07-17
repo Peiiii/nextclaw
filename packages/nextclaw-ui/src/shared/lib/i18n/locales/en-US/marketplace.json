@@ -53,6 +53,7 @@
   "marketplaceMcpManageSuccess": "MCP operation completed",
   "marketplaceInstallFailed": "Install failed",
   "marketplaceOperationFailed": "Operation failed",
+  "marketplaceSkillsCountSuffix": "skills",
   "marketplaceInstalledSkillsCountSuffix": "installed skills",
   "marketplaceDetailPanelTitle": "Detail Preview",
   "marketplaceDetailPanelEmpty": "Click an item on the left to preview details here.",

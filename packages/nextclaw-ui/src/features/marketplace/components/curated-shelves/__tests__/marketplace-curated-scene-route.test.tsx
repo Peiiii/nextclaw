@@ -72,6 +72,7 @@ vi.mock("@/shared/hooks/use-confirm-dialog", () => ({
 
 vi.mock("@/features/marketplace/hooks/use-marketplace", () => ({
   useMarketplaceItems: () => mocks.itemsQuery,
+  useMarketplaceRecentItems: () => mocks.itemsQuery,
   useMarketplaceSkillScenes: () => mocks.scenesQuery,
   useMarketplaceSkillSceneCounts: () => new Map([["development-debugging", 2]]),
   useMarketplaceInstalled: () => ({

@@ -12,6 +12,7 @@ import { useMemo } from "react";
 
 type MarketplaceCuratedSceneRouteParams = {
   items: MarketplaceItemSummary[];
+  recentItems: MarketplaceItemSummary[];
   installedRecordLookup: Map<string, MarketplaceInstalledRecord>;
   scene?: string;
   forcedType?: "skills";
@@ -28,6 +29,7 @@ export function useMarketplaceCuratedSceneRoute(
 ) {
   const {
     items,
+    recentItems,
     installedRecordLookup,
     scene,
     forcedType,
@@ -62,6 +64,14 @@ export function useMarketplaceCuratedSceneRoute(
       })),
     [items, installedRecordLookup],
   );
+  const recentEntries = useMemo(
+    () =>
+      recentItems.map((item) => ({
+        item,
+        record: findInstalledRecordForItem(item, installedRecordLookup),
+      })),
+    [installedRecordLookup, recentItems],
+  );
   const selectedScene = useMemo(() => {
     const normalizedScene = scene?.trim();
     if (!normalizedScene) {
@@ -94,6 +104,7 @@ export function useMarketplaceCuratedSceneRoute(
 
   return {
     entries,
+    recentEntries,
     scenes,
     selectedScene,
     sceneEntries: entries,

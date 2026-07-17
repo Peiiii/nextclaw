@@ -91,6 +91,7 @@ export class D1MarketplaceSkillPublicQueryService {
         SELECT ${SKILL_ITEM_COLUMNS}
         FROM marketplace_skill_items
         WHERE publish_status = 'published'
+          AND install_kind = 'marketplace'
           AND COALESCE(owner_visibility, 'public') = 'public'
           AND owner_deleted_at IS NULL
           AND (slug = ? OR package_name = ?)
@@ -124,6 +125,7 @@ export class D1MarketplaceSkillPublicQueryService {
         JOIN marketplace_skill_items item ON item.id = scene_item.item_id
         WHERE scene_item.scene_id = ?
           AND item.publish_status = 'published'
+          AND item.install_kind = 'marketplace'
           AND COALESCE(item.owner_visibility, 'public') = 'public'
           AND item.owner_deleted_at IS NULL
         ORDER BY scene_item.sort_order ASC, item.updated_at DESC, item.id DESC
@@ -172,6 +174,7 @@ export class D1MarketplaceSkillPublicQueryService {
   private buildPublicSkillFilters = (query: SceneListQuery): { whereClause: string; bindings: unknown[] } => {
     const clauses = [
       "publish_status = 'published'",
+      "install_kind = 'marketplace'",
       "COALESCE(owner_visibility, 'public') = 'public'",
       "owner_deleted_at IS NULL"
     ];

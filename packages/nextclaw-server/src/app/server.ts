@@ -5,7 +5,7 @@ import { AccessManager } from "@nextclaw/kernel";
 import { WebSocketServer } from "ws";
 import { existsSync, readFileSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { Server } from "node:http";
 import { UiAuthService } from "@nextclaw-server/features/auth/index.js";
 import {
@@ -245,6 +245,19 @@ export async function startUiServer(gateway: UiRouterOptions): Promise<UiServerH
       }
     }
   });
+
+  const uiInjectionPath = join(dirname(gateway.configPath), "ui-inject.js");
+  app.get("/api/ui-inject.js", async (c) => c.body(
+    await readFile(uiInjectionPath, "utf-8").catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") return "";
+      throw error;
+    }),
+    200,
+    {
+      "content-type": "application/javascript; charset=utf-8",
+      "cache-control": "no-store",
+    },
+  ));
 
   const eventStreamAuth = new EventStreamAuthService({
     uiAuth: authService,

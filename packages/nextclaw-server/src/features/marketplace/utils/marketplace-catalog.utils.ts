@@ -9,6 +9,7 @@ import {
 } from "@nextclaw-server/features/marketplace/index.js";
 import {
   getMarketplaceFetchOptions,
+  isStaleDomesticMarketplaceSnapshot,
   normalizeMarketplaceBaseUrls,
   shouldFallbackMarketplaceResult
 } from "@nextclaw-server/features/marketplace/utils/marketplace-read-source.utils.js";
@@ -84,6 +85,17 @@ async function fetchMarketplaceDataFromBase<T>(params: {
       ok: false,
       status: 503,
       message: error instanceof Error ? error.message : String(error)
+    };
+  }
+
+  if (isStaleDomesticMarketplaceSnapshot(
+    baseUrl,
+    response.headers.get("x-nextclaw-mirror-cached-at")
+  )) {
+    return {
+      ok: false,
+      status: 503,
+      message: "domestic marketplace mirror snapshot is stale"
     };
   }
 
