@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.25.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-07-17",
+  "title": {
+    "zh-CN": "NextClaw v0.25.0",
+    "en-US": "NextClaw v0.25.0"
+  },
+  "summary": {
+    "zh-CN": "本版本改进聊天内容呈现、文件与目录引用、上下文压缩稳定性、桌面端更新检查和 Marketplace 技能体验。",
+    "en-US": "This release improves chat rendering, file and directory references, context compaction reliability, desktop update checks, and Marketplace skills."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-17-nextclaw-v0-25-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-17-nextclaw-v0-25-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "功能",
+        "en-US": "Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "文件、目录和应用标签更像可操作链接",
+            "en-US": "File, directory, and app tokens behave more like actionable links"
+          },
+          "body": {
+            "zh-CN": "聊天中的文件和目录引用支持逐层进入目录和项目全范围搜索，发送后的标签会以更紧凑的链接样式呈现。",
+            "en-US": "File and directory references support directory navigation and project-wide search, and sent tokens render as compact links."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "实验性 UI 注入口",
+            "en-US": "Experimental UI injection hook"
+          },
+          "body": {
+            "zh-CN": "高级用户和社区工具可以通过 NextClaw 数据目录中的 ui-inject.js 执行自定义界面脚本。",
+            "en-US": "Advanced users and community tools can run custom interface scripts through ui-inject.js in the NextClaw data directory."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "Skin Studio 技能",
+            "en-US": "Skin Studio skill"
+          },
+          "body": {
+            "zh-CN": "Marketplace 可以分发可复用的界面皮肤和资源，方便把自定义体验沉淀为技能。",
+            "en-US": "Marketplace can distribute reusable interface skins and resources, making custom experiences reusable as skills."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "HTML 和 Mermaid 呈现更自然",
+            "en-US": "HTML and Mermaid rendering feel more natural"
+          },
+          "body": {
+            "zh-CN": "HTML 预览去掉多余边框并按内容调整高度；Mermaid 在历史和流式回复中减少源码闪现并保留稳定画面。",
+            "en-US": "HTML previews remove extra chrome and resize with content; Mermaid reduces source-code flashes and keeps a stable frame during updates."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "桌面端运行期间继续检查更新",
+            "en-US": "Desktop checks for updates while running"
+          },
+          "body": {
+            "zh-CN": "桌面端会在应用运行期间判断是否需要检查更新，并在窗口重新获得焦点或系统恢复后补查。",
+            "en-US": "The desktop app checks whether update polling is needed while running, and catches up after focus or system-resume events."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "Marketplace 列表更可靠",
+            "en-US": "More reliable Marketplace lists"
+          },
+          "body": {
+            "zh-CN": "最近更新排序、目录刷新、总数表达和历史安装条目兼容性更稳定。",
+            "en-US": "Recent-update sorting, catalog refresh, total counts, and older install records are more reliable."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "上下文压缩不再留下半完成状态",
+            "en-US": "Context compaction no longer leaves half-finished state"
+          },
+          "body": {
+            "zh-CN": "压缩始终沿用当前会话所选模型，失败后切换到可用模型即可继续会话。",
+            "en-US": "Compaction keeps using the selected session model, and sessions can continue after switching to an available model."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "窄屏会话历史更稳定",
+            "en-US": "More stable narrow-screen session history"
+          },
+          "body": {
+            "zh-CN": "窄屏布局从会话列表进入已有会话时，历史消息不再偶尔显示为空。",
+            "en-US": "Opening an existing session from the session list on narrow screens no longer occasionally shows an empty history."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需手动迁移",
+            "en-US": "No manual migration"
+          },
+          "body": {
+            "zh-CN": "本版本不需要手动迁移。",
+            "en-US": "No manual migration is required."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "实验性 UI 注入口默认不影响普通用户",
+            "en-US": "Experimental UI injection does not affect ordinary users by default"
+          },
+          "body": {
+            "zh-CN": "不需要自定义界面的用户可以忽略 ui-inject.js；该能力不提供安全性、DOM 稳定性或跨版本兼容保证。",
+            "en-US": "Users who do not customize the UI can ignore ui-inject.js; this capability does not promise security, DOM stability, or cross-version compatibility."
+          }
+        }
+      ]
+    }
+  ]
+}

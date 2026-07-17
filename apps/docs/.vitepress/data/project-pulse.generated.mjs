@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-07-17T01:20:47.810Z",
+  "generatedAt": "2026-07-17T01:26:11.118Z",
   "hero": {
     "currentLoc": 206804,
     "testLoc": 70637,
     "trackedFiles": 2226,
-    "recentCommitCount": 217,
-    "activeDays30": 29,
+    "recentCommitCount": 234,
+    "activeDays30": 30,
     "recentReleaseCount": 44,
     "latestReleaseDate": "2026-07-16",
-    "latestNoteDate": "2026-07-16",
+    "latestNoteDate": "2026-07-17",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2102823,
     "basePercentOfBenchmark": 9.83,
@@ -1098,12 +1098,12 @@ export default {
       {
         "key": "2026-07-16",
         "label": "07-16",
-        "value": 7
+        "value": 16
       },
       {
         "key": "2026-07-17",
         "label": "07-17",
-        "value": 0
+        "value": 8
       }
     ],
     "commitWeekly": [
@@ -1165,7 +1165,7 @@ export default {
       {
         "key": "2026-07-13",
         "label": "07-13",
-        "value": 78
+        "value": 95
       }
     ],
     "releaseMonthly": [
@@ -1355,6 +1355,25 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-07-17-nextclaw-v0-25-0",
+        "date": "2026-07-17",
+        "tags": [
+          "release",
+          "npm",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-07-17 · NextClaw v0.25.0",
+          "description": "NextClaw v0.25.0 improves chat rendering, file and directory references, desktop update checks, and Marketplace skills.",
+          "href": "/en/notes/2026-07-17-nextclaw-v0-25-0"
+        },
+        "zh": {
+          "title": "2026-07-17 · NextClaw v0.25.0",
+          "description": "NextClaw v0.25.0 改进聊天内容呈现、文件与目录引用、桌面端更新检查和 Marketplace 技能体验。",
+          "href": "/zh/notes/2026-07-17-nextclaw-v0-25-0"
+        }
+      },
       {
         "slug": "2026-07-16-nextclaw-v0-24-0",
         "date": "2026-07-16",
@@ -1669,7 +1688,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-07-16T05:19:25.194Z",
     "sourceCount": {
-      "notes": 12,
+      "notes": 13,
       "scopes": 8
     }
   }

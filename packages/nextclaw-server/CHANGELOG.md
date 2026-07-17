@@ -1,5 +1,13 @@
 # nextclaw-server
 
+## 0.15.7
+
+### Patch Changes
+
+- 897211a: 新增实验性 UI 注入口：高阶用户和社区工具可以在 NextClaw 数据目录放置 `ui-inject.js`，刷新桌面端或浏览器页面后直接执行自定义界面脚本；删除文件并刷新即可恢复。Skill Marketplace 同步改进最近更新排序、目录刷新、总数表达和历史条目兼容，避免无限滚动末页因旧安装类型导致整页失败。该注入口不提供安全性、DOM 稳定性或跨版本兼容保证。
+- Updated dependencies [00c0d23]
+  - @nextclaw/kernel@0.6.7
+
 ## 0.15.6
 
 ### Patch Changes

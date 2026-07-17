@@ -1,5 +1,22 @@
 # nextclaw
 
+## 0.25.0
+
+### Minor Changes
+
+- 发布 NextClaw 0.25.0：本版本集中改进聊天内容呈现、文件与目录引用、上下文压缩稳定性、Marketplace 技能体验、桌面端更新检查，以及面向高级用户的实验性 UI 注入口。
+
+### Patch Changes
+
+- 00c0d23: 上下文压缩现在始终沿用当前会话所选模型；压缩请求失败时不会留下半完成状态，切换到可用模型后可以直接继续会话。
+- 897211a: 新增实验性 UI 注入口：高阶用户和社区工具可以在 NextClaw 数据目录放置 `ui-inject.js`，刷新桌面端或浏览器页面后直接执行自定义界面脚本；删除文件并刷新即可恢复。Skill Marketplace 同步改进最近更新排序、目录刷新、总数表达和历史条目兼容，避免无限滚动末页因旧安装类型导致整页失败。该注入口不提供安全性、DOM 稳定性或跨版本兼容保证。
+- Updated dependencies [00c0d23]
+- Updated dependencies [897211a]
+  - @nextclaw/kernel@0.6.7
+  - @nextclaw/server@0.15.7
+  - @nextclaw/remote@0.3.7
+  - @nextclaw/service@0.3.7
+
 ## 0.24.0
 
 ### Minor Changes
