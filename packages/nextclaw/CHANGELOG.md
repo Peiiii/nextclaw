@@ -1,5 +1,22 @@
 # nextclaw
 
+## 0.25.1
+
+### Patch Changes
+
+- 8f7e915: 修复运行时更新应用后的后续检查可能把“新版本已运行但验证失败”笼统显示为更新失败的问题；页面会区分检查、下载和应用失败，展示完整错误原因，并给出查看完整日志的命令。
+- Updated dependencies [a9b125f]
+- Updated dependencies [8f7e915]
+  - @nextclaw/core@0.15.6
+  - @nextclaw/kernel@0.6.8
+  - @nextclaw/service@0.3.8
+  - @nextclaw/mcp@0.3.6
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.7
+  - @nextclaw/remote@0.3.8
+  - @nextclaw/runtime@0.4.6
+  - @nextclaw/server@0.15.8
+  - @nextclaw/ncp-mcp@0.2.6
+
 ## 0.25.0
 
 ### Minor Changes

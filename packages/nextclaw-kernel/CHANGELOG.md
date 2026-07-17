@@ -1,5 +1,21 @@
 # @nextclaw/kernel
 
+## 0.6.8
+
+### Patch Changes
+
+- a9b125f: 增强可视化结果生成指引：Agent 会在结果适合展示时主动选择 Markdown、图表、图片或内联 HTML；内联页面保持单一焦点、自然高度和无嵌套外卡，完成后只保留可视结果，不再重复显示前后的文字复述。
+- Updated dependencies [a9b125f]
+- Updated dependencies [8f7e915]
+  - @nextclaw/core@0.15.6
+  - @nextclaw/shared@0.4.5
+  - @nextclaw/mcp@0.3.6
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.7
+  - @nextclaw/runtime@0.4.6
+  - @nextclaw/ncp-mcp@0.2.6
+  - @nextclaw/channel-extension-feishu@0.2.6
+  - @nextclaw/channel-extension-weixin@0.2.6
+
 ## 0.6.7
 
 ### Patch Changes

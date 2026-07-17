@@ -1,5 +1,22 @@
 # @nextclaw/ui
 
+## 0.15.8
+
+### Patch Changes
+
+- cffeb5e: 修复在聊天引用菜单中返回后再次进入“文件与文件夹”时，默认高亮错误恢复到之前某一行的问题；现在每次进入该视图都会从第一行开始。
+- e2c303a: 修复聊天引用菜单中文件与文件夹面板在切换目录或搜索结果时的高度跳动，并用更明确的操作文案提示引用当前文件夹。
+- b815813: Keep the header compact while still exposing release notes: the current version keeps its version-label link, and available-update notes move into the download or update control's hover and keyboard-focus surface.
+- a9b125f: 增强可视化结果生成指引：Agent 会在结果适合展示时主动选择 Markdown、图表、图片或内联 HTML；内联页面保持单一焦点、自然高度和无嵌套外卡，完成后只保留可视结果，不再重复显示前后的文字复述。
+- 8f7e915: 修复运行时更新应用后的后续检查可能把“新版本已运行但验证失败”笼统显示为更新失败的问题；页面会区分检查、下载和应用失败，展示完整错误原因，并给出查看完整日志的命令。
+- Updated dependencies [cffeb5e]
+- Updated dependencies [e2c303a]
+- Updated dependencies [a9b125f]
+- Updated dependencies [8f7e915]
+  - @nextclaw/agent-chat-ui@0.6.8
+  - @nextclaw/shared@0.4.5
+  - @nextclaw/client-sdk@0.5.8
+
 ## 0.15.7
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @nextclaw/channel-extension-weixin
 
+## 0.2.6
+
+### Patch Changes
+
+- @nextclaw/extension-sdk@0.3.5
+
 ## 0.2.5
 
 ### Patch Changes

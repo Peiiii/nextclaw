@@ -1,10 +1,10 @@
 export default {
-  "generatedAt": "2026-07-17T01:36:16.632Z",
+  "generatedAt": "2026-07-17T11:18:03.809Z",
   "hero": {
     "currentLoc": 207211,
     "testLoc": 71678,
     "trackedFiles": 2229,
-    "recentCommitCount": 235,
+    "recentCommitCount": 246,
     "activeDays30": 30,
     "recentReleaseCount": 45,
     "latestReleaseDate": "2026-07-17",
@@ -1108,7 +1108,7 @@ export default {
       {
         "key": "2026-07-17",
         "label": "07-17",
-        "value": 9
+        "value": 20
       }
     ],
     "commitWeekly": [
@@ -1170,7 +1170,7 @@ export default {
       {
         "key": "2026-07-13",
         "label": "07-13",
-        "value": 96
+        "value": 107
       }
     ],
     "releaseMonthly": [
@@ -1360,6 +1360,25 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-07-17-nextclaw-v0-25-1",
+        "date": "2026-07-17",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-07-17 · NextClaw v0.25.1",
+          "description": "NextClaw v0.25.1 fixes runtime update prompts, release-note entry points, chat reference menus, and visual result guidance.",
+          "href": "/en/notes/2026-07-17-nextclaw-v0-25-1"
+        },
+        "zh": {
+          "title": "2026-07-17 · NextClaw v0.25.1",
+          "description": "NextClaw v0.25.1 修复运行时更新提示、版本说明入口、聊天引用菜单和可视化结果生成指引。",
+          "href": "/zh/notes/2026-07-17-nextclaw-v0-25-1"
+        }
+      },
       {
         "slug": "2026-07-17-nextclaw-v0-25-0",
         "date": "2026-07-17",
@@ -1693,7 +1712,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-07-17T01:36:15.597Z",
     "sourceCount": {
-      "notes": 13,
+      "notes": 14,
       "scopes": 8
     }
   }
