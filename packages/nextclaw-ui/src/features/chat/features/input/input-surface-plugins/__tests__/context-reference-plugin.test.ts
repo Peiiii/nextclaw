@@ -32,7 +32,7 @@ function createPlugin(onNavigate = vi.fn()) {
         backLabel: 'Back',
         backDescription: 'Back to references',
         backHintLabel: 'Enter to go back',
-        currentDirectoryLabel: 'Current folder',
+        currentDirectoryLabel: 'Reference current folder',
         directoryDescription: 'Directory context',
         fileDescription: 'File context',
         filesDescription: 'Browse project files',
@@ -211,8 +211,8 @@ describe('context reference input surface plugin', () => {
     });
     expect(nestedState.panel?.items).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        title: 'docs',
-        subtitle: 'Current folder',
+        title: 'Reference current folder',
+        subtitle: 'docs',
         tokenKind: 'workspace_directory',
         tokenKey: 'docs',
       }),

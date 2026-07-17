@@ -216,7 +216,7 @@
   "chatContextReferenceParent": "Up one folder",
   "chatContextReferenceParentDescription": "Browse the parent folder without closing the reference menu.",
   "chatContextReferenceParentHint": "Press Enter to open the parent folder.",
-  "chatContextReferenceCurrentDirectory": "Current folder",
+  "chatContextReferenceCurrentDirectory": "Reference current folder",
   "chatContextReferenceFileDescription": "Use this file as explicit context for the current message.",
   "chatContextReferenceDirectoryDescription": "Use this folder as a context scope for the current message.",
   "chatContextReferenceProjectRoot": "Project directory",

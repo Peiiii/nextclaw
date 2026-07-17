@@ -20,7 +20,6 @@ const INPUT_SURFACE_PANEL_MAX_WIDTH = 680;
 const INPUT_SURFACE_PANEL_DESKTOP_SHRINK_RATIO = 0.82;
 const INPUT_SURFACE_PANEL_DESKTOP_MIN_WIDTH = 560;
 const INPUT_SURFACE_PANEL_MAX_HEIGHT = createChatPopoverAvailableHeightLimit('24rem');
-const INPUT_SURFACE_PANEL_MIN_HEIGHT = createChatPopoverAvailableHeightLimit('240px');
 
 export type ChatInputSurfaceMenuHandle = {
   handleKeyDown: (event: KeyboardEvent) => boolean;
@@ -277,14 +276,12 @@ function ChatInputSurfaceMenu(props, ref) {
         className="z-[70] flex max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white/95 p-0 shadow-2xl backdrop-blur-md"
         onOpenAutoFocus={(event) => event.preventDefault()}
         style={{
+          height: INPUT_SURFACE_PANEL_MAX_HEIGHT,
           maxHeight: INPUT_SURFACE_PANEL_MAX_HEIGHT,
           width: resolvedWidth ? `${resolvedWidth}px` : undefined,
         }}
       >
-        <div
-          className="grid min-h-0 flex-1 grid-cols-[minmax(220px,300px)_minmax(0,1fr)]"
-          style={{ minHeight: INPUT_SURFACE_PANEL_MIN_HEIGHT }}
-        >
+        <div className="grid min-h-0 flex-1 grid-cols-[minmax(220px,300px)_minmax(0,1fr)]">
           <div className="flex min-h-0 flex-col border-r border-gray-200">
             {!isLoading && filterViews.length > 0 ? (
               <div className="flex shrink-0 gap-0.5 overflow-x-auto px-2 pb-1.5 pt-2">

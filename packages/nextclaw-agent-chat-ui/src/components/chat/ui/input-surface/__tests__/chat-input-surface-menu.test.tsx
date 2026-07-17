@@ -2,6 +2,14 @@ import { useState } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ChatInputSurfaceMenu } from '@agent-chat-ui/components/chat/ui/input-surface/chat-input-surface-menu';
 
+const menuTexts = {
+  loadingLabel: 'Loading',
+  sectionLabel: 'Items',
+  emptyLabel: 'No items',
+  hintLabel: 'Type',
+  itemHintLabel: 'Select',
+};
+
 it('renders the semantic icon assigned to each input-surface item', () => {
   render(
     <ChatInputSurfaceMenu
@@ -12,13 +20,7 @@ it('renders the semantic icon assigned to each input-surface item', () => {
         { key: 'panel-app', icon: 'panel-app', title: 'Panel app', subtitle: '', description: '', detailLines: [] },
         { key: 'skill', icon: 'skill', title: 'Skill', subtitle: '', description: '', detailLines: [] },
       ]}
-      texts={{
-        loadingLabel: 'Loading',
-        sectionLabel: 'Items',
-        emptyLabel: 'No items',
-        hintLabel: 'Type',
-        itemHintLabel: 'Select',
-      }}
+      texts={menuTexts}
       onOpenChange={vi.fn()}
       onSelectItem={vi.fn()}
     />,
@@ -27,6 +29,41 @@ it('renders the semantic icon assigned to each input-surface item', () => {
   expect(document.querySelectorAll('[data-input-surface-icon="command"]')).toHaveLength(1);
   expect(document.querySelectorAll('[data-input-surface-icon="panel-app"]')).toHaveLength(1);
   expect(document.querySelectorAll('[data-input-surface-icon="skill"]')).toHaveLength(1);
+});
+
+it('keeps a fixed available-height panel as item counts change', () => {
+  const { rerender } = render(
+    <ChatInputSurfaceMenu
+      isOpen
+      isLoading={false}
+      items={[]}
+      texts={menuTexts}
+      onOpenChange={vi.fn()}
+      onSelectItem={vi.fn()}
+    />,
+  );
+  const panel = screen.getByRole('listbox').parentElement?.parentElement?.parentElement;
+  const initialHeight = panel?.style.height;
+
+  rerender(
+    <ChatInputSurfaceMenu
+      isOpen
+      isLoading={false}
+      items={Array.from({ length: 20 }, (_, index) => ({
+        key: `${index}`,
+        title: `Item ${index}`,
+        subtitle: '',
+        description: '',
+        detailLines: [],
+      }))}
+      texts={menuTexts}
+      onOpenChange={vi.fn()}
+      onSelectItem={vi.fn()}
+    />,
+  );
+
+  expect(initialHeight).toContain('24rem');
+  expect(panel?.style.height).toBe(initialHeight);
 });
 
 it('starts a revisited navigation view from its first item', () => {
@@ -60,13 +97,7 @@ it('starts a revisited navigation view from its first item', () => {
         isOpen
         isLoading={false}
         items={items}
-        texts={{
-          loadingLabel: 'Loading',
-          sectionLabel: 'Items',
-          emptyLabel: 'No items',
-          hintLabel: 'Type',
-          itemHintLabel: 'Select',
-        }}
+        texts={menuTexts}
         onOpenChange={vi.fn()}
         onSelectItem={(item) => setView(item.key === 'back' ? 'root' : 'files')}
       />

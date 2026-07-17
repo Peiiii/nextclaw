@@ -229,8 +229,8 @@ function buildCurrentDirectoryReferenceItem(params: {
   return {
     key: `context-reference:current-directory:${referencePath}`,
     icon: 'folder',
-    title,
-    subtitle: texts.currentDirectoryLabel,
+    title: texts.currentDirectoryLabel,
+    subtitle: title,
     description: texts.directoryDescription,
     detailLines: [
       `${texts.projectRootLabel}: ${projectRoot}`,

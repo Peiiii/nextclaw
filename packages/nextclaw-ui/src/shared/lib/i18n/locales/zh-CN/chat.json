@@ -216,7 +216,7 @@
   "chatContextReferenceParent": "返回上一级",
   "chatContextReferenceParentDescription": "在不关闭引用菜单的情况下浏览上一级文件夹。",
   "chatContextReferenceParentHint": "回车打开上一级文件夹。",
-  "chatContextReferenceCurrentDirectory": "当前文件夹",
+  "chatContextReferenceCurrentDirectory": "引用当前文件夹",
   "chatContextReferenceFileDescription": "把这个文件作为本次消息的显式上下文。",
   "chatContextReferenceDirectoryDescription": "把这个目录作为本次消息的上下文范围。",
   "chatContextReferenceProjectRoot": "项目目录",
