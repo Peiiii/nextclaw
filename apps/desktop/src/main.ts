@@ -176,7 +176,7 @@ class DesktopApplication {
         await this.bundleManager.markBundleHealthy(runtimeCommand.bundleVersion);
       }
       this.runtimeCommandService.prepareBundleAfterRuntimeStart(runtimeCommand);
-      void this.desktopUpdateManager.runStartupCheck();
+      void this.desktopUpdateManager.startAutomaticChecks();
       return true;
     } catch (error) {
       if (allowPackagedSeedRepair && runtimeCommand?.source === "bundle" && runtimeCommand.bundleVersion) {

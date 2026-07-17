@@ -1,8 +1,6 @@
 import type { ChatSkillRecord } from '@/features/chat/types/chat-input-bar.types';
 import type { PanelAppEntryView, ServerPathSearchEntryView } from '@/shared/lib/api';
 
-export type ContextReferenceMode = 'root' | 'files';
-
 export type ChatInputProductPluginData = {
   isPanelAppsLoading: boolean;
   isServerPathSearchLoading: boolean;
@@ -10,7 +8,7 @@ export type ChatInputProductPluginData = {
   panelApps: readonly PanelAppEntryView[];
   projectRoot: string;
   recentSkillValues: readonly string[];
-  referenceMode: ContextReferenceMode;
+  referencePath: string | null;
   serverPathEntries: readonly ServerPathSearchEntryView[];
   serverPathSearchError: string | null;
   skillRecords: readonly ChatSkillRecord[];

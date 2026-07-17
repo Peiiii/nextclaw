@@ -248,7 +248,7 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
   },
 
   span: function ChatMarkdownSpan({ node: _node, children, ...rest }) {
-    const { isUser, onInlineTokenClick } = useChatMessageMarkdownRuntime();
+    const { onInlineTokenClick } = useChatMessageMarkdownRuntime();
     const restProps = rest as Record<string, unknown>;
     const kind = readStringProp(restProps, INLINE_TOKEN_KIND_ATTR);
     const key = readStringProp(restProps, INLINE_TOKEN_KEY_ATTR);
@@ -259,7 +259,7 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
         <ChatInlineTokenBadge
           kind={kind}
           label={label}
-          isUser={isUser}
+          tooltip={key}
           onClick={
             onInlineTokenClick
               ? () => onInlineTokenClick({ kind, key, label, rawText })

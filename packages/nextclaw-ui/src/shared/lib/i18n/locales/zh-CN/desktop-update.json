@@ -70,7 +70,7 @@
   "desktopUpdatesBetaBadgeTitle": "当前正在跟随 Beta 通道",
   "desktopUpdatesBetaBadgeDescription": "你会更早收到新版本，但也可能遇到更多变动和回归。",
   "desktopUpdatesAutomaticChecks": "自动检查更新",
-  "desktopUpdatesAutomaticChecksHelp": "启动应用后自动检查是否有新版本。",
+  "desktopUpdatesAutomaticChecksHelp": "应用运行期间定期检查是否有新版本。",
   "desktopUpdatesAutoDownload": "发现更新后自动后台下载",
   "desktopUpdatesAutoDownloadHelp": "检查到更新后自动把新版本下载到本地，但仍由你决定何时应用。",
   "desktopUpdatesActionsTitle": "更新操作",

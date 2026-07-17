@@ -32,6 +32,7 @@ type DesktopUpdateCoordinatorServiceOptions = {
   updateCapability?: DesktopUpdateCapability;
   bundleManager: DesktopUpdateBundleOwner;
   updateSourceService: DesktopUpdateSourceService;
+  now?: () => number;
   publishSnapshot?: (snapshot: DesktopUpdateSnapshot) => void;
   onAutoDownloadedUpdateReady?: (snapshot: DesktopUpdateSnapshot) => void;
 };
@@ -62,6 +63,7 @@ type PersistedDesktopLauncherState = ReturnType<DesktopLauncherStateStore["read"
 type DesktopUpdateSnapshotPatch = Partial<DesktopUpdateSnapshot> & Pick<DesktopUpdateSnapshot, "status">;
 
 const DEFAULT_STATUS: DesktopUpdateStatus = "idle";
+const AUTOMATIC_UPDATE_MINIMUM_CHECK_INTERVAL_MS = 5 * 60 * 60 * 1000;
 
 export class DesktopUpdateCoordinatorService {
   private snapshot: DesktopUpdateSnapshot;
@@ -106,11 +108,18 @@ export class DesktopUpdateCoordinatorService {
     };
   };
 
-  runStartupCheck = async (): Promise<DesktopUpdateSnapshot> => {
+  runAutomaticCheck = async (): Promise<DesktopUpdateSnapshot> => {
     if (this.isUpdateUnsupported()) {
       return this.getSnapshot();
     }
     if (!this.snapshot.preferences.automaticChecks) {
+      return this.getSnapshot();
+    }
+    const lastCheckedAt = Date.parse(this.snapshot.lastCheckedAt ?? "");
+    const elapsedSinceLastCheck = (this.options.now?.() ?? Date.now()) - lastCheckedAt;
+    const checkedRecently = Number.isFinite(lastCheckedAt) &&
+      elapsedSinceLastCheck >= 0 && elapsedSinceLastCheck < AUTOMATIC_UPDATE_MINIMUM_CHECK_INTERVAL_MS;
+    if (checkedRecently) {
       return this.getSnapshot();
     }
     return await this.checkForUpdates();
@@ -229,7 +238,7 @@ export class DesktopUpdateCoordinatorService {
   };
 
   private performCheckForUpdates = async (options: DesktopCheckUpdateOptions): Promise<DesktopUpdateSnapshot> => {
-    const checkedAt = new Date().toISOString();
+    const checkedAt = new Date(this.options.now?.() ?? Date.now()).toISOString();
 
     this.snapshot = {
       ...this.snapshot,
