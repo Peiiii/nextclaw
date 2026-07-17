@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.25.2",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-07-17",
+  "title": {
+    "zh-CN": "NextClaw v0.25.2",
+    "en-US": "NextClaw v0.25.2"
+  },
+  "summary": {
+    "zh-CN": "本版本会在持续运行时定期发现更新，但下载和应用始终由用户决定。",
+    "en-US": "This release lets long-running npm installations discover updates on schedule while keeping download and apply actions explicit."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-17-nextclaw-v0-25-2",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-17-nextclaw-v0-25-2"
+    }
+  },
+  "sections": [
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "持续运行时定期发现更新",
+            "en-US": "Scheduled discovery while running"
+          },
+          "body": {
+            "zh-CN": "通过 NPM 安装的 NextClaw 会按最近一次检查时间安排后续检查，并在持续运行期间每两小时再次检查。",
+            "en-US": "NPM installations schedule the next check from the most recent check time and check again every two hours while running."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "下载和应用始终由用户触发",
+            "en-US": "Download and apply stay explicit"
+          },
+          "body": {
+            "zh-CN": "发现新版本后只展示提示；只有用户明确选择下载和应用后，才会使用网络、磁盘并切换版本。",
+            "en-US": "A newly discovered version only produces a prompt; network, disk, and runtime changes begin after explicit download and apply actions."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "更新通道结果不再串用",
+            "en-US": "Update channel results stay isolated"
+          },
+          "body": {
+            "zh-CN": "切换 stable 或 beta 时会等待旧检查结束，再查询新通道，避免展示过期结果。",
+            "en-US": "Switching stable or beta waits for the previous check to finish before querying the new channel, preventing stale results."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需迁移旧偏好",
+            "en-US": "No preference migration required"
+          },
+          "body": {
+            "zh-CN": "自动检查是固定行为，旧的关闭检查或自动下载偏好会被安全忽略。",
+            "en-US": "Automatic checks are fixed behavior, and previous disable-check or automatic-download preferences are safely ignored."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "桌面安装包稍后发布",
+            "en-US": "Desktop installer follows later"
+          },
+          "body": {
+            "zh-CN": "本次 patch 面向 NPM stable 更新链路，不包含新的桌面安装包。",
+            "en-US": "This patch targets the npm stable update path and does not include a new desktop installer."
+          }
+        }
+      ]
+    }
+  ]
+}

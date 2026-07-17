@@ -1,5 +1,38 @@
 # @nextclaw/service
 
+## 0.3.9
+
+### Patch Changes
+
+- 0111b09: 让桌面端与 NPM 安装态在持续运行期间固定每两小时自动检查更新，不再提供关闭自动检查或启用自动下载的配置；发现新版本后只提示用户，由用户明确点击后才下载和应用。更新通道切换会等待旧检查收口后检查新通道，避免复用过期结果。同步增强本地更新验证，使开发者无需等待真实发版或重启即可验证自动发现、手动下载、应用和版本切换。
+- Updated dependencies
+- Updated dependencies [0111b09]
+  - @nextclaw/channel-extension-dingtalk@0.2.7
+  - @nextclaw/channel-extension-discord@0.2.7
+  - @nextclaw/channel-extension-email@0.2.7
+  - @nextclaw/channel-extension-feishu@0.2.7
+  - @nextclaw/channel-extension-qq@0.2.6
+  - @nextclaw/channel-extension-slack@0.2.7
+  - @nextclaw/channel-extension-telegram@0.2.7
+  - @nextclaw/channel-extension-wecom@0.2.7
+  - @nextclaw/channel-extension-weixin@0.2.7
+  - @nextclaw/channel-extension-whatsapp@0.2.7
+  - @nextclaw/core@0.15.7
+  - @nextclaw/mcp@0.3.7
+  - @nextclaw/ncp@0.7.5
+  - @nextclaw/ncp-agent-runtime@0.4.5
+  - @nextclaw/ncp-mcp@0.2.7
+  - @nextclaw/ncp-toolkit@0.6.6
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.5
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.5
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.8
+  - @nextclaw/remote@0.3.9
+  - @nextclaw/runtime@0.4.7
+  - @nextclaw/kernel@0.6.9
+  - @nextclaw/client-sdk@0.5.9
+  - @nextclaw/server@0.15.9
+  - @nextclaw/shared@0.4.6
+
 ## 0.3.8
 
 ### Patch Changes
