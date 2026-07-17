@@ -38,9 +38,12 @@
 - `pnpm --filter @nextclaw/core build` 通过，并确认发布产物 `dist/skills/visualize-output/SKILL.md` 包含内联 HTML 与 `min(80vh, 720px)` 合同；随后 `pnpm clean:generated` 与 `pnpm check:generated-clean` 通过。
 - Agent 可视化后续治理：全量收尾重跑 `pnpm lint:new-code:governance` 与 `pnpm check:governance-backlog-ratchet` 均通过。maintainability guard 为 0 error；`context-provider/providers` 仍是 14 个同角色 provider 文件且已有 README 豁免，本次没有新增 provider 或扩大目录。
 - `skill-creator` 的 Python `quick_validate.py` 因本机两个 Python runtime 均缺少 `PyYAML` 未能启动；已改用仓库实际 `SkillsLoader` 测试和本地 `yaml@2.8.2` 解析校验 frontmatter、目录名与双语描述，均通过。
-- 真实模型前向验收：使用当前源码构建和从用户配置复制的真实 provider 配置，在独立 `NEXTCLAW_HOME=/Users/peiwang/.nextclaw-source-runtime/deepseek-visual-smoke`、独立 workspace 与端口 `18889` 启动隔离实例；没有重启、替换或写入用户正在使用的主实例。通过 `deepseek/deepseek-chat` 创建会话 `visual-html-deepseek-20260717-0250`，模型首个工具调用读取 `visualize-output` skill，随后创建并验证 `visuals/q2-summary.html`，最终仅返回工作目录相对路径、`viewer="rendered"` 的 `nextclaw-inline` file target，没有调用 `show_file`、`show_url` 或 browser 打开旁路。会话接口和页面路由均返回 HTTP 200。
-- 真实浏览器验收：同一当前源码构建的 DeepSeek HTML 已直接渲染为消息内容；宿主视口实测 `768px × 554px`，圆角 `12px`、边框 `0`，高度低于 `720px` 上限。iframe 内部 `scrollHeight=clientHeight=554px`、`scrollWidth=clientWidth=768px`，无 document 级滚动、无远程资源。外置工具条位于视口上方且不重叠，静止态为 `opacity=0`、`pointer-events=none`；浏览器控制层仍不能可靠制造 iframe 的 `:hover`，因此没有把 hover 动画本身表述成自动化实测，保留给用户在已打开会话中手动确认。
-- 前向抽样先后暴露并闭合了三类模型遵循问题：未先读 skill、本地 HTML 错用 URL / side-panel 旁路、以及输入数据之外的定性或因果扩写。为此已把“首个工具调用必须读取 skill”“内联请求禁止旁路打开”“只展示可直接支持的事实与计算”同时固化到 system context 和 skill。最终隔离样例只陈述月度值、季度合计、渠道占比、目标差值与完成率，没有原因分析、健康评价、建议、行业基准或预测；提示词仍不是确定性内容校验器，若未来要求强保证，应增加运行时结构化校验而不是继续堆提示词。
+- 真实模型前向验收：使用当前源码构建和从用户配置复制的真实 provider 配置，在独立 `NEXTCLAW_HOME=/Users/peiwang/.nextclaw-source-runtime/deepseek-visual-smoke`、独立 workspace 与端口 `18889` 启动隔离实例；没有重启、替换或写入用户正在使用的主实例。最终使用 `deepseek/deepseek-chat` 和不包含设计、内联或存储指令的自然请求创建会话 `visual-html-deepseek-natural-20260717-0942`。模型首个工具调用读取 `visualize-output`，产物写入 `NEXTCLAW_HOME/assets/visualizations/<session-id>/revenue.html`，没有调用 `show_file`、`show_url` 或 browser 旁路；会话与产物接口均返回 HTTP 200。
+- 前向抽样按 `0918 -> 0921 -> 0930 -> 0935 -> 0938 -> 0942` 逐步暴露并闭合了外部展示旁路、错误差值、重复正文、区间增长误称累计增长、总体目标误拆成类别目标和临时目录失效风险。对应约束已进入 system context 与 `visualize-output` skill：用户只需自然表达“可视化”，Agent 自主选媒介；展示数据只来自输入和必要的工具计算，总体目标只与同口径总体实际比较，产物固定落入 NextClaw 持久会话资产目录。
+- 最终 DeepSeek HTML 独立核对通过：可见画布没有文件名、页面大标题、根卡片、边框或阴影，`html/body` 背景透明；月度值、渠道值、季度合计 `414万`、目标 `400万`、达成率 `103.5%` 和超额 `14万` 均与输入及工具计算一致，也没有再创造类别目标语义。模型额外展示了两个正确命名且计算正确的环比值；这不是输入事实错误，但仍说明模型遵循具有概率性。
+- 宿主增加确定性结果边界：完成态 assistant 文本只要包含有效的 rendered HTML `nextclaw-inline` 声明，就只渲染该声明，隐藏模型在声明前后的验证清单、引导语和数据复述；streaming、用户消息和非 HTML 文件不受影响。真实 `0942` 会话验证中，消息正文的校验清单与绝对路径均消失，只保留一个 iframe。
+- 真实浏览器验收：宿主视口实测 `768px × 538px`，圆角 `12px`、边框 `0`、阴影 `none`，运行时高度为 `538px`，当前视口上限为 `576px = 80vh`，符合 `min(80vh, 720px)`。外置工具条宽 `54px`，相对预览水平中心偏差 `0px`，位于预览上方且不重叠；静止态为 `opacity=0`、`pointer-events=none`，预览区域没有默认空白。浏览器控制层未提供可靠的 iframe hover 注入，因此 hover 动画仍由 CSS 合同、组件测试和用户在已打开会话中的手动移动验收覆盖。
+- 真实验收还发现一次构建顺序问题：`@nextclaw/ui` 曾在新的 `@nextclaw/agent-chat-ui` 产物生成前打包，导致源码测试通过但隔离实例仍消费旧守卫。最终按 `agent-chat-ui -> ui -> nextclaw copy-ui-dist` 顺序重建并重启隔离实例后通过；这次问题属于验收产物陈旧，不是运行时 fallback，不能用继续堆提示词掩盖。
 
 ## 发布/部署方式
 
