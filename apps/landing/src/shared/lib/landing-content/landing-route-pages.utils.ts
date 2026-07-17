@@ -120,7 +120,6 @@ export function renderUseCasesPage(copy: LandingCopy, downloadRoute: string, doc
 
 export function renderComparisonSection(copy: LandingCopy): string {
   const comparison = copy.comparison;
-  const stageLabels = [comparison.startLabel, comparison.focusLabel, comparison.bestForLabel];
 
   return `
     <section id="compare" class="comparison-section">
@@ -134,63 +133,21 @@ export function renderComparisonSection(copy: LandingCopy): string {
           <p class="comparison-subtitle">${comparison.subtitle}</p>
         </div>
 
-        <div class="comparison-board">
-          ${comparison.lanes.map((lane) => {
-            const stages = [lane.start, lane.focus, lane.bestFor];
-            return `
-              <article class="comparison-lane${lane.featured ? ' comparison-lane--featured' : ''}">
-                <header class="comparison-product">
-                  <div class="comparison-product__icon">
-                    <i data-lucide="${lane.icon}" class="h-5 w-5"></i>
-                  </div>
-                  <div>
-                    <h3 class="comparison-product__name">${lane.product}</h3>
-                    <p class="comparison-product__category">${lane.category}</p>
-                  </div>
-                  <a href="${lane.sourceUrl}" target="_blank" rel="noopener noreferrer" class="comparison-product__source">
-                    ${lane.sourceLabel}
-                    <i data-lucide="external-link" class="h-3.5 w-3.5"></i>
-                  </a>
-                </header>
-                <div class="comparison-flow">
-                  ${stages.map((stage, index) => `
-                    <div class="comparison-stage">
-                      <span class="comparison-stage__label">${stageLabels[index]}</span>
-                      <p class="comparison-stage__text">${stage}</p>
-                    </div>
-                  `).join('')}
-                </div>
-              </article>
-            `;
-          }).join('')}
+        <div class="comparison-values">
+          ${comparison.values.map((value) => `
+            <article class="comparison-value">
+              <div class="comparison-value__icon">
+                <i data-lucide="${value.icon}" class="h-5 w-5"></i>
+              </div>
+              <h3>${value.title}</h3>
+              <p>${value.description}</p>
+              <a href="${value.href}" target="_blank" rel="noopener noreferrer">
+                ${value.linkLabel}
+                <i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i>
+              </a>
+            </article>
+          `).join('')}
         </div>
-
-        <div class="comparison-proof">
-          <div class="comparison-proof__header">
-            <h3>${comparison.proofTitle}</h3>
-            <p>${comparison.proofDescription}</p>
-          </div>
-          <div class="comparison-proof__grid">
-            ${comparison.proofs.map((proof) => `
-              <article class="comparison-proof__item">
-                <div class="comparison-proof__icon">
-                  <i data-lucide="${proof.icon}" class="h-5 w-5"></i>
-                </div>
-                <h4>${proof.title}</h4>
-                <p>${proof.description}</p>
-                <a href="${proof.href}" target="_blank" rel="noopener noreferrer">
-                  ${proof.linkLabel}
-                  <i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i>
-                </a>
-              </article>
-            `).join('')}
-          </div>
-        </div>
-
-        <p class="comparison-source-note">
-          <i data-lucide="info" class="h-4 w-4"></i>
-          ${comparison.sourceNote}
-        </p>
       </div>
     </section>
   `;

@@ -45,7 +45,7 @@ const COPY: Record<Locale, LandingCopy> = {
     navDownload: 'Download',
     navInstall: 'Install',
     navUseCases: 'Use cases',
-    navCompare: 'Compare',
+    navCompare: 'Distinct value',
     navIntegrations: 'Integrations',
     navDocs: 'Docs',
     heroTitleLine1: 'NextClaw',
@@ -393,7 +393,7 @@ const COPY: Record<Locale, LandingCopy> = {
     navDownload: '下载',
     navInstall: '安装方式',
     navUseCases: '使用场景',
-    navCompare: '产品对比',
+    navCompare: '独特价值',
     navIntegrations: '集成',
     navDocs: '文档',
     heroTitleLine1: 'NextClaw',
@@ -1070,8 +1070,6 @@ class LandingPage {
           </div>
         </section>
 
-        ${renderComparisonSection(this.copy)}
-
         <section class="collaboration-section">
           <div class="collaboration-inner">
             <div class="collaboration-header">
@@ -1104,6 +1102,8 @@ class LandingPage {
             ${renderEcosystemGroups(this.copy)}
           </div>
         </section>
+
+        ${renderComparisonSection(this.copy)}
 
         <section id="faq" class="py-20 px-6 z-10 w-full max-w-4xl mx-auto">
           <div class="text-center mb-12">

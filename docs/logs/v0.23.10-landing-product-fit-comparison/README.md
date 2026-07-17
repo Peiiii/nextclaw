@@ -1,12 +1,14 @@
-# v0.23.10 Landing 产品选型对比
+# v0.23.10 Landing 独特价值说明
 
 ## 迭代完成说明
 
-- 在官网首页的使用场景之后增加“产品对比”区，以任务起点、产品重心和优先适用条件三个维度并列介绍 WorkBuddy、Codex 与 NextClaw。
-- 对比不使用胜负排名或无法核验的功能勾叉；WorkBuddy 与 Codex 分别链接其官方介绍，NextClaw 的六个具体场景分别链接对应产品文档。
-- 根据本地验收反馈，将 NextClaw 从单纯的开源、自托管技术条件改为跨资料、数据、写作、代码、本地文件、消息渠道和定时任务的真实工作场景，并提供六个可核验示例。
-- 桌面端将产品从纵向行排列改为三列排列，按“NextClaw -> WorkBuddy -> Codex”组织，让本站产品先进入视野；移动端同样优先展示 NextClaw。
-- 首页桌面端与移动端导航增加“产品对比”入口，直接定位到该区。
+- 在官网首页直接回答“NextClaw 有哪些独特价值”，不再展示产品卡片、功能对比矩阵或目标人群限定。
+- 内容严格收敛为三项产品价值：可部署到自己的 Linux 设备、NAS 或云服务器，系统开放开源且可持续扩展，Vibe Coding 产物可以成为可运行和管理的小应用。
+- 第三项以“让你的 Vibe Coding 小应用不再日抛”为标题，并说明应用可以在 Agent 旁预览、固定到全局边栏、重新打开并继续修改。
+- 开源价值同时说明架构清晰、便于理解和学习，以及可以按需改造、扩展和接入自定义能力。
+- 首页导航使用“独特价值”入口，直接定位到该区。
+- 独特价值区移动到生态内容之后、FAQ 之前，作为用户了解界面、场景和生态之后的产品总结。
+- `user-facing-content-boundary` 增加“显式分组守恒”检查：用户已经明确受众数量和分组时，不得擅自增删类别或把支撑能力拆成新的并列项。
 - 对比内容进入独立配置 owner，页面渲染由纯渲染函数负责；同时提取页脚渲染，使既有超长 `main.ts` 和 `render` 方法没有继续增长。
 
 ## 测试/验证/验收方式
@@ -14,31 +16,35 @@
 - `pnpm -C apps/landing tsc`：通过。
 - `pnpm -C apps/landing lint`：通过，无错误；保留既有 `main.ts` 超长文件和超长方法 warning。
 - `pnpm -C apps/landing build`：通过。
-- 浏览器功能验收：在 `http://127.0.0.1:5175/zh/#compare` 检查桌面与 `390 x 844` 移动视口；三条对比路径、六个 NextClaw 具体场景均存在，无横向溢出和控制台错误。
-- 外链核验：WorkBuddy、NextClaw 文档与 GitHub 链接返回 `200`；Codex 官方页可在浏览器访问，命令行请求受站点反自动化策略返回 `403`。
-- maintainability guard：通过；`main.ts` 净减少 4 行，`render` 从 322 行降至 310 行，仍保留既有超预算 warning。
+- 浏览器功能验收：在 `http://127.0.0.1:5175/zh/#compare` 检查桌面与 `390 x 844` 移动视口；问题、三项独特价值和对应入口均存在，无横向溢出和控制台错误。
+- 外链核验：三项价值分别链接到安装文档、GitHub 源码和 Panel Apps 文档。
+- maintainability guard：通过；本迭代相关生产代码累计 `+61 / -241`，净减少 180 行，仅保留既有 `main.ts` 文件长度 warning。
 - `pnpm check:governance-backlog-ratchet`：通过。
-- 全量收尾时重跑 `pnpm lint:new-code:governance` 与 `pnpm check:generated-clean`：均通过。
+- `pnpm lint:new-code:governance`：通过。
+- `pnpm check:generated-clean`：被本迭代范围外的 `packages/nextclaw/ui-dist` 生成物哈希漂移拦截；落地页自身不涉及该生成目录。
+- Cloudflare Pages 部署与线上冒烟：通过；本次部署地址为 `https://8fb65c85.nextclaw-landing.pages.dev`，正式域名 `https://nextclaw.io/zh/` 返回 200 并加载本次 `main-o652Svd3.js`。
+- 正式站浏览器验收：通过；`#compare` 区域完整显示三项独特价值，无遮挡或横向溢出，并正常衔接后续 FAQ。
 
 ## 发布/部署方式
 
-- 本迭代纳入当前 `master` 全量收尾提交并推送至 `origin/master`；本轮未部署官网。
-- 官网发布时使用仓库既有 `pnpm deploy:landing` 流程。
+- 本迭代只提交落地页、用户可见内容规则和本迭代记录，不纳入工作区其他改动。
+- 官网使用仓库本地安装的 Wrangler 将 `apps/landing/dist` 发布到 Cloudflare Pages 项目 `nextclaw-landing`。
+- 本次部署地址：`https://8fb65c85.nextclaw-landing.pages.dev`；正式站入口：`https://nextclaw.io/zh/#compare`。
 - 不涉及后端、数据库或 migration。
 
 ## 用户/产品视角的验收步骤
 
-1. 打开官网中文首页，点击顶栏“产品对比”。
-2. 确认 WorkBuddy、Codex 与 NextClaw 都明确说明任务起点、产品重心和优先适用条件，没有主观胜负结论。
-3. 确认每个竞品名称旁可以打开官方介绍；NextClaw 下方六个具体场景均可打开对应产品文档。
-4. 在手机宽度打开同一入口，确认横向路径变为纵向阅读，文字和链接没有溢出或遮挡。
+1. 打开官网中文首页，点击顶栏“独特价值”。
+2. 确认标题只询问 NextClaw 有哪些独特价值，没有限定适用人群或暗示其他场景较弱。
+3. 确认正文严格只有自由部署、开放开源和 Vibe Coding 应用系统三项价值，并分别提供相关入口。
+4. 在手机宽度打开同一入口，确认三项价值变为单列阅读，文字和链接没有溢出或遮挡。
 
 ## 可维护性总结汇总
 
 - 使用了 `post-edit-maintainability-review` 的标准复核口径。
-- 新增能力本身需要新的内容、类型、渲染和样式，但大段双语内容没有留在应用入口，而是进入 `landing-comparison-content.config.ts`。
+- 双语内容没有留在应用入口，而是进入 `landing-comparison-content.config.ts`；内容类型直接建模为产品价值，避免再次引入人群限定。
 - 提取页脚渲染后，既有 `main.ts` 总行数和 `render` 方法长度都下降；没有新增状态、事件链路、路由类型或重复页面。
-- 样式只使用现有雾蓝/绿色变量，NextClaw 仅做克制的边框和背景强调，没有引入竞品品牌色或新的设计体系。
+- 样式只使用现有雾蓝/绿色变量；价值列表采用无卡片的分隔布局，没有引入竞品品牌色或新的设计体系。
 
 ## 红区触达与减债记录
 
