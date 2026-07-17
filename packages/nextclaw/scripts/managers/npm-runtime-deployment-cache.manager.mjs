@@ -3,7 +3,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { cp, lstat, mkdir, readdir, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-const runtimeCacheSchemaVersion = 1;
+const runtimeCacheSchemaVersion = 2;
+const coreRuntimeSkillsPath = "@nextclaw/core/dist/skills";
 const workspaceScanIgnoredDirectories = new Set(["coverage", "dist", "node_modules", "release", "tmp", "ui-dist"]);
 const pruneSuffixes = [".d.ts", ".d.mts", ".d.cts", ".map", ".md", ".markdown", ".mdx", ".mkd", ".tsbuildinfo"];
 const pruneBasenames = new Set([
@@ -52,6 +53,9 @@ function shouldPruneRuntimeNodeModulesEntry(relativePath, entry) {
   const normalizedRelativePath = relativePath.replaceAll("\\", "/").toLowerCase();
   const pathSegments = normalizedRelativePath.split("/").filter(Boolean);
   const entryName = entry.name.toLowerCase();
+  if (normalizedRelativePath === coreRuntimeSkillsPath || normalizedRelativePath.startsWith(`${coreRuntimeSkillsPath}/`)) {
+    return false;
+  }
   if (entry.isDirectory()) {
     if (pathSegments.length === 1 && prunePackageNames.has(entryName)) {
       return true;
@@ -140,7 +144,6 @@ async function updatePackageArtifactFingerprint(hash, targetPath, logicalPath, d
     return;
   }
   if (sourceStat.isDirectory()) {
-    hash.update(`dir:${logicalPath}\0`);
     for (const child of (await readdir(targetPath, { withFileTypes: true })).sort((left, right) => left.name.localeCompare(right.name))) {
       await updatePackageArtifactFingerprint(
         hash,
@@ -205,6 +208,7 @@ export class NpmRuntimeDeploymentCacheManager {
     await cp(cachedRuntimeRoot, this.runtimeRoot, { recursive: true, force: true });
     const refreshResult = await this.refreshWorkspacePackages();
     const pruneResult = await this.pruneRuntimeNodeModules(refreshResult.refreshedPackageRoots);
+    await this.assertCoreRuntimeSkillAssets();
     return { ...pruneResult, refreshedPackages: refreshResult.refreshedPackages };
   };
 
@@ -259,6 +263,17 @@ export class NpmRuntimeDeploymentCacheManager {
       await walk(packageRoot);
     }
     return { removedEntries };
+  };
+
+  assertCoreRuntimeSkillAssets = async () => {
+    const fileEntries = ["dist/skills"];
+    const [sourceFingerprint, deployedFingerprint] = await Promise.all([
+      resolvePackageArtifactFingerprint(join(this.workspacePackagesRoot, "nextclaw-core"), fileEntries),
+      resolvePackageArtifactFingerprint(resolveRuntimePackagePath(this.runtimeRoot, "@nextclaw/core"), fileEntries)
+    ]);
+    if (sourceFingerprint !== deployedFingerprint) {
+      throw new Error("Runtime deployment changed @nextclaw/core/dist/skills assets.");
+    }
   };
 
   refreshWorkspacePackages = async () => {

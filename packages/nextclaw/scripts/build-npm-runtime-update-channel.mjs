@@ -246,6 +246,7 @@ class NpmRuntimeUpdateChannelBuilder {
       { cwd: workspaceRoot }
     );
     const pruneResult = await deploymentCache.pruneRuntimeNodeModules();
+    await deploymentCache.assertCoreRuntimeSkillAssets();
     await deploymentCache.store();
     return { ...pruneResult, refreshedPackages: 0 };
   };

@@ -313,33 +313,40 @@ class LocalUpdateVerificationHarness {
           throw new Error(`Observed unexpected product version ${version}.`);
         }
         if (!this.updateObserved && version === this.candidateVersion) {
-          this.assertCompletedUpdate(state);
+          await this.assertCompletedUpdate(state);
           this.updateObserved = true;
           console.log("\n[dev:verify-update] Update verified successfully.");
           console.log(`  Version: ${this.candidateVersion}`);
           console.log(`  PID:     ${this.initialServicePid} -> ${state.pid}`);
           console.log(`  Pointer: ${this.currentPointerPath}`);
+          console.log(`  Skills:  ${this.builtInSkillCount} available built-ins, including visualize-output`);
           console.log("  The service remains available for manual inspection. Press Ctrl+C when finished.\n");
         }
       } catch (error) {
-        if (error instanceof Error && error.message.startsWith("Observed unexpected")) {
+        if (error instanceof Error && (error.message.startsWith("Observed unexpected") || error.message.startsWith("Candidate"))) {
           throw error;
         }
       }
     }
   };
 
-  assertCompletedUpdate = (serviceState) => {
+  assertCompletedUpdate = async (serviceState) => {
     if (!serviceState?.pid || serviceState.pid === this.initialServicePid) {
-      throw new Error("The candidate is serving without a managed service PID change.");
+      throw new Error("Candidate is serving without a managed service PID change.");
     }
     if (!existsSync(this.currentPointerPath)) {
-      throw new Error("The candidate is serving without a runtime bundle pointer.");
+      throw new Error("Candidate is serving without a runtime bundle pointer.");
     }
     const pointer = JSON.parse(readFileSync(this.currentPointerPath, "utf8"));
     if (pointer.version !== this.candidateVersion) {
-      throw new Error(`Runtime pointer expected ${this.candidateVersion}, received ${String(pointer.version)}.`);
+      throw new Error(`Candidate runtime pointer expected ${this.candidateVersion}, received ${String(pointer.version)}.`);
     }
+    const skillRecords = await this.fetchSessionSkills();
+    const builtInSkills = skillRecords.filter((skill) => skill?.source === "builtin" && skill.available === true);
+    if (!builtInSkills.some((skill) => skill.name === "visualize-output")) {
+      throw new Error("Candidate skill catalog is missing the available built-in visualize-output skill.");
+    }
+    this.builtInSkillCount = builtInSkills.length;
   };
 
   fetchProductVersion = async () => {
@@ -372,6 +379,22 @@ class LocalUpdateVerificationHarness {
       throw new Error("Runtime update state did not return a snapshot.");
     }
     return snapshot;
+  };
+
+  fetchSessionSkills = async () => {
+    const response = await fetch(`${this.baseUrl}/api/ncp/sessions/draft-session/skills`, {
+      headers: { accept: "application/json" },
+      signal: globalThis.AbortSignal.timeout(2_000)
+    });
+    if (!response.ok) {
+      throw new Error(`Candidate skill catalog returned HTTP ${response.status}.`);
+    }
+    const payload = await response.json();
+    const records = payload?.data?.records ?? payload?.records;
+    if (!Array.isArray(records)) {
+      throw new Error("Candidate skill catalog did not return records.");
+    }
+    return records;
   };
 
   readServiceState = () => {
