@@ -1,5 +1,69 @@
 # nextclaw
 
+## 0.25.1
+
+### Patch Changes
+
+- 8f7e915: 修复运行时更新应用后的后续检查可能把“新版本已运行但验证失败”笼统显示为更新失败的问题；页面会区分检查、下载和应用失败，展示完整错误原因，并给出查看完整日志的命令。
+- Updated dependencies [a9b125f]
+- Updated dependencies [8f7e915]
+  - @nextclaw/core@0.15.6
+  - @nextclaw/kernel@0.6.8
+  - @nextclaw/service@0.3.8
+  - @nextclaw/mcp@0.3.6
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.7
+  - @nextclaw/remote@0.3.8
+  - @nextclaw/runtime@0.4.6
+  - @nextclaw/server@0.15.8
+  - @nextclaw/ncp-mcp@0.2.6
+
+## 0.25.0
+
+### Minor Changes
+
+- 发布 NextClaw 0.25.0：本版本集中改进聊天内容呈现、文件与目录引用、上下文压缩稳定性、Marketplace 技能体验、桌面端更新检查，以及面向高级用户的实验性 UI 注入口。
+
+### Patch Changes
+
+- 00c0d23: 上下文压缩现在始终沿用当前会话所选模型；压缩请求失败时不会留下半完成状态，切换到可用模型后可以直接继续会话。
+- 897211a: 新增实验性 UI 注入口：高阶用户和社区工具可以在 NextClaw 数据目录放置 `ui-inject.js`，刷新桌面端或浏览器页面后直接执行自定义界面脚本；删除文件并刷新即可恢复。Skill Marketplace 同步改进最近更新排序、目录刷新、总数表达和历史条目兼容，避免无限滚动末页因旧安装类型导致整页失败。该注入口不提供安全性、DOM 稳定性或跨版本兼容保证。
+- Updated dependencies [00c0d23]
+- Updated dependencies [897211a]
+  - @nextclaw/kernel@0.6.7
+  - @nextclaw/server@0.15.7
+  - @nextclaw/remote@0.3.7
+  - @nextclaw/service@0.3.7
+
+## 0.24.0
+
+### Minor Changes
+
+- 59a4723: 新增独立项目注册表与项目模板：项目可以在没有会话时通过界面、CLI 或 AI 创建并展示；界面提供支持导航、搜索和新建文件夹的跨平台服务端目录选择器，并按 macOS、Windows 与 Linux 展示实际可用的常用位置；CLI 与 AI 还可列出项目、修改会话名称及项目目录。
+
+### Patch Changes
+
+- 2eceb16: 聊天输入框现在支持通过 `@` 搜索并引用当前项目中的文件或目录：可从统一引用菜单进入文件浏览、查看路径层级并插入引用标签，发送时由 NextClaw 在项目边界内安全、限量地补充对应文件内容或目录结构上下文。
+- 8f7e915: 修复运行时更新期间页面状态可能停滞，以及应用更新后仍继续启动旧版本的问题：检查和下载完成后页面会直接进入下一状态，更新完成后会自动切换到新运行包，无需刷新页面或手动执行 restart。
+- Updated dependencies [2eceb16]
+- Updated dependencies [25f8bb0]
+- Updated dependencies [59a4723]
+- Updated dependencies [8be3173]
+- Updated dependencies [8f7e915]
+  - @nextclaw/kernel@0.6.6
+  - @nextclaw/server@0.15.6
+  - @nextclaw/ncp@0.7.4
+  - @nextclaw/ncp-toolkit@0.6.5
+  - @nextclaw/core@0.15.5
+  - @nextclaw/service@0.3.6
+  - @nextclaw/remote@0.3.6
+  - @nextclaw/ncp-agent-runtime@0.4.4
+  - @nextclaw/ncp-mcp@0.2.5
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.4
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.4
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.6
+  - @nextclaw/mcp@0.3.5
+  - @nextclaw/runtime@0.4.5
+
 ## 0.23.0
 
 ### Minor Changes

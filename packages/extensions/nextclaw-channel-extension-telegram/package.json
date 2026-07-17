@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-extension-telegram",
-  "version": "0.2.4",
+  "version": "0.2.6",
   "private": false,
   "description": "NextClaw Telegram channel extension process.",
   "type": "module",

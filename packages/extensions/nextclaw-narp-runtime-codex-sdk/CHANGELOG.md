@@ -1,5 +1,14 @@
 # @nextclaw/nextclaw-narp-runtime-codex-sdk
 
+## 0.2.5
+
+### Patch Changes
+
+- Updated dependencies [25f8bb0]
+  - @nextclaw/ncp@0.7.4
+  - @nextclaw/nextclaw-ncp-runtime-codex-sdk@0.2.4
+  - @nextclaw/nextclaw-narp-stdio-runtime-wrapper@0.3.5
+
 ## 0.2.4
 
 ### Patch Changes

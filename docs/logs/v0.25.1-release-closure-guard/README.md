@@ -28,24 +28,60 @@
 - `pnpm release:check:health`：预期失败，用于证明当前坏状态会被阻塞。
 - `pnpm release:check:branch-closure -- --target master --release codex/release-npm-minor-0.25.0`：预期失败，用于证明 0.25.0 release 分支未回流会被阻塞。
 
-补发 patch 版本时还需要在 release worktree 中重新通过发布前检查、NPM 发布验证和 runtime update 验证。
+0.25.1 release worktree 补充验证：
+
+- `pnpm release:version`
+- `pnpm --filter @nextclaw/docs build`
+- `pnpm release:check`
+- `pnpm release:check:health`
+- `pnpm lint:new-code:governance`
+- `pnpm check:governance-backlog-ratchet`
+- `pnpm --filter @nextclaw/core test -- src/features/agent/features/tests/skills.test.ts`
+- `pnpm --filter @nextclaw/service test -- src/services/runtime/npm-runtime-update-host.service.test.ts`
+- `pnpm --filter @nextclaw/ui test -- src/shared/components/common/__tests__/brand-header.test.tsx src/features/system-status/components/__tests__/desktop-update-config.test.tsx src/features/chat/features/input/hooks/__tests__/use-chat-input-surface-state.test.tsx`
+
+0.25.1 发布后验证：
+
+- `pnpm release:publish`：发布完成，`release:verify:published` 确认 `27/27` package versions 已发布。
+- `pnpm release:stable:runtime -- --version 0.25.1 --release-tag nextclaw@0.25.1 --branch codex/release-npm-patch-0.25.1`：GitHub Actions workflow `29576939861` 成功，public stable manifest 验证通过。
+- `npm view nextclaw version dist-tags dependencies --json`：确认 `nextclaw@latest = 0.25.1`，且 `nextclaw@0.25.1` 依赖 `@nextclaw/core@0.15.6`。
+- 隔离安装 `nextclaw@0.25.0` 后执行 `nextclaw update --channel stable --check`：确认输出 `Runtime update available: 0.25.0 -> 0.25.1`。
+- 同一隔离安装继续执行 `nextclaw update --channel stable --download-only` 与 `nextclaw update --apply`：确认可下载并应用 `0.25.1` runtime bundle。
+- `wrangler pages deploy apps/docs/.vitepress/dist --project-name nextclaw-docs --branch master`：文档站部署成功，部署地址 `https://91314afd.nextclaw-docs.pages.dev`。
+- `curl -s -I https://docs.nextclaw.io/zh/notes/2026-07-17-nextclaw-v0-25-1`：确认公开中文 release note 返回 `HTTP/2 200`。
+- `curl -s -I https://docs.nextclaw.io/en/notes/2026-07-17-nextclaw-v0-25-1`：确认公开英文 release note 返回 `HTTP/2 200`。
+- `curl -s -I https://docs.nextclaw.io/release-notes/nextclaw-v0.25.1.json`：确认结构化 release notes JSON 返回 `HTTP/2 200`。
 
 ## 发布/部署方式
 
 机制修复本身先提交到代码库，不单独部署。
 
-后续补发流程：
+补发流程已完成：
 
-- 从主线创建隔离 release worktree。
+- 从主线创建隔离 release worktree：`/private/tmp/nextclaw-release-0.25.1`。
 - 回流 `codex/release-npm-minor-0.25.0` 的 release metadata。
 - 补齐 `@nextclaw/core` 与安装入口 `nextclaw` 的 patch release 范围。
 - 发布 `0.25.1` NPM patch，并更新 stable runtime update channel。
+- NPM release commit：`52abc9c7c release: publish nextclaw 0.25.1`。
+- runtime workflow：`https://github.com/Peiiii/nextclaw/actions/runs/29576939861`。
+- runtime release：`https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.25.1`。
+- 产品更新笔记：`apps/docs/zh/notes/2026-07-17-nextclaw-v0-25-1.md`、`apps/docs/en/notes/2026-07-17-nextclaw-v0-25-1.md`、`apps/docs/public/release-notes/nextclaw-v0.25.1.json`。
+- 文档站已部署，公开 URL：`https://docs.nextclaw.io/zh/notes/2026-07-17-nextclaw-v0-25-1`、`https://docs.nextclaw.io/en/notes/2026-07-17-nextclaw-v0-25-1`、`https://docs.nextclaw.io/release-notes/nextclaw-v0.25.1.json`。
+- 0.25.1 是 patch 版本，不默认发 X 帖；本批以修复和补漏为主，不配图。
 
 ## 用户/产品视角的验收步骤
 
 - 使用 NPM 安装的旧版本能够检查到新的 stable runtime update。
 - 发布后的 `nextclaw` 入口依赖的 runtime 包版本与本次补发的 `@nextclaw/core` 版本一致。
 - 后续发布如果 release branch 没有回流、主线版本落后已发布 tag、或公开包有未纳入 batch 的 meaningful drift，发布命令会在 version / publish 前失败。
+
+实际验收结果：
+
+- `nextclaw@0.25.0 --version` 输出 `0.25.0`。
+- `nextclaw@0.25.0` 的依赖闭包显示 `@nextclaw/core@0.15.5`、`@nextclaw/service@0.3.7`、`@nextclaw/kernel@0.6.7`。
+- 公开 stable update check 输出 `Runtime update available: 0.25.0 -> 0.25.1`。
+- `download-only` 输出 `Runtime update downloaded: 0.25.1`。
+- `--apply` 输出 `Runtime update applied: 0.25.1`。
 
 ## 可维护性总结汇总
 
@@ -54,16 +90,40 @@
 - release health 和 branch closure 分别由专门脚本承载，职责清晰。
 - 没有新增用户产品逻辑，也没有改变 runtime 行为。
 - skill 更新只保留强制触发点和关键命令，不把长篇事故复盘塞回常驻规则。
-- 后续补发完成后需要继续更新本记录，补齐实际发布包、版本和验证结果。
+- 补发完成后，本记录已补齐实际发布包、版本、workflow 和旧版安装态验证结果。
 
 ## NPM 包发布记录
 
 机制修复本身不涉及 NPM 包发布。
 
-本次任务还需要补发 NPM patch，当前状态为 `待统一发布`：
+本次任务已补发 NPM patch，状态为 `已发布 27/27`：
 
-- `nextclaw`：需要 patch，用于让 NPM 安装用户拿到新的 runtime update 入口。
-- `@nextclaw/core`：需要 patch，用于补发 0.25.0 后主线新增的 core skill 内容。
-- `@nextclaw/ui` / `@nextclaw/agent-chat-ui`：若 release worktree 中仍存在未发布用户可见 changeset，需要随 batch 一并发布。
+- `nextclaw@0.25.1`
+- `@nextclaw/core@0.15.6`
+- `@nextclaw/ui@0.15.8`
+- `@nextclaw/agent-chat-ui@0.6.8`
+- `@nextclaw/kernel@0.6.8`
+- `@nextclaw/service@0.3.8`
+- `@nextclaw/shared@0.4.5`
+- `@nextclaw/server@0.15.8`
+- `@nextclaw/runtime@0.4.6`
+- `@nextclaw/client-sdk@0.5.8`
+- `@nextclaw/remote@0.3.8`
+- `@nextclaw/extension-sdk@0.3.5`
+- `@nextclaw/mcp@0.3.6`
+- `@nextclaw/ncp-mcp@0.2.6`
+- `@nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.7`
+- `@nextclaw/nextclaw-narp-runtime-opencode@0.2.7`
+- `@nextclaw/channel-extension-dingtalk@0.2.6`
+- `@nextclaw/channel-extension-discord@0.2.6`
+- `@nextclaw/channel-extension-email@0.2.6`
+- `@nextclaw/channel-extension-feishu@0.2.6`
+- `@nextclaw/channel-extension-qq@0.2.5`
+- `@nextclaw/channel-extension-slack@0.2.6`
+- `@nextclaw/channel-extension-telegram@0.2.6`
+- `@nextclaw/channel-extension-wecom@0.2.6`
+- `@nextclaw/channel-extension-weixin@0.2.6`
+- `@nextclaw/channel-extension-whatsapp@0.2.6`
+- `@nextclaw/companion@0.2.8`
 
-最终实际包列表以 release worktree 中 `pnpm release:check:health`、changeset batch 和 `pnpm release:verify:published` 的结果为准。
+发布依据：`@nextclaw/core` 漏发后，Changesets 自动把依赖它或本次 changeset 涉及的公开包纳入 patch closure；这次不再人工手挑少数包。

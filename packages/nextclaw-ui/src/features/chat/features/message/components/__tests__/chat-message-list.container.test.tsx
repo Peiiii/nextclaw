@@ -71,9 +71,12 @@ vi.mock("@/shared/lib/i18n", () => ({
 vi.mock(
   "@/features/chat/features/workspace/components/chat-session-workspace-file-preview",
   () => ({
-    ChatSessionWorkspaceFilePreview: () => (
-      <div data-testid="inline-workspace-file-preview" />
-    ),
+    ChatSessionWorkspaceFilePreview: (props: {
+      showBreadcrumbs?: boolean;
+    }) => {
+      captures.filePreviewProps.push(props);
+      return <div data-testid="inline-workspace-file-preview" />;
+    },
   }),
 );
 

@@ -1,5 +1,20 @@
 # @nextclaw/ncp-react
 
+## 0.5.6
+
+### Patch Changes
+
+- 4052d16: 修复窄屏布局从会话列表进入已有会话时，历史消息偶尔显示为空的问题；会话详情标题现在也可以直接下拉搜索和切换会话。
+
+## 0.5.5
+
+### Patch Changes
+
+- 25f8bb0: 修复聊天中的会话模型恢复、重试错误提示、技能选择和折叠会话列表交互，并为 `/`、`@` 选择项补充类型图标。
+- Updated dependencies [25f8bb0]
+  - @nextclaw/ncp@0.7.4
+  - @nextclaw/ncp-toolkit@0.6.5
+
 ## 0.5.4
 
 ### Patch Changes

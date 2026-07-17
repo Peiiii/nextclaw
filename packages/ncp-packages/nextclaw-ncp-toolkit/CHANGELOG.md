@@ -1,5 +1,13 @@
 # @nextclaw/ncp-toolkit
 
+## 0.6.5
+
+### Patch Changes
+
+- 25f8bb0: 修复聊天中的会话模型恢复、重试错误提示、技能选择和折叠会话列表交互，并为 `/`、`@` 选择项补充类型图标。
+- Updated dependencies [25f8bb0]
+  - @nextclaw/ncp@0.7.4
+
 ## 0.6.4
 
 ### Patch Changes

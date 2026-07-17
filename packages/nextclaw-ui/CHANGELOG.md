@@ -1,5 +1,63 @@
 # @nextclaw/ui
 
+## 0.15.8
+
+### Patch Changes
+
+- cffeb5e: 修复在聊天引用菜单中返回后再次进入“文件与文件夹”时，默认高亮错误恢复到之前某一行的问题；现在每次进入该视图都会从第一行开始。
+- e2c303a: 修复聊天引用菜单中文件与文件夹面板在切换目录或搜索结果时的高度跳动，并用更明确的操作文案提示引用当前文件夹。
+- b815813: Keep the header compact while still exposing release notes: the current version keeps its version-label link, and available-update notes move into the download or update control's hover and keyboard-focus surface.
+- a9b125f: 增强可视化结果生成指引：Agent 会在结果适合展示时主动选择 Markdown、图表、图片或内联 HTML；内联页面保持单一焦点、自然高度和无嵌套外卡，完成后只保留可视结果，不再重复显示前后的文字复述。
+- 8f7e915: 修复运行时更新应用后的后续检查可能把“新版本已运行但验证失败”笼统显示为更新失败的问题；页面会区分检查、下载和应用失败，展示完整错误原因，并给出查看完整日志的命令。
+- Updated dependencies [cffeb5e]
+- Updated dependencies [e2c303a]
+- Updated dependencies [a9b125f]
+- Updated dependencies [8f7e915]
+  - @nextclaw/agent-chat-ui@0.6.8
+  - @nextclaw/shared@0.4.5
+  - @nextclaw/client-sdk@0.5.8
+
+## 0.15.7
+
+### Patch Changes
+
+- e2c303a: 聊天中的文件与文件夹引用现在支持逐层进入目录和项目全范围搜索；发送后的文件、目录、技能与面板应用标签统一为紧凑链接样式，并可查看提示或点击打开对应内容。
+- ed86214: 修复桌面端只在应用启动后检查更新的问题：应用运行期间会定期判断是否需要检查，并在窗口重新获得焦点或系统恢复后补查；关闭自动检查时仍不会发起后台请求。
+- a9b125f: 聊天中的 HTML 预览不再显示文件名和卡片边框，使用与图片一致的轻微圆角，根据页面内容自动调整高度，并仅在悬停时于预览外部正上方居中提供侧栏预览与源码入口。
+- 576f9bc: 优化聊天中的 Mermaid 图表体验：打开历史会话时不再先闪现源代码，以紧凑加载状态等待首图；流式回复会在生成过程中逐步呈现有效图形，并在更新期间保持上一帧稳定；完成后的图表以无边框画布自然融入正文。
+- 4052d16: 修复窄屏布局从会话列表进入已有会话时，历史消息偶尔显示为空的问题；会话详情标题现在也可以直接下拉搜索和切换会话。
+- 897211a: 新增实验性 UI 注入口：高阶用户和社区工具可以在 NextClaw 数据目录放置 `ui-inject.js`，刷新桌面端或浏览器页面后直接执行自定义界面脚本；删除文件并刷新即可恢复。Skill Marketplace 同步改进最近更新排序、目录刷新、总数表达和历史条目兼容，避免无限滚动末页因旧安装类型导致整页失败。该注入口不提供安全性、DOM 稳定性或跨版本兼容保证。
+- Updated dependencies [e2c303a]
+- Updated dependencies [576f9bc]
+- Updated dependencies [4052d16]
+  - @nextclaw/agent-chat-ui@0.6.7
+  - @nextclaw/ncp-react@0.5.6
+  - @nextclaw/client-sdk@0.5.7
+
+## 0.15.6
+
+### Patch Changes
+
+- 36b3702: 修复中文输入法取消拼音或按数字选择候选词后，字符异常恢复、光标跳到输入框开头的问题。
+- 2eceb16: 聊天输入框现在支持通过 `@` 搜索并引用当前项目中的文件或目录：可从统一引用菜单进入文件浏览、查看路径层级并插入引用标签，发送时由 NextClaw 在项目边界内安全、限量地补充对应文件内容或目录结构上下文。
+- b815813: Make the header expose release notes for both the currently running NextClaw version and the available update target when docs notes are available.
+- 9ae8d96: 统一聊天 Markdown 的内容块间距：标题、表格、代码块、引用、列表与分隔线现在遵循一致的垂直节奏，章节标题也会更清晰地归属于后续内容。
+- 25f8bb0: 修复聊天中的会话模型恢复、重试错误提示、技能选择和折叠会话列表交互，并为 `/`、`@` 选择项补充类型图标。
+- 59a4723: 新增独立项目注册表与项目模板：项目可以在没有会话时通过界面、CLI 或 AI 创建并展示；界面提供支持导航、搜索和新建文件夹的跨平台服务端目录选择器，并按 macOS、Windows 与 Linux 展示实际可用的常用位置；CLI 与 AI 还可列出项目、修改会话名称及项目目录。
+- 8be3173: Allow provider model entries and runtime routing to preserve nested IDs such as `bedrock/claude-fable-5`, including OpenRouter-style vendor/model routes.
+- Updated dependencies [36b3702]
+- Updated dependencies [2eceb16]
+- Updated dependencies [611e7aa]
+- Updated dependencies [25f8bb0]
+- Updated dependencies [59a4723]
+  - @nextclaw/agent-chat-ui@0.6.6
+  - @nextclaw/client-sdk@0.5.6
+  - @nextclaw/shared@0.4.4
+  - @nextclaw/ncp@0.7.4
+  - @nextclaw/ncp-toolkit@0.6.5
+  - @nextclaw/ncp-react@0.5.5
+  - @nextclaw/ncp-http-agent-client@0.4.4
+
 ## 0.15.5
 
 ### Patch Changes

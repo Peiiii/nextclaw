@@ -1,5 +1,80 @@
 # @nextclaw/service
 
+## 0.3.8
+
+### Patch Changes
+
+- 8f7e915: 修复运行时更新应用后的后续检查可能把“新版本已运行但验证失败”笼统显示为更新失败的问题；页面会区分检查、下载和应用失败，展示完整错误原因，并给出查看完整日志的命令。
+- Updated dependencies [a9b125f]
+- Updated dependencies [8f7e915]
+  - @nextclaw/core@0.15.6
+  - @nextclaw/kernel@0.6.8
+  - @nextclaw/shared@0.4.5
+  - @nextclaw/channel-extension-dingtalk@0.2.6
+  - @nextclaw/channel-extension-discord@0.2.6
+  - @nextclaw/channel-extension-email@0.2.6
+  - @nextclaw/channel-extension-slack@0.2.6
+  - @nextclaw/channel-extension-telegram@0.2.6
+  - @nextclaw/channel-extension-wecom@0.2.6
+  - @nextclaw/channel-extension-whatsapp@0.2.6
+  - @nextclaw/mcp@0.3.6
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.7
+  - @nextclaw/remote@0.3.8
+  - @nextclaw/runtime@0.4.6
+  - @nextclaw/server@0.15.8
+  - @nextclaw/client-sdk@0.5.8
+  - @nextclaw/ncp-mcp@0.2.6
+  - @nextclaw/channel-extension-feishu@0.2.6
+  - @nextclaw/channel-extension-qq@0.2.5
+  - @nextclaw/channel-extension-weixin@0.2.6
+
+## 0.3.7
+
+### Patch Changes
+
+- Updated dependencies [00c0d23]
+- Updated dependencies [897211a]
+  - @nextclaw/kernel@0.6.7
+  - @nextclaw/server@0.15.7
+  - @nextclaw/remote@0.3.7
+  - @nextclaw/client-sdk@0.5.7
+
+## 0.3.6
+
+### Patch Changes
+
+- 59a4723: 新增独立项目注册表与项目模板：项目可以在没有会话时通过界面、CLI 或 AI 创建并展示；界面提供支持导航、搜索和新建文件夹的跨平台服务端目录选择器，并按 macOS、Windows 与 Linux 展示实际可用的常用位置；CLI 与 AI 还可列出项目、修改会话名称及项目目录。
+- 8f7e915: 修复运行时更新期间页面状态可能停滞，以及应用更新后仍继续启动旧版本的问题：检查和下载完成后页面会直接进入下一状态，更新完成后会自动切换到新运行包，无需刷新页面或手动执行 restart。
+- Updated dependencies [2eceb16]
+- Updated dependencies [25f8bb0]
+- Updated dependencies [59a4723]
+- Updated dependencies [8be3173]
+  - @nextclaw/client-sdk@0.5.6
+  - @nextclaw/kernel@0.6.6
+  - @nextclaw/server@0.15.6
+  - @nextclaw/shared@0.4.4
+  - @nextclaw/ncp@0.7.4
+  - @nextclaw/ncp-toolkit@0.6.5
+  - @nextclaw/core@0.15.5
+  - @nextclaw/remote@0.3.6
+  - @nextclaw/channel-extension-feishu@0.2.5
+  - @nextclaw/channel-extension-weixin@0.2.5
+  - @nextclaw/ncp-agent-runtime@0.4.4
+  - @nextclaw/ncp-mcp@0.2.5
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.4
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.4
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.6
+  - @nextclaw/channel-extension-dingtalk@0.2.5
+  - @nextclaw/channel-extension-discord@0.2.5
+  - @nextclaw/channel-extension-email@0.2.5
+  - @nextclaw/channel-extension-slack@0.2.5
+  - @nextclaw/channel-extension-telegram@0.2.5
+  - @nextclaw/channel-extension-wecom@0.2.5
+  - @nextclaw/channel-extension-whatsapp@0.2.5
+  - @nextclaw/mcp@0.3.5
+  - @nextclaw/runtime@0.4.5
+  - @nextclaw/channel-extension-qq@0.2.4
+
 ## 0.3.5
 
 ### Patch Changes
