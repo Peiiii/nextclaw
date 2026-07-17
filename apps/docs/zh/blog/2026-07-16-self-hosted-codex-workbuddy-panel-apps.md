@@ -29,9 +29,9 @@ Agent 会把它做成一个小应用，直接在聊天右侧打开。
 
 ![NextClaw 左侧继续与 Agent 修改唐诗卡片，右侧运行可随时使用的小应用](/product-screenshots/nextclaw-panel-app-running-cn.png)
 
-不一定每次都要做成长期使用的小程序。一次性的分析，也可以让 Agent 直接整理成一屏看完的可视化页面：
+不一定每次都要做成长期使用的小程序。比如把几个月的收入和渠道数据交给 Agent，它可以直接生成一张执行摘要，把趋势、构成和目标完成度放在当前回复里：
 
-![Agent 在 NextClaw 会话里生成的新能源汽车市场可视化分析](/product-screenshots/nextclaw-nev-analysis-cn.png)
+![Agent 在 NextClaw 当前回复里生成收入趋势、渠道分布和目标完成度执行摘要](/product-screenshots/nextclaw-executive-summary-cn.png)
 
 普通文档也是同一套工作方式：Agent 调用工具生成或修改 Markdown 后，可以直接在右侧查看方案、文章和清单。
 
