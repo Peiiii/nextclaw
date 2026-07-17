@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.25.3",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-07-17",
+  "title": {
+    "zh-CN": "NextClaw v0.25.3",
+    "en-US": "NextClaw v0.25.3"
+  },
+  "summary": {
+    "zh-CN": "本版本修复运行时更新后内置技能缺失的问题。",
+    "en-US": "This release keeps built-in skills available after runtime updates."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-17-nextclaw-v0-25-3",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-17-nextclaw-v0-25-3"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "运行时更新保留内置技能",
+            "en-US": "Runtime updates preserve built-in skills"
+          },
+          "body": {
+            "zh-CN": "更新包不再删除内置技能说明和引用资料，应用更新后仍可使用完整的内置技能。",
+            "en-US": "Update bundles no longer remove built-in skill instructions or referenced assets, so the complete skill set remains available after applying an update."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "构建阶段校验技能资产",
+            "en-US": "Skill assets are verified during builds"
+          },
+          "body": {
+            "zh-CN": "首次部署和缓存恢复都会核对内置技能文件，缺失或内容不一致会直接阻止不完整的更新包发布。",
+            "en-US": "Fresh deployments and restored caches verify built-in skill files and prevent incomplete runtime bundles from being published."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需迁移或重装技能",
+            "en-US": "No migration or skill reinstall required"
+          },
+          "body": {
+            "zh-CN": "现有 NPM 安装可以直接通过 stable 通道升级；用户自行安装的技能不受影响。",
+            "en-US": "Existing npm installations can update directly through the stable channel, and user-installed skills are unaffected."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "桌面安装包稍后发布",
+            "en-US": "Desktop installer follows later"
+          },
+          "body": {
+            "zh-CN": "本次 patch 面向 NPM stable 更新链路，不包含新的桌面安装包。",
+            "en-US": "This patch targets the npm stable update path and does not include a new desktop installer."
+          }
+        }
+      ]
+    }
+  ]
+}

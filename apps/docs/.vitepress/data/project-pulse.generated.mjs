@@ -1,10 +1,10 @@
 export default {
-  "generatedAt": "2026-07-17T13:59:47.365Z",
+  "generatedAt": "2026-07-17T15:44:53.263Z",
   "hero": {
     "currentLoc": 207583,
     "testLoc": 71943,
     "trackedFiles": 2230,
-    "recentCommitCount": 256,
+    "recentCommitCount": 263,
     "activeDays30": 30,
     "recentReleaseCount": 45,
     "latestReleaseDate": "2026-07-17",
@@ -1108,7 +1108,7 @@ export default {
       {
         "key": "2026-07-17",
         "label": "07-17",
-        "value": 30
+        "value": 37
       }
     ],
     "commitWeekly": [
@@ -1170,7 +1170,7 @@ export default {
       {
         "key": "2026-07-13",
         "label": "07-13",
-        "value": 117
+        "value": 124
       }
     ],
     "releaseMonthly": [
@@ -1304,7 +1304,7 @@ export default {
     "recentReleaseBatches": [
       {
         "date": "2026-07-17",
-        "tagCount": 38,
+        "tagCount": 87,
         "sampleTags": [
           "@nextclaw/agent-chat-ui@0.6.7",
           "@nextclaw/client-sdk@0.5.7",
@@ -1360,6 +1360,25 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-07-17-nextclaw-v0-25-3",
+        "date": "2026-07-17",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-07-17 · NextClaw v0.25.3",
+          "description": "NextClaw v0.25.3 keeps built-in skills available after runtime updates.",
+          "href": "/en/notes/2026-07-17-nextclaw-v0-25-3"
+        },
+        "zh": {
+          "title": "2026-07-17 · NextClaw v0.25.3",
+          "description": "NextClaw v0.25.3 修复运行时更新后内置技能缺失的问题。",
+          "href": "/zh/notes/2026-07-17-nextclaw-v0-25-3"
+        }
+      },
       {
         "slug": "2026-07-17-nextclaw-v0-25-2",
         "date": "2026-07-17",
@@ -1731,7 +1750,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-07-17T11:38:15.318Z",
     "sourceCount": {
-      "notes": 15,
+      "notes": 16,
       "scopes": 8
     }
   }

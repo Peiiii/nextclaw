@@ -1,5 +1,26 @@
 # nextclaw
 
+## 0.25.3
+
+### Patch Changes
+
+- 6795aad: 修复 NPM 运行时更新后内置 skill 消失的问题；运行时包会保留 `@nextclaw/core` 的内置 skill 资产，包括 `visualize-output`。
+- Updated dependencies
+  - @nextclaw/core@0.15.8
+  - @nextclaw/kernel@0.6.10
+  - @nextclaw/mcp@0.3.8
+  - @nextclaw/ncp@0.7.6
+  - @nextclaw/ncp-agent-runtime@0.4.6
+  - @nextclaw/ncp-mcp@0.2.8
+  - @nextclaw/ncp-toolkit@0.6.7
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.6
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.6
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.9
+  - @nextclaw/remote@0.3.10
+  - @nextclaw/runtime@0.4.8
+  - @nextclaw/server@0.15.10
+  - @nextclaw/service@0.3.10
+
 ## 0.25.2
 
 ### Patch Changes
