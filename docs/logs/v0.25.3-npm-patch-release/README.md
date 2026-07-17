@@ -21,13 +21,23 @@
 - `pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet`、`git diff --check`：全部通过。
 - `pnpm -C packages/nextclaw pack --pack-destination /private/tmp/nextclaw-pack-0.25.2`：`prepack` 合同通过；tarball 包含 `dist/cli/launcher/index.js`、`dist/cli/app/index.js` 与 `resources/update-bundle-public.pem`，依赖均已替换为本批精确版本，没有 `workspace:*`。
 
-产品行为的真实 Desktop 与 NPM runtime smoke 已在 [v0.25.2 固定周期自动检查更新](../v0.25.2-fixed-automatic-update-check/README.md) 记录；registry 安装烟测、stable runtime channel workflow 与公开 manifest 验收将在发布闭环后补写实际结果。
+产品行为的真实 Desktop 与 NPM runtime smoke 已在 [v0.25.2 固定周期自动检查更新](../v0.25.2-fixed-automatic-update-check/README.md) 记录。本次发布闭环又从公开 registry 安装 `nextclaw@0.25.1`，在不注入自定义 manifest URL 或公钥的情况下完成 stable `--check`、`--download-only`、`--apply`：检查阶段只发现 `0.25.2`，下载阶段才写入 `downloadedVersion: 0.25.2`，应用后新进程、`current.json` 与更新状态均确认当前版本为 `0.25.2`。
+
+发布后验收结果：
+
+- `pnpm release:publish` 与 `release:verify:published`：49/49 个公开包全部发布并可从 registry 读取。
+- `npm view nextclaw version dist-tags dependencies --json`：`version` 与 `latest` 均为 `0.25.2`，内部依赖全部指向本批精确版本。
+- 从 registry 全新安装 `nextclaw@latest`：`nextclaw --version` 返回 `0.25.2`，launcher、app runtime 与 `update-bundle-public.pem` 均存在。
+- [npm-runtime-update-release #29586610777](https://github.com/Peiiii/nextclaw/actions/runs/29586610777)：darwin arm64/x64、linux x64、win32 x64 与发布 job 全部成功。
+- [nextclaw@0.25.2 runtime release](https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.25.2)：四个平台 bundle assets 均已上传；该 GitHub prerelease 继续只作为 NPM runtime 资产载体，用户稳定通道由公开 manifest 决定。
+- 四个平台公开 stable manifest 均返回 `latestVersion: 0.25.2`、`hostKind: npm-runtime-bundle`，并指向本次英文发布说明。
+- Cloudflare Pages 正式部署成功；中英文页面与结构化 JSON 均通过 `docs.nextclaw.io` 返回 HTTP 200，结构化内容确认 `version: 0.25.2`、`channel: stable`、`releaseType: patch`。
 
 ## 发布/部署方式
 
-- NPM：使用仓库标准命令 `pnpm release:publish` 全量发布，不从单包目录执行 raw `npm publish`。
-- Runtime update：NPM stable 发布成功后执行 `pnpm release:stable:runtime -- --version 0.25.2 --release-tag nextclaw@0.25.2 --branch codex/release-npm-patch-0.25.2`，并等待 GitHub Actions 成功与公共 manifest 生效。
-- Docs：构建并部署 `@nextclaw/docs`，确认中英文页面与 `/release-notes/nextclaw-v0.25.2.json` 对外返回成功。
+- NPM：已使用仓库标准命令 `pnpm release:publish` 全量发布，没有从单包目录执行 raw `npm publish`；49 个当前批次 tag 已逐一推送，避免历史本地冲突 tag 污染发布范围。
+- Runtime update：已执行 `pnpm release:stable:runtime -- --version 0.25.2 --release-tag nextclaw@0.25.2 --branch codex/release-npm-patch-0.25.2`，GitHub Actions、runtime release assets、`gh-pages` 与公共 stable manifest 全部生效。
+- Docs：已使用已登录的本地 Wrangler 部署 `@nextclaw/docs` 构建产物，正式部署预览为 `https://a8d2089c.nextclaw-docs.pages.dev`；中英文页面与 `/release-notes/nextclaw-v0.25.2.json` 已在自定义域名验收。
 - Desktop installer / manifest：不适用，本次没有新的桌面安装包。
 - 数据库 migration / 独立后端部署：不适用，本批没有数据库或独立服务端变更。
 - X 帖与配图：不适用；这是稳定性与默认行为 patch，没有能直接证明主结论的必要视觉素材，也不属于默认宣发范围。
@@ -48,7 +58,7 @@
 
 ## NPM 包发布记录
 
-计划通过 full public workspace batch 发布 49 个公开包；当前状态均为 `已版本化，待发布并验证 registry`：
+已通过 full public workspace batch 发布以下 49 个公开包；`release:verify:published` 结果为 49/49，当前状态均为 `已发布并验证 registry`：
 
 - `@nextclaw/companion@0.2.9`
 - `@nextclaw/aigen@0.2.3`
@@ -101,3 +111,10 @@
 - `nextclaw@0.25.2`
 
 `@nextclaw/desktop@0.0.225` 是 private workspace package，不会发布到 NPM；其版本变化只用于内部依赖一致性。
+
+## 发布复盘
+
+- registry 个别包短暂传播延迟由标准 `release:verify:published` 有限重试机制自动吸收，最终在同一次发布流程中达到 49/49，没有重复 publish；现有机制已经覆盖该类反复出现的外部一致性窗口，无需再增加平行验证脚本。
+- 本地存在两个历史 tag 与远程同名但指向不同对象；本次只推送当前 49 个精确 release tag，没有使用 `git push --tags`，因此没有把历史 tag 冲突扩散到发布闭环。
+- GitHub Actions 仅报告 Actions Node 20 被平台强制迁移到 Node 24 的弃用告警，所有 job 实际成功；这是上游 action 版本维护提示，不影响本次 runtime 产物或更新合同。
+- 发布提交为 `660ad828d release: publish nextclaw 0.25.2`。发布元数据提交包含大批 package 版本、changelog、生成 UI payload 与文档索引变化；本次发布操作本身没有新增产品语义源码，可维护性仍以 v0.25.2 实现批次的源码净减 264 行、非测试代码净减 237 行为准。
