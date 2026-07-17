@@ -1,4 +1,4 @@
-import { Menu, app, dialog, ipcMain, powerMonitor, type MessageBoxOptions, type MenuItemConstructorOptions } from "electron";
+import { Menu, app, dialog, ipcMain, type MessageBoxOptions, type MenuItemConstructorOptions } from "electron";
 import { AUTOMATIC_UPDATE_CHECK_INTERVAL_MS } from "@nextclaw/kernel/automatic-update-check";
 import type { DesktopBundleManager } from "./desktop-bundle.manager";
 import type { DesktopWindowManager } from "./desktop-window.manager";
@@ -102,26 +102,20 @@ export class DesktopUpdateManager {
   };
 
   startAutomaticChecks = async (): Promise<void> => {
-    if (!this.automaticCheckSchedulerStarted) {
-      if (this.ensureCoordinator().getSnapshot().blockReason) {
-        return;
-      }
-      this.automaticCheckSchedulerStarted = true;
-      app.on("browser-window-focus", this.runAutomaticCheck);
-      powerMonitor.on("resume", this.runAutomaticCheck);
-      this.cleanups.push(() => {
-        this.clearAutomaticCheckTimer();
-        app.off("browser-window-focus", this.runAutomaticCheck);
-        powerMonitor.off("resume", this.runAutomaticCheck);
-        this.automaticCheckSchedulerStarted = false;
-      });
+    if (this.automaticCheckSchedulerStarted || this.ensureCoordinator().getSnapshot().blockReason) {
+      return;
     }
+    this.automaticCheckSchedulerStarted = true;
+    this.cleanups.push(() => {
+      this.clearAutomaticCheckTimer();
+      this.automaticCheckSchedulerStarted = false;
+    });
     await this.runAutomaticCheck();
   };
 
   private runAutomaticCheck = async (): Promise<void> => {
     try {
-      await this.ensureCoordinator().runAutomaticCheck(this.automaticCheckIntervalMs);
+      await this.ensureCoordinator().runAutomaticCheck();
     } catch (error) {
       this.options.logger.warn(
         `Desktop automatic update check failed: ${error instanceof Error ? error.message : String(error)}`
@@ -140,9 +134,7 @@ export class DesktopUpdateManager {
       return;
     }
     this.clearAutomaticCheckTimer();
-    const remainingDelayMs = this.ensureCoordinator().getAutomaticCheckDelay(this.automaticCheckIntervalMs);
-    const delayMs = remainingDelayMs > 0 ? remainingDelayMs : this.automaticCheckIntervalMs;
-    this.automaticCheckTimer = setTimeout(this.runAutomaticCheck, delayMs);
+    this.automaticCheckTimer = setTimeout(this.runAutomaticCheck, this.automaticCheckIntervalMs);
   };
 
   private clearAutomaticCheckTimer = (): void => {

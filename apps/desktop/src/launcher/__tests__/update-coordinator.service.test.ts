@@ -194,11 +194,11 @@ test("coordinator blocks updates for unsupported installation kinds", async () =
     assert.equal(checkInvocations, 0);
   }));
 
-test("coordinator runs fixed automatic checks when the two-hour interval is due", async () =>
+test("coordinator runs automatic checks regardless of the persisted check time", async () =>
   await withTempDir("nextclaw-update-coordinator-automatic-check-", async (rootDir) => {
     const layout = new DesktopBundleLayoutStore(rootDir);
     const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
-    let now = Date.parse("2026-07-16T12:00:00.000Z");
+    const now = Date.parse("2026-07-16T12:00:00.000Z");
     await stateStore.write(
       createLauncherState({
         currentVersion: "0.18.0",
@@ -218,13 +218,9 @@ test("coordinator runs fixed automatic checks when the two-hour interval is due"
       now: () => now
     });
 
-    assert.equal((await coordinator.runAutomaticCheck()).status, "idle");
-    assert.equal(checkInvocations, 0);
-
-    now += 60 * 60 * 1000;
     assert.equal((await coordinator.runAutomaticCheck()).status, "up-to-date");
     assert.equal(checkInvocations, 1);
-    assert.equal(stateStore.read().lastUpdateCheckAt, "2026-07-16T13:00:00.000Z");
+    assert.equal(stateStore.read().lastUpdateCheckAt, "2026-07-16T12:00:00.000Z");
   }));
 
 test("launcher state ignores and removes retired update preferences", async () =>

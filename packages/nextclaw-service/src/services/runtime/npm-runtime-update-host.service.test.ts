@@ -194,6 +194,7 @@ describe("NpmRuntimeUpdateHost", () => {
       await host.getState();
       expect(mocks.manager.checkForUpdate).not.toHaveBeenCalled();
 
+      mocks.state.lastUpdateCheckAt = new Date().toISOString();
       host.start();
       await vi.advanceTimersByTimeAsync(0);
       expect(mocks.manager.checkForUpdate).toHaveBeenCalledTimes(1);

@@ -11,10 +11,6 @@ import type {
   UpdateSnapshot,
   UpdateStatus
 } from "@nextclaw/kernel";
-import {
-  AUTOMATIC_UPDATE_CHECK_INTERVAL_MS,
-  getAutomaticUpdateCheckDelay
-} from "@nextclaw/kernel/automatic-update-check";
 
 export type DesktopUpdateStatus = Extract<
   UpdateStatus,
@@ -98,25 +94,7 @@ export class DesktopUpdateCoordinatorService {
     return { ...this.snapshot };
   };
 
-  getAutomaticCheckDelay = (
-    intervalMs = AUTOMATIC_UPDATE_CHECK_INTERVAL_MS
-  ): number => {
-    return getAutomaticUpdateCheckDelay(
-      this.snapshot.lastCheckedAt,
-      this.options.now?.() ?? Date.now(),
-      intervalMs
-    );
-  };
-
-  runAutomaticCheck = async (
-    intervalMs = AUTOMATIC_UPDATE_CHECK_INTERVAL_MS
-  ): Promise<DesktopUpdateSnapshot> => {
-    if (this.isUpdateUnsupported()) {
-      return this.getSnapshot();
-    }
-    if (this.getAutomaticCheckDelay(intervalMs) > 0) {
-      return this.getSnapshot();
-    }
+  runAutomaticCheck = async (): Promise<DesktopUpdateSnapshot> => {
     return await this.checkForUpdates();
   };
 

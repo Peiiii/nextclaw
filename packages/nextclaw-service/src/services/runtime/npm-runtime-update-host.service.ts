@@ -1,9 +1,6 @@
 import type { Config } from "@nextclaw/core";
 import { getAppLogger, type AppLogger } from "@nextclaw/core";
-import {
-  AUTOMATIC_UPDATE_CHECK_INTERVAL_MS,
-  getAutomaticUpdateCheckDelay
-} from "@nextclaw/kernel";
+import { AUTOMATIC_UPDATE_CHECK_INTERVAL_MS } from "@nextclaw/kernel";
 import {
   eventKeys,
   type EventBus,
@@ -156,14 +153,7 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
 
   private runAutomaticCheck = async (): Promise<void> => {
     try {
-      const state = this.stateStore.read();
-      if (getAutomaticUpdateCheckDelay(
-        state.lastUpdateCheckAt,
-        Date.now(),
-        this.automaticCheckIntervalMs
-      ) === 0) {
-        await this.startCheck();
-      }
+      await this.startCheck();
     } catch (error) {
       this.logger.error("automatic runtime update check failed", {}, error);
     } finally {
@@ -180,13 +170,7 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
       return;
     }
     this.clearAutomaticCheckTimer();
-    const remainingDelayMs = getAutomaticUpdateCheckDelay(
-      this.stateStore.read().lastUpdateCheckAt,
-      Date.now(),
-      this.automaticCheckIntervalMs
-    );
-    const delayMs = remainingDelayMs > 0 ? remainingDelayMs : this.automaticCheckIntervalMs;
-    this.automaticCheckTimer = setTimeout(this.runAutomaticCheck, delayMs);
+    this.automaticCheckTimer = setTimeout(this.runAutomaticCheck, this.automaticCheckIntervalMs);
   };
 
   private clearAutomaticCheckTimer = (): void => {
