@@ -162,6 +162,7 @@ For release or deployment:
 - online smoke is required for affected critical APIs or UI paths,
 - NPM release must list exact packages and dependent packages,
 - docs review is part of release closure,
+- 发布 Cloudflare Pages 前先发现并使用本机已安装的 `wrangler`：运行 `command -v wrangler` 与 `wrangler whoami`，凭据失效时用同一 CLI 执行 `wrangler login`。不要先用 `pnpm dlx wrangler` 临时下载另一份 CLI，也不要因为临时 CLI 读不到登录态就误判只能配置 API Token。
 - skipped steps must be marked `不适用` with reason.
 
 ## Retrospective Closure

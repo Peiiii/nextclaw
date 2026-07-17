@@ -24,15 +24,19 @@
 - `pnpm --filter @nextclaw/landing build` 通过；只提示本地 Browserslist 数据需要更新，不影响构建结果。
 - `pnpm lint:new-code:governance` 与 `pnpm check:governance-backlog-ratchet` 通过。
 - 定向 maintainability guard：3 个脚本，0 error、2 个既有文件预算 warning；触达脚本合计净减 8 行。
+- Cloudflare Pages 本次部署地址 `https://b78f99e3.nextclaw-docs.pages.dev` 与正式域名 `https://docs.nextclaw.io` 均完成线上冒烟：文章、Panel App 图、执行摘要图和 Markdown 预览图均返回 HTTP 200。
+- 正式站文章 HTML 已包含 `nextclaw-executive-summary-cn.png` 和“把几个月的收入和渠道数据交给 Agent”的新版说明；线上执行摘要图片 SHA-256 为 `48b6d31500473153221caf9843b5e929eaa82d03e2faddab054c436efaea2a36`，与仓库源资产完全一致。
 
 ## 发布/部署方式
 
-- 本次只更新本地宣传稿、官网博客内容、截图资产与截图脚本；未执行提交、推送、部署、服务重启或远程发布。
-- 不涉及数据库 migration、后端发布或 runtime update channel。
+- 内容与素材先后提交为 `8e64ba89f`、`fa67bd00f`、`e095722ed`；文档站从隔离 worktree 中的 `e095722ed` 构建，避免把主工作区的无关未提交改动带入发布产物。
+- 使用本机已安装且完成登录的 Cloudflare CLI 执行 `/opt/homebrew/bin/wrangler pages deploy apps/docs/.vitepress/dist --project-name nextclaw-docs --branch master`，发布成功，部署地址为 `https://b78f99e3.nextclaw-docs.pages.dev`，正式域名 `https://docs.nextclaw.io` 已同步生效。
+- 本次没有推送 Git 远端，也没有重启 NextClaw 服务；不涉及数据库 migration、后端发布、NPM 包发布或 runtime update channel。
+- 发布阻力的直接原因是先使用了 `pnpm dlx wrangler`，临时 CLI 没有正确复用本机登录态，进而误判为缺少 Cloudflare 凭据。现已把“先发现本机 `wrangler`、先运行 `wrangler whoami`、凭据失效时用同一 CLI 登录”的规则写入 `nextclaw-validation-workflow`，让后续 Cloudflare Pages 发布自动走正确入口。
 
 ## 用户/产品视角的验收步骤
 
-1. 打开本地文章 `/zh/blog/2026-07-16-self-hosted-codex-workbuddy-panel-apps`。
+1. 打开正式文章 `https://docs.nextclaw.io/zh/blog/2026-07-16-self-hosted-codex-workbuddy-panel-apps`。
 2. 确认 Panel App 章节展示的是右侧边栏中的唐诗卡片，而不是正文里的电子钢琴或旧数据仪表盘。
 3. 确认截图中左侧是 Agent 修改过程，右侧能直接看到翻页、随机和复制操作，并且没有无关会话历史或失败记录。
 4. 确认执行摘要图完整展示月度收入、渠道分布和目标完成度，没有无关会话、失败提示或本机路径。
