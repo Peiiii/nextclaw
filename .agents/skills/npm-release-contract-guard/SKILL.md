@@ -41,7 +41,7 @@ Before deciding the package range, write down the release range and the reason. 
 
 1. Identify whether users install through `nextclaw`, a runtime update channel, or a lower-level `@nextclaw/*` package.
 2. If the release includes `nextclaw`, inspect `packages/nextclaw/package.json` runtime dependencies. Treat all `workspace:*` `@nextclaw/*` dependencies, plus any changed transitive runtime package they depend on, as the candidate release closure.
-3. Run `pnpm release:report:health` and compare the output with the closure. Any dependency with meaningful unpublished drift must either be included in the release batch or explicitly proven irrelevant to the installed user path.
+3. Run the blocking health gate through the repo release flow. `pnpm release:check:health` must pass before versioning or publishing; any dependency with meaningful unpublished drift, or any local public package version behind the latest stable git tag, must either be included in the release batch or resolved before publish.
 4. If the user says "全部发布", "直接发布", "完成全部", or reports a hard-to-debug installed-version mismatch, prefer the full public workspace batch through the repo release flow. Do not hand-pick only `nextclaw`.
 5. A narrower-than-closure release is allowed only when all of these are true:
    - the user explicitly wants a narrow release,
@@ -61,6 +61,7 @@ Never justify a single-package `nextclaw` release only because `packages/nextcla
    - `pnpm release:sync-readmes`
    - `pnpm release:check-readmes`
 2. Decide and prepare the release range:
+   - first run or rely on `pnpm release:check:health`; it is a blocking gate, not only an informational report
    - for full public workspace release: `pnpm release:auto:changeset`
    - for a narrow release: create or inspect the changeset and document why the excluded dependency closure is safe
 3. Prepare versions with the repo release flow:
@@ -87,6 +88,7 @@ Never justify a single-package `nextclaw` release only because `packages/nextcla
 
 ## Branch And Source Closure
 - If publishing from a temporary worktree, release branch, detached HEAD, or any branch other than the user's current target branch, do not close after registry verification alone.
+- Run `pnpm release:check:branch-closure -- --target <target-branch> --release <release-ref>` before final closeout. It must pass, unless the final report explicitly says the release is published but target-branch closure is blocked and names the exact target-only / release-only delta.
 - Before the final answer, explicitly compare the target branch with the release branch and classify the remaining delta:
   - source code needed for the user-visible fix,
   - version / changelog / generated package artifacts,
