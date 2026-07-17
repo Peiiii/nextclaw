@@ -81,6 +81,7 @@ export function createDesktopRuntimeEnv(
   delete runtimeEnv[LEGACY_DESKTOP_DATA_ENV];
   runtimeEnv.ELECTRON_RUN_AS_NODE = "1";
   runtimeEnv.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS = "1";
+  runtimeEnv.NEXTCLAW_DISABLE_RUNTIME_UPDATE_HOST = "1";
   const packagedExtensionDir = normalizeOptionalPath(
     options.packagedExtensionDir !== undefined
       ? options.packagedExtensionDir

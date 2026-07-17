@@ -1,4 +1,5 @@
 import { Menu, app, dialog, ipcMain, powerMonitor, type MessageBoxOptions, type MenuItemConstructorOptions } from "electron";
+import { AUTOMATIC_UPDATE_CHECK_INTERVAL_MS } from "@nextclaw/kernel/automatic-update-check";
 import type { DesktopBundleManager } from "./desktop-bundle.manager";
 import type { DesktopWindowManager } from "./desktop-window.manager";
 import {
@@ -37,14 +38,14 @@ type DesktopUpdateManagerOptions = {
   bundleManager: DesktopBundleManager;
   presenceService: DesktopPresenceService;
   windowManager: DesktopWindowManager;
+  automaticCheckIntervalMs?: number;
 };
-
-const AUTOMATIC_UPDATE_POLL_INTERVAL_MS = 60 * 60 * 1000;
 
 export class DesktopUpdateManager {
   private readonly cleanups: DesktopCleanup[] = [];
   private coordinator: DesktopUpdateCoordinatorService | null = null;
-  private automaticChecksStarted = false;
+  private automaticCheckSchedulerStarted = false;
+  private automaticCheckTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private readonly options: DesktopUpdateManagerOptions) {}
 
@@ -73,7 +74,7 @@ export class DesktopUpdateManager {
     cleanupIpcHandlers();
 
     ipcMain.handle(DESKTOP_UPDATES_GET_STATE_CHANNEL, async () => this.ensureCoordinator().getSnapshot());
-    ipcMain.handle(DESKTOP_UPDATES_CHECK_CHANNEL, async () => await this.ensureCoordinator().checkForUpdates({ manual: true }));
+    ipcMain.handle(DESKTOP_UPDATES_CHECK_CHANNEL, async () => await this.checkForUpdates());
     ipcMain.handle(DESKTOP_UPDATES_DOWNLOAD_CHANNEL, async () => await this.ensureCoordinator().downloadUpdate());
     ipcMain.handle(DESKTOP_UPDATES_APPLY_CHANNEL, async () => {
       const snapshot = await this.ensureCoordinator().applyDownloadedUpdate();
@@ -86,7 +87,7 @@ export class DesktopUpdateManager {
         await this.ensureCoordinator().updatePreferences(preferences ?? {})
     );
     ipcMain.handle(DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL, async (_event, channel: DesktopReleaseChannel | undefined) => {
-      return await this.ensureCoordinator().updateChannel(channel === "beta" ? "beta" : "stable");
+      return await this.updateChannel(channel === "beta" ? "beta" : "stable");
     });
     this.cleanups.push(cleanupIpcHandlers);
   };
@@ -109,16 +110,18 @@ export class DesktopUpdateManager {
   };
 
   startAutomaticChecks = async (): Promise<void> => {
-    if (!this.automaticChecksStarted) {
-      this.automaticChecksStarted = true;
-      const interval = setInterval(this.runAutomaticCheck, AUTOMATIC_UPDATE_POLL_INTERVAL_MS);
+    if (!this.automaticCheckSchedulerStarted) {
+      if (this.ensureCoordinator().getSnapshot().blockReason) {
+        return;
+      }
+      this.automaticCheckSchedulerStarted = true;
       app.on("browser-window-focus", this.runAutomaticCheck);
       powerMonitor.on("resume", this.runAutomaticCheck);
       this.cleanups.push(() => {
-        clearInterval(interval);
+        this.clearAutomaticCheckTimer();
         app.off("browser-window-focus", this.runAutomaticCheck);
         powerMonitor.off("resume", this.runAutomaticCheck);
-        this.automaticChecksStarted = false;
+        this.automaticCheckSchedulerStarted = false;
       });
     }
     await this.runAutomaticCheck();
@@ -126,11 +129,50 @@ export class DesktopUpdateManager {
 
   private runAutomaticCheck = async (): Promise<void> => {
     try {
-      await this.ensureCoordinator().runAutomaticCheck();
+      await this.ensureCoordinator().runAutomaticCheck(this.automaticCheckIntervalMs);
     } catch (error) {
       this.options.logger.warn(
         `Desktop automatic update check failed: ${error instanceof Error ? error.message : String(error)}`
       );
+    } finally {
+      this.scheduleNextAutomaticCheck();
+    }
+  };
+
+  private get automaticCheckIntervalMs(): number {
+    return this.options.automaticCheckIntervalMs ?? AUTOMATIC_UPDATE_CHECK_INTERVAL_MS;
+  }
+
+  private scheduleNextAutomaticCheck = (): void => {
+    if (!this.automaticCheckSchedulerStarted) {
+      return;
+    }
+    this.clearAutomaticCheckTimer();
+    const remainingDelayMs = this.ensureCoordinator().getAutomaticCheckDelay(this.automaticCheckIntervalMs);
+    const delayMs = remainingDelayMs > 0 ? remainingDelayMs : this.automaticCheckIntervalMs;
+    this.automaticCheckTimer = setTimeout(this.runAutomaticCheck, delayMs);
+  };
+
+  private clearAutomaticCheckTimer = (): void => {
+    if (this.automaticCheckTimer) {
+      clearTimeout(this.automaticCheckTimer);
+      this.automaticCheckTimer = null;
+    }
+  };
+
+  private checkForUpdates = async (): Promise<DesktopUpdateSnapshot> => {
+    try {
+      return await this.ensureCoordinator().checkForUpdates({ manual: true });
+    } finally {
+      this.scheduleNextAutomaticCheck();
+    }
+  };
+
+  private updateChannel = async (channel: DesktopReleaseChannel): Promise<DesktopUpdateSnapshot> => {
+    try {
+      return await this.ensureCoordinator().updateChannel(channel);
+    } finally {
+      this.scheduleNextAutomaticCheck();
     }
   };
 
@@ -207,7 +249,7 @@ export class DesktopUpdateManager {
 
   private handleManualUpdateCheck = async (): Promise<void> => {
     try {
-      const snapshot = await this.ensureCoordinator().checkForUpdates({ manual: true });
+      const snapshot = await this.checkForUpdates();
       if (snapshot.status === "up-to-date") {
         await this.showMessage("info", "NextClaw is up to date", "You already have the latest desktop bundle.");
         return;
@@ -306,7 +348,6 @@ export class DesktopUpdateManager {
         `current=${snapshot.currentVersion ?? ""}`,
         `available=${snapshot.availableVersion ?? ""}`,
         `downloaded=${snapshot.downloadedVersion ?? ""}`,
-        `autoChecks=${String(snapshot.preferences.automaticChecks)}`,
         `autoDownload=${String(snapshot.preferences.autoDownload)}`
       ].join(" ")
     );

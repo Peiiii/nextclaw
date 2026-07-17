@@ -82,7 +82,6 @@ function createTestGateway(params: {
     recoveryCommand: null,
     errorMessage: null,
     preferences: {
-      automaticChecks: false,
       autoDownload: false,
     },
   } as const;

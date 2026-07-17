@@ -14,13 +14,19 @@
       "development": "./src/types/update-contract.types.ts",
       "types": "./dist/types/update-contract.types.d.ts",
       "default": "./dist/types/update-contract.types.js"
+    },
+    "./automatic-update-check": {
+      "development": "./src/utils/automatic-update-check.utils.ts",
+      "types": "./dist/utils/automatic-update-check.utils.d.ts",
+      "require": "./dist/cjs/automatic-update-check.utils.cjs",
+      "default": "./dist/utils/automatic-update-check.utils.js"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsdown src/index.ts src/types/update-contract.types.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension",
+    "build": "tsdown src/index.ts src/types/update-contract.types.ts src/utils/automatic-update-check.utils.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension && tsdown src/utils/automatic-update-check.utils.ts --format cjs --out-dir dist/cjs --no-clean --target es2022 --no-fixedExtension",
     "prepack": "pnpm run build",
     "lint": "eslint .",
     "test": "vitest run",

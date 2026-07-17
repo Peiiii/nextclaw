@@ -53,7 +53,6 @@ export function createLauncherState(overrides: Partial<DesktopLauncherState> = {
     downloadedVersion: null,
     downloadedReleaseNotesUrl: null,
     updatePreferences: {
-      automaticChecks: true,
       autoDownload: false
     },
     presencePreferences: {

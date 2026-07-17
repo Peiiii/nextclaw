@@ -1,4 +1,5 @@
 import { app, dialog, ipcMain, shell, type Event as ElectronEvent } from "electron";
+import { resolveAutomaticUpdateCheckIntervalMs } from "@nextclaw/kernel/automatic-update-check";
 import { join } from "node:path";
 import desktopPackageJson from "../package.json";
 import type { RuntimeCommand } from "./runtime-config";
@@ -79,7 +80,11 @@ class DesktopApplication {
       updateCapability: installationProfile.updateCapability,
       bundleManager: this.bundleManager,
       presenceService: this.desktopPresenceService,
-      windowManager: this.windowManager
+      windowManager: this.windowManager,
+      automaticCheckIntervalMs: resolveAutomaticUpdateCheckIntervalMs({
+        verificationMode: process.env.NEXTCLAW_UPDATE_VERIFICATION_MODE === "1",
+        verificationIntervalMs: process.env.NEXTCLAW_UPDATE_VERIFICATION_INTERVAL_MS
+      })
     });
     this.commandSurfaceManager = new DesktopCommandSurfaceManager({
       profile: installationProfile,

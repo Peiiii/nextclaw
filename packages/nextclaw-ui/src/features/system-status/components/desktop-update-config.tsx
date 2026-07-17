@@ -310,13 +310,6 @@ export function DesktopUpdateConfig() {
             </div>
           </div>
           <PreferenceToggle
-            label={t('desktopUpdatesAutomaticChecks')}
-            help={t('desktopUpdatesAutomaticChecksHelp')}
-            checked={snapshot.preferences.automaticChecks}
-            disabled={isSavingPreferences || isSwitchingChannel}
-            onCheckedChange={(checked) => void runtimeUpdateManager.updatePreferences({ automaticChecks: checked })}
-          />
-          <PreferenceToggle
             label={t('desktopUpdatesAutoDownload')}
             help={t('desktopUpdatesAutoDownloadHelp')}
             checked={snapshot.preferences.autoDownload}

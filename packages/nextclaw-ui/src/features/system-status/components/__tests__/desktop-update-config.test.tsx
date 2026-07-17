@@ -87,7 +87,6 @@ describe('DesktopUpdateConfig', () => {
         recoveryCommand: null,
         errorMessage: null,
         preferences: {
-          automaticChecks: true,
           autoDownload: false
         }
       }
@@ -108,6 +107,9 @@ describe('DesktopUpdateConfig', () => {
     expect(screen.getByText('当前更新通道')).toBeTruthy();
     expect(screen.getAllByText('Beta').length).toBeGreaterThan(0);
     expect(screen.getByText('当前正在跟随 Beta 通道')).toBeTruthy();
+    expect(screen.getByText('系统每两小时自动检查更新；是否后台下载由你决定。')).toBeTruthy();
+    expect(screen.queryByText('自动检查更新')).toBeNull();
+    expect(screen.getByText('发现更新后自动后台下载')).toBeTruthy();
     expect(screen.getByText('切回 Stable 后不会立刻强制降级；只有当 Stable 追平或超过当前版本时，才会继续提供 Stable 更新。')).toBeTruthy();
   });
 

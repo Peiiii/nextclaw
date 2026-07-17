@@ -5,19 +5,23 @@ import { createServer as createHttpServer } from "node:http";
 import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
 import { createServer as createNetServer, Socket } from "node:net";
-import { basename, dirname, join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { prepareLocalUpdateChannelArtifacts } from "./update/services/local-update-channel-artifacts.service.mjs";
+import {
+  incrementPatchVersion,
+  prepareLocalUpdateChannelArtifacts,
+  readBundleVersion
+} from "./update/services/local-update-channel-artifacts.service.mjs";
 
 const desktopDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const workspaceRoot = resolve(desktopDir, "..", "..");
 const pnpmBin = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 const installedDesktopSeedBundlePath = "/Applications/NextClaw Desktop.app/Contents/Resources/update/seed-product-bundle.zip";
 const desktopSeedBundlePath = resolve(desktopDir, "build", "update", "seed-product-bundle.zip");
-const stableVersion = "0.17.7";
-const betaVersion = "0.17.11";
+const desktopReleaseMetadataPath = resolve(desktopDir, "build", "update-release-metadata.json");
+const verificationIntervalMs = 3_000;
 
 function sleep(ms) {
   return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
@@ -168,7 +172,9 @@ async function waitForSnapshot(page, predicate, timeoutMs, label) {
       if (predicate(lastSnapshot)) {
         return lastSnapshot;
       }
-    } catch {}
+    } catch {
+      // The renderer can reload while the desktop runtime is switching bundles.
+    }
     await sleep(500);
   }
   throw new Error(`${label}. Last snapshot: ${JSON.stringify(lastSnapshot)}`);
@@ -177,10 +183,14 @@ async function waitForSnapshot(page, predicate, timeoutMs, label) {
 async function closeDesktopWindow(page) {
   try {
     await page.evaluate(() => window.close());
-  } catch {}
+  } catch {
+    // The page may already be closing after the window request.
+  }
   try {
     await page.waitForEvent("close", { timeout: 15_000 });
-  } catch {}
+  } catch {
+    // A closed page is the expected end state.
+  }
 }
 
 const tempRoot = mkdtempSync(join(tmpdir(), "nextclaw-desktop-update-smoke-"));
@@ -195,6 +205,8 @@ let page = null;
 let electronProcess = null;
 let httpServer = null;
 let seededDesktopBundle = false;
+let betaManifestPublished = false;
+let releaseMetadataBackup = null;
 
 try {
   await mkdir(serverRoot, { recursive: true });
@@ -207,10 +219,16 @@ try {
   if (!existsSync(installedDesktopSeedBundlePath)) {
     throw new Error(`Installed desktop seed bundle not found: ${installedDesktopSeedBundlePath}`);
   }
+  releaseMetadataBackup = existsSync(desktopReleaseMetadataPath)
+    ? readFileSync(desktopReleaseMetadataPath)
+    : null;
+  rmSync(desktopReleaseMetadataPath, { force: true });
   await mkdir(dirname(desktopSeedBundlePath), { recursive: true });
   copyFileSync(installedDesktopSeedBundlePath, desktopSeedBundlePath);
   seededDesktopBundle = true;
 
+  const stableVersion = await readBundleVersion(installedDesktopSeedBundlePath);
+  const betaVersion = incrementPatchVersion(stableVersion);
   console.log(`[desktop-update-smoke] preparing stable seed bundle ${stableVersion}`);
   const keyPair = generateKeyPairSync("ed25519");
   const publicKeyPem = keyPair.publicKey.export({ type: "spki", format: "pem" }).toString();
@@ -223,7 +241,7 @@ try {
   await mkdir(stableDir, { recursive: true });
   await mkdir(betaDir, { recursive: true });
   console.log(`[desktop-update-smoke] deriving beta bundle ${betaVersion} from ${stableVersion}`);
-  const { stableBundlePath, betaBundlePath } = await prepareLocalUpdateChannelArtifacts({
+  await prepareLocalUpdateChannelArtifacts({
     stableSeedBundlePath: installedDesktopSeedBundlePath,
     stableVersion,
     betaVersion,
@@ -232,11 +250,41 @@ try {
     manifestBaseUrl,
     privateKey: keyPair.privateKey
   });
-  const stableBundleFileName = basename(stableBundlePath);
-  const betaBundleFileName = basename(betaBundlePath);
+  const launcherStatePath = join(desktopData, "launcher", "state.json");
+  await mkdir(dirname(launcherStatePath), { recursive: true });
+  writeFileSync(launcherStatePath, `${JSON.stringify({
+    channel: "beta",
+    currentVersion: null,
+    previousVersion: null,
+    candidateVersion: null,
+    candidateLaunchCount: 0,
+    lastKnownGoodVersion: null,
+    badVersions: [],
+    lastAttemptedPackagedSeedVersion: null,
+    lastAttemptedPackagedSeedSha256: null,
+    lastAttemptedPackagedSeedLauncherFingerprint: null,
+    lastUpdateCheckAt: null,
+    downloadedVersion: null,
+    downloadedReleaseNotesUrl: null,
+    updatePreferences: {
+      autoDownload: false
+    },
+    presencePreferences: {
+      closeToBackground: false,
+      launchAtLogin: false
+    },
+    languagePreference: null
+  }, null, 2)}\n`, "utf8");
 
   httpServer = createHttpServer((request, response) => {
     const requestPath = request.url ? request.url.split("?")[0] : "/";
+    if (
+      !betaManifestPublished &&
+      requestPath.endsWith(`/beta/manifest-beta-${process.platform}-${process.arch}.json`)
+    ) {
+      response.writeHead(404).end("not published");
+      return;
+    }
     const filePath = resolve(serverRoot, `.${requestPath}`);
     if (!filePath.startsWith(resolve(serverRoot))) {
       response.writeHead(403).end("forbidden");
@@ -277,7 +325,9 @@ try {
         NEXTCLAW_HOME: runtimeHome,
         NEXTCLAW_DESKTOP_DATA_DIR: desktopData,
         NEXTCLAW_DESKTOP_UPDATE_MANIFEST_BASE_URL: manifestBaseUrl,
-        NEXTCLAW_DESKTOP_BUNDLE_PUBLIC_KEY: publicKeyPem
+        NEXTCLAW_DESKTOP_BUNDLE_PUBLIC_KEY: publicKeyPem,
+        NEXTCLAW_UPDATE_VERIFICATION_MODE: "1",
+        NEXTCLAW_UPDATE_VERIFICATION_INTERVAL_MS: String(verificationIntervalMs)
       },
       stdio: ["ignore", "pipe", "pipe"],
       shell: shouldUseShell(pnpmBin)
@@ -301,24 +351,32 @@ try {
   page = await waitForDesktopPage(browser);
   const initialSnapshot = await waitForSnapshot(
     page,
-    (snapshot) => snapshot?.currentVersion === stableVersion && snapshot?.channel === "stable",
+    (snapshot) =>
+      snapshot?.currentVersion === stableVersion &&
+      snapshot?.channel === "beta" &&
+      Boolean(snapshot?.lastCheckedAt) &&
+      snapshot?.availableVersion === null,
     120_000,
-    `Desktop did not bootstrap stable bundle ${stableVersion}`
+    `Desktop did not finish the initial beta-channel check on stable bundle ${stableVersion}`
   );
 
-  const stableCheckSnapshot = await page.evaluate(async () => await window.nextclawDesktop.checkForUpdates());
-  assert(
-    stableCheckSnapshot.status === "up-to-date" && stableCheckSnapshot.currentVersion === stableVersion,
-    `Expected stable channel to be up-to-date on ${stableVersion}, got ${JSON.stringify(stableCheckSnapshot)}`
+  betaManifestPublished = true;
+  const betaChannelSnapshot = await waitForSnapshot(
+    page,
+    (snapshot) =>
+      snapshot?.status === "update-available" &&
+      snapshot?.channel === "beta" &&
+      snapshot?.availableVersion === betaVersion,
+    20_000,
+    `Desktop did not discover beta ${betaVersion} automatically while running`
   );
-
-  const betaChannelSnapshot = await page.evaluate(async () => await window.nextclawDesktop.updateChannel("beta"));
   assert(
     betaChannelSnapshot.status === "update-available" &&
       betaChannelSnapshot.channel === "beta" &&
       betaChannelSnapshot.availableVersion === betaVersion,
-    `Expected beta channel switch to expose ${betaVersion}, got ${JSON.stringify(betaChannelSnapshot)}`
+    `Expected the periodic check to expose ${betaVersion}, got ${JSON.stringify(betaChannelSnapshot)}`
   );
+  assert(electronProcess.exitCode === null, "Electron exited before periodic update discovery completed.");
 
   const downloadedSnapshot = await page.evaluate(async () => await window.nextclawDesktop.downloadUpdate());
   assert(
@@ -330,7 +388,9 @@ try {
 
   try {
     await page.evaluate(async () => await window.nextclawDesktop.applyDownloadedUpdate());
-  } catch {}
+  } catch {
+    // Applying restarts Electron, which closes the in-flight renderer call.
+  }
   await sleep(2_000);
 
   await waitForDesktopPageTarget(cdpPort);
@@ -357,7 +417,7 @@ try {
     `Expected switching back to stable to avoid forced downgrade, got ${JSON.stringify(stableDowngradeSnapshot)}`
   );
 
-  const statePath = join(desktopData, "launcher", "state.json");
+  const statePath = launcherStatePath;
   const pointerPath = join(desktopData, "current.json");
   const persistedState = JSON.parse(readFileSync(statePath, "utf8"));
   const currentPointer = JSON.parse(readFileSync(pointerPath, "utf8"));
@@ -373,8 +433,7 @@ try {
         betaVersion,
         manifestBaseUrl,
         initial: initialSnapshot,
-        stableCheck: stableCheckSnapshot,
-        betaChannelUpdate: betaChannelSnapshot,
+        automaticBetaUpdate: betaChannelSnapshot,
         downloaded: downloadedSnapshot,
         applied: appliedSnapshot,
         switchBackStable: stableDowngradeSnapshot,
@@ -391,10 +450,15 @@ try {
   browser = null;
   page = null;
 } finally {
+  if (page && !page.isClosed()) {
+    await closeDesktopWindow(page);
+  }
   if (browser) {
     try {
       await browser.close();
-    } catch {}
+    } catch {
+      // Cleanup is best-effort after a smoke failure.
+    }
   }
   if (httpServer) {
     await new Promise((resolveClose) => httpServer.close(() => resolveClose()));
@@ -402,10 +466,17 @@ try {
   if (electronProcess && !electronProcess.killed) {
     try {
       electronProcess.kill("SIGTERM");
-    } catch {}
+    } catch {
+      // The child may already have exited during cleanup.
+    }
   }
   if (seededDesktopBundle) {
     await rm(desktopSeedBundlePath, { force: true });
+  }
+  if (releaseMetadataBackup) {
+    writeFileSync(desktopReleaseMetadataPath, releaseMetadataBackup);
+  } else {
+    rmSync(desktopReleaseMetadataPath, { force: true });
   }
   await sleep(1_000);
   rmSync(tempRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });

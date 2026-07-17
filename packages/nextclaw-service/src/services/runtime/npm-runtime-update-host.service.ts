@@ -1,6 +1,10 @@
 import type { Config } from "@nextclaw/core";
 import { getAppLogger, type AppLogger } from "@nextclaw/core";
 import {
+  AUTOMATIC_UPDATE_CHECK_INTERVAL_MS,
+  getAutomaticUpdateCheckDelay
+} from "@nextclaw/kernel";
+import {
   eventKeys,
   type EventBus,
   type UpdateFailureStage,
@@ -31,6 +35,7 @@ type NpmRuntimeUpdateHostDeps = {
   requestRestart: (params: RequestRestartParams) => Promise<void>;
   uiConfig: Pick<Config["ui"], "port">;
   applyRestartMode: "managed-service-restart" | "manual-process-restart";
+  automaticCheckIntervalMs?: number;
 };
 
 export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
@@ -42,7 +47,8 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
   private readonly updateService: NpmRuntimeUpdateService;
   private snapshot: UpdateSnapshot;
   private activeTask: Promise<void> | null = null;
-  private automaticSyncStarted = false;
+  private automaticCheckTimer: ReturnType<typeof setTimeout> | null = null;
+  private started = false;
   private readonly logger: Pick<AppLogger, "error">;
 
   constructor(private readonly deps: NpmRuntimeUpdateHostDeps) {
@@ -68,16 +74,18 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
       bundlePublicKey: this.source.resolveBundlePublicKey() ?? undefined
     });
     this.snapshot = this.createManager().getSnapshot();
-    this.startAutomaticSync();
   }
 
   getState = async (): Promise<UpdateSnapshot> => {
-    this.startAutomaticSync();
     return this.snapshot;
   };
 
   checkForUpdates = async (): Promise<UpdateSnapshot> => {
-    return this.startCheck({ autoDownload: false });
+    try {
+      return await this.startCheck({ autoDownload: false });
+    } finally {
+      this.scheduleNextAutomaticCheck();
+    }
   };
 
   downloadUpdate = async (): Promise<UpdateSnapshot> => {
@@ -122,15 +130,18 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
     const nextState = this.stateStore.update((current) => ({
       ...current,
       updatePreferences: {
-        ...current.updatePreferences,
-        ...preferences
+        autoDownload:
+          typeof preferences.autoDownload === "boolean"
+            ? preferences.autoDownload
+            : current.updatePreferences.autoDownload
       }
     }));
     this.setSnapshot(this.createManager(nextState.channel).getSnapshot());
-    if (nextState.updatePreferences.automaticChecks) {
-      this.startAutomaticSync({ force: true });
+    try {
+      return await this.startCheck({ autoDownload: nextState.updatePreferences.autoDownload });
+    } finally {
+      this.scheduleNextAutomaticCheck();
     }
-    return this.snapshot;
   };
 
   updateChannel = async (channel: UpdateSnapshot["channel"]): Promise<UpdateSnapshot> => {
@@ -139,25 +150,66 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
       channel
     }));
     this.setSnapshot(this.createManager(nextState.channel).getSnapshot());
-    if (nextState.updatePreferences.automaticChecks) {
-      return this.startCheck({ autoDownload: nextState.updatePreferences.autoDownload });
+    try {
+      return await this.startCheck({ autoDownload: nextState.updatePreferences.autoDownload });
+    } finally {
+      this.scheduleNextAutomaticCheck();
     }
-    return this.snapshot;
   };
 
-  private startAutomaticSync = (options: { force?: boolean } = {}): void => {
-    if (this.activeTask) {
+  start = (): void => {
+    if (this.started) {
       return;
     }
-    if (this.automaticSyncStarted && !options.force) {
+    this.started = true;
+    void this.runAutomaticCheck();
+  };
+
+  dispose = (): void => {
+    this.started = false;
+    this.clearAutomaticCheckTimer();
+  };
+
+  private runAutomaticCheck = async (): Promise<void> => {
+    try {
+      const state = this.stateStore.read();
+      if (getAutomaticUpdateCheckDelay(
+        state.lastUpdateCheckAt,
+        Date.now(),
+        this.automaticCheckIntervalMs
+      ) === 0) {
+        await this.startCheck({ autoDownload: state.updatePreferences.autoDownload });
+      }
+    } catch (error) {
+      this.logger.error("automatic runtime update check failed", {}, error);
+    } finally {
+      this.scheduleNextAutomaticCheck();
+    }
+  };
+
+  private get automaticCheckIntervalMs(): number {
+    return this.deps.automaticCheckIntervalMs ?? AUTOMATIC_UPDATE_CHECK_INTERVAL_MS;
+  }
+
+  private scheduleNextAutomaticCheck = (): void => {
+    if (!this.started) {
       return;
     }
-    this.automaticSyncStarted = true;
-    const state = this.stateStore.read();
-    if (!state.updatePreferences.automaticChecks || state.downloadedVersion) {
-      return;
+    this.clearAutomaticCheckTimer();
+    const remainingDelayMs = getAutomaticUpdateCheckDelay(
+      this.stateStore.read().lastUpdateCheckAt,
+      Date.now(),
+      this.automaticCheckIntervalMs
+    );
+    const delayMs = remainingDelayMs > 0 ? remainingDelayMs : this.automaticCheckIntervalMs;
+    this.automaticCheckTimer = setTimeout(this.runAutomaticCheck, delayMs);
+  };
+
+  private clearAutomaticCheckTimer = (): void => {
+    if (this.automaticCheckTimer) {
+      clearTimeout(this.automaticCheckTimer);
+      this.automaticCheckTimer = null;
     }
-    void this.startCheck({ autoDownload: state.updatePreferences.autoDownload });
   };
 
   private startCheck = async (options: { autoDownload: boolean }): Promise<UpdateSnapshot> => {

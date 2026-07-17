@@ -30,7 +30,6 @@ export type UpdateProgress = {
 };
 
 export type UpdatePreferences = {
-  automaticChecks: boolean;
   autoDownload: boolean;
 };
 

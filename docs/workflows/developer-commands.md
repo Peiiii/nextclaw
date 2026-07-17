@@ -9,7 +9,7 @@
 | 启动完整开发栈 | `pnpm dev start` | 启动 packages watcher、后端和前端，适合日常源码开发 |
 | 查看开发栈状态 | `pnpm dev:status` | 查看由开发 runner 管理的进程与端口 |
 | 停止开发栈 | `pnpm dev:kill` | 只停止开发 runner 管理的进程 |
-| 人工验证真实更新 | `pnpm dev:verify-update` | 构造隔离的本地旧版与新版，自动发现候选版本，供开发者在真实页面里下载、应用并观察自动重启 |
+| 人工验证真实更新 | `pnpm dev:verify-update` | 构造隔离的本地旧版与新版，先证明同一进程能定时发现候选版本，再供开发者在真实页面里下载、应用并观察自动重启 |
 | 验证当前源码安装态 | `pnpm local:runtime` | 从当前源码构建并启动一个与全局安装隔离的产品实例 |
 | 只启动后端或前端 | `pnpm dev:backend` / `pnpm dev:frontend` | 分别启动单侧开发服务，适合定向调试 |
 
@@ -72,8 +72,9 @@ pnpm local:runtime:stop
 3. 依赖图未变化时复用已经裁剪的 runtime deploy 模板，并用当前 workspace 产物刷新模板；依赖变化时重新执行一次生产 runtime deploy。
 4. 使用生产 runtime update builder 构建并签名 candidate bundle 与 manifest，再从同一 bundle 解出较低版本号的 baseline。
 5. 使用独立 `NEXTCLAW_HOME`、`NEXTCLAW_RUN_HOME` 和端口启动 baseline。
-6. 自动打开真实页面，由产品启动链路自动检查并展示候选版本，等待开发者亲自点击下载和应用。
-7. 观察最终版本、managed service PID 和 runtime pointer 是否一起切换。
+6. 以验证专用短周期启动真实产品，自动证明 baseline 不经 restart、不调用检查 API，也能由产品定时器发现候选版本。
+7. 自动打开真实页面，等待开发者亲自点击下载和应用。
+8. 观察最终版本、managed service PID 和 runtime pointer 是否一起切换。
 
 ```bash
 pnpm dev:verify-update
@@ -88,6 +89,8 @@ pnpm dev:verify-update -- --rebuild
 - `--keep`：退出时保留临时构建目录与状态文件，便于排查；隔离服务仍会停止。
 - `--rebuild`：本次忽略 fixture 与 runtime deploy 缓存，强制重新构建源码、生产依赖树和签名 update bundle。
 - `Ctrl+C`：停止该入口创建的服务，并在未指定 `--keep` 时清理临时目录。
+
+命令在准备完成后还会等待一次约 15 秒的周期检查，并打印 `Discovery: automatic ... without restart`。这段等待专门证明“运行中发现新版本”，不是真实生产频率；正常安装态固定每两小时检查一次，验证专用短周期不会持久化，也不会进入产品设置。
 
 它验证的是当前源码里的更新机制，不是“某个历史已发布版本能否更新”。baseline 与 candidate 都来自当前工作树，因为下载、应用和 relaunch 逻辑首先运行在 baseline 进程中；直接使用带历史 bug 的旧二进制，无法证明当前修复后的机制是否正确。
 

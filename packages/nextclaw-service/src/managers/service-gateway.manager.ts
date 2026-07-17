@@ -2,6 +2,7 @@ import * as NextclawCore from "@nextclaw/core";
 import {
   AgentRunClient,
   NextclawKernel,
+  resolveAutomaticUpdateCheckIntervalMs,
   runGatewayInboundLoop,
   type AutomationManager,
   type ConfigManager,
@@ -14,7 +15,6 @@ import {
   type MarketplaceApiConfig,
   type UiRouterOptions,
   type UiRuntimeControlHost,
-  type UiRuntimeUpdateHost,
 } from "@nextclaw/server";
 import { resolve } from "node:path";
 import { setImmediate as waitForNextTick } from "node:timers/promises";
@@ -85,7 +85,7 @@ export class ServiceGatewayManager {
   readonly automation: AutomationManager;
   readonly agentRunClient: AgentRunClient;
   readonly runtimeControl: UiRuntimeControlHost;
-  readonly runtimeUpdate: UiRuntimeUpdateHost | null;
+  readonly runtimeUpdate: NpmRuntimeUpdateHost | null;
   readonly ingress: Ingress;
   readonly distribution = NextclawDistributionService.get();
   readonly productVersion: string;
@@ -158,7 +158,11 @@ export class ServiceGatewayManager {
             applyRestartMode: resolveApplyRestartMode(this.uiConfig.port),
             requestRestart: this.deps.requestRestart,
             uiConfig: this.uiConfig,
-    });
+            automaticCheckIntervalMs: resolveAutomaticUpdateCheckIntervalMs({
+              verificationMode: process.env.NEXTCLAW_UPDATE_VERIFICATION_MODE === "1",
+              verificationIntervalMs: process.env.NEXTCLAW_UPDATE_VERIFICATION_INTERVAL_MS,
+            }),
+          });
     this.gatewayController = this.createGatewayController();
     this.kernel.provideGatewayController(this.gatewayController);
     this.deferredChannelStarter = this.startChannels;
@@ -170,6 +174,7 @@ export class ServiceGatewayManager {
   start = async (): Promise<void> => {
     logStartupTrace("service.start_gateway.begin");
     await this.reset();
+    this.runtimeUpdate?.start();
     this.configureIngressHandlers();
     this.uiStartup = await this.startUiRuntime();
     await companionRuntimeService.applyConfig(this.configManager.config);
@@ -300,6 +305,7 @@ export class ServiceGatewayManager {
 
   readonly stop = async (): Promise<void> => {
     localUiRuntimeStore.clearIfOwnedByProcess();
+    this.runtimeUpdate?.dispose();
     await this.fileWatchers.clear();
     await this.kernel.extensions.stop();
     await this.remoteManager.stop();

@@ -1,8 +1,9 @@
 export function printHelp() {
   console.log(`Usage: pnpm dev:verify-update -- [options]
 
-Build and start an isolated local NextClaw instance for manually verifying the
-real runtime update flow from the browser.
+Build and start an isolated local NextClaw instance that first proves periodic
+update discovery without a restart, then keeps the browser open for manually
+verifying download and apply.
 
 Options:
   --no-open       Do not open the browser automatically

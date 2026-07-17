@@ -20,6 +20,7 @@ export type { PanelAppClientGrant } from "@kernel/stores/panel-app-client-grant.
 export { readLearningLoopRuntimeConfig } from "@kernel/contributions/learning-loop/config.js";
 export type { LearningLoopRuntimeConfig } from "@kernel/contributions/learning-loop/config.js";
 export * from "@kernel/utils/skill-frontmatter.utils.js";
+export * from "@kernel/utils/automatic-update-check.utils.js";
 export * from "@kernel/features/runtime-registry/index.js";
 export * from "@kernel/configs/agent-runtime.config.js";
 export * from "@kernel/features/narp-runtime/index.js";

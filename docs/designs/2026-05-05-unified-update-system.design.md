@@ -25,7 +25,7 @@ NextClaw 已经有一批桌面更新基础设施：
   - 解压并安装到版本目录。
 - `apps/desktop/src/launcher/services/update-coordinator.service.ts`
   - 管理 `checking`、`update-available`、`downloading`、`downloaded`、`up-to-date`、`failed` 状态。
-  - 支持 `automaticChecks` 和 `autoDownload`。
+  - 自动检查固定开启，并支持用户配置 `autoDownload`。
   - 支持 `applyDownloadedUpdate`。
 - `apps/desktop/src/launcher/services/bundle-lifecycle.service.ts`
   - 通过 current pointer / previous pointer 切换版本。
@@ -33,7 +33,7 @@ NextClaw 已经有一批桌面更新基础设施：
 - `apps/desktop/src/launcher/stores/launcher-state.store.ts`
   - 已有 `currentVersion`、`previousVersion`、`candidateVersion`、`lastKnownGoodVersion`、`badVersions`、`downloadedVersion` 等状态。
 - `packages/nextclaw-ui/src/features/system-status/components/desktop-update-config.tsx`
-  - 已有更新设置 UI：检查、下载、应用、通道、自动检查、自动后台下载。
+  - 已有更新设置 UI：检查、下载、应用、通道和自动后台下载；自动检查不提供关闭入口。
 - `packages/nextclaw/src/cli/shared/services/update/self-update.service.ts`
   - 目前 npm CLI 更新仍是旧式全局包自更新：通过 `npm view` 检查，再执行 `npm i -g nextclaw`。
 
@@ -43,7 +43,7 @@ NextClaw 已经有一批桌面更新基础设施：
 
 ### 3.1 自动下载，手动应用
 
-默认允许系统自动检查更新；是否自动后台下载可以配置。
+系统固定每两小时自动检查更新，不提供关闭配置；是否自动后台下载可以配置。
 
 无论是否自动下载，默认都不自动应用、不自动重启、不偷偷切换版本。
 

@@ -7,7 +7,8 @@
     "types": ["node", "electron"],
     "baseUrl": ".",
     "paths": {
-      "@nextclaw/kernel": ["../../packages/nextclaw-kernel/dist/index.d.ts"]
+      "@nextclaw/kernel": ["../../packages/nextclaw-kernel/dist/index.d.ts"],
+      "@nextclaw/kernel/automatic-update-check": ["../../packages/nextclaw-kernel/dist/utils/automatic-update-check.utils.d.ts"]
     }
   },
   "include": ["src/**/*.ts"]

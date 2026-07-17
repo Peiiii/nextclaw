@@ -14,8 +14,11 @@ import {
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import JSZip from "jszip";
-import { prepareLocalUpdateChannelArtifacts } from "./update/services/local-update-channel-artifacts.service.mjs";
+import {
+  incrementPatchVersion,
+  prepareLocalUpdateChannelArtifacts,
+  readBundleVersion
+} from "./update/services/local-update-channel-artifacts.service.mjs";
 
 const desktopDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const workspaceRoot = resolve(desktopDir, "..", "..");
@@ -52,22 +55,6 @@ function runCommand(command, args, cwd = workspaceRoot, env = process.env) {
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(" ")} failed with exit code ${String(result.status ?? 1)}`);
   }
-}
-
-async function readBundleVersion(archivePath) {
-  const archive = await JSZip.loadAsync(readFileSync(archivePath));
-  const manifestEntry =
-    archive.file("bundle/manifest.json") ??
-    Object.values(archive.files).find((entry) => entry.name.endsWith("/manifest.json"));
-  if (!manifestEntry) {
-    throw new Error(`Bundle archive is missing manifest.json: ${archivePath}`);
-  }
-  const manifest = JSON.parse(await manifestEntry.async("text"));
-  const version = typeof manifest.bundleVersion === "string" ? manifest.bundleVersion.trim() : "";
-  if (!version) {
-    throw new Error(`Bundle archive manifest is missing bundleVersion: ${archivePath}`);
-  }
-  return version;
 }
 
 function createBackupMap(filePaths) {
@@ -227,12 +214,12 @@ async function main() {
   const supportRoot = resolve(args["output-dir"]?.trim() || defaultSupportRoot);
   const stableSeedBundlePath = resolve(args["stable-seed-bundle"]?.trim() || defaultStableSeedBundlePath);
   const port = Number.parseInt(args.port?.trim() || "43010", 10);
-  const betaVersion = args["beta-version"]?.trim() || "0.17.11";
   if (!existsSync(stableSeedBundlePath) || !statSync(stableSeedBundlePath).isFile()) {
     throw new Error(`Stable seed bundle not found: ${stableSeedBundlePath}`);
   }
 
   const stableVersion = await readBundleVersion(stableSeedBundlePath);
+  const betaVersion = args["beta-version"]?.trim() || incrementPatchVersion(stableVersion);
   const installerOutputRoot = join(supportRoot, "pack-output");
   const installerDmgPath = resolve(desktopDir, "release", "NextClaw Desktop-manual-update-validation-installer.dmg");
   rmSync(supportRoot, { recursive: true, force: true });

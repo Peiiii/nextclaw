@@ -12,6 +12,10 @@ import type {
   UpdateSnapshot,
   UpdateStatus
 } from "@nextclaw/kernel";
+import {
+  AUTOMATIC_UPDATE_CHECK_INTERVAL_MS,
+  getAutomaticUpdateCheckDelay
+} from "@nextclaw/kernel/automatic-update-check";
 
 export type DesktopUpdateStatus = Extract<
   UpdateStatus,
@@ -63,7 +67,6 @@ type PersistedDesktopLauncherState = ReturnType<DesktopLauncherStateStore["read"
 type DesktopUpdateSnapshotPatch = Partial<DesktopUpdateSnapshot> & Pick<DesktopUpdateSnapshot, "status">;
 
 const DEFAULT_STATUS: DesktopUpdateStatus = "idle";
-const AUTOMATIC_UPDATE_MINIMUM_CHECK_INTERVAL_MS = 5 * 60 * 60 * 1000;
 
 export class DesktopUpdateCoordinatorService {
   private snapshot: DesktopUpdateSnapshot;
@@ -110,18 +113,23 @@ export class DesktopUpdateCoordinatorService {
     };
   };
 
-  runAutomaticCheck = async (): Promise<DesktopUpdateSnapshot> => {
+  getAutomaticCheckDelay = (
+    intervalMs = AUTOMATIC_UPDATE_CHECK_INTERVAL_MS
+  ): number => {
+    return getAutomaticUpdateCheckDelay(
+      this.snapshot.lastCheckedAt,
+      this.options.now?.() ?? Date.now(),
+      intervalMs
+    );
+  };
+
+  runAutomaticCheck = async (
+    intervalMs = AUTOMATIC_UPDATE_CHECK_INTERVAL_MS
+  ): Promise<DesktopUpdateSnapshot> => {
     if (this.isUpdateUnsupported()) {
       return this.getSnapshot();
     }
-    if (!this.snapshot.preferences.automaticChecks) {
-      return this.getSnapshot();
-    }
-    const lastCheckedAt = Date.parse(this.snapshot.lastCheckedAt ?? "");
-    const elapsedSinceLastCheck = (this.options.now?.() ?? Date.now()) - lastCheckedAt;
-    const checkedRecently = Number.isFinite(lastCheckedAt) &&
-      elapsedSinceLastCheck >= 0 && elapsedSinceLastCheck < AUTOMATIC_UPDATE_MINIMUM_CHECK_INTERVAL_MS;
-    if (checkedRecently) {
+    if (this.getAutomaticCheckDelay(intervalMs) > 0) {
       return this.getSnapshot();
     }
     return await this.checkForUpdates();
@@ -191,10 +199,6 @@ export class DesktopUpdateCoordinatorService {
     const nextState = await this.stateStore.update((state) => ({
       ...state,
       updatePreferences: {
-        automaticChecks:
-          typeof preferences.automaticChecks === "boolean"
-            ? preferences.automaticChecks
-            : state.updatePreferences.automaticChecks,
         autoDownload:
           typeof preferences.autoDownload === "boolean"
             ? preferences.autoDownload

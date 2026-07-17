@@ -7,8 +7,11 @@ import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import JSZip from "jszip";
-import { prepareLocalUpdateChannelArtifacts } from "./local-update-channel-artifacts.service.mjs";
+import {
+  incrementPatchVersion,
+  prepareLocalUpdateChannelArtifacts,
+  readBundleVersion
+} from "./local-update-channel-artifacts.service.mjs";
 
 const desktopDir = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 const workspaceRoot = resolve(desktopDir, "..", "..");
@@ -45,14 +48,6 @@ function assertFile(filePath, label) {
   }
 }
 
-function incrementPatchVersion(version) {
-  const match = /^(\d+)\.(\d+)\.(\d+)(.*)$/.exec(version.trim());
-  if (!match) {
-    return `${version}.1`;
-  }
-  return `${match[1]}.${match[2]}.${Number.parseInt(match[3], 10) + 1}`;
-}
-
 class DesktopDevUpdateValidationRunner {
   constructor(args) {
     this.args = args;
@@ -76,7 +71,7 @@ class DesktopDevUpdateValidationRunner {
   run = async () => {
     await this.prepareDirectories();
     const seedBundlePath = await this.resolveStableSeedBundlePath();
-    const stableVersion = await this.readBundleVersion(seedBundlePath);
+    const stableVersion = await readBundleVersion(seedBundlePath);
     const betaVersion = this.args["beta-version"]?.trim() || incrementPatchVersion(stableVersion);
     const port = this.requestedPort;
     const manifestBaseUrl = `http://${this.host}:${String(port)}/desktop-updates`;
@@ -115,7 +110,9 @@ class DesktopDevUpdateValidationRunner {
     if (this.electronProcess && !this.electronProcess.killed) {
       try {
         this.electronProcess.kill("SIGTERM");
-      } catch {}
+      } catch {
+        // The child may already have exited during cleanup.
+      }
     }
     if (this.keep) {
       console.log(`[desktop-dev-update] kept validation root: ${this.tempRoot}`);
@@ -163,22 +160,6 @@ class DesktopDevUpdateValidationRunner {
     const seedBundlePath = join(seedOutputDir, "seed-product-bundle.zip");
     assertFile(seedBundlePath, "Generated stable seed bundle");
     return seedBundlePath;
-  };
-
-  readBundleVersion = async (archivePath) => {
-    const archive = await JSZip.loadAsync(readFileSync(archivePath));
-    const manifestEntry =
-      archive.file("bundle/manifest.json") ??
-      Object.values(archive.files).find((entry) => entry.name.endsWith("/manifest.json"));
-    if (!manifestEntry) {
-      throw new Error(`Bundle archive is missing manifest.json: ${archivePath}`);
-    }
-    const manifest = JSON.parse(await manifestEntry.async("text"));
-    const version = typeof manifest.bundleVersion === "string" ? manifest.bundleVersion.trim() : "";
-    if (!version) {
-      throw new Error(`Bundle archive manifest is missing bundleVersion: ${archivePath}`);
-    }
-    return version;
   };
 
   prepareUpdateArtifacts = async ({ seedBundlePath, stableVersion, betaVersion, manifestBaseUrl, privateKey }) => {

@@ -33,7 +33,7 @@
 - 同批次补充：补齐 UI bundling 层面的 `@nextclaw/kernel` / `@nextclaw/client-sdk` alias。验证中发现 `tsc` 能解析 tsconfig path，但 Vite build 无法从 client SDK 源码转译链路解析 `@nextclaw/kernel`，导致 `@nextclaw/ui build` 失败；修复后 Vite / Vitest / tsconfig 三者解析口径一致，并重新同步 `packages/nextclaw/ui-dist`。
 - 同步 `apps/desktop`、`@nextclaw/ui` 与 `nextclaw` 对 `@nextclaw/kernel` 的 workspace 依赖，并更新 lockfile。
 
-设计依据见 [统一更新系统设计文档](../../designs/2026-05-05-unified-update-system-design.md)。
+设计依据见 [统一更新系统设计文档](../../designs/2026-05-05-unified-update-system.design.md)。
 
 ## 测试/验证/验收方式
 

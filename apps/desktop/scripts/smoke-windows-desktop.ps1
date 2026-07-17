@@ -564,7 +564,6 @@ setTimeout(() => {}, 600000);
     downloadedVersion = $null
     downloadedReleaseNotesUrl = $null
     updatePreferences = @{
-      automaticChecks = $true
       autoDownload = $false
     }
     presencePreferences = @{

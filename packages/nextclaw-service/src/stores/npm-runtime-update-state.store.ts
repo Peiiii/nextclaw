@@ -16,7 +16,6 @@ function createDefaultState(channel: NpmRuntimeReleaseChannel): NpmRuntimeUpdate
     downloadedVersion: null,
     downloadedReleaseNotesUrl: null,
     updatePreferences: {
-      automaticChecks: true,
       autoDownload: true
     }
   };
@@ -58,10 +57,6 @@ function normalizeUpdatePreferences(value: unknown): NpmRuntimeUpdateState["upda
   }
   const record = value as Record<string, unknown>;
   return {
-    automaticChecks:
-      typeof record.automaticChecks === "boolean"
-        ? record.automaticChecks
-        : defaultState.updatePreferences.automaticChecks,
     autoDownload:
       typeof record.autoDownload === "boolean"
         ? record.autoDownload

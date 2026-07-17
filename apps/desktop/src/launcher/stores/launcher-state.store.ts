@@ -17,7 +17,6 @@ export type DesktopLauncherState = {
   downloadedVersion: string | null;
   downloadedReleaseNotesUrl: string | null;
   updatePreferences: {
-    automaticChecks: boolean;
     autoDownload: boolean;
   };
   presencePreferences: {
@@ -42,7 +41,6 @@ const DEFAULT_LAUNCHER_STATE: DesktopLauncherState = {
   downloadedVersion: null,
   downloadedReleaseNotesUrl: null,
   updatePreferences: {
-    automaticChecks: true,
     autoDownload: false
   },
   presencePreferences: {
@@ -111,10 +109,6 @@ function normalizeUpdatePreferences(value: unknown): DesktopLauncherState["updat
   }
   const record = value as Record<string, unknown>;
   return {
-    automaticChecks:
-      typeof record.automaticChecks === "boolean"
-        ? record.automaticChecks
-        : DEFAULT_LAUNCHER_STATE.updatePreferences.automaticChecks,
     autoDownload:
       typeof record.autoDownload === "boolean"
         ? record.autoDownload

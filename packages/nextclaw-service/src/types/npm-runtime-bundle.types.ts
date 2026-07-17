@@ -32,7 +32,6 @@ export type NpmRuntimeUpdateState = {
   downloadedVersion: string | null;
   downloadedReleaseNotesUrl: string | null;
   updatePreferences: {
-    automaticChecks: boolean;
     autoDownload: boolean;
   };
 };

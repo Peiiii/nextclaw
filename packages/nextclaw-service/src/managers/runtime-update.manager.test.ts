@@ -293,6 +293,25 @@ describe("Npm runtime update defaults", () => {
       expect(stateStore.read().channel).toBe("stable");
     }));
 
+  it("ignores and removes the retired automatic-check preference", async () =>
+    await withTempDir(async (rootDir) => {
+      const statePath = join(rootDir, "state.json");
+      writeFileSync(statePath, `${JSON.stringify({
+        channel: "stable",
+        updatePreferences: {
+          automaticChecks: false,
+          autoDownload: false
+        }
+      }, null, 2)}\n`, "utf8");
+      const stateStore = new NpmRuntimeUpdateStateStore(statePath);
+
+      const normalized = stateStore.read();
+      expect(normalized.updatePreferences).toEqual({ autoDownload: false });
+      stateStore.write(normalized);
+      const persisted = JSON.parse(await readFile(statePath, "utf8"));
+      expect(persisted.updatePreferences).toEqual({ autoDownload: false });
+    }));
+
   it("infers beta as the default channel for beta launcher versions", () => {
     const source = new NpmRuntimeUpdateSourceService({
       env: {}

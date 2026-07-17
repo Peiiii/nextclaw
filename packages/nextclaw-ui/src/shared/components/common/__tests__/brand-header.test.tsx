@@ -117,7 +117,6 @@ describe('BrandHeader', () => {
         recoveryCommand: null,
         errorMessage: null,
         preferences: {
-          automaticChecks: true,
           autoDownload: true
         }
       }
@@ -196,7 +195,6 @@ describe('BrandHeader', () => {
         recoveryCommand: null,
         errorMessage: null,
         preferences: {
-          automaticChecks: true,
           autoDownload: true
         }
       }
@@ -247,7 +245,6 @@ describe('BrandHeader', () => {
         recoveryCommand: null,
         errorMessage: null,
         preferences: {
-          automaticChecks: true,
           autoDownload: true
         }
       }
@@ -294,7 +291,6 @@ describe('BrandHeader', () => {
         recoveryCommand: 'Set NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY',
         errorMessage: 'Runtime bundle updates require a configured update public key.',
         preferences: {
-          automaticChecks: true,
           autoDownload: true
         }
       }
@@ -344,7 +340,6 @@ describe('BrandHeader', () => {
         failureStage: 'check',
         diagnosticCommand: 'nextclaw logs path',
         preferences: {
-          automaticChecks: true,
           autoDownload: true
         }
       }

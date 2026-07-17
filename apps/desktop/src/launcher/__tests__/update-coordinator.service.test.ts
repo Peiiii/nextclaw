@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { DesktopBundleLifecycleService } from "../services/bundle-lifecycle.service";
@@ -197,7 +197,7 @@ test("coordinator blocks updates for unsupported installation kinds", async () =
     assert.equal(checkInvocations, 0);
   }));
 
-test("coordinator runs automatic checks only when enabled and due", async () =>
+test("coordinator runs fixed automatic checks when the two-hour interval is due", async () =>
   await withTempDir("nextclaw-update-coordinator-automatic-check-", async (rootDir) => {
     const layout = new DesktopBundleLayoutStore(rootDir);
     const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
@@ -206,7 +206,7 @@ test("coordinator runs automatic checks only when enabled and due", async () =>
       createLauncherState({
         currentVersion: "0.18.0",
         lastKnownGoodVersion: "0.18.0",
-        lastUpdateCheckAt: "2026-07-16T08:00:00.000Z"
+        lastUpdateCheckAt: "2026-07-16T11:00:00.000Z"
       })
     );
     let checkInvocations = 0;
@@ -224,15 +224,31 @@ test("coordinator runs automatic checks only when enabled and due", async () =>
     assert.equal((await coordinator.runAutomaticCheck()).status, "idle");
     assert.equal(checkInvocations, 0);
 
-    now += 2 * 60 * 60 * 1000;
+    now += 60 * 60 * 1000;
     assert.equal((await coordinator.runAutomaticCheck()).status, "up-to-date");
     assert.equal(checkInvocations, 1);
-    assert.equal(stateStore.read().lastUpdateCheckAt, "2026-07-16T14:00:00.000Z");
+    assert.equal(stateStore.read().lastUpdateCheckAt, "2026-07-16T13:00:00.000Z");
+  }));
 
-    await coordinator.updatePreferences({ automaticChecks: false });
-    now += 6 * 60 * 60 * 1000;
-    await coordinator.runAutomaticCheck();
-    assert.equal(checkInvocations, 1);
+test("launcher state ignores the retired automatic-check preference", async () =>
+  await withTempDir("nextclaw-update-state-preference-migration-", async (rootDir) => {
+    const layout = new DesktopBundleLayoutStore(rootDir);
+    const statePath = layout.getLauncherStatePath();
+    const stateStore = new DesktopLauncherStateStore(statePath);
+    await stateStore.write(createLauncherState());
+    writeFileSync(statePath, `${JSON.stringify({
+      ...stateStore.read(),
+      updatePreferences: {
+        automaticChecks: false,
+        autoDownload: true
+      }
+    }, null, 2)}\n`, "utf8");
+
+    const normalized = stateStore.read();
+    assert.deepEqual(normalized.updatePreferences, { autoDownload: true });
+    await stateStore.write(normalized);
+    const persisted = JSON.parse(readFileSync(statePath, "utf8"));
+    assert.equal("automaticChecks" in persisted.updatePreferences, false);
   }));
 
 test("coordinator reports an available update without downloading by default", async () =>
@@ -389,7 +405,6 @@ test("coordinator auto-downloads only when the preference is enabled", async () 
         currentVersion: "0.18.0",
         lastKnownGoodVersion: "0.18.0",
         updatePreferences: {
-          automaticChecks: true,
           autoDownload: true
         }
       })
@@ -520,7 +535,6 @@ test("channel switching clears stale downloads and refreshes availability withou
         downloadedVersion: "0.18.1",
         downloadedReleaseNotesUrl: "https://example.com/stable-notes",
         updatePreferences: {
-          automaticChecks: true,
           autoDownload: true
         }
       })

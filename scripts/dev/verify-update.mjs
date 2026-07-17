@@ -27,6 +27,8 @@ const nextclawPackageRoot = join(workspaceRoot, "packages/nextclaw");
 const nextclawPackageJsonPath = join(nextclawPackageRoot, "package.json");
 const cleanupWatchdogPath = join(workspaceRoot, "scripts/dev/verify-update-cleanup.mjs");
 const initialRuntimeTimeoutMs = 90_000;
+const automaticDiscoveryTimeoutMs = 45_000;
+const verificationIntervalMs = 15_000;
 
 function quotePowerShellString(value) {
   return `'${value.replaceAll("'", "''")}'`;
@@ -59,6 +61,7 @@ class LocalUpdateVerificationHarness {
     try {
       await this.prepare();
       await this.startBaseline();
+      await this.waitForAutomaticUpdateDiscovery();
       this.printInstructions();
       await this.monitorUpdate();
     } catch (error) {
@@ -172,6 +175,7 @@ class LocalUpdateVerificationHarness {
   };
 
   writeInitialUpdateState = () => {
+    this.initialUpdateCheckAt = new Date().toISOString();
     mkdirSync(dirname(this.updateStatePath), { recursive: true });
     writeFileSync(this.updateStatePath, `${JSON.stringify({
       channel: this.channel,
@@ -181,11 +185,10 @@ class LocalUpdateVerificationHarness {
       candidateLaunchCount: 0,
       lastKnownGoodVersion: null,
       badVersions: [],
-      lastUpdateCheckAt: null,
+      lastUpdateCheckAt: this.initialUpdateCheckAt,
       downloadedVersion: null,
       downloadedReleaseNotesUrl: null,
       updatePreferences: {
-        automaticChecks: true,
         autoDownload: false
       }
     }, null, 2)}\n`, "utf8");
@@ -197,6 +200,8 @@ class LocalUpdateVerificationHarness {
     env.NEXTCLAW_RUN_HOME = this.runDir;
     env.NEXTCLAW_UPDATE_MANIFEST_URL = pathToFileURL(this.manifestPath).toString();
     env.NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY_PATH = this.publicKeyPath;
+    env.NEXTCLAW_UPDATE_VERIFICATION_MODE = "1";
+    env.NEXTCLAW_UPDATE_VERIFICATION_INTERVAL_MS = String(verificationIntervalMs);
     delete env.NEXTCLAW_DISABLE_RUNTIME_UPDATE_HOST;
     return env;
   };
@@ -247,6 +252,36 @@ class LocalUpdateVerificationHarness {
     throw new Error(`Baseline did not become ready: ${lastError instanceof Error ? lastError.message : "unknown error"}`);
   };
 
+  waitForAutomaticUpdateDiscovery = async () => {
+    const deadline = Date.now() + automaticDiscoveryTimeoutMs;
+    let lastSnapshot = null;
+    while (Date.now() < deadline) {
+      const state = this.readServiceState();
+      if (state?.pid && state.pid !== this.initialServicePid) {
+        throw new Error(
+          `The service restarted before automatic update discovery: ${this.initialServicePid} -> ${state.pid}.`
+        );
+      }
+      try {
+        lastSnapshot = await this.fetchUpdateSnapshot();
+        if (
+          lastSnapshot.availableVersion === this.candidateVersion &&
+          lastSnapshot.lastCheckedAt &&
+          lastSnapshot.lastCheckedAt !== this.initialUpdateCheckAt
+        ) {
+          this.automaticDiscoveryDurationMs = Date.now() - Date.parse(this.initialUpdateCheckAt);
+          return;
+        }
+      } catch {
+        // The isolated UI can be briefly unavailable while the baseline starts.
+      }
+      await delay(500);
+    }
+    throw new Error(
+      `The running baseline did not discover ${this.candidateVersion} automatically. Last snapshot: ${JSON.stringify(lastSnapshot)}`
+    );
+  };
+
   printInstructions = () => {
     console.log("\n[dev:verify-update] Local update verification is ready.");
     console.log(`  Baseline:  ${this.baselineVersion} (PID ${this.initialServicePid})`);
@@ -255,11 +290,14 @@ class LocalUpdateVerificationHarness {
     console.log(`  Updates:   ${this.baseUrl}/updates`);
     console.log(`  Workspace: ${this.rootDir}`);
     console.log(
+      `  Discovery: automatic after ${formatUpdateVerificationDuration(this.automaticDiscoveryDurationMs)} without restart`
+    );
+    console.log(
       `  Fixture:   ${this.fixtureCacheHit ? "cache hit" : "rebuilt"} (${formatUpdateVerificationDuration(this.prepareDurationMs)})`
     );
     console.log("\nVerify in the UI:");
     console.log("  1. Confirm the header shows the baseline version.");
-    console.log("  2. Wait for the candidate download action to appear after the automatic check.");
+    console.log("  2. Confirm the candidate download action is already visible without a restart or manual check.");
     console.log("  3. Download and apply the candidate yourself.");
     console.log("  4. Wait for reconnect and confirm the candidate version appears.");
     console.log("\nPress Ctrl+C after verification to stop and clean up.\n");
@@ -321,6 +359,22 @@ class LocalUpdateVerificationHarness {
       throw new Error("App meta did not return productVersion.");
     }
     return productVersion.trim();
+  };
+
+  fetchUpdateSnapshot = async () => {
+    const response = await fetch(`${this.baseUrl}/api/runtime/update`, {
+      headers: { accept: "application/json" },
+      signal: globalThis.AbortSignal.timeout(2_000)
+    });
+    if (!response.ok) {
+      throw new Error(`Runtime update state returned HTTP ${response.status}.`);
+    }
+    const payload = await response.json();
+    const snapshot = payload?.data ?? payload;
+    if (!snapshot || typeof snapshot !== "object") {
+      throw new Error("Runtime update state did not return a snapshot.");
+    }
+    return snapshot;
   };
 
   readServiceState = () => {

@@ -51,7 +51,6 @@ export class RuntimeUpdateRoutesController {
 
     try {
       return c.json(ok(await this.host.updatePreferences({
-        ...(typeof body.data.automaticChecks === "boolean" ? { automaticChecks: body.data.automaticChecks } : {}),
         ...(typeof body.data.autoDownload === "boolean" ? { autoDownload: body.data.autoDownload } : {})
       })));
     } catch (error) {

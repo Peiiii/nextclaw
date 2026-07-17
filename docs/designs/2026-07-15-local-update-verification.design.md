@@ -114,7 +114,7 @@ NEXTCLAW_UPDATE_MANIFEST_URL=file://...
 NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY_PATH=<temp>/update-public-key.pem
 ```
 
-update preferences 初始设为开启自动检查、关闭自动下载。检查仍由真实 product runtime update host 在基线启动时执行，harness 不直接调用 check API；这样命令打开页面后会明确出现 candidate 和下载入口，同时下载与应用仍由开发者亲自操作。
+update preferences 初始只设置关闭自动下载；自动检查已经是不可关闭的产品固定策略。初始 `lastUpdateCheckAt` 写入当前时间，并由显式 verification mode 把生产两小时周期压缩为数秒。harness 不直接调用 check API，而是等待同一个 baseline PID 通过真实 product runtime update host 的 timer 发现 candidate；这样命令打开页面后会明确出现 candidate 和下载入口，同时下载与应用仍由开发者亲自操作。
 
 ### 人工验收与监控
 
@@ -130,7 +130,7 @@ GET /api/app/meta
 - 新 PID 与初始 PID 不同；
 - `current.json` 指向 candidate。
 
-命令只配置隔离环境的产品更新偏好并观察结果，不直接调用 check/download/apply。automatic check 由产品启动链路执行；下载与应用的人工点击仍然是这条入口的核心价值，开发者也可以在更新页再次手动检查。
+命令只配置隔离环境的自动下载偏好与验证专用时间压缩参数并观察结果，不直接调用 check/download/apply。automatic check 由产品 timer 执行，并且必须在 managed service PID 不变时发现 candidate；下载与应用的人工点击仍然是这条入口的核心价值，开发者也可以在更新页再次手动检查。
 
 首次真实页面验收发现，runtime update host 的 check/download 命令会立即返回 `checking`/`downloading`，最终结果只通过 WebSocket 事件送回页面。如果页面刚打开、实时连接尚未建立，最终事件可能丢失，页面会一直停在处理中，刷新后才读取到后端已经完成的状态。该行为违背命令调用者对 `Promise<UpdateSnapshot>` 的完成语义，也会让人工验证产生假卡死。
 
@@ -193,7 +193,7 @@ pnpm dev:verify-update -- --rebuild
 1. 运行 `pnpm dev:verify-update -- --rebuild --no-open --port <free-port>`，记录完整 production deploy 路径耗时。
 2. 确认命令打印 baseline、candidate、临时目录和 UI URL。
 3. 请求 `/api/app/meta`，确认 baseline 版本。
-4. 确认产品启动后的 automatic check 直接展示 candidate 与下载入口；再依次点击 download、apply，确认无需刷新即可进入下一状态，并可按需再次点击 check 验收手动检查。
+4. 确认产品在 managed service PID 不变时通过周期 timer 展示 candidate 与下载入口；再依次点击 download、apply，确认无需刷新即可进入下一状态，并可按需再次点击 check 验收手动检查。
 5. 等待旧 PID 退出、新 PID 接管。
 6. 请求 `/api/app/meta`，确认 candidate 版本。
 7. 检查 `current.json` 和隔离 `service.json`。
@@ -209,4 +209,4 @@ pnpm dev:verify-update -- --rebuild
 - 本轮不接入 CI 或 runtime release workflow。
 - 本轮不实现历史 published version → working tree candidate 模式。
 - 本轮不增加故障注入或 rollback 场景选择器。
-- 本轮不增加产品 update 状态、UI 文案或 dev-only 产品分支。
+- 除显式 verification mode 的时间压缩参数外，不增加新的产品 update 状态或 dev-only 行为分支。

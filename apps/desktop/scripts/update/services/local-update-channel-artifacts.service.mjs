@@ -46,6 +46,29 @@ export async function cloneBundleWithVersionAndLauncherFloor({
   writeFileSync(targetArchivePath, await archive.generateAsync({ type: "nodebuffer", compression: "DEFLATE" }));
 }
 
+export async function readBundleVersion(archivePath) {
+  const archive = await JSZip.loadAsync(readFileSync(archivePath));
+  const manifestEntry =
+    archive.file("bundle/manifest.json") ??
+    Object.values(archive.files).find((entry) => entry.name.endsWith("/manifest.json"));
+  if (!manifestEntry) {
+    throw new Error(`Bundle archive is missing manifest.json: ${archivePath}`);
+  }
+  const manifest = JSON.parse(await manifestEntry.async("text"));
+  const version = typeof manifest.bundleVersion === "string" ? manifest.bundleVersion.trim() : "";
+  if (!version) {
+    throw new Error(`Bundle archive manifest is missing bundleVersion: ${archivePath}`);
+  }
+  return version;
+}
+
+export function incrementPatchVersion(version) {
+  const match = /^(\d+)\.(\d+)\.(\d+)(.*)$/.exec(version.trim());
+  return match
+    ? `${match[1]}.${match[2]}.${Number.parseInt(match[3], 10) + 1}`
+    : `${version}.1`;
+}
+
 export function createSignedUpdateManifest({
   privateKey,
   channel,

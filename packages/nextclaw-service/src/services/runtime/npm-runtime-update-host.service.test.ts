@@ -10,10 +10,9 @@ const mocks = vi.hoisted(() => {
     currentVersion: null,
     downloadedVersion: "0.18.12-beta.4",
     downloadedReleaseNotesUrl: null,
-    lastUpdateCheckAt: null,
+    lastUpdateCheckAt: null as string | null,
     badVersions: [],
     updatePreferences: {
-      automaticChecks: false,
       autoDownload: true
     }
   };
@@ -35,13 +34,13 @@ const mocks = vi.hoisted(() => {
     recoveryCommand: null,
     errorMessage: null,
     preferences: {
-      automaticChecks: false,
       autoDownload: true
     },
     status: "downloaded" as const
   }));
 
   return {
+    state,
     getPackageVersion: vi.fn(() => "0.18.12-beta.4"),
     requestManagedServiceRestart: vi.fn().mockResolvedValue(undefined),
     sourceOptions: [] as Array<{ packagedPublicKeyPath?: string } | undefined>,
@@ -54,13 +53,16 @@ const mocks = vi.hoisted(() => {
     },
     manager: {
       getSnapshot,
-      checkForUpdate: vi.fn(async () => ({
-        ...getSnapshot(),
-        availableVersion: "0.18.13",
-        downloadedVersion: null,
-        canApplyInApp: false,
-        status: "update-available" as const
-      })),
+      checkForUpdate: vi.fn(async () => {
+        state.lastUpdateCheckAt = new Date().toISOString();
+        return {
+          ...getSnapshot(),
+          availableVersion: "0.18.13",
+          downloadedVersion: null,
+          canApplyInApp: false,
+          status: "update-available" as const
+        };
+      }),
       downloadUpdate: vi.fn(async () => getSnapshot()),
       applyDownloadedUpdate: vi.fn(() => ({
         installationKind: "npm-runtime-bundle",
@@ -80,7 +82,6 @@ const mocks = vi.hoisted(() => {
         recoveryCommand: null,
         errorMessage: null,
         preferences: {
-          automaticChecks: false,
           autoDownload: true
         },
         status: "restart-required" as const
@@ -151,6 +152,8 @@ describe("NpmRuntimeUpdateHost", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.sourceOptions.length = 0;
+    mocks.state.lastUpdateCheckAt = null;
+    mocks.state.updatePreferences.autoDownload = true;
     NextclawDistributionService.configure(TEST_DISTRIBUTION);
   });
 
@@ -185,6 +188,40 @@ describe("NpmRuntimeUpdateHost", () => {
       status: "downloaded",
       downloadedVersion: "0.18.12-beta.4"
     });
+  });
+
+  it("keeps state reads pure and owns a disposable periodic check lifecycle", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-17T12:00:00.000Z"));
+    mocks.state.updatePreferences.autoDownload = false;
+    const host = new NpmRuntimeUpdateHost({
+      eventBus: new NextclawKernel().eventBus,
+      applyRestartMode: "manual-process-restart",
+      requestRestart: vi.fn(),
+      uiConfig: { port: 55667 },
+      automaticCheckIntervalMs: 1_000
+    });
+
+    try {
+      await host.getState();
+      expect(mocks.manager.checkForUpdate).not.toHaveBeenCalled();
+
+      host.start();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mocks.manager.checkForUpdate).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(999);
+      expect(mocks.manager.checkForUpdate).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(mocks.manager.checkForUpdate).toHaveBeenCalledTimes(2);
+
+      host.dispose();
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(mocks.manager.checkForUpdate).toHaveBeenCalledTimes(2);
+    } finally {
+      host.dispose();
+      vi.useRealTimers();
+    }
   });
 
   it("keeps a foreground serve process alive after applying a downloaded runtime update", async () => {

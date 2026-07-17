@@ -84,7 +84,6 @@ export const runtimeUpdatePayload = {
   recoveryCommand: null,
   errorMessage: null,
   preferences: {
-    automaticChecks: true,
     autoDownload: false
   }
 };

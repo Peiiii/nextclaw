@@ -37,7 +37,6 @@ function createRuntimeUpdateHost(): UiRuntimeUpdateHost {
       recoveryCommand: null,
       errorMessage: null,
       preferences: {
-        automaticChecks: true,
         autoDownload: true
       }
     })),
@@ -60,7 +59,6 @@ function createRuntimeUpdateHost(): UiRuntimeUpdateHost {
       recoveryCommand: null,
       errorMessage: null,
       preferences: {
-        automaticChecks: true,
         autoDownload: true
       }
     })),
@@ -87,7 +85,6 @@ function createRuntimeUpdateHost(): UiRuntimeUpdateHost {
       recoveryCommand: null,
       errorMessage: null,
       preferences: {
-        automaticChecks: true,
         autoDownload: true
       }
     })),
@@ -110,7 +107,6 @@ function createRuntimeUpdateHost(): UiRuntimeUpdateHost {
       recoveryCommand: null,
       errorMessage: null,
       preferences: {
-        automaticChecks: true,
         autoDownload: true
       }
     })),
@@ -133,7 +129,6 @@ function createRuntimeUpdateHost(): UiRuntimeUpdateHost {
       recoveryCommand: null,
       errorMessage: null,
       preferences: {
-        automaticChecks: true,
         autoDownload: false
       }
     })),
@@ -156,7 +151,6 @@ function createRuntimeUpdateHost(): UiRuntimeUpdateHost {
       recoveryCommand: null,
       errorMessage: null,
       preferences: {
-        automaticChecks: true,
         autoDownload: true
       }
     }))
@@ -222,5 +216,26 @@ describe("runtime update routes", () => {
     });
     expect(applyResponse.status).toBe(200);
     expect(runtimeUpdate.applyDownloadedUpdate).toHaveBeenCalledOnce();
+  });
+
+  it("keeps auto-download configurable and ignores the retired automatic-check field", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+    const runtimeUpdate = createRuntimeUpdateHost();
+    const app = createUiRouter({
+      kernel: createRouterTestKernel(),
+      configPath,
+      appEventBus: new EventBus(),
+      runtimeUpdate
+    });
+
+    const response = await app.request("http://localhost/api/runtime/update/preferences", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ automaticChecks: false, autoDownload: false })
+    });
+
+    expect(response.status).toBe(200);
+    expect(runtimeUpdate.updatePreferences).toHaveBeenCalledWith({ autoDownload: false });
   });
 });

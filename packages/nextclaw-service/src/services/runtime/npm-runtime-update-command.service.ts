@@ -130,7 +130,6 @@ export class NpmRuntimeUpdateCommandService {
       recoveryCommand: "Use the desktop update settings or restart NextClaw Desktop to check for desktop updates.",
       errorMessage: "The desktop-installed nextclaw command uses the desktop update channel instead of the npm runtime updater.",
       preferences: {
-        automaticChecks: false,
         autoDownload: false
       }
     };
