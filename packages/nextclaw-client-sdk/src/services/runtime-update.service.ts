@@ -1,4 +1,4 @@
-import type { UpdatePreferences, UpdateSnapshot } from "@nextclaw/shared";
+import type { UpdateSnapshot } from "@nextclaw/shared";
 import type { RequestService } from "./request.service.js";
 
 export class RuntimeUpdateService {
@@ -18,10 +18,6 @@ export class RuntimeUpdateService {
 
   readonly apply = async (): Promise<UpdateSnapshot> => {
     return await this.requestService.post<UpdateSnapshot>("/api/runtime/update/apply", {});
-  };
-
-  readonly updatePreferences = async (preferences: Partial<UpdatePreferences>): Promise<UpdateSnapshot> => {
-    return await this.requestService.put<UpdateSnapshot>("/api/runtime/update/preferences", preferences);
   };
 
   readonly updateChannel = async (channel: UpdateSnapshot["channel"]): Promise<UpdateSnapshot> => {

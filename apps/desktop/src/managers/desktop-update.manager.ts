@@ -5,7 +5,6 @@ import type { DesktopWindowManager } from "./desktop-window.manager";
 import {
   DesktopUpdateCoordinatorService,
   type DesktopUpdateCapability,
-  type DesktopUpdatePreferences,
   type DesktopUpdateSnapshot
 } from "../launcher/services/update-coordinator.service";
 import type { DesktopReleaseChannel } from "../launcher/stores/launcher-state.store";
@@ -16,8 +15,7 @@ import {
   DESKTOP_UPDATES_DOWNLOAD_CHANNEL,
   DESKTOP_UPDATES_GET_STATE_CHANNEL,
   DESKTOP_UPDATES_STATE_CHANGED_CHANNEL,
-  DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL,
-  DESKTOP_UPDATES_UPDATE_PREFERENCES_CHANNEL
+  DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL
 } from "../utils/desktop-ipc.utils";
 import {
   drainDesktopCleanups,
@@ -68,7 +66,6 @@ export class DesktopUpdateManager {
       DESKTOP_UPDATES_CHECK_CHANNEL,
       DESKTOP_UPDATES_DOWNLOAD_CHANNEL,
       DESKTOP_UPDATES_APPLY_CHANNEL,
-      DESKTOP_UPDATES_UPDATE_PREFERENCES_CHANNEL,
       DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL
     );
     cleanupIpcHandlers();
@@ -81,11 +78,6 @@ export class DesktopUpdateManager {
       this.restartApplication();
       return snapshot;
     });
-    ipcMain.handle(
-      DESKTOP_UPDATES_UPDATE_PREFERENCES_CHANNEL,
-      async (_event, preferences: Partial<DesktopUpdatePreferences> | undefined) =>
-        await this.ensureCoordinator().updatePreferences(preferences ?? {})
-    );
     ipcMain.handle(DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL, async (_event, channel: DesktopReleaseChannel | undefined) => {
       return await this.updateChannel(channel === "beta" ? "beta" : "stable");
     });
@@ -189,8 +181,7 @@ export class DesktopUpdateManager {
       publishSnapshot: (snapshot) => {
         this.publishSnapshot(snapshot);
         this.installApplicationMenu();
-      },
-      onAutoDownloadedUpdateReady: this.showDownloadedUpdateDialog
+      }
     });
 
     return this.coordinator;
@@ -347,8 +338,7 @@ export class DesktopUpdateManager {
         `channel=${snapshot.channel}`,
         `current=${snapshot.currentVersion ?? ""}`,
         `available=${snapshot.availableVersion ?? ""}`,
-        `downloaded=${snapshot.downloadedVersion ?? ""}`,
-        `autoDownload=${String(snapshot.preferences.autoDownload)}`
+        `downloaded=${snapshot.downloadedVersion ?? ""}`
       ].join(" ")
     );
 

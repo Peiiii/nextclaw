@@ -1,12 +1,13 @@
-# NextClaw 固定周期自动检查更新设计
+# NextClaw 固定周期检查与手动下载更新设计
 
 ## 背景
 
-NextClaw 的桌面端与 NPM runtime update 已经共享更新快照、签名 manifest、下载、应用和版本切换合同，但自动检查仍有三处结构性缺口：
+NextClaw 的桌面端与 NPM runtime update 已经共享更新快照、签名 manifest、下载、应用和版本切换合同，但更新策略仍有四处结构性缺口：
 
 - 桌面端虽然会在启动、窗口重新聚焦和系统恢复时检查，但定时唤醒为一小时、实际最短检查间隔为五小时，两个策略不一致。
 - NPM runtime update host 只在构造或首次读取状态时触发一次自动检查，没有运行期间的周期调度。
 - `automaticChecks` 被建模成用户偏好并持久化，用户可以关闭一项本应作为产品可靠性基线的能力；这也让桌面 IPC、HTTP API、SDK、前端和两个状态文件都承担了不必要的配置合同。
+- `autoDownload` 同样被做成跨层偏好，而且 NPM 安装态默认开启；自动检查一旦发现版本便可能直接消耗网络和磁盘，偏离“先提示、再由用户明确下载”的可预测交互。
 
 这会导致已经长时间运行的安装实例只有在 restart 后才可靠发现新版本，也让本地验证只能证明“启动时检查”，不能证明“不重启也会发现后来发布的新版本”。
 
@@ -14,14 +15,14 @@ NextClaw 的桌面端与 NPM runtime update 已经共享更新快照、签名 ma
 
 - 桌面端和 NPM 安装端只要持续运行，就会自动检查更新。
 - 自动检查固定开启，每两小时检查一次，不提供关闭入口，也不写入持久化配置。
-- 自动下载保持现状：仍由用户配置并持久化；检查到更新后是否后台下载继续遵守 `autoDownload`。
-- 自动检查和自动下载都不自动应用版本；应用和必要的重启仍由用户确认。
+- 永远不自动下载，不提供下载策略配置，也不把 `autoDownload` 写入持久化状态。
+- 检查到新版本后停在 `update-available`；只有用户明确点击下载才进入下载，应用和必要的重启也仍由用户确认。
 - 开发者无需等待真实发版或真实两小时，就能在本地通过同一产品主链路验证运行中发现新版本。
 
 ## 成功标准
 
-1. `automaticChecks` 从共享类型、桌面 IPC、HTTP 请求、SDK、前端 manager、UI 和持久状态中消失。
-2. `autoDownload` 的配置入口、持久化、默认值与自动下载行为保持不变：桌面端默认关闭，NPM runtime 默认开启。
+1. `automaticChecks` 与 `autoDownload` 都从共享类型、快照、桌面 IPC、HTTP API、SDK、前端 manager、UI 和持久状态中消失。
+2. 任意自动检查、手动检查或更新通道切换只更新可用版本状态，不调用下载；只有显式 `downloadUpdate` 动作可以开始下载。
 3. 自动检查策略只有一个事实源：生产间隔固定为两小时。
 4. 桌面端和 NPM host 都在明确的 `start` / `dispose` 生命周期内管理定时器，不由构造函数或 `getState` 暗中启动。
 5. 最近两小时已经检查过时，进程启动不会重复请求；到期后无需 restart 即可检查。
@@ -32,19 +33,15 @@ NextClaw 的桌面端与 NPM runtime update 已经共享更新快照、签名 ma
 
 ## 设计原则与关键取舍
 
-### 固定策略不是用户配置
+### 更新可靠性与资源消耗都使用固定策略
 
 自动检查是 NextClaw 维持版本连续性和安全更新能力的产品基线，属于稳定产品策略，不是用户偏好。按照 `responsibility-surface-minimization`，owner 自己能够决定的内部策略不应扩散为 UI、API 和持久化字段。
 
-自动下载不同。它消耗网络和磁盘，并改变本地待应用状态，是真实用户选择，因此继续保留配置。这次只删除 `automaticChecks`，不扩大到 `autoDownload`。
+下载会消耗网络和磁盘，并改变本地待应用状态。产品固定采用“只检查、不自动下载”：系统负责持续发现更新，资源消耗动作必须由用户明确触发。既然没有可选策略，`autoDownload` 也不应作为一个永远为 false 的伪偏好继续存在。
 
 ### 检查与下载、应用继续分离
 
-周期任务只负责发起检查。检查完成后：
-
-- `autoDownload = false`：停在 `update-available`，等待用户下载。
-- `autoDownload = true`：沿用既有后台下载路径，停在 `downloaded`。
-- 无论哪种情况，都不自动 apply，也不自动切换运行版本。
+周期任务只负责发起检查。发现新版本后固定停在 `update-available`，等待用户点击下载；下载完成后固定停在 `downloaded`，等待用户点击应用。系统不自动下载、不自动 apply，也不自动切换运行版本。
 
 ### 精确延迟，不使用固定轮询近似
 
@@ -81,7 +78,9 @@ nextDelay = max(0, lastCheckedAt + 2h - now)
 - 手动检查和更新通道切换完成后重新安排 timer。
 - `dispose` 统一清理 timer 与 Electron listeners。
 
-`DesktopUpdateCoordinatorService` 继续拥有检查、下载、应用和快照状态，不新增平行 scheduler service。它使用 Kernel 的纯策略判断是否到期，并继续依据 `autoDownload` 决定检查后的下载行为。
+`DesktopUpdateCoordinatorService` 继续拥有检查、手动下载、应用和快照状态，不新增平行 scheduler service。它使用 Kernel 的纯策略判断是否到期，检查路径与下载路径之间不再存在自动跳转。
+
+更新通道切换必须先等待当前检查收口，再持久化新通道并为新通道发起独立检查。active check promise 使用任务身份保护清理，旧任务的 `finally` 不得清掉后创建的新任务；这样旧通道 manifest 不会被投影到新通道状态。
 
 ### NpmRuntimeUpdateHost：NPM 定时器 owner
 
@@ -92,6 +91,7 @@ nextDelay = max(0, lastCheckedAt + 2h - now)
 - `getState()` 保持纯读，不再顺手启动检查。
 - `dispose()` 清理 timer。
 - `ServiceGatewayManager.start/stop` 确定性调用其生命周期。
+- 更新通道切换先等待当前 active task 收口，再写入新通道并检查，不能复用旧通道的在途任务。
 
 不新增通用 scheduler class。两个宿主的触发源和生命周期不同，共享纯策略即可；强行抽象 callback scheduler 会增加配置和跳转，却不会减少真实复杂度。
 
@@ -103,24 +103,16 @@ nextDelay = max(0, lastCheckedAt + 2h - now)
 
 ## 合同与持久化迁移
 
-共享合同收敛为：
-
-```ts
-type UpdatePreferences = {
-  autoDownload: boolean;
-};
-```
-
-以下入口继续存在，因为它们仍承载 `autoDownload`：
+共享更新合同删除 `UpdatePreferences`，`UpdateSnapshot` 删除 `preferences` 与 `canAutoDownload`。以下只服务更新偏好的入口同步删除：
 
 - `PUT /api/runtime/update/preferences`
 - client SDK `updatePreferences`
-- desktop bridge `updatePreferences`
+- desktop bridge 与 IPC `updatePreferences`
 - 前端 `runtimeUpdateManager.updatePreferences`
 
-但请求只接受 `autoDownload`。前端删除“自动检查更新”开关，保留更新通道与“自动后台下载”开关，并用静态说明明确系统每两小时自动检查。
+前端不再展示任何自动检查或自动下载开关，只保留更新通道选择，并静态说明系统每两小时检查、下载和应用需要用户确认。
 
-桌面 `launcher/state.json` 与 NPM `npm-runtime-update-state.json` 的 `updatePreferences` 只保留 `autoDownload`。读取旧状态时，normalizer 不再投影旧 `automaticChecks`；下一次正常写入会自然移除该旧字段。这里没有双读、双写或旧字段 alias，因为旧值不再影响产品行为。
+桌面 `launcher/state.json` 与 NPM `npm-runtime-update-state.json` 删除整个 `updatePreferences`。读取旧状态时，normalizer 直接忽略该对象；下一次正常写入会自然移除 `automaticChecks` 与 `autoDownload`。不保留旧 API、空对象、固定 false 字段或 alias，避免退役策略继续污染内部合同。
 
 ## 本地验证机制
 
@@ -142,7 +134,6 @@ NEXTCLAW_UPDATE_VERIFICATION_INTERVAL_MS=<positive integer>
 现有命令继续复用真实签名 fixture、真实 launcher、真实 managed service 和真实页面，但初始状态改为：
 
 - `lastUpdateCheckAt` 写入本次启动前的当前时间，确保启动时不会立即检查。
-- `autoDownload` 保持关闭，保证开发者仍能亲自点击下载。
 - verification interval 设为数秒。
 
 harness 除了等待 `/api/app/meta` 的 baseline 版本，还会等待更新 API 出现 candidate，并断言：
@@ -160,7 +151,8 @@ harness 除了等待 `/api/app/meta` 的 baseline 版本，还会等待更新 AP
 
 - baseline 版本直接读取已安装 seed manifest，candidate 由 baseline 的下一个 patch 版本生成，不使用会随发布过期的硬编码版本。
 - smoke 运行期间隔离仓库 `build/update-release-metadata.json` 的陈旧生成物，并在结束后原样恢复，避免元数据与 fixture seed 不一致时覆盖候选版本。
-- 启动前把 channel 设为 beta、`lastUpdateCheckAt` 设为当前时间、`autoDownload` 关闭。
+- 临时覆盖仓库 seed bundle 前保存原始字节，成功或失败清理时都原样恢复，保证验证命令可重复运行且不污染工作区。
+- 启动前把 channel 设为 beta、`lastUpdateCheckAt` 设为当前时间。
 - 通过 verification mode 将周期压缩为数秒。
 - 不调用 `checkForUpdates` 或 `updateChannel` 来发现 beta；等待同一 Electron 进程的 snapshot 自动进入 `update-available`。
 - 再沿既有 bridge 下载、应用、relaunch，并校验 pointer 和最终版本。
@@ -172,10 +164,10 @@ harness 除了等待 `/api/app/meta` 的 baseline 版本，还会等待更新 AP
 - `docs/designs/2026-07-17-fixed-automatic-update-check.design.md`：本设计与验收合同。
 - `packages/nextclaw-kernel/src/utils/automatic-update-check.utils.ts`：两小时策略和剩余延迟纯计算。
 - `apps/desktop/src/managers/desktop-update.manager.ts`：桌面 timer 与 Electron 触发生命周期。
-- `apps/desktop/src/launcher/services/update-coordinator.service.ts`：桌面到期判断及保留 `autoDownload` 行为。
+- `apps/desktop/src/launcher/services/update-coordinator.service.ts`：桌面到期判断、手动下载与应用主链路。
 - `packages/nextclaw-service/src/services/runtime/npm-runtime-update-host.service.ts`：NPM timer 生命周期。
-- 两个 update state store：删除持久化 `automaticChecks`，保留 `autoDownload`。
-- shared/server/client/UI/desktop bridge：收窄 preference contract 并删除自动检查开关。
+- 两个 update state store：删除整个 `updatePreferences` 持久化合同。
+- shared/server/client/UI/desktop bridge：删除 update preference contract、配置入口和两个开关。
 - `scripts/dev/verify-update.mjs`：运行中自动发现的人工验收 owner。
 - `apps/desktop/scripts/smoke-product-update.mjs`：桌面运行中自动发现 smoke。
 - `docs/workflows/developer-commands.md`：更新人工验收的可观察结果和速度说明。
@@ -187,11 +179,11 @@ harness 除了等待 `/api/app/meta` 的 baseline 版本，还会等待更新 AP
 | NPM 启动且上次检查未到两小时 | 不立即请求，剩余时间到期后检查 |
 | NPM 长时间运行后发布 candidate | PID 不变，自动出现 `availableVersion` |
 | Desktop 长时间运行后发布 candidate | Electron 进程不重启，bridge snapshot 自动变为 `update-available` |
-| 自动下载关闭 | 自动检查后停在 `update-available` |
-| 自动下载开启 | 自动检查后进入既有下载流程并停在 `downloaded` |
+| 任意自动或手动检查 | 发现更新后停在 `update-available`，不产生下载请求 |
+| 用户点击下载 | 进入下载流程并停在 `downloaded` |
 | 手动检查 | 立即检查，并从新的 `lastCheckedAt` 重新计算两小时 |
-| 更新通道切换 | 立即检查新通道，并重新计算两小时 |
-| 旧状态含 `automaticChecks: false` | 旧值被忽略，自动检查仍然运行；后续写入移除该字段 |
+| 更新通道切换 | 若旧通道检查在途则先等待其收口，再单独检查新通道并重新计算两小时；不复用旧检查结果 |
+| 旧状态含 `automaticChecks: false` 或 `autoDownload: true` | 整个旧偏好对象被忽略；自动检查仍运行且不自动下载，后续写入移除该对象 |
 | 桌面内嵌 runtime | HTTP runtime update host 不暴露，只有桌面 bridge owner |
 | 正常产品环境误设短间隔变量 | 未开启 verification mode 时仍固定两小时 |
 
@@ -203,13 +195,13 @@ harness 除了等待 `/api/app/meta` 的 baseline 版本，还会等待更新 AP
 2. Desktop coordinator/manager、NPM update host/state store、server controller、client SDK 与 UI 相关测试。
 3. 所有触达 TypeScript package 的 `tsc`。
 4. `pnpm dev:verify-update -- --no-open`，观察同 PID 自动发现 candidate；完成下载与应用链路。
-5. `pnpm -C apps/desktop smoke:update`，观察同 Electron 进程自动发现 candidate并完成 apply/relaunch。
+5. `pnpm -C apps/desktop smoke:update`，观察同 Electron 进程自动发现 candidate 并完成 apply/relaunch，同时确认 seed bundle 运行前后无漂移。
 6. 相关 lint、`pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet`、maintainability guard。
 7. 构建/冒烟后检查 `git status --short`，清理非预期生成产物。
 
 ## 非目标
 
-- 不取消或固定 `autoDownload`。
+- 不删除手动下载、手动应用或下载进度能力。
 - 不自动 apply，不静默重启用户进程。
 - 不取消 stable/beta 更新通道选择。
 - 不新增面向用户的检查频率配置、环境配置文档或高级设置。

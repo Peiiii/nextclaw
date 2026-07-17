@@ -123,15 +123,11 @@ export class NpmRuntimeUpdateCommandService {
       releaseNotesUrl: null,
       lastCheckedAt: new Date().toISOString(),
       progress: null,
-      canAutoDownload: false,
       canApplyInApp: false,
       requiresRestart: false,
       blockReason: "unsupported-installation",
       recoveryCommand: "Use the desktop update settings or restart NextClaw Desktop to check for desktop updates.",
-      errorMessage: "The desktop-installed nextclaw command uses the desktop update channel instead of the npm runtime updater.",
-      preferences: {
-        autoDownload: false
-      }
+      errorMessage: "The desktop-installed nextclaw command uses the desktop update channel instead of the npm runtime updater."
     };
   };
 }

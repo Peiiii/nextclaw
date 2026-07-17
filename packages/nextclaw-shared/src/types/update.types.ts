@@ -29,10 +29,6 @@ export type UpdateProgress = {
   percent: number | null;
 };
 
-export type UpdatePreferences = {
-  autoDownload: boolean;
-};
-
 export type UpdateSnapshot = {
   status: UpdateStatus;
   installationKind: InstallationKind;
@@ -45,7 +41,6 @@ export type UpdateSnapshot = {
   releaseNotesUrl: string | null;
   lastCheckedAt: string | null;
   progress: UpdateProgress | null;
-  canAutoDownload: boolean;
   canApplyInApp: boolean;
   requiresRestart: boolean;
   blockReason: UpdateBlockReason | null;
@@ -53,5 +48,4 @@ export type UpdateSnapshot = {
   errorMessage: string | null;
   failureStage?: UpdateFailureStage | null;
   diagnosticCommand?: string | null;
-  preferences: UpdatePreferences;
 };

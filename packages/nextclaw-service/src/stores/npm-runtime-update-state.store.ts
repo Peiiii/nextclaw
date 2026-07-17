@@ -14,10 +14,7 @@ function createDefaultState(channel: NpmRuntimeReleaseChannel): NpmRuntimeUpdate
     badVersions: [],
     lastUpdateCheckAt: null,
     downloadedVersion: null,
-    downloadedReleaseNotesUrl: null,
-    updatePreferences: {
-      autoDownload: true
-    }
+    downloadedReleaseNotesUrl: null
   };
 }
 
@@ -50,20 +47,6 @@ function normalizeStringArray(value: unknown): string[] {
   return [...new Set(value.filter((entry): entry is string => typeof entry === "string").map((entry) => entry.trim()).filter(Boolean))];
 }
 
-function normalizeUpdatePreferences(value: unknown): NpmRuntimeUpdateState["updatePreferences"] {
-  const defaultState = createDefaultState("stable");
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return { ...defaultState.updatePreferences };
-  }
-  const record = value as Record<string, unknown>;
-  return {
-    autoDownload:
-      typeof record.autoDownload === "boolean"
-        ? record.autoDownload
-        : defaultState.updatePreferences.autoDownload
-  };
-}
-
 function normalizeState(input: unknown, defaultChannel: NpmRuntimeReleaseChannel): NpmRuntimeUpdateState {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     throw new Error("npm runtime update state must be an object");
@@ -80,8 +63,7 @@ function normalizeState(input: unknown, defaultChannel: NpmRuntimeReleaseChannel
     badVersions: normalizeStringArray(record.badVersions),
     lastUpdateCheckAt: normalizeOptionalString(record.lastUpdateCheckAt),
     downloadedVersion: normalizeOptionalString(record.downloadedVersion),
-    downloadedReleaseNotesUrl: normalizeOptionalString(record.downloadedReleaseNotesUrl),
-    updatePreferences: normalizeUpdatePreferences(record.updatePreferences)
+    downloadedReleaseNotesUrl: normalizeOptionalString(record.downloadedReleaseNotesUrl)
   };
 }
 
@@ -101,8 +83,7 @@ export class NpmRuntimeUpdateStateStore {
 
   read = (): NpmRuntimeUpdateState => {
     if (!existsSync(this.statePath)) {
-      const defaultState = createDefaultState(this.defaultChannel);
-      return { ...defaultState, updatePreferences: { ...defaultState.updatePreferences } };
+      return createDefaultState(this.defaultChannel);
     }
     return normalizeState(JSON.parse(readFileSync(this.statePath, "utf8")), this.defaultChannel);
   };

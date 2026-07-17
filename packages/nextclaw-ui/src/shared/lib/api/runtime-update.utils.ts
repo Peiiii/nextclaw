@@ -1,4 +1,4 @@
-import type { UpdatePreferences, UpdateSnapshot } from '@nextclaw/shared';
+import type { UpdateSnapshot } from '@nextclaw/shared';
 import { nextclawClient } from './managers/client.manager';
 
 export async function fetchRuntimeUpdate(): Promise<UpdateSnapshot> {
@@ -15,10 +15,6 @@ export async function downloadRuntimeUpdate(): Promise<UpdateSnapshot> {
 
 export async function applyRuntimeUpdate(): Promise<UpdateSnapshot> {
   return await nextclawClient.runtimeUpdate.apply();
-}
-
-export async function updateRuntimeUpdatePreferences(preferences: Partial<UpdatePreferences>): Promise<UpdateSnapshot> {
-  return await nextclawClient.runtimeUpdate.updatePreferences(preferences);
 }
 
 export async function updateRuntimeUpdateChannel(channel: UpdateSnapshot['channel']): Promise<UpdateSnapshot> {

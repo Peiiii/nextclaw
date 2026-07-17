@@ -1,5 +1,5 @@
-import type { UpdatePreferences, UpdateSnapshot } from '@nextclaw/shared';
-import { applyRuntimeUpdate, checkRuntimeUpdate, downloadRuntimeUpdate, fetchRuntimeUpdate, updateRuntimeUpdateChannel, updateRuntimeUpdatePreferences } from '@/shared/lib/api';
+import type { UpdateSnapshot } from '@nextclaw/shared';
+import { applyRuntimeUpdate, checkRuntimeUpdate, downloadRuntimeUpdate, fetchRuntimeUpdate, updateRuntimeUpdateChannel } from '@/shared/lib/api';
 import type { NextClawDesktopBridge } from '@/platforms/desktop';
 import { t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
@@ -10,7 +10,6 @@ interface RuntimeUpdateSourceBase {
   checkForUpdates: () => Promise<UpdateSnapshot>;
   downloadUpdate: () => Promise<UpdateSnapshot>;
   applyDownloadedUpdate: () => Promise<UpdateSnapshot>;
-  updatePreferences: (preferences: Partial<UpdatePreferences>) => Promise<UpdateSnapshot>;
   updateChannel: (channel: UpdateSnapshot['channel']) => Promise<UpdateSnapshot>;
 }
 
@@ -50,10 +49,6 @@ class DesktopBridgeRuntimeUpdateSource implements DesktopBridgeRuntimeUpdateSour
     return await this.desktopApi.applyDownloadedUpdate();
   };
 
-  updatePreferences = async (preferences: Partial<UpdatePreferences>): Promise<UpdateSnapshot> => {
-    return await this.desktopApi.updatePreferences(preferences);
-  };
-
   updateChannel = async (channel: UpdateSnapshot['channel']): Promise<UpdateSnapshot> => {
     return await this.desktopApi.updateChannel(channel);
   };
@@ -76,10 +71,6 @@ class HostRuntimeUpdateSource implements HostRuntimeUpdateSourceContract {
 
   applyDownloadedUpdate = async (): Promise<UpdateSnapshot> => {
     return await applyRuntimeUpdate();
-  };
-
-  updatePreferences = async (preferences: Partial<UpdatePreferences>): Promise<UpdateSnapshot> => {
-    return await updateRuntimeUpdatePreferences(preferences);
   };
 
   updateChannel = async (channel: UpdateSnapshot['channel']): Promise<UpdateSnapshot> => {
@@ -211,16 +202,6 @@ export class RuntimeUpdateManager {
     try {
       await this.runSnapshotCommand('applying', t('runtimeUpdatesApplyFailed'), async (source) => {
         return await source.applyDownloadedUpdate();
-      });
-    } catch {
-      return;
-    }
-  };
-
-  updatePreferences = async (preferences: Partial<UpdatePreferences>) => {
-    try {
-      await this.runSnapshotCommand('saving-preferences', t('runtimeUpdatesPreferencesFailed'), async (source) => {
-        return await source.updatePreferences(preferences);
       });
     } catch {
       return;

@@ -104,9 +104,6 @@ test("packaged metadata manifest base url can drive a local validation update so
       lastUpdateCheckAt: null,
       downloadedVersion: null,
       downloadedReleaseNotesUrl: null,
-      updatePreferences: {
-        autoDownload: false
-      },
       presencePreferences: {
         closeToBackground: true,
         launchAtLogin: false
@@ -162,9 +159,6 @@ test("explicit manifest base url keeps channel-aware resolution for unpackaged s
       lastUpdateCheckAt: null,
       downloadedVersion: null,
       downloadedReleaseNotesUrl: null,
-      updatePreferences: {
-        autoDownload: false
-      },
       presencePreferences: {
         closeToBackground: true,
         launchAtLogin: false
@@ -235,9 +229,6 @@ test("persisted launcher state channel overrides packaged metadata", async () =>
       lastUpdateCheckAt: null,
       downloadedVersion: null,
       downloadedReleaseNotesUrl: null,
-      updatePreferences: {
-        autoDownload: false
-      },
       presencePreferences: {
         closeToBackground: true,
         launchAtLogin: false

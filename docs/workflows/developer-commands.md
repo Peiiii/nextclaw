@@ -76,6 +76,8 @@ pnpm local:runtime:stop
 7. 自动打开真实页面，等待开发者亲自点击下载和应用。
 8. 观察最终版本、managed service PID 和 runtime pointer 是否一起切换。
 
+产品不会自动下载。命令报告 candidate 已发现时，更新状态必须仍是“可下载”，且 `downloadedVersion` 为空；只有开发者点击下载后才允许进入下载流程。
+
 ```bash
 pnpm dev:verify-update
 pnpm dev:verify-update -- --no-open

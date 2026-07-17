@@ -563,9 +563,6 @@ setTimeout(() => {}, 600000);
     lastUpdateCheckAt = $null
     downloadedVersion = $null
     downloadedReleaseNotesUrl = $null
-    updatePreferences = @{
-      autoDownload = $false
-    }
     presencePreferences = @{
       closeToBackground = $true
       launchAtLogin = $false

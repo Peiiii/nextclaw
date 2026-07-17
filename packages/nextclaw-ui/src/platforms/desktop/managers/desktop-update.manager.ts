@@ -1,6 +1,5 @@
 import type {
   DesktopReleaseChannel,
-  DesktopUpdatePreferences,
   DesktopUpdateSnapshot,
   NextClawDesktopBridge
 } from '@/platforms/desktop/types/desktop-update.types';
@@ -8,7 +7,7 @@ import { useDesktopUpdateStore } from '@/platforms/desktop/stores/desktop-update
 import { t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
 
-type DesktopUpdateBusyAction = 'checking' | 'downloading' | 'applying' | 'saving-preferences' | 'switching-channel';
+type DesktopUpdateBusyAction = 'checking' | 'downloading' | 'applying' | 'switching-channel';
 
 export class DesktopUpdateManager {
   private unsubscribe: (() => void) | null = null;
@@ -115,18 +114,6 @@ export class DesktopUpdateManager {
       await this.runSnapshotCommand('applying', t('desktopUpdatesApplyFailed'), async (desktopApi) => {
         return await desktopApi.applyDownloadedUpdate();
       });
-    } catch {
-      return;
-    }
-  };
-
-  updatePreferences = async (preferences: Partial<DesktopUpdatePreferences>) => {
-    try {
-      await this.runSnapshotCommand(
-        'saving-preferences',
-        t('desktopUpdatesPreferencesFailed'),
-        async (desktopApi) => await desktopApi.updatePreferences(preferences)
-      );
     } catch {
       return;
     }

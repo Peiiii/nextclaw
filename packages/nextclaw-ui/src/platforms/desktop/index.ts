@@ -20,7 +20,6 @@ export type {
   DesktopPresenceSnapshot,
   DesktopReleaseChannel,
   DesktopRuntimeControlResult,
-  DesktopUpdatePreferences,
   DesktopUpdateSnapshot,
   DesktopUpdateStatus,
   NextClawDesktopBridge,

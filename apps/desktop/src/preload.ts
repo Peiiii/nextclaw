@@ -1,8 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type {
-  DesktopUpdatePreferences,
-  DesktopUpdateSnapshot
-} from "./launcher/services/update-coordinator.service";
+import type { DesktopUpdateSnapshot } from "./launcher/services/update-coordinator.service";
 import type { DesktopUiLanguagePreference } from "./launcher/stores/launcher-state.store";
 import type { DesktopReleaseChannel } from "./launcher/stores/launcher-state.store";
 import {
@@ -21,8 +18,7 @@ import {
   DESKTOP_UPDATES_DOWNLOAD_CHANNEL,
   DESKTOP_UPDATES_GET_STATE_CHANNEL,
   DESKTOP_UPDATES_STATE_CHANGED_CHANNEL,
-  DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL,
-  DESKTOP_UPDATES_UPDATE_PREFERENCES_CHANNEL
+  DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL
 } from "./utils/desktop-ipc.utils";
 
 type DesktopRuntimeControlResult = {
@@ -59,8 +55,6 @@ contextBridge.exposeInMainWorld("nextclawDesktop", {
   downloadUpdate: async (): Promise<DesktopUpdateSnapshot> => await ipcRenderer.invoke(DESKTOP_UPDATES_DOWNLOAD_CHANNEL),
   applyDownloadedUpdate: async (): Promise<DesktopUpdateSnapshot> =>
     await ipcRenderer.invoke(DESKTOP_UPDATES_APPLY_CHANNEL),
-  updatePreferences: async (preferences: Partial<DesktopUpdatePreferences>): Promise<DesktopUpdateSnapshot> =>
-    await ipcRenderer.invoke(DESKTOP_UPDATES_UPDATE_PREFERENCES_CHANNEL, preferences),
   updateChannel: async (channel: DesktopReleaseChannel): Promise<DesktopUpdateSnapshot> =>
     await ipcRenderer.invoke(DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL, channel),
   restartService: async (): Promise<DesktopRuntimeControlResult> =>

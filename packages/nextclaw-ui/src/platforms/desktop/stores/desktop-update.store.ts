@@ -5,7 +5,6 @@ type DesktopUpdateBusyAction =
   | 'checking'
   | 'downloading'
   | 'applying'
-  | 'saving-preferences'
   | 'switching-channel'
   | null;
 

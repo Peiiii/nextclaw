@@ -8,7 +8,6 @@ import {
   eventKeys,
   type EventBus,
   type UpdateFailureStage,
-  type UpdatePreferences,
   type UpdateProgress,
   type UpdateSnapshot,
 } from "@nextclaw/shared";
@@ -82,7 +81,7 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
 
   checkForUpdates = async (): Promise<UpdateSnapshot> => {
     try {
-      return await this.startCheck({ autoDownload: false });
+      return await this.startCheck();
     } finally {
       this.scheduleNextAutomaticCheck();
     }
@@ -126,32 +125,17 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
     }
   };
 
-  updatePreferences = async (preferences: Partial<UpdatePreferences>): Promise<UpdateSnapshot> => {
-    const nextState = this.stateStore.update((current) => ({
-      ...current,
-      updatePreferences: {
-        autoDownload:
-          typeof preferences.autoDownload === "boolean"
-            ? preferences.autoDownload
-            : current.updatePreferences.autoDownload
-      }
-    }));
-    this.setSnapshot(this.createManager(nextState.channel).getSnapshot());
-    try {
-      return await this.startCheck({ autoDownload: nextState.updatePreferences.autoDownload });
-    } finally {
-      this.scheduleNextAutomaticCheck();
-    }
-  };
-
   updateChannel = async (channel: UpdateSnapshot["channel"]): Promise<UpdateSnapshot> => {
+    if (this.activeTask) {
+      await this.activeTask;
+    }
     const nextState = this.stateStore.update((current) => ({
       ...current,
       channel
     }));
     this.setSnapshot(this.createManager(nextState.channel).getSnapshot());
     try {
-      return await this.startCheck({ autoDownload: nextState.updatePreferences.autoDownload });
+      return await this.startCheck();
     } finally {
       this.scheduleNextAutomaticCheck();
     }
@@ -178,7 +162,7 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
         Date.now(),
         this.automaticCheckIntervalMs
       ) === 0) {
-        await this.startCheck({ autoDownload: state.updatePreferences.autoDownload });
+        await this.startCheck();
       }
     } catch (error) {
       this.logger.error("automatic runtime update check failed", {}, error);
@@ -212,7 +196,7 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
     }
   };
 
-  private startCheck = async (options: { autoDownload: boolean }): Promise<UpdateSnapshot> => {
+  private startCheck = async (): Promise<UpdateSnapshot> => {
     if (!this.activeTask) {
       this.setSnapshot({
         ...this.createManager().getSnapshot(),
@@ -224,9 +208,6 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
         try {
           const checkedSnapshot = await this.createManager().checkForUpdate();
           this.setSnapshot(checkedSnapshot);
-          if (options.autoDownload && checkedSnapshot.status === "update-available") {
-            await this.runDownloadTask();
-          }
         } catch (error) {
           this.setSnapshot(this.toFailedSnapshot("check", error));
         } finally {

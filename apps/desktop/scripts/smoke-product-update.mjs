@@ -205,6 +205,7 @@ let page = null;
 let electronProcess = null;
 let httpServer = null;
 let seededDesktopBundle = false;
+let seedBundleBackup = null;
 let betaManifestPublished = false;
 let releaseMetadataBackup = null;
 
@@ -221,6 +222,9 @@ try {
   }
   releaseMetadataBackup = existsSync(desktopReleaseMetadataPath)
     ? readFileSync(desktopReleaseMetadataPath)
+    : null;
+  seedBundleBackup = existsSync(desktopSeedBundlePath)
+    ? readFileSync(desktopSeedBundlePath)
     : null;
   rmSync(desktopReleaseMetadataPath, { force: true });
   await mkdir(dirname(desktopSeedBundlePath), { recursive: true });
@@ -266,9 +270,6 @@ try {
     lastUpdateCheckAt: null,
     downloadedVersion: null,
     downloadedReleaseNotesUrl: null,
-    updatePreferences: {
-      autoDownload: false
-    },
     presencePreferences: {
       closeToBackground: false,
       launchAtLogin: false
@@ -471,7 +472,11 @@ try {
     }
   }
   if (seededDesktopBundle) {
-    await rm(desktopSeedBundlePath, { force: true });
+    if (seedBundleBackup) {
+      writeFileSync(desktopSeedBundlePath, seedBundleBackup);
+    } else {
+      await rm(desktopSeedBundlePath, { force: true });
+    }
   }
   if (releaseMetadataBackup) {
     writeFileSync(desktopReleaseMetadataPath, releaseMetadataBackup);

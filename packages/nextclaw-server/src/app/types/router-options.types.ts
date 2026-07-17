@@ -2,7 +2,6 @@ import type * as NextclawCore from "@nextclaw/core";
 import type { NextclawKernel } from "@nextclaw/kernel";
 import type {
   EventBus,
-  UpdatePreferences,
   UpdateSnapshot,
 } from "@nextclaw/shared";
 import type { ExtensionChannelBinding, ExtensionUiMetadata } from "@nextclaw/core";
@@ -116,7 +115,6 @@ export type UiRuntimeUpdateHost = {
   checkForUpdates: () => Promise<UpdateSnapshot> | UpdateSnapshot;
   downloadUpdate: () => Promise<UpdateSnapshot> | UpdateSnapshot;
   applyDownloadedUpdate: () => Promise<UpdateSnapshot> | UpdateSnapshot;
-  updatePreferences: (preferences: Partial<UpdatePreferences>) => Promise<UpdateSnapshot> | UpdateSnapshot;
   updateChannel: (channel: UpdateSnapshot["channel"]) => Promise<UpdateSnapshot> | UpdateSnapshot;
 };
 

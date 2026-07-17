@@ -75,15 +75,11 @@ function createTestGateway(params: {
     releaseNotesUrl: null,
     lastCheckedAt: null,
     progress: null,
-    canAutoDownload: false,
     canApplyInApp: false,
     requiresRestart: false,
     blockReason: "unsupported-installation",
     recoveryCommand: null,
     errorMessage: null,
-    preferences: {
-      autoDownload: false,
-    },
   } as const;
   return {
     uiConfig: {
@@ -124,7 +120,6 @@ function createTestGateway(params: {
       checkForUpdates: () => updateSnapshot,
       downloadUpdate: () => updateSnapshot,
       applyDownloadedUpdate: () => updateSnapshot,
-      updatePreferences: () => updateSnapshot,
       updateChannel: () => updateSnapshot,
     },
     bootstrapStatus: {

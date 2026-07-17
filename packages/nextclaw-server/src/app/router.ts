@@ -342,7 +342,6 @@ class UiRouteRegistry {
         ["post", "/api/runtime/update/check", runtimeUpdate.checkForUpdates],
         ["post", "/api/runtime/update/download", runtimeUpdate.downloadUpdate],
         ["post", "/api/runtime/update/apply", runtimeUpdate.applyDownloadedUpdate],
-        ["put", "/api/runtime/update/preferences", runtimeUpdate.updatePreferences],
         ["put", "/api/runtime/update/channel", runtimeUpdate.updateChannel],
       ]);
     }

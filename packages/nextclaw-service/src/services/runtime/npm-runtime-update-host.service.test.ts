@@ -6,19 +6,16 @@ import { NpmRuntimeUpdateHost } from "./npm-runtime-update-host.service.js";
 
 const mocks = vi.hoisted(() => {
   const state = {
-    channel: "stable" as const,
+    channel: "stable" as "stable" | "beta",
     currentVersion: null,
     downloadedVersion: "0.18.12-beta.4",
     downloadedReleaseNotesUrl: null,
     lastUpdateCheckAt: null as string | null,
-    badVersions: [],
-    updatePreferences: {
-      autoDownload: true
-    }
+    badVersions: []
   };
   const getSnapshot = vi.fn(() => ({
     installationKind: "npm-runtime-bundle" as const,
-    channel: "stable" as const,
+    channel: state.channel,
     hostVersion: "0.18.12-beta.4",
     currentVersion: null,
     availableVersion: null,
@@ -27,15 +24,11 @@ const mocks = vi.hoisted(() => {
     releaseNotesUrl: null,
     lastCheckedAt: null,
     progress: null,
-    canAutoDownload: true,
     canApplyInApp: true,
     requiresRestart: false,
     blockReason: null,
     recoveryCommand: null,
     errorMessage: null,
-    preferences: {
-      autoDownload: true
-    },
     status: "downloaded" as const
   }));
 
@@ -75,15 +68,11 @@ const mocks = vi.hoisted(() => {
         releaseNotesUrl: null,
         lastCheckedAt: null,
         progress: null,
-        canAutoDownload: true,
         canApplyInApp: false,
         requiresRestart: true,
         blockReason: null,
         recoveryCommand: null,
         errorMessage: null,
-        preferences: {
-          autoDownload: true
-        },
         status: "restart-required" as const
       }))
     }
@@ -152,8 +141,8 @@ describe("NpmRuntimeUpdateHost", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.sourceOptions.length = 0;
+    mocks.state.channel = "stable";
     mocks.state.lastUpdateCheckAt = null;
-    mocks.state.updatePreferences.autoDownload = true;
     NextclawDistributionService.configure(TEST_DISTRIBUTION);
   });
 
@@ -193,7 +182,6 @@ describe("NpmRuntimeUpdateHost", () => {
   it("keeps state reads pure and owns a disposable periodic check lifecycle", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-17T12:00:00.000Z"));
-    mocks.state.updatePreferences.autoDownload = false;
     const host = new NpmRuntimeUpdateHost({
       eventBus: new NextclawKernel().eventBus,
       applyRestartMode: "manual-process-restart",
@@ -214,6 +202,7 @@ describe("NpmRuntimeUpdateHost", () => {
       expect(mocks.manager.checkForUpdate).toHaveBeenCalledTimes(1);
       await vi.advanceTimersByTimeAsync(1);
       expect(mocks.manager.checkForUpdate).toHaveBeenCalledTimes(2);
+      expect(mocks.manager.downloadUpdate).not.toHaveBeenCalled();
 
       host.dispose();
       await vi.advanceTimersByTimeAsync(2_000);
@@ -222,6 +211,41 @@ describe("NpmRuntimeUpdateHost", () => {
       host.dispose();
       vi.useRealTimers();
     }
+  });
+
+  it("waits for an in-flight check before checking a newly selected channel", async () => {
+    type CheckSnapshot = Awaited<ReturnType<typeof mocks.manager.checkForUpdate>>;
+    let resolveFirstCheck!: (snapshot: CheckSnapshot) => void;
+    const firstCheckResult = new Promise<CheckSnapshot>((resolve) => {
+      resolveFirstCheck = resolve;
+    });
+    mocks.manager.checkForUpdate.mockImplementationOnce(async () => await firstCheckResult);
+    const host = new NpmRuntimeUpdateHost({
+      eventBus: new NextclawKernel().eventBus,
+      applyRestartMode: "manual-process-restart",
+      requestRestart: vi.fn(),
+      uiConfig: { port: 55667 }
+    });
+
+    const activeCheck = host.checkForUpdates();
+    expect(mocks.manager.checkForUpdate).toHaveBeenCalledTimes(1);
+    const channelSwitch = host.updateChannel("beta");
+    await Promise.resolve();
+    try {
+      expect(mocks.state.channel).toBe("stable");
+    } finally {
+      resolveFirstCheck({
+        ...mocks.manager.getSnapshot(),
+        availableVersion: "0.18.13",
+        downloadedVersion: null,
+        canApplyInApp: false,
+        status: "update-available"
+      });
+    }
+    await activeCheck;
+    await channelSwitch;
+    expect(mocks.state.channel).toBe("beta");
+    expect(mocks.manager.checkForUpdate).toHaveBeenCalledTimes(2);
   });
 
   it("keeps a foreground serve process alive after applying a downloaded runtime update", async () => {

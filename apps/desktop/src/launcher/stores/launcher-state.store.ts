@@ -16,9 +16,6 @@ export type DesktopLauncherState = {
   lastUpdateCheckAt: string | null;
   downloadedVersion: string | null;
   downloadedReleaseNotesUrl: string | null;
-  updatePreferences: {
-    autoDownload: boolean;
-  };
   presencePreferences: {
     closeToBackground: boolean;
     launchAtLogin: boolean;
@@ -40,9 +37,6 @@ const DEFAULT_LAUNCHER_STATE: DesktopLauncherState = {
   lastUpdateCheckAt: null,
   downloadedVersion: null,
   downloadedReleaseNotesUrl: null,
-  updatePreferences: {
-    autoDownload: false
-  },
   presencePreferences: {
     closeToBackground: true,
     launchAtLogin: false
@@ -97,22 +91,8 @@ function normalizeState(parsed: unknown): DesktopLauncherState {
     lastUpdateCheckAt: normalizeOptionalString(record.lastUpdateCheckAt),
     downloadedVersion: normalizeOptionalString(record.downloadedVersion),
     downloadedReleaseNotesUrl: normalizeOptionalString(record.downloadedReleaseNotesUrl),
-    updatePreferences: normalizeUpdatePreferences(record.updatePreferences),
     presencePreferences: normalizePresencePreferences(record.presencePreferences),
     languagePreference: normalizeDesktopUiLanguagePreference(record.languagePreference)
-  };
-}
-
-function normalizeUpdatePreferences(value: unknown): DesktopLauncherState["updatePreferences"] {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return { ...DEFAULT_LAUNCHER_STATE.updatePreferences };
-  }
-  const record = value as Record<string, unknown>;
-  return {
-    autoDownload:
-      typeof record.autoDownload === "boolean"
-        ? record.autoDownload
-        : DEFAULT_LAUNCHER_STATE.updatePreferences.autoDownload
   };
 }
 

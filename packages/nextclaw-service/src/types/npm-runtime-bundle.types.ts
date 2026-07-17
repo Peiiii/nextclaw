@@ -31,9 +31,6 @@ export type NpmRuntimeUpdateState = {
   lastUpdateCheckAt: string | null;
   downloadedVersion: string | null;
   downloadedReleaseNotesUrl: string | null;
-  updatePreferences: {
-    autoDownload: boolean;
-  };
 };
 
 export type NpmRuntimeDownloadedUpdate = {

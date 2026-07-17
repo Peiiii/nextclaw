@@ -1,9 +1,8 @@
 import type { Context } from "hono";
-import type { UpdatePreferences, UpdateSnapshot } from "@nextclaw/shared";
+import type { UpdateSnapshot } from "@nextclaw/shared";
 import { err, formatUserFacingError, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import type { UiRuntimeUpdateHost } from "@nextclaw-server/app/types/router-options.types.js";
 
-type RuntimeUpdatePreferencesRequest = Partial<UpdatePreferences>;
 type RuntimeUpdateChannelRequest = {
   channel?: UpdateSnapshot["channel"];
 };
@@ -40,21 +39,6 @@ export class RuntimeUpdateRoutesController {
       return c.json(ok(await this.host.applyDownloadedUpdate()));
     } catch (error) {
       return c.json(err("RUNTIME_UPDATE_APPLY_FAILED", formatUserFacingError(error)), 400);
-    }
-  };
-
-  readonly updatePreferences = async (c: Context) => {
-    const body = await readJson<RuntimeUpdatePreferencesRequest>(c.req.raw);
-    if (!body.ok) {
-      return c.json(err("INVALID_BODY", "invalid json body"), 400);
-    }
-
-    try {
-      return c.json(ok(await this.host.updatePreferences({
-        ...(typeof body.data.autoDownload === "boolean" ? { autoDownload: body.data.autoDownload } : {})
-      })));
-    } catch (error) {
-      return c.json(err("RUNTIME_UPDATE_PREFERENCES_FAILED", formatUserFacingError(error)), 400);
     }
   };
 

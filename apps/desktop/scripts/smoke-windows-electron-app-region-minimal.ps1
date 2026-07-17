@@ -330,7 +330,6 @@ contextBridge.exposeInMainWorld("nextclawDesktop", {
   checkForUpdates: async () => ({ status: "idle" }),
   downloadUpdate: async () => ({ status: "idle" }),
   applyDownloadedUpdate: async () => ({ status: "idle" }),
-  updatePreferences: async () => ({ status: "idle" }),
   updateChannel: async () => ({ status: "idle" }),
   restartService: async () => ({ accepted: true }),
   restartApp: async () => ({ accepted: true }),

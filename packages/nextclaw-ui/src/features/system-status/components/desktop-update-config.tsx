@@ -5,7 +5,6 @@ import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Label } from '@/shared/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
-import { Switch } from '@/shared/components/ui/switch';
 import { PageHeader, PageLayout } from '@/app/components/layout/page-layout';
 import { formatDateTime, getLanguage, t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
@@ -62,30 +61,6 @@ function DownloadProgress({ snapshot }: { snapshot: UpdateSnapshot }) {
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-amber-100">
         <div className="h-full rounded-full bg-amber-500 transition-[width]" style={{ width: `${percent ?? 0}%` }} />
       </div>
-    </div>
-  );
-}
-
-function PreferenceToggle({
-  label,
-  help,
-  checked,
-  disabled,
-  onCheckedChange,
-}: {
-  label: string;
-  help: string;
-  checked: boolean;
-  disabled: boolean;
-  onCheckedChange: (checked: boolean) => void;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-4 rounded-xl border border-gray-200 p-4">
-      <div className="space-y-1">
-        <Label>{label}</Label>
-        <p className="text-sm text-gray-500">{help}</p>
-      </div>
-      <Switch checked={checked} disabled={disabled} onCheckedChange={onCheckedChange} />
     </div>
   );
 }
@@ -235,7 +210,6 @@ export function DesktopUpdateConfig() {
   const isChecking = busyAction === 'checking';
   const isDownloading = busyAction === 'downloading';
   const isApplying = busyAction === 'applying';
-  const isSavingPreferences = busyAction === 'saving-preferences';
   const isSwitchingChannel = busyAction === 'switching-channel';
   const canDownload = snapshot.status === 'update-available' && !isDownloading && !isApplying;
   const canApply = snapshot.status === 'downloaded' && !isApplying;
@@ -287,8 +261,8 @@ export function DesktopUpdateConfig() {
       <ReleaseNotesPreview snapshot={snapshot} />
       <Card>
         <CardHeader>
-          <CardTitle>{t('desktopUpdatesPreferencesTitle')}</CardTitle>
-          <CardDescription>{t('desktopUpdatesPreferencesDescription')}</CardDescription>
+          <CardTitle>{t('desktopUpdatesChannelSettingsTitle')}</CardTitle>
+          <CardDescription>{t('desktopUpdatesChannelSettingsDescription')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="rounded-xl border border-gray-200 p-4">
@@ -309,13 +283,6 @@ export function DesktopUpdateConfig() {
               <p className="text-sm text-gray-500">{t('desktopUpdatesReleaseChannelDowngradeHint')}</p>
             </div>
           </div>
-          <PreferenceToggle
-            label={t('desktopUpdatesAutoDownload')}
-            help={t('desktopUpdatesAutoDownloadHelp')}
-            checked={snapshot.preferences.autoDownload}
-            disabled={isSavingPreferences || isSwitchingChannel}
-            onCheckedChange={(checked) => void runtimeUpdateManager.updatePreferences({ autoDownload: checked })}
-          />
         </CardContent>
       </Card>
       <Card>

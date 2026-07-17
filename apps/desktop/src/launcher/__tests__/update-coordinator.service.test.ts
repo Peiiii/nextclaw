@@ -29,7 +29,6 @@ type TestCoordinatorOptions = {
   resolveManifestUrl?: () => Promise<string | null>;
   now?: () => number;
   publishSnapshot?: ConstructorParameters<typeof DesktopUpdateCoordinatorService>[0]["publishSnapshot"];
-  onAutoDownloadedUpdateReady?: ConstructorParameters<typeof DesktopUpdateCoordinatorService>[0]["onAutoDownloadedUpdateReady"];
 };
 
 function createTestUpdateCoordinator(options: TestCoordinatorOptions): DesktopUpdateCoordinatorService {
@@ -41,8 +40,7 @@ function createTestUpdateCoordinator(options: TestCoordinatorOptions): DesktopUp
     updateCapability,
     resolveManifestUrl,
     now,
-    publishSnapshot,
-    onAutoDownloadedUpdateReady
+    publishSnapshot
   } = options;
   const bundleManager = {
     launcherStateStore: stateStore,
@@ -61,8 +59,7 @@ function createTestUpdateCoordinator(options: TestCoordinatorOptions): DesktopUp
     bundleManager,
     updateSourceService,
     now,
-    publishSnapshot,
-    onAutoDownloadedUpdateReady
+    publishSnapshot
   });
 }
 
@@ -230,7 +227,7 @@ test("coordinator runs fixed automatic checks when the two-hour interval is due"
     assert.equal(stateStore.read().lastUpdateCheckAt, "2026-07-16T13:00:00.000Z");
   }));
 
-test("launcher state ignores the retired automatic-check preference", async () =>
+test("launcher state ignores and removes retired update preferences", async () =>
   await withTempDir("nextclaw-update-state-preference-migration-", async (rootDir) => {
     const layout = new DesktopBundleLayoutStore(rootDir);
     const statePath = layout.getLauncherStatePath();
@@ -245,10 +242,10 @@ test("launcher state ignores the retired automatic-check preference", async () =
     }, null, 2)}\n`, "utf8");
 
     const normalized = stateStore.read();
-    assert.deepEqual(normalized.updatePreferences, { autoDownload: true });
+    assert.equal("updatePreferences" in normalized, false);
     await stateStore.write(normalized);
     const persisted = JSON.parse(readFileSync(statePath, "utf8"));
-    assert.equal("automaticChecks" in persisted.updatePreferences, false);
+    assert.equal("updatePreferences" in persisted, false);
   }));
 
 test("coordinator reports an available update without downloading by default", async () =>
@@ -396,23 +393,19 @@ test("coordinator downloads an update and waits for user-triggered apply", async
     );
   }));
 
-test("coordinator auto-downloads only when the preference is enabled", async () =>
-  await withTempDir("nextclaw-update-coordinator-auto-download-", async (rootDir) => {
+test("coordinator never downloads during automatic checks", async () =>
+  await withTempDir("nextclaw-update-coordinator-manual-download-", async (rootDir) => {
     const layout = new DesktopBundleLayoutStore(rootDir);
     const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
     await stateStore.write(
       createLauncherState({
         currentVersion: "0.18.0",
-        lastKnownGoodVersion: "0.18.0",
-        updatePreferences: {
-          autoDownload: true
-        }
+        lastKnownGoodVersion: "0.18.0"
       })
     );
     const manifest = createSignedUpdateManifest({
       latestVersion: "0.18.1"
     });
-    let autoReadyNotifications = 0;
     let downloadInvocations = 0;
     const coordinator = createTestUpdateCoordinator({
       stateStore,
@@ -438,17 +431,13 @@ test("coordinator auto-downloads only when the preference is enabled", async () 
           removedVersions: [],
           removedStagingEntries: []
         })
-      } as unknown as DesktopBundleService,
-      onAutoDownloadedUpdateReady: () => {
-        autoReadyNotifications += 1;
-      }
+      } as unknown as DesktopBundleService
     });
 
     const snapshot = await coordinator.checkForUpdates();
-    assert.equal(snapshot.status, "downloaded");
-    assert.equal(downloadInvocations, 1);
-    assert.equal(autoReadyNotifications, 1);
-    assert.equal(stateStore.read().downloadedVersion, "0.18.1");
+    assert.equal(snapshot.status, "update-available");
+    assert.equal(downloadInvocations, 0);
+    assert.equal(stateStore.read().downloadedVersion, null);
   }));
 
 test("background update check failures do not replace the primary status with failed", async () =>
@@ -533,10 +522,7 @@ test("channel switching clears stale downloads and refreshes availability withou
         currentVersion: "0.18.0",
         lastKnownGoodVersion: "0.18.0",
         downloadedVersion: "0.18.1",
-        downloadedReleaseNotesUrl: "https://example.com/stable-notes",
-        updatePreferences: {
-          autoDownload: true
-        }
+        downloadedReleaseNotesUrl: "https://example.com/stable-notes"
       })
     );
     const manifest = createSignedUpdateManifest({
@@ -581,4 +567,54 @@ test("channel switching clears stale downloads and refreshes availability withou
     assert.equal(downloadInvocations, 0);
     assert.equal(stateStore.read().channel, "beta");
     assert.equal(stateStore.read().downloadedVersion, null);
+  }));
+
+test("channel switching waits for an in-flight check before checking the new channel", async () =>
+  await withTempDir("nextclaw-update-coordinator-channel-race-", async (rootDir) => {
+    const layout = new DesktopBundleLayoutStore(rootDir);
+    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+    await stateStore.write(
+      createLauncherState({
+        channel: "stable",
+        currentVersion: "0.18.0",
+        lastKnownGoodVersion: "0.18.0"
+      })
+    );
+    let resolveFirstCheck!: () => void;
+    let markFirstCheckStarted!: () => void;
+    const firstCheckResult = new Promise<null>((resolve) => {
+      resolveFirstCheck = () => resolve(null);
+    });
+    const firstCheckStarted = new Promise<void>((resolve) => {
+      markFirstCheckStarted = resolve;
+    });
+    let checkInvocations = 0;
+    const coordinator = createTestUpdateCoordinator({
+      stateStore,
+      updateService: {
+        checkForUpdate: async () => {
+          checkInvocations += 1;
+          if (checkInvocations === 1) {
+            markFirstCheckStarted();
+            return await firstCheckResult;
+          }
+          return null;
+        }
+      } as unknown as DesktopUpdateService
+    });
+
+    const activeCheck = coordinator.checkForUpdates();
+    await firstCheckStarted;
+    const channelSwitch = coordinator.updateChannel("beta");
+    await Promise.resolve();
+    try {
+      assert.equal(stateStore.read().channel, "stable");
+    } finally {
+      resolveFirstCheck();
+    }
+    await activeCheck;
+    const snapshot = await channelSwitch;
+    assert.equal(checkInvocations, 2);
+    assert.equal(snapshot.channel, "beta");
+    assert.equal(snapshot.status, "up-to-date");
   }));

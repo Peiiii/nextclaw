@@ -93,7 +93,6 @@ export type {
   InstallationKind,
   UpdateBlockReason,
   UpdateFailureStage,
-  UpdatePreferences,
   UpdateProgress,
   UpdateSnapshot,
   UpdateStatus,

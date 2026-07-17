@@ -1,7 +1,6 @@
 import type {
   InstallationKind,
   UpdateBlockReason,
-  UpdatePreferences,
   UpdateProgress,
   UpdateSnapshot,
   UpdateStatus,
@@ -20,13 +19,10 @@ export type DesktopUpdateBlockReason = UpdateBlockReason;
 
 export type DesktopUpdateProgress = UpdateProgress;
 
-export type DesktopUpdatePreferences = UpdatePreferences;
-
 export type DesktopUpdateSnapshot = UpdateSnapshot & {
   status: DesktopUpdateStatus;
   channel: DesktopReleaseChannel;
   launcherVersion: string;
-  preferences: DesktopUpdatePreferences;
 };
 
 export type DesktopRuntimeControlResult = {
@@ -68,7 +64,6 @@ export type NextClawDesktopBridge = {
   checkForUpdates: () => Promise<DesktopUpdateSnapshot>;
   downloadUpdate: () => Promise<DesktopUpdateSnapshot>;
   applyDownloadedUpdate: () => Promise<DesktopUpdateSnapshot>;
-  updatePreferences: (preferences: Partial<DesktopUpdatePreferences>) => Promise<DesktopUpdateSnapshot>;
   updateChannel: (channel: DesktopReleaseChannel) => Promise<DesktopUpdateSnapshot>;
   restartService: () => Promise<DesktopRuntimeControlResult>;
   restartApp: () => Promise<DesktopRuntimeControlResult>;

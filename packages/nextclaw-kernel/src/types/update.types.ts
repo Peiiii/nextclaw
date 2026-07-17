@@ -1,7 +1,6 @@
 export type {
   InstallationKind,
   UpdateBlockReason,
-  UpdatePreferences,
   UpdateProgress,
   UpdateSnapshot,
   UpdateStatus,

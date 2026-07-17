@@ -30,15 +30,11 @@ function createRuntimeUpdateHost(): UiRuntimeUpdateHost {
       releaseNotesUrl: null,
       lastCheckedAt: "2026-05-06T12:00:00.000Z",
       progress: null,
-      canAutoDownload: true,
       canApplyInApp: true,
       requiresRestart: false,
       blockReason: null,
       recoveryCommand: null,
-      errorMessage: null,
-      preferences: {
-        autoDownload: true
-      }
+      errorMessage: null
     })),
     checkForUpdates: vi.fn(async () => ({
       status: "checking" as const,
@@ -52,15 +48,11 @@ function createRuntimeUpdateHost(): UiRuntimeUpdateHost {
       releaseNotesUrl: null,
       lastCheckedAt: null,
       progress: null,
-      canAutoDownload: true,
       canApplyInApp: false,
       requiresRestart: false,
       blockReason: null,
       recoveryCommand: null,
-      errorMessage: null,
-      preferences: {
-        autoDownload: true
-      }
+      errorMessage: null
     })),
     downloadUpdate: vi.fn(async () => ({
       status: "downloading" as const,
@@ -78,15 +70,11 @@ function createRuntimeUpdateHost(): UiRuntimeUpdateHost {
         totalBytes: 100,
         percent: 10
       },
-      canAutoDownload: true,
       canApplyInApp: false,
       requiresRestart: false,
       blockReason: null,
       recoveryCommand: null,
-      errorMessage: null,
-      preferences: {
-        autoDownload: true
-      }
+      errorMessage: null
     })),
     applyDownloadedUpdate: vi.fn(async () => ({
       status: "restart-required" as const,
@@ -100,37 +88,11 @@ function createRuntimeUpdateHost(): UiRuntimeUpdateHost {
       releaseNotesUrl: null,
       lastCheckedAt: null,
       progress: null,
-      canAutoDownload: true,
       canApplyInApp: false,
       requiresRestart: true,
       blockReason: null,
       recoveryCommand: null,
-      errorMessage: null,
-      preferences: {
-        autoDownload: true
-      }
-    })),
-    updatePreferences: vi.fn(async () => ({
-      status: "idle" as const,
-      installationKind: "npm-runtime-bundle" as const,
-      channel: "beta" as const,
-      hostVersion: "0.18.12-beta.1",
-      currentVersion: "0.18.12-beta.1",
-      availableVersion: null,
-      downloadedVersion: null,
-      minimumHostVersion: null,
-      releaseNotesUrl: null,
-      lastCheckedAt: null,
-      progress: null,
-      canAutoDownload: false,
-      canApplyInApp: false,
-      requiresRestart: false,
-      blockReason: null,
-      recoveryCommand: null,
-      errorMessage: null,
-      preferences: {
-        autoDownload: false
-      }
+      errorMessage: null
     })),
     updateChannel: vi.fn(async () => ({
       status: "checking" as const,
@@ -144,15 +106,11 @@ function createRuntimeUpdateHost(): UiRuntimeUpdateHost {
       releaseNotesUrl: null,
       lastCheckedAt: null,
       progress: null,
-      canAutoDownload: true,
       canApplyInApp: false,
       requiresRestart: false,
       blockReason: null,
       recoveryCommand: null,
-      errorMessage: null,
-      preferences: {
-        autoDownload: true
-      }
+      errorMessage: null
     }))
   };
 }
@@ -218,24 +176,22 @@ describe("runtime update routes", () => {
     expect(runtimeUpdate.applyDownloadedUpdate).toHaveBeenCalledOnce();
   });
 
-  it("keeps auto-download configurable and ignores the retired automatic-check field", async () => {
+  it("does not expose an update-preferences endpoint", async () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
-    const runtimeUpdate = createRuntimeUpdateHost();
     const app = createUiRouter({
       kernel: createRouterTestKernel(),
       configPath,
       appEventBus: new EventBus(),
-      runtimeUpdate
+      runtimeUpdate: createRuntimeUpdateHost()
     });
 
     const response = await app.request("http://localhost/api/runtime/update/preferences", {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ automaticChecks: false, autoDownload: false })
+      body: JSON.stringify({ autoDownload: true })
     });
 
-    expect(response.status).toBe(200);
-    expect(runtimeUpdate.updatePreferences).toHaveBeenCalledWith({ autoDownload: false });
+    expect(response.status).toBe(404);
   });
 });

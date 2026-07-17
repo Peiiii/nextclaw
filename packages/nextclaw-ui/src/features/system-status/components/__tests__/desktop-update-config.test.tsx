@@ -13,7 +13,6 @@ const mocks = vi.hoisted(() => ({
   checkForUpdates: vi.fn(),
   downloadUpdate: vi.fn(),
   applyDownloadedUpdate: vi.fn(),
-  updatePreferences: vi.fn(),
   updateChannel: vi.fn()
 }));
 
@@ -51,7 +50,6 @@ describe('DesktopUpdateConfig', () => {
     mocks.checkForUpdates.mockReset();
     mocks.downloadUpdate.mockReset();
     mocks.applyDownloadedUpdate.mockReset();
-    mocks.updatePreferences.mockReset();
     mocks.updateChannel.mockReset();
 
     if (!HTMLElement.prototype.hasPointerCapture) {
@@ -80,15 +78,11 @@ describe('DesktopUpdateConfig', () => {
         releaseNotesUrl: null,
         lastCheckedAt: '2026-04-13T12:00:00.000Z',
         progress: null,
-        canAutoDownload: false,
         canApplyInApp: false,
         requiresRestart: false,
         blockReason: null,
         recoveryCommand: null,
-        errorMessage: null,
-        preferences: {
-          autoDownload: false
-        }
+        errorMessage: null
       }
     });
   });
@@ -107,9 +101,9 @@ describe('DesktopUpdateConfig', () => {
     expect(screen.getByText('当前更新通道')).toBeTruthy();
     expect(screen.getAllByText('Beta').length).toBeGreaterThan(0);
     expect(screen.getByText('当前正在跟随 Beta 通道')).toBeTruthy();
-    expect(screen.getByText('系统每两小时自动检查更新；是否后台下载由你决定。')).toBeTruthy();
+    expect(screen.getByText('系统每两小时自动检查更新，下载和应用都由你手动确认。')).toBeTruthy();
     expect(screen.queryByText('自动检查更新')).toBeNull();
-    expect(screen.getByText('发现更新后自动后台下载')).toBeTruthy();
+    expect(screen.queryByText('发现更新后自动后台下载')).toBeNull();
     expect(screen.getByText('切回 Stable 后不会立刻强制降级；只有当 Stable 追平或超过当前版本时，才会继续提供 Stable 更新。')).toBeTruthy();
   });
 

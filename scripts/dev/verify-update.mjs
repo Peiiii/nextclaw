@@ -187,10 +187,7 @@ class LocalUpdateVerificationHarness {
       badVersions: [],
       lastUpdateCheckAt: this.initialUpdateCheckAt,
       downloadedVersion: null,
-      downloadedReleaseNotesUrl: null,
-      updatePreferences: {
-        autoDownload: false
-      }
+      downloadedReleaseNotesUrl: null
     }, null, 2)}\n`, "utf8");
   };
 

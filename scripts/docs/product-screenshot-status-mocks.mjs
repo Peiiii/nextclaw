@@ -77,13 +77,9 @@ export const runtimeUpdatePayload = {
   releaseNotesUrl: null,
   lastCheckedAt: '2026-07-05T00:00:00.000Z',
   progress: null,
-  canAutoDownload: false,
   canApplyInApp: false,
   requiresRestart: false,
   blockReason: null,
   recoveryCommand: null,
-  errorMessage: null,
-  preferences: {
-    autoDownload: false
-  }
+  errorMessage: null
 };

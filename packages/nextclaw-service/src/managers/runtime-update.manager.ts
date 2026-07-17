@@ -230,7 +230,6 @@ export class RuntimeUpdateManager {
       releaseNotesUrl: state.downloadedReleaseNotesUrl,
       lastCheckedAt: state.lastUpdateCheckAt,
       progress: null,
-      canAutoDownload: state.updatePreferences.autoDownload,
       canApplyInApp: hasDownloadedVersion,
       requiresRestart: false,
       blockReason: null,
@@ -238,7 +237,6 @@ export class RuntimeUpdateManager {
       errorMessage: null,
       failureStage: null,
       diagnosticCommand: null,
-      preferences: { ...state.updatePreferences },
       ...patch,
       status
     };

@@ -114,7 +114,7 @@ NEXTCLAW_UPDATE_MANIFEST_URL=file://...
 NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY_PATH=<temp>/update-public-key.pem
 ```
 
-update preferences 初始只设置关闭自动下载；自动检查已经是不可关闭的产品固定策略。初始 `lastUpdateCheckAt` 写入当前时间，并由显式 verification mode 把生产两小时周期压缩为数秒。harness 不直接调用 check API，而是等待同一个 baseline PID 通过真实 product runtime update host 的 timer 发现 candidate；这样命令打开页面后会明确出现 candidate 和下载入口，同时下载与应用仍由开发者亲自操作。
+fixture 不写入任何更新偏好；自动检查固定开启，产品也永远不会自动下载。初始 `lastUpdateCheckAt` 写入当前时间，并由显式 verification mode 把生产两小时周期压缩为数秒。harness 不直接调用 check API，而是等待同一个 baseline PID 通过真实 product runtime update host 的 timer 发现 candidate；这样命令打开页面后会明确出现 candidate 和下载入口，同时下载与应用仍由开发者亲自操作。
 
 ### 人工验收与监控
 
@@ -130,7 +130,7 @@ GET /api/app/meta
 - 新 PID 与初始 PID 不同；
 - `current.json` 指向 candidate。
 
-命令只配置隔离环境的自动下载偏好与验证专用时间压缩参数并观察结果，不直接调用 check/download/apply。automatic check 由产品 timer 执行，并且必须在 managed service PID 不变时发现 candidate；下载与应用的人工点击仍然是这条入口的核心价值，开发者也可以在更新页再次手动检查。
+命令只配置隔离环境和验证专用时间压缩参数并观察结果，不直接调用 check/download/apply。automatic check 由产品 timer 执行，并且必须在 managed service PID 不变时发现 candidate；发现后必须保持 `update-available` 而不下载，下载与应用的人工点击仍然是这条入口的核心价值，开发者也可以在更新页再次手动检查。
 
 首次真实页面验收发现，runtime update host 的 check/download 命令会立即返回 `checking`/`downloading`，最终结果只通过 WebSocket 事件送回页面。如果页面刚打开、实时连接尚未建立，最终事件可能丢失，页面会一直停在处理中，刷新后才读取到后端已经完成的状态。该行为违背命令调用者对 `Promise<UpdateSnapshot>` 的完成语义，也会让人工验证产生假卡死。
 

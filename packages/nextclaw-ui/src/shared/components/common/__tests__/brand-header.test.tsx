@@ -110,15 +110,11 @@ describe('BrandHeader', () => {
           totalBytes: 100,
           percent: 50
         },
-        canAutoDownload: true,
         canApplyInApp: false,
         requiresRestart: false,
         blockReason: null,
         recoveryCommand: null,
-        errorMessage: null,
-        preferences: {
-          autoDownload: true
-        }
+        errorMessage: null
       }
     });
 
@@ -188,15 +184,11 @@ describe('BrandHeader', () => {
         releaseNotesUrl: 'https://docs.nextclaw.io/zh/notes/2026-07-15-nextclaw-v0-18-12',
         lastCheckedAt: null,
         progress: null,
-        canAutoDownload: true,
         canApplyInApp: false,
         requiresRestart: false,
         blockReason: null,
         recoveryCommand: null,
-        errorMessage: null,
-        preferences: {
-          autoDownload: true
-        }
+        errorMessage: null
       }
     });
 
@@ -238,15 +230,11 @@ describe('BrandHeader', () => {
         releaseNotesUrl: 'https://docs.nextclaw.io/zh/notes/2026-07-15-nextclaw-v0-18-12',
         lastCheckedAt: null,
         progress: null,
-        canAutoDownload: true,
         canApplyInApp: true,
         requiresRestart: false,
         blockReason: null,
         recoveryCommand: null,
-        errorMessage: null,
-        preferences: {
-          autoDownload: true
-        }
+        errorMessage: null
       }
     });
 
@@ -284,15 +272,11 @@ describe('BrandHeader', () => {
         releaseNotesUrl: null,
         lastCheckedAt: null,
         progress: null,
-        canAutoDownload: true,
         canApplyInApp: false,
         requiresRestart: false,
         blockReason: 'signature-verification-unavailable',
         recoveryCommand: 'Set NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY',
-        errorMessage: 'Runtime bundle updates require a configured update public key.',
-        preferences: {
-          autoDownload: true
-        }
+        errorMessage: 'Runtime bundle updates require a configured update public key.'
       }
     });
 
@@ -331,17 +315,13 @@ describe('BrandHeader', () => {
         releaseNotesUrl: null,
         lastCheckedAt: null,
         progress: null,
-        canAutoDownload: true,
         canApplyInApp: false,
         requiresRestart: false,
         blockReason: null,
         recoveryCommand: null,
         errorMessage: 'fetch failed: getaddrinfo ENOTFOUND updates.nextclaw.io',
         failureStage: 'check',
-        diagnosticCommand: 'nextclaw logs path',
-        preferences: {
-          autoDownload: true
-        }
+        diagnosticCommand: 'nextclaw logs path'
       }
     });
 
