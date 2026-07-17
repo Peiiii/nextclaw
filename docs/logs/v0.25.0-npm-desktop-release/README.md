@@ -4,6 +4,8 @@
 
 本迭代用于发布 `nextclaw` 的 `0.24.0 -> 0.25.0` npm stable minor 版本，并在 NPM 发布闭环完成后发布桌面端 stable release。
 
+最终桌面端正式版 tag 为 `v0.25.0-desktop.1`，GitHub Actions run 为 `29548691735`，GitHub Release 地址为 `https://github.com/Peiiii/nextclaw/releases/tag/v0.25.0-desktop.1`。桌面壳版本为 `0.0.223`，runtime bundle 版本为 `0.25.0`。
+
 本次桌面端发布频率低于 NPM 发布，因此桌面 release note 聚合了 `0.22.4` 之后进入桌面端的主要用户可见变化：
 
 - 项目成为独立工作区对象，支持项目模板、服务端目录选择和从项目上下文启动新任务。
@@ -39,11 +41,18 @@
 - `curl https://peiiii.github.io/nextclaw/npm-runtime-updates/stable/manifest-stable-*.json`：确认 darwin arm64、darwin x64、linux x64、win32 x64 的 `latestVersion=0.25.0`，且 `releaseNotesUrl=https://docs.nextclaw.io/en/notes/2026-07-17-nextclaw-v0-25-0`。
 - `npm install --prefix <temp> nextclaw@0.24.0` + `nextclaw update --check`：通过，输出 `Runtime update available: 0.24.0 -> 0.25.0`。
 
-待完成：
-
-- 桌面端 stable release workflow。
-- 官网下载 fallback 更新与部署。
-- minor+ X 帖子闭环。
+桌面端与官网收口：
+- `pnpm release:desktop:stable -- --branch codex/release-npm-minor-0.25.0 --tag v0.25.0-desktop.1 --notes-file docs/logs/v0.25.0-npm-desktop-release/github-release.md`：通过，workflow `29548691735` 完成，GitHub Release 为 `https://github.com/Peiiii/nextclaw/releases/tag/v0.25.0-desktop.1`。
+- GitHub Release assets 验证：确认 release 为非 draft / 非 prerelease，并包含 macOS DMG、Windows installer、Windows portable、Linux AppImage、Linux deb、runtime bundles、stable manifests 和 `update-bundle-public.pem`。
+- `curl https://peiiii.github.io/nextclaw/desktop-updates/stable/manifest-stable-darwin-arm64.json` 与 `manifest-stable-win32-x64.json`：确认 `latestVersion=0.25.0`，`minimumLauncherVersion=0.0.141`，`releaseNotesUrl=https://docs.nextclaw.io/en/notes/2026-07-17-nextclaw-v0-25-0`。
+- `curl https://peiiii.github.io/nextclaw/apt/dists/stable/main/binary-amd64/Packages`：确认 `nextclaw-desktop` 版本为 `0.0.223`。
+- `pnpm --filter @nextclaw/landing tsc` 与 `pnpm --filter @nextclaw/landing build`：通过，确认官网下载 fallback bundle 包含 `v0.25.0-desktop.1` / `0.0.223`。
+- `pnpm deploy:landing`：通过，Cloudflare Pages deployment 为 `https://414cedd6.nextclaw-landing.pages.dev`。
+- `curl https://nextclaw.io/en/download/` 与 `https://nextclaw.io/zh/download/`：确认生产下载页可访问并加载新版 `main-D3BiW0wZ.js`；生产 bundle 确认包含 `v0.25.0-desktop.1` / `0.0.223`。
+- `git diff --check`：通过。
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths apps/landing/src/shared/lib/desktop-release/desktop-release.utils.ts`：通过，非测试代码 `+2 / -2 / 净增 0`。
+- `pnpm lint:new-code:governance` 与 `pnpm check:governance-backlog-ratchet`：通过。
+- minor+ X 帖子闭环：已生成可直接发布草稿；当前本机 `bird 1.2.0` 只暴露 init/help/version，`x-bird` 的 `whoami` 检查无法执行，因此未执行公开发帖动作。
 
 验证备注：
 
@@ -63,7 +72,9 @@
 7. 执行 `pnpm release:publish` 发布 npm public packages。
 8. 部署 docs site，让 HTML notes、结构化 JSON 和截图资产公开可访问。
 9. 执行 stable runtime update 发布，确保 NPM 安装用户能看到可用更新和 release note 链接。
-10. 执行桌面端 stable release，并更新官网下载链接。
+10. 执行桌面端 stable release，发布安装包、runtime bundles、desktop stable manifests 和 Linux APT stable repo。
+11. 更新并部署官网下载 fallback，让 API 不可用时仍指向 `v0.25.0-desktop.1`。
+12. 生成 minor+ X 发布帖草稿；由于当前 X 发布工具不可用，本轮不伪造发布成功。
 
 ## 用户/产品视角的验收步骤
 
@@ -76,7 +87,23 @@
 - 截图资产：`https://docs.nextclaw.io/release-notes/nextclaw-v0.25.0-inline-results.png`。
 - NPM 安装态用户：`nextclaw@0.24.0` 可通过 stable runtime update channel 看到 `0.25.0` 更新。
 
-桌面端验收入口将在 desktop stable release 完成后补齐。
+桌面端验收入口：
+
+- GitHub Desktop Release：`https://github.com/Peiiii/nextclaw/releases/tag/v0.25.0-desktop.1`。
+- 官网英文下载页：`https://nextclaw.io/en/download/`。
+- 官网中文下载页：`https://nextclaw.io/zh/download/`。
+- Desktop stable manifest 示例：`https://peiiii.github.io/nextclaw/desktop-updates/stable/manifest-stable-darwin-arm64.json`。
+- Linux APT stable repo：`https://peiiii.github.io/nextclaw/apt/dists/stable/main/binary-amd64/Packages`。
+
+X 帖草稿：
+
+```text
+NextClaw 0.25.0 is out.
+
+Mermaid diagrams, HTML previews, file previews, attachments, and tool results now stay more naturally in the chat flow. Desktop 0.0.223 is live for macOS, Windows, and Linux.
+
+Notes: https://docs.nextclaw.io/en/notes/2026-07-17-nextclaw-v0-25-0
+```
 
 ## 可维护性总结汇总
 
@@ -86,6 +113,7 @@
 - 用户可见内容边界：文档站更新笔记只写用户可感知结果，不写内部治理过程；desktop release note 聚合低频桌面端用户真正会感知到的变化。
 - 配图原则：只为有真实展示效果和传播价值的可见功能配图；本次截图展示聊天内结构化结果，符合配图门槛。
 - 隔离发布原则：主工作区存在无关 WIP，本次使用 `/private/tmp/nextclaw-release-0.25.0` 隔离发布，避免把半成品带进 npm 或 desktop release。
+- 官网 fallback 改动为版本常量等量替换，非测试代码净增 `0`，没有引入新分支、新抽象或平行下载链路。
 
 ## NPM 包发布记录
 
