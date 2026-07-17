@@ -555,6 +555,44 @@ it("delegates nextclaw inline display rendering to the host renderer", () => {
   expect(screen.queryByText("nextclaw-inline")).toBeNull();
 });
 
+it("keeps completed inline HTML focused on the display declaration", () => {
+  const { container } = render(
+    <ChatMessageMarkdown
+      text={[
+        "All 17 values passed validation.",
+        "",
+        "- Revenue: 414",
+        "- Target: 400",
+        "",
+        '```nextclaw-inline',
+        '{"target":{"type":"file","payload":{"path":"/Users/demo/.nextclaw/assets/visualizations/session-1/result.html","viewer":"rendered"}},"title":"Result"}',
+        '```',
+        "",
+        "Duplicated summary after the display.",
+      ].join("\n")}
+      role="assistant"
+      texts={defaultTexts}
+    />,
+  );
+
+  expect(container.querySelector('[data-nextclaw-inline-display="true"]')).toBeTruthy();
+  expect(screen.queryByText("All 17 values passed validation.")).toBeNull();
+  expect(screen.queryByText("Revenue: 414")).toBeNull();
+  expect(screen.queryByText("Duplicated summary after the display.")).toBeNull();
+});
+
+it("preserves prose around non-HTML inline file declarations", () => {
+  render(
+    <ChatMessageMarkdown
+      text={'Keep this note.\n\n```nextclaw-inline\n{"target":{"type":"file","payload":{"path":"docs/demo.md","viewer":"rendered"}}}\n```'}
+      role="assistant"
+      texts={defaultTexts}
+    />,
+  );
+
+  expect(screen.getByText("Keep this note.")).toBeTruthy();
+});
+
 it("falls back to a normal code block for invalid inline display directives", () => {
   const { container } = render(
     <ChatMessageMarkdown text={"```nextclaw-inline\nnot json\n```"} role="assistant" texts={defaultTexts} />,

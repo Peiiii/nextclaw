@@ -22,6 +22,40 @@ afterEach(() => {
   }
 });
 
+describe("SkillsLoader visualization builtin", () => {
+  it("loads the focused output visualization skill", () => {
+    const workspace = createWorkspace();
+    const loader = new SkillsLoader(workspace);
+    const skill = loader.loadSkill("visualize-output");
+
+    expect(skill).toContain("选择展示方式");
+    expect(skill).toContain("nextclaw-inline");
+    expect(skill).toContain('"viewer":"rendered"');
+    expect(skill).toContain("把整个 HTML 文档当成唯一展示表面");
+    expect(skill).toContain("不要再放带背景、外边框、圆角或阴影的根容器");
+    expect(skill).toContain("默认不放可见的页面标题、眉题、报告名或说明横幅");
+    expect(skill).toContain("默认不使用 KPI 卡片、洞察框、章节卡片");
+    expect(skill).toContain("`nextclaw-inline.title` 只是宿主元数据");
+    expect(skill).toContain("无论用户是否说出“内联”");
+    expect(skill).toContain("不要用表格、列表、数据速览或第二种图表重复");
+    expect(skill).toContain("最终可见内容必须只有 `nextclaw-inline` 声明");
+    expect(skill).toContain("不得输出核对表、计算过程、“检查通过”、引导语或数据复述");
+    expect(skill).toContain("区间首尾增幅不能写成累计增长");
+    expect(skill).toContain("用户可见数据白名单");
+    expect(skill).toContain("总体目标只能与同口径的总体实际值比较");
+    expect(skill).toContain("没有用户提供的类别目标，就不展示任何类别目标语义");
+    expect(skill).toContain("必须先用计算工具或 `exec` 得到结果");
+    expect(skill).toContain("重新读取最终 HTML");
+    expect(skill).toContain("NEXTCLAW_HOME/assets/visualizations/<session-id>/");
+    expect(skill).toContain("不得放到 `/tmp`、其他临时目录、当前项目或工作目录根部");
+    expect(skill).toContain("并在声明中使用绝对路径");
+    expect(skill).toContain("min(80vh, 720px)");
+    expect(skill).toContain("不要在 HTML 内重复文件名");
+    expect(skill).toContain("不依赖 document 级内部滚动");
+    expect(skill).toContain("nextclaw-app-creator");
+  });
+});
+
 describe("SkillsLoader skill sources", () => {
   it("loads and groups project, NextClaw workspace, and global Agent Skills", () => {
     const workspace = createWorkspace();

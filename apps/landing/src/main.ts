@@ -8,6 +8,7 @@ import {
   type DownloadAssetKey
 } from '@/shared/lib/desktop-release';
 import {
+  COMPARISON_COPY,
   getPageSubtitle,
   getPageTitle,
   isLocale,
@@ -15,8 +16,10 @@ import {
   LOCALE_OPTIONS,
   persistLocale,
   renderEcosystemGroups,
+  renderComparisonSection,
   renderFeatureCards,
   renderIntegrationsPage,
+  renderLandingFooter,
   renderReleasesPage,
   renderShowcaseCards,
   renderUseCasesPage,
@@ -42,6 +45,7 @@ const COPY: Record<Locale, LandingCopy> = {
     navDownload: 'Download',
     navInstall: 'Install',
     navUseCases: 'Use cases',
+    navCompare: 'Compare',
     navIntegrations: 'Integrations',
     navDocs: 'Docs',
     heroTitleLine1: 'NextClaw',
@@ -312,6 +316,7 @@ const COPY: Record<Locale, LandingCopy> = {
       { icon: 'app-window', title: 'Build a small tool for yourself', description: 'Turn a repeated task into a small local app, script, or workflow, then keep improving it from the same conversation.' },
       { icon: 'files', title: 'Clean up a pile of files', description: 'Rename files, extract text, group materials, or turn scattered documents into a short action list.' }
     ],
+    comparison: COMPARISON_COPY.en,
     releasesTitle: 'Product updates',
     releasesSubtitle:
       'See what changed in recent NextClaw releases, including new capabilities, improvements, fixes, and install or desktop updates.',
@@ -388,6 +393,7 @@ const COPY: Record<Locale, LandingCopy> = {
     navDownload: '下载',
     navInstall: '安装方式',
     navUseCases: '使用场景',
+    navCompare: '产品对比',
     navIntegrations: '集成',
     navDocs: '文档',
     heroTitleLine1: 'NextClaw',
@@ -651,6 +657,7 @@ const COPY: Record<Locale, LandingCopy> = {
       { icon: 'app-window', title: '给自己做一个小工具', description: '把重复的小事做成一个本地应用、脚本或工作流，后面还能接着改。' },
       { icon: 'files', title: '批量处理一堆文件', description: '重命名、抽取文字、整理资料，或把散落的文档变成一份行动清单。' }
     ],
+    comparison: COMPARISON_COPY.zh,
     releasesTitle: '版本更新',
     releasesSubtitle: '查看 NextClaw 近期版本新增了什么、增强了什么、修复了什么，以及下载和安装相关变化。',
     releasesGitHubButton: '查看 GitHub Releases',
@@ -838,6 +845,7 @@ class LandingPage {
     const useCasesRoute = ROUTES[this.locale].useCases;
     const integrationsRoute = ROUTES[this.locale].integrations;
     const releasesRoute = ROUTES[this.locale].releases;
+    const comparisonRoute = `${homeRoute}#compare`;
 
     this.root.innerHTML = `
       <div class="relative min-h-screen flex flex-col bg-background overflow-hidden">
@@ -850,6 +858,7 @@ class LandingPage {
             <nav class="hidden md:flex gap-6 text-sm font-medium">
               <a href="${downloadRoute}" class="text-muted-foreground hover:text-foreground transition-colors">${this.copy.navDownload}</a>
               <a href="${useCasesRoute}" class="text-muted-foreground hover:text-foreground transition-colors">${this.copy.navUseCases}</a>
+              <a href="${comparisonRoute}" class="text-muted-foreground hover:text-foreground transition-colors">${this.copy.navCompare}</a>
               <a href="${integrationsRoute}" class="text-muted-foreground hover:text-foreground transition-colors">${this.copy.navIntegrations}</a>
               <a href="${installRoute}" class="text-muted-foreground hover:text-foreground transition-colors">${this.copy.navInstall}</a>
               <a href="${docsLink}" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors">${this.copy.navDocs}</a>
@@ -879,6 +888,7 @@ class LandingPage {
             <nav class="container mx-auto px-6 py-4 flex flex-col gap-4 text-sm font-medium">
               <a href="${downloadRoute}" class="text-muted-foreground hover:text-foreground transition-colors py-2">${this.copy.navDownload}</a>
               <a href="${useCasesRoute}" class="text-muted-foreground hover:text-foreground transition-colors py-2">${this.copy.navUseCases}</a>
+              <a href="${comparisonRoute}" class="text-muted-foreground hover:text-foreground transition-colors py-2">${this.copy.navCompare}</a>
               <a href="${integrationsRoute}" class="text-muted-foreground hover:text-foreground transition-colors py-2">${this.copy.navIntegrations}</a>
               <a href="${installRoute}" class="text-muted-foreground hover:text-foreground transition-colors py-2">${this.copy.navInstall}</a>
               <a href="${docsLink}" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors py-2">${this.copy.navDocs}</a>
@@ -1060,6 +1070,8 @@ class LandingPage {
           </div>
         </section>
 
+        ${renderComparisonSection(this.copy)}
+
         <section class="collaboration-section">
           <div class="collaboration-inner">
             <div class="collaboration-header">
@@ -1148,23 +1160,7 @@ class LandingPage {
         </section>
         ` : ''}
 
-        <footer class="w-full border-t border-border/40 py-10 z-10 bg-background/50 backdrop-blur-sm mt-auto">
-          <div class="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div class="flex items-center gap-2 opacity-80">
-              <img src="/logo-phoenix.svg" alt="NextClaw" class="w-6 h-6" />
-              <span class="font-medium text-sm">${this.copy.footerProject}</span>
-            </div>
-            <div class="text-sm text-muted-foreground">${this.copy.footerLicense}</div>
-            <div class="flex gap-4">
-              <a href="${docsLink}" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors">${this.copy.footerDocs}</a>
-              <a href="${releasesRoute}" class="text-muted-foreground hover:text-foreground transition-colors">${this.copy.footerReleases}</a>
-              <a href="${LINKS.github}" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors">GitHub</a>
-              <a href="${LINKS.npm}" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors">${this.copy.footerNpm}</a>
-              <a href="${LINKS.discord}" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors">${this.copy.footerDiscord}</a>
-              <a href="${LINKS.wechatGroupImage}" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors" title="${this.copy.footerWechatGroup}">${this.copy.footerWechatGroup}</a>
-            </div>
-          </div>
-        </footer>
+        ${renderLandingFooter(this.copy, docsLink, releasesRoute)}
 
       </div>
     `;

@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { NcpTool } from "@nextclaw/ncp";
 import {
@@ -229,6 +229,7 @@ describe("ContextProviderContribution native prompt contract", () => {
       "# Active Skills",
       `<ref>project:${projectSkillDir}</ref>`,
       "<name>demo-skill</name>",
+      "<name>visualize-output</name>",
       "## Session Orchestration",
       "## Tool Use Enforcement",
       "## OpenAI/Codex Execution Discipline",
@@ -236,6 +237,23 @@ describe("ContextProviderContribution native prompt contract", () => {
       "## Agent Output & Reply Formatting Contract",
       "Content after the last tool call remains directly visible",
       "fenced `mermaid` block",
+      "MUST read the built-in `visualize-output` SKILL.md",
+      "infer the appropriate medium without requiring the user to name it",
+      "before any visualization tool call",
+      "follow its data-fidelity rules",
+      "State only facts and mathematical relationships directly supported by the user's input",
+      "calculate every derived number with a tool",
+      "stop at what the data shows rather than why it happened or what to do",
+      "`nextclaw-inline` `file` target",
+      "never represent generated local HTML as a URL",
+      "duplicate the visual with a second table/list",
+      "your FIRST tool call MUST be `read_file`",
+      "regardless of whether the user explicitly said inline",
+      "must contain only the fenced `nextclaw-inline` declaration",
+      "the declaration's closing fence must be the final content",
+      "Persistent visualization assets:",
+      ["assets", "visualizations", "session-1"].join(sep),
+      "emit its absolute `file` payload path",
       "Inline display:",
       "display-only",
     ]) {

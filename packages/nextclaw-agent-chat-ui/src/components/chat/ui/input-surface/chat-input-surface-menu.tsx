@@ -26,11 +26,6 @@ export type ChatInputSurfaceMenuHandle = {
   handleKeyDown: (event: KeyboardEvent) => boolean;
 };
 
-type ChatInputSurfaceActiveState = {
-  index: number;
-  itemsSignature: string;
-};
-
 type ChatInputSurfaceFilterView = ChatInputSurfaceFilterOption & {
   count: number;
 };
@@ -170,7 +165,7 @@ function ChatInputSurfaceMenu(props, ref) {
   const { Popover, PopoverAnchor, PopoverContent } = ChatUiPrimitives;
   const { elementRef: anchorRef, width: panelWidth } = useElementWidth<HTMLDivElement>();
   const listRef = useRef<HTMLDivElement | null>(null);
-  const [activeState, setActiveState] = useState<ChatInputSurfaceActiveState>({
+  const [activeState, setActiveState] = useState({
     index: 0,
     itemsSignature: '',
   });
@@ -207,10 +202,7 @@ function ChatInputSurfaceMenu(props, ref) {
     () => (activeFilter ? items.filter((item) => itemMatchesFilter(item, activeFilter)) : items),
     [activeFilter, items],
   );
-  const itemsSignature = useMemo(
-    () => visibleItems.map((item) => item.key).join('\u001f'),
-    [visibleItems],
-  );
+  const itemsSignature = useMemo(() => visibleItems.map((item) => item.key).join('\u001f'), [visibleItems]);
   const hasItemSections = useMemo(
     () => visibleItems.some((item) => Boolean(item.sectionLabel?.trim())),
     [visibleItems],
@@ -234,6 +226,12 @@ function ChatInputSurfaceMenu(props, ref) {
     },
     [itemsSignature],
   );
+  const selectItem = useCallback((item: ChatInputSurfaceItem): void => {
+    if (item.selectionBehavior === 'navigate') {
+      setActiveState({ index: 0, itemsSignature: '' });
+    }
+    onSelectItem(item);
+  }, [onSelectItem]);
 
   const resolvedWidth = useMemo(() => {
     if (!panelWidth) {
@@ -254,10 +252,10 @@ function ChatInputSurfaceMenu(props, ref) {
       isOpen,
       items: visibleItems,
       onOpenChange,
-      onSelectItem,
+      onSelectItem: selectItem,
       setActiveIndex: setActiveIndexForCurrentItems,
     }),
-  }), [activeIndexInRange, isOpen, onOpenChange, onSelectItem, setActiveIndexForCurrentItems, visibleItems]);
+  }), [activeIndexInRange, isOpen, onOpenChange, selectItem, setActiveIndexForCurrentItems, visibleItems]);
 
   useActiveItemScroll({
     containerRef: listRef,
@@ -369,11 +367,11 @@ function ChatInputSurfaceMenu(props, ref) {
                                   return;
                                 }
                                 event.preventDefault();
-                                onSelectItem(item);
+                                selectItem(item);
                               }}
                               onClick={(event) => {
                                 if (event.detail === 0) {
-                                  onSelectItem(item);
+                                  selectItem(item);
                                 }
                               }}
                               className={`flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-left leading-4 transition-colors ${

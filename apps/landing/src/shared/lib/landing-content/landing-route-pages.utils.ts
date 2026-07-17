@@ -118,6 +118,106 @@ export function renderUseCasesPage(copy: LandingCopy, downloadRoute: string, doc
   `;
 }
 
+export function renderComparisonSection(copy: LandingCopy): string {
+  const comparison = copy.comparison;
+  const stageLabels = [comparison.startLabel, comparison.focusLabel, comparison.bestForLabel];
+
+  return `
+    <section id="compare" class="comparison-section">
+      <div class="comparison-inner">
+        <div class="comparison-header">
+          <p class="comparison-eyebrow">
+            <i data-lucide="scale" class="h-4 w-4"></i>
+            ${comparison.eyebrow}
+          </p>
+          <h2 class="comparison-title">${comparison.title}</h2>
+          <p class="comparison-subtitle">${comparison.subtitle}</p>
+        </div>
+
+        <div class="comparison-board">
+          ${comparison.lanes.map((lane) => {
+            const stages = [lane.start, lane.focus, lane.bestFor];
+            return `
+              <article class="comparison-lane${lane.featured ? ' comparison-lane--featured' : ''}">
+                <header class="comparison-product">
+                  <div class="comparison-product__icon">
+                    <i data-lucide="${lane.icon}" class="h-5 w-5"></i>
+                  </div>
+                  <div>
+                    <h3 class="comparison-product__name">${lane.product}</h3>
+                    <p class="comparison-product__category">${lane.category}</p>
+                  </div>
+                  <a href="${lane.sourceUrl}" target="_blank" rel="noopener noreferrer" class="comparison-product__source">
+                    ${lane.sourceLabel}
+                    <i data-lucide="external-link" class="h-3.5 w-3.5"></i>
+                  </a>
+                </header>
+                <div class="comparison-flow">
+                  ${stages.map((stage, index) => `
+                    <div class="comparison-stage">
+                      <span class="comparison-stage__label">${stageLabels[index]}</span>
+                      <p class="comparison-stage__text">${stage}</p>
+                    </div>
+                  `).join('')}
+                </div>
+              </article>
+            `;
+          }).join('')}
+        </div>
+
+        <div class="comparison-proof">
+          <div class="comparison-proof__header">
+            <h3>${comparison.proofTitle}</h3>
+            <p>${comparison.proofDescription}</p>
+          </div>
+          <div class="comparison-proof__grid">
+            ${comparison.proofs.map((proof) => `
+              <article class="comparison-proof__item">
+                <div class="comparison-proof__icon">
+                  <i data-lucide="${proof.icon}" class="h-5 w-5"></i>
+                </div>
+                <h4>${proof.title}</h4>
+                <p>${proof.description}</p>
+                <a href="${proof.href}" target="_blank" rel="noopener noreferrer">
+                  ${proof.linkLabel}
+                  <i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i>
+                </a>
+              </article>
+            `).join('')}
+          </div>
+        </div>
+
+        <p class="comparison-source-note">
+          <i data-lucide="info" class="h-4 w-4"></i>
+          ${comparison.sourceNote}
+        </p>
+      </div>
+    </section>
+  `;
+}
+
+export function renderLandingFooter(copy: LandingCopy, docsLink: string, releasesRoute: string): string {
+  return `
+    <footer class="w-full border-t border-border/40 py-10 z-10 bg-background/50 backdrop-blur-sm mt-auto">
+      <div class="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+        <div class="flex items-center gap-2 opacity-80">
+          <img src="/logo-phoenix.svg" alt="NextClaw" class="w-6 h-6" />
+          <span class="font-medium text-sm">${copy.footerProject}</span>
+        </div>
+        <div class="text-sm text-muted-foreground">${copy.footerLicense}</div>
+        <div class="flex gap-4">
+          <a href="${docsLink}" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors">${copy.footerDocs}</a>
+          <a href="${releasesRoute}" class="text-muted-foreground hover:text-foreground transition-colors">${copy.footerReleases}</a>
+          <a href="${LINKS.github}" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors">GitHub</a>
+          <a href="${LINKS.npm}" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors">${copy.footerNpm}</a>
+          <a href="${LINKS.discord}" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors">${copy.footerDiscord}</a>
+          <a href="${LINKS.wechatGroupImage}" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors" title="${copy.footerWechatGroup}">${copy.footerWechatGroup}</a>
+        </div>
+      </div>
+    </footer>
+  `;
+}
+
 export function renderIntegrationsPage(copy: LandingCopy, installRoute: string, docsLink: string): string {
   return `
     <section class="w-full max-w-7xl mx-auto text-left animate-slide-up opacity-0" style="animation-delay: 0.35s">

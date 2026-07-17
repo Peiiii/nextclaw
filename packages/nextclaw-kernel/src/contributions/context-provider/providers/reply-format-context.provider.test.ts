@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { sep } from "node:path";
 import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
 import { ReplyFormatContextProvider } from "./reply-format-context.provider.js";
 
@@ -26,12 +27,45 @@ describe("ReplyFormatContextProvider", () => {
       "Markdown structure:",
       "Mermaid diagrams:",
       "fenced `mermaid` block",
+      "Visualization:",
+      "infer the appropriate medium without requiring the user to name it",
+      "MUST read the built-in `visualize-output` SKILL.md",
+      "before any visualization tool call",
+      "follow its data-fidelity rules",
+      "State only facts and mathematical relationships directly supported by the user's input",
+      "calculate every derived number with a tool",
+      "compare every displayed value against the input and computed results",
+      "do not label values healthy, normal, good, bad, high, or low",
+      "do not add causal hypotheses, diagnostic recommendations, industry ranges, targets, optimization effects, forecasts, or projected impact",
+      "stop at what the data shows rather than why it happened or what to do",
+      "without inventing or reinterpreting missing facts",
+      "create the parent directory first",
+      "write and verify a real self-contained HTML file",
+      "`nextclaw-inline` `file` target",
+      "never represent generated local HTML as a URL",
+      "duplicate the visual with a second table/list",
+      "use `nextclaw-app-creator` for reusable apps",
       "File links:",
       "Display choice:",
       "Inline display:",
       "Forbidden forms:",
       "Examples:",
       "Self-check before sending:",
+      "Mandatory visualization gate for the current turn",
+      "your FIRST tool call MUST be `read_file`",
+      "regardless of whether the user explicitly said inline",
+      "verify with non-display file reads or commands instead",
+      "perform the comparison silently",
+      "must contain only the fenced `nextclaw-inline` declaration",
+      "no sentence before it, no validation table, calculations, pass/fail narration, data recap, conclusion",
+      "the declaration's closing fence must be the final content",
+      "do not add extra month-over-month, year-over-year, compound-growth, or cumulative-growth metrics",
+      "Persistent visualization assets:",
+      ["assets", "visualizations", "session-1"].join(sep),
+      "use the resulting absolute file path",
+      "Never put these generated visualization assets in `/tmp`",
+      "persistent session visualization directory named above",
+      "emit its absolute `file` payload path",
       "must be clickable",
       "Markdown links only",
       "plain text label",
@@ -72,6 +106,9 @@ describe("ReplyFormatContextProvider", () => {
     expect(context).toContain(
       "use `file` and `url` only as non-clickable placeholders",
     );
+    expect(context).toContain("use `file` for generated local HTML");
+    expect(context).toContain("`url` only for a real http/https page");
+    expect(context).toContain("never for a local path or an invented root-relative URL");
     expect(context).toContain("use `json` for inert JSON snapshots");
     expect(context).toContain("display-only");
     expect(context).toContain("Never call `show_panel_app` for inline display");
@@ -93,5 +130,8 @@ describe("ReplyFormatContextProvider", () => {
     expect(context).toContain("[feishu-notes.md](memory/feishu-notes.md)");
     expect(context).toContain("intentionally represented by `nextclaw-inline`");
     expect(context).toContain("remove the exact names and summarize instead");
+    expect(context).toContain(
+      "do not call `show_file`, `show_url`, a browser-opening command",
+    );
   });
 });

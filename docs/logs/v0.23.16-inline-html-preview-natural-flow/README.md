@@ -13,6 +13,9 @@
 - Markdown、源码和其他非 HTML 内联文件仍保留原有文件标题与卡片外壳，避免扩大改动范围。
 - 没有新增 store、CSS 覆盖、全局消息协议或平行预览路径；复用了 `IconActionButton`、现有图标与 i18n 文案，同时删除了只使用一次的文件名 helper。唯一新增 effect 只负责外部 `ResizeObserver` 生命周期清理，不承载业务编排。
 - 根据本次连续交互纠偏，已在 `frontend-interaction-quality` 规则中补充纯 hover 浮层的零默认足迹与外置 hover bridge 约束，避免同类控件再次常驻占位或闪退。
+- Native Agent 的 `ReplyFormatContextProvider` 增加极短的可视化路由：当空间布局能明显提升理解时，先读取内置 `visualize-output` skill；简单答案继续使用自然 Markdown，可复用应用和持续工作流仍归 `nextclaw-app-creator`。
+- 新增内置 `visualize-output` skill，统一选择 Markdown、表格、Mermaid、图片或自包含内联 HTML；它只负责当前回答的结果展示，不接管 Panel App / Service App 创建职责。
+- 内联 HTML 明确采用“页面即画布”：一个表面只表达一个主要结论，不重复文件名、内部工具栏或总卡片，不依赖 document 级滚动，并按宿主 `240px -> min(80vh, 720px)` 的自适应高度合同控制信息密度。
 
 ## 测试/验证/验收方式
 
@@ -28,13 +31,23 @@
 - 浏览器控制层未能向 iframe 表面注入可观察的 `:hover` 状态，因此纯鼠标悬停仍以 Tailwind `group-hover` 合同、组件回归测试和外置 hover bridge 几何验证为证据；真实页面的静止态、聚焦态、位置和视觉已经完成验收。
 - 真实操作验收：点击“展开到侧栏”后出现 `预览: HTML 内联预览验收` workspace tab 与“关闭工作区侧栏”控件，证明按钮进入现有右侧工作区主链路；验收后已关闭侧栏还原页面。
 - 直接请求 Vite 转换后的 `chat-inline-file-preview.tsx` 返回 200，并确认运行实例消费了本次 `isRenderedHtml` 分支。
-- 未运行生成物清理：工作区已有不属于本任务的 `packages/nextclaw/ui-dist` 改动，避免覆盖并行工作。
+- 完整源码构建产生的 `packages/nextclaw/ui-dist` 哈希漂移已通过仓库标准 `pnpm clean:generated` 恢复，没有覆盖工作区中的其他并行改动。
+- Agent 可视化后续定向测试：`pnpm --filter @nextclaw/core exec vitest run src/features/agent/features/tests/skills.test.ts`，1 file / 11 tests 通过；`pnpm --filter @nextclaw/kernel exec vitest run src/contributions/context-provider/providers/reply-format-context.provider.test.ts src/contributions/context-provider/providers/context-provider-contract.provider.test.ts`，2 files / 2 tests 通过。覆盖内置 skill 发现与加载、双语 metadata、系统提示路由和完整 context provider 组装。
+- Agent 可视化后续 TypeScript：`pnpm --filter @nextclaw/core tsc` 与 `pnpm --filter @nextclaw/kernel tsc` 通过；两个 package lint 均为 0 error，仅保留与本次无关的既有 warning。
+- Chat UI 收束测试：`pnpm --filter @nextclaw/agent-chat-ui exec vitest run src/components/chat/ui/chat-message-list/__tests__/chat-message-markdown.test.tsx` 通过；覆盖完成态内联 HTML 只保留展示声明，以及非 HTML 内联文件仍保留周围正文。
+- `pnpm --filter @nextclaw/core build` 通过，并确认发布产物 `dist/skills/visualize-output/SKILL.md` 包含内联 HTML 与 `min(80vh, 720px)` 合同；随后 `pnpm clean:generated` 与 `pnpm check:generated-clean` 通过。
+- Agent 可视化后续治理：全量收尾重跑 `pnpm lint:new-code:governance` 与 `pnpm check:governance-backlog-ratchet` 均通过。maintainability guard 为 0 error；`context-provider/providers` 仍是 14 个同角色 provider 文件且已有 README 豁免，本次没有新增 provider 或扩大目录。
+- `skill-creator` 的 Python `quick_validate.py` 因本机两个 Python runtime 均缺少 `PyYAML` 未能启动；已改用仓库实际 `SkillsLoader` 测试和本地 `yaml@2.8.2` 解析校验 frontmatter、目录名与双语描述，均通过。
+- 真实模型前向验收：使用当前源码构建和从用户配置复制的真实 provider 配置，在独立 `NEXTCLAW_HOME=/Users/peiwang/.nextclaw-source-runtime/deepseek-visual-smoke`、独立 workspace 与端口 `18889` 启动隔离实例；没有重启、替换或写入用户正在使用的主实例。通过 `deepseek/deepseek-chat` 创建会话 `visual-html-deepseek-20260717-0250`，模型首个工具调用读取 `visualize-output` skill，随后创建并验证 `visuals/q2-summary.html`，最终仅返回工作目录相对路径、`viewer="rendered"` 的 `nextclaw-inline` file target，没有调用 `show_file`、`show_url` 或 browser 打开旁路。会话接口和页面路由均返回 HTTP 200。
+- 真实浏览器验收：同一当前源码构建的 DeepSeek HTML 已直接渲染为消息内容；宿主视口实测 `768px × 554px`，圆角 `12px`、边框 `0`，高度低于 `720px` 上限。iframe 内部 `scrollHeight=clientHeight=554px`、`scrollWidth=clientWidth=768px`，无 document 级滚动、无远程资源。外置工具条位于视口上方且不重叠，静止态为 `opacity=0`、`pointer-events=none`；浏览器控制层仍不能可靠制造 iframe 的 `:hover`，因此没有把 hover 动画本身表述成自动化实测，保留给用户在已打开会话中手动确认。
+- 前向抽样先后暴露并闭合了三类模型遵循问题：未先读 skill、本地 HTML 错用 URL / side-panel 旁路、以及输入数据之外的定性或因果扩写。为此已把“首个工具调用必须读取 skill”“内联请求禁止旁路打开”“只展示可直接支持的事实与计算”同时固化到 system context 和 skill。最终隔离样例只陈述月度值、季度合计、渠道占比、目标差值与完成率，没有原因分析、健康评价、建议、行业基准或预测；提示词仍不是确定性内容校验器，若未来要求强保证，应增加运行时结构化校验而不是继续堆提示词。
 
 ## 发布/部署方式
 
-- 本次执行本地 git 提交；未执行 push、部署、NPM 发布、GitHub release 或服务重启。
+- 本批变更纳入当前 `master` 全量收尾提交并推送至 `origin/master`；未执行部署、NPM 发布、GitHub release 或服务重启。
 - 不涉及数据库 migration、后端部署、runtime update channel 或远程 API 冒烟。
 - 变更由 `.changeset/inline-html-preview-natural-flow.md` 记录，后续随 `@nextclaw/ui` patch 统一发布。
+- 同批 Agent 可视化扩展同步纳入该 changeset，后续随 `@nextclaw/agent-chat-ui`、`@nextclaw/core`、`@nextclaw/kernel` 与 `@nextclaw/ui` patch 统一发布。
 
 ## 用户/产品视角的验收步骤
 
@@ -46,6 +59,9 @@
 6. 使用短页面和长页面分别验证：预览从 `240px` 起按内容增高，最高不超过视口高度的 80% 或 `720px`；更长内容在 iframe 内部滚动。
 7. 点击“展开到侧栏”，确认右侧工作区打开 rendered HTML；点击“打开源码”，确认右侧工作区打开源码视图。
 8. 再打开 Markdown 或其他非 HTML 文件预览，确认原有文件标题和卡片识别信息仍然保留，且不出现 HTML 专属工具条。
+9. 请求 Agent 把一组适合比较、流程或空间排版的数据“可视化”，确认系统上下文能发现并读取 `visualize-output`，并选择最小合适媒介，而不是每次都强制生成 HTML。
+10. 当 Agent 选择内联 HTML 时，确认消息内直接出现 rendered 文件预览；页面本身就是唯一表面，不再套一层总卡片，也不重复文件名、预览标题栏或内部操作工具栏。
+11. 使用内容高度约 `320px-640px` 的样例确认核心结果无需 document 级滚动；内容明显超过 `min(80vh, 720px)` 时，应删减为摘要或改用 side panel。
 
 ## 可维护性总结汇总
 
@@ -55,9 +71,15 @@
 - 测试减债：在守卫发现消息容器测试进入 80% 预算线后，将 HTML 预览行为迁到 `chat-inline-file-preview.test.tsx`，容器测试只保留 manager wiring；该警告已消除，没有通过提高预算或增加 ESLint 豁免规避。
 - 文件组织：当前属于 `nextclaw-ui` 现有多 feature（L2）包内结构，继续使用 message/workspace feature 的 `components/__tests__` 白名单；新增 `chat-inline-file-preview.test.tsx` 与 `workspace-file-content-preview.test.tsx`，以 `.test` 角色分别贴近展示组件和 iframe renderer，未新增 feature、shared、barrel 或白名单外目录。
 - `post-edit-maintainability-review` 结论：通过，无阻塞性可维护性问题；保留两处既有近预算 watchpoint，后续拆分缝分别是 workspace preview fixtures/builders 与内容解析/展示分支。
+- Agent 可视化后续的 TypeScript 增减为新增 55 行、删除 2 行，净增 53 行；其中回归测试新增 51 行，生产 TypeScript 新增 4 行、删除 2 行，净增 2 行。另新增 76 行按需加载的 `visualize-output` skill，并在内置 skill 索引增加 1 行；详细视觉、媒介、数据保真和 HTML 画布合同都留在渐进披露 skill，常驻 system context 只保留必须触发读取与阻断错误旁路的最小门禁。
+- 后续扩展复用现有 `ReplyFormatContextProvider`、`SkillsLoader` 和 `nextclaw-inline` 文件目标，没有新增 provider、manager、loader 分支或第二条展示协议；`visualize-output` 与 `nextclaw-app-creator` 的职责按“当前回答展示 / 可复用应用”明确分开。
+- 后续 `post-edit-maintainability-review` 结论：通过，no maintainability findings；唯一目录 warning 已有豁免且文件数未增长，新增 skill 是独立的渐进披露 owner，不是常驻提示词复制。
 
 ## NPM 包发布记录
 
 - `@nextclaw/ui`：需要 patch，待统一发布。
+- `@nextclaw/agent-chat-ui`：需要 patch，完成态内联 HTML 只保留可视结果，待统一发布。
+- `@nextclaw/core`：需要 patch，新增内置 `visualize-output` skill，待统一发布。
+- `@nextclaw/kernel`：需要 patch，Native Agent 系统提示新增可视化 skill 路由，待统一发布。
 - Changeset：`.changeset/inline-html-preview-natural-flow.md`。
 - 本次未执行 NPM 发布。
