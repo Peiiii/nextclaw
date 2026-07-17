@@ -59,19 +59,7 @@ export type InstallMethod = {
   docsPath?: string;
 };
 
-export type ComparisonLane = {
-  product: string;
-  category: string;
-  icon: string;
-  start: string;
-  focus: string;
-  bestFor: string;
-  sourceLabel: string;
-  sourceUrl: string;
-  featured?: boolean;
-};
-
-export type ComparisonProof = {
+export type ComparisonValue = {
   icon: string;
   title: string;
   description: string;
@@ -83,14 +71,7 @@ export type ComparisonCopy = {
   eyebrow: string;
   title: string;
   subtitle: string;
-  startLabel: string;
-  focusLabel: string;
-  bestForLabel: string;
-  lanes: ComparisonLane[];
-  proofTitle: string;
-  proofDescription: string;
-  proofs: ComparisonProof[];
-  sourceNote: string;
+  values: ComparisonValue[];
 };
 
 export type LandingCopy = {
