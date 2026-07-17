@@ -47,6 +47,10 @@
 - `npm view nextclaw version dist-tags dependencies --json`：确认 `nextclaw@latest = 0.25.1`，且 `nextclaw@0.25.1` 依赖 `@nextclaw/core@0.15.6`。
 - 隔离安装 `nextclaw@0.25.0` 后执行 `nextclaw update --channel stable --check`：确认输出 `Runtime update available: 0.25.0 -> 0.25.1`。
 - 同一隔离安装继续执行 `nextclaw update --channel stable --download-only` 与 `nextclaw update --apply`：确认可下载并应用 `0.25.1` runtime bundle。
+- `wrangler pages deploy apps/docs/.vitepress/dist --project-name nextclaw-docs --branch master`：文档站部署成功，部署地址 `https://91314afd.nextclaw-docs.pages.dev`。
+- `curl -s -I https://docs.nextclaw.io/zh/notes/2026-07-17-nextclaw-v0-25-1`：确认公开中文 release note 返回 `HTTP/2 200`。
+- `curl -s -I https://docs.nextclaw.io/en/notes/2026-07-17-nextclaw-v0-25-1`：确认公开英文 release note 返回 `HTTP/2 200`。
+- `curl -s -I https://docs.nextclaw.io/release-notes/nextclaw-v0.25.1.json`：确认结构化 release notes JSON 返回 `HTTP/2 200`。
 
 ## 发布/部署方式
 
@@ -62,6 +66,7 @@
 - runtime workflow：`https://github.com/Peiiii/nextclaw/actions/runs/29576939861`。
 - runtime release：`https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.25.1`。
 - 产品更新笔记：`apps/docs/zh/notes/2026-07-17-nextclaw-v0-25-1.md`、`apps/docs/en/notes/2026-07-17-nextclaw-v0-25-1.md`、`apps/docs/public/release-notes/nextclaw-v0.25.1.json`。
+- 文档站已部署，公开 URL：`https://docs.nextclaw.io/zh/notes/2026-07-17-nextclaw-v0-25-1`、`https://docs.nextclaw.io/en/notes/2026-07-17-nextclaw-v0-25-1`、`https://docs.nextclaw.io/release-notes/nextclaw-v0.25.1.json`。
 - 0.25.1 是 patch 版本，不默认发 X 帖；本批以修复和补漏为主，不配图。
 
 ## 用户/产品视角的验收步骤
