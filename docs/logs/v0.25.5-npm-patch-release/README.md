@@ -12,19 +12,25 @@
 
 发布前实现验证已记录在 v0.25.4，包括 package lint/tsc、runtime update smoke、`dev:verify-update -- --rebuild`、候选 runtime skill API 断言、冷/热缓存验证以及真实模型读取 `visualize-output` 的前向验收。
 
-本次发布窗口将补充：
+本次发布窗口已完成：
 
-- 49 个公开包的严格 build、TypeScript 与 ESLint 发布前门禁。
-- `nextclaw@0.25.3` tarball 的 launcher、app runtime、update public key、精确依赖与内置 skill 资产检查。
-- registry 49/49 发布验证与 `nextclaw@latest` 全新安装检查。
-- 从公开 `nextclaw@0.25.2` 执行 stable check、download-only、apply、新进程版本以及内置 skill 资产检查。
-- 四个平台 stable runtime manifest、GitHub Release assets 与正式文档站验收。
+- `pnpm release:check:strict`：49 个公开包的 build、TypeScript 与 ESLint 发布前门禁通过。
+- `pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet` 与 `git diff --check`：通过。
+- `nextclaw@0.25.3` 与 `@nextclaw/core@0.15.8` pack 检查：launcher、app runtime、update public key、精确依赖和 27 个内置 skill 文件完整，未出现 `workspace:*`。
+- registry 发布验证：49/49；`nextclaw@latest` 为 `0.25.3`，全新安装版本、入口、公钥、内置 skill 与 stable `up-to-date` 检查通过。
+- 公开旧版升级：`0.25.2` 能发现、下载、验签并应用 `0.25.3`；新进程输出 `0.25.3`，active pointer 为 `0.25.3`，应用后的 runtime 保留 27 个内置 skill 文件。
+- 四个平台 stable runtime manifest 均为 `hostKind: npm-runtime-bundle`、`latestVersion: 0.25.3`，release notes URL 一致；GitHub Release 四个平台资产完整。
+- 正式文档站中英文页面与结构化 JSON 最终均返回 HTTP 200；英文页面首次探测遇到短暂 404，等待 Pages 自定义域名传播后复验为 200。
 
 ## 发布/部署方式
 
 - NPM：使用仓库标准命令 `pnpm release:publish` 全量发布，不从单包目录执行 raw `npm publish`。
 - Runtime update：NPM 发布成功后执行 `pnpm release:stable:runtime -- --version 0.25.3 --release-tag nextclaw@0.25.3 --branch codex/release-npm-patch-0.25.3`，等待 GitHub Actions 与公开 manifest 生效。
 - Docs：构建并部署 `@nextclaw/docs`，确认中英文页面与 `/release-notes/nextclaw-v0.25.3.json` 对外返回成功。
+- 发布快照：`a0e88f36f release: publish nextclaw 0.25.3`。
+- Runtime workflow：[npm-runtime-update-release #29594635599](https://github.com/Peiiii/nextclaw/actions/runs/29594635599)，四个平台构建与发布 job 全部成功。
+- Runtime assets：[nextclaw@0.25.3](https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.25.3)。
+- Docs deployment：`https://557dcd57.nextclaw-docs.pages.dev`；正式入口为[中文发布说明](https://docs.nextclaw.io/zh/notes/2026-07-17-nextclaw-v0-25-3)、[英文发布说明](https://docs.nextclaw.io/en/notes/2026-07-17-nextclaw-v0-25-3)与[结构化 JSON](https://docs.nextclaw.io/release-notes/nextclaw-v0.25.3.json)。
 - Desktop installer / manifest：不适用，本次没有新的桌面安装包。
 - 数据库 migration / 独立后端部署：不适用，本批没有数据库或独立服务端变更。
 - X 帖与配图：不适用；patch 修复没有能直接证明主结论的必要视觉素材，也不属于默认宣发范围。
@@ -43,9 +49,11 @@
 
 v0.25.4 实现批次的运行链路脚本新增 47 行、删除 8 行，净增 39 行；这是修复用户安装态缺陷所需的资产边界和验证合同。`post-edit-maintainability-guard` 为 0 error、1 个既有临界文件 warning，主观复核通过。
 
+发布复盘没有发现需要新增平行脚本或 fallback 的问题。NPM registry 传播由 `release:verify:published` 的 12 次重试机制吸收，本次在第 1 次检查仅等待 Telegram extension 后达到 49/49；runtime Pages 传播继续由 `release-runtime-manifest-verify.mjs` 同时核对 `gh-pages` 与公网四平台 manifest。文档自定义域名的短暂传播延迟则按发布闭环既有的中英文与 JSON 三 URL HTTP 200 验收处理，未在 404 中间态收尾。GitHub Actions 的 Node 20 弃用提示属于 action runtime 升级提醒，不影响本次产物，后续应在独立治理迭代中统一升级 action 版本，不夹带到 patch 发布快照。
+
 ## NPM 包发布记录
 
-以下 49 个公开包已完成 patch 版本化，当前状态为 `待发布并验证 registry`：
+以下 49 个公开包已完成 patch 发布，registry 验证为 `49/49`，对应 49 个 Git tag 已推送：
 
 - `@nextclaw/agent-chat-ui@0.6.10`
 - `@nextclaw/agent-chat@0.3.4`
