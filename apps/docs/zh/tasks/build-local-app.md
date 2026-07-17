@@ -25,7 +25,7 @@
 
 把代码放在独立目录，说明启动方式。页面或 HTML 结果可以在右侧预览；需要查看源码时切换到对应文件。
 
-![在会话中直接运行电子钢琴 Panel App](/product-screenshots/nextclaw-panel-app-running-cn.png)
+![左侧继续与 Agent 修改，右侧直接运行 Panel App](/product-screenshots/nextclaw-panel-app-running-cn.png)
 
 ### 3. 用真实样例测试
 

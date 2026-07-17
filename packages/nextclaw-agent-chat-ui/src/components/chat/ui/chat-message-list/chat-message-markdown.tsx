@@ -49,6 +49,7 @@ type ChatMessageMarkdownProps = {
     | "attachmentExpandLabel"
     | "attachmentCloseLabel"
     | "mermaidDiagramLabel"
+    | "mermaidLoadingLabel"
     | "mermaidRenderErrorLabel"
   >;
   inline?: boolean;

@@ -6,6 +6,7 @@ import { useI18n } from "@/app/components/i18n-provider";
 import {
   useMarketplaceInstalled,
   useMarketplaceItems,
+  useMarketplaceRecentItems,
 } from "@/features/marketplace/hooks/use-marketplace";
 import {
   FilterPanel,
@@ -77,6 +78,10 @@ export function MarketplacePage({
     sort,
     pageSize: PAGE_SIZE,
   });
+  const recentItemsQuery = useMarketplaceRecentItems(
+    typeFilter,
+    scope === "all" && !searchText.trim() && !query && !sceneParam,
+  );
 
   const {
     containerRef: listContainerRef,
@@ -115,6 +120,7 @@ export function MarketplacePage({
 
   const curatedSceneRoute = useMarketplaceCuratedSceneRoute({
     items: listModel.allItems,
+    recentItems: recentItemsQuery.data?.items ?? [],
     installedRecordLookup: listModel.installedRecordLookup,
     scene: sceneParam,
     forcedType,
@@ -201,10 +207,12 @@ export function MarketplacePage({
 
           {curatedSceneRoute.showShelves && (
             <MarketplaceCuratedShelves
-              entries={curatedSceneRoute.entries}
+              recentEntries={curatedSceneRoute.recentEntries}
               scenes={curatedSceneRoute.scenes}
               isScenesLoading={curatedSceneRoute.isScenesLoading}
-              isItemsLoading={listModel.showListSkeleton}
+              isItemsLoading={
+                listModel.showListSkeleton || recentItemsQuery.isLoading
+              }
               language={language}
               installState={installState}
               onOpen={(entry) => void openItemDetail(entry.item, entry.record)}

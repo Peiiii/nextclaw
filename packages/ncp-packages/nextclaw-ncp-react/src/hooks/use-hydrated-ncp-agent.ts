@@ -97,15 +97,15 @@ export function useHydratedNcpAgent({
   const loadStateRef = useRef<LoadState>({ requestId: 0, controller: null });
 
   const resetEmptySession = useCallback(async () => {
-    await client.stop();
-    manager.reset();
-    setHydrateError(null);
-    setHydratedSessionId(null);
-    setIsHydrating(false);
     loadStateRef.current = {
       requestId: loadStateRef.current.requestId + 1,
       controller: null,
     };
+    manager.reset();
+    setHydrateError(null);
+    setHydratedSessionId(null);
+    setIsHydrating(false);
+    await client.stop();
   }, [client, manager]);
 
   const markHydratedFromLiveState = useCallback((targetSessionId: string) => {

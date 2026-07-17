@@ -1,0 +1,29 @@
+{
+  "slug": "nextclaw-skin-studio",
+  "name": "NextClaw Skin Studio",
+  "summary": "Choose from six lightweight NextClaw skins or create your own from colors and a local image.",
+  "summaryI18n": {
+    "en": "Choose from six lightweight NextClaw skins or create your own from colors and a local image.",
+    "zh": "从六款轻量 NextClaw 皮肤中选择，或用配色和本地图片创建自己的皮肤。"
+  },
+  "description": "Browse, apply, switch, customize, inspect, and remove NextClaw UI skins through the unsupported UI injection hook. The Skill bundles six self-contained skins, a shared deterministic renderer, local-image customization, conflict protection, and migration from the former Abyssal Compass package. Installation and activation remain separate, and no remote assets are loaded.",
+  "descriptionI18n": {
+    "en": "Browse, apply, switch, customize, inspect, and remove NextClaw UI skins through the unsupported UI injection hook. The Skill bundles six self-contained skins, a shared deterministic renderer, local-image customization, conflict protection, and migration from the former Abyssal Compass package. Installation and activation remain separate, and no remote assets are loaded.",
+    "zh": "通过非正式 UI 注入口浏览、应用、切换、定制、检查和移除 NextClaw 皮肤。Skill 内置六款自包含皮肤、一套确定性共享渲染器、本地图片定制、归属冲突保护，以及旧版「深海罗盘」包的迁移能力。安装与启用保持分离，且不加载远程资源。"
+  },
+  "author": "NextClaw",
+  "tags": [
+    "skill",
+    "nextclaw",
+    "ui-skin",
+    "skin",
+    "appearance",
+    "customization",
+    "experimental"
+  ],
+  "sourceRepo": "https://github.com/Peiiii/nextclaw",
+  "homepage": "https://github.com/Peiiii/nextclaw",
+  "install": {
+    "kind": "marketplace"
+  }
+}

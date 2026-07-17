@@ -20,6 +20,7 @@ const destroyPresentationMock = vi.fn();
 type RenderWorkspaceFilePreviewOptions = {
   file?: Partial<ChatWorkspaceFileTab>;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+  onHtmlContentHeightChange?: (height: number) => void;
   refreshVersion?: number;
   sessionProjectRoot?: string | null;
   sessionWorkingDir?: string | null;
@@ -104,6 +105,7 @@ function mockTextRead(overrides: TextReadDataOverrides = {}) {
 function renderWorkspaceFilePreview({
   file,
   onFileOpen = vi.fn(),
+  onHtmlContentHeightChange,
   refreshVersion,
   sessionProjectRoot = "/tmp",
   sessionWorkingDir = "/tmp",
@@ -116,6 +118,7 @@ function renderWorkspaceFilePreview({
       sessionWorkingDir={sessionWorkingDir}
       refreshVersion={refreshVersion}
       showBreadcrumbs={showBreadcrumbs}
+      onHtmlContentHeightChange={onHtmlContentHeightChange}
       onFileOpen={onFileOpen}
     />,
   );
@@ -316,9 +319,7 @@ describe("ChatSessionWorkspaceFilePreview rendering", () => {
       });
 
       expect(screen.getByTestId(testId)).toBeTruthy();
-      expect(
-        screen.queryByText(t("chatWorkspacePreviewTruncated")),
-      ).toBeNull();
+      expect(screen.queryByText(t("chatWorkspacePreviewTruncated"))).toBeNull();
     },
   );
 });
@@ -751,9 +752,7 @@ describe("ChatSessionWorkspaceFilePreview text rendering", () => {
     });
     const indexButton = screen.getByRole("button", { name: "index.ts" });
     fireEvent.click(componentsTreeItem.querySelector("button")!);
-    expect(
-      componentsTreeItem.getAttribute("aria-expanded"),
-    ).toBe("true");
+    expect(componentsTreeItem.getAttribute("aria-expanded")).toBe("true");
     expect(onFileOpen).not.toHaveBeenCalled();
 
     fireEvent.click(indexButton);

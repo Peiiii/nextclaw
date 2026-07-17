@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from socketserver import ThreadingMixIn
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit
 from urllib.request import Request, urlopen
 
 SOURCE_BASE_URL = os.environ.get("NEXTCLAW_MARKETPLACE_SOURCE", "https://marketplace-api.nextclaw.io")
@@ -21,6 +21,7 @@ RESPONSES_DIR = CACHE_DIR / "responses"
 MANIFEST_PATH = DATA_DIR / "manifest.json"
 DEFAULT_TIMEOUT_SECONDS = 20
 DEFAULT_PAGE_SIZE = 100
+DEFAULT_CACHE_TTL_SECONDS = int(os.environ.get("NEXTCLAW_MARKETPLACE_MIRROR_CACHE_TTL", "600"))
 
 JSON_ALLOWED_PREFIXES = (
     "/api/v1/skills/",
@@ -41,8 +42,14 @@ def atomic_write(path, content):
     os.replace(temp_name, path)
 
 
+def canonical_path_query(path_query):
+    parsed = urlsplit(path_query)
+    query = urlencode(sorted(parse_qsl(parsed.query, keep_blank_values=True)))
+    return parsed.path + (f"?{query}" if query else "")
+
+
 def cache_key(path_query):
-    return hashlib.sha256(path_query.encode("utf-8")).hexdigest()
+    return hashlib.sha256(canonical_path_query(path_query).encode("utf-8")).hexdigest()
 
 
 def cache_paths(path_query):
@@ -65,7 +72,7 @@ def json_bytes(payload):
 
 
 def source_url(path_query):
-    return f"{SOURCE_BASE_URL.rstrip('/')}{path_query}"
+    return f"{SOURCE_BASE_URL.rstrip('/')}{canonical_path_query(path_query)}"
 
 
 def fetch_source(path_query, timeout=DEFAULT_TIMEOUT_SECONDS, attempts=3):
@@ -99,6 +106,7 @@ def fetch_source(path_query, timeout=DEFAULT_TIMEOUT_SECONDS, attempts=3):
 
 
 def write_cache(path_query, fetched):
+    path_query = canonical_path_query(path_query)
     body_path, meta_path = cache_paths(path_query)
     atomic_write(body_path, fetched["body"])
     meta = {
@@ -116,6 +124,7 @@ def write_cache(path_query, fetched):
 
 
 def read_cache(path_query):
+    path_query = canonical_path_query(path_query)
     body_path, meta_path = cache_paths(path_query)
     if not body_path.exists() or not meta_path.exists():
         return None
@@ -126,12 +135,38 @@ def read_cache(path_query):
 
 
 def fetch_and_cache(path_query):
+    path_query = canonical_path_query(path_query)
     fetched = fetch_source(path_query)
     meta = write_cache(path_query, fetched)
     return {
         "body": fetched["body"],
         "meta": meta,
     }
+
+
+def cache_is_fresh(cached, now=None):
+    cached_at = cached.get("meta", {}).get("cachedAt")
+    if not cached_at:
+        return False
+    try:
+        timestamp = datetime.fromisoformat(cached_at.replace("Z", "+00:00")).timestamp()
+    except (TypeError, ValueError):
+        return False
+    current_time = time.time() if now is None else now
+    return current_time - timestamp < DEFAULT_CACHE_TTL_SECONDS
+
+
+def resolve_cached_response(path_query):
+    path_query = canonical_path_query(path_query)
+    cached = read_cache(path_query)
+    if cached is None:
+        return fetch_and_cache(path_query), "miss-filled"
+    if cache_is_fresh(cached):
+        return cached, "hit"
+    try:
+        return fetch_and_cache(path_query), "stale-refreshed"
+    except (URLError, TimeoutError, RuntimeError, OSError):
+        return cached, "stale-if-error"
 
 
 def json_from_cached(path_query):
@@ -258,7 +293,7 @@ class MirrorHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlsplit(self.path)
-        path_query = parsed.path + (f"?{parsed.query}" if parsed.query else "")
+        path_query = canonical_path_query(parsed.path + (f"?{parsed.query}" if parsed.query else ""))
         if parsed.path == "/health":
             self.write_json(200, health_payload())
             return
@@ -272,23 +307,19 @@ class MirrorHandler(BaseHTTPRequestHandler):
             })
             return
 
-        cached = read_cache(path_query)
-        cache_status = "hit"
-        if cached is None:
-            try:
-                cached = fetch_and_cache(path_query)
-                cache_status = "miss-filled"
-            except (URLError, TimeoutError, RuntimeError) as error:
-                self.write_json(502, {
-                    "ok": False,
-                    "error": {
-                        "code": "MIRROR_CACHE_MISS",
-                        "message": "requested resource is not cached and source fetch failed",
-                    },
-                    "source": SOURCE_BASE_URL,
-                    "detail": str(error),
-                })
-                return
+        try:
+            cached, cache_status = resolve_cached_response(path_query)
+        except (URLError, TimeoutError, RuntimeError, OSError) as error:
+            self.write_json(502, {
+                "ok": False,
+                "error": {
+                    "code": "MIRROR_CACHE_MISS",
+                    "message": "requested resource is not cached and source fetch failed",
+                },
+                "source": SOURCE_BASE_URL,
+                "detail": str(error),
+            })
+            return
 
         meta = cached["meta"]
         body = cached["body"]

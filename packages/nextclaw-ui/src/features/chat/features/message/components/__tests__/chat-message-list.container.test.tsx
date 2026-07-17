@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { isValidElement } from "react";
 import type { NcpMessage } from "@nextclaw/ncp";
 import { beforeEach, expect, it, vi } from "vitest";
@@ -107,9 +107,7 @@ it("reuses adapted message references when the source message object is unchange
   const firstMessages =
     captures.renders[captures.renders.length - 1]?.messages ?? [];
 
-  rerender(
-    <ChatMessageListContainer messages={[message]} isSending={false} />,
-  );
+  rerender(<ChatMessageListContainer messages={[message]} isSending={false} />);
 
   const secondMessages =
     captures.renders[captures.renders.length - 1]?.messages ?? [];
@@ -230,7 +228,7 @@ it("adds a completed assistant process summary without inventing a duration", ()
         toolCallId: "tool-1",
         toolName: "exec_command",
         state: "result",
-        args: "{\"cmd\":\"git status\"}",
+        args: '{"cmd":"git status"}',
         result: "clean",
       },
       {
@@ -277,7 +275,7 @@ it("derives completed assistant process duration from message lifecycle", () => 
         toolCallId: "tool-1",
         toolName: "exec_command",
         state: "result",
-        args: "{\"cmd\":\"git status\"}",
+        args: '{"cmd":"git status"}',
         result: "clean",
       },
       {
@@ -439,12 +437,16 @@ it("renders context inheritance as a divider without repeating inherited message
       isSending={false}
     />,
   );
-  const renderedMessages = captures.renders.flatMap((rendered) => rendered.messages);
+  const renderedMessages = captures.renders.flatMap(
+    (rendered) => rendered.messages,
+  );
   const renderedPayload = JSON.stringify(renderedMessages);
 
   expect(screen.getByText("chatContextInheritanceInherited")).toBeTruthy();
   expect(container.querySelector('[title*="parent-session"]')).toBeTruthy();
-  expect(container.querySelector('[title*="chatContextInheritanceMessages: 1"]')).toBeTruthy();
+  expect(
+    container.querySelector('[title*="chatContextInheritanceMessages: 1"]'),
+  ).toBeTruthy();
   expect(renderedPayload).toContain("child visible request");
   expect(renderedPayload).not.toContain("parent context");
 });
@@ -470,7 +472,7 @@ it("keeps Hermes tool invocation parts as tool cards instead of flattening them 
         toolCallId: "hermes-inline-tool-1",
         toolName: "search_files",
         state: "call",
-        args: "{\"pattern\":\"*.py\"}",
+        args: '{"pattern":"*.py"}',
       },
       {
         type: "text",
@@ -549,10 +551,12 @@ it("delegates tool actions to the chat thread manager owner", () => {
 it("passes the inline panel app renderer to the shared chat UI", () => {
   render(<ChatMessageListContainer messages={[]} isSending={false} />);
 
-  expect(captures.renders[captures.renders.length - 1]?.renderPanelAppCard).toEqual(expect.any(Function));
+  expect(
+    captures.renders[captures.renders.length - 1]?.renderPanelAppCard,
+  ).toEqual(expect.any(Function));
 });
 
-it("renders inline file displays through the workspace file preview", () => {
+it("connects inline HTML actions to the chat thread manager", () => {
   render(<ChatMessageListContainer messages={[]} isSending={false} />);
 
   const renderInlineDisplay =
@@ -568,24 +572,30 @@ it("renders inline file displays through the workspace file preview", () => {
     description: "Rendered HTML",
   });
 
-  if (!isValidElement<{ display?: unknown }>(rendered)) {
+  if (!isValidElement(rendered)) {
     throw new Error("Expected inline file renderer to return a React element");
   }
-  expect(rendered.props.display).toEqual({
-    target: {
-      type: "file",
-      payload: { path: "preview.html", viewer: "rendered" },
-    },
-    title: "Preview",
-    description: "Rendered HTML",
-  });
-
   render(rendered);
 
-  expect(screen.getByText("Preview")).toBeTruthy();
-  expect(screen.getByText("preview.html")).toBeTruthy();
-  expect(screen.queryByText("Rendered HTML")).toBeNull();
-  expect(captures.filePreviewProps.at(-1)?.showBreadcrumbs).toBe(false);
+  fireEvent.click(screen.getByLabelText("chatPanelCardExpand"));
+  fireEvent.click(screen.getByLabelText("chatWorkspaceOpenSource"));
+
+  expect(captures.openFilePreview).toHaveBeenNthCalledWith(1, {
+    path: "preview.html",
+    label: "Preview",
+    viewMode: "preview",
+    previewViewer: "rendered",
+    line: undefined,
+    column: undefined,
+  });
+  expect(captures.openFilePreview).toHaveBeenNthCalledWith(2, {
+    path: "preview.html",
+    label: "Preview",
+    viewMode: "preview",
+    previewViewer: "source",
+    line: undefined,
+    column: undefined,
+  });
 });
 
 it("keeps inline panel app displays expandable from the card header", () => {
@@ -602,7 +612,9 @@ it("keeps inline panel app displays expandable from the card header", () => {
   });
 
   if (!isValidElement<{ showExpandAction?: boolean }>(rendered)) {
-    throw new Error("Expected inline panel app renderer to return a React element");
+    throw new Error(
+      "Expected inline panel app renderer to return a React element",
+    );
   }
   expect(rendered.props.showExpandAction).toBeUndefined();
 });

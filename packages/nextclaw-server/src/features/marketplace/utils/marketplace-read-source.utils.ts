@@ -8,6 +8,7 @@ import {
 const MARKETPLACE_FETCH_TIMEOUT_MS = 12_000;
 const DOMESTIC_MARKETPLACE_FETCH_TIMEOUT_MS = 2_000;
 const DOMESTIC_MARKETPLACE_RETRY_ATTEMPTS = 2;
+const DOMESTIC_MARKETPLACE_MAX_SNAPSHOT_AGE_MS = 20 * 60 * 1_000;
 
 export function resolveMarketplaceBaseUrls(options: UiRouterOptions): readonly string[] {
   const configured = options.marketplace?.apiBaseUrl?.trim();
@@ -40,4 +41,16 @@ export function getMarketplaceFetchOptions(baseUrl: string): {
 
 export function shouldFallbackMarketplaceResult(status: number): boolean {
   return status === 408 || status === 429 || status >= 500;
+}
+
+export function isStaleDomesticMarketplaceSnapshot(
+  baseUrl: string,
+  cachedAt: string | null,
+  now = Date.now()
+): boolean {
+  if (baseUrl.replace(/\/$/, "") !== DOMESTIC_MARKETPLACE_API_BASE || cachedAt === null) {
+    return false;
+  }
+  const cachedAtMs = Date.parse(cachedAt);
+  return !Number.isFinite(cachedAtMs) || now - cachedAtMs > DOMESTIC_MARKETPLACE_MAX_SNAPSHOT_AGE_MS;
 }

@@ -1,0 +1,4 @@
+interface:
+  display_name: "NextClaw Skin Studio"
+  short_description: "Apply or create lightweight NextClaw UI skins"
+  default_prompt: "Use $nextclaw-skin-studio to show the built-in skins and help me apply or customize one for this NextClaw instance."

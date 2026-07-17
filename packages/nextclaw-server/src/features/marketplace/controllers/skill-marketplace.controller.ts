@@ -20,10 +20,8 @@ import {
   sanitizeMarketplaceListItems
 } from "@nextclaw-server/features/marketplace/utils/marketplace-catalog.utils.js";
 import {
-  collectKnownSkillNames,
   collectSkillMarketplaceInstalledView,
-  findUnsupportedSkillInstallKind,
-  isSupportedMarketplaceSkillItem
+  findUnsupportedSkillInstallKind
 } from "@nextclaw-server/features/marketplace/utils/marketplace-installed.utils.js";
 
 type SupportedSkillMarketplaceListResult =
@@ -147,12 +145,11 @@ export class SkillMarketplaceController {
       };
     }
 
-    const knownSkillNames = collectKnownSkillNames(this.options);
     return {
       ok: true,
       data: {
         ...data,
-        items: normalizedItems.filter((item) => isSupportedMarketplaceSkillItem(item, knownSkillNames))
+        items: normalizedItems
       }
     };
   };
@@ -215,7 +212,6 @@ export class SkillMarketplaceController {
       return c.json(err("MARKETPLACE_UNAVAILABLE", result.message), result.status as 500);
     }
 
-    const knownSkillNames = collectKnownSkillNames(this.options);
     const sanitized = normalizeMarketplaceItemForUi(sanitizeMarketplaceItemView(result.data));
     const unsupportedKind = findUnsupportedSkillInstallKind([sanitized]);
     if (unsupportedKind) {
@@ -224,10 +220,6 @@ export class SkillMarketplaceController {
         502
       );
     }
-    if (!isSupportedMarketplaceSkillItem(sanitized, knownSkillNames)) {
-      return c.json(err("NOT_FOUND", "marketplace item not supported by nextclaw"), 404);
-    }
-
     return c.json(ok(sanitized));
   };
 
@@ -242,7 +234,6 @@ export class SkillMarketplaceController {
       return c.json(err("MARKETPLACE_UNAVAILABLE", result.message), result.status as 500);
     }
 
-    const knownSkillNames = collectKnownSkillNames(this.options);
     const sanitized = normalizeMarketplaceItemForUi(sanitizeMarketplaceItemView(result.data));
     const unsupportedKind = findUnsupportedSkillInstallKind([sanitized]);
     if (unsupportedKind) {
@@ -251,10 +242,6 @@ export class SkillMarketplaceController {
         502
       );
     }
-    if (!isSupportedMarketplaceSkillItem(sanitized, knownSkillNames)) {
-      return c.json(err("NOT_FOUND", "marketplace item not supported by nextclaw"), 404);
-    }
-
     const contentResult = await fetchMarketplaceData<MarketplaceSkillContentView>({
       baseUrls: this.marketplaceBaseUrls,
       path: `/api/v1/skills/items/${slug}/content`
@@ -335,15 +322,20 @@ export class SkillMarketplaceController {
       return c.json(err("MARKETPLACE_UNAVAILABLE", result.message), result.status as 500);
     }
 
-    const knownSkillNames = collectKnownSkillNames(this.options);
-    const filteredItems = sanitizeMarketplaceListItems(result.data.items)
-      .map((item) => normalizeMarketplaceItemForUi(item))
-      .filter((item) => isSupportedMarketplaceSkillItem(item, knownSkillNames));
+    const items = sanitizeMarketplaceListItems(result.data.items)
+      .map((item) => normalizeMarketplaceItemForUi(item));
+    const unsupportedKind = findUnsupportedSkillInstallKind(items);
+    if (unsupportedKind) {
+      return c.json(
+        err("MARKETPLACE_CONTRACT_MISMATCH", `unsupported skill install kind from marketplace api: ${unsupportedKind}`),
+        502
+      );
+    }
 
     return c.json(ok({
       ...result.data,
-      total: filteredItems.length,
-      items: filteredItems
+      total: items.length,
+      items
     }));
   };
 }

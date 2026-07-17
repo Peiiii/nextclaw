@@ -29,7 +29,9 @@ export type ContextCompactionPreflightResult = {
   timelineMessage: NcpMessage | null;
 };
 
-export type ContextCompactionPreflightBeginResult = ContextCompactionPreflightResult & {
+export type ContextCompactionPreflightBeginResult = {
+  contextWindow: ContextWindowSnapshot;
+  sessionMessages: NcpMessage[];
   pendingCompaction: ContextCompactionPendingWork | null;
 };
 
@@ -46,7 +48,6 @@ type ContextCompactionPendingWork = {
 
 type ResolvedCompactionProfile = {
   contextTokens: number;
-  model: string;
   reservedContextTokens: number;
 };
 
@@ -217,6 +218,7 @@ export class ContextCompactionPreflightService {
   begin = (params: {
     contextBlocks?: readonly string[];
     inputMessages: readonly NcpMessage[];
+    model: string;
     requestMetadata: Record<string, unknown>;
     sessionId: string;
     sessionMessages: readonly NcpMessage[];
@@ -226,6 +228,7 @@ export class ContextCompactionPreflightService {
     const {
       contextBlocks = [],
       inputMessages,
+      model,
       requestMetadata,
       sessionId,
       sessionMessages,
@@ -289,23 +292,13 @@ export class ContextCompactionPreflightService {
     });
     return {
       contextWindow,
-      metadataPatch: plan && checkpoint
-        ? { [CONTEXT_COMPACTION_METADATA_KEY]: checkpoint }
-        : {},
       sessionMessages: ncpMessages,
-      timelineMessage: plan && checkpoint
-        ? buildContextCompactionTimelineNcpMessage({
-            messageId: serviceMessageId,
-            sessionId,
-            checkpoint,
-          })
-        : null,
       pendingCompaction: plan && checkpoint
         ? {
             checkpoint,
             contextTokens,
             serviceMessageId,
-            model: profile.model,
+            model,
             plan,
             reservedContextTokens,
             sessionId,
@@ -419,7 +412,6 @@ export class ContextCompactionPreflightService {
     });
     return {
       contextTokens: profile.contextTokens,
-      model: profile.model,
       reservedContextTokens: profile.reservedContextTokens,
     };
   };

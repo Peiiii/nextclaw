@@ -371,6 +371,7 @@ describe("AgentRunModelInputBuilder deterministic compaction integration", () =>
     const begin = preflight.begin({
       contextBlocks,
       inputMessages: [],
+      model: "test-model",
       requestMetadata: {},
       sessionId: SESSION_ID,
       sessionMessages,

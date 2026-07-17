@@ -1,4 +1,5 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
+import { StrictMode } from "react";
 import { ChatMessageMarkdown } from "@agent-chat-ui/components/chat/ui/chat-message-list/chat-message-markdown";
 
 const mermaidMock = vi.hoisted(() => ({
@@ -13,6 +14,7 @@ const texts = {
   copyCodeLabel: "Copy",
   copiedCodeLabel: "Copied",
   mermaidDiagramLabel: "Diagram",
+  mermaidLoadingLabel: "Rendering diagram…",
   mermaidRenderErrorLabel: "Diagram could not be rendered; showing source instead",
 };
 
@@ -52,6 +54,42 @@ it("renders fenced Mermaid blocks as strict SVG diagrams", async () => {
   });
   expect(container.querySelector("[data-chat-mermaid-diagram=true]")).toBeTruthy();
   expect(container.querySelector(".chat-codeblock")).toBeNull();
+  expect(
+    container.querySelector("figure[data-chat-mermaid-diagram=true]")?.className,
+  ).not.toContain("border");
+});
+
+it("keeps Mermaid source hidden behind a stable surface during the first render", async () => {
+  let finishRender: ((value: { svg: string }) => void) | undefined;
+  mermaidMock.render.mockReturnValueOnce(
+    new Promise<{ svg: string }>((resolve) => {
+      finishRender = resolve;
+    }),
+  );
+  const { container } = render(
+    <ChatMessageMarkdown
+      text={"```mermaid\nflowchart LR\n  A --> B\n```"}
+      role="assistant"
+      texts={texts}
+    />,
+  );
+
+  await waitFor(() => expect(mermaidMock.render).toHaveBeenCalledTimes(1));
+  const pendingSurface = container.querySelector(
+    "figure[data-chat-mermaid-pending=true]",
+  );
+  expect(pendingSurface).toBeTruthy();
+  expect(screen.getByText("Rendering diagram…")).toBeTruthy();
+  expect(pendingSurface?.querySelector(".animate-spin")).toBeTruthy();
+  expect(container.querySelector(".chat-codeblock")).toBeNull();
+
+  finishRender?.({
+    svg: '<svg data-testid="mermaid-svg" data-version="ready"></svg>',
+  });
+  await waitFor(() => expect(screen.getByTestId("mermaid-svg")).toBeTruthy());
+  expect(container.querySelector("figure[data-chat-mermaid-diagram=true]")).toBe(
+    pendingSurface,
+  );
 });
 
 it("rerenders Mermaid diagrams when the host appearance changes", async () => {
@@ -113,10 +151,10 @@ it("keeps the last rendered diagram visible while updated source is rendering", 
   });
 });
 
-it("coalesces streaming updates and renders completed source immediately", async () => {
+it("renders valid snapshots during uninterrupted streaming and final source immediately", async () => {
   vi.useFakeTimers();
   try {
-    const { rerender } = render(
+    const { container, rerender } = render(
       <ChatMessageMarkdown
         isStreaming
         text={"```mermaid\nflowchart LR\n  A\n```"}
@@ -124,6 +162,11 @@ it("coalesces streaming updates and renders completed source immediately", async
         texts={texts}
       />,
     );
+    expect(container.querySelector(".chat-codeblock")).toBeNull();
+    expect(
+      container.querySelector("figure[data-chat-mermaid-pending=true]"),
+    ).toBeTruthy();
+    await act(() => vi.advanceTimersByTimeAsync(100));
     rerender(
       <ChatMessageMarkdown
         isStreaming
@@ -132,25 +175,108 @@ it("coalesces streaming updates and renders completed source immediately", async
         texts={texts}
       />,
     );
+    await act(() => vi.advanceTimersByTimeAsync(100));
+    rerender(
+      <ChatMessageMarkdown
+        isStreaming
+        text={"```mermaid\nflowchart LR\n  A --> B --> C\n```"}
+        role="assistant"
+        texts={texts}
+      />,
+    );
+    await act(() => vi.advanceTimersByTimeAsync(100));
 
-    await act(() => vi.advanceTimersByTimeAsync(299));
-    expect(mermaidMock.render).not.toHaveBeenCalled();
+    expect(mermaidMock.render).toHaveBeenCalled();
+    const streamingRenderCount = mermaidMock.render.mock.calls.length;
 
     rerender(
       <ChatMessageMarkdown
-        text={"```mermaid\nflowchart LR\n  A --> B --> C\n```"}
+        text={"```mermaid\nflowchart LR\n  A --> B --> C --> D\n```"}
         role="assistant"
         texts={texts}
       />,
     );
     await act(() => vi.advanceTimersByTimeAsync(0));
 
-    expect(mermaidMock.parse).toHaveBeenCalledTimes(1);
-    expect(mermaidMock.parse).toHaveBeenCalledWith(
-      "flowchart LR\n  A --> B --> C",
+    expect(mermaidMock.render.mock.calls.length).toBeGreaterThan(
+      streamingRenderCount,
+    );
+    expect(mermaidMock.parse).toHaveBeenLastCalledWith(
+      "flowchart LR\n  A --> B --> C --> D",
       { suppressErrors: true },
     );
     expect(screen.getByTestId("mermaid-svg")).toBeTruthy();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("schedules the initial streaming frame under React Strict Mode", async () => {
+  vi.useFakeTimers();
+  try {
+    render(
+      <StrictMode>
+        <ChatMessageMarkdown
+          isStreaming
+          text={"```mermaid\nflowchart LR\n  A --> B\n```"}
+          role="assistant"
+          texts={texts}
+        />
+      </StrictMode>,
+    );
+
+    await act(() => vi.advanceTimersByTimeAsync(200));
+
+    expect(mermaidMock.render).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("serializes slow streaming renders and catches up with the latest source", async () => {
+  vi.useFakeTimers();
+  try {
+    let finishFirstRender: ((value: { svg: string }) => void) | undefined;
+    mermaidMock.render.mockReturnValueOnce(
+      new Promise<{ svg: string }>((resolve) => {
+        finishFirstRender = resolve;
+      }),
+    );
+    const { rerender } = render(
+      <ChatMessageMarkdown
+        isStreaming
+        text={"```mermaid\nflowchart LR\n  A --> B\n```"}
+        role="assistant"
+        texts={texts}
+      />,
+    );
+
+    await act(() => vi.advanceTimersByTimeAsync(200));
+    expect(mermaidMock.render).toHaveBeenCalledTimes(1);
+    rerender(
+      <ChatMessageMarkdown
+        isStreaming
+        text={"```mermaid\nflowchart LR\n  A --> B --> C\n```"}
+        role="assistant"
+        texts={texts}
+      />,
+    );
+    await act(() => vi.advanceTimersByTimeAsync(400));
+    expect(mermaidMock.render).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      finishFirstRender?.({
+        svg: '<svg data-testid="mermaid-svg" data-version="first"></svg>',
+      });
+      await Promise.resolve();
+    });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+
+    expect(mermaidMock.render).toHaveBeenCalledTimes(2);
+    expect(mermaidMock.parse).toHaveBeenLastCalledWith(
+      "flowchart LR\n  A --> B --> C",
+      { suppressErrors: true },
+    );
   } finally {
     vi.useRealTimers();
   }

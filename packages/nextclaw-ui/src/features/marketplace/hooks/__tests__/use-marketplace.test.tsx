@@ -1,7 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { useMarketplaceItems } from "@/features/marketplace/hooks/use-marketplace";
+import {
+  useMarketplaceItems,
+  useMarketplaceRecentItems,
+} from "@/features/marketplace/hooks/use-marketplace";
 import type { MarketplaceListView } from "@/shared/lib/api";
 
 const mocks = vi.hoisted(() => ({
@@ -104,6 +107,28 @@ describe("useMarketplaceItems", () => {
 
     await waitFor(() => {
       expect(result.current.data?.items[0]?.name).toBe("Search Skill");
+    });
+  });
+
+  it("loads the recently updated shelf from its own updated query", async () => {
+    mocks.fetchMarketplaceItems.mockResolvedValueOnce(
+      createMarketplaceList("Recently Updated Skill"),
+    );
+
+    const { result } = renderHook(() => useMarketplaceRecentItems("skill"), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.data?.items[0]?.name).toBe(
+        "Recently Updated Skill",
+      );
+    });
+    expect(mocks.fetchMarketplaceItems).toHaveBeenCalledWith({
+      type: "skill",
+      sort: "updated",
+      page: 1,
+      pageSize: 6,
     });
   });
 });

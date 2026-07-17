@@ -114,27 +114,6 @@ export function collectSkillMarketplaceInstalledView(options: UiRouterOptions): 
   };
 }
 
-export function collectKnownSkillNames(options: UiRouterOptions): Set<string> {
-  const config = loadConfigOrDefault(options.configPath);
-  const loader = createSkillsLoader(getWorkspacePathFromConfig(config));
-  return new Set((loader?.listSkills(false) ?? []).map((skill) => skill.name));
-}
-
-export function isSupportedMarketplaceSkillItem(
-  item: MarketplaceItemView | MarketplaceListView["items"][number],
-  knownSkillNames: Set<string>
-): boolean {
-  if (item.type !== "skill") {
-    return false;
-  }
-
-  if (item.install.kind === "marketplace") {
-    return true;
-  }
-
-  return item.install.kind === "builtin" && knownSkillNames.has(item.install.spec);
-}
-
 export function findUnsupportedSkillInstallKind(
   items: Array<MarketplaceItemView | MarketplaceListView["items"][number]>
 ): string | null {
