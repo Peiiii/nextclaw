@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
@@ -103,7 +103,7 @@ describe('BrandHeader', () => {
         availableVersion: '0.18.12',
         downloadedVersion: null,
         minimumHostVersion: null,
-        releaseNotesUrl: null,
+        releaseNotesUrl: 'https://docs.nextclaw.io/zh/notes/2026-07-15-nextclaw-v0-18-12',
         lastCheckedAt: null,
         progress: {
           downloadedBytes: 50,
@@ -130,8 +130,17 @@ describe('BrandHeader', () => {
     expect(screen.getAllByText('v0.18.11')).toHaveLength(1);
     await user.hover(version);
     expect((await screen.findByRole('tooltip')).textContent).toBe('v0.18.11');
-    expect(screen.getByText('下载 50%')).toBeTruthy();
+    const downloadProgress = screen.getByText('下载 50%');
+    expect(downloadProgress).toBeTruthy();
     expect(screen.queryByRole('button', { name: '更新' })).toBeNull();
+    const progressReleaseNotes = screen.getByRole('button', { name: '查看 v0.18.12 更新说明' });
+    expect(progressReleaseNotes.parentElement?.className).toContain('invisible');
+    expect(progressReleaseNotes.parentElement?.className).toContain('group-hover/update-release-notes:visible');
+
+    await user.hover(downloadProgress);
+    await user.click(progressReleaseNotes);
+
+    expect(mocks.openExternalUrl).toHaveBeenCalledWith('https://docs.nextclaw.io/zh/notes/2026-07-15-nextclaw-v0-18-12');
   });
 
   it('opens release notes from the current version tooltip when that version has docs notes', async () => {
@@ -201,15 +210,16 @@ describe('BrandHeader', () => {
     await user.click(currentVersion);
     expect(mocks.openExternalUrl).toHaveBeenCalledWith('https://docs.nextclaw.io/zh/notes/2026-07-14-nextclaw-v0-18-11');
 
-    await user.click(screen.getByRole('button', { name: '下载' }));
-    expect(mocks.downloadUpdate).toHaveBeenCalledTimes(1);
-
+    const downloadUpdate = screen.getByRole('button', { name: '下载' });
     const updateReleaseNotes = screen.getByRole('button', { name: '查看 v0.18.12 更新说明' });
-    await user.hover(updateReleaseNotes);
-    expect((await screen.findByRole('tooltip')).textContent).toBe('查看 v0.18.12 更新说明');
+    expect(updateReleaseNotes.parentElement?.className).toContain('group-hover/update-release-notes:visible');
 
+    await user.hover(downloadUpdate);
     await user.click(updateReleaseNotes);
-    expect(mocks.openExternalUrl).toHaveBeenCalledWith('https://docs.nextclaw.io/zh/notes/2026-07-15-nextclaw-v0-18-12');
+    expect(mocks.openExternalUrl).toHaveBeenLastCalledWith('https://docs.nextclaw.io/zh/notes/2026-07-15-nextclaw-v0-18-12');
+
+    await user.click(downloadUpdate);
+    expect(mocks.downloadUpdate).toHaveBeenCalledTimes(1);
   });
 
   it('applies the downloaded update from the version-adjacent update button', async () => {
@@ -227,7 +237,7 @@ describe('BrandHeader', () => {
         availableVersion: null,
         downloadedVersion: '0.18.12',
         minimumHostVersion: null,
-        releaseNotesUrl: null,
+        releaseNotesUrl: 'https://docs.nextclaw.io/zh/notes/2026-07-15-nextclaw-v0-18-12',
         lastCheckedAt: null,
         progress: null,
         canAutoDownload: true,
@@ -245,7 +255,15 @@ describe('BrandHeader', () => {
 
     renderBrandHeader();
 
-    await user.click(screen.getByRole('button', { name: '更新' }));
+    const applyUpdate = screen.getByRole('button', { name: '更新' });
+    const updateReleaseNotes = screen.getByRole('button', { name: '查看 v0.18.12 更新说明' });
+    expect(updateReleaseNotes.parentElement?.className).toContain('group-focus-within/update-release-notes:visible');
+
+    fireEvent.focus(applyUpdate);
+    await user.click(updateReleaseNotes);
+    expect(mocks.openExternalUrl).toHaveBeenCalledWith('https://docs.nextclaw.io/zh/notes/2026-07-15-nextclaw-v0-18-12');
+
+    await user.click(applyUpdate);
 
     expect(mocks.applyDownloadedUpdate).toHaveBeenCalledTimes(1);
     expect(mocks.downloadUpdate).not.toHaveBeenCalled();

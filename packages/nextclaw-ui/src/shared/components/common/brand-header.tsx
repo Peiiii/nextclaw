@@ -14,7 +14,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shar
 import { hostCapabilityManager } from '@/shared/lib/host-capabilities';
 import { t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
-import { ExternalLink } from 'lucide-react';
 
 type BrandHeaderProps = {
   className?: string;
@@ -122,19 +121,14 @@ function RuntimeUpdateInlineStatus({
   }
   const releaseNotesLink = resolveUpdateReleaseNotesLink(snapshot);
   if (snapshot.status === 'downloading') {
-    return (
-      <RuntimeUpdateInlineGroup>
-        <RuntimeUpdateInlineBadge snapshot={snapshot} />
-        {releaseNotesLink ? <RuntimeUpdateReleaseNotesButton link={releaseNotesLink} tone="amber" /> : null}
-      </RuntimeUpdateInlineGroup>
-    );
+    return <RuntimeUpdateInlineBadge snapshot={snapshot} releaseNotesLink={releaseNotesLink} />;
   }
   if (snapshot.status === 'blocked' || snapshot.status === 'failed') {
     return <RuntimeUpdateInlineBadge snapshot={snapshot} />;
   }
   if (snapshot.status === 'downloaded') {
     return (
-      <RuntimeUpdateInlineGroup>
+      <RuntimeUpdateReleaseNotesHover link={releaseNotesLink}>
         <button
           type="button"
           className="inline-flex h-5 shrink-0 items-center rounded-full bg-emerald-50 px-2 text-[11px] font-semibold leading-none text-emerald-700 ring-1 ring-emerald-100 transition-colors hover:bg-emerald-100 disabled:opacity-70"
@@ -143,13 +137,12 @@ function RuntimeUpdateInlineStatus({
         >
           {busyAction === 'applying' ? t('desktopUpdatesInlineApplying') : t('desktopUpdatesInlineReady')}
         </button>
-        {releaseNotesLink ? <RuntimeUpdateReleaseNotesButton link={releaseNotesLink} tone="emerald" /> : null}
-      </RuntimeUpdateInlineGroup>
+      </RuntimeUpdateReleaseNotesHover>
     );
   }
   if (snapshot.status === 'update-available') {
     return (
-      <RuntimeUpdateInlineGroup>
+      <RuntimeUpdateReleaseNotesHover link={releaseNotesLink}>
         <button
           type="button"
           className="inline-flex h-5 shrink-0 items-center rounded-full bg-amber-50 px-2 text-[11px] font-semibold leading-none text-amber-700 ring-1 ring-amber-100 transition-colors hover:bg-amber-100 disabled:opacity-70"
@@ -158,51 +151,50 @@ function RuntimeUpdateInlineStatus({
         >
           {busyAction === 'downloading' ? t('desktopUpdatesInlineDownloading') : t('desktopUpdatesInlineDownload')}
         </button>
-        {releaseNotesLink ? <RuntimeUpdateReleaseNotesButton link={releaseNotesLink} tone="amber" /> : null}
-      </RuntimeUpdateInlineGroup>
+      </RuntimeUpdateReleaseNotesHover>
     );
   }
   return null;
 }
 
-function RuntimeUpdateInlineGroup({ children }: { children: ReactNode }) {
-  return <span className="inline-flex shrink-0 items-center gap-1">{children}</span>;
-}
-
-function RuntimeUpdateReleaseNotesButton({
+function RuntimeUpdateReleaseNotesHover({
+  children,
   link,
-  tone,
 }: {
-  link: ReleaseNotesLink;
-  tone: 'amber' | 'emerald';
+  children: ReactNode;
+  link: ReleaseNotesLink | null;
 }) {
+  if (!link) {
+    return children;
+  }
   const label = t('desktopUpdatesUpdateReleaseNotesLabel').replace('{version}', link.versionLabel);
-  const className = cn(
-    'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] ring-1 transition-colors focus-visible:outline-none focus-visible:ring-2',
-    tone === 'emerald'
-      ? 'bg-emerald-50 text-emerald-700 ring-emerald-100 hover:bg-emerald-100 focus-visible:ring-emerald-300'
-      : 'bg-amber-50 text-amber-700 ring-amber-100 hover:bg-amber-100 focus-visible:ring-amber-300'
-  );
   return (
-    <TooltipProvider delayDuration={250}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            aria-label={label}
-            className={className}
-            onClick={() => void hostCapabilityManager.openExternalUrl(link.url)}
-          >
-            <ExternalLink className="h-3 w-3" aria-hidden="true" />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">{label}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <span className="group/update-release-notes relative inline-flex shrink-0">
+      {children}
+      <span
+        data-update-release-notes-hover="true"
+        className="invisible pointer-events-none absolute left-1/2 top-full z-[var(--z-tooltip,10150)] -translate-x-1/2 pt-1 opacity-0 transition-opacity group-hover/update-release-notes:visible group-hover/update-release-notes:pointer-events-auto group-hover/update-release-notes:opacity-100 group-focus-within/update-release-notes:visible group-focus-within/update-release-notes:pointer-events-auto group-focus-within/update-release-notes:opacity-100"
+      >
+        <button
+          type="button"
+          aria-label={label}
+          className="whitespace-nowrap rounded-md border bg-popover px-3 py-1.5 text-left text-xs font-medium text-popover-foreground shadow-md outline-none transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-gray-300"
+          onClick={() => void hostCapabilityManager.openExternalUrl(link.url)}
+        >
+          {label}
+        </button>
+      </span>
+    </span>
   );
 }
 
-function RuntimeUpdateInlineBadge({ snapshot }: { snapshot: UpdateSnapshot }) {
+function RuntimeUpdateInlineBadge({
+  snapshot,
+  releaseNotesLink,
+}: {
+  snapshot: UpdateSnapshot;
+  releaseNotesLink?: ReleaseNotesLink | null;
+}) {
   if (snapshot.status === 'blocked' || snapshot.status === 'failed') {
     return <RuntimeUpdateIssueIcon snapshot={snapshot} />;
   }
@@ -211,12 +203,14 @@ function RuntimeUpdateInlineBadge({ snapshot }: { snapshot: UpdateSnapshot }) {
     return null;
   }
   return (
-    <span
-      className="inline-flex h-5 shrink-0 items-center rounded-full bg-amber-50 px-2 text-[11px] font-semibold leading-none text-amber-700 ring-1 ring-amber-100 transition-colors hover:bg-amber-100 disabled:opacity-70"
-      title={t('updates')}
-    >
-      {label}
-    </span>
+    <RuntimeUpdateReleaseNotesHover link={releaseNotesLink ?? null}>
+      <span
+        tabIndex={releaseNotesLink ? 0 : undefined}
+        className="inline-flex h-5 shrink-0 items-center rounded-full bg-amber-50 px-2 text-[11px] font-semibold leading-none text-amber-700 ring-1 ring-amber-100 outline-none transition-colors hover:bg-amber-100 focus-visible:ring-2 focus-visible:ring-amber-300"
+      >
+        {label}
+      </span>
+    </RuntimeUpdateReleaseNotesHover>
   );
 }
 

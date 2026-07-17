@@ -2,4 +2,4 @@
 "@nextclaw/ui": patch
 ---
 
-Make the header expose release notes for both the currently running NextClaw version and the available update target when docs notes are available.
+Keep the header compact by exposing release notes for the current version on its version label and for an available update inside the download or update control's hover and keyboard-focus surface.
