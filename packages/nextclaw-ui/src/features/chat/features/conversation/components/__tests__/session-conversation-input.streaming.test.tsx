@@ -54,6 +54,24 @@ vi.mock('@/features/chat/features/input/hooks/use-chat-model-favorites', () => (
   }),
 }));
 
+vi.mock('@/shared/hooks/use-server-path-browse', () => ({
+  useServerPathBrowse: () => ({
+    data: { entries: [] },
+    error: null,
+    isFetching: false,
+    isLoading: false,
+  }),
+}));
+
+vi.mock('@/shared/hooks/use-server-path-search', () => ({
+  useServerPathSearch: () => ({
+    data: { entries: [] },
+    error: null,
+    isFetching: false,
+    isLoading: false,
+  }),
+}));
+
 vi.mock('@/shared/lib/api', async (importOriginal) => {
   const actual = await importOriginal();
   return {

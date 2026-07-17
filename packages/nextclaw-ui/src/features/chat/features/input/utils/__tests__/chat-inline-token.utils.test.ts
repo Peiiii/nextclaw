@@ -4,7 +4,8 @@ import {
   buildInlineTokensFromComposer,
   CHAT_INLINE_TOKENS_METADATA_KEY,
   readInlineTokensFromMetadata,
-  resolveInlineTokensForText
+  resolveInlineTokensForText,
+  resolveWorkspaceReferencePath,
 } from '@/features/chat/features/input/utils/chat-inline-token.utils';
 
 describe('chat-inline-token utils', () => {
@@ -142,5 +143,20 @@ describe('chat-inline-token utils', () => {
         rawText: '@folder:docs%2F%E8%AE%BE%E8%AE%A1',
       },
     ]);
+  });
+
+  it('resolves workspace token paths inside POSIX and Windows project roots', () => {
+    expect(resolveWorkspaceReferencePath({
+      projectRoot: '/tmp/project/',
+      relativePath: 'docs/guide.md',
+    })).toBe('/tmp/project/docs/guide.md');
+    expect(resolveWorkspaceReferencePath({
+      projectRoot: 'C:\\workspace\\nextclaw\\',
+      relativePath: 'docs/guide.md',
+    })).toBe('C:\\workspace\\nextclaw\\docs\\guide.md');
+    expect(resolveWorkspaceReferencePath({
+      projectRoot: '/tmp/project',
+      relativePath: '../secret.txt',
+    })).toBeNull();
   });
 });

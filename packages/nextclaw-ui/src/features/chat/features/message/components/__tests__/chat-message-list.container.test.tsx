@@ -19,6 +19,8 @@ const captures = vi.hoisted(() => ({
   openFilePreview: vi.fn(),
   handleToolAction: vi.fn(),
   showContent: vi.fn(),
+  filePreviewProps: [] as Array<{ showBreadcrumbs?: boolean }>,
+  selectedSession: null as null | { projectRoot: string; workingDir?: string | null },
 }));
 
 vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
@@ -30,6 +32,7 @@ vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
       onToolAction?: (action: unknown) => void;
       onFileOpen?: (action: unknown) => void;
       onAttachmentOpen?: (file: unknown) => void;
+      onInlineTokenClick?: (token: unknown) => void;
       renderInlineDisplay?: (display: unknown) => unknown;
       renderPanelAppCard?: (panelApp: unknown) => unknown;
       texts?: Record<string, unknown>;
@@ -50,6 +53,10 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
       showContent: captures.showContent,
     },
   }),
+}));
+
+vi.mock("@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state", () => ({
+  useNcpChatSelectedSession: () => captures.selectedSession,
 }));
 
 vi.mock("@/app/components/i18n-provider", () => ({
@@ -76,6 +83,8 @@ beforeEach(() => {
   captures.openFilePreview.mockReset();
   captures.handleToolAction.mockReset();
   captures.showContent.mockReset();
+  captures.filePreviewProps = [];
+  captures.selectedSession = null;
 });
 
 it("reuses adapted message references when the source message object is unchanged", () => {
@@ -313,6 +322,53 @@ it("wires markdown file link actions to the workspace file preview manager", () 
   captures.renders[captures.renders.length - 1]?.onFileOpen?.(action);
 
   expect(captures.openFilePreview).toHaveBeenCalledWith(action);
+});
+
+it("opens workspace file and directory tokens from the message", () => {
+  captures.selectedSession = {
+    projectRoot: "/tmp/project",
+    workingDir: "/tmp/project/packages/ui",
+  };
+  render(<ChatMessageListContainer messages={[]} isSending={false} />);
+  const onInlineTokenClick = captures.renders[captures.renders.length - 1]?.onInlineTokenClick;
+
+  onInlineTokenClick?.({
+    kind: "workspace_file",
+    key: "docs/guide.md",
+    label: "guide.md",
+    rawText: "@file:docs%2Fguide.md",
+  });
+  onInlineTokenClick?.({
+    kind: "workspace_directory",
+    key: "packages/server",
+    label: "server",
+    rawText: "@folder:packages%2Fserver",
+  });
+
+  expect(captures.openFilePreview).toHaveBeenNthCalledWith(1, {
+    path: "/tmp/project/docs/guide.md",
+    label: "guide.md",
+    viewMode: "preview",
+  });
+  expect(captures.openFilePreview).toHaveBeenNthCalledWith(2, {
+    path: "/tmp/project/packages/server",
+    label: "server",
+    viewMode: "preview",
+  });
+});
+
+it("opens panel app tokens through the existing content owner", () => {
+  render(<ChatMessageListContainer messages={[]} isSending={false} />);
+  captures.renders[captures.renders.length - 1]?.onInlineTokenClick?.({
+    kind: "panel_app",
+    key: "task-board",
+    label: "Task Board",
+    rawText: "@panel-app:task-board",
+  });
+
+  expect(captures.showContent).toHaveBeenCalledWith({
+    target: { type: "panel_app", payload: { appId: "task-board" } },
+  });
 });
 
 it("opens message attachments in the workspace file preview", () => {

@@ -1,4 +1,4 @@
-import { Menu, app, dialog, ipcMain, type MessageBoxOptions, type MenuItemConstructorOptions } from "electron";
+import { Menu, app, dialog, ipcMain, powerMonitor, type MessageBoxOptions, type MenuItemConstructorOptions } from "electron";
 import type { DesktopBundleManager } from "./desktop-bundle.manager";
 import type { DesktopWindowManager } from "./desktop-window.manager";
 import {
@@ -39,9 +39,12 @@ type DesktopUpdateManagerOptions = {
   windowManager: DesktopWindowManager;
 };
 
+const AUTOMATIC_UPDATE_POLL_INTERVAL_MS = 60 * 60 * 1000;
+
 export class DesktopUpdateManager {
   private readonly cleanups: DesktopCleanup[] = [];
   private coordinator: DesktopUpdateCoordinatorService | null = null;
+  private automaticChecksStarted = false;
 
   constructor(private readonly options: DesktopUpdateManagerOptions) {}
 
@@ -59,12 +62,15 @@ export class DesktopUpdateManager {
   };
 
   private registerIpcHandlers = (): void => {
-    ipcMain.removeHandler(DESKTOP_UPDATES_GET_STATE_CHANNEL);
-    ipcMain.removeHandler(DESKTOP_UPDATES_CHECK_CHANNEL);
-    ipcMain.removeHandler(DESKTOP_UPDATES_DOWNLOAD_CHANNEL);
-    ipcMain.removeHandler(DESKTOP_UPDATES_APPLY_CHANNEL);
-    ipcMain.removeHandler(DESKTOP_UPDATES_UPDATE_PREFERENCES_CHANNEL);
-    ipcMain.removeHandler(DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL);
+    const cleanupIpcHandlers = removeDesktopIpcHandlers(
+      DESKTOP_UPDATES_GET_STATE_CHANNEL,
+      DESKTOP_UPDATES_CHECK_CHANNEL,
+      DESKTOP_UPDATES_DOWNLOAD_CHANNEL,
+      DESKTOP_UPDATES_APPLY_CHANNEL,
+      DESKTOP_UPDATES_UPDATE_PREFERENCES_CHANNEL,
+      DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL
+    );
+    cleanupIpcHandlers();
 
     ipcMain.handle(DESKTOP_UPDATES_GET_STATE_CHANNEL, async () => this.ensureCoordinator().getSnapshot());
     ipcMain.handle(DESKTOP_UPDATES_CHECK_CHANNEL, async () => await this.ensureCoordinator().checkForUpdates({ manual: true }));
@@ -82,14 +88,7 @@ export class DesktopUpdateManager {
     ipcMain.handle(DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL, async (_event, channel: DesktopReleaseChannel | undefined) => {
       return await this.ensureCoordinator().updateChannel(channel === "beta" ? "beta" : "stable");
     });
-    this.cleanups.push(removeDesktopIpcHandlers(
-      DESKTOP_UPDATES_GET_STATE_CHANNEL,
-      DESKTOP_UPDATES_CHECK_CHANNEL,
-      DESKTOP_UPDATES_DOWNLOAD_CHANNEL,
-      DESKTOP_UPDATES_APPLY_CHANNEL,
-      DESKTOP_UPDATES_UPDATE_PREFERENCES_CHANNEL,
-      DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL
-    ));
+    this.cleanups.push(cleanupIpcHandlers);
   };
 
   private installApplicationMenu = (): void => {
@@ -109,8 +108,30 @@ export class DesktopUpdateManager {
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
   };
 
-  runStartupCheck = async (): Promise<void> => {
-    await this.ensureCoordinator().runStartupCheck();
+  startAutomaticChecks = async (): Promise<void> => {
+    if (!this.automaticChecksStarted) {
+      this.automaticChecksStarted = true;
+      const interval = setInterval(this.runAutomaticCheck, AUTOMATIC_UPDATE_POLL_INTERVAL_MS);
+      app.on("browser-window-focus", this.runAutomaticCheck);
+      powerMonitor.on("resume", this.runAutomaticCheck);
+      this.cleanups.push(() => {
+        clearInterval(interval);
+        app.off("browser-window-focus", this.runAutomaticCheck);
+        powerMonitor.off("resume", this.runAutomaticCheck);
+        this.automaticChecksStarted = false;
+      });
+    }
+    await this.runAutomaticCheck();
+  };
+
+  private runAutomaticCheck = async (): Promise<void> => {
+    try {
+      await this.ensureCoordinator().runAutomaticCheck();
+    } catch (error) {
+      this.options.logger.warn(
+        `Desktop automatic update check failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   };
 
   private ensureCoordinator = (): DesktopUpdateCoordinatorService => {
@@ -139,9 +160,7 @@ export class DesktopUpdateManager {
       submenu: [
         { role: "about" },
         { type: "separator" },
-        this.createCheckForUpdatesMenuItem(),
-        this.createDownloadUpdateMenuItem(snapshot),
-        this.createApplyUpdateMenuItem(snapshot),
+        ...this.createUpdateMenuItems(snapshot),
         { type: "separator" },
         { role: "services" },
         { type: "separator" },
@@ -163,47 +182,34 @@ export class DesktopUpdateManager {
   private createHelpMenu = (snapshot: DesktopUpdateSnapshot | undefined): MenuItemConstructorOptions => {
     return {
       role: "help",
-      submenu: [
-        this.createCheckForUpdatesMenuItem(),
-        this.createDownloadUpdateMenuItem(snapshot),
-        this.createApplyUpdateMenuItem(snapshot)
-      ]
+      submenu: this.createUpdateMenuItems(snapshot)
     };
   };
 
-  private createCheckForUpdatesMenuItem = (): MenuItemConstructorOptions => {
-    return {
-      label: "Check for Updates",
-      click: () => void this.handleManualUpdateCheck()
-    };
-  };
-
-  private createDownloadUpdateMenuItem = (snapshot: DesktopUpdateSnapshot | undefined): MenuItemConstructorOptions => {
-    return {
-      label: "Download Update",
-      enabled: snapshot?.status === "update-available",
-      click: () => void this.handleManualUpdateDownload()
-    };
-  };
-
-  private createApplyUpdateMenuItem = (snapshot: DesktopUpdateSnapshot | undefined): MenuItemConstructorOptions => {
-    return {
-      label: "Restart to Apply Update",
-      enabled: snapshot?.status === "downloaded",
-      click: () => void this.handleApplyDownloadedUpdate()
-    };
+  private createUpdateMenuItems = (snapshot: DesktopUpdateSnapshot | undefined): MenuItemConstructorOptions[] => {
+    return [
+      {
+        label: "Check for Updates",
+        click: () => void this.handleManualUpdateCheck()
+      },
+      {
+        label: "Download Update",
+        enabled: snapshot?.status === "update-available",
+        click: () => void this.handleManualUpdateDownload()
+      },
+      {
+        label: "Restart to Apply Update",
+        enabled: snapshot?.status === "downloaded",
+        click: () => void this.handleApplyDownloadedUpdate()
+      }
+    ];
   };
 
   private handleManualUpdateCheck = async (): Promise<void> => {
     try {
       const snapshot = await this.ensureCoordinator().checkForUpdates({ manual: true });
       if (snapshot.status === "up-to-date") {
-        await dialog.showMessageBox({
-          type: "info",
-          title: "NextClaw is up to date",
-          message: "You already have the latest desktop bundle.",
-          buttons: ["OK"]
-        });
+        await this.showMessage("info", "NextClaw is up to date", "You already have the latest desktop bundle.");
         return;
       }
       if (snapshot.status === "update-available") {
@@ -225,30 +231,12 @@ export class DesktopUpdateManager {
         await this.showDownloadedUpdateDialog(snapshot);
         return;
       }
-      if (snapshot.status === "blocked" && snapshot.errorMessage) {
-        await dialog.showMessageBox({
-          type: "warning",
-          title: "Desktop update blocked",
-          message: snapshot.errorMessage,
-          buttons: ["OK"]
-        });
-        return;
-      }
-      if (snapshot.status === "failed" && snapshot.errorMessage) {
-        await dialog.showMessageBox({
-          type: "warning",
-          title: "Desktop update check failed",
-          message: snapshot.errorMessage,
-          buttons: ["OK"]
-        });
+      if ((snapshot.status === "blocked" || snapshot.status === "failed") && snapshot.errorMessage) {
+        const title = snapshot.status === "blocked" ? "Desktop update blocked" : "Desktop update check failed";
+        await this.showMessage("warning", title, snapshot.errorMessage);
       }
     } catch (error) {
-      await dialog.showMessageBox({
-        type: "error",
-        title: "Desktop update check failed",
-        message: error instanceof Error ? error.message : String(error),
-        buttons: ["OK"]
-      });
+      await this.showMessage("error", "Desktop update check failed", error);
     }
   };
 
@@ -259,12 +247,7 @@ export class DesktopUpdateManager {
         await this.showDownloadedUpdateDialog(snapshot);
       }
     } catch (error) {
-      await dialog.showMessageBox({
-        type: "error",
-        title: "Desktop update download failed",
-        message: error instanceof Error ? error.message : String(error),
-        buttons: ["OK"]
-      });
+      await this.showMessage("error", "Desktop update download failed", error);
     }
   };
 
@@ -273,13 +256,21 @@ export class DesktopUpdateManager {
       await this.ensureCoordinator().applyDownloadedUpdate();
       this.restartApplication();
     } catch (error) {
-      await dialog.showMessageBox({
-        type: "error",
-        title: "Unable to apply desktop update",
-        message: error instanceof Error ? error.message : String(error),
-        buttons: ["OK"]
-      });
+      await this.showMessage("error", "Unable to apply desktop update", error);
     }
+  };
+
+  private showMessage = async (
+    type: "info" | "warning" | "error",
+    title: string,
+    message: unknown
+  ): Promise<void> => {
+    await dialog.showMessageBox({
+      type,
+      title,
+      message: message instanceof Error ? message.message : String(message),
+      buttons: ["OK"]
+    });
   };
 
   private showDownloadedUpdateDialog = async (snapshot: DesktopUpdateSnapshot): Promise<void> => {

@@ -32,6 +32,7 @@ function createPlugin(onNavigate = vi.fn()) {
         backLabel: 'Back',
         backDescription: 'Back to references',
         backHintLabel: 'Enter to go back',
+        currentDirectoryLabel: 'Current folder',
         directoryDescription: 'Directory context',
         fileDescription: 'File context',
         filesDescription: 'Browse project files',
@@ -39,6 +40,9 @@ function createPlugin(onNavigate = vi.fn()) {
         filesLabel: 'Files & Folders',
         filesSubtitle: 'Project Context',
         panelAppSectionLabel: 'Panel Apps',
+        parentLabel: 'Up one folder',
+        parentDescription: 'Browse parent',
+        parentHintLabel: 'Enter to browse parent',
         projectRootLabel: 'Project directory',
         searchFailedLabel: 'Search failed',
         workspaceSectionLabel: 'Files & Folders',
@@ -61,7 +65,7 @@ function createPlugin(onNavigate = vi.fn()) {
   });
 }
 
-function createData(referenceMode: 'root' | 'files' = 'root') {
+function createData(referencePath: string | null = null) {
   return {
     isPanelAppsLoading: false,
     isServerPathSearchLoading: false,
@@ -69,7 +73,7 @@ function createData(referenceMode: 'root' | 'files' = 'root') {
     panelApps: [createPanelApp()],
     projectRoot: '/tmp/project',
     recentSkillValues: [],
-    referenceMode,
+    referencePath,
     serverPathEntries: [
       {
         name: 'server-path.ts',
@@ -129,7 +133,7 @@ describe('context reference input surface plugin', () => {
         start: 0,
         end: 7,
       },
-      data: createData('files'),
+      data: createData(''),
     });
 
     expect(state.panel?.items.slice(1)).toEqual([
@@ -169,7 +173,53 @@ describe('context reference input surface plugin', () => {
 
     state.panel?.onSelectItem?.(item!);
 
-    expect(onNavigate).toHaveBeenCalledWith('files');
+    expect(onNavigate).toHaveBeenCalledWith('');
     expect(item).not.toHaveProperty('tokenKind');
+  });
+
+  it('opens browsed directories and offers the current folder as a token', () => {
+    const onNavigate = vi.fn();
+    const rootState = resolveChatInputSurfaceState({
+      plugins: [createPlugin(onNavigate)],
+      trigger: {
+        ...CONTEXT_REFERENCE_TRIGGER_SPEC,
+        query: '',
+        start: 0,
+        end: 1,
+      },
+      data: createData(''),
+    });
+    const directoryItem = rootState.panel?.items.find((item) => item.title === 'docs');
+
+    expect(directoryItem).toMatchObject({
+      selectionBehavior: 'navigate',
+      value: 'docs',
+    });
+    expect(directoryItem?.tokenKind).toBeUndefined();
+    rootState.panel?.onSelectItem?.(directoryItem!);
+    expect(onNavigate).toHaveBeenCalledWith('docs');
+
+    const nestedState = resolveChatInputSurfaceState({
+      plugins: [createPlugin(onNavigate)],
+      trigger: {
+        ...CONTEXT_REFERENCE_TRIGGER_SPEC,
+        query: '',
+        start: 0,
+        end: 1,
+      },
+      data: createData('docs'),
+    });
+    expect(nestedState.panel?.items).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        title: 'docs',
+        subtitle: 'Current folder',
+        tokenKind: 'workspace_directory',
+        tokenKey: 'docs',
+      }),
+      expect.objectContaining({
+        title: 'Up one folder',
+        selectionBehavior: 'navigate',
+      }),
+    ]));
   });
 });
