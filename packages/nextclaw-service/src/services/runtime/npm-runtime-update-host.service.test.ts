@@ -248,4 +248,32 @@ describe("NpmRuntimeUpdateHost", () => {
 
     expect(statuses).toEqual(["applying", "restart-required"]);
   });
+
+  it("distinguishes a post-restart update check failure and records diagnostics", async () => {
+    const cause = new Error("getaddrinfo ENOTFOUND updates.nextclaw.io");
+    mocks.manager.checkForUpdate.mockRejectedValueOnce(new TypeError("fetch failed", { cause }));
+    const logger = { error: vi.fn() };
+    const host = new NpmRuntimeUpdateHost({
+      eventBus: new NextclawKernel().eventBus,
+      logger,
+      applyRestartMode: "manual-process-restart",
+      requestRestart: vi.fn(),
+      uiConfig: { port: 55667 }
+    });
+
+    await expect(host.checkForUpdates()).resolves.toMatchObject({
+      status: "failed",
+      failureStage: "check",
+      diagnosticCommand: "nextclaw logs path",
+      errorMessage: "fetch failed: getaddrinfo ENOTFOUND updates.nextclaw.io"
+    });
+    expect(logger.error).toHaveBeenCalledWith(
+      "runtime update operation failed",
+      {
+        failureStage: "check",
+        errorMessage: "fetch failed: getaddrinfo ENOTFOUND updates.nextclaw.io"
+      },
+      expect.any(TypeError)
+    );
+  });
 });

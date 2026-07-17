@@ -215,13 +215,16 @@ function RuntimeUpdateInlineBadge({
 }
 
 function RuntimeUpdateIssueIcon({ snapshot }: { snapshot: UpdateSnapshot }) {
-  const title = snapshot.status === 'failed' ? t('desktopUpdatesStatusFailed') : t('desktopUpdatesStatusBlocked');
+  const title = resolveUpdateIssueTitle(snapshot);
   const recoveryCommand = snapshot.recoveryCommand?.trim() || null;
+  const diagnosticCommand = snapshot.diagnosticCommand?.trim()
+    ? t('desktopUpdatesDiagnosticCommand').replace('{command}', snapshot.diagnosticCommand.trim())
+    : null;
   const diagnostic = snapshot.errorMessage?.trim() || snapshot.blockReason?.trim() || null;
   const rootCause = snapshot.status === 'blocked' && snapshot.blockReason
     ? t(`desktopUpdatesBlockedRootCause.${snapshot.blockReason}`)
     : null;
-  const tooltip = [title, rootCause, diagnostic, recoveryCommand].filter(Boolean).join('\n');
+  const tooltip = [title, rootCause, diagnostic, recoveryCommand, diagnosticCommand].filter(Boolean).join('\n');
   return (
     <TooltipProvider delayDuration={250}>
       <Tooltip>
@@ -239,6 +242,13 @@ function RuntimeUpdateIssueIcon({ snapshot }: { snapshot: UpdateSnapshot }) {
       </Tooltip>
     </TooltipProvider>
   );
+}
+
+function resolveUpdateIssueTitle(snapshot: UpdateSnapshot): string {
+  if (snapshot.status === 'blocked') {
+    return t('desktopUpdatesStatusBlocked');
+  }
+  return t(snapshot.failureStage ? `desktopUpdatesFailureStage.${snapshot.failureStage}` : 'desktopUpdatesStatusFailed');
 }
 
 function resolveInlineDownloadLabel(snapshot: UpdateSnapshot): string {

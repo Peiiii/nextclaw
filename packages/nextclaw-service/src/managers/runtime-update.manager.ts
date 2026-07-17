@@ -236,6 +236,8 @@ export class RuntimeUpdateManager {
       blockReason: null,
       recoveryCommand: null,
       errorMessage: null,
+      failureStage: null,
+      diagnosticCommand: null,
       preferences: { ...state.updatePreferences },
       ...patch,
       status

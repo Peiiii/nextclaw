@@ -16,6 +16,8 @@
 
 该入口首次进行真实浏览器点击时又发现一条只靠 API 冒烟无法暴露的竞态：check/download 命令先返回过渡状态，最终状态只通过 WebSocket 事件更新；如果页面刚打开、实时连接尚未就绪，事件会丢失，页面停在“检查中”，刷新后才显示后端早已完成的结果。修复后 check/download 命令会等待当前任务完成并返回最终 snapshot，同时继续发布实时进度；页面不再把 WebSocket 作为最终状态的唯一到达路径，也没有新增前端 fallback 或第二事实源。
 
+同一问题域继续修复 NC-128 报告的“更新后版本号已经变化，但旁边仍显示 `fetch failed` / 更新失败”。端到端证据表明，新版本号来自重启后运行实例的 `/api/app/meta.productVersion`，是真实运行事实；随后新 runtime 启动时的自动更新检查发生网络失败，host 又把整个 snapshot 覆盖成没有阶段信息的通用 `failed`。因此更新和版本切换已经成功，失败的是重启后的下一次检查。修复后 update snapshot 显式记录 `check`、`download`、`apply` 失败阶段，NPM host 递归保留 `Error.cause` 中的网络根因并写入应用日志；页头和更新设置页按阶段展示“检查更新失败”等准确状态，hover 同时给出完整原因与 `nextclaw logs path` 完整日志位置命令。desktop coordinator 也输出同一稳定合同，旧 host / 旧持久状态仍可通过可选字段兼容。
+
 命令参数、完整开发命令作用和 owner 边界已记录在 `docs/workflows/developer-commands.md`；设计依据记录在 `docs/designs/2026-07-15-local-update-verification.design.md`。
 
 失败复盘已落到 `.agents/skills/nextclaw-validation-workflow/SKILL.md`：后续触达 updater、launcher、restart 或更新后版本展示时，会自动要求运行 `pnpm dev:verify-update` 并核对 baseline/candidate、PID、pointer 与清理合同，避免机制只存在于本次讨论或人类记忆中。
@@ -37,6 +39,10 @@
 - 验证入口性能与缓存验收：原始冷启动准备为 136.3 秒；两级复用落地后，源码变化并命中 runtime deployment cache 的实测为 35.7–77.5 秒，无源码变化的最终 fixture 命中为 7.5–14.2 秒；显式 `--rebuild` 绕过两级缓存并完成一次 production deploy，准备耗时 84.6 秒。区间差异来自同时变化的 package 数和本机并行构建负载。
 - 两级路径真实更新验收：最终 runtime cache 路径完成 check/download/apply 后，版本从 `0.23.0-dev.0` 切为 `0.23.0`、PID 从 `24613` 切为 `27775`；无缓存 `--rebuild` 路径对应 PID 从 `75392` 切为 `79335`。两轮均由 observer 同时确认 `productVersion`、新 PID 与 `current.json.version`，退出后临时目录和 owned service 均清理。
 - 缓存 owner 拆分后的真实复验：默认路径命中 runtime deployment cache，38.1 秒准备出隔离页面；真实 check/download/apply 分别返回 `update-available`、`downloaded`、`restart-required`，PID 从 `52113` 切为 `59734`，随后 `/api/app/meta.productVersion` 与 `current.json.version` 均为 `0.23.0`。两次紧随其后的运行因另一批本地开发在运行之间继续修改 runtime/UI 源码而产生新的源码指纹，按合同重新构建；这不是 fixture 热缓存退化。
+- NC-128 定向测试：shared 13/13、service 16/16、UI 11/11、desktop coordinator 10/10 通过；新增用例覆盖重启后检查失败仍保留当前新版本、失败阶段、嵌套网络原因、完整日志命令和 logger 记录。
+- NC-128 构建与静态验证：`@nextclaw/shared`、`@nextclaw/service`、`@nextclaw/ui` 与 desktop main 构建通过；四个 workspace 的 `tsc` 通过；lint 0 error，只有 service 9 条与 UI 1 条既有 warning。
+- NC-128 真实浏览器更新冒烟：`pnpm dev:verify-update -- --rebuild --no-open` 在隔离 home/run/端口上从 `0.23.0-dev.0` 下载并应用 `0.23.0`，页面自动重连后页头显示 `v0.23.0`，PID 从 `16072` 切为 `31135`，observer 输出 `Update verified successfully`；一次 `Ctrl+C` 完成隔离服务与临时目录清理。
+- NC-128 全量回归补充：service 44/45 文件、144/147 用例通过，剩余 3 项均为无关 cron dev-service 子进程把 Node/pnpm 路径报成 `ENOENT`；UI 165/167 文件、746/751 用例通过，剩余 5 项与修前基线完全一致。NC-128 所触达的定向测试全部通过。
 - 默认入口无更新提示复现与修复：新隔离会话初始 `automaticChecks=false`，`GET /api/runtime/update` 一直返回 `idle`、`availableVersion=null`，主界面因此没有新版本或下载入口。修正为 `automaticChecks=true/autoDownload=false` 后，全新端口 `59290` 的源码实例在未人工调用 check API 前已经返回 `update-available/availableVersion=0.23.0`；浏览器确认主界面页头显示“下载”。点击后后端进入 `downloaded/canApplyInApp=true`，页头进一步显示“更新”，证明不是仅渲染一个假提示。该复验实例退出后 PID `54559` 与临时目录均清理；下载和应用仍不会自动执行。
 - `--rebuild` 缺陷复现与修复：首次强制重建完成 43 秒源码构建后，因绕过缓存时没有显式创建 run-local fixture 根目录，写入临时签名 key 报 `ENOENT`。修复后由 `buildFixture` 统一创建输出目录，同一条无缓存链路及真实更新复验通过。
 - `pnpm dev:verify-update -- --help`、新脚本 ESLint 与 `node --check`：通过。
@@ -58,6 +64,7 @@
 2. 等待页面短暂断开并自动恢复，不执行手动 `restart`。
 3. 刷新页面，页头版本号应显示刚更新的新版本。
 4. 通过 `/api/app/meta` 或进程命令确认正在运行的 app 来自新版本运行包，而不是只观察更新状态中的目标版本。
+5. 若新版本运行后下一次检查失败，页头应继续显示真实新版本，并把状态标为“检查更新失败”；hover 应显示底层原因和完整日志命令，而不是把已成功的更新误报为失败。
 
 后续开发者无需等待真实发版，可在仓库根运行 `pnpm dev:verify-update`，进入命令打印的 `/updates` 页面完成同一套人工验收；完成后按 `Ctrl+C`，确认隔离服务停止。
 
@@ -72,12 +79,15 @@
 - 质量与可维护性提升证明：以后更新链路可以在发布前被重复、真实地人工验收；产品代码没有增加 dev 特判、第二套版本事实源、平行 updater 或 fallback。
 - 为何不是单纯压缩行数：新增生命周期代码均对应实际构建、启动、观察与清理责任；在真实 `Ctrl+C` 复验发现异步清理失效后，才引入独立 watchdog，而不是预先堆防御抽象。
 - 后续边界：故障注入或多场景编排不能继续堆入主 harness；fixture manager 只负责开发态候选材料，production deployment cache manager 只负责显式启用的 deploy 模板复用，不能把产品 update 状态机或发布默认行为搬入二者。
+- NC-128 可维护性复核：代码改动 `+122/-18`，其中非测试代码 `+63/-12`、净增 `51`；增长对应用户明确要求的失败阶段、完整错误原因与日志入口能力，不适用非功能改动净增必须小于等于 0 的约束。失败阶段属于既有 update snapshot 的单一事实合同，NPM host 仍是错误归一化和日志记录 owner，UI 只做状态映射；没有新增轮询、fallback、第二状态源或平行 updater。可选字段只用于跨版本兼容，当前 NPM 与 desktop owner 均稳定写出 `null` 或明确阶段。maintainability guard 为 0 error、2 warning：desktop coordinator 535 行接近 600 行预算，runtime service 目录仍处于既有超预算状态，本次没有新增该目录文件。
 
 ## NPM 包发布记录
 
 待统一发布：
 
 - `@nextclaw/service`：本地版本与当前 NPM 已发布版本均为 `0.3.5`；需要 patch 发布，使 self-relaunch 使用 launcher 入口。
+- `@nextclaw/shared`：需要 patch 发布，提供更新失败阶段与诊断命令合同。
+- `@nextclaw/ui`：需要 patch 发布，按失败阶段展示准确状态，并在 hover 中暴露完整原因与日志命令。
 - `nextclaw`：本地版本与当前 NPM 已发布版本均为 `0.23.0`；需要 patch 发布，使发行元数据携带正确 launcher 入口并进入 runtime bundle。
 
 已新增 `.changeset/runtime-update-auto-version-switch.md`。本次未执行 NPM publish、runtime update channel 发布或 GitHub release。

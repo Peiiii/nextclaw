@@ -1,7 +1,9 @@
 import type { Config } from "@nextclaw/core";
+import { getAppLogger, type AppLogger } from "@nextclaw/core";
 import {
   eventKeys,
   type EventBus,
+  type UpdateFailureStage,
   type UpdatePreferences,
   type UpdateProgress,
   type UpdateSnapshot,
@@ -25,6 +27,7 @@ const INITIAL_DOWNLOAD_PROGRESS: UpdateProgress = {
 
 type NpmRuntimeUpdateHostDeps = {
   eventBus: EventBus;
+  logger?: Pick<AppLogger, "error">;
   requestRestart: (params: RequestRestartParams) => Promise<void>;
   uiConfig: Pick<Config["ui"], "port">;
   applyRestartMode: "managed-service-restart" | "manual-process-restart";
@@ -40,8 +43,10 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
   private snapshot: UpdateSnapshot;
   private activeTask: Promise<void> | null = null;
   private automaticSyncStarted = false;
+  private readonly logger: Pick<AppLogger, "error">;
 
   constructor(private readonly deps: NpmRuntimeUpdateHostDeps) {
+    this.logger = deps.logger ?? getAppLogger("service.runtime-update");
     const distribution = NextclawDistributionService.get();
     this.source = new NpmRuntimeUpdateSourceService({
       packagedPublicKeyPath: distribution.runtimeUpdatePublicKeyPath
@@ -108,7 +113,7 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
       }
       return this.snapshot;
     } catch (error) {
-      this.setSnapshot(this.toFailedSnapshot(error));
+      this.setSnapshot(this.toFailedSnapshot("apply", error));
       throw error;
     }
   };
@@ -171,7 +176,7 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
             await this.runDownloadTask();
           }
         } catch (error) {
-          this.setSnapshot(this.toFailedSnapshot(error));
+          this.setSnapshot(this.toFailedSnapshot("check", error));
         } finally {
           this.activeTask = null;
         }
@@ -193,7 +198,7 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
         try {
           await this.runDownloadTask();
         } catch (error) {
-          this.setSnapshot(this.toFailedSnapshot(error));
+          this.setSnapshot(this.toFailedSnapshot("download", error));
         } finally {
           this.activeTask = null;
         }
@@ -227,13 +232,33 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
     });
   };
 
-  private toFailedSnapshot = (error: unknown): UpdateSnapshot => {
+  private toFailedSnapshot = (failureStage: UpdateFailureStage, error: unknown): UpdateSnapshot => {
+    const errorMessage = this.describeFailure(error);
+    this.logger.error("runtime update operation failed", { failureStage, errorMessage }, error);
     return {
       ...this.createManager().getSnapshot(),
       status: "failed",
       progress: null,
-      errorMessage: error instanceof Error ? error.message : String(error ?? "Unknown error")
+      errorMessage,
+      failureStage,
+      diagnosticCommand: "nextclaw logs path"
     };
+  };
+
+  private describeFailure = (error: unknown): string => {
+    const messages: string[] = [];
+    let cause = error;
+    while (cause instanceof Error && messages.length < 4) {
+      const message = cause.message.trim();
+      if (message && messages.at(-1) !== message) {
+        messages.push(message);
+      }
+      cause = cause.cause;
+    }
+    if (messages.length === 0) {
+      messages.push(String(error ?? "Unknown error"));
+    }
+    return messages.join(": ");
   };
 
   private setSnapshot = (snapshot: UpdateSnapshot): UpdateSnapshot => {

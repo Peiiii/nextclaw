@@ -21,6 +21,8 @@ export type UpdateBlockReason =
   | "unsupported-installation"
   | "signature-verification-unavailable";
 
+export type UpdateFailureStage = "check" | "download" | "apply";
+
 export type UpdateProgress = {
   downloadedBytes: number;
   totalBytes: number | null;
@@ -50,5 +52,7 @@ export type UpdateSnapshot = {
   blockReason: UpdateBlockReason | null;
   recoveryCommand: string | null;
   errorMessage: string | null;
+  failureStage?: UpdateFailureStage | null;
+  diagnosticCommand?: string | null;
   preferences: UpdatePreferences;
 };

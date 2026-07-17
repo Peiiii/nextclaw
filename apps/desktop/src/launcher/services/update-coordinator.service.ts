@@ -93,6 +93,8 @@ export class DesktopUpdateCoordinatorService {
       blockReason: updateCapability.supported ? null : updateCapability.blockReason,
       recoveryCommand: null,
       errorMessage: updateCapability.supported ? null : updateCapability.message,
+      failureStage: null,
+      diagnosticCommand: null,
       preferences: { ...persistedState.updatePreferences }
     };
     if (updateCapability.supported) {
@@ -331,6 +333,7 @@ export class DesktopUpdateCoordinatorService {
         status: persistedState.downloadedVersion ? "downloaded" : "failed",
         minimumHostVersion: manifest.minimumLauncherVersion,
         errorMessage: error instanceof Error ? error.message : String(error),
+        failureStage: "download",
       });
       this.publishSnapshot();
       return this.getSnapshot();
@@ -408,6 +411,7 @@ export class DesktopUpdateCoordinatorService {
         canApplyInApp: false,
         requiresRestart: false,
         errorMessage: `Version ${availableUpdate.manifest.latestVersion} was quarantined after a failed launch.`,
+        failureStage: "apply",
       });
     }
 
@@ -453,6 +457,8 @@ export class DesktopUpdateCoordinatorService {
       blockReason: null,
       recoveryCommand: null,
       errorMessage: null,
+      failureStage: null,
+      diagnosticCommand: null,
       preferences: { ...state.updatePreferences },
       ...patch
     };

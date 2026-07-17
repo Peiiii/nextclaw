@@ -317,7 +317,7 @@ describe('BrandHeader', () => {
     expect(tooltip.textContent).toContain('Set NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY');
   });
 
-  it('uses the failed update wording only for failed snapshots', async () => {
+  it('distinguishes a failed post-restart check from a failed update', async () => {
     const user = userEvent.setup();
     useRuntimeUpdateStore.setState({
       supported: true,
@@ -340,7 +340,9 @@ describe('BrandHeader', () => {
         requiresRestart: false,
         blockReason: null,
         recoveryCommand: null,
-        errorMessage: 'runtime bundle sha256 mismatch',
+        errorMessage: 'fetch failed: getaddrinfo ENOTFOUND updates.nextclaw.io',
+        failureStage: 'check',
+        diagnosticCommand: 'nextclaw logs path',
         preferences: {
           automaticChecks: true,
           autoDownload: true
@@ -348,16 +350,18 @@ describe('BrandHeader', () => {
       }
     });
 
-    renderBrandHeader();
+    renderBrandHeader({ productVersion: '0.24.0' });
 
-    const issueIcon = screen.getByLabelText('更新失败');
+    expect(screen.getByText('v0.24.0')).not.toBeNull();
+    const issueIcon = screen.getByLabelText('检查更新失败');
 
     expect(issueIcon.textContent).toBe('!');
     await user.hover(issueIcon);
 
     const tooltip = await screen.findByRole('tooltip');
-    expect(tooltip.textContent).toContain('更新失败');
-    expect(tooltip.textContent).toContain('runtime bundle sha256 mismatch');
+    expect(tooltip.textContent).toContain('检查更新失败');
+    expect(tooltip.textContent).toContain('fetch failed: getaddrinfo ENOTFOUND updates.nextclaw.io');
+    expect(tooltip.textContent).toContain('完整日志：nextclaw logs path');
     expect(screen.queryByText('更新被阻塞')).toBeNull();
   });
 });

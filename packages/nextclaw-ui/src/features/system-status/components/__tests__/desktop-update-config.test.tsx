@@ -145,6 +145,27 @@ describe('DesktopUpdateConfig', () => {
     expect(screen.getByText('50 B / 100 B')).toBeTruthy();
   });
 
+  it('labels a failed check separately from an update failure', () => {
+    useRuntimeUpdateStore.setState((state) => ({
+      ...state,
+      snapshot: state.snapshot
+        ? {
+            ...state.snapshot,
+            status: 'failed',
+            currentVersion: '0.24.0',
+            failureStage: 'check',
+            errorMessage: 'fetch failed: getaddrinfo ENOTFOUND updates.nextclaw.io'
+          }
+        : null
+    }));
+
+    renderDesktopUpdateConfig();
+
+    expect(screen.getByText('检查更新失败')).toBeTruthy();
+    expect(screen.getByText('0.24.0')).toBeTruthy();
+    expect(screen.getByText('fetch failed: getaddrinfo ENOTFOUND updates.nextclaw.io')).toBeTruthy();
+  });
+
   it('loads structured release notes from the docs JSON endpoint', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
       schemaVersion: 1,

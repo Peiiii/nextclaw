@@ -36,8 +36,8 @@ const RELEASE_NOTES_KIND_LABEL_KEYS: Record<string, string> = {
   compatibility: 'desktopUpdatesReleaseNotesCompatibility'
 };
 
-function StatusBadge({ status }: { status: string }) {
-  return <span className={cn('inline-flex rounded-full px-3 py-1 text-xs font-medium ring-1', getStatusTone(status))}>{getStatusLabel(status)}</span>;
+function StatusBadge({ snapshot }: { snapshot: UpdateSnapshot }) {
+  return <span className={cn('inline-flex rounded-full px-3 py-1 text-xs font-medium ring-1', getStatusTone(snapshot.status))}>{getStatusLabel(snapshot)}</span>;
 }
 
 function OverviewStat({ label, value }: { label: string; value: string }) {
@@ -116,8 +116,11 @@ function formatBytes(value: number): string {
 function getChannelLabel(channel: UpdateSnapshot['channel']): string {
   return channel === 'beta' ? t('desktopUpdatesChannelBeta') : t('desktopUpdatesChannelStable');
 }
-function getStatusLabel(status: string): string {
-  return t(STATUS_LABEL_KEYS[status] ?? 'desktopUpdatesStatusIdle');
+function getStatusLabel(snapshot: UpdateSnapshot): string {
+  if (snapshot.status === 'failed' && snapshot.failureStage) {
+    return t(`desktopUpdatesFailureStage.${snapshot.failureStage}`);
+  }
+  return t(STATUS_LABEL_KEYS[snapshot.status] ?? 'desktopUpdatesStatusIdle');
 }
 function getStatusTone(status: string): string {
   if (status === 'downloaded') {
@@ -256,7 +259,7 @@ export function DesktopUpdateConfig() {
           <CardDescription>{t('desktopUpdatesOverviewDescription')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="flex flex-wrap items-center gap-3"><span className="text-sm font-medium text-gray-700">{t('desktopUpdatesStatusLabel')}</span><StatusBadge status={snapshot.status} /></div>
+          <div className="flex flex-wrap items-center gap-3"><span className="text-sm font-medium text-gray-700">{t('desktopUpdatesStatusLabel')}</span><StatusBadge snapshot={snapshot} /></div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">{overviewStats.map(([label, value]) => <OverviewStat key={label} label={label} value={value} />)}</div>
           {snapshot.channel === 'beta' ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
