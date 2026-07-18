@@ -20,6 +20,8 @@ description: 当用户要求提交、收尾、统一 NPM 发布、GitHub release
 
 在 `/commit`、`/close-task`、用户说“提交吧/收尾/完成”时，先判断本次 staged 范围是否包含用户需要感知的产品变更。
 
+脏工作区提交必须做双向范围审计：既检查 staged 中没有混入无关改动，也要把本轮需求及 follow-up、相关 changeset / 迭代记录与未暂存的语义 diff（必要时使用 `git diff -w`）对照，确认同批生产代码、测试、运行时 skill 资源和收尾记录没有遗漏。不能只因 staged diff 自洽就判定提交范围已经闭合。
+
 需要添加 `.changeset/*.md` 的典型情况：
 
 - 新增或改变用户可见功能

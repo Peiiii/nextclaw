@@ -49,7 +49,7 @@ describe("SkillsLoader visualization builtin", () => {
     expect(skill).toContain("NEXTCLAW_HOME/assets/visualizations/<session-id>/");
     expect(skill).toContain("不得放到 `/tmp`、其他临时目录、当前项目或工作目录根部");
     expect(skill).toContain("并在声明中使用绝对路径");
-    expect(skill).toContain("min(80vh, 720px)");
+    expect(skill).toContain("min(90vh, 1440px)");
     expect(skill).toContain("不要在 HTML 内重复文件名");
     expect(skill).toContain("不依赖 document 级内部滚动");
     expect(skill).toContain("nextclaw-app-creator");

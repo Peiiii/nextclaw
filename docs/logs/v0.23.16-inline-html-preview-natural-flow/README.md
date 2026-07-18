@@ -6,7 +6,7 @@
 - HTML 预览外部正上方新增水平居中的悬浮工具条；静止时零视觉、零布局占位、零点击命中，仅在 hover 或键盘聚焦后完整显示。
 - 工具条与 iframe 内容区域之间保留不可见的 hover bridge，鼠标从预览移向外部工具条时不会因离开内容边界而闪退，工具条也不会遮挡 HTML 页面。
 - 工具条提供“展开到侧栏”和“打开源码”两个入口，分别在右侧工作区打开 rendered HTML 与源码视图。
-- rendered HTML iframe 加载后通过同源 `ResizeObserver` 测量桥上报真实内容高度；内联预览从 `240px` 起步，随内容升高，并以 `min(80vh, 720px)` 作为接近一屏的硬上限，超过后继续使用 iframe 内部滚动。
+- rendered HTML iframe 加载后通过同源 `ResizeObserver` 测量桥上报真实内容高度；内联预览从 `240px` 起步，随内容升高，并以 `min(90vh, 1440px)` 作为接近一屏的硬上限，超过后继续使用 iframe 内部滚动。
 - 测量是纯观察路径，不修改用户 HTML 或服务端原始响应，也不新增全局 `postMessage` 协议；同源测量不可用时保留有界初始高度，预览本身仍可使用。
 - 改动收敛在现有 `ChatInlineFilePreview` 展示 owner与 `WorkspaceFileContentPreview` iframe renderer；workspace 文件 URL、加载方式和右侧工作区全高布局保持不变。
 - 两个操作继续复用现有 `onFileOpen -> ChatThreadManager.openFilePreview -> workspace tab` 主链路，没有新增侧栏状态或平行打开通道。
@@ -15,11 +15,12 @@
 - 根据本次连续交互纠偏，已在 `frontend-interaction-quality` 规则中补充纯 hover 浮层的零默认足迹与外置 hover bridge 约束，避免同类控件再次常驻占位或闪退。
 - Native Agent 的 `ReplyFormatContextProvider` 增加极短的可视化路由：当空间布局能明显提升理解时，先读取内置 `visualize-output` skill；简单答案继续使用自然 Markdown，可复用应用和持续工作流仍归 `nextclaw-app-creator`。
 - 新增内置 `visualize-output` skill，统一选择 Markdown、表格、Mermaid、图片或自包含内联 HTML；它只负责当前回答的结果展示，不接管 Panel App / Service App 创建职责。
-- 内联 HTML 明确采用“页面即画布”：一个表面只表达一个主要结论，不重复文件名、内部工具栏或总卡片，不依赖 document 级滚动，并按宿主 `240px -> min(80vh, 720px)` 的自适应高度合同控制信息密度。
+- 内联 HTML 明确采用“页面即画布”：一个表面只表达一个主要结论，不重复文件名、内部工具栏或总卡片，不依赖 document 级滚动，并按宿主 `240px -> min(90vh, 1440px)` 的自适应高度合同控制信息密度。
 - 2026-07-18 根因修正：完成态 Markdown renderer 曾把“生成式 HTML 回答应只输出声明”的 Agent 回复格式约束，下沉成“只要消息里存在 rendered HTML 就丢弃其余正文”的宿主规则。真实会话 `ncp-mrq4yn79-e2ecbcf9` 证明该规则会隐藏同一消息中的图片、Panel App、Mermaid、表格和正文，因此已删除完成态内容替换分支及其专用正则；renderer 现在始终忠实呈现持久化消息合同。
 - 根因通过三方对照确认：session API 中 8 条消息正文和 inline target 均正确，修前浏览器却把第 1、2、4 条助手回复缩成同一个 HTML iframe；删除 renderer 的替换分支后，同一 URL 恢复为各自正文与独立内联表面。修复位点是第一个违约边界，不在 session/journal、消息 adapter 或 iframe 缓存层增加补丁。
-- 2026-07-18 Panel App 对齐 follow-up：聊天内联 Panel App 删除独立的描边卡片、阴影和常驻 header，改为与 rendered HTML 共用 `ChatInlineContentSurface`；圆角视口、`240px -> min(80vh, 720px)` 高度约束、hover/focus 工具条和零默认点击命中现在由同一个纯展示 owner 保证。
+- 2026-07-18 Panel App 对齐 follow-up：聊天内联 Panel App 删除独立的描边卡片、阴影和常驻 header，改为与 rendered HTML 共用 `ChatInlineContentSurface`；圆角视口、`240px -> min(90vh, 1440px)` 高度约束、hover/focus 工具条和零默认点击命中现在由同一个纯展示 owner 保证。
 - 两类 iframe 保留必要的安全差异：rendered HTML 继续由同源宿主读取高度；Panel App sandbox 不增加 `allow-same-origin`，由现有内核注入脚本仅在 `card + inline` 参数下使用 `ResizeObserver` 上报高度。查询参数和高度消息类型收敛到 `@nextclaw/shared` 合同，UI 只接受当前 iframe `contentWindow` 的消息，bridge、URL 和侧栏打开语义保持原主链路。
+- 2026-07-18 高度 follow-up：共享内联视口的视口占比由 `80vh` 提高到 `90vh`，像素硬上限由 `720px` 翻倍到 `1440px`；内联 HTML 与 Panel App 仍通过同一个 `ChatInlineContentSurface` 生效，内置 `visualize-output` skill 同步使用该合同，避免生成侧继续按旧上限压缩内容。
 
 ## 测试/验证/验收方式
 
@@ -43,7 +44,7 @@
 - TypeScript 与 ESLint：`pnpm -C packages/nextclaw-agent-chat-ui tsc`、`pnpm -C packages/nextclaw-agent-chat-ui lint` 均通过。
 - 包级全量测试：32 files 中 29 files 通过，230 tests 中 227 tests 通过；剩余 3 项分别是当前基线已有的 `chat-ui.contract.test.ts` ReactNode 合同、`chat-message-list.file-operation.test.tsx` 样式断言和 `chat-input-bar-selection.test.tsx` 的 jsdom/Lexical `Selection.modify` 缺失，均不在本次触达文件与消息渲染链路。
 - 治理：限定本次 4 个代码/测试文件的 `lint-new-code-governance` 全部通过，`pnpm check:governance-backlog-ratchet` 通过。工作区全量 governance 被并行未提交文件 `workers/nextclaw-provider-gateway-api/tests/remote-instance-list.test.mjs` 的 4 个 class-method 违规阻塞，本次未吸收或修改该文件。
-- `pnpm --filter @nextclaw/core build` 通过，并确认发布产物 `dist/skills/visualize-output/SKILL.md` 包含内联 HTML 与 `min(80vh, 720px)` 合同；随后 `pnpm clean:generated` 与 `pnpm check:generated-clean` 通过。
+- `pnpm --filter @nextclaw/core build` 通过，并确认发布产物 `dist/skills/visualize-output/SKILL.md` 包含内联 HTML 与 `min(90vh, 1440px)` 合同；随后 `pnpm clean:generated` 与 `pnpm check:generated-clean` 通过。
 - Agent 可视化后续治理：全量收尾重跑 `pnpm lint:new-code:governance` 与 `pnpm check:governance-backlog-ratchet` 均通过。maintainability guard 为 0 error；`context-provider/providers` 仍是 14 个同角色 provider 文件且已有 README 豁免，本次没有新增 provider 或扩大目录。
 - `skill-creator` 的 Python `quick_validate.py` 因本机两个 Python runtime 均缺少 `PyYAML` 未能启动；已改用仓库实际 `SkillsLoader` 测试和本地 `yaml@2.8.2` 解析校验 frontmatter、目录名与双语描述，均通过。
 - 真实模型前向验收：使用当前源码构建和从用户配置复制的真实 provider 配置，在独立 `NEXTCLAW_HOME=/Users/peiwang/.nextclaw-source-runtime/deepseek-visual-smoke`、独立 workspace 与端口 `18889` 启动隔离实例；没有重启、替换或写入用户正在使用的主实例。最终使用 `deepseek/deepseek-chat` 和不包含设计、内联或存储指令的自然请求创建会话 `visual-html-deepseek-natural-20260717-0942`。模型首个工具调用读取 `visualize-output`，产物写入 `NEXTCLAW_HOME/assets/visualizations/<session-id>/revenue.html`，没有调用 `show_file`、`show_url` 或 browser 旁路；会话与产物接口均返回 HTTP 200。
@@ -57,6 +58,10 @@
 - Panel App 对齐真实页面验收：在当前源码 Vite `http://127.0.0.1:5174/chat` 发送 inline `show_panel_app` 并打开真实“唐诗卡片”。宿主表面 `persistentHeaderCount=0` 且无 border/shadow；注入脚本把真实内容高度回传为 `489px`，iframe 与共享 viewport 同高且节点未替换。工具条静止时为 `opacity=0 / pointer-events=none`，鼠标进入后变为 `opacity=1 / pointer-events=auto`；点击“展开到侧栏”成功，侧栏打开后聊天内联表面宽度为 `700px`，页面 `scrollWidth=viewportWidth=1280px`，验收后已关闭侧栏。
 - Panel App 对齐运行 owner 验证：Vite 5174 代理到源码 runtime 18792，直接请求 Vite `@fs` 模块确认消费共享 surface；真实 Panel App content API 返回的 HTML 包含 `DOMContentLoaded`、`ResizeObserver` 和 `nextclaw:panel-app-content-height`。没有重启 NextClaw、桌面应用或已安装实例。
 - Panel App 对齐治理：maintainability guard 限定 10 个相关文件为 0 error / 0 warning；`pnpm lint:new-code:governance` 与 `pnpm check:governance-backlog-ratchet` 均通过。
+- 高度 follow-up 定向测试：`pnpm --filter @nextclaw/ui test -- ...chat-inline-file-preview.test.tsx ...chat-inline-panel-app-card.test.tsx` 为 2 files / 6 tests 通过；`pnpm --filter @nextclaw/core test -- src/features/agent/features/tests/skills.test.ts` 为 1 file / 11 tests 通过。
+- 高度 follow-up TypeScript、ESLint 与构建：`pnpm --filter @nextclaw/ui tsc`、`pnpm --filter @nextclaw/core tsc`、两个 package build 均通过；两个 package lint 均为 0 error，仅保留未触达文件中的既有 warning。构建产物确认 Tailwind 输出 `max-height:min(90vh,1440px)`，Core 发布 skill 包含同一合同；随后 `pnpm clean:generated` 与 `pnpm check:generated-clean` 通过。
+- 高度 follow-up 真实页面验收：在当前源码 Vite `http://127.0.0.1:5174/chat/sid_bmNwLW1ya3IyYWJtLWI1YjkyMmQ5` 检查两处真实 rendered HTML 内联表面；两处 class 均为 `max-h-[min(90vh,1440px)]`，当前 `720px` 高浏览器视口的计算上限均为 `648px`，相比旧合同的 `576px` 增加 `72px`。页面由同一 `ChatInlineContentSurface` 提供合同，没有重启服务。
+- 高度 follow-up 治理：`--non-feature` maintainability guard 为 0 error / 0 warning，代码与测试新增 4 行、删除 4 行、净增 0；排除测试后新增 1 行、删除 1 行、净增 0。`pnpm lint:new-code:governance` 与 `pnpm check:governance-backlog-ratchet` 均通过。
 
 ## 发布/部署方式
 
@@ -79,10 +84,10 @@
 8. 再打开 Markdown 或其他非 HTML 文件预览，确认原有文件标题和卡片识别信息仍然保留，且不出现 HTML 专属工具条。
 9. 请求 Agent 把一组适合比较、流程或空间排版的数据“可视化”，确认系统上下文能发现并读取 `visualize-output`，并选择最小合适媒介，而不是每次都强制生成 HTML。
 10. 当 Agent 选择内联 HTML 时，确认消息内直接出现 rendered 文件预览；页面本身就是唯一表面，不再套一层总卡片，也不重复文件名、预览标题栏或内部操作工具栏。
-11. 使用内容高度约 `320px-640px` 的样例确认核心结果无需 document 级滚动；内容明显超过 `min(80vh, 720px)` 时，应删减为摘要或改用 side panel。
+11. 使用一屏以内的样例确认核心结果无需 document 级滚动；内容明显超过 `min(90vh, 1440px)` 时，应删减为摘要或改用 side panel。
 12. 打开一条同时包含正文、图片、Panel App、rendered HTML、Mermaid 和表格的完成态助手回复，确认所有媒介按消息顺序共同显示；刷新会话后结果不应缩成单个 HTML 预览。
 13. 在聊天中以内联方式打开 Panel App，确认宿主不再显示常驻标题、边框或阴影；鼠标移入或键盘聚焦后才显示“展开到侧栏”，静止时不占位也不命中点击。
-14. 使用短内容和动态增高的 Panel App，确认内联表面从 `240px` 起按应用内容增高，最高不超过 `min(80vh, 720px)`；点击“展开到侧栏”后仍进入原有 Panel App 侧栏，不刷新或重挂载聊天内 iframe。
+14. 使用短内容和动态增高的 Panel App，确认内联表面从 `240px` 起按应用内容增高，最高不超过 `min(90vh, 1440px)`；点击“展开到侧栏”后仍进入原有 Panel App 侧栏，不刷新或重挂载聊天内 iframe。
 
 ## 可维护性总结汇总
 
@@ -100,6 +105,7 @@
 - Panel App 对齐 follow-up 代码与测试新增 `521` 行、删除 `218` 行、净增 `303` 行；排除测试后生产代码新增 `278` 行、删除 `161` 行、净增 `117` 行。本批新增的是用户可见的 sandbox 内容高度同步能力，不按纯重构使用非功能行数口径；剩余增长主要是注入脚本、跨 package host contract 与共享表面组件。
 - 正向减债动作：删除 Panel App 自有的描边/header/固定高度壳与 HTML 自有的工具条/视口壳，统一复用纯展示 `ChatInlineContentSurface`；Panel App 只保留 iframe URL、sandbox、bridge 和侧栏动作，HTML 只保留文件预览与同源测量。内核高度 reporter 从既有 bridge script builder 中拆成同文件纯脚本片段，专属协议测试进入 `panel-app-bridge.utils.test.ts`，没有继续膨胀 787 行的 manager 测试文件。
 - `post-edit-maintainability-review` 结论：通过，no maintainability findings。共享组件类型、iframe key 与父级位置稳定；唯一 effect 仍只同步外部 `window.message` 生命周期，内容高度只归各自内联组件本地状态，不进入 store/manager，也没有后台焦点或选区写入。
+- 高度 follow-up 的生产代码与测试净增均为 0；正向减债动作是继续复用唯一共享表面 owner，并同步已有生成 skill 合同，没有复制高度常量、增加分支、effect、状态或组件。`post-edit-maintainability-review` 结论：通过，no maintainability findings。
 
 ## NPM 包发布记录
 
@@ -121,6 +127,7 @@
 
 - `@nextclaw/shared`：需要 patch，新增内联 Panel App host 查询参数与高度消息合同，待统一发布。
 - `@nextclaw/kernel`：需要 patch，注入脚本在 inline card 模式上报 Panel App 内容高度，待统一发布。
+- `@nextclaw/core`：需要 patch，内置可视化 skill 使用放宽后的内联高度合同，待统一发布。
 - `@nextclaw/ui`：需要 patch，Panel App 与 rendered HTML 共用简约内联表面，待统一发布。
 - Changeset：`.changeset/align-inline-panel-app-surface.md`。
 - 本次未执行 NPM 发布。
