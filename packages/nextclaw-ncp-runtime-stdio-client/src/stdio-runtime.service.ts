@@ -195,10 +195,9 @@ class StdioRuntimeSession {
     text: string;
     meta: NarpStdioPromptMeta;
     modelId?: string;
-    signal?: AbortSignal;
     onUpdate: (update: AcpClientUpdate) => void;
   }): Promise<acp.PromptResponse> => {
-    const { meta, modelId, onUpdate, sessionId, signal, text } = params;
+    const { meta, modelId, onUpdate, sessionId, text } = params;
     const connection = this.connection;
     const remoteSessionId = this.remoteSessionId;
     if (!connection || !remoteSessionId) {
@@ -217,8 +216,6 @@ class StdioRuntimeSession {
         onUpdate(update);
       },
     });
-    const releaseAbort = this.bindAbortSignal(signal);
-
     try {
       if (modelId && this.config.env?.[HERMES_ACP_ROUTE_BRIDGE_ENV] !== "1") {
         try {
@@ -250,7 +247,6 @@ class StdioRuntimeSession {
         },
       );
     } finally {
-      releaseAbort();
       detach();
       this.promptInFlight = false;
     }
@@ -269,33 +265,13 @@ class StdioRuntimeSession {
     }
   };
 
-  private bindAbortSignal = (signal?: AbortSignal): (() => void) => {
-    if (!signal) {
-      return () => undefined;
-    }
-
-    const onAbort = (): void => {
-      void this.cancel();
-    };
-
-    if (signal.aborted) {
-      onAbort();
-      return () => undefined;
-    }
-
-    signal.addEventListener("abort", onAbort, { once: true });
-    return () => {
-      signal.removeEventListener("abort", onAbort);
-    };
-  };
-
   readStderr = (): string => this.stderr;
 
   readPromptTimeoutMetadataResetKeys = (): readonly string[] | undefined =>
     this.config.resetSessionMetadataOnPromptTimeout;
 
   dispose = async (): Promise<void> => {
-    await this.cancel();
+    void this.cancel();
     const child = this.child;
     this.connection = null;
     this.remoteSessionId = null;
@@ -366,26 +342,40 @@ class StdioRuntimeRunController {
         providerRoute: this.resolvedProviderRoute,
         metadata: this.input.metadata,
       }),
-      signal: options?.signal,
       onUpdate: (update) => this.buffer.push(update),
     });
     const promptState = this.trackPromptState(promptPromise);
 
     yield* this.emitRunStartedEvents(assistantMessageId);
 
+    const signal = options?.signal;
+    const notifyAbort = (): void => this.buffer.notify();
+    signal?.addEventListener("abort", notifyAbort, { once: true });
+    if (signal?.aborted) notifyAbort();
     try {
-      yield* this.drainPromptUpdates(assistantMessageId, promptState);
-      if (this.shouldExitForAbort(options, promptState.error)) {
+      yield* this.drainPromptUpdates(assistantMessageId, promptState, signal);
+      if (!this.shouldExitForAbort(options, promptState.error)) {
+        if (promptState.error) throw promptState.error;
+        yield* this.emitCompletionEvents(assistantMessageId);
         return;
       }
-      if (promptState.error) throw promptState.error;
-      yield* this.emitCompletionEvents(assistantMessageId);
     } catch (error) {
-      if (this.shouldExitForAbort(options, error)) {
+      if (!this.shouldExitForAbort(options, error)) {
+        yield* this.emitFailureEvents(assistantMessageId, error);
         return;
       }
-      yield* this.emitFailureEvents(assistantMessageId, error);
+    } finally {
+      signal?.removeEventListener("abort", notifyAbort);
     }
+    yield* this.emitEvent({
+      type: NcpEventType.MessageAbort,
+      payload: {
+        sessionId: this.input.sessionId,
+        messageId: assistantMessageId,
+        runId: this.runId,
+        correlationId: this.input.correlationId,
+      },
+    });
   };
   private trackPromptState = (
     promptPromise: Promise<acp.PromptResponse>,
@@ -434,8 +424,9 @@ class StdioRuntimeRunController {
     this: StdioRuntimeRunController,
     assistantMessageId: string,
     promptState: PromptExecutionState,
+    signal?: AbortSignal,
   ): AsyncGenerator<NcpEndpointEvent> {
-    while (!promptState.settled || this.buffer.hasItems()) {
+    while (!signal?.aborted && (!promptState.settled || this.buffer.hasItems())) {
       const update = this.buffer.shift();
       if (!update) {
         await this.buffer.waitForChange();
@@ -797,7 +788,13 @@ export class StdioRuntimeNcpAgentRuntime implements NcpAgentRuntime {
       this.config.resolveTools,
       this.config.resolveProviderRoute,
     );
-    yield* controller.execute(options);
+    try {
+      yield* controller.execute(options);
+    } finally {
+      if (options?.signal?.aborted) {
+        await this.session.dispose();
+      }
+    }
   };
 
   dispose = async (): Promise<void> => {

@@ -15,32 +15,32 @@ class SlowCancelAgent {
     this.sessions = new Map();
   }
 
-  async initialize() {
+  initialize = async () => {
     return {
       protocolVersion: acp.PROTOCOL_VERSION,
       agentCapabilities: {
         loadSession: false,
       },
     };
-  }
+  };
 
-  async newSession() {
+  newSession = async () => {
     const sessionId = randomUUID();
     this.sessions.set(sessionId, {
       abortController: null,
     });
     return { sessionId };
-  }
+  };
 
-  async authenticate() {
+  authenticate = async () => {
     return {};
-  }
+  };
 
-  async setSessionMode() {
+  setSessionMode = async () => {
     return {};
-  }
+  };
 
-  async prompt(params) {
+  prompt = async (params) => {
     const session = this.sessions.get(params.sessionId);
     if (!session) {
       throw new Error(`Session ${params.sessionId} not found`);
@@ -67,11 +67,12 @@ class SlowCancelAgent {
     return {
       stopReason: "cancelled",
     };
-  }
+  };
 
-  async cancel(params) {
+  cancel = async (params) => {
+    await sleep(2_000);
     this.sessions.get(params.sessionId)?.abortController?.abort();
-  }
+  };
 }
 
 const input = Writable.toWeb(process.stdout);

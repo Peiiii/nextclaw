@@ -6,7 +6,7 @@ import { StdioRuntimeNcpAgentRuntime } from "./index.js";
 const SLOW_CANCEL_FIXTURE_PATH = join(
   import.meta.dirname,
   "test-fixtures",
-  "slow-cancel-agent.mjs",
+  "slow-cancel-agent.utils.mjs",
 );
 const TEST_EXECUTION_CONTEXT = {
   cwd: dirname(SLOW_CANCEL_FIXTURE_PATH),
@@ -42,25 +42,31 @@ function createAbortInput() {
 }
 
 describe("StdioRuntimeNcpAgentRuntime manual abort", () => {
-  it("treats manual abort as cancellation instead of emitting runtime errors", async () => {
+  it("emits message.abort promptly when remote cancellation settles slowly", async () => {
     const runtime = createAbortRuntime();
     const controller = new AbortController();
     const events: NcpEndpointEvent[] = [];
+    let abortedAt = 0;
 
     for await (const event of runtime.run(createAbortInput(), {
       signal: controller.signal,
     })) {
       events.push(event);
       if (event.type === NcpEventType.MessageTextDelta) {
+        abortedAt = Date.now();
         controller.abort();
       }
     }
+    const abortDurationMs = Date.now() - abortedAt;
+    await runtime.dispose();
 
-    expect(events.map((event) => event.type)).toEqual([
+    expect.soft(abortDurationMs).toBeLessThan(500);
+    expect.soft(events.map((event) => event.type)).toEqual([
       NcpEventType.MessageAccepted,
       NcpEventType.RunStarted,
       NcpEventType.MessageTextStart,
       NcpEventType.MessageTextDelta,
+      NcpEventType.MessageAbort,
     ]);
     expect(events.some((event) => event.type === NcpEventType.MessageFailed)).toBe(false);
     expect(events.some((event) => event.type === NcpEventType.RunError)).toBe(false);

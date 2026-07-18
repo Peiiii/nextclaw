@@ -4,7 +4,7 @@
 
 - 修复手动终止运行后仍被 runtime 尾部 `RunError` / `MessageFailed` 覆盖为错误态的问题。
 - 改为在源头 [packages/nextclaw-ncp-runtime-stdio-client/src/stdio-runtime.service.ts](/Users/peiwang/Projects/nextbot/packages/nextclaw-ncp-runtime-stdio-client/src/stdio-runtime.service.ts) 处理取消语义：当 ACP prompt 因手动终止结束时，stdio runtime 直接把它当正常取消返回，不再继续产出 `MessageFailed` / `RunError`。
-- 新增慢速取消 fixture [packages/nextclaw-ncp-runtime-stdio-client/src/test-fixtures/slow-cancel-agent.mjs](/Users/peiwang/Projects/nextbot/packages/nextclaw-ncp-runtime-stdio-client/src/test-fixtures/slow-cancel-agent.mjs)、错误语义 helper [packages/nextclaw-ncp-runtime-stdio-client/src/stdio-runtime-error.utils.ts](/Users/peiwang/Projects/nextbot/packages/nextclaw-ncp-runtime-stdio-client/src/stdio-runtime-error.utils.ts) 和 abort 回归测试 [packages/nextclaw-ncp-runtime-stdio-client/src/stdio-runtime-abort.test.ts](/Users/peiwang/Projects/nextbot/packages/nextclaw-ncp-runtime-stdio-client/src/stdio-runtime-abort.test.ts)，覆盖“流式输出中手动停止，不应看到 `ACP prompt cancelled` 报错”场景。
+- 新增慢速取消 fixture [packages/nextclaw-ncp-runtime-stdio-client/src/test-fixtures/slow-cancel-agent.utils.mjs](/Users/peiwang/Projects/nextbot/packages/nextclaw-ncp-runtime-stdio-client/src/test-fixtures/slow-cancel-agent.utils.mjs)、错误语义 helper [packages/nextclaw-ncp-runtime-stdio-client/src/stdio-runtime-error.utils.ts](/Users/peiwang/Projects/nextbot/packages/nextclaw-ncp-runtime-stdio-client/src/stdio-runtime-error.utils.ts) 和 abort 回归测试 [packages/nextclaw-ncp-runtime-stdio-client/src/stdio-runtime-abort.test.ts](/Users/peiwang/Projects/nextbot/packages/nextclaw-ncp-runtime-stdio-client/src/stdio-runtime-abort.test.ts)，覆盖“流式输出中手动停止，不应看到 `ACP prompt cancelled` 报错”场景。
 
 ## 测试/验证/验收方式
 

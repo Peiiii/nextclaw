@@ -26,7 +26,7 @@ const DISPOSE_FIXTURE_PATH = join(
 const SLOW_CANCEL_FIXTURE_PATH = join(
   import.meta.dirname,
   "test-fixtures",
-  "slow-cancel-agent.mjs",
+  "slow-cancel-agent.utils.mjs",
 );
 
 const HERMES_TOOL_TITLE_FIXTURE_PATH = join(
