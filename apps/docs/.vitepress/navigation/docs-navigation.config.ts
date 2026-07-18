@@ -2,95 +2,21 @@ import { readdirSync, readFileSync } from 'node:fs';
 import type { DefaultTheme } from 'vitepress';
 
 export const enNav: DefaultTheme.NavItem[] = [
-  {
-    text: 'Start',
-    items: [
-      { text: 'What is NextClaw?', link: '/en/guide/introduction' },
-      { text: 'Install NextClaw', link: '/en/guide/install' },
-      { text: 'Quickstart', link: '/en/guide/getting-started' },
-      { text: 'Create your first task', link: '/en/guide/create-task' },
-      { text: 'Inspect results', link: '/en/guide/results' }
-    ]
-  },
-  {
-    text: 'How It Works',
-    items: [
-      { text: 'Tasks and sessions', link: '/en/guide/chat' },
-      { text: 'Session workspace', link: '/en/guide/workspace' },
-      { text: 'Agents and subtasks', link: '/en/guide/multi-agent' },
-      { text: 'Skills and MCP', link: '/en/guide/skills-and-mcp' },
-      { text: 'Panel Apps', link: '/en/guide/panel-apps' },
-      { text: 'Automations', link: '/en/guide/cron' },
-      { text: 'Messaging channels', link: '/en/guide/channels' }
-    ]
-  },
+  { text: 'Start', link: '/en/guide/introduction' },
+  { text: 'How It Works', link: '/en/guide/chat' },
   { text: 'Task Guides', link: '/en/tasks/' },
-  {
-    text: 'Setup & Reference',
-    items: [
-      { text: 'Models and providers', link: '/en/guide/model-selection' },
-      { text: 'Security and permissions', link: '/en/guide/security-and-permissions' },
-      { text: 'Configuration', link: '/en/guide/configuration' },
-      { text: 'Command index', link: '/en/guide/commands' },
-      { text: 'Troubleshooting', link: '/en/guide/troubleshooting' }
-    ]
-  },
+  { text: 'Setup & Reference', link: '/en/guide/install' },
   { text: 'Updates', link: '/en/notes/' },
-  {
-    text: 'More',
-    items: [
-      { text: 'Project', link: '/en/project/' },
-      { text: 'Blog', link: '/en/blog/' },
-      { text: 'Community', link: '/en/project/community' },
-      { text: 'Website', link: 'https://nextclaw.io/en/' }
-    ]
-  }
+  { text: 'More', link: '/en/project/' }
 ];
 
 export const zhNav: DefaultTheme.NavItem[] = [
-  {
-    text: '开始',
-    items: [
-      { text: 'NextClaw 是什么', link: '/zh/guide/introduction' },
-      { text: '安装 NextClaw', link: '/zh/guide/install' },
-      { text: '快速开始', link: '/zh/guide/getting-started' },
-      { text: '创建第一个任务', link: '/zh/guide/create-task' },
-      { text: '查看任务结果', link: '/zh/guide/results' }
-    ]
-  },
-  {
-    text: '工作方式',
-    items: [
-      { text: '任务与会话', link: '/zh/guide/chat' },
-      { text: '会话工作区', link: '/zh/guide/workspace' },
-      { text: 'Agent 与子任务', link: '/zh/guide/multi-agent' },
-      { text: 'Skills 与 MCP', link: '/zh/guide/skills-and-mcp' },
-      { text: 'Panel Apps', link: '/zh/guide/panel-apps' },
-      { text: '定时任务', link: '/zh/guide/cron' },
-      { text: '消息渠道', link: '/zh/guide/channels' }
-    ]
-  },
+  { text: '开始', link: '/zh/guide/introduction' },
+  { text: '工作方式', link: '/zh/guide/chat' },
   { text: '任务案例', link: '/zh/tasks/' },
-  {
-    text: '安装与参考',
-    items: [
-      { text: '模型与提供方', link: '/zh/guide/model-selection' },
-      { text: '安全与权限', link: '/zh/guide/security-and-permissions' },
-      { text: '配置手册', link: '/zh/guide/configuration' },
-      { text: '命令索引', link: '/zh/guide/commands' },
-      { text: '故障排查', link: '/zh/guide/troubleshooting' }
-    ]
-  },
+  { text: '安装与参考', link: '/zh/guide/install' },
   { text: '更新', link: '/zh/notes/' },
-  {
-    text: '更多',
-    items: [
-      { text: '项目', link: '/zh/project/' },
-      { text: '博客', link: '/zh/blog/' },
-      { text: '社区', link: '/zh/project/community' },
-      { text: '官网', link: 'https://nextclaw.io/zh/' }
-    ]
-  }
+  { text: '更多', link: '/zh/project/' }
 ];
 
 const enGuideSidebar: DefaultTheme.SidebarItem[] = [
