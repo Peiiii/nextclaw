@@ -79,6 +79,26 @@ export async function waitForChatReady(page) {
   await page.waitForTimeout(1_000);
 }
 
+export async function waitForAgentCardAvatars(page) {
+  await page.waitForFunction(() => {
+    const cards = Array.from(document.querySelectorAll('.group.overflow-hidden')).filter((card) => {
+      const rect = card.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight;
+    });
+    return cards.length >= 3 && cards.every((card) => {
+      const avatar = card.querySelector('[class~="h-9"][class~="w-9"]');
+      if (!avatar) {
+        return false;
+      }
+      if (avatar.tagName === 'IMG') {
+        return avatar.complete && avatar.naturalWidth > 0;
+      }
+      const rect = avatar.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    });
+  }, undefined, { timeout: 20_000 });
+}
+
 export function initializeScreenshotDocument({ key, value, useMockRealtime }) {
   try {
     window.localStorage.setItem(key, value);

@@ -165,13 +165,13 @@ const COPY: Record<Locale, LandingCopy> = {
         eyebrow: 'Agents',
         title: 'Keep a dedicated Agent for each kind of work',
         description: 'Each Agent can keep its own role, workspace, memory, and skills, with a default Runtime when useful.',
-        imageSrc: '/nextclaw-agents-page-en.png', imageAlt: 'NextClaw agent management page'
+        imageSrc: new URL('../../../images/screenshots/nextclaw-agents-page-en.png', import.meta.url).href, imageAlt: 'NextClaw agent management page'
       },
       {
         eyebrow: 'Channels',
         title: 'Bring messaging apps into the same workflow',
         description: 'Connect WeChat, Feishu/Lark, QQ, and other channels so agents can work from the places you already use.',
-        imageSrc: '/nextclaw-channels-page-en.png', imageAlt: 'NextClaw message channel settings'
+        imageSrc: new URL('../../../images/screenshots/nextclaw-channels-page-en.png', import.meta.url).href, imageAlt: 'NextClaw message channel settings'
       },
       {
         eyebrow: 'Skill market',
@@ -236,7 +236,7 @@ const COPY: Record<Locale, LandingCopy> = {
         eyebrow: 'Message channels',
         title: 'Let requests arrive from the places people already talk',
         description: 'Connect Weixin, Feishu/Lark, QQ, DingTalk, WeCom, Telegram, Discord, Slack, email, and other channels.',
-        imageSrc: '/nextclaw-channels-page-en.png',
+        imageSrc: new URL('../../../images/screenshots/nextclaw-channels-page-en.png', import.meta.url).href,
         imageAlt: 'NextClaw message channel settings'
       },
       {
@@ -512,13 +512,13 @@ const COPY: Record<Locale, LandingCopy> = {
         eyebrow: 'Agent 管理',
         title: '为不同工作保留独立的 Agent',
         description: '每个 Agent 都可以拥有自己的角色、主目录、记忆和技能，也可以设置默认 Runtime。',
-        imageSrc: '/nextclaw-agents-page-cn.png', imageAlt: 'NextClaw Agent 管理界面'
+        imageSrc: new URL('../../../images/screenshots/nextclaw-agents-page-cn.png', import.meta.url).href, imageAlt: 'NextClaw Agent 管理界面'
       },
       {
         eyebrow: '消息渠道',
         title: '微信、飞书等入口可以接进来',
         description: '把微信、飞书/Lark、QQ 等渠道接入后，Agent 可以在你常用的入口里继续工作。',
-        imageSrc: '/nextclaw-channels-page-cn.png', imageAlt: 'NextClaw 消息渠道设置'
+        imageSrc: new URL('../../../images/screenshots/nextclaw-channels-page-cn.png', import.meta.url).href, imageAlt: 'NextClaw 消息渠道设置'
       },
       {
         eyebrow: '技能市场',
@@ -580,7 +580,7 @@ const COPY: Record<Locale, LandingCopy> = {
         eyebrow: '消息渠道',
         title: '请求可以从常用聊天入口进来',
         description: '微信、飞书/Lark、QQ、钉钉、企业微信、Telegram、Discord、Slack、邮箱等渠道可以接入。',
-        imageSrc: '/nextclaw-channels-page-cn.png',
+        imageSrc: new URL('../../../images/screenshots/nextclaw-channels-page-cn.png', import.meta.url).href,
         imageAlt: 'NextClaw 消息渠道设置'
       },
       {

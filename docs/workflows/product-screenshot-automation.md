@@ -123,9 +123,7 @@ GITHUB_TOKEN=$(gh auth token) pnpm run assets:refresh-star-history
 
 - `images/screenshots/*`
 - `apps/landing/public/nextclaw-chat-page-*.png`
-- `apps/landing/public/nextclaw-agents-page-*.png`
 - `apps/landing/public/nextclaw-providers-page-*.png`
-- `apps/landing/public/nextclaw-channels-page-*.png`
 - `apps/landing/public/nextclaw-cron-job-page-*.png`
 - `apps/landing/public/nextclaw-skills-doc-browser-*.png`
 - `apps/landing/public/nextclaw-skills-page-*.png`
@@ -141,6 +139,8 @@ GITHUB_TOKEN=$(gh auth token) pnpm run assets:refresh-star-history
 - 以后通过 `SCREENSHOT_CURATED_ASSET` 增加的真实任务素材。
 
 GitHub/文档源图放在 `images/screenshots/`。仍通过 public URL 使用的 landing 素材保留 `apps/landing/public/` 同名镜像，并保证两者哈希一致；通过 Vite 导入的素材只保留 `images/screenshots/` 单一来源。
+
+Agent 与消息渠道截图由 landing 通过 Vite 导入。Agent 场景会等每张可见卡片的头像（图片或回退头像）就绪后再截图，避免把资源尚未加载完成的界面写入正式素材。
 
 ## CI
 

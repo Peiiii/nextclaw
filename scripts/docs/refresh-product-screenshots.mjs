@@ -34,6 +34,7 @@ import {
   waitForDocBrowserPanel,
   waitForPanelAppFrame,
   waitForSceneText,
+  waitForAgentCardAvatars,
   waitForWorkspacePreview,
   writeSceneOutputs
 } from './product-screenshot-browser-helpers.mjs';
@@ -126,8 +127,7 @@ const stableScenes = [
     waitText: uiText.en.channels,
     outputs: [
       'images/screenshots/nextclaw-channels-page-en.png',
-      'images/screenshots/nextclaw-channels-page.png',
-      'apps/landing/public/nextclaw-channels-page-en.png'
+      'images/screenshots/nextclaw-channels-page.png'
     ]
   },
   {
@@ -135,20 +135,17 @@ const stableScenes = [
     route: '/channels',
     language: 'zh',
     waitText: uiText.zh.channels,
-    outputs: [
-      'images/screenshots/nextclaw-channels-page-cn.png',
-      'apps/landing/public/nextclaw-channels-page-cn.png'
-    ]
+    outputs: ['images/screenshots/nextclaw-channels-page-cn.png']
   },
   {
     id: 'agents-en',
     route: '/agents',
     language: 'en',
     waitText: uiText.en.agents,
+    afterLoad: async ({ page }) => waitForAgentCardAvatars(page),
     outputs: [
       'images/screenshots/nextclaw-agents-page-en.png',
-      'images/screenshots/nextclaw-agents-page.png',
-      'apps/landing/public/nextclaw-agents-page-en.png'
+      'images/screenshots/nextclaw-agents-page.png'
     ]
   },
   {
@@ -156,10 +153,8 @@ const stableScenes = [
     route: '/agents',
     language: 'zh',
     waitText: uiText.zh.agents,
-    outputs: [
-      'images/screenshots/nextclaw-agents-page-cn.png',
-      'apps/landing/public/nextclaw-agents-page-cn.png'
-    ]
+    afterLoad: async ({ page }) => waitForAgentCardAvatars(page),
+    outputs: ['images/screenshots/nextclaw-agents-page-cn.png']
   },
   ...createAgentRuntimeScreenshotScenes(),
   {
