@@ -1,4 +1,4 @@
-import { touchRemoteInstance } from "@/repositories/remote.repository";
+import { touchRemoteInstance } from "@/repositories/remote-instance.repository";
 import { dispatchRemoteRelayClientFrame } from "@/utils/remote-relay-client-frame.utils.js";
 import { decodeRelayBase64, decodeRelayMessageData } from "@/utils/remote-relay-message.utils.js";
 import {

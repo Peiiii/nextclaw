@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardTitle } from '@/components/ui/card';
+import { Card, CardTitle } from '@/shared/components/card';
 import { formatDateTime, type LocaleCode } from '@/i18n/i18n.service';
 import type { RemoteQuotaResourceSummary, RemoteQuotaSummary } from '@/features/dashboard/types/remote-quota.types';
 import { fetchRemoteQuotaSummary } from '@/features/dashboard/utils/remote-quota-api.utils';
@@ -24,13 +24,13 @@ export function RemoteQuotaCard({ locale, t, token }: Props): JSX.Element {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-2">
           <CardTitle>{t('remote.quota.title')}</CardTitle>
-          <p className="max-w-3xl text-sm leading-6 text-[#656561]">{t('remote.quota.description')}</p>
+          <p className="max-w-3xl text-sm leading-6 text-[var(--color-foreground-muted)]">{t('remote.quota.description')}</p>
         </div>
         {quotaQuery.data ? <QuotaStatusBadge status={quotaQuery.data.day.status} t={t} /> : null}
       </div>
 
       {quotaQuery.isLoading ? (
-        <p className="mt-4 text-sm text-[#8f8a7d]">{t('remote.quota.messages.loading')}</p>
+        <p className="mt-4 text-sm text-[var(--color-foreground-subtle)]">{t('remote.quota.messages.loading')}</p>
       ) : null}
       {quotaQuery.error ? (
         <p className="mt-4 text-sm text-rose-600">
@@ -51,7 +51,7 @@ function RemoteQuotaSummaryView(props: {
   return (
     <div className="mt-5 space-y-4">
       {summary.costModel.partialDay ? (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
           {t('remote.quota.partialDay')}
         </p>
       ) : null}
@@ -74,8 +74,8 @@ function RemoteQuotaSummaryView(props: {
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">
-        <div className="rounded-2xl border border-[#e4e0d7] bg-[#f9f8f5] p-4">
-          <p className="text-sm font-medium text-[#1f1f1d]">{t('remote.quota.recent.title')}</p>
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-canvas)] p-4">
+          <p className="text-sm font-medium text-[var(--color-foreground)]">{t('remote.quota.recent.title')}</p>
           <dl className="mt-3 space-y-3 text-sm">
             <QuotaMetaRow
               label={t('remote.quota.recent.last30Minutes')}
@@ -88,8 +88,8 @@ function RemoteQuotaSummaryView(props: {
           </dl>
         </div>
 
-        <div className="rounded-2xl border border-[#e4e0d7] bg-[#f9f8f5] p-4">
-          <p className="text-sm font-medium text-[#1f1f1d]">{t('remote.quota.runtime.title')}</p>
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-canvas)] p-4">
+          <p className="text-sm font-medium text-[var(--color-foreground)]">{t('remote.quota.runtime.title')}</p>
           <dl className="mt-3 space-y-3 text-sm">
             <QuotaMetaRow
               label={t('remote.quota.runtime.activeConnections')}
@@ -122,20 +122,20 @@ function DailyQuotaOverview(props: { summary: RemoteQuotaSummary; t: Translate }
   const reservedPercent = resource.limit > 0 ? resource.reserved / resource.limit : 0;
   const availablePercent = Math.max(0, 1 - actualPercent - reservedPercent);
   return (
-    <div className="rounded-2xl border border-[#ded8cb] bg-white p-4 shadow-[0_10px_30px_rgba(55,47,34,0.05)]">
+    <div className="rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-surface)] p-4 shadow-[0_10px_30px_rgba(55,47,34,0.05)]">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-[#656561]">{props.t('remote.quota.overview.title')}</p>
-          <p className="mt-1 text-3xl font-semibold tracking-[-0.04em] text-[#1f1f1d]">
+          <p className="text-sm font-medium text-[var(--color-foreground-muted)]">{props.t('remote.quota.overview.title')}</p>
+          <p className="mt-1 text-3xl font-semibold tracking-[-0.04em] text-[var(--color-foreground)]">
             {formatPercent(props.summary.day.utilization)}
           </p>
         </div>
-        <p className="text-sm text-[#656561]">
+        <p className="text-sm text-[var(--color-foreground-muted)]">
           {props.t('remote.quota.overview.remaining', { value: formatPercent(availablePercent) })}
         </p>
       </div>
       <div
-        className="mt-4 flex h-3 overflow-hidden rounded-full bg-[#e7e3da]"
+        className="mt-4 flex h-3 overflow-hidden rounded-full bg-[var(--color-track)]"
         role="progressbar"
         aria-label={props.t('remote.quota.overview.title')}
         aria-valuemin={0}
@@ -145,7 +145,7 @@ function DailyQuotaOverview(props: { summary: RemoteQuotaSummary; t: Translate }
         <div className="h-full bg-emerald-600" style={{ width: `${Math.min(100, actualPercent * 100)}%` }} />
         <div className="h-full bg-emerald-300" style={{ width: `${Math.min(100, reservedPercent * 100)}%` }} />
       </div>
-      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-[#656561]">
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-[var(--color-foreground-muted)]">
         <span><span className="mr-2 inline-block size-2 rounded-full bg-emerald-600" />{props.t('remote.quota.actualUsed')}</span>
         <span><span className="mr-2 inline-block size-2 rounded-full bg-emerald-300" />{props.t('remote.quota.reserved')}</span>
         <span>{props.t(`remote.quota.overview.limiting.${props.summary.day.limitingResource}`)}</span>
@@ -165,19 +165,19 @@ function QuotaResourceCard(props: {
   const barColor = utilization >= 1 ? 'bg-rose-500' : utilization >= 0.8 ? 'bg-amber-500' : 'bg-emerald-500';
 
   return (
-    <div className="rounded-2xl border border-[#e4e0d7] bg-[#f9f8f5] p-4">
+    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-canvas)] p-4">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-[#1f1f1d]">{props.label}</p>
-        <span className="text-xs font-medium text-[#656561]">{formatPercent(utilization)}</span>
+        <p className="text-sm font-medium text-[var(--color-foreground)]">{props.label}</p>
+        <span className="text-xs font-medium text-[var(--color-foreground-muted)]">{formatPercent(utilization)}</span>
       </div>
-      <p className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[#1f1f1d]">
+      <p className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[var(--color-foreground)]">
         {formatQuotaValue(props.resource.actualUsed)}
-        <span className="ml-2 text-sm font-medium text-[#656561]">
+        <span className="ml-2 text-sm font-medium text-[var(--color-foreground-muted)]">
           / {formatQuotaValue(props.resource.limit)} {props.unitLabel}
         </span>
       </p>
       <div
-        className="mt-3 h-2 overflow-hidden rounded-full bg-[#e7e3da]"
+        className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--color-track)]"
         role="progressbar"
         aria-label={props.label}
         aria-valuemin={0}
@@ -195,7 +195,7 @@ function QuotaResourceCard(props: {
           />
         </div>
       </div>
-      <dl className="mt-3 grid grid-cols-3 gap-2 text-xs text-[#656561]">
+      <dl className="mt-3 grid grid-cols-3 gap-2 text-xs text-[var(--color-foreground-muted)]">
         <QuotaCompactMetric label={props.t('remote.quota.actualUsed')} value={props.resource.actualUsed} />
         <QuotaCompactMetric label={props.t('remote.quota.reserved')} value={props.resource.reserved} />
         <QuotaCompactMetric label={props.t('remote.quota.remainingLabel')} value={props.resource.remaining} />
@@ -208,17 +208,17 @@ function QuotaCompactMetric(props: { label: string; value: number }): JSX.Elemen
   return (
     <div>
       <dt>{props.label}</dt>
-      <dd className="mt-1 font-semibold text-[#1f1f1d]">{formatQuotaValue(props.value)}</dd>
+      <dd className="mt-1 font-semibold text-[var(--color-foreground)]">{formatQuotaValue(props.value)}</dd>
     </div>
   );
 }
 
 function QuotaStatusBadge(props: { status: RemoteQuotaSummary['day']['status']; t: Translate }): JSX.Element {
   const style = props.status === 'exhausted'
-    ? 'bg-rose-50 text-rose-700'
+    ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
     : props.status === 'near_limit'
-      ? 'bg-amber-50 text-amber-700'
-      : 'bg-emerald-50 text-emerald-700';
+      ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+      : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300';
   return (
     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${style}`}>
       {props.t(`remote.quota.status.${props.status}`)}
@@ -229,8 +229,8 @@ function QuotaStatusBadge(props: { status: RemoteQuotaSummary['day']['status']; 
 function QuotaMetaRow(props: { label: string; value: string }): JSX.Element {
   return (
     <div className="flex items-start justify-between gap-3">
-      <dt className="text-[#656561]">{props.label}</dt>
-      <dd className="text-right font-medium text-[#1f1f1d]">{props.value}</dd>
+      <dt className="text-[var(--color-foreground-muted)]">{props.label}</dt>
+      <dd className="text-right font-medium text-[var(--color-foreground)]">{props.value}</dd>
     </div>
   );
 }

@@ -9,6 +9,8 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
+      "@/types/platform": ["src/types/platform.types.ts"],
+      "@/types/platform.js": ["src/types/platform.types.ts"],
       "@/*": ["src/*"]
     },
     "verbatimModuleSyntax": true,

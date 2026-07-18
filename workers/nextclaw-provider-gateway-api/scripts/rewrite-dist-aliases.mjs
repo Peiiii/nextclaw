@@ -4,6 +4,10 @@ import path from "node:path";
 const workerRoot = path.resolve(import.meta.dirname, "..");
 const distRoot = path.join(workerRoot, "dist");
 const outputExtensions = [".js", ".mjs", ".cjs"];
+const compatibilityAliases = new Map([
+  ["@/types/platform", "@/types/platform.types"],
+  ["@/types/platform.js", "@/types/platform.types.js"],
+]);
 
 const collectOutputFiles = (directoryPath, files = []) => {
   for (const entry of readdirSync(directoryPath, { withFileTypes: true })) {
@@ -20,7 +24,8 @@ const collectOutputFiles = (directoryPath, files = []) => {
 };
 
 const resolveOutputSpecifier = (importSource) => {
-  const targetPath = path.join(distRoot, importSource.slice(2));
+  const resolvedImportSource = compatibilityAliases.get(importSource) ?? importSource;
+  const targetPath = path.join(distRoot, resolvedImportSource.slice(2));
   if (path.extname(targetPath) && statExists(targetPath)) {
     return targetPath;
   }

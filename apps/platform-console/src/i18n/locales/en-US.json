@@ -10,6 +10,16 @@
     "languages": {
       "zh-CN": "中文",
       "en-US": "English"
+    },
+    "languagesShort": {
+      "zh-CN": "中",
+      "en-US": "EN"
+    },
+    "themeLabel": "Theme",
+    "themes": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "Auto"
     }
   },
   "app": {
@@ -21,12 +31,14 @@
     "accountLoadFailedAction": "Sign in again",
     "navigation": {
       "home": "My Instances",
+      "usage": "Usage & Billing",
       "apps": "My Apps",
       "skills": "My Skills",
       "account": "Account"
     },
     "routeDescriptions": {
-      "instances": "Open your remote instances, review quota usage, and continue work from the web.",
+      "instances": "Review, filter, and open your remote instances to continue work from the web.",
+      "usage": "Review Remote quota, live usage, and billing status.",
       "apps": "Manage the marketplace visibility and review status of the apps you published.",
       "skills": "Manage the marketplace visibility and lifecycle of the skills you published.",
       "account": "Manage your username, publishing scope, and account readiness in one place."
@@ -279,27 +291,54 @@
       "lastSeenAt": "Last seen",
       "actions": "Actions"
     },
-  "actions": {
-    "createShare": "Create share link",
-    "viewShare": "View shares",
-    "openInWeb": "Open in browser",
-    "openWithFixedDomain": "Open via fixed domain",
-    "createAnotherShare": "Create another",
-    "copyInstanceId": "Copy instance ID: {instanceId}",
-    "archive": "Archive",
-    "restore": "Restore",
-    "delete": "Delete"
-  },
-  "status": {
-    "online": "Online",
-    "offline": "Offline",
-    "archived": "Archived",
-    "shareActive": "Active share",
-    "shareRevoked": "Revoked share",
-    "shareExpired": "Expired share"
-  },
-  "messages": {
+    "filters": {
+      "archiveLabel": "Instance status",
+      "archive": {
+        "active": "Current",
+        "archived": "Archived",
+        "all": "All"
+      },
+      "connectionLabel": "Connection",
+      "connection": {
+        "all": "All",
+        "online": "Online",
+        "offline": "Offline"
+      },
+      "searchPlaceholder": "Search name, ID, platform, or version",
+      "search": "Search",
+      "reset": "Reset"
+    },
+    "pagination": {
+      "pageSize": "Rows per page",
+      "previous": "Previous",
+      "next": "Next",
+      "summary": "{from}–{to} of {total}"
+    },
+    "actions": {
+      "createShare": "Create share link",
+      "open": "Open",
+      "fixedDomain": "Fixed domain",
+      "shares": "Shares",
+      "closeSharePanel": "Collapse",
+      "copyInstanceId": "Copy instance ID: {instanceId}",
+      "offlineHint": "This instance is offline and cannot be opened",
+      "archive": "Archive",
+      "restore": "Restore",
+      "delete": "Delete"
+    },
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "archived": "Archived",
+      "shareActive": "Active share",
+      "shareRevoked": "Revoked share",
+      "shareExpired": "Expired share"
+    },
+    "messages": {
+      "loadingInstances": "Loading instances...",
+      "refreshing": "Updating...",
       "empty": "No instances yet. Go back to the desktop app, sign in, and enable remote access first.",
+      "filteredEmpty": "No instances match the current filters.",
       "loadingShares": "Loading share links...",
       "loadInstancesFailed": "Failed to load instances",
       "openInstanceFailed": "Failed to open instance",
@@ -314,26 +353,21 @@
     "instanceIdCopyManual": "Copy failed. Please copy the instance ID manually.",
     "shareRevoked": "Share link revoked. Existing shared sessions will stop working immediately.",
     "noShares": "No share links for this instance yet.",
-    "archiveSuccess": "Instance archived. It is now hidden from the main list.",
-    "restoreSuccess": "Instance restored to the main list.",
+    "archiveSuccess": "Instance archived. Use the Archived filter to restore or delete it.",
+    "restoreSuccess": "Instance restored.",
     "deleteSuccess": "Archived instance deleted permanently.",
     "archiveFailed": "Failed to archive instance",
     "restoreFailed": "Failed to restore instance",
     "deleteFailed": "Failed to delete instance",
-    "archiveConfirm": "Archive this instance and hide it from the main list?",
+    "archiveConfirm": "Archive this instance? You can restore it from the Archived filter.",
     "deleteConfirm": "Delete this archived instance permanently? This also removes its saved share links and session history."
   },
-  "archived": {
-    "title": "Archived instances",
-    "description": "Archived instances stay out of the main list until you restore or delete them.",
-    "loading": "Loading archived instances...",
-    "loadFailed": "Failed to load archived instances",
-    "empty": "No archived instances.",
-    "archivedAt": "Archived {archivedAt}"
-  },
-  "sharePanel": {
-    "title": "Share links",
-    "description": "Once revoked, already-open shared sessions stop working immediately.",
+    "archived": {
+      "archivedAt": "Archived {archivedAt}"
+    },
+    "sharePanel": {
+      "title": "Share links",
+      "description": "Once revoked, already-open shared sessions stop working immediately.",
       "meta": "Created {createdAt}, expires {expiresAt}",
       "activeSessions": "Active shared sessions: {count}"
     },
@@ -390,7 +424,7 @@
   },
   "billing": {
     "title": "Usage & Billing",
-    "description": "This module is still being prepared. For now, the platform homepage stays focused on instance access and sharing.",
+    "description": "Paid balance top-ups are being prepared. Remote quota, actual usage, and future billing actions will stay together on this page.",
     "badge": "Coming soon"
   },
   "share": {

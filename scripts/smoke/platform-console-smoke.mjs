@@ -2,8 +2,15 @@
 import process from "node:process";
 import { chromium } from "playwright";
 import {
-  assertQuotaResponsiveLayout,
-  REMOTE_QUOTA_SUMMARY_FIXTURE
+  assertArchiveLifecycle,
+  assertInstanceTableFlow,
+  assertInstanceTableResponsiveLayout,
+  assertRemoteOpenActions,
+  createRemoteInstanceFixtures,
+  installRemoteInstanceRoutes
+} from "./platform-console/platform-console-instance-table-smoke.utils.mjs";
+import {
+  assertQuotaResponsiveLayout
 } from "./platform-console/platform-console-quota-smoke.utils.mjs";
 const baseUrl = (process.env.PLATFORM_CONSOLE_BASE_URL ?? "http://127.0.0.1:4173").replace(/\/+$/, "");
 function okEnvelope(data) {
@@ -26,21 +33,7 @@ function createDashboardFixtures() {
       role: "user",
       username: null
     },
-    activeInstances: [
-      {
-        id: "inst-1",
-        instanceInstallId: "install-1",
-        displayName: "MacBook Pro",
-        appVersion: "0.13.99",
-        platform: "macOS",
-        status: "online",
-        lastSeenAt: "2026-03-23T09:00:00.000Z",
-        archivedAt: null,
-        createdAt: "2026-03-23T08:00:00.000Z",
-        updatedAt: "2026-03-23T09:00:00.000Z"
-      }
-    ],
-    archivedInstances: [],
+    ...createRemoteInstanceFixtures(),
     ownerSkills: [
       {
         id: "skill-1",
@@ -134,75 +127,8 @@ async function installDashboardRoutes(page, fixtures) {
       user: fixtures.accountUser
     });
   });
-  await installRemoteRoutes(page, fixtures);
+  await installRemoteInstanceRoutes(page, fixtures);
   await installOwnerSkillRoutes(page, fixtures);
-}
-
-async function installRemoteRoutes(page, fixtures) {
-  await page.route("**/platform/remote/instances**", async (route) => {
-    const url = new URL(route.request().url());
-    const includeArchived = url.searchParams.get("includeArchived") === "true";
-    await fulfillJson(route, {
-      items: includeArchived ? [...fixtures.activeInstances, ...fixtures.archivedInstances] : fixtures.activeInstances
-    });
-  });
-  await page.route("**/platform/remote/instances/inst-1/archive", async (route) => {
-    const archived = {
-      ...fixtures.activeInstances[0],
-      archivedAt: "2026-03-23T10:00:00.000Z",
-      updatedAt: "2026-03-23T10:00:00.000Z"
-    };
-    fixtures.activeInstances.splice(0, 1);
-    fixtures.archivedInstances.splice(0, fixtures.archivedInstances.length, archived);
-    await fulfillJson(route, { instance: archived });
-  });
-  await page.route("**/platform/remote/instances/inst-1/unarchive", async (route) => {
-    const restored = {
-      ...fixtures.archivedInstances[0],
-      archivedAt: null,
-      updatedAt: "2026-03-23T10:05:00.000Z"
-    };
-    fixtures.archivedInstances.splice(0, 1);
-    fixtures.activeInstances.splice(0, fixtures.activeInstances.length, restored);
-    await fulfillJson(route, { instance: restored });
-  });
-  await page.route("**/platform/remote/instances/inst-1/delete", async (route) => {
-    fixtures.archivedInstances.splice(0, 1);
-    await fulfillJson(route, { deleted: true, instanceId: "inst-1" });
-  });
-  await page.route("**/platform/remote/quota/v2", async (route) => {
-    await fulfillJson(route, REMOTE_QUOTA_SUMMARY_FIXTURE);
-  });
-  await page.route("**/platform/remote/instances/inst-1/shares", async (route) => {
-    if (route.request().method() === "GET") {
-      await fulfillJson(route, { items: [] });
-      return;
-    }
-    await fulfillJson(route, {
-      id: "grant-1",
-      instanceId: "inst-1",
-      status: "active",
-      createdAt: "2026-03-23T09:00:00.000Z",
-      expiresAt: "2026-03-24T09:00:00.000Z",
-      shareUrl: "https://r-demo.claw.cool",
-      activeSessionCount: 0
-    });
-  });
-  await page.route("**/platform/remote/instances/inst-1/open", async (route) => {
-    await fulfillJson(route, {
-      id: "session-1",
-      instanceId: "inst-1",
-      status: "active",
-      sourceType: "owner_open",
-      sourceGrantId: null,
-      expiresAt: "2026-03-23T10:00:00.000Z",
-      lastUsedAt: "2026-03-23T09:00:00.000Z",
-      revokedAt: null,
-      createdAt: "2026-03-23T09:00:00.000Z",
-      openUrl: "https://r-session-1.claw.cool/platform/remote/open?token=token-1",
-      fixedDomainOpenUrl: "https://remote.claw.cool/platform/remote/open?token=token-1"
-    });
-  });
 }
 
 async function installOwnerSkillRoutes(page, fixtures) {
@@ -298,14 +224,13 @@ async function assertDashboardLanding(page) {
   const requiredText = [
     "NEXTCLAW WORKBENCH",
     "My Instances",
-    "PUBLISH READINESS",
-    "Remote Quota & Usage",
-    "Normal use is governed by the daily allowance, with no short per-session rate limit.",
-    "Copy instance ID: inst-1",
-    "Open via fixed domain",
-    "Daily Worker requests",
-    "Recent actual usage",
-    "COMING SOON",
+    "Usage & Billing",
+    "My Apps",
+    "My Skills",
+    "ID: inst-1",
+    "Fixed domain",
+    "Rows per page",
+    "1–10 of 12",
     "Account"
   ];
   for (const expected of requiredText) {
@@ -316,8 +241,39 @@ async function assertDashboardLanding(page) {
   if (bodyText.includes("Recharge") || bodyText.includes("Ledger")) {
     throw new Error("Dashboard still exposes billing details that should stay hidden.");
   }
-  await page.getByRole("button", { name: "Copy instance ID: inst-1" }).click();
+  await page.getByRole("button", { name: "Copy instance ID: inst-1", exact: true }).click();
   await page.waitForFunction(() => document.body.innerText.includes("Instance ID copied to clipboard."));
+}
+
+async function assertUsageRouteFlow(page) {
+  await page.evaluate(() => {
+    window.__spaNavGuard = "alive";
+  });
+  await page.getByRole("link", { name: "Usage & Billing" }).click();
+  await page.waitForURL(`${baseUrl}/usage`);
+  const spaNavGuard = await page.evaluate(() => window.__spaNavGuard);
+  if (spaNavGuard !== "alive") {
+    throw new Error("Usage sidebar navigation triggered a full page reload instead of SPA routing.");
+  }
+  await page.waitForFunction(() => document.body.innerText.includes("Daily Worker requests"));
+  const usageText = await page.locator("body").innerText();
+  const requiredText = [
+    "Usage & Billing",
+    "Remote Quota & Usage",
+    "Normal use is governed by the daily allowance, with no short per-session rate limit.",
+    "Daily Worker requests",
+    "Recent actual usage",
+    "COMING SOON"
+  ];
+  for (const expected of requiredText) {
+    if (!usageText.includes(expected)) {
+      throw new Error(`Usage page is missing expected text: ${expected}`);
+    }
+  }
+  await assertQuotaResponsiveLayout(page);
+  await page.getByRole("link", { name: "My Instances" }).click();
+  await page.waitForURL(`${baseUrl}/`);
+  await page.getByRole("button", { name: "Copy instance ID: inst-1", exact: true }).waitFor();
 }
 
 async function assertAccountSettingsFlow(page) {
@@ -325,8 +281,9 @@ async function assertAccountSettingsFlow(page) {
   await page.evaluate(() => {
     window.__spaNavGuard = "alive";
   });
-  await page.getByRole("link", { name: "Account" }).click();
+  await page.getByRole("list").getByRole("link", { name: "Account", exact: true }).click();
   await page.waitForURL(`${baseUrl}/account`);
+  await page.waitForFunction(() => document.body.innerText.includes("You are on the exact account settings page"));
   const spaNavGuard = await page.evaluate(() => window.__spaNavGuard);
   if (spaNavGuard !== "alive") {
     throw new Error("Sidebar navigation triggered a full page reload instead of SPA routing.");
@@ -378,49 +335,17 @@ async function assertSkillManagementFlow(page) {
   await page.waitForFunction(() => document.body.innerText.includes("No skills under your scope yet."));
 }
 
-async function assertRemoteOpenActions(page) {
-  await page.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Open in browser" }).click();
-  await page.waitForFunction(() => Array.isArray(window.__openedUrls) && window.__openedUrls.length >= 1);
-  const openedSubdomainUrl = await page.evaluate(() => window.__openedUrls[0]);
-  if (openedSubdomainUrl !== "https://r-session-1.claw.cool/platform/remote/open?token=token-1") {
-    throw new Error(`Subdomain open action used unexpected URL: ${openedSubdomainUrl}`);
-  }
-  await page.getByRole("button", { name: "Open via fixed domain" }).click();
-  await page.waitForFunction(() => Array.isArray(window.__openedUrls) && window.__openedUrls.length >= 2);
-  const openedFixedDomainUrl = await page.evaluate(() => window.__openedUrls[1]);
-  if (openedFixedDomainUrl !== "https://remote.claw.cool/platform/remote/open?token=token-1") {
-    throw new Error(`Fixed-domain open action used unexpected URL: ${openedFixedDomainUrl}`);
-  }
-}
 function acceptNextDialog(page) {
   page.once("dialog", async (dialog) => {
     await dialog.accept();
   });
 }
 
-async function assertArchiveLifecycle(page) {
-  acceptNextDialog(page);
-  await page.getByRole("button", { name: "Archive" }).click();
-  await page.waitForFunction(() => document.body.innerText.includes("Archived instances"));
-  await page.waitForFunction(() => document.body.innerText.includes("Restore"));
-  await page.waitForFunction(() => document.body.innerText.includes("Delete"));
-  await page.getByRole("button", { name: "Copy instance ID: inst-1" }).waitFor();
-  await page.getByRole("button", { name: "Restore" }).click();
-  await page.waitForFunction(() => document.body.innerText.includes("Instance restored to the main list."));
-  acceptNextDialog(page);
-  await page.getByRole("button", { name: "Archive" }).click();
-  await page.waitForTimeout(300);
-  acceptNextDialog(page);
-  await page.getByRole("button", { name: "Delete" }).click();
-  await page.waitForFunction(() => document.body.innerText.includes("Archived instance deleted permanently."));
-}
-
 async function assertDashboardLocaleSwitch(page) {
-  await page.getByRole("button", { name: "中文" }).click();
+  await page.getByRole("button", { name: "中", exact: true }).click();
   await page.waitForTimeout(300);
   const zhText = await page.locator("body").innerText();
-  const requiredText = ["我的实例", "发布准备状态", "Remote 额度与用量", "即将上线"];
+  const requiredText = ["我的实例", "用量与充值", "我的 Apps", "我的 Skills", "账号"];
   for (const expected of requiredText) {
     if (!zhText.includes(expected)) {
       throw new Error(`Dashboard did not switch expected text to Chinese: ${expected}`);
@@ -434,10 +359,12 @@ async function assertDashboardFlow(browser) {
   await installDashboardRoutes(page, fixtures);
   await initializeDashboardPage(page);
   await assertDashboardLanding(page);
-  await assertQuotaResponsiveLayout(page);
+  await assertInstanceTableFlow(page);
+  await assertInstanceTableResponsiveLayout(page);
+  await assertUsageRouteFlow(page);
   await assertAccountSettingsFlow(page);
   await assertSkillManagementFlow(page);
-  await assertRemoteOpenActions(page);
+  await assertRemoteOpenActions(page, baseUrl);
   await assertArchiveLifecycle(page);
   await assertDashboardLocaleSwitch(page);
   await page.close();

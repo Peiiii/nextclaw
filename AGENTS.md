@@ -35,10 +35,11 @@
 
 ## 协作与 Git
 
-- 除非用户明确要求，禁止擅自 `git commit`、`git push`、创建 PR 或执行破坏性 git 操作。
+- 除非用户明确要求，禁止擅自 `git commit`、`git push`、创建 PR、发布或部署到线上环境，也不得执行破坏性 git 操作。
 - 除非用户明确要求重启，或已提前告知重启影响并获得用户知情同意，禁止擅自重启 NextClaw 宿主、服务、桌面应用或当前运行实例；优先使用热更新、页面刷新或隔离进程验证。
 - 工作区可能已有用户改动。不得 revert、覆盖或格式化无关改动；若改动文件已被用户触达，先读懂现状再小心合并。
 - 用户要求提交或等价表达时，提交前必须先使用 `nextclaw-release-notes-automation` 与 `nextclaw-iteration-log-governance` 完成 `.changeset`、`docs/logs`、NPM 发布记录适用性判断和必要更新，再 stage/commit。
+- 面向 `master` 的交付默认先提交或合并到本地 `master`，再由本地 `master` 推送 `origin/master`；隔离工作树不得为了方便直接绕过本地主干。确需例外时必须先说明原因，并明确闭合本地 `master` 的回流或同步，禁止默默留下分叉。
 - 执行提交/推送/建分支/建 PR 成功后，最终回复必须按 Codex app 要求输出对应 git directive。
 - 搜索文本或文件优先用 `rg` / `rg --files`。
 - 手工编辑文件默认使用 `apply_patch`；不要用 shell here-doc、`cat > file` 或 Python 读写来绕过编辑约束。
