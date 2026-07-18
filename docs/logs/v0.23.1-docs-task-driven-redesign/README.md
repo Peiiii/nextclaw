@@ -17,6 +17,13 @@
 
 用户页面只呈现产品、步骤、结果和边界；竞品调研、旧内容批判、取舍过程和重设计依据仅留在内部设计与迭代记录中。
 
+### 2026-07-18 顶部导航直达优化
+
+- 用户反馈顶部“开始 / 工作方式 / 安装与参考 / 更多”必须先展开下拉菜单再选择页面，高频导航被迫变成两步操作。
+- 根因是这些一级入口被配置为 VitePress `NavItemWithChildren`，只具备菜单按钮语义，没有可直接进入的目标链接；VitePress 类型合同同时禁止一个导航项并存 `link` 与 `items`。
+- 修复将中英文六个顶部栏目全部收敛为真实链接：“开始”进入产品介绍，“工作方式”进入任务与会话，“任务案例”进入案例总览，“安装与参考”进入安装页，“更新”进入更新总览，“更多”进入项目总览。
+- 具体子页面继续由现有左侧目录承载，原“更多”菜单中的官网入口补到项目总览；没有删除页面、改名或复制第二套导航 owner，也没有覆写 VitePress 组件制造双语义控件。
+
 ## 测试/验证/验收方式
 
 - `node node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/bin/tsc --noEmit --target ES2022 --module ESNext --moduleResolution Bundler --skipLibCheck --allowSyntheticDefaultImports apps/docs/.vitepress/config.ts apps/docs/.vitepress/navigation/docs-navigation.config.ts apps/docs/.vitepress/theme/index.ts`：通过。
@@ -32,6 +39,10 @@
 - 浏览器移动验收：`390 x 844` 下检查首页与功能详情；标题、按钮、生命周期、截图和正文均在视口内，无横向溢出。
 - 浏览器路由巡检：18 个中英文核心路由均有标题、正文和可访问页面，图片错误数为 0。
 - 更新入口复验：指南页同时存在顶栏“更新”和侧栏“产品动态 -> 查看每个版本的更新”，均指向 `/zh/notes/`；更新列表实际打开，标题为“产品更新笔记”。
+- 2026-07-18 定向 `tsc`：`node node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/bin/tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck --typeRoots node_modules/.pnpm/@types+node@25.5.0/node_modules/@types apps/docs/.vitepress/navigation/docs-navigation.config.ts` 通过。
+- 2026-07-18 `pnpm exec eslint apps/docs/.vitepress/navigation/docs-navigation.config.ts`、`pnpm --filter @nextclaw/docs build`、`pnpm docs:i18n:check`、governance backlog ratchet 与定向 `git diff --check` 通过。
+- 2026-07-18 浏览器验收：在 `127.0.0.1:4178` 依次点击六个中文一级栏目，全部一次直达预期页面；中英文桌面导航均为 6 个真实链接、0 个下拉组，并完成桌面截图视觉检查。
+- 2026-07-18 全量 `pnpm lint:new-code:governance` 被工作区内与本次无关的 `platform-* / remote-quota` 文件角色问题阻断；本次导航文件未产生治理错误。
 
 ## 发布/部署方式
 
@@ -45,6 +56,8 @@
 
 本轮不涉及数据库 migration、后端 API、NPM 包或产品运行时发布。
 
+2026-07-18 顶部导航直达优化按用户确认进入本地提交与双站部署流程；全球站与国内镜像必须使用同一隔离构建产物，并以正式域名冒烟为完成标准。
+
 ## 用户/产品视角的验收步骤
 
 1. 打开 `http://127.0.0.1:5176/zh/`，确认首屏直接说明 NextClaw 如何从任务走到真实结果。
@@ -54,6 +67,7 @@
 5. 打开任务案例，确认 10 个标题都是具体待办；任一案例都能看到材料、可复制指令、执行过程和检查方式。
 6. 打开安装页，确认 Desktop、npm、Docker 和源码路径仍然完整。
 7. 在手机宽度打开首页和任一功能页，确认内容、图片和导航没有遮挡或横向滚动。
+8. 在桌面宽度依次点击六个顶部栏目，确认不再出现下拉箭头或菜单，每个栏目都一次进入对应默认页，具体子页面仍可从左侧目录直达。
 
 ## 可维护性总结汇总
 
@@ -64,6 +78,7 @@
 - 主题层只增加通用布局和响应式样式，没有新增 Vue 组件、store、运行时状态或业务依赖。
 - `post-edit-maintainability-guard` 返回“不适用：未发现 changed code-like files”；本轮没有修改产品源码、脚本、测试或运行链路，代码可维护性复核不适用。
 - 本轮可维护性收益来自删除旧 `config.ts` 中的大段内联导航、建立单一导航 owner，以及用统一页面合同替代零散占位内容。
+- 2026-07-18 直达优化继续保留 `docs-navigation.config.ts` 单一 owner，删除 74 行非必要菜单配置，没有新增组件、样式、状态或兼容分支；`post-edit-maintainability-review` 结论为通过，正向减债动作为删除与简化。
 
 ## NPM 包发布记录
 

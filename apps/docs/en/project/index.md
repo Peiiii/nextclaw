@@ -26,6 +26,7 @@ If you are here to get value quickly, start with:
 - [Release Notes](/en/project/release-notes): recent public updates written from user value first.
 - [Blog](/en/blog/): short essays about product advantages, design trade-offs, and the thinking behind NextClaw.
 - [Community](/en/project/community): GitHub, notes, blog, and follow-up entry points.
+- [Website](https://nextclaw.io/en/): product overview, downloads, and installation paths.
 
 ## When to read this section
 
