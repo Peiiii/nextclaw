@@ -153,9 +153,10 @@ jobs:
       - name: Refresh domestic CDN
         env:
           CDN_DOMAIN: ${{ vars.ALIYUN_DOCS_CDN_DOMAIN }}
+          REGION: ${{ vars.ALIYUN_DOCS_REGION }}
         run: |
           refresh_paths=$(node scripts/deploy/docs/create-cdn-refresh-paths.mjs --dist docs-dist --domain "$CDN_DOMAIN")
-          aliyun cdn RefreshObjectCaches --ObjectPath "$refresh_paths" --ObjectType File
+          aliyun cdn RefreshObjectCaches --region "$REGION" --ObjectPath "$refresh_paths" --ObjectType File
 
   verify:
     needs: [prepare, rollback-global, rollback-domestic]

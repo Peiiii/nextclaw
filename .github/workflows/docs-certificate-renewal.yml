@@ -87,6 +87,8 @@ jobs:
 
       - name: Deploy certificate to Alibaba Cloud CDN
         if: steps.certificate-window.outputs.renew == 'true'
+        env:
+          REGION: ${{ vars.ALIYUN_DOCS_REGION }}
         run: |
           certificate_file="$RUNNER_TEMP/lego-state/certificates/docs.nextclaw.net.crt"
           private_key_file="$RUNNER_TEMP/lego-state/certificates/docs.nextclaw.net.key"
@@ -95,6 +97,7 @@ jobs:
           certificate_content=$(<"$certificate_file")
           private_key_content=$(<"$private_key_file")
           aliyun cdn SetCdnDomainSSLCertificate \
+            --region "$REGION" \
             --DomainName docs.nextclaw.net \
             --SSLProtocol on \
             --CertType upload \
