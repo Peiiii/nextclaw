@@ -1,15 +1,15 @@
 Package: nextclaw-desktop
-Version: 0.0.223
+Version: 0.0.227
 Architecture: amd64
 Maintainer: NextClaw Team
-Installed-Size: 385905
+Installed-Size: 386276
 Depends: libgtk-3-0, libnotify4, libnss3, libxss1, libxtst6, xdg-utils, libatspi2.0-0, libuuid1, libsecret-1-0
 Recommends: libappindicator3-1
-Filename: pool/main/n/nextclaw-desktop/nextclaw-desktop_0.0.223_amd64.deb
-Size: 103563716
-MD5sum: 2d41b021a0a5b0eb9bbc7effa421b939
-SHA1: 8697ee440a24eb1410df242fb276f61203c62cd8
-SHA256: 07dc2e9b2b41d305e3c1e78e034cfffcc01c16af70f65d3534b1dacb359ad80b
+Filename: pool/main/n/nextclaw-desktop/nextclaw-desktop_0.0.227_amd64.deb
+Size: 103636390
+MD5sum: 9f439d2bc9ee2b95a292fd7d20ff17d2
+SHA1: 0379fb627354b5f57c124bf016505d1a7326fa34
+SHA256: 2fe65022cec15b0e5a66e64e9a60251b3dbebad7cb4a33b4fd08cc885a3e301a
 Section: utility
 Priority: optional
 Homepage: https://github.com/Peiiii/nextclaw
