@@ -53,6 +53,7 @@ export type ClientAttachment = {
   instanceId: string;
   quotaTicket: string;
   connectedAt: string;
+  remainingQuotaMessages: number;
 };
 
 export type BrowserCommandFrame =

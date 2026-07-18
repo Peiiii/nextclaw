@@ -34,7 +34,8 @@ export function readRemoteBrowserAttachment(request: Request): ClientAttachment 
     sessionId,
     instanceId,
     quotaTicket,
-    connectedAt: new Date().toISOString()
+    connectedAt: new Date().toISOString(),
+    remainingQuotaMessages: 0
   };
 }
 
