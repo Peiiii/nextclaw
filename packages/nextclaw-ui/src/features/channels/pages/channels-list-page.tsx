@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ExternalLink, MessageSquare, Search } from 'lucide-react';
 import { LogoBadge } from '@/shared/components/common/logo-badge';
-import { PageHeader, PageLayout } from '@/app/components/layout/page-layout';
+import { SettingsPage } from '@/shared/components/settings/settings-page';
 import { Input } from '@/shared/components/ui/input';
 import { StatusDot } from '@/shared/components/status/status-dot';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
@@ -71,46 +71,47 @@ export function ChannelsList() {
         : filteredChannels[0]?.name ?? null;
 
   if (!config || !meta) {
-    return <div className="p-8 text-gray-400">{t('channelsLoading')}</div>;
+    return (
+      <SettingsPage title={t('channelsPageTitle')} description={t('channelsPageDescription')} layout='split'>
+        <div className='text-sm text-muted-foreground'>{t('channelsLoading')}</div>
+      </SettingsPage>
+    );
   }
 
   return (
-    <PageLayout className="pb-0 xl:flex xl:h-full xl:min-h-0 xl:flex-col">
-      <PageHeader title={t('channelsPageTitle')} description={t('channelsPageDescription')} />
+    <SettingsPage title={t('channelsPageTitle')} description={t('channelsPageDescription')} layout='split'>
       <ConfigSplitPage
-        className="xl:min-h-0"
-        mobileView={isMobile ? (resolvedSelectedChannel ? 'detail' : 'list') : undefined}
+        className='md:min-h-0'
+        compactView={selectedChannel ? 'detail' : 'list'}
         onMobileBack={() => setSelectedChannel(null)}
         mobileListLabel={t('channelsPageTitle')}
       >
         <ConfigSplitSidebar>
-          <ConfigSplitPaneHeader className="px-4 pt-4">
+          <ConfigSplitPaneHeader className='px-4 pt-4'>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="mb-0 h-auto gap-3 border-b-0 bg-transparent p-0">
-                <TabsTrigger value="enabled" className="gap-1.5 px-0 pb-3">
+              <TabsList className='mb-0 h-auto gap-3 border-b-0 bg-transparent p-0'>
+                <TabsTrigger value='enabled' className='gap-1.5 px-0 pb-3'>
                   {t('channelsTabEnabled')}
-                  <span className="text-[11px] font-medium text-gray-500">
+                  <span className='text-[11px] font-medium text-gray-500'>
                     {channels.filter((channel) => channelConfigs?.[channel.name]?.enabled).length}
                   </span>
                 </TabsTrigger>
-                <TabsTrigger value="all" className="gap-1.5 px-0 pb-3">
+                <TabsTrigger value='all' className='gap-1.5 px-0 pb-3'>
                   {t('channelsTabAll')}
-                  <span className="text-[11px] font-medium text-gray-500">
-                    {channels.length}
-                  </span>
+                  <span className='text-[11px] font-medium text-gray-500'>{channels.length}</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
           </ConfigSplitPaneHeader>
 
-          <div className="border-b border-gray-100 px-4 py-3">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('channelsFilterPlaceholder')} className="h-10 rounded-xl pl-9" />
+          <div className='border-b border-border/55 px-4 py-3'>
+            <div className='relative'>
+              <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70' />
+              <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('channelsFilterPlaceholder')} className='h-10 rounded-xl pl-9' />
             </div>
           </div>
 
-          <ConfigSplitPaneBody className="space-y-2 p-3">
+          <ConfigSplitPaneBody className='space-y-2 p-3'>
             {filteredChannels.map((channel) => {
               const enabled = Boolean(config.channels[channel.name]?.enabled);
               const tutorialUrl = resolveChannelTutorialUrl(channel);
@@ -118,32 +119,32 @@ export function ChannelsList() {
 
               return (
                 <ConfigSelectionCard key={channel.name} onClick={() => setSelectedChannel(channel.name)} active={resolvedSelectedChannel === channel.name}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-3">
+                  <div className='flex items-start justify-between gap-3'>
+                    <div className='flex min-w-0 items-center gap-3'>
                       <LogoBadge
                         name={channel.name}
                         src={getChannelLogo(channel.name)}
-                        className={cn('h-10 w-10 rounded-lg border', enabled ? 'border-primary/30 bg-white' : 'border-gray-200/70 bg-white')}
-                        imgClassName="h-5 w-5 object-contain"
-                        fallback={<span className="text-sm font-semibold uppercase text-gray-500">{channel.name[0]}</span>}
+                        className={cn('h-10 w-10 rounded-lg bg-background/80', enabled && 'ring-1 ring-primary/20')}
+                        imgClassName='h-5 w-5 object-contain'
+                        fallback={<span className='text-sm font-semibold uppercase text-muted-foreground'>{channel.name[0]}</span>}
                       />
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-gray-900">{channel.displayName || channel.name}</p>
-                        <p className="line-clamp-1 text-[11px] text-gray-500">{description}</p>
+                      <div className='min-w-0'>
+                        <p className='truncate text-sm font-semibold text-foreground'>{channel.displayName || channel.name}</p>
+                        <p className='line-clamp-1 text-[11px] text-muted-foreground'>{description}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className='flex items-center gap-2'>
                       {tutorialUrl ? (
                         <a
                           href={tutorialUrl}
                           onClick={(event) => event.stopPropagation()}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-300 transition-colors hover:bg-gray-100/70 hover:text-gray-500"
+                          className='inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/45 transition-colors hover:bg-muted hover:text-foreground'
                           title={t('channelsGuideTitle')}
                         >
-                          <ExternalLink className="h-3.5 w-3.5" />
+                          <ExternalLink className='h-3.5 w-3.5' />
                         </a>
                       ) : null}
-                      <StatusDot status={enabled ? 'active' : 'inactive'} label={enabled ? t('statusActive') : t('statusInactive')} className="min-w-[56px] justify-center" />
+                      <StatusDot status={enabled ? 'active' : 'inactive'} label={enabled ? t('statusActive') : t('statusInactive')} className='min-w-[56px] justify-center' />
                     </div>
                   </div>
                 </ConfigSelectionCard>
@@ -155,6 +156,6 @@ export function ChannelsList() {
 
         <ChannelForm channelName={resolvedSelectedChannel ?? undefined} />
       </ConfigSplitPage>
-    </PageLayout>
+    </SettingsPage>
   );
 }

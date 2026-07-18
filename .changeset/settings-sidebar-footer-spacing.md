@@ -2,4 +2,4 @@
 "@nextclaw/ui": patch
 ---
 
-Align settings sidebar density and footer order, move theme and language preferences into Appearance, and standardize visible URL destinations through a reusable navigation link primitive.
+Make settings more compact and consistent with one shared page canvas, low-border groups, adaptive list-detail layouts, clearer advanced-navigation ordering and sign-in management wording, preferences consolidated under Appearance, reusable navigation links, and complete Chinese labels.

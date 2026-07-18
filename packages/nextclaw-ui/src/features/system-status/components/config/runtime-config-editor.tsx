@@ -3,7 +3,7 @@ import { Save } from 'lucide-react';
 import type { ConfigView, RuntimeConfigUpdate } from '@/shared/lib/api';
 import { Button } from '@/shared/components/ui/button';
 import { FormActions } from '@/shared/components/ui/actions/form-actions';
-import { PageLayout } from '@/app/components/layout/page-layout';
+import { SettingsPage } from '@/shared/components/settings/settings-page';
 import { t } from '@/shared/lib/i18n';
 import { RuntimeConfigOverview } from '@/features/system-status/components/config/runtime-config-overview';
 import { RuntimeAgentListCard } from '@/features/system-status/components/config/runtime-agent-list-card';
@@ -58,7 +58,10 @@ export function RuntimeConfigEditor({
   const updateBinding = (index: number, next: (typeof bindings)[number]) => {
     setBindings((previous) => previous.map((binding, cursor) => (cursor === index ? next : binding)));
   };
-  const updateRuntimeEntry = (index: number, patch: Partial<RuntimeEntryDraft>) => setRuntimeEntries((previous) => previous.map((entry, cursor) => (cursor === index ? { ...entry, ...patch } : entry)));
+  const updateRuntimeEntry = (index: number, patch: Partial<RuntimeEntryDraft>) =>
+    setRuntimeEntries((previous) =>
+      previous.map((entry, cursor) => (cursor === index ? { ...entry, ...patch } : entry))
+    );
 
   const handleSave = () => {
     try {
@@ -79,7 +82,7 @@ export function RuntimeConfigEditor({
   };
 
   return (
-    <PageLayout className="space-y-6">
+    <SettingsPage title={t('runtimePageTitle')} description={t('runtimePageDescription')}>
       <RuntimeConfigOverview />
       <RuntimeSettingsCard
         companionEnabled={companionEnabled}
@@ -103,7 +106,14 @@ export function RuntimeConfigEditor({
         onRemoveAgent={(index) => setAgents((previous) => previous.filter((_, cursor) => cursor !== index))}
         onAddAgent={() => setAgents((previous) => [...previous, createEmptyRuntimeAgent()])}
         onSetDefaultAgent={(index, checked) =>
-          setAgents((previous) => checked ? previous.map((entry, cursor) => ({ ...entry, default: cursor === index })) : previous.map((entry, cursor) => (cursor === index ? { ...entry, default: false } : entry)))
+          setAgents((previous) =>
+            checked
+              ? previous.map((entry, cursor) => ({
+                  ...entry,
+                  default: cursor === index
+                }))
+              : previous.map((entry, cursor) => (cursor === index ? { ...entry, default: false } : entry))
+          )
         }
       />
       <RuntimeBindingListCard
@@ -113,11 +123,11 @@ export function RuntimeConfigEditor({
         onAddBinding={() => setBindings((previous) => [...previous, createEmptyRuntimeBinding()])}
       />
       <FormActions>
-        <Button type="button" size="sm" onClick={handleSave} disabled={updateRuntime.isPending}>
-          <Save className="mr-1.5 h-3.5 w-3.5" />
+        <Button type='button' size='sm' onClick={handleSave} disabled={updateRuntime.isPending}>
+          <Save className='mr-1.5 h-3.5 w-3.5' />
           {updateRuntime.isPending ? t('saving') : t('saveRuntimeSettings')}
         </Button>
       </FormActions>
-    </PageLayout>
+    </SettingsPage>
   );
 }

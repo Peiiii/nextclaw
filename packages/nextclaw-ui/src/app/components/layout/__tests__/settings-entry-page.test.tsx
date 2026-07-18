@@ -64,9 +64,9 @@ describe("SettingsEntryPage", () => {
       "Model",
       "Providers",
       "Channels",
-      "Search Channels",
       "Appearance",
-      "Security",
+      "Sign-in Management",
+      "Search Channels",
     ]);
     expect(links.some((link) => link.getAttribute("href") === "/language")).toBe(
       false,

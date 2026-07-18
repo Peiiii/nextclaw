@@ -5,7 +5,22 @@ import { t } from '@/shared/lib/i18n';
 import type { ProviderTemplateView } from '@/shared/lib/api';
 import { ProviderPillSelector } from './provider-pill-selector';
 
-type ProviderAuthSectionProps = { providerAuth: ProviderTemplateView['auth']; providerAuthNote: string; providerAuthMethodOptions: Array<{ value: string; label: string }>; providerAuthMethodsCount: number; selectedAuthMethodHint: string; shouldUseAuthMethodPills: boolean; resolvedAuthMethodId: string; onAuthMethodChange: (value: string) => void; onStartProviderAuth: () => void; onImportProviderAuthFromCli: () => void; startPending: boolean; importPending: boolean; authSessionId: string | null; authStatusMessage: string };
+type ProviderAuthSectionProps = {
+  providerAuth: ProviderTemplateView['auth'];
+  providerAuthNote: string;
+  providerAuthMethodOptions: Array<{ value: string; label: string }>;
+  providerAuthMethodsCount: number;
+  selectedAuthMethodHint: string;
+  shouldUseAuthMethodPills: boolean;
+  resolvedAuthMethodId: string;
+  onAuthMethodChange: (value: string) => void;
+  onStartProviderAuth: () => void;
+  onImportProviderAuthFromCli: () => void;
+  startPending: boolean;
+  importPending: boolean;
+  authSessionId: string | null;
+  authStatusMessage: string;
+};
 
 export function ProviderAuthSection(props: ProviderAuthSectionProps) {
   const {
@@ -28,14 +43,14 @@ export function ProviderAuthSection(props: ProviderAuthSectionProps) {
   if (providerAuth?.kind !== 'device_code') return null;
 
   return (
-    <div className="space-y-2 rounded-xl border border-border/60 bg-muted/35 p-3">
-      <Label className="text-sm font-medium text-foreground">
+    <div className='space-y-2 rounded-xl bg-muted/45 p-3'>
+      <Label className='text-sm font-medium text-foreground'>
         {providerAuth.displayName || t('providerAuthSectionTitle')}
       </Label>
-      {providerAuthNote ? <p className="text-xs text-muted-foreground">{providerAuthNote}</p> : null}
+      {providerAuthNote ? <p className='text-xs text-muted-foreground'>{providerAuthNote}</p> : null}
       {providerAuthMethodsCount > 1 ? (
-        <div className="space-y-2">
-          <Label className="text-xs font-medium text-foreground">{t('providerAuthMethodLabel')}</Label>
+        <div className='space-y-2'>
+          <Label className='text-xs font-medium text-foreground'>{t('providerAuthMethodLabel')}</Label>
           {shouldUseAuthMethodPills ? (
             <ProviderPillSelector
               value={resolvedAuthMethodId}
@@ -44,7 +59,7 @@ export function ProviderAuthSection(props: ProviderAuthSectionProps) {
             />
           ) : (
             <Select value={resolvedAuthMethodId} onValueChange={onAuthMethodChange}>
-              <SelectTrigger className="h-8 rounded-lg">
+              <SelectTrigger className='h-8 rounded-lg'>
                 <SelectValue placeholder={t('providerAuthMethodPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
@@ -56,14 +71,14 @@ export function ProviderAuthSection(props: ProviderAuthSectionProps) {
               </SelectContent>
             </Select>
           )}
-          {selectedAuthMethodHint ? <p className="text-xs text-muted-foreground">{selectedAuthMethodHint}</p> : null}
+          {selectedAuthMethodHint ? <p className='text-xs text-muted-foreground'>{selectedAuthMethodHint}</p> : null}
         </div>
       ) : null}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className='flex flex-wrap items-center gap-2'>
         <Button
-          type="button"
-          variant="outline"
-          size="sm"
+          type='button'
+          variant='outline'
+          size='sm'
           onClick={onStartProviderAuth}
           disabled={startPending || Boolean(authSessionId)}
         >
@@ -75,9 +90,9 @@ export function ProviderAuthSection(props: ProviderAuthSectionProps) {
         </Button>
         {providerAuth.supportsCliImport ? (
           <Button
-            type="button"
-            variant="outline"
-            size="sm"
+            type='button'
+            variant='outline'
+            size='sm'
             onClick={onImportProviderAuthFromCli}
             disabled={importPending}
           >
@@ -85,12 +100,12 @@ export function ProviderAuthSection(props: ProviderAuthSectionProps) {
           </Button>
         ) : null}
         {authSessionId ? (
-          <span className="text-xs text-muted-foreground">
+          <span className='text-xs text-muted-foreground'>
             {t('providerAuthSessionLabel')}: {authSessionId.slice(0, 8)}…
           </span>
         ) : null}
       </div>
-      {authStatusMessage ? <p className="text-xs text-muted-foreground">{authStatusMessage}</p> : null}
+      {authStatusMessage ? <p className='text-xs text-muted-foreground'>{authStatusMessage}</p> : null}
     </div>
   );
 }

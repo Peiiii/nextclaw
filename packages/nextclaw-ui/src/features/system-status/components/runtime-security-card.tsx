@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Button } from '@/shared/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { SettingsGroup } from '@/shared/components/settings/setting-row';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Switch } from '@/shared/components/ui/switch';
@@ -28,15 +28,17 @@ function validatePasswordConfirmation(password: string, confirmPassword: string)
   return true;
 }
 
-function SecurityCardFrame({ children, contentClassName = 'space-y-6' }: { children: ReactNode; contentClassName?: string }) {
+function SecurityCardFrame({
+  children,
+  contentClassName = 'space-y-6'
+}: {
+  children: ReactNode;
+  contentClassName?: string;
+}) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('authSecurityTitle')}</CardTitle>
-        <CardDescription>{t('authSecurityDescription')}</CardDescription>
-      </CardHeader>
-      <CardContent className={contentClassName}>{children}</CardContent>
-    </Card>
+    <SettingsGroup>
+      <div className={`${contentClassName} p-4`}>{children}</div>
+    </SettingsGroup>
   );
 }
 
@@ -64,44 +66,44 @@ function RuntimeSecuritySetupSection({
   setupUsername
 }: RuntimeSecuritySetupSectionProps) {
   return (
-    <SecurityCardFrame contentClassName="space-y-5">
-      <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/70 p-4">
-        <p className="text-sm font-medium text-gray-900">{t('authSetupTitle')}</p>
-        <p className="mt-1 text-sm text-gray-500">{t('authSetupDescription')}</p>
+    <SecurityCardFrame contentClassName='space-y-5'>
+      <div className='rounded-xl bg-background/65 p-4'>
+        <p className='text-sm font-medium text-foreground'>{t('authSetupTitle')}</p>
+        <p className='mt-1 text-sm text-muted-foreground'>{t('authSetupDescription')}</p>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="auth-setup-username">{t('authUsername')}</Label>
+      <div className='grid gap-4 md:grid-cols-2'>
+        <div className='space-y-2'>
+          <Label htmlFor='auth-setup-username'>{t('authUsername')}</Label>
           <Input
-            id="auth-setup-username"
+            id='auth-setup-username'
             value={setupUsername}
             onChange={(event) => setSetupUsername(event.target.value)}
             placeholder={t('authUsernamePlaceholder')}
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="auth-setup-password">{t('authPassword')}</Label>
+        <div className='space-y-2'>
+          <Label htmlFor='auth-setup-password'>{t('authPassword')}</Label>
           <Input
-            id="auth-setup-password"
-            type="password"
+            id='auth-setup-password'
+            type='password'
             value={setupPassword}
             onChange={(event) => setSetupPassword(event.target.value)}
             placeholder={t('authPasswordPlaceholder')}
           />
         </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="auth-setup-confirm">{t('authConfirmPassword')}</Label>
+      <div className='space-y-2'>
+        <Label htmlFor='auth-setup-confirm'>{t('authConfirmPassword')}</Label>
         <Input
-          id="auth-setup-confirm"
-          type="password"
+          id='auth-setup-confirm'
+          type='password'
           value={setupConfirmPassword}
           onChange={(event) => setSetupConfirmPassword(event.target.value)}
           placeholder={t('authConfirmPasswordPlaceholder')}
         />
-        <p className="text-xs text-gray-500">{t('authPasswordMinLengthHint')}</p>
+        <p className='text-xs text-muted-foreground'>{t('authPasswordMinLengthHint')}</p>
       </div>
-      <Button type="button" disabled={!canSubmitSetup} onClick={() => void onSubmit()}>
+      <Button type='button' disabled={!canSubmitSetup} onClick={() => void onSubmit()}>
         {isPending ? t('authSettingUp') : t('authSetupAction')}
       </Button>
     </SecurityCardFrame>
@@ -143,21 +145,23 @@ function RuntimeSecurityConfiguredSection({
 }: RuntimeSecurityConfiguredSectionProps) {
   return (
     <SecurityCardFrame>
-      <div className="rounded-xl border border-gray-200 p-4">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-gray-900">{t('authStatusLabel')}</p>
-            <p className="text-sm text-gray-600">{t('authStatusConfiguredUser').replace('{username}', username ?? '')}</p>
-            <p className="text-xs text-gray-500">{t('authUsernameFixedHelp')}</p>
+      <div className='rounded-xl bg-background/65 p-4'>
+        <div className='flex flex-col gap-4 md:flex-row md:items-start md:justify-between'>
+          <div className='space-y-1'>
+            <p className='text-sm font-medium text-foreground'>{t('authStatusLabel')}</p>
+            <p className='text-sm text-muted-foreground'>
+              {t('authStatusConfiguredUser').replace('{username}', username ?? '')}
+            </p>
+            <p className='text-xs text-muted-foreground'>{t('authUsernameFixedHelp')}</p>
           </div>
-          <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+          <span className='inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground'>
             {enabled ? t('enabled') : t('disabled')}
           </span>
         </div>
-        <div className="mt-4 flex flex-col gap-4 border-t border-gray-200 pt-4 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-gray-900">{t('authEnableLabel')}</p>
-            <p className="text-xs text-gray-500">{enabled ? t('authEnableOnHelp') : t('authEnableOffHelp')}</p>
+        <div className='mt-4 flex flex-col gap-4 border-t border-border/55 pt-4 md:flex-row md:items-center md:justify-between'>
+          <div className='space-y-1'>
+            <p className='text-sm font-medium text-foreground'>{t('authEnableLabel')}</p>
+            <p className='text-xs text-muted-foreground'>{enabled ? t('authEnableOnHelp') : t('authEnableOffHelp')}</p>
           </div>
           <Switch
             checked={enabled}
@@ -168,44 +172,44 @@ function RuntimeSecurityConfiguredSection({
           />
         </div>
       </div>
-      <div className="rounded-xl border border-gray-200 p-4 space-y-4">
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-gray-900">{t('authPasswordSectionTitle')}</p>
-          <p className="text-xs text-gray-500">{t('authPasswordSectionDescription')}</p>
+      <div className='space-y-4 rounded-xl bg-background/65 p-4'>
+        <div className='space-y-1'>
+          <p className='text-sm font-medium text-foreground'>{t('authPasswordSectionTitle')}</p>
+          <p className='text-xs text-muted-foreground'>{t('authPasswordSectionDescription')}</p>
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="auth-password-next">{t('authPassword')}</Label>
+        <div className='grid gap-4 md:grid-cols-2'>
+          <div className='space-y-2'>
+            <Label htmlFor='auth-password-next'>{t('authPassword')}</Label>
             <Input
-              id="auth-password-next"
-              type="password"
+              id='auth-password-next'
+              type='password'
               value={nextPassword}
               onChange={(event) => setNextPassword(event.target.value)}
               placeholder={t('authPasswordPlaceholder')}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="auth-password-confirm">{t('authConfirmPassword')}</Label>
+          <div className='space-y-2'>
+            <Label htmlFor='auth-password-confirm'>{t('authConfirmPassword')}</Label>
             <Input
-              id="auth-password-confirm"
-              type="password"
+              id='auth-password-confirm'
+              type='password'
               value={nextConfirmPassword}
               onChange={(event) => setNextConfirmPassword(event.target.value)}
               placeholder={t('authConfirmPasswordPlaceholder')}
             />
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" disabled={!canUpdatePassword} onClick={() => void onPasswordUpdate()}>
+        <div className='flex flex-wrap items-center gap-3'>
+          <Button type='button' disabled={!canUpdatePassword} onClick={() => void onPasswordUpdate()}>
             {isUpdatingPassword ? t('authPasswordUpdating') : t('authPasswordAction')}
           </Button>
           {enabled && authenticated ? (
-            <Button type="button" variant="outline" disabled={isLoggingOut} onClick={() => void onLogout()}>
+            <Button type='button' variant='outline' disabled={isLoggingOut} onClick={() => void onLogout()}>
               {isLoggingOut ? t('authLoggingOut') : t('authLogoutAction')}
             </Button>
           ) : null}
         </div>
-        <p className="text-xs text-gray-500">{t('authSessionMemoryNotice')}</p>
+        <p className='text-xs text-muted-foreground'>{t('authSessionMemoryNotice')}</p>
       </div>
     </SecurityCardFrame>
   );
@@ -223,15 +227,23 @@ export function RuntimeSecurityCard() {
   const [nextPassword, setNextPassword] = useState('');
   const [nextConfirmPassword, setNextConfirmPassword] = useState('');
   const auth = authStatus.data;
-  const canSubmitSetup = setupUsername.trim().length > 0 && hasValidPasswordLength(setupPassword) && setupPassword === setupConfirmPassword && !setupAuth.isPending;
-  const canUpdatePassword = hasValidPasswordLength(nextPassword) && nextPassword === nextConfirmPassword && !updateAuthPassword.isPending;
+  const canSubmitSetup =
+    setupUsername.trim().length > 0 &&
+    hasValidPasswordLength(setupPassword) &&
+    setupPassword === setupConfirmPassword &&
+    !setupAuth.isPending;
+  const canUpdatePassword =
+    hasValidPasswordLength(nextPassword) && nextPassword === nextConfirmPassword && !updateAuthPassword.isPending;
 
   const handleSetup = async () => {
     if (!validatePasswordConfirmation(setupPassword, setupConfirmPassword)) {
       return;
     }
     try {
-      await setupAuth.mutateAsync({ username: setupUsername.trim(), password: setupPassword });
+      await setupAuth.mutateAsync({
+        username: setupUsername.trim(),
+        password: setupPassword
+      });
       setSetupPassword('');
       setSetupConfirmPassword('');
     } catch {
@@ -269,13 +281,13 @@ export function RuntimeSecurityCard() {
   };
 
   if (authStatus.isLoading && !auth) {
-    return <SecurityCardFrame contentClassName="text-sm text-gray-500">{t('loading')}</SecurityCardFrame>;
+    return <SecurityCardFrame contentClassName='text-sm text-gray-500'>{t('loading')}</SecurityCardFrame>;
   }
   if (authStatus.isError || !auth) {
     return (
-      <SecurityCardFrame contentClassName="space-y-4">
-        <p className="text-sm text-gray-500">{t('authStatusLoadFailed')}</p>
-        <Button variant="outline" onClick={() => void authStatus.refetch()}>
+      <SecurityCardFrame contentClassName='space-y-4'>
+        <p className='text-sm text-gray-500'>{t('authStatusLoadFailed')}</p>
+        <Button variant='outline' onClick={() => void authStatus.refetch()}>
           {t('authRetryStatus')}
         </Button>
       </SecurityCardFrame>

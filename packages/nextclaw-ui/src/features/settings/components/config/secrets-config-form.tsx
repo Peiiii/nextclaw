@@ -2,12 +2,11 @@ import { useMemo, useState } from 'react';
 import { Plus, Save, Trash2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { FormActions } from '@/shared/components/ui/actions/form-actions';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { SettingRow, SettingsGroup, SettingsSection } from '@/shared/components/settings/setting-row';
 import { Input } from '@/shared/components/ui/input';
-import { Label } from '@/shared/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Switch } from '@/shared/components/ui/switch';
-import { PageHeader, PageLayout } from '@/app/components/layout/page-layout';
+import { SettingsPage } from '@/shared/components/settings/settings-page';
 import type { SecretSourceView } from '@/shared/lib/api';
 import { t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
@@ -21,7 +20,7 @@ import {
   type SecretsFormState,
 } from '@/features/settings/utils/secrets-config-form.utils';
 
-function SecretsDefaultsCard(props: {
+function SecretsDefaultRows(props: {
   defaultEnv: string;
   defaultFile: string;
   defaultExec: string;
@@ -30,25 +29,22 @@ function SecretsDefaultsCard(props: {
 }) {
   const { defaultEnv, defaultFile, defaultExec, providerAliases, onChange } = props;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('secrets')}</CardTitle>
-        <CardDescription>{t('secretsEnabledHelp')}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {[
-          { label: t('defaultEnvProvider'), value: defaultEnv, key: 'defaultEnv' as const },
-          { label: t('defaultFileProvider'), value: defaultFile, key: 'defaultFile' as const },
-          { label: t('defaultExecProvider'), value: defaultExec, key: 'defaultExec' as const },
-        ].map((item) => (
-          <div key={item.key} className="space-y-2">
-            <Label>{item.label}</Label>
+    <>
+      {[
+        { label: t('defaultEnvProvider'), value: defaultEnv, key: 'defaultEnv' as const },
+        { label: t('defaultFileProvider'), value: defaultFile, key: 'defaultFile' as const },
+        { label: t('defaultExecProvider'), value: defaultExec, key: 'defaultExec' as const },
+      ].map((item) => (
+        <SettingRow
+          key={item.key}
+          title={item.label}
+          control={
             <Select value={item.value || '__none__'} onValueChange={(value) => onChange(item.key, value === '__none__' ? '' : value)}>
-              <SelectTrigger>
+              <SelectTrigger className='w-56'>
                 <SelectValue placeholder={t('noneOption')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">{t('noneOption')}</SelectItem>
+                <SelectItem value='__none__'>{t('noneOption')}</SelectItem>
                 {providerAliases.map((alias) => (
                   <SelectItem key={alias} value={alias}>
                     {alias}
@@ -56,10 +52,10 @@ function SecretsDefaultsCard(props: {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+          }
+        />
+      ))}
+    </>
   );
 }
 
@@ -71,15 +67,20 @@ function SecretsProvidersCard(props: {
 }) {
   const { providers, onUpdate, onRemove, onAdd } = props;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('secretProvidersTitle')}</CardTitle>
-        <CardDescription>{t('secretProvidersDescription')}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <SettingsSection
+      title={t('secretProvidersTitle')}
+      description={t('secretProvidersDescription')}
+      actions={
+        <Button type='button' variant='ghost' size='sm' onClick={onAdd}>
+          <Plus className='mr-2 h-4 w-4' />
+          {t('addSecretProvider')}
+        </Button>
+      }
+    >
+      <SettingsGroup>
         {providers.map((provider, index) => (
-          <div key={`provider-${index}`} className="space-y-3 rounded-xl border border-gray-200 p-3">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div key={`provider-${index}`} className='space-y-3 p-4'>
+            <div className='grid grid-cols-1 gap-3 md:grid-cols-3'>
               <Input value={provider.alias} onChange={(event) => onUpdate(index, { alias: event.target.value })} placeholder={t('providerAlias')} />
               <Select value={provider.source} onValueChange={(value) => onUpdate(index, { source: value as SecretSourceView })}>
                 <SelectTrigger>
@@ -93,8 +94,8 @@ function SecretsProvidersCard(props: {
                   ))}
                 </SelectContent>
               </Select>
-              <Button type="button" variant="outline" onClick={() => onRemove(index)}>
-                <Trash2 className="mr-2 h-4 w-4" />
+              <Button type='button' variant='outline' onClick={() => onRemove(index)}>
+                <Trash2 className='mr-2 h-4 w-4' />
                 {t('removeProvider')}
               </Button>
             </div>
@@ -106,18 +107,18 @@ function SecretsProvidersCard(props: {
               <Input value={provider.path} onChange={(event) => onUpdate(index, { path: event.target.value })} placeholder={t('secretFilePath')} />
             ) : null}
             {provider.source === 'exec' ? (
-              <div className="space-y-2">
+              <div className='space-y-2'>
                 <Input value={provider.command} onChange={(event) => onUpdate(index, { command: event.target.value })} placeholder={t('secretExecCommand')} />
                 <textarea
-                  className="min-h-[84px] w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-mono"
+                  className='min-h-[84px] w-full rounded-lg border border-input bg-background px-3 py-2 font-mono text-xs'
                   value={provider.argsText}
                   onChange={(event) => onUpdate(index, { argsText: event.target.value })}
                   placeholder={t('secretExecArgs')}
                 />
-                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                <div className='grid grid-cols-1 gap-2 md:grid-cols-2'>
                   <Input value={provider.cwd} onChange={(event) => onUpdate(index, { cwd: event.target.value })} placeholder={t('secretExecCwd')} />
                   <Input
-                    type="number"
+                    type='number'
                     min={1}
                     value={provider.timeoutMs}
                     onChange={(event) => onUpdate(index, { timeoutMs: Number.parseInt(event.target.value, 10) || 5000 })}
@@ -128,13 +129,8 @@ function SecretsProvidersCard(props: {
             ) : null}
           </div>
         ))}
-
-        <Button type="button" variant="outline" onClick={onAdd}>
-          <Plus className="mr-2 h-4 w-4" />
-          {t('addSecretProvider')}
-        </Button>
-      </CardContent>
-    </Card>
+      </SettingsGroup>
+    </SettingsSection>
   );
 }
 
@@ -147,15 +143,20 @@ function SecretsRefsCard(props: {
 }) {
   const { refs, providerAliases, onUpdate, onRemove, onAdd } = props;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('secretRefsTitle')}</CardTitle>
-        <CardDescription>{t('secretRefsDescription')}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <SettingsSection
+      title={t('secretRefsTitle')}
+      description={t('secretRefsDescription')}
+      actions={
+        <Button type='button' variant='ghost' size='sm' onClick={onAdd}>
+          <Plus className='mr-2 h-4 w-4' />
+          {t('addSecretRef')}
+        </Button>
+      }
+    >
+      <SettingsGroup>
         {refs.map((ref, index) => (
-          <div key={`ref-${index}`} className="space-y-3 rounded-xl border border-gray-200 p-3">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div key={`ref-${index}`} className='space-y-3 p-4'>
+            <div className='grid grid-cols-1 gap-3 md:grid-cols-2'>
               <Input value={ref.path} onChange={(event) => onUpdate(index, { path: event.target.value })} placeholder={t('secretConfigPath')} />
               <Input value={ref.id} onChange={(event) => onUpdate(index, { id: event.target.value })} placeholder={t('secretId')} />
               <Select value={ref.source} onValueChange={(value) => onUpdate(index, { source: value as SecretSourceView })}>
@@ -170,13 +171,13 @@ function SecretsRefsCard(props: {
                   ))}
                 </SelectContent>
               </Select>
-              <div className="grid grid-cols-[1fr_auto] gap-2">
+              <div className='grid grid-cols-[1fr_auto] gap-2'>
                 <Select value={ref.provider || '__none__'} onValueChange={(value) => onUpdate(index, { provider: value === '__none__' ? '' : value })}>
                   <SelectTrigger>
                     <SelectValue placeholder={t('secretProviderAlias')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">{t('noneOption')}</SelectItem>
+                    <SelectItem value='__none__'>{t('noneOption')}</SelectItem>
                     {providerAliases.map((alias) => (
                       <SelectItem key={alias} value={alias}>
                         {alias}
@@ -184,20 +185,15 @@ function SecretsRefsCard(props: {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button type="button" variant="outline" onClick={() => onRemove(index)}>
-                  <Trash2 className="h-4 w-4" />
+                <Button type='button' variant='outline' onClick={() => onRemove(index)}>
+                  <Trash2 className='h-4 w-4' />
                 </Button>
               </div>
             </div>
           </div>
         ))}
-
-        <Button type="button" variant="outline" onClick={onAdd}>
-          <Plus className="mr-2 h-4 w-4" />
-          {t('addSecretRef')}
-        </Button>
-      </CardContent>
-    </Card>
+      </SettingsGroup>
+    </SettingsSection>
   );
 }
 
@@ -236,30 +232,28 @@ export function SecretsConfigForm(props: {
   };
 
   return (
-    <PageLayout className="space-y-6">
-      <PageHeader title={t('secretsPageTitle')} description={t('secretsPageDescription')} />
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('secrets')}</CardTitle>
-          <CardDescription>{t('secretsEnabledHelp')}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between rounded-xl border border-gray-200 p-3">
-            <div>
-              <p className="text-sm font-medium text-gray-800">{t('enabled')}</p>
-              <p className="text-xs text-gray-500">{t('secretsEnabledHelp')}</p>
-            </div>
-            <Switch checked={state.enabled} onCheckedChange={(enabled) => setState((prev) => ({ ...prev, enabled }))} />
-          </div>
-          <SecretsDefaultsCard
+    <SettingsPage title={t('secretsPageTitle')} description={t('secretsPageDescription')}>
+      <SettingsSection title={t('secrets')} description={t('secretsEnabledHelp')}>
+        <SettingsGroup>
+          <SettingRow
+            title={t('enabled')}
+            description={t('secretsEnabledHelp')}
+            control={
+              <Switch
+                checked={state.enabled}
+                onCheckedChange={(enabled) => setState((prev) => ({ ...prev, enabled }))}
+              />
+            }
+          />
+          <SecretsDefaultRows
             defaultEnv={state.defaultEnv}
             defaultFile={state.defaultFile}
             defaultExec={state.defaultExec}
             providerAliases={providerAliases}
             onChange={(key, value) => setState((prev) => ({ ...prev, [key]: value }))}
           />
-        </CardContent>
-      </Card>
+        </SettingsGroup>
+      </SettingsSection>
       <SecretsProvidersCard
         providers={state.providers}
         onUpdate={updateProvider}
@@ -274,11 +268,11 @@ export function SecretsConfigForm(props: {
         onAdd={() => setState((prev) => ({ ...prev, refs: [...prev.refs, createRefRow()] }))}
       />
       <FormActions>
-        <Button type="button" size="sm" onClick={handleSave} disabled={isPending}>
-          <Save className="mr-1.5 h-3.5 w-3.5" />
+        <Button type='button' size='sm' onClick={handleSave} disabled={isPending}>
+          <Save className='mr-1.5 h-3.5 w-3.5' />
           {isPending ? t('saving') : t('save')}
         </Button>
       </FormActions>
-    </PageLayout>
+    </SettingsPage>
   );
 }

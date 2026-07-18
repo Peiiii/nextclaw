@@ -137,23 +137,23 @@ function ChannelFormHeader({
   tutorialUrl?: string;
 }) {
   return (
-    <ConfigSplitPaneHeader className="px-6 py-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-3">
+    <ConfigSplitPaneHeader className='px-5 py-4'>
+      <div className='flex flex-wrap items-center justify-between gap-3'>
+        <div className='min-w-0'>
+          <div className='flex items-center gap-3'>
             <LogoBadge
               name={channelName}
               src={getChannelLogo(channelName)}
-              className={cn('h-9 w-9 rounded-lg border', enabled ? 'border-primary/30 bg-white' : 'border-gray-200/70 bg-white')}
-              imgClassName="h-5 w-5 object-contain"
-              fallback={<span className="text-sm font-semibold uppercase text-gray-500">{channelName[0]}</span>}
+              className={cn('h-9 w-9 rounded-lg bg-background/80', enabled && 'ring-1 ring-primary/20')}
+              imgClassName='h-5 w-5 object-contain'
+              fallback={<span className='text-sm font-semibold uppercase text-muted-foreground'>{channelName[0]}</span>}
             />
-            <h3 className="truncate text-lg font-semibold text-gray-900 capitalize">{channelLabel}</h3>
+            <h3 className='truncate text-lg font-semibold text-foreground capitalize'>{channelLabel}</h3>
           </div>
-          <p className="mt-2 text-sm text-gray-500">{t('channelsFormDescription')}</p>
+          <p className='mt-2 text-sm text-muted-foreground'>{t('channelsFormDescription')}</p>
           {channelApplyStatus ? <p className={cn('mt-2 text-xs font-medium', channelApplyStatus.className)}>{channelApplyStatus.label}</p> : null}
           {tutorialUrl ? (
-            <NavigationLink href={tutorialUrl} external icon={BookOpen} size="xs" className="mt-2">
+            <NavigationLink href={tutorialUrl} external icon={BookOpen} size='xs' className='mt-2'>
               {t('channelsGuideTitle')}
             </NavigationLink>
           ) : null}
@@ -212,15 +212,15 @@ function ChannelFormBlocks({
             return <div key={`${block.type}-${block.section}-${index}`}>{content}</div>;
           }
           return (
-            <details key={`${block.type}-${block.section}-${index}`} className="group rounded-2xl border border-gray-200/80 bg-white">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-medium text-gray-900">
+            <details key={`${block.type}-${block.section}-${index}`} className='group rounded-xl bg-muted/35'>
+              <summary className='flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-foreground'>
                 <div>
                   <p>{block.collapsible.title}</p>
-                  {block.collapsible.description ? <p className="mt-1 text-xs font-normal text-gray-500">{block.collapsible.description}</p> : null}
+                  {block.collapsible.description ? <p className='mt-1 text-xs font-normal text-muted-foreground'>{block.collapsible.description}</p> : null}
                 </div>
-                <ChevronDown className="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180" />
+                <ChevronDown className='h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180' />
               </summary>
-              <div className="space-y-6 border-t border-gray-100 px-5 py-5">{content}</div>
+              <div className='space-y-5 border-t border-border/45 px-4 py-4'>{content}</div>
             </details>
           );
         }
@@ -240,7 +240,7 @@ function ChannelFormBlocks({
             key={`${block.type}-${block.sectionId}-${index}`}
             channelConfig={channelConfig}
             formData={formData}
-            channelName="weixin"
+            channelName='weixin'
             channelEnabled={enabled}
             disabled={disabled}
           />
@@ -347,8 +347,8 @@ function ChannelFormEditor({
         channelApplyStatus={channelApplyStatus}
       />
 
-      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-        <ConfigSplitPaneBody className="space-y-6 px-6 py-5">
+      <form onSubmit={handleSubmit} className='flex min-h-0 flex-1 flex-col'>
+        <ConfigSplitPaneBody className='space-y-5 px-5 py-4'>
           <ChannelFormBlocks
             channelConfig={channelConfig}
             channelName={channelName}
@@ -365,15 +365,15 @@ function ChannelFormEditor({
         </ConfigSplitPaneBody>
 
         <ConfigSplitPaneFooter>
-          <FormActions align="between">
-            <div className="flex flex-wrap items-center gap-2">
+          <FormActions align='between'>
+            <div className='flex flex-wrap items-center gap-2'>
               {actions.filter((action) => action.trigger === 'manual').map((action) => (
-                <Button key={action.id} type="button" size="sm" onClick={() => void handleManualAction(action)} disabled={disabled} variant="secondary">
+                <Button key={action.id} type='button' size='sm' onClick={() => void handleManualAction(action)} disabled={disabled} variant='secondary'>
                   {runningActionId === action.id ? t('connecting') : action.title}
                 </Button>
               ))}
             </div>
-            <Button type="submit" size="sm" disabled={disabled}>
+            <Button type='submit' size='sm' disabled={disabled}>
               {updateChannel.isPending ? t('saving') : t('save')}
             </Button>
           </FormActions>
@@ -395,8 +395,8 @@ export function ChannelForm({ channelName }: ChannelFormProps) {
     return (
       <ConfigSplitEmptyPane>
         <div>
-          <h3 className="text-base font-semibold text-gray-900">{t('channelsSelectTitle')}</h3>
-          <p className="mt-2 text-sm text-gray-500">{t('channelsSelectDescription')}</p>
+          <h3 className='text-base font-semibold text-foreground'>{t('channelsSelectTitle')}</h3>
+          <p className='mt-2 text-sm text-muted-foreground'>{t('channelsSelectDescription')}</p>
         </div>
       </ConfigSplitEmptyPane>
     );

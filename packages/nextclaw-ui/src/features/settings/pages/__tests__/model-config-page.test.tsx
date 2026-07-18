@@ -96,6 +96,7 @@ describe('ModelConfigPage', () => {
   beforeEach(() => {
     mocks.mutate.mockReset();
     setLanguage('en');
+    mocks.schemaQuery.data.uiHints = {};
     HTMLElement.prototype.hasPointerCapture = vi.fn(() => false);
     HTMLElement.prototype.setPointerCapture = vi.fn();
     HTMLElement.prototype.releasePointerCapture = vi.fn();
@@ -166,7 +167,7 @@ describe('ModelConfigPage', () => {
 
     render(<ModelConfigPage />);
 
-    const workspaceInput = await screen.findByLabelText('Default Path');
+    const workspaceInput = await screen.findByLabelText('Workspace');
     await user.clear(workspaceInput);
     await user.type(workspaceInput, '~/new-workspace');
     await user.click(screen.getByRole('button', { name: /save/i }));
@@ -177,6 +178,22 @@ describe('ModelConfigPage', () => {
         workspace: '~/new-workspace'
       });
     });
+  });
+
+  it('keeps page labels localized when schema hints contain English labels', () => {
+    setLanguage('zh');
+    mocks.schemaQuery.data.uiHints = {
+      'agents.defaults.model': { label: 'Default Model' },
+      'agents.defaults.workspace': { label: 'Workspace' }
+    };
+
+    render(<ModelConfigPage />);
+
+    expect(screen.getByRole('heading', { name: '模型配置' })).toBeTruthy();
+    expect(screen.getByLabelText('默认模型')).toBeTruthy();
+    expect(screen.getByLabelText('工作空间')).toBeTruthy();
+    expect(screen.queryByText('Default Model')).toBeNull();
+    expect(screen.queryByText('Workspace')).toBeNull();
   });
 
   it('shows a clear empty state and still allows manual model input when no providers are configured', async () => {

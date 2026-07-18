@@ -13,30 +13,30 @@ const mocks = vi.hoisted(() => ({
         enabled: true,
         defaults: {
           env: 'vault-env',
-          file: 'vault-file',
+          file: 'vault-file'
         },
         providers: {
           'vault-env': { source: 'env', prefix: 'NEXTCLAW_' },
-          'vault-file': { source: 'file', path: '/tmp/secrets.json', format: 'json' },
+          'vault-file': { source: 'file', path: '/tmp/secrets.json', format: 'json' }
         },
         refs: {
           'agents.defaults.model': {
             source: 'env',
             provider: 'vault-env',
-            id: 'DEFAULT_MODEL',
-          },
-        },
-      },
-    },
-  },
+            id: 'DEFAULT_MODEL'
+          }
+        }
+      }
+    }
+  }
 }));
 
 vi.mock('@/shared/hooks/use-config', () => ({
   useConfig: () => mocks.useConfigData,
   useUpdateSecrets: () => ({
     mutate: mocks.mutate,
-    isPending: false,
-  }),
+    isPending: false
+  })
 }));
 
 describe('SecretsConfigPage', () => {
@@ -59,7 +59,8 @@ describe('SecretsConfigPage', () => {
 
     render(<SecretsConfigPage />);
 
-    expect(screen.getByText('Secret Providers')).toBeTruthy();
+    expect(screen.getByText('密钥提供器')).toBeTruthy();
+    expect(screen.getByText('密钥引用')).toBeTruthy();
     expect(screen.getByDisplayValue('vault-env')).toBeTruthy();
     expect(screen.getByDisplayValue('NEXTCLAW_')).toBeTruthy();
 
@@ -71,20 +72,20 @@ describe('SecretsConfigPage', () => {
         defaults: {
           env: 'vault-env',
           file: 'vault-file',
-          exec: null,
+          exec: null
         },
         providers: {
           'vault-env': { source: 'env', prefix: 'NEXTCLAW_' },
-          'vault-file': { source: 'file', path: '/tmp/secrets.json', format: 'json' },
+          'vault-file': { source: 'file', path: '/tmp/secrets.json', format: 'json' }
         },
         refs: {
           'agents.defaults.model': {
             source: 'env',
             provider: 'vault-env',
-            id: 'DEFAULT_MODEL',
-          },
-        },
-      },
+            id: 'DEFAULT_MODEL'
+          }
+        }
+      }
     });
   });
 });

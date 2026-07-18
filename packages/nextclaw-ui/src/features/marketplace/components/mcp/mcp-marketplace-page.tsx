@@ -11,7 +11,7 @@ import {
   fetchMcpMarketplaceContent,
   doctorMcpMarketplaceItem,
 } from "@/shared/lib/api";
-import { PageLayout } from "@/app/components/layout/page-layout";
+import { SettingsPage } from "@/shared/components/settings/settings-page";
 import {
   MarketplaceInfiniteScrollStatus,
   MarketplaceListSkeleton,
@@ -264,25 +264,13 @@ export function McpMarketplacePage() {
   ] as const;
 
   return (
-    <PageLayout className="flex h-full min-h-0 flex-col pb-0 px-0">
-      <div className="flex flex-col gap-6 w-full max-w-[1400px] h-full min-h-0 mx-auto">
-        <div className="relative isolate overflow-hidden rounded-[28px] border border-border bg-card px-10 py-12 text-card-foreground shadow-card">
-          <div className="absolute inset-y-0 left-0 w-1 bg-primary/80" />
-
-          <div className="relative z-10 flex flex-col gap-3">
-            <h1 className="text-[38px] font-extrabold leading-tight text-foreground">
-              {t("marketplaceMcpPageTitle")}
-            </h1>
-            <p className="max-w-2xl text-[17px] font-medium leading-relaxed text-muted-foreground">
-              {t("marketplaceMcpPageDescription")}
-            </p>
-          </div>
-        </div>
-
-        {/* Custom Nav & Filter Row */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
-          {/* Custom App Store Tabs */}
-          <div className="flex items-center gap-1.5 p-1 bg-gray-100/60 backdrop-blur-sm rounded-2xl w-fit border border-gray-200/50 shadow-inner">
+    <SettingsPage
+      title={t("marketplaceMcpPageTitle")}
+      description={t("marketplaceMcpPageDescription")}
+      layout="split"
+    >
+        <div className="flex flex-col gap-3">
+          <div className="flex w-fit max-w-full items-center gap-1 rounded-xl bg-muted/60 p-1">
             {scopeTabs.map((tab) => {
               const isActive = scope === tab.id;
               const Icon = tab.icon;
@@ -291,18 +279,18 @@ export function McpMarketplacePage() {
                   key={tab.id}
                   onClick={() => setScope(tab.id as ScopeType)}
                   className={cn(
-                    "relative flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-[14px] transition-all duration-300",
+                    "relative flex min-w-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                     isActive
-                      ? "text-gray-900 bg-white shadow-[0_2px_10px_rgb(0,0,0,0.06)]"
-                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/40"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-card/60 hover:text-foreground"
                   )}
                 >
-                  <Icon className={cn("w-4 h-4", isActive ? "text-primary" : "text-gray-400")} />
+                  <Icon className="h-4 w-4 shrink-0" />
                   {tab.label}
                   {tab.id === 'installed' && typeof tab.count === 'number' && (
                     <span className={cn(
-                      "ml-1 flex items-center justify-center h-5 px-1.5 min-w-5 rounded-full text-[11px] font-bold transition-colors",
-                      isActive ? "bg-primary/10 text-primary" : "bg-gray-200 text-gray-500"
+                      "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold",
+                      isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                     )}>
                       {tab.count}
                     </span>
@@ -312,7 +300,7 @@ export function McpMarketplacePage() {
             })}
           </div>
 
-          <div className="flex-1 w-full md:max-w-md">
+          <div className="w-full max-w-xl">
             <FilterPanel
               scope={scope === "catalog" ? "all" : "installed"}
               searchText={searchText}
@@ -325,13 +313,13 @@ export function McpMarketplacePage() {
           </div>
         </div>
 
-        <section className="flex min-h-0 flex-1 flex-col mt-2">
-          <div className="flex items-center justify-between mb-4 px-1">
-            <h3 className="text-[18px] font-bold tracking-tight text-gray-900 flex items-center gap-2">
+        <section className="flex min-h-0 flex-1 flex-col">
+          <div className="mb-3 flex items-center justify-between px-1">
+            <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
               {scope === "catalog"
                 ? t("marketplaceMcpSectionCatalog")
                 : t("marketplaceMcpSectionInstalled")}
-              <span className="flex items-center justify-center h-6 px-2 rounded-lg bg-gray-100 text-[12px] font-semibold text-gray-500">
+              <span className="flex h-6 items-center justify-center rounded-lg bg-muted px-2 text-xs font-medium text-muted-foreground">
                 {scope === "catalog"
                   ? (itemsQuery.data?.total ?? 0)
                   : (installedQuery.data?.total ?? 0)}
@@ -341,10 +329,10 @@ export function McpMarketplacePage() {
 
           <div
             ref={containerRef}
-            className="min-h-0 flex-1 overflow-y-auto pr-3 pb-8 -mx-1 px-1 custom-scrollbar"
+            className="custom-scrollbar min-h-0 flex-1 overflow-y-auto pb-8"
             aria-busy={itemsQuery.isLoading || itemsQuery.isFetchingNextPage}
           >
-            <div className="grid grid-cols-1 gap-[22px] md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-stretch">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] items-stretch gap-4">
               {scope === "catalog" && itemsQuery.isLoading && (
                 <MarketplaceListSkeleton count={PAGE_SIZE} />
               )}
@@ -433,13 +421,13 @@ export function McpMarketplacePage() {
               !itemsQuery.isLoading &&
               !itemsQuery.isError &&
               (itemsQuery.data?.items?.length ?? 0) === 0 && (
-                <div className="flex flex-col items-center justify-center py-20 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200 mt-4">
-                  <p className="text-[15px] font-medium text-gray-500">{t("marketplaceNoMcp")}</p>
+                <div className="mt-4 flex flex-col items-center justify-center rounded-2xl bg-muted/35 py-16">
+                  <p className="text-sm font-medium text-muted-foreground">{t("marketplaceNoMcp")}</p>
                 </div>
               )}
             {scope === "installed" && !installedQuery.isError && installedRecords.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-20 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200 mt-4">
-                <p className="text-[15px] font-medium text-gray-500">{t("marketplaceNoInstalledMcp")}</p>
+              <div className="mt-4 flex flex-col items-center justify-center rounded-2xl bg-muted/35 py-16">
+                <p className="text-sm font-medium text-muted-foreground">{t("marketplaceNoInstalledMcp")}</p>
               </div>
             )}
 
@@ -452,8 +440,6 @@ export function McpMarketplacePage() {
             )}
           </div>
         </section>
-
-      </div>
 
       <InstallDialog
         item={installingItem}
@@ -470,6 +456,6 @@ export function McpMarketplacePage() {
         onOpenChange={(open) => !open && setDoctorTarget(null)}
       />
       <ConfirmDialog />
-    </PageLayout>
+    </SettingsPage>
   );
 }

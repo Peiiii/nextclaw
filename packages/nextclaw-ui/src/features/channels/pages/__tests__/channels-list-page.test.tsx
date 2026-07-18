@@ -219,13 +219,13 @@ describe('ChannelsList', () => {
 
     const scrollRegions = Array.from(container.querySelectorAll('div')).filter((node) => {
       const classTokens = node.className.split(/\s+/).filter(Boolean);
-      return classTokens.includes('xl:overflow-y-auto');
+      return classTokens.includes('md:overflow-y-auto');
     });
 
     expect(scrollRegions.length).toBeGreaterThanOrEqual(2);
     scrollRegions.forEach((region) => {
       const classTokens = region.className.split(/\s+/).filter(Boolean);
-      expect(classTokens).toContain('xl:overscroll-contain');
+      expect(classTokens).toContain('md:overscroll-contain');
       expect(classTokens).not.toContain('overflow-y-auto');
       expect(classTokens).not.toContain('overscroll-contain');
     });

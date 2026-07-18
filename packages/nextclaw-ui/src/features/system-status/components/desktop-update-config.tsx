@@ -4,9 +4,9 @@ import { runtimeUpdateManager, useRuntimeUpdateStore } from '@/features/system-s
 import { NavigationLink } from '@/shared/components/actions/navigation-link';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
-import { Label } from '@/shared/components/ui/label';
+import { SettingRow, SettingsGroup, SettingsSection } from '@/shared/components/settings/setting-row';
+import { SettingsPage } from '@/shared/components/settings/settings-page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
-import { PageHeader, PageLayout } from '@/app/components/layout/page-layout';
 import { formatDateTime, getLanguage, t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
 import {
@@ -40,7 +40,12 @@ function StatusBadge({ snapshot }: { snapshot: UpdateSnapshot }) {
 }
 
 function OverviewStat({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4"><p className="text-xs font-medium uppercase tracking-[0.08em] text-gray-500">{label}</p><p className="mt-2 text-base font-semibold text-gray-900">{value}</p></div>;
+  return (
+    <div className='rounded-lg bg-background/70 p-3'>
+      <p className='text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground'>{label}</p>
+      <p className='mt-1 text-sm font-semibold text-foreground'>{value}</p>
+    </div>
+  );
 }
 
 function DownloadProgress({ snapshot }: { snapshot: UpdateSnapshot }) {
@@ -53,13 +58,13 @@ function DownloadProgress({ snapshot }: { snapshot: UpdateSnapshot }) {
     : t('desktopUpdatesDownloadProgressPercent').replace('{percent}', String(percent));
   const byteLabel = formatDownloadBytes(snapshot.progress?.downloadedBytes ?? 0, snapshot.progress?.totalBytes ?? null);
   return (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-sm font-semibold text-amber-800">{progressLabel}</p>
-        <p className="text-xs font-medium text-amber-700">{byteLabel}</p>
+    <div className='rounded-2xl border border-amber-200 bg-amber-50/70 p-4'>
+      <div className='flex items-center justify-between gap-4'>
+        <p className='text-sm font-semibold text-amber-800'>{progressLabel}</p>
+        <p className='text-xs font-medium text-amber-700'>{byteLabel}</p>
       </div>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-amber-100">
-        <div className="h-full rounded-full bg-amber-500 transition-[width]" style={{ width: `${percent ?? 0}%` }} />
+      <div className='mt-3 h-2 overflow-hidden rounded-full bg-amber-100'>
+        <div className='h-full rounded-full bg-amber-500 transition-[width]' style={{ width: `${percent ?? 0}%` }} />
       </div>
     </div>
   );
@@ -140,8 +145,8 @@ function ReleaseNotesPreview({ snapshot }: { snapshot: UpdateSnapshot }) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1">
+        <div className='flex flex-wrap items-start justify-between gap-3'>
+          <div className='space-y-1'>
             <CardTitle>{title}</CardTitle>
             <CardDescription>{summary}</CardDescription>
           </div>
@@ -150,26 +155,26 @@ function ReleaseNotesPreview({ snapshot }: { snapshot: UpdateSnapshot }) {
           </NavigationLink>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className='space-y-4'>
         {releaseNotesQuery.isLoading ? (
-          <p className="text-sm text-gray-500">{t('desktopUpdatesReleaseNotesPreviewLoading')}</p>
+          <p className='text-sm text-gray-500'>{t('desktopUpdatesReleaseNotesPreviewLoading')}</p>
         ) : null}
         {!dataUrl || releaseNotesQuery.isError ? (
-          <p className="text-sm text-gray-500">{t('desktopUpdatesReleaseNotesPreviewUnavailable')}</p>
+          <p className='text-sm text-gray-500'>{t('desktopUpdatesReleaseNotesPreviewUnavailable')}</p>
         ) : null}
         {payload ? (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className='grid gap-4 md:grid-cols-2'>
             {payload.sections.map((section) => (
-              <div key={section.kind} className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
-                <p className="text-sm font-semibold text-gray-900">{getReleaseNotesSectionTitle(section, locale)}</p>
-                <ul className="mt-3 space-y-3">
+              <div key={section.kind} className='rounded-xl border border-gray-200 bg-gray-50/60 p-4'>
+                <p className='text-sm font-semibold text-gray-900'>{getReleaseNotesSectionTitle(section, locale)}</p>
+                <ul className='mt-3 space-y-3'>
                   {section.items.map((item, index) => {
                     const itemTitle = readReleaseNotesText(item.title, locale);
                     const itemBody = readReleaseNotesText(item.body, locale);
                     return (
-                      <li key={`${itemTitle ?? section.kind}-${index}`} className="space-y-1">
-                        {itemTitle ? <p className="text-sm font-medium text-gray-800">{itemTitle}</p> : null}
-                        {itemBody ? <p className="text-sm leading-5 text-gray-600">{itemBody}</p> : null}
+                      <li key={`${itemTitle ?? section.kind}-${index}`} className='space-y-1'>
+                        {itemTitle ? <p className='text-sm font-medium text-gray-800'>{itemTitle}</p> : null}
+                        {itemBody ? <p className='text-sm leading-5 text-gray-600'>{itemBody}</p> : null}
                       </li>
                     );
                   })}
@@ -185,23 +190,27 @@ function ReleaseNotesPreview({ snapshot }: { snapshot: UpdateSnapshot }) {
 
 function RuntimeUpdateUnavailableState() {
   return (
-    <PageLayout className="space-y-6">
-      <PageHeader title={t('runtimeUpdatesPageTitle')} description={t('runtimeUpdatesPageDescription')} />
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('runtimeUpdatesUnavailableTitle')}</CardTitle>
-          <CardDescription>{t('runtimeUpdatesUnavailableDescription')}</CardDescription>
-        </CardHeader>
-        <CardContent><p className="text-sm text-gray-500">{t('runtimeUpdatesUnavailableHint')}</p></CardContent>
-      </Card>
-    </PageLayout>
+    <SettingsPage title={t('runtimeUpdatesPageTitle')} description={t('runtimeUpdatesPageDescription')}>
+      <SettingsSection
+        title={t('runtimeUpdatesUnavailableTitle')}
+        description={t('runtimeUpdatesUnavailableDescription')}
+      >
+        <SettingsGroup>
+          <p className='p-4 text-sm text-muted-foreground'>{t('runtimeUpdatesUnavailableHint')}</p>
+        </SettingsGroup>
+      </SettingsSection>
+    </SettingsPage>
   );
 }
 
 export function DesktopUpdateConfig() {
   const { supported, initialized, busyAction, snapshot } = useRuntimeUpdateStore();
   if (!initialized) {
-    return <div className="p-8 text-gray-400">{t('loading')}</div>;
+    return (
+      <SettingsPage title={t('runtimeUpdatesPageTitle')} description={t('runtimeUpdatesPageDescription')}>
+        <div className='text-sm text-muted-foreground'>{t('loading')}</div>
+      </SettingsPage>
+    );
   }
   if (!supported || !snapshot) {
     return <RuntimeUpdateUnavailableState />;
@@ -220,90 +229,87 @@ export function DesktopUpdateConfig() {
     [t('desktopUpdatesCurrentChannel'), getChannelLabel(snapshot.channel)],
   ] as const;
   return (
-    <PageLayout className="space-y-6">
-      <PageHeader
-        title={t('runtimeUpdatesPageTitle')}
-        description={t('runtimeUpdatesPageDescription')}
-        actions={<Button variant="outline" onClick={() => void runtimeUpdateManager.checkForUpdates()} disabled={isChecking || isDownloading || isApplying}><RefreshCw className={cn('mr-2 h-4 w-4', isChecking && 'animate-spin')} />{t('desktopUpdatesCheckNow')}</Button>}
-      />
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('desktopUpdatesOverviewTitle')}</CardTitle>
-          <CardDescription>{t('desktopUpdatesOverviewDescription')}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="flex flex-wrap items-center gap-3"><span className="text-sm font-medium text-gray-700">{t('desktopUpdatesStatusLabel')}</span><StatusBadge snapshot={snapshot} /></div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">{overviewStats.map(([label, value]) => <OverviewStat key={label} label={label} value={value} />)}</div>
-          {snapshot.channel === 'beta' ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
-              <p className="text-sm font-semibold text-amber-800">{t('desktopUpdatesBetaBadgeTitle')}</p>
-              <p className="mt-1 text-sm text-amber-700">{t('desktopUpdatesBetaBadgeDescription')}</p>
+    <SettingsPage
+      title={t('runtimeUpdatesPageTitle')}
+      description={t('runtimeUpdatesPageDescription')}
+      actions={<Button variant='outline' onClick={() => void runtimeUpdateManager.checkForUpdates()} disabled={isChecking || isDownloading || isApplying}><RefreshCw className={cn('mr-2 h-4 w-4', isChecking && 'animate-spin')} />{t('desktopUpdatesCheckNow')}</Button>}
+    >
+      <SettingsSection title={t('desktopUpdatesOverviewTitle')} description={t('desktopUpdatesOverviewDescription')}>
+        <SettingsGroup>
+          <div className='space-y-4 p-4'>
+            <div className='flex flex-wrap items-center gap-3'>
+              <span className='text-sm font-medium text-foreground'>{t('desktopUpdatesStatusLabel')}</span>
+              <StatusBadge snapshot={snapshot} />
             </div>
-          ) : null}
-          {snapshot.downloadedVersion ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
-              <p className="text-sm font-semibold text-emerald-800">{t('desktopUpdatesDownloadedBannerTitle')}</p>
-              <p className="mt-1 text-sm text-emerald-700">{t('runtimeUpdatesDownloadedBannerDescription').replace('{version}', snapshot.downloadedVersion)}</p>
-            </div>
-          ) : null}
-          <DownloadProgress snapshot={snapshot} />
-          {snapshot.status === 'blocked' ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50/70 p-4">
-              <p className="text-sm font-semibold text-red-800">{t('desktopUpdatesBlockedTitle')}</p>
-              <p className="mt-1 text-sm text-red-700">{snapshot.errorMessage ?? t('desktopUpdatesBlockedDescription')}</p>
-              {snapshot.recoveryCommand ? <code className="mt-3 block rounded-lg bg-white/70 px-3 py-2 text-xs text-red-800">{snapshot.recoveryCommand}</code> : null}
-            </div>
-          ) : null}
-          {snapshot.errorMessage && snapshot.status !== 'blocked' ? <div className="rounded-2xl border border-red-200 bg-red-50/70 p-4 text-sm text-red-700">{snapshot.errorMessage}</div> : null}
-        </CardContent>
-      </Card>
-      <ReleaseNotesPreview snapshot={snapshot} />
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('desktopUpdatesChannelSettingsTitle')}</CardTitle>
-          <CardDescription>{t('desktopUpdatesChannelSettingsDescription')}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="rounded-xl border border-gray-200 p-4">
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <Label>{t('desktopUpdatesReleaseChannel')}</Label>
-                <p className="text-sm text-gray-500">{t('desktopUpdatesReleaseChannelHelp')}</p>
+            <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-5'>{overviewStats.map(([label, value]) => <OverviewStat key={label} label={label} value={value} />)}</div>
+            {snapshot.channel === 'beta' ? (
+              <div className='rounded-2xl border border-amber-200 bg-amber-50/70 p-4'>
+                <p className='text-sm font-semibold text-amber-800'>{t('desktopUpdatesBetaBadgeTitle')}</p>
+                <p className='mt-1 text-sm text-amber-700'>{t('desktopUpdatesBetaBadgeDescription')}</p>
               </div>
+            ) : null}
+            {snapshot.downloadedVersion ? (
+              <div className='rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4'>
+                <p className='text-sm font-semibold text-emerald-800'>{t('desktopUpdatesDownloadedBannerTitle')}</p>
+                <p className='mt-1 text-sm text-emerald-700'>{t('runtimeUpdatesDownloadedBannerDescription').replace('{version}', snapshot.downloadedVersion)}</p>
+              </div>
+            ) : null}
+            <DownloadProgress snapshot={snapshot} />
+            {snapshot.status === 'blocked' ? (
+              <div className='rounded-2xl border border-red-200 bg-red-50/70 p-4'>
+                <p className='text-sm font-semibold text-red-800'>{t('desktopUpdatesBlockedTitle')}</p>
+                <p className='mt-1 text-sm text-red-700'>{snapshot.errorMessage ?? t('desktopUpdatesBlockedDescription')}</p>
+                {snapshot.recoveryCommand ? <code className='mt-3 block rounded-lg bg-white/70 px-3 py-2 text-xs text-red-800'>{snapshot.recoveryCommand}</code> : null}
+              </div>
+            ) : null}
+            {snapshot.errorMessage && snapshot.status !== 'blocked' ? <div className='rounded-2xl border border-red-200 bg-red-50/70 p-4 text-sm text-red-700'>{snapshot.errorMessage}</div> : null}
+          </div>
+        </SettingsGroup>
+      </SettingsSection>
+      <ReleaseNotesPreview snapshot={snapshot} />
+      <SettingsSection
+        title={t('desktopUpdatesChannelSettingsTitle')}
+        description={t('desktopUpdatesChannelSettingsDescription')}
+      >
+        <SettingsGroup>
+          <SettingRow
+            title={t('desktopUpdatesReleaseChannel')}
+            description={t('desktopUpdatesReleaseChannelHelp')}
+            layout='stacked'
+          >
+            <div className='space-y-2'>
               <Select value={snapshot.channel} disabled={isSwitchingChannel || isChecking || isDownloading || isApplying} onValueChange={(value) => void runtimeUpdateManager.updateChannel(value as UpdateSnapshot['channel'])}>
-                <SelectTrigger className="w-full max-w-sm">
+                <SelectTrigger className='w-full max-w-sm'>
                   <SelectValue placeholder={t('desktopUpdatesReleaseChannel')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="stable">{t('desktopUpdatesChannelStable')}</SelectItem>
-                  <SelectItem value="beta">{t('desktopUpdatesChannelBeta')}</SelectItem>
+                  <SelectItem value='stable'>{t('desktopUpdatesChannelStable')}</SelectItem>
+                  <SelectItem value='beta'>{t('desktopUpdatesChannelBeta')}</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-sm text-gray-500">{t('desktopUpdatesReleaseChannelDowngradeHint')}</p>
+              <p className='text-xs text-muted-foreground'>{t('desktopUpdatesReleaseChannelDowngradeHint')}</p>
             </div>
+          </SettingRow>
+        </SettingsGroup>
+      </SettingsSection>
+      <SettingsSection title={t('desktopUpdatesActionsTitle')} description={t('runtimeUpdatesActionsDescription')}>
+        <SettingsGroup>
+          <div className='flex flex-wrap items-center gap-3 p-4'>
+            <Button variant='outline' onClick={() => void runtimeUpdateManager.checkForUpdates()} disabled={isChecking || isDownloading || isApplying}>
+              <RefreshCw className={cn('mr-2 h-4 w-4', isChecking && 'animate-spin')} />
+              {t('desktopUpdatesCheckNow')}
+            </Button>
+            <Button onClick={() => void runtimeUpdateManager.downloadUpdate()} disabled={!canDownload}>
+              <Download className={cn('mr-2 h-4 w-4', isDownloading && 'animate-bounce')} />
+              {t('desktopUpdatesDownloadNow')}
+            </Button>
+            <Button variant='secondary' onClick={() => void runtimeUpdateManager.applyDownloadedUpdate()} disabled={!canApply}>
+              <RotateCw className={cn('mr-2 h-4 w-4', isApplying && 'animate-spin')} />
+              {t('runtimeUpdatesApplyNow')}
+            </Button>
           </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('desktopUpdatesActionsTitle')}</CardTitle>
-          <CardDescription>{t('runtimeUpdatesActionsDescription')}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-3">
-          <Button variant="outline" onClick={() => void runtimeUpdateManager.checkForUpdates()} disabled={isChecking || isDownloading || isApplying}>
-            <RefreshCw className={cn('mr-2 h-4 w-4', isChecking && 'animate-spin')} />
-            {t('desktopUpdatesCheckNow')}
-          </Button>
-          <Button onClick={() => void runtimeUpdateManager.downloadUpdate()} disabled={!canDownload}>
-            <Download className={cn('mr-2 h-4 w-4', isDownloading && 'animate-bounce')} />
-            {t('desktopUpdatesDownloadNow')}
-          </Button>
-          <Button variant="secondary" onClick={() => void runtimeUpdateManager.applyDownloadedUpdate()} disabled={!canApply}>
-            <RotateCw className={cn('mr-2 h-4 w-4', isApplying && 'animate-spin')} />
-            {t('runtimeUpdatesApplyNow')}
-          </Button>
-        </CardContent>
-      </Card>
-    </PageLayout>
+        </SettingsGroup>
+      </SettingsSection>
+    </SettingsPage>
   );
 }

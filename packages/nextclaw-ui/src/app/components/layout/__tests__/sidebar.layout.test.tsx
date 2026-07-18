@@ -140,12 +140,12 @@ describe("Sidebar", () => {
         .getAllByRole("link")
         .map((link) => link.textContent?.trim() || ""),
     ).toEqual([
-      "Search Channels",
       "Appearance",
-      "Security",
-      "Routing & Runtime",
+      "Sign-in Management",
+      "Search Channels",
       "Updates",
       "Remote Access",
+      "Routing & Runtime",
       "Secrets",
       "MCP",
     ]);
@@ -153,12 +153,12 @@ describe("Sidebar", () => {
       "Model",
       "Providers",
       "Channels",
-      "Search Channels",
       "Appearance",
-      "Security",
-      "Routing & Runtime",
+      "Sign-in Management",
+      "Search Channels",
       "Updates",
       "Remote Access",
+      "Routing & Runtime",
       "Secrets",
       "MCP",
     ]);

@@ -132,11 +132,6 @@ export function getSettingsNavItems(
       icon: MessageSquare,
     },
     {
-      target: "/search",
-      label: translate("searchChannels"),
-      icon: Search,
-    },
-    {
       target: "/appearance",
       label: translate("appearance"),
       icon: Palette,
@@ -147,9 +142,9 @@ export function getSettingsNavItems(
       icon: Shield,
     },
     {
-      target: "/runtime",
-      label: translate("runtime"),
-      icon: Cpu,
+      target: "/search",
+      label: translate("searchChannels"),
+      icon: Search,
     },
     {
       target: "/updates",
@@ -160,6 +155,11 @@ export function getSettingsNavItems(
       target: "/remote",
       label: translate("remote"),
       icon: Wifi,
+    },
+    {
+      target: "/runtime",
+      label: translate("runtime"),
+      icon: Cpu,
     },
     {
       target: "/secrets",

@@ -99,6 +99,8 @@ describe('SearchConfigPage', () => {
     render(<SearchConfigPage />);
 
     expect(screen.getByRole('heading', { name: 'Tavily Search' })).toBeTruthy();
+    expect(screen.getAllByText('更适合调研和网页信息整合的搜索 provider。').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Research-focused web search with optional synthesized answers.')).toBeNull();
     expect(screen.getByText('搜索深度')).toBeTruthy();
     expect(screen.getByText('包含回答')).toBeTruthy();
     expect(screen.getByDisplayValue('https://api.tavily.com/search')).toBeTruthy();

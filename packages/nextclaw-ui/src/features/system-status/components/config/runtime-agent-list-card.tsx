@@ -1,7 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react';
 import type { AgentProfileView } from '@/shared/lib/api';
 import { Button } from '@/shared/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { SettingsGroup, SettingsSection } from '@/shared/components/settings/setting-row';
 import { Input } from '@/shared/components/ui/input';
 import { Switch } from '@/shared/components/ui/switch';
 import { t } from '@/shared/lib/i18n';
@@ -21,22 +21,27 @@ export function RuntimeAgentListCard({
   onSetDefaultAgent: (index: number, checked: boolean) => void;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('agentList')}</CardTitle>
-        <CardDescription>{t('agentListHelp')}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <SettingsSection
+      title={t('agentList')}
+      description={t('agentListHelp')}
+      actions={
+        <Button type='button' variant='ghost' size='sm' onClick={onAddAgent}>
+          <Plus className='mr-2 h-4 w-4' />
+          {t('addAgent')}
+        </Button>
+      }
+    >
+      <SettingsGroup>
         {agents.map((agent, index) => (
-          <div key={`${index}-${agent.id}`} className="rounded-xl border border-gray-200 p-3 space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div key={`${index}-${agent.id}`} className='space-y-3 p-4'>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
               <Input value={agent.id} onChange={(event) => onUpdateAgent(index, { id: event.target.value })} placeholder={t('agentIdPlaceholder')} />
               <Input value={agent.workspace ?? ''} onChange={(event) => onUpdateAgent(index, { workspace: event.target.value })} placeholder={t('workspaceOverridePlaceholder')} />
               <Input value={agent.model ?? ''} onChange={(event) => onUpdateAgent(index, { model: event.target.value })} placeholder={t('modelOverridePlaceholder')} />
               <Input value={agent.runtime ?? agent.engine ?? ''} onChange={(event) => onUpdateAgent(index, { runtime: event.target.value })} placeholder={t('engineOverridePlaceholder')} />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
                 <Input
-                  type="number"
+                  type='number'
                   min={1000}
                   step={1000}
                   value={agent.contextTokens ?? ''}
@@ -44,7 +49,7 @@ export function RuntimeAgentListCard({
                   placeholder={t('contextTokensPlaceholder')}
                 />
                 <Input
-                  type="number"
+                  type='number'
                   min={1}
                   value={agent.maxToolIterations ?? ''}
                   onChange={(event) => onUpdateAgent(index, { maxToolIterations: parseOptionalInt(event.target.value) })}
@@ -52,23 +57,19 @@ export function RuntimeAgentListCard({
                 />
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center gap-2 text-sm text-muted-foreground'>
                 <Switch checked={Boolean(agent.default)} onCheckedChange={(checked) => onSetDefaultAgent(index, checked)} />
                 <span>{t('defaultAgent')}</span>
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={() => onRemoveAgent(index)}>
-                <Trash2 className="h-4 w-4 mr-1" />
+              <Button type='button' variant='outline' size='sm' onClick={() => onRemoveAgent(index)}>
+                <Trash2 className='h-4 w-4 mr-1' />
                 {t('remove')}
               </Button>
             </div>
           </div>
         ))}
-        <Button type="button" variant="outline" onClick={onAddAgent}>
-          <Plus className="h-4 w-4 mr-2" />
-          {t('addAgent')}
-        </Button>
-      </CardContent>
-    </Card>
+      </SettingsGroup>
+    </SettingsSection>
   );
 }

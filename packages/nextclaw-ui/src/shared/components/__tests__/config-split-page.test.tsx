@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ConfigSplitDetailPane,
   ConfigSplitPage,
@@ -8,10 +8,22 @@ import {
 import { I18nProvider } from "@/app/components/i18n-provider";
 
 describe("ConfigSplitPage", () => {
+  beforeEach(() => {
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, value: 500 });
+    vi.stubGlobal("ResizeObserver", class {
+      constructor(private readonly callback: ResizeObserverCallback) {}
+      observe = () => this.callback([], this as unknown as ResizeObserver);
+      disconnect = () => {};
+      unobserve = () => {};
+    });
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
   it("shows only the list pane in mobile list mode", () => {
     render(
       <I18nProvider>
-        <ConfigSplitPage mobileView="list" mobileListLabel="Providers">
+        <ConfigSplitPage compactView="list" mobileListLabel="Providers">
           <ConfigSplitSidebar>
             <div data-testid="config-list-pane">List Pane</div>
           </ConfigSplitSidebar>
@@ -29,7 +41,7 @@ describe("ConfigSplitPage", () => {
   it("shows the detail pane and back affordance in mobile detail mode", () => {
     render(
       <I18nProvider>
-        <ConfigSplitPage mobileView="detail" mobileListLabel="Providers">
+        <ConfigSplitPage compactView="detail" mobileListLabel="Providers">
           <ConfigSplitSidebar>
             <div data-testid="config-list-pane">List Pane</div>
           </ConfigSplitSidebar>

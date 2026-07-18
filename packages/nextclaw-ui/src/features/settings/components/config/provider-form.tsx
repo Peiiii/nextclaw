@@ -432,7 +432,7 @@ function ProviderFormDetailPane(props: ProviderFormDetailPaneProps) {
 
   return (
     <ConfigSplitDetailPane>
-      <ConfigSplitPaneHeader className='px-6 py-4'>
+      <ConfigSplitPaneHeader className='px-5 py-4'>
         <div className='flex items-center justify-between'>
           <h3 className='truncate text-lg font-semibold text-foreground'>{providerTitle}</h3>
           <div className='flex items-center gap-3'>
@@ -451,7 +451,7 @@ function ProviderFormDetailPane(props: ProviderFormDetailPaneProps) {
       </ConfigSplitPaneHeader>
 
       <form onSubmit={onSubmit} className='flex min-h-0 flex-1 flex-col'>
-        <ConfigSplitPaneBody className='space-y-5 px-6 py-5'>
+        <ConfigSplitPaneBody className='space-y-4 px-5 py-4'>
           <div className='space-y-2'>
             <Label htmlFor='providerDisplayName' className='text-sm font-medium text-foreground'>
               {t('providerDisplayName')}
@@ -469,7 +469,7 @@ function ProviderFormDetailPane(props: ProviderFormDetailPaneProps) {
 
           <div className='space-y-2'>
             <Label htmlFor='apiKey' className='text-sm font-medium text-foreground'>
-              {context.apiKeyHint?.label ?? t('apiKey')}
+              {t('apiKey')}
             </Label>
             <MaskedInput
               id='apiKey'
@@ -501,7 +501,7 @@ function ProviderFormDetailPane(props: ProviderFormDetailPaneProps) {
 
           <div className='space-y-2'>
             <Label htmlFor='apiBase' className='text-sm font-medium text-foreground'>
-              {context.apiBaseHint?.label ?? t('apiBase')}
+              {t('apiBase')}
             </Label>
             <Input
               id='apiBase'
@@ -534,12 +534,12 @@ function ProviderFormDetailPane(props: ProviderFormDetailPaneProps) {
             showAdvanced={showAdvanced}
             onShowAdvancedChange={onShowAdvancedChange}
             supportsWireApi={context.supportsWireApi}
-            wireApiLabel={context.wireApiHint?.label ?? t('wireApi')}
+            wireApiLabel={t('wireApi')}
             wireApi={wireApi}
             onWireApiChange={onWireApiChange}
             shouldUseWireApiPills={context.shouldUseWireApiPills}
             wireApiSelectOptions={context.wireApiSelectOptions}
-            extraHeadersLabel={context.extraHeadersHint?.label ?? t('extraHeaders')}
+            extraHeadersLabel={t('extraHeaders')}
             extraHeaders={extraHeaders}
             onExtraHeadersChange={onExtraHeadersChange}
           />

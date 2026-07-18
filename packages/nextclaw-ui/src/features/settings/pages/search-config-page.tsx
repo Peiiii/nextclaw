@@ -1,40 +1,49 @@
-import { useState } from "react";
-import { KeyRound, Search as SearchIcon } from "lucide-react";
-import { PageHeader, PageLayout } from "@/app/components/layout/page-layout";
-import { NavigationLink } from "@/shared/components/actions/navigation-link";
-import { Button } from "@/shared/components/ui/button";
-import { FormActions } from "@/shared/components/ui/actions/form-actions";
-import { Input } from "@/shared/components/ui/input";
-import { Label } from "@/shared/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
-import { useConfig, useConfigMeta, useUpdateSearch } from "@/shared/hooks/use-config";
-import { t } from "@/shared/lib/i18n";
-import type { SearchConfigUpdate, SearchProviderName, TavilySearchDepthValue } from "@/shared/lib/api";
-import { ConfigSelectionCard, ConfigSplitDetailPane, ConfigSplitEmptyPane, ConfigSplitPage, ConfigSplitPaneBody, ConfigSplitPaneFooter, ConfigSplitPaneHeader, ConfigSplitSidebar } from "@/shared/components/config-split-page";
-import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
+import { useState } from 'react';
+import { KeyRound, Search as SearchIcon } from 'lucide-react';
+import { SettingsPage } from '@/shared/components/settings/settings-page';
+import { NavigationLink } from '@/shared/components/actions/navigation-link';
+import { Button } from '@/shared/components/ui/button';
+import { FormActions } from '@/shared/components/ui/actions/form-actions';
+import { Input } from '@/shared/components/ui/input';
+import { Label } from '@/shared/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { useConfig, useConfigMeta, useUpdateSearch } from '@/shared/hooks/use-config';
+import { t } from '@/shared/lib/i18n';
+import type { SearchConfigUpdate, SearchProviderName, TavilySearchDepthValue } from '@/shared/lib/api';
+import {
+  ConfigSelectionCard,
+  ConfigSplitDetailPane,
+  ConfigSplitEmptyPane,
+  ConfigSplitPage,
+  ConfigSplitPaneBody,
+  ConfigSplitPaneFooter,
+  ConfigSplitPaneHeader,
+  ConfigSplitSidebar
+} from '@/shared/components/config-split-page';
+import { useViewportLayout } from '@/app/hooks/use-viewport-layout';
 
 const FRESHNESS_OPTIONS = [
-  { value: "noLimit", label: "searchFreshnessNoLimit" },
-  { value: "oneDay", label: "searchFreshnessOneDay" },
-  { value: "oneWeek", label: "searchFreshnessOneWeek" },
-  { value: "oneMonth", label: "searchFreshnessOneMonth" },
-  { value: "oneYear", label: "searchFreshnessOneYear" },
+  { value: 'noLimit', label: 'searchFreshnessNoLimit' },
+  { value: 'oneDay', label: 'searchFreshnessOneDay' },
+  { value: 'oneWeek', label: 'searchFreshnessOneWeek' },
+  { value: 'oneMonth', label: 'searchFreshnessOneMonth' },
+  { value: 'oneYear', label: 'searchFreshnessOneYear' }
 ] as const;
 
 const SEARCH_DEPTH_OPTIONS = [
-  { value: "basic", label: "searchDepthBasic" },
-  { value: "advanced", label: "searchDepthAdvanced" },
+  { value: 'basic', label: 'searchDepthBasic' },
+  { value: 'advanced', label: 'searchDepthAdvanced' }
 ] as const;
 
 const ENABLED_OPTIONS = [
-  { value: "true", label: "enabled" },
-  { value: "false", label: "disabled" },
+  { value: 'true', label: 'enabled' },
+  { value: 'false', label: 'disabled' }
 ] as const;
 
 const SEARCH_PROVIDER_DESCRIPTION_KEYS: Record<SearchProviderName, string> = {
-  bocha: "searchProviderBochaDescription",
-  tavily: "searchProviderTavilyDescription",
-  brave: "searchProviderBraveDescription",
+  bocha: 'searchProviderBochaDescription',
+  tavily: 'searchProviderTavilyDescription',
+  brave: 'searchProviderBraveDescription'
 };
 
 type SearchDraft = {
@@ -42,7 +51,12 @@ type SearchDraft = {
   enabledProviders: SearchProviderName[];
   maxResults: string;
   providers: {
-    bocha: { apiKey: string; baseUrl: string; summary: boolean; freshness: string };
+    bocha: {
+      apiKey: string;
+      baseUrl: string;
+      summary: boolean;
+      freshness: string;
+    };
     tavily: {
       apiKey: string;
       baseUrl: string;
@@ -53,11 +67,11 @@ type SearchDraft = {
   };
 };
 
-type SearchView = NonNullable<ReturnType<typeof useConfig>["data"]>["search"];
-type SearchProviderMeta = NonNullable<ReturnType<typeof useConfigMeta>["data"]>["search"][number];
+type SearchView = NonNullable<ReturnType<typeof useConfig>['data']>['search'];
+type SearchProviderMeta = NonNullable<ReturnType<typeof useConfigMeta>['data']>['search'][number];
 type UpdateProviderDraft = <T extends SearchProviderName>(
   provider: T,
-  patch: Partial<SearchDraft["providers"][T]>,
+  patch: Partial<SearchDraft['providers'][T]>
 ) => void;
 
 function buildSearchDraft(search: SearchView): SearchDraft {
@@ -67,19 +81,19 @@ function buildSearchDraft(search: SearchView): SearchDraft {
     maxResults: String(search.defaults.maxResults),
     providers: {
       bocha: {
-        apiKey: "",
+        apiKey: '',
         baseUrl: search.providers.bocha.baseUrl,
         summary: Boolean(search.providers.bocha.summary),
-        freshness: search.providers.bocha.freshness ?? "noLimit",
+        freshness: search.providers.bocha.freshness ?? 'noLimit'
       },
       tavily: {
-        apiKey: "",
+        apiKey: '',
         baseUrl: search.providers.tavily.baseUrl,
-        searchDepth: search.providers.tavily.searchDepth ?? "basic",
-        includeAnswer: Boolean(search.providers.tavily.includeAnswer),
+        searchDepth: search.providers.tavily.searchDepth ?? 'basic',
+        includeAnswer: Boolean(search.providers.tavily.includeAnswer)
       },
-      brave: { apiKey: "", baseUrl: search.providers.brave.baseUrl },
-    },
+      brave: { apiKey: '', baseUrl: search.providers.brave.baseUrl }
+    }
   };
 }
 
@@ -93,19 +107,19 @@ function buildSearchPayload(draft: SearchDraft): SearchConfigUpdate {
         apiKey: draft.providers.bocha.apiKey || undefined,
         baseUrl: draft.providers.bocha.baseUrl,
         summary: draft.providers.bocha.summary,
-        freshness: draft.providers.bocha.freshness,
+        freshness: draft.providers.bocha.freshness
       },
       tavily: {
         apiKey: draft.providers.tavily.apiKey || undefined,
         baseUrl: draft.providers.tavily.baseUrl,
         searchDepth: draft.providers.tavily.searchDepth,
-        includeAnswer: draft.providers.tavily.includeAnswer,
+        includeAnswer: draft.providers.tavily.includeAnswer
       },
       brave: {
         apiKey: draft.providers.brave.apiKey || undefined,
-        baseUrl: draft.providers.brave.baseUrl,
-      },
-    },
+        baseUrl: draft.providers.brave.baseUrl
+      }
+    }
   };
 }
 
@@ -115,11 +129,11 @@ function SearchTextField(props: {
   onChange: (value: string) => void;
   placeholder?: string;
   type?: string;
-  inputMode?: "numeric";
+  inputMode?: 'numeric';
 }) {
-  const { label, value, onChange, placeholder, type = "text", inputMode } = props;
+  const { label, value, onChange, placeholder, type = 'text', inputMode } = props;
   return (
-    <div className="space-y-2">
+    <div className='space-y-2'>
       <Label>{label}</Label>
       <Input
         type={type}
@@ -127,7 +141,7 @@ function SearchTextField(props: {
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         inputMode={inputMode}
-        className="rounded-xl"
+        className='rounded-xl'
       />
     </div>
   );
@@ -141,10 +155,10 @@ function SearchSelectField(props: {
 }) {
   const { label, value, options, onChange } = props;
   return (
-    <div className="space-y-2">
+    <div className='space-y-2'>
       <Label>{label}</Label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="rounded-xl">
+        <SelectTrigger className='rounded-xl'>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -163,7 +177,7 @@ function SearchDocsLink({ docsUrl }: { docsUrl?: string }) {
   if (!docsUrl) return null;
   return (
     <NavigationLink href={docsUrl} external>
-      {t("searchProviderOpenDocs")}
+      {t('searchProviderOpenDocs')}
     </NavigationLink>
   );
 }
@@ -177,73 +191,73 @@ function SearchProviderFields(props: {
 }) {
   const { draft, provider, search, selectedDocsUrl, updateProviderDraft } = props;
 
-  if (provider === "bocha") {
+  if (provider === 'bocha') {
     const { bocha } = draft.providers;
     return (
       <>
         <SearchTextField
-          label={t("apiKey")}
+          label={t('apiKey')}
           value={bocha.apiKey}
-          onChange={(apiKey) => updateProviderDraft("bocha", { apiKey })}
-          placeholder={search.providers.bocha.apiKeyMasked || t("enterApiKey")}
-          type="password"
+          onChange={(apiKey) => updateProviderDraft('bocha', { apiKey })}
+          placeholder={search.providers.bocha.apiKeyMasked || t('enterApiKey')}
+          type='password'
         />
         <SearchTextField
-          label={t("searchProviderBaseUrl")}
+          label={t('searchProviderBaseUrl')}
           value={bocha.baseUrl}
-          onChange={(baseUrl) => updateProviderDraft("bocha", { baseUrl })}
+          onChange={(baseUrl) => updateProviderDraft('bocha', { baseUrl })}
         />
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className='grid gap-4 md:grid-cols-2'>
           <SearchSelectField
-            label={t("searchProviderSummary")}
-            value={bocha.summary ? "true" : "false"}
+            label={t('searchProviderSummary')}
+            value={bocha.summary ? 'true' : 'false'}
             options={ENABLED_OPTIONS}
-            onChange={(value) => updateProviderDraft("bocha", { summary: value === "true" })}
+            onChange={(value) => updateProviderDraft('bocha', { summary: value === 'true' })}
           />
           <SearchSelectField
-            label={t("searchProviderFreshness")}
+            label={t('searchProviderFreshness')}
             value={bocha.freshness}
             options={FRESHNESS_OPTIONS}
-            onChange={(freshness) => updateProviderDraft("bocha", { freshness })}
+            onChange={(freshness) => updateProviderDraft('bocha', { freshness })}
           />
         </div>
-        <SearchDocsLink docsUrl={selectedDocsUrl ?? "https://open.bocha.cn"} />
+        <SearchDocsLink docsUrl={selectedDocsUrl ?? 'https://open.bocha.cn'} />
       </>
     );
   }
 
-  if (provider === "tavily") {
+  if (provider === 'tavily') {
     const { tavily } = draft.providers;
     return (
       <>
         <SearchTextField
-          label={t("apiKey")}
+          label={t('apiKey')}
           value={tavily.apiKey}
-          onChange={(apiKey) => updateProviderDraft("tavily", { apiKey })}
-          placeholder={search.providers.tavily.apiKeyMasked || t("enterApiKey")}
-          type="password"
+          onChange={(apiKey) => updateProviderDraft('tavily', { apiKey })}
+          placeholder={search.providers.tavily.apiKeyMasked || t('enterApiKey')}
+          type='password'
         />
         <SearchTextField
-          label={t("searchProviderBaseUrl")}
+          label={t('searchProviderBaseUrl')}
           value={tavily.baseUrl}
-          onChange={(baseUrl) => updateProviderDraft("tavily", { baseUrl })}
+          onChange={(baseUrl) => updateProviderDraft('tavily', { baseUrl })}
         />
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className='grid gap-4 md:grid-cols-2'>
           <SearchSelectField
-            label={t("searchProviderSearchDepth")}
+            label={t('searchProviderSearchDepth')}
             value={tavily.searchDepth}
             options={SEARCH_DEPTH_OPTIONS}
             onChange={(searchDepth) =>
-              updateProviderDraft("tavily", { searchDepth: searchDepth as TavilySearchDepthValue })
+              updateProviderDraft('tavily', {
+                searchDepth: searchDepth as TavilySearchDepthValue
+              })
             }
           />
           <SearchSelectField
-            label={t("searchProviderIncludeAnswer")}
-            value={tavily.includeAnswer ? "true" : "false"}
+            label={t('searchProviderIncludeAnswer')}
+            value={tavily.includeAnswer ? 'true' : 'false'}
             options={ENABLED_OPTIONS}
-            onChange={(value) =>
-              updateProviderDraft("tavily", { includeAnswer: value === "true" })
-            }
+            onChange={(value) => updateProviderDraft('tavily', { includeAnswer: value === 'true' })}
           />
         </div>
         <SearchDocsLink docsUrl={selectedDocsUrl} />
@@ -255,16 +269,16 @@ function SearchProviderFields(props: {
   return (
     <>
       <SearchTextField
-        label={t("apiKey")}
+        label={t('apiKey')}
         value={brave.apiKey}
-        onChange={(apiKey) => updateProviderDraft("brave", { apiKey })}
-        placeholder={search.providers.brave.apiKeyMasked || t("enterApiKey")}
-        type="password"
+        onChange={(apiKey) => updateProviderDraft('brave', { apiKey })}
+        placeholder={search.providers.brave.apiKeyMasked || t('enterApiKey')}
+        type='password'
       />
       <SearchTextField
-        label={t("searchProviderBaseUrl")}
+        label={t('searchProviderBaseUrl')}
         value={brave.baseUrl}
-        onChange={(baseUrl) => updateProviderDraft("brave", { baseUrl })}
+        onChange={(baseUrl) => updateProviderDraft('brave', { baseUrl })}
       />
     </>
   );
@@ -280,12 +294,10 @@ function SearchProviderSidebar(props: {
   const { draft, providers, search, selectedProvider, onSelect } = props;
   return (
     <ConfigSplitSidebar>
-      <ConfigSplitPaneHeader className="px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
-          {t("searchChannels")}
-        </p>
+      <ConfigSplitPaneHeader className='px-4 py-4'>
+        <p className='text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground'>{t('searchChannels')}</p>
       </ConfigSplitPaneHeader>
-      <ConfigSplitPaneBody className="space-y-2 p-3">
+      <ConfigSplitPaneBody className='space-y-2 p-3'>
         {providers.map((provider) => {
           const providerView = search.providers[provider.name];
           const isEnabled = draft.enabledProviders.includes(provider.name);
@@ -294,26 +306,22 @@ function SearchProviderSidebar(props: {
               key={provider.name}
               onClick={() => onSelect(provider.name)}
               active={selectedProvider === provider.name}
-              className="p-3"
+              className='p-3'
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-gray-900">
-                    {provider.displayName}
-                  </p>
-                  <p className="line-clamp-2 text-[11px] text-gray-500">
+              <div className='flex items-start justify-between gap-3'>
+                <div className='min-w-0'>
+                  <p className='truncate text-sm font-semibold text-foreground'>{provider.displayName}</p>
+                  <p className='line-clamp-2 text-[11px] text-muted-foreground'>
                     {t(SEARCH_PROVIDER_DESCRIPTION_KEYS[provider.name])}
                   </p>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
-                    {providerView.apiKeySet
-                      ? t("searchStatusConfigured")
-                      : t("searchStatusNeedsSetup")}
+                <div className='flex flex-col items-end gap-1'>
+                  <span className='rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground'>
+                    {providerView.apiKeySet ? t('searchStatusConfigured') : t('searchStatusNeedsSetup')}
                   </span>
                   {isEnabled ? (
-                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                      {t("searchProviderActivated")}
+                    <span className='rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700'>
+                      {t('searchProviderActivated')}
                     </span>
                   ) : null}
                 </div>
@@ -335,9 +343,7 @@ function SearchConfigForm(props: {
 }) {
   const { initialDraft, providers, search, onSubmit, isPending } = props;
   const { isMobile } = useViewportLayout();
-  const [selectedProvider, setSelectedProvider] = useState<SearchProviderName | null>(
-    isMobile ? null : search.provider,
-  );
+  const [selectedProvider, setSelectedProvider] = useState<SearchProviderName | null>(null);
   const [draft, setDraft] = useState(initialDraft);
   const resolvedSelectedProvider =
     selectedProvider && providers.some((provider) => provider.name === selectedProvider)
@@ -345,14 +351,9 @@ function SearchConfigForm(props: {
       : isMobile
         ? null
         : search.provider;
-  const selectedMeta =
-    providers.find((provider) => provider.name === resolvedSelectedProvider) ?? null;
-  const selectedView = resolvedSelectedProvider
-    ? search.providers[resolvedSelectedProvider]
-    : null;
-  const selectedEnabled = resolvedSelectedProvider
-    ? draft.enabledProviders.includes(resolvedSelectedProvider)
-    : false;
+  const selectedMeta = providers.find((provider) => provider.name === resolvedSelectedProvider) ?? null;
+  const selectedView = resolvedSelectedProvider ? search.providers[resolvedSelectedProvider] : null;
+  const selectedEnabled = resolvedSelectedProvider ? draft.enabledProviders.includes(resolvedSelectedProvider) : false;
   const selectedDocsUrl = selectedView?.docsUrl ?? selectedMeta?.docsUrl;
 
   const updateProviderDraft: UpdateProviderDraft = (provider, patch) => {
@@ -360,8 +361,8 @@ function SearchConfigForm(props: {
       ...prev,
       providers: {
         ...prev.providers,
-        [provider]: { ...prev.providers[provider], ...patch },
-      },
+        [provider]: { ...prev.providers[provider], ...patch }
+      }
     }));
   };
 
@@ -378,10 +379,10 @@ function SearchConfigForm(props: {
 
   return (
     <ConfigSplitPage
-      className="xl:min-h-0"
-      mobileView={isMobile ? (resolvedSelectedProvider ? "detail" : "list") : undefined}
+      className='md:min-h-0'
+      compactView={selectedProvider ? 'detail' : 'list'}
       onMobileBack={() => setSelectedProvider(null)}
-      mobileListLabel={t("searchPageTitle")}
+      mobileListLabel={t('searchPageTitle')}
     >
       <SearchProviderSidebar
         draft={draft}
@@ -392,7 +393,7 @@ function SearchConfigForm(props: {
       />
       {!selectedMeta ? (
         <ConfigSplitEmptyPane>
-          <p className="text-sm text-gray-500">{t("searchNoProviderSelected")}</p>
+          <p className='text-sm text-muted-foreground'>{t('searchNoProviderSelected')}</p>
         </ConfigSplitEmptyPane>
       ) : (
         <ConfigSplitDetailPane>
@@ -401,48 +402,53 @@ function SearchConfigForm(props: {
               event.preventDefault();
               onSubmit(draft);
             }}
-            className="flex min-h-0 flex-1 flex-col"
+            className='flex min-h-0 flex-1 flex-col'
           >
-            <ConfigSplitPaneHeader className="px-6 py-5">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
-                    <SearchIcon className="h-5 w-5" />
+            <ConfigSplitPaneHeader className='px-5 py-4'>
+              <div className='flex items-start justify-between gap-4'>
+                <div className='flex items-center gap-3'>
+                  <div className='flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground'>
+                    <SearchIcon className='h-5 w-5' />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{selectedMeta.displayName}</h3>
-                    <p className="text-sm text-gray-500">{selectedMeta.description}</p>
+                    <h3 className='text-lg font-semibold text-foreground'>{selectedMeta.displayName}</h3>
+                    <p className='text-sm text-muted-foreground'>
+                      {t(SEARCH_PROVIDER_DESCRIPTION_KEYS[selectedMeta.name])}
+                    </p>
                   </div>
                 </div>
                 <Button
-                  type="button"
-                  variant={selectedEnabled ? "secondary" : "outline"}
-                  className="rounded-xl"
+                  type='button'
+                  variant={selectedEnabled ? 'secondary' : 'outline'}
+                  className='rounded-xl'
                   onClick={handleToggleEnabled}
                 >
-                  {selectedEnabled ? t("searchProviderDeactivate") : t("searchProviderActivate")}
+                  {selectedEnabled ? t('searchProviderDeactivate') : t('searchProviderActivate')}
                 </Button>
               </div>
             </ConfigSplitPaneHeader>
 
-            <ConfigSplitPaneBody className="space-y-6 px-6 py-5">
-              <div className="grid gap-4 md:grid-cols-2">
+            <ConfigSplitPaneBody className='space-y-5 px-5 py-4'>
+              <div className='grid gap-4 md:grid-cols-2'>
                 <SearchSelectField
-                  label={t("searchActiveProvider")}
+                  label={t('searchActiveProvider')}
                   value={draft.activeProvider}
                   options={providers.map((provider) => ({
                     value: provider.name,
-                    label: provider.displayName,
+                    label: provider.displayName
                   }))}
                   onChange={(activeProvider) =>
-                    setDraft({ ...draft, activeProvider: activeProvider as SearchProviderName })
+                    setDraft({
+                      ...draft,
+                      activeProvider: activeProvider as SearchProviderName
+                    })
                   }
                 />
                 <SearchTextField
-                  label={t("searchDefaultMaxResults")}
+                  label={t('searchDefaultMaxResults')}
                   value={draft.maxResults}
                   onChange={(maxResults) => setDraft({ ...draft, maxResults })}
-                  inputMode="numeric"
+                  inputMode='numeric'
                 />
               </div>
 
@@ -457,9 +463,9 @@ function SearchConfigForm(props: {
 
             <ConfigSplitPaneFooter>
               <FormActions>
-                <Button type="submit" size="sm" disabled={isPending}>
-                  <KeyRound className="mr-1.5 h-3.5 w-3.5" />
-                  {isPending ? t("saving") : t("saveChanges")}
+                <Button type='submit' size='sm' disabled={isPending}>
+                  <KeyRound className='mr-1.5 h-3.5 w-3.5' />
+                  {isPending ? t('saving') : t('saveChanges')}
                 </Button>
               </FormActions>
             </ConfigSplitPaneFooter>
@@ -478,12 +484,15 @@ export function SearchConfigPage() {
   const search = config?.search;
 
   if (!search || providers.length === 0) {
-    return <div className="p-8">{t("loading")}</div>;
+    return (
+      <SettingsPage title={t('searchPageTitle')} description={t('searchPageDescription')} layout='split'>
+        <div className='text-sm text-muted-foreground'>{t('loading')}</div>
+      </SettingsPage>
+    );
   }
 
   return (
-    <PageLayout className="pb-0 xl:flex xl:h-full xl:min-h-0 xl:flex-col">
-      <PageHeader title={t("searchPageTitle")} description={t("searchPageDescription")} />
+    <SettingsPage title={t('searchPageTitle')} description={t('searchPageDescription')} layout='split'>
       <SearchConfigForm
         key={JSON.stringify(search)}
         initialDraft={buildSearchDraft(search)}
@@ -492,6 +501,6 @@ export function SearchConfigPage() {
         onSubmit={(draft) => updateSearch.mutate({ data: buildSearchPayload(draft) })}
         isPending={updateSearch.isPending}
       />
-    </PageLayout>
+    </SettingsPage>
   );
 }
