@@ -83,7 +83,7 @@
   "chatWorkspaceDiffEmpty": "No diff content is available.",
   "chatWorkspaceHtmlPreviewTitle": "Rendered HTML preview",
   "chatWorkspacePreviewTruncated": "Preview truncated",
-  "chatWorkspaceSessionCronJobs": "Session cron jobs",
+  "chatWorkspaceSessionCronJobs": "Scheduled tasks",
   "chatWorkspaceCronJobEmpty": "This session has no cron jobs.",
   "chatSessionUnread": "Session has unread updates",
   "chatTyping": "Agent is thinking...",

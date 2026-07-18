@@ -1,11 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResolvedChildSessionTab } from "@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view";
 import {
   buildWorkspaceTabsViewModel,
   resolveWorkspaceSelection,
 } from "@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils";
 import { createWorkspaceFileTab } from "@/features/chat/features/workspace/utils/chat-workspace-file-tab.utils";
-import { t } from "@/shared/lib/i18n";
+import { setLanguage, t } from "@/shared/lib/i18n";
 
 function createChildTab(
   overrides: Partial<ResolvedChildSessionTab> = {},
@@ -136,8 +136,10 @@ describe("createWorkspaceFileTab", () => {
   });
 });
 
-describe("buildWorkspaceTabsViewModel", () => {
-  it("keeps overview fixed while every other visible workspace tab is closable", () => {
+describe("fixed workspace tabs", () => {
+  beforeEach(() => setLanguage("en"));
+
+  it("keeps workspace page tabs fixed while resource tabs remain closable", () => {
     const childTab = createChildTab();
     const draft = {
       draftKey: "draft-1",
@@ -167,19 +169,36 @@ describe("buildWorkspaceTabsViewModel", () => {
       onSelectCronJobs: vi.fn(),
     });
 
-    expect(tabs.find((tab) => tab.kind === "overview")?.onClose).toBeUndefined();
     expect(
-      tabs.filter((tab) => tab.kind !== "overview").every((tab) => tab.onClose),
+      tabs
+        .filter((tab) =>
+          ["overview", "child-sessions", "cron", "project-files"].includes(
+            tab.kind,
+          ),
+        )
+        .every((tab) => !tab.onClose),
     ).toBe(true);
-    tabs.find((tab) => tab.kind === "cron")?.onClose?.();
-    expect(onCloseTab).toHaveBeenCalledWith({ kind: "cron" });
+    expect(
+      tabs
+        .filter((tab) =>
+          ["side-chat-draft", "child-session", "file"].includes(tab.kind),
+        )
+        .every((tab) => tab.onClose),
+    ).toBe(true);
+    tabs.find((tab) => tab.kind === "child-session")?.onClose?.();
+    expect(onCloseTab).toHaveBeenCalledWith({
+      kind: "child-session",
+      key: childTab.sessionKey,
+    });
   });
 
-  it("does not project workspace tabs that the user closed", () => {
+  it("keeps fixed workspace tabs even when legacy closed entries exist", () => {
     const tabs = buildWorkspaceTabsViewModel({
       resolvedChildTabs: [createChildTab()],
       activeSideChatDraft: null,
       closedWorkspaceTabEntries: [
+        { kind: "child-sessions" },
+        { kind: "cron" },
         { kind: "project-files" },
         { kind: "child-session", key: "child-1" },
       ],
@@ -200,8 +219,42 @@ describe("buildWorkspaceTabsViewModel", () => {
       "overview",
       "child-sessions",
       "cron:session",
+      "project-files",
     ]);
   });
+
+  it("uses the exact fixed workspace tab names in Chinese", () => {
+    setLanguage("zh");
+
+    const tabs = buildWorkspaceTabsViewModel({
+      resolvedChildTabs: [],
+      activeSideChatDraft: null,
+      closedWorkspaceTabEntries: [],
+      workspaceFileTabs: [],
+      activeSelection: { kind: "overview" },
+      optimisticReadAtBySessionKey: {},
+      onSelectSession: vi.fn(),
+      onSelectFile: vi.fn(),
+      onOpenFileViewer: vi.fn(),
+      onCloseTab: vi.fn(),
+      onSelectOverview: vi.fn(),
+      onSelectChildSessions: vi.fn(),
+      onSelectProjectFiles: vi.fn(),
+      onSelectCronJobs: vi.fn(),
+    });
+
+    expect(
+      tabs
+        .filter((tab) =>
+          ["child-sessions", "cron", "project-files"].includes(tab.kind),
+        )
+        .map((tab) => tab.title),
+    ).toEqual(["子会话", "定时任务", "项目文件"]);
+  });
+});
+
+describe("buildWorkspaceTabsViewModel", () => {
+  beforeEach(() => setLanguage("en"));
 
   it("builds active and unread state from resolved tabs", () => {
     const childTab = createChildTab({

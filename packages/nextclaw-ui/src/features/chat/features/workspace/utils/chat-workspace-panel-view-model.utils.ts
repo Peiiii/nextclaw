@@ -170,19 +170,8 @@ type WorkspaceTabsViewModelParams = {
   onSelectCronJobs: () => void;
 };
 
-function createWorkspacePageTabEntry(
-  kind: ChatWorkspacePanelKind,
-): ChatWorkspaceNavigationEntry | null {
-  if (kind === "child-sessions" || kind === "cron" || kind === "project-files") {
-    return { kind };
-  }
-  return null;
-}
-
 function buildWorkspacePageTabs({
   activeSelection,
-  closedWorkspaceTabEntries,
-  onCloseTab,
   onSelectChildSessions,
   onSelectCronJobs,
   onSelectOverview,
@@ -190,14 +179,12 @@ function buildWorkspacePageTabs({
 }: Pick<
   WorkspaceTabsViewModelParams,
   | "activeSelection"
-  | "closedWorkspaceTabEntries"
-  | "onCloseTab"
   | "onSelectChildSessions"
   | "onSelectCronJobs"
   | "onSelectOverview"
   | "onSelectProjectFiles"
 >): WorkspaceTabViewModel[] {
-  const tabs: WorkspaceTabViewModel[] = [
+  return [
     {
       key: "overview",
       kind: "overview",
@@ -213,7 +200,6 @@ function buildWorkspacePageTabs({
       tooltip: t("chatWorkspaceChildSessions"),
       active: activeSelection?.kind === "child-sessions",
       onSelect: onSelectChildSessions,
-      onClose: () => onCloseTab({ kind: "child-sessions" }),
     },
     {
       key: "cron:session",
@@ -222,7 +208,6 @@ function buildWorkspacePageTabs({
       tooltip: t("chatWorkspaceSessionCronJobs"),
       active: activeSelection?.kind === "cron",
       onSelect: onSelectCronJobs,
-      onClose: () => onCloseTab({ kind: "cron" }),
     },
     {
       key: "project-files",
@@ -231,15 +216,8 @@ function buildWorkspacePageTabs({
       tooltip: t("chatWorkspaceProjectFiles"),
       active: activeSelection?.kind === "project-files",
       onSelect: onSelectProjectFiles,
-      onClose: () => onCloseTab({ kind: "project-files" }),
     },
   ];
-  return tabs.filter((tab) => {
-    const entry = createWorkspacePageTabEntry(tab.kind);
-    return !entry || !closedWorkspaceTabEntries.some((candidate) =>
-      areWorkspaceNavigationEntriesEqual(candidate, entry),
-    );
-  });
 }
 
 export function buildWorkspaceTabsViewModel(
@@ -264,8 +242,6 @@ export function buildWorkspaceTabsViewModel(
 
   const workspacePages = buildWorkspacePageTabs({
     activeSelection,
-    closedWorkspaceTabEntries,
-    onCloseTab,
     onSelectChildSessions,
     onSelectCronJobs,
     onSelectOverview,

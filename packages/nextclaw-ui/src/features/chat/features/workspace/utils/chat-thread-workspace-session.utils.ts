@@ -123,7 +123,12 @@ export function closeWorkspaceTabSnapshot(
   snapshot: ChatThreadSnapshot,
   entry: ChatWorkspaceNavigationEntry,
 ): Partial<ChatThreadSnapshot> | null {
-  if (entry.kind === 'overview') {
+  if (
+    entry.kind === 'overview' ||
+    entry.kind === 'child-sessions' ||
+    entry.kind === 'cron' ||
+    entry.kind === 'project-files'
+  ) {
     return null;
   }
   const history = filterNavigationHistoryEntries(

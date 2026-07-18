@@ -83,7 +83,7 @@
   "chatWorkspaceDiffEmpty": "当前没有可显示的 diff 内容。",
   "chatWorkspaceHtmlPreviewTitle": "HTML 渲染预览",
   "chatWorkspacePreviewTruncated": "内容已截断",
-  "chatWorkspaceSessionCronJobs": "本会话定时任务",
+  "chatWorkspaceSessionCronJobs": "定时任务",
   "chatWorkspaceCronJobEmpty": "这个会话暂无定时任务。",
   "chatSessionUnread": "会话有未读更新",
   "chatTyping": "Agent 正在思考...",

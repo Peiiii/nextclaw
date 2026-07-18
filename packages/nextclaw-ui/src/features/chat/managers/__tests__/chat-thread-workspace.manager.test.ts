@@ -75,7 +75,7 @@ describe('ChatThreadManager workspace pages', () => {
     });
   });
 
-  it('closes a workspace page, restores overview, and reopens the page on demand', () => {
+  it('does not close fixed workspace pages', () => {
     const manager = new ChatThreadManager(
       createUiManager(),
       {} as ConstructorParameters<typeof ChatThreadManager>[1],
@@ -83,19 +83,18 @@ describe('ChatThreadManager workspace pages', () => {
 
     manager.openWorkspaceOverview('parent-session-1');
     manager.openProjectFiles('parent-session-1');
-    manager.closeWorkspaceTab({ kind: 'project-files' });
+    for (const kind of ['child-sessions', 'cron', 'project-files'] as const) {
+      manager.closeWorkspaceTab({ kind });
+    }
 
-    expect(useChatThreadStore.getState().snapshot).toMatchObject({
-      activeWorkspacePanelKind: 'overview',
-      closedWorkspaceTabEntries: [{ kind: 'project-files' }],
-      workspaceNavigationHistory: [{ kind: 'overview' }],
-      workspaceNavigationHistoryIndex: 0,
-    });
-
-    manager.openProjectFiles('parent-session-1');
     expect(useChatThreadStore.getState().snapshot).toMatchObject({
       activeWorkspacePanelKind: 'project-files',
       closedWorkspaceTabEntries: [],
+      workspaceNavigationHistory: [
+        { kind: 'overview' },
+        { kind: 'project-files' },
+      ],
+      workspaceNavigationHistoryIndex: 1,
     });
   });
 });
