@@ -57,6 +57,39 @@ it("maps markdown, reasoning, and tool parts into UI view models", () => {
   });
 });
 
+it("preserves the prepared execution summary on the message view model", () => {
+  const adapted = adapt([{
+    id: "assistant-execution",
+    role: "assistant",
+    meta: {
+      executionSummaryLabel: "openai/gpt-5 · 120 input / 30 output",
+      moreActions: {
+        triggerLabel: "More actions",
+        items: [
+          {
+            key: "metadata",
+            label: "View metadata",
+            dialog: {
+              title: "Metadata",
+              closeLabel: "Close",
+              rows: [{ label: "Model", value: "openai/gpt-5" }],
+            },
+          },
+        ],
+      },
+    },
+    parts: [{ type: "text", text: "done" }],
+  }]);
+
+  expect(adapted[0]?.executionSummaryLabel).toBe(
+    "openai/gpt-5 · 120 input / 30 output",
+  );
+  expect(adapted[0]?.moreActions?.items[0]?.dialog.rows[0]).toEqual({
+    label: "Model",
+    value: "openai/gpt-5",
+  });
+});
+
 it("maps tool lifecycle statuses into visible card state feedback", () => {
   const adapted = adapt([
     {

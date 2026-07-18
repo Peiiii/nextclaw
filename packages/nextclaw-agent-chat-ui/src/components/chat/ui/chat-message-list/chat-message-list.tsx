@@ -12,7 +12,7 @@ import type {
 import { cn } from '@agent-chat-ui/components/chat/internal/cn';
 import { ChatMessageAvatar } from './chat-message-avatar';
 import { ChatMessage } from './chat-message';
-import { ChatMessageActionCopy } from './chat-message-action-copy';
+import { ChatMessageActions } from './chat-message-actions';
 
 const INVISIBLE_ONLY_TEXT_PATTERN = /\u200B|\u200C|\u200D|\u2060|\uFEFF/g;
 const TYPING_TEXT_SHEEN_CSS = `
@@ -193,11 +193,12 @@ export function ChatMessageList({
                   <ChatMessageTypingFooter />
                 </div>
               ) : (
-                <div data-chat-message-footer="flat" className="flex items-center gap-2">
+                <div data-chat-message-footer="flat" className="flex flex-wrap items-center gap-2">
                   <span className="px-1 text-[11px] leading-4 text-muted-foreground">
                     {message.timestampLabel}
+                    {message.executionSummaryLabel ? ` · ${message.executionSummaryLabel}` : null}
                   </span>
-                  <ChatMessageActionCopy message={message} texts={texts} />
+                  <ChatMessageActions message={message} texts={texts} />
                 </div>
               )}
             </article>
@@ -218,7 +219,7 @@ export function ChatMessageList({
             ) : null}
             <div className={cn('w-fit max-w-[92%] space-y-2 has-[[data-chat-message-wide-content=true]]:w-full', isUser && 'flex flex-col items-end')}>
               {content}
-              <div className={cn('flex items-center gap-2', isUser && 'justify-end')}>
+              <div className={cn('flex flex-wrap items-center gap-2', isUser && 'justify-end')}>
                 {isGenerating ? (
                   <ChatMessageTypingFooter />
                 ) : (
@@ -230,8 +231,9 @@ export function ChatMessageList({
                       )}
                     >
                       {message.roleLabel} · {message.timestampLabel}
+                      {message.executionSummaryLabel ? ` · ${message.executionSummaryLabel}` : null}
                     </div>
-                    <ChatMessageActionCopy message={message} texts={texts} />
+                    <ChatMessageActions message={message} texts={texts} />
                   </>
                 )}
               </div>

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { NcpEventType, type NcpAgentRunInput, type NcpEndpointEvent, type NcpMessage } from "@nextclaw/ncp";
+import {
+  NcpEventType,
+  readNcpAiExecutionMetadata,
+  type NcpAgentRunInput,
+  type NcpEndpointEvent,
+  type NcpMessage,
+} from "@nextclaw/ncp";
 import { NcpAgentRuntimeWrapper } from "@kernel/services/ncp-agent-runtime-wrapper.service";
 import type { AgentRunSpec } from "@kernel/types/agent-run.types";
 import { SessionRun } from "@kernel/managers/session-run.manager";
@@ -27,8 +33,10 @@ function createSessionRun(message: NcpMessage): SessionRun {
 
 const SPEC: AgentRunSpec = {
   runId: "run-1",
+  runtimeId: "codex",
   agentId: "main",
   model: "deepseek/deepseek-v4-flash",
+  requestedModel: null,
   thinkingEffort: "high",
 };
 
@@ -178,5 +186,23 @@ describe("NcpAgentRuntimeWrapper", () => {
     expect(runtimeCreations).toBe(1);
     expect(events.map((event) => event.type)).toContain(NcpEventType.MessageFailed);
     expect(events.map((event) => event.type)).toContain(NcpEventType.RunError);
+    const metadataIndex = events.findIndex(
+      (event) =>
+        event.type === NcpEventType.RunMetadata &&
+        Boolean(readNcpAiExecutionMetadata(event.payload.metadata)),
+    );
+    const errorIndex = events.findIndex((event) => event.type === NcpEventType.RunError);
+    expect(metadataIndex).toBe(errorIndex - 1);
+    expect(
+      events[metadataIndex]?.type === NcpEventType.RunMetadata
+        ? readNcpAiExecutionMetadata(events[metadataIndex].payload.metadata)
+        : null,
+    ).toMatchObject({
+      runId: "run-1",
+      runtimeId: "codex",
+      model: "deepseek/deepseek-v4-flash",
+      outcome: "failed",
+      usage: { status: "unavailable" },
+    });
   });
 });

@@ -26,6 +26,7 @@ import type {
   RuntimeQueuedEvent,
 } from "./runtime-tool-call-executor.service.js";
 import { runModelRoundWithRecovery } from "./runtime-model-round-recovery.manager.js";
+import { AgentRunExecutionManager } from "./agent-run-execution.manager.js";
 
 export type AgentRuntimeSessionStateSnapshot = {
   messages: readonly NcpMessage[];
@@ -197,6 +198,11 @@ export class DefaultNcpAgentRuntime {
     } = options;
     const sessionId = sessionRun.sessionId;
     const messageId = `assistant-message-${randomUUID()}`;
+    const executionManager = new AgentRunExecutionManager({
+      spec,
+      sessionId,
+      messageId,
+    });
     let runStartedAt: string | undefined;
 
     try {
@@ -227,6 +233,7 @@ export class DefaultNcpAgentRuntime {
         },
       }, runStartedAt));
       if (this.isAbortRequested(signal)) {
+        yield await this.applyEvent(sessionRun, executionManager.createMetadataEvent({ outcome: "aborted" }));
         yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId, spec, signal));
         return;
       }
@@ -249,6 +256,7 @@ export class DefaultNcpAgentRuntime {
             this.drainRuntimeEvents(sessionRun, encoded, toolExecutor, signal),
           executeToolCall: (toolCall, publishToolResult) =>
             this.executeToolCall(tools, sessionId, spec, toolCall, publishToolResult, signal),
+          executionManager,
           llmApi: this.llmApi,
           messageId,
           modelInput,
@@ -279,6 +287,13 @@ export class DefaultNcpAgentRuntime {
         }
 
         const endedAt = new Date().toISOString();
+        yield await this.applyEvent(
+          sessionRun,
+          executionManager.createMetadataEvent({
+            outcome: "completed",
+            occurredAt: endedAt,
+          }),
+        );
         yield await this.applyEvent(sessionRun, createRuntimeEvent({
           type: NcpEventType.RunFinished,
           payload: {
@@ -293,13 +308,22 @@ export class DefaultNcpAgentRuntime {
         return;
       }
 
+      yield await this.applyEvent(sessionRun, executionManager.createMetadataEvent({ outcome: "aborted" }));
       yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId, spec, signal));
     } catch (error) {
       if (this.isAbortRequested(signal)) {
+        yield await this.applyEvent(sessionRun, executionManager.createMetadataEvent({ outcome: "aborted" }));
         yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId, spec, signal));
         return;
       }
       const endedAt = new Date().toISOString();
+      yield await this.applyEvent(
+        sessionRun,
+        executionManager.createMetadataEvent({
+          outcome: "failed",
+          occurredAt: endedAt,
+        }),
+      );
       yield await this.applyEvent(sessionRun, createRuntimeEvent({
         type: NcpEventType.RunError,
         payload: {

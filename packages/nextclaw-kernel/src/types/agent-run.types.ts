@@ -39,8 +39,10 @@ export type AgentRunAccepted = {
 
 export type AgentRunSpec = {
   runId: string;
+  runtimeId: string;
   agentId: string;
   model: string;
+  requestedModel: string | null;
   maxTokens?: number;
   thinkingEffort?: ThinkingEffort | null;
   correlationId?: string;

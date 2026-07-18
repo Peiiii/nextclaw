@@ -6,8 +6,10 @@ import type {
 
 export type DefaultNcpAgentRunSpec = {
   runId: string;
+  runtimeId: string;
   agentId: string;
   model: string;
+  requestedModel: string | null;
   maxTokens?: number;
   thinkingEffort?: string | null;
   correlationId?: string;

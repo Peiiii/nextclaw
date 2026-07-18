@@ -1,4 +1,5 @@
 import type { ChatMessageTexts } from "@nextclaw/agent-chat-ui";
+import type { ChatMessageExecutionPresentationLabels } from "./chat-message-execution-summary.utils";
 import type { ChatMessageAdapterTexts } from "@/features/chat/features/message/utils/chat-message.utils";
 import { t } from "@/shared/lib/i18n";
 
@@ -93,6 +94,49 @@ function buildBuiltInToolStatusLabels() {
       success: t("chatToolDisplaySuccess"),
       error: t("chatToolDisplayError"),
       cancelled: t("chatToolDisplayCancelled"),
+    },
+  };
+}
+
+export function buildChatMessageExecutionLabels(
+  language: string,
+): ChatMessageExecutionPresentationLabels {
+  void language;
+  return {
+    input: t("chatAiExecutionInput"),
+    output: t("chatAiExecutionOutput"),
+    tokens: t("chatAiExecutionTokens"),
+    partial: t("chatAiExecutionPartial"),
+    unavailable: t("chatAiExecutionUnavailable"),
+    moreActions: t("chatMessageMoreActions"),
+    viewMetadata: t("chatAiExecutionViewMetadata"),
+    metadataTitle: t("chatAiExecutionMetadataTitle"),
+    metadataDescription: t("chatAiExecutionMetadataDescription"),
+    close: t("chatAiExecutionMetadataClose"),
+    notAvailable: t("chatAiExecutionNotAvailable"),
+    fields: {
+      runId: t("chatAiExecutionRunId"),
+      runtime: t("chatAiExecutionRuntime"),
+      model: t("chatAiExecutionModel"),
+      requestedModel: t("chatAiExecutionRequestedModel"),
+      outcome: t("chatAiExecutionOutcome"),
+      inputTokens: t("chatAiExecutionInputTokens"),
+      outputTokens: t("chatAiExecutionOutputTokens"),
+      cachedInputTokens: t("chatAiExecutionCachedInputTokens"),
+      totalTokens: t("chatAiExecutionTotalTokens"),
+      modelCallCount: t("chatAiExecutionModelCallCount"),
+      reportedModelCallCount: t("chatAiExecutionReportedModelCallCount"),
+      usageStatus: t("chatAiExecutionUsageStatus"),
+    },
+    outcomes: {
+      completed: t("chatAiExecutionOutcomeCompleted"),
+      failed: t("chatAiExecutionOutcomeFailed"),
+      aborted: t("chatAiExecutionOutcomeAborted"),
+    },
+    usageStatuses: {
+      reported: t("chatAiExecutionUsageReported"),
+      partial: t("chatAiExecutionUsagePartial"),
+      unavailable: t("chatAiExecutionUsageUnavailable"),
     },
   };
 }

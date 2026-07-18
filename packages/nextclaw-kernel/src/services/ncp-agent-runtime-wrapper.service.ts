@@ -8,7 +8,13 @@ import type {
   NcpTool,
   OpenAITool,
 } from "@nextclaw/ncp";
-import { NcpEventType } from "@nextclaw/ncp";
+import {
+  createUnavailableNcpAiExecutionMetadata,
+  NCP_AI_EXECUTION_METADATA_KEY,
+  NcpEventType,
+  readNcpAiExecutionMetadata,
+  type NcpAiExecutionOutcome,
+} from "@nextclaw/ncp";
 import { DefaultNcpAgentConversationStateManager } from "@nextclaw/ncp-toolkit";
 import type {
   AgentRuntime,
@@ -36,9 +42,10 @@ export class NcpAgentRuntimeWrapper implements AgentRuntime {
     spec: AgentRunSpec,
     options: AgentRuntimeRunOptions,
   ): AsyncIterable<NcpEndpointEvent> {
-    const { sessionRun, tools } = options;
+    const { session, sessionRun, signal, tools } = options;
     this.currentTools = tools.map(this.toOpenAiTool);
     const messages = sessionRun.inbox.drain();
+    let executionMetadataSeen = false;
     try {
       for (const event of this.toMessageSentEvents(messages, spec, sessionRun.sessionId)) {
         yield await this.applyEvent(sessionRun, event);
@@ -48,12 +55,26 @@ export class NcpAgentRuntimeWrapper implements AgentRuntime {
         runId: spec.runId,
         messages,
         correlationId: spec.correlationId,
-        metadata: this.buildMetadata(options.session, spec),
+        metadata: this.buildMetadata(session, spec),
         executionContext: {
-          cwd: options.session.workingDir,
+          cwd: session.workingDir,
         },
       };
-      for await (const event of this.getRuntime().run(input, { signal: options.signal })) {
+      for await (const event of this.getRuntime().run(input, { signal })) {
+        if (
+          event.type === NcpEventType.RunMetadata &&
+          readNcpAiExecutionMetadata(event.payload.metadata)
+        ) {
+          executionMetadataSeen = true;
+        }
+        const terminalOutcome = this.readTerminalOutcome(event);
+        if (terminalOutcome && !executionMetadataSeen) {
+          yield await this.applyEvent(
+            sessionRun,
+            this.createExecutionMetadataEvent(spec, session, event, terminalOutcome),
+          );
+          executionMetadataSeen = true;
+        }
         yield await this.applyEvent(sessionRun, event);
       }
     } finally {
@@ -106,6 +127,37 @@ export class NcpAgentRuntimeWrapper implements AgentRuntime {
     model: spec.model,
     preferred_model: spec.model,
     thinkingEffort: spec.thinkingEffort,
+  });
+
+  private readTerminalOutcome = (event: NcpEndpointEvent): NcpAiExecutionOutcome | null => {
+    if (event.type === NcpEventType.RunFinished) return "completed";
+    if (event.type === NcpEventType.RunError) return "failed";
+    if (event.type === NcpEventType.MessageAbort) return "aborted";
+    return null;
+  };
+
+  private createExecutionMetadataEvent = (
+    spec: AgentRunSpec,
+    session: AgentRunSession,
+    terminalEvent: NcpEndpointEvent,
+    outcome: NcpAiExecutionOutcome,
+  ): NcpEndpointEvent => ({
+    occurredAt: terminalEvent.occurredAt ?? new Date().toISOString(),
+    type: NcpEventType.RunMetadata,
+    payload: {
+      runId: spec.runId,
+      sessionId: session.sessionId,
+      correlationId: spec.correlationId,
+      metadata: {
+        [NCP_AI_EXECUTION_METADATA_KEY]: createUnavailableNcpAiExecutionMetadata({
+          runId: spec.runId,
+          runtimeId: spec.runtimeId,
+          model: spec.model,
+          requestedModel: spec.requestedModel,
+          outcome,
+        }),
+      },
+    },
   });
 
   private toOpenAiTool = (tool: NcpTool): OpenAITool =>

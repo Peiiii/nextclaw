@@ -1,5 +1,8 @@
 import { expect, it, vi } from "vitest";
-import { buildChatMessageTexts } from "@/features/chat/features/message/utils/chat-message-texts.utils";
+import {
+  buildChatMessageExecutionLabels,
+  buildChatMessageTexts,
+} from "@/features/chat/features/message/utils/chat-message-texts.utils";
 
 vi.mock("@/shared/lib/i18n", () => ({
   t: (key: string) => key,
@@ -18,6 +21,16 @@ it("provides localized status keys for built-in tool categories", () => {
       success: "chatToolMemorySuccess",
       error: "chatToolMemoryError",
       cancelled: "chatToolMemoryCancelled",
+    },
+  });
+});
+
+it("provides localized labels for the AI execution metadata action", () => {
+  expect(buildChatMessageExecutionLabels("zh")).toMatchObject({
+    moreActions: "chatMessageMoreActions",
+    viewMetadata: "chatAiExecutionViewMetadata",
+    fields: {
+      cachedInputTokens: "chatAiExecutionCachedInputTokens",
     },
   });
 });

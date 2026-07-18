@@ -19,7 +19,9 @@ const PNG_BASE64 =
 const spec: DefaultNcpAgentRunSpec = {
   agentId: "main",
   model: "model",
+  requestedModel: null,
   runId: "run-1",
+  runtimeId: "native",
 };
 
 describe("DefaultNcpAgentRuntime visual tool output", () => {

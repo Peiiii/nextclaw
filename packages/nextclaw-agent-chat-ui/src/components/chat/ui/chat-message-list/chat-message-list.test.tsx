@@ -49,6 +49,7 @@ it("renders user, assistant, and tool content and supports code copy", async () 
           role: "assistant",
           roleLabel: "Assistant",
           timestampLabel: "10:01",
+          executionSummaryLabel: "openai/gpt-5 · 120 input / 30 output",
           parts: [{ type: "markdown", text: "```ts\nconst x = 1;\n```" }],
         },
         {
@@ -81,7 +82,9 @@ it("renders user, assistant, and tool content and supports code copy", async () 
   );
 
   expect(screen.getByText("You · 10:00")).toBeTruthy();
-  expect(screen.getByText("Assistant · 10:01")).toBeTruthy();
+  expect(
+    screen.getByText("Assistant · 10:01 · openai/gpt-5 · 120 input / 30 output"),
+  ).toBeTruthy();
   expect(screen.getByText("Tool · 10:02")).toBeTruthy();
   expect(screen.queryByText("Completed")).toBeNull();
   expect(screen.queryByText("Input Summary")).toBeNull();
@@ -117,6 +120,54 @@ it("renders user, assistant, and tool content and supports code copy", async () 
   fireEvent.click(userCopyButton!);
   await waitFor(() => {
     expect(writeText).toHaveBeenCalledWith("Hello");
+  });
+});
+
+it("opens persisted run metadata from the message more-actions menu", async () => {
+  render(
+    <ChatMessageList
+      messages={[
+        {
+          id: "assistant-metadata",
+          role: "assistant",
+          roleLabel: "Assistant",
+          timestampLabel: "10:02",
+          parts: [{ type: "markdown", text: "Done" }],
+          moreActions: {
+            triggerLabel: "More actions",
+            items: [
+              {
+                key: "ai-execution-metadata",
+                label: "View run metadata",
+                dialog: {
+                  title: "AI run metadata",
+                  description: "Runtime facts",
+                  closeLabel: "Close run metadata",
+                  rows: [
+                    { label: "Model", value: "openai/gpt-5" },
+                    { label: "Cached input tokens", value: "128k (128000)" },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "View run metadata" }));
+
+  expect(await screen.findByRole("dialog", { name: "AI run metadata" })).toBeTruthy();
+  expect(screen.getByText("Cached input tokens")).toBeTruthy();
+  expect(screen.getByText("128k (128000)")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Close run metadata" }));
+  await waitFor(() => {
+    expect(screen.queryByRole("dialog", { name: "AI run metadata" })).toBeNull();
   });
 });
 

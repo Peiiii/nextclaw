@@ -323,6 +323,61 @@ it("derives completed assistant process duration from message lifecycle", () => 
   });
 });
 
+it("projects ai execution metadata into the assistant message footer summary", () => {
+  const assistantMessage = {
+    id: "assistant-execution",
+    sessionId: "session-1",
+    role: "assistant",
+    status: "final",
+    timestamp: "2026-03-31T10:01:03.000Z",
+    parts: [{ type: "text", text: "Done." }],
+    metadata: {
+      ai_execution: {
+        version: 1,
+        runId: "run-1",
+        runtimeId: "native",
+        model: "openai/gpt-5",
+        requestedModel: null,
+        outcome: "completed",
+        usage: {
+          inputTokens: 1_200,
+          outputTokens: 200,
+          cachedInputTokens: 500,
+          totalTokens: 1_400,
+          modelCallCount: 1,
+          reportedModelCallCount: 1,
+          status: "reported",
+        },
+      },
+    },
+  } satisfies NcpMessage;
+
+  render(<ChatMessageListContainer messages={[assistantMessage]} isSending={false} />);
+
+  const renderedMessages = captures.renders[captures.renders.length - 1]?.messages ?? [];
+  expect(renderedMessages[0]).toMatchObject({
+    executionSummaryLabel:
+      "openai/gpt-5 · 1.2k chatAiExecutionInput / 200 chatAiExecutionOutput",
+    moreActions: {
+      triggerLabel: "chatMessageMoreActions",
+      items: [
+        {
+          key: "ai-execution-metadata",
+          label: "chatAiExecutionViewMetadata",
+          dialog: {
+            rows: expect.arrayContaining([
+              {
+                label: "chatAiExecutionCachedInputTokens",
+                value: "500",
+              },
+            ]),
+          },
+        },
+      ],
+    },
+  });
+});
+
 it("wires markdown file link actions to the workspace file preview manager", () => {
   const message = {
     id: "assistant-file-link",

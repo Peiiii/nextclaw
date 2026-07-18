@@ -10,8 +10,10 @@ import {
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import { adaptChatMessage, type ChatMessageSource } from "@/features/chat/features/message/utils/chat-message.utils";
 import { buildChatMessageProcessSummary } from "@/features/chat/features/message/utils/chat-message-process-summary.utils";
+import { buildChatMessageExecutionPresentation } from "@/features/chat/features/message/utils/chat-message-execution-summary.utils";
 import {
   buildChatMessageAdapterTexts,
+  buildChatMessageExecutionLabels,
   buildChatMessageTexts,
 } from "@/features/chat/features/message/utils/chat-message-texts.utils";
 import {
@@ -53,6 +55,7 @@ const messageViewModelCache = new WeakMap<
   {
     language: string;
     processSummaryLabel: string | null;
+    executionPresentationKey: string | null;
     viewModel: ChatMessageViewModel;
   }
 >();
@@ -338,6 +341,7 @@ export function ChatMessageListContainer({
     [localFileBasePath],
   );
   const texts = useMemo(() => buildChatMessageAdapterTexts(language), [language]);
+  const executionLabels = useMemo(() => buildChatMessageExecutionLabels(language), [language]);
 
   const messages = useMemo(() => {
     const visibleRawMessages = rawMessages.filter(isVisibleChatMessage);
@@ -348,8 +352,18 @@ export function ChatMessageListContainer({
         processedLabel,
       });
       const processSummaryLabel = processSummary?.label ?? null;
+      const executionPresentation = buildChatMessageExecutionPresentation({
+        message,
+        labels: executionLabels,
+      });
+      const executionPresentationKey = executionPresentation?.cacheKey ?? null;
       const cached = messageViewModelCache.get(message);
-      if (cached && cached.language === language && cached.processSummaryLabel === processSummaryLabel) {
+      if (
+        cached &&
+        cached.language === language &&
+        cached.processSummaryLabel === processSummaryLabel &&
+        cached.executionPresentationKey === executionPresentationKey
+      ) {
         return [cached.viewModel];
       }
 
@@ -362,6 +376,8 @@ export function ChatMessageListContainer({
           status: uiMessage.meta?.status,
           inlineTokens: readInlineTokensFromMetadata(message.metadata),
           processSummary,
+          executionSummaryLabel: executionPresentation?.summaryLabel,
+          moreActions: executionPresentation?.moreActions,
         },
         parts: uiMessage.parts as unknown as ChatMessageSource["parts"],
       };
@@ -373,11 +389,12 @@ export function ChatMessageListContainer({
       messageViewModelCache.set(message, {
         language,
         processSummaryLabel,
+        executionPresentationKey,
         viewModel,
       });
       return [viewModel];
     });
-  }, [language, rawMessages, texts]);
+  }, [executionLabels, language, rawMessages, texts]);
 
   const hasAssistantDraft = useMemo(
     () =>

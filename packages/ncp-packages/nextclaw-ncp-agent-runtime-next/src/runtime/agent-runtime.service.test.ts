@@ -28,7 +28,9 @@ const thinkTagChunks: OpenAIChatChunk[] = [
 const spec: DefaultNcpAgentRunSpec = {
   agentId: "main",
   model: "model",
+  requestedModel: null,
   runId: "run-1",
+  runtimeId: "native",
 };
 
 const modelInputBuilder: AgentModelInputBuilder = {
@@ -178,6 +180,53 @@ describe("DefaultNcpAgentRuntime reasoning normalization", () => {
       type: NcpEventType.RunFinished,
     });
     expect(runFinished?.payload).not.toHaveProperty("durationMs");
+  });
+
+  it("emits aggregated execution metadata immediately before a successful terminal event", async () => {
+    const runtime = new DefaultNcpAgentRuntime({
+      llmApi: createLlmApi([
+        textChunk("done"),
+        {
+          ...finishChunk("stop"),
+          usage: { prompt_tokens: 120, completion_tokens: 30, total_tokens: 150 },
+        },
+      ]),
+      modelInputBuilder,
+    });
+
+    const events = await collectRuntimeEvents(runtime);
+    const executionIndex = events.findIndex(
+      (event) =>
+        event.type === NcpEventType.RunMetadata &&
+        "ai_execution" in event.payload.metadata,
+    );
+    const finishedIndex = events.findIndex((event) => event.type === NcpEventType.RunFinished);
+
+    expect(executionIndex).toBeGreaterThan(-1);
+    expect(executionIndex).toBe(finishedIndex - 1);
+    expect(events[executionIndex]).toMatchObject({
+      payload: {
+        metadata: {
+          ai_execution: {
+            version: 1,
+            runId: "run-1",
+            runtimeId: "native",
+            model: "model",
+            requestedModel: null,
+            outcome: "completed",
+            usage: {
+              inputTokens: 120,
+              outputTokens: 30,
+              totalTokens: 150,
+              modelCallCount: 1,
+              reportedModelCallCount: 1,
+              status: "reported",
+            },
+          },
+        },
+      },
+      type: NcpEventType.RunMetadata,
+    });
   });
 
   it("normalizes think tags into reasoning when no mode is provided", async () => {
@@ -582,6 +631,27 @@ describe("DefaultNcpAgentRuntime aborting tool calls", () => {
       ]),
     );
     expect(events.some((event) => event.type === NcpEventType.RunFinished)).toBe(false);
+    const executionIndex = events.findIndex(
+      (event) =>
+        event.type === NcpEventType.RunMetadata &&
+        "ai_execution" in event.payload.metadata,
+    );
+    const abortIndex = events.findIndex((event) => event.type === NcpEventType.MessageAbort);
+    expect(executionIndex).toBe(abortIndex - 1);
+    expect(events[executionIndex]).toMatchObject({
+      payload: {
+        metadata: {
+          ai_execution: {
+            outcome: "aborted",
+            usage: {
+              modelCallCount: 1,
+              reportedModelCallCount: 0,
+              status: "unavailable",
+            },
+          },
+        },
+      },
+    });
     expect(toolAbortSignal).toBe(controller.signal);
   });
 });

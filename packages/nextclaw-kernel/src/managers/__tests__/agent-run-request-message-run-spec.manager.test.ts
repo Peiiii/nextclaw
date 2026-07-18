@@ -148,8 +148,10 @@ describe("AgentRunRequestManager message run spec metadata", () => {
     });
     expect(runtimeSpecs[0]).toMatchObject({
       runId: "run-1",
+      runtimeId: "native",
       agentId: "main",
       model: "custom-3/mimo-v2.5-pro",
+      requestedModel: null,
       maxTokens: 8192,
       thinkingEffort: null,
       correlationId: "corr-1",

@@ -421,6 +421,22 @@ export type ChatMessageProcessSummaryViewModel = {
   label: string;
 };
 
+export type ChatMessageDetailActionViewModel = {
+  key: string;
+  label: string;
+  dialog: {
+    title: string;
+    description?: string;
+    closeLabel: string;
+    rows: Array<{ label: string; value: string }>;
+  };
+};
+
+export type ChatMessageMoreActionsViewModel = {
+  triggerLabel: string;
+  items: ChatMessageDetailActionViewModel[];
+};
+
 export type ChatMessageViewModel = {
   id: string;
   role: ChatMessageRole;
@@ -429,6 +445,8 @@ export type ChatMessageViewModel = {
   parts: ChatMessagePartViewModel[];
   status?: string;
   processSummary?: ChatMessageProcessSummaryViewModel;
+  executionSummaryLabel?: string;
+  moreActions?: ChatMessageMoreActionsViewModel;
 };
 
 export type ChatAttachmentCategory =

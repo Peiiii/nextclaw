@@ -102,6 +102,32 @@ describe("DefaultNcpAgentConversationStateManager settlement", () => {
       },
     });
     manager.dispatch({
+      type: NcpEventType.RunMetadata,
+      payload: {
+        sessionId: "session-1",
+        runId: "run-1",
+        metadata: {
+          ai_execution: {
+            version: 1,
+            runId: "run-1",
+            runtimeId: "native",
+            model: "openai/gpt-5",
+            requestedModel: null,
+            outcome: "completed",
+            usage: {
+              inputTokens: 120,
+              outputTokens: 30,
+              cachedInputTokens: 20,
+              totalTokens: 150,
+              modelCallCount: 1,
+              reportedModelCallCount: 1,
+              status: "reported",
+            },
+          },
+        },
+      },
+    });
+    manager.dispatch({
       type: NcpEventType.RunFinished,
       payload: {
         sessionId: "session-1",
@@ -114,6 +140,79 @@ describe("DefaultNcpAgentConversationStateManager settlement", () => {
     expect(manager.getSnapshot().messages[0]?.lifecycle).toEqual({
       startedAt: "2026-03-12T00:00:00.000Z",
       endedAt: "2026-03-12T00:03:51.000Z",
+    });
+    expect(manager.getSnapshot().messages[0]?.metadata?.ai_execution).toMatchObject({
+      runId: "run-1",
+      runtimeId: "native",
+      model: "openai/gpt-5",
+      outcome: "completed",
+      usage: {
+        inputTokens: 120,
+        outputTokens: 30,
+        status: "reported",
+      },
+    });
+  });
+
+  it("projects execution metadata when an assistant run is aborted", () => {
+    const manager = new DefaultNcpAgentConversationStateManager();
+    manager.dispatch({
+      type: NcpEventType.RunStarted,
+      payload: { sessionId: "session-1", runId: "run-abort" },
+    });
+    manager.dispatch({
+      type: NcpEventType.MessageTextDelta,
+      payload: {
+        sessionId: "session-1",
+        messageId: "assistant-abort",
+        delta: "partial",
+      },
+    });
+    manager.dispatch({
+      type: NcpEventType.RunMetadata,
+      payload: {
+        sessionId: "session-1",
+        runId: "run-abort",
+        metadata: {
+          ai_execution: {
+            version: 1,
+            runId: "run-abort",
+            runtimeId: "codex",
+            model: "gpt-5",
+            requestedModel: null,
+            outcome: "aborted",
+            usage: {
+              inputTokens: null,
+              outputTokens: null,
+              cachedInputTokens: null,
+              totalTokens: null,
+              modelCallCount: null,
+              reportedModelCallCount: null,
+              status: "unavailable",
+            },
+          },
+        },
+      },
+    });
+    manager.dispatch({
+      type: NcpEventType.MessageAbort,
+      payload: {
+        sessionId: "session-1",
+        messageId: "assistant-abort",
+        runId: "run-abort",
+      },
+    });
+
+    expect(manager.getSnapshot().messages[0]).toMatchObject({
+      id: "assistant-abort",
+      status: "final",
+      metadata: {
+        ai_execution: {
+          runId: "run-abort",
+          outcome: "aborted",
+          usage: { status: "unavailable" },
+        },
+      },
     });
   });
 });

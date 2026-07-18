@@ -1,6 +1,7 @@
 import { adaptChatMessagePart } from "./chat-message-part.utils";
 import type { ChatInlineTokenSource } from "@/features/chat/features/input/utils/chat-inline-token.utils";
 import type {
+  ChatMessageMoreActionsViewModel,
   ChatMessageRole,
   ChatMessageViewModel,
 } from "@nextclaw/agent-chat-ui";
@@ -23,6 +24,8 @@ export type ChatMessageSource = {
     status?: string;
     inlineTokens?: ChatInlineTokenSource[];
     processSummary?: ChatMessageProcessSummarySource;
+    executionSummaryLabel?: string;
+    moreActions?: ChatMessageMoreActionsViewModel;
   };
   parts: ChatMessagePartSource[];
 };
@@ -82,6 +85,8 @@ export function adaptChatMessage(
     timestampLabel: params.formatTimestamp(resolveMessageTimestamp(message)),
     status: message.meta?.status,
     processSummary: message.meta?.processSummary,
+    executionSummaryLabel: message.meta?.executionSummaryLabel,
+    moreActions: message.meta?.moreActions,
     parts: message.parts
       .map((part) =>
         adaptChatMessagePart({

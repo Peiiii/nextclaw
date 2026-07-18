@@ -19,6 +19,7 @@ import type {
 import {
   RuntimeToolCallExecutor,
 } from "./runtime-tool-call-executor.service.js";
+import type { AgentRunExecutionManager } from "./agent-run-execution.manager.js";
 import type {
   AgentModelInputBuilder,
   DefaultNcpAgentRunSpec,
@@ -37,6 +38,7 @@ export type RuntimeModelRoundRecoveryManagerInput = {
     toolCall: CollectedToolCall,
     publishToolResult: (event: NcpEndpointEvent) => Promise<void>,
   ) => Promise<NcpEndpointEvent>;
+  executionManager: AgentRunExecutionManager;
   llmApi: NcpLLMApi;
   messageId: string;
   modelInput: Awaited<ReturnType<AgentModelInputBuilder["build"]>>;
@@ -63,7 +65,12 @@ export async function* runModelRoundWithRecovery(
     });
     try {
       const encoded = input.streamEncoder.encode(
-        abortableRuntimeStream(input.llmApi.generate(input.modelInput, { signal: input.signal }), input.signal),
+        abortableRuntimeStream(
+          input.executionManager.observeModelCall(
+            input.llmApi.generate(input.modelInput, { signal: input.signal }),
+          ),
+          input.signal,
+        ),
         {
           sessionId: input.sessionId,
           messageId: input.messageId,

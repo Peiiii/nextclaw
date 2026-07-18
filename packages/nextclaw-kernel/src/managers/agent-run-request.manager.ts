@@ -20,7 +20,11 @@ import {
 import { catchError, from, lastValueFrom, tap } from "rxjs";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
-import type { AgentRuntimeManager } from "./agent-runtime.manager.js";
+import type {
+  AgentRuntime,
+  AgentRuntimeManager,
+  AgentRuntimeRunOptions,
+} from "./agent-runtime.manager.js";
 import type { ContextProviderManager } from "./context-provider.manager.js";
 import type { SessionRunManager } from "./session-run.manager.js";
 import type { ToolProviderManager } from "./tool-provider.manager.js";
@@ -34,6 +38,9 @@ import type {
 import type { AgentRunSession } from "@kernel/types/session.types.js";
 import {
   AGENT_RUN_EXECUTION_METADATA,
+  createUnavailableAiExecutionMetadataEvent,
+  hasAiExecutionMetadata,
+  readAgentRunStartedAt,
   type AgentRunMessageRunSpecMetadata,
   type AgentRunModelSource,
 } from "@kernel/utils/agent-run-execution-metadata.utils.js";
@@ -107,13 +114,6 @@ function readOptionalString(value: unknown): string | undefined {
   }
   const trimmed = value.trim();
   return trimmed || undefined;
-}
-
-function readRunStartedAt(event: NcpEndpointEvent, fallback: string): string {
-  if (event.type !== NcpEventType.RunStarted) {
-    return fallback;
-  }
-  return event.payload.startedAt ?? event.occurredAt ?? fallback;
 }
 
 function createCompletedAssistantMessageEvent(params: {
@@ -248,8 +248,10 @@ function resolveRunSpec(params: {
     modelSource,
     spec: {
       runId,
+      runtimeId: session.agentRuntimeId,
       agentId,
       model,
+      requestedModel: request.model ?? null,
       maxTokens: request.maxTokens ?? configManager.getModelMaxTokens(model),
       thinkingEffort: request.thinkingEffort ?? session.thinkingEffort ?? null,
       correlationId: request.correlationId,
@@ -441,25 +443,52 @@ export class AgentRunRequestManager {
     const contextBlocks =
       await this.contextProviderManager.buildContext(providerRequest);
     const tools = await this.toolProviderManager.buildTools(providerRequest);
+    this.startRuntimeRun({
+      options: {
+        contextBlocks,
+        session,
+        sessionRun,
+        signal: activeRun.signal,
+        tools,
+      },
+      requestRunStartedAt,
+      runtime,
+      spec,
+    });
+
+    return {
+      sessionId: session.sessionId,
+      userMessageId: message.id,
+      runId: spec.runId,
+      correlationId: request.correlationId,
+    };
+  };
+
+  private startRuntimeRun = (params: {
+    options: AgentRuntimeRunOptions;
+    requestRunStartedAt: string;
+    runtime: AgentRuntime;
+    spec: AgentRunSpec;
+  }): void => {
+    const { options, requestRunStartedAt, runtime, spec } = params;
+    const { session, sessionRun } = options;
     let messageCompletedSeen = false;
+    let executionMetadataSeen = false;
     let runtimeFailed = false;
     let runStartedAt = requestRunStartedAt;
     void lastValueFrom(
       from(
-        runtime.run(spec, {
-          contextBlocks,
-          session,
-          sessionRun,
-          signal: activeRun.signal,
-          tools,
-        }),
+        runtime.run(spec, options),
       ).pipe(
         tap((event) => {
           const eventsToPublish: NcpEndpointEvent[] = [];
           if (event.type === NcpEventType.RunError) {
             runtimeFailed = true;
           }
-          runStartedAt = readRunStartedAt(event, runStartedAt);
+          if (hasAiExecutionMetadata(event)) {
+            executionMetadataSeen = true;
+          }
+          runStartedAt = readAgentRunStartedAt(event, runStartedAt);
           if (event.type === NcpEventType.MessageCompleted) {
             messageCompletedSeen = true;
           }
@@ -493,6 +522,17 @@ export class AgentRunRequestManager {
         }),
         catchError(async (error) => {
           runtimeFailed = true;
+          if (!executionMetadataSeen) {
+            const metadataEvent = createUnavailableAiExecutionMetadataEvent({
+              spec,
+              sessionId: session.sessionId,
+            });
+            await sessionRun.applyEvents([metadataEvent]);
+            this.eventBus.emit(eventKeys.ncpEvent, metadataEvent, {
+              emittedAt: new Date().toISOString(),
+              source: "agent-run-request",
+            });
+          }
           const event = createSyntheticRunErrorEvent({
             error,
             runId: spec.runId,
@@ -519,12 +559,6 @@ export class AgentRunRequestManager {
       }).catch(() => undefined);
     });
 
-    return {
-      sessionId: session.sessionId,
-      userMessageId: message.id,
-      runId: spec.runId,
-      correlationId: request.correlationId,
-    };
   };
 
   private getOrCreateSessionForRequest = async (

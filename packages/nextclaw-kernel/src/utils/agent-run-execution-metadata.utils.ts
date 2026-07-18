@@ -1,4 +1,14 @@
-import type { ThinkingEffort } from "@kernel/types/agent-run.types.js";
+import {
+  createUnavailableNcpAiExecutionMetadata,
+  NCP_AI_EXECUTION_METADATA_KEY,
+  NcpEventType,
+  readNcpAiExecutionMetadata,
+  type NcpEndpointEvent,
+} from "@nextclaw/ncp";
+import type {
+  AgentRunSpec,
+  ThinkingEffort,
+} from "@kernel/types/agent-run.types.js";
 
 export type AgentRunModelSource = "request" | "session" | "default";
 
@@ -61,3 +71,45 @@ export const AGENT_RUN_EXECUTION_METADATA: AgentRunExecutionMetadata = {
     },
   },
 };
+
+export function readAgentRunStartedAt(
+  event: NcpEndpointEvent,
+  fallback: string,
+): string {
+  if (event.type !== NcpEventType.RunStarted) {
+    return fallback;
+  }
+  return event.payload.startedAt ?? event.occurredAt ?? fallback;
+}
+
+export function hasAiExecutionMetadata(event: NcpEndpointEvent): boolean {
+  return (
+    event.type === NcpEventType.RunMetadata &&
+    Boolean(readNcpAiExecutionMetadata(event.payload.metadata))
+  );
+}
+
+export function createUnavailableAiExecutionMetadataEvent(params: {
+  spec: AgentRunSpec;
+  sessionId: string;
+}): NcpEndpointEvent {
+  const { sessionId, spec } = params;
+  return {
+    occurredAt: new Date().toISOString(),
+    type: NcpEventType.RunMetadata,
+    payload: {
+      runId: spec.runId,
+      sessionId,
+      correlationId: spec.correlationId,
+      metadata: {
+        [NCP_AI_EXECUTION_METADATA_KEY]: createUnavailableNcpAiExecutionMetadata({
+          runId: spec.runId,
+          runtimeId: spec.runtimeId,
+          model: spec.model,
+          requestedModel: spec.requestedModel,
+          outcome: "failed",
+        }),
+      },
+    },
+  };
+}
