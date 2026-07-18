@@ -69,6 +69,7 @@ jobs:
             --commit "$RELEASE_COMMIT" \
             --run-url "$RUN_URL"
           echo "tree_sha256=$(jq -r .treeSha256 apps/docs/.vitepress/dist/release-manifest.json)" >> "$GITHUB_OUTPUT"
+          echo "Release identity: $RELEASE_COMMIT/$(jq -r .treeSha256 apps/docs/.vitepress/dist/release-manifest.json)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload documentation artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -148,14 +149,14 @@ jobs:
         env:
           BUCKET: ${{ vars.ALIYUN_DOCS_BUCKET }}
           REGION: ${{ vars.ALIYUN_DOCS_REGION }}
+          RELEASE_TREE: ${{ needs.build.outputs.tree_sha256 }}
         run: |
           export OSS_ACCESS_KEY_ID="$ALIBABA_CLOUD_ACCESS_KEY_ID"
           export OSS_ACCESS_KEY_SECRET="$ALIBABA_CLOUD_ACCESS_KEY_SECRET"
           export OSS_SESSION_TOKEN="$ALIBABA_CLOUD_SECURITY_TOKEN"
           export OSS_REGION="$REGION"
-          ossutil sync docs-dist "oss://$BUCKET/_releases/$RELEASE_COMMIT/" --region "$REGION" --mode StsToken --force
+          ossutil sync docs-dist "oss://$BUCKET/_releases/$RELEASE_COMMIT/$RELEASE_TREE/" --region "$REGION" --mode StsToken --force
           ossutil sync docs-dist "oss://$BUCKET/" --region "$REGION" --mode StsToken --force
-          ossutil set-props "oss://$BUCKET/health" --region "$REGION" --mode StsToken --metadata-directive replace --content-type application/json --cache-control no-store --force
           ossutil set-props "oss://$BUCKET/release-manifest.json" --region "$REGION" --mode StsToken --metadata-directive replace --content-type application/json --cache-control no-store --force
           ossutil api put-bucket-lifecycle \
             --bucket "$BUCKET" \

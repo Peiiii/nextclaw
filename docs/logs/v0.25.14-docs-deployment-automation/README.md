@@ -13,7 +13,7 @@
 
 - `pnpm docs:i18n:check`：通过，81 个中英文镜像页面一致。
 - `pnpm --filter @nextclaw/docs build`：通过；真实构建生成 597 个文件，发布清单内容树 SHA-256 为 `66811d580a5292c7e0d3660153d1e46fa2aadd914e4aae75c68fb2a5a5f9fe2c`（实现提交前本地样本）。
-- 本地 VitePress preview 对 `/`、`/zh/`、`/zh/guide/getting-started`、`/en/`、`/en/guide/getting-started`、`/release-manifest.json` 与 `/health` 均返回 200。
+- 本地 VitePress preview 对 `/`、`/zh/`、`/zh/guide/getting-started`、`/en/`、`/en/guide/getting-started` 与 `/release-manifest.json` 均返回 200。
 - 三个 workflow 通过 actionlint；三个部署脚本通过 `node --check`、ESLint 与 `git diff --check`。
 - ROS `ValidateTemplate`、首次 `PreviewStack`、更新 dry-run 均通过；实际资源栈状态为 `CREATE_COMPLETE` / `UPDATE_COMPLETE`，缓存、rewrite、私有回源配置均由 CDN API 返回 `success`。
 - 正式双域名制品一致性、公开 DNS CNAME、HTTPS 与自动续期 workflow 的最终结果见下方部署记录。
@@ -23,7 +23,7 @@
 - GitHub workflow：`Docs Deploy`。触发条件为 `master` 上文档/部署合同变更或人工 `workflow_dispatch`，并发组为 `docs-production`，不取消进行中的双站发布。
 - 全球站：Cloudflare Pages 项目 `nextclaw-docs`，正式域名 `https://docs.nextclaw.io`。
 - 国内站：私有 OSS `nextclaw-docs-cn-prod-1835553186862551`，CDN CNAME `docs.nextclaw.net.w.kunlunaq.com`，正式域名 `https://docs.nextclaw.net`。
-- 回滚：`Docs Rollback` 输入已验证 commit，从 OSS `_releases/<commit>/` 读取原制品并重新推广到两个目标，不重建旧源码。
+- 回滚：`Docs Rollback` 输入已验证 commit 与内容树 SHA-256，从 OSS `_releases/<commit>/<treeSha256>/` 读取精确制品并重新推广到两个目标，不重建旧源码。
 - DNS/线上部署闭环完成后补充本次 workflow run、最终 commit 与双站验证结果。
 
 ## 用户/产品视角的验收步骤

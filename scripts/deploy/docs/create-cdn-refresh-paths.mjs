@@ -29,7 +29,7 @@ if (!dist || !domain) {
   throw new Error('Usage: create-cdn-refresh-paths.mjs --dist <directory> --domain <hostname>');
 }
 
-const paths = new Set(['/health', '/release-manifest.json']);
+const paths = new Set(['/release-manifest.json']);
 for (const file of await collectHtmlFiles(dist)) {
   if (file === 'index.html') {
     paths.add('/');

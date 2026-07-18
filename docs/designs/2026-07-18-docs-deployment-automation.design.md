@@ -129,7 +129,7 @@ GitHub Actions: validate + build once
   - 不含扩展名的页面路径回源同名 `.html`；
   - 带扩展名的静态资源路径保持不变。
 - 内容哈希资源使用长缓存和 `immutable`；HTML、健康文件与发布清单使用短缓存或强制 revalidate。
-- `/health` 返回当前发布清单的轻量结果，不再由 Nginx 写死，验证能够看到实际 release commit。
+- `/release-manifest.json` 同时承担轻量健康探针与发布身份合同，不再维护重复的 `/health` 对象。
 
 ## 构建与发布数据流
 
@@ -147,7 +147,7 @@ GitHub Actions: validate + build once
 
 - 任一目标失败时 workflow 保持失败，不把单站成功表述为整批成功，也不静默切换到个人机器或 SSH。
 - 同一 commit 的失败 job 可以重跑，并继续消费原 artifact。
-- 每次发布把完整压缩制品保存在私有 OSS 的 release prefix；显式 rollback workflow 选择已验证 commit，重新推广该制品，不重新构建旧源码。
+- 每次发布把完整制品保存在私有 OSS 的 `_releases/<commit>/<treeSha256>/` 内容身份路径；显式 rollback workflow 选择已验证的 commit + 内容树指纹，重新推广该制品，不重新构建旧源码。
 - OSS versioning 是误删/误覆盖的第二恢复层，不代替制品级回滚入口。
 - 不做自动回滚：跨两个云目标的自动反向修改可能扩大故障；失败必须可见，由操作者选择重跑或回滚到明确 commit。
 
@@ -174,9 +174,9 @@ GitHub Actions: validate + build once
 
 - 两个 deploy job 下载同一个 GitHub artifact，构建只发生一次。
 - 两个正式域名的 `release-manifest.json` 返回相同 commit 与内容树 SHA-256。
-- 关键中英文路由、无扩展名路由、目录路由、静态资源和 `/health` 均返回预期内容。
+- 关键中英文路由、无扩展名路由、目录路由、静态资源和 `/release-manifest.json` 均返回预期内容。
 - 同一 workflow 中任一目标失败时，整体结论为失败或部分发布，不得输出“部署完成”。
-- rollback 到上一已验证 commit 后，两个域名重新报告该 commit，且不触发源码重建。
+- rollback 到上一已验证 release identity 后，两个域名重新报告该 commit 与内容树指纹，且不触发源码重建。
 
 ### 工程验证
 

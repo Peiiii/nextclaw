@@ -4,7 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       release_sha:
-        description: Previously verified commit stored in the private OSS release archive
+        description: Commit from a previously verified release identity
+        required: true
+        type: string
+      tree_sha256:
+        description: Tree SHA-256 from the same verified release identity
         required: true
         type: string
 
@@ -16,8 +20,9 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  ARTIFACT_NAME: nextclaw-docs-rollback-${{ inputs.release_sha }}-${{ github.run_id }}
+  ARTIFACT_NAME: nextclaw-docs-rollback-${{ inputs.release_sha }}-${{ inputs.tree_sha256 }}-${{ github.run_id }}
   RELEASE_COMMIT: ${{ inputs.release_sha }}
+  RELEASE_TREE: ${{ inputs.tree_sha256 }}
 
 jobs:
   prepare:
@@ -57,12 +62,13 @@ jobs:
           export OSS_ACCESS_KEY_SECRET="$ALIBABA_CLOUD_ACCESS_KEY_SECRET"
           export OSS_SESSION_TOKEN="$ALIBABA_CLOUD_SECURITY_TOKEN"
           export OSS_REGION="$REGION"
-          ossutil sync "oss://$BUCKET/_releases/$RELEASE_COMMIT/" docs-dist --region "$REGION" --mode StsToken --force
+          ossutil sync "oss://$BUCKET/_releases/$RELEASE_COMMIT/$RELEASE_TREE/" docs-dist --region "$REGION" --mode StsToken --force
 
       - name: Validate archived manifest
         id: manifest
         run: |
           test "$(jq -r .commit docs-dist/release-manifest.json)" = "$RELEASE_COMMIT"
+          test "$(jq -r .treeSha256 docs-dist/release-manifest.json)" = "$RELEASE_TREE"
           echo "tree_sha256=$(jq -r .treeSha256 docs-dist/release-manifest.json)" >> "$GITHUB_OUTPUT"
 
       - name: Upload rollback artifact
@@ -147,7 +153,6 @@ jobs:
           export OSS_SESSION_TOKEN="$ALIBABA_CLOUD_SECURITY_TOKEN"
           export OSS_REGION="$REGION"
           ossutil sync docs-dist "oss://$BUCKET/" --region "$REGION" --mode StsToken --force
-          ossutil set-props "oss://$BUCKET/health" --region "$REGION" --mode StsToken --metadata-directive replace --content-type application/json --cache-control no-store --force
           ossutil set-props "oss://$BUCKET/release-manifest.json" --region "$REGION" --mode StsToken --metadata-directive replace --content-type application/json --cache-control no-store --force
 
       - name: Refresh domestic CDN

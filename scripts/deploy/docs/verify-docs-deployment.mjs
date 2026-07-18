@@ -38,10 +38,6 @@ async function verifySite(site, expectedCommit, expectedTree) {
   requireCheck(!expectedCommit || manifest.commit === expectedCommit, `${site.name} commit mismatch`);
   requireCheck(!expectedTree || manifest.treeSha256 === expectedTree, `${site.name} tree hash mismatch`);
 
-  const health = await (await fetchResponse(`${baseUrl}/health?${cacheBust}`)).json();
-  requireCheck(health.commit === manifest.commit, `${site.name} health commit mismatch`);
-  requireCheck(health.treeSha256 === manifest.treeSha256, `${site.name} health tree mismatch`);
-
   let assetPath;
   for (const route of routes) {
     const html = await (await fetchResponse(`${baseUrl}${route}?${cacheBust}`)).text();

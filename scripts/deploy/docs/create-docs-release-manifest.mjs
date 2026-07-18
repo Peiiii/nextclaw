@@ -18,7 +18,7 @@ async function collectFiles(root, directory = root) {
     const absolutePath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
       files.push(...await collectFiles(root, absolutePath));
-    } else if (entry.isFile() && entry.name !== manifestFileName && entry.name !== 'health') {
+    } else if (entry.isFile() && entry.name !== manifestFileName) {
       files.push(path.relative(root, absolutePath).split(path.sep).join('/'));
     }
   }
@@ -54,9 +54,6 @@ const manifest = {
 };
 const json = `${JSON.stringify(manifest, null, 2)}\n`;
 
-await Promise.all([
-  writeFile(path.join(distDirectory, manifestFileName), json),
-  writeFile(path.join(distDirectory, 'health'), json),
-]);
+await writeFile(path.join(distDirectory, manifestFileName), json);
 
 console.log(JSON.stringify(manifest));
