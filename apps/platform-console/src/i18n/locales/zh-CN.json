@@ -279,27 +279,54 @@
       "lastSeenAt": "最近在线",
       "actions": "操作"
     },
-  "actions": {
-    "createShare": "创建分享链接",
-    "viewShare": "查看分享",
-    "openInWeb": "在网页中打开",
-    "openWithFixedDomain": "用固定域名打开",
-    "createAnotherShare": "再创建一个",
-    "copyInstanceId": "复制实例 ID：{instanceId}",
-    "archive": "归档",
-    "restore": "恢复",
-    "delete": "删除"
-  },
-  "status": {
-    "online": "在线",
-    "offline": "离线",
-    "archived": "已归档",
-    "shareActive": "可用分享",
-    "shareRevoked": "已撤销分享",
-    "shareExpired": "已过期分享"
-  },
-  "messages": {
+    "filters": {
+      "archiveLabel": "实例状态",
+      "archive": {
+        "active": "当前实例",
+        "archived": "已归档",
+        "all": "全部"
+      },
+      "connectionLabel": "连接状态",
+      "connection": {
+        "all": "全部",
+        "online": "在线",
+        "offline": "离线"
+      },
+      "searchPlaceholder": "搜索实例名称、ID、平台或版本",
+      "search": "搜索",
+      "reset": "重置"
+    },
+    "pagination": {
+      "pageSize": "每页条数",
+      "previous": "上一页",
+      "next": "下一页",
+      "summary": "第 {from}–{to} 条，共 {total} 条"
+    },
+    "actions": {
+      "createShare": "创建分享链接",
+      "open": "打开",
+      "fixedDomain": "固定域名",
+      "shares": "分享",
+      "closeSharePanel": "收起",
+      "copyInstanceId": "复制实例 ID：{instanceId}",
+      "offlineHint": "实例离线，暂时无法打开",
+      "archive": "归档",
+      "restore": "恢复",
+      "delete": "删除"
+    },
+    "status": {
+      "online": "在线",
+      "offline": "离线",
+      "archived": "已归档",
+      "shareActive": "可用分享",
+      "shareRevoked": "已撤销分享",
+      "shareExpired": "已过期分享"
+    },
+    "messages": {
+      "loadingInstances": "正在加载实例...",
+      "refreshing": "正在更新...",
       "empty": "还没有可用实例。先回到桌面端登录 NextClaw 并开启远程访问。",
+      "filteredEmpty": "没有符合当前筛选条件的实例。",
       "loadingShares": "加载分享链接中...",
       "loadInstancesFailed": "实例加载失败",
       "openInstanceFailed": "打开实例失败",
@@ -314,26 +341,21 @@
     "instanceIdCopyManual": "复制失败，请手动复制实例 ID。",
     "shareRevoked": "分享链接已撤销，已打开的分享会话会立即失效。",
     "noShares": "当前实例还没有分享链接。",
-    "archiveSuccess": "实例已归档，主列表里不会再显示它。",
-    "restoreSuccess": "实例已恢复到主列表。",
+    "archiveSuccess": "实例已归档。可在“已归档”筛选中恢复或删除。",
+    "restoreSuccess": "实例已恢复。",
     "deleteSuccess": "归档实例已被永久删除。",
     "archiveFailed": "归档实例失败",
     "restoreFailed": "恢复实例失败",
     "deleteFailed": "删除实例失败",
-    "archiveConfirm": "确认归档这个实例，并把它从主列表里隐藏吗？",
+    "archiveConfirm": "确认归档这个实例吗？归档后可通过“已归档”筛选恢复。",
     "deleteConfirm": "确认永久删除这个已归档实例吗？它关联的分享链接和会话记录也会一起移除。"
   },
-  "archived": {
-    "title": "已归档实例",
-    "description": "已归档实例不会再出现在主列表，直到你恢复或删除它。",
-    "loading": "加载已归档实例中...",
-    "loadFailed": "加载已归档实例失败",
-    "empty": "还没有已归档实例。",
-    "archivedAt": "归档于 {archivedAt}"
-  },
-  "sharePanel": {
-    "title": "分享链接",
-    "description": "撤销后，已经打开的分享会话也会立即失效。",
+    "archived": {
+      "archivedAt": "归档于 {archivedAt}"
+    },
+    "sharePanel": {
+      "title": "分享链接",
+      "description": "撤销后，已经打开的分享会话也会立即失效。",
       "meta": "创建于 {createdAt}，失效于 {expiresAt}",
       "activeSessions": "当前活跃分享会话：{count}"
     },

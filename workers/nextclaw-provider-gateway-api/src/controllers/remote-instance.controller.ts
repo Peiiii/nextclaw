@@ -2,26 +2,36 @@ import type { Context } from "hono";
 import { appendAuditLog } from "@/repositories/platform.repository";
 import {
   archiveRemoteInstance,
-  createRemoteAccessSession,
   deleteRemoteAccessSessionsByInstanceId,
   deleteRemoteInstanceById,
   deleteRemoteShareGrantsByInstanceId,
   getRemoteInstanceById,
   getRemoteInstanceByInstallId,
   listRemoteInstancesByUserId,
-  toRemoteAccessSessionView,
   toRemoteInstanceView,
   unarchiveRemoteInstance,
   upsertRemoteInstance,
+} from "@/repositories/remote-instance.repository";
+import {
+  createRemoteAccessSession,
+  toRemoteAccessSessionView,
 } from "@/repositories/remote.repository";
 import { ensurePlatformBootstrap, requireAuthUser } from "@/services/platform.service";
 import {
   buildRemoteAccessUrlSet,
 } from "@/services/remote-access.service";
 import type { Env } from "@/types/platform";
+import type {
+  RemoteInstanceArchiveStatus,
+  RemoteInstanceConnectionStatus,
+  RemoteInstanceListQuery,
+  RemoteInstanceSortBy,
+  RemoteInstanceSortDirection,
+} from "@/types/remote-instance.types";
 import { DEFAULT_REMOTE_SESSION_TTL_SECONDS } from "@/types/platform";
 import {
   apiError,
+  parseBoundedInt,
   randomOpaqueToken,
   readJson,
   readString,
@@ -42,6 +52,40 @@ function requireRemoteAccessUrls(
 function shouldIncludeArchivedInstances(c: Context<{ Bindings: Env }>): boolean {
   const raw = c.req.query("includeArchived")?.trim().toLowerCase() ?? "";
   return raw === "1" || raw === "true" || raw === "yes";
+}
+
+function readRemoteInstanceArchiveStatus(c: Context<{ Bindings: Env }>): RemoteInstanceArchiveStatus {
+  const raw = c.req.query("archiveStatus")?.trim();
+  if (raw === "active" || raw === "archived" || raw === "all") {
+    return raw;
+  }
+  return shouldIncludeArchivedInstances(c) ? "all" : "active";
+}
+
+function readRemoteInstanceConnectionStatus(c: Context<{ Bindings: Env }>): RemoteInstanceConnectionStatus {
+  const raw = c.req.query("connectionStatus")?.trim();
+  return raw === "online" || raw === "offline" ? raw : "all";
+}
+
+function readRemoteInstanceSortBy(c: Context<{ Bindings: Env }>): RemoteInstanceSortBy {
+  const raw = c.req.query("sortBy")?.trim();
+  return raw === "displayName" || raw === "createdAt" ? raw : "lastSeenAt";
+}
+
+function readRemoteInstanceSortDirection(c: Context<{ Bindings: Env }>): RemoteInstanceSortDirection {
+  return c.req.query("sortDirection")?.trim() === "asc" ? "asc" : "desc";
+}
+
+function readRemoteInstanceListQuery(c: Context<{ Bindings: Env }>): RemoteInstanceListQuery {
+  return {
+    archiveStatus: readRemoteInstanceArchiveStatus(c),
+    connectionStatus: readRemoteInstanceConnectionStatus(c),
+    q: (c.req.query("q") ?? "").trim().slice(0, 120),
+    page: parseBoundedInt(c.req.query("page"), 1, 1, 999),
+    pageSize: parseBoundedInt(c.req.query("pageSize"), 10, 1, 100),
+    sortBy: readRemoteInstanceSortBy(c),
+    sortDirection: readRemoteInstanceSortDirection(c),
+  };
 }
 
 function shouldAuditRemoteInstanceRegistration(params: {
@@ -148,10 +192,17 @@ export async function listRemoteInstancesHandler(c: Context<{ Bindings: Env }>):
   if (!auth.ok) {
     return auth.response;
   }
-  const rows = await listRemoteInstancesByUserId(c.env.NEXTCLAW_PLATFORM_DB, auth.user.id, {
-    includeArchived: shouldIncludeArchivedInstances(c)
+  const query = readRemoteInstanceListQuery(c);
+  const result = await listRemoteInstancesByUserId(c.env.NEXTCLAW_PLATFORM_DB, auth.user.id, query);
+  return c.json({
+    ok: true,
+    data: {
+      ...query,
+      total: result.total,
+      totalPages: result.total === 0 ? 0 : Math.ceil(result.total / query.pageSize),
+      items: result.rows.map((row) => toRemoteInstanceView(row)),
+    },
   });
-  return c.json({ ok: true, data: { items: rows.map((row) => toRemoteInstanceView(row)) } });
 }
 
 export async function openRemoteInstanceHandler(c: Context<{ Bindings: Env }>): Promise<Response> {

@@ -8,7 +8,6 @@ import {
   closeRemoteAccessSessionsByGrantId,
   createRemoteShareGrant,
   getRemoteAccessSessionByToken,
-  getRemoteInstanceById,
   getRemoteShareGrantById,
   getRemoteShareGrantByToken,
   listRemoteShareGrantsByInstanceId,
@@ -17,6 +16,7 @@ import {
   touchRemoteAccessSession,
   toRemoteAccessSessionView,
 } from "@/repositories/remote.repository";
+import { getRemoteInstanceById } from "@/repositories/remote-instance.repository";
 import { ensurePlatformBootstrap, requireAuthUser } from "@/services/platform.service";
 import {
   buildRemoteAccessUrlSet,
