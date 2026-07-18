@@ -1,8 +1,17 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
 const workspaceStateKey = 'nextclaw.chat.workspace-panel.state';
+const binaryWorkspacePreviewExtensions = new Set([
+  '.docx',
+  '.ods',
+  '.pptx',
+  '.xls',
+  '.xlsb',
+  '.xlsm',
+  '.xlsx'
+]);
 
 export function resolveScreenshotMode(argv, configuredMode) {
   const modeArg = argv.find((argument) => argument.startsWith('--mode='));
@@ -28,13 +37,20 @@ function buildSessionRoute(sessionId) {
 
 function createWorkspacePreviewStorage(previewPath, sessionId) {
   const resolvedPath = path.resolve(previewPath);
-  let previewText;
+  const isBinaryPreview = binaryWorkspacePreviewExtensions.has(
+    path.extname(resolvedPath).toLowerCase()
+  );
+  let rawText = null;
   try {
-    previewText = readFileSync(resolvedPath, 'utf8');
+    if (!statSync(resolvedPath).isFile()) {
+      throw new Error('path is not a file');
+    }
+    rawText = isBinaryPreview ? null : readFileSync(resolvedPath, 'utf8');
   } catch {
     throw new Error(`failed to read curated workspace preview: ${resolvedPath}`);
   }
-  const previewKey = `${sessionId}::preview:rendered::${resolvedPath}`;
+  const previewViewer = isBinaryPreview ? 'auto' : 'rendered';
+  const previewKey = `${sessionId}::preview:${previewViewer}::${resolvedPath}`;
   return {
     [workspaceStateKey]: JSON.stringify({
       state: {
@@ -48,8 +64,8 @@ function createWorkspacePreviewStorage(previewPath, sessionId) {
             path: resolvedPath,
             label: path.basename(resolvedPath),
             viewMode: 'preview',
-            previewViewer: 'rendered',
-            rawText: previewText
+            previewViewer,
+            rawText
           }],
           activeWorkspaceFileKey: previewKey,
           workspaceNavigationHistory: [{ kind: 'file', key: previewKey }],
@@ -103,13 +119,20 @@ async function findRepresentativeImage(page) {
 
 async function waitForCuratedSession(page, options) {
   const { keepSidebar, sidebarSearch, targetSelector, targetText } = options;
-  const minimumTargetX = keepSidebar ? 275 : 320;
   await page.waitForFunction(() => {
     const hasInput = Boolean(document.querySelector('textarea, [contenteditable="true"]'));
     const hasLoadingSkeleton = Boolean(document.querySelector('[data-loading="true"], [aria-busy="true"]'));
     return hasInput && !hasLoadingSkeleton;
   }, undefined, { timeout: 30_000 });
 
+  if (!keepSidebar) {
+    const collapseSidebar = page.getByRole('button', { name: /^(收起侧边栏|Collapse sidebar)$/ }).first();
+    if (await collapseSidebar.isVisible()) {
+      await collapseSidebar.click();
+    }
+  }
+
+  const minimumTargetX = keepSidebar ? 275 : 56;
   let target;
   if (targetSelector) {
     target = await waitForVisibleMainTarget(
@@ -125,13 +148,6 @@ async function waitForCuratedSession(page, options) {
     );
   } else {
     target = await findRepresentativeImage(page);
-  }
-
-  if (!keepSidebar) {
-    const collapseSidebar = page.getByRole('button', { name: /^(收起侧边栏|Collapse sidebar)$/ }).first();
-    if (await collapseSidebar.isVisible()) {
-      await collapseSidebar.click();
-    }
   }
 
   if (sidebarSearch) {

@@ -83,9 +83,11 @@ pnpm run screenshots:capture-curated
 - `SCREENSHOT_UI_THEME=natural`：明确需要默认主题时覆盖雾蓝；同批次不得混用。
 - `SCREENSHOT_KEEP_SIDEBAR=1`：保留会话侧栏，适合展示完整工作台构图。
 - `SCREENSHOT_SIDEBAR_SEARCH=<text>`：只显示与宣传场景相关的真实会话，不改写会话数据。
-- `SCREENSHOT_WORKSPACE_PREVIEW_PATH=<absolute-path>`：在会话右侧以渲染模式打开真实 Markdown 或 HTML 文件。
+- `SCREENSHOT_WORKSPACE_PREVIEW_PATH=<absolute-path>`：在会话右侧打开真实 Markdown、HTML、DOCX、XLSX 或 PPTX 文件；HTML/Markdown 使用渲染模式，Office 文件使用内置预览器。
 
 精选模式强制使用真实 origin 和真实 session，不会启动 mock UI，也不会调用模型重新生成任务内容。
+
+官网文件预览场景使用 `SCREENSHOT_CURATED_ASSET=nextclaw-office-file-preview`。该素材由 landing 通过 Vite 从 `images/screenshots/` 导入，构建时生成内容哈希文件名，不再依赖固定 public URL，避免发布后继续命中旧图缓存。
 
 ## 外部时效资产
 
@@ -135,9 +137,10 @@ GITHUB_TOKEN=$(gh auth token) pnpm run assets:refresh-star-history
 
 - `nextclaw-hero-workbench-*.png`
 - `nextclaw-image-generation-result-*.png`
+- `nextclaw-office-file-preview-*.png`
 - 以后通过 `SCREENSHOT_CURATED_ASSET` 增加的真实任务素材。
 
-GitHub/文档源图放在 `images/screenshots/`，landing 使用的同名镜像放在 `apps/landing/public/`。两者必须哈希一致。
+GitHub/文档源图放在 `images/screenshots/`。仍通过 public URL 使用的 landing 素材保留 `apps/landing/public/` 同名镜像，并保证两者哈希一致；通过 Vite 导入的素材只保留 `images/screenshots/` 单一来源。
 
 ## CI
 

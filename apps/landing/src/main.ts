@@ -193,9 +193,9 @@ const COPY: Record<Locale, LandingCopy> = {
       },
       {
         eyebrow: 'File preview',
-        title: 'Preview code, docs, and local HTML',
-        description: 'Switch between local HTML, source files, and Markdown in side tabs while you inspect data or adjust a page.',
-        imageSrc: '/nextclaw-workspace-preview-en.png', imageAlt: 'NextClaw file and HTML preview workspace'
+        title: 'Preview files beside the conversation',
+        description: 'Open code, Markdown, HTML, Word, Excel, and PowerPoint beside the conversation while you inspect data or revise a file.',
+        imageSrc: new URL('../../../images/screenshots/nextclaw-office-file-preview-en.png', import.meta.url).href, imageAlt: 'NextClaw conversation with an Excel file open in the workspace preview'
       },
       {
         eyebrow: 'Image generation',
@@ -539,9 +539,9 @@ const COPY: Record<Locale, LandingCopy> = {
       },
       {
         eyebrow: '文件预览',
-        title: '源码、文档和 HTML 不用另开窗口',
-        description: '本地 HTML、代码和 Markdown 可以在右侧标签里切换，调页面、看数据、查源码时不用离开会话。',
-        imageSrc: '/nextclaw-workspace-preview-cn.png', imageAlt: 'NextClaw 文件与 HTML 预览工作区'
+        title: '代码和文档，右侧直接预览',
+        description: '代码、Markdown、HTML、Word、Excel 和 PowerPoint 都能在右侧直接打开，核数据、改文档时不用离开会话。',
+        imageSrc: new URL('../../../images/screenshots/nextclaw-office-file-preview-cn.png', import.meta.url).href, imageAlt: 'NextClaw 会话右侧打开 Excel 文件预览'
       },
       {
         eyebrow: '图片生成',
