@@ -16,13 +16,16 @@
 - `node workers/nextclaw-provider-gateway-api/tests/remote-panel-app-session.test.mjs`：通过；覆盖签名资源、公开 SDK、null-origin bridge API、预检，以及普通 API、伪造 Origin、非 API 路径、缺 bridge header、非法 host 等拒绝场景。
 - 新版 Cloudflare 配额合同的 14 项定向测试通过，确认本次部署源与线上 Durable Object schema 兼容。
 - `pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet` 与 maintainability guard：通过；守卫 0 error / 1 warning，warning 是 `remote.controller.ts` 仍接近 600 行预算，但本次从 512 行降到 483 行。
-- 线上真实浏览器验收直接使用用户当前 Chrome 配置和原远程访问 URL 完成；最终资源与 DOM 结果在部署后回填。
+- 线上真实浏览器验收直接使用用户当前 Chrome 配置和原远程访问 URL 完成。刷新后，外链 `styles.css` 已作为启用状态的 LINK 样式表进入 `document.styleSheets`，签名 `app.js` 已加载，ECharts 生成 2 个 canvas；标题计算样式为 `20px / 700 / rgb(228, 231, 255)`，页面背景为 `rgb(10, 14, 39)`，与修复前默认黑色 32px 标题形成明确对照。
+- 页面 DOM 完整呈现深色主题、指标卡、时间范围与坐标轴控件、16 个标的、年度涨跌表和详情表。浏览器日志没有面板应用自身错误；现存错误均来自用户 Chrome 扩展尝试在 sandbox iframe 中访问 `localStorage`，不影响面板应用资源或交互。
 
 ## 发布/部署方式
 
 本次仅涉及 `nextclaw-provider-gateway-api` Cloudflare Worker。数据库 schema、migration、NPM 包、Desktop 安装包和 NextClaw 宿主重启均不涉及。
 
-首次部署误从早于 `8b1cfeb9a` 的隔离基线生成，旧配额代码无法读取线上 v2 Durable Object 状态，真实浏览器暴露 `REMOTE_QUOTA_GUARD_UNAVAILABLE`。发现后立即回滚到稳定版本 `14f4e3c0-62bd-42a6-8c80-2e71c1554088` 并确认配额调用恢复；最终部署改为基于包含正式配额统一提交的最新 `master` 构建，防止运行时 schema 回退。最终 Worker Version ID 在重新部署后回填。
+首次部署误从早于 `8b1cfeb9a` 的隔离基线生成，旧配额代码无法读取线上 v2 Durable Object 状态，真实浏览器暴露 `REMOTE_QUOTA_GUARD_UNAVAILABLE`。发现后立即回滚到稳定版本 `14f4e3c0-62bd-42a6-8c80-2e71c1554088` 并确认配额调用恢复；最终部署改为基于包含正式配额统一提交的最新 `master` 构建，防止运行时 schema 回退。最终 Worker Version ID 为 `6fe6cc80-470d-4179-be39-a2e18aea7ffd`。
+
+部署后本地远程连接器曾因一次 WebSocket 1006 非正常关闭进入退避等待；通过产品既有的 `/api/remote/service/restart` 仅重启远程连接器（未重启 NextClaw 宿主），状态恢复为 `connected` 后在同一 Chrome 标签页完成上述验收。
 
 ## 用户/产品视角的验收步骤
 
