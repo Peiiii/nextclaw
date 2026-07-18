@@ -19,7 +19,16 @@ export function useRemoteInstancesCardState(props: {
 }) {
   const queryClient = useQueryClient();
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
-  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  async function copyText(value: string, successMessage: string, fallbackMessage: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(value);
+      setFeedback(successMessage);
+    } catch {
+      setFeedback(fallbackMessage);
+    }
+  }
 
   const invalidateRemoteInstanceQueries = async (): Promise<void> => {
     await queryClient.invalidateQueries({ queryKey: ['remote-instances'] });
@@ -65,12 +74,11 @@ export function useRemoteInstancesCardState(props: {
     onSuccess: async (grant) => {
       setSelectedInstanceId(grant.instanceId);
       await queryClient.invalidateQueries({ queryKey: ['remote-share-grants', grant.instanceId] });
-      try {
-        await navigator.clipboard.writeText(grant.shareUrl);
-        setShareFeedback(props.t('remote.messages.newShareCopied'));
-      } catch {
-        setShareFeedback(props.t('remote.messages.newShareCreated'));
-      }
+      await copyText(
+        grant.shareUrl,
+        props.t('remote.messages.newShareCopied'),
+        props.t('remote.messages.newShareCreated')
+      );
     }
   });
 
@@ -78,7 +86,7 @@ export function useRemoteInstancesCardState(props: {
     mutationFn: async (params: { grantId: string; instanceId: string }) => await revokeRemoteShareGrant(props.token, params.grantId),
     onSuccess: async (_result, variables) => {
       await queryClient.invalidateQueries({ queryKey: ['remote-share-grants', variables.instanceId] });
-      setShareFeedback(props.t('remote.messages.shareRevoked'));
+      setFeedback(props.t('remote.messages.shareRevoked'));
     }
   });
 
@@ -89,7 +97,7 @@ export function useRemoteInstancesCardState(props: {
         setSelectedInstanceId(null);
       }
       await invalidateRemoteInstanceQueries();
-      setShareFeedback(props.t('remote.messages.archiveSuccess'));
+      setFeedback(props.t('remote.messages.archiveSuccess'));
     }
   });
 
@@ -97,7 +105,7 @@ export function useRemoteInstancesCardState(props: {
     mutationFn: async (instanceId: string) => await unarchiveRemoteInstance(props.token, instanceId),
     onSuccess: async () => {
       await invalidateRemoteInstanceQueries();
-      setShareFeedback(props.t('remote.messages.restoreSuccess'));
+      setFeedback(props.t('remote.messages.restoreSuccess'));
     }
   });
 
@@ -108,17 +116,16 @@ export function useRemoteInstancesCardState(props: {
         setSelectedInstanceId(null);
       }
       await invalidateRemoteInstanceQueries();
-      setShareFeedback(props.t('remote.messages.deleteSuccess'));
+      setFeedback(props.t('remote.messages.deleteSuccess'));
     }
   });
 
   async function copyShareUrl(shareUrl: string): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setShareFeedback(props.t('remote.messages.shareCopied'));
-    } catch {
-      setShareFeedback(props.t('remote.messages.shareCopyManual'));
-    }
+    await copyText(shareUrl, props.t('remote.messages.shareCopied'), props.t('remote.messages.shareCopyManual'));
+  }
+
+  async function copyInstanceId(instanceId: string): Promise<void> {
+    await copyText(instanceId, props.t('remote.messages.instanceIdCopied'), props.t('remote.messages.instanceIdCopyManual'));
   }
 
   function handleArchiveInstance(instanceId: string): void {
@@ -143,6 +150,7 @@ export function useRemoteInstancesCardState(props: {
     archivedInstances,
     archivedInstancesQuery,
     archiveRemoteInstanceMutation,
+    copyInstanceId,
     copyShareUrl,
     createRemoteShareMutation,
     deleteRemoteInstanceMutation,
@@ -155,7 +163,7 @@ export function useRemoteInstancesCardState(props: {
     resolvedInstanceId,
     revokeRemoteShareMutation,
     setSelectedInstanceId,
-    shareFeedback,
+    feedback,
     unarchiveRemoteInstanceMutation
   };
 }

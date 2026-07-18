@@ -285,6 +285,7 @@
     "openInWeb": "在网页中打开",
     "openWithFixedDomain": "用固定域名打开",
     "createAnotherShare": "再创建一个",
+    "copyInstanceId": "复制实例 ID：{instanceId}",
     "archive": "归档",
     "restore": "恢复",
     "delete": "删除"
@@ -309,6 +310,8 @@
     "shareCopyManual": "复制失败，请手动复制链接。",
     "newShareCopied": "新分享链接已复制到剪贴板。",
     "newShareCreated": "新分享链接已创建，请手动复制。",
+    "instanceIdCopied": "实例 ID 已复制到剪贴板。",
+    "instanceIdCopyManual": "复制失败，请手动复制实例 ID。",
     "shareRevoked": "分享链接已撤销，已打开的分享会话会立即失效。",
     "noShares": "当前实例还没有分享链接。",
     "archiveSuccess": "实例已归档，主列表里不会再显示它。",

@@ -292,6 +292,7 @@ async function fulfillNotFound(route) {
 }
 
 async function initializeDashboardPage(page) {
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"], { origin: baseUrl });
   await page.addInitScript(() => {
     window.localStorage.clear();
     window.localStorage.setItem("nextclaw.platform.token", "demo-token");
@@ -311,6 +312,7 @@ async function assertDashboardLanding(page) {
     "My Instances",
     "PUBLISH READINESS",
     "Remote Quota & Usage",
+    "Copy instance ID: inst-1",
     "Open via fixed domain",
     "Daily Worker requests",
     "COMING SOON",
@@ -324,6 +326,8 @@ async function assertDashboardLanding(page) {
   if (bodyText.includes("Recharge") || bodyText.includes("Ledger")) {
     throw new Error("Dashboard still exposes billing details that should stay hidden.");
   }
+  await page.getByRole("button", { name: "Copy instance ID: inst-1" }).click();
+  await page.waitForFunction(() => document.body.innerText.includes("Instance ID copied to clipboard."));
 }
 
 async function assertAccountSettingsFlow(page) {
@@ -411,10 +415,7 @@ async function assertArchiveLifecycle(page) {
   await page.waitForFunction(() => document.body.innerText.includes("Archived instances"));
   await page.waitForFunction(() => document.body.innerText.includes("Restore"));
   await page.waitForFunction(() => document.body.innerText.includes("Delete"));
-  const archivedText = await page.locator("body").innerText();
-  if (!archivedText.includes("Archived instances")) {
-    throw new Error("Dashboard did not render the archived instances section after archiving.");
-  }
+  await page.getByRole("button", { name: "Copy instance ID: inst-1" }).waitFor();
   await page.getByRole("button", { name: "Restore" }).click();
   await page.waitForFunction(() => document.body.innerText.includes("Instance restored to the main list."));
   acceptNextDialog(page);

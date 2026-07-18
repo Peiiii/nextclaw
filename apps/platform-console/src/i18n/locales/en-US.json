@@ -285,6 +285,7 @@
     "openInWeb": "Open in browser",
     "openWithFixedDomain": "Open via fixed domain",
     "createAnotherShare": "Create another",
+    "copyInstanceId": "Copy instance ID: {instanceId}",
     "archive": "Archive",
     "restore": "Restore",
     "delete": "Delete"
@@ -309,6 +310,8 @@
     "shareCopyManual": "Copy failed. Please copy the link manually.",
     "newShareCopied": "New share link copied to clipboard.",
     "newShareCreated": "New share link created. Please copy it manually.",
+    "instanceIdCopied": "Instance ID copied to clipboard.",
+    "instanceIdCopyManual": "Copy failed. Please copy the instance ID manually.",
     "shareRevoked": "Share link revoked. Existing shared sessions will stop working immediately.",
     "noShares": "No share links for this instance yet.",
     "archiveSuccess": "Instance archived. It is now hidden from the main list.",

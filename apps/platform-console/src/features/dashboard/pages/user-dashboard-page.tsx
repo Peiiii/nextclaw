@@ -15,7 +15,7 @@ import { TableWrap } from '@/components/ui/table';
 import { createTranslator, formatDateTime, type LocaleCode } from '@/i18n/i18n.service';
 import { useLocaleStore } from '@/i18n/locale.store';
 import { WorkbenchSummaryStrip } from '@/components/console/workbench-summary-strip';
-import { useRemoteInstancesCardState } from '@/pages/UserDashboardPage.remote-state';
+import { useRemoteInstancesCardState } from '@/features/dashboard/hooks/use-remote-instances-card';
 
 type Props = {
   token: string;
@@ -34,6 +34,7 @@ type RemoteInstancesTableProps = {
   isCreatingShare: boolean;
   isOpeningInstance: boolean;
   onArchiveInstance: (instanceId: string) => void;
+  onCopyInstanceId: (instanceId: string) => void;
   onCreateShare: (instanceId: string) => void;
   onSelectInstance: (instanceId: string) => void;
   onOpenInstance: (instanceId: string, entry: 'subdomain' | 'fixed_domain') => void;
@@ -47,6 +48,7 @@ type ArchivedInstancesPanelProps = {
   error: unknown;
   isDeletingInstance: boolean;
   isRestoringInstance: boolean;
+  onCopyInstanceId: (instanceId: string) => void;
   onDeleteInstance: (instanceId: string) => void;
   onRestoreInstance: (instanceId: string) => void;
 };
@@ -75,6 +77,7 @@ function RemoteInstancesTable({
   isCreatingShare,
   isOpeningInstance,
   onArchiveInstance,
+  onCopyInstanceId,
   onCreateShare,
   onSelectInstance,
   onOpenInstance
@@ -97,6 +100,9 @@ function RemoteInstancesTable({
               <td className="px-3 py-2">
                 <div className="font-medium text-[#1f1f1d]">{instance.displayName}</div>
                 <div className="text-xs text-[#8f8a7d]">{instance.appVersion}</div>
+                <Button className="mt-1 break-all font-mono text-xs" variant="ghost" onClick={() => onCopyInstanceId(instance.id)}>
+                  {t('remote.actions.copyInstanceId', { instanceId: instance.id })}
+                </Button>
               </td>
               <td className="px-3 py-2 text-[#656561]">{instance.platform}</td>
               <td className="px-3 py-2">
@@ -165,6 +171,7 @@ function ArchivedInstancesPanel({
   error,
   isDeletingInstance,
   isRestoringInstance,
+  onCopyInstanceId,
   onDeleteInstance,
   onRestoreInstance
 }: ArchivedInstancesPanelProps): JSX.Element | null {
@@ -204,6 +211,9 @@ function ArchivedInstancesPanel({
                   <td className="px-3 py-2">
                     <div className="font-medium text-[#1f1f1d]">{instance.displayName}</div>
                     <div className="text-xs text-[#8f8a7d]">{instance.appVersion}</div>
+                    <Button className="mt-1 break-all font-mono text-xs" variant="ghost" onClick={() => onCopyInstanceId(instance.id)}>
+                      {t('remote.actions.copyInstanceId', { instanceId: instance.id })}
+                    </Button>
                     {instance.archivedAt ? (
                       <div className="text-xs text-[#a7a08f]">
                         {t('remote.archived.archivedAt', {
@@ -481,6 +491,7 @@ function RemoteInstancesCard(props: {
     archivedInstances,
     archivedInstancesQuery,
     archiveRemoteInstanceMutation,
+    copyInstanceId,
     copyShareUrl,
     createRemoteShareMutation,
     deleteRemoteInstanceMutation,
@@ -493,7 +504,7 @@ function RemoteInstancesCard(props: {
     resolvedInstanceId,
     revokeRemoteShareMutation,
     setSelectedInstanceId,
-    shareFeedback,
+    feedback,
     unarchiveRemoteInstanceMutation
   } = useRemoteInstancesCardState({
     token: props.token,
@@ -514,6 +525,7 @@ function RemoteInstancesCard(props: {
         isCreatingShare={createRemoteShareMutation.isPending}
         isOpeningInstance={openRemoteInstanceMutation.isPending}
         onArchiveInstance={handleArchiveInstance}
+        onCopyInstanceId={(instanceId) => void copyInstanceId(instanceId)}
         onCreateShare={(instanceId) => {
           setSelectedInstanceId(instanceId);
           void createRemoteShareMutation.mutateAsync(instanceId);
@@ -556,7 +568,7 @@ function RemoteInstancesCard(props: {
           {deleteRemoteInstanceMutation.error instanceof Error ? deleteRemoteInstanceMutation.error.message : props.t('remote.messages.deleteFailed')}
         </p>
       ) : null}
-      {shareFeedback ? <p className="text-sm text-[#656561]">{shareFeedback}</p> : null}
+      {feedback ? <p className="text-sm text-[#656561]" role="status">{feedback}</p> : null}
 
       <RemoteShareGrantPanel
         locale={props.locale}
@@ -579,6 +591,7 @@ function RemoteInstancesCard(props: {
         error={archivedInstancesQuery.error}
         isDeletingInstance={deleteRemoteInstanceMutation.isPending}
         isRestoringInstance={unarchiveRemoteInstanceMutation.isPending}
+        onCopyInstanceId={(instanceId) => void copyInstanceId(instanceId)}
         onDeleteInstance={handleDeleteInstance}
         onRestoreInstance={handleRestoreInstance}
       />
