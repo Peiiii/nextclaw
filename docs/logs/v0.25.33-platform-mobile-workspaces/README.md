@@ -19,10 +19,13 @@
 - `PLATFORM_ADMIN_BASE_URL=http://127.0.0.1:4177 node scripts/smoke/platform-admin-smoke.mjs`：通过。
 - 新增 390 × 844 定向断言：document 无横向溢出、内容滚动区可到达底部、移动卡片替代桌面表格、导航溢出可达、核心操作可见、额度弹窗不越出视口。
 - 使用用户当前 Chrome 打开本地双站登录页，确认 390px 宽度下 `scrollWidth === clientWidth`；核心登录后工作台由带 API fixtures 的真实浏览器冒烟与截图复核。
+- `PLATFORM_CONSOLE_BASE_URL=https://platform.nextclaw.io node scripts/smoke/platform-console-smoke.mjs`：生产域通过。
+- `PLATFORM_ADMIN_BASE_URL=https://platform-admin.nextclaw.io node scripts/smoke/platform-admin-smoke.mjs`：生产域通过。
+- 两个生产首页、构建 JS 与 `/logo.svg` 均返回 `200`；Console 加载 `index-CMu5qo8Q.js`，Admin 加载 `index-5NVIVjW9.js`，favicon 均为 `image/svg+xml`。
 
 ## 发布/部署方式
 
-本轮按用户要求先提供本地预览，尚未提交、推送或部署。后续发布时应从本地 `master` 提交，依次执行 Platform Console 与 Platform Admin 的 Pages 部署，并在两个生产自定义域重新执行 390 × 844 在线验收。
+本轮先在本地 `master` 创建提交 `48c9617f3`，再依次执行 `pnpm deploy:platform:console` 与 `pnpm deploy:platform:admin`。Platform Console Pages 部署为 `https://e7c974e8.nextclaw-platform-console.pages.dev`，Platform Admin Pages 部署为 `https://09e6305f.nextclaw-platform-admin.pages.dev`；两个生产自定义域均已完成 390 × 844 在线验收。
 
 ## 用户/产品视角的验收步骤
 
