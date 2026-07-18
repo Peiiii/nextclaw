@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import parser from "@typescript-eslint/parser";
@@ -22,11 +22,13 @@ const usage = `Usage:
   node scripts/governance/checks/structure/lint-new-code-file-role-boundaries.mjs
   node scripts/governance/checks/structure/lint-new-code-file-role-boundaries.mjs --staged
   node scripts/governance/checks/structure/lint-new-code-file-role-boundaries.mjs --base origin/main
+  node scripts/governance/checks/structure/lint-new-code-file-role-boundaries.mjs --planned <path...>
   node scripts/governance/checks/structure/lint-new-code-file-role-boundaries.mjs -- packages/nextclaw-ui/src
 
 Blocks changed workspace source files whose file names violate the repository's
 directory-to-suffix mapping or the default role-suffix whitelist.
-Once a file is touched, legacy role-boundary debt must be fixed in the same change.`;
+Once a file is touched, legacy role-boundary debt must be fixed in the same change.
+Use --planned before editing to validate intended new, renamed, moved, or touched paths.`;
 
 const ROLE_SUFFIX_ALLOWLIST = new Set([
   "config",
@@ -315,7 +317,11 @@ export const inspectFileRoleBoundaryEntry = (entry, options = {}) => {
   const nearestRule = getNearestDirectoryRule(segments);
   const moduleContract = options.moduleContract ?? findModuleStructureContract(normalizedPath);
 
-  if (isServiceImplementationFile(stem) && !hasClassDeclaration(readEntrySource(normalizedPath, options), normalizedPath)) {
+  if (
+    !options.skipSourceValidation
+    && isServiceImplementationFile(stem)
+    && !hasClassDeclaration(readEntrySource(normalizedPath, options), normalizedPath)
+  ) {
     return buildViolation(entry, buildServiceClassMessage(entry), "service-requires-class");
   }
 
@@ -383,20 +389,44 @@ export const runFileRoleBoundaryCheck = (options) => {
   };
 };
 
-export const printViolations = ({ changedFiles, violations }) => {
+export const runPlannedFileRoleBoundaryCheck = (plannedPaths) => {
+  const entries = Array.from(new Set(plannedPaths.map(toPosixPath)))
+    .filter(isGovernedWorkspaceFile)
+    .sort((left, right) => left.localeCompare(right))
+    .map((filePath) => ({
+      filePath,
+      status: existsSync(path.resolve(rootDir, filePath)) ? "M" : "A"
+    }));
+  const violations = defaultSortByLocation(
+    entries
+      .map((entry) => inspectFileRoleBoundaryEntry(entry, { skipSourceValidation: true }))
+      .filter(Boolean)
+  );
+  return {
+    changedFiles: entries.map((entry) => entry.filePath),
+    violations,
+    mode: "planned"
+  };
+};
+
+export const printViolations = ({ changedFiles, violations, mode = "diff" }) => {
   if (changedFiles.length === 0) {
-    console.log("No changed workspace source files to check.");
+    console.log(mode === "planned" ? "No governed planned paths to check." : "No changed workspace source files to check.");
     return 0;
   }
 
   const errors = violations.filter((item) => item.level === "error");
 
   if (errors.length === 0) {
-    console.log(`File role-boundary diff check passed for ${changedFiles.length} changed file(s).`);
+    console.log(mode === "planned"
+      ? `File role-boundary preflight passed for ${changedFiles.length} planned path(s).`
+      : `File role-boundary diff check passed for ${changedFiles.length} changed file(s).`);
     return 0;
   }
 
-  console.error("File role-boundary diff check blocked changed files whose directory and suffix naming do not match.");
+  console.error(mode === "planned"
+    ? "File role-boundary preflight blocked planned paths whose directory and suffix naming do not match."
+    : "File role-boundary diff check blocked changed files whose directory and suffix naming do not match.");
   for (const violation of errors) {
     console.error(`- [${violation.level}] ${violation.filePath}: ${violation.message}`);
   }
@@ -404,9 +434,27 @@ export const printViolations = ({ changedFiles, violations }) => {
   return 1;
 };
 
+const parseFileRoleBoundaryArgs = (argv) => {
+  const plannedIndex = argv.indexOf("--planned");
+  if (plannedIndex < 0) {
+    return { mode: "diff", options: parseDiffCheckArgs(argv, usage) };
+  }
+  if (plannedIndex > 0) {
+    throw new Error("--planned cannot be combined with diff-mode arguments.");
+  }
+  const plannedPaths = argv.slice(1).filter((arg) => arg !== "--");
+  if (plannedPaths.length === 0) {
+    throw new Error("--planned requires at least one repository-relative path.");
+  }
+  return { mode: "planned", plannedPaths };
+};
+
 const main = () => {
-  const options = parseDiffCheckArgs(process.argv.slice(2), usage);
-  process.exit(printViolations(runFileRoleBoundaryCheck(options)));
+  const args = parseFileRoleBoundaryArgs(process.argv.slice(2));
+  const report = args.mode === "planned"
+    ? runPlannedFileRoleBoundaryCheck(args.plannedPaths)
+    : runFileRoleBoundaryCheck(args.options);
+  process.exit(printViolations(report));
 };
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -7,6 +7,7 @@ import {
   collectAddedLinesByFile,
   collectChangedWorkspaceFiles,
   defaultSortByLocation,
+  isGovernedWorkspaceFile,
   parseDiffCheckArgs,
   rootDir,
   runGit
@@ -31,10 +32,12 @@ const usage = `Usage:
   node scripts/governance/module-structure/lint-new-code-module-structure.mjs
   node scripts/governance/module-structure/lint-new-code-module-structure.mjs --staged
   node scripts/governance/module-structure/lint-new-code-module-structure.mjs --base origin/main
+  node scripts/governance/module-structure/lint-new-code-module-structure.mjs --planned <path...>
   node scripts/governance/module-structure/lint-new-code-module-structure.mjs -- packages/nextclaw-ui/src
 
 Checks touched files against explicit module-structure contracts so crowded roots do not keep growing without subtree boundaries.
-Protocol-enabled modules also validate structure and import boundaries against fixed hierarchy templates.`;
+Protocol-enabled modules also validate structure and import boundaries against fixed hierarchy templates.
+Use --planned before editing to validate intended new, renamed, moved, or touched paths.`;
 
 const SHARED_DIRECTORY_ROLE_HINT = /(service|manager|controller|presenter|provider|orchestrator|runtime|router|route|store|gateway|handler|policy|registry)\b/;
 const GOVERNED_IMPORT_FILE_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
@@ -349,9 +352,20 @@ export const runModuleStructureCheck = (options) => {
   };
 };
 
-export const printViolations = ({ changedFiles, violations }) => {
+export const runPlannedModuleStructureCheck = (plannedPaths) => {
+  const changedFiles = Array.from(new Set(plannedPaths.map(normalizePath)))
+    .filter(isGovernedWorkspaceFile)
+    .sort((left, right) => left.localeCompare(right));
+  return {
+    changedFiles,
+    violations: collectModuleStructureViolations(changedFiles, new Map(), { baseRef: null }),
+    mode: "planned"
+  };
+};
+
+export const printViolations = ({ changedFiles, violations, mode = "diff" }) => {
   if (changedFiles.length === 0) {
-    console.log("No changed workspace source files to check.");
+    console.log(mode === "planned" ? "No governed planned paths to check." : "No changed workspace source files to check.");
     return 0;
   }
 
@@ -359,7 +373,9 @@ export const printViolations = ({ changedFiles, violations }) => {
   const warningFindings = violations.filter((item) => item.level !== "error");
 
   if (blockingFindings.length === 0 && warningFindings.length === 0) {
-    console.log(`Module-structure diff check passed for ${changedFiles.length} changed file(s).`);
+    console.log(mode === "planned"
+      ? `Module-structure preflight passed for ${changedFiles.length} planned path(s).`
+      : `Module-structure diff check passed for ${changedFiles.length} changed file(s).`);
     return 0;
   }
 
@@ -377,7 +393,9 @@ export const printViolations = ({ changedFiles, violations }) => {
     return 0;
   }
 
-  console.error("Module-structure diff check blocked new hierarchy drift that violates a module contract.");
+  console.error(mode === "planned"
+    ? "Module-structure preflight blocked planned hierarchy that violates a module contract."
+    : "Module-structure diff check blocked new hierarchy drift that violates a module contract.");
   for (const violation of blockingFindings) {
     console.error(`- [${violation.level}] ${violation.filePath}:${violation.line}:${violation.column}: ${violation.message}`);
     if (violation.reason) {
@@ -387,9 +405,27 @@ export const printViolations = ({ changedFiles, violations }) => {
   return 1;
 };
 
+const parseModuleStructureArgs = (argv) => {
+  const plannedIndex = argv.indexOf("--planned");
+  if (plannedIndex < 0) {
+    return { mode: "diff", options: parseDiffCheckArgs(argv, usage) };
+  }
+  if (plannedIndex > 0) {
+    throw new Error("--planned cannot be combined with diff-mode arguments.");
+  }
+  const plannedPaths = argv.slice(1).filter((arg) => arg !== "--");
+  if (plannedPaths.length === 0) {
+    throw new Error("--planned requires at least one repository-relative path.");
+  }
+  return { mode: "planned", plannedPaths };
+};
+
 const main = () => {
-  const options = parseDiffCheckArgs(process.argv.slice(2), usage);
-  process.exit(printViolations(runModuleStructureCheck(options)));
+  const args = parseModuleStructureArgs(process.argv.slice(2));
+  const report = args.mode === "planned"
+    ? runPlannedModuleStructureCheck(args.plannedPaths)
+    : runModuleStructureCheck(args.options);
+  process.exit(printViolations(report));
 };
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -96,6 +96,15 @@ export type UserPublicView = {
   updatedAt: string;
 };
 
+export type {
+  AdminUserListQuery,
+  AdminUserListResult,
+  AdminUserRoleCounts,
+  AdminUserRoleFilter,
+  AdminUserSortBy,
+  AdminUserSortDirection,
+} from "@/types/admin-user.types";
+
 export type RechargeIntentRow = {
   id: string;
   user_id: string;

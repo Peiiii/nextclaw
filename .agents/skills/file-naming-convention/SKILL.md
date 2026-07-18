@@ -1,6 +1,6 @@
 ---
 name: file-naming-convention
-description: Enforce Angular/NestJS-style file naming (kebab-case plus role suffixes like controller/manager/store/service). Use when users ask for naming conventions, file renames, modular refactors, or naming governance in TypeScript/JavaScript repositories.
+description: 在 TypeScript/JavaScript 实现将新增、重命名、移动或触达文件前，前置校验 kebab-case、角色后缀和目录映射；也用于命名规范、文件重命名、模块化重构与命名治理。首次实质编辑前必须执行 planned-path preflight。
 ---
 
 # File Naming Convention
@@ -23,11 +23,12 @@ Trigger this skill when requests include any of these intents:
 
 1. Confirm scope: whole repo, one package, or one module.
 2. Classify each target file by single primary role (controller, manager, service, etc.).
-3. Generate target names with this shape: `<domain>.<role>.ts` or `<domain>-<subdomain>.<role>.ts`.
-4. Verify the containing directory matches the role suffix (for example `services/*.service.ts`, `controllers/*.controller.ts`).
-5. Apply renames safely (prefer `git mv`) and update imports/exports/barrels.
-6. Run minimal validation for affected modules (type check, tests, or lint as applicable).
-7. Report changes with a compact mapping: old name -> new name.
+3. Before the first edit, list every governed path planned for creation, rename, move, or modification and run `pnpm preflight:governance -- <path...>`.
+4. Generate target names with this shape: `<domain>.<role>.ts` or `<domain>-<subdomain>.<role>.ts`; if the plan later adds another path, rerun the preflight before touching it.
+5. Verify the containing directory matches the role suffix (for example `services/*.service.ts`, `controllers/*.controller.ts`).
+6. Apply renames safely and update imports/exports/barrels.
+7. Run minimal validation for affected modules (type check, tests, or lint as applicable).
+8. Report changes with a compact mapping: old name -> new name.
 
 For this repository specifically:
 
@@ -35,6 +36,7 @@ For this repository specifically:
 - `pnpm lint:new-code:doc-file-names` blocks touched governed docs with non-kebab names, and requires `docs/thoughts` / `docs/designs` / `docs/plans` files to carry both a `YYYY-MM-DD-` date prefix and the matching `.thought` / `.design` / `.plan` role suffix.
 - `pnpm lint:new-code:directory-names` blocks touched files whose parent directory chain is not governed.
 - `pnpm lint:new-code:file-role-boundaries` blocks touched non-component/page/hook files that do not use an approved secondary suffix, and also blocks directory-to-suffix mismatches such as `services/foo-manager.ts`.
+- `pnpm preflight:governance -- <path...>` runs the real file-role and module-structure owners before editing; it checks both planned new paths and existing legacy paths that will be touched.
 - For Git renames that only move existing legacy role-boundary debt without changing the violation kind, the role-boundary check does not force an unrelated rename during the structural move.
 - Generated VitePress data under `apps/docs/.vitepress/data/` is exempt from role-suffix enforcement; the generator owner and generated file naming are validated by the docs build path instead.
 - `pnpm report:file-naming` prints the current legacy non-kebab backlog for gradual migration.
@@ -47,8 +49,8 @@ For this repository specifically:
 - 不得为了通过 `.service.ts` 命名治理而新增空心 class；如果 class 只代理其它 owner、没有真实状态/生命周期/流程所有权，说明文件角色应改名，而不是把假 owner 塞进文件。
 - Use whitelist-only suffixes for this repository:
   - `.service.ts`, `.utils.ts`, `.types.ts`, `.test.ts`
-  - `.manager.ts`, `.store.ts`, `.repository.ts`, `.config.ts`
-  - `.controller.ts`, `.provider.ts`, `.tools.ts`
+  - `.manager.ts`, `.store.ts`, `.repository.ts`, `.config.ts`, `.constants.ts`
+  - `.controller.ts`, `.presenter.ts(x)`, `.provider.ts`, `.route.ts(x)`, `.tools.ts`
 - Directory and suffix must match when these directories are used:
   - `controllers/` -> `*.controller.ts`
   - `services/` -> `*.service.ts`

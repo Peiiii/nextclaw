@@ -3,8 +3,33 @@ import test from "node:test";
 
 import {
   collectFileRoleBoundaryViolations,
-  inspectFileRoleBoundaryEntry
+  inspectFileRoleBoundaryEntry,
+  runPlannedFileRoleBoundaryCheck
 } from "./lint-new-code-file-role-boundaries.mjs";
+
+test("planned-path preflight blocks unsupported role suffixes before files are created", () => {
+  const report = runPlannedFileRoleBoundaryCheck([
+    "apps/demo/src/api/platform-api.client.ts",
+    "apps/demo/src/pages/login.page.tsx"
+  ]);
+
+  assert.equal(report.mode, "planned");
+  assert.equal(report.violations.length, 2);
+  assert.deepEqual(report.violations.map((violation) => violation.ruleId), [
+    "default-role-suffix",
+    "directory:pages:<domain>-page.ts(x)"
+  ]);
+});
+
+test("planned-path preflight accepts truthful provider, page, and component paths", () => {
+  const report = runPlannedFileRoleBoundaryCheck([
+    "apps/demo/src/api/platform-api.provider.ts",
+    "apps/demo/src/pages/login-page.tsx",
+    "apps/demo/src/components/admin/user-list.tsx"
+  ]);
+
+  assert.deepEqual(report.violations, []);
+});
 
 test("blocks new files in role directories when the suffix does not match the directory", () => {
   const violations = collectFileRoleBoundaryViolations([

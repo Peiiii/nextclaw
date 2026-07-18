@@ -1,5 +1,12 @@
 import type { Context } from "hono";
-import type { Env, RechargeIntentRow, UserRow } from "@/types/platform";
+import type {
+  AdminUserRoleFilter,
+  AdminUserSortBy,
+  AdminUserSortDirection,
+  Env,
+  RechargeIntentRow,
+} from "@/types/platform";
+import { listAdminUsers } from "@/repositories/admin-user.repository";
 import {
   appendAuditLog,
   createProviderAccount,
@@ -305,54 +312,62 @@ export async function adminUsersHandler(c: Context<{ Bindings: Env }>): Promise<
     return admin.response;
   }
 
-  const limit = parseBoundedInt(c.req.query("limit"), 50, 1, 500);
-  const query = optionalTrimmedString(c.req.query("q") ?? "");
-  const cursor = decodeCursorToken(c.req.query("cursor"));
-
-  const filterConditions: string[] = [];
-  const filterBinds: unknown[] = [];
-  if (query) {
-    filterConditions.push("(email LIKE ? OR username LIKE ? OR id LIKE ?)");
-    filterBinds.push(`%${query}%`, `%${query}%`, `%${query}%`);
-  }
-  const conditions = [...filterConditions];
-  const binds = [...filterBinds];
-  if (cursor) {
-    conditions.push("(created_at < ? OR (created_at = ? AND id < ?))");
-    binds.push(cursor.createdAt, cursor.createdAt, cursor.id);
-  }
-
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-  const filterWhereClause = filterConditions.length > 0 ? `WHERE ${filterConditions.join(" AND ")}` : "";
-  const sql = `SELECT id, email, username, password_hash, password_salt, role,
-                      free_limit_usd, free_used_usd, paid_balance_usd,
-                      created_at, updated_at
-                 FROM users
-                 ${whereClause}
-                ORDER BY created_at DESC, id DESC
-                LIMIT ?`;
-
-  const [result, totalRow] = await Promise.all([
-    c.env.NEXTCLAW_PLATFORM_DB.prepare(sql)
-      .bind(...binds, limit + 1)
-      .all<UserRow>(),
-    c.env.NEXTCLAW_PLATFORM_DB.prepare(`SELECT COUNT(*) AS total FROM users ${filterWhereClause}`)
-      .bind(...filterBinds)
-      .first<{ total: number | string }>()
-  ]);
-  const pagination = paginateRows(result.results ?? [], limit);
-  const total = Number(totalRow?.total ?? 0);
+  const page = parseBoundedInt(c.req.query("page"), 1, 1, 100_000);
+  const pageSize = parseBoundedInt(c.req.query("pageSize") ?? c.req.query("limit"), 20, 10, 100);
+  const q = optionalTrimmedString(c.req.query("q") ?? "") ?? "";
+  const role = parseAdminUserRole(c.req.query("role"));
+  const sortBy = parseAdminUserSortBy(c.req.query("sortBy"));
+  const sortDirection = parseAdminUserSortDirection(c.req.query("sortDirection"));
+  const result = await listAdminUsers(c.env.NEXTCLAW_PLATFORM_DB, {
+    q,
+    role,
+    page,
+    pageSize,
+    sortBy,
+    sortDirection,
+  });
+  const totalPages = result.total === 0 ? 0 : Math.ceil(result.total / pageSize);
 
   return c.json({
     ok: true,
     data: {
-      items: pagination.items.map(toUserPublicView),
-      total: Number.isFinite(total) ? total : 0,
-      pageSize: limit,
-      nextCursor: pagination.nextCursor,
-      hasMore: pagination.hasMore
+      items: result.rows.map(toUserPublicView),
+      counts: result.counts,
+      total: result.total,
+      page,
+      pageSize,
+      totalPages,
+      query: q,
+      role,
+      sortBy,
+      sortDirection,
+      nextCursor: null,
+      hasMore: page < totalPages,
     }
   });
+}
+
+function parseAdminUserRole(value: string | undefined): AdminUserRoleFilter {
+  return value === "admin" || value === "user" ? value : "all";
+}
+
+function parseAdminUserSortBy(value: string | undefined): AdminUserSortBy {
+  switch (value) {
+    case "email":
+    case "role":
+    case "freeLimitUsd":
+    case "freeUsedUsd":
+    case "paidBalanceUsd":
+    case "createdAt":
+    case "updatedAt":
+      return value;
+    default:
+      return "createdAt";
+  }
+}
+
+function parseAdminUserSortDirection(value: string | undefined): AdminUserSortDirection {
+  return value === "asc" ? "asc" : "desc";
 }
 
 export async function patchAdminUserHandler(c: Context<{ Bindings: Env }>): Promise<Response> {

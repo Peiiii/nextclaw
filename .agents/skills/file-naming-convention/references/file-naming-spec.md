@@ -38,7 +38,10 @@ Examples:
 - `.config.ts`: configuration assembly.
 - `.constants.ts`: exported constants or immutable lookup tables.
 - `.controller.ts`: route/request entry layer, protocol adaptation, input validation.
+- `.presenter.ts` / `.presenter.tsx`: presentation-state and view-model ownership.
 - `.provider.ts`: provider-facing integration capability.
+- `.route.ts` / `.route.tsx`: route declaration and route-level composition.
+- `.tools.ts`: agent-facing tool declarations; not a substitute for general utilities.
 
 ## 4. Directory-to-Suffix Mapping
 
@@ -98,6 +101,7 @@ Examples:
 
 ## 9. Automated Enforcement
 
+- `pnpm preflight:governance -- <path...>` validates planned new, renamed, moved, and touched paths before the first edit, using the same file-role and module-structure owners as the diff checks.
 - `pnpm lint:new-code:file-names` blocks new or renamed non-kebab files.
 - `pnpm lint:new-code:file-role-boundaries` blocks new or renamed files that miss an approved role suffix or violate directory-to-suffix mapping.
 - `pnpm lint:new-code:file-role-boundaries` also blocks touched `.service.ts` files that do not declare an internal class.
@@ -106,7 +110,8 @@ Examples:
 ## 10. Rename Execution Checklist
 
 1. Build old-to-new filename mapping.
-2. Rename with `git mv`.
-3. Update imports/exports and barrel files.
-4. Run impacted checks (lint/test/typecheck).
-5. Verify no duplicate legacy path remains.
+2. Run `pnpm preflight:governance -- <old-path...> <new-path...>` before editing.
+3. Rename with `git mv`.
+4. Update imports/exports and barrel files.
+5. Run impacted checks (lint/test/typecheck).
+6. Verify no duplicate legacy path remains.

@@ -118,6 +118,7 @@
   条件联动：复杂 debug 用 `long-chain-debugging`；复杂跨轮或易漂移任务用 `iteration-work-notes`，必要时加 `goal-progress-anchor`。
 - 第二步：若任务涉及新能力、架构边界、交互结构、目录组织、跨模块 owner、持久化合同、运行链路或用户要求方案/设计文档，先使用 `nextclaw-solution-design` 完成方案设计阶段门；小型局部修复可跳过设计文档，但必须说清 owner 与验证标准。
 - 第三步：实现前先判断能删什么、能合并什么、owner 是谁；若不是新增用户能力，默认目标是排除纯格式化噪音后的 `非测试语义代码净增 <= 0`，并优先通过删旧实现、重构收敛或相关链路减债达成；完成标准是系统确实变得更好，不能靠 hack、强行压行或牺牲可读性硬过线；若找不到无争议的正向改动，必须停止压缩并申请豁免。
+  首次实质编辑前，必须列出计划新增、重命名、移动和触达的 governed paths，运行 `pnpm preflight:governance -- <path...>`；过程中出现计划外路径时先补跑，禁止等 diff 形成后才发现命名、角色或模块层级违约。
   默认联动：`nextclaw-clean-implementation`。
   条件联动：涉及 fallback / compatibility / rescue path 用 `predictable-behavior-first`；涉及命名、目录、文件组织时按场景用 `file-naming-convention`、`role-first-file-organization`、`collapsible-feature-root-architecture`、`file-organization-governance`。
 - 第四步：再进入实现，优先单一路径、清晰 owner、避免补丁式分支和重复实现。

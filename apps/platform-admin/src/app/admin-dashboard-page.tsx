@@ -8,8 +8,8 @@ import {
 import { AdminMarketplaceReviewPage } from '@/pages/admin-marketplace-review-page';
 import { AdminMarketplaceAppReviewPage } from '@/pages/admin-marketplace-app-review-page';
 import { AdminOverviewPage } from '@/features/admin-overview';
+import { AdminUserQuotaPage } from '@/features/admin-users';
 import { AdminRechargeReviewPage } from '@/pages/admin-recharge-review-page';
-import { AdminUserQuotaPage } from '@/pages/admin-user-quota-page';
 
 type Props = {
   token: string;

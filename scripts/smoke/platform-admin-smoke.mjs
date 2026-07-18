@@ -83,6 +83,47 @@ async function assertLoginPage(browser) {
   await page.close();
 }
 
+async function assertAdminUsersPage(page) {
+  await page.getByRole("link", { name: /用户与额度/ }).first().click();
+  await page.waitForFunction(() => document.body.innerText.includes("用户列表"));
+  await page.waitForFunction(() => document.body.innerText.includes("浏览、筛选和排序保持轻量"));
+  await page.waitForFunction(() => document.body.innerText.includes("1–1 / 共 1 位用户"));
+  await page.waitForFunction(() => document.body.innerText.includes("注册时间"));
+  await page.waitForFunction(() => document.body.innerText.includes("alice@example.com"));
+
+  const searchRequest = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return url.pathname.endsWith("/platform/admin/users") && url.searchParams.get("q") === "alice";
+  });
+  await page.getByPlaceholder("搜索邮箱、用户名或用户 ID").fill("alice");
+  await page.getByRole("button", { name: "搜索", exact: true }).click();
+  await searchRequest;
+
+  const roleRequest = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return url.pathname.endsWith("/platform/admin/users") && url.searchParams.get("role") === "user";
+  });
+  await page.getByRole("button", { name: "普通用户 1", exact: true }).click();
+  await roleRequest;
+
+  const sortRequest = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return url.pathname.endsWith("/platform/admin/users")
+      && url.searchParams.get("sortBy") === "email"
+      && url.searchParams.get("sortDirection") === "asc";
+  });
+  await page.getByRole("button", { name: "账号", exact: true }).click();
+  await sortRequest;
+
+  await page.getByRole("button", { name: "管理额度", exact: true }).click();
+  await page.getByRole("dialog", { name: "管理用户额度" }).waitFor();
+  await page.getByText("正数增加余额，负数扣减余额；保存前请核对金额。", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "取消", exact: true }).click();
+  if (await page.getByRole("dialog", { name: "管理用户额度" }).count()) {
+    throw new Error("取消额度编辑后弹窗仍然存在");
+  }
+}
+
 async function assertConsoleShell(browser) {
   const page = await browser.newPage();
   const fixtures = PLATFORM_ADMIN_SMOKE_FIXTURES;
@@ -93,6 +134,15 @@ async function assertConsoleShell(browser) {
   });
 
   await page.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
+
+  const faviconHref = await page.locator('link[rel="icon"]').getAttribute("href");
+  if (faviconHref !== "/logo.svg") {
+    throw new Error(`管理后台 favicon 地址异常: ${faviconHref ?? "missing"}`);
+  }
+  const faviconResponse = await page.request.get(`${baseUrl}/logo.svg`);
+  if (!faviconResponse.ok()) {
+    throw new Error(`管理后台 favicon 加载失败: HTTP ${faviconResponse.status()}`);
+  }
 
   const homeText = await page.locator("body").innerText();
   const homeExpected = [
@@ -118,12 +168,7 @@ async function assertConsoleShell(browser) {
   await page.getByRole("button", { name: /Stock Briefing/ }).click();
   await page.waitForFunction(() => document.body.innerText.includes("@peiiii/stock-briefing"));
 
-  await page.getByRole("link", { name: /用户与额度/ }).first().click();
-  await page.waitForFunction(() => document.body.innerText.includes("用户额度表格"));
-  await page.waitForFunction(() => document.body.innerText.includes("每页数量"));
-  await page.waitForFunction(() => document.body.innerText.includes("分页摘要：第 1 页，每页 20 条。"));
-  await page.waitForFunction(() => document.body.innerText.includes("注册时间"));
-  await page.waitForFunction(() => document.body.innerText.includes("alice@example.com"));
+  await assertAdminUsersPage(page);
 
   await page.getByRole("link", { name: /充值审核/ }).first().click();
   await page.waitForFunction(() => document.body.innerText.includes("充值审核表"));

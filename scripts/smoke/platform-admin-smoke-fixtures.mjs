@@ -158,8 +158,19 @@ export const PLATFORM_ADMIN_SMOKE_FIXTURES = {
         updatedAt: "2026-04-18T09:00:00.000Z"
       }
     ],
+    counts: {
+      all: 1,
+      admin: 0,
+      user: 1
+    },
     total: 1,
+    page: 1,
     pageSize: 20,
+    totalPages: 1,
+    query: "",
+    role: "all",
+    sortBy: "createdAt",
+    sortDirection: "desc",
     nextCursor: null,
     hasMore: false
   },
