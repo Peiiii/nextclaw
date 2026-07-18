@@ -38,7 +38,12 @@
 
 ## 发布/部署方式
 
-本轮先在本地 `master` 完成源码提交，再部署 Cloudflare Worker 与 Platform Pages，并在生产冒烟通过后从本地 `master` 推送 `origin/master`。文档站由 `master` push 触发同一份静态产物的 Cloudflare 与阿里云双目标 CI 部署。实际 commit、部署 URL 与线上验收结果在部署完成后回填。
+- 源码先提交到本地 `master`：`0293d4a88 Improve remote access and platform experience`，再执行生产部署；没有从功能分支直接写入远程主干。
+- `pnpm deploy:platform:backend`：远程 D1 返回 `No migrations to apply`，Worker 部署成功，版本 ID 为 `3b777991-f2ed-4194-8a63-74c4a3414a23`。
+- `pnpm deploy:platform:console`：Cloudflare Pages 部署成功，部署地址为 `https://5b73ec23.nextclaw-platform-console.pages.dev`；生产自定义域 `https://platform.nextclaw.io/` 与 `/usage` 均返回 HTTP 200，JS `index-DKJL89mD.js` 与 CSS `index-k4llISLy.css` 均返回 HTTP 200 和正确 content type。
+- `https://ai-gateway-api.nextclaw.io/health` 与 `https://r-test.claw.cool/health` 均返回 HTTP 200；未带 token 的分页实例 API 返回预期 HTTP 401 `Missing bearer token`，证明生产路由已注册且鉴权边界仍生效。
+- 在用户正在使用的 Chrome 标签页打开 `r-0f196c00-ea57-4408-838b-a824a4de175f.claw.cool` 对应会话完成真实验收：宿主 JS/CSS 均从远程子域加载，Panel App iframe 完整呈现深色卡片、指标、筛选控件、标的标签、折线图和年度表格，不再退化为无样式 HTML；页面未出现应用来源的 console error。
+- 文档站由本次 `master` push 触发同一份静态产物的 Cloudflare 与阿里云双目标 CI 部署，workflow 结果在 push 后继续核验。
 
 ## 用户/产品视角的验收步骤
 
