@@ -31,6 +31,7 @@
 - 真实 Panel App：同屏渲染“唐诗卡片”，源码实例返回的注入脚本已使用共享自然高度算法；点击“下一首”后标题从“登鹳雀楼”变为“望庐山瀑布”，iframe 保持 `489px`，同屏虚拟挂载行数为 `17`。
 - 隔离源码实例验收结束后已停止，没有重启或影响用户当前运行实例。
 - `lint:new-code:governance`、governance backlog ratchet 与 maintainability guard 均通过。
+- 提交收口复核：将功能提交 `61f6bd11b` 的文件集与未暂存区求交集后，剩余 `10` 个 TypeScript 文件在 `git diff -w` 下均为零差异；follow-up 只收口这些同批缩进残留，不带入 conversation state 测试的尾逗号格式化或其他并行 WIP。
 
 ## 发布/部署方式
 

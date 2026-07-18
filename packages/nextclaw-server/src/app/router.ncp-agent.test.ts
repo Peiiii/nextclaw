@@ -105,9 +105,9 @@ class StubNcpAgent implements NcpSessionApi {
   };
 
   send = async () => ({
-      sessionId: "session-1",
-      userMessageId: "user-message-1",
-      assistantMessageId: "assistant-message-1",
+    sessionId: "session-1",
+    userMessageId: "user-message-1",
+    assistantMessageId: "assistant-message-1",
     runId: "run-1"
   });
 
@@ -685,8 +685,8 @@ it("exposes session-scoped skills for persisted and draft sessions", async () =>
   writeRouterNcpSkill(join(globalSkillsRoot, "global-review"), "Global review");
   saveConfig(
     ConfigSchema.parse({
-    agents: {
-      defaults: {
+      agents: {
+        defaults: {
           workspace: hostWorkspace
         }
       }
@@ -719,18 +719,18 @@ it("exposes session-scoped skills for persisted and draft sessions", async () =>
   expect(payload.data.sessionId).toBe("session-1");
   expect(payload.data.records).toEqual(
     expect.arrayContaining([
-    expect.objectContaining({
-      name: "shared-review",
-      scope: "project",
+      expect.objectContaining({
+        name: "shared-review",
+        scope: "project",
         ref: `project:${join(projectRoot, ".agents", "skills", "shared-review")}`
-    }),
-    expect.objectContaining({
-      name: "shared-review",
-      scope: "workspace",
+      }),
+      expect.objectContaining({
+        name: "shared-review",
+        scope: "workspace",
         ref: `workspace:${join(hostWorkspace, "skills", "shared-review")}`
-    }),
-    expect.objectContaining({
-      name: "global-review",
+      }),
+      expect.objectContaining({
+        name: "global-review",
         scope: "global"
       })
     ])
@@ -761,8 +761,8 @@ it("exposes draft session skills without requiring an empty projectRoot override
   );
   saveConfig(
     ConfigSchema.parse({
-    agents: {
-      defaults: {
+      agents: {
+        defaults: {
           workspace: hostWorkspace
         }
       }
@@ -793,8 +793,8 @@ it("exposes draft session skills without requiring an empty projectRoot override
   expect(payload.data.sessionId).toBe("draft-session");
   expect(payload.data.records).toEqual(
     expect.arrayContaining([
-    expect.objectContaining({
-      name: "workspace-only-skill",
+      expect.objectContaining({
+        name: "workspace-only-skill",
         scope: "workspace"
       })
     ])
@@ -831,9 +831,9 @@ it("exposes skills installed in the NEXTCLAW_HOME default workspace", async () =
   expect(payload.ok).toBe(true);
   expect(payload.data.records).toEqual(
     expect.arrayContaining([
-    expect.objectContaining({
-      name: "portable-skill",
-      scope: "workspace",
+      expect.objectContaining({
+        name: "portable-skill",
+        scope: "workspace",
         ref: `workspace:${join(skillsRoot, "portable-skill")}`
       })
     ])

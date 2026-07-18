@@ -46,8 +46,8 @@ vi.mock("@/shared/lib/api", async (importOriginal) => {
 vi.mock("@nextclaw/ncp-react", () => ({
   useHydratedNcpAgent: vi.fn(
     (params: { client: unknown; loadSeed: unknown }) => {
-    mocks.hydratedCalls.push(params);
-    return mocks.useHydratedNcpAgent();
+      mocks.hydratedCalls.push(params);
+      return mocks.useHydratedNcpAgent();
     },
   ),
 }));

@@ -103,10 +103,10 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
 vi.mock(
   "@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state",
   () => ({
-  useNcpChatSelectedSession: (sessionKey: string | null) => {
-    captures.selectedSessionKeys.push(sessionKey);
-    return captures.selectedSession;
-  },
+    useNcpChatSelectedSession: (sessionKey: string | null) => {
+      captures.selectedSessionKeys.push(sessionKey);
+      return captures.selectedSession;
+    },
   }),
 );
 

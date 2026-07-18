@@ -101,12 +101,12 @@ export function useNcpSessionConversation(
   });
   return useMemo(
     () => ({
-    ...agent,
-    snapshot: {
-      ...agent.snapshot,
+      ...agent,
+      snapshot: {
+        ...agent.snapshot,
         contextWindow:
           agent.snapshot.contextWindow ?? visibleHistoryState.contextWindow,
-    },
+      },
       hasPreviousMessages: visibleHistoryState.hasPreviousPage,
       historyError: visibleHistoryState.error,
       isLoadingPreviousMessages: visibleHistoryState.isLoading,

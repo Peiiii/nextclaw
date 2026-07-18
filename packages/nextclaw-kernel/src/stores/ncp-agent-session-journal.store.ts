@@ -59,7 +59,7 @@ export class NcpAgentSessionJournalStore {
     const previous = this.writeChains.get(sessionId) ?? Promise.resolve();
     const next = previous.then(() =>
       this.appendSessionEventNow({
-      ...params,
+        ...params,
         sessionId
       })
     );
@@ -132,7 +132,7 @@ export class NcpAgentSessionJournalStore {
     const previous = this.writeChains.get(sessionId) ?? Promise.resolve();
     const next = previous.then(() =>
       this.setSessionMetadataNow({
-      ...params,
+        ...params,
         sessionId
       })
     );
@@ -157,7 +157,7 @@ export class NcpAgentSessionJournalStore {
     const previous = this.writeChains.get(sessionId) ?? Promise.resolve();
     const next = previous.then(() =>
       this.updateSessionMetadataNow({
-      ...params,
+        ...params,
         sessionId
       })
     );
@@ -222,14 +222,14 @@ export class NcpAgentSessionJournalStore {
     await this.metadataStore.write(nextRecord);
     const entries = nextRecord.messages.map(
       (message, index): NcpAgentSessionJournalEventEntry => ({
-      _type: "event",
-      version: NCP_AGENT_SESSION_JOURNAL_ENTRY_VERSION,
-      seq: index + 1,
-      timestamp: message.timestamp ?? nextRecord.updatedAt,
-      event: {
-        type: NCP_AGENT_SESSION_SNAPSHOT_MESSAGE_EVENT_TYPE,
-        payload: {
-          sessionId,
+        _type: "event",
+        version: NCP_AGENT_SESSION_JOURNAL_ENTRY_VERSION,
+        seq: index + 1,
+        timestamp: message.timestamp ?? nextRecord.updatedAt,
+        event: {
+          type: NCP_AGENT_SESSION_SNAPSHOT_MESSAGE_EVENT_TYPE,
+          payload: {
+            sessionId,
             message: structuredClone(message)
           }
         }

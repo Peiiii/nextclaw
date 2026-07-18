@@ -263,8 +263,8 @@ export class SessionManager implements NcpSessionApi {
     }
     const updated =
       patch.metadata === null
-      ? await this.setSessionMetadata(sessionId, {})
-      : await this.updateSessionMetadata(sessionId, patch.metadata ?? {});
+        ? await this.setSessionMetadata(sessionId, {})
+        : await this.updateSessionMetadata(sessionId, patch.metadata ?? {});
     return updated ? await this.getSession(sessionId) : null;
   };
 
@@ -517,7 +517,7 @@ export class SessionManager implements NcpSessionApi {
       eventKeys.sessionUpdated,
       { sessionKey: normalizedSessionKey },
       {
-      emittedAt: new Date().toISOString(),
+        emittedAt: new Date().toISOString(),
         source: "ncp-session"
       }
     );
@@ -536,12 +536,12 @@ export class SessionManager implements NcpSessionApi {
     const summary = this.workingDirResolver.withWorkingDir(createNcpAgentSessionSummary(record));
     const contextWindow = includeContextWindow
       ? this.contextWindowPreview.preview({
-        requestMetadata: record.metadata ?? {},
-        sessionId: record.sessionId,
-        sessionMessages: record.messages,
-        storedAgentId: record.agentId,
+          requestMetadata: record.metadata ?? {},
+          sessionId: record.sessionId,
+          sessionMessages: record.messages,
+          storedAgentId: record.agentId,
           storedMetadata: record.metadata ?? {}
-      })
+        })
       : undefined;
     return contextWindow ? { ...summary, contextWindow } : summary;
   };

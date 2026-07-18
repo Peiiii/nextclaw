@@ -46,7 +46,7 @@ it("reports same-origin HTML height changes without replacing the iframe", () =>
   for (const element of [body, documentElement]) {
     Object.defineProperties(element, {
       clientHeight: {
-    configurable: true,
+        configurable: true,
         get: () =>
           element === documentElement
             ? Math.max(900, contentHeight)
@@ -63,7 +63,7 @@ it("reports same-origin HTML height changes without replacing the iframe", () =>
             ? Math.max(900, contentHeight)
             : contentHeight,
       },
-  });
+    });
   }
 
   fireEvent.load(frame);

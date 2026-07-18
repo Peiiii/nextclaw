@@ -275,16 +275,16 @@ function createReplayStreamingBootstrapEvent(
   return {
     messageId,
     event: {
-    occurredAt: event.occurredAt,
-    type: NcpEventType.MessageSent,
-    payload: {
-      sessionId: readEventSessionId(event),
-      message: {
-        id: messageId,
+      occurredAt: event.occurredAt,
+      type: NcpEventType.MessageSent,
+      payload: {
         sessionId: readEventSessionId(event),
-        role: "assistant",
-        status: "streaming",
-        parts: [],
+        message: {
+          id: messageId,
+          sessionId: readEventSessionId(event),
+          role: "assistant",
+          status: "streaming",
+          parts: [],
           timestamp: readReplayPayloadTimestamp(event) ?? new Date().toISOString()
         }
       }

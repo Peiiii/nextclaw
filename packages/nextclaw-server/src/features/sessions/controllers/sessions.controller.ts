@@ -192,7 +192,7 @@ export class NcpSessionRoutesController {
     return c.json(
       ok(
         this.sessionSkillsViewBuilder.build({
-      sessionId,
+          sessionId,
           sessionMetadata: metadata
         })
       )

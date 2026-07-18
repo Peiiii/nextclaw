@@ -28,9 +28,9 @@ vi.mock(
     }: {
       sessionKey: string | null;
     }) => {
-    captures.messageListSessionKeys.push(sessionKey);
-    return <div data-testid="chat-message-list" />;
-  },
+      captures.messageListSessionKeys.push(sessionKey);
+      return <div data-testid="chat-message-list" />;
+    },
   }),
 );
 
