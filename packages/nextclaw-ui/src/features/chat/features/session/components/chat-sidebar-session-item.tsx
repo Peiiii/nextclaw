@@ -142,8 +142,8 @@ function ChatSidebarSessionDisplayView({
               </span>
             ) : null}
             {context.icon ? (
-              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
-                <SessionContextIconNode icon={context.icon} className={active ? 'text-gray-700' : 'text-gray-500'} />
+              <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
+                <SessionContextIconNode icon={context.icon} className={cn('h-[13px] w-[13px]', active ? 'text-gray-700' : 'text-gray-500')} />
               </span>
             ) : null}
           </span>

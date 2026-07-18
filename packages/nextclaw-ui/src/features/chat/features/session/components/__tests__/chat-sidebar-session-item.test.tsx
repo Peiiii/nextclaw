@@ -1,14 +1,21 @@
 import { render, screen } from '@testing-library/react';
-import { expect, it, vi } from 'vitest';
+import { beforeEach, expect, it, vi } from 'vitest';
 import { ChatSidebarSessionItem } from '@/features/chat/features/session/components/chat-sidebar-session-item';
 
-it('shows session actions only on hover or when an action owns focus', () => {
+beforeEach(() => {
   render(
     <ChatSidebarSessionItem
       sessionKey="session:current"
       active
       showUnreadDot={false}
-      context={{ icon: null, label: null }}
+      context={{
+        icon: {
+          kind: 'runtime-image',
+          src: '/runtime-icons/codex-openai.svg',
+          name: 'Codex',
+        },
+        label: null,
+      }}
       isPinned={false}
       title="Current Task"
       previewText="Preview"
@@ -24,7 +31,9 @@ it('shows session actions only on hover or when an action owns focus', () => {
       onTogglePinned={vi.fn()}
     />,
   );
+});
 
+it('shows session actions only on hover or when an action owns focus', () => {
   screen.getByText('Current Task').closest('button')?.focus();
   const actions = screen.getByLabelText('Pin session').parentElement;
 
@@ -34,4 +43,13 @@ it('shows session actions only on hover or when an action owns focus', () => {
   expect(actions?.className).not.toContain(
     'group-focus-within/session:opacity-100',
   );
+});
+
+it('sizes the runtime icon to the session title text', () => {
+  const runtimeIcon = screen.getByRole('img', { name: 'Codex logo' });
+
+  expect(runtimeIcon.parentElement?.className).toContain('h-[13px]');
+  expect(runtimeIcon.parentElement?.className).toContain('w-[13px]');
+  expect(runtimeIcon.parentElement?.parentElement?.className).toContain('h-4');
+  expect(runtimeIcon.parentElement?.parentElement?.className).toContain('w-4');
 });
