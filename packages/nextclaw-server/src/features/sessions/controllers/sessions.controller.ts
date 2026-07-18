@@ -5,24 +5,36 @@ import type {
   UiNcpSessionListView
 } from "@nextclaw-server/shared/types/server-api.types.js";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
-import { isProjectError, isSessionSettingsError } from "@nextclaw/kernel";
+import { isProjectError, isSessionMessageCursorError, isSessionSettingsError } from "@nextclaw/kernel";
 import { SessionSkillsViewBuilder } from "@nextclaw-server/features/sessions/services/session-skills-view.service.js";
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 
-const INTERRUPTED_SESSION_STATUS_TEXT = "Run interrupted: no completion or error event was recorded. Please send the message again.";
+const INTERRUPTED_SESSION_STATUS_TEXT =
+  "Run interrupted: no completion or error event was recorded. Please send the message again.";
+const DEFAULT_SESSION_MESSAGE_PAGE_SIZE = 80;
+const MAX_SESSION_MESSAGE_PAGE_SIZE = 200;
 
-function sessionProjectError(error: {
+function sessionProjectError(error: { code: string; message: string }): {
   code: string;
   message: string;
-}): { code: string; message: string } {
+} {
   switch (error.code) {
     case "PROJECT_PATH_INVALID_TYPE":
-      return { code: "PROJECT_ROOT_INVALID_TYPE", message: "projectRoot must be a string or null" };
+      return {
+        code: "PROJECT_ROOT_INVALID_TYPE",
+        message: "projectRoot must be a string or null"
+      };
     case "PROJECT_PATH_NOT_FOUND":
-      return { code: "PROJECT_ROOT_NOT_FOUND", message: "projectRoot directory does not exist" };
+      return {
+        code: "PROJECT_ROOT_NOT_FOUND",
+        message: "projectRoot directory does not exist"
+      };
     case "PROJECT_PATH_NOT_DIRECTORY":
-      return { code: "PROJECT_ROOT_NOT_DIRECTORY", message: "projectRoot must point to a directory" };
+      return {
+        code: "PROJECT_ROOT_NOT_DIRECTORY",
+        message: "projectRoot must point to a directory"
+      };
     default:
       return error;
   }
@@ -39,9 +51,7 @@ function readPositiveInt(value: string | undefined): number | undefined {
   return parsed;
 }
 
-function readSessionMetadata(
-  metadata: unknown,
-): Record<string, unknown> {
+function readSessionMetadata(metadata: unknown): Record<string, unknown> {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
     return {};
   }
@@ -58,13 +68,13 @@ function normalizeSessionActivityPreview(session: NcpSessionSummary): NcpSession
   if (!isRecord(preview)) {
     return session;
   }
-  const isUserCancelled = preview.state === "failed" &&
+  const isUserCancelled =
+    preview.state === "failed" &&
     typeof preview.statusText === "string" &&
     preview.statusText.trim() === "Run interrupted: User stopped the current run.";
   const hasReplyText = typeof preview.replyText === "string" && preview.replyText.trim().length > 0;
-  const state = preview.state === "running"
-    ? hasReplyText ? "completed" : "failed"
-    : isUserCancelled ? "cancelled" : null;
+  const state =
+    preview.state === "running" ? (hasReplyText ? "completed" : "failed") : isUserCancelled ? "cancelled" : null;
   if (!state) {
     return session;
   }
@@ -75,9 +85,9 @@ function normalizeSessionActivityPreview(session: NcpSessionSummary): NcpSession
       last_activity_preview: {
         ...preview,
         state,
-        statusText: state === "failed" ? INTERRUPTED_SESSION_STATUS_TEXT : preview.statusText,
-      },
-    },
+        statusText: state === "failed" ? INTERRUPTED_SESSION_STATUS_TEXT : preview.statusText
+      }
+    }
   };
 }
 
@@ -95,7 +105,7 @@ export class NcpSessionRoutesController {
 
   readonly getSessionTypes = async (c: Context) => {
     const payload: ChatSessionTypesView = await this.options.kernel.listSessionTypes({
-      describeMode: "observation",
+      describeMode: "observation"
     });
     return c.json(ok(payload));
   };
@@ -104,11 +114,11 @@ export class NcpSessionRoutesController {
     const sessionManager = this.options.kernel.sessionManager;
     const sessions = await sessionManager.listSessions({
       limit: readPositiveInt(c.req.query("limit")),
-      peerId: c.req.query("peerId"),
+      peerId: c.req.query("peerId")
     });
     const payload: UiNcpSessionListView = {
       sessions: sessions.map(this.withRuntimeStatus),
-      total: sessions.length,
+      total: sessions.length
     };
     return c.json(ok(payload));
   };
@@ -126,21 +136,29 @@ export class NcpSessionRoutesController {
   readonly listSessionMessages = async (c: Context) => {
     const sessionManager = this.options.kernel.sessionManager;
     const sessionId = decodeURIComponent(c.req.param("sessionId"));
-    const session = await sessionManager.getSession(sessionId);
-    if (!session) {
+    const requestedLimit = readPositiveInt(c.req.query("limit"));
+    let page;
+    try {
+      page = await sessionManager.listSessionMessagePage(sessionId, {
+        limit: Math.min(requestedLimit ?? DEFAULT_SESSION_MESSAGE_PAGE_SIZE, MAX_SESSION_MESSAGE_PAGE_SIZE),
+        ...(c.req.query("cursor") ? { cursor: c.req.query("cursor") } : {})
+      });
+    } catch (error) {
+      if (isSessionMessageCursorError(error)) {
+        return c.json(err("INVALID_CURSOR", error.message), 400);
+      }
+      throw error;
+    }
+    if (!page) {
       return c.json(err("NOT_FOUND", `ncp session not found: ${sessionId}`), 404);
     }
-
-    const messages = await sessionManager.listSessionMessages(sessionId, {
-      limit: readPositiveInt(c.req.query("limit")),
-    });
-    const sessionWithRuntimeStatus = this.withRuntimeStatus(session);
     const payload = {
       sessionId,
-      status: sessionWithRuntimeStatus.status ?? "idle",
-      messages,
-      ...(sessionWithRuntimeStatus.contextWindow ? { contextWindow: sessionWithRuntimeStatus.contextWindow } : {}),
-      total: messages.length,
+      status: this.options.kernel.isSessionRunning(sessionId) ? ("running" as const) : ("idle" as const),
+      messages: page.messages,
+      ...(page.contextWindow ? { contextWindow: page.contextWindow } : {}),
+      total: page.total,
+      pageInfo: page.pageInfo
     };
     return c.json(ok(payload));
   };
@@ -155,9 +173,7 @@ export class NcpSessionRoutesController {
 
     if (hasProjectRootOverride) {
       try {
-        const projectRoot = await this.options.kernel.projectManager.resolveExistingProjectRoot(
-          query.projectRoot,
-        );
+        const projectRoot = await this.options.kernel.projectManager.resolveExistingProjectRoot(query.projectRoot);
         if (projectRoot) {
           metadata.project_root = projectRoot;
         } else {
@@ -173,10 +189,14 @@ export class NcpSessionRoutesController {
       }
     }
 
-    return c.json(ok(this.sessionSkillsViewBuilder.build({
+    return c.json(
+      ok(
+        this.sessionSkillsViewBuilder.build({
       sessionId,
-      sessionMetadata: metadata,
-    })));
+          sessionMetadata: metadata
+        })
+      )
+    );
   };
 
   readonly patchSession = async (c: Context) => {
@@ -195,7 +215,7 @@ export class NcpSessionRoutesController {
     let updated;
     try {
       updated = await sessionManager.patchSessionSettings(sessionId, patch, {
-        createIfMissing: true,
+        createIfMissing: true
       });
     } catch (error) {
       if (isSessionSettingsError(error)) {

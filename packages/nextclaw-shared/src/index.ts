@@ -55,6 +55,7 @@ export {
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
 } from "./configs/chat-composer-token.config.js";
 export { PANEL_APP_INLINE_HOST_CONTRACT } from "./configs/panel-app-inline-host.config.js";
+export { readInlineContentHeight } from "./utils/inline-content-height.utils.js";
 export type { ChatInlineTokenMetadata } from "./configs/chat-composer-token.config.js";
 export type { RuntimeModelSelectionMode } from "./configs/runtime-model.config.js";
 export type {

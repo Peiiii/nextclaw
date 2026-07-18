@@ -146,6 +146,8 @@
   "chatToolDisplayError": "Display failed",
   "chatToolDisplayCancelled": "Display cancelled",
   "chatScrollToBottom": "Scroll to bottom",
+  "chatHistoryLoadFailed": "Couldn’t load earlier messages",
+  "chatHistoryRetry": "Retry",
   "chatProcessSummaryProcessed": "Processed",
   "chatAiExecutionInput": "input",
   "chatAiExecutionOutput": "output",

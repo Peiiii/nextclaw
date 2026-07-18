@@ -66,6 +66,7 @@ User-visible or runnable behavior:
 - 对可见 UI 源码改动，必须先让当前运行实例消费最新产物，再从用户报告的入口实际打开并操作目标控件；组件测试、静态源码检查或旧实例截图不能证明当前面板已修复。若实例依赖预构建静态资源，先核对运行进程与资源新鲜度，必要时完整构建并重启，然后在同一路径重新验收。
 - 可见 UI 验收证据必须同时记录精确 URL/端口、触发手势和目标控件身份；同一数据出现在多个 consumer 时，必须列出用户点名的 consumer 并只在该表面验收，附近页面、相邻弹层或另一入口的同名列表不能替代。例如“聊天框输入 `/` 打开的统一选择器”不能用“点击底部技能按钮打开的技能选择器”代验。
 - 分页、无限滚动或懒加载问题必须在用户点名的真实列表上持续加载到终态，记录 `hasMore=false`、最终已加载数量、展示总数和末页错误状态；只验证首屏、第一页或接口单页不算功能验收。
+- 虚拟列表、滚动闪烁和动态高度回归不能用最终静态截图收口；必须分别覆盖首次进入或 reload、普通滚动、大跨度滚动、分页前插和可见内容展开/收起，并用连续帧或逐帧 DOM 覆盖率证明没有空视口、错误抢滚动或短暂错位。一个手势通过不能代替其他瞬态路径。
 - editor/IME/选区类修复必须在最终 consumer 增加 assembled boundary test，覆盖实际 `beforeinput` / `input` / composition 事件类别与目标平台顺序，并直接断言正文 DOM 身份和 caret；只在组件包模拟 `compositionEnd(data)`、只断言文本、或只跑 editor owner 单测均不足以关闭问题。
 - If local dev falls back to a different port because the user's reported port is occupied, do not treat the fallback port as proof for the reported issue. Verify the reported port directly, or restart the stale local dev process and re-run the same user-facing path on the original port.
 - For runtime startup or status-log fixes, assert the visible log/status wording matches the intended state. Cooldown, disabled, degraded, or externally rate-limited states must not be reported as generic startup failure when the system is intentionally waiting or skipping work.

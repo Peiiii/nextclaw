@@ -45,6 +45,7 @@ export interface NcpAgentConversationStateManager extends NcpConversationStateMa
   reset(): void;
   clearError(): void;
   hydrate(payload: NcpAgentConversationHydrationParams): void;
+  prependHistory(messages: ReadonlyArray<NcpMessage>): void;
   /** Local peer sent a message (outbound); typically non-streaming. Add to messages. */
   handleMessageSent(payload: NcpMessageSentPayload): void;
   handleMessageAbort(payload: NcpMessageAbortPayload): void;

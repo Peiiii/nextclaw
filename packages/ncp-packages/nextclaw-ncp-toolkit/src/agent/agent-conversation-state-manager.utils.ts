@@ -1,10 +1,5 @@
-import type {
-  NcpError,
-  NcpMessage,
-  NcpMessageStatus,
-  NcpRunErrorPayload,
-  NcpRunFinishedPayload,
-} from "@nextclaw/ncp";
+import type { NcpError, NcpMessage, NcpMessageStatus, NcpRunErrorPayload, NcpRunFinishedPayload } from "@nextclaw/ncp";
+import { normalizeConversationMessage } from "./agent-conversation-message-normalizer.js";
 
 export const ABORTED_TOOL_CALL_SENTINEL = "__nextclaw_aborted_tool_call__";
 
@@ -17,44 +12,41 @@ export function buildRuntimeError(payload: NcpRunErrorPayload): NcpError {
       sessionId: payload.sessionId,
       messageId: payload.messageId,
       threadId: payload.threadId,
-      runId: payload.runId,
-    },
+      runId: payload.runId
+    }
   };
 }
 
 export function readMessageLifecycleFromRunPayload(
-  payload: Pick<NcpRunFinishedPayload | NcpRunErrorPayload, "startedAt" | "endedAt">,
+  payload: Pick<NcpRunFinishedPayload | NcpRunErrorPayload, "startedAt" | "endedAt">
 ): NcpMessage["lifecycle"] | undefined {
   if (!payload.startedAt && !payload.endedAt) {
     return undefined;
   }
   return {
     startedAt: payload.startedAt,
-    endedAt: payload.endedAt,
+    endedAt: payload.endedAt
   };
 }
 
 export function settleMessageWithLifecycle(
   message: NcpMessage,
   status: Extract<NcpMessageStatus, "final" | "error">,
-  lifecycle?: NcpMessage["lifecycle"],
+  lifecycle?: NcpMessage["lifecycle"]
 ): NcpMessage {
   return lifecycle
     ? {
         ...message,
         status,
-        lifecycle,
+        lifecycle
       }
     : {
         ...message,
-        status,
+        status
       };
 }
 
-function resolveTimelineInsertIndex(
-  messages: readonly NcpMessage[],
-  message: NcpMessage,
-): number {
+function resolveTimelineInsertIndex(messages: readonly NcpMessage[], message: NcpMessage): number {
   const targetTimestamp = Date.parse(message.timestamp);
   if (!Number.isFinite(targetTimestamp)) {
     return messages.length;
@@ -66,19 +58,33 @@ function resolveTimelineInsertIndex(
   return laterMessageIndex < 0 ? messages.length : laterMessageIndex;
 }
 
-export function insertMessageByTimeline(
-  messages: readonly NcpMessage[],
-  message: NcpMessage,
-): NcpMessage[] {
+export function insertMessageByTimeline(messages: readonly NcpMessage[], message: NcpMessage): NcpMessage[] {
   const nextMessages = [...messages];
   nextMessages.splice(resolveTimelineInsertIndex(messages, message), 0, message);
   return nextMessages;
 }
 
-export function shouldPromoteStreamingMessageId(
-  message: NcpMessage,
-  nextMessageId: string,
-): boolean {
+export function prependConversationHistory(
+  currentMessages: readonly NcpMessage[],
+  streamingMessage: NcpMessage | null,
+  history: ReadonlyArray<NcpMessage>
+): NcpMessage[] {
+  const knownIds = new Set(currentMessages.map((message) => message.id));
+  if (streamingMessage) {
+    knownIds.add(streamingMessage.id);
+  }
+  let messages = currentMessages as NcpMessage[];
+  for (const message of history) {
+    if (knownIds.has(message.id)) {
+      continue;
+    }
+    knownIds.add(message.id);
+    messages = insertMessageByTimeline(messages, normalizeConversationMessage(message));
+  }
+  return messages;
+}
+
+export function shouldPromoteStreamingMessageId(message: NcpMessage, nextMessageId: string): boolean {
   if (!nextMessageId.trim()) {
     return false;
   }
@@ -88,36 +94,9 @@ export function shouldPromoteStreamingMessageId(
   return message.parts.some((part) => part.type === "tool-invocation");
 }
 
-export function remapTrackedToolCallsToMessageId(
-  toolCallMessageIdByCallId: Map<string, string>,
-  fromMessageId: string,
-  toMessageId: string,
-): void {
-  for (const [toolCallId, trackedMessageId] of toolCallMessageIdByCallId) {
-    if (trackedMessageId !== fromMessageId) {
-      continue;
-    }
-    toolCallMessageIdByCallId.set(toolCallId, toMessageId);
-  }
-}
-
-export function clearToolCallTrackingByMessageId(
-  toolCallMessageIdByCallId: Map<string, string>,
-  toolCallArgsRawByCallId: Map<string, string>,
-  messageId: string,
-): void {
-  for (const [toolCallId, trackedMessageId] of toolCallMessageIdByCallId) {
-    if (trackedMessageId !== messageId) {
-      continue;
-    }
-    toolCallMessageIdByCallId.delete(toolCallId);
-    toolCallArgsRawByCallId.delete(toolCallId);
-  }
-}
-
 export function findToolInvocationPart(
   parts: NcpMessage["parts"],
-  toolCallId: string,
+  toolCallId: string
 ): Extract<NcpMessage["parts"][number], { type: "tool-invocation" }> | null {
   for (let index = parts.length - 1; index >= 0; index -= 1) {
     const part = parts[index];
@@ -128,17 +107,14 @@ export function findToolInvocationPart(
   return null;
 }
 
-export function findToolNameByCallId(
-  parts: NcpMessage["parts"],
-  toolCallId: string,
-): string | null {
+export function findToolNameByCallId(parts: NcpMessage["parts"], toolCallId: string): string | null {
   const part = findToolInvocationPart(parts, toolCallId);
   return part?.toolName ?? null;
 }
 
 export function upsertToolInvocationPart(
   parts: NcpMessage["parts"],
-  toolPart: Extract<NcpMessage["parts"][number], { type: "tool-invocation" }>,
+  toolPart: Extract<NcpMessage["parts"][number], { type: "tool-invocation" }>
 ): NcpMessage["parts"] {
   const nextParts = [...parts];
   for (let index = nextParts.length - 1; index >= 0; index -= 1) {
@@ -146,7 +122,7 @@ export function upsertToolInvocationPart(
     if (part.type === "tool-invocation" && part.toolCallId === toolPart.toolCallId) {
       nextParts[index] = {
         ...part,
-        ...toolPart,
+        ...toolPart
       };
       return nextParts;
     }
@@ -162,20 +138,15 @@ export function cancelInFlightToolInvocations(parts: NcpMessage["parts"]): {
   const toolCallIds: string[] = [];
   return {
     parts: parts.map((part) => {
-      if (
-        part.type !== "tool-invocation" ||
-        !part.toolCallId ||
-        part.state === "result" ||
-        part.state === "cancelled"
-      ) {
+      if (part.type !== "tool-invocation" || !part.toolCallId || part.state === "result" || part.state === "cancelled") {
         return part;
       }
       toolCallIds.push(part.toolCallId);
       return {
         ...part,
-        state: "cancelled" as const,
+        state: "cancelled" as const
       };
     }),
-    toolCallIds,
+    toolCallIds
   };
 }

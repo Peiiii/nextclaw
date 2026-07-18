@@ -1,9 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type {
-  CreatedSession,
-  CreateSessionInput,
-  SessionSearchService,
-} from "@nextclaw/core";
+import type { CreatedSession, CreateSessionInput, SessionSearchService } from "@nextclaw/core";
 import { BUILTIN_MAIN_AGENT_ID } from "@nextclaw/core";
 import type {
   ListMessagesOptions,
@@ -11,7 +7,7 @@ import type {
   NcpMessage,
   NcpSessionApi,
   NcpSessionPatch,
-  NcpSessionSummary,
+  NcpSessionSummary
 } from "@nextclaw/ncp";
 import { NcpEventType } from "@nextclaw/ncp";
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
@@ -21,11 +17,12 @@ import type { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-sessi
 import type {
   AgentRunSession,
   CreateAgentRunSessionParams,
-  SessionSettingsPatch,
+  SessionMessagePage,
+  SessionSettingsPatch
 } from "@kernel/types/session.types.js";
 import {
   createNcpAgentSessionSummary,
-  type NcpAgentSessionJournalReplayEvent,
+  type NcpAgentSessionJournalReplayEvent
 } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import { createAgentPeerSessionIdentity } from "@kernel/utils/agent-peer-session.utils.js";
 import {
@@ -33,7 +30,7 @@ import {
   applyLimit,
   normalizeSessionId,
   readOptionalMetadataString,
-  readOptionalString,
+  readOptionalString
 } from "@kernel/utils/session-manager.utils.js";
 import {
   applySessionOverrides,
@@ -45,13 +42,10 @@ import {
   readProjectRoot,
   readThinkingEffort,
   resolveSessionType,
-  summarizeTask,
+  summarizeTask
 } from "@kernel/utils/session-creation.utils.js";
 import { createSessionContextInheritance } from "@kernel/utils/session-context-inheritance.utils.js";
-import {
-  eventKeys,
-  type EventBus,
-} from "@nextclaw/shared";
+import { eventKeys, type EventBus } from "@nextclaw/shared";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import type { ProjectManager } from "@kernel/managers/project.manager.js";
@@ -100,11 +94,10 @@ export class SessionManager implements NcpSessionApi {
       appendSessionEvent: (params) => this.appendSessionEvent(params),
       getSessionRecord: (sessionId) => this.getSessionRecord(sessionId),
       onError: (sessionId, error) => {
-        const message = error instanceof Error ? error.stack ?? error.message : String(error);
+        const message = error instanceof Error ? (error.stack ?? error.message) : String(error);
         console.error(`[session-manager] failed to handle ncp event for ${sessionId}: ${message}`);
       },
-      updateSessionMetadata: (sessionId, metadata) =>
-        this.updateSessionMetadata(sessionId, metadata),
+      updateSessionMetadata: (sessionId, metadata) => this.updateSessionMetadata(sessionId, metadata)
     });
     this.contextWindowPreview = new ContextWindowPreviewManager(options.agentManager);
     this.workingDirResolver = new SessionWorkingDirResolver(options.agentManager);
@@ -142,11 +135,9 @@ export class SessionManager implements NcpSessionApi {
       sourceSessionMetadata,
       task,
       thinkingLevel,
-      title: requestedTitle,
+      title: requestedTitle
     } = params;
-    const sourceRecord = sourceSessionId
-      ? await this.getSessionRecord(sourceSessionId)
-      : null;
+    const sourceRecord = sourceSessionId ? await this.getSessionRecord(sourceSessionId) : null;
     const metadata = cloneInheritedMetadata(sourceSessionMetadata);
     const title = readOptionalString(requestedTitle) ?? summarizeTask(task);
     const parentSessionId = readOptionalString(rawParentSessionId);
@@ -154,7 +145,7 @@ export class SessionManager implements NcpSessionApi {
     const sessionType = resolveSessionType({
       runtime,
       sessionType: requestedSessionType,
-      metadata,
+      metadata
     });
     applySessionOverrides({
       lifecycle: DEFAULT_SESSION_LIFECYCLE,
@@ -165,17 +156,13 @@ export class SessionManager implements NcpSessionApi {
       requestId: requestId ?? undefined,
       sessionType,
       thinkingLevel,
-      title,
+      title
     });
     const now = new Date().toISOString();
     const nextMetadata = mergeMetadataOverrides(metadata, metadataOverrides);
-    const requestedProjectRoot = projectRoot !== undefined
-      ? projectRoot
-      : readProjectRoot(nextMetadata);
+    const requestedProjectRoot = projectRoot !== undefined ? projectRoot : readProjectRoot(nextMetadata);
     if (requestedProjectRoot !== undefined) {
-      const normalizedProjectRoot = await this.options.projectManager.normalizeSessionProjectRoot(
-        requestedProjectRoot,
-      );
+      const normalizedProjectRoot = await this.options.projectManager.normalizeSessionProjectRoot(requestedProjectRoot);
       delete nextMetadata.projectRoot;
       if (normalizedProjectRoot) {
         nextMetadata.project_root = normalizedProjectRoot;
@@ -184,16 +171,14 @@ export class SessionManager implements NcpSessionApi {
       }
     }
     const agentId =
-      readOptionalString(requestedAgentId) ??
-      readOptionalString(sourceRecord?.agentId) ??
-      BUILTIN_MAIN_AGENT_ID;
+      readOptionalString(requestedAgentId) ?? readOptionalString(sourceRecord?.agentId) ?? BUILTIN_MAIN_AGENT_ID;
     const sessionId = readOptionalString(requestedSessionId) ?? buildSessionId();
     const inheritedContext = createSessionContextInheritance({
       childSessionId: sessionId,
       contextInheritance,
       metadata: nextMetadata,
       parentSessionId,
-      sourceRecord,
+      sourceRecord
     });
     const record: AgentSessionRecord = {
       sessionId,
@@ -201,7 +186,7 @@ export class SessionManager implements NcpSessionApi {
       messages: inheritedContext.messages,
       createdAt: now,
       updatedAt: now,
-      metadata: inheritedContext.metadata,
+      metadata: inheritedContext.metadata
     };
     await this.options.journalStore.importSessionSnapshot(record);
     await this.publishSessionChange(sessionId);
@@ -216,7 +201,7 @@ export class SessionManager implements NcpSessionApi {
       title,
       metadata: inheritedContext.metadata,
       createdAt: now,
-      updatedAt: now,
+      updatedAt: now
     };
   };
 
@@ -231,24 +216,21 @@ export class SessionManager implements NcpSessionApi {
     }
     await this.options.journalStore.appendSessionEvent({
       event,
-      sessionId,
+      sessionId
     });
     if (isSessionSummaryRefreshEvent(event)) {
       await this.publishSessionChange(sessionId);
     }
   };
 
-  setSessionMetadata = async (
-    sessionId: string,
-    metadata: Record<string, unknown>,
-  ): Promise<boolean> => {
+  setSessionMetadata = async (sessionId: string, metadata: Record<string, unknown>): Promise<boolean> => {
     const normalizedSessionId = normalizeSessionId(sessionId);
     if (!normalizedSessionId) {
       return false;
     }
     const updated = await this.options.journalStore.setSessionMetadata({
       sessionId: normalizedSessionId,
-      metadata: structuredClone(metadata),
+      metadata: structuredClone(metadata)
     });
     if (!updated) {
       return false;
@@ -258,17 +240,14 @@ export class SessionManager implements NcpSessionApi {
     return true;
   };
 
-  updateSessionMetadata = async (
-    sessionId: string,
-    metadata: Record<string, unknown>,
-  ): Promise<boolean> => {
+  updateSessionMetadata = async (sessionId: string, metadata: Record<string, unknown>): Promise<boolean> => {
     const normalizedSessionId = normalizeSessionId(sessionId);
     if (!normalizedSessionId) {
       return false;
     }
     const updated = await this.options.journalStore.updateSessionMetadata({
       sessionId: normalizedSessionId,
-      metadata: structuredClone(metadata),
+      metadata: structuredClone(metadata)
     });
     if (!updated) {
       return false;
@@ -278,14 +257,12 @@ export class SessionManager implements NcpSessionApi {
     return true;
   };
 
-  updateSession = async (
-    sessionId: string,
-    patch: NcpSessionPatch,
-  ): Promise<NcpSessionSummary | null> => {
+  updateSession = async (sessionId: string, patch: NcpSessionPatch): Promise<NcpSessionSummary | null> => {
     if (!Object.prototype.hasOwnProperty.call(patch, "metadata")) {
       return await this.getSession(sessionId);
     }
-    const updated = patch.metadata === null
+    const updated =
+      patch.metadata === null
       ? await this.setSessionMetadata(sessionId, {})
       : await this.updateSessionMetadata(sessionId, patch.metadata ?? {});
     return updated ? await this.getSession(sessionId) : null;
@@ -294,14 +271,14 @@ export class SessionManager implements NcpSessionApi {
   patchSessionSettings = async (
     sessionId: string,
     patch: SessionSettingsPatch,
-    options: { createIfMissing?: boolean } = {},
+    options: { createIfMissing?: boolean } = {}
   ): Promise<NcpSessionSummary | null> => {
     let existing = await this.getSessionRecord(sessionId);
     if (!existing && options.createIfMissing) {
       await this.createSession({
         sessionId,
         sourceSessionMetadata: {},
-        task: "Session",
+        task: "Session"
       });
       existing = await this.getSessionRecord(sessionId);
     }
@@ -311,9 +288,7 @@ export class SessionManager implements NcpSessionApi {
     const metadata = applySessionSettingsMetadataPatch(existing.metadata ?? {}, patch);
     await this.applySessionProjectPatch(metadata, patch);
 
-    return await this.setSessionMetadata(sessionId, metadata)
-      ? await this.getSession(sessionId)
-      : null;
+    return (await this.setSessionMetadata(sessionId, metadata)) ? await this.getSession(sessionId) : null;
   };
 
   deleteSession = async (sessionId: string): Promise<void> => {
@@ -339,34 +314,73 @@ export class SessionManager implements NcpSessionApi {
       (await this.options.journalStore.listSessionSummaries())
         .filter((summary) => !peerId || summary.peerId === peerId)
         .map(this.workingDirResolver.withWorkingDir),
-      options?.limit,
+      options?.limit
     );
   };
 
-  listSessionMessages = async (
-    sessionId: string,
-    options?: ListMessagesOptions,
-  ): Promise<NcpMessage[]> => {
+  listSessionMessages = async (sessionId: string, options?: ListMessagesOptions): Promise<NcpMessage[]> => {
+    const { cursor, limit } = options ?? {};
     const normalizedSessionId = normalizeSessionId(sessionId);
     if (!normalizedSessionId) {
       return [];
     }
-    const messages = await this.options.journalStore.listSessionMessages(normalizedSessionId);
-    return applyLimit(messages, options?.limit);
+    if (limit !== undefined || cursor) {
+      const page = await this.listSessionMessagePage(normalizedSessionId, {
+        limit: limit ?? 200,
+        ...(cursor ? { cursor } : {})
+      });
+      return page?.messages ?? [];
+    }
+    return await this.options.journalStore.listSessionMessages(normalizedSessionId);
+  };
+
+  listSessionMessagePage = async (
+    sessionId: string,
+    options: { limit: number; cursor?: string }
+  ): Promise<SessionMessagePage | null> => {
+    const { cursor, limit } = options;
+    const normalizedSessionId = normalizeSessionId(sessionId);
+    if (!normalizedSessionId) {
+      return null;
+    }
+    const page = await this.options.journalStore.listSessionMessagePage({
+      sessionId: normalizedSessionId,
+      limit,
+      ...(cursor ? { cursor } : {})
+    });
+    if (!page || page.contextWindow) {
+      return page;
+    }
+    const record = await this.options.journalStore.getSession(normalizedSessionId);
+    if (!record) {
+      return page;
+    }
+    const contextWindow = this.createSummaryFromRecord(record, true).contextWindow ?? null;
+    await this.options.journalStore.updateSessionMessageProjectionContextWindow(normalizedSessionId, contextWindow);
+    return {
+      ...page,
+      contextWindow
+    };
   };
 
   getSession = async (sessionId: string): Promise<NcpSessionSummary | null> => {
     const record = await this.getSessionRecord(sessionId);
-    return record ? this.createSummaryFromRecord(record, true) : null;
+    if (!record) {
+      return null;
+    }
+    const summary = this.createSummaryFromRecord(record, true);
+    await this.options.journalStore.updateSessionMessageProjectionContextWindow(
+      record.sessionId,
+      summary.contextWindow ?? null
+    );
+    return summary;
   };
 
   getContextWindow = async (
     sessionId: string,
-    liveRecord?: AgentSessionRecord | null,
+    liveRecord?: AgentSessionRecord | null
   ): Promise<Record<string, unknown> | null> => {
-    const summary = liveRecord
-      ? this.createSummaryFromRecord(liveRecord, true)
-      : await this.getSession(sessionId);
+    const summary = liveRecord ? this.createSummaryFromRecord(liveRecord, true) : await this.getSession(sessionId);
     return summary?.contextWindow ?? null;
   };
 
@@ -375,8 +389,8 @@ export class SessionManager implements NcpSessionApi {
     if (!record) {
       throw new Error(`Session not found: ${sessionId}`);
     }
-    const agentRuntimeId = readOptionalMetadataString(record.metadata?.agentRuntimeId) ??
-      DEFAULT_AGENT_RUNTIME_ENTRY_ID;
+    const agentRuntimeId =
+      readOptionalMetadataString(record.metadata?.agentRuntimeId) ?? DEFAULT_AGENT_RUNTIME_ENTRY_ID;
     const model = readOptionalMetadataString(record.metadata?.model);
     return {
       sessionId: record.sessionId,
@@ -387,15 +401,13 @@ export class SessionManager implements NcpSessionApi {
       projectRoot: readProjectRoot(record.metadata),
       workingDir: this.workingDirResolver.resolve({
         agentId: record.agentId,
-        metadata: record.metadata,
+        metadata: record.metadata
       }),
-      thinkingEffort: readThinkingEffort(record.metadata),
+      thinkingEffort: readThinkingEffort(record.metadata)
     };
   };
 
-  createAgentRunSession = async (
-    params: CreateAgentRunSessionParams,
-  ): Promise<AgentRunSession> => {
+  createAgentRunSession = async (params: CreateAgentRunSessionParams): Promise<AgentRunSession> => {
     const {
       agentId,
       agentRuntimeId: requestedAgentRuntimeId,
@@ -410,23 +422,16 @@ export class SessionManager implements NcpSessionApi {
       sourceSessionId: rawSourceSessionId,
       sourceSessionMetadata: requestedSourceSessionMetadata,
       task,
-      thinkingEffort,
+      thinkingEffort
     } = params;
     const peerId = readOptionalString(rawPeerId);
     const parentSessionId = readOptionalString(rawParentSessionId);
     const sourceSessionId = readOptionalString(rawSourceSessionId);
-    const sourceRecord = sourceSessionId
-      ? await this.getSessionRecord(sourceSessionId)
-      : null;
-    const sourceSessionMetadata =
-      requestedSourceSessionMetadata ?? sourceRecord?.metadata ?? {};
+    const sourceRecord = sourceSessionId ? await this.getSessionRecord(sourceSessionId) : null;
+    const sourceSessionMetadata = requestedSourceSessionMetadata ?? sourceRecord?.metadata ?? {};
     const agentRuntimeId =
-      requestedAgentRuntimeId ??
-      readAgentRuntimeId(sourceSessionMetadata) ??
-      DEFAULT_AGENT_RUNTIME_ENTRY_ID;
-    const peerIdentity = peerId
-      ? createAgentPeerSessionIdentity({ agentId, channel, metadata, peerId })
-      : undefined;
+      requestedAgentRuntimeId ?? readAgentRuntimeId(sourceSessionMetadata) ?? DEFAULT_AGENT_RUNTIME_ENTRY_ID;
+    const peerIdentity = peerId ? createAgentPeerSessionIdentity({ agentId, channel, metadata, peerId }) : undefined;
     const requestedSessionId = readOptionalString(sessionId);
     const created = await this.createSession({
       contextInheritance,
@@ -438,32 +443,33 @@ export class SessionManager implements NcpSessionApi {
       agentId,
       metadataOverrides: Object.assign(structuredClone(metadata ?? {}), peerIdentity?.metadata, {
         agentRuntimeId,
-        channel,
+        channel
       }),
       model,
       projectRoot,
       runtime: agentRuntimeId,
       sessionType: agentRuntimeId,
-      thinkingLevel: thinkingEffort ?? undefined,
+      thinkingLevel: thinkingEffort ?? undefined
     });
     return {
       sessionId: created.sessionId,
       agentId: created.agentId,
       agentRuntimeId,
       metadata: structuredClone(created.metadata ?? {}),
-      model: model ?? readOptionalMetadataString(created.metadata?.model) ?? readOptionalMetadataString(created.metadata?.preferred_model),
+      model:
+        model ??
+        readOptionalMetadataString(created.metadata?.model) ??
+        readOptionalMetadataString(created.metadata?.preferred_model),
       projectRoot: readProjectRoot(created.metadata),
       workingDir: this.workingDirResolver.resolve({
         agentId: created.agentId,
-        metadata: created.metadata,
+        metadata: created.metadata
       }),
-      thinkingEffort: thinkingEffort ?? readThinkingEffort(created.metadata),
+      thinkingEffort: thinkingEffort ?? readThinkingEffort(created.metadata)
     };
   };
 
-  getOrCreateAgentRunSession = async (
-    params: CreateAgentRunSessionParams,
-  ): Promise<AgentRunSession> => {
+  getOrCreateAgentRunSession = async (params: CreateAgentRunSessionParams): Promise<AgentRunSession> => {
     if (!params.sessionId) {
       return await this.createAgentRunSession(params);
     }
@@ -474,10 +480,7 @@ export class SessionManager implements NcpSessionApi {
     return await this.createAgentRunSession(params);
   };
 
-  patchSessionMetadata = async (
-    sessionId: string,
-    patch: Record<string, unknown>,
-  ): Promise<void> => {
+  patchSessionMetadata = async (sessionId: string, patch: Record<string, unknown>): Promise<void> => {
     const updated = await this.updateSessionMetadata(sessionId, patch);
     if (!updated) {
       throw new Error(`Session metadata was not updated: ${sessionId}`);
@@ -490,7 +493,7 @@ export class SessionManager implements NcpSessionApi {
       await this.createSession({
         sessionId,
         sourceSessionMetadata: {},
-        task: "Session",
+        task: "Session"
       });
       return 0;
     }
@@ -498,7 +501,7 @@ export class SessionManager implements NcpSessionApi {
       ...record,
       messages: [],
       updatedAt: new Date().toISOString(),
-      metadata: structuredClone(record.metadata ?? {}),
+      metadata: structuredClone(record.metadata ?? {})
     };
     await this.options.journalStore.importSessionSnapshot(nextRecord);
     await this.publishSessionChange(record.sessionId);
@@ -510,10 +513,14 @@ export class SessionManager implements NcpSessionApi {
     if (!normalizedSessionKey) {
       return;
     }
-    this.options.eventBus.emit(eventKeys.sessionUpdated, { sessionKey: normalizedSessionKey }, {
+    this.options.eventBus.emit(
+      eventKeys.sessionUpdated,
+      { sessionKey: normalizedSessionKey },
+      {
       emittedAt: new Date().toISOString(),
-      source: "ncp-session",
-    });
+        source: "ncp-session"
+      }
+    );
     await this.options.sessionSearch.handleSessionUpdated(normalizedSessionKey);
     const summary = await this.getSession(normalizedSessionKey);
     if (summary) {
@@ -521,14 +528,11 @@ export class SessionManager implements NcpSessionApi {
       return;
     }
     this.options.eventBus.emit(eventKeys.sessionSummaryDelete, {
-      sessionKey: normalizedSessionKey,
+      sessionKey: normalizedSessionKey
     });
   };
 
-  private createSummaryFromRecord = (
-    record: AgentSessionRecord,
-    includeContextWindow = false,
-  ): NcpSessionSummary => {
+  private createSummaryFromRecord = (record: AgentSessionRecord, includeContextWindow = false): NcpSessionSummary => {
     const summary = this.workingDirResolver.withWorkingDir(createNcpAgentSessionSummary(record));
     const contextWindow = includeContextWindow
       ? this.contextWindowPreview.preview({
@@ -536,7 +540,7 @@ export class SessionManager implements NcpSessionApi {
         sessionId: record.sessionId,
         sessionMessages: record.messages,
         storedAgentId: record.agentId,
-        storedMetadata: record.metadata ?? {},
+          storedMetadata: record.metadata ?? {}
       })
       : undefined;
     return contextWindow ? { ...summary, contextWindow } : summary;
@@ -545,25 +549,23 @@ export class SessionManager implements NcpSessionApi {
   private publishSessionMetadataChanged = (
     sessionKey: string,
     metadata: Record<string, unknown>,
-    mode: "set" | "update",
+    mode: "set" | "update"
   ): void => {
     this.options.eventBus.emit(
       eventKeys.sessionMetadataChanged,
       { sessionKey, mode, metadata: structuredClone(metadata) },
-      { emittedAt: new Date().toISOString(), source: "ncp-session" },
+      { emittedAt: new Date().toISOString(), source: "ncp-session" }
     );
   };
 
   private applySessionProjectPatch = async (
     metadata: Record<string, unknown>,
-    patch: SessionSettingsPatch,
+    patch: SessionSettingsPatch
   ): Promise<void> => {
     if (!Object.prototype.hasOwnProperty.call(patch, "projectRoot")) {
       return;
     }
-    const projectRoot = await this.options.projectManager.normalizeSessionProjectRoot(
-      patch.projectRoot,
-    );
+    const projectRoot = await this.options.projectManager.normalizeSessionProjectRoot(patch.projectRoot);
     delete metadata.projectRoot;
     if (projectRoot) {
       metadata.project_root = projectRoot;

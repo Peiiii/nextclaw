@@ -61,6 +61,109 @@ afterEach(async () => {
 });
 
 describe("NcpAgentSessionJournalStore", () => {
+  it("paginates newest-first while preserving chronological order within each page", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+    const messages = Array.from(
+      { length: 5 },
+      (_, index): NcpMessage => ({
+        id: `message-${index + 1}`,
+        sessionId,
+        role: index % 2 === 0 ? "user" : "assistant",
+        status: "final",
+        parts: [{ type: "text", text: `message ${index + 1}` }],
+        timestamp: `2026-05-14T00:00:0${index}.000Z`,
+      }),
+    );
+    await store.importSessionSnapshot(createRecord(messages));
+
+    const newest = await store.listSessionMessagePage({ sessionId, limit: 2 });
+    const previous = await store.listSessionMessagePage({
+      sessionId,
+      limit: 2,
+      cursor: newest?.pageInfo.startCursor,
+    });
+
+    expect(newest).toMatchObject({
+      total: 5,
+      messages: [{ id: "message-4" }, { id: "message-5" }],
+    });
+    expect(previous).toMatchObject({
+      messages: [{ id: "message-2" }, { id: "message-3" }],
+    });
+  });
+
+  it("replays only the unstable journal tail into a message page", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+    await store.importSessionSnapshot(createRecord([userMessage]));
+    await store.appendSessionEvent({
+      sessionId,
+      event: {
+        type: NcpEventType.MessageTextStart,
+        payload: { sessionId, messageId: "assistant-tail" },
+      },
+    });
+    await store.appendSessionEvent({
+      sessionId,
+      event: {
+        type: NcpEventType.MessageTextDelta,
+        payload: { sessionId, messageId: "assistant-tail", delta: "partial" },
+      },
+    });
+
+    expect(
+      await store.listSessionMessagePage({ sessionId, limit: 10 }),
+    ).toMatchObject({
+      total: 2,
+      messages: [
+        { id: "user-1" },
+        {
+          id: "assistant-tail",
+          status: "streaming",
+          parts: [{ text: "partial" }],
+        },
+      ],
+    });
+  });
+
+  it("replaces the projected assistant snapshot when completion arrives", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+    await store.importSessionSnapshot(
+      createRecord([
+        userMessage,
+        {
+          ...assistantMessage,
+          status: "streaming",
+          parts: [{ type: "text", text: "partial" }],
+        },
+      ]),
+    );
+
+    await store.appendSessionEvent({
+      sessionId,
+      event: {
+        type: NcpEventType.MessageCompleted,
+        payload: { sessionId, message: assistantMessage },
+      },
+    });
+
+    expect(
+      await store.listSessionMessagePage({ sessionId, limit: 10 }),
+    ).toMatchObject({
+      total: 2,
+      messages: [
+        { id: "user-1" },
+        { id: "assistant-1", status: "final", parts: [{ text: "hi" }] },
+      ],
+    });
+  });
+
+});
+
+describe("NcpAgentSessionJournalStore replay", () => {
+
   it("replays half-written streaming assistant messages from append-only events", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
     const store = new NcpAgentSessionJournalStore(tempDir);

@@ -30,10 +30,13 @@ function setScrollMetrics(
 function useStickyBottomScrollTestHarness(
   element: HTMLElement,
   hasContent = false,
+  contentElement?: HTMLElement,
 ) {
   const scrollRef = useRef(element);
+  const contentRef = useRef(contentElement ?? null);
 
   return useStickyBottomScroll({
+    contentRef,
     scrollRef,
     resetKey: "session-1",
     isLoading: false,
@@ -55,6 +58,55 @@ it("cancels the current queued sticky scroll frame on unmount", () => {
     view.unmount();
 
     expect(cancelAnimationFrameSpy).toHaveBeenCalledWith(42);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+it("does not reclaim the viewport when content resizes after the user scrolls away", () => {
+  let resize: ResizeObserverCallback | null = null;
+  let scheduledFrameCount = 0;
+  class ResizeObserverMock {
+    constructor(callback: ResizeObserverCallback) {
+      resize = callback;
+    }
+
+    observe = vi.fn();
+    disconnect = vi.fn();
+  }
+
+  vi.stubGlobal("ResizeObserver", ResizeObserverMock);
+  vi.stubGlobal("requestAnimationFrame", () => {
+    scheduledFrameCount += 1;
+    return scheduledFrameCount;
+  });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+  try {
+    const scrollElement = document.createElement("div");
+    const contentElement = document.createElement("div");
+    setScrollMetrics(scrollElement, {
+      clientHeight: 100,
+      scrollHeight: 1000,
+      scrollTop: 900,
+    });
+    const view = renderHook(() =>
+      useStickyBottomScrollTestHarness(
+        scrollElement,
+        true,
+        contentElement,
+      ),
+    );
+    const framesBeforeScroll = scheduledFrameCount;
+
+    scrollElement.scrollTop = 400;
+    act(() => {
+      view.result.current.onScroll();
+      resize?.([], {} as ResizeObserver);
+    });
+
+    expect(view.result.current.isAtBottom).toBe(false);
+    expect(scheduledFrameCount).toBe(framesBeforeScroll);
   } finally {
     vi.unstubAllGlobals();
   }

@@ -8,6 +8,7 @@ import {
 } from "react";
 
 type UseStickyBottomScrollParams = {
+  contentRef?: RefObject<HTMLElement>;
   scrollRef: RefObject<HTMLElement>;
   resetKey: string | null;
   isLoading: boolean;
@@ -25,6 +26,7 @@ type UseStickyBottomScrollResult = {
 const DEFAULT_STICKY_THRESHOLD_PX = 10;
 
 export function useStickyBottomScroll({
+  contentRef,
   contentVersion,
   hasContent,
   isLoading,
@@ -116,6 +118,20 @@ export function useStickyBottomScroll({
       }
     };
   }, []);
+
+  useEffect(() => {
+    const content = contentRef?.current;
+    if (!content || !hasContent || typeof ResizeObserver === "undefined") {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      if (isStickyRef.current) {
+        queueScrollToBottom();
+      }
+    });
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [contentRef, hasContent, queueScrollToBottom, resetKey]);
 
   useLayoutEffect(() => {
     if (

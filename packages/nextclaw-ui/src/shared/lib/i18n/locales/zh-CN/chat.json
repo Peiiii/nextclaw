@@ -146,6 +146,8 @@
   "chatToolDisplayError": "展示结果失败",
   "chatToolDisplayCancelled": "已取消展示结果",
   "chatScrollToBottom": "滚动到底部",
+  "chatHistoryLoadFailed": "较早消息加载失败",
+  "chatHistoryRetry": "重试",
   "chatProcessSummaryProcessed": "已处理",
   "chatAiExecutionInput": "输入",
   "chatAiExecutionOutput": "输出",

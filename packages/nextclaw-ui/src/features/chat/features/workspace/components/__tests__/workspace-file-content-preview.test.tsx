@@ -41,11 +41,30 @@ it("reports same-origin HTML height changes without replacing the iframe", () =>
     configurable: true,
     value: iframeDocument,
   });
-  const { documentElement } = iframeDocument;
-  Object.defineProperty(documentElement, "scrollHeight", {
+  const { body, documentElement } = iframeDocument;
+  let contentHeight = 640;
+  for (const element of [body, documentElement]) {
+    Object.defineProperties(element, {
+      clientHeight: {
     configurable: true,
-    value: 640,
+        get: () =>
+          element === documentElement
+            ? Math.max(900, contentHeight)
+            : contentHeight,
+      },
+      offsetHeight: {
+        configurable: true,
+        get: () => contentHeight,
+      },
+      scrollHeight: {
+        configurable: true,
+        get: () =>
+          element === documentElement
+            ? Math.max(900, contentHeight)
+            : contentHeight,
+      },
   });
+  }
 
   fireEvent.load(frame);
 
@@ -53,13 +72,16 @@ it("reports same-origin HTML height changes without replacing the iframe", () =>
   expect(observe).toHaveBeenCalledWith(documentElement);
   expect(screen.getByTestId("workspace-html-preview")).toBe(frame);
 
-  Object.defineProperty(documentElement, "scrollHeight", {
-    configurable: true,
-    value: 900,
-  });
+  contentHeight = 1_120;
   notifyResize([], {} as ResizeObserver);
 
-  expect(onHtmlContentHeightChange).toHaveBeenLastCalledWith(900);
+  expect(onHtmlContentHeightChange).toHaveBeenLastCalledWith(1_120);
+  expect(screen.getByTestId("workspace-html-preview")).toBe(frame);
+
+  contentHeight = 420;
+  notifyResize([], {} as ResizeObserver);
+
+  expect(onHtmlContentHeightChange).toHaveBeenLastCalledWith(420);
   expect(screen.getByTestId("workspace-html-preview")).toBe(frame);
 
   unmount();

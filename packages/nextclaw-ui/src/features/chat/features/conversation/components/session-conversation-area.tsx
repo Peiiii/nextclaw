@@ -327,16 +327,22 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     <>
       <SessionConversationAlerts inputQuery={inputQuery} />
       <ChatConversationContent
-        isAwaitingAssistantOutput={controller.isSending && currentSessionRunning}
+        hasPreviousMessages={agent.hasPreviousMessages}
+        historyError={agent.historyError}
+        isAwaitingAssistantOutput={
+          controller.isSending && currentSessionRunning
+        }
         isHistoryLoading={agent.isHydrating}
+        isLoadingPreviousMessages={agent.isLoadingPreviousMessages}
         isSending={controller.isSending}
         bottomSlot={sessionFailureSlot}
         messages={agent.visibleMessages}
         sessionKey={sessionKey}
         showWelcome={showWelcome}
+        onLoadPreviousMessages={agent.loadPreviousMessages}
         welcomeSlot={
           <ChatConversationWelcome
-            inputSlot={renderInput('embedded')}
+            inputSlot={renderInput("embedded")}
             pendingProjectRoot={inputSnapshot.pendingProjectRoot}
             pendingSessionType={inputSnapshot.pendingSessionType}
             selectedSessionTypeValue={inputSnapshot.selectedSessionType}

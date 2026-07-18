@@ -1,7 +1,7 @@
 import type { Config, ThinkingLevel } from "@nextclaw/core";
 import type { AgentProfileView } from "./server-api-agent.types.js";
 import type { AppEvent } from "@nextclaw/shared";
-import type { NcpMessage, NcpSessionApi, NcpSessionStatus, NcpSessionSummary } from "@nextclaw/ncp";
+import type { NcpMessage, NcpSessionApi, NcpSessionMessagePageInfo, NcpSessionStatus, NcpSessionSummary } from "@nextclaw/ncp";
 import type { UiNcpStoredAssetRecord } from "@nextclaw-server/features/attachments/index.js";
 export type { AgentCreateRequest, AgentDeleteResult, AgentProfileView, AgentUpdateRequest } from "./server-api-agent.types.js";
 export type * from "@nextclaw-server/features/marketplace/types/marketplace.types.js";
@@ -683,6 +683,7 @@ export type UiNcpSessionMessagesView = {
   messages: NcpMessage[];
   contextWindow?: NcpSessionSummary["contextWindow"];
   total: number;
+  pageInfo: NcpSessionMessagePageInfo;
 };
 
 export type SessionTypeDescribeParams = {

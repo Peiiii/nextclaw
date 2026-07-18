@@ -1,4 +1,7 @@
-import { PANEL_APP_INLINE_HOST_CONTRACT } from "@nextclaw/shared";
+import {
+  PANEL_APP_INLINE_HOST_CONTRACT,
+  readInlineContentHeight,
+} from "@nextclaw/shared";
 
 const PANEL_APP_BRIDGE_MARKER = "nextclaw:panel-app-service-actions:request";
 
@@ -6,6 +9,7 @@ function getPanelAppInlineContentHeightReporterScript(): string {
   return `
   function installInlineContentHeightReporter() {
     const inlineHostContract = ${JSON.stringify(PANEL_APP_INLINE_HOST_CONTRACT)};
+    const readInlineContentHeight = ${readInlineContentHeight.toString()};
     if (!window.location || !window.document) {
       return;
     }
@@ -23,14 +27,7 @@ function getPanelAppInlineContentHeightReporterScript(): string {
       }
       let lastHeight = 0;
       const reportHeight = () => {
-        const height = Math.ceil(Math.max(
-          body?.clientHeight || 0,
-          body?.offsetHeight || 0,
-          body?.scrollHeight || 0,
-          documentElement.clientHeight || 0,
-          documentElement.offsetHeight || 0,
-          documentElement.scrollHeight || 0
-        ));
+        const height = readInlineContentHeight(body, documentElement);
         if (height > 0 && height !== lastHeight) {
           lastHeight = height;
           window.parent.postMessage({ type: inlineHostContract.contentHeightMessageType, height }, "*");

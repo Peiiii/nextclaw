@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { readInlineContentHeight } from "@nextclaw/shared";
 import { WorkspaceDocxPreview } from "./file-content-preview/workspace-docx-preview";
 import { WorkspacePresentationPreview } from "./file-content-preview/workspace-presentation-preview";
 import { WorkspaceSpreadsheetPreview } from "./file-content-preview/workspace-spreadsheet-preview";
@@ -116,20 +117,6 @@ function WorkspaceUnsupportedContent({
   );
 }
 
-function readHtmlDocumentHeight(document: Document): number {
-  const { body, documentElement } = document;
-  return Math.ceil(
-    Math.max(
-      body?.clientHeight ?? 0,
-      body?.offsetHeight ?? 0,
-      body?.scrollHeight ?? 0,
-      documentElement.clientHeight,
-      documentElement.offsetHeight,
-      documentElement.scrollHeight,
-    ),
-  );
-}
-
 function WorkspaceHtmlPreview({
   contentUrl,
   label,
@@ -167,7 +154,10 @@ function WorkspaceHtmlPreview({
         return;
       }
       const reportHeight = () => {
-        const height = readHtmlDocumentHeight(document);
+        const height = readInlineContentHeight(
+          document.body,
+          document.documentElement,
+        );
         if (height > 0) {
           onContentHeightChange(height);
         }

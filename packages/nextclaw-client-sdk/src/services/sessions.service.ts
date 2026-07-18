@@ -11,6 +11,12 @@ import type { NextClawRealtimeHandler, NextClawRealtimeSubscribeOptions } from "
 import type { NextClawRealtimeSubscription } from "../types/nextclaw-realtime.types.js";
 import type { RequestService } from "./request.service.js";
 
+export type ListSessionMessagesParams = {
+  limit?: number;
+  cursor?: string;
+  signal?: AbortSignal;
+};
+
 export class SessionsService {
   constructor(
     private readonly requestService: RequestService,
@@ -33,16 +39,26 @@ export class SessionsService {
   };
 
   readonly get = async (sessionId: string): Promise<NcpSessionSummary> => {
-    return await this.requestService.get<NcpSessionSummary>(
-      `/api/ncp/sessions/${encodeURIComponent(sessionId)}`
-    );
+    return await this.requestService.get<NcpSessionSummary>(`/api/ncp/sessions/${encodeURIComponent(sessionId)}`);
   };
 
-  readonly listMessages = async (sessionId: string, limit = 200): Promise<UiNcpSessionMessagesView> => {
+  readonly listMessages = async (
+    sessionId: string,
+    options: number | ListSessionMessagesParams = {}
+  ): Promise<UiNcpSessionMessagesView> => {
+    const params = typeof options === "number" ? { limit: options } : options;
+    const query = new URLSearchParams();
+    if (typeof params.limit === "number" && Number.isFinite(params.limit)) {
+      query.set("limit", String(Math.max(1, Math.trunc(params.limit))));
+    }
+    if (params.cursor?.trim()) {
+      query.set("cursor", params.cursor.trim());
+    }
     return await this.requestService.get<UiNcpSessionMessagesView>(
       `/api/ncp/sessions/${encodeURIComponent(sessionId)}/messages`,
       {
-        query: { limit: Math.max(1, Math.trunc(limit)) }
+        ...(query.size > 0 ? { query } : {}),
+        ...(params.signal ? { signal: params.signal } : {})
       }
     );
   };
@@ -67,9 +83,10 @@ export class SessionsService {
   };
 
   readonly delete = async (sessionId: string): Promise<{ deleted: boolean; sessionId: string }> => {
-    return await this.requestService.delete<{ deleted: boolean; sessionId: string }>(
-      `/api/ncp/sessions/${encodeURIComponent(sessionId)}`
-    );
+    return await this.requestService.delete<{
+      deleted: boolean;
+      sessionId: string;
+    }>(`/api/ncp/sessions/${encodeURIComponent(sessionId)}`);
   };
 
   readonly uploadAssets = async (files: readonly File[]): Promise<UiNcpAssetPutView> => {

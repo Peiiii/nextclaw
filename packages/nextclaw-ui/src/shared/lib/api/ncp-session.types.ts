@@ -1,5 +1,10 @@
-import type { NcpMessage, NcpSessionStatus, NcpSessionSummary } from '@nextclaw/ncp';
-import type { ThinkingLevel } from './types';
+import type {
+  NcpMessage,
+  NcpSessionMessagePageInfo,
+  NcpSessionStatus,
+  NcpSessionSummary,
+} from "@nextclaw/ncp";
+import type { ThinkingLevel } from "./types";
 
 export type SessionTypeIconView = {
   kind: "image";
@@ -100,4 +105,5 @@ export type NcpSessionMessagesView = {
   messages: NcpMessageView[];
   contextWindow?: SessionContextWindowView | null;
   total: number;
+  pageInfo: NcpSessionMessagePageInfo;
 };

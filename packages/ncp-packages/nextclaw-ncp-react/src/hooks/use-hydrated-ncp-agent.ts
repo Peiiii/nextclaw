@@ -1,21 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { NcpAgentClientEndpoint, NcpMessage, NcpRunContext } from "@nextclaw/ncp";
 import type { DefaultNcpAgentConversationStateManager } from "@nextclaw/ncp-toolkit";
-import {
-  useNcpAgentRuntime,
-  useScopedAgentManager,
-  type UseNcpAgentResult,
-} from "./use-ncp-agent-runtime.js";
+import { useNcpAgentRuntime, useScopedAgentManager, type UseNcpAgentResult } from "./use-ncp-agent-runtime.js";
 
 export type NcpConversationSeed = {
   messages: readonly NcpMessage[];
   status: "idle" | "running";
 };
 
-export type NcpConversationSeedLoader = (
-  sessionId: string,
-  signal: AbortSignal,
-) => Promise<NcpConversationSeed>;
+export type NcpConversationSeedLoader = (sessionId: string, signal: AbortSignal) => Promise<NcpConversationSeed>;
 
 export type UseHydratedNcpAgentOptions = {
   sessionId?: string;
@@ -26,6 +19,7 @@ export type UseHydratedNcpAgentOptions = {
 export type UseHydratedNcpAgentResult = UseNcpAgentResult & {
   isHydrating: boolean;
   hydrateError: Error | null;
+  prependHistory: (messages: ReadonlyArray<NcpMessage>) => void;
 };
 
 type LoadState = {
@@ -49,10 +43,7 @@ function resolveSessionHydratingState(params: {
   return isHydrating || hydratedSessionId !== sessionId;
 }
 
-function managerAlreadyHasSessionState(
-  manager: DefaultNcpAgentConversationStateManager,
-  sessionId: string,
-): boolean {
+function managerAlreadyHasSessionState(manager: DefaultNcpAgentConversationStateManager, sessionId: string): boolean {
   const snapshot = manager.getSnapshot();
   return (
     snapshot.activeRun?.sessionId === sessionId ||
@@ -61,45 +52,36 @@ function managerAlreadyHasSessionState(
   );
 }
 
-function createHydratedActiveRun(
-  seed: NcpConversationSeed,
-  sessionId: string,
-): NcpRunContext | null {
+function createHydratedActiveRun(seed: NcpConversationSeed, sessionId: string): NcpRunContext | null {
   return seed.status === "running"
     ? {
         runId: null,
         sessionId,
-        abortDisabledReason: null,
+        abortDisabledReason: null
       }
     : null;
 }
 
-function isStaleHydrationRequest(
-  loadState: LoadState,
-  requestId: number,
-  controller: AbortController,
-): boolean {
+function isStaleHydrationRequest(loadState: LoadState, requestId: number, controller: AbortController): boolean {
   return controller.signal.aborted || loadState.requestId !== requestId;
 }
 
 export function useHydratedNcpAgent({
   sessionId,
   client,
-  loadSeed,
+  loadSeed
 }: UseHydratedNcpAgentOptions): UseHydratedNcpAgentResult {
   const manager = useScopedAgentManager(sessionId);
   const runtime = useNcpAgentRuntime({ sessionId, client, manager });
   const [isHydrating, setIsHydrating] = useState(true);
   const [hydrateError, setHydrateError] = useState<Error | null>(null);
-  const [hydratedSessionId, setHydratedSessionId] = useState<string | null>(
-    null,
-  );
+  const [hydratedSessionId, setHydratedSessionId] = useState<string | null>(null);
   const loadStateRef = useRef<LoadState>({ requestId: 0, controller: null });
 
   const resetEmptySession = useCallback(async () => {
     loadStateRef.current = {
       requestId: loadStateRef.current.requestId + 1,
-      controller: null,
+      controller: null
     };
     manager.reset();
     setHydrateError(null);
@@ -126,7 +108,7 @@ export function useHydratedNcpAgent({
     const requestId = loadStateRef.current.requestId + 1;
     loadStateRef.current = {
       requestId,
-      controller,
+      controller
     };
 
     if (managerAlreadyHasSessionState(manager, sessionId)) {
@@ -151,7 +133,7 @@ export function useHydratedNcpAgent({
       manager.hydrate({
         sessionId,
         messages: seed.messages,
-        activeRun: createHydratedActiveRun(seed, sessionId),
+        activeRun: createHydratedActiveRun(seed, sessionId)
       });
       markHydratedFromLiveState(sessionId);
       void client.stream({ sessionId }).catch((error) => {
@@ -172,14 +154,7 @@ export function useHydratedNcpAgent({
         loadStateRef.current.controller = null;
       }
     }
-  }, [
-    client,
-    loadSeed,
-    manager,
-    markHydratedFromLiveState,
-    resetEmptySession,
-    sessionId,
-  ]);
+  }, [client, loadSeed, manager, markHydratedFromLiveState, resetEmptySession, sessionId]);
 
   useEffect(() => {
     void hydrateSeed();
@@ -190,13 +165,19 @@ export function useHydratedNcpAgent({
     };
   }, [hydrateSeed]);
 
+  const prependHistory = useCallback(
+    (messages: ReadonlyArray<NcpMessage>) => manager.prependHistory(messages),
+    [manager]
+  );
+
   return {
     ...runtime,
     isHydrating: resolveSessionHydratingState({
       sessionId,
       hydratedSessionId,
-      isHydrating,
+      isHydrating
     }),
     hydrateError,
+    prependHistory
   };
 }

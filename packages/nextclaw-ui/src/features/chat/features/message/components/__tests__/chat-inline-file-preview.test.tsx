@@ -96,7 +96,7 @@ it("renders adaptive inline HTML without persistent file chrome", () => {
   ).toBeTruthy();
   expect(viewport?.classList.contains("rounded-lg")).toBe(true);
   expect(viewport?.classList.contains("h-[240px]")).toBe(true);
-  expect(viewport?.classList.contains("max-h-[min(80vh,720px)]")).toBe(true);
+  expect(viewport?.classList.contains("max-h-[min(90vh,1440px)]")).toBe(true);
   expect(captures.filePreviewProps.at(-1)?.showBreadcrumbs).toBe(false);
   expect(captures.filePreviewProps.at(-1)?.onHtmlContentHeightChange).toEqual(
     expect.any(Function),

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { isValidElement, type ComponentProps } from "react";
+import { isValidElement, type ComponentProps, useRef } from "react";
 import type { NcpMessage } from "@nextclaw/ncp";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ChatMessageListContainer as RuntimeChatMessageListContainer } from "@/features/chat/features/message/components/chat-message-list.container";
@@ -8,10 +8,20 @@ import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 function ChatMessageListContainer({
   sessionKey = "session-1",
   ...props
-}: Omit<ComponentProps<typeof RuntimeChatMessageListContainer>, "sessionKey"> & {
+}: Omit<
+  ComponentProps<typeof RuntimeChatMessageListContainer>,
+  "sessionKey" | "scrollRef"
+> & {
   sessionKey?: string | null;
 }) {
-  return <RuntimeChatMessageListContainer {...props} sessionKey={sessionKey} />;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  return (
+    <RuntimeChatMessageListContainer
+      {...props}
+      scrollRef={scrollRef}
+      sessionKey={sessionKey}
+    />
+  );
 }
 
 const captures = vi.hoisted(() => ({
@@ -60,6 +70,24 @@ vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
   };
 });
 
+vi.mock(
+  "@/features/chat/features/message/hooks/use-chat-message-virtualizer",
+  () => ({
+    useChatMessageVirtualizer: ({
+      rows,
+    }: {
+      rows: Array<{ key: string }>;
+    }) => ({
+      containerRef: vi.fn(),
+      virtualizer: {
+        getVirtualItems: () =>
+          rows.map((_, index) => ({ index, start: index * 180 })),
+        measureElement: vi.fn(),
+      },
+    }),
+  }),
+);
+
 vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
   usePresenter: () => ({
     chatThreadManager: {
@@ -72,12 +100,15 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
   }),
 }));
 
-vi.mock("@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state", () => ({
+vi.mock(
+  "@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state",
+  () => ({
   useNcpChatSelectedSession: (sessionKey: string | null) => {
     captures.selectedSessionKeys.push(sessionKey);
     return captures.selectedSession;
   },
-}));
+  }),
+);
 
 vi.mock("@/app/components/i18n-provider", () => ({
   useI18n: () => ({ language: captures.language }),
@@ -91,9 +122,7 @@ vi.mock("@/shared/lib/i18n", () => ({
 vi.mock(
   "@/features/chat/features/workspace/components/chat-session-workspace-file-preview",
   () => ({
-    ChatSessionWorkspaceFilePreview: (props: {
-      showBreadcrumbs?: boolean;
-    }) => {
+    ChatSessionWorkspaceFilePreview: (props: { showBreadcrumbs?: boolean }) => {
       captures.filePreviewProps.push(props);
       return <div data-testid="inline-workspace-file-preview" />;
     },
@@ -126,8 +155,9 @@ it("reuses adapted message references when the source message object is unchange
     <ChatMessageListContainer messages={[message]} isSending={false} />,
   );
 
-  const firstMessages =
-    captures.renders[captures.renders.length - 1]?.messages ?? [];
+  const firstMessages = captures.renders.flatMap(
+    (rendered) => rendered.messages,
+  );
 
   rerender(<ChatMessageListContainer messages={[message]} isSending={false} />);
 
@@ -162,13 +192,15 @@ it("keeps historical adapted message references stable when only the streaming m
     />,
   );
 
-  const firstMessages =
-    captures.renders[captures.renders.length - 1]?.messages ?? [];
+  const firstMessages = captures.renders.flatMap(
+    (rendered) => rendered.messages,
+  );
   const nextStreamingMessage = {
     ...firstStreamingMessage,
     parts: [{ type: "text", text: "hello world" }],
   } satisfies NcpMessage;
 
+  captures.renders = [];
   rerender(
     <ChatMessageListContainer
       messages={[historicalMessage, nextStreamingMessage]}
@@ -176,8 +208,9 @@ it("keeps historical adapted message references stable when only the streaming m
     />,
   );
 
-  const secondMessages =
-    captures.renders[captures.renders.length - 1]?.messages ?? [];
+  const secondMessages = captures.renders.flatMap(
+    (rendered) => rendered.messages,
+  );
 
   expect(secondMessages[0]).toBe(firstMessages[0]);
   expect(secondMessages[1]).not.toBe(firstMessages[1]);
@@ -205,8 +238,9 @@ it("adapts persisted inline token metadata into markdown token data", () => {
 
   render(<ChatMessageListContainer messages={[message]} isSending={false} />);
 
-  const renderedMessages =
-    captures.renders[captures.renders.length - 1]?.messages ?? [];
+  const renderedMessages = captures.renders.flatMap(
+    (rendered) => rendered.messages,
+  );
   expect(renderedMessages[0]).toMatchObject({
     parts: [
       {
@@ -267,8 +301,9 @@ it("adds a completed assistant process summary without inventing a duration", ()
     />,
   );
 
-  const renderedMessages =
-    captures.renders[captures.renders.length - 1]?.messages ?? [];
+  const renderedMessages = captures.renders.flatMap(
+    (rendered) => rendered.messages,
+  );
   expect(renderedMessages[1]).toMatchObject({
     processSummary: {
       label: "chatProcessSummaryProcessed",
@@ -352,9 +387,15 @@ it("projects ai execution metadata into the assistant message footer summary", (
     },
   } satisfies NcpMessage;
 
-  render(<ChatMessageListContainer messages={[assistantMessage]} isSending={false} />);
+  render(
+    <ChatMessageListContainer
+      messages={[assistantMessage]}
+      isSending={false}
+    />,
+  );
 
-  const renderedMessages = captures.renders[captures.renders.length - 1]?.messages ?? [];
+  const renderedMessages =
+    captures.renders[captures.renders.length - 1]?.messages ?? [];
   expect(renderedMessages[0]).toMatchObject({
     executionSummaryLabel:
       "openai/gpt-5 · 1.2k chatAiExecutionInput / 200 chatAiExecutionOutput",
@@ -410,7 +451,8 @@ it("opens workspace file and directory tokens from the message", () => {
     workingDir: "/tmp/project/packages/ui",
   };
   render(<ChatMessageListContainer messages={[]} isSending={false} />);
-  const onInlineTokenClick = captures.renders[captures.renders.length - 1]?.onInlineTokenClick;
+  const onInlineTokenClick =
+    captures.renders[captures.renders.length - 1]?.onInlineTokenClick;
 
   onInlineTokenClick?.({
     kind: "workspace_file",
@@ -676,8 +718,9 @@ it("passes the rendered session runtime icon to assistant messages", () => {
   }
   render(assistantAvatarIcon);
 
-  expect(screen.getByRole("img", { name: "Codex logo" }).getAttribute("src"))
-    .toBe("https://example.com/codex.png");
+  expect(
+    screen.getByRole("img", { name: "Codex logo" }).getAttribute("src"),
+  ).toBe("https://example.com/codex.png");
 });
 
 it("connects inline HTML actions to the chat thread manager", () => {

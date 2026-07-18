@@ -38,7 +38,7 @@ export function ChatInlineContentSurface({
       ) : null}
       <div
         className={cn(
-          "h-[240px] min-h-[240px] max-h-[min(80vh,720px)] overflow-hidden rounded-lg",
+          "h-[240px] min-h-[240px] max-h-[min(90vh,1440px)] overflow-hidden rounded-lg",
           isLoading && "animate-pulse bg-muted/45",
         )}
         data-chat-inline-content-viewport="true"

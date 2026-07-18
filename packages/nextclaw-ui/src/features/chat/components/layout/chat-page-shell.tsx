@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { ChatSidebar } from "@/features/chat/components/layout/chat-sidebar";
 import { ChatConversationPanel } from "@/features/chat/components/conversation/chat-conversation-panel";
 import { AgentsPage } from "@/features/agents";
@@ -25,7 +25,7 @@ export function useChatSessionSync(params: UseChatSessionSyncParams): void {
     syncRouteSessionSelection,
   } = params;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     syncRouteSessionSelection({
       isChatView: view === "chat",
       routeSessionKey,

@@ -27,6 +27,11 @@ export type ListMessagesOptions = {
   cursor?: string;
 };
 
+export type NcpSessionMessagePageInfo = {
+  startCursor: string | null;
+  hasPreviousPage: boolean;
+};
+
 export type NcpSessionPatch = {
   metadata?: Record<string, unknown> | null;
 };

@@ -1,5 +1,24 @@
 import type { CreateSessionContextInheritanceInput } from "@nextclaw/core";
+import type { NcpMessage, NcpSessionMessagePageInfo } from "@nextclaw/ncp";
 import type { ThinkingEffort } from "@kernel/types/agent-run.types.js";
+
+export type SessionMessagePage = {
+  messages: NcpMessage[];
+  total: number;
+  pageInfo: NcpSessionMessagePageInfo;
+  contextWindow: Record<string, unknown> | null;
+};
+
+export class SessionMessageCursorError extends Error {
+  constructor(message = "Invalid session message cursor.") {
+    super(message);
+    this.name = "SessionMessageCursorError";
+  }
+}
+
+export function isSessionMessageCursorError(error: unknown): error is SessionMessageCursorError {
+  return error instanceof SessionMessageCursorError;
+}
 
 export type AgentRunSession = {
   sessionId: string;
@@ -41,7 +60,7 @@ export type SessionSettingsPatch = {
 export class SessionSettingsError extends Error {
   constructor(
     readonly code: "PREFERRED_THINKING_INVALID",
-    message: string,
+    message: string
   ) {
     super(message);
     this.name = "SessionSettingsError";

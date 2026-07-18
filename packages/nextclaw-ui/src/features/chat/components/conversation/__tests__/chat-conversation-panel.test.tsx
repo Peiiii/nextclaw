@@ -22,10 +22,6 @@ function createPersistStorage() {
   };
 }
 
-vi.mock("@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state", () => ({
-  useNcpChatProviderStateResolved: () => true,
-}));
-
 vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
   usePresenter: () => ({
     chatUiManager: {
@@ -41,10 +37,6 @@ vi.mock("@/features/chat/components/conversation/chat-conversation-parent-banner
 
 vi.mock("@/features/chat/components/conversation/chat-conversation-header-section", () => ({
   ChatConversationHeaderSection: () => <div data-testid="chat-header" />,
-}));
-
-vi.mock("@/features/chat/components/conversation/chat-conversation-skeleton", () => ({
-  ChatConversationSkeleton: () => <div data-testid="chat-skeleton" />,
 }));
 
 vi.mock("@/features/chat/components/conversation/chat-conversation-workspace-section", () => ({

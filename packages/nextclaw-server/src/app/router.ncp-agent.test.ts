@@ -5,26 +5,11 @@ import { tmpdir } from "node:os";
 import { afterEach, expect, it, vi } from "vitest";
 import { serve } from "@hono/node-server";
 import { ConfigSchema, getSkillsPath, getWorkspacePath, saveConfig } from "@nextclaw/core";
-import {
-  NcpEventType,
-  type NcpAgentRunSendOptions,
-  type NcpEndpointEvent,
-  type NcpRequestEnvelope,
-  type NcpSessionApi
-} from "@nextclaw/ncp";
+import { NcpEventType, type NcpAgentRunSendOptions, type NcpEndpointEvent, type NcpRequestEnvelope, type NcpSessionApi } from "@nextclaw/ncp";
 import { createUiRouter } from "./router.js";
-import {
-  EventBus,
-  getKeyId,
-  ingressKeys,
-  type IngressEnvelope,
-} from "@nextclaw/shared";
+import { EventBus, getKeyId, ingressKeys, type IngressEnvelope } from "@nextclaw/shared";
 import type { UiKernelHost } from "./types/router-options.types.js";
-import {
-  createRouterNcpProjectManager,
-  RouterNcpSessionSettingsStub,
-  writeRouterNcpSkill,
-} from "./tests/router-ncp-test-fixtures.js";
+import { createRouterNcpProjectManager, RouterNcpSessionSettingsStub, writeRouterNcpSkill } from "./tests/router-ncp-test-fixtures.js";
 
 const tempDirs: string[] = [];
 const originalHome = process.env.NEXTCLAW_HOME;
@@ -78,11 +63,11 @@ class StubNcpAgent implements NcpSessionApi {
   readonly runningSessionIds = new Set<string>();
   readonly sessionTypeListCalls: Array<{ describeMode?: "observation" | "probe" } | undefined> = [];
   readonly sessionMetadata = new Map<string, Record<string, unknown>>();
-  readonly patchSessionSettings = new RouterNcpSessionSettingsStub(
-    this.sessionMetadata,
-    (sessionId) => this.getSession(sessionId),
-  ).patchSessionSettings;
-  readonly updateSessionCalls: Array<{ sessionId: string; metadata?: Record<string, unknown> | null }> = [];
+  readonly patchSessionSettings = new RouterNcpSessionSettingsStub(this.sessionMetadata, (sessionId) => this.getSession(sessionId)).patchSessionSettings;
+  readonly updateSessionCalls: Array<{
+    sessionId: string;
+    metadata?: Record<string, unknown> | null;
+  }> = [];
   readonly contextWindowBySession = new Map<string, Record<string, unknown>>();
   readonly assetApi = {
     put: async (input: { fileName: string; mimeType?: string | null; bytes: Uint8Array }) => {
@@ -102,7 +87,7 @@ class StubNcpAgent implements NcpSessionApi {
         sizeBytes: input.bytes.byteLength,
         createdAt: "2026-03-26T00:00:00.000Z",
         sha256: "stub",
-        filePath,
+        filePath
       };
       this.assets.set(uri, record);
       return record;
@@ -116,36 +101,32 @@ class StubNcpAgent implements NcpSessionApi {
       void filePath;
       return rest;
     },
-    resolveContentPath: (uri: string) => this.assets.get(uri)?.filePath ?? null,
+    resolveContentPath: (uri: string) => this.assets.get(uri)?.filePath ?? null
   };
 
   send = async () => ({
       sessionId: "session-1",
       userMessageId: "user-message-1",
       assistantMessageId: "assistant-message-1",
-      runId: "run-1",
+    runId: "run-1"
   });
 
-  run = async function* (
-    this: StubNcpAgent,
-    envelope: NcpRequestEnvelope,
-    _options?: NcpAgentRunSendOptions,
-  ): AsyncGenerator<NcpEndpointEvent> {
+  run = async function* (this: StubNcpAgent, envelope: NcpRequestEnvelope, _options?: NcpAgentRunSendOptions): AsyncGenerator<NcpEndpointEvent> {
     yield {
       type: NcpEventType.RunStarted,
       payload: {
         sessionId: envelope.sessionId,
         messageId: "assistant-message-1",
-        runId: "run-1",
-      },
+        runId: "run-1"
+      }
     };
     yield {
       type: NcpEventType.RunFinished,
       payload: {
         sessionId: envelope.sessionId,
         messageId: "assistant-message-1",
-        runId: "run-1",
-      },
+        runId: "run-1"
+      }
     };
   };
 
@@ -153,8 +134,7 @@ class StubNcpAgent implements NcpSessionApi {
     this.abortCalls.push(payload);
   };
 
-  isSessionRunning = (sessionId: string): boolean =>
-    this.runningSessionIds.has(sessionId);
+  isSessionRunning = (sessionId: string): boolean => this.runningSessionIds.has(sessionId);
 
   listSessions = async () => {
     return [
@@ -163,9 +143,7 @@ class StubNcpAgent implements NcpSessionApi {
         messageCount: 2,
         updatedAt: "2026-03-17T00:00:00.000Z",
         status: "idle" as const,
-        ...(this.sessionMetadata.has("session-1")
-          ? { metadata: this.sessionMetadata.get("session-1") }
-          : {}),
+        ...(this.sessionMetadata.has("session-1") ? { metadata: this.sessionMetadata.get("session-1") } : {})
       }
     ];
   };
@@ -183,6 +161,22 @@ class StubNcpAgent implements NcpSessionApi {
     ];
   };
 
+  listSessionMessagePage = async (sessionId: string, options: { limit: number; cursor?: string }) => {
+    void options;
+    if (sessionId !== "session-1") {
+      return null;
+    }
+    return {
+      messages: await this.listSessionMessages(),
+      total: 1,
+      pageInfo: {
+        startCursor: "djE6MQ",
+        hasPreviousPage: false
+      },
+      contextWindow: this.contextWindowBySession.get(sessionId) ?? null
+    };
+  };
+
   getSession = async (sessionId: string) => {
     if (sessionId !== "session-1" && !this.sessionMetadata.has(sessionId)) {
       return null;
@@ -192,12 +186,8 @@ class StubNcpAgent implements NcpSessionApi {
       messageCount: sessionId === "session-1" ? 2 : 0,
       updatedAt: "2026-03-17T00:00:00.000Z",
       status: "idle" as const,
-      ...(this.sessionMetadata.has(sessionId)
-        ? { metadata: this.sessionMetadata.get(sessionId) }
-        : {}),
-      ...(this.contextWindowBySession.has(sessionId)
-        ? { contextWindow: this.contextWindowBySession.get(sessionId) }
-        : {}),
+      ...(this.sessionMetadata.has(sessionId) ? { metadata: this.sessionMetadata.get(sessionId) } : {}),
+      ...(this.contextWindowBySession.has(sessionId) ? { contextWindow: this.contextWindowBySession.get(sessionId) } : {})
     };
   };
 
@@ -209,16 +199,11 @@ class StubNcpAgent implements NcpSessionApi {
       sessionId,
       messages: await this.listSessionMessages(),
       updatedAt: "2026-03-17T00:00:00.000Z",
-      ...(this.sessionMetadata.has(sessionId)
-        ? { metadata: this.sessionMetadata.get(sessionId) }
-        : {}),
+      ...(this.sessionMetadata.has(sessionId) ? { metadata: this.sessionMetadata.get(sessionId) } : {})
     };
   };
 
-  updateSession = async (
-    sessionId: string,
-    patch: { metadata?: Record<string, unknown> | null },
-  ) => {
+  updateSession = async (sessionId: string, patch: { metadata?: Record<string, unknown> | null }) => {
     this.updateSessionCalls.push({ sessionId, metadata: patch.metadata });
     if (patch.metadata) {
       this.sessionMetadata.set(sessionId, patch.metadata);
@@ -234,21 +219,15 @@ class StubNcpAgent implements NcpSessionApi {
     };
   };
 
-  setSessionMetadata = async (
-    sessionId: string,
-    metadata: Record<string, unknown>,
-  ): Promise<boolean> => {
+  setSessionMetadata = async (sessionId: string, metadata: Record<string, unknown>): Promise<boolean> => {
     this.sessionMetadata.set(sessionId, structuredClone(metadata));
     return true;
   };
 
-  updateSessionMetadata = async (
-    sessionId: string,
-    metadata: Record<string, unknown>,
-  ): Promise<boolean> => {
+  updateSessionMetadata = async (sessionId: string, metadata: Record<string, unknown>): Promise<boolean> => {
     this.sessionMetadata.set(sessionId, {
       ...(this.sessionMetadata.get(sessionId) ?? {}),
-      ...structuredClone(metadata),
+      ...structuredClone(metadata)
     });
     return true;
   };
@@ -261,8 +240,8 @@ class StubNcpAgent implements NcpSessionApi {
       defaultType: "native",
       options: [
         { value: "native", label: "Native" },
-        { value: "codex", label: "Codex" },
-      ],
+        { value: "codex", label: "Codex" }
+      ]
     };
   };
 }
@@ -274,7 +253,7 @@ function createTestKernel(agent: StubNcpAgent): UiKernelHost {
     assetStore: {
       putBytes: agent.assetApi.put,
       statRecord: agent.assetApi.stat,
-      resolveContentPath: agent.assetApi.resolveContentPath,
+      resolveContentPath: agent.assetApi.resolveContentPath
     },
     ingress: {
       handle: async (envelope: IngressEnvelope) => {
@@ -287,16 +266,19 @@ function createTestKernel(agent: StubNcpAgent): UiKernelHost {
           default:
             throw new Error(`Unsupported test ingress type: ${getKeyId(envelope.type)}`);
         }
-      },
+      }
     },
     eventBus: new EventBus(),
     sessionManager: agent,
     projectManager: createRouterNcpProjectManager(createTempDir("nextclaw-ui-project-store-")),
-    llmProviders: {},
+    llmProviders: {}
   } as unknown as UiKernelHost;
 }
 
-function createTestApp(): { app: ReturnType<typeof createUiRouter>; agent: StubNcpAgent } {
+function createTestApp(): {
+  app: ReturnType<typeof createUiRouter>;
+  agent: StubNcpAgent;
+} {
   useIsolatedHome();
   const configPath = join(createTempDir("nextclaw-ui-ncp-config-"), "config.json");
   saveConfig(ConfigSchema.parse({}), configPath);
@@ -306,8 +288,8 @@ function createTestApp(): { app: ReturnType<typeof createUiRouter>; agent: StubN
     app: createUiRouter({
       configPath,
       appEventBus: new EventBus(),
-      kernel: createTestKernel(agent),
-    }),
+      kernel: createTestKernel(agent)
+    })
   };
 }
 
@@ -315,7 +297,7 @@ async function requestNodeRawHeaders(app: ReturnType<typeof createUiRouter>, pat
   const server = serve({
     fetch: app.fetch,
     port: 0,
-    hostname: "127.0.0.1",
+    hostname: "127.0.0.1"
   });
 
   try {
@@ -330,12 +312,12 @@ async function requestNodeRawHeaders(app: ReturnType<typeof createUiRouter>, pat
         {
           host: "127.0.0.1",
           port: address.port,
-          path,
+          path
         },
         (response) => {
           response.resume();
           response.once("end", () => resolve(response.rawHeaders));
-        },
+        }
       );
 
       request.once("error", reject);
@@ -359,7 +341,7 @@ it("mounts parallel ncp agent and session routes", async () => {
 
   const sessionsResponse = await app.request("http://localhost/api/ncp/sessions");
   expect(sessionsResponse.status).toBe(200);
-  const sessionsPayload = await sessionsResponse.json() as {
+  const sessionsPayload = (await sessionsResponse.json()) as {
     ok: boolean;
     data: {
       total: number;
@@ -370,24 +352,9 @@ it("mounts parallel ncp agent and session routes", async () => {
   expect(sessionsPayload.data.total).toBe(1);
   expect(sessionsPayload.data.sessions[0]?.sessionId).toBe("session-1");
 
-  const messagesResponse = await app.request("http://localhost/api/ncp/sessions/session-1/messages");
-  expect(messagesResponse.status).toBe(200);
-  const messagesPayload = await messagesResponse.json() as {
-    ok: boolean;
-    data: {
-      status: string;
-      total: number;
-      messages: Array<{ id: string }>;
-    };
-  };
-  expect(messagesPayload.ok).toBe(true);
-  expect(messagesPayload.data.status).toBe("idle");
-  expect(messagesPayload.data.total).toBe(1);
-  expect(messagesPayload.data.messages[0]?.id).toBe("msg-1");
-
   const sessionTypesResponse = await app.request("http://localhost/api/ncp/session-types");
   expect(sessionTypesResponse.status).toBe(200);
-  const sessionTypesPayload = await sessionTypesResponse.json() as {
+  const sessionTypesPayload = (await sessionTypesResponse.json()) as {
     ok: boolean;
     data: {
       defaultType: string;
@@ -399,8 +366,8 @@ it("mounts parallel ncp agent and session routes", async () => {
     defaultType: "native",
     options: [
       { value: "native", label: "Native" },
-      { value: "codex", label: "Codex" },
-    ],
+      { value: "codex", label: "Codex" }
+    ]
   });
   expect(agent.sessionTypeListCalls).toEqual([{ describeMode: "observation" }]);
 });
@@ -418,14 +385,18 @@ it("includes a derived context window snapshot in the session messages seed", as
     truncatedUserMessage: false,
     compacted: false,
     compactedMessageCount: 0,
-    updatedAt: "session-1:now",
+    updatedAt: "session-1:now"
   });
 
   const messagesResponse = await app.request("http://localhost/api/ncp/sessions/session-1/messages");
-  const messagesPayload = await messagesResponse.json() as {
+  const messagesPayload = (await messagesResponse.json()) as {
     ok: boolean;
     data: {
-      contextWindow?: { usedContextTokens: number; totalContextTokens: number; updatedAt: string };
+      contextWindow?: {
+        usedContextTokens: number;
+        totalContextTokens: number;
+        updatedAt: string;
+      };
     };
   };
 
@@ -433,7 +404,7 @@ it("includes a derived context window snapshot in the session messages seed", as
   expect(messagesPayload.data.contextWindow).toMatchObject({
     usedContextTokens: 42,
     totalContextTokens: 1000,
-    updatedAt: "session-1:now",
+    updatedAt: "session-1:now"
   });
 });
 
@@ -441,18 +412,24 @@ it("hydrates ncp session reads with kernel runtime status", async () => {
   const { app, agent } = createTestApp();
   agent.runningSessionIds.add("session-1");
 
-  const sessionsPayload = await (await app.request("http://localhost/api/ncp/sessions")).json() as {
+  const sessionsPayload = (await (await app.request("http://localhost/api/ncp/sessions")).json()) as {
     data: { sessions: Array<{ sessionId: string; status: string }> };
   };
-  const sessionPayload = await (await app.request("http://localhost/api/ncp/sessions/session-1")).json() as {
+  const sessionPayload = (await (await app.request("http://localhost/api/ncp/sessions/session-1")).json()) as {
     data: { sessionId: string; status: string };
   };
-  const messagesPayload = await (await app.request("http://localhost/api/ncp/sessions/session-1/messages")).json() as {
+  const messagesPayload = (await (await app.request("http://localhost/api/ncp/sessions/session-1/messages")).json()) as {
     data: { status: string };
   };
 
-  expect(sessionsPayload.data.sessions[0]).toMatchObject({ sessionId: "session-1", status: "running" });
-  expect(sessionPayload.data).toMatchObject({ sessionId: "session-1", status: "running" });
+  expect(sessionsPayload.data.sessions[0]).toMatchObject({
+    sessionId: "session-1",
+    status: "running"
+  });
+  expect(sessionPayload.data).toMatchObject({
+    sessionId: "session-1",
+    status: "running"
+  });
   expect(messagesPayload.data.status).toBe("running");
 });
 
@@ -464,12 +441,12 @@ it("keeps session routes readable through the kernel session api", async () => {
   const app = createUiRouter({
     configPath,
     appEventBus: new EventBus(),
-    kernel: createTestKernel(sessionService),
+    kernel: createTestKernel(sessionService)
   });
 
   const sessionsResponse = await app.request("http://localhost/api/ncp/sessions");
   expect(sessionsResponse.status).toBe(200);
-  const sessionsPayload = await sessionsResponse.json() as {
+  const sessionsPayload = (await sessionsResponse.json()) as {
     ok: boolean;
     data: {
       total: number;
@@ -481,7 +458,7 @@ it("keeps session routes readable through the kernel session api", async () => {
 
   const sessionTypesResponse = await app.request("http://localhost/api/ncp/session-types");
   expect(sessionTypesResponse.status).toBe(200);
-  const sessionTypesPayload = await sessionTypesResponse.json() as {
+  const sessionTypesPayload = (await sessionTypesResponse.json()) as {
     ok: boolean;
     data: {
       defaultType: string;
@@ -493,8 +470,8 @@ it("keeps session routes readable through the kernel session api", async () => {
     defaultType: "native",
     options: [
       { value: "native", label: "Native" },
-      { value: "codex", label: "Codex" },
-    ],
+      { value: "codex", label: "Codex" }
+    ]
   });
   expect(sessionService.sessionTypeListCalls).toEqual([{ describeMode: "observation" }]);
 });
@@ -503,13 +480,18 @@ it("stores uploaded ncp assets and serves their content back", async () => {
   const { app } = createTestApp();
 
   const formData = new FormData();
-  formData.append("files", new File(['{"hello":"world"}'], "config.json", { type: "application/json" }));
+  formData.append(
+    "files",
+    new File(['{"hello":"world"}'], "config.json", {
+      type: "application/json"
+    })
+  );
   const uploadResponse = await app.request("http://localhost/api/ncp/assets", {
     method: "POST",
-    body: formData,
+    body: formData
   });
   expect(uploadResponse.status).toBe(200);
-  const uploadPayload = await uploadResponse.json() as {
+  const uploadPayload = (await uploadResponse.json()) as {
     ok: boolean;
     data: {
       assets: Array<{
@@ -523,9 +505,7 @@ it("stores uploaded ncp assets and serves their content back", async () => {
   expect(uploadPayload.data.assets[0]?.name).toBe("config.json");
   expect(uploadPayload.data.assets[0]?.assetUri).toContain("asset://store/");
 
-  const contentResponse = await app.request(
-    `http://localhost${uploadPayload.data.assets[0]?.url}`,
-  );
+  const contentResponse = await app.request(`http://localhost${uploadPayload.data.assets[0]?.url}`);
   expect(contentResponse.status).toBe(200);
   expect(await contentResponse.text()).toBe('{"hello":"world"}');
 });
@@ -534,12 +514,17 @@ it("serves uploaded ncp assets through node http without duplicate content-lengt
   const { app } = createTestApp();
 
   const formData = new FormData();
-  formData.append("files", new File(['{"hello":"world"}'], "config.json", { type: "application/json" }));
+  formData.append(
+    "files",
+    new File(['{"hello":"world"}'], "config.json", {
+      type: "application/json"
+    })
+  );
   const uploadResponse = await app.request("http://localhost/api/ncp/assets", {
     method: "POST",
-    body: formData,
+    body: formData
   });
-  const uploadPayload = await uploadResponse.json() as {
+  const uploadPayload = (await uploadResponse.json()) as {
     ok: boolean;
     data: {
       assets: Array<{
@@ -572,11 +557,11 @@ it("proxies ncp send, patch, and abort flows", async () => {
       preferredModel: "openai/gpt-5",
       preferredThinking: "medium",
       projectRoot: validProjectRoot,
-      uiReadAt: "2026-03-17T00:00:00.000Z",
+      uiReadAt: "2026-03-17T00:00:00.000Z"
     })
   });
   expect(patchResponse.status).toBe(200);
-  const patchPayload = await patchResponse.json() as {
+  const patchPayload = (await patchResponse.json()) as {
     ok: boolean;
     data: {
       metadata?: Record<string, unknown>;
@@ -587,7 +572,7 @@ it("proxies ncp send, patch, and abort flows", async () => {
     preferred_model: "openai/gpt-5",
     preferred_thinking: "medium",
     project_root: validProjectRoot,
-    ui_last_read_at: "2026-03-17T00:00:00.000Z",
+    ui_last_read_at: "2026-03-17T00:00:00.000Z"
   });
   expect(agent.updateSessionCalls).toEqual([]);
   const sendResponse = await app.request("http://localhost/api/ncp/agent/send", {
@@ -615,8 +600,8 @@ it("proxies ncp send, patch, and abort flows", async () => {
       sessionId: "session-1",
       userMessageId: "user-message-1",
       assistantMessageId: "assistant-message-1",
-      runId: "run-1",
-    },
+      runId: "run-1"
+    }
   });
 
   const abortResponse = await app.request("http://localhost/api/ncp/agent/abort", {
@@ -646,7 +631,7 @@ it("rejects invalid session project roots during patch", async () => {
   });
 
   expect(patchResponse.status).toBe(400);
-  const patchPayload = await patchResponse.json() as {
+  const patchPayload = (await patchResponse.json()) as {
     ok: boolean;
     error: {
       code: string;
@@ -664,7 +649,7 @@ it("clears both canonical and legacy project root metadata keys", async () => {
   const { app, agent } = createTestApp();
   agent.sessionMetadata.set("session-1", {
     project_root: "/tmp/project-alpha",
-    projectRoot: "/tmp/project-alpha",
+    projectRoot: "/tmp/project-alpha"
   });
 
   const patchResponse = await app.request("http://localhost/api/ncp/sessions/session-1", {
@@ -678,7 +663,7 @@ it("clears both canonical and legacy project root metadata keys", async () => {
   });
 
   expect(patchResponse.status).toBe(200);
-  const patchPayload = await patchResponse.json() as {
+  const patchPayload = (await patchResponse.json()) as {
     ok: boolean;
     data: {
       metadata?: Record<string, unknown>;
@@ -698,25 +683,28 @@ it("exposes session-scoped skills for persisted and draft sessions", async () =>
   writeRouterNcpSkill(join(hostWorkspace, "skills", "shared-review"), "Workspace review");
   writeRouterNcpSkill(join(projectRoot, ".agents", "skills", "shared-review"), "Project review");
   writeRouterNcpSkill(join(globalSkillsRoot, "global-review"), "Global review");
-  saveConfig(ConfigSchema.parse({
+  saveConfig(
+    ConfigSchema.parse({
     agents: {
       defaults: {
-        workspace: hostWorkspace,
-      },
-    },
-  }), configPath);
+          workspace: hostWorkspace
+        }
+      }
+    }),
+    configPath
+  );
 
   const agent = new StubNcpAgent();
   agent.sessionMetadata.set("session-1", { project_root: projectRoot });
   const app = createUiRouter({
     configPath,
     appEventBus: new EventBus(),
-    kernel: createTestKernel(agent),
+    kernel: createTestKernel(agent)
   });
 
   const response = await app.request("http://localhost/api/ncp/sessions/session-1/skills");
   expect(response.status).toBe(200);
-  const payload = await response.json() as {
+  const payload = (await response.json()) as {
     ok: boolean;
     data: {
       sessionId: string;
@@ -729,28 +717,28 @@ it("exposes session-scoped skills for persisted and draft sessions", async () =>
   };
   expect(payload.ok).toBe(true);
   expect(payload.data.sessionId).toBe("session-1");
-  expect(payload.data.records).toEqual(expect.arrayContaining([
+  expect(payload.data.records).toEqual(
+    expect.arrayContaining([
     expect.objectContaining({
       name: "shared-review",
       scope: "project",
-      ref: `project:${join(projectRoot, ".agents", "skills", "shared-review")}`,
+        ref: `project:${join(projectRoot, ".agents", "skills", "shared-review")}`
     }),
     expect.objectContaining({
       name: "shared-review",
       scope: "workspace",
-      ref: `workspace:${join(hostWorkspace, "skills", "shared-review")}`,
+        ref: `workspace:${join(hostWorkspace, "skills", "shared-review")}`
     }),
     expect.objectContaining({
       name: "global-review",
-      scope: "global",
-    }),
-  ]));
-
-  const draftResponse = await app.request(
-    `http://localhost/api/ncp/sessions/draft-session/skills?projectRoot=${encodeURIComponent(projectRoot)}`,
+        scope: "global"
+      })
+    ])
   );
+
+  const draftResponse = await app.request(`http://localhost/api/ncp/sessions/draft-session/skills?projectRoot=${encodeURIComponent(projectRoot)}`);
   expect(draftResponse.status).toBe(200);
-  const draftPayload = await draftResponse.json() as {
+  const draftPayload = (await draftResponse.json()) as {
     ok: boolean;
     data: {
       records: Array<{ scope: string }>;
@@ -764,29 +752,34 @@ it("exposes draft session skills without requiring an empty projectRoot override
   useIsolatedHome();
   const configPath = createTempConfigPath();
   const hostWorkspace = createTempDir("nextclaw-ui-host-workspace-");
-  mkdirSync(join(hostWorkspace, "skills", "workspace-only-skill"), { recursive: true });
+  mkdirSync(join(hostWorkspace, "skills", "workspace-only-skill"), {
+    recursive: true
+  });
   writeFileSync(
     join(hostWorkspace, "skills", "workspace-only-skill", "SKILL.md"),
-    ["---", "name: workspace-only-skill", "description: Workspace only", "---"].join("\n"),
+    ["---", "name: workspace-only-skill", "description: Workspace only", "---"].join("\n")
   );
-  saveConfig(ConfigSchema.parse({
+  saveConfig(
+    ConfigSchema.parse({
     agents: {
       defaults: {
-        workspace: hostWorkspace,
-      },
-    },
-  }), configPath);
+          workspace: hostWorkspace
+        }
+      }
+    }),
+    configPath
+  );
 
   const agent = new StubNcpAgent();
   const app = createUiRouter({
     configPath,
     appEventBus: new EventBus(),
-    kernel: createTestKernel(agent),
+    kernel: createTestKernel(agent)
   });
 
   const response = await app.request("http://localhost/api/ncp/sessions/draft-session/skills");
   expect(response.status).toBe(200);
-  const payload = await response.json() as {
+  const payload = (await response.json()) as {
     ok: boolean;
     data: {
       sessionId: string;
@@ -798,12 +791,14 @@ it("exposes draft session skills without requiring an empty projectRoot override
   };
   expect(payload.ok).toBe(true);
   expect(payload.data.sessionId).toBe("draft-session");
-  expect(payload.data.records).toEqual(expect.arrayContaining([
+  expect(payload.data.records).toEqual(
+    expect.arrayContaining([
     expect.objectContaining({
       name: "workspace-only-skill",
-      scope: "workspace",
-    }),
-  ]));
+        scope: "workspace"
+      })
+    ])
+  );
 });
 
 it("exposes skills installed in the NEXTCLAW_HOME default workspace", async () => {
@@ -811,22 +806,19 @@ it("exposes skills installed in the NEXTCLAW_HOME default workspace", async () =
   const configPath = createTempConfigPath();
   const skillsRoot = getSkillsPath(getWorkspacePath());
   mkdirSync(join(skillsRoot, "portable-skill"), { recursive: true });
-  writeFileSync(
-    join(skillsRoot, "portable-skill", "SKILL.md"),
-    ["---", "name: portable-skill", "description: Portable workspace", "---"].join("\n"),
-  );
+  writeFileSync(join(skillsRoot, "portable-skill", "SKILL.md"), ["---", "name: portable-skill", "description: Portable workspace", "---"].join("\n"));
   saveConfig(ConfigSchema.parse({}), configPath);
 
   const agent = new StubNcpAgent();
   const app = createUiRouter({
     configPath,
     appEventBus: new EventBus(),
-    kernel: createTestKernel(agent),
+    kernel: createTestKernel(agent)
   });
 
   const response = await app.request("http://localhost/api/ncp/sessions/draft-session/skills");
   expect(response.status).toBe(200);
-  const payload = await response.json() as {
+  const payload = (await response.json()) as {
     ok: boolean;
     data: {
       records: Array<{
@@ -837,13 +829,15 @@ it("exposes skills installed in the NEXTCLAW_HOME default workspace", async () =
     };
   };
   expect(payload.ok).toBe(true);
-  expect(payload.data.records).toEqual(expect.arrayContaining([
+  expect(payload.data.records).toEqual(
+    expect.arrayContaining([
     expect.objectContaining({
       name: "portable-skill",
       scope: "workspace",
-      ref: `workspace:${join(skillsRoot, "portable-skill")}`,
-    }),
-  ]));
+        ref: `workspace:${join(skillsRoot, "portable-skill")}`
+      })
+    ])
+  );
 });
 
 it("creates a lightweight session when patching a draft session", async () => {
@@ -862,7 +856,7 @@ it("creates a lightweight session when patching a draft session", async () => {
   });
 
   expect(patchResponse.status).toBe(200);
-  const patchPayload = await patchResponse.json() as {
+  const patchPayload = (await patchResponse.json()) as {
     ok: boolean;
     data: {
       sessionId: string;
@@ -876,8 +870,8 @@ it("creates a lightweight session when patching a draft session", async () => {
     messageCount: 0,
     metadata: {
       project_root: validProjectRoot,
-      session_type: "codex",
-    },
+      session_type: "codex"
+    }
   });
 });
 
@@ -886,12 +880,10 @@ it("serves legacy octet-stream audio assets with an inferred media content-type"
   const record = await agent.assetApi.put({
     fileName: "chill_beats.mp3",
     mimeType: "application/octet-stream",
-    bytes: new Uint8Array(Buffer.from("fake-mp3", "utf8")),
+    bytes: new Uint8Array(Buffer.from("fake-mp3", "utf8"))
   });
 
-  const response = await app.request(
-    `http://localhost/api/ncp/assets/content?uri=${encodeURIComponent(record.uri)}`,
-  );
+  const response = await app.request(`http://localhost/api/ncp/assets/content?uri=${encodeURIComponent(record.uri)}`);
 
   expect(response.status).toBe(200);
   expect(response.headers.get("content-type")).toContain("audio/mpeg");

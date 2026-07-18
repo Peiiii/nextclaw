@@ -63,12 +63,29 @@ describe("panel app inline host bridge", () => {
     );
 
     body.scrollHeight = 560;
+    body.clientHeight = 560;
+    body.offsetHeight = 560;
+    documentElement.offsetHeight = 560;
     notifyResize();
 
     expect(postMessage).toHaveBeenLastCalledWith(
       {
         type: PANEL_APP_INLINE_HOST_CONTRACT.contentHeightMessageType,
         height: 560,
+      },
+      "*",
+    );
+
+    body.clientHeight = 240;
+    body.offsetHeight = 240;
+    body.scrollHeight = 240;
+    documentElement.offsetHeight = 240;
+    notifyResize();
+
+    expect(postMessage).toHaveBeenLastCalledWith(
+      {
+        type: PANEL_APP_INLINE_HOST_CONTRACT.contentHeightMessageType,
+        height: 240,
       },
       "*",
     );

@@ -17,6 +17,7 @@ export type {
   NextClawAgentRunStreamOptions,
   NextClawAgentRunStreamSubscription
 } from "./services/agent-runs.service.js";
+export type { ListSessionMessagesParams } from "./services/sessions.service.js";
 export type {
   NextClawClientOptions,
   NextClawRealtimeHandler,

@@ -8,9 +8,7 @@ import type {
 } from "@nextclaw/ncp";
 import {
   ABORTED_TOOL_CALL_SENTINEL,
-  clearToolCallTrackingByMessageId,
   findToolNameByCallId,
-  remapTrackedToolCallsToMessageId,
   upsertToolInvocationPart,
 } from "./agent-conversation-state-manager.utils.js";
 
@@ -69,11 +67,13 @@ export class AgentConversationToolCallManager {
   };
 
   clearByMessageId = (messageId: string): void => {
-    clearToolCallTrackingByMessageId(
-      this.messageIdByCallId,
-      this.argsRawByCallId,
-      messageId,
-    );
+    for (const [toolCallId, trackedMessageId] of this.messageIdByCallId) {
+      if (trackedMessageId !== messageId) {
+        continue;
+      }
+      this.messageIdByCallId.delete(toolCallId);
+      this.argsRawByCallId.delete(toolCallId);
+    }
   };
 
   markAborted = (toolCallIds: readonly string[]): void => {
@@ -81,11 +81,11 @@ export class AgentConversationToolCallManager {
   };
 
   remapMessageId = (fromMessageId: string, toMessageId: string): void => {
-    remapTrackedToolCallsToMessageId(
-      this.messageIdByCallId,
-      fromMessageId,
-      toMessageId,
-    );
+    for (const [toolCallId, trackedMessageId] of this.messageIdByCallId) {
+      if (trackedMessageId === fromMessageId) {
+        this.messageIdByCallId.set(toolCallId, toMessageId);
+      }
+    }
   };
 
   handleToolCallStart = (payload: NcpToolCallStartPayload): void => {

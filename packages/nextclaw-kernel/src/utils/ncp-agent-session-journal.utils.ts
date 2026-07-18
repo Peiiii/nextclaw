@@ -1,14 +1,9 @@
 import {
   type AgentSessionEventRecord,
   type AgentSessionRecord,
-  DefaultNcpAgentConversationStateManager,
+  DefaultNcpAgentConversationStateManager
 } from "@nextclaw/ncp-toolkit";
-import {
-  type NcpEndpointEvent,
-  NcpEventType,
-  type NcpMessage,
-  type NcpSessionSummary,
-} from "@nextclaw/ncp";
+import { type NcpEndpointEvent, NcpEventType, type NcpMessage, type NcpSessionSummary } from "@nextclaw/ncp";
 import { AGENT_RUN_PEER_ID_METADATA_KEY } from "./agent-peer-session.utils.js";
 
 export const NCP_AGENT_SESSION_JOURNAL_ENTRY_VERSION = 1;
@@ -74,6 +69,7 @@ export type NcpAgentSessionJournalIndex = {
 export type LoadedNcpAgentJournalSession = {
   record: AgentSessionRecord;
   nextSeq: number;
+  projectedJournalOffset: number;
 };
 
 export function normalizeNcpSessionId(sessionId: string): string {
@@ -106,7 +102,8 @@ export function createNcpAgentSessionSummary(record: AgentSessionRecord): NcpSes
   }
   const lastMessageAt = record.messages.reduceRight<string | undefined>(
     (timestamp, message) => timestamp ?? readMessageTimestamp(message),
-    undefined);
+    undefined
+  );
   return {
     sessionId: record.sessionId,
     peerId: peerId ?? undefined,
@@ -116,7 +113,7 @@ export function createNcpAgentSessionSummary(record: AgentSessionRecord): NcpSes
     updatedAt: record.updatedAt,
     ...(lastMessageAt ? { lastMessageAt } : {}),
     status: "idle",
-    ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
+    ...(Object.keys(metadata).length > 0 ? { metadata } : {})
   };
 }
 
@@ -125,14 +122,14 @@ export function readNcpAgentSessionPeerId(metadata: Record<string, unknown>): st
 }
 
 export function createNcpAgentSessionJournalMetadataEntry(
-  record: AgentSessionEventRecord,
+  record: AgentSessionEventRecord
 ): NcpAgentSessionJournalMetadataEntry {
   return {
     _type: "metadata",
     version: NCP_AGENT_SESSION_JOURNAL_ENTRY_VERSION,
     created_at: record.createdAt ?? record.updatedAt,
     ...(normalizeNcpAgentId(record.agentId) ? { agent_id: normalizeNcpAgentId(record.agentId) } : {}),
-    metadata: structuredClone(record.metadata ?? {}),
+    metadata: structuredClone(record.metadata ?? {})
   };
 }
 
@@ -144,11 +141,7 @@ export function upsertNcpAgentSessionSummaryEvent(params: {
 }): NcpSessionSummary {
   const { current, event, sessionId, updatedAt } = params;
   const eventMessage = readMessageFromSummaryEvent(event);
-  const messageCount = current
-    ? current.messageCount + (eventMessage ? 1 : 0)
-    : eventMessage
-      ? 1
-      : 0;
+  const messageCount = current ? current.messageCount + (eventMessage ? 1 : 0) : eventMessage ? 1 : 0;
   const lastMessageAt = readMessageTimestamp(eventMessage) ?? current?.lastMessageAt;
   return {
     sessionId,
@@ -158,26 +151,37 @@ export function upsertNcpAgentSessionSummaryEvent(params: {
     createdAt: current?.createdAt ?? updatedAt,
     updatedAt,
     ...(lastMessageAt ? { lastMessageAt } : {}),
-    status: "idle",
+    status: "idle"
   };
 }
 
 export async function replayNcpAgentSessionEvents(
   events: readonly NcpAgentSessionJournalReplayEvent[],
+  seedMessages: readonly NcpMessage[] = []
 ): Promise<NcpMessage[]> {
   const stateManager = new DefaultNcpAgentConversationStateManager();
-  const knownMessageIds = new Set<string>();
+  if (seedMessages.length > 0) {
+    stateManager.hydrate({
+      sessionId: seedMessages[0]?.sessionId ?? "",
+      messages: seedMessages
+    });
+  }
+  const knownMessageIds = new Set(seedMessages.map((message) => message.id));
   const toolResultsByCallId = new Map<string, NcpToolCallResultReplayPayload>();
   for (const event of events) {
     if (isJournalOnlyEvent(event)) {
       continue;
     }
     const replayEvent = createReplayEvent(event, toolResultsByCallId);
-    const bootstrapEvent = createReplayStreamingBootstrapEvent(replayEvent, knownMessageIds);
-    if (bootstrapEvent) {
-      await stateManager.dispatch(bootstrapEvent);
+    const bootstrap = createReplayStreamingBootstrapEvent(replayEvent, knownMessageIds);
+    if (bootstrap) {
+      knownMessageIds.add(bootstrap.messageId);
+      await stateManager.dispatch(bootstrap.event);
     }
-    rememberReplayMessageId(replayEvent, knownMessageIds);
+    const replayMessageId = readReplayMessageId(replayEvent);
+    if (replayMessageId) {
+      knownMessageIds.add(replayMessageId);
+    }
     await stateManager.dispatch(replayEvent);
     if (replayEvent.type === NcpEventType.MessageToolCallResult) {
       toolResultsByCallId.set(replayEvent.payload.toolCallId, replayEvent.payload);
@@ -186,13 +190,13 @@ export async function replayNcpAgentSessionEvents(
   const snapshot = stateManager.getSnapshot();
   return [
     ...snapshot.messages.map((message) => structuredClone(message)),
-    ...(snapshot.streamingMessage ? [structuredClone(snapshot.streamingMessage)] : []),
+    ...(snapshot.streamingMessage ? [structuredClone(snapshot.streamingMessage)] : [])
   ];
 }
 
 function createReplayEvent(
   event: NcpAgentSessionReplayableEvent,
-  toolResultsByCallId: ReadonlyMap<string, NcpToolCallResultReplayPayload>,
+  toolResultsByCallId: ReadonlyMap<string, NcpToolCallResultReplayPayload>
 ): NcpEndpointEvent {
   const replayEvent = structuredClone(event);
   const occurredAt = readReplayEventOccurredAt(replayEvent);
@@ -211,14 +215,11 @@ function createReplayEvent(
     replayEvent.type === NCP_AGENT_SESSION_SNAPSHOT_MESSAGE_EVENT_TYPE ||
     replayEvent.type === NcpEventType.MessageCompleted
   ) {
-    replayEvent.payload.message = mergeReplayCompletedToolResults(
-      replayEvent.payload.message,
-      toolResultsByCallId,
-    );
+    replayEvent.payload.message = mergeReplayCompletedToolResults(replayEvent.payload.message, toolResultsByCallId);
     return {
       occurredAt,
       type: NcpEventType.MessageSent,
-      payload: replayEvent.payload,
+      payload: replayEvent.payload
     };
   }
   return replayEvent;
@@ -233,7 +234,7 @@ function readReplayEventOccurredAt(event: NcpAgentSessionReplayableEvent): strin
 
 function mergeReplayCompletedToolResults(
   message: NcpMessage,
-  toolResultsByCallId: ReadonlyMap<string, NcpToolCallResultReplayPayload>,
+  toolResultsByCallId: ReadonlyMap<string, NcpToolCallResultReplayPayload>
 ): NcpMessage {
   let changed = false;
   const parts = message.parts.map((part) => {
@@ -249,7 +250,7 @@ function mergeReplayCompletedToolResults(
       ...part,
       state: "result" as const,
       result: result.content,
-      resultContentItems: result.contentItems,
+      resultContentItems: result.contentItems
     };
   });
   return changed ? { ...message, parts } : message;
@@ -265,14 +266,15 @@ function readLegacyContextCompactionMessageId(message: NcpMessage | undefined): 
 
 function createReplayStreamingBootstrapEvent(
   event: NcpEndpointEvent,
-  knownMessageIds: Set<string>,
-): NcpEndpointEvent | null {
+  knownMessageIds: Set<string>
+): { event: NcpEndpointEvent; messageId: string } | null {
   const messageId = readStreamingMessageId(event);
   if (!messageId || knownMessageIds.has(messageId)) {
     return null;
   }
-  knownMessageIds.add(messageId);
   return {
+    messageId,
+    event: {
     occurredAt: event.occurredAt,
     type: NcpEventType.MessageSent,
     payload: {
@@ -283,32 +285,26 @@ function createReplayStreamingBootstrapEvent(
         role: "assistant",
         status: "streaming",
         parts: [],
-        timestamp: readReplayPayloadTimestamp(event) ?? new Date().toISOString(),
-      },
-    },
+          timestamp: readReplayPayloadTimestamp(event) ?? new Date().toISOString()
+        }
+      }
+    }
   };
 }
 
-function rememberReplayMessageId(
-  event: NcpEndpointEvent,
-  knownMessageIds: Set<string>,
-): void {
+function readReplayMessageId(event: NcpEndpointEvent): string | null {
   const message = readMessageFromSummaryEvent(event);
-  if (message?.id) {
-    knownMessageIds.add(message.id);
-  }
+  return message?.id ?? null;
 }
 
 function readEventSessionId(event: NcpEndpointEvent): string {
-  const payload: Record<string, unknown> | null =
-    "payload" in event && isRecord(event.payload) ? event.payload : null;
+  const payload: Record<string, unknown> | null = "payload" in event && isRecord(event.payload) ? event.payload : null;
   const sessionId = payload?.sessionId;
   return typeof sessionId === "string" ? sessionId : "";
 }
 
 function readReplayPayloadTimestamp(event: NcpEndpointEvent): string | null {
-  const payload: Record<string, unknown> | null =
-    "payload" in event && isRecord(event.payload) ? event.payload : null;
+  const payload: Record<string, unknown> | null = "payload" in event && isRecord(event.payload) ? event.payload : null;
   const timestamp = typeof payload?.timestamp === "string" ? payload.timestamp : "";
   return Number.isFinite(Date.parse(timestamp)) ? new Date(timestamp).toISOString() : null;
 }

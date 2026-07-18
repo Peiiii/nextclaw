@@ -90,7 +90,7 @@ it("renders panel apps through the shared adaptive inline surface", () => {
   expect(surface?.classList.contains("border")).toBe(false);
   expect(screen.queryByText("Weather")).toBeNull();
   expect(viewport?.classList.contains("h-[240px]")).toBe(true);
-  expect(viewport?.classList.contains("max-h-[min(80vh,720px)]")).toBe(true);
+  expect(viewport?.classList.contains("max-h-[min(90vh,1440px)]")).toBe(true);
   expect(actions?.classList.contains("opacity-0")).toBe(true);
   expect(actions?.classList.contains("pointer-events-none")).toBe(true);
   expect(
