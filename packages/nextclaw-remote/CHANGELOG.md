@@ -1,5 +1,20 @@
 # @nextclaw/remote
 
+## 0.3.11
+
+### Patch Changes
+
+- 03bbe45: Fix remote panel apps failing to load their data or actions when opened through a remote-access URL.
+- Updated dependencies [61f6bd1]
+- Updated dependencies [97bca64]
+- Updated dependencies [dad7880]
+- Updated dependencies [c727720]
+- Updated dependencies [f68d2df]
+- Updated dependencies [ddc3213]
+  - @nextclaw/kernel@0.6.11
+  - @nextclaw/server@0.15.11
+  - @nextclaw/core@0.15.9
+
 ## 0.3.10
 
 ### Patch Changes

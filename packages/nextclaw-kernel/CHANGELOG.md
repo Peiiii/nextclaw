@@ -1,5 +1,34 @@
 # @nextclaw/kernel
 
+## 0.6.11
+
+### Patch Changes
+
+- 61f6bd1: 长会话现在会按需加载较早消息，并使用动态高度虚拟列表保持流畅滚动。HTML、Panel App 与折叠内容展开或收起时会自动校准高度，向上翻页时继续保持当前阅读位置。
+- 97bca64: Add a built-in Agent Browser workflow and guide agents to use it as a distinct browser path when configured web search is unavailable.
+- dad7880: Show the official OpenCode runtime icon and align Native runtime fallback styling across session selectors.
+- c727720: 内联 Panel App 现在与 HTML 预览使用同一套简约表面：移除常驻标题、边框与阴影，操作仅在悬浮或键盘聚焦时出现，并根据内容高度自适应展示；可见区域最多占视口高度的 90%，硬上限提高到 1440px。
+- ddc3213: 为每条 AI 回复记录实际运行模型与 token 用量，在消息底部使用统一的 `k`、`m`、`b` 单位展示输入和输出统计，并可通过更多操作查看缓存、总量、调用次数和完整运行元数据。
+- Updated dependencies [61f6bd1]
+- Updated dependencies [97bca64]
+- Updated dependencies [c727720]
+- Updated dependencies
+- Updated dependencies [1f99bb8]
+- Updated dependencies [ddc3213]
+  - @nextclaw/ncp@0.7.7
+  - @nextclaw/ncp-toolkit@0.6.8
+  - @nextclaw/shared@0.4.8
+  - @nextclaw/core@0.15.9
+  - @nextclaw/channel-extension-feishu@0.2.9
+  - @nextclaw/channel-extension-weixin@0.2.9
+  - @nextclaw/mcp@0.3.9
+  - @nextclaw/ncp-agent-runtime@0.4.7
+  - @nextclaw/ncp-mcp@0.2.9
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.7
+  - @nextclaw/runtime@0.4.9
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.10
+  - @nextclaw/ncp-agent-runtime-next@0.1.7
+
 ## 0.6.10
 
 ### Patch Changes

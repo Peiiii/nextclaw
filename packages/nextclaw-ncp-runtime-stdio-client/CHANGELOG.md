@@ -1,5 +1,18 @@
 # @nextclaw/nextclaw-ncp-runtime-stdio-client
 
+## 0.3.10
+
+### Patch Changes
+
+- 1f99bb8: 让 Claude Code 等 stdio agent 在上游响应缓慢或不可用时也能快速终止当前回复，并在终止后继续使用同一会话。
+- Updated dependencies [61f6bd1]
+- Updated dependencies [97bca64]
+- Updated dependencies [c727720]
+- Updated dependencies [ddc3213]
+  - @nextclaw/ncp@0.7.7
+  - @nextclaw/ncp-toolkit@0.6.8
+  - @nextclaw/core@0.15.9
+
 ## 0.3.9
 
 ### Patch Changes

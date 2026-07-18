@@ -1,5 +1,19 @@
 # @nextclaw/client-sdk
 
+## 0.5.11
+
+### Patch Changes
+
+- 61f6bd1: 长会话现在会按需加载较早消息，并使用动态高度虚拟列表保持流畅滚动。HTML、Panel App 与折叠内容展开或收起时会自动校准高度，向上翻页时继续保持当前阅读位置。
+- f68d2df: 定时任务页面现在提供自然语言会话入口、任务模板、运行概况、服务端搜索筛选分页和按需详情；创建请求会带入新的 AI 会话继续确认，任务列表也能区分绑定会话与独立会话。
+- Updated dependencies [61f6bd1]
+- Updated dependencies [c727720]
+- Updated dependencies [f68d2df]
+- Updated dependencies [ddc3213]
+  - @nextclaw/ncp@0.7.7
+  - @nextclaw/server@0.15.11
+  - @nextclaw/shared@0.4.8
+
 ## 0.5.10
 
 ### Patch Changes

@@ -1,5 +1,39 @@
 # nextclaw
 
+## 0.26.0
+
+### Minor Changes
+
+- NextClaw 0.26 改进长会话浏览、定时任务工作台、AI 回复运行信息、移动端新任务入口和内联结果展示，并加入内置 Agent Browser；应用每次启动时也会立即检查可用更新。
+
+### Patch Changes
+
+- 914288e: 修复重启后可能因最近一次检查记录而跳过更新检查的问题。NextClaw 现在会在每次启动时立即检查一次，运行期间继续每两小时检查；检查只更新可用版本状态，不会自动下载或应用更新。
+- Updated dependencies [61f6bd1]
+- Updated dependencies [97bca64]
+- Updated dependencies [dad7880]
+- Updated dependencies [c727720]
+- Updated dependencies
+- Updated dependencies [914288e]
+- Updated dependencies [f68d2df]
+- Updated dependencies [1f99bb8]
+- Updated dependencies [ddc3213]
+- Updated dependencies [03bbe45]
+  - @nextclaw/ncp@0.7.7
+  - @nextclaw/ncp-toolkit@0.6.8
+  - @nextclaw/kernel@0.6.11
+  - @nextclaw/server@0.15.11
+  - @nextclaw/core@0.15.9
+  - @nextclaw/mcp@0.3.9
+  - @nextclaw/ncp-agent-runtime@0.4.7
+  - @nextclaw/ncp-mcp@0.2.9
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.7
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.7
+  - @nextclaw/runtime@0.4.9
+  - @nextclaw/service@0.3.11
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.10
+  - @nextclaw/remote@0.3.11
+
 ## 0.25.3
 
 ### Patch Changes

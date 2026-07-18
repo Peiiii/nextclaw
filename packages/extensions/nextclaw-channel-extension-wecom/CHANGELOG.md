@@ -1,5 +1,53 @@
 # @nextclaw/channel-extension-wecom
 
+## 0.2.9
+
+### Patch Changes
+
+- Auto-generated full public release batch.
+
+  Packages:
+  - @nextclaw/agent-chat
+  - @nextclaw/aigen
+  - @nextclaw/app-runtime
+  - @nextclaw/app-sdk
+  - @nextclaw/browser-connector
+  - @nextclaw/channel-extension-dingtalk
+  - @nextclaw/channel-extension-discord
+  - @nextclaw/channel-extension-email
+  - @nextclaw/channel-extension-feishu
+  - @nextclaw/channel-extension-qq
+  - @nextclaw/channel-extension-slack
+  - @nextclaw/channel-extension-telegram
+  - @nextclaw/channel-extension-wecom
+  - @nextclaw/channel-extension-weixin
+  - @nextclaw/channel-extension-whatsapp
+  - @nextclaw/companion
+  - @nextclaw/extension-sdk
+  - @nextclaw/feishu-core
+  - @nextclaw/mcp
+  - @nextclaw/ncp-agent-runtime
+  - @nextclaw/ncp-http-agent-client
+  - @nextclaw/ncp-http-agent-server
+  - @nextclaw/ncp-mcp
+  - @nextclaw/ncp-react-ui
+  - @nextclaw/nextclaw-hermes-acp-bridge
+  - @nextclaw/nextclaw-narp-runtime-claude-code-sdk
+  - @nextclaw/nextclaw-narp-runtime-codex-sdk
+  - @nextclaw/nextclaw-narp-runtime-opencode
+  - @nextclaw/nextclaw-narp-stdio-runtime-wrapper
+  - @nextclaw/nextclaw-ncp-runtime-adapter-hermes-http
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk
+  - @nextclaw/nextclaw-ncp-runtime-codex-sdk
+  - @nextclaw/nextclaw-ncp-runtime-http-client
+  - @nextclaw/runtime
+
+- Updated dependencies [97bca64]
+- Updated dependencies [c727720]
+- Updated dependencies
+  - @nextclaw/core@0.15.9
+  - @nextclaw/extension-sdk@0.3.8
+
 ## 0.2.8
 
 ### Patch Changes

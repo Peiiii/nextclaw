@@ -1,5 +1,39 @@
 # @nextclaw/ui
 
+## 0.15.11
+
+### Patch Changes
+
+- 61f6bd1: 长会话现在会按需加载较早消息，并使用动态高度虚拟列表保持流畅滚动。HTML、Panel App 与折叠内容展开或收起时会自动校准高度，向上翻页时继续保持当前阅读位置。
+- dad7880: Show the official OpenCode runtime icon and align Native runtime fallback styling across session selectors.
+- c727720: 内联 Panel App 现在与 HTML 预览使用同一套简约表面：移除常驻标题、边框与阴影，操作仅在悬浮或键盘聚焦时出现，并根据内容高度自适应展示；可见区域最多占视口高度的 90%，硬上限提高到 1440px。
+- be2a018: Keep chat model search and other shared chat fields visually unchanged when focused.
+- 25515df: 会话工作台固定展示“子会话”“定时任务”“项目文件”三个导航标签页，不再提供关闭入口，并统一使用简洁名称。
+- f68d2df: 定时任务页面现在提供自然语言会话入口、任务模板、运行概况、服务端搜索筛选分页和按需详情；创建请求会带入新的 AI 会话继续确认，任务列表也能区分绑定会话与独立会话。
+- 7f128da: 移动端打开具体会话后，现在可以直接从顶部新建任务，无需先返回会话列表；新任务会沿用已选择的会话类型。
+- c985dfd: 移动端新任务菜单现在会完整显示每种会话类型，不再重复显示已选类型或遗漏 Native。
+- 70080bf: Keep model option panels open when users click an already-focused model input.
+- 165f1cb: 修复包含内联 HTML 的混合回复在完成后只剩 HTML 预览的问题；正文、图片、Panel App、Mermaid 与表格现在都会按原始消息继续显示。
+- ddc3213: 为每条 AI 回复记录实际运行模型与 token 用量，在消息底部使用统一的 `k`、`m`、`b` 单位展示输入和输出统计，并可通过更多操作查看缓存、总量、调用次数和完整运行元数据。
+- 79dd1ed: Show each chat session's Agent runtime identity in assistant message avatars, align sidebar runtime icons with session titles, and refine runtime selector icon and tooltip behavior.
+- 3c9615e: Make settings more compact and consistent with one shared page canvas, low-border groups, adaptive list-detail layouts, clearer advanced-navigation ordering and sign-in management wording, preferences consolidated under Appearance, reusable navigation links, and complete Chinese labels.
+- Updated dependencies [61f6bd1]
+- Updated dependencies [c727720]
+- Updated dependencies
+- Updated dependencies [be2a018]
+- Updated dependencies [f68d2df]
+- Updated dependencies [165f1cb]
+- Updated dependencies [ddc3213]
+- Updated dependencies [79dd1ed]
+  - @nextclaw/ncp@0.7.7
+  - @nextclaw/ncp-toolkit@0.6.8
+  - @nextclaw/ncp-react@0.5.9
+  - @nextclaw/client-sdk@0.5.11
+  - @nextclaw/shared@0.4.8
+  - @nextclaw/agent-chat@0.3.5
+  - @nextclaw/ncp-http-agent-client@0.4.7
+  - @nextclaw/agent-chat-ui@0.6.11
+
 ## 0.15.10
 
 ### Patch Changes

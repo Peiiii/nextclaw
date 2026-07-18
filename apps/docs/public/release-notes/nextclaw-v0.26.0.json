@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.26.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-07-18",
+  "title": {
+    "zh-CN": "NextClaw v0.26.0",
+    "en-US": "NextClaw v0.26.0"
+  },
+  "summary": {
+    "zh-CN": "本版本改进长会话、定时任务、运行信息、移动端操作和内联结果，并新增内置 Agent Browser。",
+    "en-US": "This release improves long conversations, scheduled tasks, runtime details, mobile actions, and inline results, and adds a built-in Agent Browser."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-18-nextclaw-v0-26-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-18-nextclaw-v0-26-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "新增能力",
+        "en-US": "Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "定时任务工作台",
+            "en-US": "Scheduled task workbench"
+          },
+          "body": {
+            "zh-CN": "自然语言入口、常用模板、搜索筛选和分页让创建、查找和管理定时任务更直接。",
+            "en-US": "A natural-language entry point, reusable templates, search, filters, and pagination make scheduled tasks easier to create, find, and manage."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "内置 Agent Browser",
+            "en-US": "Built-in Agent Browser"
+          },
+          "body": {
+            "zh-CN": "当已配置的搜索服务不可用时，Agent 仍可以通过浏览器工作流访问网页并检索资料。",
+            "en-US": "Agents can still visit pages and research information through a browser workflow when a configured search service is unavailable."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "AI 回复运行信息",
+            "en-US": "AI response runtime details"
+          },
+          "body": {
+            "zh-CN": "每条 AI 回复可以显示实际使用的运行时、模型和 token 用量。",
+            "en-US": "Each AI response can show the runtime, model, and token usage actually used for that run."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "体验增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "长会话浏览更顺畅",
+            "en-US": "Smoother long-conversation navigation"
+          },
+          "body": {
+            "zh-CN": "动态高度虚拟时间线按需加载更早消息，并在内容高度变化时保持阅读位置。",
+            "en-US": "A dynamic-height virtual timeline loads earlier messages on demand and preserves reading position as content resizes."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "运行时身份和移动端入口更清楚",
+            "en-US": "Clearer runtime identity and mobile entry points"
+          },
+          "body": {
+            "zh-CN": "运行时身份在头像、侧栏和选择器中保持一致，移动端可以从聊天标题栏直接创建新任务。",
+            "en-US": "Runtime identity stays consistent across avatars, the sidebar, and selectors, while mobile users can create a task directly from the chat header."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "内联结果和工作区界面更稳定",
+            "en-US": "More stable inline results and workspace UI"
+          },
+          "body": {
+            "zh-CN": "HTML、Panel App、Mermaid 和表格在流式完成后保持稳定，导航与设置界面也更清楚。",
+            "en-US": "HTML, Panel App, Mermaid, and table output stays stable after streaming, with clearer workspace navigation and Settings."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "启动后立即检查更新",
+            "en-US": "Immediate update check after startup"
+          },
+          "body": {
+            "zh-CN": "历史检查记录不再导致启动检查被跳过；运行期间仍按每两小时检查。",
+            "en-US": "Previous check timestamps no longer skip the startup check; polling continues every two hours while running."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "混合回复内容保持完整",
+            "en-US": "Mixed response content stays intact"
+          },
+          "body": {
+            "zh-CN": "正文、图片和内联结果在回复完成后不再偶尔丢失，输入焦点和任务中止响应也更可靠。",
+            "en-US": "Text, images, and inline results no longer occasionally disappear after completion, with more reliable focus and prompt cancellation behavior."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "远程 Panel App 通信恢复",
+            "en-US": "Remote Panel App communication restored"
+          },
+          "body": {
+            "zh-CN": "远程访问的 Panel App 桥接请求现在会携带必要头信息。",
+            "en-US": "Panel App bridge requests over remote access now include the required headers."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需迁移",
+            "en-US": "No migration required"
+          },
+          "body": {
+            "zh-CN": "现有 NPM 安装可以直接通过 stable 通道升级，不需要迁移配置。",
+            "en-US": "Existing npm installations can update directly through the stable channel without configuration migration."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "检查更新不会自动应用",
+            "en-US": "Update checks do not apply updates automatically"
+          },
+          "body": {
+            "zh-CN": "启动检查和每两小时检查只发现新版本，不会自动下载或应用更新。",
+            "en-US": "Startup and two-hour checks only discover new versions; they do not download or apply updates automatically."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "桌面安装包稍后发布",
+            "en-US": "Desktop installer follows later"
+          },
+          "body": {
+            "zh-CN": "本次 minor 面向 NPM stable 更新链路，不包含新的桌面安装包。",
+            "en-US": "This minor release targets the npm stable update path and does not include a new desktop installer."
+          }
+        }
+      ]
+    }
+  ]
+}

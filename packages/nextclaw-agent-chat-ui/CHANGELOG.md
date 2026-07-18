@@ -1,5 +1,14 @@
 # @nextclaw/agent-chat-ui
 
+## 0.6.11
+
+### Patch Changes
+
+- be2a018: Keep chat model search and other shared chat fields visually unchanged when focused.
+- 165f1cb: 修复包含内联 HTML 的混合回复在完成后只剩 HTML 预览的问题；正文、图片、Panel App、Mermaid 与表格现在都会按原始消息继续显示。
+- ddc3213: 为每条 AI 回复记录实际运行模型与 token 用量，在消息底部使用统一的 `k`、`m`、`b` 单位展示输入和输出统计，并可通过更多操作查看缓存、总量、调用次数和完整运行元数据。
+- 79dd1ed: Show each chat session's Agent runtime identity in assistant message avatars, align sidebar runtime icons with session titles, and refine runtime selector icon and tooltip behavior.
+
 ## 0.6.10
 
 ### Patch Changes

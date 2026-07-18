@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-07-18T15:40:12.589Z",
+  "generatedAt": "2026-07-18T15:55:38.883Z",
   "hero": {
     "currentLoc": 207320,
     "testLoc": 72158,
     "trackedFiles": 2233,
-    "recentCommitCount": 311,
+    "recentCommitCount": 313,
     "activeDays30": 30,
     "recentReleaseCount": 45,
     "latestReleaseDate": "2026-07-17",
-    "latestNoteDate": "2026-07-17",
+    "latestNoteDate": "2026-07-18",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2169365,
     "basePercentOfBenchmark": 9.56,
@@ -1113,7 +1113,7 @@ export default {
       {
         "key": "2026-07-18",
         "label": "07-18",
-        "value": 57
+        "value": 59
       }
     ],
     "commitWeekly": [
@@ -1175,7 +1175,7 @@ export default {
       {
         "key": "2026-07-13",
         "label": "07-13",
-        "value": 182
+        "value": 184
       }
     ],
     "releaseMonthly": [
@@ -1365,6 +1365,25 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-07-18-nextclaw-v0-26-0",
+        "date": "2026-07-18",
+        "tags": [
+          "release",
+          "npm",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-07-18 · NextClaw v0.26.0",
+          "description": "NextClaw v0.26.0 improves long conversations, scheduled tasks, runtime details, mobile actions, and adds a built-in Agent Browser.",
+          "href": "/en/notes/2026-07-18-nextclaw-v0-26-0"
+        },
+        "zh": {
+          "title": "2026-07-18 · NextClaw v0.26.0",
+          "description": "NextClaw v0.26.0 让长会话、定时任务、运行信息和移动端操作更顺畅，并新增内置 Agent Browser。",
+          "href": "/zh/notes/2026-07-18-nextclaw-v0-26-0"
+        }
+      },
       {
         "slug": "2026-07-17-nextclaw-v0-25-3",
         "date": "2026-07-17",
@@ -1755,7 +1774,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-07-18T05:04:38.036Z",
     "sourceCount": {
-      "notes": 16,
+      "notes": 17,
       "scopes": 8
     }
   }

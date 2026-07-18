@@ -1,5 +1,16 @@
 # @nextclaw/ncp-agent-runtime-next
 
+## 0.1.7
+
+### Patch Changes
+
+- ddc3213: 为每条 AI 回复记录实际运行模型与 token 用量，在消息底部使用统一的 `k`、`m`、`b` 单位展示输入和输出统计，并可通过更多操作查看缓存、总量、调用次数和完整运行元数据。
+- Updated dependencies [61f6bd1]
+- Updated dependencies
+- Updated dependencies [ddc3213]
+  - @nextclaw/ncp@0.7.7
+  - @nextclaw/ncp-agent-runtime@0.4.7
+
 ## 0.1.6
 
 ### Patch Changes

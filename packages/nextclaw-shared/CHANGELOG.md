@@ -1,5 +1,15 @@
 # @nextclaw/shared
 
+## 0.4.8
+
+### Patch Changes
+
+- 61f6bd1: 长会话现在会按需加载较早消息，并使用动态高度虚拟列表保持流畅滚动。HTML、Panel App 与折叠内容展开或收起时会自动校准高度，向上翻页时继续保持当前阅读位置。
+- c727720: 内联 Panel App 现在与 HTML 预览使用同一套简约表面：移除常驻标题、边框与阴影，操作仅在悬浮或键盘聚焦时出现，并根据内容高度自适应展示；可见区域最多占视口高度的 90%，硬上限提高到 1440px。
+- Updated dependencies [61f6bd1]
+- Updated dependencies [ddc3213]
+  - @nextclaw/ncp@0.7.7
+
 ## 0.4.7
 
 ### Patch Changes

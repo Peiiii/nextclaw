@@ -1,5 +1,17 @@
 # nextclaw-core
 
+## 0.15.9
+
+### Patch Changes
+
+- 97bca64: Add a built-in Agent Browser workflow and guide agents to use it as a distinct browser path when configured web search is unavailable.
+- c727720: 内联 Panel App 现在与 HTML 预览使用同一套简约表面：移除常驻标题、边框与阴影，操作仅在悬浮或键盘聚焦时出现，并根据内容高度自适应展示；可见区域最多占视口高度的 90%，硬上限提高到 1440px。
+- Updated dependencies [61f6bd1]
+- Updated dependencies [c727720]
+- Updated dependencies
+  - @nextclaw/shared@0.4.8
+  - @nextclaw/feishu-core@0.3.5
+
 ## 0.15.8
 
 ### Patch Changes
