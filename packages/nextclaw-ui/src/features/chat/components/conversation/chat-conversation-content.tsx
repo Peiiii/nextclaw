@@ -65,6 +65,7 @@ export function ChatConversationContent({
                 <ChatMessageListContainer
                   messages={messages}
                   isSending={hasMessages && isSending && isAwaitingAssistantOutput}
+                  sessionKey={sessionKey}
                 />
               </ChatConversationTrack>
             )}

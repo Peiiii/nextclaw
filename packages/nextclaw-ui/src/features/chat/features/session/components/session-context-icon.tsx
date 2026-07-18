@@ -17,7 +17,7 @@ export function SessionContextIconNode({ icon, className }: { icon: SessionConte
         src={runtimeIconSrc ?? undefined}
         className={cn('h-[1.125rem] w-[1.125rem]', className)}
         imgClassName="h-full w-full object-contain"
-        fallback={<Bot className={cn('h-3 w-3 text-muted-foreground', className)} />}
+        fallback={<Bot className={cn('h-3 w-3 text-current', className)} strokeWidth={2.4} />}
       />
     );
   }

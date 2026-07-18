@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 
 describe('IconActionButton', () => {
@@ -32,5 +32,26 @@ describe('IconActionButton', () => {
     expect(button.className).toContain('h-7');
     expect(button.className).toContain('w-7');
     expect(button.className).toContain('hover:bg-accent');
+  });
+
+  it('ignores restored pointer focus while preserving keyboard tooltip focus', () => {
+    render(
+      <IconActionButton
+        icon={<span data-testid="icon" />}
+        label="Session Type"
+      />,
+    );
+
+    const button = screen.getByRole('button', { name: 'Session Type' });
+    const matches = vi.spyOn(button, 'matches');
+
+    matches.mockReturnValue(false);
+    fireEvent.focus(button);
+    expect(screen.queryByRole('tooltip')).toBeNull();
+
+    fireEvent.blur(button);
+    matches.mockReturnValue(true);
+    fireEvent.focus(button);
+    expect(screen.getByRole('tooltip').textContent).toBe('Session Type');
   });
 });

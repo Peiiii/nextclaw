@@ -148,6 +148,29 @@ it("renders unknown parts with fallback label", () => {
   expect(screen.getByText("Unknown Part: step-start")).toBeTruthy();
 });
 
+it("uses the host assistant icon for messages and the typing placeholder", () => {
+  render(
+    <ChatMessageList
+      assistantAvatarIcon={<span data-testid="runtime-avatar-icon" />}
+      messages={[
+        {
+          id: "assistant-runtime",
+          role: "assistant",
+          roleLabel: "Assistant",
+          timestampLabel: "10:05",
+          parts: [{ type: "markdown", text: "Runtime response" }],
+        },
+      ]}
+      isSending
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  expect(screen.getAllByTestId("runtime-avatar-icon")).toHaveLength(2);
+  expect(screen.getAllByTestId("chat-message-avatar-assistant")).toHaveLength(2);
+});
+
 it("renders inline token content inside a user message bubble", () => {
   render(
     <ChatMessageList

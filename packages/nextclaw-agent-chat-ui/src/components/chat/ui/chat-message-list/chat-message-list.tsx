@@ -63,6 +63,7 @@ function hasRenderableText(value: string): boolean {
 }
 
 export type ChatMessageListProps = {
+  assistantAvatarIcon?: ReactNode;
   layout?: ChatMessageLayout;
   messages: ChatMessageViewModel[];
   isSending: boolean;
@@ -128,6 +129,7 @@ function ChatTypingIndicator({
 }
 
 export function ChatMessageList({
+  assistantAvatarIcon,
   className,
   isSending,
   layout = "card",
@@ -174,7 +176,11 @@ export function ChatMessageList({
           return (
             <article key={message.id} data-chat-message-layout="flat" className="w-full min-w-0 space-y-2">
               <div data-chat-message-header="flat" className="flex min-w-0 items-center gap-2.5">
-                <ChatMessageAvatar role={message.role} size="compact" />
+                <ChatMessageAvatar
+                  assistantIcon={assistantAvatarIcon}
+                  role={message.role}
+                  size="compact"
+                />
                 <span className="truncate text-sm font-semibold text-foreground">
                   {message.roleLabel}
                 </span>
@@ -204,7 +210,12 @@ export function ChatMessageList({
             data-chat-message-layout="card"
             className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}
           >
-            {!isUser ? <ChatMessageAvatar role={message.role} /> : null}
+            {!isUser ? (
+              <ChatMessageAvatar
+                assistantIcon={assistantAvatarIcon}
+                role={message.role}
+              />
+            ) : null}
             <div className={cn('w-fit max-w-[92%] space-y-2 has-[[data-chat-message-wide-content=true]]:w-full', isUser && 'flex flex-col items-end')}>
               {content}
               <div className={cn('flex items-center gap-2', isUser && 'justify-end')}>
@@ -233,6 +244,7 @@ export function ChatMessageList({
       {isSending && !hasRenderableAssistantDraft ? (
         <div data-chat-message-layout={layout} className="flex justify-start gap-3">
           <ChatMessageAvatar
+            assistantIcon={assistantAvatarIcon}
             role="assistant"
             size={layout === "flat" ? "compact" : "default"}
           />

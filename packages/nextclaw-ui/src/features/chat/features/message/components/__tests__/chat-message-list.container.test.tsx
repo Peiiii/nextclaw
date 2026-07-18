@@ -1,8 +1,18 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { isValidElement } from "react";
+import { isValidElement, type ComponentProps } from "react";
 import type { NcpMessage } from "@nextclaw/ncp";
 import { beforeEach, expect, it, vi } from "vitest";
-import { ChatMessageListContainer } from "@/features/chat/features/message/components/chat-message-list.container";
+import { ChatMessageListContainer as RuntimeChatMessageListContainer } from "@/features/chat/features/message/components/chat-message-list.container";
+import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
+
+function ChatMessageListContainer({
+  sessionKey = "session-1",
+  ...props
+}: Omit<ComponentProps<typeof RuntimeChatMessageListContainer>, "sessionKey"> & {
+  sessionKey?: string | null;
+}) {
+  return <RuntimeChatMessageListContainer {...props} sessionKey={sessionKey} />;
+}
 
 const captures = vi.hoisted(() => ({
   renders: [] as Array<{
@@ -11,6 +21,7 @@ const captures = vi.hoisted(() => ({
     onFileOpen?: (action: unknown) => void;
     onAttachmentOpen?: (file: unknown) => void;
     onInlineTokenClick?: (token: unknown) => void;
+    assistantAvatarIcon?: unknown;
     renderInlineDisplay?: (display: unknown) => unknown;
     renderPanelAppCard?: (panelApp: unknown) => unknown;
     texts?: Record<string, unknown>;
@@ -20,7 +31,12 @@ const captures = vi.hoisted(() => ({
   handleToolAction: vi.fn(),
   showContent: vi.fn(),
   filePreviewProps: [] as Array<{ showBreadcrumbs?: boolean }>,
-  selectedSession: null as null | { projectRoot: string; workingDir?: string | null },
+  selectedSessionKeys: [] as Array<string | null>,
+  selectedSession: null as null | {
+    projectRoot: string;
+    workingDir?: string | null;
+    sessionType?: string;
+  },
 }));
 
 vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
@@ -33,6 +49,7 @@ vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
       onFileOpen?: (action: unknown) => void;
       onAttachmentOpen?: (file: unknown) => void;
       onInlineTokenClick?: (token: unknown) => void;
+      assistantAvatarIcon?: unknown;
       renderInlineDisplay?: (display: unknown) => unknown;
       renderPanelAppCard?: (panelApp: unknown) => unknown;
       texts?: Record<string, unknown>;
@@ -56,7 +73,10 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
 }));
 
 vi.mock("@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state", () => ({
-  useNcpChatSelectedSession: () => captures.selectedSession,
+  useNcpChatSelectedSession: (sessionKey: string | null) => {
+    captures.selectedSessionKeys.push(sessionKey);
+    return captures.selectedSession;
+  },
 }));
 
 vi.mock("@/app/components/i18n-provider", () => ({
@@ -87,7 +107,9 @@ beforeEach(() => {
   captures.handleToolAction.mockReset();
   captures.showContent.mockReset();
   captures.filePreviewProps = [];
+  captures.selectedSessionKeys = [];
   captures.selectedSession = null;
+  useChatQueryStore.setState({ snapshot: {} });
 });
 
 it("reuses adapted message references when the source message object is unchanged", () => {
@@ -554,6 +576,53 @@ it("passes the inline panel app renderer to the shared chat UI", () => {
   expect(
     captures.renders[captures.renders.length - 1]?.renderPanelAppCard,
   ).toEqual(expect.any(Function));
+});
+
+it("passes the rendered session runtime icon to assistant messages", () => {
+  captures.selectedSession = {
+    projectRoot: "/tmp/project",
+    sessionType: "codex",
+  };
+  useChatQueryStore.setState({
+    snapshot: {
+      sessionTypesQuery: {
+        data: {
+          defaultType: "native",
+          options: [
+            {
+              value: "codex",
+              label: "Codex",
+              icon: {
+                kind: "image",
+                src: "https://example.com/codex.png",
+                alt: "Codex",
+              },
+            },
+          ],
+        },
+      } as never,
+    },
+  });
+
+  render(
+    <ChatMessageListContainer
+      messages={[]}
+      isSending={false}
+      sessionKey="session-codex"
+    />,
+  );
+
+  expect(captures.selectedSessionKeys).toContain("session-codex");
+
+  const assistantAvatarIcon =
+    captures.renders[captures.renders.length - 1]?.assistantAvatarIcon;
+  if (!isValidElement(assistantAvatarIcon)) {
+    throw new Error("Expected the runtime assistant avatar icon");
+  }
+  render(assistantAvatarIcon);
+
+  expect(screen.getByRole("img", { name: "Codex logo" }).getAttribute("src"))
+    .toBe("https://example.com/codex.png");
 });
 
 it("connects inline HTML actions to the chat thread manager", () => {

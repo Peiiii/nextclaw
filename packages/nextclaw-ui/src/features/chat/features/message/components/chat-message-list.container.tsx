@@ -27,9 +27,14 @@ import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
 import { ChatInlineFilePreview } from "@/features/chat/features/message/components/chat-inline-file-preview";
 import { ChatInlinePanelAppCard } from "@/features/chat/features/message/components/chat-inline-panel-app-card";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
-import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useChatMessageLayoutStore } from "@/features/chat/stores/chat-message-layout.store";
 import { useNcpChatSelectedSession } from "@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state";
+import { SessionContextIconNode } from "@/features/chat/features/session/components/session-context-icon";
+import {
+  buildSessionTypeOptions,
+  DEFAULT_SESSION_TYPE,
+  normalizeSessionType,
+} from "@/features/chat/features/session-type/utils/chat-session-type.utils";
 import { useI18n } from "@/app/components/i18n-provider";
 import { buildServerPathContentUrl } from "@/shared/lib/api";
 import { formatDateTime, t } from "@/shared/lib/i18n";
@@ -37,6 +42,7 @@ import { formatDateTime, t } from "@/shared/lib/i18n";
 type ChatMessageListContainerProps = {
   messages: readonly NcpMessage[];
   isSending: boolean;
+  sessionKey: string | null;
   className?: string;
 };
 
@@ -278,13 +284,33 @@ function buildTimelineItems(params: {
 export function ChatMessageListContainer({
   messages: rawMessages,
   isSending,
+  sessionKey,
   className,
 }: ChatMessageListContainerProps) {
   const presenter = usePresenter();
   const { language } = useI18n();
   const messageLayout = useChatMessageLayoutStore((state) => state.layout);
-  const selectedSessionKey = useChatSessionListStore((state) => state.snapshot.selectedSessionKey);
-  const selectedSession = useNcpChatSelectedSession(selectedSessionKey);
+  const selectedSession = useNcpChatSelectedSession(sessionKey);
+  const sessionTypesData = useChatQueryStore(
+    (state) => state.snapshot.sessionTypesQuery?.data ?? null,
+  );
+  const activeSessionType = normalizeSessionType(
+    selectedSession?.sessionType ?? sessionTypesData?.defaultType ?? DEFAULT_SESSION_TYPE,
+  );
+  const sessionTypeOption = buildSessionTypeOptions(
+    sessionTypesData?.options ?? [],
+  ).find((option) => option.value === activeSessionType);
+  const assistantAvatarIcon = sessionTypeOption?.icon?.src?.trim() ? (
+    <SessionContextIconNode
+      icon={{
+        kind: "runtime-image",
+        src: sessionTypeOption.icon.src,
+        alt: sessionTypeOption.icon.alt ?? null,
+        name: sessionTypeOption.label,
+      }}
+      className="h-[65%] w-[65%]"
+    />
+  ) : undefined;
   const localFileBasePath = selectedSession?.workingDir ?? selectedSession?.projectRoot ?? null;
   const renderInlineDisplayWithFiles = useCallback(
     (display: ChatInlineDisplayViewModel) => {
@@ -296,7 +322,7 @@ export function ChatMessageListContainer({
         return (
           <ChatInlineFilePreview
             display={display}
-            parentSessionKey={selectedSessionKey}
+            parentSessionKey={sessionKey}
             sessionProjectRoot={selectedSession?.projectRoot ?? null}
             sessionWorkingDir={localFileBasePath}
             onFileOpen={presenter.chatThreadManager.openFilePreview}
@@ -305,7 +331,7 @@ export function ChatMessageListContainer({
       }
       return undefined;
     },
-    [localFileBasePath, presenter.chatThreadManager, selectedSession?.projectRoot, selectedSessionKey],
+    [localFileBasePath, presenter.chatThreadManager, selectedSession?.projectRoot, sessionKey],
   );
   const resolveFileContentUrl = useCallback(
     (action: { path: string }) => buildServerPathContentUrl(action.path, localFileBasePath),
@@ -431,6 +457,7 @@ export function ChatMessageListContainer({
           <ChatContextInheritanceDivider key={item.key} inheritance={item.inheritance} />
         ) : (
           <ChatMessageList
+            assistantAvatarIcon={assistantAvatarIcon}
             key={item.key}
             layout={messageLayout}
             messages={item.messages}

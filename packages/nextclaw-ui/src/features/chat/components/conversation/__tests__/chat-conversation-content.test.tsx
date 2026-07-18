@@ -7,6 +7,7 @@ import { useChatMessageLayoutStore } from "@/features/chat/stores/chat-message-l
 
 const captures = vi.hoisted(() => ({
   isAtBottom: true,
+  messageListSessionKeys: [] as Array<string | null>,
   onScroll: vi.fn(),
   scrollToBottom: vi.fn(),
 }));
@@ -20,7 +21,10 @@ vi.mock("@nextclaw/agent-chat-ui", () => ({
 }));
 
 vi.mock("@/features/chat/features/message/components/chat-message-list.container", () => ({
-  ChatMessageListContainer: () => <div data-testid="chat-message-list" />,
+  ChatMessageListContainer: ({ sessionKey }: { sessionKey: string | null }) => {
+    captures.messageListSessionKeys.push(sessionKey);
+    return <div data-testid="chat-message-list" />;
+  },
 }));
 
 vi.mock("@/shared/lib/i18n", () => ({
@@ -55,6 +59,7 @@ function renderContent(options: { bottomSlot?: React.ReactNode } = {}) {
 beforeEach(() => {
   useChatMessageLayoutStore.getState().setLayout("card");
   captures.isAtBottom = true;
+  captures.messageListSessionKeys = [];
   captures.onScroll.mockReset();
   captures.scrollToBottom.mockReset();
 });
@@ -68,6 +73,7 @@ it("uses the centered reading track in flat message layout", () => {
     .getByTestId("chat-message-list")
     .closest('[data-chat-conversation-track="flat"]');
   expect(track?.className).toContain("max-w-[min(52rem,100%)]");
+  expect(captures.messageListSessionKeys).toEqual(["session-1"]);
 });
 
 it("hides the scroll-to-bottom action while the conversation is already at the bottom", () => {

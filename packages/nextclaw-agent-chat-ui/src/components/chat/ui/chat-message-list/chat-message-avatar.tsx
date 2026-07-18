@@ -1,11 +1,14 @@
+import type { ReactNode } from 'react';
 import type { ChatMessageRole } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import { Bot, User, Wrench } from 'lucide-react';
 import { cn } from '@agent-chat-ui/components/chat/internal/cn';
 
 export function ChatMessageAvatar({
+  assistantIcon,
   role,
   size = 'default',
 }: {
+  assistantIcon?: ReactNode;
   role: ChatMessageRole;
   size?: 'default' | 'compact';
 }) {
@@ -46,10 +49,12 @@ export function ChatMessageAvatar({
         frameSize,
       )}
     >
-      <Bot
-        className={cn(compact ? 'h-4 w-4' : 'h-[18px] w-[18px]', 'text-current')}
-        strokeWidth={2.5}
-      />
+      {assistantIcon ?? (
+        <Bot
+          className={cn(compact ? 'h-4 w-4' : 'h-[18px] w-[18px]', 'text-current')}
+          strokeWidth={2.5}
+        />
+      )}
     </div>
   );
 }
