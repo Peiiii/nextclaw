@@ -1,5 +1,11 @@
 # @nextclaw/agent-chat-ui
 
+## 0.6.11
+
+### Patch Changes
+
+- 79dd1ed: Show each chat session's Agent runtime identity in assistant message avatars, align sidebar runtime icons with session titles, and refine runtime selector icon and tooltip behavior.
+
 ## 0.6.10
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @nextclaw/remote
 
+## 0.3.11
+
+### Patch Changes
+
+- 03bbe45: Fix remote panel apps failing to load their data or actions when opened through a remote-access URL.
+
 ## 0.3.10
 
 ### Patch Changes

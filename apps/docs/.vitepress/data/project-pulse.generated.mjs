@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-07-17T15:44:53.263Z",
+  "generatedAt": "2026-07-18T05:08:07.219Z",
   "hero": {
     "currentLoc": 207583,
     "testLoc": 71943,
     "trackedFiles": 2230,
-    "recentCommitCount": 263,
+    "recentCommitCount": 266,
     "activeDays30": 30,
     "recentReleaseCount": 45,
     "latestReleaseDate": "2026-07-17",
-    "latestNoteDate": "2026-07-17",
+    "latestNoteDate": "2026-07-18",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2128396,
     "basePercentOfBenchmark": 9.75,
@@ -16,11 +16,6 @@ export default {
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-03-20",
-        "label": "03-20",
-        "value": 97352
-      },
       {
         "key": "2026-03-21",
         "label": "03-21",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-07-17",
         "label": "07-17",
         "value": 207583
+      },
+      {
+        "key": "2026-07-18",
+        "label": "07-18",
+        "value": 207583
       }
     ],
     "testLocDaily": [
@@ -961,11 +961,6 @@ export default {
     ],
     "commitDaily": [
       {
-        "key": "2026-06-18",
-        "label": "06-18",
-        "value": 10
-      },
-      {
         "key": "2026-06-19",
         "label": "06-19",
         "value": 21
@@ -1108,7 +1103,12 @@ export default {
       {
         "key": "2026-07-17",
         "label": "07-17",
-        "value": 37
+        "value": 38
+      },
+      {
+        "key": "2026-07-18",
+        "label": "07-18",
+        "value": 12
       }
     ],
     "commitWeekly": [
@@ -1170,7 +1170,7 @@ export default {
       {
         "key": "2026-07-13",
         "label": "07-13",
-        "value": 124
+        "value": 137
       }
     ],
     "releaseMonthly": [
@@ -1304,7 +1304,7 @@ export default {
     "recentReleaseBatches": [
       {
         "date": "2026-07-17",
-        "tagCount": 87,
+        "tagCount": 136,
         "sampleTags": [
           "@nextclaw/agent-chat-ui@0.6.7",
           "@nextclaw/client-sdk@0.5.7",
@@ -1360,6 +1360,25 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-07-18-nextclaw-v0-25-4",
+        "date": "2026-07-18",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-07-18 · NextClaw v0.25.4",
+          "description": "NextClaw v0.25.4 fixes panel apps in remote access and improves runtime identity and update checks.",
+          "href": "/en/notes/2026-07-18-nextclaw-v0-25-4"
+        },
+        "zh": {
+          "title": "2026-07-18 · NextClaw v0.25.4",
+          "description": "NextClaw v0.25.4 修复远程访问中的小应用加载，并改进运行时辨识与更新检查。",
+          "href": "/zh/notes/2026-07-18-nextclaw-v0-25-4"
+        }
+      },
       {
         "slug": "2026-07-17-nextclaw-v0-25-3",
         "date": "2026-07-17",
@@ -1750,7 +1769,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-07-17T11:38:15.318Z",
     "sourceCount": {
-      "notes": 16,
+      "notes": 17,
       "scopes": 8
     }
   }

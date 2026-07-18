@@ -1,5 +1,14 @@
 # @nextclaw/ui
 
+## 0.15.11
+
+### Patch Changes
+
+- 70080bf: Keep model option panels open when users click an already-focused model input.
+- 79dd1ed: Show each chat session's Agent runtime identity in assistant message avatars, align sidebar runtime icons with session titles, and refine runtime selector icon and tooltip behavior.
+- Updated dependencies [79dd1ed]
+  - @nextclaw/agent-chat-ui@0.6.11
+
 ## 0.15.10
 
 ### Patch Changes
