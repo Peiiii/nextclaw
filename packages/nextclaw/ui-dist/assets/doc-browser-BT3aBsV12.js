@@ -1,0 +1,1 @@
+import{t as e}from"./doc-browser-Bi0OIrul.js";export{e as DocBrowser};

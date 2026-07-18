@@ -1,5 +1,18 @@
 # @nextclaw/service
 
+## 0.3.11
+
+### Patch Changes
+
+- 914288e: 修复重启后可能因最近一次检查记录而跳过更新检查的问题。NextClaw 现在会在每次启动时立即检查一次，运行期间继续每两小时检查；检查只更新可用版本状态，不会自动下载或应用更新。
+- Updated dependencies [1f99bb8]
+- Updated dependencies [03bbe45]
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.10
+  - @nextclaw/remote@0.3.11
+  - @nextclaw/kernel@0.6.11
+  - @nextclaw/server@0.15.11
+  - @nextclaw/client-sdk@0.5.11
+
 ## 0.3.10
 
 ### Patch Changes

@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.25.4",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-07-18",
+  "title": {
+    "zh-CN": "NextClaw v0.25.4",
+    "en-US": "NextClaw v0.25.4"
+  },
+  "summary": {
+    "zh-CN": "本版本修复远程小应用和慢响应终止，并改进设置导航、Agent 运行时辨识、模型选择和启动更新检查。",
+    "en-US": "This release fixes remote panel apps and slow-response cancellation, with improvements to settings navigation, Agent runtime identity, model selection, and startup update checks."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-18-nextclaw-v0-25-4",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-18-nextclaw-v0-25-4"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "远程小应用恢复正常",
+            "en-US": "Remote panel apps work again"
+          },
+          "body": {
+            "zh-CN": "通过远程访问打开会话中的小应用时，应用可以正常读取数据并执行操作。",
+            "en-US": "Panel apps opened through remote access can load data and perform actions normally."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "慢响应可以及时终止",
+            "en-US": "Slow responses can be stopped promptly"
+          },
+          "body": {
+            "zh-CN": "上游运行时缓慢或不可用时，终止当前回复不再长时间等待，终止后仍可继续同一会话。",
+            "en-US": "Stopping a reply no longer waits indefinitely on a slow or unavailable upstream runtime, and the session remains usable afterward."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "模型选项面板保持打开",
+            "en-US": "Model option panels stay open"
+          },
+          "body": {
+            "zh-CN": "重复点击当前模型输入框时，模型选项面板不再意外关闭。",
+            "en-US": "Clicking an already-focused model input no longer closes its option panel unexpectedly."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "设置导航更一致",
+            "en-US": "More consistent settings navigation"
+          },
+          "body": {
+            "zh-CN": "设置侧栏、底部操作和外部链接使用一致的布局与导航行为，主题和语言偏好统一归入外观。",
+            "en-US": "The settings sidebar, footer actions, and external links use consistent layout and navigation, with theme and language grouped under Appearance."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "Agent 运行时更容易辨认",
+            "en-US": "Agent runtimes are easier to identify"
+          },
+          "body": {
+            "zh-CN": "助手头像、会话侧栏和运行时选择器以一致的图标与提示展示当前运行时。",
+            "en-US": "Assistant avatars, session sidebar entries, and runtime selectors use consistent icons and hints for the active runtime."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "启动后立即检查更新",
+            "en-US": "Update checks start immediately"
+          },
+          "body": {
+            "zh-CN": "NextClaw 每次启动后立即检查一次可用更新，运行期间继续定期检查，但不会自动下载或应用。",
+            "en-US": "NextClaw checks for updates after every start and periodically while running, without downloading or applying them automatically."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需手动迁移",
+            "en-US": "No manual migration"
+          },
+          "body": {
+            "zh-CN": "本版本不需要迁移配置；升级并重启运行时后即可使用修复。",
+            "en-US": "No configuration migration is required; upgrade and restart the runtime to use the fixes."
+          }
+        }
+      ]
+    }
+  ]
+}

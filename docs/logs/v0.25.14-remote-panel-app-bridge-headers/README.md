@@ -20,8 +20,10 @@
 
 ## 发布/部署方式
 
-- 本轮未发布、未重启当前 NextClaw 0.25.3 运行实例，避免打断正在使用的远程会话。
-- 修复需要随 `@nextclaw/remote` 的下一次 patch 发布进入 runtime bundle，并在用户升级或重启到包含该版本的运行时后生效。
+- 已生成 stable patch 发布批次：`nextclaw@0.25.4`、`@nextclaw/remote@0.3.11`、`@nextclaw/service@0.3.11`，并补齐中英文产品更新说明与结构化 release-note JSON。
+- 发布准备在隔离 worktree `codex/release-nextclaw-0.25.4` 中执行，不暂存、不覆盖主工作区的其他规则、文档、Worker 与产品 WIP。
+- 发布前已完成统一 batch build/tsc、真实回环链路测试、UI 传输测试、文档构建和 `nextclaw-0.25.4.tgz` 预打包检查；tarball 依赖已锁定到本批次的 remote/service patch 版本。
+- 当前正在完成 NPM registry、stable runtime channel、公共文档和安装/更新链路部署闭环；不会在发布过程中重启用户正在使用的 NextClaw 0.25.3 实例。
 - 不涉及数据库 migration、Worker 部署或前端独立部署。
 
 ## 用户/产品视角的验收步骤
@@ -41,6 +43,7 @@
 
 ## NPM 包发布记录
 
-- 需要发布：`@nextclaw/remote` patch。
-- npm registry 当前版本：`0.3.10`；workspace 当前版本同为 `0.3.10`，本次源码变更尚未发布。
-- 已添加 `.changeset/remote-panel-app-bridge-headers.md`，状态为 `待统一发布`。
+- 直接变更包：`@nextclaw/remote`，`0.3.10 -> 0.3.11`。
+- 运行时依赖闭包：`@nextclaw/service`，`0.3.10 -> 0.3.11`；`nextclaw`，`0.25.3 -> 0.25.4`。
+- 同一统一 patch 批次还包含主干上已经完成并带 changeset 的 UI/Agent UI、stdio runtime 与其依赖闭包；未提交的其他改动不在隔离发布分支中。
+- `.changeset/remote-panel-app-bridge-headers.md` 已由 `pnpm release:version` 消费，当前状态为 `发布闭环进行中`。
