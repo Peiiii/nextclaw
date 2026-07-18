@@ -166,12 +166,12 @@
         },
         {
           "title": {
-            "zh-CN": "桌面安装包稍后发布",
-            "en-US": "Desktop installer follows later"
+            "zh-CN": "桌面正式版已发布",
+            "en-US": "Desktop stable release available"
           },
           "body": {
-            "zh-CN": "本次 minor 面向 NPM stable 更新链路，不包含新的桌面安装包。",
-            "en-US": "This minor release targets the npm stable update path and does not include a new desktop installer."
+            "zh-CN": "NextClaw Desktop 0.0.227 已提供 macOS、Windows 和 Linux 安装包；兼容最低 0.0.141 版本要求的现有桌面 launcher 也可以获取 0.26.0 runtime bundle。",
+            "en-US": "NextClaw Desktop 0.0.227 installers are available for macOS, Windows, and Linux; existing desktop launchers compatible with the 0.0.141 floor can also receive the 0.26.0 runtime bundle."
           }
         }
       ]
