@@ -2,7 +2,7 @@
 
 ## 迭代完成说明
 
-- Platform Admin 补齐 NextClaw SVG favicon 与浏览器主题色，管理后台标签页不再显示默认空白图标。
+- Platform Admin 与 Platform Console 分别补齐 NextClaw SVG favicon 与浏览器主题色，两个独立站点的标签页不再显示默认空白图标。
 - “用户与额度”从密集的整行编辑矩阵改为浏览优先的用户表格：账号、角色、免费额度使用率、付费余额、注册时间、最近更新和固定操作列保持清晰分层。
 - 用户列表支持服务端分页、页大小、邮箱/用户名/用户 ID 搜索、角色快捷筛选和安全白名单排序；角色计数随搜索条件同步更新。
 - 额度调整改为点击“管理额度”后进入独立对话框，展示当前免费消耗、免费剩余和付费余额，仅在明确提交时修改免费额度上限或付费余额增减。
@@ -21,6 +21,7 @@
 
 - `pnpm -C apps/platform-admin lint`、`tsc`、`build`：通过；Vite 生产构建包含 favicon、CSS 与 JS 资产。
 - `PLATFORM_ADMIN_BASE_URL=http://127.0.0.1:4177 pnpm smoke:platform:admin`：通过；覆盖 favicon 加载、用户列表渲染、搜索请求、角色筛选请求、排序请求、分页摘要、额度对话框打开与取消，以及其他管理路由回归。
+- `pnpm -C apps/platform-console lint`、`tsc`、`build` 与 `PLATFORM_CONSOLE_BASE_URL=http://127.0.0.1:4173 pnpm smoke:platform:console`：通过；生产构建包含 `/logo.svg`，本地 HTTP 验证返回 `image/svg+xml`。
 - `pnpm -C workers/nextclaw-provider-gateway-api lint` 与 `tsc`：通过。
 - `pnpm -C workers/nextclaw-provider-gateway-api test:admin-users`：通过；覆盖两页数据、角色计数与筛选、用户名搜索、`%` 字面量搜索转义和余额排序。
 - `pnpm -C workers/nextclaw-provider-gateway-api test:remote-instances`：通过；既有远程实例分页合同无回归。
@@ -33,14 +34,15 @@
 
 ## 发布/部署方式
 
-- 源码先提交到本地 `master`，再部署 Worker 与 Platform Admin，最后从本地 `master` 推送 `origin/master`。
+- 源码先提交到本地 `master`，再部署 Worker、Platform Admin 与 Platform Console，最后从本地 `master` 推送 `origin/master`。
 - Worker 不涉及 D1 schema 变更；部署仍执行远程 migration 检查，预期为 `No migrations to apply`。
 - Platform Admin 使用 `pnpm deploy:platform:admin` 发布 Cloudflare Pages；发布后检查自定义域、favicon、静态资产和登录态用户列表真实交互。
+- Platform Console 使用 `pnpm deploy:platform:console` 发布 Cloudflare Pages；发布后在用户当前 Chrome 的既有 `platform.nextclaw.io` 标签页刷新，检查 favicon 声明、资源响应和标签页效果。
 
 ## 用户/产品视角的验收步骤
 
-1. 打开 `https://platform-admin.nextclaw.io/`，确认浏览器标签页显示 NextClaw 图标。
-2. 登录后进入“用户与额度”，确认首屏是只读表格，不再在每行常驻多个输入框与保存/重置按钮。
+1. 打开 `https://platform.nextclaw.io/` 与 `https://platform-admin.nextclaw.io/`，确认两个浏览器标签页均显示 NextClaw 图标。
+2. 登录管理后台后进入“用户与额度”，确认首屏是只读表格，不再在每行常驻多个输入框与保存/重置按钮。
 3. 搜索邮箱、用户名或用户 ID，并切换“全部 / 普通用户 / 管理员”，确认计数、数据和分页同步更新。
 4. 点击账号、角色、免费额度、付费余额、注册时间或最近更新时间表头，确认排序方向清晰变化。
 5. 切换每页 10、20、50 条并翻页，确认范围摘要和上一页/下一页状态正确。
