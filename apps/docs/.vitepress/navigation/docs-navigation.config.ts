@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from 'node:fs';
 import type { DefaultTheme } from 'vitepress';
 
 export const enNav: DefaultTheme.NavItem[] = [
@@ -320,13 +321,32 @@ const zhProjectSidebar: DefaultTheme.SidebarItem[] = [
   }
 ];
 
-const enNotesSidebar: DefaultTheme.SidebarItem[] = [
-  { text: 'Product Updates', items: [{ text: 'All updates', link: '/en/notes/' }] }
-];
+const createNotesSidebar = (
+  locale: 'en' | 'zh',
+  text: string,
+  allUpdatesText: string
+): DefaultTheme.SidebarItem[] => {
+  const notesDirectory = new URL(`../../${locale}/notes/`, import.meta.url);
+  const noteItems = readdirSync(notesDirectory)
+    .filter((fileName) => fileName.endsWith('.md') && fileName !== 'index.md')
+    .sort((left, right) => right.localeCompare(left))
+    .map((fileName) => {
+      const source = readFileSync(new URL(fileName, notesDirectory), 'utf8');
+      const title = source.match(/^title:\s*(.+)$/m)?.[1]?.trim();
+      if (!title) {
+        throw new Error(`Missing frontmatter title in ${locale}/notes/${fileName}`);
+      }
+      return {
+        text: title.replace(/^\d{4}-\d{2}-\d{2}\s*·\s*/, ''),
+        link: `/${locale}/notes/${fileName.slice(0, -3)}`
+      };
+    });
 
-const zhNotesSidebar: DefaultTheme.SidebarItem[] = [
-  { text: '产品更新', items: [{ text: '全部更新', link: '/zh/notes/' }] }
-];
+  return [{ text, items: [{ text: allUpdatesText, link: `/${locale}/notes/` }, ...noteItems] }];
+};
+
+const enNotesSidebar = createNotesSidebar('en', 'Product Updates', 'All updates');
+const zhNotesSidebar = createNotesSidebar('zh', '产品更新', '全部更新');
 
 const enBlogSidebar: DefaultTheme.SidebarItem[] = [
   {
