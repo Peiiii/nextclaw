@@ -155,8 +155,8 @@ jobs:
           export OSS_REGION="$REGION"
           ossutil sync docs-dist "oss://$BUCKET/_releases/$RELEASE_COMMIT/" --region "$REGION" --mode StsToken --force
           ossutil sync docs-dist "oss://$BUCKET/" --region "$REGION" --mode StsToken --force
-          ossutil set-props "oss://$BUCKET/health" --region "$REGION" --mode StsToken --content-type application/json --cache-control no-store --force
-          ossutil set-props "oss://$BUCKET/release-manifest.json" --region "$REGION" --mode StsToken --content-type application/json --cache-control no-store --force
+          ossutil set-props "oss://$BUCKET/health" --region "$REGION" --mode StsToken --metadata-directive replace --content-type application/json --cache-control no-store --force
+          ossutil set-props "oss://$BUCKET/release-manifest.json" --region "$REGION" --mode StsToken --metadata-directive replace --content-type application/json --cache-control no-store --force
           ossutil api put-bucket-lifecycle \
             --bucket "$BUCKET" \
             --region "$REGION" \

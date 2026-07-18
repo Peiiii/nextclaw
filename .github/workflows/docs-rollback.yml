@@ -147,8 +147,8 @@ jobs:
           export OSS_SESSION_TOKEN="$ALIBABA_CLOUD_SECURITY_TOKEN"
           export OSS_REGION="$REGION"
           ossutil sync docs-dist "oss://$BUCKET/" --region "$REGION" --mode StsToken --force
-          ossutil set-props "oss://$BUCKET/health" --region "$REGION" --mode StsToken --content-type application/json --cache-control no-store --force
-          ossutil set-props "oss://$BUCKET/release-manifest.json" --region "$REGION" --mode StsToken --content-type application/json --cache-control no-store --force
+          ossutil set-props "oss://$BUCKET/health" --region "$REGION" --mode StsToken --metadata-directive replace --content-type application/json --cache-control no-store --force
+          ossutil set-props "oss://$BUCKET/release-manifest.json" --region "$REGION" --mode StsToken --metadata-directive replace --content-type application/json --cache-control no-store --force
 
       - name: Refresh domestic CDN
         env:
