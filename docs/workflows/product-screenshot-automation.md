@@ -81,6 +81,9 @@ pnpm run screenshots:capture-curated
 - `SCREENSHOT_TARGET_SELECTOR=<css-selector>`：复杂界面使用明确 CSS 选择器。
 - `SCREENSHOT_SCENES=<asset-en,asset-zh>`：只生成一个语言版本。
 - `SCREENSHOT_UI_THEME=natural`：明确需要默认主题时覆盖雾蓝；同批次不得混用。
+- `SCREENSHOT_KEEP_SIDEBAR=1`：保留会话侧栏，适合展示完整工作台构图。
+- `SCREENSHOT_SIDEBAR_SEARCH=<text>`：只显示与宣传场景相关的真实会话，不改写会话数据。
+- `SCREENSHOT_WORKSPACE_PREVIEW_PATH=<absolute-path>`：在会话右侧以渲染模式打开真实 Markdown 或 HTML 文件。
 
 精选模式强制使用真实 origin 和真实 session，不会启动 mock UI，也不会调用模型重新生成任务内容。
 

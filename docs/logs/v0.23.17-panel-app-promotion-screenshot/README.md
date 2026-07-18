@@ -10,6 +10,8 @@
 - 补充保存 A 股数据图表工作流原始素材到 `images/marketing/nextclaw-stock-dashboard-workflow-source-cn.png`。该图同时包含 Agent 生成过程、正文结果和右侧预览，适合作为下一次干净重拍的场景基线；原图含无关会话标题和本机路径，因此本批不直接插入公开文章。
 - 截图环境会统一拦截本机的私有 UI 注入脚本，防止个人皮肤污染公开素材；Panel App 场景通过截图存储状态收起会话侧栏，不修改或重启当前运行实例。
 - 根因：自动截图使用新的浏览器上下文，既不会继承手工收起的侧栏状态，也可能加载本机配置的私有 UI 注入。修复落在统一截图生成路径，而不是事后裁图或修图。
+- 官网首图追加更新为真实三栏工作台：左侧保留定时任务入口和真实会话记录，中间展示 2026 年第二季度收入执行摘要，右侧渲染真实的“会话 `@` 文件与目录引用设计”Markdown 文档；素材统一使用雾蓝主题，没有重绘 UI 或填入伪造数据。
+- 精选截图模式现在可以按场景保留会话侧栏、筛选真实会话，并把指定本地文件作为当前会话的右栏预览；这些能力都收敛在既有 curated scene owner 中，不影响默认批量截图。
 
 ## 测试/验证/验收方式
 
@@ -26,6 +28,10 @@
 - 定向 maintainability guard：3 个脚本，0 error、2 个既有文件预算 warning；触达脚本合计净减 8 行。
 - Cloudflare Pages 本次部署地址 `https://b78f99e3.nextclaw-docs.pages.dev` 与正式域名 `https://docs.nextclaw.io` 均完成线上冒烟：文章、Panel App 图、执行摘要图和 Markdown 预览图均返回 HTTP 200。
 - 正式站文章 HTML 已包含 `nextclaw-executive-summary-cn.png` 和“把几个月的收入和渠道数据交给 Agent”的新版说明；线上执行摘要图片 SHA-256 为 `48b6d31500473153221caf9843b5e929eaa82d03e2faddab054c436efaea2a36`，与仓库源资产完全一致。
+- 首图追加更新通过真实 `5176` UI + `18888` 数据服务执行精选截图冒烟；`nextclaw-hero-workbench-cn.png` 的源资产与 landing 镜像均为 `3024 × 1656`，SHA-256 同为 `90d8f06615ee6d7c230390c1c451d50c9cdd7b3d4553399cd4ca2365153e80ec`。
+- `pnpm -C apps/landing build`、三个截图脚本的 `node --check` 与定向 ESLint、`pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet` 均通过；定向 maintainability guard 为 0 error、0 warning。
+- 浏览器在 `http://127.0.0.1:5175/zh/` 实看首屏，确认首图按“真实会话列表 + 可视化结果 + Markdown 预览”呈现，主题、比例和三栏层级一致。
+- 本轮 landing 部署地址 `https://f26ba32c.nextclaw-landing.pages.dev` 与正式域名 `https://nextclaw.io/zh/` 均返回 HTTP 200；两处线上首图 SHA-256 与仓库文件一致，均为 `90d8f06615ee6d7c230390c1c451d50c9cdd7b3d4553399cd4ca2365153e80ec`。
 
 ## 发布/部署方式
 
@@ -33,6 +39,7 @@
 - 使用本机已安装且完成登录的 Cloudflare CLI 执行 `/opt/homebrew/bin/wrangler pages deploy apps/docs/.vitepress/dist --project-name nextclaw-docs --branch master`，发布成功，部署地址为 `https://b78f99e3.nextclaw-docs.pages.dev`，正式域名 `https://docs.nextclaw.io` 已同步生效。
 - 本次没有推送 Git 远端，也没有重启 NextClaw 服务；不涉及数据库 migration、后端发布、NPM 包发布或 runtime update channel。
 - 发布阻力的直接原因是先使用了 `pnpm dlx wrangler`，临时 CLI 没有正确复用本机登录态，进而误判为缺少 Cloudflare 凭据。现已把“先发现本机 `wrangler`、先运行 `wrangler whoami`、凭据失效时用同一 CLI 登录”的规则写入 `nextclaw-validation-workflow`，让后续 Cloudflare Pages 发布自动走正确入口。
+- 本轮官网首图追加更新已使用本机 Wrangler 发布到 Cloudflare Pages 项目 `nextclaw-landing`，部署地址为 `https://f26ba32c.nextclaw-landing.pages.dev`，正式域名已同步生效；不涉及数据库 migration、后端发布、NPM 包发布或 runtime update channel。
 
 ## 用户/产品视角的验收步骤
 
@@ -41,6 +48,7 @@
 3. 确认截图中左侧是 Agent 修改过程，右侧能直接看到翻页、随机和复制操作，并且没有无关会话历史或失败记录。
 4. 确认执行摘要图完整展示月度收入、渠道分布和目标完成度，没有无关会话、失败提示或本机路径。
 5. 确认下一张工具调用与 Markdown 预览截图仍正常展示，三类图片分别表达“小应用”“可视化分析”和“文档工作流”。
+6. 本地打开 `http://127.0.0.1:5175/zh/`，确认首图左侧包含定时任务入口和多类真实会话，中间看板数据完整，右侧设计文档可以直接辨认，且三栏没有裁切或重复素材。
 
 ## 可维护性总结汇总
 
@@ -50,6 +58,8 @@
 - 公开截图的页面环境统一屏蔽 `/api/ui-inject.js`，避免每个场景分别处理本机私有主题；设备缩放值直接留在唯一使用处，没有新增单用途配置常量。
 - 宣传稿和官网博客只替换示例文字与图片引用，源图与站点镜像继续由同一截图任务一次生成，避免人工维护两份不同素材。
 - `post-edit-maintainability-review` 结论：通过；职责仍归既有截图 owner，代码总量下降，后续不需要为每张公开素材手工清理会话历史或私有主题。
+- 首图追加能力只修改 `curated-scenes.utils.mjs`：新增 85 行、删除 11 行、净增 74 行，用于提供保留侧栏、真实会话筛选和真实文件预览三项可复用能力；历史超长的主截图入口与本地面板数据文件最终保持零增长。
+- 追加复核无 maintainability finding。新增状态生成继续属于 curated scene 配置，不新增第二套截图入口、manager 或 service；后续同类首图只需替换 session id、目标选择器和预览文件路径。
 
 ## 红区触达与减债记录
 

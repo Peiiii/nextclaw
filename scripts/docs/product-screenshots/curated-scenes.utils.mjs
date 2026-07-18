@@ -1,4 +1,8 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
+
+const workspaceStateKey = 'nextclaw.chat.workspace-panel.state';
 
 export function resolveScreenshotMode(argv, configuredMode) {
   const modeArg = argv.find((argument) => argument.startsWith('--mode='));
@@ -22,14 +26,49 @@ function buildSessionRoute(sessionId) {
   return `/chat/sid_${routeId}`;
 }
 
-async function waitForVisibleMainTarget(locator, description) {
+function createWorkspacePreviewStorage(previewPath, sessionId) {
+  const resolvedPath = path.resolve(previewPath);
+  let previewText;
+  try {
+    previewText = readFileSync(resolvedPath, 'utf8');
+  } catch {
+    throw new Error(`failed to read curated workspace preview: ${resolvedPath}`);
+  }
+  const previewKey = `${sessionId}::preview:rendered::${resolvedPath}`;
+  return {
+    [workspaceStateKey]: JSON.stringify({
+      state: {
+        snapshot: {
+          workspacePanelParentKey: sessionId,
+          activeWorkspacePanelKind: 'file',
+          activeChildSessionKey: null,
+          workspaceFileTabs: [{
+            key: previewKey,
+            parentSessionKey: sessionId,
+            path: resolvedPath,
+            label: path.basename(resolvedPath),
+            viewMode: 'preview',
+            previewViewer: 'rendered',
+            rawText: previewText
+          }],
+          activeWorkspaceFileKey: previewKey,
+          workspaceNavigationHistory: [{ kind: 'file', key: previewKey }],
+          workspaceNavigationHistoryIndex: 0
+        }
+      },
+      version: 2
+    })
+  };
+}
+
+async function waitForVisibleMainTarget(locator, description, minimumX = 320) {
   const deadline = Date.now() + 20_000;
   while (Date.now() < deadline) {
     const count = await locator.count();
     for (let index = count - 1; index >= 0; index -= 1) {
       const candidate = locator.nth(index);
       const box = await candidate.boundingBox();
-      if (box && box.x > 320 && box.width > 0 && box.height > 0) {
+      if (box && box.x > minimumX && box.width > 0 && box.height > 0) {
         return candidate;
       }
     }
@@ -63,7 +102,8 @@ async function findRepresentativeImage(page) {
 }
 
 async function waitForCuratedSession(page, options) {
-  const { targetSelector, targetText } = options;
+  const { keepSidebar, sidebarSearch, targetSelector, targetText } = options;
+  const minimumTargetX = keepSidebar ? 275 : 320;
   await page.waitForFunction(() => {
     const hasInput = Boolean(document.querySelector('textarea, [contenteditable="true"]'));
     const hasLoadingSkeleton = Boolean(document.querySelector('[data-loading="true"], [aria-busy="true"]'));
@@ -74,20 +114,34 @@ async function waitForCuratedSession(page, options) {
   if (targetSelector) {
     target = await waitForVisibleMainTarget(
       page.locator(targetSelector),
-      `SCREENSHOT_TARGET_SELECTOR=${targetSelector}`
+      `SCREENSHOT_TARGET_SELECTOR=${targetSelector}`,
+      minimumTargetX
     );
   } else if (targetText) {
     target = await waitForVisibleMainTarget(
       page.getByText(targetText, { exact: false }),
-      `SCREENSHOT_TARGET_TEXT=${targetText}`
+      `SCREENSHOT_TARGET_TEXT=${targetText}`,
+      minimumTargetX
     );
   } else {
     target = await findRepresentativeImage(page);
   }
 
-  const collapseSidebar = page.getByRole('button', { name: /^(收起侧边栏|Collapse sidebar)$/ }).first();
-  if (await collapseSidebar.isVisible()) {
-    await collapseSidebar.click();
+  if (!keepSidebar) {
+    const collapseSidebar = page.getByRole('button', { name: /^(收起侧边栏|Collapse sidebar)$/ }).first();
+    if (await collapseSidebar.isVisible()) {
+      await collapseSidebar.click();
+    }
+  }
+
+  if (sidebarSearch) {
+    const searchInput = page.locator(
+      'input[placeholder*="搜索对话"], input[placeholder*="Search conversations"]'
+    );
+    if (await searchInput.count() !== 1) {
+      throw new Error('failed to locate the sidebar conversation search input');
+    }
+    await searchInput.fill(sidebarSearch);
   }
 
   await target.evaluate((element) => {
@@ -98,7 +152,15 @@ async function waitForCuratedSession(page, options) {
 }
 
 export function createCuratedScreenshotScenes(options) {
-  const { assetName, sessionId, targetSelector, targetText } = options;
+  const {
+    assetName,
+    keepSidebar,
+    sessionId,
+    sidebarSearch,
+    targetSelector,
+    targetText,
+    workspacePreviewPath
+  } = options;
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(assetName)) {
     throw new Error(`invalid SCREENSHOT_CURATED_ASSET: ${assetName}`);
   }
@@ -106,12 +168,21 @@ export function createCuratedScreenshotScenes(options) {
     return [];
   }
   const route = buildSessionRoute(sessionId);
-  const afterLoad = async ({ page }) => waitForCuratedSession(page, { targetSelector, targetText });
+  const storageItems = workspacePreviewPath
+    ? createWorkspacePreviewStorage(workspacePreviewPath, sessionId)
+    : undefined;
+  const afterLoad = async ({ page }) => waitForCuratedSession(page, {
+    keepSidebar,
+    sidebarSearch,
+    targetSelector,
+    targetText
+  });
   return Object.entries({ en: 'en', zh: 'cn' }).map(([language, assetSuffix]) => ({
     id: `${assetName}-${language}`,
     route,
     language,
     afterLoad,
+    storageItems,
     outputs: [
       `images/screenshots/${assetName}-${assetSuffix}.png`,
       `apps/landing/public/${assetName}-${assetSuffix}.png`
@@ -130,9 +201,12 @@ export function createScreenshotModeState({ argv, env, sceneFilter, stableScenes
     const availableScenes = screenshotMode === 'curated'
       ? createCuratedScreenshotScenes({
           assetName: String(env.SCREENSHOT_CURATED_ASSET || 'nextclaw-image-generation-result').trim(),
+          keepSidebar: parseBooleanEnv(env.SCREENSHOT_KEEP_SIDEBAR),
           sessionId: curatedSessionId,
+          sidebarSearch: String(env.SCREENSHOT_SIDEBAR_SEARCH || '').trim(),
           targetSelector: String(env.SCREENSHOT_TARGET_SELECTOR || '').trim(),
-          targetText: String(env.SCREENSHOT_TARGET_TEXT || '').trim()
+          targetText: String(env.SCREENSHOT_TARGET_TEXT || '').trim(),
+          workspacePreviewPath: String(env.SCREENSHOT_WORKSPACE_PREVIEW_PATH || '').trim()
         })
       : stableScenes;
     return availableScenes.filter(matchesSceneFilter);
