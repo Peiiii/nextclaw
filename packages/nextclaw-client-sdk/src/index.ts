@@ -6,12 +6,7 @@ export {
 export { NextClawClient } from "./nextclaw-client.manager.js";
 export { NextClawClientError } from "./services/request.service.js";
 export { eventKeys } from "@nextclaw/shared";
-export type {
-  AgentRunSendIngressPayload,
-  AppEvent,
-  AppEventEnvelope,
-  AppEventKey
-} from "@nextclaw/shared";
+export type { AgentRunSendIngressPayload, AppEvent, AppEventEnvelope, AppEventKey } from "@nextclaw/shared";
 export type {
   NextClawAgentRunStreamHandler,
   NextClawAgentRunStreamOptions,
@@ -69,6 +64,9 @@ export type {
   CronActionResult,
   CronEnableRequest,
   CronJobView,
+  CronListQuery,
+  CronListStatus,
+  CronListSummaryView,
   CronListView,
   CronRunRequest,
   MarketplaceInstalledView,

@@ -5,10 +5,14 @@ import type {
   CronCreateResult,
   CronEnableRequest,
   CronJobView,
+  CronListStatus,
   CronRunRequest
 } from "@nextclaw-server/shared/types/server-api.types.js";
 import { err, ok, readJson, readNonEmptyString } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import type { CronJobEntry, UiCronHost, UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
+
+const CRON_LIST_MAX_LIMIT = 100;
+const CRON_LIST_STATUSES = new Set<CronListStatus>(["all", "enabled", "disabled", "attention"]);
 
 function toIsoTime(value?: number | null): string | null {
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -38,6 +42,63 @@ function buildCronJobView(job: CronJobEntry): CronJobView {
     updatedAt: new Date(job.updatedAtMs).toISOString(),
     deleteAfterRun: job.deleteAfterRun
   };
+}
+
+function readCronListInteger(
+  rawValue: string | undefined,
+  name: "limit" | "offset",
+  minimum: number,
+  maximum: number,
+): { value: number | null } | { error: string } {
+  if (rawValue === undefined) {
+    return { value: null };
+  }
+  const value = Number(rawValue);
+  if (!Number.isSafeInteger(value) || value < minimum || value > maximum) {
+    return { error: `${name} must be an integer between ${minimum} and ${maximum}` };
+  }
+  return { value };
+}
+
+function readCronListStatus(query: Record<string, string>): CronListStatus | null {
+  if (query.status) {
+    const status = query.status as CronListStatus;
+    return CRON_LIST_STATUSES.has(status) ? status : null;
+  }
+  const enabledOnly =
+    query.enabledOnly === "1" ||
+    query.enabledOnly === "true" ||
+    query.enabledOnly === "yes" ||
+    query.all === "0" ||
+    query.all === "false" ||
+    query.all === "no";
+  return enabledOnly ? "enabled" : "all";
+}
+
+function matchesCronListStatus(job: CronJobView, status: CronListStatus): boolean {
+  if (status === "enabled") {
+    return job.enabled;
+  }
+  if (status === "disabled") {
+    return !job.enabled;
+  }
+  if (status === "attention") {
+    return job.state.lastStatus === "error";
+  }
+  return true;
+}
+
+function matchesCronListQuery(job: CronJobView, query: string): boolean {
+  if (!query) {
+    return true;
+  }
+  return [
+    job.id,
+    job.name,
+    job.payload.message,
+    job.payload.agentId ?? "",
+    job.payload.sessionId ?? "",
+  ].some((value) => value.toLowerCase().includes(query));
 }
 
 function findCronJob(service: UiCronHost, id: string): CronJobEntry | null {
@@ -117,16 +178,42 @@ export class CronRoutesController {
       return c.json(err("NOT_AVAILABLE", "cron service unavailable"), 503);
     }
     const query = c.req.query();
-    const enabledOnly =
-      query.enabledOnly === "1" ||
-      query.enabledOnly === "true" ||
-      query.enabledOnly === "yes" ||
-      query.all === "0" ||
-      query.all === "false" ||
-      query.all === "no";
-    const includeDisabled = !enabledOnly;
-    const jobs = this.options.cron.listJobs(includeDisabled).map((job) => buildCronJobView(job as CronJobEntry));
-    return c.json(ok({ jobs, total: jobs.length }));
+    const status = readCronListStatus(query);
+    if (!status) {
+      return c.json(err("INVALID_QUERY", "status must be all, enabled, disabled, or attention"), 400);
+    }
+    const limitResult = readCronListInteger(query.limit, "limit", 1, CRON_LIST_MAX_LIMIT);
+    if ("error" in limitResult) {
+      return c.json(err("INVALID_QUERY", limitResult.error), 400);
+    }
+    const offsetResult = readCronListInteger(query.offset, "offset", 0, Number.MAX_SAFE_INTEGER);
+    if ("error" in offsetResult) {
+      return c.json(err("INVALID_QUERY", offsetResult.error), 400);
+    }
+    if (offsetResult.value !== null && limitResult.value === null) {
+      return c.json(err("INVALID_QUERY", "offset requires limit"), 400);
+    }
+
+    const allJobs = this.options.cron.listJobs(true).map((job) => buildCronJobView(job as CronJobEntry));
+    const enabled = allJobs.filter((job) => job.enabled).length;
+    const normalizedQuery = query.query?.trim().toLowerCase() ?? "";
+    const filteredJobs = allJobs.filter(
+      (job) => matchesCronListStatus(job, status) && matchesCronListQuery(job, normalizedQuery),
+    );
+    const offset = offsetResult.value ?? 0;
+    const jobs = limitResult.value === null
+      ? filteredJobs
+      : filteredJobs.slice(offset, offset + limitResult.value);
+    return c.json(ok({
+      jobs,
+      total: filteredJobs.length,
+      summary: {
+        total: allJobs.length,
+        enabled,
+        disabled: allJobs.length - enabled,
+        attention: allJobs.filter((job) => job.state.lastStatus === "error").length,
+      },
+    }));
   };
 
   readonly createJob = async (c: Context) => {

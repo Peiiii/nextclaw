@@ -241,10 +241,10 @@ export function ChatSidebar({
     sessionType: string,
     projectRoot?: string | null,
   ) => {
-    presenter.chatSessionListManager.createSession(
+    presenter.chatSessionListManager.createSession({
+      projectRoot: typeof projectRoot === "string" ? projectRoot : undefined,
       sessionType,
-      typeof projectRoot === "string" ? projectRoot : undefined,
-    );
+    });
   };
   const openProjectCreate = () => {
     projectCreateMutation.reset();

@@ -116,10 +116,10 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                         options={sessionTypeOptions}
                         selectedSessionType={preferredSessionType}
                         onSelect={(sessionType) => {
-                          presenter.chatSessionListManager.createSession(
+                          presenter.chatSessionListManager.createSession({
+                            projectRoot: group.projectRoot,
                             sessionType,
-                            group.projectRoot,
-                          );
+                          });
                           setOpenProjectRoot(null);
                         }}
                       />
@@ -130,10 +130,10 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                     icon={<Plus className="h-3.5 w-3.5" />}
                     label={actionLabel}
                     onClick={() =>
-                      presenter.chatSessionListManager.createSession(
-                        preferredSessionType,
-                        group.projectRoot,
-                      )
+                      presenter.chatSessionListManager.createSession({
+                        projectRoot: group.projectRoot,
+                        sessionType: preferredSessionType,
+                      })
                     }
                   />
                 )}

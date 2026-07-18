@@ -1,0 +1,2072 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NextClaw 定时任务体验原型</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f5f7f9;
+        --surface: #ffffff;
+        --surface-soft: #f7f8fa;
+        --surface-strong: #eef2f5;
+        --text: #182027;
+        --muted: #6f7882;
+        --faint: #9ba3ab;
+        --line: #e5e9ed;
+        --line-strong: #d8dee4;
+        --accent: #177a73;
+        --accent-soft: #e5f4f1;
+        --success: #14805e;
+        --warning: #c77a22;
+        --danger: #c84848;
+        --shadow: 0 18px 50px rgba(28, 39, 48, 0.08);
+        --radius-xl: 24px;
+        --radius-lg: 18px;
+        --radius-md: 13px;
+        font-family:
+          Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        background: var(--canvas);
+        color: var(--text);
+      }
+
+      button,
+      input,
+      textarea,
+      select {
+        font: inherit;
+      }
+
+      button {
+        color: inherit;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      textarea:focus-visible,
+      select:focus-visible {
+        outline: 3px solid rgba(23, 122, 115, 0.22);
+        outline-offset: 2px;
+      }
+
+      .review-bar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        min-height: 64px;
+        align-items: center;
+        gap: 16px;
+        padding: 10px 18px;
+        border-bottom: 1px solid #dce2e7;
+        background: rgba(248, 250, 251, 0.94);
+        backdrop-filter: blur(18px);
+      }
+
+      .review-title {
+        min-width: max-content;
+        font-size: 13px;
+        font-weight: 760;
+        letter-spacing: 0.01em;
+      }
+
+      .review-title span {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 550;
+      }
+
+      .review-controls {
+        display: flex;
+        min-width: 0;
+        flex: 1;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .segmented {
+        display: inline-flex;
+        min-width: 0;
+        gap: 3px;
+        padding: 3px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #edf1f4;
+      }
+
+      .segmented button {
+        min-width: 86px;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        padding: 8px 11px;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 650;
+        transition: 160ms ease;
+      }
+
+      .segmented button:hover {
+        color: var(--text);
+      }
+
+      .segmented button[aria-selected="true"] {
+        background: var(--surface);
+        color: var(--text);
+        box-shadow: 0 2px 8px rgba(24, 32, 39, 0.08);
+      }
+
+      .prototype-window {
+        display: grid;
+        width: min(1560px, calc(100vw - 32px));
+        min-height: calc(100vh - 96px);
+        margin: 16px auto;
+        overflow: hidden;
+        grid-template-columns: 248px minmax(0, 1fr);
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius-xl);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .app-sidebar {
+        display: flex;
+        min-height: 720px;
+        flex-direction: column;
+        padding: 18px 14px;
+        border-right: 1px solid var(--line);
+        background: #f7f8f7;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 8px 18px;
+        font-size: 15px;
+        font-weight: 780;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 29px;
+        height: 29px;
+        place-items: center;
+        border-radius: 9px;
+        background: #141a1f;
+        color: #fff;
+        font-size: 12px;
+      }
+
+      .new-task {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        border: 0;
+        border-radius: 13px;
+        background: #e7ecea;
+        padding: 11px 14px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .sidebar-nav {
+        display: grid;
+        gap: 4px;
+        margin-top: 14px;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 0;
+        border-radius: 11px;
+        background: transparent;
+        padding: 10px 11px;
+        color: var(--muted);
+        cursor: pointer;
+        text-align: left;
+        font-size: 13px;
+      }
+
+      .nav-item:hover {
+        background: #edf0ee;
+        color: var(--text);
+      }
+
+      .nav-item.active {
+        background: #e4e8e5;
+        color: var(--text);
+        font-weight: 700;
+      }
+
+      .sidebar-label {
+        margin: 25px 10px 9px;
+        color: var(--faint);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .history-item {
+        padding: 8px 10px;
+        border-radius: 10px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .history-item strong {
+        display: block;
+        overflow: hidden;
+        color: #3c454d;
+        font-size: 12px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .sidebar-footer {
+        margin-top: auto;
+        padding: 15px 10px 2px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .app-main {
+        position: relative;
+        min-width: 0;
+        min-height: 720px;
+        background: var(--surface);
+      }
+
+      .surface {
+        min-height: 100%;
+      }
+
+      .page-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 30px 34px 18px;
+      }
+
+      .eyebrow {
+        margin-bottom: 7px;
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 760;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 7px;
+        font-size: clamp(26px, 3vw, 36px);
+        letter-spacing: -0.035em;
+      }
+
+      .page-description {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .ghost-button,
+      .primary-button,
+      .soft-button,
+      .icon-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        border-radius: 11px;
+        cursor: pointer;
+        font-weight: 700;
+        transition: 160ms ease;
+      }
+
+      .ghost-button,
+      .soft-button {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        padding: 9px 13px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .ghost-button:hover,
+      .soft-button:hover {
+        border-color: var(--line-strong);
+        background: var(--surface-soft);
+      }
+
+      .primary-button {
+        border: 1px solid #0f665f;
+        background: var(--accent);
+        padding: 10px 15px;
+        color: white;
+        font-size: 12px;
+        box-shadow: 0 6px 18px rgba(23, 122, 115, 0.2);
+      }
+
+      .primary-button:hover {
+        background: #126d66;
+      }
+
+      .icon-button {
+        width: 34px;
+        height: 34px;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+      }
+
+      .icon-button:hover {
+        background: var(--surface-strong);
+        color: var(--text);
+      }
+
+      .schedule-composer {
+        position: relative;
+        width: 100%;
+      }
+
+      .schedule-composer > span {
+        position: absolute;
+        z-index: 1;
+        top: 50%;
+        left: 12px;
+        display: grid;
+        color: var(--muted);
+        pointer-events: none;
+        transform: translateY(-50%);
+      }
+
+      .schedule-composer input {
+        width: 100%;
+        height: 36px;
+        border: 1px solid var(--line-strong);
+        border-radius: 12px;
+        outline: 0;
+        background: var(--surface);
+        padding: 0 44px 0 36px;
+        color: var(--text);
+        font-size: 13px;
+      }
+
+      .schedule-composer input::placeholder {
+        color: var(--faint);
+      }
+
+      .composer-send {
+        position: absolute;
+        top: 50%;
+        right: 4px;
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border: 0;
+        border-radius: 50%;
+        background: #11181d;
+        color: white;
+        cursor: pointer;
+        transform: translateY(-50%);
+      }
+
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 24px 0 12px;
+      }
+
+      .section-head h2 {
+        margin: 0;
+        font-size: 16px;
+        letter-spacing: -0.015em;
+      }
+
+      .section-head span,
+      .text-button {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .text-button {
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+      }
+
+      .task-list {
+        display: grid;
+        gap: 7px;
+      }
+
+      .task-list.primary {
+        gap: 0;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .task-list.primary .task-row {
+        border-bottom: 1px solid var(--line);
+        border-radius: 0;
+        padding: 15px 4px;
+      }
+
+      .task-list.primary .task-row:last-child {
+        border-bottom: 0;
+      }
+
+      .task-list.primary .task-row:hover,
+      .task-list.primary .task-row.expanded {
+        border-radius: 12px;
+      }
+
+      .task-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 2px;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .task-pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .task-pagination-controls > span {
+        min-width: 54px;
+        color: var(--text);
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .task-row {
+        position: relative;
+        display: grid;
+        min-width: 0;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 11px;
+        width: 100%;
+        border: 1px solid transparent;
+        border-radius: 14px;
+        background: transparent;
+        padding: 11px 12px;
+        text-align: left;
+        transition: 150ms ease;
+      }
+
+      .task-row[hidden] {
+        display: none;
+      }
+
+      .task-row-main {
+        display: grid;
+        min-width: 0;
+        grid-template-columns: 36px minmax(0, 1fr);
+        align-items: center;
+        gap: 11px;
+        border: 0;
+        background: transparent;
+        padding: 0;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .task-row:hover {
+        background: #f1f4f3;
+      }
+
+      .task-row.expanded {
+        background: #e8edeb;
+      }
+
+      .task-preview {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-rows: 0fr;
+        opacity: 0;
+        transition: grid-template-rows 180ms ease, opacity 180ms ease;
+      }
+
+      .task-row.expanded .task-preview {
+        grid-template-rows: 1fr;
+        opacity: 1;
+      }
+
+      .task-preview-inner {
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .task-preview-card {
+        margin: 3px 0 0 47px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.72);
+        padding: 12px 14px;
+      }
+
+      .task-preview-label {
+        color: var(--muted);
+        font-size: 9px;
+        font-weight: 760;
+        letter-spacing: 0.08em;
+      }
+
+      .task-preview-card p {
+        margin: 6px 0 0;
+        color: var(--text);
+        font-size: 11px;
+        line-height: 1.7;
+      }
+
+      .task-preview-meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 10px;
+        border-top: 1px solid var(--line);
+        padding-top: 10px;
+      }
+
+      .task-preview-meta span {
+        min-width: 0;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .task-preview-meta strong {
+        display: block;
+        overflow: hidden;
+        margin-top: 3px;
+        color: var(--text);
+        font-size: 10px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .task-status {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border-radius: 11px;
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .task-status.warning {
+        background: #fff1df;
+        color: var(--warning);
+      }
+
+      .task-copy {
+        min-width: 0;
+      }
+
+      .task-title {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 740;
+      }
+
+      .task-title strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .task-meta {
+        display: flex;
+        min-width: 0;
+        flex-wrap: wrap;
+        gap: 5px 12px;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        border-radius: 999px;
+        background: var(--surface-strong);
+        padding: 3px 7px;
+        color: var(--muted);
+        font-size: 9px;
+        font-weight: 760;
+      }
+
+      .badge.ok {
+        background: #e6f5ed;
+        color: var(--success);
+      }
+
+      .task-actions {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .row-hover-actions {
+        position: absolute;
+        top: 50%;
+        right: 43px;
+        display: flex;
+        gap: 2px;
+        padding-left: 14px;
+        background: linear-gradient(90deg, transparent, #f1f4f3 24%);
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(5px, -50%);
+        transition: 150ms ease;
+      }
+
+      .task-row:hover .row-hover-actions,
+      .task-row:focus-within .row-hover-actions {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translate(0, -50%);
+      }
+
+      .row-action {
+        position: relative;
+        width: 30px;
+        height: 30px;
+      }
+
+      .row-action::after {
+        position: absolute;
+        right: 0;
+        bottom: calc(100% + 6px);
+        z-index: 4;
+        width: max-content;
+        max-width: 120px;
+        border-radius: 7px;
+        background: #1c242a;
+        padding: 5px 7px;
+        color: white;
+        content: attr(data-tooltip);
+        font-size: 9px;
+        font-weight: 650;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(2px);
+        transition: 120ms ease;
+      }
+
+      .row-action:hover::after,
+      .row-action:focus-visible::after {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .switch {
+        position: relative;
+        width: 35px;
+        height: 21px;
+        border: 0;
+        border-radius: 999px;
+        background: #cfd5da;
+        cursor: pointer;
+      }
+
+      .switch::after {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        background: white;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+        content: "";
+        transition: 160ms ease;
+      }
+
+      .switch.on {
+        background: var(--accent);
+      }
+
+      .switch.on::after {
+        transform: translateX(14px);
+      }
+
+      .template-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .template-grid.compact {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 9px;
+      }
+
+      .template-card {
+        display: grid;
+        min-width: 0;
+        grid-template-columns: 38px minmax(0, 1fr);
+        gap: 11px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        background: var(--surface);
+        padding: 14px;
+        cursor: pointer;
+        text-align: left;
+        transition: 170ms ease;
+      }
+
+      .template-card:hover {
+        border-color: #cfd8d8;
+        transform: translateY(-2px);
+        box-shadow: 0 12px 30px rgba(30, 45, 52, 0.08);
+      }
+
+      .template-icon {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        border-radius: 12px;
+        background: var(--surface-strong);
+        color: #34414a;
+      }
+
+      .template-card strong {
+        display: block;
+        overflow: hidden;
+        margin-bottom: 4px;
+        font-size: 12px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .template-card p {
+        display: -webkit-box;
+        overflow: hidden;
+        margin: 0;
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 1.5;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+      }
+
+      .detail-panel {
+        min-width: 0;
+        padding: 26px 30px 32px;
+        border-left: 1px solid var(--line);
+        background: #fbfcfc;
+      }
+
+      .detail-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .detail-top h2 {
+        margin: 2px 0 4px;
+        font-size: 20px;
+        letter-spacing: -0.025em;
+      }
+
+      .detail-top p {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .field-group {
+        margin-top: 22px;
+      }
+
+      .field-label {
+        display: block;
+        margin-bottom: 7px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 760;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .field-control {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--surface);
+        padding: 11px 12px;
+        color: var(--text);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      textarea.field-control {
+        min-height: 116px;
+        resize: vertical;
+      }
+
+      .schedule-fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .info-list {
+        display: grid;
+        gap: 1px;
+        overflow: hidden;
+        margin-top: 20px;
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        background: var(--line);
+      }
+
+      .info-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        background: var(--surface);
+        padding: 11px 12px;
+        font-size: 11px;
+      }
+
+      .info-row span:first-child {
+        color: var(--muted);
+      }
+
+      .run-list {
+        display: grid;
+        gap: 9px;
+        margin-top: 10px;
+      }
+
+      .run-item {
+        display: grid;
+        grid-template-columns: 9px minmax(0, 1fr) auto;
+        gap: 9px;
+        align-items: start;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .run-dot {
+        width: 8px;
+        height: 8px;
+        margin-top: 3px;
+        border-radius: 50%;
+        background: var(--success);
+      }
+
+      .run-dot.error {
+        background: var(--danger);
+      }
+
+      .detail-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 22px;
+      }
+
+      .empty-hero {
+        display: flex;
+        min-height: 315px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 36px 24px;
+        text-align: center;
+      }
+
+      .empty-symbol {
+        display: grid;
+        width: 68px;
+        height: 68px;
+        place-items: center;
+        border-radius: 22px;
+        background: var(--surface-strong);
+        color: var(--faint);
+      }
+
+      .empty-hero h2 {
+        margin: 18px 0 8px;
+        font-size: 21px;
+        letter-spacing: -0.02em;
+      }
+
+      .empty-hero p {
+        max-width: 480px;
+        margin-bottom: 20px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.7;
+      }
+
+      .hero-composer {
+        width: min(680px, 100%);
+      }
+
+      .discovery-wrap {
+        padding: 0 32px 36px;
+      }
+
+      .discovery-wrap .template-grid {
+        gap: 14px;
+      }
+
+      .discovery-wrap .template-card {
+        min-height: 96px;
+        padding: 17px;
+        border-color: transparent;
+        box-shadow: 0 9px 28px rgba(32, 42, 49, 0.06);
+      }
+
+      .dashboard {
+        padding: 0 34px 34px;
+      }
+
+      .overview-strip {
+        display: grid;
+        grid-template-columns: minmax(180px, 1.35fr) repeat(3, minmax(100px, 0.55fr));
+        gap: 1px;
+        overflow: hidden;
+        margin-top: 18px;
+        border-radius: 16px;
+        background: var(--line);
+      }
+
+      .overview-lead,
+      .overview-metric {
+        min-width: 0;
+        background: var(--surface-soft);
+        padding: 15px 16px;
+      }
+
+      .overview-lead {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+      }
+
+      .overview-lead .task-status {
+        flex: 0 0 auto;
+      }
+
+      .overview-lead strong,
+      .overview-lead span,
+      .overview-metric strong,
+      .overview-metric span {
+        display: block;
+      }
+
+      .overview-lead strong {
+        margin-bottom: 3px;
+        font-size: 12px;
+      }
+
+      .overview-lead span,
+      .overview-metric span {
+        overflow: hidden;
+        color: var(--muted);
+        font-size: 10px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .overview-metric strong {
+        margin-bottom: 3px;
+        font-size: 18px;
+      }
+
+      .task-section {
+        margin-top: 28px;
+      }
+
+      .task-section .section-head {
+        margin-top: 0;
+      }
+
+      .task-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+
+      .task-search {
+        min-width: 180px;
+        flex: 1;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        background: var(--surface-soft);
+        padding: 9px 11px;
+        color: var(--text);
+        font-size: 11px;
+      }
+
+      .filter-group {
+        display: flex;
+        gap: 4px;
+      }
+
+      .filter-button {
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        padding: 8px 10px;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .filter-button:hover,
+      .filter-button[aria-pressed="true"] {
+        background: var(--surface-strong);
+        color: var(--text);
+      }
+
+      .detail-scrim {
+        position: absolute;
+        inset: 0;
+        z-index: 18;
+        border: 0;
+        background: rgba(22, 29, 34, 0.2);
+        cursor: pointer;
+      }
+
+      .detail-panel.detail-drawer {
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 19;
+        width: min(510px, calc(100% - 88px));
+        height: 100%;
+        overflow-y: auto;
+        border: 0;
+        border-left: 1px solid var(--line);
+        border-radius: 0;
+        background: #fbfcfc;
+        box-shadow: -18px 0 48px rgba(25, 35, 43, 0.13);
+        padding: 28px 30px 36px;
+      }
+
+      .recommended-note {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 12px;
+        background: var(--accent-soft);
+        padding: 10px 12px;
+        color: #17625c;
+        font-size: 10px;
+        line-height: 1.5;
+      }
+
+      .chat-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 30;
+        display: none;
+        flex-direction: column;
+        background: var(--surface);
+      }
+
+      .chat-overlay.open {
+        display: flex;
+        animation: slide-in 180ms ease-out;
+      }
+
+      @keyframes slide-in {
+        from {
+          opacity: 0;
+          transform: translateX(18px);
+        }
+      }
+
+      .chat-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .chat-head strong {
+        font-size: 13px;
+      }
+
+      .chat-head span {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .chat-body {
+        width: min(760px, 100%);
+        margin: 0 auto;
+        padding: 54px 24px 24px;
+      }
+
+      .chat-bubble {
+        width: fit-content;
+        max-width: 78%;
+        margin-left: auto;
+        border-radius: 18px 18px 5px 18px;
+        background: #edf1f2;
+        padding: 13px 16px;
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
+      .assistant-row {
+        display: grid;
+        grid-template-columns: 30px minmax(0, 1fr);
+        gap: 11px;
+        margin-top: 26px;
+      }
+
+      .assistant-avatar {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border-radius: 10px;
+        background: #151c21;
+        color: white;
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .assistant-message {
+        color: #39434b;
+        font-size: 13px;
+        line-height: 1.75;
+      }
+
+      .typing {
+        display: inline-flex;
+        gap: 4px;
+        margin-top: 8px;
+      }
+
+      .typing i {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--faint);
+        animation: blink 1.1s infinite alternate;
+      }
+
+      .typing i:nth-child(2) {
+        animation-delay: 180ms;
+      }
+
+      .typing i:nth-child(3) {
+        animation-delay: 360ms;
+      }
+
+      @keyframes blink {
+        to {
+          opacity: 0.25;
+          transform: translateY(-2px);
+        }
+      }
+
+      .toast {
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        z-index: 80;
+        max-width: min(390px, calc(100vw - 44px));
+        border: 1px solid #cfe2de;
+        border-radius: 12px;
+        background: #f5fbf9;
+        padding: 11px 14px;
+        color: #235e58;
+        box-shadow: 0 14px 40px rgba(24, 50, 55, 0.14);
+        font-size: 11px;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(8px);
+        transition: 180ms ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      svg {
+        width: 17px;
+        height: 17px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.8;
+      }
+
+      .empty-symbol svg {
+        width: 31px;
+        height: 31px;
+      }
+
+      @media (max-width: 1120px) {
+        .prototype-window {
+          width: min(100% - 18px, 1200px);
+          grid-template-columns: 210px minmax(0, 1fr);
+        }
+
+        .template-grid,
+        .template-grid.compact {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .overview-strip {
+          grid-template-columns: minmax(220px, 1.5fr) repeat(3, minmax(90px, 0.5fr));
+        }
+      }
+
+      @media (max-width: 880px) {
+        .review-bar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .review-controls {
+          width: 100%;
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .segmented {
+          width: 100%;
+          overflow-x: auto;
+        }
+
+        .segmented button {
+          flex: 1 0 auto;
+        }
+
+        .prototype-window {
+          min-height: calc(100vh - 150px);
+          grid-template-columns: 1fr;
+          margin-top: 9px;
+        }
+
+        .app-sidebar {
+          display: none;
+        }
+
+        .app-main {
+          min-height: 680px;
+        }
+
+        .detail-panel {
+          border-top: 1px solid var(--line);
+          border-left: 0;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .review-bar {
+          padding: 9px;
+        }
+
+        .prototype-window {
+          width: calc(100% - 10px);
+          border-radius: 17px;
+        }
+
+        .page-head,
+        .dashboard,
+        .discovery-wrap,
+        .detail-panel {
+          padding-right: 16px;
+          padding-left: 16px;
+        }
+
+        .page-head {
+          padding-top: 22px;
+        }
+
+        .template-grid,
+        .template-grid.compact,
+        .schedule-fields {
+          grid-template-columns: 1fr;
+        }
+
+        .overview-strip {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .overview-lead {
+          grid-column: 1 / -1;
+        }
+
+        .overview-metric {
+          padding: 12px;
+        }
+
+        .task-toolbar {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .filter-group {
+          overflow-x: auto;
+        }
+
+        .detail-panel.detail-drawer {
+          width: 100%;
+          padding-right: 18px;
+          padding-left: 18px;
+        }
+
+        .task-row {
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .task-actions {
+          justify-content: flex-start;
+        }
+
+        .task-preview-card {
+          margin-left: 0;
+        }
+
+        .task-preview-meta {
+          grid-template-columns: 1fr;
+        }
+
+        .empty-hero {
+          min-height: 285px;
+          padding-inline: 16px;
+        }
+
+        .detail-actions > * {
+          flex: 1 1 auto;
+        }
+      }
+
+      @media (hover: none), (max-width: 620px) {
+        .row-hover-actions {
+          position: static;
+          padding-left: 0;
+          background: transparent;
+          opacity: 1;
+          pointer-events: auto;
+          transform: none;
+        }
+
+        .task-row:hover .row-hover-actions,
+        .task-row:focus-within .row-hover-actions {
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="review-bar" aria-label="原型评审工具栏">
+      <div class="review-title">
+        NextClaw · 推荐方案原型
+        <span>任务列表优先 · 迭代 2</span>
+      </div>
+      <div class="review-controls">
+        <div class="segmented" id="stateControl" aria-label="页面状态">
+          <button type="button" data-state="empty">零任务</button>
+          <button type="button" data-state="list">已有任务</button>
+          <button type="button" data-state="detail">选中详情</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="prototype-window">
+      <aside class="app-sidebar" aria-label="NextClaw 主导航">
+        <div class="brand"><span class="brand-mark">N</span> NextClaw</div>
+        <button class="new-task" type="button" data-new-chat>＋ 新任务</button>
+        <nav class="sidebar-nav">
+          <button class="nav-item" type="button" data-new-chat>
+            <span data-icon="chat"></span>聊天
+          </button>
+          <button class="nav-item active" type="button">
+            <span data-icon="clock"></span>定时任务
+          </button>
+          <button class="nav-item" type="button">
+            <span data-icon="spark"></span>技能
+          </button>
+          <button class="nav-item" type="button">
+            <span data-icon="bot"></span>Agent 管理
+          </button>
+        </nav>
+        <div class="sidebar-label">最近会话</div>
+        <div class="history-item">
+          <strong>Agent 产品雷达</strong>整理本周值得关注的产品变化
+        </div>
+        <div class="history-item">
+          <strong>项目发布检查</strong>确认文档、构建与线上状态
+        </div>
+        <div class="history-item">
+          <strong>周报内容整理</strong>汇总本周完成事项与未决问题
+        </div>
+        <div class="sidebar-footer">设置 · 自然 / 中文</div>
+      </aside>
+
+      <main class="app-main">
+        <section class="surface" id="surface"></section>
+        <section class="chat-overlay" id="chatOverlay" aria-label="AI 会话预览">
+          <div class="chat-head">
+            <button class="icon-button" type="button" id="backToTasks" aria-label="返回定时任务">
+              <span data-icon="back"></span>
+            </button>
+            <div>
+              <strong>新会话</strong>
+              <span>从定时任务页开始</span>
+            </div>
+          </div>
+          <div class="chat-body">
+            <div class="chat-bubble" id="chatPrompt"></div>
+            <div class="assistant-row">
+              <div class="assistant-avatar">N</div>
+              <div class="assistant-message">
+                我会先确认执行时间、任务范围和结果发送方式，再为你创建定时任务。
+                <div class="typing" aria-label="正在回复"><i></i><i></i><i></i></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      const tasks = [
+        {
+          id: "agent-radar",
+          title: "Agent 产品雷达",
+          schedule: "每周二、周五 09:00",
+          next: "下次执行 3 天后",
+          status: "ok",
+          statusLabel: "运行正常",
+          prompt:
+            "收集上次运行以来 AI Agent、编程 Agent 与相关竞品的重要更新。优先使用官方公告、Release Notes 和 GitHub Releases，交叉核验重大信息并附原始来源链接。",
+          agent: "Researcher",
+          session: "cron:agent-radar",
+        },
+        {
+          id: "weekly-recap",
+          title: "每周项目复盘",
+          schedule: "每周五 18:00",
+          next: "下次执行 后天",
+          status: "ok",
+          statusLabel: "运行正常",
+          prompt:
+            "汇总本周项目进展、关键决定、遗留问题和下周优先事项。只引用本周真实提交、任务与会话记录。",
+          agent: "Main",
+          session: "session:project-weekly",
+        },
+        {
+          id: "mail-watch",
+          title: "重要邮件监控",
+          schedule: "工作日每 2 小时",
+          next: "下次执行 46 分钟后",
+          status: "warning",
+          statusLabel: "需要关注",
+          prompt:
+            "检查过去两小时收到的重要邮件，识别需要回复、即将到期或涉及付款与账号安全的内容，只报告需要行动的项目。",
+          agent: "Assistant",
+          session: "cron:mail-watch",
+        },
+        {
+          id: "content-digest",
+          title: "行业内容摘要",
+          schedule: "每天 08:30",
+          next: "下次执行 明天",
+          status: "ok",
+          statusLabel: "运行正常",
+          prompt:
+            "汇总我订阅的信息源中值得阅读的新内容，按主题归类并说明每一项为什么值得花时间。",
+          agent: "Researcher",
+          session: "cron:content-digest",
+        },
+        {
+          id: "workspace-backup",
+          title: "工作区备份检查",
+          schedule: "每周日 23:00",
+          next: "下次执行 5 天后",
+          status: "ok",
+          statusLabel: "运行正常",
+          prompt:
+            "检查重要工作区的备份是否完整，只在发现缺失、过期或无法恢复的备份时通知我。",
+          agent: "Main",
+          session: "cron:workspace-backup",
+        },
+      ];
+
+      const templates = [
+        {
+          icon: "news",
+          title: "每日 AI 新闻简报",
+          description: "每天早上汇总真正影响工作的 AI 产品与研究进展。",
+          prompt: "每天早上 8 点汇总过去 24 小时最重要的 AI 产品和研究进展，附上原始来源。",
+        },
+        {
+          icon: "chart",
+          title: "每周项目复盘",
+          description: "周五汇总进展、决定、遗留问题和下周重点。",
+          prompt: "每周五下午 6 点汇总当前项目本周的进展、关键决定、遗留问题和下周优先事项。",
+        },
+        {
+          icon: "mail",
+          title: "重要邮件监控",
+          description: "定期检查需要回复、即将到期或涉及安全的邮件。",
+          prompt: "工作日每两小时检查一次重要邮件，只告诉我需要回复、即将到期或涉及账号安全的内容。",
+        },
+        {
+          icon: "book",
+          title: "每日学习练习",
+          description: "每天生成一组贴近当前目标的短练习。",
+          prompt: "每天晚上 8 点，根据我最近的学习内容生成一组 15 分钟可以完成的练习。",
+        },
+        {
+          icon: "calendar",
+          title: "会议前准备",
+          description: "会前整理议题、材料、未决问题与参会人背景。",
+          prompt: "每次会议开始前 30 分钟，整理会议议题、相关材料、未决问题和我需要准备的内容。",
+        },
+        {
+          icon: "heart",
+          title: "家人联系提醒",
+          description: "在合适的时间提醒你联系重要的人。",
+          prompt: "每周日早上 10 点提醒我联系父母，并回顾上次提到需要继续关心的事情。",
+        },
+        {
+          icon: "search",
+          title: "竞品变化追踪",
+          description: "定期核对官方更新，只报告值得行动的变化。",
+          prompt: "每周一检查主要竞品的官方公告和 Release Notes，只报告会影响产品判断的实质变化。",
+        },
+        {
+          icon: "idea",
+          title: "每日一个为什么",
+          description: "每天提出一个有趣问题，先让我思考再解释。",
+          prompt: "每天晚上 7 点提出一个有趣的为什么问题，先等我回答，再给出解释和延伸阅读。",
+        },
+        {
+          icon: "image",
+          title: "每周桌面壁纸",
+          description: "每周生成一张符合当前季节与偏好的壁纸。",
+          prompt: "每周一早上生成一张符合当前季节、天气和我偏好的桌面壁纸。",
+        },
+      ];
+
+      const iconPaths = {
+        chat: '<path d="M4 5.5h12v8H9l-4 3v-3H4z"/>',
+        clock: '<circle cx="10" cy="10" r="6.5"/><path d="M10 6.5V10l2.5 1.6M6 2.5 4.2 4M14 2.5 15.8 4"/>',
+        spark: '<path d="m10 2 1.3 4.2L15.5 7.5l-4.2 1.3L10 13l-1.3-4.2-4.2-1.3 4.2-1.3zM15.5 13.5l.6 1.9 1.9.6-1.9.6-.6 1.9-.6-1.9-1.9-.6 1.9-.6z"/>',
+        bot: '<rect x="4" y="6" width="12" height="9" rx="3"/><path d="M10 3v3M7.5 10h.1M12.4 10h.1M7 15v2M13 15v2"/>',
+        back: '<path d="m12.5 4-6 6 6 6"/>',
+        send: '<path d="m4 4 12 6-12 6 2-6zM6 10h10"/>',
+        news: '<path d="M5 3.5h9v13H5zM8 6h4M8 9h4M8 12h3M3 6v9.5c0 .6.4 1 1 1h1"/>',
+        chart: '<path d="M4 15V9M9 15V5M14 15v-3M3 17h14"/>',
+        mail: '<rect x="3" y="5" width="14" height="10" rx="2"/><path d="m4 7 6 4 6-4"/>',
+        book: '<path d="M4 4.5h5c.7 0 1 .4 1 1v10c0-.6-.3-1-1-1H4zM16 4.5h-5c-.7 0-1 .4-1 1v10c0-.6.3-1 1-1h5z"/>',
+        calendar: '<rect x="3" y="5" width="14" height="12" rx="2"/><path d="M6 3v4M14 3v4M3 9h14M7 12h2"/>',
+        heart: '<path d="M10 17S3.5 13 3.5 8.3A3.3 3.3 0 0 1 10 7a3.3 3.3 0 0 1 6.5 1.3C16.5 13 10 17 10 17Z"/>',
+        search: '<circle cx="9" cy="9" r="5.5"/><path d="m13 13 4 4"/>',
+        idea: '<path d="M7 14h6M7.5 16.5h5M6.5 11.5A5 5 0 1 1 13.5 11.5c-.8.7-1 1.2-1 2h-5c0-.8-.2-1.3-1-2Z"/>',
+        image: '<rect x="3" y="4" width="14" height="12" rx="2"/><circle cx="7" cy="8" r="1.2"/><path d="m4.5 14 3.5-3 2.5 2 2-2 3 3"/>',
+        check: '<path d="m5 10 3 3 7-7"/>',
+        warning: '<path d="M10 3 17 16H3zM10 8v3M10 14h.01"/>',
+        play: '<path d="m7 5 8 5-8 5z"/>',
+        more: '<circle cx="10" cy="5" r=".8" fill="currentColor" stroke="none"/><circle cx="10" cy="10" r=".8" fill="currentColor" stroke="none"/><circle cx="10" cy="15" r=".8" fill="currentColor" stroke="none"/>',
+        edit: '<path d="m12.8 4.2 3 3L7 16H4v-3zM11.5 5.5l3 3"/>',
+        close: '<path d="m5 5 10 10M15 5 5 15"/>',
+      };
+
+      const appState = {
+        pageState: "list",
+        selectedTaskId: "agent-radar",
+        expandedTaskId: null,
+        draftPrompt: "",
+      };
+
+      const surface = document.getElementById("surface");
+      const chatOverlay = document.getElementById("chatOverlay");
+      const chatPrompt = document.getElementById("chatPrompt");
+      const toast = document.getElementById("toast");
+      let toastTimer = null;
+
+      function icon(name) {
+        return `<svg viewBox="0 0 20 20" aria-hidden="true">${iconPaths[name] || iconPaths.spark}</svg>`;
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add("show");
+        window.clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(() => toast.classList.remove("show"), 2200);
+      }
+
+      function openChat(prompt) {
+        const normalized = prompt.trim();
+        if (!normalized) {
+          showToast("先描述你想定期完成的事");
+          return;
+        }
+        chatPrompt.textContent = normalized;
+        chatOverlay.classList.add("open");
+      }
+
+      function composer(className = "") {
+        return `
+          <form class="schedule-composer ${className}" data-composer>
+            <span aria-hidden="true">${icon("spark")}</span>
+            <input
+              name="prompt"
+              value="${escapeHtml(appState.draftPrompt)}"
+              aria-label="描述你想安排的任务"
+              placeholder="描述你想定期完成的事"
+              autocomplete="off"
+            />
+            <button class="composer-send" type="submit" aria-label="进入 AI 会话">
+              ${icon("send")}
+            </button>
+          </form>`;
+      }
+
+      function taskRow(task, expanded = false) {
+        const statusIcon = task.status === "warning" ? "warning" : "check";
+        return `
+          <div
+            class="task-row ${expanded ? "expanded" : ""}"
+            data-task-row
+            data-task-id="${task.id}"
+            data-task-title="${escapeHtml(task.title)}"
+            data-status="${task.status}"
+            data-search-text="${escapeHtml(`${task.title} ${task.schedule} ${task.next}`)}"
+          >
+            <button
+              class="task-row-main"
+              type="button"
+              data-task="${task.id}"
+              aria-controls="task-preview-${task.id}"
+              aria-expanded="${expanded}"
+              aria-label="${expanded ? "收起" : "展开"}任务 ${task.title}"
+            >
+              <span class="task-status ${task.status === "warning" ? "warning" : ""}">${icon(statusIcon)}</span>
+              <span class="task-copy">
+                <span class="task-title">
+                  <strong>${task.title}</strong>
+                  <span class="badge ${task.status === "ok" ? "ok" : ""}">${task.statusLabel}</span>
+                  <span class="badge">${task.session.startsWith("cron:") ? "独立会话" : "绑定会话"}</span>
+                </span>
+                <span class="task-meta"><span>${task.schedule}</span><span>${task.next}</span></span>
+              </span>
+            </button>
+            <span class="task-actions">
+              <span class="row-hover-actions">
+                <button
+                  class="icon-button row-action"
+                  type="button"
+                  data-edit-task="${task.id}"
+                  data-tooltip="编辑任务"
+                  aria-label="编辑 ${task.title}"
+                >${icon("edit")}</button>
+                <button
+                  class="icon-button row-action"
+                  type="button"
+                  data-more-task="${task.id}"
+                  data-tooltip="更多操作"
+                  aria-label="${task.title} 的更多操作"
+                >${icon("more")}</button>
+              </span>
+              <button class="switch on" type="button" role="switch" aria-checked="true" data-switch aria-label="暂停 ${task.title}"></button>
+            </span>
+            <div class="task-preview" id="task-preview-${task.id}" aria-hidden="${!expanded}">
+              <div class="task-preview-inner">
+                <div class="task-preview-card">
+                  <div class="task-preview-label">任务内容</div>
+                  <p>${task.prompt}</p>
+                  <div class="task-preview-meta">
+                    <span>执行 Agent<strong>${task.agent}</strong></span>
+                    <span>执行会话<strong>${task.session}</strong></span>
+                    <span>最近运行<strong>周五 09:04 · ${task.statusLabel}</strong></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      function taskList(expandedId = null, primary = false) {
+        return `<div class="task-list ${primary ? "primary" : ""}">${tasks
+          .map((task) => taskRow(task, task.id === expandedId))
+          .join("")}</div>`;
+      }
+
+      function templateGrid(limit = templates.length, compact = false) {
+        return `<div class="template-grid ${compact ? "compact" : ""}">${templates
+          .slice(0, limit)
+          .map(
+            (template, index) => `
+              <button class="template-card" type="button" data-template="${index}">
+                <span class="template-icon">${icon(template.icon)}</span>
+                <span>
+                  <strong>${template.title}</strong>
+                  <p>${template.description}</p>
+                </span>
+              </button>`,
+          )
+          .join("")}</div>`;
+      }
+
+      function pageHead(label, description, actions = "") {
+        return `
+          <div class="page-head">
+            <div>
+              <div class="eyebrow">${label}</div>
+              <h1>定时任务</h1>
+              <p class="page-description">${description}</p>
+            </div>
+            ${actions}
+          </div>`;
+      }
+
+      function detailPanel() {
+        const task = tasks.find((item) => item.id === appState.selectedTaskId) || tasks[0];
+        return `
+          <aside class="detail-panel detail-drawer" role="dialog" aria-modal="true" aria-label="${task.title} 详情">
+            <div class="detail-top">
+              <div>
+                <div class="eyebrow">${task.schedule}</div>
+                <h2>${task.title}</h2>
+                <p>${task.next}</p>
+              </div>
+              <button class="icon-button" type="button" data-close-detail aria-label="关闭任务详情">${icon("close")}</button>
+            </div>
+
+            <div class="field-group">
+              <span class="field-label">任务内容</span>
+              <div class="field-control">${task.prompt}</div>
+            </div>
+
+            <div class="info-list">
+              <div class="info-row"><span>执行计划</span><strong>${task.schedule}</strong></div>
+              <div class="info-row"><span>执行 Agent</span><strong>${task.agent}</strong></div>
+              <div class="info-row"><span>执行会话</span><strong>${task.session}</strong></div>
+              <div class="info-row"><span>会话范围</span><strong>${task.session.startsWith("cron:") ? "独立会话" : "绑定会话"}</strong></div>
+              <div class="info-row"><span>当前状态</span><span class="badge ${task.status === "ok" ? "ok" : ""}">${task.statusLabel}</span></div>
+            </div>
+
+            <div class="section-head"><h2>最近一次运行</h2><span>当前快照</span></div>
+            <div class="run-list">
+              <div class="run-item"><i class="run-dot ${task.status === "warning" ? "error" : ""}"></i><span>${task.status === "warning" ? "最近执行失败：邮件连接需要重新授权" : "最近执行成功"}</span><time>周五 09:04</time></div>
+            </div>
+
+            <div class="detail-actions">
+              <button class="soft-button" type="button" data-open-session>打开会话</button>
+              <button class="primary-button" type="button" data-run-now>${icon("play")} 立即执行</button>
+            </div>
+          </aside>`;
+      }
+
+      function emptyAdaptive() {
+        return `
+          ${pageHead("自动化工作台", "从一个具体目标开始，让 AI 帮你安排第一次自动运行。")}
+          <div class="empty-hero" style="min-height: 270px">
+            <div class="recommended-note">${icon("spark")} 复杂任务会进入 AI 会话确认，不会在这里直接启用。</div>
+            <h2>想让 NextClaw 定期替你做什么？</h2>
+            <p>描述目标，或者选一个模板作为起点。确认执行时间和范围后，任务才会开始运行。</p>
+            ${composer("hero-composer")}
+          </div>
+          <div class="discovery-wrap">
+            <div class="section-head"><h2>从一个具体结果开始</h2><span>选择后仍可修改</span></div>
+            ${templateGrid(6)}
+          </div>`;
+      }
+
+      function adaptiveDashboard() {
+        const detailLayer = appState.pageState === "detail"
+          ? `<button class="detail-scrim" type="button" data-close-detail aria-label="关闭任务详情"></button>${detailPanel()}`
+          : "";
+        return `
+          ${pageHead("自动化工作台", "查看运行状态、管理已有任务，或通过 AI 安排新的任务。")}
+          <div class="dashboard">
+            ${composer()}
+            <section class="overview-strip" aria-label="当前任务概况">
+              <div class="overview-lead">
+                <span class="task-status warning">${icon("warning")}</span>
+                <span><strong>1 项需要处理</strong><span>重要邮件监控需要重新授权</span></span>
+              </div>
+              <div class="overview-metric"><strong>5</strong><span>全部任务</span></div>
+              <div class="overview-metric"><strong>5</strong><span>运行中</span></div>
+              <div class="overview-metric"><strong>1</strong><span>需要关注</span></div>
+            </section>
+            <section class="task-section">
+              <div class="section-head"><h2>我的任务</h2><span>${tasks.length} 个任务</span></div>
+              <div class="task-toolbar">
+                <input class="task-search" type="search" placeholder="搜索任务" aria-label="搜索任务" data-task-search />
+                <div class="filter-group" aria-label="任务状态筛选">
+                  <button class="filter-button" type="button" data-filter="all" aria-pressed="true">全部</button>
+                  <button class="filter-button" type="button" data-filter="ok" aria-pressed="false">运行正常</button>
+                  <button class="filter-button" type="button" data-filter="warning" aria-pressed="false">需要关注</button>
+                </div>
+              </div>
+              ${taskList(appState.expandedTaskId, true)}
+              <nav class="task-pagination" aria-label="任务列表分页">
+                <span>1–5 / 18</span>
+                <span class="task-pagination-controls">
+                  <button class="icon-button" type="button" disabled aria-label="上一页">${icon("back")}</button>
+                  <span>1 / 4</span>
+                  <button class="icon-button" type="button" data-next-page aria-label="下一页" style="transform: rotate(180deg)">${icon("back")}</button>
+                </span>
+              </nav>
+            </section>
+            <div class="section-head"><h2>需要新灵感？</h2><button class="text-button">查看全部模板</button></div>
+            ${templateGrid(4, true)}
+          </div>
+          ${detailLayer}`;
+      }
+
+      function render() {
+        const markup = appState.pageState === "empty" ? emptyAdaptive() : adaptiveDashboard();
+        surface.innerHTML = markup;
+        hydrateIcons(surface);
+        syncReviewControls();
+        bindSurfaceEvents();
+      }
+
+      function hydrateIcons(root = document) {
+        root.querySelectorAll("[data-icon]").forEach((node) => {
+          node.innerHTML = icon(node.dataset.icon);
+        });
+      }
+
+      function syncReviewControls() {
+        document.querySelectorAll("[data-state]").forEach((button) => {
+          button.setAttribute("aria-selected", String(button.dataset.state === appState.pageState));
+        });
+      }
+
+      function fillTemplate(templateIndex) {
+        const template = templates[Number(templateIndex)];
+        if (!template) return;
+        appState.draftPrompt = template.prompt;
+        const input = surface.querySelector('[data-composer] input[name="prompt"]');
+        if (input) {
+          input.value = template.prompt;
+          input.focus();
+          input.scrollIntoView({ behavior: "smooth", block: "center" });
+          showToast("模板请求已带入输入框，调整后按 Enter 进入会话");
+          return;
+        }
+        openChat(template.prompt);
+      }
+
+      function syncExpandedTaskRows() {
+        surface.querySelectorAll("[data-task-row]").forEach((row) => {
+          const expanded = row.dataset.taskId === appState.expandedTaskId;
+          row.classList.toggle("expanded", expanded);
+          const button = row.querySelector("[data-task]");
+          const preview = row.querySelector(".task-preview");
+          button?.setAttribute("aria-expanded", String(expanded));
+          button?.setAttribute(
+            "aria-label",
+            `${expanded ? "收起" : "展开"}任务 ${row.dataset.taskTitle}`,
+          );
+          preview?.setAttribute("aria-hidden", String(!expanded));
+        });
+      }
+
+      function collapseTaskRows() {
+        appState.expandedTaskId = null;
+        syncExpandedTaskRows();
+      }
+
+      function bindSurfaceEvents() {
+        surface.querySelectorAll("[data-composer]").forEach((form) => {
+          const input = form.querySelector('input[name="prompt"]');
+          input.addEventListener("input", () => {
+            appState.draftPrompt = input.value;
+          });
+          form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            openChat(input.value);
+          });
+        });
+
+        surface.querySelectorAll("[data-template]").forEach((button) => {
+          button.addEventListener("click", () => fillTemplate(button.dataset.template));
+        });
+
+        const taskSearch = surface.querySelector("[data-task-search]");
+        const taskFilters = [...surface.querySelectorAll("[data-filter]")];
+        let activeFilter = "all";
+        const filterTaskRows = () => {
+          const query = taskSearch?.value.trim().toLocaleLowerCase() || "";
+          surface.querySelectorAll("[data-task-row]").forEach((row) => {
+            const matchesQuery = row.dataset.searchText.toLocaleLowerCase().includes(query);
+            const matchesStatus = activeFilter === "all" || row.dataset.status === activeFilter;
+            row.hidden = !matchesQuery || !matchesStatus;
+          });
+        };
+        taskSearch?.addEventListener("input", () => {
+          collapseTaskRows();
+          filterTaskRows();
+        });
+        taskFilters.forEach((button) => {
+          button.addEventListener("click", () => {
+            collapseTaskRows();
+            activeFilter = button.dataset.filter;
+            taskFilters.forEach((item) => {
+              item.setAttribute("aria-pressed", String(item === button));
+            });
+            filterTaskRows();
+          });
+        });
+
+        surface.querySelectorAll("[data-task]").forEach((button) => {
+          button.addEventListener("click", () => {
+            appState.expandedTaskId = appState.expandedTaskId === button.dataset.task
+              ? null
+              : button.dataset.task;
+            syncExpandedTaskRows();
+          });
+        });
+
+        surface.querySelectorAll("[data-edit-task]").forEach((button) => {
+          button.addEventListener("click", () => {
+            appState.selectedTaskId = button.dataset.editTask;
+            appState.pageState = "detail";
+            render();
+          });
+        });
+        surface.querySelectorAll("[data-more-task]").forEach((button) => {
+          button.addEventListener("click", () => showToast("更多操作菜单（原型演示）"));
+        });
+        surface.querySelectorAll("[data-next-page]").forEach((button) => {
+          button.addEventListener("click", () => {
+            collapseTaskRows();
+            showToast("原型演示：请求服务端第 2 页");
+          });
+        });
+
+        surface.querySelectorAll("[data-switch]").forEach((control) => {
+          const toggle = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            control.classList.toggle("on");
+            const enabled = control.classList.contains("on");
+            control.setAttribute("aria-checked", String(enabled));
+            showToast(enabled ? "任务已启用" : "任务已暂停");
+          };
+          control.addEventListener("click", toggle);
+          control.addEventListener("keydown", (event) => {
+            if (event.key === " " || event.key === "Enter") toggle(event);
+          });
+        });
+
+        surface.querySelectorAll("[data-open-session]").forEach((button) => {
+          button.addEventListener("click", () => openChat("继续调整这个定时任务"));
+        });
+        surface.querySelectorAll("[data-run-now]").forEach((button) => {
+          button.addEventListener("click", () => showToast("已发起一次立即执行（原型演示）"));
+        });
+        surface.querySelectorAll("[data-close-detail]").forEach((button) => {
+          button.addEventListener("click", () => {
+            appState.pageState = "list";
+            render();
+          });
+        });
+      }
+
+      document.getElementById("stateControl").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-state]");
+        if (!button) return;
+        appState.pageState = button.dataset.state;
+        render();
+      });
+
+      document.querySelectorAll("[data-new-chat]").forEach((button) => {
+        button.addEventListener("click", () => openChat("帮我开始一个新任务"));
+      });
+
+      document.getElementById("backToTasks").addEventListener("click", () => {
+        chatOverlay.classList.remove("open");
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && appState.pageState === "detail") {
+          appState.pageState = "list";
+          render();
+        }
+      });
+
+      hydrateIcons();
+      render();
+    </script>
+  </body>
+</html>

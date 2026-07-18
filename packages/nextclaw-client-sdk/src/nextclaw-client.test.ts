@@ -32,6 +32,34 @@ import {
     );
   });
 
+  it("serializes cron pagination and filtering through the config service", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      ok: true,
+      data: {
+        jobs: [],
+        total: 0,
+        summary: { total: 0, enabled: 0, disabled: 0, attention: 0 },
+      },
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const client = new NextClawClient({
+      baseUrl: "http://127.0.0.1:55667",
+      fetchImpl,
+    });
+
+    await client.config.fetchCronJobs({
+      all: true,
+      limit: 10,
+      offset: 20,
+      query: "risk",
+      status: "attention",
+    });
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "http://127.0.0.1:55667/api/cron?all=1&limit=10&offset=20&query=risk&status=attention",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
   it("creates a server directory through the shared path service", async () => {
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
       ok: true,

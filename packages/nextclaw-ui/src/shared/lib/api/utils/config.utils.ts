@@ -34,6 +34,7 @@ import type {
   ConfigActionExecuteResult,
   ChatSessionTypesView,
   CronListView,
+  CronListQuery,
   CronEnableRequest,
   CronRunRequest,
   CronActionResult
@@ -166,7 +167,7 @@ export async function fetchNcpChatSessionTypes(): Promise<ChatSessionTypesView> 
   return await nextclawClient.config.fetchChatSessionTypes();
 }
 
-export async function fetchCronJobs(params?: { all?: boolean }): Promise<CronListView> {
+export async function fetchCronJobs(params?: CronListQuery): Promise<CronListView> {
   return await nextclawClient.config.fetchCronJobs(params);
 }
 

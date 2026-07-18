@@ -1,17 +1,26 @@
-import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
-import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
-import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
-import type { SetStateAction } from 'react';
-import { normalizeSessionProjectRootValue } from '@/shared/lib/session-project';
-import { updateNcpSession } from '@/shared/lib/api';
-import { CHAT_DRAFT_SESSION_PATH } from '@/features/chat/features/session/utils/chat-session-route.utils';
-import { DEFAULT_SESSION_TYPE, normalizeSessionType } from '@/features/chat/features/session-type/utils/chat-session-type.utils';
+import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
+import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
+import type { ChatUiManager } from "@/features/chat/managers/chat-ui.manager";
+import type { SetStateAction } from "react";
+import { normalizeSessionProjectRootValue } from "@/shared/lib/session-project";
+import { updateNcpSession } from "@/shared/lib/api";
+import { CHAT_DRAFT_SESSION_PATH } from "@/features/chat/features/session/utils/chat-session-route.utils";
+import {
+  DEFAULT_SESSION_TYPE,
+  normalizeSessionType,
+} from "@/features/chat/features/session-type/utils/chat-session-type.utils";
 
 type WorkspaceChildReadState = {
   sessionKey: string | null | undefined;
   lastMessageAt?: string | null;
   readAt?: string | null;
   runStatus?: string | null;
+};
+
+export type CreateChatSessionOptions = {
+  readonly projectRoot?: string | null;
+  readonly prompt?: string | null;
+  readonly sessionType?: string;
 };
 
 function toggleListValue(values: string[], value: string): string[] {
@@ -46,7 +55,7 @@ export class ChatSessionListManager {
   };
 
   private resolveUpdateValue = <T>(prev: T, next: SetStateAction<T>): T => {
-    if (typeof next === 'function') {
+    if (typeof next === "function") {
       return (next as (value: T) => T)(prev);
     }
     return next;
@@ -56,11 +65,16 @@ export class ChatSessionListManager {
     readAt: string,
     currentReadAt?: string | null,
   ): boolean => {
-    const optimisticReadAt = useChatSessionListStore.getState().optimisticReadAtBySessionKey[sessionKey];
+    const optimisticReadAt =
+      useChatSessionListStore.getState().optimisticReadAtBySessionKey[
+        sessionKey
+      ];
     const effectiveCurrentReadAt =
       optimisticReadAt && currentReadAt
-        ? (optimisticReadAt.localeCompare(currentReadAt) > 0 ? optimisticReadAt : currentReadAt)
-        : optimisticReadAt ?? currentReadAt ?? undefined;
+        ? optimisticReadAt.localeCompare(currentReadAt) > 0
+          ? optimisticReadAt
+          : currentReadAt
+        : (optimisticReadAt ?? currentReadAt ?? undefined);
     if (!effectiveCurrentReadAt) {
       return true;
     }
@@ -77,7 +91,9 @@ export class ChatSessionListManager {
   };
 
   syncSelectedSessionAgent = () => {
-    const normalizedAgentId = useChatThreadStore.getState().snapshot.agentId?.trim();
+    const normalizedAgentId = useChatThreadStore
+      .getState()
+      .snapshot.agentId?.trim();
     if (!normalizedAgentId) {
       return;
     }
@@ -90,7 +106,9 @@ export class ChatSessionListManager {
     if (value === prev) {
       return;
     }
-    useChatSessionListStore.getState().setSnapshot({ selectedSessionKey: value });
+    useChatSessionListStore
+      .getState()
+      .setSnapshot({ selectedSessionKey: value });
   };
 
   syncRouteSessionSelection = (params: {
@@ -113,7 +131,7 @@ export class ChatSessionListManager {
     }
   };
 
-  setListMode = (next: SetStateAction<'time-first' | 'project-first'>) => {
+  setListMode = (next: SetStateAction<"time-first" | "project-first">) => {
     const prev = useChatSessionListStore.getState().snapshot.listMode;
     const value = this.resolveUpdateValue(prev, next);
     if (value === prev) {
@@ -137,9 +155,13 @@ export class ChatSessionListManager {
   };
 
   toggleProjectCollapsed = (projectRoot: string) => {
-    const { collapsedProjectRoots } = useChatSessionListStore.getState().snapshot;
+    const { collapsedProjectRoots } =
+      useChatSessionListStore.getState().snapshot;
     useChatSessionListStore.getState().setSnapshot({
-      collapsedProjectRoots: toggleListValue(collapsedProjectRoots, projectRoot),
+      collapsedProjectRoots: toggleListValue(
+        collapsedProjectRoots,
+        projectRoot,
+      ),
     });
   };
 
@@ -153,20 +175,38 @@ export class ChatSessionListManager {
     if (!normalizedSessionKey || !normalizedReadAt) {
       return;
     }
-    if (!this.shouldPersistReadAt(normalizedSessionKey, normalizedReadAt, currentReadAt)) {
+    if (
+      !this.shouldPersistReadAt(
+        normalizedSessionKey,
+        normalizedReadAt,
+        currentReadAt,
+      )
+    ) {
       return;
     }
-    useChatSessionListStore.getState().markSessionRead(normalizedSessionKey, normalizedReadAt);
-    void updateNcpSession(normalizedSessionKey, { uiReadAt: normalizedReadAt }).catch(() => undefined);
+    useChatSessionListStore
+      .getState()
+      .markSessionRead(normalizedSessionKey, normalizedReadAt);
+    void updateNcpSession(normalizedSessionKey, {
+      uiReadAt: normalizedReadAt,
+    }).catch(() => undefined);
   };
 
   markVisibleWorkspaceChildRead = (tab: WorkspaceChildReadState) => {
-    this.markSessionRead(tab.sessionKey, tab.runStatus === 'running' ? null : tab.lastMessageAt, tab.readAt);
+    this.markSessionRead(
+      tab.sessionKey,
+      tab.runStatus === "running" ? null : tab.lastMessageAt,
+      tab.readAt,
+    );
   };
 
-  createSession = (sessionType?: string, projectRoot?: string | null): void => {
-    const nextSessionType = normalizeSessionType(sessionType ?? DEFAULT_SESSION_TYPE);
+  createSession = (options: CreateChatSessionOptions = {}): void => {
+    const { projectRoot, prompt, sessionType } = options;
+    const nextSessionType = normalizeSessionType(
+      sessionType ?? DEFAULT_SESSION_TYPE,
+    );
     const normalizedProjectRoot = normalizeSessionProjectRootValue(projectRoot);
+    const normalizedPrompt = prompt?.trim() || null;
     useChatSessionListStore.getState().setSnapshot({
       selectedSessionKey: null,
     });
@@ -177,14 +217,15 @@ export class ChatSessionListManager {
         chatDraft: {
           sessionType: nextSessionType,
           projectRoot: normalizedProjectRoot,
+          prompt: normalizedPrompt,
         },
       },
     });
   };
 
   startAgentDraftChat = (agentId: string, sessionType: string): void => {
-    const normalizedAgentId = agentId.trim() || 'main';
-    this.createSession(sessionType);
+    const normalizedAgentId = agentId.trim() || "main";
+    this.createSession({ sessionType });
     this.setSelectedAgentId(normalizedAgentId);
   };
 

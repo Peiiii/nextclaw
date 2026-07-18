@@ -163,6 +163,7 @@ describe("cron routes", () => {
       data: {
         total: number;
         jobs: Array<{ id: string; enabled: boolean }>;
+        summary: { total: number; enabled: number; disabled: number; attention: number };
       };
     };
     expect(defaultPayload.data.total).toBe(2);
@@ -170,6 +171,12 @@ describe("cron routes", () => {
       { id: "job-enabled", enabled: true },
       { id: "job-disabled", enabled: false }
     ]);
+    expect(defaultPayload.data.summary).toEqual({
+      total: 2,
+      enabled: 1,
+      disabled: 1,
+      attention: 0,
+    });
     expect(cron.listJobs).toHaveBeenNthCalledWith(1, true);
 
     const enabledOnlyResponse = await app.request("http://localhost/api/cron?enabledOnly=1");
@@ -183,6 +190,26 @@ describe("cron routes", () => {
     };
     expect(enabledOnlyPayload.data.total).toBe(1);
     expect(enabledOnlyPayload.data.jobs).toMatchObject([{ id: "job-enabled", enabled: true }]);
-    expect(cron.listJobs).toHaveBeenNthCalledWith(2, false);
+    expect(cron.listJobs).toHaveBeenNthCalledWith(2, true);
+
+    const pagedResponse = await app.request(
+      "http://localhost/api/cron?status=disabled&query=disabled&offset=0&limit=1",
+    );
+    expect(pagedResponse.status).toBe(200);
+    const pagedPayload = await pagedResponse.json() as {
+      ok: true;
+      data: {
+        total: number;
+        jobs: Array<{ id: string; enabled: boolean }>;
+        summary: { total: number; enabled: number; disabled: number; attention: number };
+      };
+    };
+    expect(pagedPayload.data.total).toBe(1);
+    expect(pagedPayload.data.jobs).toMatchObject([{ id: "job-disabled", enabled: false }]);
+    expect(pagedPayload.data.summary.total).toBe(2);
+    expect(cron.listJobs).toHaveBeenNthCalledWith(3, true);
+
+    const invalidResponse = await app.request("http://localhost/api/cron?limit=0");
+    expect(invalidResponse.status).toBe(400);
   });
 });

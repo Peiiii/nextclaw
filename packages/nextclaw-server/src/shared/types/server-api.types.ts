@@ -9,6 +9,7 @@ export type * from "@nextclaw-server/features/attachments/index.js";
 export type * from "@nextclaw-server/features/panel-apps/index.js";
 export type * from "@nextclaw-server/features/preferences/index.js";
 export type * from "@nextclaw-server/features/service-apps/index.js";
+export type * from "./server-api-cron.types.js";
 
 type AgentDefaultModelsView = Config["agents"]["defaults"]["models"];
 export type ApiError = {
@@ -17,21 +18,14 @@ export type ApiError = {
   details?: Record<string, unknown>;
 };
 
-export type ApiResponse<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: ApiError };
+export type ApiResponse<T> = { ok: true; data: T } | { ok: false; error: ApiError };
 
 export type AppMetaView = {
   name: string;
   productVersion: string;
 };
 
-export type BootstrapPhase =
-  | "kernel-starting"
-  | "shell-ready"
-  | "hydrating-capabilities"
-  | "ready"
-  | "error";
+export type BootstrapPhase = "kernel-starting" | "shell-ready" | "hydrating-capabilities" | "ready" | "error";
 
 export type BootstrapStageState = "pending" | "running" | "ready" | "error";
 
@@ -79,10 +73,13 @@ export type ProviderInstanceView = {
   extraHeaders?: Record<string, string> | null;
   wireApi?: "auto" | "chat" | "responses" | null;
   models?: string[];
-  modelConfig?: Record<string, {
-    thinking?: { supported: ThinkingLevel[]; default?: ThinkingLevel | null };
-    vision?: boolean;
-  }>;
+  modelConfig?: Record<
+    string,
+    {
+      thinking?: { supported: ThinkingLevel[]; default?: ThinkingLevel | null };
+      vision?: boolean;
+    }
+  >;
 };
 
 export type ProviderConfigView = ProviderInstanceView;
@@ -96,10 +93,16 @@ export type ProviderConfigUpdate = {
   extraHeaders?: Record<string, string> | null;
   wireApi?: "auto" | "chat" | "responses" | null;
   models?: string[] | null;
-  modelConfig?: Record<string, {
-    thinking?: { supported?: ThinkingLevel[]; default?: ThinkingLevel | null };
-    vision?: boolean;
-  }> | null;
+  modelConfig?: Record<
+    string,
+    {
+      thinking?: {
+        supported?: ThinkingLevel[];
+        default?: ThinkingLevel | null;
+      };
+      vision?: boolean;
+    }
+  > | null;
 };
 
 export type ProviderConnectionTestRequest = ProviderConfigUpdate & {
@@ -424,17 +427,8 @@ export type RuntimeEntryView = {
   config?: Record<string, unknown>;
 };
 
-export type {
-  ChatSessionTypeCtaView,
-  ChatSessionTypeOptionView,
-  ChatSessionTypesView,
-} from "@nextclaw-server/features/sessions/index.js";
-export type {
-  ProjectCreateRequest,
-  ProjectListView,
-  ProjectTemplateView,
-  ProjectView,
-} from "@nextclaw-server/features/projects/index.js";
+export type { ChatSessionTypeCtaView, ChatSessionTypeOptionView, ChatSessionTypesView } from "@nextclaw-server/features/sessions/index.js";
+export type { ProjectCreateRequest, ProjectListView, ProjectTemplateView, ProjectView } from "@nextclaw-server/features/projects/index.js";
 
 export type SessionEntryView = {
   key: string;
@@ -511,7 +505,12 @@ export type NcpSessionSkillsView = {
   records: SessionSkillEntryView[];
 };
 
-export type ServerPathEntryView = { name: string; path: string; kind: "directory" | "file"; hidden: boolean };
+export type ServerPathEntryView = {
+  name: string;
+  path: string;
+  kind: "directory" | "file";
+  hidden: boolean;
+};
 
 export type ServerPathBreadcrumbView = { label: string; path: string };
 
@@ -545,64 +544,23 @@ export type ServerPathSearchView = {
   truncated: boolean;
 };
 
-export type ServerPathDirectoryCreateRequest = { parentPath: string; name: string };
+export type ServerPathDirectoryCreateRequest = {
+  parentPath: string;
+  name: string;
+};
 
 export type ServerPathDirectoryCreateView = { path: string };
 
-export type ServerPathReadView = { requestedPath: string; resolvedPath: string; kind: "text" | "markdown" | "binary"; sizeBytes: number; startLine?: number; truncated: boolean; text?: string; languageHint?: string | null };
-
-export type CronScheduleView =
-  | { kind: "at"; atMs?: number | null }
-  | { kind: "every"; everyMs?: number | null }
-  | { kind: "cron"; expr?: string | null; tz?: string | null };
-
-export type CronPayloadView = {
-  kind?: "system_event" | "agent_turn";
-  message: string;
-  agentId?: string | null;
-  sessionId?: string | null;
+export type ServerPathReadView = {
+  requestedPath: string;
+  resolvedPath: string;
+  kind: "text" | "markdown" | "binary";
+  sizeBytes: number;
+  startLine?: number;
+  truncated: boolean;
+  text?: string;
+  languageHint?: string | null;
 };
-
-export type CronJobStateView = {
-  nextRunAt?: string | null;
-  lastRunAt?: string | null;
-  lastStatus?: "ok" | "error" | "skipped" | null;
-  lastError?: string | null;
-};
-
-export type CronJobView = {
-  id: string;
-  name: string;
-  enabled: boolean;
-  schedule: CronScheduleView;
-  payload: CronPayloadView;
-  state: CronJobStateView;
-  createdAt: string;
-  updatedAt: string;
-  deleteAfterRun: boolean;
-};
-
-export type CronListView = {
-  jobs: CronJobView[];
-  total: number;
-};
-
-export type CronCreateRequest = {
-  name: string;
-  message: string;
-  schedule: CronScheduleView;
-  agentId?: string | null;
-  sessionId?: string | null;
-  deleteAfterRun?: boolean;
-};
-
-export type CronCreateResult = { job: CronJobView };
-
-export type CronEnableRequest = { enabled: boolean };
-
-export type CronRunRequest = { force?: boolean };
-
-export type CronActionResult = { job: CronJobView | null; executed?: boolean };
 
 export type RuntimeConfigUpdate = {
   companion?: { enabled?: boolean };
@@ -672,10 +630,7 @@ export type SecretsConfigUpdate = {
   refs?: Record<string, SecretRefView> | null;
 };
 
-export type UiNcpSessionListView = {
-  sessions: NcpSessionSummary[];
-  total: number;
-};
+export type UiNcpSessionListView = { sessions: NcpSessionSummary[]; total: number };
 
 export type UiNcpSessionMessagesView = {
   sessionId: string;
@@ -693,12 +648,7 @@ export type SessionTypeDescribeParams = {
 export type UiNcpSessionService = NcpSessionApi;
 
 export type UiNcpAssetService = {
-  put: (input: {
-    fileName: string;
-    mimeType?: string | null;
-    bytes: Uint8Array;
-    createdAt?: Date;
-  }) => Promise<UiNcpStoredAssetRecord>;
+  put: (input: { fileName: string; mimeType?: string | null; bytes: Uint8Array; createdAt?: Date }) => Promise<UiNcpStoredAssetRecord>;
   stat: (uri: string) => Promise<UiNcpStoredAssetRecord | null> | UiNcpStoredAssetRecord | null;
   resolveContentPath: (uri: string) => string | null;
 };
@@ -783,10 +733,13 @@ export type ProviderTemplateView = {
     supportsCliImport?: boolean;
   };
   defaultModels?: string[];
-  modelConfig?: Record<string, {
-    thinking?: { supported: ThinkingLevel[]; default?: ThinkingLevel | null };
-    vision?: boolean;
-  }>;
+  modelConfig?: Record<
+    string,
+    {
+      thinking?: { supported: ThinkingLevel[]; default?: ThinkingLevel | null };
+      vision?: boolean;
+    }
+  >;
   supportsWireApi?: boolean;
   wireApiOptions?: Array<"auto" | "chat" | "responses">;
   defaultWireApi?: "auto" | "chat" | "responses";

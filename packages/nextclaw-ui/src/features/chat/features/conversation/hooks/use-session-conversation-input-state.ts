@@ -72,17 +72,29 @@ const EMPTY_COMPOSER_STATE: SessionConversationComposerState = {
   skillRecords: [],
 };
 
-const createInitialInputSnapshot = (): SessionConversationInputSnapshot => ({
-  ...EMPTY_COMPOSER_STATE,
-  attachments: [],
-  selectedModel: undefined,
-  selectedThinkingLevel: null,
-  pendingSessionType: DEFAULT_SESSION_TYPE,
-  selectedSessionType: DEFAULT_SESSION_TYPE,
-  pendingProjectRoot: null,
-  composerFocusRequestId: 0,
-  sendError: null,
-});
+const createInitialInputSnapshot = (
+  initialPrompt?: string | null,
+): SessionConversationInputSnapshot => {
+  const prompt = initialPrompt?.trim() ?? '';
+  const composer = prompt
+    ? {
+        ...EMPTY_COMPOSER_STATE,
+        text: prompt,
+        nodes: createChatComposerNodesFromDraft(prompt),
+      }
+    : EMPTY_COMPOSER_STATE;
+  return {
+    ...composer,
+    attachments: [],
+    selectedModel: undefined,
+    selectedThinkingLevel: null,
+    pendingSessionType: DEFAULT_SESSION_TYPE,
+    selectedSessionType: DEFAULT_SESSION_TYPE,
+    pendingProjectRoot: null,
+    composerFocusRequestId: prompt ? 1 : 0,
+    sendError: null,
+  };
+};
 
 const normalizeSessionType = (sessionType: string | null | undefined): string => {
   const trimmed = sessionType?.trim();
@@ -116,8 +128,10 @@ const mergeAttachments = (
   return merged;
 };
 
-export const useSessionConversationInputState = () => {
-  const [snapshot, setSnapshot] = useState<SessionConversationInputSnapshot>(createInitialInputSnapshot);
+export const useSessionConversationInputState = (initialPrompt?: string | null) => {
+  const [snapshot, setSnapshot] = useState<SessionConversationInputSnapshot>(
+    () => createInitialInputSnapshot(initialPrompt),
+  );
 
   const update = useCallback((patch: SessionConversationInputPatch) => {
     setSnapshot((current) => {

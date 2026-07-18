@@ -20,6 +20,14 @@ const MODEL_OPTIONS: ChatModelOption[] = [
 ];
 
 describe('useSessionConversationInputState session preferences', () => {
+  it('owns the initial routed prompt before the composer first renders', () => {
+    const { result } = renderHook(() => useSessionConversationInputState('  每天整理项目风险  '));
+
+    expect(result.current.inputSnapshot.text).toBe('每天整理项目风险');
+    expect(result.current.inputSnapshot.nodes).not.toHaveLength(0);
+    expect(result.current.inputSnapshot.composerFocusRequestId).toBe(1);
+  });
+
   it('restores the switched session model after its metadata becomes available', () => {
     const { result } = renderHook(() => useSessionConversationInputState());
 

@@ -7,11 +7,13 @@ import {
 } from '@/shared/lib/api';
 import { toast } from 'sonner';
 import { t } from '@/shared/lib/i18n';
+import type { CronListQuery } from '@/shared/lib/api';
 
-export function useCronJobs(params: { all?: boolean } = { all: true }) {
+export function useCronJobs(params: CronListQuery = { all: true }) {
   return useQuery({
     queryKey: ['cron', params],
     queryFn: () => fetchCronJobs(params),
+    placeholderData: (previousData) => previousData,
     staleTime: 10_000
   });
 }

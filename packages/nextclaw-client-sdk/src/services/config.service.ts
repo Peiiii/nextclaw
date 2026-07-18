@@ -7,6 +7,7 @@ import type {
   ConfigView,
   CronActionResult,
   CronEnableRequest,
+  CronListQuery,
   CronListView,
   CronRunRequest,
   RuntimeConfigUpdate,
@@ -77,9 +78,15 @@ export class ConfigService {
     return await this.requestService.get<ChatSessionTypesView>("/api/ncp/session-types");
   };
 
-  readonly fetchCronJobs = async (params: { all?: boolean } = {}): Promise<CronListView> => {
+  readonly fetchCronJobs = async (params: CronListQuery = {}): Promise<CronListView> => {
     return await this.requestService.get<CronListView>("/api/cron", {
-      query: params.all ? { all: "1" } : undefined
+      query: {
+        all: params.all ? "1" : undefined,
+        limit: params.limit,
+        offset: params.offset,
+        query: params.query,
+        status: params.status,
+      }
     });
   };
 

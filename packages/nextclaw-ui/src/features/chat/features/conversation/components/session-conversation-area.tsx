@@ -1,31 +1,34 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useLocation } from "react-router-dom";
 
-import { useAppPresenter } from '@/app/components/app-presenter-provider';
-import { ChatConversationContent } from '@/features/chat/components/conversation/chat-conversation-content';
-import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
+import { useAppPresenter } from "@/app/components/app-presenter-provider";
+import { ChatConversationContent } from "@/features/chat/components/conversation/chat-conversation-content";
+import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import {
   isNcpAgentStartupUnavailableErrorMessage,
   useNcpSessionConversation,
-} from '@/features/chat/features/ncp/hooks/use-ncp-session-conversation';
-import { isNcpChatRuntimeBlocked, resolveNcpChatSendErrorMessage } from '@/features/chat/features/runtime/utils/ncp-chat-runtime-availability.utils';
-import { buildChatContextWindowIndicator } from '@/features/chat/features/session/utils/chat-context-window-indicator.utils';
-import { readNcpContextWindowValue } from '@/features/chat/features/session/utils/ncp-session-context-metadata.utils';
-import { ChatConversationWelcome } from '@/features/chat/features/welcome/components/chat-conversation-welcome';
-import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
-import { useSystemStatus } from '@/features/system-status';
-import { t } from '@/shared/lib/i18n';
+} from "@/features/chat/features/ncp/hooks/use-ncp-session-conversation";
+import {
+  isNcpChatRuntimeBlocked,
+  resolveNcpChatSendErrorMessage,
+} from "@/features/chat/features/runtime/utils/ncp-chat-runtime-availability.utils";
+import { buildChatContextWindowIndicator } from "@/features/chat/features/session/utils/chat-context-window-indicator.utils";
+import { readNcpContextWindowValue } from "@/features/chat/features/session/utils/ncp-session-context-metadata.utils";
+import { ChatConversationWelcome } from "@/features/chat/features/welcome/components/chat-conversation-welcome";
+import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
+import { useSystemStatus } from "@/features/system-status";
+import { t } from "@/shared/lib/i18n";
 
 import {
   useSessionConversationController,
   type SessionConversationMaterializationContext,
-} from '@/features/chat/features/conversation/hooks/use-session-conversation-controller';
-import { useSessionConversationInputQuery } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-query';
-import { useSessionConversationInputState } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-state';
+} from "@/features/chat/features/conversation/hooks/use-session-conversation-controller";
+import { useSessionConversationInputQuery } from "@/features/chat/features/conversation/hooks/use-session-conversation-input-query";
+import { useSessionConversationInputState } from "@/features/chat/features/conversation/hooks/use-session-conversation-input-state";
 import {
   SessionConversationInput,
   type SessionConversationInputController,
-} from './session-conversation-input';
+} from "./session-conversation-input";
 
 type SessionConversationAreaProps = {
   readonly consumeDraftIntent?: boolean;
@@ -48,35 +51,32 @@ function useSessionConversationDraftIntent(params: {
     }
     const applyIntent = (intent: { id: number; prompt: string }) => {
       presenter.chatSessionListManager.createSession();
-      presenter.chatSessionListManager.setSelectedAgentId('main');
+      presenter.chatSessionListManager.setSelectedAgentId("main");
       applyPromptSuggestion(intent.prompt);
       appPresenter.chatDraftIntentManager.markConsumed(intent.id);
     };
-    const unsubscribe = appPresenter.chatDraftIntentManager.subscribe(applyIntent);
+    const unsubscribe =
+      appPresenter.chatDraftIntentManager.subscribe(applyIntent);
     const pendingIntent = appPresenter.chatDraftIntentManager.consumePending();
     if (pendingIntent) {
       applyIntent(pendingIntent);
     }
     return unsubscribe;
-  }, [
-    appPresenter,
-    applyPromptSuggestion,
-    consumeDraftIntent,
-    presenter,
-  ]);
+  }, [appPresenter, applyPromptSuggestion, consumeDraftIntent, presenter]);
 }
 
 type ChatDraftRouteState = {
   readonly sessionType?: unknown;
   readonly projectRoot?: unknown;
+  readonly prompt?: unknown;
 };
 
 function readChatDraftRouteState(value: unknown): ChatDraftRouteState | null {
-  if (!value || typeof value !== 'object') {
+  if (!value || typeof value !== "object") {
     return null;
   }
   const draft = (value as { chatDraft?: unknown }).chatDraft;
-  if (!draft || typeof draft !== 'object') {
+  if (!draft || typeof draft !== "object") {
     return null;
   }
   return draft as ChatDraftRouteState;
@@ -104,18 +104,23 @@ function useSessionConversationDraftRouteState(params: {
     }
     const signature = [
       location.key,
-      typeof draftState.sessionType === 'string' ? draftState.sessionType : '',
-      typeof draftState.projectRoot === 'string' ? draftState.projectRoot : '',
-    ].join(':');
+      typeof draftState.sessionType === "string" ? draftState.sessionType : "",
+      typeof draftState.projectRoot === "string" ? draftState.projectRoot : "",
+      typeof draftState.prompt === "string" ? draftState.prompt : "",
+    ].join(":");
     if (appliedRouteStateKeyRef.current === signature) {
       return;
     }
     appliedRouteStateKeyRef.current = signature;
-    if (typeof draftState.sessionType === 'string' && draftState.sessionType.trim()) {
+    if (
+      typeof draftState.sessionType === "string" &&
+      draftState.sessionType.trim()
+    ) {
       setPendingSessionType(draftState.sessionType);
     }
     setPendingProjectRoot(
-      typeof draftState.projectRoot === 'string' && draftState.projectRoot.trim()
+      typeof draftState.projectRoot === "string" &&
+        draftState.projectRoot.trim()
         ? draftState.projectRoot
         : null,
     );
@@ -144,18 +149,19 @@ function SessionConversationAlerts({
       {shouldShowProviderHint ? (
         <div className="px-4 py-2.5 border-b border-amber-200/70 bg-amber-50/70 flex items-center justify-between gap-3 shrink-0 sm:px-5">
           <span className="text-xs text-amber-800">
-            {t('chatModelNoOptions')}
+            {t("chatModelNoOptions")}
           </span>
           <button
             type="button"
             onClick={presenter.chatUiManager.goToProviders}
             className="text-xs font-semibold text-amber-900 underline-offset-2 hover:underline"
           >
-            {t('chatGoConfigureProvider')}
+            {t("chatGoConfigureProvider")}
           </button>
         </div>
       ) : null}
-      {inputQuery.sessionTypeState.sessionTypeUnavailable && sessionTypeUnavailableMessage ? (
+      {inputQuery.sessionTypeState.sessionTypeUnavailable &&
+      sessionTypeUnavailableMessage ? (
         <div className="px-4 py-2.5 border-b border-amber-200/70 bg-amber-50/70 shrink-0 sm:px-5">
           <span className="text-xs text-amber-800">
             {sessionTypeUnavailableMessage}
@@ -174,15 +180,19 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     sessionKey,
     showWelcomeForDraft = true,
   } = props;
+  const location = useLocation();
+  const draftRouteState = sessionKey
+    ? null
+    : readChatDraftRouteState(location.state);
+  const initialPrompt = typeof draftRouteState?.prompt === "string"
+    ? draftRouteState.prompt
+    : null;
   const systemStatus = useSystemStatus();
   const selectedAgentId = useChatSessionListStore(
     (state) => state.snapshot.selectedAgentId,
   );
   const agent = useNcpSessionConversation(sessionKey ?? undefined);
-  const {
-    inputActions,
-    inputSnapshot,
-  } = useSessionConversationInputState();
+  const { inputActions, inputSnapshot } = useSessionConversationInputState(initialPrompt);
   const inputQuery = useSessionConversationInputQuery({
     sessionKey,
     inputSnapshot,
@@ -216,28 +226,31 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     setPendingSessionType: inputActions.setPendingSessionType,
   });
   const isRuntimeBlocked = isNcpChatRuntimeBlocked(systemStatus);
-  const currentSessionRunning = agent.isRunning || inputQuery.selectedSession?.status === 'running';
+  const currentSessionRunning =
+    agent.isRunning || inputQuery.selectedSession?.status === "running";
   const rawLastSendError =
     agent.hydrateError?.message ?? agent.snapshot.error?.message ?? null;
   const filteredLastSendError =
-    systemStatus.phase === 'ready' &&
+    systemStatus.phase === "ready" &&
     isNcpAgentStartupUnavailableErrorMessage(rawLastSendError)
       ? null
       : rawLastSendError;
-  const lastSendError =
-    isRuntimeBlocked
-      ? null
-      : systemStatus.phase === 'ready'
+  const lastSendError = isRuntimeBlocked
+    ? null
+    : systemStatus.phase === "ready"
       ? filteredLastSendError
       : resolveNcpChatSendErrorMessage({
           message: filteredLastSendError,
           status: systemStatus,
         });
-  const controllerAgent = useMemo(() => ({
-    ...agent,
-    isRunning: currentSessionRunning,
-    isSending: agent.isSending,
-  }), [agent, currentSessionRunning]);
+  const controllerAgent = useMemo(
+    () => ({
+      ...agent,
+      isRunning: currentSessionRunning,
+      isSending: agent.isSending,
+    }),
+    [agent, currentSessionRunning],
+  );
   const controller = useSessionConversationController({
     agent: controllerAgent,
     inputSnapshot,
@@ -255,34 +268,45 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
   useEffect(() => {
     controllerRef.current = controller;
   }, [controller]);
-  const inputController = useMemo<SessionConversationInputController>(() => ({
-    canStopGeneration: controller.canStopGeneration,
-    deleteQueuedInput: (id: string) => controllerRef.current.deleteQueuedInput(id),
-    editQueuedInput: (id: string) => controllerRef.current.editQueuedInput(id),
-    isSending: controller.isSending,
-    queuedInputs: controller.queuedInputs,
-    send: () => controllerRef.current.send(),
-    sendDisabled: controller.sendDisabled,
-    stop: () => controllerRef.current.stop(),
-    stopDisabled: controller.stopDisabled,
-  }), [
-    controller.canStopGeneration,
-    controller.isSending,
-    controller.queuedInputs,
-    controller.sendDisabled,
-    controller.stopDisabled,
-  ]);
+  const inputController = useMemo<SessionConversationInputController>(
+    () => ({
+      canStopGeneration: controller.canStopGeneration,
+      deleteQueuedInput: (id: string) =>
+        controllerRef.current.deleteQueuedInput(id),
+      editQueuedInput: (id: string) =>
+        controllerRef.current.editQueuedInput(id),
+      isSending: controller.isSending,
+      queuedInputs: controller.queuedInputs,
+      send: () => controllerRef.current.send(),
+      sendDisabled: controller.sendDisabled,
+      stop: () => controllerRef.current.stop(),
+      stopDisabled: controller.stopDisabled,
+    }),
+    [
+      controller.canStopGeneration,
+      controller.isSending,
+      controller.queuedInputs,
+      controller.sendDisabled,
+      controller.stopDisabled,
+    ],
+  );
   const contextWindow = useMemo(
-    () => buildChatContextWindowIndicator(readNcpContextWindowValue(agent.snapshot.contextWindow)),
+    () =>
+      buildChatContextWindowIndicator(
+        readNcpContextWindowValue(agent.snapshot.contextWindow),
+      ),
     [agent.snapshot.contextWindow],
   );
-  const displayInputSnapshot = useMemo(() => ({
-    ...inputSnapshot,
-    sendError: lastSendError ?? inputSnapshot.sendError,
-  }), [inputSnapshot, lastSendError]);
+  const displayInputSnapshot = useMemo(
+    () => ({
+      ...inputSnapshot,
+      sendError: lastSendError ?? inputSnapshot.sendError,
+    }),
+    [inputSnapshot, lastSendError],
+  );
   const sessionFailurePreview = inputQuery.selectedSession?.activityPreview;
   const sessionFailureMessage =
-    sessionFailurePreview?.state === 'failed'
+    sessionFailurePreview?.state === "failed"
       ? sessionFailurePreview.statusText?.trim() ||
         sessionFailurePreview.replyText?.trim() ||
         null
@@ -290,7 +314,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
   const sessionFailureSlot = sessionFailureMessage ? (
     <div className="rounded-lg border border-red-200/80 bg-red-50/80 px-3 py-2.5 shadow-sm">
       <div className="text-xs font-semibold text-red-800">
-        {t('chatSessionErrorTitle')}
+        {t("chatSessionErrorTitle")}
       </div>
       <div className="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-red-700">
         {sessionFailureMessage}
@@ -301,22 +325,25 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     consumeDraftIntent,
     applyPromptSuggestion: inputActions.applyPromptSuggestion,
   });
-  const renderInput = useCallback((surface: 'default' | 'embedded') => (
-    <SessionConversationInput
-      contextWindow={contextWindow}
-      controller={inputController}
-      inputActions={inputActions}
-      inputQuery={inputQuery}
-      inputSnapshot={displayInputSnapshot}
-      surface={surface}
-    />
-  ), [
-    contextWindow,
-    displayInputSnapshot,
-    inputController,
-    inputActions,
-    inputQuery,
-  ]);
+  const renderInput = useCallback(
+    (surface: "default" | "embedded") => (
+      <SessionConversationInput
+        contextWindow={contextWindow}
+        controller={inputController}
+        inputActions={inputActions}
+        inputQuery={inputQuery}
+        inputSnapshot={displayInputSnapshot}
+        surface={surface}
+      />
+    ),
+    [
+      contextWindow,
+      displayInputSnapshot,
+      inputController,
+      inputActions,
+      inputQuery,
+    ],
+  );
   const showWelcome =
     showWelcomeForDraft &&
     !sessionKey &&
@@ -352,7 +379,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
           />
         }
       />
-      {showWelcome ? null : renderInput('default')}
+      {showWelcome ? null : renderInput("default")}
     </>
   );
 }

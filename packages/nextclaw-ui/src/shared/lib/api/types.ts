@@ -462,7 +462,28 @@ export type CronJobView = {
   deleteAfterRun: boolean;
 };
 
-export type CronListView = { jobs: CronJobView[]; total: number };
+export type CronListStatus = "all" | "enabled" | "disabled" | "attention";
+
+export type CronListQuery = {
+  all?: boolean;
+  limit?: number;
+  offset?: number;
+  query?: string;
+  status?: CronListStatus;
+};
+
+export type CronListSummaryView = {
+  total: number;
+  enabled: number;
+  disabled: number;
+  attention: number;
+};
+
+export type CronListView = {
+  jobs: CronJobView[];
+  total: number;
+  summary: CronListSummaryView;
+};
 
 export type CronEnableRequest = { enabled: boolean };
 

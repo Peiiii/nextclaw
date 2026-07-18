@@ -162,9 +162,9 @@ export function ChatConversationHeaderSection({
                 label={t("chatSidebarNewTask")}
                 tooltip={false}
                 onClick={() =>
-                  presenter.chatSessionListManager.createSession(
-                    newSessionTypePreference.selectedSessionType,
-                  )
+                  presenter.chatSessionListManager.createSession({
+                    sessionType: newSessionTypePreference.selectedSessionType,
+                  })
                 }
               />
             ) : null}
