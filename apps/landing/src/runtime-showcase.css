@@ -1,0 +1,121 @@
+.runtime-showcase-section {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  border-block: 1px solid hsl(var(--border) / 0.56);
+  background: hsl(var(--secondary) / 0.38);
+  padding: clamp(3.5rem, 7vw, 5rem) 1.5rem;
+  scroll-margin-top: 4.5rem;
+}
+
+.runtime-showcase-inner {
+  display: grid;
+  gap: 2rem;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 80rem;
+}
+
+.runtime-showcase-copy {
+  min-width: 0;
+}
+
+.runtime-showcase-title {
+  color: hsl(var(--foreground));
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+  line-height: 1.12;
+}
+
+.runtime-showcase-description {
+  margin-top: 1rem;
+  max-width: 42rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 1.0625rem;
+  line-height: 1.7;
+}
+
+.runtime-showcase-roles {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.runtime-showcase-roles div {
+  border-left: 2px solid hsl(var(--primary) / 0.42);
+  padding-left: 0.875rem;
+}
+
+.runtime-showcase-roles dt {
+  color: hsl(var(--foreground));
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.runtime-showcase-roles dd {
+  margin-top: 0.25rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.runtime-showcase-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.runtime-showcase-options span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  border: 1px solid hsl(var(--border) / 0.75);
+  border-radius: 0.375rem;
+  background: hsl(var(--background) / 0.78);
+  padding: 0.35rem 0.625rem;
+  color: hsl(var(--foreground));
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.runtime-showcase-media {
+  display: block;
+  align-self: center;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border) / 0.72);
+  border-radius: 0.5rem;
+  background: hsl(var(--background));
+  padding: clamp(0.45rem, 0.8vw, 0.75rem);
+  box-shadow: 0 30px 70px -46px hsl(var(--foreground) / 0.55);
+}
+
+.runtime-showcase-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1512 / 828;
+  border: 1px solid hsl(var(--border) / 0.52);
+  border-radius: 0.375rem;
+  background: white;
+  filter: saturate(0.78) contrast(0.97) brightness(1.02);
+  object-fit: contain;
+  object-position: top;
+  transition: filter 180ms ease;
+}
+
+.runtime-showcase-media:hover .runtime-showcase-image {
+  filter: saturate(0.92) contrast(0.99) brightness(1.01);
+}
+
+@media (min-width: 1024px) {
+  .runtime-showcase-inner {
+    grid-template-columns: minmax(18rem, 0.72fr) minmax(0, 1.28fr);
+    align-items: center;
+    gap: clamp(2rem, 4vw, 4rem);
+  }
+
+  .runtime-showcase-roles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

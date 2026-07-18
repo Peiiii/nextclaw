@@ -1,4 +1,10 @@
-import type { FeatureItem, LandingCopy, PageRoute, ShowcaseItem } from './landing-content.types';
+import type {
+  FeatureItem,
+  LandingCopy,
+  PageRoute,
+  RuntimeShowcase,
+  ShowcaseItem
+} from './landing-content.types';
 import { LINKS } from './landing-route.utils';
 
 export function renderShowcaseCards(
@@ -22,6 +28,48 @@ export function renderShowcaseCards(
       </article>
     `;
   }).join('');
+}
+
+export function renderRuntimeShowcase(showcase: RuntimeShowcase): string {
+  return `
+    <section id="agent-runtime" class="runtime-showcase-section">
+      <div class="runtime-showcase-inner">
+        <div class="runtime-showcase-copy">
+          <h2 class="runtime-showcase-title">${showcase.title}</h2>
+          <p class="runtime-showcase-description">${showcase.description}</p>
+
+          <dl class="runtime-showcase-roles">
+            <div>
+              <dt>${showcase.agentLabel}</dt>
+              <dd>${showcase.agentDescription}</dd>
+            </div>
+            <div>
+              <dt>${showcase.runtimeLabel}</dt>
+              <dd>${showcase.runtimeDescription}</dd>
+            </div>
+          </dl>
+
+          <div class="runtime-showcase-options" role="list" aria-label="${showcase.runtimeLabel}">
+            ${showcase.runtimeNames.map((name) => `<span role="listitem">${name}</span>`).join('')}
+          </div>
+        </div>
+
+        <a
+          href="${showcase.imageSrc}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="runtime-showcase-media"
+        >
+          <img
+            src="${showcase.imageSrc}"
+            alt="${showcase.imageAlt}"
+            class="runtime-showcase-image"
+            loading="eager"
+          />
+        </a>
+      </div>
+    </section>
+  `;
 }
 
 export function getPageTitle(route: PageRoute, copy: LandingCopy): string {
@@ -125,10 +173,6 @@ export function renderComparisonSection(copy: LandingCopy): string {
     <section id="compare" class="comparison-section">
       <div class="comparison-inner">
         <div class="comparison-header">
-          <p class="comparison-eyebrow">
-            <i data-lucide="scale" class="h-4 w-4"></i>
-            ${comparison.eyebrow}
-          </p>
           <h2 class="comparison-title">${comparison.title}</h2>
           <p class="comparison-subtitle">${comparison.subtitle}</p>
         </div>

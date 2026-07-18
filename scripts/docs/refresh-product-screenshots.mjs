@@ -25,12 +25,16 @@ import {
   createScreenshotModeState,
   parseBooleanEnv
 } from './product-screenshots/curated-scenes.utils.mjs';
+import { createAgentRuntimeScreenshotScenes } from './product-screenshots/agent-runtime-scenes.config.mjs';
 import {
   initializeScreenshotDocument,
   installMockApiRoutes,
   openFirstSkillDetail,
   waitForChatReady,
+  waitForDocBrowserPanel,
+  waitForPanelAppFrame,
   waitForSceneText,
+  waitForWorkspacePreview,
   writeSceneOutputs
 } from './product-screenshot-browser-helpers.mjs';
 import { createLocalPanelScreenshotData } from './product-screenshot-local-panels.utils.mjs';
@@ -92,23 +96,6 @@ const uiText = {
     chatWelcome: '你好，有什么可以帮你的吗？'
   }
 };
-
-async function waitForDocBrowserPanel(page) {
-  await page.waitForSelector('[data-testid="doc-browser-panel"]', { timeout: 20_000 });
-  await page.waitForTimeout(1_000);
-}
-
-async function waitForPanelAppFrame(page) {
-  await waitForDocBrowserPanel(page);
-  await page.waitForSelector('iframe[src*="/api/panel-apps/"]', { timeout: 20_000 });
-  await page.waitForTimeout(1_000);
-}
-
-async function waitForWorkspacePreview(page) {
-  await page.waitForSelector('[data-testid="chat-session-workspace-panel"]', { timeout: 20_000 });
-  await page.waitForSelector('[data-testid="workspace-html-preview"]', { timeout: 20_000 });
-  await page.waitForTimeout(1_000);
-}
 
 const stableScenes = [
   {
@@ -174,6 +161,7 @@ const stableScenes = [
       'apps/landing/public/nextclaw-agents-page-cn.png'
     ]
   },
+  ...createAgentRuntimeScreenshotScenes(),
   {
     id: 'marketplace-skills',
     route: '/marketplace/skills',
@@ -692,6 +680,7 @@ async function captureScene(browser, scene, uiOrigin) {
 
   try {
     const pageErrors = [];
+    let consoleErrorCount = 0;
     await context.addInitScript(initializeScreenshotDocument, {
       key: languageStorageKey,
       value: scene.language,
@@ -725,7 +714,10 @@ async function captureScene(browser, scene, uiOrigin) {
     });
     page.on('console', (message) => {
       if (message.type() === 'error') {
-        console.warn(`[screenshot] console error on ${scene.id}: ${message.text()}`);
+        consoleErrorCount += 1;
+        if (consoleErrorCount <= 3) {
+          console.warn(`[screenshot] console error on ${scene.id}: ${message.text()}`);
+        }
       }
     });
 
@@ -737,7 +729,9 @@ async function captureScene(browser, scene, uiOrigin) {
       });
     }
 
-    await page.goto(`${uiOrigin}${scene.route}`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${uiOrigin}${scene.route}`, {
+      waitUntil: useRealAppData ? 'commit' : 'domcontentloaded'
+    });
     await waitForSceneText(page, scene);
 
     if (scene.afterLoad) {
@@ -759,6 +753,9 @@ async function captureScene(browser, scene, uiOrigin) {
 
     if (pageErrors.length > 0) {
       throw new Error(`[screenshot] page errors on ${scene.id}: ${pageErrors.join(' | ')}`);
+    }
+    if (consoleErrorCount > 3) {
+      console.warn(`[screenshot] ${scene.id}: ${consoleErrorCount - 3} additional console errors suppressed`);
     }
     await writeSceneOutputs(page, scene, screenshotOptionsFor, writeBuffer);
   } finally {

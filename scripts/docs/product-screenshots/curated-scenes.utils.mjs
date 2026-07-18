@@ -209,7 +209,9 @@ export function createScreenshotModeState({ argv, env, sceneFilter, stableScenes
           workspacePreviewPath: String(env.SCREENSHOT_WORKSPACE_PREVIEW_PATH || '').trim()
         })
       : stableScenes;
-    return availableScenes.filter(matchesSceneFilter);
+    return availableScenes.filter((scene) =>
+      matchesSceneFilter(scene) && (!scene.realAppOnly || useRealAppData)
+    );
   };
   const assertCanRun = () => {
     if (screenshotMode === 'curated' && (!env.SCREENSHOT_UI_ORIGIN || !curatedSessionId)) {

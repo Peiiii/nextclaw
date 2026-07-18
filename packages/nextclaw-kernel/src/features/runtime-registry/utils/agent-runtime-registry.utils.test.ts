@@ -61,6 +61,18 @@ describe("resolveAgentRuntimeEntries", () => {
       }),
     );
   });
+
+  it("provides the official icon for an OpenCode runtime entry", () => {
+    const resolved = resolveAgentRuntimeEntries({
+      config: createConfig({ opencode: { type: "narp-stdio" } }),
+    });
+
+    expect(resolved.entries.find((entry) => entry.id === "opencode")?.icon).toEqual({
+      kind: "image",
+      src: "app://runtime-icons/opencode.svg",
+      alt: "OpenCode",
+    });
+  });
 });
 
 describe("describeAgentRuntimeSessionTypes", () => {

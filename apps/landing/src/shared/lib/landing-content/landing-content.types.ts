@@ -17,6 +17,14 @@ export type ShowcaseItem = {
   imageAlt: string;
 };
 
+export type RuntimeShowcase = Omit<ShowcaseItem, 'eyebrow'> & {
+  agentLabel: string;
+  agentDescription: string;
+  runtimeLabel: string;
+  runtimeDescription: string;
+  runtimeNames: string[];
+};
+
 export type EcosystemItem = {
   label: string;
   logo?: string;
@@ -68,7 +76,6 @@ export type ComparisonValue = {
 };
 
 export type ComparisonCopy = {
-  eyebrow: string;
   title: string;
   subtitle: string;
   values: ComparisonValue[];
@@ -117,6 +124,7 @@ export type LandingCopy = {
   showcaseTitle: string;
   showcaseSubtitle: string;
   showcaseItems: ShowcaseItem[];
+  runtimeShowcase: RuntimeShowcase;
   appSurfaceTitle: string;
   appSurfaceSubtitle: string;
   appSurfaceItems: ShowcaseItem[];

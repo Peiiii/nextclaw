@@ -60,8 +60,8 @@ describe("ChatSessionTypeOptionItem", () => {
     const optionButton = screen.getByRole("button", { name: /native/i });
     const fallbackIcon = optionButton.querySelector("svg");
 
-    expect(fallbackIcon?.parentElement?.className).toContain("text-gray-700");
-    expect(fallbackIcon?.getAttribute("stroke-width")).toBe("2.4");
+    expect(fallbackIcon?.parentElement?.className).toContain("text-muted-foreground");
+    expect(fallbackIcon?.getAttribute("stroke-width")).toBe("2");
     expect(screen.getByText("Native")).toBeTruthy();
   });
 

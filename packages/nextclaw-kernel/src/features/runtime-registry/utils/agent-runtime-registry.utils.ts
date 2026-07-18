@@ -141,6 +141,14 @@ const BUILTIN_RUNTIME_PRESENTATION = {
       alt: "Hermes",
     },
   },
+  opencode: {
+    label: "OpenCode",
+    icon: {
+      kind: "image",
+      src: "app://runtime-icons/opencode.svg",
+      alt: "OpenCode",
+    },
+  },
 } satisfies Record<
   string,
   { label: string; icon?: AgentRuntimeSessionTypeIcon }

@@ -2,7 +2,6 @@ import type { ComparisonCopy, Locale } from './landing-content.types';
 
 export const COMPARISON_COPY: Record<Locale, ComparisonCopy> = {
   en: {
-    eyebrow: "NextClaw's distinct value",
     title: 'What is distinct about NextClaw?',
     subtitle:
       'It gives you an AI workspace that can run on your own infrastructure, be reshaped through open source, and grow through apps that remain usable after the coding session ends.',
@@ -34,7 +33,6 @@ export const COMPARISON_COPY: Record<Locale, ComparisonCopy> = {
     ]
   },
   zh: {
-    eyebrow: 'NextClaw 的独特价值',
     title: 'NextClaw 有哪些独特价值？',
     subtitle: '它提供一套可以运行在自己设备上、基于开源持续改造，并通过可长期使用的小应用不断扩展的 AI 工作环境。',
     values: [

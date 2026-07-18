@@ -89,17 +89,7 @@
     max-width: 50rem;
   }
 
-  .comparison-eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: hsl(var(--primary));
-    font-size: 0.8125rem;
-    font-weight: 700;
-  }
-
   .comparison-title {
-    margin-top: 0.875rem;
     color: hsl(var(--foreground));
     font-size: clamp(2rem, 4vw, 3rem);
     font-weight: 700;

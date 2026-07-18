@@ -38,6 +38,23 @@ export async function openFirstSkillDetail(page) {
   await page.waitForTimeout(1_000);
 }
 
+export async function waitForDocBrowserPanel(page) {
+  await page.waitForSelector('[data-testid="doc-browser-panel"]', { timeout: 20_000 });
+  await page.waitForTimeout(1_000);
+}
+
+export async function waitForPanelAppFrame(page) {
+  await waitForDocBrowserPanel(page);
+  await page.waitForSelector('iframe[src*="/api/panel-apps/"]', { timeout: 20_000 });
+  await page.waitForTimeout(1_000);
+}
+
+export async function waitForWorkspacePreview(page) {
+  await page.waitForSelector('[data-testid="chat-session-workspace-panel"]', { timeout: 20_000 });
+  await page.waitForSelector('[data-testid="workspace-html-preview"]', { timeout: 20_000 });
+  await page.waitForTimeout(1_000);
+}
+
 export async function waitForChatReady(page) {
   await page.waitForFunction(() => {
     const bodyText = document.body?.innerText || '';
