@@ -8,6 +8,15 @@
 
 本设计属于 `docs/designs`：它已经形成稳定的部署 owner、身份合同、制品流、迁移边界和验收标准；不是待办清单，也不是已完成迭代记录。
 
+## 实施状态（2026-07-18）
+
+- GitHub Actions 的 build-once、双站部署、制品回滚和证书续期 workflow 已实现。
+- 阿里云 ROS 已创建并接管私有 OSS、CDN、OIDC provider、最小权限部署角色与私有 OSS 回源角色；资源栈开启删除保护。
+- `docs-cn-production` environment 只允许 `master`，部署身份由 GitHub OIDC 换取 30 分钟 STS，不保存阿里云 AccessKey。
+- CDN 已启用私有回源、clean URL rewrite、HTTPS 强制跳转、Brotli/Gzip、页面短缓存和哈希资源一年缓存；发布只精确刷新页面 URL。
+- HTTPS 首次迁移复用了现网证书；后续由每周检查、30 天续期窗口的 DNS-01 workflow 自动签发和部署，证书私钥只存在于临时 runner。
+- 旧 ECS/SSH 日常部署入口已从仓库删除；正式 DNS 切换与线上双域名验收结果进入本次迭代记录。
+
 ## 当前事实与分层根因
 
 ### 现象层
@@ -27,7 +36,7 @@
 
 此前只完成了 config、runner、bootstrap、deploy、verify 的脚本职责拆分，却把“谁拥有生产身份、制品如何跨目标复用、如何在干净 runner 重现”留给了操作者。本机登录态因此成为事实上的部署 owner。
 
-当前 GitHub 仓库已有 production environment 与 Cloudflare Pages 凭据，但没有文档部署 workflow；阿里云侧也尚未建立面向该 workflow 的 OIDC provider 与文档部署 RAM role。当前阿里云账户已经存在其他 OSS-backed CDN 站点，因此推荐架构所需的云产品能力是已验证可用的，不是新增的理论依赖。
+实施前，GitHub 仓库已有 production environment 与 Cloudflare Pages 凭据，但没有文档部署 workflow；阿里云侧也没有面向该 workflow 的 OIDC provider 与文档部署 RAM role。当前这些缺口已经按本设计闭合。
 
 ### 防线缺口层
 
@@ -86,7 +95,8 @@ GitHub Actions: validate + build once
 ### Owner 边界
 
 - `.github/workflows/docs-deploy.yml`：生产部署唯一编排 owner；负责触发、并发控制、构建制品、两个部署 job 和最终验证。
-- `infra/docs-delivery/`：阿里云静态托管基础设施 owner；声明 OSS、版本控制、生命周期、CDN、HTTPS、URL rewrite、DNS、OIDC provider、RAM role 与最小权限策略。
+- `infra/docs-delivery/`：阿里云静态托管基础设施 owner；声明 OSS、版本控制、生命周期、CDN、HTTPS 行为、URL rewrite、缓存、OIDC provider、RAM role 与最小权限策略。
+- `.github/workflows/docs-certificate-renewal.yml`：国内站证书生命周期 owner；用同一 OIDC role 完成 DNS-01、证书部署和边缘证书指纹验证。
 - `scripts/deploy/docs/verify-docs-deployment.mjs`：纯读验证 owner；接收期望 commit 和内容指纹，验证两个正式域名。
 - `release-manifest.json`：发布事实；至少包含 commit、内容树 SHA-256、构建时间和 workflow run URL。
 - `apps/docs`：仍是唯一内容源；不新增国内版文档源码。
@@ -99,13 +109,13 @@ GitHub Actions: validate + build once
 
 - workflow 仅授予 `contents: read` 与 `id-token: write`。
 - 使用阿里云官方 `configure-aliyun-credentials-action`，实现时固定到审核过的 commit SHA，不跟随可变分支。
-- GitHub OIDC subject 绑定当前仓库、`docs-cn-production` environment 和 `docs-deploy.yml` 的 `job_workflow_ref`；优先启用 immutable subject，避免仓库改名或命名空间回收扩大信任。
-- RAM role 只允许目标 OSS bucket/prefix 的读取、写入、列举与版本恢复，以及目标 CDN 域名必要的刷新 API；不授予 ECS、SSH、RAM 管理或账户级通配权限。
+- GitHub OIDC subject 精确绑定当前仓库和 `docs-cn-production` environment；environment 自身只接受 `master` 部署，避免分支或 fork 获取生产身份。
+- RAM role 只允许目标 OSS bucket 的读取、写入、列举与生命周期更新、CDN 刷新与证书部署，以及证书 DNS-01 所需的四个 AliDNS API；不授予 ECS、SSH、RAM 管理或其他 bucket 写权限。
 - STS session 使用短时有效期，session name 包含 workflow run id，便于 ActionTrail 追踪。
 
 ### GitHub 到 Cloudflare
 
-- Cloudflare Pages 使用单独的 `docs-global-production` environment，保存仅能部署 `nextclaw-docs` 项目的 scoped API token 与 account id。
+- Cloudflare Pages 复用仓库现有 `production` environment 中的 account id 与 API token，部署命令固定到 `nextclaw-docs` 项目；后续轮换 token 时应继续保持仅该项目所需权限。
 - token 不进入仓库、产物或日志；指定轮换 owner 和失效检查。
 - 本机 Wrangler 登录只允许明确声明的应急人工发布，不能再作为例行生产合同或“自动部署”证明。
 
@@ -128,7 +138,7 @@ GitHub Actions: validate + build once
 3. build job 在干净 runner 安装锁定依赖，刷新文档所需指标，构建一次 `dist`，生成内容树指纹和 `release-manifest.json`，上传 GitHub artifact。
 4. 全球与国内 deploy job 只下载该 artifact，不重新 checkout 后 build。
 5. 国内站先上传内容哈希资源，再上传 HTML 与发布清单；旧哈希资源至少保留一个 HTML 缓存窗口，避免新旧页面引用断裂。
-6. CDN 只刷新 HTML、健康文件与发布清单；内容哈希资源不做全量 purge。
+6. CDN 精确刷新 HTML 对应的公开 URL、健康文件与发布清单；内容哈希资源不做全量 purge。
 7. final verify job 必须看到两个正式域名的 commit 与内容指纹都等于本次 artifact，并验证中英文入口、关键页面和静态资源。
 
 生产部署 concurrency 固定为单通道，`cancel-in-progress: false`。新的文档发布排队等待，不能在一个目标已更新后取消整批 workflow，减少双站短暂漂移。
@@ -143,11 +153,11 @@ GitHub Actions: validate + build once
 
 ## 迁移与旧路径删除
 
-1. 用 IaC 创建独立私有 bucket、CDN staging 域名、OIDC provider、RAM role 和缓存/rewrite 配置，不修改现网 DNS。
-2. 在 staging 域名连续验证 clean URL、缓存、HTTPS、中文访问、同制品指纹和无交互 workflow。
-3. 提前降低 DNS TTL，将 `docs.nextclaw.net` 从 ECS A 记录切换为 CDN CNAME。
-4. 正式域名验证通过后保留 ECS 作为 DNS 回退源 7 天，但冻结其日常 deploy 入口；这条兼容路径的删除条件是连续 7 天线上检查正常且至少完成一次新 workflow 发布。
-5. 删除 `deploy:docs:cn:bootstrap`、`deploy:docs:cn`、`deploy:docs:cn:full` 及 SSH/ECS/Nginx 发布脚本；保留统一 build、workflow dispatch 与双站 verify 入口。
+1. 用 IaC 创建独立私有 bucket、CDN、OIDC provider、RAM role 和缓存/rewrite 配置，不先修改现网 DNS。
+2. 通过 CDN CNAME 定向解析验证 clean URL、缓存、HTTPS、中文访问、同制品指纹和无交互 workflow。
+3. 将 `docs.nextclaw.net` 从 ECS A 记录切换为 CDN CNAME，并执行公开 DNS、证书、路由与制品一致性验证。
+4. 冻结 ECS 日常 deploy 入口；旧主机只作为短期基础设施回退，不再作为仓库发布 owner。
+5. 删除 `deploy:docs:cn:bootstrap`、`deploy:docs:cn`、`deploy:docs:cn:full` 及 SSH/ECS/Nginx 发布脚本；保留统一 workflow dispatch、证书续期、rollback 与双站 verify 入口。
 
 如果备案、证书或 CDN 审核形成真实外部阻塞，才允许用“GitHub OIDC + ECS 云助手 + release 目录原子 symlink”作为有删除日期的桥接；不新增 SSH key 方案。
 
@@ -177,17 +187,17 @@ GitHub Actions: validate + build once
 
 ## 非目标
 
-- 本轮设计不立即修改 DNS、创建付费云资源或停用 ECS。
+- 不在本轮销毁仍承载其他职责的 ECS；移除的是文档日常发布依赖，不擅自扩大基础设施删除范围。
 - 不把全球站和国内站合并到同一云厂商；目标是一份制品与统一发布 owner，而不是单一供应商。
 - 不为部署失败增加客户端运行时探测或静默 fallback。
 - 不把服务器密码、SSH 私钥或长期阿里云 AccessKey 保存到 GitHub Secrets。
 
-## 后续实现顺序
+## 实际实施顺序
 
-1. 先实现 build-once artifact、release manifest、纯读双站 verifier 和 GitHub workflow 骨架。
-2. 再用 IaC 建立 OIDC、最小权限 RAM、私有 OSS 与 CDN staging，完成无交互 staging 发布。
-3. 完成正式 DNS 切流和 7 天观察，随后删除 ECS 日常发布路径。
-4. 最后增加显式 rollback workflow，并做一次上一制品回退演练。
+1. 实现 build-once artifact、release manifest、纯读双站 verifier、部署与 rollback workflow。
+2. 用 ROS 建立 OIDC、最小权限 RAM、私有 OSS、CDN、缓存与 rewrite；用现网证书完成 HTTPS 引导。
+3. 增加 OIDC + AliDNS DNS-01 的自动证书续期，消除上传证书到期后的人工操作。
+4. 推送后先由 workflow 向两端发布同一制品，再定向验证 CDN CNAME，最后切换正式 DNS 并重跑公开双站验收。
 
 ## 依据
 

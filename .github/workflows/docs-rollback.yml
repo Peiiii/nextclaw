@@ -1,0 +1,171 @@
+name: Docs Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Previously verified commit stored in the private OSS release archive
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-production
+  cancel-in-progress: false
+
+env:
+  ARTIFACT_NAME: nextclaw-docs-rollback-${{ inputs.release_sha }}-${{ github.run_id }}
+  RELEASE_COMMIT: ${{ inputs.release_sha }}
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    environment: docs-cn-production
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      tree_sha256: ${{ steps.manifest.outputs.tree_sha256 }}
+    steps:
+      - name: Install pinned OSS CLI
+        run: |
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          curl -fsSLo "$RUNNER_TEMP/ossutil.zip" \
+            https://gosspublic.alicdn.com/ossutil/v2/2.3.0/ossutil-2.3.0-linux-amd64.zip
+          echo "3ae4d9fc85a7a6e9f5654d1599766f1a3a42a3692870887b5ae9338d582ef65a  $RUNNER_TEMP/ossutil.zip" | sha256sum -c -
+          unzip -q "$RUNNER_TEMP/ossutil.zip" -d "$RUNNER_TEMP"
+          install -m 0755 "$RUNNER_TEMP/ossutil-2.3.0-linux-amd64/ossutil" "$RUNNER_TEMP/bin/ossutil"
+
+      - name: Exchange GitHub identity for short-lived Alibaba credentials
+        uses: aliyun/configure-aliyun-credentials-action@1e5248c8d5d93a8781ac344a68e19a43341e79e6
+        with:
+          audience: sts.aliyuncs.com
+          oidc-provider-arn: ${{ vars.ALIYUN_DOCS_OIDC_PROVIDER_ARN }}
+          role-to-assume: ${{ vars.ALIYUN_DOCS_ROLE_ARN }}
+          role-session-expiration: 1800
+          role-session-name: docs-rollback-${{ github.run_id }}
+
+      - name: Download previously verified artifact without rebuilding
+        env:
+          BUCKET: ${{ vars.ALIYUN_DOCS_BUCKET }}
+          REGION: ${{ vars.ALIYUN_DOCS_REGION }}
+        run: |
+          export OSS_ACCESS_KEY_ID="$ALIBABA_CLOUD_ACCESS_KEY_ID"
+          export OSS_ACCESS_KEY_SECRET="$ALIBABA_CLOUD_ACCESS_KEY_SECRET"
+          export OSS_SESSION_TOKEN="$ALIBABA_CLOUD_SECURITY_TOKEN"
+          export OSS_REGION="$REGION"
+          ossutil sync "oss://$BUCKET/_releases/$RELEASE_COMMIT/" docs-dist --region "$REGION" --mode StsToken --force
+
+      - name: Validate archived manifest
+        id: manifest
+        run: |
+          test "$(jq -r .commit docs-dist/release-manifest.json)" = "$RELEASE_COMMIT"
+          echo "tree_sha256=$(jq -r .treeSha256 docs-dist/release-manifest.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload rollback artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: docs-dist
+          if-no-files-found: error
+          retention-days: 30
+
+  rollback-global:
+    needs: prepare
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Download rollback artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: docs-dist
+
+      - name: Promote archived artifact to Cloudflare Pages
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.67.0"
+          command: >-
+            pages deploy docs-dist
+            --project-name=nextclaw-docs
+            --branch=master
+            --commit-hash=${{ env.RELEASE_COMMIT }}
+
+  rollback-domestic:
+    needs: prepare
+    runs-on: ubuntu-latest
+    environment: docs-cn-production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout infrastructure contract
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Download rollback artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: docs-dist
+
+      - name: Install pinned cloud CLIs
+        run: |
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          curl -fsSLo "$RUNNER_TEMP/ossutil.zip" \
+            https://gosspublic.alicdn.com/ossutil/v2/2.3.0/ossutil-2.3.0-linux-amd64.zip
+          echo "3ae4d9fc85a7a6e9f5654d1599766f1a3a42a3692870887b5ae9338d582ef65a  $RUNNER_TEMP/ossutil.zip" | sha256sum -c -
+          unzip -q "$RUNNER_TEMP/ossutil.zip" -d "$RUNNER_TEMP"
+          install -m 0755 "$RUNNER_TEMP/ossutil-2.3.0-linux-amd64/ossutil" "$RUNNER_TEMP/bin/ossutil"
+
+      - name: Setup Alibaba Cloud CLI
+        uses: aliyun/setup-aliyun-cli-action@09a5f86915bb556e27bf050e9a5e339aeb073df5
+        with:
+          version: "3.4.6"
+
+      - name: Exchange GitHub identity for short-lived Alibaba credentials
+        uses: aliyun/configure-aliyun-credentials-action@1e5248c8d5d93a8781ac344a68e19a43341e79e6
+        with:
+          audience: sts.aliyuncs.com
+          oidc-provider-arn: ${{ vars.ALIYUN_DOCS_OIDC_PROVIDER_ARN }}
+          role-to-assume: ${{ vars.ALIYUN_DOCS_ROLE_ARN }}
+          role-session-expiration: 1800
+          role-session-name: docs-rollback-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Promote archived artifact to domestic production
+        env:
+          BUCKET: ${{ vars.ALIYUN_DOCS_BUCKET }}
+          REGION: ${{ vars.ALIYUN_DOCS_REGION }}
+        run: |
+          export OSS_ACCESS_KEY_ID="$ALIBABA_CLOUD_ACCESS_KEY_ID"
+          export OSS_ACCESS_KEY_SECRET="$ALIBABA_CLOUD_ACCESS_KEY_SECRET"
+          export OSS_SESSION_TOKEN="$ALIBABA_CLOUD_SECURITY_TOKEN"
+          export OSS_REGION="$REGION"
+          ossutil sync docs-dist "oss://$BUCKET/" --region "$REGION" --mode StsToken --force
+          ossutil set-props "oss://$BUCKET/health" --region "$REGION" --mode StsToken --content-type application/json --cache-control no-store --force
+          ossutil set-props "oss://$BUCKET/release-manifest.json" --region "$REGION" --mode StsToken --content-type application/json --cache-control no-store --force
+
+      - name: Refresh domestic CDN
+        env:
+          CDN_DOMAIN: ${{ vars.ALIYUN_DOCS_CDN_DOMAIN }}
+        run: |
+          refresh_paths=$(node scripts/deploy/docs/create-cdn-refresh-paths.mjs --dist docs-dist --domain "$CDN_DOMAIN")
+          aliyun cdn RefreshObjectCaches --ObjectPath "$refresh_paths" --ObjectType File
+
+  verify:
+    needs: [prepare, rollback-global, rollback-domestic]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout verifier
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Verify rollback artifact on both production domains
+        env:
+          NEXTCLAW_DOCS_CN_CNAME: ${{ vars.ALIYUN_DOCS_CDN_CNAME }}
+        run: >-
+          node scripts/deploy/docs/verify-docs-deployment.mjs
+          --expected-commit "${{ env.RELEASE_COMMIT }}"
+          --expected-tree "${{ needs.prepare.outputs.tree_sha256 }}"

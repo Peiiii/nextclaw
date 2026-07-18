@@ -1,0 +1,124 @@
+name: Docs Certificate Renewal
+
+on:
+  schedule:
+    - cron: "17 3 * * 0"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Issue and deploy a new certificate even when the live certificate has more than 30 days remaining
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: docs-certificate-renewal
+  cancel-in-progress: false
+
+jobs:
+  renew:
+    runs-on: ubuntu-latest
+    environment: docs-cn-production
+    steps:
+      - name: Decide whether renewal is due
+        id: certificate-window
+        env:
+          FORCE_RENEWAL: ${{ inputs.force || 'false' }}
+        run: |
+          openssl s_client \
+            -connect docs.nextclaw.net:443 \
+            -servername docs.nextclaw.net \
+            </dev/null 2>/dev/null \
+            | openssl x509 -out "$RUNNER_TEMP/live-certificate.pem"
+
+          if [[ "$FORCE_RENEWAL" == "true" ]] || ! openssl x509 -checkend 2592000 -noout -in "$RUNNER_TEMP/live-certificate.pem"; then
+            echo "renew=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "renew=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install pinned ACME client
+        if: steps.certificate-window.outputs.renew == 'true'
+        run: |
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          curl -fsSLo "$RUNNER_TEMP/lego.tar.gz" \
+            https://github.com/go-acme/lego/releases/download/v5.2.1/lego_v5.2.1_linux_amd64.tar.gz
+          echo "c5c7f34594daa8d05ec568069fa6c97ace1ef428367533a6d42bf9b3d5164169  $RUNNER_TEMP/lego.tar.gz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/lego-bin"
+          tar -xzf "$RUNNER_TEMP/lego.tar.gz" -C "$RUNNER_TEMP/lego-bin"
+          install -m 0755 "$RUNNER_TEMP/lego-bin/lego" "$RUNNER_TEMP/bin/lego"
+
+      - name: Setup Alibaba Cloud CLI
+        if: steps.certificate-window.outputs.renew == 'true'
+        uses: aliyun/setup-aliyun-cli-action@09a5f86915bb556e27bf050e9a5e339aeb073df5
+        with:
+          version: "3.4.6"
+
+      - name: Exchange GitHub identity for short-lived Alibaba credentials
+        if: steps.certificate-window.outputs.renew == 'true'
+        uses: aliyun/configure-aliyun-credentials-action@1e5248c8d5d93a8781ac344a68e19a43341e79e6
+        with:
+          audience: sts.aliyuncs.com
+          oidc-provider-arn: ${{ vars.ALIYUN_DOCS_OIDC_PROVIDER_ARN }}
+          role-to-assume: ${{ vars.ALIYUN_DOCS_ROLE_ARN }}
+          role-session-expiration: 1800
+          role-session-name: docs-cert-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Issue certificate through DNS-01
+        if: steps.certificate-window.outputs.renew == 'true'
+        env:
+          ALICLOUD_REGION_ID: ${{ vars.ALIYUN_DOCS_REGION }}
+        run: |
+          export ALICLOUD_ACCESS_KEY="$ALIBABA_CLOUD_ACCESS_KEY_ID"
+          export ALICLOUD_SECRET_KEY="$ALIBABA_CLOUD_ACCESS_KEY_SECRET"
+          export ALICLOUD_SECURITY_TOKEN="$ALIBABA_CLOUD_SECURITY_TOKEN"
+          lego \
+            --accept-tos \
+            --email "Peiiii@users.noreply.github.com" \
+            --path "$RUNNER_TEMP/lego-state" \
+            --dns alidns \
+            --domains docs.nextclaw.net \
+            run
+
+      - name: Deploy certificate to Alibaba Cloud CDN
+        if: steps.certificate-window.outputs.renew == 'true'
+        run: |
+          certificate_file="$RUNNER_TEMP/lego-state/certificates/docs.nextclaw.net.crt"
+          private_key_file="$RUNNER_TEMP/lego-state/certificates/docs.nextclaw.net.key"
+          test -s "$certificate_file"
+          test -s "$private_key_file"
+          certificate_content=$(<"$certificate_file")
+          private_key_content=$(<"$private_key_file")
+          aliyun cdn SetCdnDomainSSLCertificate \
+            --DomainName docs.nextclaw.net \
+            --SSLProtocol on \
+            --CertType upload \
+            --CertName "nextclaw-docs-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --SSLPub "$certificate_content" \
+            --SSLPri "$private_key_content"
+
+      - name: Verify the CDN serves the issued certificate
+        if: steps.certificate-window.outputs.renew == 'true'
+        run: |
+          certificate_file="$RUNNER_TEMP/lego-state/certificates/docs.nextclaw.net.crt"
+          expected=$(openssl x509 -in "$certificate_file" -noout -fingerprint -sha256)
+
+          for attempt in {1..12}; do
+            remote=$(openssl s_client \
+              -connect docs.nextclaw.net:443 \
+              -servername docs.nextclaw.net \
+              </dev/null 2>/dev/null \
+              | openssl x509 -noout -fingerprint -sha256 || true)
+            if [[ "$remote" == "$expected" ]]; then
+              openssl x509 -in "$certificate_file" -checkend 5184000 -noout
+              exit 0
+            fi
+            sleep 15
+          done
+
+          echo "CDN did not serve the newly issued certificate within three minutes" >&2
+          exit 1
