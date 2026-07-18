@@ -44,6 +44,7 @@ jobs:
       - name: Install pinned ACME client
         if: steps.certificate-window.outputs.renew == 'true'
         run: |
+          mkdir -p "$RUNNER_TEMP/bin"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
           curl -fsSLo "$RUNNER_TEMP/lego.tar.gz" \
             https://github.com/go-acme/lego/releases/download/v5.2.1/lego_v5.2.1_linux_amd64.tar.gz
