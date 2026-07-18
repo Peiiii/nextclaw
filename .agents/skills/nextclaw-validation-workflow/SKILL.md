@@ -1,6 +1,6 @@
 ---
 name: nextclaw-validation-workflow
-description: Use when running /validate, choosing validation commands after changes, closing code work, checking TypeScript/build/lint requirements, doing bugfix resolution verification, smoke testing, runtime startup/status log verification, maintainability guard/review, governance ratchets, or release validation.
+description: Use when running /validate, choosing validation commands after changes, closing code work, checking TypeScript/build/lint requirements, doing bugfix resolution verification, smoke testing, runtime startup/status log verification, maintainability guard/review, governance ratchets, release validation, or evaluating automated/unattended deployment credentials and production deploy paths.
 ---
 
 # NextClaw Validation Workflow
@@ -162,8 +162,22 @@ For release or deployment:
 - online smoke is required for affected critical APIs or UI paths,
 - NPM release must list exact packages and dependent packages,
 - docs review is part of release closure,
-- 发布 Cloudflare Pages 前先发现并使用本机已安装的 `wrangler`：运行 `command -v wrangler` 与 `wrangler whoami`，凭据失效时用同一 CLI 执行 `wrangler login`。不要先用 `pnpm dlx wrangler` 临时下载另一份 CLI，也不要因为临时 CLI 读不到登录态就误判只能配置 API Token。
 - skipped steps must be marked `不适用` with reason.
+
+### Unattended Deployment Contract
+
+Routine production deployment is automated only when all of these are true:
+
+- the repository CI workflow is the deploy owner and can run from a clean, non-interactive runner;
+- authentication does not read stdin, require a TTY, prompt for a password, or depend on a developer machine's login state;
+- cloud access uses workload identity federation and short-lived, least-privilege credentials when the provider supports it; otherwise use a narrowly scoped environment secret with an explicit rotation owner;
+- every target consumes the same immutable build artifact and exposes a release identifier that post-deploy verification can compare;
+- credential preflight happens before remote mutation, deployment failures remain visible, and the verification path stays pure read and repeat-safe;
+- rollback uses a previously verified artifact instead of rebuilding an old source state or asking for an operator password.
+
+If any production step prompts for a password or needs a personal CLI login, label the run as a manual release. A routine path with that dependency is an automation defect: stop calling it automatic and design the non-interactive owner path instead of normalizing repeated human credential entry.
+
+For Cloudflare Pages, prefer a repository workflow with an environment-scoped Pages token. An already installed and logged-in local `wrangler` may be used only as an explicitly declared emergency/manual fallback; in that case run `command -v wrangler` and `wrangler whoami`, do not substitute a transient `pnpm dlx` binary, and do not present the result as unattended deployment.
 
 ## Retrospective Closure
 
