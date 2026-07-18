@@ -77,13 +77,12 @@ jobs:
           export ALICLOUD_ACCESS_KEY="$ALIBABA_CLOUD_ACCESS_KEY_ID"
           export ALICLOUD_SECRET_KEY="$ALIBABA_CLOUD_ACCESS_KEY_SECRET"
           export ALICLOUD_SECURITY_TOKEN="$ALIBABA_CLOUD_SECURITY_TOKEN"
-          lego \
+          lego run \
             --accept-tos \
             --email "Peiiii@users.noreply.github.com" \
             --path "$RUNNER_TEMP/lego-state" \
             --dns alidns \
-            --domains docs.nextclaw.net \
-            run
+            --domains docs.nextclaw.net
 
       - name: Deploy certificate to Alibaba Cloud CDN
         if: steps.certificate-window.outputs.renew == 'true'
