@@ -13,6 +13,7 @@ import type { NcpSessionSummaryView, SessionEntryView } from "@/shared/lib/api";
 
 const mocks = vi.hoisted(() => ({
   deleteSession: vi.fn(),
+  createSession: vi.fn(),
   toggleWorkspacePanel: vi.fn(),
   selectSession: vi.fn(),
   setListMode: vi.fn(),
@@ -28,10 +29,20 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
       toggleWorkspacePanel: mocks.toggleWorkspacePanel,
     },
     chatSessionListManager: {
+      createSession: mocks.createSession,
       selectSession: mocks.selectSession,
       setListMode: mocks.setListMode,
       toggleProjectCollapsed: mocks.toggleProjectCollapsed,
     },
+  }),
+}));
+
+vi.mock("@/features/chat/features/session-type/hooks/use-chat-new-session-type-preference", () => ({
+  useChatNewSessionTypePreference: () => ({
+    selectedSessionType: "codex",
+    selectedSessionTypeOption: null,
+    isLoading: false,
+    setSelectedSessionType: vi.fn(),
   }),
 }));
 
@@ -122,6 +133,7 @@ function renderHeaderSection(layoutMode: "desktop" | "mobile" = "desktop") {
 describe("ChatConversationHeaderSection", () => {
   beforeEach(() => {
     mocks.deleteSession.mockReset();
+    mocks.createSession.mockReset();
     mocks.toggleWorkspacePanel.mockReset();
     mocks.selectSession.mockReset();
     mocks.setListMode.mockReset();
@@ -259,6 +271,21 @@ describe("ChatConversationHeaderSection", () => {
     await user.click(screen.getByRole("button", { name: /Background Task/ }));
 
     expect(mocks.selectSession).toHaveBeenCalledWith("session:ncp-2");
+  });
+
+  it("starts a new preferred session from the mobile conversation header", async () => {
+    const user = userEvent.setup();
+
+    renderHeaderSection("mobile");
+    await user.click(screen.getByRole("button", { name: "New Task" }));
+
+    expect(mocks.createSession).toHaveBeenCalledWith("codex");
+  });
+
+  it("keeps the new-session shortcut mobile-only", () => {
+    renderHeaderSection();
+
+    expect(screen.queryByRole("button", { name: "New Task" })).toBeNull();
   });
 
   it("uses lightweight static groups for pinned and activity dates", async () => {

@@ -1,8 +1,10 @@
 import { useMemo } from "react";
+import { SquarePen } from "lucide-react";
 import { ChatConversationHeader } from "@/features/chat/components/conversation/chat-conversation-header";
 import { ChatSessionHeaderActions } from "@/features/chat/features/session/components/session-header/chat-session-header-actions";
 import { ChatSessionProjectBadge } from "@/features/chat/features/session/components/session-header/chat-session-project-badge";
 import { ChatSessionTitleSwitcher } from "@/features/chat/features/session/components/session-header/chat-session-title-switcher";
+import { useChatNewSessionTypePreference } from "@/features/chat/features/session-type/hooks/use-chat-new-session-type-preference";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import { SessionContextIconNode } from "@/features/chat/features/session/components/session-context-icon";
 import { useNcpChatSelectedSession } from "@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state";
@@ -17,6 +19,7 @@ import { useChatSessionListStore } from "@/features/chat/stores/chat-session-lis
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
+import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 import {
   getSessionProjectName,
   normalizeSessionProjectRootValue,
@@ -51,8 +54,15 @@ export function ChatConversationHeaderSection({
     () => buildSessionTypeOptions(sessionTypesData?.options ?? []),
     [sessionTypesData?.options],
   );
+  const defaultSessionType = normalizeSessionType(
+    sessionTypesData?.defaultType ?? DEFAULT_SESSION_TYPE,
+  );
+  const newSessionTypePreference = useChatNewSessionTypePreference({
+    defaultSessionType,
+    sessionTypeOptions,
+  });
   const sessionType = normalizeSessionType(
-    selectedSession?.sessionType ?? sessionTypesData?.defaultType ?? DEFAULT_SESSION_TYPE,
+    selectedSession?.sessionType ?? defaultSessionType,
   );
   const sessionTypeOption =
     sessionTypeOptions.find((option) => option.value === sessionType) ?? null;
@@ -145,17 +155,31 @@ export function ChatConversationHeaderSection({
       }
       actions={
         sessionKey ? (
-          <ChatSessionHeaderActions
-            sessionKey={sessionKey}
-            canDeleteSession={canDeleteSession}
-            isDeletePending={snapshot.isDeletePending}
-            currentPath={sessionProjectRoot ?? selectedSession?.workingDir ?? null}
-            defaultWorkspacePath={defaultWorkspacePath}
-            metadata={selectedSession?.metadata ?? null}
-            isWorkspaceOpen={isWorkspaceOpen}
-            onToggleWorkspace={toggleWorkspace}
-            onDeleteSession={presenter.chatThreadManager.deleteSession}
-          />
+          <div className="flex shrink-0 items-center gap-1.5">
+            {layoutMode === "mobile" ? (
+              <IconActionButton
+                icon={<SquarePen className="h-4 w-4" />}
+                label={t("chatSidebarNewTask")}
+                tooltip={false}
+                onClick={() =>
+                  presenter.chatSessionListManager.createSession(
+                    newSessionTypePreference.selectedSessionType,
+                  )
+                }
+              />
+            ) : null}
+            <ChatSessionHeaderActions
+              sessionKey={sessionKey}
+              canDeleteSession={canDeleteSession}
+              isDeletePending={snapshot.isDeletePending}
+              currentPath={sessionProjectRoot ?? selectedSession?.workingDir ?? null}
+              defaultWorkspacePath={defaultWorkspacePath}
+              metadata={selectedSession?.metadata ?? null}
+              isWorkspaceOpen={isWorkspaceOpen}
+              onToggleWorkspace={toggleWorkspace}
+              onDeleteSession={presenter.chatThreadManager.deleteSession}
+            />
+          </div>
         ) : null
       }
     />
