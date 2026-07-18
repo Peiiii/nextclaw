@@ -104,6 +104,12 @@ describe('SearchConfigPage', () => {
     expect(screen.getByDisplayValue('https://api.tavily.com/search')).toBeTruthy();
     expect(screen.queryByText('结果摘要')).toBeNull();
 
+    const docsLink = screen.getByRole('link', { name: '查看文档' });
+    expect(docsLink.getAttribute('href')).toBe('https://docs.tavily.com/documentation/api-reference/endpoint/search');
+    expect(docsLink.getAttribute('target')).toBe('_blank');
+    expect(docsLink.querySelector('button')).toBeNull();
+    expect(screen.queryByRole('button', { name: '查看文档' })).toBeNull();
+
     const searchDepthSection = screen.getByText('搜索深度').parentElement;
     const includeAnswerSection = screen.getByText('包含回答').parentElement;
     const searchDepthTrigger = searchDepthSection?.querySelector('[role="combobox"]');

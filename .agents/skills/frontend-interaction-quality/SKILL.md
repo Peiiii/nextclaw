@@ -1,6 +1,6 @@
 ---
 name: frontend-interaction-quality
-description: 当设计、修改或评估前端交互体验、操作按钮、hover/focus/active/disabled 状态、tooltip、popover、菜单、键盘可达性、紧凑模式下的操作可理解性，用户要求“像 Windows / 某成熟产品”“体验对齐”“达到某产品级别”，或指出“这个操作不知道是什么”“体验不统一”“交互规范”时使用。
+description: 当设计、修改或评估前端交互体验、按钮与链接语义、URL 跳转、hover/focus/active/disabled 状态、tooltip、popover、菜单、键盘可达性、紧凑模式下的操作可理解性，用户要求“像 Windows / 某成熟产品”“体验对齐”“达到某产品级别”，或指出“这个操作不知道是什么”“体验不统一”“交互规范”时使用。
 ---
 
 # 前端交互体验质量规则
@@ -25,6 +25,9 @@ description: 当设计、修改或评估前端交互体验、操作按钮、hove
 
 ## 操作控件规范
 
+- 导航到 URL、路由、文档、教程、来源或发布说明时使用真实的 `<a>` / `Link` / `NavLink`，并让 `href` / `to` 成为组件合同；修改状态、提交数据、打开无稳定 URL 的面板或触发命令时才使用 `<button>`。
+- 禁止用 `<a><button>…</button></a>`、带 `onClick` 的 `span` 或伪按钮样式掩盖链接语义。普通跳转默认呈现为文本链接；只有明确设计为主 CTA、下载、鉴权或专用卡片操作时，才允许按钮式视觉，但底层仍须保持正确语义。
+- 重复出现的普通跳转必须收敛到 shared navigation primitive，由它统一可访问焦点、外链图标、`target` / `rel` 安全属性与桌面宿主打开行为；内容正文、icon-only 卡片操作、下载和路由导航可按各自语境使用专用变体或原生语义。
 - 纯图标按钮必须同时具备可访问名称和可见解释：`aria-label` 或等价文本负责读屏/键盘，tooltip 或 popover 负责鼠标悬停可理解性；不要只依赖浏览器原生 `title`。
 - icon-only 操作的 tooltip / popover 必须在 docked、floating、fullscreen、portal 等承载状态下都可见；遇到浮窗、modal 或高 z-index 容器遮挡时，优先修 shared primitive / z-index token，不要在业务页面临时加局部层级 hack。
 - Dialog / modal 打开后，overlay 与 content 必须都高于触发它的 floating panel / side panel，且 content 必须高于 overlay；禁止出现“只有遮罩、弹窗内容被原面板盖住”的半打开状态。
@@ -57,6 +60,7 @@ description: 当设计、修改或评估前端交互体验、操作按钮、hove
 
 ## 收尾检查
 
+- 修改跳转入口后，检查可访问角色是否为 `link`、是否暴露真实目标地址、是否存在交互元素嵌套，以及普通链接是否被误做成按钮视觉。
 - 新增或修改 icon-only 控件后，检查是否有 `aria-label`/可见文本、tooltip/popover、键盘焦点样式和禁用态。
 - 用户可见交互改动至少做一个贴近链路的验证：组件测试、浏览器冒烟、截图或 Story/DOM 验证。
 - 若用户指定了参考产品，逐项核对参考交互模型，并用真实页面截图和完整操作链路证明，而不是仅汇报功能点。

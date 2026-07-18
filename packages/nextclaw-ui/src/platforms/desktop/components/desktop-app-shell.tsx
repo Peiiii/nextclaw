@@ -73,7 +73,7 @@ export function DesktopAppShell({
         <DesktopWindowChrome sidebarCollapsed={isSidebarCollapsed} />
       ) : null}
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {!isMainRoute && <Sidebar mode="settings" />}
+        {!isMainRoute && <Sidebar />}
         <div className="flex-1 flex min-w-0 overflow-hidden relative">
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {isMainRoute ? (

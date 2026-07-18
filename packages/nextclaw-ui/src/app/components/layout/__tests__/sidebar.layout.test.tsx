@@ -65,7 +65,7 @@ describe("Sidebar", () => {
   it("keeps the settings sidebar bounded and lets the navigation scroll independently", () => {
     const { container } = render(
       <MemoryRouter initialEntries={["/model"]}>
-        <Sidebar mode="settings" />
+        <Sidebar />
       </MemoryRouter>,
     );
 
@@ -90,7 +90,7 @@ describe("Sidebar", () => {
   it("keeps the original compact single-row header in settings mode", () => {
     render(
       <MemoryRouter initialEntries={["/model"]}>
-        <Sidebar mode="settings" />
+        <Sidebar />
       </MemoryRouter>,
     );
 
@@ -108,7 +108,7 @@ describe("Sidebar", () => {
   it("keeps the settings navigation in the expected product order", () => {
     const { container } = render(
       <MemoryRouter initialEntries={["/model"]}>
-        <Sidebar mode="settings" />
+        <Sidebar />
       </MemoryRouter>,
     );
 
@@ -167,27 +167,39 @@ describe("Sidebar", () => {
   it("keeps the footer utilities compact without changing the top header structure", () => {
     render(
       <MemoryRouter initialEntries={["/model"]}>
-        <Sidebar mode="settings" />
+        <Sidebar />
       </MemoryRouter>,
     );
 
     const accountEntry = screen.getByTestId("settings-sidebar-account-entry");
     const accountStatus = screen.getByTestId("settings-sidebar-account-status");
+    const footer = accountEntry.parentElement;
+    const navigationList = accountEntry.closest("aside")?.querySelector("nav ul");
 
     expect(accountEntry).toBeTruthy();
     expect(accountEntry.textContent).toContain("Account");
     expect(screen.getByText("user@example.com")).toBeTruthy();
+    expect(screen.queryByRole("combobox", { name: "Theme" })).toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Language" })).toBeNull();
     expect(accountEntry.className).toContain("py-2");
     expect(accountEntry.className).toContain("text-muted-foreground");
     expect(accountEntry.className).toContain("hover:bg-gray-200/60");
-    expect(accountEntry.parentElement?.className).not.toContain("border-t");
+    expect(navigationList?.className).toContain("space-y-0.5");
+    expect(footer?.className).toContain("space-y-0.5");
+    expect(footer?.firstElementChild?.textContent).toContain("Help Docs");
+    expect(footer?.lastElementChild).toBe(accountEntry);
+    expect(
+      Array.from(footer?.children ?? []).every(
+        (item) => !item.className.match(/(?:^|\s)mb-/),
+      ),
+    ).toBe(true);
     expect(accountStatus.className).toContain("text-[11px]");
   });
 
   it("persists the shared sidebar collapsed state through the viewport layout store", () => {
     const { container } = render(
       <MemoryRouter initialEntries={["/model"]}>
-        <Sidebar mode="settings" />
+        <Sidebar />
       </MemoryRouter>,
     );
 

@@ -4,6 +4,7 @@ import { eventKeys } from '@nextclaw/shared';
 import { BookOpen, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { LogoBadge } from '@/shared/components/common/logo-badge';
+import { NavigationLink } from '@/shared/components/actions/navigation-link';
 import { Button } from '@/shared/components/ui/button';
 import { FormActions } from '@/shared/components/ui/actions/form-actions';
 import { StatusDot } from '@/shared/components/status/status-dot';
@@ -152,10 +153,9 @@ function ChannelFormHeader({
           <p className="mt-2 text-sm text-gray-500">{t('channelsFormDescription')}</p>
           {channelApplyStatus ? <p className={cn('mt-2 text-xs font-medium', channelApplyStatus.className)}>{channelApplyStatus.label}</p> : null}
           {tutorialUrl ? (
-            <a href={tutorialUrl} className="mt-2 inline-flex items-center gap-1.5 text-xs text-primary transition-colors hover:text-primary-hover">
-              <BookOpen className="h-3.5 w-3.5" />
+            <NavigationLink href={tutorialUrl} external icon={BookOpen} size="xs" className="mt-2">
               {t('channelsGuideTitle')}
-            </a>
+            </NavigationLink>
           ) : null}
         </div>
         <StatusDot status={enabled ? 'active' : 'inactive'} label={enabled ? t('statusActive') : t('statusInactive')} />

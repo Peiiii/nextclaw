@@ -356,10 +356,11 @@ describe("MarketplacePage", () => {
 
     render(<MarketplacePage forcedType="skills" />);
 
-    const openButton = screen.getByRole("button", {
+    const sourceLink = screen.getByRole("link", {
       name: /SkillHub/i,
     });
-    fireEvent.click(openButton);
+    expect(sourceLink.getAttribute("href")).toBe("https://skillhub.cn/");
+    fireEvent.click(sourceLink);
 
     expect(mocks.openExternalUrl).toHaveBeenCalledWith("https://skillhub.cn/");
   });

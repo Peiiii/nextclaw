@@ -1,37 +1,24 @@
 import { cn } from "@/shared/lib/utils";
 import { t } from "@/shared/lib/i18n";
-import { THEME_OPTIONS, type UiTheme } from "@/shared/lib/theme";
 import {
   BookOpen,
-  Languages,
-  Palette,
   KeyRound,
-  Settings,
   ArrowLeft,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useDocBrowser } from "@/shared/components/doc-browser";
-import { BrandHeader } from "@/shared/components/common/brand-header";
 import {
+  getSidebarItemStackClass,
   SidebarActionItem,
   SidebarNavigationList,
-  SidebarNavLinkItem,
-  SidebarSelectItem,
-  type SidebarItemDensity,
   type SidebarNavListItem,
 } from "@/app/components/layout/sidebar-items";
-import { useTheme } from "@/app/components/theme-provider";
-import { SelectItem } from "@/shared/components/ui/select";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import { useRemoteStatus } from "@/features/remote";
-import {
-  getMainSidebarNavItems,
-  getSettingsNavSections,
-} from "@/app/configs/app-navigation.config";
-import { useLanguagePreference } from "@/features/settings";
+import { getSettingsNavSections } from "@/app/configs/app-navigation.config";
 import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
 import { useViewportLayoutStore } from "@/app/stores/viewport-layout.store";
 import {
@@ -45,43 +32,10 @@ import {
   SIDEBAR_SCROLL_EDGE_FADE_CLASS,
 } from "@/app/components/layout/sidebar-rail.styles";
 
-type SidebarMode = "main" | "settings";
-
-type SidebarProps = {
-  mode: SidebarMode;
-};
-
 type SidebarNavSection = {
   label: string;
   items: SidebarNavListItem[];
 };
-
-type SidebarNavigationModel = {
-  items: SidebarNavListItem[];
-  sections?: SidebarNavSection[];
-  density: SidebarItemDensity;
-};
-
-type SidebarTranslate = (key: string) => string;
-
-function resolveSidebarNavigation(
-  isSettingsMode: boolean,
-  translate: SidebarTranslate,
-): SidebarNavigationModel {
-  if (!isSettingsMode) {
-    return {
-      items: getMainSidebarNavItems(translate),
-      density: "default",
-    };
-  }
-
-  const sections = getSettingsNavSections(translate);
-  return {
-    items: sections.flatMap((section) => section.items),
-    sections,
-    density: "compact",
-  };
-}
 
 function SidebarCollapseToggle({
   isCollapsed,
@@ -175,72 +129,13 @@ function SettingsSidebarHeader({
   );
 }
 
-function MainSidebarHeader({
-  isCollapsed,
-  onToggle,
-}: {
-  isCollapsed: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <div
-      className={cn(
-        "shrink-0",
-        isCollapsed ? "flex justify-center px-0 py-1.5" : "px-2 py-2",
-      )}
-    >
-      {isCollapsed ? (
-        <SidebarCollapseToggle isCollapsed={isCollapsed} onToggle={onToggle} />
-      ) : (
-        <div className="flex items-center gap-2">
-          <BrandHeader className="flex min-w-0 flex-1 items-center gap-2.5 cursor-pointer" />
-          <SidebarCollapseToggle
-            isCollapsed={isCollapsed}
-            onToggle={onToggle}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SidebarHeader({
-  isSettingsMode,
-  isCollapsed,
-  onToggle,
-}: {
-  isSettingsMode: boolean;
-  isCollapsed: boolean;
-  onToggle: () => void;
-}) {
-  return isSettingsMode ? (
-    <SettingsSidebarHeader isCollapsed={isCollapsed} onToggle={onToggle} />
-  ) : (
-    <MainSidebarHeader isCollapsed={isCollapsed} onToggle={onToggle} />
-  );
-}
-
 function SidebarNavigation({
-  isSettingsMode,
   isCollapsed,
-  items,
   sections,
-  density,
 }: {
-  isSettingsMode: boolean;
   isCollapsed: boolean;
-  items: SidebarNavListItem[];
-  sections?: SidebarNavSection[];
-  density: SidebarItemDensity;
+  sections: SidebarNavSection[];
 }) {
-  const listClassName = cn(
-    isCollapsed
-      ? cn(SIDEBAR_RAIL_STACK_CLASS, "pb-3")
-      : isSettingsMode
-        ? "space-y-0.5 pb-3"
-        : "space-y-1 pb-4",
-  );
-
   return (
     <nav
       className={cn(
@@ -249,7 +144,7 @@ function SidebarNavigation({
         SIDEBAR_SCROLL_EDGE_FADE_CLASS,
       )}
     >
-      {sections && !isCollapsed ? (
+      {!isCollapsed ? (
         <div className="space-y-3 pb-3">
           {sections.map((section) => (
             <section
@@ -263,8 +158,7 @@ function SidebarNavigation({
               <SidebarNavigationList
                 isCollapsed={isCollapsed}
                 items={section.items}
-                density={density}
-                className="space-y-0.5"
+                density="compact"
               />
             </section>
           ))}
@@ -272,16 +166,16 @@ function SidebarNavigation({
       ) : (
         <SidebarNavigationList
           isCollapsed={isCollapsed}
-          items={items}
-          density={density}
-          className={listClassName}
+          items={sections.flatMap((section) => section.items)}
+          density="compact"
+          className={cn(SIDEBAR_RAIL_STACK_CLASS, "pb-3")}
         />
       )}
     </nav>
   );
 }
 
-export function Sidebar({ mode }: SidebarProps) {
+export function Sidebar() {
   const presenter = useAppPresenter();
   const docBrowser = useDocBrowser();
   const remoteStatus = useRemoteStatus();
@@ -289,30 +183,12 @@ export function Sidebar({ mode }: SidebarProps) {
     (state) => state.isSidebarCollapsed,
   );
   const toggleCollapsed = viewportLayoutManager.toggleSidebarCollapsed;
-  const {
-    currentLanguage,
-    currentLanguageLabel,
-    languageOptions,
-    selectLanguage,
-  } = useLanguagePreference();
-  const { theme, setTheme } = useTheme();
-  const isSettingsMode = mode === "settings";
-  const currentThemeLabel = t(
-    THEME_OPTIONS.find((option) => option.value === theme)?.labelKey ??
-      "themeWork",
-  );
   const accountEmail = remoteStatus.data?.account.email?.trim();
   const accountConnected = Boolean(remoteStatus.data?.account.loggedIn);
-
-  const handleThemeSwitch = (nextTheme: UiTheme) => {
-    if (theme !== nextTheme) setTheme(nextTheme);
-  };
-
-  const {
-    items: navItems,
-    sections: settingsNavSections,
-    density: sidebarDensity,
-  } = resolveSidebarNavigation(isSettingsMode, t);
+  const settingsNavSections = getSettingsNavSections(t);
+  const sidebarStackClass = isCollapsed
+    ? SIDEBAR_RAIL_STACK_CLASS
+    : getSidebarItemStackClass("compact");
 
   return (
     <aside
@@ -324,118 +200,26 @@ export function Sidebar({ mode }: SidebarProps) {
       )}
       data-sidebar-collapsed={isCollapsed ? "true" : "false"}
     >
-      <SidebarHeader
-        isSettingsMode={isSettingsMode}
+      <SettingsSidebarHeader
         isCollapsed={isCollapsed}
         onToggle={toggleCollapsed}
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
         <SidebarNavigation
-          isSettingsMode={isSettingsMode}
           isCollapsed={isCollapsed}
-          items={navItems}
           sections={settingsNavSections}
-          density={sidebarDensity}
         />
 
         <div
           className={cn(
             "shrink-0 bg-secondary",
             isCollapsed
-              ? "mt-2 pt-2"
-              : isSettingsMode
-                ? "mt-2 pt-3"
-                : "mt-3 pt-3",
+              ? "mt-2 flex flex-col items-center pt-2"
+              : "mt-2 pt-3",
+            sidebarStackClass,
           )}
         >
-          {isSettingsMode ? (
-            <SidebarActionItem
-              onClick={() => presenter.accountManager.openAccountPanel()}
-              icon={KeyRound}
-              label={t("remoteAccountEntryManage")}
-              density="compact"
-              className={isCollapsed ? "mb-1" : "mb-1.5"}
-              trailing={
-                accountConnected
-                  ? accountEmail || t("remoteAccountEntryConnected")
-                  : t("remoteAccountEntryDisconnected")
-              }
-              trailingClassName="max-w-[92px] truncate text-right"
-              testId="settings-sidebar-account-entry"
-              trailingTestId="settings-sidebar-account-status"
-              collapsed={isCollapsed}
-            />
-          ) : null}
-          {mode === "main" && (
-            <div
-              className={cn(
-                isCollapsed ? "mb-1" : "mb-2",
-                isCollapsed ? "flex justify-center" : undefined,
-              )}
-            >
-              <SidebarNavLinkItem
-                to="/settings"
-                label={t("settings")}
-                icon={Settings}
-                collapsed={isCollapsed}
-              />
-            </div>
-          )}
-          <div
-            className={cn(
-              isCollapsed ? "mb-1" : "mb-2",
-              isCollapsed ? "flex justify-center" : undefined,
-            )}
-          >
-            <SidebarSelectItem
-              value={theme}
-              onValueChange={(value) => handleThemeSwitch(value as UiTheme)}
-              icon={Palette}
-              label={t("theme")}
-              valueLabel={currentThemeLabel}
-              density={sidebarDensity}
-              collapsed={isCollapsed}
-            >
-              {THEME_OPTIONS.map((option) => (
-                <SelectItem
-                  key={option.value}
-                  value={option.value}
-                  className="text-xs"
-                >
-                  {t(option.labelKey)}
-                </SelectItem>
-              ))}
-            </SidebarSelectItem>
-          </div>
-          <div
-            className={cn(
-              isCollapsed ? "mb-1" : "mb-2",
-              isCollapsed ? "flex justify-center" : undefined,
-            )}
-          >
-            <SidebarSelectItem
-              value={currentLanguage}
-              onValueChange={(value) =>
-                selectLanguage(value as typeof currentLanguage)
-              }
-              icon={Languages}
-              label={t("language")}
-              valueLabel={currentLanguageLabel}
-              density={sidebarDensity}
-              collapsed={isCollapsed}
-            >
-              {languageOptions.map((option) => (
-                <SelectItem
-                  key={option.value}
-                  value={option.value}
-                  className="text-xs"
-                >
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SidebarSelectItem>
-          </div>
           <SidebarActionItem
             onClick={() =>
               docBrowser.open(undefined, {
@@ -445,7 +229,22 @@ export function Sidebar({ mode }: SidebarProps) {
             }
             icon={BookOpen}
             label={t("docBrowserHelp")}
-            density={sidebarDensity}
+            density="compact"
+            collapsed={isCollapsed}
+          />
+          <SidebarActionItem
+            onClick={() => presenter.accountManager.openAccountPanel()}
+            icon={KeyRound}
+            label={t("remoteAccountEntryManage")}
+            density="compact"
+            trailing={
+              accountConnected
+                ? accountEmail || t("remoteAccountEntryConnected")
+                : t("remoteAccountEntryDisconnected")
+            }
+            trailingClassName="max-w-[92px] truncate text-right"
+            testId="settings-sidebar-account-entry"
+            trailingTestId="settings-sidebar-account-status"
             collapsed={isCollapsed}
           />
         </div>

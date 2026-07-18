@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ExternalLink, KeyRound, Search as SearchIcon } from "lucide-react";
+import { KeyRound, Search as SearchIcon } from "lucide-react";
 import { PageHeader, PageLayout } from "@/app/components/layout/page-layout";
+import { NavigationLink } from "@/shared/components/actions/navigation-link";
 import { Button } from "@/shared/components/ui/button";
 import { FormActions } from "@/shared/components/ui/actions/form-actions";
 import { Input } from "@/shared/components/ui/input";
@@ -158,15 +159,12 @@ function SearchSelectField(props: {
   );
 }
 
-function SearchDocsButton({ docsUrl }: { docsUrl?: string }) {
+function SearchDocsLink({ docsUrl }: { docsUrl?: string }) {
   if (!docsUrl) return null;
   return (
-    <a href={docsUrl} target="_blank" rel="noreferrer">
-      <Button type="button" variant="outline" className="rounded-xl">
-        <ExternalLink className="mr-2 h-4 w-4" />
-        {t("searchProviderOpenDocs")}
-      </Button>
-    </a>
+    <NavigationLink href={docsUrl} external>
+      {t("searchProviderOpenDocs")}
+    </NavigationLink>
   );
 }
 
@@ -209,7 +207,7 @@ function SearchProviderFields(props: {
             onChange={(freshness) => updateProviderDraft("bocha", { freshness })}
           />
         </div>
-        <SearchDocsButton docsUrl={selectedDocsUrl ?? "https://open.bocha.cn"} />
+        <SearchDocsLink docsUrl={selectedDocsUrl ?? "https://open.bocha.cn"} />
       </>
     );
   }
@@ -248,7 +246,7 @@ function SearchProviderFields(props: {
             }
           />
         </div>
-        <SearchDocsButton docsUrl={selectedDocsUrl} />
+        <SearchDocsLink docsUrl={selectedDocsUrl} />
       </>
     );
   }

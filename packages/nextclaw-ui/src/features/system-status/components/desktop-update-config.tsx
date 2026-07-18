@@ -1,6 +1,7 @@
 import type { UpdateSnapshot } from '@nextclaw/shared';
 import { useQuery } from '@tanstack/react-query';
 import { runtimeUpdateManager, useRuntimeUpdateStore } from '@/features/system-status';
+import { NavigationLink } from '@/shared/components/actions/navigation-link';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Label } from '@/shared/components/ui/label';
@@ -8,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PageHeader, PageLayout } from '@/app/components/layout/page-layout';
 import { formatDateTime, getLanguage, t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
-import { hostCapabilityManager } from '@/shared/lib/host-capabilities';
 import {
   fetchReleaseNotesData,
   readReleaseNotesText,
@@ -16,7 +16,7 @@ import {
   type ReleaseNotesLocale,
   type ReleaseNotesSection
 } from '@/features/system-status/utils/update-release-notes.utils';
-import { Download, ExternalLink, RefreshCw, RotateCw } from 'lucide-react';
+import { Download, RefreshCw, RotateCw } from 'lucide-react';
 
 const STATUS_LABEL_KEYS: Record<string, string> = {
   checking: 'desktopUpdatesStatusChecking',
@@ -145,10 +145,9 @@ function ReleaseNotesPreview({ snapshot }: { snapshot: UpdateSnapshot }) {
             <CardTitle>{title}</CardTitle>
             <CardDescription>{summary}</CardDescription>
           </div>
-          <Button variant="ghost" onClick={() => void hostCapabilityManager.openExternalUrl(snapshot.releaseNotesUrl ?? '')}>
-            <ExternalLink className="mr-2 h-4 w-4" />
+          <NavigationLink href={snapshot.releaseNotesUrl} external>
             {t('desktopUpdatesReleaseNotes')}
-          </Button>
+          </NavigationLink>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

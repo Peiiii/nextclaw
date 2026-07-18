@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toDataURL } from 'qrcode';
-import { ExternalLink, Loader2, MessageCircleMore, QrCode } from 'lucide-react';
+import { Loader2, MessageCircleMore, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
+import { NavigationLink } from '@/shared/components/actions/navigation-link';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
@@ -217,10 +218,9 @@ function QrAuthPanel({
             <p>{authMessage || activeSession.note || t(copy.scanPrompt)}</p>
             <p>{t('weixinAuthExpiresAt')}: {formatDateTime(activeSession.expiresAt)}</p>
           </div>
-          <a href={activeSession.qrCodeUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-primary transition-colors hover:text-primary-hover">
-            <ExternalLink className="h-3.5 w-3.5" />
+          <NavigationLink href={activeSession.qrCodeUrl} external size="xs">
             {t('weixinAuthOpenQr')}
-          </a>
+          </NavigationLink>
         </div>
       ) : (
         <div className="flex min-h-[280px] flex-col items-center justify-center rounded-2xl bg-gray-50/80 px-6 text-center">
@@ -402,10 +402,9 @@ function ExistingFeishuAgentConnectPanel({
             <h4 className="text-base font-semibold text-gray-900">{t('feishuExistingAgentDescription')}</h4>
             <p className="mt-1 text-sm text-gray-600">{t('feishuExistingAgentHint')}</p>
           </div>
-          <a href={developerConsoleUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary transition-colors hover:text-primary-hover">
-            <ExternalLink className="h-4 w-4" />
+          <NavigationLink href={developerConsoleUrl} external>
             {platform === 'lark' ? t('feishuExistingAgentOpenLarkList') : t('feishuExistingAgentOpenFeishuList')}
-          </a>
+          </NavigationLink>
         </div>
         <div className="w-full max-w-sm space-y-4">
           <div className="space-y-2">

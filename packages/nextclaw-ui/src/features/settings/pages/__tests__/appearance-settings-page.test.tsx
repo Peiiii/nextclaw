@@ -1,8 +1,28 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppearanceSettingsPage } from "@/features/settings/pages/appearance-settings-page";
 import { useChatMessageLayoutStore } from "@/features/chat";
 import { useSideDockStore } from "@/features/side-dock";
+
+const mocks = vi.hoisted(() => ({
+  selectLanguage: vi.fn(),
+  setTheme: vi.fn(),
+}));
+
+vi.mock("@/app/components/theme-provider", () => ({
+  useTheme: () => ({ theme: "work", setTheme: mocks.setTheme }),
+}));
+
+vi.mock("@/features/settings/hooks/use-language-preference", () => ({
+  useLanguagePreference: () => ({
+    currentLanguage: "en",
+    languageOptions: [
+      { value: "en", label: "English" },
+      { value: "zh", label: "中文" },
+    ],
+    selectLanguage: mocks.selectLanguage,
+  }),
+}));
 
 describe("AppearanceSettingsPage", () => {
   beforeEach(() => {
@@ -10,6 +30,8 @@ describe("AppearanceSettingsPage", () => {
     useChatMessageLayoutStore.getState().setLayout("card");
     useSideDockStore.getState().setVisible(true);
     useSideDockStore.getState().setPinnedItems([]);
+    mocks.selectLanguage.mockClear();
+    mocks.setTheme.mockClear();
   });
 
   it("reopens the SideDock from the appearance settings switch", () => {
@@ -38,5 +60,17 @@ describe("AppearanceSettingsPage", () => {
 
     expect(flatOption.getAttribute("aria-checked")).toBe("true");
     expect(useChatMessageLayoutStore.getState().layout).toBe("flat");
+  });
+
+  it("owns the persistent theme and interface language controls", () => {
+    render(<AppearanceSettingsPage />);
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Theme" }));
+    fireEvent.click(screen.getByRole("option", { name: "Night" }));
+    expect(mocks.setTheme).toHaveBeenCalledWith("night");
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Language" }));
+    fireEvent.click(screen.getByRole("option", { name: "中文" }));
+    expect(mocks.selectLanguage).toHaveBeenCalledWith("zh");
   });
 });

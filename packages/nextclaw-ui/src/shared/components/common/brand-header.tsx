@@ -10,8 +10,8 @@ import {
 import { useAppMeta } from '@/shared/hooks/use-app-meta';
 import type { ReactNode } from 'react';
 import { RuntimeStatusEntry } from '@/app/components/layout/runtime-status-entry';
+import { NavigationLink } from '@/shared/components/actions/navigation-link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
-import { hostCapabilityManager } from '@/shared/lib/host-capabilities';
 import { t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
 
@@ -83,14 +83,15 @@ function BrandVersionLabel({
       ].join('\n')
     : versionLabel;
   const trigger = releaseNotesLink ? (
-    <button
-      type="button"
+    <NavigationLink
+      href={releaseNotesLink.url}
+      external
+      icon={null}
       aria-label={t('desktopUpdatesVersionReleaseNotesLabel').replace('{currentVersion}', versionLabel).replace('{releaseVersion}', releaseNotesLink.versionLabel)}
-      className={cn(triggerClassName, 'border-0 bg-transparent p-0 text-left')}
-      onClick={() => void hostCapabilityManager.openExternalUrl(releaseNotesLink.url)}
+      className={cn(triggerClassName, 'p-0 text-left')}
     >
       {versionLabel}
-    </button>
+    </NavigationLink>
   ) : (
     <span tabIndex={0} aria-label={versionLabel} className={triggerClassName}>
       {versionLabel}
@@ -175,14 +176,15 @@ function RuntimeUpdateReleaseNotesHover({
         data-update-release-notes-hover="true"
         className="invisible pointer-events-none absolute left-1/2 top-full z-[var(--z-tooltip,10150)] -translate-x-1/2 pt-1 opacity-0 transition-opacity group-hover/update-release-notes:visible group-hover/update-release-notes:pointer-events-auto group-hover/update-release-notes:opacity-100 group-focus-within/update-release-notes:visible group-focus-within/update-release-notes:pointer-events-auto group-focus-within/update-release-notes:opacity-100"
       >
-        <button
-          type="button"
+        <NavigationLink
+          href={link.url}
+          external
+          icon={null}
           aria-label={label}
           className="whitespace-nowrap rounded-md border bg-popover px-3 py-1.5 text-left text-xs font-medium text-popover-foreground shadow-md outline-none transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-gray-300"
-          onClick={() => void hostCapabilityManager.openExternalUrl(link.url)}
         >
           {label}
-        </button>
+        </NavigationLink>
       </span>
     </span>
   );

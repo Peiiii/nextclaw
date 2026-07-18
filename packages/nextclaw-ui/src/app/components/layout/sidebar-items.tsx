@@ -33,6 +33,7 @@ type SidebarItemTone = {
   icon: string;
   value: string;
   gap: string;
+  stack: string;
 };
 
 const SIDEBAR_ITEM_TONES: Record<SidebarItemDensity, SidebarItemTone> = {
@@ -41,17 +42,25 @@ const SIDEBAR_ITEM_TONES: Record<SidebarItemDensity, SidebarItemTone> = {
     icon: "h-[17px] w-[17px]",
     value: "text-xs",
     gap: "gap-3",
+    stack: "space-y-1",
   },
   compact: {
     row: "gap-2.5 px-3 py-2 text-[13px]",
     icon: "h-4 w-4",
     value: "text-[11px]",
     gap: "gap-2.5",
+    stack: "space-y-0.5",
   },
 };
 
 function getSidebarItemTone(density: SidebarItemDensity): SidebarItemTone {
   return SIDEBAR_ITEM_TONES[density];
+}
+
+export function getSidebarItemStackClass(
+  density: SidebarItemDensity,
+): string {
+  return getSidebarItemTone(density).stack;
 }
 
 function isSidebarRouteActive(pathname: string, target: string): boolean {
@@ -150,7 +159,7 @@ type SidebarNavigationListProps = {
   isCollapsed: boolean;
   items: SidebarNavListItem[];
   density: SidebarItemDensity;
-  className: string;
+  className?: string;
 };
 
 export function SidebarNavigationList({
@@ -160,7 +169,7 @@ export function SidebarNavigationList({
   className,
 }: SidebarNavigationListProps) {
   return (
-    <ul className={className}>
+    <ul className={cn(getSidebarItemStackClass(density), className)}>
       {items.map((item) => (
         <li
           key={item.target}

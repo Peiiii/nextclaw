@@ -60,8 +60,7 @@ describe("SettingsEntryPage", () => {
 
     expect(screen.getByTestId("mobile-settings-shell")).toBeTruthy();
     const links = screen.getAllByRole("link");
-    expect(links[0]?.textContent?.trim()).toBe("Language");
-    expect(links.slice(1, 7).map((link) => link.textContent?.trim())).toEqual([
+    expect(links.slice(0, 6).map((link) => link.textContent?.trim())).toEqual([
       "Model",
       "Providers",
       "Channels",
@@ -69,6 +68,9 @@ describe("SettingsEntryPage", () => {
       "Appearance",
       "Security",
     ]);
+    expect(links.some((link) => link.getAttribute("href") === "/language")).toBe(
+      false,
+    );
     expect(links.some((link) => link.getAttribute("href") === "/cron")).toBe(
       false,
     );

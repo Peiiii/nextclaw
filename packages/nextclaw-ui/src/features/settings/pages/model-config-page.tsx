@@ -1,4 +1,5 @@
 import { Button } from '@/shared/components/ui/button';
+import { NavigationLink } from '@/shared/components/actions/navigation-link';
 import { Card } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
@@ -54,10 +55,9 @@ function ModelConfigForm(props: {
             </Label>
             <ProviderScopedModelInput id="model" value={model} onChange={setModel} providerCatalog={providerCatalog} modelPlaceholder={modelPlaceholder} />
             <p className="text-xs text-muted-foreground/80">{modelHelpText}</p>
-            <a href={getDocsUrl('/guide/model-selection')} className="inline-flex items-center gap-1.5 text-xs text-primary transition-colors hover:text-primary-hover">
-              <BookOpen className="h-3.5 w-3.5" />
+            <NavigationLink href={getDocsUrl('/guide/model-selection')} external icon={BookOpen} size="xs">
               {t('channelsGuideTitle')}
-            </a>
+            </NavigationLink>
           </div>
         </div>
         <div className="rounded-2xl border border-border/75 bg-card p-6">

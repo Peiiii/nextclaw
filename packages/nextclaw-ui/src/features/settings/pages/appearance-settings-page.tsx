@@ -1,7 +1,9 @@
 import type { ChatMessageLayout } from "@nextclaw/agent-chat-ui";
 import { Check, Palette } from "lucide-react";
+import { useTheme } from "@/app/components/theme-provider";
 import { PageHeader, PageLayout } from "@/app/components/layout/page-layout";
 import { useChatMessageLayoutStore } from "@/features/chat";
+import { useLanguagePreference } from "@/features/settings/hooks/use-language-preference";
 import { SettingRow } from "@/shared/components/settings/setting-row";
 import {
   Card,
@@ -9,9 +11,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 import { Switch } from "@/shared/components/ui/switch";
 import { useSideDockStore } from "@/features/side-dock";
 import { t } from "@/shared/lib/i18n";
+import { THEME_OPTIONS, type UiTheme } from "@/shared/lib/theme";
 import { cn } from "@/shared/lib/utils";
 
 const CHAT_MESSAGE_LAYOUT_OPTIONS: Array<{
@@ -32,6 +42,9 @@ const CHAT_MESSAGE_LAYOUT_OPTIONS: Array<{
 ];
 
 export function AppearanceSettingsPage() {
+  const { theme, setTheme } = useTheme();
+  const { currentLanguage, languageOptions, selectLanguage } =
+    useLanguagePreference();
   const messageLayout = useChatMessageLayoutStore((state) => state.layout);
   const setMessageLayout = useChatMessageLayoutStore(
     (state) => state.setLayout,
@@ -50,6 +63,51 @@ export function AppearanceSettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <SettingRow
+            title={t("theme")}
+            control={
+              <Select
+                value={theme}
+                onValueChange={(value) => setTheme(value as UiTheme)}
+              >
+                <SelectTrigger aria-label={t("theme")} className="w-36 sm:w-44">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {THEME_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {t(option.labelKey)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            }
+          />
+          <SettingRow
+            title={t("language")}
+            control={
+              <Select
+                value={currentLanguage}
+                onValueChange={(value) =>
+                  selectLanguage(value as typeof currentLanguage)
+                }
+              >
+                <SelectTrigger
+                  aria-label={t("language")}
+                  className="w-36 sm:w-44"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {languageOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            }
+          />
           <SettingRow
             title={t("chatMessageLayoutTitle")}
             description={t("chatMessageLayoutDescription")}

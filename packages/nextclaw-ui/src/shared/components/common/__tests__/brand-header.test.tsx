@@ -128,7 +128,7 @@ describe('BrandHeader', () => {
     const downloadProgress = screen.getByText('下载 50%');
     expect(downloadProgress).toBeTruthy();
     expect(screen.queryByRole('button', { name: '更新' })).toBeNull();
-    const progressReleaseNotes = screen.getByRole('button', { name: '查看 v0.18.12 更新说明' });
+    const progressReleaseNotes = screen.getByRole('link', { name: '查看 v0.18.12 更新说明' });
     expect(progressReleaseNotes.parentElement?.className).toContain('invisible');
     expect(progressReleaseNotes.parentElement?.className).toContain('group-hover/update-release-notes:visible');
 
@@ -147,7 +147,7 @@ describe('BrandHeader', () => {
 
     renderBrandHeader({ productVersion: '0.23.0' });
 
-    const version = await screen.findByRole('button', {
+    const version = await screen.findByRole('link', {
       name: '当前版本 v0.23.0，查看 v0.23.0 更新说明'
     });
 
@@ -194,14 +194,14 @@ describe('BrandHeader', () => {
 
     renderBrandHeader();
 
-    const currentVersion = await screen.findByRole('button', {
+    const currentVersion = await screen.findByRole('link', {
       name: '当前版本 v0.18.11，查看 v0.18.11 更新说明'
     });
     await user.click(currentVersion);
     expect(mocks.openExternalUrl).toHaveBeenCalledWith('https://docs.nextclaw.io/zh/notes/2026-07-14-nextclaw-v0-18-11');
 
     const downloadUpdate = screen.getByRole('button', { name: '下载' });
-    const updateReleaseNotes = screen.getByRole('button', { name: '查看 v0.18.12 更新说明' });
+    const updateReleaseNotes = screen.getByRole('link', { name: '查看 v0.18.12 更新说明' });
     expect(updateReleaseNotes.parentElement?.className).toContain('group-hover/update-release-notes:visible');
 
     await user.hover(downloadUpdate);
@@ -241,7 +241,7 @@ describe('BrandHeader', () => {
     renderBrandHeader();
 
     const applyUpdate = screen.getByRole('button', { name: '更新' });
-    const updateReleaseNotes = screen.getByRole('button', { name: '查看 v0.18.12 更新说明' });
+    const updateReleaseNotes = screen.getByRole('link', { name: '查看 v0.18.12 更新说明' });
     expect(updateReleaseNotes.parentElement?.className).toContain('group-focus-within/update-release-notes:visible');
 
     fireEvent.focus(applyUpdate);

@@ -1,6 +1,5 @@
 import type { PointerEventHandler, ReactNode, Ref } from 'react';
 import {
-  ExternalLink,
   RefreshCw,
   Search,
 } from 'lucide-react';
@@ -9,6 +8,7 @@ import {
   type DocBrowserTab,
 } from './doc-browser-context';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
+import { NavigationLink } from '@/shared/components/actions/navigation-link';
 import { t } from '@/shared/lib/i18n';
 
 type DocBrowserAddressToolbarProps = {
@@ -119,16 +119,15 @@ export function DocBrowserExternalLink({ currentUrl, isVisible }: { currentUrl: 
 
   return (
     <div className="flex items-center justify-between border-t border-border/70 bg-muted/55 px-4 py-2 shrink-0">
-      <a
+      <NavigationLink
         href={currentUrl}
-        target="_blank"
-        rel="noopener noreferrer"
+        external
+        iconPosition="trailing"
+        size="xs"
         data-doc-external
-        className="flex items-center gap-1.5 text-xs text-primary hover:text-primary-hover font-medium transition-colors"
       >
         {label}
-        <ExternalLink className="w-3 h-3" />
-      </a>
+      </NavigationLink>
     </div>
   );
 }

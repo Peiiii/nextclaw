@@ -6,7 +6,6 @@ import {
   Cpu,
   Download,
   KeyRound,
-  Languages,
   MessageCircle,
   MessageSquare,
   Palette,
@@ -191,25 +190,12 @@ export function getSettingsNavSections(
   ];
 }
 
-export function getMobileSettingsNavItems(
-  translate: Translate,
-): AppNavigationItem[] {
-  return [
-    {
-      target: "/language",
-      label: translate("language"),
-      icon: Languages,
-    },
-    ...getSettingsNavItems(translate),
-  ];
-}
-
 export function isSettingsRoute(pathname: string): boolean {
   const normalized = pathname.toLowerCase();
   if (normalized === "/settings") {
     return true;
   }
-  return getMobileSettingsNavItems((key) => key).some((item) =>
+  return getSettingsNavItems((key) => key).some((item) =>
     matchesRouteTarget(normalized, item.target),
   );
 }
@@ -223,7 +209,7 @@ export function resolveMobileRouteMeta(
   backLabel: string | null;
 } {
   const normalized = pathname.toLowerCase();
-  const settingsItems = getMobileSettingsNavItems(translate);
+  const settingsItems = getSettingsNavItems(translate);
 
   if (isChatSessionDetailRoute(normalized)) {
     return {
