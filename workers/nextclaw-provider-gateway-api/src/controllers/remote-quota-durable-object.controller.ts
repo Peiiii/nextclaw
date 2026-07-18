@@ -6,14 +6,16 @@ import {
   DEFAULT_REMOTE_PLATFORM_DAILY_RESERVE_PERCENT,
   DEFAULT_REMOTE_PLATFORM_DAILY_WORKER_REQUEST_BUDGET,
   DEFAULT_REMOTE_QUOTA_INSTANCE_CONNECTIONS,
-  DEFAULT_REMOTE_QUOTA_SESSION_REQUESTS_PER_MINUTE,
   DEFAULT_REMOTE_QUOTA_USER_DAILY_DO_REQUEST_UNITS,
   DEFAULT_REMOTE_QUOTA_USER_DAILY_WORKER_REQUEST_UNITS,
   DEFAULT_REMOTE_QUOTA_WS_MESSAGE_LEASE_SIZE,
-  leaseRemoteBrowserMessages,
+  DEFAULT_REMOTE_QUOTA_WS_USAGE_REPORT_SIZE,
+  recordRemoteWebSocketMessages,
   readRemoteQuotaPlatformSummary,
   readRemoteQuotaUserSummary,
   releaseRemoteBrowserConnection,
+  settleAndLeaseRemoteBrowserMessages,
+  REMOTE_CONNECTOR_CONNECT_COST,
   REMOTE_QUOTA_DO_REQUEST_MILLI_UNITS,
   REMOTE_PROXY_REQUEST_COST,
   REMOTE_RUNTIME_REQUEST_COST,
@@ -21,8 +23,8 @@ import {
   type RemoteQuotaDecision,
   type RemoteQuotaOperationCost,
   type RemoteQuotaState,
-} from "@/services/remote-quota.service.js";
-import type { Env } from "@/types/platform";
+} from "@/utils/remote-quota-decision.utils.js";
+import type { RemoteQuotaEnv as Env } from "@/types/remote-quota-env.types";
 import { isRecord, jsonErrorResponse, parseBoundedInt } from "@/utils/platform.utils";
 
 const REMOTE_QUOTA_STATE_STORAGE_KEY = "remote-quota-state";
@@ -57,8 +59,11 @@ export class NextclawRemoteQuotaDurableObject {
     if (url.pathname === "/request/consume") {
       return await this.handleRequestConsume(request);
     }
-    if (url.pathname === "/ws-message/lease") {
-      return await this.handleWsMessageLease(request);
+    if (url.pathname === "/ws-message/settle-and-lease") {
+      return await this.handleWsMessageSettleAndLease(request);
+    }
+    if (url.pathname === "/ws-message/report") {
+      return await this.handleWsMessageReport(request);
     }
     return new Response("not_found", { status: 404 });
   }
@@ -109,22 +114,27 @@ export class NextclawRemoteQuotaDurableObject {
     const payload = await readQuotaPayload(request);
     const userId = readRequiredString(payload, "userId");
     const ticket = readRequiredString(payload, "ticket");
-    if (!userId || !ticket) {
-      return jsonErrorResponse(400, "REMOTE_QUOTA_INVALID_REQUEST", "userId and ticket are required.");
+    const settledMessages = readNonNegativeInteger(payload, "settledMessages");
+    if (!userId || !ticket || settledMessages === null) {
+      return jsonErrorResponse(400, "REMOTE_QUOTA_INVALID_REQUEST", "userId, ticket, and settledMessages are required.");
     }
 
     return await this.runMutation((storedState, _config, nowMs) => {
-      return releaseRemoteBrowserConnection(storedState, nowMs, userId, ticket);
+      return releaseRemoteBrowserConnection(storedState, {
+        nowMs,
+        userId,
+        ticket,
+        settledMessages
+      });
     });
   }
 
   private handleRequestConsume = async (request: Request): Promise<Response> => {
     const payload = await readQuotaPayload(request);
     const userId = readRequiredString(payload, "userId");
-    const sessionId = readRequiredString(payload, "sessionId");
     const operationKind = readRequiredString(payload, "operationKind");
-    if (!userId || !sessionId || !operationKind) {
-      return jsonErrorResponse(400, "REMOTE_QUOTA_INVALID_REQUEST", "userId, sessionId, and operationKind are required.");
+    if (!userId || !operationKind) {
+      return jsonErrorResponse(400, "REMOTE_QUOTA_INVALID_REQUEST", "userId and operationKind are required.");
     }
 
     const operationCost = resolveOperationCost(operationKind);
@@ -136,27 +146,49 @@ export class NextclawRemoteQuotaDurableObject {
       return consumeRemoteRequestQuota(storedState, config, {
         nowMs,
         userId,
-        sessionId,
         operationCost
       });
     });
   }
 
-  private handleWsMessageLease = async (request: Request): Promise<Response> => {
+  private handleWsMessageSettleAndLease = async (request: Request): Promise<Response> => {
     const payload = await readQuotaPayload(request);
     const userId = readRequiredString(payload, "userId");
-    const sessionId = readRequiredString(payload, "sessionId");
-    const requestedMessagesRaw = payload.requestedMessages;
-    if (!userId || !sessionId || typeof requestedMessagesRaw !== "number" || !Number.isFinite(requestedMessagesRaw)) {
-      return jsonErrorResponse(400, "REMOTE_QUOTA_INVALID_REQUEST", "userId, sessionId, and requestedMessages are required.");
+    const ticket = readRequiredString(payload, "ticket");
+    const settledMessages = readNonNegativeInteger(payload, "settledMessages");
+    const requestedMessages = readNonNegativeInteger(payload, "requestedMessages");
+    if (!userId || !ticket || settledMessages === null || requestedMessages === null) {
+      return jsonErrorResponse(
+        400,
+        "REMOTE_QUOTA_INVALID_REQUEST",
+        "userId, ticket, settledMessages, and requestedMessages are required."
+      );
     }
 
     return await this.runMutation((storedState, config, nowMs) => {
-      return leaseRemoteBrowserMessages(storedState, config, {
+      return settleAndLeaseRemoteBrowserMessages(storedState, config, {
         nowMs,
         userId,
-        sessionId,
-        requestedMessages: Math.max(1, Math.min(config.wsMessageLeaseSize, Math.floor(requestedMessagesRaw)))
+        ticket,
+        settledMessages,
+        requestedMessages: Math.max(1, Math.min(config.wsMessageLeaseSize, requestedMessages))
+      });
+    });
+  }
+
+  private handleWsMessageReport = async (request: Request): Promise<Response> => {
+    const payload = await readQuotaPayload(request);
+    const userId = readRequiredString(payload, "userId");
+    const messages = readNonNegativeInteger(payload, "messages");
+    if (!userId || messages === null || messages < 1) {
+      return jsonErrorResponse(400, "REMOTE_QUOTA_INVALID_REQUEST", "userId and a positive messages count are required.");
+    }
+
+    return await this.runMutation((storedState, config, nowMs) => {
+      return recordRemoteWebSocketMessages(storedState, config, {
+        nowMs,
+        userId,
+        messages: Math.min(config.wsUsageReportSize, messages)
       });
     });
   }
@@ -184,31 +216,20 @@ export class NextclawRemoteQuotaDurableObject {
 export { NextclawRemoteQuotaDurableObject as NextclawQuotaDurableObject };
 
 function readRemoteQuotaConfig(env: Env): RemoteQuotaConfig {
+  if (env.REMOTE_CLOUDFLARE_PLAN_PROFILE !== "workers-free") {
+    throw new Error("REMOTE_CLOUDFLARE_PLAN_PROFILE must be explicitly set to workers-free.");
+  }
   return {
-    sessionRequestsPerMinute: parseBoundedInt(
-      env.REMOTE_QUOTA_SESSION_REQUESTS_PER_MINUTE,
-      DEFAULT_REMOTE_QUOTA_SESSION_REQUESTS_PER_MINUTE,
-      5,
-      10_000
-    ),
+    planProfile: "workers-free",
     instanceConnections: parseBoundedInt(
       env.REMOTE_QUOTA_INSTANCE_CONNECTIONS,
       DEFAULT_REMOTE_QUOTA_INSTANCE_CONNECTIONS,
       1,
       10_000
     ),
-    platformDailyWorkerRequestBudget: parseBoundedInt(
-      env.REMOTE_PLATFORM_DAILY_WORKER_REQUEST_BUDGET,
-      DEFAULT_REMOTE_PLATFORM_DAILY_WORKER_REQUEST_BUDGET,
-      1_000,
-      10_000_000
-    ),
-    platformDailyDoRequestBudgetMilli: parseBoundedInt(
-      env.REMOTE_PLATFORM_DAILY_DO_REQUEST_BUDGET,
-      DEFAULT_REMOTE_PLATFORM_DAILY_DO_REQUEST_BUDGET,
-      1_000,
-      10_000_000
-    ) * REMOTE_QUOTA_DO_REQUEST_MILLI_UNITS,
+    platformDailyWorkerRequestBudget: DEFAULT_REMOTE_PLATFORM_DAILY_WORKER_REQUEST_BUDGET,
+    platformDailyDoRequestBudgetMilli:
+      DEFAULT_REMOTE_PLATFORM_DAILY_DO_REQUEST_BUDGET * REMOTE_QUOTA_DO_REQUEST_MILLI_UNITS,
     platformDailyReservePercent: parseBoundedInt(
       env.REMOTE_PLATFORM_DAILY_RESERVE_PERCENT,
       DEFAULT_REMOTE_PLATFORM_DAILY_RESERVE_PERCENT,
@@ -232,6 +253,12 @@ function readRemoteQuotaConfig(env: Env): RemoteQuotaConfig {
       DEFAULT_REMOTE_QUOTA_WS_MESSAGE_LEASE_SIZE,
       1,
       100
+    ),
+    wsUsageReportSize: parseBoundedInt(
+      env.REMOTE_QUOTA_WS_USAGE_REPORT_SIZE,
+      DEFAULT_REMOTE_QUOTA_WS_USAGE_REPORT_SIZE,
+      1,
+      1_000
     )
   };
 }
@@ -242,6 +269,9 @@ function resolveOperationCost(operationKind: string): RemoteQuotaOperationCost |
   }
   if (operationKind === "proxy_http") {
     return REMOTE_PROXY_REQUEST_COST;
+  }
+  if (operationKind === "connector_connect") {
+    return REMOTE_CONNECTOR_CONNECT_COST;
   }
   return null;
 }
@@ -288,6 +318,13 @@ async function readQuotaPayload(request: Request): Promise<Record<string, unknow
 function readRequiredString(payload: Record<string, unknown>, key: string): string {
   const value = payload[key];
   return typeof value === "string" ? value.trim() : "";
+}
+
+function readNonNegativeInteger(payload: Record<string, unknown>, key: string): number | null {
+  const value = payload[key];
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? Math.floor(value)
+    : null;
 }
 
 function buildQuotaHeaders(retryAfterSeconds: number): HeadersInit {

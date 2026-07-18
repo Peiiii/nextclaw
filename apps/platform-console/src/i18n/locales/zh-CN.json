@@ -339,8 +339,19 @@
     },
     "quota": {
       "title": "Remote 额度与用量",
-      "description": "这里显示你今天的 remote 配额消耗情况，方便直接判断是单会话限流、个人日预算，还是连接数问题。",
-      "remaining": "剩余 {value} {unit}",
+      "description": "额度按 Cloudflare Worker 与 Durable Object 的真实请求事件统一计量。普通使用只受每日总额度约束，不再设置短时 session 限流。",
+      "partialDay": "精确计量从今天中途开始，因此今日数据是部分日数据；下一个 UTC 自然日会展示完整日统计。",
+      "actualUsed": "实际已用",
+      "reserved": "连接预留",
+      "remainingLabel": "剩余",
+      "overview": {
+        "title": "今日 Remote 额度占用",
+        "remaining": "剩余 {value}",
+        "limiting": {
+          "worker_requests": "当前由 Worker 请求额度决定",
+          "durable_object_requests": "当前由 Durable Object 请求额度决定"
+        }
+      },
       "units": {
         "requests": "次",
         "requestUnits": "请求单位"
@@ -352,11 +363,24 @@
         "title": "每日 Durable Object 请求"
       },
       "runtime": {
-        "title": "运行时限制",
-        "sessionLimit": "单 session 每分钟上限",
+        "title": "计量说明",
         "activeConnections": "当前活跃浏览器连接",
-        "instanceConnectionLimit": "单实例连接上限",
-        "resetAt": "今日额度重置时间"
+        "resetAt": "每日额度重置时间",
+        "costModel": "成本模型",
+        "costModelValue": "Cloudflare 精确事件 v{version}",
+        "runawayGuard": "异常突发保护",
+        "shadowOnly": "观察中，不限制正常使用"
+      },
+      "recent": {
+        "title": "近期真实用量",
+        "last30Minutes": "最近 30 分钟",
+        "lastHour": "最近 1 小时",
+        "value": "Worker {worker} 次 · DO {durableObject} 请求单位"
+      },
+      "status": {
+        "normal": "额度充足",
+        "near_limit": "接近上限",
+        "exhausted": "今日已用尽"
       },
       "messages": {
         "loading": "加载额度中...",

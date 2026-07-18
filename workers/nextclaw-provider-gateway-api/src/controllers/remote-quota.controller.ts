@@ -1,10 +1,17 @@
 import type { Context } from "hono";
-import { readRemoteQuotaPlatformSummary, readRemoteQuotaUserSummary } from "@/services/remote-quota-guard.service";
+import { readRemoteQuotaPlatformSummary, readRemoteQuotaUserSummary } from "@/repositories/remote-quota.repository";
 import { ensurePlatformBootstrap, requireAuthUser } from "@/services/platform.service";
 import type { Env } from "@/types/platform";
 import { apiError } from "@/utils/platform.utils";
 
-export async function remoteQuotaSummaryHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
+export async function remoteQuotaSummaryV2Handler(c: Context<{ Bindings: Env }>): Promise<Response> {
+  const summary = await readAuthorizedUserQuota(c);
+  return summary instanceof Response
+    ? summary
+    : c.json({ ok: true, data: summary });
+}
+
+async function readAuthorizedUserQuota(c: Context<{ Bindings: Env }>) {
   await ensurePlatformBootstrap(c.env);
   const auth = await requireAuthUser(c);
   if (!auth.ok) {
@@ -15,13 +22,17 @@ export async function remoteQuotaSummaryHandler(c: Context<{ Bindings: Env }>): 
   if (!summary.ok) {
     return apiError(c, 503, summary.error.code, summary.error.message);
   }
-  return c.json({
-    ok: true,
-    data: summary.data
-  });
+  return summary.data;
 }
 
-export async function adminRemoteQuotaSummaryHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
+export async function adminRemoteQuotaSummaryV2Handler(c: Context<{ Bindings: Env }>): Promise<Response> {
+  const summary = await readAuthorizedPlatformQuota(c);
+  return summary instanceof Response
+    ? summary
+    : c.json({ ok: true, data: summary });
+}
+
+async function readAuthorizedPlatformQuota(c: Context<{ Bindings: Env }>) {
   await ensurePlatformBootstrap(c.env);
   const auth = await requireAuthUser(c);
   if (!auth.ok) {
@@ -35,8 +46,5 @@ export async function adminRemoteQuotaSummaryHandler(c: Context<{ Bindings: Env 
   if (!summary.ok) {
     return apiError(c, 503, summary.error.code, summary.error.message);
   }
-  return c.json({
-    ok: true,
-    data: summary.data
-  });
+  return summary.data;
 }

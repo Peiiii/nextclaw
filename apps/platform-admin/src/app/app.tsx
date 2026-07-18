@@ -1,16 +1,13 @@
-import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMe } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { LoginPage } from '@/pages/LoginPage';
-import { AdminDashboardPage } from '@/pages/AdminDashboardPage';
+import { AdminDashboardPage } from '@/app/admin-dashboard-page';
 import { useAuthStore } from '@/store/auth';
 
 export default function App(): JSX.Element {
   const token = useAuthStore((state) => state.token);
   const logout = useAuthStore((state) => state.logout);
-  const user = useAuthStore((state) => state.user);
-  const setUser = useAuthStore((state) => state.setUser);
 
   const meQuery = useQuery({
     queryKey: ['me', token],
@@ -23,18 +20,6 @@ export default function App(): JSX.Element {
     enabled: Boolean(token)
   });
 
-  useEffect(() => {
-    if (meQuery.data?.user) {
-      setUser(meQuery.data.user);
-    }
-  }, [meQuery.data, setUser]);
-
-  useEffect(() => {
-    if (meQuery.error) {
-      logout();
-    }
-  }, [meQuery.error, logout]);
-
   if (!token) {
     return <LoginPage />;
   }
@@ -43,7 +28,25 @@ export default function App(): JSX.Element {
     return <main className="p-6 text-sm text-[#8f8a7d]">加载登录态...</main>;
   }
 
-  const currentUser = meQuery.data?.user ?? user;
+  if (meQuery.error || !meQuery.data?.user) {
+    return (
+      <main className="min-h-screen bg-[#f9f8f5] text-[#1f1f1d]">
+        <div className="mx-auto flex min-h-screen w-full max-w-xl items-center px-6 py-10">
+          <section className="w-full rounded-xl border border-[#e4e0d7] bg-white p-6">
+            <h1 className="text-lg font-semibold">登录态加载失败</h1>
+            <p className="mt-2 text-sm text-[#656561]">
+              {meQuery.error instanceof Error ? meQuery.error.message : '无法读取当前管理员账号。'}
+            </p>
+            <Button variant="ghost" className="mt-4" onClick={() => logout()}>
+              退出并重新登录
+            </Button>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
+  const currentUser = meQuery.data.user;
 
   if (currentUser?.role !== 'admin') {
     return (

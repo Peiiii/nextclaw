@@ -24,7 +24,7 @@ async function installRoutes(page, fixtures) {
   await page.route("**/platform/admin/overview", async (route) => {
     await fulfillJson(route, fixtures.overview);
   });
-  await page.route("**/platform/admin/remote/quota", async (route) => {
+  await page.route("**/platform/admin/remote/quota/v2", async (route) => {
     await fulfillJson(route, fixtures.remoteQuota);
   });
   await page.route("**/platform/admin/profit/overview**", async (route) => {
@@ -103,7 +103,9 @@ async function assertConsoleShell(browser) {
     "充值审核",
     "PLATFORM GOVERNANCE",
     "平台治理入口与关键运行状态",
-    "营收与上游治理"
+    "营收与上游治理",
+    "Cloudflare 套餐档案",
+    "仅观察，不限制正常使用"
   ];
   for (const value of homeExpected) {
     if (!homeText.includes(value)) {

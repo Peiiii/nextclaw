@@ -339,8 +339,19 @@
     },
     "quota": {
       "title": "Remote Quota & Usage",
-      "description": "This shows today's remote quota consumption so you can quickly tell whether the limit is session rate, daily budget, or active connections.",
-      "remaining": "{value} {unit} remaining",
+      "description": "Quota follows documented Cloudflare Worker and Durable Object request events. Normal use is governed by the daily allowance, with no short per-session rate limit.",
+      "partialDay": "Exact metering started partway through today, so today's total is partial. The next UTC day will show a complete daily total.",
+      "actualUsed": "Actual",
+      "reserved": "Reserved",
+      "remainingLabel": "Remaining",
+      "overview": {
+        "title": "Today's Remote quota commitment",
+        "remaining": "{value} remaining",
+        "limiting": {
+          "worker_requests": "Currently limited by Worker requests",
+          "durable_object_requests": "Currently limited by Durable Object requests"
+        }
+      },
       "units": {
         "requests": "requests",
         "requestUnits": "request units"
@@ -352,11 +363,24 @@
         "title": "Daily Durable Object requests"
       },
       "runtime": {
-        "title": "Runtime limits",
-        "sessionLimit": "Per-session per-minute limit",
+        "title": "Metering details",
         "activeConnections": "Active browser connections",
-        "instanceConnectionLimit": "Per-instance connection limit",
-        "resetAt": "Quota resets at"
+        "resetAt": "Daily quota resets at",
+        "costModel": "Cost model",
+        "costModelValue": "Cloudflare exact events v{version}",
+        "runawayGuard": "Runaway protection",
+        "shadowOnly": "Observing only; normal use is not throttled"
+      },
+      "recent": {
+        "title": "Recent actual usage",
+        "last30Minutes": "Last 30 minutes",
+        "lastHour": "Last hour",
+        "value": "Worker {worker} · DO {durableObject} request units"
+      },
+      "status": {
+        "normal": "Quota available",
+        "near_limit": "Near limit",
+        "exhausted": "Daily quota exhausted"
       },
       "messages": {
         "loading": "Loading quota...",

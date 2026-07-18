@@ -42,7 +42,9 @@ export type RelayResponseFrame =
 export type ConnectorAttachment = {
   type: "connector";
   deviceId: string;
+  userId: string;
   connectedAt: string;
+  unsettledQuotaMessages: number;
 };
 
 export type ClientAttachment = {
@@ -54,6 +56,8 @@ export type ClientAttachment = {
   quotaTicket: string;
   connectedAt: string;
   remainingQuotaMessages: number;
+  unsettledQuotaMessages: number;
+  quotaReleased: boolean;
 };
 
 export type BrowserCommandFrame =

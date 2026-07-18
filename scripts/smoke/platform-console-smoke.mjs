@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 import process from "node:process";
 import { chromium } from "playwright";
+import {
+  assertQuotaResponsiveLayout,
+  REMOTE_QUOTA_SUMMARY_FIXTURE
+} from "./platform-console/platform-console-quota-smoke.utils.mjs";
 const baseUrl = (process.env.PLATFORM_CONSOLE_BASE_URL ?? "http://127.0.0.1:4173").replace(/\/+$/, "");
 function okEnvelope(data) {
   return JSON.stringify({ ok: true, data });
@@ -166,24 +170,8 @@ async function installRemoteRoutes(page, fixtures) {
     fixtures.archivedInstances.splice(0, 1);
     await fulfillJson(route, { deleted: true, instanceId: "inst-1" });
   });
-  await page.route("**/platform/remote/quota", async (route) => {
-    await fulfillJson(route, {
-      dayKey: "2026-03-25",
-      resetsAt: "2026-03-26T00:00:00.000Z",
-      sessionRequestsPerMinute: 180,
-      instanceConnectionsPerInstance: 10000,
-      activeBrowserConnections: 2,
-      workerRequests: {
-        limit: 20000,
-        used: 12,
-        remaining: 19988
-      },
-      durableObjectRequests: {
-        limit: 20000,
-        used: 12.05,
-        remaining: 19987.95
-      }
-    });
+  await page.route("**/platform/remote/quota/v2", async (route) => {
+    await fulfillJson(route, REMOTE_QUOTA_SUMMARY_FIXTURE);
   });
   await page.route("**/platform/remote/instances/inst-1/shares", async (route) => {
     if (route.request().method() === "GET") {
@@ -312,9 +300,11 @@ async function assertDashboardLanding(page) {
     "My Instances",
     "PUBLISH READINESS",
     "Remote Quota & Usage",
+    "Normal use is governed by the daily allowance, with no short per-session rate limit.",
     "Copy instance ID: inst-1",
     "Open via fixed domain",
     "Daily Worker requests",
+    "Recent actual usage",
     "COMING SOON",
     "Account"
   ];
@@ -444,6 +434,7 @@ async function assertDashboardFlow(browser) {
   await installDashboardRoutes(page, fixtures);
   await initializeDashboardPage(page);
   await assertDashboardLanding(page);
+  await assertQuotaResponsiveLayout(page);
   await assertAccountSettingsFlow(page);
   await assertSkillManagementFlow(page);
   await assertRemoteOpenActions(page);

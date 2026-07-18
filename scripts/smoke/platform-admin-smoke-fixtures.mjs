@@ -19,24 +19,56 @@ export const PLATFORM_ADMIN_SMOKE_FIXTURES = {
     pendingRechargeIntents: 2
   },
   remoteQuota: {
-    dayKey: "2026-04-18",
-    resetsAt: "2026-04-19T00:00:00.000Z",
-    reservePercent: 15,
-    sessionRequestsPerMinute: 180,
-    instanceConnectionsPerInstance: 10000,
-    defaultUserWorkerBudget: 300,
-    defaultUserDoBudget: 600,
-    workerRequests: {
-      configuredLimit: 50000,
-      enforcedLimit: 42500,
-      used: 1876,
-      remaining: 40624
+    costModel: {
+      version: 2,
+      verifiedAt: "2026-07-18",
+      observedThrough: "2026-07-18T09:30:00.000Z",
+      partialDay: false,
+      stale: false
     },
-    durableObjectRequests: {
-      configuredLimit: 90000,
-      enforcedLimit: 76500,
-      used: 6321.5,
-      remaining: 70178.5
+    day: {
+      startsAt: "2026-07-18T00:00:00.000Z",
+      resetsAt: "2026-07-19T00:00:00.000Z",
+      status: "normal",
+      utilization: 0.08,
+      limitingResource: "durable_object_requests",
+      workerRequests: {
+        configuredLimit: 100000,
+        limit: 80000,
+        actualUsed: 1876,
+        reserved: 0,
+        remaining: 78124
+      },
+      durableObjectRequests: {
+        configuredLimit: 100000,
+        limit: 80000,
+        actualUsed: 6321.5,
+        reserved: 12.5,
+        remaining: 73666
+      }
+    },
+    recent: {
+      bucketSeconds: 300,
+      last30Minutes: { workerRequests: 42, durableObjectRequests: 64.5 },
+      lastHour: { workerRequests: 88, durableObjectRequests: 121.25 },
+      buckets: []
+    },
+    protection: { runawayGuard: "shadow", activeUntil: null },
+    reservePercent: 15,
+    instanceConnectionsPerInstance: 10000,
+    defaultUserWorkerBudget: 20000,
+    defaultUserDoBudget: 20000,
+    plan: {
+      id: "workers-free",
+      resetsAt: "00:00Z",
+      workerRequestsPerDay: 100000,
+      durableObjectRequestsPerDay: 100000
+    },
+    calibration: {
+      status: "bootstrap_capacity_contract",
+      safetyReservePercent: 20,
+      supportedHeavyUsers: 4,
+      basis: "official_free_limit_minus_shared_platform_reserve"
     }
   },
   marketplaceList: {

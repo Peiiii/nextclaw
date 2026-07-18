@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { fetchMe } from '@/api/client';
-import { ConsoleShell } from '@/components/console/console-shell';
+import { ConsoleShell } from '@/app/console-shell';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { Button } from '@/components/ui/button';
 import { createTranslator } from '@/i18n/i18n.service';

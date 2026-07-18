@@ -17,7 +17,9 @@ test("browser quota lease survives burst ordering and relay durable object react
     instanceId: "instance-a",
     quotaTicket: "ticket-a",
     connectedAt: new Date(0).toISOString(),
-    remainingQuotaMessages: 0
+    remainingQuotaMessages: 10,
+    unsettledQuotaMessages: 0,
+    quotaReleased: false
   };
 
   const browserSocket = {
@@ -33,7 +35,9 @@ test("browser quota lease survives burst ordering and relay durable object react
     deserializeAttachment: () => ({
       type: "connector",
       deviceId: "instance-a",
-      connectedAt: new Date(0).toISOString()
+      userId: "user-a",
+      connectedAt: new Date(0).toISOString(),
+      unsettledQuotaMessages: 0
     }),
     send: (value) => {
       forwardedFrames.push(JSON.parse(value));
@@ -67,7 +71,7 @@ test("browser quota lease survives burst ordering and relay durable object react
 
   const firstRelayActivation = new NextclawRemoteRelayDurableObject(state, env);
   const burst = [];
-  for (let index = 0; index < 5; index += 1) {
+  for (let index = 0; index < 6; index += 1) {
     burst.push(firstRelayActivation.webSocketMessage(browserSocket, JSON.stringify({
       type: "request",
       id: `request-${index}`,
@@ -76,7 +80,7 @@ test("browser quota lease survives burst ordering and relay durable object react
   }
   await Promise.all(burst);
 
-  for (let index = 5; index < 10; index += 1) {
+  for (let index = 6; index < 11; index += 1) {
     const relay = new NextclawRemoteRelayDurableObject(state, env);
     await relay.webSocketMessage(browserSocket, JSON.stringify({
       type: "request",
@@ -87,10 +91,13 @@ test("browser quota lease survives burst ordering and relay durable object react
 
   assert.equal(leaseRequests.length, 1);
   assert.equal(leaseRequests[0].requestedMessages, 10);
-  assert.equal(attachment.remainingQuotaMessages, 0);
-  assert.equal(forwardedFrames.length, 10);
+  assert.equal(leaseRequests[0].settledMessages, 11);
+  assert.equal(leaseRequests[0].ticket, "ticket-a");
+  assert.equal(attachment.remainingQuotaMessages, 10);
+  assert.equal(attachment.unsettledQuotaMessages, 0);
+  assert.equal(forwardedFrames.length, 11);
   assert.deepEqual(forwardedFrames.map((frame) => frame.id), Array.from(
-    { length: 10 },
+    { length: 11 },
     (_value, index) => `request-${index}`
   ));
 });

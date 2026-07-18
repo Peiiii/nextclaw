@@ -81,7 +81,10 @@ import {
   registerRemoteInstanceHandler,
   unarchiveRemoteInstanceHandler,
 } from "@/controllers/remote-instance.controller.js";
-import { adminRemoteQuotaSummaryHandler, remoteQuotaSummaryHandler } from "@/controllers/remote-quota.controller.js";
+import {
+  adminRemoteQuotaSummaryV2Handler,
+  remoteQuotaSummaryV2Handler,
+} from "@/controllers/remote-quota.controller.js";
 import type { Env } from "@/types/platform";
 
 function registerPlatformAuthRoutes(app: Hono<{ Bindings: Env }>): void {
@@ -106,7 +109,7 @@ function registerRemoteAccessRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/_remote/runtime", remoteBrowserRuntimeHandler);
   app.get("/_remote/ws", remoteBrowserWebSocketHandler);
   app.get("/platform/remote/instances", listRemoteInstancesHandler);
-  app.get("/platform/remote/quota", remoteQuotaSummaryHandler);
+  app.get("/platform/remote/quota/v2", remoteQuotaSummaryV2Handler);
   app.post("/platform/remote/instances/register", registerRemoteInstanceHandler);
   app.post("/platform/remote/instances/:instanceId/open", openRemoteInstanceHandler);
   app.post("/platform/remote/instances/:instanceId/archive", archiveRemoteInstanceHandler);
@@ -148,7 +151,7 @@ function registerUserMarketplaceRoutes(app: Hono<{ Bindings: Env }>): void {
 
 function registerAdminRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/platform/admin/overview", adminOverviewHandler);
-  app.get("/platform/admin/remote/quota", adminRemoteQuotaSummaryHandler);
+  app.get("/platform/admin/remote/quota/v2", adminRemoteQuotaSummaryV2Handler);
   app.get("/platform/admin/profit/overview", adminProfitOverviewHandler);
   app.get("/platform/admin/marketplace/skills", adminMarketplaceSkillsHandler);
   app.get("/platform/admin/marketplace/skills/:selector", adminMarketplaceSkillDetailHandler);

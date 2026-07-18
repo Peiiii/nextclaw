@@ -9,90 +9,98 @@ import {
   DEFAULT_REMOTE_PLATFORM_DAILY_RESERVE_PERCENT,
   DEFAULT_REMOTE_PLATFORM_DAILY_WORKER_REQUEST_BUDGET,
   DEFAULT_REMOTE_QUOTA_INSTANCE_CONNECTIONS,
-  DEFAULT_REMOTE_QUOTA_SESSION_REQUESTS_PER_MINUTE,
   DEFAULT_REMOTE_QUOTA_USER_DAILY_DO_REQUEST_UNITS,
   DEFAULT_REMOTE_QUOTA_USER_DAILY_WORKER_REQUEST_UNITS,
   DEFAULT_REMOTE_QUOTA_WS_MESSAGE_LEASE_SIZE,
-  leaseRemoteBrowserMessages,
+  DEFAULT_REMOTE_QUOTA_WS_USAGE_REPORT_SIZE,
   readRemoteQuotaPlatformSummary,
   readRemoteQuotaUserSummary,
+  recordRemoteWebSocketMessages,
   releaseRemoteBrowserConnection,
-  REMOTE_BROWSER_CONNECT_COST,
   REMOTE_PROXY_REQUEST_COST,
-  REMOTE_RUNTIME_REQUEST_COST
-} from "../dist/services/remote-quota/remote-quota.service.js";
+  REMOTE_RUNTIME_REQUEST_COST,
+  settleAndLeaseRemoteBrowserMessages
+} from "../dist/utils/remote-quota-decision.utils.js";
 
 const CONFIG = {
-  sessionRequestsPerMinute: DEFAULT_REMOTE_QUOTA_SESSION_REQUESTS_PER_MINUTE,
+  planProfile: "workers-free",
   instanceConnections: DEFAULT_REMOTE_QUOTA_INSTANCE_CONNECTIONS,
   platformDailyWorkerRequestBudget: DEFAULT_REMOTE_PLATFORM_DAILY_WORKER_REQUEST_BUDGET,
-  platformDailyDoRequestBudgetMilli: DEFAULT_REMOTE_PLATFORM_DAILY_DO_REQUEST_BUDGET * 1000,
+  platformDailyDoRequestBudgetMilli: DEFAULT_REMOTE_PLATFORM_DAILY_DO_REQUEST_BUDGET * 1_000,
   platformDailyReservePercent: DEFAULT_REMOTE_PLATFORM_DAILY_RESERVE_PERCENT,
   userDailyWorkerRequestUnits: DEFAULT_REMOTE_QUOTA_USER_DAILY_WORKER_REQUEST_UNITS,
-  userDailyDoRequestBudgetMilli: DEFAULT_REMOTE_QUOTA_USER_DAILY_DO_REQUEST_UNITS * 1000,
-  wsMessageLeaseSize: DEFAULT_REMOTE_QUOTA_WS_MESSAGE_LEASE_SIZE
+  userDailyDoRequestBudgetMilli: DEFAULT_REMOTE_QUOTA_USER_DAILY_DO_REQUEST_UNITS * 1_000,
+  wsMessageLeaseSize: DEFAULT_REMOTE_QUOTA_WS_MESSAGE_LEASE_SIZE,
+  wsUsageReportSize: DEFAULT_REMOTE_QUOTA_WS_USAGE_REPORT_SIZE
 };
 
-test("session request quota rejects after the configured per-minute budget", () => {
-  const nowMs = Date.UTC(2026, 2, 24, 12, 0, 0);
+test("normal traffic has no short session rate limit", () => {
+  const nowMs = Date.UTC(2026, 6, 18, 12, 0, 0);
   let state = createEmptyRemoteQuotaState(nowMs);
-
-  for (let index = 0; index < CONFIG.sessionRequestsPerMinute; index += 1) {
+  for (let index = 0; index < 1_000; index += 1) {
     const decision = consumeRemoteRequestQuota(state, CONFIG, {
       nowMs: nowMs + index,
       userId: "user-a",
-      sessionId: "session-a",
       operationCost: REMOTE_RUNTIME_REQUEST_COST
     });
     assert.equal(decision.ok, true);
     state = decision.state;
   }
-
-  const rejected = consumeRemoteRequestQuota(state, CONFIG, {
-    nowMs: nowMs + 1_000,
-    userId: "user-a",
-    sessionId: "session-a",
-    operationCost: REMOTE_RUNTIME_REQUEST_COST
-  });
-  assert.equal(rejected.ok, false);
-  assert.equal(rejected.error.code, "REMOTE_SESSION_RATE_LIMITED");
+  assert.equal(readRemoteQuotaUserSummary(state, CONFIG, "user-a", nowMs + 1_000).day.workerRequests.actualUsed, 1_000);
 });
 
-test("connection quota only enforces the instance cap", () => {
-  const nowMs = Date.UTC(2026, 2, 24, 12, 0, 0);
-  let state = createEmptyRemoteQuotaState(nowMs);
-  const limitedConfig = {
-    ...CONFIG,
-    instanceConnections: 3
-  };
+test("runtime and proxy operations follow exact Worker and Durable Object request vectors", () => {
+  const nowMs = Date.UTC(2026, 6, 18, 12, 0, 0);
+  const runtime = consumeRemoteRequestQuota(createEmptyRemoteQuotaState(nowMs), CONFIG, {
+    nowMs,
+    userId: "user-a",
+    operationCost: REMOTE_RUNTIME_REQUEST_COST
+  });
+  assert.equal(runtime.ok, true);
+  const proxy = consumeRemoteRequestQuota(runtime.state, CONFIG, {
+    nowMs: nowMs + 1,
+    userId: "user-a",
+    operationCost: REMOTE_PROXY_REQUEST_COST
+  });
+  assert.equal(proxy.ok, true);
 
-  for (let index = 0; index < limitedConfig.instanceConnections; index += 1) {
-    const decision = acquireRemoteBrowserConnection(state, limitedConfig, {
+  const summary = readRemoteQuotaUserSummary(proxy.state, CONFIG, "user-a", nowMs + 2);
+  assert.equal(summary.day.workerRequests.actualUsed, 2);
+  assert.equal(summary.day.durableObjectRequests.actualUsed, 3);
+  assert.equal(summary.recent.last30Minutes.workerRequests, 2);
+  assert.equal(summary.recent.last30Minutes.durableObjectRequests, 3);
+});
+
+test("a rejected request is still recorded because its Worker and quota DO attempt already happened", () => {
+  const nowMs = Date.UTC(2026, 6, 18, 0, 0, 0);
+  const config = {
+    ...CONFIG,
+    platformDailyWorkerRequestBudget: 3,
+    platformDailyReservePercent: 0,
+    userDailyWorkerRequestUnits: 100
+  };
+  let state = createEmptyRemoteQuotaState(nowMs);
+  for (let index = 0; index < 3; index += 1) {
+    const decision = consumeRemoteRequestQuota(state, config, {
       nowMs: nowMs + index,
-      userId: `user-${index}`,
-      ticket: `instance-ticket-${index}`,
-      clientId: `instance-client-${index}`,
-      sessionId: `instance-session-${index}`,
-      instanceId: "instance-shared"
+      userId: "user-a",
+      operationCost: REMOTE_RUNTIME_REQUEST_COST
     });
     assert.equal(decision.ok, true);
     state = decision.state;
   }
-
-  const rejected = acquireRemoteBrowserConnection(state, limitedConfig, {
-    nowMs: nowMs + limitedConfig.instanceConnections + 1,
-    userId: "user-over",
-    ticket: "instance-ticket-over",
-    clientId: "instance-client-over",
-    sessionId: "instance-session-over",
-    instanceId: "instance-shared"
+  const rejected = consumeRemoteRequestQuota(state, config, {
+    nowMs: nowMs + 4,
+    userId: "user-a",
+    operationCost: REMOTE_RUNTIME_REQUEST_COST
   });
   assert.equal(rejected.ok, false);
-  assert.equal(rejected.error.code, "REMOTE_INSTANCE_CONNECTION_LIMIT");
+  assert.equal(rejected.error.code, "REMOTE_PLATFORM_WORKER_DAILY_BUDGET_EXCEEDED");
+  assert.equal(readRemoteQuotaPlatformSummary(rejected.state, config, nowMs + 5).day.workerRequests.actualUsed, 4);
 });
 
-test("releasing a browser connection frees the ticket for reuse", () => {
-  const nowMs = Date.UTC(2026, 2, 24, 12, 0, 0);
+test("browser connection reserves its release and message settlement capacity", () => {
+  const nowMs = Date.UTC(2026, 6, 18, 12, 0, 0);
   const acquired = acquireRemoteBrowserConnection(createEmptyRemoteQuotaState(nowMs), CONFIG, {
     nowMs,
     userId: "user-a",
@@ -102,208 +110,136 @@ test("releasing a browser connection frees the ticket for reuse", () => {
     instanceId: "instance-a"
   });
   assert.equal(acquired.ok, true);
+  assert.equal(acquired.data.grantedMessages, 10);
 
-  const released = releaseRemoteBrowserConnection(acquired.state, nowMs + 1_000, "user-a", "ticket-a");
+  const summary = readRemoteQuotaUserSummary(acquired.state, CONFIG, "user-a", nowMs + 1);
+  assert.equal(summary.day.workerRequests.actualUsed, 1);
+  assert.equal(summary.day.durableObjectRequests.actualUsed, 2);
+  assert.equal(summary.day.durableObjectRequests.reserved, 1.5);
+  assert.equal(summary.activeBrowserConnections, 1);
+});
+
+test("browser message settlement converts reservation to actual usage and leases the next block", () => {
+  const nowMs = Date.UTC(2026, 6, 18, 12, 0, 0);
+  const acquired = acquireBrowser(nowMs);
+  const settled = settleAndLeaseRemoteBrowserMessages(acquired.state, CONFIG, {
+    nowMs: nowMs + 1_000,
+    userId: "user-a",
+    ticket: "ticket-a",
+    settledMessages: 10,
+    requestedMessages: 10
+  });
+  assert.equal(settled.ok, true);
+  assert.equal(settled.data.grantedMessages, 10);
+
+  const summary = readRemoteQuotaUserSummary(settled.state, CONFIG, "user-a", nowMs + 2_000);
+  assert.equal(summary.day.durableObjectRequests.actualUsed, 3.5);
+  assert.equal(summary.day.durableObjectRequests.reserved, 1.5);
+});
+
+test("browser release settles remaining messages and removes every reservation", () => {
+  const nowMs = Date.UTC(2026, 6, 18, 12, 0, 0);
+  const acquired = acquireBrowser(nowMs);
+  const released = releaseRemoteBrowserConnection(acquired.state, {
+    nowMs: nowMs + 1_000,
+    userId: "user-a",
+    ticket: "ticket-a",
+    settledMessages: 4
+  });
   assert.equal(released.ok, true);
   assert.equal(released.data.released, true);
 
-  const reacquired = acquireRemoteBrowserConnection(released.state, CONFIG, {
-    nowMs: nowMs + 2_000,
-    userId: "user-a",
-    ticket: "ticket-b",
-    clientId: "client-b",
-    sessionId: "session-a",
-    instanceId: "instance-a"
-  });
-  assert.equal(reacquired.ok, true);
+  const summary = readRemoteQuotaUserSummary(released.state, CONFIG, "user-a", nowMs + 2_000);
+  assert.equal(summary.day.durableObjectRequests.actualUsed, 3.2);
+  assert.equal(summary.day.durableObjectRequests.reserved, 0);
+  assert.equal(summary.activeBrowserConnections, 0);
 });
 
-test("platform daily worker budget rejects requests after the safety waterline", () => {
-  const nowMs = Date.UTC(2026, 2, 24, 0, 0, 0);
-  let state = createEmptyRemoteQuotaState(nowMs);
-  const limitedConfig = {
-    ...CONFIG,
-    platformDailyWorkerRequestBudget: 10,
-    platformDailyReservePercent: 20
-  };
-
-  for (let index = 0; index < 8; index += 1) {
-    const decision = consumeRemoteRequestQuota(state, limitedConfig, {
-      nowMs: nowMs + index,
-      userId: "user-a",
-      sessionId: `session-${index}`,
-      operationCost: REMOTE_RUNTIME_REQUEST_COST
-    });
-    assert.equal(decision.ok, true);
-    state = decision.state;
-  }
-
-  const rejected = consumeRemoteRequestQuota(state, limitedConfig, {
-    nowMs: nowMs + 9_000,
-    userId: "user-a",
-    sessionId: "session-over",
-    operationCost: REMOTE_RUNTIME_REQUEST_COST
-  });
-  assert.equal(rejected.ok, false);
-  assert.equal(rejected.error.code, "REMOTE_PLATFORM_WORKER_DAILY_BUDGET_EXCEEDED");
-});
-
-test("platform daily durable object budget rejects new traffic after the safety waterline", () => {
-  const nowMs = Date.UTC(2026, 2, 24, 0, 0, 0);
-  let state = createEmptyRemoteQuotaState(nowMs);
-  const limitedConfig = {
-    ...CONFIG,
-    platformDailyDoRequestBudgetMilli: 4_000,
-    platformDailyReservePercent: 25
-  };
-
-  const admitted = acquireRemoteBrowserConnection(state, limitedConfig, {
+test("connector incoming WebSocket messages use Cloudflare's 20-to-1 DO request ratio", () => {
+  const nowMs = Date.UTC(2026, 6, 18, 12, 0, 0);
+  const recorded = recordRemoteWebSocketMessages(createEmptyRemoteQuotaState(nowMs), CONFIG, {
     nowMs,
     userId: "user-a",
-    ticket: "ticket-a",
-    clientId: "client-a",
-    sessionId: "session-a",
-    instanceId: "instance-a"
+    messages: 20
   });
-  assert.equal(admitted.ok, true);
-  state = admitted.state;
-
-  const rejected = consumeRemoteRequestQuota(state, limitedConfig, {
-    nowMs: nowMs + 1_000,
-    userId: "user-a",
-    sessionId: "session-a",
-    operationCost: REMOTE_PROXY_REQUEST_COST
-  });
-  assert.equal(rejected.ok, false);
-  assert.equal(rejected.error.code, "REMOTE_PLATFORM_DO_DAILY_BUDGET_EXCEEDED");
+  assert.equal(recorded.ok, true);
+  const summary = readRemoteQuotaUserSummary(recorded.state, CONFIG, "user-a", nowMs + 1);
+  assert.equal(summary.day.workerRequests.actualUsed, 0);
+  assert.equal(summary.day.durableObjectRequests.actualUsed, 2);
 });
 
-test("user daily worker budget stops one user before it can monopolize the platform", () => {
-  const nowMs = Date.UTC(2026, 2, 24, 0, 0, 0);
-  let state = createEmptyRemoteQuotaState(nowMs);
-  const limitedConfig = {
-    ...CONFIG,
-    userDailyWorkerRequestUnits: 3
-  };
-
-  for (let index = 0; index < 3; index += 1) {
-    const decision = consumeRemoteRequestQuota(state, limitedConfig, {
-      nowMs: nowMs + index,
-      userId: "user-a",
-      sessionId: `session-${index}`,
-      operationCost: REMOTE_RUNTIME_REQUEST_COST
-    });
-    assert.equal(decision.ok, true);
-    state = decision.state;
-  }
-
-  const rejected = consumeRemoteRequestQuota(state, limitedConfig, {
-    nowMs: nowMs + 4_000,
-    userId: "user-a",
-    sessionId: "session-over",
-    operationCost: REMOTE_RUNTIME_REQUEST_COST
-  });
-  assert.equal(rejected.ok, false);
-  assert.equal(rejected.error.code, "REMOTE_USER_DAILY_WORKER_BUDGET_EXCEEDED");
-});
-
-test("user daily durable object budget blocks once the user's share is exhausted", () => {
-  const nowMs = Date.UTC(2026, 2, 24, 0, 0, 0);
-  let state = createEmptyRemoteQuotaState(nowMs);
-  const limitedConfig = {
-    ...CONFIG,
-    userDailyDoRequestBudgetMilli: REMOTE_BROWSER_CONNECT_COST.durableObjectMilliUnits
-  };
-
-  const admitted = acquireRemoteBrowserConnection(state, limitedConfig, {
-    nowMs,
-    userId: "user-a",
-    ticket: "ticket-a",
-    clientId: "client-a",
-    sessionId: "session-a",
-    instanceId: "instance-a"
-  });
-  assert.equal(admitted.ok, true);
-  state = admitted.state;
-
-  const rejected = consumeRemoteRequestQuota(state, limitedConfig, {
-    nowMs: nowMs + 1_000,
-    userId: "user-a",
-    sessionId: "session-a",
-    operationCost: REMOTE_RUNTIME_REQUEST_COST
-  });
-  assert.equal(rejected.ok, false);
-  assert.equal(rejected.error.code, "REMOTE_USER_DAILY_DO_BUDGET_EXCEEDED");
-});
-
-test("ws lease batches multiple browser messages under one quota decision", () => {
-  const nowMs = Date.UTC(2026, 2, 24, 12, 0, 0);
-  const limitedConfig = {
-    ...CONFIG,
-    sessionRequestsPerMinute: 5
-  };
-  const decision = leaseRemoteBrowserMessages(createEmptyRemoteQuotaState(nowMs), limitedConfig, {
-    nowMs,
-    userId: "user-a",
-    sessionId: "session-a",
-    requestedMessages: 3
-  });
-  assert.equal(decision.ok, true);
-  assert.equal(decision.data.grantedMessages, 3);
-
-  const resized = leaseRemoteBrowserMessages(decision.state, limitedConfig, {
-    nowMs: nowMs + 1_000,
-    userId: "user-a",
-    sessionId: "session-a",
-    requestedMessages: 3
-  });
-  assert.equal(resized.ok, true);
-  assert.equal(resized.data.grantedMessages, 2);
-});
-
-test("browser connection admission also respects daily budgets", () => {
-  const nowMs = Date.UTC(2026, 2, 24, 12, 0, 0);
-  const limitedConfig = {
-    ...CONFIG,
-    userDailyWorkerRequestUnits: REMOTE_BROWSER_CONNECT_COST.workerRequestUnits,
-    userDailyDoRequestBudgetMilli: REMOTE_BROWSER_CONNECT_COST.durableObjectMilliUnits
-  };
-
-  const admitted = acquireRemoteBrowserConnection(createEmptyRemoteQuotaState(nowMs), limitedConfig, {
-    nowMs,
-    userId: "user-a",
-    ticket: "ticket-a",
-    clientId: "client-a",
-    sessionId: "session-a",
-    instanceId: "instance-a"
-  });
-  assert.equal(admitted.ok, true);
-
-  const rejected = acquireRemoteBrowserConnection(admitted.state, limitedConfig, {
-    nowMs: nowMs + 1_000,
-    userId: "user-a",
+test("connection cap remains a broad runaway guard and rejected attempts stay visible", () => {
+  const nowMs = Date.UTC(2026, 6, 18, 12, 0, 0);
+  const config = { ...CONFIG, instanceConnections: 1 };
+  const acquired = acquireBrowser(nowMs, config);
+  const rejected = acquireRemoteBrowserConnection(acquired.state, config, {
+    nowMs: nowMs + 1,
+    userId: "user-b",
     ticket: "ticket-b",
     clientId: "client-b",
     sessionId: "session-b",
-    instanceId: "instance-b"
+    instanceId: "instance-a"
   });
   assert.equal(rejected.ok, false);
-  assert.equal(rejected.error.code, "REMOTE_USER_DAILY_WORKER_BUDGET_EXCEEDED");
+  assert.equal(rejected.error.code, "REMOTE_INSTANCE_CONNECTION_LIMIT");
+  assert.equal(readRemoteQuotaPlatformSummary(rejected.state, config, nowMs + 2).day.workerRequests.actualUsed, 2);
 });
 
-test("quota summaries expose user usage and platform waterline clearly", () => {
-  const nowMs = Date.UTC(2026, 2, 24, 12, 0, 0);
-  let state = createEmptyRemoteQuotaState(nowMs);
-  const limitedConfig = {
-    ...CONFIG,
-    platformDailyWorkerRequestBudget: 10,
-    platformDailyDoRequestBudgetMilli: 10_000,
-    platformDailyReservePercent: 20,
-    userDailyWorkerRequestUnits: 3,
-    userDailyDoRequestBudgetMilli: 4_000
-  };
+test("daily usage resets at 00:00 UTC while the cost model remains complete after its first day", () => {
+  const dayOne = Date.UTC(2026, 6, 18, 23, 59, 59);
+  const consumed = consumeRemoteRequestQuota(createEmptyRemoteQuotaState(dayOne), CONFIG, {
+    nowMs: dayOne,
+    userId: "user-a",
+    operationCost: REMOTE_RUNTIME_REQUEST_COST
+  });
+  assert.equal(consumed.ok, true);
+  const dayTwo = Date.UTC(2026, 6, 19, 0, 0, 1);
+  const summary = readRemoteQuotaUserSummary(consumed.state, CONFIG, "user-a", dayTwo);
+  assert.equal(summary.day.workerRequests.actualUsed, 0);
+  assert.equal(summary.costModel.partialDay, false);
+  assert.equal(summary.day.startsAt, "2026-07-19T00:00:00.000Z");
+});
 
-  const connected = acquireRemoteBrowserConnection(state, limitedConfig, {
+test("v1 stored state is not misrepresented as exact v2 usage", () => {
+  const nowMs = Date.UTC(2026, 6, 18, 12, 0, 0);
+  const legacyState = {
+    platformDailyUsage: { dayKey: "2026-07-18", workerRequestUnits: 999, durableObjectMilliUnits: 999_000 },
+    users: {}
+  };
+  const summary = readRemoteQuotaPlatformSummary(legacyState, CONFIG, nowMs);
+  assert.equal(summary.day.workerRequests.actualUsed, 0);
+  assert.equal(summary.costModel.version, 2);
+  assert.equal(summary.costModel.partialDay, true);
+});
+
+test("one thousand active-user hourly projections stay below the SQLite-backed DO value limit", () => {
+  const nowMs = Date.UTC(2026, 6, 18, 12, 0, 0);
+  const state = createEmptyRemoteQuotaState(nowMs);
+  for (let userIndex = 0; userIndex < 1_000; userIndex += 1) {
+    state.users[`user-${userIndex}`] = {
+      browserConnections: {},
+      dailyUsage: {
+        dayKey: "2026-07-18",
+        workerRequestUnits: 12,
+        durableObjectMilliUnits: 12_000
+      },
+      dailyReserved: {
+        dayKey: "2026-07-18",
+        workerRequestUnits: 0,
+        durableObjectMilliUnits: 0
+      },
+      recentUsage: Array.from({ length: 12 }, (_value, bucketIndex) => ({
+        startedAtMs: nowMs - bucketIndex * 5 * 60 * 1_000,
+        workerRequestUnits: 1,
+        durableObjectMilliUnits: 1_000
+      }))
+    };
+  }
+  assert.ok(Buffer.byteLength(JSON.stringify(state)) < 2_000_000);
+});
+
+function acquireBrowser(nowMs, config = CONFIG) {
+  const acquired = acquireRemoteBrowserConnection(createEmptyRemoteQuotaState(nowMs), config, {
     nowMs,
     userId: "user-a",
     ticket: "ticket-a",
@@ -311,34 +247,6 @@ test("quota summaries expose user usage and platform waterline clearly", () => {
     sessionId: "session-a",
     instanceId: "instance-a"
   });
-  assert.equal(connected.ok, true);
-  state = connected.state;
-
-  const consumed = consumeRemoteRequestQuota(state, limitedConfig, {
-    nowMs: nowMs + 1_000,
-    userId: "user-a",
-    sessionId: "session-a",
-    operationCost: REMOTE_RUNTIME_REQUEST_COST
-  });
-  assert.equal(consumed.ok, true);
-  state = consumed.state;
-
-  const userSummary = readRemoteQuotaUserSummary(state, limitedConfig, "user-a", nowMs + 2_000);
-  assert.equal(userSummary.workerRequests.limit, 3);
-  assert.equal(userSummary.workerRequests.used, 2);
-  assert.equal(userSummary.workerRequests.remaining, 1);
-  assert.equal(userSummary.durableObjectRequests.limit, 4);
-  assert.equal(userSummary.durableObjectRequests.used, 3);
-  assert.equal(userSummary.activeBrowserConnections, 1);
-
-  const platformSummary = readRemoteQuotaPlatformSummary(state, limitedConfig, nowMs + 2_000);
-  assert.equal(platformSummary.workerRequests.configuredLimit, 10);
-  assert.equal(platformSummary.workerRequests.enforcedLimit, 8);
-  assert.equal(platformSummary.workerRequests.used, 2);
-  assert.equal(platformSummary.workerRequests.remaining, 6);
-  assert.equal(platformSummary.durableObjectRequests.configuredLimit, 10);
-  assert.equal(platformSummary.durableObjectRequests.enforcedLimit, 8);
-  assert.equal(platformSummary.durableObjectRequests.used, 3);
-  assert.equal(platformSummary.defaultUserWorkerBudget, 3);
-  assert.equal(platformSummary.defaultUserDoBudget, 4);
-});
+  assert.equal(acquired.ok, true);
+  return acquired;
+}

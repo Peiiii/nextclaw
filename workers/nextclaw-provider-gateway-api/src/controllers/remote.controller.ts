@@ -1,7 +1,6 @@
 import type { Context } from "hono";
 import {
-  enforceRemoteSessionQuota,
-  openRemoteBrowserRelaySocket,
+  RemoteControllerQuotaSupportService,
 } from "@/services/remote-controller-quota-support.service";
 import { appendAuditLog } from "@/repositories/platform.repository";
 import { renderRemoteAccessErrorPage } from "@/services/remote-access-error-page-renderer.service";
@@ -370,6 +369,12 @@ export async function remoteConnectorWebSocketHandler(c: Context<{ Bindings: Env
     return apiError(c, 404, "INSTANCE_NOT_FOUND", "Remote instance not found.");
   }
 
+  const quotaResponse = await new RemoteControllerQuotaSupportService(c.env)
+    .enforceDailyQuota(auth.user.id, "connector_connect");
+  if (quotaResponse) {
+    return quotaResponse;
+  }
+
   const stub = c.env.NEXTCLAW_REMOTE_RELAY.get(c.env.NEXTCLAW_REMOTE_RELAY.idFromName(instance.id));
   const headers = new Headers(c.req.raw.headers);
   headers.set("x-nextclaw-remote-role", "connector");
@@ -410,7 +415,8 @@ export async function remoteBrowserRuntimeHandler(c: Context<{ Bindings: Env }>)
   if (resolved instanceof Response) {
     return resolved;
   }
-  const quotaResponse = await enforceRemoteSessionQuota(c.env, resolved.session, "runtime_http");
+  const quotaResponse = await new RemoteControllerQuotaSupportService(c.env)
+    .enforceDailyQuota(resolved.session.user_id, "runtime_http");
   if (quotaResponse) {
     return quotaResponse;
   }
@@ -435,8 +441,7 @@ export async function remoteBrowserWebSocketHandler(c: Context<{ Bindings: Env }
   if (resolved instanceof Response) {
     return resolved;
   }
-  return await openRemoteBrowserRelaySocket({
-    env: c.env,
+  return await new RemoteControllerQuotaSupportService(c.env).openBrowserRelaySocket({
     rawRequest: c.req.raw,
     session: resolved.session,
     instanceId: resolved.instance.id
@@ -462,7 +467,8 @@ export async function remoteProxyHandler(c: Context<{ Bindings: Env }>): Promise
   if (resolved instanceof Response) {
     return applyRemoteDocumentCachePolicy(c, await maybeRenderRemoteAccessErrorPage(c, resolved));
   }
-  const quotaResponse = await enforceRemoteSessionQuota(c.env, resolved.session, "proxy_http");
+  const quotaResponse = await new RemoteControllerQuotaSupportService(c.env)
+    .enforceDailyQuota(resolved.session.user_id, "proxy_http");
   if (quotaResponse) {
     return quotaResponse;
   }

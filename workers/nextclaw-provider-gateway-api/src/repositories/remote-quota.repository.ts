@@ -2,11 +2,11 @@ import type {
   RemoteQuotaError,
   RemoteQuotaPlatformSummary,
   RemoteQuotaUserSummary,
-} from "@/services/remote-quota.service.js";
+} from "@/utils/remote-quota-decision.utils.js";
 import type { Env } from "@/types/platform";
 import { isRecord } from "@/utils/platform.utils";
 
-const REMOTE_QUOTA_GUARD_OBJECT_NAME = "remote-platform-budget-v1";
+const REMOTE_QUOTA_GUARD_OBJECT_NAME = "remote-platform-budget-v2";
 
 type RemoteQuotaStubSuccess<T> = {
   ok: true;
@@ -21,13 +21,6 @@ type RemoteQuotaStubFailure = {
 
 type RemoteQuotaStubResult<T> = RemoteQuotaStubSuccess<T> | RemoteQuotaStubFailure;
 
-type RemoteQuotaFrame = {
-  code: RemoteQuotaError["code"];
-  degraded: true;
-  message: string;
-  retryAfterSeconds: number;
-};
-
 export async function acquireRemoteQuotaBrowserConnection(
   env: Env,
   payload: {
@@ -37,7 +30,7 @@ export async function acquireRemoteQuotaBrowserConnection(
     clientId: string;
     ticket: string;
   }
-): Promise<RemoteQuotaStubResult<{ ticket: string }>> {
+): Promise<RemoteQuotaStubResult<{ ticket: string; grantedMessages: number }>> {
   return await callRemoteQuotaStub(env, "/browser-connection/acquire", {
     userId: payload.userId,
     ticket: payload.ticket,
@@ -52,11 +45,13 @@ export async function releaseRemoteQuotaBrowserConnection(
   payload: {
     userId: string;
     ticket: string;
+    settledMessages: number;
   }
 ): Promise<void> {
   const result = await callRemoteQuotaStub(env, "/browser-connection/release", {
     userId: payload.userId,
-    ticket: payload.ticket
+    ticket: payload.ticket,
+    settledMessages: payload.settledMessages
   });
   if (!result.ok) {
     console.warn("[remote-quota] browser connection release rejected", result.error.code, result.error.message);
@@ -67,30 +62,40 @@ export async function consumeRemoteQuotaRequest(
   env: Env,
   payload: {
     userId: string;
-    sessionId: string;
-    operationKind: "runtime_http" | "proxy_http";
+    operationKind: "runtime_http" | "proxy_http" | "connector_connect";
   }
-): Promise<RemoteQuotaStubResult<{ remainingSessionRequests: number }>> {
+): Promise<RemoteQuotaStubResult<{ admitted: true }>> {
   return await callRemoteQuotaStub(env, "/request/consume", {
     userId: payload.userId,
-    sessionId: payload.sessionId,
     operationKind: payload.operationKind
   });
 }
 
-export async function leaseRemoteQuotaBrowserMessages(
+export async function settleAndLeaseRemoteQuotaBrowserMessages(
   env: Env,
   payload: {
     userId: string;
-    sessionId: string;
+    ticket: string;
+    settledMessages: number;
     requestedMessages: number;
   }
 ): Promise<RemoteQuotaStubResult<{ grantedMessages: number }>> {
-  return await callRemoteQuotaStub(env, "/ws-message/lease", {
+  return await callRemoteQuotaStub(env, "/ws-message/settle-and-lease", {
     userId: payload.userId,
-    sessionId: payload.sessionId,
+    ticket: payload.ticket,
+    settledMessages: payload.settledMessages,
     requestedMessages: payload.requestedMessages
   });
+}
+
+export async function recordRemoteQuotaWebSocketMessages(
+  env: Env,
+  payload: {
+    userId: string;
+    messages: number;
+  }
+): Promise<RemoteQuotaStubResult<{ recordedMessages: number }>> {
+  return await callRemoteQuotaStub(env, "/ws-message/report", payload);
 }
 
 export async function readRemoteQuotaUserSummary(
@@ -105,50 +110,6 @@ export async function readRemoteQuotaPlatformSummary(
   env: Env
 ): Promise<RemoteQuotaStubResult<RemoteQuotaPlatformSummary>> {
   return await callRemoteQuotaStub(env, "/summary/platform", undefined, "GET");
-}
-
-export function buildRemoteQuotaHttpRejection(error: RemoteQuotaError): Response {
-  return new Response(
-    JSON.stringify({
-      ok: false,
-      degraded: true,
-      error: {
-        code: error.code,
-        message: error.message,
-        retryAfterSeconds: error.retryAfterSeconds
-      }
-    }),
-    {
-      status: resolveRemoteQuotaStatus(error),
-      headers: {
-        "content-type": "application/json",
-        "retry-after": String(error.retryAfterSeconds),
-        "x-nextclaw-degraded": "quota_guard"
-      }
-    }
-  );
-}
-
-export function buildRemoteQuotaRequestErrorFrame(
-  requestId: string,
-  error: RemoteQuotaError
-): Record<string, unknown> {
-  return {
-    type: "request.error",
-    id: requestId,
-    ...buildRemoteQuotaFrame(error)
-  };
-}
-
-export function buildRemoteQuotaStreamErrorFrame(
-  streamId: string,
-  error: RemoteQuotaError
-): Record<string, unknown> {
-  return {
-    type: "stream.error",
-    streamId,
-    ...buildRemoteQuotaFrame(error)
-  };
 }
 
 async function callRemoteQuotaStub<T>(
@@ -251,21 +212,8 @@ function invalidQuotaResponse(): RemoteQuotaStubFailure {
   };
 }
 
-function resolveRemoteQuotaStatus(error: RemoteQuotaError): number {
-  return error.code === "REMOTE_QUOTA_GUARD_UNAVAILABLE" ? 503 : 429;
-}
-
 function parseRetryAfterHeader(headers: Headers): number {
   const raw = headers.get("retry-after");
   const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
-}
-
-function buildRemoteQuotaFrame(error: RemoteQuotaError): RemoteQuotaFrame {
-  return {
-    code: error.code,
-    degraded: true,
-    message: error.message,
-    retryAfterSeconds: error.retryAfterSeconds
-  };
 }

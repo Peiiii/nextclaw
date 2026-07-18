@@ -6,6 +6,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const child = spawn(process.execPath, [
   "--test",
+  join(__dirname, "remote-quota-durable-object.test.mjs"),
   join(__dirname, "remote-quota-policy.test.mjs"),
   join(__dirname, "remote-relay-quota-lifecycle.test.mjs")
 ], {

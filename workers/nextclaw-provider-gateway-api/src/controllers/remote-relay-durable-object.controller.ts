@@ -4,6 +4,7 @@ import { decodeRelayBase64, decodeRelayMessageData } from "@/utils/remote-relay-
 import {
   consumeRemoteBrowserFrameQuota,
   readRemoteBrowserAttachment,
+  reportRemoteConnectorQuota,
   releaseRemoteClientQuota,
 } from "@/utils/remote-relay-quota.utils.js";
 import {
@@ -17,7 +18,8 @@ import {
   type RelayResponseFrame,
   type WebSocketMessageData
 } from "@/types/remote-relay.types.js";
-import type { Env } from "@/types/platform";
+import type { RemoteQuotaEnv as Env } from "@/types/remote-quota-env.types";
+import { parseBoundedInt } from "@/utils/platform.utils";
 
 const CONNECTOR_TAG = "connector"; const CLIENT_TAG = "client";
 
@@ -43,8 +45,9 @@ export class NextclawRemoteRelayDurableObject {
 
   private handleConnectorUpgrade = async (request: Request): Promise<Response> => {
     const deviceId = request.headers.get("x-nextclaw-remote-device-id")?.trim();
-    if (!deviceId) {
-      return new Response("Remote device id missing.", { status: 400 });
+    const userId = request.headers.get("x-nextclaw-remote-user-id")?.trim();
+    if (!deviceId || !userId) {
+      return new Response("Remote connector quota metadata missing.", { status: 400 });
     }
     const pair = new WebSocketPair();
     const client = pair[0];
@@ -53,7 +56,9 @@ export class NextclawRemoteRelayDurableObject {
     server.serializeAttachment({
       type: "connector",
       deviceId,
-      connectedAt
+      userId,
+      connectedAt,
+      unsettledQuotaMessages: 0
     } satisfies ConnectorAttachment);
     this.state.acceptWebSocket(server, [CONNECTOR_TAG]);
     for (const existingConnector of this.getConnectorSockets()) {
@@ -158,14 +163,46 @@ export class NextclawRemoteRelayDurableObject {
       });
       return;
     }
-    await this.handleConnectorMessage(raw);
+    await this.state.blockConcurrencyWhile(async () => {
+      const currentAttachment = webSocket.deserializeAttachment() as ConnectorAttachment | null;
+      if (currentAttachment?.type === "connector") {
+        await this.handleConnectorMessage(webSocket, currentAttachment, raw);
+      }
+    });
   }
 
-  webSocketClose = (webSocket: WebSocket): Promise<void> => this.handleSocketClosed(webSocket);
+  webSocketClose = (webSocket: WebSocket): Promise<void> => {
+    return this.state.blockConcurrencyWhile(async () => await this.handleSocketClosed(webSocket));
+  };
 
-  webSocketError = (webSocket: WebSocket): Promise<void> => this.handleSocketClosed(webSocket);
+  webSocketError = (webSocket: WebSocket): Promise<void> => {
+    return this.state.blockConcurrencyWhile(async () => await this.handleSocketClosed(webSocket));
+  };
 
-  private handleConnectorMessage = async (raw: string): Promise<void> => {
+  private handleConnectorMessage = async (
+    webSocket: WebSocket,
+    attachment: ConnectorAttachment,
+    raw: string
+  ): Promise<void> => {
+    const unsettledQuotaMessages = (attachment.unsettledQuotaMessages ?? 0) + 1;
+    const reportSize = parseBoundedInt(
+      this.env.REMOTE_QUOTA_WS_USAGE_REPORT_SIZE,
+      100,
+      1,
+      1_000
+    );
+    if (unsettledQuotaMessages >= reportSize) {
+      const reportAttachment = { ...attachment, unsettledQuotaMessages };
+      const accepted = await reportRemoteConnectorQuota(this.env, reportAttachment);
+      webSocket.serializeAttachment({ ...attachment, unsettledQuotaMessages: 0 } satisfies ConnectorAttachment);
+      if (!accepted) {
+        webSocket.close(1008, "Remote daily quota exhausted.");
+        return;
+      }
+    } else {
+      webSocket.serializeAttachment({ ...attachment, unsettledQuotaMessages } satisfies ConnectorAttachment);
+    }
+
     let frame: RelayResponseFrame | ConnectorClientFrame | null = null;
     try {
       frame = JSON.parse(raw) as RelayResponseFrame | ConnectorClientFrame;
@@ -215,6 +252,26 @@ export class NextclawRemoteRelayDurableObject {
     try {
       frame = JSON.parse(raw) as BrowserCommandFrame;
     } catch {
+      frame = null;
+    }
+
+    const quotaDecision = await consumeRemoteBrowserFrameQuota({
+      env: this.env,
+      attachment,
+      frame,
+      remainingMessages: attachment.remainingQuotaMessages ?? 0,
+      unsettledMessages: attachment.unsettledQuotaMessages ?? 0
+    });
+    webSocket.serializeAttachment({
+      ...attachment,
+      remainingQuotaMessages: quotaDecision.remainingMessages,
+      unsettledQuotaMessages: quotaDecision.unsettledMessages
+    } satisfies ClientAttachment);
+    if (!quotaDecision.ok) {
+      if (quotaDecision.frame) {
+        this.sendToClient(attachment.clientId, quotaDecision.frame);
+      }
+      webSocket.close(1008, "Remote daily quota exhausted.");
       return;
     }
     if (!frame) {
@@ -236,21 +293,6 @@ export class NextclawRemoteRelayDurableObject {
         streamId: frame.streamId,
         message: "Remote device connector is offline."
       });
-      return;
-    }
-
-    const quotaDecision = await consumeRemoteBrowserFrameQuota({
-      env: this.env,
-      attachment,
-      frame,
-      remainingMessages: attachment.remainingQuotaMessages
-    });
-    webSocket.serializeAttachment({
-      ...attachment,
-      remainingQuotaMessages: quotaDecision.remainingMessages
-    } satisfies ClientAttachment);
-    if (!quotaDecision.ok) {
-      this.sendToClient(attachment.clientId, quotaDecision.frame);
       return;
     }
 
@@ -307,6 +349,14 @@ export class NextclawRemoteRelayDurableObject {
   private handleSocketClosed = async (closedSocket: WebSocket): Promise<void> => {
     const attachment = closedSocket.deserializeAttachment() as ConnectorAttachment | ClientAttachment | null;
     if (attachment?.type === "client") {
+      if (attachment.quotaReleased) {
+        return;
+      }
+      closedSocket.serializeAttachment({
+        ...attachment,
+        unsettledQuotaMessages: 0,
+        quotaReleased: true
+      } satisfies ClientAttachment);
       await releaseRemoteClientQuota(this.env, attachment);
       return;
     }
@@ -317,6 +367,13 @@ export class NextclawRemoteRelayDurableObject {
     const attachment = closedSocket.deserializeAttachment() as ConnectorAttachment | null;
     if (attachment?.type !== "connector") {
       return;
+    }
+    if ((attachment.unsettledQuotaMessages ?? 0) > 0) {
+      closedSocket.serializeAttachment({
+        ...attachment,
+        unsettledQuotaMessages: 0
+      } satisfies ConnectorAttachment);
+      await reportRemoteConnectorQuota(this.env, attachment);
     }
     const hasOtherOpenConnector = this.getConnectorSockets().some((socket) => {
       return socket !== closedSocket && socket.readyState === WebSocket.OPEN;

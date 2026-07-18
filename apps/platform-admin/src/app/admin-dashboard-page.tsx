@@ -7,7 +7,7 @@ import {
 } from '@/pages/admin-console-navigation';
 import { AdminMarketplaceReviewPage } from '@/pages/admin-marketplace-review-page';
 import { AdminMarketplaceAppReviewPage } from '@/pages/admin-marketplace-app-review-page';
-import { AdminOverviewPage } from '@/pages/admin-overview-page';
+import { AdminOverviewPage } from '@/features/admin-overview';
 import { AdminRechargeReviewPage } from '@/pages/admin-recharge-review-page';
 import { AdminUserQuotaPage } from '@/pages/admin-user-quota-page';
 
