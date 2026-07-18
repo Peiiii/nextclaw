@@ -70,7 +70,6 @@ type ChatSidebarToolbarProps = {
   query: string;
   defaultSessionType: string;
   sessionTypeOptions: SessionTypeOption[];
-  nonDefaultSessionTypeOptions: SessionTypeOption[];
   selectedNewSessionType: string;
   selectedNewSessionTypeOption: SessionTypeOption | null;
   isCreateMenuOpen: boolean;
@@ -80,20 +79,6 @@ type ChatSidebarToolbarProps = {
   onQueryChange: (query: string) => void;
   collapsed?: boolean;
 };
-
-function getMobileCreateOptions(params: {
-  defaultSessionType: string;
-  sessionTypeOptions: SessionTypeOption[];
-  nonDefaultSessionTypeOptions: SessionTypeOption[];
-}): SessionTypeOption[] {
-  const defaultOption = params.sessionTypeOptions.find(
-    (option) => option.value === params.defaultSessionType,
-  );
-  return [
-    ...(defaultOption ? [defaultOption] : []),
-    ...params.nonDefaultSessionTypeOptions,
-  ];
-}
 
 function SessionTypeTriggerIcon({
   option,
@@ -276,18 +261,12 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps) {
     query,
     defaultSessionType,
     sessionTypeOptions,
-    nonDefaultSessionTypeOptions,
     isCreateMenuOpen,
     onCreateMenuOpenChange,
     onCreateSession,
     onQueryChange,
   } = props;
-  const createOptions = getMobileCreateOptions({
-    defaultSessionType,
-    sessionTypeOptions,
-    nonDefaultSessionTypeOptions,
-  });
-  const hasCreateMenu = createOptions.length > 1;
+  const hasCreateMenu = sessionTypeOptions.length > 1;
 
   return (
     <div className="px-4 pb-2 pt-1">
@@ -320,7 +299,7 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps) {
               className="w-60 rounded-3xl border border-border bg-popover p-2 text-popover-foreground shadow-[0_24px_70px_-30px_rgba(15,23,42,0.45)]"
             >
               <ChatSessionTypeMenu
-                options={createOptions}
+                options={sessionTypeOptions}
                 selectedSessionType={defaultSessionType}
                 title={t("chatSidebarNewTask")}
                 titleClassName="pb-1.5 text-[11px] font-medium normal-case tracking-normal"

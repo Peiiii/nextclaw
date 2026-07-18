@@ -15,7 +15,6 @@ const toolbarProps = {
   query: "",
   defaultSessionType: "native",
   sessionTypeOptions,
-  nonDefaultSessionTypeOptions: [sessionTypeOptions[1]],
   selectedNewSessionType: "native",
   selectedNewSessionTypeOption: sessionTypeOptions[0],
   isCreateMenuOpen: false,

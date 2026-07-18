@@ -68,6 +68,12 @@ function sidebarElement(variant?: "desktop" | "mobile") {
 function renderSidebar(variant?: "desktop" | "mobile") {
   return render(sidebarElement(variant));
 }
+function mockNewSessionTypePreference(value: string | null) {
+  mocks.fetchPreference.mockResolvedValue({
+    key: PREFERENCE_KEYS.chat.newSessionType,
+    value,
+  });
+}
 function expectCodexSelectedInSessionTypeMenu() {
   fireEvent.click(screen.getByLabelText("Session Type"));
   expect(
@@ -191,10 +197,7 @@ function resetSidebarTestState() {
   mocks.setLanguage.mockReset();
   mocks.setTheme.mockReset();
   mocks.fetchPreference.mockReset();
-  mocks.fetchPreference.mockResolvedValue({
-    key: PREFERENCE_KEYS.chat.newSessionType,
-    value: null,
-  });
+  mockNewSessionTypePreference(null);
   mocks.updatePreference.mockReset();
   mocks.updatePreference.mockImplementation(
     async (key: string, value: string) => ({
@@ -249,10 +252,7 @@ describe("ChatSidebar create and list basics", () => {
   });
 
   it("hydrates the desktop new-session type from stored preferences", async () => {
-    mocks.fetchPreference.mockResolvedValue({
-      key: PREFERENCE_KEYS.chat.newSessionType,
-      value: "codex",
-    });
+    mockNewSessionTypePreference("codex");
 
     renderSidebar();
 
@@ -333,6 +333,15 @@ describe("ChatSidebar create and list basics", () => {
     expect(mocks.setQuery).toHaveBeenCalledWith("release notes");
     expect(mocks.createSession).toHaveBeenCalledWith("codex", undefined);
     expect(mocks.goToChatRoot).not.toHaveBeenCalled();
+  });
+
+  it("keeps every mobile runtime type visible once when the stored preference differs from the default", async () => {
+    mockNewSessionTypePreference("codex");
+    renderSidebar("mobile");
+    await waitFor(() => expect(mocks.fetchPreference).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: "New Task" }));
+    expect(screen.getAllByText("Codex")).toHaveLength(1);
+    expect(screen.getByText("Native")).not.toBeNull();
   });
 
   it("keeps low-frequency utility choices behind nested selectors", () => {

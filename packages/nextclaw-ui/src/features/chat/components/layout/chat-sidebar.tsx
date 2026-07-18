@@ -182,13 +182,6 @@ export function ChatSidebar({
       ),
     [sessionTypesData?.defaultType],
   );
-  const nonDefaultSessionTypeOptions = useMemo(
-    () =>
-      sessionTypeOptions.filter(
-        (option) => option.value !== defaultSessionType,
-      ),
-    [defaultSessionType, sessionTypeOptions],
-  );
   const newSessionTypePreference = useChatNewSessionTypePreference({
     defaultSessionType,
     sessionTypeOptions,
@@ -289,7 +282,6 @@ export function ChatSidebar({
           query={listSnapshot.query}
           defaultSessionType={newSessionTypePreference.selectedSessionType}
           sessionTypeOptions={sessionTypeOptions}
-          nonDefaultSessionTypeOptions={nonDefaultSessionTypeOptions}
           selectedNewSessionType={newSessionTypePreference.selectedSessionType}
           selectedNewSessionTypeOption={
             newSessionTypePreference.selectedSessionTypeOption
@@ -307,7 +299,6 @@ export function ChatSidebar({
           query={listSnapshot.query}
           defaultSessionType={defaultSessionType}
           sessionTypeOptions={sessionTypeOptions}
-          nonDefaultSessionTypeOptions={nonDefaultSessionTypeOptions}
           selectedNewSessionType={newSessionTypePreference.selectedSessionType}
           selectedNewSessionTypeOption={
             newSessionTypePreference.selectedSessionTypeOption
