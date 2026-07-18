@@ -112,6 +112,7 @@ GitHub Actions: validate + build once
 - GitHub OIDC subject 精确绑定当前仓库和 `docs-cn-production` environment；environment 自身只接受 `master` 部署，避免分支或 fork 获取生产身份。
 - RAM role 只允许目标 OSS bucket 的读取、写入、列举与生命周期更新、CDN 刷新与证书部署，以及证书 DNS-01 所需的四个 AliDNS API；不授予 ECS、SSH、RAM 管理或其他 bucket 写权限。
 - STS session 使用短时有效期，session name 包含 workflow run id，便于 ActionTrail 追踪。
+- ROS 负责 OIDC provider 的基线资源合同；阿里云 ROS 不支持原地更新 `Fingerprints`，证书链轮换时必须先用 IMS `AddFingerprintToOIDCProvider` 增加新指纹、验证工作流成功后再考虑删除旧指纹。该动作属于低频身份引导，不得改回长期 AccessKey 或服务器密码。
 
 ### GitHub 到 Cloudflare
 
