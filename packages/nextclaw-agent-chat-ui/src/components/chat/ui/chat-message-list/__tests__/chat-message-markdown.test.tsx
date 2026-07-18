@@ -555,20 +555,17 @@ it("delegates nextclaw inline display rendering to the host renderer", () => {
   expect(screen.queryByText("nextclaw-inline")).toBeNull();
 });
 
-it("keeps completed inline HTML focused on the display declaration", () => {
+it("preserves prose around completed inline HTML declarations", () => {
   const { container } = render(
     <ChatMessageMarkdown
       text={[
         "All 17 values passed validation.",
         "",
-        "- Revenue: 414",
-        "- Target: 400",
-        "",
         '```nextclaw-inline',
         '{"target":{"type":"file","payload":{"path":"/Users/demo/.nextclaw/assets/visualizations/session-1/result.html","viewer":"rendered"}},"title":"Result"}',
         '```',
         "",
-        "Duplicated summary after the display.",
+        "Keep this summary after the display.",
       ].join("\n")}
       role="assistant"
       texts={defaultTexts}
@@ -576,9 +573,8 @@ it("keeps completed inline HTML focused on the display declaration", () => {
   );
 
   expect(container.querySelector('[data-nextclaw-inline-display="true"]')).toBeTruthy();
-  expect(screen.queryByText("All 17 values passed validation.")).toBeNull();
-  expect(screen.queryByText("Revenue: 414")).toBeNull();
-  expect(screen.queryByText("Duplicated summary after the display.")).toBeNull();
+  expect(screen.getByText("All 17 values passed validation.")).toBeTruthy();
+  expect(screen.getByText("Keep this summary after the display.")).toBeTruthy();
 });
 
 it("preserves prose around non-HTML inline file declarations", () => {

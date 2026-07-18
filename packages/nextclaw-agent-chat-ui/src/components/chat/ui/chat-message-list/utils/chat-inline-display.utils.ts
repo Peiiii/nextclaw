@@ -6,7 +6,6 @@ import type {
 
 const INLINE_DISPLAY_LANGUAGE = "nextclaw-inline";
 const CODE_LANGUAGE_REGEX = /language-([a-z0-9-]+)/i;
-const INLINE_DISPLAY_BLOCK_REGEX = /```nextclaw-inline[^\S\r\n]*\r?\n([\s\S]*?)\r?\n```/gi;
 const FILE_PREVIEW_VIEWERS = new Set<ChatFilePreviewViewer>([
   "auto",
   "source",
@@ -150,21 +149,6 @@ export function parseChatInlineDisplayDirective(
     title: readString(parsed.title),
     description: readString(parsed.description),
   };
-}
-
-export function findChatInlineHtmlDisplayDirective(rawText: string): string | null {
-  let selected: string | null = null;
-  for (const match of rawText.matchAll(INLINE_DISPLAY_BLOCK_REGEX)) {
-    const display = parseChatInlineDisplayDirective(match[1] ?? "");
-    if (
-      display?.target.type === "file" &&
-      display.target.payload.viewer === "rendered" &&
-      /\.html?$/i.test(display.target.payload.path)
-    ) {
-      selected = match[0];
-    }
-  }
-  return selected;
 }
 
 export function getChatInlineDisplayLabel(display: ChatInlineDisplayViewModel): string {

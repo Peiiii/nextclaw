@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { ChatMessageList } from "@agent-chat-ui/components/chat/ui/chat-message-list/chat-message-list";
 import type {
+  ChatInlineDisplayViewModel,
   ChatInlineTokenViewModel,
   ChatMessageTexts,
   ChatMessageViewModel,
@@ -20,6 +21,7 @@ function renderMessages(
   messages: ChatMessageViewModel[],
   renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode,
   onInlineTokenClick?: (token: ChatInlineTokenViewModel) => void,
+  renderInlineDisplay?: (display: ChatInlineDisplayViewModel) => ReactNode,
 ) {
   return (
     <ChatMessageList
@@ -29,6 +31,7 @@ function renderMessages(
       texts={texts}
       renderPanelAppCard={renderPanelAppCard}
       onInlineTokenClick={onInlineTokenClick}
+      renderInlineDisplay={renderInlineDisplay}
     />
   );
 }
@@ -179,4 +182,45 @@ it("preserves an inline panel app when later process parts arrive", () => {
   );
 
   expect(screen.getByTestId("inline-panel-app")).toBe(iframe);
+});
+
+it("preserves mixed inline surfaces when an assistant message completes", () => {
+  const text = [
+    "Keep the reply content.",
+    "",
+    '```nextclaw-inline',
+    '{"target":{"type":"panel_app","payload":{"appId":"weather-card"}},"title":"Weather"}',
+    '```',
+    "",
+    '```nextclaw-inline',
+    '{"target":{"type":"file","payload":{"path":"/Users/demo/result.html","viewer":"rendered"}},"title":"Result"}',
+    '```',
+  ].join("\n");
+  const message: ChatMessageViewModel = {
+    id: "assistant-mixed-inline",
+    role: "assistant",
+    roleLabel: "Assistant",
+    timestampLabel: "10:01",
+    status: "streaming",
+    parts: [{ type: "markdown", text }],
+  };
+  const renderInlineDisplay = (display: ChatInlineDisplayViewModel) => (
+    <iframe data-testid={`inline-${display.target.type}`} title={display.title} />
+  );
+  const view = render(renderMessages([message], undefined, undefined, renderInlineDisplay));
+  const panelApp = screen.getByTestId("inline-panel_app");
+  const html = screen.getByTestId("inline-file");
+
+  view.rerender(
+    renderMessages(
+      [{ ...message, status: "final" }],
+      undefined,
+      undefined,
+      renderInlineDisplay,
+    ),
+  );
+
+  expect(screen.getByText("Keep the reply content.")).toBeTruthy();
+  expect(screen.getByTestId("inline-panel_app")).toBe(panelApp);
+  expect(screen.getByTestId("inline-file")).toBe(html);
 });

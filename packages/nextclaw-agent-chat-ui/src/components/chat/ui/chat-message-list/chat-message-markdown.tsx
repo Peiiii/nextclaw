@@ -16,7 +16,6 @@ import type {
   ChatMessageTexts,
 } from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
 import {
-  findChatInlineHtmlDisplayDirective,
   isChatInlineDisplayLanguage,
   parseChatInlineDisplayDirective,
 } from "./utils/chat-inline-display.utils";
@@ -429,9 +428,6 @@ export function ChatMessageMarkdown({
     ? [remarkGfm, createRemarkInlineTokenPlugin(inlineTokens)]
     : [remarkGfm];
   const WrapperTag = inline ? "span" : "div";
-  const displayText = role === "assistant" && !isStreaming
-    ? findChatInlineHtmlDisplayDirective(text) ?? text
-    : text;
 
   return (
     <ChatMessageMarkdownRuntimeContext.Provider
@@ -458,7 +454,7 @@ export function ChatMessageMarkdown({
           components={CHAT_MESSAGE_MARKDOWN_COMPONENTS}
           urlTransform={transformChatResourceHref}
         >
-          {trimMarkdown(displayText)}
+          {trimMarkdown(text)}
         </ReactMarkdown>
       </WrapperTag>
     </ChatMessageMarkdownRuntimeContext.Provider>

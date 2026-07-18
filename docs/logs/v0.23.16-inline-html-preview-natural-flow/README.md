@@ -16,6 +16,8 @@
 - Native Agent 的 `ReplyFormatContextProvider` 增加极短的可视化路由：当空间布局能明显提升理解时，先读取内置 `visualize-output` skill；简单答案继续使用自然 Markdown，可复用应用和持续工作流仍归 `nextclaw-app-creator`。
 - 新增内置 `visualize-output` skill，统一选择 Markdown、表格、Mermaid、图片或自包含内联 HTML；它只负责当前回答的结果展示，不接管 Panel App / Service App 创建职责。
 - 内联 HTML 明确采用“页面即画布”：一个表面只表达一个主要结论，不重复文件名、内部工具栏或总卡片，不依赖 document 级滚动，并按宿主 `240px -> min(80vh, 720px)` 的自适应高度合同控制信息密度。
+- 2026-07-18 根因修正：完成态 Markdown renderer 曾把“生成式 HTML 回答应只输出声明”的 Agent 回复格式约束，下沉成“只要消息里存在 rendered HTML 就丢弃其余正文”的宿主规则。真实会话 `ncp-mrq4yn79-e2ecbcf9` 证明该规则会隐藏同一消息中的图片、Panel App、Mermaid、表格和正文，因此已删除完成态内容替换分支及其专用正则；renderer 现在始终忠实呈现持久化消息合同。
+- 根因通过三方对照确认：session API 中 8 条消息正文和 inline target 均正确，修前浏览器却把第 1、2、4 条助手回复缩成同一个 HTML iframe；删除 renderer 的替换分支后，同一 URL 恢复为各自正文与独立内联表面。修复位点是第一个违约边界，不在 session/journal、消息 adapter 或 iframe 缓存层增加补丁。
 
 ## 测试/验证/验收方式
 
@@ -34,15 +36,19 @@
 - 完整源码构建产生的 `packages/nextclaw/ui-dist` 哈希漂移已通过仓库标准 `pnpm clean:generated` 恢复，没有覆盖工作区中的其他并行改动。
 - Agent 可视化后续定向测试：`pnpm --filter @nextclaw/core exec vitest run src/features/agent/features/tests/skills.test.ts`，1 file / 11 tests 通过；`pnpm --filter @nextclaw/kernel exec vitest run src/contributions/context-provider/providers/reply-format-context.provider.test.ts src/contributions/context-provider/providers/context-provider-contract.provider.test.ts`，2 files / 2 tests 通过。覆盖内置 skill 发现与加载、双语 metadata、系统提示路由和完整 context provider 组装。
 - Agent 可视化后续 TypeScript：`pnpm --filter @nextclaw/core tsc` 与 `pnpm --filter @nextclaw/kernel tsc` 通过；两个 package lint 均为 0 error，仅保留与本次无关的既有 warning。
-- Chat UI 收束测试：`pnpm --filter @nextclaw/agent-chat-ui exec vitest run src/components/chat/ui/chat-message-list/__tests__/chat-message-markdown.test.tsx` 通过；覆盖完成态内联 HTML 只保留展示声明，以及非 HTML 内联文件仍保留周围正文。
+- Chat UI 根因修正测试：`chat-message-markdown.test.tsx` 直接断言完成态 rendered HTML 周围正文不丢失；生命周期场景归入 `chat-message-streaming-stability.test.tsx` 的最终 `ChatMessageList` consumer，覆盖一条同时包含正文、Panel App 与 rendered HTML 的消息，并断言 `streaming -> final` 后正文仍存在、两个 iframe DOM 节点身份不变。
+- 生命周期定向回归：`pnpm -C packages/nextclaw-agent-chat-ui test -- src/components/chat/ui/chat-message-list/__tests__/chat-message-markdown.test.tsx src/components/chat/ui/chat-message-list/__tests__/chat-message-streaming-stability.test.tsx`，2 files / 38 tests 通过。
+- TypeScript 与 ESLint：`pnpm -C packages/nextclaw-agent-chat-ui tsc`、`pnpm -C packages/nextclaw-agent-chat-ui lint` 均通过。
+- 包级全量测试：32 files 中 29 files 通过，230 tests 中 227 tests 通过；剩余 3 项分别是当前基线已有的 `chat-ui.contract.test.ts` ReactNode 合同、`chat-message-list.file-operation.test.tsx` 样式断言和 `chat-input-bar-selection.test.tsx` 的 jsdom/Lexical `Selection.modify` 缺失，均不在本次触达文件与消息渲染链路。
+- 治理：限定本次 4 个代码/测试文件的 `lint-new-code-governance` 全部通过，`pnpm check:governance-backlog-ratchet` 通过。工作区全量 governance 被并行未提交文件 `workers/nextclaw-provider-gateway-api/tests/remote-instance-list.test.mjs` 的 4 个 class-method 违规阻塞，本次未吸收或修改该文件。
 - `pnpm --filter @nextclaw/core build` 通过，并确认发布产物 `dist/skills/visualize-output/SKILL.md` 包含内联 HTML 与 `min(80vh, 720px)` 合同；随后 `pnpm clean:generated` 与 `pnpm check:generated-clean` 通过。
 - Agent 可视化后续治理：全量收尾重跑 `pnpm lint:new-code:governance` 与 `pnpm check:governance-backlog-ratchet` 均通过。maintainability guard 为 0 error；`context-provider/providers` 仍是 14 个同角色 provider 文件且已有 README 豁免，本次没有新增 provider 或扩大目录。
 - `skill-creator` 的 Python `quick_validate.py` 因本机两个 Python runtime 均缺少 `PyYAML` 未能启动；已改用仓库实际 `SkillsLoader` 测试和本地 `yaml@2.8.2` 解析校验 frontmatter、目录名与双语描述，均通过。
 - 真实模型前向验收：使用当前源码构建和从用户配置复制的真实 provider 配置，在独立 `NEXTCLAW_HOME=/Users/peiwang/.nextclaw-source-runtime/deepseek-visual-smoke`、独立 workspace 与端口 `18889` 启动隔离实例；没有重启、替换或写入用户正在使用的主实例。最终使用 `deepseek/deepseek-chat` 和不包含设计、内联或存储指令的自然请求创建会话 `visual-html-deepseek-natural-20260717-0942`。模型首个工具调用读取 `visualize-output`，产物写入 `NEXTCLAW_HOME/assets/visualizations/<session-id>/revenue.html`，没有调用 `show_file`、`show_url` 或 browser 旁路；会话与产物接口均返回 HTTP 200。
 - 前向抽样按 `0918 -> 0921 -> 0930 -> 0935 -> 0938 -> 0942` 逐步暴露并闭合了外部展示旁路、错误差值、重复正文、区间增长误称累计增长、总体目标误拆成类别目标和临时目录失效风险。对应约束已进入 system context 与 `visualize-output` skill：用户只需自然表达“可视化”，Agent 自主选媒介；展示数据只来自输入和必要的工具计算，总体目标只与同口径总体实际比较，产物固定落入 NextClaw 持久会话资产目录。
 - 最终 DeepSeek HTML 独立核对通过：可见画布没有文件名、页面大标题、根卡片、边框或阴影，`html/body` 背景透明；月度值、渠道值、季度合计 `414万`、目标 `400万`、达成率 `103.5%` 和超额 `14万` 均与输入及工具计算一致，也没有再创造类别目标语义。模型额外展示了两个正确命名且计算正确的环比值；这不是输入事实错误，但仍说明模型遵循具有概率性。
-- 宿主增加确定性结果边界：完成态 assistant 文本只要包含有效的 rendered HTML `nextclaw-inline` 声明，就只渲染该声明，隐藏模型在声明前后的验证清单、引导语和数据复述；streaming、用户消息和非 HTML 文件不受影响。真实 `0942` 会话验证中，消息正文的校验清单与绝对路径均消失，只保留一个 iframe。
-- 真实浏览器验收：宿主视口实测 `768px × 538px`，圆角 `12px`、边框 `0`、阴影 `none`，运行时高度为 `538px`，当前视口上限为 `576px = 80vh`，符合 `min(80vh, 720px)`。外置工具条宽 `54px`，相对预览水平中心偏差 `0px`，位于预览上方且不重叠；静止态为 `opacity=0`、`pointer-events=none`，预览区域没有默认空白。浏览器控制层未提供可靠的 iframe hover 注入，因此 hover 动画仍由 CSS 合同、组件测试和用户在已打开会话中的手动移动验收覆盖。
+- 宿主结果边界修正：回复格式继续由 Agent context / `visualize-output` skill 约束，但宿主不再静默改写已经持久化的助手正文。即使模型混合输出多个媒介，聊天 UI 也按消息事实完整展示；这避免把概率性的模型格式遵循问题伪装成确定性的用户内容丢失。
+- 2026-07-18 同链路浏览器验收：刷新 `http://127.0.0.1:5174/chat/sid_bmNwLW1ycTR5bjc5LWUyZWNiY2Y5` 后，4 条助手消息分别恢复完整正文；最后一条消息包含 `3` 个 iframe、`2` 个图片节点、`1` 个表格以及完整 Mermaid/正文，底部表格和结尾文案目视正常。验收只刷新当前 Vite 页面，没有重启 NextClaw 服务。
 - 真实验收还发现一次构建顺序问题：`@nextclaw/ui` 曾在新的 `@nextclaw/agent-chat-ui` 产物生成前打包，导致源码测试通过但隔离实例仍消费旧守卫。最终按 `agent-chat-ui -> ui -> nextclaw copy-ui-dist` 顺序重建并重启隔离实例后通过；这次问题属于验收产物陈旧，不是运行时 fallback，不能用继续堆提示词掩盖。
 
 ## 发布/部署方式
@@ -51,6 +57,7 @@
 - 不涉及数据库 migration、后端部署、runtime update channel 或远程 API 冒烟。
 - 变更由 `.changeset/inline-html-preview-natural-flow.md` 记录，后续随 `@nextclaw/ui` patch 统一发布。
 - 同批 Agent 可视化扩展同步纳入该 changeset，后续随 `@nextclaw/agent-chat-ui`、`@nextclaw/core`、`@nextclaw/kernel` 与 `@nextclaw/ui` patch 统一发布。
+- 2026-07-18 follow-up 由 `.changeset/preserve-mixed-inline-replies.md` 记录，后续随 `@nextclaw/agent-chat-ui` 与 `@nextclaw/ui` patch 统一发布；本次未执行 NPM 发布、部署或服务重启。
 
 ## 用户/产品视角的验收步骤
 
@@ -65,6 +72,7 @@
 9. 请求 Agent 把一组适合比较、流程或空间排版的数据“可视化”，确认系统上下文能发现并读取 `visualize-output`，并选择最小合适媒介，而不是每次都强制生成 HTML。
 10. 当 Agent 选择内联 HTML 时，确认消息内直接出现 rendered 文件预览；页面本身就是唯一表面，不再套一层总卡片，也不重复文件名、预览标题栏或内部操作工具栏。
 11. 使用内容高度约 `320px-640px` 的样例确认核心结果无需 document 级滚动；内容明显超过 `min(80vh, 720px)` 时，应删减为摘要或改用 side panel。
+12. 打开一条同时包含正文、图片、Panel App、rendered HTML、Mermaid 和表格的完成态助手回复，确认所有媒介按消息顺序共同显示；刷新会话后结果不应缩成单个 HTML 预览。
 
 ## 可维护性总结汇总
 
@@ -77,6 +85,8 @@
 - Agent 可视化后续的 TypeScript 增减为新增 55 行、删除 2 行，净增 53 行；其中回归测试新增 51 行，生产 TypeScript 新增 4 行、删除 2 行，净增 2 行。另新增 76 行按需加载的 `visualize-output` skill，并在内置 skill 索引增加 1 行；详细视觉、媒介、数据保真和 HTML 画布合同都留在渐进披露 skill，常驻 system context 只保留必须触发读取与阻断错误旁路的最小门禁。
 - 后续扩展复用现有 `ReplyFormatContextProvider`、`SkillsLoader` 和 `nextclaw-inline` 文件目标，没有新增 provider、manager、loader 分支或第二条展示协议；`visualize-output` 与 `nextclaw-app-creator` 的职责按“当前回答展示 / 可复用应用”明确分开。
 - 后续 `post-edit-maintainability-review` 结论：通过，no maintainability findings；唯一目录 warning 已有豁免且文件数未增长，新增 skill 是独立的渐进披露 owner，不是常驻提示词复制。
+- 2026-07-18 follow-up 的正向减债动作是删除错误的完成态替换分支、专用块级正则和选择函数；没有新增状态、effect、fallback、adapter 或第二条渲染路径。消息在流式与完成态只剩一条忠实渲染主路径，DOM 身份测试直接覆盖状态型内联表面。
+- 2026-07-18 follow-up 代码增减：代码与测试新增 `49` 行、删除 `29` 行、净增 `20` 行；排除测试后生产代码新增 `1` 行、删除 `21` 行、净减 `20` 行。`--non-feature` maintainability guard 为 0 error、2 warning：消息目录维持 `17 -> 17` 且已有 README 豁免，renderer 为 `463/500` 行且本次净减 4 行；生命周期测试迁入现有 streaming stability 测试 owner 后，没有让 Markdown 测试文件越过预算预警线，也没有扩大生产文件或目录职责。
 
 ## NPM 包发布记录
 
@@ -85,4 +95,11 @@
 - `@nextclaw/core`：需要 patch，新增内置 `visualize-output` skill，待统一发布。
 - `@nextclaw/kernel`：需要 patch，Native Agent 系统提示新增可视化 skill 路由，待统一发布。
 - Changeset：`.changeset/inline-html-preview-natural-flow.md`。
+- 本次未执行 NPM 发布。
+
+### 2026-07-18 follow-up
+
+- `@nextclaw/agent-chat-ui`：需要 patch，恢复混合内联回复的完整内容与生命周期连续性，待统一发布。
+- `@nextclaw/ui`：需要 patch，消费修复后的聊天渲染包，待统一发布。
+- Changeset：`.changeset/preserve-mixed-inline-replies.md`。
 - 本次未执行 NPM 发布。
