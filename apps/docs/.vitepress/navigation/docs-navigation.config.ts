@@ -295,7 +295,7 @@ const zhBlogSidebar: DefaultTheme.SidebarItem[] = [
     items: [
       { text: '总览', link: '/zh/blog/' },
       { text: '远程访问你的 NextClaw', link: '/zh/blog/2026-07-18-remote-access-your-nextclaw' },
-      { text: '自部署与小程序系统', link: '/zh/blog/2026-07-16-self-hosted-codex-workbuddy-panel-apps' },
+      { text: '自部署与小应用系统', link: '/zh/blog/2026-07-16-self-hosted-codex-workbuddy-panel-apps' },
       { text: '实时 Agent 进展', link: '/zh/blog/2026-06-03-real-time-agent-progress' },
       { text: '为什么项目感知会话更重要', link: '/zh/blog/2026-04-03-why-project-aware-sessions-matter' }
     ]
