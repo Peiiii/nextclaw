@@ -1,0 +1,275 @@
+{
+  "ROSTemplateFormatVersion": "2015-09-01",
+  "Description": "NextClaw domestic documentation delivery through private OSS, CDN, and GitHub OIDC.",
+  "Resources": {
+    "DocsBucket": {
+      "Type": "ALIYUN::OSS::Bucket",
+      "Properties": {
+        "AccessControl": "private",
+        "BlockPublicAccess": true,
+        "BucketName": "nextclaw-docs-cn-prod-1835553186862551",
+        "DeletionForce": false,
+        "RedundancyType": "LRS",
+        "StorageClass": "Standard",
+        "Tags": {
+          "owner": "nextclaw-docs-delivery"
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        }
+      }
+    },
+    "GitHubOIDCProvider": {
+      "Type": "ALIYUN::RAM::OIDCProvider",
+      "Properties": {
+        "ClientIds": ["sts.aliyuncs.com"],
+        "Description": "GitHub Actions identity provider for NextClaw deployments.",
+        "Fingerprints": ["cabd2a79a1076a31f21d253635cb039d4329a5e8"],
+        "IssuanceLimitTime": 1,
+        "IssuerUrl": "https://token.actions.githubusercontent.com",
+        "OIDCProviderName": "NextClawGitHubActions"
+      }
+    },
+    "GitHubDocsDeployRole": {
+      "Type": "ALIYUN::RAM::Role",
+      "DependsOn": "GitHubOIDCProvider",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "1",
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": {
+                  "oidc:aud": "sts.aliyuncs.com",
+                  "oidc:iss": "https://token.actions.githubusercontent.com",
+                  "oidc:sub": "repo:Peiiii/nextclaw:environment:docs-cn-production"
+                }
+              },
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": [
+                  {
+                    "Fn::Sub": "acs:ram::${ALIYUN::TenantId}:oidc-provider/NextClawGitHubActions"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "Description": "Short-lived GitHub Actions role for NextClaw documentation delivery.",
+        "MaxSessionDuration": 3600,
+        "Policies": [
+          {
+            "PolicyName": "NextClawDocsBucketDeploy",
+            "PolicyDocument": {
+              "Version": "1",
+              "Statement": [
+                {
+                  "Action": [
+                    "oss:GetBucketLifecycle",
+                    "oss:GetBucketVersioning",
+                    "oss:ListObjects",
+                    "oss:PutBucketLifecycle"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": ["acs:oss:*:*:nextclaw-docs-cn-prod-1835553186862551"]
+                },
+                {
+                  "Action": ["oss:GetObject", "oss:PutObject"],
+                  "Effect": "Allow",
+                  "Resource": ["acs:oss:*:*:nextclaw-docs-cn-prod-1835553186862551/*"]
+                },
+                {
+                  "Action": [
+                    "cdn:RefreshObjectCaches",
+                    "cdn:SetCdnDomainSSLCertificate"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": ["*"]
+                },
+                {
+                  "Action": [
+                    "alidns:AddDomainRecord",
+                    "alidns:DeleteDomainRecord",
+                    "alidns:DescribeDomainRecords",
+                    "alidns:DescribeDomains"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": ["*"]
+                }
+              ]
+            }
+          }
+        ],
+        "RoleName": "NextClawDocsGitHubDeployRole"
+      }
+    },
+    "CdnPrivateOssRole": {
+      "Type": "ALIYUN::RAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "1",
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": ["cdn.aliyuncs.com"]
+              }
+            }
+          ]
+        },
+        "Description": "Read-only private OSS origin access for Alibaba Cloud CDN.",
+        "Policies": [
+          {
+            "PolicyName": "NextClawDocsCdnOriginRead",
+            "PolicyDocument": {
+              "Version": "1",
+              "Statement": [
+                {
+                  "Action": ["oss:ListObjects"],
+                  "Effect": "Allow",
+                  "Resource": ["acs:oss:*:*:nextclaw-docs-cn-prod-1835553186862551"]
+                },
+                {
+                  "Action": ["oss:GetObject"],
+                  "Effect": "Allow",
+                  "Resource": ["acs:oss:*:*:nextclaw-docs-cn-prod-1835553186862551/*"]
+                }
+              ]
+            }
+          }
+        ],
+        "RoleName": "AliyunCDNAccessingPrivateOSSRole"
+      }
+    },
+    "DocsCdnDomain": {
+      "Type": "ALIYUN::CDN::Domain",
+      "DependsOn": ["DocsBucket", "CdnPrivateOssRole"],
+      "Properties": {
+        "CdnType": "web",
+        "DomainName": "docs.nextclaw.net",
+        "OriginServers": [
+          {
+            "Content": "nextclaw-docs-cn-prod-1835553186862551.oss-cn-hangzhou.aliyuncs.com",
+            "Port": 80,
+            "Priority": "20",
+            "Type": "oss",
+            "Weight": "10"
+          }
+        ],
+        "Scope": "domestic",
+        "Tags": [
+          { "Key": "owner", "Value": "nextclaw-docs-delivery" }
+        ]
+      }
+    },
+    "DocsCdnConfig": {
+      "Type": "ALIYUN::CDN::DomainConfig",
+      "DependsOn": "DocsCdnDomain",
+      "Properties": {
+        "DomainNames": "docs.nextclaw.net",
+        "FunctionList": [
+          {
+            "FunctionName": "l2_oss_key",
+            "FunctionArgs": [
+              { "ArgName": "private_oss_auth", "ArgValue": "on" }
+            ]
+          },
+          {
+            "FunctionName": "back_to_origin_url_rewrite",
+            "FunctionArgs": [
+              { "ArgName": "flag", "ArgValue": "break" },
+              { "ArgName": "source_url", "ArgValue": "^/$" },
+              { "ArgName": "target_url", "ArgValue": "/index.html" }
+            ]
+          },
+          {
+            "FunctionName": "back_to_origin_url_rewrite",
+            "FunctionArgs": [
+              { "ArgName": "flag", "ArgValue": "break" },
+              { "ArgName": "source_url", "ArgValue": "^/(.+)/$" },
+              { "ArgName": "target_url", "ArgValue": "/$1/index.html" }
+            ]
+          },
+          {
+            "FunctionName": "back_to_origin_url_rewrite",
+            "FunctionArgs": [
+              { "ArgName": "flag", "ArgValue": "break" },
+              { "ArgName": "source_url", "ArgValue": "^/([^.?/]+(?:/[^.?/]+)*)$" },
+              { "ArgName": "target_url", "ArgValue": "/$1.html" }
+            ]
+          },
+          {
+            "FunctionName": "gzip",
+            "FunctionArgs": [
+              { "ArgName": "enable", "ArgValue": "on" }
+            ]
+          },
+          {
+            "FunctionName": "brotli",
+            "FunctionArgs": [
+              { "ArgName": "enable", "ArgValue": "on" }
+            ]
+          },
+          {
+            "FunctionName": "path_based_ttl_set",
+            "FunctionArgs": [
+              { "ArgName": "path", "ArgValue": "/" },
+              { "ArgName": "ttl", "ArgValue": "300" },
+              { "ArgName": "weight", "ArgValue": "1" },
+              { "ArgName": "swift_origin_cache_high", "ArgValue": "on" },
+              { "ArgName": "swift_follow_cachetime", "ArgValue": "on" }
+            ]
+          },
+          {
+            "FunctionName": "filetype_based_ttl_set",
+            "FunctionArgs": [
+              {
+                "ArgName": "file_type",
+                "ArgValue": "js,css,png,jpg,jpeg,svg,gif,webp,avif,ico,woff,woff2,ttf,otf"
+              },
+              { "ArgName": "ttl", "ArgValue": "31536000" },
+              { "ArgName": "weight", "ArgValue": "99" },
+              { "ArgName": "swift_follow_cachetime", "ArgValue": "on" }
+            ]
+          },
+          {
+            "FunctionName": "filetype_based_ttl_set",
+            "FunctionArgs": [
+              { "ArgName": "file_type", "ArgValue": "html,json" },
+              { "ArgName": "ttl", "ArgValue": "60" },
+              { "ArgName": "weight", "ArgValue": "90" },
+              { "ArgName": "swift_origin_cache_high", "ArgValue": "on" },
+              { "ArgName": "swift_follow_cachetime", "ArgValue": "on" }
+            ]
+          },
+          {
+            "FunctionName": "https_force",
+            "FunctionArgs": [
+              { "ArgName": "enable", "ArgValue": "on" },
+              { "ArgName": "https_rewrite", "ArgValue": "301" }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "BucketName": {
+      "Value": { "Fn::GetAtt": ["DocsBucket", "Name"] }
+    },
+    "CdnCname": {
+      "Value": { "Fn::GetAtt": ["DocsCdnDomain", "Cname"] }
+    },
+    "GitHubOIDCProviderArn": {
+      "Value": {
+        "Fn::Sub": "acs:ram::${ALIYUN::TenantId}:oidc-provider/NextClawGitHubActions"
+      }
+    },
+    "GitHubRoleArn": {
+      "Value": { "Fn::GetAtt": ["GitHubDocsDeployRole", "Arn"] }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "Rule": [
+    {
+      "ID": "expire-release-artifacts",
+      "Prefix": "_releases/",
+      "Status": "Enabled",
+      "Expiration": {
+        "Days": 90
+      }
+    },
+    {
+      "ID": "expire-live-noncurrent-versions",
+      "Prefix": "",
+      "Status": "Enabled",
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 30
+      },
+      "AbortMultipartUpload": {
+        "Days": 7
+      }
+    }
+  ]
+}
