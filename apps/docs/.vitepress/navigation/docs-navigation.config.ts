@@ -6,6 +6,7 @@ export const enNav: DefaultTheme.NavItem[] = [
   { text: 'How It Works', link: '/en/guide/chat' },
   { text: 'Task Guides', link: '/en/tasks/' },
   { text: 'Setup & Reference', link: '/en/guide/install' },
+  { text: 'Blog', link: '/en/blog/' },
   { text: 'Updates', link: '/en/notes/' },
   { text: 'More', link: '/en/project/' }
 ];
@@ -15,6 +16,7 @@ export const zhNav: DefaultTheme.NavItem[] = [
   { text: '工作方式', link: '/zh/guide/chat' },
   { text: '任务案例', link: '/zh/tasks/' },
   { text: '安装与参考', link: '/zh/guide/install' },
+  { text: '博客', link: '/zh/blog/' },
   { text: '更新', link: '/zh/notes/' },
   { text: '更多', link: '/zh/project/' }
 ];
