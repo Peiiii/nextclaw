@@ -21,16 +21,16 @@
 - `PLATFORM_ADMIN_BASE_URL=http://127.0.0.1:4177 node scripts/smoke/platform-admin-smoke.mjs`：通过。
 - 新增 390 × 844 定向断言：document 无横向溢出、内容滚动区可到达底部、移动卡片替代桌面表格、导航溢出可达、核心操作可见、额度弹窗不越出视口。
 - 使用用户当前 Chrome 打开本地双站登录页，确认 390px 宽度下 `scrollWidth === clientWidth`；核心登录后工作台由带 API fixtures 的真实浏览器冒烟与截图复核。
-- `PLATFORM_CONSOLE_BASE_URL=https://platform.nextclaw.io node scripts/smoke/platform-console-smoke.mjs`：生产域通过。
-- `PLATFORM_ADMIN_BASE_URL=https://platform-admin.nextclaw.io node scripts/smoke/platform-admin-smoke.mjs`：生产域通过。
-- 两个生产首页、构建 JS 与 `/logo.svg` 均返回 `200`；Console 加载 `index-CMu5qo8Q.js`，Admin 加载 `index-5NVIVjW9.js`，favicon 均为 `image/svg+xml`。
+- `PLATFORM_CONSOLE_BASE_URL=https://platform.nextclaw.io node scripts/smoke/platform-console-smoke.mjs`：生产域 390 × 844 通过；追加 `PLATFORM_MOBILE_WIDTH=320` 后极窄视口同样通过。
+- `PLATFORM_ADMIN_BASE_URL=https://platform-admin.nextclaw.io node scripts/smoke/platform-admin-smoke.mjs`：生产域 390 × 844 通过；追加 `PLATFORM_MOBILE_WIDTH=320` 后极窄视口同样通过。
+- 两个生产首页、构建 JS/CSS 与 `/logo.svg` 均返回 `200`；第二轮 Console 加载 `index-DoGyaWGj.js` 与 `index-CdyoEdEW.css`，Admin 加载 `index-BeWinjNu.js` 与 `index-shggv1oK.css`，favicon 均为 `image/svg+xml`。
 - 第二轮本地 390 × 844 验收：两站首张任务卡完整出现在初始视口，顶部身份栏不超过 56px，底部导航不超过 64px 且无需横向滚动，document 与内容区之间没有第二个主滚动面。
 - 第二轮本地 320 × 844 极窄视口验收：Console 与 Admin 冒烟均通过；Console 四个实例操作在极窄宽度下使用两列布局。
 - Console 额外完成中文、深色主题和账号菜单打开态整页截图复核；语言、主题、账号和退出能力均保留并可达。
 
 ## 发布/部署方式
 
-首轮先在本地 `master` 创建提交 `48c9617f3`，再依次执行 `pnpm deploy:platform:console` 与 `pnpm deploy:platform:admin`。Platform Console Pages 部署为 `https://e7c974e8.nextclaw-platform-console.pages.dev`，Platform Admin Pages 部署为 `https://09e6305f.nextclaw-platform-admin.pages.dev`。真实手机截图指出首轮视觉验收不足后，第二轮移动信息架构修正按同样的本地 `master` 优先流程重新提交、部署和在线验收。
+首轮先在本地 `master` 创建提交 `48c9617f3`，再依次执行 `pnpm deploy:platform:console` 与 `pnpm deploy:platform:admin`。Platform Console Pages 部署为 `https://e7c974e8.nextclaw-platform-console.pages.dev`，Platform Admin Pages 部署为 `https://09e6305f.nextclaw-platform-admin.pages.dev`。真实手机截图指出首轮视觉验收不足后，第二轮移动信息架构修正在本地 `master` 创建提交 `26e225ea7`，随后重新部署：Console 为 `https://2d360b41.nextclaw-platform-console.pages.dev`，Admin 为 `https://608bc02b.nextclaw-platform-admin.pages.dev`。两个自定义生产域均完成 390 × 844、320 × 844 冒烟，Console 额外完成深色主题与账号菜单打开态生产截图复核。
 
 ## 用户/产品视角的验收步骤
 
