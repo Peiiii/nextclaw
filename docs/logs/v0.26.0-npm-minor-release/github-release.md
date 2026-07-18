@@ -2,9 +2,9 @@
 
 NextClaw Desktop `0.0.227` brings the stable `0.26.0` runtime to the desktop channel, with smoother long conversations, a scheduled task workbench, richer AI response details, and a built-in Agent Browser.
 
-Desktop shell version: `0.0.227`  
-Runtime bundle version: `0.26.0`  
-Minimum launcher version: `0.0.141`
+- Desktop shell version: `0.0.227`
+- Runtime bundle version: `0.26.0`
+- Minimum launcher version: `0.0.141`
 
 ### Highlights
 
@@ -41,9 +41,9 @@ Minimum launcher version: `0.0.141`
 
 NextClaw Desktop `0.0.227` 将稳定版 `0.26.0` runtime 带到桌面端正式通道，让长会话、定时任务、AI 回复运行信息和内置 Agent Browser 都能直接在桌面应用中使用。
 
-桌面壳版本：`0.0.227`  
-Runtime bundle 版本：`0.26.0`  
-最低 launcher 版本：`0.0.141`
+- 桌面壳版本：`0.0.227`
+- Runtime bundle 版本：`0.26.0`
+- 最低 launcher 版本：`0.0.141`
 
 ### 亮点
 
