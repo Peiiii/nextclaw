@@ -5,10 +5,7 @@ export {
   DisposableStore,
   toDisposable,
 } from "./services/disposable.service.js";
-export type {
-  Cleanup,
-  Disposable,
-} from "./services/disposable.service.js";
+export type { Cleanup, Disposable } from "./services/disposable.service.js";
 export type {
   IngressContext,
   IngressEnvelope,
@@ -29,14 +26,8 @@ export type {
   EventSource,
   Unsubscribe,
 } from "./types/event-bus.types.js";
-export {
-  createTypedKey,
-  getKeyId,
-} from "./types/typed-key.types.js";
-export type {
-  Key,
-  TypedKey,
-} from "./types/typed-key.types.js";
+export { createTypedKey, getKeyId } from "./types/typed-key.types.js";
+export type { Key, TypedKey } from "./types/typed-key.types.js";
 export type {
   UiShowContentEventPayload,
   UiShowContentFileViewer,
@@ -63,12 +54,9 @@ export {
   CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
 } from "./configs/chat-composer-token.config.js";
-export type {
-  ChatInlineTokenMetadata,
-} from "./configs/chat-composer-token.config.js";
-export type {
-  RuntimeModelSelectionMode,
-} from "./configs/runtime-model.config.js";
+export { PANEL_APP_INLINE_HOST_CONTRACT } from "./configs/panel-app-inline-host.config.js";
+export type { ChatInlineTokenMetadata } from "./configs/chat-composer-token.config.js";
+export type { RuntimeModelSelectionMode } from "./configs/runtime-model.config.js";
 export type {
   AgentRunSendIngressPayload,
   AgentRunSessionMaterializationMetadata,

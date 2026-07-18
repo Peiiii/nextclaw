@@ -1,9 +1,66 @@
+import { PANEL_APP_INLINE_HOST_CONTRACT } from "@nextclaw/shared";
+
 const PANEL_APP_BRIDGE_MARKER = "nextclaw:panel-app-service-actions:request";
 
-export function injectPanelAppBridgeScript(html: string, params: {
-  appId: string;
-  runtimeToken: string;
-}): string {
+function getPanelAppInlineContentHeightReporterScript(): string {
+  return `
+  function installInlineContentHeightReporter() {
+    const inlineHostContract = ${JSON.stringify(PANEL_APP_INLINE_HOST_CONTRACT)};
+    if (!window.location || !window.document) {
+      return;
+    }
+    const searchParams = new URLSearchParams(window.location.search);
+    if (
+      searchParams.get(inlineHostContract.displayModeSearchParam) !== inlineHostContract.displayMode ||
+      searchParams.get(inlineHostContract.placementSearchParam) !== inlineHostContract.placement
+    ) {
+      return;
+    }
+    const start = () => {
+      const { body, documentElement } = window.document;
+      if (!documentElement) {
+        return;
+      }
+      let lastHeight = 0;
+      const reportHeight = () => {
+        const height = Math.ceil(Math.max(
+          body?.clientHeight || 0,
+          body?.offsetHeight || 0,
+          body?.scrollHeight || 0,
+          documentElement.clientHeight || 0,
+          documentElement.offsetHeight || 0,
+          documentElement.scrollHeight || 0
+        ));
+        if (height > 0 && height !== lastHeight) {
+          lastHeight = height;
+          window.parent.postMessage({ type: inlineHostContract.contentHeightMessageType, height }, "*");
+        }
+      };
+      if (typeof window.ResizeObserver === "function") {
+        const observer = new window.ResizeObserver(reportHeight);
+        observer.observe(documentElement);
+        if (body) {
+          observer.observe(body);
+        }
+      }
+      window.addEventListener("load", reportHeight);
+      reportHeight();
+    };
+    if (window.document.readyState === "loading") {
+      window.document.addEventListener("DOMContentLoaded", start, { once: true });
+      return;
+    }
+    start();
+  }`.trim();
+}
+
+export function injectPanelAppBridgeScript(
+  html: string,
+  params: {
+    appId: string;
+    runtimeToken: string;
+  },
+): string {
   if (html.includes(PANEL_APP_BRIDGE_MARKER)) {
     return html;
   }
@@ -16,10 +73,12 @@ export function injectPanelAppBridgeScript(html: string, params: {
   return `${script}${html}`;
 }
 
-export function getPanelAppBridgeScript(params: {
-  appId: string;
-  runtimeToken: string;
-} = { appId: "", runtimeToken: "" }): string {
+export function getPanelAppBridgeScript(
+  params: {
+    appId: string;
+    runtimeToken: string;
+  } = { appId: "", runtimeToken: "" },
+): string {
   const appId = JSON.stringify(params.appId);
   const runtimeToken = JSON.stringify(params.runtimeToken);
   return `
@@ -43,6 +102,8 @@ export function getPanelAppBridgeScript(params: {
       window.parent.postMessage({ type: requestType, requestId, appId, runtimeToken, method, payload }, "*");
     });
   }
+
+  ${getPanelAppInlineContentHeightReporterScript()}
 
   function resolveApiFetchUrl(input) {
     const raw = typeof input === "string" || input instanceof URL ? input.toString() : input?.url;
@@ -141,6 +202,7 @@ export function getPanelAppBridgeScript(params: {
       }
     }
   });
+  installInlineContentHeightReporter();
 })();
 `.trim();
 }

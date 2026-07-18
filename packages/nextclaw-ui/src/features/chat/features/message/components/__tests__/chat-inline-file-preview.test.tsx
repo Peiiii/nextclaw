@@ -53,13 +53,13 @@ it("renders adaptive inline HTML without persistent file chrome", () => {
   expect(screen.queryByText("preview.html")).toBeNull();
   expect(screen.queryByText("Rendered HTML")).toBeNull();
   const preview = container.querySelector(
-    '[data-chat-inline-file-preview="true"]',
+    '[data-chat-inline-content-surface="true"]',
   );
   const actions = container.querySelector(
-    '[data-chat-inline-file-actions="true"]',
+    '[data-chat-inline-content-actions="true"]',
   );
   const viewport = container.querySelector<HTMLElement>(
-    '[data-chat-inline-file-viewport="true"]',
+    '[data-chat-inline-content-viewport="true"]',
   );
   const iframeSurface = screen.getByTestId("inline-workspace-file-preview");
   expect(preview?.classList.contains("border")).toBe(false);
@@ -72,21 +72,27 @@ it("renders adaptive inline HTML without persistent file chrome", () => {
   expect(actions?.classList.contains("opacity-0")).toBe(true);
   expect(actions?.classList.contains("pointer-events-none")).toBe(true);
   expect(
-    actions?.classList.contains("group-hover/inline-html:opacity-100"),
-  ).toBe(true);
-  expect(
-    actions?.classList.contains("group-hover/inline-html:pointer-events-auto"),
-  ).toBe(true);
-  expect(
-    actions?.classList.contains("group-focus-within/inline-html:opacity-100"),
+    actions?.classList.contains("group-hover/inline-content:opacity-100"),
   ).toBe(true);
   expect(
     actions?.classList.contains(
-      "group-focus-within/inline-html:pointer-events-auto",
+      "group-hover/inline-content:pointer-events-auto",
     ),
   ).toBe(true);
   expect(
-    container.querySelector('[data-chat-inline-file-actions-surface="true"]'),
+    actions?.classList.contains(
+      "group-focus-within/inline-content:opacity-100",
+    ),
+  ).toBe(true);
+  expect(
+    actions?.classList.contains(
+      "group-focus-within/inline-content:pointer-events-auto",
+    ),
+  ).toBe(true);
+  expect(
+    container.querySelector(
+      '[data-chat-inline-content-actions-surface="true"]',
+    ),
   ).toBeTruthy();
   expect(viewport?.classList.contains("rounded-lg")).toBe(true);
   expect(viewport?.classList.contains("h-[240px]")).toBe(true);

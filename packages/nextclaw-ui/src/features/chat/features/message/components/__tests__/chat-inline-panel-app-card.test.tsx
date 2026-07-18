@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, expect, it, vi } from 'vitest';
-import { ChatInlinePanelAppCard } from '@/features/chat/features/message/components/chat-inline-panel-app-card';
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, expect, it, vi } from "vitest";
+import { PANEL_APP_INLINE_HOST_CONTRACT } from "@nextclaw/shared";
+import { ChatInlinePanelAppCard } from "@/features/chat/features/message/components/chat-inline-panel-app-card";
 
 const mocks = vi.hoisted(() => ({
   handleIframeMessage: vi.fn(),
@@ -10,12 +11,12 @@ const mocks = vi.hoisted(() => ({
     data: {
       entries: [
         {
-          appId: 'weather-card',
-          contentPath: '/api/panel-apps/weather-card/content',
-          fileName: 'weather-card.panel.html',
-          icon: '*',
-          id: 'weather-card',
-          title: 'Weather',
+          appId: "weather-card",
+          contentPath: "/api/panel-apps/weather-card/content",
+          fileName: "weather-card.panel.html",
+          icon: "*",
+          id: "weather-card",
+          title: "Weather",
         },
       ],
     },
@@ -23,7 +24,7 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@/app/presenters/app.presenter', () => ({
+vi.mock("@/app/presenters/app.presenter", () => ({
   getPresenter: () => ({
     panelAppBridgeManager: {
       handleIframeMessage: mocks.handleIframeMessage,
@@ -31,10 +32,16 @@ vi.mock('@/app/presenters/app.presenter', () => ({
   }),
 }));
 
-vi.mock('@/features/panel-apps', () => ({
-  PANEL_APP_IFRAME_SANDBOX: 'allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads allow-pointer-lock allow-presentation',
-  findPanelAppEntryByDisplayId: (entries: Array<{ appId: string; id: string; title: string }>, value: string) =>
-    entries.find((entry) => [entry.appId, entry.id, entry.title].includes(value)) ?? null,
+vi.mock("@/features/panel-apps", () => ({
+  PANEL_APP_IFRAME_SANDBOX:
+    "allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads allow-pointer-lock allow-presentation",
+  findPanelAppEntryByDisplayId: (
+    entries: Array<{ appId: string; id: string; title: string }>,
+    value: string,
+  ) =>
+    entries.find((entry) =>
+      [entry.appId, entry.id, entry.title].includes(value),
+    ) ?? null,
   focusPanelAppIframe: (iframe: HTMLIFrameElement | null) => {
     iframe?.focus({ preventScroll: true });
     iframe?.contentWindow?.focus();
@@ -42,14 +49,14 @@ vi.mock('@/features/panel-apps', () => ({
   usePanelApps: () => mocks.panelApps,
 }));
 
-vi.mock('@/shared/components/doc-browser', () => ({
+vi.mock("@/shared/components/doc-browser", () => ({
   useDocBrowser: () => ({
     open: mocks.open,
     openTarget: mocks.openTarget,
   }),
 }));
 
-vi.mock('@/shared/lib/i18n', () => ({
+vi.mock("@/shared/lib/i18n", () => ({
   t: (key: string) => key,
 }));
 
@@ -60,60 +67,131 @@ beforeEach(() => {
   mocks.panelApps.isLoading = false;
 });
 
-it('renders inline panel apps as bounded card-mode iframes with an expand action', () => {
-  render(<ChatInlinePanelAppCard panelApp={{
-    appId: 'weather-card',
-    title: 'Weather',
-  }} />);
-
-  const iframe = screen.getByTitle('Weather');
-  const card = iframe.closest('[data-chat-message-wide-content="true"]');
-  expect(card?.className).toContain('w-full');
-  expect(card?.className).toContain('max-w-[48rem]');
-  expect(iframe.getAttribute('src')).toBe(
-    '/api/panel-apps/weather-card/content?nextclawDisplayMode=card&nextclawPlacement=inline',
+it("renders panel apps through the shared adaptive inline surface", () => {
+  const { container } = render(
+    <ChatInlinePanelAppCard
+      panelApp={{
+        appId: "weather-card",
+        title: "Weather",
+      }}
+    />,
   );
 
-  fireEvent.click(screen.getByLabelText('chatPanelCardExpand'));
+  const iframe = screen.getByTitle("Weather") as HTMLIFrameElement;
+  const surface = iframe.closest('[data-chat-inline-content-surface="true"]');
+  const actions = container.querySelector(
+    '[data-chat-inline-content-actions="true"]',
+  );
+  const viewport = container.querySelector<HTMLElement>(
+    '[data-chat-inline-content-viewport="true"]',
+  );
+  expect(surface?.className).toContain("w-full");
+  expect(surface?.className).toContain("max-w-[48rem]");
+  expect(surface?.classList.contains("border")).toBe(false);
+  expect(screen.queryByText("Weather")).toBeNull();
+  expect(viewport?.classList.contains("h-[240px]")).toBe(true);
+  expect(viewport?.classList.contains("max-h-[min(80vh,720px)]")).toBe(true);
+  expect(actions?.classList.contains("opacity-0")).toBe(true);
+  expect(actions?.classList.contains("pointer-events-none")).toBe(true);
+  expect(
+    actions?.classList.contains("group-hover/inline-content:opacity-100"),
+  ).toBe(true);
+  expect(iframe.getAttribute("src")).toBe(
+    "/api/panel-apps/weather-card/content?nextclawDisplayMode=card&nextclawPlacement=inline",
+  );
 
-  expect(mocks.openTarget).toHaveBeenCalledWith(expect.objectContaining({
-    dedupeKey: 'panel-app:weather-card',
-    kind: 'panel-app',
-    title: 'Weather',
-    url: '/api/panel-apps/weather-card/content',
-  }));
+  fireEvent(
+    window,
+    new MessageEvent("message", {
+      data: {
+        type: PANEL_APP_INLINE_HOST_CONTRACT.contentHeightMessageType,
+        height: 560,
+      },
+      source: iframe.contentWindow,
+    }),
+  );
+
+  expect(viewport?.style.height).toBe("560px");
+  expect(screen.getByTitle("Weather")).toBe(iframe);
+
+  fireEvent.click(screen.getByLabelText("chatPanelCardExpand"));
+
+  expect(mocks.openTarget).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dedupeKey: "panel-app:weather-card",
+      kind: "panel-app",
+      title: "Weather",
+      url: "/api/panel-apps/weather-card/content",
+    }),
+  );
 });
 
-it('focuses the inline panel app iframe when the pointer enters it', () => {
-  render(<ChatInlinePanelAppCard panelApp={{
-    appId: 'weather-card',
-    title: 'Weather',
-  }} />);
+it("ignores inline height messages from a different window", () => {
+  const { container } = render(
+    <ChatInlinePanelAppCard
+      panelApp={{
+        appId: "weather-card",
+        title: "Weather",
+      }}
+    />,
+  );
+  const viewport = container.querySelector<HTMLElement>(
+    '[data-chat-inline-content-viewport="true"]',
+  );
 
-  const iframe = screen.getByTitle('Weather') as HTMLIFrameElement;
-  const iframeFocus = vi.spyOn(iframe, 'focus');
-  const contentWindowFocus = vi.spyOn(iframe.contentWindow!, 'focus').mockImplementation(() => undefined);
+  fireEvent(
+    window,
+    new MessageEvent("message", {
+      data: {
+        type: PANEL_APP_INLINE_HOST_CONTRACT.contentHeightMessageType,
+        height: 560,
+      },
+      source: window,
+    }),
+  );
+
+  expect(viewport?.style.height).toBe("");
+});
+
+it("focuses the inline panel app iframe when the pointer enters it", () => {
+  render(
+    <ChatInlinePanelAppCard
+      panelApp={{
+        appId: "weather-card",
+        title: "Weather",
+      }}
+    />,
+  );
+
+  const iframe = screen.getByTitle("Weather") as HTMLIFrameElement;
+  const iframeFocus = vi.spyOn(iframe, "focus");
+  const contentWindowFocus = vi
+    .spyOn(iframe.contentWindow!, "focus")
+    .mockImplementation(() => undefined);
 
   fireEvent.pointerOver(iframe);
 
-  expect(iframe.getAttribute('tabindex')).toBe('0');
+  expect(iframe.getAttribute("tabindex")).toBe("0");
   expect(iframeFocus).toHaveBeenCalledWith({ preventScroll: true });
   expect(contentWindowFocus).toHaveBeenCalled();
 });
 
-it('can render inline panel apps without a side-panel expand action', () => {
+it("can render inline panel apps without a side-panel expand action", () => {
   render(
     <ChatInlinePanelAppCard
       panelApp={{
-        appId: 'weather-card',
-        title: 'Weather',
+        appId: "weather-card",
+        title: "Weather",
       }}
       showExpandAction={false}
     />,
   );
 
-  expect(screen.getByTitle('Weather')).toBeTruthy();
-  expect(screen.queryByLabelText('chatPanelCardExpand')).toBeNull();
+  expect(screen.getByTitle("Weather")).toBeTruthy();
+  expect(screen.queryByLabelText("chatPanelCardExpand")).toBeNull();
+  expect(
+    document.querySelector('[data-chat-inline-content-actions="true"]'),
+  ).toBeNull();
   expect(mocks.open).not.toHaveBeenCalled();
   expect(mocks.openTarget).not.toHaveBeenCalled();
 });
