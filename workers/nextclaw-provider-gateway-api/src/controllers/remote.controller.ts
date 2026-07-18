@@ -7,6 +7,7 @@ import { renderRemoteAccessErrorPage } from "@/services/remote-access-error-page
 import {
   closeRemoteAccessSessionsByGrantId,
   createRemoteShareGrant,
+  getRemoteAccessSessionById,
   getRemoteAccessSessionByToken,
   getRemoteInstanceById,
   getRemoteShareGrantById,
@@ -39,60 +40,40 @@ import {
   apiError,
   buildCookie,
   optionalTrimmedString,
+  parseCookieHeader,
   randomOpaqueToken,
   readJson,
   readNumber,
   sanitizeResponseHeaders,
 } from "@/utils/platform.utils";
+import {
+  isPanelAppSandboxProxyRequest,
+  readRemoteSessionIdFromHost,
+} from "@/utils/remote-panel-app-request.utils";
 
 const REMOTE_DOCUMENT_CACHE_CONTROL = "private, no-store, max-age=0, must-revalidate";
-
-function requireRemoteAccessUrls(
-  c: Context<{ Bindings: Env }>,
-  sessionId: string,
-  token: string
-){
-  const urls = buildRemoteAccessUrlSet(c, sessionId, token);
-  if (!urls) {
-    return apiError(c, 503, "REMOTE_ACCESS_DOMAIN_UNAVAILABLE", "Remote access public domain is not configured.");
-  }
-  return urls;
-}
+const REMOTE_PROXY_BLOCKED_HEADERS = new Set([
+  "cookie", "host", "connection", "content-length",
+  "cf-connecting-ip", "x-forwarded-for", "x-forwarded-proto"
+]);
 
 function requireRemoteShareUrl(c: Context<{ Bindings: Env }>, grantToken: string): string | Response {
-  const shareUrl = buildRemoteShareUrl(c, grantToken);
-  if (!shareUrl) {
-    return apiError(c, 503, "REMOTE_SHARE_URL_UNAVAILABLE", "NextClaw Web base URL is not configured.");
-  }
-  return shareUrl;
+  return buildRemoteShareUrl(c, grantToken)
+    ?? apiError(c, 503, "REMOTE_SHARE_URL_UNAVAILABLE", "NextClaw Web base URL is not configured.");
 }
 
 function isHtmlNavigationRequest(c: Context<{ Bindings: Env }>): boolean {
-  if (c.req.method !== "GET") {
-    return false;
-  }
   const dest = c.req.header("sec-fetch-dest")?.trim().toLowerCase();
-  if (dest === "document") {
-    return true;
-  }
   const mode = c.req.header("sec-fetch-mode")?.trim().toLowerCase();
-  return mode === "navigate";
+  return c.req.method === "GET" && (dest === "document" || mode === "navigate");
 }
 
-function appendVaryCookie(headers: Headers): void {
-  const current = headers.get("vary");
-  if (!current) {
-    headers.set("Vary", "Cookie");
-    return;
+function withVaryCookie(source: Headers): Headers {
+  const headers = new Headers(source);
+  if (!(headers.get("vary") ?? "").split(",").some((value) => value.trim().toLowerCase() === "cookie")) {
+    headers.append("Vary", "Cookie");
   }
-  const segments = current
-    .split(",")
-    .map((segment) => segment.trim())
-    .filter((segment) => segment.length > 0);
-  if (segments.some((segment) => segment.toLowerCase() === "cookie")) {
-    return;
-  }
-  headers.set("Vary", [...segments, "Cookie"].join(", "));
+  return headers;
 }
 
 function applyRemoteDocumentCachePolicy(
@@ -105,10 +86,9 @@ function applyRemoteDocumentCachePolicy(
     return response;
   }
   headers.set("Cache-Control", REMOTE_DOCUMENT_CACHE_CONTROL);
-  appendVaryCookie(headers);
   return new Response(response.body, {
     status: response.status,
-    headers
+    headers: withVaryCookie(headers)
   });
 }
 
@@ -125,23 +105,29 @@ async function maybeRenderRemoteAccessErrorPage(c: Context<{ Bindings: Env }>, r
   });
 }
 
-export async function listRemoteShareGrantsHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
-  await ensurePlatformBootstrap(c.env);
+async function requireOwnedRemoteInstance(c: Context<{ Bindings: Env }>) {
   const auth = await requireAuthUser(c);
   if (!auth.ok) {
     return auth.response;
   }
-
   const instanceId = c.req.param("instanceId")?.trim() ?? "";
   if (!instanceId) {
     return apiError(c, 400, "INVALID_INSTANCE", "instanceId is required.");
   }
   const instance = await getRemoteInstanceById(c.env.NEXTCLAW_PLATFORM_DB, instanceId);
-  if (!instance || instance.user_id !== auth.user.id) {
-    return apiError(c, 404, "INSTANCE_NOT_FOUND", "Remote instance not found.");
+  return !instance || instance.user_id !== auth.user.id
+    ? apiError(c, 404, "INSTANCE_NOT_FOUND", "Remote instance not found.")
+    : { auth, instance };
+}
+
+export async function listRemoteShareGrantsHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
+  await ensurePlatformBootstrap(c.env);
+  const owned = await requireOwnedRemoteInstance(c);
+  if (owned instanceof Response) {
+    return owned;
   }
 
-  const rows = await listRemoteShareGrantsByInstanceId(c.env.NEXTCLAW_PLATFORM_DB, instanceId);
+  const rows = await listRemoteShareGrantsByInstanceId(c.env.NEXTCLAW_PLATFORM_DB, owned.instance.id);
   const items = rows.map((row) => {
     const shareUrl = requireRemoteShareUrl(c, row.token);
     return shareUrl instanceof Response ? shareUrl : toRemoteShareGrantView(row, shareUrl);
@@ -160,19 +146,11 @@ export async function listRemoteShareGrantsHandler(c: Context<{ Bindings: Env }>
 
 export async function createRemoteShareGrantHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
   await ensurePlatformBootstrap(c.env);
-  const auth = await requireAuthUser(c);
-  if (!auth.ok) {
-    return auth.response;
+  const owned = await requireOwnedRemoteInstance(c);
+  if (owned instanceof Response) {
+    return owned;
   }
-
-  const instanceId = c.req.param("instanceId")?.trim() ?? "";
-  if (!instanceId) {
-    return apiError(c, 400, "INVALID_INSTANCE", "instanceId is required.");
-  }
-  const instance = await getRemoteInstanceById(c.env.NEXTCLAW_PLATFORM_DB, instanceId);
-  if (!instance || instance.user_id !== auth.user.id) {
-    return apiError(c, 404, "INSTANCE_NOT_FOUND", "Remote instance not found.");
-  }
+  const { auth, instance } = owned;
 
   const body = await readJson(c);
   const requestedTtlSeconds = readNumber(body, "ttlSeconds");
@@ -296,9 +274,9 @@ export async function openRemoteShareSessionHandler(c: Context<{ Bindings: Env }
   }
 
   const session = await createShareOpenSession({ c, grant });
-  const urls = requireRemoteAccessUrls(c, session.id, session.token);
-  if (urls instanceof Response) {
-    return urls;
+  const urls = buildRemoteAccessUrlSet(c, session.id, session.token);
+  if (!urls) {
+    return apiError(c, 503, "REMOTE_ACCESS_DOMAIN_UNAVAILABLE", "Remote access public domain is not configured.");
   }
 
   await appendAuditLog(c.env.NEXTCLAW_PLATFORM_DB, {
@@ -335,19 +313,19 @@ export async function openRemoteSessionRedirectHandler(c: Context<{ Bindings: En
     return validated.response;
   }
 
-  const headers = new Headers();
-  headers.set("Set-Cookie", buildCookie({
-    name: REMOTE_SESSION_COOKIE,
-    value: token,
-    path: "/",
-    secure: readRequestOrigin(c).protocol === "https",
-    httpOnly: true,
-    sameSite: "Lax",
-    maxAgeSeconds: DEFAULT_REMOTE_SESSION_TTL_SECONDS
+  const headers = withVaryCookie(new Headers({
+    "Set-Cookie": buildCookie({
+      name: REMOTE_SESSION_COOKIE,
+      value: token,
+      path: "/",
+      secure: readRequestOrigin(c).protocol === "https",
+      httpOnly: true,
+      sameSite: "Lax",
+      maxAgeSeconds: DEFAULT_REMOTE_SESSION_TTL_SECONDS
+    }),
+    Location: "/",
+    "Cache-Control": REMOTE_DOCUMENT_CACHE_CONTROL
   }));
-  headers.set("Location", "/");
-  headers.set("Cache-Control", REMOTE_DOCUMENT_CACHE_CONTROL);
-  appendVaryCookie(headers);
   return new Response(null, { status: 302, headers });
 }
 
@@ -384,7 +362,16 @@ export async function remoteConnectorWebSocketHandler(c: Context<{ Bindings: Env
 }
 
 async function resolveValidatedRemoteProxyContext(c: Context<{ Bindings: Env }>) {
-  const resolved = await validateRemoteAccessSession(c, await resolveRemoteAccessSession(c));
+  let sessionCandidate = await resolveRemoteAccessSession(c);
+  const cookieToken = parseCookieHeader(c.req.header("cookie"))[REMOTE_SESSION_COOKIE]?.trim();
+  if (!sessionCandidate && !cookieToken && isPanelAppSandboxProxyRequest(c.req.raw)) {
+    const sessionId = readRemoteSessionIdFromHost(
+      readRequestOrigin(c).hostname,
+      optionalTrimmedString(c.env.REMOTE_ACCESS_BASE_DOMAIN ?? "")
+    );
+    sessionCandidate = sessionId ? await getRemoteAccessSessionById(c.env.NEXTCLAW_PLATFORM_DB, sessionId) : null;
+  }
+  const resolved = await validateRemoteAccessSession(c, sessionCandidate);
   if (!resolved.ok) {
     return resolved.response;
   }
@@ -451,12 +438,9 @@ export async function remoteBrowserWebSocketHandler(c: Context<{ Bindings: Env }
 export async function remoteProxyHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
   await ensurePlatformBootstrap(c.env);
   const url = new URL(c.req.url);
-  if (
-    url.pathname.startsWith("/platform/")
-    || url.pathname.startsWith("/v1/")
-    || url.pathname.startsWith("/_remote/")
-    || url.pathname === "/health"
-  ) {
+  const isReservedPath = ["/platform/", "/v1/", "/_remote/"]
+    .some((prefix) => url.pathname.startsWith(prefix));
+  if (isReservedPath || url.pathname === "/health") {
     return apiError(c, 404, "NOT_FOUND", "endpoint not found");
   }
   if (isUpgradeWebSocket(c)) {
@@ -476,10 +460,7 @@ export async function remoteProxyHandler(c: Context<{ Bindings: Env }>): Promise
 
   const stub = c.env.NEXTCLAW_REMOTE_RELAY.get(c.env.NEXTCLAW_REMOTE_RELAY.idFromName(instance.id));
   const path = `${url.pathname}${url.search}`;
-  const rawBody =
-    c.req.method === "GET" || c.req.method === "HEAD"
-      ? null
-      : new Uint8Array(await c.req.raw.arrayBuffer());
+  const rawBody = ["GET", "HEAD"].includes(c.req.method) ? null : new Uint8Array(await c.req.raw.arrayBuffer());
   const response = await stub.fetch("https://remote-relay.internal/proxy", {
     method: "POST",
     headers: {
@@ -489,18 +470,8 @@ export async function remoteProxyHandler(c: Context<{ Bindings: Env }>): Promise
     body: JSON.stringify({
       method: c.req.method,
       path,
-      headers: Array.from(c.req.raw.headers.entries()).filter(([key]) => {
-        const lower = key.toLowerCase();
-        return ![
-          "cookie",
-          "host",
-          "connection",
-          "content-length",
-          "cf-connecting-ip",
-          "x-forwarded-for",
-          "x-forwarded-proto"
-        ].includes(lower);
-      }),
+      headers: Array.from(c.req.raw.headers.entries())
+        .filter(([key]) => !REMOTE_PROXY_BLOCKED_HEADERS.has(key.toLowerCase())),
       bodyBase64: rawBody ? encodeBase64(rawBody) : ""
     })
   });
