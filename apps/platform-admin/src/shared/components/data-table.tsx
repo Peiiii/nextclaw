@@ -25,6 +25,7 @@ type Props<T> = {
   sortBy?: string;
   sortDirection?: DataTableSortDirection;
   onSort?: (columnKey: string) => void;
+  renderMobileItem?: (item: T) => ReactNode;
 };
 
 export function DataTable<T>({
@@ -37,10 +38,19 @@ export function DataTable<T>({
   sortBy,
   sortDirection,
   onSort,
+  renderMobileItem,
 }: Props<T>): JSX.Element {
   return (
-    <div className="overflow-auto rounded-xl border border-[#e4e0d7] bg-white">
-      <table className="w-full border-separate border-spacing-0 text-left text-sm" style={{ minWidth }}>
+    <>
+      {renderMobileItem ? (
+        <div data-testid="admin-mobile-list" aria-busy={isLoading} className="space-y-2 md:hidden">
+          {isLoading ? <MobileTableLoading /> : null}
+          {!isLoading && items.length === 0 ? <MobileTableState>{emptyContent}</MobileTableState> : null}
+          {!isLoading ? items.map((item) => <div key={rowKey(item)}>{renderMobileItem(item)}</div>) : null}
+        </div>
+      ) : null}
+      <div className={cn('overflow-auto rounded-xl border border-[#e4e0d7] bg-white', renderMobileItem && 'hidden md:block')}>
+        <table className="w-full border-separate border-spacing-0 text-left text-sm" style={{ minWidth }}>
         <thead className="sticky top-0 z-20 bg-[#f5f3ee] text-xs font-semibold uppercase tracking-[0.08em] text-[#7b766b]">
           <tr>
             {columns.map((column) => (
@@ -99,7 +109,30 @@ export function DataTable<T>({
             </tr>
           )) : null}
         </tbody>
-      </table>
+        </table>
+      </div>
+    </>
+  );
+}
+
+function MobileTableLoading(): JSX.Element {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: 4 }, (_item, index) => (
+        <div key={index} className="space-y-3 rounded-xl border border-[#e4e0d7] bg-white p-4">
+          <span className="block h-4 w-2/3 animate-pulse rounded bg-[#ebe7de]" />
+          <span className="block h-3 w-full animate-pulse rounded bg-[#f0ede6]" />
+          <span className="block h-8 w-full animate-pulse rounded bg-[#ebe7de]" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MobileTableState({ children }: { children: ReactNode }): JSX.Element {
+  return (
+    <div className="rounded-xl border border-[#e4e0d7] bg-white px-4 py-10 text-center text-sm text-[#8f8a7d]">
+      {children}
     </div>
   );
 }

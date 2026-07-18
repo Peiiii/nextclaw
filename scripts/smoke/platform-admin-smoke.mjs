@@ -122,6 +122,72 @@ async function assertAdminUsersPage(page) {
   if (await page.getByRole("dialog", { name: "管理用户额度" }).count()) {
     throw new Error("取消额度编辑后弹窗仍然存在");
   }
+
+  await assertAdminMobileLayout(page);
+}
+
+async function assertAdminMobileLayout(page) {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileCard = page.getByTestId("admin-user-mobile-card");
+  await mobileCard.waitFor();
+
+  const mobileLayout = await page.evaluate(() => {
+    const scrollRegion = document.querySelector('[data-testid="admin-scroll-region"]');
+    const mobileList = document.querySelector('[data-testid="admin-mobile-list"]');
+    const desktopTable = document.querySelector("table");
+    const navigation = document.querySelector("aside nav");
+    if (!(scrollRegion instanceof HTMLElement) || !(mobileList instanceof HTMLElement) || !(desktopTable instanceof HTMLElement) || !(navigation instanceof HTMLElement)) {
+      throw new Error("Mobile admin layout is missing its scroll region, card list, desktop table, or navigation.");
+    }
+    scrollRegion.scrollTop = scrollRegion.scrollHeight;
+    const distanceFromBottom = scrollRegion.scrollHeight - scrollRegion.clientHeight - scrollRegion.scrollTop;
+    navigation.scrollLeft = navigation.scrollWidth;
+    const navigationScrolledTo = navigation.scrollLeft;
+    scrollRegion.scrollTop = 0;
+    return {
+      documentClientWidth: document.documentElement.clientWidth,
+      documentScrollWidth: document.documentElement.scrollWidth,
+      bodyScrollWidth: document.body.scrollWidth,
+      scrollClientHeight: scrollRegion.clientHeight,
+      scrollHeight: scrollRegion.scrollHeight,
+      scrolledTo: scrollRegion.scrollTop,
+      distanceFromBottom,
+      mobileListDisplay: getComputedStyle(mobileList).display,
+      desktopTableDisplay: getComputedStyle(desktopTable.closest("div")).display,
+      navigationClientWidth: navigation.clientWidth,
+      navigationScrollWidth: navigation.scrollWidth,
+      navigationScrolledTo
+    };
+  });
+  if (mobileLayout.documentScrollWidth > mobileLayout.documentClientWidth || mobileLayout.bodyScrollWidth > mobileLayout.documentClientWidth) {
+    throw new Error(`Mobile admin has horizontal page overflow: ${JSON.stringify(mobileLayout)}`);
+  }
+  if (mobileLayout.scrollHeight <= mobileLayout.scrollClientHeight || mobileLayout.distanceFromBottom > 2) {
+    throw new Error(`Mobile admin content is not vertically reachable: ${JSON.stringify(mobileLayout)}`);
+  }
+  if (mobileLayout.mobileListDisplay === "none" || mobileLayout.desktopTableDisplay !== "none") {
+    throw new Error(`Mobile admin did not switch from desktop table to task cards: ${JSON.stringify(mobileLayout)}`);
+  }
+  if (mobileLayout.navigationScrollWidth > mobileLayout.navigationClientWidth && mobileLayout.navigationScrolledTo <= 0) {
+    throw new Error(`Mobile admin navigation cannot reach its overflowed routes: ${JSON.stringify(mobileLayout)}`);
+  }
+  if (process.env.PLATFORM_ADMIN_MOBILE_SCREENSHOT_PATH) {
+    await mobileCard.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: process.env.PLATFORM_ADMIN_MOBILE_SCREENSHOT_PATH });
+  }
+
+  await mobileCard.getByRole("button", { name: "管理额度", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "管理用户额度" });
+  await dialog.waitFor();
+  const dialogBounds = await dialog.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left };
+  });
+  if (dialogBounds.top < 0 || dialogBounds.left < 0 || dialogBounds.right > 390 || dialogBounds.bottom > 844) {
+    throw new Error(`Mobile quota dialog escapes the viewport: ${JSON.stringify(dialogBounds)}`);
+  }
+  await dialog.getByRole("button", { name: "取消", exact: true }).click();
+  await page.setViewportSize({ width: 1440, height: 900 });
 }
 
 async function assertConsoleShell(browser) {

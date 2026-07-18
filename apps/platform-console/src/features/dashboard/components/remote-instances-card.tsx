@@ -4,12 +4,19 @@ import { Button } from '@/shared/components/button';
 import { Card, CardTitle } from '@/shared/components/card';
 import { DataTable, type DataTableColumn } from '@/shared/components/data-table';
 import { Input } from '@/shared/components/input';
+import {
+  RemoteInstanceActions,
+  RemoteInstanceIdentity,
+  RemoteInstanceMobileCard,
+  RemoteInstanceStatus,
+  type RemoteInstanceTranslate
+} from '@/features/dashboard/components/remote-instance-list-item';
 import { RemoteShareGrantPanel } from '@/features/dashboard/components/remote-share-grant-panel';
 import { useRemoteInstanceActions } from '@/features/dashboard/hooks/use-remote-instance-actions';
 import { useRemoteInstanceList } from '@/features/dashboard/hooks/use-remote-instance-list';
 import { formatDateTime, type LocaleCode } from '@/i18n/i18n.service';
 
-type Translate = (key: string, params?: Record<string, string | number>) => string;
+type Translate = RemoteInstanceTranslate;
 
 type RemoteInstancesCardProps = {
   locale: LocaleCode;
@@ -38,7 +45,7 @@ export function RemoteInstancesCard(props: RemoteInstancesCardProps): JSX.Elemen
   }
 
   return (
-    <Card className="space-y-4 rounded-2xl p-5">
+    <Card className="space-y-4 rounded-2xl p-3 sm:p-5">
       <div className="space-y-1">
         <CardTitle>{props.t('remote.title')}</CardTitle>
         <p className="text-sm leading-6 text-[var(--color-foreground-muted)]">{props.t('remote.description')}</p>
@@ -52,6 +59,9 @@ export function RemoteInstancesCard(props: RemoteInstancesCardProps): JSX.Elemen
         loading={list.query.isLoading}
         loadingLabel={props.t('remote.messages.loadingInstances')}
         empty={hasActiveFilters ? props.t('remote.messages.filteredEmpty') : props.t('remote.messages.empty')}
+        renderMobileRow={(instance) => (
+          <RemoteInstanceMobileCard instance={instance} locale={props.locale} t={props.t} actions={actions} />
+        )}
         toolbar={(
           <RemoteInstanceTableToolbar
             t={props.t}
@@ -121,32 +131,7 @@ function createRemoteInstanceColumns(
       fixed: 'left',
       sortable: true,
       render: (instance) => (
-        <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="truncate font-medium text-[var(--color-foreground)]" title={instance.displayName}>
-              {instance.displayName}
-            </span>
-            <span className="shrink-0 rounded-md bg-[var(--color-surface-muted)] px-1.5 py-0.5 text-[11px] text-[var(--color-foreground-muted)]">
-              {instance.appVersion}
-            </span>
-          </div>
-          <button
-            type="button"
-            aria-label={props.t('remote.actions.copyInstanceId', { instanceId: instance.id })}
-            className="mt-1 max-w-full truncate rounded font-mono text-xs text-[var(--color-foreground-subtle)] outline-none hover:text-[var(--color-foreground)] hover:underline focus-visible:ring-2 focus-visible:ring-brand-200"
-            title={props.t('remote.actions.copyInstanceId', { instanceId: instance.id })}
-            onClick={() => void actions.commands.copyInstanceId(instance.id)}
-          >
-            ID: {instance.id}
-          </button>
-          {instance.archivedAt ? (
-            <div className="mt-1 text-xs text-[var(--color-icon-subtle)]">
-              {props.t('remote.archived.archivedAt', {
-                archivedAt: formatDateTime(props.locale, instance.archivedAt)
-              })}
-            </div>
-          ) : null}
-        </div>
+        <RemoteInstanceIdentity instance={instance} locale={props.locale} t={props.t} onCopy={actions.commands.copyInstanceId} />
       )
     },
     {
@@ -239,10 +224,10 @@ function RemoteInstanceTableToolbar(props: {
           aria-label={props.t('remote.filters.searchPlaceholder')}
           onChange={(event) => props.list.setSearchInput(event.target.value)}
         />
-        <label className="flex items-center gap-2 text-xs text-[var(--color-foreground-muted)]">
+        <label className="flex min-w-0 items-center gap-2 text-xs text-[var(--color-foreground-muted)]">
           <span className="shrink-0">{props.t('remote.filters.connectionLabel')}</span>
           <select
-            className="h-10 min-w-[132px] rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-foreground)] outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="h-10 min-w-0 flex-1 rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-foreground)] outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 sm:min-w-[132px] sm:flex-none"
             value={props.list.listQuery.connectionStatus}
             onChange={(event) => {
               props.list.setConnectionStatus(event.target.value as 'all' | 'online' | 'offline');
@@ -255,12 +240,12 @@ function RemoteInstanceTableToolbar(props: {
           </select>
         </label>
         <div className="flex items-center gap-2 lg:ml-auto">
-          <Button type="submit" className="h-10">{props.t('remote.filters.search')}</Button>
+          <Button type="submit" className="h-10 flex-1 sm:flex-none">{props.t('remote.filters.search')}</Button>
           {props.hasActiveFilters || props.list.searchInput ? (
             <Button
               type="button"
               variant="ghost"
-              className="h-10"
+              className="h-10 flex-1 sm:flex-none"
               onClick={() => {
                 props.list.resetFilters();
                 props.onListScopeChanged();
@@ -271,80 +256,6 @@ function RemoteInstanceTableToolbar(props: {
           ) : null}
         </div>
       </form>
-    </div>
-  );
-}
-
-function RemoteInstanceStatus({ instance, t }: { instance: RemoteInstance; t: Translate }): JSX.Element {
-  const status = instance.archivedAt ? 'archived' : instance.status;
-  const className = status === 'online'
-    ? 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800'
-    : status === 'archived'
-      ? 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-800'
-      : 'bg-[var(--color-surface-muted)] text-[var(--color-foreground-muted)] ring-[var(--color-border)]';
-  return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${className}`}>
-      {t(`remote.status.${status}`)}
-    </span>
-  );
-}
-
-function RemoteInstanceActions(props: {
-  instance: RemoteInstance;
-  t: Translate;
-  isArchiving: boolean;
-  isDeleting: boolean;
-  isOpening: boolean;
-  isRestoring: boolean;
-  onArchive: (instanceId: string) => void;
-  onDelete: (instanceId: string) => void;
-  onOpen: (instanceId: string, entry: 'subdomain' | 'fixed_domain') => void;
-  onRestore: (instanceId: string) => void;
-  onSelectShares: (instanceId: string) => void;
-}): JSX.Element {
-  const { instance } = props;
-  if (instance.archivedAt) {
-    return (
-      <div className="flex items-center justify-end gap-1">
-        <Button type="button" variant="secondary" className="h-8 px-2 text-xs" disabled={props.isRestoring} onClick={() => props.onRestore(instance.id)}>
-          {props.t('remote.actions.restore')}
-        </Button>
-        <Button type="button" variant="danger" className="h-8 px-2 text-xs" disabled={props.isDeleting} onClick={() => props.onDelete(instance.id)}>
-          {props.t('remote.actions.delete')}
-        </Button>
-      </div>
-    );
-  }
-
-  const isOffline = instance.status !== 'online';
-  const offlineTitle = isOffline ? props.t('remote.actions.offlineHint') : undefined;
-  return (
-    <div className="flex items-center justify-end gap-1">
-      <Button
-        type="button"
-        className="h-8 px-2 text-xs"
-        title={offlineTitle}
-        disabled={isOffline || props.isOpening}
-        onClick={() => props.onOpen(instance.id, 'subdomain')}
-      >
-        {props.t('remote.actions.open')}
-      </Button>
-      <Button
-        type="button"
-        variant="secondary"
-        className="h-8 px-2 text-xs"
-        title={offlineTitle}
-        disabled={isOffline || props.isOpening}
-        onClick={() => props.onOpen(instance.id, 'fixed_domain')}
-      >
-        {props.t('remote.actions.fixedDomain')}
-      </Button>
-      <Button type="button" variant="ghost" className="h-8 px-2 text-xs" onClick={() => props.onSelectShares(instance.id)}>
-        {props.t('remote.actions.shares')}
-      </Button>
-      <Button type="button" variant="ghost" className="h-8 px-2 text-xs" disabled={props.isArchiving} onClick={() => props.onArchive(instance.id)}>
-        {props.t('remote.actions.archive')}
-      </Button>
     </div>
   );
 }

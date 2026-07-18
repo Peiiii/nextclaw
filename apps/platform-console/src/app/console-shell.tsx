@@ -36,14 +36,14 @@ export function ConsoleShell({
   children
 }: Props): JSX.Element {
   return (
-    <div className="flex h-[calc(100vh-32px)] min-h-[720px] flex-col overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_20px_60px_rgba(31,31,29,0.08)] md:flex-row">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_20px_60px_rgba(31,31,29,0.08)] md:flex-row md:rounded-[24px]">
       <aside className="flex w-full shrink-0 flex-col border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] md:w-[248px] md:border-b-0 md:border-r">
-        <div className="shrink-0 border-b border-[var(--color-border)] px-4 py-3 md:px-5 md:py-5">
+        <div className="shrink-0 border-b border-[var(--color-border)] px-4 py-2.5 md:px-5 md:py-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-foreground-subtle)]">NextClaw</p>
           <h1 className="mt-1 text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)] md:mt-2 md:text-[17px]">Platform</h1>
         </div>
 
-        <nav className="shrink-0 overflow-x-auto px-3 py-2 md:flex-1 md:overflow-y-auto md:py-4">
+        <nav className="shrink-0 overflow-x-auto overscroll-x-contain px-2 py-1.5 md:flex-1 md:overflow-y-auto md:px-3 md:py-4">
           <ul className="flex gap-1.5 md:block md:space-y-1.5">
             {routes.map((route) => (
               <li key={route.key} className="shrink-0">
@@ -52,7 +52,7 @@ export function ConsoleShell({
                   end={route.href === '/'}
                   className={({ isActive }) =>
                     cn(
-                      'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                      'flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors md:gap-3 md:py-2.5',
                       isActive
                         ? 'bg-[var(--color-surface)] text-[var(--color-foreground)] shadow-[0_1px_2px_rgba(31,31,29,0.05)]'
                         : 'text-[var(--color-foreground-muted)] hover:bg-[var(--color-surface)]/70 hover:text-[var(--color-foreground)]'
@@ -71,7 +71,7 @@ export function ConsoleShell({
           </ul>
         </nav>
 
-        <div className="relative z-20 shrink-0 border-t border-[var(--color-border)] px-3 py-2 md:py-3">
+        <div className="relative z-30 shrink-0 border-t border-[var(--color-border)] px-2 py-1.5 md:px-3 md:py-3">
           <ConsoleSidebarFooter
             accountHref="/account"
             accountLabel={accountLabel}
@@ -87,25 +87,25 @@ export function ConsoleShell({
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col bg-[var(--color-canvas)]">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--color-canvas)]">
         <header className="sticky top-0 z-10 shrink-0 border-b border-[var(--color-border)] bg-[var(--color-canvas)]">
-          <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between gap-3 px-4 py-3 md:px-8 md:py-4">
+          <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between gap-3 px-3 py-2.5 sm:px-4 sm:py-3 md:px-8 md:py-4">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-foreground-subtle)]">{shellLabel}</p>
-              <h2 className="mt-1 truncate text-xl font-semibold tracking-[-0.02em] text-[var(--color-foreground)]">{currentRoute.label}</h2>
-              <p className="mt-1 truncate text-sm text-[var(--color-foreground-muted)]">{currentRoute.description}</p>
+              <p className="hidden text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-foreground-subtle)] sm:block">{shellLabel}</p>
+              <h2 className="truncate text-base font-semibold tracking-[-0.02em] text-[var(--color-foreground)] sm:mt-1 sm:text-xl">{currentRoute.label}</h2>
+              <p className="mt-1 hidden truncate text-sm text-[var(--color-foreground-muted)] sm:block">{currentRoute.description}</p>
             </div>
 
             <div className="flex shrink-0 items-center gap-3">
-              <span className="rounded-full border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground-subtle)]">
+              <span className="hidden rounded-full border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground-subtle)] sm:inline-flex">
                 production
               </span>
             </div>
           </div>
         </header>
 
-        <main className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:px-6 lg:px-8 lg:py-6">{children}</div>
+        <main data-testid="console-scroll-region" className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
+          <div className="mx-auto w-full max-w-[1200px] px-3 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6">{children}</div>
         </main>
       </div>
     </div>

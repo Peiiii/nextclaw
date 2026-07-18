@@ -34,9 +34,9 @@ export function AdminUserListToolbar(props: Props): JSX.Element {
   return (
     <div className="space-y-3 rounded-xl border border-[#e4e0d7] bg-[#faf9f6] p-3">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <form className="flex min-w-0 flex-1 flex-wrap gap-2" onSubmit={handleSearch}>
+        <form className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:flex sm:flex-wrap" onSubmit={handleSearch}>
           <Input
-            className="min-w-[240px] max-w-xl flex-1"
+            className="col-span-2 min-w-0 max-w-xl flex-1 sm:col-span-1 sm:min-w-[240px]"
             placeholder="搜索邮箱、用户名或用户 ID"
             value={props.searchInput}
             onChange={(event) => props.onSearchInputChange(event.target.value)}
@@ -44,7 +44,7 @@ export function AdminUserListToolbar(props: Props): JSX.Element {
           <Button type="submit" variant="secondary">搜索</Button>
           <Button type="button" variant="ghost" disabled={!hasActiveFilters} onClick={props.onReset}>重置</Button>
         </form>
-        <Button type="button" variant="ghost" className="self-start xl:self-auto" onClick={props.onRefresh}>
+        <Button type="button" variant="ghost" className="w-full self-start sm:w-auto xl:self-auto" onClick={props.onRefresh}>
           {props.isFetching ? '刷新中...' : '刷新'}
         </Button>
       </div>

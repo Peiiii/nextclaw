@@ -19,20 +19,20 @@ type Props = {
 
 export function AdminUserQuotaDialog(props: Props): JSX.Element {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1f1f1d]/35 px-4 py-8 backdrop-blur-[2px]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1f1f1d]/35 px-3 py-3 backdrop-blur-[2px] sm:px-4 sm:py-8">
       <section
         aria-labelledby="admin-user-quota-dialog-title"
         aria-modal="true"
-        className="w-full max-w-lg overflow-hidden rounded-2xl border border-[#ddd8cd] bg-white shadow-[0_24px_80px_rgba(31,31,29,0.24)]"
+        className="flex max-h-[calc(100dvh-24px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-[#ddd8cd] bg-white shadow-[0_24px_80px_rgba(31,31,29,0.24)] sm:max-h-[calc(100dvh-64px)]"
         role="dialog"
       >
-        <header className="border-b border-[#e7e2d8] px-6 py-5">
+        <header className="shrink-0 border-b border-[#e7e2d8] px-4 py-4 sm:px-6 sm:py-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8f8a7d]">User quota</p>
           <h3 id="admin-user-quota-dialog-title" className="mt-1 text-lg font-semibold text-[#1f1f1d]">管理用户额度</h3>
           <p className="mt-1 truncate text-sm text-[#656561]" title={props.user.email}>{props.user.email}</p>
         </header>
 
-        <div className="space-y-5 px-6 py-5">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           <div className="grid gap-3 sm:grid-cols-3">
             <QuotaSnapshot label="免费已用" value={formatUsd(props.user.freeUsedUsd)} />
             <QuotaSnapshot label="免费剩余" value={formatUsd(props.user.freeRemainingUsd)} />
@@ -64,9 +64,9 @@ export function AdminUserQuotaDialog(props: Props): JSX.Element {
           {props.mutationErrorMessage ? <p className="text-sm text-rose-600" role="alert">{props.mutationErrorMessage}</p> : null}
         </div>
 
-        <footer className="flex items-center justify-end gap-2 border-t border-[#e7e2d8] bg-[#faf9f6] px-6 py-4">
-          <Button variant="ghost" disabled={props.isSaving} onClick={props.onCancel}>取消</Button>
-          <Button disabled={!props.canSave || props.isSaving} onClick={props.onSave}>
+        <footer className="grid shrink-0 grid-cols-2 gap-2 border-t border-[#e7e2d8] bg-[#faf9f6] px-4 py-3 sm:flex sm:items-center sm:justify-end sm:px-6 sm:py-4">
+          <Button variant="ghost" className="w-full sm:w-auto" disabled={props.isSaving} onClick={props.onCancel}>取消</Button>
+          <Button className="w-full sm:w-auto" disabled={!props.canSave || props.isSaving} onClick={props.onSave}>
             {props.isSaving ? '保存中...' : '确认保存'}
           </Button>
         </footer>

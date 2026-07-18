@@ -51,6 +51,7 @@ type DataTableProps<Row> = {
   toolbar?: ReactNode;
   sorting?: DataTableSorting;
   pagination?: DataTablePagination;
+  renderMobileRow?: (row: Row) => ReactNode;
 };
 
 type PageItem = number | 'ellipsis-start' | 'ellipsis-end';
@@ -65,12 +66,20 @@ export function DataTable<Row>({
   minWidth,
   toolbar,
   sorting,
-  pagination
+  pagination,
+  renderMobileRow
 }: DataTableProps<Row>): JSX.Element {
   return (
     <div className="space-y-3">
       {toolbar}
-      <TableWrap className="max-w-full bg-[var(--color-surface)]">
+      {renderMobileRow ? (
+        <div data-testid="data-table-mobile-list" aria-busy={loading} className="space-y-2 md:hidden">
+          {loading && rows.length === 0 ? <MobileTableState>{loadingLabel}</MobileTableState> : null}
+          {!loading && rows.length === 0 ? <MobileTableState>{empty}</MobileTableState> : null}
+          {rows.map((row) => <div key={rowKey(row)}>{renderMobileRow(row)}</div>)}
+        </div>
+      ) : null}
+      <TableWrap className={cn('max-w-full bg-[var(--color-surface)]', renderMobileRow && 'hidden md:block')}>
         <table
           aria-busy={loading}
           className="w-full table-fixed text-left text-sm"
@@ -190,7 +199,7 @@ function DataTablePagination({ pagination }: { pagination: DataTablePagination }
   return (
     <div className="flex flex-col gap-3 text-sm text-[var(--color-foreground-muted)] sm:flex-row sm:items-center sm:justify-between">
       <span>{pagination.labels.summary(from, to, pagination.total)}</span>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
         <label className="flex items-center gap-2">
           <span className="text-xs text-[var(--color-foreground-subtle)]">{pagination.labels.pageSize}</span>
           <select
@@ -212,24 +221,27 @@ function DataTablePagination({ pagination }: { pagination: DataTablePagination }
         >
           {pagination.labels.previous}
         </button>
-        {getPageItems(currentPage, totalPages).map((item) => typeof item === 'number' ? (
-          <button
-            key={item}
-            type="button"
-            aria-current={item === currentPage ? 'page' : undefined}
-            className={cn(
-              'h-8 min-w-8 rounded-lg border px-2 text-xs font-medium transition-colors',
-              item === currentPage
-                ? 'border-brand-500 bg-brand-500 text-white'
-                : 'border-[var(--color-border-strong)] bg-[var(--color-surface)] text-[var(--color-foreground-muted)] hover:bg-[var(--color-surface-muted)]'
-            )}
-            onClick={() => pagination.onPageChange(item)}
-          >
-            {item}
-          </button>
-        ) : (
-          <span key={item} className="px-1 text-[var(--color-foreground-subtle)]" aria-hidden="true">…</span>
-        ))}
+        <span className="min-w-12 text-center text-xs tabular-nums sm:hidden">{currentPage} / {totalPages}</span>
+        <span className="hidden items-center gap-2 sm:flex">
+          {getPageItems(currentPage, totalPages).map((item) => typeof item === 'number' ? (
+            <button
+              key={item}
+              type="button"
+              aria-current={item === currentPage ? 'page' : undefined}
+              className={cn(
+                'h-8 min-w-8 rounded-lg border px-2 text-xs font-medium transition-colors',
+                item === currentPage
+                  ? 'border-brand-500 bg-brand-500 text-white'
+                  : 'border-[var(--color-border-strong)] bg-[var(--color-surface)] text-[var(--color-foreground-muted)] hover:bg-[var(--color-surface-muted)]'
+              )}
+              onClick={() => pagination.onPageChange(item)}
+            >
+              {item}
+            </button>
+          ) : (
+            <span key={item} className="px-1 text-[var(--color-foreground-subtle)]" aria-hidden="true">…</span>
+          ))}
+        </span>
         <button
           type="button"
           className="h-8 rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-xs font-medium text-[var(--color-foreground-muted)] hover:bg-[var(--color-surface-muted)] disabled:cursor-not-allowed disabled:opacity-40"
@@ -239,6 +251,14 @@ function DataTablePagination({ pagination }: { pagination: DataTablePagination }
           {pagination.labels.next}
         </button>
       </div>
+    </div>
+  );
+}
+
+function MobileTableState({ children }: { children: ReactNode }): JSX.Element {
+  return (
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-10 text-center text-sm text-[var(--color-foreground-subtle)]">
+      {children}
     </div>
   );
 }

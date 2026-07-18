@@ -1,5 +1,5 @@
 import type { UserView } from '@/api/types';
-import { AdminShell } from '@/components/admin/admin-shell';
+import { AdminShell } from '@/app/admin-shell';
 import {
   ADMIN_CONSOLE_ROUTES,
   useAdminConsoleRoute,

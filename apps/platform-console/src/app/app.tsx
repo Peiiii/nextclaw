@@ -79,8 +79,8 @@ function ConsoleWorkbench(): JSX.Element {
   const user = meQuery.data.user;
 
   return (
-    <main className="min-h-screen bg-[var(--color-canvas)] text-[var(--color-foreground)]">
-      <div className="mx-auto w-full max-w-[1680px] px-4 py-4 md:px-5 xl:px-6">
+    <main className="h-dvh overflow-hidden bg-[var(--color-canvas)] text-[var(--color-foreground)]">
+      <div className="mx-auto h-full w-full max-w-[1680px] px-2 py-2 md:px-5 md:py-4 xl:px-6">
         <ConsoleShell
           shellLabel={t('app.workbenchTag')}
           routes={routes}

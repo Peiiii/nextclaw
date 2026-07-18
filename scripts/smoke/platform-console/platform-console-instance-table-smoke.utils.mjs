@@ -1,3 +1,4 @@
+import process from "node:process";
 import { REMOTE_QUOTA_SUMMARY_FIXTURE } from "./platform-console-quota-smoke.utils.mjs";
 
 function okEnvelope(data) {
@@ -178,12 +179,59 @@ export async function assertInstanceTableFlow(page) {
 
 export async function assertInstanceTableResponsiveLayout(page) {
   await page.setViewportSize({ width: 390, height: 844 });
-  const actionCell = page.getByRole("table").getByRole("row").nth(1).getByRole("cell").last();
-  const mobilePosition = await actionCell.evaluate((element) => getComputedStyle(element).position);
-  if (mobilePosition !== "static") {
-    throw new Error(`Mobile instance action cell should scroll normally instead of overlapping columns: ${mobilePosition}`);
+  await page.getByTestId("remote-instance-mobile-card").first().waitFor();
+
+  const mobileLayout = await page.evaluate(() => {
+    const scrollRegion = document.querySelector('[data-testid="console-scroll-region"]');
+    const mobileList = document.querySelector('[data-testid="data-table-mobile-list"]');
+    const desktopTable = document.querySelector("table");
+    if (!(scrollRegion instanceof HTMLElement) || !(mobileList instanceof HTMLElement) || !(desktopTable instanceof HTMLElement)) {
+      throw new Error("Mobile instance layout is missing its scroll region, card list, or desktop table.");
+    }
+    const before = scrollRegion.scrollTop;
+    scrollRegion.scrollTop = scrollRegion.scrollHeight;
+    const after = scrollRegion.scrollTop;
+    const distanceFromBottom = scrollRegion.scrollHeight - scrollRegion.clientHeight - after;
+    scrollRegion.scrollTop = before;
+    return {
+      documentClientWidth: document.documentElement.clientWidth,
+      documentScrollWidth: document.documentElement.scrollWidth,
+      bodyScrollWidth: document.body.scrollWidth,
+      scrollClientHeight: scrollRegion.clientHeight,
+      scrollHeight: scrollRegion.scrollHeight,
+      scrolledTo: after,
+      distanceFromBottom,
+      mobileListDisplay: getComputedStyle(mobileList).display,
+      desktopTableDisplay: getComputedStyle(desktopTable.closest("div")).display
+    };
+  });
+  if (mobileLayout.documentScrollWidth > mobileLayout.documentClientWidth || mobileLayout.bodyScrollWidth > mobileLayout.documentClientWidth) {
+    throw new Error(`Mobile console has horizontal page overflow: ${JSON.stringify(mobileLayout)}`);
   }
+  if (mobileLayout.scrollHeight <= mobileLayout.scrollClientHeight || mobileLayout.scrolledTo <= 0 || mobileLayout.distanceFromBottom > 2) {
+    throw new Error(`Mobile console content is not vertically reachable: ${JSON.stringify(mobileLayout)}`);
+  }
+  if (mobileLayout.mobileListDisplay === "none" || mobileLayout.desktopTableDisplay !== "none") {
+    throw new Error(`Mobile console did not switch from desktop table to task cards: ${JSON.stringify(mobileLayout)}`);
+  }
+
+  const firstCard = page.getByTestId("remote-instance-mobile-card").first();
+  await firstCard.getByRole("button", { name: "Open", exact: true }).waitFor();
+  await firstCard.getByRole("button", { name: "Fixed domain", exact: true }).waitFor();
+  await firstCard.getByRole("button", { name: "Shares", exact: true }).waitFor();
+  await firstCard.getByRole("button", { name: "Archive", exact: true }).waitFor();
+
+  const mobilePreferences = page.locator("details");
+  await mobilePreferences.locator("summary").click();
+  await mobilePreferences.getByText("Language", { exact: true }).waitFor();
+  await mobilePreferences.getByText("Theme", { exact: true }).waitFor();
+  await mobilePreferences.locator("summary").click();
+  if (process.env.PLATFORM_CONSOLE_MOBILE_SCREENSHOT_PATH) {
+    await page.screenshot({ path: process.env.PLATFORM_CONSOLE_MOBILE_SCREENSHOT_PATH });
+  }
+
   await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole("columnheader", { name: "Actions" }).waitFor();
 }
 
 export async function assertRemoteOpenActions(page, baseUrl) {

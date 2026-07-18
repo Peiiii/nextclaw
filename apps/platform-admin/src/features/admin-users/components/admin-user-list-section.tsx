@@ -103,7 +103,7 @@ export function AdminUserListSection({ token }: Props): JSX.Element {
       title="用户列表"
       description="浏览、筛选和排序保持轻量；额度修改只在明确选择用户后进入独立操作面板。"
     >
-      <AdminSurface className="space-y-4 p-5">
+      <AdminSurface className="space-y-4 p-3 sm:p-5">
         <AdminUserListToolbar
           searchInput={searchInput}
           activeSearch={listQuery.q}
