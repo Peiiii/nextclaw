@@ -1,6 +1,6 @@
 import type { Config } from "@nextclaw/core";
-import type { RemoteConnector } from "./remote-connector.js";
-import type { RemoteLogger, RemoteStatusWriter } from "./types.js";
+import type { RemoteLogger, RemoteStatusWriter } from "../types.js";
+import type { RemoteConnector } from "./remote-connector.service.js";
 
 export class RemoteServiceModule {
   private abortController: AbortController | null = null;
@@ -19,7 +19,7 @@ export class RemoteServiceModule {
     }
   ) {}
 
-  start(): Promise<void> | null {
+  start = (): Promise<void> | null => {
     if (this.runTask) {
       return this.runTask;
     }
@@ -95,14 +95,14 @@ export class RemoteServiceModule {
     });
 
     return this.runTask;
-  }
+  };
 
-  async restart(): Promise<void> {
+  restart = async (): Promise<void> => {
     await this.stop();
     this.start();
-  }
+  };
 
-  async stop(): Promise<void> {
+  stop = async (): Promise<void> => {
     this.abortController?.abort();
     try {
       await this.runTask;
@@ -114,5 +114,5 @@ export class RemoteServiceModule {
       this.releaseOwnership?.();
       this.releaseOwnership = null;
     }
-  }
+  };
 }

@@ -1,15 +1,16 @@
 import type { UiServerEvent } from "@nextclaw/server";
 import WebSocket, { type RawData } from "ws";
-import { RemoteRelayBridge } from "./remote-relay-bridge.js";
-import { readRemoteAppStreamResult } from "./remote-app-stream.js";
+import { readRemoteAppStreamResult } from "../remote-app-stream.js";
+import { RemoteRelayBridge } from "./remote-relay-bridge.service.js";
 
 type RemoteTarget = {
   method: string;
   path: string;
+  headers?: Record<string, string>;
   body?: unknown;
 };
 
-type ConnectorClientCommand =
+export type ConnectorClientCommand =
   | { type: "client.request"; clientId: string; id: string; target: RemoteTarget }
   | { type: "client.stream.open"; clientId: string; streamId: string; target: RemoteTarget }
   | { type: "client.stream.cancel"; clientId: string; streamId: string };
@@ -55,11 +56,11 @@ export class RemoteAppAdapter {
     this.relayBridge = new RemoteRelayBridge(localOrigin);
   }
 
-  async start(): Promise<void> {
+  start = async (): Promise<void> => {
     await this.ensureEventSocket();
-  }
+  };
 
-  stop(): void {
+  stop = (): void => {
     this.shuttingDown = true;
     if (this.eventReconnectTimer) {
       clearTimeout(this.eventReconnectTimer);
@@ -71,9 +72,9 @@ export class RemoteAppAdapter {
       controller.abort();
     }
     this.activeStreams.clear();
-  }
+  };
 
-  async handle(frame: ConnectorClientCommand): Promise<void> {
+  handle = async (frame: ConnectorClientCommand): Promise<void> => {
     if (frame.type === "client.request") {
       await this.handleRequest(frame);
       return;
@@ -86,13 +87,15 @@ export class RemoteAppAdapter {
       this.activeStreams.get(frame.streamId)?.abort();
       this.activeStreams.delete(frame.streamId);
     }
-  }
+  };
 
-  private async handleRequest(frame: Extract<ConnectorClientCommand, { type: "client.request" }>): Promise<void> {
+  private handleRequest = async (
+    frame: Extract<ConnectorClientCommand, { type: "client.request" }>
+  ): Promise<void> => {
     const bridgeCookie = await this.relayBridge.requestBridgeCookie();
     const response = await fetch(new URL(frame.target.path, this.localOrigin), {
       method: frame.target.method,
-      headers: this.createJsonHeaders(bridgeCookie),
+      headers: this.createRequestHeaders(frame.target, bridgeCookie),
       body: this.buildRequestBody(frame.target)
     });
     const body = await this.readResponseBody(response);
@@ -103,9 +106,11 @@ export class RemoteAppAdapter {
       status: response.status,
       body
     });
-  }
+  };
 
-  private async handleStream(frame: Extract<ConnectorClientCommand, { type: "client.stream.open" }>): Promise<void> {
+  private handleStream = async (
+    frame: Extract<ConnectorClientCommand, { type: "client.stream.open" }>
+  ): Promise<void> => {
     const controller = new AbortController();
     this.activeStreams.set(frame.streamId, controller);
 
@@ -144,16 +149,18 @@ export class RemoteAppAdapter {
     } finally {
       this.activeStreams.delete(frame.streamId);
     }
-  }
+  };
 
-  private async openStreamResponse(
+  private openStreamResponse = async (
     frame: Extract<ConnectorClientCommand, { type: "client.stream.open" }>,
     controller: AbortController
-  ): Promise<Response | null> {
+  ): Promise<Response | null> => {
     const bridgeCookie = await this.relayBridge.requestBridgeCookie();
+    const headers = this.createRequestHeaders(frame.target, bridgeCookie);
+    headers.set("Accept", "text/event-stream");
     const response = await fetch(new URL(frame.target.path, this.localOrigin), {
       method: frame.target.method,
-      headers: this.createStreamHeaders(bridgeCookie),
+      headers,
       body: this.buildRequestBody(frame.target),
       signal: controller.signal
     });
@@ -168,9 +175,9 @@ export class RemoteAppAdapter {
       message: readErrorMessage(errorBody, `HTTP ${response.status}`)
     });
     return null;
-  }
+  };
 
-  private async ensureEventSocket(): Promise<void> {
+  private ensureEventSocket = async (): Promise<void> => {
     if (this.localEventSocket && this.localEventSocket.readyState === WebSocket.OPEN) {
       return;
     }
@@ -205,9 +212,9 @@ export class RemoteAppAdapter {
         }
       });
     });
-  }
+  };
 
-  private scheduleEventReconnect(): void {
+  private scheduleEventReconnect = (): void => {
     if (this.eventReconnectTimer) {
       return;
     }
@@ -215,9 +222,9 @@ export class RemoteAppAdapter {
       this.eventReconnectTimer = null;
       void this.ensureEventSocket().catch(() => undefined);
     }, 3_000);
-  }
+  };
 
-  private buildRequestBody(target: RemoteTarget): Uint8Array | undefined {
+  private buildRequestBody = (target: RemoteTarget): Uint8Array | undefined => {
     if (target.method === "GET" || target.method === "HEAD") {
       return undefined;
     }
@@ -225,37 +232,27 @@ export class RemoteAppAdapter {
       return undefined;
     }
     return new TextEncoder().encode(JSON.stringify(target.body));
-  }
+  };
 
-  private createJsonHeaders(bridgeCookie: string | null): Headers {
-    const headers = new Headers({
-      "Content-Type": "application/json"
-    });
-    if (bridgeCookie) {
-      headers.set("cookie", bridgeCookie);
-    }
+  private createRequestHeaders = (target: RemoteTarget, bridgeCookie: string | null): Headers => {
+    const headers = this.relayBridge.createForwardHeaders(Object.entries(target.headers ?? {}), bridgeCookie);
+    headers.set("Content-Type", "application/json");
     return headers;
-  }
+  };
 
-  private createStreamHeaders(bridgeCookie: string | null): Headers {
-    const headers = this.createJsonHeaders(bridgeCookie);
-    headers.set("Accept", "text/event-stream");
-    return headers;
-  }
-
-  private async readResponseBody(response: Response): Promise<unknown> {
+  private readResponseBody = async (response: Response): Promise<unknown> => {
     const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
     if (contentType.includes("application/json")) {
       return await response.json();
     }
     const text = await response.text();
     return text;
-  }
+  };
 
-  private send(frame: Record<string, unknown>): void {
+  private send = (frame: Record<string, unknown>): void => {
     if (this.platformSocket.readyState !== WebSocket.OPEN) {
       return;
     }
     this.platformSocket.send(JSON.stringify(frame));
-  }
+  };
 }

@@ -1,21 +1,21 @@
-import { RemoteAppAdapter } from "./remote-app.adapter.js";
+import { RemoteAppAdapter, type ConnectorClientCommand } from "./remote-app.service.js";
 import {
   describeUnexpectedRemoteConnectorClose,
   isTerminalRemoteConnectorError
-} from "./remote-connector-error.js";
-import { RemoteRelayBridge, type RelayRequestFrame } from "./remote-relay-bridge.js";
+} from "../remote-connector-error.js";
+import { RemoteRelayBridge, type RelayRequestFrame } from "./remote-relay-bridge.service.js";
 import {
   formatReconnectDelay,
   resolveReconnectDelayMs
-} from "./remote-connector-retry.utils.js";
-import { readRemoteConnectorSocketErrorMessage } from "./remote-connector-websocket-error.utils.js";
-import { delay, redactWsUrl, type RemotePlatformClient } from "./remote-platform-client.js";
+} from "../remote-connector-retry.utils.js";
+import { readRemoteConnectorSocketErrorMessage } from "../remote-connector-websocket-error.utils.js";
+import { delay, redactWsUrl, type RemotePlatformClient } from "../remote-platform-client.js";
 import type {
   RegisteredRemoteDevice,
   RemoteConnectorRunOptions,
   RemoteLogger,
   RemoteRunContext
-} from "./types.js";
+} from "../types.js";
 
 const CONNECTOR_KEEPALIVE_INTERVAL_MS = 25_000;
 const CONNECTOR_KEEPALIVE_FRAME = JSON.stringify({ type: "connector.ping" });
@@ -40,11 +40,11 @@ export class RemoteConnector {
   private get random(): () => number {
     return this.deps.random ?? Math.random;
   }
-  private createSocket(wsUrl: string): WebSocket {
+  private createSocket = (wsUrl: string): WebSocket => {
     return this.deps.createSocket?.(wsUrl) ?? new WebSocket(wsUrl);
-  }
+  };
 
-  private async connectOnce(params: {
+  private connectOnce = async (params: {
     wsUrl: string;
     relayBridge: RemoteRelayBridge;
     signal?: AbortSignal;
@@ -53,7 +53,7 @@ export class RemoteConnector {
     deviceId: string;
     platformBase: string;
     localOrigin: string;
-  }): Promise<"closed" | "aborted"> {
+  }): Promise<"closed" | "aborted"> => {
     return await new Promise<"closed" | "aborted">((resolve, reject) => {
       const socket = this.createSocket(params.wsUrl);
       const appAdapter = new RemoteAppAdapter(params.localOrigin, socket);
@@ -156,14 +156,14 @@ export class RemoteConnector {
         finishReject(new Error(readRemoteConnectorSocketErrorMessage(event)));
       });
     });
-  }
+  };
 
-  private handleSocketMessage(params: {
+  private handleSocketMessage = (params: {
     data: unknown;
     relayBridge: RemoteRelayBridge;
     appAdapter: RemoteAppAdapter;
     socket: WebSocket;
-  }): void {
+  }): void => {
     void (async () => {
       const frame = this.parseRelayFrame(params.data);
       if (!frame) {
@@ -201,28 +201,9 @@ export class RemoteConnector {
         }));
       }
     })();
-  }
+  };
 
-  private parseRelayFrame(data: unknown): (
-    | RelayRequestFrame
-    | {
-      type: "client.request";
-      clientId: string;
-      id: string;
-      target: { method: string; path: string; body?: unknown };
-    }
-    | {
-      type: "client.stream.open";
-      clientId: string;
-      streamId: string;
-      target: { method: string; path: string; body?: unknown };
-    }
-    | {
-      type: "client.stream.cancel";
-      clientId: string;
-      streamId: string;
-    }
-  ) | null {
+  private parseRelayFrame = (data: unknown): RelayRequestFrame | ConnectorClientCommand | null => {
     try {
       const frame = JSON.parse(String(data ?? ""));
       if (typeof frame !== "object" || !frame || typeof frame.type !== "string") {
@@ -236,47 +217,43 @@ export class RemoteConnector {
         || frame.type === "client.stream.open"
         || frame.type === "client.stream.cancel"
       ) {
-        return frame as {
-          type: "client.request";
-          clientId: string;
-          id: string;
-          target: { method: string; path: string; body?: unknown };
-        };
+        return frame as ConnectorClientCommand;
       }
       return null;
     } catch {
       return null;
     }
-  }
+  };
 
-  private async ensureDevice(params: {
+  private ensureDevice = async (params: {
     device: RegisteredRemoteDevice | null;
     context: RemoteRunContext;
-  }): Promise<RegisteredRemoteDevice> {
-    if (params.device) {
-      return params.device;
+  }): Promise<RegisteredRemoteDevice> => {
+    const { context, device } = params;
+    if (device) {
+      return device;
     }
-    const device = await this.deps.platformClient.registerDevice({
-      platformBase: params.context.platformBase,
-      token: params.context.token,
-      deviceInstallId: params.context.deviceInstallId,
-      displayName: params.context.displayName,
-      localOrigin: params.context.localOrigin
+    const registeredDevice = await this.deps.platformClient.registerDevice({
+      platformBase: context.platformBase,
+      token: context.token,
+      deviceInstallId: context.deviceInstallId,
+      displayName: context.displayName,
+      localOrigin: context.localOrigin
     });
-    this.logger.info(`✓ Remote instance registered: ${device.displayName} (${device.id})`);
-    this.logger.info(`✓ Local origin: ${params.context.localOrigin}`);
-    this.logger.info(`✓ Platform: ${params.context.platformBase}`);
-    return device;
-  }
+    this.logger.info(`✓ Remote instance registered: ${registeredDevice.displayName} (${registeredDevice.id})`);
+    this.logger.info(`✓ Local origin: ${context.localOrigin}`);
+    this.logger.info(`✓ Platform: ${context.platformBase}`);
+    return registeredDevice;
+  };
 
-  private writeRemoteState(
+  private writeRemoteState = (
     statusStore: RemoteConnectorRunOptions["statusStore"],
     next: Parameters<NonNullable<RemoteConnectorRunOptions["statusStore"]>["write"]>[0]
-  ): void {
+  ): void => {
     statusStore?.write(next);
-  }
+  };
 
-  private async runCycle(params: {
+  private runCycle = async (params: {
     device: RegisteredRemoteDevice | null;
     context: RemoteRunContext;
     relayBridge: RemoteRelayBridge;
@@ -286,40 +263,41 @@ export class RemoteConnector {
     outcome: "aborted" | "retry" | "stop";
     retryFailure: boolean;
     lastError: string | null;
-  }> {
-    let device = params.device;
+  }> => {
+    const { context, device: initialDevice, opts, relayBridge } = params;
+    let device = initialDevice;
     try {
-      this.writeRemoteState(params.opts.statusStore, {
+      this.writeRemoteState(opts.statusStore, {
         enabled: true,
         state: "connecting",
-        deviceId: params.device?.id,
-        deviceName: params.context.displayName,
-        platformBase: params.context.platformBase,
-        localOrigin: params.context.localOrigin,
+        deviceId: initialDevice?.id,
+        deviceName: context.displayName,
+        platformBase: context.platformBase,
+        localOrigin: context.localOrigin,
         lastError: null
       });
-      device = await this.ensureDevice({ device, context: params.context });
+      device = await this.ensureDevice({ device, context });
       const wsUrl =
-        `${params.context.platformBase.replace(/^http/i, "ws")}/platform/remote/connect`
-        + `?instanceId=${encodeURIComponent(device.id)}&token=${encodeURIComponent(params.context.token)}`;
+        `${context.platformBase.replace(/^http/i, "ws")}/platform/remote/connect`
+        + `?instanceId=${encodeURIComponent(device.id)}&token=${encodeURIComponent(context.token)}`;
       const outcome = await this.connectOnce({
         wsUrl,
-        relayBridge: params.relayBridge,
-        signal: params.opts.signal,
-        statusStore: params.opts.statusStore,
-        displayName: params.context.displayName,
+        relayBridge,
+        signal: opts.signal,
+        statusStore: opts.statusStore,
+        displayName: context.displayName,
         deviceId: device.id,
-        platformBase: params.context.platformBase,
-        localOrigin: params.context.localOrigin
+        platformBase: context.platformBase,
+        localOrigin: context.localOrigin
       });
       if (outcome !== "aborted") {
-        this.writeRemoteState(params.opts.statusStore, {
+        this.writeRemoteState(opts.statusStore, {
           enabled: true,
           state: "disconnected",
           deviceId: device.id,
-          deviceName: params.context.displayName,
-          platformBase: params.context.platformBase,
-          localOrigin: params.context.localOrigin,
+          deviceName: context.displayName,
+          platformBase: context.platformBase,
+          localOrigin: context.localOrigin,
           lastError: null
         });
       }
@@ -331,13 +309,13 @@ export class RemoteConnector {
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.writeRemoteState(params.opts.statusStore, {
+      this.writeRemoteState(opts.statusStore, {
         enabled: true,
         state: "error",
-        deviceId: params.device?.id,
-        deviceName: params.context.displayName,
-        platformBase: params.context.platformBase,
-        localOrigin: params.context.localOrigin,
+        deviceId: initialDevice?.id,
+        deviceName: context.displayName,
+        platformBase: context.platformBase,
+        localOrigin: context.localOrigin,
         lastError: message
       });
       this.logger.error(`Remote connector error: ${message}`);
@@ -348,9 +326,9 @@ export class RemoteConnector {
         lastError: message
       };
     }
-  }
+  };
 
-  async run(opts: RemoteConnectorRunOptions = {}): Promise<void> {
+  run = async (opts: RemoteConnectorRunOptions = {}): Promise<void> => {
     const context = this.deps.platformClient.resolveRunContext(opts);
     const relayBridge = (this.deps.relayBridgeFactory ?? ((localOrigin) => new RemoteRelayBridge(localOrigin)))(
       context.localOrigin
@@ -395,5 +373,5 @@ export class RemoteConnector {
       localOrigin: context.localOrigin,
       lastError: null
     });
-  }
+  };
 }

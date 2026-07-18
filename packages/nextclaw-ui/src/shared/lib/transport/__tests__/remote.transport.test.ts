@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { RemoteSessionMultiplexTransport } from '../remote-transport.service';
+import { RemoteSessionMultiplexTransport } from '@/shared/lib/transport/remote-transport.service';
 
 class MockWebSocket {
   static readonly CONNECTING = 0;
@@ -44,12 +44,18 @@ class MockWebSocket {
   }
 }
 
-function lastSentRequestFrame(socket: MockWebSocket): { type: 'request'; id: string } {
+type SentRequestFrame = {
+  type: 'request';
+  id: string;
+  target: { headers?: Record<string, string> };
+};
+
+function lastSentRequestFrame(socket: MockWebSocket): SentRequestFrame {
   const raw = socket.sent[socket.sent.length - 1];
   if (!raw) {
     throw new Error('Expected a sent request frame.');
   }
-  return JSON.parse(raw) as { type: 'request'; id: string };
+  return JSON.parse(raw) as SentRequestFrame;
 }
 
 describe('RemoteSessionMultiplexTransport request path', () => {
@@ -73,7 +79,10 @@ describe('RemoteSessionMultiplexTransport request path', () => {
 
     const requestPromise = transport.request<{ sessions: unknown[]; total: number }>({
       method: 'GET',
-      path: '/api/sessions'
+      path: '/api/sessions',
+      headers: {
+        'x-nextclaw-panel-bridge-session': 'runtime-token'
+      }
     });
 
     const socket = MockWebSocket.instances[0];
@@ -103,6 +112,9 @@ describe('RemoteSessionMultiplexTransport request path', () => {
       total: 0
     });
     expect(socket.url).toBe('wss://remote.claw.cool/_remote/ws');
+    expect(requestFrame.target.headers).toEqual({
+      'x-nextclaw-panel-bridge-session': 'runtime-token'
+    });
   });
 
   it('fails predictably when a remote request frame never receives a response', async () => {

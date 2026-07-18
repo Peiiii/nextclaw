@@ -23,14 +23,14 @@ function decodeBase64(base64: string | undefined): Uint8Array {
 export class RemoteRelayBridge {
   constructor(private readonly localOrigin: string) {}
 
-  async ensureLocalUiHealthy(): Promise<void> {
+  ensureLocalUiHealthy = async (): Promise<void> => {
     const response = await fetch(`${this.localOrigin}/api/health`);
     if (!response.ok) {
       throw new Error(`Local UI is not healthy at ${this.localOrigin}. Start NextClaw first.`);
     }
-  }
+  };
 
-  async forward(frame: RelayRequestFrame, socket: WebSocket): Promise<void> {
+  forward = async (frame: RelayRequestFrame, socket: WebSocket): Promise<void> => {
     const bridgeCookie = await this.requestBridgeCookie();
     const url = new URL(frame.path, this.localOrigin);
     const headers = this.createForwardHeaders(frame.headers, bridgeCookie);
@@ -56,9 +56,12 @@ export class RemoteRelayBridge {
       headers: responseHeaders,
       bodyBase64: encodeBase64(responseBody)
     }));
-  }
+  };
 
-  private createForwardHeaders(headersList: Array<[string, string]>, bridgeCookie: string | null): Headers {
+  createForwardHeaders = (
+    headersList: Iterable<readonly [string, string]>,
+    bridgeCookie: string | null
+  ): Headers => {
     const headers = new Headers();
     for (const [key, value] of headersList) {
       const lower = key.toLowerCase();
@@ -79,9 +82,9 @@ export class RemoteRelayBridge {
       headers.set("cookie", bridgeCookie);
     }
     return headers;
-  }
+  };
 
-  async requestBridgeCookie(): Promise<string | null> {
+  requestBridgeCookie = async (): Promise<string | null> => {
     const response = await fetch(`${this.localOrigin}/api/auth/bridge`, {
       method: "POST",
       headers: {
@@ -95,25 +98,26 @@ export class RemoteRelayBridge {
     return typeof payload.data?.cookie === "string" && payload.data.cookie.trim().length > 0
       ? payload.data.cookie.trim()
       : null;
-  }
+  };
 
-  private async sendStreamingResponse(params: {
+  private sendStreamingResponse = async (params: {
     frame: RelayRequestFrame;
     response: Response;
     responseHeaders: Array<[string, string]>;
     socket: WebSocket;
-  }): Promise<void> {
-    params.socket.send(JSON.stringify({
+  }): Promise<void> => {
+    const { frame, response, responseHeaders, socket } = params;
+    socket.send(JSON.stringify({
       type: "response.start",
-      requestId: params.frame.requestId,
-      status: params.response.status,
-      headers: params.responseHeaders
+      requestId: frame.requestId,
+      status: response.status,
+      headers: responseHeaders
     }));
-    const reader = params.response.body?.getReader();
+    const reader = response.body?.getReader();
     if (!reader) {
-      params.socket.send(JSON.stringify({
+      socket.send(JSON.stringify({
         type: "response.end",
-        requestId: params.frame.requestId
+        requestId: frame.requestId
       }));
       return;
     }
@@ -124,9 +128,9 @@ export class RemoteRelayBridge {
           break;
         }
         if (value && value.length > 0) {
-          params.socket.send(JSON.stringify({
+          socket.send(JSON.stringify({
             type: "response.chunk",
-            requestId: params.frame.requestId,
+            requestId: frame.requestId,
             bodyBase64: encodeBase64(value)
           }));
         }
@@ -134,9 +138,9 @@ export class RemoteRelayBridge {
     } finally {
       reader.releaseLock();
     }
-    params.socket.send(JSON.stringify({
+    socket.send(JSON.stringify({
       type: "response.end",
-      requestId: params.frame.requestId
+      requestId: frame.requestId
     }));
-  }
+  };
 }
