@@ -25,10 +25,19 @@
 - `pnpm -C workers/nextclaw-provider-gateway-api test:remote-instances`：通过；基于内存 SQLite 验证 13 条当前实例分页、归档筛选、在线状态过滤、转义后的 `%` 字面搜索、名称排序和用户隔离。
 - `PLATFORM_CONSOLE_BASE_URL=http://127.0.0.1:4174 pnpm smoke:platform:console`：通过；浏览器级覆盖 12 条数据翻页、归档快捷筛选、搜索/重置、固定操作列、390px 响应式布局，以及归档、恢复、永久删除、远程打开等完整交互。
 - `pnpm lint:maintainability:guard`：通过；0 error / 3 个既有 warning。
+- 生产 Chrome 实机验收：通过；复用用户已打开的 `https://platform.nextclaw.io/` 标签页，确认生产资源为 `index-Dd4ZroVW.js` / `index-CuzbcEKC.css`，当前实例 24 条、归档实例 11 条，第二页显示第 11–20 条，归档筛选回到第 1 页且只显示恢复/删除操作。表格 5 个表头均为 sticky，当前页 10 个操作单元格均固定，表格容器为横向自动滚动且页面本身无横向溢出。
+- 组合发布回归验收：通过；复用用户已打开的远程访问标签页，刷新后 Panel App 仍加载签名 `styles.css` 与 `app.js`，正文背景为 `rgb(10, 14, 39)`，标题字号 20px / 字重 700，并渲染 2 个 ECharts canvas。Platform 与远程页面均无页面自身的浏览器错误；日志中的 warning/error 全部来自浏览器扩展注入脚本。
 
 ## 发布/部署方式
 
-本次需要发布 `nextclaw-provider-gateway-api` Worker 与 `nextclaw-platform-console` Pages。数据库列与索引未变化，不需要 migration；平台管理后台未变化，不重复部署。最终 Worker Version ID、Pages 预览地址和生产域名验收结果在部署后回填。
+已发布 `nextclaw-provider-gateway-api` Worker 与 `nextclaw-platform-console` Pages：
+
+- Worker Version ID：`c6c7315e-0112-4564-8701-54f9dad61815`
+- Pages 部署地址：`https://2ced78fd.nextclaw-platform-console.pages.dev`
+- 生产域名：`https://platform.nextclaw.io/`
+- 数据库列与索引未变化，不需要 migration。
+- 平台管理后台未变化，未重复部署。
+- Worker 发布分支已合并远程 Panel App 资源修复，生产远程访问回归验收通过。
 
 ## 用户/产品视角的验收步骤
 
