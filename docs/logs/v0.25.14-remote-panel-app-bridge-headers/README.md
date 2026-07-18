@@ -23,7 +23,8 @@
 - 已生成 stable patch 发布批次：`nextclaw@0.25.4`、`@nextclaw/remote@0.3.11`、`@nextclaw/service@0.3.11`，并补齐中英文产品更新说明与结构化 release-note JSON。
 - 发布准备在隔离 worktree `codex/release-nextclaw-0.25.4` 中执行，不暂存、不覆盖主工作区的其他规则、文档、Worker 与产品 WIP。
 - 发布前已完成统一 batch build/tsc、真实回环链路测试、UI 传输测试、文档构建和 `nextclaw-0.25.4.tgz` 预打包检查；tarball 依赖已锁定到本批次的 remote/service patch 版本。
-- 当前正在完成 NPM registry、stable runtime channel、公共文档和安装/更新链路部署闭环；不会在发布过程中重启用户正在使用的 NextClaw 0.25.3 实例。
+- 公共文档已部署并完成线上 200 验证：[中文更新说明](https://docs.nextclaw.io/zh/notes/2026-07-18-nextclaw-v0-25-4)、[English release notes](https://docs.nextclaw.io/en/notes/2026-07-18-nextclaw-v0-25-4) 与结构化 `release-notes/nextclaw-v0.25.4.json` 均已生效。
+- 当前正在完成 NPM registry、stable runtime channel 和安装/更新链路部署闭环；不会在发布过程中重启用户正在使用的 NextClaw 0.25.3 实例。
 - 不涉及数据库 migration、Worker 部署或前端独立部署。
 
 ## 用户/产品视角的验收步骤
