@@ -30,6 +30,8 @@
 - `pnpm preflight:governance -- <本轮计划路径>`：文件角色与模块结构两阶段通过。
 - `pnpm lint:new-code:governance` 定向覆盖本轮 23 个源码/治理文件：全部通过。
 - `pnpm check:governance-backlog-ratchet`：通过。
+- 线上 HTTP 验收：`platform.nextclaw.io` 与 `platform-admin.nextclaw.io` 首页、`/logo.svg` 和构建产物均返回 `200`；两个自定义域均声明 `image/svg+xml` favicon。
+- 用户当前 Chrome 验收：`platform.nextclaw.io` 标签页读取到 `https://platform.nextclaw.io/logo.svg`；管理后台管理员筛选收敛为 1 行、账号排序进入升序、额度对话框打开/取消正常。
 - maintainability guard：23 个文件，`0 error / 4 warning`；总代码 `+1504 / -563 / net +941`，非测试代码 `+1344 / -562 / net +782`。本轮包含新增用户能力与通用治理能力，允许正向增量；warning 为两个治理 owner 接近 500 行预算、既有 smoke 目录豁免和 Admin controller 接近 600 行预算，均未越过硬门槛。
 
 ## 发布/部署方式
@@ -38,6 +40,7 @@
 - Worker 不涉及 D1 schema 变更；部署仍执行远程 migration 检查，预期为 `No migrations to apply`。
 - Platform Admin 使用 `pnpm deploy:platform:admin` 发布 Cloudflare Pages；发布后检查自定义域、favicon、静态资产和登录态用户列表真实交互。
 - Platform Console 使用 `pnpm deploy:platform:console` 发布 Cloudflare Pages；发布后在用户当前 Chrome 的既有 `platform.nextclaw.io` 标签页刷新，检查 favicon 声明、资源响应和标签页效果。
+- 实际部署：Worker version `4b89d7e4-827f-4926-9f7c-b5327449e3b8`；Platform Admin Pages `https://e3644c6d.nextclaw-platform-admin.pages.dev`；Platform Console Pages `https://03c177df.nextclaw-platform-console.pages.dev`。
 
 ## 用户/产品视角的验收步骤
 
