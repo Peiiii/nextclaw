@@ -151,7 +151,7 @@ const COPY: Record<Locale, LandingCopy> = {
       }
     ],
     docsButton: 'Read the Docs',
-    screenshotChatSrc: '/nextclaw-hero-workbench-en.png',
+    screenshotChatSrc: new URL('../../../images/screenshots/nextclaw-hero-workbench-en.png', import.meta.url).href,
     showcaseTitle: 'Start work in one connected workspace.',
     showcaseSubtitle:
       'Use conversations, skills, browser panels, and task context together without switching between separate tools.',
@@ -498,7 +498,7 @@ const COPY: Record<Locale, LandingCopy> = {
       }
     ],
     docsButton: '查看文档',
-    screenshotChatSrc: '/nextclaw-hero-workbench-cn.png',
+    screenshotChatSrc: new URL('../../../images/screenshots/nextclaw-hero-workbench-cn.png', import.meta.url).href,
     showcaseTitle: '把任务放在一个工作台里做。',
     showcaseSubtitle: '对话、技能、浏览器和资料放在一起，少一点来回切换。',
     showcaseItems: [
