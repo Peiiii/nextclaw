@@ -207,15 +207,18 @@ async function fulfillNotFound(route) {
 
 async function initializeDashboardPage(page) {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"], { origin: baseUrl });
-  await page.addInitScript(() => {
+  await page.addInitScript((themePreference) => {
     window.localStorage.clear();
     window.localStorage.setItem("nextclaw.platform.token", "demo-token");
+    if (themePreference === "dark") {
+      window.localStorage.setItem("nextclaw.platform.theme", JSON.stringify({ state: { preference: "dark" }, version: 1 }));
+    }
     window.__openedUrls = [];
     window.open = (url) => {
       window.__openedUrls.push(String(url));
       return null;
     };
-  });
+  }, process.env.PLATFORM_CONSOLE_SMOKE_THEME);
 }
 
 async function assertDashboardLanding(page) {
@@ -350,6 +353,12 @@ async function assertDashboardLocaleSwitch(page) {
     if (!zhText.includes(expected)) {
       throw new Error(`Dashboard did not switch expected text to Chinese: ${expected}`);
     }
+  }
+  if (process.env.PLATFORM_CONSOLE_ZH_MOBILE_SCREENSHOT_PATH) {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByTestId("remote-instance-mobile-card").first().waitFor();
+    await page.screenshot({ path: process.env.PLATFORM_CONSOLE_ZH_MOBILE_SCREENSHOT_PATH });
+    await page.setViewportSize({ width: 1440, height: 900 });
   }
 }
 

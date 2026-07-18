@@ -15,9 +15,9 @@ export function AdminUserPagination(props: Props): JSX.Element {
   const from = props.total === 0 ? 0 : (props.page - 1) * props.pageSize + 1;
   const to = props.total === 0 ? 0 : Math.min(props.total, from + props.pageSize - 1);
   return (
-    <div className="flex flex-col gap-3 text-sm text-[#656561] sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-2 text-sm text-[#656561] sm:flex-row sm:items-center sm:justify-between">
       <p className="tabular-nums">{from}–{to} / 共 {props.total} 位用户</p>
-      <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
+      <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 sm:flex sm:flex-wrap">
         <label className="flex items-center gap-2">
           <span>每页</span>
           <select
@@ -29,7 +29,7 @@ export function AdminUserPagination(props: Props): JSX.Element {
             {PAGE_SIZE_OPTIONS.map((option) => <option key={option} value={option}>{option} 条</option>)}
           </select>
         </label>
-        <span className="text-right tabular-nums sm:min-w-[76px] sm:text-center">
+        <span className="text-center tabular-nums sm:min-w-[76px]">
           {props.totalPages === 0 ? '0 / 0' : `${props.page} / ${props.totalPages}`}
         </span>
         <Button

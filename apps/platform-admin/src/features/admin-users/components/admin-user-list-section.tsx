@@ -7,7 +7,6 @@ import type {
   AdminUserSortBy,
   AdminUserSortDirection,
 } from '@/features/admin-users/types/admin-user.types';
-import { AdminSection, AdminSurface } from '@/components/admin/admin-page';
 import { AdminUserListToolbar } from '@/features/admin-users/components/admin-user-list-toolbar';
 import { AdminUserPagination } from '@/features/admin-users/components/admin-user-pagination';
 import { AdminUserQuotaDialog } from '@/features/admin-users/components/admin-user-quota-dialog';
@@ -99,11 +98,12 @@ export function AdminUserListSection({ token }: Props): JSX.Element {
   }
 
   return (
-    <AdminSection
-      title="用户列表"
-      description="浏览、筛选和排序保持轻量；额度修改只在明确选择用户后进入独立操作面板。"
-    >
-      <AdminSurface className="space-y-4 p-3 sm:p-5">
+    <div className="md:space-y-4">
+      <div className="hidden space-y-1 md:block">
+        <h3 className="text-sm font-semibold text-[#1f1f1d]">用户列表</h3>
+        <p className="text-sm leading-6 text-[#656561]">浏览、筛选和排序保持轻量；额度修改只在明确选择用户后进入独立操作面板。</p>
+      </div>
+      <div className="space-y-3 md:space-y-4 md:rounded-2xl md:border md:border-[#e4e0d7] md:bg-white md:p-5 md:shadow-[0_1px_3px_rgba(31,31,29,0.04)]">
         <AdminUserListToolbar
           searchInput={searchInput}
           activeSearch={listQuery.q}
@@ -143,7 +143,7 @@ export function AdminUserListSection({ token }: Props): JSX.Element {
           onPageChange={(page) => setListQuery((current) => ({ ...current, page }))}
           onPageSizeChange={(pageSize) => setListQuery((current) => ({ ...current, page: 1, pageSize }))}
         />
-      </AdminSurface>
+      </div>
 
       {editingUser ? (
         <AdminUserQuotaDialog
@@ -164,7 +164,7 @@ export function AdminUserListSection({ token }: Props): JSX.Element {
           }}
         />
       ) : null}
-    </AdminSection>
+    </div>
   );
 }
 

@@ -36,6 +36,13 @@
       "skills": "My Skills",
       "account": "Account"
     },
+    "mobileNavigation": {
+      "instances": "Instances",
+      "usage": "Usage",
+      "apps": "Apps",
+      "skills": "Skills",
+      "account": "Account"
+    },
     "routeDescriptions": {
       "instances": "Review, filter, and open your remote instances to continue work from the web.",
       "usage": "Review Remote quota, live usage, and billing status.",

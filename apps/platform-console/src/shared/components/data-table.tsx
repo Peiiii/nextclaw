@@ -197,9 +197,9 @@ function DataTablePagination({ pagination }: { pagination: DataTablePagination }
   const to = Math.min(currentPage * pagination.pageSize, pagination.total);
 
   return (
-    <div className="flex flex-col gap-3 text-sm text-[var(--color-foreground-muted)] sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-2 text-sm text-[var(--color-foreground-muted)] sm:flex-row sm:items-center sm:justify-between">
       <span>{pagination.labels.summary(from, to, pagination.total)}</span>
-      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+      <div className="grid w-full grid-cols-[auto_auto_1fr_auto] items-center gap-2 sm:flex sm:w-auto sm:flex-wrap">
         <label className="flex items-center gap-2">
           <span className="text-xs text-[var(--color-foreground-subtle)]">{pagination.labels.pageSize}</span>
           <select
@@ -221,7 +221,7 @@ function DataTablePagination({ pagination }: { pagination: DataTablePagination }
         >
           {pagination.labels.previous}
         </button>
-        <span className="min-w-12 text-center text-xs tabular-nums sm:hidden">{currentPage} / {totalPages}</span>
+        <span className="text-center text-xs tabular-nums sm:hidden">{currentPage} / {totalPages}</span>
         <span className="hidden items-center gap-2 sm:flex">
           {getPageItems(currentPage, totalPages).map((item) => typeof item === 'number' ? (
             <button

@@ -127,7 +127,8 @@ async function assertAdminUsersPage(page) {
 }
 
 async function assertAdminMobileLayout(page) {
-  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileWidth = Number(process.env.PLATFORM_MOBILE_WIDTH ?? 390);
+  await page.setViewportSize({ width: mobileWidth, height: 844 });
   const mobileCard = page.getByTestId("admin-user-mobile-card");
   await mobileCard.waitFor();
 
@@ -135,47 +136,69 @@ async function assertAdminMobileLayout(page) {
     const scrollRegion = document.querySelector('[data-testid="admin-scroll-region"]');
     const mobileList = document.querySelector('[data-testid="admin-mobile-list"]');
     const desktopTable = document.querySelector("table");
-    const navigation = document.querySelector("aside nav");
-    if (!(scrollRegion instanceof HTMLElement) || !(mobileList instanceof HTMLElement) || !(desktopTable instanceof HTMLElement) || !(navigation instanceof HTMLElement)) {
-      throw new Error("Mobile admin layout is missing its scroll region, card list, desktop table, or navigation.");
+    const header = document.querySelector('[data-testid="admin-mobile-header"]');
+    const navigation = document.querySelector('[data-testid="admin-mobile-navigation"]');
+    const firstCard = document.querySelector('[data-testid="admin-user-mobile-card"]');
+    if (!(scrollRegion instanceof HTMLElement) || !(mobileList instanceof HTMLElement) || !(desktopTable instanceof HTMLElement) || !(header instanceof HTMLElement) || !(navigation instanceof HTMLElement) || !(firstCard instanceof HTMLElement)) {
+      throw new Error("Mobile admin layout is missing its shell, navigation, list, card, or desktop table.");
     }
+    const headerBounds = header.getBoundingClientRect();
+    const navigationBounds = navigation.getBoundingClientRect();
+    const scrollBounds = scrollRegion.getBoundingClientRect();
+    const firstCardBounds = firstCard.getBoundingClientRect();
+    const nestedScrollOwners = [...document.querySelectorAll("*")]
+      .filter((element) => element instanceof HTMLElement && element !== scrollRegion && element.offsetParent !== null)
+      .filter((element) => {
+        const overflowY = window.getComputedStyle(element).overflowY;
+        return (overflowY === "auto" || overflowY === "scroll") && element.scrollHeight > element.clientHeight + 1;
+      })
+      .map((element) => element.getAttribute("data-testid") ?? element.tagName.toLowerCase());
     scrollRegion.scrollTop = scrollRegion.scrollHeight;
     const distanceFromBottom = scrollRegion.scrollHeight - scrollRegion.clientHeight - scrollRegion.scrollTop;
-    navigation.scrollLeft = navigation.scrollWidth;
-    const navigationScrolledTo = navigation.scrollLeft;
     scrollRegion.scrollTop = 0;
     return {
       documentClientWidth: document.documentElement.clientWidth,
       documentScrollWidth: document.documentElement.scrollWidth,
       bodyScrollWidth: document.body.scrollWidth,
+      documentScrollHeight: document.documentElement.scrollHeight,
+      viewportHeight: window.innerHeight,
       scrollClientHeight: scrollRegion.clientHeight,
       scrollHeight: scrollRegion.scrollHeight,
       scrolledTo: scrollRegion.scrollTop,
       distanceFromBottom,
-      mobileListDisplay: getComputedStyle(mobileList).display,
-      desktopTableDisplay: getComputedStyle(desktopTable.closest("div")).display,
+      headerHeight: headerBounds.height,
+      navigationHeight: navigationBounds.height,
+      firstCardTop: firstCardBounds.top,
+      firstCardBottom: firstCardBounds.bottom,
+      scrollRegionBottom: scrollBounds.bottom,
+      nestedScrollOwners,
+      mobileListDisplay: window.getComputedStyle(mobileList).display,
+      desktopTableDisplay: window.getComputedStyle(desktopTable.closest("div")).display,
       navigationClientWidth: navigation.clientWidth,
-      navigationScrollWidth: navigation.scrollWidth,
-      navigationScrolledTo
+      navigationScrollWidth: navigation.scrollWidth
     };
   });
+  if (process.env.PLATFORM_ADMIN_MOBILE_SCREENSHOT_PATH) {
+    await page.screenshot({ path: process.env.PLATFORM_ADMIN_MOBILE_SCREENSHOT_PATH });
+  }
   if (mobileLayout.documentScrollWidth > mobileLayout.documentClientWidth || mobileLayout.bodyScrollWidth > mobileLayout.documentClientWidth) {
     throw new Error(`Mobile admin has horizontal page overflow: ${JSON.stringify(mobileLayout)}`);
   }
-  if (mobileLayout.scrollHeight <= mobileLayout.scrollClientHeight || mobileLayout.distanceFromBottom > 2) {
+  if (mobileLayout.distanceFromBottom > 2) {
     throw new Error(`Mobile admin content is not vertically reachable: ${JSON.stringify(mobileLayout)}`);
   }
   if (mobileLayout.mobileListDisplay === "none" || mobileLayout.desktopTableDisplay !== "none") {
     throw new Error(`Mobile admin did not switch from desktop table to task cards: ${JSON.stringify(mobileLayout)}`);
   }
-  if (mobileLayout.navigationScrollWidth > mobileLayout.navigationClientWidth && mobileLayout.navigationScrolledTo <= 0) {
-    throw new Error(`Mobile admin navigation cannot reach its overflowed routes: ${JSON.stringify(mobileLayout)}`);
+  if (mobileLayout.documentScrollHeight > mobileLayout.viewportHeight + 1 || mobileLayout.nestedScrollOwners.length > 0) {
+    throw new Error(`Mobile admin has more than one primary scroll surface: ${JSON.stringify(mobileLayout)}`);
   }
-  if (process.env.PLATFORM_ADMIN_MOBILE_SCREENSHOT_PATH) {
-    await mobileCard.scrollIntoViewIfNeeded();
-    await page.screenshot({ path: process.env.PLATFORM_ADMIN_MOBILE_SCREENSHOT_PATH });
+  if (mobileLayout.headerHeight > 56 || mobileLayout.navigationHeight > 64 || mobileLayout.navigationScrollWidth > mobileLayout.navigationClientWidth) {
+    throw new Error(`Mobile admin chrome is oversized or horizontally scrollable: ${JSON.stringify(mobileLayout)}`);
   }
-
+  if (mobileLayout.firstCardTop > 260 || mobileLayout.firstCardBottom > mobileLayout.scrollRegionBottom) {
+    throw new Error(`Mobile admin does not show the first complete task card in the initial viewport: ${JSON.stringify(mobileLayout)}`);
+  }
   await mobileCard.getByRole("button", { name: "管理额度", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "管理用户额度" });
   await dialog.waitFor();
@@ -183,7 +206,7 @@ async function assertAdminMobileLayout(page) {
     const rect = element.getBoundingClientRect();
     return { top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left };
   });
-  if (dialogBounds.top < 0 || dialogBounds.left < 0 || dialogBounds.right > 390 || dialogBounds.bottom > 844) {
+  if (dialogBounds.top < 0 || dialogBounds.left < 0 || dialogBounds.right > mobileWidth || dialogBounds.bottom > 844) {
     throw new Error(`Mobile quota dialog escapes the viewport: ${JSON.stringify(dialogBounds)}`);
   }
   await dialog.getByRole("button", { name: "取消", exact: true }).click();

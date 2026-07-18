@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react';
 import type { RemoteInstance } from '@/api/types';
 import { Button } from '@/shared/components/button';
-import { Card, CardTitle } from '@/shared/components/card';
+import { CardTitle } from '@/shared/components/card';
 import { DataTable, type DataTableColumn } from '@/shared/components/data-table';
 import { Input } from '@/shared/components/input';
 import {
@@ -45,8 +45,8 @@ export function RemoteInstancesCard(props: RemoteInstancesCardProps): JSX.Elemen
   }
 
   return (
-    <Card className="space-y-4 rounded-2xl p-3 sm:p-5">
-      <div className="space-y-1">
+    <section className="space-y-3 sm:space-y-4 sm:rounded-2xl sm:border sm:border-[var(--color-border)] sm:bg-[var(--color-surface)] sm:p-5 sm:shadow-[0_1px_3px_rgba(31,31,29,0.04)]">
+      <div className="hidden space-y-1 sm:block">
         <CardTitle>{props.t('remote.title')}</CardTitle>
         <p className="text-sm leading-6 text-[var(--color-foreground-muted)]">{props.t('remote.description')}</p>
       </div>
@@ -115,7 +115,7 @@ export function RemoteInstancesCard(props: RemoteInstancesCardProps): JSX.Elemen
           onRevokeShare={(grantId, instanceId) => actions.mutations.revokeShare.mutate({ grantId, instanceId })}
         />
       ) : null}
-    </Card>
+    </section>
   );
 }
 
@@ -187,10 +187,10 @@ function RemoteInstanceTableToolbar(props: {
   onListScopeChanged: () => void;
 }): JSX.Element {
   return (
-    <div className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-canvas)] p-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 sm:space-y-3 sm:bg-[var(--color-canvas)] sm:p-3">
+      <div className="flex items-center justify-between gap-2">
         <div
-          className="inline-flex rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface)] p-1"
+          className="inline-flex min-w-0 rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface)] p-0.5 sm:p-1"
           role="group"
           aria-label={props.t('remote.filters.archiveLabel')}
         >
@@ -200,8 +200,8 @@ function RemoteInstanceTableToolbar(props: {
               type="button"
               aria-pressed={props.list.listQuery.archiveStatus === archiveStatus}
               className={props.list.listQuery.archiveStatus === archiveStatus
-                ? 'rounded-md bg-brand-500 px-3 py-1.5 text-xs font-medium text-white'
-                : 'rounded-md px-3 py-1.5 text-xs font-medium text-[var(--color-foreground-muted)] hover:bg-[var(--color-surface-muted)]'}
+                ? 'rounded-md bg-brand-500 px-2.5 py-1.5 text-xs font-medium text-white sm:px-3'
+                : 'rounded-md px-2.5 py-1.5 text-xs font-medium text-[var(--color-foreground-muted)] hover:bg-[var(--color-surface-muted)] sm:px-3'}
               onClick={() => {
                 props.list.setArchiveStatus(archiveStatus);
                 props.onListScopeChanged();
@@ -211,23 +211,11 @@ function RemoteInstanceTableToolbar(props: {
             </button>
           ))}
         </div>
-        {props.list.query.isFetching && !props.list.query.isLoading ? (
-          <span className="text-xs text-[var(--color-foreground-subtle)]" role="status">{props.t('remote.messages.refreshing')}</span>
-        ) : null}
-      </div>
-
-      <form className="flex flex-col gap-2 lg:flex-row lg:items-center" onSubmit={props.onSearch}>
-        <Input
-          className="lg:max-w-[360px]"
-          value={props.list.searchInput}
-          placeholder={props.t('remote.filters.searchPlaceholder')}
-          aria-label={props.t('remote.filters.searchPlaceholder')}
-          onChange={(event) => props.list.setSearchInput(event.target.value)}
-        />
-        <label className="flex min-w-0 items-center gap-2 text-xs text-[var(--color-foreground-muted)]">
-          <span className="shrink-0">{props.t('remote.filters.connectionLabel')}</span>
+        <label className="min-w-0 flex-1 sm:flex-none">
+          <span className="sr-only">{props.t('remote.filters.connectionLabel')}</span>
           <select
-            className="h-10 min-w-0 flex-1 rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-foreground)] outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 sm:min-w-[132px] sm:flex-none"
+            aria-label={props.t('remote.filters.connectionLabel')}
+            className="h-9 w-full rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-2 text-xs text-[var(--color-foreground)] outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 sm:min-w-[132px] sm:px-3 sm:text-sm"
             value={props.list.listQuery.connectionStatus}
             onChange={(event) => {
               props.list.setConnectionStatus(event.target.value as 'all' | 'online' | 'offline');
@@ -239,13 +227,26 @@ function RemoteInstanceTableToolbar(props: {
             <option value="offline">{props.t('remote.filters.connection.offline')}</option>
           </select>
         </label>
-        <div className="flex items-center gap-2 lg:ml-auto">
-          <Button type="submit" className="h-10 flex-1 sm:flex-none">{props.t('remote.filters.search')}</Button>
+        {props.list.query.isFetching && !props.list.query.isLoading ? (
+          <span className="hidden text-xs text-[var(--color-foreground-subtle)] sm:inline" role="status">{props.t('remote.messages.refreshing')}</span>
+        ) : null}
+      </div>
+
+      <form className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex sm:items-center" onSubmit={props.onSearch}>
+        <Input
+          className="min-w-0 sm:max-w-[360px]"
+          value={props.list.searchInput}
+          placeholder={props.t('remote.filters.searchPlaceholder')}
+          aria-label={props.t('remote.filters.searchPlaceholder')}
+          onChange={(event) => props.list.setSearchInput(event.target.value)}
+        />
+        <div className="flex items-center gap-1 sm:ml-auto sm:gap-2">
+          <Button type="submit" className="h-10 px-3 sm:flex-none">{props.t('remote.filters.search')}</Button>
           {props.hasActiveFilters || props.list.searchInput ? (
             <Button
               type="button"
               variant="ghost"
-              className="h-10 flex-1 sm:flex-none"
+              className="h-10 px-2 sm:flex-none sm:px-3"
               onClick={() => {
                 props.list.resetFilters();
                 props.onListScopeChanged();

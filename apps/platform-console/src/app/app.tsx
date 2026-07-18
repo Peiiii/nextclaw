@@ -80,7 +80,7 @@ function ConsoleWorkbench(): JSX.Element {
 
   return (
     <main className="h-dvh overflow-hidden bg-[var(--color-canvas)] text-[var(--color-foreground)]">
-      <div className="mx-auto h-full w-full max-w-[1680px] px-2 py-2 md:px-5 md:py-4 xl:px-6">
+      <div className="mx-auto h-full w-full max-w-[1680px] md:px-5 md:py-4 xl:px-6">
         <ConsoleShell
           shellLabel={t('app.workbenchTag')}
           routes={routes}

@@ -36,6 +36,13 @@
       "skills": "我的 Skills",
       "account": "账号"
     },
+    "mobileNavigation": {
+      "instances": "实例",
+      "usage": "用量",
+      "apps": "Apps",
+      "skills": "Skills",
+      "account": "账号"
+    },
     "routeDescriptions": {
       "instances": "查看、筛选并打开你的远程实例，继续当前工作流。",
       "usage": "查看 Remote 额度、实时用量和充值状态。",

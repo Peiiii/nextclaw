@@ -13,12 +13,12 @@ export function RemoteInstanceMobileCard(props: {
 }): JSX.Element {
   const { actions, instance } = props;
   return (
-    <article data-testid="remote-instance-mobile-card" className="space-y-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[0_1px_2px_rgba(31,31,29,0.04)]">
+    <article data-testid="remote-instance-mobile-card" className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[0_1px_2px_rgba(31,31,29,0.04)]">
       <div className="flex min-w-0 items-start justify-between gap-3">
         <RemoteInstanceIdentity instance={instance} locale={props.locale} t={props.t} onCopy={actions.commands.copyInstanceId} />
         <RemoteInstanceStatus instance={instance} t={props.t} />
       </div>
-      <dl className="grid grid-cols-2 gap-3 rounded-lg bg-[var(--color-surface-muted)] p-3 text-xs">
+      <dl className="grid grid-cols-2 gap-3 border-y border-[var(--color-border-subtle)] py-2 text-xs">
         <div className="min-w-0">
           <dt className="text-[var(--color-foreground-subtle)]">{props.t('remote.table.platform')}</dt>
           <dd className="mt-1 truncate capitalize font-medium text-[var(--color-foreground)]">{instance.platform}</dd>
@@ -111,7 +111,7 @@ export function RemoteInstanceActions(props: {
   const { instance } = props;
   if (instance.archivedAt) {
     return (
-      <div data-testid="remote-instance-actions" className="flex flex-wrap items-center gap-2 md:justify-end md:gap-1">
+      <div data-testid="remote-instance-actions" className="grid grid-cols-2 gap-1 min-[360px]:flex min-[360px]:flex-wrap md:justify-end">
         <Button type="button" variant="secondary" className="h-8 px-2 text-xs" disabled={props.isRestoring} onClick={() => props.onRestore(instance.id)}>
           {props.t('remote.actions.restore')}
         </Button>
@@ -125,7 +125,7 @@ export function RemoteInstanceActions(props: {
   const isOffline = instance.status !== 'online';
   const offlineTitle = isOffline ? props.t('remote.actions.offlineHint') : undefined;
   return (
-    <div data-testid="remote-instance-actions" className="flex flex-wrap items-center gap-2 md:justify-end md:gap-1">
+    <div data-testid="remote-instance-actions" className="grid grid-cols-2 gap-1 min-[360px]:flex min-[360px]:flex-wrap md:justify-end">
       <Button
         type="button"
         className="h-8 px-2 text-xs"

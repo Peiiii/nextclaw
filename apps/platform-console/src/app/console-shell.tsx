@@ -35,60 +35,44 @@ export function ConsoleShell({
   themeSwitcher,
   children
 }: Props): JSX.Element {
+  const footerProps = {
+    accountHref: '/account',
+    accountLabel,
+    currentUserMeta,
+    currentUserName,
+    languageLabel,
+    localeSwitcher,
+    logoutLabel,
+    onLogout,
+    themeLabel,
+    themeSwitcher
+  };
+
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_20px_60px_rgba(31,31,29,0.08)] md:flex-row md:rounded-[24px]">
-      <aside className="flex w-full shrink-0 flex-col border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] md:w-[248px] md:border-b-0 md:border-r">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--color-surface)] md:flex-row md:rounded-[24px] md:border md:border-[var(--color-border)] md:shadow-[0_20px_60px_rgba(31,31,29,0.08)]">
+      <header data-testid="console-mobile-header" className="relative z-40 flex h-14 shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 md:hidden">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-foreground-subtle)]">NextClaw</p>
+          <h1 className="truncate text-sm font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">{currentRoute.label}</h1>
+        </div>
+        <ConsoleSidebarFooter {...footerProps} variant="mobile" />
+      </header>
+
+      <aside className="hidden w-[248px] shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface-muted)] md:flex">
         <div className="shrink-0 border-b border-[var(--color-border)] px-4 py-2.5 md:px-5 md:py-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-foreground-subtle)]">NextClaw</p>
           <h1 className="mt-1 text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)] md:mt-2 md:text-[17px]">Platform</h1>
         </div>
 
-        <nav className="shrink-0 overflow-x-auto overscroll-x-contain px-2 py-1.5 md:flex-1 md:overflow-y-auto md:px-3 md:py-4">
-          <ul className="flex gap-1.5 md:block md:space-y-1.5">
-            {routes.map((route) => (
-              <li key={route.key} className="shrink-0">
-                <NavLink
-                  to={route.href}
-                  end={route.href === '/'}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors md:gap-3 md:py-2.5',
-                      isActive
-                        ? 'bg-[var(--color-surface)] text-[var(--color-foreground)] shadow-[0_1px_2px_rgba(31,31,29,0.05)]'
-                        : 'text-[var(--color-foreground-muted)] hover:bg-[var(--color-surface)]/70 hover:text-[var(--color-foreground)]'
-                    )
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <ConsoleNavigationIcon routeKey={route.key} isActive={isActive} />
-                      <span className="whitespace-nowrap md:truncate">{route.label}</span>
-                    </>
-                  )}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <ConsoleNavigation routes={routes} variant="desktop" />
 
         <div className="relative z-30 shrink-0 border-t border-[var(--color-border)] px-2 py-1.5 md:px-3 md:py-3">
-          <ConsoleSidebarFooter
-            accountHref="/account"
-            accountLabel={accountLabel}
-            currentUserMeta={currentUserMeta}
-            currentUserName={currentUserName}
-            languageLabel={languageLabel}
-            localeSwitcher={localeSwitcher}
-            logoutLabel={logoutLabel}
-            onLogout={onLogout}
-            themeLabel={themeLabel}
-            themeSwitcher={themeSwitcher}
-          />
+          <ConsoleSidebarFooter {...footerProps} variant="desktop" />
         </div>
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--color-canvas)]">
-        <header className="sticky top-0 z-10 shrink-0 border-b border-[var(--color-border)] bg-[var(--color-canvas)]">
+        <header className="sticky top-0 z-10 hidden shrink-0 border-b border-[var(--color-border)] bg-[var(--color-canvas)] md:block">
           <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between gap-3 px-3 py-2.5 sm:px-4 sm:py-3 md:px-8 md:py-4">
             <div className="min-w-0">
               <p className="hidden text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-foreground-subtle)] sm:block">{shellLabel}</p>
@@ -104,11 +88,70 @@ export function ConsoleShell({
           </div>
         </header>
 
-        <main data-testid="console-scroll-region" className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
-          <div className="mx-auto w-full max-w-[1200px] px-3 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6">{children}</div>
+        <main data-testid="console-scroll-region" className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain">
+          <div className="mx-auto w-full max-w-[1200px] px-3 py-3 sm:px-6 sm:py-5 lg:px-8 lg:py-6">{children}</div>
         </main>
+        <ConsoleNavigation routes={routes} variant="mobile" />
       </div>
     </div>
+  );
+}
+
+function ConsoleNavigation(props: { routes: UserConsoleRoute[]; variant: 'desktop' | 'mobile' }): JSX.Element {
+  if (props.variant === 'mobile') {
+    return (
+      <nav data-testid="console-mobile-navigation" className="shrink-0 border-t border-[var(--color-border)] bg-[var(--color-surface)] pb-[env(safe-area-inset-bottom)] md:hidden">
+        <ul className="grid grid-cols-5">
+          {props.routes.map((route) => (
+            <li key={route.key} className="min-w-0">
+              <NavLink
+                to={route.href}
+                end={route.href === '/'}
+                className={({ isActive }) => cn(
+                  'flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[10px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-200',
+                  isActive ? 'text-brand-700 dark:text-brand-300' : 'text-[var(--color-foreground-subtle)]'
+                )}
+              >
+                {({ isActive }) => (
+                  <>
+                    <ConsoleNavigationIcon routeKey={route.key} isActive={isActive} />
+                    <span className="w-full truncate text-center">{route.mobileLabel}</span>
+                  </>
+                )}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    );
+  }
+
+  return (
+    <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+      <ul className="space-y-1.5">
+        {props.routes.map((route) => (
+          <li key={route.key}>
+            <NavLink
+              to={route.href}
+              end={route.href === '/'}
+              className={({ isActive }) => cn(
+                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                isActive
+                  ? 'bg-[var(--color-surface)] text-[var(--color-foreground)] shadow-[0_1px_2px_rgba(31,31,29,0.05)]'
+                  : 'text-[var(--color-foreground-muted)] hover:bg-[var(--color-surface)]/70 hover:text-[var(--color-foreground)]'
+              )}
+            >
+              {({ isActive }) => (
+                <>
+                  <ConsoleNavigationIcon routeKey={route.key} isActive={isActive} />
+                  <span className="truncate">{route.label}</span>
+                </>
+              )}
+            </NavLink>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
 

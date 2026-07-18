@@ -5,6 +5,7 @@ export type UserConsoleRouteKey = 'instances' | 'usage' | 'apps' | 'skills' | 'a
 export type UserConsoleRoute = {
   key: UserConsoleRouteKey;
   label: string;
+  mobileLabel: string;
   description: string;
   href: string;
 };
@@ -27,30 +28,35 @@ export function getUserConsoleRoutes(t: Translate): UserConsoleRoute[] {
     {
       key: 'instances',
       label: t('app.navigation.home'),
+      mobileLabel: t('app.mobileNavigation.instances'),
       description: t('app.routeDescriptions.instances'),
       href: '/'
     },
     {
       key: 'usage',
       label: t('app.navigation.usage'),
+      mobileLabel: t('app.mobileNavigation.usage'),
       description: t('app.routeDescriptions.usage'),
       href: '/usage'
     },
     {
       key: 'apps',
       label: t('app.navigation.apps'),
+      mobileLabel: t('app.mobileNavigation.apps'),
       description: t('app.routeDescriptions.apps'),
       href: '/apps'
     },
     {
       key: 'skills',
       label: t('app.navigation.skills'),
+      mobileLabel: t('app.mobileNavigation.skills'),
       description: t('app.routeDescriptions.skills'),
       href: '/skills'
     },
     {
       key: 'account',
       label: t('app.navigation.account'),
+      mobileLabel: t('app.mobileNavigation.account'),
       description: t('app.routeDescriptions.account'),
       href: '/account'
     }

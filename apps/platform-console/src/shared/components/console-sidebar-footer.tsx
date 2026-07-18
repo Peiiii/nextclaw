@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 type Props = {
+  variant: 'desktop' | 'mobile';
   accountHref: string;
   accountLabel: string;
   currentUserMeta: string;
@@ -18,29 +19,32 @@ type Props = {
 export function ConsoleSidebarFooter(props: Props): JSX.Element {
   const avatarLabel = props.currentUserName.trim().charAt(0).toUpperCase() || 'N';
 
-  return (
-    <>
-      <details className="group md:hidden">
-        <summary className="flex min-w-0 cursor-pointer list-none items-center gap-3 rounded-xl px-2 py-1.5 outline-none transition-colors hover:bg-[var(--color-surface)] focus-visible:ring-2 focus-visible:ring-brand-200 [&::-webkit-details-marker]:hidden">
+  if (props.variant === 'mobile') {
+    return (
+      <details className="group relative">
+        <summary aria-label={props.accountLabel} className="flex size-10 cursor-pointer list-none items-center justify-center rounded-full outline-none transition-colors hover:bg-[var(--color-surface-muted)] focus-visible:ring-2 focus-visible:ring-brand-200 [&::-webkit-details-marker]:hidden">
           <Avatar label={avatarLabel} />
-          <AccountIdentity name={props.currentUserName} meta={props.currentUserMeta} />
-          <ChevronIcon className="rotate-90 group-open:-rotate-90" />
         </summary>
-        <div className="absolute left-0 right-0 top-full max-h-[calc(100dvh-160px)] space-y-1 overflow-y-auto border-y border-[var(--color-border)] bg-[var(--color-surface-muted)] p-2 shadow-[0_18px_40px_rgba(31,31,29,0.16)]">
+        <div className="absolute right-0 top-[calc(100%+8px)] max-h-[calc(100dvh-132px)] w-[min(320px,calc(100vw-24px))] space-y-1 overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-[0_18px_48px_rgba(31,31,29,0.18)]">
+          <div className="mb-1 flex min-w-0 items-center gap-3 border-b border-[var(--color-border)] px-3 py-2.5">
+            <AccountIdentity name={props.currentUserName} meta={props.currentUserMeta} />
+          </div>
           <MobileAccountLink href={props.accountHref} label={props.accountLabel} />
           <PreferenceRow icon={<LanguageIcon />} label={props.languageLabel} control={props.localeSwitcher} />
           <PreferenceRow icon={<ThemeIcon />} label={props.themeLabel} control={props.themeSwitcher} />
           <LogoutButton label={props.logoutLabel} onLogout={props.onLogout} />
         </div>
       </details>
+    );
+  }
 
-      <div className="hidden gap-1 md:grid">
-        <AccountLink {...props} avatarLabel={avatarLabel} />
-        <PreferenceRow icon={<LanguageIcon />} label={props.languageLabel} control={props.localeSwitcher} />
-        <PreferenceRow icon={<ThemeIcon />} label={props.themeLabel} control={props.themeSwitcher} />
-        <LogoutButton label={props.logoutLabel} onLogout={props.onLogout} />
-      </div>
-    </>
+  return (
+    <div className="grid gap-1">
+      <AccountLink {...props} avatarLabel={avatarLabel} />
+      <PreferenceRow icon={<LanguageIcon />} label={props.languageLabel} control={props.localeSwitcher} />
+      <PreferenceRow icon={<ThemeIcon />} label={props.themeLabel} control={props.themeSwitcher} />
+      <LogoutButton label={props.logoutLabel} onLogout={props.onLogout} />
+    </div>
   );
 }
 

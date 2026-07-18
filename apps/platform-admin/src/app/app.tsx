@@ -68,7 +68,7 @@ export default function App(): JSX.Element {
 
   return (
     <main className="h-dvh overflow-hidden bg-[#f9f8f5] text-[#1f1f1d]">
-      <div className="mx-auto h-full w-full max-w-[1680px] px-2 py-2 md:px-5 md:py-4 xl:px-6">
+      <div className="mx-auto h-full w-full max-w-[1680px] md:px-5 md:py-4 xl:px-6">
         <AdminDashboardPage token={token} user={currentUser} onLogout={logout} />
       </div>
     </main>
