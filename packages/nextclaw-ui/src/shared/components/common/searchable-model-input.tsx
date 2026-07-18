@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { Input } from '@/shared/components/ui/input';
 import {
@@ -28,14 +28,7 @@ type SearchableModelInputProps = {
 const SEARCHABLE_MODEL_MENU_MAX_HEIGHT = createPopoverAvailableHeightLimit('15rem');
 
 function normalizeOptions(options: string[]): string[] {
-  const deduped = new Set<string>();
-  for (const option of options) {
-    const trimmed = option.trim();
-    if (trimmed.length > 0) {
-      deduped.add(trimmed);
-    }
-  }
-  return [...deduped];
+  return [...new Set(options.map((option) => option.trim()).filter(Boolean))];
 }
 
 export function SearchableModelInput({
@@ -54,6 +47,7 @@ export function SearchableModelInput({
   onEnter
 }: SearchableModelInputProps) {
   const [open, setOpen] = useState(false);
+  const anchorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (disabled && open) {
@@ -95,7 +89,7 @@ export function SearchableModelInput({
       onOpenChange={(nextOpen) => setOpen(!disabled && nextOpen)}
     >
       <PopoverAnchor asChild>
-        <div className={cn('relative', className)}>
+        <div ref={anchorRef} className={cn('relative', className)}>
           <Input
             id={id}
             value={value}
@@ -141,6 +135,11 @@ export function SearchableModelInput({
       <PopoverContent
         align="start"
         className="flex w-[var(--radix-popover-trigger-width)] min-w-[12rem] flex-col overflow-hidden rounded-xl border border-gray-200 p-0 shadow-lg"
+        onInteractOutside={(event) => {
+          if (event.target instanceof Node && anchorRef.current?.contains(event.target)) {
+            event.preventDefault();
+          }
+        }}
         onOpenAutoFocus={(event) => event.preventDefault()}
         style={{ maxHeight: SEARCHABLE_MODEL_MENU_MAX_HEIGHT }}
       >
