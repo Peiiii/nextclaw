@@ -6,12 +6,6 @@
       "Status": "Enabled",
       "Expiration": {
         "Days": 90
-      },
-      "NoncurrentVersionExpiration": {
-        "NoncurrentDays": 30
-      },
-      "AbortMultipartUpload": {
-        "Days": 7
       }
     },
     {
