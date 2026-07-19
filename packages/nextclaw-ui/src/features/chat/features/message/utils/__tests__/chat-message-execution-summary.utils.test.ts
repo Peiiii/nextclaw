@@ -10,7 +10,6 @@ const labels = {
   output: "output",
   tokens: "tokens",
   partial: "partial usage",
-  unavailable: "Token usage unavailable",
 };
 
 const presentationLabels = {
@@ -85,7 +84,7 @@ describe("buildChatMessageExecutionSummary", () => {
     ).toBe("openai/gpt-5 · 143k input / 307 output");
   });
 
-  it("shows partial and unavailable states without inventing zero usage", () => {
+  it("shows partial usage and keeps unavailable usage out of the footer", () => {
     const base = {
       version: 1,
       runId: "run-1",
@@ -111,23 +110,36 @@ describe("buildChatMessageExecutionSummary", () => {
         labels,
       }),
     ).toBe("gpt-5 · 2k input · partial usage");
+    const unavailableExecution = {
+      ...base,
+      usage: {
+        inputTokens: null,
+        outputTokens: null,
+        cachedInputTokens: null,
+        totalTokens: null,
+        modelCallCount: null,
+        reportedModelCallCount: null,
+        status: "unavailable" as const,
+      },
+    };
     expect(
       buildChatMessageExecutionSummary({
-        message: createMessage({
-          ...base,
-          usage: {
-            inputTokens: null,
-            outputTokens: null,
-            cachedInputTokens: null,
-            totalTokens: null,
-            modelCallCount: null,
-            reportedModelCallCount: null,
-            status: "unavailable",
-          },
-        }),
+        message: createMessage(unavailableExecution),
         labels,
       }),
-    ).toBe("gpt-5 · Token usage unavailable");
+    ).toBe("gpt-5");
+
+    const presentation = buildChatMessageExecutionPresentation({
+      message: createMessage(unavailableExecution),
+      labels: presentationLabels,
+    });
+    expect(presentation?.summaryLabel).toBe("gpt-5");
+    expect(presentation?.moreActions.items[0]?.dialog?.rows).toEqual(
+      expect.arrayContaining([
+        { label: "Input tokens", value: "Not available" },
+        { label: "Usage status", value: "Unavailable" },
+      ]),
+    );
   });
 
   it("keeps cached and exact token counts in the metadata detail action", () => {

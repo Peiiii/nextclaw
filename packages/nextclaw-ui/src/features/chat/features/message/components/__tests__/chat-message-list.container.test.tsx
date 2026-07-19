@@ -358,7 +358,7 @@ it("derives completed assistant process duration from message lifecycle", () => 
   });
 });
 
-it("projects ai execution metadata into the assistant message footer summary", () => {
+it("keeps unavailable ai usage in metadata but out of the footer", () => {
   const assistantMessage = {
     id: "assistant-execution",
     sessionId: "session-1",
@@ -375,13 +375,13 @@ it("projects ai execution metadata into the assistant message footer summary", (
         requestedModel: null,
         outcome: "completed",
         usage: {
-          inputTokens: 1_200,
-          outputTokens: 200,
-          cachedInputTokens: 500,
-          totalTokens: 1_400,
-          modelCallCount: 1,
-          reportedModelCallCount: 1,
-          status: "reported",
+          inputTokens: null,
+          outputTokens: null,
+          cachedInputTokens: null,
+          totalTokens: null,
+          modelCallCount: null,
+          reportedModelCallCount: null,
+          status: "unavailable",
         },
       },
     },
@@ -397,8 +397,7 @@ it("projects ai execution metadata into the assistant message footer summary", (
   const renderedMessages =
     captures.renders[captures.renders.length - 1]?.messages ?? [];
   expect(renderedMessages[0]).toMatchObject({
-    executionSummaryLabel:
-      "openai/gpt-5 · 1.2k chatAiExecutionInput / 200 chatAiExecutionOutput",
+    executionSummaryLabel: "openai/gpt-5",
     moreActions: {
       triggerLabel: "chatMessageMoreActions",
       items: [
@@ -408,8 +407,8 @@ it("projects ai execution metadata into the assistant message footer summary", (
           dialog: {
             rows: expect.arrayContaining([
               {
-                label: "chatAiExecutionCachedInputTokens",
-                value: "500",
+                label: "chatAiExecutionUsageStatus",
+                value: "chatAiExecutionUsageUnavailable",
               },
             ]),
           },

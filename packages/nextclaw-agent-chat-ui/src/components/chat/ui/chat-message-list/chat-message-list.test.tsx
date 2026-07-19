@@ -169,6 +169,9 @@ it("opens persisted run metadata from the message more-actions menu", async () =
   await waitFor(() => {
     expect(screen.queryByRole("dialog", { name: "AI run metadata" })).toBeNull();
   });
+  expect(document.activeElement).toBe(
+    screen.getByRole("button", { name: "More actions" }),
+  );
 });
 
 it("renders unknown parts with fallback label", () => {

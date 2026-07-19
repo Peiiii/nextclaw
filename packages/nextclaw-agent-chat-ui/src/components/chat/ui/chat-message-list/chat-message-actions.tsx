@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type RefObject } from "react";
-import { Check, Copy, MoreHorizontal, X } from "lucide-react";
+import { Check, Copy, MoreHorizontal } from "lucide-react";
 import { useCopyFeedback } from "@agent-chat-ui/components/chat/hooks/use-copy-feedback";
 import type {
   ChatMessageDetailActionViewModel,
@@ -49,61 +49,57 @@ function ChatMessageActionCopy({
 
 function ChatMessageDetailDialog({
   action,
+  open,
   onOpenChange,
   restoreFocusRef,
 }: {
-  action: ChatMessageDetailActionViewModel | null;
+  action: ChatMessageDetailActionViewModel;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
   restoreFocusRef: RefObject<HTMLButtonElement | null>;
 }) {
-  const { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } =
-    ChatUiPrimitives;
+  const {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+  } = ChatUiPrimitives;
   return (
-    <Dialog open={Boolean(action)} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        className="sm:max-w-xl"
+        closeLabel={action.dialog.closeLabel}
         onCloseAutoFocus={(event) => {
           event.preventDefault();
           restoreFocusRef.current?.focus();
         }}
       >
-        {action ? (
-          <>
-            <div className="space-y-1 pr-10">
-              <DialogTitle className="text-lg font-semibold leading-tight text-foreground">
-                {action.dialog.title}
-              </DialogTitle>
-              {action.dialog.description ? (
-                <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
-                  {action.dialog.description}
-                </DialogDescription>
-              ) : null}
+        <DialogHeader className="space-y-1 pr-8 text-left">
+          <DialogTitle className="text-lg font-semibold leading-tight text-foreground">
+            {action.dialog.title}
+          </DialogTitle>
+          {action.dialog.description ? (
+            <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
+              {action.dialog.description}
+            </DialogDescription>
+          ) : null}
+        </DialogHeader>
+        <dl className="divide-y divide-border/70 rounded-xl border border-border/80 bg-muted/20 px-4">
+          {action.dialog.rows.map((row) => (
+            <div
+              key={row.label}
+              className="grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-4"
+            >
+              <dt className="text-xs font-medium text-muted-foreground">
+                {row.label}
+              </dt>
+              <dd className="min-w-0 break-all font-mono text-xs leading-5 text-foreground">
+                {row.value}
+              </dd>
             </div>
-            <DialogClose asChild>
-              <button
-                type="button"
-                aria-label={action.dialog.closeLabel}
-                className="absolute right-4 top-4 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </DialogClose>
-            <dl className="mt-5 divide-y divide-border/70 rounded-xl border border-border/80 bg-muted/20 px-4">
-              {action.dialog.rows.map((row) => (
-                <div
-                  key={row.label}
-                  className="grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-4"
-                >
-                  <dt className="text-xs font-medium text-muted-foreground">
-                    {row.label}
-                  </dt>
-                  <dd className="min-w-0 break-all font-mono text-xs leading-5 text-foreground">
-                    {row.value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </>
-        ) : null}
+          ))}
+        </dl>
       </DialogContent>
     </Dialog>
   );
@@ -111,6 +107,7 @@ function ChatMessageDetailDialog({
 
 function ChatMessageActionMore({ message }: { message: ChatMessageViewModel }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [selectedAction, setSelectedAction] =
     useState<ChatMessageDetailActionViewModel | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -159,6 +156,7 @@ function ChatMessageActionMore({ message }: { message: ChatMessageViewModel }) {
               onClick={() => {
                 setMenuOpen(false);
                 setSelectedAction(action);
+                setDetailOpen(true);
               }}
             >
               {action.label}
@@ -166,13 +164,14 @@ function ChatMessageActionMore({ message }: { message: ChatMessageViewModel }) {
           ))}
         </PopoverContent>
       </Popover>
-      <ChatMessageDetailDialog
-        action={selectedAction}
-        onOpenChange={(open) => {
-          if (!open) setSelectedAction(null);
-        }}
-        restoreFocusRef={triggerRef}
-      />
+      {selectedAction ? (
+        <ChatMessageDetailDialog
+          action={selectedAction}
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          restoreFocusRef={triggerRef}
+        />
+      ) : null}
     </>
   );
 }

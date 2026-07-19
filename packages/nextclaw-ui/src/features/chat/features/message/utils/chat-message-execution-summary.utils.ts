@@ -10,7 +10,6 @@ export type ChatMessageExecutionSummaryLabels = {
   output: string;
   tokens: string;
   partial: string;
-  unavailable: string;
 };
 
 export type ChatMessageExecutionPresentationLabels =
@@ -69,10 +68,6 @@ function buildExecutionSummary(
   execution: NcpAiExecutionMetadata,
   labels: ChatMessageExecutionSummaryLabels,
 ): string {
-  if (execution.usage.status === "unavailable") {
-    return `${execution.model} · ${labels.unavailable}`;
-  }
-
   const tokenSegments: string[] = [];
   if (execution.usage.inputTokens !== null) {
     tokenSegments.push(
@@ -90,7 +85,7 @@ function buildExecutionSummary(
     );
   }
   if (tokenSegments.length === 0) {
-    tokenSegments.push(labels.unavailable);
+    return execution.model;
   }
   const summary = `${execution.model} · ${tokenSegments.join(" / ")}`;
   return execution.usage.status === "partial"

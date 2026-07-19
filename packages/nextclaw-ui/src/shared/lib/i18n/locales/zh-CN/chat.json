@@ -153,7 +153,6 @@
   "chatAiExecutionOutput": "输出",
   "chatAiExecutionTokens": "Token",
   "chatAiExecutionPartial": "部分用量",
-  "chatAiExecutionUnavailable": "Token 用量不可用",
   "chatMessageMoreActions": "更多操作",
   "chatAiExecutionViewMetadata": "查看运行元数据",
   "chatAiExecutionMetadataTitle": "AI 运行元数据",

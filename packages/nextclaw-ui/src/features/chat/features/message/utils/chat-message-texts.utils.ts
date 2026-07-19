@@ -107,7 +107,6 @@ export function buildChatMessageExecutionLabels(
     output: t("chatAiExecutionOutput"),
     tokens: t("chatAiExecutionTokens"),
     partial: t("chatAiExecutionPartial"),
-    unavailable: t("chatAiExecutionUnavailable"),
     moreActions: t("chatMessageMoreActions"),
     viewMetadata: t("chatAiExecutionViewMetadata"),
     metadataTitle: t("chatAiExecutionMetadataTitle"),

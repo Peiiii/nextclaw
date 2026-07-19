@@ -153,7 +153,6 @@
   "chatAiExecutionOutput": "output",
   "chatAiExecutionTokens": "tokens",
   "chatAiExecutionPartial": "partial usage",
-  "chatAiExecutionUnavailable": "Token usage unavailable",
   "chatMessageMoreActions": "More actions",
   "chatAiExecutionViewMetadata": "View run metadata",
   "chatAiExecutionMetadataTitle": "AI run metadata",

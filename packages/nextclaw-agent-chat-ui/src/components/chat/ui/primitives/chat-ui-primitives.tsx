@@ -1,9 +1,9 @@
 import { ChatInput as DefaultInput } from '@agent-chat-ui/components/chat/default-skin/input';
 import {
   ChatDialog as DefaultDialog,
-  ChatDialogClose as DefaultDialogClose,
   ChatDialogContent as DefaultDialogContent,
   ChatDialogDescription as DefaultDialogDescription,
+  ChatDialogHeader as DefaultDialogHeader,
   ChatDialogTitle as DefaultDialogTitle,
 } from '@agent-chat-ui/components/chat/default-skin/dialog';
 import {
@@ -34,9 +34,9 @@ import {
 // Centralized primitive adapter layer for chat UI.
 export const ChatUiPrimitives = {
   Dialog: DefaultDialog,
-  DialogClose: DefaultDialogClose,
   DialogContent: DefaultDialogContent,
   DialogDescription: DefaultDialogDescription,
+  DialogHeader: DefaultDialogHeader,
   DialogTitle: DefaultDialogTitle,
   Popover: DefaultPopover,
   PopoverAnchor: DefaultPopoverAnchor,
