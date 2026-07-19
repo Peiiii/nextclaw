@@ -1,0 +1,4 @@
+interface:
+  display_name: "参考皮肤复刻验收"
+  short_description: "用真实数据和全组件台账复刻整套皮肤并持续提供预览"
+  default_prompt: "使用 $replicating-reference-skins 对照参考图建立全组件与状态覆盖台账，并在真实数据页面逐区验收整套皮肤。"

@@ -4,9 +4,32 @@
 
 - NextClaw UI 在 React 应用启动前请求 `/api/ui-inject.js`；server 从活动 `$NEXTCLAW_HOME` 读取 `ui-inject.js`，不存在时返回空脚本，存在时返回最新内容，响应固定为 `Cache-Control: no-store`。
 - 产品主干只保留一个不受支持的同源 JavaScript 逃生口，没有增加皮肤 CLI、设置页、manifest、数据库、浏览器扩展或兼容层。写入、切换或删除脚本后刷新即可生效，不需要重启 NextClaw。
-- 原单皮肤 Skill `@nextclaw/abyssal-compass-theme` 已由通用 `@nextclaw/nextclaw-skin-studio` 替代并从公开 Marketplace 下架。Skin Studio 内置六款皮肤，并提供 `list/status/apply/custom/remove`、本地图片嵌入、未知 owner 冲突保护和旧 Abyssal marker 迁移。
+- 原单皮肤 Skill `@nextclaw/abyssal-compass-theme` 已由通用 `@nextclaw/nextclaw-skin-studio` 替代并从公开 Marketplace 下架。Skin Studio 提供 `list/status/apply/custom/remove`、本地图片嵌入、未知 owner 冲突保护和旧 Abyssal marker 迁移。
 - 新 Skill 已发布到 Marketplace；公开详情为 `install.kind=marketplace`，旧 Skill 详情为 `404`、搜索为零结果。新 Skill 位于“最近发布”首位。
 - 设计文档已更新为“一处官方注入口 + 一个通用 Skill”的最终方案：`docs/designs/2026-07-16-unsupported-ui-injection-hook.design.md`。
+
+### 上游皮肤失真问题的根因与修复
+
+- 用户可见现象：初版目录只有六款原创几何皮肤，原仓库最有辨识度的易烊千玺、桥本有菜、迪丽热巴、初音未来、KUN、Jinx、ENFP 等人物主题全部缺失。
+- 根因通过上游全历史和逐图审计确认：实现只读取了当前 README 的抽象描述，没有固定源版本、没有追踪 `7777e9f` 中的历史人物标签、没有建立逐项视觉 fidelity matrix；随后又未经用户确认把“高保真迁移”错误改写成“规避第三方素材的原创配色灵感”。当前上游还重排了画廊路径，易烊千玺从历史 `skin-02`/`skin-08` 移到当前 `skin-04`，只看文件名更容易漏项。
+- 修复把 `skins.json` 改为固定上游 commit 的 11 项目录，易烊千玺排在首项；每项记录真实路径、当前/历史标签、素材类型和 SHA-256。应用时只下载用户选择的一张固定上游图片，校验后嵌入本地 `ui-inject.js`；下载或哈希失败直接报错，不回退为抽象图形。
+- Marketplace 包不二次打包肖像/IP 图片；人物与角色来源、非背书和不属于上游 MIT 软件许可的边界在 Skill、市场文案和 notices 中同时披露。
+- `code-investigation-workflow`、`nextclaw-marketplace-skill-integration` 与 `nextclaw-validation-workflow` 已增加外部目录高保真迁移规则，后续必须固定源版本、逐项对照高辨识度内容并逐款做真实整页截图。
+
+### 全产品皮肤覆盖与运行态修复
+
+- 用户可见现象：早期版本主要改变背景和少量卡片，真实会话、侧边栏、设置、弹层、代码和过程信息仍大量保留默认外观；会话行还同时给外层容器和内部按钮加背景，hover 时出现两层圆角胶囊。
+- 根因不是缺少几个 CSS selector，而是把皮肤误建模为背景图，没有设计 token、语义表面、组件状态、页面配方和独立素材五层合同，也没有使用真实本地数据建立组件覆盖台账。
+- 共享 `renderer.js` 现由单一 `SkinRuntime` 负责动态语义标记，覆盖应用壳、侧边栏、导航、会话列表、真实消息、头像、代码块、工具过程、输入器、技能市场卡片、设置表单、选择器、开关、标签页、弹层、提示、骨架与加载态；SPA 跳转、懒加载和弹层挂载后会重新识别。
+- 会话行已收敛为唯一外层视觉 owner：内部整行按钮保持透明、无边框、无圆角、无阴影，外层统一表达 hover / selected，并用单一渐变色带增强反馈，不再生成双层容器。
+- 原生转圈加载图标由皮肤运行时替换为低饱和、轻微墨边扰动的写意墨焰：未闭合圆势末端汇成双叉火尾，以游龙意象而非具象龙头完成 2.35 秒匀速 360°；不缩放、不发光、不闪珠，`prefers-reduced-motion` 下停止运动。
+- 初版语义扫描每 250ms 先删除所有角色再重加，导致龙的 CSS animation 不断回到第 0 帧，看起来像卡顿鬼畜。运行时现改为差量目标集合，只清理真正失效的节点；连续采样 520ms 与 2570ms 时角色保持不变、旋转矩阵持续推进并跨过完整周期。
+- 首页 header 原先单独使用 94% 不透明面板，把人物背景在 52px 高度处硬切开。背景 owner 已下沉到同时包含 header 与内容的 page section，人物画布从顶部贯穿页面；header 改为透明且无边框/阴影/模糊，并删除顶部固定主题胶囊，保留更简约的整体画面。
+- 真实会话的人物层原先只有右上角 `47% × 330px`，第一条消息后立即回到空白底色。会话画布现改为 page section 的全尺寸 `inset: 0` 底层，人物尺寸按视口高度约束并从 Header 延伸到输入器后方；左侧阅读区由整页渐变保护，底部通过 mask 自然淡出，不再出现插画窗口边界。
+- Jinx 原图约 3.2 MB，直接写入 CSS 自定义属性时浏览器会静默丢弃整个 declaration。渲染器改为把内嵌 base64 同步转成 Blob URL、统一回收对象 URL，保留单文件和离线合同的同时让大图正常显示。
+- 迪丽热巴、初音未来、KUN、Jinx、ENFP、财神和粉系概念图分别校准人像焦点、缩放与纵向位置，不再复用一组会把人脸裁出视口的参数；People AI 仅保留上半部科幻景观，提前淡出概念图内的假卡片。
+- 新增仓库内临时 `replicating-reference-skins` 验收 Skill，把真实数据、组件族、状态矩阵、页面巡检、稳定预览和禁止假 UI 固化为可重复执行的门槛。
+- 复盘时发现临时 Skill 曾错误写成“每轮先清理旧标记”，会诱导后续实现重新制造动画重启。规则已修正为按本轮目标集合差量清理，并新增整页共同画布、实际 CSS 像素、跨完整周期和 DOM 身份连续性的强制验收门。
 
 ### Marketplace 列表异常的根因与修复
 
@@ -25,17 +48,26 @@
 - Server 全量测试：首次在受限沙箱中因 127.0.0.1 监听被系统拒绝而出现 `EPERM`；按真实需求在允许本机端口的环境复跑后，29/29 个测试文件通过，143 个测试通过、2 个跳过。
 - Marketplace UI 定向测试：`pnpm -C packages/nextclaw-ui exec vitest run src/features/marketplace`，7 个测试文件、26/26 通过；覆盖独立最近发布查询、刷新策略、总数表达、分页和页面行为。
 - UI 全量测试另有 9 个失败，全部位于当前工作区其它聊天改动触达的 3 个测试文件：4 个 `session-conversation-input.streaming` 和 4 个 `chat-conversation-welcome` 因缺少 `QueryClientProvider`，1 个 `chat-session-workspace-panel` 因查询键预期未同步。它们不经过 Marketplace 代码，未在本批次擅自修改；本批次 Marketplace 定向套件仍为 26/26。
-- Skin Studio 测试：`node --test tests/skills/nextclaw-skin-studio.test.mjs`，5/5 通过；覆盖六款目录、应用、定制、未知 owner 保护和旧 Skill 迁移/移除。
-- `node --check skills/nextclaw-skin-studio/scripts/skin.mjs` 与 `node --check skills/nextclaw-skin-studio/assets/renderer.js`：通过。
+- Skin Studio 修正后测试：`node --test tests/skills/nextclaw-skin-studio.test.mjs`，6/6 通过；覆盖 11 款目录、易烊千玺历史标签和固定预览 URL、本地图片应用、定制、未知 owner 保护、旧 Skill 迁移/移除，以及错误哈希必须失败且不写注入文件。
+- 11 款生成矩阵：固定上游回装副本依次应用 `jackson-yee`、`arina-hashimoto`、`dilraba-violet`、`miku-cyan`、`kun-noir`、`jinx-pop`、`enfp-spark`、`people-ai-red`、`god-of-wealth`、`pink-custom` 与 `gothic-void-crusade`，每次生成的完整 `ui-inject.js` 均通过 `node --check`。
+- 真实数据会话验收：源码实例直接使用 `/Users/peiwang/.nextclaw`，只隔离运行态；同一会话页识别 134 个真实会话项，当前会话包含 8 条消息布局、4 条用户消息、4 条助手消息、2 个代码块和 4 个工具过程，无横向溢出。134 个外层 `session-item` 与 134 个透明 `session-content` 一一对应，旧 `session-row` 为 0，选中项只有一个外层视觉表面。
+- 跨页面浏览器验收：技能市场真实数据加载后有 26 张可见卡片、4 个集合区、搜索、select 和 2 个 tab；外观设置页识别 2 个 choice、2 个 select、1 个 switch 和 1 个设置分组；真实下拉弹层识别 9 个 option、1 个 selected，三页均无横向溢出。
+- 响应式验收：Playwright 以 `390×844` 打开同一真实会话，`scrollWidth=clientWidth=390`、无横向溢出、侧边栏正确收起、header 保持透明；截图为 `/tmp/nextclaw-skin-narrow-final.png`。
+- 写意墨焰运行态验收：专用会话列表证明页在 520ms 与跨周期采样点持续保留 `run-indicator`，旋转矩阵持续推进并越过完整 2.35 秒周期，没有被 250ms 语义扫描重置；30px 实际尺寸仍能辨认墨环末端的深色火尾。
+- 首页整体画布验收：header 计算样式为透明背景、0 边框、无阴影、无 backdrop filter；人物与渐变由包含 header 和内容的 720px 高 page section 统一承载，固定主题 badge 已不存在。
+- 真实会话整页画布验收：运行态 page 为 `944×720`，人物伪层同为 `944×720` 且 `inset=0`，背景尺寸为 `auto 820px`；header 透明、输入器仍在同一画布上，页面横向溢出为 0。
+- 上游实物校验：使用 `/tmp/codex-dream-skin-audit` 的固定 commit 作为 `--source-dir` 应用 `jackson-yee`，脚本校验真实 `skin-04.jpg` 后生成 196,528 字节注入文件，状态返回 `skinId=jackson-yee`、`skinName=易烊千玺 · 清透定制`。
+- `node --check` 已覆盖 `skin.mjs`、`renderer.js` 与四个 `*-styles.js`：通过。
 - `pnpm -C packages/nextclaw-server tsc`、`pnpm -C packages/nextclaw-ui tsc`、`pnpm -C workers/marketplace-api tsc`：通过。
 - `pnpm -C packages/nextclaw-server lint`、`pnpm -C packages/nextclaw-ui lint`、`pnpm -C workers/marketplace-api lint`：通过；server 8 条、UI 1 条均为既有 warning，0 error；Worker 0 warning、0 error。
 - `pnpm -C packages/nextclaw-server build`、`pnpm -C packages/nextclaw-ui build`、`pnpm -C workers/marketplace-api build`：通过；构建输出只有既有依赖和 bundle size warning。
 - Marketplace Skill validator：`python3 .agents/skills/marketplace-skill-publisher/scripts/validate_marketplace_skill.py --skill-dir skills/nextclaw-skin-studio`，0 error、0 warning。
-- 从正式 Marketplace 全新安装 `@nextclaw/nextclaw-skin-studio` 到仓库外临时目录，排除安装器生成的 `.nextclaw-install.json` 后与发布源目录 diff 为零；仅使用回装副本依次完成六款预设的应用、最终状态和恢复默认矩阵。
-- 在隔离源码实例真实显示 Violet Orbit 与 Noir Gold，切换只需刷新；执行 remove 后 marker 消失、页面恢复默认、无横向溢出。
+- 初版曾从正式 Marketplace 全新安装到仓库外临时目录，并完成当时六款抽象预设的应用矩阵；这只能证明脚本机制可用，不能证明与源仓库视觉对齐，已被后续 fidelity 验收取代。
+- 初版曾在隔离源码实例显示 Violet Orbit 与 Noir Gold；这两款不是源仓库真实人物皮肤，不再作为修正版视觉验收证据。
 - 最终 Marketplace 浏览器终态验收使用隔离源码实例，不只验证 API/首屏：滚动到 `atBottom=true`，`scrollTop=1945`、`scrollHeight=2526`、`clientHeight=582`；总数 32、唯一卡片 32、首项为 `@nextclaw/nextclaw-skin-studio`、末项为 `@nextclaw/bird`，无旧 Skill、无 `builtin`、无错误、无残留 loading。
 - 公网镜像修复文件已通过远程语法与 SHA-256 校验并安全暂存；当前服务保持 `active`，尚未替换或重启。
 - 官方公共 API 终态复核：新 Skill 详情 200、双语 summary 和 `install.kind=marketplace` 正确；旧 Skill 详情 404；最近更新总数 32 且新 Skill 排第一；全部目录一次取回 32 条且 `builtin` 为 0。
+- 本轮整页画布与墨焰更新已再次发布到正式 Marketplace：详情接口更新时间为 `2026-07-19T04:09:56.131Z`，文件清单为 11 个且包含四个 `*-styles.js`。从仓库外全新目录安装后，11 款目录、六个 JavaScript 文件语法、易烊千玺应用和生成文件中的全画布/30px 墨焰合同均通过。
 
 ## 发布/部署方式
 
@@ -50,9 +82,9 @@
 
 1. 在 Skill Marketplace 的“最近发布”看到 `NextClaw Skin Studio`，或搜索 `skin` / `皮肤` / `appearance`。
 2. 安装 `@nextclaw/nextclaw-skin-studio`；安装本身不修改界面。
-3. 对 Agent 说“有哪些 NextClaw 皮肤”，确认返回六款内置皮肤。
-4. 说“应用 Violet Orbit”，刷新桌面端或浏览器页面，确认皮肤生效；同一实例连接的浏览器无需扩展。
-5. 说“基于 Glass Tide，把主色改成青色”或提供本地 PNG/JPEG/WebP，刷新后确认自定义皮肤生效。
+3. 对 Agent 说“有哪些 NextClaw 皮肤”，确认返回 11 款源仓库对齐皮肤，并能看到易烊千玺、桥本有菜、迪丽热巴、初音未来、KUN、Jinx 与 ENFP。
+4. 说“应用易烊千玺皮肤”，刷新桌面端或浏览器页面，确认人物主视觉和清透配色生效；同一实例连接的浏览器无需扩展。
+5. 说“基于 Gothic Void Crusade，把主色改成青色”或提供本地 PNG/JPEG/WebP，刷新后确认自定义皮肤生效。
 6. 说“当前是什么皮肤”查看状态；说“恢复默认界面”后刷新，确认默认 UI 恢复。
 7. 在“全部 Skill”持续滚动到底：总数应为 32，终态应加载 32 张唯一卡片，不出现 `builtin` 错误或持续 loading。
 8. 使用者必须知晓 `ui-inject.js` 拥有页面同源权限，NextClaw 不保证安全性、DOM 稳定性、可靠性或跨版本兼容。
@@ -60,10 +92,11 @@
 ## 可维护性总结汇总
 
 - 产品主干仍只有一个 server 读取入口和一个 UI 启动加载点；没有引入皮肤 owner、schema、资源系统或第二条状态链路。
-- Skin Studio 的预设收敛为数据，渲染收敛到单一 `renderer.js`，所有写操作收敛到单一 `skin.mjs`；新增皮肤不需要复制 Skill、脚本或 Marketplace 条目。
+- Skin Studio 的预设收敛为数据，语义与生命周期收敛到单一 `renderer.js`，视觉配方按基础、导航、内容和控件四层拆分，所有写操作收敛到单一 `skin.mjs`；新增皮肤不需要复制 Skill、脚本或 Marketplace 条目。
 - Marketplace 修复复用现有查询和国内/官方回退 owner，没有增加平行 cache service 或额外 UI store；删除了“从相关性首屏伪造最近发布”的本地排序路径。
 - `post-edit-maintainability-guard` 对 18 个本批次实现/测试文件的统计为：总新增 955 行、删除 84 行、净增 871 行；排除测试后新增 670 行、删除 83 行、净增 587 行。本次包含明确新增用户能力，增长主要位于可独立删除的 Skin Studio 数据、渲染器和脚本，不进入产品主干皮肤 owner。
 - Guard 为 0 error、4 warning：`packages/nextclaw-server/src/app` 仍是 17 个直接文件且已有豁免、数量未增长；Marketplace 路由测试从 506 行增至 658 行但仍低于测试预算 900；`marketplace-catalog.utils.ts` 为 347/400；镜像脚本为 400/500。后两者是后续拆分观察点，本次没有新增抽象或平行链路来掩盖文件增长。
+- 本轮全产品皮肤扩展一度把 `renderer.js` 推到 1022 行并触发文件增量预算错误；最终将稳定视觉配方拆为 `foundation-styles.js`、`navigation-styles.js`、`content-styles.js` 与 `control-styles.js`，`renderer.js` 回落到 261 行且继续是唯一语义/生命周期 owner。最新 guard 为 0 error、2 个与本轮无关的既有/生成物 warning（Cytoscape bundle 与产品截图脚本），新代码治理和 backlog ratchet 均通过。
 - 新代码治理、治理 backlog ratchet 和 generated-clean 均通过。治理检查曾发现新 Python 测试文件不是 kebab-case，已改为 `marketplace-mirror-server-test.py` 后复跑通过。
 - 可维护性复核结论：通过；本次顺手减债：是。正向动作包括删除按“本机已知 Skill”过滤上游分页的旧辅助路径、删除最近发布的本地伪排序、复用现有 Marketplace fetch/fallback owner，并把所有皮肤状态变更收敛到一个脚本。no maintainability findings；保留上述 4 个非阻塞 warning 作为明确观察点。
 
@@ -73,4 +106,5 @@
 - `@nextclaw/ui`：需要 patch，待统一发布；包含 UI 注入口加载、最近发布查询、目录刷新和总数表达修复。
 - `nextclaw`：需要 patch，待统一发布；聚合上述产品能力。
 - `@nextclaw/marketplace-api-worker`：非 NPM 发布包；源码防回归改动待凭据可用时部署。
+- 本轮 Skin Studio 皮肤目录、渲染器和说明文件位于仓库根部独立 Marketplace 发布源 `skills/`，不属于任一 NPM 包的 `files` 清单；正式 Marketplace 已独立更新，因此本轮不新增 changeset。
 - 本次未执行 NPM 发布。

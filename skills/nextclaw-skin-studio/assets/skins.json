@@ -1,86 +1,314 @@
-[
-  {
-    "id": "abyssal-compass",
-    "name": "Abyssal Compass",
-    "description": "深海蓝、藏宝金与航海罗盘光纹。",
-    "mode": "dark",
-    "motif": "compass",
-    "background": "#030b18",
-    "panel": "#071a31",
-    "text": "#edf7ff",
-    "muted": "#8da9bd",
-    "accent": "#e4a72f",
-    "secondary": "#38a8ef",
-    "border": "#285778"
+{
+  "schemaVersion": 2,
+  "source": {
+    "name": "Codex Dream Skin",
+    "repository": "https://github.com/Fei-Away/Codex-Dream-Skin",
+    "commit": "3af1d6d62f3a0388cc640d2f497ac3100998938e",
+    "rawBaseUrl": "https://raw.githubusercontent.com/Fei-Away/Codex-Dream-Skin/3af1d6d62f3a0388cc640d2f497ac3100998938e/",
+    "historyCommit": "7777e9f601ccac2ec517eca6763d09496dbd7777"
   },
-  {
-    "id": "portal-red",
-    "name": "Portal Red",
-    "description": "轻盈红白、柔和光环与现代产品感。",
-    "mode": "light",
-    "motif": "portal",
-    "background": "#f7f4f5",
-    "panel": "#ffffff",
-    "text": "#2b2224",
-    "muted": "#8a7a7d",
-    "accent": "#e25563",
-    "secondary": "#f3a8af",
-    "border": "#dfb9be"
-  },
-  {
-    "id": "rose-quartz",
-    "name": "Rose Quartz",
-    "description": "玫瑰粉、柔光花瓣与温暖的通透层次。",
-    "mode": "light",
-    "motif": "blossom",
-    "background": "#fff4f8",
-    "panel": "#fffafd",
-    "text": "#402b35",
-    "muted": "#936b7a",
-    "accent": "#d85c8b",
-    "secondary": "#f2a6bd",
-    "border": "#e9b8c7"
-  },
-  {
-    "id": "glass-tide",
-    "name": "Glass Tide",
-    "description": "海盐青、玻璃水波与清爽的浅色工作台。",
-    "mode": "light",
-    "motif": "tide",
-    "background": "#e9f8fb",
-    "panel": "#f8feff",
-    "text": "#12353d",
-    "muted": "#52747b",
-    "accent": "#0ea5b7",
-    "secondary": "#66d6cf",
-    "border": "#9edfdc"
-  },
-  {
-    "id": "violet-orbit",
-    "name": "Violet Orbit",
-    "description": "深紫宇宙、青色轨道与高对比霓虹光晕。",
-    "mode": "dark",
-    "motif": "orbit",
-    "background": "#100b24",
-    "panel": "#191130",
-    "text": "#f5efff",
-    "muted": "#aea1c7",
-    "accent": "#9b6bff",
-    "secondary": "#42d5ff",
-    "border": "#4f3d7d"
-  },
-  {
-    "id": "noir-gold",
-    "name": "Noir Gold",
-    "description": "黑金、放射刻线与克制的电影质感。",
-    "mode": "dark",
-    "motif": "sunburst",
-    "background": "#0a0a0a",
-    "panel": "#151515",
-    "text": "#f8f0dc",
-    "muted": "#a29a88",
-    "accent": "#d7aa4b",
-    "secondary": "#ede2c0",
-    "border": "#4b3a1b"
-  }
-]
+  "skins": [
+    {
+      "id": "jackson-yee",
+      "name": "易烊千玺 · 清透定制",
+      "description": "原仓库历史画廊中的 Jackson Yee 清透人物主题。",
+      "mode": "light",
+      "background": "#f5f3e9",
+      "panel": "#fffdf7",
+      "text": "#292c25",
+      "muted": "#777b68",
+      "accent": "#7f8f57",
+      "secondary": "#c5b892",
+      "border": "#cfd2bb",
+      "art": { "focusX": 0.73, "focusY": 0.16, "zoom": 245 },
+      "details": {
+        "signature": "Jackson Yee ♡",
+        "tagline": "与你一起，用代码创造无限可能",
+        "label": "千玺星球",
+        "motif": "crane",
+        "cardCaption": "Be Better",
+        "sticker": true
+      },
+      "upstreamLabel": "Jackson Yee · 清透定制",
+      "asset": {
+        "kind": "concept-preview",
+        "path": "docs/images/gallery/skin-04.jpg",
+        "contentType": "image/jpeg",
+        "sha256": "39feb8649c08bfdef01f4352131aa8d80c99d4ed61e30ee24a6566325bef7f36"
+      }
+    },
+    {
+      "id": "arina-hashimoto",
+      "name": "桥本有菜 · 浪漫玫瑰",
+      "description": "原仓库当前内置的桥本有菜柔光玫瑰人物预设。",
+      "mode": "light",
+      "background": "#f8e5df",
+      "panel": "#fff8f5",
+      "text": "#402d31",
+      "muted": "#8d6c70",
+      "accent": "#d66f91",
+      "secondary": "#eab1a9",
+      "border": "#e9c4c0",
+      "art": { "focusX": 0.72, "focusY": 0.45 },
+      "upstreamLabel": "桥本有菜 / Arina Hashimoto",
+      "asset": {
+        "kind": "preset-background",
+        "path": "macos/presets/preset-arina-hashimoto/background.jpg",
+        "contentType": "image/jpeg",
+        "sha256": "ada9d14333d0b8a08ce59d64bed1ffc33e6503ed3b141ab4dc9d1721c47af192"
+      }
+    },
+    {
+      "id": "dilraba-violet",
+      "name": "迪丽热巴 · 紫夜限定",
+      "description": "原仓库历史画廊中的 Dilraba 紫蓝霓虹人物主题。",
+      "mode": "light",
+      "background": "#e9e6ff",
+      "panel": "#f9f7ff",
+      "text": "#24204d",
+      "muted": "#716c96",
+      "accent": "#8658ee",
+      "secondary": "#39c7ec",
+      "border": "#a6a0e8",
+      "art": { "focusX": 0.88, "focusY": 0.16, "zoom": 235 },
+      "details": {
+        "signature": "Dilraba Dilmurat ♡",
+        "tagline": "BE YOUR LIGHT",
+        "label": "热巴星球",
+        "motif": "heart",
+        "cardCaption": "Be Your Light",
+        "sticker": true
+      },
+      "upstreamLabel": "Dilraba · 紫夜限定",
+      "asset": {
+        "kind": "concept-preview",
+        "path": "docs/images/gallery/skin-06.jpg",
+        "contentType": "image/jpeg",
+        "sha256": "464b95ec40c5dc71d369616387ab9fca55e6d74a5ff6bc44332dd47413ae9eb2"
+      }
+    },
+    {
+      "id": "miku-cyan",
+      "name": "初音未来 · 青蓝歌姬",
+      "description": "原仓库画廊中的 Miku 青蓝与粉紫人物主题。",
+      "mode": "light",
+      "background": "#e3f7fb",
+      "panel": "#f5fdff",
+      "text": "#173c52",
+      "muted": "#5c7885",
+      "accent": "#12b9c3",
+      "secondary": "#d96cc6",
+      "border": "#8bdde1",
+      "art": { "focusX": 0.86, "focusY": 0.14, "zoom": 235 },
+      "details": {
+        "signature": "Miku ♫",
+        "tagline": "BE TOGETHER · BE FUTURE",
+        "label": "Miku 灵感星球",
+        "motif": "music",
+        "cardCaption": "Be Future",
+        "sticker": true
+      },
+      "upstreamLabel": "Miku · 初音未来",
+      "asset": {
+        "kind": "concept-preview",
+        "path": "docs/images/gallery/skin-07.jpg",
+        "contentType": "image/jpeg",
+        "sha256": "c499ca84155d23f49695c6962ec5cee69234ded0f83f3f33465adbd646531138"
+      }
+    },
+    {
+      "id": "kun-noir",
+      "name": "KUN · 舞台黑金",
+      "description": "原仓库画廊中的 KUN 黑金舞台人物主题。",
+      "mode": "dark",
+      "background": "#080a09",
+      "panel": "#151816",
+      "text": "#f4efe1",
+      "muted": "#a9a38f",
+      "accent": "#d8c69b",
+      "secondary": "#8f8060",
+      "border": "#544c39",
+      "art": { "focusX": 0.9, "focusY": 0.14, "zoom": 235 },
+      "details": {
+        "signature": "KUN ♡",
+        "tagline": "BE BETTER · BE KUN",
+        "label": "KUN 星球",
+        "motif": "star",
+        "cardCaption": "Be KUN",
+        "sticker": true
+      },
+      "upstreamLabel": "KUN · 舞台黑金",
+      "asset": {
+        "kind": "concept-preview",
+        "path": "docs/images/gallery/skin-08.jpg",
+        "contentType": "image/jpeg",
+        "sha256": "ec755c0f1c10b60c27e3bb84b6c0f0431e2a2de0b59e639567b19d32f941a218"
+      }
+    },
+    {
+      "id": "jinx-pop",
+      "name": "Jinx · 粉蓝涂鸦",
+      "description": "原仓库 Jinx Codex 画廊中的粉蓝漫画人物主题。",
+      "mode": "light",
+      "background": "#fff8fd",
+      "panel": "#fffafd",
+      "text": "#2b2550",
+      "muted": "#746c91",
+      "accent": "#f4209e",
+      "secondary": "#138ded",
+      "border": "#c5b5e7",
+      "art": { "focusX": 0.8, "focusY": 0.05, "zoom": 225 },
+      "details": {
+        "signature": "Jinx Codex ⚡",
+        "tagline": "BUILD FASTER WITH CHAOS",
+        "label": "混乱实验室",
+        "motif": "spark",
+        "cardCaption": "BOOM!",
+        "sticker": true
+      },
+      "upstreamLabel": "Jinx Codex",
+      "asset": {
+        "kind": "concept-preview",
+        "path": "docs/images/jinx-codex.png",
+        "contentType": "image/png",
+        "sha256": "7400f41adac078e29c7d9f783ae1de88f379fa6b2fc1bc937134d4245da39f53"
+      }
+    },
+    {
+      "id": "enfp-spark",
+      "name": "ENFP · 灵感小宇宙",
+      "description": "原仓库画廊中的 ENFP 明亮插画人物主题。",
+      "mode": "light",
+      "background": "#fff9e9",
+      "panel": "#fffdf5",
+      "text": "#283535",
+      "muted": "#6d7f75",
+      "accent": "#19a893",
+      "secondary": "#ee765d",
+      "border": "#b8d9cd",
+      "art": { "focusX": 0.87, "focusY": 0.1, "zoom": 230 },
+      "details": {
+        "signature": "ENFP 🚀",
+        "tagline": "先有灵感，再把它变成真的",
+        "label": "ENFP 小宇宙",
+        "motif": "bolt",
+        "cardCaption": "+99 Inspiration",
+        "sticker": true
+      },
+      "upstreamLabel": "ENFP · 灵感小宇宙",
+      "asset": {
+        "kind": "concept-preview",
+        "path": "docs/images/gallery/skin-05.jpg",
+        "contentType": "image/jpeg",
+        "sha256": "9beeca0c9c7c4e20b88342bdc3d018b26905076ea26d7bbcd0cefd7d95ad7b86"
+      }
+    },
+    {
+      "id": "people-ai-red",
+      "name": "People AI · 红白科幻",
+      "description": "原仓库画廊中的红白科幻工作台主题。",
+      "mode": "light",
+      "background": "#fff2f2",
+      "panel": "#fffafa",
+      "text": "#2f2525",
+      "muted": "#856f70",
+      "accent": "#d92d38",
+      "secondary": "#f17c83",
+      "border": "#e6b8bb",
+      "art": { "focusX": 0.67, "focusY": 0.26, "zoom": 185 },
+      "details": {
+        "signature": "PEOPLE'S AI",
+        "tagline": "为每一个人创造更多可能",
+        "label": "人民的 AI",
+        "motif": "orbit",
+        "sticker": false
+      },
+      "upstreamLabel": "People AI · 红白科幻",
+      "asset": {
+        "kind": "concept-preview",
+        "path": "docs/images/gallery/skin-03.jpg",
+        "contentType": "image/jpeg",
+        "sha256": "575c1903564df31efe0d5199f4dca4dbf65c4847009c748de669a523fc4f063b"
+      }
+    },
+    {
+      "id": "god-of-wealth",
+      "name": "财神打工版",
+      "description": "原仓库当前画廊中的奶油红金财神主题。",
+      "mode": "light",
+      "background": "#fff8e8",
+      "panel": "#fffdf5",
+      "text": "#3d2b22",
+      "muted": "#857366",
+      "accent": "#b6251f",
+      "secondary": "#d6a62e",
+      "border": "#e4c99d",
+      "art": { "focusX": 0.86, "focusY": 0.1, "zoom": 225 },
+      "details": {
+        "signature": "今日财运在线",
+        "tagline": "功德 +1 · 效率生财",
+        "label": "财神打工版",
+        "motif": "coin",
+        "cardCaption": "多写代码",
+        "sticker": true
+      },
+      "upstreamLabel": "财神打工版",
+      "asset": {
+        "kind": "concept-preview",
+        "path": "docs/images/gallery/skin-02.jpg",
+        "contentType": "image/jpeg",
+        "sha256": "d7f4805aba805cca3cd6a5b4befa72150448e87695c4c077491a7ca3ff12b1fe"
+      }
+    },
+    {
+      "id": "pink-custom",
+      "name": "粉系定制",
+      "description": "原仓库当前画廊中的轻粉未来感主题。",
+      "mode": "light",
+      "background": "#fff1f5",
+      "panel": "#fffafd",
+      "text": "#35282e",
+      "muted": "#8b717a",
+      "accent": "#e45477",
+      "secondary": "#ee9caf",
+      "border": "#edc1cc",
+      "art": { "focusX": 0.9, "focusY": 0.08, "zoom": 230 },
+      "details": {
+        "signature": "Arina Hashimoto ♡",
+        "tagline": "一键陪伴 · 灵感温柔响应",
+        "label": "粉系定制",
+        "motif": "rose",
+        "cardCaption": "Arina",
+        "sticker": true
+      },
+      "upstreamLabel": "粉系定制",
+      "asset": {
+        "kind": "concept-preview",
+        "path": "docs/images/gallery/skin-01.jpg",
+        "contentType": "image/jpeg",
+        "sha256": "a38eb2ec7c4a2aa701b061fba3bb250e5be96b554185b249a26bb21fc37ecd75"
+      }
+    },
+    {
+      "id": "gothic-void-crusade",
+      "name": "Gothic Void Crusade",
+      "description": "原仓库当前内置的哥特科幻城堡背景预设。",
+      "mode": "dark",
+      "background": "#0d0d0e",
+      "panel": "#171513",
+      "text": "#f3ead7",
+      "muted": "#b5a386",
+      "accent": "#c8a55a",
+      "secondary": "#74352e",
+      "border": "#574830",
+      "art": { "focusX": 0.76, "focusY": 0.45 },
+      "upstreamLabel": "Gothic Void Crusade",
+      "asset": {
+        "kind": "preset-background",
+        "path": "macos/presets/preset-gothic-void-crusade/background.jpg",
+        "contentType": "image/jpeg",
+        "sha256": "b76a7cbe2ff9d923846e931984d243a7ba1f25de8d190b5c6412c809c41aee42"
+      }
+    }
+  ]
+}

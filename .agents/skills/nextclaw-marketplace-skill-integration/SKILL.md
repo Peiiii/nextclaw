@@ -93,6 +93,14 @@ A skill can enter NextClaw marketplace if the answer to all of these is yes:
 
 If the answer to any of these is no, the skill is not ready for marketplace in its current form.
 
+When the skill adapts a named upstream repository or catalog, user-facing completeness also requires source fidelity:
+
+- Pin the audited upstream revision and inventory the canonical items, including historical names when files or labels were later moved or anonymized.
+- Record each item's signature behavior or visual content, whether its asset is directly usable or only a concept preview, and its license/provenance boundary.
+- Do not silently remove portraits, characters, branded motifs, core commands, or other high-salience content and replace them with an “inspired” abstraction.
+- If rights or packaging constraints prevent direct bundling, keep the original item discoverable through an explicit source-referenced/user-initiated path or report the limitation and obtain user approval for a substitute.
+- Acceptance must compare the shipped catalog against this inventory and name every intentional omission.
+
 ## Integration Categories
 
 Classify the candidate skill into exactly one of these:

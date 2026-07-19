@@ -1,15 +1,15 @@
 {
   "slug": "nextclaw-skin-studio",
   "name": "NextClaw Skin Studio",
-  "summary": "Choose from six lightweight NextClaw skins or create your own from colors and a local image.",
+  "summary": "Apply 11 source-aligned Codex Dream Skin looks across NextClaw, or create your own.",
   "summaryI18n": {
-    "en": "Choose from six lightweight NextClaw skins or create your own from colors and a local image.",
-    "zh": "从六款轻量 NextClaw 皮肤中选择，或用配色和本地图片创建自己的皮肤。"
+    "en": "Apply 11 source-aligned Codex Dream Skin looks across NextClaw, or create your own.",
+    "zh": "把 11 款对齐 Codex Dream Skin 原仓库的皮肤应用到整个 NextClaw，或创建自己的皮肤。"
   },
-  "description": "Browse, apply, switch, customize, inspect, and remove NextClaw UI skins through the unsupported UI injection hook. The Skill bundles six self-contained skins, a shared deterministic renderer, local-image customization, conflict protection, and migration from the former Abyssal Compass package. Installation and activation remain separate, and no remote assets are loaded.",
+  "description": "Browse, apply, switch, customize, inspect, and remove NextClaw UI skins through the unsupported UI injection hook. A shared external design-system runtime styles the app shell, sidebar, real conversations, cards, forms, settings, overlays, code, process rows, and loading states. The catalog restores 11 recognizable Codex Dream Skin looks, including Jackson Yee, Arina Hashimoto, Dilraba, Miku, KUN, Jinx, ENFP, and Gothic Void Crusade. Applying a source look downloads only its pinned upstream image, verifies SHA-256, and embeds it locally; no remote code runs. Portrait and character imagery remains third-party material outside the upstream MIT software license.",
   "descriptionI18n": {
-    "en": "Browse, apply, switch, customize, inspect, and remove NextClaw UI skins through the unsupported UI injection hook. The Skill bundles six self-contained skins, a shared deterministic renderer, local-image customization, conflict protection, and migration from the former Abyssal Compass package. Installation and activation remain separate, and no remote assets are loaded.",
-    "zh": "通过非正式 UI 注入口浏览、应用、切换、定制、检查和移除 NextClaw 皮肤。Skill 内置六款自包含皮肤、一套确定性共享渲染器、本地图片定制、归属冲突保护，以及旧版「深海罗盘」包的迁移能力。安装与启用保持分离，且不加载远程资源。"
+    "en": "Browse, apply, switch, customize, inspect, and remove NextClaw UI skins through the unsupported UI injection hook. A shared external design-system runtime styles the app shell, sidebar, real conversations, cards, forms, settings, overlays, code, process rows, and loading states. The catalog restores 11 recognizable Codex Dream Skin looks, including Jackson Yee, Arina Hashimoto, Dilraba, Miku, KUN, Jinx, ENFP, and Gothic Void Crusade. Applying a source look downloads only its pinned upstream image, verifies SHA-256, and embeds it locally; no remote code runs. Portrait and character imagery remains third-party material outside the upstream MIT software license.",
+    "zh": "通过非正式 UI 注入口浏览、应用、切换、定制、检查和移除 NextClaw 皮肤。共享的外置设计系统运行时会统一处理应用壳、侧边栏、真实会话、卡片、表单、设置、弹层、代码、过程信息和加载状态。目录还原 11 款 Codex Dream Skin 高辨识度皮肤，包括易烊千玺、桥本有菜、迪丽热巴、初音未来、KUN、Jinx、ENFP 和 Gothic Void Crusade。应用时只从固定上游版本下载对应图片、校验 SHA-256 并嵌入本地，不执行远程代码；人物与角色图片属于第三方素材，不在上游 MIT 软件许可范围内。"
   },
   "author": "NextClaw",
   "tags": [

@@ -7,8 +7,9 @@ import {
   unlinkSync,
   writeFileSync,
 } from "node:fs";
+import { createHash } from "node:crypto";
 import { homedir } from "node:os";
-import { extname, join, resolve } from "node:path";
+import { extname, join, resolve, sep } from "node:path";
 
 const OWNER = "nextclaw-skin-studio";
 const LEGACY_MARKER = "// nextclaw-ui-theme-id: abyssal-compass-theme";
@@ -22,7 +23,14 @@ const imageMimeByExtension = new Map([
   [".jpeg", "image/jpeg"],
   [".webp", "image/webp"],
 ]);
-const presets = JSON.parse(readFileSync(new URL("../assets/skins.json", import.meta.url), "utf8"));
+const catalog = JSON.parse(readFileSync(new URL("../assets/skins.json", import.meta.url), "utf8"));
+const presets = catalog.skins;
+const styleAssets = [
+  "foundation-styles.js",
+  "navigation-styles.js",
+  "content-styles.js",
+  "control-styles.js",
+].map((fileName) => readFileSync(new URL(`../assets/${fileName}`, import.meta.url), "utf8"));
 const renderer = readFileSync(new URL("../assets/renderer.js", import.meta.url), "utf8");
 const args = process.argv.slice(2);
 const action = args[0] ?? "status";
@@ -76,6 +84,55 @@ function findPreset(id) {
   return preset;
 }
 
+function resolveSourceUrl(preset) {
+  return new URL(preset.asset.path, catalog.source.rawBaseUrl).href;
+}
+
+function verifyImage(buffer, preset, sourceLabel) {
+  if (buffer.byteLength > MAX_IMAGE_BYTES) {
+    fail(`Skin asset is larger than 5 MB: ${sourceLabel}`);
+  }
+  const digest = createHash("sha256").update(buffer).digest("hex");
+  if (digest !== preset.asset.sha256) {
+    fail(`Skin asset integrity check failed for ${preset.id}: expected ${preset.asset.sha256}, received ${digest}`);
+  }
+  return `data:${preset.asset.contentType};base64,${buffer.toString("base64")}`;
+}
+
+async function readPresetImage(preset) {
+  const sourceDirectory = readFlag("--source-dir");
+  if (sourceDirectory) {
+    const root = resolve(sourceDirectory);
+    const sourcePath = resolve(root, preset.asset.path);
+    if (sourcePath !== root && !sourcePath.startsWith(`${root}${sep}`)) {
+      fail(`Skin asset path escapes --source-dir: ${preset.asset.path}`);
+    }
+    if (!existsSync(sourcePath)) {
+      fail(`Skin asset is missing from --source-dir: ${sourcePath}`);
+    }
+    return {
+      image: verifyImage(readFileSync(sourcePath), preset, sourcePath),
+      assetSource: sourcePath,
+    };
+  }
+
+  const sourceUrl = resolveSourceUrl(preset);
+  let response;
+  try {
+    response = await fetch(sourceUrl, { signal: AbortSignal.timeout(20_000) });
+  } catch (error) {
+    fail(`Unable to download ${preset.name} from the pinned upstream source: ${error.message}`);
+  }
+  if (!response.ok) {
+    fail(`Unable to download ${preset.name} from the pinned upstream source: HTTP ${response.status}`);
+  }
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return {
+    image: verifyImage(buffer, preset, sourceUrl),
+    assetSource: sourceUrl,
+  };
+}
+
 function readColor(flag, fallback) {
   const value = readFlag(flag) ?? fallback;
   if (!COLOR_PATTERN.test(value)) {
@@ -106,7 +163,7 @@ function createCustomSkin() {
   if (!name || name.length > 60) {
     fail("custom requires --name with 1 to 60 characters");
   }
-  const base = findPreset(readFlag("--base") ?? "glass-tide");
+  const base = findPreset(readFlag("--base") ?? "gothic-void-crusade");
   const idPart = name
     .normalize("NFKD")
     .toLowerCase()
@@ -123,25 +180,30 @@ function createCustomSkin() {
     background: readColor("--background", base.background),
     panel: readColor("--panel", base.panel),
     text: readColor("--text", base.text),
-    image: readImageDataUrl(),
   };
+}
+
+async function prepareSkin(config) {
+  const localImage = readImageDataUrl();
+  if (localImage) {
+    return { ...config, image: localImage, assetSource: "local-image" };
+  }
+  const resolvedAsset = await readPresetImage(config);
+  return { ...config, ...resolvedAsset };
 }
 
 function renderSkin(config) {
   return [
     `// nextclaw-ui-skin-owner: ${OWNER}`,
     `// nextclaw-ui-skin-id: ${config.id}`,
-    "// nextclaw-ui-skin-version: 1",
+    "// nextclaw-ui-skin-version: 2",
     `globalThis.__NEXTCLAW_SKIN_CONFIG__ = Object.freeze(${JSON.stringify(config)});`,
+    ...styleAssets,
     renderer,
   ].join("\n");
 }
 
 function applySkin(config, home, targetPath) {
-  const current = inspect(targetPath);
-  if (current.state === "occupied") {
-    fail(`Refusing to overwrite UI injection owned by ${current.owner ?? "another tool or an unknown source"}.`, 2);
-  }
   const source = renderSkin(config);
   const changed = !existsSync(targetPath) || readFileSync(targetPath, "utf8") !== source;
   if (changed) {
@@ -160,12 +222,27 @@ function applySkin(config, home, targetPath) {
   });
 }
 
+function assertWritable(targetPath) {
+  const current = inspect(targetPath);
+  if (current.state === "occupied") {
+    fail(`Refusing to overwrite UI injection owned by ${current.owner ?? "another tool or an unknown source"}.`, 2);
+  }
+}
+
 if (action === "list") {
-  const catalog = presets.map(({ id, name, description, mode }) => ({ id, name, description, mode }));
+  const list = presets.map(({ id, name, description, mode, upstreamLabel, asset }) => ({
+    id,
+    name,
+    description,
+    mode,
+    upstreamLabel,
+    assetKind: asset.kind,
+    previewUrl: resolveSourceUrl({ asset }),
+  }));
   if (args.includes("--json")) {
-    process.stdout.write(`${JSON.stringify(catalog, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify(list, null, 2)}\n`);
   } else {
-    process.stdout.write(`${catalog.map((skin) => `${skin.id.padEnd(20)} ${skin.name} — ${skin.description}`).join("\n")}\n`);
+    process.stdout.write(`${list.map((skin) => `${skin.id.padEnd(22)} ${skin.name} — ${skin.description}`).join("\n")}\n`);
   }
 } else {
   const home = resolveHome();
@@ -178,9 +255,11 @@ if (action === "list") {
     if (!id || id.startsWith("--")) {
       fail("apply requires a skin id. Run 'node scripts/skin.mjs list' first.");
     }
-    applySkin(findPreset(id), home, targetPath);
+    assertWritable(targetPath);
+    applySkin(await prepareSkin(findPreset(id)), home, targetPath);
   } else if (action === "custom" || action === "customize") {
-    applySkin(createCustomSkin(), home, targetPath);
+    assertWritable(targetPath);
+    applySkin(await prepareSkin(createCustomSkin()), home, targetPath);
   } else if (action === "remove") {
     if (current.state === "occupied") {
       fail(`Refusing to remove UI injection owned by ${current.owner ?? "another tool or an unknown source"}.`, 2);
@@ -197,6 +276,6 @@ if (action === "list") {
       refreshRequired: changed,
     });
   } else {
-    fail("Usage: node scripts/skin.mjs <list|status|apply <skin-id>|custom|remove> [options]");
+    fail("Usage: node scripts/skin.mjs <list|status|apply <skin-id>|custom|remove> [--source-dir <upstream-clone>] [options]");
   }
 }

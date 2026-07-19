@@ -1,4 +1,4 @@
 interface:
   display_name: "NextClaw Skin Studio"
-  short_description: "Apply or create lightweight NextClaw UI skins"
-  default_prompt: "Use $nextclaw-skin-studio to show the built-in skins and help me apply or customize one for this NextClaw instance."
+  short_description: "Apply full-product Codex Dream Skin looks to NextClaw"
+  default_prompt: "Use $nextclaw-skin-studio to show the 11 source-aligned skins, then apply or customize one across this NextClaw instance's shell, real conversations, cards, forms, settings, overlays, and loading states."
