@@ -123,12 +123,7 @@ export function CronTemplateGallery({
   const templates = compact ? CRON_TEMPLATES.slice(0, 4) : CRON_TEMPLATES;
 
   return (
-    <div
-      className={cn(
-        "grid gap-3 sm:grid-cols-2",
-        compact ? "xl:grid-cols-4" : "lg:grid-cols-3",
-      )}
-    >
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,17.5rem),1fr))] gap-3">
       {templates.map((template) => {
         const Icon = template.icon;
         return (
