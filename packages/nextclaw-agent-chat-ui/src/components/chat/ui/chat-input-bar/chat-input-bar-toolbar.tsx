@@ -272,7 +272,7 @@ export function ChatInputBarToolbar({
   const { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } = ChatUiPrimitives;
   return (
     <div className="flex flex-wrap items-end justify-between gap-2 px-3 pb-3">
-      <div className="flex min-w-[12rem] flex-1 flex-wrap items-center gap-1 overflow-hidden">
+      <div className="nextclaw-chat-toolbar-leading-controls flex min-w-0 flex-1 flex-wrap items-center gap-1 overflow-hidden">
         {skillPicker ? <ChatInputBarSkillPicker picker={skillPicker} /> : null}
         {selects.map((item) => (
           <ToolbarSelect key={item.key} item={item} />

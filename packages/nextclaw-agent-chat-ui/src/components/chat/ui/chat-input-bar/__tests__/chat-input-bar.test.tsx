@@ -764,10 +764,10 @@ it('keeps the model dropdown narrower on mobile while preserving desktop width',
   expect(listbox.className).toContain('sm:w-[320px]');
 });
 
-it('lets the toolbar wrap instead of forcing the model select to squeeze the send action', () => {
-  renderInputBar({
+it('lets leading controls shrink before trailing model and send actions wrap', () => {
+  const { container } = renderInputBar({
     toolbar: {
-      selects: [
+      trailingSelects: [
         createModelSelect({
           value: 'deepseek/deepseek-v3.2-super-long-model-name',
           selectedLabel: 'DeepSeek/deepseek-v3.2-super-long-model-name',
@@ -778,14 +778,10 @@ it('lets the toolbar wrap instead of forcing the model select to squeeze the sen
     },
   });
 
-  const modelTrigger = screen.getByRole('combobox');
-  expect(document.querySelector('.nextclaw-chat-input-bar-shell')).toBeTruthy();
-  expect(modelTrigger.className).toContain('min-w-0');
-  expect(modelTrigger.className).toContain('max-w-[18rem]');
-  expect(modelTrigger.className).toContain('nextclaw-chat-toolbar-select-trigger');
-  expect(screen.getByText('DeepSeek/deepseek-v3.2-super-long-model-name').className).toContain(
-    'nextclaw-chat-toolbar-label',
-  );
+  const leadingControls = container.querySelector('.nextclaw-chat-toolbar-leading-controls');
+  expect(leadingControls?.className).toContain('min-w-0');
+  expect(leadingControls?.className).not.toContain('min-w-[12rem]');
+  expect(screen.getByRole('combobox')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Send' })).toBeTruthy();
 });
 
