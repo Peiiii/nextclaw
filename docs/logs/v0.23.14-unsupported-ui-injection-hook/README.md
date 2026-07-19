@@ -4,7 +4,7 @@
 
 - NextClaw UI 在 React 应用启动前请求 `/api/ui-inject.js`；server 从活动 `$NEXTCLAW_HOME` 读取 `ui-inject.js`，不存在时返回空脚本，存在时返回最新内容，响应固定为 `Cache-Control: no-store`。
 - 产品主干只保留一个不受支持的同源 JavaScript 逃生口，没有增加皮肤 CLI、设置页、manifest、数据库、浏览器扩展或兼容层。写入、切换或删除脚本后刷新即可生效，不需要重启 NextClaw。
-- 原单皮肤 Skill `@nextclaw/abyssal-compass-theme` 已由通用 `@nextclaw/nextclaw-skin-studio` 替代并从公开 Marketplace 下架。Skin Studio 提供 `list/status/apply/custom/remove`、本地图片嵌入、未知 owner 冲突保护和旧 Abyssal marker 迁移。
+- 原单皮肤 Skill `@nextclaw/abyssal-compass-theme` 已由通用 `@nextclaw/nextclaw-skin-studio` 替代并从公开 Marketplace 下架。Skin Studio 提供 `list/status/apply/custom/create-project/apply-project/remove`、本地图片嵌入、未知 owner 冲突保护和旧 Abyssal marker 迁移。
 - 新 Skill 已发布到 Marketplace；公开详情为 `install.kind=marketplace`，旧 Skill 详情为 `404`、搜索为零结果。新 Skill 位于“最近发布”首位。
 - 设计文档已更新为“一处官方注入口 + 一个通用 Skill”的最终方案：`docs/designs/2026-07-16-unsupported-ui-injection-hook.design.md`。
 
@@ -30,6 +30,7 @@
 - 迪丽热巴、初音未来、KUN、Jinx、ENFP、财神和粉系概念图分别校准人像焦点、缩放与纵向位置，不再复用一组会把人脸裁出视口的参数；People AI 仅保留上半部科幻景观，提前淡出概念图内的假卡片。
 - 新增仓库内临时 `replicating-reference-skins` 验收 Skill，把真实数据、组件族、状态矩阵、页面巡检、稳定预览和禁止假 UI 固化为可重复执行的门槛。
 - 复盘时发现临时 Skill 曾错误写成“每轮先清理旧标记”，会诱导后续实现重新制造动画重启。规则已修正为按本轮目标集合差量清理，并新增整页共同画布、实际 CSS 像素、跨完整周期和 DOM 身份连续性的强制验收门。
+- Marketplace Skill 现自带 `skin-authoring-and-repair-guide.md`，并增加独立个人皮肤工程：用户源码保存在 Skill 目录之外，`skin.css` 与 `skin.js` 可以原样植入任意 CSS、同源 JavaScript、DOM/SVG、布局和动效。Skill 不提供扩展 API 或组件白名单，只负责创建工程、静态语法检查、资源内嵌和原子应用；Marketplace 更新不会覆盖个人源码。指南仍用真实数据、稳定预览和全产品覆盖图帮助 Agent 把“消息、侧边栏、工具展示、输入面板或任何可见区域不对”的反馈落实成真实效果，而不是补丁生成的 `ui-inject.js`。
 
 ### Marketplace 列表异常的根因与修复
 
@@ -48,7 +49,7 @@
 - Server 全量测试：首次在受限沙箱中因 127.0.0.1 监听被系统拒绝而出现 `EPERM`；按真实需求在允许本机端口的环境复跑后，29/29 个测试文件通过，143 个测试通过、2 个跳过。
 - Marketplace UI 定向测试：`pnpm -C packages/nextclaw-ui exec vitest run src/features/marketplace`，7 个测试文件、26/26 通过；覆盖独立最近发布查询、刷新策略、总数表达、分页和页面行为。
 - UI 全量测试另有 9 个失败，全部位于当前工作区其它聊天改动触达的 3 个测试文件：4 个 `session-conversation-input.streaming` 和 4 个 `chat-conversation-welcome` 因缺少 `QueryClientProvider`，1 个 `chat-session-workspace-panel` 因查询键预期未同步。它们不经过 Marketplace 代码，未在本批次擅自修改；本批次 Marketplace 定向套件仍为 26/26。
-- Skin Studio 修正后测试：`node --test tests/skills/nextclaw-skin-studio.test.mjs`，6/6 通过；覆盖 11 款目录、易烊千玺历史标签和固定预览 URL、本地图片应用、定制、未知 owner 保护、旧 Skill 迁移/移除，以及错误哈希必须失败且不写注入文件。
+- Skin Studio 修正后测试：`node --test tests/skills/nextclaw-skin-studio.test.mjs`，9/9 通过；除 11 款目录、内置应用/定制、未知 owner 保护、旧 Skill 迁移/移除和错误哈希外，新增覆盖个人工程创建、任意 CSS/JavaScript 与本地图片打包、工程路径不泄露、无扩展 API，以及 JavaScript 语法错误时逐字节保留当前活动注入。
 - 11 款生成矩阵：固定上游回装副本依次应用 `jackson-yee`、`arina-hashimoto`、`dilraba-violet`、`miku-cyan`、`kun-noir`、`jinx-pop`、`enfp-spark`、`people-ai-red`、`god-of-wealth`、`pink-custom` 与 `gothic-void-crusade`，每次生成的完整 `ui-inject.js` 均通过 `node --check`。
 - 真实数据会话验收：源码实例直接使用 `/Users/peiwang/.nextclaw`，只隔离运行态；同一会话页识别 134 个真实会话项，当前会话包含 8 条消息布局、4 条用户消息、4 条助手消息、2 个代码块和 4 个工具过程，无横向溢出。134 个外层 `session-item` 与 134 个透明 `session-content` 一一对应，旧 `session-row` 为 0，选中项只有一个外层视觉表面。
 - 跨页面浏览器验收：技能市场真实数据加载后有 26 张可见卡片、4 个集合区、搜索、select 和 2 个 tab；外观设置页识别 2 个 choice、2 个 select、1 个 switch 和 1 个设置分组；真实下拉弹层识别 9 个 option、1 个 selected，三页均无横向溢出。
@@ -68,10 +69,13 @@
 - 公网镜像修复文件已通过远程语法与 SHA-256 校验并安全暂存；当前服务保持 `active`，尚未替换或重启。
 - 官方公共 API 终态复核：新 Skill 详情 200、双语 summary 和 `install.kind=marketplace` 正确；旧 Skill 详情 404；最近更新总数 32 且新 Skill 排第一；全部目录一次取回 32 条且 `builtin` 为 0。
 - 本轮整页画布与墨焰更新已再次发布到正式 Marketplace：详情接口更新时间为 `2026-07-19T04:09:56.131Z`，文件清单为 11 个且包含四个 `*-styles.js`。从仓库外全新目录安装后，11 款目录、六个 JavaScript 文件语法、易烊千玺应用和生成文件中的全画布/30px 墨焰合同均通过。
+- 个人皮肤工程更新已发布到正式 Marketplace：详情接口更新时间为 `2026-07-19T05:20:31.258Z`，最近更新列表中排第一；仓库外安装得到 13 个文件，与本地发布源排除安装元数据后逐字节一致。使用回装副本应用同一个个人工程后，生成的 `ui-inject.js` 与本地副本 SHA-256 同为 `284edc87cfb010c8d69971fe1a3e1335eceb9383a23041bd718fd395c345022c`。
+- 真实浏览器执行证明：个人 JavaScript 成功写入 `data-runtime-project=executed` 并创建真实 DOM；个人 CSS 的计算结果为 `width: 73px`、`color: rgb(1, 2, 3)`；共享按钮语义角色仍为 `button`、控制台无 warning/error，且页面不存在 `__NEXTCLAW_SKIN_PROJECT_API__`。
 
 ## 发布/部署方式
 
 - Marketplace Skill `@nextclaw/nextclaw-skin-studio` 已发布；旧 `@nextclaw/abyssal-compass-theme` 已从公开目录下架。
+- 个人皮肤工程能力已通过同一 Marketplace 条目的 `skills update` 更新，不需要发布新的 Skill 或增加产品部署；用户更新/重新安装 Skill 后即可使用 `create-project` 与 `apply-project`。
 - 官方 Marketplace 当前公开目录为 32 条，新 Skill 位于最近发布首位，旧 Skill 详情为 404。
 - Worker 查询约束的源码、类型、lint 和 build 已通过；当前环境没有 `CLOUDFLARE_API_TOKEN`，尚未部署 Worker。现有公开数据已通过历史记录清理恢复正确，长期防回归仍需后续 Worker 部署。
 - 国内镜像修复已暂存至 ECS，替换活动文件和服务短重启需要用户知情许可；在许可前没有改动线上运行服务。
@@ -86,8 +90,9 @@
 4. 说“应用易烊千玺皮肤”，刷新桌面端或浏览器页面，确认人物主视觉和清透配色生效；同一实例连接的浏览器无需扩展。
 5. 说“基于 Gothic Void Crusade，把主色改成青色”或提供本地 PNG/JPEG/WebP，刷新后确认自定义皮肤生效。
 6. 说“当前是什么皮肤”查看状态；说“恢复默认界面”后刷新，确认默认 UI 恢复。
-7. 在“全部 Skill”持续滚动到底：总数应为 32，终态应加载 32 张唯一卡片，不出现 `builtin` 错误或持续 loading。
-8. 使用者必须知晓 `ui-inject.js` 拥有页面同源权限，NextClaw 不保证安全性、DOM 稳定性、可靠性或跨版本兼容。
+7. 说“给我创建一个个人皮肤”，确认 Agent 在 Skill 之外创建 `skin.json`、`skin.css` 与 `skin.js`；继续要求修改消息、侧边栏、工具过程、输入器、SVG 或动效时，Agent 应直接编辑个人源码并重新应用，不等待官方组件 API。
+8. 在“全部 Skill”持续滚动到底：总数应为 32，终态应加载 32 张唯一卡片，不出现 `builtin` 错误或持续 loading。
+9. 使用者必须知晓 `ui-inject.js` 与个人 `skin.js` 拥有页面同源权限，NextClaw 不保证安全性、DOM 稳定性、可靠性或跨版本兼容。
 
 ## 可维护性总结汇总
 
@@ -98,6 +103,8 @@
 - Guard 为 0 error、4 warning：`packages/nextclaw-server/src/app` 仍是 17 个直接文件且已有豁免、数量未增长；Marketplace 路由测试从 506 行增至 658 行但仍低于测试预算 900；`marketplace-catalog.utils.ts` 为 347/400；镜像脚本为 400/500。后两者是后续拆分观察点，本次没有新增抽象或平行链路来掩盖文件增长。
 - 本轮全产品皮肤扩展一度把 `renderer.js` 推到 1022 行并触发文件增量预算错误；最终将稳定视觉配方拆为 `foundation-styles.js`、`navigation-styles.js`、`content-styles.js` 与 `control-styles.js`，`renderer.js` 回落到 261 行且继续是唯一语义/生命周期 owner。最新 guard 为 0 error、2 个与本轮无关的既有/生成物 warning（Cytoscape bundle 与产品截图脚本），新代码治理和 backlog ratchet 均通过。
 - 新代码治理、治理 backlog ratchet 和 generated-clean 均通过。治理检查曾发现新 Python 测试文件不是 kebab-case，已改为 `marketplace-mirror-server-test.py` 后复跑通过。
+- 个人工程能力新增后，`skin.mjs` 一度增长到 477 行并接近文件预算；收尾时把纯工程格式、读取和校验职责收敛到 176 行的 `skin-project.mjs`，命令编排入口回落到 340 行。当前 guard 为 0 error；仅测试文件从 155 行增至 283 行产生一条低于 900 行预算的增长提示，未为此制造测试 helper 层。
+- 本轮个人工程增减统计：全部任务文件新增 599 行、删除 43 行、净增 556 行；排除测试后新增 471 行、删除 43 行、净增 428 行。增长属于新的用户可见能力，主要是 127 行作者指南、176 行个人工程校验 owner 和相应设计/元数据；没有把复杂度放入 NextClaw 产品主干。
 - 可维护性复核结论：通过；本次顺手减债：是。正向动作包括删除按“本机已知 Skill”过滤上游分页的旧辅助路径、删除最近发布的本地伪排序、复用现有 Marketplace fetch/fallback owner，并把所有皮肤状态变更收敛到一个脚本。no maintainability findings；保留上述 4 个非阻塞 warning 作为明确观察点。
 
 ## NPM 包发布记录

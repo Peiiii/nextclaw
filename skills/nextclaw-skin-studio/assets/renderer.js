@@ -3,6 +3,9 @@
   if (!config || typeof config !== "object" || typeof config.image !== "string") {
     return;
   }
+  const projectCss = typeof globalThis.__NEXTCLAW_SKIN_PROJECT_CSS__ === "string"
+    ? globalThis.__NEXTCLAW_SKIN_PROJECT_CSS__
+    : "";
 
   const root = document.documentElement;
   const styleId = "nextclaw-skin-studio-style";
@@ -248,14 +251,15 @@
   document.getElementById(styleId)?.remove();
   const style = document.createElement("style");
   style.id = styleId;
-  style.textContent = styleFactories.map((factory) => factory(styleContext)).join("\n");
+  style.textContent = `${styleFactories.map((factory) => factory(styleContext)).join("\n")}\n${projectCss}`;
   delete globalThis.__NEXTCLAW_SKIN_STYLE_FACTORIES__;
+  delete globalThis.__NEXTCLAW_SKIN_PROJECT_CSS__;
   document.head.appendChild(style);
 
   globalThis.__NEXTCLAW_UI_SKIN__ = Object.freeze({
     id: config.id,
     name: config.name,
-    version: 2,
+    version: 3,
     source: config.assetSource
   });
 })();

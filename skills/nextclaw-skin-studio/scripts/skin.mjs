@@ -10,6 +10,7 @@ import {
 import { createHash } from "node:crypto";
 import { homedir } from "node:os";
 import { extname, join, resolve, sep } from "node:path";
+import { createSkinProject, readSkinProject } from "./skin-project.mjs";
 
 const OWNER = "nextclaw-skin-studio";
 const LEGACY_MARKER = "// nextclaw-ui-theme-id: abyssal-compass-theme";
@@ -141,6 +142,15 @@ function readColor(flag, fallback) {
   return value.toLowerCase();
 }
 
+function toSkinId(name) {
+  return name
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40) || "custom-skin";
+}
+
 function readImageDataUrl() {
   const imagePath = readFlag("--image");
   if (!imagePath) {
@@ -164,15 +174,9 @@ function createCustomSkin() {
     fail("custom requires --name with 1 to 60 characters");
   }
   const base = findPreset(readFlag("--base") ?? "gothic-void-crusade");
-  const idPart = name
-    .normalize("NFKD")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40) || "skin";
   return {
     ...base,
-    id: `custom-${idPart}`,
+    id: `custom-${toSkinId(name)}`,
     name,
     description: `Custom skin based on ${base.name}`,
     accent: readColor("--accent", base.accent),
@@ -180,6 +184,53 @@ function createCustomSkin() {
     background: readColor("--background", base.background),
     panel: readColor("--panel", base.panel),
     text: readColor("--text", base.text),
+  };
+}
+
+function readProjectDirectory() {
+  const value = args[1];
+  if (!value || value.startsWith("--")) {
+    fail(`${action} requires an absolute or relative skin project directory`);
+  }
+  return resolve(value);
+}
+
+function createProject(projectDirectory) {
+  const name = readFlag("--name");
+  if (!name || name.length > 60) fail("create-project requires --name with 1 to 60 characters");
+  const id = readFlag("--id") ?? toSkinId(name);
+  const base = findPreset(readFlag("--base") ?? "gothic-void-crusade");
+  try {
+    process.stdout.write(`${JSON.stringify(createSkinProject({ projectDirectory, id, name, base }), null, 2)}\n`);
+  } catch (error) {
+    fail(error.message);
+  }
+}
+
+async function prepareProject(projectDirectory) {
+  let source;
+  try {
+    source = readSkinProject(projectDirectory);
+  } catch (error) {
+    fail(error.message);
+  }
+  const base = findPreset(source.project.base);
+  const resolvedAsset = source.image
+    ? { image: source.image, assetSource: "project-image" }
+    : await readPresetImage(base);
+  return {
+    config: {
+      ...base,
+      ...source.tokens,
+      id: source.project.id,
+      name: source.project.name,
+      description: source.project.description ?? `Personal NextClaw skin based on ${base.name}`,
+      art: { ...base.art, ...source.art },
+      details: { ...base.details, ...source.details },
+      asset: { ...base.asset, kind: source.project.assetKind },
+      ...resolvedAsset,
+    },
+    projectSource: { css: source.css, javaScript: source.javaScript },
   };
 }
 
@@ -192,19 +243,21 @@ async function prepareSkin(config) {
   return { ...config, ...resolvedAsset };
 }
 
-function renderSkin(config) {
+function renderSkin(config, projectSource = { css: "", javaScript: "" }) {
   return [
     `// nextclaw-ui-skin-owner: ${OWNER}`,
     `// nextclaw-ui-skin-id: ${config.id}`,
-    "// nextclaw-ui-skin-version: 2",
+    "// nextclaw-ui-skin-version: 3",
     `globalThis.__NEXTCLAW_SKIN_CONFIG__ = Object.freeze(${JSON.stringify(config)});`,
+    `globalThis.__NEXTCLAW_SKIN_PROJECT_CSS__ = ${JSON.stringify(projectSource.css)};`,
     ...styleAssets,
     renderer,
+    projectSource.javaScript,
   ].join("\n");
 }
 
-function applySkin(config, home, targetPath) {
-  const source = renderSkin(config);
+function applySkin(config, home, targetPath, projectSource) {
+  const source = renderSkin(config, projectSource);
   const changed = !existsSync(targetPath) || readFileSync(targetPath, "utf8") !== source;
   if (changed) {
     mkdirSync(home, { recursive: true });
@@ -244,6 +297,8 @@ if (action === "list") {
   } else {
     process.stdout.write(`${list.map((skin) => `${skin.id.padEnd(22)} ${skin.name} — ${skin.description}`).join("\n")}\n`);
   }
+} else if (action === "create-project") {
+  createProject(readProjectDirectory());
 } else {
   const home = resolveHome();
   const targetPath = join(home, "ui-inject.js");
@@ -260,6 +315,10 @@ if (action === "list") {
   } else if (action === "custom" || action === "customize") {
     assertWritable(targetPath);
     applySkin(await prepareSkin(createCustomSkin()), home, targetPath);
+  } else if (action === "apply-project") {
+    assertWritable(targetPath);
+    const { config, projectSource } = await prepareProject(readProjectDirectory());
+    applySkin(config, home, targetPath, projectSource);
   } else if (action === "remove") {
     if (current.state === "occupied") {
       fail(`Refusing to remove UI injection owned by ${current.owner ?? "another tool or an unknown source"}.`, 2);
@@ -276,6 +335,6 @@ if (action === "list") {
       refreshRequired: changed,
     });
   } else {
-    fail("Usage: node scripts/skin.mjs <list|status|apply <skin-id>|custom|remove> [--source-dir <upstream-clone>] [options]");
+    fail("Usage: node scripts/skin.mjs <list|status|apply <skin-id>|custom|create-project <directory>|apply-project <directory>|remove> [options]");
   }
 }

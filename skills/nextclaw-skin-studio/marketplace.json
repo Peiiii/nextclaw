@@ -1,15 +1,15 @@
 {
   "slug": "nextclaw-skin-studio",
   "name": "NextClaw Skin Studio",
-  "summary": "Apply 11 source-aligned Codex Dream Skin looks across NextClaw, or create your own.",
+  "summary": "Apply 11 source-aligned skins or author unrestricted personal NextClaw skins.",
   "summaryI18n": {
-    "en": "Apply 11 source-aligned Codex Dream Skin looks across NextClaw, or create your own.",
-    "zh": "把 11 款对齐 Codex Dream Skin 原仓库的皮肤应用到整个 NextClaw，或创建自己的皮肤。"
+    "en": "Apply 11 source-aligned skins or author unrestricted personal NextClaw skins.",
+    "zh": "应用 11 款原仓库皮肤，或创作可任意植入 CSS、JavaScript 和视觉效果的个人皮肤。"
   },
-  "description": "Browse, apply, switch, customize, inspect, and remove NextClaw UI skins through the unsupported UI injection hook. A shared external design-system runtime styles the app shell, sidebar, real conversations, cards, forms, settings, overlays, code, process rows, and loading states. The catalog restores 11 recognizable Codex Dream Skin looks, including Jackson Yee, Arina Hashimoto, Dilraba, Miku, KUN, Jinx, ENFP, and Gothic Void Crusade. Applying a source look downloads only its pinned upstream image, verifies SHA-256, and embeds it locally; no remote code runs. Portrait and character imagery remains third-party material outside the upstream MIT software license.",
+  "description": "Browse and apply 11 recognizable Codex Dream Skin looks, or create a durable personal skin project outside the installed Skill. Personal projects can use arbitrary CSS and unsandboxed same-origin JavaScript, standard DOM APIs, SVG, local imagery, custom layout, and motion to change any visible NextClaw surface; there is no Skin Studio JavaScript API or component allowlist. Applying a bundled look downloads only its pinned upstream image, verifies SHA-256, and embeds it locally; bundled looks execute no remote code. Personal JavaScript has full page access and is entirely the user's security, reliability, and compatibility responsibility. Portrait and character imagery remains third-party material outside the upstream MIT software license.",
   "descriptionI18n": {
-    "en": "Browse, apply, switch, customize, inspect, and remove NextClaw UI skins through the unsupported UI injection hook. A shared external design-system runtime styles the app shell, sidebar, real conversations, cards, forms, settings, overlays, code, process rows, and loading states. The catalog restores 11 recognizable Codex Dream Skin looks, including Jackson Yee, Arina Hashimoto, Dilraba, Miku, KUN, Jinx, ENFP, and Gothic Void Crusade. Applying a source look downloads only its pinned upstream image, verifies SHA-256, and embeds it locally; no remote code runs. Portrait and character imagery remains third-party material outside the upstream MIT software license.",
-    "zh": "通过非正式 UI 注入口浏览、应用、切换、定制、检查和移除 NextClaw 皮肤。共享的外置设计系统运行时会统一处理应用壳、侧边栏、真实会话、卡片、表单、设置、弹层、代码、过程信息和加载状态。目录还原 11 款 Codex Dream Skin 高辨识度皮肤，包括易烊千玺、桥本有菜、迪丽热巴、初音未来、KUN、Jinx、ENFP 和 Gothic Void Crusade。应用时只从固定上游版本下载对应图片、校验 SHA-256 并嵌入本地，不执行远程代码；人物与角色图片属于第三方素材，不在上游 MIT 软件许可范围内。"
+    "en": "Browse and apply 11 recognizable Codex Dream Skin looks, or create a durable personal skin project outside the installed Skill. Personal projects can use arbitrary CSS and unsandboxed same-origin JavaScript, standard DOM APIs, SVG, local imagery, custom layout, and motion to change any visible NextClaw surface; there is no Skin Studio JavaScript API or component allowlist. Applying a bundled look downloads only its pinned upstream image, verifies SHA-256, and embeds it locally; bundled looks execute no remote code. Personal JavaScript has full page access and is entirely the user's security, reliability, and compatibility responsibility. Portrait and character imagery remains third-party material outside the upstream MIT software license.",
+    "zh": "可浏览并应用 11 款高辨识度 Codex Dream Skin 皮肤，也可以在已安装 Skill 之外创建长期保存的个人皮肤工程。个人工程可以直接编写任意 CSS 和不受沙箱限制的同源 JavaScript，使用标准 DOM API、SVG、本地图片、自定义布局与动效，修改 NextClaw 中任何看得见的区域；Skin Studio 不提供 JavaScript API，也不设置组件白名单。应用内置皮肤时只下载固定上游版本的图片、校验 SHA-256 并嵌入本地，不执行远程代码。个人 JavaScript 拥有完整页面权限，其安全性、可靠性和版本兼容风险由用户自行承担；人物与角色图片仍是 MIT 软件许可之外的第三方素材。"
   },
   "author": "NextClaw",
   "tags": [
