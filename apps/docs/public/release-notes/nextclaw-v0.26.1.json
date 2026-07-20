@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.26.1",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-07-20",
+  "title": {
+    "zh-CN": "NextClaw v0.26.1",
+    "en-US": "NextClaw v0.26.1"
+  },
+  "summary": {
+    "zh-CN": "本版本优化聊天运行信息、移动端输入区和定时任务模板布局。",
+    "en-US": "This release refines chat runtime details, the mobile composer, and scheduled task templates."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-20-nextclaw-v0-26-1",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-20-nextclaw-v0-26-1"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "运行信息展示更简洁",
+            "en-US": "Cleaner runtime details"
+          },
+          "body": {
+            "zh-CN": "没有 token 用量时不再显示不可用占位，完整运行信息仍可查看，弹窗打开和关闭时也不会跳位。",
+            "en-US": "Missing token usage no longer creates an unavailable placeholder, full runtime details remain accessible, and the dialog no longer shifts while opening or closing."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "移动端输入工具栏更紧凑",
+            "en-US": "More compact mobile composer"
+          },
+          "body": {
+            "zh-CN": "空间足够时，聊天输入面板会让工具栏控件保持单行排列，减少不必要的高度。",
+            "en-US": "When space allows, the chat composer keeps toolbar controls on one row and avoids unnecessary height."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "定时任务模板适配窄窗口",
+            "en-US": "Scheduled task templates adapt to narrow windows"
+          },
+          "body": {
+            "zh-CN": "模板会根据可用内容宽度调整列数，在窄窗口和移动端保持完整可读。",
+            "en-US": "Templates adjust their column count to the available width and remain readable in narrow windows and on mobile devices."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需迁移配置",
+            "en-US": "No configuration migration required"
+          },
+          "body": {
+            "zh-CN": "现有 NPM 安装可以直接通过 stable 通道升级；会话、定时任务和模型设置保持不变。",
+            "en-US": "Existing npm installations can update through the stable channel without changing conversations, scheduled tasks, or model settings."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "桌面安装包不变",
+            "en-US": "Desktop installers are unchanged"
+          },
+          "body": {
+            "zh-CN": "本次 patch 面向 NPM stable 更新链路，不包含新的桌面安装包。",
+            "en-US": "This patch targets the npm stable update path and does not include a new desktop installer."
+          }
+        }
+      ]
+    }
+  ]
+}

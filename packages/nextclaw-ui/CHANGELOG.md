@@ -1,5 +1,24 @@
 # @nextclaw/ui
 
+## 0.15.12
+
+### Patch Changes
+
+- c8974bd: 移动端聊天输入面板会在空间足够时保持工具栏控件单行排列，减少不必要的面板高度。
+- dabc87a: 定时任务模板现在会根据可用内容宽度自动调整列数，在窄窗口和移动端保持完整可读。
+- 0b88f68: AI 回复拿不到 token 用量时，消息页脚不再显示不可用占位；完整状态仍可在运行元数据中查看。运行元数据弹窗统一复用 shadcn 风格的聊天 Dialog，并修正打开与关闭时的跳位动画。
+- Updated dependencies
+- Updated dependencies [c8974bd]
+- Updated dependencies [0b88f68]
+  - @nextclaw/agent-chat@0.3.6
+  - @nextclaw/client-sdk@0.5.12
+  - @nextclaw/ncp@0.7.8
+  - @nextclaw/ncp-http-agent-client@0.4.8
+  - @nextclaw/ncp-react@0.5.10
+  - @nextclaw/ncp-toolkit@0.6.9
+  - @nextclaw/shared@0.4.9
+  - @nextclaw/agent-chat-ui@0.6.12
+
 ## 0.15.11
 
 ### Patch Changes
