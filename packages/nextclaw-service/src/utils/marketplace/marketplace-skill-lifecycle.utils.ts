@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
-import { isAbsolute, join, relative, resolve } from "node:path";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, renameSync, rmSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { DEFAULT_SKILLS_DIR } from "@nextclaw/core";
 import { SkillManager } from "@nextclaw/kernel";
 import {
@@ -75,20 +75,13 @@ export async function installMarketplaceSkill(options: MarketplaceSkillInstallOp
     existingInstall.slug = resolvedSlug;
     return existingInstall;
   }
-  const writtenFiles = await writeMarketplaceSkillFiles({
+  await materializeMarketplaceSkill({
     destinationDir,
     files: filesPayload.files,
-    apiBase: filesResult.apiBase,
+    apiBases: prioritizeMarketplaceApiBase(filesResult.apiBase, apiBases),
+    item,
+    stateApiBase: filesResult.apiBase,
     slug: selector,
-  });
-  ensureInstalledMarketplaceSkill(destinationDir, installSlug);
-  writeMarketplaceSkillInstallState({
-    destinationDir,
-    state: buildMarketplaceSkillInstallState({
-      item,
-      apiBase: filesResult.apiBase,
-      files: writtenFiles,
-    }),
   });
   return buildMarketplaceInstallResult(resolvedSlug, destinationDir);
 }
@@ -152,22 +145,13 @@ export async function updateInstalledMarketplaceSkill(options: MarketplaceSkillI
 
   const filesResult = await fetchMarketplaceSkillFilesFromSources(apiBases, selector);
   const filesPayload = filesResult.data;
-  rmSync(destinationDir, { recursive: true, force: true });
-  mkdirSync(destinationDir, { recursive: true });
-  const writtenFiles = await writeMarketplaceSkillFiles({
+  await materializeMarketplaceSkill({
     destinationDir,
     files: filesPayload.files,
-    apiBase: filesResult.apiBase,
+    apiBases: prioritizeMarketplaceApiBase(filesResult.apiBase, apiBases),
+    item,
+    stateApiBase: filesResult.apiBase,
     slug: selector,
-  });
-  ensureInstalledMarketplaceSkill(destinationDir, item.slug);
-  writeMarketplaceSkillInstallState({
-    destinationDir,
-    state: buildMarketplaceSkillInstallState({
-      item,
-      apiBase: filesResult.apiBase,
-      files: writtenFiles,
-    }),
   });
 
   return {
@@ -233,15 +217,61 @@ function prepareMarketplaceSkillDestinationDir(params: {
     if (existingDirState !== "recoverable") {
       throw new Error(`Skill directory already exists: ${destinationDir} (use --force)`);
     }
-    rmSync(destinationDir, { recursive: true, force: true });
   }
-
-  if (force && existsSync(destinationDir)) {
-    rmSync(destinationDir, { recursive: true, force: true });
-  }
-
-  mkdirSync(destinationDir, { recursive: true });
   return null;
+}
+
+async function materializeMarketplaceSkill(params: {
+  destinationDir: string;
+  files: MarketplaceSkillFileManifestEntry[];
+  apiBases: readonly string[];
+  item: Parameters<typeof buildMarketplaceSkillInstallState>[0]["item"];
+  stateApiBase: string;
+  slug: string;
+}): Promise<void> {
+  const { apiBases, destinationDir, files, item, slug, stateApiBase } = params;
+  const parentDir = dirname(destinationDir);
+  mkdirSync(parentDir, { recursive: true });
+  const stagingDir = mkdtempSync(join(parentDir, `.${basename(destinationDir)}-install-`));
+  let previousDir: string | null = null;
+
+  try {
+    const writtenFiles = await writeMarketplaceSkillFiles({
+      destinationDir: stagingDir,
+      files,
+      apiBases,
+      slug,
+    });
+    ensureInstalledMarketplaceSkill(stagingDir, item.slug);
+    writeMarketplaceSkillInstallState({
+      destinationDir: stagingDir,
+      state: buildMarketplaceSkillInstallState({
+        item,
+        apiBase: stateApiBase,
+        files: writtenFiles,
+      }),
+    });
+
+    if (existsSync(destinationDir)) {
+      previousDir = `${stagingDir}-previous`;
+      renameSync(destinationDir, previousDir);
+    }
+    renameSync(stagingDir, destinationDir);
+    if (previousDir) {
+      rmSync(previousDir, { recursive: true, force: true });
+    }
+  } catch (error) {
+    rmSync(stagingDir, { recursive: true, force: true });
+    if (previousDir && existsSync(previousDir)) {
+      rmSync(destinationDir, { recursive: true, force: true });
+      renameSync(previousDir, destinationDir);
+    }
+    throw error;
+  }
+}
+
+function prioritizeMarketplaceApiBase(primary: string, candidates: readonly string[]): readonly string[] {
+  return [primary, ...candidates.filter((candidate) => candidate !== primary)];
 }
 
 function ensureInstalledMarketplaceSkill(destinationDir: string, slug: string): void {
@@ -266,10 +296,6 @@ function inspectMarketplaceSkillDirectory(
   destinationDir: string,
   files: MarketplaceSkillFileManifestEntry[]
 ): "installed" | "recoverable" | "conflict" {
-  if (existsSync(join(destinationDir, "SKILL.md"))) {
-    return "installed";
-  }
-
   const discoveredFiles = collectRelativeFiles(destinationDir);
   if (discoveredFiles === null) {
     return "conflict";
@@ -281,9 +307,13 @@ function inspectMarketplaceSkillDirectory(
   }
 
   const manifestPaths = new Set(files.map((file) => normalizeMarketplaceRelativePath(file.path)));
-  return relevantFiles.every((file) => manifestPaths.has(normalizeMarketplaceRelativePath(file)))
-    ? "recoverable"
-    : "conflict";
+  if (!relevantFiles.every((file) => manifestPaths.has(normalizeMarketplaceRelativePath(file)))) {
+    return "conflict";
+  }
+  const installedPaths = new Set(relevantFiles.map(normalizeMarketplaceRelativePath));
+  return manifestPaths.size > 0 && [...manifestPaths].every((file) => installedPaths.has(file))
+    ? "installed"
+    : "recoverable";
 }
 
 function collectRelativeFiles(rootDir: string): string[] | null {

@@ -192,6 +192,18 @@ export async function fetchMarketplaceSkillFileBlob(
   }, { attempts: fetchOptions.retryAttempts });
 }
 
+async function fetchMarketplaceSkillFileBlobFromSources(
+  apiBases: readonly string[],
+  slug: string,
+  file: MarketplaceSkillFileManifestEntry,
+): Promise<Buffer> {
+  const result = await runMarketplaceReadSources(
+    apiBases,
+    (apiBase) => fetchMarketplaceSkillFileBlob(apiBase, slug, file),
+  );
+  return result.data;
+}
+
 export function collectMarketplaceSkillFiles(rootDir: string): Array<{ path: string; contentBase64: string }> {
   const output: Array<{ path: string; contentBase64: string }> = [];
 
@@ -224,29 +236,31 @@ export function collectMarketplaceSkillFiles(rootDir: string): Array<{ path: str
 export async function writeMarketplaceSkillFiles(params: {
   destinationDir: string;
   files: MarketplaceSkillFileManifestEntry[];
-  apiBase: string;
+  apiBases: readonly string[];
   slug: string;
 }): Promise<MarketplaceSkillInstallStateFileEntry[]> {
-  const { destinationDir, files, apiBase, slug } = params;
-  const writtenFiles: MarketplaceSkillInstallStateFileEntry[] = [];
-  for (const file of files) {
+  const { destinationDir, files, apiBases, slug } = params;
+  const resolvedFiles = await Promise.all(files.map(async (file) => {
     const targetPath = resolve(destinationDir, ...file.path.split("/"));
     const rel = relative(destinationDir, targetPath);
     if (rel.startsWith("..") || isAbsolute(rel)) {
       throw new Error(`Invalid marketplace file path: ${file.path}`);
     }
 
-    mkdirSync(dirname(targetPath), { recursive: true });
     const bytes = file.contentBase64
       ? decodeMarketplaceFileContent(file.path, file.contentBase64)
-      : await fetchMarketplaceSkillFileBlob(apiBase, slug, file);
+      : await fetchMarketplaceSkillFileBlobFromSources(apiBases, slug, file);
+    return { bytes, file, targetPath };
+  }));
+
+  return resolvedFiles.map(({ bytes, file, targetPath }) => {
+    mkdirSync(dirname(targetPath), { recursive: true });
     writeFileSync(targetPath, bytes);
-    writtenFiles.push({
+    return {
       path: normalizeMarketplaceRelativePath(file.path),
       sha256: hashMarketplaceFileBytes(bytes),
-    });
-  }
-  return writtenFiles;
+    };
+  });
 }
 
 export async function readMarketplaceEnvelope<T>(response: Response): Promise<MarketplaceEnvelope<T>> {

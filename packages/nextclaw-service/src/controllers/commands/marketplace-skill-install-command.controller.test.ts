@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -183,7 +183,69 @@ describe("installMarketplaceSkill", () => {
       apiBaseUrl: "https://marketplace-api.nextclaw.io",
     })).rejects.toThrow("Local skill files changed since install: agent-browser; use --force to overwrite local changes.");
   });
+});
 
+describe("updateInstalledMarketplaceSkill failure safety", () => {
+  it("keeps the current install when an update blob download fails", async () => {
+    const workspace = createTempWorkspace();
+    let updatedAt = "2026-06-01T00:00:00.000Z";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL | Request) => {
+        const url = String(input);
+        if (url.endsWith("/api/v1/skills/items/agent-browser")) {
+          return new Response(JSON.stringify({
+            ok: true,
+            data: {
+              slug: "agent-browser",
+              updatedAt,
+              install: { kind: "marketplace" }
+            }
+          }), { status: 200, headers: { "content-type": "application/json" } });
+        }
+        if (url.endsWith("/api/v1/skills/items/agent-browser/files")) {
+          const files = updatedAt === "2026-06-01T00:00:00.000Z"
+            ? [{ path: "SKILL.md", contentBase64: Buffer.from("# old\n").toString("base64") }]
+            : [
+                { path: "SKILL.md", contentBase64: Buffer.from("# new\n").toString("base64") },
+                {
+                  path: "scripts/run.mjs",
+                  downloadPath: "/api/v1/skills/items/agent-browser/files/blob?path=scripts%2Frun.mjs"
+                }
+              ];
+          return new Response(JSON.stringify({ ok: true, data: { files } }), {
+            status: 200,
+            headers: { "content-type": "application/json" }
+          });
+        }
+        if (url.includes("/files/blob")) {
+          throw new DOMException("update blob timed out", "TimeoutError");
+        }
+        return new Response(null, { status: 404 });
+      })
+    );
+
+    await installMarketplaceSkill({
+      slug: "agent-browser",
+      workdir: workspace,
+      apiBaseUrl: "https://marketplace-api.nextclaw.io"
+    });
+    updatedAt = "2026-06-02T00:00:00.000Z";
+
+    await expect(() => updateInstalledMarketplaceSkill({
+      slug: "agent-browser",
+      workdir: workspace,
+      apiBaseUrl: "https://marketplace-api.nextclaw.io"
+    })).rejects.toThrow("update blob timed out");
+
+    const destinationDir = join(workspace, "skills", "agent-browser");
+    expect(readFileSync(join(destinationDir, "SKILL.md"), "utf8")).toBe("# old\n");
+    expect(existsSync(join(destinationDir, "scripts", "run.mjs"))).toBe(false);
+    expect(readdirSync(join(workspace, "skills")).filter((entry) => entry.startsWith(".agent-browser-install-"))).toEqual([]);
+  });
+});
+
+describe("installMarketplaceSkill conflicts and retries", () => {
   it("keeps refusing directories that contain unrelated files", async () => {
     const workspace = createTempWorkspace();
     const destinationDir = join(workspace, "skills", "agent-browser");
@@ -338,5 +400,102 @@ describe("installMarketplaceSkill source fallback", () => {
       "https://api.nextclaw.net/api/v1/skills/items/agent-browser/files",
       "https://marketplace-api.nextclaw.io/api/v1/skills/items/agent-browser/files"
     ]);
+  });
+
+  it("falls back per file when a domestic blob download times out", async () => {
+    const workspace = createTempWorkspace();
+    const requestedUrls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL | Request) => {
+        const url = String(input);
+        requestedUrls.push(url);
+        if (url.endsWith("/api/v1/skills/items/agent-browser")) {
+          return new Response(JSON.stringify({
+            ok: true,
+            data: {
+              slug: "agent-browser",
+              install: { kind: "marketplace" }
+            }
+          }), { status: 200, headers: { "content-type": "application/json" } });
+        }
+        if (url.endsWith("/api/v1/skills/items/agent-browser/files")) {
+          return new Response(JSON.stringify({
+            ok: true,
+            data: {
+              files: [{
+                path: "SKILL.md",
+                downloadPath: "/api/v1/skills/items/agent-browser/files/blob?path=SKILL.md"
+              }]
+            }
+          }), { status: 200, headers: { "content-type": "application/json" } });
+        }
+        if (url.startsWith("https://api.nextclaw.net/") && url.includes("/files/blob")) {
+          throw new DOMException("domestic blob timed out", "TimeoutError");
+        }
+        if (url.startsWith("https://marketplace-api.nextclaw.io/") && url.includes("/files/blob")) {
+          return new Response("# agent-browser\n", { status: 200 });
+        }
+        return new Response(null, { status: 404 });
+      })
+    );
+
+    await installMarketplaceSkill({
+      slug: "agent-browser",
+      workdir: workspace,
+    });
+
+    expect(readFileSync(join(workspace, "skills", "agent-browser", "SKILL.md"), "utf8")).toBe("# agent-browser\n");
+    expect(requestedUrls).toContain("https://api.nextclaw.net/api/v1/skills/items/agent-browser/files/blob?path=SKILL.md");
+    expect(requestedUrls).toContain("https://marketplace-api.nextclaw.io/api/v1/skills/items/agent-browser/files/blob?path=SKILL.md");
+  });
+
+  it("preserves a recoverable destination when every blob source fails", async () => {
+    const workspace = createTempWorkspace();
+    const destinationDir = join(workspace, "skills", "agent-browser");
+    mkdirSync(destinationDir, { recursive: true });
+    writeFileSync(join(destinationDir, "SKILL.md"), "# partial local download\n");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL | Request) => {
+        const url = String(input);
+        if (url.endsWith("/api/v1/skills/items/agent-browser")) {
+          return new Response(JSON.stringify({
+            ok: true,
+            data: {
+              slug: "agent-browser",
+              install: { kind: "marketplace" }
+            }
+          }), { status: 200, headers: { "content-type": "application/json" } });
+        }
+        if (url.endsWith("/api/v1/skills/items/agent-browser/files")) {
+          return new Response(JSON.stringify({
+            ok: true,
+            data: {
+              files: [
+                { path: "SKILL.md", contentBase64: Buffer.from("# complete\n").toString("base64") },
+                {
+                  path: "scripts/run.mjs",
+                  downloadPath: "/api/v1/skills/items/agent-browser/files/blob?path=scripts%2Frun.mjs"
+                }
+              ]
+            }
+          }), { status: 200, headers: { "content-type": "application/json" } });
+        }
+        if (url.includes("/files/blob")) {
+          throw new DOMException("blob timed out", "TimeoutError");
+        }
+        return new Response(null, { status: 404 });
+      })
+    );
+
+    await expect(() => installMarketplaceSkill({
+      slug: "agent-browser",
+      workdir: workspace,
+    })).rejects.toThrow("blob timed out");
+
+    expect(readFileSync(join(destinationDir, "SKILL.md"), "utf8")).toBe("# partial local download\n");
+    expect(existsSync(join(destinationDir, "scripts", "run.mjs"))).toBe(false);
+    expect(readdirSync(join(workspace, "skills")).filter((entry) => entry.startsWith(".agent-browser-install-"))).toEqual([]);
   });
 });

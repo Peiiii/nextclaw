@@ -1,0 +1,4 @@
+interface:
+  display_name: "Proxy Local AI Subscriptions"
+  short_description: "Proxy local Codex or Claude subscriptions safely"
+  default_prompt: "Use $proxy-local-ai-subscriptions to configure a localhost-only OpenAI-compatible gateway for my Codex or Claude Code subscription, verify a real reply, and then ask whether to add the tested provider to NextClaw."
