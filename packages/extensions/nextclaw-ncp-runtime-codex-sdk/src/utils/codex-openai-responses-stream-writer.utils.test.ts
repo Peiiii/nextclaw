@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { buildAssistantOutputItems } from "./codex-openai-responses-bridge-assistant-output.utils.js";
 import { writeResponsesUpstreamStream } from "./codex-openai-responses-stream-writer.utils.js";
 
 type WrittenEvent = {
@@ -73,6 +74,25 @@ describe("OpenAI responses stream writer", () => {
       .toHaveLength(2);
     expect(events.filter((event) => event.event === "response.reasoning_text.delta"))
       .toHaveLength(0);
+    expect(events.filter((event) => event.event === "response.reasoning_text.done"))
+      .toHaveLength(0);
+    expect(
+      events.find((event) => event.event === "response.output_item.done")?.data.item,
+    ).toMatchObject({ type: "reasoning", content: [] });
+  });
+
+  it("keeps non-stream reasoning history provider-neutral", () => {
+    expect(buildAssistantOutputItems({
+      message: {
+        content: "answer",
+        reasoning_content: "private reasoning",
+      },
+      responseId: "response-1",
+    })[0]).toMatchObject({
+      type: "reasoning",
+      summary: [{ type: "summary_text", text: "private reasoning" }],
+      content: [],
+    });
   });
 
   it("preserves leading spaces in streamed tool call argument deltas", async () => {

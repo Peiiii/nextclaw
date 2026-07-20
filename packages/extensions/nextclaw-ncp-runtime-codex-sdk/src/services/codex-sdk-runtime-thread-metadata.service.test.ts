@@ -53,6 +53,70 @@ describe("CodexSdkNcpAgentRuntime thread metadata", () => {
 });
 
 describe("CodexAppServerNcpAgentRuntime thread metadata", () => {
+  it("restores the configured runtime default model on an existing thread", async () => {
+    const request = vi.fn(async (method: string) => {
+      if (method === "model/list") {
+        return { data: [{ id: "gpt-default", model: "gpt-default", isDefault: true }] };
+      }
+      if (method === "thread/resume") {
+        return {
+          thread: {
+            id: "thread-1",
+          },
+        };
+      }
+      if (method === "turn/start") {
+        return { turn: { id: "turn-1" } };
+      }
+      throw new Error(`Unexpected request: ${method}`);
+    });
+    const notifications = [
+      {
+        method: "item/completed",
+        params: { item: { id: "message-1", type: "agentMessage", text: "remember me" } },
+      },
+      {
+        method: "turn/completed",
+        params: { turn: { status: "completed", error: null } },
+      },
+    ];
+    const client = {
+      request,
+      nextNotification: vi.fn(async () => ({ done: false, value: notifications.shift() })),
+      dispose: vi.fn(),
+    };
+    const runtime = new CodexAppServerNcpAgentRuntime({
+      sessionId: "session-1",
+      apiKey: "",
+      threadId: "thread-1",
+      threadOptions: { workingDirectory: "/tmp/workspace" },
+      desktopThreadIndexSync: false,
+      inputBuilder: () => "what did I say?",
+    });
+    (runtime as unknown as {
+      resolveClient: () => Promise<typeof client>;
+    }).resolveClient = async () => client;
+    const events: NcpEndpointEvent[] = [];
+    for await (const event of runtime.run({
+      sessionId: "session-1",
+      correlationId: "corr-1",
+      messages: [],
+    })) {
+      events.push(event);
+    }
+
+    expect(request).toHaveBeenCalledWith("model/list", { includeHidden: true });
+    expect(request).toHaveBeenCalledWith("thread/resume", expect.objectContaining({
+      threadId: "thread-1",
+      model: "gpt-default",
+    }));
+    expect(request).toHaveBeenCalledWith("turn/start", expect.objectContaining({
+      threadId: "thread-1",
+      model: "gpt-default",
+    }));
+    expect(events.map((event) => event.type)).toContain(NcpEventType.RunFinished);
+  });
+
   it("compacts the resumed Codex thread through the app-server command", async () => {
     const request = vi.fn(async (method: string) => {
       if (method === "thread/resume") {
@@ -66,6 +130,7 @@ describe("CodexAppServerNcpAgentRuntime thread metadata", () => {
     const runtime = new CodexAppServerNcpAgentRuntime({
       sessionId: "session-1",
       apiKey: "sk-test",
+      model: "gpt-test",
       threadId: "thread-1",
       desktopThreadIndexSync: false,
     });
@@ -120,12 +185,15 @@ describe("CodexAppServerNcpAgentRuntime thread metadata", () => {
       },
     ]);
   });
+});
 
+describe("CodexAppServerNcpAgentRuntime turn lifecycle", () => {
   it("runs the pluggable desktop thread index sync after turn completion", async () => {
     const syncedThreadIds: Array<string | null | undefined> = [];
     const runtime = new CodexAppServerNcpAgentRuntime({
       sessionId: "session-1",
       apiKey: "sk-test",
+      model: "gpt-test",
       threadId: "thread-1",
       desktopThreadIndexSync: {
         syncThread: async ({ threadId }) => {
@@ -160,6 +228,43 @@ describe("CodexAppServerNcpAgentRuntime thread metadata", () => {
     expect(syncedThreadIds).toEqual(["thread-1"]);
   });
 
+  it("reports a failed turn/completed notification as run.error", async () => {
+    const runtime = new CodexAppServerNcpAgentRuntime({
+      sessionId: "session-1",
+      apiKey: "",
+      threadId: "thread-1",
+      desktopThreadIndexSync: false,
+    });
+    const generator = (runtime as unknown as {
+      handleNotification: (params: unknown) => AsyncGenerator<NcpEndpointEvent, boolean>;
+    }).handleNotification({
+      sessionId: "session-1",
+      messageId: "message-1",
+      runId: "run-1",
+      notification: {
+        method: "turn/completed",
+        params: {
+          turn: {
+            status: "failed",
+            error: { message: "provider rejected portable history" },
+          },
+        },
+      },
+      textState: new Set(),
+      textDeltaState: new Set(),
+      reasoningState: new Set(),
+      reasoningDeltaState: new Set(),
+      toolState: new Set(),
+    });
+
+    const event = await generator.next();
+
+    expect(event.value).toMatchObject({
+      type: NcpEventType.RunError,
+      payload: { error: "provider rejected portable history" },
+    });
+  });
+
   it("emits message.abort without waiting for the next app-server notification", async () => {
     const controller = new AbortController();
     let closeNotificationStream = (next: IteratorResult<never>): void => {
@@ -189,6 +294,7 @@ describe("CodexAppServerNcpAgentRuntime thread metadata", () => {
     const runtime = new CodexAppServerNcpAgentRuntime({
       sessionId: "session-1",
       apiKey: "sk-test",
+      model: "gpt-test",
       threadId: "thread-1",
       desktopThreadIndexSync: false,
       inputBuilder: () => "hello",

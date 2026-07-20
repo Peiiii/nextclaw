@@ -3,4 +3,4 @@
 "@nextclaw/nextclaw-ncp-runtime-codex-sdk": patch
 ---
 
-Keep Codex conversations connected to the same underlying thread when switching models, preserving the existing conversation context.
+Keep Codex conversation context intact when switching between the runtime default and custom models, including reasoning-enabled providers.

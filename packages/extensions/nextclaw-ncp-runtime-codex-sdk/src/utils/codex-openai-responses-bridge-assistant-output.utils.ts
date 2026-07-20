@@ -185,12 +185,7 @@ export function buildAssistantOutputItems(params: {
           text: reasoning,
         },
       ],
-      content: [
-        {
-          type: "reasoning_text",
-          text: reasoning,
-        },
-      ],
+      content: [],
       status: "completed",
     });
   }
@@ -222,9 +217,6 @@ export function writeReasoningOutputItemEvents(params: {
 }): void {
   const { item, outputIndex, response, sequenceState } = params;
   const itemId = readString(item.id);
-  const content = readArray(item.content);
-  const textPart = content.find((entry) => readString(readRecord(entry)?.type) === "reasoning_text");
-  const text = readString(readRecord(textPart)?.text) ?? "";
   const summary = readArray(item.summary);
   const summaryIndex = summary.findIndex((entry) => readString(readRecord(entry)?.type) === "summary_text");
   const summaryText =
@@ -275,17 +267,6 @@ export function writeReasoningOutputItemEvents(params: {
         type: "summary_text",
         text: summaryText,
       },
-    });
-  }
-
-  if (itemId) {
-    writeSseEvent(response, "response.reasoning_text.done", {
-      type: "response.reasoning_text.done",
-      sequence_number: nextSequenceNumber(sequenceState),
-      output_index: outputIndex,
-      item_id: itemId,
-      content_index: 0,
-      text,
     });
   }
 

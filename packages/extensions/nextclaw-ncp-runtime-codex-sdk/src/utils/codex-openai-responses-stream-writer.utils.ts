@@ -285,7 +285,7 @@ class CodexResponsesOpenAiStreamWriter {
       type: "reasoning",
       id: this.reasoningState.itemId,
       summary: [{ type: "summary_text", text: this.reasoningState.text }],
-      content: [{ type: "reasoning_text", text: this.reasoningState.text }],
+      content: [],
       status: "completed",
     };
     this.outputItems[this.reasoningState.outputIndex] = item;
@@ -302,13 +302,6 @@ class CodexResponsesOpenAiStreamWriter {
       item_id: this.reasoningState.itemId,
       summary_index: 0,
       part: { type: "summary_text", text: this.reasoningState.text },
-    });
-    this.writeEvent("response.reasoning_text.done", {
-      type: "response.reasoning_text.done",
-      output_index: this.reasoningState.outputIndex,
-      item_id: this.reasoningState.itemId,
-      content_index: 0,
-      text: this.reasoningState.text,
     });
     this.writeEvent("response.output_item.done", {
       type: "response.output_item.done",

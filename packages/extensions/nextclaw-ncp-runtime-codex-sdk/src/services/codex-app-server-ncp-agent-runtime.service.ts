@@ -72,12 +72,13 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
     yield* this.eventEmitter.emitReadyMetadata(input.sessionId, messageId, runId);
 
     const client = await this.resolveClient();
-    await this.resolveThread(client);
+    const route = await this.resolveModelRoute(client);
+    await this.resolveThread(client, route);
     const turnInput = await this.buildTurnInput(input);
     const turn = await client.request<{ turn?: { id?: string } }>("turn/start", {
       threadId: this.threadId ?? "",
       input: toAppServerInput(turnInput),
-      ...this.buildTurnOverrides(),
+      ...this.buildTurnOverrides(route),
     });
     const turnId = readString(turn.turn?.id);
     const abortListener = (): void => {
@@ -125,7 +126,7 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
     _input: NcpAgentContextCompactionInput,
   ): Promise<void> => {
     const client = await this.resolveClient();
-    await this.resolveThread(client);
+    await this.resolveThread(client, await this.resolveModelRoute(client));
     if (!this.threadId) {
       throw new Error("Codex context compaction requires a thread id.");
     }
@@ -142,17 +143,38 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
     return this.clientPromise;
   };
 
-  private resolveThread = async (client: CodexAppServerClient): Promise<void> => {
+  private resolveModelRoute = async (
+    client: CodexAppServerClient,
+  ): Promise<ReturnType<typeof splitModelRoute>> => {
+    const requested = splitModelRoute(this.config.threadOptions?.model ?? this.config.model);
+    if (requested.model) {
+      return requested;
+    }
+    const response = await client.request<{ data?: JsonObject[] }>("model/list", {
+      includeHidden: true,
+    });
+    const entry = response.data?.find((candidate) => candidate.isDefault === true);
+    const model = readString(entry?.model);
+    if (!model) {
+      throw new Error("Codex runtime default model could not be resolved.");
+    }
+    return { model };
+  };
+
+  private resolveThread = async (
+    client: CodexAppServerClient,
+    route: ReturnType<typeof splitModelRoute>,
+  ): Promise<void> => {
     if (this.threadId) {
       const response = await client.request<{ thread?: { id?: string } }>("thread/resume", {
         threadId: this.threadId,
-        ...this.buildThreadOverrides(),
+        ...this.buildThreadOverrides(route),
       });
       await this.updateThreadId(readString(response.thread?.id) ?? this.threadId);
       return;
     }
     const response = await client.request<{ thread?: { id?: string } }>("thread/start", {
-      ...this.buildThreadOverrides(),
+      ...this.buildThreadOverrides(route),
     });
     const nextThreadId = readString(response.thread?.id);
     if (nextThreadId) {
@@ -160,9 +182,8 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
     }
   };
 
-  private buildThreadOverrides = (): JsonObject => {
+  private buildThreadOverrides = (route: ReturnType<typeof splitModelRoute>): JsonObject => {
     const threadOptions = this.config.threadOptions;
-    const route = splitModelRoute(threadOptions?.model ?? this.config.model);
     return compactObject({
       cwd: threadOptions?.workingDirectory,
       model: route.model,
@@ -173,9 +194,8 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
     });
   };
 
-  private buildTurnOverrides = (): JsonObject => {
+  private buildTurnOverrides = (route: ReturnType<typeof splitModelRoute>): JsonObject => {
     const threadOptions = this.config.threadOptions;
-    const route = splitModelRoute(threadOptions?.model ?? this.config.model);
     return compactObject({
       cwd: threadOptions?.workingDirectory,
       model: route.model,
@@ -264,17 +284,18 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
       return false;
     }
     if (notification.method === "turn/completed") {
-      yield* this.eventEmitter.emitRunCompleted(sessionId, messageId, runId);
+      const turn = notification.params.turn as JsonObject | undefined;
+      if (turn?.status === "failed") {
+        yield* this.eventEmitter.emitRunError(
+          sessionId,
+          messageId,
+          runId,
+          formatError(turn.error ?? "Codex turn failed."),
+        );
+      } else {
+        yield* this.eventEmitter.emitRunCompleted(sessionId, messageId, runId);
+      }
       await this.syncDesktopThreadIndex();
-      return true;
-    }
-    if (notification.method === "turn/failed") {
-      yield* this.eventEmitter.emitRunError(
-        sessionId,
-        messageId,
-        runId,
-        readString(notification.params.error) ?? "Codex turn failed.",
-      );
       return true;
     }
     return false;
@@ -561,5 +582,8 @@ function readRawString(value: unknown): string | undefined {
 }
 
 function formatError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return readString((error as JsonObject | undefined)?.message) ?? String(error);
 }
