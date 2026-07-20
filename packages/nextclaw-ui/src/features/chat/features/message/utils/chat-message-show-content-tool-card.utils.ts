@@ -121,6 +121,7 @@ function readShowContentRequest(value: unknown): ChatUiShowContentRequest | null
       type: "panel_app",
       payload: {
         appId,
+        path: readOptionalString(payload.path),
       },
     },
     title,
@@ -178,6 +179,7 @@ export function buildShowContentToolCard(params: {
   const panelApp = request.target.type === "panel_app" && request.placement === "inline"
     ? {
         appId: request.target.payload.appId,
+        path: request.target.payload.path,
         title: request.title,
         action: showContentAction,
       }

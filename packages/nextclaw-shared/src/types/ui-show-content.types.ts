@@ -22,6 +22,7 @@ export type UiShowContentTarget =
       type: "panel_app";
       payload: {
         appId: string;
+        path?: string;
       };
     };
 

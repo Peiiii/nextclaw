@@ -1,3 +1,4 @@
+import { isAbsolute } from "node:path";
 import {
   normalizeToolParams,
   type ToolExecutionContext,
@@ -126,11 +127,16 @@ function normalizeShowUrlArgs(args: unknown): ShowContentRequest {
 
 function normalizeShowPanelAppArgs(args: unknown): ShowContentRequest {
   const params = normalizeToolParams(args);
+  const path = readOptionalString(params.path);
+  if (path && !isAbsolute(path)) {
+    throw new Error("path must be an absolute path.");
+  }
   return {
     target: {
       type: "panel_app",
       payload: {
         appId: readRequiredString(params.appId, "appId"),
+        path,
       },
     },
     ...readCommonRequestFields(params, PANEL_APP_PURPOSES),
@@ -226,6 +232,7 @@ const SHOW_CONTENT_TOOL_SPECS: readonly ShowContentToolSpec[] = [
       type: "object",
       properties: {
         appId: { type: "string", description: "Installed Panel App id to show." },
+        path: { type: "string", description: "Optional absolute path to a .panel.html file or .panel directory outside the standard panels directory." },
         title: { type: "string", description: "Optional title for the shown content." },
         purpose: { type: "string", enum: PANEL_APP_PURPOSES, description: "Optional user intent." },
       },

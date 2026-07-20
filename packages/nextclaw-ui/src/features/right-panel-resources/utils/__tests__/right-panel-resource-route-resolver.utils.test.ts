@@ -59,4 +59,37 @@ describe('RightPanelResourceRouteResolver', () => {
       'panel-app',
     )).toBe(true);
   });
+
+  it('preserves an explicit panel app source path across resource and content URLs', () => {
+    const resolver = new RightPanelResourceRouteResolver();
+    const resourceUri = 'nextclaw://panel-app/timer?path=%2Ftmp%2Ftimer.panel';
+    const contentUrl = '/api/panel-apps/timer/content?path=%2Ftmp%2Ftimer.panel';
+
+    expect(resolver.resolve(resourceUri)).toMatchObject({
+      dedupeKey: 'panel-app:/tmp/timer.panel',
+      kind: 'panel-app',
+      resourceUri,
+      url: contentUrl,
+    });
+    expect(resolver.resolveOpenTarget({
+      kind: 'panel-app',
+      url: contentUrl,
+    })).toMatchObject({
+      dedupeKey: 'panel-app:/tmp/timer.panel',
+      resourceUri,
+      url: contentUrl,
+    });
+    expect(resolver.areUrlsEquivalent(
+      resourceUri,
+      contentUrl,
+      'panel-app',
+      'panel-app',
+    )).toBe(true);
+    expect(resolver.areUrlsEquivalent(
+      resourceUri,
+      'nextclaw://panel-app/timer?path=%2Ftmp%2Fother.panel',
+      'panel-app',
+      'panel-app',
+    )).toBe(false);
+  });
 });

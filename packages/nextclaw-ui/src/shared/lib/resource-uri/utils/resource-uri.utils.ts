@@ -10,13 +10,16 @@ function normalizePathSegments(pathname: string): string[] {
 export function parseResourceUri(uri: string): ParsedResourceUri {
   const raw = uri.trim();
   try {
-    const parsed = new URL(raw);
+    const isRootRelative = raw.startsWith('/');
+    const parsed = isRootRelative
+      ? new URL(raw, 'http://nextclaw.local')
+      : new URL(raw);
     return {
-      authority: parsed.hostname,
+      authority: isRootRelative ? '' : parsed.hostname,
       pathSegments: normalizePathSegments(parsed.pathname),
       pathname: parsed.pathname,
       raw,
-      scheme: parsed.protocol.replace(/:$/, '').toLowerCase(),
+      scheme: isRootRelative ? '' : parsed.protocol.replace(/:$/, '').toLowerCase(),
       searchParams: parsed.searchParams,
     };
   } catch {

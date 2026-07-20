@@ -537,21 +537,23 @@ it("delegates nextclaw inline display rendering to the host renderer", () => {
   render(
     <ChatMessageMarkdown
       text={
-        '```nextclaw-inline\n{"target":{"type":"panel_app","payload":{"appId":"weather-card"}},"title":"Weather"}\n```'
+        '```nextclaw-inline\n{"target":{"type":"panel_app","payload":{"appId":"weather-card","path":"/tmp/weather-card.panel"}},"title":"Weather"}\n```'
       }
       role="assistant"
       texts={defaultTexts}
       renderInlineDisplay={(display) =>
         display.target.type === "panel_app" ? (
           <div data-testid="inline-panel-app">
-            {display.target.payload.appId}:{display.title}
+            {display.target.payload.appId}:{display.target.payload.path}:{display.title}
           </div>
         ) : undefined
       }
     />,
   );
 
-  expect(screen.getByTestId("inline-panel-app").textContent).toBe("weather-card:Weather");
+  expect(screen.getByTestId("inline-panel-app").textContent).toBe(
+    "weather-card:/tmp/weather-card.panel:Weather",
+  );
   expect(screen.queryByText("nextclaw-inline")).toBeNull();
 });
 

@@ -96,7 +96,13 @@ export class ChatUiManager {
       });
       return;
     }
-    const { appId } = target.payload;
+    const { appId, path } = target.payload;
+    if (path) {
+      this.docBrowserManager.open(createPanelAppResourceUri(appId, path), {
+        title,
+      });
+      return;
+    }
     const entry = await this.resolvePanelAppEntry(appId);
     if (entry) {
       this.docBrowserManager.openTarget(createPanelAppRightPanelResourceTarget(entry), {

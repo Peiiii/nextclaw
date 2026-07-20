@@ -1,12 +1,13 @@
 import {
+  createPanelAppContentPath,
   createPanelAppResourceUri,
   RIGHT_PANEL_PANEL_APP_TAB_KIND,
 } from "@/features/right-panel-resources";
 import { PANEL_APP_INLINE_HOST_CONTRACT } from "@nextclaw/shared";
 import type { DocBrowserTab } from "@/shared/components/doc-browser/doc-browser-context";
 
-export function createFallbackPanelAppContentPath(appId: string): string {
-  return `/api/panel-apps/${encodeURIComponent(appId)}/content`;
+export function createFallbackPanelAppContentPath(appId: string, sourcePath?: string): string {
+  return createPanelAppContentPath(appId, sourcePath);
 }
 
 export function createInlinePanelAppCardUrl(url: string): string {
@@ -35,19 +36,20 @@ export function readInlinePanelAppContentHeight(value: unknown): number | null {
 
 export function createInlinePanelAppTab(params: {
   appId: string;
+  path?: string;
   title: string;
   url: string;
 }): DocBrowserTab {
-  const { appId, title, url } = params;
+  const { appId, path, title, url } = params;
   return {
     currentUrl: url,
-    dedupeKey: `panel-app:${appId}`,
+    dedupeKey: `panel-app:${path ?? appId}`,
     history: [url],
     historyIndex: 0,
-    id: `inline-panel-app:${appId}`,
+    id: `inline-panel-app:${path ?? appId}`,
     kind: RIGHT_PANEL_PANEL_APP_TAB_KIND,
     navVersion: 0,
-    resourceUri: createPanelAppResourceUri(appId),
+    resourceUri: createPanelAppResourceUri(appId, path),
     title,
   };
 }

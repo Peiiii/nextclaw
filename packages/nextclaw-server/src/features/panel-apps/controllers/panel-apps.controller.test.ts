@@ -1,9 +1,9 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
-import { PanelAppError } from "@nextclaw/kernel";
+import { ConfigManager, PanelAppError, PanelAppManager } from "@nextclaw/kernel";
 import { EventBus } from "@nextclaw/shared";
 import { createUiRouter } from "@nextclaw-server/app/router.js";
 import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
@@ -28,6 +28,20 @@ function createTestApp(
     appEventBus: new EventBus(),
     ...options,
     kernel: createRouterTestKernel({ panelAppManager }),
+  });
+}
+
+function createTestPanelAppManager(workspacePath: string): PanelAppManager {
+  const configPath = createTempConfigPath();
+  saveConfig(ConfigSchema.parse({
+    agents: { defaults: { workspace: workspacePath } },
+  }), configPath);
+  return new PanelAppManager({
+    configManager: new ConfigManager({
+      configPath,
+      channels: { load: async () => undefined, reload: async () => undefined } as never,
+      providerManager: { load: async () => undefined } as never,
+    }),
   });
 }
 
@@ -83,31 +97,66 @@ describe("panel apps routes", () => {
   });
 
   it("serves panel app HTML content without wrapping it as JSON", async () => {
+    let requestedSource: [string, string | undefined] | undefined;
     const app = createTestApp({
       listPanelApps: async () => ({
         workspacePath: "",
         panelsPath: "",
         entries: [],
       }),
-      getPanelAppContent: async () => ({
-        capabilities: [],
-        appId: "demo",
-        clientDeclared: false,
-        clientGranted: false,
-        id: "demo",
-        fileName: "demo.panel.html",
-        html: "<!doctype html><h1>Demo</h1>",
-        serviceActions: [],
-        contentType: "text/html; charset=utf-8" as const,
-      }),
+      getPanelAppContent: async (id: string, path?: string) => {
+        requestedSource = [id, path];
+        return {
+          capabilities: [],
+          appId: "demo",
+          clientDeclared: false,
+          clientGranted: false,
+          id: "demo",
+          fileName: "demo.panel.html",
+          html: "<!doctype html><h1>Demo</h1>",
+          serviceActions: [],
+          contentType: "text/html; charset=utf-8" as const,
+        };
+      },
     } as never);
 
-    const response = await app.request("http://localhost/api/panel-apps/demo/content");
+    const response = await app.request(
+      "http://localhost/api/panel-apps/demo/content?path=%2Ftmp%2Fexternal-demo.panel",
+    );
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(await response.text()).toBe("<!doctype html><h1>Demo</h1>");
+    expect(requestedSource).toEqual(["demo", "/tmp/external-demo.panel"]);
+  });
+
+  it("serves external folder content and signed assets through the assembled routes", async () => {
+    const workspacePath = mkdtempSync(join(tmpdir(), "nextclaw-panel-app-workspace-test-"));
+    const appPath = join(workspacePath, "external-demo.panel");
+    tempDirs.push(workspacePath);
+    mkdirSync(appPath, { recursive: true });
+    writeFileSync(
+      join(appPath, "panel-app.json"),
+      JSON.stringify({ id: "external-demo", title: "External Demo", entry: "index.html" }),
+    );
+    writeFileSync(join(appPath, "index.html"), "<!doctype html><script src=\"app.js\"></script>");
+    writeFileSync(join(appPath, "app.js"), "window.externalDemo = true;");
+    const app = createTestApp(createTestPanelAppManager(workspacePath));
+
+    const contentResponse = await app.request(
+      `http://localhost/api/panel-apps/external-demo/content?${new URLSearchParams({ path: appPath })}`,
+    );
+    const html = await contentResponse.text();
+    const token = /\/api\/panel-app-assets\/([^/]+)\//.exec(html)?.[1];
+    const assetResponse = await app.request(
+      `http://localhost/api/panel-app-assets/${token}/app.js`,
+    );
+
+    expect(contentResponse.status).toBe(200);
+    expect(token).toBeTruthy();
+    expect(assetResponse.status).toBe(200);
+    expect(await assetResponse.text()).toBe("window.externalDemo = true;");
   });
 
   it("serves the configured panel app client SDK browser script", async () => {

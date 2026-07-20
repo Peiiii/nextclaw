@@ -6,6 +6,7 @@ const PANEL_APP_ASSET_TOKEN_TTL_MS = 2 * 60 * 60 * 1000;
 export type PanelAppAssetTokenClaims = {
   panelAppId: string;
   sourceName: string;
+  sourcePath: string;
   expiresAt: number;
   nonce: string;
 };
@@ -30,10 +31,12 @@ export class PanelAppAssetTokenService {
   issue = (params: {
     panelAppId: string;
     sourceName: string;
+    sourcePath: string;
   }): string => {
     const claims: PanelAppAssetTokenClaims = {
       panelAppId: params.panelAppId,
       sourceName: params.sourceName,
+      sourcePath: params.sourcePath,
       expiresAt: this.now() + this.ttlMs,
       nonce: randomBytes(12).toString("base64url"),
     };
@@ -91,10 +94,12 @@ function isPanelAppAssetTokenClaims(value: unknown): value is PanelAppAssetToken
     value !== null &&
     "panelAppId" in value &&
     "sourceName" in value &&
+    "sourcePath" in value &&
     "expiresAt" in value &&
     "nonce" in value &&
     typeof value.panelAppId === "string" &&
     typeof value.sourceName === "string" &&
+    typeof value.sourcePath === "string" &&
     typeof value.expiresAt === "number" &&
     typeof value.nonce === "string"
   );

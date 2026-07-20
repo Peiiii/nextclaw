@@ -116,11 +116,13 @@ describe("PanelAppAssetTokenService", () => {
     const token = service.issue({
       panelAppId: "demo-id",
       sourceName: "demo.panel",
+      sourcePath: "/tmp/demo.panel",
     });
 
     expect(service.verify(token)).toEqual(expect.objectContaining({
       panelAppId: "demo-id",
       sourceName: "demo.panel",
+      sourcePath: "/tmp/demo.panel",
       expiresAt: 1_100,
     }));
   });
@@ -135,6 +137,7 @@ describe("PanelAppAssetTokenService", () => {
     const token = service.issue({
       panelAppId: "demo-id",
       sourceName: "demo.panel",
+      sourcePath: "/tmp/demo.panel",
     });
 
     expect(readPanelAppTokenErrorCode(() => service.verify(`${token}x`))).toBe(
@@ -310,6 +313,61 @@ describe("PanelAppManager content", () => {
     expect(content.html).toContain("window.nextclaw");
     expect(content.html).toContain("<script src=\"app.js\" crossorigin=\"anonymous\"></script>");
     expect(content.html).toContain("<script src=\"https://cdn.example.com/widget.js\"></script>");
+  });
+
+  it("loads a single-file panel app from an explicit external path", async () => {
+    const workspacePath = createTempDir();
+    const appPath = join(createTempDir(), "external-demo.panel.html");
+    writeFileSync(
+      appPath,
+      "<!doctype html><meta name=\"nextclaw-panel-id\" content=\"external-demo\"><h1>External</h1>",
+    );
+
+    const content = await createPanelAppManager(workspacePath).getPanelAppContent(
+      "external-demo",
+      appPath,
+    );
+
+    expect(content.fileName).toBe("external-demo.panel.html");
+    expect(content.appId).toBe(content.id);
+    expect(content.html).toContain("<h1>External</h1>");
+  });
+
+  it("loads a folder panel app and its assets from an explicit external path", async () => {
+    const workspacePath = createTempDir();
+    const appPath = join(createTempDir(), "external-demo.panel");
+    mkdirSync(appPath, { recursive: true });
+    writeFileSync(
+      join(appPath, "panel-app.json"),
+      JSON.stringify({ id: "external-demo", title: "External Demo", entry: "index.html" }),
+    );
+    writeFileSync(join(appPath, "index.html"), "<!doctype html><script src=\"app.js\"></script>");
+    writeFileSync(join(appPath, "app.js"), "window.externalDemo = true;");
+    const manager = createPanelAppManager(workspacePath);
+
+    const content = await manager.getPanelAppContent("external-demo", appPath);
+    const token = /\/api\/panel-app-assets\/([^/]+)\//.exec(content.html)?.[1];
+
+    expect(content).toEqual(expect.objectContaining({
+      appId: "external-demo",
+      fileName: "external-demo.panel",
+    }));
+    expect(token).toBeTruthy();
+    await expect(manager.getPanelAppAssetByToken(token!, "app.js")).resolves.toEqual({
+      content: Buffer.from("window.externalDemo = true;"),
+      contentType: "application/javascript; charset=utf-8",
+    });
+  });
+
+  it("rejects a relative explicit panel app source path", async () => {
+    await expect(
+      createPanelAppManager(createTempDir()).getPanelAppContent(
+        "external-demo",
+        "external-demo.panel",
+      ),
+    ).rejects.toMatchObject({
+      code: "PANEL_APP_INVALID_SOURCE_PATH",
+    } satisfies Partial<PanelAppError>);
   });
 });
 

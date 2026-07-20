@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ResourceUriResolver } from '@/shared/lib/resource-uri';
+import { parseResourceUri, ResourceUriResolver } from '@/shared/lib/resource-uri';
 import type { ResourceUriRouteDefinition } from '@/shared/lib/resource-uri';
 
 type TestTarget = {
@@ -27,6 +27,18 @@ const routeDefinitions: ResourceUriRouteDefinition<TestTarget>[] = [
 ];
 
 describe('ResourceUriResolver', () => {
+  it('parses query parameters from root-relative resource URLs', () => {
+    const uri = parseResourceUri('/api/panel-apps/timer/content?path=%2Ftmp%2Ftimer.panel');
+
+    expect(uri).toMatchObject({
+      authority: '',
+      pathSegments: ['api', 'panel-apps', 'timer', 'content'],
+      pathname: '/api/panel-apps/timer/content',
+      scheme: '',
+    });
+    expect(uri.searchParams.get('path')).toBe('/tmp/timer.panel');
+  });
+
   it('resolves URI targets through registered route definitions', () => {
     const resolver = new ResourceUriResolver(routeDefinitions, {
       getNormalizedUri: (target) => target.normalizedUri,

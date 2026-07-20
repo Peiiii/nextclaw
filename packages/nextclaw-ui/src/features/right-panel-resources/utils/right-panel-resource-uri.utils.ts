@@ -34,8 +34,16 @@ export function normalizeRightPanelAppsUrl(url: string): string {
   return createRightPanelAppsUrl(getRightPanelAppsTabFromUrl(url));
 }
 
-export function createPanelAppResourceUri(appId: string): string {
-  return `nextclaw://panel-app/${encodeURIComponent(appId)}`;
+export function createPanelAppResourceUri(appId: string, sourcePath?: string): string {
+  const uri = `nextclaw://panel-app/${encodeURIComponent(appId)}`;
+  const path = sourcePath?.trim();
+  return path ? `${uri}?${new URLSearchParams({ path }).toString()}` : uri;
+}
+
+export function createPanelAppContentPath(appId: string, sourcePath?: string): string {
+  const url = `/api/panel-apps/${encodeURIComponent(appId)}/content`;
+  const path = sourcePath?.trim();
+  return path ? `${url}?${new URLSearchParams({ path }).toString()}` : url;
 }
 
 function isPanelAppImageIcon(icon: string): boolean {

@@ -126,6 +126,34 @@ it("renders panel apps through the shared adaptive inline surface", () => {
   );
 });
 
+it("renders and expands a panel app from an explicit external path", () => {
+  render(
+    <ChatInlinePanelAppCard
+      panelApp={{
+        appId: "weather-card",
+        path: "/tmp/weather-card.panel",
+        title: "External Weather",
+      }}
+    />,
+  );
+
+  expect(screen.getByTitle("External Weather").getAttribute("src")).toBe(
+    "/api/panel-apps/weather-card/content?path=%2Ftmp%2Fweather-card.panel&nextclawDisplayMode=card&nextclawPlacement=inline",
+  );
+
+  fireEvent.click(screen.getByLabelText("chatPanelCardExpand"));
+
+  expect(mocks.openTarget).not.toHaveBeenCalled();
+  expect(mocks.open).toHaveBeenCalledWith(
+    "/api/panel-apps/weather-card/content?path=%2Ftmp%2Fweather-card.panel",
+    {
+      dedupeKey: "panel-app:/tmp/weather-card.panel",
+      kind: "panel-app",
+      title: "External Weather",
+    },
+  );
+});
+
 it("ignores inline height messages from a different window", () => {
   const { container } = render(
     <ChatInlinePanelAppCard

@@ -86,7 +86,10 @@ function readPanelAppTarget(record: Record<string, unknown>): ChatInlineDisplayT
   }
   return {
     type: "panel_app",
-    payload: { appId },
+    payload: {
+      appId,
+      path: readString(payload.path),
+    },
   };
 }
 

@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { EventBus, eventKeys } from "@nextclaw/shared";
 import type { NcpTool } from "@nextclaw/ncp";
@@ -60,6 +61,7 @@ describe("show content tools", () => {
     expect(panelAppTool.description).toContain("nextclaw-inline");
     expect(panelAppParameters.required).toEqual(["appId"]);
     expect(panelAppParameters.properties).toHaveProperty("appId");
+    expect(panelAppParameters.properties).toHaveProperty("path");
     expect(panelAppParameters.properties).not.toHaveProperty("payload");
     expect(panelAppParameters.properties).not.toHaveProperty("placement");
     expect(panelAppParameters.additionalProperties).toBe(false);
@@ -157,6 +159,27 @@ describe("show content tools", () => {
     ]);
   });
 
+  it("rejects a URL target outside http and https", async () => {
+    const eventBus = new EventBus();
+    await expect(
+      getTool("show_url", eventBus).execute({
+        url: "file:///tmp/example.md",
+      }),
+    ).rejects.toThrow("url must use http or https.");
+  });
+
+  it("rejects unsupported file viewer values", async () => {
+    const eventBus = new EventBus();
+    await expect(
+      getTool("show_file", eventBus).execute({
+        path: "preview.html",
+        viewer: "iframe",
+      }),
+    ).rejects.toThrow('viewer must be "auto", "source", "rendered".');
+  });
+});
+
+describe("show_panel_app", () => {
   it("opens panel app showContent requests in the side panel", async () => {
     const eventBus = new EventBus();
     const events: unknown[] = [];
@@ -178,6 +201,7 @@ describe("show content tools", () => {
           type: "panel_app",
           payload: {
             appId: "reader",
+            path: undefined,
           },
         },
         title: "Reader",
@@ -192,6 +216,7 @@ describe("show content tools", () => {
           type: "panel_app",
           payload: {
             appId: "reader",
+            path: undefined,
           },
         },
         title: "Reader",
@@ -201,22 +226,49 @@ describe("show content tools", () => {
     ]);
   });
 
-  it("rejects a URL target outside http and https", async () => {
+  it("opens a panel app from an explicit absolute source path", async () => {
     const eventBus = new EventBus();
-    await expect(
-      getTool("show_url", eventBus).execute({
-        url: "file:///tmp/example.md",
+    const events: unknown[] = [];
+    const path = resolve("external", "reader.panel");
+    eventBus.on(eventKeys.uiShowContent, (payload) => {
+      events.push(payload);
+    });
+
+    const result = await getTool("show_panel_app", eventBus).execute({
+      appId: "reader",
+      path,
+    });
+
+    expect(result).toMatchObject({
+      request: {
+        target: {
+          type: "panel_app",
+          payload: {
+            appId: "reader",
+            path,
+          },
+        },
+      },
+    });
+    expect(events).toEqual([
+      expect.objectContaining({
+        target: {
+          type: "panel_app",
+          payload: {
+            appId: "reader",
+            path,
+          },
+        },
       }),
-    ).rejects.toThrow("url must use http or https.");
+    ]);
   });
 
-  it("rejects unsupported file viewer values", async () => {
-    const eventBus = new EventBus();
+  it("rejects a relative panel app source path", async () => {
     await expect(
-      getTool("show_file", eventBus).execute({
-        path: "preview.html",
-        viewer: "iframe",
+      getTool("show_panel_app").execute({
+        appId: "reader",
+        path: "external/reader.panel",
       }),
-    ).rejects.toThrow('viewer must be "auto", "source", "rendered".');
+    ).rejects.toThrow("path must be an absolute path.");
   });
 });

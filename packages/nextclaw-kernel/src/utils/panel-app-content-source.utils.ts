@@ -28,7 +28,45 @@ export async function readPanelAppContentSource(params: {
   sourceService: PanelAppSourceService;
 }): Promise<ResolvedPanelAppContentSource> {
   const { createAssetBaseHref, id, panelsPath, sourceService } = params;
-  const source = await sourceService.resolveSource(panelsPath, id);
+  return await readResolvedPanelAppContentSource(
+    await sourceService.resolveSource(panelsPath, id),
+    createAssetBaseHref,
+  );
+}
+
+export async function readPanelAppContentSourceByPath(params: {
+  createAssetBaseHref: (source: PanelAppSource) => string;
+  path: string;
+  sourceService: PanelAppSourceService;
+}): Promise<ResolvedPanelAppContentSource> {
+  const { createAssetBaseHref, path, sourceService } = params;
+  return await readResolvedPanelAppContentSource(
+    await sourceService.resolveSourcePath(path),
+    createAssetBaseHref,
+  );
+}
+
+export async function readPanelAppContentSourceByIdOrPath(params: {
+  createAssetBaseHref: (source: PanelAppSource) => string;
+  id: string;
+  panelsPath: string;
+  sourcePath?: string;
+  sourceService: PanelAppSourceService;
+}): Promise<ResolvedPanelAppContentSource> {
+  const { sourcePath, ...standardSourceParams } = params;
+  return sourcePath
+    ? await readPanelAppContentSourceByPath({
+        createAssetBaseHref: params.createAssetBaseHref,
+        path: sourcePath,
+        sourceService: params.sourceService,
+      })
+    : await readPanelAppContentSource(standardSourceParams);
+}
+
+async function readResolvedPanelAppContentSource(
+  source: PanelAppSource,
+  createAssetBaseHref: (source: PanelAppSource) => string,
+): Promise<ResolvedPanelAppContentSource> {
   const html = await readFile(source.entryPath, "utf8");
   const manifest = source.manifest ?? parsePanelAppManifest(html);
   const sourceId = encodePanelAppId(source.sourceName);

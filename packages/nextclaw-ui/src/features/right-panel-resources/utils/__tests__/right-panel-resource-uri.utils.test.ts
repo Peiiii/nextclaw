@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { PanelAppEntryView } from '@/shared/lib/api';
-import { createPanelAppRightPanelResourceTarget } from '@/features/right-panel-resources/utils/right-panel-resource-uri.utils';
+import {
+  createPanelAppContentPath,
+  createPanelAppResourceUri,
+  createPanelAppRightPanelResourceTarget,
+} from '@/features/right-panel-resources/utils/right-panel-resource-uri.utils';
 
 function createPanelAppEntry(overrides: Partial<PanelAppEntryView> = {}): PanelAppEntryView {
   return {
@@ -22,6 +26,15 @@ function createPanelAppEntry(overrides: Partial<PanelAppEntryView> = {}): PanelA
 }
 
 describe('right-panel-resource uri utils', () => {
+  it('builds matching external panel app resource and content URLs', () => {
+    expect(createPanelAppResourceUri('demo', '/tmp/demo.panel')).toBe(
+      'nextclaw://panel-app/demo?path=%2Ftmp%2Fdemo.panel',
+    );
+    expect(createPanelAppContentPath('demo', '/tmp/demo.panel')).toBe(
+      '/api/panel-apps/demo/content?path=%2Ftmp%2Fdemo.panel',
+    );
+  });
+
   it('keeps panel app image icons as dock image icons', () => {
     const target = createPanelAppRightPanelResourceTarget(createPanelAppEntry({
       icon: '/api/panel-apps/demo/assets/icon.png',

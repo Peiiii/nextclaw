@@ -271,6 +271,7 @@ export type ChatUiShowContentTarget =
       type: "panel_app";
       payload: {
         appId: string;
+        path?: string;
       };
     };
 
@@ -317,6 +318,7 @@ export type ChatFileOpenActionViewModel = {
 
 export type ChatPanelAppCardViewModel = {
   appId: string;
+  path?: string;
   title?: string;
   action: Extract<ChatToolActionViewModel, { kind: "show-content" }>;
 };
@@ -341,6 +343,7 @@ export type ChatInlineDisplayTarget =
       type: "panel_app";
       payload: {
         appId: string;
+        path?: string;
       };
     }
   | {

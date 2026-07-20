@@ -97,6 +97,7 @@ describe("ReplyFormatContextProvider", () => {
     }
     expect(context).toContain("nextclaw-inline");
     expect(context).toContain('"target":{"type":"panel_app"');
+    expect(context).toContain("add its absolute source `path`");
     expect(context).toContain(
       "Supported targets are `panel_app`, `json`, `file`, and `url`",
     );

@@ -41,6 +41,7 @@ function statusForPanelAppError(code: string): 400 | 401 | 403 | 404 | 408 {
     case "PANEL_APP_ASSET_TOKEN_INVALID":
       return 401;
     case "PANEL_APP_INVALID_ASSET_PATH":
+    case "PANEL_APP_INVALID_SOURCE_PATH":
     case "PANEL_APP_MANIFEST_INVALID":
       return 400;
     case "AGENT_OBJECT_RESULT_TIMEOUT":
@@ -122,6 +123,7 @@ export class PanelAppsRoutesController {
     try {
       const payload = await this.panelAppManager.getPanelAppContent(
         c.req.param("id"),
+        c.req.query("path"),
       );
       return new Response(payload.html, {
         headers: {

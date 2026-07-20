@@ -22,7 +22,7 @@ import { t } from "@/shared/lib/i18n";
 
 type ChatInlinePanelAppDescriptor = Pick<
   ChatPanelAppCardViewModel,
-  "appId" | "title"
+  "appId" | "path" | "title"
 >;
 
 export function ChatInlinePanelAppCard({
@@ -39,17 +39,19 @@ export function ChatInlinePanelAppCard({
   const panelApps = usePanelApps();
   const entry = useMemo(
     () =>
-      findPanelAppEntryByDisplayId(
+      panelApp.path ? undefined : findPanelAppEntryByDisplayId(
         panelApps.data?.entries ?? [],
         panelApp.appId,
       ),
-    [panelApp.appId, panelApps.data?.entries],
+    [panelApp.appId, panelApp.path, panelApps.data?.entries],
   );
   const target = entry ? createPanelAppRightPanelResourceTarget(entry) : null;
   const title = panelApp.title ?? target?.title ?? panelApp.appId;
-  const url = panelApps.isLoading
-    ? ""
-    : (target?.url ?? createFallbackPanelAppContentPath(panelApp.appId));
+  const url = panelApp.path
+    ? createFallbackPanelAppContentPath(panelApp.appId, panelApp.path)
+    : panelApps.isLoading
+      ? ""
+      : (target?.url ?? createFallbackPanelAppContentPath(panelApp.appId));
   const cardUrl = useMemo(
     () => (url ? createInlinePanelAppCardUrl(url) : ""),
     [url],
@@ -58,10 +60,11 @@ export function ChatInlinePanelAppCard({
     () =>
       createInlinePanelAppTab({
         appId: entry?.id ?? panelApp.appId,
+        path: panelApp.path,
         title,
         url,
       }),
-    [entry?.id, panelApp.appId, title, url],
+    [entry?.id, panelApp.appId, panelApp.path, title, url],
   );
   const iframeInstanceId = `${tab.id}:${tab.navVersion}:${iframeId}`;
   const openExpanded = () => {

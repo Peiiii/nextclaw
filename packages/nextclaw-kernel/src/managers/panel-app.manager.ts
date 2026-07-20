@@ -45,7 +45,7 @@ import {
 } from "@kernel/utils/panel-app-time.utils.js";
 import {
   assertPanelAppDeclaresClient,
-  readPanelAppContentSource,
+  readPanelAppContentSourceByIdOrPath,
   readPanelAppContentSourceByIdOrAppId,
   resolvePanelAppAppId,
 } from "@kernel/utils/panel-app-content-source.utils.js";
@@ -162,12 +162,13 @@ export class PanelAppManager {
     };
   };
 
-  getPanelAppContent = async (id: string): Promise<PanelAppContent> => {
+  getPanelAppContent = async (id: string, sourcePath?: string): Promise<PanelAppContent> => {
     try {
-      const resolved = await readPanelAppContentSource({
+      const resolved = await readPanelAppContentSourceByIdOrPath({
         createAssetBaseHref: this.createAssetBaseHref,
         id,
         panelsPath: this.getPanelsPath(this.getWorkspacePath()),
+        sourcePath,
         sourceService: this.sourceService,
       });
       const clientGranted = await this.isPanelAppClientGranted(
@@ -228,8 +229,7 @@ export class PanelAppManager {
         "invalid panel app asset token",
       );
     }
-    const panelsPath = this.getPanelsPath(this.getWorkspacePath());
-    return await this.sourceService.getAsset(panelsPath, claims.panelAppId, assetPath);
+    return await this.sourceService.getAssetBySourcePath(claims.sourcePath, assetPath);
   };
 
   getPanelAppBridgeScript = (): string =>
@@ -394,6 +394,7 @@ export class PanelAppManager {
     const token = this.assetTokenService.issue({
       panelAppId: encodePanelAppId(source.sourceName),
       sourceName: source.sourceName,
+      sourcePath: source.sourcePath,
     });
     return `${PANEL_APP_TOKENIZED_ASSET_BASE_PATH}/${encodeURIComponent(token)}/`;
   };

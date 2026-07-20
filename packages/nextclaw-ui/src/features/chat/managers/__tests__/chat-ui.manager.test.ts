@@ -125,4 +125,28 @@ describe('ChatUiManager content display', () => {
       title: 'Reader',
     });
   });
+
+  it('opens an explicit external panel app path without resolving the standard catalog', async () => {
+    const docBrowserManager = createDocBrowserManager();
+    const manager = new ChatUiManager(
+      docBrowserManager as unknown as ConstructorParameters<typeof ChatUiManager>[0],
+    );
+
+    await manager.showContent({
+      target: {
+        type: 'panel_app',
+        payload: {
+          appId: 'external-reader',
+          path: '/tmp/external-reader.panel',
+        },
+      },
+      title: 'External Reader',
+    });
+
+    expect(listPanelAppsMock).not.toHaveBeenCalled();
+    expect(docBrowserManager.open).toHaveBeenCalledWith(
+      'nextclaw://panel-app/external-reader?path=%2Ftmp%2Fexternal-reader.panel',
+      { title: 'External Reader' },
+    );
+  });
 });

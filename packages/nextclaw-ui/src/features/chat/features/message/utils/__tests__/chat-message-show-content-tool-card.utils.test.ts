@@ -149,6 +149,7 @@ describe("buildShowContentToolCard", () => {
               type: "panel_app",
               payload: {
                 appId: "reader",
+                path: "/tmp/reader.panel",
               },
             },
             title: "Reader",
@@ -164,6 +165,7 @@ describe("buildShowContentToolCard", () => {
     expect(card).toMatchObject({
       panelApp: {
         appId: "reader",
+        path: "/tmp/reader.panel",
         title: "Reader",
         action: {
           kind: "show-content",
@@ -173,6 +175,7 @@ describe("buildShowContentToolCard", () => {
               type: "panel_app",
               payload: {
                 appId: "reader",
+                path: "/tmp/reader.panel",
               },
             },
             title: "Reader",

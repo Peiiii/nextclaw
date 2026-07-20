@@ -1,5 +1,5 @@
 import { readdir, readFile, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { PanelAppError, isPanelAppError } from "@kernel/types/panel-app.types.js";
 import {
   decodePanelAppId,
@@ -63,12 +63,50 @@ export class PanelAppSourceService {
     }
   };
 
+  resolveSourcePath = async (sourcePath: string): Promise<PanelAppSource> => {
+    const normalizedPath = sourcePath.trim();
+    if (!normalizedPath || !isAbsolute(normalizedPath)) {
+      throw new PanelAppError(
+        "PANEL_APP_INVALID_SOURCE_PATH",
+        "panel app source path must be absolute",
+      );
+    }
+    const resolvedPath = resolve(normalizedPath);
+    try {
+      return await this.readSource(dirname(resolvedPath), basename(resolvedPath));
+    } catch (error) {
+      if (isPanelAppError(error)) {
+        throw error;
+      }
+      if (isMissingFileError(error)) {
+        throw new PanelAppError("PANEL_APP_NOT_FOUND", "panel app not found");
+      }
+      throw new PanelAppError(
+        "PANEL_APP_READ_FAILED",
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  };
+
   getAsset = async (
     panelsPath: string,
     id: string,
     assetPath: string,
   ): Promise<PanelAppAsset> => {
-    const source = await this.resolveSource(panelsPath, id);
+    return await this.readAsset(await this.resolveSource(panelsPath, id), assetPath);
+  };
+
+  getAssetBySourcePath = async (
+    sourcePath: string,
+    assetPath: string,
+  ): Promise<PanelAppAsset> => {
+    return await this.readAsset(await this.resolveSourcePath(sourcePath), assetPath);
+  };
+
+  private readAsset = async (
+    source: PanelAppSource,
+    assetPath: string,
+  ): Promise<PanelAppAsset> => {
     if (source.kind !== "folder") {
       throw new PanelAppError("PANEL_APP_NOT_FOUND", "panel app asset not found");
     }

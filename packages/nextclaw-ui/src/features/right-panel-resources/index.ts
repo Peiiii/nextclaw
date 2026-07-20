@@ -7,6 +7,7 @@ export type {
   RightPanelResourceTarget,
 } from '@/features/right-panel-resources/types/right-panel-resource.types';
 export {
+  createPanelAppContentPath,
   createPanelAppResourceUri,
   createPanelAppRightPanelResourceTarget,
   RIGHT_PANEL_APPS_TAB_KIND,
