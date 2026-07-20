@@ -3,6 +3,7 @@ import type {
   ChatFileOpenActionViewModel,
   ChatFileOperationBlockViewModel,
 } from "@nextclaw/agent-chat-ui";
+import { NextClawClientError } from "@nextclaw/client-sdk";
 import {
   ChatMessageMarkdown,
   FileOperationCodeSurface,
@@ -141,6 +142,13 @@ function WorkspaceFilePreviewStatus({
   );
 }
 
+export function resolveWorkspacePreviewErrorText(error: unknown): string {
+  return error instanceof NextClawClientError &&
+    error.code === "SERVER_PATH_NOT_FOUND"
+    ? t("chatWorkspacePreviewNotFound")
+    : t("chatWorkspacePreviewFailed");
+}
+
 function WorkspaceDiffBody({
   diffBlock,
 }: {
@@ -247,11 +255,7 @@ function WorkspacePreviewBody({
     return (
       <WorkspaceFilePreviewStatus
         tone="error"
-        text={
-          previewQuery.error instanceof Error
-            ? previewQuery.error.message
-            : String(previewQuery.error)
-        }
+        text={resolveWorkspacePreviewErrorText(previewQuery.error)}
       />
     );
   }

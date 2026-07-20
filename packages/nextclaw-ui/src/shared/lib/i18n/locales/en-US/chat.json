@@ -76,6 +76,7 @@
   "chatWorkspacePreviewUnsupported": "This file is not supported in the sidebar preview yet.",
   "chatWorkspacePreviewUnsupportedHint": "Legacy Word or PowerPoint files, archives, and other unsupported formats can be downloaded and opened with a local app.",
   "chatWorkspacePreviewFailed": "The file could not be previewed. You can still download it and open it with a local app.",
+  "chatWorkspacePreviewNotFound": "This file could not be found. It may have been moved, renamed, or deleted.",
   "chatWorkspaceSpreadsheetPreviewTruncated": "This workbook is large. The preview shows up to 500 rows and 100 columns.",
   "chatWorkspacePreviewDownload": "Download file",
   "chatWorkspacePreviewOpenExternally": "Open with system app",

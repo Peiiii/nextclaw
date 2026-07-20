@@ -76,6 +76,7 @@
   "chatWorkspacePreviewUnsupported": "该文件暂不支持在侧栏预览。",
   "chatWorkspacePreviewUnsupportedHint": "旧版 Word、PowerPoint、压缩包等暂不支持的格式，可以下载后用本机应用打开。",
   "chatWorkspacePreviewFailed": "文件预览失败。你仍可以下载后用本机应用打开。",
+  "chatWorkspacePreviewNotFound": "找不到这个文件。它可能已被移动、重命名或删除。",
   "chatWorkspaceSpreadsheetPreviewTruncated": "工作簿较大，当前最多显示 500 行和 100 列。",
   "chatWorkspacePreviewDownload": "下载文件",
   "chatWorkspacePreviewOpenExternally": "用系统应用打开",
